@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2048 2005-03-20 16:24:02Z twisti $
+   $Id: codegen.c 2071 2005-03-24 17:56:17Z christian $
 
 */
 
@@ -1336,13 +1336,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 			gen_div_check(src);
 
+			x86_64_mov_reg_reg(cd, RDX, REG_ITMP2);    /* save %rdx, cause it's an argument register */
+
 			x86_64_alul_imm_reg(cd, X86_64_CMP, 0x80000000, RAX);    /* check as described in jvm spec */
 			x86_64_jcc(cd, X86_64_CC_NE, 2 + 4 + 6);
+
+
 			x86_64_alul_reg_reg(cd, X86_64_XOR, RDX, RDX);           /* 2 bytes */
 			x86_64_alul_imm_reg(cd, X86_64_CMP, -1, REG_ITMP3);      /* 4 bytes */
-			x86_64_jcc(cd, X86_64_CC_E, 3 + 1 + 3);                  /* 6 bytes */
+			x86_64_jcc(cd, X86_64_CC_E, 1 + 3);                      /* 6 bytes */
 
-			x86_64_mov_reg_reg(cd, RDX, REG_ITMP2);    /* save %rdx, cause it's an argument register */
   			x86_64_cltd(cd);
 			x86_64_idivl_reg(cd, REG_ITMP3);
 
@@ -1448,14 +1451,17 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 			gen_div_check(src);
 
+			x86_64_mov_reg_reg(cd, RDX, REG_ITMP2);    /* save %rdx, cause it's an argument register */
+
 			x86_64_mov_imm_reg(cd, 0x8000000000000000LL, REG_ITMP2);    /* check as described in jvm spec */
 			x86_64_alu_reg_reg(cd, X86_64_CMP, REG_ITMP2, REG_ITMP1);
 			x86_64_jcc(cd, X86_64_CC_NE, 2 + 4 + 6);
+
+
 			x86_64_alul_reg_reg(cd, X86_64_XOR, RDX, RDX);              /* 2 bytes */
 			x86_64_alu_imm_reg(cd, X86_64_CMP, -1, REG_ITMP3);          /* 4 bytes */
-			x86_64_jcc(cd, X86_64_CC_E, 3 + 2 + 3);                     /* 6 bytes */
+			x86_64_jcc(cd, X86_64_CC_E, 2 + 3);                         /* 6 bytes */
 
-			x86_64_mov_reg_reg(cd, RDX, REG_ITMP2);    /* save %rdx, cause it's an argument register */
   			x86_64_cqto(cd);
 			x86_64_idiv_reg(cd, REG_ITMP3);
 

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 2070 2005-03-24 12:21:53Z twisti $
+   $Id: emitfuncs.c 2071 2005-03-24 17:56:17Z christian $
 
 */
 
@@ -284,6 +284,7 @@ void x86_64_emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 	s4 s1 = src->prev->regoff;
 	s4 s2 = src->regoff;
 	s4 d = iptr->dst->regoff;
+	s4 d_old;
 
 	M_INTMOVE(RCX, REG_ITMP1);    /* save RCX */
 	if (iptr->dst->flags & INMEMORY) {
@@ -325,6 +326,7 @@ void x86_64_emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 
 	} else {
 		if (d == RCX) {
+			d_old = d;
 			d = REG_ITMP3;
 		}
 					
@@ -355,7 +357,7 @@ void x86_64_emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 			x86_64_shiftl_reg(cd, shift_op, d);
 		}
 
-		if (d == RCX) {
+		if (d_old == RCX) {
 			M_INTMOVE(REG_ITMP3, RCX);
 
 		} else {
@@ -370,6 +372,7 @@ void x86_64_emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 	s4 s1 = src->prev->regoff;
 	s4 s2 = src->regoff;
 	s4 d = iptr->dst->regoff;
+	s4 d_old;
 
 	M_INTMOVE(RCX, REG_ITMP1);    /* save RCX */
 	if (iptr->dst->flags & INMEMORY) {
@@ -411,6 +414,7 @@ void x86_64_emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 
 	} else {
 		if (d == RCX) {
+			d_old = d;
 			d = REG_ITMP3;
 		}
 
@@ -440,7 +444,7 @@ void x86_64_emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 			x86_64_shift_reg(cd, shift_op, d);
 		}
 
-		if (d == RCX) {
+		if (d_old == RCX) {
 			M_INTMOVE(REG_ITMP3, RCX);
 
 		} else {
