@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 800 2003-12-16 22:47:59Z edwin $
+   $Id: headers.c 809 2003-12-30 20:54:57Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 #include "global.h"
 #include "tables.h"
 #include "loader.h"
+#include "mm/boehm.h"
 #include "toolbox/chain.h"
 #include "toolbox/memory.h"
 #include "toolbox/loging.h"
@@ -254,7 +255,7 @@ static char *printtype(char *utf_ptr)
 }
 
 
-/******* determine the number of entries of a utf string in the ident chain *****/
+/***** determine the number of entries of a utf string in the ident chain *****/
 
 static int searchidentchain_utf(utf *ident) 
 {
@@ -270,7 +271,7 @@ static int searchidentchain_utf(utf *ident)
 }
 
 
-/**************** print structure for direct access to objects ******************/	
+/************** print structure for direct access to objects ******************/
 
 static void printfields(classinfo *c)
 {
@@ -365,7 +366,7 @@ static void printmethod(methodinfo *m)
 }
 
 
-/****************** remove package-name in fully-qualified classname *********************/
+/******* remove package-name in fully-qualified classname *********************/
 
 static void gen_header_filename(char *buffer, utf *u)
 {
@@ -379,7 +380,7 @@ static void gen_header_filename(char *buffer, utf *u)
 }
 
 
-/*********** create headerfile for classes and store native methods in chain ************/
+/* create headerfile for classes and store native methods in chain ************/
 
 static void headerfile_generate(classinfo *c)
 {
@@ -621,7 +622,8 @@ int main(int argc, char **argv)
 	fprintf(file, "#define offbaseval     %3d\n", (int) OFFSET(vftbl, baseval));
 	fprintf(file, "#define offdiffval     %3d\n\n", (int) OFFSET(vftbl, diffval));
 
-	fprintf(file, "#define offclassvftbl    %3d\n", (int) OFFSET(classinfo, vftbl));
+	fprintf(file, "#define offclassvftbl  %3d\n", (int) OFFSET(classinfo, vftbl));
+	fprintf(file, "#define offclassinit   %3d\n\n", (int) OFFSET(classinfo, initialized));
 
 	fprintf(file, "#define offjniitemtype %3d\n", (int) OFFSET(jni_callblock, itemtype));
 	fprintf(file, "#define offjniitem     %3d\n", (int) OFFSET(jni_callblock, item));
