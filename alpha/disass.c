@@ -1,3 +1,4 @@
+/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
 /********************************* disass.c ************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
@@ -152,8 +153,9 @@ static struct { u2 op,fun; char *name; }  op3s[] = {
 	{ 0x12, 0x62,  "MSKLH  " },
 	{ 0x12, 0x72,  "MSKQH  " },
 	{ 0x13, 0x00,  "MULL   " },
-	{ 0x13, 0x60,  "MULQ/V " },
+	{ 0x13, 0x20,  "MULQ   " },
 	{ 0x13, 0x40,  "MULL/V " },
+	{ 0x13, 0x60,  "MULQ/V " },
 	{ 0x13, 0x30,  "UMULH  " },
 	{ 0x16, 0x080, "FADD   " },
 	{ 0x16, 0x0a0, "DADD   " },
