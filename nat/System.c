@@ -205,7 +205,7 @@ static char *proplist[MAXPROPS][2] = {
 	{ "os.version", NULL },
 
 	{ "java.class.version", "45.3" },
-	{ "java.version", "cacao:0.3" },
+	{ "java.version", PACKAGE":"VERSION },
 	{ "java.vendor", "CACAO Team" },
 	{ "java.vendor.url", "http://www.complang.tuwien.ac.at/java/cacao/" },
 	{ "path.separator", ":" },
@@ -246,7 +246,7 @@ JNIEXPORT struct java_util_Properties* JNICALL Java_java_lang_System_initPropert
 	proplist[5][1] = utsnamebuf.machine;
 	proplist[6][1] = utsnamebuf.sysname;
 	proplist[7][1] = utsnamebuf.release;
-
+	
 	if (!p) panic ("initProperties called with NULL-Argument");
 
 	/* search for method to add properties */
