@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 2012 2005-03-07 10:46:43Z christian $
+   $Id: global.h 2018 2005-03-09 11:53:25Z twisti $
 
 */
 
@@ -80,12 +80,11 @@ typedef struct arraydescriptor arraydescriptor;
 
 /* define some cacao paths ****************************************************/
 
+#define CACAO_JRE_DIR         "/jre"
 #define CACAO_LIBRARY_PATH    "/jre/lib/"ARCH_DIR"/"
 #define CACAO_RT_JAR_PATH     "/jre/lib/rt.jar"
 #define CACAO_EXT_DIR         "/jre/lib/ext"
 
-
-#define STATISTICS          /* if enabled collects program statistics         */
 
 /* 
  * SIZE_FROM_CLASSINFO toggles between the bitmap_based and the new method 
