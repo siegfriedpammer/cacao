@@ -30,8 +30,8 @@
 ##
 ## Changes:
 ##
-## $Id: java.in 1837 2005-01-03 14:03:08Z twisti $
+## $Id: java.in 2006 2005-03-05 18:47:05Z twisti $
 
-prefix = @prefix@
+prefix="@prefix@"
 
 exec ${prefix}/jre/bin/cacao $@
