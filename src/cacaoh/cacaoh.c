@@ -1,4 +1,4 @@
-/* cacaoh/cacaoh.c - main for header generation (cacaoh)
+/* src/cacaoh/cacaoh.c - main for header generation (cacaoh)
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 1910 2005-02-10 09:55:49Z twisti $
+   $Id: cacaoh.c 2019 2005-03-09 11:56:20Z twisti $
 
 */
 
@@ -300,8 +300,10 @@ int main(int argc, char **argv)
 
 	if (opt_verbose) {
 		log_text("Java - header-generator stopped");
+#if defined(STATISTICS)
 		log_cputime();
 		mem_usagelog(true);
+#endif
 	}
 	
 	return 0;

@@ -1,4 +1,4 @@
-/* toolbox/memory.c - 
+/* src/mm/memory.c - 
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: memory.c 2019 2005-03-09 11:56:20Z twisti $
 
 */
 
@@ -139,13 +139,15 @@ void *mem_alloc(s4 size)
 	if (size == 0)
 		return NULL;
 
+#if defined(STATISTICS)
 	if (opt_stat) {
 		memoryusage += size;
 
 		if (memoryusage > maxmemusage)
 			maxmemusage = memoryusage;
 	}
-	
+#endif
+
 	return checked_alloc(size);
 }
 
@@ -159,8 +161,10 @@ void *mem_realloc(void *src, s4 len1, s4 len2)
 			panic("reallocating memoryblock with address NULL, length != 0");
 	}
 
+#if defined(STATISTICS)
 	if (opt_stat)
 		memoryusage = (memoryusage - len1) + len2;
+#endif
 
 	dst = realloc(src, len2);
 
@@ -180,8 +184,10 @@ void mem_free(void *m, s4 size)
 		panic("returned memoryblock with address NULL, length != 0");
 	}
 
+#if defined(STATISTICS)
 	if (opt_stat)
 		memoryusage -= size;
+#endif
 
 	free(m);
 }
@@ -237,9 +243,11 @@ void *dump_alloc(s4 size)
 		/* increase the allocated dump size by the size of the new dump block */
 		di->allocateddumpsize += newdumpblocksize;
 
+#if defined(STATISTICS)
 		/* the amount of globally allocated dump memory (thread save)         */
 		if (opt_stat)
 			globalallocateddumpsize += newdumpblocksize;
+#endif
 	}
 
 	/* current dump block base address + the size of the current dump block - */
@@ -250,11 +258,13 @@ void *dump_alloc(s4 size)
 	/* increase used dump size by the allocated memory size                   */
 	di->useddumpsize += size;
 
+#if defined(STATISTICS)
 	if (opt_stat) {
 		if (di->useddumpsize > maxdumpsize) {
 			maxdumpsize = di->useddumpsize;
 		}
 	}
+#endif
 		
 	return m;
 }   
@@ -306,9 +316,11 @@ void dump_release(s4 size)
 		di->allocateddumpsize -= tmp->size;
 		di->currentdumpblock = tmp->prev;
 
+#if defined(STATISTICS)
 		/* the amount of globally allocated dump memory (thread save)         */
 		if (opt_stat)
 			globalallocateddumpsize -= tmp->size;
+#endif
 
 		/* release the dump memory and the dumpinfo structure                 */
 		free(tmp->dumpmem);
