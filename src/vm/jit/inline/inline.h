@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.h 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: inline.h 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -112,10 +112,13 @@ typedef struct t_inlining_globals {  // try in parse.h with struct not include
         classinfo *class;
         int jcodelength;
         u1 *jcode;
+	bool isleafmethod;
 } t_inlining_globals;
 
+
 /* function prototypes*/
-t_inlining_globals *inlining_init(methodinfo *m);
+
+void inlining_setup(methodinfo *m, t_inlining_globals *inline_env);
 void inlining_cleanup(t_inlining_globals *inline_env);
 void inlining_push_compiler_variables(
 				      int i, int p, int nextp, int opcode, 

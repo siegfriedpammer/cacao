@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1432 2004-11-03 12:14:50Z jowenn $
+   $Id: typecheck.c 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -682,7 +682,7 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 
 #define WORDCHECKFAULT \
   	do { \
-		show_icmd_method(m); \
+		show_icmd_method(m, cd, rd); \
 		dolog("localset->td index: %ld\ninstruction belongs to:%s.%s, outermethod:%s.%s\n", \
 		iptr->op1,iptr->method->class->name->text, \
 			iptr->method->name->text,m->class->name->text,m->name->text); \
@@ -797,7 +797,7 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 
 /* typecheck is called directly after analyse_stack */
 
-methodinfo *typecheck(codegendata *codegendata)
+methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 {
     int b_count, b_index;
     stackptr curstack;      /* input stack top for current instruction */
@@ -840,7 +840,6 @@ methodinfo *typecheck(codegendata *codegendata)
 	bool jsrencountered = false;         /* true if we there was a JSR */
 
     classinfo *myclass;
-    methodinfo *m=codegendata->method;
 
 #ifdef TYPECHECK_STATISTICS
 	int count_iterations = 0;
@@ -901,7 +900,7 @@ methodinfo *typecheck(codegendata *codegendata)
     
     /* In <init> methods we use an extra local variable to signal if
      * the 'this' reference has been initialized. */
-    numlocals = m->codegendata->maxlocals;
+    numlocals = cd->maxlocals;
 	validlocals = numlocals;
     if (initmethod) numlocals++;
 
@@ -912,7 +911,7 @@ methodinfo *typecheck(codegendata *codegendata)
     LOG("Variable buffer allocated.\n");
 
     /* allocate the buffer of active exception handlers */
-    handlers = DMNEW(exceptiontable*, codegendata->exceptiontablelength + 1);
+    handlers = DMNEW(exceptiontable*, cd->exceptiontablelength + 1);
 
     /* initialize the variable types of the first block */
     /* to the types of the arguments */
@@ -988,10 +987,10 @@ methodinfo *typecheck(codegendata *codegendata)
                 /* XXX could use a faster algorithm with sorted lists or
                  * something? */
                 len = 0;
-                for (i = 0; i < codegendata->exceptiontablelength; ++i) {
-                    if ((codegendata->exceptiontable[i].start <= bptr) && (codegendata->exceptiontable[i].end > bptr)) {
-                        LOG1("active handler L%03d", codegendata->exceptiontable[i].handler->debug_nr);
-                        handlers[len++] = codegendata->exceptiontable + i;
+                for (i = 0; i < cd->exceptiontablelength; ++i) {
+                    if ((cd->exceptiontable[i].start <= bptr) && (cd->exceptiontable[i].end > bptr)) {
+                        LOG1("active handler L%03d", cd->exceptiontable[i].handler->debug_nr);
+                        handlers[len++] = cd->exceptiontable + i;
                     }
                 }
                 handlers[len] = NULL;
@@ -1005,7 +1004,7 @@ methodinfo *typecheck(codegendata *codegendata)
 					for (i=0; i<numlocals; ++i)
 						if (localset->td[i].type == TYPE_ADR
 							&& TYPEINFO_IS_NEWOBJECT(localset->td[i].info)) {
-								show_icmd_method(m);
+								show_icmd_method(m, cd, rd);
 								printf("Uninitialized variale:%ld, block:%ld\n",i,bptr->debug_nr);
 								panic("Uninitialized object in local variable inside try block");
 							}
@@ -1121,7 +1120,7 @@ methodinfo *typecheck(codegendata *codegendata)
 						  }
 						  else {
 							  if (!TYPEDESC_IS_REFERENCE(localset->td[iptr->op1])) {
-								  show_icmd_method(m);
+								  show_icmd_method(m, cd, rd);
 								  dolog("localset->td index: %ld\ninstruction belongs to:%s.%s, outermethod:%s.%s\n",
 									iptr->op1,iptr->method->class->name->text,
 									iptr->method->name->text,m->class->name->text,m->name->text);
@@ -1678,9 +1677,9 @@ methodinfo *typecheck(codegendata *codegendata)
 											  LOG("saving input stack types");
 											  if (!savedstackbuf) {
 												  LOG("allocating savedstack buffer");
-												  savedstackbuf = DMNEW(stackelement,m->codegendata->maxstack);
+												  savedstackbuf = DMNEW(stackelement, cd->maxstack);
 												  savedstackbuf->prev = NULL;
-												  for (i=1; i<m->codegendata->maxstack; ++i)
+												  for (i = 1; i < cd->maxstack; ++i)
 													  savedstackbuf[i].prev = savedstackbuf+(i-1);
 											  }
 											  sp = savedstack = bptr->instack;

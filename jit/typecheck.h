@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: typecheck.h 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: typecheck.h 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -34,9 +34,12 @@
 #ifndef _TYPECHECK_H
 #define _TYPECHECK_H
 
+#include "jit/codegen.inc.h"
+
+
 /* function prototypes */
-struct codegendata;
-methodinfo *typecheck(codegendata *codegendata);
+
+methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd);
 
 #endif /* _TYPECHECK_H */
 

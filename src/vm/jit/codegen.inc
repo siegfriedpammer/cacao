@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: codegen.inc 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -115,15 +115,8 @@ void codegen_init()
 
 *******************************************************************************/
 
-void codegen_setup(methodinfo *m, t_inlining_globals * e)
+void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 {
-	codegendata *cd;
-
-	m->codegendata = NEW(codegendata);
-
-	/* keep code size smaller */
-	cd = m->codegendata;
-
 	cd->mcodebase = MNEW(u1, MCODEINITSIZE);
 	cd->mcodesize = MCODEINITSIZE;
 	
@@ -146,25 +139,29 @@ void codegen_setup(methodinfo *m, t_inlining_globals * e)
 	cd->linenumbertablestartpos = 0;
 	cd->linenumbertab = 0;
 	
-	cd->method=m;
-	cd->exceptiontable=0;
-	cd->exceptiontablelength=0;
-	if (useinlining && e) {
-		if (e->cumextablelength>0) {
-			cd->exceptiontablelength=e->cumextablelength;
-			cd->exceptiontable  = MNEW(exceptiontable, e->cumextablelength + 1);
+	cd->method = m;
+	cd->exceptiontable = 0;
+	cd->exceptiontablelength = 0;
+
+	if (useinlining && id) {
+		if (id->cumextablelength > 0) {
+			cd->exceptiontablelength = id->cumextablelength;
+			cd->exceptiontable  = MNEW(exceptiontable, id->cumextablelength + 1);
 		}
-	} else if (e && (e->method->exceptiontablelength >0)) {
-			cd->exceptiontablelength=m->exceptiontablelength;
-			cd->exceptiontable  = MNEW(exceptiontable, m->exceptiontablelength + 1);
+
+	} else if (id && (id->method->exceptiontablelength >0)) {
+		cd->exceptiontablelength = m->exceptiontablelength;
+		cd->exceptiontable  = MNEW(exceptiontable, m->exceptiontablelength + 1);
 	}
-        if (e) {
-          cd->maxstack=e->cummaxstack;
-          cd->maxlocals=e->cumlocals;
-        } else {
-          cd->maxstack=m->maxstack;
-          cd->maxlocals=m->maxlocals;
-        }
+
+	if (id) {
+		cd->maxstack = id->cummaxstack;
+		cd->maxlocals = id->cumlocals;
+	} else {
+		cd->maxstack = m->maxstack;
+		cd->maxlocals = m->maxlocals;
+	}
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	cd->threadcritcurrent.next = NULL;
 	cd->threadcritcount = 0;
@@ -172,21 +169,22 @@ void codegen_setup(methodinfo *m, t_inlining_globals * e)
 }
 
 
-/* codegen_close releases temporary code and data area                        */
+/* codegen_free ****************************************************************
 
-void codegen_close(methodinfo *m)
+   releases temporary code and data area
+
+*******************************************************************************/
+
+void codegen_free(methodinfo *m, codegendata *cd)
 {
-	codegendata *cd;
-
-	cd = m->codegendata;
-
 	if (cd) {
 		if (cd->exceptiontablelength) {
-			cd->exceptiontablelength=m->exceptiontablelength;
+			cd->exceptiontablelength = m->exceptiontablelength;
 			MFREE(cd->exceptiontable, exceptiontable, cd->exceptiontablelength + 1);
-			cd->exceptiontable=0;
-			cd->exceptiontablelength=0;
+			cd->exceptiontable = 0;
+			cd->exceptiontablelength = 0;
 		}
+
 		if (cd->mcodebase) {
 			MFREE(cd->mcodebase, u1, cd->mcodesize);
 			cd->mcodebase = NULL;
@@ -196,21 +194,27 @@ void codegen_close(methodinfo *m)
 			MFREE(cd->dsegtop - cd->dsegsize, u1, cd->dsegsize);
 			cd->dsegtop = NULL;
 		}
-
-		FREE(m->codegendata, codegendata);
-		m->codegendata = NULL;
 	}
+}
+
+
+/* codegen_close ***************************************************************
+
+   TODO
+
+*******************************************************************************/
+
+void codegen_close()
+{
+	/* TODO: release avl tree on i386 and x86_64 */
 }
 
 
 /* codegen_increase doubles code area                                         */
 
-static s4 *codegen_increase(methodinfo *m, u1 *codeptr)
+static s4 *codegen_increase(codegendata *cd, u1 *codeptr)
 {
-	codegendata *cd;
 	long len;
-
-	cd = m->codegendata;
 
 	len = codeptr - cd->mcodebase;
 	cd->mcodebase = MREALLOC(cd->mcodebase,
@@ -226,12 +230,9 @@ static s4 *codegen_increase(methodinfo *m, u1 *codeptr)
 
 /* desg_increase doubles data area                                            */
 
-static void dseg_increase(methodinfo *m)
+static void dseg_increase(codegendata *cd)
 {
-	codegendata *cd;
 	u1 *newstorage;
-
-	cd = m->codegendata;
 
 	newstorage = MNEW(u1, cd->dsegsize * 2);
 
@@ -244,13 +245,9 @@ static void dseg_increase(methodinfo *m)
 }
 
 
-static s4 dseg_adds4_increase(methodinfo *m, s4 value)
+static s4 dseg_adds4_increase(codegendata *cd, s4 value)
 {
-	codegendata *cd;
-
-	cd = m->codegendata;
-
-	dseg_increase(m);
+	dseg_increase(cd);
 
 	*((s4 *) (cd->dsegtop - cd->dseglen)) = value;
 
@@ -258,18 +255,15 @@ static s4 dseg_adds4_increase(methodinfo *m, s4 value)
 }
 
 
-static s4 dseg_adds4(methodinfo *m, s4 value)
+static s4 dseg_adds4(codegendata *cd, s4 value)
 {
-	codegendata *cd;
 	s4 *dataptr;
-
-	cd = m->codegendata;
 
 	cd->dseglen += 4;
 	dataptr = (s4 *) (cd->dsegtop - cd->dseglen);
 
 	if (cd->dseglen > cd->dsegsize)
-		return dseg_adds4_increase(m, value);
+		return dseg_adds4_increase(cd, value);
 
 	*dataptr = value;
 
@@ -278,13 +272,9 @@ static s4 dseg_adds4(methodinfo *m, s4 value)
 
 
 #if !defined(__I386__)
-static s4 dseg_adds8_increase(methodinfo *m, s8 value)
+static s4 dseg_adds8_increase(codegendata *cd, s8 value)
 {
-	codegendata *cd;
-
-	cd = m->codegendata;
-
-	dseg_increase(m);
+	dseg_increase(cd);
 
 	*((s8 *) (cd->dsegtop - cd->dseglen)) = value;
 
@@ -292,18 +282,15 @@ static s4 dseg_adds8_increase(methodinfo *m, s8 value)
 }
 
 
-static s4 dseg_adds8(methodinfo *m, s8 value)
+static s4 dseg_adds8(codegendata *cd, s8 value)
 {
-	codegendata *cd;
 	s8 *dataptr;
-
-	cd = m->codegendata;
 
 	cd->dseglen = ALIGN(cd->dseglen + 8, 8);
 	dataptr = (s8 *) (cd->dsegtop - cd->dseglen);
 
 	if (cd->dseglen > cd->dsegsize)
-		return dseg_adds8_increase(m, value);
+		return dseg_adds8_increase(cd, value);
 
 	*dataptr = value;
 
@@ -312,13 +299,9 @@ static s4 dseg_adds8(methodinfo *m, s8 value)
 #endif
 
 
-static s4 dseg_addfloat_increase(methodinfo *m, float value)
+static s4 dseg_addfloat_increase(codegendata *cd, float value)
 {
-	codegendata *cd;
-
-	cd = m->codegendata;
-
-	dseg_increase(m);
+	dseg_increase(cd);
 
 	*((float *) (cd->dsegtop - cd->dseglen)) = value;
 
@@ -326,18 +309,15 @@ static s4 dseg_addfloat_increase(methodinfo *m, float value)
 }
 
 
-static s4 dseg_addfloat(methodinfo *m, float value)
+static s4 dseg_addfloat(codegendata *cd, float value)
 {
-	codegendata *cd;
 	float *dataptr;
-
-	cd = m->codegendata;
 
 	cd->dseglen += 4;
 	dataptr = (float *) (cd->dsegtop - cd->dseglen);
 
 	if (cd->dseglen > cd->dsegsize)
-		return dseg_addfloat_increase(m, value);
+		return dseg_addfloat_increase(cd, value);
 
 	*dataptr = value;
 
@@ -345,13 +325,9 @@ static s4 dseg_addfloat(methodinfo *m, float value)
 }
 
 
-static s4 dseg_adddouble_increase(methodinfo *m, double value)
+static s4 dseg_adddouble_increase(codegendata *cd, double value)
 {
-	codegendata *cd;
-
-	cd = m->codegendata;
-
-	dseg_increase(m);
+	dseg_increase(cd);
 
 	*((double *) (cd->dsegtop - cd->dseglen)) = value;
 
@@ -359,18 +335,15 @@ static s4 dseg_adddouble_increase(methodinfo *m, double value)
 }
 
 
-static s4 dseg_adddouble(methodinfo *m, double value)
+static s4 dseg_adddouble(codegendata *cd, double value)
 {
-	codegendata *cd;
 	double *dataptr;
-
-	cd = m->codegendata;
 
 	cd->dseglen = ALIGN(cd->dseglen + 8, 8);
 	dataptr = (double *) (cd->dsegtop - cd->dseglen);
 
 	if (cd->dseglen > cd->dsegsize)
-		return dseg_adddouble_increase(m, value);
+		return dseg_adddouble_increase(cd, value);
 
 	*dataptr = value;
 
@@ -378,27 +351,21 @@ static s4 dseg_adddouble(methodinfo *m, double value)
 }
 
 
-static void dseg_addtarget(methodinfo *m, basicblock *target)
+static void dseg_addtarget(codegendata *cd, basicblock *target)
 {
-	codegendata *cd;
 	jumpref *jr;
 
-	cd = m->codegendata;
-	
 	jr = DNEW(jumpref);
-	jr->tablepos = dseg_addaddress(m, NULL);
+	jr->tablepos = dseg_addaddress(cd, NULL);
 	jr->target = target;
 	jr->next = cd->jumpreferences;
 	cd->jumpreferences = jr;
 }
 
 
-static void dseg_adddata(methodinfo *m, u1 *ptr)
+static void dseg_adddata(codegendata *cd, u1 *ptr)
 {
-	codegendata *cd;
 	dataref *dr;
-
-	cd = m->codegendata;
 
 	dr = DNEW(dataref);
 	dr->pos = (u1 *) (ptr - cd->mcodebase);
@@ -407,30 +374,23 @@ static void dseg_adddata(methodinfo *m, u1 *ptr)
 }
 
 
-static void dseg_addlinenumbertablesize(methodinfo *m)
+static void dseg_addlinenumbertablesize(codegendata *cd)
 {
-	codegendata *cd;
-
-	cd = m->codegendata;
-
 #ifdef __ALPHA__
-	dseg_adds4(m, 0); /*PADDING*/
+	dseg_adds4(cd, 0); /*PADDING*/
 #endif
-	cd->linenumbertablesizepos = dseg_addaddress(m, NULL); /*it could be considered to use adds4 here, to avoid 1 double word padding on ALPHA */
+	cd->linenumbertablesizepos = dseg_addaddress(cd, NULL); /*it could be considered to use adds4 here, to avoid 1 double word padding on ALPHA */
 
-	cd->linenumbertablestartpos = dseg_addaddress(m, NULL);
+	cd->linenumbertablestartpos = dseg_addaddress(cd, NULL);
 #ifdef __ALPHA__
-	dseg_adds4(m, 0); /*PADDING*/
+	dseg_adds4(cd, 0); /*PADDING*/
 #endif
 }
 
 
-static void dseg_addlinenumber(methodinfo *m, u2 linenumber, u1 *ptr)
+static void dseg_addlinenumber(codegendata *cd, u2 linenumber, u1 *ptr)
 {
-	codegendata *cd;
 	linenumberref *lr;
-
-	cd = m->codegendata;
 
 	lr = DNEW(linenumberref);
 	lr->linenumber = linenumber;
@@ -445,15 +405,12 @@ static void dseg_addlinenumber(methodinfo *m, u2 linenumber, u1 *ptr)
    on alpha... */
 
 #if defined(__I386__) || defined(__X86_64__)
-void codegen_addreference(methodinfo *m, basicblock *target, void *branchptr)
+void codegen_addreference(codegendata *cd, basicblock *target, void *branchptr)
 #else
-static void codegen_addreference(methodinfo *m, basicblock *target, void *branchptr)
+static void codegen_addreference(codegendata *cd, basicblock *target, void *branchptr)
 #endif
 {
-	codegendata *cd;
 	s4 branchpos;
-
-	cd = m->codegendata;
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
@@ -472,13 +429,10 @@ static void codegen_addreference(methodinfo *m, basicblock *target, void *branch
 }
 
 
-static void codegen_addxboundrefs(methodinfo *m, void *branchptr, s4 reg)
+static void codegen_addxboundrefs(codegendata *cd, void *branchptr, s4 reg)
 {
-	codegendata *cd;
 	s4 branchpos;
 	branchref *br;
-
-	cd = m->codegendata;
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
@@ -490,13 +444,10 @@ static void codegen_addxboundrefs(methodinfo *m, void *branchptr, s4 reg)
 }
 
 
-static void codegen_addxcheckarefs(methodinfo *m, void *branchptr)
+static void codegen_addxcheckarefs(codegendata *cd, void *branchptr)
 {
-	codegendata *cd;
 	s4 branchpos;
 	branchref *br;
-
-	cd = m->codegendata;
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
@@ -507,13 +458,10 @@ static void codegen_addxcheckarefs(methodinfo *m, void *branchptr)
 }
 
 
-static void codegen_addxnullrefs(methodinfo *m, void *branchptr)
+static void codegen_addxnullrefs(codegendata *cd, void *branchptr)
 {
-	codegendata *cd;
 	s4 branchpos;
 	branchref *br;
-
-	cd = m->codegendata;
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
@@ -524,14 +472,10 @@ static void codegen_addxnullrefs(methodinfo *m, void *branchptr)
 }
 
 
-
-static void codegen_addxcastrefs(methodinfo *m, void *branchptr)
+static void codegen_addxcastrefs(codegendata *cd, void *branchptr)
 {
-	codegendata *cd;
 	s4 branchpos;
 	branchref *br;
-
-	cd = m->codegendata;
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
@@ -542,13 +486,10 @@ static void codegen_addxcastrefs(methodinfo *m, void *branchptr)
 }
 
 
-static void codegen_addxexceptionrefs(methodinfo *m, void *branchptr)
+static void codegen_addxexceptionrefs(codegendata *cd, void *branchptr)
 {
-	codegendata *cd;
 	s4 branchpos;
 	branchref *br;
-
-	cd = m->codegendata;
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
@@ -560,13 +501,10 @@ static void codegen_addxexceptionrefs(methodinfo *m, void *branchptr)
 
 
 #if defined(__I386__) || defined(__X86_64__)
-static void codegen_addxdivrefs(methodinfo *m, void *branchptr)
+static void codegen_addxdivrefs(codegendata *cd, void *branchptr)
 {
-	codegendata *cd;
 	s4 branchpos;
 	branchref *br;
-
-	cd = m->codegendata;
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
@@ -578,21 +516,18 @@ static void codegen_addxdivrefs(methodinfo *m, void *branchptr)
 #endif
 
 
-static void codegen_createlinenumbertable(methodinfo *m)
+static void codegen_createlinenumbertable(codegendata *cd)
 {
 #ifdef __I386__
-	codegendata *cd;
 	linenumberref *lr;
 
-	cd = m->codegendata;
-
 	for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
-		lr->tablepos = dseg_addaddress(m, NULL);
+		lr->tablepos = dseg_addaddress(cd, NULL);
 
 		if (cd->linenumbertab == 0)
 			cd->linenumbertab = lr->tablepos;
 
-		dseg_addaddress(m, lr->linenumber);
+		dseg_addaddress(cd, lr->linenumber);
 	}
 #endif
 }
@@ -677,6 +612,12 @@ void *codegen_findmethod(void *pc)
 	methodtree_element *mtepc;
 	methodtree_element *mte;
 
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+	tables_lock();
+#endif
+#endif
+
 	mtepc = NEW(methodtree_element);
 	mtepc->startpc = pc;
 	mtepc->endpc = pc;
@@ -685,27 +626,38 @@ void *codegen_findmethod(void *pc)
 
 	FREE(mtepc, methodtree_element);
 
-	if (!mte)
+	if (!mte) {
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+		tables_unlock();
+#endif
+#endif
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "cannot find function");
+	}
+
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+	tables_unlock();
+#endif
+#endif
 
 	return mte->startpc;
 }
 #endif
 
 
-static void codegen_finish(methodinfo *m, s4 mcodelen)
+static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 {
-	codegendata *cd;
 	jumpref *jr;
 	u1 *epoint;
-	s4 extralen = 0;
+	s4 extralen;
 	s4 alignedlen;
 
-	cd = m->codegendata;
-
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	extralen += sizeof(threadcritnode) * cd->threadcritcount;
+	extralen = sizeof(threadcritnode) * cd->threadcritcount;
+#else
+	extralen = 0;
 #endif
 
 #if defined(STATISTICS)
@@ -729,8 +681,8 @@ static void codegen_finish(methodinfo *m, s4 mcodelen)
 	/* jump table resolving */
 	jr = cd->jumpreferences;
 	while (jr != NULL) {
-	    *((void**) (epoint + jr->tablepos)) = epoint + jr->target->mpc;
-	    jr = jr->next;
+		*((void**) (epoint + jr->tablepos)) = epoint + jr->target->mpc;
+		jr = jr->next;
 	}
 
 #ifdef __I386__
@@ -793,7 +745,7 @@ static void codegen_finish(methodinfo *m, s4 mcodelen)
 }
 
 
-void dseg_display(methodinfo *m)
+void dseg_display(methodinfo *m, codegendata *cd)
 {
 	s4 *s4ptr;
 	s4 i;
@@ -801,7 +753,7 @@ void dseg_display(methodinfo *m)
 	s4ptr = (s4 *) m->mcode;
 
 	printf("  --- dump of datasegment\n");
-	for (i = m->codegendata->dseglen; i > 0 ; i -= 4) {
+	for (i = cd->dseglen; i > 0 ; i -= 4) {
 		printf("-%6x: %8x\n", i, (s4) (*s4ptr++));
 	}
 	printf("  --- begin of data segment: %p\n", s4ptr);
@@ -818,7 +770,7 @@ void dseg_display(methodinfo *m)
     If not already done, regoff and flags are set in the stack location.
 */        
 
-static int reg_of_var(methodinfo *m, stackptr v, int tempregnum)
+static int reg_of_var(registerdata *rd, stackptr v, int tempregnum)
 {
 	varinfo *var;
 
@@ -828,13 +780,13 @@ static int reg_of_var(methodinfo *m, stackptr v, int tempregnum)
 			return(v->regoff);
 		break;
 	case STACKVAR:
-		var = &(m->registerdata->interfaces[v->varnum][v->type]);
+		var = &(rd->interfaces[v->varnum][v->type]);
 		v->regoff = var->regoff;
 		if (!(var->flags & INMEMORY))
 			return(var->regoff);
 		break;
 	case LOCALVAR:
-		var = &(m->registerdata->locals[v->varnum][v->type]);
+		var = &(rd->locals[v->varnum][v->type]);
 		v->regoff = var->regoff;
 		if (!(var->flags & INMEMORY))
 			return(var->regoff);
@@ -842,17 +794,17 @@ static int reg_of_var(methodinfo *m, stackptr v, int tempregnum)
 	case ARGVAR:
 		v->regoff = v->varnum;
 		if (IS_FLT_DBL_TYPE(v->type)) {
-			if (v->varnum < m->registerdata->fltreg_argnum) {
-				v->regoff = m->registerdata->argfltregs[v->varnum];
-				return(m->registerdata->argfltregs[v->varnum]);
+			if (v->varnum < rd->fltreg_argnum) {
+				v->regoff = rd->argfltregs[v->varnum];
+				return(rd->argfltregs[v->varnum]);
 			}
 		}
 		else
-			if (v->varnum < m->registerdata->intreg_argnum) {
-				v->regoff = m->registerdata->argintregs[v->varnum];
-				return(m->registerdata->argintregs[v->varnum]);
+			if (v->varnum < rd->intreg_argnum) {
+				v->regoff = rd->argintregs[v->varnum];
+				return (rd->argintregs[v->varnum]);
 			}
-		v->regoff -= m->registerdata->intreg_argnum;
+		v->regoff -= rd->intreg_argnum;
 		break;
 	}
 	v->flags |= INMEMORY;
@@ -862,22 +814,20 @@ static int reg_of_var(methodinfo *m, stackptr v, int tempregnum)
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-static void codegen_threadcritrestart(methodinfo *m, int offset)
+static void codegen_threadcritrestart(codegendata *cd, int offset)
 {
-	m->codegendata->threadcritcurrent.mcoderestart = offset;
+	cd->threadcritcurrent.mcoderestart = offset;
 }
 
-static void codegen_threadcritstart(methodinfo *m, int offset)
+
+static void codegen_threadcritstart(codegendata *cd, int offset)
 {
-	m->codegendata->threadcritcurrent.mcodebegin = offset;
+	cd->threadcritcurrent.mcodebegin = offset;
 }
 
-static void codegen_threadcritstop(methodinfo *m, int offset)
+
+static void codegen_threadcritstop(codegendata *cd, int offset)
 {
-	codegendata *cd;
-
-	cd = m->codegendata;
-
 	cd->threadcritcurrent.next = cd->threadcrit;
 	cd->threadcritcurrent.mcodeend = offset;
 	cd->threadcrit = DNEW(threadcritnodetemp);
@@ -885,6 +835,7 @@ static void codegen_threadcritstop(methodinfo *m, int offset)
 	cd->threadcritcount++;
 }
 #endif
+
 
 #ifndef STATIC_CLASSPATH
 static size_t codegen_overloadPartLen(utf *desc) {
@@ -1035,6 +986,7 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
   
 }
 #endif
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

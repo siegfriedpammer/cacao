@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: reg.inc 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -41,76 +41,82 @@
 
 /* function prototypes for this file */
 
-static void interface_regalloc(methodinfo *m);
-static void local_regalloc(methodinfo *m);
-static void allocate_scratch_registers(methodinfo *m);
+static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd);
+static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd);
+static void allocate_scratch_registers(methodinfo *m, registerdata *rd);
 
 
-/* function reg_init ***********************************************************
+/* reg_init ********************************************************************
 
-	initialises the register-allocator
+   TODO
 	
 *******************************************************************************/
 
-void reg_init(methodinfo *m)
+void reg_init()
 {
-	s4 n;
-	registerdata *r;
+	/* void */
+}
 
-	/* allocate registers structure */
-	m->registerdata = NEW(registerdata);
 
-	/* keep code size smaller */
-	r = m->registerdata;
+/* reg_setup *******************************************************************
+
+   TODO
+
+*******************************************************************************/
+
+void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
+{
+	s4 i;
+	varinfo5 *v;
 
 	/* setup the integer register table */
-	r->intreg_argnum = 0;
-	r->tmpintregcnt = 0;
-	r->savintregcnt = 0;
+	rd->intreg_argnum = 0;
+	rd->tmpintregcnt = 0;
+	rd->savintregcnt = 0;
 
-	for (r->intregsnum = 0; nregdescint[r->intregsnum] != REG_END; r->intregsnum++) {
-		switch (nregdescint[r->intregsnum]) {
+	for (rd->intregsnum = 0; nregdescint[rd->intregsnum] != REG_END; rd->intregsnum++) {
+		switch (nregdescint[rd->intregsnum]) {
 		case REG_SAV:
-			r->savintregcnt++;
+			rd->savintregcnt++;
 			break;
 		case REG_TMP:
-			r->tmpintregcnt++;
+			rd->tmpintregcnt++;
 			break;
 		case REG_ARG:
-			r->intreg_argnum++;
+			rd->intreg_argnum++;
 			break;
 		}
 	}
 
-	r->argintregs = MNEW(s4, r->intreg_argnum);
-	r->tmpintregs = MNEW(s4, r->tmpintregcnt);
-	r->savintregs = MNEW(s4, r->savintregcnt);
-	r->freeargintregs = MNEW(s4, r->intreg_argnum);
-	r->freetmpintregs = MNEW(s4, r->tmpintregcnt);
-	r->freesavintregs = MNEW(s4, r->savintregcnt);
+	rd->argintregs = MNEW(s4, rd->intreg_argnum);
+	rd->tmpintregs = MNEW(s4, rd->tmpintregcnt);
+	rd->savintregs = MNEW(s4, rd->savintregcnt);
+	rd->freeargintregs = MNEW(s4, rd->intreg_argnum);
+	rd->freetmpintregs = MNEW(s4, rd->tmpintregcnt);
+	rd->freesavintregs = MNEW(s4, rd->savintregcnt);
 #ifdef USETWOREGS
-	r->secondregs = MNEW(s4, r->intregsnum);
+	rd->secondregs = MNEW(s4, rd->intregsnum);
 #endif
 
-	r->intreg_argnum = 0;
-	r->argintreguse = 0;
-	r->tmpintreguse = 0;
-	r->savintreguse = 0;
+	rd->intreg_argnum = 0;
+	rd->argintreguse = 0;
+	rd->tmpintreguse = 0;
+	rd->savintreguse = 0;
 
-	for (n = 0; n < r->intregsnum; n++) {
-		switch (nregdescint[n]) {
+	for (i = 0; i < rd->intregsnum; i++) {
+		switch (nregdescint[i]) {
 		case REG_RET:
-			r->intreg_ret = n; 
+			rd->intreg_ret = i; 
 			break;
 		case REG_SAV:
-			r->savintregs[r->savintreguse++] = n;
+			rd->savintregs[rd->savintreguse++] = i;
 			break;
 		case REG_TMP:
-			r->tmpintregs[r->tmpintreguse++] = n;
+			rd->tmpintregs[rd->tmpintreguse++] = i;
 			break;
 		case REG_ARG:
-			r->argintregs[r->intreg_argnum++] = n;
-			r->argintreguse++;
+			rd->argintregs[rd->intreg_argnum++] = i;
+			rd->argintreguse++;
 			break;
 		}
 	}
@@ -120,9 +126,9 @@ void reg_init(methodinfo *m)
 	   this assumes that we have 3 tmp regs (%ecx, %edx, %ebx) 
 	   sort to [ %ebx, %edx, %ecx ]
 	 */
-	n = r->tmpintregs[0];
-	r->tmpintregs[0] = r->tmpintregs[2];
-	r->tmpintregs[2] = n;
+	i = rd->tmpintregs[0];
+	rd->tmpintregs[0] = rd->tmpintregs[2];
+	rd->tmpintregs[2] = i;
 #endif
 
 #if defined(__X86_64__)
@@ -130,90 +136,84 @@ void reg_init(methodinfo *m)
 	 * on x86_64 the argument registers are not in ascending order 
 	 * a00 (%rdi) <-> a03 (%rcx) and a01 (%rsi) <-> a02 (%rdx)
 	 */
-	n = r->argintregs[3];
-	r->argintregs[3] = r->argintregs[0];
-	r->argintregs[0] = n;
+	i = rd->argintregs[3];
+	rd->argintregs[3] = rd->argintregs[0];
+	rd->argintregs[0] = i;
 
-	n = r->argintregs[2];
-	r->argintregs[2] = r->argintregs[1];
-	r->argintregs[1] = n;
+	i = rd->argintregs[2];
+	rd->argintregs[2] = rd->argintregs[1];
+	rd->argintregs[1] = i;
 #endif
 		
 #ifdef USETWOREGS
-	for (n = 1; n < r->intreg_argnum; n++)
-		r->secondregs[r->argintregs[n - 1]] = r->argintregs[n];
-	for (n = 1; n < r->tmpintregcnt; n++)
-		r->secondregs[r->tmpintregs[n - 1]] = r->tmpintregs[n];
-	for (n = 1; n < r->savintregcnt; n++)
-		r->secondregs[r->savintregs[n - 1]] = r->savintregs[n];
+	for (i = 1; i < rd->intreg_argnum; i++)
+		rd->secondregs[rd->argintregs[i - 1]] = rd->argintregs[i];
+	for (i = 1; i < rd->tmpintregcnt; i++)
+		rd->secondregs[rd->tmpintregs[i - 1]] = rd->tmpintregs[i];
+	for (i = 1; i < rd->savintregcnt; i++)
+		rd->secondregs[rd->savintregs[i - 1]] = rd->savintregs[i];
 
-	r->secondregs[REG_ITMP1] = REG_ITMP2;
-	r->secondregs[REG_ITMP3] = REG_ITMP2;
-	r->secondregs[REG_RESULT] = REG_RESULT + 1;
-	r->secondregs[r->argintregs[r->intreg_argnum - 1]] = REG_ITMP3;
+	rd->secondregs[REG_ITMP1] = REG_ITMP2;
+	rd->secondregs[REG_ITMP3] = REG_ITMP2;
+	rd->secondregs[REG_RESULT] = REG_RESULT + 1;
+	rd->secondregs[rd->argintregs[rd->intreg_argnum - 1]] = REG_ITMP3;
 #endif
 
 	/* setup the float register table */
-	r->fltreg_argnum = 0;
-	r->tmpfltregcnt = 0;
-	r->savfltregcnt = 0;
+	rd->fltreg_argnum = 0;
+	rd->tmpfltregcnt = 0;
+	rd->savfltregcnt = 0;
 
-	for (r->floatregsnum = 0; nregdescfloat[r->floatregsnum] != REG_END; r->floatregsnum++) {
-		switch (nregdescfloat[r->floatregsnum]) {
+	for (rd->floatregsnum = 0; nregdescfloat[rd->floatregsnum] != REG_END; rd->floatregsnum++) {
+		switch (nregdescfloat[rd->floatregsnum]) {
 		case REG_SAV:
-			r->savfltregcnt++;
+			rd->savfltregcnt++;
 			break;
 		case REG_TMP:
-			r->tmpfltregcnt++;
+			rd->tmpfltregcnt++;
 			break;
 		case REG_ARG:
-			r->fltreg_argnum++;
+			rd->fltreg_argnum++;
 			break;
 		}
 	}
 
-	r->argfltregs = MNEW(s4, r->fltreg_argnum);
-	r->tmpfltregs = MNEW(s4, r->tmpfltregcnt);
-	r->savfltregs = MNEW(s4, r->savfltregcnt);
-	r->freeargfltregs = MNEW(s4, r->fltreg_argnum);
-	r->freetmpfltregs = MNEW(s4, r->tmpfltregcnt);
-	r->freesavfltregs = MNEW(s4, r->savfltregcnt);
+	rd->argfltregs = MNEW(s4, rd->fltreg_argnum);
+	rd->tmpfltregs = MNEW(s4, rd->tmpfltregcnt);
+	rd->savfltregs = MNEW(s4, rd->savfltregcnt);
+	rd->freeargfltregs = MNEW(s4, rd->fltreg_argnum);
+	rd->freetmpfltregs = MNEW(s4, rd->tmpfltregcnt);
+	rd->freesavfltregs = MNEW(s4, rd->savfltregcnt);
 
-	r->fltreg_argnum = 0;
-	r->argfltreguse = 0;
-	r->tmpfltreguse = 0;
-	r->savfltreguse = 0;
+	rd->fltreg_argnum = 0;
+	rd->argfltreguse = 0;
+	rd->tmpfltreguse = 0;
+	rd->savfltreguse = 0;
 
-	for (n = 0; n < r->floatregsnum; n++) {
-		switch (nregdescfloat[n]) {
+	for (i = 0; i < rd->floatregsnum; i++) {
+		switch (nregdescfloat[i]) {
 		case REG_RET:
-			r->floatreg_ret = n; 
+			rd->floatreg_ret = i; 
 			break;
 		case REG_SAV:
-			r->savfltregs[r->savfltreguse++] = n;
+			rd->savfltregs[rd->savfltreguse++] = i;
 			break;
 		case REG_TMP:
-			r->tmpfltregs[r->tmpfltreguse++] = n;
+			rd->tmpfltregs[rd->tmpfltreguse++] = i;
 			break;
 		case REG_ARG:
-			r->argfltregs[r->fltreg_argnum++] = n;
-			r->argfltreguse++;
+			rd->argfltregs[rd->fltreg_argnum++] = i;
+			rd->argfltreguse++;
 			break;
 		}
 	}
-}
 
 
-void reg_setup(t_inlining_globals *e)
-{
-	s4 i;
-	varinfo5 *v;
-	methodinfo *m=e->method;
-	m->registerdata->freemem    = MNEW(s4, e->cummaxstack);
-	m->registerdata->locals     = MNEW(varinfo5, e->cumlocals);
-	m->registerdata->interfaces = MNEW(varinfo5, e->cummaxstack);
+	rd->freemem    = MNEW(s4, id->cummaxstack);
+	rd->locals     = MNEW(varinfo5, id->cumlocals);
+	rd->interfaces = MNEW(varinfo5, id->cummaxstack);
 
-	for (v = m->registerdata->locals, i = e->cumlocals; i > 0; v++, i--) {
+	for (v = rd->locals, i = id->cumlocals; i > 0; v++, i--) {
 		v[0][TYPE_INT].type = -1;
 		v[0][TYPE_LNG].type = -1;
 		v[0][TYPE_FLT].type = -1;
@@ -221,7 +221,7 @@ void reg_setup(t_inlining_globals *e)
 		v[0][TYPE_ADR].type = -1;
 	}
 
-	for (v = m->registerdata->interfaces, i = e->cummaxstack; i > 0; v++, i--) {
+	for (v = rd->interfaces, i = id->cummaxstack; i > 0; v++, i--) {
 		v[0][TYPE_INT].type = -1;
 		v[0][TYPE_INT].flags = 0;
 		v[0][TYPE_LNG].type = -1;
@@ -236,43 +236,47 @@ void reg_setup(t_inlining_globals *e)
 }
 
 
-/* function reg_close **********************************************************
+/* function reg_free ***********************************************************
 
-	releases all allocated space for registers
+   releases all allocated space for registers
 
 *******************************************************************************/
 
-void reg_close(methodinfo *m)
+void reg_free(methodinfo *m, registerdata *rd)
 {
-	registerdata *r;
+	if (rd->argintregs) MFREE(rd->argintregs, s4, rd->intreg_argnum);
+	if (rd->argfltregs) MFREE(rd->argfltregs, s4, rd->fltreg_argnum);
+	if (rd->tmpintregs) MFREE(rd->tmpintregs, s4, rd->tmpintregcnt);
+	if (rd->savintregs) MFREE(rd->savintregs, s4, rd->savintregcnt);
+	if (rd->tmpfltregs) MFREE(rd->tmpfltregs, s4, rd->tmpfltregcnt);
+	if (rd->savfltregs) MFREE(rd->savfltregs, s4, rd->savfltregcnt);
 
-	/* keep code size smaller */
-	r = m->registerdata;
-
-	if (r->argintregs) MFREE(r->argintregs, s4, r->intreg_argnum);
-	if (r->argfltregs) MFREE(r->argfltregs, s4, r->fltreg_argnum);
-	if (r->tmpintregs) MFREE(r->tmpintregs, s4, r->tmpintregcnt);
-	if (r->savintregs) MFREE(r->savintregs, s4, r->savintregcnt);
-	if (r->tmpfltregs) MFREE(r->tmpfltregs, s4, r->tmpfltregcnt);
-	if (r->savfltregs) MFREE(r->savfltregs, s4, r->savfltregcnt);
-
-	if (r->freeargintregs) MFREE(r->freeargintregs, s4, r->intreg_argnum);
-	if (r->freeargfltregs) MFREE(r->freeargfltregs, s4, r->fltreg_argnum);
-	if (r->freetmpintregs) MFREE(r->freetmpintregs, s4, r->tmpintregcnt);
-	if (r->freesavintregs) MFREE(r->freesavintregs, s4, r->savintregcnt);
-	if (r->freetmpfltregs) MFREE(r->freetmpfltregs, s4, r->tmpfltregcnt);
-	if (r->freesavfltregs) MFREE(r->freesavfltregs, s4, r->savfltregcnt);
+	if (rd->freeargintregs) MFREE(rd->freeargintregs, s4, rd->intreg_argnum);
+	if (rd->freeargfltregs) MFREE(rd->freeargfltregs, s4, rd->fltreg_argnum);
+	if (rd->freetmpintregs) MFREE(rd->freetmpintregs, s4, rd->tmpintregcnt);
+	if (rd->freesavintregs) MFREE(rd->freesavintregs, s4, rd->savintregcnt);
+	if (rd->freetmpfltregs) MFREE(rd->freetmpfltregs, s4, rd->tmpfltregcnt);
+	if (rd->freesavfltregs) MFREE(rd->freesavfltregs, s4, rd->savfltregcnt);
 
 #ifdef USETWOREGS
-	if (r->secondregs) MFREE(r->secondregs, s4, r->intregsnum);
+	if (rd->secondregs) MFREE(rd->secondregs, s4, rd->intregsnum);
 #endif
 
-	if (r->freemem) MFREE(r->freemem, s4, m->codegendata->maxstack);
-	if (r->locals)  MFREE(r->locals, varinfo5, m->codegendata->maxlocals);
-	if (r->interfaces) MFREE(r->interfaces, varinfo5, m->codegendata->maxstack);
+	if (rd->freemem) MFREE(rd->freemem, s4, m->maxstack);
+	if (rd->locals)  MFREE(rd->locals, varinfo5, m->maxlocals);
+	if (rd->interfaces) MFREE(rd->interfaces, varinfo5, m->maxstack);
+}
 
-	FREE(m->registerdata, registerdata);
-	m->registerdata = NULL;
+
+/* reg_close *******************************************************************
+
+   TODO
+
+*******************************************************************************/
+
+void reg_close()
+{
+	/* void */
 }
 
 
@@ -282,7 +286,7 @@ void reg_close(methodinfo *m)
 	
 *******************************************************************************/
 	
-void regalloc(methodinfo *m)
+void regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 {
 #if defined(__I386__)
 	/* remove %ecx and/or %edx from tmpintregs */
@@ -291,9 +295,9 @@ void regalloc(methodinfo *m)
 	if (method_uses_edx) m->registerdata->tmpintregcnt--;
 #endif
 
-	interface_regalloc(m);
-	allocate_scratch_registers(m);
-	local_regalloc(m);
+	interface_regalloc(m, cd, rd);
+	allocate_scratch_registers(m, rd);
+	local_regalloc(m, cd, rd);
 
 #if defined(__I386__)
 	m->registerdata->tmpintregcnt = origtmpintregcnt;
@@ -307,18 +311,14 @@ void regalloc(methodinfo *m)
 	
 *******************************************************************************/
 	
-static void interface_regalloc(methodinfo *m)
+static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 {
 	int     s, t, saved;
 	int     intalloc, fltalloc;
 	varinfo *v;
 	int		regsneeded = 0;
-	registerdata *r;
 
 	/* allocate stack space for passing arguments to called methods */
-
-	/* keep code size smaller */
-	r = m->registerdata;
 
 #ifndef SPECIALMEMUSE
 #if defined(__X86_64__)
@@ -328,31 +328,31 @@ static void interface_regalloc(methodinfo *m)
 	 */
 	/*  	if (arguments_num > (intreg_argnum + fltreg_argnum)) */
 	/*  		ifmemuse = arguments_num - (intreg_argnum + fltreg_argnum); */
-	if (r->arguments_num > r->fltreg_argnum)
-		r->ifmemuse = r->arguments_num - r->fltreg_argnum;
+	if (rd->arguments_num > rd->fltreg_argnum)
+		rd->ifmemuse = rd->arguments_num - rd->fltreg_argnum;
 #else
-	if (r->arguments_num > r->intreg_argnum)
-		r->ifmemuse = r->arguments_num - r->intreg_argnum;
+	if (rd->arguments_num > rd->intreg_argnum)
+		rd->ifmemuse = rd->arguments_num - rd->intreg_argnum;
 #endif
 	else
-		r->ifmemuse = 0;
+		rd->ifmemuse = 0;
 #endif
 
-	r->iftmpintregcnt = r->tmpintregcnt;
-	r->ifsavintregcnt = r->savintregcnt;
-	r->iftmpfltregcnt = r->tmpfltregcnt;
-	r->ifsavfltregcnt = r->savfltregcnt;
+	rd->iftmpintregcnt = rd->tmpintregcnt;
+	rd->ifsavintregcnt = rd->savintregcnt;
+	rd->iftmpfltregcnt = rd->tmpfltregcnt;
+	rd->ifsavfltregcnt = rd->savfltregcnt;
 
-	for (s = 0; s < m->codegendata->maxstack; s++) {
+	for (s = 0; s < cd->maxstack; s++) {
 		intalloc = -1; fltalloc = -1;
-		saved = (r->interfaces[s][TYPE_INT].flags |
-				 r->interfaces[s][TYPE_LNG].flags |
-		         r->interfaces[s][TYPE_FLT].flags |
-				 r->interfaces[s][TYPE_DBL].flags |
-		         r->interfaces[s][TYPE_ADR].flags) & SAVEDVAR;
+		saved = (rd->interfaces[s][TYPE_INT].flags |
+				 rd->interfaces[s][TYPE_LNG].flags |
+		         rd->interfaces[s][TYPE_FLT].flags |
+				 rd->interfaces[s][TYPE_DBL].flags |
+		         rd->interfaces[s][TYPE_ADR].flags) & SAVEDVAR;
  
 		for (t = TYPE_INT; t <= TYPE_ADR; t++) {
-			v = &r->interfaces[s][t];
+			v = &rd->interfaces[s][t];
 			if (v->type >= 0) {
 #ifdef USETWOREGS
 				regsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
@@ -360,21 +360,21 @@ static void interface_regalloc(methodinfo *m)
 				if (!saved) {
 					if (IS_FLT_DBL_TYPE(t)) {
 						if (fltalloc >= 0) {
-							v->flags |= r->interfaces[s][fltalloc].flags & INMEMORY;
-							v->regoff = r->interfaces[s][fltalloc].regoff;
+							v->flags |= rd->interfaces[s][fltalloc].flags & INMEMORY;
+							v->regoff = rd->interfaces[s][fltalloc].regoff;
 						}
-						else if (r->iftmpfltregcnt > 0) {
-							r->iftmpfltregcnt--;
-							v->regoff = r->tmpfltregs[r->iftmpfltregcnt];
+						else if (rd->iftmpfltregcnt > 0) {
+							rd->iftmpfltregcnt--;
+							v->regoff = rd->tmpfltregs[rd->iftmpfltregcnt];
 						}
-						else if (r->ifsavfltregcnt > 0) {
-							r->ifsavfltregcnt--;
-							v->regoff = r->savfltregs[r->ifsavfltregcnt];
+						else if (rd->ifsavfltregcnt > 0) {
+							rd->ifsavfltregcnt--;
+							v->regoff = rd->savfltregs[rd->ifsavfltregcnt];
 						}
 						else {
 							v->flags |= INMEMORY;
-							v->regoff = r->ifmemuse;
-							r->ifmemuse += regsneeded + 1;
+							v->regoff = rd->ifmemuse;
+							rd->ifmemuse += regsneeded + 1;
 						}
 						fltalloc = t;
 					}
@@ -385,25 +385,25 @@ static void interface_regalloc(methodinfo *m)
 						 */
 						if (IS_2_WORD_TYPE(t)) {
 							v->flags |= INMEMORY;
-							v->regoff = r->ifmemuse++;
+							v->regoff = rd->ifmemuse++;
 						} else {
 #endif
 							if (intalloc >= 0) {
-								v->flags |= r->interfaces[s][intalloc].flags & INMEMORY;
-								v->regoff = r->interfaces[s][intalloc].regoff;
+								v->flags |= rd->interfaces[s][intalloc].flags & INMEMORY;
+								v->regoff = rd->interfaces[s][intalloc].regoff;
 							}
-							else if (r->iftmpintregcnt > regsneeded) {
-								r->iftmpintregcnt -= regsneeded + 1;
-								v->regoff = r->tmpintregs[r->iftmpintregcnt];
+							else if (rd->iftmpintregcnt > regsneeded) {
+								rd->iftmpintregcnt -= regsneeded + 1;
+								v->regoff = rd->tmpintregs[rd->iftmpintregcnt];
 							}
-							else if (r->ifsavintregcnt > regsneeded) {
-								r->ifsavintregcnt -= regsneeded + 1;
-								v->regoff = r->savintregs[r->ifsavintregcnt];
+							else if (rd->ifsavintregcnt > regsneeded) {
+								rd->ifsavintregcnt -= regsneeded + 1;
+								v->regoff = rd->savintregs[rd->ifsavintregcnt];
 							}
 							else {
 								v->flags |= INMEMORY;
-								v->regoff = r->ifmemuse;
-								r->ifmemuse += regsneeded + 1;
+								v->regoff = rd->ifmemuse;
+								rd->ifmemuse += regsneeded + 1;
 							}
 #if defined(__I386__)
 						}
@@ -414,17 +414,17 @@ static void interface_regalloc(methodinfo *m)
 				else {
 					if (IS_FLT_DBL_TYPE(t)) {
 						if (fltalloc >= 0) {
-							v->flags |= r->interfaces[s][fltalloc].flags & INMEMORY;
-							v->regoff = r->interfaces[s][fltalloc].regoff;
+							v->flags |= rd->interfaces[s][fltalloc].flags & INMEMORY;
+							v->regoff = rd->interfaces[s][fltalloc].regoff;
 						}
-						else if (r->ifsavfltregcnt > 0) {
-							r->ifsavfltregcnt--;
-							v->regoff = r->savfltregs[r->ifsavfltregcnt];
+						else if (rd->ifsavfltregcnt > 0) {
+							rd->ifsavfltregcnt--;
+							v->regoff = rd->savfltregs[rd->ifsavfltregcnt];
 						}
 						else {
 							v->flags |= INMEMORY;
-							v->regoff = r->ifmemuse;
-							r->ifmemuse += regsneeded + 1;
+							v->regoff = rd->ifmemuse;
+							rd->ifmemuse += regsneeded + 1;
 						}
 						fltalloc = t;
 					}
@@ -435,21 +435,21 @@ static void interface_regalloc(methodinfo *m)
 						 */
 						if (IS_2_WORD_TYPE(t)) {
 							v->flags |= INMEMORY;
-							v->regoff = r->ifmemuse++;
+							v->regoff = rd->ifmemuse++;
 						} else {
 #endif
 							if (intalloc >= 0) {
-								v->flags |= r->interfaces[s][intalloc].flags & INMEMORY;
-								v->regoff = r->interfaces[s][intalloc].regoff;
+								v->flags |= rd->interfaces[s][intalloc].flags & INMEMORY;
+								v->regoff = rd->interfaces[s][intalloc].regoff;
 							}
-							else if (r->ifsavintregcnt > regsneeded) {
-								r->ifsavintregcnt -= regsneeded + 1;
-								v->regoff = r->savintregs[r->ifsavintregcnt];
+							else if (rd->ifsavintregcnt > regsneeded) {
+								rd->ifsavintregcnt -= regsneeded + 1;
+								v->regoff = rd->savintregs[rd->ifsavintregcnt];
 							}
 							else {
 								v->flags |= INMEMORY;
-								v->regoff = r->ifmemuse;
-								r->ifmemuse += regsneeded + 1;
+								v->regoff = rd->ifmemuse;
+								rd->ifmemuse += regsneeded + 1;
 							}
 #if defined(__I386__)
 						}
@@ -461,13 +461,13 @@ static void interface_regalloc(methodinfo *m)
 		} /* for t */
 	} /* for s */
 
-	r->maxmemuse = r->ifmemuse;
-	r->maxargintreguse = -1;
-	r->maxtmpintreguse = r->iftmpintregcnt;
-	r->maxsavintreguse = r->ifsavintregcnt;
-	r->maxargfltreguse = -1;
-	r->maxtmpfltreguse = r->iftmpfltregcnt;
-	r->maxsavfltreguse = r->ifsavfltregcnt;
+	rd->maxmemuse = rd->ifmemuse;
+	rd->maxargintreguse = -1;
+	rd->maxtmpintreguse = rd->iftmpintregcnt;
+	rd->maxsavintreguse = rd->ifsavintregcnt;
+	rd->maxargfltreguse = -1;
+	rd->maxtmpfltreguse = rd->iftmpfltregcnt;
+	rd->maxsavfltreguse = rd->ifsavfltregcnt;
 }
 
 
@@ -478,28 +478,24 @@ static void interface_regalloc(methodinfo *m)
 	
 *******************************************************************************/
 	
-static void local_regalloc(methodinfo *m)
+static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 {
 	int      s, t, tt;
 	int      intalloc, fltalloc;
 	varinfo *v;
 	int      regsneeded = 0;
 	int typeloop[] = { TYPE_LNG, TYPE_DBL, TYPE_INT, TYPE_FLT, TYPE_ADR };
-	registerdata *r;
-
-	/* keep code size smaller */
-	r = m->registerdata;
 
 	if (m->isleafmethod) {
 		int arg, doublewordarg, iargcnt, fargcnt;
 
 		arg = 0, iargcnt = 0, fargcnt = 0;
 		doublewordarg = 0;
-		for (s = 0; s < m->codegendata->maxlocals; s++) {
+		for (s = 0; s < cd->maxlocals; s++) {
 			intalloc = -1; fltalloc = -1;
 			for (tt = 0; tt <= 4; tt++) {
 				t = typeloop[tt];
-				v = &r->locals[s][t];
+				v = &rd->locals[s][t];
 
 				if (v->type >= 0) {
 #ifdef USETWOREGS
@@ -510,28 +506,28 @@ static void local_regalloc(methodinfo *m)
 						fargcnt = arg;
 #endif
 						if (fltalloc >= 0) {
-							v->flags = r->locals[s][fltalloc].flags;
-							v->regoff = r->locals[s][fltalloc].regoff;
+							v->flags = rd->locals[s][fltalloc].flags;
+							v->regoff = rd->locals[s][fltalloc].regoff;
 						}
   						else if (!doublewordarg && (arg < m->paramcount) &&
-								 (fargcnt < r->fltreg_argnum)) {
+								 (fargcnt < rd->fltreg_argnum)) {
 							v->flags = 0;
-							v->regoff = r->argfltregs[fargcnt];
+							v->regoff = rd->argfltregs[fargcnt];
 						}
-						else if (r->maxtmpfltreguse > 0) {
-							r->maxtmpfltreguse--;
+						else if (rd->maxtmpfltreguse > 0) {
+							rd->maxtmpfltreguse--;
 							v->flags = 0;
-							v->regoff = r->tmpfltregs[r->maxtmpfltreguse];
+							v->regoff = rd->tmpfltregs[rd->maxtmpfltreguse];
 						}
-						else if (r->maxsavfltreguse > 0) {
-							r->maxsavfltreguse--;
+						else if (rd->maxsavfltreguse > 0) {
+							rd->maxsavfltreguse--;
 							v->flags = 0;
-							v->regoff = r->savfltregs[r->maxsavfltreguse];
+							v->regoff = rd->savfltregs[rd->maxsavfltreguse];
 						}
 						else {
 							v->flags = INMEMORY;
-							v->regoff = r->maxmemuse;
-							r->maxmemuse += regsneeded + 1;
+							v->regoff = rd->maxmemuse;
+							rd->maxmemuse += regsneeded + 1;
 						}
 						fltalloc = t;
 
@@ -543,50 +539,50 @@ static void local_regalloc(methodinfo *m)
 						 */
 						if (IS_2_WORD_TYPE(t)) {
 							v->flags = INMEMORY;
-							v->regoff = r->maxmemuse++;
+							v->regoff = rd->maxmemuse++;
 						} else {
 #endif
 #if !defined(CONSECUTIVE_INTARGS)
 							iargcnt = arg;
 #endif
 							if (intalloc >= 0) {
-								v->flags = r->locals[s][intalloc].flags;
-								v->regoff = r->locals[s][intalloc].regoff;
+								v->flags = rd->locals[s][intalloc].flags;
+								v->regoff = rd->locals[s][intalloc].regoff;
 							}
 							else if (!doublewordarg && (arg < m->paramcount)
 #ifndef USETWOREGS
-									 && ((regtouse = iargcnt) < r->intreg_argnum)
+									 && ((regtouse = iargcnt) < rd->intreg_argnum)
 #else
-									 && ((regtouse = s) < r->intreg_argnum - regsneeded)
+									 && ((regtouse = s) < rd->intreg_argnum - regsneeded)
 #endif
 									 ) {
 								v->flags = 0;
-								v->regoff = r->argintregs[regtouse];
+								v->regoff = rd->argintregs[regtouse];
 							}
-							else if (r->maxtmpintreguse > regsneeded) {
-								r->maxtmpintreguse -= regsneeded + 1;
+							else if (rd->maxtmpintreguse > regsneeded) {
+								rd->maxtmpintreguse -= regsneeded + 1;
 								v->flags = 0;
-								v->regoff = r->tmpintregs[r->maxtmpintreguse];
+								v->regoff = rd->tmpintregs[rd->maxtmpintreguse];
 							}
-							else if (r->maxsavintreguse > regsneeded) {
-								r->maxsavintreguse -= regsneeded + 1;
+							else if (rd->maxsavintreguse > regsneeded) {
+								rd->maxsavintreguse -= regsneeded + 1;
 								v->flags = 0;
-								v->regoff = r->savintregs[r->maxsavintreguse];
+								v->regoff = rd->savintregs[rd->maxsavintreguse];
 							}
 							/*
 							 * use unused argument registers as local registers
 							 */
 							else if (!doublewordarg && (arg >= m->paramcount) &&
-									 (iargcnt < r->intreg_argnum)) {
+									 (iargcnt < rd->intreg_argnum)) {
 								v->flags = 0;
-								v->regoff = r->argintregs[iargcnt];
+								v->regoff = rd->argintregs[iargcnt];
   								iargcnt++;
 								arg++;
 							}
 							else {
 								v->flags = INMEMORY;
-								v->regoff = r->maxmemuse;
-								r->maxmemuse += regsneeded + 1;
+								v->regoff = rd->maxmemuse;
+								rd->maxmemuse += regsneeded + 1;
 							}
 #if defined(__I386__)
 						}
@@ -624,29 +620,29 @@ static void local_regalloc(methodinfo *m)
 		return;
 	}
 
-	for (s = 0; s < m->codegendata->maxlocals; s++) {
+	for (s = 0; s < cd->maxlocals; s++) {
 		intalloc = -1; fltalloc = -1;
 		for (tt=0; tt<=4; tt++) {
 			t = typeloop[tt];
-			v = &r->locals[s][t];
+			v = &rd->locals[s][t];
 			if (v->type >= 0) {
 #ifdef USETWOREGS
 				regsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
 #endif
 				if (IS_FLT_DBL_TYPE(t)) {
 					if (fltalloc >= 0) {
-						v->flags = r->locals[s][fltalloc].flags;
-						v->regoff = r->locals[s][fltalloc].regoff;
+						v->flags = rd->locals[s][fltalloc].flags;
+						v->regoff = rd->locals[s][fltalloc].regoff;
 					}
-					else if (r->maxsavfltreguse > 0) {
-						r->maxsavfltreguse--;
+					else if (rd->maxsavfltreguse > 0) {
+						rd->maxsavfltreguse--;
 						v->flags = 0;
-						v->regoff = r->savfltregs[r->maxsavfltreguse];
+						v->regoff = rd->savfltregs[rd->maxsavfltreguse];
 					}
 					else {
 						v->flags = INMEMORY;
-						v->regoff = r->maxmemuse;
-						r->maxmemuse += regsneeded + 1;
+						v->regoff = rd->maxmemuse;
+						rd->maxmemuse += regsneeded + 1;
 					}
 					fltalloc = t;
 				}
@@ -657,22 +653,22 @@ static void local_regalloc(methodinfo *m)
 					 */
 					if (IS_2_WORD_TYPE(t)) {
 						v->flags = INMEMORY;
-						v->regoff = r->maxmemuse++;
+						v->regoff = rd->maxmemuse++;
 					} else {
 #endif
 						if (intalloc >= 0) {
-							v->flags = r->locals[s][intalloc].flags;
-							v->regoff = r->locals[s][intalloc].regoff;
+							v->flags = rd->locals[s][intalloc].flags;
+							v->regoff = rd->locals[s][intalloc].regoff;
 						}
-						else if (r->maxsavintreguse > regsneeded) {
-							r->maxsavintreguse -= regsneeded+1;
+						else if (rd->maxsavintreguse > regsneeded) {
+							rd->maxsavintreguse -= regsneeded+1;
 							v->flags = 0;
-							v->regoff = r->savintregs[r->maxsavintreguse];
+							v->regoff = rd->savintregs[rd->maxsavintreguse];
 						}
 						else {
 							v->flags = INMEMORY;
-							v->regoff = r->maxmemuse;
-							r->maxmemuse += regsneeded + 1;
+							v->regoff = rd->maxmemuse;
+							rd->maxmemuse += regsneeded + 1;
 						}
 #if defined(__I386__)
 					}
@@ -686,43 +682,34 @@ static void local_regalloc(methodinfo *m)
 
 
 
-static void reg_init_temp(methodinfo *m)
+static void reg_init_temp(registerdata *rd)
 {
-	registerdata *r;
+	rd->freememtop = 0;
+	rd->memuse = rd->ifmemuse;
 
-	/* keep code size smaller */
-	r = m->registerdata;
+	rd->freetmpinttop = 0;
+	rd->freesavinttop = 0;
+	rd->freetmpflttop = 0;
+	rd->freesavflttop = 0;
 
-	r->freememtop = 0;
-	r->memuse = r->ifmemuse;
-
-	r->freetmpinttop = 0;
-	r->freesavinttop = 0;
-	r->freetmpflttop = 0;
-	r->freesavflttop = 0;
-
-	r->tmpintreguse = r->iftmpintregcnt;
-	r->savintreguse = r->ifsavintregcnt;
-	r->tmpfltreguse = r->iftmpfltregcnt;
-	r->savfltreguse = r->ifsavfltregcnt;
+	rd->tmpintreguse = rd->iftmpintregcnt;
+	rd->savintreguse = rd->ifsavintregcnt;
+	rd->tmpfltreguse = rd->iftmpfltregcnt;
+	rd->savfltreguse = rd->ifsavfltregcnt;
 
 	/* all argument registers are available */
-	r->argintreguse = r->intreg_argnum;
-	r->argfltreguse = r->fltreg_argnum;
+	rd->argintreguse = rd->intreg_argnum;
+	rd->argfltreguse = rd->fltreg_argnum;
 }
 
 
-#define reg_new_temp(m,s) if (s->varkind == TEMPVAR) reg_new_temp_func(m, s)
+#define reg_new_temp(rd,s) if (s->varkind == TEMPVAR) reg_new_temp_func(rd, s)
 
 
-static void reg_new_temp_func(methodinfo *m, stackptr s)
+static void reg_new_temp_func(registerdata *rd, stackptr s)
 {
 	s4 regsneeded;
 	s4 tryagain;
-	registerdata *r;
-
-	/* keep code size smaller */
-	r = m->registerdata;
 
 	/* Try to allocate a saved register if there is no temporary one          */
 	/* available. This is what happens during the second run.                 */
@@ -739,16 +726,16 @@ static void reg_new_temp_func(methodinfo *m, stackptr s)
 			if (!(s->flags & SAVEDVAR))
 				s->flags |= SAVEDTMP;
 			if (IS_FLT_DBL_TYPE(s->type)) {
-				if (r->freesavflttop > 0) {
-					r->freesavflttop--;
-					s->regoff = r->freesavfltregs[r->freesavflttop];
+				if (rd->freesavflttop > 0) {
+					rd->freesavflttop--;
+					s->regoff = rd->freesavfltregs[rd->freesavflttop];
 					return;
 
-				} else if (r->savfltreguse > 0) {
-					r->savfltreguse--;
-					if (r->savfltreguse < r->maxsavfltreguse)
-						r->maxsavfltreguse = r->savfltreguse;
-					s->regoff = r->savfltregs[r->savfltreguse];
+				} else if (rd->savfltreguse > 0) {
+					rd->savfltreguse--;
+					if (rd->savfltreguse < rd->maxsavfltreguse)
+						rd->maxsavfltreguse = rd->savfltreguse;
+					s->regoff = rd->savfltregs[rd->savfltreguse];
 					return;
 				}
 
@@ -759,16 +746,16 @@ static void reg_new_temp_func(methodinfo *m, stackptr s)
 				 */
 				if (!IS_2_WORD_TYPE(s->type)) {
 #endif
-					if (r->freesavinttop > regsneeded) {
-						r->freesavinttop -= regsneeded + 1;
-						s->regoff = r->freesavintregs[r->freesavinttop];
+					if (rd->freesavinttop > regsneeded) {
+						rd->freesavinttop -= regsneeded + 1;
+						s->regoff = rd->freesavintregs[rd->freesavinttop];
 						return;
 
-					} else if (r->savintreguse > regsneeded) {
-						r->savintreguse -= regsneeded + 1;
-						if (r->savintreguse < r->maxsavintreguse)
-							r->maxsavintreguse = r->savintreguse;
-						s->regoff = r->savintregs[r->savintreguse];
+					} else if (rd->savintreguse > regsneeded) {
+						rd->savintreguse -= regsneeded + 1;
+						if (rd->savintreguse < rd->maxsavintreguse)
+							rd->maxsavintreguse = rd->savintreguse;
+						s->regoff = rd->savintregs[rd->savintreguse];
 						return;
 					}
 #if defined(__I386__)
@@ -778,16 +765,16 @@ static void reg_new_temp_func(methodinfo *m, stackptr s)
 
 		} else {
 			if (IS_FLT_DBL_TYPE(s->type)) {
-				if (r->freetmpflttop > 0) {
-					r->freetmpflttop--;
-					s->regoff = r->freetmpfltregs[r->freetmpflttop];
+				if (rd->freetmpflttop > 0) {
+					rd->freetmpflttop--;
+					s->regoff = rd->freetmpfltregs[rd->freetmpflttop];
 					return;
 
-				} else if (r->tmpfltreguse > 0) {
-					r->tmpfltreguse--;
-					if (r->tmpfltreguse < r->maxtmpfltreguse)
-						r->maxtmpfltreguse = r->tmpfltreguse;
-					s->regoff = r->tmpfltregs[r->tmpfltreguse];
+				} else if (rd->tmpfltreguse > 0) {
+					rd->tmpfltreguse--;
+					if (rd->tmpfltreguse < rd->maxtmpfltreguse)
+						rd->maxtmpfltreguse = rd->tmpfltreguse;
+					s->regoff = rd->tmpfltregs[rd->tmpfltreguse];
 					return;
 				}
 
@@ -798,16 +785,16 @@ static void reg_new_temp_func(methodinfo *m, stackptr s)
 				 */
 				if (!IS_2_WORD_TYPE(s->type)) {
 #endif
-					if (r->freetmpinttop > regsneeded) {
-						r->freetmpinttop -= regsneeded + 1;
-						s->regoff = r->freetmpintregs[r->freetmpinttop];
+					if (rd->freetmpinttop > regsneeded) {
+						rd->freetmpinttop -= regsneeded + 1;
+						s->regoff = rd->freetmpintregs[rd->freetmpinttop];
 						return;
 
-					} else if (r->tmpintreguse > regsneeded) {
-						r->tmpintreguse -= regsneeded + 1;
-						if (r->tmpintreguse < r->maxtmpintreguse)
-							r->maxtmpintreguse = r->tmpintreguse;
-						s->regoff = r->tmpintregs[r->tmpintreguse];
+					} else if (rd->tmpintreguse > regsneeded) {
+						rd->tmpintreguse -= regsneeded + 1;
+						if (rd->tmpintreguse < rd->maxtmpintreguse)
+							rd->maxtmpintreguse = rd->tmpintreguse;
+						s->regoff = rd->tmpintregs[rd->tmpintreguse];
 						return;
 					}
 #if defined(__I386__)
@@ -817,30 +804,26 @@ static void reg_new_temp_func(methodinfo *m, stackptr s)
 		}
 	}
 
-	if (r->freememtop > regsneeded) {
-		r->freememtop -= regsneeded + 1;
-		s->regoff = r->freemem[r->freememtop];
+	if (rd->freememtop > regsneeded) {
+		rd->freememtop -= regsneeded + 1;
+		s->regoff = rd->freemem[rd->freememtop];
 
 	} else {
-		s->regoff = r->memuse;
-		r->memuse += regsneeded + 1;
-		if (r->memuse > r->maxmemuse)
-			r->maxmemuse = r->memuse;
+		s->regoff = rd->memuse;
+		rd->memuse += regsneeded + 1;
+		if (rd->memuse > rd->maxmemuse)
+			rd->maxmemuse = rd->memuse;
 	}
 	s->flags |= INMEMORY;
 }
 
 
-#define reg_free_temp(m,s) if (s->varkind == TEMPVAR) reg_free_temp_func(m, s)
+#define reg_free_temp(rd,s) if (s->varkind == TEMPVAR) reg_free_temp_func(rd, s)
 
 
-static void reg_free_temp_func(methodinfo *m, stackptr s)
+static void reg_free_temp_func(registerdata *rd, stackptr s)
 {
 	s4 regsneeded;
-	registerdata *r;
-
-	/* keep code size smaller */
-	r = m->registerdata;
 
 #ifdef USETWOREGS
 	regsneeded = (IS_2_WORD_TYPE(s->type)) ? 1 : 0;
@@ -849,43 +832,43 @@ static void reg_free_temp_func(methodinfo *m, stackptr s)
 #endif
 
 	if (s->flags & INMEMORY) {
-		r->freemem[r->freememtop] = s->regoff;
+		rd->freemem[rd->freememtop] = s->regoff;
 		if (regsneeded)
-			r->freemem[r->freememtop + 1] = s->regoff + 1;
-		r->freememtop += regsneeded + 1;
+			rd->freemem[rd->freememtop + 1] = s->regoff + 1;
+		rd->freememtop += regsneeded + 1;
 
 	} else if (IS_FLT_DBL_TYPE(s->type)) {
 		if (s->flags & (SAVEDVAR | SAVEDTMP)) {
 			s->flags &= ~SAVEDTMP;
-			r->freesavfltregs[r->freesavflttop++] = s->regoff;
+			rd->freesavfltregs[rd->freesavflttop++] = s->regoff;
 
 		} else
-			r->freetmpfltregs[r->freetmpflttop++] = s->regoff;
+			rd->freetmpfltregs[rd->freetmpflttop++] = s->regoff;
 
 	} else {
 		if (s->flags & (SAVEDVAR | SAVEDTMP)) {
 			s->flags &= ~SAVEDTMP;
-			r->freesavintregs[r->freesavinttop] = s->regoff;
+			rd->freesavintregs[rd->freesavinttop] = s->regoff;
 #ifdef USETWOREGS
 			if (regsneeded)
-				r->freesavintregs[r->freesavinttop + 1] = r->secondregs[s->regoff];
+				rd->freesavintregs[rd->freesavinttop + 1] = rd->secondregs[s->regoff];
 #endif
-			r->freesavinttop += regsneeded + 1;
+			rd->freesavinttop += regsneeded + 1;
 
 		} else {
-			r->freetmpintregs[r->freetmpinttop] = s->regoff;
+			rd->freetmpintregs[rd->freetmpinttop] = s->regoff;
 #ifdef USETWOREGS
 			if (regsneeded)
-				r->freetmpintregs[r->freetmpinttop + 1] = r->secondregs[s->regoff];
+				rd->freetmpintregs[rd->freetmpinttop + 1] = rd->secondregs[s->regoff];
 #endif
-			r->freetmpinttop += regsneeded + 1;
+			rd->freetmpinttop += regsneeded + 1;
 		}
 	}
 }
 
 
 
-static void allocate_scratch_registers(methodinfo *m)
+static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 {
 	s4 opcode;
 	s4 i;
@@ -902,7 +885,7 @@ static void allocate_scratch_registers(methodinfo *m)
 			dst = bptr->instack;
 
 			/* initialize temp registers */
-			reg_init_temp(m);
+			reg_init_temp(rd);
 
 			iptr = bptr->iinstr;
 			len = bptr->icount;
@@ -942,7 +925,7 @@ static void allocate_scratch_registers(methodinfo *m)
 				case ICMD_FLOAD:
 				case ICMD_DLOAD:
 				case ICMD_ALOAD:
-					reg_new_temp(m, dst);
+					reg_new_temp(rd, dst);
 					break;
 
 					/* pop 2 push 1 */
@@ -956,9 +939,9 @@ static void allocate_scratch_registers(methodinfo *m)
 				case ICMD_BALOAD:
 				case ICMD_CALOAD:
 				case ICMD_SALOAD:
-					reg_free_temp(m, src);
-					reg_free_temp(m, src->prev);
-					reg_new_temp(m, dst);
+					reg_free_temp(rd, src);
+					reg_free_temp(rd, src->prev);
+					reg_new_temp(rd, dst);
 					break;
 
 					/* pop 3 push 0 */
@@ -972,9 +955,9 @@ static void allocate_scratch_registers(methodinfo *m)
 				case ICMD_BASTORE:
 				case ICMD_CASTORE:
 				case ICMD_SASTORE:
-					reg_free_temp(m, src);
-					reg_free_temp(m, src->prev);
-					reg_free_temp(m, src->prev->prev);
+					reg_free_temp(rd, src);
+					reg_free_temp(rd, src->prev);
+					reg_free_temp(rd, src->prev->prev);
 					break;
 
 					/* pop 1 push 0 store */
@@ -1026,7 +1009,7 @@ static void allocate_scratch_registers(methodinfo *m)
 				case ICMD_NULLCHECKPOP:
 				case ICMD_MONITORENTER:
 				case ICMD_MONITOREXIT:
-					reg_free_temp(m, src);
+					reg_free_temp(rd, src);
 					break;
 
 					/* pop 2 push 0 branch */
@@ -1060,80 +1043,80 @@ static void allocate_scratch_registers(methodinfo *m)
 				case ICMD_BASTORECONST:
 				case ICMD_CASTORECONST:
 				case ICMD_SASTORECONST:
-					reg_free_temp(m, src);
-					reg_free_temp(m, src->prev);
+					reg_free_temp(rd, src);
+					reg_free_temp(rd, src->prev);
 					break;
 
 					/* pop 0 push 1 dup */
 					
 				case ICMD_DUP:
-					reg_new_temp(m, dst);
+					reg_new_temp(rd, dst);
 					break;
 
 					/* pop 0 push 2 dup */
 					
 				case ICMD_DUP2:
-					reg_new_temp(m, dst->prev);
-					reg_new_temp(m, dst);
+					reg_new_temp(rd, dst->prev);
+					reg_new_temp(rd, dst);
 					break;
 
 					/* pop 2 push 3 dup */
 					
 				case ICMD_DUP_X1:
-					reg_free_temp(m, src);
-					reg_new_temp(m, dst);
-					reg_free_temp(m, src->prev);
-					reg_new_temp(m, dst->prev);
-					reg_new_temp(m, dst->prev->prev);
+					reg_free_temp(rd, src);
+					reg_new_temp(rd, dst);
+					reg_free_temp(rd, src->prev);
+					reg_new_temp(rd, dst->prev);
+					reg_new_temp(rd, dst->prev->prev);
 					break;
 
 					/* pop 3 push 4 dup */
 					
 				case ICMD_DUP_X2:
-					reg_free_temp(m, src);
-					reg_new_temp(m, dst);
-					reg_free_temp(m, src->prev);
-					reg_new_temp(m, dst->prev);
-					reg_free_temp(m, src->prev->prev);
-					reg_new_temp(m, dst->prev->prev);
-					reg_new_temp(m, dst->prev->prev->prev);
+					reg_free_temp(rd, src);
+					reg_new_temp(rd, dst);
+					reg_free_temp(rd, src->prev);
+					reg_new_temp(rd, dst->prev);
+					reg_free_temp(rd, src->prev->prev);
+					reg_new_temp(rd, dst->prev->prev);
+					reg_new_temp(rd, dst->prev->prev->prev);
 					break;
 
 					/* pop 3 push 5 dup */
 					
 				case ICMD_DUP2_X1:
-					reg_free_temp(m, src);
-					reg_new_temp(m, dst);
-					reg_free_temp(m, src->prev);
-					reg_new_temp(m, dst->prev);
-					reg_free_temp(m, src->prev->prev);
-					reg_new_temp(m, dst->prev->prev);
-					reg_new_temp(m, dst->prev->prev->prev);
-					reg_new_temp(m, dst->prev->prev->prev->prev);
+					reg_free_temp(rd, src);
+					reg_new_temp(rd, dst);
+					reg_free_temp(rd, src->prev);
+					reg_new_temp(rd, dst->prev);
+					reg_free_temp(rd, src->prev->prev);
+					reg_new_temp(rd, dst->prev->prev);
+					reg_new_temp(rd, dst->prev->prev->prev);
+					reg_new_temp(rd, dst->prev->prev->prev->prev);
 					break;
 
 					/* pop 4 push 6 dup */
 					
 				case ICMD_DUP2_X2:
-					reg_free_temp(m, src);
-					reg_new_temp(m, dst);
-					reg_free_temp(m, src->prev);
-					reg_new_temp(m, dst->prev);
-					reg_free_temp(m, src->prev->prev);
-					reg_new_temp(m, dst->prev->prev);
-					reg_free_temp(m, src->prev->prev->prev);
-					reg_new_temp(m, dst->prev->prev->prev);
-					reg_new_temp(m, dst->prev->prev->prev->prev);
-					reg_new_temp(m, dst->prev->prev->prev->prev->prev);
+					reg_free_temp(rd, src);
+					reg_new_temp(rd, dst);
+					reg_free_temp(rd, src->prev);
+					reg_new_temp(rd, dst->prev);
+					reg_free_temp(rd, src->prev->prev);
+					reg_new_temp(rd, dst->prev->prev);
+					reg_free_temp(rd, src->prev->prev->prev);
+					reg_new_temp(rd, dst->prev->prev->prev);
+					reg_new_temp(rd, dst->prev->prev->prev->prev);
+					reg_new_temp(rd, dst->prev->prev->prev->prev->prev);
 					break;
 
 					/* pop 2 push 2 swap */
 					
 				case ICMD_SWAP:
-					reg_free_temp(m, src);
-					reg_new_temp(m, dst->prev);
-					reg_free_temp(m, src->prev);
-					reg_new_temp(m, dst);
+					reg_free_temp(rd, src);
+					reg_new_temp(rd, dst->prev);
+					reg_free_temp(rd, src->prev);
+					reg_new_temp(rd, dst);
 					break;
 
 					/* pop 2 push 1 */
@@ -1182,9 +1165,9 @@ static void allocate_scratch_registers(methodinfo *m)
 				case ICMD_FCMPG:
 				case ICMD_DCMPL:
 				case ICMD_DCMPG:
-					reg_free_temp(m, src);
-					reg_free_temp(m, src->prev);
-					reg_new_temp(m, dst);
+					reg_free_temp(rd, src);
+					reg_free_temp(rd, src->prev);
+					reg_new_temp(rd, dst);
 					break;
 
 					/* pop 1 push 1 */
@@ -1250,8 +1233,8 @@ static void allocate_scratch_registers(methodinfo *m)
 				case ICMD_ANEWARRAY:
 
 				case ICMD_GETFIELD:
-					reg_free_temp(m, src);
-					reg_new_temp(m, dst);
+					reg_free_temp(rd, src);
+					reg_new_temp(rd, dst);
 					break;
 
 					/* pop 0 push 1 */
@@ -1259,7 +1242,7 @@ static void allocate_scratch_registers(methodinfo *m)
 				case ICMD_GETSTATIC:
 
 				case ICMD_NEW:
-					reg_new_temp(m, dst);
+					reg_new_temp(rd, dst);
 					break;
 
 					/* pop many push any */
@@ -1270,33 +1253,33 @@ static void allocate_scratch_registers(methodinfo *m)
 				case ICMD_INVOKEINTERFACE:
 					i = iptr->op1;
 					while (--i >= 0) {
-						reg_free_temp(m, src);
+						reg_free_temp(rd, src);
 						src = src->prev;
 					}
 					if (((methodinfo *) iptr->val.a)->returntype != TYPE_VOID)
-						reg_new_temp(m, dst);
+						reg_new_temp(rd, dst);
 					break;
 
 				case ICMD_BUILTIN3:
-					reg_free_temp(m, src);
+					reg_free_temp(rd, src);
 					src = src->prev;
 				case ICMD_BUILTIN2:
-					reg_free_temp(m, src);
+					reg_free_temp(rd, src);
 					src = src->prev;
 				case ICMD_BUILTIN1:
-					reg_free_temp(m, src);
+					reg_free_temp(rd, src);
 					src = src->prev;
 					if (iptr->op1 != TYPE_VOID)
-						reg_new_temp(m, dst);
+						reg_new_temp(rd, dst);
 					break;
 
 				case ICMD_MULTIANEWARRAY:
 					i = iptr->op1;
 					while (--i >= 0) {
-						reg_free_temp(m, src);
+						reg_free_temp(rd, src);
 						src = src->prev;
 					}
-					reg_new_temp(m, dst);
+					reg_new_temp(rd, dst);
 					break;
 
 				default:

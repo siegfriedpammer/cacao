@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 1419 2004-10-21 09:59:33Z carolyn $
+   $Id: parse.h 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -35,7 +35,8 @@
 #define _PARSE_H
 
 #include "global.h"
-#include "inline.h"
+#include "jit/inline.h"
+#include "jit/codegen.inc.h"
 
 
 /* intermediate code generating macros */
@@ -180,7 +181,7 @@
 void compiler_addinitclass(classinfo *c);
 classSetNode * descriptor2typesL(methodinfo *m);
 void descriptor2types(methodinfo *m);
-methodinfo *parse(methodinfo *m,t_inlining_globals *inline_env);
+methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env);
 
 #endif /* _PARSE_H */
 

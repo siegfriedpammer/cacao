@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: stack.h 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -34,9 +34,9 @@
 #ifndef _STACK_H
 #define _STACK_H
 
-
 #include "exceptions.h"
 #include "global.h"
+#include "jit/reg.h"
 
 
 /**********************************************************************/
@@ -242,17 +242,17 @@
 			copy->varkind = STACKVAR; \
 			copy->varnum = i;\
 		} \
-		m->registerdata->interfaces[i][copy->type].type = copy->type; \
-		m->registerdata->interfaces[i][copy->type].flags |= copy->flags; \
+		rd->interfaces[i][copy->type].type = copy->type; \
+		rd->interfaces[i][copy->type].flags |= copy->flags; \
 		i--; copy = copy->prev; \
 	} \
 	i = bptr->indepth - 1; \
 	copy = bptr->instack; \
 	while (copy) { \
-		m->registerdata->interfaces[i][copy->type].type = copy->type; \
+		rd->interfaces[i][copy->type].type = copy->type; \
 		if (copy->varkind == STACKVAR) { \
 			if (copy->flags & SAVEDVAR) \
-				m->registerdata->interfaces[i][copy->type].flags |= SAVEDVAR; \
+				rd->interfaces[i][copy->type].flags |= SAVEDVAR; \
 		} \
 		i--; copy = copy->prev; \
 	} \
@@ -279,7 +279,7 @@
             stackptr s = curstack; \
             stackptr t = (b)->instack; \
 		    if ((b)->indepth != stackdepth) { \
-			    show_icmd_method(m); \
+			    show_icmd_method(m, cd, rd); \
                 panic("Stack depth mismatch"); \
             } \
 		    while (s) { \
@@ -294,12 +294,12 @@
 
 /* function prototypes */
 
-methodinfo *analyse_stack(codegendata *codegendata);
+methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd);
 
-void icmd_print_stack(methodinfo *m, stackptr s);
+void icmd_print_stack(codegendata *cd, stackptr s);
 char *icmd_builtin_name(functionptr bptr);
-void show_icmd_method(methodinfo *m);
-void show_icmd_block(methodinfo *m, basicblock *bptr);
+void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd);
+void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr);
 void show_icmd(instruction *iptr, bool deadcode);
 
 #endif /* _STACK_H */

@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: reg.h 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -35,15 +35,16 @@
 #ifndef _REG_H
 #define _REG_H
 
-
 #include "types.h"
+#include "jit/codegen.inc.h"
 #include "jit/jit.h"
 
 
 typedef struct registerdata registerdata;
-typedef varinfo varinfo5[5];
+typedef struct varinfo varinfo;
+typedef struct varinfo varinfo5[5];
 
-struct t_inlining_globals;
+//struct t_inlining_globals;
 
 
 struct registerdata {
@@ -116,12 +117,22 @@ struct registerdata {
 };
 
 
+/************************* pseudo variable structure **************************/
+
+struct varinfo {
+	int type;                   /* basic type of variable                     */
+	int flags;                  /* flags (SAVED, INMEMORY)                    */
+	int regoff;                 /* register number or memory offset           */
+};
+
+
 /* function prototypes */
 
-void reg_init(methodinfo *m);
-void reg_setup(struct t_inlining_globals *e);
-void reg_close(methodinfo *m);
-void regalloc(methodinfo *m);
+void reg_init();
+void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id);
+void reg_free(methodinfo *m, registerdata *rd);
+void reg_close();
+void regalloc(methodinfo *m, codegendata *cd, registerdata *rd);
 
 #endif /* _REG_H */
 

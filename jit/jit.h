@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 1341 2004-07-21 16:06:48Z twisti $
+   $Id: jit.h 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -51,8 +51,6 @@ typedef stackelement *stackptr;
 typedef struct basicblock basicblock;
 typedef struct instruction instruction;
 typedef struct subroutineinfo subroutineinfo;
-typedef struct varinfo varinfo;
-typedef varinfo *varinfoptr;
 
 
 /************************** stack element structure ***************************/
@@ -134,7 +132,8 @@ struct instruction {
 #define BBTYPE_EXH 1            /* exception handler basic block type         */
 #define BBTYPE_SBR 2            /* subroutine basic block type                */
 
-struct basicblock { 
+
+struct basicblock {
 	int          flags;         /* used during stack analysis, init with -1   */
 	int          type;          /* basic block type (std, xhandler, subroutine*/
 	instruction *iinstr;        /* pointer to intermediate code instructions  */
@@ -145,22 +144,13 @@ struct basicblock {
 	int          indepth;       /* stack depth at begin of basic block        */
 	int          outdepth;      /* stack depth end of basic block             */
 	int          pre_count;     /* count of predecessor basic blocks          */
-	branchref   *branchrefs;    /* list of branches to be patched             */
+	struct branchref *branchrefs; /* list of branches to be patched           */
 
 	basicblock  *next;          /* used to build a BB list (instead of array) */
 	int          lflags;        /* used during loop copying, init with 0	  */
 	basicblock  *copied_to;     /* points to the copy of this basic block	  */
                                 /* when loop nodes are copied                 */
 	int debug_nr;
-};
-
-
-/************************* pseudo variable structure **************************/
-
-struct varinfo {
-	int type;                   /* basic type of variable                     */
-	int flags;                  /* flags (SAVED, INMEMORY)                    */
-	int regoff;                 /* register number or memory offset           */
 };
 
 
@@ -822,9 +812,6 @@ builtin_descriptor *find_builtin(int opcode);
 
 /***************************** register info block ****************************/
 
-extern int nregdescint[];   /* description of integer registers               */
-extern int nregdescfloat[]; /* description of floating point registers        */
-
 extern int stackreq[256];
 
 
@@ -836,7 +823,7 @@ extern bool method_uses_edx;
 
 /* function prototypes */
 
-methodptr jit_compile (methodinfo *m);  /* compile a method with jit compiler */
+methodptr jit_compile(methodinfo *m);   /* compile a method with jit compiler */
 
 void jit_init();                        /* compiler initialisation            */
 void jit_close();                       /* compiler finalisation              */

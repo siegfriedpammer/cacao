@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: codegen.inc.h 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: codegen.inc.h 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -34,20 +34,19 @@
 #ifndef _CODEGEN_INC_H
 #define _CODEGEN_INC_H
 
-
 #include "types.h"
 #include "global.h"
+#include "jit/inline.h"
+//#include "jit/reg.h"
 
-
-struct t_inlining_globals;
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 #define DSEGINITSIZE  (1<<12)       /*  4 Kbyte data area initialization size */
 
 #if POINTERSIZE == 8
-#define dseg_addaddress(m, value)      dseg_adds8((m), (s8) (value))
+#define dseg_addaddress(cd,value)    dseg_adds8((cd), (s8) (value))
 #else
-#define dseg_addaddress(m, value)      dseg_adds4((m), (s4) (value))
+#define dseg_addaddress(cd,value)    dseg_adds4((cd), (s4) (value))
 #endif
 
 
@@ -156,16 +155,17 @@ struct _methodtree_element {
 /* function prototypes */
 
 void codegen_init();
-void codegen_setup(methodinfo *m, struct t_inlining_globals *e);  /* allocates code and data area           */
-void codegen(methodinfo *m);
-void codegen_close(methodinfo *m);  /* releases temporary storage             */
+void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *e);
+void codegen(methodinfo *m, codegendata *cd, struct registerdata *rd);
+void codegen_free(methodinfo *m, codegendata *cd);
+void codegen_close();
 void codegen_insertmethod(void *startpc, void *endpc);
 
 #if defined(__I386__) || defined(__X86_64__)
-void codegen_addreference(methodinfo *m, struct basicblock *target, void *branchptr);
+void codegen_addreference(codegendata *cd, struct basicblock *target, void *branchptr);
 #endif
 
-void dseg_display(methodinfo *m);
+void dseg_display(methodinfo *m, codegendata *cd);
 
 void init_exceptions();
 

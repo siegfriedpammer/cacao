@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1432 2004-11-03 12:14:50Z jowenn $
+   $Id: inline.c 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -62,30 +62,32 @@ bool DEBUGi = false;
 
 // replace jcodelength loops with correct number after main for loop in parse()!
 
+
 /*-----------------------------------------------------------*/
 /* just initialize global structure for non-inlining         */
 /*-----------------------------------------------------------*/
 
-t_inlining_globals *inlining_init0(methodinfo *m, 
-				   t_inlining_globals *inline_env)
+void inlining_init0(methodinfo *m, t_inlining_globals *inline_env)
 {
- /* initialization for normal use in parse */
-        inlining_set_compiler_variables_fun(m, inline_env);
-        inline_env->isinlinedmethod = 0;
+	/* initialization for normal use in parse */
+	inlining_set_compiler_variables_fun(m, inline_env);
+	inline_env->isinlinedmethod = 0;
 	inline_env->cumjcodelength = m->jcodelength; /* for not inlining */
-        inline_env->cummaxstack = m->maxstack; /*why has here been 0 ? */
-        inline_env->cumextablelength = 0;
-        inline_env->cumlocals = m->maxlocals;
-        inline_env->cummethods = 0;//co not global or static-used only here?
-        inline_env->inlining_stack = NULL;
-        inline_env->inlining_rootinfo = NULL;
-return inline_env;
+
+	inline_env->cummaxstack = m->maxstack; /*why has here been 0 ? */
+	inline_env->cumextablelength = 0;
+	inline_env->cumlocals = m->maxlocals;
+	inline_env->cummethods = 0;//co not global or static-used only here?
+	inline_env->inlining_stack = NULL;
+	inline_env->inlining_rootinfo = NULL;
 }
+
+
 /*-----------------------------------------------------------*/
 
-t_inlining_globals *inlining_init(methodinfo *m)
+void inlining_setup(methodinfo *m, t_inlining_globals *inline_env)
 {
-  	t_inlining_globals *inline_env = DNEW(t_inlining_globals);
+/*    	t_inlining_globals *inline_env = DNEW(t_inlining_globals); */
         inlining_init0(m,inline_env);
 if (useinlining)
         {
@@ -120,7 +122,6 @@ if (DEBUGi==true) {
 #endif
 //panic("TEMP so can test just inline init\n");
         }
-return inline_env;
 }
 
 

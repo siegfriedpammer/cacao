@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: jit.c 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -1344,13 +1344,17 @@ static void* do_nothing_function()
 
 *******************************************************************************/
 
-static methodptr jit_compile_intern(methodinfo *m);
+static methodptr jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd, loopdata *ld, t_inlining_globals *id);
 
 methodptr jit_compile(methodinfo *m)
 {
 	static bool jitrunning;
 	methodptr r;
 	s4 dumpsize;
+	codegendata *cd;
+	registerdata *rd;
+	loopdata *ld;
+	t_inlining_globals *id;
 
 	if (opt_stat)
 		count_jit_calls++;
@@ -1362,7 +1366,7 @@ methodptr jit_compile(methodinfo *m)
 	/* if method has been already compiled return immediately */
 
 	if (m->entrypoint) {
-		builtin_monitorexit((java_objectheader *) m );
+		builtin_monitorexit((java_objectheader *) m);
 
 		return m->entrypoint;
 	}
@@ -1370,14 +1374,28 @@ methodptr jit_compile(methodinfo *m)
 	if (opt_stat)
 		count_methods++;
 
+	/* if there is no javacode, print error message and return empty method   */
+
+	if (!m->jcode) {
+		if (compileverbose)
+			log_message_method("No code given for: ", m);
+
+		m->entrypoint = (methodptr) do_nothing_function;
+
+		return m->entrypoint;    /* return empty method     */
+	}
+
+#if 0
 	if (jitrunning) {
 		printf("JITRUNNING!!! new method=");
 		utf_display_classname(m->class->name);printf(".");utf_display(m->name);
 		printf("\n");
 	}
+
 	/* now the jit is running */
 
 	jitrunning = true;
+#endif
 
 	/* mark start of dump memory area */
 
@@ -1388,14 +1406,36 @@ methodptr jit_compile(methodinfo *m)
 	if (getcompilingtime)
 		compilingtime_start();
 
+	/* allocate memory */
+
+	cd = NEW(codegendata);
+	rd = NEW(registerdata);
+	ld = NEW(loopdata);
+	id = NEW(t_inlining_globals);
+
+	/* RTA static analysis must be called before inlining */
+	if (opt_rt)
+		RT_jit_parse(m); // will be called just once
+                                /* return value ignored for now */
+
+	/* must be called before reg_setup, because it can change maxlocals */
+	/* init reqd to initialize for parse even in no inlining */
+	inlining_setup(m, id);
+
+	/* initialize the register allocator */
+	reg_setup(m, rd, id);
+
+	/* setup the codegendata memory */
+	codegen_setup(m, cd, id);
+
 	/* now call internal compile function */
 
-	r = jit_compile_intern(m);
+	r = jit_compile_intern(m, cd, rd, ld, id);
 
-	if (r) {
-		if (compileverbose)
-			log_message_method("Running: ", m);
-	}
+	/* free some memory */
+
+	reg_free(m, rd);
+	codegen_free(m, cd);
 
 	/* clear pointers to dump memory area */
 
@@ -1409,6 +1449,13 @@ methodptr jit_compile(methodinfo *m)
 
 	dump_release(dumpsize);
 
+	/* free memory */
+
+	FREE(cd, codegendata);
+	FREE(rd, registerdata);
+	FREE(ld, loopdata);
+	FREE(id, t_inlining_globals);
+
 	/* measure time */
 
 	if (getcompilingtime)
@@ -1420,24 +1467,19 @@ methodptr jit_compile(methodinfo *m)
 
 	builtin_monitorexit((java_objectheader *) m );
 
+	if (r) {
+		if (compileverbose)
+			log_message_method("Running: ", m);
+	}
+
 	/* return pointer to the methods entry point */
 
 	return r;
 }
 
 
-static methodptr jit_compile_intern(methodinfo *m)
+static methodptr jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd, loopdata *ld, t_inlining_globals *id)
 {
-t_inlining_globals *inline_env = NULL;
-	/* if there is no javacode, print error message and return empty method   */
-
-	if (!m->jcode) {
-		if (compileverbose)
-			log_message_method("No code given for: ", m);
-
-		return (methodptr) do_nothing_function;    /* return empty method     */
-	}
-
 	/* print log message for compiled method */
 
 	if (compileverbose)
@@ -1488,30 +1530,12 @@ t_inlining_globals *inline_env = NULL;
 	/* call the compiler passes ***********************************************/
 
 	EXTABLEN
-	/* first of all initialize the register allocator */
-	reg_init(m);
-
-       /* RTA static analysis must be called before inlining */
-        if (opt_rt) RT_jit_parse(m); // will be called just once
-                                /* return value ignored for now */
-
-	/* must be called before reg_setup, because it can change maxlocals */
-        /* init reqd to initialize for parse even in no inlining */
-	inline_env = inlining_init(m);
-
-	EXTABLEN
-
-	reg_setup(inline_env);
-
-	/* setup the codegendata memory */
-	codegen_setup(m,inline_env);
-
-	EXTABLEN
 
 	if (compileverbose)
 		log_message_method("Parsing: ", m);
 
-	if (!parse(m, inline_env)) {
+	/* call parse pass */
+	if (!parse(m, cd, id)) {
 		if (compileverbose)
 			log_message_method("Exception while parsing: ", m);
 
@@ -1523,8 +1547,8 @@ t_inlining_globals *inline_env = NULL;
 		log_message_method("Analysing: ", m);
 	}
 
-
-	if (!analyse_stack(m->codegendata)) {
+	/* call stack analysis pass */
+	if (!analyse_stack(m, cd, rd)) {
 		if (compileverbose)
 			log_message_method("Exception while analysing: ", m);
 
@@ -1539,7 +1563,8 @@ t_inlining_globals *inline_env = NULL;
 		if (compileverbose)
 			log_message_method("Typechecking: ", m);
 
-		if (!typecheck(m->codegendata)) {
+		/* call typecheck pass */
+		if (!typecheck(m, cd, rd)) {
 			if (compileverbose)
 				log_message_method("Exception while typechecking: ", m);
 
@@ -1550,10 +1575,11 @@ t_inlining_globals *inline_env = NULL;
 			log_message_method("Typechecking done: ", m);
 	}
 #endif
+
 	if (opt_loops) {
-		depthFirst(m);
-		analyseGraph(m);
-		optimize_loops(m);
+		depthFirst(m, ld);
+		analyseGraph(m, ld);
+		optimize_loops(m, ld);
 	}
    
 #ifdef SPECIALMEMUSE
@@ -1563,7 +1589,8 @@ t_inlining_globals *inline_env = NULL;
 	if (compileverbose)
 		log_message_method("Allocating registers: ", m);
 
-	regalloc(m);
+	/* allocate registers */
+	regalloc(m, cd, rd);
 
 	if (compileverbose) {
 		log_message_method("Allocating registers done: ", m);
@@ -1571,7 +1598,7 @@ t_inlining_globals *inline_env = NULL;
 	}
 
 	/* now generate the machine code */
-	codegen(m);
+	codegen(m, cd, rd);
 
 	if (compileverbose)
 		log_message_method("Generating code done: ", m);
@@ -1579,20 +1606,15 @@ t_inlining_globals *inline_env = NULL;
 	/* intermediate and assembly code listings */
 		
 	if (showintermediate) {
-		show_icmd_method(m);
+		show_icmd_method(m, cd, rd);
 
 	} else if (showdisassemble) {
-		disassemble((void *) (m->mcode + m->codegendata->dseglen),
-					m->mcodelength - m->codegendata->dseglen);
+		disassemble((void *) (m->mcode + cd->dseglen), 
+					m->mcodelength - cd->dseglen);
 	}
 
 	if (showddatasegment)
-		dseg_display(m);
-
-	/* free some memory */
-
-	reg_close(m);
-	codegen_close(m);
+		dseg_display(m, cd);
 
 	if (compileverbose)
 		log_message_method("Compiling done: ", m);

@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1432 2004-11-03 12:14:50Z jowenn $
+   $Id: parse.c 1456 2004-11-05 14:33:14Z twisti $
 
 */
 
@@ -413,7 +413,7 @@ static exceptiontable* fillextable(methodinfo *m,
 
 
 
-methodinfo *parse(methodinfo *m, t_inlining_globals *inline_env) 
+methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env)
 {
 	int  p;                     /* java instruction counter           */
 	int  nextp;                 /* start of next java instruction     */
@@ -436,10 +436,9 @@ methodinfo *parse(methodinfo *m, t_inlining_globals *inline_env)
 	exceptiontable* nextex;     /* points next free entry in extable  */
 	u1 *instructionstart;       /* 1 for pcs which are valid instr. starts    */
 
-	u2 lineindex=0;
-	u2 currentline=0;
-	u2 linepcchange=0;
-	codegendata *cd=m->codegendata;
+	u2 lineindex = 0;
+	u2 currentline = 0;
+	u2 linepcchange = 0;
 
 	u2 skipBasicBlockChange;
 
@@ -1707,7 +1706,7 @@ DEBUGMETH(inline_env->method);
 		bptr = m->basicblocks = DMNEW(basicblock, b_count + 1);    /* one more for end ipc */
 
 		b_count = 0;
-		c_debug_nr = 0;
+		m->c_debug_nr = 0;
 	
 		/* additional block if target 0 is not first intermediate instruction */
 
@@ -1718,7 +1717,7 @@ DEBUGMETH(inline_env->method);
 			bptr->type = BBTYPE_STD;
 			bptr->branchrefs = NULL;
 			bptr->pre_count = 0;
-			bptr->debug_nr = c_debug_nr++;
+			bptr->debug_nr = m->c_debug_nr++;
 			bptr++;
 			b_count++;
 			(bptr - 1)->next = bptr;
@@ -1736,7 +1735,7 @@ DEBUGMETH(inline_env->method);
 				}
 				/* allocate the block */
 				bptr->iinstr = m->instructions + (m->basicblockindex[p] >> 1);
-				bptr->debug_nr = c_debug_nr++;
+				bptr->debug_nr = m->c_debug_nr++;
 				if (b_count != 0)
 					(bptr - 1)->icount = bptr->iinstr - (bptr - 1)->iinstr;
 				bptr->mpc = -1;
@@ -1765,7 +1764,7 @@ DEBUGMETH(inline_env->method);
 		bptr->type = BBTYPE_STD;
 		bptr->branchrefs = NULL;
 		bptr->pre_count = 0;
-		bptr->debug_nr = c_debug_nr++;
+		bptr->debug_nr = m->c_debug_nr++;
 		(bptr - 1)->next = bptr;
 		bptr->next = NULL;
 
