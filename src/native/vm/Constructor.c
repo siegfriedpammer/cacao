@@ -1,4 +1,36 @@
-/* class: java/lang/reflect/Constructor */
+/* nat/Constructor.c -
+
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Roman Obermaiser
+
+   Changes: Joseph Wenninger
+
+   $Id: Constructor.c 835 2004-01-04 23:39:36Z twisti $
+
+*/
 
 
 #include <string.h>
@@ -9,6 +41,7 @@
 #include "tables.h"
 #include "asmpart.h"
 #include "toolbox/loging.h"
+#include "java_lang_Object.h"
 #include "java_lang_Class.h"
 #include "java_lang_reflect_Constructor.h"
 
@@ -18,102 +51,105 @@
  * Method:    newInstance
  * Signature: ([Ljava/lang/Object;)Ljava/lang/Object;
  */
-JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative( JNIEnv *env ,  struct java_lang_reflect_Constructor* this, 
-	java_objectarray* parameters,struct java_lang_Class* clazz, s4 par3)
+JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, struct java_lang_reflect_Constructor* this, java_objectarray* parameters, struct java_lang_Class* clazz, s4 par3)
 {
 
 #warning fix me for parameters float/double and long long  parameters
 
 	methodinfo *m;
-        java_objectheader *o;
+	java_objectheader *o;
 
         
-/*	log_text("Java_java_lang_reflect_Constructor_constructNative called");
+	/*	log_text("Java_java_lang_reflect_Constructor_constructNative called");
         log_plain_utf(((struct classinfo*)clazz)->name);*/
-        log_plain("\n");
+/*  	log_plain("\n"); */
 
-        /* find initializer */
+	/* find initializer */
 
 	if (!parameters) {
-		if (this->parameterTypes->header.size!=0) {
-			log_text("Parameter count mismatch in Java_java_lang_reflect_Constructor_constructNative(1)");
-#warning throw an exception here
+		if (this->parameterTypes->header.size != 0) {
+			(*env)->ThrowNew(env, loader_load(utf_new_char("java/lang/IllegalArgumentException")), "wrong number of arguments");
 			return 0;
 		}
-	} else
-	if (this->parameterTypes->header.size!=parameters->header.size) {
-		log_text("Parameter count mismatch in Java_java_lang_reflect_Constructor_constructNative(2)");
-#warning throw an exception here
-		return 0;
+
+	} else {
+		if (this->parameterTypes->header.size != parameters->header.size) {
+			(*env)->ThrowNew(env, loader_load(utf_new_char("java/lang/IllegalArgumentException")), "wrong number of arguments");
+			return 0;
+		}
 	}
 
-	if (this->slot>=((classinfo*)clazz)->methodscount) {
+	if (this->slot >= ((classinfo *) clazz)->methodscount) {
 		log_text("illegal index in methods table");
 		return 0;
 	}
 
-	o = builtin_new (clazz);         /*          create object */
-        if (!o) {
+	o = builtin_new((classinfo *) clazz);         /*          create object */
+	if (!o) {
 		log_text("Objet instance could not be created");
 		return NULL;
 	}
         
-/*	log_text("o!=NULL\n");*/
+	/*	log_text("o!=NULL\n");*/
 
 
-        m = &((classinfo*)clazz)->methods[this->slot];
+	m = &((classinfo *)clazz)->methods[this->slot];
 	if (!((m->name == utf_new_char("<init>"))))
-/* && 
-                  (m->descriptor == create_methodsig(this->parameterTypes,"V"))))*/
-	{
-                if (verbose) {
-						char logtext[MAXLOGTEXT];
-                        sprintf(logtext, "Warning: class has no instance-initializer of specified type: ");
-                        utf_sprint(logtext + strlen(logtext), ((struct classinfo*)clazz)->name);
-                        log_text(logtext);
-			log_plain_utf( create_methodsig(this->parameterTypes,"V"));
-			log_plain("\n");
-			class_showconstantpool(clazz);
-                        }
+		/* && 
+		   (m->descriptor == create_methodsig(this->parameterTypes,"V"))))*/
+		{
+			if (verbose) {
+				char logtext[MAXLOGTEXT];
+				sprintf(logtext, "Warning: class has no instance-initializer of specified type: ");
+				utf_sprint(logtext + strlen(logtext), ((classinfo *) clazz)->name);
+				log_text(logtext);
+				log_plain_utf( create_methodsig(this->parameterTypes,"V"));
+				log_plain("\n");
+				class_showconstantpool((classinfo *) clazz);
+			}
 #warning throw an exception here, although this should never happen
-                return o;
-                }
+			return (java_lang_Object *) o;
+		}
 
-/*	log_text("calling initializer");*/
-        /* call initializer */
+	/*	log_text("calling initializer");*/
+	/* call initializer */
 #if 0
 	switch (this->parameterTypes->header.size) {
-		case 0: exceptionptr=asm_calljavamethod (m, o, NULL, NULL, NULL);
-			break;
-		case 1: exceptionptr=asm_calljavamethod (m, o, parameters->data[0], NULL, NULL);
-			break;
-		case 2: exceptionptr=asm_calljavamethod (m, o, parameters->data[0], parameters->data[1], NULL);
-			break;
-		case 3: exceptionptr=asm_calljavamethod (m, o, parameters->data[0], parameters->data[1], 
-				parameters->data[2]);
-			break;
-		default:
-			log_text("Not supported number of arguments in Java_java_lang_reflect_Constructor");
+	case 0: exceptionptr=asm_calljavamethod (m, o, NULL, NULL, NULL);
+		break;
+	case 1: exceptionptr=asm_calljavamethod (m, o, parameters->data[0], NULL, NULL);
+		break;
+	case 2: exceptionptr=asm_calljavamethod (m, o, parameters->data[0], parameters->data[1], NULL);
+		break;
+	case 3: exceptionptr=asm_calljavamethod (m, o, parameters->data[0], parameters->data[1], 
+											 parameters->data[2]);
+	break;
+	default:
+		log_text("Not supported number of arguments in Java_java_lang_reflect_Constructor");
 	}
 #endif
-		/*log_plain_utf(m->descriptor);
-		log_text("calling constructor");*/
-		(void) jni_method_invokeNativeHelper(env, m ,o, parameters); 
+	/*log_plain_utf(m->descriptor);
+	  log_text("calling constructor");*/
+	(void) jni_method_invokeNativeHelper(env, m ,o, parameters); 
 
-        return o;
+	return (java_lang_Object *) o;
 }
+
 
 /*
  * Class:     java_lang_reflect_Constructor
  * Method:    getModifiers
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiers (JNIEnv *env ,  struct java_lang_reflect_Constructor* this ) {
-/*	log_text("Java_java_lang_reflect_Constructor_getModifiers called");*/
-        classinfo *c=(classinfo*)(this->clazz);
-        if ((this->slot<0) || (this->slot>=c->methodscount))
-                panic("error illegal slot for method in class (getReturnType)");
-        return (c->methods[this->slot]).flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED);
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiers(JNIEnv *env, struct java_lang_reflect_Constructor* this)
+{
+	/*	log_text("Java_java_lang_reflect_Constructor_getModifiers called");*/
+	classinfo *c = (classinfo *) (this->clazz);
+
+	if ((this->slot < 0) || (this->slot >= c->methodscount))
+		panic("error illegal slot for method in class (getReturnType)");
+
+	return (c->methods[this->slot]).flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED);
 }
 
 
