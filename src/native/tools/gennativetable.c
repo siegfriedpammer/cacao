@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: gennativetable.c 1677 2004-12-03 16:54:25Z twisti $
 
 */
 
@@ -190,9 +190,10 @@ int main(int argc, char **argv)
 	chain_free(nativemethod_chain);
 
 	fprintf(file, "};\n");
-	fprintf(file,"\n#else\n");
-	fprintf(file, "/*ensure that symbols for functions implemented within cacao are used and exported to dlopen*/\n");
-	fprintf(file, "static functionptr dummynativetable[]={\n");
+	fprintf(file, "\n#else\n\n");
+	fprintf(file, "/* Ensure that symbols for functions implemented within cacao are used and    */\n");
+	fprintf(file, "/* exported to dlopen.                                                        */\n\n");
+	fprintf(file, "static functionptr dummynativetable[] = {\n");
 
 	{
 		FILE *implData;
@@ -207,18 +208,28 @@ int main(int argc, char **argv)
 
 		while (!feof(implData)) {
 			char functionLine[1024];
-			functionLine[0]='\0';
-			fgets(functionLine,1024,implData);
-			if (strlen(functionLine)<2) continue;
-			if (functionLine[strlen(functionLine)-1]!='\n') { fclose(implData); fclose(file); exit(4);}
-			functionLine[strlen(functionLine)-1]=',';
-			fprintf(file,"\t(functionptr) %s\n",functionLine);
+			functionLine[0] = '\0';
+			fgets(functionLine, 1024, implData);
+
+			if (strlen(functionLine) < 2)
+				continue;
+
+			if (functionLine[strlen(functionLine) - 1] != '\n') {
+				fclose(implData);
+				fclose(file);
+				exit(4);
+			}
+
+			functionLine[strlen(functionLine) - 1] = ',';
+			fprintf(file,"\t(functionptr) %s\n", functionLine);
 		}
-		fprintf(file,"\t(functionptr)0");
+
+		fprintf(file, "\t(functionptr) 0\n");
 		fclose(implData);
 	}
+
 	fprintf(file, "};\n");
-	fprintf(file,"\n#endif\n");
+	fprintf(file, "\n#endif\n");
 	fclose(file);
 	
 	/* release all resources */
