@@ -1,16 +1,22 @@
 /* class: java/lang/Double */
 
+#include "native-math.h"
+
 /*
  * Class:     java/lang/Double
  * Method:    doubleToLongBits
  * Signature: (D)J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Double_doubleToLongBits ( JNIEnv *env ,  double par1)
+JNIEXPORT s8 JNICALL Java_java_lang_Double_doubleToLongBits(JNIEnv *env, double par1)
 {
-	s8 l;
-	double d = par1;
-	memcpy ((u1*) &l, (u1*) &d, 8);
-	return l;
+    union {
+        s8 l;
+        double d;
+    } d;
+
+    d.d = par1;
+
+    return d.l;
 }
 
 /*
@@ -18,10 +24,18 @@ JNIEXPORT s8 JNICALL Java_java_lang_Double_doubleToLongBits ( JNIEnv *env ,  dou
  * Method:    longBitsToDouble
  * Signature: (J)D
  */
-JNIEXPORT double JNICALL Java_java_lang_Double_longBitsToDouble ( JNIEnv *env ,  s8 par1)
+JNIEXPORT double JNICALL Java_java_lang_Double_longBitsToDouble(JNIEnv *env, s8 par1)
 {
-	s8 l = par1;
-	double d;
-	memcpy ((u1*) &d, (u1*) &l, 8);
-	return d;
+    union {
+        s8 l;
+        double d;
+    } d;
+
+    d.l = par1;
+
+    if (isnan(d.d)) {
+        d.d = DBL_NAN;
+    }
+    
+    return d.d;
 }

@@ -1,5 +1,7 @@
 /* class: java/lang/Float */
 
+#include "native-math.h"
+
 /*
  * Class:     java/lang/Float
  * Method:    floatToIntBits
@@ -7,10 +9,14 @@
  */
 JNIEXPORT s4 JNICALL Java_java_lang_Float_floatToIntBits ( JNIEnv *env ,  float par1)
 {
-	s4 i;
-	float f = par1;
-	memcpy ((u1*) &i, (u1*) &f, 4);
-	return i;
+    union {
+        s4 i;
+        float f;
+    } d;
+
+    d.f = par1;
+
+    return d.i;
 }
 
 /*
@@ -20,8 +26,16 @@ JNIEXPORT s4 JNICALL Java_java_lang_Float_floatToIntBits ( JNIEnv *env ,  float 
  */
 JNIEXPORT float JNICALL Java_java_lang_Float_intBitsToFloat ( JNIEnv *env ,  s4 par1)
 {
-	s4 i = par1;
-	float f;
-	memcpy ((u1*) &f, (u1*) &i, 4);
-	return f;
+    union {
+        s4 i;
+        float f;
+    } d;
+    
+    d.i = par1;
+
+    if (isnan(d.f)) {
+        d.f = FLT_NAN;
+    }
+
+    return d.f;
 }
