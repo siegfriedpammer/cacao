@@ -49,7 +49,7 @@ long int maxdumpsize = 0;
 /* #define TRACECALLARGS */
 
 #ifdef TRACECALLARGS
-static char *nomallocmem;
+static char *nomallocmem = NULL;
 static char *nomalloctop;
 static char *nomallocptr;
 
