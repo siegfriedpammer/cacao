@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1008 2004-03-31 20:13:14Z edwin $
+   $Id: loader.h 1031 2004-04-26 16:06:03Z twisti $
 */
 
 
@@ -39,15 +39,62 @@
 #include "unzip.h"
 #endif
 
-/* export variables */
 
-extern list unloadedclasses;     /* list of all referenced but not loaded classes */
-extern list unlinkedclasses;     /* List containing all unlinked classes */
-extern list linkedclasses;       /* List containing all linked classes */
+/* datastruture from a classfile */
+
+typedef struct classbuffer {
+	classinfo *class;                   /* pointer to classinfo structure     */
+	u1 *data;                           /* pointer to byte code               */
+	s4 size;                            /* size of the byte code              */
+	u1 *pos;                            /* current read position              */
+} classbuffer;
+
+
+/* export variables */
 
 #ifdef USE_THREADS
 extern int blockInts;
 #endif
+
+
+/* references to some system classes ******************************************/
+
+extern classinfo *class_java_lang_Object;
+extern classinfo *class_java_lang_String;
+extern classinfo *class_java_lang_Throwable;
+extern classinfo *class_java_lang_Cloneable;
+extern classinfo *class_java_io_Serializable;
+
+
+/* pseudo classes for the type checker ****************************************/
+
+/*
+ * pseudo_class_Arraystub
+ *     (extends Object implements Cloneable, java.io.Serializable)
+ *
+ *     If two arrays of incompatible component types are merged,
+ *     the resulting reference has no accessible components.
+ *     The result does, however, implement the interfaces Cloneable
+ *     and java.io.Serializable. This pseudo class is used internally
+ *     to represent such results. (They are *not* considered arrays!)
+ *
+ * pseudo_class_Null
+ *
+ *     This pseudo class is used internally to represent the
+ *     null type.
+ *
+ * pseudo_class_New
+ *
+ *     This pseudo class is used internally to represent the
+ *     the 'uninitialized object' type.
+ */
+
+extern classinfo *pseudo_class_Arraystub;
+extern classinfo *pseudo_class_Null;
+extern classinfo *pseudo_class_New;
+extern vftbl *pseudo_class_Arraystub_vftbl;
+
+extern utf *array_packagename;
 
 
 /************************ prototypes ******************************************/
@@ -56,15 +103,11 @@ extern int blockInts;
 void loader_init();
 
 void suck_init(char *cpath);
+void create_all_classes();
+void suck_stop(classbuffer *cb);
 
 /* free resources */
 void loader_close();
-
-/* load a class and all referenced classes */
-classinfo *loader_load(utf *topname);
-
-/* initializes all loaded classes */
-void loader_initclasses();
 
 void loader_compute_subclasses();
 
@@ -95,7 +138,7 @@ methodinfo *class_resolvemethod_approx(classinfo *c, utf *name, utf *dest);
 bool class_issubclass(classinfo *sub, classinfo *super);
 
 /* call initializer of class */
-void class_init(classinfo *c);
+classinfo *class_init(classinfo *c);
 
 void class_showconstanti(classinfo *c, int ii);
 
@@ -103,12 +146,6 @@ void class_showconstanti(classinfo *c, int ii);
 void class_showmethods(classinfo *c);
 void class_showconstantpool(classinfo *c);
 void print_arraydescriptor(FILE *file, arraydescriptor *desc);
-
-classinfo *loader_load(utf *topname);
-classinfo *loader_load_sysclass(classinfo **top,utf *topname);
-
-/* set buffer for reading classdata */
-void classload_buffer(u1 *buf, int len);
 
 /* return the primitive class inidicated by the given signature character */
 classinfo *class_primitive_from_sig(char sig);
@@ -134,6 +171,8 @@ int type_from_descriptor(classinfo **cls,char *utf_ptr,char *end_ptr,char **next
 /* (used by class_new, don't use directly) */
 void class_new_array(classinfo *c);
 
+classinfo *class_load(classinfo *c);
+classinfo *class_load_intern(classbuffer *cb);
 void class_link(classinfo *c);
 
 void field_display(fieldinfo *f);
