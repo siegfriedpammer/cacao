@@ -63,3 +63,7 @@
     mips: TODO
     powerpc: TODO
     x86_64: done (1.2)
+
+- codgen.c: what is this (twisti)
+	alpha: done 1.34
+	others ???
