@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2211 2005-04-04 10:39:36Z christian $
+   $Id: codegen.inc 2220 2005-04-05 15:49:13Z christian $
 
 */
 
@@ -874,40 +874,8 @@ static int reg_of_var(registerdata *rd, stackptr v, int tempregnum)
 		break;
 
 	case ARGVAR:
-#ifdef INVOKE_NEW
 		if (!(v->flags & INMEMORY))
 			return(v->regoff);
-#else
-		v->regoff = v->varnum;
-		if (IS_FLT_DBL_TYPE(v->type)) {
-			if (v->varnum < FLT_ARG_CNT) {
-				v->regoff = rd->argfltregs[v->varnum];
-				return(rd->argfltregs[v->varnum]);
-			}
-
-#if defined(__POWERPC__)
-			v->regoff += 6;
-#else
-			v->regoff -= FLT_ARG_CNT;
-#endif
-
-		} else {
-#if defined(__POWERPC__)
-			if (v->varnum < INT_ARG_CNT - (IS_2_WORD_TYPE(v->type) != 0)) {
-#else
-			if (v->varnum < INT_ARG_CNT) {
-#endif
-				v->regoff = rd->argintregs[v->varnum];
-				return (rd->argintregs[v->varnum]);
-			}
-
-#if defined(__POWERPC__)
-			v->regoff += 6;
-#else
-			v->regoff -= INT_ARG_CNT;
-#endif
-		}
-#endif
 		break;
 	}
 #ifdef STATISTICS
