@@ -31,7 +31,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: types.h 624 2003-11-13 14:06:52Z twisti $
+   $Id: types.h 765 2003-12-13 22:49:18Z twisti $
 
 */
 
@@ -58,8 +58,8 @@
 
 #define USEBUILTINTABLE
 
-#define SUPPORT_IFCVT       0
-#define SUPPORT_FICVT       0
+#define SUPPORT_IFCVT       1
+#define SUPPORT_FICVT       1
 #define SUPPORT_FMOD        1
 
 #define CONDITIONAL_LOADCONST
