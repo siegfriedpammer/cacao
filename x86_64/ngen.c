@@ -12,7 +12,7 @@
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 			 Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 482 2003-10-13 22:21:45Z twisti $
+	Last Change: $Id: ngen.c 521 2003-10-22 21:03:31Z twisti $
 
 *******************************************************************************/
 
@@ -214,8 +214,8 @@ static int reg_of_var(stackptr v, int tempregnum)
 void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 {
 	sigset_t nsig;
-	int      instr;
-	long     faultaddr;
+/*  	int      instr; */
+/*  	long     faultaddr; */
 
 	struct ucontext *_uc = (struct ucontext *) _p;
 	struct sigcontext *sigctx = (struct sigcontext *) &_uc->uc_mcontext;
@@ -254,14 +254,27 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 	struct ucontext *_uc = (struct ucontext *) _p;
 	struct sigcontext *sigctx = (struct sigcontext *) &_uc->uc_mcontext;
 
+	classinfo *c;
+	java_objectheader *p;
+	methodinfo *m;
+
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
-	signal(sig, (void *) catch_ArithmeticException);           /* reinstall handler */
+	signal(sig, (void *) catch_ArithmeticException);     /* reinstall handler */
 	sigemptyset(&nsig);
 	sigaddset(&nsig, sig);
-	sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
-	sigctx->rax = (long) proto_java_lang_ArithmeticException;  /* REG_ITMP1_XPTR    */
-	sigctx->r10 = sigctx->rip;                                 /* REG_ITMP2_XPC     */
+	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
+
+	c = loader_load(utf_new_char("java/lang/ArithmeticException"));
+	p = builtin_new(c);
+	m = class_findmethod(c, 
+						 utf_new_char("<init>"), 
+						 utf_new_char("(Ljava/lang/String;)V"));
+
+	asm_calljavamethod(m, p, javastring_new_char("/ by zero"), NULL, NULL);
+
+	sigctx->rax = (long) p;                              /* REG_ITMP1_XPTR    */
+	sigctx->r10 = sigctx->rip;                           /* REG_ITMP2_XPC     */
 	sigctx->rip = (long) asm_handle_exception;
 
 	return;
@@ -292,14 +305,15 @@ void init_exceptions(void)
 
 *******************************************************************************/
 
+u1          *mcodeptr;
+
 static void gen_mcode()
 {
 	int  len, s1, s2, s3, d /*, bbs */;
 	s8   a;
-	u1          *mcodeptr;
 	stackptr    src;
 	varinfo     *var;
-	varinfo     *dst;
+/*  	varinfo     *dst; */
 	basicblock  *bptr;
 	instruction *iptr;
 
@@ -308,7 +322,6 @@ static void gen_mcode()
 	{
 	int p, pa, t, l, r;
 
-/*  	savedregs_num = (isleafmethod) ? 0 : 1;           /* space to save the RA */
   	savedregs_num = 0;
 
 	/* space to save used callee saved registers */
@@ -325,10 +338,12 @@ static void gen_mcode()
 
 #endif
 
-    /* keep stack 16-byte aligned */
+    /* keep stack 16-byte aligned for calls into libc */
 
-	if ((parentargs_base % 2) == 0) {
-		parentargs_base++;
+	if (!isleafmethod || runverbose) {
+		if ((parentargs_base % 2) == 0) {
+			parentargs_base++;
+		}
 	}
 
 	/* create method header */
@@ -412,9 +427,6 @@ static void gen_mcode()
 	/* save return address and used callee saved registers */
 
   	p = parentargs_base;
-	if (!isleafmethod) {
-		/* p--; M_AST (REG_RA, REG_SP, 8*p); -- do we really need this on x86_64 */
-	}
 	for (r = savintregcnt - 1; r >= maxsavintreguse; r--) {
  		p--; x86_64_mov_reg_membase(savintregs[r], REG_SP, p * 8);
 	}
@@ -427,7 +439,7 @@ static void gen_mcode()
 #ifdef USE_THREADS
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 		if (method->flags & ACC_STATIC) {
-			x86_64_mov_imm_reg(class, REG_ITMP1);
+			x86_64_mov_imm_reg((s8) class, REG_ITMP1);
 			x86_64_mov_reg_membase(REG_ITMP1, REG_SP, maxmemuse * 8);
 
 		} else {
@@ -471,9 +483,9 @@ static void gen_mcode()
 			}
 		}
 
-		x86_64_mov_imm_reg(method, REG_ITMP2);
+		x86_64_mov_imm_reg((s8) method, REG_ITMP2);
 		x86_64_mov_reg_membase(REG_ITMP2, REG_SP, 0 * 8);
-		x86_64_mov_imm_reg(builtin_trace_args, REG_ITMP1);
+		x86_64_mov_imm_reg((s8) builtin_trace_args, REG_ITMP1);
 		x86_64_call_reg(REG_ITMP1);
 
 		x86_64_mov_membase_reg(REG_SP, 1 * 8, argintregs[0]);
@@ -565,7 +577,7 @@ static void gen_mcode()
 #ifdef USE_THREADS
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 		x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, argintregs[0]);
-		x86_64_mov_imm_reg(builtin_monitorenter, REG_ITMP1);
+		x86_64_mov_imm_reg((s8) builtin_monitorenter, REG_ITMP1);
 		x86_64_call_reg(REG_ITMP1);
 	}			
 #endif
@@ -689,7 +701,7 @@ static void gen_mcode()
 			if (iptr->val.a == 0) {
 				x86_64_alu_reg_reg(X86_64_XOR, d, d);
 			} else {
-				x86_64_mov_imm_reg(iptr->val.a, d);
+				x86_64_mov_imm_reg((s8) iptr->val.a, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -711,7 +723,7 @@ static void gen_mcode()
 
 			d = reg_of_var(iptr->dst, REG_FTMP1);
 			a = dseg_addfloat(iptr->val.f);
-			x86_64_movdl_membase_reg(RIP, -(((s8) mcodeptr + 4) - (s8) mcodebase) + a, d);
+			x86_64_movdl_membase_reg(RIP, -(((s8) mcodeptr + ((d > 7) ? 9 : 8)) - (s8) mcodebase) + a, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 		
@@ -720,7 +732,7 @@ static void gen_mcode()
 
 			d = reg_of_var(iptr->dst, REG_FTMP1);
 			a = dseg_adddouble(iptr->val.d);
-			x86_64_movd_membase_reg(RIP, -(((s8) mcodeptr + 4) - (s8) mcodebase) + a, d);
+			x86_64_movd_membase_reg(RIP, -(((s8) mcodeptr + 9) - (s8) mcodebase) + a, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
@@ -1695,21 +1707,9 @@ static void gen_mcode()
 			}
 			break;
 
-#define gen_div_check(v) \
-    if (checknull) { \
-        if ((v)->flags & INMEMORY) { \
-            x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8); \
-        } else { \
-            x86_64_test_reg_reg(src->regoff, src->regoff); \
-        } \
-        x86_64_jcc(X86_64_CC_E, 0); \
-        mcode_addxdivrefs(mcodeptr); \
-    }
-
 		case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-  			gen_div_check(src);
 	        if (src->prev->flags & INMEMORY) {
 				x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, RAX);
 
@@ -1749,7 +1749,6 @@ static void gen_mcode()
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_div_check(src);
 			if (src->prev->flags & INMEMORY) {
 				x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, RAX);
 
@@ -1820,7 +1819,6 @@ static void gen_mcode()
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-  			gen_div_check(src);
 	        if (src->prev->flags & INMEMORY) {
 				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
 
@@ -1861,8 +1859,7 @@ static void gen_mcode()
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-  			gen_div_check(src);
-	        if (src->prev->flags & INMEMORY) {
+			if (src->prev->flags & INMEMORY) {
 				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
 
 			} else {
@@ -3246,7 +3243,7 @@ static void gen_mcode()
 			d = reg_of_var(iptr->dst, REG_FTMP3);
 			a = dseg_adds4(0x80000000);
 			M_FLTMOVE(s1, d);
-			x86_64_movss_membase_reg(RIP, -(((s8) mcodeptr + 4) - (s8) mcodebase) + a, REG_FTMP2);
+			x86_64_movss_membase_reg(RIP, -(((s8) mcodeptr + 9) - (s8) mcodebase) + a, REG_FTMP2);
 			x86_64_xorps_reg_reg(REG_FTMP2, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -3257,7 +3254,7 @@ static void gen_mcode()
 			d = reg_of_var(iptr->dst, REG_FTMP3);
 			a = dseg_adds8(0x8000000000000000);
 			M_FLTMOVE(s1, d);
-			x86_64_movd_membase_reg(RIP, -(((s8) mcodeptr + 4) - (s8) mcodebase) + a, REG_FTMP2);
+			x86_64_movd_membase_reg(RIP, -(((s8) mcodeptr + 9) - (s8) mcodebase) + a, REG_FTMP2);
 			x86_64_xorpd_reg_reg(REG_FTMP2, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -3754,7 +3751,7 @@ static void gen_mcode()
 /*    			x86_64_mov_imm_reg(0, REG_ITMP2); */
 /*    			dseg_adddata(mcodeptr); */
 /*    			x86_64_mov_membase_reg(REG_ITMP2, a, REG_ITMP3); */
-			x86_64_mov_membase_reg(RIP, -(((s8) mcodeptr + 4) - (s8) mcodebase) + a, REG_ITMP3);
+			x86_64_mov_membase_reg(RIP, -(((s8) mcodeptr + 7) - (s8) mcodebase) + a, REG_ITMP3);
 			switch (iptr->op1) {
 				case TYPE_INT:
 					var_to_reg_int(s2, src, REG_ITMP1);
@@ -3784,7 +3781,7 @@ static void gen_mcode()
 /*  			x86_64_mov_imm_reg(0, REG_ITMP2); */
 /*  			dseg_adddata(mcodeptr); */
 /*  			x86_64_mov_membase_reg(REG_ITMP2, a, REG_ITMP3); */
-			x86_64_mov_membase_reg(RIP, -(((s8) mcodeptr + 4) - (s8) mcodebase) + a, REG_ITMP3);
+			x86_64_mov_membase_reg(RIP, -(((s8) mcodeptr + 7) - (s8) mcodebase) + a, REG_ITMP3);
 			switch (iptr->op1) {
 				case TYPE_INT:
 					d = reg_of_var(iptr->dst, REG_ITMP1);
@@ -3880,7 +3877,6 @@ static void gen_mcode()
 
 		/* branch operations **************************************************/
 
-			/* TWISTI */
 /*  #define ALIGNCODENOP {if((int)((long)mcodeptr&7)){M_NOP;}} */
 #define ALIGNCODENOP do {} while (0)
 
@@ -3892,7 +3888,7 @@ static void gen_mcode()
 			x86_64_call_imm(0); /* passing exception pointer                  */
 			x86_64_pop_reg(REG_ITMP2_XPC);
 
-  			x86_64_mov_imm_reg(asm_handle_exception, REG_ITMP3);
+  			x86_64_mov_imm_reg((s8) asm_handle_exception, REG_ITMP3);
   			x86_64_jmp_reg(REG_ITMP3);
 			ALIGNCODENOP;
 			break;
@@ -4625,7 +4621,7 @@ static void gen_mcode()
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, argintregs[0]);
-				x86_64_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
+				x86_64_mov_imm_reg((s8) builtin_monitorexit, REG_ITMP1);
 				x86_64_call_reg(REG_ITMP1);
 			}
 #endif
@@ -4639,7 +4635,7 @@ static void gen_mcode()
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, argintregs[0]);
-				x86_64_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
+				x86_64_mov_imm_reg((s8) builtin_monitorexit, REG_ITMP1);
 				x86_64_call_reg(REG_ITMP1);
 			}
 #endif
@@ -4652,7 +4648,7 @@ static void gen_mcode()
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, argintregs[0]);
-				x86_64_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
+				x86_64_mov_imm_reg((s8) builtin_monitorexit, REG_ITMP1);
 				x86_64_call_reg(REG_ITMP1);
 			}
 #endif
@@ -4670,23 +4666,18 @@ nowperformreturn:
 				x86_64_mov_reg_membase(REG_RESULT, REG_SP, 0 * 8);
 				x86_64_movq_reg_membase(REG_FRESULT, REG_SP, 1 * 8);
 
-  				x86_64_mov_imm_reg(method, argintregs[0]);
+  				x86_64_mov_imm_reg((s8) method, argintregs[0]);
   				x86_64_mov_reg_reg(REG_RESULT, argintregs[1]);
 				M_FLTMOVE(REG_FRESULT, argfltregs[0]);
  				M_FLTMOVE(REG_FRESULT, argfltregs[1]);
 
-  				x86_64_mov_imm_reg(builtin_displaymethodstop, REG_ITMP1);
+  				x86_64_mov_imm_reg((s8) builtin_displaymethodstop, REG_ITMP1);
 				x86_64_call_reg(REG_ITMP1);
 
 				x86_64_mov_membase_reg(REG_SP, 0 * 8, REG_RESULT);
 				x86_64_movq_membase_reg(REG_SP, 1 * 8, REG_FRESULT);
 
 				x86_64_alu_imm_reg(X86_64_ADD, 2 * 8, REG_SP);
-			}
-
-			/* restore return address                                         */
-			if (!isleafmethod) {
-				/* p--; M_LLD (REG_RA, REG_SP, 8 * p); -- do we really need this on x86_64 */
 			}
 
 			/* restore saved registers                                        */
@@ -5064,7 +5055,7 @@ gen_method: {
 					x86_64_jcc(X86_64_CC_E, offset);
 
 					x86_64_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					x86_64_mov_imm_reg((void *) super->vftbl, REG_ITMP2);
+					x86_64_mov_imm_reg((s8) super->vftbl, REG_ITMP2);
 					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
 					x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
 					x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
@@ -5173,7 +5164,7 @@ gen_method: {
 					x86_64_jcc(X86_64_CC_E, offset);
 
 					x86_64_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					x86_64_mov_imm_reg((void *) super->vftbl, REG_ITMP2);
+					x86_64_mov_imm_reg((s8) super->vftbl, REG_ITMP2);
 					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
 					if (d != REG_ITMP3) {
 						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
@@ -5183,7 +5174,7 @@ gen_method: {
 					} else {
 						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP2);
 						x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP2, REG_ITMP1);
-						x86_64_mov_imm_reg((void *) super->vftbl, REG_ITMP2);
+						x86_64_mov_imm_reg((s8) super->vftbl, REG_ITMP2);
 						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
 					}
 					x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP2, REG_ITMP1);
@@ -5234,12 +5225,12 @@ gen_method: {
 			x86_64_mov_imm_reg(iptr->op1, argintregs[0]);
 
 			/* a1 = arraydescriptor */
-			x86_64_mov_imm_reg(iptr->val.a, argintregs[1]);
+			x86_64_mov_imm_reg((s8) iptr->val.a, argintregs[1]);
 
 			/* a2 = pointer to dimensions = stack pointer */
 			x86_64_mov_reg_reg(REG_SP, argintregs[2]);
 
-			x86_64_mov_imm_reg((void*) (builtin_nmultianewarray), REG_ITMP1);
+			x86_64_mov_imm_reg((s8) (builtin_nmultianewarray), REG_ITMP1);
 			x86_64_call_reg(REG_ITMP1);
 
 			s1 = reg_of_var(iptr->dst, REG_RESULT);
@@ -5312,17 +5303,14 @@ gen_method: {
 		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm((xcodeptr - mcodeptr) - 4);
+			x86_64_jmp_imm((xcodeptr - mcodeptr) - 5);
 
 		} else {
 			xcodeptr = mcodeptr;
 
-			x86_64_mov_imm_reg(0, REG_ITMP3);    /* mov data segment pointer into reg */
-			dseg_adddata(mcodeptr);
-
-			x86_64_mov_imm_reg(proto_java_lang_ArrayIndexOutOfBoundsException, REG_ITMP1_XPTR);
-			x86_64_push_imm(asm_handle_exception);
-			x86_64_ret();
+			x86_64_mov_imm_reg((s8) proto_java_lang_ArrayIndexOutOfBoundsException, REG_ITMP1_XPTR);
+			x86_64_mov_imm_reg((s8) asm_handle_exception, REG_ITMP3);
+			x86_64_jmp_reg(REG_ITMP3);
 		}
 	}
 
@@ -5347,17 +5335,14 @@ gen_method: {
 		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm((xcodeptr - mcodeptr) - 4);
+			x86_64_jmp_imm((xcodeptr - mcodeptr) - 5);
 
 		} else {
 			xcodeptr = mcodeptr;
 
-			x86_64_mov_imm_reg(0, REG_ITMP3);    /* mov data segment pointer into reg */
-			dseg_adddata(mcodeptr);
-
-			x86_64_mov_imm_reg(proto_java_lang_NegativeArraySizeException, REG_ITMP1_XPTR);
-			x86_64_push_imm(asm_handle_exception);
-			x86_64_ret();
+			x86_64_mov_imm_reg((s8) proto_java_lang_NegativeArraySizeException, REG_ITMP1_XPTR);
+			x86_64_mov_imm_reg((s8) asm_handle_exception, REG_ITMP3);
+			x86_64_jmp_reg(REG_ITMP3);
 		}
 	}
 
@@ -5382,52 +5367,14 @@ gen_method: {
 		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm((xcodeptr - mcodeptr) - 4);
+			x86_64_jmp_imm((xcodeptr - mcodeptr) - 5);
 		
 		} else {
 			xcodeptr = mcodeptr;
 
-			x86_64_mov_imm_reg(0, REG_ITMP3);    /* mov data segment pointer into reg */
-			dseg_adddata(mcodeptr);
-
-			x86_64_mov_imm_reg(proto_java_lang_ClassCastException, REG_ITMP1_XPTR);
-			x86_64_push_imm(asm_handle_exception);
-			x86_64_ret();
-		}
-	}
-
-	/* generate divide by zero check stubs */
-	xcodeptr = NULL;
-	
-	for (; xdivrefs != NULL; xdivrefs = xdivrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(mcodebase + xdivrefs->branchpos, 
-				xdivrefs->branchpos, xcodeptr - mcodebase - (10 + 10 + 3));
-			continue;
-		}
-
-		gen_resolvebranch(mcodebase + xdivrefs->branchpos, 
-		                  xdivrefs->branchpos, mcodeptr - mcodebase);
-
-		MCODECHECK(8);
-
-		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 10 bytes */
-		dseg_adddata(mcodeptr);
-		x86_64_mov_imm_reg(xdivrefs->branchpos - 6, REG_ITMP1);    /* 10 bytes */
-		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
-
-		if (xcodeptr != NULL) {
-			x86_64_jmp_imm((xcodeptr - mcodeptr) - 4);
-		
-		} else {
-			xcodeptr = mcodeptr;
-
-			x86_64_mov_imm_reg(0, REG_ITMP3);    /* mov data segment pointer into reg */
-			dseg_adddata(mcodeptr);
-
-			x86_64_mov_imm_reg(proto_java_lang_ArithmeticException, REG_ITMP1_XPTR);
-			x86_64_push_imm(asm_handle_exception);
-			x86_64_ret();
+			x86_64_mov_imm_reg((s8) proto_java_lang_ClassCastException, REG_ITMP1_XPTR);
+			x86_64_mov_imm_reg((s8) asm_handle_exception, REG_ITMP3);
+			x86_64_jmp_reg(REG_ITMP3);
 		}
 	}
 
@@ -5453,17 +5400,14 @@ gen_method: {
 		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm((xcodeptr - mcodeptr) - 4);
+			x86_64_jmp_imm((xcodeptr - mcodeptr) - 5);
 		
 		} else {
 			xcodeptr = mcodeptr;
 
-			x86_64_mov_imm_reg(0, REG_ITMP3);    /* move data segment pointer into reg */
-			dseg_adddata(mcodeptr);
-
-			x86_64_mov_imm_reg(proto_java_lang_NullPointerException, REG_ITMP1_XPTR);
-			x86_64_push_imm(asm_handle_exception);
-			x86_64_ret();
+			x86_64_mov_imm_reg((s8) proto_java_lang_NullPointerException, REG_ITMP1_XPTR);
+			x86_64_mov_imm_reg((s8) asm_handle_exception, REG_ITMP3);
+			x86_64_jmp_reg(REG_ITMP3);
 		}
 	}
 
@@ -5485,11 +5429,11 @@ gen_method: {
 u1 *createcompilerstub(methodinfo *m)
 {
 	u1 *s = CNEW(u1, COMPSTUBSIZE);     /* memory to hold the stub            */
-	u1 *mcodeptr = s;                   /* code generation pointer            */
+	mcodeptr = s;                       /* code generation pointer            */
 
 	                                    /* code for the stub                  */
-	x86_64_mov_imm_reg(m, REG_ITMP1);   /* pass method pointer to compiler    */
-	x86_64_mov_imm_reg(asm_call_jit_compiler, REG_ITMP3);    /* load address  */
+	x86_64_mov_imm_reg((s8) m, REG_ITMP1); /* pass method pointer to compiler */
+	x86_64_mov_imm_reg((s8) asm_call_jit_compiler, REG_ITMP3);/* load address */
 	x86_64_jmp_reg(REG_ITMP3);          /* jump to compiler                   */
 
 #ifdef STATISTICS
@@ -5522,7 +5466,7 @@ void removecompilerstub(u1 *stub)
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
 	u1 *s = CNEW(u1, NATIVESTUBSIZE);   /* memory to hold the stub            */
-	u1 *mcodeptr = s;                   /* make macros work                   */
+	mcodeptr = s;                       /* make macros work                   */
 
 	reg_init();
 
@@ -5560,10 +5504,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			}
 		}
 
-		x86_64_mov_imm_reg(m, REG_ITMP2);
+		x86_64_mov_imm_reg((s8) m, REG_ITMP2);
 		x86_64_mov_reg_membase(REG_ITMP2, REG_SP, 0 * 8);
 /*  		x86_64_mov_imm_reg(asm_builtin_trace, REG_ITMP1); */
-		x86_64_mov_imm_reg(builtin_trace_args, REG_ITMP1);
+		x86_64_mov_imm_reg((s8) builtin_trace_args, REG_ITMP1);
 		x86_64_call_reg(REG_ITMP1);
 
 		x86_64_mov_membase_reg(REG_SP, 1 * 8, argintregs[0]);
@@ -5601,9 +5545,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	x86_64_mov_reg_reg(argintregs[1], argintregs[2]);
 	x86_64_mov_reg_reg(argintregs[0], argintregs[1]);
 
-	x86_64_mov_imm_reg(&env, argintregs[0]);
+	x86_64_mov_imm_reg((s8) &env, argintregs[0]);
 
-	x86_64_mov_imm_reg(f, REG_ITMP1);
+	x86_64_mov_imm_reg((s8) f, REG_ITMP1);
 	x86_64_call_reg(REG_ITMP1);
 
 	/* restore callee saved registers */
@@ -5622,13 +5566,13 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_mov_reg_membase(REG_RESULT, REG_SP, 0 * 8);
 		x86_64_movq_reg_membase(REG_FRESULT, REG_SP, 1 * 8);
 
-  		x86_64_mov_imm_reg(m, argintregs[0]);
+  		x86_64_mov_imm_reg((s8) m, argintregs[0]);
   		x86_64_mov_reg_reg(REG_RESULT, argintregs[1]);
 		M_FLTMOVE(REG_FRESULT, argfltregs[0]);
   		M_FLTMOVE(REG_FRESULT, argfltregs[1]);
 
 /*  		x86_64_mov_imm_reg(asm_builtin_exittrace, REG_ITMP1); */
-		x86_64_mov_imm_reg(builtin_displaymethodstop, REG_ITMP1);
+		x86_64_mov_imm_reg((s8) builtin_displaymethodstop, REG_ITMP1);
 		x86_64_call_reg(REG_ITMP1);
 
 		x86_64_mov_membase_reg(REG_SP, 0 * 8, REG_RESULT);
@@ -5637,7 +5581,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_alu_imm_reg(X86_64_ADD, 3 * 8, REG_SP);    /* keep stack 16-byte aligned */
 	}
 
-	x86_64_mov_imm_reg(&exceptionptr, REG_ITMP3);
+	x86_64_mov_imm_reg((s8) &exceptionptr, REG_ITMP3);
 	x86_64_mov_membase_reg(REG_ITMP3, 0, REG_ITMP3);
 	x86_64_test_reg_reg(REG_ITMP3, REG_ITMP3);
 	x86_64_jcc(X86_64_CC_NE, 1);
@@ -5645,14 +5589,14 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	x86_64_ret();
 
 	x86_64_mov_reg_reg(REG_ITMP3, REG_ITMP1_XPTR);
-	x86_64_mov_imm_reg(&exceptionptr, REG_ITMP3);
+	x86_64_mov_imm_reg((s8) &exceptionptr, REG_ITMP3);
 	x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP2);
 	x86_64_mov_reg_membase(REG_ITMP2, REG_ITMP3, 0);    /* clear exception pointer */
 
 	x86_64_mov_membase_reg(REG_SP, 0, REG_ITMP2_XPC);    /* get return address from stack */
 	x86_64_alu_imm_reg(X86_64_SUB, 3, REG_ITMP2_XPC);    /* callq */
 
-	x86_64_mov_imm_reg(asm_handle_nat_exception, REG_ITMP3);
+	x86_64_mov_imm_reg((s8) asm_handle_nat_exception, REG_ITMP3);
 	x86_64_jmp_reg(REG_ITMP3);
 
 #if 0
@@ -5682,6 +5626,1350 @@ void removenativestub(u1 *stub)
 	CFREE(stub, NATIVESTUBSIZE);
 }
 
+
+
+#if 1
+
+/*
+ * mov ops
+ */
+void x86_64_mov_reg_reg(s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(1,(reg),0,(dreg));
+        *(mcodeptr++) = 0x89;
+        x86_64_emit_reg((reg),(dreg));
+    }
+
+
+void x86_64_mov_imm_reg(s8 imm, s8 reg) {
+    
+        x86_64_emit_rex(1,0,0,(reg));
+        *(mcodeptr++) = 0xb8 + ((reg) & 0x07);
+        x86_64_emit_imm64((imm));
+    }
+
+
+void x86_64_movl_imm_reg(s8 imm, s8 reg) {
+    
+        x86_64_emit_rex(0,0,0,(reg));
+        *(mcodeptr++) = 0xb8 + ((reg) & 0x07);
+        x86_64_emit_imm32((imm));
+    }
+
+
+void x86_64_mov_membase_reg(s8 basereg, s8 disp, s8 reg) {
+    
+        x86_64_emit_rex(1,(reg),0,(basereg));
+        *(mcodeptr++) = 0x8b;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+void x86_64_movl_membase_reg(s8 basereg, s8 disp, s8 reg) {
+    
+        x86_64_emit_rex(0,(reg),0,(basereg));
+        *(mcodeptr++) = 0x8b;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+/*
+ * this one is for INVOKEVIRTUAL/INVOKEINTERFACE to have a
+ * constant membase immediate length of 32bit
+ */
+void x86_64_mov_membase32_reg(s8 basereg, s8 disp, s8 reg) {
+    
+        x86_64_emit_rex(1,(reg),0,(basereg));
+        *(mcodeptr++) = 0x8b;
+        x86_64_address_byte(2, (reg), (basereg));
+        x86_64_emit_imm32((disp));
+    }
+
+
+void x86_64_mov_reg_membase(s8 reg, s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(1,(reg),0,(basereg));
+        *(mcodeptr++) = 0x89;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+void x86_64_movl_reg_membase(s8 reg, s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(0,(reg),0,(basereg));
+        *(mcodeptr++) = 0x89;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+void x86_64_mov_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg) {
+    
+        x86_64_emit_rex(1,(reg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x8b;
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_movl_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg) {
+    
+        x86_64_emit_rex(0,(reg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x8b;
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_mov_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale) {
+    
+        x86_64_emit_rex(1,(reg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x89;
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_movl_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale) {
+    
+        x86_64_emit_rex(0,(reg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x89;
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_movw_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(0,(reg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x89;
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_movb_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale) {
+    
+        x86_64_emit_rex(0,(reg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x88;
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_mov_imm_membase(s8 imm, s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(1,0,0,(basereg));
+        *(mcodeptr++) = 0xc7;
+        x86_64_emit_membase((basereg),(disp),0);
+        x86_64_emit_imm32((imm));
+    }
+
+
+void x86_64_movl_imm_membase(s8 imm, s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(0,0,0,(basereg));
+        *(mcodeptr++) = 0xc7;
+        x86_64_emit_membase((basereg),(disp),0);
+        x86_64_emit_imm32((imm));
+    }
+
+
+void x86_64_movsbq_reg_reg(s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(1,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xbe;
+        /* XXX: why do reg and dreg have to be exchanged */
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_movsbq_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        x86_64_emit_rex(1,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xbe;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_movswq_reg_reg(s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(1,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xbf;
+        /* XXX: why do reg and dreg have to be exchanged */
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_movswq_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        x86_64_emit_rex(1,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xbf;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_movslq_reg_reg(s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(1,(dreg),0,(reg));
+        *(mcodeptr++) = 0x63;
+        /* XXX: why do reg and dreg have to be exchanged */
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_movslq_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        x86_64_emit_rex(1,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x63;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_movzwq_reg_reg(s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(1,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xb7;
+        /* XXX: why do reg and dreg have to be exchanged */
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_movzwq_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        x86_64_emit_rex(1,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xb7;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_movswq_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg) {
+    
+        x86_64_emit_rex(1,(reg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xbf;
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_movsbq_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg) {
+    
+        x86_64_emit_rex(1,(reg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xbe;
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_movzwq_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg) {
+    
+        x86_64_emit_rex(1,(reg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xb7;
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+
+/*
+ * alu operations
+ */
+void x86_64_alu_reg_reg(s8 opc, s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(1,(reg),0,(dreg));
+        *(mcodeptr++) = (((opc)) << 3) + 1;
+        x86_64_emit_reg((reg),(dreg));
+    }
+
+
+void x86_64_alul_reg_reg(s8 opc, s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(0,(reg),0,(dreg));
+        *(mcodeptr++) = (((opc)) << 3) + 1;
+        x86_64_emit_reg((reg),(dreg));
+    }
+
+
+void x86_64_alu_reg_membase(s8 opc, s8 reg, s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(1,(reg),0,(basereg));
+        *(mcodeptr++) = (((opc)) << 3) + 1;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+void x86_64_alul_reg_membase(s8 opc, s8 reg, s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(0,(reg),0,(basereg));
+        *(mcodeptr++) = (((opc)) << 3) + 1;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+void x86_64_alu_membase_reg(s8 opc, s8 basereg, s8 disp, s8 reg) {
+    
+        x86_64_emit_rex(1,(reg),0,(basereg));
+        *(mcodeptr++) = (((opc)) << 3) + 3;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+void x86_64_alul_membase_reg(s8 opc, s8 basereg, s8 disp, s8 reg) {
+    
+        x86_64_emit_rex(0,(reg),0,(basereg));
+        *(mcodeptr++) = (((opc)) << 3) + 3;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+void x86_64_alu_imm_reg(s8 opc, s8 imm, s8 dreg) {
+    
+        if (x86_64_is_imm8(imm)) {
+            x86_64_emit_rex(1,0,0,(dreg));
+            *(mcodeptr++) = 0x83;
+            x86_64_emit_reg((opc),(dreg));
+            x86_64_emit_imm8((imm));
+        } else {
+            x86_64_emit_rex(1,0,0,(dreg));
+            *(mcodeptr++) = 0x81;
+            x86_64_emit_reg((opc),(dreg));
+            x86_64_emit_imm32((imm));
+        }
+    }
+
+
+void x86_64_alul_imm_reg(s8 opc, s8 imm, s8 dreg) {
+    
+        if (x86_64_is_imm8(imm)) {
+            x86_64_emit_rex(0,0,0,(dreg));
+            *(mcodeptr++) = 0x83;
+            x86_64_emit_reg((opc),(dreg));
+            x86_64_emit_imm8((imm));
+        } else {
+            x86_64_emit_rex(0,0,0,(dreg));
+            *(mcodeptr++) = 0x81;
+            x86_64_emit_reg((opc),(dreg));
+            x86_64_emit_imm32((imm));
+        }
+    }
+
+
+void x86_64_alu_imm_membase(s8 opc, s8 imm, s8 basereg, s8 disp) {
+    
+        if (x86_64_is_imm8(imm)) {
+            x86_64_emit_rex(1,(basereg),0,0);
+            *(mcodeptr++) = 0x83;
+            x86_64_emit_membase((basereg),(disp),(opc));
+            x86_64_emit_imm8((imm));
+        } else {
+            x86_64_emit_rex(1,(basereg),0,0);
+            *(mcodeptr++) = 0x81;
+            x86_64_emit_membase((basereg),(disp),(opc));
+            x86_64_emit_imm32((imm));
+        }
+    }
+
+
+void x86_64_alul_imm_membase(s8 opc, s8 imm, s8 basereg, s8 disp) {
+    
+        if (x86_64_is_imm8(imm)) {
+            x86_64_emit_rex(0,(basereg),0,0);
+            *(mcodeptr++) = 0x83;
+            x86_64_emit_membase((basereg),(disp),(opc));
+            x86_64_emit_imm8((imm));
+        } else {
+            x86_64_emit_rex(0,(basereg),0,0);
+            *(mcodeptr++) = 0x81;
+            x86_64_emit_membase((basereg),(disp),(opc));
+            x86_64_emit_imm32((imm));
+        }
+    }
+
+
+void x86_64_test_reg_reg(s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(1,(reg),0,(dreg));
+        *(mcodeptr++) = 0x85;
+        x86_64_emit_reg((reg),(dreg));
+    }
+
+
+void x86_64_testl_reg_reg(s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(0,(reg),0,(dreg));
+        *(mcodeptr++) = 0x85;
+        x86_64_emit_reg((reg),(dreg));
+    }
+
+
+void x86_64_test_imm_reg(s8 imm, s8 reg) {
+    
+        *(mcodeptr++) = 0xf7;
+        x86_64_emit_reg(0,(reg));
+        x86_64_emit_imm32((imm));
+    }
+
+
+void x86_64_testw_imm_reg(s8 imm, s8 reg) {
+    
+        *(mcodeptr++) = 0x66;
+        *(mcodeptr++) = 0xf7;
+        x86_64_emit_reg(0,(reg));
+        x86_64_emit_imm16((imm));
+    }
+
+
+void x86_64_testb_imm_reg(s8 imm, s8 reg) {
+    
+        *(mcodeptr++) = 0xf6;
+        x86_64_emit_reg(0,(reg));
+        x86_64_emit_imm8((imm));
+    }
+
+
+void x86_64_lea_membase_reg(s8 basereg, s8 disp, s8 reg) {
+    
+        x86_64_emit_rex(1,(reg),0,(basereg));
+        *(mcodeptr++) = 0x8d;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+void x86_64_leal_membase_reg(s8 basereg, s8 disp, s8 reg) {
+    
+        x86_64_emit_rex(0,(reg),0,(basereg));
+        *(mcodeptr++) = 0x8d;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+
+/*
+ * inc, dec operations
+ */
+void x86_64_inc_reg(s8 reg) {
+    
+        x86_64_emit_rex(1,0,0,(reg));
+        *(mcodeptr++) = 0xff;
+        x86_64_emit_reg(0,(reg));
+    }
+
+
+void x86_64_incl_reg(s8 reg) {
+    
+        x86_64_emit_rex(0,0,0,(reg));
+        *(mcodeptr++) = 0xff;
+        x86_64_emit_reg(0,(reg));
+    }
+
+
+void x86_64_inc_membase(s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(1,(basereg),0,0);
+        *(mcodeptr++) = 0xff;
+        x86_64_emit_membase((basereg),(disp),0);
+    }
+
+
+void x86_64_incl_membase(s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(0,(basereg),0,0);
+        *(mcodeptr++) = 0xff;
+        x86_64_emit_membase((basereg),(disp),0);
+    }
+
+
+void x86_64_dec_reg(s8 reg) {
+    
+        x86_64_emit_rex(1,0,0,(reg));
+        *(mcodeptr++) = 0xff;
+        x86_64_emit_reg(1,(reg));
+    }
+
+        
+void x86_64_decl_reg(s8 reg) {
+    
+        x86_64_emit_rex(0,0,0,(reg));
+        *(mcodeptr++) = 0xff;
+        x86_64_emit_reg(1,(reg));
+    }
+
+        
+void x86_64_dec_membase(s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(1,(basereg),0,0);
+        *(mcodeptr++) = 0xff;
+        x86_64_emit_membase((basereg),(disp),1);
+    }
+
+
+void x86_64_decl_membase(s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(0,(basereg),0,0);
+        *(mcodeptr++) = 0xff;
+        x86_64_emit_membase((basereg),(disp),1);
+    }
+
+
+
+
+void x86_64_cltd() {
+    *(mcodeptr++) = 0x99;
+}
+
+
+void x86_64_cqto() {
+    
+        x86_64_emit_rex(1,0,0,0);
+        *(mcodeptr++) = 0x99;
+    }
+
+
+
+void x86_64_imul_reg_reg(s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(1,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xaf;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_imull_reg_reg(s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xaf;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_imul_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        x86_64_emit_rex(1,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xaf;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_imull_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        x86_64_emit_rex(0,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xaf;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_imul_imm_reg(s8 imm, s8 dreg) {
+    
+        if (x86_64_is_imm8((imm))) {
+            x86_64_emit_rex(1,0,0,(dreg));
+            *(mcodeptr++) = 0x6b;
+            x86_64_emit_reg(0,(dreg));
+            x86_64_emit_imm8((imm));
+        } else {
+            x86_64_emit_rex(1,0,0,(dreg));
+            *(mcodeptr++) = 0x69;
+            x86_64_emit_reg(0,(dreg));
+            x86_64_emit_imm32((imm));
+        }
+    }
+
+
+void x86_64_imul_imm_reg_reg(s8 imm, s8 reg, s8 dreg) {
+    
+        if (x86_64_is_imm8((imm))) {
+            x86_64_emit_rex(1,(dreg),0,(reg));
+            *(mcodeptr++) = 0x6b;
+            x86_64_emit_reg((dreg),(reg));
+            x86_64_emit_imm8((imm));
+        } else {
+            x86_64_emit_rex(1,(dreg),0,(reg));
+            *(mcodeptr++) = 0x69;
+            x86_64_emit_reg((dreg),(reg));
+            x86_64_emit_imm32((imm));
+        }
+    }
+
+
+void x86_64_imull_imm_reg_reg(s8 imm, s8 reg, s8 dreg) {
+    
+        if (x86_64_is_imm8((imm))) {
+            x86_64_emit_rex(0,(dreg),0,(reg));
+            *(mcodeptr++) = 0x6b;
+            x86_64_emit_reg((dreg),(reg));
+            x86_64_emit_imm8((imm));
+        } else {
+            x86_64_emit_rex(0,(dreg),0,(reg));
+            *(mcodeptr++) = 0x69;
+            x86_64_emit_reg((dreg),(reg));
+            x86_64_emit_imm32((imm));
+        }
+    }
+
+
+void x86_64_imul_imm_membase_reg(s8 imm, s8 basereg, s8 disp, s8 dreg) {
+    
+        if (x86_64_is_imm8((imm))) {
+            x86_64_emit_rex(1,(dreg),0,(basereg));
+            *(mcodeptr++) = 0x6b;
+            x86_64_emit_membase((basereg),(disp),(dreg));
+            x86_64_emit_imm8((imm));
+        } else {
+            x86_64_emit_rex(1,(dreg),0,(basereg));
+            *(mcodeptr++) = 0x69;
+            x86_64_emit_membase((basereg),(disp),(dreg));
+            x86_64_emit_imm32((imm));
+        }
+    }
+
+
+void x86_64_imull_imm_membase_reg(s8 imm, s8 basereg, s8 disp, s8 dreg) {
+    
+        if (x86_64_is_imm8((imm))) {
+            x86_64_emit_rex(0,(dreg),0,(basereg));
+            *(mcodeptr++) = 0x6b;
+            x86_64_emit_membase((basereg),(disp),(dreg));
+            x86_64_emit_imm8((imm));
+        } else {
+            x86_64_emit_rex(0,(dreg),0,(basereg));
+            *(mcodeptr++) = 0x69;
+            x86_64_emit_membase((basereg),(disp),(dreg));
+            x86_64_emit_imm32((imm));
+        }
+    }
+
+
+void x86_64_idiv_reg(s8 reg) {
+    
+        x86_64_emit_rex(1,0,0,(reg));
+        *(mcodeptr++) = 0xf7;
+        x86_64_emit_reg(7,(reg));
+    }
+
+
+void x86_64_idivl_reg(s8 reg) {
+    
+        x86_64_emit_rex(0,0,0,(reg));
+        *(mcodeptr++) = 0xf7;
+        x86_64_emit_reg(7,(reg));
+    }
+
+
+
+void x86_64_ret() {
+    *(mcodeptr++) = 0xc3;
+}
+
+
+
+/*
+ * shift ops
+ */
+void x86_64_shift_reg(s8 opc, s8 reg) {
+    
+        x86_64_emit_rex(1,0,0,(reg));
+        *(mcodeptr++) = 0xd3;
+        x86_64_emit_reg((opc),(reg));
+    }
+
+
+void x86_64_shiftl_reg(s8 opc, s8 reg) {
+    
+        x86_64_emit_rex(0,0,0,(reg));
+        *(mcodeptr++) = 0xd3;
+        x86_64_emit_reg((opc),(reg));
+    }
+
+
+void x86_64_shift_membase(s8 opc, s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(1,0,0,(basereg));
+        *(mcodeptr++) = 0xd3;
+        x86_64_emit_membase((basereg),(disp),(opc));
+    }
+
+
+void x86_64_shiftl_membase(s8 opc, s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(0,0,0,(basereg));
+        *(mcodeptr++) = 0xd3;
+        x86_64_emit_membase((basereg),(disp),(opc));
+    }
+
+
+void x86_64_shift_imm_reg(s8 opc, s8 imm, s8 dreg) {
+    
+        if ((imm) == 1) {
+            x86_64_emit_rex(1,0,0,(dreg));
+            *(mcodeptr++) = 0xd1;
+            x86_64_emit_reg((opc),(dreg));
+        } else {
+            x86_64_emit_rex(1,0,0,(dreg));
+            *(mcodeptr++) = 0xc1;
+            x86_64_emit_reg((opc),(dreg));
+            x86_64_emit_imm8((imm));
+        }
+    }
+
+
+void x86_64_shiftl_imm_reg(s8 opc, s8 imm, s8 dreg) {
+    
+        if ((imm) == 1) {
+            x86_64_emit_rex(0,0,0,(dreg));
+            *(mcodeptr++) = 0xd1;
+            x86_64_emit_reg((opc),(dreg));
+        } else {
+            x86_64_emit_rex(0,0,0,(dreg));
+            *(mcodeptr++) = 0xc1;
+            x86_64_emit_reg((opc),(dreg));
+            x86_64_emit_imm8((imm));
+        }
+    }
+
+
+void x86_64_shift_imm_membase(s8 opc, s8 imm, s8 basereg, s8 disp) {
+    
+        if ((imm) == 1) {
+            x86_64_emit_rex(1,0,0,(basereg));
+            *(mcodeptr++) = 0xd1;
+            x86_64_emit_membase((basereg),(disp),(opc));
+        } else {
+            x86_64_emit_rex(1,0,0,(basereg));
+            *(mcodeptr++) = 0xc1;
+            x86_64_emit_membase((basereg),(disp),(opc));
+            x86_64_emit_imm8((imm));
+        }
+    }
+
+
+void x86_64_shiftl_imm_membase(s8 opc, s8 imm, s8 basereg, s8 disp) {
+    
+        if ((imm) == 1) {
+            x86_64_emit_rex(0,0,0,(basereg));
+            *(mcodeptr++) = 0xd1;
+            x86_64_emit_membase((basereg),(disp),(opc));
+        } else {
+            x86_64_emit_rex(0,0,0,(basereg));
+            *(mcodeptr++) = 0xc1;
+            x86_64_emit_membase((basereg),(disp),(opc));
+            x86_64_emit_imm8((imm));
+        }
+    }
+
+
+
+/*
+ * jump operations
+ */
+void x86_64_jmp_imm(s8 imm) {
+    
+        *(mcodeptr++) = 0xe9;
+        x86_64_emit_imm32((imm));
+    }
+
+
+void x86_64_jmp_reg(s8 reg) {
+    
+        x86_64_emit_rex(0,0,0,(reg));
+        *(mcodeptr++) = 0xff;
+        x86_64_emit_reg(4,(reg));
+    }
+
+
+void x86_64_jcc(s8 opc, s8 imm) {
+    
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = (0x80 + x86_64_cc_map[(opc)]);
+        x86_64_emit_imm32((imm));
+    }
+
+
+
+/*
+ * conditional set and move operations
+ */
+
+/* we need the rex byte to get all low bytes */
+void x86_64_setcc_reg(s8 opc, s8 reg) {
+    
+        *(mcodeptr++) = (0x40 | (((reg) >> 3) & 0x01));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = (0x90 + x86_64_cc_map[(opc)]);
+        x86_64_emit_reg(0,(reg));
+    }
+
+
+/* we need the rex byte to get all low bytes */
+void x86_64_setcc_membase(s8 opc, s8 basereg, s8 disp) {
+    
+        *(mcodeptr++) = (0x40 | (((basereg) >> 3) & 0x01));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = (0x90 + x86_64_cc_map[(opc)]);
+        x86_64_emit_membase((basereg),(disp),0);
+    }
+
+
+void x86_64_cmovcc_reg_reg(s8 opc, s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(1,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = (0x40 + x86_64_cc_map[(opc)]);
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_cmovccl_reg_reg(s8 opc, s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = (0x40 + x86_64_cc_map[(opc)]);
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+
+void x86_64_neg_reg(s8 reg) {
+    
+        x86_64_emit_rex(1,0,0,(reg));
+        *(mcodeptr++) = 0xf7;
+        x86_64_emit_reg(3,(reg));
+    }
+
+
+void x86_64_negl_reg(s8 reg) {
+    
+        x86_64_emit_rex(0,0,0,(reg));
+        *(mcodeptr++) = 0xf7;
+        x86_64_emit_reg(3,(reg));
+    }
+
+
+void x86_64_neg_membase(s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(1,0,0,(basereg));
+        *(mcodeptr++) = 0xf7;
+        x86_64_emit_membase((basereg),(disp),3);
+    }
+
+
+void x86_64_negl_membase(s8 basereg, s8 disp) {
+    
+        x86_64_emit_rex(0,0,0,(basereg));
+        *(mcodeptr++) = 0xf7;
+        x86_64_emit_membase((basereg),(disp),3);
+    }
+
+
+
+void x86_64_push_imm(s8 imm) {
+    
+        *(mcodeptr++) = 0x68;
+        x86_64_emit_imm32((imm));
+    }
+
+
+void x86_64_pop_reg(s8 reg) {
+    
+        x86_64_emit_rex(0,0,0,(reg));
+        *(mcodeptr++) = 0x58 + (0x07 & (reg));
+    }
+
+
+void x86_64_xchg_reg_reg(s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(1,(reg),0,(dreg));
+        *(mcodeptr++) = 0x87;
+        x86_64_emit_reg((reg),(dreg));
+    }
+
+
+void x86_64_nop() {
+    *(mcodeptr++) = 0x90;
+}
+
+
+
+/*
+ * call instructions
+ */
+void x86_64_call_reg(s8 reg) {
+    
+        x86_64_emit_rex(1,0,0,(reg));
+        *(mcodeptr++) = 0xff;
+        x86_64_emit_reg(2,(reg));
+    }
+
+
+void x86_64_call_imm(s8 imm) {
+    
+        *(mcodeptr++) = 0xe8;
+        x86_64_emit_imm32((imm));
+    }
+
+
+
+/*
+ * floating point instructions (SSE2)
+ */
+void x86_64_addsd_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x58;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_addss_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x58;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_cvtsi2ssq_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(1,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x2a;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_cvtsi2ss_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x2a;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_cvtsi2sdq_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(1,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x2a;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_cvtsi2sd_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x2a;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_cvtss2sd_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x5a;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_cvtsd2ss_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x5a;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_cvttss2siq_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(1,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x2c;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_cvttss2si_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x2c;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_cvttsd2siq_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(1,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x2c;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_cvttsd2si_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x2c;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_divss_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x5e;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_divsd_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x5e;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_movd_reg_freg(s8 reg, s8 freg) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(1,(freg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x6e;
+        x86_64_emit_reg((freg),(reg));
+    }
+
+
+void x86_64_movd_freg_reg(s8 freg, s8 reg) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(1,(freg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x7e;
+        x86_64_emit_reg((freg),(reg));
+    }
+
+
+void x86_64_movd_reg_membase(s8 reg, s8 basereg, s8 disp) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(0,(reg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x7e;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+void x86_64_movd_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(0,(reg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x7e;
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_movd_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(1,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x6e;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_movdl_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(0,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x6e;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_movd_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 dreg) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(0,(dreg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x6e;
+        x86_64_emit_memindex((dreg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_movq_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x7e;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_movq_reg_membase(s8 reg, s8 basereg, s8 disp) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(0,(reg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0xd6;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+void x86_64_movq_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x7e;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_movss_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(reg),0,(dreg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x10;
+        x86_64_emit_reg((reg),(dreg));
+    }
+
+
+void x86_64_movsd_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(0,(reg),0,(dreg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x10;
+        x86_64_emit_reg((reg),(dreg));
+    }
+
+
+void x86_64_movss_reg_membase(s8 reg, s8 basereg, s8 disp) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(reg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x11;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+void x86_64_movsd_reg_membase(s8 reg, s8 basereg, s8 disp) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(0,(reg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x11;
+        x86_64_emit_membase((basereg),(disp),(reg));
+    }
+
+
+void x86_64_movss_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x10;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_movlps_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        x86_64_emit_rex(0,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x12;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_movsd_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(0,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x10;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_movlpd_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(0,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x12;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_movss_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(reg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x11;
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_movsd_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(0,(reg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x11;
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_movss_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(dreg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x10;
+        x86_64_emit_memindex((dreg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_movsd_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(0,(dreg),(indexreg),(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x10;
+        x86_64_emit_memindex((dreg),(disp),(basereg),(indexreg),(scale));
+    }
+
+
+void x86_64_mulss_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x59;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_mulsd_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x59;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_subss_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf3;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x5c;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_subsd_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0xf2;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x5c;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_ucomiss_reg_reg(s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x2e;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_ucomisd_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x2e;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_xorps_reg_reg(s8 reg, s8 dreg) {
+    
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x57;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_xorps_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        x86_64_emit_rex(0,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x57;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+
+void x86_64_xorpd_reg_reg(s8 reg, s8 dreg) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(0,(dreg),0,(reg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x57;
+        x86_64_emit_reg((dreg),(reg));
+    }
+
+
+void x86_64_xorpd_membase_reg(s8 basereg, s8 disp, s8 dreg) {
+    
+        *(mcodeptr++) = 0x66;
+        x86_64_emit_rex(0,(dreg),0,(basereg));
+        *(mcodeptr++) = 0x0f;
+        *(mcodeptr++) = 0x57;
+        x86_64_emit_membase((basereg),(disp),(dreg));
+    }
+
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
