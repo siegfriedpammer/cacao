@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1548 2004-11-18 13:02:27Z twisti $
+# $Id: Makefile.am 1572 2004-11-23 16:05:40Z twisti $
 
 @SET_MAKE@
 
@@ -27,6 +27,10 @@ INCLUDES = -I$(top_srcdir)/jit/@ARCH_DIR@
 
 BOEHM_LIBS = mm/libboehm.a mm/boehm-gc/.libs/libgc.a
 
+if USE_ZLIB
+ZLIB_OBJ = unzip.c
+endif
+
 cacao_SOURCES = \
 	builtin.c \
 	exceptions.c \
@@ -38,7 +42,7 @@ cacao_SOURCES = \
 	statistics.c \
 	tables.c \
 	typeinfo.c \
-	unzip.c
+	$(ZLIB_OBJ)
 
 cacao_LDADD = \
 	jit/libjit.a \
@@ -50,9 +54,7 @@ cacao_LDADD = \
 	toolbox/libtoolbox.a \
         @STATIC_CLASSPATH_LIBS@ \
         @DYNAMIC_CLASSPATH_LIBS@ \
-	@AWT_OBJS@ \
-	@ZIP_LIBS@ \
-	@THREAD_LIB@
+	@AWT_OBJS@
 
 
 cacao_DEPENDENCIES = \
@@ -76,15 +78,13 @@ cacaoh_SOURCES = \
 	options.c \
 	statistics.c \
 	tables.c \
-	unzip.c
+	$(ZLIB_OBJ)
 
 cacaoh_LDADD = \
 	$(BOEHM_LIBS) \
 	classpath/native/jni/java-lang/.libs/libjavalang.a \
 	@THREAD_OBJ@ \
-	@ZIP_LIBS@ \
-	toolbox/libtoolbox.a \
-	@THREAD_LIB@
+	toolbox/libtoolbox.a
 
 cacaoh_DEPENDENCIES = \
 	$(BOEHM_LIBS) \
@@ -101,25 +101,21 @@ gennativetable_SOURCES = \
 	options.c \
 	tables.c \
 	statistics.c \
-	unzip.c
+	$(ZLIB_OBJ)
 
 gennativetable_LDADD = \
 	$(BOEHM_LIBS) \
 	classpath/native/jni/java-lang/.libs/libjavalang.a \
 	@THREAD_OBJ@ \
-	@ZIP_LIBS@ \
-	toolbox/libtoolbox.a \
-	@THREAD_LIB@
+	toolbox/libtoolbox.a
 
 gennativetable_DEPENDENCIES = \
 	$(BOEHM_LIBS) \
 	classpath/native/jni/java-lang/.libs/libjavalang.a \
 	@THREAD_OBJ@ \
-	@ZIP_LIBS@ \
-	toolbox/libtoolbox.a \
-	@THREAD_LIB@
+	toolbox/libtoolbox.a
 
-all: cacaoh natheaders genoffsets gennativetable cacao
+all: cacaoh genoffsets gennativetable cacao
 
 mm/libboehm.a:
 	make -C mm
@@ -157,7 +153,8 @@ nat/implementednatives.data:
 native.c: nativetable.inc
 
 CLASSES= \
-	java.lang.Cloneable \
+	java.lang.JOWENNTest1 \
+	\
 	java.lang.reflect.Field \
 	java.lang.SecurityManager \
 	java.net.DatagramPacket \
@@ -199,7 +196,6 @@ CLASSES= \
 	java.lang.Double \
 	java.lang.Float \
 	java.lang.Integer \
-	java.lang.JOWENNTest1 \
 	java.lang.Long \
 	java.lang.Math \
 	java.lang.Process \
