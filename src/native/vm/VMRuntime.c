@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 982 2004-03-28 22:37:16Z twisti $
+   $Id: VMRuntime.c 983 2004-03-28 23:06:43Z twisti $
 
 */
 
@@ -203,7 +203,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_Runtime_availableProcessors(JNIEnv *env, jav
 #if defined(_SC_NPROC_ONLN)
 	return (s4) sysconf(_SC_NPROC_ONLN);
 
-#elsif defined(_SC_NPROCESSORS_ONLN)
+#elif defined(_SC_NPROCESSORS_ONLN)
 	return (s4) sysconf(_SC_NPROCESSORS_ONLN);
 
 #else
