@@ -20,7 +20,7 @@ JNIEXPORT struct java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillI
 	classinfo *class_java_lang_VMThrowable=0;
 	java_lang_VMThrowable *vmthrow;
 
-/*	log_text("java_lang_VMThrowable");*/
+	log_text("java_lang_VMThrowable");
 
         if (!class_java_lang_VMThrowable)
                 class_java_lang_VMThrowable = class_new(utf_new_char ("java/lang/VMThrowable"));
@@ -34,8 +34,12 @@ JNIEXPORT struct java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillI
 		panic("Needed instance of class  java.lang.VMThrowable could not be created");
 	
 
-	(void)asm_get_stackTrace(&(vmthrow->vmData));
 
+#ifdef __I386__
+	(void)asm_get_stackTrace(&(vmthrow->vmData));
+#else
+	vmthrow->vmData=0;
+#endif
 	return vmthrow;
 }
 
@@ -124,7 +128,10 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 /*	log_text("Java_java_lang_VMThrowable_getStackTrace");
 	utf_display(par1->header.vftbl->class->name);
 	printf("\n----------------------------------------------\n");*/
-	
+
+	if (el==0) {
+		return generateStackTraceArray(env,el,0);
+	}	
 	for (pos=0;el[pos].method!=0;pos++);
 	if (pos==0) {
 		panic("Stacktrace cannot have zero length");

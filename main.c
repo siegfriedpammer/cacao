@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 963 2004-03-15 07:37:49Z jowenn $
+   $Id: main.c 964 2004-03-15 14:52:43Z jowenn $
 
 */
 
@@ -974,8 +974,10 @@ int main(int argc, char **argv)
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
   		killThread(currentThread);
-#endif
 		fprintf(stderr, "still here\n");
+
+#endif
+		exit(0);
 	}
 
 	/************* If requested, compile all methods ********************/

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSecurityManager.c 951 2004-03-11 17:30:03Z jowenn $
+   $Id: VMSecurityManager.c 964 2004-03-15 14:52:43Z jowenn $
 
 */
 
@@ -40,7 +40,7 @@
 #include "toolbox/loging.h"
 #include "java_lang_ClassLoader.h"
 
-#ifdef _ALPHA_
+#ifdef __ALPHA__
 /*
  * Class:     java/lang/SecurityManager
  * Method:    currentClassLoader
@@ -55,7 +55,7 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMSecurityManager_curren
 }
 #endif
 
-#ifdef _ALPHA_
+#ifdef __ALPHA__
 /*THIS IS IN ASMPART NOW*/
 /*
  * Class:     java/lang/SecurityManager
