@@ -1,5 +1,5 @@
 # cacao/mm/Makefile
-# $Id: Makefile 58 1998-11-10 17:41:33Z phil $
+# $Id: Makefile 61 1998-11-11 19:40:23Z phil $
 
 AR = ar
 COMBINE = $(AR) rcs mm.o
@@ -10,7 +10,7 @@ clean:
 	rm -rf *.o *~
 
 # choose gc1 for the old collector, gc2 for the new one
-actualtarget: gc1 
+actualtarget: gc2
 
 
 
