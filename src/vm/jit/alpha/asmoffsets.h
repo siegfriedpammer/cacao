@@ -27,29 +27,44 @@
 
    Authors: Joseph Wenninger
 
-   $Id: asmoffsets.h 1683 2004-12-05 21:33:36Z jowenn $
+   $Id: asmoffsets.h 1696 2004-12-06 12:32:24Z twisti $
 
 */
 
+
 #ifndef _ASM_OFFSETS_H_
-#define _ASM_OFFSETS_H_
+#define _ASMOFFSETS_H_
 
-#define     MethodPointer   -8
-#define     FrameSize       -12
-#define     IsSync          -16
-#define     IsLeaf          -20
-#define     IntSave         -24
-#define     FltSave         -28
-#define     LineNumberTableSize -40
-#define     LineNumberTableStart -48
+#define MethodPointer           -8
+#define FrameSize               -12
+#define IsSync                  -16
+#define IsLeaf                  -20
+#define IntSave                 -24
+#define FltSave                 -28
+#define LineNumberTableSize     -40
+#define LineNumberTableStart    -48
 /* DEFINE LINE NUMBER STUFF HERE */
-#define     ExTableSize     -56
-#define     ExTableStart    -56
+#define ExTableSize             -56
+#define ExTableStart            -56
+       
+#define ExEntrySize             -32
+#define ExStartPC               -8
+#define ExEndPC                 -16
+#define ExHandlerPC             -24
+#define ExCatchType             -32
 
-#define     ExEntrySize     -32
-#define     ExStartPC       -8
-#define     ExEndPC         -16
-#define     ExHandlerPC     -24
-#define     ExCatchType     -32
+#endif /* _ASMOFFSETS_H */
 
-#endif
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: asm
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
