@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 277 2003-05-09 19:36:04Z stefan $
+	Last Change: $Id: ngen.c 309 2003-05-15 15:04:35Z stefan $
 
 *******************************************************************************/
 
@@ -455,7 +455,7 @@ static void gen_mcode()
 	   to arguments on stack. ToDo: save floating point registers !!!!!!!!!
 	*/
 
-	if (runverbose && isleafmethod) {
+	if (runverbose) {
 		M_LDA (REG_SP, REG_SP, -(14*8));
 		M_AST(REG_RA, REG_SP, 1*8);
 
@@ -548,6 +548,7 @@ static void gen_mcode()
 
 	/* call trace function */
 
+#if 0
 	if (runverbose && !isleafmethod) {
 		M_LDA (REG_SP, REG_SP, -8);
 		p = dseg_addaddress (method);
@@ -559,6 +560,7 @@ static void gen_mcode()
 		M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
 		M_LDA(REG_SP, REG_SP, 8);
 		}
+#endif
 
 	/* call monitorenter function */
 
@@ -2993,6 +2995,7 @@ nowperformreturn:
 				M_ALD(argintregs[0], REG_PV, a);
 				M_MOV(REG_RESULT, argintregs[1]);
 				M_FLTMOVE(REG_FRESULT, argfltregs[2]);
+				M_FLTMOVE(REG_FRESULT, argfltregs[3]);
 				a = dseg_addaddress ((void*) (builtin_displaymethodstop));
 				M_ALD(REG_PV, REG_PV, a);
 				M_JSR (REG_RA, REG_PV);
@@ -3748,12 +3751,42 @@ void removecompilerstub (u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE 18
+#define NATIVESTUBSIZE 34
+#define NATIVESTUBOFFSET 8
 
 u1 *createnativestub (functionptr f, methodinfo *m)
 {
+	int disp;
 	u8 *s = CNEW (u8, NATIVESTUBSIZE);  /* memory to hold the stub            */
-	s4 *p = (s4*) s;                    /* code generation pointer            */
+	u8 *cs = s + NATIVESTUBOFFSET;
+	s4 *p = (s4*) (cs);                 /* code generation pointer            */
+
+	*(cs-1) = (u8) f;                   /* address of native method           */
+	*(cs-2) = (u8) (&exceptionptr);     /* address of exceptionptr            */
+	*(cs-3) = (u8) asm_handle_nat_exception; /* addr of asm exception handler */
+	*(cs-4) = (u8) (&env);              /* addr of jni_environement           */
+	*(cs-5) = (u8) asm_builtin_trace;
+	*(cs-6) = (u8) m;
+	*(cs-7) = (u8) asm_builtin_exittrace;
+	*(cs-8) = (u8) builtin_trace_exception;
+
+	printf("stub: ");
+	utf_display(m->class->name);
+	printf(".");
+	utf_display(m->name);
+	printf(" 0x%p\n", cs);
+
+	M_LDA  (REG_SP, REG_SP, -8);        /* build up stackframe                */
+	M_AST  (REG_RA, REG_SP, 0);         /* store return address               */
+
+	if (runverbose) {
+		M_ALD(REG_ITMP1, REG_PV, -6*8);
+		M_ALD(REG_PV, REG_PV, -5*8);
+
+		M_JSR(REG_RA, REG_PV);
+		disp = -(int) (p - (s4*) cs)*4;
+		M_LDA(REG_PV, REG_RA, disp);
+	}
 
 	reg_init();
 
@@ -3772,41 +3805,72 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	M_MOV  (argintregs[0],argintregs[1]);
 	M_FMOV (argfltregs[0],argfltregs[1]);
 	
-	M_ALD  (argintregs[0], REG_PV, 17*8); /* load adress of jni_environement  */
+	M_ALD  (argintregs[0], REG_PV, -4*8);/* load adress of jni_environement   */
 
-	M_LDA  (REG_SP, REG_SP, -8);        /* build up stackframe                */
-	M_AST  (REG_RA, REG_SP, 0);         /* store return address               */
-
-	M_ALD  (REG_PV, REG_PV, 14*8);      /* load adress of native method       */
+	M_ALD  (REG_PV, REG_PV, -1*8);      /* load adress of native method       */
 	M_JSR  (REG_RA, REG_PV);            /* call native method                 */
 
-	M_LDA  (REG_PV, REG_RA, -15*4);      /* recompute pv from ra               */
-	M_ALD  (REG_ITMP3, REG_PV, 15*8);    /* get address of exceptionptr        */
+	disp = -(int) (p - (s4*) cs)*4;
+	M_LDA  (REG_PV, REG_RA, disp);      /* recompute pv from ra               */
+	M_ALD  (REG_ITMP3, REG_PV, -2*8);   /* get address of exceptionptr        */
+
+	M_ALD  (REG_ITMP1, REG_ITMP3, 0);   /* load exception into reg. itmp1     */
+	M_BNEZ (REG_ITMP1,
+			3 + (runverbose ? 6 : 0));  /* if no exception then return        */
+
+	if (runverbose) {
+		M_ALD(argintregs[0], REG_PV, -6*8);
+		M_MOV(REG_RESULT, argintregs[1]);
+		M_FMOV(REG_FRESULT, argfltregs[2]);
+		M_FMOV(REG_FRESULT, argfltregs[3]);
+		M_ALD(REG_PV, REG_PV, -7*8);
+		M_JSR(REG_RA, REG_PV);
+	}
 
 	M_ALD  (REG_RA, REG_SP, 0);         /* load return address                */
-	M_ALD  (REG_ITMP1, REG_ITMP3, 0);   /* load exception into reg. itmp1     */
-
 	M_LDA  (REG_SP, REG_SP, 8);         /* remove stackframe                  */
-	M_BNEZ (REG_ITMP1, 1);              /* if no exception then return        */
 
 	M_RET  (REG_ZERO, REG_RA);          /* return to caller                   */
 	
 	M_AST  (REG_ZERO, REG_ITMP3, 0);    /* store NULL into exceptionptr       */
+
+	if (runverbose) {
+		M_LDA(REG_SP, REG_SP, -8);
+		M_AST(REG_ITMP1, REG_SP, 0);
+		M_MOV(REG_ITMP1, argintregs[0]);
+		M_ALD(argintregs[1], REG_PV, -6*8);
+		M_ALD(argintregs[2], REG_SP, 0);
+		M_CLR(argintregs[3]);
+		M_ALD(REG_PV, REG_PV, -8*8);
+		M_JSR(REG_RA, REG_PV);
+		disp = -(int) (p - (s4*) cs)*4;
+		M_LDA  (REG_PV, REG_RA, disp);
+		M_ALD(REG_ITMP1, REG_SP, 0);
+		M_LDA(REG_SP, REG_SP, 8);
+	}
+
+	M_ALD  (REG_RA, REG_SP, 0);         /* load return address                */
+	M_LDA  (REG_SP, REG_SP, 8);         /* remove stackframe                  */
+
 	M_LDA  (REG_ITMP2, REG_RA, -4);     /* move fault address into reg. itmp2 */
 
-	M_ALD  (REG_ITMP3, REG_PV,16*8);    /* load asm exception handler address */
+	M_ALD  (REG_ITMP3, REG_PV, -3*8);   /* load asm exception handler address */
 	M_JMP  (REG_ZERO, REG_ITMP3);       /* jump to asm exception handler      */
-
-	s[14] = (u8) f;                      /* address of native method          */
-	s[15] = (u8) (&exceptionptr);        /* address of exceptionptr           */
-	s[16] = (u8) (asm_handle_nat_exception); /* addr of asm exception handler */
-	s[17] = (u8) (&env);                  /* addr of jni_environement         */
+	
+#if 0
+	{
+		static int stubprinted;
+		if (!stubprinted)
+			printf("stubsize: %d/2\n", (int) (p - (s4*) s));
+		stubprinted = 1;
+	}
+#endif
 
 #ifdef STATISTICS
 	count_nstub_len += NATIVESTUBSIZE * 8;
 #endif
 
-	return (u1*) s;
+	return (u1*) (s + NATIVESTUBOFFSET);
 }
 
 /* function: removenativestub **************************************************
@@ -3817,7 +3881,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 
 void removenativestub (u1 *stub)
 {
-	CFREE (stub, NATIVESTUBSIZE * 8);
+	CFREE ((u8*) stub - NATIVESTUBOFFSET, NATIVESTUBSIZE * 8);
 }
 
 

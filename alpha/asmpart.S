@@ -104,6 +104,8 @@
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
 	.globl asm_getcallingmethod
+	.globl asm_builtin_trace
+	.globl asm_builtin_exittrace
 
 /*************************** imported variables *******************************/
 
@@ -1165,9 +1167,74 @@ pv_ok2:
 
 
 
+/*********************** function asm_builtin_trace ****************************
+*                                                                              *
+*   Intended to be called from the native stub. Saves all argument registers   *
+*   and calls builtin_trace_args.                                              *
+*                                                                              *
+*******************************************************************************/
+
+	.ent asm_builtin_trace
+asm_builtin_trace:
+	ldgp gp,0(pv)
+	lda sp,-112(sp)
+	stq itmp1,0(sp)
+	stq ra,8(sp)
+	stq a0,16(sp)
+	stq a1,24(sp)
+	stq a2,32(sp)
+	stq a3,40(sp)
+	stq a4,48(sp)
+	stq a5,56(sp)
+	stt $f16,64(sp)
+	stt $f17,72(sp)
+	stt $f18,80(sp)
+	stt $f19,88(sp)
+	stt $f20,96(sp)
+	stt $f21,104(sp)
+	
+	jsr ra,builtin_trace_args
+	
+	ldq ra,8(sp)
+	ldq a0,16(sp)
+	ldq a1,24(sp)
+	ldq a2,32(sp)
+	ldq a3,40(sp)
+	ldq a4,48(sp)
+	ldq a5,56(sp)
+	ldt $f16,64(sp)
+	ldt $f17,72(sp)
+	ldt $f18,80(sp)
+	ldt $f19,88(sp)
+	ldt $f20,96(sp)
+	ldt $f21,104(sp)
+	lda sp,112(sp)
+	jmp zero,(ra)
+
+	.end asm_builtin_trace
 
 
+/********************* function asm_builtin_exittrace **************************
+*                                                                              *
+*   Intended to be called from the native stub. Saves return value and calls   *
+*   builtin_displaymethodstop.                                                 *
+*                                                                              *
+*******************************************************************************/
 
+	.ent asm_builtin_exittrace
+asm_builtin_exittrace:
+	ldgp gp,0(pv)
+	lda sp,-24(sp)
+	stq ra,0(sp)
+	stq v0,8(sp)
+	stt $f0,16(sp)
+	
+	jsr ra,builtin_displaymethodstop
+	
+	ldq ra,0(sp)
+	ldq v0,8(sp)
+	ldt $f0,16(sp)
+	lda sp,24(sp)
+	jmp zero,(ra)
 
-
-
+	.end asm_builtin_exittrace
