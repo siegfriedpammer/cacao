@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger                                               *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 557 2003-11-02 22:51:59Z twisti $        *
+*   Last Change: $Id: asmpart.S 585 2003-11-09 19:37:30Z twisti $        *
 *                                                                              *
 *******************************************************************************/
 
@@ -27,8 +27,9 @@
 	.globl asm_calljavafunction
 	.globl asm_call_jit_compiler
 	.globl asm_dumpregistersandcall
-	.globl asm_handle_exception
+	.globl asm_handle_builtin_exception
 	.globl asm_handle_nat_exception
+	.globl asm_handle_exception
 	.globl asm_builtin_checkcast	
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_anewarray
@@ -134,6 +135,10 @@ asm_calljavamethod:
 		pushl	%ebp                  /* allocate stack space                 */
 		movl	%esp, %ebp
 
+        push    %ebx                  /* save registers                       */
+        push    %esi
+        push    %edi
+        
 		subl	$32,%esp              /* pass the remaining parameters        */
 		xorl	%edx,%edx
 
@@ -161,6 +166,11 @@ asm_calljavamethod:
 calljava_jit:
 calljava_return:
 calljava_ret:
+        add     $32,%esp
+        pop     %edi                 /* restore registers                     */
+        pop     %esi
+        pop     %ebx
+        
 		xorl	%eax,%eax
 		leave					 	  /* free stack space                     */
 		ret
@@ -169,8 +179,13 @@ calljava_xhandler:
 		pushl	%eax				  /* pass exception pointer               */
 		call    builtin_throw_exception
 		addl	$4,%esp
+        
 		addl	$32,%esp
-		popl	%ebp
+        pop     %edi
+        pop     %esi
+        pop     %ebx
+
+        leave
 		ret
 
 
@@ -209,6 +224,10 @@ asm_calljavafunction:
 		pushl	%ebp                  /* allocate stack space                 */
 		movl	%esp, %ebp
 
+        push    %ebx                  /* save registers                       */
+        push    %esi
+        push    %edi
+        
 		subl	$32,%esp              /* pass the remaining parameters        */
 		xorl	%edx,%edx
 
@@ -236,6 +255,10 @@ asm_calljavafunction:
 calljava_jit2:
 calljava_return2:
 calljava_ret2:
+        add     $32,%esp
+        pop     %edi                 /* restore registers                     */
+        pop     %esi
+        pop     %ebx
 		leave
 		ret
 
@@ -243,8 +266,12 @@ calljava_xhandler2:
 		pushl	%eax				  /* pass exception pointer               */
 		call    builtin_throw_exception
 		addl	$4,%esp
-		addl	$32,%esp
-		popl	%ebp
+
+   		addl	$32,%esp
+        pop     %edi                 /* restore registers                     */
+        pop     %esi
+        pop     %ebx
+        leave
 		ret
 						
 
@@ -368,6 +395,14 @@ asm_dumpregistersandcall:
 *                                                                              *
 *******************************************************************************/
 
+asm_handle_builtin_exception:
+        add     $4,%esp						/* clear return address of this call */
+        mov     (%esp),%eax                 /* get exceptionptr               */
+        leave                               /* leave builtin function         */
+        mov     (%esp),%edx                 /* get exceptionpc                */
+        sub     $2,%edx                     /* size of builtin call           */
+        jmp     asm_handle_exception
+        
 asm_handle_nat_exception:
 		add     $4,%esp						/* clear return address of native stub */
 		
