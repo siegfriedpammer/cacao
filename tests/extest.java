@@ -45,14 +45,6 @@ public class extest {
 	    pstacktrace(e);
   	}
 
-  	try {
-            p("NullPointerException (native):");
-            System.arraycopy(null, 1, null, 1, 1);
-            pln("FAILED");
-    	} catch (Exception e) {
-  	    pln("OK");
-  	}
-
 	pln();
 
 
@@ -215,8 +207,21 @@ public class extest {
 	pln("---------- some asmpart exceptions --------------");
 
         try {
-            p("ExceptionInInitializerError (clinit):");
+            p("NullPointerException in <clinit> (PUTSTATIC):");
             extest_clinit.i = 1;
+            pln("FAILED");
+        } catch (ExceptionInInitializerError e) {
+            if (e.getCause().getClass() != NullPointerException.class) {
+                pln("FAILED");
+            } else {
+                pln("OK");
+  	        pstacktrace(e);
+            }
+        }
+
+        try {
+            p("NullPointerException in <clinit> (GETSTATIC):");
+            int i = extest_clinit.i;
             pln("FAILED");
         } catch (ExceptionInInitializerError e) {
             if (e.getCause().getClass() != NullPointerException.class) {
@@ -330,6 +335,28 @@ public class extest {
         pln();
 
 
+	pln("---------- native stub exceptions ---------------");
+
+  	try {
+            p("NullPointerException (native):");
+            System.arraycopy(null, 1, null, 1, 1);
+            pln("FAILED");
+    	} catch (Exception e) {
+  	    pln("OK");
+  	}
+
+        try {
+            p("NullPointerException in <clinit>:");
+            extest_clinit.sub();
+            pln("FAILED");
+        } catch (ExceptionInInitializerError e) {
+  	    pln("OK");
+	    pstacktrace(e);
+  	}
+
+        pln();
+
+
 	pln("---------- no OK beyond this point --------------");
 
         pln("NullPointerException (without catch):");
@@ -356,7 +383,7 @@ public class extest {
 
     public static void p(String s) {
 	System.out.print(s);
-        for (int i = s.length(); i < 42; i++) {
+        for (int i = s.length(); i < 46; i++) {
             System.out.print(" ");
         }
     }
