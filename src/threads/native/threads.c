@@ -418,7 +418,6 @@ initThreadsEarly()
 	heap_allocate(1, false, NULL);
 
 	mainthreadobj = NEW(threadobject);
-	memset(mainthreadobj, 0, sizeof(threadobject));
 	mainthreadobj->info.tid = pthread_self();
 #if !defined(HAVE___THREAD)
 	pthread_key_create(&tkey_threadinfo, NULL);
@@ -432,7 +431,7 @@ initThreadsEarly()
 
 	/* Every newly created object's monitorPtr points here so we save a check
 	 * against NULL */
-	dummyLR = mem_alloc(sizeof(monitorLockRecord));
+	dummyLR = NEW(monitorLockRecord);
 	dummyLR->o = NULL;
 	dummyLR->ownerThread = NULL;
 	dummyLR->waiting = false;
