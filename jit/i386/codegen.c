@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1139 2004-06-05 20:57:12Z twisti $
+   $Id: codegen.c 1168 2004-06-12 14:58:25Z stefan $
 
 */
 
@@ -4827,8 +4827,9 @@ void traverseStackInfo() {
 	void **p=builtin_asm_get_stackframeinfo();
 	
 	while ((*p)!=0) {
+		methodinfo *m;
 		printf("base addr:%p, methodinfo:%p\n",*p,(methodinfo*)((*p)+8));
-		methodinfo *m=*((methodinfo**)((*p)+8));
+		m=*((methodinfo**)((*p)+8));
 		utf_display(m->name);
 		printf("\n");
 		p=*p;
