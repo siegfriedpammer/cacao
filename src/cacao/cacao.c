@@ -36,7 +36,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1834 2004-12-29 15:00:25Z twisti $
+   $Id: cacao.c 1838 2005-01-04 11:15:21Z twisti $
 
 */
 
@@ -68,6 +68,14 @@
 
 #define HEAP_MAXSIZE      64 * 1024 * 1024; /* default 64MB                   */
 #define HEAP_STARTSIZE    2 * 1024 * 1024;  /* default 2MB                    */
+
+
+/* Invocation API variables ***************************************************/
+
+JavaVM *jvm;                        /* denotes a Java VM                      */
+JNIEnv *env;                        /* pointer to native method interface     */
+ 
+JDK1_1InitArgs vm_args;             /* JDK 1.1 VM initialization arguments    */
 
 
 bool cacao_initializing;
@@ -262,73 +270,74 @@ void typecheck_print_statistics(FILE *file);
 
 
 
-/******************** getmainclassfromjar ************************
+/* getmainclassfromjar ************************************************************
 
-gets the name of the main class form a jar's manifest file
+   gets the name of the main class form a jar's manifest file
 
-***************************************************************************/
-char *getmainclassnamefromjar(mainstring)
+**********************************************************************************/
+
+char *getmainclassnamefromjar(JNIEnv *env, char *mainstring)
 {
 	jclass class;
 	jmethodID mid;
 	jobject obj;
 		
-	class = env->FindClass(NULL, "java/util/jar/JarFile");
+	class = (*env)->FindClass(env, "java/util/jar/JarFile");
 	if (class == NULL) {
 		log_text("unable to find java.util.jar.JarFile");
 		throw_main_exception_exit();
 	}
 	
-	mid = env->GetMethodID(NULL, class, "<init>","(Ljava/lang/String;)V");
+	mid = (*env)->GetMethodID(NULL, class, "<init>","(Ljava/lang/String;)V");
 	if (mid == NULL) {
 		log_text("unable to find constructor in java.util.jar.JarFile");
 		cacao_exit(1);
 	}
 
 	/* open jarfile */
-	obj = env->NewObject(NULL,class,mid,(env->NewStringUTF(NULL,(char*)mainstring)));
-	if (env->ExceptionOccurred(NULL) != NULL) {
-		env->ExceptionDescribe(NULL);
+	obj = (*env)->NewObject(NULL,class,mid,((*env)->NewStringUTF(NULL,(char*)mainstring)));
+	if ((*env)->ExceptionOccurred(NULL) != NULL) {
+		(*env)->ExceptionDescribe(NULL);
 		cacao_exit(1);
 	}
 	
-	mid = env->GetMethodID(NULL, class, "getManifest","()Ljava/util/jar/Manifest;");
+	mid = (*env)->GetMethodID(NULL, class, "getManifest","()Ljava/util/jar/Manifest;");
 	if (mid == NULL) {
 		log_text("unable to find getMainfest method");
 		cacao_exit(1);
 	}
 
 	/* get manifest object */
-	obj = env->CallObjectMethod(NULL,obj,mid);
-	if (env->ExceptionOccurred(NULL) != NULL) {
-		env->ExceptionDescribe(NULL);
+	obj = (*env)->CallObjectMethod(NULL,obj,mid);
+	if ((*env)->ExceptionOccurred(NULL) != NULL) {
+		(*env)->ExceptionDescribe(NULL);
 		cacao_exit(1);
 	}
 
-	mid = env->GetMethodID(NULL, (jclass)((java_objectheader*) obj)->vftbl->class, "getMainAttributes","()Ljava/util/jar/Attributes;");
+	mid = (*env)->GetMethodID(NULL, (jclass)((java_objectheader*) obj)->vftbl->class, "getMainAttributes","()Ljava/util/jar/Attributes;");
 	if (mid == NULL) {
 		log_text("unable to find getMainAttributes method");
 		cacao_exit(1);
 	}
 
 	/* get Main Attributes */
-	obj = env->CallObjectMethod(NULL,obj,mid);
-	if (env->ExceptionOccurred(NULL) != NULL) {
-		env->ExceptionDescribe(NULL);
+	obj = (*env)->CallObjectMethod(NULL,obj,mid);
+	if ((*env)->ExceptionOccurred(NULL) != NULL) {
+		(*env)->ExceptionDescribe(NULL);
 		cacao_exit(1);
 	}
 
 
-	mid = env->GetMethodID(NULL, (jclass)((java_objectheader*) obj)->vftbl->class, "getValue","(Ljava/lang/String;)Ljava/lang/String;");
+	mid = (*env)->GetMethodID(NULL, (jclass)((java_objectheader*) obj)->vftbl->class, "getValue","(Ljava/lang/String;)Ljava/lang/String;");
 	if (mid == NULL) {
 		log_text("unable to find getValue method");
 		cacao_exit(1);
 	}
 
 	/* get property Main-Class */
-	obj = env->CallObjectMethod(NULL,obj,mid,env->NewStringUTF(NULL,"Main-Class"));
-	if (env->ExceptionOccurred(NULL) != NULL) {
-		env->ExceptionDescribe(NULL);
+	obj = (*env)->CallObjectMethod(NULL,obj,mid,(*env)->NewStringUTF(NULL,"Main-Class"));
+	if ((*env)->ExceptionOccurred(NULL) != NULL) {
+		(*env)->ExceptionDescribe(NULL);
 		cacao_exit(1);
 	}
 	
@@ -419,10 +428,10 @@ int main(int argc, char **argv)
 		strcpy(bootclasspath, cp);
 
 	} else {
-		cplen = strlen(INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH);
+		cplen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH);
 
 		bootclasspath = MNEW(char, cplen + 1);
-		strcpy(bootclasspath, INSTALL_PREFIX);
+		strcpy(bootclasspath, CACAO_INSTALL_PREFIX);
 		strcat(bootclasspath, CACAO_RT_JAR_PATH);
 	}
 
@@ -675,12 +684,12 @@ int main(int argc, char **argv)
 				switch (opt_arg[j]) {
 				case 'n':
 				     /* define in options.h; Used in main.c, jit.c & inline.c */
-			             #ifdef INAFTERMAIN
+#ifdef INAFTERMAIN
 					useinliningm = true;
 					useinlining = false;
-				     #else
+#else
 					useinlining = true;
-				     #endif
+#endif
 					break;
 				case 'v':
 					inlinevirtuals = true;
@@ -748,7 +757,7 @@ int main(int argc, char **argv)
 	} else {
 		/* put jarfile in classpath */
 		cp = classpath;
-		classpath = MNEW(char, strlen(mainstring) + strlen(classpath) + 1);
+		classpath = MNEW(char, strlen(mainstring) + 1 + strlen(classpath) + 1);
 		strcpy(classpath, mainstring);
 		strcat(classpath, ":");
 		strcat(classpath, cp);
@@ -761,6 +770,19 @@ int main(int argc, char **argv)
 	log_init(logfilename);
 	if (opt_verbose)
 		log_text("CACAO started -------------------------------------------------------");
+
+	/* initialize JavaVM */
+
+	vm_args.version = 0x00010001; /* New in 1.1.2: VM version */
+
+	/* Get the default initialization arguments and set the class path */
+
+	JNI_GetDefaultJavaVMInitArgs(&vm_args);
+	vm_args.classpath = classpath;
+ 
+	/* load and initialize a Java VM, return a JNI interface pointer in env */
+
+	JNI_CreateJavaVM(&jvm, &env, &vm_args);
 
 	/* initialize the garbage collector */
 
@@ -829,7 +851,7 @@ int main(int argc, char **argv)
 
 		if (jar) {
 			/* open jar file with java.util.jar.JarFile */
-			mainstring = getmainclassnamefromjar(mainstring);
+			mainstring = getmainclassnamefromjar((JNIEnv *) &env, mainstring);
 		}
 
 		/* get system classloader */
@@ -862,11 +884,11 @@ int main(int argc, char **argv)
 		/* error loading class, clear exceptionptr for new exception */
 
 		if (*exceptionptr || !mainclass) {
-			*exceptionptr = NULL;
+/*  			*exceptionptr = NULL; */
 
-			*exceptionptr =
-				new_exception_message(string_java_lang_NoClassDefFoundError,
-									  mainstring);
+/*  			*exceptionptr = */
+/*  				new_exception_message(string_java_lang_NoClassDefFoundError, */
+/*  									  mainstring); */
 			throw_main_exception_exit();
 		}
 
@@ -1056,15 +1078,7 @@ void cacao_exit(s4 status)
 	/*   not sure if permanant or temp restriction          */
 	if (inlinevirtuals) inlineoutsiders = false; 
 
-	asm_calljavafunction(m,
-#if POINTERSIZE == 8
-						 (void *) (s8) status,
-#else
-						 (void *) status,
-#endif
-						 NULL,
-						 NULL,
-						 NULL);
+	asm_calljavafunction(m, (void *) (ptrint) status, NULL, NULL, NULL);
 
 	/* this should never happen */
 
