@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 376 2003-06-19 15:40:54Z twisti $
+	Last Change: $Id: ngen.c 379 2003-07-02 20:18:02Z twisti $
 
 *******************************************************************************/
 
@@ -51,7 +51,7 @@
 #ifdef SOFTNULLPTRCHECK
 #define gen_nullptr_check(objreg) \
 	if (checknull) { \
-        i386_alu_imm_reg(I386_CMP, 0, (objreg)); \
+        i386_test_reg_reg((objreg), (objreg)); \
         i386_jcc(I386_CC_E, 0); \
  	    mcode_addxnullrefs(mcodeptr); \
 	}
@@ -703,7 +703,7 @@ static void gen_mcode()
 
 						} else {
 							if (interfaces[len][s2].flags & INMEMORY) {
-								M_LNGMEMMOVE(s1, d);
+  								M_LNGMEMMOVE(s1, src->regoff);
 
 							} else {
 								panic("copy interface registers: longs have to be in memory (begin 2)");
@@ -775,8 +775,19 @@ static void gen_mcode()
 				i386_fldz();
 				fpu_st_offset++;
 
+				/* -0.0 */
+				if (iptr->val.i == 0x80000000) {
+					i386_fchs();
+				}
+
 			} else if (iptr->val.f == 1.0) {
 				i386_fld1();
+				fpu_st_offset++;
+
+			} else if (iptr->val.f == 2.0) {
+				i386_fld1();
+				i386_fld1();
+				i386_faddp();
 				fpu_st_offset++;
 
 			} else {
@@ -797,8 +808,19 @@ static void gen_mcode()
 				i386_fldz();
 				fpu_st_offset++;
 
+				/* -0.0 */
+				if (iptr->val.l == 0x8000000000000000L) {
+					i386_fchs();
+				}
+
 			} else if (iptr->val.d == 1.0) {
 				i386_fld1();
+				fpu_st_offset++;
+
+			} else if (iptr->val.d == 2.0) {
+				i386_fld1();
+				i386_fld1();
+				i386_faddp();
 				fpu_st_offset++;
 
 			} else {
@@ -1720,14 +1742,20 @@ static void gen_mcode()
 				M_INTMOVE(src->prev->regoff, I386_EAX);
 			}
 			
-  			i386_cltd();
-
 			if (src->flags & INMEMORY) {
-				i386_idiv_membase(REG_SP, src->regoff * 8);
+				i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
 
 			} else {
-				i386_idiv_reg(src->regoff);
+				M_INTMOVE(src->regoff, REG_ITMP3);
 			}
+
+			i386_alu_imm_reg(I386_CMP, 0x80000000, I386_EAX);    /* check as described in jvm spec */
+			i386_jcc(I386_CC_NE, 3 + 6);
+			i386_alu_imm_reg(I386_CMP, -1, REG_ITMP3);
+			i386_jcc(I386_CC_E, 1 + 2);
+
+  			i386_cltd();
+			i386_idiv_reg(REG_ITMP3);
 
 			if (iptr->dst->flags & INMEMORY) {
 				i386_mov_reg_membase(I386_EAX, REG_SP, iptr->dst->regoff * 8);
@@ -1748,14 +1776,21 @@ static void gen_mcode()
 				M_INTMOVE(src->prev->regoff, I386_EAX);
 			}
 			
-			i386_cltd();
-
 			if (src->flags & INMEMORY) {
-				i386_idiv_membase(REG_SP, src->regoff * 8);
+				i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
 
 			} else {
-				i386_idiv_reg(src->regoff);
+				M_INTMOVE(src->regoff, REG_ITMP3);
 			}
+
+			i386_alu_imm_reg(I386_CMP, 0x80000000, I386_EAX);    /* check as described in jvm spec */
+			i386_jcc(I386_CC_NE, 2 + 3 + 6);
+			i386_alu_reg_reg(I386_XOR, I386_EDX, I386_EDX);
+			i386_alu_imm_reg(I386_CMP, -1, REG_ITMP3);
+			i386_jcc(I386_CC_E, 1 + 2);
+
+  			i386_cltd();
+			i386_idiv_reg(REG_ITMP3);
 
 			if (iptr->dst->flags & INMEMORY) {
 				i386_mov_reg_membase(I386_EDX, REG_SP, iptr->dst->regoff * 8);
@@ -2887,10 +2922,44 @@ static void gen_mcode()
 
 
 		/* floating operations ************************************************/
+#if 0
+#define ROUND_TO_SINGLE \
+			i386_fstps_membase(REG_SP, -8); \
+			i386_flds_membase(REG_SP, -8);
 
+#define ROUND_TO_DOUBLE \
+			i386_fstpl_membase(REG_SP, -8); \
+			i386_fldl_membase(REG_SP, -8);
+
+#define FPU_SET_24BIT_MODE \
+			if (!fpu_in_24bit_mode) { \
+				i386_fldcw_mem(&fpu_ctrlwrd_24bit); \
+				fpu_in_24bit_mode = 1; \
+			}
+
+#define FPU_SET_53BIT_MODE \
+			if (fpu_in_24bit_mode) { \
+				i386_fldcw_mem(&fpu_ctrlwrd_53bit); \
+				fpu_in_24bit_mode = 0; \
+			}
+#else
+#define ROUND_TO_SINGLE
+#define ROUND_TO_DOUBLE
+#define FPU_SET_24BIT_MODE
+#define FPU_SET_53BIT_MODE
+#endif
 		case ICMD_FNEG:       /* ..., value  ==> ..., - value                 */
+
+			FPU_SET_24BIT_MODE;
+			var_to_reg_flt(s1, src, REG_FTMP1);
+			d = reg_of_var(iptr->dst, REG_FTMP3);
+			i386_fchs();
+			store_reg_to_var_flt(iptr->dst, d);
+			break;
+
 		case ICMD_DNEG:       /* ..., value  ==> ..., - value                 */
 
+			FPU_SET_53BIT_MODE;
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
 			i386_fchs();
@@ -2898,149 +2967,135 @@ static void gen_mcode()
 			break;
 
 		case ICMD_FADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
+
+			FPU_SET_24BIT_MODE;
+			d = reg_of_var(iptr->dst, REG_FTMP3);
+			var_to_reg_flt(s1, src->prev, REG_FTMP1);
+			var_to_reg_flt(s2, src, REG_FTMP2);
+			i386_faddp();
+			fpu_st_offset--;
+			store_reg_to_var_flt(iptr->dst, d);
+			break;
+
 		case ICMD_DADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
+			FPU_SET_53BIT_MODE;
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-/*  			if (iptr->dst->flags & INMEMORY) { */
-/*  				if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
-/*  					var_to_reg_flt(s1, src->prev, REG_FTMP1); */
-/*  					NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
-/*  					i386_fadd_reg_st(s2 + fpu_st_offset); */
-/*  					store_reg_to_var_flt(iptr->dst, d); */
-
-/*  				} else { */
-/*  					var_to_reg_flt(s1, src->prev, REG_FTMP1); */
-/*  					var_to_reg_flt(s2, src, REG_FTMP2); */
-/*  					i386_faddp(); */
-/*  					fpu_st_offset--; */
-/*  					store_reg_to_var_flt(iptr->dst, d); */
-/*  				} */
-
-/*  			} else { */
-/*  				if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
-/*  					if (iptr->dst->regoff == src->prev->regoff) { */
-/*  						NEW_var_to_reg_flt(s1, src->prev, REG_FTMP1); */
-/*  						var_to_reg_flt(s2, src, REG_FTMP2); */
-/*  						i386_faddp_st_reg(s1 + fpu_st_offset); */
-/*  						fpu_st_offset--; */
-
-/*  					} else if (iptr->dst->regoff == src->regoff) { */
-/*  						var_to_reg_flt(s1, src->prev, REG_FTMP1); */
-/*  						NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
-/*  						i386_faddp_st_reg(s2 + fpu_st_offset); */
-/*  						fpu_st_offset--; */
-
-/*  					} else { */
-/*  						var_to_reg_flt(s1, src->prev, REG_FTMP1); */
-/*  						NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
-/*  						i386_fadd_reg_st(s2 + fpu_st_offset); */
-/*  						store_reg_to_var_flt(iptr->dst, d); */
-/*  					} */
-
-/*  				} else { */
-					var_to_reg_flt(s1, src->prev, REG_FTMP1);
-					var_to_reg_flt(s2, src, REG_FTMP2);
-					i386_faddp();
-					fpu_st_offset--;
-  					store_reg_to_var_flt(iptr->dst, d);
-/*  				}					 */
-/*    			} */
+			var_to_reg_flt(s1, src->prev, REG_FTMP1);
+			var_to_reg_flt(s2, src, REG_FTMP2);
+			i386_faddp();
+			fpu_st_offset--;
+			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
 		case ICMD_FSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
+
+			FPU_SET_24BIT_MODE;
+			d = reg_of_var(iptr->dst, REG_FTMP3);
+			var_to_reg_flt(s1, src->prev, REG_FTMP1);
+			var_to_reg_flt(s2, src, REG_FTMP2);
+			i386_fsubp();
+			fpu_st_offset--;
+			store_reg_to_var_flt(iptr->dst, d);
+			break;
+
 		case ICMD_DSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
+			FPU_SET_53BIT_MODE;
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-/*  			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
-/*  				if (iptr->dst->regoff == src->prev->regoff) { */
-/*  					NEW_var_to_reg_flt(s1, src->prev, REG_FTMP1); */
-/*  					var_to_reg_flt(s2, src, REG_FTMP2); */
-/*  					i386_fsubp_st_reg(s1 + fpu_st_offset); */
-/*  					fpu_st_offset--; */
-/*  					store_reg_to_var_flt(iptr->dst, d); */
-
-/*  				} else { */
-/*  					var_to_reg_flt(s1, src->prev, REG_FTMP1); */
-/*  					NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
-/*  					i386_fsub_reg_st(s2 + fpu_st_offset); */
-/*  					store_reg_to_var_flt(iptr->dst, d); */
-/*  				} */
-
-/*  			} else { */
-				var_to_reg_flt(s1, src->prev, REG_FTMP1);
-				var_to_reg_flt(s2, src, REG_FTMP2);
-				i386_fsubp();
-				fpu_st_offset--;
-				store_reg_to_var_flt(iptr->dst, d);
-/*  			} */
+			var_to_reg_flt(s1, src->prev, REG_FTMP1);
+			var_to_reg_flt(s2, src, REG_FTMP2);
+			i386_fsubp();
+			fpu_st_offset--;
+			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
 		case ICMD_FMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
+
+			FPU_SET_24BIT_MODE;
+			d = reg_of_var(iptr->dst, REG_FTMP3);
+			var_to_reg_flt(s1, src->prev, REG_FTMP1);
+			var_to_reg_flt(s2, src, REG_FTMP2);
+			i386_fmulp();
+			fpu_st_offset--;
+			ROUND_TO_SINGLE;
+			store_reg_to_var_flt(iptr->dst, d);
+			break;
+
 		case ICMD_DMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
+			FPU_SET_53BIT_MODE;
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-/*  			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
-/*  				if (iptr->dst->regoff == src->prev->regoff) { */
-/*  					NEW_var_to_reg_flt(s1, src->prev, REG_FTMP1); */
-/*  					var_to_reg_flt(s2, src, REG_FTMP2); */
-/*  					i386_fmulp_st_reg(s1 + fpu_st_offset); */
-/*  					fpu_st_offset--; */
-/*  					store_reg_to_var_flt(iptr->dst, d); */
+			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 
-/*  				} else if (iptr->dst->regoff == src->regoff) { */
-/*  					var_to_reg_flt(s1, src->prev, REG_FTMP1); */
-/*  					NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
-/*  					i386_fmulp_st_reg(s2 + fpu_st_offset); */
-/*  					fpu_st_offset--; */
-/*  					store_reg_to_var_flt(iptr->dst, d); */
+/*  			i386_fldt_mem(subnormal_bias1); */
+/*  			i386_fmulp(); */
 
-/*  				} else { */
-/*  					var_to_reg_flt(s1, src->prev, REG_FTMP1); */
-/*  					NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
-/*  					i386_fmul_reg_st(s2 + fpu_st_offset); */
-/*  					store_reg_to_var_flt(iptr->dst, d); */
-/*  				} */
+			var_to_reg_flt(s2, src, REG_FTMP2);
 
-/*  			} else { */
-				var_to_reg_flt(s1, src->prev, REG_FTMP1);
-				var_to_reg_flt(s2, src, REG_FTMP2);
-				i386_fmulp();
-				fpu_st_offset--;
-				store_reg_to_var_flt(iptr->dst, d);
-/*  			} */
+			i386_fmulp();
+			fpu_st_offset--;
+
+/*  			i386_fldt_mem(subnormal_bias2); */
+/*  			i386_fmulp(); */
+
+			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
 		case ICMD_FDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
+
+			FPU_SET_24BIT_MODE;
+			d = reg_of_var(iptr->dst, REG_FTMP3);
+			var_to_reg_flt(s1, src->prev, REG_FTMP1);
+			var_to_reg_flt(s2, src, REG_FTMP2);
+			i386_fdivp();
+			fpu_st_offset--;
+			ROUND_TO_SINGLE;
+			store_reg_to_var_flt(iptr->dst, d);
+			break;
+
 		case ICMD_DDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
+			FPU_SET_53BIT_MODE;
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-/*  			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
-/*  				if (src->prev->regoff == iptr->dst->regoff) { */
-/*  					NEW_var_to_reg_flt(s1, src->prev, REG_FTMP1); */
-/*  					var_to_reg_flt(s2, src, REG_FTMP2); */
-/*  					i386_fdivp_st_reg(s1 + fpu_st_offset); */
-/*  					fpu_st_offset--; */
-/*  					store_reg_to_var_flt(iptr->dst, d); */
+			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 
-/*  				} else { */
-/*  					var_to_reg_flt(s1, src->prev, REG_FTMP1); */
-/*  					NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
-/*  					i386_fdiv_reg_st(s2 + fpu_st_offset); */
-/*  					store_reg_to_var_flt(iptr->dst, d); */
-/*  				} */
+/*  			i386_fldt_mem(subnormal_bias1); */
+/*  			i386_fmulp(); */
 
-/*  			} else { */
-				var_to_reg_flt(s1, src->prev, REG_FTMP1);
-				var_to_reg_flt(s2, src, REG_FTMP2);
-				i386_fdivp();
-				fpu_st_offset--;
-				store_reg_to_var_flt(iptr->dst, d);
-/*  			} */
+			var_to_reg_flt(s2, src, REG_FTMP2);
+
+			i386_fdivp();
+			fpu_st_offset--;
+
+/*  			i386_fldt_mem(subnormal_bias2); */
+/*  			i386_fmulp(); */
+
+			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
 		case ICMD_FREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
+
+			FPU_SET_24BIT_MODE;
+			/* exchanged to skip fxch */
+			var_to_reg_flt(s2, src, REG_FTMP2);
+			var_to_reg_flt(s1, src->prev, REG_FTMP1);
+			d = reg_of_var(iptr->dst, REG_FTMP3);
+/*  			i386_fxch(); */
+			i386_fprem();
+			i386_wait();
+			i386_fnstsw();
+			i386_sahf();
+			i386_jcc(I386_CC_P, -(2 + 1 + 2 + 1 + 6));
+			store_reg_to_var_flt(iptr->dst, d);
+			i386_ffree_reg(0);
+			i386_fincstp();
+			fpu_st_offset--;
+			break;
+
 		case ICMD_DREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
+			FPU_SET_53BIT_MODE;
 			/* exchanged to skip fxch */
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
@@ -3096,7 +3151,7 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 
-			a = dseg_adds4(0x0d7f);    /* Round to zero, 53-bit mode, exception masked */
+			a = dseg_adds4(0x0e7f);    /* Round to zero, 53-bit mode, exception masked */
 			i386_mov_imm_reg(0, REG_ITMP1);
 			dseg_adddata(mcodeptr);
 			i386_fldcw_membase(REG_ITMP1, a);
@@ -3123,7 +3178,7 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 
-			a = dseg_adds4(0x0d7f);    /* Round to zero, 53-bit mode, exception masked */
+			a = dseg_adds4(0x0e7f);    /* Round to zero, 53-bit mode, exception masked */
 			i386_mov_imm_reg(0, REG_ITMP1);
 			dseg_adddata(mcodeptr);
 			i386_fldcw_membase(REG_ITMP1, a);
@@ -3160,24 +3215,13 @@ static void gen_mcode()
 		case ICMD_DCMPL:
 
 			/* exchanged to skip fxch */
-/*  			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
-/*  				fprintf(stderr, "new FCMP\n"); */
-/*  				NEW_var_to_reg_flt(s2, src->prev, REG_FTMP1); */
-/*  				NEW_var_to_reg_flt(s1, src, REG_FTMP2); */
-/*  				d = reg_of_var(iptr->dst, REG_ITMP3); */
-/*  				i386_alu_reg_reg(I386_XOR, d, d); */
-/*  				i386_fxch_reg(s1 + fpu_st_offset); */
-/*  				i386_fucom_reg(s2 + fpu_st_offset); */
-/*  				i386_fxch_reg(s1 + fpu_st_offset); */
-/*  			} else { */
-				var_to_reg_flt(s2, src->prev, REG_FTMP1);
-				var_to_reg_flt(s1, src, REG_FTMP2);
-				d = reg_of_var(iptr->dst, REG_ITMP3);
-				i386_alu_reg_reg(I386_XOR, d, d);
+			var_to_reg_flt(s2, src->prev, REG_FTMP1);
+			var_to_reg_flt(s1, src, REG_FTMP2);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			i386_alu_reg_reg(I386_XOR, d, d);
 /*    			i386_fxch(); */
-				i386_fucompp();
-				fpu_st_offset -= 2;
-/*     			} */
+			i386_fucompp();
+			fpu_st_offset -= 2;
 			i386_fnstsw();
 			i386_test_imm_reg(0x400, I386_EAX);    /* unordered treat as GT */
 			i386_jcc(I386_CC_E, 3);
@@ -3195,24 +3239,13 @@ static void gen_mcode()
 		case ICMD_DCMPG:
 
 			/* exchanged to skip fxch */
-/*  			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
-/*  				fprintf(stderr, "new FCMP\n"); */
-/*  				NEW_var_to_reg_flt(s2, src->prev, REG_FTMP1); */
-/*  				NEW_var_to_reg_flt(s1, src, REG_FTMP2); */
-/*  				d = reg_of_var(iptr->dst, REG_ITMP3); */
-/*  				i386_alu_reg_reg(I386_XOR, d, d); */
-/*  				i386_fxch_reg(s1 + fpu_st_offset); */
-/*  				i386_fucom_reg(s2 + fpu_st_offset); */
-/*  				i386_fxch_reg(s1 + fpu_st_offset); */
-/*  			} else { */
-				var_to_reg_flt(s2, src->prev, REG_FTMP1);
-				var_to_reg_flt(s1, src, REG_FTMP2);
-				d = reg_of_var(iptr->dst, REG_ITMP3);
-				i386_alu_reg_reg(I386_XOR, d, d);
+			var_to_reg_flt(s2, src->prev, REG_FTMP1);
+			var_to_reg_flt(s1, src, REG_FTMP2);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			i386_alu_reg_reg(I386_XOR, d, d);
 /*    			i386_fxch(); */
-				i386_fucompp();
-				fpu_st_offset -= 2;
-/*     			} */
+			i386_fucompp();
+			fpu_st_offset -= 2;
 			i386_fnstsw();
 			i386_test_imm_reg(0x400, I386_EAX);    /* unordered treat as LT */
 			i386_jcc(I386_CC_E, 3);
@@ -3645,8 +3678,6 @@ static void gen_mcode()
 
   			i386_push_imm(asm_handle_exception);
   			i386_ret();
-			i386_nop();          /* nop ensures that XPC is less than the end */
-			                     /* of basic block                            */
 			ALIGNCODENOP;
 			break;
 
@@ -4735,18 +4766,31 @@ gen_method: {
 					a = (s4) m;
 					d = iptr->op1;
 
-					i386_mov_imm_reg(0, REG_ITMP3);    /* we need the data segment address in asmpart */
-					dseg_adddata(mcodeptr);
+/*  					i386_mov_imm_reg(0, REG_ITMP3);    /* we need the data segment address in asmpart */
+/*  					dseg_adddata(mcodeptr); */
 
 					i386_mov_imm_reg(a, REG_ITMP1);
 					i386_call_reg(REG_ITMP1);
 					break;
 
 				case ICMD_INVOKESTATIC:
+
+					a = (s4) m->stubroutine;
+					d = m->returntype;
+
+					i386_mov_imm_reg(a, REG_ITMP2);
+					i386_call_reg(REG_ITMP2);
+					break;
+
 				case ICMD_INVOKESPECIAL:
 
 					a = (s4) m->stubroutine;
 					d = m->returntype;
+
+					i386_mov_membase_reg(REG_SP, 0, REG_ITMP2);
+					gen_nullptr_check(REG_ITMP2);
+					i386_mov_membase_reg(REG_ITMP2, 0, REG_ITMP2);    /* access memory for hardware nullptr */
+
 					i386_mov_imm_reg(a, REG_ITMP2);
 					i386_call_reg(REG_ITMP2);
 					break;
