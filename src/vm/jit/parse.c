@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 274 2003-05-09 13:39:39Z carolyn $
+	Last Change: $Id: parse.c 283 2003-05-11 16:45:10Z carolyn $
                      include Rapid Type Analysis parse - 5/2003 - carolyn
 
 
@@ -280,7 +280,8 @@ static void parse()
 	bool iswide = false;        /* true if last instruction was a wide        */
 	instruction *iptr;          /* current pointer into instruction array     */
 
-        RT_jit_parse(method);
+	if (opt_rt) 
+            RT_jit_parse(method);
                 /*RTAprint*/ if ((pOpcodes == 2) || (pOpcodes == 3))
                 /*RTAprint*/    {printf("PARSE method name =");
                 /*RTAprint*/    utf_display(rt_method->class->name);printf(".");

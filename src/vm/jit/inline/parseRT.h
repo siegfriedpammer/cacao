@@ -168,7 +168,7 @@ else {
   else {
        if (class->classUsed == USED) {
          classinfo *s = class->super;
-         int found = 0;  // boolean ???
+         int found = 0;  
 	 methodinfo *supermeth;
 	 while ((s!=NULL) && (found == 0)) {
 	   supermeth = class_findmethod(s, name, NULL);	   
@@ -178,20 +178,20 @@ else {
 	       s->classUsed = METH_USED_BY_SUB; /*mark class as having a method used by a used subtype */  
 			 /*RTAprint*/if (pWhenMarked >= 2) { 
 			 /*RTAprint*/ printf("Class marked Used by Subtype :");utf_display(s->name);printf("\n");}
-               } // mark  
-	     if ((supermeth->methodUsed !=USED) && (strcmp(name->text,"<init>") != NOTUSED)) {   //44
+               } /* end mark */ 
+	     if ((supermeth->methodUsed !=USED) && (strcmp(name->text,"<init>") != NOTUSED)) {   
 	       addToCallgraph(supermeth);
 	       }
-             }   // if !NULL
+             }   /* end if !NULL */
            else {
 	     s = s->super;
-             } //else NULL  
-           }   // while
+             } /* end else NULL */ 
+           }   /* end while */
 
 	   if ((s == NULL) && (found == 0))
 		panic("parse RT: Method not found in class hierarchy");
-         }  // if current class used  
- }  } //else Null
+         }  /* if current class used  */
+ }  } /* end else Null */
 } 
 
 /*-------------------------------------------------------------------------------*/
@@ -257,7 +257,7 @@ static void parseRT()
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
    switch (opcode) {
 
-//--------------------------------
+/*--------------------------------*/
 /* Code just to get the correct  next instruction */
 			/* 21- 25 */
                         case JAVA_ILOAD:
@@ -332,7 +332,7 @@ static void parseRT()
                                 break;
                                 }
 
-//-------------------------------
+/*-------------------------------*/
                         /* method invocation *****/
 
                         case JAVA_INVOKESTATIC:
@@ -426,7 +426,7 @@ static void parseRT()
                                     	} }   }
 				   addToCallgraph(mi);   /* class was already marked - that init is not new */
 				  }   }  }                                   	 
-				//--------------------------------------------------------------
+				/*--------------------------------------------------------------*/
 				else {
 						/*RTAprint*/ if (pWhenMarked >= 3) { 
 						/*RTAprint*/ 	printf("Calling MarkSubs from SPECIAL/VIRTUAL :");
@@ -454,7 +454,6 @@ static void parseRT()
 
 void RT_jit_parse(methodinfo *m)
 {
-if (opt_rt) {
 	/* initialise parameter type descriptor */
 
         callgraph[++methRTlast] = m;
@@ -499,5 +498,4 @@ if (opt_rt) {
 			/*RTprint*/ 	printf("RTA Classheirarchy after last method in callgraph - so far\n");
 			/*RTprint*/ 	printRThierarchyInfo(m); }
 
-  }
 }
