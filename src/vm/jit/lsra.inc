@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 1944 2005-02-15 16:30:41Z christian $
+   $Id: lsra.inc 1948 2005-02-15 20:01:57Z christian $
 
 */
 #include <stdio.h>
@@ -907,8 +907,8 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd, l
 		tmp_reg_count=sav_reg_count;
 		for (i=0; i<reg_count ; i++) {
 #if defined(__I386__)
-			if (/* (method_uses_ecx) &&  */(i==ECX)) continue;
-			if (/* (method_uses_edx) && */ (i==EDX)) continue;
+			if (i==ECX) continue;
+			if (i==EDX) continue;
 #endif
 			if ((tmp_reg_count-sav_reg_count) >= MAX_TMP_REG_COUNT)
 				break;
@@ -943,7 +943,7 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd, l
 		for (i=0; i<reg_count ; i++) {
 			if (sav_reg_count >= MAX_SAV_REG_COUNT)
 				break;
-			if ((nregdescfloat[i]==REG_SAV) || (m->isleafmethod && (nregdescfloat[i]==REG_ARG))) {
+			if ((nregdescfloat[i]==REG_SAV) /* || (m->isleafmethod && (nregdescfloat[i]==REG_ARG)) */) {
 				reg[sav_reg_count].reg_index=i;
 				reg[sav_reg_count].use=0;
 				sav_reg_count++;
