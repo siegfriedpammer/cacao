@@ -23,7 +23,7 @@
     i386: done (1.36)
 
 - codegen.c, codegen.h: jit global variables removal (twisti)
-    alpha: TODO
+    alpha: done (codegen.c:1.27, codegen.h:1.7)
     i386: done (codegen.c:1.37, codegen.h:1.12)
     mips: TODO
     powerpc: TODO
