@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 930 2004-03-02 21:18:23Z jowenn $
+   $Id: asmpart.S 933 2004-03-05 21:27:21Z jowenn $
 
 */
 
@@ -1070,6 +1070,12 @@ getClassContext_begin:	/*start the real work*/
 	push %edx /*esp+0*/ /*return adress out of native stub*/
 	call findmethod	/*find calling java method, this one is still to be skipped (==SecurityManager.getClassContext (or .currentClassLoader)*/
 
+	movl 20(%esp),%edx
+	movl MethodPointer(%eax),%ebx
+	movl offclassmethodinfo(%ebx),%ecx
+	movl %ecx,(%edx)
+	subl $4,%edx
+	movl %edx,20(%esp)
 
 	mov 8(%esp),%ebx /*pos of return adress */
 	add FrameSize(%eax),%ebx

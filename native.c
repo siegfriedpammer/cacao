@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 930 2004-03-02 21:18:23Z jowenn $
+   $Id: native.c 933 2004-03-05 21:27:21Z jowenn $
 
 */
 
@@ -104,6 +104,7 @@ classinfo *class_java_io_IOException;
 classinfo *class_java_io_FileNotFoundException;
 classinfo *class_java_io_UnixFileSystem;
 classinfo *class_java_security_PrivilegedActionException;
+classinfo *class_java_lang_SecurityManager;
 classinfo *class_java_net_UnknownHostException;
 classinfo *class_java_net_SocketException;
 classinfo *class_java_lang_NoSuchMethodException;
@@ -1502,6 +1503,14 @@ java_objectarray *builtin_asm_createclasscontextarray(classinfo **end,classinfo 
         printf("end %p, start %p, size %ld\n",end,start,size);
         if (!class_java_lang_Class)
                 class_java_lang_Class = class_new(utf_new_char ("java/lang/Class"));
+        if (!class_java_lang_SecurityManager)
+                class_java_lang_SecurityManager = class_new(utf_new_char ("java/lang/SecurityManager"));
+	if (size>0) {
+		if (start==class_java_lang_SecurityManager) {
+			size--;
+			start--;
+		}
+	}
         tmpArray=builtin_newarray(size, class_array_of(class_java_lang_Class)->vftbl);
 
         for(i=0,current=start;i<size;i++,current--) {
@@ -1524,6 +1533,15 @@ java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end,classinfo **st
         size_t size=(((size_t)start)-((size_t)end)) / sizeof (classinfo*);
 	log_text("builtin_asm_getclassloader");
         printf("end %p, start %p, size %ld\n",end,start,size);
+
+        if (!class_java_lang_SecurityManager)
+                class_java_lang_SecurityManager = class_new(utf_new_char ("java/lang/SecurityManager"));
+	if (size>0) {
+		if (start==class_java_lang_SecurityManager) {
+			size--;
+			start--;
+		}
+	}
 
 	privilegedAction=class_new(utf_new_char("java/security/PrivilegedAction"));
 
