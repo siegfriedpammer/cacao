@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 1954 2005-02-17 19:47:23Z christian $
+   $Id: statistics.c 1971 2005-03-01 20:06:36Z carolyn $
 
 */
 
@@ -38,6 +38,7 @@
 #include "vm/global.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
+#include <string.h> 
 
 
 /* global variables */
@@ -125,6 +126,25 @@ int count_cstub_len = 0;
 int count_nstub_len = 0;
 int count_max_new_stack = 0;
 int count_upper_bound_new_stack = 0;
+                                /* in_  inline statistics */
+int count_in = 0;
+int count_in_uniqVirt = 0;
+int count_in_uniqIntf = 0;
+int count_in_rejected = 0;
+int count_in_rejected_mult = 0;
+int count_in_outsiders = 0;
+int count_in_uniqueVirt_not_inlined = 0;
+int count_in_uniqueInterface_not_inlined = 0;
+int count_in_maxDepth = 0;
+int count_in_maxMethods = 0;
+
+u2 count_in_not   [512];
+/***
+int count_no_in[12] = {0,0,0,0, 0,0,0,0, 0,0,0,0};
+***/
+
+
+
 static int count_block_stack_init[11] = {
 	0, 0, 0, 0, 0, 
 	0, 0, 0, 0, 0, 
@@ -489,6 +509,70 @@ void print_stats()
 	log_text(logtext);
 	sprintf(logtext, "Number of Methods kept in registers:         %6d\n\n",count_method_in_register );
 	log_text(logtext);
+		
+	/****if (useinlining)  ***/
+	 {
+		u2 ii;
+		char * in_not_reasons[IN_MAX] = {
+        					"unqVirt    | ",
+					        "unqIntf    | ",
+					        "outsider   | ",
+					        "maxDepth   | ",
+					        "maxcode    | ",
+					        "maxlen     | ",
+					        "exception  | ",
+					        "notUnqVirt | ",
+					        "notUnqIntf |"
+					        };
+
+		sprintf(logtext, "Number of Methods Inlined :                              \t%6d",count_in );
+		log_text(logtext);
+		if (inlinevirtuals) {
+		  sprintf(logtext, "Number of Unique Virtual Methods inlined:                \t%6d",count_in_uniqVirt);
+		  log_text(logtext);
+		  sprintf(logtext, "Number of Unique Implemented Interface Methods inlined:    %6d",count_in_uniqIntf);
+		  log_text(logtext);
+		  }
+		sprintf(logtext, "Number of Methods Inlines (total) rejected:              \t%6d",count_in_rejected);
+		log_text(logtext);
+		sprintf(logtext, "Number of Methods Inlined rejected for multiple reasons: \t%6d",count_in_rejected_mult);
+		log_text(logtext);
+		sprintf(logtext, "Number of Methods where Inline max depth hit:            \t%6d",count_in_maxDepth);
+		log_text(logtext);
+		sprintf(logtext, "Number of Methods Inlined rejected for max methods       \t%6d\n",count_in_maxMethods);
+		log_text(logtext);
+		sprintf(logtext, "Number of Methods calls fom Outsider Class not inlined:  \t%6d",count_in_outsiders);
+		log_text(logtext);
+
+		sprintf(logtext, "Number of Unique Virtual Methods not inlined:            \t%6d",count_in_uniqueVirt_not_inlined);
+		log_text(logtext);
+		sprintf(logtext, "Number of Unique Implemented Interface Methods not inlined:%6d",count_in_uniqueInterface_not_inlined);
+		log_text(logtext);
+#define INLINEDETAILS
+#ifdef  INLINEDETAILS
+		sprintf(logtext, "\nDetails about Not Inlined Reasons :");
+		log_text(logtext);
+		for (ii=0;ii<512;ii++) {
+			if (count_in_not[ii]>0) {
+				char logtext2[MAXLOGTEXT]="\t";
+
+				if (inlinevirtuals) {
+				  if (ii & IN_UNIQUEVIRT) strcat(logtext2, in_not_reasons[N_UNIQUEVIRT]); 
+				  if (ii & IN_UNIQUE_INTERFACE) strcat(logtext2,  in_not_reasons[N_UNIQUE_INTERFACE]);
+				  if (ii & IN_NOT_UNIQUE_VIRT) strcat(logtext2,  in_not_reasons[N_NOT_UNIQUE_VIRT]);
+				  if (ii & IN_NOT_UNIQUE_INTERFACE) strcat(logtext2,  in_not_reasons[N_NOT_UNIQUE_INTERFACE]);
+				  }
+				if (ii & IN_OUTSIDERS) strcat(logtext2,  in_not_reasons[N_OUTSIDERS]);
+				if (ii & IN_MAXDEPTH) strcat(logtext2,  in_not_reasons[N_MAXDEPTH]);
+				if (ii & IN_MAXCODE) strcat(logtext2,  in_not_reasons[N_MAXCODE]);
+				if (ii & IN_JCODELENGTH) strcat(logtext2,  in_not_reasons[N_JCODELENGTH]);
+				if (ii & IN_EXCEPTION) strcat(logtext2,  in_not_reasons[N_EXCEPTION]);
+				sprintf(logtext, "  [%X]=%6d    %s",ii, count_in_not[ii], logtext2 );
+				log_text(logtext);
+				}
+			}	
+#endif
+		}
 }
 
 

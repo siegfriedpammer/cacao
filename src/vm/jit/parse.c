@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 1967 2005-02-25 15:51:05Z carolyn $
+   $Id: parse.c 1971 2005-03-01 20:06:36Z carolyn $
 
 */
 
@@ -53,6 +53,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/inline/parseRT.h"
+#include "vm/jit/inline/parseXTA.h"
 #include "vm/jit/inline/inline.h"
 #include "vm/jit/loop/loop.h"
 #include "vm/jit/inline/parseRTprint.h"
@@ -436,23 +437,28 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 	u2 skipBasicBlockChange;
 
 METHINFOt(m,"\nPARSING: ",DEBUG4);
-if (opt_rt) {
+if ((opt_rt) || (opt_xta)) {
+  FILE *Missed;
+
+  if (opt_rt)  Missed =  rtMissed;  
+  if (opt_xta) Missed = xtaMissed;  
+
   if (m->methodUsed != USED) {
     if (opt_verbose) {
-      printf(" rta missed: "); fflush(stdout);
+      printf(" rta/xta missed: "); fflush(stdout);
       METHINFO(m,opt_verbose);
       }
-    if ( (rtMissed = fopen("rtMissed", "a")) == NULL) {
-      printf("CACAO - rtMissed file: cant open file to write append \n");
+    if ( (Missed = fopen("Missed", "a")) == NULL) {
+      printf("CACAO - rt/xtaMissed file: cant open file to write append \n");
       }
     else {
-      utf_fprint(rtMissed,m->class->name); 
-       fprintf(rtMissed," "); fflush(rtMissed);
-      utf_fprint(rtMissed,m->name);
-       fprintf(rtMissed," "); fflush(rtMissed);
-      utf_fprint(rtMissed,m->descriptor); 
-       fprintf(rtMissed,"\n"); fflush(rtMissed);
-      fclose(rtMissed);
+      utf_fprint(Missed,m->class->name); 
+       fprintf(Missed," "); fflush(Missed);
+      utf_fprint(Missed,m->name);
+       fprintf(Missed," "); fflush(Missed);
+      utf_fprint(Missed,m->descriptor); 
+       fprintf(Missed,"\n"); fflush(Missed);
+      fclose(Missed);
       }
    } 
 }

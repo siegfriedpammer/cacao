@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 1770 2004-12-17 14:30:32Z twisti $
+   $Id: VMThread.c 1971 2005-03-01 20:06:36Z carolyn $
 
 */
 
@@ -88,16 +88,29 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv
 #else
 	t = ((threadobject*) THREADOBJECT)->o.thread;
 #endif
+	if (runverbose)
+		log_text("java_lang_VMThread_currentThread 111");
+	if ((runverbose) && (t == NULL)) 
+		log_text("t ptr is NULL\n");
+if (t == NULL) printf("t ptr is NULL\n"); fflush(stdout);
   
 	if (!t->group) {
 		/* ThreadGroup of currentThread is not initialized */
+	if (runverbose)
+		log_text("java_lang_VMThread_currentThread 222");
 
 		t->group = (java_lang_ThreadGroup *) 
 			native_new_and_init(class_new(utf_new_char("java/lang/ThreadGroup")));
 
+	if (runverbose)
+		log_text("java_lang_VMThread_currentThread 333");
 		if (t->group == 0) 
 			log_text("unable to create ThreadGroup");
+	if (runverbose)
+		log_text("java_lang_VMThread_currentThread 444");
   	}
+	if (runverbose)
+		log_text("java_lang_VMThread_currentThread 555");
 
 	return t;
 #else

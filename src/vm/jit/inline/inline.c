@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1959 2005-02-19 11:46:27Z carolyn $
+   $Id: inline.c 1971 2005-03-01 20:06:36Z carolyn $
 
 */
 
@@ -67,6 +67,7 @@ Method to be inlined must:
 #include "vm/loader.h"
 #include "vm/tables.h"
 #include "vm/options.h"
+#include "vm/statistics.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/inline/inline.h"
@@ -107,6 +108,7 @@ Method to be inlined must:
         {       printf("<c%i>\t",cls->classUsed); \
                 utf_display(cls->name); printf("\n");fflush(stdout);}
 
+static bool in_stats1 = true;
 /*-----------------------------------------------------------*/
 /* just initialize global structure for non-inlining         */
 /*-----------------------------------------------------------*/
@@ -124,6 +126,11 @@ void inlining_init0(methodinfo *m, t_inlining_globals *inline_env)
 	inline_env->cummethods = 0; /* co not global or static-used only here? */
 	inline_env->inlining_stack = NULL;
 	inline_env->inlining_rootinfo = NULL;
+	if (in_stats1) {
+		int ii;
+		for (ii=0; ii<512; ii++) count_in_not[ii]=0;
+		in_stats1=false;
+		}
 }
 
 
@@ -131,6 +138,7 @@ void inlining_init0(methodinfo *m, t_inlining_globals *inline_env)
 
 void inlining_setup(methodinfo *m, t_inlining_globals *inline_env)
 {
+
 /*    	t_inlining_globals *inline_env = DNEW(t_inlining_globals); */
         inlining_init0(m,inline_env);
 
@@ -362,6 +370,128 @@ else return false;
 
 /*-----------------------------------------------------------*/
 
+bool can_inline (
+	t_inlining_globals *inline_env,
+	methodinfo *m,
+	methodinfo *imi,
+	constant_FMIref *imr,
+	bool uniqueVirt,
+	int opcode)
+	
+/* options used inlinevirtual / uniqueVirt / inlineexctions  */
+{
+bool can = false;
+u2 whycannot = 0;
+if ((inline_env->cummethods < INLINING_MAXMETHODS) && 
+   /*** (!(imi->flags & ACC_ABSTRACT)) && /** Problem from INVOKE STATIC **/
+    (!(imi->flags & ACC_NATIVE)) &&
+    (inlineoutsiders || (m->class == imr->class)) &&
+    (imi->jcodelength < INLINING_MAXCODESIZE) &&
+    (imi->jcodelength > 0) && 	     /* FIXME: eliminate empty methods? also abstract??*/
+    (((!inlinevirtuals)  ||
+      (uniqueVirt     ))   ||
+     ((opcode != JAVA_INVOKEVIRTUAL) ||
+      (opcode != JAVA_INVOKEINTERFACE)) ) &&
+    (inlineexceptions || (imi->exceptiontablelength == 0)))  {
+	count_in++;
+    	if (inlinevirtuals) { 
+        	if   (opcode == JAVA_INVOKEVIRTUAL) {
+			if (uniqueVirt)  count_in_uniqVirt++; 
+			}
+        	if   (opcode == JAVA_INVOKEINTERFACE) { 
+			if (uniqueVirt)  count_in_uniqIntf++; 
+			}
+		}
+	can = true;
+	
+	}
+else
+	can = false;
+/*------ inline statistics ------*/
+if ((!opt_stat) || can) return  can; 
+
+if (!can) {
+  bool mult = false;
+
+if  (imi->flags & ACC_NATIVE) return can; 
+if  (imi->flags & ACC_ABSTRACT) return can; 
+  count_in_rejected++;
+						if (opt_verbose) 
+							{char logtext[MAXLOGTEXT];
+							sprintf(logtext, "Rejected to inline: ");
+							utf_sprint(logtext  +strlen(logtext), imi->class->name);
+							strcpy(logtext + strlen(logtext), ".");
+							utf_sprint(logtext + strlen(logtext), imi->name);
+							utf_sprint(logtext + strlen(logtext), imi->descriptor);
+							log_text(logtext);
+							METHINFOj(imi)
+							}
+
+  if  (!(inlineoutsiders) && (m->class != imr->class)) {
+	/*** if ((!mult) && (whycannot > 0)) mult = true;  *** First time not needed ***/
+	count_in_outsiders++;
+	whycannot = whycannot | IN_OUTSIDERS; /* outsider */ 
+	}
+  if (inline_env->cummethods >= INLINING_MAXMETHODS) { 
+	if ((!mult) && (whycannot > 0)) mult = true; 
+	count_in_maxDepth++;
+	whycannot = whycannot | IN_MAXDEPTH;  
+	}
+  if  (imi->jcodelength >= INLINING_MAXCODESIZE) {
+	if ((!mult) && (whycannot > 0)) mult = true;
+	whycannot = whycannot | IN_MAXCODE;  
+	}
+  if  (imi->jcodelength > 0) {
+	if ((!mult) && (whycannot > 0)) mult = true;
+	whycannot = whycannot | IN_JCODELENGTH;  
+	}
+  if  (!inlineexceptions && (imi->exceptiontablelength == 0)) { 
+	whycannot = whycannot | IN_EXCEPTION;  
+	}
+  /* These must be last so mult flag is set correctly */ 
+  if  ( (inlinevirtuals) && 
+       ((opcode == JAVA_INVOKEVIRTUAL) ||
+        (opcode == JAVA_INVOKEINTERFACE)) ) { 
+      	if (uniqueVirt )   { 
+      		/* so know why (and that) a unique virtual was rejected for another reason */ 
+     		if (opcode == JAVA_INVOKEVIRTUAL) { 
+			count_in_uniqueVirt_not_inlined++;
+			whycannot = whycannot | IN_UNIQUEVIRT;  
+			}
+	 	else 	{
+			count_in_uniqueInterface_not_inlined++;
+			whycannot = whycannot | IN_UNIQUE_INTERFACE;  
+			}
+		}	
+	else 	{ /* not inlined because not not virtual */
+		if ((!mult) && (whycannot > 0)) mult = true;
+     		if (opcode == JAVA_INVOKEVIRTUAL) { 
+	 		whycannot = whycannot | IN_NOT_UNIQUE_VIRT;  
+			}
+	 	else 	{
+	 		whycannot = whycannot | IN_NOT_UNIQUE_INTERFACE;  
+			}
+		}	
+	}	
+
+  if  (inlineoutsiders && (m->class != imr->class)) {
+	whycannot = whycannot | IN_OUTSIDERS; /* outsider */ 
+	count_in_outsiders++;
+	}
+
+  if (mult)  
+  	count_in_rejected_mult++;
+  if (whycannot > ((1<<IN_MAX)-1)) panic ("Inline Whynot is too large???\n");
+  count_in_not[whycannot]++; 
+  }
+
+return false;
+}
+
+
+/*-----------------------------------------------------------*/
+
+
 inlining_methodinfo *inlining_analyse_method(methodinfo *m, 
 					  int level, int gp, 
 					  int firstlocal, int maxstackdepth,
@@ -379,6 +509,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 	int  *label_index = NULL;
 	bool isnotrootlevel = (level > 0);
 	bool isnotleaflevel = (level < INLINING_MAXDEPTH);
+	bool maxdepthHit = false;
 	#ifdef DEBUGi
 	  	printf ("\n------------------------------ ");fflush(stdout);
 	  	printf ("\nStart of inlining analysis of: ");fflush(stdout);
@@ -541,6 +672,9 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 		lastlabel = p+1; */
 		for (i = p; i < nextp; i++) label_index[i] = gp;
 
+		if (opt_stat) { 
+		  	if ((!isnotrootlevel) && !maxdepthHit) {maxdepthHit = true;  count_in_maxDepth++; } 
+			}
 		if (isnotleaflevel) { 
 
 			switch (opcode) {
@@ -592,18 +726,17 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 /** Inlining has problem currently with typecheck & inlining **/
 /** Due problem with typecheck & inlining, class checks fail for <init>s **/
 					if (utf_new_char("<init>") == imi->name) break; 
+					if (utf_new_char("finit$") == imi->name) break; 
 /****/					
 					if (opcode == JAVA_INVOKEVIRTUAL) {
 						mout = NULL;
 						/* unique virt meth? then */
 						/*  allow it to be inlined*/
-						if (is_unique_method2(
-							 imi->class,
-							 imi, 
-							 &mout) == 1) {
+						if (is_unique_method2(imi->class, imi, &mout) == 1) {
                                                   if (mout != NULL) {
                                                         imi = mout;
                                                         uniqueVirt=true; 
+#define INVIRTDEBUG
 #ifdef INVIRTDEBUG
 							METHINFOx(imi);
                                                         printf("WAS unique virtual(-iv)\n");fflush(stdout);
@@ -616,9 +749,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 #ifdef INVIRTDEBUG
 						METHINFOx(imi);
 #endif
-						if (is_unique_interface_method (
-							 imi, 
-							 &mout)) {
+						if (is_unique_interface_method (imi,&mout)) {
                                                      if (mout != NULL) {
                                                         imi = mout;
                                                         uniqueVirt=true;
@@ -631,28 +762,24 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 						     } 
 						} /* end INVOKEINTERFACE */	
 
-					if ((inline_env->cummethods < INLINING_MAXMETHODS) &&
-						(!(imi->flags & ACC_NATIVE)) &&  
-						(inlineoutsiders || (m->class == imr->class)) && 
-						(imi->jcodelength < INLINING_MAXCODESIZE) && 
-						(imi->jcodelength > 0) && 
-					       (((!inlinevirtuals)  || 
-						 (uniqueVirt     ))   || 
-						((opcode != JAVA_INVOKEVIRTUAL) || 
-					 	 (opcode != JAVA_INVOKEINTERFACE)) ) &&
-						(inlineexceptions || (imi->exceptiontablelength == 0))) { /* FIXME: eliminate empty methods? */
+					if (can_inline(inline_env, m, imi, imr, uniqueVirt, opcode)) {
 						inlining_methodinfo *tmp;
 						descriptor2types(imi);
 
 						inline_env->cummethods++;
 
-						if (opt_verbose) {
-							char logtext[MAXLOGTEXT];
+						if (opt_verbose) 
+							{char logtext[MAXLOGTEXT];
+							printf("Going to inline: ");
+							METHINFOj(imi) 
+							printf("\nFrom "); fflush(stdout); METHINFOj(m)
 							sprintf(logtext, "Going to inline: ");
 							utf_sprint(logtext  +strlen(logtext), imi->class->name);
 							strcpy(logtext + strlen(logtext), ".");
 							utf_sprint(logtext + strlen(logtext), imi->name);
 							utf_sprint(logtext + strlen(logtext), imi->descriptor);
+							log_text(logtext);
+							sprintf(logtext,"<%i>",imi->jcodelength);
 							log_text(logtext);
 							if ( (!(opcode == JAVA_INVOKEVIRTUAL)) &&
 							     (! ( (imi->flags & ACC_STATIC )

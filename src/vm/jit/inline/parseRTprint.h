@@ -48,6 +48,9 @@ if (flg) { printf(TXT); \
 #define SHOWOPCODE(flg) \
 if (flg) {printf("Parse p=%i<%i<   opcode=<%i> %s\n", \
                         p, m->jcodelength,opcode,opcode_names[opcode]);}
+#define SHOWOPCODE1 \
+  printf("<%i<   opcode=<%i> %s\n", \
+                        m->jcodelength,opcode,opcode_names[opcode]);
 
 /*** old prints ******************************************/
 #ifdef OLDRT

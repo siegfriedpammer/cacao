@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 1954 2005-02-17 19:47:23Z christian $
+   $Id: statistics.h 1971 2005-03-01 20:06:36Z carolyn $
 
 */
 
@@ -36,6 +36,29 @@
 
 
 #include "vm/global.h"
+				/* in_  inline statistics */
+
+#define IN_MAX	9
+#define IN_UNIQUEVIRT           0x0000 
+#define IN_UNIQUE_INTERFACE     0x0001
+#define IN_OUTSIDERS            0x0004
+#define IN_MAXDEPTH		0x0008
+#define IN_MAXCODE              0x0010
+#define IN_JCODELENGTH          0x0020
+#define IN_EXCEPTION            0x0040
+#define IN_NOT_UNIQUE_VIRT      0x0080
+#define IN_NOT_UNIQUE_INTERFACE 0x0100
+
+#define N_UNIQUEVIRT            0
+#define N_UNIQUE_INTERFACE      1
+#define N_OUTSIDERS             2
+#define N_MAXDEPTH		3	
+#define N_MAXCODE               4 
+#define N_JCODELENGTH           5 
+#define N_EXCEPTION            6 
+#define N_NOT_UNIQUE_VIRT       7 
+#define N_NOT_UNIQUE_INTERFACE  8 
+
 
 
 /* global variables ***********************************************************/
@@ -118,6 +141,22 @@ extern int *count_method_bb_distribution;
 extern int *count_block_size_distribution;
 extern int *count_store_length;
 extern int *count_store_depth;
+                                /* in_  inline statistics */
+extern int count_in;
+extern int count_in_uniqVirt;
+extern int count_in_uniqIntf;
+extern int count_in_rejected;
+extern int count_in_rejected_mult;
+extern int count_in_outsiders;
+extern int count_in_uniqueVirt_not_inlined;
+extern int count_in_uniqueInterface_not_inlined;
+extern int count_in_maxDepth;
+extern int count_in_maxMethods;
+
+extern u2 count_in_not   [512];
+
+
+
 
 
 /* function prototypes ********************************************************/
