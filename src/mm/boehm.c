@@ -11,7 +11,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: boehm.c 239 2003-02-27 09:56:30Z stefan $
+	Last Change: $Id: boehm.c 256 2003-03-17 11:48:18Z stefan $
 
 *******************************************************************************/
 
@@ -82,6 +82,12 @@ void *heap_alloc_uncollectable(u4 bytelength)
 	return result;
 }
 
+void runboehmfinalizer(void *o, void *p)
+{
+	java_objectheader *ob = (java_objectheader *) o;
+	asm_calljavamethod(ob->vftbl->class->finalizer, ob, NULL, NULL, NULL);
+}
+
 void *heap_allocate (u4 bytelength, bool references, methodinfo *finalizer)
 {
 	void *result;
@@ -89,6 +95,8 @@ void *heap_allocate (u4 bytelength, bool references, methodinfo *finalizer)
 		{ MAINTHREADCALL(result, stackcall_malloc, NULL, bytelength); }
 	else
 		{ MAINTHREADCALL(result, stackcall_malloc_atomic, NULL, bytelength); }
+	if (finalizer)
+		GC_REGISTER_FINALIZER(result, runboehmfinalizer, 0, 0, 0);
 	return (u1*) result;
 }
 
