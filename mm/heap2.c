@@ -20,6 +20,24 @@
 #undef ALIGN
 #undef OFFSET
 
+#define HEURISTIC_SEL    0
+#define HEURISTIC_PARAM  2UL
+
+
+#define next_collection_heuristic_init()   \
+             (void*)((long)heap_top + (((long)heap_limit - (long)heap_top) >> 4))
+
+#if HEURISTIC_SEL == 0
+#define next_collection_heuristic()   \
+             (void*)((long)heap_top + (((long)heap_limit - (long)heap_top) >> HEURISTIC_PARAM))
+#elif HEURISTIC_SEL == 1
+#define next_collection_heuristic()   \
+             (void*)((long)heap_top + (((long)heap_top - (long)heap_base) << HEURISTIC_PARAM))
+#elif HEURISTIC_SEL == 2
+#define next_collection_heuristic()   \
+             (void*)((long)heap_top + HEURISTIC_PARAM)	 
+#endif
+
 //#define PSEUDO_GENERATIONAL
 //#define COLLECT_LIFESPAN
 //#define NEW_COLLECT_LIFESPAN
@@ -159,7 +177,7 @@ heap_init (SIZE size,
 	/* 6. calculate a useful first collection limit */
 	/* This is extremly primitive at this point... 
 	   we should replace it with something more useful -- phil. */
-	heap_next_collection = (void*)((long)heap_base + (heap_size / 4));
+	heap_next_collection = next_collection_heuristic_init();
 
 	/* 7. Init the global reference lists & finalizer addresses */
 	references = NULL;
@@ -399,13 +417,13 @@ heap_allocate (SIZE		  in_length,
 	}
 
  success:
-	/* 3.a. mark all necessary bits, store the finalizer & return the newly allocate block */
+	/* 3.a. mark all necessary bits, store the finalizer & return the newly allocated block */
 
 	/* I don't mark the object-start anymore, as it always is at the beginning of a free-block,
 	   which already is marked (Note: The first free-block gets marked in heap_init). -- phil. */
   	bitmap_setbit(start_bits, free_chunk); /* mark the new object */
 
-#if 1 /* FIXME: will become unecessary soon */
+#ifndef SIZE_FROM_CLASSINFO
 	bitmap_setbit(start_bits, (void*)((long)free_chunk + (long)length)); /* mark the freespace behind the new object */
 #endif
 
@@ -487,7 +505,8 @@ void gc_reclaim (void)
 {
 #ifdef PSEUDO_GENERATIONAL
 	static void*  generation_start = 0;
-	staitc int    generation_num = 0;
+	static int    generation_num = 0;
+	void* addr = heap_base;
 #endif
 	void* free_start;
 	void* free_end = heap_base;
@@ -500,13 +519,26 @@ void gc_reclaim (void)
 #endif
 
 #ifdef PSEUDO_GENERATIONAL
-	if (!generation_start || !(generation_start % 5))
+	if (!generation_start || !(generation_num % 5))
 		generation_start = heap_base;
+
+	++generation_num;
 #endif
 
 	/* 1. reset the freelists */
 
-#if 1
+#if 0
+	allocator_mark_free_kludge(start_bits); /* this line will be kicked out, when
+											   the SIZE_FROM_CLASSINFO reclaim
+											   is implemented (very soon!!) */
+#endif
+
+#ifdef PSEUDO_GENERATIONAL
+	for (addr = heap_base; addr <= generation_start; ++addr) {
+		if (bitmap_testbit(start_bits, addr))
+			bitmap_setbit(mark_bits, addr);
+	}
+
 	allocator_mark_free_kludge(start_bits); /* this line will be kicked out, when
 											   the SIZE_FROM_CLASSINFO reclaim
 											   is implemented (very soon!!) */
@@ -585,24 +617,35 @@ void gc_reclaim (void)
 #endif
 	}
 
+#if 0
 	if (heap_top < heap_limit)
 		bitmap_setbit(start_bits, heap_top);
+#endif
 
 	/* 3.4. emit fragmentation info */
 #ifdef COLLECT_FRAGMENTATION
-	fprintf(fragfile, 
-			"%ld\t%ld\t%ld\t%ld\n", 
-			(unsigned long)heap_top - (unsigned long)heap_base, 
-			(unsigned long)heap_top - (unsigned long)heap_base - free_size,
-			free_size, 
-			free_fragments);
+	{
+		unsigned long heap_full = (unsigned long)heap_top - (unsigned long)heap_base;
+		unsigned long heap_life = (unsigned long)heap_top - (unsigned long)heap_base - free_size;
+
+		fprintf(fragfile, 
+				"%ld\t%ld\t%ld\t%ld\t%f\t%f\t%f\n", 
+				heap_full,
+				heap_life,
+				free_size, 
+				free_fragments,
+				100*(float)free_size/free_fragments,
+				100*(float)heap_life/heap_full,
+				100*(float)free_size/heap_full
+				);
+	}
 	fflush(fragfile);
 
 	allocator_dump_to_file(fragsizefile);
 #endif
 
 	/* 4. adjust the collection threshold */
-	heap_next_collection = (void*)((long)heap_top + ((long)heap_limit - (long)heap_top) / 8);
+	heap_next_collection = next_collection_heuristic();
 	if (heap_next_collection > heap_limit)
 		heap_next_collection = heap_limit;
 

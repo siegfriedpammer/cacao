@@ -1,6 +1,6 @@
 /*
  * cacao/mm/lifespan.c
- * $Id: lifespan.c 105 1998-12-10 17:48:53Z phil $
+ * $Id: lifespan.c 106 1998-12-11 02:03:33Z phil $
  */
 
 #include "mm.h"
@@ -98,7 +98,7 @@ void lifespan_emit()
 	/* emit summary */
 	int i;
 
-	for (i = 4; i < 24; ++i)
+	for (i = 4; i < 32; ++i)
 		fprintf(stderr, "%Lu-%Lu\t%Lu\n", 
 				(1LL << (i-1)), 
 				(1LL << i) - 1,
@@ -106,7 +106,7 @@ void lifespan_emit()
 
 	fprintf(stderr, "\n\n\n");
 
-	for (i = 4; i < 24; ++i)
+	for (i = 4; i < 32; ++i)
 		fprintf(stderr, "%Lu-%Lu\t%Lu\n", 
 				(1LL << (i-1)), 
 				(1LL << i) - 1,
