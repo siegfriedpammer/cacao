@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 630 2003-11-13 23:00:09Z stefan $
+   $Id: codegen.c 635 2003-11-14 16:06:03Z stefan $
 
 */
 
@@ -1834,58 +1834,6 @@ void codegen()
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 		
-		case ICMD_FREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-
-			var_to_reg_flt(s1, src->prev, REG_FTMP1);
-			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (opt_noieee) {
-				M_FDIV(s1,s2, REG_FTMP3);
-				M_CVTDL_C(REG_FTMP3, REG_FTMP3); /* round to integer */
-				M_CVTLF(REG_FTMP3, REG_FTMP3);
-				M_FMUL(REG_FTMP3, s2, REG_FTMP3);
-				M_FSUB(s1, REG_FTMP3, d);
-				}
-			else {
-				M_FDIVS(s1,s2, REG_FTMP3);
-				M_TRAPB;
-				M_CVTDL_CS(REG_FTMP3, REG_FTMP3); /* round to integer */
-				M_TRAPB;
-				M_CVTLF(REG_FTMP3, REG_FTMP3);
-				M_FMULS(REG_FTMP3, s2, REG_FTMP3);
-				M_TRAPB;
-				M_FSUBS(s1, REG_FTMP3, d);
-				M_TRAPB;
-				}
-			store_reg_to_var_flt(iptr->dst, d);
-		    break;
-
-		case ICMD_DREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-
-			var_to_reg_flt(s1, src->prev, REG_FTMP1);
-			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (opt_noieee) {
-				M_DDIV(s1,s2, REG_FTMP3);
-				M_CVTDL_C(REG_FTMP3, REG_FTMP3); /* round to integer */
-				M_CVTLD(REG_FTMP3, REG_FTMP3);
-				M_DMUL(REG_FTMP3, s2, REG_FTMP3);
-				M_DSUB(s1, REG_FTMP3, d);
-				}
-			else {
-				M_DDIVS(s1,s2, REG_FTMP3);
-				M_TRAPB;
-				M_CVTDL_CS(REG_FTMP3, REG_FTMP3); /* round to integer */
-				M_TRAPB;
-				M_CVTLD(REG_FTMP3, REG_FTMP3);
-				M_DMULS(REG_FTMP3, s2, REG_FTMP3);
-				M_TRAPB;
-				M_DSUBS(s1, REG_FTMP3, d);
-				M_TRAPB;
-				}
-			store_reg_to_var_flt(iptr->dst, d);
-		    break;
-
 		case ICMD_I2F:       /* ..., value  ==> ..., (float) value            */
 		case ICMD_L2F:
 			var_to_reg_int(s1, src, REG_ITMP1);
@@ -1913,17 +1861,9 @@ void codegen()
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			a = dseg_adddouble(0.0);
-			if (opt_noieee) {
-				M_CVTDL_C(s1, REG_FTMP1);
-				M_CVTLI(REG_FTMP1, REG_FTMP2);
-				}
-			else {
-				M_CVTDL_CS(s1, REG_FTMP1);
-				M_TRAPB;
-				M_CVTLIS(REG_FTMP1, REG_FTMP2);
-				M_TRAPB;
-				}
-			M_DST (REG_FTMP1, REG_PV, a);
+			M_CVTDL_C(s1, REG_FTMP2);
+			M_CVTLI(REG_FTMP2, REG_FTMP3);
+			M_DST (REG_FTMP3, REG_PV, a);
 			M_ILD (d, REG_PV, a);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1933,14 +1873,8 @@ void codegen()
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			a = dseg_adddouble(0.0);
-			if (opt_noieee) {
-				M_CVTDL_C(s1, REG_FTMP1);
-				}
-			else {
-				M_CVTDL_CS(s1, REG_FTMP1);
-				M_TRAPB;
-				}
-			M_DST (REG_FTMP1, REG_PV, a);
+			M_CVTDL_C(s1, REG_FTMP2);
+			M_DST (REG_FTMP2, REG_PV, a);
 			M_LLD (d, REG_PV, a);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
