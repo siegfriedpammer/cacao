@@ -1,58 +1,49 @@
 #ifndef _MACHINE_INSTR_H
 #define _MACHINE_INSTR_H
 
-static inline long
+static inline void
 __attribute__ ((unused))
-atomic_swap (volatile long *p, long val)
+atomic_add (volatile int *mem, int val)
 {
-  long ret, t1;
+    int temp;
 
   __asm__ __volatile__ (
-    "/* Inline atomic swap */\n"
-	"1:\t"
-	"ldq_l	%2,%4\n\t"
-	"mov	%3,%0\n\t"
-	"stq_c	%0,%1\n\t"
-	"beq	%0,2f\n\t"
-    ".subsection 1\n"
-    "2:\t"
-    "br 1b\n"
-    ".previous\n\t"
-    "3:\t"
+    "1:\t"
+    "ldl_l  %1,%3\n\t"
+    "addl   %1,%2,%1\n\t"
+    "stl_c  %1,%0\n\t"
+    "beq    %1,1b\n\t"
     "mb\n\t"
-    "/* End atomic swap */"
-	: "=&r"(t1), "=m"(*p), "=&r"(ret)
-	: "r"(val), "m"(*p));
-
-  return ret;
+    : "=m"(*mem), "=&r"(temp)
+    : "r"(val), "m"(*mem));
 }
 
 static inline long
 __attribute__ ((unused))
 compare_and_swap (volatile long *p, long oldval, long newval)
 {
-  long ret;
+  long ret, temp;
 
   __asm__ __volatile__ (
-    "/* Inline compare & swap */\n"
     "1:\t"
-    "ldq_l  %0,%4\n\t"
-    "cmpeq  %0,%2,%0\n\t"
-    "beq    %0,3f\n\t"
-    "mov    %3,%0\n\t"
-    "stq_c  %0,%1\n\t"
-    "beq    %0,2f\n\t"
-    ".subsection 1\n"
+    "ldq_l  %0,%5\n\t"
+    "cmpeq  %0,%3,%2\n\t"
+    "beq    %2,2f\n\t"
+    "mov    %4,%2\n\t"
+    "stq_c  %2,%1\n\t"
+    "beq    %2,1b\n\t"
     "2:\t"
-    "br 1b\n"
-    ".previous\n\t"
-    "3:\t"
     "mb\n\t"
-    "/* End compare & swap */"
-	: "=&r"(ret), "=m"(*p)
-	: "r"(oldval), "r"(newval), "m"(*p));
+    : "=&r"(ret), "=m"(*p), "=&r"(temp)
+    : "r"(oldval), "r"(newval), "m"(*p));
 
   return ret;
 }
+
+#define STORE_ORDER_BARRIER() __asm__ __volatile__ ("wmb" : : : "memory");
+#define MEMORY_BARRIER_BEFORE_ATOMIC() __asm__ __volatile__ ("mb" : : : "memory");
+#define MEMORY_BARRIER_AFTER_ATOMIC() __asm__ __volatile__ ("" : : : "memory");
+#define MEMORY_BARRIER() __asm__ __volatile__ ( \
+		"mb" : : : "memory" );
 
 #endif

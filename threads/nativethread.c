@@ -31,6 +31,7 @@
 #include "nat/java_lang_Throwable.h"
 #include "nat/java_lang_Thread.h"
 #include "nat/java_lang_ThreadGroup.h"
+#include "nat/java_lang_VMThread.h"
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -45,6 +46,8 @@
 #endif
 
 #ifdef MUTEXSIM
+
+/* We need this for older MacOSX (10.1.x) */
 
 typedef struct {
 	pthread_mutex_t mutex;
@@ -96,6 +99,16 @@ static void pthread_mutex_unlock_rec(pthread_mutex_rec_t *m)
 #define pthread_mutex_rec_t pthread_mutex_t
 
 #endif /* MUTEXSIM */
+
+static void setPriority(pthread_t tid, int priority)
+{
+	struct sched_param schedp;
+	int policy;
+
+	pthread_getschedparam(tid, &policy, &schedp);
+	schedp.sched_priority = priority;
+	pthread_setschedparam(tid, policy, &schedp);
+}
 
 #include "machine-instr.h"
 
@@ -377,6 +390,10 @@ static void setthreadobject(threadobject *thread)
 #endif
 }
 
+static monitorLockRecord *dummyLR;
+
+static void initPools();
+
 /*
  * Initialize threads.
  */
@@ -404,17 +421,27 @@ initThreadsEarly()
 
 	mainthreadobj = NEW(threadobject);
 	memset(mainthreadobj, 0, sizeof(threadobject));
+	mainthreadobj->info.tid = pthread_self();
 #if !defined(HAVE___THREAD)
 	pthread_key_create(&tkey_threadinfo, NULL);
 #endif
 	setthreadobject(mainthreadobj);
+	initPools();
 
     criticaltree = avl_create(criticalcompare, NULL, NULL);
 	thread_addstaticcritical();
 	sem_init(&suspend_ack, 0, 0);
+
+	/* Every newly created object's monitorPtr points here so we save a check
+	 * against NULL */
+	dummyLR = mem_alloc(sizeof(monitorLockRecord));
+	dummyLR->o = NULL;
+	dummyLR->ownerThread = NULL;
+	dummyLR->waiting = false;
 }
 
 static pthread_attr_t threadattr;
+
 static void freeLockRecordPools(lockRecordPool *);
 
 void
@@ -422,10 +449,13 @@ initThreads(u1 *stackbottom)
 {
 	classinfo *threadclass;
 	classinfo *threadgroupclass;
+	java_lang_String *threadname;
 	java_lang_Thread *mainthread;
+	java_lang_ThreadGroup *threadgroup;
 	threadobject *tempthread = mainthreadobj;
+	methodinfo *method;
 
-	threadclass = class_new(utf_new_char("java/lang/Thread"));
+	threadclass = class_new(utf_new_char("java/lang/VMThread"));
 	class_load(threadclass);
 	class_link(threadclass);
 
@@ -433,8 +463,12 @@ initThreads(u1 *stackbottom)
 		throw_exception_exit();
 
 	freeLockRecordPools(mainthreadobj->ee.lrpool);
+	/* This is kinda tricky, we grow the java.lang.Thread object so we can keep
+	 * the execution environment there. No Thread object must have been created
+	 * at an earlier time */
 	threadclass->instancesize = sizeof(threadobject);
 
+	/* Create a VMThread */
 	mainthreadobj = (threadobject *) builtin_new(threadclass);
 
 	if (!mainthreadobj)
@@ -443,36 +477,80 @@ initThreads(u1 *stackbottom)
 	FREE(tempthread, threadobject);
 	initThread(&mainthreadobj->o);
 
-#if !defined(HAVE___THREAD)
-	pthread_setspecific(tkey_threadinfo, mainthreadobj);
-#else
-	threadobj = mainthreadobj;
-#endif
+	setthreadobject(mainthreadobj);
 
-	mainthread = &mainthreadobj->o;
 	initLocks();
 	mainthreadobj->info.next = mainthreadobj;
 	mainthreadobj->info.prev = mainthreadobj;
 
-	mainthread->name=javastring_new(utf_new_char("main"));
+	threadname = javastring_new(utf_new_char("main"));
 
 	/* Allocate and init ThreadGroup */
 	threadgroupclass = class_new(utf_new_char("java/lang/ThreadGroup"));
-	mainthread->group =
+	threadgroup =
 		(java_lang_ThreadGroup *) native_new_and_init(threadgroupclass);
 
-	if (!mainthread->group)
+	if (!threadgroup)
 		throw_exception_exit();
+
+	/* Create a Thread */
+	threadclass = class_new(utf_new_char("java/lang/Thread"));
+	mainthread = (java_lang_Thread*) builtin_new(threadclass);
+	mainthreadobj->o.thread = mainthread;
+
+	if (!mainthread)
+		throw_exception_exit();
+
+	/* Call Thread constructor */
+	method = class_resolveclassmethod(threadclass,
+									  utf_new_char("<init>"),
+									  utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
+									  threadclass,
+									  true);
+
+	if (!method)
+		throw_exception_exit();
+
+	asm_calljavafunction(method, mainthread, mainthreadobj, threadname, (void*) 5);
+	if (*exceptionptr)
+		throw_exception_exit();
+
+	mainthread->group = threadgroup;
+	/* XXX This is a hack because the fourth argument was omitted */
+	mainthread->daemon = false;
+
+	/* Add mainthread to ThreadGroup */
+	method = class_resolveclassmethod(threadgroupclass,
+									  utf_new_char("addThread"),
+									  utf_new_char("(Ljava/lang/Thread;)V"),
+									  threadgroupclass,
+									  true);
+
+	if (!method)
+		throw_exception_exit();
+
+	asm_calljavafunction(method, threadgroup, mainthread, NULL, NULL);
+	if (*exceptionptr)
+		throw_exception_exit();
+
+	/* TODO InheritableThreadLocal */
+
+	setPriority(pthread_self(), 5);
 
 	pthread_attr_init(&threadattr);
 	pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_DETACHED);
 }
 
-void initThread(java_lang_Thread *t)
+void initThread(java_lang_VMThread *t)
 {
-	nativethread *info = &((threadobject*) t)->info;
+	threadobject *thread = (threadobject*) t;
+	nativethread *info = &thread->info;
+	info->tid = pthread_self();
 	pthread_mutex_init(&info->joinMutex, NULL);
 	pthread_cond_init(&info->joinCond, NULL);
+
+	thread->interrupted = 0;
+	thread->waiting = NULL;
 }
 
 static void initThreadLocks(threadobject *);
@@ -509,6 +587,8 @@ static void *threadstartup(void *t)
 	startup = NULL;
 	sem_post(psem);
 
+	setPriority(info->tid, thread->o.thread->priority);
+
 	/* Find the run()V method and call it */
 	method = class_resolveclassmethod(thread->o.header.vftbl->class,
 									  utf_new_char("run"),
@@ -524,6 +604,8 @@ static void *threadstartup(void *t)
 		throw_exception();
 	}
 
+	/* Allow lock record pools to be used by other threads. They cannot be
+	 * deleted so we'd better not waste them. */
 	freeLockRecordPools(thread->ee.lrpool);
 
 	pthread_mutex_lock(&threadlistlock);
@@ -539,13 +621,13 @@ static void *threadstartup(void *t)
 	return NULL;
 }
 
-void startThread(threadobject *t)
+void startThread(thread *t)
 {
-	nativethread *info = &t->info;
+	nativethread *info = &((threadobject*) t->vmThread)->info;
 	sem_t sem;
 	startupinfo startup;
 
-	startup.thread = t;
+	startup.thread = (threadobject*) t->vmThread;
 	startup.psem = &sem;
 
 	sem_init(&sem, 0, 0);
@@ -553,16 +635,31 @@ void startThread(threadobject *t)
 	if (pthread_create(&info->tid, &threadattr, threadstartup, &startup))
 		panic("pthread_create failed");
 
-	/* Wait here until thread has entered itself into the thread list */
+	/* Wait here until the thread has entered itself into the thread list */
 	sem_wait(&sem);
 	sem_destroy(&sem);
 }
 
+/* At the end of the program, we wait for all running non-daemon threads to die
+ */
+
+static threadobject *findNonDaemon(threadobject *thread)
+{
+	while (thread != mainthreadobj) {
+		if (!thread->o.thread->daemon)
+			return thread;
+		thread = thread->info.prev;
+	}
+
+	return NULL;
+}
+
 void joinAllThreads()
 {
+	threadobject *thread;
 	pthread_mutex_lock(&threadlistlock);
-	while (mainthreadobj->info.prev != mainthreadobj) {
-		nativethread *info = &mainthreadobj->info.prev->info;
+	while ((thread = findNonDaemon(mainthreadobj->info.prev)) != NULL) {
+		nativethread *info = &thread->info;
 		pthread_mutex_lock(&info->joinMutex);
 		pthread_mutex_unlock(&threadlistlock);
 		if (info->tid)
@@ -573,54 +670,34 @@ void joinAllThreads()
 	pthread_mutex_unlock(&threadlistlock);
 }
 
-bool aliveThread(java_lang_Thread *t)
-{
-	return ((threadobject*) t)->info.tid != 0;
-}
-
-void sleepThread(s8 millis, s4 nanos)
-{
-	struct timespec tv;
-	tv.tv_sec = millis / 1000;
-	tv.tv_nsec = millis % 1000 * 1000000 + nanos;
-	do { } while (nanosleep(&tv, &tv) == EINTR);
-}
-
-void yieldThread()
-{
-	sched_yield();
-}
-
-static void timedCondWait(pthread_cond_t *cond, pthread_mutex_t *mutex, s8 millis)
-{
-	struct timeval now;
-	struct timespec desttime;
-	gettimeofday(&now, NULL);
-	desttime.tv_sec = millis / 1000;
-	desttime.tv_nsec = millis % 1000 * 1000000;
-	pthread_cond_timedwait(cond, mutex, &desttime);
-}
-
-
-#define NEUTRAL 0
-#define LOCKED 1
-#define WAITERS 2
-#define BUSY 3
-
-static void initExecutionEnvironment(ExecEnvironment *ee)
-{
-	pthread_mutex_init(&ee->metaLockMutex, NULL);
-	pthread_cond_init(&ee->metaLockCond, NULL);
-	pthread_mutex_init(&ee->monitorLockMutex, NULL);
-	pthread_cond_init(&ee->monitorLockCond, NULL);
-}
-
 static void initLockRecord(monitorLockRecord *r, threadobject *t)
 {
-	r->owner = t;
 	r->lockCount = 1;
-	r->queue = NULL;
+	r->ownerThread = t;
+	r->queuers = 0;
+	r->o = NULL;
+	r->waiter = NULL;
+	r->incharge = NULL;
+	r->waiting = false;
+	sem_init(&r->queueSem, 0, 0);
+	pthread_mutex_init(&r->resolveLock, NULL);
+	pthread_cond_init(&r->resolveWait, NULL);
+	pthread_mutex_init(&r->waitLock, NULL);
+	pthread_cond_init(&r->waitCond, NULL);
 }
+
+/* No lock record must ever be destroyed because there may still be references
+ * to it.
+
+static void destroyLockRecord(monitorLockRecord *r)
+{
+	sem_destroy(&r->queueSem);
+	pthread_mutex_destroy(&r->resolveLock);
+	pthread_cond_destroy(&r->resolveWait);
+	pthread_mutex_destroy(&r->waitLock);
+	pthread_cond_destroy(&r->waitCond);
+}
+*/
 
 void initLocks()
 {
@@ -629,34 +706,12 @@ void initLocks()
 
 static void initThreadLocks(threadobject *thread)
 {
-	int i;
-
-	initExecutionEnvironment(&thread->ee);
-	for (i=0; i<INITIALLOCKRECORDS; i++) {
-		monitorLockRecord *r = &thread->ee.lr[i];
-		initLockRecord(r, thread);
-		r->nextFree = &thread->ee.lr[i+1];
-	}
-	thread->ee.lr[i-1].nextFree = NULL;
-	thread->ee.firstLR = &thread->ee.lr[0];
+	thread->ee.firstLR = NULL;
+	thread->ee.lrpool = NULL;
+	thread->ee.numlr = 0;
 }
 
-static inline int lockState(long r)
-{
-	return (int) r & 3;
-}
-
-static inline void *lockRecord(long r)
-{
-	return (void*) (r & ~3L);
-}
-
-static inline long makeLockBits(void *r, long l)
-{
-	return ((long) r) | l;
-}
-
-static lockRecordPool *allocLockRecordPool(threadobject *thread, int size)
+static lockRecordPool *allocNewLockRecordPool(threadobject *thread, int size)
 {
 	lockRecordPool *p = mem_alloc(sizeof(lockRecordPoolHeader) + sizeof(monitorLockRecord) * size);
 	int i;
@@ -670,286 +725,362 @@ static lockRecordPool *allocLockRecordPool(threadobject *thread, int size)
 	return p;
 }
 
-static void freeLockRecordPools(lockRecordPool *pool)
+#define INITIALLOCKRECORDS 8
+
+static pthread_mutex_t pool_lock;
+static lockRecordPool *global_pool;
+
+static void initPools()
 {
-	while (pool) {
-		lockRecordPool *n = pool->header.next;
-		mem_free(pool, sizeof(lockRecordPoolHeader) + sizeof(monitorLockRecord) * pool->header.size);
-		pool = n;
-	}
+	pthread_mutex_init(&pool_lock, NULL);
 }
 
-static monitorLockRecord *allocLockRecord(threadobject *t)
+static lockRecordPool *allocLockRecordPool(threadobject *t, int size)
+{
+	pthread_mutex_lock(&pool_lock);
+	if (global_pool) {
+		int i;
+		lockRecordPool *pool = global_pool;
+		global_pool = pool->header.next;
+		pthread_mutex_unlock(&pool_lock);
+
+		for (i=0; i < pool->header.size; i++)
+			pool->lr[i].ownerThread = t;
+		
+		return pool;
+	}
+	pthread_mutex_unlock(&pool_lock);
+
+	return allocNewLockRecordPool(t, size);
+}
+
+static void freeLockRecordPools(lockRecordPool *pool)
+{
+	lockRecordPoolHeader *last;
+	pthread_mutex_lock(&pool_lock);
+	last = &pool->header;
+	while (last->next)
+		last = &last->next->header;
+	last->next = global_pool;
+	global_pool = pool;
+	pthread_mutex_unlock(&pool_lock);
+}
+
+static monitorLockRecord *allocLockRecordSimple(threadobject *t)
 {
 	monitorLockRecord *r = t->ee.firstLR;
 
 	if (!r) {
-		int poolsize = t->ee.lrpool ? t->ee.lrpool->header.size * 2 : INITIALLOCKRECORDS * 2;
+		int poolsize = t->ee.numlr ? t->ee.numlr * 2 : INITIALLOCKRECORDS;
 		lockRecordPool *pool = allocLockRecordPool(t, poolsize);
 		pool->header.next = t->ee.lrpool;
 		t->ee.lrpool = pool;
 		r = &pool->lr[0];
+		t->ee.numlr += pool->header.size;
 	}
 	
 	t->ee.firstLR = r->nextFree;
 	return r;
 }
 
-static void recycleLockRecord(threadobject *t, monitorLockRecord *r)
+static inline void recycleLockRecord(threadobject *t, monitorLockRecord *r)
 {
 	r->nextFree = t->ee.firstLR;
 	t->ee.firstLR = r;
 }
 
-static monitorLockRecord *appendToQueue(monitorLockRecord *queue, monitorLockRecord *lr)
+#if 0
+static monitorLockRecord *allocLockRecord(threadobject *t, monitorLockRecord *lr)
 {
-	monitorLockRecord *queuestart = queue;
-	if (!queue)
-		return lr;
-	while (queue->queue)
-		queue = queue->queue;
-	queue->queue = lr;
-	return queuestart;
-}
-
-static monitorLockRecord *moveMyLRToFront(threadobject *t, monitorLockRecord *lr)
-{
-	monitorLockRecord *pred = NULL;
-	monitorLockRecord *firstLR = lr;
-	while (lr->owner != t) {
-		pred = lr;
-		lr = lr->queue;
+	monitorLockRecord *r = allocLockRecordSimple(t);
+	if (r == lr) {
+		monitorLockRecord *r2 = allocLockRecordSimple(t);
+		recycleLockRecord(t, r);
+		r = r2;
 	}
-	if (!pred)
-		return lr;
-	pred->queue = lr->queue;
-	lr->queue = firstLR;
-	lr->storedBits = firstLR->storedBits;
-	return lr;
+	return r;
+}
+#endif
+
+void initObjectLock(java_objectheader *o)
+{
+	o->monitorPtr = dummyLR;
 }
 
-static long getMetaLockSlow(threadobject *t, long predBits);
-static void releaseMetaLockSlow(threadobject *t, long releaseBits);
-
-static long getMetaLock(threadobject *t, java_objectheader *o)
+static void queueOnLockRecord(monitorLockRecord *lr, java_objectheader *o)
 {
-	long busyBits = makeLockBits(t, BUSY);
-	long lockBits = atomic_swap(&o->monitorBits, busyBits);
-	return lockState(lockBits) != BUSY ? lockBits : getMetaLockSlow(t, lockBits);
+	atomic_add(&lr->queuers, 1);
+	MEMORY_BARRIER_AFTER_ATOMIC();
+	if (lr->o == o)
+		sem_wait(&lr->queueSem);
+	atomic_add(&lr->queuers, -1);
 }
 
-static long getMetaLockSlow(threadobject *t, long predBits)
+static void freeLockRecord(monitorLockRecord *lr)
 {
-	long bits;
-	threadobject *pred = lockRecord(predBits);
-	pthread_mutex_lock(&pred->ee.metaLockMutex);
-	if (!pred->ee.bitsForGrab) {
-		pred->ee.succ = t;
-		do {
-			pthread_cond_wait(&pred->ee.metaLockCond, &pred->ee.metaLockMutex);
-		} while (!t->ee.gotMetaLockSlow);
-		t->ee.gotMetaLockSlow = false;
-		bits = t->ee.metaLockBits;
-	} else {
-		bits = pred->ee.metaLockBits;
-		pred->ee.bitsForGrab = false;
-		pthread_cond_signal(&pred->ee.metaLockCond);
-	}
-	pthread_mutex_unlock(&pred->ee.metaLockMutex);
-	return bits;
+	int q;
+	lr->o = NULL;
+	MEMORY_BARRIER();
+	q = lr->queuers;
+	while (q--)
+		sem_post(&lr->queueSem);
 }
 
-static void releaseMetaLock(threadobject *t, java_objectheader *o, long releaseBits)
+static inline void handleWaiter(monitorLockRecord *mlr, monitorLockRecord *lr)
 {
-	long busyBits = makeLockBits(t, BUSY);
-	int locked = compare_and_swap(&o->monitorBits, busyBits, releaseBits) != 0;
-	
-	if (!locked)
-		releaseMetaLockSlow(t, releaseBits);
+	if (lr->waiting)
+		mlr->waiter = lr;
 }
 
-static void releaseMetaLockSlow(threadobject *t, long releaseBits)
+monitorLockRecord *monitorEnter(threadobject *t, java_objectheader *o)
 {
-	pthread_mutex_lock(&t->ee.metaLockMutex);
-	if (t->ee.succ) {
-		assert(!t->ee.succ->ee.bitsForGrab);
-		assert(!t->ee.bitsForGrab);
-		assert(!t->ee.succ->ee.gotMetaLockSlow);
-		t->ee.succ->ee.metaLockBits = releaseBits;
-		t->ee.succ->ee.gotMetaLockSlow = true;
-		t->ee.succ = NULL;
-		pthread_cond_signal(&t->ee.metaLockCond);
-	} else {
-		t->ee.metaLockBits = releaseBits;
-		t->ee.bitsForGrab = true;
-		do {
-			pthread_cond_wait(&t->ee.metaLockCond, &t->ee.metaLockMutex);
-		} while (t->ee.bitsForGrab);
-	}
-	pthread_mutex_unlock(&t->ee.metaLockMutex);
-}
-
-static void monitorEnterSlow(threadobject *t, java_objectheader *o, long r);
-
-void monitorEnter(threadobject *t, java_objectheader *o)
-{
-	long r = getMetaLock(t, o);
-	int state = lockState(r);
-
-	if (state == NEUTRAL) {
-		monitorLockRecord *lr = allocLockRecord(t);
-		lr->storedBits = r;
-		releaseMetaLock(t, o, makeLockBits(lr, LOCKED));
-	} else if (state == LOCKED) {
-		monitorLockRecord *ownerLR = lockRecord(r);
-		if (ownerLR->owner == t) {
-			ownerLR->lockCount++;
-			releaseMetaLock(t, o, r);
-		} else {
-			monitorLockRecord *lr = allocLockRecord(t);
-			ownerLR->queue = appendToQueue(ownerLR->queue, lr);
-			monitorEnterSlow(t, o, r);
-		}
-	} else if (state == WAITERS) {
-		monitorLockRecord *lr = allocLockRecord(t);
-		monitorLockRecord *firstWaiterLR = lockRecord(r);
-		lr->queue = firstWaiterLR;
-		lr->storedBits = firstWaiterLR->storedBits;
-		releaseMetaLock(t, o, makeLockBits(lr, LOCKED));
-	}
-}
-
-static void monitorEnterSlow(threadobject *t, java_objectheader *o, long r)
-{
-	monitorLockRecord *lr;
-	while (lockState(r) == LOCKED) {
-		pthread_mutex_lock(&t->ee.monitorLockMutex);
-		releaseMetaLock(t, o, r);
-		pthread_cond_wait(&t->ee.monitorLockCond, &t->ee.monitorLockMutex);
-		pthread_mutex_unlock(&t->ee.monitorLockMutex);
-		r = getMetaLock(t, o);
-	}
-	assert(lockState(r) == WAITERS);
-	lr = moveMyLRToFront(t, lockRecord(r));
-	releaseMetaLock(t, o, makeLockBits(lr, LOCKED));
-}
-
-static void monitorExitSlow(threadobject *t, java_objectheader *o, monitorLockRecord *lr);
-
-void monitorExit(threadobject *t, java_objectheader *o)
-{
-	long r = getMetaLock(t, o);
-	monitorLockRecord *ownerLR = lockRecord(r);
-	int state = lockState(r);
-
-	if (state == LOCKED && ownerLR->owner == t) {
-		assert(ownerLR->lockCount >= 1);
-		if (ownerLR->lockCount == 1) {
-			if (ownerLR->queue == NULL) {
-				assert(lockState(ownerLR->storedBits) == NEUTRAL);
-				releaseMetaLock(t, o, ownerLR->storedBits);
-			} else {
-				ownerLR->queue->storedBits = ownerLR->storedBits;
-				monitorExitSlow(t, o, ownerLR->queue);
-				ownerLR->queue = NULL;
+	for (;;) {
+		monitorLockRecord *lr = o->monitorPtr;
+		if (lr->o != o) {
+			monitorLockRecord *nlr, *mlr = allocLockRecordSimple(t);
+			mlr->o = o;
+			MEMORY_BARRIER_BEFORE_ATOMIC();
+			nlr = (void*) compare_and_swap((long*) &o->monitorPtr, (long) lr, (long) mlr);
+			if (nlr == lr) {
+				if (mlr == lr || lr->o != o) {
+					handleWaiter(mlr, lr);
+					return mlr;
+				} else {
+					void *incharge;
+					pthread_mutex_lock(&mlr->resolveLock);
+					incharge = mlr->incharge;
+					mlr->incharge = lr;
+					pthread_mutex_unlock(&mlr->resolveLock);
+					if (incharge)
+						pthread_cond_signal(&mlr->resolveWait);
+				}
+				while (lr->o == o)
+					queueOnLockRecord(lr, o);
+				mlr->incharge = NULL;
+				handleWaiter(mlr, lr);
+				return mlr;
 			}
-			recycleLockRecord(t, ownerLR);
+			freeLockRecord(mlr);
+			recycleLockRecord(t, mlr);
+			queueOnLockRecord(nlr, o);
 		} else {
-			ownerLR->lockCount--;
-			releaseMetaLock(t, o, r);
+			if (lr->ownerThread == t) {
+				lr->lockCount++;
+				return lr;
+			}
+			queueOnLockRecord(lr, o);
 		}
-
-	} else {
-		releaseMetaLock(t, o, r);
-
-		/* throw an exception */
-
-		*exceptionptr =
-			new_exception(string_java_lang_IllegalMonitorStateException);
 	}
 }
 
-static threadobject *wakeupEE(monitorLockRecord *lr)
+static monitorLockRecord *grabLockRecordInCharge(monitorLockRecord *lr)
 {
-	while (lr->queue && lr->queue->owner->ee.isWaitingForNotify)
-		lr = lr->queue;
-	return lr->owner;
+	pthread_mutex_lock(&lr->resolveLock);
+	if (!lr->incharge) {
+		lr->incharge = lr;
+		pthread_cond_wait(&lr->resolveWait, &lr->resolveLock);
+	}
+	pthread_mutex_unlock(&lr->resolveLock);
+	return lr->incharge;
 }
 
-static void monitorExitSlow(threadobject *t, java_objectheader *o, monitorLockRecord *lr)
+static void wakeWaiters(monitorLockRecord *lr)
 {
-	threadobject *wakeEE = wakeupEE(lr);
-	if (wakeEE) {
-		pthread_mutex_lock(&wakeEE->ee.monitorLockMutex);
-		releaseMetaLock(t, o, makeLockBits(lr, WAITERS));
-		pthread_cond_signal(&wakeEE->ee.monitorLockCond);
-		pthread_mutex_unlock(&wakeEE->ee.monitorLockMutex);
+	do {
+		int q = lr->queuers;
+		while (q--)
+			sem_post(&lr->queueSem);
+		lr = lr->waiter;
+	} while (lr);
+}
+
+#define GRAB_LR(lr,t) \
+    if (lr->ownerThread != t) { \
+		lr = grabLockRecordInCharge(lr); \
+		assert(lr->ownerThread == t); \
+	}
+
+#define CHECK_MONITORSTATE(lr,mo,a) \
+    if (lr->o != mo) { \
+		*exceptionptr = new_exception(string_java_lang_IllegalMonitorStateException); \
+		a; \
+	}
+
+bool monitorExit(threadobject *t, java_objectheader *o)
+{
+	monitorLockRecord *lr = o->monitorPtr;
+	GRAB_LR(lr, t);
+	CHECK_MONITORSTATE(lr, o, return false);
+	if (lr->lockCount > 1) {
+		lr->lockCount--;
+		return true;
+	}
+	if (lr->waiter) {
+		monitorLockRecord *wlr = lr->waiter;
+		if (o->monitorPtr != lr ||
+			(void*) compare_and_swap((long*) &o->monitorPtr, (long) lr, (long) wlr) != lr)
+		{
+			monitorLockRecord *nlr = o->monitorPtr;
+			nlr->waiter = wlr;
+			STORE_ORDER_BARRIER();
+		} else
+			wakeWaiters(wlr);
+		lr->waiter = NULL;
+	}
+	freeLockRecord(lr);
+	recycleLockRecord(t, lr);
+	return true;
+}
+
+static void removeFromWaiters(monitorLockRecord *lr, monitorLockRecord *wlr)
+{
+	do {
+		if (lr->waiter == wlr) {
+			lr->waiter = wlr->waiter;
+			break;
+		}
+		lr = lr->waiter;
+	} while (lr);
+}
+
+bool waitWithTimeout(threadobject *t, monitorLockRecord *lr, struct timespec *wakeupTime)
+{
+	bool wasinterrupted;
+
+	pthread_mutex_lock(&lr->waitLock);
+	t->waiting = lr;
+	if (wakeupTime->tv_sec || wakeupTime->tv_nsec)
+		pthread_cond_timedwait(&lr->waitCond, &lr->waitLock, wakeupTime);
+	else
+		pthread_cond_wait(&lr->waitCond, &lr->waitLock);
+	wasinterrupted = t->waiting == NULL;
+	t->waiting = NULL;
+	pthread_mutex_unlock(&lr->waitLock);
+	return wasinterrupted;
+}
+
+static void calcAbsoluteTime(struct timespec *tm, s8 millis, s4 nanos)
+{
+	if (millis || nanos) {
+		struct timeval tv;
+		long nsec;
+		gettimeofday(&tv, NULL);
+		tv.tv_sec += millis / 1000;
+		millis %= 1000;
+		nsec = tv.tv_usec * 1000 + (s4) millis * 1000000 + nanos;
+		tm->tv_sec = tv.tv_sec + nsec / 1000000000;
+		tm->tv_nsec = nsec % 1000000000;
 	} else {
-		releaseMetaLock(t, o, makeLockBits(lr, WAITERS));
+		tm->tv_sec = 0;
+		tm->tv_nsec = 0;
 	}
 }
 
-void monitorWait(threadobject *t, java_objectheader *o, s8 millis)
+void monitorWait(threadobject *t, java_objectheader *o, s8 millis, s4 nanos)
 {
-	long r = getMetaLock(t, o);
-	monitorLockRecord *ownerLR = lockRecord(r);
-	int state = lockState(r);
+	bool wasinterrupted;
+	struct timespec wakeupTime;
+	monitorLockRecord *mlr, *lr = o->monitorPtr;
+	GRAB_LR(lr, t);
+	CHECK_MONITORSTATE(lr, o, return);
 
-	if (state == LOCKED && ownerLR->owner == t) {
-		pthread_mutex_lock(&t->ee.monitorLockMutex);
-		t->ee.isWaitingForNotify = true;
-		monitorExitSlow(t, o, ownerLR);
-		if (millis == -1)
-			pthread_cond_wait(&t->ee.monitorLockCond, &t->ee.monitorLockMutex);
-		else
-			timedCondWait(&t->ee.monitorLockCond, &t->ee.monitorLockMutex, millis);
-		t->ee.isWaitingForNotify = false;
-		pthread_mutex_unlock(&t->ee.monitorLockMutex);
-		r = getMetaLock(t, o);
-		monitorEnterSlow(t, o, r);
+	calcAbsoluteTime(&wakeupTime, millis, nanos);
+	
+	if (lr->waiter)
+		wakeWaiters(lr->waiter);
+	lr->waiting = true;
+	STORE_ORDER_BARRIER();
+	freeLockRecord(lr);
+	wasinterrupted = waitWithTimeout(t, lr, &wakeupTime);
+	mlr = monitorEnter(t, o);
+	removeFromWaiters(mlr, lr);
+	mlr->lockCount = lr->lockCount;
+	lr->lockCount = 1;
+	lr->waiting = false;
+	lr->waiter = NULL;
+	recycleLockRecord(t, lr);
 
-	} else {
-		releaseMetaLock(t, o, r);
-
-		/* throw an exception */
-
-		*exceptionptr =
-			new_exception(string_java_lang_IllegalMonitorStateException);
-	}
+	if (wasinterrupted)
+		*exceptionptr = new_exception(string_java_lang_InterruptedException);
 }
 
 static void notifyOneOrAll(threadobject *t, java_objectheader *o, bool one)
 {
-	long r = getMetaLock(t, o);
-	monitorLockRecord *ownerLR = lockRecord(r);
-	int state = lockState(r);
-
-	if (state == LOCKED && ownerLR->owner == t) {
-		monitorLockRecord *q = ownerLR->queue;
-		while (q) {
-			if (q->owner->ee.isWaitingForNotify) {
-				q->owner->ee.isWaitingForNotify = false;
-				if (one)
-					break;
-			}
-			q = q->queue;
-		}
-		releaseMetaLock(t, o, r);
-
-	} else {
-		releaseMetaLock(t, o, r);
-
-		/* throw an exception */
-
-		*exceptionptr =
-			new_exception(string_java_lang_IllegalMonitorStateException);
-	}
+	monitorLockRecord *lr = o->monitorPtr;
+	GRAB_LR(lr, t);
+	CHECK_MONITORSTATE(lr, o, return);
+	do {
+		monitorLockRecord *wlr = lr->waiter;
+		if (!wlr)
+			break;
+		pthread_cond_signal(&wlr->waitCond);
+		lr = wlr;
+	} while (!one);
 }
 
-void wait_cond_for_object(java_objectheader *o, s8 time)
+void interruptThread(java_lang_VMThread *thread)
+{
+	threadobject *t = (threadobject*) thread;
+
+	monitorLockRecord *lr = t->waiting;
+	if (lr) {
+		pthread_mutex_lock(&lr->waitLock);
+		if (t->waiting == lr) {
+			t->waiting = NULL;
+			pthread_cond_signal(&lr->waitCond);
+		}
+		pthread_mutex_unlock(&lr->waitLock);
+		return;
+	}
+	
+	t->interrupted = 1;
+}
+
+bool interruptedThread()
 {
 	threadobject *t = (threadobject*) THREADOBJECT;
-	monitorWait(t, o, time);
+	long intr = t->interrupted;
+	t->interrupted = 0;
+	return intr;
+}
+
+bool isInterruptedThread(java_lang_VMThread *thread)
+{
+	threadobject *t = (threadobject*) thread;
+	return t->interrupted;
+}
+
+void sleepThread(s8 millis, s4 nanos)
+{
+	bool wasinterrupted;
+	threadobject *t = (threadobject*) THREADOBJECT;
+	monitorLockRecord *lr;
+	struct timespec wakeupTime;
+	calcAbsoluteTime(&wakeupTime, millis, nanos);
+
+	lr = allocLockRecordSimple(t);
+	wasinterrupted = waitWithTimeout(t, lr, &wakeupTime);
+	recycleLockRecord(t, lr);
+
+	if (wasinterrupted)
+		*exceptionptr = new_exception(string_java_lang_InterruptedException);
+}
+
+void yieldThread()
+{
+	sched_yield();
+}
+
+void setPriorityThread(thread *t, s4 priority)
+{
+	nativethread *info = &((threadobject*) t->vmThread)->info;
+	setPriority(info->tid, priority);
+}
+
+void wait_cond_for_object(java_objectheader *o, s8 time, s4 nanos)
+{
+	threadobject *t = (threadobject*) THREADOBJECT;
+	monitorWait(t, o, time, nanos);
 }
 
 void signal_cond_for_object(java_objectheader *o)

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMObject.c 1344 2004-07-21 17:12:53Z twisti $
+   $Id: VMObject.c 1377 2004-08-01 22:01:00Z stefan $
 
 */
 
@@ -68,7 +68,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
 		new = (java_lang_Object *) heap_allocate(size, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
 		memcpy(new, this, size);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		new->header.monitorBits = 0;
+		initObjectLock(new);
 #endif
         
 		return new;
@@ -90,7 +90,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
 
     memcpy(new, this, c->instancesize);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	new->header.monitorBits = 0;
+	initObjectLock(new);
 #endif
 
     return new;
@@ -140,7 +140,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, j
 		log_text("java_lang_VMObject_wait called");
 
 #if defined(USE_THREADS)
-	wait_cond_for_object(&this->header, time);
+	wait_cond_for_object(&this->header, time, par3);
 #endif
 }
 

@@ -5,6 +5,7 @@
 #include "nat/java_lang_Object.h"
 #include "nat/java_lang_Throwable.h"
 #include "nat/java_lang_Thread.h"
+#include "nat/java_lang_VMThread.h"
 
 #if defined(__DARWIN__)
 #include <mach/mach.h>
@@ -15,12 +16,17 @@
 
 struct _threadobject;
 
-typedef struct monitorLockRecord {
-	struct _threadobject *owner;
+typedef struct _monitorLockRecord {
+	struct _threadobject *ownerThread;
+	java_objectheader *o;
 	int lockCount;
-	long storedBits;
-	struct monitorLockRecord *queue;
-	struct monitorLockRecord *nextFree;
+	struct _monitorLockRecord *nextFree;
+	int queuers;
+	struct _monitorLockRecord *waiter, *incharge;
+	bool waiting;
+	sem_t queueSem;
+	pthread_mutex_t resolveLock, waitLock;
+	pthread_cond_t resolveWait, waitCond;
 } monitorLockRecord;
 
 struct _lockRecordPool;
@@ -35,23 +41,11 @@ typedef struct _lockRecordPool {
 	monitorLockRecord lr[1];
 } lockRecordPool;
 
-#define INITIALLOCKRECORDS 8
-
 /* Monitor lock implementation */
 typedef struct {
-	pthread_mutex_t metaLockMutex;
-	pthread_cond_t metaLockCond;
-	bool gotMetaLockSlow;
-	bool bitsForGrab;
-	long metaLockBits;
-	struct _threadobject *succ;
-	pthread_mutex_t monitorLockMutex;
-	pthread_cond_t monitorLockCond;
-	bool isWaitingForNotify;
-
 	monitorLockRecord *firstLR;
-	monitorLockRecord lr[INITIALLOCKRECORDS];
 	lockRecordPool *lrpool;
+	int numlr;
 } ExecEnvironment;
 
 typedef struct {
@@ -67,36 +61,45 @@ typedef struct {
 	pthread_cond_t joinCond;
 } nativethread;
 
+typedef java_lang_Thread thread;
+
 typedef struct _threadobject {
-	java_lang_Thread o;
+	java_lang_VMThread o;
 	nativethread info;
 	ExecEnvironment ee;
-} threadobject, thread;
 
-void monitorEnter(threadobject *, java_objectheader *);
-void monitorExit(threadobject *, java_objectheader *);
+	long interrupted;
+	monitorLockRecord *waiting;
+} threadobject;
+
+monitorLockRecord *monitorEnter(threadobject *, java_objectheader *);
+bool monitorExit(threadobject *, java_objectheader *);
 
 void signal_cond_for_object (java_objectheader *obj);
 void broadcast_cond_for_object (java_objectheader *obj);
-void wait_cond_for_object (java_objectheader *obj, s8 time);
+void wait_cond_for_object (java_objectheader *obj, s8 time, s4 nanos);
 
 void initThreadsEarly();
 void initThreads(u1 *stackbottom);
+void initObjectLock(java_objectheader *);
 void initLocks();
-void initThread(java_lang_Thread *);
+void initThread(java_lang_VMThread *);
 void joinAllThreads();
 
-bool aliveThread(java_lang_Thread *);
 void sleepThread(s8 millis, s4 nanos);
 void yieldThread();
 
+void interruptThread(java_lang_VMThread *);
+bool interruptedThread();
+bool isInterruptedThread(java_lang_VMThread *);
+
 #if !defined(HAVE___THREAD)
 extern pthread_key_t tkey_threadinfo;
-#define THREADOBJECT ((java_lang_Thread*) pthread_getspecific(tkey_threadinfo))
+#define THREADOBJECT ((java_lang_VMThread*) pthread_getspecific(tkey_threadinfo))
 #define THREADINFO (&((threadobject*) pthread_getspecific(tkey_threadinfo))->info)
 #else
 extern __thread threadobject *threadobj;
-#define THREADOBJECT ((java_lang_Thread*) threadobj)
+#define THREADOBJECT ((java_lang_VMThread*) threadobj)
 #define THREADINFO (&threadobj->info)
 #endif
 

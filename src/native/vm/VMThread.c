@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 1344 2004-07-21 17:12:53Z twisti $
+   $Id: VMThread.c 1377 2004-08-01 22:01:00Z stefan $
 
 */
 
@@ -78,7 +78,7 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv
 #if !defined(NATIVE_THREADS)
 	t = (java_lang_Thread *) currentThread;
 #else
-	t = THREADOBJECT;
+	t = ((threadobject*) THREADOBJECT)->o.thread;
 #endif
   
 	if (!t->group) {
@@ -92,7 +92,7 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv
 			log_text("unable to create ThreadGroup");
   	}
 
-	return (java_lang_Thread *) t;
+	return t;
 #else
 	return 0;	
 #endif
@@ -106,7 +106,11 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_VMThread *this)
 {
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	interruptThread(this);
+#else
 	log_text("Java_java_lang_VMThread_interrupt0 called");
+#endif
 }
 
 
@@ -121,7 +125,12 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_isAlive(JNIEnv *env, java_lang_VMTh
 		log_text("java_lang_VMThread_isAlive called");
 
 #if defined(USE_THREADS)
+#if !defined(NATIVE_THREADS)
 	return aliveThread((thread *) this->thread);
+#else
+	/* This method is implemented in classpath. */
+	panic("aliveThread");
+#endif
 #endif
 }
 
@@ -134,8 +143,12 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_isAlive(JNIEnv *env, java_lang_VMTh
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, java_lang_VMThread *this)
 {
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	return isInterruptedThread(this);
+#else
 	log_text("Java_java_lang_VMThread_isInterrupted  called");
 	return 0;
+#endif
 }
 
 
@@ -176,7 +189,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, ja
     if (runverbose) 
 		log_text("java_lang_VMThread_setPriority0 called");
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
 	setPriorityThread((thread *) this->thread, par1);
 #endif
 }
@@ -189,22 +202,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, ja
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_sleep(JNIEnv *env, jclass clazz, s8 millis, s4 nanos)
 {
-	if (millis < 0) {
-		*exceptionptr =
-			new_exception_message(string_java_lang_IllegalArgumentException,
-								  "timeout value is negative");
-
-		return;
-	}
-
-	if (nanos < 0 || nanos > 999999) {
-		*exceptionptr =
-			new_exception_message(string_java_lang_IllegalArgumentException,
-								  "nanosecond timeout value out of range");
-
-		return;
-	}
-
 #if defined(USE_THREADS)
 	sleepThread(millis, nanos);
 #endif
@@ -222,13 +219,8 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMTh
 		log_text("java_lang_VMThread_start called");
 
 #if defined(USE_THREADS)
-#if defined(__GNUC__)
-#warning perhaps it would be better to always work with the vmthread structure in the thread code (jowenn)
-#endif
-	if (this->thread->vmThread == 0)
-		this->thread->vmThread = this;
-
-	startThread((thread *) (this->thread));
+	this->thread->vmThread = this;
+	startThread((thread *) this->thread);
 #endif
 }
 
@@ -300,9 +292,12 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_yield(JNIEnv *env, jclass clazz)
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass clazz)
 {
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	return interruptedThread();
+#else
 	log_text("Java_java_lang_VMThread_interrupted");
-
 	return 0;
+#endif
 }
 
 
@@ -318,9 +313,8 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeInit(JNIEnv *env, java_lang
 		log_text("There has been an exception, strange...");*/
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initThread(this->thread);
+	initThread(this);
 #endif
-	this->thread->priority = 5;
 }
 
 
