@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1077 2004-05-20 18:06:55Z twisti $
+   $Id: asmpart.S 1127 2004-06-03 22:15:22Z twisti $
 
 */
 
@@ -1231,14 +1231,14 @@ asm_switchstackandcall:
 asm_getclassvalues_atomic:
 _crit_restart2:
 _crit_begin2:
-	ldq t0,offbaseval(a0)
-	ldq t1,offdiffval(a0)
-	ldq t2,offbaseval(a1)
+	ldl     t0,offbaseval(a0)
+	ldl     t1,offdiffval(a0)
+	ldl     t2,offbaseval(a1)
 _crit_end2:
-	stq t0,offcast_super_baseval(a2)
-	stq t1,offcast_super_diffval(a2)
-	stq t2,offcast_sub_baseval(a2)
-	jmp zero,(ra)
+	stl     t0,offcast_super_baseval(a2)
+	stl     t1,offcast_super_diffval(a2)
+	stl     t2,offcast_sub_baseval(a2)
+	jmp      zero,(ra)
 
 	.end    asm_getclassvalues_atomic
 
@@ -1246,14 +1246,15 @@ _crit_end2:
 
 asm_criticalsections:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-    .quad _crit_begin1
-    .quad _crit_end1
-    .quad _crit_restart1
-    .quad _crit_begin2
-    .quad _crit_end2
-    .quad _crit_restart2
+    .quad   _crit_begin1
+    .quad   _crit_end1
+    .quad   _crit_restart1
+    .quad   _crit_begin2
+    .quad   _crit_end2
+    .quad   _crit_restart2
 #endif
-    .quad 0
+    .quad   0
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
