@@ -28,13 +28,17 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1899 2005-02-08 13:43:33Z twisti $
+## $Id: Makefile.am 2170 2005-03-31 19:18:38Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
 CLEANFILES = \
+	libcheckjni.so \
+	checkjni.class \
+	checkjni.h \
+	\
 	libtestarguments.so \
 	testarguments.class \
 	testarguments.h
@@ -47,6 +51,11 @@ test:
 	$(CACAOC) test.java
 	$(CACAOH) test
 	$(CC) -shared $(INCLUDES) $(CFLAGS) test.c -o libtest.so -fPIC
+
+checkjni:
+	$(CACAOC) checkjni.java
+	$(CACAOH) checkjni
+	$(CC) -shared $(INCLUDES) $(CFLAGS) checkjni.c -o libcheckjni.so -fPIC
 
 check:
 	$(CACAOC) testarguments.java
