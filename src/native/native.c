@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1771 2004-12-17 23:05:27Z jowenn $
+   $Id: native.c 1785 2004-12-21 09:55:33Z twisti $
 
 */
 
@@ -262,10 +262,9 @@ void native_loadclasses()
 
 void init_systemclassloader() 
 {
-	log_text("init_systemclassloader");
 	if (!SystemClassLoader) {
 		native_loadclasses();
-		log_text("Initializing new system class loader");
+
 		/* create object and call initializer */
   		SystemClassLoader = (java_lang_ClassLoader *) native_new_and_init(class_new(utf_new_char("gnu/java/lang/SystemClassLoader")));
 
@@ -273,7 +272,6 @@ void init_systemclassloader()
 		SystemClassLoader->parent      = NULL;
 		SystemClassLoader->initialized = true;
 	}
-	log_text("leaving system class loader");
 }
 
 
