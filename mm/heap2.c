@@ -755,7 +755,7 @@ gc_mark_object_at (void** addr)
 
 	/* 1.a. if addr doesn't point into the heap, return. */
 	if ((unsigned long)addr - (unsigned long)heap_base >= 
-		((long)heap_top - (long)heap_base)) {
+		((unsigned long)heap_top - (unsigned long)heap_base)) {
 #ifdef GC_COLLECT_STATISTICS
 		if (addr == NULL)
 			++gc_mark_null_pointer;
