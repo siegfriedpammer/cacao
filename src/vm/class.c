@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: class.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -57,6 +57,7 @@
 #include "vm/tables.h"
 #include "vm/utf8.h"
 #include "vm/loader.h"
+#include "vm/classcache.h"
 
 
 /******************************************************************************/
@@ -75,8 +76,6 @@
 
 
 /* global variables ***********************************************************/
-
-hashtable class_hash;                   /* hashtable for classes              */
 
 list unlinkedclasses;                   /* this is only used for eager class  */
                                         /* loading                            */
@@ -126,106 +125,9 @@ classinfo *pseudo_class_Arraystub = NULL;
 classinfo *pseudo_class_Null = NULL;
 classinfo *pseudo_class_New = NULL;
 
-/* class_new *******************************************************************
-
-   Searches for the class with the specified name in the classes
-   hashtable, if there is no such class a new classinfo structure is
-   created and inserted into the list of classes to be loaded.
-
-*******************************************************************************/
-
-classinfo *class_new(utf *classname)
-{
-    classinfo *c;
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-    tables_lock();
-#endif
-
-	/* we support eager class loading and linking on demand */
-	if (opt_eager) {
-		classinfo *tc;
-		classinfo *tmp;
-
-		list_init(&unlinkedclasses, OFFSET(classinfo, listnode));
-
-		if (!load_class_bootstrap(classname,&c)) {
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-			tables_unlock();
-#endif
-			return NULL;
-		}
-
-		/* link all referenced classes */
-
-		tc = list_first(&unlinkedclasses);
-
-		while (tc) {
-			/* skip the current loaded/linked class */
-			if (tc != c) {
-				if (!link_class(tc)) {
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					tables_unlock();
-#endif
-					return c;
-				}
-			}
-
-			/* we need a tmp variable here, because list_remove sets prev and
-			   next to NULL */
-			tmp = list_next(&unlinkedclasses, tc);
-   			list_remove(&unlinkedclasses, tc);
-			tc = tmp;
-		}
-
-		if (!c->linked) {
-			if (!link_class(c)) {
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				tables_unlock();
-#endif
-				return c;
-			}
-		}
-	}
-	else {
-		c = class_new_intern(classname);
-	}
-
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-    tables_unlock();
-#endif
-
-    return c;
-}
-
-
-classinfo *class_new_intern(utf *classname)
+classinfo *create_classinfo(utf *classname)
 {
 	classinfo *c;     /* hashtable element */
-	u4 key;           /* hashkey computed from classname */
-	u4 slot;          /* slot in hashtable */
-	u2 i;
-
-	key  = utf_hashkey(classname->text, classname->blength);
-	slot = key & (class_hash.size - 1);
-	c    = class_hash.ptr[slot];
-
-	/* search external hash chain for the class */
-	while (c) {
-		if (c->name->blength == classname->blength) {
-			for (i = 0; i < classname->blength; i++)
-				if (classname->text[i] != c->name->text[i]) goto nomatch;
-						
-			/* class found in hashtable */
-			return c;
-		}
-			
-	nomatch:
-		c = c->hashlink; /* next element in external chain */
-	}
-
-	/* location in hashtable found, create new classinfo structure */
 
 #if defined(STATISTICS)
 	if (opt_stat)
@@ -278,50 +180,8 @@ classinfo *class_new_intern(utf *classname)
 	c->classloader = NULL;
 	c->sourcefile = NULL;
 	
-	/* insert class into the hashtable */
-	c->hashlink = class_hash.ptr[slot];
-	class_hash.ptr[slot] = c;
-
-	/* update number of hashtable-entries */
-	class_hash.entries++;
-
-	if (class_hash.entries > (class_hash.size * 2)) {
-
-		/* reorganization of hashtable, average length of 
-		   the external chains is approx. 2                */  
-
-		u4 i;
-		classinfo *c;
-		hashtable newhash;  /* the new hashtable */
-
-		/* create new hashtable, double the size */
-		init_hashtable(&newhash, class_hash.size * 2);
-		newhash.entries = class_hash.entries;
-
-		/* transfer elements to new hashtable */
-		for (i = 0; i < class_hash.size; i++) {
-			c = (classinfo *) class_hash.ptr[i];
-			while (c) {
-				classinfo *nextc = c->hashlink;
-				u4 slot = (utf_hashkey(c->name->text, c->name->blength)) & (newhash.size - 1);
-						
-				c->hashlink = newhash.ptr[slot];
-				newhash.ptr[slot] = c;
-
-				c = nextc;
-			}
-		}
-	
-		/* dispose old table */	
-		MFREE(class_hash.ptr, void*, class_hash.size);
-		class_hash = newhash;
-	}
-
-	/* Array classes need further initialization. */
 	if (c->name->text[0] == '[') {
 		/* Array classes are not loaded from classfiles. */
-		c->loaded = true;
-		class_new_array(c);
 		c->packagename = array_packagename;
 
 	} else {
@@ -343,97 +203,6 @@ classinfo *class_new_intern(utf *classname)
 
 	return c;
 }
-
-
-/* class_get *******************************************************************
-
-   Searches for the class with the specified name in the classes
-   hashtable if there is no such class NULL is returned.
-
-*******************************************************************************/
-
-classinfo *class_get(utf *classname)
-{
-	classinfo *c;  /* hashtable element */ 
-	u4 key;        /* hashkey computed from classname */   
-	u4 slot;       /* slot in hashtable */
-	u2 i;  
-
-	key  = utf_hashkey(classname->text, classname->blength);
-	slot = key & (class_hash.size-1);
-	c    = class_hash.ptr[slot];
-
-	/* search external hash-chain */
-	while (c) {
-		if (c->name->blength == classname->blength) {
-			/* compare classnames */
-			for (i = 0; i < classname->blength; i++) 
-				if (classname->text[i] != c->name->text[i])
-					goto nomatch;
-
-			/* class found in hashtable */				
-			return c;
-		}
-			
-	nomatch:
-		c = c->hashlink;
-	}
-
-	/* class not found */
-	return NULL;
-}
-
-
-/* class_remove ****************************************************************
-
-   Removes the class entry wth the specified name in the classes
-   hashtable, furthermore the class' resources are freed if there is
-   no such class false is returned.
-
-*******************************************************************************/
-
-bool class_remove(classinfo *c)
-{
-	classinfo *tc;                      /* hashtable element                  */
-	classinfo *pc;
-	u4 key;                             /* hashkey computed from classname    */
-	u4 slot;                            /* slot in hashtable                  */
-	u2 i;  
-
-	key  = utf_hashkey(c->name->text, c->name->blength);
-	slot = key & (class_hash.size - 1);
-	tc   = class_hash.ptr[slot];
-	pc   = NULL;
-
-	/* search external hash-chain */
-	while (tc) {
-		if (tc->name->blength == c->name->blength) {
-			
-			/* compare classnames */
-			for (i = 0; i < c->name->blength; i++)
-				if (tc->name->text[i] != c->name->text[i])
-					goto nomatch;
-
-			/* class found in hashtable */
-			if (!pc)
-				class_hash.ptr[slot] = tc->hashlink;
-			else
-				pc->hashlink = tc->hashlink;
-
-			class_free(tc);
-
-			return true;
-		}
-			
-	nomatch:
-		pc = tc;
-		tc = tc->hashlink;
-	}
-
-	/* class not found */
-	return false;
-}
-
 
 /* class_freepool **************************************************************
 
@@ -541,6 +310,42 @@ void class_free(classinfo *c)
 /*  	GCFREE(c); */
 }
 
+/* get_array_class *************************************************************
+
+   Returns the array class with the given name for the given classloader.
+
+*******************************************************************************/
+
+static classinfo *get_array_class(utf *name,java_objectheader *initloader,
+											java_objectheader *defloader,bool link)
+{
+	classinfo *c;
+	
+	/* lookup this class in the classcache */
+	c = classcache_lookup(initloader,name);
+	if (c)
+		return c;
+	c = classcache_lookup_defined(defloader,name);
+	if (c)
+		return c;
+
+	/* we have to create it */
+	c = create_classinfo(name);
+	if (!load_newly_created_array(c,initloader))
+		return NULL;
+
+	CLASS_ASSERT(c);
+	CLASS_ASSERT(c->loaded);
+	CLASS_ASSERT(c->classloader == defloader);
+
+	if (link && !c->linked)
+		if (!link_class(c))
+			return NULL;
+
+	CLASS_ASSERT(!link || c->linked);
+
+	return c;
+}
 
 /* class_array_of **************************************************************
 
@@ -549,11 +354,11 @@ void class_free(classinfo *c)
 
 *******************************************************************************/
 
-classinfo *class_array_of(classinfo *component)
+classinfo *class_array_of(classinfo *component,bool link)
 {
     s4 namelen;
     char *namebuf;
-	classinfo *c;
+	utf *arrayname;
 
     /* Assemble the array class name */
     namelen = component->name->blength;
@@ -575,17 +380,7 @@ classinfo *class_array_of(classinfo *component)
         namelen += 3;
     }
 
-	c = class_new(utf_new(namebuf, namelen));
-
-	/* load this class and link it */
-
-	c->loaded = true;
-
-	if (!c->linked)
-		if (!link_class(c))
-			return NULL;
-
-    return c;
+	return get_array_class(utf_new(namebuf, namelen),component->classloader,component->classloader,link);
 }
 
 
@@ -596,7 +391,7 @@ classinfo *class_array_of(classinfo *component)
 
 *******************************************************************************/
 
-classinfo *class_multiarray_of(s4 dim, classinfo *element)
+classinfo *class_multiarray_of(s4 dim, classinfo *element,bool link)
 {
     s4 namelen;
     char *namebuf;
@@ -623,7 +418,7 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element)
     }
 	memset(namebuf, '[', dim);
 
-    return class_new(utf_new(namebuf, namelen));
+	return get_array_class(utf_new(namebuf, namelen),element->classloader,element->classloader,link);
 }
 
 /* class_lookup_classref *******************************************************

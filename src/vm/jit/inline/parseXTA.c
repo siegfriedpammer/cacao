@@ -39,7 +39,7 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: parseXTA.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -170,6 +170,8 @@ static classSetNode *descriptor2typesL(methodinfo *m)
 	char *class; 
 	char *desc;
 	classSetNode *p=NULL;
+	classinfo *clsinfo;
+	
 	if (debugInfo >= 1) {
 		printf("In descriptor2typesL >>>\t"); fflush(stdout);
 		utf_display(m->class->name); printf(".");
@@ -215,8 +217,10 @@ static classSetNode *descriptor2typesL(methodinfo *m)
 			class = strtok(desc,";");
 			desc = strtok(NULL,"\0");
 			/* get/save classinfo ptr */
-			classtypes[pcount-1] = class_get(utf_new_char(class));
-			p = addClassCone(p,  class_get(utf_new_char(class)));
+			if (!load_class_bootstrap(utf_new_char(class),&clsinfo))
+				panic("could not load class in descriptor2typesL");
+			classtypes[pcount-1] = clsinfo;
+			p = addClassCone(p, clsinfo);
 			if (debugInfo >= 1) {
 				printf("LParam#%i 's class type is: %s\n",pcount-1,class);fflush(stdout);
 				printf("Lclasstypes[%i]=",pcount-1);fflush(stdout);
@@ -231,8 +235,10 @@ static classSetNode *descriptor2typesL(methodinfo *m)
 				class = strtok(desc,";");
 				desc = strtok(NULL,"\0");
 				/* get/save classinfo ptr */
-				classtypes[pcount-1] = class_get(utf_new_char(class));
-				p= addClassCone(p,  class_get(utf_new_char(class)));
+				if (!load_class_bootstrap(utf_new_char(class),&clsinfo))
+					panic("could not load class in descriptor2typesL");
+				classtypes[pcount-1] = clsinfo;
+				p= addClassCone(p, clsinfo);
 				if (debugInfo >= 1) {
 					printf("[Param#%i 's class type is: %s\n",pcount-1,class);
 					printf("[classtypes[%i]=",pcount-1);fflush(stdout);
@@ -277,7 +283,9 @@ static classSetNode *descriptor2typesL(methodinfo *m)
 			  
 		/* get class string */
 		class = strtok(desc,";");
-		m->returnclass = class_get(utf_new_char(class));
+		if (!load_class_bootstrap(utf_new_char(class),&clsinfo))
+			panic("could not load class in descriptor2typesL");
+		m->returnclass = clsinfo;
 		if (m->returnclass == NULL) {
 			printf("class=<%s>\t",class); fflush(stdout);
 			panic ("return class not found");
@@ -728,7 +736,8 @@ bool xtaAddFldClassTypeInfo(fieldinfo *fi) {
 				desc = MNEW(char, 256);
 				strcpy(desc,++utf_ptr);
 				cname = strtok(desc,";");
-				class = class_get(utf_new_char(cname));
+				if (!load_class_bootstrap(utf_new_char(cname),&class))
+					panic("could not load class in xtaAddFldClassTypeInfo");
 				fi->xta->fldClassType= class;    /* save field's type class ptr */	
 			} 
 		}

@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: native.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -797,8 +797,11 @@ java_objectarray *builtin_asm_createclasscontextarray(classinfo **end, classinfo
 		}
 	}
 
+	c = class_array_of(class_java_lang_Class,true);
+	if (!c)
+		return NULL;
 	tmpArray = (java_objectarray*)
-		builtin_newarray(size, class_array_of(class_java_lang_Class)->vftbl);
+		builtin_newarray(size, c->vftbl);
 
 	for(i = 0, current = start; i < size; i++, current--) {
 		c = *current;

@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 2098 2005-03-27 19:00:02Z edwin $
+   $Id: tables.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -106,7 +106,6 @@ void tables_init()
 {
 	init_hashtable(&utf_hash,    UTF_HASHSTART);  /* hashtable for utf8-symbols */
 	init_hashtable(&string_hash, HASHSTART);      /* hashtable for javastrings */
-	init_hashtable(&class_hash,  HASHSTART);      /* hashtable for classes */ 
 
 	classcache_init();
 
@@ -161,7 +160,6 @@ void tables_close()
 	/* dispose hashtable structures */
 	MFREE(utf_hash.ptr,    void*, utf_hash.size);
 	MFREE(string_hash.ptr, void*, string_hash.size);
-	MFREE(class_hash.ptr,  void*, class_hash.size);
 }
 
 

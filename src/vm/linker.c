@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: linker.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -155,33 +155,38 @@ bool linker_init(void)
 
     /* pseudo class for Arraystubs (extends java.lang.Object) */
     
-    pseudo_class_Arraystub = class_new_intern(utf_new_char("$ARRAYSTUB$"));
+    pseudo_class_Arraystub = create_classinfo(utf_new_char("$ARRAYSTUB$"));
 	pseudo_class_Arraystub->loaded = true;
     pseudo_class_Arraystub->super.cls = class_java_lang_Object;
     pseudo_class_Arraystub->interfacescount = 2;
     pseudo_class_Arraystub->interfaces = MNEW(classref_or_classinfo, 2);
     pseudo_class_Arraystub->interfaces[0].cls = class_java_lang_Cloneable;
     pseudo_class_Arraystub->interfaces[1].cls = class_java_io_Serializable;
+	if (!classcache_store(NULL,pseudo_class_Arraystub))
+		panic("could not cache pseudo_class_Arraystub");
 
     if (!link_class(pseudo_class_Arraystub))
 		return false;
 
     /* pseudo class representing the null type */
     
-	pseudo_class_Null = class_new_intern(utf_new_char("$NULL$"));
+	pseudo_class_Null = create_classinfo(utf_new_char("$NULL$"));
 	pseudo_class_Null->loaded = true;
     pseudo_class_Null->super.cls = class_java_lang_Object;
+	if (!classcache_store(NULL,pseudo_class_Null))
+		panic("could not cache pseudo_class_Null");
 
 	if (!link_class(pseudo_class_Null))
 		return false;
 
     /* pseudo class representing new uninitialized objects */
     
-	pseudo_class_New = class_new_intern(utf_new_char("$NEW$"));
+	pseudo_class_New = create_classinfo(utf_new_char("$NEW$"));
 	pseudo_class_New->loaded = true;
 	pseudo_class_New->linked = true; /* XXX is this allright? */
 	pseudo_class_New->super.cls = class_java_lang_Object;
-
+	if (!classcache_store(NULL,pseudo_class_New))
+		panic("could not cache pseudo_class_New");
 
 	/* create classes representing primitive types */
 
@@ -215,12 +220,16 @@ static bool link_primitivetype_table(void)
 			continue;
 		
 		/* create primitive class */
-		c = class_new_intern(utf_new_char(primitivetype_table[i].name));
+		c = create_classinfo(utf_new_char(primitivetype_table[i].name));
 		c->classUsed = NOTUSED; /* not used initially CO-RT */
 		c->impldBy = NULL;
 		
 		/* prevent loader from loading primitive class */
 		c->loaded = true;
+		if (!classcache_store(NULL,c)) {
+			log_text("Could not cache primitive class");
+			return false;
+		}
 		if (!link_class(c))
 			return false;
 
@@ -235,9 +244,11 @@ static bool link_primitivetype_table(void)
 
 		/* create the primitive array class */
 		if (primitivetype_table[i].arrayname) {
-			c = class_new_intern(utf_new_char(primitivetype_table[i].arrayname));
+			c = create_classinfo(utf_new_char(primitivetype_table[i].arrayname));
+			if (!load_newly_created_array(c,NULL))
+				return false;
 			primitivetype_table[i].arrayclass = c;
-			c->loaded = true;
+			assert(c->loaded);
 			if (!c->linked)
 				if (!link_class(c))
 					return false;
@@ -259,6 +270,11 @@ static bool link_primitivetype_table(void)
 classinfo *link_class(classinfo *c)
 {
 	classinfo *r;
+
+	if (!c) {
+		*exceptionptr = new_nullpointerexception();
+		return NULL;
+	}
 
 #if defined(USE_THREADS)
 	/* enter a monitor on the class */
@@ -735,22 +751,22 @@ static arraydescriptor *link_array(classinfo *c)
 	switch (c->name->text[1]) {
 	case '[':
 		/* c is an array of arrays. */
-		comp = class_new(utf_new_intern(c->name->text + 1, namelen - 1));
-		if (!comp)
-			panic("Could not find component array class.");
+		if (!load_class_from_classloader(utf_new_intern(c->name->text + 1, namelen - 1),
+										 c->classloader,&comp))
+			return NULL;
 		break;
 
 	case 'L':
 		/* c is an array of objects. */
-		comp = class_new(utf_new_intern(c->name->text + 2, namelen - 3));
-		if (!comp)
-			panic("Could not find component class.");
+		if (!load_class_from_classloader(utf_new_intern(c->name->text + 2, namelen - 3),
+										 c->classloader,&comp))
+			return NULL;
 		break;
 	}
 
 	/* If the component type has not been linked, link it now */
+	assert(!comp || comp->loaded);
 	if (comp && !comp->linked) {
-		assert(comp->loaded);
 
 		if (!link_class(comp))
 			return NULL;

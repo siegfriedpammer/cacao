@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: builtin.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -780,6 +780,8 @@ java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl)
 
 java_objectarray *builtin_anewarray(s4 size, classinfo *component)
 {
+	classinfo *c;
+	
 	/* is class loaded */
 	assert(component->loaded);
 
@@ -788,7 +790,10 @@ java_objectarray *builtin_anewarray(s4 size, classinfo *component)
 		if (!link_class(component))
 			return NULL;
 
-	return (java_objectarray *) builtin_newarray(size, class_array_of(component)->vftbl);
+	c = class_array_of(component,true);
+	if (!c)
+		return NULL;
+	return (java_objectarray *) builtin_newarray(size, c->vftbl);
 }
 
 

@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClassLoader.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: VMClassLoader.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -68,6 +68,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	classinfo   *c;
 	classinfo   *r;
 	classbuffer *cb;
+	utf         *utfname;
 
 	if ((off < 0) || (len < 0) || ((off + len) > buf->header.size)) {
 		*exceptionptr =
@@ -83,12 +84,18 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	}
 
 	/* convert '.' to '/' in java string */
+	utfname = javastring_toutf(name, true);
+	
+	/* check if this class has already been defined */
+	c = classcache_lookup_defined((java_objectheader *)this,utfname);
+	if (c)
+		return c;
 
-	c = class_new(javastring_toutf(name, true));
+	/* create a new classinfo struct */
+	c = create_classinfo(utfname);
 
 #if defined(USE_THREADS)
 	/* enter a monitor on the class */
-
 	builtin_monitorenter((java_objectheader *) c);
 #endif
 
@@ -137,12 +144,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	if (!r) {
 		/* If return value is NULL, we had a problem and the class is not     */
 		/* loaded. */
-
-		c->loaded = false;
-
 		/* now free the allocated memory, otherwise we could ran into a DOS */
 
-		class_remove(c);
+		class_free(c);
 
 		return NULL;
 	}

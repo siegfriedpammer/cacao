@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 1971 2005-03-01 20:06:36Z carolyn $
+   $Id: VMThread.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -78,6 +78,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_
 JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv *env, jclass clazz)
 {
 	java_lang_Thread *t;
+	classinfo *threadgroupclass;
 
 	if (runverbose)
 		log_text("java_lang_VMThread_currentThread called");
@@ -99,8 +100,10 @@ if (t == NULL) printf("t ptr is NULL\n"); fflush(stdout);
 	if (runverbose)
 		log_text("java_lang_VMThread_currentThread 222");
 
-		t->group = (java_lang_ThreadGroup *) 
-			native_new_and_init(class_new(utf_new_char("java/lang/ThreadGroup")));
+	if (!load_class_bootstrap(utf_new_char("java/lang/ThreadGroup"),&threadgroupclass))
+		return NULL;
+
+	t->group = (java_lang_ThreadGroup *) native_new_and_init(threadgroupclass);
 
 	if (runverbose)
 		log_text("java_lang_VMThread_currentThread 333");

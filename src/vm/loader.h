@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2193 2005-04-02 19:33:43Z edwin $
+   $Id: loader.h 2195 2005-04-03 16:53:16Z edwin $
 */
 
 
@@ -168,9 +168,12 @@ inline u4 suck_u4(classbuffer *cb);
 void loader_close(void);
 
 /* class loading functions */
+bool load_class_from_sysloader(utf *name, classinfo **result);
 bool load_class_from_classloader(utf *name, java_objectheader *cl, classinfo **result);
 bool load_class_bootstrap(utf *name,classinfo **result);
+/* (don't use the following directly:) */
 classinfo *load_class_from_classbuffer(classbuffer *cb);
+bool load_newly_created_array(classinfo *c,java_objectheader *loader);
 
 
 /* retrieve constantpool element */
@@ -206,8 +209,6 @@ void class_showconstantpool(classinfo *c);
 /* return the primitive class inidicated by the given signature character */
 classinfo *class_primitive_from_sig(char sig);
 
-/* (used by class_new, don't use directly) */
-void class_new_array(classinfo *c);
 
 /* debug helpers */
 void fprintflags(FILE *fp, u2 f);

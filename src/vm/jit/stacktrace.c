@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: stacktrace.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -331,8 +331,11 @@ void classContextCollector(void **target, stackTraceBuffer *buffer) {
                 }
         }
 
+		c = class_array_of(class_java_lang_Class,true);
+		if (!c)
+			panic("Could not create array class in classContextCollector");
         tmpArray =
-                builtin_newarray(targetSize, class_array_of(class_java_lang_Class)->vftbl);
+                builtin_newarray(targetSize, c->vftbl);
 
         for(i = 0, current = start; i < targetSize; i++, current++) {
                 if (current->method==0) { i--; continue;}

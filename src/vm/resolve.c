@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2194 2005-04-03 16:13:27Z twisti $
+   $Id: resolve.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -124,7 +124,9 @@ resolve_class(classinfo *referer,methodinfo *refmethod,
 						return true; /* be lazy */
 					}
 					/* create the array class */
-					cls = class_array_of(cls);
+					cls = class_array_of(cls,false);
+					if (!cls)
+						return false; /* exception */
 			}
 		}
 		else {
@@ -189,6 +191,12 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 	RESOLVE_ASSERT(cls.any);
 	RESOLVE_ASSERT(mode == resolveEager || mode == resolveLazy);
 	RESOLVE_ASSERT(result);
+
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"resolve_classref_or_classinfo(");
+	utf_fprint(stderr,(IS_CLASSREF(cls)) ? cls.ref->name : cls.cls->name);
+	fprintf(stderr,",%i,%i)\n",mode,link);
+#endif
 
 	*result = NULL;
 
@@ -716,7 +724,7 @@ unresolved_subtype_set_from_typeinfo(classinfo *referer,methodinfo *refmethod,
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"unresolved_subtype_set_from_typeinfo\n");
 #ifdef TYPEINFO_DEBUG
-	typeinfo_print(stderr,tinfo,4);
+	/*typeinfo_print(stderr,tinfo,4);*/
 	fprintf(stderr,"\n");
 #endif
 	fprintf(stderr,"    declared type:");utf_fprint(stderr,declaredtype->name);
@@ -846,7 +854,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 	fprintf(stderr,"    desc   : ");utf_fprint(stderr,fieldref->descriptor);fputc('\n',stderr);
 	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
 	fputc('\n',stderr);
-	fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);
+	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
 	ref->fieldref = fieldref;
@@ -927,7 +935,7 @@ create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 	fprintf(stderr,"    class  : ");utf_fprint(stderr,methodref->classref->name);fputc('\n',stderr);
 	fprintf(stderr,"    name   : ");utf_fprint(stderr,methodref->name);fputc('\n',stderr);
 	fprintf(stderr,"    desc   : ");utf_fprint(stderr,methodref->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);
+	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
 	ref = NEW(unresolved_method);

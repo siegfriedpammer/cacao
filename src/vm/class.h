@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2193 2005-04-02 19:33:43Z edwin $
+   $Id: class.h 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -107,7 +107,6 @@ struct classinfo {                /* class structure                          */
 	u2          innerclasscount;  /* number of inner classes                  */
 	innerclassinfo *innerclass;
 
-	classinfo  *hashlink;         /* link for external hash chain             */
 	bool        classvftbl;       /* has its own copy of the Class vtbl       */
 
 	s4          classUsed;        /* 0= not used 1 = used   CO-RT             */
@@ -145,8 +144,6 @@ struct extra_classref {
 
 
 /* global variables ***********************************************************/
-
-extern hashtable class_hash;            /* hashtable for classes              */
 
 extern list unlinkedclasses;   /* this is only used for eager class loading   */
 
@@ -221,26 +218,17 @@ extern classinfo *pseudo_class_New;
 
 /* function prototypes ********************************************************/
 
-/* search for class and create it if not found */
-classinfo *class_new(utf *u);
-
-/* without locking (caller already holding lock*/
-classinfo *class_new_intern(utf *u);
-
-/* search for class in classtable */
-classinfo *class_get(utf *u);
-
-/* remove class from classtable */
-bool class_remove(classinfo *c);
+/* create a new classinfo struct */
+classinfo *create_classinfo(utf *u);
 
 /* frees all resources used by the class */
 void class_free(classinfo *);
 
 /* return an array class with the given component class */
-classinfo *class_array_of(classinfo *component);
+classinfo *class_array_of(classinfo *component,bool link);
 
 /* return an array class with the given dimension and element class */
-classinfo *class_multiarray_of(s4 dim, classinfo *element);
+classinfo *class_multiarray_of(s4 dim, classinfo *element,bool link);
 
 /* return a classref for the given class name */
 /* (does a linear search!)                    */

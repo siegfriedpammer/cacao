@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: VMClass.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -86,13 +86,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 
 	u = javastring_toutf(s, true);
 
-	/* create a new class, ... */
-
-	c = class_new(u);
-
 	/* try to load, ... */
 
-	if (!load_class_bootstrap(c)) {
+	if (!load_class_bootstrap(u,&c)) {
 		classinfo *xclass;
 
 		xclass = (*exceptionptr)->vftbl->class;
@@ -325,8 +321,8 @@ java_lang_reflect_Field* cacao_getField0(JNIEnv *env, java_lang_Class *that, jav
     int idx;
 
     /* create Field object */
-/*      c = (classinfo *) loader_load(utf_new_char("java/lang/reflect/Field")); */
-    c = class_new(utf_new_char("java/lang/reflect/Field"));
+	if (!load_class_bootstrap(utf_new_char("java/lang/reflect/Field"),&c))
+		return NULL;
     o = (java_lang_reflect_Field *) native_new_and_init(c);
 
     /* get fieldinfo entry */
@@ -381,10 +377,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNI
 		if ((c->fields[i].flags & ACC_PUBLIC) || (!public_only))
 			public_fields++;
 
-/*      class_field = loader_load(utf_new_char("java/lang/reflect/Field")); */
-    class_field = class_new(utf_new_char("java/lang/reflect/Field"));
-
-    if (!class_field) 
+	if (!load_class_bootstrap(utf_new_char("java/lang/reflect/Field"),&class_field))
 		return NULL;
 
     /* create array of fields */
@@ -438,8 +431,8 @@ java_lang_reflect_Method* cacao_getMethod0(JNIEnv *env, java_lang_Class *that, j
     java_objectarray *exceptiontypes;    /* the exceptions thrown by the method */
     methodinfo *m;			 /* the method to be represented */
 
-/*      c = (classinfo *) loader_load(utf_new_char("java/lang/reflect/Method")); */
-    c = class_new(utf_new_char("java/lang/reflect/Method"));
+	if (!load_class_bootstrap(utf_new_char("java/lang/reflect/Method"),&c))
+		return NULL;
     o = (java_lang_reflect_Method *) native_new_and_init(c);
 
     /* find the method */
@@ -501,10 +494,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
     int pos = 0;
     int i;
 
-/*      class_method = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Method")); */
-    class_method = class_new(utf_new_char("java/lang/reflect/Method"));
-
-    if (!class_method) 
+	if (!load_class_bootstrap(utf_new_char ("java/lang/reflect/Method"),&class_method))
 		return NULL;
 
 	/* JOWENN: array classes do not declare methods according to mauve test. It should be considered, if 
@@ -818,13 +808,10 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_loadArrayClass(JNIEnv 
 
 	u = javastring_toutf(name, true);
 
-	/* class_new "loads" the array class */
+	/* load the array class */
 
-	c = class_new(u);
-
-	/* set the classloader */
-
-	c->classloader = (java_objectheader*) classloader; /* XXX is this correct? */
+	if (!load_class_from_classloader(u,(java_objectheader*)classloader,&c))
+		return NULL;
 
 	use_class_as_object(c);
 

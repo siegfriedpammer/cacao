@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.c 2190 2005-04-02 10:07:44Z edwin $
+   $Id: classcache.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -79,7 +79,7 @@
 /* GLOBAL VARIABLES                                                           */
 /*============================================================================*/
 
-static hashtable classcache_hash;
+hashtable classcache_hash;
 
 /*============================================================================*/
 /*                                                                            */
@@ -360,6 +360,50 @@ found:
 	return cls;
 }
 
+/* classcache_lookup_defined ***************************************************
+ 
+   Lookup a class with the given name and defining loader
+  
+   IN:
+       defloader........defining loader
+       classname........class name
+  
+   RETURN VALUE:
+       The return value is a pointer to the cached class object,
+       or NULL, if the class is not in the cache.
+   
+*******************************************************************************/
+
+classinfo * 
+classcache_lookup_defined(classloader *defloader,utf *classname)
+{
+	classcache_name_entry *en;
+	classcache_class_entry *clsen;
+	classcache_loader_entry *lden;
+	classinfo *cls = NULL;
+
+	CLASSCACHE_LOCK();
+
+	en = classcache_lookup_name(classname);
+	
+	if (en) {
+		/* iterate over all class entries */
+		for (clsen=en->classes; clsen; clsen=clsen->next) {
+			if (!clsen->classobj)
+				continue;
+			
+			/* check if this entry has been defined by defloader */
+			if (clsen->classobj->classloader == defloader) {
+				cls = clsen->classobj;
+				goto found;
+			}
+		}
+	}
+found:
+	CLASSCACHE_UNLOCK();
+	return cls;
+}
+
 /* classcache_store ************************************************************
    
    Store a loaded class
@@ -385,6 +429,7 @@ classcache_store(classloader *initloader,classinfo *cls)
 	classcache_loader_entry *lden;
 
 	CLASSCACHE_ASSERT(cls);
+	CLASSCACHE_ASSERT(cls->loaded);
 
 #ifdef CLASSCACHE_VERBOSE
 	fprintf(stderr,"classcache_store(%p,",initloader);

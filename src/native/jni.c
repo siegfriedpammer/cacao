@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2194 2005-04-03 16:13:27Z twisti $
+   $Id: jni.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -616,11 +616,9 @@ jclass DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyte *b
 
 jclass FindClass(JNIEnv *env, const char *name)
 {
-	classinfo *c;  
+	classinfo *c = NULL;  
   
 	if (!load_class_bootstrap(utf_new_char_classname((char *) name),&c) || !link_class(c)) {
-		class_remove(c);
-
 		return NULL;
 	}
 
@@ -3855,15 +3853,18 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 		java_objectheader *ivte;
 
 		*exceptionptr = NULL;
-		ivtec = class_new(utf_new_char("java/lang/reflect/InvocationTargetException"));
-		ivte = builtin_new(ivtec);
-		asm_calljavafunction(class_resolvemethod(ivtec,
-												 utf_new_char("<init>"),
-												 utf_new_char("(Ljava/lang/Throwable;)V")),
-							 ivte,
-							 exceptionToWrap,
-							 0,
-							 0);
+		if (load_class_bootstrap(utf_new_char("java/lang/reflect/InvocationTargetException"),
+								 &ivtec)) 
+		{
+			ivte = builtin_new(ivtec);
+			asm_calljavafunction(class_resolvemethod(ivtec,
+													 utf_new_char("<init>"),
+													 utf_new_char("(Ljava/lang/Throwable;)V")),
+								 ivte,
+								 exceptionToWrap,
+								 0,
+								 0);
+		}
 
 		if (*exceptionptr != NULL)
 			panic("jni.c: error while creating InvocationTargetException wrapper");

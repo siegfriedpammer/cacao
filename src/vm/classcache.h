@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: classcache.h 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -39,6 +39,7 @@
 #include <stdio.h>  /* for FILE */
 
 #include "vm/references.h"
+#include "vm/tables.h"
 
 
 /* forward declarations *******************************************************/
@@ -48,6 +49,10 @@ typedef struct classcache_class_entry classcache_class_entry;
 typedef struct classcache_loader_entry classcache_loader_entry;
 
 typedef java_objectheader classloader;
+
+/* global variables ***********************************************************/
+
+extern hashtable classcache_hash;
 
 /* structs ********************************************************************/
 
@@ -147,6 +152,22 @@ void classcache_free();
 *******************************************************************************/
 
 classinfo * classcache_lookup(classloader *initloader,utf *classname);
+
+/* classcache_lookup_defined ***************************************************
+ 
+   Lookup a class with the given name and defining loader
+  
+   IN:
+       defloader........defining loader
+       classname........class name
+  
+   RETURN VALUE:
+       The return value is a pointer to the cached class object,
+       or NULL, if the class is not in the cache.
+   
+*******************************************************************************/
+
+classinfo * classcache_lookup_defined(classloader *defloader,utf *classname);
 
 /* classcache_store ************************************************************
    

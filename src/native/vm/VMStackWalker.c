@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: VMStackWalker.c 1919 2005-02-10 10:08:53Z twisti $
+   $Id: VMStackWalker.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -46,6 +46,7 @@
  */
 JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassContext(JNIEnv *env, jclass clazz)
 {
+	classinfo *c;
 	if (cacao_initializing)
 		return 0;
 
@@ -54,7 +55,10 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassCon
 #else
 
 	/* XXX TWISTI: only a quick hack */
-	return (java_objectarray *) builtin_newarray(0, class_array_of(class_java_lang_Class)->vftbl);
+	c = class_array_of(class_java_lang_Class,true);
+	if (!c)
+		return NULL;
+	return (java_objectarray *) builtin_newarray(0, c->vftbl);
 #endif
 }
 

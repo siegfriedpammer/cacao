@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: cacao.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -60,6 +60,7 @@
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
+#include "vm/classcache.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 
@@ -919,32 +920,10 @@ int main(int argc, char **argv)
 			mainstring = getmainclassnamefromjar((JNIEnv *) &env, mainstring);
 		}
 
-		/* get system classloader */
-
-		m = class_resolveclassmethod(class_java_lang_ClassLoader,
-									 utf_new_char("getSystemClassLoader"),
-									 utf_new_char("()Ljava/lang/ClassLoader;"),
-									 class_java_lang_Object,
-									 false);
-
-		cl = (classinfo *) asm_calljavafunction(m, NULL, NULL, NULL, NULL);
-
-		/* get `loadClass' method */
-
-		m = class_resolveclassmethod(cl->header.vftbl->class,
-									 utf_loadClass,
-									 utf_java_lang_String__java_lang_Class,
-									 class_java_lang_Object,
-									 false);
-
 		/* load the main class */
 
-		mainclass =
-			(classinfo *) asm_calljavafunction(m,
-											   cl,
-											   javastring_new_char(mainstring),
-											   NULL,
-											   NULL);
+		if (!load_class_from_sysloader(utf_new_char(mainstring),&mainclass))
+			throw_main_exception_exit();
 
 		/* error loading class, clear exceptionptr for new exception */
 
@@ -1024,31 +1003,41 @@ int main(int argc, char **argv)
 		methodinfo *m;
 		u4 slot;
 		s4 i;
+		classcache_name_entry *nmen;
+		classcache_class_entry *clsen;
+		classcache_loader_entry *lden;
 
 		/* create all classes found in the classpath */
 		/* XXX currently only works with zip/jar's */
 		create_all_classes();
 
-		/* load and link all classes */
-		for (slot = 0; slot < class_hash.size; slot++) {
-			c = class_hash.ptr[slot];
+		/* link all classes */
+		for (slot=0; slot<classcache_hash.size; ++slot) {
+			nmen = (classcache_name_entry *) classcache_hash.ptr[slot];
+			for (; nmen; nmen=nmen->hashlink) {
+				/* iterate over all class entries */
+				for (clsen=nmen->classes; clsen; clsen=clsen->next) {
+					c = clsen->classobj;
+					if (!c)
+						continue;
 
-			while (c) {
-				assert(c->loaded);
+					assert(c);
+					assert(c->loaded);
+					/*utf_fprint_classname(stderr,c->name);fprintf(stderr,"\n");*/
 
-				if (!c->linked)
-					if (!link_class(c))
-						throw_main_exception_exit();
+					if (!c->linked)
+						if (!link_class(c))
+							throw_main_exception_exit();
 
-				/* compile all class methods */
-				for (i = 0; i < c->methodscount; i++) {
-					m = &(c->methods[i]);
-					if (m->jcode) {
-						(void) jit_compile(m);
+					/* compile all class methods */
+					for (i = 0; i < c->methodscount; i++) {
+						m = &(c->methods[i]);
+						if (m->jcode) {
+							/*fprintf(stderr,"    compiling:");utf_fprint(stderr,m->name);fprintf(stderr,"\n");*/
+							(void) jit_compile(m);
+						}
 					}
 				}
-
-				c = c->hashlink;
 			}
 		}
 	}
@@ -1060,7 +1049,7 @@ int main(int argc, char **argv)
 		methodinfo *m;
 
 		/* create, load and link the main class */
-		if (!load_class_bootstrap(utf_new_char(mainstring),&mainclass))
+		if (!load_class_from_sysloader(utf_new_char(mainstring),&mainclass))
 			throw_main_exception_exit();
 
 		if (!link_class(mainclass))

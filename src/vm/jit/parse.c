@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: parse.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -659,6 +659,7 @@ SHOWOPCODE(DEBUG4)
 			i = code_get_u2(p + 1,inline_env->method);
 			{
 				classinfo *component;
+				classinfo *c;
 				constant_classref *cr =
 					(constant_classref*) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
@@ -666,7 +667,10 @@ SHOWOPCODE(DEBUG4)
 							cr,resolveEager,true,&component))
 					return NULL;
 
-  				LOADCONST_A_BUILTIN(class_array_of(component)->vftbl);
+				c = class_array_of(component,true);
+				if (!c)
+					return NULL;
+  				LOADCONST_A_BUILTIN(c->vftbl);
 				s_count++;
 				BUILTIN2(BUILTIN_newarray, TYPE_ADR, currentline);
 			}

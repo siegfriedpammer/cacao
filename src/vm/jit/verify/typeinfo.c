@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: typeinfo.c 2195 2005-04-03 16:53:16Z edwin $
 
 */
 
@@ -834,6 +834,10 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 	}
 	else {
 		vftbl_t *comp;
+		
+		if (!srcarray->typeclass.cls->linked)
+			if (!link_class(srcarray->typeclass.cls))
+				panic("XXX could not link class");
 
 		TYPEINFO_ASSERT(srcarray->typeclass.cls->vftbl);
 		TYPEINFO_ASSERT(srcarray->typeclass.cls->vftbl->arraydesc);
@@ -1437,7 +1441,9 @@ return_simple:
                 elementclass.any = NULL;
             }
             else {
-                common.cls = class_multiarray_of(dimension,pseudo_class_Arraystub);
+                common.cls = class_multiarray_of(dimension,pseudo_class_Arraystub,true);
+				if (!common.cls)
+					panic("XXX Coult not create array class");
                 elementtype = ARRAYTYPE_OBJECT;
                 elementclass.cls = pseudo_class_Arraystub;
             }
@@ -1458,8 +1464,11 @@ return_simple:
                 /* DEBUG */ /* log_text("finding resulting array class: "); */
 				if (IS_CLASSREF(elementclass))
 					common.ref = class_get_classref_multiarray_of(dimension,elementclass.ref);
-				else
-					common.cls = class_multiarray_of(dimension,elementclass.cls);
+				else {
+					common.cls = class_multiarray_of(dimension,elementclass.cls,true);
+					if (!common.cls)
+						panic("XXX Coult not create array class");
+				}
                 /* DEBUG */ /* utf_display(common->name); printf("\n"); */
             }
 			else {
@@ -1631,7 +1640,7 @@ typeinfo_inc_dimension(typeinfo *info)
         info->elementtype = ARRAYTYPE_OBJECT;
         info->elementclass = info->typeclass;
     }
-    info->typeclass = class_array_of(info->typeclass);
+    info->typeclass = class_array_of(info->typeclass,true);
 }
 #endif
 

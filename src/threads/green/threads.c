@@ -77,10 +77,10 @@ java_objectheader *init_vmthread(void *thr)
 {
         methodinfo *m;
         java_objectheader *o;
-	classinfo *c=class_new(utf_new_char("java/lang/VMThread"));
-
-        if (!c)
-                return *exceptionptr;
+		classinfo *c;
+		
+		if (!load_class_bootstrap(utf_new_char("java/lang/VMThread"),&c))
+			return *exceptionptr;
 
         o = builtin_new(c);          /* create object          */
 
@@ -163,6 +163,7 @@ freeThreadStack (vmthread *vmtid)
 void
 initThreads(u1 *stackbottom)
 {
+	classinfo *c;
 	thread *the_main_thread;
     int i;
 	char mainname[] = "main";
@@ -177,8 +178,10 @@ initThreads(u1 *stackbottom)
 	}
 
     /* Allocate a thread to be the main thread */
+	if (!load_class_bootstrap(utf_new_char("java/lang/Thread"),&c))
+		panic("Could not load java/lang/Thread");
     liveThreads = the_main_thread = 
-        (thread *) builtin_new(class_new(utf_new_char("java/lang/Thread")));
+        (thread *) builtin_new(c);
     the_main_thread->vmThread=init_vmthread(the_main_thread);
     assert(the_main_thread != 0);
     
