@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 288 2003-05-12 20:41:31Z twisti $
+	Last Change: $Id: parse.c 372 2003-06-13 14:06:52Z twisti $
                      include Rapid Type Analysis parse - 5/2003 - carolyn
 
 
@@ -940,7 +940,11 @@ static void parse()
 				if (class_constanttype (class, i) == CONSTANT_Arraydescriptor) {
 					LOADCONST_A(class_getconstant(class, i, CONSTANT_Arraydescriptor));
 					s_count++;
+#ifdef __I386__
+					BUILTIN2((functionptr) asm_builtin_arrayinstanceof, TYPE_INT);
+#else
 					BUILTIN2((functionptr) builtin_arrayinstanceof, TYPE_INT);
+#endif
 					}
 				else { /* object type cast-check */
 					/*
