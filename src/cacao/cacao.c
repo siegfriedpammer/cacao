@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1173 2004-06-16 14:56:18Z jowenn $
+   $Id: cacao.c 1188 2004-06-19 12:32:57Z twisti $
 
 */
 
@@ -175,7 +175,10 @@ void **stackbottom = 0;
 
 struct {char *name; bool arg; int value;} opts[] = {
 	{"classpath",        true,   OPT_CLASSPATH},
+	{"cp",               true,   OPT_CLASSPATH},
 	{"D",                true,   OPT_D},
+	{"Xms",              true,   OPT_MS},
+	{"Xmx",              true,   OPT_MX},
 	{"ms",               true,   OPT_MS},
 	{"mx",               true,   OPT_MX},
 	{"noasyncgc",        false,  OPT_IGNORE},
@@ -271,10 +274,13 @@ static void print_usage()
 {
 	printf("USAGE: cacao [options] classname [program arguments]\n");
 	printf("Options:\n");
+	printf("          -cp path ............. specify a path to look for classes\n");
 	printf("          -classpath path ...... specify a path to look for classes\n");
 	printf("          -Dpropertyname=value . add an entry to the property list\n");
-	printf("          -mx maxmem[k|m] ...... specify the size for the heap\n");
-	printf("          -ms initmem[k|m] ..... specify the initial size for the heap\n");
+	printf("          -Xmx maxmem[kK|mM] ... specify the size for the heap\n");
+	printf("          -Xms initmem[kK|mM] .. specify the initial size for the heap\n");
+	printf("          -mx maxmem[kK|mM] .... specify the size for the heap\n");
+	printf("          -ms initmem[kK|mM] ... specify the initial size for the heap\n");
 	printf("          -v ................... write state-information\n");
 	printf("          -verbose ............. write more information\n");
 	printf("          -verbosegc ........... write message for each GC\n");
@@ -296,7 +302,7 @@ static void print_usage()
 	printf("                  s(ync) ....... don't check for synchronization\n");
 	printf("          -oloop ............... optimize array accesses in loops\n"); 
 	printf("          -l ................... don't start the class after loading\n");
-	printf("          -eager                 perform eager class loading and linking\n");
+	printf("          -eager ............... perform eager class loading and linking\n");
 	printf("          -all ................. compile all methods, no execution\n");
 	printf("          -m ................... compile only a specific method\n");
 	printf("          -sig ................. specify signature for a specific method\n");
@@ -567,7 +573,7 @@ void exit_handler(void)
 	                               here */
 
 	loader_close();
-	tables_close(literalstring_free);
+	tables_close();
 
 	if (verbose || getcompilingtime || opt_stat) {
 		log_text("CACAO terminated");
@@ -656,16 +662,21 @@ int main(int argc, char **argv)
 
 		case OPT_MS:
 		case OPT_MX:
-			if (opt_arg[strlen(opt_arg) - 1] == 'k') {
-				j = 1024 * atoi(opt_arg);
+			{
+				char c;
+				c = opt_arg[strlen(opt_arg) - 1];
 
-			} else if (opt_arg[strlen(opt_arg) - 1] == 'm') {
-				j = 1024 * 1024 * atoi(opt_arg);
+				if (c == 'k' || c == 'K') {
+					j = 1024 * atoi(opt_arg);
 
-			} else j = atoi(opt_arg);
+				} else if (c == 'm' || c == 'M') {
+					j = 1024 * 1024 * atoi(opt_arg);
 
-			if (i == OPT_MX) heapmaxsize = j;
-			else heapstartsize = j;
+				} else j = atoi(opt_arg);
+
+				if (i == OPT_MX) heapmaxsize = j;
+				else heapstartsize = j;
+			}
 			break;
 
 		case OPT_VERBOSE1:
@@ -871,7 +882,7 @@ int main(int argc, char **argv)
 	tables_init();
 	suck_init(classpath);
 
-	cacao_initializing=true;
+	cacao_initializing = true;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
   	initThreadsEarly();
@@ -888,12 +899,17 @@ int main(int argc, char **argv)
 #endif
 
 	*threadrootmethod=0;
-	class_init(class_new(utf_new_char("java/lang/System"))); /*That's important, otherwise we get into trouble, if
-			the Runtime static initializer is called before (circular dependency. This is with classpath 
-			0.09. Another important thing is, that this has to happen after initThreads!!!
-		*/
 
-	cacao_initializing=false;
+	/*That's important, otherwise we get into trouble, if the Runtime static
+	  initializer is called before (circular dependency. This is with
+	  classpath 0.09. Another important thing is, that this has to happen
+	  after initThreads!!! */
+
+	if (!class_init(class_new(utf_new_char("java/lang/System"))))
+		throw_main_exception_exit();
+
+	cacao_initializing = false;
+
 	/************************* Start worker routines ********************/
 
 	if (startit) {
@@ -904,10 +920,10 @@ int main(int argc, char **argv)
 		mainclass = class_new(utf_new_char(mainstring));
 
 		if (!class_load(mainclass))
-			throw_exception_exit();
+			throw_main_exception_exit();
 
 		if (!class_link(mainclass))
-			throw_exception_exit();
+			throw_main_exception_exit();
 
 		mainmethod = class_resolveclassmethod(mainclass,
 											  utf_new_char("main"), 
@@ -924,7 +940,7 @@ int main(int argc, char **argv)
 			*exceptionptr =
 				new_exception_message(string_java_lang_NoSuchMethodError,
 									  "main");
-			throw_exception_exit();
+			throw_main_exception_exit();
 		}
 
 		a = builtin_anewarray(argc - opt_ind, class_java_lang_String);
@@ -947,7 +963,7 @@ int main(int argc, char **argv)
 
 		/* exception occurred? */
 		if (*exceptionptr)
-			throw_exception_exit();
+			throw_main_exception();
 
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
@@ -1006,15 +1022,12 @@ int main(int argc, char **argv)
 
 		/* create, load and link the main class */
 		mainclass = class_new(utf_new_char(mainstring));
-		class_load(mainclass);
 
-		if (*exceptionptr)
-			throw_exception_exit();
+		if (!class_load(mainclass))
+			throw_main_exception_exit();
 
-		class_link(mainclass);
-
-		if (*exceptionptr)
-			throw_exception_exit();
+		if (!class_link(mainclass))
+			throw_main_exception_exit();
 
 		if (specificsignature) {
 			m = class_resolveclassmethod(mainclass,
@@ -1033,13 +1046,13 @@ int main(int argc, char **argv)
 		if (!m) {
 			char message[MAXLOGTEXT];
 			sprintf(message, "%s%s", specificmethodname,
-					specificmethodname ? specificmethodname : "");
+					specificsignature ? specificsignature : "");
 
 			*exceptionptr =
 				new_exception_message(string_java_lang_NoSuchMethodException,
 									  message);
 										 
-			throw_exception_exit();
+			throw_main_exception_exit();
 		}
 		
 		jit_compile(m);
@@ -1070,10 +1083,10 @@ void cacao_exit(s4 status)
 	c = class_new(utf_new_char("java/lang/Runtime"));
 
 	if (!class_load(c))
-		throw_exception_exit();
+		throw_main_exception_exit();
 
 	if (!class_link(c))
-		throw_exception_exit();
+		throw_main_exception_exit();
 
 	/* first call Runtime.getRuntime()Ljava.lang.Runtime; */
 
@@ -1084,7 +1097,7 @@ void cacao_exit(s4 status)
 								 true);
 
 	if (!m)
-		throw_exception_exit();
+		throw_main_exception_exit();
 
 	rt = (java_lang_Runtime *) asm_calljavafunction(m,
 													(void *) 0,
@@ -1095,7 +1108,7 @@ void cacao_exit(s4 status)
 	/* exception occurred? */
 
 	if (*exceptionptr)
-		throw_exception_exit();
+		throw_main_exception_exit();
 
 	/* then call Runtime.exit(I)V */
 
@@ -1106,7 +1119,7 @@ void cacao_exit(s4 status)
 								 true);
 	
 	if (!m)
-		throw_exception_exit();
+		throw_main_exception_exit();
 
 	asm_calljavafunction(m, rt, (void *) 0, NULL, NULL);
 
