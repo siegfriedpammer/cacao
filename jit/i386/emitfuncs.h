@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.h 1561 2004-11-23 15:51:28Z twisti $
+   $Id: emitfuncs.h 1584 2004-11-24 14:13:06Z twisti $
 
 */
 
@@ -56,9 +56,10 @@ void i386_mov_membase32_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg);
 void i386_mov_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp);
 void i386_mov_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
 void i386_mov_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_mov_mem_reg(codegendata *cd, s4 mem, s4 dreg);
 void i386_movw_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void i386_movb_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void i386_mov_reg_mem(codegendata *cd, s4 reg, s4 mem);
+void i386_mov_mem_reg(codegendata *cd, s4 mem, s4 dreg);
 void i386_mov_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp);
 void i386_movb_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp);
 void i386_movsbl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
