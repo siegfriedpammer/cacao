@@ -34,6 +34,7 @@
 	.globl asm_handle_nat_exception
 	.globl asm_builtin_checkcast	
 	.globl asm_builtin_checkarraycast
+	.globl asm_builtin_anewarray
 	.globl asm_builtin_aastore
 	.globl asm_builtin_monitorenter
 	.globl asm_builtin_monitorexit
@@ -67,7 +68,6 @@
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    has_no_x_instr_set */
 has_no_x_instr_set:
 
 /*	.long   0x47e03c20                /* amask   1,v0                         */
@@ -75,19 +75,14 @@ has_no_x_instr_set:
 /*	jmp     zero,(ra)                 /* return                               */
 		ret
 
-/*	.end    has_no_x_instr_set */
-
 
 /********************* function synchronize_caches ****************************/
 
-/*	.ent    synchronize_caches */
 synchronize_caches:
 
 /*	call_pal PAL_imb                  /* synchronise instruction cache        */
 /*	jmp     zero,(ra)                 /* return                               */
 		ret
-
-/*	.end    synchronize_caches */
 
 
 /********************* function asm_calljavamethod *****************************
@@ -163,7 +158,7 @@ asm_calljavamethod:
 		pushl   20(%ebp)
 		pushl	16(%ebp)
 		pushl	12(%ebp)
-		pushl	8(%ebp)
+		movl	8(%ebp),%eax
 				
 /*	lda     $28,asm_call_jit_compiler /* fake virtual function call (2 instr) */
 /*	stq     $28,8(sp)                 /* store function address               */
@@ -171,9 +166,13 @@ asm_calljavamethod:
 
 /*	ldq     pv,8($28)                 /* method call as in Java               */
 /*	jmp     ra,(pv)                   /* call JIT compiler                    */
-		pushl	%ebp                  /* save %ebp, cause it's a tmp reg      */
+
+/*		pushl	%ebp                  /* save %ebp, cause it's a tmp reg      */
+		
 		call	asm_call_jit_compiler /* call JIT compiler                    */
-		popl	%ebp                  /* restore %ebp, changed in java code   */
+		
+/*		popl	%ebp                  /* restore %ebp, changed in java code   */
+		
 calljava_jit:
 /*	lda     pv,-64(ra)                /* asm_calljavamethod-calljava_jit !!!!!*/
 
@@ -345,16 +344,13 @@ asm_call_jit_compiler:
 		call	jit_compile
 		addl	$4,%esp
 
-		leave
-		jmp		*%eax
-		
-		movl	4(%ebp),%edx	/* see how we have been called */
-		movb	-1(%edx),%bl
+		movl	4(%ebp),%edx	/* get return address */
+		movb	-1(%edx),%bl	/* get function code */
 		cmpb	$0xd2,%bl		/* called with `call *REG_ITMP2' (%edx)? */
 		jne		L01
 
-		subl	$6,%edx			/* calculate immediate address */
-		movl	%eax,(%edx)		/* and now save the pointer */
+		subl	$6,%edx			/* calculate address of immediate */
+		movl	%eax,(%edx)		/* and now save the new pointer */
 
 L01:	leave
 		jmp		*%eax			/* ...and now call the new method */
@@ -375,8 +371,13 @@ L01:	leave
 *******************************************************************************/
 
 asm_dumpregistersandcall:
-	xorl		%eax,%eax
-	movl		$0,(%eax)
+	pushl	%ebp				/* build stack frame */
+	movl	%esp,%ebp
+		
+	movl	8(%ebp),%eax		/* load function pointer */
+	call	*%eax				/* call function */
+
+	leave
 	ret
 
 
@@ -483,6 +484,27 @@ asm_builtin_checkarraycast:
 	ret
 		
 
+/******************* function asm_builtin_anewarray ****************************
+*                                                                              *
+*   Does the cast check and eventually throws an exception                     *
+*                                                                              *
+*******************************************************************************/
+
+asm_builtin_anewarray:
+	subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
+
+	movl	12(%esp),%eax
+	movl	%eax,(%esp)
+
+	movl	20(%esp),%eax
+	movl	%eax,4(%esp)
+
+	call	builtin_anewarray
+	
+	addl	$8,%esp
+	ret
+
+
 /******************* function asm_builtin_aastore ******************************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
@@ -490,8 +512,20 @@ asm_builtin_checkarraycast:
 *******************************************************************************/
 
 asm_builtin_aastore:
-	xorl		%eax,%eax
-	movl		$0,(%eax)
+	subl	$12,%esp			/* build stack frame (3 * 4 bytes) */
+
+	movl	16(%esp),%eax
+	movl	%eax,(%esp)
+
+	movl	24(%esp),%eax
+	movl	%eax,4(%esp)
+
+	movl	32(%esp),%eax
+	movl	%eax,8(%esp)
+		
+	call	builtin_aastore
+	
+	addl	$12,%esp
 	ret
 
 
