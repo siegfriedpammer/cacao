@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1773 2004-12-19 17:39:01Z jowenn $
+## $Id: Makefile.am 1821 2004-12-23 11:20:11Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -43,7 +43,7 @@ CACAO = $(top_srcdir)/src/cacao/cacao
 CACAOC = $(CACAO) at.dms.kjc.Main
 CACAOH = $(top_srcdir)/src/cacaoh/cacaoh
 
-all:
+check:
 	$(CACAOC) testarguments.java
 	$(CACAOH) testarguments
 	$(CC) -shared $(INCLUDES) $(CFLAGS) testarguments.c -o libtestarguments.so -fPIC
