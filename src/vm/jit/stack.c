@@ -1438,19 +1438,30 @@ icmd_lcmp_if_tail:
 								curstack->varkind = ARGVAR;
 								curstack->varnum = 2;
 								}
+							if (3 > arguments_num) {
+								arguments_num = 3;
+							}
 							OP1_0ANY;
+
 						case ICMD_BUILTIN2:
 builtin2:
 							if (! (curstack->flags & SAVEDVAR)) {
 								curstack->varkind = ARGVAR;
 								curstack->varnum = 1;
 								}
+							if (2 > arguments_num) {
+								arguments_num = 2;
+							}
 							OP1_0ANY;
+
 						case ICMD_BUILTIN1:
 							if (! (curstack->flags & SAVEDVAR)) {
 								curstack->varkind = ARGVAR;
 								curstack->varnum = 0;
 								}
+							if (1 > arguments_num) {
+								arguments_num = 1;
+							}
 							OP1_0ANY;
 							copy = curstack;
 							while (copy) {
