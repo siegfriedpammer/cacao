@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 892 2004-01-19 12:32:29Z edwin $
+   $Id: stack.c 951 2004-03-11 17:30:03Z jowenn $
 
 */
 
@@ -2214,6 +2214,8 @@ void show_icmd_method()
 	printf ("\n\nMax locals: %d\n", (int) maxlocals);
 	printf ("Max stack:  %d\n", (int) maxstack);
 
+	printf ("Line number table lengt: %d\n",method->linenumbercount);
+
 	printf ("Exceptions (Number: %d):\n", exceptiontablelength);
 	for (ex = extable; ex != NULL; ex = ex->down) {
 		printf("    L%03d ... ", ex->start->debug_nr );
@@ -2681,6 +2683,7 @@ void show_icmd(instruction *iptr,bool deadcode)
 		}
 		break;
 	}
+	printf(" Line number: %d",iptr->line);
 }
 
 

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 939 2004-03-06 13:57:41Z twisti $
+   $Id: codegen.c 951 2004-03-11 17:30:03Z jowenn $
 
 */
 
@@ -425,7 +425,8 @@ void codegen()
 	varinfo     *var;
 	basicblock  *bptr;
 	instruction *iptr;
-
+	u2 currentline=0;
+	u2 linechanges=0;
 	int fpu_st_offset = 0;
 
 	xtable *ex;
@@ -473,6 +474,7 @@ void codegen()
 	(void) dseg_adds4(isleafmethod);                        /* IsLeaf         */
 	(void) dseg_adds4(savintregcnt - maxsavintreguse);      /* IntSave        */
 	(void) dseg_adds4(savfltregcnt - maxsavfltreguse);      /* FltSave        */
+        (void) dseg_adds4(jlinenumbercount);			/* LineNumberTableSize*/
 	(void) dseg_adds4(exceptiontablelength);                /* ExTableSize    */
 
 	/* create exception table */
@@ -514,6 +516,8 @@ void codegen()
 	   
 		(void) dseg_addaddress(ex->catchtype);
 	}
+	
+
 	
 	/* initialize mcode variables */
 	
@@ -797,6 +801,9 @@ void codegen()
 		    len > 0;
 		    src = iptr->dst, len--, iptr++) {
 
+	if (iptr->line!=currentline) {
+		linechanges++;
+	}
 	MCODECHECK(64);           /* an instruction usually needs < 64 words      */
 	switch (iptr->opc) {
 
@@ -3990,6 +3997,31 @@ gen_method: {
 
 			MCODECHECK((s3 << 1) + 64);
 
+			if ( (iptr->opc == ICMD_BUILTIN1) ||
+				(iptr->opc == ICMD_BUILTIN2) ||
+				(iptr->opc == ICMD_BUILTIN3) ) {
+#if 0
+				i386_push_reg(REG_ITMP1);
+				i386_push_reg(REG_ITMP2);
+				i386_push_reg(REG_ITMP3);
+
+			        i386_mov_imm_reg((s4) builtin_asm_new_stackframeinfo, REG_ITMP1);
+			        i386_call_reg(REG_ITMP1);
+
+				i386_pop_reg(REG_ITMP3);
+				i386_pop_reg(REG_ITMP2);
+				i386_pop_reg(REG_ITMP1);
+
+#if 0
+			        i386_mov_membase_reg(REG_SP, 0 , REG_ITMP2); /*save return adress*/
+			        i386_mov_membase_reg(REG_RESULT, 0 , REG_ITMP3); /*get direct access to structure*/
+
+			        i386_mov_imm_membase(0x1111, REG_ITMP3, offreturnfromnative); /*store return adress in stack frame info block*/
+			        i386_mov_imm_membase((s4) m, REG_ITMP3, offmethodnative); /*store methodpointer in stack frame info block*/
+			        i386_mov_imm_membase(1111,REG_ITMP3,offaddrreturnfromnative);
+#endif
+#endif
+			}
 			/* copy arguments to registers or stack location                  */
 
 			for (; --s3 >= 0; src = src->prev) {
@@ -4045,6 +4077,7 @@ gen_method: {
 
 					a = (s4) m;
 					d = iptr->op1;
+
 
 					i386_mov_imm_reg(a, REG_ITMP1);
 					i386_call_reg(REG_ITMP1);
@@ -4856,13 +4889,39 @@ static java_objectheader *(*callgetexceptionptrptr)() = builtin_get_exceptionptr
 static void (*callresetexceptionptr)() = builtin_reset_exceptionptr;
 #endif
 
+void i386_native_stub_debug(void **p) {
+	printf("Pos on stack: %p\n",p);
+	printf("Return adress should be: %p\n",*p);
+}
+
+void i386_native_stub_debug2(void **p) {
+	printf("Pos on stack: %p\n",p);
+	printf("Return for lookup is: %p\n",*p);
+}
+
+void traverseStackInfo() {
+	void **p=builtin_asm_get_stackframeinfo();
+	void **p2=builtin_asm_get_stackframeinfo();
+	
+	while ((*p)!=0) {
+		printf("base addr:%p, methodinfo:%p\n",*p,(methodinfo*)((*p)+8));
+		methodinfo *m=*((methodinfo**)((*p)+8));
+		utf_display(m->name);
+		printf("\n");
+		p=*p;
+	}
+	
+
+}
+
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
     u1 *s = CNEW(u1, NATIVESTUBSIZE);   /* memory to hold the stub            */
 
     u1 *tptr;
     int i;
-    int stackframesize = 4;           /* initial 4 bytes is space for jni env */
+    int stackframesize = 4+12;           /* initial 4 bytes is space for jni env,
+					 	+ 4 byte thread pointer + 4 byte previous pointer + method info*/
     int stackframeoffset = 4;
 
     int p, t;
@@ -4876,30 +4935,14 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
     reg_init();
     descriptor2types(m);                     /* set paramcount and paramtypes */
-
-/*SHOULD THAT BE OPTIMIZED FOR THE NOTHREAD CASE ?? */
-/*CREATE STACKINFO BEGIN */
-        i386_mov_imm_reg((s4) builtin_asm_new_stackframeinfo, REG_ITMP1);
+  
+/*DEBUG*/
+/* 	i386_push_reg(REG_SP);
+        i386_mov_imm_reg((s4) i386_native_stub_debug, REG_ITMP1);
         i386_call_reg(REG_ITMP1);
-	i386_mov_membase_reg(REG_SP, 0 , REG_ITMP2); /*save return adress*/
-	i386_mov_reg_membase(REG_RESULT,REG_SP,0); /*save thread specific stack frame info block*/
-	i386_mov_membase_reg(REG_RESULT, 0 , REG_ITMP3); /*get direct access to structure*/
-#if 0
-	i386_mov_membase_reg(REG_ITMP3,0,REG_ITMP2);/*TESTING*/
-	i386_mov_reg_membase(REG_ITMP2,REG_SP,0);/*TESTING*/
-	i386_ret(); /*TESTING*/
-#endif
-	i386_mov_reg_membase(REG_ITMP2, REG_ITMP3, offreturnfromnative); /*store return adress in stack frame info block*/
-	i386_mov_imm_membase((s4) m, REG_ITMP3, offmethodnative); /*store methodpointer in stack frame info block*/
-	i386_mov_reg_membase(REG_SP,REG_ITMP3,offaddrreturnfromnative);
+ 	i386_pop_reg(REG_ITMP1);*/
 
-#if 0
-	i386_mov_membase_reg(REG_ITMP3,0,REG_ITMP2);/*TESTING*/
-	i386_mov_reg_membase(REG_ITMP2,REG_SP,0);/*TESTING*/
-	i386_ret(); /*TESTING*/
-#endif
 
-/*CREATE STACKINFO END */
     if (runverbose) {
         i386_alu_imm_reg(I386_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
         
@@ -4988,6 +5031,25 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
     i386_alu_imm_reg(I386_SUB, stackframesize, REG_SP);
 
+/* CREATE DYNAMIC STACK INFO -- BEGIN*/
+   i386_mov_imm_membase((s4) m, REG_SP,stackframesize-4);
+   i386_mov_imm_reg((s4) builtin_asm_get_stackframeinfo, REG_ITMP1);
+   i386_call_reg(REG_ITMP1);
+   i386_mov_reg_membase(REG_RESULT,REG_SP,stackframesize-8); /*save thread specific pointer*/
+   i386_mov_membase_reg(REG_RESULT,0,REG_ITMP2); 
+   i386_mov_reg_membase(REG_ITMP2,REG_SP,stackframesize-12); /*save previous value of memory adress pointed to by thread specific pointer*/
+   i386_mov_reg_reg(REG_SP,REG_ITMP2);
+   i386_alu_imm_reg(I386_ADD,stackframesize-12,REG_ITMP2);
+   i386_mov_reg_membase(REG_ITMP2,REG_RESULT,0);
+
+/*TESTING ONLY */
+/*   i386_mov_imm_membase((s4) m, REG_SP,stackframesize-4);
+   i386_mov_imm_membase((s4) m, REG_SP,stackframesize-8);
+   i386_mov_imm_membase((s4) m, REG_SP,stackframesize-12);*/
+
+/* CREATE DYNAMIC STACK INFO -- END*/
+
+
     tptr = m->paramtypes;
     for (i = 0; i < m->paramcount; i++) {
         switch (*tptr++) {
@@ -5021,36 +5083,15 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
     i386_mov_imm_reg((s4) f, REG_ITMP1);
     i386_call_reg(REG_ITMP1);
+/*REMOVE DYNAMIC STACK INFO -BEGIN */
+    i386_push_reg(REG_RESULT2);
+    i386_mov_membase_reg(REG_SP,stackframesize-8,REG_ITMP2); /*old value*/
+    i386_mov_membase_reg(REG_SP,stackframesize-4,REG_RESULT2); /*pointer*/
+    i386_mov_reg_membase(REG_ITMP2,REG_RESULT2,0);
+    i386_pop_reg(REG_RESULT2);
+/*REMOVE DYNAMIC STACK INFO -END */
+
     i386_alu_imm_reg(I386_ADD, stackframesize, REG_SP);
-
-/*REMOVE STACKINFO BEGIN */
-/*Perhapse merge with thread code below, to avoid 2 times pushing and poping*/
-	/*save result registers*/
-	i386_push_reg(REG_RESULT);
-	i386_push_reg(REG_RESULT2);
-	i386_mov_membase_reg(REG_SP,8,REG_ITMP1); /*get stack frame info block **   */
-	i386_mov_membase_reg(REG_ITMP1,0,REG_ITMP2); /*get stack frame info block *   */
-	i386_mov_membase_reg(REG_ITMP2,offreturnfromnative,REG_ITMP3); /*get return value*/
-
-	i386_mov_reg_membase(REG_ITMP3,REG_SP,8);	/* put the correct return value where it belongs */
-	/* reduce stack frame info pseudo stack by 1 */
-	/* the memory is not freed here, since usally native methods are not nested really deep, 
-	   so we reuse the block during the next call. If that linked list gets really a problem you should
-	   consider writing native code instead of java code anyways */
-	i386_mov_membase_reg(REG_ITMP2,offprevnative,REG_ITMP3);
-	i386_mov_reg_membase(REG_ITMP3,REG_ITMP1,0);
-
-/*TESTING*/
-/*	i386_mov_imm_reg(0,REG_ITMP1);
-	i386_mov_reg_membase(REG_ITMP1,REG_SP,8);*/
-
-	
-	/*restore result registers*/
-	i386_pop_reg(REG_RESULT2);
-	i386_pop_reg(REG_RESULT);
-
-/*REMOVE STACKINFO END */
-
 
 
     if (runverbose) {

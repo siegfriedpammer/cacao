@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSecurityManager.c 931 2004-03-05 17:04:35Z jowenn $
+   $Id: VMSecurityManager.c 951 2004-03-11 17:30:03Z jowenn $
 
 */
 
@@ -72,6 +72,10 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMSecurityManager_getClassCon
 #endif
 
 java_objectarray* temporaryGetClassContextHelper(methodinfo *m) {
+	if (!m) {
+		log_text("BUILTIN");
+		return 0;
+	}
 	if (!(m->name)) log_text("method or block has no name");
 	else
 	utf_display(m->name);

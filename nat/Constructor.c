@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Constructor.c 940 2004-03-06 14:04:15Z jowenn $
+   $Id: Constructor.c 951 2004-03-11 17:30:03Z jowenn $
 
 */
 
@@ -132,7 +132,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 	  log_text("calling constructor");*/
 	(void) jni_method_invokeNativeHelper(env, m ,o, parameters); 
 
-	log_text("Java_java_lang_reflect_Constructor: returning object");
+	/*log_text("Java_java_lang_reflect_Constructor: returning object");*/
 
 	return (java_lang_Object *) o;
 }

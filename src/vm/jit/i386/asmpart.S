@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 933 2004-03-05 21:27:21Z jowenn $
+   $Id: asmpart.S 951 2004-03-11 17:30:03Z jowenn $
 
 */
 
@@ -38,14 +38,15 @@
 
 /* data segment offsets */
 
-#define MethodPointer   -4
-#define FrameSize       -8
-#define IsSync          -12
-#define IsLeaf          -16
-#define IntSave         -20
-#define FltSave         -24
-#define ExTableSize     -28
-#define ExTableStart    -28
+#define MethodPointer   	-4
+#define FrameSize       	-8
+#define IsSync          	-12
+#define IsLeaf          	-16
+#define IntSave         	-20
+#define FltSave         	-24
+#define LineNumberTableSize	-28
+#define ExTableSize     	-32
+#define ExTableStart    	-32
 
 #define ExEntrySize     -16
 #define ExStartPC       -4
@@ -92,6 +93,7 @@
 	.globl asm_getcallingmethod
 	.globl Java_java_lang_VMSecurityManager_getClassContext
 	.globl Java_java_lang_VMSecurityManager_currentClassLoader    
+	.globl asm_builtin_new
 /*************************** imported functions *******************************/
 
 	.globl jit_compile
@@ -151,6 +153,7 @@ call_name:
 	.long   calljava_xhandler         /* end pc                               */
 	.long   asm_calljavafunction      /* start pc                             */
 	.long   1                         /* extable size                         */
+	.long   0			  /* line number table	size		  */
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
@@ -235,6 +238,7 @@ call_name2:
 	.long   calljava_xhandler2        /* end pc                               */
 	.long   asm_calljavafunction2     /* start pc                             */
 	.long   1                         /* extable size                         */
+	.long   0                         /* line number table size               */
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
@@ -1046,7 +1050,7 @@ Java_java_lang_VMSecurityManager_getClassContext:
 	lea  builtin_asm_createclasscontextarray,%eax 
 	push %eax /*store collector function pointer*/
 getClassContext_begin:	/*start the real work*/
-/* find the method calling this */
+
 	mov %esp,%eax
 	sub $4,%eax
 	sub $68,%esp /*64 memory location without overwriting return adress and collector function adress*/
@@ -1060,15 +1064,32 @@ getClassContext_begin:	/*start the real work*/
 	push %eax /*%esp+12*/
 	movl 104(%esp),%eax /*(stack contains: threadRootMethod,blkend,blkpos,blkbegin,was native, data(64kB),collector,ret,env,class,frame stack info of stub, we want the frame stack info  of thestub*/
 	movl %esp,%edx
-	addl $104, %edx
+	addl $116, %edx
 	push %edx /*esp+8*/ /*position of return address of native stub*/
-	call builtin_asm_get_framestackinfo
-	push %eax /*esp+4*/ /*address of frame info block*/
-	movl  offreturnfromnative(%eax),%edx
-	movl  offprevnative(%eax),%ebx
-	mov  %ebx,(%esp)
+	call builtin_asm_get_stackframeinfo
+	movl (%eax),%eax /*comment ??*/
+	push 0(%eax) /*esp+4*/ /*address of frame info block*/
+	movl 124(%esp),%edx
+
+/*DEBUG*/
+/*	mov %esp,%eax
+	addl $116,%eax
+	push %eax
+	call i386_native_stub_debug
+	pop %eax*/
+
 	push %edx /*esp+0*/ /*return adress out of native stub*/
 	call findmethod	/*find calling java method, this one is still to be skipped (==SecurityManager.getClassContext (or .currentClassLoader)*/
+
+/*DEBUGGING*/
+/*	push %eax
+	movl MethodPointer(%eax),%eax
+	push %eax
+	call temporaryGetClassContextHelper
+	pop %eax
+	call traverseStackInfo
+	pop %eax
+*/
 
 	movl 20(%esp),%edx
 	movl MethodPointer(%eax),%ebx
@@ -1083,7 +1104,7 @@ getClassContext_begin:	/*start the real work*/
 	mov %ebx,8(%esp) 
 	mov %eax,(%esp)
 
-	/* by now we have skipped this method call and the one before (SecurityManager)*/
+	/* by now we have skipped this method call*/
 
 getClassContext_next:	
 	movl 8(%esp),%eax
@@ -1093,7 +1114,6 @@ getClassContext_next:
 	call findmethod
 
 	cmp $1,32(%esp)
-	je getClassContext_storeNextRetPrevWasNat
 	mov 8(%esp),%ebx
 	add FrameSize(%eax),%ebx
 	add $4,%ebx
@@ -1119,35 +1139,31 @@ getClassContext_checkLeave:
 	cmp 12(%esp),%ecx	/*check if we reached the toplevel method of our thread*/
 	je  getClassContext_leave /*yes ->leave*/
 
-	mov %ecx,(%esp)
+/*DEBUGING*/
+/*	mov %ecx,(%esp)
 	call temporaryGetClassContextHelper
+*/
 	
 	
 	jmp getClassContext_next /*continue*/
 
-getClassContext_storeNextRetPrevWasNat:
-	movl 8(%esp),%ebx
-	add $(offaddrreturnfromnative-offreturnfromnative),%ebx
-	movl (%ebx),%ebx
-	add FrameSize(%eax),%ebx
-	add $4,%ebx
-	movl %ebx,8(%esp) /*store adress of next return adress*/
-	jmp getClassContext_nextRetStored
 
 getClassContext_nativeCall:
 	movl $1,32(%esp)
-	movl 4(%esp),%eax
-	movl %eax,%ebx
-	addl $offreturnfromnative,%ebx
-	/*offreturnfromnative(%eax)+returnFromNativeoffset,%ebx*/
-	movl %ebx,8(%esp)
-	movl offmethodnative(%eax),%ecx
-	movl offprevnative(%eax),%edx
-	movl %edx,4(%esp)
+	movl 4(%esp),%eax	/*get top most element on stackframe help information stack*/
+	movl 0(%eax),%ecx 
+	movl %ecx,4(%esp)
+	addl $8,%eax
+	movl (%eax),%ecx
+	addl $4,%eax
+	movl %eax,8(%esp)
+	
+	cmp $0,%ecx
+	je getClassContext_checkLeave
 	jmp getClassContext_saveClassPointer
 
 getClassContext_incStack:
-	/*make another 64 kb in our temporary storage free and store the workingdata */
+	/*make another 64 in our temporary storage free and store the workingdata */
 	movl %esp,%edx
 	subl $40,%esp /*should be 32*/
 	push 32(%edx)
@@ -1164,8 +1180,9 @@ getClassContext_incStack:
 	jmp getClassContext_checkLeave /* continue */
 
 getClassContext_leave:
-	mov %ecx,(%esp)
-	call temporaryGetClassContextHelper
+/*DEBUGING*/
+/*	mov %ecx,(%esp)
+	call temporaryGetClassContextHelper*/
 
 	/*call collector function with begin/end of temporary classarray*/
 	push 24(%esp)
@@ -1180,6 +1197,39 @@ getClassContext_leave:
 	mov 32(%esp),%esp
 	add $8,%esp
 	ret
+
+
+asm_builtin_new:
+/*optimize a littlebit */
+		mov %esp,%eax
+/*DEBUG*/
+/*		push %eax
+		call i386_native_stub_debug
+		pop %eax */
+
+                sub             $16,%esp                                 /* build stack frame (4 * 4 bytes) */
+
+                mov             20(%esp),%eax
+                mov             %eax,(%esp)
+
+		call	builtin_asm_get_stackframeinfo
+		movl	$0,12(%esp)
+		mov	%eax,8(%esp)
+		mov	(%eax),%ebx
+		mov	%ebx,4(%esp)
+		mov	%esp,%ecx
+		add	$4,%ecx
+		mov	%ecx,(%eax)
+
+                call    builtin_new
+
+		mov	4(%esp),%ebx
+		mov	8(%esp),%ecx
+		mov	%ebx,(%ecx)
+
+                add             $16,%esp
+                ret
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

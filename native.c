@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 940 2004-03-06 14:04:15Z jowenn $
+   $Id: native.c 951 2004-03-11 17:30:03Z jowenn $
 
 */
 
@@ -1597,7 +1597,7 @@ java_objectarray *builtin_asm_createclasscontextarray(classinfo **end,classinfo 
         classinfo **current;
 	classinfo *c;
         size_t size=(((size_t)start)-((size_t)end)) / sizeof (classinfo*);
-        printf("end %p, start %p, size %ld\n",end,start,size);
+/*      printf("end %p, start %p, size %ld\n",end,start,size);*/
         if (!class_java_lang_Class)
                 class_java_lang_Class = class_new(utf_new_char ("java/lang/Class"));
         if (!class_java_lang_SecurityManager)
@@ -1612,8 +1612,8 @@ java_objectarray *builtin_asm_createclasscontextarray(classinfo **end,classinfo 
 
         for(i=0,current=start;i<size;i++,current--) {
 		c=*current;
-		printf("%d\n",i);
-                utf_display(c->name);
+/*		printf("%d\n",i);
+                utf_display(c->name);*/
 		use_class_as_object(c);
 		tmpArray->data[i]=c;
         }
@@ -1628,8 +1628,8 @@ java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end,classinfo **st
 	classinfo *c;
 	classinfo *privilegedAction;
         size_t size=(((size_t)start)-((size_t)end)) / sizeof (classinfo*);
-	log_text("builtin_asm_getclassloader");
-        printf("end %p, start %p, size %ld\n",end,start,size);
+/*	log_text("builtin_asm_getclassloader");
+        printf("end %p, start %p, size %ld\n",end,start,size);*/
 
         if (!class_java_lang_SecurityManager)
                 class_java_lang_SecurityManager = class_new(utf_new_char ("java/lang/SecurityManager"));

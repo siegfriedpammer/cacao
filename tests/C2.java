@@ -1,4 +1,3 @@
-import D;
 class C2 extends A {
 int cx;
 void m1( ) {ax = 100; cx=1;

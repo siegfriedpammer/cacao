@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 945 2004-03-06 21:33:21Z twisti $
+   $Id: loader.c 951 2004-03-11 17:30:03Z jowenn $
 
 */
 
@@ -2950,17 +2950,8 @@ void class_init(classinfo *c)
 	blockInts = 0;
 #endif
 
-	info = builtin_asm_new_stackframeinfo();
-	(*info)->method = m;
-	(*info)->returnFromNative = 0;
-	(*info)->addrReturnFromNative = 0;
-	log_text("cl_init");
-	utf_display(m->class->name);
-
 	/* now call the initializer */
 	asm_calljavafunction(m, NULL, NULL, NULL, NULL);
-
-	*info = (*info)->prev;
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	assert(blockInts == 0);

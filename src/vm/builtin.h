@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 930 2004-03-02 21:18:23Z jowenn $
+   $Id: builtin.h 951 2004-03-11 17:30:03Z jowenn $
 
 */
 
@@ -118,7 +118,7 @@ extern builtin_descriptor builtin_desc[];
 
 extern THREADSPECIFIC java_objectheader* _exceptionptr;
 extern THREADSPECIFIC methodinfo* _threadrootmethod;
-extern THREADSPECIFIC native_stackframeinfo* _threadnativestackframeinfo;
+extern THREADSPECIFIC void* _threadnativestackframeinfo;
 
 
 /**********************************************************************/
@@ -182,7 +182,12 @@ void builtin_reset_exceptionptr();
 /* NOT AN OP */
 
 java_objectheader *builtin_new(classinfo *c);
+#ifdef __I386__
+java_objectheader *asm_builtin_new(classinfo *c);
+#define BUILTIN_new (functionptr) asm_builtin_new
+#else
 #define BUILTIN_new (functionptr) builtin_new
+#endif
 
 java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl);
 #define BUILTIN_newarray (functionptr) builtin_newarray
@@ -403,11 +408,16 @@ static inline methodinfo **builtin_get_threadrootmethod()
    Otherwhise it is the thread's run method (at least that's how I see it) (jowenn) */
 methodinfo *builtin_asm_get_threadrootmethod();
 
-/* adds an element to the stack frame info list (needed for unwinding across native functions) */
-native_stackframeinfo **builtin_asm_new_stackframeinfo();
-
 /* returns the current top element of the stack frame info list (needed for unwinding across native functions) */
-native_stackframeinfo *builtin_asm_get_stackframeinfo();
+/* on i386 this is a pointer to a structure 
+		------------------------------------------------
+		| return adress out of native stub        	|
+		| pointer to method info			| either i have to save an arbitrary adress within this native stub or the pointer to the method info, both are equaly costly, I have chosen the method  info (JOWENN)
+		| pointer to thread specific top of this list	|<----stack frame begin
+points here---->| previous element in list        		|
+		------------------------------------------------
+*/
+void *builtin_asm_get_stackframeinfo();
 #endif /* _BUILTIN_H */
 
 
