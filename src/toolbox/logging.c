@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.c 1848 2005-01-04 11:35:10Z twisti $
+   $Id: logging.c 1925 2005-02-10 10:46:33Z twisti $
 
 */
 
@@ -228,11 +228,11 @@ void log_message_method(const char *msg, methodinfo *m)
 }
 
 
-/************************** Function: error *******************************
+/* error ***********************************************************************
 
-Like dolog(), but terminates the program immediately.
+   Like dolog(), but terminates the program immediately.
 
-**************************************************************************/
+*******************************************************************************/
 
 void error(const char *txt, ...)
 {
@@ -253,15 +253,43 @@ void error(const char *txt, ...)
 }
 
 
-/************************ Function: panic (txt) ****************************
+/* panic ***********************************************************************
 
-  Like error(), takes the text to output as an argument
+   Like error(), takes the text to output as an argument.
 
-***************************************************************************/
+*******************************************************************************/
 
 void panic(const char *txt)
 {
 	error("%s", txt);
+}
+
+
+/* log_utf *********************************************************************
+
+   Log utf symbol.
+
+*******************************************************************************/
+
+void log_utf(utf *u)
+{
+	char buf[MAXLOGTEXT];
+	utf_sprint(buf, u);
+	dolog("%s", buf);
+}
+
+
+/* log_plain_utf ***************************************************************
+
+   Log utf symbol (without printing "LOG: " and newline).
+
+*******************************************************************************/
+
+void log_plain_utf(utf *u)
+{
+	char buf[MAXLOGTEXT];
+	utf_sprint(buf, u);
+	dolog_plain("%s", buf);
 }
 
 

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.h 1848 2005-01-04 11:35:10Z twisti $
+   $Id: logging.h 1925 2005-02-10 10:46:33Z twisti $
 
 */
 
@@ -73,6 +73,10 @@ void panic(const char *txt);
 #endif
 
 FILE *get_logfile(void);                        /* return the current logfile */
+
+/* write utf symbol to logfile/stdout */
+void log_utf(utf *u);
+void log_plain_utf(utf *u);
 
 #endif /* _LOGGING_H */
 
