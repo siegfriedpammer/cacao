@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1031 2004-04-26 16:06:03Z twisti $
+   $Id: loader.h 1088 2004-05-26 21:32:34Z twisti $
 */
 
 
@@ -61,7 +61,6 @@ extern int blockInts;
 
 extern classinfo *class_java_lang_Object;
 extern classinfo *class_java_lang_String;
-extern classinfo *class_java_lang_Throwable;
 extern classinfo *class_java_lang_Cloneable;
 extern classinfo *class_java_io_Serializable;
 
@@ -173,7 +172,7 @@ void class_new_array(classinfo *c);
 
 classinfo *class_load(classinfo *c);
 classinfo *class_load_intern(classbuffer *cb);
-void class_link(classinfo *c);
+classinfo *class_link(classinfo *c);
 
 void field_display(fieldinfo *f);
 
