@@ -28,11 +28,13 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1284 2004-07-07 15:56:17Z twisti $
+   $Id: codegen.c 1304 2004-07-11 14:31:53Z stefan $
 
 */
 
+#define _GNU_SOURCE
 
+#include "global.h"
 #include <stdio.h>
 #include <signal.h>
 #include <sys/ucontext.h>
@@ -3002,7 +3004,7 @@ gen_method: {
 
 					gen_nullptr_check(r->argintregs[0]);
 					x86_64_mov_membase_reg(r->argintregs[0], OFFSET(java_objectheader, vftbl), REG_ITMP2);
-					x86_64_mov_membase32_reg(REG_ITMP2, OFFSET(vftbl, table[0]) + sizeof(methodptr) * lm->vftblindex, REG_ITMP1);
+					x86_64_mov_membase32_reg(REG_ITMP2, OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * lm->vftblindex, REG_ITMP1);
 					x86_64_call_reg(REG_ITMP1);
 					break;
 
@@ -3013,7 +3015,7 @@ gen_method: {
 
 					gen_nullptr_check(r->argintregs[0]);
 					x86_64_mov_membase_reg(r->argintregs[0], OFFSET(java_objectheader, vftbl), REG_ITMP2);
-					x86_64_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, interfacetable[0]) - sizeof(methodptr) * ci->index, REG_ITMP2);
+					x86_64_mov_membase_reg(REG_ITMP2, OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * ci->index, REG_ITMP2);
 					x86_64_mov_membase32_reg(REG_ITMP2, sizeof(methodptr) * (lm - ci->methods), REG_ITMP1);
 					x86_64_call_reg(REG_ITMP1);
 					break;
@@ -3062,6 +3064,10 @@ gen_method: {
 			{
 			classinfo *super = (classinfo*) iptr->val.a;
 			
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+            codegen_threadcritrestart(mcodeptr - mcodebase);
+#endif
+
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(m, iptr->dst, REG_ITMP3);
 			if (s1 == d) {
@@ -3078,7 +3084,7 @@ gen_method: {
 					CALCOFFSETBYTES(a, s1, OFFSET(java_objectheader, vftbl));
 
 					a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 					
 					a += 3;    /* sub */
 					CALCIMMEDIATEBYTES(a, super->index);
@@ -3087,7 +3093,7 @@ gen_method: {
 
 					a += 6;    /* jcc */
 					a += 3;    /* mov_membase_reg */
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*));
 
 					a += 3;    /* test */
 					a += 4;    /* setcc */
@@ -3095,20 +3101,20 @@ gen_method: {
 					x86_64_jcc(X86_64_CC_E, a);
 
 					x86_64_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetablelength), REG_ITMP2);
+					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl_t, interfacetablelength), REG_ITMP2);
 					x86_64_alu_imm_reg(X86_64_SUB, super->index, REG_ITMP2);
 					x86_64_test_reg_reg(REG_ITMP2, REG_ITMP2);
 
 					/* TODO: clean up this calculation */
 					a = 0;
 					a += 3;    /* mov_membase_reg */
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*));
 
 					a += 3;    /* test */
 					a += 4;    /* setcc */
 
 					x86_64_jcc(X86_64_CC_LE, a);
-					x86_64_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*), REG_ITMP1);
+					x86_64_mov_membase_reg(REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*), REG_ITMP1);
 					x86_64_test_reg_reg(REG_ITMP1, REG_ITMP1);
   					x86_64_setcc_reg(X86_64_CC_NE, d);
 
@@ -3122,13 +3128,13 @@ gen_method: {
 					a += 10;   /* mov_imm_reg */
 
 					a += 2;    /* movl_membase_reg - only if REG_ITMP1 == RAX */
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, baseval));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, baseval));
 					
 					a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-					CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl, baseval));
+					CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					
 					a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-					CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl, diffval));
+					CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, diffval));
 					
 					a += 3;    /* sub */
 					a += 3;    /* xor */
@@ -3139,9 +3145,15 @@ gen_method: {
 
 					x86_64_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					x86_64_mov_imm_reg((s8) super->vftbl, REG_ITMP2);
-					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
-					x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
-					x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstart(mcodeptr - mcodebase);
+#endif
+					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl_t, baseval), REG_ITMP1);
+					x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl_t, baseval), REG_ITMP3);
+					x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl_t, diffval), REG_ITMP2);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+                    codegen_threadcritstop(mcodeptr - mcodebase);
+#endif
 					x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP3, REG_ITMP1);
 					x86_64_alu_reg_reg(X86_64_XOR, d, d);
 					x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP2, REG_ITMP1);
@@ -3175,6 +3187,9 @@ gen_method: {
 			{
 			classinfo *super = (classinfo*) iptr->val.a;
 			
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+            codegen_threadcritrestart(mcodeptr - mcodebase);
+#endif
 			d = reg_of_var(m, iptr->dst, REG_ITMP3);
 			var_to_reg_int(s1, src, d);
 			if (iptr->op1) {                               /* class/interface */
@@ -3186,7 +3201,7 @@ gen_method: {
 					CALCOFFSETBYTES(a, s1, OFFSET(java_objectheader, vftbl));
 
 					a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 
 					a += 3;    /* sub */
 					CALCIMMEDIATEBYTES(a, super->index);
@@ -3195,7 +3210,7 @@ gen_method: {
 					a += 6;    /* jcc */
 
 					a += 3;    /* mov_membase_reg */
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*));
 
 					a += 3;    /* test */
 					a += 6;    /* jcc */
@@ -3203,12 +3218,12 @@ gen_method: {
 					x86_64_jcc(X86_64_CC_E, a);
 
 					x86_64_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetablelength), REG_ITMP2);
+					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl_t, interfacetablelength), REG_ITMP2);
 					x86_64_alu_imm_reg(X86_64_SUB, super->index, REG_ITMP2);
 					x86_64_test_reg_reg(REG_ITMP2, REG_ITMP2);
 					x86_64_jcc(X86_64_CC_LE, 0);
 					codegen_addxcastrefs(mcodeptr);
-					x86_64_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*), REG_ITMP2);
+					x86_64_mov_membase_reg(REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*), REG_ITMP2);
 					x86_64_test_reg_reg(REG_ITMP2, REG_ITMP2);
 					x86_64_jcc(X86_64_CC_E, 0);
 					codegen_addxcastrefs(mcodeptr);
@@ -3221,22 +3236,22 @@ gen_method: {
 					CALCOFFSETBYTES(a, s1, OFFSET(java_objectheader, vftbl));
 					a += 10;   /* mov_imm_reg */
 					a += 2;    /* movl_membase_reg - only if REG_ITMP1 == RAX */
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, baseval));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, baseval));
 
 					if (d != REG_ITMP3) {
 						a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl, baseval));
+						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, baseval));
 						a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl, diffval));
+						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, diffval));
 						a += 3;    /* sub */
 						
 					} else {
 						a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl, baseval));
+						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, baseval));
 						a += 3;    /* sub */
 						a += 10;   /* mov_imm_reg */
 						a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl, diffval));
+						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, diffval));
 					}
 
 					a += 3;    /* cmp */
@@ -3246,17 +3261,26 @@ gen_method: {
 
 					x86_64_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					x86_64_mov_imm_reg((s8) super->vftbl, REG_ITMP2);
-					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+                    codegen_threadcritstart(mcodeptr - mcodebase);
+#endif
+					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl_t, baseval), REG_ITMP1);
 					if (d != REG_ITMP3) {
-						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
-						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
+						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl_t, baseval), REG_ITMP3);
+						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl_t, diffval), REG_ITMP2);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+                        codegen_threadcritstop(mcodeptr - mcodebase);
+#endif
 						x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP3, REG_ITMP1);
 
 					} else {
-						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP2);
+						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl_t, baseval), REG_ITMP2);
 						x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP2, REG_ITMP1);
 						x86_64_mov_imm_reg((s8) super->vftbl, REG_ITMP2);
-						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
+						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl_t, diffval), REG_ITMP2);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+                        codegen_threadcritstop(mcodeptr - mcodebase);
+#endif
 					}
 					x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP2, REG_ITMP1);
 					x86_64_jcc(X86_64_CC_A, 0);    /* (u) REG_ITMP1 > (u) REG_ITMP2 -> jump */
