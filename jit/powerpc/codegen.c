@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 606 2003-11-12 00:27:10Z twisti $
+   $Id: codegen.c 607 2003-11-12 00:36:10Z twisti $
 
 */
 
@@ -2233,7 +2233,7 @@ void codegen()
             var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
 			if (iptr->val.l == 0) {
 				M_OR(s1, s2, REG_ITMP3);
-				M_CMP(REG_ITMP3, REG_ZERO);
+				M_CMPI(REG_ITMP3, 0);
 
   			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
   				M_CMPI(s2, (u4) (iptr->val.l >> 32));
@@ -2257,7 +2257,7 @@ void codegen()
             var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
 			if (iptr->val.l == 0) {
 				M_OR(s1, s2, REG_ITMP3);
-				M_CMP(REG_ITMP3, REG_ZERO);
+				M_CMPI(REG_ITMP3, 0);
 
   			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
   				M_CMPI(s2, (u4) (iptr->val.l >> 32));
@@ -2286,7 +2286,7 @@ void codegen()
             var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
 			if (iptr->val.l == 0) {
 				M_OR(s1, s2, REG_ITMP3);
-				M_CMP(REG_ITMP3, REG_ZERO);
+				M_CMPI(REG_ITMP3, 0);
 
   			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
   				M_CMPI(s2, (u4) (iptr->val.l >> 32));
@@ -2315,7 +2315,7 @@ void codegen()
             var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
 			if (iptr->val.l == 0) {
 				M_OR(s1, s2, REG_ITMP3);
-				M_CMP(REG_ITMP3, REG_ZERO);
+				M_CMPI(REG_ITMP3, 0);
 
   			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
   				M_CMPI(s2, (u4) (iptr->val.l >> 32));
@@ -2340,7 +2340,7 @@ void codegen()
             var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
 			if (iptr->val.l == 0) {
 				M_OR(s1, s2, REG_ITMP3);
-				M_CMP(REG_ITMP3, REG_ZERO);
+				M_CMPI(REG_ITMP3, 0);
 
   			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
   				M_CMPI(s2, (u4) (iptr->val.l >> 32));
@@ -2368,7 +2368,7 @@ void codegen()
             var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
 			if (iptr->val.l == 0) {
 				M_OR(s1, s2, REG_ITMP3);
-				M_CMP(REG_ITMP3, REG_ZERO);
+				M_CMPI(REG_ITMP3, 0);
 
   			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
   				M_CMPI(s2, (u4) (iptr->val.l >> 32));
