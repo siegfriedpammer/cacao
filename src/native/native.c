@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 682 2003-12-01 15:33:30Z jowenn $
+   $Id: native.c 689 2003-12-05 18:03:47Z stefan $
 
 */
 
@@ -731,9 +731,10 @@ java_objectheader *native_new_and_init(classinfo *c)
 	                      	                      
 	if (!m) {                                       /* initializer not found  */
 		if (verbose) {
+			char logtext[MAXLOGTEXT];
 			sprintf(logtext, "Warning: class has no instance-initializer: ");
 			utf_sprint(logtext + strlen(logtext), c->name);
-			dolog();
+			dolog(logtext);
 		}
 		return o;
 	}
@@ -761,9 +762,10 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 	                      	                      
 	if (!m) {                                       /* initializer not found  */
 		if (verbose) {
+			char logtext[MAXLOGTEXT];
 			sprintf(logtext, "Warning: class has no instance-initializer: ");
 			utf_sprint(logtext + strlen(logtext), c->name);
-			dolog();
+			dolog(logtext);
 		}
 		return o;
 	}

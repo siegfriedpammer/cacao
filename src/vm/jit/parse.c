@@ -28,7 +28,7 @@
 
    Changes: Carolyn Oates
 
-   $Id: parse.c 669 2003-11-23 14:04:20Z edwin $
+   $Id: parse.c 689 2003-12-05 18:03:47Z stefan $
 
 */
 
@@ -89,18 +89,20 @@ void compiler_addinitclass(classinfo *c)
 			return;
 		if (cl == NULL) {
 			if (runverbose) {
+				char logtext[MAXLOGTEXT];
 				sprintf(logtext, "compiler_addinitclass: ");
 				utf_sprint(logtext+strlen(logtext), c->name);
-				dolog();
+				dolog(logtext);
 			}
 			chain_addlast(uninitializedclasses, c);
 			return;
 		}
 		if (c < cl) {
 			if (runverbose) {
+				char logtext[MAXLOGTEXT];
 				sprintf(logtext, "compiler_addinitclass: ");
 				utf_sprint(logtext+strlen(logtext), c->name);
-				dolog();
+				dolog(logtext);
 			}
 			chain_addbefore(uninitializedclasses, c);
 			return;

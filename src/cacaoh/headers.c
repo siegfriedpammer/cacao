@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 685 2003-12-04 01:25:54Z jowenn $
+   $Id: headers.c 689 2003-12-05 18:03:47Z stefan $
 
 */
 
@@ -62,8 +62,10 @@ void throw_classnotfoundexception()
 
 void throw_classnotfoundexception2(utf* classname) 
 { 
+	/* [stefan] code was useless
 	sprintf (logtext, "Loading class: ");
-        utf_sprint (logtext+strlen(logtext), classname);
+	utf_sprint (logtext+strlen(logtext), classname);
+	*/
 	panic("******class not found"); 
 }
 

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 662 2003-11-21 18:06:25Z jowenn $
+   $Id: memory.c 689 2003-12-05 18:03:47Z stefan $
 
 */
 
@@ -273,6 +273,7 @@ static void mem_characterlog(unsigned char *m, int len)
 {
 #	define LINESIZE 16
 	int z, i;
+	char logtext[MAXLOGTEXT];
 	
 	for (z = 0; z < len; z += LINESIZE) {
 		sprintf(logtext, "   ");
@@ -290,7 +291,7 @@ static void mem_characterlog(unsigned char *m, int len)
 					"%c", (m[i] >= ' ' && m[i] <= 127) ? m[i] : '.');
 		}
 			
-		dolog();
+		dolog(logtext);
 	}
 }
 
@@ -448,17 +449,15 @@ void dump_release(long int size)
 void mem_usagelog (int givewarnings)
 {
 	if ((memoryusage!=0) && givewarnings) {
-		sprintf (logtext, "Allocated memory not returned: %d",
+		dolog ("Allocated memory not returned: %d",
 				 (int)memoryusage);
-		dolog();
 
 #ifdef DEBUG
 		{ 
 			memblock *mb = firstmemblock;
 			while (mb) {
-				sprintf (logtext, "   Memory block size: %d", 
+				dolog ("   Memory block size: %d", 
 						 (int)(mb->length) );
-				dolog();
 				mem_characterlog ( ((unsigned char*)mb) + BLOCKOFFSET, mb->length);
 				mb = mb->next;
 			}
@@ -468,15 +467,13 @@ void mem_usagelog (int givewarnings)
 	}
 
 	if ((dumpsize!=0) && givewarnings) {
-		sprintf (logtext, "Dump memory not returned: %d",(int)dumpsize);
-		dolog();
+		dolog ("Dump memory not returned: %d",(int)dumpsize);
 	}
 
 
-	sprintf(logtext, "Random/Dump - memory usage: %dK/%dK", 
+	dolog("Random/Dump - memory usage: %dK/%dK", 
 			(int)((maxmemusage+1023)/1024), 
 			(int)((maxdumpsize+1023)/1024) );
-	dolog();
 	
 }
 

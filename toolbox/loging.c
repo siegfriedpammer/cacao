@@ -27,12 +27,13 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loging.c 684 2003-12-02 16:50:17Z twisti $
+   $Id: loging.c 689 2003-12-05 18:03:47Z stefan $
 
 */
 
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -43,10 +44,6 @@
 /***************************************************************************
                         LOG FILE HANDLING 
 ***************************************************************************/
-
-char logtext[MAXLOGTEXT];   /* Needs to be filled with desired text before */
-                            /* call to dolog() */
-
 
 FILE *logfile = NULL;
 
@@ -69,8 +66,15 @@ stdout.
 
 **************************************************************************/
 
-void dolog()
+void dolog(char *txt, ...)
 {
+	char logtext[MAXLOGTEXT];
+	va_list ap;
+
+	va_start(ap, txt);
+	vsprintf(logtext, txt, ap);
+	va_end(ap);
+
 	if (logfile) {
 		fprintf(logfile, "%s\n",logtext);
 		fflush(logfile);
@@ -86,8 +90,7 @@ void dolog()
 
 void log_text(char *text)
 {
-	sprintf(logtext, "%s",text);
-	dolog();
+	dolog("%s", text);
 }
 
 
@@ -97,6 +100,7 @@ void log_cputime()
 {
    long int t;
    int sec, usec;
+   char logtext[MAXLOGTEXT];
 
    t = getcputime();
    sec = t / 1000000;
@@ -104,7 +108,7 @@ void log_cputime()
 
    sprintf(logtext, "Total CPU usage: %d seconds and %d milliseconds",
 		   sec, usec / 1000);
-   dolog();
+   dolog(logtext);
 }
 
 
@@ -114,13 +118,20 @@ Like dolog(), but terminates the program immediately.
 
 **************************************************************************/
 
-void error()
+void error(char *txt, ...)
 {
+	char logtext[MAXLOGTEXT];
+	va_list ap;
+
+	va_start(ap, txt);
+	vsprintf(logtext, txt, ap);
+	va_end(ap);
+
 	if (logfile) {
 		fprintf(logfile, "ERROR: %s\n", logtext);
 	}
 
-	printf("ERROR: %s\n",logtext);
+	fprintf(stderr, "ERROR: %s\n", logtext);
 	exit(10);
 }
 
@@ -133,8 +144,7 @@ void error()
 
 void panic(char *txt)
 {
-	sprintf(logtext, "%s", txt);
-	error();
+	error("%s", txt);
 }
 
 

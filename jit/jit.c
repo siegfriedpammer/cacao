@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: jit.c 640 2003-11-15 12:14:05Z stefan $
+   $Id: jit.c 689 2003-12-05 18:03:47Z stefan $
 
 */
 
@@ -1357,12 +1357,13 @@ methodptr jit_compile(methodinfo *m)
 	/* if there is no javacode print error message and return empty method    */
 
 	if (!m->jcode) {
+		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "No code given for: ");
 		utf_sprint(logtext+strlen(logtext), m->class->name);
 		strcpy(logtext+strlen(logtext), ".");
 		utf_sprint(logtext+strlen(logtext), m->name);
 		utf_sprint(logtext+strlen(logtext), m->descriptor);
-		dolog();
+		dolog(logtext);
 		intsRestore();                             /* enable interrupts again */
 		return (methodptr) do_nothing_function;    /* return empty method     */
 	}
@@ -1370,12 +1371,13 @@ methodptr jit_compile(methodinfo *m)
 	/* print log message for compiled method */
 
 	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Compiling: ");
 		utf_sprint(logtext+strlen(logtext), m->class->name);
 		strcpy(logtext+strlen(logtext), ".");
 		utf_sprint(logtext+strlen(logtext), m->name);
 		utf_sprint(logtext+strlen(logtext), m->descriptor);
-		dolog();
+		dolog(logtext);
 	}
 
 

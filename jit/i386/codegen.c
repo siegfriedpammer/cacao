@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 688 2003-12-04 23:50:25Z jowenn $
+   $Id: codegen.c 689 2003-12-05 18:03:47Z stefan $
 
 */
 
@@ -4088,8 +4088,7 @@ gen_method: {
 
 				default:
 					d = 0;
-					sprintf(logtext, "Unkown ICMD-Command: %d", iptr->opc);
-					error();
+					error("Unkown ICMD-Command: %d", iptr->opc);
 				}
 
 			/* d contains return type */
@@ -4452,8 +4451,7 @@ gen_method: {
 			break;
 
 
-		default: sprintf (logtext, "Unknown pseudo command: %d", iptr->opc);
-		         error();
+		default: error ("Unknown pseudo command: %d", iptr->opc);
 	
    
 

@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loging.h 684 2003-12-02 16:50:17Z twisti $
+   $Id: loging.h 689 2003-12-05 18:03:47Z stefan $
 
 */
 
@@ -38,8 +38,6 @@
 #define PANICIF(when,txt)  if(when)panic(txt)
 
 #define MAXLOGTEXT 500
-extern char logtext[MAXLOGTEXT];
-
 
 /* function prototypes */
 
@@ -48,8 +46,8 @@ void log_text(char *txt);
 
 void log_cputime();
 
-void dolog();
-void error();
+void dolog(char *txt, ...);
+void error(char *txt, ...);
 void panic(char *txt);
 
 long int getcputime();

@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 687 2003-12-04 22:29:54Z edwin $
+   $Id: tables.c 689 2003-12-05 18:03:47Z stefan $
 
 */
 
@@ -585,6 +585,7 @@ void utf_show ()
 u2 desc_to_type(utf *descriptor)
 {
 	char *utf_ptr = descriptor->text;  /* current position in utf text */
+	char logtext[MAXLOGTEXT];
 
 	if (descriptor->blength < 1) panic("Type-Descriptor is empty string");
 	
@@ -603,7 +604,7 @@ u2 desc_to_type(utf *descriptor)
 			
 	sprintf(logtext, "Invalid Type-Descriptor: ");
 	utf_sprint(logtext+strlen(logtext), descriptor);
-	error();
+	error(logtext);
 
 	return 0;
 }

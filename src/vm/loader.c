@@ -29,7 +29,7 @@
             Roman Obermaiser
             Mark Probst
 
-   $Id: loader.c 687 2003-12-04 22:29:54Z edwin $
+   $Id: loader.c 689 2003-12-05 18:03:47Z stefan $
 
 */
 
@@ -416,8 +416,7 @@ bool suck_start(utf *classname)
 		}
 	}
 	if (verbose) {
-		sprintf(logtext, "Warning: Can not open class file '%s'", filename);
-		dolog();
+		dolog("Warning: Can not open class file '%s'", filename);
 	}
 
 	return false;
@@ -440,9 +439,8 @@ void suck_stop()
 
 	if (classdata_left > 0) {
 		/* surplus */        	
-		sprintf(logtext, "There are %d access bytes at end of classfile",
+		dolog("There are %d access bytes at end of classfile",
 				classdata_left);
-		dolog();
 	}
 
 	/* free memory */
@@ -545,9 +543,8 @@ voidptr innerclass_getconstant (classinfo *c, u4 pos, u4 ctype)
 
 	/* check type of constantpool entry */
 	if (c->cptags[pos] != ctype) {
-		sprintf (logtext, "Type mismatch on constant: %d requested, %d here (innerclass_getconstant)",
+		error ("Type mismatch on constant: %d requested, %d here (innerclass_getconstant)",
 		 (int) ctype, (int) c->cptags[pos] );
-		error();
 		}
 		
 	return c->cpinfos[pos];
@@ -1038,9 +1035,8 @@ voidptr class_getconstant (classinfo *c, u4 pos, u4 ctype)
 
 	if (c->cptags[pos] != ctype) {
 		class_showconstantpool(c);
-		sprintf (logtext, "Type mismatch on constant: %d requested, %d here (class_getconstant)",
+		error ("Type mismatch on constant: %d requested, %d here (class_getconstant)",
 		 (int) ctype, (int) c->cptags[pos] );
-		error();
 		}
 		
 	return c->cpinfos[pos];
@@ -1280,8 +1276,7 @@ static void class_loadcpool (classinfo *c)
 				}
 										
 			default:
-				sprintf (logtext, "Unkown constant type: %d",(int) t);
-				error ();
+				error ("Unkown constant type: %d",(int) t);
 		
 			}  /* end switch */
 			
@@ -1416,9 +1411,10 @@ static int class_load(classinfo *c)
 
 	/* output for debugging purposes */
 	if (loadverbose) {		
+		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Loading class: ");
 		utf_sprint(logtext+strlen(logtext), c->name);
-		dolog();
+		dolog(logtext);
 	}
 	
 	/* load classdata, throw exception on error */
@@ -1434,9 +1430,8 @@ static int class_load(classinfo *c)
 	mi = suck_u2(); 
 	ma = suck_u2();
 	if (ma != MAJOR_VERSION && (ma != MAJOR_VERSION+1 || mi != 0)) {
-		sprintf (logtext, "File version %d.%d is not supported",
+		error ("File version %d.%d is not supported",
 		                 (int) ma, (int) mi);
-		error();
 		}
 
 	class_loadcpool (c);
@@ -1520,9 +1515,10 @@ static s4 class_highestinterface (classinfo *c)
 	s4 i;
 	
 	if ( ! (c->flags & ACC_INTERFACE) ) {
+		char logtext[MAXLOGTEXT];
 	  	sprintf (logtext, "Interface-methods count requested for non-interface:  ");
     	utf_sprint (logtext+strlen(logtext), c->name);
-    	error();
+    	error(logtext);
     	}
     
     h = c->index;
@@ -1845,9 +1841,10 @@ void class_link(classinfo *c)
 
 
 	if (linkverbose) {
+		char logtext[MAXLOGTEXT];
 		sprintf (logtext, "Linking Class: ");
 		utf_sprint (logtext+strlen(logtext), c->name );
-		dolog ();
+		dolog (logtext);
 	}
 
 	/* compute vftbl length */
@@ -2379,10 +2376,11 @@ void class_init(classinfo *c)
         m = class_findmethod (c, utf_clinit, utf_fidesc);
         if (!m) {
                 if (initverbose) {
+						char logtext[MAXLOGTEXT];
                         sprintf (logtext, "Class ");
                         utf_sprint (logtext+strlen(logtext), c->name);
                         sprintf (logtext+strlen(logtext), " has no initializer");
-                        dolog ();
+                        dolog (logtext);
                         }
 /*              goto callinitialize;*/
                 return;
@@ -2392,9 +2390,10 @@ void class_init(classinfo *c)
                 panic ("Class initializer is not static!");
 
         if (initverbose) {
+				char logtext[MAXLOGTEXT];
                 sprintf (logtext, "Starting initializer for class: ");
                 utf_sprint (logtext+strlen(logtext), c->name);
-                dolog ();
+                dolog (logtext);
         }
 
 #ifdef USE_THREADS
@@ -2419,9 +2418,10 @@ void class_init(classinfo *c)
                 }
 
         if (initverbose) {
+				char logtext[MAXLOGTEXT];
                 sprintf (logtext, "Finished initializer for class: ");
                 utf_sprint (logtext+strlen(logtext), c->name);
-                dolog ();
+                dolog (logtext);
         }
         if (c->name == utf_systemclass) {
                 /* class java.lang.System requires explicit initialization */

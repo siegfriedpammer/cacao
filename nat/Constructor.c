@@ -65,9 +65,10 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
                   (m->descriptor == create_methodsig(this->parameterTypes,"V"))))*/
 	{
                 if (verbose) {
+						char logtext[MAXLOGTEXT];
                         sprintf(logtext, "Warning: class has no instance-initializer of specified type: ");
                         utf_sprint(logtext + strlen(logtext), ((struct classinfo*)clazz)->name);
-                        dolog();
+                        dolog(logtext);
 			utf_display( create_methodsig(this->parameterTypes,"V"));
 			printf("\n");
 			class_showconstantpool(clazz);

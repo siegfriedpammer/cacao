@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 662 2003-11-21 18:06:25Z jowenn $
+   $Id: boehm.c 689 2003-12-05 18:03:47Z stefan $
 
 */
 
@@ -161,11 +161,9 @@ void gc_init()
 
 void gc_call()
 {
-  	if (collectverbose) {
-		sprintf(logtext, "Garbage Collection:  previous/now = %d / %d ",
+  	if (collectverbose)
+		dolog("Garbage Collection:  previous/now = %d / %d ",
 				0, 0);
-		dolog();
-  	}
 
 	GC_gcollect();
 }
