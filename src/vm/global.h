@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1297 2004-07-10 17:04:43Z stefan $
+   $Id: global.h 1326 2004-07-21 13:22:33Z twisti $
 
 */
 
@@ -67,7 +67,7 @@
  * categories for stack manipulations (POP,POP2,SWAP,DUP,DUP2,DUP_X1,
  * DUP2_X1,DUP_X2,DUP2_X2).
  */
-/* #define TYPECHECK_STACK_COMPCAT */
+#define TYPECHECK_STACK_COMPCAT
 
 /*
  * Macros for configuration of the typechecking code
@@ -101,6 +101,8 @@ typedef int   bool;             /* boolean data type */
 #define true  1
 #define false 0
 
+typedef void (*functionptr) (); /* generic function pointer */
+
 
 /* immediate data union */
 
@@ -128,8 +130,6 @@ typedef union {
 #define PRIMITIVETYPE_SHORT   6
 #define PRIMITIVETYPE_BOOLEAN 7
 #define PRIMITIVETYPE_VOID    8
-
-typedef void (*functionptr) (); /* generic function pointer */
 
 
 #define MAX_ALIGN 8             /* most generic alignment for JavaVM values   */
@@ -566,6 +566,7 @@ struct lineinfo {
 /* methodinfo *****************************************************************/
 
 struct methodinfo {                 /* method structure                       */
+	java_objectheader header;       /* we need this in jit's monitorenter     */
 	s4	       flags;               /* ACC flags                              */
 	utf       *name;                /* name of method                         */
 	utf       *descriptor;          /* JavaVM descriptor string of method     */
@@ -608,6 +609,8 @@ struct methodinfo {                 /* method structure                       */
 	lineinfo  *linenumbers;         /* array of lineinfo items                */
 
 	struct registerdata *registerdata; /* struct with all regalloc stuff      */
+
+	struct codegendata *codegendata;/* struct with codegen stuff              */
 
 	u1        *stubroutine;         /* stub for compiling or calling natives  */
 	s4         mcodelength;         /* legth of generated machine code        */
