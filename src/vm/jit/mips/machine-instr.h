@@ -5,6 +5,8 @@
 
 /* If anyone wants to compile with gcc, use this section.
  * It is not usable with the MIPSPro compiler.
+ *
+ * It is outdated, too.
  */ 
 
 static inline long
@@ -55,8 +57,18 @@ compare_and_swap (volatile long *p, long oldval, long newval)
 
 #else
 
-long atomic_swap (long *, long val);
-int compare_and_swap (long *p, long oldval, long newval);
+static inline void
+atomic_add(int *mem, int val)
+{
+	*mem += val;
+}
+
+long compare_and_swap (long *p, long oldval, long newval);
+
+#define STORE_ORDER_BARRIER()
+#define MEMORY_BARRIER_BEFORE_ATOMIC()
+#define MEMORY_BARRIER_AFTER_ATOMIC()
+#define MEMORY_BARRIER()
 
 #endif
 #endif
