@@ -152,6 +152,26 @@
 		}\
 }
 
+#ifdef USEBUILTINTABLE
+static stdopdescriptor *find_builtin(stdopdescriptor *first, stdopdescriptor *last,
+		int icmd)
+{
+	int len = last - first;
+	int half;
+	stdopdescriptor *middle;
+
+	while (len > 0) {
+		half = len/2;
+		middle = first + half;
+		if (middle->opcode < icmd) {
+			first = middle + 1;
+			len -= half + 1;
+		} else
+			len = half;
+	}
+	return first;
+}
+#endif
 
 static void show_icmd_method();
 
@@ -166,7 +186,6 @@ static void analyse_stack()
 	basicblock *bptr, *tbptr;
 	s4 *s4ptr;
 	void* *tptr;
-	xtable *ex;
 	
 	arguments_num = 0;
 	new = stack;
@@ -293,6 +312,27 @@ static void analyse_stack()
 				while (--len >= 0)  {
 					opcode = iptr->opc;
 					iptr->target = NULL;
+
+#ifdef USEBUILTINTABLE
+					{
+						stdopdescriptor *blast = builtintable + sizeof(builtintable)/sizeof(stdopdescriptor);
+						stdopdescriptor *breplace;
+						breplace = find_builtin(builtintable, blast, opcode);
+						if (breplace != blast && opcode == breplace->opcode && !breplace->supported) {
+							iptr[0].opc = breplace->icmd;
+							iptr[0].op1 = breplace->type_d;
+							iptr[0].val.a = breplace->builtin;
+							isleafmethod = false;
+							switch (breplace->icmd) {
+							case ICMD_BUILTIN1:
+								goto builtin1;
+							case ICMD_BUILTIN2:
+								goto builtin2;
+							}
+						}
+					}
+#endif
+					
 					switch (opcode) {
 
 						/* pop 0 push 0 */
@@ -407,7 +447,7 @@ icmd_iconst_tail:
 										iptr[0].opc = ICMD_IDIVPOW2;
 										goto icmd_iconst_tail;
 									case ICMD_IREM:
-#ifndef __I386__
+#if !defined(__I386__) && !defined(NO_DIV_OPT)
 										if (iptr[0].val.i == 0x10001) {
 											iptr[0].opc = ICMD_IREM0X10001;
 											goto icmd_iconst_tail;
@@ -468,6 +508,7 @@ icmd_iconst_tail:
 									case ICMD_IUSHR:
 										iptr[0].opc = ICMD_IUSHRCONST;
 										goto icmd_iconst_tail;
+#if SUPPORT_LONG_SHIFT
   									case ICMD_LSHL:
   										iptr[0].opc = ICMD_LSHLCONST;
  										goto icmd_lconst_tail;
@@ -477,6 +518,7 @@ icmd_iconst_tail:
 									case ICMD_LUSHR:
 										iptr[0].opc = ICMD_LUSHRCONST;
 										goto icmd_lconst_tail;
+#endif
 									case ICMD_IF_ICMPEQ:
 										iptr[0].opc = ICMD_IFEQ;
 icmd_if_icmp_tail:
@@ -518,6 +560,7 @@ icmd_if_icmp_tail:
 							COUNT(count_pcmd_load);
 							if (len > 0) {
 								switch (iptr[1].opc) {
+#if SUPPORT_LONG_ADD
 									case ICMD_LADD:
 										iptr[0].opc = ICMD_LADDCONST;
 icmd_lconst_tail:
@@ -528,6 +571,8 @@ icmd_lconst_tail:
 									case ICMD_LSUB:
 										iptr[0].opc = ICMD_LSUBCONST;
 										goto icmd_lconst_tail;
+#endif
+#if SUPPORT_LONG_MULDIV
 									case ICMD_LMUL:
 										iptr[0].opc = ICMD_LMULCONST;
 										goto icmd_lconst_tail;
@@ -601,7 +646,7 @@ icmd_lconst_tail:
 										iptr[0].opc = ICMD_LDIVPOW2;
 										goto icmd_lconst_tail;
 									case ICMD_LREM:
-#ifndef __I386__
+#if !defined(__I386__) && !defined(NO_DIV_OPT)
 										if (iptr[0].val.l == 0x10001) {
 											iptr[0].opc = ICMD_LREM0X10001;
 											goto icmd_lconst_tail;
@@ -644,6 +689,8 @@ icmd_lconst_tail:
 											}
 										PUSHCONST(TYPE_LNG);
 										break;
+#endif
+#if SUPPORT_LONG_LOG
 									case ICMD_LAND:
 										iptr[0].opc = ICMD_LANDCONST;
 										goto icmd_lconst_tail;
@@ -653,6 +700,8 @@ icmd_lconst_tail:
 									case ICMD_LXOR:
 										iptr[0].opc = ICMD_LXORCONST;
 										goto icmd_lconst_tail;
+#endif
+#ifndef NOLONG_CONDITIONAL
 									case ICMD_LCMP:
 										if ((len > 1) && (iptr[2].val.i == 0)) {
 											switch (iptr[2].opc) {
@@ -695,6 +744,7 @@ icmd_lconst_lcmp_tail:
 										else
 											PUSHCONST(TYPE_LNG);
 										break;
+#endif
 									default:
 										PUSHCONST(TYPE_LNG);
 									}
@@ -1240,6 +1290,7 @@ icmd_lconst_lcmp_tail:
 
 						case ICMD_LCMP:
 							COUNT(count_pcmd_op);
+#ifndef NOLONG_CONDITIONAL
 							if ((len > 0) && (iptr[1].val.i == 0)) {
 								switch (iptr[1].opc) {
 									case ICMD_IFEQ:
@@ -1277,6 +1328,7 @@ icmd_lcmp_if_tail:
 									}
 								}
 							else
+#endif
 								OPTT2_1(TYPE_LNG, TYPE_INT);
 							break;
 						case ICMD_FCMPL:
@@ -1459,6 +1511,7 @@ builtin2:
 							OP1_0ANY;
 
 						case ICMD_BUILTIN1:
+builtin1:
 							if (! (curstack->flags & SAVEDVAR)) {
 								curstack->varkind = ARGVAR;
 								curstack->varnum = 0;
@@ -1725,7 +1778,7 @@ static char *jit_type[] = {
 
 static void show_icmd_method()
 {
-	int i, j, last;
+	int i, j;
 	int deadcode;
 	s4  *s4ptr;
 	instruction *iptr;
