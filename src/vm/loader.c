@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1296 2004-07-10 17:02:15Z stefan $
+   $Id: loader.c 1329 2004-07-21 15:36:33Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 #include <string.h>
 #include <assert.h>
 #include <sys/stat.h>
+#include "exceptions.h"
 #include "global.h"
 #include "loader.h"
 #include "options.h"
@@ -162,24 +163,6 @@ java_objectheader *proto_java_lang_NullPointerException;
 *******************************************************************************/
 
 static char *classpath    = "";     /* searchpath for classfiles              */
-
-
-static java_objectheader *new_classformaterror(classinfo *c, char *message, ...)
-{
-	char cfmessage[MAXLOGTEXT];
-	va_list ap;
-
-	utf_sprint_classname(cfmessage, c->name);
-	sprintf(cfmessage + strlen(cfmessage), " (");
-
-	va_start(ap, message);
-	vsprintf(cfmessage + strlen(cfmessage), message, ap);
-	va_end(ap);
-
-	sprintf(cfmessage + strlen(cfmessage), ")");
-
-	return new_exception_message(string_java_lang_ClassFormatError, cfmessage);
-}
 
 
 /* check_classbuffer_size ******************************************************
@@ -362,7 +345,7 @@ void suck_init(char *cpath)
 			isZip = 0;
 			filenamelen = end - start;
 
-			if (filenamelen>3) {
+			if (filenamelen > 3) {
 				if (strncasecmp(end - 3, "zip", 3) == 0 ||
 					strncasecmp(end - 3, "jar", 3) == 0) {
 					isZip = 1;
@@ -377,21 +360,21 @@ void suck_init(char *cpath)
 
 			strncpy(filename, start, filenamelen);
 			filename[filenamelen + 1] = '\0';
-			tmp = 0;
+			tmp = NULL;
 
 			if (isZip) {
-#ifdef USE_ZLIB
+#if defined(USE_ZLIB)
 				unzFile uf = unzOpen(filename);
 
 				if (uf) {
 					tmp = (union classpath_info *) NEW(classpath_info);
 					tmp->archive.type = CLASSPATH_ARCHIVE;
 					tmp->archive.uf = uf;
-					tmp->archive.next = 0;
-					filename = 0;
+					tmp->archive.next = NULL;
+					filename = NULL;
 				}
 #else
-				panic("Zip/JAR not supported");
+				throw_cacao_exception_exit(string_java_lang_InternalError, "zip/jar files not supported");
 #endif
 				
 			} else {
@@ -407,7 +390,7 @@ void suck_init(char *cpath)
 			
 				tmp->filepath.filename = filename;
 				tmp->filepath.pathlen = filenamelen;				
-				filename = 0;
+				filename = NULL;
 			}
 
 			if (tmp) {
@@ -504,7 +487,7 @@ classbuffer *suck_start(classinfo *c)
 	filenamelen += 6;
 
 	for (currPos = classpath_entries; currPos != 0; currPos = currPos->filepath.next) {
-#ifdef USE_ZLIB
+#if defined(USE_ZLIB)
 		if (currPos->filepath.type == CLASSPATH_ARCHIVE) {
 			if (cacao_locate(currPos->archive.uf, c->name) == UNZ_OK) {
 				unz_file_info file_info;
@@ -556,7 +539,7 @@ classbuffer *suck_start(classinfo *c)
 					return cb;
 				}
 			}
-#ifdef USE_ZLIB
+#if defined(USE_ZLIB)
 		}
 #endif
 	}
@@ -1333,9 +1316,13 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 
 			m->jcodelength = suck_u4(cb);
 
-			if (m->jcodelength == 0)
-				panic("bytecode has zero length");
+			if (m->jcodelength == 0) {
+				*exceptionptr =
+					new_classformaterror(c, "Code of a method has length 0");
 
+				return false;
+			}
+			
 			if (m->jcodelength > 65535) {
 				*exceptionptr =
 					new_classformaterror(c,
@@ -1994,25 +1981,13 @@ classinfo *class_load(classinfo *c)
 	s8 starttime;
 	s8 stoptime;
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-	compiler_lock();
-	tables_lock();
-#else
-	intsDisable();
-#endif
-#endif
+	/* enter a monitor on the class */
+
+	builtin_monitorenter((java_objectheader *) c);
 
 	/* maybe the class is already loaded */
 	if (c->loaded) {
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-		tables_unlock();
-		compiler_unlock();
-#else
-		intsRestore();
-#endif
-#endif
+		builtin_monitorexit((java_objectheader *) c);
 
 		return c;
 	}
@@ -2033,14 +2008,7 @@ classinfo *class_load(classinfo *c)
 			new_exception_utfmessage(string_java_lang_NoClassDefFoundError,
 									 c->name);
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-		tables_unlock();
-		compiler_unlock();
-#else
-		intsRestore();
-#endif
-#endif
+		builtin_monitorexit((java_objectheader *) c);
 
 		return NULL;
 	}
@@ -2065,14 +2033,9 @@ classinfo *class_load(classinfo *c)
 		loadingtime += (stoptime - starttime);
 	}
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-	tables_unlock();
-	compiler_unlock();
-#else
-	intsRestore();
-#endif
-#endif
+	/* leave the monitor */
+
+	builtin_monitorexit((java_objectheader *) c);
 
 	return r;
 }
@@ -2720,25 +2683,13 @@ classinfo *class_link(classinfo *c)
 	s8 starttime;
 	s8 stoptime;
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-	compiler_lock();
-	tables_lock();
-#else
-	intsDisable();
-#endif
-#endif
+	/* enter a monitor on the class */
+
+	builtin_monitorenter((java_objectheader *) c);
 
 	/* maybe the class is already linked */
 	if (c->linked) {
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-		tables_unlock();
-		compiler_unlock();
-#else
-		intsRestore();
-#endif
-#endif
+		builtin_monitorexit((java_objectheader *) c);
 
 		return c;
 	}
@@ -2760,14 +2711,9 @@ classinfo *class_link(classinfo *c)
 		loadingtime += (stoptime - starttime);
 	}
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-	tables_unlock();
-	compiler_unlock();
-#else
-	intsRestore();
-#endif
-#endif
+	/* leave the monitor */
+
+	builtin_monitorexit((java_objectheader *) c);
 
 	return r;
 }
@@ -2916,7 +2862,7 @@ static classinfo *class_link_intern(classinfo *c)
 		}
 	}	
 	
-#ifdef STATISTICS
+#if defined(STATISTICS)
 	if (opt_stat)
 		count_vftbl_len +=
 			sizeof(vftbl_t) + (sizeof(methodptr) * (vftbllength - 1));
@@ -2985,7 +2931,7 @@ static classinfo *class_link_intern(classinfo *c)
 	
 	v->interfacevftbllength = MNEW(s4, interfacetablelength);
 
-#ifdef STATISTICS
+#if defined(STATISTICS)
 	if (opt_stat)
 		count_vftbl_len += (4 + sizeof(s4)) * v->interfacetablelength;
 #endif
@@ -4396,8 +4342,12 @@ static void loader_compute_class_values(classinfo *c)
 
 void loader_compute_subclasses(classinfo *c)
 {
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+	compiler_lock();
+#else
 	intsDisable();
+#endif
 #endif
 
 	if (!(c->flags & ACC_INTERFACE)) {
@@ -4420,8 +4370,12 @@ void loader_compute_subclasses(classinfo *c)
 		loader_compute_class_values(class_java_lang_Object);
 	}
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+	compiler_unlock();
+#else
 	intsRestore();
+#endif
 #endif
 }
 
