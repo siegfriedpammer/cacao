@@ -28,8 +28,7 @@
    Authors: Reinhard Grafl
             Andreas  Krall
 
-   Changes: Michael Gschwind
-            Christian Thalinger
+   Changes: Christian Thalinger
 
    All functions assume the following code area / data area layout:
 
@@ -48,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1621 2004-11-30 13:06:55Z twisti $
+   $Id: codegen.inc 1662 2004-12-03 15:46:18Z twisti $
 
 */
 
