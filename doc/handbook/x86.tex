@@ -1,54 +1,166 @@
-\section{X86 code generator}
+\section{x86 code generator}
 
 Porting to the famous x86 platform was more effort than
 expected. CACAO was designed to run on RISC machines from ground up,
 so the code generation part hat to be adapted. The first approach was
 to replace the simple RISC macros with x86 code, but this turned out
-to be not successful. So new x86 code generation macros where
-written. To be backward compatible, mostly in respect of embedded
-systems, all generated code can be run on i386 systems.
+to be not successful. So new x86 code generation macros where written,
+with no respect to the old RISC macros. One big difference in writing
+the new code generation macros was, that the x86 architecture is not a
+\textit{load-store architecture} like the RISC machines, but the
+\textit{machine instructions} can handle both \textit{memory operands}
+and \textit{register operands}. This led to a much more complicated
+handling of the various ICMDs. The typical handling of an ICMD on RISC
+machines looks like this (on the example of the integer add ICMD):
+
+\begin{verbatim}
+        case ICMD_IADD:
+            var_to_reg_int(s1, src->prev, REG_ITMP1);
+            var_to_reg_int(s2, src, REG_ITMP2);
+            d = reg_of_var(iptr->dst, REG_ITMP3);
+            M_IADD(s1, s2, d);
+            store_reg_to_var_int(iptr->dst, d);
+            break;
+\end{verbatim}
+
+This means loading the two \textit{source operands} from memory to
+temporary registers, if necessary, getting a \textit{destination
+register}, do the calculation and store the result to memory, if the
+destination variable resides in memory. If all operands are assigned
+to registers, only the calculation is done. This design also works on
+x86 machines but leads to much bigger code size, reduces decoding
+bandwith and increases register pressure in the processor itself,
+which results in lower performance \ref{}. Thus we use all kinds of
+instruction types that are available and decide which one we have to
+use in some \texttt{if} statements:
+
+\begin{verbatim}
+        if (IS_INMEMORY(iptr->dst)) {
+            if (IS_INMEMORY(src) && IS_INMEMORY(src->prev)) {
+                ...
+            } else if (IS_INMEMORY(src) && !IS_INMEMORY(src->prev)) {
+                ...
+            } else if (!IS_INMEMORY(src) && IS_INMEMORY(src->prev)) {
+                ...
+            } else {
+                ...
+            }
+        } else {
+            if (IS_INMEMORY(src) && IS_INMEMORY(src->prev)) {
+                ...
+            } else if (IS_INMEMORY(src) && !IS_INMEMORY(src->prev)) {
+                ...
+            } else if (!IS_INMEMORY(src) && IS_INMEMORY(src->prev)) {
+                ...
+            } else {
+                ...
+            }
+        }
+\end{verbatim}
+
+For most ICMDs we can further optimize the generated code when one
+source variable and the destination variable share the same local
+variable.
+
+To be backward compatible, mostly in respect of embedded systems, all
+generated code can be run on i386 systems.
 
 Some smaller problems occured since the x86 port was the first 32 bit
-target platform, like segmentation faults due to heap
-corruption. Another problem was the access to the functions data
-segment. Since RISC platforms like ALPHA and MIPS have a procedure
-pointer register, for the x86 platform there had to be implemented a
-special handling for accesses to the data segment, like
-\texttt{PUTSTATIC} and \texttt{GETSTATIC} instructions. The solution
-is like the handling of \textit{jump references} or \textit{check cast
-references}, which also have to be code patched, when the code and
-data segment are relocated. This means, there has to be an extra
+target platform, like segmentation faults due to heap corruption,
+which turned out to be a simple \texttt{for} loop bug only hit on 32
+bit systems. Most of the CACAO system already was
+\textit{32-bit-ready}, namely an architecture dependent
+\texttt{types.h} with definitions of the used datatypes and some
+feature flags, which features the processor itself natively
+supports. Most noticeable change was the \texttt{s8} and \texttt{u8}
+datatype from \texttt{long} to \texttt{long long} to support 64 bit
+calculations.
+
+Another problem was the access to the functions data segment. Since
+RISC platforms like ALPHA and MIPS have a procedure pointer register,
+for the x86 platform there had to be implemented a special handling
+for accesses to the data segment, like \texttt{PUTSTATIC} and
+\texttt{GETSTATIC} instructions. The solution is like the handling of
+\textit{jump references} or \textit{check cast references}, which also
+have to be code patched, when the code and data segment are
+relocated. This means, there has to be an extra
 \textit{immediate-to-register} move (\texttt{i386\_mov\_imm\_reg()})
 before every \texttt{PUT}/\texttt{GETSTATIC} instruction, which moves
 the start address of the procedure, and thus the start address of the
-data segment, in one of the temporary registers.
+data segment, in one of the temporary registers (code snippet from
+\texttt{PUTSTATIC}):
 
-Register usage was another problem in porting the CACAO to x86. An x86
-processor has 8 genernal purpose registers (GPR), of which one is the
-\textit{stack pointer} (SP) and thus it can not be used for arithmetic
-instructions. From the remaining 7 registers, in \textit{worst-case
-instructions} like \texttt{CHECKCAST} or \texttt{INSTANCEOF}, we need
-to reserve 3 temporary registers. So we have 4 registers available.
+\begin{verbatim}
+        i386_mov_imm_reg(0, REG_ITMP2);
+        dseg_adddata(mcodeptr);
+\end{verbatim}
+
+The \texttt{dseg\_adddata()} call inserts the current postion of the
+code generation pointer into a datastructure which is later processed
+by \texttt{codegen\_finish()}, where the final address of the data
+segment is patched.
 
 
 \subsection{Calling conventions}
 
-Normal calling convention of the x86 processor is passing all function
-arguments on the stack. The store size depends on the data type (the
-following types reflect the JAVA data types):
+The normal calling convention of the x86 processor is passing all
+function arguments on the stack. The store size depends on the data
+type (the following types reflect the JAVA data types):
 
 \begin{itemize}
- \item \texttt{byte}, \texttt{char}, \texttt{short}, \texttt{int},
+ \item \texttt{boolean}, \texttt{byte}, \texttt{char}, \texttt{short}, \texttt{int},
        \texttt{float}, \texttt{void} --- 4 bytes
  \item \texttt{long}, \texttt{double} --- 8 bytes
 \end{itemize}
 
-We changed this convention in a way, that we are using always 8 bytes
-on the stack for each datatype. With this adaptation, it was possible
-to use the \textit{stack space allocation algorithm} without any
-changes. The drawback of this decision was, that we have to copy all
-arguments of a native function call into a new stack frame and we have
-a slightly bigger memory footprint.
+We changed this convention for CACAO in a way, that we are using
+always 8 bytes on the stack for each datatype. After calling the function
+
+\begin{verbatim}
+        void sub(int i, long l, float f, double d);
+\end{verbatim}
+
+we have a stack layout like in figure \ref{stacklayout}.
+
+\begin{figure}[htb]
+\begin{center}
+\setlength{\unitlength}{1mm}
+\begin{picture}(50,54)
+\thicklines
+\put(0,0){\framebox(24,54){}}
+\put(0,42){\line(1,0){24}}
+\put(0,36){\line(1,0){24}}
+\put(0,30){\line(1,0){24}}
+\put(0,18){\line(1,0){24}}
+\put(0,12){\line(1,0){24}}
+\put(0,6){\line(1,0){24}}
+\put(30,0){\vector(-1,0){6}}
+\put(30,3){\makebox(24,6){\textit{+4 bytes}}}
+\put(30,-3){\makebox(24,6){\textit{stack pointer}}}
+
+\put(0,45){\makebox(24,6){\textit{double value}}}
+\put(0,36){\makebox(24,6){\textit{unused}}}
+\put(0,30){\makebox(24,6){\textit{float value}}}
+\put(0,21){\makebox(24,6){\textit{long value}}}
+\put(0,12){\makebox(24,6){\textit{unused}}}
+\put(0,6){\makebox(24,6){\textit{int value}}}
+\put(0,0){\makebox(24,6){\textit{return address}}}
+\end{picture}
+\caption{CACAO x86 stack layout after function call}
+\label{stacklayout}
+\end{center}
+\end{figure}
+
+If we pass a 32 bit variable, we just push 4 bytes onto the stack and
+leave the remaining 4 bytes untouched. This makes no problems since we
+do not read a 64 bit value from a 32 bit location. Passing a 64 bit
+value is straightforward.
+
+With this adaptation, it was possible to use the \textit{stack space
+allocation algorithm} without any changes. The drawback of this
+decision was, that we have to copy all arguments of a native function
+call into a new stack frame and we have a slightly bigger memory
+footprint.
 
 But calling a native function always means a stack manipulation,
 because you have to put the \textit{JNI environment}, and for
@@ -62,42 +174,96 @@ correct size in a new stack frame. But this only affected
 exactly, 2 functions, namely \texttt{arrayinstanceof} and
 \texttt{newarray}. So this is not a big speed impact.
 
+Return parameters are stored in different places, this depends on the
+return type of the function:
+
+\begin{itemize}
+ \item \texttt{boolean}, \texttt{byte}, \texttt{char}, \texttt{short},
+ \texttt{int}, \texttt{void}: return value resides in \texttt{\%eax}
+ (\texttt{REG\_RESULT})
+
+ \item \texttt{long}: return value is split up onto the register pair
+ \texttt{\%edx:\%eax}
+ (\texttt{REG\_RESULT2:REG\_RESULT}, high 32 bit in
+ \texttt{\%edx}, low 32 bit in \texttt{\%eax})
+
+ \item \texttt{float}, \texttt{double}: return value resides in the
+ \textit{top of stack} element of the \textit{floating point unit}
+ stack (\texttt{st(0)}, described in detail later)
+\end{itemize}
+
 
 \subsection{Register allocator}
 
-As mentioned before, in  \textit{worst-case situations} there are only
-4 integer registers available. We use \texttt{\%ebp}, \texttt{\%esi},
-\texttt{\%edi} as callee saved registers (which are callee saved
-registers in the x86 ABI) and \texttt{\%ebx} as scratch register
-(which is also a callee saved register in the x86 ABI, but we need
-some scratch registers). So we have a lack of scratch registers. But
-for most ICMD instructions, we do not need all, or sometimes none, of
-the temporary registers.
+Register usage was another problem in porting the CACAO to x86. An x86
+processor has 8 genernal purpose registers (GPR), of which one is the
+\textit{stack pointer} (SP) and thus it can not be used for arithmetic
+instructions. From the remaining 7 registers, in \textit{worst-case
+instructions} like \texttt{CHECKCAST} or \texttt{INSTANCEOF}, we need
+to reserve 3 temporary registers. So we have 4 registers available.
+
+We use \texttt{\%ebp}, \texttt{\%esi}, \texttt{\%edi} as callee saved
+registers (which are callee saved registers in the x86 ABI) and
+\texttt{\%ebx} as scratch register (which is also a callee saved
+register in the x86 ABI, but we need some scratch registers). So we
+have a lack of scratch registers. But for most ICMD instructions, we
+do not need all, or sometimes none, of the temporary registers.
 
 This fact we use in the \texttt{analyse\_stack()} pass. We try to use
 \texttt{\%edx} (which is \texttt{REG\_ITMP3}) and \texttt{\%ecx} (which
-is \texttt{REG\_ITMP2}) as scratch registers for the register allocator
-if certain ICMD instructions are not used in the compiled method.
-
-So, for \textit{best-case situations} CACAO has 3 \textit{callee
-saved} and 3 \textit{scratch} registers.
+is \texttt{REG\_ITMP2}) as scratch registers for the register
+allocator if certain ICMD instructions are not used in the compiled
+method. So for \textit{best-case situations} CACAO has 3
+\textit{callee saved} and 3 \textit{scratch} registers.
 
 This analysis should be changed from \textit{method level} to
 \textit{basic-block level}, so CACAO could emit better code on x86.
 
+The register allocator itself is very straightforward, this means, it
+does neither \textit{linear scan} nor any other analyse of the methods
+variables, but allocates registers for the local variables in order as
+they are defined. This may result in good code on RISC machines, as
+there are almost always enough registers available, with 32 registers,
+but can produce really bad code on x86 processors.
 
-\subsection{Long arithmetic}
+So the first step to make the x86 port more competitive with SUN's or
+IBM's JVM would be to rewrite the register allocator.
 
-Unlike the PowerPC port, we cannot put \texttt{long}'s in 2 32 bit
+Basically the allocation order of the register allocator is as
+follows:
+
+\begin{itemize}
+ \item interface register allocation
+ \item scratch register allocation
+ \item local register allocation
+\end{itemize}
+
+The only change which had to be made to all allocator passes, was the
+handling of \texttt{long} variables, because they are all spilled to
+memory (described in more detail in \ref{LongArithmetic}).
+
+
+\subsection{Long arithmetic}\label{LongArithmetic}
+
+Unlike the PowerPC port, we cannot put \texttt{long}'s in two 32 bit
 integer registers, since we have to little of them. Maybe this could
 bring a speedup, if the register allocator would be more intelligent
 or in leaf functions which have only \texttt{long} variables. But this
 is not implemented yet. So, the current approach is to store all
 \texttt{long}'s in memory, this means they are always spilled.
 
-Nearly all \texttt{long} instructions are inline, except 2 of them:
-\texttt{LDIV} and \texttt{LREM}. These 2 are computed via
-\texttt{BUILTIN} calls.
+Nearly all \texttt{long} instructions are inline, except two of them:
+\texttt{LDIV} and \texttt{LREM}. These two are computed via
+\texttt{BUILTIN} calls. It would be definitely possible to also
+inline them, but the code size is too big and the latency is so high,
+that the function calls are negligible.
+
+The x86 processor has some machine instructions which are specifically
+designed for 64 bit operations like \texttt{cltd} --- Convert Signed
+Long to Signed Double Long, \texttt{adc} --- Integer Add With Carry or
+\texttt{sbb} --- Integer Subtraction With Borrow. So some of the 64
+bit calculations like \texttt{LADD} or \texttt{LSUB} can be exceuted
+in two instructions.
 
 All of the \texttt{long} instructions operate on 64 bit, even if it is
 not necessary. The dependency information that would be needed to just
@@ -115,15 +281,15 @@ implemented as a stack with 8 elements (see table \ref{FPUStack}).
 \begin{center}
 \begin{tabular}[b]{|l|l|}
 \hline 
-  & FPU Data Register Stack \\ \hline
-0 & TOS (Top Of Stack) \\ \hline
-1 & \\ \hline
-2 & \\ \hline
-3 & \\ \hline
-4 & \\ \hline
-5 & \\ \hline
-6 & \\ \hline
-7 & \\ \hline
+st(x) & FPU Data Register Stack \\ \hline
+0     & TOS (Top Of Stack) \\ \hline
+1     & \\ \hline
+2     & \\ \hline
+3     & \\ \hline
+4     & \\ \hline
+5     & \\ \hline
+6     & \\ \hline
+7     & \\ \hline
 \end{tabular}
 \caption{x87 FPU Data Register Stack}
 \label{FPUStack}
@@ -135,7 +301,43 @@ This stack is designed to wrap around if values are loaded to the
 points to the TOS. This pointer is increased if a load instruction to
 the TOS is executed and decreased for a store from the TOS.
 
-The x86 FPU can handle 3 float data types:
+At first sight, the stack design of the FPU is perfect for the stack
+based design of a \textit{java virtual machine} (JVM). But there is a
+big problem. The JVM stack has no fixed size, so it can grow up to
+much more than 8 elements and we get an stack wrap around and thus an
+stack overflow. For this reason we need to implement an
+\textit{stack-element-to-register-mapping}.
+
+A very basic design idea, is to define a pointer to the current TOS
+offset (\texttt{fpu\_st\_offset}). With this offset we can determine
+the current register position in the FPU stack of an arbitrary
+register.  From the 8 stack elements we need to reserve the last two
+ones (\texttt{st(6), st(7)}), so we can load two memory operands onto
+the stack and do the arithmetic on them. Most x86 floating point
+arithmetic operations have an \textit{do arithmetic and pop one
+element} version of the instruction, that means the float arithmetic
+is done and the TOS element is poped off. The remaining stack element
+has the result of the calculation. On the example of the \texttt{FADD}
+ICMD with two memory operands, it looks like this:
+
+\begin{verbatim}
+var_to_reg_flt(s1, src->prev, REG_FTMP1); /* load 1st operand in st(0), increase
+                                             fpu_st_offset                          */
+var_to_reg_flt(s2, src, REG_FTMP2);       /* load 2nd operand in st(0), increase
+                                             fpu_st_offset                          */
+i386_faddp();       /* add 2 upper most elements st(1) = st(1) + st(0) -- pop st(0) */
+fpu_st_offset--;                        /* decrease fpu_st_offset from previous pop */
+store_reg_to_var_flt(iptr->dst, d); /* store result -- decrease fpu_st_offset       */
+\end{verbatim}
+
+This mapping works very good with \textit{scratch registers}
+only. Defining \textit{callee saved float registers} makes some
+problemes since the x86 ABI has no callee saved float registers. This
+would need a special handling in the \textit{native stub} of a native
+function, namely saving the registers and cleaning the whole FPU
+stack, because a C function expects a clear FPU stack.
+
+Basically the x86 FPU can handle 3 float data types:
 
 \begin{itemize}
  \item single-precision (32 bit)
@@ -279,9 +481,11 @@ there are two different approaches:
  the actual mode is \textit{single-precision}.
 \end{itemize}
 
-TODO: description of stack-to-register mapping
+These techniques and further researches into optimizations which could
+be done, are described in \cite{OgKoNa02}.
 
-None of these techniques worked prefectly for CACAO, so the decision
-was to store all \texttt{float}'s and \texttt{double}'s into memory,
-so the rounding was correct. This behaviour will be changed, when we
-have found a solution that works.
+All of these described FPU techniques have been implemented in CACAO's
+x86 port, but the results were not completly IEEE 754 compliant. So
+the CACAO developer team decided to be on the safe side and to store
+all float variables in memory, until we have found a solution which is
+fast and 100\% compliant.
