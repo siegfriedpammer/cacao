@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 1840 2005-01-04 11:16:57Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -44,7 +44,7 @@ else
 THREAD_LIB =
 endif
 
-bindir = $(prefix)/jre/bin
+bindir = $(prefix)/bin
 bin_PROGRAMS = cacaoh
 
 cacaoh_SOURCES = \
@@ -62,10 +62,6 @@ cacaoh_LDADD = \
 	$(top_srcdir)/src/classpath/native/jni/java-lang/.libs/libjavalang.a
 
 cacaoh_DEPENDENCIES = $(cacaoh_LDADD)
-
-install-exec-hook:
-	$(mkinstalldirs) $(DESTDIR)$(prefix)/bin
-	$(LN_S) -f $(DESTDIR)$(bindir)/cacaoh $(DESTDIR)$(prefix)/bin
 
 ## Local variables:
 ## mode: Makefile
