@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 2120 2005-03-29 22:00:33Z twisti $
+   $Id: global.h 2157 2005-03-30 20:05:55Z twisti $
 
 */
 
@@ -285,8 +285,6 @@ struct java_objectarray {
 };
 
 
-/* check if class is an array class. Only use for linked classes! */
-#define CLASS_IS_ARRAY(clsinfo)  ((clsinfo)->vftbl->arraydesc != NULL)
 #define VFTBLINTERFACETABLE(v,i)       (v)->interfacetable[-i]
 
 
