@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: native.c 1436 2004-11-05 09:49:48Z twisti $
 
 */
 
@@ -887,7 +887,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
 			/* string already in hashtable, free memory */
 			if (!copymode)
-				lit_mem_free(a, sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10);
+				mem_free(a, sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10);
 
 #ifdef DEBUG_LITERALSTRING_U2
 			printf("literalstring_u2: foundentry at %p\n", js);
@@ -906,7 +906,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
     if (copymode) {
 		/* create copy of u2-array for new javastring */
 		u4 arraysize = sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10;
-		stringdata = lit_mem_alloc(arraysize);
+		stringdata = mem_alloc(arraysize);
 /*    		memcpy(stringdata, a, arraysize); */
   		memcpy(&(stringdata->header), &(a->header), sizeof(java_arrayheader));
   		memcpy(&(stringdata->data), &(a->data) + offset, sizeof(u2) * (length - 1) + 10);
@@ -931,7 +931,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 	}
 
     /* create new javastring */
-    js = LNEW(java_lang_String);
+    js = NEW(java_lang_String);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initObjectLock(&js->header);
 #endif
@@ -1009,7 +1009,7 @@ java_objectheader *literalstring_new(utf *u)
     u4 i;
 
     /* allocate memory */ 
-    a = lit_mem_alloc(sizeof(java_chararray) + sizeof(u2) * (utflength - 1) + 10);
+    a = mem_alloc(sizeof(java_chararray) + sizeof(u2) * (utflength - 1) + 10);
 
     /* convert utf-string to u2-array */
     for (i = 0; i < utflength; i++)
@@ -1031,10 +1031,10 @@ void literalstring_free(java_objectheader* sobj)
 	java_chararray *a = s->value;
 
 	/* dispose memory of java.lang.String object */
-	LFREE(s, java_lang_String);
+	FREE(s, java_lang_String);
 
 	/* dispose memory of java-characterarray */
-	LFREE(a, sizeof(java_chararray) + sizeof(u2) * (a->header.size - 1)); /* +10 ?? */
+	FREE(a, sizeof(java_chararray) + sizeof(u2) * (a->header.size - 1)); /* +10 ?? */
 }
 
 
