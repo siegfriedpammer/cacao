@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 696 2003-12-06 20:10:05Z edwin $
+# $Id: Makefile.am 736 2003-12-13 15:52:46Z stefan $
 
 @SET_MAKE@
 
@@ -90,6 +90,7 @@ cacaoh_DEPENDENCIES = \
 
 
 nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makefile
+	test -f stamp-nat || \
 	CLASSPATH=./classpathbin/@ARCH_DIR@/lib ./cacaoh \
 	java.lang.String \
 	java.lang.Class \
@@ -184,11 +185,15 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	gnu.java.security.x509.X509Certificate  \
 	java.lang.JOWENNTest1 \
 	@AWTPEERS@
+	touch stamp-nat nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh
 
 native.c: nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh
 
 checkjvm:
 	$(MAKE) -C jvmtst $@
+
+clean:
+	rm -f stamp-nat
 
 
 ## Local variables:
