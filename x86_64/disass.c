@@ -10,12 +10,11 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: disass.c 412 2003-08-22 17:45:57Z twisti $
+    Last Change: $Id: disass.c 518 2003-10-22 20:55:48Z twisti $
 
 *******************************************************************************/
 
 #include "dis-asm.h"
-#include "dis-stuff.h"
 
 static u1 *codestatic = 0;
 static int pstatic = 0;
@@ -87,7 +86,7 @@ static void disassinstr(u1 *code, int pos)
 		dis_initialized = 1;
 	}
 
-	printf("0x%016lx:   ", code);
+	printf("0x%016lx:   ", (s8) code);
 	mylen = 0;
 	seqlen = print_insn_i386((bfd_vma) code, &info);
 
@@ -126,7 +125,7 @@ static void disassemble(u1 *code, int len)
 
 	printf("  --- disassembler listing ---\n");
 	for (p = 0; p < len;) {
-		printf("0x%016lx:   ", code);
+		printf("0x%016lx:   ", (s8) code);
 		mylen = 0;
 
 		seqlen = print_insn_i386((bfd_vma) code, &info);
