@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2038 2005-03-20 11:22:40Z twisti $
+   $Id: jit.c 2040 2005-03-20 13:39:51Z twisti $
 
 */
 
@@ -1175,11 +1175,11 @@ stdopdescriptor builtintable[] = {
 	{ ICMD_LCMP,   TYPE_LONG, TYPE_LONG, TYPE_INT, ICMD_BUILTIN2,
 	  (functionptr) builtin_lcmp , SUPPORT_LONG && SUPPORT_LONG_CMP, false },
 	{ ICMD_LAND,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_land , SUPPORT_LONG && SUPPORT_LONG_LOG, false },
+	  (functionptr) builtin_land , SUPPORT_LONG && SUPPORT_LONG_LOGICAL, false },
 	{ ICMD_LOR,    TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_lor , SUPPORT_LONG && SUPPORT_LONG_LOG, false },
+	  (functionptr) builtin_lor , SUPPORT_LONG && SUPPORT_LONG_LOGICAL, false },
 	{ ICMD_LXOR,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_lxor , SUPPORT_LONG && SUPPORT_LONG_LOG, false },
+	  (functionptr) builtin_lxor , SUPPORT_LONG && SUPPORT_LONG_LOGICAL, false },
 	{ ICMD_LSHL,   TYPE_LONG, TYPE_INT,  TYPE_LONG, ICMD_BUILTIN2,
 	  (functionptr) builtin_lshl , SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
 	{ ICMD_LSHR,   TYPE_LONG, TYPE_INT,  TYPE_LONG, ICMD_BUILTIN2,
@@ -1253,11 +1253,11 @@ builtin_descriptor builtin_desc[] = {
 	             SUPPORT_LONG && SUPPORT_LONG_CMP,false,"lcmp"},
 	
 	{ICMD_LAND , BUILTIN_land ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_LOG,false,"land"},
+	             SUPPORT_LONG && SUPPORT_LONG_LOGICAL,false,"land"},
 	{ICMD_LOR  , BUILTIN_lor  ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_LOG,false,"lor"},
+	             SUPPORT_LONG && SUPPORT_LONG_LOGICAL,false,"lor"},
 	{ICMD_LXOR , BUILTIN_lxor ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_LOG,false,"lxor"},
+	             SUPPORT_LONG && SUPPORT_LONG_LOGICAL,false,"lxor"},
 	
 	{ICMD_LSHL , BUILTIN_lshl ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_INT   ,TYPE_VOID ,TYPE_LONG  ,
 	             SUPPORT_LONG && SUPPORT_LONG_SHIFT,false,"lshl"},
