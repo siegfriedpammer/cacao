@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1337 2004-07-21 16:00:33Z twisti $
+   $Id: parse.c 1373 2004-08-01 21:56:36Z stefan $
 
 */
 
@@ -1407,8 +1407,8 @@ methodinfo *parse(methodinfo *m)
 #ifdef USE_THREADS
 			if (checksync) {
 				BUILTIN1(BUILTIN_monitorexit, TYPE_VOID,currentline);
-			}
-			else
+				OP(ICMD_CHECKEXCEPTION);
+			} else
 #endif
 				{
 					OP(ICMD_POP);
