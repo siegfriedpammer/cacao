@@ -38,6 +38,10 @@
 #define THREAD_FLAGS_USER_SUSPEND       2  /* Flag explicit suspend() call */
 #define	THREAD_FLAGS_KILLED		4
 
+typedef struct {
+	int super_baseval, super_diffval, sub_baseval;
+} castinfo;
+
 #if !defined(NATIVE_THREADS)
 
 #define MAXTHREADS              256          /* schani */

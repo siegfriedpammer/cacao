@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: headers.c 1070 2004-05-19 16:32:18Z stefan $
 
 */
 
@@ -170,6 +170,11 @@ u1* asm_initialize_thread_stack(void *func, u1 *stack) { return NULL; }
 void thread_restartcriticalsection() {}
 void asm_switchstackandcall() {}
 void asm_handle_builtin_exception(classinfo *c) {}
+void asm_getclassvalues_atomic() {}
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+threadcritnode asm_criticalsections;
+#endif
 
 java_objectheader *native_new_and_init(void *p) { return NULL; }
 
@@ -667,7 +672,11 @@ int main(int argc, char **argv)
 	fprintf(file, "#define offaddrreturnfromnative %3d\n", (int) OFFSET(native_stackframeinfo,addrReturnFromNative));
 	fprintf(file, "#define offprevnative %3d\n", (int) OFFSET(native_stackframeinfo,prev));
 	fprintf(file, "#define offnextnative %3d\n", (int) OFFSET(native_stackframeinfo,next));
-	
+
+	fprintf(file, "\n");
+	fprintf(file, "#define offcast_super_baseval  %3d\n", (int) OFFSET(castinfo, super_baseval));
+	fprintf(file, "#define offcast_super_diffval  %3d\n", (int) OFFSET(castinfo, super_diffval));
+	fprintf(file, "#define offcast_sub_baseval    %3d\n", (int) OFFSET(castinfo, sub_baseval));
 
 	fclose(file);
 
