@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2020 2005-03-09 12:01:42Z twisti $
+   $Id: cacao.c 2022 2005-03-09 12:07:57Z twisti $
 
 */
 
@@ -236,7 +236,9 @@ static void usage()
 	printf("          -liberalutf........... don't warn about overlong UTF-8 sequences\n");
 	printf("          -softnull ............ use software nullpointer check\n");
 	printf("          -time ................ measure the runtime\n");
+#if defined(STATISTICS)
 	printf("          -stat ................ detailed compiler statistics\n");
+#endif
 	printf("          -log logfile ......... specify a name for the logfile\n");
 	printf("          -c(heck)b(ounds) ..... don't check array bounds\n");
 	printf("                  s(ync) ....... don't check for synchronization\n");
@@ -628,9 +630,11 @@ int main(int argc, char **argv)
 			getloadingtime = true;
 			break;
 					
+#if defined(STATISTICS)
 		case OPT_STAT:
 			opt_stat = true;
 			break;
+#endif
 					
 		case OPT_LOG:
 			strcpy(logfilename, opt_arg);
