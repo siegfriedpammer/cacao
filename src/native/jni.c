@@ -24,11 +24,14 @@
 
    Contact: cacao@complang.tuwien.ac.at
 
-   Authors: ?
+   Authors: Rainhard Grafl
+            Roman Obermaisser
 
-   Changes: Joseph Wenninger, Martin Platter
+   Changes: Joseph Wenninger
+            Martin Platter
+            Christian Thalinger
 
-   $Id: jni.c 1866 2005-01-12 13:17:24Z twisti $
+   $Id: jni.c 1922 2005-02-10 10:42:30Z twisti $
 
 */
 
@@ -64,26 +67,18 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 
 
-/* XXX TWISTI hack: define it extern to be found in this file */
-extern struct _JavaVM JNI_javaVMTable;
-extern struct JNI_Table JNI_envTable;
+/* XXX TWISTI hack: define it extern so they can be found in this file */
+extern const struct JNIInvokeInterface JNI_JavaVMTable;
+extern struct JNINativeInterface JNI_JNIEnvTable;
 
 
 #define PTR_TO_ITEM(ptr)   ((u8)(size_t)(ptr))
-
-static utf* utf_char = 0;
-static utf* utf_bool = 0;
-static utf* utf_byte  =0;
-static utf* utf_short = 0;
-static utf* utf_int = 0;
-static utf* utf_long = 0;
-static utf* utf_float = 0;
-static utf* utf_double = 0;
 
 /* global reference table */
 static jobject *global_ref_table;
@@ -242,23 +237,6 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
     int cnts;
     char c;
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-    intsDisable();
-#endif
-	if (utf_char==0) {
-		utf_char=utf_new_char("java/lang/Character");
-		utf_bool=utf_new_char("java/lang/Boolean");
-		utf_byte=utf_new_char("java/lang/Byte");
-		utf_short=utf_new_char("java/lang/Short");
-		utf_int=utf_new_char("java/lang/Integer");
-		utf_long=utf_new_char("java/lang/Long");
-		utf_float=utf_new_char("java/lang/Float");
-		utf_double=utf_new_char("java/lang/Double");
-	}
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-    intsRestore();
-#endif
-
 	/*
 	  log_text("fill_callblock");
 	  utf_display(descr);
@@ -287,15 +265,15 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'B':
 			param = params->data[cnts];
 			if (param == 0) {
-				*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 				return 0;
 			}
-			if (param->vftbl->class->name == utf_byte) {
+			if (param->vftbl->class->name == utf_java_lang_Byte) {
 				blk[cnt].itemtype = TYPE_INT;
 				blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
 
 			} else  {
-				*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 				return 0;
 			}
 			break;
@@ -303,15 +281,15 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'C':
 			param = params->data[cnts];
 			if (param == 0) {
-				*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 				return 0;
 			}
-			if (param->vftbl->class->name == utf_char) {
+			if (param->vftbl->class->name == utf_java_lang_Character) {
 				blk[cnt].itemtype = TYPE_INT;
 				blk[cnt].item = (u8) ((java_lang_Character *) param)->value;
 
 			} else  {
-				*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 				return 0;
 			}
 			break;
@@ -319,20 +297,20 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'S':
 			param = params->data[cnts];
 			if (param == 0) {
-				*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 				return 0;
 			}
-			if (param->vftbl->class->name == utf_short) {
+			if (param->vftbl->class->name == utf_java_lang_Short) {
 				blk[cnt].itemtype = TYPE_INT;
 				blk[cnt].item = (u8) ((java_lang_Short *) param)->value;
 
 			} else  {
-				if (param->vftbl->class->name == utf_byte) {
+				if (param->vftbl->class->name == utf_java_lang_Byte) {
 					blk[cnt].itemtype = TYPE_INT;
 					blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
 
 				} else {
-					*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+					*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 					return 0;
 				}
 			}
@@ -341,15 +319,15 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'Z':
 			param = params->data[cnts];
 			if (param == 0) {
-				*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 				return 0;
 			}
-			if (param->vftbl->class->name == utf_bool) {
+			if (param->vftbl->class->name == utf_java_lang_Boolean) {
 				blk[cnt].itemtype = TYPE_INT;
 				blk[cnt].item = (u8) ((java_lang_Boolean *) param)->value;
 
 			} else {
-				*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 				return 0;
 			}
 			break;
@@ -358,25 +336,25 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 			/*log_text("fill_callblock_objA: param 'I'");*/
 			param = params->data[cnts];
 			if (param == 0) {
-				*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 				return 0;
 			}
-			if (param->vftbl->class->name == utf_int) {
+			if (param->vftbl->class->name == utf_java_lang_Integer) {
 				blk[cnt].itemtype = TYPE_INT;
 				blk[cnt].item = (u8) ((java_lang_Integer *) param)->value;
 				/*printf("INT VALUE :%d\n",((struct java_lang_Integer * )param)->value);*/
 			} else {
-				if (param->vftbl->class->name == utf_short) {
+				if (param->vftbl->class->name == utf_java_lang_Short) {
 					blk[cnt].itemtype = TYPE_INT;
 					blk[cnt].item = (u8) ((java_lang_Short *) param)->value;
 
 				} else  {
-					if (param->vftbl->class->name == utf_byte) {
+					if (param->vftbl->class->name == utf_java_lang_Byte) {
 						blk[cnt].itemtype = TYPE_INT;
 						blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
 
 					} else  {
-						*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+						*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 						return 0;
 					}
 				}
@@ -386,29 +364,29 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'J':
 			param = params->data[cnts];
 			if (param == 0) {
-				*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 				return 0;
 			}
-			if (param->vftbl->class->name == utf_long) {
+			if (param->vftbl->class->name == utf_java_lang_Long) {
 				blk[cnt].itemtype = TYPE_LNG;
 				blk[cnt].item = (u8) ((java_lang_Long *) param)->value;
 
 			} else  {
-				if (param->vftbl->class->name == utf_int) {
+				if (param->vftbl->class->name == utf_java_lang_Integer) {
 					blk[cnt].itemtype = TYPE_LNG;
 					blk[cnt].item = (u8) ((java_lang_Integer *) param)->value;
 
 				} else {
-					if (param->vftbl->class->name == utf_short) {
+					if (param->vftbl->class->name == utf_java_lang_Short) {
 						blk[cnt].itemtype = TYPE_LNG;
 						blk[cnt].item = (u8) ((java_lang_Short *) param)->value;
 
 					} else  {
-						if (param->vftbl->class->name == utf_byte) {
+						if (param->vftbl->class->name == utf_java_lang_Byte) {
 							blk[cnt].itemtype = TYPE_LNG;
 							blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
 						} else  {
-							*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+							*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 							return 0;
 						}
 					}
@@ -420,16 +398,16 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'F':
 			param = params->data[cnts];
 			if (param == 0) {
-				*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 				return 0;
 			}
 
-			if (param->vftbl->class->name == utf_float) {
+			if (param->vftbl->class->name == utf_java_lang_Float) {
 				blk[cnt].itemtype = TYPE_FLT;
 				*((jfloat *) (&blk[cnt].item)) = (jfloat) ((java_lang_Float *) param)->value;
 
 			} else  {
-				*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 				return 0;
 			}
 			break;
@@ -437,21 +415,21 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'D':
 			param = params->data[cnts];
 			if (param == 0) {
-				*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 				return 0;
 			}
 
-			if (param->vftbl->class->name == utf_double) {
+			if (param->vftbl->class->name == utf_java_lang_Double) {
 				blk[cnt].itemtype = TYPE_DBL;
 				*((jdouble *) (&blk[cnt].item)) = (jdouble) ((java_lang_Float *) param)->value;
 
 			} else  {
-				if (param->vftbl->class->name == utf_float) {
+				if (param->vftbl->class->name == utf_java_lang_Float) {
 					blk[cnt].itemtype = TYPE_DBL;
 					*((jdouble *) (&blk[cnt].item)) = (jdouble) ((java_lang_Float *) param)->value;
 
 				} else  {
-					*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+					*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 					return 0;
 				}
 			}
@@ -471,7 +449,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 
 				if (!builtin_instanceof(params->data[cnts], class_from_descriptor(start, desc_end, utf_ptr, CLASSLOAD_LOAD))) {
 					if (params->data[cnts] != 0) {
-						*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+						*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 						return 0;
 					}			
 				}
@@ -495,7 +473,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 				ch = utf_nextu2(utf_ptr); */
 
 				if (!builtin_arrayinstanceof(params->data[cnts], class_from_descriptor(start, desc_end, utf_ptr, CLASSLOAD_LOAD)->vftbl)) {
-					*exceptionptr = new_exception("java/lang/IllegalArgumentException");
+					*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 					return 0;
 				}
 
@@ -514,30 +492,17 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 jmethodID get_virtual(jobject obj,jmethodID methodID) {
 	if (obj->vftbl->class==methodID->class) return methodID;
 	return class_resolvemethod (obj->vftbl->class, methodID->name, methodID->descriptor);
 }
+
 
 jmethodID get_nonvirtual(jclass clazz,jmethodID methodID) {
 	if (clazz==methodID->class) return methodID;
 /*class_resolvemethod -> classfindmethod? (JOWENN)*/
 	return class_resolvemethod (clazz, methodID->name, methodID->descriptor);
 }
-
 
 
 jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
@@ -781,8 +746,8 @@ fieldinfo *jclass_findfield (classinfo *c, utf *name, utf *desc)
 
 /* GetVersion ******************************************************************
 
-   Returns the major version number in the higher 16 bits and the minor version
-   number in the lower 16 bits.
+   Returns the major version number in the higher 16 bits and the
+   minor version number in the lower 16 bits.
 
 *******************************************************************************/
 
@@ -794,11 +759,19 @@ jint GetVersion(JNIEnv *env)
 }
 
 
-/************** loads a class from a buffer of raw class data *****************/
+/* Class Operations ***********************************************************/
 
-jclass DefineClass(JNIEnv* env, const char *name, jobject loader, const jbyte *buf, jsize len) 
+/* DefineClass *****************************************************************
+
+   Loads a class from a buffer of raw class data. The buffer
+   containing the raw class data is not referenced by the VM after the
+   DefineClass call returns, and it may be discarded if desired.
+
+*******************************************************************************/
+
+jclass DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyte *buf, jsize bufLen)
 {
-	jclass c; 
+	jclass c;
 	jclass r;
 	classbuffer *cb;
 
@@ -817,7 +790,7 @@ jclass DefineClass(JNIEnv* env, const char *name, jobject loader, const jbyte *b
 	/* build a classbuffer with the given data */
 	cb = NEW(classbuffer);
 	cb->class = c;
-	cb->size = len;
+	cb->size = bufLen;
 	cb->data = (u1 *) buf;
 	cb->pos = cb->data - 1;
 
@@ -857,18 +830,21 @@ jclass DefineClass(JNIEnv* env, const char *name, jobject loader, const jbyte *b
 }
 
 
-/*********** loads locally defined class with the specified name **************/
+/* FindClass *******************************************************************
 
-jclass FindClass(JNIEnv* env, const char *name) 
+   This function loads a locally-defined class. It searches the
+   directories and zip files specified by the CLASSPATH environment
+   variable for the class with the specified name.
+
+*******************************************************************************/
+
+jclass FindClass(JNIEnv *env, const char *name)
 {
 	classinfo *c;  
   
 	c = class_new(utf_new_char_classname((char *) name));
 
-	if (!class_load(c))
-		return NULL;
-
-	if (!class_link(c))
+	if (!class_load(c) || !class_link(c))
 		return NULL;
 
 	use_class_as_object(c);
@@ -886,25 +862,32 @@ jclass FindClass(JNIEnv* env, const char *name)
   
 jmethodID FromReflectedMethod(JNIEnv* env, jobject method)
 {
-	/* log_text("JNI-Call: FromReflectedMethod"); */
+	log_text("JNI-Call: FromReflectedMethod: IMPLEMENT ME!!!");
 
 	return 0;
 }
 
 
-/*************** return superclass of the class represented by sub ****************/
+/* GetSuperclass ***************************************************************
+
+   If clazz represents any class other than the class Object, then
+   this function returns the object that represents the superclass of
+   the class specified by clazz.
+
+*******************************************************************************/
  
 jclass GetSuperclass(JNIEnv* env, jclass sub) 
 {
 	classinfo *c;
 
-	c = ((classinfo*) sub)->super;
+	c = ((classinfo *) sub)->super;
 
-	if (!c) return NULL; 
+	if (!c)
+		return NULL;
 
 	use_class_as_object(c);
 
-	return c;		
+	return c;
 }
   
  
@@ -924,26 +907,30 @@ jboolean IsAssignableFrom(JNIEnv *env, jclass sub, jclass sup)
 
 jobject ToReflectedField(JNIEnv* env, jclass cls, jfieldID fieldID, jboolean isStatic)
 {
-	/* log_text("JNI-Call: ToReflectedField"); */
+	log_text("JNI-Call: ToReflectedField: IMPLEMENT ME!!!");
 
 	return NULL;
 }
 
 
-/***************** throw java.lang.Throwable object  ******************************/
+/* Throw ***********************************************************************
 
-jint Throw(JNIEnv* env, jthrowable obj)
+   Causes a java.lang.Throwable object to be thrown.
+
+*******************************************************************************/
+
+jint Throw(JNIEnv *env, jthrowable obj)
 {
-	*exceptionptr = (java_objectheader*) obj;
+	*exceptionptr = (java_objectheader *) obj;
 
-	return 0;
+	return JNI_OK;
 }
 
 
-/*******************************************************************************
+/* ThrowNew ********************************************************************
 
-	create exception object from the class clazz with the 
-	specified message and cause it to be thrown
+  Constructs an exception object from the specified class with the message
+  specified by message and causes that exception to be thrown.
 
 *******************************************************************************/
 
@@ -952,11 +939,12 @@ jint ThrowNew(JNIEnv* env, jclass clazz, const char *msg)
 	java_lang_Throwable *o;
 
   	/* instantiate exception object */
-	o = (java_lang_Throwable *) native_new_and_init((classinfo*) clazz);
 
-	if (!o) return (-1);
+	o = (java_lang_Throwable *) native_new_and_init_string((classinfo *) clazz,
+														   (java_lang_String *) javastring_new_char(msg));
 
-  	o->detailMessage = (java_lang_String *) javastring_new_char((char *) msg);
+	if (!o)
+		return -1;
 
 	*exceptionptr = (java_objectheader *) o;
 
@@ -964,37 +952,84 @@ jint ThrowNew(JNIEnv* env, jclass clazz, const char *msg)
 }
 
 
-/************************* check if exception occured *****************************/
+/* ExceptionOccurred ***********************************************************
 
-jthrowable ExceptionOccurred (JNIEnv* env) 
+   Determines if an exception is being thrown. The exception stays
+   being thrown until either the native code calls ExceptionClear(),
+   or the Java code handles the exception.
+
+*******************************************************************************/
+
+jthrowable ExceptionOccurred(JNIEnv *env)
 {
 	return (jthrowable) *exceptionptr;
 }
 
-/********** print exception and a backtrace of the stack (for debugging) **********/
 
-void ExceptionDescribe (JNIEnv* env) 
+/* ExceptionDescribe ***********************************************************
+
+   Prints an exception and a backtrace of the stack to a system
+   error-reporting channel, such as stderr. This is a convenience
+   routine provided for debugging.
+
+*******************************************************************************/
+
+void ExceptionDescribe(JNIEnv *env)
 {
-	utf_display((*exceptionptr)->vftbl->class->name);
-	printf ("\n");
-	fflush (stdout);	
+	java_objectheader *e;
+	methodinfo        *m;
+
+	e = *exceptionptr;
+
+	if (e) {
+		/* clear exception, because we are calling jit code again */
+
+		*exceptionptr = NULL;
+
+		/* get printStackTrace method from exception class */
+
+		m = class_resolveclassmethod(e->vftbl->class,
+									 utf_printStackTrace,
+									 utf_void__void,
+									 NULL,
+									 true);
+
+		if (!m)
+			/* XXX what should we do? */
+			return;
+
+		/* print the stacktrace */
+
+		asm_calljavafunction(m, e, NULL, NULL, NULL);
+	}
 }
 
 
-/******************* clear any exception currently being thrown *******************/
+/* ExceptionClear **************************************************************
 
-void ExceptionClear (JNIEnv* env) 
+   Clears any exception that is currently being thrown. If no
+   exception is currently being thrown, this routine has no effect.
+
+*******************************************************************************/
+
+void ExceptionClear(JNIEnv *env)
 {
-	*exceptionptr = NULL;	
+	*exceptionptr = NULL;
 }
 
 
-/********** raises a fatal error and does not expect the VM to recover ************/
+/* FatalError ******************************************************************
 
-void FatalError (JNIEnv* env, const char *msg)
+   Raises a fatal error and does not expect the VM to recover. This
+   function does not return.
+
+*******************************************************************************/
+
+void FatalError(JNIEnv *env, const char *msg)
 {
-	panic((char *) msg);	
+	throw_cacao_exception_exit(string_java_lang_InternalError, msg);
 }
+
 
 /******************* creates a new local reference frame **************************/ 
 
@@ -1024,12 +1059,18 @@ void DeleteLocalRef (JNIEnv* env, jobject localRef)
 	/* empty */
 }
 
-/********** Tests whether two references refer to the same Java object ************/
 
-jboolean IsSameObject (JNIEnv* env, jobject obj1, jobject obj2)
+/* IsSameObject ****************************************************************
+
+   Tests whether two references refer to the same Java object.
+
+*******************************************************************************/
+
+jboolean IsSameObject(JNIEnv *env, jobject ref1, jobject ref2)
 {
- 	return (obj1==obj2);
+	return (ref1 == ref2);
 }
+
 
 /***** Creates a new local reference that refers to the same object as ref  *******/
 
@@ -1051,31 +1092,45 @@ jint EnsureLocalCapacity (JNIEnv* env, jint capacity)
 }
 
 
-/********* Allocates a new Java object without invoking a constructor *************/
+/* AllocObject *****************************************************************
 
-jobject AllocObject (JNIEnv* env, jclass clazz)
+   Allocates a new Java object without invoking any of the constructors for the
+   object. Returns a reference to the object.
+
+*******************************************************************************/
+
+jobject AllocObject(JNIEnv *env, jclass clazz)
 {
-        java_objectheader *o = builtin_new(clazz);	
+	java_objectheader *o;
+
+	if ((clazz->flags & ACC_INTERFACE) || (clazz->flags & ACC_ABSTRACT)) {
+		*exceptionptr =
+			new_exception_utfmessage(string_java_lang_InstantiationException,
+									 clazz->name);
+		return NULL;
+	}
+		
+	o = builtin_new(clazz);
+
 	return o;
 }
 
 
-/*********************************************************************************** 
+/* NewObject *******************************************************************
 
-	Constructs a new Java object
-	arguments that are to be passed to the constructor are placed after methodID
+   Constructs a new Java object. The method ID indicates which constructor
+   method to invoke. This ID must be obtained by calling GetMethodID() with
+   <init> as the method name and void (V) as the return type.
 
-***********************************************************************************/
+*******************************************************************************/
 
-jobject NewObject (JNIEnv* env, jclass clazz, jmethodID methodID, ...)
+jobject NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
 	java_objectheader *o;
 	void* args[3];
 	int argcount=get_parametercount(methodID);
 	int i;
 	va_list vaargs;
-
-	/* log_text("JNI-Call: NewObject"); */
 
 #ifdef arglimit
 	if (argcount > 3) {
@@ -1084,17 +1139,23 @@ jobject NewObject (JNIEnv* env, jclass clazz, jmethodID methodID, ...)
 		return 0;
 	}
 #endif
-	
-	o = builtin_new (clazz);         /*          create object */
-	
-	if (!o) return NULL;
 
-	va_start(vaargs,methodID);
-	for (i=0;i<argcount;i++) {
-		args[i]=va_arg(vaargs,void*);
+	/* create object */
+
+	o = builtin_new(clazz);
+	
+	if (!o)
+		return NULL;
+
+	va_start(vaargs, methodID);
+	for (i = 0; i < argcount; i++) {
+		args[i] = va_arg(vaargs, void*);
 	}
 	va_end(vaargs);
-	asm_calljavafunction(methodID,o,args[0],args[1],args[2]);
+
+	/* call constructor */
+
+	asm_calljavafunction(methodID, o, args[0], args[1], args[2]);
 
 	return o;
 }
@@ -3015,57 +3076,88 @@ jint UnregisterNatives (JNIEnv* env, jclass clazz)
     return 0;
 }
 
-/******************************* monitor operations ********************************/
 
-jint MonitorEnter(JNIEnv* env, jobject obj)
-{
-#if defined(USE_THREADS)
-    builtin_monitorenter(obj);
-#endif
+/* Monitor Operations *********************************************************/
 
-    return 0;
-}
+/* MonitorEnter ****************************************************************
 
-
-jint MonitorExit(JNIEnv* env, jobject obj)
-{
-#if defined(USE_THREADS)
-    builtin_monitorexit(obj);
-#endif
-
-    return 0;
-}
-
-
-/* JavaVM interface ***********************************************************/
-
-/* GetJavaVM *******************************************************************
-
-   Returns the Java VM interface (used in the Invocation API) associated with
-   the current thread. The result is placed at the location pointed to by the
-   second argument, vm.
+   Enters the monitor associated with the underlying Java object
+   referred to by obj.
 
 *******************************************************************************/
 
-jint GetJavaVM(JNIEnv* env, JavaVM **vm)
+jint MonitorEnter(JNIEnv *env, jobject obj)
 {
-    *vm = &JNI_javaVMTable;
+	if (!obj) {
+		*exceptionptr = new_nullpointerexception();
+		return JNI_ERR;
+	}
 
-    return 0;
+#if defined(USE_THREADS)
+	builtin_monitorenter(obj);
+#endif
+
+	return JNI_OK;
+}
+
+
+/* MonitorExit *****************************************************************
+
+   The current thread must be the owner of the monitor associated with
+   the underlying Java object referred to by obj. The thread
+   decrements the counter indicating the number of times it has
+   entered this monitor. If the value of the counter becomes zero, the
+   current thread releases the monitor.
+
+*******************************************************************************/
+
+jint MonitorExit(JNIEnv *env, jobject obj)
+{
+	if (!obj) {
+		*exceptionptr = new_nullpointerexception();
+		return JNI_ERR;
+	}
+
+#if defined(USE_THREADS)
+	builtin_monitorexit(obj);
+#endif
+
+	return JNI_OK;
+}
+
+
+/* JavaVM Interface ***********************************************************/
+
+/* GetJavaVM *******************************************************************
+
+   Returns the Java VM interface (used in the Invocation API)
+   associated with the current thread. The result is placed at the
+   location pointed to by the second argument, vm.
+
+*******************************************************************************/
+
+jint GetJavaVM(JNIEnv *env, JavaVM **vm)
+{
+	JavaVM tmp_vm;
+
+	tmp_vm = (JavaVM) &JNI_JavaVMTable;
+    *vm = &tmp_vm;
+
+	return 0;
 }
 
 
 void GetStringRegion (JNIEnv* env, jstring str, jsize start, jsize len, jchar *buf)
 {
-    log_text("JNI-Call: GetStringRegion");
-
+	log_text("JNI-Call: GetStringRegion");
 }
+
 
 void GetStringUTFRegion (JNIEnv* env, jstring str, jsize start, jsize len, char *buf)
 {
-    log_text("JNI-Call: GetStringUTFRegion");
-
+	log_text("JNI-Call: GetStringUTFRegion");
 }
+
 
 /************** obtain direct pointer to array elements ***********************/
 
@@ -3267,11 +3359,25 @@ jint DetachCurrentThread(JavaVM *vm)
 }
 
 
-jint GetEnv(JavaVM *vm, void **environment, jint jniversion)
+jint GetEnv(JavaVM *vm, void **env, jint version)
 {
-	*environment = &JNI_envTable;
+	if ((version != JNI_VERSION_1_1) && (version != JNI_VERSION_1_2) &&
+		(version != JNI_VERSION_1_4)) {
+		*env = NULL;
+		return JNI_EVERSION;
+	}
 
-	return 0;
+	/*
+	  TODO: If the current thread is not attached to the VM...
+	if (0) {
+		*env = NULL;
+		return JNI_EDETACHED;
+	}
+	*/
+
+	*env = &JNI_JNIEnvTable;
+
+	return JNI_OK;
 }
 
 
@@ -3382,28 +3488,29 @@ void jni_init(){
 	
 	/* set NewGlobalRef, DeleteGlobalRef envTable entry to real implementation */
 
-	JNI_envTable.NewGlobalRef = &NewGlobalRef;
-	JNI_envTable.DeleteGlobalRef = &DeleteGlobalRef;
+	JNI_JNIEnvTable.NewGlobalRef = &NewGlobalRef;
+	JNI_JNIEnvTable.DeleteGlobalRef = &DeleteGlobalRef;
 }
 
 
 /* JNI invocation table *******************************************************/
 
-struct _JavaVM JNI_javaVMTable = {
+const struct JNIInvokeInterface JNI_JavaVMTable = {
 	NULL,
 	NULL,
 	NULL,
-	&DestroyJavaVM,
-	&AttachCurrentThread,
-	&DetachCurrentThread,
-	&GetEnv,
-	&AttachCurrentThreadAsDaemon
+
+	DestroyJavaVM,
+	AttachCurrentThread,
+	DetachCurrentThread,
+	GetEnv,
+	AttachCurrentThreadAsDaemon
 };
 
 
 /* JNI function table *********************************************************/
 
-struct JNI_Table JNI_envTable = {
+struct JNINativeInterface JNI_JNIEnvTable = {
 	NULL,
 	NULL,
 	NULL,
@@ -3682,13 +3789,13 @@ struct JNI_Table JNI_envTable = {
 
 *******************************************************************************/
 
-jint JNI_GetDefaultJavaVMInitArgs(void *p_vm_args)
+jint JNI_GetDefaultJavaVMInitArgs(void *vm_args)
 {
-	JDK1_1InitArgs *vm_args = (JDK1_1InitArgs *) p_vm_args;
+	JDK1_1InitArgs *_vm_args = (JDK1_1InitArgs *) vm_args;
 
 	/* GNU classpath currently supports JNI 1.2 */
 
-	vm_args->version = JNI_VERSION_1_2;
+	_vm_args->version = JNI_VERSION_1_2;
 
 	return 0;
 }
@@ -3718,10 +3825,10 @@ jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 
 *******************************************************************************/
 
-jint JNI_CreateJavaVM(JavaVM **p_vm, JNIEnv **p_env, void *p_vm_args)
+jint JNI_CreateJavaVM(JavaVM **p_vm, JNIEnv **p_env, void *vm_args)
 {
-	*p_vm = &JNI_javaVMTable;
-	*p_env = &JNI_envTable;
+	*p_vm = (JavaVM *) &JNI_JavaVMTable;
+	*p_env = (JNIEnv *) &JNI_JNIEnvTable;
 
 	return 0;
 }
@@ -3799,12 +3906,12 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 										  argcount + 1,
 										  (argcount + 1) * sizeof(jni_callblock),
 										  blk);
-		retVal = builtin_new(class_new(utf_new_char("java/lang/Integer")));
+		retVal = builtin_new(class_java_lang_Integer);
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
-										   utf_new_char("<init>"),
-										   utf_new_char("(I)V")),
+										   utf_init,
+										   utf_int__void),
 					   intVal);
 	}
 	break;
@@ -3815,12 +3922,12 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 										  argcount + 1,
 										  (argcount + 1) * sizeof(jni_callblock),
 										  blk);
-		retVal = builtin_new(class_new(utf_new_char("java/lang/Byte")));
+		retVal = builtin_new(class_java_lang_Byte);
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
-										   utf_new_char("<init>"),
-										   utf_new_char("(B)V")),
+										   utf_init,
+										   utf_byte__void),
 					   intVal);
 	}
 	break;
@@ -3831,12 +3938,12 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 										  argcount + 1,
 										  (argcount + 1) * sizeof(jni_callblock),
 										  blk);
-		retVal = builtin_new(class_new(utf_new_char("java/lang/Character")));
+		retVal = builtin_new(class_java_lang_Character);
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
-										   utf_new_char("<init>"),
-										   utf_new_char("(C)V")),
+										   utf_init,
+										   utf_char__void),
 					   intVal);
 	}
 	break;
@@ -3847,12 +3954,12 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 										  argcount + 1,
 										  (argcount + 1) * sizeof(jni_callblock),
 										  blk);
-		retVal = builtin_new(class_new(utf_new_char("java/lang/Short")));
+		retVal = builtin_new(class_java_lang_Short);
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
-										   utf_new_char("<init>"),
-										   utf_new_char("(S)V")),
+										   utf_init,
+										   utf_short__void),
 					   intVal);
 	}
 	break;
@@ -3863,12 +3970,12 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 										  argcount + 1,
 										  (argcount + 1) * sizeof(jni_callblock),
 										  blk);
-		retVal = builtin_new(class_new(utf_new_char("java/lang/Boolean")));
+		retVal = builtin_new(class_java_lang_Boolean);
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
-										   utf_new_char("<init>"),
-										   utf_new_char("(Z)V")),
+										   utf_init,
+										   utf_boolean__void),
 					   intVal);
 	}
 	break;
@@ -3879,12 +3986,12 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 											argcount + 1,
 											(argcount + 1) * sizeof(jni_callblock),
 											blk);
-		retVal = builtin_new(class_new(utf_new_char("java/lang/Long")));
+		retVal = builtin_new(class_java_lang_Long);
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
-										   utf_new_char("<init>"),
-										   utf_new_char("(J)V")),
+										   utf_init,
+										   utf_long__void),
 					   longVal);
 	}
 	break;
@@ -3895,12 +4002,12 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 											  argcount + 1,
 											  (argcount + 1) * sizeof(jni_callblock),
 											  blk);
-		retVal = builtin_new(class_new(utf_new_char("java/lang/Float")));
+		retVal = builtin_new(class_java_lang_Float);
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
-										   utf_new_char("<init>"),
-										   utf_new_char("(F)V")),
+										   utf_init,
+										   utf_float__void),
 					   floatVal);
 	}
 	break;
@@ -3911,12 +4018,12 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 												argcount + 1,
 												(argcount + 1) * sizeof(jni_callblock),
 												blk);
-		retVal = builtin_new(class_new(utf_new_char("java/lang/Double")));
+		retVal = builtin_new(class_java_lang_Double);
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
-										   utf_new_char("<init>"),
-										   utf_new_char("(D)V")),
+										   utf_init,
+										   utf_double__void),
 					   doubleVal);
 	}
 	break;
