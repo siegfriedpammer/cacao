@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger                                               *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 685 2003-12-04 01:25:54Z jowenn $        *
+*   Last Change: $Id: asmpart.S 742 2003-12-13 20:25:05Z stefan $        *
 *                                                                              *
 *******************************************************************************/
 
@@ -55,6 +55,7 @@
 	.globl asm_getcallingmethod
     .globl asm_builtin_trace
     .globl asm_builtin_exittrace
+	.globl asm_xadd
     
 /*************************** imported functions *******************************/
 
@@ -64,6 +65,10 @@
 	.globl builtin_trace_exception
 	.globl class_java_lang_Object
 	.globl findmethod
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	.globl cast_lock
+	.globl cast_unlock
+#endif
 
 /*********************** function has_no_x_instr_set ***************************
 *                                                                              *
@@ -565,6 +570,9 @@ asm_handle_nat_exception:
 asm_handle_exception:
 		push    %eax
 		push    %edx						/* get the data segment ptr       */
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+		call    cast_lock
+#endif
 		call    findmethod
 		mov     %eax,%ecx
 		pop     %edx
@@ -636,6 +644,10 @@ ex_handle_it:
         popl    %eax                        /* pop %ecx (dummy) */
         popl    %eax                        /* pop %edx (dummy) */
         popl    %eax                        /* pop %eax */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+		call cast_unlock
+#endif
         
 		leave
 
@@ -1247,3 +1259,10 @@ asm_builtin_exittrace:
 
         popa
         ret
+
+asm_xadd:
+		mov 4(%esp),%ecx
+		mov 8(%esp),%eax
+		lock
+		xaddl %eax,0(%ecx)
+		ret

@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 730 2003-12-11 21:23:31Z edwin $
+   $Id: parse.c 742 2003-12-13 20:25:05Z stefan $
 
 */
 
@@ -1288,6 +1288,9 @@ void parse()
 			break;
 
 		case JAVA_CHECKCAST:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			isleafmethod = false;
+#endif
 			i = code_get_u2(p+1);
  				{
  					classinfo *cls = (classinfo*)class_getconstant(class, i, CONSTANT_Class);
@@ -1310,6 +1313,9 @@ void parse()
 			break;
 
 		case JAVA_INSTANCEOF:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			isleafmethod = false;
+#endif
 			i = code_get_u2(p+1);
 
  				{
