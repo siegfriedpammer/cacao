@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.h 1086 2004-05-26 21:22:05Z twisti $
+   $Id: logging.h 1245 2004-06-30 20:15:25Z twisti $
 
 */
 
@@ -64,8 +64,6 @@ void error(char *txt, ...);
 void panic(char *txt);
 
 FILE *get_logfile(); /* return the current logfile */
-
-s8 getcputime();
 
 #endif /* _LOGGING_H */
 

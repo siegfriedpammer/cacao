@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.c 1107 2004-05-28 12:18:44Z twisti $
+   $Id: logging.c 1245 2004-06-30 20:15:25Z twisti $
 
 */
 
@@ -36,8 +36,6 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 
 #include "global.h"
 #include "tables.h"
@@ -248,25 +246,6 @@ void error(char *txt, ...)
 void panic(char *txt)
 {
 	error("%s", txt);
-}
-
-
-/********************** Function: getcputime ********************************
-
-	Returns the used CPU time in microseconds
-	
-****************************************************************************/
-
-s8 getcputime()
-{
-	struct rusage ru;
-	int sec, usec;
-
-	getrusage(RUSAGE_SELF, &ru);
-	sec = ru.ru_utime.tv_sec + ru.ru_stime.tv_sec;
-	usec = ru.ru_utime.tv_usec + ru.ru_stime.tv_usec;
-
-	return sec * 1000000 + usec;
 }
 
 
