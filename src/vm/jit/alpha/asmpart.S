@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 1811 2004-12-22 12:21:38Z twisti $
+   $Id: asmpart.S 1865 2005-01-10 11:21:46Z twisti $
 
 */
 
@@ -247,9 +247,8 @@ calljava_xhandler:
 	.ent    asm_calljavafunction2
 
 call_name2:
-	.ascii  "calljavafunction2\0\0"
-
 	.align  3
+
 	.quad   0                         /* catch type all                       */
 	.quad   calljava_xhandler2        /* handler pc                           */
 	.quad   calljava_xhandler2        /* end pc                               */
@@ -267,8 +266,10 @@ call_name2:
 	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction2:
-asm_calljavafunction2double:
+asm_calljavafunction2int:
 asm_calljavafunction2long:
+asm_calljavafunction2float:
+asm_calljavafunction2double:
 	ldgp    gp,0(pv)
 	lda     sp,-40(sp)                /* allocate stack space                 */
 	stq     ra,0(sp)                  /* save return address                  */
@@ -350,7 +351,7 @@ calljava_xhandler2:
 	lda     sp,40(sp)                 /* free stack space                     */
 	jmp     zero,(ra)
 	.end    asm_calljavafunction2
-						
+
 
 /****************** function asm_call_jit_compiler *****************************
 *                                                                              *
@@ -372,10 +373,9 @@ calljava_xhandler2:
 *                                                                              *
 *******************************************************************************/
 
-
 	.ent    asm_call_jit_compiler
-asm_call_jit_compiler:
 
+asm_call_jit_compiler:
 	ldgp    gp,0(pv)
 	ldl     t8,-8(ra)             /* load instruction LDQ PV,xxx($yy)         */
 	srl     t8,16,t8              /* shift right register number $yy          */
@@ -431,6 +431,8 @@ noregchange:
 	ldq     ra,13*8(sp)           /* load return address                      */
 	lda     sp,14*8(sp)           /* deallocate stack area                    */
 
+	beq     v0,asm_call_jit_compiler_exception
+
 	ldl     t8,-8(ra)             /* load instruction LDQ PV,xxx($yy)         */
 	sll     t8,48,t8
 	sra     t8,48,t8              /* isolate offset                           */
@@ -441,9 +443,24 @@ noregchange:
 	call_pal PAL_imb              /* synchronise instruction cache            */
 
 	mov     v0,pv                 /* load method address into pv              */
-
 	jmp     zero,(pv)             /* and call method. The method returns      */
 	                              /* directly to the caller (ra).             */
+
+asm_call_jit_compiler_exception:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	subq    sp,1*8,sp
+	stq     ra,0*8(sp)
+	jsr     ra,builtin_asm_get_exceptionptrptr
+	ldq     ra,0*8(sp)
+	addq    sp,1*8,sp
+#else
+	lda     v0,_exceptionptr
+#endif
+	ldq     xptr,0(v0)            /* get the exception pointer                */
+	stq     zero,0(v0)            /* clear the exception pointer              */
+
+	subq    ra,4,xpc
+	br      asm_handle_nat_exception
 
 	.end    asm_call_jit_compiler
 
@@ -623,16 +640,14 @@ asm_throw_and_handle_arithmetic_exception_cont:
 	.end asm_throw_and_handle_arithmetic_exception
 
 
-/**************** function asm_throw_and_handle_exception **********************
-*                                                                              *
-*   This function handles an exception. It does not use the usual calling      *
-*   conventions. The exception class name is passed in REG_ITMP1 and the       *
-*   pc from the exception raising position is passed in REG_ITMP2.             *
-*                                                                              *
-*   void asm_handle_exception (exceptionclass, exceptionpc);                   *
-*                                                                              *
+/* asm_throw_and_handle_exception **********************************************
+
+   DOCUMENT ME!!!
+
 *******************************************************************************/
+
 	.ent asm_throw_and_handle_nat_exception
+
 asm_throw_and_handle_nat_exception:
 	ldgp	gp,0(pv)
 	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
@@ -649,31 +664,35 @@ asm_throw_and_handle_nat_exception:
 	addq    t0,pv,pv              /* compute update address                   */
 
 	.aent asm_throw_and_handle_exception
+
 asm_throw_and_handle_exception:
-	mov	sp,t0
-	lda	sp,-6*8(sp) /*prepare stackframe*/
-        stq     pv,5*8(sp)  /*pv of failure*/
-	stq 	itmp1,4*8(sp) /*classname of the exception*/
-	stq 	xpc,3*8(sp) /*address of failure */
-	stq	t0,2*8(sp) /*store begin of java stack frame*/
-	stq	pv,1*8(sp) /*store pv of caller in structure*/
-	stq	zero,0*8(sp) /*builtin (invisible function)*/
-	jsr	ra,asm_prepare_native_stackinfo /* puts 2 additional quadwords on stack */
+	mov     sp,t0
+	lda     sp,-6*8(sp)           /* prepare stackframe                       */
+	stq     pv,5*8(sp)            /* pv of failure                            */
+	stq     xptr,4*8(sp)          /* classname of the exception               */
+	stq     xpc,3*8(sp)           /* address of failure                       */
+	stq     t0,2*8(sp)            /* store begin of java stack frame          */
+	stq     pv,1*8(sp)            /* store pv of caller in structure          */
+	stq     zero,0*8(sp)          /* builtin (invisible function)             */
+	                              /* puts 2 additional quadwords on stack     */
+	jsr     ra,asm_prepare_native_stackinfo
 	ldgp	gp,0(ra)
 
-	ldq a0,6*8(sp)  /*classname of exception*/
-	jsr ra,new_exception
+	ldq     a0,6*8(sp)            /* classname of exception                   */
+	jsr     ra,new_exception
+	ldgp    gp,0(ra)
+
+	mov     v0,xptr               /* xptr (itmp1) is not touched in           */
+	                              /* asm_remove_native_stackinfo              */
+
+	jsr     ra,asm_remove_native_stackinfo
 	ldgp	gp,0(ra)
 
-	mov v0,itmp1 /*itmp1 is not touched in asm_remove_native_stackinfo*/
+	ldq     itmp2,0(sp)
+	ldq     pv,2*8(sp)
+	lda     sp,3*8(sp)
+	br      asm_handle_exception
 
-	jsr ra,asm_remove_native_stackinfo
-	ldgp	gp,0(ra)
-
-	ldq itmp2,0(sp)	
-        ldq    pv,2*8(sp)
-	lda sp,3*8(sp)
-	br asm_handle_exception
 	.end asm_throw_and_handle_nat_exception
 
 
@@ -690,6 +709,7 @@ asm_throw_and_handle_exception:
 *******************************************************************************/
 
 	.ent    asm_handle_nat_exception
+
 asm_handle_nat_exception:
 	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
 	sll     t0,48,t0
@@ -705,6 +725,7 @@ asm_handle_nat_exception:
 	addq    t0,pv,pv              /* compute update address                   */
 
 	.aent    asm_handle_exception
+
 asm_handle_exception:
 	lda     sp,-18*8(sp)          /* allocate stack                           */
 	stq     t0,0*8(sp)            /* save possible used registers             */
