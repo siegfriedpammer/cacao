@@ -10,9 +10,6 @@ AM_CONFIG_HEADER([config.h])
 
 AC_PREFIX_DEFAULT(/usr/local/cacao)
 
-dnl define install prefix
-CFLAGS="-DINSTALL_PREFIX=\"\\\"$prefix\\\"\""
-
 dnl system type
 
 case "$host_cpu" in
@@ -25,7 +22,7 @@ alpha* )
 i386* | i486* | i586* | i686* )
 	ARCH_DIR="i386"
         STATIC_CLASSPATH="0"
-	CFLAGS="-D__I386__"
+	CFLAGS="-D__I386__ $CFLAGS"
 	;;
 
 mips* )
@@ -44,7 +41,7 @@ powerpc* | ppc* )
 x86_64* )
 	ARCH_DIR="x86_64"
         STATIC_CLASSPATH="1"
-	CFLAGS="$CFLAGS -D__X86_64__"
+	CFLAGS="-D__X86_64__"
 	;;
 
 sparc* | * )
@@ -65,6 +62,9 @@ case "$host_os" in
 * )
 	;;
 esac
+
+dnl define install prefix
+CFLAGS="$CFLAGS -DINSTALL_PREFIX=\"\\\"$prefix\\\"\""
 
 
 AC_DEFINE_UNQUOTED([ARCH_DIR], "$ARCH_DIR", [Architecture directory])
