@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 990 2004-03-29 11:03:56Z stefan $
+# $Id: Makefile.am 1255 2004-06-30 20:56:08Z twisti $
 
 
 noinst_LIBRARIES = @LIBTHREAD@
@@ -16,7 +16,7 @@ libthreads_a_SOURCES = \
 	threadio.c \
 	threadio.h
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit -I$(top_srcdir)/jit/@ARCH_DIR@
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit/@ARCH_DIR@
 
 
 ## Local variables:
