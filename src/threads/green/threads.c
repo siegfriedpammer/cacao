@@ -120,7 +120,7 @@ initThreads(u1 *stackbottom)
 	thread *the_main_thread;
     int i;
 	char mainname[] = "main";
-	int len = strlen(mainname);
+	/*int len = strlen(mainname);*/
 
 	signal(SIGPIPE, SIG_IGN);
 
@@ -153,11 +153,12 @@ printf("DEADCODE LIVES ?????????\n");fflush(stdout);
 	the_main_thread->name = asm_calljavafunction (m, javastring_new(utf_new_char("main")), 0, 0, 0);
     }
 #endif
-	the_main_thread->name = builtin_newarray_char(len);
+	the_main_thread->name=javastring_new(utf_new_char(mainname));
+/*	the_main_thread->name = builtin_newarray_char(len);
 	{   u2 *d = the_main_thread->name->data;
 		for (i=0; i<len; i++)
 			d[i] = mainname[i];
-	}
+	}*/
     the_main_thread->priority = NORM_THREAD_PRIO;
     CONTEXT(the_main_thread).priority = (u1)the_main_thread->priority;
     CONTEXT(the_main_thread).exceptionptr = 0;
@@ -174,14 +175,14 @@ printf("DEADCODE LIVES ?????????\n");fflush(stdout);
 	CONTEXT(the_main_thread).flags = THREAD_FLAGS_NOSTACKALLOC;
 	CONTEXT(the_main_thread).nextlive = 0;
 	CONTEXT(the_main_thread).thread = the_main_thread;
-	the_main_thread->single_step = 0;
+	/*the_main_thread->single_step = 0;*/
 	the_main_thread->daemon = 0;
-	the_main_thread->stillborn = 0;
-	the_main_thread->target = 0;
+	/*the_main_thread->stillborn = 0;*/
+	/*the_main_thread->target = 0;*/
 
 	the_main_thread->contextClassLoader = 0;
-	the_main_thread->inheritedAccessControlContext = 0;
-	the_main_thread->values = 0;
+	/*the_main_thread->inheritedAccessControlContext = 0;*/
+	/*the_main_thread->values = 0;*/
 
 	/* Allocate and init ThreadGroup */
 	the_main_thread->group = (threadGroup*)native_new_and_init(loader_load(utf_new_char("java/lang/ThreadGroup")));
@@ -278,10 +279,10 @@ startDaemon(void* func, char* nm, int stackSize)
 	CONTEXT(tid).status = THREAD_SUSPENDED;
 
 	allocThreadStack(tid, stackSize);
-	tid->single_step = 0;
+	/*tid->single_step = 0;*/
 	tid->daemon = 1;
-	tid->stillborn = 0;
-	tid->target = 0;
+	/*tid->stillborn = 0;*/
+	/*tid->target = 0;*/
 	tid->group = 0;
 
 	/* Construct the initial restore point. */

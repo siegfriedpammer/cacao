@@ -74,37 +74,28 @@ struct _object;
 
 /* This structure mirrors java.lang.ThreadGroup.h */
 
-typedef struct _threadGroup
-{
-    java_objectheader    header;
-    struct _threadGroup* parent;
-    java_objectheader*   name;
-    s4                   maxPrio;
-    s4                   destroyed;
-    s4                   daemon;
-	s4                   vmAllowSuspension;
-    s4                   nthreads;
-    java_objectheader*   threads;
-    s4                   ngroups;
-    java_objectheader*   groups;
+typedef struct _threadGroup {
+   java_objectheader header;
+   struct _threadGroup* parent;
+   struct java_objectheader* name;
+   struct java_objectheader* threads;
+   struct java_objectheader* groups;
+   s4 daemon_flag;
+   s4 maxpri;
 } threadGroup;
 
+
 /* This structure mirrors java.lang.Thread.h */
-typedef struct _thread
-{
-    java_objectheader        header;
-    java_chararray*          name;
-    s4                       priority;
-    struct _thread*          next;
-    s8                       PrivateInfo;
-    s4                       single_step;
-    s4                       daemon;
-    s4                       stillborn;
-    java_objectheader*       target;
-    threadGroup*             group;
-	java_objectheader*       contextClassLoader;
-	java_objectheader*       inheritedAccessControlContext;
-	java_objectheader*       values;
+typedef struct _thread {
+   java_objectheader header;
+   struct _threadGroup* group;
+   struct java_objectheader* toRun;
+   struct java_objectheader* name;
+   s8 PrivateInfo;
+   struct _thread* next;
+   s4 daemon;
+   s4 priority;
+   struct java_objectheader* contextClassLoader;
 } thread;
 
 void initThreads (u1 *stackbottom);
