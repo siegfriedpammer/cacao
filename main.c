@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 664 2003-11-21 18:24:01Z jowenn $
+   $Id: main.c 687 2003-12-04 22:29:54Z edwin $
 
 */
 
@@ -57,7 +57,7 @@
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
 #include "parseRTstats.h"
-
+#include "typeinfo.h" /* XXX remove debug */
 
 bool compileall = false;
 bool verbose =  false;
@@ -832,7 +832,9 @@ int main(int argc, char **argv)
 			a->data[i - opt_ind] = javastring_new(utf_new_char(argv[i]));
 		}
 
-
+#ifdef DEBUG_TYPES
+		typeinfo_test(); /* XXX remove debug */
+#endif
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 	
 		local_exceptionptr = asm_calljavamethod (mainmethod, a, NULL, NULL, NULL );

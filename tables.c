@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 682 2003-12-01 15:33:30Z jowenn $
+   $Id: tables.c 687 2003-12-04 22:29:54Z edwin $
 
 */
 
@@ -874,6 +874,43 @@ classinfo *class_array_of(classinfo *component)
         namebuf[2+namelen] = ';';
         namelen+=3;
     }
+
+    return class_new( utf_new(namebuf,namelen) );
+}
+
+/*************** Function: class_multiarray_of ********************************
+
+    Returns an array class with the given dimension and element class.
+    The array class is dynamically created if neccessary.
+
+*******************************************************************************/
+
+classinfo *class_multiarray_of(int dim,classinfo *element)
+{
+    int namelen;
+    char *namebuf;
+
+	if (dim<1)
+		panic("Invalid array dimension requested");
+
+    /* Assemble the array class name */
+    namelen = element->name->blength;
+    
+    if (element->name->text[0] == '[') {
+        /* the element is itself an array */
+        namebuf = DMNEW(char,namelen+dim);
+        memcpy(namebuf+dim,element->name->text,namelen);
+        namelen += dim;
+    }
+    else {
+        /* the element is a non-array class */
+        namebuf = DMNEW(char,namelen+2+dim);
+        namebuf[dim] = 'L';
+        memcpy(namebuf+dim+1,element->name->text,namelen);
+        namelen += (2+dim);
+        namebuf[namelen-1] = ';';
+    }
+	memset(namebuf,'[',dim);
 
     return class_new( utf_new(namebuf,namelen) );
 }

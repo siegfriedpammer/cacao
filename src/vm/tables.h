@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tables.h 664 2003-11-21 18:24:01Z jowenn $
+   $Id: tables.h 687 2003-12-04 22:29:54Z edwin $
 
 */
 
@@ -79,6 +79,9 @@ classinfo *class_new(utf *u);
 
 /* return an array class with the given component class */
 classinfo *class_array_of(classinfo *component);
+
+/* return an array class with the given dimension and element class */
+classinfo *class_multiarray_of(int dim,classinfo *element);
 
 /* get javatype according to a typedescriptor */
 u2 desc_to_type(utf *descriptor);

@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 682 2003-12-01 15:33:30Z jowenn $
+   $Id: global.h 687 2003-12-04 22:29:54Z edwin $
 
 */
 
@@ -707,6 +707,7 @@ struct arraydescriptor {
 	short  dimension;        /* dimension of the array (always >= 1)          */
     s4     dataoffset;       /* offset of the array data from object pointer  */
 	s4     componentsize;    /* size of a component in bytes                  */
+	short  elementtype;      /* ARRAYTYPE_* constant (XXX optimize away?)     */
 };
 
 /* references to some system classes ******************************************/

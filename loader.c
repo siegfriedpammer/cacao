@@ -29,7 +29,7 @@
             Roman Obermaiser
             Mark Probst
 
-   $Id: loader.c 682 2003-12-01 15:33:30Z jowenn $
+   $Id: loader.c 687 2003-12-04 22:29:54Z edwin $
 
 */
 
@@ -1714,10 +1714,12 @@ class_link_array(classinfo *c)
 		if (compvftbl->arraydesc) {
 			desc->elementvftbl = compvftbl->arraydesc->elementvftbl;
 			desc->dimension = compvftbl->arraydesc->dimension + 1;
+			desc->elementtype = compvftbl->arraydesc->elementtype;
 		}
 		else {
 			desc->elementvftbl = compvftbl;
 			desc->dimension = 1;
+			desc->elementtype = ARRAYTYPE_OBJECT;
 		}
 	}
 	else {
@@ -1754,6 +1756,7 @@ class_link_array(classinfo *c)
 		desc->componentvftbl = NULL;
 		desc->elementvftbl = NULL;
 		desc->dimension = 1;
+		desc->elementtype = desc->arraytype;
 	}
 
 	return desc;
@@ -2906,7 +2909,7 @@ create_pseudo_classes()
 {
     /* pseudo class for Arraystubs (extends java.lang.Object) */
     
-    pseudo_class_Arraystub = class_new( utf_new_char(";Arraystub;") );
+    pseudo_class_Arraystub = class_new( utf_new_char("$ARRAYSTUB$") );
     list_remove(&unloadedclasses,pseudo_class_Arraystub);
 
     pseudo_class_Arraystub->super = class_java_lang_Object;
@@ -2924,7 +2927,7 @@ create_pseudo_classes()
 
     /* pseudo class representing the null type */
     
-    pseudo_class_Null = class_new( utf_new_char(";Null;") );
+    pseudo_class_Null = class_new( utf_new_char("$NULL$") );
     list_remove(&unloadedclasses,pseudo_class_Null);
 
     pseudo_class_Null->super = class_java_lang_Object;
