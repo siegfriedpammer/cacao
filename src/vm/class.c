@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 1926 2005-02-10 10:47:29Z twisti $
+   $Id: class.c 2060 2005-03-23 11:09:37Z twisti $
 
 */
 
@@ -101,6 +101,10 @@ classinfo *class_java_lang_Long;
 classinfo *class_java_lang_Float;
 classinfo *class_java_lang_Double;
 
+/* some classes which may be used more often */
+
+classinfo *class_java_util_Vector;
+
 
 /* pseudo classes for the typechecker */
 
@@ -143,6 +147,8 @@ void class_init_foo(void)
 	class_java_lang_Long            = class_new(utf_java_lang_Long);
 	class_java_lang_Float           = class_new(utf_java_lang_Float);
 	class_java_lang_Double          = class_new(utf_java_lang_Double);
+
+	class_java_util_Vector          = class_new(utf_java_util_Vector);
 
     pseudo_class_Arraystub = class_new_intern(utf_new_char("$ARRAYSTUB$"));
 	pseudo_class_Null      = class_new_intern(utf_new_char("$NULL$"));
@@ -488,12 +494,16 @@ classinfo *class_array_of(classinfo *component)
         namelen += 3;
     }
 
-	/* load this class ;-) and link it */
 	c = class_new(utf_new(namebuf, namelen));
-	c->loaded = 1;
 
-	if (!class_link(c))
-		return NULL;
+	/* load this class ;-) and link it */
+
+	if (!c->loaded)
+		c->loaded = true;
+
+	if (!c->linked)
+		if (!class_link(c))
+			return NULL;
 
     return c;
 }

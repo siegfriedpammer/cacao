@@ -1,4 +1,4 @@
-/* vm/class.h - class related functions header
+/* src/vm/class.h - class related functions header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 1926 2005-02-10 10:47:29Z twisti $
+   $Id: class.h 2060 2005-03-23 11:09:37Z twisti $
 
 */
 
@@ -79,6 +79,11 @@ extern classinfo *class_java_lang_Integer;
 extern classinfo *class_java_lang_Long;
 extern classinfo *class_java_lang_Float;
 extern classinfo *class_java_lang_Double;
+
+
+/* some classes which may be used more often */
+
+extern classinfo *class_java_util_Vector;
 
 
 /* function prototypes ********************************************************/
