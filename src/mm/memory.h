@@ -26,13 +26,15 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.h 1637 2004-12-01 10:33:25Z twisti $
+   $Id: memory.h 1671 2004-12-03 16:41:37Z twisti $
 
 */
 
 
 #ifndef _MEMORY_H
 #define _MEMORY_H
+
+#include <string.h>
 
 #include "arch.h"
 #include "types.h"
