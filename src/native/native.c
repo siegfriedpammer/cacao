@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1997 2005-03-05 16:58:09Z twisti $
+   $Id: native.c 2010 2005-03-07 09:50:57Z twisti $
 
 */
 
@@ -338,7 +338,9 @@ struct nativeCompCall nativeCompCalls[NATIVECALLSSIZE];
 bool native_init(void)
 {
 	static int classesLoaded = 0; /*temporary hack JoWenn*/
+#if !defined(STATIC_CLASSPATH)
 	void *p;
+#endif
 
 	if (classesLoaded)
 		return true;
