@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1343 2004-07-21 16:12:00Z twisti $
+   $Id: codegen.inc 1346 2004-07-21 23:29:21Z twisti $
 
 */
 
@@ -265,7 +265,7 @@ static s4 dseg_adds8_increase(methodinfo *m, s8 value)
 }
 
 
-static s4 dseg_adds8(s8 value)
+static s4 dseg_adds8(methodinfo *m, s8 value)
 {
 	codegendata *cd;
 	s8 *dataptr;
@@ -387,13 +387,13 @@ static void dseg_addlinenumbertablesize(methodinfo *m)
 	cd = m->codegendata;
 
 #ifdef __ALPHA__
-	dseg_adds4(0); /*PADDING*/
+	dseg_adds4(m, 0); /*PADDING*/
 #endif
 	cd->linenumbertablesizepos = dseg_addaddress(m, NULL); /*it could be considered to use adds4 here, to avoid 1 double word padding on ALPHA */
 
 	cd->linenumbertablestartpos = dseg_addaddress(m, NULL);
 #ifdef __ALPHA__
-	dseg_adds4(0); /*PADDING*/
+	dseg_adds4(m, 0); /*PADDING*/
 #endif
 }
 
