@@ -1,9 +1,5 @@
 /* class: java/lang/Math */
 
-#define DBL_NAN    (*((double*) (&dbl_nan)))
-
-static u8 dbl_nan    = 0xffffffffffffffffL ;
-
 /*
  * Class:     java/lang/Math
  * Method:    IEEEremainder
@@ -11,18 +7,7 @@ static u8 dbl_nan    = 0xffffffffffffffffL ;
  */
 JNIEXPORT double JNICALL Java_java_lang_Math_IEEEremainder ( JNIEnv *env ,  double a, double b)
 {
-	double d;
-	if (finite(a) && finite(b)) {
-		d = a / b;
-		if (finite(d))
-			return a - floor(d) * b;
-		return DBL_NAN;
-		}
-	if (isnan(b))
-		return DBL_NAN;
-	if (finite(a))
-		return a;
-	return DBL_NAN;
+    return remainder(a, b);
 }
 
 /*
