@@ -67,8 +67,8 @@ public class extest {
         } catch (ArrayIndexOutOfBoundsException e) {
 	    String msg = e.getMessage();
 
-	    if (msg != null && msg.compareTo("Array index out of range: -889275714") != 0) {
-		pln("FAILED: wrong index");
+	    if (msg == null || !msg.equals(String.valueOf(0xcafebabe))) {
+		pln("FAILED: wrong index: " + msg + ", should be: " + 0xcafebabe);
 
 	    } else {
 		pln("OK");
@@ -79,13 +79,13 @@ public class extest {
         try {
             p("ArrayIndexOutOfBoundsException:");
             int[] ia = new int[1];
-            ia[0xcafebabe] = 1;
+            ia[0xbabecafe] = 1;
             pln("FAILED");
         } catch (ArrayIndexOutOfBoundsException e) {
 	    String msg = e.getMessage();
 
-	    if (msg != null && msg.compareTo("Array index out of range: -889275714") != 0) {
-		pln("FAILED: wrong index");
+	    if (msg == null || !msg.equals(String.valueOf(0xbabecafe))) {
+		pln("FAILED: wrong index: " + msg + ", should be: " + 0xbabecafe);
 
 	    } else {
 		pln("OK");
@@ -132,6 +132,39 @@ public class extest {
         } catch (ClassCastException e) {
   	    pln("OK");
 	    pstacktrace(e);
+  	}
+
+
+        try {
+            p("ArithmeticException (only w/ -softnull):");
+            int i = 1, j = 0, k = i / j;
+            pln("FAILED");
+        } catch (ArithmeticException e) {
+	    String msg = e.getMessage();
+
+	    if (msg == null || !msg.equals("/ by zero")) {
+		pln("FAILED: wrong message: " + msg + ", should be: / by zero");
+
+	    } else {
+                pln("OK");
+                pstacktrace(e);
+            }
+  	}
+
+        try {
+            p("ArithmeticException (only w/ -softnull):");
+            long i = 1, j = 0, k = i / j;
+            pln("FAILED");
+        } catch (ArithmeticException e) {
+	    String msg = e.getMessage();
+
+	    if (msg == null || !msg.equals("/ by zero")) {
+		pln("FAILED: wrong message: " + msg + ", should be: / by zero");
+
+	    } else {
+                pln("OK");
+                pstacktrace(e);
+            }
   	}
 
 
@@ -243,11 +276,18 @@ public class extest {
         try {
             p("ArrayIndexOutOfBoundsException (aastore):");
 	    Object[] oa = new Object[1];
-	    oa[1] = new Object();
+	    oa[0xaa] = new Object();
             pln("FAILED");
         } catch (ArrayIndexOutOfBoundsException e) {
-  	    pln("OK");
-	    pstacktrace(e);
+	    String msg = e.getMessage();
+
+	    if (msg == null || !msg.equals(String.valueOf(0xaa))) {
+		pln("FAILED: wrong index: " + msg + ", should be: " + 0xaa);
+
+	    } else {
+                pln("OK");
+                pstacktrace(e);
+            }
   	}
 
         try {
