@@ -29,90 +29,90 @@ JNIEXPORT void JNICALL Java_java_lang_System_arraycopy (JNIEnv *env, struct java
 		return; 
 		}
 
-/*  	if (s->objheader.vftbl->class != class_array) { */
-/*  		exceptionptr = proto_java_lang_ArrayStoreException;  */
-/*  		return;  */
-/*  		} */
+	if (s->objheader.vftbl->class != class_array) {
+		exceptionptr = proto_java_lang_ArrayStoreException; 
+		return; 
+		}
 
 	if (((sp<0) | (sp+len > s->size) | (dp<0) | (dp+len > d->size)) != 0) {
 		exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException; 
 		return; 
 		}
 
-        if (s->arraytype != d->arraytype) {
-          exceptionptr = proto_java_lang_ArrayStoreException; 
-          return; 
-        }
+/*          if (s->arraytype != d->arraytype) { */
+/*            exceptionptr = proto_java_lang_ArrayStoreException;  */
+/*            return;  */
+/*          } */
 
 	switch (s->arraytype) {
 	case ARRAYTYPE_BYTE:
-/*  		if (s->objheader.vftbl != d->objheader.vftbl) { */
-/*  			exceptionptr = proto_java_lang_ArrayStoreException;  */
-/*  			return;  */
-/*  			} */
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
 		memmove(((java_bytearray*) d)->data + dp,
 		        ((java_bytearray*) s)->data + sp,
 		        (size_t) len);
 		return;
 	case ARRAYTYPE_BOOLEAN:
-/*  		if (s->objheader.vftbl != d->objheader.vftbl) { */
-/*  			exceptionptr = proto_java_lang_ArrayStoreException;  */
-/*  			return;  */
-/*  			} */
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
 		memmove(((java_booleanarray*) d)->data + dp,
 		        ((java_booleanarray*) s)->data + sp,
 		        (size_t) len);
 		return;
 	case ARRAYTYPE_CHAR:
-/*  		if (s->arraytype != d->arraytype) { */
-/*  			exceptionptr = proto_java_lang_ArrayStoreException;  */
-/*  			return;  */
-/*  			} */
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
 		memmove(((java_chararray*) d)->data + dp,
 		        ((java_chararray*) s)->data + sp,
 		        (size_t) len * sizeof(u2));
 		return;
 	case ARRAYTYPE_SHORT:
-/*  		if (s->objheader.vftbl != d->objheader.vftbl) { */
-/*  			exceptionptr = proto_java_lang_ArrayStoreException;  */
-/*  			return;  */
-/*  			} */
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
 		memmove(((java_shortarray*) d)->data + dp,
 		        ((java_shortarray*) s)->data + sp,
 		        (size_t) len * sizeof(s2));
 		return;
 	case ARRAYTYPE_INT:
-/*  		if (s->objheader.vftbl != d->objheader.vftbl) { */
-/*  			exceptionptr = proto_java_lang_ArrayStoreException;  */
-/*  			return;  */
-/*  			} */
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
 		memmove(((java_intarray*) d)->data + dp,
 		        ((java_intarray*) s)->data + sp,
 		        (size_t) len * sizeof(s4));
 		return;
 	case ARRAYTYPE_LONG:
-/*  		if (s->objheader.vftbl != d->objheader.vftbl) { */
-/*  			exceptionptr = proto_java_lang_ArrayStoreException;  */
-/*  			return;  */
-/*  			} */
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
 		memmove(((java_longarray*) d)->data + dp,
 		        ((java_longarray*) s)->data + sp,
 		        (size_t) len * sizeof(s8));
 		return;
 	case ARRAYTYPE_FLOAT:
-/*  		if (s->objheader.vftbl != d->objheader.vftbl) { */
-/*  			exceptionptr = proto_java_lang_ArrayStoreException;  */
-/*  			return;  */
-/*  			} */
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
 		memmove(((java_floatarray*) d)->data + dp,
 		        ((java_floatarray*) s)->data + sp,
 		        (size_t) len * sizeof(float));
 		return;
 	case ARRAYTYPE_DOUBLE:
-/*  		if (s->objheader.vftbl != d->objheader.vftbl) { */
-/*  			exceptionptr = proto_java_lang_ArrayStoreException;  */
-/*  			return;  */
-/*  			} */
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
 		memmove(((java_doublearray*) d)->data + dp,
 		        ((java_doublearray*) s)->data + sp,
 		        (size_t) len * sizeof(double));
@@ -122,14 +122,14 @@ JNIEXPORT void JNICALL Java_java_lang_System_arraycopy (JNIEnv *env, struct java
 		java_objectarray *oas = (java_objectarray*) s;
 		java_objectarray *oad = (java_objectarray*) d;
 
-/*  		if (d->objheader.vftbl->class != class_array) { */
-/*  			exceptionptr = proto_java_lang_ArrayStoreException;  */
-/*  			return;  */
-/*  			} */
-/*  		if (s->arraytype != d->arraytype) { */
-/*  			exceptionptr = proto_java_lang_ArrayStoreException;  */
-/*  			return;  */
-/*  			} */
+		if (d->objheader.vftbl->class != class_array) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+		if (s->arraytype != d->arraytype) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
 
 		if (dp<=sp) 
 			for (i=0; i<len; i++) {
