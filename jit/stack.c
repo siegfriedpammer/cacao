@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 804 2003-12-17 14:27:52Z edwin $
+   $Id: stack.c 805 2003-12-17 14:39:49Z edwin $
 
 */
 
@@ -289,7 +289,7 @@ extern int dseglen;
  *   - check for matching stack depth at merging points
  *   - check for matching basic types[2] at merging points
  *   - check basic types for instruction input (except for BUILTIN*
- *         opcodes)
+ *         opcodes and MULTIANEWARRAY)
  *
  * [1]) XXX Checking this after the instruction should be ok. parse.c
  * counts the number of required stack slots in such a way that it is
@@ -1810,6 +1810,7 @@ void analyse_stack()
 							arguments_num = i + intreg_argnum;
 						copy = curstack;
 						while (--i >= 0) {
+							/* XXX check INT type here? Currently typecheck does this. */
 							if (! (copy->flags & SAVEDVAR)) {
 								copy->varkind = ARGVAR;
 								copy->varnum = i + intreg_argnum;
@@ -1944,6 +1945,10 @@ void analyse_stack()
 #endif
 }
 
+
+/**********************************************************************/
+/* DEBUGGING HELPERS                                                  */
+/**********************************************************************/
 
 void icmd_print_stack(stackptr s)
 {
