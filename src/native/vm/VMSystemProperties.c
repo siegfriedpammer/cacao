@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 2020 2005-03-09 12:01:42Z twisti $
+   $Id: VMSystemProperties.c 2057 2005-03-23 10:57:52Z twisti $
 
 */
 
@@ -46,6 +46,7 @@
 #include "native/native.h"
 #include "native/include/java_util_Properties.h"
 #include "toolbox/logging.h"
+#include "toolbox/util.h"
 #include "vm/exceptions.h"
 #include "vm/builtin.h"
 #include "vm/loader.h"
@@ -110,16 +111,14 @@ static void insert_property(methodinfo *m, java_util_Properties *p, char *key,
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env, jclass clazz, java_util_Properties *p)
 {
-
-#define BUFFERSIZE 200
 	methodinfo *m;
-	char cwd[BUFFERSIZE];
-	char *java_home;
-	char *user;
-	char *home;
-	char *locale;
-	char *lang;
-	char *region;
+	char       *cwd;
+	char       *java_home;
+	char       *user;
+	char       *home;
+	char       *locale;
+	char       *lang;
+	char       *region;
 	struct utsname utsnamebuf;
 
 	/* endianess union */
@@ -140,7 +139,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 
 	/* get properties from system */
 
-	(void) getcwd(cwd, BUFFERSIZE);
+	cwd = _Jv_getcwd();
 	java_home = getenv("JAVA_HOME");
 	user = getenv("USER");
 	home = getenv("HOME");
@@ -179,33 +178,48 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	insert_property(m, p, "sun.boot.class.path", bootclasspath);
 
 #if defined(STATIC_CLASSPATH)
+	insert_property(m, p, "gnu.classpath.boot.library.path", ".");
 	insert_property(m, p, "java.library.path" , ".");
 #else
-	libpathlen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_LIBRARY_PATH) + 1;
+	/* fill gnu.classpath.boot.library.path with GNU classpath library path */
 
-	if (getenv("CACAO_LIB_OVERRIDE"))
-		libpathlen += strlen(getenv("CACAO_LIB_OVERRIDE")) + 1;
+#if !defined(WITH_EXTERNAL_CLASSPATH)
+	libpathlen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_LIBRARY_PATH) + 1;
+#else
+	libpathlen = strlen(EXTERNAL_CLASSPATH_PREFIX) +
+		strlen(CLASSPATH_LIBRARY_PATH) + 1;
+#endif
+
+	libpath = MNEW(char, libpathlen);
+
+#if !defined(WITH_EXTERNAL_CLASSPATH)
+	strcat(libpath, CACAO_INSTALL_PREFIX);
+	strcat(libpath, CACAO_LIBRARY_PATH);
+#else
+	strcat(libpath, EXTERNAL_CLASSPATH_PREFIX);
+	strcat(libpath, CLASSPATH_LIBRARY_PATH);
+#endif
+	insert_property(m, p, "gnu.classpath.boot.library.path", libpath);
+
+	/* XXX compatibility till new classpath release */
+/*  	MFREE(libpath, char, libpathlen); */
+
+
+	/* now fill java.library.path */
 
 	if (getenv("LD_LIBRARY_PATH"))
 		libpathlen += strlen(getenv("LD_LIBRARY_PATH")) + 1;
 
-	libpath = MNEW(char, libpathlen);
+/*  		libpath = MNEW(char, libpathlen); */
+	libpath = MREALLOC(libpath, char, libpathlen, libpathlen);
 
-	if (getenv("CACAO_LIB_OVERRIDE")) {
-		strcat(libpath, getenv("CACAO_LIB_OVERRIDE"));
-		strcat(libpath, ":");
-	}
+	strcat(libpath, ":");
+	strcat(libpath, getenv("LD_LIBRARY_PATH"));
 
-	strcat(libpath, CACAO_INSTALL_PREFIX);
-	strcat(libpath, CACAO_LIBRARY_PATH);
-
-	if (getenv("LD_LIBRARY_PATH")) {
-		strcat(libpath, ":");
-		strcat(libpath, getenv("LD_LIBRARY_PATH"));
-	}
 	insert_property(m, p, "java.library.path", libpath);
 
 	MFREE(libpath, char, libpathlen);
+/*  	} */
 #endif
 
 	insert_property(m, p, "java.io.tmpdir", "/tmp");
@@ -277,6 +291,10 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 		properties = properties->next;
 		FREE(tp, property);
 	}
+
+	/* clean up */
+
+	MFREE(cwd, char, 0);
 
 	return;
 }
