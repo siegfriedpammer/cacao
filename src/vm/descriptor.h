@@ -28,15 +28,28 @@
 
    Changes:
 
-   $Id: descriptor.h 2075 2005-03-25 12:33:37Z edwin $
+   $Id: descriptor.h 2112 2005-03-29 21:29:08Z twisti $
 
 */
+
 
 #ifndef _DESCRIPTOR_H
 #define _DESCRIPTOR_H
 
+/* forward typedefs ***********************************************************/
+
+typedef struct descriptor_pool descriptor_pool;
+typedef struct typedesc typedesc;
+typedef struct methoddesc methoddesc;
+typedef union parseddesc parseddesc;
+
+
+#include "types.h"
+#include "vm/class.h"
 #include "vm/global.h"
 #include "vm/tables.h"
+#include "vm/utf8.h"
+
 
 /* data structures ************************************************************/ 
 
@@ -66,8 +79,6 @@
 /*            done.                                                           */
 /*----------------------------------------------------------------------------*/
 
-typedef struct descriptor_pool descriptor_pool;
-
 struct descriptor_pool {
 	classinfo         *referer;
 	u4                 fieldcount;
@@ -82,6 +93,29 @@ struct descriptor_pool {
 	u1                *descriptor_kind;       /* useful for debugging */
 	u1                *descriptor_kind_next;  /* useful for debugging */
 };
+
+
+/* data structures for parsed field/method descriptors ************************/
+
+struct typedesc {
+	constant_classref *classref;   /* class reference for TYPE_ADR types      */
+	u1                 type;       /* TYPE_??? constant                       */
+	u1                 arraydim;   /* array dimension (0 if no array)         */
+};
+
+struct methoddesc {
+	s2                 paramcount; /* number of parameters                    */
+	s2                 paramslots; /* like above but LONG,DOUBLE count twice  */
+	typedesc           returntype; /* parsed descriptor of the return type    */
+	typedesc           paramtypes[1]; /* parameter types, variable length!    */
+};
+
+union parseddesc {
+	typedesc          *fd;        /* parsed field descriptor                  */
+	methoddesc        *md;        /* parsed method descriptor                 */
+	void              *any;       /* used for simple test against NULL        */
+};
+
 
 /* function prototypes ********************************************************/
 
@@ -329,6 +363,7 @@ void descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file);
 
 #endif /* _DESCRIPTOR_H */
 
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
@@ -342,4 +377,3 @@ void descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file);
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
-

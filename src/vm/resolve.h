@@ -28,15 +28,13 @@
 
    Changes:
 
-   $Id: resolve.h 2086 2005-03-25 17:12:35Z edwin $
+   $Id: resolve.h 2112 2005-03-29 21:29:08Z twisti $
 
 */
 
+
 #ifndef _RESOLVE_H
 #define _RESOLVE_H
-
-#include "vm/global.h"
-#include "vm/jit/jit.h"
 
 /* forward declarations *******************************************************/
 
@@ -44,10 +42,17 @@ typedef struct unresolved_field unresolved_field;
 typedef struct unresolved_method unresolved_method;
 typedef struct unresolved_subtype_set unresolved_subtype_set;
 
+
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/jit/jit.h"
+
+
 /* constants ******************************************************************/
 
 #define RESOLVE_STATIC    0x0001
 #define RESOLVE_PUTFIELD  0x0002
+
 
 /* enums **********************************************************************/
 
@@ -56,16 +61,28 @@ typedef enum {
 	resolveEager
 } resolve_mode_t;
 
+
 typedef enum {
 	resolveLinkageError,
 	resolveIllegalAccessError
 } resolve_err_t;
+
+
+/* classref_or_classinfo ******************************************************/
+
+typedef union {
+	constant_classref *ref;       /* a symbolic class reference               */
+	classinfo         *cls;       /* an already loaded class                  */
+	void              *any;       /* used for general access (x != NULL,...)  */
+} classref_or_classinfo;
+
 
 /* structs ********************************************************************/
 
 struct unresolved_subtype_set {
 	classref_or_classinfo *subtyperefs;     /* NULL terminated list */
 };
+
 
 /* XXX unify heads of unresolved_field and unresolved_method? */
 
@@ -92,6 +109,19 @@ struct unresolved_method {
 
 #define UNRESOLVED_SUBTYPE_SET_EMTPY(stset) \
 	do { (stset).subtyperefs = NULL; } while(0)
+
+/* a value that never occurrs in classinfo.header.vftbl                       */
+#define CLASSREF_PSEUDO_VFTBL ((vftbl_t *) 1)
+
+/* macro for testing if a classref_or_classinfo is a classref                 */
+/* `reforinfo` is only evaluated once                                         */
+#define IS_CLASSREF(reforinfo)  \
+	((reforinfo).ref->pseudo_vftbl == CLASSREF_PSEUDO_VFTBL)
+
+/* macro for casting a classref/classinfo * to a classref_or_classinfo        */
+#define CLASSREF_OR_CLASSINFO(value) \
+	(*((classref_or_classinfo *)(&(value))))
+
 
 /* function prototypes ********************************************************/
 
