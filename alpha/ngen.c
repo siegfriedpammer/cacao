@@ -1040,13 +1040,15 @@ static void gen_mcode()
 			M_SRA(s1, 16, d, 1);
 			M_CMPLT(REG_ITMP2, d, REG_ITMP1, 0);
 			M_ISUB(REG_ITMP2, d, d, 0);
+            M_ZAPNOT(d, 0x03, d, 1);
 			M_IADD(d, REG_ITMP1, d, 0);
-			M_BGEZ(s1, 10);
+			M_BGEZ(s1, 11);
 			M_ISUB(REG_ZERO, s1, REG_ITMP1, 0);
             M_ZAPNOT(REG_ITMP1, 0x03, REG_ITMP2, 1);
 			M_SRA(REG_ITMP1, 16, d, 1);
 			M_CMPLT(REG_ITMP2, d, REG_ITMP1, 0);
 			M_ISUB(REG_ITMP2, d, d, 0);
+            M_ZAPNOT(d, 0x03, d, 1);
 			M_IADD(d, REG_ITMP1, d, 0);
 			M_ISUB(REG_ZERO, d, d, 0);
 			M_SLL(s1, 33, REG_ITMP2, 1);
@@ -1146,6 +1148,7 @@ static void gen_mcode()
 			M_SRA(s1, 16, d, 1);
 			M_CMPLT(REG_ITMP2, d, REG_ITMP1, 0);
 			M_LSUB(REG_ITMP2, d, d, 0);
+            M_ZAPNOT(d, 0x03, d, 1);
 			M_LADD(d, REG_ITMP1, d, 0);
 			M_LDA(REG_ITMP2, REG_ZERO, -1);
 			M_SRL(REG_ITMP2, 33, REG_ITMP2, 1);
