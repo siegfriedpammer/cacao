@@ -28,10 +28,30 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: inline.c 1632 2004-11-30 20:42:14Z carolyn $
 
 */
 
+/*---
+Inlining initializes an inline structure with values of the method called
+with. Then it recursively to MAXDEPTH analyzes by parsing the bytecode 
+looking for methods that meet the critera to be inlined.
+
+Critera for inlining currently is:
+Method to be inlined must:
+- be less than MAXCODESIZE 
+- only MAXMETHODS can be inlined in 1 method
+
+-in only STATIC, FINAL, PRIVATE methods can be inlined from method's class
+-ino (include outsiders) all STATIC, FINAL, PRIVATE methods can be inlined
+-inv include virtual methods which static analysis (currently only RTA)
+     to only have 1 definition used (INVOKEVIRTUAL/INVOKEINTERFACE)
+     Currently dynamic loading is handled by rerunning with info 
+	(see parseRT). Guards need to be added.
+-inp  inline parameters (needs work) Parameters are analysed if they are
+	readonly but the information does not seem to be used.
+-ine  JOWENN <- please add
+---*/
 
 #include <stdio.h>
 #include <string.h>
@@ -47,9 +67,16 @@ globals moved to structure and passed as parameter
 #include "vm/jit/inline/inline.h"
 #include "vm/jit/inline/sets.h"
 
+#undef  INVIRTDEBUG  /* prints if a method was found to be 
+			 a unique virt/interface method  definition */
+#undef DEBUGi 
 
-#define INVIRTDEBUG 
-#undef  INVIRTDEBUG
+#define METHINFOj(mm) \
+    { \
+        printf("<j%i/l%i/s%i/(p)%i>\t", \
+                (mm)->jcodelength,(mm)->maxlocals, \
+		(mm)->maxstack, (mm)->paramcount);  \
+        method_display_w_class(mm); }
 
 #define METHINFOx(mm) \
     { \
@@ -68,7 +95,6 @@ globals moved to structure and passed as parameter
   printf("\tm->maxlocals=%i; ",m->maxlocals); fflush(stdout); \
   printf("m->maxstack=%i;\n",m->maxstack); fflush(stdout);
 
-bool DEBUGi = false;
 /* checked functions and macros: LOADCONST code_get OP1 BUILTIN block_insert bound_check ALIGN */
 
 /* replace jcodelength loops with correct number after main for loop in parse()! */
@@ -112,19 +138,25 @@ if ((utf_new_char("main") == m->name) && (useinliningm))
 
 if (useinlining)
         {
-if (DEBUGi==true) {
+		#ifdef DEBUGi
  		printf("\n-------- Inlining init for: "); fflush(stdout);
   		IMETHINFO(m)
-                }
+		#endif
+		
         inline_env->cumjcodelength = 0;
         inline_env->inlining_stack = NEW(list);
         list_init(inline_env->inlining_stack, 
 		  OFFSET(t_inlining_stacknode, linkage));
         /*------ analyze ------*/
-if (DEBUGi==true) {print_t_inlining_globals(inline_env);}
         inline_env->inlining_rootinfo 
 		= inlining_analyse_method(m, 0, 0, 0, 0, inline_env);
-if (DEBUGi==true) {print_t_inlining_globals(inline_env);}
+		#ifdef DEBUGi
+	  		printf ("\n------------------------------ ");fflush(stdout);
+	  		printf ("\nComplete Result of inlining analysis of:");
+			fflush(stdout);
+			METHINFOj(m)
+			print_t_inlining_globals(inline_env); /* init ok */
+		#endif
         /*---------------------*/
 /*
  if (inline_env->cummethods == 0) {
@@ -133,13 +165,14 @@ if (DEBUGi==true) {print_t_inlining_globals(inline_env);}
 	 return inline_env;
  }
 */
-if (DEBUGi==true) {
+#if 0
+		#ifdef DEBUGi
   printf("(l,s) (%i,%i) was (%i,%i)\n",
     m->maxlocals, inline_env->cumlocals,
     m->maxstack,  inline_env->cummaxstack); fflush(stdout);
-  }
-#if 0
+		#endif
 /*This looks wrong*/
+/* OK since other changes were also made, but in parse same stmt still */
         m->maxlocals = inline_env->cumlocals;   orig not used
         m->maxstack = inline_env->cummaxstack;  orig global maxstack var!!
 #endif
@@ -152,6 +185,20 @@ void inlining_cleanup(t_inlining_globals *inline_env)
 	FREE(inline_env->inlining_stack, t_inlining_stacknode);
 }
 
+
+/*--2 push the compile variables to save the method's environment --*/
+
+void inlining_push_compiler_variablesT(int opcode, inlining_methodinfo *inlinfo, t_inlining_globals *inline_env)
+{
+	t_inlining_stacknode *new = NEW(t_inlining_stacknode);
+
+	/**new->opcode = opcode; **/
+	new->method = inline_env->method;
+	new->inlinfo = inlinfo;
+	list_addfirst(inline_env->inlining_stack, new);
+	inline_env->isinlinedmethod++;
+}
+/*-- push the compile variables to save the method's environment --*/
 
 void inlining_push_compiler_variables(int i, int p, int nextp, int opcode,  u2 lineindex,u2 currentline,u2 linepcchange,inlining_methodinfo *inlinfo, t_inlining_globals *inline_env)
 {
@@ -328,15 +375,14 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 	int  *label_index = NULL;
 	bool isnotrootlevel = (level > 0);
 	bool isnotleaflevel = (level < INLINING_MAXDEPTH);
+	#ifdef DEBUGi
+	  	printf ("\n------------------------------ ");fflush(stdout);
+	  	printf ("\nStart of inlining analysis of: ");fflush(stdout);
+		METHINFOj(m)
+		print_t_inlining_globals(inline_env); /* init ok */
+	#endif
 
 	/* if (level == 0) gp = 0; */
-	/*
-	sprintf (logtext, "Performing inlining analysis of: ");
-	utf_sprint (logtext+strlen(logtext), m->class->name);
-	strcpy (logtext+strlen(logtext), ".");
-	utf_sprint (logtext+strlen(logtext), m->name);
-	utf_sprint (logtext+strlen(logtext), m->descriptor);
-	dolog (); */
 
 	if (isnotrootlevel) {
 		newnode->readonly = readonly = DMNEW(bool, m->maxlocals); /* FIXME only paramcount entrys necessary */
@@ -353,6 +399,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 	list_init(newnode->inlinedmethods, OFFSET(inlining_methodinfo, linkage));
 
 	newnode->method = m;
+	newnode->level = level;
 	newnode->startgp = gp;
 	newnode->readonly = readonly;
 	newnode->label_index = label_index;
@@ -532,7 +579,8 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 					if (!imi) /* normal-but never get here now */ 
 						panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 
-/** Inlining inits has problem currently **/
+/** Inlining has problem currently with typecheck & inlining **/
+/** Due problem with typecheck & inlining, class checks fail for <init>s **/
 					if (utf_new_char("<init>") == imi->name) break; 
 /****/					
 					if (opcode == JAVA_INVOKEVIRTUAL) {
@@ -611,6 +659,12 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 						
 						tmp =inlining_analyse_method(imi, level + 1, gp, firstlocal + m->maxlocals, maxstackdepth + m->maxstack, inline_env);
 						list_addlast(newnode->inlinedmethods, tmp);
+		#ifdef DEBUGi
+printf("New node Right after an inline by:");fflush(stdout);
+METHINFOj(m)
+print_inlining_methodinfo(newnode);
+printf("end new node\n"); fflush(stdout);
+		#endif
 						gp = tmp->stopgp;
 						p = nextp;
 					}
@@ -622,16 +676,6 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 	
 	newnode->stopgp = gp;
         label_index[jcodelength]=gp;
-        if (DEBUGi==true) {
-	  printf ("\nResult of inlining analysis of: ");
-	  IMETHINFO(m);
-	  printf("was called by:\n"); fflush(stdout);
-	  IMETHINFO(inline_env->method);
-	  printf ("label_index[0..%d]->", jcodelength);
-	  for (i=0;i<jcodelength; i++) printf ("%d:%d ", i, label_index[i]);
-	  printf("stopgp : %d\n",newnode->stopgp); 
-          }
-
     return newnode;
 }
 
@@ -641,7 +685,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 void print_t_inlining_globals (t_inlining_globals *g) 
 {
 printf("\n------------\nt_inlining_globals struct for: \n\t");fflush(stdout); 
-METHINFOx(g->method);
+METHINFOj(g->method);
 printf("\tclass=");fflush(stdout);
   utf_display(g->class->name);printf("\n");fflush(stdout);
 
@@ -660,38 +704,35 @@ printf("\tcumlocals=%i ,cummethods=%i \n",
  g->cumlocals,    g->cummethods);fflush(stdout);  
 
 printf("s>s>s> ");fflush(stdout);
-print_inlining_stack     (g->inlining_stack);
+	print_inlining_stack     (g->inlining_stack);
 printf("i>i>i> "); fflush(stdout);
-print_inlining_methodinfo(g->inlining_rootinfo);
+	print_inlining_methodinfo(g->inlining_rootinfo);
 printf("-------------------\n");fflush(stdout);
 }
 
 /* --------------------------------------------------------------------*/
 void print_inlining_stack     ( list                *s)
 {
+  t_inlining_stacknode *is;
+
 if (s==NULL) { 
   printf("\n\tinlining_stack: NULL\n");
   return;
   }
-  
-  {/* print first  element to see if get into stack */
-  t_inlining_stacknode *is;
-  printf("\n\tinlining_stack: NOT NULL\n");
 
-  is=list_first(s); 
-  if (is==NULL) { 
+/* print first  element to see if get into stack */
+printf("\n\tinlining_stack: NOT NULL\n");
+
+is=list_first(s); 
+if (is==NULL) { 
     printf("\n\tinlining_stack = init'd but EMPTY\n");
     fflush(stdout);
     return;
     }
-  }
 
-  {
-  t_inlining_stacknode *is;
-  printf("\n\tinlining_stack: NOT NULL\n");
+printf("\n\tinlining_stack: NOT NULL\n");
 
-
-  for (is=list_first(s); 
+for (is=list_first(s); 
        is!=NULL;
        is=list_next(s,is)) {
  	 printf("\n\ti>--->inlining_stack entry: \n"); fflush(stdout);
@@ -700,31 +741,34 @@ if (s==NULL) {
 		is->i,is->p,is->nextp,is->opcode);fflush(stdout);
 	 print_inlining_methodinfo(is->inlinfo);
     } /*end for */
-  } 
-
 }
 
 /* --------------------------------------------------------------------*/
 void print_inlining_methodinfo( inlining_methodinfo *r) {
+  int i;
+  int cnt,cnt2;
+  inlining_methodinfo *im;
+  inlining_methodinfo *im2;
+  bool labellong = false;
+
 if (r==NULL) { 
   printf("\n\tinlining_methodinfo: NULL\n");
   return;
   }
+printf("\n\tinlining_methodinfo for:"); fflush(stdout);
 
 if (r->method != NULL) {
   utf_display(r->method->class->name); printf("."); fflush(stdout); \
   method_display(r->method); fflush(stdout); \
   }
 else {
-  printf("method is NULL!!!!!\n");fflush(stdout);
+  printf(" NULL!!!!!\n");fflush(stdout);
   }
 
-printf("\n\tinlining_methodinfo for:"); fflush(stdout);
 if (r->readonly==NULL) {
   printf("\treadonly==NULL ");fflush(stdout);  
   }
 else {
-  int i;
   printf("\treadonly=");fflush(stdout);  
   for (i = 0; i < r->method->maxlocals; i++)  {
     if (r->readonly[i] == true)
@@ -738,18 +782,46 @@ else {
 
 printf("\tstartgp=%i; stopgp=%i; firstlocal=%i; label_index=%p;\n",
           r->startgp, r->stopgp, r->firstlocal, r->label_index);
-{int i;
 printf ("label_index[0..%d]->", r->method->jcodelength);
-for (i=0; i<r->method->jcodelength; i++) printf ("%d:%d ", i, r->label_index[i]);
+if (labellong) {
+for (i=0; i<r->method->jcodelength; i++) printf ("%d:%d ", i, r->label_index[i]); }
+else {
+printf ("%d:%d ", 0, r->label_index[i]);
+printf ("%d:%d ", 
+  (r->method->jcodelength-1), r->label_index[r->method->jcodelength-1]);
 }
 
-{
-inlining_methodinfo *im;
-for (im=list_first(r->inlinedmethods); 
-     im!=NULL;
-     im=list_next(r->inlinedmethods,im)) {
-  } 
-}
+printf("\n:::::inlines::::::::::::::::::::\n");
+if (list_first(r->inlinedmethods) == NULL) {
+	printf("Nothing\n");fflush(stdout);
+	}
+else {
+	for (im=list_first(r->inlinedmethods),cnt=0; 
+     	     im!=NULL;
+     	     im=list_next(r->inlinedmethods,im),cnt++) {
+		printf("*"); fflush(stdout);
+		printf("%i:",cnt);
+		printf("[1L%i] ",im->firstlocal); fflush(stdout);
+		METHINFOj(im->method)
+		printf("::::: which inlines::"); fflush(stdout);	
+		if (list_first(im->inlinedmethods) == NULL) {
+			printf("Nothing\n");fflush(stdout);
+			}
+		else   {
+			printf("##"); fflush(stdout);
+			for (im2=list_first(im->inlinedmethods),cnt2=0; 
+     		     	     im2!=NULL;
+ 		     	     im2=list_next(im2->inlinedmethods,im2),cnt2++) 
+				{
+				printf("\t%i::",cnt2); fflush(stdout);
+				printf("[1L%i] ",im2->firstlocal); 
+					fflush(stdout);
+				METHINFOj(im2->method)
+				}
+			printf("\n"); fflush(stdout);
+			}
+  		} 
+      }
 }
 
 

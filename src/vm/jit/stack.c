@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: stack.c 1632 2004-11-30 20:42:14Z carolyn $
 
 */
 
@@ -2495,7 +2495,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 
 	case ICMD_INLINE_START:
-		printf("\t\t\t%s.%s%s",iptr->method->class->name->text,iptr->method->name->text,iptr->method->descriptor->text);
+		printf("\t\t\t%s.%s%s depth=%i",iptr->method->class->name->text,iptr->method->name->text,iptr->method->descriptor->text, iptr->op1);
 		break;
 	case ICMD_INLINE_END:
 		break;

@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.h 1621 2004-11-30 13:06:55Z twisti $
+   $Id: inline.h 1632 2004-11-30 20:42:14Z carolyn $
 
 */
 
@@ -43,21 +43,15 @@ typedef struct t_inlining_globals t_inlining_globals;
 #include "vm/global.h"
 
 
-#define INLINING_MAXDEPTH       2  /*1*/ 
+#define INLINING_MAXDEPTH       3  /*1*/ 
 #define INLINING_MAXCODESIZE    128 /*32*/
 #define INLINING_MAXMETHODS     32 /*8*/
-
-
-/*typedef struct {
-        listnode linkage;
-        instruction *iptr;
-        } t_patchlistnode;*/
-
 
 typedef struct {
     listnode linkage;
 
     methodinfo *method;
+    int level;
     int startgp;
     int stopgp;
     int firstlocal;
