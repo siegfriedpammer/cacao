@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: cacao.c 175 2002-12-04 13:33:31Z stefan $
+	Last Change: $Id: cacao.c 196 2003-01-21 12:03:06Z stefan $
 
 *******************************************************************************/
 
@@ -510,7 +510,7 @@ int main(int argc, char **argv)
 	/********** interne (nur fuer main relevante Optionen) **************/
    
 	char logfilename[200] = "";
-	u4 heapsize = 16000000;
+	u4 heapsize = 64000000;
 	u4 heapstartsize = 200000;
 	char classpath[500] = ".:/usr/local/lib/java/classes";
 	bool startit = true;
