@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1331 2004-07-21 15:46:54Z twisti $
+   $Id: native.h 1361 2004-07-28 10:51:14Z twisti $
 
 */
 
@@ -65,10 +65,6 @@ struct nativecompref {
 };
 
 
-/* searchpath for classfiles */
-
-extern char *classpath;
-
 extern classinfo *class_java_lang_Class;
 extern classinfo *class_java_lang_VMClass;
 extern classinfo *class_java_lang_System;
@@ -97,9 +93,6 @@ void use_class_as_object(classinfo *c);
 
 /* load classes required for native methods */
 void native_loadclasses();
-
-/* set searchpath for classfiles */
-void native_setclasspath(char *path);
 
 /* find native function */
 functionptr native_findfunction(utf *cname, utf *mname, 

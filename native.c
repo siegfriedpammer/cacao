@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1331 2004-07-21 15:46:54Z twisti $
+   $Id: native.c 1361 2004-07-28 10:51:14Z twisti $
 
 */
 
@@ -81,9 +81,6 @@
 
 #include "nativetable.inc"
 
-
-/* searchpath for classfiles */
-char *classpath;
 
 /* for java-string to char conversion */
 #define MAXSTRINGSIZE 1000                          
@@ -255,15 +252,6 @@ void init_systemclassloader()
 		SystemClassLoader->initialized = true;
 	}
 	log_text("leaving system class loader");
-}
-
-
-/********************* function: native_setclasspath **************************/
- 
-void native_setclasspath(char *path)
-{
-	/* set searchpath for classfiles */
-	classpath = path;
 }
 
 
