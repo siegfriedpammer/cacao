@@ -767,14 +767,6 @@ void heap_init (u4 heapbytesize, u4 heapbytestartsize, void **stackbottom)
 
 void heap_close ()
 {
-#ifndef TRACECALLARGS
-	MFREE (heap, heapblock, heapsize); */
-#endif
-	MFREE (startbits, bitfieldtype, heapsize/BITFIELDBITS);
-	MFREE (markbits, bitfieldtype, heapsize/BITFIELDBITS);
-	MFREE (referencebits, bitfieldtype, heapsize/BITFIELDBITS);
-	chain_free (allglobalreferences);
-
 	while (livefinalizees) {
 		finalizernode *n = livefinalizees->next;
 		asm_calljavamethod (livefinalizees->finalizer, 
@@ -783,6 +775,14 @@ void heap_close ()
 		FREE (livefinalizees, finalizernode);
 		livefinalizees = n;
 	}
+
+#ifndef TRACECALLARGS
+	MFREE (heap, heapblock, heapsize);
+#endif
+	MFREE (startbits, bitfieldtype, heapsize/BITFIELDBITS);
+	MFREE (markbits, bitfieldtype, heapsize/BITFIELDBITS);
+	MFREE (referencebits, bitfieldtype, heapsize/BITFIELDBITS);
+	chain_free (allglobalreferences);
 }
 
 
