@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2195 2005-04-03 16:53:16Z edwin $
+   $Id: class.h 2200 2005-04-03 21:44:19Z twisti $
 
 */
 
@@ -219,7 +219,7 @@ extern classinfo *pseudo_class_New;
 /* function prototypes ********************************************************/
 
 /* create a new classinfo struct */
-classinfo *create_classinfo(utf *u);
+classinfo *class_create_classinfo(utf *u);
 
 /* frees all resources used by the class */
 void class_free(classinfo *);

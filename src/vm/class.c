@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: class.c 2200 2005-04-03 21:44:19Z twisti $
 
 */
 
@@ -125,7 +125,14 @@ classinfo *pseudo_class_Arraystub = NULL;
 classinfo *pseudo_class_Null = NULL;
 classinfo *pseudo_class_New = NULL;
 
-classinfo *create_classinfo(utf *classname)
+
+/* class_create_classinfo ******************************************************
+
+   XXX
+
+*******************************************************************************/
+
+classinfo *class_create_classinfo(utf *classname)
 {
 	classinfo *c;     /* hashtable element */
 
@@ -191,7 +198,7 @@ classinfo *create_classinfo(utf *classname)
 		char *start = c->name->text;
 		for (;p > start; --p) {
 			if (*p == '/') {
-				c->packagename = utf_new (start, p - start);
+				c->packagename = utf_new(start, p - start);
 				break;
 			}
 		}
@@ -310,9 +317,11 @@ void class_free(classinfo *c)
 /*  	GCFREE(c); */
 }
 
+
 /* get_array_class *************************************************************
 
-   Returns the array class with the given name for the given classloader.
+   Returns the array class with the given name for the given
+   classloader.
 
 *******************************************************************************/
 
@@ -330,7 +339,7 @@ static classinfo *get_array_class(utf *name,java_objectheader *initloader,
 		return c;
 
 	/* we have to create it */
-	c = create_classinfo(name);
+	c = class_create_classinfo(name);
 	if (!load_newly_created_array(c,initloader))
 		return NULL;
 
@@ -347,6 +356,7 @@ static classinfo *get_array_class(utf *name,java_objectheader *initloader,
 	return c;
 }
 
+
 /* class_array_of **************************************************************
 
    Returns an array class with the given component class. The array
@@ -354,7 +364,7 @@ static classinfo *get_array_class(utf *name,java_objectheader *initloader,
 
 *******************************************************************************/
 
-classinfo *class_array_of(classinfo *component,bool link)
+classinfo *class_array_of(classinfo *component, bool link)
 {
     s4 namelen;
     char *namebuf;
@@ -380,7 +390,10 @@ classinfo *class_array_of(classinfo *component,bool link)
         namelen += 3;
     }
 
-	return get_array_class(utf_new(namebuf, namelen),component->classloader,component->classloader,link);
+	return get_array_class(utf_new(namebuf, namelen),
+						   component->classloader,
+						   component->classloader,
+						   link);
 }
 
 
@@ -391,7 +404,7 @@ classinfo *class_array_of(classinfo *component,bool link)
 
 *******************************************************************************/
 
-classinfo *class_multiarray_of(s4 dim, classinfo *element,bool link)
+classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
 {
     s4 namelen;
     char *namebuf;
@@ -418,8 +431,12 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element,bool link)
     }
 	memset(namebuf, '[', dim);
 
-	return get_array_class(utf_new(namebuf, namelen),element->classloader,element->classloader,link);
+	return get_array_class(utf_new(namebuf, namelen),
+						   element->classloader,
+						   element->classloader,
+						   link);
 }
+
 
 /* class_lookup_classref *******************************************************
 
@@ -436,7 +453,7 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element,bool link)
    
 *******************************************************************************/
 
-constant_classref *class_lookup_classref(classinfo *cls,utf *name)
+constant_classref *class_lookup_classref(classinfo *cls, utf *name)
 {
 	constant_classref *ref;
 	extra_classref *xref;
@@ -454,7 +471,7 @@ constant_classref *class_lookup_classref(classinfo *cls,utf *name)
 			return ref;
 
 	/* next try the list of extra classrefs */
-	for (xref=cls->extclassrefs; xref; xref=xref->next) {
+	for (xref = cls->extclassrefs; xref; xref = xref->next) {
 		if (xref->classref.name == name)
 			return &(xref->classref);
 	}
@@ -480,7 +497,7 @@ constant_classref *class_lookup_classref(classinfo *cls,utf *name)
    
 *******************************************************************************/
 
-constant_classref *class_get_classref(classinfo *cls,utf *name)
+constant_classref *class_get_classref(classinfo *cls, utf *name)
 {
 	constant_classref *ref;
 	extra_classref *xref;
@@ -501,6 +518,7 @@ constant_classref *class_get_classref(classinfo *cls,utf *name)
 	return &(xref->classref);
 }
 
+
 /* class_get_classref_multiarray_of ********************************************
 
    Returns an array type reference with the given dimension and element class
@@ -519,7 +537,7 @@ constant_classref *class_get_classref(classinfo *cls,utf *name)
 
 *******************************************************************************/
 
-constant_classref *class_get_classref_multiarray_of(s4 dim,constant_classref *ref)
+constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *ref)
 {
     s4 namelen;
     char *namebuf;
@@ -585,7 +603,7 @@ constant_classref *class_get_classref_component_of(constant_classref *ref)
 		return NULL;
 	}
 
-    return class_get_classref(ref->referer,utf_new(name, namelen));
+    return class_get_classref(ref->referer, utf_new(name, namelen));
 }
 
 

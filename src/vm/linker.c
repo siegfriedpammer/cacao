@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: linker.c 2200 2005-04-03 21:44:19Z twisti $
 
 */
 
@@ -155,14 +155,15 @@ bool linker_init(void)
 
     /* pseudo class for Arraystubs (extends java.lang.Object) */
     
-    pseudo_class_Arraystub = create_classinfo(utf_new_char("$ARRAYSTUB$"));
+    pseudo_class_Arraystub =
+		class_create_classinfo(utf_new_char("$ARRAYSTUB$"));
 	pseudo_class_Arraystub->loaded = true;
     pseudo_class_Arraystub->super.cls = class_java_lang_Object;
     pseudo_class_Arraystub->interfacescount = 2;
     pseudo_class_Arraystub->interfaces = MNEW(classref_or_classinfo, 2);
     pseudo_class_Arraystub->interfaces[0].cls = class_java_lang_Cloneable;
     pseudo_class_Arraystub->interfaces[1].cls = class_java_io_Serializable;
-	if (!classcache_store(NULL,pseudo_class_Arraystub))
+	if (!classcache_store(NULL, pseudo_class_Arraystub))
 		panic("could not cache pseudo_class_Arraystub");
 
     if (!link_class(pseudo_class_Arraystub))
@@ -170,10 +171,10 @@ bool linker_init(void)
 
     /* pseudo class representing the null type */
     
-	pseudo_class_Null = create_classinfo(utf_new_char("$NULL$"));
+	pseudo_class_Null = class_create_classinfo(utf_new_char("$NULL$"));
 	pseudo_class_Null->loaded = true;
     pseudo_class_Null->super.cls = class_java_lang_Object;
-	if (!classcache_store(NULL,pseudo_class_Null))
+	if (!classcache_store(NULL, pseudo_class_Null))
 		panic("could not cache pseudo_class_Null");
 
 	if (!link_class(pseudo_class_Null))
@@ -181,7 +182,7 @@ bool linker_init(void)
 
     /* pseudo class representing new uninitialized objects */
     
-	pseudo_class_New = create_classinfo(utf_new_char("$NEW$"));
+	pseudo_class_New = class_create_classinfo(utf_new_char("$NEW$"));
 	pseudo_class_New->loaded = true;
 	pseudo_class_New->linked = true; /* XXX is this allright? */
 	pseudo_class_New->super.cls = class_java_lang_Object;
@@ -220,7 +221,7 @@ static bool link_primitivetype_table(void)
 			continue;
 		
 		/* create primitive class */
-		c = create_classinfo(utf_new_char(primitivetype_table[i].name));
+		c = class_create_classinfo(utf_new_char(primitivetype_table[i].name));
 		c->classUsed = NOTUSED; /* not used initially CO-RT */
 		c->impldBy = NULL;
 		
@@ -244,8 +245,8 @@ static bool link_primitivetype_table(void)
 
 		/* create the primitive array class */
 		if (primitivetype_table[i].arrayname) {
-			c = create_classinfo(utf_new_char(primitivetype_table[i].arrayname));
-			if (!load_newly_created_array(c,NULL))
+			c = class_create_classinfo(utf_new_char(primitivetype_table[i].arrayname));
+			if (!load_newly_created_array(c, NULL))
 				return false;
 			primitivetype_table[i].arrayclass = c;
 			assert(c->loaded);
