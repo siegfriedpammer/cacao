@@ -330,6 +330,14 @@ firstStartThread(void)
 
     DBG( printf("firstStartThread %p\n", currentThread); );
 
+	if (stack_to_be_freed != 0)
+	{
+#ifndef USE_BOEHM
+		free(stack_to_be_freed);
+#endif
+		stack_to_be_freed = 0;
+	}
+
 	/* Every thread starts with the interrupts off */
 	intsRestore();
 	assert(blockInts == 0);
