@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 573 2003-11-07 08:53:55Z twisti $
+   $Id: codegen.h 712 2003-12-07 20:39:09Z twisti $
 
 */
 
@@ -102,9 +102,11 @@
 #define REG_FTMP3       XMM10    /* temporary floating point register         */
 
 
-/* stackframe-infos ***********************************************************/
+#define INT_ARG_CNT      6   /* number of int argument registers              */
+#define INT_SAV_CNT      5   /* number of int callee saved registers          */
 
-int parentargs_base; /* offset in stackframe for the parameter from the caller*/
+#define FLT_ARG_CNT      4   /* number of flt argument registers              */
+#define FLT_SAV_CNT      0   /* number of flt callee saved registers          */
 
 
 /* macros to create code ******************************************************/
