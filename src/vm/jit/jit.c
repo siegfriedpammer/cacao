@@ -29,27 +29,28 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: jit.c 1093 2004-05-27 15:49:43Z twisti $
 
 */
 
 
 #include <stdlib.h>
 #include <string.h>
-#include "global.h"    /* we define _GNU_SOURCE there */
+#include "global.h"
 #include "main.h"
 #include "tables.h"
 #include "loader.h"
-#include "jit.h"
-#include "parse.h"
-#include "stack.h"
-#include "reg.h"
-#include "inline.h"
 #include "builtin.h"
 #include "native.h"
 #include "asmpart.h"
 #include "codegen.h"
 #include "types.h"
+#include "jit/inline.h"
+#include "jit/jit.h"
+#include "jit/parse.h"
+#include "jit/stack.h"
+#include "jit/reg.h"
+#include "jit/typecheck.h"
 #include "threads/thread.h"
 #include "disass.h"
 #include "loop/loop.h"
@@ -791,7 +792,7 @@ int jcommandsize[256] = {
 	5,
 #define JAVA_BREAKPOINT       202
 	1,
-#define ICMD_CHECKOOM         203
+#define ICMD_CHECKEXCEPTION   203
 	1, /* unused */
 
 	      1,1,1,1,1,1,1,            /* unused */
@@ -1007,7 +1008,7 @@ char *icmd_names[256] = {
 	"UNDEF200     ", /* GOTO_W      200 */
 	"UNDEF201     ", /* JSR_W       201 */
 	"UNDEF202     ", /* BREAKPOINT  202 */
-	"CHECKOOM     ", /* UNDEF204    203 */
+	"CHECKEXCEPTION", /* UNDEF204    203 */
 
 	                                 "UNDEF204","UNDEF205",
 	"UNDEF206","UNDEF207","UNDEF208","UNDEF209","UNDEF210",
@@ -1231,7 +1232,7 @@ char *opcode_names[256] = {
 	"GOTO_W       ", /* GOTO_W      200 */
 	"JSR_W        ", /* JSR_W       201 */
 	"BREAKPOINT   ", /* BREAKPOINT  202 */
-	"CHECKOOM     ", /* UNDEF203    203 */
+	"CHECKEXCEPTION", /* UNDEF203    203 */
 
 	                                 "UNDEF204","UNDEF205",
 	"UNDEF206","UNDEF207","UNDEF208","UNDEF209","UNDEF210",
@@ -1426,53 +1427,74 @@ static void* do_nothing_function()
 
 *******************************************************************************/
 
-#if 0
-#define LOG_STEP(step)											\
-	if (compileverbose) {										\
-		char logtext[MAXLOGTEXT];								\
-		sprintf(logtext, "%s: ",step);							\
-		utf_sprint(logtext+strlen(logtext), m->class->name);	\
-		strcpy(logtext+strlen(logtext), ".");					\
-		utf_sprint(logtext+strlen(logtext), m->name);			\
-		utf_sprint(logtext+strlen(logtext), m->descriptor);		\
-		log_text(logtext);										\
-	}
-#else
-#define LOG_STEP(step)
-#endif
+static methodptr jit_compile_intern(methodinfo *m);
 
 methodptr jit_compile(methodinfo *m)
 {
 	static bool jitrunning;
+	methodptr r;
 	s4 dumpsize;
 	s8 starttime = 0;
 	s8 stoptime  = 0;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
 	compiler_lock();
-#endif
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#else
 	intsDisable();      /* disable interrupts */
 #endif
+#endif
 
-	count_jit_calls++;
+	if (opt_stat)
+		count_jit_calls++;
 
 	/* if method has been already compiled return immediately */
 
 	if (m->entrypoint) {
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+		compiler_unlock();
+#else
 		intsRestore();                             /* enable interrupts again */
 #endif
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		compiler_unlock();
 #endif
 
 		return m->entrypoint;
 	}
 
-	count_methods++;
+	if (opt_stat)
+		count_methods++;
+
+	/* initialize the static function's class */
+
+  	if (m->flags & ACC_STATIC && !m->class->initialized) {
+		if (initverbose)
+			log_message_class("Initialize class ", m->class);
+
+		if (!class_init(m->class)) {
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+			compiler_unlock();
+#else
+			intsRestore();
+#endif
+#endif
+			return NULL;
+		}
+	}
+
+	if (jitrunning) {
+		printf("current method=");
+		utf_display_classname(method->class->name);printf(".");utf_display(method->name);
+		printf(", new method=");
+		utf_display_classname(m->class->name);printf(".");utf_display(m->name);
+		printf("\n");
+		panic("Compiler lock recursion");
+	}
+
+	/* now the jit is running */
+
+	jitrunning = true;
 
 	/* mark start of dump memory area */
 
@@ -1483,64 +1505,79 @@ methodptr jit_compile(methodinfo *m)
 	if (getcompilingtime)
 		starttime = getcputime();
 
-	/* if there is no javacode print error message and return empty method    */
+	/* now call internal compile function */
+
+	r = jit_compile_intern(m);
+
+	if (r) {
+		/* intermediate and assembly code listings */
+		
+		if (showintermediate)
+			show_icmd_method();
+		else if (showdisassemble)
+			disassemble((void *) (m->mcode + dseglen), m->mcodelength - dseglen);
+
+		if (showddatasegment)
+			dseg_display((void *) (m->mcode));
+
+		if (compileverbose)
+			log_message_method("Running: ", m);
+	}
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	/* measure time */
+
+	if (getcompilingtime) {
+		stoptime = getcputime();
+		compilingtime += (stoptime - starttime);
+	}
+
+	jitrunning = false;
+
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+	compiler_unlock();
+#else
+	intsRestore();
+#endif
+#endif
+
+	/* return pointer to the methods entry point */
+
+	return r;
+}
+
+
+static methodptr jit_compile_intern(methodinfo *m)
+{
+	/* if there is no javacode, print error message and return empty method   */
 
 	if (!m->jcode) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "No code given for: ");
-		utf_sprint_classname(logtext + strlen(logtext), m->class->name);
-		strcpy(logtext + strlen(logtext), ".");
-		utf_sprint(logtext + strlen(logtext), m->name);
-		utf_sprint_classname(logtext + strlen(logtext), m->descriptor);
-		log_text(logtext);
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-		intsRestore();                             /* enable interrupts again */
-#endif
-		jitrunning = false;
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		compiler_unlock();
-#endif
+		if (compileverbose)
+			log_message_method("No code given for: ", m);
+
 		return (methodptr) do_nothing_function;    /* return empty method     */
 	}
 
 	/* print log message for compiled method */
 
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Compiling: ");
-		utf_sprint_classname(logtext + strlen(logtext), m->class->name);
-		sprintf(logtext + strlen(logtext), ".");
-		utf_sprint(logtext + strlen(logtext), m->name);
-		utf_sprint_classname(logtext + strlen(logtext), m->descriptor);
-		log_text(logtext);
-	}
+	if (compileverbose)
+		log_message_method("Compiling: ", m);
 
-	if (!m->class->loaded)
-		class_load(m->class);
-
-	if (!m->class->linked)
-		class_link(m->class);
-
+#if 0
 	/* initialize the static function's class */
-  	if (m->flags & ACC_STATIC && !m->class->initialized) {
-		if (initverbose) {
-			char logtext[MAXLOGTEXT];
-			sprintf(logtext, "Initialize class ");
-			utf_sprint_classname(logtext + strlen(logtext), m->class->name);
-			log_text(logtext);
-		}
-		class_init(m->class);
-	}
 
-	if (jitrunning) {
-		printf("m=");
-		utf_display_classname(m->class->name);printf(".");utf_display(m->name);
-		printf(", method=");
-		utf_display_classname(method->class->name);printf(".");utf_display(method->name);
-		printf("\n");
-		panic("Compiler lock recursion");
+  	if (m->flags & ACC_STATIC && !m->class->initialized) {
+		if (initverbose)
+			log_message_class("Initialize class ", m->class);
+
+		if (!class_init(m->class))
+			return NULL;
 	}
-	jitrunning = true;
+#endif
 
 	/* initialisation of variables and subsystems */
 
@@ -1560,9 +1597,11 @@ methodptr jit_compile(methodinfo *m)
 	regs_ok = false;
 
 #ifdef STATISTICS
-	count_tryblocks += exceptiontablelength;
-	count_javacodesize += jcodelength + 18;
-	count_javaexcsize += exceptiontablelength * POINTERSIZE;
+	if (opt_stat) {
+		count_tryblocks += exceptiontablelength;
+		count_javacodesize += jcodelength + 18;
+		count_javaexcsize += exceptiontablelength * POINTERSIZE;
+	}
 #endif
 
 	/* initialise parameter type descriptor */
@@ -1594,14 +1633,33 @@ methodptr jit_compile(methodinfo *m)
 
 	codegen_init();
 
-	parse();
-	analyse_stack();
+	if (compileverbose)
+		log_message_method("Parsing: ", m);
+
+	if (!parse(m))
+		return NULL;
+
+	if (compileverbose) {
+		log_message_method("Parsing done: ", m);
+		log_message_method("Analysing: ", m);
+	}
+
+	if (!analyse_stack(m))
+		return NULL;
    
+	if (compileverbose)
+		log_message_method("Analysing done: ", m);
+
 #ifdef CACAO_TYPECHECK
 	if (opt_verify) {
-		LOG_STEP("Typechecking");
-		typecheck();
-		LOG_STEP("Done typechecking");
+		if (compileverbose)
+			log_message_method("Typechecking: ", m);
+
+		if (!typecheck(m))
+			return NULL;
+
+		if (compileverbose)
+			log_message_method("Typechecking done: ", m);
 	}
 #endif
 	
@@ -1615,51 +1673,21 @@ methodptr jit_compile(methodinfo *m)
 	preregpass();
 #endif
 
-	LOG_STEP("Regalloc");
+	if (compileverbose)
+		log_message_method("Allocating registers: ", m);
+
 	regalloc();
 	regs_ok = true;
 
-	LOG_STEP("Codegen");
+	if (compileverbose) {
+		log_message_method("Allocating registers done: ", m);
+		log_message_method("Generating code: ", m);
+	}
+
 	codegen();
 
-	/* intermediate and assembly code listings ********************************/
-		
-	if (showintermediate)
-		show_icmd_method();
-	else if (showdisassemble)
-		disassemble((void*) (m->mcode + dseglen), m->mcodelength - dseglen);
-
-	if (showddatasegment)
-		dseg_display((void*) (m->mcode));
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	/* measure time */
-
-	if (getcompilingtime) {
-		stoptime = getcputime();
-		compilingtime += (stoptime - starttime);
-	}
-
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Running: ");
-		utf_sprint_classname(logtext + strlen(logtext), m->class->name);
-		sprintf(logtext + strlen(logtext), ".");
-		utf_sprint(logtext + strlen(logtext), m->name);
-		utf_sprint_classname(logtext + strlen(logtext), m->descriptor);
-		log_text(logtext);
-	}
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	intsRestore();    /* enable interrupts again */
-#endif
-	jitrunning = false;
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	compiler_unlock();
-#endif
+	if (compileverbose)
+		log_message_method("Generating code done: ", m);
 
 	/* return pointer to the methods entry point */
 
@@ -1722,7 +1750,7 @@ builtin_descriptor *find_builtin(int icmd)
 
 void jit_init()
 {
-	int i;
+	s4 i;
 
 #ifdef USEBUILTINTABLE
 	sort_builtintable();
@@ -1815,6 +1843,10 @@ void jit_init()
 
 	reg_init();
 	init_exceptions();
+
+	/* initialize exceptions used in the system */
+
+	init_system_exceptions();
 }
 
 
