@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: cacao.h 1228 2004-06-30 19:32:11Z twisti $
+   $Id: cacao.h 1359 2004-07-28 10:48:36Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 
 /* global variables */
 
+extern char *classpath;
 extern char *mainstring;    /* class.method with main method */
 
 

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1330 2004-07-21 15:39:00Z twisti $
+   $Id: main.c 1359 2004-07-28 10:48:36Z twisti $
 
 */
 
@@ -617,8 +617,6 @@ int main(int argc, char **argv)
 	/* initialize the garbage collector */
 	gc_init(heapmaxsize, heapstartsize);
 
-	native_setclasspath(classpath);
-		
 	tables_init();
 	suck_init(classpath);
 
@@ -628,17 +626,26 @@ int main(int argc, char **argv)
   	initThreadsEarly();
 #endif
 
+	/* install architecture dependent signal handler used for exceptions */
+	init_exceptions();
+
+	/* initializes jit compiler and codegen stuff */
+	jit_init();
+
 	loader_init((u1 *) &dummy);
 
 	jit_init();
 
+	/* initialize exceptions used in the system */
+	init_system_exceptions();
+
 	native_loadclasses();
 
 #if defined(USE_THREADS)
-  	initThreads((u1*) &dummy);
+  	initThreads((u1 *) &dummy);
 #endif
 
-	*threadrootmethod=0;
+	*threadrootmethod = NULL;
 
 	/*That's important, otherwise we get into trouble, if the Runtime static
 	  initializer is called before (circular dependency. This is with
