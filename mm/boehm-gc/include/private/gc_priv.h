@@ -443,8 +443,7 @@ void GC_print_callers GC_PROTO((struct callinfo info[NFRAMES]));
 # endif
 
 /* Print warning message, e.g. almost out of memory.	*/
-/*  # define WARN(msg,arg) (*GC_current_warn_proc)("GC Warning: " msg, (GC_word)(arg)) */
-#define WARN(msg,arg)
+# define WARN(msg,arg) (*GC_current_warn_proc)("GC Warning: " msg, (GC_word)(arg))
 extern GC_warn_proc GC_current_warn_proc;
 
 /* Get environment entry */
