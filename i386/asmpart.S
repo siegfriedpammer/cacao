@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger                                               *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 385 2003-07-10 10:45:57Z twisti $                                                          *
+*   Last Change: $Id: asmpart.S 401 2003-08-03 20:58:19Z twisti $        *
 *                                                                              *
 *******************************************************************************/
 
@@ -474,9 +474,11 @@ ex_already_cleared:
 		
 		addl	%esp,%eax
 		movl	-8(%eax),%eax
+        pusha                               /* save regs                      */
 		pushl	%eax
 		call	builtin_monitorexit
 		addl	$4,%esp
+        popa                                /* restore regs                   */
         
 no_monitor_exit:
 		movl	FrameSize(%ecx),%eax		/* %eax = frame size              */
