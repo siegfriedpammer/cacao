@@ -17,18 +17,18 @@
 
 /* macros for byte code fetching ***********************************************
 
-	fetch a byte code of given size from position pos
+	fetch a byte code of given size from position p in code array jcode
 
 *******************************************************************************/
 
-#define code_get_u1(pos)    jcode[pos]
-#define code_get_s1(pos)    ((s1)jcode[pos])
-#define code_get_u2(pos)    ((((u2)jcode[pos])<<8)+jcode[pos+1])
-#define code_get_s2(pos)    ((s2)((((u2)jcode[pos])<<8)+jcode[pos+1]))
-#define code_get_u4(pos)    ((((u4)jcode[pos])<<24)+(((u4)jcode[pos+1])<<16)+\
-                             (((u4)jcode[pos+2])<<8)+jcode[pos+3])
-#define code_get_s4(pos)    ((s4)((((u4)jcode[pos])<<24)+(((u4)jcode[pos+1])<<16)+\
-                             (((u4)jcode[pos+2])<<8)+jcode[pos+3]))
+#define code_get_u1(p)  jcode[p]
+#define code_get_s1(p)  ((s1)jcode[p])
+#define code_get_u2(p)  ((((u2)jcode[p])<<8)+jcode[p+1])
+#define code_get_s2(p)  ((s2)((((u2)jcode[p])<<8)+jcode[p+1]))
+#define code_get_u4(p)  ((((u4)jcode[p])<<24)+(((u4)jcode[p+1])<<16)\
+                           +(((u4)jcode[p+2])<<8)+jcode[p+3])
+#define code_get_s4(p)  ((s4)((((u4)jcode[p])<<24)+(((u4)jcode[p+1])<<16)\
+                           +(((u4)jcode[p+2])<<8)+jcode[p+3]))
 
 
 /* functionc compiler_addinitclass *********************************************
@@ -156,10 +156,13 @@ static void descriptor2types (methodinfo *m)
 }
 
 
+#ifdef OLD_COMPILER
+
 /* function allocate_literals **************************************************
 
-	Scans the JavaVM code of a method and allocates string literals. Needed
-	to generate the same addresses as the old JIT compiler.
+	Scans the JavaVM code of a method and allocates string literals (in the
+	same order as the old JIT). Needed to generate the same addresses as the
+	old JIT compiler.
 	
 *******************************************************************************/
 
@@ -211,7 +214,7 @@ static void allocate_literals()
 			} /* end switch */
 		} /* end while */
 }
-
+#endif
 
 
 /*******************************************************************************
@@ -265,10 +268,17 @@ static void parse()
 	int  ipc = 0;               /* intermediate instruction counter           */
 	int  b_count = 0;           /* basic block counter                        */
 	int  s_count = 0;           /* stack element counter                      */
-	bool blockend = false;      /* true if basic block end has reached        */
+	bool blockend = false;      /* true if basic block end has been reached   */
 	bool iswide = false;        /* true if last instruction was a wide        */
 	instruction *iptr;          /* current pointer into instruction array     */
 
+
+#ifdef OLD_COMPILER
+	/* generate the same addresses as the old JIT compiler */
+
+	if (runverbose)
+		allocate_literals();
+#endif
 
 	/* allocate instruction array and block index table */
 	
@@ -310,10 +320,6 @@ static void parse()
 		}
 
 	s_count = 1 + exceptiontablelength; /* initialize stack element counter   */
-
-	if (runverbose) {
-/*		isleafmethod=false; */
-		}
 
 #ifdef USE_THREADS
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {

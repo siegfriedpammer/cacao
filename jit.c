@@ -276,9 +276,6 @@ methodptr jit_compile(methodinfo *m)
 	local_init();
 	mcode_init();
 
-	if (runverbose)
-		allocate_literals();
-
 	parse();
 
 	analyse_stack();

@@ -426,14 +426,23 @@ static void gen_mcode()
 	*/
 
 	if (runverbose && isleafmethod) {
-		M_LDA (REG_SP, REG_SP, -(8*8));
+		M_LDA (REG_SP, REG_SP, -(14*8));
 		M_AST(REG_RA, REG_SP, 1*8);
-		M_LST(argintregs[0], REG_SP, 2*8);
-		M_LST(argintregs[1], REG_SP, 3*8);
-		M_LST(argintregs[2], REG_SP, 4*8);
-		M_LST(argintregs[3], REG_SP, 5*8);
-		M_LST(argintregs[4], REG_SP, 6*8);
-		M_LST(argintregs[5], REG_SP, 7*8);
+
+		M_LST(argintregs[0], REG_SP,  2*8);
+		M_LST(argintregs[1], REG_SP,  3*8);
+		M_LST(argintregs[2], REG_SP,  4*8);
+		M_LST(argintregs[3], REG_SP,  5*8);
+		M_LST(argintregs[4], REG_SP,  6*8);
+		M_LST(argintregs[5], REG_SP,  7*8);
+
+		M_DST(argfltregs[0], REG_SP,  8*8);
+		M_DST(argfltregs[1], REG_SP,  9*8);
+		M_DST(argfltregs[2], REG_SP, 10*8);
+		M_DST(argfltregs[3], REG_SP, 11*8);
+		M_DST(argfltregs[4], REG_SP, 12*8);
+		M_DST(argfltregs[5], REG_SP, 13*8);
+
 		p = dseg_addaddress (method);
 		M_ALD(REG_ITMP1, REG_PV, p);
 		M_AST(REG_ITMP1, REG_SP, REG);
@@ -442,13 +451,22 @@ static void gen_mcode()
 		M_JSR(REG_RA, REG_PV);
 		M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
 		M_ALD(REG_RA, REG_SP, 1*8);
-		M_LLD(argintregs[0], REG_SP, 2*8);
-		M_LLD(argintregs[1], REG_SP, 3*8);
-		M_LLD(argintregs[2], REG_SP, 4*8);
-		M_LLD(argintregs[3], REG_SP, 5*8);
-		M_LLD(argintregs[4], REG_SP, 6*8);
-		M_LLD(argintregs[5], REG_SP, 7*8);
-		M_LDA (REG_SP, REG_SP, 8*8);
+
+		M_LLD(argintregs[0], REG_SP,  2*8);
+		M_LLD(argintregs[1], REG_SP,  3*8);
+		M_LLD(argintregs[2], REG_SP,  4*8);
+		M_LLD(argintregs[3], REG_SP,  5*8);
+		M_LLD(argintregs[4], REG_SP,  6*8);
+		M_LLD(argintregs[5], REG_SP,  7*8);
+
+		M_DLD(argfltregs[0], REG_SP,  8*8);
+		M_DLD(argfltregs[1], REG_SP,  9*8);
+		M_DLD(argfltregs[2], REG_SP, 10*8);
+		M_DLD(argfltregs[3], REG_SP, 11*8);
+		M_DLD(argfltregs[4], REG_SP, 12*8);
+		M_DLD(argfltregs[5], REG_SP, 13*8);
+
+		M_LDA (REG_SP, REG_SP, 14*8);
 		}
 
 	/* take arguments out of register or stack frame */
