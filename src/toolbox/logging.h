@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.h 1621 2004-11-30 13:06:55Z twisti $
+   $Id: logging.h 1636 2004-12-01 09:59:31Z twisti $
 
 */
 
@@ -36,10 +36,6 @@
 #define _LOGGING_H
 
 #include <stdio.h>
-
-/* This is to bring in the conflicting panic from darwin */
-#include <sys/mman.h>
-/*  #define panic cacao_panic */
 
 #include "vm/global.h"
 
@@ -62,7 +58,11 @@ void log_message_method(char *msg, methodinfo *m);
 void dolog(char *txt, ...);
 void dolog_plain(char *txt, ...); /* same as dolog without "LOG: " and newline */
 void error(char *txt, ...);
+
+/* XXX this is just a quick hack on darwin */
+#if !defined(__DARWIN__)
 void panic(char *txt);
+#endif
 
 FILE *get_logfile(); /* return the current logfile */
 
