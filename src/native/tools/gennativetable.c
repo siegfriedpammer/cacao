@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 1832 2004-12-29 13:48:07Z twisti $
+   $Id: gennativetable.c 1916 2005-02-10 10:04:29Z twisti $
 
 */
 
@@ -98,6 +98,10 @@ int main(int argc, char **argv)
 	initLocks();
 #endif
 
+	/* initialize some cacao subsystems */
+
+	utf8_init();
+	class_init_foo();
 	loader_init((u1 *) &dummy);
 
 
