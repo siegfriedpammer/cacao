@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1127 2004-06-03 22:15:22Z twisti $
+   $Id: asmpart.S 1218 2004-06-29 14:11:16Z twisti $
 
 */
 
@@ -152,7 +152,6 @@
 /*************************** imported functions *******************************/
 
 	.globl jit_compile
-	.globl _exceptionptr
 	.globl builtin_monitorexit
 	.globl builtin_throw_exception
 	.globl builtin_trace_exception

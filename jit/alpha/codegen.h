@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.h 1146 2004-06-06 12:48:10Z twisti $
+   $Id: codegen.h 1218 2004-06-29 14:11:16Z twisti $
 
 */
 
@@ -393,7 +393,7 @@
 
 void codegen_init();
 void init_exceptions();
-void codegen();
+void codegen(methodinfo *m);
 void codegen_close();
 void dseg_display(s4 *s4ptr);
 void thread_restartcriticalsection(ucontext_t*);

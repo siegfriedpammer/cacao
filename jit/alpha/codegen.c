@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1162 2004-06-12 13:29:07Z stefan $
+   $Id: codegen.c 1218 2004-06-29 14:11:16Z twisti $
 
 */
 
@@ -397,7 +397,7 @@ ieee_set_fp_control(ieee_get_fp_control()
 
 *******************************************************************************/
 
-void codegen()
+void codegen(methodinfo *m)
 {
 	int  len, s1, s2, s3, d;
 	s4   a;
@@ -406,12 +406,12 @@ void codegen()
 	varinfo     *var;
 	basicblock  *bptr;
 	instruction *iptr;
-	xtable *ex;
+	exceptiontable *ex;
 
 	{
 	int p, pa, t, l, r;
 
-	savedregs_num = (isleafmethod) ? 0 : 1;           /* space to save the RA */
+	savedregs_num = (m->isleafmethod) ? 0 : 1;        /* space to save the RA */
 
 	/* space to save used callee saved registers */
 
@@ -422,14 +422,14 @@ void codegen()
 
 #if defined(USE_THREADS)           /* space to save argument of monitor_enter */
 
-	if (checksync && (method->flags & ACC_SYNCHRONIZED))
+	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		parentargs_base++;
 
 #endif
 
 	/* create method header */
 
-	(void) dseg_addaddress(method);                         /* MethodPointer  */
+	(void) dseg_addaddress(m);                              /* MethodPointer  */
 	(void) dseg_adds4(parentargs_base * 8);                 /* FrameSize      */
 
 #if defined(USE_THREADS)
@@ -440,7 +440,7 @@ void codegen()
 	   offset by one.
 	*/
 
-	if (checksync && (method->flags & ACC_SYNCHRONIZED))
+	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		(void) dseg_adds4((maxmemuse + 1) * 8);             /* IsSync         */
 	else
 
@@ -448,18 +448,18 @@ void codegen()
 
 	(void) dseg_adds4(0);                                   /* IsSync         */
 	                                       
-	(void) dseg_adds4(isleafmethod);                        /* IsLeaf         */
+	(void) dseg_adds4(m->isleafmethod);                     /* IsLeaf         */
 	(void) dseg_adds4(savintregcnt - maxsavintreguse);      /* IntSave        */
 	(void) dseg_adds4(savfltregcnt - maxsavfltreguse);      /* FltSave        */
 
 	dseg_addlinenumbertablesize();
 
 
-	(void) dseg_adds4(exceptiontablelength);                /* ExTableSize    */
+	(void) dseg_adds4(m->exceptiontablelength);             /* ExTableSize    */
 
 	/* create exception table */
 
-	for (ex = extable; ex != NULL; ex = ex->down) {
+	for (ex = m->exceptiontable; ex != NULL; ex = ex->down) {
 		dseg_addtarget(ex->start);
    		dseg_addtarget(ex->end);
 		dseg_addtarget(ex->handler);
@@ -470,7 +470,7 @@ void codegen()
 	
 	mcodeptr = (s4*) mcodebase;
 	mcodeend = (s4*) (mcodebase + mcodesize);
-	MCODECHECK(128 + mparamcount);
+	MCODECHECK(128 + m->paramcount);
 
 	/* create stack frame (if necessary) */
 
@@ -480,8 +480,8 @@ void codegen()
 	/* save return address and used callee saved registers */
 
 	p = parentargs_base;
-	if (!isleafmethod)
-		{p--;  M_AST (REG_RA, REG_SP, 8*p);}
+	if (!m->isleafmethod)
+		{p--; M_AST (REG_RA, REG_SP, 8*p);}
 	for (r = savintregcnt - 1; r >= maxsavintreguse; r--)
 		{p--; M_LST (savintregs[r], REG_SP, 8 * p);}
 	for (r = savfltregcnt - 1; r >= maxsavfltreguse; r--)
@@ -490,9 +490,9 @@ void codegen()
 	/* save monitorenter argument */
 
 #if defined(USE_THREADS)
-	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-		if (method->flags & ACC_STATIC) {
-			p = dseg_addaddress(class);
+	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		if (m->flags & ACC_STATIC) {
+			p = dseg_addaddress(m->class);
 			M_ALD(REG_ITMP1, REG_PV, p);
 			M_AST(REG_ITMP1, REG_SP, maxmemuse * 8);
 
@@ -518,7 +518,7 @@ void codegen()
 
 		/* save and copy float arguments into integer registers */
 		for (p = 0; /* p < mparamcount && */ p < FLT_ARG_CNT; p++) {
-			t = mparamtypes[p];
+			t = m->paramtypes[p];
 
 			if (IS_FLT_DBL_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
@@ -535,7 +535,7 @@ void codegen()
 			}
 		}
 
-		p = dseg_addaddress(method);
+		p = dseg_addaddress(m);
 		M_ALD(REG_ITMP1, REG_PV, p);
 		M_AST(REG_ITMP1, REG_SP, 0 * 8);
 		p = dseg_addaddress((void *) builtin_trace_args);
@@ -550,7 +550,7 @@ void codegen()
 		}
 
 		for (p = 0; /* p < mparamcount && */ p < FLT_ARG_CNT; p++) {
-			t = mparamtypes[p];
+			t = m->paramtypes[p];
 
 			if (IS_FLT_DBL_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
@@ -570,8 +570,8 @@ void codegen()
 
 	/* take arguments out of register or stack frame */
 
- 	for (p = 0, l = 0; p < mparamcount; p++) {
- 		t = mparamtypes[p];
+ 	for (p = 0, l = 0; p < m->paramcount; p++) {
+ 		t = m->paramtypes[p];
  		var = &(locals[l][t]);
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
@@ -618,13 +618,13 @@ void codegen()
 	/* call monitorenter function */
 
 #if defined(USE_THREADS)
-	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-		int disp;
+	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		s4 disp;
 		p = dseg_addaddress((void*) (builtin_monitorenter));
 		M_ALD(REG_PV, REG_PV, p);
 		M_ALD(argintregs[0], REG_SP, maxmemuse * 8);
 		M_JSR(REG_RA, REG_PV);
-		disp = -(int)((u1*) mcodeptr - mcodebase);
+		disp = -(s4) ((u1 *) mcodeptr - mcodebase);
 		M_LDA(REG_PV, REG_RA, disp);
 	}			
 #endif
@@ -633,9 +633,9 @@ void codegen()
 	/* end of header generation */
 
 	/* walk through all basic blocks */
-	for (bptr = block; bptr != NULL; bptr = bptr->next) {
+	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 
-		bptr->mpc = (int)((u1*) mcodeptr - mcodebase);
+		bptr->mpc = (s4) ((u1 *) mcodeptr - mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
 
@@ -3007,7 +3007,7 @@ void codegen()
 			M_INTMOVE(s1, REG_RESULT);
 
 #if defined(USE_THREADS)
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				s4 disp;
 				a = dseg_addaddress((void *) (builtin_monitorexit));
 				M_ALD(REG_PV, REG_PV, a);
@@ -3029,7 +3029,7 @@ void codegen()
 			M_FLTMOVE(s1, REG_FRESULT);
 
 #if defined(USE_THREADS)
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				s4 disp;
 				a = dseg_addaddress((void *) (builtin_monitorexit));
 				M_ALD(REG_PV, REG_PV, a);
@@ -3047,7 +3047,7 @@ void codegen()
 		case ICMD_RETURN:      /* ...  ==> ...                                */
 
 #if defined(USE_THREADS)
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				s4 disp;
 				a = dseg_addaddress((void *) (builtin_monitorexit));
 				M_ALD(REG_PV, REG_PV, a);
@@ -3066,15 +3066,15 @@ nowperformreturn:
 			
 			/* restore return address                                         */
 
-			if (!isleafmethod)
-				{p--;  M_LLD (REG_RA, REG_SP, 8 * p);}
+			if (!m->isleafmethod)
+				{p--; M_LLD(REG_RA, REG_SP, 8 * p);}
 
 			/* restore saved registers                                        */
 
 			for (r = savintregcnt - 1; r >= maxsavintreguse; r--)
-					{p--; M_LLD(savintregs[r], REG_SP, 8 * p);}
+				{p--; M_LLD(savintregs[r], REG_SP, 8 * p);}
 			for (r = savfltregcnt - 1; r >= maxsavfltreguse; r--)
-					{p--; M_DLD(savfltregs[r], REG_SP, 8 * p);}
+				{p--; M_DLD(savfltregs[r], REG_SP, 8 * p);}
 
 			/* deallocate stack                                               */
 
@@ -3088,7 +3088,7 @@ nowperformreturn:
 				M_AST(REG_RA, REG_SP, 0 * 8);
 				M_LST(REG_RESULT, REG_SP, 1 * 8);
 				M_DST(REG_FRESULT, REG_SP, 2 * 8);
-				a = dseg_addaddress(method);
+				a = dseg_addaddress(m);
 				M_ALD(argintregs[0], REG_PV, a);
 				M_MOV(REG_RESULT, argintregs[1]);
 				M_FLTMOVE(REG_FRESULT, argfltregs[2]);
@@ -3711,7 +3711,7 @@ makeactualcall:
 	xcodeptr = NULL;
 	
 	for (; xcheckarefs != NULL; xcheckarefs = xcheckarefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
 							  xcheckarefs->branchpos,
 							  (u1*) xcodeptr - (u1*) mcodebase - 4);
@@ -3769,7 +3769,7 @@ makeactualcall:
 	xcodeptr = NULL;
 	
 	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
 							  xcastrefs->branchpos,
 							  (u1*) xcodeptr - (u1*) mcodebase - 4);
@@ -3827,7 +3827,7 @@ makeactualcall:
 	xcodeptr = NULL;
 
 	for (; xexceptionrefs != NULL; xexceptionrefs = xexceptionrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xexceptionrefs->branchpos,
 							  xexceptionrefs->branchpos,
 							  (u1*) xcodeptr - (u1*) mcodebase - 4);
@@ -3890,7 +3890,7 @@ makeactualcall:
 	xcodeptr = NULL;
 
 	for (; xnullrefs != NULL; xnullrefs = xnullrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
 							  xnullrefs->branchpos,
 							  (u1*) xcodeptr - (u1*) mcodebase - 4);
@@ -3944,7 +3944,7 @@ makeactualcall:
 	}
 	}
 
-	codegen_finish((int)((u1*) mcodeptr - mcodebase));
+	codegen_finish(m, (s4) ((u1 *) mcodeptr - mcodebase));
 }
 
 
