@@ -1,5 +1,5 @@
 /* -*- mode: asm; tab-width: 4 -*- */
-/****************************** asmpart.c **************************************
+/* x86_64/asmpart.S ************************************************************
 *                                                                              *
 *   It contains the Java-C interface functions for x86_64 processors.          *
 *                                                                              *
@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at            *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 397 2003-07-29 21:38:52Z twisti $         *
+*   Last Change: $Id: asmpart.S 410 2003-08-11 00:41:25Z twisti $         *
 *                                                                              *
 *******************************************************************************/
 
@@ -124,31 +124,27 @@ call_name:
 	.long   0                         /* method pointer (pointer to name)     */
 
 asm_calljavamethod:
-		push	%rbp                  /* allocate stack space                 */
-		mov     %rsp,%rbp
-
 		mov     %rdi,%rax             /* move function pointer to %rax        */
-
+                                      /* compilerstub uses this               */
+        
         mov     %rsi,%rdi             /* pass remaining parameters            */
         mov     %rdx,%rsi
         mov     %rcx,%rdx
         mov     %r8,%rcx
         
-		lea		asm_call_jit_compiler,%rcx
-		call	*%rcx                 /* call JIT compiler                    */
+		lea		asm_call_jit_compiler,%r11
+		call	*%r11                 /* call JIT compiler                    */
 		
 calljava_jit:
 calljava_return:
 calljava_ret:
 		xor     %rax,%rax
-		leave					 	  /* free stack space                     */
 		ret
 
 calljava_xhandler:
 		push	%rax				  /* pass exception pointer               */
 		call    builtin_throw_exception
 		add     $8,%rsp
-		pop     %ebp
 		ret
 
 
@@ -184,30 +180,26 @@ call_name2:
 	.long   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
-		push	%rbp                  /* allocate stack space                 */
-		mov     %rsp,%rbp
-
 		mov     %rdi,%rax             /* move function pointer to %rax        */
+                                      /* compilerstub uses this               */
 
         mov     %rsi,%rdi             /* pass remaining parameters            */
         mov     %rdx,%rsi
         mov     %rcx,%rdx
         mov     %r8,%rcx
         
-		lea		asm_call_jit_compiler,%rcx
-		call	*%rcx                 /* call JIT compiler                    */
+		lea		asm_call_jit_compiler,%r11
+		call	*%r11                 /* call JIT compiler                    */
 	
 calljava_jit2:
 calljava_return2:
 calljava_ret2:
-		leave
 		ret
 
 calljava_xhandler2:
 		push    %rax				  /* pass exception pointer               */
 		call    builtin_throw_exception
 		add     $8,%esp
-		pop     %rbp
 		ret
 						
 
@@ -240,53 +232,63 @@ calljava_xhandler2:
 
 
 asm_call_jit_compiler:
-		push    %ebp
-		mov     %esp, %ebp
+		push    %rbp
+		mov     %rsp,%rbp
 
-		push    %ebx            /* save register                              */
-/*		push	%esi*/
-/*		push	%edi*/
-				
-		mov     4(%ebp),%edx	/* get return address                         */
-		movb	-1(%edx),%bl	/* get function code                          */
-		cmpb	$0xd2,%bl		/* called with `call *REG_ITMP2' (%edx)?      */
+		mov     8(%rbp),%r10	/* get return address                         */
+		movb	-1(%r10),%r11b	/* get function code                          */
+		cmpb	$0xd2,%r11b		/* called with `call *REG_ITMP2' (%rdx)?      */
 		jne		L_not_static_special
 
-		sub     $6,%edx			/* calculate address of immediate             */
+		sub     $6,%r10			/* calculate address of immediate             */
 		jmp		L_call_jit_compile
 		
 L_not_static_special:
-		cmpb	$0xd0,%bl		/* called with `call *REG_ITMP1' (%eax)       */
+		cmpb	$0xd0,%r11b		/* called with `call *REG_ITMP1' (%rax)       */
 		jne		L_not_virtual_interface
 		
-		sub     $6,%edx         /* calculate address of offset                */
-		mov     (%edx),%edx     /* get offset                                 */
-		add     %ecx,%edx       /* add base address to get method address     */
+		sub     $6,%r10         /* calculate address of offset                */
+		mov     (%r10),%r10     /* get offset                                 */
+		add     %rcx,%r10       /* add base address to get method address     */
 		jmp		L_call_jit_compile
 
 L_not_virtual_interface:        /* a call from asm_calljavamethod             */
-		xor     %edx,%edx
+        xchg    %rcx,%rdi       /* HACK */
+        xchg    %rdx,%rsi
+        
+		xor     %r10,%r10
 		
 L_call_jit_compile:
-		push    %edx            /* save address for method pointer            */
+		xor     %r10,%r10       /* XXX: don't write address */
+        
+		push    %r10            /* save address for method pointer            */
 
-		push    %eax			/* push methodpointer on stack                */
+        push    %rdi            /* save arguments                             */
+        push    %rsi
+        push    %rdx
+        push    %rcx
+        push    %r8
+        push    %r9
+
+        mov     %rax,%rdi       /* pass method pointer                        */
 		call	jit_compile
-		add     $4,%esp
 
-		pop     %edx            /* restore address for method pointer         */
-		test	%edx,%edx		/* is address == 0 (asm_calljavamethod)       */
+        pop     %r9
+        pop     %r8
+        pop     %rcx
+        pop     %rdx
+        pop     %rsi
+        pop     %rdi
+        
+		pop     %r10            /* restore address for method pointer         */
+		test	%r10,%r10		/* is address == 0 (asm_calljavamethod)       */
 		je		L_call_method
 		
-		mov     %eax,(%edx)		/* and now save the new pointer               */
+		mov     %rax,(%r10)		/* and now save the new pointer               */
 
 L_call_method:
-/*		pop     %edi            /* restore registers                          */
-/*		pop     %esi*/
-		pop     %ebx
-		
 		leave
-		jmp		*%eax			/* ...and now call the new method             */
+		jmp		*%rax			/* ...and now call the new method             */
 
 
 
@@ -325,6 +327,8 @@ asm_switchstackandcall:
 asm_getcallingmethod:   
 asm_builtin_trace:      
 asm_builtin_exittrace:
+        xor     %rax,%rax
+        mov     %rax,(%rax)
         ret
 
 #if 0
