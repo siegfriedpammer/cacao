@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1073 2004-05-19 23:21:15Z stefan $
+# $Id: Makefile.am 1145 2004-06-05 23:57:56Z twisti $
 
 @SET_MAKE@
 
@@ -26,7 +26,7 @@ CLEANFILES = \
 bin_PROGRAMS = cacao
 noinst_PROGRAMS = cacaoh
 
-INCLUDES = -I$(top_srcdir)/jit/@ARCH_DIR@ -I$(top_srcdir)/jit
+INCLUDES = -I$(top_srcdir)/jit/@ARCH_DIR@
 
 BOEHM_LIBS = mm/libboehm.a mm/boehm-gc/.libs/libgc.a
 
@@ -109,7 +109,7 @@ cacaoh_DEPENDENCIES = \
 
 nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makefile
 	test -f stamp-nat || \
-	CLASSPATH=./gnuclassfiles ./cacaoh \
+	CLASSPATH=$(top_srcdir)/gnuclassfiles ./cacaoh \
 	java.lang.String \
 	java.lang.Class \
 	java.io.FileDescriptor \

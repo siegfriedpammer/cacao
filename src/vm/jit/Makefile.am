@@ -1,12 +1,12 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 696 2003-12-06 20:10:05Z edwin $
+# $Id: Makefile.am 1145 2004-06-05 23:57:56Z twisti $
 
 
 SUBDIRS = . loop @ARCH_DIR@
 DIST_SUBDIRS = loop alpha i386 mips powerpc x86_64
 
-INCLUDES = -I$(top_srcdir)/jit/@ARCH_DIR@ -I$(top_srcdir)/jit
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit/@ARCH_DIR@
 
 EXTRA_DIST = \
 	jit.c \
