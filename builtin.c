@@ -183,13 +183,13 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 	if (builtin_isanysubclass (obj->vftbl->class, class))
 		return 1;
 
-	/* #if DEBUG */
+	#if DEBUG
 	printf ("#### checkcast failed ");
 	utf_display (obj->vftbl->class->name);
 	printf (" -> ");
 	utf_display (class->name);
 	printf ("\n");
-	/* #endif */
+	#endif
 
 	return 0;
 }
