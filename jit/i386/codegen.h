@@ -27,13 +27,15 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1041 2004-04-26 17:11:08Z twisti $
+   $Id: codegen.h 1048 2004-05-03 18:53:19Z stefan $
 
 */
 
 
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
+
+#include <ucontext.h>
 
 #include "global.h"
 #include "jit.h"
@@ -405,6 +407,7 @@ void init_exceptions();
 void codegen();
 void codegen_close();
 void dseg_display(s4 *s4ptr);
+void thread_restartcriticalsection(ucontext_t*);
 
 #endif /* _CODEGEN_H */
 

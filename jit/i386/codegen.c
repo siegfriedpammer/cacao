@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1040 2004-04-26 17:09:52Z twisti $
+   $Id: codegen.c 1048 2004-05-03 18:53:19Z stefan $
 
 */
 
@@ -313,6 +313,14 @@ static int reg_of_var(stackptr v, int tempregnum)
         } \
     }
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+void thread_restartcriticalsection(ucontext_t *uc)
+{
+	void *critical;
+	if ((critical = thread_checkcritical((void*) uc->uc_mcontext.gregs[REG_EIP])) != NULL)
+		uc->uc_mcontext.gregs[REG_EIP] = (u4) critical;
+}
+#endif
 
 /* NullPointerException signal handler for hardware null pointer check */
 
