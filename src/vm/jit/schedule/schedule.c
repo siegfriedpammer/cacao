@@ -28,30 +28,45 @@
 
    Changes:
 
-   $Id: schedule.c 1950 2005-02-17 11:40:01Z twisti $
+   $Id: schedule.c 1961 2005-02-23 11:47:32Z twisti $
 
 */
 
 
 #include <stdio.h>
 
+#include "disass.h"
+
 #include "mm/memory.h"
 #include "vm/jit/schedule/schedule.h"
 
 
-void schedule_do_schedule(minstruction *mi)
+scheduledata *schedule_setup(registerdata *rd)
 {
-	minstruction *tmpmi;
+	scheduledata *sd;
 
-	tmpmi = mi;
+	sd = DNEW(scheduledata);
 
-	printf("bb start ---\n");
-	while (tmpmi) {
-		printf("%p: %05x\n", tmpmi, tmpmi->instr);
+	sd->intregs_read_dep = DMNEW(minstruction*, rd->intregsnum);
+	sd->intregs_write_dep = DMNEW(minstruction*, rd->intregsnum);
 
-		tmpmi = tmpmi->next;
-	}
-	printf("bb end ---\n\n");
+	sd->fltregs_read_dep = DMNEW(minstruction*, rd->fltregsnum);
+	sd->fltregs_write_dep = DMNEW(minstruction*, rd->fltregsnum);
+
+	/* XXX: memory is currently only one cell */
+/*  	sd->memory_write_dep; */
+
+	/* clear all pointers */
+
+	MSET(sd->intregs_read_dep, 0, minstruction*, rd->intregsnum);
+	MSET(sd->intregs_write_dep, 0, minstruction*, rd->intregsnum);
+
+	MSET(sd->fltregs_read_dep, 0, minstruction*, rd->fltregsnum);
+	MSET(sd->fltregs_write_dep, 0, minstruction*, rd->fltregsnum);
+
+  	sd->memory_write_dep = NULL;
+
+	return sd;
 }
 
 
@@ -62,10 +77,95 @@ minstruction *schedule_prepend_minstruction(minstruction *mi)
 	/* add new instruction in front of the list */
 
 	tmpmi = DNEW(minstruction);
+
+	tmpmi->latency = 0;
+	tmpmi->priority = 0;
 	tmpmi->opdep[0] = NULL;
 	tmpmi->opdep[1] = NULL;
 	tmpmi->opdep[2] = NULL;
-	tmpmi->next = mi;
+	tmpmi->sinknode = true;
+
+	tmpmi->next = mi;                   /* link to next instruction           */
+
+	return tmpmi;
+}
+
+
+/* schedule_calc_priority ******************************************************
+
+   Calculates the current node's priority by getting highest priority
+   of the dependency nodes, adding this nodes latency plus 1 (for the
+   instruction itself).
+
+*******************************************************************************/
+
+void schedule_calc_priority(minstruction *mi)
+{
+	s4 i;
+	s4 pathpriority;
+
+	/* check all dependencies for their priority */
+
+	pathpriority = 0;
+
+	for (i = 0; i < 3; i++) {
+		if (mi->opdep[i]) {
+			if (mi->opdep[i]->priority > pathpriority)
+				pathpriority = mi->opdep[i]->priority;
+
+			/* depedent node is non-sink node */
+
+			mi->opdep[i]->sinknode = false;
+		}
+	}
+
+	mi->priority = pathpriority + mi->latency + 1;
+}
+
+
+/* schedule_do_schedule ********************************************************
+
+   XXX
+
+*******************************************************************************/
+
+void schedule_do_schedule(minstruction *mi)
+{
+	minstruction *rootmi;
+	s4 i;
+
+	rootmi = mi;
+
+	printf("bb start ---\n");
+
+	while (mi) {
+		printf("%p: ", mi);
+
+/*  		disassinstr(&tmpmi->instr); */
+		printf("%05x", mi->instr);
+
+		printf("   --> %d, %d, %d:   op1=%p, op2=%p, op3=%p\n", mi->sinknode, mi->latency, mi->priority, mi->opdep[0], mi->opdep[1], mi->opdep[2]);
+
+		mi = mi->next;
+	}
+	printf("bb end ---\n\n");
+
+	
+}
+
+
+minstruction *schedule_append_minstruction(minstruction *mi)
+{
+	minstruction *tmpmi;
+
+	/* add new instruction to the list */
+
+	tmpmi = DNEW(minstruction);
+	tmpmi->opdep[0] = NULL;
+	tmpmi->opdep[1] = NULL;
+	tmpmi->opdep[2] = NULL;
+	tmpmi->next = NULL;
+	mi->next = tmpmi;
 
 	return tmpmi;
 }

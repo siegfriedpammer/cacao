@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: schedule.h 1950 2005-02-17 11:40:01Z twisti $
+   $Id: schedule.h 1961 2005-02-23 11:47:32Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 
 #include "arch.h"
 #include "types.h"
+#include "vm/jit/reg.h"
 
 
 /* minstruction ****************************************************************
@@ -52,16 +53,38 @@ typedef struct minstruction minstruction;
 struct minstruction {
 	u4            instr;                /* machine instruction word           */
 	u1            latency;              /* instruction latency                */
-	s4            priority;
+	s4            priority;             /* priority of this instruction node  */
 	minstruction *opdep[3];             /* operand dependencies               */
+	bool          sinknode;
 	minstruction *next;                 /* link to next machine instruction   */
+};
+
+
+/* scheduledata ****************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+typedef struct scheduledata scheduledata;
+
+struct scheduledata {
+	minstruction **sink_nodes;          /* list containing sink nodes         */
+	minstruction **intregs_read_dep;
+	minstruction **intregs_write_dep;
+	minstruction **fltregs_read_dep;
+	minstruction **fltregs_write_dep;
+	minstruction *memory_write_dep;
 };
 
 
 /* function prototypes ********************************************************/
 
+scheduledata *schedule_setup(registerdata *rd);
+void schedule_calc_priority(minstruction *mi);
 void schedule_do_schedule(minstruction *mi);
 minstruction *schedule_prepend_minstruction(minstruction *mi);
+minstruction *schedule_append_minstruction(minstruction *mi);
 
 #endif /* _SCHEDULE_H */
 
