@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1038 2004-04-26 16:41:30Z twisti $
+   $Id: parse.c 1045 2004-04-26 19:17:27Z twisti $
 
 */
 
@@ -899,6 +899,7 @@ void parse()
 			isleafmethod = false;
 			i = code_get_u2(p + 1);
 			{
+				vftbl *arrayvftbl;
 				s4 v = code_get_u1(p + 3);
 
 				
@@ -913,7 +914,7 @@ void parse()
 				class_load(component);
 				class_link(component);
 
- 				vftbl *arrayvftbl = component->vftbl;
+ 				arrayvftbl = component->vftbl;
  				OP2A(opcode, v, arrayvftbl,currentline);
 
 /*   				classinfo *arrayclass = */
