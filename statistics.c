@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 1408 2004-08-17 12:43:17Z twisti $
+   $Id: statistics.c 1418 2004-10-19 14:11:58Z carolyn $
 
 */
 
@@ -37,6 +37,7 @@
 #include "global.h"
 #include "statistics.h"
 #include "toolbox/logging.h"
+#include "options.h"
 
 
 /* global variables */
@@ -55,6 +56,8 @@ int count_class_infos = 0;              /* variables for measurements         */
 int count_const_pool_len = 0;
 int count_vftbl_len = 0;
 int count_all_methods = 0;
+int count_methods_marked_used = 0;  /* RTA */
+
 int count_vmcode_len = 0;
 int count_extable_len = 0;
 int count_class_loads = 0;
@@ -283,6 +286,10 @@ void print_stats()
 	log_text(logtext);
 	sprintf(logtext, "Number of compiled Methods: %d", count_methods);
 	log_text(logtext);
+        if (opt_rt) {
+	  sprintf(logtext, "Number of Methods marked Used: %d", count_methods_marked_used);
+	  log_text(logtext);
+	  }
 	sprintf(logtext, "Number of max basic blocks per method: %d", count_max_basic_blocks);
 	log_text(logtext);
 	sprintf(logtext, "Number of compiled basic blocks: %d", count_basic_blocks);
