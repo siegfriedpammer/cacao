@@ -11,7 +11,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: ngen.h 407 2003-08-11 00:39:17Z twisti $
+    Last Change: $Id: ngen.h 413 2003-08-22 17:46:18Z twisti $
 
 *******************************************************************************/
 
@@ -59,8 +59,8 @@
 /* #define REG_END   -1        last entry in tables */
 
 int nregdescint[] = {
-    REG_RET, REG_ARG, REG_ARG, REG_TMP, REG_RES, REG_SAV, REG_ARG, REG_ARG,
-    REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+    REG_RET, REG_ARG, REG_ARG, REG_SAV, REG_RES, REG_SAV, REG_ARG, REG_ARG,
+    REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_TMP, REG_TMP,
     REG_END
 };
 
@@ -68,7 +68,8 @@ int nregdescint[] = {
 
 int nregdescfloat[] = {
     REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
-    REG_RES, REG_RES, REG_TMP, REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+/*      REG_RES, REG_RES, REG_TMP, REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV, */
+    REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
     REG_END
 };
 
@@ -83,14 +84,6 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 
 /* macros to create code ******************************************************/
-
-#define M_OP3(op,fu,a,b,c,const) \
-do { \
-        printf("M_OP3: %d\n", __LINE__); \
-	*(mcodeptr++) = 0x0f; \
-        *(mcodeptr++) = 0x04; \
-} while (0)
-
 
 /*
  * immediate data union
@@ -585,14 +578,6 @@ static const unsigned char x86_64_cc_map[] = {
     } while (0)
 
 
-#define x86_64_mov_float_membase(imm,basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xc7; \
-        x86_64_emit_membase((basereg),(disp),0); \
-        x86_64_emit_float32((imm)); \
-    } while (0)
-
-
 #define x86_64_movsbq_reg_reg(reg,dreg) \
     do { \
         x86_64_emit_rex(1,(dreg),0,(reg)); \
@@ -605,7 +590,7 @@ static const unsigned char x86_64_cc_map[] = {
 
 #define x86_64_movsbq_membase_reg(basereg,disp,dreg) \
     do { \
-        x86_64_emit_rex(1,(basereg),0,(dreg)); \
+        x86_64_emit_rex(1,(dreg),0,(basereg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xbe; \
         x86_64_emit_membase((basereg),(disp),(dreg)); \
@@ -633,7 +618,7 @@ static const unsigned char x86_64_cc_map[] = {
 
 #define x86_64_movswq_membase_reg(basereg,disp,dreg) \
     do { \
-        x86_64_emit_rex(1,(basereg),0,(dreg)); \
+        x86_64_emit_rex(1,(dreg),0,(basereg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xbf; \
         x86_64_emit_membase((basereg),(disp),(dreg)); \
@@ -659,7 +644,7 @@ static const unsigned char x86_64_cc_map[] = {
 
 #define x86_64_movslq_membase_reg(basereg,disp,dreg) \
     do { \
-        x86_64_emit_rex(1,(basereg),0,(dreg)); \
+        x86_64_emit_rex(1,(dreg),0,(basereg)); \
         *(mcodeptr++) = (u1) 0x63; \
         x86_64_emit_membase((basereg),(disp),(dreg)); \
     } while (0)
@@ -686,7 +671,7 @@ static const unsigned char x86_64_cc_map[] = {
 
 #define x86_64_movzwq_membase_reg(basereg,disp,dreg) \
     do { \
-        x86_64_emit_rex(1,(basereg),0,(dreg)); \
+        x86_64_emit_rex(1,(dreg),0,(basereg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xb7; \
         x86_64_emit_membase((basereg),(disp),(dreg)); \
@@ -705,7 +690,7 @@ static const unsigned char x86_64_cc_map[] = {
 
 #define x86_64_movswq_memindex_reg(disp,basereg,indexreg,scale,reg) \
     do { \
-        x86_64_emit_rex(1,(basereg),(indexreg),(reg)); \
+        x86_64_emit_rex(1,(reg),(indexreg),(basereg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xbf; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
@@ -714,7 +699,7 @@ static const unsigned char x86_64_cc_map[] = {
 
 #define x86_64_movsbq_memindex_reg(disp,basereg,indexreg,scale,reg) \
     do { \
-        x86_64_emit_rex(1,(basereg),(indexreg),(reg)); \
+        x86_64_emit_rex(1,(reg),(indexreg),(basereg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xbe; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
@@ -723,7 +708,7 @@ static const unsigned char x86_64_cc_map[] = {
 
 #define x86_64_movzwq_memindex_reg(disp,basereg,indexreg,scale,reg) \
     do { \
-        x86_64_emit_rex(1,(basereg),(indexreg),(reg)); \
+        x86_64_emit_rex(1,(reg),(indexreg),(basereg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xb7; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
@@ -732,7 +717,7 @@ static const unsigned char x86_64_cc_map[] = {
 
 #define x86_64_movzbq_memindex_reg(disp,basereg,indexreg,scale,reg) \
     do { \
-        x86_64_emit_rex(1,(basereg),(indexreg),(reg)); \
+        x86_64_emit_rex(1,(reg),(indexreg),(basereg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xb6; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
@@ -1298,6 +1283,7 @@ static const unsigned char x86_64_cc_map[] = {
  */
 #define x86_64_setcc_reg(opc,reg) \
     do { \
+        x86_64_emit_rex(0,0,0,(reg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) (0x90 + x86_64_cc_map[(opc)]); \
         x86_64_emit_reg(0,(reg)); \
@@ -1306,6 +1292,7 @@ static const unsigned char x86_64_cc_map[] = {
 
 #define x86_64_setcc_membase(opc,basereg,disp) \
     do { \
+        x86_64_emit_rex(0,0,0,(basereg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) (0x90 + x86_64_cc_map[(opc)]); \
         x86_64_emit_membase((basereg),(disp),0); \
@@ -1426,529 +1413,7 @@ static const unsigned char x86_64_cc_map[] = {
 
 
 /*
- * floating point instructions
- */
-#define x86_64_fld1() \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        *(mcodeptr++) = (u1) 0xe8; \
-    } while (0)
-
-
-#define x86_64_fldz() \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        *(mcodeptr++) = (u1) 0xee; \
-    } while (0)
-
-
-#define x86_64_fld_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        *(mcodeptr++) = (u1) 0xc0 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_flds_mem(mem) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        x86_64_emit_mem(0,(mem)); \
-    } while (0)
-
-
-#define x86_64_fldl_mem(mem) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        x86_64_emit_mem(0,(mem)); \
-    } while (0)
-
-
-#define x86_64_fldt_mem(mem) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdb; \
-        x86_64_emit_mem(5,(mem)); \
-    } while (0)
-
-
-#define x86_64_flds_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        x86_64_emit_membase((basereg),(disp),0); \
-    } while (0)
-
-
-#define x86_64_fldl_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        x86_64_emit_membase((basereg),(disp),0); \
-    } while (0)
-
-
-#define x86_64_fldt_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdb; \
-        x86_64_emit_membase((basereg),(disp),5); \
-    } while (0)
-
-
-#define x86_64_flds_memindex(disp,basereg,indexreg,scale) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        x86_64_emit_memindex(0,(disp),(basereg),(indexreg),(scale)); \
-    } while (0)
-
-
-#define x86_64_fldl_memindex(disp,basereg,indexreg,scale) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        x86_64_emit_memindex(0,(disp),(basereg),(indexreg),(scale)); \
-    } while (0)
-
-
-
-
-#define x86_64_fildl_mem(mem) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdb; \
-        x86_64_emit_mem(0,(mem)); \
-    } while (0)
-
-
-#define x86_64_fildl_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdb; \
-        x86_64_emit_membase((basereg),(disp),0); \
-    } while (0)
-
-
-#define x86_64_fildll_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdf; \
-        x86_64_emit_membase((basereg),(disp),5); \
-    } while (0)
-
-
-
-
-#define x86_64_fst_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        *(mcodeptr++) = (u1) 0xd0 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fsts_mem(mem) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        x86_64_emit_mem(2,(mem)); \
-    } while (0)
-
-
-#define x86_64_fstl_mem(mem) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        x86_64_emit_mem(2,(mem)); \
-    } while (0)
-
-
-#define x86_64_fsts_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        x86_64_emit_membase((basereg),(disp),2); \
-    } while (0)
-
-
-#define x86_64_fstl_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        x86_64_emit_membase((basereg),(disp),2); \
-    } while (0)
-
-
-#define x86_64_fsts_memindex(disp,basereg,indexreg,scale) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        x86_64_emit_memindex(2,(disp),(basereg),(indexreg),(scale)); \
-    } while (0)
-
-
-#define x86_64_fstl_memindex(disp,basereg,indexreg,scale) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        x86_64_emit_memindex(2,(disp),(basereg),(indexreg),(scale)); \
-    } while (0)
-
-
-
-
-#define x86_64_fstp_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        *(mcodeptr++) = (u1) 0xd8 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fstps_mem(mem) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        x86_64_emit_mem(3,(mem)); \
-    } while (0)
-
-
-#define x86_64_fstpl_mem(mem) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        x86_64_emit_mem(3,(mem)); \
-    } while (0)
-
-
-#define x86_64_fstps_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        x86_64_emit_membase((basereg),(disp),3); \
-    } while (0)
-
-
-#define x86_64_fstpl_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        x86_64_emit_membase((basereg),(disp),3); \
-    } while (0)
-
-
-#define x86_64_fstpt_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdb; \
-        x86_64_emit_membase((basereg),(disp),7); \
-    } while (0)
-
-
-#define x86_64_fstps_memindex(disp,basereg,indexreg,scale) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        x86_64_emit_memindex(3,(disp),(basereg),(indexreg),(scale)); \
-    } while (0)
-
-
-#define x86_64_fstpl_memindex(disp,basereg,indexreg,scale) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        x86_64_emit_memindex(3,(disp),(basereg),(indexreg),(scale)); \
-    } while (0)
-
-
-
-
-#define x86_64_fistpl_mem(mem) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdb; \
-        x86_64_emit_mem(3,(mem)); \
-    } while (0)
-
-
-#define x86_64_fistpll_mem(mem) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdf; \
-        x86_64_emit_mem(7,(mem)); \
-    } while (0)
-
-
-#define x86_64_fistl_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdb; \
-        x86_64_emit_membase((basereg),(disp),2); \
-    } while (0)
-
-
-#define x86_64_fistpl_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdb; \
-        x86_64_emit_membase((basereg),(disp),3); \
-    } while (0)
-
-
-#define x86_64_fistpll_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdf; \
-        x86_64_emit_membase((basereg),(disp),7); \
-    } while (0)
-
-
-
-
-#define x86_64_fchs() \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        *(mcodeptr++) = (u1) 0xe0; \
-    } while (0)
-
-
-#define x86_64_faddp() \
-    do { \
-        *(mcodeptr++) = (u1) 0xde; \
-        *(mcodeptr++) = (u1) 0xc1; \
-    } while (0)
-
-
-#define x86_64_fadd_reg_st(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd8; \
-        *(mcodeptr++) = (u1) 0xc0 + (0x0f & (reg)); \
-    } while (0)
-
-
-#define x86_64_fadd_st_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdc; \
-        *(mcodeptr++) = (u1) 0xc0 + (0x0f & (reg)); \
-    } while (0)
-
-
-#define x86_64_faddp_st_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xde; \
-        *(mcodeptr++) = (u1) 0xc0 + (0x0f & (reg)); \
-    } while (0)
-
-
-#define x86_64_fadds_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd8; \
-        x86_64_emit_membase((basereg),(disp),0); \
-    } while (0)
-
-
-#define x86_64_faddl_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdc; \
-        x86_64_emit_membase((basereg),(disp),0); \
-    } while (0)
-
-
-#define x86_64_fsub_reg_st(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd8; \
-        *(mcodeptr++) = (u1) 0xe0 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fsub_st_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdc; \
-        *(mcodeptr++) = (u1) 0xe8 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fsubp_st_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xde; \
-        *(mcodeptr++) = (u1) 0xe8 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fsubp() \
-    do { \
-        *(mcodeptr++) = (u1) 0xde; \
-        *(mcodeptr++) = (u1) 0xe9; \
-    } while (0)
-
-
-#define x86_64_fsubs_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd8; \
-        x86_64_emit_membase((basereg),(disp),4); \
-    } while (0)
-
-
-#define x86_64_fsubl_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdc; \
-        x86_64_emit_membase((basereg),(disp),4); \
-    } while (0)
-
-
-#define x86_64_fmul_reg_st(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd8; \
-        *(mcodeptr++) = (u1) 0xc8 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fmul_st_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdc; \
-        *(mcodeptr++) = (u1) 0xc8 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fmulp() \
-    do { \
-        *(mcodeptr++) = (u1) 0xde; \
-        *(mcodeptr++) = (u1) 0xc9; \
-    } while (0)
-
-
-#define x86_64_fmulp_st_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xde; \
-        *(mcodeptr++) = (u1) 0xc8 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fmuls_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd8; \
-        x86_64_emit_membase((basereg),(disp),1); \
-    } while (0)
-
-
-#define x86_64_fmull_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdc; \
-        x86_64_emit_membase((basereg),(disp),1); \
-    } while (0)
-
-
-#define x86_64_fdiv_reg_st(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd8; \
-        *(mcodeptr++) = (u1) 0xf0 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fdiv_st_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdc; \
-        *(mcodeptr++) = (u1) 0xf8 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fdivp() \
-    do { \
-        *(mcodeptr++) = (u1) 0xde; \
-        *(mcodeptr++) = (u1) 0xf9; \
-    } while (0)
-
-
-#define x86_64_fdivp_st_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xde; \
-        *(mcodeptr++) = (u1) 0xf8 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fxch() \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        *(mcodeptr++) = (u1) 0xc9; \
-    } while (0)
-
-
-#define x86_64_fxch_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        *(mcodeptr++) = (u1) 0xc8 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fprem() \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        *(mcodeptr++) = (u1) 0xf8; \
-    } while (0)
-
-
-#define x86_64_fprem1() \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        *(mcodeptr++) = (u1) 0xf5; \
-    } while (0)
-
-
-#define x86_64_fucom() \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        *(mcodeptr++) = (u1) 0xe1; \
-    } while (0)
-
-
-#define x86_64_fucom_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        *(mcodeptr++) = (u1) 0xe0 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fucomp_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        *(mcodeptr++) = (u1) 0xe8 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fucompp() \
-    do { \
-        *(mcodeptr++) = (u1) 0xda; \
-        *(mcodeptr++) = (u1) 0xe9; \
-    } while (0)
-
-
-#define x86_64_fnstsw() \
-    do { \
-        *(mcodeptr++) = (u1) 0xdf; \
-        *(mcodeptr++) = (u1) 0xe0; \
-    } while (0)
-
-
-#define x86_64_finit() \
-    do { \
-        *(mcodeptr++) = (u1) 0x9b; \
-        *(mcodeptr++) = (u1) 0xdb; \
-        *(mcodeptr++) = (u1) 0xe3; \
-    } while (0)
-
-
-#define x86_64_fldcw_mem(mem) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        x86_64_emit_mem(5,(mem)); \
-    } while (0)
-
-
-#define x86_64_fldcw_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        x86_64_emit_membase((basereg),(disp),5); \
-    } while (0)
-
-
-#define x86_64_wait() \
-    *(mcodeptr++) = (u1) 0x9b;
-
-
-#define x86_64_ffree_reg(reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xdd; \
-        *(mcodeptr++) = (u1) 0xc0 + (0x07 & (reg)); \
-    } while (0)
-
-
-#define x86_64_fdecstp() \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        *(mcodeptr++) = (u1) 0xf6; \
-    } while (0)
-
-
-#define x86_64_fincstp() \
-    do { \
-        *(mcodeptr++) = (u1) 0xd9; \
-        *(mcodeptr++) = (u1) 0xf7; \
-    } while (0)
-
-
-/*
- * SSE2 stuff
+ * floating point instructions (SSE2)
  */
 #define x86_64_addsd_reg_reg(reg,dreg) \
     do { \
@@ -2070,6 +1535,26 @@ static const unsigned char x86_64_cc_map[] = {
     } while (0)
 
 
+#define x86_64_divss_reg_reg(reg,dreg) \
+    do { \
+        *(mcodeptr++) = 0xf3; \
+        x86_64_emit_rex(0,(dreg),0,(reg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x5e; \
+        x86_64_emit_reg((dreg),(reg)); \
+    } while (0)
+
+
+#define x86_64_divsd_reg_reg(reg,dreg) \
+    do { \
+        *(mcodeptr++) = 0xf2; \
+        x86_64_emit_rex(0,(dreg),0,(reg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x5e; \
+        x86_64_emit_reg((dreg),(reg)); \
+    } while (0)
+
+
 #define x86_64_movaps_reg_reg(reg,dreg) \
     do { \
         x86_64_emit_rex(0,(reg),0,(dreg)); \
@@ -2088,7 +1573,7 @@ static const unsigned char x86_64_cc_map[] = {
         x86_64_emit_reg((reg),(dreg)); \
     } while (0)
 
-
+#if 0
 #define x86_64_movd_reg_membase(reg,basereg,disp) \
     do { \
         *(mcodeptr++) = 0x66; \
@@ -2127,7 +1612,7 @@ static const unsigned char x86_64_cc_map[] = {
         *(mcodeptr++) = 0x6e; \
         x86_64_emit_memindex((dreg),(disp),(basereg),(indexreg),(scale)); \
     } while (0)
-
+#endif
 
 #define x86_64_movq_reg_reg(reg,dreg) \
     do { \
@@ -2136,6 +1621,26 @@ static const unsigned char x86_64_cc_map[] = {
         *(mcodeptr++) = 0x0f; \
         *(mcodeptr++) = 0x7e; \
         x86_64_emit_reg((dreg),(reg)); \
+    } while (0)
+
+
+#define x86_64_movq_reg_membase(reg,basereg,disp) \
+    do { \
+        *(mcodeptr++) = 0x66; \
+        x86_64_emit_rex(0,(reg),0,(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0xd6; \
+        x86_64_emit_membase((basereg),(disp),(reg)); \
+    } while (0)
+
+
+#define x86_64_movq_membase_reg(basereg,disp,dreg) \
+    do { \
+        *(mcodeptr++) = 0xf3; \
+        x86_64_emit_rex(0,(dreg),0,(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x7e; \
+        x86_64_emit_membase((basereg),(disp),(dreg)); \
     } while (0)
 
 
@@ -2159,6 +1664,26 @@ static const unsigned char x86_64_cc_map[] = {
     } while (0)
 
 
+#define x86_64_movss_reg_membase(reg,basereg,disp) \
+    do { \
+        *(mcodeptr++) = 0xf3; \
+        x86_64_emit_rex(0,(reg),0,(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x11; \
+        x86_64_emit_membase((basereg),(disp),(reg)); \
+    } while (0)
+
+
+#define x86_64_movsd_reg_membase(reg,basereg,disp) \
+    do { \
+        *(mcodeptr++) = 0xf2; \
+        x86_64_emit_rex(0,(reg),0,(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x11; \
+        x86_64_emit_membase((basereg),(disp),(reg)); \
+    } while (0)
+
+
 #define x86_64_movss_membase_reg(basereg,disp,dreg) \
     do { \
         *(mcodeptr++) = 0xf3; \
@@ -2176,6 +1701,66 @@ static const unsigned char x86_64_cc_map[] = {
         *(mcodeptr++) = 0x0f; \
         *(mcodeptr++) = 0x10; \
         x86_64_emit_membase((basereg),(disp),(dreg)); \
+    } while (0)
+
+
+#define x86_64_movss_reg_memindex(reg,disp,basereg,indexreg,scale) \
+    do { \
+        *(mcodeptr++) = 0xf3; \
+        x86_64_emit_rex(0,(reg),(indexreg),(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x11; \
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define x86_64_movsd_reg_memindex(reg,disp,basereg,indexreg,scale) \
+    do { \
+        *(mcodeptr++) = 0xf2; \
+        x86_64_emit_rex(0,(reg),(indexreg),(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x11; \
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define x86_64_movss_memindex_reg(disp,basereg,indexreg,scale,dreg) \
+    do { \
+        *(mcodeptr++) = 0xf3; \
+        x86_64_emit_rex(0,(dreg),(indexreg),(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x10; \
+        x86_64_emit_memindex((dreg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define x86_64_movsd_memindex_reg(disp,basereg,indexreg,scale,dreg) \
+    do { \
+        *(mcodeptr++) = 0xf2; \
+        x86_64_emit_rex(0,(dreg),(indexreg),(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x10; \
+        x86_64_emit_memindex((dreg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define x86_64_mulss_reg_reg(reg,dreg) \
+    do { \
+        *(mcodeptr++) = 0xf3; \
+        x86_64_emit_rex(0,(dreg),0,(reg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x59; \
+        x86_64_emit_reg((dreg),(reg)); \
+    } while (0)
+
+
+#define x86_64_mulsd_reg_reg(reg,dreg) \
+    do { \
+        *(mcodeptr++) = 0xf2; \
+        x86_64_emit_rex(0,(dreg),0,(reg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x59; \
+        x86_64_emit_reg((dreg),(reg)); \
     } while (0)
 
 

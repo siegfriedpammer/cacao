@@ -10,7 +10,7 @@
 
     Authors: Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: methodtable.c 388 2003-07-10 16:49:05Z twisti $
+    Last Change: $Id: methodtable.c 413 2003-08-22 17:46:18Z twisti $
 
 *******************************************************************************/
 
@@ -78,7 +78,8 @@ u1 *findmethod(u1 *pos)
 	}
     }
 	
-    return NULL;
+    printf("can't find method with rip=%p\n", pos);
+    exit(-1);
 }
 
 
