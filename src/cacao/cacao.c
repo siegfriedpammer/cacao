@@ -645,6 +645,8 @@ int main(int argc, char **argv)
 		methodinfo *mainmethod;
 		java_objectarray *a; 
 
+		heap_addreference(&a);
+
 		mainmethod = class_findmethod (
 				topclass,
 				unicode_new_char ("main"), 

@@ -1103,30 +1103,39 @@ static void markstack ()                   /* schani */
 #ifdef USE_THREADS
     thread *aThread;
 
-    for (aThread = liveThreads; aThread != 0;
-         aThread = CONTEXT(aThread).nextlive) {
-		mark((heapblock*)aThread);
-		if (aThread == currentThread) {
-		    void **top_of_stack = &dummy;
-		    
-		    if (top_of_stack > (void**)CONTEXT(aThread).stackEnd)
-				markreferences((void**)CONTEXT(aThread).stackEnd, top_of_stack);
-		    else 	
-				markreferences(top_of_stack, (void**)CONTEXT(aThread).stackEnd);
+	if (currentThread == NULL) {
+		void **top_of_stack = &dummy;
+				
+		if (top_of_stack > bottom_of_stack)
+			markreferences(bottom_of_stack, top_of_stack);
+		else
+			markreferences(top_of_stack, bottom_of_stack);
+	}
+	else {
+		for (aThread = liveThreads; aThread != 0;
+			 aThread = CONTEXT(aThread).nextlive) {
+			mark((heapblock*)aThread);
+			if (aThread == currentThread) {
+				void **top_of_stack = &dummy;
+				
+				if (top_of_stack > (void**)CONTEXT(aThread).stackEnd)
+					markreferences((void**)CONTEXT(aThread).stackEnd, top_of_stack);
+				else 	
+					markreferences(top_of_stack, (void**)CONTEXT(aThread).stackEnd);
 			}
-		else {
-		    if (CONTEXT(aThread).usedStackTop > CONTEXT(aThread).stackEnd)
-				markreferences((void**)CONTEXT(aThread).stackEnd,
-				               (void**)CONTEXT(aThread).usedStackTop);
-		    else 	
-				markreferences((void**)CONTEXT(aThread).usedStackTop,
-				               (void**)CONTEXT(aThread).stackEnd);
+			else {
+				if (CONTEXT(aThread).usedStackTop > CONTEXT(aThread).stackEnd)
+					markreferences((void**)CONTEXT(aThread).stackEnd,
+								   (void**)CONTEXT(aThread).usedStackTop);
+				else 	
+					markreferences((void**)CONTEXT(aThread).usedStackTop,
+								   (void**)CONTEXT(aThread).stackEnd);
 			}
 	    }
 
-    markreferences((void**)&threadQhead[0],
-                   (void**)&threadQhead[MAX_THREAD_PRIO]);
-
+		markreferences((void**)&threadQhead[0],
+					   (void**)&threadQhead[MAX_THREAD_PRIO]);
+	}
 #else
     void **top_of_stack = &dummy;
 
@@ -1307,84 +1316,36 @@ static void heap_docollect ()
 
 /************************* Function: gc_init **********************************
 
-        Initializes the garbage collection thread mechanism.
+  Initializes anything that must be initialized to call the gc on the right
+  stack.
 
 ******************************************************************************/
-
-#ifdef USE_THREADS
-iMux gcStartMutex;
-iMux gcThreadMutex;
-iCv gcConditionStart;
-iCv gcConditionDone;
 
 void
 gc_init (void)
 {
-    gcStartMutex.holder = 0;
-    gcStartMutex.count = 0;
-    gcStartMutex.muxWaiters = 0;
-
-    gcThreadMutex.holder = 0;
-    gcThreadMutex.count = 0;
-    gcThreadMutex.muxWaiters = 0;
-
-    gcConditionStart.cvWaiters = 0;
-    gcConditionStart.mux = 0;
-
-    gcConditionDone.cvWaiters = 0;
-    gcConditionDone.mux = 0;
-}    
-#else
-void
-gc_init (void)
-{
 }
-#endif
 
-/************************* Function: gc_thread ********************************
+/************************** Function: gc_call ********************************
 
-        In an endless loop waits for a condition to be posted, then
-	garbage collects the heap.
+  Calls the garbage collector. The garbage collector should always be called
+  using this function since it ensures that enough stack space is available.
 
 ******************************************************************************/
-
-#ifdef USE_THREADS
-void
-gc_thread (void)
-{
-    intsRestore();           /* all threads start with interrupts disabled */
-
-	assert(blockInts == 0);
-
-    lock_mutex(&gcThreadMutex);
-
-    for (;;)
-    {
-		wait_cond(&gcThreadMutex, &gcConditionStart, 0);
-
-		intsDisable();
-		assert(currentThread != mainThread);
-		asm_switchstackandcall(CONTEXT(mainThread).usedStackTop, heap_docollect);
-		intsRestore();
-
-		signal_cond(&gcConditionDone);
-    }
-}
-#endif
 
 void
 gc_call (void)
 {
 #ifdef USE_THREADS
-    lock_mutex(&gcThreadMutex);
-
-    signal_cond(&gcConditionStart);
-    wait_cond(&gcThreadMutex, &gcConditionDone, 0);
-
-    unlock_mutex(&gcThreadMutex);
-#else
-    heap_docollect();
+	assert(blockInts == 0);
 #endif
+
+	intsDisable();
+	if (currentThread == NULL || currentThread == mainThread)
+		heap_docollect();
+	else
+		asm_switchstackandcall(CONTEXT(mainThread).usedStackTop, heap_docollect);
+	intsRestore();
 }
 
 

@@ -40,15 +40,13 @@ static classinfo *class_java_lang_ThreadDeath;
 
 #if defined(USE_INTERNAL_THREADS)
 
-thread* currentThread;
+thread* currentThread = NULL;
 thread* mainThread;
 thread* threadQhead[MAX_THREAD_PRIO + 1];
 thread* threadQtail[MAX_THREAD_PRIO + 1];
 
-thread* liveThreads;
+thread* liveThreads = NULL;
 thread* alarmList;
-
-thread* gcDaemonThread;
 
 int blockInts;
 bool needReschedule;
@@ -125,6 +123,7 @@ freeThreadStack (thread *tid)
 void
 initThreads(u1 *stackbottom)
 {
+	thread *the_main_thread;
     int i;
 
     initLocks();
@@ -133,55 +132,50 @@ initThreads(u1 *stackbottom)
 		contexts[i].free = true;
 
     /* Allocate a thread to be the main thread */
-    mainThread = currentThread = (thread*)builtin_new(loader_load(unicode_new_char("java/lang/Thread")));
-    assert(currentThread != 0);
+    liveThreads = the_main_thread = (thread*)builtin_new(loader_load(unicode_new_char("java/lang/Thread")));
+    assert(the_main_thread != 0);
+	heap_addreference(&liveThreads);
     
-    currentThread->PrivateInfo = 1;
-    CONTEXT(currentThread).free = false;
+    the_main_thread->PrivateInfo = 1;
+    CONTEXT(the_main_thread).free = false;
 
-    liveThreads = currentThread;
-
-    currentThread->name = javastring_new(unicode_new_char("main"));
-    currentThread->priority = NORM_THREAD_PRIO;
-    CONTEXT(currentThread).priority = (u1)currentThread->priority;
-    CONTEXT(currentThread).exceptionptr = 0;
-    currentThread->next = 0;
-    CONTEXT(currentThread).status = THREAD_SUSPENDED;
-    CONTEXT(currentThread).stackBase = CONTEXT(currentThread).stackEnd = stackbottom;
-    THREADINFO(&CONTEXT(currentThread));
+    the_main_thread->name = javastring_new(unicode_new_char("main"));
+    the_main_thread->priority = NORM_THREAD_PRIO;
+    CONTEXT(the_main_thread).priority = (u1)the_main_thread->priority;
+    CONTEXT(the_main_thread).exceptionptr = 0;
+    the_main_thread->next = 0;
+    CONTEXT(the_main_thread).status = THREAD_SUSPENDED;
+    CONTEXT(the_main_thread).stackBase = CONTEXT(the_main_thread).stackEnd = stackbottom;
+    THREADINFO(&CONTEXT(the_main_thread));
 
     DBG( printf("main thread %p base %p end %p\n", 
-				currentThread, 
-				CONTEXT(currentThread).stackBase, 
-				CONTEXT(currentThread).stackEnd); );
+				the_main_thread,
+				CONTEXT(the_main_thread).stackBase,
+				CONTEXT(the_main_thread).stackEnd); );
 
-	CONTEXT(currentThread).flags = THREAD_FLAGS_NOSTACKALLOC;
-	CONTEXT(currentThread).nextlive = 0;
-	currentThread->single_step = 0;
-	currentThread->daemon = 0;
-	currentThread->stillborn = 0;
-	currentThread->target = 0;
-	currentThread->interruptRequested = 0;
-	currentThread->group =
+	CONTEXT(the_main_thread).flags = THREAD_FLAGS_NOSTACKALLOC;
+	CONTEXT(the_main_thread).nextlive = 0;
+	the_main_thread->single_step = 0;
+	the_main_thread->daemon = 0;
+	the_main_thread->stillborn = 0;
+	the_main_thread->target = 0;
+	the_main_thread->interruptRequested = 0;
+	the_main_thread->group =
 		(threadGroup*)builtin_new(loader_load(unicode_new_char("java/lang/ThreadGroup")));
 	/* we should call the constructor */
-	assert(currentThread->group != 0);
+	assert(the_main_thread->group != 0);
 
 	talive++;
-
-	/* Add thread into runQ */
-	iresumeThread(currentThread);
-
-	/* Start garbage collection thread */
-	gcDaemonThread = startDaemon(gc_thread, "gc", 16384);
-	iresumeThread(gcDaemonThread);
-
-	heap_addreference((void**)&gcDaemonThread);
 
 	/* Load exception classes */
 	class_java_lang_ThreadDeath = loader_load(unicode_new_char("java/lang/ThreadDeath"));
 
 	DBG( fprintf(stderr, "finishing initThreads\n"); );
+
+    mainThread = currentThread = the_main_thread;
+
+	/* Add thread into runQ */
+	iresumeThread(mainThread);
 
 	assert(blockInts == 0);
 }
