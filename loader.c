@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 849 2004-01-05 21:27:29Z stefan $
+   $Id: loader.c 852 2004-01-06 15:29:14Z twisti $
 
 */
 
@@ -2611,10 +2611,31 @@ void class_init(classinfo *c)
 	count_class_inits++;
 #endif
 
-	if (c->super)
+	/* initialize super class */
+	if (c->super) {
+		if (initverbose) {
+			char logtext[MAXLOGTEXT];
+			sprintf(logtext, "Initialize super class ");
+			utf_sprint(logtext + strlen(logtext), c->super->name);
+			sprintf(logtext + strlen(logtext), " from ");
+			utf_sprint(logtext + strlen(logtext), c->name);
+			log_text(logtext);
+		}
 		class_init(c->super);
-	for (i = 0; i < c->interfacescount; i++)
+	}
+
+	/* initialize interface classes */
+	for (i = 0; i < c->interfacescount; i++) {
+		if (initverbose) {
+			char logtext[MAXLOGTEXT];
+			sprintf(logtext, "Initialize interface class ");
+			utf_sprint(logtext + strlen(logtext), c->interfaces[i]->name);
+			sprintf(logtext + strlen(logtext), " from ");
+			utf_sprint(logtext + strlen(logtext), c->name);
+			log_text(logtext);
+		}
 		class_init(c->interfaces[i]);  /* real */
+	}
 
 	m = class_findmethod(c, utf_clinit, utf_fidesc);
 	if (!m) {
