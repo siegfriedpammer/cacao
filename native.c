@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 991 2004-03-29 11:22:34Z stefan $
+   $Id: native.c 998 2004-03-30 21:59:27Z twisti $
 
 */
 
@@ -60,6 +60,8 @@
 #include "threads/thread.h"
 #include "threads/threadio.h"
 #include "threads/locks.h"
+#include "nat/java_lang_VMClass.h"
+#include "nat/java_lang_Throwable.h"
 
 /* Include files for IO functions */
 
@@ -83,31 +85,11 @@ char *classpath;
 
 classinfo *class_java_lang_Class;
 classinfo *class_java_lang_VMClass;
-methodinfo *method_vmclass_init;
 /* static classinfo *class_java_lang_Cloneable=0; */ /* now in global.h */
-classinfo *class_java_lang_CloneNotSupportedException;
 classinfo *class_java_lang_System;
 classinfo *class_java_lang_ClassLoader;
 classinfo *class_gnu_java_lang_SystemClassLoader;
-classinfo *class_java_lang_NoClassDefFoundError;
-classinfo *class_java_lang_ClassNotFoundException;
-classinfo *class_java_lang_LinkageError;
-classinfo *class_java_lang_InstantiationException;
-classinfo *class_java_lang_NoSuchMethodError;   
-classinfo *class_java_lang_NoSuchFieldError;
-classinfo *class_java_lang_ClassFormatError;
-classinfo *class_java_lang_IllegalArgumentException;
-classinfo *class_java_lang_ArrayIndexOutOfBoundsException;
-classinfo *class_java_lang_NoSuchFieldException;
-classinfo *class_java_io_SyncFailedException;
-classinfo *class_java_io_IOException;
-classinfo *class_java_io_FileNotFoundException;
-classinfo *class_java_io_UnixFileSystem;
-classinfo *class_java_security_PrivilegedActionException;
 classinfo *class_java_lang_SecurityManager;
-classinfo *class_java_net_UnknownHostException;
-classinfo *class_java_net_SocketException;
-classinfo *class_java_lang_NoSuchMethodException;
 classinfo *class_java_lang_Double;
 classinfo *class_java_lang_Float;
 classinfo *class_java_lang_Long;
@@ -118,22 +100,10 @@ classinfo *class_java_lang_Void;
 classinfo *class_java_lang_Character;
 classinfo *class_java_lang_Integer;
 
+methodinfo *method_vmclass_init;
+
 
 /* specify some exception strings for code generation */
-char *string_java_lang_NoClassDefFoundError =
-    "java/lang/NoClassDefFoundError";
-
-char *string_java_lang_LinkageError =
-    "java/lang/LinkageError";
-
-char *string_java_lang_ArrayIndexOutOfBoundsException =
-    "java/lang/ArrayIndexOutOfBoundsException";
-
-char *string_java_lang_NegativeArraySizeException =
-    "java/lang/NegativeArraySizeException";
-
-char *string_java_lang_ClassCastException =
-    "java/lang/ClassCastException";
 
 char *string_java_lang_ArithmeticException =
     "java/lang/ArithmeticException";
@@ -141,11 +111,56 @@ char *string_java_lang_ArithmeticException =
 char *string_java_lang_ArithmeticException_message =
     "/ by zero";
 
-char *string_java_lang_NullPointerException =
-    "java/lang/NullPointerException";
+char *string_java_lang_ArrayIndexOutOfBoundsException =
+    "java/lang/ArrayIndexOutOfBoundsException";
 
 char *string_java_lang_ArrayStoreException =
     "java/lang/ArrayStoreException";
+
+char *string_java_lang_ClassCastException =
+    "java/lang/ClassCastException";
+
+char *string_java_lang_ClassNotFoundException =
+	"java/lang/ClassNotFoundException";
+
+char *string_java_lang_CloneNotSupportedException =
+    "java/lang/CloneNotSupportedException";
+
+char *string_java_lang_IllegalArgumentException =
+    "java/lang/IllegalArgumentException";
+
+char *string_java_lang_NegativeArraySizeException =
+    "java/lang/NegativeArraySizeException";
+
+char *string_java_lang_NoSuchFieldException =
+	"java/lang/NoSuchFieldException";
+
+char *string_java_lang_NoSuchMethodException =
+	"java/lang/NoSuchMethodException";
+
+char *string_java_lang_NullPointerException =
+    "java/lang/NullPointerException";
+
+
+/* specify some error strings for code generation */
+
+char *string_java_lang_ClassFormatError =
+    "java/lang/ClassFormatError";
+
+char *string_java_lang_LinkageError =
+    "java/lang/LinkageError";
+
+char *string_java_lang_NoClassDefFoundError =
+    "java/lang/NoClassDefFoundError";
+
+char *string_java_lang_NoSuchFieldError =
+	"java/lang/NoSuchFieldError";
+
+char *string_java_lang_NoSuchMethodError =
+	"java/lang/NoSuchMethodError";
+
+char *string_java_lang_OutOfMemoryError =
+    "java/lang/OutOfMemoryError";
 
 
 /* the system classloader object */
@@ -263,31 +278,30 @@ static bool nativecompdone = false;
 
 /*--------------- native method calls & classes used -------------------------*/
 
-
-
-/* throw some loader exceptions */
-
-void throw_noclassdeffounderror_message(utf* classname)
+void throw_exception_exit()
 {
-	if (!class_java_lang_NoClassDefFoundError) {
-		panic("java.lang.NoClassDefFoundError not found. Maybe wrong classpath?");
+	java_lang_String *message;
+
+	if (*exceptionptr) {
+		printf("Exception in thread \"main\" ");
+		utf_display_classname((*exceptionptr)->vftbl->class->name);
+
+		/* do we have a detail message? */
+		message = ((java_lang_Throwable *) *exceptionptr)->detailMessage;
+
+		if (message) {
+			printf(": ");
+			utf_display(javastring_toutf(message, false));
+		}
+		printf("\n");
+		fflush(stdout);
+
+		/* clear exception, whatever... */
+		*exceptionptr = NULL;
+
+		/* good bye! */
+		exit(1);
 	}
-
-	/* throws a NoClassDefFoundError with message */
-	*exceptionptr = native_new_and_init_string(class_java_lang_NoClassDefFoundError,
-											  javastring_new(classname));
-}
-
-
-void throw_linkageerror_message(utf* classname)
-{
-	if (!class_java_lang_LinkageError) {
-		panic("java.lang.LinkageError not found. Maybe wrong classpath?");
-	}
-
-	/* throws a LinkageError with message */
-	*exceptionptr = native_new_and_init_string(class_java_lang_LinkageError,
-											  javastring_new(classname));
 }
 
 
@@ -295,8 +309,10 @@ java_objectheader *new_exception(char *classname)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	if (!c->linked)
-		panic("exception class not linked");
+	if (!c->linked) {
+		printf("Exception class %s not linked! You probably have not set your CLASSPATH properly.\n", classname);
+		exit(1);
+	}
 
 	return native_new_and_init(c);
 }
@@ -305,10 +321,38 @@ java_objectheader *new_exception_message(char *classname, char *message)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	if (!c->linked)
-		panic("exception class not linked");
+	if (!c->linked) {
+		printf("Exception class %s not linked! You probably have not set your CLASSPATH properly.\n", classname);
+		exit(1);
+	}
 
 	return native_new_and_init_string(c, javastring_new_char(message));
+}
+
+
+java_objectheader *new_exception_utfmessage(char *classname, utf *message)
+{
+	classinfo *c = class_new(utf_new_char(classname));
+
+	if (!c->linked) {
+		printf("Exception class %s not linked! You probably have not set your CLASSPATH properly.\n", classname);
+		exit(1);
+	}
+
+	return native_new_and_init_string(c, javastring_new(message));
+}
+
+
+java_objectheader *new_exception_javastring(char *classname, java_lang_String *message)
+{
+	classinfo *c = class_new(utf_new_char(classname));
+
+	if (!c->linked) {
+		printf("Exception class %s not linked! You probably have not set your CLASSPATH properly.\n", classname);
+		exit(1);
+	}
+
+	return native_new_and_init_string(c, message);
 }
 
 
@@ -316,8 +360,10 @@ java_objectheader *new_exception_int(char *classname, s4 i)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	if (!c->linked)
-		panic("exception class not linked");
+	if (!c->linked) {
+		printf("Exception class %s not linked! You probably have not set your CLASSPATH properly.\n", classname);
+		exit(1);
+	}
 
 	return native_new_and_init_int(c, i);
 }
@@ -334,8 +380,6 @@ void native_loadclasses()
 	static int classesLoaded=0; /*temporary hack JoWenn*/
 	if (classesLoaded) return;
 	classesLoaded = 1;
-/*	log_text("loadclasses entered");*/
-
 
 	/*class_java_lang_System =*/
 	(void) class_new(utf_new_char("java/lang/VMClass"));/*JoWenn*/
@@ -345,56 +389,13 @@ void native_loadclasses()
 	if (!class_java_lang_Cloneable)
 		class_java_lang_Cloneable = 
 			class_new(utf_new_char("java/lang/Cloneable"));
-/*	log_text("loadclasses: class_java_lang_Cloneable has been initialized");*/
-	class_java_lang_CloneNotSupportedException = 
-		class_new(utf_new_char("java/lang/CloneNotSupportedException"));
+
 	if (!class_java_lang_Class)
 		class_java_lang_Class =
 			class_new(utf_new_char("java/lang/Class"));
-	class_java_io_IOException = 
-		class_new(utf_new_char("java/io/IOException"));
-	class_java_io_FileNotFoundException = 
-		class_new(utf_new_char("java/io/FileNotFoundException"));
-	class_java_lang_NoClassDefFoundError =
-		class_new(utf_new_char("java/lang/NoClassDefFoundError"));
-	class_java_lang_ClassNotFoundException =
-		class_new(utf_new_char("java/lang/ClassNotFoundException"));
-	class_java_lang_LinkageError =
-		class_new(utf_new_char("java/lang/LinkageError"));
-	class_java_lang_InstantiationException =
-		class_new(utf_new_char("java/lang/InstantiationException"));
-	class_java_lang_NoSuchMethodError =
-		class_new(utf_new_char("java/lang/NoSuchMethodError"));
-	class_java_lang_NoSuchFieldError =
-		class_new(utf_new_char("java/lang/NoSuchFieldError"));	
-	class_java_lang_ClassFormatError =
-		class_new(utf_new_char("java/lang/ClassFormatError"));	
-	class_java_io_SyncFailedException =
-		class_new(utf_new_char("java/io/SyncFailedException"));
-		
-/*	log_text("native_loadclasses: class_new(\"java/lang/ClassLoader\")");		*/
+
 	class_java_lang_ClassLoader =
 	        class_new(utf_new_char("java/lang/ClassLoader"));	
-	class_gnu_java_lang_SystemClassLoader =
-	        class_new(utf_new_char("gnu/java/lang/SystemClassLoader"));	
-
-/*	log_text("native_loadclasses: class_new(\"java/security/PrivilegedActionException\")");		*/
-	class_java_security_PrivilegedActionException =
-		class_new(utf_new_char("java/security/PrivilegedActionException"));
-
-	loader_load_sysclass(&class_java_net_UnknownHostException,
-						 utf_new_char("java/net/UnknownHostException"));
-	loader_load_sysclass(&class_java_net_SocketException,
-						 utf_new_char("java/net/SocketException"));
-
-	class_java_lang_IllegalArgumentException =
-		class_new(utf_new_char("java/lang/IllegalArgumentException"));
-	class_java_lang_ArrayIndexOutOfBoundsException =
-		class_new(utf_new_char("java/lang/ArrayIndexOutOfBoundsException"));
-	class_java_lang_NoSuchFieldException =
-		class_new(utf_new_char("java/lang/NoSuchFieldException"));
-	class_java_lang_NoSuchMethodException = 
-		class_new(utf_new_char("java/lang/NoSuchMethodException"));
 
 	/* load classes for wrapping primitive types */
 	class_java_lang_Double    = class_new(utf_new_char("java/lang/Double"));
@@ -457,11 +458,12 @@ void systemclassloader_addlibrary(java_objectheader *o)
 
 void init_systemclassloader() 
 {
+	log_text("init_systemclassloader");
 	if (!SystemClassLoader) {
 		native_loadclasses();
 		log_text("Initializing new system class loader");
 		/* create object and call initializer */
-		SystemClassLoader = (java_lang_ClassLoader *) native_new_and_init(class_gnu_java_lang_SystemClassLoader);/*class_java_lang_ClassLoader);*/
+  		SystemClassLoader = (java_lang_ClassLoader *) native_new_and_init(class_new(utf_new_char("gnu/java/lang/SystemClassLoader")));
 
 		/* systemclassloader has no parent */
 		SystemClassLoader->parent      = NULL;
@@ -749,6 +751,7 @@ char *javastring_tochar(java_objectheader *so)
 fieldinfo *class_findfield_approx(classinfo *c, utf *name)
 {
 	s4 i;
+
 	for (i = 0; i < c->fieldscount; i++) {
 		/* compare field names */
 		if ((c->fields[i].name == name))
@@ -756,22 +759,25 @@ fieldinfo *class_findfield_approx(classinfo *c, utf *name)
 	}
 
 	/* field was not found, raise exception */	
-	*exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
+	*exceptionptr = new_exception(string_java_lang_NoSuchFieldException);
 
 	return NULL;
 }
 
-s4 class_findfield_index_approx (classinfo *c, utf *name)
+
+s4 class_findfield_index_approx(classinfo *c, utf *name)
 {
 	s4 i;
+
 	for (i = 0; i < c->fieldscount; i++) {
 		/* compare field names */
 		if ((c->fields[i].name == name))
 			return i;
-		}
+	}
 
 	/* field was not found, raise exception */	
-	*exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
+	*exceptionptr = new_exception(string_java_lang_NoSuchFieldException);
+
 	return -1;
 }
 
@@ -890,7 +896,7 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 
 	/* call initializer */
 
-	asm_calljavafunction(m, o, i, NULL, NULL);
+	asm_calljavafunction(m, o, (void *) i, NULL, NULL);
 
 	return o;
 }
