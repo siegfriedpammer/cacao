@@ -1,10 +1,9 @@
 /* cacao/cacao.c - contains main() of cacao
 
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
-   Institut f. Computersprachen, TU Wien
-   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser, M. Probst,
-   S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich,
-   J. Wenninger
+   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   TU Wien
 
    This file is part of CACAO.
 
@@ -37,7 +36,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1641 2004-12-01 13:13:31Z christian $
+   $Id: cacao.c 1657 2004-12-03 15:27:32Z twisti $
 
 */
 
@@ -292,6 +291,7 @@ int main(int argc, char **argv)
 	u4 heapmaxsize = 64 * 1024 * 1024;
 	u4 heapstartsize = 200 * 1024;
 	char *cp;
+	s4    cplen;
 	bool startit = true;
 	char *specificmethodname = NULL;
 	char *specificsignature = NULL;
@@ -572,22 +572,23 @@ int main(int argc, char **argv)
 	if (opt_ind >= argc)
    		usage();
 
-#if 0
-	{
-		char *gnucp = "/home/twisti/src/cacao/cacaodev/classpath/lib/:";
-		cp = classpath;
 
-		classpath = MNEW(char, strlen(cp) + strlen(classpath) + 1);
-		strcpy(classpath, gnucp);
-		strcat(classpath, cp);
+	/* insert the rt.jar in front of all other classpath entries */
+	cplen = strlen(INSTALL_PREFIX) + strlen(RT_JAR_PATH);
+	cp = classpath;
 
-		MFREE(cp, char, strlen(cp));
-	}
-#endif
+	classpath = MNEW(char, cplen + strlen(classpath) + 1);
+	strcpy(classpath, INSTALL_PREFIX);
+	strcat(classpath, RT_JAR_PATH);
+	strcat(classpath, cp);
 
+	MFREE(cp, char, strlen(cp));
+
+
+	/* transform dots into slashes in the class name */
    	mainstring = argv[opt_ind++];
-   	for (i = strlen(mainstring) - 1; i >= 0; i--) {     /* Transform dots into slashes */
- 	 	if (mainstring[i] == '.') mainstring[i] = '/';  /* in the class name */
+   	for (i = strlen(mainstring) - 1; i >= 0; i--) {
+ 	 	if (mainstring[i] == '.') mainstring[i] = '/';
 	}
 
 
