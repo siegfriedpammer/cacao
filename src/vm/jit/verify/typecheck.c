@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 807 2003-12-22 10:08:22Z edwin $
+   $Id: typecheck.c 822 2003-12-31 16:00:58Z edwin $
 
 */
 
@@ -70,7 +70,7 @@ bool typecheckverbose = false;
 #define LOG2(str,a,b)      DOLOG(dolog(str,a,b))
 #define LOG3(str,a,b,c)    DOLOG(dolog(str,a,b,c))
 #define LOGIF(cond,str)    DOLOG(do {if (cond) log_text(str);} while(0))
-#define LOGINFO(info)      DOLOG(do {typeinfo_print_short(get_logfile(),info);log_plain("\n");} while(0))
+#define LOGINFO(info)      DOLOG(do {typeinfo_print_short(get_logfile(),(info));log_plain("\n");} while(0))
 #define LOGFLUSH           DOLOG(fflush(get_logfile()))
 #define LOGNL              DOLOG(log_plain("\n"))
 #define LOGSTR(str)        DOLOG(log_plain(str))
@@ -172,6 +172,85 @@ typeinfo_print_blocks(FILE *file,int vnum,u1 *vtype,typeinfo *vinfo)
 #endif
 
 #endif
+
+/****************************************************************************/
+/* HELPER FUNCTIONS                                                         */
+/****************************************************************************/
+
+/* If a field is checked, definingclass == implementingclass */
+static bool
+is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass,
+			  typeinfo *instance)
+{
+	/* check access rights */
+	if (class != definingclass) {
+		switch (flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED)) {
+		  case ACC_PUBLIC:
+			  break;
+			  
+			  /* In the cases below, definingclass cannot be an interface */
+			  
+		  case 0:
+			  /* XXX check package access */
+			  break;
+		  case ACC_PROTECTED:
+			  /* XXX check package access and superclass access */
+			  break;
+		  case ACC_PRIVATE:
+			  if (definingclass != class) {
+				  LOG("private access");
+				  return false;
+			  }
+			  break;
+			  /* XXX check package access */
+		  default:
+			  panic("Invalid access flags");
+		}
+	}
+
+	if (instance) {
+		if ((flags & ACC_STATIC) != 0) {
+			LOG("accessing STATIC member with instance");
+			return false;
+		}
+		
+		if (implementingclass
+			&& !TYPEINFO_IS_NULLTYPE(*instance)
+			&& !TYPEINFO_IS_NEWOBJECT(*instance))
+		{
+			typeinfo tempinfo;
+			
+			if (((flags & ACC_PROTECTED) != 0)
+				&& builtin_isanysubclass(class,implementingclass))
+			{
+				/* For protected access of super class members
+				 * the instance must be a subclass of or the same
+				 * as the current class. */
+
+				/* XXX maybe we only are allowed to do this, if we
+				 * don't have package access? */
+				/* implementingclass = class; */ /* XXX does not work */
+			}
+			
+			/* XXX use classinfo directly? */
+			TYPEINFO_INIT_CLASSINFO(tempinfo,implementingclass);
+			if (!typeinfo_is_assignable(instance,&tempinfo)) {
+				LOG("instance not assignable");
+				LOGINFO(instance);
+				LOGINFO(&tempinfo);
+				return false;
+			}
+		}
+	}
+	else {
+		if ((flags & ACC_STATIC) == 0) {
+			LOG("accessing non-STATIC member without instance");
+			return false;
+		}
+	}
+	
+	return true;
+}
 
 /****************************************************************************/
 /* STATISTICS                                                               */
@@ -464,15 +543,21 @@ struct jsr_record {
  * Used:
  *     jsrtemp
  */
-#define TYPECHECK_ADD_JSR                                               \
-    do {                                                                \
-        LOG1("adding JSR to block %04d",(tbptr)-block);                 \
-    jsrtemp = (jsr_record *) dump_alloc(sizeof(jsr_record)+(numlocals-1)*sizeof(u1)); \
-    jsrtemp->target = (tbptr);                                          \
-    jsrtemp->next = jsrchain;                                           \
-    jsrtemp->sbr_touched = NULL;                                        \
-    memset(&jsrtemp->touched,TOUCHED_NO,sizeof(u1)*numlocals);          \
-    jsrbuffer[tbptr-block] = jsrtemp;                                   \
+#define TYPECHECK_ADD_JSR																\
+    do {																				\
+    LOG1("adding JSR to block %04d",(tbptr)-block);										\
+    jsrtemp = jsrchain;																	\
+    while (jsrtemp) {																	\
+	    if (jsrtemp->target == tbptr)													\
+		    panic("recursive JSR call");												\
+        jsrtemp = jsrtemp->next;														\
+    }																					\
+    jsrtemp = (jsr_record *) dump_alloc(sizeof(jsr_record)+(numlocals-1)*sizeof(u1));	\
+    jsrtemp->target = (tbptr);															\
+    jsrtemp->next = jsrchain;															\
+    jsrtemp->sbr_touched = NULL;														\
+    memset(&jsrtemp->touched,TOUCHED_NO,sizeof(u1)*numlocals);							\
+    jsrbuffer[tbptr-block] = jsrtemp;													\
     } while (0)
 
 /* TYPECHECK_COPYJSR: copy the current JSR chain to the target block.
@@ -962,20 +1047,26 @@ typecheck()
                           /* check if the value is assignable to the field */
 						  {
 							  fieldinfo *fi = (fieldinfo*) iptr[0].val.a;
-							  
-							  if (!TYPEINFO_IS_NULLTYPE(curstack->prev->typeinfo)) {
-								  cls = fi->class;
-								  /* XXX treat uinitialized objects specially? */
-								  if (!class_issubclass(curstack->prev->typeinfo.typeclass,
-														cls))
-									  panic("PUTFIELD reference type does not support field");
+
+							  if (TYPEINFO_IS_NEWOBJECT(curstack->prev->typeinfo)) {
+								  if (initmethod
+									  && !TYPEINFO_NEWOBJECT_INSTRUCTION(curstack->prev->typeinfo))
+								  {
+									  /* uninitialized "this" instance */
+									  if (fi->class != class || (fi->flags & ACC_STATIC) != 0)
+										  panic("Setting unaccessible field in uninitialized object");
+								  }
+								  else {
+									  panic("PUTFIELD on uninitialized object");
+								  }
+							  }
+							  else {
+								  if (!is_accessible(fi->flags,fi->class,fi->class,
+													 &(curstack->prev->typeinfo)))
+									  panic("PUTFIELD: field is not accessible");
 							  }
 
-							  /* XXX check flags */
-
 							  /* XXX ---> unify with ICMD_PUTSTATIC? */
-							  
-							  /* XXX check access rights */
 							  
 							  if (curstack->type != fi->type)
 								  panic("PUTFIELD type mismatch");
@@ -994,9 +1085,9 @@ typecheck()
 						  {
 							  fieldinfo *fi = (fieldinfo*) iptr[0].val.a;
 
-							  /* check flags */
-							  /* XXX check access rights */
-							  
+							  if (!is_accessible(fi->flags,fi->class,fi->class,NULL))
+								  panic("PUTSTATIC: field is not accessible");
+
 							  if (curstack->type != fi->type)
 								  panic("PUTSTATIC type mismatch");
 							  if (fi->type == TYPE_ADR) {
@@ -1018,15 +1109,10 @@ typecheck()
                           {
                               fieldinfo *fi = (fieldinfo *)(iptr->val.a);
 
-							  if (!TYPEINFO_IS_NULLTYPE(curstack->typeinfo)) {
-								  cls = fi->class;
-								  if (!class_issubclass(curstack->typeinfo.typeclass,
-														cls))
-									  panic("GETFIELD reference type does not support field");
-							  }
+							  if (!is_accessible(fi->flags,fi->class,fi->class,
+												 &(curstack->typeinfo)))
+								  panic("GETFIELD: field is not accessible");
 
-							  /* XXX check flags */
-							  /* XXX check access rights */
                               if (dst->type == TYPE_ADR) {
                                   TYPEINFO_INIT_FROM_FIELDINFO(dst->typeinfo,fi);
                               }
@@ -1041,8 +1127,10 @@ typecheck()
                       case ICMD_GETSTATIC:
                           {
                               fieldinfo *fi = (fieldinfo *)(iptr->val.a);
-                              /* XXX check flags */
-							  /* XXX check access rights */
+							  
+							  if (!is_accessible(fi->flags,fi->class,fi->class,NULL))
+								  panic("GETSTATIC: field is not accessible");
+
                               if (dst->type == TYPE_ADR) {
                                   TYPEINFO_INIT_FROM_FIELDINFO(dst->typeinfo,fi);
                               }
@@ -1408,15 +1496,24 @@ typecheck()
                       case ICMD_INVOKESTATIC:
                       case ICMD_INVOKEINTERFACE:
                           {
-							  /* XXX check if this opcode may invoke this method */
-                              /* XXX check access rights */
-                              
                               methodinfo *mi = (methodinfo*) iptr->val.a;
+							  bool specialmethod = (mi->name->text[0] == '<');
                               bool callinginit = (opcode == ICMD_INVOKESPECIAL && mi->name == name_init);
                               instruction *ins;
                               classinfo *initclass;
 
-                              /* XXX for INVOKESPECIAL: check if the invokation is done at all */
+							  if (specialmethod && !callinginit)
+								  panic("Invalid invocation of special method");
+
+							  if (opcode == ICMD_INVOKESPECIAL) {
+								  /* XXX for INVOKESPECIAL: check if the invokation is done at all */
+								  
+								  /* (If callinginit the class is checked later.) */
+								  if (!callinginit) { 
+ 									  if (!builtin_isanysubclass(class,mi->class)) 
+ 										  panic("Illegal instruction: INVOKESPECIAL calling non-superclass method"); 
+ 								  } 
+							  }
 
                               /* fetch parameter types and return type */
                               /* XXX might use dst->typeinfo directly if non void */
@@ -1442,6 +1539,8 @@ typecheck()
                                       LOGINFO(pinfo + i);
                                       if (i==0 && callinginit)
                                       {
+										  /* typeinfo tempinfo; */
+										  
                                           /* first argument to <init> method */
                                           if (!TYPEINFO_IS_NEWOBJECT(srcstack->typeinfo))
                                               panic("Calling <init> on initialized object");
@@ -1452,7 +1551,11 @@ typecheck()
                                           initclass = (ins) ? (classinfo*)ins[-1].val.a : method->class;
                                           LOGSTR("class: "); LOGSTRu(initclass->name); LOGNL;
 
-                                          /* XXX check type */
+										  /* check type */
+										  /* (This is checked below.) */
+/* 										  TYPEINFO_INIT_CLASSINFO(tempinfo,initclass); */
+/*                                           if (!typeinfo_is_assignable(&tempinfo,pinfo+0)) */
+/*                                               panic("Parameter reference type mismatch in <init> invocation"); */
                                       }
                                       else {
                                           if (!typeinfo_is_assignable(&(srcstack->typeinfo),pinfo+i))
@@ -1461,8 +1564,15 @@ typecheck()
                                   }
                                   LOG("ok");
 
-                                  srcstack = srcstack->prev;
+                                  if (i) srcstack = srcstack->prev;
                               }
+
+							  /* XXX We should resolve the method and pass its
+							   * class as implementingclass to is_accessible. */
+							  if (!is_accessible(mi->flags,mi->class,NULL,
+												 (opcode == ICMD_INVOKESTATIC) ? NULL
+												 : &(srcstack->typeinfo)))
+								  panic("Invoking unaccessible method");
 
 							  LOG("checking return type");
                               if (rtype != TYPE_VOID) {
@@ -1497,11 +1607,25 @@ typecheck()
                                   }
 
                                   /* initializing the 'this' reference? */
-                                  if (initmethod && !ins) {
+                                  if (!ins) {
+#ifdef TYPECHECK_DEBUG
+									  if (!initmethod)
+										  panic("Internal error: calling <init> on this in non-<init> method.");
+#endif
+									  /* must be <init> of current class or direct superclass */
+									  if (mi->class != class && mi->class != class->super)
+										  panic("<init> calling <init> of the wrong class");
+									  
                                       /* set our marker variable to type int */
                                       LOG("setting <init> marker");
 									  vtype[numlocals-1] = TYPE_INT;
                                   }
+								  else {
+									  /* initializing an instance created with NEW */
+									  /* XXX is this strictness ok? */
+									  if (mi->class != initclass)
+										  panic("Calling <init> method of the wrong class");
+								  }
                               }
                           }
                           maythrow = true;
@@ -1621,8 +1745,15 @@ typecheck()
                           
                       case ICMD_BUILTIN1:
                           if (ISBUILTIN(BUILTIN_new)) {
+							  
                               if (iptr[-1].opc != ICMD_ACONST)
                                   panic("illegal instruction: builtin_new without classinfo");
+							  cls = (classinfo *) iptr[-1].val.a;
+							  if (!cls->linked)
+								  panic("Internal error: NEW with unlinked class");
+							  /* The following check also forbids array classes and interfaces: */
+							  if ((cls->flags & ACC_ABSTRACT) != 0)
+								  panic("Invalid instruction: NEW creating instance of abstract class");
                               TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,iptr);
                           }
 						  /* XXX unify the following cases */
@@ -1838,7 +1969,7 @@ typecheck()
                       default:
                           LOG2("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
                           panic("Missing ICMD code during typecheck");
-                    }
+					}
 
                     /* the output of this instruction becomes the current stack */
                     curstack = dst;
