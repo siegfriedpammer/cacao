@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1953 2005-02-17 13:42:23Z christian $
+   $Id: jit.c 1956 2005-02-17 20:43:07Z christian $
 
 */
 
@@ -1510,14 +1510,7 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 #ifdef LSRA
 	bool old_opt_lsra;
 #endif
-#ifdef STATISTICS
-	int i,type;
-	s4 len;
-	stackptr    src, src_old;
-	stackptr    dst;
-	instruction *iptr;
-	basicblock  *bptr;
-#endif
+
 
 	/* print log message for compiled method */
 
@@ -1639,122 +1632,8 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 	}
 
 #ifdef STATISTICS
-	if (opt_stat) {
-		/* count how many local variables are held in memory or register */
-		for(i=0; i < cd->maxlocals; i++)
-			for (type=0; type <=4; type++)
-				if (rd->locals[i][type].type != -1) { /* valid local */
-					if (rd->locals[i][type].flags & INMEMORY)
-						count_locals_spilled++;
-					else
-						count_locals_register++;
-				}
-		/* count how many stack slots are held in memory or register */
-
-		bptr = m->basicblocks;
-		while (bptr != NULL) {
-			if (bptr->flags >= BBREACHED) {
-
-#ifdef LSRA
-			if (!opt_lsra) {
-#endif	
-				/* check for memory moves from interface to BB instack */
-				dst = bptr->instack;
-				len = bptr->indepth;			
-				while (dst != NULL) {
-					len--;
-					if (dst->varkind != STACKVAR) {
-						if ( (dst->flags & INMEMORY) ||
-							 (rd->interfaces[len][dst->type].flags & INMEMORY) || 
-							 ( (dst->flags & INMEMORY) && 
-							   (rd->interfaces[len][dst->type].flags & INMEMORY) && 
-							   (dst->regoff != rd->interfaces[len][dst->type].regoff) ))
-						{
-							/* one in memory or both inmemory at different offsets */
-							count_mem_move_bb++;
-						}
-					}
-
-					dst = dst->prev;
-				}
-
-				/* check for memory moves from BB outstack to interface */
-				dst = bptr->outstack;
-				len = bptr->outdepth;
-
-				while (dst) {
-					len--;
-					if (dst->varkind != STACKVAR) {
-						if ( (dst->flags & INMEMORY) || \
-							 (rd->interfaces[len][dst->type].flags & INMEMORY) || \
-							 ( (dst->flags & INMEMORY) && \
-							   (rd->interfaces[len][dst->type].flags & INMEMORY) && \
-							   (dst->regoff != rd->interfaces[len][dst->type].regoff) ))
-						{
-							/* one in memory or both inmemory at different offsets */
-							count_mem_move_bb++;
-						}
-					}
-
-					dst = dst->prev;
-				}
-#ifdef LSRA
-			}
-#endif	
-
-
-				dst = bptr->instack;
-				iptr = bptr->iinstr;
-				len = bptr->icount;
-				src_old = NULL;
-
-				while (--len >= 0)  {
-					src = dst;
-					dst = iptr->dst;
-
-					if ((src!= NULL) && (src != src_old)) { /* new stackslot */
-						switch (src->varkind) {
-						case TEMPVAR:
-						case STACKVAR:
-							if (!(src->flags & INMEMORY)) 
-								count_ss_register++;
-							else
-								count_ss_spilled++;
-							break;
-							/* 					case LOCALVAR: */
-							/* 						if (!(rd->locals[src->varnum][src->type].flags & INMEMORY)) */
-							/* 							count_ss_register++; */
-							/* 						else */
-							/* 							count_ss_spilled++; */
-							/* 						break; */
-							/* 					case ARGVAR: */
-							/* 						if (IS_FLT_DBL_TYPE(src->type)) { */
-							/* 							if (src->varnum < FLT_ARG_CNT) { */
-							/* 								count_ss_register++; */
-							/* 								break; */
-							/* 							} */
-							/* 						} else { */
-							/* #if defined(__POWERPC__) */
-							/* 							if (src->varnum < INT_ARG_CNT - (IS_2_WORD_TYPE(src->type) != 0)) { */
-							/* #else */
-							/* 							if (src->varnum < INT_ARG_CNT) { */
-							/* #endif */
-							/* 								count_ss_register++; */
-							/* 								break; */
-							/* 							} */
-							/* 						} */
-							/* 						count_ss_spilled++; */
-							/* 						break; */
-						}
-					}
-					src_old = src;
-					
-					iptr++;
-				} /* while instructions */
-			} /* if */
-			bptr = bptr->next;
-		} /* while blocks */
-	}
+	if (opt_stat)
+		reg_make_statistics(m, cd, rd);
 #endif
 
 	if (compileverbose) {
