@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1930 2005-02-10 10:54:28Z twisti $
+   $Id: tables.c 2098 2005-03-27 19:00:02Z edwin $
 
 */
 
@@ -59,6 +59,7 @@
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
+#include "vm/classcache.h"
 
 
 hashtable string_hash;  /* hashtable for javastrings  */
@@ -107,6 +108,8 @@ void tables_init()
 	init_hashtable(&string_hash, HASHSTART);      /* hashtable for javastrings */
 	init_hashtable(&class_hash,  HASHSTART);      /* hashtable for classes */ 
 
+	classcache_init();
+
 /*  	if (opt_eager) */
 /*  		list_init(&unlinkedclasses, OFFSET(classinfo, listnode)); */
 
@@ -128,6 +131,8 @@ void tables_close()
 	utf *u = NULL;
 	literalstring *s;
 	u4 i;
+
+	classcache_free();
 	
 	/* dispose utf symbols */
 	for (i = 0; i < utf_hash.size; i++) {
