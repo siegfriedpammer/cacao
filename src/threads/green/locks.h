@@ -107,7 +107,7 @@ void removeConditionForObject (java_objectheader *object);
 
 void signal_cond_for_object (java_objectheader *obj);
 void broadcast_cond_for_object (java_objectheader *obj);
-void wait_cond_for_object (java_objectheader *obj, s8 time);
+void wait_cond_for_object (java_objectheader *obj, s8 time, s4);
 void lock_mutex_for_object (java_objectheader *obj);
 void unlock_mutex_for_object (java_objectheader *obj);
 

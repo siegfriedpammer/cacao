@@ -20,6 +20,7 @@
 #include "thread.h"
 #include "locks.h"
 #include "builtin.h"
+#include "exceptions.h"
 
 #include "tables.h"
 #include "native.h"
@@ -251,7 +252,7 @@ conditionLockedMutexForObject (java_objectheader *object)
  * Wait for the condition of an object to be signalled
  */
 void
-wait_cond_for_object (java_objectheader *obj, s8 time)
+wait_cond_for_object (java_objectheader *obj, s8 time, s4 par3)
 {
     iCv *condition;
     mutexHashEntry *mutexEntry;
