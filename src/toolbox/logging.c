@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.c 1925 2005-02-10 10:46:33Z twisti $
+   $Id: logging.c 2020 2005-03-09 12:01:42Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/global.h"
@@ -154,8 +155,13 @@ void log_nl(void)
 }
 
 
-/********************* Function: log_cputime ****************************/
+/* log_cputime *****************************************************************
 
+   XXX
+
+*******************************************************************************/
+
+#if defined(STATISTICS)
 void log_cputime(void)
 {
 	s8 t;
@@ -170,6 +176,7 @@ void log_cputime(void)
 			sec, usec / 1000);
 	log_text(logtext);
 }
+#endif
 
 
 /* log_message_method **********************************************************

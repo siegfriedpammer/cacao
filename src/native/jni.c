@@ -1,4 +1,4 @@
-/* native/jni.c - implementation of the Java Native Interface functions
+/* src/native/jni.c - implementation of the Java Native Interface functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -31,13 +31,14 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 1969 2005-03-01 14:09:25Z motse $
+   $Id: jni.c 2020 2005-03-09 12:01:42Z twisti $
 
 */
 
 
 #include <string.h>
 
+#include "config.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
 #include "native/jni.h"
@@ -787,9 +788,12 @@ jclass DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyte *b
 	builtin_monitorenter((java_objectheader *) c);
 #endif
 
+#if defined(STATISTICS)
 	/* measure time */
+
 	if (getloadingtime)
 		loadingtime_start();
+#endif
 
 	/* build a classbuffer with the given data */
 	cb = NEW(classbuffer);
@@ -811,9 +815,12 @@ jclass DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyte *b
 	/* free memory */
 	FREE(cb, classbuffer);
 
+#if defined(STATISTICS)
 	/* measure time */
+
 	if (getloadingtime)
 		loadingtime_stop();
+#endif
 
 #if defined(USE_THREADS)
 	/* leave the monitor */
@@ -880,7 +887,7 @@ jmethodID FromReflectedMethod(JNIEnv* env, jobject method)
 
 *******************************************************************************/
  
-jclass GetSuperclass(JNIEnv* env, jclass sub) 
+jclass GetSuperclass(JNIEnv *env, jclass sub)
 {
 	classinfo *c;
 
@@ -933,19 +940,23 @@ jint Throw(JNIEnv *env, jthrowable obj)
 
 /* ThrowNew ********************************************************************
 
-  Constructs an exception object from the specified class with the message
-  specified by message and causes that exception to be thrown.
+   Constructs an exception object from the specified class with the
+   message specified by message and causes that exception to be
+   thrown.
 
 *******************************************************************************/
 
 jint ThrowNew(JNIEnv* env, jclass clazz, const char *msg) 
 {
 	java_lang_Throwable *o;
+	java_lang_String    *s;
+
+	s = (java_lang_String *) javastring_new_char(msg);
 
   	/* instantiate exception object */
 
 	o = (java_lang_Throwable *) native_new_and_init_string((classinfo *) clazz,
-														   (java_lang_String *) javastring_new_char(msg));
+														   s);
 
 	if (!o)
 		return -1;
@@ -1048,19 +1059,21 @@ jint PushLocalFrame(JNIEnv* env, jint capacity)
 
 jobject PopLocalFrame(JNIEnv* env, jobject result)
 {
-    log_text("JNI-Call: PopLocalFrame");
-	/* empty */
+	log_text("JNI-Call: PopLocalFrame: IMPLEMENT ME!");
 
 	return NULL;
 }
 
 
-/*************** Deletes the local reference pointed to by localRef ***************/
+/* DeleteLocalRef **************************************************************
 
-void DeleteLocalRef (JNIEnv* env, jobject localRef)
+   Deletes the local reference pointed to by localRef.
+
+*******************************************************************************/
+
+void DeleteLocalRef(JNIEnv *env, jobject localRef)
 {
-/*    log_text("JNI-Call: DeleteLocalRef");*/
-	/* empty */
+	log_text("JNI-Call: DeleteLocalRef: IMPLEMENT ME!");
 }
 
 
@@ -1076,10 +1089,16 @@ jboolean IsSameObject(JNIEnv *env, jobject ref1, jobject ref2)
 }
 
 
-/***** Creates a new local reference that refers to the same object as ref  *******/
+/* NewLocalRef *****************************************************************
 
-jobject NewLocalRef (JNIEnv* env, jobject ref)
+   Creates a new local reference that refers to the same object as ref.
+
+*******************************************************************************/
+
+jobject NewLocalRef(JNIEnv *env, jobject ref)
 {
+	log_text("JNI-Call: NewLocalRef: IMPLEMENT ME!");
+
 	return ref;
 }
 
@@ -1174,7 +1193,7 @@ jobject NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 
 jobject NewObjectV(JNIEnv* env, jclass clazz, jmethodID methodID, va_list args)
 {
-	/* log_text("JNI-Call: NewObjectV"); */
+	log_text("JNI-Call: NewObjectV");
 
 	return NULL;
 }
@@ -1190,15 +1209,19 @@ jobject NewObjectV(JNIEnv* env, jclass clazz, jmethodID methodID, va_list args)
 
 jobject NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	/* log_text("JNI-Call: NewObjectA"); */
+	log_text("JNI-Call: NewObjectA");
 
 	return NULL;
 }
 
 
-/************************ returns the class of an object **************************/ 
+/* GetObjectClass **************************************************************
 
-jclass GetObjectClass(JNIEnv* env, jobject obj)
+ Returns the class of an object.
+
+*******************************************************************************/
+
+jclass GetObjectClass(JNIEnv *env, jobject obj)
 {
  	classinfo *c = obj->vftbl->class;
 

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.h 1925 2005-02-10 10:46:33Z twisti $
+   $Id: logging.h 2020 2005-03-09 12:01:42Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 
 #include <stdio.h>
 
+#include "config.h"
 #include "vm/global.h"
 
 
@@ -55,7 +56,9 @@ void log_flush(void);
 /* newline and fflush */
 void log_nl(void);
 
+#if defined(STATISTICS)
 void log_cputime(void);
+#endif
 
 void log_message_class(const char *msg, classinfo *c);
 void log_message_method(const char *msg, methodinfo *m);

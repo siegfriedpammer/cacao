@@ -1,4 +1,4 @@
-/* native/vm/VMSystemProperties.c - gnu/classpath/VMSystemProperties
+/* src/native/vm/VMSystemProperties.c - gnu/classpath/VMSystemProperties
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 1919 2005-02-10 10:08:53Z twisti $
+   $Id: VMSystemProperties.c 2020 2005-03-09 12:01:42Z twisti $
 
 */
 
@@ -122,6 +122,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	char *region;
 	struct utsname utsnamebuf;
 
+	/* endianess union */
 	union {
 		u4 i;
 		u1 c[4];
@@ -159,7 +160,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	insert_property(m, p, "java.version", "1.4");
 	insert_property(m, p, "java.vendor", "CACAO Team");
 	insert_property(m, p, "java.vendor.url", "http://www.cacaojvm.org/");
-	insert_property(m, p, "java.home", java_home ? java_home : CACAO_INSTALL_PREFIX);
+	insert_property(m, p, "java.home", java_home ? java_home : CACAO_INSTALL_PREFIX""CACAO_JRE_DIR);
 	insert_property(m, p, "java.vm.specification.version", "1.0");
 	insert_property(m, p, "java.vm.specification.vendor", "Sun Microsystems Inc.");
 	insert_property(m, p, "java.vm.specification.name", "Java Virtual Machine Specification");

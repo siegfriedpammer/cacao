@@ -1,4 +1,4 @@
-/* cacao/cacao.c - contains main() of cacao
+/* src/cacao/cacao.c - contains main() of cacao
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2014 2005-03-08 06:27:57Z christian $
+   $Id: cacao.c 2020 2005-03-09 12:01:42Z twisti $
 
 */
 
@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
 #include "cacao/cacao.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
@@ -167,7 +168,9 @@ opt_struct opts[] = {
 #endif
 	{ "softnull",          false, OPT_SOFTNULL },
 	{ "time",              false, OPT_TIME },
+#if defined(STATISTICS)
 	{ "stat",              false, OPT_STAT },
+#endif
 	{ "log",               true,  OPT_LOG },
 	{ "c",                 true,  OPT_CHECK },
 	{ "l",                 false, OPT_LOAD },
@@ -392,15 +395,19 @@ void exit_handler(void)
 
 	if (opt_verbose || getcompilingtime || opt_stat) {
 		log_text("CACAO terminated");
+
+#if defined(STATISTICS)
 		if (opt_stat) {
 			print_stats();
 #ifdef TYPECHECK_STATISTICS
 			typecheck_print_statistics(get_logfile());
 #endif
 		}
+
 		if (getcompilingtime)
 			print_times();
 		mem_usagelog(1);
+#endif
 	}
 }
 

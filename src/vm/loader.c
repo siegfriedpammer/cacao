@@ -1,4 +1,4 @@
-/* vm/loader.c - class loader functions
+/* src/vm/loader.c - class loader functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1936 2005-02-10 11:04:10Z twisti $
+   $Id: loader.c 2020 2005-03-09 12:01:42Z twisti $
 
 */
 
@@ -42,6 +42,7 @@
 #include <assert.h>
 #include <sys/stat.h>
 
+#include "config.h"
 #include "mm/memory.h"
 #include "native/native.h"
 #include "native/include/java_lang_Throwable.h"
@@ -2106,6 +2107,7 @@ classinfo *class_load(classinfo *c)
 		return c;
 	}
 
+#if defined(STATISTICS)
 	/* measure time */
 
 	if (getcompilingtime)
@@ -2113,6 +2115,7 @@ classinfo *class_load(classinfo *c)
 
 	if (getloadingtime)
 		loadingtime_start();
+#endif
 
 	/* load classdata, throw exception on error */
 
@@ -2147,6 +2150,7 @@ classinfo *class_load(classinfo *c)
 	/* free memory */
 	suck_stop(cb);
 
+#if defined(STATISTICS)
 	/* measure time */
 
 	if (getloadingtime)
@@ -2154,6 +2158,7 @@ classinfo *class_load(classinfo *c)
 
 	if (getcompilingtime)
 		compilingtime_start();
+#endif
 
 #if defined(USE_THREADS)
 	/* leave the monitor */
@@ -2829,6 +2834,7 @@ classinfo *class_link(classinfo *c)
 		return c;
 	}
 
+#if defined(STATISTICS)
 	/* measure time */
 
 	if (getcompilingtime)
@@ -2836,6 +2842,7 @@ classinfo *class_link(classinfo *c)
 
 	if (getloadingtime)
 		loadingtime_start();
+#endif
 
 	/* call the internal function */
 	r = class_link_intern(c);
@@ -2844,6 +2851,7 @@ classinfo *class_link(classinfo *c)
 	if (!r)
 		c->linked = false;
 
+#if defined(STATISTICS)
 	/* measure time */
 
 	if (getloadingtime)
@@ -2851,6 +2859,7 @@ classinfo *class_link(classinfo *c)
 
 	if (getcompilingtime)
 		compilingtime_start();
+#endif
 
 #if defined(USE_THREADS)
 	/* leave the monitor */
