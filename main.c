@@ -711,9 +711,11 @@ int main(int argc, char **argv)
 
    /************************ Freigeben aller Resourcen *******************/
 
+	heap_close ();				/* must be called before compiler_close and
+								   loader_close because finalization occurs
+								   here */
 	compiler_close ();
 	loader_close ();
-	heap_close ();
 	unicode_close ( literalstring_free );
 
 

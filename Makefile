@@ -49,7 +49,7 @@ endif
 #CFLAGS = -mieee -O3 -Wall $(THREAD_CFLAGS)
 
 CC = gcc
-#CFLAGS = -g3 -ieee $(THREAD_CFLAGS)
+#CFLAGS = -g -ieee $(THREAD_CFLAGS)
 CFLAGS = -O3 -ieee $(THREAD_CFLAGS)
 
 OBJ = main.o tables.o loader.o compiler.o newcomp.o builtin.o asmpart.o \
