@@ -29,13 +29,13 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1125 2004-06-03 21:30:30Z twisti $
+   $Id: asmpart.S 1151 2004-06-06 15:01:06Z twisti $
 
 */
 
 
 #include "config.h"
-#include "offsets.h"
+#include "jit/x86_64/offsets.h"
 
 
 #define MethodPointer   -8
@@ -83,9 +83,11 @@
 /********************* exported functions and variables ***********************/
 
 	.globl asm_calljavafunction
+	.globl calljava_xhandler
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2long
 	.globl asm_calljavafunction2double
+	.globl calljava_xhandler2
 	.globl asm_call_jit_compiler
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
@@ -162,9 +164,6 @@ asm_calljavafunction:
 	lea     asm_call_jit_compiler,%r11
 	call    *%r11                     /* call JIT compiler                    */
 
-calljava_jit:
-calljava_return:
-calljava_ret:
 	mov     0*8(%rsp),%rbp
 	mov		1*8(%rsp),%rbx
 	add     $(3*8),%rsp              /* free stack space                     */
@@ -640,14 +639,24 @@ asm_check_clinit:
 	test	%r10,%r10
 	jnz		L_is_initialized
 
-	sub		$(7*8),%rsp                 /* keep stack 16-byte aligned         */
+	sub		$(15*8),%rsp                /* keep stack 16-byte aligned         */
+
 	mov		%rdi,0*8(%rsp)              /* save argument registers            */
 	mov		%rsi,1*8(%rsp)
 	mov		%rdx,2*8(%rsp)
 	mov		%rcx,3*8(%rsp)
 	mov		%r8,4*8(%rsp)
 	mov		%r9,5*8(%rsp)
-	
+
+	movq	%xmm0,6*8(%rsp)             /* maybe cacao does not use all 8     */
+	movq	%xmm1,7*8(%rsp)             /* argument register, but who knows   */
+	movq	%xmm2,8*8(%rsp)
+	movq	%xmm3,9*8(%rsp)
+	movq	%xmm4,10*8(%rsp)
+	movq	%xmm5,11*8(%rsp)
+	movq	%xmm6,12*8(%rsp)
+	movq	%xmm7,13*8(%rsp)
+
 	mov		%rax,%rdi                   /* pass classinfo pointer             */
 	call	class_init                  /* call class_init function           */
 	
@@ -657,7 +666,17 @@ asm_check_clinit:
     mov     3*8(%rsp),%rcx
     mov     4*8(%rsp),%r8
     mov     5*8(%rsp),%r9
-	add		$(7*8),%rsp
+
+	movq	6*8(%rsp),%xmm0
+	movq	7*8(%rsp),%xmm1
+	movq	8*8(%rsp),%xmm2
+	movq	9*8(%rsp),%xmm3
+	movq	10*8(%rsp),%xmm4
+	movq	11*8(%rsp),%xmm5
+	movq	12*8(%rsp),%xmm6
+	movq	13*8(%rsp),%xmm7
+
+	add		$(15*8),%rsp
 
 	test    %rax,%rax                   /* we had an exception                */
 	je      L_initializererror
