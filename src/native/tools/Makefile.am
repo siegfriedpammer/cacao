@@ -28,32 +28,18 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1884 2005-01-24 16:58:55Z twisti $
+## $Id: Makefile.am 1915 2005-02-10 10:03:59Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_builddir)/src
-
-if USE_THREADS
-if NATIVE_THREADS
-THREAD_LIBRARY = $(top_builddir)/src/threads/native/libthreads.la
-else
-THREAD_LIBRARY = $(top_builddir)/src/threads/green/libthreads.la
-endif
-else
-THREAD_LIBRARY =
-endif
 
 noinst_PROGRAMS = gennativetable
 
 gennativetable_SOURCES = gennativetable.c
 
 gennativetable_LDADD = \
-	$(top_builddir)/src/cacaoh/headers.o \
-	$(THREAD_LIBRARY) \
-	$(top_builddir)/src/vm/libvmcore.la \
-	$(top_builddir)/src/mm/libmm.la \
-	$(top_builddir)/src/toolbox/libtoolbox.la \
+	$(top_builddir)/src/cacaoh/libcacaoh.la \
 	$(top_builddir)/src/boehm-gc/libgc.la \
 	$(top_builddir)/src/classpath/native/jni/java-lang/.libs/libjavalang.a
 
