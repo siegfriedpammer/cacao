@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1763 2004-12-15 16:14:57Z twisti $
+   $Id: asmpart.S 1809 2004-12-22 10:49:35Z twisti $
 
 */
 
@@ -97,8 +97,12 @@
 #define builtin_checkarraycast                _builtin_checkarraycast
 #define builtin_ldiv                          _builtin_ldiv
 #define builtin_lrem                          _builtin_lrem
+
+#if defined(USE_THREADS)
 #define builtin_monitorenter                  _builtin_monitorenter
 #define builtin_monitorexit                   _builtin_monitorexit
+#endif
+
 #define builtin_throw_exception               _builtin_throw_exception
 #define builtin_trace_exception               _builtin_trace_exception
 #define class_init                            _class_init
@@ -111,38 +115,47 @@
 #define new_classcastexception                _new_classcastexception
 #define new_nullpointerexception              _new_nullpointerexception
 
-#define fr0     0
-#define fr1     1
-#define fr2     2
-#define fr3     3
-#define fr4     4
-#define fr5     5
-#define fr6     6
-#define fr7     7
-#define fr8     8
-#define fr9     9
-#define fr10    10
-#define fr11    11
-#define fr12    12
-#define fr13    13
-#define fr14    14
-#define fr15    15
-#define fr16    16
-#define fr17    17
-#define fr18    18
-#define fr19    19
-#define fr20    20
-#define fr21    21
-#define fr22    22
-#define fr23    23
-#define fr24    24
-#define fr25    25
-#define fr26    26
-#define fr27    27
-#define fr28    28
-#define fr29    29
-#define fr30    30
-#define fr31    31
+#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
+#if 0
+#define _exceptionptr                         __exceptionptr
+#endif
+
+_exceptionptr:
+	.globl		__exceptionptr
+#endif
+
+#define fr0     f0
+#define fr1     f1
+#define fr2     f2
+#define fr3     f3
+#define fr4     f4
+#define fr5     f5
+#define fr6     f6
+#define fr7     f7
+#define fr8     f8
+#define fr9     f9
+#define fr10    f10
+#define fr11    f11
+#define fr12    f12
+#define fr13    f13
+#define fr14    f14
+#define fr15    f15
+#define fr16    f16
+#define fr17    f17
+#define fr18    f18
+#define fr19    f19
+#define fr20    f20
+#define fr21    f21
+#define fr22    f22
+#define fr23    f23
+#define fr24    f24
+#define fr25    f25
+#define fr26    f26
+#define fr27    f27
+#define fr28    f28
+#define fr29    f29
+#define fr30    f30
+#define fr31    f31
 
 #endif /* __DARWIN__ */
 
@@ -166,8 +179,10 @@
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_aastore
 
+#if defined(USE_THREADS)
 	.globl asm_builtin_monitorenter
 	.globl asm_builtin_monitorexit
+#endif
 
 	.globl asm_builtin_idiv
 	.globl asm_builtin_irem
@@ -725,6 +740,8 @@ ex_already_cleared:
 	lwz     r3,IsSync(pv)
 	mr.     r3,r3
 	beq     no_monitor_exit
+
+#if defined(USE_THREADS)
 	add     r3,r1,r3
 	lwz     r6,-4(r3)
 
@@ -750,6 +767,7 @@ ex_already_cleared:
 	lwz     xptr,3*4(r1)
 	lwz     xpc,4*4(r1)
 	addi    r1,r1,6*4
+#endif
 
 no_monitor_exit:
 	lwz     r3,FrameSize(pv)      /* r3 = frame size                          */
@@ -912,12 +930,12 @@ L_initializererror:
 	mtlr    r0	
 	addi    r1,r1,4*8
 #else
-#if defined(__DARWIN__)
+# if defined(__DARWIN__)
 	lwz     r3,lo16(_exceptionptr-0b)(pv)
-#else
+# else
 	lis     r3,_exceptionptr@ha
 	addi    r3,r3,_exceptionptr@l
-#endif
+# endif
 #endif
 
 	lwz     xptr,0(r3)            /* get the exception pointer                */
@@ -1036,6 +1054,7 @@ nb_aastore_store:
 	b       asm_handle_nat_exception
 
 
+#if defined(USE_THREADS)
 asm_builtin_monitorenter:
 	mr.     r3,r3
 	beq     nb_monitorenter
@@ -1074,7 +1093,8 @@ nb_monitorexit:
 	addi    xpc,xpc,-4
 	mtlr    r0
 	b       asm_handle_nat_exception
-	
+#endif
+
 	
 asm_builtin_idiv:
 	mr.     r4,r4
