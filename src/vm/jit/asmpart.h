@@ -1,4 +1,4 @@
-/* asmpart.h - 
+/* asmpart.h - prototypes for machine specfic functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -27,10 +27,15 @@
    Authors: Reinhard Grafl
             Andreas Krall
 
-   $Id: asmpart.h 557 2003-11-02 22:51:59Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: asmpart.h 596 2003-11-09 20:05:07Z twisti $
 
 */
 
+
+#ifndef _ASMPART_H
+#define _ASMPART_H
 
 #include "global.h"
 
@@ -70,6 +75,7 @@ java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
 
 void asm_handle_exception();
 void asm_handle_nat_exception();
+void asm_handle_builtin_exception(classinfo *);
 
 /* 
    gets the class of the caller from the stack frame
@@ -91,6 +97,8 @@ void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void 
 
 void asm_builtin_trace();
 void asm_builtin_exittrace();
+
+#endif /* _ASMPART_H */
 
 
 /*
