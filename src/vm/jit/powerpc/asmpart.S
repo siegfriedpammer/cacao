@@ -28,28 +28,14 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1635 2004-12-01 09:57:58Z twisti $
+   $Id: asmpart.S 1709 2004-12-06 15:36:50Z twisti $
 
 */
 
 #include "config.h"
 #include "vm/jit/powerpc/offsets.h"
+#include "vm/jit/powerpc/asmoffsets.h"
 
-
-#define     MethodPointer   -8
-#define     FrameSize       -12
-#define     IsSync          -16
-#define     IsLeaf          -20
-#define     IntSave         -24
-#define     FltSave         -28
-#define     ExTableSize     -32
-#define     ExTableStart    -32
-
-#define     ExEntrySize     -16
-#define     ExStartPC       -4
-#define     ExEndPC         -8
-#define     ExHandlerPC     -12
-#define     ExCatchType     -16
 
 #define itmp1 r11
 #define itmp2 r12
