@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: schedule.h 2033 2005-03-18 09:24:00Z twisti $
+   $Id: schedule.h 2055 2005-03-21 17:00:52Z twisti $
 
 */
 
@@ -44,7 +44,7 @@
 
 typedef struct scheduledata scheduledata;
 typedef struct minstruction minstruction;
-typedef struct nodelink nodelink;
+typedef struct edgenode edgenode;
 typedef struct opcycles opcycles;
 
 
@@ -76,15 +76,15 @@ struct opcycles {
 struct scheduledata {
 	minstruction  *mi;                  /* machine instruction array          */
 	s4             micount;             /* number of machine instructions     */
-	nodelink      *leaders;             /* list containing leader nodes       */
+	edgenode      *leaders;             /* list containing leader nodes       */
 
-	nodelink     **intregs_define_dep;
-	nodelink     **fltregs_define_dep;
-    nodelink     **memory_define_dep;
+	edgenode     **intregs_define_dep;
+	edgenode     **fltregs_define_dep;
+    edgenode     **memory_define_dep;
 
-	nodelink     **intregs_use_dep;
-	nodelink     **fltregs_use_dep;
-	nodelink     **memory_use_dep;
+	edgenode     **intregs_use_dep;
+	edgenode     **fltregs_use_dep;
+	edgenode     **memory_use_dep;
 
 	FILE *file;
 };
@@ -106,24 +106,25 @@ struct minstruction {
 #endif
 	opcycles       op[4];
 	s4             priority;            /* priority of this instruction node  */
-	nodelink      *deps;                /* operand dependencies               */
+	s4             starttime;
+	edgenode      *deps;                /* operand dependencies               */
 	minstruction  *next;                /* link to next machine instruction   */
 };
 
 
-/* nodelink ********************************************************************
+/* edgenode ********************************************************************
 
    XXX
 
 *******************************************************************************/
 
 /* TODO rename to edgenode */
-struct nodelink {
-	s4        minode;                   /* pointer to machine instruction     */
+struct edgenode {
+	s4        minum;                    /* machine instruction number         */
 	s1        opnum;                    /* dependency operand number          */
 	s1        opnum2;
 	s1        latency;
-	nodelink *next;                     /* link to next node                  */
+	edgenode *next;                     /* link to next node                  */
 };
 
 
@@ -135,10 +136,10 @@ void schedule_close(scheduledata *sd);
 
 void schedule_calc_priority(minstruction *mi);
 
-/*  void schedule_add_define_dep(scheduledata *sd, s1 operand, s4 *define_dep, nodelink **use_dep); */
-/*  void schedule_add_use_dep(scheduledata *sd, s1 operand, s4 *define_dep, nodelink **use_dep); */
-void schedule_add_define_dep(scheduledata *sd, s1 opnum, nodelink **define_dep, nodelink **use_dep);
-void schedule_add_use_dep(scheduledata *sd, s1 opnum, nodelink **define_dep, nodelink **use_dep);
+/*  void schedule_add_define_dep(scheduledata *sd, s1 operand, s4 *define_dep, edgenode **use_dep); */
+/*  void schedule_add_use_dep(scheduledata *sd, s1 operand, s4 *define_dep, edgenode **use_dep); */
+void schedule_add_define_dep(scheduledata *sd, s1 opnum, edgenode **define_dep, edgenode **use_dep);
+void schedule_add_use_dep(scheduledata *sd, s1 opnum, edgenode **define_dep, edgenode **use_dep);
 
 void schedule_do_schedule(scheduledata *sd);
 
