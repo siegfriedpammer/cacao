@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2156 2005-03-30 20:05:03Z twisti $
+   $Id: linker.c 2169 2005-03-31 15:50:57Z twisti $
 
 */
 
@@ -466,8 +466,8 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 	}	
 
-#if 1
-	/* check interfaces for unimplemented methods in ABSTRACT class */
+
+	/* check interfaces of ABSTRACT class for unimplemented methods */
 
 	if (c->flags & ACC_ABSTRACT) {
 		classinfo  *ic;
@@ -483,6 +483,11 @@ static classinfo *link_class_intern(classinfo *c)
 
 			for (j = 0; j < ic->methodscount; j++) {
 				im = &(ic->methods[j]);
+
+				/* skip `<clinit>' and `<init>' */
+
+				if (im->name == utf_clinit || im->name == utf_init)
+					continue;
 
 				tc = c;
 
@@ -516,6 +521,11 @@ static classinfo *link_class_intern(classinfo *c)
 				for (j = 0; j < ic->methodscount; j++) {
 					im = &(ic->methods[j]);
 
+					/* skip `<clinit>' and `<init>' */
+
+					if (im->name == utf_clinit || im->name == utf_init)
+						continue;
+
 					tc = c;
 
 					while (tc) {
@@ -541,7 +551,7 @@ static classinfo *link_class_intern(classinfo *c)
 			}
 		}
 	}
-#endif
+
 
 #if defined(STATISTICS)
 	if (opt_stat)
@@ -590,22 +600,24 @@ static classinfo *link_class_intern(classinfo *c)
 	for (i = 0; i < c->methodscount; i++) {
 		methodinfo *m = &(c->methods[i]);
 
-#if 1
+		/* Methods in ABSTRACT classes from interfaces maybe already have a   */
+		/* stubroutine.                                                       */
+
 		if (!m->stubroutine) {
 			if (!(m->flags & ACC_NATIVE)) {
 				m->stubroutine = createcompilerstub(m);
 
 			} else {
 				functionptr f = native_findfunction(c->name,
-													m->name, m->descriptor,
-													(m->flags & ACC_STATIC));
+										m->name,
+										m->descriptor,
+										(m->flags & ACC_STATIC));
 #if defined(STATIC_CLASSPATH)
 				if (f)
 #endif
 					m->stubroutine = createnativestub(f, m);
 			}
 		}
-#endif
 
 		if (!(m->flags & ACC_STATIC))
 			v->table[m->vftblindex] = m->stubroutine;
