@@ -517,8 +517,8 @@ static void gen_method (pcmd *c)
 			ci = c->u.method.method->class;
 			
 			M_LLD (REG_METHODPTR, 16, OFFSET(java_objectheader, vftbl));    
-			M_LLD (REG_METHODPTR, REG_METHODPTR, OFFSET(vftbl, interfacevftbl));
-			M_LLD (REG_METHODPTR, REG_METHODPTR, sizeof(methodptr*) * ci->index);
+			M_LLD (REG_METHODPTR, REG_METHODPTR, OFFSET(vftbl, interfacetable[0]) -
+			       sizeof(methodptr*) * ci->index);
 			M_LLD (REG_PV, REG_METHODPTR, sizeof(methodptr) * (c->u.method.method - ci->methods) );
 
 			goto makeactualcall;

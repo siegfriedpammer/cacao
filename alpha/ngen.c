@@ -1052,6 +1052,12 @@ static void gen_mcode()
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 		case ICMD_IREM0X10001:
+		
+/*          i % 0x100001
+			b = i & 0xffff;
+			a = i >> 16;
+			a = ((b - a) & 0xffff) + (b < a);
+*/
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
             M_ZAPNOT(s1, 0x03, REG_ITMP2, 1);
@@ -2706,9 +2712,8 @@ gen_method: {
 					M_LLD(REG_METHODPTR, argintregs[0],
 					                         OFFSET(java_objectheader, vftbl));    
 					M_LLD(REG_METHODPTR, REG_METHODPTR,
-					                            OFFSET(vftbl, interfacevftbl));
-					M_LLD(REG_METHODPTR, REG_METHODPTR,
-					                           sizeof(methodptr*) * ci->index);
+					      OFFSET(vftbl, interfacetable[0]) -
+					      sizeof(methodptr*) * ci->index);
 					M_LLD(REG_PV, REG_METHODPTR,
 					                    sizeof(methodptr) * (m - ci->methods));
 
@@ -2754,21 +2759,21 @@ makeactualcall:
 		                      /* op1:   0 == array, 1 == class                */
 		                      /* val.a: (classinfo*) superclass               */
 
-/*      superclass is an interface:
+/*          superclass is an interface:
  *
- *      return (sub != NULL) &&
- *             (sub->vftbl->interfacetablelength > super->index) &&
- *             (sub->vftbl->interfacevftbl[super->index] != NULL);
+ *          return (sub != NULL) &&
+ *                 (sub->vftbl->interfacetablelength > super->index) &&
+ *                 (sub->vftbl->interfacetable[-super->index] != NULL);
  *
- *      superclass is a class:
+ *          superclass is a class:
  *
- *      return (sub != NULL) &&
- *             ((sub->vftbl->lowclassval >= super->vftbl->lowclassval) &
- *              (sub->vftbl->lowclassval <= super->vftbl->highclassval));
+ *          return ((sub != NULL) && (0
+ *                  <= (sub->vftbl->baseval - super->vftbl->baseval) <=
+ *                  super->vftbl->diffvall));
  */
 
 			{
-			classinfo *c = (classinfo*) iptr->val.a;
+			classinfo *super = (classinfo*) iptr->val.a;
 			
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
@@ -2778,34 +2783,23 @@ makeactualcall:
 				}
 			M_CLR(d);
 			if (iptr->op1) {                               /* class/interface */
-				if (c->flags & ACC_INTERFACE) {            /* interface       */
-					M_BEQZ(s1, 7 + (c->index > 255));
+				if (super->flags & ACC_INTERFACE) {        /* interface       */
+					M_BEQZ(s1, 6);
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
-					if (c->index <= 255) {
-						M_CMPLE(REG_ITMP2, c->index, REG_ITMP2, 1);
-						M_BNEZ(REG_ITMP2, 3);
-						}
-					else {
-						M_ISUB(REG_ZERO, REG_ITMP2, REG_ITMP2, 0);
-						M_LDA(REG_ITMP2, REG_ITMP2, c->index);
-						M_BGEZ(REG_ITMP2, 3);
-						}
-					M_ALD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, interfacevftbl));
-					M_ALD(REG_ITMP1, REG_ITMP1, c->index * 8);
+					M_LDA(REG_ITMP2, REG_ITMP2, - super->index);
+					M_BLEZ(REG_ITMP2, 2);
+					M_ALD(REG_ITMP1, REG_ITMP1,
+					      OFFSET(vftbl, interfacetable[0]) -
+					      super->index * sizeof(methodptr*));
 					M_CMPULT(REG_ZERO, REG_ITMP1, d, 0);   /* REG_ITMP1 != 0  */
 					}
 				else {                                     /* class           */
-					s2 = c->vftbl->highclassval - c->vftbl->lowclassval;
-					M_BEQZ(s1, 4 + (c->vftbl->lowclassval > 255) + (s2 > 255));
+					s2 = super->vftbl->diffval;
+					M_BEQZ(s1, 4 + (s2 > 255));
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, lowclassval));
-					if (c->vftbl->lowclassval <= 255)
-						M_ISUB(REG_ITMP1, c->vftbl->lowclassval, REG_ITMP1, 1);
-					else {
-						M_LDA(REG_ITMP2, REG_ZERO, c->vftbl->lowclassval);
-						M_ISUB(REG_ITMP1, REG_ITMP2, REG_ITMP1, 0);
-						}
+					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
+					M_LDA(REG_ITMP1, REG_ITMP1, - super->vftbl->baseval);
 					if (s2 <= 255)
 						M_CMPULE(REG_ITMP1, s2, d, 1);
 					else {
@@ -2825,63 +2819,56 @@ makeactualcall:
 		                      /* op1:   0 == array, 1 == class                */
 		                      /* val.a: (classinfo*) superclass               */
 
-/*      superclass is an interface:
+/*          superclass is an interface:
  *
- *      OK if ((sub == NULL) ||
- *             (sub->vftbl->interfacetablelength > super->index) &&
- *             (sub->vftbl->interfacevftbl[super->index] != NULL));
+ *          OK if ((sub == NULL) ||
+ *                 (sub->vftbl->interfacetablelength > super->index) &&
+ *                 (sub->vftbl->interfacetable[-super->index] != NULL));
  *
- *      superclass is a class:
+ *          superclass is a class:
  *
- *      OK if ((sub == NULL) ||
- *             ((sub->vftbl->lowclassval >= super->vftbl->lowclassval) &
- *              (sub->vftbl->lowclassval <= super->vftbl->highclassval)));
+ *          OK if ((sub == NULL) || (0
+ *                 <= (sub->vftbl->baseval - super->vftbl->baseval) <=
+ *                 super->vftbl->diffvall));
  */
 
 			{
-			classinfo *c = (classinfo*) iptr->val.a;
+			classinfo *super = (classinfo*) iptr->val.a;
 			
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			var_to_reg_int(s1, src, d);
 			if (iptr->op1) {                               /* class/interface */
-				if (c->flags & ACC_INTERFACE) {            /* interface       */
-					M_BEQZ(s1, 7 + (c->index > 255));
+				if (super->flags & ACC_INTERFACE) {        /* interface       */
+					M_BEQZ(s1, 6);
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
-					if (c->index <= 255) {
-						M_CMPLE(REG_ITMP2, c->index, REG_ITMP2, 1);
-						M_BNEZ(REG_ITMP2, 0);
-						mcode_addxcastrefs(mcodeptr);
-						}
-					else {
-						M_ISUB(REG_ZERO, REG_ITMP2, REG_ITMP2, 0);
-						M_LDA(REG_ITMP2, REG_ITMP2, c->index);
-						M_BGEZ(REG_ITMP2, 0);
-						mcode_addxcastrefs(mcodeptr);
-						}
-					M_ALD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, interfacevftbl));
-					M_ALD(REG_ITMP2, REG_ITMP1, c->index * 8);
+					M_LDA(REG_ITMP2, REG_ITMP2, - super->index);
+					M_BLEZ(REG_ITMP2, 0);
+					mcode_addxcastrefs(mcodeptr);
+					M_ALD(REG_ITMP2, REG_ITMP1,
+					      OFFSET(vftbl, interfacetable[0]) -
+					      super->index * sizeof(methodptr*));
 					M_BEQZ(REG_ITMP2, 0);
 					mcode_addxcastrefs(mcodeptr);
 					}
 				else {                                     /* class           */
-					s2 = c->vftbl->highclassval - c->vftbl->lowclassval;
-					M_BEQZ(s1, 5 + (c->vftbl->lowclassval > 255) + (s2 > 255));
+					s2 = super->vftbl->diffval;
+					M_BEQZ(s1, 4 + (s2 != 0) + (s2 > 255));
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, lowclassval));
-					if (c->vftbl->lowclassval <= 255)
-						M_ISUB(REG_ITMP1, c->vftbl->lowclassval, REG_ITMP1, 1);
-					else {
-						M_LDA(REG_ITMP2, REG_ZERO, c->vftbl->lowclassval);
-						M_ISUB(REG_ITMP1, REG_ITMP2, REG_ITMP1, 0);
+					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
+					M_LDA(REG_ITMP1, REG_ITMP1, - super->vftbl->baseval);
+					if (s2 == 0) {
+						M_BNEZ(REG_ITMP1, 0);
 						}
-					if (s2 <= 255)
+					else if (s2 <= 255) {
 						M_CMPULE(REG_ITMP1, s2, REG_ITMP2, 1);
+						M_BEQZ(REG_ITMP2, 0);
+						}
 					else {
 						M_LDA(REG_ITMP2, REG_ZERO, s2);
 						M_CMPULE(REG_ITMP1, REG_ITMP2, REG_ITMP2, 0);
+						M_BEQZ(REG_ITMP2, 0);
 						}
-					M_BEQZ(REG_ITMP2, 0);
 					mcode_addxcastrefs(mcodeptr);
 					}
 				}
@@ -3256,3 +3243,16 @@ u1 *ncreatenativestub (functionptr f, methodinfo *m)
 	return (u1*) s;
 }
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

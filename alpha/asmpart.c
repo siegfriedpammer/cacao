@@ -8,13 +8,14 @@
 *                                                                              *
 *   See file COPYRIGHT for information on usage and disclaimer of warranties   *
 *                                                                              *
-*   Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
-*            Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at            *
+*   Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at            *
+*            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *                                                                              *
-*   Last Change: 1997/04/26                                                    *
+*   Last Change: 1998/11/01                                                    *
 *                                                                              *
 *******************************************************************************/
 
+#include "offsets.h"
 
 #define v0      $0
 
@@ -76,9 +77,6 @@
 
 #define PAL_imb 134
 
-#define offobjarr 24
-#define offarrsize 8
-
 	.text
 	.set    noat
 	.set    noreorder
@@ -94,17 +92,14 @@
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 	.globl asm_signal_exception
-	.globl new_builtin_checkcast
-	.globl new_builtin_checkclasscast
-	.globl new_builtin_checkintercast
-	.globl new_builtin_checkarraycast
-	.globl new_builtin_aastore
-	.globl new_builtin_monitorenter
-	.globl new_builtin_monitorexit
-	.globl new_builtin_idiv
-	.globl new_builtin_irem
-	.globl new_builtin_ldiv
-	.globl new_builtin_lrem
+	.globl asm_builtin_checkarraycast
+	.globl asm_builtin_aastore
+	.globl asm_builtin_monitorenter
+	.globl asm_builtin_monitorexit
+	.globl asm_builtin_idiv
+	.globl asm_builtin_irem
+	.globl asm_builtin_ldiv
+	.globl asm_builtin_lrem
 	.globl perform_alpha_threadswitch
 	.globl initialize_thread_stack
 	.globl asm_switchstackandcall
@@ -123,6 +118,7 @@
 	.globl builtin_trace_exception
 	.globl class_java_lang_Object
 
+
 /*********************** function has_no_x_instr_set ***************************
 *                                                                              *
 *   determines if the byte support instruction set (21164a and higher)         *
@@ -133,8 +129,8 @@
 	.ent    has_no_x_instr_set
 has_no_x_instr_set:
 
-	.long   0x47e03c20                  # amask   1,$0
-	jmp     zero,(ra)                   # return
+	.long   0x47e03c20                /* amask   1,v0                         */
+	jmp     zero,(ra)                 /* return                               */
 
 	.end    has_no_x_instr_set
 
@@ -144,8 +140,8 @@ has_no_x_instr_set:
 	.ent    synchronize_caches
 synchronize_caches:
 
-	call_pal PAL_imb                    # synchronise instruction cache
-	jmp     zero,(ra)                   # return
+	call_pal PAL_imb                  /* synchronise instruction cache        */
+	jmp     zero,(ra)                 /* return                               */
 
 	.end    synchronize_caches
 
@@ -190,61 +186,61 @@ call_name:
 	.ascii  "calljavamethod\0\0"
 
 	.align  3
-	.quad   0                           # catch type all
-	.quad   calljava_xhandler           # end pc
-	.quad   calljava_xhandler           # end pc
-	.quad   asm_calljavamethod          # start pc
-	.long   1                           # extable size
-	.long   0                           # fltsave
-	.long   0                           # intsave
-	.long   0                           # isleaf
-	.long   0                           # IsSync
-	.long   32                          # frame size
-	.quad   0                           # method pointer (pointer to name) @@@@@
+	.quad   0                         /* catch type all                       */
+	.quad   calljava_xhandler         /* end pc                               */
+	.quad   calljava_xhandler         /* end pc                               */
+	.quad   asm_calljavamethod        /* start pc                             */
+	.long   1                         /* extable size                         */
+	.long   0                         /* fltsave                              */
+	.long   0                         /* intsave                              */
+	.long   0                         /* isleaf                               */
+	.long   0                         /* IsSync                               */
+	.long   32                        /* frame size                           */
+	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavamethod:
 
 	ldgp    gp,0(pv)
-	lda     sp,-32(sp)                  # allocate stack space
-	stq     gp,24(sp)                   # save global pointer
-	stq     ra,0(sp)                    # save return address
+	lda     sp,-32(sp)                /* allocate stack space                 */
+	stq     gp,24(sp)                 /* save global pointer                  */
+	stq     ra,0(sp)                  /* save return address                  */
 
-	stq     $16,16(sp)                  # save method pointer for compiler
-	lda     $0,16(sp)                   # pass pointer to method pointer via $0
+	stq     a0,16(sp)                 /* save method pointer for compiler     */
+	lda     v0,16(sp)                 /* pass pointer to method pointer via v0*/
 
-	bis     $17,$17,$16                 # pass the remaining parameters
-	bis     $18,$18,$17
-	bis     $19,$19,$18
-	bis     $20,$20,$19
+	mov     a1,a0                     /* pass the remaining parameters        */
+	mov     a2,a1
+	mov     a3,a2
+	mov     a4,a3
 
-	lda     $28,asm_call_jit_compiler   # fake virtual function call
-	stq     $28,8(sp)                   # store function address
-	bis     sp,sp,$28                   # set method pointer
+	lda     $28,asm_call_jit_compiler /* fake virtual function call (2 instr) */
+	stq     $28,8(sp)                 /* store function address               */
+	mov     sp,$28                    /* set method pointer                   */
 
-	ldq     pv,8($28)                   # method call as in Java
-	jmp     ra,(pv)                     # call JIT compiler
+	ldq     pv,8($28)                 /* method call as in Java               */
+	jmp     ra,(pv)                   /* call JIT compiler                    */
 calljava_jit:
-	lda     pv,-64(ra)                  # asm_calljavamethod-calljava_jit(ra) !!!!!!
+	lda     pv,-64(ra)                /* asm_calljavamethod-calljava_jit !!!!!*/
 
 calljava_return:
 
-	ldq     ra,0(sp)                    # restore return address
-	ldq     gp,24(sp)                   # restore global pointer
-	lda     sp,32(sp)                   # free stack space
-	ldl     $0,newcompiler              # load newcompiler flag
-	subq    $0,1,$0                     # negate for clearing $0
-	beq     $0,calljava_ret             # if newcompiler skip ex copying
-	bis     $1,$1,$0                    # pass exception to caller (C)
+	ldq     ra,0(sp)                  /* restore return address               */
+	ldq     gp,24(sp)                 /* restore global pointer               */
+	lda     sp,32(sp)                 /* free stack space                     */
+	ldl     v0,newcompiler            /* load newcompiler flag                */
+	subq    v0,1,v0                   /* negate for clearing v0               */
+	beq     v0,calljava_ret           /* if newcompiler skip ex copying       */
+	mov     $1,v0                     /* pass exception to caller (C)         */
 calljava_ret:
 	jmp     zero,(ra)
 
 calljava_xhandler:
 
-	ldq     gp,24(sp)                   # restore global pointer
+	ldq     gp,24(sp)                 /* restore global pointer               */
 	mov     itmp1,a0
 	jsr     ra,builtin_throw_exception
-	ldq     ra,0(sp)                    # restore return address
-	lda     sp,32(sp)                   # free stack space
+	ldq     ra,0(sp)                  /* restore return address               */
+	lda     sp,32(sp)                 /* free stack space                     */
 	jmp     zero,(ra)
 	.end    asm_calljavamethod
 
@@ -259,11 +255,11 @@ calljava_xhandler:
 *   patching address for storing the method address can be computed:           *
 *                                                                              *
 *   method address was either loaded using                                     *
-*   M_LDQ (REG_PV, REG_PV, a)        # invokestatic/special    ($27)           *
+*   M_LDQ (REG_PV, REG_PV, a)        ; invokestatic/special    ($27)           *
 *   M_LDA (REG_PV, REG_RA, low)                                                *
-*   M_LDAH(REG_PV, REG_RA, high)     # optional                                *
+*   M_LDAH(REG_PV, REG_RA, high)     ; optional                                *
 *   or                                                                         *
-*   M_LDQ (REG_PV, REG_METHODPTR, m) # invokevirtual/interface ($28)           *
+*   M_LDQ (REG_PV, REG_METHODPTR, m) ; invokevirtual/interface ($28)           *
 *   in the static case the method pointer can be computed using the            *
 *   return address and the lda function following the jmp instruction          *
 *                                                                              *
@@ -274,73 +270,73 @@ calljava_xhandler:
 asm_call_jit_compiler:
 
 	ldgp    gp,0(pv)
-	ldl     $22,-8(ra)              # load instruction LDQ PV,xxx($yy)
-	srl     $22,16,$22              # shift right register number $yy
-	and     $22,31,$22              # isolate register number
-	subl    $22,28,$22              # test for REG_METHODPTR
-	beq     $22,noregchange       
-	ldl     $22,0(ra)               # load instruction LDA PV,xxx(RA)
-	sll     $22,48,$22
-	sra     $22,48,$22              # isolate offset
-	addq    $22,ra,$28              # compute update address
-	ldl     $22,4(ra)               # load instruction LDAH PV,xxx(PV)
-	srl     $22,16,$22              # isolate instruction code
-	lda     $22,-0x177b($22)        # test for LDAH
-	bne     $22,noregchange       
-	ldl     $22,0(ra)               # load instruction LDA PV,xxx(RA)
-	sll     $22,16,$22              # compute high offset
-	addl    $22,0,$22               # sign extend high offset
-	addq    $22,$28,$28             # compute update address
+	ldl     t8,-8(ra)             /* load instruction LDQ PV,xxx($yy)         */
+	srl     t8,16,t8              /* shift right register number $yy          */
+	and     t8,31,t8              /* isolate register number                  */
+	subl    t8,28,t8              /* test for REG_METHODPTR                   */
+	beq     t8,noregchange       
+	ldl     t8,0(ra)              /* load instruction LDA PV,xxx(RA)          */
+	sll     t8,48,t8
+	sra     t8,48,t8              /* isolate offset                           */
+	addq    t8,ra,$28             /* compute update address                   */
+	ldl     t8,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
+	srl     t8,16,t8              /* isolate instruction code                 */
+	lda     t8,-0x177b(t8)        /* test for LDAH                            */
+	bne     t8,noregchange       
+	ldl     t8,0(ra)              /* load instruction LDA PV,xxx(RA)          */
+	sll     t8,16,t8              /* compute high offset                      */
+	addl    t8,0,t8               /* sign extend high offset                  */
+	addq    t8,$28,$28            /* compute update address                   */
 noregchange:
-	lda     sp,-14*8(sp)            # reserve stack space
-	stq     $16,0*8(sp)             # save all argument registers
-	stq     $17,1*8(sp)             # they could be used by method
-	stq     $18,2*8(sp)
-	stq     $19,3*8(sp)
-	stq     $20,4*8(sp)
-	stq     $21,5*8(sp)
+	lda     sp,-14*8(sp)          /* reserve stack space                      */
+	stq     a0,0*8(sp)            /* save all argument registers              */
+	stq     a1,1*8(sp)            /* they could be used by method             */
+	stq     a2,2*8(sp)
+	stq     a3,3*8(sp)
+	stq     a4,4*8(sp)
+	stq     a5,5*8(sp)
 	stt     $f16,6*8(sp)
 	stt     $f17,7*8(sp)
 	stt     $f18,8*8(sp)
 	stt     $f19,9*8(sp)
 	stt     $f20,10*8(sp)
 	stt     $f21,11*8(sp)
-	stq     $28,12*8(sp)            # save method pointer
-	stq     ra,13*8(sp)             # save return address
+	stq     $28,12*8(sp)          /* save method pointer                      */
+	stq     ra,13*8(sp)           /* save return address                      */
 
-	ldq     $16,0($0)               # pass 'methodinfo' pointer to
-	jsr     ra,compiler_compile     # compiler
+	ldq     a0,0(v0)              /* pass 'methodinfo' pointer to             */
+	jsr     ra,compiler_compile   /* compiler                                 */
 	ldgp    gp,0(ra)
 
-	call_pal PAL_imb                # synchronise instruction cache
+	call_pal PAL_imb              /* synchronise instruction cache            */
 
-	ldq     $16,0*8(sp)             # load argument registers
-	ldq     $17,1*8(sp)
-	ldq     $18,2*8(sp)
-	ldq     $19,3*8(sp)
-	ldq     $20,4*8(sp)
-	ldq     $21,5*8(sp)
+	ldq     a0,0*8(sp)            /* load argument registers                  */
+	ldq     a1,1*8(sp)
+	ldq     a2,2*8(sp)
+	ldq     a3,3*8(sp)
+	ldq     a4,4*8(sp)
+	ldq     a5,5*8(sp)
 	ldt     $f16,6*8(sp)
 	ldt     $f17,7*8(sp)
 	ldt     $f18,8*8(sp)
 	ldt     $f19,9*8(sp)
 	ldt     $f20,10*8(sp)
 	ldt     $f21,11*8(sp)
-	ldq     $28,12*8(sp)            # load method pointer
-	ldq     ra,13*8(sp)             # load return address
-	lda     sp,14*8(sp)             # deallocate stack area
+	ldq     $28,12*8(sp)          /* load method pointer                      */
+	ldq     ra,13*8(sp)           /* load return address                      */
+	lda     sp,14*8(sp)           /* deallocate stack area                    */
 
-	ldl     $22,-8(ra)              # load instruction LDQ PV,xxx($yy)
-	sll     $22,48,$22
-	sra     $22,48,$22              # isolate offset
+	ldl     t8,-8(ra)             /* load instruction LDQ PV,xxx($yy)         */
+	sll     t8,48,t8
+	sra     t8,48,t8              /* isolate offset                           */
 
-	addq    $22,$28,$22             # compute update address via method pointer
-	stq     $0,0($22)               # save new method address there
+	addq    t8,$28,t8             /* compute update address via method pointer*/
+	stq     v0,0(t8)              /* save new method address there            */
 
-	bis     $0,$0,pv                # load method address into pv
+	mov     v0,pv                 /* load method address into pv              */
 
-	jmp     zero, (pv)              # and call method. The method returns
-	                                # directly to the caller (ra).
+	jmp     zero,(pv)             /* and call method. The method returns      */
+	                              /* directly to the caller (ra).             */
 
 	.end    asm_call_jit_compiler
 
@@ -360,16 +356,16 @@ noregchange:
 
 	.ent    asm_dumpregistersandcall
 asm_dumpregistersandcall:
-	lda     sp,-16*8(sp)            # allocate stack
-	stq     ra,0(sp)                # save return address
+	lda     sp,-16*8(sp)          /* allocate stack                           */
+	stq     ra,0(sp)              /* save return address                      */
 
-	stq     $9,1*8(sp)              # save all callee saved registers
-	stq     $10,2*8(sp)             # intialize the remaining registers
-	stq     $11,3*8(sp)
-	stq     $12,4*8(sp)
-	stq     $13,5*8(sp)
-	stq     $14,6*8(sp)
-	stq     $15,7*8(sp)
+	stq     s0,1*8(sp)            /* save all callee saved registers          */
+	stq     s1,2*8(sp)            /* intialize the remaining registers        */
+	stq     s2,3*8(sp)
+	stq     s3,4*8(sp)
+	stq     s4,5*8(sp)
+	stq     s5,6*8(sp)
+	stq     s6,7*8(sp)
 	stt     $f2,8*8(sp)
 	stt     $f3,9*8(sp)
 	stt     $f4,10*8(sp)
@@ -379,28 +375,27 @@ asm_dumpregistersandcall:
 	stt     $f8,14*8(sp)
 	stt     $f9,15*8(sp)
 
-	bis     zero,zero,$0           # intialize the remaining registers
-	bis     zero,zero,$1
-	bis     zero,zero,$2
-	bis     zero,zero,$3
-	bis     zero,zero,$4
-	bis     zero,zero,$5
-	bis     zero,zero,$6
-	bis     zero,zero,$7
-	bis     zero,zero,$8
-	bis     zero,zero,$17
-	bis     zero,zero,$18
-	bis     zero,zero,$19
-	bis     zero,zero,$20
-	bis     zero,zero,$21
-	bis     zero,zero,$22
-	bis     zero,zero,$23
-	bis     zero,zero,$24
-	bis     zero,zero,$25
-	bis     zero,zero,$26
-	bis     zero,zero,$27
-	bis     zero,zero,$28
-	bis     zero,zero,$29
+	clr     v0                   /* intialize the remaining registers         */
+	clr     t0
+	clr     t1
+	clr     t2
+	clr     t3
+	clr     t4
+	clr     t5
+	clr     t6
+	clr     t7
+	clr     a1
+	clr     a2
+	clr     a3
+	clr     a4
+	clr     a5
+	clr     t8
+	clr     t9
+	clr     t10
+	clr     t11
+	clr     t12
+	clr     $28
+	clr     $29
 	cpys    $f31,$f31,$f0
 	cpys    $f31,$f31,$f1
 	cpys    $f31,$f31,$f10
@@ -425,12 +420,12 @@ asm_dumpregistersandcall:
 	cpys    $f31,$f31,$f29
 	cpys    $f31,$f31,$f30
 
-	bis     $16,$16,pv              # load function pointer
-	jmp     ra,(pv)                 # and call function
+	mov     a0,pv                 /* load function pointer                    */
+	jmp     ra,(pv)               /* and call function                        */
 
-	ldq     ra,0(sp)                # load return address
-	lda     sp,16*8(sp)             # deallocate stack
-	jmp     zero,(ra)               # return
+	ldq     ra,0(sp)              /* load return address                      */
+	lda     sp,16*8(sp)           /* deallocate stack                         */
+	jmp     zero,(ra)             /* return                                   */
 
 	.end    asm_dumpregistersandcall
 
@@ -450,25 +445,25 @@ asm_dumpregistersandcall:
 	.ent    asm_handle_nat_exception
 asm_handle_nat_exception:
 
-	ldl     t0,0(ra)                # load instruction LDA PV,xxx(RA)
+	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
 	sll     t0,48,t0
-	sra     t0,48,t0                # isolate offset
-	addq    t0,ra,pv                # compute update address
-	ldl     t0,4(ra)                # load instruction LDAH PV,xxx(PV)
-	srl     t0,16,t0                # isolate instruction code
-	lda     t0,-0x177b(t0)          # test for LDAH
+	sra     t0,48,t0              /* isolate offset                           */
+	addq    t0,ra,pv              /* compute update address                   */
+	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
+	srl     t0,16,t0              /* isolate instruction code                 */
+	lda     t0,-0x177b(t0)        /* test for LDAH                            */
 	bne     t0,asm_handle_exception       
-	ldl     t0,0(ra)                # load instruction LDA PV,xxx(RA)
-	sll     t0,16,t0                # compute high offset
-	addl    t0,0,t0                 # sign extend high offset
-	addq    t0,pv,pv                # compute update address
+	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
+	sll     t0,16,t0              /* compute high offset                      */
+	addl    t0,0,t0               /* sign extend high offset                  */
+	addq    t0,pv,pv              /* compute update address                   */
 
 	.aent    asm_handle_exception
 asm_handle_exception:
 
-	lda     sp,-18*8(sp)            # allocate stack
-	stq     t0,0*8(sp)              # save possible used registers
-	stq     t1,1*8(sp)              # also registers used by builtin_checkcast
+	lda     sp,-18*8(sp)          /* allocate stack                           */
+	stq     t0,0*8(sp)            /* save possible used registers             */
+	stq     t1,1*8(sp)            /* also registers used by trace_exception   */
 	stq     t2,2*8(sp)
 	stq     t3,3*8(sp)
 	stq     t4,4*8(sp)
@@ -486,10 +481,10 @@ asm_handle_exception:
 	stq     a4,16*8(sp)
 	stq     a5,17*8(sp)
 
-	lda     t3,1(zero)              # set no unwind flag
+	lda     t3,1(zero)            /* set no unwind flag                       */
 ex_stack_loop:
-	lda     sp,-5*8(sp)             # allocate stack
-	stq     xptr,0*8(sp)            # save used register
+	lda     sp,-5*8(sp)           /* allocate stack                           */
+	stq     xptr,0*8(sp)          /* save used register                       */
 	stq     xpc,1*8(sp)
 	stq     pv,2*8(sp)
 	stq     ra,3*8(sp)
@@ -499,66 +494,49 @@ ex_stack_loop:
 	ldq     a1,MethodPointer(pv)
 	mov     xpc,a2
 	mov     t3,a3
-	br      ra,ex_trace             # set ra for gp loading
+	br      ra,ex_trace           /* set ra for gp loading                    */
 ex_trace:
-	ldgp    gp,0(ra)                # load gp
-	jsr     ra,builtin_trace_exception # builtin_trace_exception(xptr,methodptr)
+	ldgp    gp,0(ra)              /* load gp                                  */
+	jsr     ra,builtin_trace_exception /* trace_exception(xptr,methodptr)     */
 	
-	ldq     xptr,0*8(sp)            # restore used register
+	ldq     xptr,0*8(sp)          /* restore used register                    */
 	ldq     xpc,1*8(sp)
 	ldq     pv,2*8(sp)
 	ldq     ra,3*8(sp)
 	ldq     t3,4*8(sp)
-	lda     sp,5*8(sp)              # deallocate stack
+	lda     sp,5*8(sp)            /* deallocate stack                         */
 	
-	ldl     t0,ExTableSize(pv)      # t0 = exception table size
-	beq     t0,empty_table          # if empty table skip
-	lda     t1,ExTableStart(pv)     # t1 = start of exception table
+	ldl     t0,ExTableSize(pv)    /* t0 = exception table size                */
+	beq     t0,empty_table        /* if empty table skip                      */
+	lda     t1,ExTableStart(pv)   /* t1 = start of exception table            */
 
 ex_table_loop:
-	ldq     t2,ExStartPC(t1)        # t2 = exception start pc
-	cmple   t2,xpc,t2               # t2 = (startpc <= xpc)
-	beq     t2,ex_table_cont        # if (false) continue
-	ldq     t2,ExEndPC(t1)          # t2 = exception end pc
-	cmplt   xpc,t2,t2               # t2 = (xpc < endpc)
-	beq     t2,ex_table_cont        # if (false) continue
-	ldq     a1,ExCatchType(t1)      # arg1 = exception catch type
-	beq     a1,ex_handle_it         # NULL catches everything
-	mov     xptr,a0                 # arg0 = exception pointer
+	ldq     t2,ExStartPC(t1)      /* t2 = exception start pc                  */
+	cmple   t2,xpc,t2             /* t2 = (startpc <= xpc)                    */
+	beq     t2,ex_table_cont      /* if (false) continue                      */
+	ldq     t2,ExEndPC(t1)        /* t2 = exception end pc                    */
+	cmplt   xpc,t2,t2             /* t2 = (xpc < endpc)                       */
+	beq     t2,ex_table_cont      /* if (false) continue                      */
+	ldq     a1,ExCatchType(t1)    /* arg1 = exception catch type              */
+	beq     a1,ex_handle_it       /* NULL catches everything                  */
 
-	lda     sp,-7*8(sp)             # allocate stack
-	stq     t0,0*8(sp)              # save used register
-	stq     t1,1*8(sp)
-	stq     t3,2*8(sp)
-	stq     xptr,3*8(sp)
-	stq     xpc,4*8(sp)
-	stq     pv,5*8(sp)
-	stq     ra,6*8(sp)
-
-	br      ra,ex_gpload            # set ra for gp loading
-ex_gpload:
-	ldgp    gp,0(ra)                # load gp
-	jsr     ra,builtin_checkcast    # builtin_checkcast(xptr,catchtype)
-	
-	ldq     t0,0*8(sp)              # restore used register
-	ldq     t1,1*8(sp)
-	ldq     t3,2*8(sp)
-	ldq     xptr,3*8(sp)
-	ldq     xpc,4*8(sp)
-	ldq     pv,5*8(sp)
-	ldq     ra,6*8(sp)
-	lda     sp,7*8(sp)              # deallocate stack
-
-	beq     v0,ex_table_cont        # if (false) continue
+	ldq     a0,offobjvftbl(xptr)  /* a0 = vftblptr(xptr)                      */
+	ldq     a1,offobjvftbl(a1)    /* a1 = vftblptr(catchtype) class (not obj) */
+	ldl     a0,offbaseval(a0)     /* a0 = baseval(xptr)                       */
+	ldl     v0,offbaseval(a1)     /* a2 = baseval(catchtype)                  */
+	ldl     a1,offdiffval(a1)     /* a1 = diffval(catchtype)                  */
+	subl    a0,v0,a0              /* a0 = baseval(xptr) - baseval(catchtype)  */
+	cmpule  a0,a1,v0              /* v0 = xptr is instanceof catchtype        */
+	beq     v0,ex_table_cont      /* if (false) continue                      */
 
 ex_handle_it:
 
-	ldq     xpc,ExHandlerPC(t1)     # xpc = exception handler pc
+	ldq     xpc,ExHandlerPC(t1)   /* xpc = exception handler pc               */
 
-	beq     t3,ex_jump              # if (!(no stack unwinding) skip
+	beq     t3,ex_jump            /* if (!(no stack unwinding) skip           */
 
-	ldq     t0,0*8(sp)              # restore possible used registers
-	ldq     t1,1*8(sp)              # also registers used by builtin_checkcast
+	ldq     t0,0*8(sp)            /* restore possible used registers          */
+	ldq     t1,1*8(sp)            /* also registers used by trace_exception   */
 	ldq     t2,2*8(sp)
 	ldq     t3,3*8(sp)
 	ldq     t4,4*8(sp)
@@ -575,28 +553,28 @@ ex_handle_it:
 	ldq     a3,15*8(sp)
 	ldq     a4,16*8(sp)
 	ldq     a5,17*8(sp)
-	lda     sp,18*8(sp)             # deallocate stack
+	lda     sp,18*8(sp)           /* deallocate stack                         */
 
 ex_jump:
-	jmp     zero,(xpc)              # jump to the handler 
+	jmp     zero,(xpc)            /* jump to the handler                      */
 
 ex_table_cont:
-	lda     t1,ExEntrySize(t1)      # next exception table entry
-	subl    t0,1,t0                 # decrement entry counter
-	bgt     t0,ex_table_loop        # if (t0 > 0) next entry
+	lda     t1,ExEntrySize(t1)    /* next exception table entry               */
+	subl    t0,1,t0               /* decrement entry counter                  */
+	bgt     t0,ex_table_loop      /* if (t0 > 0) next entry                   */
 
 empty_table:
-	beq     t3,ex_already_cleared   # if here the first time, then
-	lda     sp,18*8(sp)             # deallocate stack and
-	clr     t3                      # clear the no unwind flag
+	beq     t3,ex_already_cleared /* if here the first time, then             */
+	lda     sp,18*8(sp)           /* deallocate stack and                     */
+	clr     t3                    /* clear the no unwind flag                 */
 ex_already_cleared:
-	ldl     t0,IsSync(pv)           # t0 = SyncOffset
-	beq     t0,no_monitor_exit      # if zero no monitorexit
-	addq    sp,t0,t0                # add Offset to stackptr
-	ldq     a0,-8(t0)               # load monitorexit pointer
+	ldl     t0,IsSync(pv)         /* t0 = SyncOffset                          */
+	beq     t0,no_monitor_exit    /* if zero no monitorexit                   */
+	addq    sp,t0,t0              /* add Offset to stackptr                   */
+	ldq     a0,-8(t0)             /* load monitorexit pointer                 */
 
-	lda     sp,-7*8(sp)             # allocate stack
-	stq     t0,0*8(sp)              # save used register
+	lda     sp,-7*8(sp)           /* allocate stack                           */
+	stq     t0,0*8(sp)            /* save used register                       */
 	stq     t1,1*8(sp)
 	stq     t3,2*8(sp)
 	stq     xptr,3*8(sp)
@@ -604,37 +582,37 @@ ex_already_cleared:
 	stq     pv,5*8(sp)
 	stq     ra,6*8(sp)
 
-	br      ra,ex_mon_load          # set ra for gp loading
+	br      ra,ex_mon_load        /* set ra for gp loading                    */
 ex_mon_load:
-	ldgp    gp,0(ra)                # load gp
-	jsr     ra,builtin_monitorexit  # builtin_monitorexit(objectptr)
+	ldgp    gp,0(ra)              /* load gp                                  */
+	jsr     ra,builtin_monitorexit/* builtin_monitorexit(objectptr)           */
 	
-	ldq     t0,0*8(sp)              # restore used register
+	ldq     t0,0*8(sp)            /* restore used register                    */
 	ldq     t1,1*8(sp)
 	ldq     t3,2*8(sp)
 	ldq     xptr,3*8(sp)
 	ldq     xpc,4*8(sp)
 	ldq     pv,5*8(sp)
 	ldq     ra,6*8(sp)
-	lda     sp,7*8(sp)              # deallocate stack
+	lda     sp,7*8(sp)            /* deallocate stack                         */
 
 no_monitor_exit:
-	ldl     t0,FrameSize(pv)        # t0 = frame size
-	addq    sp,t0,sp                # unwind stack
-	mov     sp,t0                   # t0 = pointer to save area
-	ldl     t1,IsLeaf(pv)           # t1 = is leaf procedure
-	bne     t1,ex_no_restore        # if (leaf) skip
-	ldq     ra,-8(t0)               # restore ra
-	lda     t0,-8(t0)               # t0--
+	ldl     t0,FrameSize(pv)      /* t0 = frame size                          */
+	addq    sp,t0,sp              /* unwind stack                             */
+	mov     sp,t0                 /* t0 = pointer to save area                */
+	ldl     t1,IsLeaf(pv)         /* t1 = is leaf procedure                   */
+	bne     t1,ex_no_restore      /* if (leaf) skip                           */
+	ldq     ra,-8(t0)             /* restore ra                               */
+	lda     t0,-8(t0)             /* t0--                                     */
 ex_no_restore:
-	mov     ra,xpc                  # the new xpc is ra
-	ldl     t1,IntSave(pv)          # t1 = saved int register count
-	br      t2,ex_int1              # t2 = current pc
+	mov     ra,xpc                /* the new xpc is ra                        */
+	ldl     t1,IntSave(pv)        /* t1 = saved int register count            */
+	br      t2,ex_int1            /* t2 = current pc                          */
 ex_int1:
-	lda     t2,44(t2)               # lda t2,ex_int2-ex_int1(t2) !!!!!!!!!!!!!!!
-	negl    t1,t1                   # negate register count
-	s4addq  t1,t2,t2                # t2 = ex_int_sav - 4 * register count
-	jmp     zero,(t2)               # jump to save position
+	lda     t2,44(t2)             /* lda t2,ex_int2-ex_int1(t2) !!!!!!!!!!!!! */
+	negl    t1,t1                 /* negate register count                    */
+	s4addq  t1,t2,t2              /* t2 = ex_int_sav - 4 * register count     */
+	jmp     zero,(t2)             /* jump to save position                    */
 	ldq     s0,-56(t0)
 	ldq     s1,-48(t0)
 	ldq     s2,-40(t0)
@@ -643,15 +621,15 @@ ex_int1:
 	ldq     s5,-16(t0)
 	ldq     s6,-8(t0)
 ex_int2:
-	s8addq  t1,t0,t0                # t0 = t0 - 8 * register count
+	s8addq  t1,t0,t0              /* t0 = t0 - 8 * register count             */
 
-	ldl     t1,FltSave(pv)          # t1 = saved flt register count
-	br      t2,ex_flt1              # t2 = current pc
+	ldl     t1,FltSave(pv)        /* t1 = saved flt register count            */
+	br      t2,ex_flt1            /* t2 = current pc                          */
 ex_flt1:
-	lda     t2,48(t2)               # lda t2,ex_flt2-ex_flt1(t2) !!!!!!!!!!!!!!!
-	negl    t1,t1                   # negate register count
-	s4addq  t1,t2,t2                # t2 = ex_flt_sav - 4 * register count
-	jmp     zero,(t2)               # jump to save position
+	lda     t2,48(t2)             /* lda t2,ex_flt2-ex_flt1(t2) !!!!!!!!!!!!! */
+	negl    t1,t1                 /* negate register count                    */
+	s4addq  t1,t2,t2              /* t2 = ex_flt_sav - 4 * register count     */
+	jmp     zero,(t2)             /* jump to save position                    */
 	ldt     $f2,-64(t0)
 	ldt     $f3,-56(t0)
 	ldt     $f4,-48(t0)
@@ -661,18 +639,18 @@ ex_flt1:
 	ldt     $f8,-16(t0)
 	ldt     $f9,-8(t0)
 ex_flt2:
-	ldl     t0,0(ra)                # load instruction LDA PV,xxx(RA)
+	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
 	sll     t0,48,t0
-	sra     t0,48,t0                # isolate offset
-	addq    t0,ra,pv                # compute update address
-	ldl     t0,4(ra)                # load instruction LDAH PV,xxx(PV)
-	srl     t0,16,t0                # isolate instruction code
-	lda     t0,-0x177b(t0)          # test for LDAH
+	sra     t0,48,t0              /* isolate offset                           */
+	addq    t0,ra,pv              /* compute update address                   */
+	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
+	srl     t0,16,t0              /* isolate instruction code                 */
+	lda     t0,-0x177b(t0)        /* test for LDAH                            */
 	bne     t0,ex_stack_loop       
-	ldl     t0,0(ra)                # load instruction LDA PV,xxx(RA)
-	sll     t0,16,t0                # compute high offset
-	addl    t0,0,t0                 # sign extend high offset
-	addq    t0,pv,pv                # compute update address
+	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
+	sll     t0,16,t0              /* compute high offset                      */
+	addl    t0,0,t0               /* sign extend high offset                  */
+	addq    t0,pv,pv              /* compute update address                   */
 	br      ex_stack_loop
 
 	.end    asm_handle_exception
@@ -686,11 +664,11 @@ ex_flt2:
 *                                                                              *
 *******************************************************************************/
 
-#define     sigctxstack  0*8   /* sigstack state to restore       */
-#define     sigctxmask   1*8   /* signal mask to restore          */
-#define     sigctxpc     2*8   /* pc at time of signal            */
-#define     sigctxpsl    3*8   /* psl to retore                   */
-#define     sigctxr00    4*8   /* processor regs 0 to 31          */
+#define     sigctxstack  0*8   /* sigstack state to restore                   */
+#define     sigctxmask   1*8   /* signal mask to restore                      */
+#define     sigctxpc     2*8   /* pc at time of signal                        */
+#define     sigctxpsl    3*8   /* psl to retore                               */
+#define     sigctxr00    4*8   /* processor regs 0 to 31                      */
 #define     sigctxr01    5*8
 #define     sigctxr02    6*8
 #define     sigctxr03    7*8
@@ -723,8 +701,8 @@ ex_flt2:
 #define     sigctxr30   34*8
 #define     sigctxr31   35*8
 
-#define     sigctxfpuse 36*8   /* fp has been used                */
-#define     sigctxf00   37*8   /* fp regs 0 to 31                 */
+#define     sigctxfpuse 36*8   /* fp has been used                            */
+#define     sigctxf00   37*8   /* fp regs 0 to 31                             */
 #define     sigctxf01   38*8
 #define     sigctxf02   39*8
 #define     sigctxf03   40*8
@@ -757,8 +735,8 @@ ex_flt2:
 #define     sigctxf30   67*8
 #define     sigctxf31   68*8
 
-#define     sigctxhfpcr 69*8   /* floating point control register */
-#define     sigctxsfpcr 70*8   /* software fpcr                   */
+#define     sigctxhfpcr 69*8   /* floating point control register             */
+#define     sigctxsfpcr 70*8   /* software fpcr                               */
 
 	.ent    asm_signal_exception
 asm_signal_exception:
@@ -766,7 +744,7 @@ asm_signal_exception:
 	mov     a0,xptr
 	mov     a1,sp
 	ldq     xpc,sigctxpc(sp)
-	ldq     v0,sigctxr00(sp)              # restore possible used registers
+	ldq     v0,sigctxr00(sp)   /* restore possible used registers             */
 	ldq     t0,sigctxr01(sp)
 	ldq     t1,sigctxr02(sp)
 	ldq     t2,sigctxr03(sp)
@@ -798,299 +776,209 @@ asm_signal_exception:
 	.end    asm_signal_exception
 
 
-/********************* function new_builtin_monitorenter ***********************
+/********************* function asm_builtin_monitorenter ***********************
 *                                                                              *
 *   Does null check and calls monitorenter or throws an exception              *
 *                                                                              *
 *******************************************************************************/
 
-	.ent    new_builtin_monitorenter
-new_builtin_monitorenter:
+	.ent    asm_builtin_monitorenter
+asm_builtin_monitorenter:
 
 	ldgp    gp,0(pv)
 	lda     pv,builtin_monitorenter
-	beq     a0,nb_monitorenter          # if (null) throw exception
-	jmp     zero,(pv)                   # else call builtin_monitorenter
+	beq     a0,nb_monitorenter        /* if (null) throw exception            */
+	jmp     zero,(pv)                 /* else call builtin_monitorenter       */
 
 nb_monitorenter:
 	ldq     xptr,proto_java_lang_NullPointerException
-	lda     xpc,-4(ra)                  # faulting address is return adress - 4
+	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
-	.end    new_builtin_monitorenter
+	.end    asm_builtin_monitorenter
 
 
-/********************* function new_builtin_monitorexit ************************
+/********************* function asm_builtin_monitorexit ************************
 *                                                                              *
 *   Does null check and calls monitorexit or throws an exception               *
 *                                                                              *
 *******************************************************************************/
 
-	.ent    new_builtin_monitorexit
-new_builtin_monitorexit:
+	.ent    asm_builtin_monitorexit
+asm_builtin_monitorexit:
 
 	ldgp    gp,0(pv)
 	lda     pv,builtin_monitorexit
-	beq     a0,nb_monitorexit           # if (null) throw exception
-	jmp     zero,(pv)                   # else call builtin_monitorexit
+	beq     a0,nb_monitorexit         /* if (null) throw exception            */
+	jmp     zero,(pv)                 /* else call builtin_monitorexit        */
 
 nb_monitorexit:
 	ldq     xptr,proto_java_lang_NullPointerException
-	lda     xpc,-4(ra)                  # faulting address is return adress - 4
+	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
-	.end    new_builtin_monitorenter
+	.end    asm_builtin_monitorenter
 
 
-/************************ function new_builtin_idiv ****************************
+/************************ function asm_builtin_idiv ****************************
 *                                                                              *
 *   Does null check and calls idiv or throws an exception                      *
 *                                                                              *
 *******************************************************************************/
 
-	.ent    new_builtin_idiv
-new_builtin_idiv:
+	.ent    asm_builtin_idiv
+asm_builtin_idiv:
 
 	ldgp    gp,0(pv)
 	lda     pv,builtin_idiv
-	beq     a1,nb_idiv                  # if (null) throw exception
-	jmp     zero,(pv)                   # else call builtin_idiv
+	beq     a1,nb_idiv                /* if (null) throw exception            */
+	jmp     zero,(pv)                 /* else call builtin_idiv               */
 
 nb_idiv:
 	ldq     xptr,proto_java_lang_ArithmeticException
-	lda     xpc,-4(ra)                  # faulting address is return adress - 4
+	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
-	.end    new_builtin_idiv
+	.end    asm_builtin_idiv
 
 
-/************************ function new_builtin_ldiv ****************************
+/************************ function asm_builtin_ldiv ****************************
 *                                                                              *
 *   Does null check and calls ldiv or throws an exception                      *
 *                                                                              *
 *******************************************************************************/
 
-	.ent    new_builtin_ldiv
-new_builtin_ldiv:
+	.ent    asm_builtin_ldiv
+asm_builtin_ldiv:
 
 	ldgp    gp,0(pv)
 	lda     pv,builtin_ldiv
-	beq     a1,nb_ldiv                  # if (null) throw exception
-	jmp     zero,(pv)                   # else call builtin_ldiv
+	beq     a1,nb_ldiv                /* if (null) throw exception            */
+	jmp     zero,(pv)                 /* else call builtin_ldiv               */
 
 nb_ldiv:
 	ldq     xptr,proto_java_lang_ArithmeticException
-	lda     xpc,-4(ra)                  # faulting address is return adress - 4
+	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
-	.end    new_builtin_ldiv
+	.end    asm_builtin_ldiv
 
 
-/************************ function new_builtin_irem ****************************
+/************************ function asm_builtin_irem ****************************
 *                                                                              *
 *   Does null check and calls irem or throws an exception                      *
 *                                                                              *
 *******************************************************************************/
 
-	.ent    new_builtin_irem
-new_builtin_irem:
+	.ent    asm_builtin_irem
+asm_builtin_irem:
 
 	ldgp    gp,0(pv)
 	lda     pv,builtin_irem
-	beq     a1,nb_irem                  # if (null) throw exception
-	jmp     zero,(pv)                   # else call builtin_irem
+	beq     a1,nb_irem                /* if (null) throw exception            */
+	jmp     zero,(pv)                 /* else call builtin_irem               */
 
 nb_irem:
 	ldq     xptr,proto_java_lang_ArithmeticException
-	lda     xpc,-4(ra)                  # faulting address is return adress - 4
+	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
-	.end    new_builtin_irem
+	.end    asm_builtin_irem
 
 
-/************************ function new_builtin_lrem ****************************
+/************************ function asm_builtin_lrem ****************************
 *                                                                              *
 *   Does null check and calls lrem or throws an exception                      *
 *                                                                              *
 *******************************************************************************/
 
-	.ent    new_builtin_lrem
-new_builtin_lrem:
+	.ent    asm_builtin_lrem
+asm_builtin_lrem:
 
 	ldgp    gp,0(pv)
 	lda     pv,builtin_lrem
-	beq     a1,nb_lrem                  # if (null) throw exception
-	jmp     zero,(pv)                   # else call builtin_lrem
+	beq     a1,nb_lrem                /* if (null) throw exception            */
+	jmp     zero,(pv)                 /* else call builtin_lrem               */
 
 nb_lrem:
 	ldq     xptr,proto_java_lang_ArithmeticException
-	lda     xpc,-4(ra)                  # faulting address is return adress - 4
+	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
-	.end    new_builtin_lrem
+	.end    asm_builtin_lrem
 
 
-/*********************** function new_builtin_checkcast ************************
+/******************* function asm_builtin_checkarraycast ***********************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
 *                                                                              *
 *******************************************************************************/
 
-	.ent    new_builtin_checkcast
-new_builtin_checkcast:
+	.ent    asm_builtin_checkarraycast
+asm_builtin_checkarraycast:
 
 	ldgp    gp,0(pv)
-	lda     sp,-16(sp)                  # allocate stack space
-	stq     ra,0(sp)                    # save return address
-	stq     a0,8(sp)                    # save object pointer
-	jsr     ra,new_builtin_checkcast    # new_builtin_checkcast
+	lda     sp,-16(sp)                /* allocate stack space                 */
+	stq     ra,0(sp)                  /* save return address                  */
+	stq     a0,8(sp)                  /* save object pointer                  */
+	jsr     ra,builtin_checkarraycast /* builtin_checkarraycast               */
 	ldgp    gp,0(ra)
-	beq     v0,nb_ccast_throw           # if (false) throw exception
-	ldq     ra,0(sp)                    # restore return address
-	ldq     v0,8(sp)                    # return object pointer
-	lda     sp,16(sp)                   # free stack space
-	jmp     zero,(ra)
-
-nb_ccast_throw:
-	ldq     xptr,proto_java_lang_ClassCastException
-	ldq     ra,0(sp)                    # restore return address
-	lda     sp,16(sp)                   # free stack space
-	lda     xpc,-4(ra)                  # faulting address is return adress - 4
-	br      asm_handle_nat_exception
-	.end    new_builtin_checkcast
-
-
-/****************** function new_builtin_checkclasscast ************************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    new_builtin_checkclasscast
-new_builtin_checkclasscast:
-
-	ldgp    gp,0(pv)
-	lda     sp,-16(sp)                  # allocate stack space
-	stq     ra,0(sp)                    # save return address
-	stq     a0,8(sp)                    # save object pointer
-	jsr     ra,builtin_checkclasscast   # builtin_checkclasscast
-	ldgp    gp,0(ra)
-	beq     v0,nb_cclass_throw          # if (false) throw exception
-	ldq     ra,0(sp)                    # restore return address
-	ldq     v0,8(sp)                    # return object pointer
-	lda     sp,16(sp)                   # free stack space
-	jmp     zero,(ra)
-
-nb_cclass_throw:
-	ldq     xptr,proto_java_lang_ClassCastException
-	ldq     ra,0(sp)                    # restore return address
-	lda     sp,16(sp)                   # free stack space
-	lda     xpc,-4(ra)                  # faulting address is return adress - 4
-	br      asm_handle_nat_exception
-	.end    new_builtin_checkclasscast
-
-
-/****************** function new_builtin_checkintercast ************************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    new_builtin_checkintercast
-new_builtin_checkintercast:
-
-	ldgp    gp,0(pv)
-	lda     sp,-16(sp)                  # allocate stack space
-	stq     ra,0(sp)                    # save return address
-	stq     a0,8(sp)                    # save object pointer
-	jsr     ra,builtin_checkintercast   # builtin_checkintercast
-	ldgp    gp,0(ra)
-	beq     v0,nb_cinter_throw          # if (false) throw exception
-	ldq     ra,0(sp)                    # restore return address
-	ldq     v0,8(sp)                    # return object pointer
-	lda     sp,16(sp)                   # free stack space
-	jmp     zero,(ra)
-
-nb_cinter_throw:
-	ldq     xptr,proto_java_lang_ClassCastException
-	ldq     ra,0(sp)                    # restore return address
-	lda     sp,16(sp)                   # free stack space
-	lda     xpc,-4(ra)                  # faulting address is return adress - 4
-	br      asm_handle_nat_exception
-	.end    new_builtin_checkintercast
-
-
-/******************* function new_builtin_checkarraycast ***********************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    new_builtin_checkarraycast
-new_builtin_checkarraycast:
-
-	ldgp    gp,0(pv)
-	lda     sp,-16(sp)                  # allocate stack space
-	stq     ra,0(sp)                    # save return address
-	stq     a0,8(sp)                    # save object pointer
-	jsr     ra,builtin_checkarraycast   # builtin_checkarraycast
-	ldgp    gp,0(ra)
-	beq     v0,nb_carray_throw          # if (false) throw exception
-	ldq     ra,0(sp)                    # restore return address
-	ldq     v0,8(sp)                    # return object pointer
-	lda     sp,16(sp)                   # free stack space
+	beq     v0,nb_carray_throw        /* if (false) throw exception           */
+	ldq     ra,0(sp)                  /* restore return address               */
+	ldq     v0,8(sp)                  /* return object pointer                */
+	lda     sp,16(sp)                 /* free stack space                     */
 	jmp     zero,(ra)
 
 nb_carray_throw:
 	ldq     xptr,proto_java_lang_ClassCastException
-	ldq     ra,0(sp)                    # restore return address
-	lda     sp,16(sp)                   # free stack space
-	lda     xpc,-4(ra)                  # faulting address is return adress - 4
+	ldq     ra,0(sp)                  /* restore return address               */
+	lda     sp,16(sp)                 /* free stack space                     */
+	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
-	.end    new_builtin_checkarraycast
+	.end    asm_builtin_checkarraycast
 
 
-/******************* function new_builtin_aastore ******************************
+/******************* function asm_builtin_aastore ******************************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
 *                                                                              *
 *******************************************************************************/
 
-	.ent    new_builtin_aastore
-new_builtin_aastore:
+	.ent    asm_builtin_aastore
+asm_builtin_aastore:
 
 	ldgp    gp,0(pv)
-	beq     a0,nb_aastore_null          # if null pointer throw exception
-	ldl     t0,offarrsize(a0)           # load size
-	lda     sp,-24(sp)                  # allocate stack space
-	stq     ra,0(sp)                    # save return address
-	s8addq  a1,a0,t1                    # add index*8 to arrayref
-	cmpult  a1,t0,t0                    # do bound check
-	beq     t0,nb_aastore_bound         # if out of bounds throw exception
-	mov     a2,a1                       # object is second argument
-	stq     t1,8(sp)                    # save store position
-	stq     a1,16(sp)                   # save object
-	jsr     ra,builtin_canstore         # builtin_canstore(arrayref,object)
+	beq     a0,nb_aastore_null        /* if null pointer throw exception      */
+	ldl     t0,offarraysize(a0)       /* load size                            */
+	lda     sp,-24(sp)                /* allocate stack space                 */
+	stq     ra,0(sp)                  /* save return address                  */
+	s8addq  a1,a0,t1                  /* add index*8 to arrayref              */
+	cmpult  a1,t0,t0                  /* do bound check                       */
+	beq     t0,nb_aastore_bound       /* if out of bounds throw exception     */
+	mov     a2,a1                     /* object is second argument            */
+	stq     t1,8(sp)                  /* save store position                  */
+	stq     a1,16(sp)                 /* save object                          */
+	jsr     ra,builtin_canstore       /* builtin_canstore(arrayref,object)    */
 	ldgp    gp,0(ra)
-	ldq     ra,0(sp)                    # restore return address
-	ldq     a0,8(sp)                    # restore store position
-	ldq     a1,16(sp)                   # restore object
-	lda     sp,24(sp)                   # free stack space
-	beq     v0,nb_aastore_throw         # if (false) throw exception
-	stq     a1,offobjarr(a0)            # store objectptr in array
+	ldq     ra,0(sp)                  /* restore return address               */
+	ldq     a0,8(sp)                  /* restore store position               */
+	ldq     a1,16(sp)                 /* restore object                       */
+	lda     sp,24(sp)                 /* free stack space                     */
+	beq     v0,nb_aastore_throw       /* if (false) throw exception           */
+	stq     a1,offobjarrdata(a0)      /* store objectptr in array             */
 	jmp     zero,(ra)
 
 nb_aastore_null:
 	ldq     xptr,proto_java_lang_NullPointerException
-	mov     ra,xpc                      # faulting address is return adress 
+	mov     ra,xpc                    /* faulting address is return adress    */
 	br      asm_handle_nat_exception
 
 nb_aastore_bound:
 	ldq     xptr,proto_java_lang_ArrayIndexOutOfBoundsException
-	lda     sp,24(sp)                   # free stack space
-	mov     ra,xpc                      # faulting address is return adress 
+	lda     sp,24(sp)                 /* free stack space                     */
+	mov     ra,xpc                    /* faulting address is return adress    */
 	br      asm_handle_nat_exception
 
 nb_aastore_throw:
 	ldq     xptr,proto_java_lang_ArrayStoreException
-	mov     ra,xpc                      # faulting address is return adress 
+	mov     ra,xpc                    /* faulting address is return adress    */
 	br      asm_handle_nat_exception
 
-	.end    new_builtin_aastore
+	.end    asm_builtin_aastore
 
 
 /********************** function initialize_thread_stack ***********************
@@ -1187,17 +1075,17 @@ perform_alpha_threadswitch:
 
 	.ent	asm_switchstackandcall
 asm_switchstackandcall:
-	lda	a0,-2*8(a0)		# allocate new stack
-	stq	ra,0(a0)		# save return address
-	stq	sp,1*8(a0)		# save old stack pointer
-	mov	a0,sp			# switch to new stack
+	lda	a0,-2*8(a0)		/* allocate new stack                                 */
+	stq	ra,0(a0)		/* save return address                                */
+	stq	sp,1*8(a0)		/* save old stack pointer                             */
+	mov	a0,sp			/* switch to new stack                                */
 	
-	mov	a1,pv			# load function pointer
-	jmp	ra,(pv)			# and call funciton
+	mov	a1,pv			/* load function pointer                              */
+	jmp	ra,(pv)			/* and call funciton                                  */
 
-	ldq	ra,0(sp)		# load return address
-	ldq	sp,1*8(sp)		# switch to old stack
+	ldq	ra,0(sp)		/* load return address                                */
+	ldq	sp,1*8(sp)		/* switch to old stack                                */
 
-	jmp	zero,(ra)		# return
+	jmp	zero,(ra)		/* return                                             */
 
 	.end	asm_switchstackandcall

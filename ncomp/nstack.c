@@ -1103,7 +1103,7 @@ icmd_lconst_lcmp_tail:
 							if (!(SUPPORT_DIVISION)) {
 								iptr[0].opc = ICMD_BUILTIN2;
 								iptr[0].op1 = TYPE_INT;
-								iptr[0].val.a = (functionptr) new_builtin_idiv;
+								iptr[0].val.a = (functionptr) asm_builtin_idiv;
 								isleafmethod = false;
 								goto builtin2;
 								}
@@ -1112,7 +1112,7 @@ icmd_lconst_lcmp_tail:
 							if (!(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)) {
 								iptr[0].opc = ICMD_BUILTIN2;
 								iptr[0].op1 = TYPE_LNG;
-								iptr[0].val.a = (functionptr) new_builtin_ldiv;
+								iptr[0].val.a = (functionptr) asm_builtin_ldiv;
 								isleafmethod = false;
 								goto builtin2;
 								}
@@ -1121,7 +1121,7 @@ icmd_lconst_lcmp_tail:
 							if (!(SUPPORT_DIVISION)) {
 								iptr[0].opc = ICMD_BUILTIN2;
 								iptr[0].op1 = TYPE_INT;
-								iptr[0].val.a = (functionptr) new_builtin_irem;
+								iptr[0].val.a = (functionptr) asm_builtin_irem;
 								isleafmethod = false;
 								goto builtin2;
 								}
@@ -1130,7 +1130,7 @@ icmd_lconst_lcmp_tail:
 							if (!(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)) {
 								iptr[0].opc = ICMD_BUILTIN2;
 								iptr[0].op1 = TYPE_LNG;
-								iptr[0].val.a = (functionptr) new_builtin_lrem;
+								iptr[0].val.a = (functionptr) asm_builtin_lrem;
 								isleafmethod = false;
 								goto builtin2;
 								}
@@ -1839,9 +1839,12 @@ static void show_icmd_method()
 				case ICMD_CHECKCAST:
 				case ICMD_INSTANCEOF:
 					if (instr[i].op1) {
-						printf(" ");
-						unicode_fprint(stdout,
-						               ((classinfo *) instr[i].val.a)->name);
+						classinfo *c = instr[i].val.a;
+						if (c->flags & ACC_INTERFACE)
+							printf(" (INTERFACE) ");
+						else
+							printf(" (CLASS,%3d) ", c->vftbl->diffval);
+						unicode_fprint(stdout, c->name);
 						}
 					break;
 				case ICMD_BUILTIN3:

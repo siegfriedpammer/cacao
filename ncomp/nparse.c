@@ -616,7 +616,7 @@ static void parse()
 			/************ load and store of object fields ********/
 
 			case JAVA_AASTORE:
-				BUILTIN3((functionptr) new_builtin_aastore, TYPE_VOID);
+				BUILTIN3((functionptr) asm_builtin_aastore, TYPE_VOID);
 				break;
 
 			case JAVA_PUTSTATIC:
@@ -707,7 +707,7 @@ static void parse()
 				/* array type cast-check */
 				if (class_constanttype (class, i) == CONSTANT_Arraydescriptor) {
 					LOADCONST_A(class_getconstant(class, i, CONSTANT_Arraydescriptor));
-					BUILTIN2((functionptr) new_builtin_checkarraycast, TYPE_ADR);
+					BUILTIN2((functionptr) asm_builtin_checkarraycast, TYPE_ADR);
 					}
 				else { /* object type cast-check */
 				 	OP2A(opcode, 1, (class_getconstant(class, i, CONSTANT_Class)));
@@ -732,11 +732,11 @@ static void parse()
 				if (checksync) {
 #ifdef SOFTNULLPTRCHECK
 					if (checknull) {
-						BUILTIN1((functionptr) new_builtin_monitorenter, TYPE_VOID);
+						BUILTIN1((functionptr) asm_builtin_monitorenter, TYPE_VOID);
 						}
 					else {
 /*						BUILTIN1((functionptr) builtin_monitorenter, TYPE_VOID); */
-						BUILTIN1((functionptr) new_builtin_monitorenter, TYPE_VOID);
+						BUILTIN1((functionptr) asm_builtin_monitorenter, TYPE_VOID);
 						}
 #else
 					BUILTIN1((functionptr) builtin_monitorenter, TYPE_VOID);
