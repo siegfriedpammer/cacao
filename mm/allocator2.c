@@ -6,7 +6,7 @@
  *
  * Authors: Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
  *
- * $Id: allocator2.c 104 1998-12-09 15:36:04Z phil $
+ * $Id: allocator2.c 105 1998-12-10 17:48:53Z phil $
  */
 
 #include "allocator.h"
@@ -259,7 +259,7 @@ allocator_init()
 {
 #if 0
 	fprintf(stderr, 
-			"allocator_init: $Id: allocator2.c 104 1998-12-09 15:36:04Z phil $\n\n");
+			"allocator_init: $Id: allocator2.c 105 1998-12-10 17:48:53Z phil $\n\n");
 	
 	fprintf(stderr, "\t%d bit addresses\n", ADDRESS);
 	fprintf(stderr, "\t%d bit alignment\n", ALIGN);
@@ -533,6 +533,29 @@ allocator_dump_to_file(FILE* file)
 	fflush(file);
 }
 
+
+void allocator_mark_free_kludge(BITBLOCK* bitmap)
+{
+	int i;
+
+	for (i = 1; i <= 1 << EXACT; ++i) {
+		FREE_EXACT*	chunk = freelist_exact[i];
+
+		while (chunk) {
+			bitmap_setbit(bitmap, chunk);
+			chunk = chunk->next;
+		}
+	}
+
+	for (i = 0; i < LARGE << SUBBIT; ++i) {
+		FREE_LARGE*	chunk = freelist_large[i];
+
+		while (chunk) {
+			bitmap_setbit(bitmap, chunk);
+			chunk = chunk->next;
+		}
+	}
+}
 
 
 /*

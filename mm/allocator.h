@@ -1,10 +1,12 @@
 /*
  * cacao/mm/allocator.h
- * $Id: allocator.h 93 1998-11-25 11:49:36Z phil $
+ * $Id: allocator.h 105 1998-12-10 17:48:53Z phil $
  */
 
 #ifndef __allocator_h_
 #define __allocator_h_
+
+#include "bitmap2.h"
 
 #ifndef YES
 #	define YES		1
@@ -101,6 +103,10 @@ void allocator_free(void* chunk, SIZE size);
 void* allocator_alloc(SIZE size);
 void allocator_init(void);
 void allocator_reset(void);
+
+void allocator_mark_free_kludge(BITBLOCK* bitmap);
+
+unsigned char find_highest(SIZE bits);
 
 #endif /* !defined(__allocator_h_) */
 

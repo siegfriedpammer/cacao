@@ -20,12 +20,13 @@
 #undef ALIGN
 #undef OFFSET
 
+//#define PSEUDO_GENERATIONAL
 //#define COLLECT_LIFESPAN
 //#define NEW_COLLECT_LIFESPAN
-#define COLLECT_FRAGMENTATION
+//#define COLLECT_FRAGMENTATION
 
-#define GC_COLLECT_STATISTICS
-#define FINALIZER_COUNTING
+//#define GC_COLLECT_STATISTICS
+//#define FINALIZER_COUNTING
 
 #undef STRUCTURES_ON_HEAP
 //#define STRUCTURES_ON_HEAP
@@ -484,6 +485,10 @@ __inline__
 static 
 void gc_reclaim (void)
 {
+#ifdef PSEUDO_GENERATIONAL
+	static void*  generation_start = 0;
+	staitc int    generation_num = 0;
+#endif
 	void* free_start;
 	void* free_end = heap_base;
 	BITBLOCK* temp_bits;
@@ -494,7 +499,19 @@ void gc_reclaim (void)
 	unsigned long  free_fragments = 0;
 #endif
 
+#ifdef PSEUDO_GENERATIONAL
+	if (!generation_start || !(generation_start % 5))
+		generation_start = heap_base;
+#endif
+
 	/* 1. reset the freelists */
+
+#if 1
+	allocator_mark_free_kludge(start_bits); /* this line will be kicked out, when
+											   the SIZE_FROM_CLASSINFO reclaim
+											   is implemented (very soon!!) */
+#endif
+
 	allocator_reset();
 
 	/* 2. reclaim unmarked objects */
@@ -542,9 +559,6 @@ void gc_reclaim (void)
 			}
 		} else {
 			free_end = heap_top;	
-#ifdef NEW_COLLECT_LIFESPAN
-			lifespan_free(free_start, free_end);
-#endif
 		}
 	}
 #endif
@@ -564,8 +578,12 @@ void gc_reclaim (void)
 #endif
 
 	/* 3.3. update heap_top */
-	if (free_start < heap_top)
+	if (free_start < heap_top) {
 		heap_top = free_start;
+#ifdef NEW_COLLECT_LIFESPAN
+			lifespan_free(free_start, free_end);
+#endif
+	}
 
 	if (heap_top < heap_limit)
 		bitmap_setbit(start_bits, heap_top);
@@ -590,6 +608,10 @@ void gc_reclaim (void)
 
 #ifdef COLLECT_LIFESPAN
 	fprintf(tracefile, "heap_top\t0x%lx\n", heap_top);
+#endif
+
+#ifdef PSEUDO_GENERATIONAL
+	generation_start = heap_top;
 #endif
 }
 
@@ -655,7 +677,8 @@ gc_mark_object_at (void** addr)
 
 
 	/* 1.a. if addr doesn't point into the heap, return. */
-	if ((unsigned long)addr - (unsigned long)heap_base >= heap_size) {
+	if ((unsigned long)addr - (unsigned long)heap_base >= 
+		(heap_top - heap_base)) {
 #ifdef GC_COLLECT_STATISTICS
 		++gc_mark_not_inheap;
 #endif

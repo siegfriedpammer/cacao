@@ -1,6 +1,6 @@
 /*
  * cacao/mm/lifespan.c
- * $Id: lifespan.c 100 1998-11-30 22:30:41Z phil $
+ * $Id: lifespan.c 105 1998-12-10 17:48:53Z phil $
  */
 
 #include "mm.h"
@@ -11,14 +11,19 @@
 
 typedef struct {
 	unsigned long time;
+	unsigned long number;
 	unsigned long size;
 } lifespan_object;
 
 static unsigned long     current_time = 0;
+static unsigned long     current_number = 0;
 static lifespan_object** lifespan_objects = NULL;
 static lifespan_object** lifespan_objects_end = NULL;
 static void*             lifespan_objects_off = NULL;
 static FILE*             lifespan_file = NULL;
+
+static unsigned long     lifespan_histo_size[64] = {};
+static unsigned long     lifespan_histo_lifespan[64] = {};
 
 void lifespan_init(void* heap_base, unsigned long heap_size)
 {
@@ -39,10 +44,37 @@ void lifespan_init(void* heap_base, unsigned long heap_size)
 
 static __inline__ void lifespan_free_object(lifespan_object** o)
 {
+	int size, high = 0;
 	/* file format: alloc time, size, lifespan */
 
 	if (*o) {
-		fprintf(lifespan_file, "%ld\t%ld\t%ld\n", (*o)->time, (*o)->size, current_time - (*o)->time);
+		fprintf(lifespan_file, 
+				"%ld\t%ld\t%ld\t%ld\t%ld\n", 
+				(*o)->number, 
+				(*o)->time, 
+				(*o)->size, 
+				current_number - (*o)->number,
+				current_time - (*o)->time);
+		
+		/* histo_size */
+		size = (*o)->size;
+		while (size) {
+			++high;
+			size = size >> 1;
+		}
+
+		++lifespan_histo_size[high];
+
+		/* histo_life */
+		high = 0;
+		size = current_time - (*o)->time;
+		while (size) {
+			++high;
+			size = size >> 1;
+		}
+
+		++lifespan_histo_lifespan[high];
+
 		free(*o);
 		*o = NULL;
 	}
@@ -64,6 +96,21 @@ void lifespan_close()
 void lifespan_emit()
 {
 	/* emit summary */
+	int i;
+
+	for (i = 4; i < 24; ++i)
+		fprintf(stderr, "%Lu-%Lu\t%Lu\n", 
+				(1LL << (i-1)), 
+				(1LL << i) - 1,
+				lifespan_histo_size[i]);
+
+	fprintf(stderr, "\n\n\n");
+
+	for (i = 4; i < 24; ++i)
+		fprintf(stderr, "%Lu-%Lu\t%Lu\n", 
+				(1LL << (i-1)), 
+				(1LL << i) - 1,
+				lifespan_histo_lifespan[i]);
 }
 
 void lifespan_free(void** from, void** limit)
@@ -89,6 +136,7 @@ void lifespan_alloc(void* addr, unsigned long size)
 	}
 	(*object)->time = current_time;
 	(*object)->size = size;
+	(*object)->number = ++current_number;
 	
 	current_time += size;
 }
