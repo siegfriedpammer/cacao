@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 2061 2005-03-23 11:10:33Z twisti $
+   $Id: utf8.h 2109 2005-03-29 16:46:00Z twisti $
 
 */
 
@@ -36,11 +36,25 @@
 #ifndef _UTF_H
 #define _UTF_H
 
-typedef struct utf utf;
-
 #include <stdio.h>
 
+
+/* forward typedefs ***********************************************************/
+
+typedef struct utf utf;
+
+
+#include "types.h"
 #include "vm/global.h"
+
+
+/* data structure for utf8 symbols ********************************************/
+
+struct utf {
+	utf  *hashlink;                     /* link for external hash chain       */
+	int   blength;                      /* text length in bytes               */
+	char *text;                         /* pointer to text                    */
+};
 
 
 /* utf-symbols for pointer comparison of frequently used strings **************/
@@ -102,23 +116,8 @@ extern utf *utf_java_lang_String__void;
 extern utf *utf_java_lang_String__java_lang_Class;
 extern utf *utf_java_lang_Throwable__void;
 
-extern utf* utf_java_lang_Character;
-extern utf* utf_java_lang_Boolean;
-extern utf* utf_java_lang_Byte;
-extern utf* utf_java_lang_Short;
-extern utf* utf_java_lang_Integer;
-extern utf* utf_java_lang_Long;
-extern utf* utf_java_lang_Float;
-extern utf* utf_java_lang_Double;
+extern utf *array_packagename;
 
-
-/* data structure for utf8 symbols ********************************************/
-
-struct utf {
-	utf  *hashlink;                     /* link for external hash chain       */
-	int   blength;                      /* text length in bytes               */
-	char *text;                         /* pointer to text                    */
-};
 
 /* function prototypes ********************************************************/
 
@@ -153,8 +152,11 @@ u4 u2_utflength(u2 *text, u4 u2_length);
 /* write utf symbol to file/buffer */
 void utf_display(utf *u);
 void utf_display_classname(utf *u);
+
 void utf_sprint(char *buffer, utf *u);
 void utf_sprint_classname(char *buffer, utf *u);
+void utf_strcat(char *buffer, utf *u);
+
 void utf_fprint(FILE *file, utf *u);
 void utf_fprint_classname(FILE *file, utf *u);
 
