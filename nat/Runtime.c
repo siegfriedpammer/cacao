@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Runtime.c 1465 2004-11-08 11:09:01Z twisti $
+   $Id: Runtime.c 1487 2004-11-12 11:25:19Z twisti $
 
 */
 
@@ -61,11 +61,17 @@
 #include <dlfcn.h>
 #endif
 
+/* this should work on BSD */
+/*
+#if defined(__DARWIN__)
+#include <sys/sysctl.h>
+#endif
+*/
+
 #undef JOWENN_DEBUG
 
 /* should we run all finalizers on exit? */
 static bool finalizeOnExit = false;
-
 
 /* temporary property structure */
 
@@ -253,6 +259,33 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
 
 #elif defined(_SC_NPROCESSORS_ONLN)
 	return (s4) sysconf(_SC_NPROCESSORS_ONLN);
+
+#elif defined(__DARWIN__)
+	/* this should work in BSD */
+	/*
+	int ncpu, mib[2], rc;
+	size_t len;
+
+	mib[0] = CTL_HW;
+	mib[1] = HW_NCPU;
+	len = sizeof(ncpu);
+	rc = sysctl(mib, 2, &ncpu, &len, NULL, 0);
+
+	return (s4) ncpu;
+	*/
+
+	host_basic_info_data_t hinfo;
+	mach_msg_type_number_t hinfo_count = HOST_BASIC_INFO_COUNT;
+	kern_return_t rc;
+
+	rc = host_info(mach_host_self(), HOST_BASIC_INFO,
+				   (host_info_t) &hinfo, &hinfo_count);
+ 
+	if (rc != KERN_SUCCESS) {
+		return -1;
+	}
+
+    return (s4) hinfo.avail_cpus;
 
 #else
 	return 1;
