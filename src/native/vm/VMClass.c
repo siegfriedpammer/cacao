@@ -181,6 +181,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses (J
   int pos = 0;                /* current declared class */
   int declaredclasscount = 0; /* number of declared classes */
   java_objectarray *result;   /* array of declared classes */
+  int notPublicOnly=!publicOnly;
   int i;
 
   if (!this)
@@ -189,14 +190,17 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses (J
   if (!this->vmData)
     return NULL;
 
-  if (!Java_java_lang_VMClass_isPrimitive(env, this) && (c->name->text[0]!='[')) {
+	printf("PublicOnly: %d\n",publicOnly);
+  if (!Java_java_lang_VMClass_isPrimitive(env, c) && (c->name->text[0]!='[')) {
     /* determine number of declared classes */
     for (i = 0; i < c->innerclasscount; i++) {
-      if (c->innerclass[i].outer_class == c) 
+      if ( (c->innerclass[i].outer_class == c) && (notPublicOnly || (c->flags & ACC_PUBLIC)))
         /* outer class is this class */
 	declaredclasscount++;
     }
   }
+
+  class_showmethods(c);
 
   result = builtin_anewarray(declaredclasscount, class_java_lang_Class);    	
 
@@ -205,7 +209,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses (J
     classinfo *inner =  c->innerclass[i].inner_class;
     classinfo *outer =  c->innerclass[i].outer_class;
       
-    if (outer == c) {
+    if ( (outer == c) && (notPublicOnly || (c->flags & ACC_PUBLIC))) {
       /* outer class is this class, store innerclass in array */
       use_class_as_object (inner);
       result->data[pos++] = (java_objectheader *) inner;
@@ -607,11 +611,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom ( JNIEnv *env ,  st
 	log_text("Java_java_lang_VMClass_isAssignableFrom");
 	if (!this) return 0;
 	if (!sup) return 0;
-	if (!sup->vmClass) {
+	if (!this->vmData) {
 		panic("sup->vmClass is NULL in VMClass.isAssignableFrom");
 		return 0;
 	}
- 	return (*env)->IsAssignableForm(env, (jclass) (this->vmData), (jclass) sup/*->vmClass*/);
+ 	return (*env)->IsAssignableForm(env, (jclass) sup, (jclass) (this->vmData));
 }
 
 /*
@@ -621,7 +625,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom ( JNIEnv *env ,  st
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance ( JNIEnv *env ,  struct java_lang_VMClass* this, struct java_lang_Object* obj)
 {
-	classinfo *clazz = (classinfo*) this;
+	classinfo *clazz = (classinfo*) (this->vmData);
 	return (*env)->IsInstanceOf(env,(jobject) obj,clazz);
 }
 

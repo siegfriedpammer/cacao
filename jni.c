@@ -217,6 +217,10 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		switch (utf_nextu2(utf_ptr)) {
 		case 'B': 	
 				param=params->data[cnts];
+				if (param==0) {
+					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					return 0;
+				}
 				if (param->vftbl->class->name==utf_byte) {
 					blk[cnt].itemtype=TYPE_INT;
 					blk[cnt].item = (u8) ((struct java_lang_Byte * )param)->value;
@@ -227,6 +231,10 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 			  	break;
 		case 'C':
 				param=params->data[cnts];
+				if (param==0) {
+					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					return 0;
+				}
 				if (param->vftbl->class->name==utf_char) {
 					blk[cnt].itemtype=TYPE_INT;
 					blk[cnt].item = (u8) ((struct java_lang_Character * )param)->value;
@@ -238,6 +246,10 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 
 		case 'S': 
 				param=params->data[cnts];
+				if (param==0) {
+					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					return 0;
+				}
 				if (param->vftbl->class->name==utf_short) {
 					blk[cnt].itemtype=TYPE_INT;
 					blk[cnt].item = (u8) ((struct java_lang_Short* )param)->value;
@@ -254,6 +266,10 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 
 		case 'Z':
 				param=params->data[cnts];
+				if (param==0) {
+					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					return 0;
+				}
 				if (param->vftbl->class->name==utf_bool) {
 					blk[cnt].itemtype=TYPE_INT;
 					blk[cnt].item = (u8) ((struct java_lang_Boolean * )param)->value;
@@ -266,6 +282,10 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'I':
 				log_text("fill_callblock_objA: param 'I'");
 				param=params->data[cnts];
+				if (param==0) {
+					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					return 0;
+				}
 				if (param->vftbl->class->name==utf_int) {
 					blk[cnt].itemtype=TYPE_INT;
 					blk[cnt].item = (u8) ((struct java_lang_Integer * )param)->value;
@@ -288,6 +308,10 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 			  	break;
 		case 'J':
 				param=params->data[cnts];
+				if (param==0) {
+					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					return 0;
+				}
 				if (param->vftbl->class->name==utf_long) {
 					blk[cnt].itemtype=TYPE_LNG;
 					blk[cnt].item = (u8) ((struct java_lang_Long * )param)->value;
@@ -315,6 +339,11 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 
 		case 'F' : 
 				param=params->data[cnts];
+				if (param==0) {
+					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					return 0;
+				}
+
 				if (param->vftbl->class->name==utf_float) {
 					blk[cnt].itemtype=TYPE_FLT;
 				 	*((jfloat*)(&blk[cnt].item))=(jfloat) ((struct java_lang_Float*)param)->value;
@@ -325,6 +354,11 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 	                 	break;
 	      	case 'D' : 
 				param=params->data[cnts];
+				if (param==0) {
+					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					return 0;
+				}
+
 				if (param->vftbl->class->name==utf_double) {
 					blk[cnt].itemtype=TYPE_DBL;
 				 	*((jdouble*)(&blk[cnt].item))=(jdouble) ((struct java_lang_Float*)param)->value;
@@ -952,8 +986,11 @@ jobject NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID, jvalue *args)
 jclass GetObjectClass(JNIEnv* env, jobject obj)
 {
  	classinfo *c = obj->vftbl->class;
+/*	log_text("GetObjectClass");
+	utf_display(obj->vftbl->class->name);*/
 	use_class_as_object(c);
 
+	/*printf("\nPointer: %p\n",c);*/
 	return c;
 }
 
@@ -3155,10 +3192,13 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 	}
         argcount=get_parametercount(methodID);
 
-	if (obj && (! builtin_instanceof((java_objectheader*)obj,methodID->class))) {
-		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
-		return 0;
-	}
+    	if (obj && (!builtin_instanceof((java_objectheader*)obj,methodID->class))) {
+         	(*env)->ThrowNew(env,loader_load(utf_new_char("java/lang/IllegalArgumentException")),
+                	"Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
+        	return 0;
+    	}
+
+
 
 	if  (argcount>3) {
 		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
@@ -3172,6 +3212,15 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		return 0;
 	}
+
+
+         if (!(methodID->flags & ACC_STATIC) && (!obj))  {
+         	(*env)->ThrowNew(env,loader_load(utf_new_char("java/lang/NullPointerException")),
+                	"Static mismatch in Java_java_lang_reflect_Method_invokeNative");
+         	return 0;
+    	}
+
+	if ((methodID->flags & ACC_STATIC) && (obj)) obj=0;
 
 	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
 

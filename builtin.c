@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 682 2003-12-01 15:33:30Z jowenn $
+   $Id: builtin.c 685 2003-12-04 01:25:54Z jowenn $
 
 */
 
@@ -550,6 +550,9 @@ java_arrayheader *builtin_newarray(s4 size,vftbl *arrayvftbl)
 
         if (!a) return NULL;
         memset(a,0,actualsize);
+
+
+	/*printf("builtin_newarray: Created an array of size : %d\n",size);*/
 
         a->objheader.vftbl = arrayvftbl;
         a->size = size;

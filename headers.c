@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 682 2003-12-01 15:33:30Z jowenn $
+   $Id: headers.c 685 2003-12-04 01:25:54Z jowenn $
 
 */
 
@@ -596,9 +596,12 @@ int main(int argc, char **argv)
 	fprintf(file, "#define offbaseval     %3d\n", (int) OFFSET(vftbl, baseval));
 	fprintf(file, "#define offdiffval     %3d\n\n", (int) OFFSET(vftbl, diffval));
 
+	fprintf(file, "#define offclassvftbl    %3d\n", (int) OFFSET(classinfo, vftbl));
+
 	fprintf(file, "#define offjniitemtype %3d\n", (int) OFFSET(jni_callblock, itemtype));
 	fprintf(file, "#define offjniitem     %3d\n", (int) OFFSET(jni_callblock, item));
 	fprintf(file, "#define sizejniblock   %3d\n\n", (int) sizeof(jni_callblock));
+
 
 	fclose(file);
 

@@ -86,19 +86,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeN
                 panic("error illegal slot for method in class(getParameterTypes)");
     }
 
-    mi=&(c->methods[this->slot]);
-    if ( ((mi->flags & ACC_STATIC) && (obj))
-	 || (!(mi->flags & ACC_STATIC) && (!obj)) ) {
-	 (*env)->ThrowNew(env,loader_load(utf_new_char("java/lang/NullPointerException")),
-		"Static mismatch in Java_java_lang_reflect_Method_invokeNative");
-	 return 0;
-    }
-
-    if (obj && (!builtin_instanceof((java_objectheader*)obj,c))) {
-	 (*env)->ThrowNew(env,loader_load(utf_new_char("java/lang/IllegalArgumentException")),
-		"Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
-	return 0;
-    }
+    mi=&(c->methods[slot]);
 
     return jni_method_invokeNativeHelper(env,mi,obj,params);
 }

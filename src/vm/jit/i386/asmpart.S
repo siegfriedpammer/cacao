@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger                                               *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 665 2003-11-21 18:36:43Z jowenn $        *
+*   Last Change: $Id: asmpart.S 685 2003-12-04 01:25:54Z jowenn $        *
 *                                                                              *
 *******************************************************************************/
 
@@ -618,7 +618,7 @@ ex_table_loop:
 		je		ex_handle_it
 
 		movl	offobjvftbl(%eax),%esi		/* %esi = vftblptr(xptr) */
-		movl	offobjvftbl(%ebx),%ebx		/* %ebx = vftblptr(catchtype) class (not obj) */
+		movl	offclassvftbl(%ebx),%ebx		/* %ebx = vftblptr(catchtype) class (not obj) */
 		movl	offbaseval(%esi),%esi		/* %esi = baseval(xptr) */
 		movl	offbaseval(%ebx),%edx		/* %edx = baseval(catchtype) */
 		movl	offdiffval(%ebx),%ebx		/* %ebx = diffval(catchtype) */
