@@ -15,7 +15,7 @@ ASMPART="asmpart.S"
 case "$host_cpu" in
 alpha* )
 	SYSDEP_DIR="alpha"
-	CFLAGS="-ieee -O2 -g3 -D__ALPHA__"
+	CFLAGS="-mieee -O2 -g3 -D__ALPHA__"
 	COMPILER_OBJECTS="compiler.o"
 	AC_DEFINE(OLD_COMPILER)
 	AC_DEFINE(TRACE_ARGS_NUM, 6)
