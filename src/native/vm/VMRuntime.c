@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1173 2004-06-16 14:56:18Z jowenn $
+   $Id: VMRuntime.c 1300 2004-07-11 11:20:47Z stefan $
 
 */
 
@@ -163,7 +163,9 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalization(JNIEnv *env, jcl
  */
 JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizersOnExit(JNIEnv *env, jclass clazz, s4 par1)
 {
+#ifdef __GNUC__
 #warning threading
+#endif
 	shouldFinalizersBeRunOnExit=par1;
 }
 
