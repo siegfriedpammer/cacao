@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1126 2004-06-03 21:35:05Z twisti $
+   $Id: codegen.c 1134 2004-06-05 17:38:00Z twisti $
 
 */
 
@@ -3551,13 +3551,6 @@ gen_method: {
 	u1 *xcodeptr = NULL;
 	
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(mcodebase + xboundrefs->branchpos, 
-							  xboundrefs->branchpos,
-							  xcodeptr - mcodebase - (3 + 10 + 10 + 3));
-			continue;
-		}
-
 		gen_resolvebranch(mcodebase + xboundrefs->branchpos, 
 		                  xboundrefs->branchpos,
 						  mcodeptr - mcodebase);
