@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1161 2004-06-11 20:41:38Z stefan $
+   $Id: codegen.c 1162 2004-06-12 13:29:07Z stefan $
 
 */
 
@@ -3996,15 +3996,15 @@ void removecompilerstub(u1 *stub)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 #define NATIVESTUBSTACK          2
-#define NATIVESTUBTHREADEXTRA    5
+#define NATIVESTUBTHREADEXTRA    6
 #else
 #define NATIVESTUBSTACK          1
-#define NATIVESTUBTHREADEXTRA    0
+#define NATIVESTUBTHREADEXTRA    1
 #endif
 
-#define NATIVESTUBSIZE           (44 + NATIVESTUBTHREADEXTRA)
+#define NATIVESTUBSIZE           (44 + NATIVESTUBTHREADEXTRA - 1)
 #define NATIVESTATICSIZE         5
-#define NATIVEVERBOSESIZE        (39 + 13 + NATIVESTUBTHREADEXTRA)
+#define NATIVEVERBOSESIZE        (39 + 13)
 #define NATIVESTUBOFFSET         9
 
 u1 *createnativestub(functionptr f, methodinfo *m)
