@@ -1,4 +1,4 @@
-/* nat/VMSystem.c - java/lang/System
+/* native/vm/VMSystem.c - java/lang/VMSystem
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,19 +28,20 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSystem.c 1344 2004-07-21 17:12:53Z twisti $
+   $Id: VMSystem.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #include <string.h>
 #include <time.h>
-#include "exceptions.h"
-#include "jni.h"
-#include "builtin.h"
-#include "native.h"
+
+#include "native/jni.h"
+#include "native/native.h"
+#include "native/include/java_lang_Object.h"
 #include "toolbox/logging.h"
-#include "java_lang_Object.h"
+#include "vm/exceptions.h"
+#include "vm/builtin.h"
 
 
 /*

@@ -1,4 +1,4 @@
-/* options.h - define global options extern
+/* vm/options.h - define global options extern
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.h 1590 2004-11-25 13:24:49Z christian $
+   $Id: options.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -36,7 +36,7 @@
 #define _OPTIONS_H
 
 
-#include "global.h"
+#include "vm/global.h"
 
 
 /* reserved option numbers ****************************************************/
@@ -83,7 +83,7 @@ extern bool showdisassemble;
 extern bool showddatasegment;
 extern bool showintermediate;
 
-/*#undef INAFTERMAIN  /*use to inline system methods before main is called*/
+/*#undef INAFTERMAIN*/  /*use to inline system methods before main is called*/
 #define INAFTERMAIN T /*use to turn off inlining before main called */
 extern bool useinliningm;
 extern bool useinlining;

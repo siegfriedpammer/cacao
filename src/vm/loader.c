@@ -1,4 +1,4 @@
-/* loader.c - class loader functions
+/* vm/loader.c - class loader functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1553 2004-11-19 15:47:13Z carolyn $
+   $Id: loader.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -41,25 +41,36 @@
 #include <string.h>
 #include <assert.h>
 #include <sys/stat.h>
-#include "exceptions.h"
-#include "global.h"
-#include "loader.h"
-#include "options.h"
-#include "native.h"
-#include "tables.h"
-#include "builtin.h"
-#include "jit/jit.h"
-#include "asmpart.h"
-#include "statistics.h"
-#include "toolbox/memory.h"
-#include "toolbox/logging.h"
-#include "threads/thread.h"
-#include "threads/locks.h"
-#include "nat/java_lang_Throwable.h"
 
-#ifdef USE_ZLIB
-#include "unzip.h"
+#include "mm/memory.h"
+#include "native/native.h"
+#include "native/include/java_lang_Throwable.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+#  include "threads/green/locks.h"
+# endif
 #endif
+
+#include "toolbox/logging.h"
+#include "vm/exceptions.h"
+#include "vm/builtin.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
+#include "vm/tables.h"
+
+#if defined(USE_ZLIB)
+#include "vm/unzip.h"
+#endif
+
+#include "vm/jit/asmpart.h"
+#include "vm/jit/jit.h"
+
 
 #undef JOWENN_DEBUG
 #undef JOWENN_DEBUG1

@@ -2,7 +2,7 @@ dnl autoconf; autoheader; automake
 
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(cacao, 0.40, cacao@complang.tuwien.ac.at)
-AC_CONFIG_SRCDIR(main.c)
+AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE
@@ -179,34 +179,34 @@ no | none | single)
 	AC_MSG_RESULT(no)
 	dnl no threads for boehm
 	ac_configure_args="$ac_configure_args --disable-boehm-threads"
+	AM_CONDITIONAL([USE_THREADS], [false])
 	;;
+
 green | native | posix | pthreads)
 	AC_DEFINE([USE_THREADS], 1, [use threads])
 	AC_DEFINE([EXTERNAL_OVERFLOW], 1, [external overflow])
 	AC_DEFINE([DONT_FREE_FIRST], 1, [don't free first])
 
-	LIBTHREAD="libthreads.a"
-	THREAD_OBJ="threads/libthreads.a"
-	AC_SUBST(LIBTHREAD)
-	AC_SUBST(THREAD_OBJ)
+	AM_CONDITIONAL([USE_THREADS], [true])
 
 	if test x"$enable_threads" != "xgreen"; then
-		AC_DEFINE([NATIVE_THREADS], 1, [use pthreads])
-		THREAD_LIB="-lpthread"
-		AC_SUBST(THREAD_LIB)
 		AC_MSG_RESULT(yes, native)
                 AC_CHECK_LIB(pthread, main)
+		AC_DEFINE([NATIVE_THREADS], 1, [use pthreads])
 
 		CFLAGS="$CFLAGS -D_REENTRANT"
 
 		dnl tell boehm to support threads as well and classpath to
                 dnl synchronize VM threads portably
 		ac_configure_args="$ac_configure_args --enable-boehm-threads=posix --enable-portable-native-sync"
+		AM_CONDITIONAL([NATIVE_THREADS], [true])
+
 	else
 		AC_MSG_RESULT(yes, green)
 
 		dnl no threads for boehm
 		ac_configure_args="$ac_configure_args --disable-boehm-threads"
+		AM_CONDITIONAL([NATIVE_THREADS], [false])
 	fi
     ;;
 *)
@@ -324,48 +324,55 @@ fi
 
 
 if test "x1" == "x$STATIC_CLASSPATH"; then
-	STATIC_CLASSPATH_LIBS=" \
-        classpath/native/jni/java-io/.libs/libjavaio.a \
-        classpath/native/jni/java-nio/.libs/libjavanio.a \
-        classpath/native/jni/java-net/.libs/libjavanet.a \
-        classpath/native/jni/java-util/.libs/libjavautil.a \
-        classpath/native/jni/java-lang/.libs/libjavalang.a \
-        classpath/native/jni/java-lang/.libs/libjavalangreflect.a"
-        DYNAMIC_CLASSPATH_LIBS=""
-	AC_SUBST(STATIC_CLASSPATH_LIBS)
-	AC_SUBST(DYNAMIC_CLASSPATH_LIBS)
         AC_DEFINE([STATIC_CLASSPATH], 1, [use classpath statically linked])
+	AM_CONDITIONAL([STATIC_CLASSPATH], [true])
 
 else
-	DYNAMIC_CLASSPATH_LIBS="-ldl -Wl,--export-dynamic"
-	STATIC_CLASSPATH_LIBS=""
-	AC_SUBST(STATIC_CLASSPATH_LIBS)
-	AC_SUBST(DYNAMIC_CLASSPATH_LIBS)
+	AM_CONDITIONAL([STATIC_CLASSPATH], [false])
 fi
-
-
 
 
 dnl now configure boehm gc and gnu classpath
 dnl the export is not my favorite (is there another way?)
 export CFLAGS
 export CACAO_GTK
-AC_CONFIG_SUBDIRS(mm/boehm-gc classpath)
+AC_CONFIG_SUBDIRS(src/boehm-gc src/classpath)
 
 
 AC_OUTPUT(Makefile \
-          mm/Makefile \
-	  toolbox/Makefile \
-	  threads/Makefile \
-	  jit/Makefile \
-          jit/loop/Makefile \
-          jit/alpha/Makefile \
-          jit/i386/Makefile \
-          jit/mips/Makefile \
-          jit/powerpc/Makefile \
-          jit/x86_64/Makefile \
-          nat/Makefile \
           doc/Makefile \
-	  tst/Makefile \
-	  tst/kaffe/Makefile \
-	  jvmtst/Makefile )
+          src/Makefile \
+	  src/cacao/Makefile \
+          src/cacaoh/Makefile \
+          src/mm/Makefile \
+          src/native/Makefile \
+          src/native/include/Makefile \
+          src/native/tools/Makefile \
+          src/native/vm/Makefile \
+	  src/threads/Makefile \
+	  src/threads/green/Makefile \
+	  src/threads/native/Makefile \
+          src/toolbox/Makefile \
+          src/vm/Makefile \
+	  src/vm/jit/Makefile \
+          src/vm/jit/alpha/Makefile \
+          src/vm/jit/i386/Makefile \
+          src/vm/jit/inline/Makefile \
+          src/vm/jit/loop/Makefile \
+          src/vm/jit/mips/Makefile \
+          src/vm/jit/powerpc/Makefile \
+          src/vm/jit/tools/Makefile \
+          src/vm/jit/verify/Makefile \
+          src/vm/jit/x86_64/Makefile \
+	  tests/Makefile \
+          tests/jvm98/Makefile \
+	  tests/kaffe/Makefile )
+
+
+## Local variables:
+## mode: m4
+## indent-tabs-mode: t
+## c-basic-offset: 4
+## tab-width: 8
+## compile-command: "automake --add-missing"
+## End:

@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1557 2004-11-22 12:01:16Z carolyn $
+   $Id: parseRT.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -60,18 +60,19 @@ Results: (currently) with -stat see # methods marked used
 
 #include <stdio.h>
 #include <string.h>
-#include "tables.h"
 
-#include "statistics.h"
-#include "loader.h"
-#include "main.h"
-#include "options.h"
-#include "jit/jit.h"
-#include "jit/parse.h"
+#include "cacao/cacao.h"
+#include "mm/memory.h"   
 #include "toolbox/list.h"
-#include "toolbox/memory.h"   
-#include "parseRT.h"
-#include "parseRTstats.h"
+#include "vm/tables.h"
+#include "vm/statistics.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/parse.h"
+#include "vm/jit/inline/parseRT.h"
+#include "vm/jit/inline/parseRTstats.h"
+
 
 static bool firstCall= true;
 static list *rtaWorkList;

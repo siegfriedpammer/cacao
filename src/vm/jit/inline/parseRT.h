@@ -26,14 +26,15 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.h 1557 2004-11-22 12:01:16Z carolyn $
+   $Id: parseRT.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 #ifndef _PARSERT_H
 #define _PARSERT_H
 
-#include "global.h"
+#include "vm/global.h"
+
 
 extern FILE *rtMissed;   /* Methods missed during RTA parse of Main  */
 

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: codegen.inc.h 1605 2004-11-29 10:06:02Z twisti $
+   $Id: codegen.inc.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -47,9 +47,9 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 
 
 #include "types.h"
-#include "global.h"
-#include "jit/inline.h"
-#include "jit/reg.h"
+#include "vm/global.h"
+#include "vm/jit/reg.h"
+#include "vm/jit/inline/inline.h"
 
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */

@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.h 1434 2004-11-05 09:46:07Z twisti $
+   $Id: logging.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -41,7 +41,7 @@
 #include <sys/mman.h>
 /*  #define panic cacao_panic */
 
-#include "global.h"
+#include "vm/global.h"
 
 
 #define MAXLOGTEXT 500

@@ -1,4 +1,4 @@
-/* exceptions.h - exception related functions prototypes
+/* vm/exceptions.h - exception related functions prototypes
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 1578 2004-11-24 13:31:00Z twisti $
+   $Id: exceptions.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -36,8 +36,8 @@
 
 
 #include "global.h"
-#include "nat/java_lang_String.h"
-#include "nat/java_lang_Throwable.h"
+#include "native/include/java_lang_String.h"
+#include "native/include/java_lang_Throwable.h"
 
 
 /* system exception classes required in cacao */

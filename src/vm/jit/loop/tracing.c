@@ -1,4 +1,4 @@
-/* jit/loop/tracing.c - trace functions
+/* vm/jit/loop/tracing.c - trace functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -31,15 +31,16 @@
    instruction. For more details see function tracing(basicblock, int,
    int) below.
 
-   $Id: tracing.c 1454 2004-11-05 14:19:32Z twisti $
+   $Id: tracing.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
-#include <stdio.h>
-#include "jit/loop/tracing.h"
-#include "jit/loop/loop.h"
-#include "toolbox/memory.h"
+/*  #include <stdio.h> */
+
+#include "mm/memory.h"
+#include "vm/jit/loop/loop.h"
+#include "vm/jit/loop/tracing.h"
 
 
 /*	Test function -> will be removed in final release

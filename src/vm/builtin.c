@@ -1,4 +1,4 @@
-/* builtin.c - functions for unsupported operations
+/* vm/builtin.c - functions for unsupported operations
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1542 2004-11-18 12:19:49Z twisti $
+   $Id: builtin.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -42,21 +42,30 @@
 #include <assert.h>
 #include <string.h>
 #include <math.h>
-#include "exceptions.h"
-#include "global.h"
-#include "options.h"
-#include "builtin.h"
-#include "native.h"
-#include "loader.h"
-#include "tables.h"
-#include "asmpart.h"
+
 #include "mm/boehm.h"
-#include "threads/thread.h"
-#include "threads/locks.h"
+#include "mm/memory.h"
+#include "native/native.h"
+#include "native/include/java_lang_Cloneable.h"
+#include "native/include/java_lang_VMObject.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+#  include "threads/green/locks.h"
+# endif
+#endif
+
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
-#include "nat/java_lang_Cloneable.h"
-#include "nat/java_lang_VMObject.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
 
 
 #undef DEBUG /*define DEBUG 1*/

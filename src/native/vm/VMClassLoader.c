@@ -1,4 +1,4 @@
-/* nat/VMClassLoader.c - java/lang/ClassLoader
+/* native/vm/VMClassLoader.c - java/lang/VMClassLoader
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,21 +28,21 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClassLoader.c 1536 2004-11-18 10:40:43Z twisti $
+   $Id: VMClassLoader.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
-#include "exceptions.h"
-#include "jni.h"
-#include "loader.h"
-#include "native.h"
-#include "builtin.h"
-#include "tables.h"
+#include "native/jni.h"
+#include "native/native.h"
+#include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_String.h"
+#include "native/include/java_lang_ClassLoader.h"
 #include "toolbox/logging.h"
-#include "nat/java_lang_Class.h"
-#include "nat/java_lang_String.h"
-#include "nat/java_lang_ClassLoader.h"
+#include "vm/exceptions.h"
+#include "vm/builtin.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
 
 
 /*

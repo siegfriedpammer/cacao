@@ -1,4 +1,4 @@
-/* typeinfo.c - type system used by the type checker
+/* vm/jit/verify/typeinfo.c - type system used by the type checker
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,19 +26,19 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 1296 2004-07-10 17:02:15Z stefan $
+   $Id: typeinfo.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
-#include <stdlib.h>
 #include <string.h>
-#include "typeinfo.h"
-#include "tables.h"
-#include "loader.h"
+
+#include "mm/memory.h"
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
-#include "jit/jit.h" /* XXX move typeinfo.* into jit/ */
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/verify/typeinfo.h"
 
 
 #define CLASS_IMPLEMENTS_INTERFACE(cls,index)                   \

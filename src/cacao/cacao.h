@@ -1,4 +1,4 @@
-/* main.h - main header, contains global variables
+/* cacao/cacao.h - main header, contains global variables
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,29 +27,29 @@
 
    Authors: Christian Thalinger
 
-   $Id: cacao.h 1359 2004-07-28 10:48:36Z twisti $
+   $Id: cacao.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
-#ifndef _MAIN_H
-#define _MAIN_H
+#ifndef _CACAO_H
+#define _CACAO_H
 
-#include "global.h"
+#include "vm/global.h"
 
 
-/* global variables */
+/* global variables ***********************************************************/
 
 extern char *classpath;
 extern char *mainstring;    /* class.method with main method */
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 void cacao_exit(s4 status);
 void cacao_shutdown(s4 status);
 
-#endif /* _MAIN_H */
+#endif /* _CACAO_H */
 
 
 /*

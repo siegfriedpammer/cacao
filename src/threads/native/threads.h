@@ -1,13 +1,46 @@
+/* threads/native/threads.h - native threads header
+
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Stefan Ring
+
+   $Id: threads.h 1621 2004-11-30 13:06:55Z twisti $
+
+*/
+
+
 #ifndef _NATIVETHREAD_H
 #define _NATIVETHREAD_H
 
 #include <semaphore.h>
 
-#include "jni.h"
-#include "nat/java_lang_Object.h"       /* required by java/lang/VMThread     */
-#include "nat/java_lang_Thread.h"
-#include "nat/java_lang_VMThread.h"
-#include "toolbox/memory.h"
+#include "mm/memory.h"
+#include "native/jni.h"
+#include "native/include/java_lang_Object.h" /* required by java/lang/VMThread*/
+#include "native/include/java_lang_Thread.h"
+#include "native/include/java_lang_VMThread.h"
 
 #if defined(__DARWIN__)
 #include <mach/mach.h>
@@ -15,6 +48,13 @@
 /* We need to emulate recursive mutexes. */
 #define MUTEXSIM
 #endif
+
+
+typedef struct {
+	s4 super_baseval;
+	s4 super_diffval;
+	s4 sub_baseval;
+} castinfo;
 
 struct _threadobject;
 
@@ -127,7 +167,7 @@ extern __thread threadobject *threadobj;
 #define THREADINFO (&threadobj->info)
 #endif
 
-#include "builtin.h"
+/*#include "builtin.h"*/
 
 /* This must not be changed, it is used in asm_criticalsections */
 typedef struct {

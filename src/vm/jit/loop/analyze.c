@@ -1,4 +1,4 @@
-/* jit/loop/analyze.c - bound check removal functions
+/* vm/jit/loop/analyze.c - bound check removal functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -32,7 +32,7 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 1531 2004-11-17 20:45:56Z christian $
+   $Id: analyze.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -40,13 +40,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "jit/loop/analyze.h"
-#include "jit/jit.h"
-#include "jit/loop/loop.h"
-#include "jit/loop/graph.h"
-#include "jit/loop/tracing.h"
+
+#include "mm/memory.h"
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/loop/analyze.h"
+#include "vm/jit/loop/graph.h"
+#include "vm/jit/loop/loop.h"
+#include "vm/jit/loop/tracing.h"
 
  
 #ifdef LOOP_DEBUG

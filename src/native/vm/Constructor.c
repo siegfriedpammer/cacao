@@ -1,4 +1,4 @@
-/* nat/Constructor.c - java/lang/reflect/Constructor
+/* native/vm/Constructor.c - java/lang/reflect/Constructor
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,24 +28,25 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Constructor.c 1537 2004-11-18 12:12:05Z twisti $
+   $Id: Constructor.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #include <string.h>
-#include "jni.h"
-#include "builtin.h"
-#include "exceptions.h"
-#include "loader.h"
-#include "native.h"
-#include "tables.h"
-#include "asmpart.h"
-#include "options.h"
+
+#include "native/jni.h"
+#include "native/native.h"
+#include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_reflect_Constructor.h"
 #include "toolbox/logging.h"
-#include "nat/java_lang_Object.h"
-#include "nat/java_lang_Class.h"
-#include "nat/java_lang_reflect_Constructor.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
 
 
 /*

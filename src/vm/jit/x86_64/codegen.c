@@ -28,29 +28,30 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1607 2004-11-29 10:11:03Z twisti $
+   $Id: codegen.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
+
 #define _GNU_SOURCE
 
-#include "global.h"
 #include <stdio.h>
-#include <signal.h>
-#include <sys/ucontext.h>
-#include "builtin.h"
-#include "asmpart.h"
-#include "jni.h"
-#include "loader.h"
-#include "tables.h"
-#include "native.h"
-#include "jit/jit.h"
-#include "jit/reg.h"
-#include "jit/parse.h"
-#include "jit/x86_64/arch.h"
-#include "jit/x86_64/codegen.h"
-#include "jit/x86_64/emitfuncs.h"
-#include "jit/x86_64/types.h"
+#include <ucontext.h>
+
+#include "native/native.h"
+/*  #include "native/jni.h" */
+#include "vm/global.h"
+#include "vm/builtin.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/reg.h"
+#include "vm/jit/parse.h"
+#include "vm/jit/x86_64/arch.h"
+#include "vm/jit/x86_64/codegen.h"
+#include "vm/jit/x86_64/emitfuncs.h"
+#include "vm/jit/x86_64/types.h"
 
 
 /* register descripton - array ************************************************/
@@ -87,9 +88,9 @@ static int nregdescfloat[] = {
 
 *******************************************************************************/
 
-#include "jit/codegen.inc"
-#include "jit/reg.inc"
-#include "jit/lsra.inc"
+#include "vm/jit/codegen.inc"
+#include "vm/jit/reg.inc"
+#include "vm/jit/lsra.inc"
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)

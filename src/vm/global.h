@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1510 2004-11-17 11:33:44Z twisti $
+   $Id: global.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -39,10 +39,40 @@
 #ifndef _GLOBAL_H
 #define _GLOBAL_H
 
-
 #include "config.h"
 #include "types.h"
+
+
+/* resolve typedef cycles *****************************************************/
+
+typedef struct utf utf;
+typedef struct literalstring literalstring;
+typedef struct java_objectheader java_objectheader; 
+typedef struct classinfo classinfo; 
+typedef struct _vftbl vftbl_t;
+typedef u1* methodptr;
+typedef struct fieldinfo  fieldinfo; 
+typedef struct exceptiontable exceptiontable;
+typedef struct methodinfo methodinfo; 
+typedef struct lineinfo lineinfo; 
+typedef struct arraydescriptor arraydescriptor;
+
+
+/* additional data types ******************************************************/
+
+typedef void *voidptr;                  /* generic pointer                    */
+typedef void (*functionptr) ();         /* generic function pointer           */
+
+typedef int   bool;                     /* boolean data type                  */
+
+#define true  1
+#define false 0
+
+
+/* additional includes ********************************************************/
+
 #include "toolbox/list.h"
+#include "vm/jit/inline/sets.h"
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -91,17 +121,6 @@
 #define TYPECHECK_VERBOSE_OPT
 #endif
 #endif
-
-
-/* additional data types ******************************************************/
-
-typedef void *voidptr;                  /* generic pointer                    */
-typedef void (*functionptr) ();         /* generic function pointer           */
-
-typedef int   bool;                     /* boolean data type                  */
-
-#define true  1
-#define false 0
 
 
 /* immediate data union */
@@ -180,21 +199,7 @@ typedef union {
 #define ACC_NATIVE                0x0100
 #define ACC_INTERFACE             0x0200
 #define ACC_ABSTRACT              0x0400
-#define ACC_STRICT		  0x0800
-
-/* resolve typedef cycles *****************************************************/
-
-typedef struct utf utf;
-typedef struct literalstring literalstring;
-typedef struct java_objectheader java_objectheader; 
-typedef struct classinfo classinfo; 
-typedef struct _vftbl vftbl_t;
-typedef u1* methodptr;
-typedef struct fieldinfo  fieldinfo; 
-typedef struct exceptiontable exceptiontable;
-typedef struct methodinfo methodinfo; 
-typedef struct lineinfo lineinfo; 
-typedef struct arraydescriptor arraydescriptor;
+#define ACC_STRICT                0x0800
 
 
 /* constant pool entries *******************************************************
@@ -490,7 +495,6 @@ typedef struct primitivetypeinfo {
 
 /* field, method and class structures *****************************************/
 
-#include "jit/sets.h"
 typedef	struct xtafldinfo {
 	bool       fieldChecked; 		
 	classinfo *fldClassType;

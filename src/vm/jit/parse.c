@@ -1,4 +1,4 @@
-/* jit/parse.c - parser for JavaVM to intermediate code translation
+/* vm/jit/parse.c - parser for JavaVM to intermediate code translation
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1588 2004-11-24 14:30:21Z twisti $
+   $Id: parse.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -37,22 +37,23 @@
 #include <string.h>
 
 #include "config.h"
-#include "parse.h"
-#include "global.h"
-#include "jit.h"
-#include "parseRT.h"
-#include "inline.h"
-#include "loop/loop.h"
 #include "types.h"
-#include "builtin.h"
-#include "exceptions.h"
-#include "tables.h"
-#include "native.h"
-#include "loader.h"
-#include "options.h"
-#include "statistics.h"
-#include "toolbox/memory.h"
+#include "mm/memory.h"
+#include "native/native.h"
 #include "toolbox/logging.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
+#include "vm/tables.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/parse.h"
+#include "vm/jit/inline/parseRT.h"
+#include "vm/jit/inline/inline.h"
+#include "vm/jit/loop/loop.h"
+
 
 #define METHINFO(mm) \
         { \

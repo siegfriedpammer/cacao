@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: types.h 1580 2004-11-24 13:56:44Z twisti $
+   $Id: types.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -34,7 +34,7 @@
 #ifndef _CACAO_TYPES_H
 #define _CACAO_TYPES_H
 
-#include "jit/x86_64/arch.h"
+#include "vm/jit/x86_64/arch.h"
 
 
 /* define the sizes of the integer types used internally by cacao */

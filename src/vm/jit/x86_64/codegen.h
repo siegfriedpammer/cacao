@@ -1,4 +1,4 @@
-/* jit/x86_64/codegen.h - code generation macros and definitions for x86_64
+/* vm/jit/x86_64/codegen.h - code generation macros and definitions for x86_64
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1579 2004-11-24 13:56:06Z twisti $
+   $Id: codegen.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -37,7 +37,7 @@
 
 #include <ucontext.h>
 
-#include "jit/jit.h"
+#include "vm/jit/jit.h"
 
 
 /* macros to create code ******************************************************/

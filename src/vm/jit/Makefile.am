@@ -1,39 +1,24 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1251 2004-06-30 20:24:06Z twisti $
+# $Id: Makefile.am 1621 2004-11-30 13:06:55Z twisti $
 
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
-SUBDIRS = . loop @ARCH_DIR@
-DIST_SUBDIRS = loop alpha i386 mips powerpc x86_64
+SUBDIRS = inline loop verify tools @ARCH_DIR@
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit/@ARCH_DIR@
-
-EXTRA_DIST = \
-	jit.c \
-	jit.h \
-	codegen.inc \
-	parse.c \
-	reg.inc \
-	stack.c \
-	inline.c \
-	sets.c \
-	sets.h \
-	parseRT.c \
-	parseRTprint.h \
-	parseRTstats.c \
-	typecheck.c
-
-noinst_HEADERS = \
-	parse.h \
-	stack.h \
-	reg.h \
-	inline.h \
-	parseRT.h \
-	parseRTstats.h
+DIST_SUBDIRS = inline loop verify tools alpha i386 mips powerpc x86_64
 
 noinst_LIBRARIES = libjit.a
 
-libjit_a_SOURCES = jit.c parse.c stack.c inline.c sets.c parseRT.c parseRTstats.c typecheck.c
+libjit_a_SOURCES = \
+	jit.c \
+	parse.c \
+	stack.c
+
+libjit_a_LIBADD = \
+	inline/libinline.a \
+	loop/libloop.a \
+	verify/libverify.a
 
 
 ## Local variables:

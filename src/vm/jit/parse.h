@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 1510 2004-11-17 11:33:44Z twisti $
+   $Id: parse.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -34,9 +34,9 @@
 #ifndef _PARSE_H
 #define _PARSE_H
 
-#include "global.h"
-#include "jit/inline.h"
-#include "jit/codegen.inc.h"
+#include "vm/global.h"
+#include "vm/jit/codegen.inc.h"
+#include "vm/jit/inline/inline.h"
 
 
 /* intermediate code generating macros */

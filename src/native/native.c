@@ -1,4 +1,4 @@
-/* native.c - table of native functions
+/* native/native.c - table of native functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1567 2004-11-23 16:01:51Z twisti $
+   $Id: native.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -45,26 +45,6 @@
 #include <sys/time.h>
 #include <utime.h>
 
-#include "config.h"
-#include "exceptions.h"
-#include "global.h"
-#include "options.h"
-#include "jni.h"
-#include "native.h"
-#include "builtin.h"
-#include "asmpart.h"
-#include "tables.h"
-#include "loader.h"
-#include "jni.h"
-#include "jit/jit.h"
-#include "toolbox/logging.h"
-#include "toolbox/memory.h"
-#include "threads/thread.h"
-#include "threads/threadio.h"
-#include "threads/locks.h"
-#include "nat/java_lang_Throwable.h"
-
-
 /* Include files for IO functions */
 
 #include <fcntl.h>
@@ -75,9 +55,28 @@
 #endif
 #include <sys/stat.h>
 
+#include "config.h"
+#include "mm/memory.h"
+#include "native/jni.h"
+#include "native/native.h"
+#include "native/include/java_lang_Throwable.h"
+#include "toolbox/logging.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/jit.h"
+#if 0
+#include "threads/thread.h"
 #include "threads/threadio.h"
+#include "threads/locks.h"
+#endif
 
-/* include table of native functions */
+
+/* include table of native functions ******************************************/
 
 #include "nativetable.inc"
 

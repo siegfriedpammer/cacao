@@ -1,4 +1,4 @@
-/* natcalls.h -
+/* native/natcalls.h -
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,7 +27,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: natcalls.h 664 2003-11-21 18:24:01Z jowenn $
+   $Id: natcalls.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -35,7 +35,7 @@
 #ifndef _NATCALLS_H
 #define _NATCALLS_H
 
-#include "global.h"
+#include "vm/global.h"
 
 
 /*---------- Define Constants ---------------------------*/

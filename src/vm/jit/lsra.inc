@@ -1,4 +1,4 @@
-/* jit/lsra.inc - linear scan register allocator
+/* vm/jit/lsra.inc - linear scan register allocator
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004
    Institut f. Computersprachen, TU Wien
@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 1597 2004-11-28 16:37:23Z christian $
+   $Id: lsra.inc 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -37,20 +37,20 @@
 /* #define LSRA_PRINTLIFETIMES */
 
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #ifdef LSRA_DEBUG
 #define LSRA_PRINTLIFETIMES
 #endif
 
-#include "lsra.h"
-#include "loop/graph.h"
-#include "loop/loop.h"
-#include "toolbox/memory.h"
-#include "reg.h"
-#include "options.h"
-#include "string.h"
+#include "mm/memory.h"
+#include "vm/options.h"
+#include "vm/jit/lsra.h"
+#include "vm/jit/reg.h"
+#include "vm/jit/loop/graph.h"
+#include "vm/jit/loop/loop.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 
 void lsra(methodinfo *m, codegendata *cd, registerdata *rd, loopdata *ld, t_inlining_globals *id)
 {

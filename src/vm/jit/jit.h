@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 1593 2004-11-25 15:14:48Z twisti $
+   $Id: jit.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -37,8 +37,7 @@
 #ifndef _JIT_H
 #define _JIT_H
 
-/* We typedef these structures before #includes to resolve circular           */
-/* dependencies.                                                              */
+/* resolve typedef cycles *****************************************************/
 
 typedef struct stackelement stackelement;
 typedef stackelement *stackptr;
@@ -47,11 +46,11 @@ typedef struct instruction instruction;
 typedef struct subroutineinfo subroutineinfo;
 
 
-#include "global.h"
-#include "builtin.h"
-#include "typeinfo.h"
-#include "jit/codegen.inc.h"
 #include "toolbox/chain.h"
+#include "vm/global.h"
+#include "vm/builtin.h"
+#include "vm/jit/codegen.inc.h"
+#include "vm/jit/verify/typeinfo.h"
 
 
 /**************************** resolve typedef-cycles **************************/

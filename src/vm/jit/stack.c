@@ -1,4 +1,4 @@
-/* jit/stack.c - stack analysis
+/* vm/jit/stack.c - stack analysis
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,27 +28,28 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1594 2004-11-25 15:15:15Z twisti $
+   $Id: stack.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #include <stdio.h>
 #include <string.h>
-#include "global.h"
-#include "native.h"
-#include "builtin.h"
+
 #include "disass.h"
-#include "tables.h"
 #include "types.h"
-#include "options.h"
-#include "statistics.h"
-#include "jit/codegen.inc.h"
-#include "jit/jit.h"
-#include "jit/stack.h"
-#include "jit/reg.h"
+#include "mm/memory.h"
+#include "native/native.h"
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
+#include "vm/global.h"
+#include "vm/builtin.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
+#include "vm/tables.h"
+#include "vm/jit/codegen.inc.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/reg.h"
+#include "vm/jit/stack.h"
 
 
 /**********************************************************************/

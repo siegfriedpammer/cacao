@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tree.c 1141 2004-06-05 23:19:24Z twisti $
+   $Id: tree.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -35,8 +35,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "global.h"
-#include "toolbox/memory.h"
+#include "mm/memory.h"
 #include "toolbox/tree.h"
 
 

@@ -1,4 +1,4 @@
-/* jit/parseRTstats.c -
+/* vm/jit/inline/parseRTstats.c -
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,17 +26,20 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 1553 2004-11-19 15:47:13Z carolyn $
+   $Id: parseRTstats.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
+
 #include <stdio.h>
+
 #include "toolbox/list.h"
-#include "options.h"
-#include "tables.h"
-#include "statistics.h"
-#include "loader.h"
-#include "parseRT.h"
-#include "parseRTstats.h"
+#include "vm/options.h"
+#include "vm/tables.h"
+#include "vm/statistics.h"
+#include "vm/loader.h"
+#include "vm/jit/inline/parseRT.h"
+#include "vm/jit/inline/parseRTstats.h"
+
 
 int pClassHeirStatsOnly = 2;
 int pClassHeir = 2;

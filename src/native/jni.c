@@ -1,4 +1,4 @@
-/* jni.c - implementation of the Java Native Interface functions
+/* native/jni.c - implementation of the Java Native Interface functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,37 +28,47 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1494 2004-11-12 13:34:26Z twisti $
+   $Id: jni.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #include <string.h>
-#include "exceptions.h"
-#include "main.h"
-#include "jni.h"
-#include "global.h"
-#include "loader.h"
-#include "tables.h"
-#include "native.h"
-#include "builtin.h"
-#include "options.h"
-#include "statistics.h"
-#include "threads/thread.h"
-#include "toolbox/logging.h"
-#include "toolbox/memory.h"
-#include "nat/java_lang_Byte.h"
-#include "nat/java_lang_Character.h"
-#include "nat/java_lang_Short.h"
-#include "nat/java_lang_Integer.h"
-#include "nat/java_lang_Boolean.h"
-#include "nat/java_lang_Long.h"
-#include "nat/java_lang_Float.h"
-#include "nat/java_lang_Double.h"
-#include "nat/java_lang_Throwable.h"
-#include "jit/jit.h"
-#include "asmpart.h"
+
 #include "mm/boehm.h"
+#include "mm/memory.h"
+#include "native/jni.h"
+#include "native/native.h"
+#include "native/include/java_lang_Byte.h"
+#include "native/include/java_lang_Character.h"
+#include "native/include/java_lang_Short.h"
+#include "native/include/java_lang_Integer.h"
+#include "native/include/java_lang_Boolean.h"
+#include "native/include/java_lang_Long.h"
+#include "native/include/java_lang_Float.h"
+#include "native/include/java_lang_Double.h"
+#include "native/include/java_lang_Throwable.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
+#endif
+
+#include "toolbox/logging.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/jit.h"
+
+
 #define JNI_VERSION       0x00010002
 
 

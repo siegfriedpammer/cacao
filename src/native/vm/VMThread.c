@@ -1,4 +1,4 @@
-/* nat/Thread.c - java/lang/Thread
+/* native/vm/VMThread.c - java/lang/VMThread
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,27 +28,34 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 1573 2004-11-23 16:06:03Z twisti $
+   $Id: VMThread.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #include "config.h"
-#include "jni.h"
-#include "builtin.h"
-#include "exceptions.h"
 #include "types.h"
-#include "native.h"
-#include "loader.h"
-#include "options.h"
-#include "tables.h"
-#include "threads/thread.h"
+#include "native/jni.h"
+#include "native/native.h"
+#include "native/include/java_lang_ThreadGroup.h"
+#include "native/include/java_lang_Object.h"            /* java_lang_Thread.h */
+#include "native/include/java_lang_Throwable.h"         /* java_lang_Thread.h */
+#include "native/include/java_lang_VMThread.h"
+#include "native/include/java_lang_Thread.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
+#endif
+
 #include "toolbox/logging.h"
-#include "nat/java_lang_ThreadGroup.h"
-#include "nat/java_lang_Object.h"       /* needed for java_lang_Thread.h      */
-#include "nat/java_lang_Throwable.h"    /* needed for java_lang_Thread.h      */
-#include "nat/java_lang_VMThread.h"
-#include "nat/java_lang_Thread.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/options.h"
+#include "vm/tables.h"
 
 
 /*

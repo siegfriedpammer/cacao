@@ -1,4 +1,4 @@
-/* jit/loop/graph.c - control flow graph
+/* vm/jit/loop/graph.c - control flow graph
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -31,16 +31,15 @@
    Contains the functions which build a list, that represents the
    control flow graph of the procedure, that is being analyzed.
 
-   $Id: graph.c 1531 2004-11-17 20:45:56Z christian $
+   $Id: graph.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
-#include <stdio.h>
-#include "jit/jit.h"
-#include "jit/loop/graph.h"
-#include "jit/loop/loop.h"
-#include "toolbox/memory.h"
+#include "mm/memory.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/loop/graph.h"
+#include "vm/jit/loop/loop.h"
 
 
 void LoopContainerInit(methodinfo *m, struct LoopContainer *lc, int i)

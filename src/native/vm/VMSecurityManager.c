@@ -1,4 +1,4 @@
-/* nat/SecurityManager.c - java/lang/SecurityManager
+/* native/vm/VMSecurityManager.c - java/lang/VMSecurityManager
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,17 +28,17 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSecurityManager.c 1208 2004-06-25 12:20:52Z twisti $
+   $Id: VMSecurityManager.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
-#include "jni.h"
-#include "builtin.h"
-#include "native.h"
-#include "tables.h"
+#include "native/jni.h"
+#include "native/native.h"
+#include "native/include/java_lang_ClassLoader.h"
 #include "toolbox/logging.h"
-#include "java_lang_ClassLoader.h"
+#include "vm/builtin.h"
+#include "vm/tables.h"
 
 
 #ifndef __I386__

@@ -1,4 +1,4 @@
-/* jit/loop/loop.c - array bound removal
+/* vm/jit/loop/loop.c - array bound removal
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -30,21 +30,21 @@
    algorithm that uses dominator trees (found eg. in modern compiler
    implementation by a.w. appel)
 
-   $Id: loop.c 1454 2004-11-05 14:19:32Z twisti $
+   $Id: loop.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
-#include <stdio.h>
-#include <stdlib.h>
-#include "global.h"	
-#include "jit/jit.h"	
-#include "jit/loop/loop.h"
-#include "jit/loop/graph.h"
-#include "jit/loop/tracing.h"
-#include "toolbox/logging.h"
-#include "toolbox/memory.h"
+/*  #include <stdio.h> */
+/*  #include <stdlib.h> */
 
+#include "mm/memory.h"
+#include "toolbox/logging.h"
+#include "vm/global.h"	
+#include "vm/jit/jit.h"	
+#include "vm/jit/loop/loop.h"
+#include "vm/jit/loop/graph.h"
+#include "vm/jit/loop/tracing.h"
 
 
 /*	

@@ -1,4 +1,4 @@
-/* nat/VMObject.c - java/lang/Object
+/* native/vm/VMObject.c - java/lang/Object
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,25 +28,34 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMObject.c 1517 2004-11-17 11:54:13Z twisti $
+   $Id: VMObject.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #include <stdlib.h>
 #include <string.h>
-#include "exceptions.h"
-#include "jni.h"
-#include "builtin.h"
-#include "loader.h"
-#include "native.h"
-#include "options.h"
+
 #include "mm/boehm.h"
-#include "threads/locks.h"
+#include "mm/memory.h"
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
-#include "nat/java_lang_Cloneable.h"
-#include "nat/java_lang_Object.h"
+#include "native/jni.h"
+#include "native/native.h"
+#include "native/include/java_lang_Cloneable.h"
+#include "native/include/java_lang_Object.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+#  include "threads/green/locks.h"
+# endif
+#endif
 
 
 /*
@@ -68,7 +77,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
 		new = (java_lang_Object *) heap_allocate(size, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
 		memcpy(new, this, size);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		initObjectLock(new);
+		initObjectLock((java_objectheader *) new);
 #endif
         
 		return new;
@@ -90,7 +99,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
 
     memcpy(new, this, c->instancesize);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initObjectLock(new);
+	initObjectLock((java_objectheader *) new);
 #endif
 
     return new;

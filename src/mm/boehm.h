@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: boehm.h 1143 2004-06-05 23:53:24Z twisti $
+   $Id: boehm.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -34,16 +34,18 @@
 #ifndef _BOEHM_H
 #define _BOEHM_H
 
-#include "global.h"
+#include "types.h"
+#include "vm/global.h"
+
 
 struct otherstackcall;
 
 typedef void *(*calltwoargs)(void *, u4);
 
 struct otherstackcall {
-	calltwoargs p2;
-	void *p;
-	u4 l;
+	calltwoargs  p2;
+	void        *p;
+	u4           l;
 };
 
 

@@ -1,4 +1,4 @@
-/* headers.c - functions for header generation
+/* vm/headers.c - functions for header generation
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 1570 2004-11-23 16:04:33Z twisti $
+   $Id: headers.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -41,17 +41,17 @@
 #include <ucontext.h>
 
 #include "config.h"
-#include "global.h"
-#include "tables.h"
-#include "loader.h"
-#include "options.h"
-#include "builtin.h"
 #include "mm/boehm.h"
+#include "mm/memory.h"
+#include "native/include/java_lang_String.h"
+#include "native/include/java_lang_Throwable.h"
 #include "toolbox/chain.h"
-#include "toolbox/memory.h"
 #include "toolbox/logging.h"
-#include "nat/java_lang_String.h"
-#include "nat/java_lang_Throwable.h"
+#include "vm/global.h"
+#include "vm/tables.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/builtin.h"
 
 
 /******* replace some external functions  *********/

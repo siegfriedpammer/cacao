@@ -1,4 +1,4 @@
-/* nat/Runtime.c - java/lang/Runtime
+/* native/vm/VMRuntime.c - java/lang/VMRuntime
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1514 2004-11-17 11:52:46Z twisti $
+   $Id: VMRuntime.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -39,28 +39,28 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 
-#include "config.h"
-#include "exceptions.h"
-#include "main.h"
-#include "jni.h"
-#include "builtin.h"
-#include "exceptions.h"
-#include "loader.h"
-#include "native.h"
-#include "tables.h"
-#include "asmpart.h"
-#include "mm/boehm.h"
-#include "toolbox/logging.h"
-#include "toolbox/memory.h"
-#include "nat/java_io_File.h"
-#include "nat/java_lang_String.h"
-#include "nat/java_lang_Process.h"
-#include "nat/java_util_Properties.h"    /* needed for java_lang_VMRuntime.h */
-#include "nat/java_lang_VMRuntime.h"
-
-#ifndef STATIC_CLASSPATH
+#if !defined(STATIC_CLASSPATH)
 #include <dlfcn.h>
 #endif
+
+#include "config.h"
+#include "cacao/cacao.h"
+#include "mm/boehm.h"
+#include "mm/memory.h"
+#include "native/jni.h"
+#include "native/native.h"
+#include "native/include/java_io_File.h"
+#include "native/include/java_lang_String.h"
+#include "native/include/java_lang_Process.h"
+#include "native/include/java_util_Properties.h"     /* java_lang_VMRuntime.h */
+#include "native/include/java_lang_VMRuntime.h"
+#include "toolbox/logging.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
+
 
 /* this should work on BSD */
 /*

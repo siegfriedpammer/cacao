@@ -1,9 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1284 2004-07-07 15:56:17Z twisti $
+# $Id: Makefile.am 1621 2004-11-30 13:06:55Z twisti $
 
 
-INCLUDES = -I$(top_srcdir)
+INCLUDES = -I$(top_srcdir)/src
 
 EXTRA_DIST = \
 	asmpart.S \
@@ -32,9 +32,8 @@ libarch_a_SOURCES = \
 asmpart.o: asmpart.S $(top_srcdir)/config.h offsets.h
 	$(COMPILE) -c $<
 
-offsets.h: $(top_srcdir)/config.h $(top_srcdir)/global.h $(top_srcdir)/threads/thread.h
-	$(COMPILE) -o $(top_srcdir)/genoffsets $(top_srcdir)/genoffsets.c
-	$(top_srcdir)/genoffsets > offsets.h
+offsets.h: $(top_srcdir)/config.h $(top_srcdir)/src/vm/global.h $(top_srcdir)/src/threads/native/threads.h
+	$(top_srcdir)/src/vm/jit/tools/genoffsets > offsets.h
 
 
 ## Local variables:

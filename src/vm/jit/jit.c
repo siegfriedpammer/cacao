@@ -1,4 +1,4 @@
-/* jit/jit.c - calls the code generation functions
+/* vm/jit/jit.c - calls the code generation functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -29,41 +29,44 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1590 2004-11-25 13:24:49Z christian $
+   $Id: jit.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
-#include <stdlib.h>
-#include <string.h>
-#include "global.h"
-#include "tables.h"
-#include "loader.h"
-#include "builtin.h"
-#include "native.h"
-#include "asmpart.h"
 #include "codegen.h"
-#include "types.h"
-#include "options.h"
-#include "statistics.h"
-#include "jit/codegen.inc.h"
-#include "jit/inline.h"
-#include "jit/jit.h"
-#include "jit/parseRT.h"
-#include "jit/parse.h"
-#include "jit/stack.h"
-#include "jit/reg.h"
-#include "jit/typecheck.h"
-#include "threads/thread.h"
 #include "disass.h"
-#include "loop/loop.h"
-#include "loop/graph.h"
-#include "loop/analyze.h"
-#include "toolbox/logging.h"
-#include "toolbox/memory.h"
 #include "types.h"
-#include <stdio.h>
-#include "jit/lsra.h"
+#include "mm/memory.h"
+#include "toolbox/logging.h"
+#include "vm/builtin.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
+#include "vm/tables.h"
+#include "vm/jit/codegen.inc.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/lsra.h"
+#include "vm/jit/parse.h"
+#include "vm/jit/reg.h"
+#include "vm/jit/stack.h"
+#include "vm/jit/inline/inline.h"
+#include "vm/jit/inline/parseRT.h"
+#include "vm/jit/loop/analyze.h"
+#include "vm/jit/loop/graph.h"
+#include "vm/jit/loop/loop.h"
+#include "vm/jit/verify/typecheck.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
+#endif
+
+
 
 /* global switches ************************************************************/
 

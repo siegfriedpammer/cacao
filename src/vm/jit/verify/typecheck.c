@@ -1,4 +1,4 @@
-/* jit/typecheck.c - typechecking (part of bytecode verification)
+/* vm/jit/verify/typecheck.c - typechecking (part of bytecode verification)
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,26 +26,28 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1550 2004-11-19 14:26:31Z twisti $
+   $Id: typecheck.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
-#include "global.h" /* must be here because of CACAO_TYPECHECK */
+#include <string.h>
+
+#include "vm/global.h" /* must be here because of CACAO_TYPECHECK */
 
 #ifdef CACAO_TYPECHECK
 
-#include <string.h>
-#include "main.h"
-#include "builtin.h"
-#include "tables.h"
-#include "loader.h"
-#include "native.h"
 #include "types.h"
-#include "jit/jit.h"
-#include "jit/stack.h"
+/*  #include "main.h" */
+#include "mm/memory.h"
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
-#include "options.h"
+#include "native/native.h"
+#include "vm/builtin.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/tables.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/stack.h"
+
 
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */

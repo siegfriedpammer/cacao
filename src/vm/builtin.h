@@ -1,4 +1,4 @@
-/* builtin.h - prototypes of builtin functions
+/* vm/builtin.h - prototypes of builtin functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1571 2004-11-23 16:05:04Z twisti $
+   $Id: builtin.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -36,10 +36,17 @@
 #ifndef _BUILTIN_H
 #define _BUILTIN_H
 
+#include "arch.h"
 #include "config.h"
 #include "toolbox/logging.h"
-#include "threads/thread.h"
-#include "arch.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
+#endif
 
 
 /* define infinity for floating point numbers */

@@ -1,4 +1,4 @@
-/* headers.h - export functions for header generation
+/* cacaoh/headers.h - export functions for header generation
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: headers.h 1529 2004-11-17 17:19:14Z twisti $
+   $Id: headers.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -35,6 +35,7 @@
 
 
 #include "toolbox/chain.h"
+#include "vm/global.h"
 
 
 /* export variables */

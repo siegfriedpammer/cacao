@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: emitfuncs.h 1451 2004-11-05 14:14:15Z twisti $
+   $Id: emitfuncs.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -35,7 +35,7 @@
 #ifndef _EMITFUNCS_H
 #define _EMITFUNCS_H
 
-#include "jit/x86_64/types.h"
+#include "vm/jit/x86_64/types.h"
 
 
 /* code generation prototypes */

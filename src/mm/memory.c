@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1599 2004-11-28 17:11:50Z twisti $
+   $Id: memory.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -45,14 +45,18 @@
 #include <unistd.h>
 
 #include "config.h"
-#include "exceptions.h"
-#include "global.h"
-#include "native.h"
-#include "options.h"
-#include "statistics.h"
-#include "threads/nativethread.h"
+#include "mm/memory.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
+#include "native/native.h"
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+# include "threads/native/threads.h"
+#endif
+
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
 
 
 /********* general types, variables and auxiliary functions *********/

@@ -1,4 +1,4 @@
-/* jit/loop/loop.h - array bound removal header
+/* vm/jit/loop/loop.h - array bound removal header
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Christopher Kruegel
 
-   $Id: loop.h 1454 2004-11-05 14:19:32Z twisti $
+   $Id: loop.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -34,8 +34,8 @@
 #ifndef _LOOP_H
 #define _LOOP_H
 
-#include "global.h"
-#include "jit/jit.h"
+#include "vm/global.h"
+#include "vm/jit/jit.h"
 
 
 /*	Different types for struct Trace										*/

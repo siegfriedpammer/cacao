@@ -1,4 +1,4 @@
-/* jni.h - JNI types and data structures
+/* native/jni.h - JNI types and data structures
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: ?
 
-   $Id: jni.h 1424 2004-10-30 11:15:23Z motse $
+   $Id: jni.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -35,8 +35,9 @@
 #define _JNI_H
 
 #include <stdarg.h>
-#include "global.h"
+
 #include "types.h"
+#include "vm/global.h"
 
 
 #define JNI_VERSION       0x00010002

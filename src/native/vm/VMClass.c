@@ -1,4 +1,4 @@
-/* nat/VMClass.c - java/lang/Class
+/* native/vm/VMClass.c - java/lang/Class
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,31 +28,32 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 1516 2004-11-17 11:53:56Z twisti $
+   $Id: VMClass.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #include <string.h>
-#include "jni.h"
+
 #include "types.h"
-#include "exceptions.h"
-#include "global.h"
-#include "builtin.h"
-#include "loader.h"
-#include "native.h"
-#include "tables.h"
+#include "mm/memory.h"
+#include "native/jni.h"
+#include "native/native.h"
+#include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_ClassLoader.h"
+#include "native/include/java_security_ProtectionDomain.h"
+#include "native/include/java_lang_reflect_Constructor.h"
+#include "native/include/java_lang_reflect_Field.h"
+#include "native/include/java_lang_reflect_Method.h"
+#include "native/include/java_lang_Throwable.h"        /* java_lang_VMClass.h */
+#include "native/include/java_lang_VMClass.h"
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
-#include "java_lang_Object.h"
-#include "java_lang_Class.h"
-#include "java_lang_ClassLoader.h"
-#include "java_security_ProtectionDomain.h"
-#include "java_lang_reflect_Constructor.h"
-#include "java_lang_reflect_Field.h"
-#include "java_lang_reflect_Method.h"
-#include "java_lang_Throwable.h"    /* needed for java_lang_VMClass.h */
-#include "java_lang_VMClass.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/builtin.h"
 
 
 /* for selecting public members */

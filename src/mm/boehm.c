@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 1378 2004-08-01 22:34:16Z stefan $
+   $Id: boehm.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -37,18 +37,25 @@
 #define GC_IRIX_THREADS
 #endif
 
-#include "options.h"
-#include "asmpart.h"
-#include "boehm.h"
-#include "builtin.h"
-#include "exceptions.h"
-#include "global.h"
-#include "loader.h"
-#include "native.h"
-#include "tables.h"
-#include "threads/thread.h"
-#include "toolbox/logging.h"
 #include "boehm-gc/include/gc.h"
+#include "mm/boehm.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
+#endif
+
+#include "toolbox/logging.h"
+#include "vm/options.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
 
 
 static bool in_gc_out_of_memory = false;    /* is GC out of memory?           */

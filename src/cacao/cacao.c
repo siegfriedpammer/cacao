@@ -1,4 +1,4 @@
-/* main.c - contains main() and variables for the global options
+/* cacao/cacao.c - contains main() of cacao
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -37,33 +37,27 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1590 2004-11-25 13:24:49Z christian $
+   $Id: cacao.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #include <stdlib.h>
 #include <string.h>
-#include "exceptions.h"
-#include "main.h"
-#include "options.h"
-#include "global.h"
-#include "tables.h"
-#include "loader.h"
-#include "jit/jit.h"
-#include "asmpart.h"
-#include "builtin.h"
-#include "native.h"
-#include "statistics.h"
+
+#include "cacao/cacao.h"
 #include "mm/boehm.h"
-#include "threads/thread.h"
+#include "mm/memory.h"
+#include "native/native.h"
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
-#include "jit/parseRTstats.h"
-#include "nat/java_io_File.h"            /* required by java_lang_Runtime.h   */
-#include "nat/java_util_Properties.h"    /* required by java_lang_Runtime.h   */
-#include "nat/java_lang_Runtime.h"
-#include "nat/java_lang_Throwable.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/jit.h"
 
 #ifdef TYPEINFO_DEBUG_TEST
 #include "typeinfo.h"

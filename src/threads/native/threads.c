@@ -1,7 +1,3 @@
-#include "global.h"
-
-#if defined(NATIVE_THREADS)
-
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -12,26 +8,24 @@
 #include <time.h>
 #include <errno.h>
 
-#include "config.h"
-#include "thread.h"
 #include "codegen.h"
-#include "locks.h"
-#include "tables.h"
-#include "native.h"
-#include "loader.h"
-#include "builtin.h"
-#include "asmpart.h"
-#include "exceptions.h"
-#include "toolbox/logging.h"
-#include "toolbox/memory.h"
-#include "toolbox/avl.h"
+#include "config.h"
 #include "mm/boehm.h"
-
-#include "nat/java_lang_Object.h"
-#include "nat/java_lang_Throwable.h"
-#include "nat/java_lang_Thread.h"
-#include "nat/java_lang_ThreadGroup.h"
-#include "nat/java_lang_VMThread.h"
+#include "mm/memory.h"
+#include "native/native.h"
+#include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_Throwable.h"
+#include "native/include/java_lang_Thread.h"
+#include "native/include/java_lang_ThreadGroup.h"
+#include "native/include/java_lang_VMThread.h"
+#include "threads/native/threads.h"
+#include "toolbox/avl.h"
+#include "toolbox/logging.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -42,7 +36,7 @@
 #elif defined(__MIPS__)
 #define GC_IRIX_THREADS
 #endif
-#include "../mm/boehm-gc/include/gc.h"
+#include "boehm-gc/include/gc.h"
 #endif
 
 #ifdef MUTEXSIM
@@ -1098,8 +1092,6 @@ void broadcast_cond_for_object(java_objectheader *o)
 	threadobject *t = (threadobject*) THREADOBJECT;
 	notifyOneOrAll(t, o, false);
 }
-
-#endif
 
 
 /*

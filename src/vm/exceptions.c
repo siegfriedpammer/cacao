@@ -1,4 +1,4 @@
-/* exceptions.c - exception related functions
+/* vm/exceptions.c - exception related functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1578 2004-11-24 13:31:00Z twisti $
+   $Id: exceptions.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -34,16 +34,17 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include "asmpart.h"
-#include "global.h"
-#include "loader.h"
-#include "native.h"
-#include "tables.h"
-#include "jit/jit.h"
+
+#include "mm/memory.h"
+#include "native/native.h"
+#include "native/include/java_lang_String.h"
+#include "native/include/java_lang_Throwable.h"
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
-#include "nat/java_lang_String.h"
-#include "nat/java_lang_Throwable.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/jit.h"
 
 
 /* system exception classes required in cacao */

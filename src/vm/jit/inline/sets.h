@@ -27,15 +27,13 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.h 665 2003-11-21 18:36:43Z jowenn $
+   $Id: sets.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #ifndef _SET_H
 #define _SET_H
-
-#include "types.h"
 
 typedef struct methSet      methSet;
 typedef struct methSetNode  methSetNode;
@@ -45,7 +43,8 @@ typedef struct classSet     classSet;
 typedef struct classSetNode classSetNode;
 
 
-#include "global.h"
+#include "types.h"
+#include "vm/global.h"
 
 
 /*------------ Method /Class Used Markers -------------------------------*/                 

@@ -1,4 +1,4 @@
-/* jit/sets.c -
+/* vm/jit/inline/sets.c -
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,18 +27,19 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 1296 2004-07-10 17:02:15Z stefan $
+   $Id: sets.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #include <stdio.h>
-#include "sets.h"
+
 #include "types.h"
-#include "global.h"
-#include "loader.h"
-#include "tables.h"
-#include "toolbox/memory.h"
+#include "mm/memory.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/jit/inline/sets.h"
 
 
 /*

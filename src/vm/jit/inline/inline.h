@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.h 1557 2004-11-22 12:01:16Z carolyn $
+   $Id: inline.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -34,8 +34,14 @@
 #ifndef _INLINE_H
 #define _INLINE_H
 
-#include "global.h"
+/* resolve typedef cycles *****************************************************/
+
+typedef struct t_inlining_globals t_inlining_globals;
+
+
 #include "toolbox/list.h"
+#include "vm/global.h"
+
 
 #define INLINING_MAXDEPTH       2  /*1*/ 
 #define INLINING_MAXCODESIZE    128 /*32*/
@@ -99,21 +105,22 @@ typedef struct {
 
 } t_inlining_stacknode;
 
-typedef struct t_inlining_globals {  /* try in parse.h with struct not include */
-        bool isinlinedmethod;
-        int cumjcodelength;   /* cumulative immediate intruction length */
-        int cummaxstack;
-        int cumextablelength;
-        int cumlocals;        /* was static */
-        int cummethods;       /* was static */
-        list *inlining_stack; /* was static */
-        inlining_methodinfo *inlining_rootinfo;
-        methodinfo *method;
-        classinfo *class;
-        int jcodelength;
-        u1 *jcode;
+
+struct t_inlining_globals {  /* try in parse.h with struct not include */
+	bool isinlinedmethod;
+	int cumjcodelength;   /* cumulative immediate intruction length */
+	int cummaxstack;
+	int cumextablelength;
+	int cumlocals;        /* was static */
+	int cummethods;       /* was static */
+	list *inlining_stack; /* was static */
+	inlining_methodinfo *inlining_rootinfo;
+	methodinfo *method;
+	classinfo *class;
+	int jcodelength;
+	u1 *jcode;
 	bool isleafmethod;
-} t_inlining_globals;
+};
 
 
 /* function prototypes*/

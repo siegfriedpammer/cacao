@@ -1,4 +1,4 @@
-/* nat/VMThrowable.c - java/lang/Throwable
+/* native/vm/VMThrowable.c - java/lang/VMThrowable
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,22 +26,21 @@
 
    Authors: Joseph Wenninger
 
-   $Id: VMThrowable.c 1574 2004-11-23 16:07:11Z twisti $
+   $Id: VMThrowable.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
-#include "global.h"
-#include "jni.h"
-#include "asmpart.h"
-#include "loader.h"
-#include "builtin.h"
-#include "tables.h"
-#include "native.h"
-#include "nat/java_lang_Class.h"
-#include "nat/java_lang_Throwable.h"
-#include "nat/java_lang_VMClass.h"
-#include "nat/java_lang_VMThrowable.h"
+#include "native/jni.h"
+#include "native/native.h"
+#include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_Throwable.h"
+#include "native/include/java_lang_VMClass.h"
+#include "native/include/java_lang_VMThrowable.h"
+#include "vm/builtin.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
 
 
 /*

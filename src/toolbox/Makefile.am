@@ -1,24 +1,17 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1141 2004-06-05 23:19:24Z twisti $
+# $Id: Makefile.am 1621 2004-11-30 13:06:55Z twisti $
+
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
 noinst_LIBRARIES = libtoolbox.a
 
 libtoolbox_a_SOURCES = \
 	avl.c \
-	avl.h \
-	memory.c \
-	memory.h \
 	logging.c \
-	logging.h \
 	chain.c \
-	chain.h \
 	tree.c \
-	tree.h \
-	list.c \
-	list.h
-
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit/@ARCH_DIR@
+	list.c
 
 
 ## Local variables:

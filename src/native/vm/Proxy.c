@@ -1,4 +1,4 @@
-/* nat/Proxy.c - java/lang/reflect/Proxy
+/* native/vm/Proxy.c - java/lang/reflect/Proxy
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,15 +28,15 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Proxy.c 1537 2004-11-18 12:12:05Z twisti $
+   $Id: Proxy.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
-#include "jni.h"
+#include "native/jni.h"
+#include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_ClassLoader.h"
 #include "toolbox/logging.h"
-#include "nat/java_lang_Class.h"
-#include "nat/java_lang_ClassLoader.h"
 
 
 /*

@@ -28,23 +28,25 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1557 2004-11-22 12:01:16Z carolyn $
+   $Id: inline.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #include <stdio.h>
 #include <string.h>
-#include "global.h"
-#include "loader.h"
-#include "tables.h"
-#include "options.h"
-#include "jit/inline.h"
-#include "jit/jit.h"
-#include "jit/parse.h"
+
+#include "mm/memory.h"
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
-#include "sets.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/options.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/parse.h"
+#include "vm/jit/inline/inline.h"
+#include "vm/jit/inline/sets.h"
+
 
 #define INVIRTDEBUG 
 #undef  INVIRTDEBUG

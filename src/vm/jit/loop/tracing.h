@@ -1,4 +1,4 @@
-/* jit/loop/tracing.h - trace functions header
+/* vm/jit/loop/tracing.h - trace functions header
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: tracing.h 1454 2004-11-05 14:19:32Z twisti $
+   $Id: tracing.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -34,8 +34,7 @@
 #ifndef _TRACING_H
 #define _TRACING_H
 
-
-#include "jit/jit.h"
+#include "vm/jit/jit.h"
 
 
 typedef struct Trace Trace;
@@ -58,7 +57,7 @@ struct Trace {
 };
 
 
-/* function protoypes */
+/* function protoypes *********************************************************/
 
 Trace* create_trace(int type, int var, int constant, int nr);
 Trace* add(Trace* a, Trace* b);

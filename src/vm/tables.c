@@ -1,4 +1,4 @@
-/* tables.c - 
+/* vm/tables.c - 
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -35,11 +35,9 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1482 2004-11-11 14:39:13Z twisti $
+   $Id: tables.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
-
-#include "global.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -47,19 +45,18 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include "builtin.h"
-#include "exceptions.h"
+
 #include "types.h"
-#include "native.h"
-#include "options.h"
-#include "tables.h"
-#include "loader.h"
-#include "asmpart.h"
-#include "statistics.h"
-#include "threads/thread.h"
-#include "threads/locks.h"
+#include "mm/memory.h"
+#include "native/native.h"
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
+#include "vm/tables.h"
 
 
 hashtable utf_hash;     /* hashtable for utf8-symbols */

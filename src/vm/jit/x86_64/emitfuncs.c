@@ -1,4 +1,4 @@
-/* jit/x86_64/emitfuncs.c - x86_64 code emitter functions
+/* vm/jit/x86_64/emitfuncs.c - x86_64 code emitter functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,16 +27,15 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 1526 2004-11-17 15:50:27Z twisti $
+   $Id: emitfuncs.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
-#include "jit/jit.h"
-#include "jit/x86_64/arch.h"
-#include "jit/x86_64/emitfuncs.h"
-#include "jit/x86_64/codegen.h"
-#include "jit/x86_64/types.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/x86_64/codegen.h"
+#include "vm/jit/x86_64/emitfuncs.h"
+#include "vm/jit/x86_64/types.h"
 
 
 /* code generation functions */

@@ -1,22 +1,13 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1255 2004-06-30 20:56:08Z twisti $
+# $Id: Makefile.am 1621 2004-11-30 13:06:55Z twisti $
 
-
-noinst_LIBRARIES = @LIBTHREAD@
-EXTRA_LIBRARIES = libthreads.a
+noinst_LIBRARIES = libthreads.a
 
 libthreads_a_SOURCES = \
 	locks.c \
-	locks.h \
-	thread.c \
-	thread.h \
-	nativethread.c \
-	nativethread.h \
-	threadio.c \
-	threadio.h
-
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit/@ARCH_DIR@
+	threads.c \
+	threadio.c
 
 
 ## Local variables:

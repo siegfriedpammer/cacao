@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: gennativetable.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -36,17 +36,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "config.h"
 #include "types.h"
-#include "global.h"
-#include "headers.h"
-#include "loader.h"
-#include "tables.h"
+#include "cacaoh/headers.h"
 #include "mm/boehm.h"
-#include "threads/locks.h"
-#include "threads/thread.h"
+#include "mm/memory.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
+#endif
+
 #include "toolbox/chain.h"
-#include "toolbox/memory.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
 
 
 int main(int argc, char **argv)
@@ -154,27 +163,23 @@ int main(int argc, char **argv)
 
 	/* create table of native-methods */
 
-/*  	file = fopen("nativetable.h", "w"); */
 	file = stdout;
 
-	if (!file)
-		panic("Can not open file 'nativetable' to store native-link-table");
-
 	fprintf(file, "/* Table of native methods: nativetables.inc */\n");
-	fprintf(file, "/* This file is machine generated, don't edit it !*/\n\n"); 
+	fprintf(file, "/* This file is machine generated, don't edit it! */\n\n"); 
 
-        fprintf(file, "#include \"config.h\"\n");
+	fprintf(file, "#include \"config.h\"\n");
 
 	c = chain_first(nativeclass_chain);
 	while (c) {
 		gen_header_filename(classname, c->name);
-		fprintf(file, "#include \"nat/%s.h\"\n", classname);
+		fprintf(file, "#include \"native/include/%s.h\"\n", classname);
 		c = chain_next(nativeclass_chain);
 	}
 	chain_free(nativeclass_chain);
 
-	fprintf(file, "\n\n#include \"native.h\"\n\n");
-        fprintf(file, "#ifdef STATIC_CLASSPATH\n\n");
+	fprintf(file, "\n\n#include \"native/native.h\"\n\n");
+	fprintf(file, "#if defined(STATIC_CLASSPATH)\n\n");
 	fprintf(file, "static nativeref nativetable[] = {\n");
 
 	m = chain_first(nativemethod_chain);
@@ -185,26 +190,35 @@ int main(int argc, char **argv)
 	chain_free(nativemethod_chain);
 
 	fprintf(file, "};\n");
-        fprintf(file,"\n#else\n");
-        fprintf(file, "/*ensure that symbols for functions implemented within cacao are used and exported to dlopen*/\n");
-        fprintf(file, "static functionptr dummynativetable[]={\n");
+	fprintf(file,"\n#else\n");
+	fprintf(file, "/*ensure that symbols for functions implemented within cacao are used and exported to dlopen*/\n");
+	fprintf(file, "static functionptr dummynativetable[]={\n");
+
 	{
-		FILE *implData=fopen("nat/implementednatives.data","r");
-                if (!implData) {fclose(file); exit(3);}
+		FILE *implData;
+
+		implData = fopen("vm/implementednatives.data", "r");
+
+		if (!implData) {
+			fclose(file);
+			throw_cacao_exception_exit(string_java_lang_InternalError,
+									   "Could not find file");
+		}
+
 		while (!feof(implData)) {
 			char functionLine[1024];
-                        functionLine[0]='\0';
+			functionLine[0]='\0';
 			fgets(functionLine,1024,implData);
-                        if (strlen(functionLine)<2) continue;
+			if (strlen(functionLine)<2) continue;
 			if (functionLine[strlen(functionLine)-1]!='\n') { fclose(implData); fclose(file); exit(4);}
-                        functionLine[strlen(functionLine)-1]=',';
+			functionLine[strlen(functionLine)-1]=',';
 			fprintf(file,"\t(functionptr) %s\n",functionLine);
 		}
 		fprintf(file,"\t(functionptr)0");
-                fclose(implData);
+		fclose(implData);
 	}
-        fprintf(file, "};\n");
-        fprintf(file,"\n#endif\n");
+	fprintf(file, "};\n");
+	fprintf(file,"\n#endif\n");
 	fclose(file);
 	
 	/* release all resources */

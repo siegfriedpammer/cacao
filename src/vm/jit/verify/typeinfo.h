@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 887 2004-01-19 12:14:39Z edwin $
+   $Id: typeinfo.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -34,7 +34,7 @@
 #ifndef _TYPEINFO_H
 #define _TYPEINFO_H
 
-#include "global.h"
+#include "vm/global.h"
 
 /* resolve typedef cycles *****************************************************/
 

@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 1494 2004-11-12 13:34:26Z twisti $
+   $Id: reg.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -36,8 +36,9 @@
 #define _REG_H
 
 #include "types.h"
-#include "jit/codegen.inc.h"
-#include "jit/jit.h"
+#include "vm/jit/codegen.inc.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/inline/inline.h"
 
 
 /************************* pseudo variable structure **************************/

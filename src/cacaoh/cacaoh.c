@@ -1,4 +1,4 @@
-/* cacaoh.c - main for header generation (cacaoh)
+/* cacaoh/cacaoh.c - main for header generation (cacaoh)
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 1543 2004-11-18 12:20:19Z twisti $
+   $Id: cacaoh.c 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -41,15 +41,23 @@
 
 #include "config.h"
 #include "types.h"
-#include "global.h"
-#include "headers.h"
-#include "loader.h"
-#include "options.h"
-#include "tables.h"
+#include "cacaoh/headers.h"
 #include "mm/boehm.h"
-#include "threads/thread.h"
+#include "mm/memory.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
+#endif
+
 #include "toolbox/logging.h"
-#include "toolbox/memory.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/tables.h"
 
 
 /* define cacaoh options ******************************************************/

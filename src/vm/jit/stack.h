@@ -1,4 +1,4 @@
-/* jit/stack.h - stack analysis header
+/* vm/jit/stack.h - stack analysis header
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 1456 2004-11-05 14:33:14Z twisti $
+   $Id: stack.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -34,9 +34,9 @@
 #ifndef _STACK_H
 #define _STACK_H
 
-#include "exceptions.h"
-#include "global.h"
-#include "jit/reg.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/jit/reg.h"
 
 
 /**********************************************************************/

@@ -1,4 +1,4 @@
-/* jit/x86_64/asmpart.S - Java-C interface functions for x86_64
+/* vm/jit/x86_64/asmpart.S - Java-C interface functions for x86_64
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -29,14 +29,14 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1581 2004-11-24 13:57:02Z twisti $
+   $Id: asmpart.S 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #include "config.h"
-#include "jit/x86_64/arch.h"
-#include "jit/x86_64/offsets.h"
+#include "vm/jit/x86_64/arch.h"
+#include "vm/jit/x86_64/offsets.h"
 
 
 #define MethodPointer   -8

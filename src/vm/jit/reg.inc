@@ -1,4 +1,4 @@
-/* jit/reg.inc - register allocator
+/* vm/jit/reg.inc - register allocator
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -30,13 +30,13 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1506 2004-11-14 14:48:49Z jowenn $
+   $Id: reg.inc 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
-#include "jit/reg.h"
-#include "toolbox/memory.h"
+#include "mm/memory.h"
+#include "vm/jit/reg.h"
 
 
 /* function prototypes for this file */

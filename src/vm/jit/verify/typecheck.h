@@ -1,4 +1,4 @@
-/* jit/typecheck.h - type checking header
+/* vm/jit/verify/typecheck.h - type checking header
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: typecheck.h 1456 2004-11-05 14:33:14Z twisti $
+   $Id: typecheck.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -34,10 +34,10 @@
 #ifndef _TYPECHECK_H
 #define _TYPECHECK_H
 
-#include "jit/codegen.inc.h"
+#include "vm/jit/codegen.inc.h"
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd);
 

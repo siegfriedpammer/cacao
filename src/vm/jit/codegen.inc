@@ -1,4 +1,4 @@
-/* jit/codegen.inc - architecture independent code generator
+/* vm/jit/codegen.inc - architecture independent code generator
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -48,26 +48,37 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1565 2004-11-23 15:56:37Z twisti $
+   $Id: codegen.inc 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
 
 #include <string.h>
-#include "exceptions.h"
-#include "native.h"
-#include "options.h"
-#include "statistics.h"
-#include "jit/codegen.inc.h"
-#include "toolbox/memory.h"
-#include "toolbox/logging.h"
-#include "toolbox/avl.h"
-#include "threads/thread.h"
-#ifndef STATIC_CLASSPATH
-#include <dlfcn.h>
+
+#if !defined(STATIC_CLASSPATH)
+# include <dlfcn.h>
 #endif
 
-/* in this tree we store all method addresses */
+#include "mm/memory.h"
+#include "toolbox/avl.h"
+#include "toolbox/logging.h"
+#include "native/native.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
+#endif
+
+#include "vm/exceptions.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
+#include "vm/jit/codegen.inc.h"
+
+
+/* in this tree we store all method addresses *********************************/
 
 #if defined(__I386__) || defined(__X86_64__)
 static struct avl_table *methodtree = NULL;

@@ -1,4 +1,4 @@
-/* asmpart.h - prototypes for machine specfic functions
+/* vm/jit/asmpart.h - prototypes for machine specfic functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 1296 2004-07-10 17:02:15Z stefan $
+   $Id: asmpart.h 1621 2004-11-30 13:06:55Z twisti $
 
 */
 
@@ -37,9 +37,17 @@
 #ifndef _ASMPART_H
 #define _ASMPART_H
 
-#include "global.h"
-#include "jni.h"
-#include "threads/thread.h"
+#include "native/jni.h"
+#include "vm/global.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
+#endif
+
 
 /* 
    determines if the byte support instruction set (21164a and higher)

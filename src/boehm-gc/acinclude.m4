@@ -46,4 +46,3 @@ AC_DEFUN([GC_SET_VERSION], [
 ${GC_ALPHA_VERSION:+alpha=}$GC_ALPHA_VERSION)
 ])
 
-sinclude(libtool.m4)
