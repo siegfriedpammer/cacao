@@ -1,4 +1,4 @@
-EXTRA_DIST = x.java x.output
+EXTRA_DIST = x.java x.output jctest.java jctest.output
 
 check_DATA = checkall
 
