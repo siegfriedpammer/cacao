@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2236 2005-04-06 12:11:32Z twisti $
+   $Id: stack.c 2240 2005-04-06 13:04:28Z twisti $
 
 */
 
@@ -1875,14 +1875,18 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_INVOKESPECIAL:
 						COUNT(count_pcmd_met);
 						{
+#if defined(__X86_64__)
 							unresolved_method *um = iptr->target;
 /*  							if (lm->flags & ACC_STATIC) */
 /*  								{COUNT(count_check_null);} */
 							call_argcount = iptr->op1;
-#if defined(__X86_64__)
 							call_returntype =
 								um->methodref->parseddesc.md->returntype.type;
 #else
+							methodinfo *lm = iptr->val.a;
+							if (lm->flags & ACC_STATIC)
+								{COUNT(count_check_null);}
+							call_argcount = iptr->op1;
 							call_returntype = lm->returntype;
 #endif
 

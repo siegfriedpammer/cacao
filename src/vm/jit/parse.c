@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 2236 2005-04-06 12:11:32Z twisti $
+   $Id: parse.c 2240 2005-04-06 13:04:28Z twisti $
 
 */
 
@@ -1052,6 +1052,7 @@ if (DEBUG4==true) {
 				constant_FMIref *mr;
 				methodinfo *mi;
 				unresolved_method *um;
+				classinfo *mrclass;
 
 				inline_env->method->isleafmethod = false;
 
