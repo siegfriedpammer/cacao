@@ -24,9 +24,9 @@
 #include "memory.h"
 
 
-	/********* allgemeine Typen, Variablen und Hilfsfunktionen *********/
+	/********* general types, variables and auxiliary functions *********/
 
-#define DUMPBLOCKSIZE  (2<<18)
+#define DUMPBLOCKSIZE  (2<<21)
 #define ALIGNSIZE           8
 
 typedef struct dumplist {
@@ -111,7 +111,7 @@ void *mem_mmap(int length)
 
 #ifdef DEBUG
 
-	/************ Sichere Version des Speichermanages **************/
+	/************ Memory manager, safe version **************/
 
 
 typedef struct memblock {
@@ -264,7 +264,7 @@ static void mem_characterlog (unsigned char *m, int len)
 }
 
 #else
-		/******* Schnelle Version des Speichermanagers ******/
+		/******* Memory manager, fast version ******/
 
 
 void *mem_alloc(int length)
@@ -337,7 +337,7 @@ void *mem_realloc (void *m1, int len1, int len2)
 
 #endif
 
-		/******* allgemeine Teile des Speichermanagers ******/
+		/******* common memory manager parts ******/
 
 
 

@@ -19,11 +19,11 @@
 #include "loging.h"
 
 /***************************************************************************
-                        LOGFILE - BEHANDLUNG 
+                        LOG FILE HANDLING 
 ***************************************************************************/
 
-char logtext[MAXLOGTEXT];   /* Musz mit dem gewuenschten Text vor */
-                            /* Aufruf von dolog() beschrieben werden */
+char logtext[MAXLOGTEXT];   /* Needs to be filled with desired text before */
+                            /* call to dolog() */
 
 
 FILE *logfile = NULL;
@@ -42,10 +42,10 @@ void log_init(char *fname)
 
 
 
-/*********************** Funktion: dolog ************************************
+/*********************** Function: dolog ************************************
 
-Gibt den in logtext stehenden Text auf die Protokollierungsdatei
-aus (wenn sie offen ist) und auszerdem auf stdout. 
+Writes the contents of logtext to both the protocol file (if opened) and to
+stdout.
 
 **************************************************************************/
 
@@ -61,7 +61,7 @@ void dolog()
 		}
 }
 
-/********************* Funktion: log_text ********************************/
+/********************* Function: log_text ********************************/
 
 void log_text (char *text)
 {
@@ -70,7 +70,7 @@ void log_text (char *text)
 }
 
 
-/********************* Funktion: log_cputime ****************************/
+/********************* Function: log_cputime ****************************/
 
 void log_cputime ()
 {
@@ -88,9 +88,9 @@ void log_cputime ()
 
 
 
-/************************** Funktion: error *******************************
+/************************** Function: error *******************************
 
-Wie dolog(), aber das Programm wird auszerdem sofort terminiert.
+Like dolog(), but terminates the program immediately.
 
 **************************************************************************/
 
@@ -104,9 +104,9 @@ void error()
 }
 
 
-/************************ Funktion: panic (txt) ****************************
+/************************ Function: panic (txt) ****************************
 
-  Wie error(), jedoch wird der auszugebende Text als Argument uebergeben
+  Like error(), takes the text to output as an argument
 
 ***************************************************************************/
 
@@ -117,9 +117,9 @@ void panic(char *txt)
 }
 
 
-/********************** Funktion: getcputime ********************************
+/********************** Function: getcputime ********************************
 
-	liefert die verbrauchte CPU-Zeit im Mikrosekunden
+	Returns the used CPU time in microseconds
 	
 ****************************************************************************/
 
