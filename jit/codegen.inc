@@ -48,138 +48,42 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1265 2004-07-01 20:36:38Z twisti $
+   $Id: codegen.inc 1343 2004-07-21 16:12:00Z twisti $
 
 */
 
 
 #include <string.h>
+#include "exceptions.h"
+#include "native.h"
 #include "options.h"
 #include "statistics.h"
+#include "jit/codegen.inc.h"
 #include "toolbox/memory.h"
 #include "toolbox/logging.h"
 #include "toolbox/avl.h"
 #include "threads/thread.h"
 
 
-/************************* critical sections  *********************************/
-
-struct threadcritnodetemp {
-	struct threadcritnodetemp *next;
-	int mcodebegin, mcodeend, mcoderestart;
-};
-
-#define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
-#define DSEGINITSIZE  (1<<12)       /*  4 Kbyte data area initialization size */
-
-static u1* mcodebase = NULL;        /* base pointer of code area              */
-static s4* mcodeend  = NULL;        /* pointer to end of code area            */
-static int mcodesize;               /* complete size of code area (bytes)     */
-
-static u1* dsegtop = NULL;          /* pointer to top (end) of data area      */
-static int dsegsize;                /* complete size of data area (bytes)     */
-int dseglen;                        /* used size of data area (bytes)         */
-                                    /* data area grows from top to bottom     */
-
-static jumpref *jumpreferences;     /* list of jumptable target addresses     */
-static dataref *datareferences;     /* list of data segment references        */
-static branchref *xboundrefs;       /* list of bound check branches           */
-static branchref *xcheckarefs;      /* list of array size check branches      */
-static branchref *xnullrefs;        /* list of null check branches            */
-static branchref *xcastrefs;        /* list of cast check branches            */
-static branchref *xdivrefs;         /* list of divide by zero branches        */
-static branchref *xexceptionrefs;   /* list of exception branches             */
-static linenumberref *linenumberreferences; /*list of line numbers and the program counters of their first instruction*/
-static s4 linenumbertablesizepos;
-static s4 linenumbertablestartpos;
-static s4 linenumbertab;
-
-static struct threadcritnodetemp *threadcrit;
-                                    /* List of critical code regions          */
-static struct threadcritnodetemp threadcritcurrent;
-static int threadcritcount;         /* Number of critical regions             */
-
-int parentargs_base; /* offset in stackframe for the parameter from the caller*/
-
-void codegen_init();                /* allocates code and data area           */
-void codegen_close();               /* releases temporary storage             */
-static void codegen_finish();       /* makes code and data area permanent and */
-                                    /* updates branch references to code/data */
-
-static s4 dseg_adds4(s4 value);         /* adds an int to data area           */
-
-#if !defined(__I386__)
-static s4 dseg_adds8(s8 value);         /* adds an long to data area          */
-#endif
-
-static s4 dseg_addfloat (float value);  /* adds an float to data area         */
-static s4 dseg_adddouble(double value); /* adds an double to data area        */
-
-#if POINTERSIZE == 8
-#define dseg_addaddress(value)      dseg_adds8((s8)(value))
-#else
-#define dseg_addaddress(value)      dseg_adds4((s4)(value))
-#endif
-
-static void dseg_addtarget(basicblock *target);
-static void dseg_adddata(u1 *ptr);
-static void codegen_addxboundrefs(void *branchptr, s4 reg);
-static void codegen_addxnullrefs(void *branchptr);
-static void codegen_addxcastrefs(void *branchptr);
-static void codegen_addxdivrefs(void *branchptr);
-static void codegen_addxexceptionrefs(void *branchptr);
-static void codegen_threadcritrestart(int offset);
-static void codegen_threadcritstart(int offset);
-static void codegen_threadcritstop(int offset);
+/* in this tree we store all method addresses */
 
 #if defined(__I386__) || defined(__X86_64__)
-typedef struct _methodtree_element methodtree_element;
-
-struct _methodtree_element {
-	void *startpc;
-	void *endpc;
-};
-
-static struct avl_table *methodtree=0;
+static struct avl_table *methodtree = NULL;
 static int methodtree_comparator(const void *pc, const void *element,
 								 void *param);
 #endif
 
-void dseg_display(s4 *s4ptr);
 
+/* codegen_init ****************************************************************
 
+   TODO
 
-/* codegen_init allocates and initialises code area, data area and references */
+*******************************************************************************/
 
 void codegen_init()
 {
-	if (!mcodebase) {
-		mcodebase = MNEW(u1, MCODEINITSIZE);
-		mcodesize = MCODEINITSIZE;
-	}
-
-	if (!dsegtop) {
-		dsegtop = MNEW(u1, DSEGINITSIZE);
-		dsegsize = DSEGINITSIZE;
-		dsegtop += dsegsize;
-	}
-
-	dseglen = 0;
-
-	linenumberreferences = NULL;
-	linenumbertablesizepos = 0;
-	linenumbertablestartpos = 0;
-	linenumbertab = 0;
-	jumpreferences = NULL;
-	datareferences = NULL;
-	xboundrefs = NULL;
-	xcheckarefs = NULL;
-	xnullrefs = NULL;
-	xcastrefs = NULL;
-	xdivrefs = NULL;
-	xexceptionrefs = NULL;
-
 #if defined(__I386__) || defined(__X86_64__)
+	/* this tree is global, not method specific */
 	if (!methodtree) {
 		methodtree_element *mte;
 
@@ -200,193 +104,313 @@ void codegen_init()
 		avl_insert(methodtree, mte);
 	}
 #endif
+}
+
+
+/* codegen_setup **************************************************************
+
+   allocates and initialises code area, data area and references
+
+*******************************************************************************/
+
+void codegen_setup(methodinfo *m)
+{
+	codegendata *cd;
+
+	m->codegendata = NEW(codegendata);
+
+	/* keep code size smaller */
+	cd = m->codegendata;
+
+	cd->mcodebase = MNEW(u1, MCODEINITSIZE);
+	cd->mcodesize = MCODEINITSIZE;
+	
+	cd->dsegtop = MNEW(u1, DSEGINITSIZE);
+	cd->dsegsize = DSEGINITSIZE;
+	cd->dsegtop += cd->dsegsize;
+	cd->dseglen = 0;
+
+	cd->jumpreferences = NULL;
+	cd->datareferences = NULL;
+	cd->xboundrefs = NULL;
+	cd->xcheckarefs = NULL;
+	cd->xnullrefs = NULL;
+	cd->xcastrefs = NULL;
+	cd->xdivrefs = NULL;
+	cd->xexceptionrefs = NULL;
+
+	cd->linenumberreferences = NULL;
+	cd->linenumbertablesizepos = 0;
+	cd->linenumbertablestartpos = 0;
+	cd->linenumbertab = 0;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	threadcritcurrent.next = NULL;
-	threadcritcount = 0;
+	cd->threadcritcurrent.next = NULL;
+	cd->threadcritcount = 0;
 #endif
 }
 
 
-
 /* codegen_close releases temporary code and data area                        */
 
-void codegen_close()
+void codegen_close(methodinfo *m)
 {
-	if (mcodebase) {
-		MFREE(mcodebase, u1, mcodesize);
-		mcodebase = NULL;
-	}
+	codegendata *cd;
 
-	if (dsegtop) {
-		MFREE(dsegtop - dsegsize, u1, dsegsize);
-		dsegtop = NULL;
+	cd = m->codegendata;
+
+	if (cd) {
+		if (cd->mcodebase) {
+			MFREE(cd->mcodebase, u1, cd->mcodesize);
+			cd->mcodebase = NULL;
+		}
+
+		if (cd->dsegtop) {
+			MFREE(cd->dsegtop - cd->dsegsize, u1, cd->dsegsize);
+			cd->dsegtop = NULL;
+		}
+
+		FREE(m->codegendata, codegendata);
+		m->codegendata = NULL;
 	}
 }
-
 
 
 /* codegen_increase doubles code area                                         */
 
-static s4 *codegen_increase(u1 *codeptr)
+static s4 *codegen_increase(methodinfo *m, u1 *codeptr)
 {
+	codegendata *cd;
 	long len;
 
-	len = codeptr - mcodebase;
-	mcodebase = MREALLOC(mcodebase, u1, mcodesize, mcodesize * 2);
-	mcodesize *= 2;
-	mcodeend = (s4*) (mcodebase + mcodesize);
-	return (s4*) (mcodebase + len);
-}
+	cd = m->codegendata;
 
+	len = codeptr - cd->mcodebase;
+	cd->mcodebase = MREALLOC(cd->mcodebase,
+							 u1,
+							 cd->mcodesize,
+							 cd->mcodesize * 2);
+	cd->mcodesize *= 2;
+	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
+
+	return (s4 *) (cd->mcodebase + len);
+}
 
 
 /* desg_increase doubles data area                                            */
 
-static void dseg_increase()
+static void dseg_increase(methodinfo *m)
 {
-	u1 *newstorage = MNEW(u1, dsegsize * 2);
-	memcpy(newstorage + dsegsize, dsegtop - dsegsize, dsegsize);
-	MFREE(dsegtop - dsegsize, u1, dsegsize);
-	dsegtop = newstorage;
-	dsegsize *= 2;
-	dsegtop += dsegsize;
+	codegendata *cd;
+	u1 *newstorage;
+
+	cd = m->codegendata;
+
+	newstorage = MNEW(u1, cd->dsegsize * 2);
+
+	memcpy(newstorage + cd->dsegsize, cd->dsegtop - cd->dsegsize, cd->dsegsize);
+	MFREE(cd->dsegtop - cd->dsegsize, u1, cd->dsegsize);
+
+	cd->dsegtop = newstorage;
+	cd->dsegsize *= 2;
+	cd->dsegtop += cd->dsegsize;
 }
 
 
-
-static s4 dseg_adds4_increase(s4 value)
+static s4 dseg_adds4_increase(methodinfo *m, s4 value)
 {
-	dseg_increase();
-	*((s4 *) (dsegtop - dseglen)) = value;
-	return -dseglen;
+	codegendata *cd;
+
+	cd = m->codegendata;
+
+	dseg_increase(m);
+
+	*((s4 *) (cd->dsegtop - cd->dseglen)) = value;
+
+	return -(cd->dseglen);
 }
 
 
-
-static s4 dseg_adds4(s4 value)
+static s4 dseg_adds4(methodinfo *m, s4 value)
 {
+	codegendata *cd;
 	s4 *dataptr;
 
-	dseglen += 4;
-	dataptr = (s4 *) (dsegtop - dseglen);
-	if (dseglen > dsegsize)
-		return dseg_adds4_increase(value);
-	*dataptr = value;
-	return -dseglen;
-}
+	cd = m->codegendata;
 
+	cd->dseglen += 4;
+	dataptr = (s4 *) (cd->dsegtop - cd->dseglen);
+
+	if (cd->dseglen > cd->dsegsize)
+		return dseg_adds4_increase(m, value);
+
+	*dataptr = value;
+
+	return -(cd->dseglen);
+}
 
 
 #if !defined(__I386__)
-static s4 dseg_adds8_increase(s8 value)
+static s4 dseg_adds8_increase(methodinfo *m, s8 value)
 {
-	dseg_increase();
-	*((s8 *) (dsegtop - dseglen)) = value;
-	return -dseglen;
+	codegendata *cd;
+
+	cd = m->codegendata;
+
+	dseg_increase(m);
+
+	*((s8 *) (cd->dsegtop - cd->dseglen)) = value;
+
+	return -(cd->dseglen);
 }
 
 
 static s4 dseg_adds8(s8 value)
 {
+	codegendata *cd;
 	s8 *dataptr;
 
-	dseglen = ALIGN (dseglen + 8, 8);
-	dataptr = (s8 *) (dsegtop - dseglen);
-	if (dseglen > dsegsize)
-		return dseg_adds8_increase(value);
+	cd = m->codegendata;
+
+	cd->dseglen = ALIGN(cd->dseglen + 8, 8);
+	dataptr = (s8 *) (cd->dsegtop - cd->dseglen);
+
+	if (cd->dseglen > cd->dsegsize)
+		return dseg_adds8_increase(m, value);
+
 	*dataptr = value;
-	return -dseglen;
+
+	return -(cd->dseglen);
 }
 #endif
 
 
-static s4 dseg_addfloat_increase(float value)
+static s4 dseg_addfloat_increase(methodinfo *m, float value)
 {
-	dseg_increase();
-	*((float *) (dsegtop - dseglen)) = value;
-	return -dseglen;
+	codegendata *cd;
+
+	cd = m->codegendata;
+
+	dseg_increase(m);
+
+	*((float *) (cd->dsegtop - cd->dseglen)) = value;
+
+	return -(cd->dseglen);
 }
 
 
-
-static s4 dseg_addfloat(float value)
+static s4 dseg_addfloat(methodinfo *m, float value)
 {
+	codegendata *cd;
 	float *dataptr;
 
-	dseglen += 4;
-	dataptr = (float *) (dsegtop - dseglen);
-	if (dseglen > dsegsize)
-		return dseg_addfloat_increase(value);
+	cd = m->codegendata;
+
+	cd->dseglen += 4;
+	dataptr = (float *) (cd->dsegtop - cd->dseglen);
+
+	if (cd->dseglen > cd->dsegsize)
+		return dseg_addfloat_increase(m, value);
+
 	*dataptr = value;
-	return -dseglen;
+
+	return -(cd->dseglen);
 }
 
 
-
-static s4 dseg_adddouble_increase(double value)
+static s4 dseg_adddouble_increase(methodinfo *m, double value)
 {
-	dseg_increase();
-	*((double *) (dsegtop - dseglen)) = value;
-	return -dseglen;
+	codegendata *cd;
+
+	cd = m->codegendata;
+
+	dseg_increase(m);
+
+	*((double *) (cd->dsegtop - cd->dseglen)) = value;
+
+	return -(cd->dseglen);
 }
 
 
-
-static s4 dseg_adddouble(double value)
+static s4 dseg_adddouble(methodinfo *m, double value)
 {
+	codegendata *cd;
 	double *dataptr;
 
-	dseglen = ALIGN (dseglen + 8, 8);
-	dataptr = (double *) (dsegtop - dseglen);
-	if (dseglen > dsegsize)
-		return dseg_adddouble_increase(value);
+	cd = m->codegendata;
+
+	cd->dseglen = ALIGN(cd->dseglen + 8, 8);
+	dataptr = (double *) (cd->dsegtop - cd->dseglen);
+
+	if (cd->dseglen > cd->dsegsize)
+		return dseg_adddouble_increase(m, value);
+
 	*dataptr = value;
-	return -dseglen;
+
+	return -(cd->dseglen);
 }
 
 
-
-static void dseg_addtarget(basicblock *target)
+static void dseg_addtarget(methodinfo *m, basicblock *target)
 {
-	jumpref *jr = DNEW(jumpref);
+	codegendata *cd;
+	jumpref *jr;
+
+	cd = m->codegendata;
 	
-	jr->tablepos = dseg_addaddress(NULL);
+	jr = DNEW(jumpref);
+	jr->tablepos = dseg_addaddress(m, NULL);
 	jr->target = target;
-	jr->next = jumpreferences;
-	jumpreferences = jr;
+	jr->next = cd->jumpreferences;
+	cd->jumpreferences = jr;
 }
 
 
-
-static void dseg_adddata(u1 *ptr)
+static void dseg_adddata(methodinfo *m, u1 *ptr)
 {
-	dataref *dr = DNEW(dataref);
+	codegendata *cd;
+	dataref *dr;
 
-	dr->pos = (u1 *) (ptr - mcodebase);
-	dr->next = datareferences;
-	datareferences = dr;
+	cd = m->codegendata;
+
+	dr = DNEW(dataref);
+	dr->pos = (u1 *) (ptr - cd->mcodebase);
+	dr->next = cd->datareferences;
+	cd->datareferences = dr;
 }
 
-static void dseg_addlinenumbertablesize() {
+
+static void dseg_addlinenumbertablesize(methodinfo *m)
+{
+	codegendata *cd;
+
+	cd = m->codegendata;
+
 #ifdef __ALPHA__
 	dseg_adds4(0); /*PADDING*/
 #endif
-	linenumbertablesizepos=dseg_addaddress(NULL); /*it could be considered to use adds4 here, to avoid 1 double word padding on ALPHA */
+	cd->linenumbertablesizepos = dseg_addaddress(m, NULL); /*it could be considered to use adds4 here, to avoid 1 double word padding on ALPHA */
 
-	linenumbertablestartpos=dseg_addaddress(NULL);
+	cd->linenumbertablestartpos = dseg_addaddress(m, NULL);
 #ifdef __ALPHA__
 	dseg_adds4(0); /*PADDING*/
 #endif
 }
 
-static void dseg_addlinenumber(u2 linenumber,u1 *ptr) {
-	linenumberref *lr=DNEW(linenumberref);
-	lr->linenumber=linenumber;
-	lr->tablepos=0;
-	lr->targetmpc=(ptr-mcodebase);
-	lr->next=linenumberreferences;
-	linenumberreferences=lr;
+
+static void dseg_addlinenumber(methodinfo *m, u2 linenumber, u1 *ptr)
+{
+	codegendata *cd;
+	linenumberref *lr;
+
+	cd = m->codegendata;
+
+	lr = DNEW(linenumberref);
+	lr->linenumber = linenumber;
+	lr->tablepos = 0;
+	lr->targetmpc = (ptr - cd->mcodebase);
+	lr->next = cd->linenumberreferences;
+	cd->linenumberreferences = lr;
 }
 
 
@@ -394,122 +418,161 @@ static void dseg_addlinenumber(u2 linenumber,u1 *ptr) {
    on alpha... */
 
 #if defined(__I386__) || defined(__X86_64__)
-void codegen_addreference(basicblock *target, void *branchptr)
+void codegen_addreference(methodinfo *m, basicblock *target, void *branchptr)
 #else
-static void codegen_addreference(basicblock *target, void *branchptr)
+static void codegen_addreference(methodinfo *m, basicblock *target, void *branchptr)
 #endif
 {
-	s4 branchpos = (u1*) branchptr - mcodebase;
+	codegendata *cd;
+	s4 branchpos;
+
+	cd = m->codegendata;
+
+	branchpos = (u1 *) branchptr - cd->mcodebase;
 
 	if (target->mpc >= 0) {
-		gen_resolvebranch((u1*) mcodebase + branchpos, branchpos, target->mpc);
-	}
-	else {
+		gen_resolvebranch((u1 *) cd->mcodebase + branchpos,
+						  branchpos,
+						  target->mpc);
+
+	} else {
 		branchref *br = DNEW(branchref);
 
 		br->branchpos = branchpos;
 		br->next = target->branchrefs;
-		target->branchrefs= br;
+		target->branchrefs = br;
 	}
 }
 
 
-
-static void codegen_addxboundrefs(void *branchptr, s4 reg)
+static void codegen_addxboundrefs(methodinfo *m, void *branchptr, s4 reg)
 {
-	s4 branchpos = (u1*) branchptr - mcodebase;
+	codegendata *cd;
+	s4 branchpos;
+	branchref *br;
 
-	branchref *br = DNEW(branchref);
+	cd = m->codegendata;
 
+	branchpos = (u1 *) branchptr - cd->mcodebase;
+
+	br = DNEW(branchref);
 	br->branchpos = branchpos;
 	br->reg = reg;
-	br->next = xboundrefs;
-	xboundrefs = br;
+	br->next = cd->xboundrefs;
+	cd->xboundrefs = br;
 }
 
 
-
-static void codegen_addxcheckarefs(void *branchptr)
+static void codegen_addxcheckarefs(methodinfo *m, void *branchptr)
 {
-	s4 branchpos = (u1*) branchptr - mcodebase;
+	codegendata *cd;
+	s4 branchpos;
+	branchref *br;
 
-	branchref *br = DNEW(branchref);
+	cd = m->codegendata;
 
+	branchpos = (u1 *) branchptr - cd->mcodebase;
+
+	br = DNEW(branchref);
 	br->branchpos = branchpos;
-	br->next = xcheckarefs;
-	xcheckarefs = br;
+	br->next = cd->xcheckarefs;
+	cd->xcheckarefs = br;
 }
 
 
-
-static void codegen_addxnullrefs(void *branchptr)
+static void codegen_addxnullrefs(methodinfo *m, void *branchptr)
 {
-	s4 branchpos = (u1*) branchptr - mcodebase;
+	codegendata *cd;
+	s4 branchpos;
+	branchref *br;
 
-	branchref *br = DNEW(branchref);
+	cd = m->codegendata;
 
+	branchpos = (u1 *) branchptr - cd->mcodebase;
+
+	br = DNEW(branchref);
 	br->branchpos = branchpos;
-	br->next = xnullrefs;
-	xnullrefs = br;
+	br->next = cd->xnullrefs;
+	cd->xnullrefs = br;
 }
 
 
 
-static void codegen_addxcastrefs(void *branchptr)
+static void codegen_addxcastrefs(methodinfo *m, void *branchptr)
 {
-	s4 branchpos = (u1*) branchptr - mcodebase;
+	codegendata *cd;
+	s4 branchpos;
+	branchref *br;
 
-	branchref *br = DNEW(branchref);
+	cd = m->codegendata;
 
+	branchpos = (u1 *) branchptr - cd->mcodebase;
+
+	br = DNEW(branchref);
 	br->branchpos = branchpos;
-	br->next = xcastrefs;
-	xcastrefs = br;
+	br->next = cd->xcastrefs;
+	cd->xcastrefs = br;
 }
 
 
-static void codegen_addxexceptionrefs(void *branchptr)
+static void codegen_addxexceptionrefs(methodinfo *m, void *branchptr)
 {
-	s4 branchpos = (u1*) branchptr - mcodebase;
+	codegendata *cd;
+	s4 branchpos;
+	branchref *br;
 
-	branchref *br = DNEW(branchref);
+	cd = m->codegendata;
 
+	branchpos = (u1 *) branchptr - cd->mcodebase;
+
+	br = DNEW(branchref);
 	br->branchpos = branchpos;
-	br->next = xexceptionrefs;
-	xexceptionrefs = br;
+	br->next = cd->xexceptionrefs;
+	cd->xexceptionrefs = br;
 }
 
 
-static void codegen_addxdivrefs(void *branchptr)
+#if defined(__I386__) || defined(__X86_64__)
+static void codegen_addxdivrefs(methodinfo *m, void *branchptr)
 {
-	s4 branchpos = (u1*) branchptr - mcodebase;
+	codegendata *cd;
+	s4 branchpos;
+	branchref *br;
 
-	branchref *br = DNEW(branchref);
+	cd = m->codegendata;
 
+	branchpos = (u1 *) branchptr - cd->mcodebase;
+
+	br = DNEW(branchref);
 	br->branchpos = branchpos;
-	br->next = xdivrefs;
-	xdivrefs = br;
+	br->next = cd->xdivrefs;
+	cd->xdivrefs = br;
 }
+#endif
 
 
-static void codegen_createlinenumbertable() {
+static void codegen_createlinenumbertable(methodinfo *m)
+{
 #ifdef __I386__
-	/*log_text("codegen_createlinnumbertable");*/
-	{
-		linenumberref *lr;
-		for (lr=linenumberreferences;lr!=NULL;lr=lr->next) {
-			/*log_text("Adding line number entry");*/
-			lr->tablepos=dseg_addaddress(NULL);
-			if (linenumbertab==0) linenumbertab=lr->tablepos;
-			dseg_addaddress(lr->linenumber);
-		}
+	codegendata *cd;
+	linenumberref *lr;
+
+	cd = m->codegendata;
+
+	for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
+		lr->tablepos = dseg_addaddress(m, NULL);
+
+		if (cd->linenumbertab == 0)
+			cd->linenumbertab = lr->tablepos;
+
+		dseg_addaddress(m, lr->linenumber);
 	}
 #endif
 }
 
 
 #if defined(__I386__) || defined(__X86_64__)
-static int methodtree_comparator(const void *pc, const void *element,
-								 void *param)
+static int methodtree_comparator(const void *pc, const void *element, void *param)
 {
 	methodtree_element *mte;
 	methodtree_element *mtepc;
@@ -518,7 +581,7 @@ static int methodtree_comparator(const void *pc, const void *element,
 	mtepc = (methodtree_element *) pc;
 
 	/* compare both startpc and endpc of pc, even if they have the same value,
-	   otherwise the avl_probe sometime thinks the element is still in the
+	   otherwise the avl_probe sometimes thinks the element is already in the
 	   tree */
 	if (mte->startpc <= mtepc->startpc && mtepc->startpc <= mte->endpc &&
 		mte->startpc <= mtepc->endpc   && mtepc->endpc   <= mte->endpc) {
@@ -549,6 +612,39 @@ void *codegen_findmethod1(void *pc)
 }
 #endif
 
+
+void codegen_insertmethod(void *startpc, void *endpc)
+{
+	methodtree_element *mte;
+
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+	tables_lock();
+#endif
+#endif
+
+	mte = NEW(methodtree_element);
+	mte->startpc = startpc;
+	mte->endpc = endpc;
+
+	if (avl_insert(methodtree, mte)) {
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+		tables_unlock();
+#endif
+#endif
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "duplicate entry");
+	}
+
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+	tables_unlock();
+#endif
+#endif
+}
+
+
 void *codegen_findmethod(void *pc)
 {
 	methodtree_element *mtepc;
@@ -563,45 +659,48 @@ void *codegen_findmethod(void *pc)
 	FREE(mtepc, methodtree_element);
 
 	if (!mte)
-		throw_cacao_exception_exit(string_java_lang_InternalError, "cannot find function");
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "cannot find function");
 
 	return mte->startpc;
 }
 #endif
 
 
-static void codegen_finish(methodinfo *m, int mcodelen)
+static void codegen_finish(methodinfo *m, s4 mcodelen)
 {
+	codegendata *cd;
 	jumpref *jr;
 	u1 *epoint;
 	s4 extralen = 0;
 	s4 alignedlen;
 
-/*  	printf("codegen_finish\n"); */
+	cd = m->codegendata;
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	extralen += sizeof(threadcritnode) * threadcritcount;
+	extralen += sizeof(threadcritnode) * cd->threadcritcount;
 #endif
 
 #if defined(STATISTICS)
 	if (opt_stat) {
 		count_code_len += mcodelen;
-		count_data_len += dseglen;
+		count_data_len += cd->dseglen;
 	}
 #endif
 
-	dseglen = ALIGN(dseglen, MAX_ALIGN);
-	alignedlen = ALIGN(mcodelen, MAX_ALIGN) + dseglen;
+	cd->dseglen = ALIGN(cd->dseglen, MAX_ALIGN);
+	alignedlen = ALIGN(mcodelen, MAX_ALIGN) + cd->dseglen;
 
-	m->mcodelength = mcodelen + dseglen;
+	m->mcodelength = mcodelen + cd->dseglen;
 	m->mcode = CNEW(u1, alignedlen + extralen);
 
-	memcpy(m->mcode, dsegtop - dseglen, dseglen);
-	memcpy(m->mcode + dseglen, mcodebase, mcodelen);
+	memcpy(m->mcode, cd->dsegtop - cd->dseglen, cd->dseglen);
+	memcpy(m->mcode + cd->dseglen, cd->mcodebase, mcodelen);
 
-	m->entrypoint = epoint = (u1 *) (m->mcode + dseglen);
+	m->entrypoint = epoint = (u1 *) (m->mcode + cd->dseglen);
 
 	/* jump table resolving */
-	jr = jumpreferences;
+	jr = cd->jumpreferences;
 	while (jr != NULL) {
 	    *((void**) (epoint + jr->tablepos)) = epoint + jr->target->mpc;
 	    jr = jr->next;
@@ -611,43 +710,36 @@ static void codegen_finish(methodinfo *m, int mcodelen)
 	/* line number table resolving */
 	{
 		linenumberref *lr;
-		#if POINTERSIZE == 8
-			s8  lrtlen=0;
-		#else
-			s4  lrtlen=0;
-		#endif
+#if POINTERSIZE == 8
+		s8 lrtlen = 0;
+#else
+		s4 lrtlen = 0;
+#endif
 
-		for (lr=linenumberreferences;lr!=NULL;lr=lr->next) {
+		for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
 			lrtlen++;
-			*((void**)(epoint+lr->tablepos))=epoint+lr->targetmpc;
-			/*log_text("resolving line number information");*/
+			*((void**) (epoint + lr->tablepos)) = epoint + lr->targetmpc;
 		}
 		
-		*((void**)(epoint+linenumbertablestartpos))=epoint+linenumbertab;
+		*((void**) (epoint + cd->linenumbertablestartpos)) =
+			epoint + cd->linenumbertab;
 #if POINTERSIZE == 8
-		*((s8*)(epoint+linenumbertablesizepos))=lrtlen;
+		*((s8*) (epoint + cd->linenumbertablesizepos)) = lrtlen;
 #else
-		*((s4*)(epoint+linenumbertablesizepos))=lrtlen;
+		*((s4*) (epoint + cd->linenumbertablesizepos)) = lrtlen;
 #endif
-
 	}
 #endif
+
 #if defined(__I386__) || defined(__X86_64__)
 	{
 		dataref *dr;
 
 		/* add method into methodtree to find the entrypoint */
-		methodtree_element *mte;
-
-		mte = NEW(methodtree_element);
-		mte->startpc = m->entrypoint;
-		mte->endpc = m->entrypoint + mcodelen;
-
-		if (avl_insert(methodtree, mte))
-			panic("duplicate entry");
+		codegen_insertmethod(m->entrypoint, m->entrypoint + mcodelen);
 
 		/* data segment references resolving */
-		dr = datareferences;
+		dr = cd->datareferences;
 		while (dr != NULL) {
 			*((void**) ((long) epoint + (long) dr->pos - POINTERSIZE)) = epoint;
 			dr = dr->next;
@@ -655,15 +747,13 @@ static void codegen_finish(methodinfo *m, int mcodelen)
 	}
 #endif
 
-
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	{
-		threadcritnode *n = (threadcritnode*) (m->mcode + alignedlen);
-		int i;
-		struct threadcritnodetemp *nt = threadcrit;
+		threadcritnode *n = (threadcritnode *) (m->mcode + alignedlen);
+		s4 i;
+		threadcritnodetemp *nt = cd->threadcrit;
 
-		for (i=0; i<threadcritcount; i++)
-		{
+		for (i = 0; i < cd->threadcritcount; i++) {
 			n->mcodebegin = m->mcode + nt->mcodebegin;
 			n->mcodeend = m->mcode + nt->mcodeend;
 			n->mcoderestart = m->mcode + nt->mcoderestart;
@@ -676,44 +766,16 @@ static void codegen_finish(methodinfo *m, int mcodelen)
 }
 
 
-#if defined(__I386__) || defined(__X86_64__)
-void codegen_insertNative(void *startpc, void *endpc)
+void dseg_display(methodinfo *m)
 {
-	methodtree_element *mte;
-
-	if (!methodtree) {
-		methodtree_element *mte;
-
-		methodtree = avl_create(methodtree_comparator, NULL, NULL);
-
-		mte = NEW(methodtree_element);
-		mte->startpc = asm_calljavafunction;
-		mte->endpc = asm_calljavafunction2 - 1;
-		avl_insert(methodtree, mte);
-
-		mte = NEW(methodtree_element);
-		mte->startpc = asm_calljavafunction2;
-		mte->endpc = asm_call_jit_compiler - 1;
-		avl_insert(methodtree, mte);
-	}
-
-	mte = NEW(methodtree_element);
-	mte->startpc = startpc;
-	mte->endpc = endpc;
-
-	if (avl_insert(methodtree, mte))
-		panic("duplicate entry");
-}
-#endif
-
-
-void dseg_display(s4 *s4ptr)
-{
-	int i;
+	s4 *s4ptr;
+	s4 i;
 	
+	s4ptr = (s4 *) m->mcode;
+
 	printf("  --- dump of datasegment\n");
-	for (i = dseglen; i > 0 ; i -= 4) {
-		printf("-%6x: %8x\n", i, (int)(*s4ptr++));
+	for (i = m->codegendata->dseglen; i > 0 ; i -= 4) {
+		printf("-%6x: %8x\n", i, (s4) (*s4ptr++));
 	}
 	printf("  --- begin of data segment: %p\n", s4ptr);
 }
@@ -771,23 +833,27 @@ static int reg_of_var(methodinfo *m, stackptr v, int tempregnum)
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-void codegen_threadcritrestart(int offset)
+static void codegen_threadcritrestart(methodinfo *m, int offset)
 {
-	threadcritcurrent.mcoderestart = offset;
+	m->codegendata->threadcritcurrent.mcoderestart = offset;
 }
 
-void codegen_threadcritstart(int offset)
+static void codegen_threadcritstart(methodinfo *m, int offset)
 {
-	threadcritcurrent.mcodebegin = offset;
+	m->codegendata->threadcritcurrent.mcodebegin = offset;
 }
 
-void codegen_threadcritstop(int offset)
+static void codegen_threadcritstop(methodinfo *m, int offset)
 {
-	threadcritcurrent.next = threadcrit;
-	threadcritcurrent.mcodeend = offset;
-	threadcrit = DNEW(struct threadcritnodetemp);
-	*threadcrit = threadcritcurrent;
-	threadcritcount++;
+	codegendata *cd;
+
+	cd = m->codegendata;
+
+	cd->threadcritcurrent.next = cd->threadcrit;
+	cd->threadcritcurrent.mcodeend = offset;
+	cd->threadcrit = DNEW(threadcritnodetemp);
+	*(cd->threadcrit) = cd->threadcritcurrent;
+	cd->threadcritcount++;
 }
 #endif
 
