@@ -10,14 +10,14 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger
 
-    Last Change: $Id: disass.c 385 2003-07-10 10:45:57Z twisti $
+    Last Change: $Id: disass.c 402 2003-08-03 21:00:47Z twisti $
 
 *******************************************************************************/
 
 #include "dis-asm.h"
 #include "dis-stuff.h"
 
-static s4 *codestatic = 0;
+static u1 *codestatic = 0;
 static int pstatic = 0;
 
 char mylinebuf[512];
@@ -64,11 +64,10 @@ static char *regs[] = {
 
 *******************************************************************************/
 
-static void disassinstr(int c, int pos)
+static void disassinstr(u1 *code, int pos)
 {
 	static disassemble_info info;
 	static int dis_initialized;
-	s4 *code = (s4 *) c;
 	int seqlen;
 
 	if (!dis_initialized) {
@@ -83,13 +82,13 @@ static void disassinstr(int c, int pos)
 	{
 		int i;
 		for (i = 0; i < seqlen; i++)
-			printf("%02x ", *((u1 *) code)++);
+			printf("%02x ", *(code++));
 		for (; i < 8; i++)
 			printf("   ");
+		printf("   %s\n", mylinebuf);
 	}
-	codestatic = (s4 *) ((u1 *) code - 1);
+	codestatic = code - 1;
 	pstatic = pos + seqlen - 1;
-	printf("%s\n", mylinebuf);
 }
 
 
@@ -101,7 +100,7 @@ static void disassinstr(int c, int pos)
 
 *******************************************************************************/
 
-static void disassemble(int *code, int len)
+static void disassemble(u1 *code, int len)
 {
 	int p;
 	disassemble_info info;
@@ -111,7 +110,7 @@ static void disassemble(int *code, int len)
 
 	printf("  --- disassembler listing ---\n");
 	for (p = 0; p < len; p++) {
-		(u1 *) code += print_insn_i386((bfd_vma) code, &info);
+		code += print_insn_i386((bfd_vma) code, &info);
 		myprintf(NULL, "\n");
 	}
 }
