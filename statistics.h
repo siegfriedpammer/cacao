@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 1416 2004-10-19 12:07:18Z carolyn $
+   $Id: statistics.h 1438 2004-11-05 09:52:49Z twisti $
 
 */
 
@@ -40,6 +40,13 @@
 
 
 /* global variables */
+
+extern s4 memoryusage;
+extern s4 maxmemusage;
+extern s4 maxdumpsize;
+
+extern s4 globalallocateddumpsize;
+extern s4 globaluseddumpsize;
 
 extern int count_class_infos;           /* variables for measurements         */
 extern int count_const_pool_len;
@@ -113,6 +120,8 @@ void compilingtime_stop();
 void print_times();
 void print_stats();
 
+void mem_usagelog(bool givewarnings);
+ 
 #endif /* _STATISTICS_H */
 
 

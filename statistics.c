@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 1418 2004-10-19 14:11:58Z carolyn $
+   $Id: statistics.c 1438 2004-11-05 09:52:49Z twisti $
 
 */
 
@@ -51,6 +51,13 @@ static s8 compilingtime = 0;            /* accumulated compile time           */
 static s8 compilingstarttime = 0;
 static s8 compilingstoptime = 0;
 static s4 compilingtime_recursion = 0;
+
+s4 memoryusage = 0;
+s4 maxmemusage = 0;
+s4 maxdumpsize = 0;
+
+s4 globalallocateddumpsize = 0;
+s4 globaluseddumpsize = 0;
 
 int count_class_infos = 0;              /* variables for measurements         */
 int count_const_pool_len = 0;
@@ -444,6 +451,28 @@ void print_stats()
 	log_text(logtext);
 	sprintf(logtext, "Calls of utf_new (element found): %6d\n\n", count_utf_new_found);
 	log_text(logtext);
+}
+
+
+/* mem_usagelog ****************************************************************
+
+   prints some memory related infos
+
+*******************************************************************************/
+
+void mem_usagelog(bool givewarnings)
+{
+	if ((memoryusage != 0) && givewarnings) {
+		dolog("Allocated memory not returned: %d", (s4) memoryusage);
+	}
+
+	if ((globalallocateddumpsize != 0) && givewarnings) {
+		dolog("Dump memory not returned: %d", (s4) globalallocateddumpsize);
+	}
+
+	dolog("Random/Dump - max. memory usage: %dkB/%dkB", 
+		  (s4) ((maxmemusage + 1023) / 1024),
+		  (s4) ((maxdumpsize + 1023) / 1024));
 }
 
 
