@@ -1,4 +1,4 @@
-/* vm/jit/x86_64/codegen.h - code generation macros and definitions for x86_64
+/* src/vm/jit/x86_64/codegen.h - code generation macros for x86_64
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1987 2005-03-05 15:42:13Z twisti $
+   $Id: codegen.h 2049 2005-03-20 16:25:33Z twisti $
 
 */
 
@@ -102,6 +102,14 @@ typedef enum {
 } X86_64_CC;
 
 
+#define IS_IMM8(imm) \
+    (((long) (imm) >= -128) && ((long) (imm) <= 127))
+
+
+#define IS_IMM32(imm) \
+    (((long) (imm) >= (-2147483647-1)) && ((long) (imm) <= 2147483647))
+
+
 /* modrm and stuff */
 
 #define x86_64_address_byte(mod,reg,rm) \
@@ -131,7 +139,7 @@ typedef enum {
             if ((disp) == 0) { \
                 x86_64_address_byte(0,(dreg),REG_SP); \
                 x86_64_address_byte(0,REG_SP,REG_SP); \
-            } else if (x86_64_is_imm8((disp))) { \
+            } else if (IS_IMM8((disp))) { \
                 x86_64_address_byte(1,(dreg),REG_SP); \
                 x86_64_address_byte(0,REG_SP,REG_SP); \
                 x86_64_emit_imm8((disp)); \
@@ -153,7 +161,7 @@ typedef enum {
             break; \
         } \
         \
-        if (x86_64_is_imm8((disp))) { \
+        if (IS_IMM8((disp))) { \
             x86_64_address_byte(1,(dreg),(basereg)); \
             x86_64_emit_imm8((disp)); \
         } else { \
@@ -174,7 +182,7 @@ typedef enum {
             x86_64_address_byte(0,(reg),4); \
             x86_64_address_byte((scale),(indexreg),(basereg)); \
         \
-        } else if (x86_64_is_imm8((disp))) { \
+        } else if (IS_IMM8((disp))) { \
             x86_64_address_byte(1,(reg),4); \
             x86_64_address_byte((scale),(indexreg),(basereg)); \
             x86_64_emit_imm8 ((disp)); \
@@ -185,14 +193,6 @@ typedef enum {
             x86_64_emit_imm32((disp)); \
         }    \
      } while (0)
-
-
-#define x86_64_is_imm8(imm) \
-    (((long)(imm) >= -128 && (long)(imm) <= 127))
-
-
-#define x86_64_is_imm32(imm) \
-    ((long)(imm) >= (-2147483647-1) && (long)(imm) <= 2147483647)
 
 
 #define x86_64_emit_imm8(imm) \
