@@ -29,7 +29,7 @@ s4 builtin_isanysubclass (classinfo *sub, classinfo *super);
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
 s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class);
 s4 builtin_arrayinstanceof(java_objectheader *obj, constant_arraydescriptor *desc);
-#ifdef __I386__
+#if defined(__I386__)
 s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class);
 #endif
 s4 builtin_checkarraycast(java_objectheader *obj, constant_arraydescriptor *desc);
@@ -127,10 +127,18 @@ double   builtin_i2d (s4 i);
 s4       builtin_l2i (s8 l);
 float    builtin_l2f (s8 l);
 double   builtin_l2d (s8 l);
+
 s4       builtin_f2i (float a);
+s4       asm_builtin_f2i (float a);
 s8       builtin_f2l (float a);
+s8       asm_builtin_f2l (float a);
+
 double   builtin_f2d (float a);
+
 s4       builtin_d2i (double a);
+s4       asm_builtin_d2i (double a);
 s8       builtin_d2l (double a);
+s8       asm_builtin_d2l (double a);
+
 float    builtin_d2f (double a);
 

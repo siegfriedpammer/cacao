@@ -111,10 +111,14 @@ builtin_descriptor builtin_desc[] = {
 	{(functionptr) builtin_l2f,				   "l2f"},
 	{(functionptr) builtin_l2d,				   "l2d"},
 	{(functionptr) builtin_f2i,				   "f2i"},
+	{(functionptr) asm_builtin_f2i,			   "f2i"},
 	{(functionptr) builtin_f2l,				   "f2l"},
+	{(functionptr) asm_builtin_f2l,			   "f2l"},
 	{(functionptr) builtin_f2d,				   "f2d"},
 	{(functionptr) builtin_d2i,				   "d2i"},
+	{(functionptr) asm_builtin_d2i,			   "d2i"},
 	{(functionptr) builtin_d2l,				   "d2l"},
+	{(functionptr) asm_builtin_d2l,			   "d2l"},
 	{(functionptr) builtin_d2f,				   "d2f"},
 	{(functionptr) NULL,					   "unknown"}
 	};
