@@ -18,7 +18,7 @@ allocator already in place. A very simplistic approach was chosen that permits
 only consecutive registers to be combined into one long value. Every integer
 register is allowed to pair with its successor. To ensure that an argument
 register is not paired with, say, a saved register, the registers available for
-pairing were divided into three seperate groups of saved registers, temporary
+pairing were divided into three separate groups of saved registers, temporary
 registers and argument registers respectively.
 
 \subsection{Calling conventions}
@@ -56,8 +56,10 @@ wasted stack space.
 
 \subsection{Long arithmetic}
 
-All 64~bit operations require the same operation to be carried out twice, on
-each half of the long data. Presumably some of these operations could be saved
-by some kind of dependency analysis. However, no such analysis is in place in
-CACAO, so the simple approach was taken to always process both halves, even if
-one of them is just thrown away.
+All bitwise 64~bit operations require the same operation to be carried out
+twice, on each half of the long data. Arithmetic operations like add, sub, neg
+are similar in this regard in that they don't consist of exactly the same
+operation executed twice but nevertheless two separate instructions. Presumably
+some of these operations could be saved by some kind of dependency analysis.
+However, no such analysis is in place in CACAO, so the simple approach was
+taken to always process both halves, even if one of them is just thrown away.
