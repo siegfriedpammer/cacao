@@ -1,30 +1,34 @@
 /*
  * cacao/mm/allocator.h
- * $Id: allocator.h 118 1999-01-20 14:58:16Z andi $
+ * $Id: allocator.h 201 2003-01-23 19:25:40Z twisti $
  */
 
 #ifndef __allocator_h_
 #define __allocator_h_
 
 #include "bitmap2.h"
+#include "types.h"
 
 #ifndef YES
-#	define YES		1
+#	define YES    1
 #endif
 #ifndef NO
-#	define NO	    0
+#	define NO     0
 #endif
 
-#define COUNT_ALLOCATIONS	NO
+#define COUNT_ALLOCATIONS   NO
 
-#define FASTER_FAIL    	NO
+#define FASTER_FAIL         NO
 
-#define PRINTF				NO
-#define SMALL_TABLES		YES
-#define MSB_TO_LSB_SEARCH	NO
+#define PRINTF              NO
+#define SMALL_TABLES        YES
+#define MSB_TO_LSB_SEARCH   NO
 
-#define ADDRESS	64
-/* #define ADDRESS 32 */
+#if POINTERSIZE == 8
+#   define ADDRESS  64
+#else
+#   define ADDRESS  32
+#endif
 
 #if ADDRESS == 64
 #  define SIZE	unsigned long long
@@ -33,8 +37,11 @@
 #endif
 
 #undef ALIGN
-#define ALIGN	3	/* 64bit alignment */
-/* #define ALIGN	2	/ * 32bit allignment * / */
+#if ADDRESS == 64
+#   define ALIGN	3	/* 64bit alignment */
+#else
+#   define ALIGN	2	/* 32bit alignment */
+#endif
 
 #define EXACT_TOP_BIT  8    /* usually somewhere in the range [8..10]
 							   the largest exact chunk is 1 << EXACT_TOP_BIT bytes large &
