@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1296 2004-07-10 17:02:15Z stefan $
+   $Id: global.h 1297 2004-07-10 17:04:43Z stefan $
 
 */
 
@@ -47,7 +47,6 @@
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 #include <pthread.h>
-#include <semaphore.h>
 #endif
 
 #define STATISTICS          /* if enabled collects program statistics         */
@@ -382,7 +381,7 @@ typedef struct {            /* NameAndType (Field or Method)                  */
 struct java_objectheader {              /* header for all objects             */
 	vftbl_t *vftbl;                     /* pointer to virtual function table  */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	void *monitorPtr;
+	long monitorBits;
 #endif
 };
 
