@@ -3507,7 +3507,9 @@ static void *GC_mprotect_thread(void *arg) {
 
     mach_msg_id_t id;
 
+#if defined(GC_DARWIN_THREADS)
     GC_darwin_register_mach_handler_thread(mach_thread_self());
+#endif
     
     for(;;) {
         r = mach_msg(
