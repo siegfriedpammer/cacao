@@ -19,9 +19,10 @@
 #include <errno.h>
 #include <assert.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "config.h"
-#include "thread.h"
+#include "threads/thread.h"
 
 #if !defined(NATIVE_THREADS)
 
