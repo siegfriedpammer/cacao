@@ -1,4 +1,4 @@
-/* loader.h - class loader header
+/* vm/loader.h - class loader header
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1557 2004-11-22 12:01:16Z carolyn $
+   $Id: loader.h 1673 2004-12-03 16:43:53Z twisti $
 */
 
 
@@ -35,8 +35,8 @@
 
 #include <stdio.h>
 
-#ifdef USE_ZLIB
-#include "unzip.h"
+#if defined(USE_ZLIB)
+# include "vm/unzip.h"
 #endif
 
 

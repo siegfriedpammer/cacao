@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: loader.c 1673 2004-12-03 16:43:53Z twisti $
 
 */
 
@@ -65,7 +65,7 @@
 #include "vm/tables.h"
 
 #if defined(USE_ZLIB)
-#include "vm/unzip.h"
+# include "vm/unzip.h"
 #endif
 
 #include "vm/jit/asmpart.h"
