@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 1441 2004-11-05 13:44:03Z twisti $
+   $Id: exceptions.h 1480 2004-11-11 14:37:01Z twisti $
 
 */
 
@@ -96,7 +96,7 @@ extern char *string_java_lang_VirtualMachineError;
 
 /* load, link and compile exceptions used in the system */
 
-void init_system_exceptions();
+bool init_system_exceptions(void);
 
 
 /* exception throwing functions */

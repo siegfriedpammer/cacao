@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1441 2004-11-05 13:44:03Z twisti $
+   $Id: exceptions.c 1480 2004-11-11 14:37:01Z twisti $
 
 */
 
@@ -168,35 +168,56 @@ char *string_java_lang_VirtualMachineError =
 
 *******************************************************************************/
 
-void init_system_exceptions()
+bool init_system_exceptions(void)
 {
 	/* java/lang/Throwable */
 
 	class_java_lang_Throwable =
 		class_new(utf_new_char(string_java_lang_Throwable));
-	class_load(class_java_lang_Throwable);
-	class_link(class_java_lang_Throwable);
+
+	if (!class_load(class_java_lang_Throwable))
+		return false;
+
+	if (!class_link(class_java_lang_Throwable))
+		return false;
+
 
 	/* java/lang/Exception */
 
 	class_java_lang_Exception =
 		class_new(utf_new_char(string_java_lang_Exception));
-	class_load(class_java_lang_Exception);
-	class_link(class_java_lang_Exception);
+
+	if (!class_load(class_java_lang_Exception))
+		return false;
+
+	if (!class_link(class_java_lang_Exception))
+		return false;
+
 
 	/* java/lang/Error */
 
 	class_java_lang_Error =
 		class_new(utf_new_char(string_java_lang_Error));
-	class_load(class_java_lang_Error);
-	class_link(class_java_lang_Error);
+
+	if (!class_load(class_java_lang_Error))
+		return false;
+
+	if (!class_link(class_java_lang_Error))
+		return false;
+
 
 	/* java/lang/OutOfMemoryError */
 
 	class_java_lang_OutOfMemoryError =
 		class_new(utf_new_char(string_java_lang_OutOfMemoryError));
-	class_load(class_java_lang_OutOfMemoryError);
-	class_link(class_java_lang_OutOfMemoryError);
+
+	if (!class_load(class_java_lang_OutOfMemoryError))
+		return false;
+
+	if (!class_link(class_java_lang_OutOfMemoryError))
+		return false;
+
+	return true;
 }
 
 
@@ -206,9 +227,9 @@ static void throw_exception_exit_intern(bool doexit)
 	classinfo *c;
 	methodinfo *pss;
 
-	if (*exceptionptr) {
-		xptr = *exceptionptr;
+	xptr = *exceptionptr;
 
+	if (xptr) {
 		/* clear exception, because we are calling jit code again */
 		*exceptionptr = NULL;
 
