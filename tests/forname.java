@@ -1,13 +1,15 @@
 class forname {
-    {
+    public static void main(String[] argv) {
+        new forname_init();
+    }
+}
+
+class forname_init {
+    static {
         System.out.println("<clinit>");
     }
 
-    forname() {
+    forname_init() {
         System.out.println("<init>");
-    }
-
-    public static void main(String[] argv) throws Throwable {
-        Class.forName("forname").newInstance();
     }
 }
