@@ -39,7 +39,7 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.c 2184 2005-04-01 21:19:05Z edwin $
+   $Id: parseXTA.c 2185 2005-04-01 21:24:49Z edwin $
 
 */
 
@@ -149,6 +149,174 @@ char * methFlgs [] = {"NOTUSED", "MARKED",   "USED"};
 
 /*********************************************************************/
 /*********************************************************************/
+
+/* function descriptor2typesL ***************************************************
+
+	decodes a already checked method descriptor. The parameter count, the
+	return type and the argument types are stored in the passed methodinfo.
+        gets and saves classptr for object ref.s
+
+*******************************************************************************/		
+
+static classSetNode *descriptor2typesL(methodinfo *m)
+{
+	int debugInfo = 0;
+	int i;
+	u1 *types, *tptr;
+	int pcount, c;
+	char *utf_ptr;
+	classinfo** classtypes;
+	char *class; 
+	char *desc;
+	classSetNode *p=NULL;
+	if (debugInfo >= 1) {
+		printf("In descriptor2typesL >>>\t"); fflush(stdout);
+		utf_display(m->class->name); printf(".");
+		method_display(m);fflush(stdout);
+	}
+
+	pcount = 0;
+	desc =       MNEW (char, 256); 
+	types = DMNEW (u1, m->descriptor->blength); 
+	classtypes = MNEW (classinfo*, m->descriptor->blength+1);
+	m->returnclass = NULL;
+	tptr = types;
+	if (!(m->flags & ACC_STATIC)) {
+		*tptr++ = TYPE_ADR;
+		if (debugInfo >= 1) {
+			printf("param #0 (this?) method class =");utf_display(m->class->name);printf("\n");
+		}
+		classtypes[pcount] = m->class;
+		p = addClassCone(p,  m->class);
+		pcount++;
+	}
+
+	utf_ptr = m->descriptor->text + 1;
+	strcpy (desc,utf_ptr);
+   
+	while ((c = *desc++) != ')') {
+		pcount++;
+		switch (c) {
+		case 'B':
+		case 'C':
+		case 'I':
+		case 'S':
+		case 'Z':  *tptr++ = TYPE_INT;
+			break;
+		case 'J':  *tptr++ = TYPE_LNG;
+			break;
+		case 'F':  *tptr++ = TYPE_FLT;
+			break;
+		case 'D':  *tptr++ = TYPE_DBL;
+			break;
+		case 'L':  *tptr++ = TYPE_ADR;
+			/* get class string */
+			class = strtok(desc,";");
+			desc = strtok(NULL,"\0");
+			/* get/save classinfo ptr */
+			classtypes[pcount-1] = class_get(utf_new_char(class));
+			p = addClassCone(p,  class_get(utf_new_char(class)));
+			if (debugInfo >= 1) {
+				printf("LParam#%i 's class type is: %s\n",pcount-1,class);fflush(stdout);
+				printf("Lclasstypes[%i]=",pcount-1);fflush(stdout);
+				utf_display(classtypes[pcount-1]->name);
+			}
+			break;
+		case '[':  *tptr++ = TYPE_ADR;
+			while (c == '[')
+				c = *desc++;
+			/* get class string */
+			if (c == 'L') {
+				class = strtok(desc,";");
+				desc = strtok(NULL,"\0");
+				/* get/save classinfo ptr */
+				classtypes[pcount-1] = class_get(utf_new_char(class));
+				p= addClassCone(p,  class_get(utf_new_char(class)));
+				if (debugInfo >= 1) {
+					printf("[Param#%i 's class type is: %s\n",pcount-1,class);
+					printf("[classtypes[%i]=",pcount-1);fflush(stdout);
+					utf_display(classtypes[pcount-1]->name);
+					printf("\n");
+				}
+			}
+			else
+				classtypes[pcount-1] = NULL;
+			break;
+		default:   
+			panic("Ill formed methodtype-descriptor");
+		}
+	}
+
+	/* compute return type */
+	switch (*desc++) {
+	case 'B':
+	case 'C':
+	case 'I':
+	case 'S':
+	case 'Z':  m->returntype = TYPE_INT;
+		break;
+	case 'J':  m->returntype = TYPE_LNG;
+		break;
+	case 'F':  m->returntype = TYPE_FLT;
+		break;
+	case 'D':  m->returntype = TYPE_DBL;
+		break;
+	case '[':
+		m->returntype = TYPE_ADR;
+		c = *desc;
+		while (c == '[') {
+			c = *desc++;
+			}
+		if (c != 'L') break;
+		c = *desc;
+		if (c == 'L')
+		   	*(desc++); 
+	case 'L':  
+		m->returntype = TYPE_ADR;
+			  
+		/* get class string */
+		class = strtok(desc,";");
+		m->returnclass = class_get(utf_new_char(class));
+		if (m->returnclass == NULL) {
+			printf("class=<%s>\t",class); fflush(stdout);
+			panic ("return class not found");
+		}
+		break;
+	case 'V':  m->returntype = TYPE_VOID;
+		break;
+
+	default:   panic("Ill formed methodtype-descriptor-ReturnType");
+	}
+
+	m->paramcount = pcount;
+	m->paramtypes = types;
+	m->paramclass = classtypes;
+
+	if (debugInfo >=1) {
+		if (pcount > 0) {
+			for (i=0; i< m->paramcount; i++) {
+    			if ((m->paramtypes[i] == TYPE_ADR) && (m->paramclass[i] != NULL)) {
+					printf("Param #%i is:\t",i);
+					utf_display(m->paramclass[i]->name);
+					printf("\n");
+				}
+			}
+		}
+		if ((m->returntype == TYPE_ADR) && (m->returnclass != NULL)) { 
+			printf("\tReturn Type is:\t"); fflush(stdout);
+			utf_display(m->returnclass->name);
+			printf("\n");
+		}
+
+		printf("params2types: START  results in a set \n");
+		printf("param2types: A Set size=%i=\n",sizeOfSet(p));
+		printSet(p);
+	}
+
+	return p;
+}
+
+
 
 /*-------------------------------------------------------------------------------*/
 

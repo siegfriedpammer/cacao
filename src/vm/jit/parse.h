@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 2184 2005-04-01 21:19:05Z edwin $
+   $Id: parse.h 2185 2005-04-01 21:24:49Z edwin $
 
 */
 
@@ -192,7 +192,6 @@
 /* function prototypes */
 
 void compiler_addinitclass(classinfo *c);
-classSetNode * descriptor2typesL(methodinfo *m);
 methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env);
 
 #endif /* _PARSE_H */
