@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 974 2004-03-25 17:31:13Z jowenn $
+   $Id: stack.c 980 2004-03-25 23:47:49Z twisti $
 
 */
 
@@ -2289,7 +2289,7 @@ void show_icmd_method()
 #else
 		s4ptr = (s4 *) (method->mcode + dseglen);
 		for (i = 0; i < block[0].mpc; i += 4, s4ptr++) {
-			disassinstr(*s4ptr, i); 
+			disassinstr(s4ptr, i); 
 		}
 		printf("\n");
 #endif
@@ -2366,13 +2366,13 @@ void show_icmd_block(basicblock *bptr)
 
 			if (bptr->next != NULL) {
 				for (; i < bptr->next->mpc; i += 4, s4ptr++) {
-					disassinstr(*s4ptr, i); 
+					disassinstr(s4ptr, i); 
 				}
 				printf("\n");
 
 			} else {
 				for (; s4ptr < (s4 *) (method->mcode + method->mcodelength); i += 4, s4ptr++) {
-					disassinstr(*s4ptr, i); 
+					disassinstr(s4ptr, i); 
 				}
 				printf("\n");
 			}
