@@ -1,0 +1,6 @@
+* fix native header/cacaoh dependency problems in nat/Makefile.am
+
+The header files of the java class files should be generated in the
+build process. But cacaoh need some of the headers to be bootstrapped.
+
+
