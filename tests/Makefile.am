@@ -13,7 +13,7 @@ checkall: x.tst jctest.tst fp.tst fptest.tst GCBench.tstrun
 %.tst:
 	../cacao sun.tools.javac.Main $*.java
 	../cacao $* >$*.thisoutput
-	diff --brief $*.thisoutput $*.output
+	diff --brief $*.output $*.thisoutput
 	rm -f $*.thisoutput
 
 %.tstrun:
