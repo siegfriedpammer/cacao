@@ -853,9 +853,9 @@ java_objectheader *builtin_trace_exception (java_objectheader *exceptionptr,
 
 
 #ifdef TRACE_ARGS_NUM
-void builtin_trace_args(long a0, long a1, long a2, long a3, long a4, long a5,
+void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 #if TRACE_ARGS_NUM > 6
-		long a6, long a7,
+		s8 a6, s8 a7,
 #endif
 						methodinfo *method)
 {
@@ -869,34 +869,34 @@ void builtin_trace_args(long a0, long a1, long a2, long a3, long a4, long a5,
 	switch (method->paramcount) {
 #if TRACE_ARGS_NUM > 6
 		case 8:
-			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx, %lx",
+			sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx, %llx, %llx",
 											   a0,	a1,	 a2,  a3,  a4,	a5, a6, a7);
 			break;
 		case 7:
-			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx",
+			sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx, %llx",
 											   a0,	a1,	 a2,  a3,  a4,	a5, a6);
 			break;
 #endif
 		case 6:
-			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx",
+			sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx",
 											   a0,	a1,	 a2,  a3,  a4,	a5);
 			break;
 		case 5:
-			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx",
+			sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx",
 											   a0,	a1,	 a2,  a3,  a4);
 			break;
 		case 4:
-			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx",
-											   a0,	a1,	 a2,  a3);
+			sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx",
+											   a0, a1, a2, a3);
 			break;
 		case 3:
-			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx", a0,  a1,	a2);
+			sprintf(logtext+strlen(logtext), "%llx, %llx, %llx", a0, a1, a2);
 			break;
 		case 2:
-			sprintf(logtext+strlen(logtext), "%lx, %lx", a0,  a1);
+			sprintf(logtext+strlen(logtext), "%llx, %llx", a0, a1);
 			break;
 		case 1:
-			sprintf(logtext+strlen(logtext), "%lx", a0);
+			sprintf(logtext+strlen(logtext), "%llx", a0);
 			break;
 		}
 	sprintf (logtext+strlen(logtext), ")");
@@ -918,7 +918,7 @@ void builtin_displaymethodstart(methodinfo *method)
 	methodindent++;
 }
 
-void builtin_displaymethodstop(methodinfo *method, long l, double d, float f)
+void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
 {
 	methodindent--;
 	sprintf (logtext, "												");
