@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 699 2003-12-07 14:45:12Z edwin $
+   $Id: global.h 702 2003-12-07 17:20:56Z twisti $
 
 */
 
@@ -78,22 +78,6 @@
 #define TYPECHECK_VERBOSE_OPT
 #endif
 #endif
-
-/* standard includes **********************************************************/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-
-#include "toolbox/memory.h"
-#include "toolbox/chain.h"
-#include "toolbox/list.h"
-#include "toolbox/loging.h"
-
-/* system dependent types *****************************************************/
-
-#include "types.h"
 
 
 /* additional data types ******************************************************/
@@ -507,20 +491,21 @@ typedef struct exceptiontable { /* exceptiontable entry in a method           */
 
 /* methodinfo  static info ****************************************************/
 typedef struct xtainfo {
-        s4            	XTAmethodUsed; 	/* XTA if used in callgraph -    not used /used */
-	classSet 	*XTAclassSet;      /* method class type set                 */ 
+	s4          XTAmethodUsed;     /* XTA if used in callgraph - not used /used */
+	classSet    *XTAclassSet;      /* method class type set                 */ 
 	/*classSet 	*PartClassSet */   /* method class type set                 */ 
 
-	classSetNode    *paramClassSet;	    /* cone set of methods parameters       */
+	classSetNode    *paramClassSet; /* cone set of methods parameters       */
 
-	methSet  	*calls;            /* methods this method calls   	    */ 
+	methSet  	*calls;            /* methods this method calls   	        */ 
 	methSet  	*calledBy;         /* methods that call this method         */ 
 	methSet  	*marked;           /* methods that marked by this method    */ 
 	/*methSet         *markedBy*/
 	fldSet          *fldsUsed;         /* fields used by this method             */ 
 	/*methSetNode  *interfaceCalls*/   /* methods this method calls as interface */ 
-	bool	         chgdSinceLastParse; /* Changed since last parse ?          */
+	bool           chgdSinceLastParse; /* Changed since last parse ?          */
 } xtainfo; 
+
 
 /* methodinfo *****************************************************************/
 
@@ -562,7 +547,6 @@ struct methodinfo {                 /* method structure                       */
 };
 
 
-
 /* innerclassinfo *************************************************************/
 
 typedef struct innerclassinfo {
@@ -571,6 +555,7 @@ typedef struct innerclassinfo {
 	utf *name;                    /* innerclass name                          */ 
 	s4 flags;                     /* ACC flags                                */
 } innerclassinfo;
+
 
 /* classinfo ******************************************************************/
 
@@ -582,9 +567,9 @@ struct classinfo {                /* class structure                          */
 	struct java_lang_reflect_Constructor* constructor;
 
 
-        s4 initializing_thread; /* gnu classpath*/
-        s4 erroneous_state; /* gnu classpath*/
-        struct gnu_classpath_RawData* vmData; /* gnu classpath*/
+	s4 initializing_thread;       /* gnu classpath */
+	s4 erroneous_state;           /* gnu classpath */
+	struct gnu_classpath_RawData* vmData; /* gnu classpath */
 
 	s4          flags;            /* ACC flags                                */
 	utf        *name;             /* class name                               */ 
@@ -611,12 +596,12 @@ struct classinfo {                /* class structure                          */
 	bool        initialized;      /* true, if class already initialised       */ 
 	bool        loaded;           /* true, if class already loaded            */
 	bool        linked;           /* true, if class already linked            */
-	s4	    index;            /* hierarchy depth (classes) or index
+	s4          index;            /* hierarchy depth (classes) or index
 	                                 (interfaces)                             */ 
 	s4          instancesize;     /* size of an instance of this class        */
 #ifdef SIZE_FROM_CLASSINFO
 	s4          alignedsize;      /* size of an instance, aligned to the 
- 						      allocation size on the heap */
+									 allocation size on the heap              */
 #endif
 
 	vftbl      *vftbl;            /* pointer to virtual function table        */
@@ -629,9 +614,9 @@ struct classinfo {                /* class structure                          */
     classinfo      *hashlink;         /* link for external hash chain         */
 	bool        classvftbl;       /* has its own copy of the Class vtbl       */
 
-        s4          classUsed;        /* 0= not used 1 = used   CO-RT             */
+	s4          classUsed;        /* 0= not used 1 = used   CO-RT             */
 
-	classSetNode *impldBy;          /* implemented by class set */
+	classSetNode *impldBy;        /* implemented by class set                 */
 };
 
 /* check if class is an array class. Only use for linked classes! */
@@ -735,6 +720,7 @@ struct arraydescriptor {
 	short  elementtype;      /* ARRAYTYPE_* constant (XXX optimize away?)     */
 };
 
+
 /* references to some system classes ******************************************/
 
 extern classinfo *class_java_lang_Object;
@@ -753,6 +739,7 @@ extern classinfo *class_java_lang_ThreadDeath;
 extern classinfo *pseudo_class_Arraystub;
 extern classinfo *pseudo_class_Null;
 extern vftbl *pseudo_class_Arraystub_vftbl;
+
 
 /* instances of some system classes *******************************************/
 
@@ -785,6 +772,7 @@ extern bool typecheckverbose;
 
 //extern void RT_jit_parse(methodinfo *m);
 
+
 /* statistic variables ********************************************************/
 
 extern int count_class_infos;
@@ -798,6 +786,7 @@ extern int count_class_loads;
 extern int count_class_inits;
 extern int count_utf_new;
 extern int count_utf_new_found;
+
 
 /* table of primitive types ***************************************************/
 
@@ -838,8 +827,8 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
                       if ((utf_ptr)[-1] != ';')                                          \
                           (errorflag) = true; }}
 
+#endif /* _GLOBAL_H */
 
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
