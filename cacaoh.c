@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 1264 2004-07-01 14:21:05Z jowenn $
+   $Id: cacaoh.c 1294 2004-07-10 16:43:37Z stefan $
 
 */
 
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 	/********** internal (only used by main) *****************************/
    
 	char classpath[500] = "";
-	u4 heapmaxsize = 1 * 1024 * 1024;
+	u4 heapmaxsize = 2 * 1024 * 1024;
 	u4 heapstartsize = 100 * 1024;
 
 
