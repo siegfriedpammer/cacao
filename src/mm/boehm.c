@@ -11,7 +11,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: boehm.c 487 2003-10-20 17:23:21Z twisti $
+	Last Change: $Id: boehm.c 505 2003-10-22 19:41:36Z twisti $
 
 *******************************************************************************/
 
@@ -21,7 +21,6 @@
 
 #include "gc.h"
 
-void *asm_switchstackandcall (void *stack, void *func, void **stacktopsave, void *);
 
 struct otherstackcall;
 
