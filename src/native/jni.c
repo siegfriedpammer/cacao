@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1807 2004-12-22 10:47:13Z twisti $
+   $Id: jni.c 1827 2004-12-29 12:55:32Z twisti $
 
 */
 
@@ -1180,7 +1180,7 @@ jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char *name, const char *s
 		*exceptionptr =
 			new_exception_message(string_java_lang_NoSuchMethodError, name);
 
-		return NULL;
+		return 0;
 	}
 
 	return m;
