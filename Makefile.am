@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 884 2004-01-15 21:39:01Z jowenn $
+# $Id: Makefile.am 885 2004-01-16 07:25:13Z jowenn $
 
 @SET_MAKE@
 
@@ -55,12 +55,12 @@ cacao_LDADD = \
 	nat/libnat.a \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@ \
-	classpathbin/@ARCH_DIR@/native/jni/java-io/.libs/libjavaio.a \
-	classpathbin/@ARCH_DIR@/native/jni/java-nio/.libs/libjavanio.a \
-	classpathbin/@ARCH_DIR@/native/jni/java-net/.libs/libjavanet.a \
-	classpathbin/@ARCH_DIR@/native/jni/java-util/.libs/libjavautil.a \
-	classpathbin/@ARCH_DIR@/native/jni/java-lang/.libs/libjavalang.a \
-	classpathbin/@ARCH_DIR@/native/jni/java-lang/.libs/libjavalangreflect.a \
+	gnuclasspathnat/native/jni/java-io/.libs/libjavaio.a \
+	gnuclasspathnat/native/jni/java-nio/.libs/libjavanio.a \
+	gnuclasspathnat/native/jni/java-net/.libs/libjavanet.a \
+	gnuclasspathnat/native/jni/java-util/.libs/libjavautil.a \
+	gnuclasspathnat/native/jni/java-lang/.libs/libjavalang.a \
+	gnuclasspathnat/native/jni/java-lang/.libs/libjavalangreflect.a \
 	@AWT_OBJS@ \
 	@ZIP_LIBS@
 
@@ -73,12 +73,12 @@ cacao_DEPENDENCIES = \
 	nat/libnat.a \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@ \
-	classpathbin/@ARCH_DIR@/native/jni/java-io/.libs/libjavaio.a \
-	classpathbin/@ARCH_DIR@/native/jni/java-nio/.libs/libjavanio.a \
-	classpathbin/@ARCH_DIR@/native/jni/java-net/.libs/libjavanet.a \
-	classpathbin/@ARCH_DIR@/native/jni/java-util/.libs/libjavautil.a \
-	classpathbin/@ARCH_DIR@/native/jni/java-lang/.libs/libjavalang.a \
-	classpathbin/@ARCH_DIR@/native/jni/java-lang/.libs/libjavalangreflect.a \
+	gnuclasspathnat/native/jni/java-io/.libs/libjavaio.a \
+	gnuclasspathnat/native/jni/java-nio/.libs/libjavanio.a \
+	gnuclasspathnat/native/jni/java-net/.libs/libjavanet.a \
+	gnuclasspathnat/native/jni/java-util/.libs/libjavautil.a \
+	gnuclasspathnat/native/jni/java-lang/.libs/libjavalang.a \
+	gnuclasspathnat/native/jni/java-lang/.libs/libjavalangreflect.a \
 	@AWT_OBJS@ \
 	@ZIP_LIBS@
 
@@ -102,7 +102,7 @@ cacaoh_DEPENDENCIES = \
 
 nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makefile
 	test -f stamp-nat || \
-	CLASSPATH=./classpathbin/@ARCH_DIR@/lib ./cacaoh \
+	CLASSPATH=./gnuclassfiles ./cacaoh \
 	java.lang.String \
 	java.lang.Class \
 	java.io.FileDescriptor \
