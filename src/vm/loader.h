@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 724 2003-12-09 18:56:11Z edwin $
+   $Id: loader.h 757 2003-12-13 22:27:31Z twisti $
 */
 
 
@@ -36,16 +36,9 @@
 #include <stdio.h>
 
 
-/************************* program switches ***********************************/
+/* export variables */
 
-extern bool loadverbose;         /* Print debug messages during loading */
-extern bool linkverbose;
-extern bool initverbose;         /* Log class initialization */ 
-extern bool makeinitializations; /* Initialize classes automatically */
-
-extern bool getloadingtime;
-extern long int loadingtime;     /* CPU time for class loading */
-
+extern list unloadedclasses;     /* list of all referenced but not loaded classes */
 extern list unlinkedclasses;     /* List containing all unlinked classes */
 extern list linkedclasses;       /* List containing all linked classes */
 
