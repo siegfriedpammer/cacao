@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2046 2005-03-20 14:43:04Z edwin $
+   $Id: stack.c 2163 2005-03-30 20:18:18Z twisti $
 
 */
 
@@ -953,16 +953,17 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									break;
 								case ICMD_PUTSTATIC:
 									iptr[0].opc = ICMD_PUTSTATICCONST;
+									iptr[0].op1 = TYPE_ADR;
 									SETDST;
 									break;
 								case ICMD_PUTFIELD:
 									iptr[0].opc = ICMD_PUTFIELDCONST;
+									iptr[0].op1 = TYPE_ADR;
 									OP1_0(TYPE_ADR);
 									break;
 								}
 
 								iptr[1].opc = ICMD_NOP;
-								iptr[0].op1 = TYPE_ADR;
 								COUNT(count_pcmd_op);
 								break;
 
@@ -2561,7 +2562,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_PUTSTATICCONST:
 	case ICMD_PUTFIELDCONST:
-		switch (iptr[1].opc) {
+		switch (iptr[1].op1) {
 		case TYPE_INT:
 			printf(" %d,", iptr->val.i);
 			break;
