@@ -1,4 +1,4 @@
-/* jit/i386/codegen.c - machine code generator for i386
+/* vm/jit/i386/codegen.c - machine code generator for i386
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -28,32 +28,31 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1608 2004-11-29 10:24:31Z twisti $
+   $Id: codegen.c 1623 2004-11-30 14:18:19Z twisti $
 
 */
+
 
 #define _GNU_SOURCE
 
 #include <stdio.h>
-#include <signal.h>
-#include <sys/ucontext.h>
+#include <ucontext.h>
 
 #include "config.h"
-#include "global.h"
-#include "types.h"
-#include "main.h"
-#include "builtin.h"
-#include "asmpart.h"
-#include "exceptions.h"
-#include "jni.h"
-#include "loader.h"
-#include "tables.h"
-#include "native.h"
-#include "jit/jit.h"
-#include "jit/parse.h"
-#include "jit/reg.h"
-#include "jit/i386/codegen.h"
-#include "jit/i386/emitfuncs.h"
+#include "native/jni.h"
+#include "native/native.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/parse.h"
+#include "vm/jit/reg.h"
+#include "vm/jit/i386/codegen.h"
+#include "vm/jit/i386/emitfuncs.h"
+#include "vm/jit/i386/types.h"
 
 /* register descripton - array ************************************************/
 
@@ -88,9 +87,9 @@ static int nregdescfloat[] = {
 
 *******************************************************************************/
 
-#include "jit/codegen.inc"
-#include "jit/reg.inc"
-#include "jit/lsra.inc"
+#include "vm/jit/codegen.inc"
+#include "vm/jit/reg.inc"
+#include "vm/jit/lsra.inc"
 
 void codegen_stubcalled() {
 	log_text("Stub has been called");

@@ -1,4 +1,4 @@
-/* jit/i386/emitfuncs.h - emit function prototypes
+/* vm/jit/i386/emitfuncs.h - emit function prototypes
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.h 1584 2004-11-24 14:13:06Z twisti $
+   $Id: emitfuncs.h 1623 2004-11-30 14:18:19Z twisti $
 
 */
 
@@ -34,8 +34,10 @@
 #ifndef _EMITFUNCS_H
 #define _EMITFUNCS_H
 
+#include "vm/jit/i386/types.h"
 
-/* code generation prototypes */
+
+/* code generation prototypes *************************************************/
 
 void i386_emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
 void i386_emit_ialuconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);

@@ -1,4 +1,4 @@
-/* jit/i386/types.h - machine specific definitions for i386
+/* vm/jit/i386/types.h - machine specific definitions for i386
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -31,7 +31,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: types.h 1583 2004-11-24 14:11:36Z twisti $
+   $Id: types.h 1623 2004-11-30 14:18:19Z twisti $
 
 */
 
@@ -39,7 +39,7 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 
-#include "jit/i386/arch.h"
+#include "vm/jit/i386/arch.h"
 
 
 /* Define the sizes of the integer types used internally by cacao. */

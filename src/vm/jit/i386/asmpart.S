@@ -1,4 +1,4 @@
-/* jit/i386/asmpart.S - Java-C interface functions for i386
+/* vm/jit/i386/asmpart.S - Java-C interface functions for i386
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -29,13 +29,14 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1577 2004-11-24 13:06:56Z twisti $
+   $Id: asmpart.S 1623 2004-11-30 14:18:19Z twisti $
 
 */
 
 
 #include "config.h"
-#include "offsets.h"
+#include "vm/jit/i386/offsets.h"
+
 
 /* data segment offsets */
 

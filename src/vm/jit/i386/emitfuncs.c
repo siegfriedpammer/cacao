@@ -1,4 +1,4 @@
-/* jit/i386/emitfuncs.c - i386 code emitter functions
+/* vm/jit/i386/emitfuncs.c - i386 code emitter functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,15 +27,15 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 1584 2004-11-24 14:13:06Z twisti $
+   $Id: emitfuncs.c 1623 2004-11-30 14:18:19Z twisti $
 
 */
 
 
-#include "jit/jit.h"
-#include "jit/i386/emitfuncs.h"
-#include "jit/i386/codegen.h"
-#include "jit/i386/types.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/i386/emitfuncs.h"
+#include "vm/jit/i386/codegen.h"
+#include "vm/jit/i386/types.h"
 
 
 void i386_emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)

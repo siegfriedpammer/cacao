@@ -1,4 +1,4 @@
-/* jit/i386/codegen.h - code generation macros and definitions for i386
+/* vm/jit/i386/codegen.h - code generation macros and definitions for i386
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1563 2004-11-23 15:53:09Z twisti $
+   $Id: codegen.h 1623 2004-11-30 14:18:19Z twisti $
 
 */
 

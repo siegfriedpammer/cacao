@@ -21,6 +21,7 @@
 #include "threads/native/threads.h"
 #include "toolbox/avl.h"
 #include "toolbox/logging.h"
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
