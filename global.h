@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 721 2003-12-08 15:46:56Z edwin $
+   $Id: global.h 722 2003-12-08 16:02:45Z edwin $
 
 */
 
@@ -808,19 +808,25 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 
 /* macros for descriptor parsing **********************************************/
 
-/* utf_ptr must point to the 'L' or the '[' of a field descriptor.
+/* SKIP_FIELDDESCRIPTOR:
+ * utf_ptr must point to the first character of a field descriptor.
  * After the macro call utf_ptr points to the first character after
  * the field descriptor.
  *
  * CAUTION: This macro does not check for an unexpected end of the
- * descriptor.
+ * descriptor. Better use SKIP_FIELDDESCRIPTOR_SAFE.
  */
 #define SKIP_FIELDDESCRIPTOR(utf_ptr)							\
 	do { while (*(utf_ptr)=='[') (utf_ptr)++;					\
 		if (*(utf_ptr)++=='L')									\
 			while(*(utf_ptr)++ != ';') /* skip */; } while(0)
 
-/* Input:
+/* SKIP_FIELDDESCRIPTOR_SAFE:
+ * utf_ptr must point to the first character of a field descriptor.
+ * After the macro call utf_ptr points to the first character after
+ * the field descriptor.
+ *
+ * Input:
  *     utf_ptr....points to first char of descriptor
  *     end_ptr....points to first char after the end of the string
  *     errorflag..must be initialized (to false) by the caller!
@@ -834,7 +840,8 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 			(errorflag) = true;											\
 		else															\
 			if (*(utf_ptr)++=='L') {									\
-				while((utf_ptr) != (end_ptr) && *(utf_ptr)++ != ';') /* skip */; \
+				while((utf_ptr) != (end_ptr) && *(utf_ptr)++ != ';')	\
+					/* skip */;											\
 				if ((utf_ptr)[-1] != ';')								\
 					(errorflag) = true; }} while(0)
 
