@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1566 2004-11-23 15:57:20Z twisti $
+   $Id: parse.c 1588 2004-11-24 14:30:21Z twisti $
 
 */
 
@@ -672,7 +672,7 @@ DEBUGMETH(inline_env->method);
 			printf("Parse p=%i<%i<%i<   opcode=<%i> %s\n",
 			   p, gp, inline_env->jcodelength, opcode, opcode_names[opcode]);
 			if (label_index)
-				printf("label_index[%ld]=%ld\n",p,label_index[p]);
+				printf("label_index[%d]=%d\n",p,label_index[p]);
 		}
 	 /*
 printf("basicblockindex[gp=%i]=%i=%p ipc=%i=%p shifted ipc=%i=%p\n",
@@ -1693,7 +1693,7 @@ DEBUGMETH(inline_env->method);
 
 
 	if (p != m->jcodelength) {
-		printf("p (%ld) != m->jcodelength (%ld)\n",p,m->jcodelength);
+		printf("p (%d) != m->jcodelength (%d)\n",p,m->jcodelength);
 		panic("Command-sequence crosses code-boundary");
 	}
 	if (!blockend) {
@@ -1746,7 +1746,7 @@ DEBUGMETH(inline_env->method);
 			if (m->basicblockindex[p] & 1) {
 				/* check if this block starts at the beginning of an instruction */
 				if (!instructionstart[p]) {
-					printf("Basic Block beginn: %ld\n",p);
+					printf("Basic Block beginn: %d\n",p);
 					panic("Branch into middle of instruction");
 				}
 				/* allocate the block */
