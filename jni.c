@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 771 2003-12-13 23:11:08Z stefan $
+   $Id: jni.c 790 2003-12-16 15:46:40Z edwin $
 
 */
 
@@ -437,7 +437,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 					}
 				end=(*utf_ptr)-1;
 				ch = utf_nextu2(utf_ptr);
-				if (!builtin_arrayinstanceof(params->data[cnts],class_from_descriptor(start,end,0,CLASSLOAD_LOAD))) {
+				if (!builtin_arrayinstanceof(params->data[cnts],class_from_descriptor(start,end,0,CLASSLOAD_LOAD)->vftbl)) {
 					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 					
