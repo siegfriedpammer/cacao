@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 967 2004-03-18 14:29:03Z jowenn $
+   $Id: codegen.inc 1037 2004-04-26 16:36:48Z twisti $
 
 */
 
@@ -85,6 +85,7 @@ static branchref *xcheckarefs;      /* list of array size check branches      */
 static branchref *xnullrefs;        /* list of null check branches            */
 static branchref *xcastrefs;        /* list of cast check branches            */
 static branchref *xdivrefs;         /* list of divide by zero branches        */
+static branchref *xoomrefs;         /* list of out of memory branches         */
 static linenumberref *linenumberreferences; /*list of line numbers and the program counters of their first instruction*/
 static s4 linenumbertablesizepos;
 static s4 linenumbertablestartpos;
@@ -120,6 +121,7 @@ static void codegen_addxboundrefs(void *branchptr, s4 reg);
 static void codegen_addxnullrefs(void *branchptr);
 static void codegen_addxcastrefs(void *branchptr);
 static void codegen_addxdivrefs(void *branchptr);
+static void codegen_addxoomrefs(void *branchptr);
 static void codegen_threadcritstart(int offset);
 static void codegen_threadcritstop(int offset);
 
@@ -154,6 +156,7 @@ void codegen_init()
 	xnullrefs = NULL;
 	xcastrefs = NULL;
 	xdivrefs = NULL;
+	xoomrefs = NULL;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	threadcritcurrent.next = NULL;
@@ -414,6 +417,18 @@ static void codegen_addxcastrefs(void *branchptr)
 
 
 
+static void codegen_addxoomrefs(void *branchptr)
+{
+	s4 branchpos = (u1*) branchptr - mcodebase;
+
+	branchref *br = DNEW(branchref);
+
+	br->branchpos = branchpos;
+	br->next = xoomrefs;
+	xoomrefs = br;
+}
+
+
 static void codegen_addxdivrefs(void *branchptr)
 {
 	s4 branchpos = (u1*) branchptr - mcodebase;
@@ -424,7 +439,6 @@ static void codegen_addxdivrefs(void *branchptr)
 	br->next = xdivrefs;
 	xdivrefs = br;
 }
-
 
 
 static void codegen_createlinenumbertable() {
