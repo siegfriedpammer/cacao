@@ -165,6 +165,7 @@ public class jctest implements jcinterface {
 		testint (0,0x7fffffff);
 		testint (0x3333,143444);
 		testint (4444441,12342);
+		testint (0x80000000,-1);
 
 		p ("------------------- test longs");
 		testlong (1,2);
@@ -178,6 +179,7 @@ public class jctest implements jcinterface {
 		testlong (0,0x7fffffffffffffffL);
 		testlong (0x3333,143444);
 		testlong (4444441,12342);
+		testlong (0x8000000000000000L,-1);
 
 		p ("------------------- test floats");
 		testfloat ((float) 1,(float) 2.042);
