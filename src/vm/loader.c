@@ -1410,15 +1410,11 @@ static int class_load (classinfo *c)
 	/* check version */
 	mi = suck_u2(); 
 	ma = suck_u2();
-	if (ma != MAJOR_VERSION) {
-		sprintf (logtext, "Can only support major version %d, but not %d",
-		                 MAJOR_VERSION, (int) ma);
+	if (ma != MAJOR_VERSION && (ma != MAJOR_VERSION+1 || mi != 0)) {
+		sprintf (logtext, "File version %d.%d is not supported",
+		                 (int) ma, (int) mi);
 		error();
 		}
-	if (mi > MINOR_VERSION)  {
-		sprintf (logtext, "Minor version %d is not yet supported.", (int) mi);
-		error();
-  		}
 
 
 	class_loadcpool (c);
