@@ -1,4 +1,4 @@
-/* jit/i386/codegen.h - code generation macros and definitions for x86_64
+/* jit/x86_64/codegen.h - code generation macros and definitions for x86_64
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 928 2004-02-26 00:18:36Z twisti $
+   $Id: codegen.h 1266 2004-07-01 20:38:16Z twisti $
 
 */
 
@@ -35,7 +35,7 @@
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
-#include "jit.h"
+#include "jit/jit.h"
 
 
 /* x86_64 register numbers */
@@ -303,165 +303,154 @@ typedef enum {
     } while (0)
 
 
-/* code generation prototypes */
+/* additional functions and macros to generate code ***************************/
 
-void x86_64_emit_ialu(s4 alu_op, stackptr src, instruction *iptr);
-void x86_64_emit_lalu(s4 alu_op, stackptr src, instruction *iptr);
-void x86_64_emit_ialuconst(s4 alu_op, stackptr src, instruction *iptr);
-void x86_64_emit_laluconst(s4 alu_op, stackptr src, instruction *iptr);
-void x86_64_emit_ishift(s4 shift_op, stackptr src, instruction *iptr);
-void x86_64_emit_lshift(s4 shift_op, stackptr src, instruction *iptr);
-void x86_64_emit_ishiftconst(s4 shift_op, stackptr src, instruction *iptr);
-void x86_64_emit_lshiftconst(s4 shift_op, stackptr src, instruction *iptr);
-void x86_64_emit_ifcc(s4 if_op, stackptr src, instruction *iptr);
-void x86_64_emit_if_lcc(s4 if_op, stackptr src, instruction *iptr);
-void x86_64_emit_if_icmpcc(s4 if_op, stackptr src, instruction *iptr);
-void x86_64_emit_if_lcmpcc(s4 if_op, stackptr src, instruction *iptr);
+#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
 
 
-/* integer instructions */
-
-void x86_64_mov_reg_reg(s8 reg, s8 dreg);
-void x86_64_mov_imm_reg(s8 imm, s8 reg);
-void x86_64_movl_imm_reg(s8 imm, s8 reg);
-void x86_64_mov_membase_reg(s8 basereg, s8 disp, s8 reg);
-void x86_64_movl_membase_reg(s8 basereg, s8 disp, s8 reg);
-void x86_64_mov_membase32_reg(s8 basereg, s8 disp, s8 reg);
-void x86_64_mov_reg_membase(s8 reg, s8 basereg, s8 disp);
-void x86_64_movl_reg_membase(s8 reg, s8 basereg, s8 disp);
-void x86_64_mov_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);
-void x86_64_movl_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);
-void x86_64_mov_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
-void x86_64_movl_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
-void x86_64_movw_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
-void x86_64_movb_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
-void x86_64_mov_imm_membase(s8 imm, s8 basereg, s8 disp);
-void x86_64_movl_imm_membase(s8 imm, s8 basereg, s8 disp);
-void x86_64_movsbq_reg_reg(s8 reg, s8 dreg);
-void x86_64_movsbq_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_movswq_reg_reg(s8 reg, s8 dreg);
-void x86_64_movswq_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_movslq_reg_reg(s8 reg, s8 dreg);
-void x86_64_movslq_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_movzwq_reg_reg(s8 reg, s8 dreg);
-void x86_64_movzwq_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_movswq_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);
-void x86_64_movsbq_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);
-void x86_64_movzwq_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);
-void x86_64_alu_reg_reg(s8 opc, s8 reg, s8 dreg);
-void x86_64_alul_reg_reg(s8 opc, s8 reg, s8 dreg);
-void x86_64_alu_reg_membase(s8 opc, s8 reg, s8 basereg, s8 disp);
-void x86_64_alul_reg_membase(s8 opc, s8 reg, s8 basereg, s8 disp);
-void x86_64_alu_membase_reg(s8 opc, s8 basereg, s8 disp, s8 reg);
-void x86_64_alul_membase_reg(s8 opc, s8 basereg, s8 disp, s8 reg);
-void x86_64_alu_imm_reg(s8 opc, s8 imm, s8 dreg);
-void x86_64_alul_imm_reg(s8 opc, s8 imm, s8 dreg);
-void x86_64_alu_imm_membase(s8 opc, s8 imm, s8 basereg, s8 disp);
-void x86_64_alul_imm_membase(s8 opc, s8 imm, s8 basereg, s8 disp);
-void x86_64_test_reg_reg(s8 reg, s8 dreg);
-void x86_64_testl_reg_reg(s8 reg, s8 dreg);
-void x86_64_test_imm_reg(s8 imm, s8 reg);
-void x86_64_testw_imm_reg(s8 imm, s8 reg);
-void x86_64_testb_imm_reg(s8 imm, s8 reg);
-void x86_64_lea_membase_reg(s8 basereg, s8 disp, s8 reg);
-void x86_64_leal_membase_reg(s8 basereg, s8 disp, s8 reg);
-void x86_64_inc_reg(s8 reg);
-void x86_64_incl_reg(s8 reg);
-void x86_64_inc_membase(s8 basereg, s8 disp);
-void x86_64_incl_membase(s8 basereg, s8 disp);
-void x86_64_dec_reg(s8 reg);
-void x86_64_decl_reg(s8 reg);
-void x86_64_dec_membase(s8 basereg, s8 disp);
-void x86_64_decl_membase(s8 basereg, s8 disp);
-void x86_64_cltd();
-void x86_64_cqto();
-void x86_64_imul_reg_reg(s8 reg, s8 dreg);
-void x86_64_imull_reg_reg(s8 reg, s8 dreg);
-void x86_64_imul_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_imull_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_imul_imm_reg(s8 imm, s8 dreg);
-void x86_64_imul_imm_reg_reg(s8 imm,s8 reg, s8 dreg);
-void x86_64_imull_imm_reg_reg(s8 imm, s8 reg, s8 dreg);
-void x86_64_imul_imm_membase_reg(s8 imm, s8 basereg, s8 disp, s8 dreg);
-void x86_64_imull_imm_membase_reg(s8 imm, s8 basereg, s8 disp, s8 dreg);
-void x86_64_idiv_reg(s8 reg);
-void x86_64_idivl_reg(s8 reg);
-void x86_64_ret();
-void x86_64_shift_reg(s8 opc, s8 reg);
-void x86_64_shiftl_reg(s8 opc, s8 reg);
-void x86_64_shift_membase(s8 opc, s8 basereg, s8 disp);
-void x86_64_shiftl_membase(s8 opc, s8 basereg, s8 disp);
-void x86_64_shift_imm_reg(s8 opc, s8 imm, s8 dreg);
-void x86_64_shiftl_imm_reg(s8 opc, s8 imm, s8 dreg);
-void x86_64_shift_imm_membase(s8 opc, s8 imm, s8 basereg, s8 disp);
-void x86_64_shiftl_imm_membase(s8 opc, s8 imm, s8 basereg, s8 disp);
-void x86_64_jmp_imm(s8 imm);
-void x86_64_jmp_reg(s8 reg);
-void x86_64_jcc(s8 opc, s8 imm);
-void x86_64_setcc_reg(s8 opc, s8 reg);
-void x86_64_setcc_membase(s8 opc, s8 basereg, s8 disp);
-void x86_64_cmovcc_reg_reg(s8 opc, s8 reg, s8 dreg);
-void x86_64_cmovccl_reg_reg(s8 opc, s8 reg, s8 dreg);
-void x86_64_neg_reg(s8 reg);
-void x86_64_negl_reg(s8 reg);
-void x86_64_neg_membase(s8 basereg, s8 disp);
-void x86_64_negl_membase(s8 basereg, s8 disp);
-void x86_64_push_imm(s8 imm);
-void x86_64_pop_reg(s8 reg);
-void x86_64_xchg_reg_reg(s8 reg, s8 dreg);
-void x86_64_nop();
-void x86_64_call_reg(s8 reg);
-void x86_64_call_imm(s8 imm);
+#ifdef STATISTICS
+#define COUNT_SPILLS count_spills++
+#else
+#define COUNT_SPILLS
+#endif
 
 
-/* floating point instructions (SSE2) */
+#define CALCOFFSETBYTES(var, reg, val) \
+    if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
+    else if ((s4) (val) != 0) (var) += 1; \
+    else if ((reg) == RBP || (reg) == RSP || (reg) == R12 || (reg) == R13) (var) += 1;
 
-void x86_64_addsd_reg_reg(s8 reg, s8 dreg);
-void x86_64_addss_reg_reg(s8 reg, s8 dreg);
-void x86_64_cvtsi2ssq_reg_reg(s8 reg, s8 dreg);
-void x86_64_cvtsi2ss_reg_reg(s8 reg, s8 dreg);
-void x86_64_cvtsi2sdq_reg_reg(s8 reg, s8 dreg);
-void x86_64_cvtsi2sd_reg_reg(s8 reg, s8 dreg);
-void x86_64_cvtss2sd_reg_reg(s8 reg, s8 dreg);
-void x86_64_cvtsd2ss_reg_reg(s8 reg, s8 dreg);
-void x86_64_cvttss2siq_reg_reg(s8 reg, s8 dreg);
-void x86_64_cvttss2si_reg_reg(s8 reg, s8 dreg);
-void x86_64_cvttsd2siq_reg_reg(s8 reg, s8 dreg);
-void x86_64_cvttsd2si_reg_reg(s8 reg, s8 dreg);
-void x86_64_divss_reg_reg(s8 reg, s8 dreg);
-void x86_64_divsd_reg_reg(s8 reg, s8 dreg);
-void x86_64_movd_reg_freg(s8 reg, s8 freg);
-void x86_64_movd_freg_reg(s8 freg, s8 reg);
-void x86_64_movd_reg_membase(s8 reg, s8 basereg, s8 disp);
-void x86_64_movd_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
-void x86_64_movd_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_movdl_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_movd_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 dreg);
-void x86_64_movq_reg_reg(s8 reg, s8 dreg);
-void x86_64_movq_reg_membase(s8 reg, s8 basereg, s8 disp);
-void x86_64_movq_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_movss_reg_reg(s8 reg, s8 dreg);
-void x86_64_movsd_reg_reg(s8 reg, s8 dreg);
-void x86_64_movss_reg_membase(s8 reg, s8 basereg, s8 disp);
-void x86_64_movsd_reg_membase(s8 reg, s8 basereg, s8 disp);
-void x86_64_movss_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_movlps_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_movsd_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_movlpd_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_movss_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
-void x86_64_movsd_reg_memindex(s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
-void x86_64_movss_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 dreg);
-void x86_64_movsd_memindex_reg(s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 dreg);
-void x86_64_mulss_reg_reg(s8 reg, s8 dreg);
-void x86_64_mulsd_reg_reg(s8 reg, s8 dreg);
-void x86_64_subss_reg_reg(s8 reg, s8 dreg);
-void x86_64_subsd_reg_reg(s8 reg, s8 dreg);
-void x86_64_ucomiss_reg_reg(s8 reg, s8 dreg);
-void x86_64_ucomisd_reg_reg(s8 reg, s8 dreg);
-void x86_64_xorps_reg_reg(s8 reg, s8 dreg);
-void x86_64_xorps_membase_reg(s8 basereg, s8 disp, s8 dreg);
-void x86_64_xorpd_reg_reg(s8 reg, s8 dreg);
-void x86_64_xorpd_membase_reg(s8 basereg, s8 disp, s8 dreg);
+
+#define CALCIMMEDIATEBYTES(var, val) \
+    if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
+    else (var) += 1;
+
+
+/* gen_nullptr_check(objreg) */
+
+#define gen_nullptr_check(objreg) \
+	if (checknull) { \
+        x86_64_test_reg_reg((objreg), (objreg)); \
+        x86_64_jcc(X86_64_CC_E, 0); \
+ 	    codegen_addxnullrefs(mcodeptr); \
+	}
+
+
+#define gen_bound_check \
+    if (checkbounds) { \
+        x86_64_alul_membase_reg(X86_64_CMP, s1, OFFSET(java_arrayheader, size), s2); \
+        x86_64_jcc(X86_64_CC_AE, 0); \
+        codegen_addxboundrefs(mcodeptr, s2); \
+    }
+
+
+#define gen_div_check(v) \
+    if (checknull) { \
+        if ((v)->flags & INMEMORY) { \
+            x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8); \
+        } else { \
+            x86_64_test_reg_reg(src->regoff, src->regoff); \
+        } \
+        x86_64_jcc(X86_64_CC_E, 0); \
+        codegen_addxdivrefs(mcodeptr); \
+    }
+
+
+/* MCODECHECK(icnt) */
+
+#define MCODECHECK(icnt) \
+	if ((mcodeptr + (icnt)) > (u1*) mcodeend) mcodeptr = (u1*) codegen_increase((u1*) mcodeptr)
+
+/* M_INTMOVE:
+    generates an integer-move from register a to b.
+    if a and b are the same int-register, no code will be generated.
+*/ 
+
+#define M_INTMOVE(reg,dreg) \
+    if ((reg) != (dreg)) { \
+        x86_64_mov_reg_reg((reg),(dreg)); \
+    }
+
+
+/* M_FLTMOVE:
+    generates a floating-point-move from register a to b.
+    if a and b are the same float-register, no code will be generated
+*/ 
+
+#define M_FLTMOVE(reg,dreg) \
+    if ((reg) != (dreg)) { \
+        x86_64_movq_reg_reg((reg),(dreg)); \
+    }
+
+
+/* var_to_reg_xxx:
+    this function generates code to fetch data from a pseudo-register
+    into a real register. 
+    If the pseudo-register has actually been assigned to a real 
+    register, no code will be emitted, since following operations
+    can use this register directly.
+    
+    v: pseudoregister to be fetched from
+    tempregnum: temporary register to be used if v is actually spilled to ram
+
+    return: the register number, where the operand can be found after 
+            fetching (this wil be either tempregnum or the register
+            number allready given to v)
+*/
+
+#define var_to_reg_int(regnr,v,tempnr) \
+    if ((v)->flags & INMEMORY) { \
+        COUNT_SPILLS; \
+        if ((v)->type == TYPE_INT) { \
+            x86_64_movl_membase_reg(REG_SP, (v)->regoff * 8, tempnr); \
+        } else { \
+            x86_64_mov_membase_reg(REG_SP, (v)->regoff * 8, tempnr); \
+        } \
+        regnr = tempnr; \
+    } else { \
+        regnr = (v)->regoff; \
+    }
+
+
+
+#define var_to_reg_flt(regnr,v,tempnr) \
+    if ((v)->flags & INMEMORY) { \
+        COUNT_SPILLS; \
+        if ((v)->type == TYPE_FLT) { \
+            x86_64_movlps_membase_reg(REG_SP, (v)->regoff * 8, tempnr); \
+        } else { \
+            x86_64_movlpd_membase_reg(REG_SP, (v)->regoff * 8, tempnr); \
+        } \
+/*        x86_64_movq_membase_reg(REG_SP, (v)->regoff * 8, tempnr);*/ \
+        regnr = tempnr; \
+    } else { \
+        regnr = (v)->regoff; \
+    }
+
+
+/* store_reg_to_var_xxx:
+    This function generates the code to store the result of an operation
+    back into a spilled pseudo-variable.
+    If the pseudo-variable has not been spilled in the first place, this 
+    function will generate nothing.
+    
+    v ............ Pseudovariable
+    tempregnum ... Number of the temporary registers as returned by
+                   reg_of_var.
+*/	
+
+#define store_reg_to_var_int(sptr, tempregnum) \
+    if ((sptr)->flags & INMEMORY) { \
+        COUNT_SPILLS; \
+        x86_64_mov_reg_membase(tempregnum, REG_SP, (sptr)->regoff * 8); \
+    }
+
+
+#define store_reg_to_var_flt(sptr, tempregnum) \
+    if ((sptr)->flags & INMEMORY) { \
+         COUNT_SPILLS; \
+         x86_64_movq_reg_membase(tempregnum, REG_SP, (sptr)->regoff * 8); \
+    }
 
 
 /* function gen_resolvebranch **************************************************
@@ -486,6 +475,8 @@ void codegen();
 void codegen_close();
 void dseg_display(s4 *s4ptr);
 
+void codegen_addreference(basicblock *target, void *branchptr);
+
 #endif /* _CODEGEN_H */
 
 
@@ -501,4 +492,3 @@ void dseg_display(s4 *s4ptr);
  * tab-width: 4
  * End:
  */
-
