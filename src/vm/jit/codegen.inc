@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1759 2004-12-14 13:16:11Z twisti $
+   $Id: codegen.inc 1828 2004-12-29 12:58:30Z twisti $
 
 */
 
@@ -1017,13 +1017,20 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
 	void *lib;
 	void *sym;
 
+#if defined(USE_THREADS)
   builtin_monitorenter((java_objectheader*) m);
+#endif
+
 #if defined(__X86_64__)
   if ((*((s4*)jmpPatchTarget))==((s4)jmpTarget)) {
 #else
   if ((*jmpPatchTarget)==jmpTarget) {
 #endif
+
+#if defined(USE_THREADS)
     builtin_monitorexit((java_objectheader*) m);
+#endif
+
     return;
   }
   /*log_text("trying to resolve a native method");
@@ -1088,7 +1095,11 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
 #else
       (*jmpPatchTarget)=jmpTarget;
 #endif
+
+#if defined(USE_THREADS)
       builtin_monitorexit((java_objectheader *) m );
+#endif
+
       return;
     }
 
@@ -1103,7 +1114,10 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
     info=(char*)MNEW(char,slen);
     sprintf(info,"%s.%s%s",m->class->name->text,m->name->text,m->descriptor->text);
     
+#if defined(USE_THREADS)
     builtin_monitorexit((java_objectheader *) m );
+#endif
+
     throw_cacao_exception_exit(string_java_lang_LinkageError,
                                                        info);
   }
