@@ -26,13 +26,15 @@
 
    Authors: Christian Thalinger
 
-   $Id: boehm.h 563 2003-11-03 00:37:15Z twisti $
+   $Id: boehm.h 580 2003-11-09 19:07:39Z twisti $
 
 */
 
 
 #ifndef _BOEHM_H
 #define _BOEHM_H
+
+#include "global.h"
 
 struct otherstackcall;
 

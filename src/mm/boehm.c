@@ -26,11 +26,13 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: boehm.c 580 2003-11-09 19:07:39Z twisti $
 
 */
 
 
+#include "main.h"
+#include "boehm.h"
 #include "global.h"
 #include "threads/thread.h"
 #include "asmpart.h"
@@ -44,40 +46,35 @@
 #include "gc.h"
 
 
-struct otherstackcall;
-
-typedef void *(*calltwoargs)(void *, u4);
-
-struct otherstackcall {
-	calltwoargs p2;
-	void *p;
-	u4 l;
-};
-
 static void *stackcall_twoargs(struct otherstackcall *p)
 {
 	return (*p->p2)(p->p, p->l);
 }
+
 
 static void *stackcall_malloc(void *p, u4 bytelength)
 {
 	return GC_MALLOC(bytelength);
 }
 
+
 static void *stackcall_malloc_atomic(void *p, u4 bytelength)
 {
 	return GC_MALLOC_ATOMIC(bytelength);
 }
+
 
 static void *stackcall_malloc_uncollectable(void *p, u4 bytelength)
 {
 	return GC_MALLOC_UNCOLLECTABLE(bytelength);
 }
 
+
 static void *stackcall_realloc(void *p, u4 bytelength)
 {
 	return GC_REALLOC(p, bytelength);
 }
+
 
 #ifdef USE_THREADS
 #define MAINTHREADCALL(r,m,pp,ll) \
@@ -97,6 +94,7 @@ static void *stackcall_realloc(void *p, u4 bytelength)
 	{ r = m(pp, ll); }
 #endif
 
+
 void *heap_alloc_uncollectable(u4 bytelength)
 {
 	void *result;
@@ -104,49 +102,62 @@ void *heap_alloc_uncollectable(u4 bytelength)
 	return result;
 }
 
+
 void runboehmfinalizer(void *o, void *p)
 {
 	java_objectheader *ob = (java_objectheader *) o;
 	asm_calljavamethod(ob->vftbl->class->finalizer, ob, NULL, NULL, NULL);
 }
 
-void *heap_allocate (u4 bytelength, bool references, methodinfo *finalizer)
+
+void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
 {
 	void *result;
-	if (references)
-		{ MAINTHREADCALL(result, stackcall_malloc, NULL, bytelength); }
-	else
-		{ MAINTHREADCALL(result, stackcall_malloc_atomic, NULL, bytelength); }
+
+	if (references) {
+		MAINTHREADCALL(result, stackcall_malloc, NULL, bytelength);
+
+	} else {
+		MAINTHREADCALL(result, stackcall_malloc_atomic, NULL, bytelength);
+	}
+
 	if (finalizer)
 		GC_REGISTER_FINALIZER(result, runboehmfinalizer, 0, 0, 0);
+
 	return (u1*) result;
 }
+
 
 void *heap_reallocate(void *p, u4 bytelength)
 {
 	void *result;
+
 	MAINTHREADCALL(result, stackcall_realloc, p, bytelength);
+
 	return result;
 }
+
 
 void heap_init (u4 size, u4 startsize, void **stackbottom)
 {
 	GC_INIT();
 }
 
+
 void heap_close()
 {
 }
 
-void heap_addreference (void **reflocation)
+
+void heap_addreference(void **reflocation)
 {
 }
 
-int collectverbose;
 
 void gc_init()
 {
 }
+
 
 void gc_call()
 {
