@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: cacao.c 1629 2004-11-30 19:22:49Z carolyn $
 
 */
 
@@ -97,9 +97,11 @@ void **stackbottom = 0;
 #define OPT_ALL         20
 #define OPT_OLOOP       24
 #define OPT_INLINING	25
+#ifdef STATIC_ANALYSIS
 #define OPT_RT          26
 #define OPT_XTA         27 
 #define OPT_VTA         28
+#endif
 #define OPT_VERBOSETC   29
 #define OPT_NOVERIFY    30
 #define OPT_LIBERALUTF  31
@@ -145,9 +147,11 @@ opt_struct opts[] = {
 	{"all",              false,  OPT_ALL},
 	{"oloop",            false,  OPT_OLOOP},
 	{"i",		         true,   OPT_INLINING},
+#ifdef STATIC_ANALYSIS
 	{"rt",               false,  OPT_RT},
 	{"xta",              false,  OPT_XTA},
 	{"vta",              false,  OPT_VTA},
+#endif
 	{"lsra", false, OPT_LSRA},
 	{NULL,               false,  0}
 };
@@ -207,9 +211,11 @@ static void usage()
 	printf("                 e ............. inline methods with exceptions\n");
 	printf("                 p ............. optimize argument renaming\n");
 	printf("                 o ............. inline methods of foreign classes\n");
+#ifdef STATIC_ANALYSIS
 	printf("          -rt .................. use rapid type analysis\n");
 	printf("          -xta ................. use x type analysis\n");
 	printf("          -vta ................. use variable type analysis\n");
+#endif
 	printf("          -lsra ................ use linear scan register allocation\n");
 
 	/* exit with error code */
@@ -528,6 +534,7 @@ int main(int argc, char **argv)
 			}
 			break;
 
+#ifdef STATIC_ANALYSIS
 		case OPT_RT:
 			opt_rt = true;
 			break;
@@ -539,6 +546,7 @@ int main(int argc, char **argv)
 		case OPT_VTA:
 			/***opt_vta = true; not yet **/
 			break;
+#endif
 
 		case OPT_LSRA:
 #if defined(__I386__) || defined(__ALPHA__)
