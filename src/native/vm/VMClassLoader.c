@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClassLoader.c 1447 2004-11-05 14:00:22Z twisti $
+   $Id: VMClassLoader.c 1536 2004-11-18 10:40:43Z twisti $
 
 */
 
@@ -43,7 +43,6 @@
 #include "nat/java_lang_Class.h"
 #include "nat/java_lang_String.h"
 #include "nat/java_lang_ClassLoader.h"
-#include "nat/java_net_URL.h"
 
 
 /*

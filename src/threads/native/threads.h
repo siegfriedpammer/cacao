@@ -4,8 +4,7 @@
 #include <semaphore.h>
 
 #include "jni.h"
-#include "nat/java_lang_Object.h"
-#include "nat/java_lang_Throwable.h"
+#include "nat/java_lang_Object.h"       /* required by java/lang/VMThread     */
 #include "nat/java_lang_Thread.h"
 #include "nat/java_lang_VMThread.h"
 #include "toolbox/memory.h"
