@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 730 2003-12-11 21:23:31Z edwin $
+   $Id: loader.c 731 2003-12-12 17:18:07Z stefan $
 
 */
 
@@ -3412,15 +3412,16 @@ void loader_close ()
 
 	while ( (c=list_first(&unloadedclasses)) ) {
 		list_remove (&unloadedclasses,c);
-		class_free (c);
+		/* XXX [stefan] I'm sick of this */
+		/* TODO find out why it crashes */
 		}
 	while ( (c=list_first(&unlinkedclasses)) ) {
 		list_remove (&unlinkedclasses,c);
-		class_free (c);
+		/* XXX [stefan] I'm sick of this */
 		}
 	while ( (c=list_first(&linkedclasses)) ) {
 		list_remove (&linkedclasses,c);
-		class_free (c);
+		/* XXX [stefan] I'm sick of this */
 		}
 }
 
