@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 736 2003-12-13 15:52:46Z stefan $
+# $Id: Makefile.am 770 2003-12-13 23:08:38Z stefan $
 
 @SET_MAKE@
 
@@ -68,6 +68,7 @@ cacao_DEPENDENCIES = \
 	jit/loop/libloop.a \
 	jit/@ARCH_DIR@/libarch.a \
 	toolbox/libtoolbox.a \
+	nat/libnat.a \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@
 
