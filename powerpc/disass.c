@@ -85,15 +85,15 @@ void sprintf_vma(char *buf, bfd_vma disp)
 	sprintf(buf, "0x%x", disp);
 }
 
-void disassinstr(int *c, int pos)
+void disassinstr(int c, int pos)
 {
 	disassemble_info info;
 
-	printf ("%6x: %8x  ", pos, *c);
+	printf ("%6x: %8x  ", pos, c);
 
 	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
-	info.application_data = (PTR) ((u4) c - pos - 4);
-	print_insn_big_powerpc((bfd_vma) c, &info);
+	info.application_data = (PTR) ((u4) &c - pos);
+	print_insn_big_powerpc((bfd_vma) &c, &info);
 	printf ("\n");
 }
 

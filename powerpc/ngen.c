@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 321 2003-05-24 08:17:49Z stefan $
+	Last Change: $Id: ngen.c 445 2003-09-15 13:40:19Z stefan $
 
 *******************************************************************************/
 
@@ -19,7 +19,6 @@
 
 /* additional functions and macros to generate code ***************************/
 
-/* #define BlockPtrOfPC(pc)        block+block_index[pc] */
 #define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
 
 
@@ -58,7 +57,8 @@
 
 #define M_TINTMOVE(t,a,b) \
 	if ((t)==TYPE_LNG) \
-		{M_INTMOVE(a,b); M_INTMOVE(secondregs[a],secondregs[b]);} \
+		{if (a<=b)M_INTMOVE(secondregs[a],secondregs[b]);\
+		M_INTMOVE(a,b); if (a>b)M_INTMOVE(secondregs[a],secondregs[b]);} \
 	else \
 		M_INTMOVE(a,b);
 
@@ -98,9 +98,14 @@
 
 
 #define var_to_reg_flt(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) \
-		{COUNT_SPILLS;M_DLD(tempnr,REG_SP,4*(v)->regoff);regnr=tempnr;} \
-	else regnr=(v)->regoff; \
+	if ((v)->flags & INMEMORY) { \
+		COUNT_SPILLS; \
+		if ((v)->type==TYPE_DBL) \
+			M_DLD(tempnr,REG_SP,4*(v)->regoff); \
+		else \
+			M_FLD(tempnr,REG_SP,4*(v)->regoff); \
+		regnr=tempnr; \
+	} else regnr=(v)->regoff; \
 }
 
 
@@ -143,11 +148,11 @@ static int reg_of_var(stackptr v, int tempregnum)
 					}
 				}
 			else
-				if (v->varnum < intreg_argnum) {
+				if (v->varnum < intreg_argnum - (IS_2_WORD_TYPE(v->type)!=0)) {
 					v->regoff = argintregs[v->varnum];
 					return(argintregs[v->varnum]);
 					}
-			v->regoff -= intreg_argnum;
+			v->regoff += 6;
 			break;
 		}
 	v->flags |= INMEMORY;
@@ -189,37 +194,48 @@ static int reg_of_var(stackptr v, int tempregnum)
 	}
 
 
+#undef ICACHE
+#define ICACHE 0
+void docacheflush(u1 *p, long bytelen, int dummy);
+
+//#include <architecture/ppc/cframe.h>
+
 /* NullPointerException signal handler for hardware null pointer check */
 
-void catch_NullPointerException(int sig, int code)
+void asm_sighandler();
+
+int lastsig;
+int crashpc;
+
+int catch_Handler(int *regs)
 {
-#if 0
 	sigset_t nsig;
-	int      instr;
-	long     faultaddr;
+	int instr, reg;
 
-	/* Reset signal handler - necessary for SysV, does no harm for BSD */
+	instr = *(int *) crashpc;
+	reg = (instr>>16) & 31;
 
-	instr = *((int*)(sigctx->sc_pc));
-	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f];
-
-	if (faultaddr == 0) {
-		signal(sig, (void*) catch_NullPointerException); /* reinstall handler */
+	if (!regs[reg]) {
 		sigemptyset(&nsig);
-		sigaddset(&nsig, sig);
+		sigaddset(&nsig, lastsig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
-		sigctx->sc_regs[REG_ITMP1_XPTR] =
-		                            (long) proto_java_lang_NullPointerException;
-		sigctx->sc_regs[REG_ITMP2_XPC] = sigctx->sc_pc;
-		sigctx->sc_pc = (long) asm_handle_exception;
-		return;
-		}
-	else {
-		faultaddr += (long) ((instr << 16) >> 16);
-		fprintf(stderr, "faulting address: 0x%16lx\n", faultaddr);
-		panic("Stack overflow");
-		}
-#endif
+
+		regs[REG_ITMP2_XPC] = crashpc;
+		regs[REG_ITMP1_XPTR] = (int) proto_java_lang_NullPointerException;
+
+		return 0;
+	}
+
+	panic("segfault");
+}
+
+void catch_NullPointerException(int sig, void *code, struct sigcontext *ctx)
+{
+	int oldsp = ctx->sc_sp;
+
+	lastsig = sig;
+	crashpc = ctx->sc_ir;
+	ctx->sc_ir = (int) asm_sighandler;
 }
 
 
@@ -227,7 +243,6 @@ void init_exceptions(void)
 {
 	/* install signal handlers we need to convert to exceptions */
 
-	return;
 	if (!checknull) {
 
 #if defined(SIGSEGV)
@@ -237,26 +252,21 @@ void init_exceptions(void)
 #if defined(SIGBUS)
 		signal(SIGBUS, (void*) catch_NullPointerException);
 #endif
+
 		}
 }
 
-void doadjust_argvars(stackptr s, int d, int *a, int *ia)
+void adjust_argvars(stackptr s, int d, int *fa, int *ia)
 {
 	if (!d) {
-		*a = 0; *ia = 0;
+		*fa = 0; *ia = 0;
 		return;
 	}
-	doadjust_argvars(s->prev, d-1, a, ia);
+	adjust_argvars(s->prev, d-1, fa, ia);
 	if (s->varkind == ARGVAR)
-		s->varnum = (IS_FLT_DBL_TYPE(s->type)) ? *a : *ia;
-	*a += 1;
+		s->varnum = (IS_FLT_DBL_TYPE(s->type)) ? *fa : *ia;
+	*fa += (IS_FLT_DBL_TYPE(s->type) != 0);
 	*ia += (IS_2_WORD_TYPE(s->type)) ? 2 : 1;
-}
-
-int adjust_argvars(stackptr s, int d)
-{
-	int a, ia;
-	doadjust_argvars(s, d, &a, &ia);
 }
 
 void nocode()
@@ -264,57 +274,27 @@ void nocode()
 	printf("NOCODE\n");
 }
 
-/* function gen_mcode **********************************************************
 
-	generates machine code
 
-*******************************************************************************/
+#define intmaxf(a,b) (((a)<(b)) ? (b) : (a))
 
-#define    	MethodPointer   -8
-#define    	FrameSize       -12
-#define     IsSync          -16
-#define     IsLeaf          -20
-#define     IntSave         -24
-#define     FltSave         -28
-#define     ExTableSize     -32
-#define     ExTableStart    -32
-
-#if POINTERSIZE==8
-#define     ExEntrySize     -32
-#define     ExStartPC       -8
-#define     ExEndPC         -16
-#define     ExHandlerPC     -24
-#define     ExCatchType     -32
-#else
-#define     ExEntrySize     -16
-#define     ExStartPC       -4
-#define     ExEndPC         -8
-#define     ExHandlerPC     -12
-#define     ExCatchType     -16
-#endif
-
-static void gen_mcode()
+void preregpass()
 {
-	int  len, s1, s2, s3, d, bbs;
-	s4   a;
-	s4          *mcodeptr;
+	int paramsize;
 	stackptr    src;
-	varinfo     *var;
 	basicblock  *bptr;
 	instruction *iptr;
-	xtable *ex;
+	int s3, len;
 
-	{
-	int p, pa, t, l, r;
-	int paramsize, maxparamsize;
-
-	maxparamsize = 0;
+	ifmemuse = 0;
 	for (bptr = block; bptr != NULL; bptr = bptr->next) {
 		len = bptr->icount;
-		for (iptr = bptr->iinstr;
+		for (iptr = bptr->iinstr, src = bptr->instack;
 		    len > 0;
 		    src = iptr->dst, len--, iptr++)
 		{
+			if (bptr->flags < BBREACHED)
+				continue;
 			switch (iptr->opc) {
 				case ICMD_BUILTIN1:
 					s3 = 1;
@@ -332,24 +312,73 @@ static void gen_mcode()
 				case ICMD_INVOKEINTERFACE:
 					s3 = iptr->op1;
 countparams:
-					adjust_argvars(src, s3);
+					{
+						int ia, fa;
+						adjust_argvars(src, s3, &fa, &ia);
+					}
 					paramsize = 0;
 					for (; --s3 >= 0; src = src->prev) {
 						paramsize += IS_2_WORD_TYPE(src->type) ? 2 : 1;
 						}
-					maxparamsize = paramsize > maxparamsize ? paramsize : maxparamsize;
+					ifmemuse = intmaxf(ifmemuse, paramsize);
+					break;
+
+				case ICMD_MULTIANEWARRAY:
+					s3 = iptr->op1;
+					paramsize = intreg_argnum + s3;
+					ifmemuse = intmaxf(ifmemuse, paramsize);
+					break;
 			}
 		}
 	}
 
-	savedregs_num = isleafmethod ? 0 : 6;
+	ifmemuse += 6;
+	maxmemuse = ifmemuse;
+}
+
+/* function gen_mcode **********************************************************
+
+	generates machine code
+
+*******************************************************************************/
+
+#define    	MethodPointer   -8
+#define    	FrameSize       -12
+#define     IsSync          -16
+#define     IsLeaf          -20
+#define     IntSave         -24
+#define     FltSave         -28
+#define     ExTableSize     -32
+#define     ExTableStart    -32
+
+#define     ExEntrySize     -16
+#define     ExStartPC       -4
+#define     ExEndPC         -8
+#define     ExHandlerPC     -12
+#define     ExCatchType     -16
+
+static void gen_mcode()
+{
+	int  len, s1, s2, s3, d;
+	s4   a;
+	s4          *mcodeptr;
+	stackptr    src;
+	varinfo     *var;
+	basicblock  *bptr;
+	instruction *iptr;
+	xtable *ex;
+
+	{
+	int p, pa, t, l, r;
+
+	savedregs_num = 0;
 
 	/* space to save used callee saved registers */
 
 	savedregs_num += (savintregcnt - maxsavintreguse);
 	savedregs_num += 2*(savfltregcnt - maxsavfltreguse);
 
-	parentargs_base = maxparamsize + maxmemuse + savedregs_num;
+	parentargs_base = maxmemuse + savedregs_num;
 
 #ifdef USE_THREADS                 /* space to save argument of monitor_enter */
 
@@ -359,6 +388,8 @@ countparams:
 #endif
 
 	/* create method header */
+
+	parentargs_base = (parentargs_base+3) & ~3;
 
 #if POINTERSIZE==4
 	(void) dseg_addaddress(method);                         /* Filler         */
@@ -375,7 +406,7 @@ countparams:
 	*/
 
 	if (checksync && (method->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4((maxmemuse + 1) * 8);             /* IsSync         */
+		(void) dseg_adds4((maxmemuse + 1) * 4);             /* IsSync         */
 	else
 
 #endif
@@ -440,7 +471,7 @@ countparams:
 		M_AST(REG_ITMP3, REG_SP, 8);
 	}
 	if (parentargs_base)
-		{M_STWU (REG_SP, REG_SP, -parentargs_base * 4);}
+		{M_LDA (REG_SP, REG_SP, -parentargs_base * 4);}
 
 	/* save return address and used callee saved registers */
 
@@ -457,10 +488,10 @@ countparams:
 		if (method->flags & ACC_STATIC) {
 			p = dseg_addaddress (class);
 			M_ALD(REG_ITMP1, REG_PV, p);
-			M_AST(REG_ITMP1, REG_SP, 8 * maxmemuse);
+			M_AST(REG_ITMP1, REG_SP, 4 * maxmemuse);
 			} 
 		else {
-			M_AST (argintregs[0], REG_SP, 8 * maxmemuse);
+			M_AST (argintregs[0], REG_SP, 4 * maxmemuse);
 			}
 		}			
 #endif
@@ -469,49 +500,69 @@ countparams:
 	   to arguments on stack. ToDo: save floating point registers !!!!!!!!!
 	*/
 
-#if 0
+#if 1
 	if (runverbose) {
-		M_LDA (REG_SP, REG_SP, -(14*8));
-		M_AST(REG_RA, REG_SP, 1*8);
+		M_MFLR(REG_ITMP3);
+		M_LDA (REG_SP, REG_SP, -208);
 
-		M_LST(argintregs[0], REG_SP,  2*8);
-		M_LST(argintregs[1], REG_SP,  3*8);
-		M_LST(argintregs[2], REG_SP,  4*8);
-		M_LST(argintregs[3], REG_SP,  5*8);
-		M_LST(argintregs[4], REG_SP,  6*8);
-		M_LST(argintregs[5], REG_SP,  7*8);
+		M_IST(REG_ITMP3, REG_SP, 13*8 + 96);
+		M_IST(argintregs[0], REG_SP, 0*4 + 64);
+		M_IST(argintregs[1], REG_SP, 1*4 + 64);
+		M_IST(argintregs[2], REG_SP, 2*4 + 64);
+		M_IST(argintregs[3], REG_SP, 3*4 + 64);
+		M_IST(argintregs[4], REG_SP, 4*4 + 64);
+		M_IST(argintregs[5], REG_SP, 5*4 + 64);
+		M_IST(argintregs[6], REG_SP, 6*4 + 64);
+		M_IST(argintregs[7], REG_SP, 7*4 + 64);
 
-		M_DST(argfltregs[0], REG_SP,  8*8);
-		M_DST(argfltregs[1], REG_SP,  9*8);
-		M_DST(argfltregs[2], REG_SP, 10*8);
-		M_DST(argfltregs[3], REG_SP, 11*8);
-		M_DST(argfltregs[4], REG_SP, 12*8);
-		M_DST(argfltregs[5], REG_SP, 13*8);
+		M_DST(argfltregs[0], REG_SP, 0*8 + 96);
+		M_DST(argfltregs[1], REG_SP, 1*8 + 96);
+		M_DST(argfltregs[2], REG_SP, 2*8 + 96);
+		M_DST(argfltregs[3], REG_SP, 3*8 + 96);
+		M_DST(argfltregs[4], REG_SP, 4*8 + 96);
+		M_DST(argfltregs[5], REG_SP, 5*8 + 96);
+		M_DST(argfltregs[6], REG_SP, 6*8 + 96);
+		M_DST(argfltregs[7], REG_SP, 7*8 + 96);
+		M_DST(argfltregs[8], REG_SP, 8*8 + 96);
+		M_DST(argfltregs[9], REG_SP, 9*8 + 96);
+		M_DST(argfltregs[10], REG_SP, 10*8 + 96);
+		M_DST(argfltregs[11], REG_SP, 11*8 + 96);
+		M_DST(argfltregs[12], REG_SP, 12*8 + 96);
 
 		p = dseg_addaddress (method);
 		M_ALD(REG_ITMP1, REG_PV, p);
-		M_AST(REG_ITMP1, REG_SP, 0);
+		M_AST(REG_ITMP1, REG_SP, 56);
 		p = dseg_addaddress ((void*) (builtin_trace_args));
-		M_ALD(REG_PV, REG_PV, p);
-		M_JSR(REG_RA, REG_PV);
-		M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
-		M_ALD(REG_RA, REG_SP, 1*8);
+		M_ALD(REG_ITMP2, REG_PV, p);
+		M_MTCTR(REG_ITMP2);
+		M_JSR;
 
-		M_LLD(argintregs[0], REG_SP,  2*8);
-		M_LLD(argintregs[1], REG_SP,  3*8);
-		M_LLD(argintregs[2], REG_SP,  4*8);
-		M_LLD(argintregs[3], REG_SP,  5*8);
-		M_LLD(argintregs[4], REG_SP,  6*8);
-		M_LLD(argintregs[5], REG_SP,  7*8);
+		M_ILD(REG_ITMP3, REG_SP, 13*8 + 96);
+		M_ILD(argintregs[0], REG_SP, 0*4 + 64);
+		M_ILD(argintregs[1], REG_SP, 1*4 + 64);
+		M_ILD(argintregs[2], REG_SP, 2*4 + 64);
+		M_ILD(argintregs[3], REG_SP, 3*4 + 64);
+		M_ILD(argintregs[4], REG_SP, 4*4 + 64);
+		M_ILD(argintregs[5], REG_SP, 5*4 + 64);
+		M_ILD(argintregs[6], REG_SP, 6*4 + 64);
+		M_ILD(argintregs[7], REG_SP, 7*4 + 64);
 
-		M_DLD(argfltregs[0], REG_SP,  8*8);
-		M_DLD(argfltregs[1], REG_SP,  9*8);
-		M_DLD(argfltregs[2], REG_SP, 10*8);
-		M_DLD(argfltregs[3], REG_SP, 11*8);
-		M_DLD(argfltregs[4], REG_SP, 12*8);
-		M_DLD(argfltregs[5], REG_SP, 13*8);
+		M_DLD(argfltregs[0], REG_SP, 0*8 + 96);
+		M_DLD(argfltregs[1], REG_SP, 1*8 + 96);
+		M_DLD(argfltregs[2], REG_SP, 2*8 + 96);
+		M_DLD(argfltregs[3], REG_SP, 3*8 + 96);
+		M_DLD(argfltregs[4], REG_SP, 4*8 + 96);
+		M_DLD(argfltregs[5], REG_SP, 5*8 + 96);
+		M_DLD(argfltregs[6], REG_SP, 6*8 + 96);
+		M_DLD(argfltregs[7], REG_SP, 7*8 + 96);
+		M_DLD(argfltregs[8], REG_SP, 8*8 + 96);
+		M_DLD(argfltregs[9], REG_SP, 9*8 + 96);
+		M_DLD(argfltregs[10], REG_SP, 10*8 + 96);
+		M_DLD(argfltregs[11], REG_SP, 11*8 + 96);
+		M_DLD(argfltregs[12], REG_SP, 12*8 + 96);
 
-		M_LDA (REG_SP, REG_SP, 14*8);
+		M_LDA (REG_SP, REG_SP, 208);
+		M_MTLR(REG_ITMP3);
 		}
 #endif
 
@@ -524,14 +575,15 @@ countparams:
 		arg = narg; iarg = niarg;
  		t = mparamtypes[p];
  		var = &(locals[l][t]);
- 		l++, narg++, niarg++;
+ 		l++, niarg++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++, niarg++;
  		if (var->type < 0)
  			continue;
  		r = var->regoff; 
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
- 			if (iarg < INT_ARG_CNT) {                /* register arguments    */
+ 			if (iarg < INT_ARG_CNT -
+					(IS_2_WORD_TYPE(t)!=0)) {        /* register arguments    */
  				if (!(var->flags & INMEMORY))        /* reg arg -> register   */
  					{M_TINTMOVE (t, argintregs[iarg], r);}
  				else                                 /* reg arg -> spilled    */
@@ -542,7 +594,7 @@ countparams:
 					}
  				}
  			else {                                   /* stack arguments       */
- 				pa = iarg - INT_ARG_CNT;
+ 				pa = iarg + 6;
  				if (!(var->flags & INMEMORY))        /* stack arg -> register */ 
 					{
 						M_ILD (r, REG_SP, 4 * (parentargs_base + pa));
@@ -560,6 +612,7 @@ countparams:
  				}
  			}
  		else {                                       /* floating args         */   
+			++narg;
  			if (arg < FLT_ARG_CNT) {                 /* register arguments    */
  				if (!(var->flags & INMEMORY))        /* reg arg -> register   */
  					{M_FLTMOVE (argfltregs[arg], r);}
@@ -567,7 +620,7 @@ countparams:
 					M_DST (argfltregs[arg], REG_SP, 4 * r);
  				}
  			else {                                   /* stack arguments       */
- 				pa = arg - FLT_ARG_CNT;
+ 				pa = iarg + 6;
  				if (!(var->flags & INMEMORY))        /* stack-arg -> register */
 					if (IS_2_WORD_TYPE(t))
 						M_DLD (r, REG_SP, 4 * (parentargs_base + pa) );
@@ -585,31 +638,15 @@ countparams:
 		}  /* end for */
 	}
 
-	/* call trace function */
-
-#if 0
-	if (runverbose && !isleafmethod) {
-		M_LDA (REG_SP, REG_SP, -8);
-		p = dseg_addaddress (method);
-		M_ALD(REG_ITMP1, REG_PV, p);
-		M_AST(REG_ITMP1, REG_SP, 0);
-		p = dseg_addaddress ((void*) (builtin_trace_args));
-		M_ALD(REG_PV, REG_PV, p);
-		M_JSR(REG_RA, REG_PV);
-		M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
-		M_LDA(REG_SP, REG_SP, 8);
-		}
-#endif
-
 	/* call monitorenter function */
 
 #ifdef USE_THREADS
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 		p = dseg_addaddress ((void*) (builtin_monitorenter));
-		M_ALD(REG_PV, REG_PV, p);
-		M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
-		M_JSR(REG_RA, REG_PV);
-		M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
+		M_ALD(REG_ITMP3, REG_PV, p);
+		M_MTCTR(REG_ITMP3);
+		M_ALD(argintregs[0], REG_SP, 4 * maxmemuse);
+		M_JSR;
 		}			
 #endif
 	}
@@ -655,7 +692,10 @@ countparams:
 							M_FLTMOVE(s1,d);
 							}
 						else {
-							M_DLD(d, REG_SP, 4 * interfaces[len][s2].regoff);
+							if (IS_2_WORD_TYPE(s2))
+								M_DLD(d, REG_SP, 4 * interfaces[len][s2].regoff);
+							else
+								M_FLD(d, REG_SP, 4 * interfaces[len][s2].regoff);
 							}
 						store_reg_to_var_flt(src, d);
 						}
@@ -700,10 +740,10 @@ countparams:
 
 		/* constant operations ************************************************/
 
-#define ICONST(r,c) if(((c)>=-32768)&&((c)<= 32767)){M_LDA(r,REG_ZERO,c);} \
+#define ICONST(r,c) if(((c)>=0&&(c)<=32767)||((c)>=-32768&&(c)<0)){M_LDA(r,REG_ZERO,c);} \
                     else{a=dseg_adds4(c);M_ILD(r,REG_PV,a);}
 
-#define LCONST(r,c) ICONST(r,((s8)(c)>>32)&0xffffffff); ICONST(secondregs[r],(s8)(c)&0xffffffff);
+#define LCONST(r,c) ICONST(r,(s4)((s8)(c)>>32)); ICONST(secondregs[r],(s4)((s8)(c)));
 
 		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.i = constant                    */
@@ -777,7 +817,10 @@ countparams:
 				break;
 			var = &(locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
 			if (var->flags & INMEMORY)
-				M_DLD(d, REG_SP, 4 * var->regoff);
+				if (IS_2_WORD_TYPE(var->type))
+					M_DLD(d, REG_SP, 4 * var->regoff);
+				else
+					M_FLD(d, REG_SP, 4 * var->regoff);
 			else
 				{M_FLTMOVE(var->regoff,d);}
 			store_reg_to_var_flt(iptr->dst, d);
@@ -902,29 +945,29 @@ countparams:
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
+        case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
 
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_SUBFIC(secondregs[s1], 0, secondregs[d]);
-			M_SUBFZE(s1, d);
-			store_reg_to_var_int(iptr->dst, d);
-			break;
+            var_to_reg_int(s1, src, REG_ITMP1);
+            d = reg_of_var(iptr->dst, REG_ITMP3);
+            M_SUBFIC(secondregs[s1], 0, secondregs[d]);
+            M_SUBFZE(s1, d);
+            store_reg_to_var_int(iptr->dst, d);
+            break;
 
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
 			var_to_reg_int(s1, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_INTMOVE(s1, secondregs[d]);
-			M_CLR(d);
+			M_SRA_IMM(secondregs[d], 31, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_L2I:        /* ..., value  ==> ..., value                   */
 
-			var_to_reg_int(s1, src, REG_ITMP1);
+			var_to_reg_int0(s1, src, REG_ITMP2, 0, 1);
 			d = reg_of_var(iptr->dst, REG_ITMP2);
-			M_INTMOVE(secondregs[s1], d );
+			M_INTMOVE(s1, d );
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -977,41 +1020,40 @@ countparams:
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-		case ICMD_LADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
+        case ICMD_LADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
-			var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
-			var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_ADDC(s1, s2, secondregs[d]);
-			store_reg_to_var_int0(iptr->dst, d, 0, 1);
-			var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
-			var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
-			M_ADDE(s1, s2, d);
-			store_reg_to_var_int0(iptr->dst, d, 1, 0);
-			break;
+            var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
+            var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
+            d = reg_of_var(iptr->dst, REG_ITMP3);
+            M_ADDC(s1, s2, secondregs[d]);
+            var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
+            var_to_reg_int0(s2, src, REG_ITMP3, 1, 0);
+            M_ADDE(s1, s2, d);
+            store_reg_to_var_int(iptr->dst, d);
+            break;
 
 		case ICMD_LADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.l = constant                             */
 
-			var_to_reg_int(s1, src, REG_ITMP1);
+			s3 = iptr->val.l & 0xffffffff;
+			var_to_reg_int0(s1, src, REG_ITMP1, 0, 1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			{
-				s4 l = iptr->val.l;
-				if (l >= -32768 && l <= 32767)
-					M_ADDIC(secondregs[s1], l, secondregs[d]);
-				else {
-					ICONST(REG_ITMP3, l);
-					M_ADDC(secondregs[s1], REG_ITMP3, secondregs[d]);
-					}
-				if (l == iptr->val.l)
-					if (l>=0)
-						M_ADDZE(s1, d);
-					else
-						M_ADDME(s1, d);
-				else {
-					ICONST(REG_ITMP3, iptr->val.l>>32);
-					M_ADDE(s1, REG_ITMP3, d);
-					}
+			if ((s3 >= -32768) && (s3 <= 32767)) {
+				M_ADDIC(s1, s3, secondregs[d]);
+				}
+			else {
+				ICONST(REG_ITMP2, s3);
+				M_ADDC(s1, REG_ITMP2, secondregs[d]);
+				}
+			var_to_reg_int0(s1, src, REG_ITMP1, 1, 0);
+			s3 = iptr->val.l >> 32;
+			if (s3 == -1)
+				M_ADDME(s1, d);
+			else if (s3 == 0)
+				M_ADDZE(s1, d);
+			else {
+				ICONST(REG_ITMP3, s3);
+				M_ADDE(s1, REG_ITMP3, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1040,46 +1082,60 @@ countparams:
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-		case ICMD_LSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
+        case ICMD_LSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
-			var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
-			var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_SUBC(s1, s2, d);
-			store_reg_to_var_int0(iptr->dst, d, 0, 1);
-			var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
-			var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
-			M_SUBE(s1, s2, secondregs[d]);
-			store_reg_to_var_int0(iptr->dst, d, 1, 0);
-			break;
-
+            var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
+            var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
+            d = reg_of_var(iptr->dst, REG_ITMP3);
+            M_SUBC(s1, s2, secondregs[d]);
+            var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
+            var_to_reg_int0(s2, src, REG_ITMP3, 1, 0);
+            M_SUBE(s1, s2, d);
+            store_reg_to_var_int(iptr->dst, d);
+            break;
 
 		case ICMD_LSUBCONST:  /* ..., value  ==> ..., value - constant        */
 		                      /* val.l = constant                             */
 
-			var_to_reg_int(s1, src, REG_ITMP1);
+			s3 = (-iptr->val.l) & 0xffffffff;
+			var_to_reg_int0(s1, src, REG_ITMP1, 0, 1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			{
-				s4 l = -iptr->val.l;
-				if (l >= -32768 && l <= 32767)
-					M_ADDIC(secondregs[s1], l, secondregs[d]);
-				else {
-					ICONST(REG_ITMP3, l);
-					M_ADDC(secondregs[s1], REG_ITMP3, secondregs[d]);
-					}
-				if (l == -iptr->val.l)
-					if (l>=0)
-						M_ADDZE(s1, d);
-					else
-						M_ADDME(s1, d);
-				else {
-					ICONST(REG_ITMP3, (-iptr->val.l)>>32);
-					M_ADDE(s1, REG_ITMP3, d);
-					}
+			if ((s3 >= -32768) && (s3 <= 32767)) {
+				M_ADDIC(s1, s3, secondregs[d]);
+				}
+			else {
+				ICONST(REG_ITMP2, s3);
+				M_ADDC(s1, REG_ITMP2, secondregs[d]);
+				}
+			var_to_reg_int0(s1, src, REG_ITMP1, 1, 0);
+			s3 = (-iptr->val.l) >> 32;
+			if (s3 == -1)
+				M_ADDME(s1, d);
+			else if (s3 == 0)
+				M_ADDZE(s1, d);
+			else {
+				ICONST(REG_ITMP3, s3);
+				M_ADDE(s1, REG_ITMP3, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
+		case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			M_IDIV(s1, s2, d);
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+
+		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			M_IDIV(s1, s2, d);
+			M_IMUL(d, s2, d);
+			M_ISUB(s1, d, d);
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_IMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
@@ -1106,19 +1162,6 @@ countparams:
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-		case ICMD_LMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
-
-			nocode();
-			//CUT
-			break;
-
-		case ICMD_LMULCONST:  /* ..., value  ==> ..., value * constant        */
-		                      /* val.l = constant                             */
-
-			nocode();
-			//CUT
-			break;
-
 		case ICMD_IDIVPOW2:   /* ..., value  ==> ..., value << constant       */
 		                      
 			var_to_reg_int(s1, src, REG_ITMP1);
@@ -1126,12 +1169,6 @@ countparams:
 			M_SRA_IMM(s1, iptr->val.i, d);
 			M_ADDZE(d, d);
 			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_LDIVPOW2:   /* val.i = constant                             */
-
-			nocode();
-			//CUT
 			break;
 
 		case ICMD_ISHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
@@ -1178,7 +1215,7 @@ countparams:
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_AND_IMM(s2, 0x1f, REG_ITMP2);
-			M_SRL(d, REG_ITMP2, d);
+			M_SRL(s1, REG_ITMP2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1187,47 +1224,11 @@ countparams:
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_SRL_IMM(d, iptr->val.i & 0x1f, d);
+			if (iptr->val.i & 0x1f)
+				M_SRL_IMM(s1, iptr->val.i & 0x1f, d);
+			else
+				M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_LSHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
-
-			nocode();
-			//CUT
-			break;
-
-		case ICMD_LSHLCONST:  /* ..., value  ==> ..., value << constant       */
-		                      /* val.l = constant                             */
-
-			nocode();
-			//CUT
-			break;
-
-		case ICMD_LSHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
-
-			nocode();
-			//CUT
-			break;
-
-		case ICMD_LSHRCONST:  /* ..., value  ==> ..., value >> constant       */
-		                      /* val.l = constant                             */
-
-			nocode();
-			//CUT
-			break;
-
-		case ICMD_LUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
-
-			nocode();
-			//CUT
-			break;
-
-		case ICMD_LUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
-		                      /* val.l = constant                             */
-
-			nocode();
-			//CUT
 			break;
 
 		case ICMD_IAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
@@ -1239,21 +1240,7 @@ countparams:
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-		case ICMD_LAND:
-			var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
-			var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_AND(s1, s2, secondregs[d]);
-			store_reg_to_var_int0(iptr->dst, d, 0, 1);
-			var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
-			var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
-			M_AND(s1, s2, d);
-			store_reg_to_var_int0(iptr->dst, d, 1, 0);
-			break;
-
 		case ICMD_IANDCONST:  /* ..., value  ==> ..., value & constant        */
-		                      /* val.i = constant                             */
-		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant        */
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
@@ -1261,9 +1248,11 @@ countparams:
 			if ((iptr->val.i >= 0) && (iptr->val.i <= 65535)) {
 				M_AND_IMM(s1, iptr->val.i, d);
 				}
+			/*
 			else if (iptr->val.i == 0xffffff) {
 				M_RLWINM(s1, 0, 8, 31, d);
 				}
+			*/
 			else {
 				ICONST(REG_ITMP2, iptr->val.i);
 				M_AND(s1, REG_ITMP2, d);
@@ -1271,101 +1260,66 @@ countparams:
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-			/*
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			{
-				int b;
-				u4 m = iptr->val.i;
-				while (m>>=1)
-					++b;
-				M_RLWINM(s1, 0, 31-b, 31, d);
-			}
-			store_reg_to_var_int(iptr->dst, d);
-			break;
-			*/
+		case ICMD_LAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
 
-		case ICMD_IREM0X10001:  /* ..., value  ==> ..., value % 0x100001      */
-		
-/*          b = value & 0xffff;
-			a = value >> 16;
-			a = ((b - a) & 0xffff) + (b < a);
-*/
-			nocode();
-			//CUT
-			break;
+			var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
+            var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
+            d = reg_of_var(iptr->dst, REG_ITMP3);
+            M_AND(s1, s2, secondregs[d]);
+            var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
+            var_to_reg_int0(s2, src, REG_ITMP3, 1, 0);
+            M_AND(s1, s2, d);
+            store_reg_to_var_int(iptr->dst, d);
+            break;
 
 		case ICMD_LANDCONST:  /* ..., value  ==> ..., value & constant        */
 		                      /* val.l = constant                             */
-		case ICMD_LREMPOW2:   /* ..., value  ==> ..., value % constant        */
-		                      /* val.l = constant                             */
 
-			var_to_reg_int(s1, src, REG_ITMP1);
+			s3 = iptr->val.l & 0xffffffff;
+			var_to_reg_int0(s1, src, REG_ITMP1, 0, 1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			{
-				s4 l = iptr->val.l;
-				int sr = secondregs[s1];
-				int dr = secondregs[d];
-				if (!l)
-					M_CLR(dr);
-				else if (!~l)
-					{M_INTMOVE(sr, dr);}
-				else if ((l&0xffff) == l)
-					M_AND_IMM(sr, l&0xffff, dr);
-				else if ((l&0xffff) == 0)
-					M_ANDIS(sr, l>>16, dr);
-				else {
-					ICONST(REG_ITMP3, l);
-					M_AND(REG_ITMP3, sr, dr);
-					}
-			}
-			{
-				s4 l = iptr->val.l;
-				int sr = s1;
-				int dr = d;
-				if (!l)
-					M_CLR(dr);
-				else if (!~l)
-					{M_INTMOVE(sr, dr);}
-				else if ((l&0xffff) == l)
-					M_AND_IMM(sr, l&0xffff, dr);
-				else if ((l&0xffff) == 0)
-					M_ANDIS(sr, l>>16, dr);
-				else {
-					ICONST(REG_ITMP3, l);
-					M_AND(REG_ITMP3, sr, dr);
-					}
-			}
+			if ((s3 >= 0) && (s3 <= 65535)) {
+				M_AND_IMM(s1, s3, secondregs[d]);
+				}
+			else {
+				ICONST(REG_ITMP2, s3);
+				M_AND(s1, REG_ITMP2, secondregs[d]);
+				}
+			var_to_reg_int0(s1, src, REG_ITMP1, 1, 0);
+			s3 = iptr->val.l >> 32;
+			if ((s3 >= 0) && (s3 <= 65535)) {
+				M_AND_IMM(s1, s3, d);
+				}
+			else {
+				ICONST(REG_ITMP3, s3);
+				M_AND(s1, REG_ITMP3, d);
+				}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-			/*
+		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant        */
+		                      /* val.i = constant                             */
+
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
+			M_MOV(s1, REG_ITMP2);
+			M_CMPI(s1, 0);
+			M_BGE(1 + 2*(iptr->val.i >= 32768));
+			if (iptr->val.i >= 32768) {
+				M_ADDIS(REG_ZERO, iptr->val.i>>16, REG_ITMP2);
+				M_OR_IMM(REG_ITMP2, iptr->val.i, REG_ITMP2);
+				M_IADD(s1, REG_ITMP2, REG_ITMP2);
+				} 
+			else
+				M_IADD_IMM(s1, iptr->val.i, REG_ITMP2);
 			{
-				int b;
-				s8 m = iptr->val.i;
-				if (m<0)
-					panic("Illegal LREMPOW2 constant");
-				while (m>>=1)
+				int b=0, m = iptr->val.i;
+				while (m >>= 1)
 					++b;
-				if (b>=32)
-					{M_INTMOVE(secondregs[s1], secondregs[d]);}
-				else
-					M_RLWINM(secondregs[s1], 0, 31-b, 31, secondregs[d]);
-				if (b<=32)
-					M_CLR(d);
-				else
-					M_RLWINM(s1, 0, 31-(b-32), 31, d);
+				M_RLWINM(REG_ITMP2, 0, 0, 30-b, REG_ITMP2);
 			}
+			M_ISUB(s1, REG_ITMP2, d);
 			store_reg_to_var_int(iptr->dst, d);
-			break;
-			*/
-
-		case ICMD_LREM0X10001:/* ..., value  ==> ..., value % 0x10001         */
-
-			nocode();
-			//CUT
 			break;
 
 		case ICMD_IOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
@@ -1375,18 +1329,6 @@ countparams:
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_OR( s1,s2, d);
 			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_LOR:
-			var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
-			var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_OR(s1, s2, d);
-			store_reg_to_var_int0(iptr->dst, d, 0, 1);
-			var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
-			var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
-			M_OR(s1, s2, secondregs[d]);
-			store_reg_to_var_int0(iptr->dst, d, 1, 0);
 			break;
 
 		case ICMD_IORCONST:   /* ..., value  ==> ..., value | constant        */
@@ -1404,45 +1346,40 @@ countparams:
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-		case ICMD_LORCONST:   /* ..., value  ==> ..., value | constant        */
+		case ICMD_LOR:       /* ..., val1, val2  ==> ..., val1 | val2        */
+
+			var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
+            var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
+            d = reg_of_var(iptr->dst, REG_ITMP3);
+            M_OR(s1, s2, secondregs[d]);
+            var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
+            var_to_reg_int0(s2, src, REG_ITMP3, 1, 0);
+            M_OR(s1, s2, d);
+            store_reg_to_var_int(iptr->dst, d);
+            break;
+
+		case ICMD_LORCONST:  /* ..., value  ==> ..., value | constant        */
 		                      /* val.l = constant                             */
 
-			var_to_reg_int(s1, src, REG_ITMP1);
+			s3 = iptr->val.l & 0xffffffff;
+			var_to_reg_int0(s1, src, REG_ITMP1, 0, 1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			{
-				s4 l = iptr->val.l;
-				int sr = secondregs[s1];
-				int dr = secondregs[d];
-				if (!l)
-					{M_INTMOVE(sr, dr);}
-				else if (!~l)
-					M_IADD_IMM(REG_ZERO, 0xffff, dr);
-				else if ((l&0xffff) == l)
-					M_OR_IMM(sr, l&0xffff, dr);
-				else if ((l&0xffff) == 0)
-					M_ORIS(sr, l>>16, dr);
-				else {
-					ICONST(REG_ITMP3, l);
-					M_OR(REG_ITMP3, sr, dr);
-					}
-			}
-			{
-				s4 l = iptr->val.l;
-				int sr = s1;
-				int dr = d;
-				if (!l)
-					{M_INTMOVE(sr, dr);}
-				else if (!~l)
-					M_IADD_IMM(REG_ZERO, 0xffff, dr);
-				else if ((l&0xffff) == l)
-					M_OR_IMM(sr, l&0xffff, dr);
-				else if ((l&0xffff) == 0)
-					M_ORIS(sr, l>>16, dr);
-				else {
-					ICONST(REG_ITMP3, l);
-					M_OR(REG_ITMP3, sr, dr);
-					}
-			}
+			if ((s3 >= 0) && (s3 <= 65535)) {
+				M_OR_IMM(s1, s3, secondregs[d]);
+				}
+			else {
+				ICONST(REG_ITMP2, s3);
+				M_OR(s1, REG_ITMP2, secondregs[d]);
+				}
+			var_to_reg_int0(s1, src, REG_ITMP1, 1, 0);
+			s3 = iptr->val.l >> 32;
+			if ((s3 >= 0) && (s3 <= 65535)) {
+				M_OR_IMM(s1, s3, d);
+				}
+			else {
+				ICONST(REG_ITMP3, s3);
+				M_OR(s1, REG_ITMP3, d);
+				}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1453,18 +1390,6 @@ countparams:
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_XOR(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_LXOR:
-			var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
-			var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_XOR(s1, s2, d);
-			store_reg_to_var_int0(iptr->dst, d, 0, 1);
-			var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
-			var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
-			M_XOR(s1, s2, secondregs[d]);
-			store_reg_to_var_int0(iptr->dst, d, 1, 0);
 			break;
 
 		case ICMD_IXORCONST:  /* ..., value  ==> ..., value ^ constant        */
@@ -1482,69 +1407,68 @@ countparams:
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
+		case ICMD_LXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
+
+			var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
+            var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
+            d = reg_of_var(iptr->dst, REG_ITMP3);
+            M_XOR(s1, s2, secondregs[d]);
+            var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
+            var_to_reg_int0(s2, src, REG_ITMP3, 1, 0);
+            M_XOR(s1, s2, d);
+            store_reg_to_var_int(iptr->dst, d);
+            break;
+
 		case ICMD_LXORCONST:  /* ..., value  ==> ..., value ^ constant        */
 		                      /* val.l = constant                             */
 
-			var_to_reg_int(s1, src, REG_ITMP1);
+			s3 = iptr->val.l & 0xffffffff;
+			var_to_reg_int0(s1, src, REG_ITMP1, 0, 1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			{
-				s4 l = iptr->val.l;
-				int sr = secondregs[s1];
-				int dr = secondregs[d];
-				if (!l)
-					{M_INTMOVE(sr, dr);}
-				else if (!~l)
-					M_NOT(sr, dr);
-				else if ((l&0xffff) == l)
-					M_XOR_IMM(sr, l&0xffff, dr);
-				else if ((l&0xffff) == 0)
-					M_XORIS(sr, l>>16, dr);
-				else {
-					ICONST(REG_ITMP3, l);
-					M_XOR(REG_ITMP3, sr, dr);
-					}
-			}
-			{
-				s4 l = iptr->val.l;
-				int sr = s1;
-				int dr = d;
-				if (!l)
-					{M_INTMOVE(sr, dr);}
-				else if (!~l)
-					M_NOT(sr, dr);
-				else if ((l&0xffff) == l)
-					M_XOR_IMM(sr, l&0xffff, dr);
-				else if ((l&0xffff) == 0)
-					M_XORIS(sr, l>>16, dr);
-				else {
-					ICONST(REG_ITMP3, l);
-					M_XOR(REG_ITMP3, sr, dr);
-					}
-			}
+			if ((s3 >= 0) && (s3 <= 65535)) {
+				M_XOR_IMM(s1, s3, secondregs[d]);
+				}
+			else {
+				ICONST(REG_ITMP2, s3);
+				M_XOR(s1, REG_ITMP2, secondregs[d]);
+				}
+			var_to_reg_int0(s1, src, REG_ITMP1, 1, 0);
+			s3 = iptr->val.l >> 32;
+			if ((s3 >= 0) && (s3 <= 65535)) {
+				M_XOR_IMM(s1, s3, d);
+				}
+			else {
+				ICONST(REG_ITMP3, s3);
+				M_XOR(s1, REG_ITMP3, d);
+				}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_LCMP:       /* ..., val1, val2  ==> ..., val1 cmp val2      */
 
-			var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
+			var_to_reg_int0(s1, src->prev, REG_ITMP3, 1, 0);
 			var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
+			d = reg_of_var(iptr->dst, REG_ITMP1);
 			{
+				int tempreg =
+					(d==s1 || d==s2 || d==secondregs[s1] || d==secondregs[s2]);
+				int dreg = tempreg ? REG_ITMP1 : d;
 				s4 *br1;
-				M_IADD_IMM(REG_ZERO, 1, d);
+				M_IADD_IMM(REG_ZERO, 1, dreg);
 				M_CMP(s1, s2);
 				M_BGT(0);
 				br1 = mcodeptr;
 				M_BLT(0);
-				var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
+				var_to_reg_int0(s1, src->prev, REG_ITMP3, 0, 1);
 				var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
 				M_CMPU(s1, s2);
-				M_BGT(12);
-				M_BEQ(4);
-				M_IADD_IMM(d, -1, d);
-				M_IADD_IMM(d, -1, d);
-				gen_resolvebranch(br1, br1+1, mcodeptr);
-				gen_resolvebranch(br1+1, br1+2, mcodeptr-2);
+				M_BGT(3);
+				M_BEQ(1);
+				M_IADD_IMM(dreg, -1, dreg);
+				M_IADD_IMM(dreg, -1, dreg);
+				gen_resolvebranch(br1, (u1*) br1, (u1*) mcodeptr);
+				gen_resolvebranch(br1+1, (u1*) (br1+1), (u1*) (mcodeptr-2));
+				M_INTMOVE(dreg, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1561,14 +1485,12 @@ countparams:
                 s1 = var->regoff;
 			{
 				u4 m = iptr->val.i;
-				if (m>0 && (m&0x8000))
+				if (m&0x8000)
 					m += 65536;
-				if (m<0 && !(m&0x8000))
-					m -= 65536;
 				if (m&0xffff0000)
-					M_ADDIS(s1, m>>16, d);
+					M_ADDIS(s1, m>>16, s1);
 				if (m&0xffff)
-					M_IADD_IMM((m&0xffff0000)?d:s1, m&0xffff, d);
+					M_IADD_IMM(s1, m&0xffff, s1);
 			}
             if (var->flags & INMEMORY)
 				M_IST(s1, REG_SP, 4 * var->regoff);
@@ -1665,65 +1587,15 @@ countparams:
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 		
-		case ICMD_FREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-
-			nocode();
-			//CUT
-		    break;
-
-		case ICMD_DREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-
-			nocode();
-			//CUT
-		    break;
-
-		case ICMD_I2F:       /* ..., value  ==> ..., (float) value            */
-
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
-			a = dseg_adddouble(0.0);
-			M_XORIS(s1, 0x8000, s1);
-			M_IST(s1, REG_PV, a+4);
-			M_ADDIS(REG_ZERO, 0x4330, REG_ITMP1);
-			M_IST(REG_ITMP1, REG_PV, a);
-			M_DLD(REG_FTMP2, REG_PV, a);
-			a = dseg_adds8(0x4330000080000000LL);
-			M_DLD(REG_FTMP1, REG_PV, a);
-			M_FSUB(REG_FTMP2, REG_FTMP1, d);
-			M_CVTDF(d, d);
-			store_reg_to_var_flt(iptr->dst, d);
-			break;
-
-		case ICMD_L2F:       /* ..., value  ==> ..., (float) value            */
-			nocode();
-			//CUT
-			break;
-
-		case ICMD_I2D:       /* ..., value  ==> ..., (double) value           */
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
-			a = dseg_adddouble(0.0);
-			M_XORIS(s1, 0x8000, s1);
-			M_IST(s1, REG_PV, a+4);
-			M_ADDIS(REG_ZERO, 0x4330, REG_ITMP1);
-			M_IST(REG_ITMP1, REG_PV, a);
-			M_DLD(REG_FTMP2, REG_PV, a);
-//			a = dseg_(0x4330000080000000LL);
-			a = dseg_adddouble(-0.0);
-			M_DLD(REG_FTMP1, REG_PV, a);
-			M_FSUB(REG_FTMP2, REG_FTMP1, d);
-			store_reg_to_var_flt(iptr->dst, d);
-			break;
-			
-		case ICMD_L2D:       /* ..., value  ==> ..., (double) value           */
-			nocode();
-			//CUT
-			break;
-
 		case ICMD_F2I:       /* ..., value  ==> ..., (int) value              */
 		case ICMD_D2I:
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
+			M_CLR(d);
+			a = dseg_addfloat(0.0);
+			M_FLD(REG_FTMP2, REG_PV, a);
+			M_FCMPU(s1, REG_FTMP2);
+			M_BNAN(4);
 			a = dseg_adds4(0);
 			M_CVTDL_C(s1, REG_FTMP1);
 			M_LDA (REG_ITMP1, REG_PV, a);
@@ -1732,12 +1604,6 @@ countparams:
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 		
-		case ICMD_F2L:       /* ..., value  ==> ..., (long) value             */
-		case ICMD_D2L:
-			nocode();
-			//CUT
-			break;
-
 		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
@@ -1754,34 +1620,36 @@ countparams:
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 		
-		case ICMD_FCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpl val2    */
+		case ICMD_FCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpg val2    */
 		case ICMD_DCMPL:
-			var_to_reg_flt(s1, src->prev, REG_FTMP1);
-			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_FCMPU(s1, s2);
-			M_IADD_IMM(0, 1, d);
-			M_BGT(12);
-			M_IADD_IMM(0, 0, d);
-			M_BGE(4);
-			M_IADD_IMM(0, -1, d);
-			store_reg_to_var_int(iptr->dst, d);
-			break;
-			
-		case ICMD_FCMPG:      /* ..., val1, val2  ==> ..., val1 fcmpg val2    */
-		case ICMD_DCMPG:
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_FCMPU(s2, s1);
 			M_IADD_IMM(0, -1, d);
-			M_BGT(12);
+			M_BNAN(4);
+			M_BGT(3);
 			M_IADD_IMM(0, 0, d);
-			M_BGE(4);
+			M_BGE(1);
 			M_IADD_IMM(0, 1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
+		case ICMD_FCMPG:      /* ..., val1, val2  ==> ..., val1 fcmpl val2    */
+		case ICMD_DCMPG:
+			var_to_reg_flt(s1, src->prev, REG_FTMP1);
+			var_to_reg_flt(s2, src, REG_FTMP2);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			M_FCMPU(s1, s2);
+			M_IADD_IMM(0, 1, d);
+			M_BNAN(4);
+			M_BGT(3);
+			M_IADD_IMM(0, 0, d);
+			M_BGE(1);
+			M_IADD_IMM(0, -1, d);
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+			
 
 		/* memory operations **************************************************/
 
@@ -1789,7 +1657,7 @@ countparams:
             if (checkbounds) { \
 				M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
 				M_CMPU(s2, REG_ITMP3);\
-				M_BEQ(0);\
+				M_BGE(0);\
 				mcode_addxboundrefs(mcodeptr); \
                 }
 
@@ -1811,9 +1679,9 @@ countparams:
 				gen_nullptr_check(s1);
 				gen_bound_check;
 				}
-			M_SLL_IMM(s2, 2, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_objectarray, data[0]), REG_ITMP1);
-			M_LWZX(d, s1, REG_ITMP1);
+			M_SLL_IMM(s2, 2, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_objectarray, data[0]), REG_ITMP2);
+			M_LWZX(d, s1, REG_ITMP2);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1826,11 +1694,10 @@ countparams:
 				gen_nullptr_check(s1);
 				gen_bound_check;
 				}
-			M_SLL_IMM(s2, 3, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_longarray, data[0]), REG_ITMP1);
-			M_LWZX(d, s1, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, 4, REG_ITMP1);
-			M_LWZX(secondregs[d], s1, REG_ITMP1);
+			M_SLL_IMM(s2, 3, REG_ITMP2);
+			M_IADD(s1, REG_ITMP2, REG_ITMP2);
+			M_ILD(d, REG_ITMP2, OFFSET(java_longarray, data[0]));
+			M_ILD(secondregs[d], REG_ITMP2, OFFSET(java_longarray, data[0])+4);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1843,9 +1710,9 @@ countparams:
 				gen_nullptr_check(s1);
 				gen_bound_check;
 				}
-			M_SLL_IMM(s2, 2, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_intarray, data[0]), REG_ITMP1);
-			M_LWZX(d, s1, REG_ITMP1);
+			M_SLL_IMM(s2, 2, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_intarray, data[0]), REG_ITMP2);
+			M_LWZX(d, s1, REG_ITMP2);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1858,9 +1725,9 @@ countparams:
 				gen_nullptr_check(s1);
 				gen_bound_check;
 				}
-			M_SLL_IMM(s2, 2, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_floatarray, data[0]), REG_ITMP1);
-			M_LFSX(d, s1, REG_ITMP1);
+			M_SLL_IMM(s2, 2, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_floatarray, data[0]), REG_ITMP2);
+			M_LFSX(d, s1, REG_ITMP2);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
@@ -1873,9 +1740,9 @@ countparams:
 				gen_nullptr_check(s1);
 				gen_bound_check;
 				}
-			M_SLL_IMM(s2, 3, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_doublearray, data[0]), REG_ITMP1);
-			M_LFDX(d, s1, REG_ITMP1);
+			M_SLL_IMM(s2, 3, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_doublearray, data[0]), REG_ITMP2);
+			M_LFDX(d, s1, REG_ITMP2);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
@@ -1888,8 +1755,9 @@ countparams:
 				gen_nullptr_check(s1);
 				gen_bound_check;
 				}
-			M_IADD_IMM(s2, OFFSET(java_chararray, data[0]), REG_ITMP1);
-			M_LBZX(d, s1, REG_ITMP1);
+			M_IADD_IMM(s2, OFFSET(java_chararray, data[0]), REG_ITMP2);
+			M_LBZX(d, s1, REG_ITMP2);
+			M_BSEXT(d, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;			
 
@@ -1902,9 +1770,9 @@ countparams:
 				gen_nullptr_check(s1);
 				gen_bound_check;
 				}
-			M_SLL_IMM(s2, 1, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_shortarray, data[0]), REG_ITMP1);
-			M_LHZX(d, s1, REG_ITMP1);
+			M_SLL_IMM(s2, 1, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_shortarray, data[0]), REG_ITMP2);
+			M_LHAX(d, s1, REG_ITMP2);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1917,24 +1785,10 @@ countparams:
 				gen_nullptr_check(s1);
 				gen_bound_check;
 				}
-			M_SLL_IMM(s2, 1, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_chararray, data[0]), REG_ITMP1);
-			M_LHZX(d, s1, REG_ITMP1);
+			M_SLL_IMM(s2, 1, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_chararray, data[0]), REG_ITMP2);
+			M_LHZX(d, s1, REG_ITMP2);
 			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-				}
-			var_to_reg_int(s3, src, REG_ITMP3);
-			M_SLL_IMM(s2, 2, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_objectarray, data[0]), REG_ITMP1);
-			M_STWX(s3, s1, REG_ITMP1);
 			break;
 
 		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1945,12 +1799,13 @@ countparams:
 				gen_nullptr_check(s1);
 				gen_bound_check;
 				}
-			var_to_reg_int(s3, src, REG_ITMP3);
-			M_SLL_IMM(s2, 3, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_intarray, data[0]), REG_ITMP1);
-			M_STWX(s3, s1, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, 4, REG_ITMP1);
-			M_STWX(secondregs[s3], s1, REG_ITMP1);
+			var_to_reg_int0(s3, src, REG_ITMP3, 1, 0);
+			M_SLL_IMM(s2, 3, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_intarray, data[0]), REG_ITMP2);
+			M_STWX(s3, s1, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, 4, REG_ITMP2);
+			var_to_reg_int0(s3, src, REG_ITMP3, 0, 1);
+			M_STWX(s3, s1, REG_ITMP2);
 			break;
 
 		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1962,9 +1817,9 @@ countparams:
 				gen_bound_check;
 				}
 			var_to_reg_int(s3, src, REG_ITMP3);
-			M_SLL_IMM(s2, 2, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_intarray, data[0]), REG_ITMP1);
-			M_STWX(s3, s1, REG_ITMP1);
+			M_SLL_IMM(s2, 2, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_intarray, data[0]), REG_ITMP2);
+			M_STWX(s3, s1, REG_ITMP2);
 			break;
 
 		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1976,9 +1831,9 @@ countparams:
 				gen_bound_check;
 				}
 			var_to_reg_flt(s3, src, REG_FTMP3);
-			M_SLL_IMM(s2, 2, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_floatarray, data[0]), REG_ITMP1);
-			M_STFSX(s3, s1, REG_ITMP1);
+			M_SLL_IMM(s2, 2, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_floatarray, data[0]), REG_ITMP2);
+			M_STFSX(s3, s1, REG_ITMP2);
 			break;
 
 		case ICMD_DASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1990,9 +1845,9 @@ countparams:
 				gen_bound_check;
 				}
 			var_to_reg_flt(s3, src, REG_FTMP3);
-			M_SLL_IMM(s2, 2, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_doublearray, data[0]), REG_ITMP1);
-			M_STFDX(s3, s1, REG_ITMP1);
+			M_SLL_IMM(s2, 3, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_doublearray, data[0]), REG_ITMP2);
+			M_STFDX(s3, s1, REG_ITMP2);
 			break;
 
 		case ICMD_BASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -2004,8 +1859,8 @@ countparams:
 				gen_bound_check;
 				}
 			var_to_reg_int(s3, src, REG_ITMP3);
-			M_IADD_IMM(s2, OFFSET(java_bytearray, data[0]), REG_ITMP1);
-			M_STBX(s3, s1, REG_ITMP1);
+			M_IADD_IMM(s2, OFFSET(java_bytearray, data[0]), REG_ITMP2);
+			M_STBX(s3, s1, REG_ITMP2);
 			break;
 
 		case ICMD_SASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -2017,9 +1872,9 @@ countparams:
 				gen_bound_check;
 				}
 			var_to_reg_int(s3, src, REG_ITMP3);
-			M_SLL_IMM(s2, 1, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_shortarray, data[0]), REG_ITMP1);
-			M_STHX(s3, s1, REG_ITMP1);
+			M_SLL_IMM(s2, 1, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_shortarray, data[0]), REG_ITMP2);
+			M_STHX(s3, s1, REG_ITMP2);
 			break;
 
 		case ICMD_CASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -2031,9 +1886,9 @@ countparams:
 				gen_bound_check;
 				}
 			var_to_reg_int(s3, src, REG_ITMP3);
-			M_SLL_IMM(s2, 1, REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, OFFSET(java_chararray, data[0]), REG_ITMP1);
-			M_STHX(s3, s1, REG_ITMP1);
+			M_SLL_IMM(s2, 1, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_chararray, data[0]), REG_ITMP2);
+			M_STHX(s3, s1, REG_ITMP2);
 			break;
 
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
@@ -2271,7 +2126,7 @@ countparams:
 		                        /* op1 = target JavaVM pc, val.i = constant   */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			if ((iptr->val.i > -32768) && (iptr->val.i <= 32767)) {
+			if ((iptr->val.i >= -32768) && (iptr->val.i <= 32767)) {
 				M_CMPI(s1, iptr->val.i);
 				}
 			else {
@@ -2386,47 +2241,34 @@ countparams:
 		case ICMD_LRETURN:
 		case ICMD_ARETURN:
 
-#ifdef USE_THREADS
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				a = dseg_addaddress ((void*) (builtin_monitorexit));
-				M_ALD(REG_PV, REG_PV, a);
-				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
-				M_JSR(REG_RA, REG_PV);
-				M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
-				}			
-#endif
-			var_to_reg_int(s1, src, REG_RESULT);
-			M_TINTMOVE(src->type, s1, REG_RESULT);
-			goto nowperformreturn;
-
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:
-
-#ifdef USE_THREADS
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				a = dseg_addaddress ((void*) (builtin_monitorexit));
-				M_ALD(REG_PV, REG_PV, a);
-				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
-				M_JSR(REG_RA, REG_PV);
-				M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
-				}			
-#endif
-			var_to_reg_flt(s1, src, REG_FRESULT);
-			M_FLTMOVE(s1, REG_FRESULT);
-			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
 
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 				a = dseg_addaddress ((void*) (builtin_monitorexit));
-				M_ALD(REG_PV, REG_PV, a);
-				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
-				M_JSR(REG_RA, REG_PV);
-				M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
+				M_ALD(REG_ITMP3, REG_PV, a);
+				M_MTCTR(REG_ITMP3);
+				M_ALD(argintregs[0], REG_SP, 4 * maxmemuse);
+				M_JSR;
 				}			
 #endif
+			switch (iptr->opc) {
+			case ICMD_IRETURN:
+			case ICMD_LRETURN:
+			case ICMD_ARETURN:
+				var_to_reg_int(s1, src, REG_RESULT);
+				M_TINTMOVE(src->type, s1, REG_RESULT);
+				goto nowperformreturn;
 
+			case ICMD_FRETURN:
+			case ICMD_DRETURN:
+				var_to_reg_flt(s1, src, REG_FRESULT);
+				M_FLTMOVE(s1, REG_FRESULT);
+				goto nowperformreturn;
+			}
 
 nowperformreturn:
 			{
@@ -2455,32 +2297,30 @@ nowperformreturn:
 
 			/* call trace function */
 
-#if 0
+#if 1
 			if (runverbose) {
-				M_LDA (REG_SP, REG_SP, -24);
-				M_AST(REG_RA, REG_SP, 0);
-				M_LST(REG_RESULT, REG_SP, 8);
-				M_DST(REG_FRESULT, REG_SP,16);
+				M_MFLR(REG_ITMP3);
+				M_LDA (REG_SP, REG_SP, -80);
+				M_DST(REG_FRESULT, REG_SP, 48+0);
+				M_IST(REG_RESULT, REG_SP, 48+8);
+				M_AST(REG_ITMP3, REG_SP, 48+12);
+				M_IST(REG_RESULT+1, REG_SP, 48+16);
 				a = dseg_addaddress (method);
-				M_ALD(argintregs[0], REG_PV, a);
+				M_MOV(REG_RESULT+1, argintregs[2]);
 				M_MOV(REG_RESULT, argintregs[1]);
-				M_FLTMOVE(REG_FRESULT, argfltregs[2]);
-				M_FLTMOVE(REG_FRESULT, argfltregs[3]);
+				M_ALD(argintregs[0], REG_PV, a);
+				M_FLTMOVE(REG_FRESULT, argfltregs[0]);
+				M_FLTMOVE(REG_FRESULT, argfltregs[1]);
 				a = dseg_addaddress ((void*) (builtin_displaymethodstop));
-				M_ALD(REG_PV, REG_PV, a);
-				M_JSR (REG_RA, REG_PV);
-				s1 = (int)((u1*) mcodeptr - mcodebase);
-				if (s1<=32768) M_LDA (REG_PV, REG_RA, -s1);
-				else {
-					s4 ml=-s1, mh=0;
-					while (ml<-32768) { ml+=65536; mh--; }
-					M_LDA (REG_PV, REG_RA, ml );
-					M_LDAH (REG_PV, REG_PV, mh );
-					}
-				M_DLD(REG_FRESULT, REG_SP,16);
-				M_LLD(REG_RESULT, REG_SP, 8);
-				M_ALD(REG_RA, REG_SP, 0);
-				M_LDA (REG_SP, REG_SP, 24);
+				M_ALD(REG_ITMP2, REG_PV, a);
+				M_MTCTR(REG_ITMP2);
+				M_JSR;
+				M_DLD(REG_FRESULT, REG_SP, 48+0);
+				M_ILD(REG_RESULT, REG_SP, 48+8);
+				M_ALD(REG_ITMP3, REG_SP, 48+12);
+				M_ILD(REG_RESULT+1, REG_SP, 48+16);
+				M_LDA (REG_SP, REG_SP, 80);
+				M_MTLR(REG_ITMP3);
 				}
 #endif
 
@@ -2490,7 +2330,6 @@ nowperformreturn:
 			break;
 
 
-#if 0
 		case ICMD_TABLESWITCH:  /* ..., index ==> ...                         */
 			{
 			s4 i, l, *s4ptr;
@@ -2516,13 +2355,8 @@ nowperformreturn:
 
 			/* range check */
 
-			if (i <= 256)
-				M_CMPULE_IMM(REG_ITMP1, i - 1, REG_ITMP2);
-			else {
-				M_LDA(REG_ITMP2, REG_ZERO, i - 1);
-				M_CMPULE(REG_ITMP1, REG_ITMP2, REG_ITMP2);
-				}
-			M_BEQZ(REG_ITMP2, 0);
+			M_CMPUI(REG_ITMP1, i - 1);
+			M_BGT(0);
 
 
 			/* mcode_addreference(BlockPtrOfPC(s4ptr[0]), mcodeptr); */
@@ -2542,9 +2376,11 @@ nowperformreturn:
 
 			/* length of dataseg after last dseg_addtarget is used by load */
 
-			M_SAADDQ(REG_ITMP1, REG_PV, REG_ITMP2);
+			M_SLL_IMM(REG_ITMP1, 2, REG_ITMP1);
+			M_IADD(REG_ITMP1, REG_PV, REG_ITMP2);
 			M_ALD(REG_ITMP2, REG_ITMP2, -dseglen);
-			M_JMP(REG_ZERO, REG_ITMP2);
+			M_MTCTR(REG_ITMP2);
+			M_RTS;
 			ALIGNCODENOP;
 			break;
 
@@ -2567,20 +2403,15 @@ nowperformreturn:
 				++tptr;
 
 				val = s4ptr[0];
-				if ((val >= 0) && (val <= 255)) {
-					M_CMPEQ_IMM(s1, val, REG_ITMP2);
-					}
+				if ((val >= -32768) && (val <= 32767)) {
+					M_CMPI(s1, val);
+					} 
 				else {
-					if ((val >= -32768) && (val <= 32767)) {
-						M_LDA(REG_ITMP2, REG_ZERO, val);
-						} 
-					else {
-						a = dseg_adds4 (val);
-						M_ILD(REG_ITMP2, REG_PV, a);
-						}
-					M_CMPEQ(s1, REG_ITMP2, REG_ITMP2);
+					a = dseg_adds4 (val);
+					M_ILD(REG_ITMP2, REG_PV, a);
+					M_CMP(s1, REG_ITMP2);
 					}
-				M_BNEZ(REG_ITMP2, 0);
+				M_BEQ(0);
 				/* mcode_addreference(BlockPtrOfPC(s4ptr[1]), mcodeptr); */
 				mcode_addreference((basicblock *) tptr[0], mcodeptr); 
 				}
@@ -2595,7 +2426,6 @@ nowperformreturn:
 			break;
 			}
 
-#endif
 
 		case ICMD_BUILTIN3:     /* ..., arg1, arg2, arg3 ==> ...              */
 		                        /* op1 = return type, val.a = function pointer*/
@@ -2632,38 +2462,59 @@ gen_method: {
 
 			MCODECHECK((s3 << 1) + 64);
 
+			{
 			/* copy arguments to registers or stack location                  */
 
+				stackptr srcsave = src;
+				int s3save = s3;
+				int fltcnt = 0;
+				int argsize = 0;
 			for (; --s3 >= 0; src = src->prev) {
+				argsize += IS_2_WORD_TYPE(src->type) ? 2 : 1;
+				if (IS_FLT_DBL_TYPE(src->type))
+					++fltcnt;
+				}
+
+			for (s3=s3save, src=srcsave; --s3 >= 0; src = src->prev) {
+				argsize -= IS_2_WORD_TYPE(src->type) ? 2 : 1;
+				if (IS_FLT_DBL_TYPE(src->type))
+					--fltcnt;
 				if (src->varkind == ARGVAR)
 					continue;
 				if (IS_INT_LNG_TYPE(src->type)) {
-					if (s3 < INT_ARG_CNT) {
-						s1 = argintregs[s3];
+					if (argsize < INT_ARG_CNT) {
+						s1 = argintregs[argsize];
 						var_to_reg_int(d, src, s1);
-						M_TINTMOVE(src->type, d, s1);
+						if (argsize < INT_ARG_CNT-1)
+							{M_TINTMOVE(src->type, d, s1);}
+						else {
+							M_INTMOVE(d, s1);
+							if (IS_2_WORD_TYPE(src->type))
+								M_IST(secondregs[d], REG_SP, 4 * (argsize + 6) + 4);
+							}
 						}
 					else  {
 						var_to_reg_int(d, src, REG_ITMP1);
-						M_IST(d, REG_SP, 4 * (s3 - INT_ARG_CNT));
+						M_IST(d, REG_SP, 4 * (argsize + 6));
 						if (IS_2_WORD_TYPE(src->type))
-							M_IST(secondregs[d], REG_SP, 4 * (s3 - INT_ARG_CNT) + 4);
+							M_IST(secondregs[d], REG_SP, 4 * (argsize + 6) + 4);
 						}
 					}
 				else
-					if (s3 < FLT_ARG_CNT) {
-						s1 = argfltregs[s3];
+					if (fltcnt < FLT_ARG_CNT) {
+						s1 = argfltregs[fltcnt];
 						var_to_reg_flt(d, src, s1);
 						M_FLTMOVE(d, s1);
 						}
 					else {
 						var_to_reg_flt(d, src, REG_FTMP1);
 						if (IS_2_WORD_TYPE(src->type))
-							M_DST(d, REG_SP, 4 * (s3 - FLT_ARG_CNT));
+							M_DST(d, REG_SP, 4 * (argsize + 6));
 						else
-							M_FST(d, REG_SP, 4 * (s3 - FLT_ARG_CNT));
+							M_FST(d, REG_SP, 4 * (argsize + 6));
 						}
 				} /* end of for */
+			}
 
 			m = iptr->val.a;
 			switch (iptr->opc) {
@@ -2752,7 +2603,6 @@ makeactualcall:
 			break;
 
 
-#if 0
 		case ICMD_INSTANCEOF: /* ..., objectref ==> ..., intresult            */
 
 		                      /* op1:   0 == array, 1 == class                */
@@ -2782,32 +2632,23 @@ makeactualcall:
 				}
 			M_CLR(d);
 			if (iptr->op1) {                               /* class/interface */
+				M_TST(s1);
 				if (super->flags & ACC_INTERFACE) {        /* interface       */
-					M_BEQZ(s1, 6);
+					M_BEQ(9);
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
-					M_LDA(REG_ITMP2, REG_ITMP2, - super->index);
-					M_BLEZ(REG_ITMP2, 2);
+					M_LDATST(REG_ITMP2, REG_ITMP2, - super->index);
+					M_BLE(5);
 					M_ALD(REG_ITMP1, REG_ITMP1,
 					      OFFSET(vftbl, interfacetable[0]) -
 					      super->index * sizeof(methodptr*));
-					M_CMPULT(REG_ZERO, REG_ITMP1, d);      /* REG_ITMP1 != 0  */
+					M_TST(REG_ITMP1);
+					M_CLR(d);
+					M_BEQ(1);
+					M_IADD_IMM(REG_ZERO, 1, d);
 					}
 				else {                                     /* class           */
-/*
-					s2 = super->vftbl->diffval;
-					M_BEQZ(s1, 4 + (s2 > 255));
-					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
-					M_LDA(REG_ITMP1, REG_ITMP1, - super->vftbl->baseval);
-					if (s2 <= 255)
-						M_CMPULE_IMM(REG_ITMP1, s2, d);
-					else {
-						M_LDA(REG_ITMP2, REG_ZERO, s2);
-						M_CMPULE(REG_ITMP1, REG_ITMP2, d);
-						}
-*/
-					M_BEQZ(s1, 7);
+					M_BEQ(10);
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 					a = dseg_addaddress ((void*) super->vftbl);
 					M_ALD(REG_ITMP2, REG_PV, a);
@@ -2815,7 +2656,10 @@ makeactualcall:
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
 					M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
-					M_CMPULE(REG_ITMP1, REG_ITMP2, d);
+					M_CMPU(REG_ITMP1, REG_ITMP2);
+					M_CLR(d);
+					M_BGT(1);
+					M_IADD_IMM(REG_ZERO, 1, d);
 					}
 				}
 			else
@@ -2845,62 +2689,45 @@ makeactualcall:
 			{
 			classinfo *super = (classinfo*) iptr->val.a;
 			
-			d = reg_of_var(iptr->dst, REG_ITMP3);
+			d = reg_of_var(iptr->dst, REG_ITMP1);
 			var_to_reg_int(s1, src, d);
 			if (iptr->op1) {                               /* class/interface */
+				M_TST(s1);
 				if (super->flags & ACC_INTERFACE) {        /* interface       */
-					M_BEQZ(s1, 6);
-					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
-					M_LDA(REG_ITMP2, REG_ITMP2, - super->index);
-					M_BLEZ(REG_ITMP2, 0);
+					M_BEQ(7);
+					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, interfacetablelength));
+					M_LDATST(REG_ITMP3, REG_ITMP3, - super->index);
+					M_BLE(0);
 					mcode_addxcastrefs(mcodeptr);
-					M_ALD(REG_ITMP2, REG_ITMP1,
+					M_ALD(REG_ITMP3, REG_ITMP2,
 					      OFFSET(vftbl, interfacetable[0]) -
 					      super->index * sizeof(methodptr*));
-					M_BEQZ(REG_ITMP2, 0);
+					M_TST(REG_ITMP3);
+					M_BEQ(0);
 					mcode_addxcastrefs(mcodeptr);
 					}
 				else {                                     /* class           */
-/*
-					s2 = super->vftbl->diffval;
-					M_BEQZ(s1, 4 + (s2 != 0) + (s2 > 255));
-					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
-					M_LDA(REG_ITMP1, REG_ITMP1, - super->vftbl->baseval);
-					if (s2 == 0) {
-						M_BNEZ(REG_ITMP1, 0);
-						}
-					else if (s2 <= 255) {
-						M_CMPULE_IMM(REG_ITMP1, s2, REG_ITMP2);
-						M_BEQZ(REG_ITMP2, 0);
-						}
-					else {
-						M_LDA(REG_ITMP2, REG_ZERO, s2);
-						M_CMPULE(REG_ITMP1, REG_ITMP2, REG_ITMP2);
-						M_BEQZ(REG_ITMP2, 0);
-						}
-*/
-					M_BEQZ(s1, 8 + (d == REG_ITMP3));
-					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					a = dseg_addaddress ((void*) super->vftbl);
-					M_ALD(REG_ITMP2, REG_PV, a);
-					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
-					if (d != REG_ITMP3) {
-						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
-						M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
-						}
-					else {
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, baseval));
-						M_ISUB(REG_ITMP1, REG_ITMP2, REG_ITMP1);
-						M_ALD(REG_ITMP2, REG_PV, a);
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
-						}
-					M_CMPULE(REG_ITMP1, REG_ITMP2, REG_ITMP2);
-					M_BEQZ(REG_ITMP2, 0);
-					mcode_addxcastrefs(mcodeptr);
-					}
+                    M_BEQ(8 + (s1 == REG_ITMP1));
+                    M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+                    M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
+                    a = dseg_addaddress ((void*) super->vftbl);
+                    M_ALD(REG_ITMP2, REG_PV, a);
+                    if (d != REG_ITMP1) {
+                        M_ILD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl, baseval));
+                        M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+                        M_ISUB(REG_ITMP3, REG_ITMP1, REG_ITMP3);
+                        }
+                    else {
+                        M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, baseval));
+                        M_ISUB(REG_ITMP3, REG_ITMP2, REG_ITMP3);
+                        M_ALD(REG_ITMP2, REG_PV, a);
+                        M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+                        }
+                    M_CMPU(REG_ITMP3, REG_ITMP2);
+                    M_BGT(0);
+                    mcode_addxcastrefs(mcodeptr);
+                    }
 				}
 			else
 				panic ("internal error: no inlined array checkcast");
@@ -2912,7 +2739,8 @@ makeactualcall:
 		case ICMD_CHECKASIZE:  /* ..., size ==> ..., size                     */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			M_BLTZ(s1, 0);
+			M_CMPI(s1, 0);
+			M_BLT(0);
 			mcode_addxcheckarefs(mcodeptr);
 			break;
 
@@ -2925,13 +2753,14 @@ makeactualcall:
 
 			for (s1 = iptr->op1; --s1 >= 0; src = src->prev) {
 				var_to_reg_int(s2, src, REG_ITMP1);
-				M_BLTZ(s2, 0);
+				M_CMPI(s2, 0);
+				M_BLT(0);
 				mcode_addxcheckarefs(mcodeptr);
 
 				/* copy sizes to stack (argument numbers >= INT_ARG_CNT)      */
 
 				if (src->varkind != ARGVAR) {
-					M_LST(s2, REG_SP, 8 * (s1 + INT_ARG_CNT));
+					M_IST(s2, REG_SP, 4 * (s1 + INT_ARG_CNT + 6));
 					}
 				}
 
@@ -2946,18 +2775,20 @@ makeactualcall:
 
 			/* a2 = pointer to dimensions = stack pointer */
 
-			M_INTMOVE(REG_SP, argintregs[2]);
+			M_LDA(argintregs[2], REG_SP, (INT_ARG_CNT + 6)*4);
 
 			a = dseg_addaddress((void*) (builtin_nmultianewarray));
 			M_ALD(REG_PV, REG_PV, a);
-			M_JSR(REG_RA, REG_PV);
+			M_MTCTR(REG_PV);
+			M_JSR;
 			s1 = (int)((u1*) mcodeptr - mcodebase);
+			M_MFLR(REG_ITMP1);
 			if (s1 <= 32768)
-				M_LDA (REG_PV, REG_RA, -s1);
+				M_LDA (REG_PV, REG_ITMP1, -s1);
 			else {
 				s4 ml = -s1, mh = 0;
-				while (ml < -32768) {ml += 65536; mh--;}
-				M_LDA(REG_PV, REG_RA, ml);
+			while (ml < -32768) {ml += 65536; mh--;}
+				M_LDA(REG_PV, REG_ITMP1, ml);
 				M_LDAH(REG_PV, REG_PV, mh);
 			    }
 			s1 = reg_of_var(iptr->dst, REG_RESULT);
@@ -2968,7 +2799,6 @@ makeactualcall:
 
 		default: sprintf (logtext, "Unknown pseudo command: %d", iptr->opc);
 		         error();
-#endif
 	
    
 
@@ -3045,7 +2875,8 @@ makeactualcall:
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 
-			//CUT
+			M_MTCTR(REG_ITMP3);
+			M_RTS;
 			}
 		}
 
@@ -3079,7 +2910,8 @@ makeactualcall:
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 
-			//CUT
+			M_MTCTR(REG_ITMP3);
+			M_RTS;
 			}
 		}
 
@@ -3113,7 +2945,8 @@ makeactualcall:
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 
-			//CUT
+			M_MTCTR(REG_ITMP3);
+			M_RTS;
 			}
 		}
 
@@ -3150,7 +2983,8 @@ makeactualcall:
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 
-			//CUT
+			M_MTCTR(REG_ITMP3);
+			M_RTS;
 			}
 		}
 
@@ -3158,36 +2992,10 @@ makeactualcall:
 	}
 
 	mcode_finish((int)((u1*) mcodeptr - mcodebase));
+
+    docacheflush((void*) method->entrypoint,
+                      ((u1*) mcodeptr - mcodebase), ICACHE);
 }
-
-
-/* redefinition of code generation macros (compiling into array) **************/
-
-/* 
-These macros are newly defined to allow code generation into an array.
-This is necessary, because the original M_.. macros generate code by
-calling 'mcode_adds4' that uses an additional data structure to
-receive the code.
-
-For a faster (but less flexible) version to generate code, these
-macros directly use the (s4* p) - pointer to put the code directly
-in a locally defined array.
-This makes sense only for the stub-generation-routines below.
-*/
-
-#undef M_OP3
-#define M_OP3(op,fu,a,b,c,const) \
-	*(p++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<(16-3*(const)))| \
-	((const)<<12)|((fu)<<5)|((c)) )
-#undef M_FOP3
-#define M_FOP3(op,fu,a,b,c) \
-	*(p++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<16)|((fu)<<5)|(c) )
-#undef M_BRA
-#define M_BRA(op,a,disp) \
-	*(p++) = ( (((s4)(op))<<26)|((a)<<21)|((disp)&0x1fffff) )
-#undef M_MEM
-#define M_MEM(op,a,b,disp) \
-	*(p++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<16)|((disp)&0xffff) )
 
 
 /* function createcompilerstub *************************************************
@@ -3196,26 +3004,27 @@ This makes sense only for the stub-generation-routines below.
 	
 *******************************************************************************/
 
-#define COMPSTUBSIZE 3
+#define COMPSTUBSIZE 6
 
 u1 *createcompilerstub (methodinfo *m)
 {
-	u8 *s = CNEW (u8, COMPSTUBSIZE);    /* memory to hold the stub            */
-#if 0
-	s4 *p = (s4*) s;                    /* code generation pointer            */
-	
-	                                    /* code for the stub                  */
-	M_ALD (REG_PV, REG_PV, 16);         /* load pointer to the compiler       */
-	M_JMP (0, REG_PV);                  /* jump to the compiler, return address
-	                                       in reg 0 is used as method pointer */
-	s[1] = (u8) m;                      /* literals to be adressed            */  
-	s[2] = (u8) asm_call_jit_compiler;  /* jump directly via PV from above    */
+	s4 *s = CNEW (s4, COMPSTUBSIZE);    /* memory to hold the stub            */
+	s4 *mcodeptr = s;                   /* code generation pointer            */
+
+	M_LDA(2, REG_PV, 4*4);
+	M_ALD(REG_PV, REG_PV, 5*4);
+	M_MTCTR(REG_PV);
+	M_RTS;
+
+	s[4] = (s4) m;                      /* literals to be adressed            */
+	s[5] = (s4) asm_call_jit_compiler;  /* jump directly via PV from above    */
+
+    docacheflush((void*) s, (char*) mcodeptr - (char*) s, ICACHE);
 
 #ifdef STATISTICS
-	count_cstub_len += COMPSTUBSIZE * 8;
+	count_cstub_len += COMPSTUBSIZE * 4;
 #endif
 
-#endif
 	return (u1*) s;
 }
 
@@ -3228,7 +3037,7 @@ u1 *createcompilerstub (methodinfo *m)
 
 void removecompilerstub (u1 *stub) 
 {
-	CFREE (stub, COMPSTUBSIZE * 8);
+	CFREE (stub, COMPSTUBSIZE * 4);
 }
 
 /* function: createnativestub **************************************************
@@ -3237,25 +3046,24 @@ void removecompilerstub (u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE 34
+#define NATIVESTUBSIZE 80
 #define NATIVESTUBOFFSET 8
 
 u1 *createnativestub (functionptr f, methodinfo *m)
 {
 	int disp;
-	u8 *s = CNEW (u8, NATIVESTUBSIZE);  /* memory to hold the stub            */
-#if 0
-	u8 *cs = s + NATIVESTUBOFFSET;
-	s4 *p = (s4*) (cs);                 /* code generation pointer            */
+	s4 *s = CNEW (s4, NATIVESTUBSIZE);  /* memory to hold the stub            */
+	s4 *cs = s + NATIVESTUBOFFSET;
+	s4 *mcodeptr = cs;                  /* code generation pointer            */
 
-	*(cs-1) = (u8) f;                   /* address of native method           */
-	*(cs-2) = (u8) (&exceptionptr);     /* address of exceptionptr            */
-	*(cs-3) = (u8) asm_handle_nat_exception; /* addr of asm exception handler */
-	*(cs-4) = (u8) (&env);              /* addr of jni_environement           */
-	*(cs-5) = (u8) asm_builtin_trace;
-	*(cs-6) = (u8) m;
-	*(cs-7) = (u8) asm_builtin_exittrace;
-	*(cs-8) = (u8) builtin_trace_exception;
+	*(cs-1) = (s4) f;                   /* address of native method           */
+	*(cs-2) = (s4) (&exceptionptr);     /* address of exceptionptr            */
+	*(cs-3) = (s4) asm_handle_nat_exception; /* addr of asm exception handler */
+	*(cs-4) = (s4) (&env);              /* addr of jni_environement           */
+//	*(cs-5) = (s4) asm_builtin_trace;
+	*(cs-6) = (s4) m;
+//	*(cs-7) = (s4) asm_builtin_exittrace;
+	*(cs-8) = (s4) builtin_trace_exception;
 
 #if 0
 	printf("stub: ");
@@ -3265,86 +3073,92 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	printf(" 0x%p\n", cs);
 #endif
 
-	M_LDA  (REG_SP, REG_SP, -8);        /* build up stackframe                */
-	M_AST  (REG_RA, REG_SP, 0);         /* store return address               */
+	M_MFLR (REG_ITMP1);
+	M_AST  (REG_ITMP1, REG_SP, 8);      /* store return address               */
+	M_LDA  (REG_SP, REG_SP, -64);       /* build up stackframe                */
 
+#if 0
 	if (runverbose) {
-		M_ALD(REG_ITMP1, REG_PV, -6*8);
-		M_ALD(REG_PV, REG_PV, -5*8);
+		M_ALD(REG_ITMP1, REG_PV, -6*4);
+		M_ALD(REG_PV, REG_PV, -5*4);
 
-		M_JSR(REG_RA, REG_PV);
-		disp = -(int) (p - (s4*) cs)*4;
-		M_LDA(REG_PV, REG_RA, disp);
+//		M_JSR(REG_RA, REG_PV);
+		disp = -(int) (mcodeptr - (s4*) cs)*4;
+		M_LDA(REG_PV, REG_ITMP1, disp);
 	}
+#endif
 
 	reg_init();
 
+	M_MOV  (argintregs[6],argintregs[7]); 
+	M_MOV  (argintregs[5],argintregs[6]); 
 	M_MOV  (argintregs[4],argintregs[5]); 
-	M_FMOV (argfltregs[4],argfltregs[5]);
-
 	M_MOV  (argintregs[3],argintregs[4]);
-	M_FMOV (argfltregs[3],argfltregs[4]);
-
 	M_MOV  (argintregs[2],argintregs[3]);
-	M_FMOV (argfltregs[2],argfltregs[3]);
-
 	M_MOV  (argintregs[1],argintregs[2]);
-	M_FMOV (argfltregs[1],argfltregs[2]);
-
 	M_MOV  (argintregs[0],argintregs[1]);
-	M_FMOV (argfltregs[0],argfltregs[1]);
 	
-	M_ALD  (argintregs[0], REG_PV, -4*8);/* load adress of jni_environement   */
+	M_ALD  (argintregs[0], REG_PV, -4*4);/* load adress of jni_environement   */
 
-	M_ALD  (REG_PV, REG_PV, -1*8);      /* load adress of native method       */
-	M_JSR  (REG_RA, REG_PV);            /* call native method                 */
+	M_ALD  (REG_PV, REG_PV, -1*4);      /* load adress of native method       */
+	M_MTCTR(REG_PV);
+	M_JSR;
 
-	disp = -(int) (p - (s4*) cs)*4;
-	M_LDA  (REG_PV, REG_RA, disp);      /* recompute pv from ra               */
-	M_ALD  (REG_ITMP3, REG_PV, -2*8);   /* get address of exceptionptr        */
+	disp = -(int) (mcodeptr - cs)*4;
+	M_MFLR (REG_ITMP1);
+	M_LDA  (REG_PV, REG_ITMP1, disp);   /* recompute pv from ra               */
+	M_ALD  (REG_ITMP2, REG_PV, -2*4);   /* get address of exceptionptr        */
 
-	M_ALD  (REG_ITMP1, REG_ITMP3, 0);   /* load exception into reg. itmp1     */
-	M_BNEZ (REG_ITMP1,
-			3 + (runverbose ? 6 : 0));  /* if no exception then return        */
+	M_ALD  (REG_ITMP1, REG_ITMP2, 0);   /* load exception into reg. itmp1     */
+	M_TST  (REG_ITMP1);
+	M_BNE  (4 + (runverbose ? 0 : 0));  /* if no exception then return        */
 
+#if 0
 	if (runverbose) {
-		M_ALD(argintregs[0], REG_PV, -6*8);
+		M_ALD(argintregs[0], REG_PV, -6*4);
 		M_MOV(REG_RESULT, argintregs[1]);
 		M_FMOV(REG_FRESULT, argfltregs[2]);
 		M_FMOV(REG_FRESULT, argfltregs[3]);
-		M_ALD(REG_PV, REG_PV, -7*8);
-		M_JSR(REG_RA, REG_PV);
+		M_ALD(REG_PV, REG_PV, -7*4);
+//		M_JSR(REG_RA, REG_PV);
 	}
+#endif
 
-	M_ALD  (REG_RA, REG_SP, 0);         /* load return address                */
-	M_LDA  (REG_SP, REG_SP, 8);         /* remove stackframe                  */
+	M_ALD  (REG_ITMP1, REG_SP, 64+8);         /* load return address                */
+	M_MTLR (REG_ITMP1);
+	M_LDA  (REG_SP, REG_SP, 64);         /* remove stackframe                  */
 
-	M_RET  (REG_ZERO, REG_RA);          /* return to caller                   */
+	M_RET;
 	
-	M_AST  (REG_ZERO, REG_ITMP3, 0);    /* store NULL into exceptionptr       */
+	M_CLR  (REG_ITMP3);
+	M_AST  (REG_ITMP3, REG_ITMP2, 0);    /* store NULL into exceptionptr       */
 
+#if 0
 	if (runverbose) {
 		M_LDA(REG_SP, REG_SP, -8);
 		M_AST(REG_ITMP1, REG_SP, 0);
 		M_MOV(REG_ITMP1, argintregs[0]);
-		M_ALD(argintregs[1], REG_PV, -6*8);
+		M_ALD(argintregs[1], REG_PV, -6*4);
 		M_ALD(argintregs[2], REG_SP, 0);
 		M_CLR(argintregs[3]);
-		M_ALD(REG_PV, REG_PV, -8*8);
-		M_JSR(REG_RA, REG_PV);
-		disp = -(int) (p - (s4*) cs)*4;
-		M_LDA  (REG_PV, REG_RA, disp);
+		M_ALD(REG_PV, REG_PV, -8*4);
+//		M_JSR(REG_RA, REG_PV);
+		disp = -(int) (mcodeptr - cs)*4;
+		M_LDA  (REG_PV, REG_ITMP1, disp);
 		M_ALD(REG_ITMP1, REG_SP, 0);
 		M_LDA(REG_SP, REG_SP, 8);
 	}
+#endif
 
-	M_ALD  (REG_RA, REG_SP, 0);         /* load return address                */
-	M_LDA  (REG_SP, REG_SP, 8);         /* remove stackframe                  */
+	M_ALD  (REG_ITMP3, REG_SP, 64+8);         /* load return address                */
+	M_MTLR (REG_ITMP3);
+	M_LDA  (REG_SP, REG_SP, 64);         /* remove stackframe                  */
 
-	M_LDA  (REG_ITMP2, REG_RA, -4);     /* move fault address into reg. itmp2 */
+	M_LDA  (REG_ITMP2, REG_ITMP1, -4);     /* move fault address into reg. itmp2 */
 
-	M_ALD  (REG_ITMP3, REG_PV, -3*8);   /* load asm exception handler address */
-	M_JMP  (REG_ZERO, REG_ITMP3);       /* jump to asm exception handler      */
+	M_ALD  (REG_ITMP3, REG_PV, -3*4);   /* load asm exception handler address */
+	M_MTCTR(REG_ITMP3);
+	M_RTS;
 	
 #if 0
 	{
@@ -3355,11 +3169,12 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	}
 #endif
 
+    docacheflush((void*) s, (char*) mcodeptr - (char*) s, ICACHE);
+
 #ifdef STATISTICS
-	count_nstub_len += NATIVESTUBSIZE * 8;
+	count_nstub_len += NATIVESTUBSIZE * 4;
 #endif
 
-#endif
 	return (u1*) (s + NATIVESTUBOFFSET);
 }
 
@@ -3371,7 +3186,29 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 
 void removenativestub (u1 *stub)
 {
-	CFREE ((u8*) stub - NATIVESTUBOFFSET, NATIVESTUBSIZE * 8);
+	CFREE ((s4*) stub - NATIVESTUBOFFSET, NATIVESTUBSIZE * 4);
+}
+
+java_objectheader *asm_docalljavamethod (methodinfo *m, void *arg1, void*arg2,
+                                       void*arg3, void*arg4);
+java_objectheader *asm_calljavamethod (methodinfo *m, void *arg1, void*arg2,
+                                       void*arg3, void*arg4)
+{
+	java_objectheader *r = asm_docalljavamethod(m, arg1, arg2, arg3, arg4);
+	return (exceptionptr ? r : NULL);
+}
+
+java_objectheader *asm_calljavafunction (methodinfo *m, void *arg1, void*arg2,
+                                       void*arg3, void*arg4)
+{
+	return asm_docalljavamethod(m, arg1, arg2, arg3, arg4);
+}
+
+void asm_cacheflush(u1 *p, long bytelen);
+
+void docacheflush(u1 *p, long bytelen, int dummy)
+{
+	asm_cacheflush(p, bytelen);
 }
 
 

@@ -21,22 +21,27 @@
 #define POINTERSIZE         4
 #define WORDS_BIGENDIAN     1
 
-#define SUPPORT_DIVISION    1
+#define SUPPORT_DIVISION    0
 #define SUPPORT_LONG        1
 #define SUPPORT_FLOAT       1
 #define SUPPORT_DOUBLE      1
+#define SUPPORT_FMOD        0
+#define SUPPORT_FICVT       1
+#define SUPPORT_IFCVT       0
 
 #define SUPPORT_LONG_ADD    1
 #define SUPPORT_LONG_CMP    1
 #define SUPPORT_LONG_LOG    1
 #define SUPPORT_LONG_SHIFT  0
 #define SUPPORT_LONG_MULDIV 0
-#define SUPPORT_LONG_ICVT   1
+#define SUPPORT_LONG_ICVT   0
 #define SUPPORT_LONG_FCVT   0
 
 //#define CONDITIONAL_LOADCONST
-#define NOLONG_CONDITIONAL  1
-#define USETWOREGS			1
+#define NOLONG_CONDITIONAL
+#define NO_DIV_OPT
+#define USETWOREGS          1
+#define SPECIALMEMUSE
 
 #define U8_AVAILABLE        1
 
