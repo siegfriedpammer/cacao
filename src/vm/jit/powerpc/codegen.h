@@ -29,7 +29,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.h 568 2003-11-06 14:42:16Z twisti $
+   $Id: codegen.h 598 2003-11-09 20:12:22Z twisti $
 
 */
 
@@ -71,47 +71,12 @@
 
 #define REG_IFTMP        0   /* temporary integer and floating point register */
 
-/* register descripton - array ************************************************/
-
-/* #define REG_RES   0         reserved register for OS or code generator     */
-/* #define REG_RET   1         return value register                          */
-/* #define REG_EXC   2         exception value register (only old jit)        */
-/* #define REG_SAV   3         (callee) saved register                        */
-/* #define REG_TMP   4         scratch temporary register (caller saved)      */
-/* #define REG_ARG   5         argument register (caller saved)               */
-
-/* #define REG_END   -1        last entry in tables */
- 
-int nregdescint[] = {
-	REG_RES, REG_RES, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
-	REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, 
-	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
-	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
-	REG_END };
 
 //#define INT_SAV_CNT     19   /* number of int callee saved registers          */
 #define INT_ARG_CNT      8   /* number of int argument registers              */
 
-/* for use of reserved registers, see comment above */
-	
-int nregdescfloat[] = {
-	REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
-	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_SAV, REG_SAV, 
-	REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
-	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
-	REG_END };
-
 //#define FLT_SAV_CNT     18   /* number of flt callee saved registers          */
 #define FLT_ARG_CNT     13   /* number of flt argument registers              */
-
-/* for use of reserved registers, see comment above */
-
-
-/* stackframe-infos ***********************************************************/
-
-int parentargs_base; /* offset in stackframe for the parameter from the caller*/
-
-/* -> see file 'calling.doc' */
 
 
 /* macros to create code ******************************************************/
