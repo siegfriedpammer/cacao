@@ -1,12 +1,12 @@
 # cacao/mm/Makefile
-# $Id: Makefile 51 1998-11-09 23:06:11Z phil $
+# $Id: Makefile 52 1998-11-09 23:06:35Z phil $
 
 AR = ar
 COMBINE = $(AR) rcs mm.o
 
 mm.o: actualtarget Makefile
 
-actualtarget: gc2
+actualtarget: old
 
 clean:
 	rm -rf *.o *~
