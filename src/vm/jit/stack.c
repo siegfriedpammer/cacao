@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: stack.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: stack.c 577 2003-11-09 17:34:59Z twisti $
 
 */
 
@@ -37,6 +37,7 @@
 #include "builtin.h"
 #include "disass.h"
 #include "reg.h"
+#include "tables.h"
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
 
@@ -223,8 +224,8 @@ void analyse_stack()
 	s4 *s4ptr;
 	void* *tptr;
 
-	//	int *argren = DMNEW(int, maxlocals); 
-	int *argren = (int *)alloca(maxlocals * sizeof(int)); /* table for argument renaming */
+	int *argren = DMNEW(int, maxlocals); 
+	//int *argren = (int *)alloca(maxlocals * sizeof(int)); /* table for argument renaming */
 	for (i = 0; i < maxlocals; i++)
 		argren[i] = i;
 	
@@ -875,7 +876,7 @@ void analyse_stack()
 					case ICMD_ASTORE:
 					icmd_store:
 
-					i = opcode-ICMD_ISTORE;
+					i = opcode - ICMD_ISTORE;
 					locals[iptr->op1][i].type = i;
 #ifdef STATISTICS
 					count_pcmd_store++;
