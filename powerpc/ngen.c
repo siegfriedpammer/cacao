@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 445 2003-09-15 13:40:19Z stefan $
+	Last Change: $Id: ngen.c 556 2003-11-02 13:32:02Z stefan $
 
 *******************************************************************************/
 
@@ -198,8 +198,6 @@ static int reg_of_var(stackptr v, int tempregnum)
 #define ICACHE 0
 void docacheflush(u1 *p, long bytelen, int dummy);
 
-//#include <architecture/ppc/cframe.h>
-
 /* NullPointerException signal handler for hardware null pointer check */
 
 void asm_sighandler();
@@ -275,6 +273,12 @@ void nocode()
 }
 
 
+/* function: preregpass ********************************************************
+
+	This is the extra pass mentioned in the documentation. Argument registers
+	are renumbered to match the PowerPC argument passing calling conventions.
+    
+*******************************************************************************/
 
 #define intmaxf(a,b) (((a)<(b)) ? (b) : (a))
 
