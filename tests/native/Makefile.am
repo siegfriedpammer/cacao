@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1747 2004-12-10 13:10:29Z twisti $
+## $Id: Makefile.am 1756 2004-12-13 10:09:35Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
 CLEANFILES = \
 	libtestarguments.so \
@@ -46,7 +46,7 @@ CACAOH = $(top_srcdir)/src/cacaoh/cacaoh
 all:
 	$(CACAOC) testarguments.java
 	$(CACAOH) testarguments
-	gcc -shared -I../.. -I../../src -I../../src/vm/jit/x86_64 testarguments.c -o libtestarguments.so -fPIC
+	$(CC) -shared $(INCLUDES) $(CFLAGS) testarguments.c -o libtestarguments.so -fPIC
 
 
 ## Local variables:
