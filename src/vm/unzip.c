@@ -706,48 +706,35 @@ void cacao_create_directoryList(unzFile file)
   cacao_entry_s *ent;
   unz_s *s=(unz_s*)file;
   char *c;
-  int i;
   unz_file_info tmp;
   char filename[200];
 
-  if (unzGoToFirstFile(file) != UNZ_OK) {
-    s->cacao_dir_list = NULL;
+  s->cacao_dir_list = NULL;
+
+  if (unzGoToFirstFile(file) != UNZ_OK)
     return;
-  }
 
-  i = 0;
-  ent = s->cacao_dir_list = NEW(cacao_entry_s);
-  ent->next = NULL;
-  ent->pos = s->pos_in_central_dir;
-
-  if (unzGetCurrentFileInfo(file, &tmp, filename, 200, 0, 0, 0, 0) != UNZ_OK) {
-    panic("Error in ZIP archive");
-  }
-
-  c = strstr(filename, ".class");
-  if (c)
-    *c = '\0';
-
-  ent->name = utf_new_char(filename);
-
-  while (unzGoToNextFile(file) == UNZ_OK) {
-    i++;
-    ent->next = NEW(cacao_entry_s);
-    ent = ent->next;
-    ent->next = NULL;
-    ent->pos = s->pos_in_central_dir;
-
-    if (unzGetCurrentFileInfo(file, &tmp, filename, 200, 0, 0, 0, 0) != UNZ_OK) {
+  do {
+    if (unzGetCurrentFileInfo(file, &tmp, filename, 200, 0, 0, 0, 0) != UNZ_OK)
       panic("Error in ZIP archive");
-    }
 
-    c = strstr(filename, ".class");
-    if (c)
+    if ((c = strstr(filename, ".class"))) {
       *c = '\0';
 
-    ent->name = utf_new_char(filename);
-  }
-  /*printf("Archive contains %d files\n",i);*/
+      if (!s->cacao_dir_list) {
+        ent = s->cacao_dir_list = NEW(cacao_entry_s);
+
+      } else {
+        ent->next = NEW(cacao_entry_s);
+        ent = ent->next;
+      }
+
+      ent->next = NULL;
+
+      ent->name = utf_new_char(filename);
+      ent->pos = s->pos_in_central_dir;
+    }
+  } while (unzGoToNextFile(file) == UNZ_OK);
 }
 
 
