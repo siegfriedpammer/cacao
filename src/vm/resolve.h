@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 2216 2005-04-05 10:12:18Z edwin $
+   $Id: resolve.h 2217 2005-04-05 10:26:33Z edwin $
 
 */
 
@@ -407,7 +407,7 @@ create_unresolved_class(methodinfo *refmethod,
 	   refmethod........the method triggering the resolution (if any)
 	   iptr.............the {GET,PUT}{FIELD,STATIC}{,CONST} instruction
 	   stack............the input stack of the instruction
-	   havetypeinfo.....indicates whether typeinfo is available
+	                    NULL if no typeinfo is available
 
    RETURN VALUE:
        a pointer to a new unresolved_field struct
@@ -417,8 +417,7 @@ create_unresolved_class(methodinfo *refmethod,
 unresolved_field *
 create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 						instruction *iptr,
-						stackelement *stack,
-						bool havetypeinfo);
+						stackelement *stack);
 
 /* create_unresolved_method ****************************************************
  
@@ -429,7 +428,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 	   refmethod........the method triggering the resolution (if any)
 	   iptr.............the INVOKE* instruction
 	   stack............the input stack of the instruction
-	   havetypeinfo.....indicates whether typeinfo is available
+	                    NULL if no typeinfo is available
 
    RETURN VALUE:
        a pointer to a new unresolved_method struct
@@ -439,8 +438,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 unresolved_method *
 create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 						 instruction *iptr,
-						 stackelement *stack,
-						 bool havetypeinfo);
+						 stackelement *stack);
 
 /* unresolved_class_free *******************************************************
  

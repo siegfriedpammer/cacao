@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2216 2005-04-05 10:12:18Z edwin $
+   $Id: resolve.c 2217 2005-04-05 10:26:33Z edwin $
 
 */
 
@@ -872,8 +872,7 @@ create_unresolved_class(methodinfo *refmethod,
 unresolved_field *
 create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 						instruction *iptr,
-						stackelement *stack,
-						bool havetypeinfo)
+						stackelement *stack)
 {
 	unresolved_field *ref;
 	constant_FMIref *fieldref = NULL;
@@ -897,21 +896,23 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 	switch (iptr[0].opc) {
 		case ICMD_PUTFIELD:
 			ref->flags |= RESOLVE_PUTFIELD;
-			instanceslot = stack->prev;
-			tip = &(stack->typeinfo);
+			if (stack) {
+				instanceslot = stack->prev;
+				tip = &(stack->typeinfo);
+			}
 			fieldref = (constant_FMIref *) iptr[0].val.a;
 			break;
 
 		case ICMD_PUTFIELDCONST:
 			ref->flags |= RESOLVE_PUTFIELD;
-			instanceslot = stack;
+			if (stack) instanceslot = stack;
 			fieldref = INSTRUCTION_PUTCONST_FIELDREF(iptr);
 			break;
 
 		case ICMD_PUTSTATIC:
 			ref->flags |= RESOLVE_PUTFIELD | RESOLVE_STATIC;
 			fieldref = (constant_FMIref *) iptr[0].val.a;
-			tip = &(stack->typeinfo);
+			if (stack) tip = &(stack->typeinfo);
 			break;
 
 		case ICMD_PUTSTATICCONST:
@@ -920,7 +921,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 			break;
 
 		case ICMD_GETFIELD:
-			instanceslot = stack;
+			if (stack) instanceslot = stack;
 			fieldref = (constant_FMIref *) iptr[0].val.a;
 			break;
 			
@@ -931,7 +932,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 	}
 	
 	RESOLVE_ASSERT(fieldref);
-	RESOLVE_ASSERT(instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
+	RESOLVE_ASSERT(!stack || instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
 	fd = fieldref->parseddesc.fd;
 	RESOLVE_ASSERT(fd);
 
@@ -947,7 +948,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 	ref->fieldref = fieldref;
 	
 	/* record subtype constraints for the instance type, if any */
-	if (instanceslot && havetypeinfo) {
+	if (instanceslot) {
 		typeinfo *insttip;
 		RESOLVE_ASSERT(instanceslot->type == TYPE_ADR);
 		
@@ -974,7 +975,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 	
 	/* record subtype constraints for the value type, if any */
 	type = fd->type;
-	if (havetypeinfo && type == TYPE_ADR && ((ref->flags & RESOLVE_PUTFIELD) != 0)) {
+	if (stack && type == TYPE_ADR && ((ref->flags & RESOLVE_PUTFIELD) != 0)) {
 		if (!tip) {
 			/* we have a PUTSTATICCONST or PUTFIELDCONST with TYPE_ADR */
 			tip = &tinfo;
@@ -1001,8 +1002,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 unresolved_method *
 create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 						 instruction *iptr,
-						 stackelement *stack,
-						 bool havetypeinfo)
+						 stackelement *stack)
 {
 	unresolved_method *ref;
 	constant_FMIref *methodref;
@@ -1047,17 +1047,17 @@ create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 			RESOLVE_ASSERT(false);
 	}
 
-	if ((ref->flags & RESOLVE_STATIC) == 0) {
+	if (stack && (ref->flags & RESOLVE_STATIC) == 0) {
 		/* find the instance slot under all the parameter slots on the stack */
 		instanceslot = stack;
 		for (i=0; i<md->paramcount; ++i)
 			instanceslot = instanceslot->prev;
 	}
 	
-	RESOLVE_ASSERT(instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
+	RESOLVE_ASSERT(!stack || instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
 
 	/* record subtype constraints for the instance type, if any */
-	if (havetypeinfo && instanceslot) {
+	if (instanceslot) {
 		typeinfo *tip;
 		
 		RESOLVE_ASSERT(instanceslot->type == TYPE_ADR);
@@ -1084,28 +1084,30 @@ create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 	}
 	
 	/* record subtype constraints for the parameter types, if any */
-	param = stack;
-	for (i=md->paramcount-1; i>=0; --i, param=param->prev) {
-		type = md->paramtypes[i].type;
-		
-		RESOLVE_ASSERT(param);
-		RESOLVE_ASSERT(type == param->type);
-		
-		if (havetypeinfo && type == TYPE_ADR) {
-			if (!ref->paramconstraints) {
-				ref->paramconstraints = MNEW(unresolved_subtype_set,md->paramcount);
-				for (j=md->paramcount-1; j>i; --j)
-					UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[j]);
+	if (stack) {
+		param = stack;
+		for (i=md->paramcount-1; i>=0; --i, param=param->prev) {
+			type = md->paramtypes[i].type;
+			
+			RESOLVE_ASSERT(param);
+			RESOLVE_ASSERT(type == param->type);
+			
+			if (type == TYPE_ADR) {
+				if (!ref->paramconstraints) {
+					ref->paramconstraints = MNEW(unresolved_subtype_set,md->paramcount);
+					for (j=md->paramcount-1; j>i; --j)
+						UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[j]);
+				}
+				RESOLVE_ASSERT(ref->paramconstraints);
+				if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
+							ref->paramconstraints + i,&(param->typeinfo),
+							md->paramtypes[i].classref))
+					return NULL;
 			}
-			RESOLVE_ASSERT(ref->paramconstraints);
-			if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
-						ref->paramconstraints + i,&(param->typeinfo),
-						md->paramtypes[i].classref))
-				return NULL;
-		}
-		else {
-			if (ref->paramconstraints)
-				UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[i]);
+			else {
+				if (ref->paramconstraints)
+					UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[i]);
+			}
 		}
 	}
 
