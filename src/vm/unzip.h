@@ -50,8 +50,6 @@ extern "C" {
 #include "zlib.h"
 #endif
 
-#include "global.h"
-
 #if defined(STRICTUNZIP) || defined(STRICTZIPUNZIP)
 /* like the STRICT of WIN32, we define a pointer that cannot be converted
     from (void*) without cast */
@@ -60,6 +58,8 @@ typedef unzFile__ *unzFile;
 #else
 typedef voidp unzFile;
 #endif
+
+#include "vm/utf8.h"
 
 
 #define UNZ_OK                                  (0)

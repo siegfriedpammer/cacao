@@ -1,4 +1,4 @@
-/* vm/tables.h - 
+/* src/vm/tables.h - 
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tables.h 1930 2005-02-10 10:54:28Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: tables.h 2117 2005-03-29 21:55:30Z twisti $
 
 */
 
@@ -36,11 +38,17 @@
 
 #include <stdio.h>
 
-#include "vm/global.h"
+
+/* forward typedefs ***********************************************************/
+
+typedef struct hashtable hashtable;
+
+
+#include "types.h"
+#include "vm/utf8.h"
 
 
 /* data structures for hashtables ********************************************
-
 
    All utf-symbols, javastrings and classes are stored in global
    hashtables, so every symbol exists only once. Equal symbols have
@@ -91,9 +99,7 @@ hashtable.ptr-->+-------------------+
 */
 
 
-/* data structure for accessing hashtables ************************************/
-
-typedef struct hashtable hashtable;
+/* hashtable ******************************************************************/
 
 struct hashtable {            
 	u4     size;
@@ -110,6 +116,8 @@ struct hashtable {
 extern hashtable utf_hash;     /* hashtable for utf8-symbols */
 extern hashtable string_hash;  /* hashtable for javastrings  */
 
+
+/* function prototypes ********************************************************/
 
 /* creates hashtables for symboltables */
 void tables_init(void);
