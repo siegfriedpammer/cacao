@@ -1,4 +1,4 @@
-/* native/native.h - table of native functions
+/* src/native/native.h - table of native functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1940 2005-02-10 11:41:52Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: native.h 2139 2005-03-30 10:24:10Z twisti $
 
 */
 
@@ -34,7 +36,10 @@
 #ifndef _NATIVE_H
 #define _NATIVE_H
 
-
+#include "vm/class.h"
+#include "vm/global.h"
+#include "vm/method.h"
+#include "vm/utf8.h"
 #include "native/jni.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_ClassLoader.h"
