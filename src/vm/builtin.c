@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1891 2005-01-28 20:24:47Z twisti $
+   $Id: builtin.c 1934 2005-02-10 10:58:43Z twisti $
 
 */
 
@@ -64,6 +64,7 @@
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 
@@ -71,7 +72,8 @@
 #undef DEBUG /*define DEBUG 1*/
 
 THREADSPECIFIC methodinfo* _threadrootmethod = NULL;
-THREADSPECIFIC void *_thread_nativestackframeinfo=NULL;
+THREADSPECIFIC void *_thread_nativestackframeinfo = NULL;
+
 
 /*****************************************************************************
 								TYPE CHECKS
@@ -255,6 +257,7 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 	if (opt_verbose) {
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Builtin exception thrown: ");
+
 		if (xptr) {
 			java_lang_Throwable *t = (java_lang_Throwable *) xptr;
 
@@ -262,13 +265,17 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 								 xptr->vftbl->class->name);
 
 			if (t->detailMessage) {
-				sprintf(logtext + strlen(logtext), ": %s",
-						javastring_tochar((java_objectheader *) t->detailMessage));
+				char *buf;
+
+				buf = javastring_tochar((java_objectheader *) t->detailMessage);
+				sprintf(logtext + strlen(logtext), ": %s", buf);
+				MFREE(buf, char, strlen(buf));
 			}
 
 		} else {
 			sprintf(logtext + strlen(logtext), "Error: <Nullpointer instead of exception>");
 		}
+
 		log_text(logtext);
 	}
 
