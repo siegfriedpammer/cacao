@@ -33,7 +33,11 @@ extern "C" {
 
 #include <stdio.h>
 #include "bfd.h"
-#include "dis-stuff.h"
+
+#include "types.h"
+#include "ansidecl.h"
+
+#define _(String) (String)
 
 typedef int (*fprintf_ftype) PARAMS((PTR, const char*, ...));
 
