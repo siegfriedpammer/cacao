@@ -10,11 +10,11 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1998/11/18
+	Last Change: $Id: ngen.c 199 2003-01-21 12:32:18Z stefan $
 
 *******************************************************************************/
 
-
+#include "jitdef.h"   /* phil */
 
 /* *****************************************************************************
 
@@ -44,7 +44,9 @@ in the documention file: calling.doc
 
 /* additional functions and macros to generate code ***************************/
 
-#define BlockPtrOfPC(pc)        block+block_index[pc]
+/* #define BlockPtrOfPC(pc)        block+block_index[pc] */
+#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
+
 
 #ifdef STATISTICS
 #define COUNT_SPILLS count_spills++
@@ -220,8 +222,8 @@ void catch_NullPointerException(int sig, int code, struct sigcontext *sigctx)
 		sigctx->sc_pc = (long) asm_handle_nat_exception;
 		}
 	else {
-		faultaddr += (long) ((instr << 16) >> 16);
-		fprintf(stderr, "faulting address: 0x%16lx\n", faultaddr);
+        faultaddr += (long) ((instr << 16) >> 16);
+		fprintf(stderr, "faulting address: 0x%lx at 0x%lx\n", (long) faultaddr, (long) sigctx->sc_pc);
 		panic("Stack overflow");
 		}
 }
@@ -287,6 +289,7 @@ static void gen_mcode()
 	varinfo     *var;
 	basicblock  *bptr;
 	instruction *iptr;
+	xtable *ex;
 
 	{
 	int p, pa, t, l, r;
@@ -342,14 +345,45 @@ static void gen_mcode()
 	(void) dseg_adds4(exceptiontablelength);                /* ExTableSize    */
 
 	/* create exception table */
-	
-	for (len = 0; len < exceptiontablelength; len++) {
-		dseg_addtarget(BlockPtrOfPC(extable[len].startpc));
-		dseg_addtarget(BlockPtrOfPC(extable[len].endpc));
-		dseg_addtarget(BlockPtrOfPC(extable[len].handlerpc));
-		(void) dseg_addaddress(extable[len].catchtype);
-		}
 
+	for (ex = extable; ex != NULL; ex = ex->down) {
+
+#ifdef LOOP_DEBUG	
+		if (ex->start != NULL)
+			printf("adding start - %d - ", ex->start->debug_nr);
+		else {
+			printf("PANIC - start is NULL");
+			exit(-1);
+		}
+#endif
+
+		dseg_addtarget(ex->start);
+
+#ifdef LOOP_DEBUG			
+		if (ex->end != NULL)
+			printf("adding end - %d - ", ex->end->debug_nr);
+		else {
+			printf("PANIC - end is NULL");
+			exit(-1);
+		}
+#endif
+
+   		dseg_addtarget(ex->end);
+
+#ifdef LOOP_DEBUG		
+		if (ex->handler != NULL)
+			printf("adding handler - %d\n", ex->handler->debug_nr);
+		else {
+			printf("PANIC - handler is NULL");
+			exit(-1);
+		}
+#endif
+
+		dseg_addtarget(ex->handler);
+	   
+		(void) dseg_addaddress(ex->catchtype);
+		}
+	
 	/* initialize mcode variables */
 	
 	mcodeptr = (s4*) mcodebase;
@@ -509,10 +543,13 @@ static void gen_mcode()
 
 #ifdef USE_THREADS
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+		int disp;
 		p = dseg_addaddress ((void*) (builtin_monitorenter));
 		M_ALD(REG_ITMP3, REG_PV, p);
 		M_JSR(REG_RA, REG_ITMP3);
 		M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
+		disp = -(int)((u1*) mcodeptr - mcodebase);
+		M_LDA(REG_PV, REG_RA, disp);
 		}			
 #endif
 	}
@@ -520,8 +557,8 @@ static void gen_mcode()
 	/* end of header generation */
 
 	/* walk through all basic blocks */
+	for (/* bbs = block_count, */ bptr = block; /* --bbs >= 0 */ bptr != NULL; bptr = bptr->next) {
 
-	for (bbs = block_count, bptr = block; --bbs >= 0; bptr++) {
 		bptr -> mpc = (int)((u1*) mcodeptr - mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
@@ -578,7 +615,7 @@ static void gen_mcode()
 			}
 
 		/* walk through all instructions */
-
+		
 		src = bptr->instack;
 		len = bptr->icount;
 		for (iptr = bptr->iinstr;
@@ -2152,7 +2189,6 @@ static void gen_mcode()
 			
 		case ICMD_RET:          /* ... ==> ...                                */
 		                        /* op1 = local variable                       */
-
 			var = &(locals[iptr->op1][TYPE_ADR]);
 			if (var->flags & INMEMORY) {
 				M_ALD(REG_ITMP1, REG_SP, 8 * var->regoff);
@@ -2491,14 +2527,14 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			a = iptr->val.i;
+			s3 = iptr->val.i;
 			if (iptr[1].opc == ICMD_ELSE_ICONST) {
-				if ((a == 1) && (iptr[1].val.i == 0)) {
+				if ((s3 == 1) && (iptr[1].val.i == 0)) {
 					M_CMPEQ(s1, REG_ZERO, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 					}
-				if ((a == 0) && (iptr[1].val.i == 1)) {
+				if ((s3 == 0) && (iptr[1].val.i == 1)) {
 					M_CMPEQ(s1, REG_ZERO, d);
 					M_XOR_IMM(d, 1, d);
 					store_reg_to_var_int(iptr->dst, d);
@@ -2510,11 +2546,11 @@ static void gen_mcode()
 					}
 				ICONST(d, iptr[1].val.i);
 				}
-			if ((a >= 0) && (a <= 255)) {
-				M_CMOVEQ_IMM(s1, a, d);
+			if ((s3 >= 0) && (s3 <= 255)) {
+				M_CMOVEQ_IMM(s1, s3, d);
 				}
 			else {
-				ICONST(REG_ITMP2, a);
+				ICONST(REG_ITMP2, s3);
 				M_CMOVEQ(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
@@ -2525,14 +2561,14 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			a = iptr->val.i;
+			s3 = iptr->val.i;
 			if (iptr[1].opc == ICMD_ELSE_ICONST) {
-				if ((a == 0) && (iptr[1].val.i == 1)) {
+				if ((s3 == 0) && (iptr[1].val.i == 1)) {
 					M_CMPEQ(s1, REG_ZERO, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 					}
-				if ((a == 1) && (iptr[1].val.i == 0)) {
+				if ((s3 == 1) && (iptr[1].val.i == 0)) {
 					M_CMPEQ(s1, REG_ZERO, d);
 					M_XOR_IMM(d, 1, d);
 					store_reg_to_var_int(iptr->dst, d);
@@ -2544,11 +2580,11 @@ static void gen_mcode()
 					}
 				ICONST(d, iptr[1].val.i);
 				}
-			if ((a >= 0) && (a <= 255)) {
-				M_CMOVNE_IMM(s1, a, d);
+			if ((s3 >= 0) && (s3 <= 255)) {
+				M_CMOVNE_IMM(s1, s3, d);
 				}
 			else {
-				ICONST(REG_ITMP2, a);
+				ICONST(REG_ITMP2, s3);
 				M_CMOVNE(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
@@ -2559,14 +2595,14 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			a = iptr->val.i;
+			s3 = iptr->val.i;
 			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-				if ((a == 1) && (iptr[1].val.i == 0)) {
+				if ((s3 == 1) && (iptr[1].val.i == 0)) {
 					M_CMPLT(s1, REG_ZERO, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 					}
-				if ((a == 0) && (iptr[1].val.i == 1)) {
+				if ((s3 == 0) && (iptr[1].val.i == 1)) {
 					M_CMPLE(REG_ZERO, s1, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
@@ -2577,11 +2613,11 @@ static void gen_mcode()
 					}
 				ICONST(d, iptr[1].val.i);
 				}
-			if ((a >= 0) && (a <= 255)) {
-				M_CMOVLT_IMM(s1, a, d);
+			if ((s3 >= 0) && (s3 <= 255)) {
+				M_CMOVLT_IMM(s1, s3, d);
 				}
 			else {
-				ICONST(REG_ITMP2, a);
+				ICONST(REG_ITMP2, s3);
 				M_CMOVLT(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
@@ -2592,14 +2628,14 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			a = iptr->val.i;
+			s3 = iptr->val.i;
 			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-				if ((a == 1) && (iptr[1].val.i == 0)) {
+				if ((s3 == 1) && (iptr[1].val.i == 0)) {
 					M_CMPLE(REG_ZERO, s1, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 					}
-				if ((a == 0) && (iptr[1].val.i == 1)) {
+				if ((s3 == 0) && (iptr[1].val.i == 1)) {
 					M_CMPLT(s1, REG_ZERO, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
@@ -2610,11 +2646,11 @@ static void gen_mcode()
 					}
 				ICONST(d, iptr[1].val.i);
 				}
-			if ((a >= 0) && (a <= 255)) {
-				M_CMOVGE_IMM(s1, a, d);
+			if ((s3 >= 0) && (s3 <= 255)) {
+				M_CMOVGE_IMM(s1, s3, d);
 				}
 			else {
-				ICONST(REG_ITMP2, a);
+				ICONST(REG_ITMP2, s3);
 				M_CMOVGE(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
@@ -2625,14 +2661,14 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			a = iptr->val.i;
+			s3 = iptr->val.i;
 			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-				if ((a == 1) && (iptr[1].val.i == 0)) {
+				if ((s3 == 1) && (iptr[1].val.i == 0)) {
 					M_CMPLT(REG_ZERO, s1, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 					}
-				if ((a == 0) && (iptr[1].val.i == 1)) {
+				if ((s3 == 0) && (iptr[1].val.i == 1)) {
 					M_CMPLE(s1, REG_ZERO, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
@@ -2643,11 +2679,11 @@ static void gen_mcode()
 					}
 				ICONST(d, iptr[1].val.i);
 				}
-			if ((a >= 0) && (a <= 255)) {
-				M_CMOVGT_IMM(s1, a, d);
+			if ((s3 >= 0) && (s3 <= 255)) {
+				M_CMOVGT_IMM(s1, s3, d);
 				}
 			else {
-				ICONST(REG_ITMP2, a);
+				ICONST(REG_ITMP2, s3);
 				M_CMOVGT(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
@@ -2658,14 +2694,14 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			a = iptr->val.i;
+			s3 = iptr->val.i;
 			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-				if ((a == 1) && (iptr[1].val.i == 0)) {
+				if ((s3 == 1) && (iptr[1].val.i == 0)) {
 					M_CMPLE(s1, REG_ZERO, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 					}
-				if ((a == 0) && (iptr[1].val.i == 1)) {
+				if ((s3 == 0) && (iptr[1].val.i == 1)) {
 					M_CMPLT(REG_ZERO, s1, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
@@ -2676,11 +2712,11 @@ static void gen_mcode()
 					}
 				ICONST(d, iptr[1].val.i);
 				}
-			if ((a >= 0) && (a <= 255)) {
-				M_CMOVLE_IMM(s1, a, d);
+			if ((s3 >= 0) && (s3 <= 255)) {
+				M_CMOVLE_IMM(s1, s3, d);
 				}
 			else {
-				ICONST(REG_ITMP2, a);
+				ICONST(REG_ITMP2, s3);
 				M_CMOVLE(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
@@ -2694,10 +2730,13 @@ static void gen_mcode()
 
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+				int disp;
 				a = dseg_addaddress ((void*) (builtin_monitorexit));
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);    /* delay slot */
+				disp = -(int)((u1*) mcodeptr - mcodebase);
+				M_LDA(REG_PV, REG_RA, disp);
 				}			
 #endif
 			var_to_reg_int(s1, src, REG_RESULT);
@@ -2709,10 +2748,13 @@ static void gen_mcode()
 
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+				int disp;
 				a = dseg_addaddress ((void*) (builtin_monitorexit));
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);    /* delay slot */
+				disp = -(int)((u1*) mcodeptr - mcodebase);
+				M_LDA(REG_PV, REG_RA, disp);
 				}			
 #endif
 			var_to_reg_flt(s1, src, REG_FRESULT);
@@ -2723,10 +2765,13 @@ static void gen_mcode()
 
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+				int disp;
 				a = dseg_addaddress ((void*) (builtin_monitorexit));
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);    /* delay slot */
+				disp = -(int)((u1*) mcodeptr - mcodebase);
+				M_LDA(REG_PV, REG_RA, disp);
 				}			
 #endif
 
@@ -2758,14 +2803,14 @@ nowperformreturn:
 				a = dseg_addaddress (method);
 				M_ALD(argintregs[0], REG_PV, a);
 				M_MOV(REG_RESULT, argintregs[1]);
+				M_FLTMOVE(REG_FRESULT, argfltregs[2]);
 				a = dseg_addaddress ((void*) (builtin_displaymethodstop));
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR (REG_RA, REG_ITMP3);
-				M_FLTMOVE(REG_FRESULT, argfltregs[2]);          /* delay slot */
-
-				M_LLD(REG_RA, REG_SP, 0);
-				M_LLD(REG_RESULT, REG_SP, 8);
+				M_NOP;
 				M_DLD(REG_FRESULT, REG_SP,16);
+				M_LLD(REG_RESULT, REG_SP, 8);
+				M_LLD(REG_RA, REG_SP, 0);
 				M_LDA (REG_SP, REG_SP, 24);
 				}
 
@@ -2785,6 +2830,9 @@ nowperformreturn:
 		case ICMD_TABLESWITCH:  /* ..., index ==> ...                         */
 			{
 			s4 i, l, *s4ptr;
+			void **tptr;
+
+			tptr = (void **) iptr->target;
 
 			s4ptr = iptr->val.a;
 			l = s4ptr[1];                          /* low     */
@@ -2806,14 +2854,18 @@ nowperformreturn:
 
 			M_CMPULT_IMM(REG_ITMP1, i, REG_ITMP2);
 			M_BEQZ(REG_ITMP2, 0);
-			mcode_addreference(BlockPtrOfPC(s4ptr[0]), mcodeptr);
+			mcode_addreference((basicblock *) tptr[0], mcodeptr);
 			M_ASLL_IMM(REG_ITMP1, POINTERSHIFT, REG_ITMP1);      /* delay slot*/
 
 			/* build jump table top down and use address of lowest entry */
 
-			s4ptr += 3 + i;
+			/* s4ptr += 3 + i; */
+			tptr += i;
+
 			while (--i >= 0) {
-				dseg_addtarget(BlockPtrOfPC(*--s4ptr));
+				/* dseg_addtarget(BlockPtrOfPC(*--s4ptr)); */
+				dseg_addtarget((basicblock *) tptr[0]); 
+				--tptr;
 				}
 			}
 
@@ -2830,6 +2882,9 @@ nowperformreturn:
 		case ICMD_LOOKUPSWITCH: /* ..., key ==> ...                           */
 			{
 			s4 i, l, val, *s4ptr;
+			void **tptr;
+
+			tptr = (void **) iptr->target;
 
 			s4ptr = iptr->val.a;
 			l = s4ptr[0];                          /* default  */
@@ -2837,24 +2892,20 @@ nowperformreturn:
 			
 			MCODECHECK((i<<2)+8);
 			var_to_reg_int(s1, src, REG_ITMP1);
-			if (i > 0) {
+			while (--i >= 0) {
 				s4ptr += 2;
+				++tptr;
+
 				val = s4ptr[0];
 				ICONST(REG_ITMP2, val);
-				while (--i > 0) {
-					M_BEQ(s1, REG_ITMP2, 0);
-					mcode_addreference(BlockPtrOfPC(s4ptr[1]), mcodeptr);
-					s4ptr += 2;
-					val = s4ptr[0];
-					ICONST(REG_ITMP2, val);
-					}
 				M_BEQ(s1, REG_ITMP2, 0);
-				mcode_addreference(BlockPtrOfPC(s4ptr[1]), mcodeptr);
+				mcode_addreference((basicblock *) tptr[0], mcodeptr); 
 				M_NOP;
 				}
 
 			M_BR(0);
-			mcode_addreference(BlockPtrOfPC(l), mcodeptr);
+			tptr = (void **) iptr->target;
+			mcode_addreference((basicblock *) tptr[0], mcodeptr);
 			M_NOP;
 			ALIGNCODENOP;
 			break;
@@ -2989,7 +3040,11 @@ afteractualcall:
 			s1 = (int)((u1*) mcodeptr - mcodebase);
 			if (s1<=32768) M_LDA (REG_PV, REG_RA, -s1);
 			else {
-				panic("method to big");
+					s4 ml=-s1, mh=0;
+					while (ml<-32768) { ml+=65536; mh--; }
+					M_LUI(REG_PV, mh);
+					M_IADD_IMM(REG_PV, ml, REG_RA);
+	/*				panic("method to big"); */
 				}
 
 			/* d contains return type */
@@ -3060,6 +3115,31 @@ afteractualcall:
 					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
 					M_IADD_IMM(REG_ITMP1, - super->vftbl->baseval, REG_ITMP1);
 					M_CMPULT_IMM(REG_ITMP1, s2 + 1, d);
+/*
+TODO (old alpha code - commented out)
+					s2 = super->vftbl->diffval;
+					M_BEQZ(s1, 4 + (s2 > 255));
+					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
+					M_LDA(REG_ITMP1, REG_ITMP1, - super->vftbl->baseval);
+					if (s2 <= 255)
+						M_CMPULE_IMM(REG_ITMP1, s2, d);
+					else {
+						M_LDA(REG_ITMP2, REG_ZERO, s2);
+						M_CMPULE(REG_ITMP1, REG_ITMP2, d);
+						}
+(new alpha code)
+					M_BEQZ(s1, 7);
+					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+					a = dseg_addaddress ((void*) super->vftbl);
+					M_ALD(REG_ITMP2, REG_PV, a);
+					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
+					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
+					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+					M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
+					M_CMPULE(REG_ITMP1, REG_ITMP2, d);
+(end alpha code)
+*/
 					}
 				}
 			else
@@ -3109,6 +3189,7 @@ afteractualcall:
 					M_NOP;
 					}
 				else {                                     /* class           */
+
 					s2 = super->vftbl->diffval;
 					M_BEQZ(s1, 6 + (s2 != 0));
 					M_NOP;
@@ -3178,6 +3259,12 @@ afteractualcall:
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
+			s1 = (int)((u1*) mcodeptr - mcodebase);
+			if (s1 <= 32768)
+				M_LDA (REG_PV, REG_RA, -s1);
+			else {
+				panic("To big");
+			    }
 			s1 = reg_of_var(iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
 			store_reg_to_var_int(iptr->dst, s1);
@@ -3186,9 +3273,13 @@ afteractualcall:
 
 		default: sprintf (logtext, "Unknown pseudo command: %d", iptr->opc);
 		         error();
-	} /* switch */
-	} /* for instruction */
+	
+   
 
+	} /* switch */
+		
+	} /* for instruction */
+		
 	/* copy values to interface registers */
 
 	src = bptr->outstack;
@@ -3222,7 +3313,7 @@ afteractualcall:
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
-	bptr -> mpc = (int)((u1*) mcodeptr - mcodebase);
+	/* bptr -> mpc = (int)((u1*) mcodeptr - mcodebase); */
 
 	{
 	/* generate bound check stubs */
@@ -3236,6 +3327,7 @@ afteractualcall:
 			continue;
 			}
 
+
 		gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
 		                  xboundrefs->branchpos, (u1*) mcodeptr - mcodebase);
 
@@ -3244,7 +3336,8 @@ afteractualcall:
 		M_LDA(REG_ITMP2_XPC, REG_PV, xboundrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR((xcodeptr-mcodeptr));
+			int disp = xcodeptr-mcodeptr;
+			M_BR(disp-1);
 			M_NOP;
 			}
 		else {
@@ -3278,7 +3371,8 @@ afteractualcall:
 		M_LDA(REG_ITMP2_XPC, REG_PV, xcheckarefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR((xcodeptr-mcodeptr));
+			int disp = xcodeptr-mcodeptr;
+			M_BR(disp-1);
 			M_NOP;
 			}
 		else {
@@ -3312,7 +3406,8 @@ afteractualcall:
 		M_LDA(REG_ITMP2_XPC, REG_PV, xcastrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR((xcodeptr-mcodeptr));
+			int disp = xcodeptr-mcodeptr;
+			M_BR(disp-1);
 			M_NOP;
 			}
 		else {
@@ -3349,7 +3444,8 @@ afteractualcall:
 		M_LDA(REG_ITMP2_XPC, REG_PV, xnullrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR((xcodeptr-mcodeptr));
+			int disp = xcodeptr-mcodeptr;
+			M_BR(disp-1);
 			M_NOP;
 			}
 		else {
@@ -3445,28 +3541,46 @@ void removecompilerstub (u1 *stub)
 	CFREE (stub, COMPSTUBSIZE * 8);
 }
 
-
 /* function: createnativestub **************************************************
 
 	creates a stub routine which calls a native method
-	
+
 *******************************************************************************/
 
-#define NATIVESTUBSIZE 11
+#define NATIVESTUBSIZE 18
 
 u1 *createnativestub (functionptr f, methodinfo *m)
 {
 	u8 *s = CNEW (u8, NATIVESTUBSIZE);  /* memory to hold the stub            */
 	s4 *p = (s4*) s;                    /* code generation pointer            */
 
-	M_ALD  (REG_ITMP3, REG_PV, 8*8);    /* load adress of native method       */
+	reg_init();
+
+	M_MOV  (argintregs[4], argintregs[5]);
+	M_DMOV (argfltregs[4], argfltregs[5]);
+
+	M_MOV  (argintregs[3], argintregs[4]);
+	M_DMOV (argfltregs[3], argfltregs[4]);
+
+	M_MOV  (argintregs[2], argintregs[3]);
+	M_DMOV (argfltregs[2], argfltregs[3]);
+
+	M_MOV  (argintregs[1], argintregs[2]);
+	M_DMOV (argfltregs[1], argfltregs[2]);
+
+	M_MOV  (argintregs[0], argintregs[1]);
+	M_DMOV (argfltregs[0], argfltregs[1]);
+
+	M_ALD  (argintregs[0], REG_PV, 17*8); /* load adress of jni_environement  */
+
+	M_ALD  (REG_ITMP3, REG_PV, 14*8);   /* load adress of native method       */
 	M_LDA  (REG_SP, REG_SP, -8);        /* build up stackframe                */
 
 	M_LST  (REG_RA, REG_SP, 0);         /* store return address               */
 	M_JSR  (REG_RA, REG_ITMP3);         /* call native method                 */
 
 	M_NOP;                              /* delay slot                         */
-	M_ALD  (REG_ITMP3, REG_PV, 9*8);    /* get address of exceptionptr        */
+	M_ALD  (REG_ITMP3, REG_PV, 15*8);   /* get address of exceptionptr        */
 
 	M_LLD  (REG_RA, REG_SP, 0);         /* load return address                */
 	M_ALD  (REG_ITMP1, REG_ITMP3, 0);   /* load exception into reg. itmp1     */
@@ -3478,7 +3592,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	M_NOP;                              /* delay slot                         */
 	
 	M_AST  (REG_ZERO, REG_ITMP3, 0);    /* store NULL into exceptionptr       */
-	M_ALD  (REG_ITMP3, REG_PV,10*8);    /* load asm exception handler address */
+	M_ALD  (REG_ITMP3, REG_PV,16*8);    /* load asm exception handler address */
 
 	M_JMP  (REG_ITMP3);                 /* jump to asm exception handler      */
 	M_LDA  (REG_ITMP2, REG_RA, -4);     /* move fault address into reg. itmp2 */
@@ -3486,9 +3600,10 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 
 	(void) cacheflush((void*) s, (char*) p - (char*) s, ICACHE);
 
-	s[8] = (u8) f;                      /* address of native method           */
-	s[9] = (u8) (&exceptionptr);        /* address of exceptionptr            */
-	s[10]= (u8) (asm_handle_nat_exception); /* addr of asm exception handler  */
+	s[14] = (u8) f;                     /* address of native method           */
+	s[15] = (u8) (&exceptionptr);       /* address of exceptionptr            */
+	s[16]= (u8) (asm_handle_nat_exception); /* addr of asm exception handler  */
+	s[17] = (u8) (&env);                  /* addr of jni_environement         */
 
 #ifdef STATISTICS
 	count_nstub_len += NATIVESTUBSIZE * 8;
@@ -3496,7 +3611,6 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 
 	return (u1*) s;
 }
-
 
 /* function: removenativestub **************************************************
 
@@ -3597,7 +3711,11 @@ void createcalljava ()
 	M_LDA (REG_PV, REG_RA, -23*4);      /* recompute procedure vector         */
 
 /*  44 */
+#if 0
 	M_CLR (REG_RESULT);                 /* clear return value (exception ptr) */
+#else
+	M_NOP;
+#endif
 /*  calljava_return: */
 	M_LLD (REG_RA, REG_SP, 0);          /* restore return address             */
 
@@ -3636,7 +3754,19 @@ typedef java_objectheader* (*asm_fptr)(methodinfo*, void*, void*, void*, void*);
 java_objectheader *asm_calljavamethod (methodinfo *m, void *arg1, void *arg2,
                                                       void *arg3, void *arg4)
 {
-return ((asm_fptr)(calljavamem + 20))(m, arg1, arg2, arg3, arg4);
+	((asm_fptr)(calljavamem + 20))(m, arg1, arg2, arg3, arg4);
+	return NULL;
+}
+
+java_objectheader *asm_calljavafunction (methodinfo *m, void *arg1, void *arg2,
+                                                      void *arg3, void *arg4)
+{
+	return ((asm_fptr)(calljavamem + 20))(m, arg1, arg2, arg3, arg4);
+}
+
+void ngen_init()
+{
+	createcalljava();
 }
 
 
