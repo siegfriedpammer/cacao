@@ -17,7 +17,7 @@
 # [0-9]+[.][0-9]+(alpha[0.9]+)? 
 # in lex syntax; if there is no alpha number, GC_ALPHA_VERSION is empty
 #
-AC_DEFUN(GC_SET_VERSION, [
+AC_DEFUN([GC_SET_VERSION], [
   AC_MSG_CHECKING(GC version numbers)
   GC_VERSION_MAJOR=`echo $PACKAGE_VERSION | sed 's/^\([[0-9]][[0-9]]*\)[[.]].*$/\1/g'`
   GC_VERSION_MINOR=`echo $PACKAGE_VERSION | sed 's/^[[^.]]*[[.]]\([[0-9]][[0-9]]*\).*$/\1/g'`
@@ -37,10 +37,10 @@ AC_DEFUN(GC_SET_VERSION, [
     AC_MSG_ERROR([nonconforming PACKAGE_VERSION='$PACKAGE_VERSION'])
   fi
   
-  AC_DEFINE_UNQUOTED(GC_VERSION_MAJOR, $GC_VERSION_MAJOR)
-  AC_DEFINE_UNQUOTED(GC_VERSION_MINOR, $GC_VERSION_MINOR)
+  AC_DEFINE_UNQUOTED([GC_VERSION_MAJOR], $GC_VERSION_MAJOR, [gc version major])
+  AC_DEFINE_UNQUOTED([GC_VERSION_MINOR], $GC_VERSION_MINOR, [gc version minor])
   if test :$GC_ALPHA_VERSION: != :: ; then
-    AC_DEFINE_UNQUOTED(GC_ALPHA_VERSION, $GC_ALPHA_VERSION)
+    AC_DEFINE_UNQUOTED([GC_ALPHA_VERSION], $GC_ALPHA_VERSION, [gc alpha version])
   fi
   AC_MSG_RESULT(major=$GC_VERSION_MAJOR minor=$GC_VERSION_MINOR \
 ${GC_ALPHA_VERSION:+alpha=}$GC_ALPHA_VERSION)
