@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1284 2004-07-07 15:56:17Z twisti $
+   $Id: asmpart.S 1305 2004-07-11 15:08:19Z stefan $
 
 */
 
@@ -1133,14 +1133,14 @@ _crit_end2:
 		
 asm_criticalsections:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	.long   _crit_begin1
-	.long   _crit_end1
-	.long   _crit_restart1
-	.long   _crit_begin2
-	.long   _crit_end2
-	.long   _crit_restart2
+	.quad   _crit_begin1
+	.quad   _crit_end1
+	.quad   _crit_restart1
+	.quad   _crit_begin2
+	.quad   _crit_end2
+	.quad   _crit_restart2
 #endif
-	.long 0
+	.quad 0
 
 				
 /*
