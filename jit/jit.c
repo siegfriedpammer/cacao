@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1506 2004-11-14 14:48:49Z jowenn $
+   $Id: jit.c 1530 2004-11-17 20:43:28Z christian $
 
 */
 
@@ -1590,7 +1590,7 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 	if (opt_loops) {
 		depthFirst(m, ld);
 		analyseGraph(m, ld);
-		optimize_loops(m, ld);
+		optimize_loops(m, cd, ld);
 	}
    
 #ifdef SPECIALMEMUSE
