@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1461 2004-11-05 16:23:47Z twisti $
+   $Id: codegen.h 1563 2004-11-23 15:53:09Z twisti $
 
 */
 
@@ -35,53 +35,7 @@
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
-
 #include <ucontext.h>
-#include "jit/jit.h"
-
-
-/* define x86 register numbers */
-#define EAX    0
-#define ECX    1
-#define EDX    2
-#define EBX    3
-#define ESP    4
-#define EBP    5
-#define ESI    6
-#define EDI    7
-
-
-/* preallocated registers *****************************************************/
-
-/* integer registers */
-  
-#define REG_RESULT      EAX      /* to deliver method results                 */
-#define REG_RESULT2     EDX      /* to deliver long method results            */
-
-#define REG_ITMP1       EAX      /* temporary register                        */
-#define REG_ITMP2       ECX      /* temporary register                        */
-#define REG_ITMP3       EDX      /* temporary register                        */
-
-#define REG_NULL        -1       /* used for reg_of_var where d is not needed */
-
-#define REG_ITMP1_XPTR  EAX      /* exception pointer = temporary register 1  */
-#define REG_ITMP2_XPC   ECX      /* exception pc = temporary register 2       */
-
-#define REG_SP          ESP      /* stack pointer                             */
-
-/* floating point registers */
-
-#define REG_FRESULT     0    /* to deliver floating point method results      */
-#define REG_FTMP1       6    /* temporary floating point register             */
-#define REG_FTMP2       7    /* temporary floating point register             */
-#define REG_FTMP3       7    /* temporary floating point register             */
-
-
-#define INT_SAV_CNT     3    /* number of int callee saved registers          */
-#define INT_ARG_CNT     0    /* number of int argument registers              */
-
-#define FLT_SAV_CNT     0    /* number of flt callee saved registers          */
-#define FLT_ARG_CNT     0    /* number of flt argument registers              */
 
 
 /* additional functions and macros to generate code ***************************/
@@ -140,6 +94,11 @@
 #define MCODECHECK(icnt) \
 	if ((cd->mcodeptr + (icnt)) > (u1 *) cd->mcodeend) \
         cd->mcodeptr = (u1 *) codegen_increase(cd, cd->mcodeptr)
+
+
+/* XXX Do we need code padding on i386? */
+/*  #define ALIGNCODENOP {if((int)((long)cd->mcodeptr&7)){M_NOP;}} */
+#define ALIGNCODENOP
 
 
 /* M_INTMOVE:
@@ -493,7 +452,7 @@ typedef enum {
 
 /* function prototypes */
 
-void thread_restartcriticalsection(ucontext_t*);
+void thread_restartcriticalsection(ucontext_t *);
 
 #endif /* _CODEGEN_H */
 
