@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1037 2004-04-26 16:36:48Z twisti $
+   $Id: codegen.inc 1049 2004-05-05 11:43:11Z stefan $
 
 */
 
@@ -63,7 +63,7 @@
 
 struct threadcritnodetemp {
 	struct threadcritnodetemp *next;
-	int mcodebegin, mcodeend;
+	int mcodebegin, mcodeend, mcoderestart;
 };
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
@@ -122,6 +122,7 @@ static void codegen_addxnullrefs(void *branchptr);
 static void codegen_addxcastrefs(void *branchptr);
 static void codegen_addxdivrefs(void *branchptr);
 static void codegen_addxoomrefs(void *branchptr);
+static void codegen_threadcritrestart(int offset);
 static void codegen_threadcritstart(int offset);
 static void codegen_threadcritstop(int offset);
 
@@ -539,6 +540,7 @@ static void codegen_finish(int mcodelen)
 		{
 			n->mcodebegin = method->mcode + nt->mcodebegin;
 			n->mcodeend = method->mcode + nt->mcodeend;
+			n->mcoderestart = method->mcode + nt->mcoderestart;
 			thread_registercritical(n);
 			n++;
 			nt = nt->next;
@@ -561,6 +563,11 @@ void dseg_display(s4 *s4ptr)
 }
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
+void codegen_threadcritrestart(int offset)
+{
+	threadcritcurrent.mcoderestart = offset;
+}
+
 void codegen_threadcritstart(int offset)
 {
 	threadcritcurrent.mcodebegin = offset;

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1048 2004-05-03 18:53:19Z stefan $
+   $Id: codegen.c 1049 2004-05-05 11:43:11Z stefan $
 
 */
 
@@ -4176,6 +4176,9 @@ gen_method: {
 			{
 			classinfo *super = (classinfo*) iptr->val.a;
 			
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			codegen_threadcritrestart(mcodeptr - mcodebase);
+#endif
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			if (s1 == d) {
@@ -4264,9 +4267,15 @@ gen_method: {
 
 					i386_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstart(mcodeptr - mcodebase);
+#endif
 					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
 					i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
 					i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstop(mcodeptr - mcodebase);
+#endif
 					i386_alu_reg_reg(I386_SUB, REG_ITMP3, REG_ITMP1);
 					i386_alu_reg_reg(I386_XOR, d, d);
 
@@ -4302,6 +4311,9 @@ gen_method: {
 			{
 			classinfo *super = (classinfo*) iptr->val.a;
 			
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			codegen_threadcritrestart(mcodeptr - mcodebase);
+#endif
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			var_to_reg_int(s1, src, d);
 			if (iptr->op1) {                               /* class/interface */
@@ -4384,10 +4396,10 @@ gen_method: {
 
 					i386_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
-					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstart(mcodeptr - mcodebase);
 #endif
+					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
 					if (d != REG_ITMP3) {
 						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
 						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
