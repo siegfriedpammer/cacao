@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1185 2004-06-19 12:23:13Z twisti $
+   $Id: tables.c 1195 2004-06-20 19:44:46Z twisti $
 
 */
 
@@ -1114,6 +1114,7 @@ classinfo *class_new(utf *classname)
 
 	if (opt_eager) {
 		classinfo *tc;
+		classinfo *tmp;
 
 		list_init(&unlinkedclasses, OFFSET(classinfo, listnode));
 
@@ -1122,29 +1123,30 @@ classinfo *class_new(utf *classname)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 				tables_unlock();
 #endif
-				return NULL;
+				return c;
 			}
 		}
 
 		/* link all referenced classes */
 
-		while ((tc = list_first(&unlinkedclasses))) {
-	printf("tc=%p next=%p prev=%p ", tc, tc->listnode.next, tc->listnode.prev);
-	utf_display(tc->name);
-	printf("\n");
-	fflush(stdout);
+		tc = list_first(&unlinkedclasses);
 
-			/* skip super class */
+		while (tc) {
+			/* skip the current loaded/linked class */
 			if (tc != c) {
 				if (!class_link(tc)) {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					tables_unlock();
 #endif
-					return NULL;
+					return c;
 				}
 			}
 
-			list_remove(&unlinkedclasses, tc);
+			/* we need a tmp variable here, because list_remove sets prev and
+			   next to NULL */
+			tmp = list_next(&unlinkedclasses, tc);
+   			list_remove(&unlinkedclasses, tc);
+			tc = tmp;
 		}
 
 		if (!c->linked) {
@@ -1152,7 +1154,7 @@ classinfo *class_new(utf *classname)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 				tables_unlock();
 #endif
-				return NULL;
+				return c;
 			}
 		}
 	}
