@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1082 2004-05-26 15:04:54Z jowenn $
+   $Id: typecheck.c 1090 2004-05-27 15:43:11Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 #include "builtin.h"
 #include "tables.h"
 #include "loader.h"
+#include "native.h"
 #include "types.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
@@ -778,8 +779,8 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 #define MAXPARAMS 255
 
 /* typecheck is called directly after analyse_stack */
-void
-typecheck()
+
+methodinfo *typecheck(methodinfo *m)
 {
     int b_count, b_index;
     stackptr curstack;      /* input stack top for current instruction */
@@ -822,16 +823,6 @@ typecheck()
 	bool jsrencountered = false;         /* true if we there was a JSR */
 
     classinfo *myclass;
-
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Typechecking: ");
-		utf_sprint_classname(logtext + strlen(logtext), method->class->name);
-		sprintf(logtext + strlen(logtext), ".");
-		utf_sprint(logtext + strlen(logtext), method->name);
-		utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
-		log_text(logtext);
-	}
 
 #ifdef TYPECHECK_STATISTICS
 	int count_iterations = 0;
@@ -2104,15 +2095,9 @@ typecheck()
 		
     LOGimp("exiting typecheck");
 
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Typechecking done: ");
-		utf_sprint_classname(logtext + strlen(logtext), method->class->name);
-		sprintf(logtext + strlen(logtext), ".");
-		utf_sprint(logtext + strlen(logtext), method->name);
-		utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
-		log_text(logtext);
-	}
+	/* just return methodinfo* to signal everything was ok */
+
+	return m;
 }
 
 #undef COPYTYPE
