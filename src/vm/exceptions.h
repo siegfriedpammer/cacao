@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 1774 2004-12-20 20:16:57Z jowenn $
+   $Id: exceptions.h 1791 2004-12-21 10:12:44Z twisti $
 
 */
 
@@ -35,7 +35,7 @@
 #define _EXCEPTIONS_H
 
 
-#include "global.h"
+#include "vm/global.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
