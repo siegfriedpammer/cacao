@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: memory.c 1672 2004-12-03 16:41:52Z twisti $
 
 */
 
@@ -52,8 +52,12 @@
 #include "vm/statistics.h"
 #include "native/native.h"
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-# include "threads/native/threads.h"
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
 #endif
 
 #include "toolbox/logging.h"
@@ -72,7 +76,7 @@ static void *mmapcodeptr = NULL;
 
 *******************************************************************************/
 
-#if !defined(USE_THREADS)
+#if !defined(USE_THREADS) || (defined(USE_THREADS) && !defined(NATIVE_THREADS))
 static dumpinfo nothreads_dumpinfo;
 #endif
 
@@ -190,7 +194,7 @@ void *dump_alloc(s4 size)
 
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
-#if defined(USE_THREADS)
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	di = &((threadobject *) THREADOBJECT)->dumpinfo;
 #else
 	di = &nothreads_dumpinfo;
@@ -272,7 +276,7 @@ void dump_release(s4 size)
 
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
-#if defined(USE_THREADS)
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	di = &((threadobject *) THREADOBJECT)->dumpinfo;
 #else
 	di = &nothreads_dumpinfo;
@@ -319,7 +323,7 @@ s4 dump_size()
 
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
-#if defined(USE_THREADS)
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	di = &((threadobject *) THREADOBJECT)->dumpinfo;
 #else
 	di = &nothreads_dumpinfo;
