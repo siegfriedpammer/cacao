@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: schedule.c 1966 2005-02-24 23:39:12Z twisti $
+   $Id: schedule.c 1970 2005-03-01 17:17:05Z twisti $
 
 */
 
@@ -50,22 +50,24 @@ scheduledata *schedule_init(registerdata *rd)
 	/* XXX quick hack: just use a fix number of instructions */
 	sd->mi = DMNEW(minstruction, 100);
 
-	sd->intregs_read_dep = DMNEW(minstruction*, rd->intregsnum);
-	sd->intregs_write_dep = DMNEW(minstruction*, rd->intregsnum);
+	sd->micount = 0;
 
-	sd->fltregs_read_dep = DMNEW(minstruction*, rd->fltregsnum);
-	sd->fltregs_write_dep = DMNEW(minstruction*, rd->fltregsnum);
+	sd->intregs_read_dep = DMNEW(nodelink*, rd->intregsnum);
+	sd->intregs_write_dep = DMNEW(nodelink*, rd->intregsnum);
+
+	sd->fltregs_read_dep = DMNEW(nodelink*, rd->fltregsnum);
+	sd->fltregs_write_dep = DMNEW(nodelink*, rd->fltregsnum);
 
 	/* XXX: memory is currently only one cell */
 /*  	sd->memory_write_dep; */
 
 	/* clear all pointers */
 
-	MSET(sd->intregs_read_dep, 0, minstruction*, rd->intregsnum);
-	MSET(sd->intregs_write_dep, 0, minstruction*, rd->intregsnum);
+	MSET(sd->intregs_read_dep, 0, nodelink*, rd->intregsnum);
+	MSET(sd->intregs_write_dep, 0, nodelink*, rd->intregsnum);
 
-	MSET(sd->fltregs_read_dep, 0, minstruction*, rd->fltregsnum);
-	MSET(sd->fltregs_write_dep, 0, minstruction*, rd->fltregsnum);
+	MSET(sd->fltregs_read_dep, 0, nodelink*, rd->fltregsnum);
+	MSET(sd->fltregs_write_dep, 0, nodelink*, rd->fltregsnum);
 
   	sd->memory_write_dep = NULL;
 
@@ -112,12 +114,23 @@ void schedule_calc_priority(minstruction *mi)
 
 	for (i = 0; i < 3; i++) {
 		if (mi->opdep[i]) {
-			if (mi->opdep[i]->priority > pathpriority)
-				pathpriority = mi->opdep[i]->priority;
+/*  			if (mi->opdep[i]->priority > pathpriority) */
+/*  				pathpriority = mi->opdep[i]->priority; */
 		}
 	}
 
 	mi->priority = pathpriority + mi->latency + 1;
+}
+
+
+void schedule_add_dep(nodelink **reg, s4 mnode)
+{
+	nodelink *nl;
+
+	nl = DNEW(nodelink);
+	nl->mnode = mnode;
+	nl->next = *reg;
+	*reg = nl;
 }
 
 
@@ -127,27 +140,20 @@ void schedule_calc_priority(minstruction *mi)
 
 *******************************************************************************/
 
-void schedule_do_schedule(minstruction *mi)
+void schedule_do_schedule(scheduledata *sd)
 {
-	minstruction *rootmi;
-
-	/* initialize variables */
-
-	rootmi = mi;
+	minstruction *mi;
+	s4            i;
 
 	printf("bb start ---\n");
 
-	mi = rootmi;
-
-	while (mi) {
+	for (i = 0, mi = sd->mi; i < sd->micount; i++, mi++) {
 		printf("%p: ", mi);
 
 /*  		disassinstr(&tmpmi->instr); */
 		printf("%05x", mi->instr);
 
 		printf("   --> %d, %d:   op1=%p, op2=%p, op3=%p\n", mi->latency, mi->priority, mi->opdep[0], mi->opdep[1], mi->opdep[2]);
-
-		mi = mi->next;
 	}
 	printf("bb end ---\n\n");
 }

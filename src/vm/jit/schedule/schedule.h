@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: schedule.h 1966 2005-02-24 23:39:12Z twisti $
+   $Id: schedule.h 1970 2005-03-01 17:17:05Z twisti $
 
 */
 
@@ -43,7 +43,7 @@
 
 typedef struct scheduledata scheduledata;
 typedef struct minstruction minstruction;
-typedef struct linknode linknode;
+typedef struct nodelink nodelink;
 
 
 /* scheduledata ****************************************************************
@@ -54,13 +54,14 @@ typedef struct linknode linknode;
 
 struct scheduledata {
 	minstruction *mi;                   /* machine instruction array          */
-	linknode     *leaders;              /* list containing sink nodes         */
-	linknode     *intregs_read_dep;
-	linknode     *intregs_write_dep;
-	linknode     *fltregs_read_dep;
-	linknode     *fltregs_write_dep;
-	linknode     *memory_read_dep;
-    linknode     *memory_write_dep;
+	s4            micount;              /* number of machine instructions     */
+	nodelink     *leaders;              /* list containing sink nodes         */
+	nodelink     *intregs_read_dep;
+	nodelink     *intregs_write_dep;
+	nodelink     *fltregs_read_dep;
+	nodelink     *fltregs_write_dep;
+	nodelink     *memory_read_dep;
+    nodelink     *memory_write_dep;
 };
 
 
@@ -75,20 +76,20 @@ struct minstruction {
 	u4            instr;                /* machine instruction word           */
 	u1            latency;              /* instruction latency                */
 	s4            priority;             /* priority of this instruction node  */
-	minstruction *opdep[3];             /* operand dependencies               */
+	nodelink     *opdep[3];             /* operand dependencies               */
 	minstruction *next;                 /* link to next machine instruction   */
 };
 
 
-/* linknode ********************************************************************
+/* nodelink ********************************************************************
 
    XXX
 
 *******************************************************************************/
 
-struct linknode {
-	s4         pos;                     /* postition in minstruction array    */
-	linknode *next;                     /* link to next node                  */
+struct nodelink {
+	s4        mnode;                    /* postition in minstruction array    */
+	nodelink *next;                     /* link to next node                  */
 };
 
 
@@ -96,7 +97,8 @@ struct linknode {
 
 scheduledata *schedule_setup(registerdata *rd);
 void schedule_calc_priority(minstruction *mi);
-void schedule_do_schedule(minstruction *mi);
+void schedule_add_dep(nodelink **reg, s4 mnode);
+void schedule_do_schedule(scheduledata *sd);
 minstruction *schedule_prepend_minstruction(minstruction *mi);
 
 #endif /* _SCHEDULE_H */
