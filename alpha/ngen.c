@@ -454,6 +454,8 @@ static void gen_mcode()
 	for (bbs = block_count, bptr = block; --bbs >= 0; bptr++) {
 		bptr -> mpc = (int)((u1*) mcodeptr - mcodebase);
 
+		if (bptr->flags >= BBREACHED) {
+
 		/* branch resolving */
 
 		{
@@ -879,6 +881,22 @@ static void gen_mcode()
 				LCONST(REG_ITMP2, iptr->val.l);
 				M_LMUL(s1, REG_ITMP2, d, 0);
 				}
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+		case ICMD_IDIVPOW2:
+		case ICMD_LDIVPOW2:
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			if (iptr->val.i <= 15) {
+				M_LDA(REG_ITMP2, s1, (1 << iptr->val.i) -1);
+				M_CMOVGE(s1, s1, REG_ITMP2, 0);
+				}
+			else {
+				M_SRA(s1, 63, REG_ITMP2, 1);
+				M_SRL(REG_ITMP2, 64 - iptr->val.i, REG_ITMP2, 1);
+				M_LADD(s1, REG_ITMP2, REG_ITMP2, 0);
+				}
+			M_SRA(REG_ITMP2, iptr->val.i, d, 1);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1820,7 +1838,7 @@ static void gen_mcode()
 
 
 		case ICMD_PUTSTATIC:
-			a = dseg_addaddress (iptr->val.a);
+			a = dseg_addaddress (&(((fieldinfo *)(iptr->val.a))->value));
 			M_LLD(REG_ITMP1, REG_PV, a);
 			switch (iptr->op1) {
 				case TYPE_INT:
@@ -1845,7 +1863,7 @@ static void gen_mcode()
 			break;
 
 		case ICMD_GETSTATIC:
-			a = dseg_addaddress (iptr->val.a);
+			a = dseg_addaddress (&(((fieldinfo *)(iptr->val.a))->value));
 			M_LLD(REG_ITMP1, REG_PV, a);
 			switch (iptr->op1) {
 				case TYPE_INT:
@@ -1875,43 +1893,45 @@ static void gen_mcode()
 
 
 		case ICMD_PUTFIELD:
+			a = ((fieldinfo *)(iptr->val.a))->offset;
 			switch (iptr->op1) {
 				case TYPE_INT:
 					var_to_reg_int(s1, src->prev, REG_ITMP1);
 					var_to_reg_int(s2, src, REG_ITMP2);
 					gen_nullptr_check(s1);
-					M_IST(s2, s1, iptr->val.i);
+					M_IST(s2, s1, a);
 					break;
 				case TYPE_LNG:
 				case TYPE_ADR:
 					var_to_reg_int(s1, src->prev, REG_ITMP1);
 					var_to_reg_int(s2, src, REG_ITMP2);
 					gen_nullptr_check(s1);
-					M_LST(s2, s1, iptr->val.i);
+					M_LST(s2, s1, a);
 					break;
 				case TYPE_FLT:
 					var_to_reg_int(s1, src->prev, REG_ITMP1);
 					var_to_reg_flt(s2, src, REG_FTMP2);
 					gen_nullptr_check(s1);
-					M_FST(s2, s1, iptr->val.i);
+					M_FST(s2, s1, a);
 					break;
 				case TYPE_DBL:
 					var_to_reg_int(s1, src->prev, REG_ITMP1);
 					var_to_reg_flt(s2, src, REG_FTMP2);
 					gen_nullptr_check(s1);
-					M_DST(s2, s1, iptr->val.i);
+					M_DST(s2, s1, a);
 					break;
 				default: panic ("internal error");
 				}
 			break;
 
 		case ICMD_GETFIELD:
+			a = ((fieldinfo *)(iptr->val.a))->offset;
 			switch (iptr->op1) {
 				case TYPE_INT:
 					var_to_reg_int(s1, src, REG_ITMP1);
 					d = reg_of_var(iptr->dst, REG_ITMP3);
 					gen_nullptr_check(s1);
-					M_ILD(d, s1, iptr->val.i);
+					M_ILD(d, s1, a);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 				case TYPE_LNG:
@@ -1919,21 +1939,21 @@ static void gen_mcode()
 					var_to_reg_int(s1, src, REG_ITMP1);
 					d = reg_of_var(iptr->dst, REG_ITMP3);
 					gen_nullptr_check(s1);
-					M_LLD(d, s1, iptr->val.i);
+					M_LLD(d, s1, a);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 				case TYPE_FLT:
 					var_to_reg_int(s1, src, REG_ITMP1);
 					d = reg_of_var(iptr->dst, REG_FTMP1);
 					gen_nullptr_check(s1);
-					M_FLD(d, s1, iptr->val.i);
+					M_FLD(d, s1, a);
 					store_reg_to_var_flt(iptr->dst, d);
 					break;
 				case TYPE_DBL:				
 					var_to_reg_int(s1, src, REG_ITMP1);
 					d = reg_of_var(iptr->dst, REG_FTMP1);
 					gen_nullptr_check(s1);
-					M_DLD(d, s1, iptr->val.i);
+					M_DLD(d, s1, a);
 					store_reg_to_var_flt(iptr->dst, d);
 					break;
 				default: panic ("internal error");
@@ -2243,6 +2263,192 @@ static void gen_mcode()
 			M_BEQZ(REG_ITMP1, 0);
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
+
+		case ICMD_ELSE_ICONST:
+			break;
+		case ICMD_IFEQ_ICONST:
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			a = iptr->val.i;
+			if (iptr[1].opc == ICMD_ELSE_ICONST) {
+				if ((a == 1) && (iptr[1].val.i == 0)) {
+					M_CMPEQ(s1, REG_ZERO, d,  0);
+					store_reg_to_var_int(iptr->dst, d);
+					break;
+					}
+				if ((a == 0) && (iptr[1].val.i == 1)) {
+					M_CMPEQ(s1, REG_ZERO, d,  0);
+					M_XOR(d, 1, d, 1);
+					store_reg_to_var_int(iptr->dst, d);
+					break;
+					}
+				if (s1 == d) {
+					M_OR(s1, s1 , REG_ITMP1, 0);
+					s1 = REG_ITMP1;
+					}
+				ICONST(d, iptr[1].val.i);
+				}
+			if ((a >= 0) && (a <= 255)) {
+				M_CMOVEQ(s1, a, d, 1);
+				}
+			else {
+				ICONST(REG_ITMP2, a);
+				M_CMOVEQ(s1, REG_ITMP2, d, 0);
+				}
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+		case ICMD_IFNE_ICONST:
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			a = iptr->val.i;
+			if (iptr[1].opc == ICMD_ELSE_ICONST) {
+				if ((a == 0) && (iptr[1].val.i == 1)) {
+					M_CMPEQ(s1, REG_ZERO, d,  0);
+					store_reg_to_var_int(iptr->dst, d);
+					break;
+					}
+				if ((a == 1) && (iptr[1].val.i == 0)) {
+					M_CMPEQ(s1, REG_ZERO, d,  0);
+					M_XOR(d, 1, d, 1);
+					store_reg_to_var_int(iptr->dst, d);
+					break;
+					}
+				if (s1 == d) {
+					M_OR(s1, s1 , REG_ITMP1, 0);
+					s1 = REG_ITMP1;
+					}
+				ICONST(d, iptr[1].val.i);
+				}
+			if ((a >= 0) && (a <= 255)) {
+				M_CMOVNE(s1, a, d, 1);
+				}
+			else {
+				ICONST(REG_ITMP2, a);
+				M_CMOVNE(s1, REG_ITMP2, d, 0);
+				}
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+		case ICMD_IFLT_ICONST:
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			a = iptr->val.i;
+			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
+				if ((a == 1) && (iptr[1].val.i == 0)) {
+					M_CMPLT(s1, REG_ZERO, d,  0);
+					store_reg_to_var_int(iptr->dst, d);
+					break;
+					}
+				if ((a == 0) && (iptr[1].val.i == 1)) {
+					M_CMPLE(REG_ZERO, s1, d,  0);
+					store_reg_to_var_int(iptr->dst, d);
+					break;
+					}
+				if (s1 == d) {
+					M_OR(s1, s1 , REG_ITMP1, 0);
+					s1 = REG_ITMP1;
+					}
+				ICONST(d, iptr[1].val.i);
+				}
+			if ((a >= 0) && (a <= 255)) {
+				M_CMOVLT(s1, a, d, 1);
+				}
+			else {
+				ICONST(REG_ITMP2, a);
+				M_CMOVLT(s1, REG_ITMP2, d, 0);
+				}
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+		case ICMD_IFGE_ICONST:
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			a = iptr->val.i;
+			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
+				if ((a == 1) && (iptr[1].val.i == 0)) {
+					M_CMPLE(REG_ZERO, s1, d,  0);
+					store_reg_to_var_int(iptr->dst, d);
+					break;
+					}
+				if ((a == 0) && (iptr[1].val.i == 1)) {
+					M_CMPLT(s1, REG_ZERO, d,  0);
+					store_reg_to_var_int(iptr->dst, d);
+					break;
+					}
+				if (s1 == d) {
+					M_OR(s1, s1 , REG_ITMP1, 0);
+					s1 = REG_ITMP1;
+					}
+				ICONST(d, iptr[1].val.i);
+				}
+			if ((a >= 0) && (a <= 255)) {
+				M_CMOVGE(s1, a, d, 1);
+				}
+			else {
+				ICONST(REG_ITMP2, a);
+				M_CMOVGE(s1, REG_ITMP2, d, 0);
+				}
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+		case ICMD_IFGT_ICONST:
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			a = iptr->val.i;
+			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
+				if ((a == 1) && (iptr[1].val.i == 0)) {
+					M_CMPLT(REG_ZERO, s1, d,  0);
+					store_reg_to_var_int(iptr->dst, d);
+					break;
+					}
+				if ((a == 0) && (iptr[1].val.i == 1)) {
+					M_CMPLE(s1, REG_ZERO, d,  0);
+					store_reg_to_var_int(iptr->dst, d);
+					break;
+					}
+				if (s1 == d) {
+					M_OR(s1, s1 , REG_ITMP1, 0);
+					s1 = REG_ITMP1;
+					}
+				ICONST(d, iptr[1].val.i);
+				}
+			if ((a >= 0) && (a <= 255)) {
+				M_CMOVGT(s1, a, d, 1);
+				}
+			else {
+				ICONST(REG_ITMP2, a);
+				M_CMOVGT(s1, REG_ITMP2, d, 0);
+				}
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+		case ICMD_IFLE_ICONST:
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			a = iptr->val.i;
+			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
+				if ((a == 1) && (iptr[1].val.i == 0)) {
+					M_CMPLE(s1, REG_ZERO, d,  0);
+					store_reg_to_var_int(iptr->dst, d);
+					break;
+					}
+				if ((a == 0) && (iptr[1].val.i == 1)) {
+					M_CMPLT(REG_ZERO, s1, d,  0);
+					store_reg_to_var_int(iptr->dst, d);
+					break;
+					}
+				if (s1 == d) {
+					M_OR(s1, s1 , REG_ITMP1, 0);
+					s1 = REG_ITMP1;
+					}
+				ICONST(d, iptr[1].val.i);
+				}
+			if ((a >= 0) && (a <= 255)) {
+				M_CMOVLE(s1, a, d, 1);
+				}
+			else {
+				ICONST(REG_ITMP2, a);
+				M_CMOVLE(s1, REG_ITMP2, d, 0);
+				}
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+
 
 /*   branch if the unsigned value of s1 is greater that s2 (note, that s2 has
 	 to be >= 0) */
@@ -2621,7 +2827,7 @@ makeactualcall:
 		if ((src->varkind != STACKVAR)) {
 			s2 = src->type;
 			if (IS_FLT_DBL_TYPE(s2)) {
-				var_to_reg_int(s1, src, REG_ITMP1);
+				var_to_reg_flt(s1, src, REG_FTMP1);
 				if (!(interfaces[len][s2].flags & INMEMORY)) {
 					M_FLTMOVE(s1,interfaces[len][s2].regoff);
 					}
@@ -2630,7 +2836,7 @@ makeactualcall:
 					}
 				}
 			else {
-				var_to_reg_flt(s1, src, REG_FTMP1);
+				var_to_reg_int(s1, src, REG_ITMP1);
 				if (!(interfaces[len][s2].flags & INMEMORY)) {
 					M_INTMOVE(s1,interfaces[len][s2].regoff);
 					}
@@ -2641,6 +2847,7 @@ makeactualcall:
 			}
 		src = src->prev;
 		}
+	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
 	bptr -> mpc = (int)((u1*) mcodeptr - mcodebase);

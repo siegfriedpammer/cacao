@@ -599,6 +599,7 @@ static void allocate_scratch_registers()
 					/* pop 0 push 0 */
 
 					case ICMD_NOP:
+					case ICMD_ELSE_ICONST:
 					case ICMD_CHECKASIZE:
 					case ICMD_IINC:
 					case ICMD_JSR:
@@ -865,6 +866,7 @@ static void allocate_scratch_registers()
 					case ICMD_IADDCONST:
 					case ICMD_ISUBCONST:
 					case ICMD_IMULCONST:
+					case ICMD_IDIVPOW2:
 					case ICMD_IREMPOW2:
 					case ICMD_IREM0X10001:
 					case ICMD_IANDCONST:
@@ -877,6 +879,7 @@ static void allocate_scratch_registers()
 					case ICMD_LADDCONST:
 					case ICMD_LSUBCONST:
 					case ICMD_LMULCONST:
+					case ICMD_LDIVPOW2:
 					case ICMD_LREMPOW2:
 					case ICMD_LREM0X10001:
 					case ICMD_LANDCONST:
@@ -885,6 +888,13 @@ static void allocate_scratch_registers()
 					case ICMD_LSHLCONST:
 					case ICMD_LSHRCONST:
 					case ICMD_LUSHRCONST:
+
+					case ICMD_IFEQ_ICONST:
+					case ICMD_IFNE_ICONST:
+					case ICMD_IFLT_ICONST:
+					case ICMD_IFGE_ICONST:
+					case ICMD_IFGT_ICONST:
+					case ICMD_IFLE_ICONST:
 
 					case ICMD_INEG:
 					case ICMD_INT2BYTE:

@@ -55,28 +55,28 @@ public class jctest implements jcinterface {
 		testconst (0x7fffffff, 0x7fffffffffffffffL);
 		testconst (0x80000000, 0x8000000000000000L);
 
-		p ("------------------- test rem consts");
-		testremconst(17);
-		testremconst(12347);
-		testremconst(8893427);
-		testremconst(1005234562);
-		testremconst(-17);
-		testremconst(-12347);
-		testremconst(-8893427);
-		testremconst(-1005234562);
+		p ("------------------- test div and rem consts");
+		testdivremconst(17);
+		testdivremconst(12347);
+		testdivremconst(8893427);
+		testdivremconst(1005234562);
+		testdivremconst(-17);
+		testdivremconst(-12347);
+		testdivremconst(-8893427);
+		testdivremconst(-1005234562);
 
-		testremconst(17L);
-		testremconst(12347L);
-		testremconst(8893427L);
-		testremconst(1005234562L);
-		testremconst(12135005234562L);
-		testremconst(2343552355623464626L);
-		testremconst(-17L);
-		testremconst(-12347L);
-		testremconst(-8893427L);
-		testremconst(-1005234562L);
-		testremconst(-12135005234562L);
-		testremconst(-2343552355623464626L);
+		testdivremconst(17L);
+		testdivremconst(12347L);
+		testdivremconst(8893427L);
+		testdivremconst(1005234562L);
+		testdivremconst(12135005234562L);
+		testdivremconst(2343552355623464626L);
+		testdivremconst(-17L);
+		testdivremconst(-12347L);
+		testdivremconst(-8893427L);
+		testdivremconst(-1005234562L);
+		testdivremconst(-12135005234562L);
+		testdivremconst(-2343552355623464626L);
 
 		p ("------------------- test rem 0x10001");
 		testrem0x10001(0);
@@ -1102,7 +1102,39 @@ public class jctest implements jcinterface {
 		p("LREM0X10001 (" + a + " % 0x10001):  ", a % 0x10001L);
 		}
 
-	static public void testremconst(int a) {
+	static public void testdivremconst(int a) {
+		p("IDIVPOW2 (" + a + " / 0x00000002):  ", a / 0x00000002);
+		p("IDIVPOW2 (" + a + " / 0x00000004):  ", a / 0x00000004);
+		p("IDIVPOW2 (" + a + " / 0x00000008):  ", a / 0x00000008);
+		p("IDIVPOW2 (" + a + " / 0x00000010):  ", a / 0x00000010);
+		p("IDIVPOW2 (" + a + " / 0x00000020):  ", a / 0x00000020);
+		p("IDIVPOW2 (" + a + " / 0x00000040):  ", a / 0x00000040);
+		p("IDIVPOW2 (" + a + " / 0x00000080):  ", a / 0x00000080);
+		p("IDIVPOW2 (" + a + " / 0x00000100):  ", a / 0x00000100);
+		p("IDIVPOW2 (" + a + " / 0x00000200):  ", a / 0x00000200);
+		p("IDIVPOW2 (" + a + " / 0x00000400):  ", a / 0x00000400);
+		p("IDIVPOW2 (" + a + " / 0x00000800):  ", a / 0x00000800);
+		p("IDIVPOW2 (" + a + " / 0x00001000):  ", a / 0x00001000);
+		p("IDIVPOW2 (" + a + " / 0x00002000):  ", a / 0x00002000);
+		p("IDIVPOW2 (" + a + " / 0x00004000):  ", a / 0x00004000);
+		p("IDIVPOW2 (" + a + " / 0x00008000):  ", a / 0x00008000);
+		p("IDIVPOW2 (" + a + " / 0x00010000):  ", a / 0x00010000);
+		p("IDIVPOW2 (" + a + " / 0x00020000):  ", a / 0x00020000);
+		p("IDIVPOW2 (" + a + " / 0x00040000):  ", a / 0x00040000);
+		p("IDIVPOW2 (" + a + " / 0x00080000):  ", a / 0x00080000);
+		p("IDIVPOW2 (" + a + " / 0x00100000):  ", a / 0x00100000);
+		p("IDIVPOW2 (" + a + " / 0x00200000):  ", a / 0x00200000);
+		p("IDIVPOW2 (" + a + " / 0x00400000):  ", a / 0x00400000);
+		p("IDIVPOW2 (" + a + " / 0x00800000):  ", a / 0x00800000);
+		p("IDIVPOW2 (" + a + " / 0x01000000):  ", a / 0x01000000);
+		p("IDIVPOW2 (" + a + " / 0x02000000):  ", a / 0x02000000);
+		p("IDIVPOW2 (" + a + " / 0x04000000):  ", a / 0x04000000);
+		p("IDIVPOW2 (" + a + " / 0x08000000):  ", a / 0x08000000);
+		p("IDIVPOW2 (" + a + " / 0x10000000):  ", a / 0x10000000);
+		p("IDIVPOW2 (" + a + " / 0x20000000):  ", a / 0x20000000);
+		p("IDIVPOW2 (" + a + " / 0x40000000):  ", a / 0x40000000);
+		p("IDIVPOW2 (" + a + " / 0x80000000):  ", a / 0x80000000);
+
 		p("IREMPOW2 (" + a + " % 0x00000002):  ", a % 0x00000002);
 		p("IREMPOW2 (" + a + " % 0x00000004):  ", a % 0x00000004);
 		p("IREMPOW2 (" + a + " % 0x00000008):  ", a % 0x00000008);
@@ -1136,7 +1168,39 @@ public class jctest implements jcinterface {
 		p("IREMPOW2 (" + a + " % 0x80000000):  ", a % 0x80000000);
 		}
 
-	static public void testremconst(long a) {
+	static public void testdivremconst(long a) {
+		p("LDIVPOW2 (" + a + " / 0x00000002):  ", a / 0x00000002);
+		p("LDIVPOW2 (" + a + " / 0x00000004):  ", a / 0x00000004);
+		p("LDIVPOW2 (" + a + " / 0x00000008):  ", a / 0x00000008);
+		p("LDIVPOW2 (" + a + " / 0x00000010):  ", a / 0x00000010);
+		p("LDIVPOW2 (" + a + " / 0x00000020):  ", a / 0x00000020);
+		p("LDIVPOW2 (" + a + " / 0x00000040):  ", a / 0x00000040);
+		p("LDIVPOW2 (" + a + " / 0x00000080):  ", a / 0x00000080);
+		p("LDIVPOW2 (" + a + " / 0x00000100):  ", a / 0x00000100);
+		p("LDIVPOW2 (" + a + " / 0x00000200):  ", a / 0x00000200);
+		p("LDIVPOW2 (" + a + " / 0x00000400):  ", a / 0x00000400);
+		p("LDIVPOW2 (" + a + " / 0x00000800):  ", a / 0x00000800);
+		p("LDIVPOW2 (" + a + " / 0x00001000):  ", a / 0x00001000);
+		p("LDIVPOW2 (" + a + " / 0x00002000):  ", a / 0x00002000);
+		p("LDIVPOW2 (" + a + " / 0x00004000):  ", a / 0x00004000);
+		p("LDIVPOW2 (" + a + " / 0x00008000):  ", a / 0x00008000);
+		p("LDIVPOW2 (" + a + " / 0x00010000):  ", a / 0x00010000);
+		p("LDIVPOW2 (" + a + " / 0x00020000):  ", a / 0x00020000);
+		p("LDIVPOW2 (" + a + " / 0x00040000):  ", a / 0x00040000);
+		p("LDIVPOW2 (" + a + " / 0x00080000):  ", a / 0x00080000);
+		p("LDIVPOW2 (" + a + " / 0x00100000):  ", a / 0x00100000);
+		p("LDIVPOW2 (" + a + " / 0x00200000):  ", a / 0x00200000);
+		p("LDIVPOW2 (" + a + " / 0x00400000):  ", a / 0x00400000);
+		p("LDIVPOW2 (" + a + " / 0x00800000):  ", a / 0x00800000);
+		p("LDIVPOW2 (" + a + " / 0x01000000):  ", a / 0x01000000);
+		p("LDIVPOW2 (" + a + " / 0x02000000):  ", a / 0x02000000);
+		p("LDIVPOW2 (" + a + " / 0x04000000):  ", a / 0x04000000);
+		p("LDIVPOW2 (" + a + " / 0x08000000):  ", a / 0x08000000);
+		p("LDIVPOW2 (" + a + " / 0x10000000):  ", a / 0x10000000);
+		p("LDIVPOW2 (" + a + " / 0x20000000):  ", a / 0x20000000);
+		p("LDIVPOW2 (" + a + " / 0x40000000):  ", a / 0x40000000);
+		p("LDIVPOW2 (" + a + " / 0x80000000):  ", a / 0x80000000);
+
 		p("LREMPOW2 (" + a + " % 0x00000002):  ", a % 0x00000002L);
 		p("LREMPOW2 (" + a + " % 0x00000004):  ", a % 0x00000004L);
 		p("LREMPOW2 (" + a + " % 0x00000008):  ", a % 0x00000008L);
@@ -1210,6 +1274,34 @@ public class jctest implements jcinterface {
 		if (!(a<=b)) p("not IF_ICMPLE");
 		if (!(a>b))  p("not IF_ICMPGT");
 		if (!(a>=b)) p("not IF_ICMPGE");
+		
+		p("COND_ICMPEQ " + a + " == 0: " + ((a == 0) ? 0 : 1));
+		p("COND_ICMPNE " + a + " != 0: " + ((a != 0) ? 0 : 1));
+		p("COND_ICMPLT " + a + " <  0: " + ((a <  0) ? 0 : 1));
+		p("COND_ICMPLE " + a + " <= 0: " + ((a <= 0) ? 0 : 1));
+		p("COND_ICMPGT " + a + " >  0: " + ((a >  0) ? 0 : 1));
+		p("COND_ICMPGE " + a + " >= 0: " + ((a >= 0) ? 0 : 1));
+		
+		p("COND_ICMPEQ " + a + " == 0: " + ((a == 0) ? 1 : 0));
+		p("COND_ICMPNE " + a + " != 0: " + ((a != 0) ? 1 : 0));
+		p("COND_ICMPLT " + a + " <  0: " + ((a <  0) ? 1 : 0));
+		p("COND_ICMPLE " + a + " <= 0: " + ((a <= 0) ? 1 : 0));
+		p("COND_ICMPGT " + a + " >  0: " + ((a >  0) ? 1 : 0));
+		p("COND_ICMPGE " + a + " >= 0: " + ((a >= 0) ? 1 : 0));
+		
+		p("COND_ICMPEQ " + a + " == 0: " + ((a == 0) ? 2 : 3));
+		p("COND_ICMPNE " + a + " != 0: " + ((a != 0) ? 2 : 3));
+		p("COND_ICMPLT " + a + " <  0: " + ((a <  0) ? 2 : 3));
+		p("COND_ICMPLE " + a + " <= 0: " + ((a <= 0) ? 2 : 3));
+		p("COND_ICMPGT " + a + " >  0: " + ((a >  0) ? 2 : 3));
+		p("COND_ICMPGE " + a + " >= 0: " + ((a >= 0) ? 2 : 3));
+		
+		p("COND_ICMPEQ " + a + " == " + b + ": " + (a == b));
+		p("COND_ICMPNE " + a + " != " + b + ": " + (a != b));
+		p("COND_ICMPLT " + a + " <  " + b + ": " + (a <  b));
+		p("COND_ICMPLE " + a + " <= " + b + ": " + (a <= b));
+		p("COND_ICMPGT " + a + " >  " + b + ": " + (a >  b));
+		p("COND_ICMPGE " + a + " >= " + b + ": " + (a >= b));
 		
 	}
 

@@ -628,7 +628,7 @@ static void parse()
 				fr = class_getconstant (class, i, CONSTANT_Fieldref);
 				fi = class_findfield (fr->class, fr->name, fr->descriptor);
 				compiler_addinitclass (fr->class);
-				OP2A(opcode, fi->type, &(fi->value));
+				OP2A(opcode, fi->type, fi);
 				}
 				break;
 			case JAVA_PUTFIELD:
@@ -639,7 +639,7 @@ static void parse()
 				fieldinfo *fi;
 				fr = class_getconstant (class, i, CONSTANT_Fieldref);
 				fi = class_findfield (fr->class, fr->name, fr->descriptor);
-				OP2I(opcode, fi->type, fi->offset);
+				OP2A(opcode, fi->type, fi);
 				}
 				break;
 
@@ -766,12 +766,7 @@ static void parse()
 			/************** any other basic operation **********/
 
 			case JAVA_IDIV:
-				if (SUPPORT_DIVISION) {
-					OP(opcode);
-					}
-				else {
-					BUILTIN2((functionptr) new_builtin_idiv, TYPE_INT);
-					}
+				OP(opcode);
 				break;
 
 			case JAVA_IREM:
@@ -779,12 +774,7 @@ static void parse()
 				break;
 
 			case JAVA_LDIV:
-				if (SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV) {
-					OP(opcode);
-					}
-				else {
-					BUILTIN2((functionptr) new_builtin_ldiv, TYPE_LONG);
-					}
+				OP(opcode);
 				break;
 
 			case JAVA_LREM:
@@ -940,6 +930,7 @@ static void parse()
 		bptr->flags = -1;
 		bptr->type = BBTYPE_STD;
 		bptr->branchrefs = NULL;
+		bptr->pre_count = 0;
 		bptr++;
 		b_count++;
 		}
@@ -954,6 +945,7 @@ static void parse()
 			bptr->type = BBTYPE_STD;
 			bptr->branchrefs = NULL;
 			block_index[p] = b_count;
+			bptr->pre_count = 0;
 			bptr++;
 			b_count++;
 			}
@@ -965,5 +957,6 @@ static void parse()
 	bptr->flags = -1;
 	bptr->type = BBTYPE_STD;
 	bptr->branchrefs = NULL;
+	bptr->pre_count = 0;
 	}
 }

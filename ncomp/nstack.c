@@ -13,6 +13,7 @@
 
 *******************************************************************************/
 
+#define CONDITIONAL_LOADCONST
 
 #ifdef STATISTICS
 #define COUNT(cnt) cnt++
@@ -159,7 +160,7 @@ static void show_icmd_method();
 
 static void analyse_stack()
 {
-	int b_count;
+	int b_count, b_index;
 	int stackdepth;
 	stackptr curstack, new, copy;
 	int opcode, i, len, loops;
@@ -181,9 +182,80 @@ static void analyse_stack()
 		bptr->type = BBTYPE_EXH;
 		bptr->instack = new;
 		bptr->indepth = 1;
+		bptr->pre_count = 10000;
 		STACKRESET;
 		NEWXSTACK;
 		}
+
+#ifdef CONDITIONAL_LOADCONST
+	b_count = block_count;
+	bptr = block;
+	while (--b_count >= 0) {
+		if (bptr[1].ipc > bptr[0].ipc) {
+			iptr = instr + bptr[1].ipc - 1;
+			switch (iptr->opc) {
+				case ICMD_RET:
+				case ICMD_RETURN:
+				case ICMD_IRETURN:
+				case ICMD_LRETURN:
+				case ICMD_FRETURN:
+				case ICMD_DRETURN:
+				case ICMD_ARETURN:
+				case ICMD_ATHROW:
+					break;
+
+				case ICMD_IFEQ:
+				case ICMD_IFNE:
+				case ICMD_IFLT:
+				case ICMD_IFGE:
+				case ICMD_IFGT:
+				case ICMD_IFLE:
+
+				case ICMD_IFNULL:
+				case ICMD_IFNONNULL:
+
+				case ICMD_IF_ICMPEQ:
+				case ICMD_IF_ICMPNE:
+				case ICMD_IF_ICMPLT:
+				case ICMD_IF_ICMPGE:
+				case ICMD_IF_ICMPGT:
+				case ICMD_IF_ICMPLE:
+
+				case ICMD_IF_ACMPEQ:
+				case ICMD_IF_ACMPNE:
+					bptr[1].pre_count++;
+				case ICMD_GOTO:
+					block[block_index[iptr->op1]].pre_count++;
+					break;
+
+				case ICMD_TABLESWITCH:
+					s4ptr = iptr->val.a;
+					block[block_index[*s4ptr++]].pre_count++;   /* default */
+					i = *s4ptr++;                               /* low     */
+					i = *s4ptr++ - i + 1;                       /* high    */
+					while (--i >= 0) {
+						block[block_index[*s4ptr++]].pre_count++;
+						}
+					break;
+					
+				case ICMD_LOOKUPSWITCH:
+					s4ptr = iptr->val.a;
+					block[block_index[*s4ptr++]].pre_count++;   /* default */
+					i = *s4ptr++;                               /* count   */
+					while (--i >= 0) {
+						block[block_index[s4ptr[1]]].pre_count++;
+						s4ptr += 2;
+						}
+					break;
+				default:
+					bptr[1].pre_count++;
+					break;
+				}
+			}
+		bptr++;
+		}
+#endif
+
 
 	do {
 		loops++;
@@ -194,7 +266,10 @@ static void analyse_stack()
 		STACKRESET;
 		deadcode = true;
 		while (--b_count >= 0) {
-			if (superblockend && (bptr->flags < BBREACHED))
+			if (bptr->flags == BBDELETED) {
+				/* do nothing */
+				}
+			else if (superblockend && (bptr->flags < BBREACHED))
 				repeat = true;
 			else if (bptr->flags <= BBREACHED) {
 				if (superblockend)
@@ -216,6 +291,7 @@ static void analyse_stack()
 				i = bptr[0].ipc;
 				len = bptr[1].ipc - i;
 				iptr = &instr[i];
+				b_index = bptr - block;
 				while (--len >= 0)  {
 					opcode = iptr->opc;
 					switch (opcode) {
@@ -224,8 +300,17 @@ static void analyse_stack()
 
 						case ICMD_NOP:
 						case ICMD_CHECKASIZE:
+
+						case ICMD_IFEQ_ICONST:
+						case ICMD_IFNE_ICONST:
+						case ICMD_IFLT_ICONST:
+						case ICMD_IFGE_ICONST:
+						case ICMD_IFGT_ICONST:
+						case ICMD_IFLE_ICONST:
+						case ICMD_ELSE_ICONST:
 							SETDST;
 							break;
+
 						case ICMD_RET:
 							locals[iptr->op1][TYPE_ADR].type = TYPE_ADR;
 						case ICMD_RETURN:
@@ -252,6 +337,75 @@ icmd_iconst_tail:
 										goto icmd_iconst_tail;
 									case ICMD_IMUL:
 										iptr[0].opc = ICMD_IMULCONST;
+										goto icmd_iconst_tail;
+									case ICMD_IDIV:
+										if (iptr[0].val.i == 0x00000002)
+											iptr[0].val.i = 1;
+										else if (iptr[0].val.i == 0x00000004)
+											iptr[0].val.i = 2;
+										else if (iptr[0].val.i == 0x00000008)
+											iptr[0].val.i = 3;
+										else if (iptr[0].val.i == 0x00000010)
+											iptr[0].val.i = 4;
+										else if (iptr[0].val.i == 0x00000020)
+											iptr[0].val.i = 5;
+										else if (iptr[0].val.i == 0x00000040)
+											iptr[0].val.i = 6;
+										else if (iptr[0].val.i == 0x00000080)
+											iptr[0].val.i = 7;
+										else if (iptr[0].val.i == 0x00000100)
+											iptr[0].val.i = 8;
+										else if (iptr[0].val.i == 0x00000200)
+											iptr[0].val.i = 9;
+										else if (iptr[0].val.i == 0x00000400)
+											iptr[0].val.i = 10;
+										else if (iptr[0].val.i == 0x00000800)
+											iptr[0].val.i = 11;
+										else if (iptr[0].val.i == 0x00001000)
+											iptr[0].val.i = 12;
+										else if (iptr[0].val.i == 0x00002000)
+											iptr[0].val.i = 13;
+										else if (iptr[0].val.i == 0x00004000)
+											iptr[0].val.i = 14;
+										else if (iptr[0].val.i == 0x00008000)
+											iptr[0].val.i = 15;
+										else if (iptr[0].val.i == 0x00010000)
+											iptr[0].val.i = 16;
+										else if (iptr[0].val.i == 0x00020000)
+											iptr[0].val.i = 17;
+										else if (iptr[0].val.i == 0x00040000)
+											iptr[0].val.i = 18;
+										else if (iptr[0].val.i == 0x00080000)
+											iptr[0].val.i = 19;
+										else if (iptr[0].val.i == 0x00100000)
+											iptr[0].val.i = 20;
+										else if (iptr[0].val.i == 0x00200000)
+											iptr[0].val.i = 21;
+										else if (iptr[0].val.i == 0x00400000)
+											iptr[0].val.i = 22;
+										else if (iptr[0].val.i == 0x00800000)
+											iptr[0].val.i = 23;
+										else if (iptr[0].val.i == 0x01000000)
+											iptr[0].val.i = 24;
+										else if (iptr[0].val.i == 0x02000000)
+											iptr[0].val.i = 25;
+										else if (iptr[0].val.i == 0x04000000)
+											iptr[0].val.i = 26;
+										else if (iptr[0].val.i == 0x08000000)
+											iptr[0].val.i = 27;
+										else if (iptr[0].val.i == 0x10000000)
+											iptr[0].val.i = 28;
+										else if (iptr[0].val.i == 0x20000000)
+											iptr[0].val.i = 29;
+										else if (iptr[0].val.i == 0x40000000)
+											iptr[0].val.i = 30;
+										else if (iptr[0].val.i == 0x80000000)
+											iptr[0].val.i = 31;
+										else {
+											CONST(TYPE_INT);
+											break;
+											}
+										iptr[0].opc = ICMD_IDIVPOW2;
 										goto icmd_iconst_tail;
 									case ICMD_IREM:
 										if (iptr[0].val.i == 0x10001) {
@@ -361,6 +515,75 @@ icmd_lconst_tail:
 										goto icmd_lconst_tail;
 									case ICMD_LMUL:
 										iptr[0].opc = ICMD_LMULCONST;
+										goto icmd_lconst_tail;
+									case ICMD_LDIV:
+										if (iptr[0].val.l == 0x00000002)
+											iptr[0].val.l = 1;
+										else if (iptr[0].val.l == 0x00000004)
+											iptr[0].val.l = 2;
+										else if (iptr[0].val.l == 0x00000008)
+											iptr[0].val.l = 3;
+										else if (iptr[0].val.l == 0x00000010)
+											iptr[0].val.l = 4;
+										else if (iptr[0].val.l == 0x00000020)
+											iptr[0].val.l = 5;
+										else if (iptr[0].val.l == 0x00000040)
+											iptr[0].val.l = 6;
+										else if (iptr[0].val.l == 0x00000080)
+											iptr[0].val.l = 7;
+										else if (iptr[0].val.l == 0x00000100)
+											iptr[0].val.l = 8;
+										else if (iptr[0].val.l == 0x00000200)
+											iptr[0].val.l = 9;
+										else if (iptr[0].val.l == 0x00000400)
+											iptr[0].val.l = 10;
+										else if (iptr[0].val.l == 0x00000800)
+											iptr[0].val.l = 11;
+										else if (iptr[0].val.l == 0x00001000)
+											iptr[0].val.l = 12;
+										else if (iptr[0].val.l == 0x00002000)
+											iptr[0].val.l = 13;
+										else if (iptr[0].val.l == 0x00004000)
+											iptr[0].val.l = 14;
+										else if (iptr[0].val.l == 0x00008000)
+											iptr[0].val.l = 15;
+										else if (iptr[0].val.l == 0x00010000)
+											iptr[0].val.l = 16;
+										else if (iptr[0].val.l == 0x00020000)
+											iptr[0].val.l = 17;
+										else if (iptr[0].val.l == 0x00040000)
+											iptr[0].val.l = 18;
+										else if (iptr[0].val.l == 0x00080000)
+											iptr[0].val.l = 19;
+										else if (iptr[0].val.l == 0x00100000)
+											iptr[0].val.l = 20;
+										else if (iptr[0].val.l == 0x00200000)
+											iptr[0].val.l = 21;
+										else if (iptr[0].val.l == 0x00400000)
+											iptr[0].val.l = 22;
+										else if (iptr[0].val.l == 0x00800000)
+											iptr[0].val.l = 23;
+										else if (iptr[0].val.l == 0x01000000)
+											iptr[0].val.l = 24;
+										else if (iptr[0].val.l == 0x02000000)
+											iptr[0].val.l = 25;
+										else if (iptr[0].val.l == 0x04000000)
+											iptr[0].val.l = 26;
+										else if (iptr[0].val.l == 0x08000000)
+											iptr[0].val.l = 27;
+										else if (iptr[0].val.l == 0x10000000)
+											iptr[0].val.l = 28;
+										else if (iptr[0].val.l == 0x20000000)
+											iptr[0].val.l = 29;
+										else if (iptr[0].val.l == 0x40000000)
+											iptr[0].val.l = 30;
+										else if (iptr[0].val.l == 0x80000000)
+											iptr[0].val.l = 31;
+										else {
+											CONST(TYPE_LNG);
+											break;
+											}
+										iptr[0].opc = ICMD_LDIVPOW2;
 										goto icmd_lconst_tail;
 									case ICMD_LREM:
 										if (iptr[0].val.l == 0x10001) {
@@ -645,6 +868,60 @@ icmd_lconst_lcmp_tail:
 						case ICMD_IFGT:
 						case ICMD_IFLE:
 							COUNT(count_pcmd_bra);
+#ifdef CONDITIONAL_LOADCONST
+							{
+							tbptr = block + b_index;
+							if ((b_count >= 3) &&
+							    ((b_index + 2) == block_index[iptr[0].op1]) &&
+							    (tbptr[1].pre_count == 1) &&
+							    (iptr[1].opc == ICMD_ICONST) &&
+							    (iptr[2].opc == ICMD_GOTO)   &&
+							    ((b_index + 3) == block_index[iptr[2].op1]) &&
+							    (tbptr[2].pre_count == 1) &&
+							    (iptr[3].opc == ICMD_ICONST)) {
+								OP1_1(TYPE_INT, TYPE_INT);
+								switch (iptr[0].opc) {
+									case ICMD_IFEQ:
+										iptr[0].opc = ICMD_IFNE_ICONST;
+										break;
+									case ICMD_IFNE:
+										iptr[0].opc = ICMD_IFEQ_ICONST;
+										break;
+									case ICMD_IFLT:
+										iptr[0].opc = ICMD_IFGE_ICONST;
+										break;
+									case ICMD_IFGE:
+										iptr[0].opc = ICMD_IFLT_ICONST;
+										break;
+									case ICMD_IFGT:
+										iptr[0].opc = ICMD_IFLE_ICONST;
+										break;
+									case ICMD_IFLE:
+										iptr[0].opc = ICMD_IFGT_ICONST;
+										break;
+									}
+								iptr[0].val.i = iptr[1].val.i;
+								iptr[1].opc = ICMD_ELSE_ICONST;
+								iptr[1].val.i = iptr[3].val.i;
+								iptr[2].opc = ICMD_NOP;
+								iptr[3].opc = ICMD_NOP;
+								tbptr[1].flags = BBDELETED;
+								tbptr[2].flags = BBDELETED;
+								len += 3;
+								if (tbptr[3].pre_count == 2) {
+									tbptr[3].flags = BBDELETED;
+									len += tbptr[4].ipc - tbptr[3].ipc;
+									tbptr[3].ipc = tbptr[4].ipc;
+									b_index ++;
+									}
+								tbptr[1].ipc = tbptr[3].ipc;
+								tbptr[2].ipc = tbptr[3].ipc;
+								bptr[1].ipc = tbptr[3].ipc;
+								b_index += 2;
+								break;
+								}
+							}
+#endif
 							OP1_0(TYPE_INT);
 							tbptr = block + block_index[iptr->op1];
 							MARKREACHED(tbptr, copy);
@@ -822,6 +1099,24 @@ icmd_lconst_lcmp_tail:
 
 						/* pop 2 push 1 */
 						
+						case ICMD_IDIV:
+							if (!(SUPPORT_DIVISION)) {
+								iptr[0].opc = ICMD_BUILTIN2;
+								iptr[0].op1 = TYPE_INT;
+								iptr[0].val.a = (functionptr) new_builtin_idiv;
+								isleafmethod = false;
+								goto builtin2;
+								}
+
+						case ICMD_LDIV:
+							if (!(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)) {
+								iptr[0].opc = ICMD_BUILTIN2;
+								iptr[0].op1 = TYPE_LNG;
+								iptr[0].val.a = (functionptr) new_builtin_ldiv;
+								isleafmethod = false;
+								goto builtin2;
+								}
+
 						case ICMD_IREM:
 							if (!(SUPPORT_DIVISION)) {
 								iptr[0].opc = ICMD_BUILTIN2;
@@ -843,7 +1138,6 @@ icmd_lconst_lcmp_tail:
 						case ICMD_IADD:
 						case ICMD_ISUB:
 						case ICMD_IMUL:
-						case ICMD_IDIV:
 
 						case ICMD_ISHL:
 						case ICMD_ISHR:
@@ -858,7 +1152,6 @@ icmd_lconst_lcmp_tail:
 						case ICMD_LADD:
 						case ICMD_LSUB:
 						case ICMD_LMUL:
-						case ICMD_LDIV:
 
 						case ICMD_LOR:
 						case ICMD_LAND:
@@ -1413,7 +1706,8 @@ static void show_icmd_method()
 		printf("\n");
 		}
 
-	for (b = 0; b < block_count; b++) {
+	for (b = 0; b < block_count; b++)
+		if (block[b].flags != BBDELETED) {
 		deadcode = block[b].flags <= BBREACHED;
 		printf("[");
 		if (deadcode)
@@ -1421,7 +1715,7 @@ static void show_icmd_method()
 				printf(" ?  ");
 		else
 			print_stack(block[b].instack);
-		printf("] L%03d:\n", b);
+		printf("] L%03d(%d):\n", b, block[b].pre_count);
 		for (i = block[b].ipc; i < block[b + 1].ipc; i++) {
 			printf("[");
 			if (deadcode) {
@@ -1435,6 +1729,7 @@ static void show_icmd_method()
 				case ICMD_IADDCONST:
 				case ICMD_ISUBCONST:
 				case ICMD_IMULCONST:
+				case ICMD_IDIVPOW2:
 				case ICMD_IREMPOW2:
 				case ICMD_IREM0X10001:
 				case ICMD_IANDCONST:
@@ -1444,13 +1739,19 @@ static void show_icmd_method()
 				case ICMD_ISHRCONST:
 				case ICMD_IUSHRCONST:
 				case ICMD_ICONST:
-				case ICMD_GETFIELD:
-				case ICMD_PUTFIELD:
+				case ICMD_ELSE_ICONST:
+				case ICMD_IFEQ_ICONST:
+				case ICMD_IFNE_ICONST:
+				case ICMD_IFLT_ICONST:
+				case ICMD_IFGE_ICONST:
+				case ICMD_IFGT_ICONST:
+				case ICMD_IFLE_ICONST:
 					printf(" %d", instr[i].val.i);
 					break;
 				case ICMD_LADDCONST:
 				case ICMD_LSUBCONST:
 				case ICMD_LMULCONST:
+				case ICMD_LDIVPOW2:
 				case ICMD_LREMPOW2:
 				case ICMD_LANDCONST:
 				case ICMD_LORCONST:
@@ -1468,9 +1769,16 @@ static void show_icmd_method()
 					printf(" %f", instr[i].val.d);
 					break;
 				case ICMD_ACONST:
+					printf(" %p", instr[i].val.a);
+					break;
+				case ICMD_GETFIELD:
+				case ICMD_PUTFIELD:
+					printf(" %d,", ((fieldinfo *) instr[i].val.a)->offset);
 				case ICMD_PUTSTATIC:
 				case ICMD_GETSTATIC:
-					printf(" %p", instr[i].val.a);
+					printf(" ");
+					unicode_fprint(stdout,
+					                ((fieldinfo *) instr[i].val.a)->name);
 					break;
 				case ICMD_IINC:
 					printf(" %d + %d", instr[i].op1, instr[i].val.i);
@@ -1609,7 +1917,7 @@ static void show_icmd_method()
 			printf("\n");
 			}
 
-		if (showdisassemble) {
+		if (showdisassemble && (!deadcode)) {
 			printf("\n");
 			i = block[b].mpc;
 			s4ptr = (s4 *) (method->mcode + dseglen + i);
