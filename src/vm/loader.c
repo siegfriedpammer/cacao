@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 1046 2004-04-27 11:57:03Z stefan $
+   $Id: loader.c 1058 2004-05-16 13:14:41Z twisti $
 
 */
 
@@ -3211,16 +3211,18 @@ classinfo *class_init(classinfo *c)
 		if (!c->super->linked)
 			class_link(c->super);
 
-		if (initverbose) {
-			char logtext[MAXLOGTEXT];
-			sprintf(logtext, "Initialize super class ");
-			utf_sprint_classname(logtext + strlen(logtext), c->super->name);
-			sprintf(logtext + strlen(logtext), " from ");
-			utf_sprint_classname(logtext + strlen(logtext), c->name);
-			log_text(logtext);
-		}
+		if (!c->super->initialized) {
+			if (initverbose) {
+				char logtext[MAXLOGTEXT];
+				sprintf(logtext, "Initialize super class ");
+				utf_sprint_classname(logtext + strlen(logtext), c->super->name);
+				sprintf(logtext + strlen(logtext), " from ");
+				utf_sprint_classname(logtext + strlen(logtext), c->name);
+				log_text(logtext);
+			}
 
-		(void) class_init(c->super);
+			(void) class_init(c->super);
+		}
 	}
 
 	/* initialize interface classes */
@@ -3231,16 +3233,18 @@ classinfo *class_init(classinfo *c)
 		if (!c->interfaces[i]->linked)
 			class_link(c->interfaces[i]);
 
-		if (initverbose) {
-			char logtext[MAXLOGTEXT];
-			sprintf(logtext, "Initialize interface class ");
-			utf_sprint_classname(logtext + strlen(logtext), c->interfaces[i]->name);
-			sprintf(logtext + strlen(logtext), " from ");
-			utf_sprint_classname(logtext + strlen(logtext), c->name);
-			log_text(logtext);
+		if (!c->interfaces[i]->initialized) {
+			if (initverbose) {
+				char logtext[MAXLOGTEXT];
+				sprintf(logtext, "Initialize interface class ");
+				utf_sprint_classname(logtext + strlen(logtext), c->interfaces[i]->name);
+				sprintf(logtext + strlen(logtext), " from ");
+				utf_sprint_classname(logtext + strlen(logtext), c->name);
+				log_text(logtext);
+			}
+			
+			(void) class_init(c->interfaces[i]);
 		}
-
-		(void) class_init(c->interfaces[i]);
 	}
 
 	m = class_findmethod(c, utf_clinit, utf_fidesc);
