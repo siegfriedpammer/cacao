@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 730 2003-12-11 21:23:31Z edwin $
+   $Id: jit.c 732 2003-12-12 17:23:15Z stefan $
 
 */
 
@@ -1329,6 +1329,7 @@ static int builtintablelen;
 *****************************************************************************/
 
 builtin_descriptor builtin_desc[] = {
+#if defined(USEBUILTINTABLE)
 	{ICMD_LCMP , BUILTIN_lcmp ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID ,TYPE_INT   ,
 	             SUPPORT_LONG && SUPPORT_LONG_CMP,false,"lcmp"},
 	
@@ -1371,6 +1372,7 @@ builtin_descriptor builtin_desc[] = {
 	             SUPPORT_FLOAT && SUPPORT_FICVT,true ,"f2i"},
 	{ICMD_D2I  , BUILTIN_d2i  ,ICMD_BUILTIN1,TYPE_DOUBLE,TYPE_VOID  ,TYPE_VOID ,TYPE_INT   ,
 	             SUPPORT_DOUBLE && SUPPORT_FICVT,true ,"d2i"},
+#endif
 
 	/* this record marks the end of the automatically replaced opcodes */
 	{255       , NULL        ,0            ,0          ,0          ,0         ,0          ,
