@@ -514,11 +514,15 @@ void gc_finalize (void)
 #ifdef FINALIZER_COUNTING
 				++gc_finalizers_executed;
 #endif
+#ifdef USE_THREADS
 				b = blockInts;
 				blockInts = 0;
+#endif
 				asm_calljavamethod(((java_objectheader*)curr->address)->vftbl->class->finalizer, 
 								   curr->address, NULL, NULL, NULL);
+#ifdef USE_THREADS
 				blockInts = b;
+#endif
 				curr->address = 0;
 			}
 		}
