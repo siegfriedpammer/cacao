@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1033 2004-04-26 16:18:56Z twisti $
+   $Id: native.h 1089 2004-05-27 15:41:37Z twisti $
 
 */
 
@@ -59,6 +59,16 @@ extern classinfo *class_java_lang_Character;
 extern classinfo *class_java_lang_Integer;
 
 
+/* system exception classes required while compiling                          */
+
+extern classinfo *class_java_lang_Throwable;
+
+
+/* exception/error super class */
+
+extern char *string_java_lang_Throwable;
+
+
 /* specify some exception strings for code generation */
 
 extern char *string_java_lang_ArithmeticException;
@@ -68,6 +78,7 @@ extern char *string_java_lang_ArrayStoreException;
 extern char *string_java_lang_ClassCastException;
 extern char *string_java_lang_ClassNotFoundException;
 extern char *string_java_lang_CloneNotSupportedException;
+extern char *string_java_lang_Exception;
 extern char *string_java_lang_IllegalArgumentException;
 extern char *string_java_lang_IllegalMonitorStateException;
 extern char *string_java_lang_NegativeArraySizeException;
@@ -78,13 +89,19 @@ extern char *string_java_lang_NullPointerException;
 
 /* specify some error strings for code generation */
 
+extern char *string_java_lang_AbstractMethodError;
 extern char *string_java_lang_ClassCircularityError;
 extern char *string_java_lang_ClassFormatError;
+extern char *string_java_lang_Error;
+extern char *string_java_lang_ExceptionInInitializerError;
+extern char *string_java_lang_IncompatibleClassChangeError;
+extern char *string_java_lang_InternalError;
 extern char *string_java_lang_LinkageError;
 extern char *string_java_lang_NoClassDefFoundError;
 extern char *string_java_lang_NoSuchFieldError;
 extern char *string_java_lang_NoSuchMethodError;
 extern char *string_java_lang_OutOfMemoryError;
+extern char *string_java_lang_VerifyError;
 
 
 /* the system classloader object */
@@ -96,8 +113,14 @@ extern java_lang_ClassLoader *SystemClassLoader;
 /* javastring-hashtable */
 extern hashtable string_hash; 
 
+/* load, link and compile exceptions used in the system */
+void init_system_exceptions();
+void compile_all_class_methods(classinfo *c);
+
 /* throw an exception and exit */
 void throw_exception_exit();
+
+void throw_cacao_exception_exit(char *exception, char *message);
 
 /* initialize new exceptions */
 java_objectheader *new_exception(char *classname);

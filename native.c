@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1082 2004-05-26 15:04:54Z jowenn $
+   $Id: native.c 1089 2004-05-27 15:41:37Z twisti $
 
 */
 
@@ -56,6 +56,7 @@
 #include "tables.h"
 #include "loader.h"
 #include "jni.h"
+#include "jit/jit.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 #include "threads/thread.h"
@@ -82,6 +83,7 @@ char *classpath;
 /* for java-string to char conversion */
 #define MAXSTRINGSIZE 1000                          
 
+
 /******************** systemclasses required for native methods ***************/
 
 classinfo *class_java_lang_Class;
@@ -101,6 +103,20 @@ classinfo *class_java_lang_Character;
 classinfo *class_java_lang_Integer;
 
 methodinfo *method_vmclass_init;
+
+
+/* system exception classes required while compiling */
+
+classinfo *class_java_lang_Throwable;
+
+
+/* exception/error super class */
+
+char *string_java_lang_Throwable =
+    "java/lang/Throwable";
+
+char *string_java_lang_VMThrowable =
+    "java/lang/VMThrowable";
 
 
 /* specify some exception strings for code generation */
@@ -126,6 +142,9 @@ char *string_java_lang_ClassNotFoundException =
 char *string_java_lang_CloneNotSupportedException =
     "java/lang/CloneNotSupportedException";
 
+char *string_java_lang_Exception =
+    "java/lang/Exception";
+
 char *string_java_lang_IllegalArgumentException =
     "java/lang/IllegalArgumentException";
 
@@ -147,11 +166,26 @@ char *string_java_lang_NullPointerException =
 
 /* specify some error strings for code generation */
 
+char *string_java_lang_AbstractMethodError =
+    "java/lang/AbstractMethodError";
+
 char *string_java_lang_ClassCircularityError =
     "java/lang/ClassCircularityError";
 
 char *string_java_lang_ClassFormatError =
     "java/lang/ClassFormatError";
+
+char *string_java_lang_Error =
+    "java/lang/Error";
+
+char *string_java_lang_ExceptionInInitializerError =
+    "java/lang/ExceptionInInitializerError";
+
+char *string_java_lang_IncompatibleClassChangeError =
+    "java/lang/IncompatibleClassChangeError";
+
+char *string_java_lang_InternalError =
+    "java/lang/InternalError";
 
 char *string_java_lang_LinkageError =
     "java/lang/LinkageError";
@@ -167,6 +201,12 @@ char *string_java_lang_NoSuchMethodError =
 
 char *string_java_lang_OutOfMemoryError =
     "java/lang/OutOfMemoryError";
+
+char *string_java_lang_VerifyError =
+    "java/lang/VerifyError";
+
+char *string_java_lang_VirtualMachineError =
+    "java/lang/VirtualMachineError";
 
 
 /* the system classloader object */
@@ -280,7 +320,119 @@ static bool nativecompdone = false;
 /******************************************************************************/
 /******************************************************************************/
 
-/*--------------- native method calls & classes used -------------------------*/
+/* init_system_exceptions *****************************************************
+
+   load, link and compile exceptions used in the system
+
+*******************************************************************************/
+
+void init_system_exceptions()
+{
+	classinfo *c;
+
+	/* java/lang/Throwable */
+
+	class_java_lang_Throwable =
+		class_new(utf_new_char(string_java_lang_Throwable));
+	class_load(class_java_lang_Throwable);
+	class_link(class_java_lang_Throwable);
+	compile_all_class_methods(class_java_lang_Throwable);
+
+	/* java/lang/VMThrowable */
+
+	c = class_new(utf_new_char(string_java_lang_VMThrowable));
+	class_load(c);
+	class_link(c);
+	compile_all_class_methods(c);
+
+	/* java/lang/ClassFormatError */
+
+	c = class_new(utf_new_char(string_java_lang_ClassFormatError));
+	class_load(c);
+	class_link(c);
+	compile_all_class_methods(c);
+
+	/* java/lang/Error */
+
+	c = class_new(utf_new_char(string_java_lang_Error));
+	class_load(c);
+	class_link(c);
+	compile_all_class_methods(c);
+
+	/* java/lang/Exception */
+
+	c = class_new(utf_new_char(string_java_lang_Exception));
+	class_load(c);
+	class_link(c);
+	compile_all_class_methods(c);
+
+	/* java/lang/IncompatibleClassChangeError */
+
+	c = class_new(utf_new_char(string_java_lang_IncompatibleClassChangeError));
+	class_load(c);
+	class_link(c);
+	compile_all_class_methods(c);
+
+	/* java/lang/LinkageError */
+
+	c = class_new(utf_new_char(string_java_lang_LinkageError));
+	class_load(c);
+	class_link(c);
+	compile_all_class_methods(c);
+
+	/* java/lang/NoClassDefFoundError */
+
+	c = class_new(utf_new_char(string_java_lang_NoClassDefFoundError));
+	class_load(c);
+	class_link(c);
+	compile_all_class_methods(c);
+
+	/* java/lang/NoSuchFieldError */
+
+	c = class_new(utf_new_char(string_java_lang_NoSuchFieldError));
+	class_load(c);
+	class_link(c);
+	compile_all_class_methods(c);
+
+	/* java/lang/NoSuchMethodError */
+
+	c = class_new(utf_new_char(string_java_lang_NoSuchMethodError));
+	class_load(c);
+	class_link(c);
+	compile_all_class_methods(c);
+
+	/* java/lang/OutOfMemoryError */
+
+	c = class_new(utf_new_char(string_java_lang_OutOfMemoryError));
+	class_load(c);
+	class_link(c);
+	compile_all_class_methods(c);
+
+	/* java/lang/VerifyError */
+
+	c = class_new(utf_new_char(string_java_lang_VerifyError));
+	class_load(c);
+	class_link(c);
+	compile_all_class_methods(c);
+
+	/* java/lang/VirtualMachineError */
+
+	c = class_new(utf_new_char(string_java_lang_VirtualMachineError));
+	class_load(c);
+	class_link(c);
+	compile_all_class_methods(c);
+}
+
+
+void compile_all_class_methods(classinfo *c)
+{
+	s4 i;
+
+	for (i = 0; i < c->methodscount; i++) {
+		(void) jit_compile(&(c->methods[i]));
+	}
+}
+
 
 void throw_exception_exit()
 {
@@ -294,8 +446,8 @@ void throw_exception_exit()
 		/* clear exception, because we are calling jit code again */
 		*exceptionptr = NULL;
 
-		printf("Exception in thread \"main\" ");
-		fflush(stdout);
+		fprintf(stderr, "Exception in thread \"main\" ");
+		fflush(stderr);
 
 		c = xptr->vftbl->class;
 
@@ -323,15 +475,54 @@ void throw_exception_exit()
 		if (pss) {
 			asm_calljavafunction(pss, xptr, NULL, NULL, NULL);
 
+			/* this normally means, we are EXTREMLY out of memory, but may be
+			   any other exception */
+			if (*exceptionptr) {
+				utf_fprint_classname(stderr, c->name);
+				fprintf(stderr, "\n");
+			}
+
 		} else {
-			panic("printStackTrace not found!");
+			utf_fprint_classname(stderr, c->name);
+			fprintf(stderr, ": printStackTrace()V not found!\n");
 		}
 
-		fflush(stdout);
+		fflush(stderr);
 
 		/* good bye! */
 		exit(1);
 	}
+}
+
+
+void throw_cacao_exception_exit(char *exception, char *message)
+{
+	s4 i;
+	char *tmp;
+	s4 len;
+
+	len = strlen(exception);
+	tmp = MNEW(char*, len);
+	strncpy(tmp, exception, len);
+
+	/* convert to classname */
+
+   	for (i = len - 1; i >= 0; i--) {
+ 	 	if (tmp[i] == '/') tmp[i] = '.';
+	}
+
+	fprintf(stderr, "Exception in thread \"main\" %s", tmp);
+
+	MFREE(tmp, char*, len);
+
+	if (strlen(message) > 0)
+		fprintf(stderr, ": %s", message);
+
+	fprintf(stderr, "\n");
+	fflush(stderr);
+
+	/* good bye! */
+	exit(1);
 }
 
 
