@@ -326,11 +326,6 @@ static void mcode_finish(int mcodelen)
 		*((void**) (epoint + jr->tablepos)) = epoint + jr->target->mpc;
 		jr = jr->next;
 		}
-
-#ifdef CACHE_FLUSH_BLOCK
-	synchronize_caches(method->mcode, (mcodelen>>2));
-#endif
-	
 }
 
 

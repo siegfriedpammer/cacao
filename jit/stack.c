@@ -516,67 +516,67 @@ icmd_lconst_tail:
 										goto icmd_lconst_tail;
 									case ICMD_LDIV:
 										if (iptr[0].val.l == 0x00000002)
-											iptr[0].val.l = 1;
+											iptr[0].val.i = 1;
 										else if (iptr[0].val.l == 0x00000004)
-											iptr[0].val.l = 2;
+											iptr[0].val.i = 2;
 										else if (iptr[0].val.l == 0x00000008)
-											iptr[0].val.l = 3;
+											iptr[0].val.i = 3;
 										else if (iptr[0].val.l == 0x00000010)
-											iptr[0].val.l = 4;
+											iptr[0].val.i = 4;
 										else if (iptr[0].val.l == 0x00000020)
-											iptr[0].val.l = 5;
+											iptr[0].val.i = 5;
 										else if (iptr[0].val.l == 0x00000040)
-											iptr[0].val.l = 6;
+											iptr[0].val.i = 6;
 										else if (iptr[0].val.l == 0x00000080)
-											iptr[0].val.l = 7;
+											iptr[0].val.i = 7;
 										else if (iptr[0].val.l == 0x00000100)
-											iptr[0].val.l = 8;
+											iptr[0].val.i = 8;
 										else if (iptr[0].val.l == 0x00000200)
-											iptr[0].val.l = 9;
+											iptr[0].val.i = 9;
 										else if (iptr[0].val.l == 0x00000400)
-											iptr[0].val.l = 10;
+											iptr[0].val.i = 10;
 										else if (iptr[0].val.l == 0x00000800)
-											iptr[0].val.l = 11;
+											iptr[0].val.i = 11;
 										else if (iptr[0].val.l == 0x00001000)
-											iptr[0].val.l = 12;
+											iptr[0].val.i = 12;
 										else if (iptr[0].val.l == 0x00002000)
-											iptr[0].val.l = 13;
+											iptr[0].val.i = 13;
 										else if (iptr[0].val.l == 0x00004000)
-											iptr[0].val.l = 14;
+											iptr[0].val.i = 14;
 										else if (iptr[0].val.l == 0x00008000)
-											iptr[0].val.l = 15;
+											iptr[0].val.i = 15;
 										else if (iptr[0].val.l == 0x00010000)
-											iptr[0].val.l = 16;
+											iptr[0].val.i = 16;
 										else if (iptr[0].val.l == 0x00020000)
-											iptr[0].val.l = 17;
+											iptr[0].val.i = 17;
 										else if (iptr[0].val.l == 0x00040000)
-											iptr[0].val.l = 18;
+											iptr[0].val.i = 18;
 										else if (iptr[0].val.l == 0x00080000)
-											iptr[0].val.l = 19;
+											iptr[0].val.i = 19;
 										else if (iptr[0].val.l == 0x00100000)
-											iptr[0].val.l = 20;
+											iptr[0].val.i = 20;
 										else if (iptr[0].val.l == 0x00200000)
-											iptr[0].val.l = 21;
+											iptr[0].val.i = 21;
 										else if (iptr[0].val.l == 0x00400000)
-											iptr[0].val.l = 22;
+											iptr[0].val.i = 22;
 										else if (iptr[0].val.l == 0x00800000)
-											iptr[0].val.l = 23;
+											iptr[0].val.i = 23;
 										else if (iptr[0].val.l == 0x01000000)
-											iptr[0].val.l = 24;
+											iptr[0].val.i = 24;
 										else if (iptr[0].val.l == 0x02000000)
-											iptr[0].val.l = 25;
+											iptr[0].val.i = 25;
 										else if (iptr[0].val.l == 0x04000000)
-											iptr[0].val.l = 26;
+											iptr[0].val.i = 26;
 										else if (iptr[0].val.l == 0x08000000)
-											iptr[0].val.l = 27;
+											iptr[0].val.i = 27;
 										else if (iptr[0].val.l == 0x10000000)
-											iptr[0].val.l = 28;
+											iptr[0].val.i = 28;
 										else if (iptr[0].val.l == 0x20000000)
-											iptr[0].val.l = 29;
+											iptr[0].val.i = 29;
 										else if (iptr[0].val.l == 0x40000000)
-											iptr[0].val.l = 30;
+											iptr[0].val.i = 30;
 										else if (iptr[0].val.l == 0x80000000)
-											iptr[0].val.l = 31;
+											iptr[0].val.i = 31;
 										else {
 											PUSHCONST(TYPE_LNG);
 											break;
@@ -724,11 +724,6 @@ icmd_lconst_lcmp_tail:
 						case ICMD_AALOAD:
 							COUNT(count_check_null);
 							COUNT(count_check_bound);
-						case ICMD_OPT_IALOAD:
-						case ICMD_OPT_LALOAD:
-						case ICMD_OPT_FALOAD:
-						case ICMD_OPT_DALOAD:
-						case ICMD_OPT_AALOAD:
 							COUNT(count_pcmd_mem);
 							OP2IAT_1(opcode-ICMD_IALOAD);
 							break;
@@ -738,9 +733,6 @@ icmd_lconst_lcmp_tail:
 						case ICMD_SALOAD:
 							COUNT(count_check_null);
 							COUNT(count_check_bound);
-						case ICMD_OPT_BALOAD:
-						case ICMD_OPT_CALOAD:
-						case ICMD_OPT_SALOAD:
 							COUNT(count_pcmd_mem);
 							OP2IAT_1(TYPE_INT);
 							break;
@@ -818,11 +810,6 @@ icmd_lconst_lcmp_tail:
 						case ICMD_AASTORE:
 							COUNT(count_check_null);
 							COUNT(count_check_bound);
-						case ICMD_OPT_IASTORE:
-						case ICMD_OPT_LASTORE:
-						case ICMD_OPT_FASTORE:
-						case ICMD_OPT_DASTORE:
-						case ICMD_OPT_AASTORE:
 							COUNT(count_pcmd_mem);
 							OP3TIA_0(opcode-ICMD_IASTORE);
 							break;
@@ -832,9 +819,6 @@ icmd_lconst_lcmp_tail:
 							COUNT(count_check_null);
 							COUNT(count_check_bound);
 							COUNT(count_pcmd_mem);
-						case ICMD_OPT_BASTORE:
-						case ICMD_OPT_CASTORE:
-						case ICMD_OPT_SASTORE:
 							OP3TIA_0(TYPE_INT);
 							break;
 

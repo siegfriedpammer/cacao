@@ -743,40 +743,8 @@ static int jcommandsize[256] = {
 #define JAVA_BREAKPOINT       202
         1,
 
-#define ICMD_OPT_IALOAD       203
-        1,
-#define ICMD_OPT_LALOAD       204
-        1,
-#define ICMD_OPT_FALOAD       205
-        1,
-#define ICMD_OPT_DALOAD       206
-        1,
-#define ICMD_OPT_AALOAD       207
-        1,
-#define ICMD_OPT_BALOAD       208
-        1,
-#define ICMD_OPT_CALOAD       209
-        1,
-#define ICMD_OPT_SALOAD       210
-        1,
-
-#define ICMD_OPT_IASTORE      211
-        1,
-#define ICMD_OPT_LASTORE      212
-        1,
-#define ICMD_OPT_FASTORE      213
-        1,
-#define ICMD_OPT_DASTORE      214
-        1,
-#define ICMD_OPT_AASTORE      215
-        1,
-#define ICMD_OPT_BASTORE      216
-        1,
-#define ICMD_OPT_CASTORE      217
-        1,
-#define ICMD_OPT_SASTORE      218
-        1,
-                        1,1,            /* unused */
+            1,1,1,1,1,1,1,1,            /* unused */
+        1,1,1,1,1,1,1,1,1,1,
         1,1,1,1,1,1,1,1,1,1,
         1,1,1,1,1,1,1,1,1,1,
         1,1,1,1,1,1,1,1,1,1,
@@ -1106,24 +1074,10 @@ static char *icmd_names[256] = {
 	"UNDEF201     ", /* JSR_W       201 */
 	"UNDEF202     ", /* BREAKPOINT  202 */
 
-	"OPT_IALOAD   ", /*             203 */
-	"OPT_LALOAD   ", /*             204 */
-	"OPT_FALOAD   ", /*             205 */
-	"OPT_DALOAD   ", /*             206 */
-	"OPT_AALOAD   ", /*             207 */
-	"OPT_BALOAD   ", /*             208 */
-	"OPT_CALOAD   ", /*             209 */
-	"OPT_SALOAD   ", /*             210 */
-	"OPT_IASTORE  ", /*             211 */
-	"OPT_LASTORE  ", /*             212 */
-	"OPT_FASTORE  ", /*             213 */
-	"OPT_DASTORE  ", /*             214 */
-	"OPT_AASTORE  ", /*             215 */
-	"OPT_BASTORE  ", /*             216 */
-	"OPT_CASTORE  ", /*             217 */
-	"OPT_SASTORE  ", /*             218 */
-
-	                     "UNDEF219","UNDEF220",
+	                      "UNDEF203","UNDEF204","UNDEF205",
+	"UNDEF206","UNDEF207","UNDEF208","UNDEF209","UNDEF210",
+	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
+	"UNDEF216","UNDEF217","UNDEF218","UNDEF219","UNDEF220",
 	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
 	"UNDEF226","UNDEF227","UNDEF228","UNDEF229","UNDEF230",
 	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
@@ -1131,6 +1085,7 @@ static char *icmd_names[256] = {
 	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
 	"UNDEF246","UNDEF247","UNDEF248","UNDEF249","UNDEF250",
 	"UNDEF251","UNDEF252",
+
 	"BUILTIN3     ", /*             253 */
 	"BUILTIN2     ", /*             254 */
 	"BUILTIN1     "  /*             255 */

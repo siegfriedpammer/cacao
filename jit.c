@@ -115,9 +115,9 @@ int *count_store_depth = count_store_depth_init;
 static classinfo  *class;       /* class the compiled method belongs to       */
 static methodinfo *method;      /* pointer to method info of compiled method  */
 static unicode    *descriptor;  /* type descriptor of compiled method         */
-static u2         mparamcount;  /* number of parameters (incl. this)          */
+static int         mparamcount; /* number of parameters (incl. this)          */
 static u1         *mparamtypes; /* types of all parameters (TYPE_INT, ...)    */
-static u2         mreturntype;  /* return type of method                      */
+static int         mreturntype; /* return type of method                      */
 	
 static int maxstack;            /* maximal JavaVM stack size                  */
 static int maxlocals;           /* maximal number of local JavaVM variables   */

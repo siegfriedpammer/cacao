@@ -351,11 +351,14 @@ static void interface_regalloc ()
 	
 static void local_regalloc ()
 {
-	int     s, t;
-	int     intalloc, fltalloc;
+	int      s, t;
+	int      intalloc, fltalloc;
 	varinfo *v;
 	
 	if (isleafmethod) {
+		int arg, doublewordarg;
+		arg = 0;
+		doublewordarg = 0;
 		for (s = 0; s < maxlocals; s++) {
 			intalloc = -1; fltalloc = -1;
 			for (t = TYPE_INT; t <= TYPE_ADR; t++) {
@@ -366,9 +369,10 @@ static void local_regalloc ()
 							v->flags = locals[s][fltalloc].flags;
 							v->regoff = locals[s][fltalloc].regoff;
 							}
-						else if (s < fltreg_argnum) {
+						else if (!doublewordarg && (arg < mparamcount)
+						                        && (arg < fltreg_argnum)) {
 							v->flags = 0;
-							v->regoff = argfltregs[s];
+							v->regoff = argfltregs[arg];
 							}
 						else if (maxtmpfltreguse > 0) {
 							maxtmpfltreguse--;
@@ -391,9 +395,10 @@ static void local_regalloc ()
 							v->flags = locals[s][intalloc].flags;
 							v->regoff = locals[s][intalloc].regoff;
 							}
-						else if (s < intreg_argnum) {
+						else if (!doublewordarg && (arg < mparamcount)
+						                        && (arg < intreg_argnum)) {
 							v->flags = 0;
-							v->regoff = argintregs[s];
+							v->regoff = argintregs[arg];
 							}
 						else if (maxtmpintreguse > 0) {
 							maxtmpintreguse--;
@@ -412,6 +417,16 @@ static void local_regalloc ()
 						intalloc = t;
 						}
 					}
+				}
+			if (arg < mparamcount) {
+				if (doublewordarg) {
+					doublewordarg = 0;
+					arg++;
+					}
+				else if (IS_2_WORD_TYPE(mparamtypes[arg]))
+					doublewordarg = 1;
+				else
+					arg++;
 				}
 			}
 		return;
@@ -636,15 +651,6 @@ static void allocate_scratch_registers()
 					case ICMD_CALOAD:
 					case ICMD_SALOAD:
 
-					case ICMD_OPT_IALOAD:
-					case ICMD_OPT_LALOAD:
-					case ICMD_OPT_FALOAD:
-					case ICMD_OPT_DALOAD:
-					case ICMD_OPT_AALOAD:
-
-					case ICMD_OPT_BALOAD:
-					case ICMD_OPT_CALOAD:
-					case ICMD_OPT_SALOAD:
 						reg_free_temp(src);
 						reg_free_temp(src->prev);
 						reg_new_temp(dst);
@@ -662,15 +668,6 @@ static void allocate_scratch_registers()
 					case ICMD_CASTORE:
 					case ICMD_SASTORE:
 
-					case ICMD_OPT_IASTORE:
-					case ICMD_OPT_LASTORE:
-					case ICMD_OPT_FASTORE:
-					case ICMD_OPT_DASTORE:
-					case ICMD_OPT_AASTORE:
-
-					case ICMD_OPT_BASTORE:
-					case ICMD_OPT_CASTORE:
-					case ICMD_OPT_SASTORE:
 						reg_free_temp(src);
 						reg_free_temp(src->prev);
 						reg_free_temp(src->prev->prev);
