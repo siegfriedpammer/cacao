@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 733 2003-12-12 17:29:40Z stefan $
+   $Id: stack.c 768 2003-12-13 22:56:53Z twisti $
 
 */
 
@@ -643,6 +643,9 @@ void analyse_stack()
 #if SUPPORT_LONG_MUL
 							case ICMD_LMUL:
 								iptr[0].opc = ICMD_LMULCONST;
+#if defined(__I386__)
+								method_uses_edx = true;
+#endif
 								goto icmd_lconst_tail;
 #endif
 #if SUPPORT_LONG_DIV
@@ -851,8 +854,11 @@ void analyse_stack()
 
 						/* pop 2 push 1 */
 
-					case ICMD_IALOAD:
 					case ICMD_LALOAD:
+#if defined(__I386__)
+						method_uses_edx = true;
+#endif
+					case ICMD_IALOAD:
 					case ICMD_FALOAD:
 					case ICMD_DALOAD:
 					case ICMD_AALOAD:
@@ -941,15 +947,19 @@ void analyse_stack()
 					/* pop 3 push 0 */
 
 					case ICMD_IASTORE:
+					case ICMD_AASTORE:
 					case ICMD_LASTORE:
+#if defined(__I386__)
+						method_uses_edx = true;
+#endif
 					case ICMD_FASTORE:
 					case ICMD_DASTORE:
-					case ICMD_AASTORE:
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
 						OP3TIA_0(opcode-ICMD_IASTORE);
 						break;
+
 					case ICMD_BASTORE:
 					case ICMD_CASTORE:
 					case ICMD_SASTORE:
@@ -957,6 +967,9 @@ void analyse_stack()
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
 						OP3TIA_0(TYPE_INT);
+#if defined(__I386__)
+						method_uses_edx = true;
+#endif
 						break;
 
 						/* pop 1 push 0 */
@@ -1300,14 +1313,19 @@ void analyse_stack()
 						isleafmethod = false;
 						goto builtin2;
 #endif
-
-					case ICMD_IADD:
-					case ICMD_ISUB:
-					case ICMD_IMUL:
+#if defined(__I386__)
+						method_uses_edx = true;
+#endif
 
 					case ICMD_ISHL:
 					case ICMD_ISHR:
 					case ICMD_IUSHR:
+#if defined(__I386__)
+						method_uses_ecx = true;
+#endif
+					case ICMD_IADD:
+					case ICMD_ISUB:
+					case ICMD_IMUL:
 					case ICMD_IAND:
 					case ICMD_IOR:
 					case ICMD_IXOR:
@@ -1333,10 +1351,12 @@ void analyse_stack()
 						goto builtin2;
 #endif
 
+					case ICMD_LMUL:
+#if defined(__I386__)
+						method_uses_edx = true;
+#endif
 					case ICMD_LADD:
 					case ICMD_LSUB:
-					case ICMD_LMUL:
-
 					case ICMD_LOR:
 					case ICMD_LAND:
 					case ICMD_LXOR:
@@ -1350,6 +1370,10 @@ void analyse_stack()
 					case ICMD_LUSHR:
 						COUNT(count_pcmd_op);
 						OP2IT_1(TYPE_LNG);
+#if defined(__I386__)
+						method_uses_ecx = true;
+						method_uses_edx = true;
+#endif
 						break;
 
 					case ICMD_FADD:
@@ -1449,6 +1473,9 @@ void analyse_stack()
 					case ICMD_I2L:
 						COUNT(count_pcmd_op);
 						OP1_1(TYPE_INT, TYPE_LNG);
+#if defined(__I386__)
+						method_uses_edx = true;
+#endif
 						break;
 					case ICMD_I2F:
 						COUNT(count_pcmd_op);
@@ -1477,6 +1504,9 @@ void analyse_stack()
 					case ICMD_F2L:
 						COUNT(count_pcmd_op);
 						OP1_1(TYPE_FLT, TYPE_LNG);
+#if defined(__I386__)
+						method_uses_edx = true;
+#endif
 						break;
 					case ICMD_F2D:
 						COUNT(count_pcmd_op);
@@ -1489,6 +1519,9 @@ void analyse_stack()
 					case ICMD_D2L:
 						COUNT(count_pcmd_op);
 						OP1_1(TYPE_DBL, TYPE_LNG);
+#if defined(__I386__)
+						method_uses_edx = true;
+#endif
 						break;
 					case ICMD_D2F:
 						COUNT(count_pcmd_op);
@@ -1497,10 +1530,16 @@ void analyse_stack()
 
 					case ICMD_CHECKCAST:
 						OP1_1(TYPE_ADR, TYPE_ADR);
+#if defined(__I386__)
+						method_uses_edx = true;
+#endif
 						break;
 
-					case ICMD_ARRAYLENGTH:
 					case ICMD_INSTANCEOF:
+#if defined(__I386__)
+						method_uses_edx = true;
+#endif
+					case ICMD_ARRAYLENGTH:
 						OP1_1(TYPE_ADR, TYPE_INT);
 						break;
 
@@ -2046,374 +2085,393 @@ void show_icmd_method()
 	}
 }
 
-void
-show_icmd_block(basicblock *bptr)
+
+void show_icmd_block(basicblock *bptr)
 {
 	int i, j;
 	int deadcode;
 	s4  *s4ptr;
 	instruction *iptr;
 
-		if (bptr->flags != BBDELETED) {
-			deadcode = bptr->flags <= BBREACHED;
+	if (bptr->flags != BBDELETED) {
+		deadcode = bptr->flags <= BBREACHED;
+		printf("[");
+		if (deadcode)
+			for (j = method->maxstack; j > 0; j--)
+				printf(" ?  ");
+		else
+			icmd_print_stack(bptr->instack);
+		printf("] L%03d(%d - %d) flags=%d:\n", bptr->debug_nr, bptr->icount, bptr->pre_count,bptr->flags);
+		iptr = bptr->iinstr;
+
+		for (i=0; i < bptr->icount; i++, iptr++) {
 			printf("[");
-			if (deadcode)
+			if (deadcode) {
 				for (j = method->maxstack; j > 0; j--)
 					printf(" ?  ");
+			}
 			else
-				icmd_print_stack(bptr->instack);
-			printf("] L%03d(%d - %d) flags=%d:\n", bptr->debug_nr, bptr->icount, bptr->pre_count,bptr->flags);
-			iptr = bptr->iinstr;
+				icmd_print_stack(iptr->dst);
+			printf("]     %4d  ", i);
+			/* XXX remove */ /*fflush(stdout);*/
+			show_icmd(iptr,deadcode);
+			printf("\n");
+		}
 
-			for (i=0; i < bptr->icount; i++, iptr++) {
-				printf("[");
-				if (deadcode) {
-					for (j = method->maxstack; j > 0; j--)
-						printf(" ?  ");
+		if (showdisassemble && (!deadcode)) {
+#if defined(__I386__) || defined(__X86_64__)
+			u1 *u1ptr;
+			int a;
+
+			printf("\n");
+			i = bptr->mpc;
+			u1ptr = method->mcode + dseglen + i;
+
+			if (bptr->next != NULL) {
+				for (; i < bptr->next->mpc; i++, u1ptr++) {
+					a = disassinstr(u1ptr, i);
+					i += a;
+					u1ptr += a;
 				}
-				else
-					icmd_print_stack(iptr->dst);
-				printf("]     %4d  ", i);
-				/* XXX remove */ /*fflush(stdout);*/
-				show_icmd(iptr,deadcode);
+				printf("\n");
+
+			} else {
+				for (; u1ptr < (u1 *) (method->mcode + method->mcodelength); i++, u1ptr++) {
+					a = disassinstr(u1ptr, i); 
+					i += a;
+					u1ptr += a;
+				}
 				printf("\n");
 			}
-
-			if (showdisassemble && (!deadcode)) {
-#if defined(__I386__) || defined(__X86_64__)
-				u1 *u1ptr;
-				int a;
-
-				printf("\n");
-				i = bptr->mpc;
-				u1ptr = method->mcode + dseglen + i;
-
-				if (bptr->next != NULL) {
-					for (; i < bptr->next->mpc; i++, u1ptr++) {
-						a = disassinstr(u1ptr, i);
-						i += a;
-						u1ptr += a;
-					}
-					printf("\n");
-
-				} else {
-					for (; u1ptr < (u1 *) (method->mcode + method->mcodelength); i++, u1ptr++) {
-						a = disassinstr(u1ptr, i); 
-						i += a;
-						u1ptr += a;
-					}
-					printf("\n");
-				}
 #else
-				printf("\n");
-				i = bptr->mpc;
-				s4ptr = (s4 *) (method->mcode + dseglen + i);
+			printf("\n");
+			i = bptr->mpc;
+			s4ptr = (s4 *) (method->mcode + dseglen + i);
 
-				if (bptr->next != NULL) {
-					for (; i < bptr->next->mpc; i += 4, s4ptr++) {
-						disassinstr(*s4ptr, i); 
-				    }
-					printf("\n");
-			    }
-				else {
-					for (; s4ptr < (s4 *) (method->mcode + method->mcodelength); i += 4, s4ptr++) {
-						disassinstr(*s4ptr, i); 
-				    }
-					printf("\n");
-			    }
+			if (bptr->next != NULL) {
+				for (; i < bptr->next->mpc; i += 4, s4ptr++) {
+					disassinstr(*s4ptr, i); 
+				}
+				printf("\n");
+
+			} else {
+				for (; s4ptr < (s4 *) (method->mcode + method->mcodelength); i += 4, s4ptr++) {
+					disassinstr(*s4ptr, i); 
+				}
+				printf("\n");
+			}
 #endif
-		    }
 		}
+	}
 }
 
-void
-show_icmd(instruction *iptr,bool deadcode)
+
+void show_icmd(instruction *iptr,bool deadcode)
 {
 	int j;
 	s4  *s4ptr;
 	void **tptr;
 	
-	printf("%s",icmd_names[iptr->opc]);
+	printf("%s", icmd_names[iptr->opc]);
+
 	switch ((int) iptr->opc) {
-				case ICMD_IADDCONST:
-				case ICMD_ISUBCONST:
-				case ICMD_IMULCONST:
-				case ICMD_IDIVPOW2:
-				case ICMD_IREMPOW2:
-				case ICMD_IREM0X10001:
-				case ICMD_IANDCONST:
-				case ICMD_IORCONST:
-				case ICMD_IXORCONST:
-				case ICMD_ISHLCONST:
-				case ICMD_ISHRCONST:
-				case ICMD_IUSHRCONST:
-				case ICMD_LSHLCONST:
-				case ICMD_LSHRCONST:
-				case ICMD_LUSHRCONST:
-				case ICMD_ICONST:
-				case ICMD_ELSE_ICONST:
-				case ICMD_IFEQ_ICONST:
-				case ICMD_IFNE_ICONST:
-				case ICMD_IFLT_ICONST:
-				case ICMD_IFGE_ICONST:
-				case ICMD_IFGT_ICONST:
-				case ICMD_IFLE_ICONST:
-					printf(" %d", iptr->val.i);
-					break;
-				case ICMD_LADDCONST:
-				case ICMD_LSUBCONST:
-				case ICMD_LMULCONST:
-				case ICMD_LDIVPOW2:
-				case ICMD_LREMPOW2:
-				case ICMD_LANDCONST:
-				case ICMD_LORCONST:
-				case ICMD_LXORCONST:
-				case ICMD_LCONST:
+	case ICMD_IADDCONST:
+	case ICMD_ISUBCONST:
+	case ICMD_IMULCONST:
+	case ICMD_IDIVPOW2:
+	case ICMD_IREMPOW2:
+	case ICMD_IREM0X10001:
+	case ICMD_IANDCONST:
+	case ICMD_IORCONST:
+	case ICMD_IXORCONST:
+	case ICMD_ISHLCONST:
+	case ICMD_ISHRCONST:
+	case ICMD_IUSHRCONST:
+	case ICMD_LSHLCONST:
+	case ICMD_LSHRCONST:
+	case ICMD_LUSHRCONST:
+	case ICMD_ICONST:
+	case ICMD_ELSE_ICONST:
+	case ICMD_IFEQ_ICONST:
+	case ICMD_IFNE_ICONST:
+	case ICMD_IFLT_ICONST:
+	case ICMD_IFGE_ICONST:
+	case ICMD_IFGT_ICONST:
+	case ICMD_IFLE_ICONST:
+		printf(" %d", iptr->val.i);
+		break;
+
+	case ICMD_LADDCONST:
+	case ICMD_LSUBCONST:
+	case ICMD_LMULCONST:
+	case ICMD_LDIVPOW2:
+	case ICMD_LREMPOW2:
+	case ICMD_LANDCONST:
+	case ICMD_LORCONST:
+	case ICMD_LXORCONST:
+	case ICMD_LCONST:
 #if defined(__I386__)
-					printf(" %lld", iptr->val.l);
+		printf(" %lld", iptr->val.l);
 #else
-					printf(" %ld", iptr->val.l);
+		printf(" %ld", iptr->val.l);
 #endif
-					break;
-				case ICMD_FCONST:
-					printf(" %f", iptr->val.f);
-					break;
-				case ICMD_DCONST:
-					printf(" %f", iptr->val.d);
-					break;
-				case ICMD_ACONST:
-					printf(" %p", iptr->val.a);
-					break;
-				case ICMD_GETFIELD:
-				case ICMD_PUTFIELD:
-					printf(" %d,", ((fieldinfo *) iptr->val.a)->offset);
-				case ICMD_PUTSTATIC:
-				case ICMD_GETSTATIC:
-					printf(" ");
-					utf_fprint(stdout,
-							   ((fieldinfo *) iptr->val.a)->class->name);
-					printf(".");
-					utf_fprint(stdout,
-							   ((fieldinfo *) iptr->val.a)->name);
-					printf(" (type ");
-					utf_fprint(stdout,
-							   ((fieldinfo *) iptr->val.a)->descriptor);
-					printf(")");
-					break;
-				case ICMD_IINC:
-					printf(" %d + %d", iptr->op1, iptr->val.i);
-					break;
+		break;
 
-			    case ICMD_IASTORE:
-			    case ICMD_SASTORE:
-			    case ICMD_BASTORE:
-			    case ICMD_CASTORE:
-			    case ICMD_LASTORE:
-			    case ICMD_DASTORE:
-			    case ICMD_FASTORE:
-			    case ICMD_AASTORE:
+	case ICMD_FCONST:
+		printf(" %f", iptr->val.f);
+		break;
 
-			    case ICMD_IALOAD:
-			    case ICMD_SALOAD:
-			    case ICMD_BALOAD:
-			    case ICMD_CALOAD:
-			    case ICMD_LALOAD:
-			    case ICMD_DALOAD:
-			    case ICMD_FALOAD:
-			    case ICMD_AALOAD:
-					if (iptr->op1 != 0)
-						printf("(opt.)");
-					break;
+	case ICMD_DCONST:
+		printf(" %f", iptr->val.d);
+		break;
 
-				case ICMD_RET:
-				case ICMD_ILOAD:
-				case ICMD_LLOAD:
-				case ICMD_FLOAD:
-				case ICMD_DLOAD:
-				case ICMD_ALOAD:
-				case ICMD_ISTORE:
-				case ICMD_LSTORE:
-				case ICMD_FSTORE:
-				case ICMD_DSTORE:
-				case ICMD_ASTORE:
-					printf(" %d", iptr->op1);
-					break;
-				case ICMD_NEW:
-					printf(" ");
-					utf_fprint(stdout,
-							   ((classinfo *) iptr->val.a)->name);
-					break;
-				case ICMD_NEWARRAY:
-					switch (iptr->op1) {
-					case 4:
-						printf(" boolean");
-						break;
-					case 5:
-						printf(" char");
-						break;
-					case 6:
-						printf(" float");
-						break;
-					case 7:
-						printf(" double");
-						break;
-					case 8:
-						printf(" byte");
-						break;
-					case 9:
-						printf(" short");
-						break;
-					case 10:
-						printf(" int");
-						break;
-					case 11:
-						printf(" long");
-						break;
-					}
-					break;
-				case ICMD_ANEWARRAY:
-					if (iptr->op1) {
-						printf(" ");
-						utf_fprint(stdout,
-								   ((classinfo *) iptr->val.a)->name);
-					}
-					break;
-	            case ICMD_MULTIANEWARRAY:
-					{
-						vftbl *vft;
-						printf(" %d ",iptr->op1);
-						vft = (vftbl *)iptr->val.a;
-						if (vft)
-							utf_fprint(stdout,vft->class->name);
-						else
-							printf("<null>");
-					}
-					break;
-				case ICMD_CHECKCAST:
-				case ICMD_INSTANCEOF:
-					if (iptr->op1) {
-						classinfo *c = iptr->val.a;
-						if (c->flags & ACC_INTERFACE)
-							printf(" (INTERFACE) ");
-						else
-							printf(" (CLASS,%3d) ", c->vftbl->diffval);
-						utf_fprint(stdout, c->name);
-					}
-					break;
-				case ICMD_BUILTIN3:
-				case ICMD_BUILTIN2:
-				case ICMD_BUILTIN1:
-					printf(" %s", icmd_builtin_name((functionptr) iptr->val.a));
-					break;
-				case ICMD_INVOKEVIRTUAL:
-				case ICMD_INVOKESPECIAL:
-				case ICMD_INVOKESTATIC:
-				case ICMD_INVOKEINTERFACE:
-					printf(" ");
-					utf_fprint(stdout,
-							   ((methodinfo *) iptr->val.a)->class->name);
-					printf(".");
-					utf_fprint(stdout,
-							   ((methodinfo *) iptr->val.a)->name);
-					break;
-				case ICMD_IFEQ:
-				case ICMD_IFNE:
-				case ICMD_IFLT:
-				case ICMD_IFGE:
-				case ICMD_IFGT:
-				case ICMD_IFLE:
-					if (deadcode || !iptr->target)
-						printf("(%d) op1=%d", iptr->val.i, iptr->op1);
-					else
-						printf("(%d) L%03d", iptr->val.i, ((basicblock *) iptr->target)->debug_nr);
-					break;
-				case ICMD_IF_LEQ:
-				case ICMD_IF_LNE:
-				case ICMD_IF_LLT:
-				case ICMD_IF_LGE:
-				case ICMD_IF_LGT:
-				case ICMD_IF_LLE:
-					if (deadcode || !iptr->target)
-						printf("(%lld) op1=%d", iptr->val.l, iptr->op1);
-					else
-						printf("(%lld) L%03d", iptr->val.l, ((basicblock *) iptr->target)->debug_nr);
-					break;
-				case ICMD_JSR:
-				case ICMD_GOTO:
-				case ICMD_IFNULL:
-				case ICMD_IFNONNULL:
-				case ICMD_IF_ICMPEQ:
-				case ICMD_IF_ICMPNE:
-				case ICMD_IF_ICMPLT:
-				case ICMD_IF_ICMPGE:
-				case ICMD_IF_ICMPGT:
-				case ICMD_IF_ICMPLE:
-				case ICMD_IF_LCMPEQ:
-				case ICMD_IF_LCMPNE:
-				case ICMD_IF_LCMPLT:
-				case ICMD_IF_LCMPGE:
-				case ICMD_IF_LCMPGT:
-				case ICMD_IF_LCMPLE:
-				case ICMD_IF_ACMPEQ:
-				case ICMD_IF_ACMPNE:
-					if (deadcode || !iptr->target)
-						printf(" op1=%d", iptr->op1);
-					else
-						printf(" L%03d", ((basicblock *) iptr->target)->debug_nr);
-					break;
-				case ICMD_TABLESWITCH:
+	case ICMD_ACONST:
+		printf(" %p", iptr->val.a);
+		break;
 
-					s4ptr = iptr->val.a;
+	case ICMD_GETFIELD:
+	case ICMD_PUTFIELD:
+		printf(" %d,", ((fieldinfo *) iptr->val.a)->offset);
+	case ICMD_PUTSTATIC:
+	case ICMD_GETSTATIC:
+		printf(" ");
+		utf_fprint(stdout,
+				   ((fieldinfo *) iptr->val.a)->class->name);
+		printf(".");
+		utf_fprint(stdout,
+				   ((fieldinfo *) iptr->val.a)->name);
+		printf(" (type ");
+		utf_fprint(stdout,
+				   ((fieldinfo *) iptr->val.a)->descriptor);
+		printf(")");
+		break;
 
-					if (deadcode || !iptr->target) {
-						printf(" %d;", *s4ptr);
-					}
-					else {
-						tptr = (void **) iptr->target;
-						printf(" L%03d;", ((basicblock *) *tptr)->debug_nr); 
-						tptr++;
-					}
+	case ICMD_IINC:
+		printf(" %d + %d", iptr->op1, iptr->val.i);
+		break;
 
-					s4ptr++;         /* skip default */
-					j = *s4ptr++;                               /* low     */
-					j = *s4ptr++ - j;                           /* high    */
-					while (j >= 0) {
-						if (deadcode || !*tptr)
-							printf(" %d", *s4ptr++);
-						else {
-							printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
-							tptr++;
-						}
-						j--;
-					}
-					break;
-				case ICMD_LOOKUPSWITCH:
-					s4ptr = iptr->val.a;
+	case ICMD_IASTORE:
+	case ICMD_SASTORE:
+	case ICMD_BASTORE:
+	case ICMD_CASTORE:
+	case ICMD_LASTORE:
+	case ICMD_DASTORE:
+	case ICMD_FASTORE:
+	case ICMD_AASTORE:
 
-					if (deadcode || !iptr->target) {
-						printf(" %d;", *s4ptr);
-					}
-					else {
-						tptr = (void **) iptr->target;
-						printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
-						tptr++;
-					}
-					s4ptr++;                                         /* default */
-					j = *s4ptr++;                                    /* count   */
+	case ICMD_IALOAD:
+	case ICMD_SALOAD:
+	case ICMD_BALOAD:
+	case ICMD_CALOAD:
+	case ICMD_LALOAD:
+	case ICMD_DALOAD:
+	case ICMD_FALOAD:
+	case ICMD_AALOAD:
+		if (iptr->op1 != 0)
+			printf("(opt.)");
+		break;
 
-					while (--j >= 0) {
-						if (deadcode || !*tptr) {
-							s4ptr++; /* skip value */
-							printf(" %d",*s4ptr++);
-						}
-						else {
-							printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
-							tptr++;
-						}
-					}
-					break;
+	case ICMD_RET:
+	case ICMD_ILOAD:
+	case ICMD_LLOAD:
+	case ICMD_FLOAD:
+	case ICMD_DLOAD:
+	case ICMD_ALOAD:
+	case ICMD_ISTORE:
+	case ICMD_LSTORE:
+	case ICMD_FSTORE:
+	case ICMD_DSTORE:
+	case ICMD_ASTORE:
+		printf(" %d", iptr->op1);
+		break;
+
+	case ICMD_NEW:
+		printf(" ");
+		utf_fprint(stdout,
+				   ((classinfo *) iptr->val.a)->name);
+		break;
+
+	case ICMD_NEWARRAY:
+		switch (iptr->op1) {
+		case 4:
+			printf(" boolean");
+			break;
+		case 5:
+			printf(" char");
+			break;
+		case 6:
+			printf(" float");
+			break;
+		case 7:
+			printf(" double");
+			break;
+		case 8:
+			printf(" byte");
+			break;
+		case 9:
+			printf(" short");
+			break;
+		case 10:
+			printf(" int");
+			break;
+		case 11:
+			printf(" long");
+			break;
+		}
+		break;
+
+	case ICMD_ANEWARRAY:
+		if (iptr->op1) {
+			printf(" ");
+			utf_fprint(stdout,
+					   ((classinfo *) iptr->val.a)->name);
+		}
+		break;
+
+	case ICMD_MULTIANEWARRAY:
+		{
+			vftbl *vft;
+			printf(" %d ",iptr->op1);
+			vft = (vftbl *)iptr->val.a;
+			if (vft)
+				utf_fprint(stdout,vft->class->name);
+			else
+				printf("<null>");
+		}
+		break;
+
+	case ICMD_CHECKCAST:
+	case ICMD_INSTANCEOF:
+		if (iptr->op1) {
+			classinfo *c = iptr->val.a;
+			if (c->flags & ACC_INTERFACE)
+				printf(" (INTERFACE) ");
+			else
+				printf(" (CLASS,%3d) ", c->vftbl->diffval);
+			utf_fprint(stdout, c->name);
+		}
+		break;
+
+	case ICMD_BUILTIN3:
+	case ICMD_BUILTIN2:
+	case ICMD_BUILTIN1:
+		printf(" %s", icmd_builtin_name((functionptr) iptr->val.a));
+		break;
+
+	case ICMD_INVOKEVIRTUAL:
+	case ICMD_INVOKESPECIAL:
+	case ICMD_INVOKESTATIC:
+	case ICMD_INVOKEINTERFACE:
+		printf(" ");
+		utf_fprint(stdout,
+				   ((methodinfo *) iptr->val.a)->class->name);
+		printf(".");
+		utf_fprint(stdout,
+				   ((methodinfo *) iptr->val.a)->name);
+		break;
+
+	case ICMD_IFEQ:
+	case ICMD_IFNE:
+	case ICMD_IFLT:
+	case ICMD_IFGE:
+	case ICMD_IFGT:
+	case ICMD_IFLE:
+		if (deadcode || !iptr->target)
+			printf("(%d) op1=%d", iptr->val.i, iptr->op1);
+		else
+			printf("(%d) L%03d", iptr->val.i, ((basicblock *) iptr->target)->debug_nr);
+		break;
+
+	case ICMD_IF_LEQ:
+	case ICMD_IF_LNE:
+	case ICMD_IF_LLT:
+	case ICMD_IF_LGE:
+	case ICMD_IF_LGT:
+	case ICMD_IF_LLE:
+		if (deadcode || !iptr->target)
+			printf("(%lld) op1=%d", iptr->val.l, iptr->op1);
+		else
+			printf("(%lld) L%03d", iptr->val.l, ((basicblock *) iptr->target)->debug_nr);
+		break;
+
+	case ICMD_JSR:
+	case ICMD_GOTO:
+	case ICMD_IFNULL:
+	case ICMD_IFNONNULL:
+	case ICMD_IF_ICMPEQ:
+	case ICMD_IF_ICMPNE:
+	case ICMD_IF_ICMPLT:
+	case ICMD_IF_ICMPGE:
+	case ICMD_IF_ICMPGT:
+	case ICMD_IF_ICMPLE:
+	case ICMD_IF_LCMPEQ:
+	case ICMD_IF_LCMPNE:
+	case ICMD_IF_LCMPLT:
+	case ICMD_IF_LCMPGE:
+	case ICMD_IF_LCMPGT:
+	case ICMD_IF_LCMPLE:
+	case ICMD_IF_ACMPEQ:
+	case ICMD_IF_ACMPNE:
+		if (deadcode || !iptr->target)
+			printf(" op1=%d", iptr->op1);
+		else
+			printf(" L%03d", ((basicblock *) iptr->target)->debug_nr);
+		break;
+
+	case ICMD_TABLESWITCH:
+
+
+		if (deadcode || !iptr->target) {
+			printf(" %d;", *s4ptr);
+		}
+		else {
+			tptr = (void **) iptr->target;
+			printf(" L%03d;", ((basicblock *) *tptr)->debug_nr); 
+			tptr++;
+		}
+
+		s4ptr++;         /* skip default */
+		j = *s4ptr++;                               /* low     */
+		j = *s4ptr++ - j;                           /* high    */
+		while (j >= 0) {
+			if (deadcode || !*tptr)
+				printf(" %d", *s4ptr++);
+			else {
+				printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
+				tptr++;
+			}
+			j--;
+		}
+		break;
+
+	case ICMD_LOOKUPSWITCH:
+		s4ptr = iptr->val.a;
+
+		if (deadcode || !iptr->target) {
+			printf(" %d;", *s4ptr);
+		}
+		else {
+			tptr = (void **) iptr->target;
+			printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
+			tptr++;
+		}
+		s4ptr++;                                         /* default */
+		j = *s4ptr++;                                    /* count   */
+
+		while (--j >= 0) {
+			if (deadcode || !*tptr) {
+				s4ptr++; /* skip value */
+				printf(" %d",*s4ptr++);
+			}
+			else {
+				printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
+				tptr++;
+			}
+		}
+		break;
 	}
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
