@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 2061 2005-03-23 11:10:33Z twisti $
+   $Id: utf8.c 2097 2005-03-27 18:59:15Z edwin $
 
 */
 
@@ -179,7 +179,7 @@ void utf8_init(void)
 		utf_new_char("(Ljava/lang/String;)Ljava/lang/Class;");
 
 	utf_java_lang_Throwable__void  = utf_new_char("(Ljava/lang/Throwable;)V");
-	array_packagename              = utf_new_char("<the array package>");
+	array_packagename              = utf_new_char("\t<the array package>");
 }
 
 
