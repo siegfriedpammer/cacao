@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 862 2004-01-06 23:42:01Z stefan $
+   $Id: codegen.c 883 2004-01-14 12:42:52Z stefan $
 
 */
 
@@ -319,7 +319,6 @@ static int reg_of_var(stackptr v, int tempregnum)
 void catch_NullPointerException(int sig)
 {
 	sigset_t nsig;
-	int      instr;
 /*  	long     faultaddr; */
 
 	void **_p = (void **) &sig;
@@ -4423,9 +4422,15 @@ gen_method: {
 					i386_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
 					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstart(mcodeptr - mcodebase);
+#endif
 					if (d != REG_ITMP3) {
 						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
 						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+						codegen_threadcritstop(mcodeptr - mcodebase);
+#endif
 						i386_alu_reg_reg(I386_SUB, REG_ITMP3, REG_ITMP1);
 
 					} else {
@@ -4433,6 +4438,9 @@ gen_method: {
 						i386_alu_reg_reg(I386_SUB, REG_ITMP2, REG_ITMP1);
 						i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
 						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+						codegen_threadcritstop(mcodeptr - mcodebase);
+#endif
 					}
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)

@@ -175,8 +175,18 @@ typedef struct {
 	java_objectheader *_exceptionptr;
 } nativethread;
 
-#if defined(NATIVE_THREADS) && !defined(HAVE___THREAD)
+#if defined(NATIVE_THREADS)
+
+#if !defined(HAVE___THREAD)
 extern pthread_key_t tkey_threadinfo;
+#endif
+
+typedef struct {
+	u1 *mcodebegin, *mcodeend;
+} threadcritnode;
+
+void thread_registercritical(threadcritnode *);
+
 #endif
 
 #else

@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 592 2003-11-09 19:46:15Z twisti $
+   $Id: codegen.inc 883 2004-01-14 12:42:52Z stefan $
 
 */
 
@@ -56,7 +56,15 @@
 #include <string.h>
 #include "toolbox/memory.h"
 #include "toolbox/loging.h"
+#include "threads/thread.h"
 
+
+/************************* critical sections  *********************************/
+
+struct threadcritnodetemp {
+	struct threadcritnodetemp *next;
+	int mcodebegin, mcodeend;
+};
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 #define DSEGINITSIZE  (1<<12)       /*  4 Kbyte data area initialization size */
@@ -77,6 +85,11 @@ static branchref *xcheckarefs;      /* list of array size check branches      */
 static branchref *xnullrefs;        /* list of null check branches            */
 static branchref *xcastrefs;        /* list of cast check branches            */
 static branchref *xdivrefs;         /* list of divide by zero branches        */
+
+static struct threadcritnodetemp *threadcrit;
+                                    /* List of critical code regions          */
+static struct threadcritnodetemp threadcritcurrent;
+static int threadcritcount;         /* Number of critical regions             */
 
 int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
@@ -103,6 +116,8 @@ static void codegen_addxboundrefs(void *branchptr);
 static void codegen_addxnullrefs(void *branchptr);
 static void codegen_addxcastrefs(void *branchptr);
 static void codegen_addxdivrefs(void *branchptr);
+static void codegen_threadcritstart(int offset);
+static void codegen_threadcritstop(int offset);
 
 void dseg_display(s4 *s4ptr);
 
@@ -131,6 +146,11 @@ void codegen_init()
 	xnullrefs = NULL;
 	xcastrefs = NULL;
 	xdivrefs = NULL;
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	threadcritcurrent.next = NULL;
+	threadcritcount = 0;
+#endif
 }
 
 
@@ -384,13 +404,19 @@ static void codegen_finish(int mcodelen)
 	jumpref *jr;
 	u1 *epoint;
 
+	int extralen = 0;
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	extralen += sizeof(threadcritnode) * threadcritcount;
+#endif
+
 	count_code_len += mcodelen;
 	count_data_len += dseglen;
 
 	dseglen = ALIGN(dseglen, MAX_ALIGN);
 
 	method -> mcodelength = mcodelen + dseglen;
-	method -> mcode = CNEW(u1, mcodelen + dseglen);
+	method -> mcode = CNEW(u1, mcodelen + dseglen + extralen);
 
 	memcpy ( method->mcode, dsegtop - dseglen, dseglen);
 	memcpy ( method->mcode + dseglen, mcodebase, mcodelen);
@@ -418,6 +444,23 @@ static void codegen_finish(int mcodelen)
 		}
 	}
 #endif
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	{
+		threadcritnode *n = (threadcritnode*) (method->mcode + mcodelen + dseglen);
+		int i;
+		struct threadcritnodetemp *nt = threadcrit;
+
+		for (i=0; i<threadcritcount; i++)
+		{
+			n->mcodebegin = method->mcode + nt->mcodebegin;
+			n->mcodeend = method->mcode + nt->mcodeend;
+			thread_registercritical(n);
+			n++;
+			nt = nt->next;
+		}
+	}
+#endif
 }
 
 
@@ -433,6 +476,21 @@ void dseg_display(s4 *s4ptr)
 	printf("  --- begin of data segment: %p\n", s4ptr);
 }
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+void codegen_threadcritstart(int offset)
+{
+	threadcritcurrent.mcodebegin = offset;
+}
+
+void codegen_threadcritstop(int offset)
+{
+	threadcritcurrent.next = threadcrit;
+	threadcritcurrent.mcodeend = offset;
+	threadcrit = DNEW(struct threadcritnodetemp);
+	*threadcrit = threadcritcurrent;
+	threadcritcount++;
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
