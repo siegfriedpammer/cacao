@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: emitfuncs.c 2042 2005-03-20 13:42:54Z twisti $
 
 */
 
@@ -438,6 +438,14 @@ void i386_mov_mem_reg(codegendata *cd, s4 mem, s4 dreg)
 {
 	*(cd->mcodeptr++) = 0x8b;
 	i386_emit_mem((dreg),(mem));
+}
+
+
+void i386_mov_imm_mem(codegendata *cd, s4 imm, s4 mem)
+{
+	*(cd->mcodeptr++) = 0xc7;
+	i386_emit_mem(0, mem);
+	i386_emit_imm32(imm);
 }
 
 
