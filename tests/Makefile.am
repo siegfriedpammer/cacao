@@ -1,18 +1,21 @@
 SUBDIRS = kaffe
 
-EXTRA_DIST = x.java x.output jctest.java fptest.java jctest.output fptest.output \
-		GCBench.java
+EXTRA_DIST = x.java x.output \
+	jctest.java jctest.output \
+	fp.java fp.output \
+	fptest.java fptest.output \
+	GCBench.java
 
 check_DATA = checkall
 
-checkall: x.tst jctest.tst fptest.tst GCBench.tstrun
+checkall: x.tst jctest.tst fp.tst fptest.tst GCBench.tstrun
 
 %.tst:
-	../cacao -ieee sun.tools.javac.Main $*.java
-	../cacao -ieee $* >$*.thisoutput
+	../cacao sun.tools.javac.Main $*.java
+	../cacao $* >$*.thisoutput
 	diff --brief $*.thisoutput $*.output
 	rm -f $*.thisoutput
 
 %.tstrun:
-	../cacao -ieee sun.tools.javac.Main $*.java
-	../cacao -ieee $*
+	../cacao sun.tools.javac.Main $*.java
+	../cacao $*
