@@ -255,6 +255,7 @@ initThreadsEarly()
 	sem_init(&suspend_ack, 0, 0);
 }
 
+static pthread_attr_t threadattr;
 static void freeLockRecordPools(lockRecordPool *);
 
 void
@@ -289,6 +290,9 @@ initThreads(u1 *stackbottom)
 	/* Allocate and init ThreadGroup */
 	mainthread->group = (java_lang_ThreadGroup*)native_new_and_init(loader_load(utf_new_char("java/lang/ThreadGroup")));
 	assert(mainthread->group != 0);
+
+	pthread_attr_init(&threadattr);
+	pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_DETACHED);
 }
 
 void initThread(java_lang_Thread *t)
@@ -349,8 +353,9 @@ static void *threadstartup(void *t)
 void startThread(threadobject *t)
 {
 	nativethread *info = &t->info;
-	pthread_create(&info->tid, NULL, threadstartup, t);
-	pthread_detach(info->tid);
+	
+	if (pthread_create(&info->tid, &threadattr, threadstartup, t))
+		panic("pthread_create failed");
 }
 
 void joinAllThreads()
