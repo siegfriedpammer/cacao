@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 862 2004-01-06 23:42:01Z stefan $
+   $Id: codegen.c 929 2004-02-26 00:20:02Z twisti $
 
 */
 
@@ -38,9 +38,11 @@
 #include <stdio.h>
 #include <signal.h>
 #include "types.h"
+#include "main.h"
 #include "codegen.h"
 #include "jit.h"
 #include "reg.h"
+#include "parse.h"
 #include "builtin.h"
 #include "asmpart.h"
 #include "jni.h"
@@ -99,11 +101,6 @@ int nregdescfloat[] = {
     else if ((reg) == RBP || (reg) == RSP || (reg) == R12 || (reg) == R13) (var) += 1;
 
 
-#define CALCREGOFFBYTES(var, val) \
-    if ((val) > 15) (var) += 4; \
-    else if ((val) != 0) (var) += 1;
-
-
 #define CALCIMMEDIATEBYTES(var, val) \
     if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
     else (var) += 1;
@@ -111,16 +108,12 @@ int nregdescfloat[] = {
 
 /* gen_nullptr_check(objreg) */
 
-#ifdef SOFTNULLPTRCHECK
 #define gen_nullptr_check(objreg) \
 	if (checknull) { \
         x86_64_test_reg_reg((objreg), (objreg)); \
         x86_64_jcc(X86_64_CC_E, 0); \
  	    codegen_addxnullrefs(mcodeptr); \
 	}
-#else
-#define gen_nullptr_check(objreg)
-#endif
 
 
 /* MCODECHECK(icnt) */
@@ -333,7 +326,7 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 						 utf_new_char("<init>"), 
 						 utf_new_char("(Ljava/lang/String;)V"));
 
-	asm_calljavamethod(m, p, javastring_new_char("/ by zero"), NULL, NULL);
+	asm_calljavafunction(m, p, javastring_new_char("/ by zero"), NULL, NULL);
 
 	sigctx->rax = (long) p;                              /* REG_ITMP1_XPTR    */
 	sigctx->r10 = sigctx->rip;                           /* REG_ITMP2_XPC     */
@@ -2404,69 +2397,93 @@ void codegen()
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
 
-			a = dseg_addaddress(&(((fieldinfo *)(iptr->val.a))->value));
+			/* if class isn't yet initialized, do it */
+  			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
+				/* call helper function which patches this code */
+				x86_64_mov_imm_reg((s8) ((fieldinfo *) iptr->val.a)->class, REG_ITMP1);
+				x86_64_mov_imm_reg((s8) asm_check_clinit, REG_ITMP2);
+				x86_64_call_reg(REG_ITMP2);
+  			}
+
+			a = dseg_addaddress(&(((fieldinfo *) iptr->val.a)->value));
 /*    			x86_64_mov_imm_reg(0, REG_ITMP2); */
 /*    			dseg_adddata(mcodeptr); */
-/*    			x86_64_mov_membase_reg(REG_ITMP2, a, REG_ITMP3); */
-			x86_64_mov_membase_reg(RIP, -(((s8) mcodeptr + 7) - (s8) mcodebase) + a, REG_ITMP2);
+/*    			x86_64_mov_membase_reg(REG_ITMP2, a, REG_ITMP2); */
+  			x86_64_mov_membase_reg(RIP, -(((s8) mcodeptr + 7) - (s8) mcodebase) + a, REG_ITMP2);
 			switch (iptr->op1) {
-				case TYPE_INT:
-					var_to_reg_int(s2, src, REG_ITMP1);
-					x86_64_movl_reg_membase(s2, REG_ITMP2, 0);
-					break;
-				case TYPE_LNG:
-				case TYPE_ADR:
-					var_to_reg_int(s2, src, REG_ITMP1);
-					x86_64_mov_reg_membase(s2, REG_ITMP2, 0);
-					break;
-				case TYPE_FLT:
-					var_to_reg_flt(s2, src, REG_FTMP1);
-					x86_64_movss_reg_membase(s2, REG_ITMP2, 0);
-					break;
-				case TYPE_DBL:
-					var_to_reg_flt(s2, src, REG_FTMP1);
-					x86_64_movsd_reg_membase(s2, REG_ITMP2, 0);
-					break;
-				default: panic("internal error");
-				}
+			case TYPE_INT:
+				var_to_reg_int(s2, src, REG_ITMP1);
+				x86_64_movl_reg_membase(s2, REG_ITMP2, 0);
+				break;
+			case TYPE_LNG:
+			case TYPE_ADR:
+				var_to_reg_int(s2, src, REG_ITMP1);
+				x86_64_mov_reg_membase(s2, REG_ITMP2, 0);
+				break;
+			case TYPE_FLT:
+				var_to_reg_flt(s2, src, REG_FTMP1);
+				x86_64_movss_reg_membase(s2, REG_ITMP2, 0);
+				break;
+			case TYPE_DBL:
+				var_to_reg_flt(s2, src, REG_FTMP1);
+				x86_64_movsd_reg_membase(s2, REG_ITMP2, 0);
+				break;
+			default: panic("internal error");
+			}
 			break;
 
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
 
-			a = dseg_addaddress(&(((fieldinfo *)(iptr->val.a))->value));
+			/* if class isn't yet initialized, do it */
+  			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
+				/* call helper function which patches this code */
+				x86_64_mov_imm_reg((s8) ((fieldinfo *) iptr->val.a)->class, REG_ITMP1);
+				x86_64_mov_imm_reg((s8) asm_check_clinit, REG_ITMP2);
+				x86_64_call_reg(REG_ITMP2);
+  			}
+
+			a = dseg_addaddress(&(((fieldinfo *) iptr->val.a)->value));
 /*  			x86_64_mov_imm_reg(0, REG_ITMP2); */
 /*  			dseg_adddata(mcodeptr); */
-/*  			x86_64_mov_membase_reg(REG_ITMP2, a, REG_ITMP3); */
-			x86_64_mov_membase_reg(RIP, -(((s8) mcodeptr + 7) - (s8) mcodebase) + a, REG_ITMP2);
+/*  			x86_64_mov_membase_reg(REG_ITMP2, a, REG_ITMP2); */
+  			x86_64_mov_membase_reg(RIP, -(((s8) mcodeptr + 7) - (s8) mcodebase) + a, REG_ITMP2);
 			switch (iptr->op1) {
-				case TYPE_INT:
-					d = reg_of_var(iptr->dst, REG_ITMP1);
-					x86_64_movl_membase_reg(REG_ITMP2, 0, d);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_LNG:
-				case TYPE_ADR:
-					d = reg_of_var(iptr->dst, REG_ITMP1);
-					x86_64_mov_membase_reg(REG_ITMP2, 0, d);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_FLT:
-					d = reg_of_var(iptr->dst, REG_ITMP1);
-					x86_64_movss_membase_reg(REG_ITMP2, 0, d);
-					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				case TYPE_DBL:				
-					d = reg_of_var(iptr->dst, REG_ITMP1);
-					x86_64_movsd_membase_reg(REG_ITMP2, 0, d);
-					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				default: panic("internal error");
-				}
+			case TYPE_INT:
+				d = reg_of_var(iptr->dst, REG_ITMP1);
+				x86_64_movl_membase_reg(REG_ITMP2, 0, d);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_LNG:
+			case TYPE_ADR:
+				d = reg_of_var(iptr->dst, REG_ITMP1);
+				x86_64_mov_membase_reg(REG_ITMP2, 0, d);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_FLT:
+				d = reg_of_var(iptr->dst, REG_ITMP1);
+				x86_64_movss_membase_reg(REG_ITMP2, 0, d);
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			case TYPE_DBL:				
+				d = reg_of_var(iptr->dst, REG_ITMP1);
+				x86_64_movsd_membase_reg(REG_ITMP2, 0, d);
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			default: panic("internal error");
+			}
 			break;
 
 		case ICMD_PUTFIELD:   /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.i = field offset             */
+
+			/* if class isn't yet initialized, do it */
+  			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
+				/* call helper function which patches this code */
+				x86_64_mov_imm_reg((s8) ((fieldinfo *) iptr->val.a)->class, REG_ITMP1);
+				x86_64_mov_imm_reg((s8) asm_check_clinit, REG_ITMP2);
+				x86_64_call_reg(REG_ITMP2);
+  			}
 
 			a = ((fieldinfo *)(iptr->val.a))->offset;
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -3240,7 +3257,7 @@ gen_method: {
 					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
 					
 					a += 3;    /* sub */
-					CALCOFFSETBYTES(a, 0, super->index);
+					CALCIMMEDIATEBYTES(a, super->index);
 					
 					a += 3;    /* test */
 
@@ -3348,7 +3365,7 @@ gen_method: {
 					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
 
 					a += 3;    /* sub */
-					CALCOFFSETBYTES(a, 0, super->index);
+					CALCIMMEDIATEBYTES(a, super->index);
 
 					a += 3;    /* test */
 					a += 6;    /* jcc */
@@ -3616,7 +3633,6 @@ gen_method: {
 		}
 	}
 
-#ifdef SOFTNULLPTRCHECK
 	/* generate null pointer check stubs */
 	xcodeptr = NULL;
 	
@@ -3649,7 +3665,6 @@ gen_method: {
 		}
 	}
 
-#endif
 	}
 
 	codegen_finish((int)((u1*) mcodeptr - mcodebase));
@@ -3707,7 +3722,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	int stackframesize;                 /* size of stackframe if needed       */
 	mcodeptr = s;                       /* make macros work                   */
 
-	reg_init(m);
+	reg_init();
     descriptor2types(m);                /* set paramcount and paramtypes      */
 
 	if (runverbose) {
@@ -3731,7 +3746,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 /*  		x86_64_movq_reg_membase(argfltregs[6], REG_SP, 13 * 8); */
 /*  		x86_64_movq_reg_membase(argfltregs[7], REG_SP, 14 * 8); */
 
-		/* also show the hex code for floats passed */
+		/* show integer hex code for float arguments */
 		for (p = 0, l = 0; p < m->paramcount; p++) {
 			if (IS_FLT_DBL_TYPE(m->paramtypes[p])) {
 				for (s1 = (m->paramcount > INT_ARG_CNT) ? INT_ARG_CNT - 2 : m->paramcount - 2; s1 >= p; s1--) {
@@ -3743,10 +3758,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			}
 		}
 
-		x86_64_mov_imm_reg((s8) m, REG_ITMP2);
-		x86_64_mov_reg_membase(REG_ITMP2, REG_SP, 0 * 8);
-/*  		x86_64_mov_imm_reg(asm_builtin_trace, REG_ITMP1); */
-		x86_64_mov_imm_reg((s8) builtin_trace_args, REG_ITMP1);
+		x86_64_mov_imm_reg((s8) m, REG_ITMP1);
+		x86_64_mov_reg_membase(REG_ITMP1, REG_SP, 0 * 8);
+  		x86_64_mov_imm_reg((s8) builtin_trace_args, REG_ITMP1);
 		x86_64_call_reg(REG_ITMP1);
 
 		x86_64_mov_membase_reg(REG_SP, 1 * 8, argintregs[0]);
@@ -3781,10 +3795,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 #endif
 
 	/* save argument registers on stack -- if we have to */
-	if ((m->flags & ACC_STATIC && m->paramcount > 4) || m->paramcount > 5) {
+	if ((m->flags & ACC_STATIC && m->paramcount > (INT_ARG_CNT - 2)) || m->paramcount > (INT_ARG_CNT - 1)) {
 		int i;
 		int paramshiftcnt = (m->flags & ACC_STATIC) ? 2 : 1;
-		int stackparamcnt = (m->paramcount > 6) ? m->paramcount - 6 : 0;
+		int stackparamcnt = (m->paramcount > INT_ARG_CNT) ? m->paramcount - INT_ARG_CNT : 0;
 
 		stackframesize = stackparamcnt + paramshiftcnt;
 
@@ -3836,9 +3850,29 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	x86_64_mov_imm_reg((s8) f, REG_ITMP1);
 	x86_64_call_reg(REG_ITMP1);
 
-	/* removed stackframe if there is one */
+	/* remove stackframe if there is one */
 	if (stackframesize) {
 		x86_64_alu_imm_reg(X86_64_ADD, stackframesize * 8, REG_SP);
+	}
+
+	if (runverbose) {
+		x86_64_alu_imm_reg(X86_64_SUB, 3 * 8, REG_SP);    /* keep stack 16-byte aligned */
+
+		x86_64_mov_reg_membase(REG_RESULT, REG_SP, 0 * 8);
+		x86_64_movq_reg_membase(REG_FRESULT, REG_SP, 1 * 8);
+
+  		x86_64_mov_imm_reg((s8) m, argintregs[0]);
+  		x86_64_mov_reg_reg(REG_RESULT, argintregs[1]);
+		M_FLTMOVE(REG_FRESULT, argfltregs[0]);
+  		M_FLTMOVE(REG_FRESULT, argfltregs[1]);
+
+  		x86_64_mov_imm_reg((s8) builtin_displaymethodstop, REG_ITMP1);
+		x86_64_call_reg(REG_ITMP1);
+
+		x86_64_mov_membase_reg(REG_SP, 0 * 8, REG_RESULT);
+		x86_64_movq_membase_reg(REG_SP, 1 * 8, REG_FRESULT);
+
+		x86_64_alu_imm_reg(X86_64_ADD, 3 * 8, REG_SP);    /* keep stack 16-byte aligned */
 	}
 
 #if 0
@@ -3852,27 +3886,6 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	x86_64_alu_imm_reg(X86_64_ADD, 7 * 8, REG_SP);    /* keep stack 16-byte aligned */
 #endif
-
-	if (runverbose) {
-		x86_64_alu_imm_reg(X86_64_SUB, 3 * 8, REG_SP);    /* keep stack 16-byte aligned */
-
-		x86_64_mov_reg_membase(REG_RESULT, REG_SP, 0 * 8);
-		x86_64_movq_reg_membase(REG_FRESULT, REG_SP, 1 * 8);
-
-  		x86_64_mov_imm_reg((s8) m, argintregs[0]);
-  		x86_64_mov_reg_reg(REG_RESULT, argintregs[1]);
-		M_FLTMOVE(REG_FRESULT, argfltregs[0]);
-  		M_FLTMOVE(REG_FRESULT, argfltregs[1]);
-
-/*  		x86_64_mov_imm_reg(asm_builtin_exittrace, REG_ITMP1); */
-		x86_64_mov_imm_reg((s8) builtin_displaymethodstop, REG_ITMP1);
-		x86_64_call_reg(REG_ITMP1);
-
-		x86_64_mov_membase_reg(REG_SP, 0 * 8, REG_RESULT);
-		x86_64_movq_membase_reg(REG_SP, 1 * 8, REG_FRESULT);
-
-		x86_64_alu_imm_reg(X86_64_ADD, 3 * 8, REG_SP);    /* keep stack 16-byte aligned */
-	}
 
 	x86_64_mov_imm_reg((s8) &_exceptionptr, REG_ITMP3);
 	x86_64_mov_membase_reg(REG_ITMP3, 0, REG_ITMP3);
