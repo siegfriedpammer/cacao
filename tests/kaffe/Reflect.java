@@ -3,6 +3,15 @@ import java.lang.reflect.*;
 
 public class Reflect {
 
+  public Reflect() { System.out.println("()"); }    
+  public Reflect(int i) { System.out.println("(I)"); }    
+  public Reflect(long l) { System.out.println("(J)"); }
+  public Reflect(float f) { System.out.println("(F)"); }    
+  public Reflect(double d) { System.out.println("(D)"); }    
+  public Reflect(Integer i) { System.out.println("(L)"); }
+  public Reflect(Integer[] ia) { System.out.println("(L)"); }
+
+
   public static void main(String[] argv)
   {
     String name;
