@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 1371 2004-08-01 21:55:39Z stefan $
+   $Id: gennativetable.c 1405 2004-08-17 09:25:01Z twisti $
 
 */
 
@@ -43,6 +43,7 @@
 #include "loader.h"
 #include "tables.h"
 #include "mm/boehm.h"
+#include "threads/locks.h"
 #include "threads/thread.h"
 #include "toolbox/chain.h"
 #include "toolbox/memory.h"
@@ -82,11 +83,13 @@ int main(int argc, char **argv)
 
 	suck_init(classpath);
    
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
 	initThreadsEarly();
 #endif
 	initLocks();
+#endif
+
 	loader_init((u1 *) &dummy);
 
 
