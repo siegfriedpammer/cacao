@@ -22,7 +22,7 @@ alpha* )
 
 i386* | i486* | i586* | i686* )
 	ARCH_DIR="i386"
-	CFLAGS="-Wall -O2 -g3 -D__I386__"
+	CFLAGS="-Wall -O0 -g3 -D__I386__"
 	AC_DEFINE([TRACE_ARGS_NUM], 8, [Defines integer argument register count])
 	AC_DEFINE([USE_CODEMMAP], 1, [use code mmap])
 	;;
@@ -55,7 +55,7 @@ esac
 
 case "$host_os" in
 *linux* | *Linux* )
-	CFLAGS="$CFLAGS -D__LINUX__"
+        CFLAGS="$CFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
 	;;
 *darwin* )
         CFLAGS="$CFLAGS -D__DARWIN__"
