@@ -153,7 +153,7 @@ heap_init (SIZE size,
 #if !(defined(HAVE_MAP_ANONYMOUS))
 	heap_base = malloc(heap_size);
 #else
-	heap_base = (void*) mmap (NULL, 
+	heap_base = (void*) mmap ((void*) 0x10000000, 
 							  ((size_t)heap_size + PAGESIZE_MINUS_ONE) & ~PAGESIZE_MINUS_ONE,
 							  PROT_READ | PROT_WRITE, 
 							  MAP_PRIVATE | MAP_ANONYMOUS, 
@@ -872,9 +872,9 @@ void gc_mark_stack (void)
 			gc_mark_object_at((void*)aThread);
 			if (CONTEXT(aThread).usedStackTop > CONTEXT(aThread).stackEnd)
 				markreferences((void**)CONTEXT(aThread).stackEnd,
-							   (void**)CONTEXT(aThread).usedStackTop);
+							   (void**)CONTEXT(aThread).usedStackTop + 64);
 			else 	
-				markreferences((void**)CONTEXT(aThread).usedStackTop,
+				markreferences((void**)CONTEXT(aThread).usedStackTop - 64,
 							   (void**)CONTEXT(aThread).stackEnd);
 	    }
 

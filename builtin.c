@@ -915,14 +915,12 @@ void builtin_displaymethodstop(methodinfo *method, long l, double d)
 	switch (method->returntype) {
 		case TYPE_INT:
 		case TYPE_LONG:
+		case TYPE_ADDRESS:
 			sprintf (logtext+strlen(logtext), "->%ld", l);
 			break;
 		case TYPE_FLOAT:
 		case TYPE_DOUBLE:
 			sprintf (logtext+strlen(logtext), "->%g", d);
-			break;
-		case TYPE_ADDRESS:
-			sprintf (logtext+strlen(logtext), "->%p", (void*) l);
 			break;
 		}
 	dolog ();
