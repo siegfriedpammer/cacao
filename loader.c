@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: loader.c 1131 2004-06-05 15:44:52Z twisti $
 
 */
 
@@ -45,7 +45,7 @@
 #include "native.h"
 #include "tables.h"
 #include "builtin.h"
-#include "jit.h"
+#include "jit/jit.h"
 #include "asmpart.h"
 #include "toolbox/memory.h"
 #include "toolbox/logging.h"
@@ -355,7 +355,7 @@ void suck_init(char *cpath)
 				panic("path length >= MAXFILENAME in suck_init");
 
 			if (!filename)
-				filename = MNEW(char*, CLASSPATH_MAXFILENAME);
+				filename = MNEW(char, CLASSPATH_MAXFILENAME);
 
 			strncpy(filename, start, filenamelen);
 			filename[filenamelen + 1] = '\0';
@@ -420,7 +420,6 @@ void create_all_classes()
 
 	for (cpi = classpath_entries; cpi != 0; cpi = cpi->filepath.next) {
 #if defined(USE_ZLIB)
-		unz_file_info file_info;
 		if (cpi->filepath.type == CLASSPATH_ARCHIVE) {
 			cacao_entry_s *ce;
 			unz_s *s;
@@ -1881,7 +1880,7 @@ classinfo *class_load_intern(classbuffer *cb)
 	classinfo *c;
 	u4 i;
 	u4 mi, ma;
-	s4 classdata_left;
+/*  	s4 classdata_left; */
 	char msg[MAXLOGTEXT];               /* maybe we get an exception */
 
 	/* get the classbuffer's class */
@@ -2849,10 +2848,11 @@ static void class_free(classinfo *c)
 
 	for (i = 0; i < c->fieldscount; i++)
 		field_free(&(c->fields[i]));
+/*  	MFREE(c->fields, fieldinfo, c->fieldscount); */
 	
 	for (i = 0; i < c->methodscount; i++)
 		method_free(&(c->methods[i]));
-	MFREE(c->methods, methodinfo, c->methodscount);
+/*  	MFREE(c->methods, methodinfo, c->methodscount); */
 
 	if ((v = c->vftbl) != NULL) {
 		if (v->arraydesc)
@@ -4120,20 +4120,17 @@ void loader_compute_subclasses(classinfo *c)
 
 void loader_close()
 {
-/*  	classinfo *c; */
+	classinfo *c;
+	s4 slot;
 
-/*  	while ((c = list_first(&unloadedclasses))) { */
-/*  		list_remove(&unloadedclasses, c); */
-/*  		class_free(c); */
-/*  	} */
-/*  	while ((c = list_first(&unlinkedclasses))) { */
-/*  		list_remove(&unlinkedclasses, c); */
-/*  		class_free(c); */
-/*  	} */
-/*  	while ((c = list_first(&linkedclasses))) { */
-/*  		list_remove(&linkedclasses, c); */
-/*  		class_free(c); */
-/*  	} */
+	for (slot = 0; slot < class_hash.size; slot++) {
+		c = class_hash.ptr[slot];
+
+		while (c) {
+			class_free(c);
+			c = c->hashlink;
+		}
+	}
 }
 
 
