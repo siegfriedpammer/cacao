@@ -14,9 +14,9 @@ dnl system type
 ASMPART="asmpart.S"
 case "$host_cpu" in
 alpha* )
-	SYSDEP_DIR="alpha" 
+	SYSDEP_DIR="alpha"
 	CFLAGS="-ieee -O2 -g3"
-	COMPILER_SOURCES="compiler.h compiler.c" 
+	COMPILER_SOURCES="compiler.h compiler.c"
 	COMPILER_OBJECTS="compiler.o"
 	AC_DEFINE(OLD_COMPILER)
 	AC_DEFINE(TRACE_ARGS_NUM, 6)
@@ -24,20 +24,20 @@ alpha* )
 	;;
 
 mips* )
-	SYSDEP_DIR="mips" 
+	SYSDEP_DIR="mips"
 	ASMPART="asmpart.s"
         CFLAGS="-64 -g -DMAP_ANONYMOUS=0 -woff 1048,1110,1164,1515"
-	LIBS="-lelfutil" 
+	LIBS="-lelfutil"
 	COMPILER_SOURCES=""
 	COMPILER_OBJECTS=""
 	AC_DEFINE(TRACE_ARGS_NUM, 8)
 	;;
 
 i386* | i486* | i586* | i686* )
-	SYSDEP_DIR="i386" 
+	SYSDEP_DIR="i386"
 	CFLAGS="-O0 -g3 -D__I386__"
-	COMPILER_SOURCES="compiler.h compiler.c" 
-	COMPILER_OBJECTS="compiler.o"
+	COMPILER_SOURCES=""
+	COMPILER_OBJECTS="i386/libdisass.a"
 	;;
 
 sparc* | powerpc* | ppc* | * )
