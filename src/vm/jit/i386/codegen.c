@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1249 2004-06-30 20:22:20Z twisti $
+   $Id: codegen.c 1258 2004-06-30 21:35:11Z twisti $
 
 */
 
@@ -51,7 +51,6 @@
 #include "jit/reg.h"
 #include "jit/i386/codegen.h"
 #include "jit/i386/emitfuncs.h"
-#include "jit/i386/offsets.h"
 
 /* include independent code generation stuff */
 #include "jit/codegen.inc"
@@ -88,57 +87,6 @@ int nregdescfloat[] = {
     REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
     REG_END
 };
-
-
-/* reg_of_var:
-    This function determines a register, to which the result of an operation
-    should go, when it is ultimatively intended to store the result in
-    pseudoregister v.
-    If v is assigned to an actual register, this register will be returned.
-    Otherwise (when v is spilled) this function returns tempregnum.
-    If not already done, regoff and flags are set in the stack location.
-*/        
-
-static int reg_of_var(methodinfo *m, stackptr v, int tempregnum)
-{
-	varinfo *var;
-
-	switch (v->varkind) {
-	case TEMPVAR:
-		if (!(v->flags & INMEMORY))
-			return(v->regoff);
-		break;
-	case STACKVAR:
-		var = &(m->registerdata->interfaces[v->varnum][v->type]);
-		v->regoff = var->regoff;
-		if (!(var->flags & INMEMORY))
-			return(var->regoff);
-		break;
-	case LOCALVAR:
-		var = &(m->registerdata->locals[v->varnum][v->type]);
-		v->regoff = var->regoff;
-		if (!(var->flags & INMEMORY))
-			return(var->regoff);
-		break;
-	case ARGVAR:
-		v->regoff = v->varnum;
-		if (IS_FLT_DBL_TYPE(v->type)) {
-			if (v->varnum < m->registerdata->fltreg_argnum) {
-				v->regoff = m->registerdata->argfltregs[v->varnum];
-				return(m->registerdata->argfltregs[v->varnum]);
-			}
-		}
-		else
-			if (v->varnum < m->registerdata->intreg_argnum) {
-				v->regoff = m->registerdata->argintregs[v->varnum];
-				return(m->registerdata->argintregs[v->varnum]);
-			}
-		v->regoff -= m->registerdata->intreg_argnum;
-		break;
-	}
-	v->flags |= INMEMORY;
-	return tempregnum;
-}
 
 
 void codegen_stubcalled() {
