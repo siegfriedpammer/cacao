@@ -1,17 +1,17 @@
 /* analyze.c *******************************************************************
 
-        Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
-        See file COPYRIGHT for information on usage and disclaimer of warranties.
+	See file COPYRIGHT for information on usage and disclaimer of warranties.
 
-        Contains the functions which perform the bound check removals. With 
-		the loops identified, these functions scan the code for array accesses
-		that take place in loops and try to guarantee that their bounds are
-		never violated. The function to call is optimize_loops().
+	Contains the functions which perform the bound check removals. With 
+	the loops identified, these functions scan the code for array accesses
+	that take place in loops and try to guarantee that their bounds are
+	never violated. The function to call is optimize_loops().
 
-        Authors: Christopher Kruegel      EMAIL: cacao@complang.tuwien.ac.at
+	Authors: Christopher Kruegel      EMAIL: cacao@complang.tuwien.ac.at
 
-        Last Change: 1998/17/02
+	Last Change: 1998/17/02
 
 *******************************************************************************/
  
@@ -19,6 +19,7 @@
 
 /*	Test functions -> will be removed in final release
 */
+
 void show_trace(struct Trace *trace)
 {
 	if (trace != NULL) {
@@ -55,6 +56,8 @@ void show_trace(struct Trace *trace)
 	
 	printf("\n");
 }
+
+
 void show_change(struct Changes *c)
 {
 	printf("*** Changes ***\n");
@@ -63,6 +66,7 @@ void show_change(struct Changes *c)
 	else
 		printf("Unrestricted\n");
 }
+
 show_varinfo(struct LoopVar *lv)
 {
 	printf("   *** Loop Info ***\n");
@@ -71,6 +75,7 @@ show_varinfo(struct LoopVar *lv)
 	printf("D-Valid:\t%d/%d\n", lv->dynamic_l_v, lv->dynamic_u_v);
 	printf("Dynamic\t\t%d/%d\n", lv->dynamic_l, lv->dynamic_u);
 }
+
 void show_right_side()
 {
 	int i;
@@ -93,6 +98,7 @@ void show_right_side()
 	    printf("%d\t", c_current_loop[i]);
 	printf("\n");
 }
+
 void resultPass3()
 {
 	int i;
@@ -121,6 +127,7 @@ void resultPass3()
 	printf("\n");
 	fflush(stdout);
 }
+
 void show_tree(struct LoopContainer *lc, int tabs) 
 {
 	int cnt;
@@ -157,6 +164,7 @@ void show_loop_statistics()
 			}
 		}
 }
+
 void show_procedure_statistics()
 {
 	printf("\n\n****** PROCEDURE STATISTICS ****** \n\n");
@@ -181,14 +189,14 @@ void show_procedure_statistics()
 void analyze_merge(struct LoopContainer *l1, struct LoopContainer *l2)
 {
 	struct LoopElement *start, *last, *le1, *le2; 
-	/* start and last are pointers to the newly built list, le1 and le2 step    */
-	/* step through the lists, that have to be merged.                          */
+	/* start and last are pointers to the newly built list, le1 and le2 step  */
+	/* step through the lists, that have to be merged.                        */
 
 	le1 = l1->nodes;
 	le2 = l2->nodes;
 
-	/* start a simple merge sort of the nodes of both loops. These lists are    */
-	/* already sorted, so merging is easy.                                      */
+	/* start a simple merge sort of the nodes of both loops. These lists are  */
+	/* already sorted, so merging is easy.                                    */
 	if (le1->node < le2->node) {
 		start = last = le1;
 		le1 = le1->next;
@@ -203,8 +211,8 @@ void analyze_merge(struct LoopContainer *l1, struct LoopContainer *l2)
 		le2 = le2->next;
 		}
 
-	/* while the first loop != NULL, depending of the first element of second   */
-	/* loop, add new node to result list                                        */
+	/* while the first loop != NULL, depending of the first element of second */
+	/* loop, add new node to result list                                      */
 	while (le1 != NULL) {
 
 		if (le2 == NULL) {
@@ -282,17 +290,17 @@ void insert_exception(struct LoopContainer *lc, xtable *ex)
 	/* printf("insert_exception called with %d-%d and loop %d\n", ex->start->debug_nr, ex->end->debug_nr, lc->loop_head); */
 #endif
 	
-	/* if child node is reached immediately insert the exception into the tree  */
+	/* if child node is reached immediately insert exception into the tree    */
 	if (lc->tree_down == NULL) {
 		ex->next = lc->exceptions;
 		lc->exceptions = ex;
 	    }
 	else {
-	/* if we are inside the tree, there are two possibilities:                  */
-	/* 1. the exception is inside a nested loop or                              */
-	/* 2. in the loop body of the current loop                                  */
+	/* if we are inside the tree, there are two possibilities:                */
+	/* 1. the exception is inside a nested loop or                            */
+	/* 2. in the loop body of the current loop                                */
 
-		/* check all children (= nested loops)                                  */
+		/* check all children (= nested loops)                                */
 		temp = lc->tree_down;
 		
 		while (temp != NULL) {
@@ -303,22 +311,22 @@ void insert_exception(struct LoopContainer *lc, xtable *ex)
 #ifdef LOOP_DEBUG
 				printf("%d.%d\n", le->node, block_index[ex->startpc]);
 #endif
-				/* if the start of the exception is part of the loop, the whole */
-				/* exception must be part of the loop                           */
+				/* if the start of the exception is part of the loop, the     */
+				/* whole exception must be part of the loop                   */
 				if (le->node == block_index[ex->startpc])
 					break;
 				le = le->next;
 			    }
 			
-			/* Exception is part of a nested loop (Case 1) -> insert it there   */
+			/* Exception is part of a nested loop (Case 1) -> insert it there */
 			if (le != NULL) {
 				insert_exception(temp, ex);
 				return;
 			    }
 			else if ((temp->loop_head >= block_index[ex->startpc]) && (temp->loop_head < block_index[ex->endpc])) {
 				
-				/* optimization: if nested loop is part of the exception, the   */
-				/* exception cannot be part of a differnet nested loop.         */
+				/* optimization: if nested loop is part of the exception, the */
+				/* exception cannot be part of a differnet nested loop.       */
 				ex->next = lc->exceptions;
 				lc->exceptions = ex;
 				return;
@@ -327,7 +335,7 @@ void insert_exception(struct LoopContainer *lc, xtable *ex)
 				temp = temp->tree_right;
 		    }
 		    
-		/* Exception is not contained in any nested loop (Case 2)               */
+		/* Exception is not contained in any nested loop (Case 2)             */
 		if (temp == NULL) {
 			ex->next = lc->exceptions;
 			lc->exceptions = ex;
@@ -344,17 +352,17 @@ void insert_exception(struct LoopContainer *lc, xtable *ex)
 */
 void analyze_nested()
 {
-	/* i/count/tmp are counters                                                 */
-	/* toOverwrite is used while loop hierarchie is built (see below)           */
+	/* i/count/tmp are counters                                               */
+	/* toOverwrite is used while loop hierarchie is built (see below)         */
 	int i, count, header, toOverwrite, tmp, len;
 
-	/* first/last are used during topological sort to build ordered loop list   */
+	/* first/last are used during topological sort to build ordered loop list */
 	struct LoopContainer *first, *last, *start, *t, *temp;
 
-	/* Used to step through all nodes of a loop.                                */
+	/* Used to step through all nodes of a loop.                              */
 	struct LoopElement *le; 
 
-	/* init global structures                                                   */
+	/* init global structures                                                 */
 	c_nestedLoops = DMNEW(int, block_count);
 	c_hierarchie = DMNEW(int, block_count); 	
 	for (i=0; i<block_count; ++i) {
@@ -362,33 +370,33 @@ void analyze_nested()
 		c_hierarchie[i] = -1;
 	    }
 
-	/* if there are no optimizable loops -> return                              */
+	/* if there are no optimizable loops -> return                            */
 	if (c_allLoops == NULL)
 		return;
 
 	temp = c_allLoops;
-	while (temp != NULL) {					/* for all loops, do				*/
+	while (temp != NULL) {              /* for all loops, do                  */
 		header = temp->loop_head;
 
-		/* toOverwrite is number of current parent loop (-1 if none)			*/
+		/* toOverwrite is number of current parent loop (-1 if none)          */
 		toOverwrite = c_nestedLoops[header];	
 
 		c_hierarchie[header] = toOverwrite;
 
-		if (toOverwrite == header)			/* check for loops with same header */
+		if (toOverwrite == header)      /* check for loops with same header   */
 			printf("C_ERROR: Loops have same header\n");
 
 		le = temp->nodes;
-		while (le != NULL) {				/* for all loop nodes, do			*/
+		while (le != NULL) {            /* for all loop nodes, do             */
 			tmp = c_nestedLoops[le->node];
 
-		    /* if node is part of parent loop -> overwrite it with nested	    */
+		    /* if node is part of parent loop -> overwrite it with nested     */
 			if (tmp == toOverwrite)
 				c_nestedLoops[le->node] = header;
 			else {
 				c_hierarchie[tmp] = header;
 #ifdef LOOP_DEBUG
-				/* printf("set head of %d to %d", tmp, header);                 */
+				/* printf("set head of %d to %d", tmp, header);               */
 #endif
 			    }
 
@@ -398,22 +406,22 @@ void analyze_nested()
 		temp = temp->next;
 		}
 
-	/* init root of hierarchie tree                                             */
+	/* init root of hierarchie tree                                           */
 	root = DMNEW(struct LoopContainer, 1);
 	LoopContainerInit(root, -1);
 
-    /* obtain parent pointer and build hierarchie tree                          */
+    /* obtain parent pointer and build hierarchie tree                        */
     start = c_allLoops;    
     while (start != NULL) {
 		
-		/* look for parent of loop pointed at by start                          */
+		/* look for parent of loop pointed at by start                        */
 		first = c_allLoops;
 		while (first != NULL) {
 
-			/* the parent of the loop, pointed at by start has been found       */
+			/* the parent of the loop, pointed at by start has been found     */
 			if (first->loop_head == c_hierarchie[start->loop_head]) {
 #ifdef LOOP_DEBUG
-				/* printf("set parent to pointer\n");                           */
+				/* printf("set parent to pointer\n");                         */
 #endif
 
 				start->parent = first;
@@ -425,24 +433,24 @@ void analyze_nested()
 			first = first->next;
 		    }
 
-		/* no parent loop found, set parent to root                             */
+		/* no parent loop found, set parent to root                           */
 		if (first == NULL) {
 #ifdef LOOP_DEBUG
-			/* printf("set parent to root\n");                                  */
+			/* printf("set parent to root\n");                                */
 #endif
  
 			start->parent = root;
 			start->tree_right = root->tree_down;
 			root->tree_down = start;		
 		    }
-		/* if a parent exists, increase this nodes indegree                     */
+		/* if a parent exists, increase this nodes indegree                   */
 		else
 			start->parent->in_degree += 1;
 
 		start = start->next;
 	    }
 
-	/* insert exceptions into tree                                              */
+	/* insert exceptions into tree                                            */
 #ifdef LOOP_DEBUG
 	printf("--- Showing tree ---\n");
 	show_tree(root, 0);
@@ -452,14 +460,14 @@ void analyze_nested()
 		insert_exception(root, extable + len);
 
 
-	/* determine sequence of loops for optimization by topological sorting them */
+	/* determine sequence of loops for optimization by topological sort       */
 
-	/* init queue                                                               */
+	/* init queue                                                             */
 	start = NULL;
 	temp = c_allLoops;
 	while (temp != NULL) {
 
-		/* a loops with indegree == 0 are pushed onto the stack                 */
+		/* a loops with indegree == 0 are pushed onto the stack               */
 		if (temp->in_degree == 0) {
 			t = temp->next;
 			temp->next = start;
@@ -471,7 +479,7 @@ void analyze_nested()
 		temp = t;
 		}
 
-	/* sort loops                                                               */
+	/* sort loops                                                             */
 	first = last = start;
 	start = start->next;
 
@@ -480,8 +488,8 @@ void analyze_nested()
 		exit(-1);
 	    }
 
-	/* pop each node from the stack and decrease its parents indegree by one    */
-	/* when the parents indegree reaches zero, push it onto the stack as well   */
+	/* pop each node from the stack and decrease its parents indegree by one  */
+	/* when the parents indegree reaches zero, push it onto the stack as well */
 	if ((last->parent != root) && (--last->parent->in_degree == 0)) {
 		last->parent->next = start;
 		start = last->parent;
@@ -521,24 +529,24 @@ void add_to_vars(int var, int type, int direction)
 {
 	struct LoopVar *lv;	
 
-	/* printf("Added to vars %d %d %d\n", var, type, direction);				*/
+	/* printf("Added to vars %d %d %d\n", var, type, direction);              */
 	lv = c_loopvars;
-	while (lv != NULL) {			/* check if var has been previously added	*/
+	while (lv != NULL) {            /* check if var has been previously added */
 		if (lv->value == var) {
 			if (type == ARRAY_INDEX)
-				lv->index = 1;				/* var is used as index		  	    */
+				lv->index = 1;              /* var is used as index           */
 			else if (type == VAR_MOD) {
-				lv->modified = 1;			/* var is used in assignment		*/
-				switch (direction) {   		/* how was var modified ?			*/
+				lv->modified = 1;           /* var is used in assignment      */
+				switch (direction) {        /* how was var modified ?         */
 				case D_UP:
-					lv->static_u = 0;		/* incremented, no static upper		*/
-					break;					/* bound can be guaranteeed			*/
+					lv->static_u = 0;       /* incremented, no static upper   */
+					break;                  /* bound can be guaranteeed       */
 				case D_DOWN:
-					lv->static_l = 0;		/* decremented, no static lower		*/
-					break;					/* bound can be guaranteeed			*/
+					lv->static_l = 0;       /* decremented, no static lower   */
+					break;                  /* bound can be guaranteeed       */
 				case D_UNKNOWN:
 					lv->static_u = lv->static_l = 0;
-					break;					/* no info at all					*/
+					break;                  /* no info at all                 */
 				default:
 					printf("C_ERROR: unknown direction\n");
 					break;
@@ -555,12 +563,12 @@ void add_to_vars(int var, int type, int direction)
 	lv->value = var;
 	if (type == ARRAY_INDEX) {
 		lv->index = 1;
-		lv->static_u = lv->static_l = 1;	/* array index -> var not modified	*/
+		lv->static_u = lv->static_l = 1;    /* arrayindex -> var not modified */
 		}
 	else if (type == VAR_MOD) {
 		lv->modified = 1;
-		switch (direction) {				/* var is used in assignment -> set	*/
-		case D_UP:							/* proper static bounds				*/
+		switch (direction) {                /* var used in assignment -> set  */
+		case D_UP:                          /* proper static bounds           */
 			lv->static_u = 0; lv->static_l = 1;
 			break;
 		case D_DOWN:
@@ -579,10 +587,10 @@ void add_to_vars(int var, int type, int direction)
 	   lv->modified = 0; 
 	   */
 
-	/* no dynamic bounds have been determined so far							*/
+	/* no dynamic bounds have been determined so far                          */
 	lv->dynamic_l = lv->dynamic_l_v = lv->dynamic_u = lv->dynamic_u_v = 0;
 
-	lv->next = c_loopvars;					/* add var to list					*/
+	lv->next = c_loopvars;                  /* add var to list                */
 	c_loopvars = lv;
 }
 
@@ -601,18 +609,18 @@ int analyze_for_array_access(int node)
 	struct depthElement *d;
 	struct Trace *t;
 
-	if (c_toVisit[node] > 0) {			/* node has not been visited yet		*/
+	if (c_toVisit[node] > 0) {          /* node has not been visited yet      */
 		c_toVisit[node] = 0;
    
-		bp = block[node];				/* prepare an instruction scan			*/
+		bp = block[node];               /* prepare an instruction scan        */
 		ip = bp.iinstr;
 		ic = bp.icount;
 
-		access = 0;						/* number of array accesses in loop		*/
+		access = 0;                     /* number of array accesses in loop   */
 
-		for (i=0; i<ic; ++i, ++ip) {	/* for each instruction, check opcode	*/
+		for (i=0; i<ic; ++i, ++ip) {    /* for each instruction, check opcode */
 			switch (ip->opc) {
-			case ICMD_IASTORE:			/* array store							*/
+			case ICMD_IASTORE:          /* array store                        */
 			case ICMD_LASTORE:          
 			case ICMD_FASTORE:          
 			case ICMD_DASTORE:          
@@ -620,10 +628,10 @@ int analyze_for_array_access(int node)
 			case ICMD_BASTORE:          
 			case ICMD_CASTORE:          
 			case ICMD_SASTORE:
-				t = tracing(&bp, i-1, 1);	/* try to identify index variable	*/
+				t = tracing(&bp, i-1, 1);   /* try to identify index variable */
 
 				if (t->type == TRACE_IVAR) {
-					/* if it is a variable, add it to list of index variables	*/
+					/* if it is a variable, add it to list of index variables */
 					add_to_vars(t->var, ARRAY_INDEX, D_UNKNOWN);
 					access++;				
 				}
@@ -639,10 +647,10 @@ int analyze_for_array_access(int node)
 			case ICMD_BALOAD:
 			case ICMD_CALOAD:
 			case ICMD_SALOAD:
-				t = tracing(&bp, i-1, 0);	/* try to identify index variable	*/
+				t = tracing(&bp, i-1, 0);   /* try to identify index variable */
 		
 				if (t->type == TRACE_IVAR) {
-					/* if it is a variable, add it to list of index variables	*/
+					/* if it is a variable, add it to list of index variables */
 					add_to_vars(t->var, ARRAY_INDEX, D_UNKNOWN);
 					access++;
 					}
