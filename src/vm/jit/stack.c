@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: stack.c 605 2003-11-11 23:06:33Z twisti $
+   $Id: stack.c 614 2003-11-12 21:53:42Z stefan $
 
 */
 
@@ -38,7 +38,7 @@
 #include "disass.h"
 #include "reg.h"
 #include "tables.h"
-//#include "types.h"
+#include "types.h"
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
 
@@ -724,7 +724,7 @@ void analyse_stack()
 								iptr[0].opc = ICMD_LXORCONST;
 								goto icmd_lconst_tail;
 #endif
-#if defined(NOLONG_CONDITIONAL)
+#if !defined(NOLONG_CONDITIONAL)
 							case ICMD_LCMP:
 								if ((len > 1) && (iptr[2].val.i == 0)) {
 									switch (iptr[2].opc) {
@@ -1316,7 +1316,7 @@ void analyse_stack()
 
 					case ICMD_LCMP:
 						COUNT(count_pcmd_op);
-#ifndef NOLONG_CONDITIONAL
+#if !defined(NOLONG_CONDITIONAL)
 						if ((len > 0) && (iptr[1].val.i == 0)) {
 							switch (iptr[1].opc) {
 							case ICMD_IFEQ:
