@@ -8,10 +8,11 @@
 	some files and contains global used macros.
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	Chages:  Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
+	Changes: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
+			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1997/10/28
+	Last Change: 1998/10/29
 
 *******************************************************************************/
 
@@ -19,6 +20,10 @@
 #define __global_h_                        /* schani */
 
 #define STATISTICS                         /* andi   */
+
+/* JIT_MARKER_SUPPORT is the define used to toggle Just-in-time generated
+   marker functions on and off. */
+#undef JIT_MARKER_SUPPORT                  /* phil   */
 
 /***************************** standard includes ******************************/
 
@@ -117,15 +122,15 @@ typedef u1* methodptr;
 /********************** data structures of UNICODE symbol *********************/
 
 struct unicode {
-  unicode   *hashlink; /* externe Verkettung f"ur die unicode-Hashtabelle */
-  u4         key;      /* Hash-Schl"ussel (h"angt nur vom Text ab) */
-  int        length;   /* L"ange des Textes */           
-  u2        *text;     /* Zeiger auf den Text (jeder Buchstabe 16 Bit) */
-  classinfo *class;    /* gegebenenfalls Referenz auf die Klasse dieses 
-			  Namens (oder NULL, wenn es keine solche gibt)  */
-  struct java_objectheader *string;
-  /* gegebenenfalls Referenz auf einen konstanten
-     String mit dem entsprechenden Wert */ 
+	unicode   *hashlink; /* externe Verkettung f"ur die unicode-Hashtabelle */
+	u4         key;      /* Hash-Schl"ussel (h"angt nur vom Text ab) */
+	int        length;   /* L"ange des Textes */           
+	u2        *text;     /* Zeiger auf den Text (jeder Buchstabe 16 Bit) */
+	classinfo *class;    /* gegebenenfalls Referenz auf die Klasse dieses 
+							Namens (oder NULL, wenn es keine solche gibt)  */
+	struct java_objectheader *string;
+	/* gegebenenfalls Referenz auf einen konstanten
+	   String mit dem entsprechenden Wert */ 
 };
 
 /* Alle Unicode-Symbole werden in einer einzigen globalen Tabelle 
@@ -138,39 +143,39 @@ struct unicode {
 
 
 typedef struct {
-  classinfo *class;
-  unicode   *name;
-  unicode   *descriptor;
+	classinfo *class;
+	unicode   *name;
+	unicode   *descriptor;
 } constant_FMIref;
 
 
 typedef struct {
-  s4 value;
+	s4 value;
 } constant_integer;
 	
 typedef struct {
-  float value;
+	float value;
 } constant_float;
 
 typedef struct {
-  s8 value;
+	s8 value;
 } constant_long;
 	
 typedef struct {
-  double value;
+	double value;
 } constant_double;
 
 
 typedef struct {
-  unicode *name;
-  unicode *descriptor;
+	unicode *name;
+	unicode *descriptor;
 } constant_nameandtype;
 
 
 typedef struct constant_arraydescriptor {
-  int arraytype;
-  classinfo *objectclass;
-  struct constant_arraydescriptor *elementdescriptor;
+	int arraytype;
+	classinfo *objectclass;
+	struct constant_arraydescriptor *elementdescriptor;
 } constant_arraydescriptor;
 
 /* Mit einem Arraydescriptor kann ein Array-Typ dargestellt werden.
@@ -229,7 +234,7 @@ typedef struct constant_arraydescriptor {
 	*/
 
 typedef struct java_objectheader {    /* Der Header f"ur alle Objekte */
-  vftbl *vftbl;                     /* Zeiger auf die Function Table */
+	vftbl *vftbl;                     /* Zeiger auf die Function Table */
 } java_objectheader;
 
 
@@ -258,9 +263,9 @@ typedef struct java_objectheader {    /* Der Header f"ur alle Objekte */
 /** Der Header f"ur ein Java-Array **/
 
 typedef struct java_arrayheader {  /* Der Arrayheader f"ur alle Arrays */
-  java_objectheader objheader;       /* Der Object-Header */
-  s4 size;                           /* Gr"osse des Arrays */
-  s4 arraytype;                      /* Typ der Elemente */
+	java_objectheader objheader;       /* Der Object-Header */
+	s4 size;                           /* Gr"osse des Arrays */
+	s4 arraytype;                      /* Typ der Elemente */
 } java_arrayheader;
 
 
@@ -268,18 +273,18 @@ typedef struct java_arrayheader {  /* Der Arrayheader f"ur alle Arrays */
 /** Die Unterschiedlichen Strukturen f"ur alle Typen von Arrays **/
 
 typedef struct java_chararray {
-  java_arrayheader header;
-  u2 data[1];
+	java_arrayheader header;
+	u2 data[1];
 } java_chararray;
 
 typedef struct java_floatheader {
-  java_arrayheader header;
-  float data[1];
+	java_arrayheader header;
+	float data[1];
 } java_floatarray;
 
 typedef struct java_doublearray {
-  java_arrayheader header;
-  double data[1];
+	java_arrayheader header;
+	double data[1];
 } java_doublearray;
 
 
@@ -288,28 +293,28 @@ typedef struct java_doublearray {
       darauf zugegriffen wird */
 
 typedef struct java_booleanarray {
-  java_arrayheader header;
-  u1 data[1];
+	java_arrayheader header;
+	u1 data[1];
 } java_booleanarray;
 
 typedef struct java_bytearray {
-  java_arrayheader header;
-  s1 data[1];
+	java_arrayheader header;
+	s1 data[1];
 } java_bytearray;
 
 typedef struct java_shortarray {
-  java_arrayheader header;
-  s2 data[1];
+	java_arrayheader header;
+	s2 data[1];
 } java_shortarray;
 
 typedef struct java_intarray {
-  java_arrayheader header;
-  s4 data[1];
+	java_arrayheader header;
+	s4 data[1];
 } java_intarray;
 
 typedef struct java_longarray {
-  java_arrayheader header;
-  s8 data[1];
+	java_arrayheader header;
+	s8 data[1];
 } java_longarray;
 
 
@@ -318,15 +323,15 @@ typedef struct java_longarray {
 	   data-Eintr"age beider Typen zugegriffen wird !!!! */
 
 typedef struct java_objectarray {
-  java_arrayheader header;
-  classinfo *elementtype;
-  java_objectheader *data[1];
+	java_arrayheader header;
+	classinfo *elementtype;
+	java_objectheader *data[1];
 } java_objectarray;
 
 typedef struct java_arrayarray {
-  java_arrayheader header;
-  constant_arraydescriptor *elementdescriptor;
-  java_arrayheader *data[1];
+	java_arrayheader header;
+	constant_arraydescriptor *elementdescriptor;
+	java_arrayheader *data[1];
 } java_arrayarray;
 
 
@@ -338,21 +343,21 @@ typedef struct java_arrayarray {
     /*** Struktur: fieldinfo ***/
 
 typedef struct fieldinfo {   /* Struktur f"ur ein Feld einer Klasse */
-  s4       flags;              /* die ACC-Flags */
-  s4       type;               /* Grunddatentyp */
-  unicode *name;               /* Name des Felds */
-  unicode *descriptor;         /* Typedescriptor in JavaVM-Form */
+	s4       flags;              /* die ACC-Flags */
+	s4       type;               /* Grunddatentyp */
+	unicode *name;               /* Name des Felds */
+	unicode *descriptor;         /* Typedescriptor in JavaVM-Form */
 	
-  s4       offset;             /* Offset vom Anfang des Objektes */
-  /* (bei Instanzvariablen) */
+	s4       offset;             /* Offset vom Anfang des Objektes */
+	/* (bei Instanzvariablen) */
 
-  union {                      /* Speicher f"ur den Wert */
-    s4 i;                    /* (bei Klassenvariablen) */    
-    s8 l;
-    float f;
-    double d;
-    void *a; 
-  } value;
+	union {                      /* Speicher f"ur den Wert */
+		s4 i;                    /* (bei Klassenvariablen) */    
+		s8 l;
+		float f;
+		double d;
+		void *a; 
+	} value;
 		
 } fieldinfo;
 
@@ -360,11 +365,11 @@ typedef struct fieldinfo {   /* Struktur f"ur ein Feld einer Klasse */
 /*** Struktur: exceptiontable ***/
 
 typedef struct exceptiontable {  /* Exceptionhandler-Eintrag in einer Methode */ 
-  s4         startpc;            /* Anfang des G"ultigkeitsbereichs */
-  s4         endpc;              /* Ende des Bereichs (exklusive) */
-  s4         handlerpc;          /* JavaVM-Position des Handlers */
-  classinfo *catchtype;          /* Typ der behandelten Exceptions (oder 
-				    NULL, wenn alle behandelt werden sollen) */
+	s4         startpc;            /* Anfang des G"ultigkeitsbereichs */
+	s4         endpc;              /* Ende des Bereichs (exklusive) */
+	s4         handlerpc;          /* JavaVM-Position des Handlers */
+	classinfo *catchtype;          /* Typ der behandelten Exceptions (oder 
+									  NULL, wenn alle behandelt werden sollen) */
 } exceptiontable;
 
 
@@ -372,85 +377,85 @@ typedef struct exceptiontable {  /* Exceptionhandler-Eintrag in einer Methode */
 /*** Struktur: methodinfo ***/
 
 typedef struct methodinfo {  /* Struktur f"ur eine Methode einer Klasse */
-  s4	       flags;            /* die ACC-Flags */
-  unicode   *name;             /* Name der Methode */
-  unicode   *descriptor;       /* der JavaVM-Descriptorstring f"ur Methoden */
-  s4        returntype;        /* only temporary valid, return type */
-  s4        paramcount;        /* only temporary valid, number of parameters */
-  u1        *paramtypes;       /* only temporary valid, parameter types */
-  classinfo *class;            /* Die Klasse, der die Methode geh"ort */
-  u4         vftblindex;       /* Index dieser Methode f"ur die Virtual
-				  Function Table (wenn es keine statische
-				  Methode ist) */
+	s4	       flags;            /* die ACC-Flags */
+	unicode   *name;             /* Name der Methode */
+	unicode   *descriptor;       /* der JavaVM-Descriptorstring f"ur Methoden */
+	s4        returntype;        /* only temporary valid, return type */
+	s4        paramcount;        /* only temporary valid, number of parameters */
+	u1        *paramtypes;       /* only temporary valid, parameter types */
+	classinfo *class;            /* Die Klasse, der die Methode geh"ort */
+	u4         vftblindex;       /* Index dieser Methode f"ur die Virtual
+									Function Table (wenn es keine statische
+									Methode ist) */
 
-  s4	 maxstack;                  /* maximale Stacktiefe des JavaVM-Codes */
-  s4   maxlocals;                 /* maximale Anzahl der JavaVM-Variablen */
-  u4   jcodelength;               /* L"ange des JavaVM-Codes */
-  u1  *jcode;                     /* und Zeiger auf den JavaVM-Code */
+	s4	 maxstack;                  /* maximale Stacktiefe des JavaVM-Codes */
+	s4   maxlocals;                 /* maximale Anzahl der JavaVM-Variablen */
+	u4   jcodelength;               /* L"ange des JavaVM-Codes */
+	u1  *jcode;                     /* und Zeiger auf den JavaVM-Code */
 
-  s4   exceptiontablelength;      /* L"ange der Exceptintable */
-  exceptiontable *exceptiontable; /* Die Exceptiontable selber */
+	s4   exceptiontablelength;      /* L"ange der Exceptintable */
+	exceptiontable *exceptiontable; /* Die Exceptiontable selber */
 
-  u1  *stubroutine;               /* STUB-Routine for compiling or calling 
-				     natives */	
-  u4   mcodelength;               /* L"ange des generierten Maschinencodes */
-  u1  *mcode;                     /* Zeiger auf den Maschinencode */
-  u1  *entrypoint;                /* Entrypoint to the Maschine-Code */	
+	u1  *stubroutine;               /* STUB-Routine for compiling or calling 
+									   natives */	
+	u4   mcodelength;               /* L"ange des generierten Maschinencodes */
+	u1  *mcode;                     /* Zeiger auf den Maschinencode */
+	u1  *entrypoint;                /* Entrypoint to the Maschine-Code */	
 } methodinfo;
 
 
 /*** Struktur: classinfo ***/
 
 struct classinfo {           /* Datenstruktur f"ur eine Klasse */
-  java_objectheader header;     /* Weil auch Klassen als Objekte angesprochen 
-				   werden */
+	java_objectheader header;     /* Weil auch Klassen als Objekte angesprochen 
+									 werden */
 
-  s4 flags;                     /* Die ACC-Flags */
-  unicode *name;                /* Name der Klasse */ 
+	s4 flags;                     /* Die ACC-Flags */
+	unicode *name;                /* Name der Klasse */ 
 	
-  s4       cpcount;             /* Anzahl der Eintr"age im Constant-Pool */
-  u1      *cptags;              /* Die TAGs f"ur den Constant-Pool */
-  voidptr *cpinfos;             /* Die Zeiger auf die Info-Strukturen */
+	s4       cpcount;             /* Anzahl der Eintr"age im Constant-Pool */
+	u1      *cptags;              /* Die TAGs f"ur den Constant-Pool */
+	voidptr *cpinfos;             /* Die Zeiger auf die Info-Strukturen */
 	
-  classinfo *super;             /* Zeiger auf die "ubergeordnete Klasse */
+	classinfo *super;             /* Zeiger auf die "ubergeordnete Klasse */
 	
-  s4          interfacescount;  /* Anzahl der Interfaces */
-  classinfo **interfaces;       /* Zeiger auf die Interfaces */
+	s4          interfacescount;  /* Anzahl der Interfaces */
+	classinfo **interfaces;       /* Zeiger auf die Interfaces */
 	
-  s4          fieldscount;      /* Anzahl der Felder */
-  fieldinfo  *fields;           /* Die Tabelle der Felder */
+	s4          fieldscount;      /* Anzahl der Felder */
+	fieldinfo  *fields;           /* Die Tabelle der Felder */
 	
-  s4          methodscount;     /* Anzahl der Methoden */
-  methodinfo *methods;          /* Die Tabelle der Methoden */
+	s4          methodscount;     /* Anzahl der Methoden */
+	methodinfo *methods;          /* Die Tabelle der Methoden */
 	
 	
-  listnode    listnode;         /* Verkettungsstruktur (f"ur Listen) */
+	listnode    listnode;         /* Verkettungsstruktur (f"ur Listen) */
 
-  bool        initialized;      /* true, wenn Klasse bereits Initialisiert */ 
-  bool        linked;           /* wird von `class_link` auf true gesetzt */
-  s4			index;            /* Hierarchietiefe  (bei normalen Klassen)  
-					     oder fortlaufende Nummer (bei Interfaces)*/ 
-  u4          instancesize;     /* Gr"osse eines Objektes dieser Klasse */
+	bool        initialized;      /* true, wenn Klasse bereits Initialisiert */ 
+	bool        linked;           /* wird von `class_link` auf true gesetzt */
+	s4			index;            /* Hierarchietiefe  (bei normalen Klassen)  
+									 oder fortlaufende Nummer (bei Interfaces)*/ 
+	u4          instancesize;     /* Gr"osse eines Objektes dieser Klasse */
 
-  vftbl       *vftbl;
+	vftbl       *vftbl;
 
-  methodinfo* finalizer;        /* Finalizer-Methode f"ur die Klasse */
+	methodinfo* finalizer;        /* Finalizer-Methode f"ur die Klasse */
 #ifdef JIT_MARKER_SUPPORT
-  methodinfo* marker; 
+	methodinfo* marker; 
 #endif
 };
 	
 
 struct vftbl {
-  classinfo  *class;            /* Class, the function table belongs to */
+	classinfo  *class;            /* Class, the function table belongs to */
 
-  s4          vftbllength;      /* L"aenge der Virtual Function Table */
+	s4          vftbllength;      /* L"aenge der Virtual Function Table */
 
-  s4          interfacetablelength;   /* L"ange der Interfacetable */   
-  u4         *interfacevftbllength;   /* -> siehe unten */   
-  methodptr **interfacevftbl;
+	s4          interfacetablelength;   /* L"ange der Interfacetable */   
+	u4         *interfacevftbllength;   /* -> siehe unten */   
+	methodptr **interfacevftbl;
 	
-  methodptr   table[1];
+	methodptr   table[1];
 };
 
 /*********** Anmerkungen zur Interfacetable: 
