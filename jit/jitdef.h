@@ -48,7 +48,7 @@ typedef varinfo *varinfoptr;
 #define SAVEDVAR   1            /* variable has to survive method invocations */
 #define INMEMORY   2            /* variable stored in memory                  */
 
-/*                    variable types                                          */
+/*                    variable kinds                                          */
 
 #define UNDEFVAR   0            /* stack slot will become temp during regalloc*/
 #define TEMPVAR    1            /* stack slot is temp register                */
@@ -58,7 +58,7 @@ typedef varinfo *varinfoptr;
 
 struct stackelement {
 	stackptr prev;              /* pointer to next element towards bottom     */
-	int type;                   /* data type of stack element                 */
+	int type;                   /* slot type of stack element                 */
 	int flags;                  /* flags (SAVED, INMEMORY)                    */
 	int varkind;                /* kind of variable or register               */
 	int varnum;                 /* number of variable                         */
