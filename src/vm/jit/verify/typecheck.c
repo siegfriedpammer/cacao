@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 788 2003-12-15 18:45:28Z edwin $
+   $Id: typecheck.c 798 2003-12-16 22:29:54Z edwin $
 
 */
 
@@ -1554,6 +1554,7 @@ typecheck()
                               */
                           }
 						  else {
+							  /* XXX put these checks in a function */
 							  builtindesc = builtin_desc;
 							  while (builtindesc->opcode && builtindesc->builtin
 									 != (functionptr) iptr->val.a) builtindesc++;
@@ -1567,7 +1568,6 @@ typecheck()
                           break;
                           
                       case ICMD_BUILTIN2:
-						  /* XXX use BUILTIN_ macros */
                           if (ISBUILTIN(BUILTIN_newarray))
                           {
 							  vftbl *vft;
