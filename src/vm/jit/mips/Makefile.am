@@ -28,13 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 2047 2005-03-20 15:03:45Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src
+INCLUDES = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
 
-CLEANFILES = offsets.h
+AM_CCASFLAGS = $(INCLUDES)
 
 noinst_HEADERS = \
 	arch.h \
@@ -51,13 +51,10 @@ libarch_la_SOURCES = \
 	disass.c \
 	disass.h
 
-asmpart.S: $(top_srcdir)/config.h offsets.h
+$(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
 
-.S.lo:
-	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
-
-offsets.h: $(top_srcdir)/src/vm/jit/tools/genoffsets $(top_srcdir)/config.h $(top_srcdir)/src/vm/global.h $(top_srcdir)/src/threads/native/threads.h
-	$(top_srcdir)/src/vm/jit/tools/genoffsets > offsets.h
+offsets.h: $(top_builddir)/src/vm/jit/tools/genoffsets $(top_builddir)/config.h $(top_srcdir)/src/vm/global.h $(top_srcdir)/src/threads/native/threads.h
+	$(top_builddir)/src/vm/jit/tools/genoffsets > offsets.h
 
 
 ## Local variables:
