@@ -17,6 +17,10 @@
 #ifndef _NGEN_H
 #define _NGEN_H
 
+/* include here, so function definitions are available in mcode.c */
+#include "methodtable.h"
+
+
 /* see also file calling.doc for explanation of calling conventions           */
 
 /* preallocated registers *****************************************************/
@@ -60,6 +64,7 @@ int nregdescint[] = {
 /* for use of reserved registers, see comment above */
 
 int nregdescfloat[] = {
+  /* rounding problems with callee saved registers */
 /*      REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_RES, REG_RES, */
     REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES,
     REG_END };
@@ -90,14 +95,9 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_OP3(op,fu,a,b,c,const) \
 do { \
         printf("M_OP3: %d\n", __LINE__); \
-	*((s4 *) (((s4) mcodeptr)++)) = 0x0F; \
+	*((s4 *) (((s4) mcodeptr)++)) = 0x0f; \
         *((s4 *) (((s4) mcodeptr)++)) = 0x04; \
 } while (0)
-
-#define M_FOP3(op,fu,a,b,c)	M_OP3(0,0,0,0,0,0)
-#define M_BRA(op,a,disp)	M_OP3(0,0,0,0,0,0)
-#define M_MEM(op,a,b,disp)	M_OP3(0,0,0,0,0,0)
-
 
 
 /*
