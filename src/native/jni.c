@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1853 2005-01-04 12:07:41Z twisti $
+   $Id: jni.c 1856 2005-01-04 12:30:53Z twisti $
 
 */
 
@@ -778,11 +778,19 @@ fieldinfo *jclass_findfield (classinfo *c, utf *name, utf *desc)
 	return NULL;
 }
 
-/********************* returns version of native method interface *****************/
 
-jint GetVersion (JNIEnv* env)
+/* GetVersion ******************************************************************
+
+   Returns the major version number in the higher 16 bits and the minor version
+   number in the lower 16 bits.
+
+*******************************************************************************/
+
+jint GetVersion(JNIEnv *env)
 {
-	return JNI_VERSION;
+	/* GNU classpath currently supports JNI 1.2 */
+
+	return JNI_VERSION_1_2;
 }
 
 
