@@ -237,6 +237,8 @@ AC_MSG_CHECKING(whether to use gtk awt peers)
 if test x"$enable_gtk_peer" = "xyes"; then
 	AC_MSG_RESULT(yes)
 	AWTPEERS="java.awt.peer.ComponentPeer \
+		java.awt.Graphics\
+		java.awt.Window\
 		java.awt.peer.MenuPeer \
 		java.awt.peer.MenuItemPeer \
 		gnu.java.awt.peer.gtk.GdkPixbufDecoder \
