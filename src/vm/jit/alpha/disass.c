@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: disass.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: disass.c 1974 2005-03-03 10:43:46Z twisti $
 
 */
 
@@ -286,11 +286,10 @@ char *regs[] = {
 
 	outputs a disassembler listing of one machine code instruction on 'stdout'
 	c:   instructions machine code
-	pos: instructions address relative to method start
 
 *******************************************************************************/
 
-void disassinstr(s4 *code, int pos)
+void disassinstr(s4 *code)
 {
 	int op;                     /* 6 bit op code                              */
 	int opfun;                  /* 7 bit function code                        */
@@ -427,11 +426,11 @@ void disassinstr(s4 *code, int pos)
 
 void disassemble(s4 *code, int len)
 {
-	int p;
+	int i;
 
 	printf ("  --- disassembler listing ---\n");
-	for (p = 0; p < len; p += 4, code++)
-		disassinstr(code, p);
+	for (i = 0; i < len; i += 4, code++)
+		disassinstr(code);
 }
 
 
