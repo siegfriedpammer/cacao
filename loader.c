@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 870 2004-01-10 22:49:32Z edwin $
+   $Id: loader.c 880 2004-01-13 17:17:12Z edwin $
 
 */
 
@@ -1740,6 +1740,91 @@ static int class_load(classinfo *c)
 	c->methods = MNEW(methodinfo, c->methodscount);
 	for (i = 0; i < c->methodscount; i++) {
 		method_load(&(c->methods[i]), c);
+	}
+
+	/* Check if all fields and methods can be uniquely
+	 * identified by (name,descriptor). */
+	if (opt_verify) {
+		/* We use a hash table here to avoid making the
+		 * average case quadratic in # of methods, fields.
+		 */
+		static int shift = 0;
+		u2 *hashtab;
+		u2 *next; /* for chaining colliding hash entries */
+		size_t len;
+		size_t hashlen;
+		u2 index;
+		u2 old;
+
+		/* Allocate hashtable */
+		len = c->methodscount;
+		if (len < c->fieldscount) len = c->fieldscount;
+		hashlen = 5 * len;
+		hashtab = MNEW(u2,(hashlen + len));
+		next = hashtab + hashlen;
+
+		/* Determine bitshift (to get good hash values) */
+		if (!shift) {
+			len = sizeof(utf);
+			while (len) {
+				len >>= 1;
+				shift++;
+			}
+		}
+
+		/* Check fields */
+		memset(hashtab,0,sizeof(u2) * (hashlen + len));
+		for (i = 0; i<c->fieldscount; ++i) {
+			fieldinfo *fi = c->fields + i;
+			/* It's ok if we lose bits here */
+			index = ((((size_t)fi->name) + ((size_t)fi->descriptor)) >> shift)
+				  % hashlen;
+			if ((old = hashtab[index]) != 0) {
+				old--;
+				/* dolog("HASHHIT %d --> %d",index,old); */
+				next[i] = old;
+				do {
+					/* dolog("HASHCHECK %d",old); */
+					if (c->fields[old].name == fi->name
+						&& c->fields[old].descriptor == fi->descriptor)
+					{
+						dolog("Duplicate field (%d,%d):",i,old);
+						log_utf(fi->name); log_utf(fi->descriptor);
+						panic("Fields with same name and descriptor");
+					}
+				} while ((old = next[old]) != 0);
+			}
+			/* else dolog("HASHLUCKY"); */
+			hashtab[index] = i+1;
+		}
+		
+		/* Check methods */
+		memset(hashtab,0,sizeof(u2) * (hashlen + len));
+		for (i = 0; i<c->methodscount; ++i) {
+			methodinfo *mi = c->methods + i;
+			/* It's ok if we lose bits here */
+			index = ((((size_t)mi->name) + ((size_t)mi->descriptor)) >> shift)
+				  % hashlen;
+			if ((old = hashtab[index]) != 0) {
+				old--;
+				/* dolog("HASHHIT %d --> %d",index,old); */
+				next[i] = old;
+				do {
+					/* dolog("HASHCHECK %d",old); */
+					if (c->methods[old].name == mi->name
+						&& c->methods[old].descriptor == mi->descriptor)
+					{
+						dolog("Duplicate method (%d,%d):",i,old);
+						log_utf(mi->name); log_utf(mi->descriptor);
+						panic("Methods with same name and descriptor");
+					}
+				} while ((old = next[old]) != 0);
+			}
+			/* else dolog("HASHLUCKY"); */
+			hashtab[index] = i+1;
+		}
+		
+		MFREE(hashtab,u2,(hashlen + len));
 	}
 
 #ifdef STATISTICS
