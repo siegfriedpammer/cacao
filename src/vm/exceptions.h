@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 1935 2005-02-10 11:01:26Z twisti $
+   $Id: exceptions.h 2110 2005-03-29 21:25:51Z twisti $
 
 */
 
@@ -61,6 +61,8 @@ extern java_objectheader *_exceptionptr;
 extern methodinfo* _threadrootmethod;
 #endif /* !defined(USE_THREADS) || !defined(NATIVE_THREADS) */
 
+
+/* global variables ***********************************************************/
 
 /* exception/error super class */
 
