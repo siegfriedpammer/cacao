@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: cacao.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: cacao.h 1839 2005-01-04 11:16:06Z twisti $
 
 */
 
@@ -34,12 +34,18 @@
 #ifndef _CACAO_H
 #define _CACAO_H
 
+#include "native/jni.h"
 #include "vm/global.h"
 
 
 /* global variables ***********************************************************/
 
+extern JavaVM *jvm;
+extern JNIEnv *env;
+
+extern char *bootclasspath;
 extern char *classpath;
+
 extern char *mainstring;    /* class.method with main method */
 
 
