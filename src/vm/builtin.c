@@ -878,6 +878,9 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 	utf_sprint (logtext+strlen(logtext), method->descriptor);
 	sprintf (logtext+strlen(logtext), "(");
 	switch (method->paramcount) {
+        case 0:
+            break;
+
 		case 1:
 			sprintf(logtext+strlen(logtext), "%llx", a0);
 			break;
