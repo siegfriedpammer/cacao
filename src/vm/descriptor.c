@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.c 2084 2005-03-25 15:13:45Z edwin $
+   $Id: descriptor.c 2090 2005-03-27 14:43:25Z edwin $
 
 */
 
@@ -247,6 +247,7 @@ descriptor_to_typedesc(descriptor_pool *pool,char *utf_ptr,char *end_pos,
 		d->classref = descriptor_pool_lookup_classref(pool,name);
 	}
 	else {
+		DESCRIPTOR_ASSERT(utf_ptr[0] != '[' && utf_ptr[0] != 'L');
 		/* a primitive type */
 		d->type = primitive_type_from_char(*utf_ptr);
 		d->arraydim = 0;
@@ -671,7 +672,8 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool,utf *desc)
 	methoddesc *md;
 	char *utf_ptr;
 	char *end_pos;
-	s4 paramcount = 0;
+	s2 paramcount = 0;
+	s2 paramslots = 0;
 
 	DESCRIPTOR_ASSERT(pool);
 	DESCRIPTOR_ASSERT(pool->descriptors);
@@ -710,10 +712,14 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool,utf *desc)
 		/* parse a parameter type */
 		if (!descriptor_to_typedesc(pool,utf_ptr,end_pos,&utf_ptr,d))
 			return NULL;
+
+		if (d->type == TYPE_LONG || d->type == TYPE_DOUBLE)
+			paramslots++;
 		
 		d++;
 		pool->descriptors_next += sizeof(typedesc);
 		paramcount++;
+		paramslots++;
 	}
 	utf_ptr++; /* skip ')' */
 	
@@ -722,6 +728,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool,utf *desc)
 			return NULL;
 
 	md->paramcount = paramcount;
+	md->paramslots = paramslots;
 	*(pool->descriptor_kind_next++) = 'm';
 	c->parseddesc.md = md;
 	return md;
