@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1494 2004-11-12 13:34:26Z twisti $
+   $Id: codegen.inc 1502 2004-11-12 18:32:57Z motse $
 
 */
 
@@ -951,10 +951,10 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
     sprintf(nativeName,"Java_%s/%s",m->class->name->text,m->name->text);
 	i=5;
     while (i<nativeLen) {
-		if (nativeName[i]=='_') { // escape underscore
+		if (nativeName[i]=='_') { /* escape underscore */
 			nativeNameEscape = MNEW(char,nativeLen+1);
 			memcpy(nativeNameEscape,nativeName,i+1);
-			nativeNameEscape[i+1] = '1'; // escape sequence for _ is _1
+			nativeNameEscape[i+1] = '1'; /* escape sequence for _ is _1 */
 			memcpy(&nativeNameEscape[i+2],&nativeName[i+1],nativeLen-i-1);
 			MFREE(nativeName,char,nativeLen);
 			i++;
