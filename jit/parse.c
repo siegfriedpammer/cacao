@@ -29,12 +29,14 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1557 2004-11-22 12:01:16Z carolyn $
+   $Id: parse.c 1566 2004-11-23 15:57:20Z twisti $
 
 */
 
 
 #include <string.h>
+
+#include "config.h"
 #include "parse.h"
 #include "global.h"
 #include "jit.h"
@@ -536,7 +538,7 @@ if (m->exceptiontablelength > 0)
           label_index, &b_count, inline_env);
 	s_count = 1 + m->exceptiontablelength; /* initialize stack element counter   */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		m->isleafmethod = false;
 		inline_env->method->isleafmethod = false;
@@ -1490,7 +1492,7 @@ if (DEBUG4==true) {
 			break;
 
 		case JAVA_MONITORENTER:
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 			if (checksync) {
 				BUILTIN1(BUILTIN_monitorenter, TYPE_VOID,currentline);
 			} else
@@ -1501,7 +1503,7 @@ if (DEBUG4==true) {
 			break;
 
 		case JAVA_MONITOREXIT:
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 			if (checksync) {
 				BUILTIN1(BUILTIN_monitorexit, TYPE_VOID,currentline);
 				OP(ICMD_CHECKEXCEPTION);
