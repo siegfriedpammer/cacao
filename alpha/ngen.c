@@ -2948,8 +2948,13 @@ nowperformreturn:
 			var_to_reg_int(s1, src, REG_ITMP1);
 			if (l == 0)
 				{M_INTMOVE(s1, REG_ITMP1);}
-			else
+			else if (l <= 32768) {
 				M_LDA(REG_ITMP1, s1, -l);
+				}
+			else {
+				ICONST(REG_ITMP2, l);
+				M_ISUB(s1, REG_ITMP2, REG_ITMP1);
+				}
 			i = i - l + 1;
 
 			/* range check */
@@ -3318,7 +3323,7 @@ makeactualcall:
 
 			/* a0 = dimension count */
 
-			M_LDA(argintregs[0], REG_ZERO, iptr->op1);
+			ICONST(argintregs[0], iptr->op1);
 
 			/* a1 = arraydescriptor */
 

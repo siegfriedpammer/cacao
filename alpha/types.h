@@ -34,6 +34,8 @@
 #define SUPPORT_LONG_ICVT   1
 #define SUPPORT_LONG_FCVT   1
 
+#define CONDITIONAL_LOADCONST
+
 #define U8_AVAILABLE        1
 
 

@@ -12,8 +12,6 @@
 
 *******************************************************************************/
 
-#define CONDITIONAL_LOADCONST
-
 #ifdef STATISTICS
 #define COUNT(cnt) cnt++
 #else
@@ -1544,18 +1542,20 @@ static void print_stack(stackptr s) {
 			switch (s->varkind) {
 				case TEMPVAR:
 					if (s->flags & INMEMORY)
-						printf(" m%02d", s->regoff);
+						printf(" M%02d", s->regoff);
+					else if ((s->type == TYPE_FLT) || (s->type == TYPE_DBL))
+						printf(" F%02d", s->regoff);
 					else
-						printf(" r%02d", s->regoff);
+						printf(" %3s", regs[s->regoff]);
 					break;
 				case STACKVAR:
-					printf(" s%02d", s->varnum);
+					printf(" I%02d", s->varnum);
 					break;
 				case LOCALVAR:
-					printf(" l%02d", s->varnum);
+					printf(" L%02d", s->varnum);
 					break;
 				case ARGVAR:
-					printf(" a%02d", s->varnum);
+					printf(" A%02d", s->varnum);
 					break;
 				default:
 					printf(" !%02d", j);
@@ -1564,18 +1564,20 @@ static void print_stack(stackptr s) {
 			switch (s->varkind) {
 				case TEMPVAR:
 					if (s->flags & INMEMORY)
-						printf(" M%02d", s->regoff);
+						printf(" m%02d", s->regoff);
+					else if ((s->type == TYPE_FLT) || (s->type == TYPE_DBL))
+						printf(" f%02d", s->regoff);
 					else
-						printf(" R%02d", s->regoff);
+						printf(" %3s", regs[s->regoff]);
 					break;
 				case STACKVAR:
-					printf(" S%02d", s->varnum);
+					printf(" i%02d", s->varnum);
 					break;
 				case LOCALVAR:
-					printf(" L%02d", s->varnum);
+					printf(" l%02d", s->varnum);
 					break;
 				case ARGVAR:
-					printf(" A%02d", s->varnum);
+					printf(" a%02d", s->varnum);
 					break;
 				default:
 					printf(" ?%02d", j);
@@ -1585,6 +1587,7 @@ static void print_stack(stackptr s) {
 }
 
 
+#if 0
 static void print_reg(stackptr s) {
 	if (s) {
 		if (s->flags & SAVEDVAR)
@@ -1632,6 +1635,7 @@ static void print_reg(stackptr s) {
 		printf("     ");
 		
 }
+#endif
 
 
 static char *builtin_name(functionptr bptr)
@@ -1641,6 +1645,15 @@ static char *builtin_name(functionptr bptr)
 		bdesc++;
 	return bdesc->name;
 }
+
+
+static char *jit_type[] = {
+	"int",
+	"lng",
+	"flt",
+	"dbl",
+	"adr"
+};
 
 
 static void show_icmd_method()
@@ -1671,12 +1684,13 @@ static void show_icmd_method()
 		printf("   %3d: ", i);
 		for (j = TYPE_INT; j <= TYPE_ADR; j++)
 			if (locals[i][j].type >= 0) {
-				printf("   (%d) ", j);
-				if (locals[i][j].flags)
-					printf("m");
+				printf("   (%s) ", jit_type[j]);
+				if (locals[i][j].flags & INMEMORY)
+					printf("m%2d", locals[i][j].regoff);
+				else if ((j == TYPE_FLT) || (j == TYPE_DBL))
+					printf("f%02d", locals[i][j].regoff);
 				else
-					printf("r");
-				printf("%2d", locals[i][j].regoff);
+					printf("%3s", regs[locals[i][j].regoff]);
 				}
 		printf("\n");
 		}
@@ -1690,16 +1704,23 @@ static void show_icmd_method()
 			printf("   %3d: ", i);
 			for (j = TYPE_INT; j <= TYPE_ADR; j++)
 				if (interfaces[i][j].type >= 0) {
-					printf("   (%d) ", j);
-					if (interfaces[i][j].flags & SAVEDVAR)
-						printf("s");
-					else
-						printf("t");
-					if (interfaces[i][j].flags & INMEMORY)
-						printf("m");
-					else
-						printf("r");
-					printf("%2d", interfaces[i][j].regoff);
+					printf("   (%s) ", jit_type[j]);
+					if (interfaces[i][j].flags & SAVEDVAR) {
+						if (interfaces[i][j].flags & INMEMORY)
+							printf("M%2d", interfaces[i][j].regoff);
+						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
+							printf("F%02d", interfaces[i][j].regoff);
+						else
+							printf("%3s", regs[interfaces[i][j].regoff]);
+						}
+					else {
+						if (interfaces[i][j].flags & INMEMORY)
+							printf("m%2d", interfaces[i][j].regoff);
+						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
+							printf("f%02d", interfaces[i][j].regoff);
+						else
+							printf("%3s", regs[interfaces[i][j].regoff]);
+						}
 					}
 			printf("\n");
 			}
