@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: jni.c 1764 2004-12-15 16:21:20Z jowenn $
 
 */
 
@@ -835,8 +835,10 @@ jclass DefineClass(JNIEnv* env, const char *name, jobject loader, const jbyte *b
 /*  	if (class_link(c)) */
 /*  		return NULL; */
 
-	if (r)
+	if (r) {
 		c->classloader = loader;
+		use_class_as_object(r);
+	}
 
 	return r;
 }
@@ -855,6 +857,8 @@ jclass FindClass(JNIEnv* env, const char *name)
 
 	if (!class_link(c))
 		return NULL;
+
+	use_class_as_object(c);
 
   	return c;
 }

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Field.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: Field.c 1764 2004-12-15 16:21:20Z jowenn $
 
 */
 
@@ -42,7 +42,9 @@
 #include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/tables.h"
+#include "vm/loader.h"
 
+#undef DEBUG
 
 /*
  * Class:     java/lang/reflect/Field
@@ -231,19 +233,57 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_l
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj)
 {
 	jfieldID fid;
+	char *utf_ptr;
 
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
+#ifdef DEBUG
+	/* check if the specified slot could be a valid field of this class*/
+	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: fieldscount mismatch");
+#endif
+	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
+#ifdef DEBUG
+	/* check if the field really has the same name and check if the type descriptor is not empty*/
+	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: field name mismatch");
+	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+#endif
+	/* check if obj would be needed (not static field), but is 0)*/
+	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
+		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		return 0;
+	}
+	
+	if (!(fid->flags & ACC_PUBLIC)) {
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+		return 0;
 
-		if (fid)
-			return (*env)->GetByteField(env, (jobject) obj, fid);
 	}
 
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-
-	return 0;
+	if (fid->flags & ACC_STATIC) {
+		/* initialize class if needed*/
+		class_init((classinfo*)this->declaringClass);
+		if (*exceptionptr) return 0;
+		/*return value*/
+                utf_ptr = fid->descriptor->text;
+                switch (*utf_ptr) {
+                        case 'B': return fid->value.i;
+                        default:
+                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+                                return 0;
+                }
+	} else {
+		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+		utf_ptr = fid->descriptor->text;
+		switch (*utf_ptr) {
+			case 'B':return getField(obj,jbyte,fid);
+			default:
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+	}
 }
 
 
@@ -255,19 +295,57 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj)
 {
 	jfieldID fid;
+	char *utf_ptr;
 
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
+#ifdef DEBUG
+	/* check if the specified slot could be a valid field of this class*/
+	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: fieldscount mismatch");
+#endif
+	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
+#ifdef DEBUG
+	/* check if the field really has the same name and check if the type descriptor is not empty*/
+	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: field name mismatch");
+	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+#endif
+	/* check if obj would be needed (not static field), but is 0)*/
+	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
+		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		return 0;
+	}
+	
+	if (!(fid->flags & ACC_PUBLIC)) {
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+		return 0;
 
-		if (fid)
-			return (*env)->GetCharField (env, (jobject) obj, fid);
 	}
 
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-
-	return 0;
+	if (fid->flags & ACC_STATIC) {
+		/* initialize class if needed*/
+		class_init((classinfo*)this->declaringClass);
+		if (*exceptionptr) return 0;
+		/*return value*/
+                utf_ptr = fid->descriptor->text;
+                switch (*utf_ptr) { 
+                        case 'C': return fid->value.i;
+                        default:
+                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+                                return 0;
+                }
+	} else {
+		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+		utf_ptr = fid->descriptor->text;
+		switch (*utf_ptr) {
+			case 'C':return getField(obj,jchar,fid);
+			default:
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+	}
 }
 
 
@@ -279,19 +357,66 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang
 JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , java_lang_reflect_Field *this, java_lang_Object *obj)
 {
 	jfieldID fid;
+	char *utf_ptr;
 
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
+#ifdef DEBUG
+	/* check if the specified slot could be a valid field of this class*/
+	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: fieldscount mismatch");
+#endif
+	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
+#ifdef DEBUG
+	/* check if the field really has the same name and check if the type descriptor is not empty*/
+	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: field name mismatch");
+	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+#endif
+	/* check if obj would be needed (not static field), but is 0)*/
+	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
+		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		return 0;
+	}
+	
+	if (!(fid->flags & ACC_PUBLIC)) {
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+		return 0;
 
-		if (fid)
-			return (*env)->GetDoubleField(env, (jobject) obj, fid);
 	}
 
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-
-	return 0;
+	if (fid->flags & ACC_STATIC) {
+		/* initialize class if needed*/
+		class_init((classinfo*)this->declaringClass);
+		if (*exceptionptr) return 0;
+		/*return value*/
+                utf_ptr = fid->descriptor->text;
+                switch (*utf_ptr) {
+                        case 'B':
+			case 'S': 
+                        case 'C': 
+			case 'I': return fid->value.i;
+			case 'F': return fid->value.f;
+			case 'D': return fid->value.d;
+                        default:
+                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+                                return 0;
+                }
+	} else {
+		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+		utf_ptr = fid->descriptor->text;
+		switch (*utf_ptr) {
+			case 'B':return getField(obj,jbyte,fid);
+			case 'S':return getField(obj,jshort,fid);
+			case 'C':return getField(obj,jchar,fid);
+			case 'I':return getField(obj,jint,fid);
+			case 'D':return getField(obj,jdouble,fid);
+			default:
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+	}
 }
 
 
@@ -303,19 +428,65 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj)
 {
 	jfieldID fid;
+	char *utf_ptr;
 
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
+#ifdef DEBUG
+	/* check if the specified slot could be a valid field of this class*/
+	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: fieldscount mismatch");
+#endif
+	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
+#ifdef DEBUG
+	/* check if the field really has the same name and check if the type descriptor is not empty*/
+	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: field name mismatch");
+	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+#endif
+	/* check if obj would be needed (not static field), but is 0)*/
+	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
+		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		return 0;
+	}
+	
+	if (!(fid->flags & ACC_PUBLIC)) {
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+		return 0;
 
-		if (fid)
-			return (*env)->GetFloatField(env, (jobject) obj, fid);
 	}
 
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-
-	return 0;
+	if (fid->flags & ACC_STATIC) {
+		/* initialize class if needed*/
+		class_init((classinfo*)this->declaringClass);
+		if (*exceptionptr) return 0;
+		/*return value*/
+                utf_ptr = fid->descriptor->text;
+                switch (*utf_ptr) {
+                        case 'B':
+			case 'S': 
+                        case 'C': 
+			case 'I': return fid->value.i;
+			case 'F': return fid->value.f;
+                        default:
+                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+                                return 0;
+                }
+	} else {
+		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+		utf_ptr = fid->descriptor->text;
+		switch (*utf_ptr) {
+			case 'B':return getField(obj,jbyte,fid);
+			case 'S':return getField(obj,jshort,fid);
+			case 'C':return getField(obj,jchar,fid);
+			case 'I':return getField(obj,jint,fid);
+			case 'F':return getField(obj,jfloat,fid);
+			default:
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+	}
 }
 
 
@@ -327,19 +498,63 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang_reflect_Field *this, java_lang_Object *obj)
 {
 	jfieldID fid;
+	char *utf_ptr;
 
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
+#ifdef DEBUG
+	/* check if the specified slot could be a valid field of this class*/
+	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: fieldscount mismatch");
+#endif
+	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
+#ifdef DEBUG
+	/* check if the field really has the same name and check if the type descriptor is not empty*/
+	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: field name mismatch");
+	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+#endif
+	/* check if obj would be needed (not static field), but is 0)*/
+	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
+		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		return 0;
+	}
+	
+	if (!(fid->flags & ACC_PUBLIC)) {
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+		return 0;
 
-		if (fid)
-			return (*env)->GetIntField(env, (jobject) obj, fid);
 	}
 
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-
-	return 0;
+	if (fid->flags & ACC_STATIC) {
+		/* initialize class if needed*/
+		class_init((classinfo*)this->declaringClass);
+		if (*exceptionptr) return 0;
+		/*return value*/
+                utf_ptr = fid->descriptor->text;
+                switch (*utf_ptr) {
+                        case 'B':
+			case 'S': 
+                        case 'C': 
+			case 'I': return fid->value.i;
+                        default:
+                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+                                return 0;
+                }
+	} else {
+		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+		utf_ptr = fid->descriptor->text;
+		switch (*utf_ptr) {
+			case 'B':return getField(obj,jbyte,fid);
+			case 'S':return getField(obj,jshort,fid);
+			case 'C':return getField(obj,jchar,fid);
+			case 'I':return getField(obj,jint,fid);
+			default:
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+	}
 }
 
 
@@ -351,19 +566,65 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang
 JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj)
 {
 	jfieldID fid;
+	char *utf_ptr;
 
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
+#ifdef DEBUG
+	/* check if the specified slot could be a valid field of this class*/
+	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: fieldscount mismatch");
+#endif
+	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
+#ifdef DEBUG
+	/* check if the field really has the same name and check if the type descriptor is not empty*/
+	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: field name mismatch");
+	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+#endif
+	/* check if obj would be needed (not static field), but is 0)*/
+	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
+		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		return 0;
+	}
+	
+	if (!(fid->flags & ACC_PUBLIC)) {
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+		return 0;
 
-		if (fid)
-			return (*env)->GetLongField(env, (jobject) obj, fid);
 	}
 
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-
-	return 0;
+	if (fid->flags & ACC_STATIC) {
+		/* initialize class if needed*/
+		class_init((classinfo*)this->declaringClass);
+		if (*exceptionptr) return 0;
+		/*return value*/
+                utf_ptr = fid->descriptor->text;
+                switch (*utf_ptr) {
+                        case 'B':
+			case 'S': 
+                        case 'C': 
+			case 'I': return fid->value.i;
+			case 'J': return fid->value.l;
+                        default:
+                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+                                return 0;
+                }
+	} else {
+		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+		utf_ptr = fid->descriptor->text;
+		switch (*utf_ptr) {
+			case 'B':return getField(obj,jbyte,fid);
+			case 'S':return getField(obj,jshort,fid);
+			case 'C':return getField(obj,jchar,fid);
+			case 'I':return getField(obj,jint,fid);
+			case 'J':return getField(obj,jlong,fid);
+			default:
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+	}
 }
 
 
@@ -375,19 +636,59 @@ JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj)
 {
 	jfieldID fid;
+	char *utf_ptr;
 
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
+#ifdef DEBUG
+	/* check if the specified slot could be a valid field of this class*/
+	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: fieldscount mismatch");
+#endif
+	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
+#ifdef DEBUG
+	/* check if the field really has the same name and check if the type descriptor is not empty*/
+	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
+                                                                          "declaring class: field name mismatch");
+	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+#endif
+	/* check if obj would be needed (not static field), but is 0)*/
+	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
+		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		return 0;
+	}
+	
+	if (!(fid->flags & ACC_PUBLIC)) {
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+		return 0;
 
-		if (fid)
-			return (*env)->GetShortField(env, (jobject) obj, fid);
 	}
 
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-
-	return 0;
+	if (fid->flags & ACC_STATIC) {
+		/* initialize class if needed*/
+		class_init((classinfo*)this->declaringClass);
+		if (*exceptionptr) return 0;
+		/*return value*/
+                utf_ptr = fid->descriptor->text;
+                switch (*utf_ptr) {
+                        case 'B':
+			case 'S': return fid->value.i;
+                        default:
+                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+                                return 0;
+                }
+	} else {
+		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+		utf_ptr = fid->descriptor->text;
+		switch (*utf_ptr) {
+			case 'B':return getField(obj,jbyte,fid);
+			case 'S':return getField(obj,jshort,fid);
+			default:
+				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+				return 0;
+		}
+	}
 }
 
 
@@ -745,11 +1046,13 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_l
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *env, java_lang_reflect_Field *this)
 {
 	utf *desc = (((classinfo *) this->declaringClass)->fields[this->slot]).descriptor;
-
+	java_lang_Class *ret;
 	if (!desc)
 		return NULL;
 
-	return (java_lang_Class *) class_from_descriptor(desc->text, utf_end(desc), NULL, CLASSLOAD_LOAD);
+	ret=(java_lang_Class *) class_from_descriptor(desc->text, utf_end(desc), NULL, CLASSLOAD_LOAD);
+	use_class_as_object(ret);
+	return ret;
 }
 
 
