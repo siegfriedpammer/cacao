@@ -52,7 +52,8 @@ void *chain_last(chain *c);
 /*
 --------------------------- interface description ------------------------
 
-Usage of these functions for list management is possible without additional preparation in the element structures, as opposed to the module 'list'.
+Usage of these functions for list management is possible without additional
+preparation in the element structures, as opposed to the module 'list'.
 
 Consequently, the functions are a little slower and need more memory.
 
