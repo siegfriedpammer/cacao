@@ -28,11 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1708 2004-12-06 15:36:31Z twisti $
+## $Id: Makefile.am 1724 2004-12-07 10:42:04Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src
+
+CLEANFILES = offsets.h
 
 noinst_HEADERS = \
 	arch.h \
@@ -53,7 +55,7 @@ libarch_la_SOURCES = \
 	ppc-opc.c \
 	ppc.h
 
-asmpart.o: asmpart.S $(top_srcdir)/config.h offsets.h
+asmpart.S: $(top_srcdir)/config.h offsets.h
 
 .S.lo:
 	$(LIBTOOL) --mode=compile $(COMPILE) -c $<

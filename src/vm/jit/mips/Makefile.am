@@ -28,11 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1712 2004-12-06 16:18:05Z twisti $
+## $Id: Makefile.am 1724 2004-12-07 10:42:04Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src
+
+CLEANFILES = offsets.h
 
 noinst_HEADERS = \
 	arch.h \
@@ -49,7 +51,7 @@ libarch_la_SOURCES = \
 	disass.c \
 	disass.h
 
-asmpart.o: asmpart.S $(top_srcdir)/config.h offsets.h
+asmpart.S: $(top_srcdir)/config.h offsets.h
 
 .S.lo:
 	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
