@@ -10,7 +10,7 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-# $Id: Makefile.in 139 1999-11-11 19:21:30Z andi $
+# $Id: Makefile.in 163 2002-10-16 17:25:08Z stefan $
 
 
 SHELL = /bin/sh
