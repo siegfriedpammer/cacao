@@ -16,7 +16,7 @@ static varinfo5 *locals;
 static varinfo5 *interfaces;
 
 static int intregsnum;              /* absolute number of integer registers   */
-static int floatregsnum;            /* absolute number of float registers     */ 
+static int floatregsnum;            /* absolute number of float registers     */
 
 static int intreg_ret;              /* register to return integer values      */
 static int intreg_argnum;           /* number of integer argument registers   */
@@ -968,6 +968,51 @@ static void allocate_scratch_registers()
 					case ICMD_INVOKESTATIC:
 					case ICMD_INVOKEINTERFACE:
 						{
+#ifdef __I386__
+						int tmpregoff = 0;
+						stackptr tmpsrc;
+						i = iptr->op1;
+						tmpsrc = src;
+						while (--i >= 0) {
+							if (tmpsrc->varkind == ARGVAR) {
+								switch (tmpsrc->type) {
+								case TYPE_INT:
+								case TYPE_ADR:
+									tmpregoff++;
+									break;
+
+								case TYPE_LNG:
+									tmpregoff += 2;
+									break;
+								}
+							}
+							tmpsrc = tmpsrc->prev;
+						}
+									
+						i = iptr->op1;
+						while (--i >= 0) {
+							if (src->varkind == ARGVAR) {
+								switch (src->type) {
+								case TYPE_INT:
+								case TYPE_ADR:
+									tmpregoff--;
+									break;
+									
+								case TYPE_LNG:
+									tmpregoff -= 2;
+									break;
+								}
+							}
+
+							reg_free_temp(src);
+							src->regoff = tmpregoff;
+							printf("jit/reg.c: regoff=%d\n", src->regoff);
+							src = src->prev;
+							}
+						if (((methodinfo*)iptr->val.a)->returntype != TYPE_VOID)
+							reg_new_temp(dst);
+						break;
+#else
 						i = iptr->op1;
 						while (--i >= 0) {
 							reg_free_temp(src);
@@ -976,6 +1021,7 @@ static void allocate_scratch_registers()
 						if (((methodinfo*)iptr->val.a)->returntype != TYPE_VOID)
 							reg_new_temp(dst);
 						break;
+#endif
 						}
 
 					case ICMD_BUILTIN3:

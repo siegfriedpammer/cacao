@@ -1783,11 +1783,24 @@ static void show_icmd_method()
 	printf("\n");
 
 	if (showdisassemble) {
+#ifdef __I386__
+		extern s4 *codestatic;
+		extern int pstatic;
+
+		s4ptr = (s4 *) (method->mcode + dseglen);
+		for (i = 0; i < block[0].mpc; i++, ((s4) s4ptr)++) {
+			disassinstr((s4) s4ptr, i);
+			i = pstatic;
+			s4ptr = codestatic;
+		}
+		printf("\n");
+#else
 		s4ptr = (s4 *) (method->mcode + dseglen);
 		for (i = 0; i < block[0].mpc; i += 4, s4ptr++) {
 			disassinstr(*s4ptr, i); 
 			}
 		printf("\n");
+#endif
 		}
 
 	
@@ -2044,6 +2057,31 @@ static void show_icmd_method()
 			}
 
 		if (showdisassemble && (!deadcode)) {
+#ifdef __I386__
+			extern s4 *codestatic;
+			extern int pstatic;
+
+			printf("\n");
+			i = bptr->mpc;
+			s4ptr = (s4 *) (method->mcode + dseglen + i);
+
+			if (bptr->next != NULL) {
+				for (; i < bptr->next->mpc; i++, ((s4) s4ptr)++) {
+					disassinstr((s4) s4ptr, i); 
+					i = pstatic;
+					s4ptr = codestatic;
+				}
+				printf("\n");
+
+			} else {
+				for (; s4ptr < (s4 *) (method->mcode + method->mcodelength); i++, ((s4) s4ptr)++) {
+					disassinstr((s4) s4ptr, i); 
+					i = pstatic;
+					s4ptr = codestatic;
+				}
+				printf("\n");
+			}
+#else
 			printf("\n");
 			i = bptr->mpc;
 			s4ptr = (s4 *) (method->mcode + dseglen + i);
@@ -2060,6 +2098,7 @@ static void show_icmd_method()
 				    }
 				printf("\n");
 			    }
+#endif
 		    }
 	}
 
