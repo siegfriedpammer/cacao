@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1545 2004-11-18 12:22:20Z twisti $
+   $Id: cacao.c 1549 2004-11-19 13:17:33Z twisti $
 
 */
 
@@ -799,7 +799,6 @@ void cacao_exit(s4 status)
 {
 	classinfo *c;
 	methodinfo *m;
-	java_lang_Runtime *rt;
 
 	/* class should already be loaded, but who knows... */
 
@@ -825,12 +824,12 @@ void cacao_exit(s4 status)
 	/* call the exit function with passed exit status */
 
 	asm_calljavafunction(m,
-						 rt,
 #if POINTERSIZE == 8
 						 (void *) (s8) status,
 #else
 						 (void *) status,
 #endif
+						 NULL,
 						 NULL,
 						 NULL);
 
