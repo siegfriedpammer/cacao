@@ -48,6 +48,7 @@ typedef varinfo *varinfoptr;
 
 #define SAVEDVAR   1            /* variable has to survive method invocations */
 #define INMEMORY   2            /* variable stored in memory                  */
+#define SAVEDTMP   4            /* temporary variable using a saved register  */
 
 /*                    variable kinds                                          */
 
@@ -781,14 +782,70 @@ typedef struct {
 	u1 type_s1;
 	u1 type_s2;
 	u1 type_d;	
+	int icmd;
 	functionptr builtin;
 	bool supported;
 	bool isfloat;
 } stdopdescriptor;
 
-static stdopdescriptor *stdopdescriptors[256];
+static stdopdescriptor builtintable[] = {
+	{ ICMD_LCMP,   TYPE_LONG, TYPE_LONG, TYPE_INT, ICMD_BUILTIN2,
+	       (functionptr) builtin_lcmp , SUPPORT_LONG && SUPPORT_LONG_CMP, false },
+	{ ICMD_LAND,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
+	       (functionptr) builtin_land , SUPPORT_LONG && SUPPORT_LONG_LOG, false },
+	{ ICMD_LOR,    TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
+	       (functionptr) builtin_lor , SUPPORT_LONG && SUPPORT_LONG_LOG, false },
+	{ ICMD_LXOR,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
+	       (functionptr) builtin_lxor , SUPPORT_LONG && SUPPORT_LONG_LOG, false },
+	{ ICMD_LSHL,   TYPE_LONG, TYPE_INT,  TYPE_LONG, ICMD_BUILTIN2,
+	       (functionptr) builtin_lshl , SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
+	{ ICMD_LSHR,   TYPE_LONG, TYPE_INT,  TYPE_LONG, ICMD_BUILTIN2,
+	       (functionptr) builtin_lshr, SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
+	{ ICMD_LUSHR,  TYPE_LONG, TYPE_INT,  TYPE_LONG, ICMD_BUILTIN2,
+	       (functionptr) builtin_lushr, SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
+	{ ICMD_LADD,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
+	       (functionptr) builtin_ladd , SUPPORT_LONG && SUPPORT_LONG_ADD, false },
+	{ ICMD_LSUB,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
+	       (functionptr) builtin_lsub , SUPPORT_LONG && SUPPORT_LONG_ADD, false },
+	{ ICMD_LNEG,   TYPE_LONG, TYPE_VOID, TYPE_LONG, ICMD_BUILTIN1, 
+	       (functionptr) builtin_lneg, SUPPORT_LONG && SUPPORT_LONG_ADD, true },
+	{ ICMD_LMUL,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
+	       (functionptr) builtin_lmul , SUPPORT_LONG && SUPPORT_LONG_MULDIV, false },
+	{ ICMD_FREM,   TYPE_FLOAT, TYPE_FLOAT, TYPE_FLOAT, ICMD_BUILTIN2,
+	       (functionptr) builtin_frem, SUPPORT_FLOAT && SUPPORT_FMOD, true },
+	{ ICMD_DREM,   TYPE_DOUBLE, TYPE_DOUBLE, TYPE_DOUBLE, ICMD_BUILTIN2,
+	       (functionptr) builtin_drem, SUPPORT_DOUBLE && SUPPORT_FMOD, true },
+	{ ICMD_I2F,    TYPE_INT, TYPE_VOID, TYPE_FLOAT, ICMD_BUILTIN1,
+	       (functionptr) builtin_i2f, SUPPORT_FLOAT && SUPPORT_IFCVT, true },
+	{ ICMD_I2D,    TYPE_INT, TYPE_VOID, TYPE_DOUBLE, ICMD_BUILTIN1, 
+	       (functionptr) builtin_i2d, SUPPORT_DOUBLE && SUPPORT_IFCVT, true },
+	{ ICMD_L2F,    TYPE_LONG, TYPE_VOID, TYPE_FLOAT, ICMD_BUILTIN1,
+	       (functionptr) builtin_l2f, SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_LONG_FCVT, true },
+	{ ICMD_L2D,    TYPE_LONG, TYPE_VOID, TYPE_DOUBLE, ICMD_BUILTIN1, 
+	       (functionptr) builtin_l2d, SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_LONG_FCVT, true },
+	{ ICMD_F2L,    TYPE_FLOAT, TYPE_VOID, TYPE_LONG, ICMD_BUILTIN1,
+	       (functionptr) builtin_f2l, SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_LONG_FCVT, true },
+	{ ICMD_D2L,    TYPE_DOUBLE, TYPE_VOID, TYPE_LONG, ICMD_BUILTIN1,
+	       (functionptr) builtin_d2l, SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_LONG_FCVT, true },
+	{ ICMD_F2I,    TYPE_FLOAT, TYPE_VOID, TYPE_INT, ICMD_BUILTIN1,
+	       (functionptr) builtin_f2i, SUPPORT_FLOAT && SUPPORT_FICVT, true },
+	{ ICMD_D2I,    TYPE_DOUBLE, TYPE_VOID, TYPE_INT, ICMD_BUILTIN1,
+	       (functionptr) builtin_d2i, SUPPORT_DOUBLE && SUPPORT_FICVT, true },
+};
 
-static stdopdescriptor stdopdescriptortable[] = {
+typedef struct {
+	u1 opcode;
+	u1 type_s1;
+	u1 type_s2;
+	u1 type_d;	
+	functionptr builtin;
+	bool supported;
+	bool isfloat;
+} stdopdescriptorold;
+
+static stdopdescriptorold *stdopdescriptors[256];
+
+static stdopdescriptorold stdopdescriptortable[] = {
 	{ JAVA_IADD,   TYPE_INT, TYPE_INT, TYPE_INT, NULL, true, false },
 	{ JAVA_ISUB,   TYPE_INT, TYPE_INT, TYPE_INT, NULL, true, false },
 	{ JAVA_IMUL,   TYPE_INT, TYPE_INT, TYPE_INT, NULL, true, false },
