@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 964 2004-03-15 14:52:43Z jowenn $
+   $Id: codegen.c 966 2004-03-17 15:58:01Z twisti $
 
 */
 
@@ -336,7 +336,7 @@ void catch_NullPointerException(int sig, int code, sigctx_struct *sigctx)
 
 	} else {
 		faultaddr += (long) ((instr << 16) >> 16);
-		fprintf(stderr, "faulting address: 0x%16lx\n", faultaddr);
+		fprintf(stderr, "faulting address: 0x%016lx\n", faultaddr);
 		panic("Stack overflow");
 	}
 }
@@ -527,62 +527,65 @@ void codegen()
 	*/
 
 	if (runverbose) {
-		int disp;
-		M_LDA(REG_SP, REG_SP, -(14 * 8));
+		s4 disp;
+		M_LDA(REG_SP, REG_SP, -((INT_ARG_CNT + FLT_ARG_CNT + 2) * 8));
 		M_AST(REG_RA, REG_SP, 1 * 8);
 
 		/* save integer argument registers */
-		for (p = 0; p < mparamcount && p < INT_ARG_CNT; p++) {
+		for (p = 0; /* p < mparamcount && */ p < INT_ARG_CNT; p++) {
 			M_LST(argintregs[p], REG_SP,  (2 + p) * 8);
 		}
 
 		/* save and copy float arguments into integer registers */
-		for (p = 0; p < mparamcount && p < FLT_ARG_CNT; p++) {
+		for (p = 0; /* p < mparamcount && */ p < FLT_ARG_CNT; p++) {
 			t = mparamtypes[p];
 
 			if (IS_FLT_DBL_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					M_DST(argfltregs[p], REG_SP, (8 + p) * 8);
+					M_DST(argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
+
 				} else {
-					M_FST(argfltregs[p], REG_SP, (8 + p) * 8);
+					M_FST(argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
 				}
 
-				M_LLD(argintregs[p], REG_SP, (8 + p) * 8);
+				M_LLD(argintregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
 				
 			} else {
-				M_DST(argfltregs[p], REG_SP, (8 + p) * 8);
+				M_DST(argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
 			}
 		}
 
 		p = dseg_addaddress(method);
 		M_ALD(REG_ITMP1, REG_PV, p);
-		M_AST(REG_ITMP1, REG_SP, 0);
+		M_AST(REG_ITMP1, REG_SP, 0 * 8);
 		p = dseg_addaddress((void *) builtin_trace_args);
 		M_ALD(REG_PV, REG_PV, p);
 		M_JSR(REG_RA, REG_PV);
-		disp = -(int)((u1 *) mcodeptr - mcodebase);
+		disp = -(int) ((u1 *) mcodeptr - mcodebase);
 		M_LDA(REG_PV, REG_RA, disp);
 		M_ALD(REG_RA, REG_SP, 1 * 8);
 
-		for (p = 0; p < mparamcount && p < INT_ARG_CNT; p++) {
+		for (p = 0; /* p < mparamcount && */ p < INT_ARG_CNT; p++) {
 			M_LLD(argintregs[p], REG_SP,  (2 + p) * 8);
 		}
 
-		for (p = 0; p < mparamcount && p < FLT_ARG_CNT; p++) {
+		for (p = 0; /* p < mparamcount && */ p < FLT_ARG_CNT; p++) {
 			t = mparamtypes[p];
 
 			if (IS_FLT_DBL_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(argfltregs[p], REG_SP, (8 + p) * 8);
+					M_DLD(argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
+
 				} else {
-					M_FLD(argfltregs[p], REG_SP, (8 + p) * 8);
+					M_FLD(argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
 				}
+
 			} else {
-				M_DLD(argfltregs[p], REG_SP, (8 + p) * 8);
+				M_DLD(argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
 			}
 		}
 
-		M_LDA (REG_SP, REG_SP, 14 * 8);
+		M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + 2) * 8);
 	}
 
 	/* take arguments out of register or stack frame */
@@ -631,22 +634,6 @@ void codegen()
  				}
  			}
 		}  /* end for */
-
-	/* call trace function */
-
-#if 0
-	if (runverbose && !isleafmethod) {
-		M_LDA (REG_SP, REG_SP, -8);
-		p = dseg_addaddress (method);
-		M_ALD(REG_ITMP1, REG_PV, p);
-		M_AST(REG_ITMP1, REG_SP, 0);
-		p = dseg_addaddress ((void*) (builtin_trace_args));
-		M_ALD(REG_PV, REG_PV, p);
-		M_JSR(REG_RA, REG_PV);
-		M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
-		M_LDA(REG_SP, REG_SP, 8);
-		}
-#endif
 
 	/* call monitorenter function */
 
@@ -3045,37 +3032,45 @@ void codegen()
 		case ICMD_LRETURN:
 		case ICMD_ARETURN:
 
+			var_to_reg_int(s1, src, REG_RESULT);
+			M_INTMOVE(s1, REG_RESULT);
+
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 				int disp;
-				a = dseg_addaddress ((void*) (builtin_monitorexit));
+				a = dseg_addaddress((void *) (builtin_monitorexit));
 				M_ALD(REG_PV, REG_PV, a);
-				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
+				M_ALD(argintregs[0], REG_SP, maxmemuse * 8);
+				M_LST(REG_RESULT, REG_SP, maxmemuse * 8);
 				M_JSR(REG_RA, REG_PV);
-				disp = -(int)((u1*) mcodeptr - mcodebase);
+				disp = -(int) ((u1 *) mcodeptr - mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
-				}			
+				M_LLD(REG_RESULT, REG_SP, maxmemuse * 8);
+			}
 #endif
-			var_to_reg_int(s1, src, REG_RESULT);
-			M_INTMOVE(s1, REG_RESULT);
+
 			goto nowperformreturn;
 
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:
 
+			var_to_reg_flt(s1, src, REG_FRESULT);
+			M_FLTMOVE(s1, REG_FRESULT);
+
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 				int disp;
-				a = dseg_addaddress ((void*) (builtin_monitorexit));
+				a = dseg_addaddress((void *) (builtin_monitorexit));
 				M_ALD(REG_PV, REG_PV, a);
-				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
+				M_ALD(argintregs[0], REG_SP, maxmemuse * 8);
+				M_DST(REG_FRESULT, REG_SP, maxmemuse * 8);
 				M_JSR(REG_RA, REG_PV);
-				disp = -(int)((u1*) mcodeptr - mcodebase);
+				disp = -(int) ((u1 *) mcodeptr - mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
-				}			
+				M_DLD(REG_FRESULT, REG_SP, maxmemuse * 8);
+			}
 #endif
-			var_to_reg_flt(s1, src, REG_FRESULT);
-			M_FLTMOVE(s1, REG_FRESULT);
+
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
@@ -3083,13 +3078,13 @@ void codegen()
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 				int disp;
-				a = dseg_addaddress ((void*) (builtin_monitorexit));
+				a = dseg_addaddress((void *) (builtin_monitorexit));
 				M_ALD(REG_PV, REG_PV, a);
-				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
+				M_ALD(argintregs[0], REG_SP, maxmemuse * 8);
 				M_JSR(REG_RA, REG_PV);
-				disp = -(int)((u1*) mcodeptr - mcodebase);
+				disp = -(int) ((u1 *) mcodeptr - mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
-				}			
+			}
 #endif
 
 nowperformreturn:
@@ -3118,10 +3113,10 @@ nowperformreturn:
 			/* call trace function */
 
 			if (runverbose) {
-				M_LDA (REG_SP, REG_SP, -24);
-				M_AST(REG_RA, REG_SP, 0);
-				M_LST(REG_RESULT, REG_SP, 8);
-				M_DST(REG_FRESULT, REG_SP,16);
+				M_LDA(REG_SP, REG_SP, -3 * 8);
+				M_AST(REG_RA, REG_SP, 0 * 8);
+				M_LST(REG_RESULT, REG_SP, 1 * 8);
+				M_DST(REG_FRESULT, REG_SP, 2 * 8);
 				a = dseg_addaddress(method);
 				M_ALD(argintregs[0], REG_PV, a);
 				M_MOV(REG_RESULT, argintregs[1]);
@@ -3129,20 +3124,20 @@ nowperformreturn:
 				M_FLTMOVE(REG_FRESULT, argfltregs[3]);
 				a = dseg_addaddress((void *) builtin_displaymethodstop);
 				M_ALD(REG_PV, REG_PV, a);
-				M_JSR (REG_RA, REG_PV);
-				s1 = (int)((u1*) mcodeptr - mcodebase);
-				if (s1<=32768) M_LDA (REG_PV, REG_RA, -s1);
+				M_JSR(REG_RA, REG_PV);
+				s1 = (int) ((u1 *) mcodeptr - mcodebase);
+				if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
 				else {
-					s4 ml=-s1, mh=0;
-					while (ml<-32768) { ml+=65536; mh--; }
-					M_LDA (REG_PV, REG_RA, ml );
-					M_LDAH (REG_PV, REG_PV, mh );
-					}
-				M_DLD(REG_FRESULT, REG_SP,16);
-				M_LLD(REG_RESULT, REG_SP, 8);
-				M_ALD(REG_RA, REG_SP, 0);
-				M_LDA (REG_SP, REG_SP, 24);
+					s4 ml = -s1, mh = 0;
+					while (ml < -32768) { ml += 65536; mh--; }
+					M_LDA(REG_PV, REG_RA, ml);
+					M_LDAH(REG_PV, REG_PV, mh);
 				}
+				M_DLD(REG_FRESULT, REG_SP, 2 * 8);
+				M_LLD(REG_RESULT, REG_SP, 1 * 8);
+				M_ALD(REG_RA, REG_SP, 0 * 8);
+				M_LDA(REG_SP, REG_SP, 3 * 8);
+			}
 
 			M_RET(REG_ZERO, REG_RA);
 			ALIGNCODENOP;
@@ -3946,9 +3941,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	u8 *s;                              /* memory pointer to hold the stub    */
 	u8 *cs;
 	s4 *mcodeptr;                       /* code generation pointer            */
-	int stackframesize = 0;             /* size of stackframe if needed       */
-	int disp;
-	int stubsize;
+	s4 stackframesize = 0;              /* size of stackframe if needed       */
+	s4 disp;
+	s4 stubsize;
 
 	reg_init();
 	descriptor2types(m);                /* set paramcount and paramtypes      */
@@ -3967,14 +3962,14 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	*(cs-7) = (u8) builtin_displaymethodstop;
 	*(cs-8) = (u8) m->class;
 
-	M_LDA(REG_SP, REG_SP, -8);          /* build up stackframe                */
-	M_AST(REG_RA, REG_SP, 0);           /* store return address               */
+	M_LDA(REG_SP, REG_SP, -1 * 8);      /* build up stackframe                */
+	M_AST(REG_RA, REG_SP, 0 * 8);       /* store return address               */
 
 	/* max. 39 instructions */
 	if (runverbose) {
-		int p;
-		int t;
-		M_LDA(REG_SP, REG_SP, -(14 * 8));
+		s4 p;
+		s4 t;
+		M_LDA(REG_SP, REG_SP, -((INT_ARG_CNT + FLT_ARG_CNT + 2) * 8));
 		M_AST(REG_RA, REG_SP, 1 * 8);
 
 		/* save integer argument registers */
@@ -3988,24 +3983,24 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 			if (IS_FLT_DBL_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					M_DST(argfltregs[p], REG_SP, (8 + p) * 8);
-					M_LLD(argintregs[p], REG_SP, (8 + p) * 8);
+					M_DST(argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
+					M_LLD(argintregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
 
 				} else {
-					M_FST(argfltregs[p], REG_SP, (8 + p) * 8);
-					M_ILD(argintregs[p], REG_SP, (8 + p) * 8);
+					M_FST(argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
+					M_ILD(argintregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
 				}
 				
 			} else {
-				M_DST(argfltregs[p], REG_SP, (8 + p) * 8);
+				M_DST(argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
 			}
 		}
 
 		M_ALD(REG_ITMP1, REG_PV, -6 * 8);
-		M_AST(REG_ITMP1, REG_SP, 0);
+		M_AST(REG_ITMP1, REG_SP, 0 * 8);
 		M_ALD(REG_PV, REG_PV, -5 * 8);
 		M_JSR(REG_RA, REG_PV);
-		disp = -(int) (mcodeptr - (s4*) cs) * 4;
+		disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
 		M_LDA(REG_PV, REG_RA, disp);
 
 		for (p = 0; p < m->paramcount && p < INT_ARG_CNT; p++) {
@@ -4017,26 +4012,26 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 			if (IS_FLT_DBL_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(argfltregs[p], REG_SP, (8 + p) * 8);
+					M_DLD(argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
 
 				} else {
-					M_FLD(argfltregs[p], REG_SP, (8 + p) * 8);
+					M_FLD(argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
 				}
 
 			} else {
-				M_DLD(argfltregs[p], REG_SP, (8 + p) * 8);
+				M_DLD(argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
 			}
 		}
 
 		M_ALD(REG_RA, REG_SP, 1 * 8);
-		M_LDA(REG_SP, REG_SP, 14 * 8);
+		M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + 2) * 8);
 	}
 
 	/* save argument registers on stack -- if we have to */
 	if ((m->flags & ACC_STATIC && m->paramcount > (INT_ARG_CNT - 2)) || m->paramcount > (INT_ARG_CNT - 1)) {
-		int i;
-		int paramshiftcnt = (m->flags & ACC_STATIC) ? 2 : 1;
-		int stackparamcnt = (m->paramcount > INT_ARG_CNT) ? m->paramcount - INT_ARG_CNT : 0;
+		s4 i;
+		s4 paramshiftcnt = (m->flags & ACC_STATIC) ? 2 : 1;
+		s4 stackparamcnt = (m->paramcount > INT_ARG_CNT) ? m->paramcount - INT_ARG_CNT : 0;
 
   		stackframesize = stackparamcnt + paramshiftcnt;
 
@@ -4101,7 +4096,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	M_ALD(REG_PV, REG_PV, -1 * 8);      /* load adress of native method       */
 	M_JSR(REG_RA, REG_PV);              /* call native method                 */
-	disp = -(int) (mcodeptr - (s4*) cs) * 4;
+	disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
 	M_LDA(REG_PV, REG_RA, disp);        /* recompute pv from ra               */
 
 	/* remove stackframe if there is one */
@@ -4111,7 +4106,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	/* 13 instructions */
 	if (runverbose) {
-		M_LDA(REG_SP, REG_SP, -(2 * 8));
+		M_LDA(REG_SP, REG_SP, -2 * 8);
 		M_ALD(argintregs[0], REG_PV, -6 * 8); /* load method adress           */
 		M_LST(REG_RESULT, REG_SP, 0 * 8);
 		M_DST(REG_FRESULT, REG_SP, 1 * 8);
@@ -4120,7 +4115,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		M_FMOV(REG_FRESULT, argfltregs[3]);
 		M_ALD(REG_PV, REG_PV, -7 * 8);  /* builtin_displaymethodstop          */
 		M_JSR(REG_RA, REG_PV);
-		disp = -(int) (mcodeptr - (s4*) cs) * 4;
+		disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
 		M_LDA(REG_PV, REG_RA, disp);
 		M_LLD(REG_RESULT, REG_SP, 0 * 8);
 		M_DLD(REG_FRESULT, REG_SP, 1 * 8);
@@ -4131,14 +4126,14 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_ALD(REG_ITMP1, REG_ITMP3, 0);     /* load exception into reg. itmp1     */
 	M_BNEZ(REG_ITMP1, 3);               /* if no exception then return        */
 
-	M_ALD(REG_RA, REG_SP, 0);           /* load return address                */
-	M_LDA(REG_SP, REG_SP, 8);           /* remove stackframe                  */
+	M_ALD(REG_RA, REG_SP, 0 * 8);       /* load return address                */
+	M_LDA(REG_SP, REG_SP, 1 * 8);       /* remove stackframe                  */
 	M_RET(REG_ZERO, REG_RA);            /* return to caller                   */
 
 	M_AST(REG_ZERO, REG_ITMP3, 0);      /* store NULL into exceptionptr       */
 
-	M_ALD(REG_RA, REG_SP, 0);           /* load return address                */
-	M_LDA(REG_SP, REG_SP, 8);           /* remove stackframe                  */
+	M_ALD(REG_RA, REG_SP, 0 * 8);       /* load return address                */
+	M_LDA(REG_SP, REG_SP, 1 * 8);       /* remove stackframe                  */
 	M_LDA(REG_ITMP2, REG_RA, -4);       /* move fault address into reg. itmp2 */
 	M_ALD(REG_ITMP3, REG_PV, -3 * 8);   /* load asm exception handler address */
 	M_JMP(REG_ZERO, REG_ITMP3);         /* jump to asm exception handler      */
@@ -4151,7 +4146,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	count_nstub_len += NATIVESTUBSIZE * 8;
 #endif
 
-	return (u1*) (s + NATIVESTUBOFFSET);
+	return (u1 *) (s + NATIVESTUBOFFSET);
 }
 
 
@@ -4163,7 +4158,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 void removenativestub(u1 *stub)
 {
-	CFREE((u8*) stub - NATIVESTUBOFFSET, NATIVESTUBSIZE * 8);
+	CFREE((u8 *) stub - NATIVESTUBOFFSET, NATIVESTUBSIZE * 8);
 }
 
 
