@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 1242 2004-06-30 20:11:49Z twisti $
+   $Id: cacaoh.c 1264 2004-07-01 14:21:05Z jowenn $
 
 */
 
@@ -91,9 +91,10 @@ int main(int argc, char **argv)
 	/* initialize the garbage collector */
 	gc_init(heapmaxsize, heapstartsize);
 
+	tables_init();
+
 	suck_init(classpath);
    
-	tables_init();
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initThreadsEarly();

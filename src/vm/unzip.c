@@ -748,7 +748,7 @@ void cacao_create_directoryList(unzFile file)
 		if (c) *c='\0';
 		ent->name=utf_new_char(filename);
 	};
-	printf("Archive contains %d files\n",i);
+	/*printf("Archive contains %d files\n",i);*/
 }
 
 

@@ -1,12 +1,12 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1262 2004-07-01 11:10:43Z jowenn $
+# $Id: Makefile.am 1264 2004-07-01 14:21:05Z jowenn $
 
 @SET_MAKE@
 
 MAINTAINERCLEANFILES = Makefile.in configure
 ALLSUBDIRS = mm toolbox threads jit nat tst doc jvmtst
-SUBDIRS = gnuclasspathnat $(ALLSUBDIRS)
+SUBDIRS = classpath $(ALLSUBDIRS)
 DIST_SUBDIRS = $(ALLSUBDIRS)
 
 EXTRA_DIST = \
@@ -60,12 +60,12 @@ cacao_LDADD = \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@ \
 	toolbox/libtoolbox.a \
-	gnuclasspathnat/native/jni/java-io/.libs/libjavaio.a \
-	gnuclasspathnat/native/jni/java-nio/.libs/libjavanio.a \
-	gnuclasspathnat/native/jni/java-net/.libs/libjavanet.a \
-	gnuclasspathnat/native/jni/java-util/.libs/libjavautil.a \
-	gnuclasspathnat/native/jni/java-lang/.libs/libjavalang.a \
-	gnuclasspathnat/native/jni/java-lang/.libs/libjavalangreflect.a \
+	classpath/native/jni/java-io/.libs/libjavaio.a \
+	classpath/native/jni/java-nio/.libs/libjavanio.a \
+	classpath/native/jni/java-net/.libs/libjavanet.a \
+	classpath/native/jni/java-util/.libs/libjavautil.a \
+	classpath/native/jni/java-lang/.libs/libjavalang.a \
+	classpath/native/jni/java-lang/.libs/libjavalangreflect.a \
 	@AWT_OBJS@ \
 	@ZIP_LIBS@ \
 	@THREAD_LIB@
@@ -79,12 +79,12 @@ cacao_DEPENDENCIES = \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@ \
 	toolbox/libtoolbox.a \
-	gnuclasspathnat/native/jni/java-io/.libs/libjavaio.a \
-	gnuclasspathnat/native/jni/java-nio/.libs/libjavanio.a \
-	gnuclasspathnat/native/jni/java-net/.libs/libjavanet.a \
-	gnuclasspathnat/native/jni/java-util/.libs/libjavautil.a \
-	gnuclasspathnat/native/jni/java-lang/.libs/libjavalang.a \
-	gnuclasspathnat/native/jni/java-lang/.libs/libjavalangreflect.a \
+	classpath/native/jni/java-io/.libs/libjavaio.a \
+	classpath/native/jni/java-nio/.libs/libjavanio.a \
+	classpath/native/jni/java-net/.libs/libjavanet.a \
+	classpath/native/jni/java-util/.libs/libjavautil.a \
+	classpath/native/jni/java-lang/.libs/libjavalang.a \
+	classpath/native/jni/java-lang/.libs/libjavalangreflect.a \
 	nativetable.inc \
 	@AWT_OBJS@ \
 	@ZIP_LIBS@
@@ -101,7 +101,7 @@ cacaoh_SOURCES = \
 
 cacaoh_LDADD = \
 	$(BOEHM_LIBS) \
-	gnuclasspathnat/native/jni/java-lang/.libs/libjavalang.a \
+	classpath/native/jni/java-lang/.libs/libjavalang.a \
 	@THREAD_OBJ@ \
 	@ZIP_LIBS@ \
 	toolbox/libtoolbox.a \
@@ -109,7 +109,7 @@ cacaoh_LDADD = \
 
 cacaoh_DEPENDENCIES = \
 	$(BOEHM_LIBS) \
-	gnuclasspathnat/native/jni/java-lang/.libs/libjavalang.a \
+	classpath/native/jni/java-lang/.libs/libjavalang.a \
 	@THREAD_OBJ@ \
 	@ZIP_LIBS@ \
 	toolbox/libtoolbox.a
@@ -126,17 +126,17 @@ gennativetable_SOURCES = \
 
 gennativetable_LDADD = \
 	$(BOEHM_LIBS) \
-	gnuclasspathnat/native/jni/java-lang/.libs/libjavalang.a \
+	classpath/native/jni/java-lang/.libs/libjavalang.a \
 	@THREAD_OBJ@ \
 	@ZIP_LIBS@ \
 	toolbox/libtoolbox.a \
 	@THREAD_LIB@
 
 natheaders: cacaoh
-	CLASSPATH=$(top_srcdir)/gnuclassfiles ./cacaoh $(CLASSES)
+	CLASSPATH=$(top_srcdir)/classpath/lib/glibj.zip ./cacaoh $(CLASSES)
 
 nativetable.inc: gennativetable
-	CLASSPATH=$(top_srcdir)/gnuclassfiles $(top_srcdir)/gennativetable $(CLASSES) > nativetable.inc
+	CLASSPATH=$(top_srcdir)/classpath/lib/glibj.zip $(top_srcdir)/gennativetable $(CLASSES) > nativetable.inc
 
 CLASSES= \
 	java.lang.String \
