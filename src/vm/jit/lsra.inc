@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 1953 2005-02-17 13:42:23Z christian $
+   $Id: lsra.inc 1957 2005-02-18 07:45:57Z christian $
 
 */
 #include <stdio.h>
@@ -191,12 +191,10 @@ bool lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
 	if (opt_loops) 
 		return false;
 
-
+#ifdef LSRA_DUMP_LOOPDATA
 	depthFirst(m, ld);
 	analyseGraph(m, ld);
 
-
-#ifdef LSRA_DUMP_LOOPDATA
 	printf("orig loop data\n");
 	lsra_dump_Graph(m, ld->c_dTable);
 
@@ -390,8 +388,9 @@ bool lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
 						}
 						if (ss->s->varkind == ARGVAR) {
 							/* no special treatment for ARGVAR ! -> TODO: join this with normal branch */
-							ss->s->varnum=v_index;
-							ss->s->varkind=TEMPVAR; /* only TEMPVAR possible for now */
+/* 							ss->s->varnum=v_index; */
+							/* ss->s->varkind=TEMPVAR; */ /* only TEMPVAR possible for now */
+							drop=true;
 						}
 					} else { 
 						/* no special treatment (only one Stackslot Lifetimes)? */
@@ -2263,6 +2262,7 @@ void dup_join( struct lsradata *ls, struct dup *dup, int block)
 			if (lt == NULL) panic("dup_join Lifetimes not found\n");
 			pt=(lt->i_list->instr == PASSING_THROUGH_LT); /* joins with passthrough lifetimes not yet possible! */
 			pt|=(lt->i_list->next == NULL); /* joins with "interface" Stackslots not yet possible! */
+			pt|=(ss->s->varkind == ARGVAR); /* don't join with ARGVARS! */
 			if (!pt) {
 				join_lt_prev[join_lt_top]=lt_prev;
 				join_lt[join_lt_top++]=lt;
