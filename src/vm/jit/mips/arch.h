@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: arch.h 1638 2004-12-01 10:42:28Z twisti $
+   $Id: arch.h 1651 2004-12-02 10:26:43Z twisti $
 
 */
 
@@ -80,6 +80,8 @@
 
 #define FLT_SAV_CNT     4    /* number of flt callee saved registers          */
 #define FLT_ARG_CNT     8    /* number of flt argument registers              */
+
+#define TRACE_ARGS_NUM  8
 
 
 /* define architecture features ***********************************************/
