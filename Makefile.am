@@ -1,11 +1,11 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 483 2003-10-14 17:08:38Z twisti $
+# $Id: Makefile.am 503 2003-10-22 17:35:21Z twisti $
 
 @SET_MAKE@
 
 MAINTAINERCLEANFILES = Makefile.in configure
-ALLSUBDIRS = toolbox mm jit nat threads tst doc narray jvmtst
+ALLSUBDIRS = mm toolbox jit nat threads tst doc narray jvmtst
 SUBDIRS = $(ALLSUBDIRS) @SYSDEP_DIR@
 DIST_SUBDIRS = $(ALLSUBDIRS) alpha mips i386 powerpc x86_64
 
@@ -20,7 +20,9 @@ CLEANFILES = @SYSDEP_DIR@/asmpart.o \
 bin_PROGRAMS = cacao
 noinst_PROGRAMS = cacaoh
 
-INCLUDES=-I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@ -I$(top_srcdir)
+INCLUDES = -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit
+
+BOEHM_LIBS = mm/libboehm.a mm/boehm-gc/.libs/libgc.a
 
 cacao_SOURCES = \
 	asmpart.h \
@@ -43,19 +45,31 @@ cacao_LDADD = \
 	@SYSDEP_DIR@/asmpart.o \
 	@COMPILER_OBJECTS@ \
 	toolbox/libtoolbox.a \
-	@GC_OBJ@ \
+	$(BOEHM_LIBS) \
 	@THREAD_OBJ@
 
 cacao_DEPENDENCIES = \
 	@SYSDEP_DIR@/asmpart.o \
 	@COMPILER_OBJECTS@ \
 	toolbox/libtoolbox.a \
-	@GC_OBJ@ \
+	$(BOEHM_LIBS) \
 	@THREAD_OBJ@
 
-cacaoh_SOURCES = headers.c tables.c loader.c builtin.c
-cacaoh_LDADD = toolbox/libtoolbox.a @GC_OBJ@ @THREAD_OBJ@
-cacaoh_DEPENDENCIES = toolbox/libtoolbox.a @GC_OBJ@ @THREAD_OBJ@
+cacaoh_SOURCES = \
+	headers.c \
+	tables.c \
+	loader.c \
+	builtin.c
+
+cacaoh_LDADD = \
+	toolbox/libtoolbox.a \
+	$(BOEHM_LIBS) \
+	@THREAD_OBJ@
+
+cacaoh_DEPENDENCIES = \
+	toolbox/libtoolbox.a \
+	$(BOEHM_LIBS) \
+	@THREAD_OBJ@
 
 native.c: nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh
 
