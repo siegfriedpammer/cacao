@@ -343,7 +343,7 @@ ex_table_loop:
 	beq ex_handle_it
 
 	lwz r6,offobjvftbl(xptr)
-	lwz r7,offobjvftbl(r7)
+	lwz r7,offclassvftbl(r7)
 	lwz r6,offbaseval(r6)
 	lwz r8,offbaseval(r7)
 	lwz r7,offdiffval(r7)
