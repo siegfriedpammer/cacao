@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1647 2004-12-01 16:10:18Z twisti $
+# $Id: Makefile.am 1655 2004-12-02 16:51:20Z carolyn $
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
@@ -15,7 +15,7 @@ libnative_a_SOURCES = \
 	jni.c \
 	native.c
 
-native.c: nativetable.inc
+native.c: nativetable.inc nativecalls.inc
 
 if USE_GTK_PEER
 AWT_HEADERS_TOUCH_FILE = $(srcdir)/include/awtheaders-generated

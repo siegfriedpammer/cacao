@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1645 2004-12-01 14:06:44Z twisti $
+   $Id: native.c 1655 2004-12-02 16:51:20Z carolyn $
 
 */
 
@@ -150,7 +150,7 @@ static bool nativecompdone = false;
 
 /******************************************************************************/
 
-#include "natcalls.h"
+/**include "natcalls.h" **/
 
 
 /*********************** function: native_loadclasses **************************
