@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: boehm.c 1144 2004-06-05 23:53:56Z twisti $
 
 */
 
@@ -42,7 +42,10 @@
 #include "builtin.h"
 #include "threads/thread.h"
 #include "toolbox/logging.h"
-#include "gc.h"
+#include "boehm-gc/include/gc.h"
+
+
+static bool in_gc_out_of_memory = false;    /* is GC out of memory?           */
 
 
 static void *stackcall_twoargs(struct otherstackcall *p)
@@ -206,27 +209,41 @@ s8 gc_get_max_heap_size()
 }
 
 
+void gc_invoke_finalizers()
+{
+	GC_invoke_finalizers();
+}
+
+
 void gc_finalize_all()
 {
 	GC_finalize_all();
 }
 
 
-/* This function is called when boehm detects that it is OOM */
+/* gc_out_of_memory ************************************************************
+
+   This function is called when boehm detects that it is OOM.
+
+*******************************************************************************/
 
 void *gc_out_of_memory()
 {
-	static bool in_gc_out_of_memory;
-
 	/* if this happens, we are REALLY out of memory */
+
 	if (in_gc_out_of_memory) {
 		/* this is all we can do... */
-		printf("Exception in thread \"main\" java.lang.OutOfMemoryError\n");
-		fflush(stdout);
-		exit(1);
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "out of memory");
 	}
 
 	in_gc_out_of_memory = true;
+
+	/* try to release some memory */
+
+	gc_call();
+
+	/* now instantiate the exception */
 
 	*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
 
