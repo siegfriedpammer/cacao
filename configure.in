@@ -188,11 +188,25 @@ fi
 dnl Features
 
 dnl check arguments
-AC_ARG_ENABLE([threads], [AS_HELP_STRING(--enable-threads,enable threads support (none,green,native) [[default=native]])])
-AC_ARG_ENABLE([__thread], [AS_HELP_STRING(--enable-__thread,use TLS features)], [use__thread=$enableval], [use__thread=no])
+
+dnl check for statistics
+AC_ARG_ENABLE([statistics], [AS_HELP_STRING(--disable-statistics,disable statistics generation [[default=yes]])])
+
+AC_MSG_CHECKING(whether statistics generation should be enabled)
+if test x"$enable_statistics" = "xno"; then
+	AC_MSG_RESULT(no)
+	AM_CONDITIONAL([STATISTICS], [false])
+else
+	AC_MSG_RESULT(yes)
+	AC_DEFINE([STATISTICS], 1, [use statistics])
+	AM_CONDITIONAL([STATISTICS], [true])
+fi
 
 
 dnl threads
+AC_ARG_ENABLE([threads], [AS_HELP_STRING(--enable-threads,enable threads support (none,green,native) [[default=native]])])
+AC_ARG_ENABLE([__thread], [AS_HELP_STRING(--enable-__thread,use TLS features)], [use__thread=$enableval], [use__thread=no])
+
 AC_MSG_CHECKING(whether to include threads support)
 enable_threads=${enable_threads:-native}
 case "$enable_threads" in
