@@ -26,16 +26,18 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 572 2003-11-06 16:06:11Z twisti $
+   $Id: inline.c 578 2003-11-09 17:37:03Z twisti $
 
 */
 
 
 #include <stdio.h>
+#include <string.h>
 #include "inline.h"
 #include "jit.h"
 #include "parse.h"
 #include "loader.h"
+#include "tables.h"
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
 
@@ -75,7 +77,7 @@ void inlining_init(methodinfo *m)
 }
 
 
-void inlining_cleanup(void)
+void inlining_cleanup()
 {
 	FREE(inlining_stack, t_inlining_stacknode);
 }
@@ -121,6 +123,7 @@ void inlining_pop_compiler_variables(int *i, int *p, int *nextp, int *opcode, in
 	isinlinedmethod--;
 }
 
+
 void inlining_set_compiler_variables_fun(methodinfo *m)
 {
 	method = m;
@@ -141,7 +144,8 @@ void inlining_set_compiler_variables_fun(methodinfo *m)
   }*/
 
 
-classinfo *first_occurence(classinfo* class, utf* name, utf* desc) {
+classinfo *first_occurence(classinfo* class, utf* name, utf* desc)
+{
 	classinfo *first = class;
 	
 	for (; class->super != NULL ; class = class->super) {
@@ -149,11 +153,13 @@ classinfo *first_occurence(classinfo* class, utf* name, utf* desc) {
 			first = class->super;
 		}			
 	}
-		return first;
+
+	return first;
 }
 
 
-bool is_unique_rec(classinfo *class, methodinfo *m, utf* name, utf* desc) {
+bool is_unique_rec(classinfo *class, methodinfo *m, utf* name, utf* desc)
+{
 	methodinfo *tmp = class_findmethod(class, name, desc);
 	if ((tmp != NULL) && (tmp != m))
 		return false;
@@ -167,7 +173,8 @@ bool is_unique_rec(classinfo *class, methodinfo *m, utf* name, utf* desc) {
 }
 
 
-bool is_unique_method(classinfo *class, methodinfo *m, utf* name, utf* desc) {
+bool is_unique_method(classinfo *class, methodinfo *m, utf* name, utf* desc)
+{
 	classinfo *firstclass;
 	
 	/*	sprintf (logtext, "First occurence of: ");
