@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2060 2005-03-23 11:09:37Z twisti $
+   $Id: class.h 2091 2005-03-27 14:49:48Z edwin $
 
 */
 
@@ -107,6 +107,21 @@ classinfo *class_array_of(classinfo *component);
 
 /* return an array class with the given dimension and element class */
 classinfo *class_multiarray_of(s4 dim, classinfo *element);
+
+/* return a classref for the given class name */
+/* (does a linear search!)                    */
+constant_classref *class_lookup_classref(classinfo *cls,utf *name);
+
+/* return a classref for the given class name */
+/* (does a linear search!)                    */
+constant_classref *class_get_classref(classinfo *cls,utf *name);
+
+/* return a classref for an array with the given dimension of with the */
+/* given component type */
+constant_classref *class_get_classref_multiarray_of(s4 dim,constant_classref *ref);
+
+/* return a classref for the component type of the given array type */
+constant_classref *class_get_classref_component_of(constant_classref *ref);
 
 #endif /* _CLASS_H */
 
