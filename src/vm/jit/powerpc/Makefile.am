@@ -28,11 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1737 2004-12-07 17:31:44Z twisti $
+## $Id: Makefile.am 1983 2005-03-04 16:14:25Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src
+INCLUDES = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
+
+AM_CCASFLAGS = $(INCLUDES)
 
 CLEANFILES = offsets.h
 
@@ -55,13 +57,10 @@ libarch_la_SOURCES = \
 	ppc-opc.c \
 	ppc.h
 
-asmpart.S: $(top_srcdir)/config.h offsets.h
+$(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
 
-.S.lo:
-	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
-
-offsets.h: $(top_srcdir)/src/vm/jit/tools/genoffsets $(top_srcdir)/config.h $(top_srcdir)/src/vm/global.h $(top_srcdir)/src/threads/native/threads.h
-	$(top_srcdir)/src/vm/jit/tools/genoffsets > offsets.h
+offsets.h: $(top_builddir)/src/vm/jit/tools/genoffsets $(top_builddir)/config.h $(top_srcdir)/src/vm/global.h $(top_srcdir)/src/threads/native/threads.h
+	$(top_builddir)/src/vm/jit/tools/genoffsets > offsets.h
 
 
 ## Local variables:
