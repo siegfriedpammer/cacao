@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1457 2004-11-05 15:05:14Z twisti $
+# $Id: Makefile.am 1486 2004-11-12 10:02:54Z twisti $
 
 @SET_MAKE@
 
@@ -77,8 +77,7 @@ cacao_DEPENDENCIES = \
 	toolbox/libtoolbox.a \
         @STATIC_CLASSPATH_LIBS@ \
 	nativetable.inc \
-	@AWT_OBJS@ \
-	@ZIP_LIBS@
+	@AWT_OBJS@
 
 cacaoh_SOURCES = \
 	builtin.c \
@@ -103,7 +102,6 @@ cacaoh_DEPENDENCIES = \
 	$(BOEHM_LIBS) \
 	classpath/native/jni/java-lang/.libs/libjavalang.a \
 	@THREAD_OBJ@ \
-	@ZIP_LIBS@ \
 	toolbox/libtoolbox.a
 
 gennativetable_SOURCES = \
