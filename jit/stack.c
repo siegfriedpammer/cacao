@@ -1965,7 +1965,7 @@ static void show_icmd_method()
 						if (c->flags & ACC_INTERFACE)
 							printf(" (INTERFACE) ");
 						else
-							printf(" (CLASS,%3d) ", c->diffval);
+							printf(" (CLASS,%3d) ", c->vftbl->diffval);
 						utf_fprint(stdout, c->name);
 						}
 					break;

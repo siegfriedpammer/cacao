@@ -138,8 +138,8 @@ s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 	return 0;
 	*/
 
-	return (unsigned) (sub->baseval - super->baseval) <=
-		   (unsigned) (super->diffval);
+	return (unsigned) (sub->vftbl->baseval - super->vftbl->baseval) <=
+		   (unsigned) (super->vftbl->diffval);
 }
 
 

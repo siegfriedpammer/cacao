@@ -15,7 +15,7 @@
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 	         Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: headers.c 227 2003-02-12 13:23:24Z stefan $
+	Last Change: $Id: headers.c 228 2003-02-12 16:24:36Z stefan $
 
 *******************************************************************************/
 
@@ -533,9 +533,8 @@ int main(int argc, char **argv)
 	fprintf (file, "#define offobjvftbl    %3d\n", (int) OFFSET(java_objectheader, vftbl));
 	fprintf (file, "#define offarraysize   %3d\n", (int) OFFSET(java_arrayheader, size));
 	fprintf (file, "#define offobjarrdata  %3d\n\n", (int) OFFSET(java_objectarray, data[0]));
-	fprintf (file, "#define offbaseval     %3d\n", (int) OFFSET(classinfo, baseval));
-	fprintf (file, "#define offdiffval     %3d\n", (int) OFFSET(classinfo, diffval));
-	fprintf (file, "#define offclass     %3d\n", (int) OFFSET(vftbl, class));
+	fprintf (file, "#define offbaseval     %3d\n", (int) OFFSET(vftbl, baseval));
+	fprintf (file, "#define offdiffval     %3d\n", (int) OFFSET(vftbl, diffval));
 
 	fclose (file);
 

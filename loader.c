@@ -2519,19 +2519,19 @@ static void loader_compute_class_values (classinfo *c)
 {
 	classinfo *subs;
 
-	c->baseval = ++classvalue;
+	c->vftbl->baseval = ++classvalue;
 	subs = c->sub;
 	while (subs != NULL) {
 		loader_compute_class_values(subs);
 		subs = subs->nextsub;
 		}
-	c->diffval = classvalue - c->baseval;
+	c->vftbl->diffval = classvalue - c->vftbl->baseval;
 /*
 	{
 	int i;
 	for (i = 0; i < c->index; i++)
 		printf(" ");
-	printf("%3d  %3d  ", (int) c->baseval, c->diffval);
+	printf("%3d  %3d  ", (int) c->vftbl->baseval, c->vftbl->diffval);
 	utf_display(c->name);
 	printf("\n");
 	}

@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 227 2003-02-12 13:23:24Z stefan $
+	Last Change: $Id: global.h 228 2003-02-12 16:24:36Z stefan $
 
 *******************************************************************************/
 
@@ -522,10 +522,6 @@ struct classinfo {                /* class structure                          */
     innerclassinfo *innerclass;
 
     classinfo      *hashlink;         /* link for external hash chain         */
-
-	s4           baseval;              /* base for runtime type check         */
-	s4           diffval;              /* high - base for runtime type check  */
-
 };
 
 
@@ -592,6 +588,9 @@ struct vftbl {
 
 	s4           vftbllength;          /* virtual function table length       */
 	s4           interfacetablelength; /* interface table length              */
+
+	s4           baseval;              /* base for runtime type check         */
+	s4           diffval;              /* high - base for runtime type check  */
 
 	s4          *interfacevftbllength; /* length of interface vftbls          */
 	
