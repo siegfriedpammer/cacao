@@ -15,7 +15,7 @@
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 	         Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: headers.c 297 2003-05-12 21:15:52Z twisti $
+	Last Change: $Id: headers.c 300 2003-05-13 09:18:34Z stefan $
 
 *******************************************************************************/
 
@@ -304,7 +304,7 @@ static void simple_classname(char *buffer, utf *u)
 {
   u2 i, simplename_start;
 
-  for (i=utf_strlen(u); i>0; i--) { 
+  for (i=utf_strlen(u)-1; i>=0; i--) { 
 
 	if (u->text[i] == '$') u->text[i] = '_'; else /* convert '$' to '_' */
     if (u->text[i] == '/') {
