@@ -28,18 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1919 2005-02-10 10:08:53Z twisti $
+## $Id: Makefile.am 1992 2005-03-05 16:53:16Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_builddir)/src
-
-CLEANFILES = implementednatives.data
-
-EXTRA_DIST = \
-	GtkComponentPeer.c \
-	GtkFileDialogPeer.c \
-	GtkScrollPanePeer.c
 
 noinst_LTLIBRARIES = libnativevm.la
 
@@ -58,18 +51,6 @@ libnativevm_la_SOURCES = \
 	VMSystemProperties.c \
 	VMThread.c \
 	VMThrowable.c
-
-all: implementednatives.data
-
-implementednatives.data: $(libnativevm_a_SOURCES)
-	echo "" > implementednatives.data
-	grep "JNICALL Java_" *.c | perl -p -i -e "s/.*JNICALL\s//" | perl -p -i -e"s/\(.*//"  | ( \
-		while read line; do \
-			grep $$line $(top_srcdir)/src/native/include/*.h > /dev/null; \
-			if test $$? == 0; then \
-				echo $$line >> implementednatives.data; \
-			fi ; \
-		done )
 
 
 ## Local variables:
