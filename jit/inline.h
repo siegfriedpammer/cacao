@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: inline.h 572 2003-11-06 16:06:11Z twisti $
 
 */
 
@@ -108,21 +108,20 @@ extern inlining_methodinfo *inlining_rootinfo;
 
 
 /* function prototypes*/
-void inlining_init();
+void inlining_init(methodinfo *m);
 void inlining_push_compiler_variables(int i, int p, int nextp, int opcode, 
                                       inlining_methodinfo* inlinfo);
 void inlining_pop_compiler_variables(int *i, int *p, int *nextp, int *opcode, 
                                      inlining_methodinfo** inlinfo); 
-void inlining_init(void);
 inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp,
                                              int firstlocal, int maxstackdepth);
 
 
 #define inlining_save_compiler_variables() \
-    inlining_push_compiler_variables(i,p,nextp,opcode,inlinfo)
+    inlining_push_compiler_variables(i, p, nextp, opcode, inlinfo)
 
 #define inlining_restore_compiler_variables() \
-    inlining_pop_compiler_variables(&i,&p,&nextp,&opcode,&inlinfo)
+    inlining_pop_compiler_variables(&i, &p, &nextp, &opcode, &inlinfo)
 
 #define inlining_set_compiler_variables(i) \
     do { \

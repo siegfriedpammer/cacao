@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: inline.c 572 2003-11-06 16:06:11Z twisti $
 
 */
 
@@ -55,7 +55,7 @@ static int cummethods;
 inlining_methodinfo *inlining_rootinfo;
 
 
-void inlining_init()
+void inlining_init(methodinfo *m)
 {
 	inlining_stack = NULL;
 	//	inlining_patchlist = NULL;
@@ -69,7 +69,7 @@ void inlining_init()
 	inlining_stack = NEW(list);
 	list_init(inlining_stack, OFFSET(t_inlining_stacknode, linkage));
 	
-	inlining_rootinfo = inlining_analyse_method(method, 0, 0, 0, 0);
+	inlining_rootinfo = inlining_analyse_method(m, 0, 0, 0, 0);
 	maxlocals = cumlocals;
 	maxstack = cummaxstack;
 }
@@ -218,6 +218,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 		newnode->readonly = readonly = DMNEW(bool, m->maxlocals); //FIXME only paramcount entrys necessary
 		for (i = 0; i < m->maxlocals; readonly[i++] = true);
 		isnotrootlevel = true;
+
 	} else {
 		readonly = NULL;
 	}
@@ -233,8 +234,15 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 	newnode->label_index = label_index;
 	newnode->firstlocal = firstlocal;
 	cumjcodelength += jcodelength + m->paramcount + 1 + 5;
-	if ((firstlocal + m->maxlocals) > cumlocals) cumlocals = firstlocal + m->maxlocals;
-	if ((maxstackdepth + m->maxstack) >  cummaxstack) cummaxstack = maxstackdepth + m->maxstack;
+
+	if ((firstlocal + m->maxlocals) > cumlocals) {
+		cumlocals = firstlocal + m->maxlocals;
+	}
+
+	if ((maxstackdepth + m->maxstack) > cummaxstack) {
+		cummaxstack = maxstackdepth + m->maxstack;
+	}
+
 	cumextablelength += m->exceptiontablelength;
    
 
@@ -246,7 +254,6 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 		/* figure out nextp */
 
 		switch (opcode) {
-
 		case JAVA_ILOAD:
 		case JAVA_LLOAD:
 		case JAVA_FLOAD:
@@ -260,12 +267,17 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 		case JAVA_ASTORE: 
 
 		case JAVA_RET:
-
-			if (iswide) { nextp = p + 3; iswide = false; }
+			if (iswide) {
+				nextp = p + 3;
+				iswide = false;
+			}
 			break;
 
 		case JAVA_IINC:
-			if (iswide) { nextp = p + 5; iswide = false; }
+			if (iswide) {
+				nextp = p + 5;
+				iswide = false;
+			}
 			break;
 
 		case JAVA_WIDE:
@@ -282,24 +294,24 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 			nextp = ALIGN((p + 1), 4) + 4;
 			nextp += (code_get_u4(nextp+4) - code_get_u4(nextp) + 1) * 4 + 4;
 			break;
-
 		}
+
 		/* detect readonly variables in inlined methods */
 		
 		if (isnotrootlevel) { 
 			bool iswide = oldiswide;
 			
 			switch (opcode) {
-				
 			case JAVA_ISTORE:
 			case JAVA_LSTORE:
 			case JAVA_FSTORE:
 			case JAVA_DSTORE:
 			case JAVA_ASTORE: 
-				if (!iswide)
-					i = code_get_u1(p+1);
-				else {
-					i = code_get_u2(p+1);
+				if (!iswide) {
+					i = code_get_u1(p + 1);
+
+				} else {
+					i = code_get_u2(p + 1);
 				}
 				readonly[i] = false;
 				break;
@@ -333,74 +345,71 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 				break;
 
 			case JAVA_IINC:
-				
 				if (!iswide) {
 					i = code_get_u1(p + 1);
-				}
-				else {
+
+				} else {
 					i = code_get_u2(p + 1);
 				}
 				readonly[i] = false;
 				break;
 			}
-			
-			
 		}
 
 		/*		for (i=lastlabel; i<=p; i++) label_index[i] = gp; 
 		//		printf("lastlabel=%d p=%d gp=%d\n",lastlabel, p, gp);
 		lastlabel = p+1; */
-		for (i=p; i < nextp; i++) label_index[i] = gp;
+		for (i = p; i < nextp; i++) label_index[i] = gp;
 
 		if (isnotleaflevel) { 
 
 			switch (opcode) {
 			case JAVA_INVOKEVIRTUAL:
-				if (!inlinevirtuals) break;
+				if (!inlinevirtuals)
+					break;
 			case JAVA_INVOKESTATIC:
 				i = code_get_u2(p + 1);
 				{
 					constant_FMIref *imr;
 					methodinfo *imi;
 
-					imr = class_getconstant (m->class, i, CONSTANT_Methodref);
-					imi = class_findmethod (imr->class, imr->name, imr->descriptor);
+					imr = class_getconstant(m->class, i, CONSTANT_Methodref);
+					imi = class_findmethod(imr->class, imr->name, imr->descriptor);
 
-					if (opcode == JAVA_INVOKEVIRTUAL) 
-						{
-							if (!is_unique_method(imi->class, imi, imr->name ,imr->descriptor))
-								break;
+					if (opcode == JAVA_INVOKEVIRTUAL) {
+						if (!is_unique_method(imi->class, imi, imr->name, imr->descriptor))
+							break;
+					}
+
+					if ((cummethods < INLINING_MAXMETHODS) &&
+						(!(imi->flags & ACC_NATIVE)) &&  
+						(!inlineoutsiders || (class == imr->class)) && 
+						(imi->jcodelength < INLINING_MAXCODESIZE) && 
+						(imi->jcodelength > 0) && 
+						(!inlineexceptions || (imi->exceptiontablelength == 0))) { //FIXME: eliminate empty methods?
+						inlining_methodinfo *tmp;
+						descriptor2types(imi);
+
+						cummethods++;
+
+						if (verbose) {
+							sprintf(logtext, "Going to inline: ");
+							utf_sprint(logtext  +strlen(logtext), imi->class->name);
+							strcpy(logtext + strlen(logtext), ".");
+							utf_sprint(logtext + strlen(logtext), imi->name);
+							utf_sprint(logtext + strlen(logtext), imi->descriptor);
+							dolog();
 						}
-
-					if ( (cummethods < INLINING_MAXMETHODS) &&
-						 (! (imi->flags & ACC_NATIVE)) &&  
-						 ( !inlineoutsiders || (class == imr->class)) && 
-						 (imi->jcodelength < INLINING_MAXCODESIZE) && 
-						 (imi->jcodelength > 0) && 
-						 (!inlineexceptions || (imi->exceptiontablelength == 0)) ) //FIXME: eliminate empty methods?
-						{
-							inlining_methodinfo *tmp;
-							descriptor2types(imi);
-
-							cummethods++;
-
-							/*	sprintf (logtext, "Going to inline: ");
-							utf_sprint (logtext+strlen(logtext), imi->class->name);
-							strcpy (logtext+strlen(logtext), ".");
-							utf_sprint (logtext+strlen(logtext), imi->name);
-							utf_sprint (logtext+strlen(logtext), imi->descriptor);
-							dolog (); */
-
-							tmp = inlining_analyse_method(imi, level+1, gp, firstlocal + m->maxlocals, maxstackdepth + m->maxstack);
-							list_addlast(newnode->inlinedmethods, tmp);
-							gp = tmp->stopgp;
-							p = nextp;
-						}
+						
+						tmp = inlining_analyse_method(imi, level + 1, gp, firstlocal + m->maxlocals, maxstackdepth + m->maxstack);
+						list_addlast(newnode->inlinedmethods, tmp);
+						gp = tmp->stopgp;
+						p = nextp;
+					}
 				}
 				break;
 			}
 		}  
-		
 	} /* for */
 	
 	newnode->stopgp = gp;
