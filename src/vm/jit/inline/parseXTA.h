@@ -26,14 +26,49 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.h 1881 2005-01-21 13:46:51Z carolyn $
+   $Id: parseXTA.h 2106 2005-03-28 22:44:17Z twisti $
 
 */
 
 #ifndef _PARSEXTA_H
 #define _PARSEXTA_H
 
+/* forward typedefs ***********************************************************/
+
+typedef struct xtainfo xtainfo;
+typedef	struct xtafldinfo xtafldinfo;
+
+
 #include "vm/global.h"
+#include "vm/jit/inline/sets.h"
+
+
+/* methodinfo static info *****************************************************/
+
+struct xtainfo {
+	s4          XTAmethodUsed;     /* XTA if used in callgraph - not used /used */
+	classSet    *XTAclassSet;      /* method class type set                 */ 
+	/*classSet 	*PartClassSet */   /* method class type set                 */ 
+
+	classSetNode    *paramClassSet; /* cone set of methods parameters       */
+	
+	/* Needed for interative checking */
+	methSet  	*calls;            /* Edges - methods this method calls   	        */ 
+	methSet  	*calledBy;         /* Edges - methods that call this method         */ 
+	methSet         *markedBy;  
+	fldSet          *fldsUsed;         /* fields used by this method             */ 
+	/*methSetNode  *interfaceCalls*/   /* methods this method calls as interface */ 
+	bool           chgdSinceLastParse; /* Changed since last parse ?          */
+}; 
+
+
+/* field, method and class structures *****************************************/
+
+struct xtafldinfo {
+	bool       fieldChecked; 		
+	classinfo *fldClassType;
+	classSet  *XTAclassSet;          /* field class type set                  */
+};
 
 
 extern FILE *xtaMissed;  /* Methods missed during XTA parse of Main  */
