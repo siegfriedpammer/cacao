@@ -7,8 +7,8 @@
  */
 JNIEXPORT void JNICALL Java_java_net_InetAddress_init (JNIEnv *env )
 {
-  log_text("Java_java_net_InetAddress_init called");
-
+    if (runverbose)
+	log_text("Java_java_net_InetAddress_init called");
 }
 
 

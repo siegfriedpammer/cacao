@@ -509,12 +509,16 @@ void gc_finalize (void)
 	while (curr) {
 		if (curr->address) {
 			if (!bitmap_testbit(mark_bits, curr->address)) {
+				int b;
 
 #ifdef FINALIZER_COUNTING
 				++gc_finalizers_executed;
 #endif
+				b = blockInts;
+				blockInts = 0;
 				asm_calljavamethod(((java_objectheader*)curr->address)->vftbl->class->finalizer, 
 								   curr->address, NULL, NULL, NULL);
+				blockInts = b;
 				curr->address = 0;
 			}
 		}

@@ -1,42 +1,6 @@
 /* ------------------------ thread.c -------------------------- */
 
 /*
- * Put a thread to sleep.
- */
-void
-sleepThread(int64 time)
-{
-    thread** tidp;
-
-    /* Sleep for no time */
-    if (time == 0) {
-	return;
-    }
-    
-    intsDisable();
-
-    /* Get absolute time */
-    currentThread->PrivateInfo->time = time + currentTime();
-
-    /* Find place in alarm list */
-    for (tidp = &alarmList; (*tidp) != 0; tidp = &(*tidp)->next) {
-	if ((*tidp)->PrivateInfo->time > currentThread->PrivateInfo->time) {
-	    break;
-	}
-    }
-
-    /* If I'm head of alarm list, restart alarm */
-    if (tidp == &alarmList) {
-	MALARM(time);
-    }
-    
-    /* Suspend thread on it */
-    suspendOnQThread(currentThread, tidp);
-    
-    intsRestore();
-}
-
-/*
  * Handle alarm.
  * This routine uses a different meaning of "blockInts". Formerly, it was just
  * "don't reschedule if you don't have to". Now it is "don't do ANY

@@ -1233,54 +1233,63 @@ jfieldID GetStaticFieldID (JNIEnv *env, jclass clazz, const char *name, const ch
 
 jobject GetStaticObjectField (JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
+	class_init(clazz);
 	return fieldID->value.a;       
 }
 
 
 jboolean GetStaticBooleanField (JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
+	class_init(clazz);
 	return fieldID->value.i;       
 }
 
 
 jbyte GetStaticByteField (JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
+	class_init(clazz);
 	return fieldID->value.i;       
 }
 
 
 jchar GetStaticCharField (JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
+	class_init(clazz);
 	return fieldID->value.i;       
 }
 
 
 jshort GetStaticShortField (JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
+	class_init(clazz);
 	return fieldID->value.i;       
 }
 
 
 jint GetStaticIntField (JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
+	class_init(clazz);
 	return fieldID->value.i;       
 }
 
 
 jlong GetStaticLongField (JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
+	class_init(clazz);
 	return fieldID->value.l;
 }
 
 
 jfloat GetStaticFloatField (JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
+	class_init(clazz);
  	return fieldID->value.f;
 }
 
 
 jdouble GetStaticDoubleField (JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
+	class_init(clazz);
 	return fieldID->value.d;
 }
 
@@ -1288,54 +1297,63 @@ jdouble GetStaticDoubleField (JNIEnv *env, jclass clazz, jfieldID fieldID)
 
 void SetStaticObjectField (JNIEnv *env, jclass clazz, jfieldID fieldID, jobject value)
 {
+	class_init(clazz);
 	fieldID->value.a = value;
 }
 
 
 void SetStaticBooleanField (JNIEnv *env, jclass clazz, jfieldID fieldID, jboolean value)
 {
+	class_init(clazz);
 	fieldID->value.i = value;
 }
 
 
 void SetStaticByteField (JNIEnv *env, jclass clazz, jfieldID fieldID, jbyte value)
 {
+	class_init(clazz);
 	fieldID->value.i = value;
 }
 
 
 void SetStaticCharField (JNIEnv *env, jclass clazz, jfieldID fieldID, jchar value)
 {
+	class_init(clazz);
 	fieldID->value.i = value;
 }
 
 
 void SetStaticShortField (JNIEnv *env, jclass clazz, jfieldID fieldID, jshort value)
 {
+	class_init(clazz);
 	fieldID->value.i = value;
 }
 
 
 void SetStaticIntField (JNIEnv *env, jclass clazz, jfieldID fieldID, jint value)
 {
+	class_init(clazz);
 	fieldID->value.i = value;
 }
 
 
 void SetStaticLongField (JNIEnv *env, jclass clazz, jfieldID fieldID, jlong value)
 {
+	class_init(clazz);
 	fieldID->value.l = value;
 }
 
 
 void SetStaticFloatField (JNIEnv *env, jclass clazz, jfieldID fieldID, jfloat value)
 {
+	class_init(clazz);
 	fieldID->value.f = value;
 }
 
 
 void SetStaticDoubleField (JNIEnv *env, jclass clazz, jfieldID fieldID, jdouble value)
 {
+	class_init(clazz);
 	fieldID->value.d = value;
 }
 
@@ -2154,3 +2172,16 @@ JNIEnv env =
     &DeleteWeakGlobalRef,
     &ExceptionCheck
     };
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

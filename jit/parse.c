@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 135 1999-10-04 10:35:09Z roman $
+	Last Change: $Id: parse.c 136 1999-11-09 11:33:46Z schani $
 
 *******************************************************************************/
 
@@ -871,6 +871,10 @@ static void parse()
 					BUILTIN2((functionptr) asm_builtin_checkarraycast, TYPE_ADR);
 					}
 				else { /* object type cast-check */
+					/*
+					LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
+					BUILTIN2((functionptr) asm_builtin_checkcast, TYPE_ADR);
+					*/
 				 	OP2A(opcode, 1, (class_getconstant(class, i, CONSTANT_Class)));
 					}
 				break;
@@ -884,7 +888,11 @@ static void parse()
 					BUILTIN2((functionptr) builtin_arrayinstanceof, TYPE_INT);
 					}
 				else { /* object type cast-check */
-				 	OP2A(opcode, 1, (class_getconstant(class, i, CONSTANT_Class)));
+					/*
+					LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
+					BUILTIN2((functionptr) builtin_instanceof, TYPE_INT);
+					*/
+					OP2A(opcode, 1, (class_getconstant(class, i, CONSTANT_Class)));
 					}
 				break;
 

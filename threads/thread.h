@@ -74,6 +74,7 @@ typedef struct _threadGroup
     s4                   maxPrio;
     s4                   destroyed;
     s4                   daemon;
+	s4                   vmAllowSuspension;
     s4                   nthreads;
     java_objectheader*   threads;
     s4                   ngroups;
@@ -88,33 +89,35 @@ typedef struct _thread
     s4                       priority;
     struct _thread*          next;
     s8                       PrivateInfo;
-    struct java_lang_Object* eetop;           /* ??? */
     s4                       single_step;
     s4                       daemon;
     s4                       stillborn;
     java_objectheader*       target;
-    s4                       interruptRequested;
     threadGroup*             group;
+	java_objectheader*       contextClassLoader;
+	java_objectheader*       inheritedAccessControlContext;
+	java_objectheader*       values;
 } thread;
 
-void initThreads(u1 *stackbottom);
-void clear_thread_flags(void);
-void startThread(thread*);
-void resumeThread(thread*);
-void iresumeThread(thread*);
-void suspendThread(thread*);
-void suspendOnQThread(thread*, thread**);
-void yieldThread(void);
-void killThread(thread*);
-void setPriorityThread(thread*, int);
+void initThreads (u1 *stackbottom);
+void clear_thread_flags (void);
+void startThread (thread*);
+void resumeThread (thread*);
+void iresumeThread (thread*);
+void suspendThread (thread*);
+void suspendOnQThread (thread*, thread**);
+void yieldThread (void);
+void killThread (thread*);
+void setPriorityThread (thread*, int);
 
-void sleepThread(s8);
-bool aliveThread(thread*);
-long framesThread(thread*);
+s8 currentTime (void);
+void sleepThread (s8);
+bool aliveThread (thread*);
+long framesThread (thread*);
 
-void reschedule(void);
+void reschedule (void);
 
-void checkEvents(bool block);
+void checkEvents (bool block);
 
 extern int blockInts;
 extern bool needReschedule;
@@ -124,6 +127,7 @@ extern ctx contexts[];
 extern int threadStackSize;
 
 extern thread *liveThreads;
+extern thread *sleepThreads;
 
 extern thread *threadQhead[MAX_THREAD_PRIO + 1];
 

@@ -191,7 +191,7 @@ JNIEXPORT void JNICALL Java_java_lang_System_arraycopy (JNIEnv *env, struct java
 }
 
 #define MAXPROPS 100
-static int activeprops = 16;
+static int activeprops = 15;
 
 static char *proplist[MAXPROPS][2] = {
 	{ "java.class.path", NULL },
@@ -199,8 +199,6 @@ static char *proplist[MAXPROPS][2] = {
 	{ "user.home", NULL }, 
 	{ "user.name", NULL }, 
 	{ "user.dir",  NULL }, 
-	   
-	{ "impl.prefix", "" },
 
 	{ "java.class.version", "45.3" },
 	{ "java.version", "cacao:0.3" },
@@ -333,6 +331,7 @@ JNIEXPORT void JNICALL Java_java_lang_System_setOut0 (JNIEnv *env , struct java_
 JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_System_mapLibraryName (JNIEnv *env , struct java_lang_String* s)
 {
   char somefile[MAXSTRINGSIZE];
+  char *java_home;
 
   /* return name of any file that exists (relative to root),
      so ClassLoader believes we dynamically load the native library */ 
@@ -340,7 +339,10 @@ JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_System_mapLibraryName 
   if (strlen(classpath)+24>MAXSTRINGSIZE)
     panic("filename too long");
 
-  strcpy(somefile,getenv("JAVA_HOME"));
+  java_home = getenv("JAVA_HOME");
+  if (java_home == 0)
+      java_home = "/tmp";
+  strcpy(somefile,java_home);
   strcat(somefile,"/dummy");
 
   return (java_lang_String* ) javastring_new_char(&somefile[1]);

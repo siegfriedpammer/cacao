@@ -7,8 +7,8 @@
  */
 JNIEXPORT s4 JNICALL Java_java_lang_Thread_countStackFrames ( JNIEnv *env ,  struct java_lang_Thread* this)
 {
-  log_text ("java_lang_Thread_countStackFrames called");
-  return 0;         /* not yet implemented */
+    log_text ("java_lang_Thread_countStackFrames called");
+    return 0;         /* not yet implemented */
 }
 
 /*
@@ -54,6 +54,7 @@ JNIEXPORT struct java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread (
 JNIEXPORT void JNICALL Java_java_lang_Thread_interrupt0 ( JNIEnv *env ,  struct java_lang_Thread* this)
 {
   log_text("Java_java_lang_Thread_interrupt0  called");
+  /* not yet implemented */
 }
 
 /*
@@ -63,14 +64,14 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_interrupt0 ( JNIEnv *env ,  struct 
  */
 JNIEXPORT s4 JNICALL Java_java_lang_Thread_isAlive ( JNIEnv *env ,  struct java_lang_Thread* this)
 {
-  if (runverbose)
-    log_text ("java_lang_Thread_isAlive called");
+    if (runverbose)
+	log_text ("java_lang_Thread_isAlive called");
 
-  #ifdef USE_THREADS
-	return aliveThread((thread*)this);
-  #else
-	return 0;
-  #endif
+#ifdef USE_THREADS
+    return aliveThread((thread*)this);
+#else
+    return 0;
+#endif
 }
 
 /*
@@ -80,7 +81,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_isAlive ( JNIEnv *env ,  struct java_
  */
 JNIEXPORT s4 JNICALL Java_java_lang_Thread_isInterrupted ( JNIEnv *env ,  struct java_lang_Thread* this, s4 par1)
 {
-  log_text("Java_java_lang_Thread_isInterrupted  called");
+    log_text("Java_java_lang_Thread_isInterrupted  called");
+    return 0;			/* not yet implemented */
 }
 
 /*
@@ -100,12 +102,12 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_registerNatives ( JNIEnv *env  )
  */
 JNIEXPORT void JNICALL Java_java_lang_Thread_resume0 ( JNIEnv *env ,  struct java_lang_Thread* this)
 {
-  if (runverbose)
-    log_text ("java_lang_Thread_resume0 called");
+    if (runverbose)
+	log_text ("java_lang_Thread_resume0 called");
 
-  #ifdef USE_THREADS
-	resumeThread((thread*)this);
-  #endif
+#ifdef USE_THREADS
+    resumeThread((thread*)this);
+#endif
 }
 
 /*
@@ -115,12 +117,12 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_resume0 ( JNIEnv *env ,  struct jav
  */
 JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0 ( JNIEnv *env ,  struct java_lang_Thread* this, s4 par1)
 {
-  if (runverbose) 
-    log_text ("java_lang_Thread_setPriority0 called");
+    if (runverbose) 
+	log_text ("java_lang_Thread_setPriority0 called");
 
-  #ifdef USE_THREADS
-  setPriorityThread((thread*)this, par1);
-  #endif
+#ifdef USE_THREADS
+    setPriorityThread((thread*)this, par1);
+#endif
 }
 
 /*
@@ -128,16 +130,14 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0 ( JNIEnv *env ,  struc
  * Method:    sleep
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_sleep ( JNIEnv *env ,  s8 par1)
+JNIEXPORT void JNICALL Java_java_lang_Thread_sleep (JNIEnv *env, s8 millis)
 {
-  if (runverbose)
-    log_text ("java_lang_Thread_sleep called");
+    if (runverbose)
+	log_text ("java_lang_Thread_sleep called");
 
-  #ifdef USE_THREADS
-	yieldThread();
-  #endif
-	
-  /* not yet implemented */
+#ifdef USE_THREADS
+    sleepThread(millis);
+#endif
 }
 
 /*

@@ -17,7 +17,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: main.c 135 1999-10-04 10:35:09Z roman $
+	Last Change: $Id: main.c 136 1999-11-09 11:33:46Z schani $
 
 *******************************************************************************/
 
@@ -732,8 +732,6 @@ int main(int argc, char **argv)
 	}
 
 	topclass = loader_load ( utf_new_char (cp) );
-
-	loader_compute_subclasses();
 
 	gc_init();
 

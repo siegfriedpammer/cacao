@@ -128,18 +128,18 @@ s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 		return (sub->vftbl->interfacetablelength > super->index) &&
 		       (sub->vftbl->interfacetable[-super->index] != NULL);
 
+	/*
     while (sub != 0)
 		if (sub == super)
 			return 1;
 		else
 			sub = sub->super;
-	
-	return 0;
 
-	/*
+	return 0;
+	*/
+
 	return (unsigned) (sub->vftbl->baseval - super->vftbl->baseval) <=
 	       (unsigned) (super->vftbl->diffval);
-	*/
 }
 
 
@@ -177,22 +177,22 @@ s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
 
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 {
-	#ifdef DEBUG
+#ifdef DEBUG
 	log_text ("builtin_checkcast called");
-	#endif
+#endif
 
 	if (obj == NULL)
 		return 1;
 	if (builtin_isanysubclass (obj->vftbl->class, class))
 		return 1;
 
-	#if DEBUG
+	/* #if DEBUG */
 	printf ("#### checkcast failed ");
 	utf_display (obj->vftbl->class->name);
 	printf (" -> ");
 	utf_display (class->name);
 	printf ("\n");
-	#endif
+	/* #endif */
 
 	return 0;
 }
@@ -251,22 +251,40 @@ s4 builtin_checkarraycast(java_objectheader *o, constant_arraydescriptor *desc)
 
 	if (!o) return 1;
 	if (o->vftbl->class != class_array) {
+#ifdef DEBUG
+		printf ("#### checkarraycast failed 1\n");
+#endif
 		return 0;
 		}
 		
 	if (a->arraytype != desc->arraytype) {
+#ifdef DEBUG
+		printf ("#### checkarraycast failed 2\n");
+#endif
 		return 0;
 		}
 	
 	switch (a->arraytype) {
 		case ARRAYTYPE_OBJECT: {
 			java_objectarray *oa = (java_objectarray*) o;
-			return builtin_isanysubclass (oa->elementtype, desc->objectclass);
+			int result = builtin_isanysubclass (oa->elementtype, desc->objectclass);
+
+#ifdef DEBUG
+			if (!result)
+				printf ("#### checkarraycast failed 3\n");
+#endif
+			return result;
 			}
 		case ARRAYTYPE_ARRAY: {
 			java_arrayarray *aa = (java_arrayarray*) o;
-			return builtin_descriptorscompatible
-			   (aa->elementdescriptor, desc->elementdescriptor);
+			int result = builtin_descriptorscompatible
+				(aa->elementdescriptor, desc->elementdescriptor);
+
+#ifdef DEBUG
+			if (!result)
+				printf ("#### checkarraycast failed 4\n");
+#endif
+			return result;
 			}
 		default:   
 			return 1;
@@ -353,6 +371,8 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 java_objectheader *builtin_new (classinfo *c)
 {
 	java_objectheader *o;
+
+	class_init(c);
 
 #ifdef SIZE_FROM_CLASSINFO
 	c->alignedsize = align_size(c->instancesize);

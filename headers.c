@@ -17,9 +17,11 @@
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 	         Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: headers.c 135 1999-10-04 10:35:09Z roman $
+	Last Change: $Id: headers.c 136 1999-11-09 11:33:46Z schani $
 
 *******************************************************************************/
+
+#define CACAOH
 
 #include "config.h" /* phil */
 #include "global.h"

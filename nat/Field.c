@@ -19,7 +19,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Field_get ( JN
 
   /* The fieldid is used to retrieve the value, for primitive types a new 
      object for wrapping the primitive type is created.  */
-  if (st || obj)   
+  if (st || obj)
     switch (this->slot) {
       case 'I' : {
       		   /* create wrapping class */

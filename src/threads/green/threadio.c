@@ -289,6 +289,60 @@ threadedWrite(int fd, char* buf, int len)
 }
 
 /*
+ * Receive, but only if we can.
+ */
+int
+threadedRecvfrom (int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen)
+{
+    int r;
+
+    DBG(   printf("threadedRecvfrom\n");          )
+
+#if defined(BLOCKING_CALLS)
+    blockOnFile(fd, TH_READ);
+#endif
+    for (;;)
+    {
+	r = recvfrom(fd, buf, len, flags, addr, addrlen);
+	if (r < 0
+	    && (errno == EAGAIN || errno == EWOULDBLOCK
+		|| errno == EINTR))
+	{
+	    blockOnFile(fd, TH_READ);
+	    continue;
+	}
+	return (r);
+    }
+}
+
+/*
+ * Send, but only if we can.
+ */
+int
+threadedSendto (int fd, void *buf, size_t len, int flags, struct sockaddr *addr, int addrlen)
+{
+    int r;
+
+    DBG(   printf("threadedSendto\n");          )
+
+#if defined(BLOCKING_CALLS)
+    blockOnFile(fd, TH_WRITE);
+#endif
+    for (;;)
+    {
+	r = sendto(fd, buf, len, flags, addr, addrlen);
+	if (r < 0
+	    && (errno == EAGAIN || errno == EWOULDBLOCK
+		|| errno == EINTR))
+	{
+	    blockOnFile(fd, TH_WRITE);
+	    continue;
+	}
+	return (r);
+    }
+}
+
+/*
  * An attempt to access a file would block, so suspend the thread until
  * it will happen.
  */
@@ -303,6 +357,7 @@ DBG(	printf("blockOnFile()\n");					)
     {
 	maxFd = fd;
     }
+
     if (op == TH_READ)
     {
 	FD_SET(fd, &readsPending);
@@ -332,9 +387,46 @@ checkEvents(bool block)
     thread* tid;
     thread* ntid;
     int i;
-    int b;
+    s8 time = -1;
+    struct timeval tv;
+    struct timeval *timeout;
+
+    assert(blockInts > 0);
 
 DBG(	printf("checkEvents block:%d\n", block);			)
+
+    if (sleepThreads != 0)
+    {
+	time = currentTime();
+	while (sleepThreads != 0 && time >= CONTEXT(sleepThreads).time)
+	{
+	    tid = sleepThreads;
+	    sleepThreads = sleepThreads->next;
+	    tid->next = 0;
+
+	    iresumeThread(tid);
+	}
+    }
+
+    if (block)
+    {
+	if (sleepThreads != 0)
+	{
+	    s8 wait_time = CONTEXT(sleepThreads).time - time;
+
+	    tv.tv_sec = wait_time / 1000;
+	    tv.tv_usec = (wait_time % 1000) * 1000;
+	    timeout = &tv;
+	}
+	else
+	    timeout = 0;
+    }
+    else
+    {
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+	timeout = &tv;
+    }
 
 #if defined(FD_COPY)
     FD_COPY(&readsPending, &rd);
@@ -344,21 +436,7 @@ DBG(	printf("checkEvents block:%d\n", block);			)
     memcpy(&wr, &writesPending, sizeof(wr));
 #endif
 
-    /* 
-     * If select() is called with indefinite wait, we have to make sure
-     * we can get interrupted by timer events. 
-     */
-    if (block == true)
-    {
-	b = blockInts;
-	blockInts = 0;
-	r = select(maxFd+1, &rd, &wr, 0, 0);
-	blockInts = b;
-    }
-    else
-    {
-	r = select(maxFd+1, &rd, &wr, 0, &tm);
-    }
+    r = select(maxFd+1, &rd, &wr, 0, timeout);
 
     /* We must be holding off interrupts before we start playing with
      * the read and write queues.  This should be already done but a
@@ -367,6 +445,21 @@ DBG(	printf("checkEvents block:%d\n", block);			)
     assert(blockInts > 0);
 
 DBG(	printf("Select returns %d\n", r);				)
+
+    /* Some threads may have finished sleeping.
+     */
+    if (block && sleepThreads != 0)
+    {
+	time = currentTime();
+	while (sleepThreads != 0 && time >= CONTEXT(sleepThreads).time)
+	{
+	    tid = sleepThreads;
+	    sleepThreads = sleepThreads->next;
+	    tid->next = 0;
+
+	    iresumeThread(tid);
+	}
+    }
 
     for (i = 0; r > 0 && i <= maxFd; i++)
     {

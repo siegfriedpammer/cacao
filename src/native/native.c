@@ -29,8 +29,8 @@
 #include <assert.h>
 #include <sys/time.h>
 
-#include "../threads/thread.h"                       /* schani */
-#include "../threads/locks.h"
+#include "threads/thread.h"                       /* schani */
+#include "threads/locks.h"
 
 /* INCLUDE-Files fuer IO-Funktionen */
 
@@ -69,6 +69,8 @@ static classinfo *class_java_io_SyncFailedException;
 static classinfo *class_java_io_IOException;
 static classinfo *class_java_io_UnixFileSystem;
 static classinfo *class_java_security_PrivilegedActionException;
+static classinfo *class_java_net_UnknownHostException;
+static classinfo *class_java_net_SocketException;
 static classinfo *class_java_lang_NoSuchMethodException;
 static classinfo *class_java_lang_Double;
 static classinfo *class_java_lang_Float;
@@ -136,6 +138,11 @@ static void use_class_as_object (classinfo *c)
 #include "nat/BigInteger.c"
 #include "nat/InetAddress.c"
 #include "nat/InetAddressImpl.c"
+#include "nat/DatagramPacket.c"
+#include "nat/PlainDatagramSocketImpl.c"
+#include "nat/PlainSocketImpl.c"
+#include "nat/SocketInputStream.c"
+#include "nat/SocketOutputStream.c"
 #include "nat/AccessController.c"
 #include "nat/ClassLoader_NativeLibrary.c"
 #include "nat/UnixFileSystem.c"
@@ -208,6 +215,10 @@ void native_loadclasses()
 	        class_new ( utf_new_char ("java/lang/ClassLoader") );	
 	class_java_security_PrivilegedActionException =
 	        class_new( utf_new_char("java/security/PrivilegedActionException"));
+ 	class_java_net_UnknownHostException = 
+ 	        loader_load( utf_new_char ("java/net/UnknownHostException") );
+ 	class_java_net_SocketException = 
+ 	        loader_load( utf_new_char ("java/net/SocketException") );
 	class_java_lang_IllegalArgumentException =
 	        class_new( utf_new_char("java/lang/IllegalArgumentException"));
 	class_java_lang_ArrayIndexOutOfBoundsException =

@@ -238,11 +238,17 @@ classinfo *get_returntype(methodinfo *m)
  * Method:    forName0
  * Signature: (Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
  */
-JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_Class_forName0 ( JNIEnv *env ,  struct java_lang_String* s, s4 initialize, struct java_lang_ClassLoader* par3)
+JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_Class_forName0 ( JNIEnv *env ,  struct java_lang_String* s, s4 initialize, struct java_lang_ClassLoader* loader)
 {
 	classinfo *c;
 	utf *u;
 	u4 i;
+
+	if (runverbose)
+	{
+	    log_text("Java_java_lang_Class_forName0 called");
+	    log_text(javastring_tochar((java_objectheader*)s));
+	}
 
 	/* illegal argument */
 	if (!s) return NULL;
@@ -251,6 +257,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_Class_forName0 ( JNIEnv
 
 	  /*  arrayclasses, e.g. [Ljava.lang.String; */	  
 	  c = create_array_class(javastring_toutf(s, true));
+	  assert(c != 0);
 
 	} else
 	{
@@ -259,12 +266,29 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_Class_forName0 ( JNIEnv
 	  u = javastring_toutf(s, true);
 
 	  if ( !(c = class_get(u)) ) {
+	      methodinfo *method;
+	      java_lang_Class *class;
 
-	    /* class was not found, raise exception */
-	    exceptionptr = 
-	      native_new_and_init (class_java_lang_ClassNotFoundException);
+	      /* class was not found. first check whether we can load it */
+	      method = class_findmethod(loader->header.vftbl->class,
+					utf_new_char("loadClass"),
+					utf_new_char("(Ljava/lang/String;)Ljava/lang/Class;"));
+	      if (method == NULL)
+	      {
+		  log_text("could not find method");
+		  exceptionptr = native_new_and_init (class_java_lang_ClassNotFoundException);
+		  return NULL;
+	      }
 
-	    return NULL;
+	      c = (classinfo*)asm_calljavafunction(method, loader, s, NULL, NULL);
+
+	      if (c == NULL)
+	      {
+		  /* class was not loaded. raise exception */
+		  exceptionptr = 
+		      native_new_and_init (class_java_lang_ClassNotFoundException);
+		  return NULL;
+	      }
 	  }
         }
 
@@ -487,7 +511,7 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_java_lang_Class_getField0
       /* save type in slot-field for faster processing */
       setfield_critical(c,o,"slot",           "I",		    jint,    (jint) f->descriptor->text[0]);  
       setfield_critical(c,o,"name",           "Ljava/lang/String;", jstring, (jstring) name);
-      setfield_critical(c,o,"type",           "Ljava/lang/Class;",  jclass,  c);
+      setfield_critical(c,o,"type",           "Ljava/lang/Class;",  jclass,  fieldtype);
 
       return o;
     }

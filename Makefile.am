@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 135 1999-10-04 10:35:09Z roman $
+# $Id: Makefile.am 136 1999-11-09 11:33:46Z schani $
 
 MAINTAINERCLEANFILES = Makefile.in configure
 SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc narray
@@ -66,6 +66,7 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 		java.lang.ClassLoader \
 		java.lang.Class \
 		java.lang.Compiler \
+		java.lang.Integer \
 		java.lang.Double \
 		java.lang.Float \
 		java.lang.Math \
@@ -104,6 +105,12 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 		java.math.BigInteger \
 		java.net.InetAddress \
 		java.net.InetAddressImpl \
+		java.net.DatagramPacket \
+		java.net.PlainDatagramSocketImpl \
+		java.net.SocketImpl \
+		java.net.PlainSocketImpl \
+		java.net.SocketInputStream \
+		java.net.SocketOutputStream \
 		java.security.PrivilegedActionException \
 		java.security.PrivilegedAction \
 		java.security.PrivilegedExceptionAction \

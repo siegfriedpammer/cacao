@@ -35,6 +35,9 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_Object_clone ( JNIEnv 
 
 	    size = sizeof(java_arrayheader)
 	      + array->size * multiplicator[array->arraytype];
+	    if (array->arraytype == ARRAYTYPE_OBJECT /* elementtype */
+		|| array->arraytype == ARRAYTYPE_ARRAY)	/* elementdescriptor */
+		size += sizeof(void*);
 
 	    if (array->arraytype==ARRAYTYPE_OBJECT || array->arraytype==ARRAYTYPE_OBJECT)
 		size+=sizeof(void*);

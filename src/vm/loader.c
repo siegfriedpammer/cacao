@@ -289,7 +289,7 @@ bool suck_start (utf *classname)
 	}
 
 	sprintf (logtext,"Can not open class file '%s'", filename);
-	error();
+	dolog();
 
 	return false;
 }
@@ -2254,6 +2254,7 @@ void class_showmethods (classinfo *c)
 /******************* Funktionen fuer den Class-loader generell ****************/
 /******************************************************************************/
 
+static int loader_inited = 0;
 
 /********************* Funktion: loader_load ***********************************
 
@@ -2293,6 +2294,9 @@ classinfo *loader_load (utf *topname)
 		stoptime = getcputime();
 		loadingtime += (stoptime-starttime);
 		}
+
+	if (loader_inited)
+		loader_compute_subclasses();
 
 	intsRestore();                          /* schani */
 
@@ -2451,6 +2455,8 @@ void loader_init ()
 	proto_java_lang_ThreadDeath =                             /* schani */
 	        builtin_new(class_java_lang_ThreadDeath);
 	heap_addreference ( (void**) &proto_java_lang_ThreadDeath);
+
+	loader_inited = 1;
 }
 
 
@@ -2479,7 +2485,7 @@ void loader_initclasses ()
 	intsRestore();                      /* schani */
 }
 
-static s4 classvalue = 0;
+static s4 classvalue;
 
 static void loader_compute_class_values (classinfo *c)
 {
@@ -2513,6 +2519,15 @@ void loader_compute_subclasses ()
 
 	c = list_first (&linkedclasses);
 	while (c) {
+		if (!(c->flags & ACC_INTERFACE)) {
+			c->nextsub = 0;
+			c->sub = 0;
+			}
+		c = list_next (&linkedclasses, c);
+		}
+
+	c = list_first (&linkedclasses);
+	while (c) {
 		if (!(c->flags & ACC_INTERFACE) && (c->super != NULL)) {
 			c->nextsub = c->super->sub;
 			c->super->sub = c;
@@ -2520,6 +2535,7 @@ void loader_compute_subclasses ()
 		c = list_next (&linkedclasses, c);
 		}
 
+	classvalue = 0;
 	loader_compute_class_values(class_java_lang_Object);
 
 	intsRestore();                      /* schani */

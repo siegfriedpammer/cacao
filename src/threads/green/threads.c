@@ -18,6 +18,8 @@
 #include <sys/types.h>
 #include <sys/mman.h>                   /* for mprotect */
 #include <unistd.h>
+#include <signal.h>
+#include <sys/time.h>
 
 #include "thread.h"
 #include "locks.h"
@@ -48,7 +50,7 @@ thread* threadQhead[MAX_THREAD_PRIO + 1];
 thread* threadQtail[MAX_THREAD_PRIO + 1];
 
 thread* liveThreads = NULL;
-thread* alarmList;
+thread* sleepThreads = NULL;
 
 int blockInts;
 bool needReschedule;
@@ -68,6 +70,9 @@ void reschedule(void);
 /* Setup default thread stack size - this can be overwritten if required */
 int threadStackSize = THREADSTACKSIZE;
 
+/* Pointer to the stack of the last killed thread. The free is delayed. */
+void *stack_to_be_freed = 0;
+
 static thread* startDaemon(void* func, char* nm, int stackSize);
 
 /*
@@ -80,7 +85,9 @@ allocThreadStack (thread *tid, int size)
 		result;
     unsigned long pageBegin;
 
-    CONTEXT(tid).stackMem = malloc(size + 2 * pageSize);
+	assert(stack_to_be_freed == 0);
+
+    CONTEXT(tid).stackMem = malloc(size + 4 * pageSize);
     assert(CONTEXT(tid).stackMem != 0);
     CONTEXT(tid).stackEnd = CONTEXT(tid).stackMem + size + 2 * pageSize;
     
@@ -94,7 +101,8 @@ allocThreadStack (thread *tid, int size)
 }
 
 /*
- * Free the stack for a thread
+ * Mark the stack for a thread to be freed. We cannot free the stack
+ * immediately because it is still in use!
  */
 void
 freeThreadStack (thread *tid)
@@ -107,12 +115,14 @@ freeThreadStack (thread *tid)
 
 		pageBegin = (unsigned long)(CONTEXT(tid).stackMem) + pageSize - 1;
 		pageBegin = pageBegin - pageBegin % pageSize;
-	
+
 		result = mprotect((void*)pageBegin, pageSize,
 						  PROT_READ | PROT_WRITE | PROT_EXEC);
 		assert(result == 0);
 
-		free(CONTEXT(tid).stackMem);
+		assert(stack_to_be_freed == 0);
+
+		stack_to_be_freed = CONTEXT(tid).stackMem;
     }
     CONTEXT(tid).stackMem = 0;
     CONTEXT(tid).stackBase = 0;
@@ -127,6 +137,8 @@ initThreads(u1 *stackbottom)
 {
 	thread *the_main_thread;
     int i;
+
+	signal(SIGPIPE, SIG_IGN);
 
     initLocks();
 
@@ -165,10 +177,13 @@ initThreads(u1 *stackbottom)
 	the_main_thread->daemon = 0;
 	the_main_thread->stillborn = 0;
 	the_main_thread->target = 0;
-	the_main_thread->interruptRequested = 0;
-	the_main_thread->group =
-		(threadGroup*)builtin_new(loader_load(utf_new_char("java/lang/ThreadGroup")));
-	/* we should call the constructor */
+
+	the_main_thread->contextClassLoader = 0;
+	the_main_thread->inheritedAccessControlContext = 0;
+	the_main_thread->values = 0;
+
+	/* Allocate and init ThreadGroup */
+	the_main_thread->group = (threadGroup*)native_new_and_init(loader_load(utf_new_char("java/lang/ThreadGroup")));
 	assert(the_main_thread->group != 0);
 
 	talive++;
@@ -203,6 +218,8 @@ startThread (thread* tid)
 
     if (i == MAXTHREADS)
 		panic("Too many threads");
+
+	assert(tid->priority >= MIN_THREAD_PRIO && tid->priority <= MAX_THREAD_PRIO);
 
     tid->PrivateInfo = i + 1;
     CONTEXT(tid).free = false;
@@ -264,7 +281,6 @@ startDaemon(void* func, char* nm, int stackSize)
 	tid->daemon = 1;
 	tid->stillborn = 0;
 	tid->target = 0;
-	tid->interruptRequested = 0;
 	tid->group = 0;
 
 	/* Construct the initial restore point. */
@@ -372,7 +388,7 @@ yieldThread()
  * (which is set by suspendThread(.))
  */
 void
-resumeThread(thread* tid)
+resumeThread (thread* tid)
 {
     if ((CONTEXT(tid).flags & THREAD_FLAGS_USER_SUSPEND) != 0)
     {
@@ -559,6 +575,8 @@ setPriorityThread(thread* tid, int prio)
 {
     thread** ntid;
 
+	assert(prio >= MIN_THREAD_PRIO && prio <= MAX_THREAD_PRIO);
+
     if (tid->PrivateInfo == 0) {
 		tid->priority = prio;
 		return;
@@ -595,6 +613,55 @@ setPriorityThread(thread* tid, int prio)
     }
     tid->next = 0;
 
+    intsRestore();
+}
+
+/*
+ * Get the current time in milliseconds since 1970-01-01.
+ */
+s8
+currentTime (void)
+{
+	struct timeval tv;
+	s8 time;
+
+	gettimeofday(&tv, 0);
+
+	time = tv.tv_sec;
+	time *= 1000;
+	time += tv.tv_usec / 1000;
+
+	return time;
+}
+
+/*
+ * Put a thread to sleep.
+ */
+void
+sleepThread (s8 time)
+{
+    thread** tidp;
+
+    /* Sleep for no time */
+    if (time <= 0) {
+		return;
+    }
+    
+    intsDisable();
+
+    /* Get absolute time */
+    CONTEXT(currentThread).time = time + currentTime();
+
+    /* Find place in alarm list */
+    for (tidp = &sleepThreads; (*tidp) != 0; tidp = &(*tidp)->next)
+	{
+		if (CONTEXT(*tidp).time > CONTEXT(currentThread).time)
+			break;
+    }
+
+    /* Suspend thread on it */
+    suspendOnQThread(currentThread, tidp);
+    
     intsRestore();
 }
 
@@ -653,6 +720,12 @@ reschedule(void)
 					blockInts = b;
 
 					exceptionptr = CONTEXT(currentThread).exceptionptr;
+
+					if (stack_to_be_freed != 0)
+					{
+						free(stack_to_be_freed);
+						stack_to_be_freed = 0;
+					}
 
 					/* Alarm signal may be blocked - if so
 					 * unblock it.
