@@ -27,12 +27,14 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.c 1474 2004-11-11 10:09:10Z carolyn $
+   $Id: options.c 1529 2004-11-17 17:19:14Z twisti $
 
 */
 
 
-#include "global.h"
+#include <string.h>
+#include "options.h"
+#include "types.h"
 
 
 /* command line option */
@@ -86,6 +88,62 @@ int has_ext_instr_set = 0;     /* has instruction set extensions */
 bool opt_stat = false;
 bool opt_verify = true;        /* true if classfiles should be verified      */
 bool opt_eager = false;
+
+
+int opt_ind = 1;               /* index of processed arguments               */
+char *opt_arg;                 /* this one exports the option argument       */
+
+
+/* get_opt *********************************************************************
+
+   DOCUMENT ME!!!
+
+*******************************************************************************/
+
+int get_opt(int argc, char **argv, opt_struct *opts)
+{
+	char *a;
+	int i;
+	
+	if (opt_ind >= argc)
+		return OPT_DONE;
+	
+	a = argv[opt_ind];
+	if (a[0] != '-')
+		return OPT_DONE;
+
+	for (i = 0; opts[i].name; i++) {
+		if (!opts[i].arg) {
+			if (strcmp(a + 1, opts[i].name) == 0) { /* boolean option found */
+				opt_ind++;
+				return opts[i].value;
+			}
+
+		} else {
+			if (strcmp(a + 1, opts[i].name) == 0) { /* parameter option found */
+				opt_ind++;
+				if (opt_ind < argc) {
+					opt_arg = argv[opt_ind];
+					opt_ind++;
+					return opts[i].value;
+				}
+				return OPT_ERROR;
+
+			} else {
+				size_t l = strlen(opts[i].name);
+				if (strlen(a + 1) > l) {
+					if (memcmp(a + 1, opts[i].name, l) == 0) {
+						opt_ind++;
+						opt_arg = a + 1 + l;
+						return opts[i].value;
+					}
+				}
+			}
+		}
+	} /* end for */	
+
+	return OPT_ERROR;
+}
 
 
 /*

@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 1406 2004-08-17 10:03:55Z twisti $
+   $Id: cacaoh.c 1529 2004-11-17 17:19:14Z twisti $
 
 */
 
@@ -42,6 +42,7 @@
 #include "global.h"
 #include "headers.h"
 #include "loader.h"
+#include "options.h"
 #include "tables.h"
 #include "mm/boehm.h"
 #include "threads/thread.h"
@@ -49,18 +50,50 @@
 #include "toolbox/memory.h"
 
 
-/************************** Function: main *******************************
+/* define cacaoh options ******************************************************/
+
+#define OPT_V         2
+#define OPT_DIRECTORY 3
+
+opt_struct opts[] = {
+	{ "v",                true,   OPT_V         },
+	{ "d",                true,   OPT_DIRECTORY },
+	{ NULL,               false,  0 }
+};
+
+
+/* usage ***********************************************************************
+
+   Obviously prints usage information of cacaoh.
+
+*******************************************************************************/
+
+static void usage()
+{
+	printf("Usage: cacaoh [options] <classes>\n");
+	printf("\n");
+	printf("        -v              verbose\n");
+	printf("        -d <dir>        output directory\n");
+
+	/* exit with error code */
+
+	exit(1);
+}
+
+
+/* main ************************************************************************
 
    Main program.
    
-**************************************************************************/
+*******************************************************************************/
 
 int main(int argc, char **argv)
 {
-	s4 i,a;
+	s4 i, a;
 	char *cp;
 	classinfo *c;
-		
+	bool opt_v;
+	char *opt_directory;
 
 	/********** internal (only used by main) *****************************/
    
@@ -71,10 +104,8 @@ int main(int argc, char **argv)
 
 	/************ Collect some info from the environment *****************/
 
-	if (argc < 2) {
-		printf("Usage: cacaoh class [class..]\n");
-   		exit(1);
-	}
+	if (argc < 2)
+		usage();
 
 	cp = getenv("CLASSPATH");
 	if (cp) {
@@ -82,11 +113,36 @@ int main(int argc, char **argv)
 		strcpy(classpath + strlen(classpath), cp);
 	}
 
+	/* initialize options with default values */
 
+	opt_v = false;
+	opt_directory = NULL;
+
+	while ((i = get_opt(argc, argv, opts)) != OPT_DONE) {
+		switch (i) {
+		case OPT_IGNORE:
+			break;
+
+		case OPT_V:
+			opt_v = true;
+			break;
+
+		case OPT_DIRECTORY:
+			opt_directory = MNEW(char, strlen(opt_arg));
+			strcpy(opt_directory, opt_arg);
+			break;
+
+		default:
+			usage();
+		}
+	}
+			
 	/**************************** Program start **************************/
 
-	log_init(NULL);
-	log_text("Java - header-generator started"); 
+	if (opt_v) {
+		log_init(NULL);
+		log_text("Java - header-generator started"); 
+	}
 	
 	/* initialize the garbage collector */
 	gc_init(heapmaxsize, heapstartsize);
@@ -110,7 +166,7 @@ int main(int argc, char **argv)
 	nativemethod_chain = chain_new();
 	nativeclass_chain = chain_new();
 	
-	for (a = 1; a < argc; a++) {
+	for (a = opt_ind; a < argc; a++) {
    		cp = argv[a];
 
 		/* convert classname */
@@ -128,7 +184,7 @@ int main(int argc, char **argv)
 		class_load(c);
 		class_link(c);
 
-		headerfile_generate(c);
+		headerfile_generate(c, opt_directory);
 	}
 
 	/************************ Release all resources **********************/
@@ -138,9 +194,11 @@ int main(int argc, char **argv)
 
 	/* Print "finished" message */
 
-	log_text("Java - header-generator stopped");
-	log_cputime();
-	mem_usagelog(1);
+	if (opt_v) {
+		log_text("Java - header-generator stopped");
+		log_cputime();
+		mem_usagelog(1);
+	}
 	
 	return 0;
 }

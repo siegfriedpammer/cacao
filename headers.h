@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: headers.h 1243 2004-06-30 20:12:42Z twisti $
+   $Id: headers.h 1529 2004-11-17 17:19:14Z twisti $
 
 */
 
@@ -50,7 +50,7 @@ void literalstring_free(java_objectheader *o);
 void printmethod(methodinfo *m);
 void gen_header_filename(char *buffer, utf *u);
 void printnativetableentry(methodinfo *m);
-void headerfile_generate(classinfo *c);
+void headerfile_generate(classinfo *c, char *opt_directory);
 
 #endif /* _HEADERS_H */
 

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1505 2004-11-14 14:15:58Z jowenn $
+   $Id: cacao.c 1529 2004-11-17 17:19:14Z twisti $
 
 */
 
@@ -81,15 +81,7 @@ void **stackbottom = 0;
 #endif
 
 
-/* internal function: get_opt *************************************************
-	
-	decodes the next command line option
-	
-******************************************************************************/
-
-#define OPT_DONE       -1
-#define OPT_ERROR       0
-#define OPT_IGNORE      1
+/* define command line options ************************************************/
 
 #define OPT_CLASSPATH   2
 #define OPT_D           3
@@ -122,7 +114,7 @@ void **stackbottom = 0;
 #define OPT_EAGER            33
 
 
-struct {char *name; bool arg; int value;} opts[] = {
+opt_struct opts[] = {
 	{"classpath",        true,   OPT_CLASSPATH},
 	{"cp",               true,   OPT_CLASSPATH},
 	{"D",                true,   OPT_D},
@@ -165,53 +157,6 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{NULL,               false,  0}
 };
 
-static int opt_ind = 1;
-static char *opt_arg;
-
-
-static int get_opt(int argc, char **argv)
-{
-	char *a;
-	int i;
-	
-	if (opt_ind >= argc) return OPT_DONE;
-	
-	a = argv[opt_ind];
-	if (a[0] != '-') return OPT_DONE;
-
-	for (i = 0; opts[i].name; i++) {
-		if (!opts[i].arg) {
-			if (strcmp(a + 1, opts[i].name) == 0) { /* boolean option found */
-				opt_ind++;
-				return opts[i].value;
-			}
-
-		} else {
-			if (strcmp(a + 1, opts[i].name) == 0) { /* parameter option found */
-				opt_ind++;
-				if (opt_ind < argc) {
-					opt_arg = argv[opt_ind];
-					opt_ind++;
-					return opts[i].value;
-				}
-				return OPT_ERROR;
-
-			} else {
-				size_t l = strlen(opts[i].name);
-				if (strlen(a + 1) > l) {
-					if (memcmp(a + 1, opts[i].name, l) == 0) {
-						opt_ind++;
-						opt_arg = a + 1 + l;
-						return opts[i].value;
-					}
-				}
-			}
-		}
-	} /* end for */	
-
-	return OPT_ERROR;
-}
-
 
 /******************** interne Function: print_usage ************************
 
@@ -219,7 +164,7 @@ Prints the correct usage syntax to stdout.
 
 ***************************************************************************/
 
-static void print_usage()
+static void usage()
 {
 	printf("USAGE: cacao [options] classname [program arguments]\n");
 	printf("Options:\n");
@@ -270,6 +215,10 @@ static void print_usage()
 	printf("          -rt .................. use rapid type analysis\n");
 	printf("          -xta ................. use x type analysis\n");
 	printf("          -vta ................. use variable type analysis\n");
+
+	/* exit with error code */
+
+	exit(1);
 }   
 
 
@@ -371,9 +320,10 @@ int main(int argc, char **argv)
 	checknull = false;
 	opt_noieee = false;
 
-	while ((i = get_opt(argc, argv)) != OPT_DONE) {
+	while ((i = get_opt(argc, argv, opts)) != OPT_DONE) {
 		switch (i) {
-		case OPT_IGNORE: break;
+		case OPT_IGNORE:
+			break;
 			
 		case OPT_CLASSPATH:
 			/* forget old classpath and set the argument as new classpath */
@@ -394,8 +344,7 @@ int main(int argc, char **argv)
 						goto didit;
 					}
 				}
-				print_usage();
-				exit(10);
+				usage();
 					
 			didit: ;
 			}	
@@ -489,8 +438,7 @@ int main(int argc, char **argv)
 					checksync = false;
 					break;
 				default:
-					print_usage();
-					exit(10);
+					usage();
 				}
 			}
 			break;
@@ -544,8 +492,7 @@ int main(int argc, char **argv)
 					showutf = true;
 					break;
 				default:
-					print_usage();
-					exit(10);
+					usage();
 				}
 			}
 			break;
@@ -580,8 +527,7 @@ int main(int argc, char **argv)
 					inlineoutsiders = true;
 					break;
 				default:
-					print_usage();
-					exit(10);
+					usage();
 				}
 			}
 			break;
@@ -599,15 +545,12 @@ int main(int argc, char **argv)
 			break;
 
 		default:
-			print_usage();
-			exit(10);
+			usage();
 		}
 	}
 
-	if (opt_ind >= argc) {
-   		print_usage();
-   		exit(10);
-	}
+	if (opt_ind >= argc)
+   		usage();
 
    	mainstring = argv[opt_ind++];
    	for (i = strlen(mainstring) - 1; i >= 0; i--) {     /* Transform dots into slashes */

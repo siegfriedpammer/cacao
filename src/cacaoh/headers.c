@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 1492 2004-11-12 13:26:03Z twisti $
+   $Id: headers.c 1529 2004-11-17 17:19:14Z twisti $
 
 */
 
@@ -407,7 +407,7 @@ void gen_header_filename(char *buffer, utf *u)
 
 /* create headerfile for classes and store native methods in chain ************/
 
-void headerfile_generate(classinfo *c)
+void headerfile_generate(classinfo *c, char *opt_directory)
 {
 	char header_filename[1024] = "";
 	char classname[1024]; 
@@ -427,9 +427,16 @@ void headerfile_generate(classinfo *c)
 	/* create chain for renaming fields */
 	ident_chain = chain_new();
 	
-	sprintf(header_filename, "nat/%s.h", classname);
+	if (opt_directory) {
+		sprintf(header_filename, "%s/%s.h", opt_directory, classname);
+
+	} else {
+		sprintf(header_filename, "%s.h", classname);
+	}
+
    	file = fopen(header_filename, "w");
-   	if (!file) panic("Can not open file to store header information");
+   	if (!file)
+		panic("Can not open file to store header information");
 
    	fprintf(file, "/* This file is machine generated, don't edit it !*/\n\n");
 

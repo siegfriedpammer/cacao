@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.h 1474 2004-11-11 10:09:10Z carolyn $
+   $Id: options.h 1529 2004-11-17 17:19:14Z twisti $
 
 */
 
@@ -39,7 +39,23 @@
 #include "global.h"
 
 
-/* global variables */
+/* reserved option numbers ****************************************************/
+
+#define OPT_DONE       -1
+#define OPT_ERROR       0
+#define OPT_IGNORE      1
+
+
+typedef struct opt_struct opt_struct;
+
+struct opt_struct {
+	char *name;
+	bool  arg;
+	int   value;
+};
+
+
+/* global variables ***********************************************************/
 
 extern bool compileall;
 extern bool verbose;
@@ -94,6 +110,14 @@ extern int has_ext_instr_set;
 extern bool opt_stat;
 extern bool opt_verify;
 extern bool opt_eager;
+
+extern int opt_ind;
+extern char *opt_arg;
+
+
+/* function prototypes ********************************************************/
+
+int get_opt(int argc, char **argv, opt_struct *opts);
 
 #endif /* _OPTIONS_H */
 
