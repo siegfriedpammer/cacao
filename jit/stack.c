@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1296 2004-07-10 17:02:15Z stefan $
+   $Id: stack.c 1318 2004-07-16 13:30:51Z twisti $
 
 */
 
@@ -776,8 +776,8 @@ methodinfo *analyse_stack(methodinfo *m)
 									COUNT(count_pcmd_op);
 #if SUPPORT_ONLY_ZERO_ASTORE
 								} else
-#endif /* SUPPORT_ONLY_ZERO_ASTORE */
 									PUSHCONST(TYPE_INT);
+#endif /* SUPPORT_ONLY_ZERO_ASTORE */
 								break;
 #endif /* SUPPORT_CONST_ASTORE */
 
@@ -1002,8 +1002,8 @@ methodinfo *analyse_stack(methodinfo *m)
 									COUNT(count_pcmd_op);
 #if SUPPORT_ONLY_ZERO_ASTORE
 								} else
-#endif /* SUPPORT_ONLY_ZERO_ASTORE */
 									PUSHCONST(TYPE_LNG);
+#endif /* SUPPORT_ONLY_ZERO_ASTORE */
 								break;
 #endif /* SUPPORT_CONST_ASTORE */
 
