@@ -1,0 +1,31 @@
+************************* README for CACAO version 0.15 ************************
+
+The current sources of CACAO version 0.15 are a snapshot during development.
+They will change in the near future and are badly documented. This version
+is not intended for public distribution. It is made available only for
+educational and research purposes.
+
+To use the CACAO sources put the cacao015.tgz file in a newly created
+directory and uncompress it using gzip and extract the files using tar.
+Make sure you have installed gmake. Enter:
+
+make config-alpha
+make
+
+After this you should have a working version of cacao and cacaoh. How to
+invoke cacao and which class library has to be used is described at the
+CACAO home page (http://www.complang.tuwien.ac.at/java/cacao/index.html).
+
+Under Linux this version currently works only using the option -cf.
+If you want to use the Digital Unix C-compiler change the variable $CC
+in the Makefile from gcc to cc.
+
+The Sparc port is unfinished and not working. So typing "make config-sparc"
+makes no sense in the moment. Threads are currently also not supported.
+
+For questions mail me at cacao@complang.tuwien.ac.at, for very urgent
+questions mail me at andi@complang.tuwien.ac.at.
+
+Have fun with CACAO
+
+	Andreas Krall

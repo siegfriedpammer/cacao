@@ -1,0 +1,750 @@
+/******************************* main.c ****************************************
+
+	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+
+	See file COPYRIGHT for information on usage and disclaimer of warranties
+
+	Enthaelt die Funktion main() und die Variablen fuer die 
+	globalen Optionen.
+	Dieser Modul erledigt folgende Aufgaben:
+	   - Bearbeiten der command-line-options
+	   - Aufrufen aller Initialisierungsroutinen
+	   - Aufrufen des Classloaders
+	   - Starten der main - Methode
+
+	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
+	Changes: Andi Krall          EMAIL: cacao@complang.tuwien.ac.at
+	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
+
+	Last Change: 1997/10/29
+
+*******************************************************************************/
+
+#include "global.h"
+
+#include "tables.h"
+#include "compiler.h"
+#include "ncomp/ncomp.h"
+#include "loader.h"
+
+#include "asmpart.h"
+#include "builtin.h"
+#include "native.h"
+
+#include "threads/thread.h"            /* schani */
+
+bool compileall = false;
+int  newcompiler = true;     		
+bool verbose =  false;
+
+#ifndef USE_THREADS
+void **stackbottom = 0;
+#endif
+
+
+/********************* interne Funktion: get_opt *****************************
+	
+	liest die n"achste Option aus der Kommandozeile
+	
+******************************************************************************/
+
+#define OPT_DONE  -1
+#define OPT_ERROR  0
+#define OPT_IGNORE 1
+
+#define OPT_CLASSPATH   2
+#define OPT_D           3  
+#define OPT_MS          4  
+#define OPT_MX          5  
+#define OPT_VERBOSE1    6  
+#define OPT_VERBOSE     7  
+#define OPT_VERBOSEGC   8         
+#define OPT_VERBOSECALL 9          
+#define OPT_IEEE        10
+#define OPT_SOFTNULL    11
+#define OPT_TIME        12
+#define OPT_STAT        13
+#define OPT_LOG         14  
+#define OPT_CHECK       15
+#define OPT_LOAD        16  
+#define OPT_METHOD      17  
+#define OPT_SIGNATURE   18  
+#define OPT_SHOW        19 
+#define OPT_ALL         20 
+#define OPT_OLD         21 
+
+struct { char *name; bool arg; int value; } opts[] = {
+  { "classpath",   true,   OPT_CLASSPATH },
+  { "D",           true,   OPT_D },
+  { "ms",          true,   OPT_MS },
+  { "mx",          true,   OPT_MX },
+  { "noasyncgc",   false,  OPT_IGNORE },  
+  { "noverify",    false,  OPT_IGNORE },  
+  { "oss",         true,   OPT_IGNORE },  
+  { "ss",          true,   OPT_IGNORE },  
+  { "v",           false,  OPT_VERBOSE1 },
+  { "verbose",     false,  OPT_VERBOSE },
+  { "verbosegc",   false,  OPT_VERBOSEGC },
+  { "verbosecall", false,  OPT_VERBOSECALL },
+  { "ieee",        false,  OPT_IEEE },
+  { "softnull",    false,  OPT_SOFTNULL },
+  { "time",        false,  OPT_TIME },
+  { "stat",        false,  OPT_STAT },
+  { "log",         true,   OPT_LOG },
+  { "c",           true,   OPT_CHECK },
+  { "l",           false,  OPT_LOAD },
+  { "m",           true,   OPT_METHOD },
+  { "sig",         true,   OPT_SIGNATURE },
+  { "s",           true,   OPT_SHOW },          
+  { "all",         false,  OPT_ALL },          
+  { "old",         false,  OPT_OLD },          
+  { NULL,  false, 0 }
+};
+
+static int opt_ind = 1;
+static char *opt_arg;
+
+static int get_opt (int argc, char **argv) 
+{
+	char *a;
+	int i;
+	
+	if (opt_ind >= argc) return OPT_DONE;
+	
+	a = argv[opt_ind];
+	if (a[0] != '-') return OPT_DONE;
+
+	for (i=0; opts[i].name; i++) {
+		if (! opts[i].arg) {
+			if (strcmp(a+1, opts[i].name) == 0) {  /* boolean option found */
+				opt_ind++;
+				return opts[i].value;
+				}
+			}
+		else {
+			if (strcmp(a+1, opts[i].name) == 0) { /* parameter option found */
+				opt_ind++;
+				if (opt_ind < argc) {
+					opt_arg = argv[opt_ind];
+					opt_ind++;
+					return opts[i].value;
+					}
+				return OPT_ERROR;
+				}
+			else {
+				size_t l = strlen(opts[i].name);
+				if (strlen(a+1) > l) {
+					if (memcmp (a+1, opts[i].name, l)==0) {
+						opt_ind++;
+						opt_arg = a+1+l;
+						return opts[i].value;
+						}
+					}
+				}
+			}
+		} /* end for */	
+
+	return OPT_ERROR;
+}
+
+
+
+
+/******************** interne Funktion: print_usage ************************
+
+Gibt die richtige Aufrufsyntax des JavaVM-Compilers auf stdout aus.
+
+***************************************************************************/
+
+static void print_usage()
+{
+	printf ("USAGE: cacao [options] classname [program arguments\n");
+	printf ("Options:\n");
+	printf ("          -classpath path ...... specify a path to look for classes\n");
+	printf ("          -Dpropertyname=value . add an entry to the property list\n");
+	printf ("          -mx maxmem[k|m] ...... specify the size for the heap\n");
+	printf ("          -ms initmem[k|m] ..... specify the initial size for the heap\n");
+	printf ("          -v ................... write state-information\n");
+	printf ("          -verbose ............. write more information\n");
+	printf ("          -verbosegc ........... write message for each GC\n");
+	printf ("          -verbosecall ......... write message for each call\n");
+	printf ("          -ieee ................ use ieee compliant arithmetic\n");
+	printf ("          -softnull ............ use software nullpointer check\n");
+	printf ("          -time ................ measure the runtime\n");
+	printf ("          -stat ................ detailed compiler statistics\n");
+	printf ("          -log logfile ......... specify a name for the logfile\n");
+	printf ("          -c(heck) b(ounds...... don't check array bounds\n");
+	printf ("                   s(ync) ...... don't check for synchronization\n");
+	printf ("          -l ................... don't start the class after loading\n");
+	printf ("          -all ................. compile all methods, no execution\n");
+	printf ("          -old ................. use old JIT compiler\n");
+	printf ("          -m ................... compile only a specific method\n");
+	printf ("          -sig ................. specify signature for a specific method\n");
+	printf ("          -s(how)m(ethods) ..... show all methods&fields of a class\n");
+	printf ("                 c(onstants) ... show the constant pool\n");
+	printf ("                 a(ssembler) ... show disassembled listing\n");
+	printf ("                 s(tack) ....... show stack for every javaVM-command\n");
+	printf ("                 i(ntermediate). show intermediate representation\n");
+	printf ("                 u(nicode) ..... show the unicode - hash\n");
+}   
+
+
+
+/***************************** Funktion: print_times *********************
+
+	gibt eine Aufstellung der verwendeten CPU-Zeit aus
+
+**************************************************************************/
+
+static void print_times()
+{
+	long int totaltime = getcputime();
+	long int runtime = totaltime - loadingtime - compilingtime;
+
+	sprintf (logtext, "Time for loading classes: %ld secs, %ld millis",
+	     loadingtime / 1000000, (loadingtime % 1000000) / 1000);
+	dolog();
+	sprintf (logtext, "Time for compiling code:  %ld secs, %ld millis",
+	     compilingtime / 1000000, (compilingtime % 1000000) / 1000);
+	dolog();
+	sprintf (logtext, "Time for running program: %ld secs, %ld millis",
+	     runtime / 1000000, (runtime % 1000000) / 1000);
+	dolog();
+	sprintf (logtext, "Total time: %ld secs, %ld millis",
+	     totaltime / 1000000, (totaltime % 1000000) / 1000);
+	dolog();
+}
+
+
+
+
+
+
+/***************************** Funktion: print_stats *********************
+
+	outputs detailed compiler statistics
+
+**************************************************************************/
+
+static void print_stats()
+{
+	sprintf (logtext, "Number of JitCompiler Calls: %d", count_jit_calls);
+	dolog();
+	sprintf (logtext, "Number of compiled Methods: %d", count_methods);
+	dolog();
+	sprintf (logtext, "Number of max basic blocks per method: %d", count_max_basic_blocks);
+	dolog();
+	sprintf (logtext, "Number of compiled basic blocks: %d", count_basic_blocks);
+	dolog();
+	sprintf (logtext, "Number of max JavaVM-Instructions per method: %d", count_max_javainstr);
+	dolog();
+	sprintf (logtext, "Number of compiled JavaVM-Instructions: %d", count_javainstr);
+	dolog();
+	sprintf (logtext, "Size of compiled JavaVM-Instructions:   %d(%d)", count_javacodesize,
+	                                              count_javacodesize - count_methods * 18);
+	dolog();
+	sprintf (logtext, "Size of compiled Exception Tables:      %d", count_javaexcsize);
+	dolog();
+	sprintf (logtext, "Value of extended instruction set var:  %d", has_ext_instr_set);
+	dolog();
+	sprintf (logtext, "Number of Alpha-Instructions: %d", count_code_len >> 2);
+	dolog();
+	sprintf (logtext, "Number of Spills: %d", count_spills);
+	dolog();
+	sprintf (logtext, "Number of Activ    Pseudocommands: %5d", count_pcmd_activ);
+	dolog();
+	sprintf (logtext, "Number of Drop     Pseudocommands: %5d", count_pcmd_drop);
+	dolog();
+	sprintf (logtext, "Number of Const    Pseudocommands: %5d (zero:%5d)", count_pcmd_load, count_pcmd_zero);
+	dolog();
+	sprintf (logtext, "Number of ConstAlu Pseudocommands: %5d (cmp: %5d, store:%5d)", count_pcmd_const_alu, count_pcmd_const_bra, count_pcmd_const_store);
+	dolog();
+	sprintf (logtext, "Number of Move     Pseudocommands: %5d", count_pcmd_move);
+	dolog();
+	sprintf (logtext, "Number of Load     Pseudocommands: %5d", count_load_instruction);
+	dolog();
+	sprintf (logtext, "Number of Store    Pseudocommands: %5d (combined: %5d)", count_pcmd_store, count_pcmd_store - count_pcmd_store_comb);
+	dolog();
+	sprintf (logtext, "Number of OP       Pseudocommands: %5d", count_pcmd_op);
+	dolog();
+	sprintf (logtext, "Number of DUP      Pseudocommands: %5d", count_dup_instruction);
+	dolog();
+	sprintf (logtext, "Number of Mem      Pseudocommands: %5d", count_pcmd_mem);
+	dolog();
+	sprintf (logtext, "Number of Method   Pseudocommands: %5d", count_pcmd_met);
+	dolog();
+	sprintf (logtext, "Number of Branch   Pseudocommands: %5d (rets:%5d, Xrets: %5d)",
+	                  count_pcmd_bra, count_pcmd_return, count_pcmd_returnx);
+	dolog();
+	sprintf (logtext, "Number of Table    Pseudocommands: %5d", count_pcmd_table);
+	dolog();
+	sprintf (logtext, "Number of Useful   Pseudocommands: %5d", count_pcmd_table +
+	         count_pcmd_bra + count_pcmd_load + count_pcmd_mem + count_pcmd_op);
+	dolog();
+	sprintf (logtext, "Number of Null Pointer Checks:     %5d", count_check_null);
+	dolog();
+	sprintf (logtext, "Number of Array Bound Checks:      %5d", count_check_bound);
+	dolog();
+	sprintf (logtext, "Number of Try-Blocks: %d", count_tryblocks);
+	dolog();
+	sprintf (logtext, "Maximal count of stack elements:   %d", count_max_new_stack);
+	dolog();
+	sprintf (logtext, "Upper bound of max stack elements: %d", count_upper_bound_new_stack);
+	dolog();
+	sprintf (logtext, "Distribution of stack sizes at block boundary");
+	dolog();
+	sprintf (logtext, "    0    1    2    3    4    5    6    7    8    9    >=10");
+	dolog();
+	sprintf (logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_block_stack[0],
+		count_block_stack[1],count_block_stack[2],count_block_stack[3],count_block_stack[4],
+		count_block_stack[5],count_block_stack[6],count_block_stack[7],count_block_stack[8],
+		count_block_stack[9],count_block_stack[10]);
+	dolog();
+	sprintf (logtext, "Distribution of store stack depth");
+	dolog();
+	sprintf (logtext, "    0    1    2    3    4    5    6    7    8    9    >=10");
+	dolog();
+	sprintf (logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_depth[0],
+		count_store_depth[1],count_store_depth[2],count_store_depth[3],count_store_depth[4],
+		count_store_depth[5],count_store_depth[6],count_store_depth[7],count_store_depth[8],
+		count_store_depth[9],count_store_depth[10]);
+	dolog();
+	sprintf (logtext, "Distribution of store creator chains first part");
+	dolog();
+	sprintf (logtext, "    0    1    2    3    4    5    6    7    8    9  ");
+	dolog();
+	sprintf (logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_length[0],
+		count_store_length[1],count_store_length[2],count_store_length[3],count_store_length[4],
+		count_store_length[5],count_store_length[6],count_store_length[7],count_store_length[8],
+		count_store_length[9]);
+	dolog();
+	sprintf (logtext, "Distribution of store creator chains second part");
+	dolog();
+	sprintf (logtext, "   10   11   12   13   14   15   16   17   18   19  >=20");
+	dolog();
+	sprintf (logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_length[10],
+		count_store_length[11],count_store_length[12],count_store_length[13],count_store_length[14],
+		count_store_length[15],count_store_length[16],count_store_length[17],count_store_length[18],
+		count_store_length[19],count_store_length[20]);
+	dolog();
+	sprintf (logtext, "Distribution of analysis iterations");
+	dolog();
+	sprintf (logtext, "    1    2    3    4    >=5");
+	dolog();
+	sprintf (logtext, "%5d%5d%5d%5d%5d", count_analyse_iterations[0],count_analyse_iterations[1],
+		count_analyse_iterations[2],count_analyse_iterations[3],count_analyse_iterations[4]);
+	dolog();
+	sprintf (logtext, "Distribution of basic blocks per method");
+	dolog();
+	sprintf (logtext, " <= 5 <=10 <=15 <=20 <=30 <=40 <=50 <=75  >75");
+	dolog();
+	sprintf (logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_method_bb_distribution[0],
+		count_method_bb_distribution[1],count_method_bb_distribution[2],count_method_bb_distribution[3],
+		count_method_bb_distribution[4],count_method_bb_distribution[5],count_method_bb_distribution[6],
+		count_method_bb_distribution[7],count_method_bb_distribution[8]);
+	dolog();
+	sprintf (logtext, "Distribution of basic block sizes");
+	dolog();
+	sprintf (logtext,
+	"  1    2    3    4   5   6   7   8   9  10 <13 <15 <17 <19 <21 <26 <31 >30");
+	dolog();
+	sprintf (logtext, "%3d%5d%5d%5d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d",
+		count_block_size_distribution[0], count_block_size_distribution[1], count_block_size_distribution[2],
+		count_block_size_distribution[3], count_block_size_distribution[4], count_block_size_distribution[5],
+		count_block_size_distribution[6], count_block_size_distribution[7], count_block_size_distribution[8],
+		count_block_size_distribution[9], count_block_size_distribution[10],count_block_size_distribution[11],
+		count_block_size_distribution[12],count_block_size_distribution[13],count_block_size_distribution[14],
+		count_block_size_distribution[15],count_block_size_distribution[16],count_block_size_distribution[17]);
+	dolog();
+	sprintf (logtext, "Size of Code Area (Kb):  %10.3f", (float) count_code_len / 1024);
+	dolog();
+	sprintf (logtext, "Size of data Area (Kb):  %10.3f", (float) count_data_len / 1024);
+	dolog();
+	sprintf (logtext, "Size of Class Infos (Kb):%10.3f", (float) (count_class_infos) / 1024);
+	dolog();
+	sprintf (logtext, "Size of Const Pool (Kb): %10.3f", (float) (count_const_pool_len + count_unicode_len) / 1024);
+	dolog();
+	sprintf (logtext, "Size of Vftbl (Kb):      %10.3f", (float) count_vftbl_len / 1024);
+	dolog();
+	sprintf (logtext, "Size of comp stub (Kb):  %10.3f", (float) count_cstub_len / 1024);
+	dolog();
+	sprintf (logtext, "Size of native stub (Kb):%10.3f", (float) count_nstub_len / 1024);
+	dolog();
+	sprintf (logtext, "Size of Unicode (Kb):    %10.3f", (float) count_unicode_len / 1024);
+	dolog();
+	sprintf (logtext, "Size of VMCode (Kb):     %10.3f(%d)", (float) count_vmcode_len / 1024,
+	                                              count_vmcode_len - 18 * count_all_methods);
+	dolog();
+	sprintf (logtext, "Size of ExTable (Kb):    %10.3f", (float) count_extable_len / 1024);
+	dolog();
+	sprintf (logtext, "Number of loaded Methods: %d\n\n", count_all_methods);
+	dolog();
+}
+
+
+/********** Funktion: class_compile_methods   (nur f"ur Debug-Zwecke) ********/
+
+void class_compile_methods ()
+{
+	int        i;
+	classinfo  *c;
+	methodinfo *m;
+	
+	c = list_first (&linkedclasses);
+	while (c) {
+		for (i = 0; i < c -> methodscount; i++) {
+			m = &(c->methods[i]);
+			if (m->jcode) {
+				if (newcompiler)
+					(void) new_compile(m);
+				else
+					(void) compiler_compile(m);
+				}
+			}
+		c = list_next (&linkedclasses, c);
+		}
+}
+
+
+/************************** Funktion: main *******************************
+
+   Das Hauptprogramm.
+   Wird vom System zu Programstart aufgerufen (eh klar).
+   
+**************************************************************************/
+
+
+int main(int argc, char **argv)
+{
+	s4 i,j;
+	char *cp;
+	classinfo *topclass;
+	java_objectheader *exceptionptr;
+	void *dummy;
+	
+
+   /********** interne (nur fuer main relevante Optionen) **************/
+   
+	char logfilename[200] = "";
+	u4 heapsize = 16000000;
+	u4 heapstartsize = 200000;
+	char classpath[500] = ".:/usr/local/lib/java/classes";
+	bool showmethods = false;
+	bool showconstantpool = false;
+	bool showunicode = false;
+	bool startit = true;
+	char *specificmethodname = NULL;
+	char *specificsignature = NULL;
+
+#ifndef USE_THREADS
+	stackbottom = &dummy;
+#endif
+
+
+   /************ Infos aus der Environment lesen ************************/
+
+	cp = getenv ("CLASSPATH");
+	if (cp) {
+		strcpy (classpath, cp);
+		}
+
+   /***************** Interpretieren der Kommandozeile *****************/
+   
+   checknull = false;
+   checkfloats = false;
+
+	while ( (i = get_opt(argc,argv)) != OPT_DONE) {
+
+		switch (i) {
+			case OPT_IGNORE: break;
+			
+			case OPT_CLASSPATH:    
+				strcpy (classpath + strlen(classpath), ":");
+				strcpy (classpath + strlen(classpath), opt_arg);
+				break;
+				
+			case OPT_D:
+				{
+				int n,l=strlen(opt_arg);
+				for (n=0; n<l; n++) {
+					if (opt_arg[n]=='=') {
+						opt_arg[n] = '\0';
+						attach_property (opt_arg, opt_arg+n+1);
+						goto didit;
+						}
+					}
+				print_usage();
+				exit(10);
+					
+				didit: ;
+				}	
+				break;
+				
+			case OPT_MS:
+			case OPT_MX:
+				if (opt_arg[strlen(opt_arg)-1] == 'k') {
+					j = 1024 * atoi(opt_arg);
+					}
+				else if (opt_arg[strlen(opt_arg)-1] == 'm') {
+					j = 1024 * 1024 * atoi(opt_arg);
+					}
+				else j = atoi(opt_arg);
+				
+				if (i==OPT_MX) heapsize = j;
+				else heapstartsize = j;
+				break;
+
+			case OPT_VERBOSE1:
+				verbose = true;
+				break;
+								
+			case OPT_VERBOSE:
+				verbose = true;
+				loadverbose = true;
+				initverbose = true;
+				compileverbose = true;
+				break;
+				
+			case OPT_VERBOSEGC:
+				collectverbose = true;
+				break;
+				
+			case OPT_VERBOSECALL:
+				runverbose = true;
+				break;
+				
+			case OPT_IEEE:
+				checkfloats = true;
+				break;
+
+			case OPT_SOFTNULL:
+				checknull = true;
+				break;
+
+			case OPT_TIME:
+				getcompilingtime = true;
+				getloadingtime = true;
+				break;
+					
+			case OPT_STAT:
+				statistics = true;
+				break;
+					
+			case OPT_LOG:
+				strcpy (logfilename, opt_arg);
+				break;
+			
+			
+			case OPT_CHECK:
+         		for (j=0; j<strlen(opt_arg); j++) {
+         			switch (opt_arg[j]) {
+         			case 'b': checkbounds=false; break;
+					case 's': checksync=false; break;
+         			default:  print_usage();
+         			          exit(10);
+         			}
+         			}
+         		break;
+			
+			case OPT_LOAD:
+				startit = false;
+				makeinitializations = false;
+				break;
+
+			case OPT_METHOD:
+				startit = false;
+				specificmethodname = opt_arg;     		
+				makeinitializations = false;
+         		break;
+         		
+			case OPT_SIGNATURE:
+				specificsignature = opt_arg;     		
+         		break;
+         		
+			case OPT_ALL:
+				compileall = true;     		
+				startit = false;
+				makeinitializations = false;
+         		break;
+         		
+ 			case OPT_OLD:
+				newcompiler = false;     		
+				checknull = true;
+         		break;
+         		
+        	case OPT_SHOW:       /* Anzeigeoptionen */
+         		for (j=0; j<strlen(opt_arg); j++) {		
+         			switch (opt_arg[j]) {
+         			case 'm':  showmethods=true; break;
+         			case 'c':  showconstantpool=true; break;
+         			case 'a':  showdisassemble=true; compileverbose=true; break;
+         			case 's':  showstack=true; compileverbose=true; break;
+         			case 'i':  showintermediate=true; compileverbose=true; break;
+         			case 'u':  showunicode=true; break;
+         			default:   print_usage();
+         		    	       exit(10);
+         			}
+         			}
+         		break;
+			
+			default:
+				print_usage();
+				exit(10);
+			}
+			
+			
+		}
+   
+   
+	if (opt_ind >= argc) {
+   		print_usage ();
+   		exit(10);
+   		}
+
+
+   /**************************** Programmstart *****************************/
+
+	log_init (logfilename);
+	if (verbose) {
+		log_text (
+		"CACAO started -------------------------------------------------------");
+		}
+	
+	suck_init (classpath);
+	native_setclasspath (classpath);
+		
+	unicode_init();
+	heap_init(heapsize, heapstartsize, &dummy);
+	loader_init();
+	compiler_init();
+	ncomp_init();
+
+	native_loadclasses ();
+
+
+   /*********************** JAVA-Klassen laden  ***************************/
+   
+   	cp = argv[opt_ind++];
+   	for (i=strlen(cp)-1; i>=0; i--) {     /* Punkte im Klassennamen */
+ 	 	if (cp[i]=='.') cp[i]='/';        /* auf slashes umbauen */
+  	 	}
+
+	topclass = loader_load ( unicode_new_char (cp) );
+
+	gc_init();
+
+#ifdef USE_THREADS
+	initThreads((u1*)&dummy);                   /* schani */
+#endif
+
+   /************************* Arbeitsroutinen starten ********************/
+
+	if (startit) {
+		methodinfo *mainmethod;
+		java_objectarray *a; 
+
+		mainmethod = class_findmethod (
+				topclass,
+				unicode_new_char ("main"), 
+				unicode_new_char ("([Ljava/lang/String;)V")
+			   	);
+		if (!mainmethod) panic ("Can not find method 'void main(String[])'");
+		if ((mainmethod->flags & ACC_STATIC) != ACC_STATIC) panic ("main is not static!");
+			
+		a = builtin_anewarray (argc - opt_ind, class_java_lang_String);
+		for (i=opt_ind; i<argc; i++) {
+			a->data[i-opt_ind] = javastring_new (unicode_new_char (argv[i]) );
+			}
+		exceptionptr = asm_calljavamethod (mainmethod, a, NULL,NULL,NULL );
+	
+		if (exceptionptr) {
+			printf ("#### Program has thrown: ");
+			unicode_display (exceptionptr->vftbl->class->name);
+			printf ("\n");
+			}
+
+/*		killThread(currentThread); */
+
+		}
+
+	/************* Auf Wunsch alle Methode "ubersetzen ********************/
+
+	if (compileall) {
+		class_compile_methods();
+		}
+
+
+	/******** Auf Wunsch eine spezielle Methode "ubersetzen ***************/
+
+	if (specificmethodname) {
+		methodinfo *m;
+		if (specificsignature)
+			m = class_findmethod(topclass, 
+					unicode_new_char(specificmethodname),
+					unicode_new_char(specificsignature));
+		else
+			m = class_findmethod(topclass, 
+					unicode_new_char(specificmethodname), NULL);
+		if (!m) panic ("Specific method not found");
+		if (newcompiler)
+			(void) new_compile(m);
+		else
+			(void) compiler_compile(m);
+		}
+
+	/********************* Debug-Tabellen ausgeben ************************/
+				
+	if (showmethods) class_showmethods (topclass);
+	if (showconstantpool)  class_showconstantpool (topclass);
+	if (showunicode)       unicode_show ();
+
+   
+
+   /************************ Freigeben aller Resourcen *******************/
+
+	compiler_close ();
+	loader_close ();
+	heap_close ();
+	unicode_close ( literalstring_free );
+
+
+   /* Endemeldung ausgeben und mit entsprechendem exit-Status terminieren */
+
+	if (verbose || getcompilingtime || statistics) {
+		log_text ("CACAO terminated");
+		if (statistics)
+			print_stats ();
+		if (getcompilingtime)
+			print_times ();
+		mem_usagelog(1);
+		}
+		
+	exit(0);
+	return 1;
+}
+
+
+
+/************************************ SHUTDOWN-Funktion *********************************
+
+	Terminiert das System augenblicklich, ohne den Speicher
+	explizit freizugeben (eigentlich nur f"ur abnorme 
+	Programmterminierung)
+	
+*****************************************************************************************/
+
+void cacao_shutdown(s4 status)
+{
+	if (verbose || getcompilingtime || statistics) {
+		log_text ("CACAO terminated by shutdown");
+		if (statistics)
+			print_stats ();
+		if (getcompilingtime)
+			print_times ();
+		mem_usagelog(0);
+		sprintf (logtext, "Exit status: %d\n", (int) status);
+		dolog();
+		}
+		
+	exit(status);
+}
