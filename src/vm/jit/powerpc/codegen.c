@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1635 2004-12-01 09:57:58Z twisti $
+   $Id: codegen.c 1641 2004-12-01 13:13:31Z christian $
 
 */
 
@@ -83,7 +83,9 @@ static int nregdescfloat[] = {
 
 #include "vm/jit/codegen.inc"
 #include "vm/jit/reg.inc"
+#ifdef LSRA
 #include "vm/jit/lsra.inc"
+#endif
 
 
 void asm_cacheflush(void *, long);

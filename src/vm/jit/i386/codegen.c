@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1623 2004-11-30 14:18:19Z twisti $
+   $Id: codegen.c 1641 2004-12-01 13:13:31Z christian $
 
 */
 
@@ -89,7 +89,9 @@ static int nregdescfloat[] = {
 
 #include "vm/jit/codegen.inc"
 #include "vm/jit/reg.inc"
+#ifdef LSRA
 #include "vm/jit/lsra.inc"
+#endif
 
 void codegen_stubcalled() {
 	log_text("Stub has been called");
@@ -528,6 +530,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		len = bptr->indepth;
 		MCODECHECK(64+len);
 
+#ifdef LSRA
 		if (opt_lsra) {
 		while (src != NULL) {
 			len--;
@@ -558,6 +561,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				src = src->prev;
 			}
 		} else {
+#endif
 			while (src != NULL) {
 				len--;
 				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
@@ -619,7 +623,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 			src = src->prev;
 		}
+#ifdef LSRA
 		}
+#endif
 
 		/* walk through all instructions */
 		
@@ -4386,7 +4392,9 @@ gen_method: {
 	src = bptr->outstack;
 	len = bptr->outdepth;
 	MCODECHECK(64+len);
-		if (!opt_lsra)
+#ifdef LSRA
+	if (!opt_lsra)
+#endif
 	while (src) {
 		len--;
 		if ((src->varkind != STACKVAR)) {

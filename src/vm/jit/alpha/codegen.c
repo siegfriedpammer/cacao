@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1624 2004-11-30 14:49:45Z twisti $
+   $Id: codegen.c 1641 2004-12-01 13:13:31Z christian $
 
 */
 
@@ -43,7 +43,9 @@
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
+#ifdef LSRA
 #include "vm/jit/lsra.h"
+#endif
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/alpha/codegen.h"
@@ -110,7 +112,9 @@ int nregdescfloat[] = {
 
 #include "vm/jit/codegen.inc"
 #include "vm/jit/reg.inc"
+#ifdef LSRA
 #include "vm/jit/lsra.inc"
+#endif
 
 
 /* NullPointerException handlers and exception handling initialisation        */
@@ -500,6 +504,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		src = bptr->instack;
 		len = bptr->indepth;
 		MCODECHECK(64+len);
+#ifdef LSRA
 		if (opt_lsra) {
 		while (src != NULL) {
 			len--;
@@ -515,6 +520,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				src = src->prev;
 			}
 		} else {
+#endif
 			while (src != NULL) {
 				len--;
 				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
@@ -550,7 +556,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 			src = src->prev;
 			}
+#ifdef LSRA
 		}
+#endif
 
 		/* walk through all instructions */
 		
@@ -3474,7 +3482,9 @@ gen_method: {
 	src = bptr->outstack;
 	len = bptr->outdepth;
 	MCODECHECK(64+len);
+#ifdef LSRA
 	if (!opt_lsra) 
+#endif
 	while (src) {
 		len--;
 		if ((src->varkind != STACKVAR)) {

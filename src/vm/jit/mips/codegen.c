@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1638 2004-12-01 10:42:28Z twisti $
+   $Id: codegen.c 1641 2004-12-01 13:13:31Z christian $
 
 */
 
@@ -112,7 +112,9 @@ static int nregdescfloat[] = {
 
 #include "vm/jit/codegen.inc"
 #include "vm/jit/reg.inc"
+#ifdef LSRA
 #include "vm/jit/lsra.inc"
+#endif
 
 
 /* NullPointerException handlers and exception handling initialisation        */

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1629 2004-11-30 19:22:49Z carolyn $
+   $Id: cacao.c 1641 2004-12-01 13:13:31Z christian $
 
 */
 
@@ -107,8 +107,9 @@ void **stackbottom = 0;
 #define OPT_LIBERALUTF  31
 #define OPT_VERBOSEEXCEPTION 32
 #define OPT_EAGER            33
+#ifdef LSRA
 #define OPT_LSRA 34
-
+#endif
 
 opt_struct opts[] = {
 	{"classpath",        true,   OPT_CLASSPATH},
@@ -152,7 +153,9 @@ opt_struct opts[] = {
 	{"xta",              false,  OPT_XTA},
 	{"vta",              false,  OPT_VTA},
 #endif
+#ifdef LSRA
 	{"lsra", false, OPT_LSRA},
+#endif
 	{NULL,               false,  0}
 };
 
@@ -216,7 +219,9 @@ static void usage()
 	printf("          -xta ................. use x type analysis\n");
 	printf("          -vta ................. use variable type analysis\n");
 #endif
+#ifdef LSRA
 	printf("          -lsra ................ use linear scan register allocation\n");
+#endif
 
 	/* exit with error code */
 
@@ -548,6 +553,7 @@ int main(int argc, char **argv)
 			break;
 #endif
 
+#ifdef LSRA
 		case OPT_LSRA:
 #if defined(__I386__) || defined(__ALPHA__)
 			opt_lsra = true;
@@ -556,6 +562,7 @@ int main(int argc, char **argv)
 			opt_lsra = false;
 #endif
 			break;
+#endif
 
 		default:
 			usage();

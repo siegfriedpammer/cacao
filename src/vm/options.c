@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.c 1590 2004-11-25 13:24:49Z christian $
+   $Id: options.c 1641 2004-12-01 13:13:31Z christian $
 
 */
 
@@ -88,9 +88,9 @@ int has_ext_instr_set = 0;     /* has instruction set extensions */
 bool opt_stat = false;
 bool opt_verify = true;        /* true if classfiles should be verified      */
 bool opt_eager = false;
-
+#ifdef LSRA
 bool opt_lsra = false;
-
+#endif
 int opt_ind = 1;               /* index of processed arguments               */
 char *opt_arg;                 /* this one exports the option argument       */
 

@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.h 1621 2004-11-30 13:06:55Z twisti $
+   $Id: options.h 1641 2004-12-01 13:13:31Z christian $
 
 */
 
@@ -112,8 +112,9 @@ extern bool opt_stat;
 extern bool opt_verify;
 extern bool opt_eager;
 
+#ifdef LSRA
 extern bool opt_lsra;
-
+#endif
 
 extern int opt_ind;
 extern char *opt_arg;

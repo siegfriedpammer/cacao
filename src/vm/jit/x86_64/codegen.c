@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: codegen.c 1641 2004-12-01 13:13:31Z christian $
 
 */
 
@@ -90,7 +90,9 @@ static int nregdescfloat[] = {
 
 #include "vm/jit/codegen.inc"
 #include "vm/jit/reg.inc"
+#ifdef LSRA
 #include "vm/jit/lsra.inc"
+#endif
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)

@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: jit.c 1641 2004-12-01 13:13:31Z christian $
 
 */
 
@@ -47,7 +47,9 @@
 #include "vm/tables.h"
 #include "vm/jit/codegen.inc.h"
 #include "vm/jit/jit.h"
+#ifdef LSRA
 #include "vm/jit/lsra.h"
+#endif
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/stack.h"
@@ -1605,9 +1607,11 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 		log_message_method("Allocating registers: ", m);
 
 	/* allocate registers */
+#ifdef LSRA
  	if (opt_lsra)
  		lsra(m, cd, rd, ld, id);
  	else
+#endif
 		regalloc(m, cd, rd);
 
 	if (compileverbose) {
