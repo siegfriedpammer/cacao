@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 734 2003-12-13 12:39:47Z stefan $
+   $Id: headers.c 735 2003-12-13 15:47:47Z stefan $
 
 */
 
@@ -551,8 +551,6 @@ int main(int argc, char **argv)
 	char *cp;
 	classinfo *topclass;
 	void *dummy;
-	int firstarg;
-	int noheaders = 0;
 		
 
 	/********** internal (only used by main) *****************************/
@@ -620,14 +618,8 @@ int main(int argc, char **argv)
    	
 	nativemethod_chain = chain_new();
 	nativeclass_chain = chain_new();
-
-	firstarg = 1;
-	if (!strcmp(argv[1], "-noheaders")) {
-		noheaders = 1;
-		firstarg++;
-	}
 	
-	for (a = firstarg; a < argc; a++) {
+	for (a = 1; a < argc; a++) {
    		cp = argv[a];
 
 		/* convert classname */
@@ -641,8 +633,7 @@ int main(int argc, char **argv)
 	
 		topclass = loader_load(utf_new_char(cp));
 		
-        if (!noheaders)
-			headerfile_generate(topclass);
+        headerfile_generate(topclass);
 	}
 
 	headers_finish();
