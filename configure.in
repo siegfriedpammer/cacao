@@ -13,19 +13,19 @@ AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 dnl system type
 case "$host_cpu" in
-alpha* )
+alpha )
 	ARCH_DIR="alpha"
         STATIC_CLASSPATH="1"
 	CFLAGS="-mieee -D__ALPHA__"
 	;;
 
-i386* | i486* | i586* | i686* )
+i386 | i486 | i586 | i686 )
 	ARCH_DIR="i386"
         STATIC_CLASSPATH="0"
 	CFLAGS="-D__I386__ $CFLAGS"
 	;;
 
-mips* )
+mips )
 	ARCH_DIR="mips"
         STATIC_CLASSPATH="1"
 
@@ -38,19 +38,19 @@ dnl	CFLAGS="-mabi=64 -D__MIPS__ -D__MIPSEB__"
 dnl	LDFLAGS="-mabi=64"
 	;;
 
-powerpc* | ppc* )
+powerpc | ppc )
 	ARCH_DIR="powerpc"
         STATIC_CLASSPATH="1"
 	CFLAGS="-D__POWERPC__"
 	;;
 
-x86_64* )
+x86_64 )
 	ARCH_DIR="x86_64"
         STATIC_CLASSPATH="0"
 	CFLAGS="-D__X86_64__"
 	;;
 
-sparc* | * )
+* )
 	AC_MSG_ERROR($host_cpu systems are not supported at this time)
         ;;
 esac
@@ -77,10 +77,12 @@ esac
 
 dnl define install prefix
 if test "x$prefix" = xNONE; then
-	CFLAGS="$CFLAGS -DINSTALL_PREFIX=\"\\\"$ac_default_prefix\\\"\""
+	INSTALL_PREFIX=$ac_default_prefix
 else
-	CFLAGS="$CFLAGS -DINSTALL_PREFIX=\"\\\"$prefix\\\"\""
+	INSTALL_PREFIX=$prefix
 fi
+AC_DEFINE_UNQUOTED([INSTALL_PREFIX], "$INSTALL_PREFIX", [Installation prefix])
+AC_SUBST(INSTALL_PREFIX)
 
 
 AC_DEFINE_UNQUOTED([ARCH_DIR], "$ARCH_DIR", [Architecture directory])
