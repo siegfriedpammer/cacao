@@ -1303,7 +1303,7 @@ int cacao_locate(unzFile file,utf* filename) {
 	char *szComment;
 	uLong uSizeBuf;
 {
-	int err=UNZ_OK;
+  /* int err=UNZ_OK; */
 	unz_s* s;
 	uLong uReadThis ;
 	if (file==NULL)
