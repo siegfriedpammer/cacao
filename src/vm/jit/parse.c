@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 1971 2005-03-01 20:06:36Z carolyn $
+   $Id: parse.c 2132 2005-03-29 22:46:05Z twisti $
 
 */
 
@@ -45,6 +45,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/linker.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
@@ -922,16 +923,21 @@ SHOWOPCODE(DEBUG4)
 				classinfo *component =
 					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!class_load(component))
+#if 1
+				if (!class_load_extern(m->class, component))
 					return NULL;
 
 				if (!class_link(component))
 					return NULL;
 
   				LOADCONST_A_BUILTIN(class_array_of(component)->vftbl);
-/*  				LOADCONST_A_BUILTIN(component); */
 				s_count++;
 				BUILTIN2(BUILTIN_newarray, TYPE_ADR, currentline);
+#else
+				LOADCONST_A_BUILTIN(component);
+				s_count++;
+				BUILTIN2(BUILTIN_anewarray, TYPE_ADR, currentline);
+#endif
 			}
 			OP(ICMD_CHECKEXCEPTION);
 			break;
@@ -952,7 +958,7 @@ SHOWOPCODE(DEBUG4)
  				classinfo *component =
 					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!class_load(component))
+				if (!class_load_extern(m->class, component))
 					return NULL;
 
 				if (!class_link(component))
@@ -1219,7 +1225,7 @@ SHOWOPCODE(DEBUG4)
 
 				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
 
-				if (!class_load(fr->class))
+				if (!class_load_extern(m->class, fr->class))
 					return NULL;
 
 				if (!class_link(fr->class))
@@ -1250,7 +1256,7 @@ SHOWOPCODE(DEBUG4)
 
 				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
 
-				if (!class_load(fr->class))
+				if (!class_load_extern(m->class, fr->class))
 					return NULL;
 
 				if (!class_link(fr->class))
@@ -1282,7 +1288,7 @@ SHOWOPCODE(DEBUG4)
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
 
-				if (!class_load(mr->class))
+				if (!class_load_extern(m->class, mr->class))
 					return NULL;
 
 				if (!class_link(mr->class))
@@ -1324,7 +1330,7 @@ if (DEBUG4==true) {
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
 
-				if (!class_load(mr->class))
+				if (!class_load_extern(m->class, mr->class))
 					return NULL;
 
 				if (!class_link(mr->class))
@@ -1365,7 +1371,7 @@ if (DEBUG4==true) {
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_InterfaceMethodref);
 
-				if (!class_load(mr->class))
+				if (!class_load_extern(m->class, mr->class))
 					return NULL;
 
 				if (!class_link(mr->class))
@@ -1410,13 +1416,11 @@ if (DEBUG4==true) {
 				classinfo *cls =
 					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!cls->loaded)
-					if (!class_load(cls))
-						return NULL;
+				if (!class_load_extern(m->class, cls))
+					return NULL;
 
-				if (!cls->linked)
-					if (!class_link(cls))
-						return NULL;
+				if (!class_link(cls))
+					return NULL;
 
 				if (cls->vftbl->arraydesc) {
 					/* array type cast-check */
@@ -1441,13 +1445,11 @@ if (DEBUG4==true) {
 				classinfo *cls =
 					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!cls->loaded)
-					if (!class_load(cls))
-						return NULL;
+				if (!class_load_extern(m->class, cls))
+					return NULL;
 
-				if (!cls->linked)
-					if (!class_link(cls))
-						return NULL;
+				if (!class_link(cls))
+					return NULL;
 
 				if (cls->vftbl->arraydesc) {
 					/* array type cast-check */
