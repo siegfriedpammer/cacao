@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 468 2003-10-04 17:15:31Z carolyn $
+	Last Change: $Id: global.h 478 2003-10-06 12:57:38Z carolyn $
 
 *******************************************************************************/
 
@@ -408,7 +408,6 @@ struct fieldinfo {	      /* field of a class                                 */
 	} value;
 	
 	/*--- XTA ---*/	
-        s4         fieldUsed; 		/* initialized to NOTUSED; set to USED when type checked */ 
         bool       fieldChecked; 		
 	classinfo *fldClassType;
 	classSet  *XTAclassSet;      /* field class type set                  */  

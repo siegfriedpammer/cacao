@@ -23,13 +23,15 @@ struct fldSet {
 struct fldSetNode {
   fieldinfo *fldRef;
   fldSetNode *nextfldRef;
-  bool readPUT;
-  bool writeGET;
+  bool writePUT;
+  bool readGET;
+  classSetNode *lastptrPUT; 
+  classSetNode *lastptrGET; 
   s2 index;
   };
 fldSetNode      *inFldSet (fldSetNode *, fieldinfo *);
 fldSetNode 	*addFldRef(fldSetNode *, fieldinfo *);
-fldSet          *add2FldSet(fldSet    *, fieldinfo *);
+fldSet          *add2FldSet(fldSet    *, fieldinfo *, bool, bool);
 fldSet          *createFldSet();
 int 		 printFldSet  (fldSetNode *);
 int 		 printFieldSet (fldSet *);

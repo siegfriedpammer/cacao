@@ -708,18 +708,134 @@ if (fi->type == TYPE_ADDRESS) {
 			class = class_get(utf_new_char(cname));
 			fi->fldClassType= class;    /* save field's type class ptr */	
 			} 
-		/* save used edges */
-		rt_method->fldsUsed = add2FldSet(rt_method->fldsUsed, fi); 
 		}
 	}
 return rc;
 }
 
 /*-------------------------------------------------------------------------------*/
+void xtaPassFldPUT(fldSetNode *fN)
+{
+/* Field type is a class */
+classSetNode *c;
+classSetNode *c1 = NULL;
+classSetNode *cp = NULL;
+classSetNode *cprev= NULL;
+
+fieldinfo *fi;
+if (fN != NULL)
+	fi = fN->fldRef;
+else
+	return;
+
+/* Use lastptr  so don't check whole XTA class set each time */
+cp = fN->lastptrPUT;
+if (cp != NULL) {
+	if (cp->nextClass != NULL)
+		c1 = cp -> nextClass;
+	} 
+else	{
+	if (rt_method->XTAclassSet != NULL)
+		c1  = rt_method->XTAclassSet->head;
+
+			if (XTAfld >=1 ) {
+				printf("rt XTA class set =");fflush(stdout);
+				printClassSet(rt_method->XTAclassSet);
+				printf("\t\tField class type = ");fflush(stdout);
+				utf_display(fi->fldClassType->name); printf("\n");
+				}
+		}
+
+/*--- PUTSTATIC specific ---*/
+/* Sx = intersection of type+subtypes(field x)   */
+/*   and Sm (where putstatic code is)            */
+for (c=c1; c != NULL; c=c->nextClass) {
+	vftbl *f_cl_vt = fi->fldClassType->vftbl;
+	vftbl *c_cl_vt =  c->   classType->vftbl;
+		if (XTAfld >=2 ) {
+			printf("\tXTA class = ");fflush(stdout);
+			utf_display(c->classType->name);
+			printf("<b=%i> ",c_cl_vt->baseval); fflush(stdout);
+			if (c->nextClass == NULL) {
+				printf("next=NULL ");fflush(stdout);
+				}
+			else	{
+				printf("next="); fflush(stdout);
+				utf_display(c->nextClass->classType->name);
+				printf("\n"); fflush(stdout);
+				}
+
+			printf("\t\tField class type = ");fflush(stdout);
+			utf_display(fi->fldClassType->name);
+			printf("<b=%i/+d=%i> \n",f_cl_vt->baseval,(f_cl_vt->baseval+f_cl_vt->diffval)); fflush(stdout);
+			}
+
+	if ((f_cl_vt->baseval <= c_cl_vt->baseval)
+	&& (c_cl_vt->baseval <= (f_cl_vt->baseval+f_cl_vt->diffval)) ) {
+		fi->XTAclassSet = add2ClassSet(fi->XTAclassSet,c->classType);
+		}
+	cprev = c;
+	}
+fN->lastptrPUT = cprev;
+}
+/*-------------------------------------------------------------------------------*/
+void xtaPassFldGET(fldSetNode *fN)
+{
+/* Field type is a class */
+classSetNode *c;
+classSetNode *c1 = NULL;
+classSetNode *cp = NULL;
+classSetNode *cprev= NULL;
+
+fieldinfo *fi;
+if (fN != NULL)
+	fi = fN->fldRef;
+else
+	return;
+
+/* Use lastptr  so don't check whole XTA class set each time */
+cp = fN->lastptrGET;
+if (cp != NULL) {
+	if (cp->nextClass != NULL)
+		c1 = cp -> nextClass;
+	} 
+else	{
+	if (fi->XTAclassSet != NULL)
+		c1  = fi->XTAclassSet->head;
+
+			if (XTAfld >=1 ) {
+				printf("fld XTA class set =");fflush(stdout);
+				printClassSet(fi->XTAclassSet);
+				printf("\t\tField class type = ");fflush(stdout);
+				utf_display(fi->fldClassType->name); printf("\n");
+				}
+	}
+
+/*--- GETSTATIC specific ---*/
+/* Sm = union of Sm and Sx */
+for (c=c1; c != NULL; c=c->nextClass) {
+	bool addFlg = false;
+	if (rt_method->XTAclassSet ==NULL) 
+		addFlg = true;
+	else 	{
+		if (!(inSet (rt_method->XTAclassSet->head, c->classType) )) 
+			addFlg = true;
+		}
+	if (addFlg) {
+		rt_method->XTAclassSet 
+			= add2ClassSet(rt_method->XTAclassSet,c->classType);
+		}
+	cprev = c;
+	}
+
+fN->lastptrGET = cprev;
+
+}
+
+/*-------------------------------------------------------------------------------*/
 void xtaPassAllCalledByParams () {
 methSetNode *SmCalled;
 methSetNode *s1;
-if (rt_method->calledBy == NULL) return;
 		if (XTAdebug >= 1) {
 			printf("calledBy method set: "); fflush(stdout);
 			printMethodSet(rt_method->calledBy); fflush(stdout);
@@ -741,54 +857,74 @@ for (SmCalled=s1; SmCalled != NULL; SmCalled = SmCalled->nextmethRef) {
 }
 
 /*-------------------------------------------------------------------------------*/
+void xtaAllFldsUsed ( ){
+	fldSetNode  *f;
+	fldSetNode *f1=NULL; 
+	bool chgd = false;
+
+if (rt_method->fldsUsed == NULL) return;
+
+/* for each field that this method uses */
+f1 = rt_method->fldsUsed->head;
+
+for (f=f1; f != NULL; f = f->nextfldRef) {
+
+	if (f->writePUT)
+		xtaPassFldPUT(f);
+	if (f->readGET)
+		xtaPassFldGET(f);
+	}
+}
+/*-------------------------------------------------------------------------------*/
 void  xtaMethodCalls_and_sendReturnType() 
 {
 	methSetNode *SmCalled;  /* for return type       */
 	methSetNode *SmCalls;   /* for calls param types */
-	methSetNode *s1; 
+	methSetNode *s1=NULL; 
 	bool chgd = false;
-if (rt_method->calls == NULL) return;
 		if (XTAdebug >= 1) {
 			printf("calls method set Return type: ");
 			printMethodSet(rt_method->calls);
 			printf("AAAAAAAAAAAAAAFTER printMethSett(rt_method->calls)\n");fflush(stdout);
 			}
-	/* for each method that this method calls */
-	if (rt_method->calls == NULL) 
-		s1 = NULL;
-	else
-		s1 = SmCalls=rt_method->calls->head;
+xtaAllFldsUsed ( );
 
-	for (SmCalls=s1; SmCalls != NULL; SmCalls = SmCalls->nextmethRef) {
-		/*    pass param types  */
-		bool chgd = false;
-		chgd = xtaPassParams (SmCalls->methRef, rt_method, SmCalls);  
-		/* if true chgd after its own parse */
-		if (!(SmCalls->methRef->chgdSinceLastParse)) {
-			SmCalls->methRef->chgdSinceLastParse = true;
-			}
+/* for each method that this method calls */
+if (rt_method->calls == NULL)
+	s1 = NULL;
+else
+	s1 = SmCalls=rt_method->calls->head;
+
+for (SmCalls=s1; SmCalls != NULL; SmCalls = SmCalls->nextmethRef) {
+	/*    pass param types  */
+	bool chgd = false;
+	chgd = xtaPassParams (SmCalls->methRef, rt_method, SmCalls);  
+	/* if true chgd after its own parse */
+	if (!(SmCalls->methRef->chgdSinceLastParse)) {
+		SmCalls->methRef->chgdSinceLastParse = true;
 		}
+	}
 
-	/* for each calledBy method */
-	/*    send return type */
-	if (rt_method->calledBy == NULL)
-		s1 = NULL;
-	else
-		s1 = rt_method->calledBy->head;
-	for (SmCalled=s1; SmCalled != NULL; SmCalled = SmCalled->nextmethRef) {
+/* for each calledBy method */
+/*    send return type */
+if (rt_method->calledBy == NULL)
+	s1 = NULL;
+else
+	s1 = rt_method->calledBy->head;
+for (SmCalled=s1; SmCalled != NULL; SmCalled = SmCalled->nextmethRef) {
 
 		if (XTAdebug >= 1) {
 			printf("\tSmCalled = ");fflush(stdout); utf_display(SmCalled->methRef->class->name);
 			printf("."); method_display(SmCalled->methRef);
 			}
 				
-		chgd = xtaPassReturnType(rt_method, SmCalled->methRef); 
-		if (!(SmCalled->methRef->chgdSinceLastParse)) {
-			SmCalled->methRef->chgdSinceLastParse = chgd;		
-			}
+	chgd = xtaPassReturnType(rt_method, SmCalled->methRef); 
+	if (!(SmCalled->methRef->chgdSinceLastParse)) {
+		SmCalled->methRef->chgdSinceLastParse = chgd;		
 		}
-
+	}
 }
+
 
 /*-------------------------------------------------------------------------------*/
 static void parseRT()
@@ -1077,70 +1213,10 @@ if (CONSTANT_Class == rt_class->cptags [I] ) {
 				if   ((XTAOPTbypass) || (opt_xta))
 				{
 				if (xtaAddFldClassTypeInfo(fi)) {  
-					/* Field type is a class */
-					classSetNode *c;
-					classSetNode *c1 = NULL;
-					fldSetNode     *fn;
-				
-					/******
-					 Can a ptr be kept so don't check whole XTA class set each time?
-					cp = fi->methodsUsedBy->lastxxxxClass;
-					if (cp != NULL) {
-						if (cp->nextClass != NULL)
-							c1 = cp -> nextClass;
-						} 
-					****/
-
-					if (rt_method->XTAclassSet != NULL)
-						c1  = rt_method->XTAclassSet->head;
-	if (XTAfld >=1 ) {
-		printf("rt XTA class set =");fflush(stdout);
-		printClassSet(rt_method->XTAclassSet);
-		printf("\t\tField class type = ");fflush(stdout);
-		utf_display(fi->fldClassType->name); printf("\n");
-		}
-
-					/*--- PUTSTATIC specific ---*/
-					/* Sx = intersection of type+subtypes(field x)   */
-					/*   and Sm (where putstatic code is)            */
-					for (c=c1; c != NULL; c=c->nextClass) {
-						vftbl *f_cl_vt = fi->fldClassType->vftbl;
-						vftbl *c_cl_vt =  c->   classType->vftbl;
-	if (XTAfld >=2 ) {
-		printf("\tXTA class = ");fflush(stdout);
-		utf_display(c->classType->name);
-		printf("<b=%i> ",c_cl_vt->baseval); fflush(stdout);
-		if (c->nextClass == NULL) {
-			printf("next=NULL ");fflush(stdout);
-			}
-		else	{
-			printf("next="); fflush(stdout);
-			utf_display(c->nextClass->classType->name);
-			printf("\n"); fflush(stdout);
-			}
-
-		printf("\t\tField class type = ");fflush(stdout);
-		utf_display(fi->fldClassType->name);
-		printf("<b=%i/+d=%i> \n",f_cl_vt->baseval,(f_cl_vt->baseval+f_cl_vt->diffval)); fflush(stdout);
-		}
-
-						if ((f_cl_vt->baseval <= c_cl_vt->baseval)
-						 && (c_cl_vt->baseval <= (f_cl_vt->baseval+f_cl_vt->diffval)) ) {
-							fi->XTAclassSet = add2ClassSet(fi->XTAclassSet,c->classType);
-							}
-						/****cprev = c->classType; ***/
-						}
-					if (rt_method->fldsUsed != NULL) {
-						fn = inFldSet(rt_method->fldsUsed->head, fi);
-						if (fn != NULL)
-							fn->readPUT = true;
-						}
-					/***fi->methodsUsedBy->lastxxxClass ***/
-						/*** = addElement(fi->methodsUsedBy->lastxxxClass, c->classType); ***/
+					rt_method->fldsUsed = add2FldSet(rt_method->fldsUsed, fi, true,false);
 					}
 				}
-
-                                }
+				}
                                 break;
 
                         case JAVA_GETSTATIC:
@@ -1162,50 +1238,7 @@ if (CONSTANT_Class == rt_class->cptags [I] ) {
 				if  ((XTAOPTbypass) || (opt_xta) ) 
 				{
 				if (xtaAddFldClassTypeInfo(fi)) {
-					/* Field type is a class */
-					classSetNode *c;
-					classSetNode *c1 = NULL;
-					fldSetNode     *fn;
-
-					/*******************/
-				
-					/*******
-					 Can a ptr be kept so don't check whole XTA class set each time?
-					cp = fi->methodsUsedBy->lastxxxxClass;
-					if (cp != NULL) {
-						if (cp->nextClass != NULL)
-							c1 = cp -> nextClass;
-						} 
-					*******/
-
-					if (fi->XTAclassSet != NULL)
-						c1  = fi->XTAclassSet->head;
-
-					/*--- GETSTATIC specific ---*/
-					/* Sm = union of Sm and Sx */
-					for (c=c1; c != NULL; c=c->nextClass) {
-						bool addFlg = false;
-						if (rt_method->XTAclassSet ==NULL) 
-							addFlg = true;
-						else 	{
-							if (!(inSet (rt_method->XTAclassSet->head, c->classType) )) 
-								addFlg = true;
-							}
-						if (addFlg) {
-							rt_method->XTAclassSet 
-								= add2ClassSet(rt_method->XTAclassSet,c->classType);
-							}
-						/*** cprev = c->classType; ***/
-						}
-
-					if (rt_method->fldsUsed != NULL) {
-						fn = inFldSet(rt_method->fldsUsed->head, fi);
-						if (fn != NULL)
-							fn->writeGET = true;
-						}
-
-					/**** fi->methodsUsedBy->lastxxxClass ***/
-						/*** = addElement(fi->methodsUsedBy->lastxxxClass, c->classType); ***/
+					rt_method->fldsUsed = add2FldSet(rt_method->fldsUsed, fi, false, true);
 					}
 				}
 

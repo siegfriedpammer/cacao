@@ -786,7 +786,7 @@ static void field_load (fieldinfo *f, classinfo *c)
 	f -> descriptor = class_getconstant (c, suck_u2(), CONSTANT_Utf8); /* JavaVM descriptor           */
 	f -> type = jtype = desc_to_type (f->descriptor);		   /* data type                   */
 	f -> offset = 0;						   /* offset from start of object */
-	f -> fieldUsed   = NOTUSED;  /*XTA*/
+	f -> fieldChecked = false;   /*XTA*/
 	f -> fldClassType = NULL;    /*XTA*/
 	f -> XTAclassSet = NULL;     /*XTA*/
 	f -> lastRoundChgd = -1;

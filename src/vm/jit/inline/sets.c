@@ -33,8 +33,11 @@ fldSetNode *addFldRef(fldSetNode *s,  fieldinfo *f)
    s1 = (fldSetNode *)malloc(sizeof(fldSetNode));
    s1->nextfldRef  = s;
    s1->fldRef      = f;
-   s1->readPUT     = false;
-   s1->writeGET    = false;
+   s1->writePUT     = false;
+   s1->readGET    = false;
+   s1->lastptrPUT = NULL;
+   s1->lastptrGET = NULL;
+
    if (s == NULL)
      s1->index = 1;
    else
@@ -44,16 +47,18 @@ fldSetNode *addFldRef(fldSetNode *s,  fieldinfo *f)
  }
 
 /*------------------------------------------------------------*/
-fldSet *add2FldSet(fldSet *sf,  fieldinfo *f)
+fldSet *add2FldSet(fldSet *sf,  fieldinfo *f, bool wput, bool rget)
  {
  fldSetNode *s1;
  fldSetNode *s;
+ fldSetNode *i;
  
  if (sf == NULL) {
 	sf = createFldSet();
 	}
  s = sf->head;
- if (!inFldSet(s,f)) {
+ s1 = inFldSet(s,f);
+ if (s1 == NULL) {
    s1 = (fldSetNode *)malloc(sizeof(fldSetNode));
    if (sf->head == NULL) {
 	sf->head  = s1;
@@ -67,10 +72,18 @@ fldSet *add2FldSet(fldSet *sf,  fieldinfo *f)
     	} 
    s1->nextfldRef  = NULL;
    s1->fldRef      = f;
-   s1->readPUT     = false;
-   s1->writeGET    = false;
+   s1->writePUT    = wput;
+   s1->readGET     = rget;
+   s1->lastptrPUT = NULL;
+   s1->lastptrGET = NULL;
    sf->tail = s1;
    }
+ else 	{
+	if ((s1->writePUT == false) && (wput)) 
+		s1->writePUT = wput;
+	if ((s1->readGET == false)  && (rget)) 
+		s1->readGET  = rget;
+	}
  return sf;
  }
 
@@ -410,7 +423,7 @@ int printFldSet(fldSetNode *s)
 	printf("<%i>Set of Fields: ",s->index);
 	for (i=s; i != NULL; i = i->nextfldRef) {
         	printf("\t#%i: ",cnt);
-		printf("(%ir/%iw)",i->readPUT,i->writeGET);
+		printf("(%ir/%iw)",i->writePUT,i->readGET);
 		field_display(i->fldRef);
 		cnt++;
 		}
