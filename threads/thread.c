@@ -32,6 +32,10 @@
 #include "builtin.h"
 #include "asmpart.h"
 
+#ifdef USE_BOEHM
+#include "toolbox/memory.h"
+#endif
+
 static classinfo *class_java_lang_ThreadDeath;
 
 #if 1

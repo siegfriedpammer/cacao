@@ -30,6 +30,10 @@
 #endif
 #include "asmpart.h"
 
+#ifdef USE_BOEHM
+#include "toolbox/memory.h"
+#endif
+
 #include "threads/thread.h"
 #include <sys/stat.h>
 
