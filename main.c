@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1371 2004-08-01 21:55:39Z stefan $
+   $Id: main.c 1390 2004-08-02 22:33:03Z twisti $
 
 */
 
@@ -350,6 +350,7 @@ int main(int argc, char **argv)
 
 	/************ Collect info from the environment ************************/
 
+	/* set an initial, minimal classpath */
 	classpath = MNEW(u1, 2);
 	strcpy(classpath, ".");
 
@@ -374,12 +375,12 @@ int main(int argc, char **argv)
 		case OPT_IGNORE: break;
 			
 		case OPT_CLASSPATH:
+			/* forget old classpath and set the argument as new classpath */
 			classpath = MREALLOC(classpath,
 								 u1,
 								 strlen(classpath),
-								 strlen(classpath) + 1 + strlen(opt_arg) + 1);
-			strcat(classpath, ":");
-			strncat(classpath, opt_arg, strlen(opt_arg));
+								 strlen(opt_arg) + 1);
+			strncpy(classpath, opt_arg, strlen(opt_arg));
 			break;
 				
 		case OPT_D:
