@@ -15,6 +15,7 @@
 *******************************************************************************/
 
 #include <math.h>
+#include <string.h>
 #include <assert.h>
 #include <sys/time.h>
 
@@ -563,110 +564,108 @@ void java_lang_System_arraycopy (struct java_lang_Object* source, s4 sp,
 	java_arrayheader *s = (java_arrayheader*) source;
 	java_arrayheader *d = (java_arrayheader*) dest;
 
-	if ( (!s) || (!d) ) { 
+	if (((s == NULL) | (d == NULL)) != 0) { 
 		exceptionptr = proto_java_lang_NullPointerException; 
 		return; 
 		}
-	if ( (s->objheader.vftbl->class != class_array) || (d->objheader.vftbl->class != class_array) ) {
-		exceptionptr = proto_java_lang_ArrayStoreException; 
-		return; 
-		}
-		
-	if (s->arraytype != d->arraytype) {
+
+	if (s->objheader.vftbl->class != class_array) {
 		exceptionptr = proto_java_lang_ArrayStoreException; 
 		return; 
 		}
 
-	if ((sp<0) || (sp+len > s->size) || (dp<0) || (dp+len > d->size)) {
+	if (((sp<0) | (sp+len > s->size) | (dp<0) | (dp+len > d->size)) != 0) {
 		exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException; 
 		return; 
 		}
 
 	switch (s->arraytype) {
 	case ARRAYTYPE_BYTE:
-		{
-		java_bytearray *bas = (java_bytearray*) s;
-		java_bytearray *bad = (java_bytearray*) d;
-		if (dp<=sp) 
-			for (i=0; i<len; i++) bad->data[dp+i] = bas->data[sp+i];
-		else 
-			for (i=len-1; i>=0; i--) bad->data[dp+i] = bas->data[sp+i];
-		}
-		break;
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+		memmove(((java_bytearray*) d)->data + dp,
+		        ((java_bytearray*) s)->data + sp,
+		        (size_t) len);
+		return;
 	case ARRAYTYPE_BOOLEAN:
-		{
-		java_booleanarray *bas = (java_booleanarray*) s;
-		java_booleanarray *bad = (java_booleanarray*) d;
-		if (dp<=sp) 
-			for (i=0; i<len; i++) bad->data[dp+i] = bas->data[sp+i];
-		else 
-			for (i=len-1; i>=0; i--) bad->data[dp+i] = bas->data[sp+i];
-		}
-		break;
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+		memmove(((java_booleanarray*) d)->data + dp,
+		        ((java_booleanarray*) s)->data + sp,
+		        (size_t) len);
+		return;
 	case ARRAYTYPE_CHAR:
-		{
-		java_chararray *cas = (java_chararray*) s;
-		java_chararray *cad = (java_chararray*) d;
-		if (dp<=sp) 
-			for (i=0; i<len; i++) cad->data[dp+i] = cas->data[sp+i];
-		else 
-			for (i=len-1; i>=0; i--) cad->data[dp+i] = cas->data[sp+i];
-		}
-		break;
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+		memmove(((java_chararray*) d)->data + dp,
+		        ((java_chararray*) s)->data + sp,
+		        (size_t) len * sizeof(u2));
+		return;
 	case ARRAYTYPE_SHORT:
-		{
-		java_shortarray *sas = (java_shortarray*) s;
-		java_shortarray *sad = (java_shortarray*) d;
-		if (dp<=sp) 
-			for (i=0; i<len; i++) sad->data[dp+i] = sas->data[sp+i];
-		else
-			for (i=len-1; i>=0; i--) sad->data[dp+i] = sas->data[sp+i];
-		}
-		break;
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+		memmove(((java_shortarray*) d)->data + dp,
+		        ((java_shortarray*) s)->data + sp,
+		        (size_t) len * sizeof(s2));
+		return;
 	case ARRAYTYPE_INT:
-		{
-		java_intarray *ias = (java_intarray*) s;
-		java_intarray *iad = (java_intarray*) d;
-		if (dp<=sp) 
-			for (i=0; i<len; i++) iad->data[dp+i] = ias->data[sp+i];
-		else
-			for (i=len-1; i>=0; i--) iad->data[dp+i] = ias->data[sp+i];
-		}
-		break;
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+		memmove(((java_intarray*) d)->data + dp,
+		        ((java_intarray*) s)->data + sp,
+		        (size_t) len * sizeof(s4));
+		return;
 	case ARRAYTYPE_LONG:
-		{
-		java_longarray *las = (java_longarray*) s;
-		java_longarray *lad = (java_longarray*) d;
-		if (dp<=sp) 
-			for (i=0; i<len; i++) lad->data[dp+i] = las->data[sp+i];
-		else
-			for (i=len-1; i>=0; i--) lad->data[dp+i] = las->data[sp+i];
-		}
-		break;
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+		memmove(((java_longarray*) d)->data + dp,
+		        ((java_longarray*) s)->data + sp,
+		        (size_t) len * sizeof(s8));
+		return;
 	case ARRAYTYPE_FLOAT:
-		{
-		java_floatarray *fas = (java_floatarray*) s;
-		java_floatarray *fad = (java_floatarray*) d;
-		if (dp<=sp) 
-			for (i=0; i<len; i++) fad->data[dp+i] = fas->data[sp+i];
-		else
-			for (i=len-1; i>=0; i--) fad->data[dp+i] = fas->data[sp+i];
-		}
-		break;
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+		memmove(((java_floatarray*) d)->data + dp,
+		        ((java_floatarray*) s)->data + sp,
+		        (size_t) len * sizeof(float));
+		return;
 	case ARRAYTYPE_DOUBLE:
-		{
-		java_doublearray *das = (java_doublearray*) s;
-		java_doublearray *dad = (java_doublearray*) d;
-		if (dp<=sp) 
-			for (i=0; i<len; i++) dad->data[dp+i] = das->data[sp+i];
-		else
-			for (i=len-1; i>=0; i--) dad->data[dp+i] = das->data[sp+i];
-		}
-		break;
+		if (s->objheader.vftbl != d->objheader.vftbl) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+		memmove(((java_doublearray*) d)->data + dp,
+		        ((java_doublearray*) s)->data + sp,
+		        (size_t) len * sizeof(double));
+		return;
 	case ARRAYTYPE_OBJECT:
 		{
 		java_objectarray *oas = (java_objectarray*) s;
 		java_objectarray *oad = (java_objectarray*) d;
+
+		if (d->objheader.vftbl->class != class_array) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+		if (s->arraytype != d->arraytype) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+
 		if (dp<=sp) 
 			for (i=0; i<len; i++) {
 				java_objectheader *o = oas->data[sp+i];
@@ -692,6 +691,16 @@ void java_lang_System_arraycopy (struct java_lang_Object* source, s4 sp,
 		{
 		java_arrayarray *aas = (java_arrayarray*) s;
 		java_arrayarray *aad = (java_arrayarray*) d;
+
+		if (d->objheader.vftbl->class != class_array) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+		if (s->arraytype != d->arraytype) {
+			exceptionptr = proto_java_lang_ArrayStoreException; 
+			return; 
+			}
+
 		if (dp<=sp) 
 			for (i=0; i<len; i++) {
 				java_arrayheader *o = aas->data[sp+i];
