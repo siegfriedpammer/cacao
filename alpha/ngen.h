@@ -10,23 +10,24 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1998/08/10
+	Last Change: 1998/11/04
 
 *******************************************************************************/
+
+/* see also file calling.doc for explanation of calling conventions           */
 
 /* preallocated registers *****************************************************/
 
 /* integer registers */
   
 #define REG_RESULT      0    /* to deliver method results                     */ 
-#define REG_EXCEPTION  	1    /* to throw an exception across method bounds    */
 
 #define REG_RA          26   /* return address                                */
 #define REG_PV          27   /* procedure vector, must be provided by caller  */
 #define REG_METHODPTR   28   /* pointer to the place from where the procedure */
                              /* vector has been fetched                       */
 #define REG_ITMP1       25   /* temporary register                            */
-#define REG_ITMP2       28   /* temporary register                            */
+#define REG_ITMP2       28   /* temporary register and method pointer         */
 #define REG_ITMP3       29   /* temporary register                            */
 
 #define REG_ITMP1_XPTR  25   /* exception pointer = temporary register 1      */
@@ -46,12 +47,12 @@
 
 /* register descripton - array ************************************************/
 
-/* #define REG_RES   0         reserved register for OS or code generator */
-/* #define REG_RET   1         return value register */
-/* #define REG_EXC   2         exception value register */
-/* #define REG_SAV   3         (callee) saved register */
-/* #define REG_TMP   4         scratch temporary register (caller saved) */
-/* #define REG_ARG   5         argument register (caller saved) */
+/* #define REG_RES   0         reserved register for OS or code generator     */
+/* #define REG_RET   1         return value register                          */
+/* #define REG_EXC   2         exception value register (only old jit)        */
+/* #define REG_SAV   3         (callee) saved register                        */
+/* #define REG_TMP   4         scratch temporary register (caller saved)      */
+/* #define REG_ARG   5         argument register (caller saved)               */
 
 /* #define REG_END   -1        last entry in tables */
  
@@ -100,6 +101,9 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 /* macros to create code ******************************************************/
 
+#define REG   0
+#define CONST 1
+
 /* 3-address-operations: M_OP3
       op ..... opcode
       fu ..... function-number
@@ -107,8 +111,8 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
       b  ..... register number or constant integer source 2
       c  ..... register number destination
       const .. switch to use b as constant integer 
-                 (0 means: use b as register number)
-                 (1 means: use b as constant 8-bit-integer)
+                 (REG means: use b as register number)
+                 (CONST means: use b as constant 8-bit-integer)
 */      
 #define M_OP3(op,fu,a,b,c,const) \
 	*(mcodeptr++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<(16-3*(const)))| \
@@ -259,12 +263,18 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_S8ADDQ(a,b,c,const)   M_OP3 (0x10,0x32, a,b,c,const) /* c = a*8 + b */
 #define M_S8SUBL(a,b,c,const)   M_OP3 (0x10,0x1b, a,b,c,const) /* c = a*8 - b */
 #define M_S8SUBQ(a,b,c,const)   M_OP3 (0x10,0x3b, a,b,c,const) /* c = a*8 - b */
+#define M_SAADDQ(a,b,c,const)   M_S8ADDQ(a,b,c,const)          /* c = a*8 + b */
 
 #define M_LLD_U(a,b,disp)       M_MEM (0x0b,a,b,disp)          /* unalign ld  */
 #define M_LST_U(a,b,disp)       M_MEM (0x0f,a,b,disp)          /* unalign st  */
 
 #define M_ZAP(a,b,c,const)      M_OP3 (0x12,0x30, a,b,c,const)
 #define M_ZAPNOT(a,b,c,const)   M_OP3 (0x12,0x31, a,b,c,const)
+
+#define M_BZEXT(a,b)            M_ZAPNOT(a, 0x01, b, CONST)    /*  8 zeroext  */
+#define M_CZEXT(a,b)            M_ZAPNOT(a, 0x03, b, CONST)    /* 16 zeroext  */
+#define M_IZEXT(a,b)            M_ZAPNOT(a, 0x0f, b, CONST)    /* 32 zeroext  */
+
 #define M_EXTBL(a,b,c,const)    M_OP3 (0x12,0x06, a,b,c,const)
 #define M_EXTWL(a,b,c,const)    M_OP3 (0x12,0x16, a,b,c,const)
 #define M_EXTLL(a,b,c,const)    M_OP3 (0x12,0x26, a,b,c,const)
@@ -287,7 +297,7 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_MSKLH(a,b,c,const)    M_OP3 (0x12,0x62, a,b,c,const)
 #define M_MSKQH(a,b,c,const)    M_OP3 (0x12,0x72, a,b,c,const)
 
-#define M_UMULH(a,b,c,const)    M_OP3 (0x13,0x30, a,b,c,const)  /* 64 umulh   */
+#define M_UMULH(a,b,c,const)    M_OP3 (0x13,0x30, a,b,c,const) /* 64 umulh    */
 
 /* macros for unused commands (see an Alpha-manual for description) ***********/ 
 
@@ -330,4 +340,4 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 #define gen_resolvebranch(ip,so,to) ((s4*)(ip))[-1]|=((s4)(to)-(so))>>2&0x1fffff
 
-#define SOFTNULLPTRCHECK
+#define SOFTNULLPTRCHECK       /* soft null pointer check supportet as option */

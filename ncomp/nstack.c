@@ -42,7 +42,7 @@
 #define COPY(s,d)   {(d)->flags=0;(d)->type=(s)->type;\
                      (d)->varkind=(s)->varkind;(d)->varnum=(s)->varnum;}
 
-#define CONST(s)    {NEWSTACKn(s,stackdepth);SETDST;stackdepth++;}
+#define PUSHCONST(s){NEWSTACKn(s,stackdepth);SETDST;stackdepth++;}
 #define LOAD(s,v,n) {NEWSTACK(s,v,n);SETDST;stackdepth++;}
 #define STORE(s)    {POP(s);SETDST;stackdepth--;}
 #define OP1_0(s)    {POP(s);SETDST;stackdepth--;}
@@ -401,7 +401,7 @@ icmd_iconst_tail:
 										else if (iptr[0].val.i == 0x80000000)
 											iptr[0].val.i = 31;
 										else {
-											CONST(TYPE_INT);
+											PUSHCONST(TYPE_INT);
 											break;
 											}
 										iptr[0].opc = ICMD_IDIVPOW2;
@@ -446,7 +446,7 @@ icmd_iconst_tail:
 											iptr[0].val.i -= 1;
 											goto icmd_iconst_tail;
 											}
-										CONST(TYPE_INT);
+										PUSHCONST(TYPE_INT);
 										break;
 									case ICMD_IAND:
 										iptr[0].opc = ICMD_IANDCONST;
@@ -494,11 +494,11 @@ icmd_if_icmp_tail:
 										iptr[0].opc = ICMD_IFGE;
 										goto icmd_if_icmp_tail;
 									default:
-										CONST(TYPE_INT);
+										PUSHCONST(TYPE_INT);
 									}
 								}
 							else
-								CONST(TYPE_INT);
+								PUSHCONST(TYPE_INT);
 							break;
 						case ICMD_LCONST:
 							COUNT(count_pcmd_load);
@@ -581,7 +581,7 @@ icmd_lconst_tail:
 										else if (iptr[0].val.l == 0x80000000)
 											iptr[0].val.l = 31;
 										else {
-											CONST(TYPE_LNG);
+											PUSHCONST(TYPE_LNG);
 											break;
 											}
 										iptr[0].opc = ICMD_LDIVPOW2;
@@ -626,7 +626,7 @@ icmd_lconst_tail:
 											iptr[0].val.l -= 1;
 											goto icmd_lconst_tail;
 											}
-										CONST(TYPE_LNG);
+										PUSHCONST(TYPE_LNG);
 										break;
 									case ICMD_LAND:
 										iptr[0].opc = ICMD_LANDCONST;
@@ -679,30 +679,30 @@ icmd_lconst_lcmp_tail:
 												iptr[0].opc = ICMD_IF_LGE;
 												goto icmd_lconst_lcmp_tail;
 											default:
-												CONST(TYPE_LNG);
+												PUSHCONST(TYPE_LNG);
 											} /* switch (iptr[2].opc) */
 											} /* if (iptr[2].val.i == 0) */
 										else
-											CONST(TYPE_LNG);
+											PUSHCONST(TYPE_LNG);
 										break;
 									default:
-										CONST(TYPE_LNG);
+										PUSHCONST(TYPE_LNG);
 									}
 								}
 							else
-								CONST(TYPE_LNG);
+								PUSHCONST(TYPE_LNG);
 							break;
 						case ICMD_FCONST:
 							COUNT(count_pcmd_load);
-							CONST(TYPE_FLT);
+							PUSHCONST(TYPE_FLT);
 							break;
 						case ICMD_DCONST:
 							COUNT(count_pcmd_load);
-							CONST(TYPE_DBL);
+							PUSHCONST(TYPE_DBL);
 							break;
 						case ICMD_ACONST:
 							COUNT(count_pcmd_load);
-							CONST(TYPE_ADR);
+							PUSHCONST(TYPE_ADR);
 							break;
 
 						/* pop 0 push 1 load */

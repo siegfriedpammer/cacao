@@ -148,22 +148,22 @@ static int jcommandsize[256] = {
 #define ICMD_NOP               0
         1,
 #define JAVA_ACONST_NULL       1
-#define ICMD_ACONST            1        /* op1 = 0, val.a = constant          */
+#define ICMD_ACONST            1        /* val.a = constant                   */
         1,
 #define JAVA_ICONST_M1         2
 #define ICMD_NULLCHECKPOP      2
         1,
 #define JAVA_ICONST_0          3
-#define ICMD_ICONST            3        /* op1 = 0, val.i = constant          */
+#define ICMD_ICONST            3        /* val.i = constant                   */
         1,
 #define JAVA_ICONST_1          4
 #define ICMD_IREM0X10001       4
         1,
 #define JAVA_ICONST_2          5
-#define ICMD_IDIVPOW2          5
+#define ICMD_IDIVPOW2          5        /* val.i = constant                   */
         1,
 #define JAVA_ICONST_3          6
-#define ICMD_LDIVPOW2          6
+#define ICMD_LDIVPOW2          6        /* val.l = constant                   */
         1,
 #define JAVA_ICONST_4          7
         1,
@@ -171,13 +171,13 @@ static int jcommandsize[256] = {
 #define ICMD_LREM0X10001       8
         1,
 #define JAVA_LCONST_0          9
-#define ICMD_LCONST            9        /* op1 = 0, val.l = constant          */
+#define ICMD_LCONST            9        /* val.l = constant                   */
         1,
 #define JAVA_LCONST_1         10
-#define ICMD_LCMPCONST        10        /* op1 = 0, val.l = constant          */
+#define ICMD_LCMPCONST        10        /* val.l = constant                   */
         1,
 #define JAVA_FCONST_0         11
-#define ICMD_FCONST           11        /* op1 = 0, val.f = constant          */
+#define ICMD_FCONST           11        /* val.f = constant                   */
         1,
 #define JAVA_FCONST_1         12
         1,
@@ -185,7 +185,7 @@ static int jcommandsize[256] = {
 #define ICMD_ELSE_ICONST      13
         1,
 #define JAVA_DCONST_0         14
-#define ICMD_DCONST           14        /* op1 = 0, val.a = constant          */
+#define ICMD_DCONST           14        /* val.d = constant                   */
         1,
 #define JAVA_DCONST_1         15
 #define ICMD_IFEQ_ICONST      15
@@ -223,64 +223,64 @@ static int jcommandsize[256] = {
 #define ICMD_ALOAD            25        /* op1 = local variable               */
         2,
 #define JAVA_ILOAD_0          26
-#define ICMD_IADDCONST        26
+#define ICMD_IADDCONST        26        /* val.i = constant                   */
         1,
 #define JAVA_ILOAD_1          27
-#define ICMD_ISUBCONST        27
+#define ICMD_ISUBCONST        27        /* val.i = constant                   */
         1,
 #define JAVA_ILOAD_2          28
-#define ICMD_IMULCONST        28
+#define ICMD_IMULCONST        28        /* val.i = constant                   */
         1,
 #define JAVA_ILOAD_3          29
-#define ICMD_IANDCONST        29
+#define ICMD_IANDCONST        29        /* val.i = constant                   */
         1,
 #define JAVA_LLOAD_0          30
-#define ICMD_IORCONST         30
+#define ICMD_IORCONST         30        /* val.i = constant                   */
         1,
 #define JAVA_LLOAD_1          31
-#define ICMD_IXORCONST        31
+#define ICMD_IXORCONST        31        /* val.i = constant                   */
         1,
 #define JAVA_LLOAD_2          32
-#define ICMD_ISHLCONST        32
+#define ICMD_ISHLCONST        32        /* val.i = constant                   */
         1,
 #define JAVA_LLOAD_3          33
-#define ICMD_ISHRCONST        33
+#define ICMD_ISHRCONST        33        /* val.i = constant                   */
         1,
 #define JAVA_FLOAD_0          34
-#define ICMD_IUSHRCONST       34
+#define ICMD_IUSHRCONST       34        /* val.i = constant                   */
         1,
 #define JAVA_FLOAD_1          35
-#define ICMD_IREMPOW2         35
+#define ICMD_IREMPOW2         35        /* val.i = constant                   */
         1,
 #define JAVA_FLOAD_2          36
-#define ICMD_LADDCONST        36
+#define ICMD_LADDCONST        36        /* val.l = constant                   */
         1,
 #define JAVA_FLOAD_3          37
-#define ICMD_LSUBCONST        37
+#define ICMD_LSUBCONST        37        /* val.l = constant                   */
         1,
 #define JAVA_DLOAD_0          38
-#define ICMD_LMULCONST        38
+#define ICMD_LMULCONST        38        /* val.l = constant                   */
         1,
 #define JAVA_DLOAD_1          39
-#define ICMD_LANDCONST        39
+#define ICMD_LANDCONST        39        /* val.l = constant                   */
         1,
 #define JAVA_DLOAD_2          40
-#define ICMD_LORCONST         40
+#define ICMD_LORCONST         40        /* val.l = constant                   */
         1,
 #define JAVA_DLOAD_3          41
-#define ICMD_LXORCONST        41
+#define ICMD_LXORCONST        41        /* val.l = constant                   */
         1,
 #define JAVA_ALOAD_0          42
-#define ICMD_LSHLCONST        42
+#define ICMD_LSHLCONST        42        /* val.l = constant                   */
         1,
 #define JAVA_ALOAD_1          43
-#define ICMD_LSHRCONST        43
+#define ICMD_LSHRCONST        43        /* val.l = constant                   */
         1,
 #define JAVA_ALOAD_2          44
-#define ICMD_LUSHRCONST       44
+#define ICMD_LUSHRCONST       44        /* val.l = constant                   */
         1,
 #define JAVA_ALOAD_3          45
-#define ICMD_LREMPOW2         45
+#define ICMD_LREMPOW2         45        /* val.l = constant                   */
         1,
 #define JAVA_IALOAD           46
 #define ICMD_IALOAD           46
@@ -673,10 +673,10 @@ static int jcommandsize[256] = {
 #define ICMD_RETURN           177
         1,
 #define JAVA_GETSTATIC        178
-#define ICMD_GETSTATIC        178       /* op1 = type, val.a = field adress   */
+#define ICMD_GETSTATIC        178       /* op1 = type, val.a = field address  */
         3,
 #define JAVA_PUTSTATIC        179
-#define ICMD_PUTSTATIC        179       /* op1 = type, val.a = field adress   */
+#define ICMD_PUTSTATIC        179       /* op1 = type, val.a = field address  */
         3,
 #define JAVA_GETFIELD         180
 #define ICMD_GETFIELD         180       /* op1 = type, val.i = field offset   */

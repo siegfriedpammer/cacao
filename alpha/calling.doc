@@ -1,23 +1,21 @@
-/***************************** calling.doc *************************************
+/* calling.doc *****************************************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	Das ist eine kurze Dokumentation "uber die internen Aufrufskonventionen
-	der Java-Methoden in der DEC-ALHPA-Version.
+	A short description of Alpha calling conventions and register usage.
 
-	Author:  Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
+	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
+	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1997/02/05
+	Last Change: 1998/11/05
 
 *******************************************************************************/
-FILE: calling.doc
 
-Das ist eine kurze Dokumentation "uber die internen Aufrufskonventionen
-der Java-Methoden in der DEC-ALHPA-Version.
+Short documentation of the Java calling conventions for the Alpha.
 
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 
 Die Aufrufskonventionen halten sich weitgehende an die Konventionen
@@ -33,84 +31,65 @@ R28 ..... enth"alt bei einem Methodenaufruf auf jeden Fall den Zeiger
           dann hat dieses Register keinen definierten Wert (Alle von der
           JavaVM verwendeten Funktionen, z. B. 'builtin_new', etc. werden
           so aufgerufen)
-          
-R1 ...... enth"alt nach Methodenbeendigung entweder NULL oder einen Zeiger
-          auf ein Objekt vom Typ java.lang.Throwable (oder einem davon
-          abgeleiteten Typ).
-          Wenn das der Fall ist, dann wurde in der Methode eine Exception
-          geworfen, die nicht abgefangen werden konnte, und jetzt beim
-          Aufrufer weiter bearbeitet werden muss.
 
-
-          
 Die restlichen Register folgen den normalen Konventionen, aber ich gebe
 hier noch einmal eine kurze "Ubersicht:
 
  
-INTEGER-REGISTER:
+integer registers:
 
-R0 ........ R"uckgabewert von den Methoden f"ur die Typen:
-                    INT,LONG,ADDRESS
-                    
-R1 ........ Adresse der geworfenen Exception (oder NULL)
+R0 ........ method result value for types INT, LONG and ADDRESS
 
-R2-R8 ..... tempor"are Register (werden im Unterprogram zerst"ort)
+R1-R8 ..... temporary registers (destroyed by called method)
 
-R9-R15 .... gesicherte Register (werden im Unterprogramm nicht ver"andert)
+R9-R15 .... saved registers (left unchanged by called method)
 
-R16-R21 ... Argumentregister 1 - 6 (hier werden die ersten sechs Methoden- 
-            Argumente eingetragen, sofern sie von den Typen INT,LONG,ADDRESS 
-            sind. Diese Argumentregister werden im Unterprogramm zerst"ort
-           
-R22-R24 ... tempor"are Register
-            (werden im Unterprogramm zerst"ort)		
-		
-R25 ....... tempor"ares Register f"ur kurzfristige Zwischenergebnisse
-            (wird im Unterprogramm zerst"ort)
+R16-R21 ... argument registers 0 - 5 (contain the first six method arguments
+            of type INT, LONG and ADDRESS. Argument registers are destroyed
+            by called method)
 
-R26 (ra) .. R"ucksprungadresse (bleibt im Unterprogramm erhalten)
+R22-R24 ... temporary registers (destroyed by called method)
 
-R27 (pv) .. Prozedurzeiger. Dieses Register muss auf jeden Fall einen Zeiger
-            auf die aufgerufene Prozedur enthalten (damit die Zugriffe
-            auf das Datensegment funktionieren k"onnen).
-            (der Wert bleibt im Unterprogramm erhalten)
+R25 ....... code generator temporary register (destroyed by called method)
 
-R28 ....... Zeiger auf die 'methodinfo' - Struktur. Muss auf jeden Fall bei
-            allen Methodenaufrufen richtig gesetzt sein (wegen eines eventuellen
-            Compiler-Aufrufs)
-            (wird im Unterprogramm zerst"ort)
-            
-R29 ....... tempor"ares Register f"ur kurzfristige Zwischenergebnisse
-            (wird im Unterprogramm zerst"ort)
+R26 (ra) .. return address (left unchanged by called method)
 
-R30 (sp) .. Zeiger auf die Untergrenze des Stack (der Stack w"achst von
-            oben nach unten)
-            
-R31 ....... enth"alt immer NULL
+R27 (pv) .. procedure vector, points to the first instruction of the called
+            method. This vector is used for addressing the entries in the
+            data segment. The ov of the caller is recomputed from the ra.
+            Therefore it is necessary that a return is always done using ra.
 
+R28 ....... pointer to 'methodinfo' structure. This register has to be set
+            correctly, because it is needed in the case the jit is invoked.
+            Also used as code generator temporary register. It isdestroyed
+            by called method)
+
+R29 ....... code generator temporary register (destroyed by called method)
+
+R30 (sp) .. stack pointer. The stack grows from high to low.
+
+R31 ....... always contains zero
 
  
-FLIESSKOMMA-REGISTER:
+floating point registers:
 
+F0 ........ method result value for types FLOAT and DOUBLE
 
-F0 ........ enth"alt die R"uckgabewert der Methoden vom Typ:
-                FLOAT, DOUBLE
-F1 ........ enth"alt den Imagin"aranteil von einem komplexen Funktionswert
-                (wird von mir nicht benutzt)
+F1 ........ temporary register (destroyed by called method)
                                 
-F2-F9 ..... gesicherte Register (werden im Unterprogramm nicht ver"andert)
+F2-F9 ..... saved registers (left unchanged by called method)
 
-F10-F15 ... tempor"are Register (werden im Unterprogramm zerst"ort)
+F10-F15 ... temporary registers (destroyed by called method)
 
-F16-F21 ... Argumentregister f"ur die ersten 6 Parameter, sofern diese
-            vom den Typen FLOAT oder DOUBLE sind
-            
-F22-F24 ... tempor"are Register (werden im Unterprogramm zerst"ort)
+F16-F21 ... argument registers 0 - 5 (contain the first six method arguments
+            of type FLOAT and DOUBLE. Argument registers are destroyed
+            by called method)
+F22-F27 ... temporary registers (destroyed by called method)
 
-F25-F31 ... tempor"are Register f"ur kurzfristige Zwischenergebnisse
-            (werden im Unterprogramm zerst"ort)
+F28-F30 ... code generator temporary register (destroyed by called method)
 
-F31 ....... enth"alt immer 0.0
+F31 ....... always contains zero
+
 
 
 
@@ -149,34 +128,26 @@ im Stackframe ist unabh"angig vom Typ auf jedem Fall 64 bit lang, die
 Gr"ossenangaben der Bereiche sind in solchen Einheiten von 64 Bit 
 angegeben):
 	
-				---------------------------------------------
-				|  Parameter n (vom Aufrufer)               |
-                ---------------------------------------------				
-				|  Parameter n-1                            |
-				---------------------------------------------
-                | ...                                       |
-                ---------------------------------------------
-   SP vorher -> |  Parameter 7                              |
-                ============================================= --- 
-                |  gesichertes RA                           |  savedregs_num    
-                ---------------------------------------------
-                |  andere gesicherte Register               |
-                ============================================= ---
-                |  Platz f"ur lokale Werte, die nicht mehr  |  localvars_num
-                |  in Register passen                       |
-                ============================================= ---
-                |  ....                                     |  arguments_num
-                ---------------------------------------------
-                |  Parameter 8                              |
-                ---------------------------------------------
-   SP --->      |  Parameter 7 (f"ur aufgerufenen Methoden) |
-                ============================================= ---
-               
-                
-Damit die Anf"ange der einzelnen Bereiche (im Codegenerator) leichter 
-ausgedr"uckt werden k"onnen, sind ein paar Hilfsvariablen vorgesehen, die
-die Adressierung der einzelnen Bereiche vereinfachen:
-	localvars_base  = arguments_num
-	savedregs_base  = localvars_base + localvars_num
-	parentargs_base = savedregs_base + savedregs_num
-
+            ---------------------------------------------
+            |  parameter n (passed from caller)         |
+            ---------------------------------------------	
+            |  parameter n-1                            |
+            ---------------------------------------------
+            | ...                                       |
+            ---------------------------------------------
+            |  parameter 7                              |
+old SP ---> ============================================= --- parentargs_base
+            |  saved RA                                 |
+            ---------------------------------------------     savedregs_num
+            |  others saved registers                   |
+            ============================================= --- maxmemuse + 1
+            |  optional monitor_exit argument           |
+            ============================================= --- maxmemuse
+            |  area for spilled registers               |
+            =============================================
+            |  ....                                     |
+            ---------------------------------------------
+            |  parameter 8                              |
+            ---------------------------------------------
+            |  parameter 7 (passed to called method)    |
+new SP ---> =============================================

@@ -1,4 +1,4 @@
-###############################################################################
+################################################################################
 #                    Makefile for the JavaVM - compiler CACAO                  #
 ################################################################################
 #
@@ -21,8 +21,6 @@
 #            generated automatically.
 #
 ################################################################################
-
-MAKE = make
 
 VERSION_MAJOR = 0
 VERSION_MINOR = 30
@@ -47,10 +45,18 @@ endif
 #CC = cc
 #CFLAGS = -g -mieee -Wall $(THREAD_CFLAGS)
 #CFLAGS = -mieee -O3 -Wall $(THREAD_CFLAGS)
+#LFLAGS = -lm
 
-CC = gcc
-#CFLAGS = -g -ieee $(THREAD_CFLAGS)
+CC = cc
+#CFLAGS = -g3 -ieee $(THREAD_CFLAGS)
 CFLAGS = -O3 -ieee $(THREAD_CFLAGS)
+LFLAGS = -lm
+
+# IRIX 6.5 MIPSPro 7.2.1
+#CC = cc
+#CFLAGS = -g $(THREAD_CFLAGS) -DMAP_ANONYMOUS=0 -woff 1048,1110,1164,1515
+#CFLAGS = -O2 -OPT:Olimit=0 $(THREAD_CFLAGS) -DMAP_ANONYMOUS=0
+#LFLAGS = -lm -lelfutil
 
 OBJ = main.o tables.o loader.o compiler.o newcomp.o builtin.o asmpart.o \
 	toolbox/toolbox.a native.o $(THREAD_OBJ) mm/mm.o
@@ -58,9 +64,9 @@ OBJH = headers.o tables.o loader.o builtin.o toolbox/toolbox.a $(THREAD_OBJ) \
 mm/mm.o
 
 cacao: $(OBJ)
-	$(CC) $(CFLAGS) -o cacao $(OBJ) -lm
+	$(CC) $(CFLAGS) -o cacao $(OBJ) $(LFLAGS)
 cacaoh: $(OBJH)
-	$(CC) $(CFLAGS) -o cacaoh $(OBJH) -lm
+	$(CC) $(CFLAGS) -o cacaoh $(OBJH) $(LFLAGS)
 
 main.o: main.c global.h tables.h compiler.h ncomp/ncomp.h loader.h \
         asmpart.h builtin.h native.h
@@ -153,6 +159,12 @@ config-sparc:
 	ln -s ../sysdep threads/sysdep
 	$(MAKE) clean
 
+config-mips:
+	rm -f sysdep
+	ln -s mips sysdep
+	rm -f threads/sysdep
+	ln -s ../sysdep threads/sysdep
+	$(MAKE) clean
 
 
 ##################### generation of NATIVE - header files ######################

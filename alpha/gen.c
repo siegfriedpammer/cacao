@@ -1754,6 +1754,8 @@ This makes sense only for the stub-generation-routines below.
 	*(p++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<16)|((disp)&0xffff) )
 
 
+#if 0
+
 /************************ function createcompilerstub **************************
 
 	creates a stub routine which calls the compiler
@@ -1794,6 +1796,20 @@ void removecompilerstub (u1 *stub)
 }
 
 
+/************************ function: removenativestub ***************************
+
+    removes a previously created native-stub from memory
+    
+*******************************************************************************/
+
+void removenativestub (u1 *stub)
+{
+	CFREE (stub, NATIVESTUBSIZE * 8);
+}
+
+#endif /* 0 */
+
+
 /********************* Funktion: createnativestub ******************************
 
 	creates a stub routine which calls a native method
@@ -1832,16 +1848,3 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 
 	return (u1*) s;
 }
-
-
-/************************ function: removenativestub ***************************
-
-    removes a previously created native-stub from memory
-    
-*******************************************************************************/
-
-void removenativestub (u1 *stub)
-{
-	CFREE (stub, NATIVESTUBSIZE * 8);
-}
-
