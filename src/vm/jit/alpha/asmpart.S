@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1218 2004-06-29 14:11:16Z twisti $
+   $Id: asmpart.S 1392 2004-08-03 16:46:41Z stefan $
 
 */
 
@@ -143,7 +143,6 @@
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
-	.globl asm_getcallingmethod
 	.globl asm_builtin_trace
 	.globl asm_builtin_exittrace
 	.globl asm_criticalsections
