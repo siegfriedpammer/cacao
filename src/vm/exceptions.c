@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: exceptions.c 1628 2004-11-30 19:14:41Z carolyn $
 
 */
 
@@ -45,6 +45,7 @@
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
+#include "vm/options.h"
 
 
 /* system exception classes required in cacao */
