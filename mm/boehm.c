@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 689 2003-12-05 18:03:47Z stefan $
+   $Id: boehm.c 738 2003-12-13 18:41:27Z stefan $
 
 */
 
@@ -73,6 +73,12 @@ static void *stackcall_malloc_uncollectable(void *p, u4 bytelength)
 static void *stackcall_realloc(void *p, u4 bytelength)
 {
 	return GC_REALLOC(p, bytelength);
+}
+
+static void *stackcall_free(void *p, u4 bytelength)
+{
+	GC_FREE(p);
+	return NULL;
 }
 
 
@@ -135,6 +141,13 @@ void *heap_reallocate(void *p, u4 bytelength)
 	MAINTHREADCALL(result, stackcall_realloc, p, bytelength);
 
 	return result;
+}
+
+void heap_free(void *p)
+{
+	void *result;
+
+	MAINTHREADCALL(result, stackcall_free, p, 0);
 }
 
 

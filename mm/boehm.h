@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: boehm.h 580 2003-11-09 19:07:39Z twisti $
+   $Id: boehm.h 738 2003-12-13 18:41:27Z stefan $
 
 */
 
@@ -52,6 +52,7 @@ void *heap_alloc_uncollectable(u4 bytelength);
 void runboehmfinalizer(void *o, void *p);
 void *heap_allocate (u4 bytelength, bool references, methodinfo *finalizer);
 void *heap_reallocate(void *p, u4 bytelength);
+void heap_free(void *p);
 void heap_init (u4 size, u4 startsize, void **stackbottom);
 void heap_close();
 void heap_addreference (void **reflocation);
