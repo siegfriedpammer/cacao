@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1456 2004-11-05 14:33:14Z twisti $
+   $Id: parse.c 1462 2004-11-06 15:08:49Z motse $
 
 */
 
@@ -384,10 +384,10 @@ static exceptiontable* fillextable(methodinfo *m,
 		
 /*** if (DEBUG==true){printf("---------------------block_inserted:b_count=%i m->basicblockindex[(p=%i)]=%i=%p\n",b_count,p,m->basicblockindex[(p)],m->basicblockindex[(p)]); 
   fflush(stdout); } ***/   
-		p = raw_extable[i].endpc;
-		if (p <= raw_extable[i].startpc)
+		p = raw_extable[i].endpc; // see JVM Spec 4.7.3
+		if (p < raw_extable[i].startpc)
 			panic("Invalid exception handler range");
-		if (p >=m->jcodelength) {
+		if (p > m->jcodelength) { 
 			panic("Invalid exception handler end is after code end");
 		}
 		if (label_index != NULL) p = label_index[p];
