@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1287 2004-07-08 18:49:58Z twisti $
+# $Id: Makefile.am 1333 2004-07-21 15:48:46Z twisti $
 
 @SET_MAKE@
 
@@ -20,8 +20,8 @@ EXTRA_DIST = \
 CLEANFILES = \
 	nativetable.inc
 
-bin_PROGRAMS = cacao
-noinst_PROGRAMS = cacaoh gennativetable genoffsets
+bin_PROGRAMS = cacao cacaoh
+noinst_PROGRAMS = gennativetable genoffsets
 
 INCLUDES = -I$(top_srcdir)/jit/@ARCH_DIR@
 
@@ -31,6 +31,8 @@ cacao_SOURCES = \
 	asmpart.h \
 	builtin.c \
 	builtin.h \
+	exceptions.c \
+	exceptions.h \
 	global.h \
 	jni.c \
 	jni.h \
@@ -89,6 +91,7 @@ cacao_DEPENDENCIES = \
 cacaoh_SOURCES = \
 	builtin.c \
 	cacaoh.c \
+	exceptions.c \
 	headers.c \
 	loader.c \
 	options.c \
@@ -113,6 +116,7 @@ cacaoh_DEPENDENCIES = \
 
 gennativetable_SOURCES = \
 	builtin.c \
+	exceptions.c \
 	gennativetable.c \
 	headers.c \
 	loader.c \
