@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1351 2004-07-22 22:39:05Z twisti $
+   $Id: codegen.h 1461 2004-11-05 16:23:47Z twisti $
 
 */
 
@@ -113,14 +113,14 @@
 	if (checknull) { \
         i386_test_reg_reg(cd, (objreg), (objreg)); \
         i386_jcc(cd, I386_CC_E, 0); \
- 	    codegen_addxnullrefs(m, cd->mcodeptr); \
+ 	    codegen_addxnullrefs(cd, cd->mcodeptr); \
 	}
 
 #define gen_bound_check \
     if (checkbounds) { \
         i386_alu_membase_reg(cd, I386_CMP, s1, OFFSET(java_arrayheader, size), s2); \
         i386_jcc(cd, I386_CC_AE, 0); \
-        codegen_addxboundrefs(m, cd->mcodeptr, s2); \
+        codegen_addxboundrefs(cd, cd->mcodeptr, s2); \
     }
 
 #define gen_div_check(v) \
@@ -131,7 +131,7 @@
             i386_test_reg_reg(cd, src->regoff, src->regoff); \
         } \
         i386_jcc(cd, I386_CC_E, 0); \
-        codegen_addxdivrefs(m, cd->mcodeptr); \
+        codegen_addxdivrefs(cd, cd->mcodeptr); \
     }
 
 
@@ -139,7 +139,7 @@
 
 #define MCODECHECK(icnt) \
 	if ((cd->mcodeptr + (icnt)) > (u1 *) cd->mcodeend) \
-        cd->mcodeptr = (u1 *) codegen_increase(m, cd->mcodeptr)
+        cd->mcodeptr = (u1 *) codegen_increase(cd, cd->mcodeptr)
 
 
 /* M_INTMOVE:
@@ -285,7 +285,7 @@
 
 
 #define M_COPY(from,to) \
-    d = reg_of_var(m, to, REG_ITMP1); \
+    d = reg_of_var(rd, to, REG_ITMP1); \
 	if ((from->regoff != to->regoff) || \
 	    ((from->flags ^ to->flags) & INMEMORY)) { \
 		if (IS_FLT_DBL_TYPE(from->type)) { \
