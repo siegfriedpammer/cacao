@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "../global.h"
+#include "global.h"
 
 #ifdef USE_THREADS
 int threadedFileDescriptor(int fd);
