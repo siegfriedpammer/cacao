@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 2219 2005-04-05 15:42:57Z christian $
+   $Id: reg.h 2222 2005-04-05 17:38:04Z christian $
 
 */
 
@@ -34,7 +34,7 @@
 #ifndef _REG_H
 #define _REG_H
 
-#define INVOKE_NEW_DEBUG
+/* #define INVOKE_NEW_DEBUG */
 
 /* preliminary define for testing of the new creation of ARGVAR Stackslots in stack.c */
 /* Changes affect handling of ARGVAR Stackslots in reg_of_var in codegen.inc          */

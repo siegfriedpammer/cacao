@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: codegen.h 2222 2005-04-05 17:38:04Z christian $
 
 */
 
@@ -36,6 +36,41 @@
 
 #include "vm/jit/mips/types.h"
 
+/* Macro for stack.c to set Argument Stackslots */
+
+#define SET_ARG_STACKSLOTS {											\
+		s4 stacksize;     /* Stackoffset for spilled arg */				\
+		stacksize = (i < rd->intreg_argnum)? 0 : (i - rd->intreg_argnum); \
+		copy = curstack;												\
+																		\
+		if (rd->ifmemuse < stacksize)									\
+			rd->ifmemuse = stacksize;									\
+																		\
+		while (--i >= 0) {												\
+			if (!(copy->flags & SAVEDVAR)) {							\
+				copy->varnum = i;										\
+				copy->varkind = ARGVAR;									\
+				if (IS_FLT_DBL_TYPE(copy->type)) {						\
+					if (i < rd->fltreg_argnum) {						\
+						copy->flags = 0;								\
+						copy->regoff = rd->argfltregs[i];				\
+					} else {											\
+						copy->flags = INMEMORY;							\
+						copy->regoff = --stacksize;						\
+					}													\
+				} else { /* int arg */									\
+					if (i < rd->intreg_argnum) {						\
+						copy->flags = 0;								\
+						copy->regoff = rd->argintregs[i];				\
+					} else {											\
+						copy->flags = INMEMORY;							\
+						copy->regoff = --stacksize;						\
+					}													\
+				}														\
+			}															\
+			copy = copy->prev;											\
+		}																\
+	}																	\
 
 /* additional functions and macros to generate code ***************************/
 
