@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2120 2005-03-29 22:00:33Z twisti $
+   $Id: loader.c 2137 2005-03-30 10:18:38Z twisti $
 
 */
 
@@ -510,7 +510,6 @@ void suck_init(char *classpath)
 					cpi->type = CLASSPATH_ARCHIVE;
 					cpi->uf = uf;
 					cpi->next = NULL;
-					cpi->pd = NULL; /* ProtectionDomain not set yet */
 					cpi->path = filename;
 					cpi->pathlen = filenamelen;
 				}
@@ -524,7 +523,6 @@ void suck_init(char *classpath)
 				cpi = NEW(classpath_info);
 				cpi->type = CLASSPATH_PATH;
 				cpi->next = NULL;
-				cpi->pd = NULL; /* ProtectionDomain not set yet */
 
 				if (filename[filenamelen - 1] != '/') {/*PERHAPS THIS SHOULD BE READ FROM A GLOBAL CONFIGURATION */
 					filename[filenamelen] = '/';
@@ -642,9 +640,6 @@ classbuffer *suck_start(classinfo *c)
 						cb->size = file_info.uncompressed_size;
 						cb->data = MNEW(u1, cb->size);
 						cb->pos = cb->data - 1;
-						/* We need this later in use_class_as_object to set a */
-						/* correct ProtectionDomain and CodeSource.           */
-/*   						c->pd = (struct java_security_ProtectionDomain *) cpi;  */
 
 						len = unzReadCurrentFile(cpi->uf, cb->data, cb->size);
 
@@ -688,9 +683,6 @@ classbuffer *suck_start(classinfo *c)
 					cb->size = buffer.st_size;
 					cb->data = MNEW(u1, cb->size);
 					cb->pos = cb->data - 1;
-					/* We need this later in use_class_as_object to set a     */
-					/* correct ProtectionDomain and CodeSource.               */
-/*   					c->pd = (struct java_security_ProtectionDomain *) cpi;  */
 
 					/* read class data */
 					len = fread(cb->data, 1, cb->size, classfile);

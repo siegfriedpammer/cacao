@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2120 2005-03-29 22:00:33Z twisti $
+   $Id: loader.h 2137 2005-03-30 10:18:38Z twisti $
 */
 
 
@@ -144,7 +144,6 @@ struct classpath_info {
 	s4                 type;
 	char              *path;
 	s4                 pathlen;
-	struct java_security_ProtectionDomain *pd;
 #if defined(USE_ZLIB)
 	unzFile            uf;
 #endif
