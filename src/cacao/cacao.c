@@ -36,7 +36,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1824 2004-12-27 21:35:23Z motse $
+   $Id: cacao.c 1834 2004-12-29 15:00:25Z twisti $
 
 */
 
@@ -47,8 +47,8 @@
 #include "cacao/cacao.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
-#include "native/native.h"
 #include "native/jni.h"
+#include "native/native.h"
 #include "toolbox/logging.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -64,9 +64,17 @@
 #endif
 
 
+/* define heap sizes **********************************************************/
+
+#define HEAP_MAXSIZE      64 * 1024 * 1024; /* default 64MB                   */
+#define HEAP_STARTSIZE    2 * 1024 * 1024;  /* default 2MB                    */
+
+
 bool cacao_initializing;
 
-char *classpath;                        /* contains classpath                 */
+char *bootclasspath;                    /* contains the boot classpath        */
+char *classpath;                        /* contains the classpath             */
+
 char *mainstring;
 static classinfo *mainclass;
 
@@ -74,91 +82,103 @@ static classinfo *mainclass;
 void **stackbottom = 0;
 #endif
 
+
 /* define command line options ************************************************/
 
-#define OPT_CLASSPATH   2
-#define OPT_D           3
-#define OPT_MS          4
-#define OPT_MX          5
-#define OPT_VERBOSE1    6
-#define OPT_VERBOSE     7
-#define OPT_VERBOSEGC   8
-#define OPT_VERBOSECALL 9
-#define OPT_NOIEEE      10
-#define OPT_SOFTNULL    11
-#define OPT_TIME        12
-#define OPT_STAT        13
-#define OPT_LOG         14
-#define OPT_CHECK       15
-#define OPT_LOAD        16
-#define OPT_METHOD      17
-#define OPT_SIGNATURE   18
-#define OPT_SHOW        19
-#define OPT_ALL         20
-#define OPT_OLOOP       24
-#define OPT_INLINING	25
-#ifdef STATIC_ANALYSIS
-#define OPT_RT          26
-#define OPT_XTA         27 
-#define OPT_VTA         28
-#endif
-#define OPT_VERBOSETC   29
-#define OPT_NOVERIFY    30
-#define OPT_LIBERALUTF  31
+#define OPT_CLASSPATH        2
+#define OPT_D                3
+#define OPT_MS               4
+#define OPT_MX               5
+#define OPT_VERBOSE1         6
+#define OPT_VERBOSE          7
+#define OPT_VERBOSEGC        8
+#define OPT_VERBOSECALL      9
+#define OPT_NOIEEE           10
+#define OPT_SOFTNULL         11
+#define OPT_TIME             12
+#define OPT_STAT             13
+#define OPT_LOG              14
+#define OPT_CHECK            15
+#define OPT_LOAD             16
+#define OPT_METHOD           17
+#define OPT_SIGNATURE        18
+#define OPT_SHOW             19
+#define OPT_ALL              20
+#define OPT_OLOOP            24
+#define OPT_INLINING	     25
+
+#if defined(STATIC_ANALYSIS)
+# define OPT_RT              26
+# define OPT_XTA             27 
+# define OPT_VTA             28
+#endif /* STATIC_ANALYSIS */
+
+#define OPT_VERBOSETC        29
+#define OPT_NOVERIFY         30
+#define OPT_LIBERALUTF       31
 #define OPT_VERBOSEEXCEPTION 32
 #define OPT_EAGER            33
-#ifdef LSRA
-#define OPT_LSRA 34
-#endif
-#define OPT_JAR 35
+
+#if defined(LSRA)
+# define OPT_LSRA            34
+#endif /* LSRA */
+
+#define OPT_JAR              35
+#define OPT_BOOTCLASSPATH    36
+#define OPT_BOOTCLASSPATH_A  37
+#define OPT_BOOTCLASSPATH_P  38
+
 
 opt_struct opts[] = {
-	{"classpath",        true,   OPT_CLASSPATH},
-	{"cp",               true,   OPT_CLASSPATH},
-	{"D",                true,   OPT_D},
-	{"Xms",              true,   OPT_MS},
-	{"Xmx",              true,   OPT_MX},
-	{"ms",               true,   OPT_MS},
-	{"mx",               true,   OPT_MX},
-	{"noasyncgc",        false,  OPT_IGNORE},
-	{"noverify",         false,  OPT_NOVERIFY},
-	{"liberalutf",       false,  OPT_LIBERALUTF},
-	{"oss",              true,   OPT_IGNORE},
-	{"ss",               true,   OPT_IGNORE},
-	{"v",                false,  OPT_VERBOSE1},
-	{"verbose",          false,  OPT_VERBOSE},
-	{"verbosegc",        false,  OPT_VERBOSEGC},
-	{"verbosecall",      false,  OPT_VERBOSECALL},
-	{"verboseexception", false,  OPT_VERBOSEEXCEPTION},
+	{ "classpath",         true,  OPT_CLASSPATH },
+	{ "cp",                true,  OPT_CLASSPATH },
+	{ "D",                 true,  OPT_D },
+	{ "Xms",               true,  OPT_MS },
+	{ "Xmx",               true,  OPT_MX },
+	{ "ms",                true,  OPT_MS },
+	{ "mx",                true,  OPT_MX },
+	{ "noasyncgc",         false, OPT_IGNORE },
+	{ "noverify",          false, OPT_NOVERIFY },
+	{ "liberalutf",        false, OPT_LIBERALUTF },
+	{ "oss",               true,  OPT_IGNORE },
+	{ "ss",                true,  OPT_IGNORE },
+	{ "v",                 false, OPT_VERBOSE1 },
+	{ "verbose",           false, OPT_VERBOSE },
+	{ "verbosegc",         false, OPT_VERBOSEGC },
+	{ "verbosecall",       false, OPT_VERBOSECALL },
+	{ "verboseexception",  false, OPT_VERBOSEEXCEPTION },
 #ifdef TYPECHECK_VERBOSE
-	{"verbosetc",        false,  OPT_VERBOSETC},
+	{ "verbosetc",         false, OPT_VERBOSETC },
 #endif
 #if defined(__ALPHA__)
-	{"noieee",           false,  OPT_NOIEEE},
+	{ "noieee",            false, OPT_NOIEEE },
 #endif
-	{"softnull",         false,  OPT_SOFTNULL},
-	{"time",             false,  OPT_TIME},
-	{"stat",             false,  OPT_STAT},
-	{"log",              true,   OPT_LOG},
-	{"c",                true,   OPT_CHECK},
-	{"l",                false,  OPT_LOAD},
-    { "eager",            false,  OPT_EAGER },
-	{"m",                true,   OPT_METHOD},
-	{"sig",              true,   OPT_SIGNATURE},
-	{"s",                true,   OPT_SHOW},
-	{"all",              false,  OPT_ALL},
-	{"oloop",            false,  OPT_OLOOP},
-	{"i",		         true,   OPT_INLINING},
+	{ "softnull",          false, OPT_SOFTNULL },
+	{ "time",              false, OPT_TIME },
+	{ "stat",              false, OPT_STAT },
+	{ "log",               true,  OPT_LOG },
+	{ "c",                 true,  OPT_CHECK },
+	{ "l",                 false, OPT_LOAD },
+    { "eager",             false, OPT_EAGER },
+	{ "m",                 true,  OPT_METHOD },
+	{ "sig",               true,  OPT_SIGNATURE },
+	{ "s",                 true,  OPT_SHOW },
+	{ "all",               false, OPT_ALL },
+	{ "oloop",             false, OPT_OLOOP },
+	{ "i",                 true,  OPT_INLINING },
 #ifdef STATIC_ANALYSIS
-	{"rt",               false,  OPT_RT},
-	{"xta",              false,  OPT_XTA},
-	{"vta",              false,  OPT_VTA},
+	{ "rt",                false, OPT_RT },
+	{ "xta",               false, OPT_XTA },
+	{ "vta",               false, OPT_VTA },
 #endif
 #ifdef LSRA
-	{"lsra", false, OPT_LSRA},
+	{ "lsra",              false, OPT_LSRA },
 #endif
-	{"jar", false, OPT_JAR},
-	{NULL,               false,  0}
+	{ "jar",               false, OPT_JAR },
+	{ "Xbootclasspath:",   true,  OPT_BOOTCLASSPATH },
+	{ "Xbootclasspath/a:", true,  OPT_BOOTCLASSPATH_A },
+	{ "Xbootclasspath/p:", true,  OPT_BOOTCLASSPATH_P },
+	{ NULL,                false, 0 }
 };
 
 
@@ -170,16 +190,20 @@ Prints the correct usage syntax to stdout.
 
 static void usage()
 {
-	printf("USAGE: cacao [options] classname [program arguments]\n");
+	printf("Usage: cacao [options] classname [program arguments]\n\n");
+
 	printf("Options:\n");
-	printf("          -cp path ............. specify a path to look for classes\n");
-	printf("          -classpath path ...... specify a path to look for classes\n");
-	printf("          -jar jarfile ......... execute a jar file\n");
-	printf("          -Dpropertyname=value . add an entry to the property list\n");
-	printf("          -Xmx maxmem[kK|mM] ... specify the size for the heap\n");
-	printf("          -Xms initmem[kK|mM] .. specify the initial size for the heap\n");
-	printf("          -mx maxmem[kK|mM] .... specify the size for the heap\n");
-	printf("          -ms initmem[kK|mM] ... specify the initial size for the heap\n");
+	printf("    -cp <path>               specify a path to look for classes\n");
+	printf("    -classpath <path>        specify a path to look for classes\n");
+	printf("    -jar jarfile             execute a jar file\n");
+	printf("    -D<name>=<value>         add an entry to the property list\n");
+	printf("    -Xmx<size>[kK|mM]        specify the size for the heap\n");
+	printf("    -Xms<size>[kK|mM]        specify the initial size for the heap\n");
+	printf("    -mx<size>[kK|mM]         specify the size for the heap\n");
+	printf("    -ms<size>[kK|mM]         specify the initial size for the heap\n");
+	printf("    -Xbootclasspath:<path>   set search path for bootstrap classes and resources\n");
+	printf("    -Xbootclasspath/a:<path> append to end of bootstrap class path\n");
+	printf("    -Xbootclasspath/p:<path> prepend in front of bootstrap class path\n");
 	printf("          -v ................... write state-information\n");
 	printf("          -verbose ............. write more information\n");
 	printf("          -verbosegc ........... write message for each GC\n");
@@ -243,7 +267,8 @@ void typecheck_print_statistics(FILE *file);
 gets the name of the main class form a jar's manifest file
 
 ***************************************************************************/
-utf* getmainclassnamefromjar(mainstring){
+char *getmainclassnamefromjar(mainstring)
+{
 	jclass class;
 	jmethodID mid;
 	jobject obj;
@@ -307,7 +332,7 @@ utf* getmainclassnamefromjar(mainstring){
 		cacao_exit(1);
 	}
 	
-	return javastring_toutf((java_lang_String*)obj,true);
+	return javastring_tochar((java_objectheader *) obj);
 }
 
 
@@ -366,8 +391,8 @@ int main(int argc, char **argv)
 	/********** interne (nur fuer main relevante Optionen) **************/
    
 	char logfilename[200] = "";
-	u4 heapmaxsize = 64 * 1024 * 1024;
-	u4 heapstartsize = 200 * 1024;
+	u4 heapmaxsize;
+	u4 heapstartsize;
 	char *cp;
 	s4    cplen;
 	bool startit = true;
@@ -386,31 +411,85 @@ int main(int argc, char **argv)
 
 	/************ Collect info from the environment ************************/
 
-	/* set an initial, minimal classpath */
-	classpath = MNEW(char, 2);
-	strcpy(classpath, ".");
+	/* set the bootclasspath */
 
-	/* get classpath environment */
+	cp = getenv("BOOTCLASSPATH");
+	if (cp) {
+		bootclasspath = MNEW(char, strlen(cp) + 1);
+		strcpy(bootclasspath, cp);
+
+	} else {
+		cplen = strlen(INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH);
+
+		bootclasspath = MNEW(char, cplen + 1);
+		strcpy(bootclasspath, INSTALL_PREFIX);
+		strcat(bootclasspath, CACAO_RT_JAR_PATH);
+	}
+
+
+	/* set the classpath */
+
 	cp = getenv("CLASSPATH");
 	if (cp) {
-		classpath = MREALLOC(classpath,
-							 char,
-							 strlen(classpath),
-							 strlen(classpath) + 1 + strlen(cp) + 1);
-		strcat(classpath, ":");
+		classpath = MNEW(char, strlen(cp) + 1);
 		strcat(classpath, cp);
+
+	} else {
+		classpath = MNEW(char, 2);
+		strcpy(classpath, ".");
 	}
+
 
 	/***************** Interpret the command line *****************/
    
 	checknull = false;
 	opt_noieee = false;
 
+	heapmaxsize = HEAP_MAXSIZE;
+	heapstartsize = HEAP_STARTSIZE;
+
+
 	while ((i = get_opt(argc, argv, opts)) != OPT_DONE) {
 		switch (i) {
 		case OPT_IGNORE:
 			break;
 			
+		case OPT_BOOTCLASSPATH:
+			/* Forget default bootclasspath and set the argument as new boot  */
+			/* classpath.                                                     */
+			MFREE(bootclasspath, char, strlen(bootclasspath));
+
+			bootclasspath = MNEW(char, strlen(opt_arg) + 1);
+			strcpy(bootclasspath, opt_arg);
+			break;
+
+		case OPT_BOOTCLASSPATH_A:
+			/* append to end of bootclasspath */
+			cplen = strlen(bootclasspath);
+
+			bootclasspath = MREALLOC(bootclasspath,
+									 char,
+									 cplen,
+									 cplen + 1 + strlen(opt_arg) + 1);
+
+			strcat(bootclasspath, ":");
+			strcat(bootclasspath, opt_arg);
+			break;
+
+		case OPT_BOOTCLASSPATH_P:
+			/* prepend in front of bootclasspath */
+			cp = bootclasspath;
+			cplen = strlen(cp);
+
+			bootclasspath = MNEW(char, strlen(opt_arg) + 1 + cplen + 1);
+
+			strcpy(bootclasspath, opt_arg);
+			strcat(bootclasspath, ":");
+			strcat(bootclasspath, cp);
+
+			MFREE(cp, char, cplen);
+			break;
+
 		case OPT_CLASSPATH:
 			/* forget old classpath and set the argument as new classpath */
 			MFREE(classpath, char, strlen(classpath));
@@ -418,12 +497,11 @@ int main(int argc, char **argv)
 			classpath = MNEW(char, strlen(opt_arg) + 1);
 			strcpy(classpath, opt_arg);
 			break;
-				
+
 		case OPT_JAR:
 			jar = true;
 			break;
 			
-
 		case OPT_D:
 			{
 				int n;
@@ -649,25 +727,13 @@ int main(int argc, char **argv)
 #endif
 
 		default:
+			printf("Unknown option: %s\n", argv[opt_ind]);
 			usage();
 		}
 	}
 
 	if (opt_ind >= argc)
    		usage();
-
-
-	/* insert the rt.jar in front of all other classpath entries */
-
-	cplen = strlen(INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH);
-	cp = classpath;
-
-	classpath = MNEW(char, cplen + strlen(classpath) + 1);
-	strcpy(classpath, INSTALL_PREFIX);
-	strcat(classpath, CACAO_RT_JAR_PATH);
-	strcat(classpath, cp);
-
-	MFREE(cp, char, strlen(cp));
 
 
 	/* transform dots into slashes in the class name */
@@ -678,6 +744,7 @@ int main(int argc, char **argv)
 		for (i = strlen(mainstring) - 1; i >= 0; i--) {
 			if (mainstring[i] == '.') mainstring[i] = '/';
 		}
+
 	} else {
 		/* put jarfile in classpath */
 		cp = classpath;
@@ -696,9 +763,14 @@ int main(int argc, char **argv)
 		log_text("CACAO started -------------------------------------------------------");
 
 	/* initialize the garbage collector */
+
 	gc_init(heapmaxsize, heapstartsize);
 
 	tables_init();
+
+	/* initialize the loader with bootclasspath and append classpath entries */
+
+	suck_init(bootclasspath);
 	suck_init(classpath);
 
 	cacao_initializing = true;
@@ -738,53 +810,86 @@ int main(int argc, char **argv)
 	if (!class_init(class_new(utf_new_char("java/lang/System"))))
 		throw_main_exception_exit();
 
-	
-	
 /*        jni_init(); */
 	cacao_initializing = false;
 
-	/************************* Start worker routines ********************/
+
+	/* start worker routines **************************************************/
 
 	if (startit) {
-		methodinfo *mainmethod;
+		classinfo        *cl;           /* java/lang/ClassLoader              */
+		classinfo        *mainclass;    /* java/lang/Class                    */
+		methodinfo       *m;
 		java_objectarray *a; 
-		s4 status;
+		s4                status;
 
 		/* set return value to OK */
+
 		status = 0;
 
 		if (jar) {
 			/* open jar file with java.util.jar.JarFile */
-			mainclass = class_new(getmainclassnamefromjar(mainstring));
-		} else {
-			/* create, load and link the main class */
-			mainclass = class_new(utf_new_char(mainstring));
+			mainstring = getmainclassnamefromjar(mainstring);
 		}
 
+		/* get system classloader */
 
-		if (!class_load(mainclass))
+		m = class_resolveclassmethod(class_java_lang_ClassLoader,
+									 utf_new_char("getSystemClassLoader"),
+									 utf_new_char("()Ljava/lang/ClassLoader;"),
+									 class_java_lang_Object,
+									 false);
+
+		cl = (classinfo *) asm_calljavafunction(m, NULL, NULL, NULL, NULL);
+
+		/* get `loadClass' method */
+
+		m = class_resolveclassmethod(cl->header.vftbl->class,
+									 utf_new_char("loadClass"),
+									 utf_new_char("(Ljava/lang/String;)Ljava/lang/Class;"),
+									 class_java_lang_Object,
+									 false);
+
+		/* load the main class */
+
+		mainclass =
+			(classinfo *) asm_calljavafunction(m,
+											   cl,
+											   javastring_new_char(mainstring),
+											   NULL,
+											   NULL);
+
+		/* error loading class, clear exceptionptr for new exception */
+
+		if (*exceptionptr || !mainclass) {
+			*exceptionptr = NULL;
+
+			*exceptionptr =
+				new_exception_message(string_java_lang_NoClassDefFoundError,
+									  mainstring);
 			throw_main_exception_exit();
+		}
 
-		if (!class_link(mainclass))
-			throw_main_exception_exit();
+		/* find the `main' method of the main class */
 
-		mainmethod = class_resolveclassmethod(mainclass,
-											  utf_new_char("main"), 
-											  utf_new_char("([Ljava/lang/String;)V"),
-											  mainclass,
-											  false);
-
-		/* problems with main method? */
-/*  		if (*exceptionptr) */
-/*  			throw_exception_exit(); */
+		m = class_resolveclassmethod(mainclass,
+									 utf_new_char("main"), 
+									 utf_new_char("([Ljava/lang/String;)V"),
+									 class_java_lang_Object,
+									 false);
 
 		/* there is no main method or it isn't static */
-		if (!mainmethod || !(mainmethod->flags & ACC_STATIC)) {
+
+		if (*exceptionptr || !m || !(m->flags & ACC_STATIC)) {
+			*exceptionptr = NULL;
+
 			*exceptionptr =
 				new_exception_message(string_java_lang_NoSuchMethodError,
 									  "main");
 			throw_main_exception_exit();
 		}
+
+		/* build argument array */
 
 		a = builtin_anewarray(argc - opt_ind, class_java_lang_String);
 		for (i = opt_ind; i < argc; i++) {
@@ -798,11 +903,11 @@ int main(int argc, char **argv)
 #endif
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 
-		*threadrootmethod = mainmethod;
-
+		*threadrootmethod = m;
 
 		/* here we go... */
-		asm_calljavafunction(mainmethod, a, NULL, NULL, NULL);
+
+		asm_calljavafunction(m, a, NULL, NULL, NULL);
 
 		/* exception occurred? */
 		if (*exceptionptr) {
