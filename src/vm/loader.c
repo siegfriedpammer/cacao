@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2148 2005-03-30 16:49:40Z twisti $
+   $Id: loader.c 2155 2005-03-30 20:04:42Z twisti $
 
 */
 
@@ -270,6 +270,37 @@ bool loader_init(u1 *stackbottom)
 
 	if (!load_class_bootstrap(class_java_io_Serializable))
 		return false;
+
+
+	/* load classes for wrapping primitive types */
+
+	if (!load_class_bootstrap(class_java_lang_Void))
+		return false;
+
+	if (!load_class_bootstrap(class_java_lang_Boolean))
+		return false;
+
+	if (!load_class_bootstrap(class_java_lang_Byte))
+		return false;
+
+	if (!load_class_bootstrap(class_java_lang_Character))
+		return false;
+
+	if (!load_class_bootstrap(class_java_lang_Short))
+		return false;
+
+	if (!load_class_bootstrap(class_java_lang_Integer))
+		return false;
+
+	if (!load_class_bootstrap(class_java_lang_Long))
+		return false;
+
+	if (!load_class_bootstrap(class_java_lang_Float))
+		return false;
+
+	if (!load_class_bootstrap(class_java_lang_Double))
+		return false;
+
 
 #if defined(USE_THREADS)
 	if (stackbottom != 0)
