@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1676 2004-12-03 16:52:15Z twisti $
+## $Id: Makefile.am 1733 2004-12-07 12:41:18Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -41,7 +41,7 @@ EXTRA_DIST = \
 	fptest.java fptest.output \
 	TestBase.java TestArrayClasses.java TestArrayClasses.output \
 	BasicToStrings.java BasicToStrings.output \
-	extest.java extest.output \
+	extest.java extest_clinit.java extest.output \
 	GCBench.java
 
 JAVA = $(top_srcdir)/src/cacao/cacao
