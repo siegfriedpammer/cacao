@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1494 2004-11-12 13:34:26Z twisti $
+   $Id: memory.c 1499 2004-11-12 15:52:35Z twisti $
 
 */
 
@@ -35,6 +35,13 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+
+#if defined(__DARWIN__)
+/* If we compile with -ansi on darwin, <sys/types.h> is not included. So      */
+/* let's do it here.                                                          */
+# include <sys/types.h>
+#endif
+
 #include <sys/mman.h>
 #include <unistd.h>
 
