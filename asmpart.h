@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 779 2003-12-14 18:11:35Z stefan $
+   $Id: asmpart.h 810 2003-12-30 21:35:46Z twisti $
 
 */
 
@@ -79,6 +79,9 @@ jlong asm_calljavafunction2long(methodinfo *m, u4 count, u4 size , void *callblo
 
 void asm_handle_exception();
 void asm_handle_nat_exception();
+
+void asm_check_clinit();
+
 void asm_handle_builtin_exception(classinfo *);
 
 /* 
