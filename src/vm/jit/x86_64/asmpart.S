@@ -1,4 +1,4 @@
-/* vm/jit/x86_64/asmpart.S - Java-C interface functions for x86_64
+/* src/vm/jit/x86_64/asmpart.S - Java-C interface functions for x86_64
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1810 2004-12-22 11:07:18Z twisti $
+   $Id: asmpart.S 2051 2005-03-20 16:26:57Z twisti $
 
 */
 
@@ -479,25 +479,29 @@ L_call_jit_compile:
         mov     5*8(%rsp),a4
         mov     6*8(%rsp),a5
 
-        movq    7*8(%rsp),fa0
-        movq    8*8(%rsp),fa1
-        movq    9*8(%rsp),fa2
-        movq    10*8(%rsp),fa3
-        movq    11*8(%rsp),fa4
-        movq    12*8(%rsp),fa5
-        movq    13*8(%rsp),fa6
-        movq    14*8(%rsp),fa7
+	movq    7*8(%rsp),fa0
+	movq    8*8(%rsp),fa1
+	movq    9*8(%rsp),fa2
+	movq    10*8(%rsp),fa3
+	movq    11*8(%rsp),fa4
+	movq    12*8(%rsp),fa5
+	movq    13*8(%rsp),fa6
+	movq    14*8(%rsp),fa7
 
-        movq    15*8(%rsp),%xmm8
-        movq    16*8(%rsp),%xmm9
-        movq    17*8(%rsp),%xmm10
-        movq    18*8(%rsp),%xmm11
-        movq    19*8(%rsp),%xmm12
-        movq    20*8(%rsp),%xmm13
-        movq    21*8(%rsp),%xmm14
-        movq    22*8(%rsp),%xmm15
+	movq    15*8(%rsp),%xmm8
+	movq    16*8(%rsp),%xmm9
+	movq    17*8(%rsp),%xmm10
+	movq    18*8(%rsp),%xmm11
+	movq    19*8(%rsp),%xmm12
+	movq    20*8(%rsp),%xmm13
+	movq    21*8(%rsp),%xmm14
+	movq    22*8(%rsp),%xmm15
 
-        add     $(24*8),%rsp
+	add     $(24*8),%rsp
+	add     $8,%rsp                 /* keep stack 16-byte aligned             */
+
+	test    %rax,%rax               /* check for exception                    */
+	je      L_asm_call_jit_compiler_exception
 
 	test    %r11,%r11               /* is address == 0 (asm_calljavamethod)   */
 	je      L_call_method
@@ -505,8 +509,22 @@ L_call_jit_compile:
 	mov     %rax,(%r11)             /* and now save the new pointer           */
 
 L_call_method:
-	add     $8,%rsp                 /* keep stack 16-byte aligned             */
 	jmp     *%rax                   /* ...and now call the new method         */
+
+L_asm_call_jit_compiler_exception:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	call    builtin_asm_get_exceptionptrptr
+	mov     %rax,itmp2
+#else
+	lea     _exceptionptr,itmp2
+#endif
+	mov     (itmp2),xptr                /* get the exception pointer          */
+	movl    $0,(itmp2)                  /* clear the exception pointer        */
+
+	pop     xpc                         /* delete return address              */
+	sub     $5,xpc                      /* faulting address is ra - 5         */
+
+	jmp     asm_handle_exception
 
 
 /********************* function asm_handle_exception ***************************
@@ -775,16 +793,15 @@ noflt:
 
    Stack layout:
 
-	32  ra      ; return address of patched call in java machine code
-	24  xmcode  ; additional machine code (only for i386 and x86_64)
-	16  mcode   ; machine code to patch back in
-	8   class   ; pointer to class
-	0   sp      ; stack pointer of java stack frame + return address
+	24  ra      ; return address of patched call in java machine code
+	16  xmcode  ; additional machine code (only for i386 and x86_64)
+	8   mcode   ; machine code to patch back in
+	0   class   ; pointer to class
 
 *******************************************************************************/
 
 asm_check_clinit:
-	mov     8(%rsp),itmp1
+	mov     0(%rsp),itmp1
 	mov		offclassinit(itmp1),itmp1l  /* get initialized flag (int)         */
 	test	itmp1,itmp1
 	jnz		L_is_initialized
@@ -807,7 +824,7 @@ asm_check_clinit:
 	movq	fa6,12*8(%rsp)
 	movq	fa7,13*8(%rsp)
 
-	mov		(15+1)*8(%rsp),%rdi         /* pass classinfo pointer             */
+	mov		15*8(%rsp),%rdi             /* pass classinfo pointer             */
 	call	class_init                  /* call class_init function           */
 	
     mov     0*8(%rsp),a0                /* restore argument registers         */
@@ -826,21 +843,21 @@ asm_check_clinit:
 	movq	12*8(%rsp),fa6
 	movq	13*8(%rsp),fa7
 
-	add		$(15*8),%rsp
+	add		$(15*8),%rsp                /* remove stack frame                 */
 
 	test    v0,v0                       /* we had an exception                */
 	je      L_initializererror
 				
 L_is_initialized:
-	mov     32(%rsp),itmp1              /* get return address                 */
+	mov     24(%rsp),itmp1              /* get return address                 */
 	sub     $5,itmp1                    /* remove size of `call rel32'        */
 
-	mov     24(%rsp),itmp2              /* get xmcode machine code            */
+	mov     16(%rsp),itmp2              /* get xmcode machine code            */
 	movb    itmp2b,(itmp1)              /* patch back in 1 byte               */
-	mov     16(%rsp),itmp2              /* get mcode machine code             */
+	mov     8(%rsp),itmp2               /* get mcode machine code             */
 	movl    itmp2l,1(itmp1)             /* patch back in 4 bytes              */
 
-	add     $((4+1)*8),%rsp             /* remove stub stack frame incl. ra   */
+	add     $((3+1)*8),%rsp             /* remove stub stack frame incl. ra   */
 
 	jmp     *itmp1                      /* jump to patched code an execute it */
 
@@ -854,7 +871,7 @@ L_initializererror:
 	mov     (itmp2),xptr                /* get the exception pointer          */
 	movl    $0,(itmp2)                  /* clear the exception pointer        */
 
-	add     $(4*8),%rsp                 /* remove stub stack frame            */
+	add     $(3*8),%rsp                 /* remove stub stack frame            */
 
 	pop     xpc                         /* delete return address              */
 	sub     $5,xpc                      /* faulting address is ra - 5         */
