@@ -1,56 +1,16 @@
-To submit patches
+These people contributed work to CACAO:
 
-----------------------------------------------------------------------------
-
-OLD JIT-COMPILER
-  Author:
-    Reinhard Grafl
-  Status:
-    Obsolete
-
-NEW JIT-COMPILER
-  Author:
-    Andreas Krall     (andi@complang.tuwien.ac.at)
-  Status:
-    Experimental
-
-ALPHA BACKEND:
-  Authors:
-    Reinhard Grafl
-    Andreas Krall     (andi@complang.tuwien.ac.at)
-  Status:
-    Maintained
-
-SPARC BACKEND:
-  Authors:
-    Andreas Krall     (andi@complang.tuwien.ac.at)
-  Status:
-    Experimental
-
-THREAD SUPPORT
-  Authors:
-    Andreas Krall     (andi@complang.tuwien.ac.at)
-    Mark Probst       (schani@complang.tuwien.ac.at)
-  Status:
-    Maintained
-
-OLD GARBAGE COLLECTOR
-  Author:
-    Reinhard Grafl
-  Maintainer:
-    Philipp Tomsich   (phil@complang.tuwien.ac.at)
-  Status:
-    Obsolete
-
-NEW GARBAGE COLLECTOR
-  Author/Maintainer:
-    Philipp Tomsich   (phil@complang.tuwien.ac.at)
-  Status:
-    Experimental
-
-AUTOMAKE, AUTOCONF SUPPORT
-  Author:
-    Philipp Tomsich
-  Status:
-    Maintained
-
+Reinhard Grafl
+Andreas Krall
+Christopher Kruegel
+Carolyn Oates
+Roman Obermaisser
+Martin Platter
+Mark Probst
+Stefan Ring
+Edwin Steiner
+Christian Thalinger
+Dieter Thuernbeck
+Philipp Tomsich
+Christian Ullrich
+Joseph Wenninger
