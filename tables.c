@@ -35,13 +35,14 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1012 2004-04-06 20:30:19Z stefan $
+   $Id: tables.c 1014 2004-04-08 15:07:25Z stefan $
 
 */
 
 #include "global.h"
 
 #include <string.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/mman.h>
