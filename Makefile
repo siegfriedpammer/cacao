@@ -9,7 +9,7 @@
 # Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 #          Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 #
-# Last Change: $Id: Makefile 92 1998-11-25 11:48:50Z phil $
+# Last Change: $Id: Makefile 110 1999-01-05 19:26:33Z phil $
 #
 #
 # ATTENTION: This version of the makefile only works with gmake.
@@ -50,9 +50,9 @@ endif
 
 CC = cc
 ARCHFLAGS = 
-#CFLAGS = -g -ieee $(THREAD_CFLAGS) $(ARCHFLAGS)
+CFLAGS = -g -ieee $(THREAD_CFLAGS) $(ARCHFLAGS)
 #CFLAGS = -O6 -g -pg -ieee $(THREAD_CFLAGS) $(ARCHFLAGS)
-CFLAGS = -O2 -g -ieee -fno-inline $(THREAD_CFLAGS) $(ARCHFLAGS)
+#CFLAGS = -O2 -g -ieee -fno-inline $(THREAD_CFLAGS) $(ARCHFLAGS)
 #CFLAGS = -O6 -ieee $(THREAD_CFLAGS) $(ARCHFLAGS)
 #CFLAGS = -O3 -ieee $(THREAD_CFLAGS) $(ARCHFLAGS)
 LFLAGS = -lm

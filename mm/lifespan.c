@@ -1,6 +1,6 @@
 /*
  * cacao/mm/lifespan.c
- * $Id: lifespan.c 106 1998-12-11 02:03:33Z phil $
+ * $Id: lifespan.c 110 1999-01-05 19:26:33Z phil $
  */
 
 #include "mm.h"
@@ -22,8 +22,8 @@ static lifespan_object** lifespan_objects_end = NULL;
 static void*             lifespan_objects_off = NULL;
 static FILE*             lifespan_file = NULL;
 
-static unsigned long     lifespan_histo_size[64] = {};
-static unsigned long     lifespan_histo_lifespan[64] = {};
+static unsigned long     lifespan_histo_size[64] = { 0 };
+static unsigned long     lifespan_histo_lifespan[64] = { 0 };
 
 void lifespan_init(void* heap_base, unsigned long heap_size)
 {
