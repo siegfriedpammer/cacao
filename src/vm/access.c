@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: access.c 2074 2005-03-25 12:23:30Z edwin $
+   $Id: access.c 2096 2005-03-27 18:57:00Z edwin $
 
 */
 
@@ -60,6 +60,8 @@ is_accessible_class(classinfo *referer,classinfo *cls)
 {
 	ACCESS_ASSERT(referer);
 	ACCESS_ASSERT(cls);
+
+	/* XXX specially check access to array classes? (vmspec 5.3.3) */
 	
 	/* public classes are always accessible */
 	if ((cls->flags & ACC_PUBLIC) != 0)
@@ -103,6 +105,7 @@ is_accessible_member(classinfo *referer,classinfo *declarer,s4 memberflags)
 	/* {the member is protected and declarer is in another package} */
 
 	/* a necessary condition for access is that referer is a subclass of declarer */
+	ACCESS_ASSERT(referer->linked && declarer->linked);
 	if (builtin_isanysubclass(referer,declarer))
 		return true;
 

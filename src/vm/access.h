@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: access.h 2074 2005-03-25 12:23:30Z edwin $
+   $Id: access.h 2096 2005-03-27 18:57:00Z edwin $
 
 */
 
@@ -39,8 +39,9 @@
 
 /* macros *********************************************************************/
 
-#define SAME_PACKAGE(a,b) \
-			((a)->packagename == (b)->packagename)
+#define SAME_PACKAGE(a,b)                                  \
+			((a)->classloader == (b)->classloader &&       \
+			 (a)->packagename == (b)->packagename)
 
 /* function prototypes ********************************************************/
 
