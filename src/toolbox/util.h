@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: util.h 2063 2005-03-23 11:19:11Z twisti $
+   $Id: util.h 2127 2005-03-29 22:24:34Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 /* function prototypes ********************************************************/
 
 char *_Jv_getcwd(void);
+int get_variable_message_length(const char *fmt, ...);
 
 #endif /* _UTIL_H */
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: util.c 2063 2005-03-23 11:19:11Z twisti $
+   $Id: util.c 2127 2005-03-29 22:24:34Z twisti $
 
 */
 
@@ -76,6 +76,26 @@ char *_Jv_getcwd(void)
 	}
 
 	return NULL;
+}
+
+
+/* get_variable_message_length *************************************************
+
+   This function simluates the print of a variable message and
+   determines so the message length;
+
+*******************************************************************************/
+
+int get_variable_message_length(const char *fmt, ...)
+{
+	va_list ap;
+	int     len;
+
+	va_start(ap, fmt);
+	len = vsnprintf(NULL, 0, fmt, ap);
+	va_end(ap);
+
+	return len;
 }
 
 
