@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1685 2004-12-05 22:57:53Z jowenn $
+   $Id: VMRuntime.c 1688 2004-12-05 23:59:04Z twisti $
 
 */
 
@@ -303,8 +303,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 {
 	int retVal=0;
 
+#ifdef JOWENN_DEBUG
 	char *buffer;
 	int buffer_len;
+#endif
 	utf *data;
 
 #ifdef JOWENN_DEBUG
@@ -403,9 +405,13 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	char *user;
 	char *home;
 	struct utsname utsnamebuf;
+#if !defined(STATIC_CLASSPATH)
+	char *libpath;
+	s4    libpathlen;
+#endif
 
 	if (!p) {
-		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		*exceptionptr = new_nullpointerexception();
 		return;
 	}
 
@@ -443,29 +449,37 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	insert_property(m, p, "java.specification.name", "Java Platform API Specification");
 	insert_property(m, p, "java.class.version", "48.0");
 	insert_property(m, p, "java.class.path", classpath);
+
 #if defined(STATIC_CLASSPATH)
 	insert_property(m, p, "java.library.path" , ".");
 #else
-	{
-		char *libpath;
-		size_t libpathlen=0;
-		libpathlen=strlen(INSTALL_PREFIX"/lib/classpath")+1;
-		if (getenv("CACAO_LIB_OVERRIDE")) libpathlen=libpathlen+strlen(getenv("CACAO_LIB_OVERRIDE"))+1;
-		if (getenv("LD_LIBRARY_PATH")) libpathlen=libpathlen+strlen(getenv("LD_LIBRARY_PATH"))+1;
-		libpath=(char*)malloc(libpathlen);
-		libpath[0]=0;
-		if (getenv("CACAO_LIB_OVERRIDE")) {
-			strcat(libpath,getenv("CACAO_LIB_OVERRIDE"));
-			strcat(libpath,":");
-		}
-		strcat(libpath,INSTALL_PREFIX"/lib/classpath");
-		if (getenv("LD_LIBRARAY_PATH")) {
-			strcat(libpath,":");
-			strcat(libpath,getenv("LD_LIBRARY_PATH"));
-		}
-		insert_property(m, p, "java.library.path" , libpath);
+	libpathlen = strlen(INSTALL_PREFIX) + strlen(CACAO_LIBRARY_PATH) + 1;
+
+	if (getenv("CACAO_LIB_OVERRIDE"))
+		libpathlen += strlen(getenv("CACAO_LIB_OVERRIDE")) + 1;
+
+	if (getenv("LD_LIBRARY_PATH"))
+		libpathlen += strlen(getenv("LD_LIBRARY_PATH")) + 1;
+
+	libpath = MNEW(char, libpathlen);
+
+	if (getenv("CACAO_LIB_OVERRIDE")) {
+		strcat(libpath, getenv("CACAO_LIB_OVERRIDE"));
+		strcat(libpath, ":");
 	}
+
+	strcat(libpath, INSTALL_PREFIX);
+	strcat(libpath, CACAO_LIBRARY_PATH);
+
+	if (getenv("LD_LIBRARY_PATH")) {
+		strcat(libpath, ":");
+		strcat(libpath, getenv("LD_LIBRARY_PATH"));
+	}
+	insert_property(m, p, "java.library.path", libpath);
+
+	MFREE(libpath, char, libpathlen);
 #endif
+
 	insert_property(m, p, "java.io.tmpdir", "/tmp");
 	insert_property(m, p, "java.compiler", "cacao.jit");
 	insert_property(m, p, "java.ext.dirs", "");
@@ -490,7 +504,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	/* XXX do we need this one? */
 	{ "java.protocol.handler.pkgs", "gnu.java.net.protocol"}
 #endif
-	insert_property(m,p,"java.protocol.handler.pkgs","gnu.java.net.protocol");
+	insert_property(m, p, "java.protocol.handler.pkgs", "gnu.java.net.protocol");
 
 	/* insert properties defined on commandline */
 
