@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1073 2004-05-19 23:21:15Z stefan $
+   $Id: codegen.c 1108 2004-05-28 13:04:46Z twisti $
 
 */
 
@@ -3066,11 +3066,11 @@ makeactualcall:
 			codegen_addxcheckarefs(mcodeptr);
 			break;
 
-		case ICMD_CHECKOOM:   /* ... ==> ...                                  */
+		case ICMD_CHECKEXCEPTION:   /* ... ==> ...                            */
 
 			M_CMPI(REG_RESULT, 0);
 			M_BEQ(0);
-			codegen_addxoomrefs(mcodeptr);
+			codegen_addxexceptionrefs(mcodeptr);
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
@@ -3316,25 +3316,25 @@ makeactualcall:
 		}
 	}
 
-	/* generate oom check stubs */
+	/* generate exception check stubs */
 
 	xcodeptr = NULL;
 
-	for (; xoomrefs != NULL; xoomrefs = xoomrefs->next) {
+	for (; xexceptionrefs != NULL; xexceptionrefs = xexceptionrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) mcodebase + xoomrefs->branchpos, 
-							  xoomrefs->branchpos,
+			gen_resolvebranch((u1 *) mcodebase + xexceptionrefs->branchpos, 
+							  xexceptionrefs->branchpos,
 							  (u1 *) xcodeptr - (u1 *) mcodebase - 4);
 			continue;
 		}
 
-		gen_resolvebranch((u1 *) mcodebase + xoomrefs->branchpos, 
-		                  xoomrefs->branchpos,
+		gen_resolvebranch((u1 *) mcodebase + xexceptionrefs->branchpos, 
+		                  xexceptionrefs->branchpos,
 						  (u1 *) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, xoomrefs->branchpos - 4);
+		M_LDA(REG_ITMP2_XPC, REG_PV, xexceptionrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
 			M_BR(xcodeptr - mcodeptr - 1);
