@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 1742 2004-12-08 19:22:59Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -82,10 +82,10 @@ cacao_SOURCES = \
 # This order is crucial. Don't change it!
 cacao_LDADD = \
 	$(top_srcdir)/src/mm/libmm.la \
-	$(THREAD_LIB) \
 	$(top_srcdir)/src/native/libnative.la \
-	$(top_srcdir)/src/toolbox/libtoolbox.la \
+	$(THREAD_LIB) \
 	$(top_srcdir)/src/vm/libvm.la \
+	$(top_srcdir)/src/toolbox/libtoolbox.la \
 	$(top_srcdir)/src/boehm-gc/libgc.la \
 	$(CLASSPATH_LIBS)
 
