@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1525 2004-11-17 15:49:58Z twisti $
+   $Id: codegen.h 1579 2004-11-24 13:56:06Z twisti $
 
 */
 
@@ -35,7 +35,8 @@
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
-#include <sys/ucontext.h>
+#include <ucontext.h>
+
 #include "jit/jit.h"
 
 
@@ -401,7 +402,7 @@ typedef enum {
 
 
 /*  #define ALIGNCODENOP {if((int)((long)mcodeptr&7)){M_NOP;}} */
-#define ALIGNCODENOP do {} while (0)
+#define ALIGNCODENOP
 
 
 /* function gen_resolvebranch **************************************************
