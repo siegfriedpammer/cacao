@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2011 2005-03-07 10:15:44Z twisti $
+## $Id: Makefile.am 2059 2005-03-23 11:08:43Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -64,7 +64,8 @@ GEN_HEADER_FILES = \
 	java_lang_reflect_Constructor.h \
 	java_lang_reflect_Field.h \
 	java_lang_reflect_Method.h \
-	java_security_ProtectionDomain.h
+	java_security_ProtectionDomain.h \
+	java_util_Vector.h
 
 ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	gnu_classpath_VMStackWalker.h \
@@ -110,9 +111,14 @@ noinst_HEADERS = \
 noinst_DATA =
 
 CACAOH = $(top_builddir)/src/cacaoh/cacaoh
-CLASSPATH = $(top_builddir)/src/classpath/lib/
 
-$(CLEANFILES): $(top_srcdir)/src/classpath/lib/bootstrap.zip
+if WITH_EXTERNAL_CLASSPATH
+CLASSPATH = $(top_builddir)/src/lib/vm.zip:$(EXTERNAL_CLASSPATH_PREFIX)/share/classpath/glibj.zip
+else
+CLASSPATH = $(top_builddir)/src/classpath/lib/
+endif
+
+$(CLEANFILES):
 	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
