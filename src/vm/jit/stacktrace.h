@@ -1,4 +1,4 @@
-/* vm/jit/stacktrace.h - header file for stacktrace generation
+/* src/vm/jit/stacktrace.h - header file for stacktrace generation
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,13 +28,63 @@
 
    Changes:
 
-   $Id: stacktrace.h 1774 2004-12-20 20:16:57Z jowenn $
+   $Id: stacktrace.h 2123 2005-03-29 22:12:32Z twisti $
 
 */
 
 
 #ifndef _STACKTRACE_H
 #define _STACKTRACE_H
+
+/* forward typedefs ***********************************************************/
+
+typedef struct native_stackframeinfo native_stackframeinfo;
+typedef struct stackTraceBuffer stackTraceBuffer;
+typedef struct stacktraceelement stacktraceelement;
+
+
+#include "types.h"
+#include "arch.h"
+#include "vm/method.h"
+
+
+struct native_stackframeinfo {
+	void *oldThreadspecificHeadValue;
+	void **addressOfThreadspecificHead;
+	methodinfo *method;
+#ifdef __ALPHA__
+	void *savedpv;
+#endif
+	void *beginOfJavaStackframe; /*only used if != 0*/
+	void *returnToFromNative;
+
+#if 0
+	void *returnFromNative;
+	void *addrReturnFromNative;
+	methodinfo *method;
+	native_stackframeinfo *next;
+	native_stackframeinfo *prev;
+#endif
+};
+
+
+struct stacktraceelement {
+#if POINTERSIZE == 8
+	u8          linenumber;
+#else
+	u4          linenumber;
+#endif
+	methodinfo *method;
+};
+
+
+struct stackTraceBuffer {
+	s4                 needsFree;
+	stacktraceelement *start;
+	s4                 size;
+	s4                 full;
+};
+
 
 /* function prototypes ********************************************************/
 
