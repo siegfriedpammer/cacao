@@ -350,7 +350,7 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 
 
 
-/******************** Funktion: builtin_new **********************************
+/******************** Function: builtin_new **********************************
 
 	Creates a new instance of class c on the heap.
 	Return value:  pointer to the object or NULL if no memory is
@@ -595,7 +595,7 @@ java_shortarray *builtin_newarray_short (s4 size)
 }
 
 
-/******************** Funktion: builtin_newarray_int ***********************
+/******************** Function: builtin_newarray_int ***********************
 
 	Creates an array of 32 bit Integers on the heap.
 
@@ -615,7 +615,7 @@ java_intarray *builtin_newarray_int (s4 size)
 }
 
 
-/******************** Funktion: builtin_newarray_long ***********************
+/******************** Function: builtin_newarray_long ***********************
 
 	Creates an array of 64 bit Integers on the heap.
 
