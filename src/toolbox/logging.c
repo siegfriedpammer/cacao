@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: logging.c 1086 2004-05-26 21:22:05Z twisti $
 
 */
 
@@ -38,7 +38,7 @@
 #include <sys/resource.h>
 
 #include "global.h"
-#include "logging.h"
+#include "toolbox/logging.h"
 
 
 /***************************************************************************
@@ -101,11 +101,11 @@ void dolog_plain(char *txt, ...)
 	va_end(ap);
 
 	if (logfile) {
-		fprintf(logfile, "%s",logtext);
+		fprintf(logfile, "%s", logtext);
 		fflush(logfile);
 
 	} else {
-		fprintf(stdout,"%s",logtext);
+		fprintf(stdout,"%s", logtext);
 		fflush(stdout);
 	}
 }
@@ -170,6 +170,47 @@ void log_cputime()
 }
 
 
+/* log_message_method **********************************************************
+
+   outputs log text like this:
+
+   LOG: Loading class: java.lang.Object
+
+*******************************************************************************/
+
+void log_message_class(char *msg, classinfo *c)
+{
+	char logtext[MAXLOGTEXT];
+
+	sprintf(logtext, msg);
+	utf_sprint_classname(logtext + strlen(logtext), c->name);
+
+	log_text(logtext);
+}
+
+
+/* log_message_method **********************************************************
+
+   outputs log text like this:
+
+   LOG: Compiling: java.lang.Object.clone()Ljava.lang.Object;
+
+*******************************************************************************/
+
+void log_message_method(char *msg, methodinfo *m)
+{
+	char logtext[MAXLOGTEXT];
+
+	sprintf(logtext, msg);
+	utf_sprint_classname(logtext + strlen(logtext), m->class->name);
+	strcpy(logtext + strlen(logtext), ".");
+	utf_sprint(logtext + strlen(logtext), m->name);
+	utf_sprint_classname(logtext + strlen(logtext), m->descriptor);
+
+	log_text(logtext);
+}
+
+
 /************************** Function: error *******************************
 
 Like dolog(), but terminates the program immediately.
@@ -190,7 +231,8 @@ void error(char *txt, ...)
 	}
 
 	fprintf(stderr, "ERROR: %s\n", logtext);
-	exit(10);
+
+	exit(1);
 }
 
 

@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.h 1073 2004-05-19 23:21:15Z stefan $
+   $Id: logging.h 1086 2004-05-26 21:22:05Z twisti $
 
 */
 
@@ -39,7 +39,7 @@
 
 /* This is to bring in the conflicting panic from darwin */
 #include <sys/mman.h>
-#define panic cacao_panic
+/*  #define panic cacao_panic */
 
 #define PANICIF(when,txt)  if(when)panic(txt)
 
@@ -54,6 +54,9 @@ void log_flush();          /* fflush logfile */
 void log_nl();             /* newline and fflush */
 
 void log_cputime();
+
+void log_message_class(char *msg, classinfo *c);
+void log_message_method(char *msg, methodinfo *m);
 
 void dolog(char *txt, ...);
 void dolog_plain(char *txt, ...); /* same as dolog without "LOG: " and newline */
