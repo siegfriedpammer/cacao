@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1365 2004-07-31 22:57:44Z motse $
+   $Id: jni.c 1384 2004-08-02 11:41:26Z motse $
 
 */
 
@@ -639,14 +639,14 @@ jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 	jni_callblock *blk;
 	jlong ret;
 
-	/*
+/*	
         log_text("JNI-Call: CallObjectMethodV");
         utf_display(methodID->name);
         utf_display(methodID->descriptor);
         printf("\nParmaeter count: %d\n",argcount);
         utf_display(obj->vftbl->class->name);
         printf("\n");
-        */
+*/      
 	if (methodID == 0) {
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
 		return 0;
@@ -674,7 +674,7 @@ jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 
 	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
 
-	fill_callblock(obj, methodID->descriptor, blk, args, 'L');
+	fill_callblock(obj, methodID->descriptor, blk, args, 'J');
 
 	/*      printf("parameter: obj: %p",blk[0].item); */
 	ret = asm_calljavafunction2long(methodID,
@@ -1362,7 +1362,6 @@ jlong CallLongMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 	va_list vaargs;
 	
 	va_start(vaargs,methodID);
-/*	log_text("JNI-Call: CallLongMethod");*/
 	ret = callLongMethod(obj,get_virtual(obj, methodID),vaargs);
 	va_end(vaargs);
 
@@ -1372,9 +1371,7 @@ jlong CallLongMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 
 jlong CallLongMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
-	log_text("JNI-Call: CallLongMethodV");
-
-	return 0;
+	return 	callLongMethod(obj,get_virtual(obj, methodID),args);
 }
 
 
