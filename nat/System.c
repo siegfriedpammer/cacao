@@ -200,13 +200,14 @@ static char *proplist[MAXPROPS][2] = {
 	{ "user.name", NULL }, 
 	{ "user.dir",  NULL }, 
 
+	{ "os.arch", NULL },
+	{ "os.name", NULL },
+	{ "os.version", NULL },
+
 	{ "java.class.version", "45.3" },
 	{ "java.version", "cacao:0.3" },
 	{ "java.vendor", "CACAO Team" },
 	{ "java.vendor.url", "http://www.complang.tuwien.ac.at/java/cacao/" },
-	{ "os.arch", "Alpha" },
-	{ "os.name", "Linux/Digital Unix" },
-	{ "os.version", "4.0/3.2C/V4.0" },
 	{ "path.separator", ":" },
 	{ "file.separator", "/" },
 	{ "line.separator", "\n" }
@@ -232,13 +233,20 @@ JNIEXPORT struct java_util_Properties* JNICALL Java_java_lang_System_initPropert
 	methodinfo *m;
 	char buffer[BUFFERSIZE];
 	java_objectheader *o;
-	
+	struct utsname utsnamebuf;
+
 	proplist[0][1] = classpath;
 	proplist[1][1] = getenv("JAVA_HOME");
 	proplist[2][1] = getenv("HOME");
 	proplist[3][1] = getenv("USER");
 	proplist[4][1] = getcwd(buffer,BUFFERSIZE);
 	
+	/* get properties from system */
+	uname(&utsnamebuf);
+	proplist[5][1] = utsnamebuf.machine;
+	proplist[6][1] = utsnamebuf.sysname;
+	proplist[7][1] = utsnamebuf.release;
+
 	if (!p) panic ("initProperties called with NULL-Argument");
 
 	/* search for method to add properties */
