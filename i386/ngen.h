@@ -1261,11 +1261,18 @@ static const unsigned char i386_jcc_map[] = {
         *(((u1 *) mcodeptr)++) = (u1) 0x9e; \
     } while (0)
 
+
 #define i386_finit() \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0x9b; \
         *(((u1 *) mcodeptr)++) = (u1) 0xdb; \
         *(((u1 *) mcodeptr)++) = (u1) 0xe3; \
+    } while (0)
+
+#define i386_fldcw_membase(basereg,disp) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xd9; \
+        i386_emit_membase((basereg),(disp),5); \
     } while (0)
 
 

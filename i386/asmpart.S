@@ -107,13 +107,13 @@ synchronize_caches:
 #define     IntSave         -20
 #define     FltSave         -24
 #define     ExTableSize     -28
-#define     ExTableStart    -32
+#define     ExTableStart    -28
 
-#define     ExEntrySize     -32
-#define     ExStartPC       -8
-#define     ExEndPC         -16
-#define     ExHandlerPC     -24
-#define     ExCatchType     -32
+#define     ExEntrySize     -16
+#define     ExStartPC       -4
+#define     ExEndPC         -8
+#define     ExHandlerPC     -12
+#define     ExCatchType     -16
 
 call_name:
 	.ascii  "calljavamethod\0\0"
@@ -138,6 +138,10 @@ asm_calljavamethod:
 		movl	%esp, %ebp
 
 		finit                         /* intitialize the fpu                  */
+
+		pushl	$0x027f   /* Round to nearest, 53-bit mode, exceptions masked */
+		fldcw	(%esp)
+		addl	$4,%esp
 		
 		subl	$32,%esp              /* pass the remaining parameters        */
 		xorl	%edx,%edx
@@ -405,14 +409,95 @@ asm_dumpregistersandcall:
 *******************************************************************************/
 
 asm_handle_nat_exception:
-	xor		%eax,%eax
-	movl	$0,(%eax)
-	ret
 
 asm_handle_exception:
-	xor		%eax,%eax
-	movl	$0,(%eax)
-	ret
+		pushl	%ebp
+		movl	%esp,%ebp
+
+		pushl	%eax						/* save exception pointer */
+		pushl	%edx						/* save exception pc */
+		
+		pushl	%ebx
+		pushl	%esi
+		pushl	%edi
+		
+ex_trace:
+		subl	$16,%esp
+
+		movl	%eax,(%esp)					/* exception pointer */
+
+		movl	4(%ebp),%ecx                /* data segment pointer */
+		movl	MethodPointer(%ecx),%eax	/* method pointer */
+		movl	%eax,4(%esp)
+		
+		movl	%edx,8(%esp)				/* exception pc */
+		movl	$1,12(%esp)					/* set no unwind flag */
+		call	builtin_trace_exception
+
+		addl	$16,%esp
+
+		movl	4(%ebp),%esi				/* %esi = data segment pointer */
+		movl	ExTableSize(%esi),%ecx		/* %ecx = exception table size */
+		test	%ecx,%ecx					/* if empty table skip */
+		je		empty_table
+
+		lea		ExTableStart(%esi),%edi		/* %edi = start of exception table */
+		movl	-4(%ebp),%eax				/* get xptr */
+		
+ex_table_loop:
+		movl	-8(%ebp),%edx				/* get xpc */
+		
+		movl	ExStartPC(%edi),%ebx		/* %ebx = exception start pc */
+		cmpl	%edx,%ebx					/* %ebx = (startpc <= xpc) */
+		jg		ex_table_cont				/* if (false) continue */
+		movl	ExEndPC(%edi),%ebx			/* %ebx = exception end pc */
+		cmpl	%ebx,%edx					/* %ebx = (xpc < endpc) */
+		jge		ex_table_cont				/* if (false) continue */
+		movl	ExCatchType(%edi),%ebx		/* arg1 = exception catch type */
+		test	%ebx,%ebx					/* NULL catches everything */
+		je		ex_handle_it
+
+		movl	offobjvftbl(%eax),%esi		/* %esi = vftblptr(xptr) */
+		movl	offobjvftbl(%ebx),%ebx		/* %ebx = vftblptr(catchtype) class (not obj) */
+		movl	offbaseval(%esi),%esi		/* %esi = baseval(xptr) */
+		movl	offbaseval(%ebx),%edx		/* %edx = baseval(catchtype) */
+		movl	offdiffval(%ebx),%ebx		/* %ebx = diffval(catchtype) */
+		subl	%edx,%esi					/* %esi = baseval(xptr) - baseval(catchtype) */
+		cmpl	%ebx,%esi					/* xptr is instanceof catchtype */
+		ja		ex_table_cont
+		
+ex_handle_it:
+		movl	ExHandlerPC(%edi),%edx
+
+		popl	%edi
+		popl	%esi
+		popl	%ebx
+
+ex_jump:
+/*		popl	%edx						/* restore exception pc */
+/*		popl	%eax						/* restore exception pointer */
+		leave
+		
+		addl	$4,%esp						/* delete data segment address */
+		
+		jmp		*%edx
+
+ex_table_cont:
+		lea		ExEntrySize(%edi),%edi
+		decl	%ecx
+		test	%ecx,%ecx
+		jg		ex_table_loop
+		
+empty_table:
+		xorl	%eax,%eax
+		movl	$0,(%eax)
+		
+		popl	%edi
+		popl	%esi
+		popl	%ebx
+		
+		leave
+		ret
 
 
 /********************* function asm_builtin_monitorenter ***********************
@@ -494,20 +579,36 @@ asm_builtin_checkcast:
 *******************************************************************************/
 
 asm_builtin_checkarraycast:
-	subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
-
-	movl	12(%esp),%eax
-	movl	%eax,(%esp)
-
-	movl	20(%esp),%eax
-	movl	%eax,4(%esp)
-
-	call	builtin_checkarraycast
-	
-	addl	$8,%esp
-	ret
+		pushl	%ecx					/* save data segment address */
 		
+		subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
 
+		movl	16(%esp),%eax           /* 8 (frame) + 4 (return) + 4 (data) = 16 */
+		movl	%eax,(%esp)
+
+		movl	24(%esp),%eax
+		movl	%eax,4(%esp)
+
+		call	builtin_checkarraycast  /* builtin_checkarraycast               */
+	
+		addl	$8,%esp
+
+		test	%eax,%eax               /* if (false) throw exception           */
+		je		nb_carray_throw
+
+		addl	$4,%esp
+		ret
+
+nb_carray_throw:
+		popl	%ecx					/* restore data segment address */
+		popl	%edx					/* delete return address */
+		pushl	%ecx					/* save data segment address */
+		
+		movl	proto_java_lang_ClassCastException,%eax
+		subl	$2,%edx					/* faulting address is return adress - 2 */
+		jmp		asm_handle_nat_exception
+
+		
 /******************* function asm_builtin_anewarray ****************************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
@@ -515,20 +616,20 @@ asm_builtin_checkarraycast:
 *******************************************************************************/
 
 asm_builtin_anewarray:
-	subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
+		subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
 
-	movl	12(%esp),%eax
-	movl	%eax,(%esp)
+		movl	12(%esp),%eax
+		movl	%eax,(%esp)
 
-	movl	20(%esp),%eax
-	movl	%eax,4(%esp)
+		movl	20(%esp),%eax
+		movl	%eax,4(%esp)
 
-	call	builtin_anewarray
+		call	builtin_anewarray
 	
-	addl	$8,%esp
-	ret
+		addl	$8,%esp
+		ret
 
-
+		
 /******************* function asm_builtin_aastore ******************************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
@@ -536,23 +637,80 @@ asm_builtin_anewarray:
 *******************************************************************************/
 
 asm_builtin_aastore:
-	subl	$12,%esp			/* build stack frame (3 * 4 bytes) */
-
-	movl	16(%esp),%eax
-	movl	%eax,(%esp)
-
-	movl	24(%esp),%eax
-	movl	%eax,4(%esp)
-
-	movl	32(%esp),%eax
-	movl	%eax,8(%esp)
+		pushl	%ecx					/* save data segment address */
 		
-	call	builtin_aastore
+		subl	$12,%esp				/* build stack frame (3 * 4 bytes) */
+
+		movl	20(%esp),%eax           /* 12 (frame) + 4 (return) + 4 (data) */
+		test	%eax,%eax				/* if null pointer throw exception */
+		je		nb_aastore_null
+
+		movl	offarraysize(%eax),%edx /* load size */
+		movl	28(%esp),%ecx			/* index */
+		cmpl	%edx,%ecx				/* do bound check */
+		ja		nb_aastore_bound		/* if out of bounds throw exception */
+		
+/*		shll	$3,%ecx					/* index * 4 */
+/*		addl	%eax,%ecx				/* add index * 4 to arrayref */
 	
-	addl	$12,%esp
-	ret
+		movl	20(%esp),%eax           /* 12 (frame) + 4 (return) + 4 (data) */
+		movl	%eax,(%esp)
 
+		movl	36(%esp),%eax			/* object is second argument */
+		movl	%eax,4(%esp)
+		
+		call	builtin_canstore		/* builtin_canstore(arrayref,object) */
 
+		test	%eax,%eax
+		je		nb_aastore_throw
+				
+		movl	20(%esp),%eax           /* 12 (frame) + 4 (return) + 4 (data) */
+		movl	%eax,(%esp)
+
+		movl	28(%esp),%eax
+		movl	%eax,4(%esp)
+
+		movl	36(%esp),%eax
+		movl	%eax,8(%esp)
+		
+		call	builtin_aastore
+	
+		addl	$12,%esp
+
+		addl	$4,%esp
+		ret
+
+nb_aastore_null:
+		addl	$12,%esp
+		popl	%ecx					/* restore data segment address */
+		popl	%edx					/* delete return address */
+		pushl	%ecx					/* save data segment address */
+		
+		movl	proto_java_lang_NullPointerException,%eax
+		subl	$2,%edx					/* faulting address is return adress - 2 */
+		jmp		asm_handle_nat_exception
+
+nb_aastore_bound:
+		addl	$12,%esp
+		popl	%ecx					/* restore data segment address */
+		popl	%edx					/* delete return address */
+		pushl	%ecx					/* save data segment address */
+		
+		movl	proto_java_lang_ArrayIndexOutOfBoundsException,%eax
+		subl	$2,%edx					/* faulting address is return adress - 2 */
+		jmp		asm_handle_nat_exception
+		
+nb_aastore_throw:
+		addl	$12,%esp
+		popl	%ecx					/* restore data segment address */
+		popl	%edx					/* delete return address */
+		pushl	%ecx					/* save data segment address */
+		
+		movl	proto_java_lang_ArrayStoreException,%eax
+		subl	$2,%edx					/* faulting address is return adress - 2 */
+		jmp		asm_handle_nat_exception
+
+		
 /******************* function asm_initialize_thread_stack **********************
 *                                                                              *
 *   initialized a thread stack                                                 *
