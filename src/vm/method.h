@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 2100 2005-03-28 21:57:23Z twisti $
+   $Id: method.h 2114 2005-03-29 21:42:33Z twisti $
 */
 
 
@@ -38,11 +38,15 @@
 /* forward typedefs ***********************************************************/
 
 typedef struct methodinfo methodinfo; 
+typedef struct exceptiontable exceptiontable;
+typedef struct lineinfo lineinfo; 
 
 
 #include "vm/class.h"
+#include "vm/descriptor.h"
 #include "vm/global.h"
 #include "vm/utf8.h"
+#include "vm/jit/jit.h"
 #include "vm/jit/inline/parseXTA.h"
 
 
@@ -73,17 +77,17 @@ struct methodinfo {                 /* method structure                       */
 	u1         *jcode;              /* pointer to JavaVM code                 */
 
 	s4          basicblockcount;    /* number of basic blocks                 */
-	struct basicblock *basicblocks; /* points to basic block array            */
+	basicblock *basicblocks;        /* points to basic block array            */
 	s4         *basicblockindex;    /* a table which contains for every byte  */
 	                                /* of JavaVM code a basic block index if  */
 	                                /* at this byte is the start of a basic   */
 	                                /* block                                  */
 
 	s4          instructioncount;   /* number of JavaVM instructions          */
-	struct instruction *instructions; /* points to intermediate code instructions */
+	instruction *instructions;      /* points to intermediate code instr.     */
 
 	s4          stackcount;         /* number of stack elements               */
-	struct stackelement *stack;     /* points to intermediate code instructions */
+	stackelement *stack;            /* points to intermediate code instr.     */
 
 	s4          exceptiontablelength;/* exceptiontable length                 */
 	exceptiontable *exceptiontable; /* the exceptiontable                     */
@@ -114,6 +118,33 @@ struct methodinfo {                 /* method structure                       */
 	s4	        nativelyoverloaded; /* used in header.c and only valid there  */
 	/* helper for lsra */
 	s4          maxlifetimes;
+};
+
+
+/* exceptiontable *************************************************************/
+
+struct exceptiontable {         /* exceptiontable entry in a method           */
+	s4              startpc;    /* start pc of guarded area (inclusive)       */
+	basicblock     *start;
+
+	s4              endpc;      /* end pc of guarded area (exklusive)         */
+	basicblock     *end;
+
+	s4              handlerpc;  /* pc of exception handler                    */
+	basicblock     *handler;
+
+	classinfo      *catchtype;  /* catchtype of exception (NULL == catchall)  */
+	exceptiontable *next;       /* used to build a list of exception when     */
+	                            /* loops are copied */
+	exceptiontable *down;       /* instead of the old array, a list is used   */
+};
+
+
+/* lineinfo *******************************************************************/
+
+struct lineinfo {
+	u2 start_pc;
+	u2 line_number;
 };
 
 
