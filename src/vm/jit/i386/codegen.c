@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 1745 2004-12-09 14:07:22Z twisti $
+   $Id: codegen.c 1772 2004-12-19 12:40:24Z jowenn $
 
 */
 
@@ -3453,7 +3453,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				a = 3 + 3 + 6;
 				CALCOFFSETBYTES(a, REG_SP, src->prev->regoff * 8);
-				CALCOFFSETBYTES(a, REG_SP, src->regoff);
+				CALCOFFSETBYTES(a, REG_SP, src->regoff*8);
 
 				i386_jcc(cd, I386_CC_G, a);
 
