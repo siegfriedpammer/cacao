@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1361 2004-07-28 10:51:14Z twisti $
+   $Id: native.h 1465 2004-11-08 11:09:01Z twisti $
 
 */
 
@@ -124,15 +124,15 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i);
    mainly used for exceptions with cause */
 java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t);
 
-/* add property to system-property vector */
-void attach_property(char *name, char *value);
+/* add property to temporary property list -- located in nat/VMRuntime.c */
+void create_property(char *key, char *value);
 
 /* correct vftbl-entries of javastring-hash */
 void stringtable_update();
 
 
 /* make utf symbol from javastring */
-utf *javastring_toutf(struct java_lang_String *string, bool isclassname);
+utf *javastring_toutf(java_lang_String *string, bool isclassname);
 
 /* make utf symbol from u2 array */
 utf *utf_new_u2(u2 *unicodedata, u4 unicodelength, bool isclassname);

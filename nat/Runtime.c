@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Runtime.c 1449 2004-11-05 14:08:48Z twisti $
+   $Id: Runtime.c 1465 2004-11-08 11:09:01Z twisti $
 
 */
 
@@ -53,7 +53,7 @@
 #include "nat/java_io_File.h"
 #include "nat/java_lang_String.h"
 #include "nat/java_lang_Process.h"
-#include "nat/java_util_Properties.h"    /* needed for java_lang_Runtime.h */
+#include "nat/java_util_Properties.h"    /* needed for java_lang_VMRuntime.h */
 #include "nat/java_lang_VMRuntime.h"
 
 #include "config.h"
@@ -66,101 +66,53 @@
 /* should we run all finalizers on exit? */
 static bool finalizeOnExit = false;
 
-#define MAXPROPS 100
-#if 0
-static int activeprops = 29;
 
+/* temporary property structure */
 
-/* insert all properties as defined in VMRuntime.java */
+typedef struct property property;
 
-static char *proplist[MAXPROPS][2] = {
-	{ "java.version", VERSION },
-	{ "java.vendor", "CACAO Team" },
-	{ "java.vendor.url", "http://www.complang.tuwien.ac.at/java/cacao/" },
-	{ "java.home", NULL },
-	{ "java.vm.specification.version", "1.0" },
-
-	{ "java.vm.specification.vendor", "Sun Microsystems Inc." },
-	{ "java.vm.specification.name", "Java Virtual Machine Specification" },
-	{ "java.vm.version", VERSION },
-	{ "java.vm.vendor", "CACAO Team" },
-	{ "java.vm.name", "CACAO" },
-
-	{ "java.specification.version", "1.4" },
-	{ "java.specification.vendor", "Sun Microsystems Inc." },
-	{ "java.specification.name", "Java Platform API Specification" },
-	{ "java.class.version", "48.0" },
-	{ "java.class.path", NULL },
-
-	{ "java.library.path" , NULL },
-	{ "java.io.tmpdir", "/tmp"},
-	{ "java.compiler", "cacao.jit" },
-	{ "java.ext.dirs", NULL },
-	{ "os.name", NULL },
-
-	{ "os.arch", NULL },
-	{ "os.version", NULL },
-	{ "file.separator", "/" },
-	{ "java.library.path", NULL},
-	{ "java.class.version", "45.3" },
-
-	{ "java.version", PACKAGE":"VERSION },
-	{ "java.vendor", "CACAO Team" },
-	{ "java.vendor.url", "http://www.complang.tuwien.ac.at/java/cacao/" },
-	{ "java.vm.name", "CACAO"}, 
-	{ "java.tmpdir", "/tmp/"},
-
-	{ "java.io.tmpdir", "/tmp/"},
-	{ "path.separator", ":" },
-	{ "line.separator", "\n" },
-	{ "user.name", NULL },
-	{ "user.home", NULL },
-
-	{ "user.dir",  NULL },
-	{ "user.language", "en" },
-	{ "user.region", "US" },
-	{ "user.country", "US" },
-	{ "user.timezone", "Europe/Vienna" },
-
-	/* XXX do we need this one? */
-	{ "java.protocol.handler.pkgs", "gnu.java.net.protocol"}
-};
-#endif
-static int activeprops = 20;  
-static char *proplist[MAXPROPS][2] = {
-	{ "java.class.path", NULL },
-	{ "java.home", NULL },
-	{ "user.home", NULL },  
-	{ "user.name", NULL },
-	{ "user.dir",  NULL },
-                                
-	{ "os.arch", NULL },
-	{ "os.name", NULL },
-	{ "os.version", NULL },
-        { "java.library.path",NULL},
-                                         
-	{ "java.class.version", "45.3" },
-	{ "java.version", PACKAGE":"VERSION },
-	{ "java.vendor", "CACAO Team" },
-	{ "java.vendor.url", "http://www.complang.tuwien.ac.at/java/cacao/" },
-	{ "java.vm.name", "CACAO"}, 
-	{ "java.tmpdir", "/tmp/"},
-	{ "java.io.tmpdir", "/tmp/"},
-
-	{ "path.separator", ":" },
-	{ "file.separator", "/" },
-	{ "line.separator", "\n" },
-	{ "java.protocol.handler.pkgs", "gnu.java.net.protocol"}
+struct property {
+	char *key;
+	char *value;
+	property *next;
 };
 
-void attach_property(char *name, char *value)
+static property *properties = NULL;
+
+
+/* create_property *************************************************************
+
+   Create a property entry for a command line property definition.
+
+*******************************************************************************/
+
+void create_property(char *key, char *value)
 {
-	if (activeprops >= MAXPROPS)
-		panic("Too many properties defined");
+	property *p;
 
-	proplist[activeprops][0] = name;
-	proplist[activeprops][1] = value;
-	activeprops++;
+	p = NEW(property);
+	p->key = key;
+	p->value = value;
+	p->next = properties;
+	properties = p;
+}
+
+
+/* insert_property *************************************************************
+
+   Used for inserting a property into the system's properties table. Method m
+   (usually put) and the properties table must be given.
+
+*******************************************************************************/
+
+static void insert_property(methodinfo *m, java_util_Properties *p, char *key,
+							char *value)
+{
+	asm_calljavafunction(m,
+						 p,
+						 javastring_new_char(key),
+						 javastring_new_char(value),
+						 NULL);
 }
 
 
@@ -400,55 +352,28 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 {
 
 #define BUFFERSIZE 200
-	u4 i;
 	methodinfo *m;
-	char buffer[BUFFERSIZE];
+	char cwd[BUFFERSIZE];
+	char *java_home;
+	char *user;
+	char *home;
 	struct utsname utsnamebuf;
-
-#if 0
-	proplist[14][1] = classpath;
-	//proplist[1][1] = getenv("JAVA_HOME");
-
-	/* get properties from system */
-	uname(&utsnamebuf);
-	proplist[19][1] = utsnamebuf.sysname;
-	proplist[20][1] = utsnamebuf.machine;
-	proplist[21][1] = utsnamebuf.release;
-
-	proplist[25][1] = getenv("USER");
-	proplist[26][1] = getenv("HOME");
-	proplist[27][1] = getcwd(buffer, BUFFERSIZE);
-
-#if defined(STATIC_CLASSPATH)
-	proplist[23][1] = ".";
-#else
-	proplist[23][1] = getenv("LD_LIBRARY_PATH");
-#endif
-#endif
-	proplist[0][1] = classpath;
-	proplist[1][1] = getenv("JAVA_HOME");
-	proplist[2][1] = getenv("HOME");
-	proplist[3][1] = getenv("USER");
-	proplist[4][1] = getcwd(buffer, BUFFERSIZE);
-
-	/* get properties from system */
-	uname(&utsnamebuf);
-	proplist[5][1] = utsnamebuf.machine;
-	proplist[6][1] = utsnamebuf.sysname;
-	proplist[7][1] = utsnamebuf.release;
-
-#if defined(STATIC_CLASSPATH)
-	proplist[8][1] = ".";
-#else
-	proplist[8][1] = getenv("LD_LIBRARY_PATH");
-#endif
 
 	if (!p) {
 		*exceptionptr = new_exception(string_java_lang_NullPointerException);
 		return;
 	}
 
+	/* get properties from system */
+
+	(void) getcwd(cwd, BUFFERSIZE);
+	java_home = getenv("JAVA_HOME");
+	user = getenv("USER");
+	home = getenv("HOME");
+	uname(&utsnamebuf);
+
 	/* search for method to add properties */
+
 	m = class_resolveclassmethod(p->header.vftbl->class,
 								 utf_new_char("put"),
 								 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
@@ -458,16 +383,61 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	if (!m)
 		return;
 
-	/* add the properties */
-	for (i = 0; i < activeprops; i++) {
-		if (proplist[i][1] == NULL)
-			proplist[i][1] = "null";
+	insert_property(m, p, "java.version", VERSION);
+	insert_property(m, p, "java.vendor", "CACAO Team");
+	insert_property(m, p, "java.vendor.url", "http://www.complang.tuwien.ac.at/java/cacao/");
+	insert_property(m, p, "java.home", java_home ? java_home : "null");
+	insert_property(m, p, "java.vm.specification.version", "1.0");
+	insert_property(m, p, "java.vm.specification.vendor", "Sun Microsystems Inc.");
+	insert_property(m, p, "java.vm.specification.name", "Java Virtual Machine Specification");
+	insert_property(m, p, "java.vm.version", VERSION);
+	insert_property(m, p, "java.vm.vendor", "CACAO Team");
+	insert_property(m, p, "java.vm.name", "CACAO");
+	insert_property(m, p, "java.specification.version", "1.4");
+	insert_property(m, p, "java.specification.vendor", "Sun Microsystems Inc.");
+	insert_property(m, p, "java.specification.name", "Java Platform API Specification");
+	insert_property(m, p, "java.class.version", "48.0");
+	insert_property(m, p, "java.class.path", classpath);
+#if defined(STATIC_CLASSPATH)
+	insert_property(m, p, "java.library.path" , ".");
+#else
+	insert_property(m, p, "java.library.path" , getenv("LD_LIBRARY_PATH"));
+#endif
+	insert_property(m, p, "java.io.tmpdir", "/tmp");
+	insert_property(m, p, "java.compiler", "cacao.jit");
+	insert_property(m, p, "java.ext.dirs", "null");
+ 	insert_property(m, p, "os.name", utsnamebuf.sysname);
+	insert_property(m, p, "os.arch", utsnamebuf.machine);
+	insert_property(m, p, "os.version", utsnamebuf.release);
+	insert_property(m, p, "file.separator", "/");
+	/* insert_property(m, p, "file.encoding", "null"); -- this must be set properly */
+	insert_property(m, p, "path.separator", ":");
+	insert_property(m, p, "line.separator", "\n");
+	insert_property(m, p, "user.name", user ? user : "null");
+	insert_property(m, p, "user.home", home ? home : "null");
+	insert_property(m, p, "user.dir", cwd ? cwd : "null");
 
-		asm_calljavafunction(m,
-							 p,
-							 javastring_new_char(proplist[i][0]),
-							 javastring_new_char(proplist[i][1]),
-							 NULL);
+#if 0
+	/* how do we get them? */
+	{ "user.language", "en" },
+	{ "user.region", "US" },
+	{ "user.country", "US" },
+	{ "user.timezone", "Europe/Vienna" },
+
+	/* XXX do we need this one? */
+	{ "java.protocol.handler.pkgs", "gnu.java.net.protocol"}
+#endif
+
+	/* insert properties defined on commandline */
+
+	while (properties) {
+		property *tp;
+
+		insert_property(m, p, properties->key, properties->value);
+
+		tp = properties;
+		properties = properties->next;
+		FREE(tp, property);
 	}
 
 	return;

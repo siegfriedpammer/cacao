@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1424 2004-10-30 11:15:23Z motse $
+   $Id: cacao.c 1465 2004-11-08 11:09:01Z twisti $
 
 */
 
@@ -389,7 +389,7 @@ int main(int argc, char **argv)
 				for (n = 0; n < l; n++) {
 					if (opt_arg[n] == '=') {
 						opt_arg[n] = '\0';
-						attach_property(opt_arg, opt_arg + n + 1);
+						create_property(opt_arg, opt_arg + n + 1);
 						goto didit;
 					}
 				}
