@@ -19,18 +19,23 @@
 
 struct _threadobject;
 
-typedef struct _monitorLockRecord {
+
+typedef struct monitorLockRecord monitorLockRecord;
+
+struct monitorLockRecord {
 	struct _threadobject *ownerThread;
 	java_objectheader *o;
-	int lockCount;
-	struct _monitorLockRecord *nextFree;
-	int queuers;
-	struct _monitorLockRecord *waiter, *incharge;
-	bool waiting;
-	sem_t queueSem;
-	pthread_mutex_t resolveLock;
-	pthread_cond_t resolveWait;
-} monitorLockRecord;
+	int                lockCount;
+	monitorLockRecord *nextFree;
+	int                queuers;
+	monitorLockRecord *waiter;
+	monitorLockRecord *incharge;
+	bool               waiting;
+	sem_t              queueSem;
+	pthread_mutex_t    resolveLock;
+	pthread_cond_t     resolveWait;
+};
+
 
 struct _lockRecordPool;
 
@@ -91,7 +96,7 @@ typedef struct _threadobject {
 monitorLockRecord *monitorEnter(threadobject *, java_objectheader *);
 bool monitorExit(threadobject *, java_objectheader *);
 
-bool threadHoldsLock(threadobject *, java_objectheader *);
+bool threadHoldsLock(threadobject *t, java_objectheader *o);
 void signal_cond_for_object (java_objectheader *obj);
 void broadcast_cond_for_object (java_objectheader *obj);
 void wait_cond_for_object (java_objectheader *obj, s8 time, s4 nanos);
@@ -101,10 +106,13 @@ void initThreads(u1 *stackbottom);
 void initObjectLock(java_objectheader *);
 void initLocks();
 void initThread(java_lang_VMThread *);
+void startThread(thread *t);
 void joinAllThreads();
 
 void sleepThread(s8 millis, s4 nanos);
 void yieldThread();
+
+void setPriorityThread(thread *t, s4 priority);
 
 void interruptThread(java_lang_VMThread *);
 bool interruptedThread();

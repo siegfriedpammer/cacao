@@ -683,7 +683,7 @@ static void initLockRecord(monitorLockRecord *r, threadobject *t)
 	r->queuers = 0;
 	r->o = NULL;
 	r->waiter = NULL;
-	r->incharge = &dummyLR;
+	r->incharge = (monitorLockRecord *) &dummyLR;
 	r->waiting = false;
 	sem_init(&r->queueSem, 0, 0);
 	pthread_mutex_init(&r->resolveLock, NULL);
