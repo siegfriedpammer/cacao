@@ -43,6 +43,8 @@ int count_vftbl_len = 0;
 int count_all_methods = 0;
 int count_vmcode_len = 0;
 int count_extable_len = 0;
+int count_class_loads = 0;
+int count_class_inits = 0;
 
 bool loadverbose = false;       /* switches for debug messages                */
 bool linkverbose = false;
@@ -294,8 +296,10 @@ bool suck_start (utf *classname) {
 		}
 	}
 
-	sprintf (logtext,"Warning: Can not open class file '%s'", filename);
-	dolog();
+	if (verbose) {
+		sprintf (logtext, "Warning: Can not open class file '%s'", filename);
+		dolog();
+	}
 
 	return false;
 }
@@ -1390,6 +1394,10 @@ static int class_load (classinfo *c)
 	u4 i;
 	u4 mi,ma;
 
+#ifdef STATISTICS
+	count_class_loads++;
+#endif
+
 	/* output for debugging purposes */
 	if (loadverbose) {		
 		sprintf (logtext, "Loading class: ");
@@ -2026,16 +2034,22 @@ void class_init (classinfo *c)
 	s4 i;
 	int b;
 
-	if (!makeinitializations) return;
- 	if (c->initialized) return;
+	if (!makeinitializations)
+		return;
+ 	if (c->initialized)
+ 		return;
   	c -> initialized = true;
  	
-  	if (c->super) class_init (c->super);
-	for (i=0; i < c->interfacescount; i++) class_init(c->interfaces[i]);
+#ifdef STATISTICS
+	count_class_inits++;
+#endif
 
-	m = class_findmethod (c, 
-	                      utf_clinit, 
-	                      utf_fidesc);
+  	if (c->super)
+  		class_init (c->super);
+	for (i=0; i < c->interfacescount; i++)
+		class_init(c->interfaces[i]);
+
+	m = class_findmethod (c, utf_clinit, utf_fidesc);
 	if (!m) {
 		if (initverbose) {
 			sprintf (logtext, "Class ");
@@ -2046,7 +2060,8 @@ void class_init (classinfo *c)
 		return;
 		}
 		
-	if (! (m->flags & ACC_STATIC)) panic ("Class initializer is not static!");
+	if (! (m->flags & ACC_STATIC))
+		panic ("Class initializer is not static!");
 	
 	if (initverbose) {
 		sprintf (logtext, "Starting initializer for class: ");
@@ -2282,7 +2297,8 @@ classinfo *loader_load (utf *topname)
 	
 	intsDisable();                           /* schani */
 
-	if (getloadingtime) starttime = getcputime();
+	if (getloadingtime)
+		starttime = getcputime();
 
 	top = class_new (topname);
 
@@ -2299,14 +2315,14 @@ classinfo *loader_load (utf *topname)
 		class_link (c);
 		}
 
+	if (loader_inited)
+		loader_compute_subclasses();
+
 	/* measure time */
 	if (getloadingtime) {
 		stoptime = getcputime();
 		loadingtime += (stoptime-starttime);
 		}
-
-	if (loader_inited)
-		loader_compute_subclasses();
 
 	intsRestore();                          /* schani */
 

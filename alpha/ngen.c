@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 136 1999-11-09 11:33:46Z schani $
+	Last Change: $Id: ngen.c 139 1999-11-11 19:21:30Z andi $
 
 *******************************************************************************/
 
@@ -2358,6 +2358,8 @@ static void gen_mcode()
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP2, REG_PV, a);
 			M_JMP(REG_ITMP2_XPC, REG_ITMP2);
+			M_NOP;              /* nop ensures that XPC is less than the end */
+			                    /* of basic block                            */
 			ALIGNCODENOP;
 			break;
 

@@ -292,7 +292,7 @@ threadedWrite(int fd, char* buf, int len)
  * Receive, but only if we can.
  */
 int
-threadedRecvfrom (int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen)
+threadedRecvfrom (int fd, void *buf, size_t len, int flags, struct sockaddr *addr, int *addrlen)
 {
     int r;
 

@@ -1,6 +1,6 @@
-# Makefile.in generated automatically by automake 1.4a from Makefile.am
+# Makefile.in generated automatically by automake 1.3 from Makefile.am
 
-# Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
+# Copyright (C) 1994, 1995, 1996, 1997, 1998 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -10,10 +10,10 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-# $Id: Makefile.in 136 1999-11-09 11:33:46Z schani $
+# $Id: Makefile.in 139 1999-11-11 19:21:30Z andi $
 
 
-SHELL = @SHELL@
+SHELL = /bin/sh
 
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
@@ -34,7 +34,7 @@ mandir = @mandir@
 includedir = @includedir@
 oldincludedir = /usr/include
 
-DESTDIR =
+DISTDIR =
 
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
@@ -51,7 +51,6 @@ INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
-INSTALL_STRIP_FLAG =
 transform = @program_transform_name@
 
 NORMAL_INSTALL = :
@@ -79,25 +78,51 @@ SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc narray
 
 EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html
 
-CLEANFILES = @SYSDEP_DIR@/asmpart.o 			 @SYSDEP_DIR@/asmpart.s              @SYSDEP_DIR@/offsets.h 	         nativetable.hh 	         nativetypes.hh
-
+CLEANFILES = @SYSDEP_DIR@/asmpart.o \
+			 @SYSDEP_DIR@/asmpart.s \
+             @SYSDEP_DIR@/offsets.h \
+	         nativetable.hh \
+	         nativetypes.hh
 
 bin_PROGRAMS = cacao
 noinst_PROGRAMS = cacaoh
 
-INCLUDES = -I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@ -I$(top_srcdir)
+INCLUDES=-I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@ -I$(top_srcdir)
 
-cacao_SOURCES =  	asmpart.h 	builtin.c 	builtin.h 	callargs.h 	@COMPILER_SOURCES@ 	global.h 	jit.c 	jit.h 	loader.c 	loader.h 	main.c 	native.c 	native.h 	tables.c 	tables.h 
+cacao_SOURCES = \
+	asmpart.h \
+	builtin.c \
+	builtin.h \
+	callargs.h \
+	@COMPILER_SOURCES@ \
+	global.h \
+	jit.c \
+	jit.h \
+	loader.c \
+	loader.h \
+	main.c \
+	native.c \
+	native.h \
+	tables.c \
+	tables.h 
 
+EXTRA_cacao_SOURCES = \
+	compiler.c \
+	compiler.h 
 
-EXTRA_cacao_SOURCES =  	compiler.c 	compiler.h 
+cacao_LDADD = \
+	@SYSDEP_DIR@/asmpart.o \
+	@COMPILER_OBJECTS@ \
+	toolbox/libtoolbox.a \
+	@GC_OBJ@ \
+    @THREAD_OBJ@
 
-
-cacao_LDADD =  	@SYSDEP_DIR@/asmpart.o 	@COMPILER_OBJECTS@ 	toolbox/libtoolbox.a 	@GC_OBJ@     @THREAD_OBJ@
-
-
-cacao_DEPENDENCIES =  	@SYSDEP_DIR@/asmpart.o 	@COMPILER_OBJECTS@ 	toolbox/libtoolbox.a 	@GC_OBJ@ 	@THREAD_OBJ@
-
+cacao_DEPENDENCIES = \
+	@SYSDEP_DIR@/asmpart.o \
+	@COMPILER_OBJECTS@ \
+	toolbox/libtoolbox.a \
+	@GC_OBJ@ \
+	@THREAD_OBJ@
 
 cacaoh_SOURCES = headers.c tables.c loader.c builtin.c
 cacaoh_LDADD = toolbox/libtoolbox.a @GC_OBJ@ @THREAD_OBJ@
@@ -118,28 +143,28 @@ cacao_LDFLAGS =
 cacaoh_OBJECTS =  headers.o tables.o loader.o builtin.o
 cacaoh_LDFLAGS = 
 CFLAGS = @CFLAGS@
-COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-CCLD = $(CC)
-LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
-DIST_COMMON =  README ./stamp-h.in AUTHORS COPYING ChangeLog INSTALL \
-Makefile.am Makefile.in NEWS acconfig.h aclocal.m4 config.guess \
-config.h.in config.sub configure configure.in install-sh missing \
-mkinstalldirs
+COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
+LINK = $(CC) $(CFLAGS) $(LDFLAGS) -o $@
+DIST_COMMON =  README AUTHORS COPYING ChangeLog INSTALL Makefile.am \
+Makefile.in NEWS acconfig.h aclocal.m4 config.guess config.h.in \
+config.sub configure configure.in install-sh missing mkinstalldirs \
+stamp-h.in
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = gtar
-GZIP_ENV = --best
+TAR = tar
+GZIP = --best
 DEP_FILES =  .deps/builtin.P .deps/compiler.P .deps/headers.P \
 .deps/jit.P .deps/loader.P .deps/main.P .deps/native.P .deps/tables.P
 SOURCES = $(cacao_SOURCES) $(EXTRA_cacao_SOURCES) $(cacaoh_SOURCES)
 OBJECTS = $(cacao_OBJECTS) $(cacaoh_OBJECTS)
 
-all: all-redirect
+all: all-recursive-am all-am
+
 .SUFFIXES:
 .SUFFIXES: .S .c .o .s
-$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4)
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu Makefile
 
 Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status $(BUILT_SOURCES)
@@ -149,29 +174,22 @@ Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status $(BUILT_SOURCES)
 $(ACLOCAL_M4):  configure.in 
 	cd $(srcdir) && $(ACLOCAL)
 
-config.status: $(srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
+config.status: $(srcdir)/configure
 	$(SHELL) ./config.status --recheck
 $(srcdir)/configure: $(srcdir)/configure.in $(ACLOCAL_M4) $(CONFIGURE_DEPENDENCIES)
 	cd $(srcdir) && $(AUTOCONF)
 
 config.h: stamp-h
-	@if test ! -f $@; then \
-		rm -f stamp-h; \
-		$(MAKE) stamp-h; \
-	else :; fi
+	@:
 stamp-h: $(srcdir)/config.h.in $(top_builddir)/config.status
 	cd $(top_builddir) \
 	  && CONFIG_FILES= CONFIG_HEADERS=config.h \
 	     $(SHELL) ./config.status
-	@echo timestamp > stamp-h 2> /dev/null
+	@echo timestamp > stamp-h
 $(srcdir)/config.h.in: $(srcdir)/stamp-h.in
-	@if test ! -f $@; then \
-		rm -f $(srcdir)/stamp-h.in; \
-		$(MAKE) $(srcdir)/stamp-h.in; \
-	else :; fi
 $(srcdir)/stamp-h.in: $(top_srcdir)/configure.in $(ACLOCAL_M4) acconfig.h
 	cd $(top_srcdir) && $(AUTOHEADER)
-	@echo timestamp > $(srcdir)/stamp-h.in 2> /dev/null
+	@echo timestamp > $(srcdir)/stamp-h.in
 
 mostlyclean-hdr:
 
@@ -196,15 +214,15 @@ install-binPROGRAMS: $(bin_PROGRAMS)
 	$(mkinstalldirs) $(DESTDIR)$(bindir)
 	@list='$(bin_PROGRAMS)'; for p in $$list; do \
 	  if test -f $$p; then \
-	    echo "  $(INSTALL_PROGRAM) $(INSTALL_STRIP_FLAG) $$p $(DESTDIR)$(bindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
-	     $(INSTALL_PROGRAM) $(INSTALL_STRIP_FLAG) $$p $(DESTDIR)$(bindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
+	    echo "  $(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/`echo $$p|sed '$(transform)'`"; \
+	     $(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/`echo $$p|sed '$(transform)'`; \
 	  else :; fi; \
 	done
 
 uninstall-binPROGRAMS:
 	@$(NORMAL_UNINSTALL)
 	list='$(bin_PROGRAMS)'; for p in $$list; do \
-	  rm -f $(DESTDIR)$(bindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
+	  rm -f $(DESTDIR)$(bindir)/`echo $$p|sed '$(transform)'`; \
 	done
 
 mostlyclean-noinstPROGRAMS:
@@ -253,65 +271,41 @@ all-recursive install-data-recursive install-exec-recursive \
 installdirs-recursive install-recursive uninstall-recursive  \
 check-recursive installcheck-recursive info-recursive dvi-recursive:
 	@set fnord $(MAKEFLAGS); amf=$$2; \
-	dot_seen=no; \
-	target=`echo $@ | sed s/-recursive//`; \
 	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  target=`echo $@ | sed s/-recursive//`; \
 	  echo "Making $$target in $$subdir"; \
-	  if test "$$subdir" = "."; then \
-	    dot_seen=yes; \
-	    local_target="$$target-am"; \
-	  else \
-	    local_target="$$target"; \
-	  fi; \
-	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  (cd $$subdir && $(MAKE) $$target) \
 	   || case "$$amf" in *=*) exit 1;; *k*) fail=yes;; *) exit 1;; esac; \
-	done; \
-	if test "$$dot_seen" = "no"; then \
-	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
-	fi; test -z "$$fail"
+	done && test -z "$$fail"
 
 mostlyclean-recursive clean-recursive distclean-recursive \
 maintainer-clean-recursive:
 	@set fnord $(MAKEFLAGS); amf=$$2; \
-	dot_seen=no; \
 	rev=''; list='$(SUBDIRS)'; for subdir in $$list; do \
 	  rev="$$subdir $$rev"; \
-	  test "$$subdir" = "." && dot_seen=yes; \
 	done; \
-	test "$$dot_seen" = "no" && rev=". $$rev"; \
-	target=`echo $@ | sed s/-recursive//`; \
 	for subdir in $$rev; do \
+	  target=`echo $@ | sed s/-recursive//`; \
 	  echo "Making $$target in $$subdir"; \
-	  if test "$$subdir" = "."; then \
-	    local_target="$$target-am"; \
-	  else \
-	    local_target="$$target"; \
-	  fi; \
-	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  (cd $$subdir && $(MAKE) $$target) \
 	   || case "$$amf" in *=*) exit 1;; *k*) fail=yes;; *) exit 1;; esac; \
 	done && test -z "$$fail"
 tags-recursive:
 	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) tags); \
+	  (cd $$subdir && $(MAKE) tags); \
 	done
 
 tags: TAGS
 
 ID: $(HEADERS) $(SOURCES) $(LISP)
-	list='$(SOURCES) $(HEADERS)'; \
-	unique=`for i in $$list; do echo $$i; done | \
-	  awk '    { files[$$0] = 1; } \
-	       END { for (i in files) print i; }'`; \
 	here=`pwd` && cd $(srcdir) \
-	  && mkid -f$$here/ID $$unique $(LISP)
+	  && mkid -f$$here/ID $(SOURCES) $(HEADERS) $(LISP)
 
 TAGS: tags-recursive $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) $(LISP)
 	tags=; \
 	here=`pwd`; \
 	list='$(SUBDIRS)'; for subdir in $$list; do \
-   if test "$$subdir" = .; then :; else \
-	    test -f $$subdir/TAGS && tags="$$tags -i $$here/$$subdir/TAGS"; \
-   fi; \
+	  test -f $$subdir/TAGS && tags="$$tags -i $$here/$$subdir/TAGS"; \
 	done; \
 	list='$(SOURCES) $(HEADERS)'; \
 	unique=`for i in $$list; do echo $$i; done | \
@@ -337,31 +331,29 @@ top_distdir = $(distdir)
 # tarfile.
 distcheck: dist
 	-rm -rf $(distdir)
-	GZIP=$(GZIP_ENV) $(TAR) zxf $(distdir).tar.gz
+	GZIP=$(GZIP) $(TAR) zxf $(distdir).tar.gz
 	mkdir $(distdir)/=build
 	mkdir $(distdir)/=inst
 	dc_install_base=`cd $(distdir)/=inst && pwd`; \
 	cd $(distdir)/=build \
 	  && ../configure --srcdir=.. --prefix=$$dc_install_base \
-	  && $(MAKE) $(AM_MAKEFLAGS) \
-	  && $(MAKE) $(AM_MAKEFLAGS) dvi \
-	  && $(MAKE) $(AM_MAKEFLAGS) check \
-	  && $(MAKE) $(AM_MAKEFLAGS) install \
-	  && $(MAKE) $(AM_MAKEFLAGS) installcheck \
-	  && $(MAKE) $(AM_MAKEFLAGS) dist
+	  && $(MAKE) \
+	  && $(MAKE) dvi \
+	  && $(MAKE) check \
+	  && $(MAKE) install \
+	  && $(MAKE) installcheck \
+	  && $(MAKE) dist
 	-rm -rf $(distdir)
-	@banner="$(distdir).tar.gz is ready for distribution"; \
-	dashes=`echo "$$banner" | sed s/./=/g`; \
-	echo "$$dashes"; \
-	echo "$$banner"; \
-	echo "$$dashes"
+	@echo "========================"; \
+	echo "$(distdir).tar.gz is ready for distribution"; \
+	echo "========================"
 dist: distdir
 	-chmod -R a+r $(distdir)
-	GZIP=$(GZIP_ENV) $(TAR) chozf $(distdir).tar.gz $(distdir)
+	GZIP=$(GZIP) $(TAR) chozf $(distdir).tar.gz $(distdir)
 	-rm -rf $(distdir)
 dist-all: distdir
 	-chmod -R a+r $(distdir)
-	GZIP=$(GZIP_ENV) $(TAR) chozf $(distdir).tar.gz $(distdir)
+	GZIP=$(GZIP) $(TAR) chozf $(distdir).tar.gz $(distdir)
 	-rm -rf $(distdir)
 distdir: $(DISTFILES)
 	-rm -rf $(distdir)
@@ -375,23 +367,17 @@ distdir: $(DISTFILES)
 	$(mkinstalldirs) $(distdir)/html
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
-	  if test -d $$d/$$file; then \
-	    cp -pr $$d/$$file $(distdir)/$$file; \
-	  else \
-	    test -f $(distdir)/$$file \
-	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
-	    || cp -p $$d/$$file $(distdir)/$$file || :; \
-	  fi; \
+	  test -f $(distdir)/$$file \
+	  || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
+	  || cp -p $$d/$$file $(distdir)/$$file; \
 	done
 	for subdir in $(SUBDIRS); do \
-	  if test "$$subdir" = .; then :; else \
-	    test -d $(distdir)/$$subdir \
-	    || mkdir $(distdir)/$$subdir \
+	  test -d $(distdir)/$$subdir \
+	  || mkdir $(distdir)/$$subdir \
+	  || exit 1; \
+	  chmod 777 $(distdir)/$$subdir; \
+	  (cd $$subdir && $(MAKE) top_distdir=../$(distdir) distdir=../$(distdir)/$$subdir distdir) \
 	    || exit 1; \
-	    chmod 777 $(distdir)/$$subdir; \
-	    (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) top_distdir=../$(distdir) distdir=../$(distdir)/$$subdir distdir) \
-	      || exit 1; \
-	  fi; \
 	done
 
 DEPS_MAGIC := $(shell mkdir .deps > /dev/null 2>&1 || :)
@@ -403,99 +389,94 @@ mostlyclean-depend:
 clean-depend:
 
 distclean-depend:
-	-rm -rf .deps
 
 maintainer-clean-depend:
+	-rm -rf .deps
 
 %.o: %.c
 	@echo '$(COMPILE) -c $<'; \
-	$(COMPILE) -Wp,-MD,.deps/$(*F).pp -c $<
-	@-cp .deps/$(*F).pp .deps/$(*F).P; \
-	tr ' ' '\012' < .deps/$(*F).pp \
-	  | sed -e 's/^\\$$//' -e '/^$$/ d' -e '/:$$/ d' -e 's/$$/ :/' \
-	    >> .deps/$(*F).P; \
-	rm .deps/$(*F).pp
+	$(COMPILE) -Wp,-MD,.deps/$(*F).P -c $<
 
 %.lo: %.c
 	@echo '$(LTCOMPILE) -c $<'; \
-	$(LTCOMPILE) -Wp,-MD,.deps/$(*F).pp -c $<
-	@-sed -e 's/^\([^:]*\)\.o[ 	]*:/\1.lo \1.o :/' \
-	  < .deps/$(*F).pp > .deps/$(*F).P; \
-	tr ' ' '\012' < .deps/$(*F).pp \
-	  | sed -e 's/^\\$$//' -e '/^$$/ d' -e '/:$$/ d' -e 's/$$/ :/' \
-	    >> .deps/$(*F).P; \
-	rm -f .deps/$(*F).pp
-info-am:
+	$(LTCOMPILE) -Wp,-MD,.deps/$(*F).p -c $<
+	@-sed -e 's/^\([^:]*\)\.o:/\1.lo \1.o:/' \
+	  < .deps/$(*F).p > .deps/$(*F).P
+	@-rm -f .deps/$(*F).p
 info: info-recursive
-dvi-am:
 dvi: dvi-recursive
-check-am: all-am
-check: check-recursive
-installcheck-am:
+check: all-am
+	$(MAKE) check-recursive
 installcheck: installcheck-recursive
 all-recursive-am: config.h
-	$(MAKE) $(AM_MAKEFLAGS) all-recursive
+	$(MAKE) all-recursive
+
+all-am: Makefile $(PROGRAMS) config.h
 
 install-exec-am: install-binPROGRAMS
-install-exec: install-exec-recursive
 
-install-data-am:
-install-data: install-data-recursive
-
-install-am: all-am
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-install: install-recursive
 uninstall-am: uninstall-binPROGRAMS
-uninstall: uninstall-recursive
-all-am: Makefile $(PROGRAMS) config.h
-all-redirect: all-recursive-am
+
+install-exec: install-exec-recursive install-exec-am
+	@$(NORMAL_INSTALL)
+
+install-data: install-data-recursive
+	@$(NORMAL_INSTALL)
+
+install: install-recursive install-exec-am
+	@:
+
+uninstall: uninstall-recursive uninstall-am
+
 install-strip:
-	$(MAKE) $(AM_MAKEFLAGS) INSTALL_STRIP_FLAG=-s install
+	$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' INSTALL_SCRIPT='$(INSTALL_PROGRAM)' install
 installdirs: installdirs-recursive
-installdirs-am:
-	$(mkinstalldirs)  $(DESTDIR)$(bindir)
+	$(mkinstalldirs)  $(DATADIR)$(bindir)
 
 
 mostlyclean-generic:
+	-test -z "$(MOSTLYCLEANFILES)" || rm -f $(MOSTLYCLEANFILES)
 
 clean-generic:
 	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
-	-rm -f Makefile $(CONFIG_CLEAN_FILES)
+	-rm -f Makefile $(DISTCLEANFILES)
 	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
+	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 
 maintainer-clean-generic:
 	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
+	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
 mostlyclean-am:  mostlyclean-hdr mostlyclean-binPROGRAMS \
 		mostlyclean-noinstPROGRAMS mostlyclean-compile \
 		mostlyclean-tags mostlyclean-depend mostlyclean-generic
 
-mostlyclean: mostlyclean-recursive
-
 clean-am:  clean-hdr clean-binPROGRAMS clean-noinstPROGRAMS \
 		clean-compile clean-tags clean-depend clean-generic \
 		mostlyclean-am
-
-clean: clean-recursive
 
 distclean-am:  distclean-hdr distclean-binPROGRAMS \
 		distclean-noinstPROGRAMS distclean-compile \
 		distclean-tags distclean-depend distclean-generic \
 		clean-am
 
-distclean: distclean-recursive
-	-rm -f config.status
-
 maintainer-clean-am:  maintainer-clean-hdr maintainer-clean-binPROGRAMS \
 		maintainer-clean-noinstPROGRAMS \
 		maintainer-clean-compile maintainer-clean-tags \
 		maintainer-clean-depend maintainer-clean-generic \
 		distclean-am
+
+mostlyclean:  mostlyclean-recursive mostlyclean-am
+
+clean:  clean-recursive clean-am
+
+distclean:  distclean-recursive distclean-am
+	-rm -f config.status
+
+maintainer-clean:  maintainer-clean-recursive maintainer-clean-am
 	@echo "This command is intended for maintainers to use;"
 	@echo "it deletes files that may require special tools to rebuild."
-
-maintainer-clean: maintainer-clean-recursive
 	-rm -f config.status
 
 .PHONY: mostlyclean-hdr distclean-hdr clean-hdr maintainer-clean-hdr \
@@ -512,12 +493,11 @@ dvi-recursive mostlyclean-recursive distclean-recursive clean-recursive \
 maintainer-clean-recursive tags tags-recursive mostlyclean-tags \
 distclean-tags clean-tags maintainer-clean-tags distdir \
 mostlyclean-depend distclean-depend clean-depend \
-maintainer-clean-depend info-am info dvi-am dvi check check-am \
-installcheck-am installcheck all-recursive-am install-exec-am \
-install-exec install-data-am install-data install-am install \
-uninstall-am uninstall all-redirect all-am all installdirs-am \
-installdirs mostlyclean-generic distclean-generic clean-generic \
-maintainer-clean-generic clean mostlyclean distclean maintainer-clean
+maintainer-clean-depend info dvi installcheck all-recursive-am all-am \
+install-exec-am uninstall-am install-exec install-data install \
+uninstall all installdirs mostlyclean-generic distclean-generic \
+clean-generic maintainer-clean-generic clean mostlyclean distclean \
+maintainer-clean
 
 
 native.c: nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh

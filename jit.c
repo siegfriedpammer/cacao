@@ -452,7 +452,7 @@ void jit_init ()
 	stackreq[JAVA_GOTO]         = 0;
 	stackreq[JAVA_RET]          = 0;
 	stackreq[JAVA_TABLESWITCH]  = 0;
-	stackreq[ICMD_LOOKUPSWITCH] = 0;
+	stackreq[JAVA_LOOKUPSWITCH] = 0;
 	stackreq[JAVA_IRETURN]      = 0;
 	stackreq[JAVA_LRETURN]      = 0;
 	stackreq[JAVA_FRETURN]      = 0;
@@ -462,7 +462,7 @@ void jit_init ()
 	stackreq[JAVA_PUTSTATIC]    = 0;
 	stackreq[JAVA_PUTFIELD]     = 0;
 	stackreq[JAVA_MONITORENTER] = 0;
-	stackreq[ICMD_MONITOREXIT]  = 0;
+	stackreq[JAVA_MONITOREXIT]  = 0;
 	stackreq[JAVA_WIDE]         = 0;
 	stackreq[JAVA_IFNULL]       = 0;
 	stackreq[JAVA_IFNONNULL]    = 0;

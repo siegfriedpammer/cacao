@@ -960,6 +960,13 @@ gc_call (void)
 #else
 	gc_run();
 #endif
+
+	if (collectverbose) {
+		sprintf(logtext, "Garbage Collection:  previous/now = %d / %d ",
+		        (int) (heap_top - heap_base), 
+		        (int) (heap_top - heap_base));
+		dolog ();
+		}
 }
 
 

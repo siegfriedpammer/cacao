@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 136 1999-11-09 11:33:46Z schani $
+	Last Change: $Id: parse.c 139 1999-11-11 19:21:30Z andi $
 
 *******************************************************************************/
 
@@ -605,12 +605,14 @@ static void parse()
 				i = code_get_u2(p+1);
 				/* array or class type ? */
 				if (class_constanttype (class, i) == CONSTANT_Arraydescriptor) {
+					s_count++;
 					LOADCONST_A(class_getconstant(class, i,
 					                              CONSTANT_Arraydescriptor));
 					BUILTIN2((functionptr)builtin_newarray_array, TYPE_ADR);
 					}
 				else {
 				 	LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
+					s_count++;
 					BUILTIN2((functionptr)builtin_anewarray, TYPE_ADR);
 					}
 				break;
@@ -859,6 +861,7 @@ static void parse()
 			case JAVA_NEW:
 				i = code_get_u2 (p+1);
 				LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
+				s_count++;
 				BUILTIN1((functionptr) builtin_new, TYPE_ADR);
 				break;
 
@@ -868,11 +871,13 @@ static void parse()
 				/* array type cast-check */
 				if (class_constanttype (class, i) == CONSTANT_Arraydescriptor) {
 					LOADCONST_A(class_getconstant(class, i, CONSTANT_Arraydescriptor));
+					s_count++;
 					BUILTIN2((functionptr) asm_builtin_checkarraycast, TYPE_ADR);
 					}
 				else { /* object type cast-check */
 					/*
 					LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
+					s_count++;
 					BUILTIN2((functionptr) asm_builtin_checkcast, TYPE_ADR);
 					*/
 				 	OP2A(opcode, 1, (class_getconstant(class, i, CONSTANT_Class)));
@@ -885,11 +890,13 @@ static void parse()
 				/* array type cast-check */
 				if (class_constanttype (class, i) == CONSTANT_Arraydescriptor) {
 					LOADCONST_A(class_getconstant(class, i, CONSTANT_Arraydescriptor));
+					s_count++;
 					BUILTIN2((functionptr) builtin_arrayinstanceof, TYPE_INT);
 					}
 				else { /* object type cast-check */
 					/*
 					LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
+					s_count++;
 					BUILTIN2((functionptr) builtin_instanceof, TYPE_INT);
 					*/
 					OP2A(opcode, 1, (class_getconstant(class, i, CONSTANT_Class)));

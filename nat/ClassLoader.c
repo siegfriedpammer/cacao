@@ -24,41 +24,40 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_ClassLoader_defineClass
  */
 JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_ClassLoader_findBootstrapClass ( JNIEnv *env ,  struct java_lang_ClassLoader* this, struct java_lang_String* name)
 {
-    classinfo *c;
-    bool result;
-    utf *transformed_name;
+	classinfo *c;
+	bool result;
+	utf *transformed_name;
 
-    if (runverbose)
-    {
-	log_text("Java_java_lang_ClassLoader_findBootstrapClass called");
-	log_text(javastring_tochar((java_objectheader*)name));
-    }
+	if (runverbose) {
+		log_text("Java_java_lang_ClassLoader_findBootstrapClass called");
+		log_text(javastring_tochar((java_objectheader*)name));
+		}
 
-    /* check whether the class exists */
-    transformed_name = javastring_toutf(name, true);
-    result = suck_start(transformed_name);
-    /* suck_stop(); */
+	/* check whether the class exists */
+	transformed_name = javastring_toutf(name, true);
+	result = suck_start(transformed_name);
+	/* suck_stop(); */
 
-    if (!result)
-    {
-	log_text("could not find class");
-	exceptionptr = native_new_and_init(class_java_lang_ClassNotFoundException);
-	return NULL;
-    }
+    if (!result) {
+    	if (verbose)
+			log_text("Warning: could not find class");
+		exceptionptr = native_new_and_init(class_java_lang_ClassNotFoundException);
+		return NULL;
+		}
 
-    /* load the class */
-    c = loader_load(transformed_name);
+	/* load the class */
+	c = loader_load(transformed_name);
 
-    if (c == NULL)
-    {
-	log_text("could not load class");
-	exceptionptr = native_new_and_init(class_java_lang_ClassNotFoundException);
-	return NULL;
-    }
+	if (c == NULL) {
+		if (verbose)
+			log_text("Warning: could not load class");
+		exceptionptr = native_new_and_init(class_java_lang_ClassNotFoundException);
+		return NULL;
+		}
 
-    use_class_as_object(c);
+	use_class_as_object(c);
 
-    return (java_lang_Class*)c;
+	return (java_lang_Class*)c;
 }
 
 /*

@@ -305,10 +305,12 @@ s4 builtin_arrayinstanceof
 ******************************************************************************/
 
 java_objectheader *builtin_throw_exception (java_objectheader *local_exceptionptr) {
+	if (verbose) {
+		sprintf(logtext, "Builtin exception thrown: ");
+		utf_sprint(logtext + strlen(logtext), local_exceptionptr->vftbl->class->name);
+		dolog();
+		}
    	exceptionptr = local_exceptionptr;
-	utf_display (local_exceptionptr->vftbl->class->name);
-	printf ("\n");
-	fflush (stdout);
 	return local_exceptionptr;
 }
 

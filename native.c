@@ -592,9 +592,11 @@ java_objectheader *native_new_and_init (classinfo *c)
 	m = class_findmethod(c, utf_new_char("<init>"), utf_new_char("()V"));
 	                      	                      
 	if (!m) {                                       /* initializer not found  */
-		sprintf(logtext, "warning: class has no instance-initializer: ");
-		utf_sprint(logtext + strlen(logtext), c->name);
-		dolog();
+		if (verbose) {
+			sprintf(logtext, "Warning: class has no instance-initializer: ");
+			utf_sprint(logtext + strlen(logtext), c->name);
+			dolog();
+			}
 		return o;
 		}
 

@@ -17,7 +17,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: main.c 136 1999-11-09 11:33:46Z schani $
+	Last Change: $Id: main.c 139 1999-11-11 19:21:30Z andi $
 
 *******************************************************************************/
 
@@ -206,7 +206,7 @@ static void print_usage()
 #ifdef OLD_COMPILER
 	printf ("          -old ................. use old JIT compiler\n");
 #endif
-#if 0
+#ifdef NEW_GC
 	printf ("          -gc1 ................. use the old garbage collector (default)\n");
 	printf ("          -gc2 ................. use the new garbage collector\n");
 #endif
@@ -411,6 +411,10 @@ static void print_stats()
 	                                              count_vmcode_len - 18 * count_all_methods);
 	dolog();
 	sprintf (logtext, "Size of ExTable (Kb):    %10.3f", (float) count_extable_len / 1024);
+	dolog();
+	sprintf (logtext, "Number of class loads:   %d", count_class_loads);
+	dolog();
+	sprintf (logtext, "Number of class inits:   %d", count_class_inits);
 	dolog();
 	sprintf (logtext, "Number of loaded Methods: %d\n\n", count_all_methods);
 	dolog();

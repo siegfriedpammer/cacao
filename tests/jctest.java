@@ -20,6 +20,9 @@
 
 
 public class jctest implements jcinterface {
+
+	static int linenum = 0;
+
 	static int i1=77;
 	static long l1=123456789,l2=987654321,l3=-99999999999999L;
 	static int i2,i3=-100;
@@ -1416,7 +1419,6 @@ public class jctest implements jcinterface {
 
 	// ********************* output methods ****************************
 	
-	public static int linenum = 0;
 	public static void pnl() {
 		System.out.println ();
 		System.out.print (linenum);

@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 135 1999-10-04 10:35:09Z roman $
+	Last Change: $Id: global.h 139 1999-11-11 19:21:30Z andi $
 
 *******************************************************************************/
 
@@ -642,6 +642,8 @@ extern int count_utf_len;
 extern int count_all_methods;
 extern int count_vmcode_len;
 extern int count_extable_len;
+extern int count_class_loads;
+extern int count_class_inits;
 extern int count_utf_new;
 extern int count_utf_new_found;
 

@@ -841,20 +841,20 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_Class_newInstance0 ( J
 {
 	java_objectheader *o;
 
-	if (verbose) {	
-          char buffer[MAXSTRINGSIZE]; 
-	  utf_sprint(buffer,((classinfo *) this)->name);      
-	  strcat(buffer,"instantiated. ");
-	  log_text(buffer);
-	}
+	if (verbose) {		
+		char buffer[MAXSTRINGSIZE]; 
+		utf_sprint(buffer,((classinfo *) this)->name);      
+		strcat(buffer," instantiated. ");
+		log_text(buffer);
+		}
 	
 	/* don't allow newInstance for array- and primitive classes */
 
 	if (((classinfo *) this)->name->text[0]=='[')
-	  panic("newInstance of array_class");
+		panic("newInstance of array_class");
 
 	if (Java_java_lang_Class_isPrimitive(env,this))
-	  panic("newInstance of primitive class");
+		panic("newInstance of primitive class");
 
 	o = native_new_and_init ((classinfo*) this);
 	
