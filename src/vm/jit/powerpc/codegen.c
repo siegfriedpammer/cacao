@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: codegen.c 1762 2004-12-15 15:55:32Z twisti $
 
 */
 
@@ -98,6 +98,7 @@ void thread_restartcriticalsection(void *u)
 }
 #endif
 
+#if defined(__DARWIN__)
 #include <mach/message.h>
 
 int cacao_catch_Handler(mach_port_t thread)
@@ -146,6 +147,8 @@ int cacao_catch_Handler(mach_port_t thread)
 
 	return 0;
 }
+#endif /* __DARWIN__ */
+
 
 void init_exceptions(void)
 {
