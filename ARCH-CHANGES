@@ -35,3 +35,17 @@
     mips: TODO
     powerpc: TODO
     x86_64: TODO
+
+- codegen.c, codegen.h, asmpart.S: removal of global jit variables (twisti)
+    alpha: done (codegen.c:1.27)
+    i386: done (codegen.c:1.37)
+    mips: TODO
+    powerpc: TODO
+    x86_64: TODO
+
+- codegen.c: removal of reg_of_var (twisti)
+    alpha: TODO
+    i386: done (1.39)
+    mips: TODO
+    powerpc: TODO
+    x86_64: TODO
