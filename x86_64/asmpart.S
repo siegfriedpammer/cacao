@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at            *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 516 2003-10-22 20:54:56Z twisti $         *
+*   Last Change: $Id: asmpart.S 547 2003-11-01 19:22:40Z twisti $         *
 *                                                                              *
 *******************************************************************************/
 
@@ -35,6 +35,10 @@
 	.globl asm_builtin_aastore
 	.globl asm_builtin_monitorenter
 	.globl asm_builtin_monitorexit
+    .globl asm_builtin_f2i
+    .globl asm_builtin_f2l
+    .globl asm_builtin_d2i
+    .globl asm_builtin_d2l
 	.globl asm_builtin_arrayinstanceof
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
@@ -608,6 +612,179 @@ nb_monitorexit:
         jmp     asm_handle_exception
 
 
+/********************* function asm_builtin_x2x ********************************
+*                                                                              *
+*   Wrapper functions for float to int corner cases                            *
+*                                                                              *
+*******************************************************************************/
+
+asm_builtin_f2i:
+        sub     $(14*8),%rsp
+
+        mov     %rdi,0*8(%rsp)
+        mov     %rsi,1*8(%rsp)
+        mov     %rdx,2*8(%rsp)
+        mov     %rcx,3*8(%rsp)
+        mov     %r8,4*8(%rsp)
+        mov     %r9,5*8(%rsp)
+        
+        movq    %xmm0,6*8(%rsp)
+        movq    %xmm1,7*8(%rsp)
+        movq    %xmm2,8*8(%rsp)
+        movq    %xmm3,9*8(%rsp)
+        movq    %xmm4,10*8(%rsp)
+        movq    %xmm5,11*8(%rsp)
+        movq    %xmm6,12*8(%rsp)
+        movq    %xmm7,13*8(%rsp)
+
+        movq    %xmm8,%xmm0
+        call    builtin_f2i
+        
+        mov     0*8(%rsp),%rdi
+        mov     1*8(%rsp),%rsi
+        mov     2*8(%rsp),%rdx
+        mov     3*8(%rsp),%rcx
+        mov     4*8(%rsp),%r8
+        mov     5*8(%rsp),%r9
+
+        movq    6*8(%rsp),%xmm0
+        movq    7*8(%rsp),%xmm1
+        movq    8*8(%rsp),%xmm2
+        movq    9*8(%rsp),%xmm3
+        movq    10*8(%rsp),%xmm4
+        movq    11*8(%rsp),%xmm5
+        movq    12*8(%rsp),%xmm6
+        movq    13*8(%rsp),%xmm7
+        
+        add     $(14*8),%rsp
+        ret
+
+asm_builtin_f2l:
+        sub     $(14*8),%rsp
+
+        mov     %rdi,0*8(%rsp)
+        mov     %rsi,1*8(%rsp)
+        mov     %rdx,2*8(%rsp)
+        mov     %rcx,3*8(%rsp)
+        mov     %r8,4*8(%rsp)
+        mov     %r9,5*8(%rsp)
+        
+        movq    %xmm0,6*8(%rsp)
+        movq    %xmm1,7*8(%rsp)
+        movq    %xmm2,8*8(%rsp)
+        movq    %xmm3,9*8(%rsp)
+        movq    %xmm4,10*8(%rsp)
+        movq    %xmm5,11*8(%rsp)
+        movq    %xmm6,12*8(%rsp)
+        movq    %xmm7,13*8(%rsp)
+
+        movq    %xmm8,%xmm0
+        call    builtin_f2l
+        
+        mov     0*8(%rsp),%rdi
+        mov     1*8(%rsp),%rsi
+        mov     2*8(%rsp),%rdx
+        mov     3*8(%rsp),%rcx
+        mov     4*8(%rsp),%r8
+        mov     5*8(%rsp),%r9
+
+        movq    6*8(%rsp),%xmm0
+        movq    7*8(%rsp),%xmm1
+        movq    8*8(%rsp),%xmm2
+        movq    9*8(%rsp),%xmm3
+        movq    10*8(%rsp),%xmm4
+        movq    11*8(%rsp),%xmm5
+        movq    12*8(%rsp),%xmm6
+        movq    13*8(%rsp),%xmm7
+        
+        add     $(14*8),%rsp
+        ret
+
+                
+asm_builtin_d2i:
+        sub     $(14*8),%rsp
+
+        mov     %rdi,0*8(%rsp)
+        mov     %rsi,1*8(%rsp)
+        mov     %rdx,2*8(%rsp)
+        mov     %rcx,3*8(%rsp)
+        mov     %r8,4*8(%rsp)
+        mov     %r9,5*8(%rsp)
+        
+        movq    %xmm0,6*8(%rsp)
+        movq    %xmm1,7*8(%rsp)
+        movq    %xmm2,8*8(%rsp)
+        movq    %xmm3,9*8(%rsp)
+        movq    %xmm4,10*8(%rsp)
+        movq    %xmm5,11*8(%rsp)
+        movq    %xmm6,12*8(%rsp)
+        movq    %xmm7,13*8(%rsp)
+
+        movq    %xmm8,%xmm0
+        call    builtin_d2i
+        
+        mov     0*8(%rsp),%rdi
+        mov     1*8(%rsp),%rsi
+        mov     2*8(%rsp),%rdx
+        mov     3*8(%rsp),%rcx
+        mov     4*8(%rsp),%r8
+        mov     5*8(%rsp),%r9
+
+        movq    6*8(%rsp),%xmm0
+        movq    7*8(%rsp),%xmm1
+        movq    8*8(%rsp),%xmm2
+        movq    9*8(%rsp),%xmm3
+        movq    10*8(%rsp),%xmm4
+        movq    11*8(%rsp),%xmm5
+        movq    12*8(%rsp),%xmm6
+        movq    13*8(%rsp),%xmm7
+        
+        add     $(14*8),%rsp
+        ret
+
+
+asm_builtin_d2l:
+        sub     $(14*8),%rsp
+
+        mov     %rdi,0*8(%rsp)
+        mov     %rsi,1*8(%rsp)
+        mov     %rdx,2*8(%rsp)
+        mov     %rcx,3*8(%rsp)
+        mov     %r8,4*8(%rsp)
+        mov     %r9,5*8(%rsp)
+        
+        movq    %xmm0,6*8(%rsp)
+        movq    %xmm1,7*8(%rsp)
+        movq    %xmm2,8*8(%rsp)
+        movq    %xmm3,9*8(%rsp)
+        movq    %xmm4,10*8(%rsp)
+        movq    %xmm5,11*8(%rsp)
+        movq    %xmm6,12*8(%rsp)
+        movq    %xmm7,13*8(%rsp)
+
+        movq    %xmm8,%xmm0
+        call    builtin_d2l
+        
+        mov     0*8(%rsp),%rdi
+        mov     1*8(%rsp),%rsi
+        mov     2*8(%rsp),%rdx
+        mov     3*8(%rsp),%rcx
+        mov     4*8(%rsp),%r8
+        mov     5*8(%rsp),%r9
+
+        movq    6*8(%rsp),%xmm0
+        movq    7*8(%rsp),%xmm1
+        movq    8*8(%rsp),%xmm2
+        movq    9*8(%rsp),%xmm3
+        movq    10*8(%rsp),%xmm4
+        movq    11*8(%rsp),%xmm5
+        movq    12*8(%rsp),%xmm6
+        movq    13*8(%rsp),%xmm7
+        
+        add     $(14*8),%rsp
+        ret
+
+        
 /*********************** function new_builtin_checkcast ************************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
