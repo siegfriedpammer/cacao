@@ -27,7 +27,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: sets.c 601 2003-11-11 19:03:30Z carolyn $
 
 */
 
@@ -36,6 +36,7 @@
 #include "sets.h"
 #include "types.h"
 #include "global.h"
+#include "toolbox/memory.h"
 
 
 /*
@@ -64,7 +65,7 @@ fldSetNode *addFldRef(fldSetNode *s, fieldinfo *f)
 {
 	fldSetNode *s1 = s;
 	if (!inFldSet(s,f)) {
-		s1 = (fldSetNode *)malloc(sizeof(fldSetNode));
+		s1 = NEW(fldSetNode);
 		s1->nextfldRef  = s;
 		s1->fldRef      = f;
 		s1->writePUT     = false;
@@ -93,7 +94,7 @@ fldSet *add2FldSet(fldSet *sf,  fieldinfo *f, bool wput, bool rget)
 	s = sf->head;
 	s1 = inFldSet(s,f);
 	if (s1 == NULL) {
-		s1 = (fldSetNode *)malloc(sizeof(fldSetNode));
+		s1 = NEW(fldSetNode);
 		if (sf->head == NULL) {
 			sf->head  = s1;
 			sf->pos   = s1;
@@ -126,7 +127,7 @@ fldSet *add2FldSet(fldSet *sf,  fieldinfo *f, bool wput, bool rget)
 fldSet *createFldSet( )
 {
 	fldSet *s;
-	s = (fldSet *)malloc(sizeof(fldSet));
+	s = NEW(fldSet);
 	s->head = NULL;
 	s->tail = NULL;
 	s->pos  = NULL;
@@ -155,7 +156,7 @@ methSetNode *addMethRef(methSetNode *s,  methodinfo *m)
 {
 	methSetNode *s1 = s;
 	if (!inMethSet(s,m)) {
-		s1 = (methSetNode *)malloc(sizeof(methSetNode));
+		s1 = NEW(methSetNode);
 		s1->nextmethRef= s;
 		s1->methRef = m;
 		s1->lastptrIntoClassSet2 = NULL;
@@ -181,7 +182,7 @@ methSet *add2MethSet(methSet *sm,  methodinfo *m)
 	}
 	s = sm->head;
 	if (!inMethSet(s,m)) {
-		s1 = (methSetNode *)malloc(sizeof(methSetNode));
+		s1 = NEW(methSetNode);
 		if (sm->head == NULL) {
 			sm->head = s1;
 			sm->pos   = s1;
@@ -206,7 +207,7 @@ methSet *add2MethSet(methSet *sm,  methodinfo *m)
 methSet *createMethSet( )
 {
 	methSet *s;
-	s = (methSet *)malloc(sizeof(methSet));
+	s = NEW(methSet);
 	s->head = NULL;
 	s->tail = NULL;
 	s->pos  = NULL;
@@ -235,7 +236,7 @@ classSetNode *addElement(classSetNode *s,  classinfo *c)
 {
 	classSetNode *s1 = s;
 	if (!inSet(s,c)) {
-		s1 = (classSetNode *)malloc(sizeof(classSetNode));
+		s1 = NEW(classSetNode);
 		s1->nextClass= s;
 		s1->classType = c;
 		if (s == NULL)
@@ -259,7 +260,7 @@ classSet *add2ClassSet(classSet *sc,  classinfo *c)
 	s = sc->head;
 	
 	if (!inSet(s,c)) {
-		s1 = (classSetNode *)malloc(sizeof(classSetNode));
+		s1 = NEW(classSetNode);
 		if (sc->head == NULL) {
 			sc->head  = s1;
 			sc->pos   = s1;
@@ -282,7 +283,7 @@ classSet *add2ClassSet(classSet *sc,  classinfo *c)
 classSet *createClassSet( )
 {
 	classSet *s;
-	s = (classSet *)malloc(sizeof(classSet));
+	s = NEW(classSet);
 	s->head = NULL;
 	s->tail = NULL;
 	s->pos  = NULL;
@@ -331,7 +332,7 @@ classSetNode *addClassCone(classSetNode *s,  classinfo *c)
  
 	if (inRange(s,c) == 0) {
 		/* not in set nor cone of an existing element so add */
-		s1 = (classSetNode *)malloc(sizeof(classSetNode));
+		s1 = NEW(classSetNode);
 		s1->nextClass= s;
 		s1->classType = c;
 		if (s == NULL)
@@ -423,11 +424,10 @@ int printMethSet(methSetNode *s)
 {
 	methSetNode* i;
 	int cnt=0;
-
 	if (s == NULL) {
 		printf("Set of Methods: "); fflush(stdout);
-     	printf("\t\tEmpty Set\n"); fflush(stdout);
-	}
+	     	printf("\t\tEmpty Set\n"); fflush(stdout);
+		}
 	else 	{
 		printf("<%i>Set of Methods: ",s->index);fflush(stdout); 
 		for (i=s; i != NULL; i = i->nextmethRef) {
@@ -455,11 +455,18 @@ int printMethSet(methSetNode *s)
 /*------------------------------------------------------------*/
 int printMethodSet(methSet *sm) {
 	if (sm == NULL) {
-		printf("Method Set not yet created\n");
+		printf("Method Set not yet created\n");fflush(stdout);
 		return 0;
 	}
-	else
-		return (printMethSet(sm->head));
+	else	{
+		if (sm->head == NULL) {
+			printf("Set of Methods: "); fflush(stdout);
+		     	printf("\t\tEmpty Set\n"); fflush(stdout);
+			return 0;
+			}
+		else
+			return (printMethSet(sm->head));
+		}
 }
 
 

@@ -176,7 +176,6 @@
 		fflush(stdout); \
 		method_display(mi); \
 		fflush(stdout); \
-		printf("AAAAA\n");fflush(stdout); \
 	}
 
 #define RTAPRINT08invokeInterface1  if (pWhenMarked >= 1) { \

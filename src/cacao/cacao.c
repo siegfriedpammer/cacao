@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 582 2003-11-09 19:09:11Z twisti $
+   $Id: cacao.c 601 2003-11-11 19:03:30Z carolyn $
 
 */
 
@@ -826,15 +826,7 @@ int main(int argc, char **argv)
 			utf_display(local_exceptionptr->vftbl->class->name);
 			printf("\n");
 		}
-		/*RTAprint*/ if ((pCallgraph >= 1) && (opt_rt)) {
-			/*RTAprint*/    printCallgraph (); }
-
-		/*RTprint*/ if ((pClassHeir >= 1) && (opt_rt)) {
-			/*RTprint*/     printf("Last RTA Info -");
-			/*RTprint*/     printRThierarchyInfo(mainmethod); 
-			/*RTprint*/  	}
-		/*RTprint*/  	printObjectClassHeirarchy1( );
-
+		/*---RTAprint---*/
 
 #ifdef USE_THREADS
 		killThread(currentThread);
@@ -878,14 +870,7 @@ int main(int argc, char **argv)
 
 void cacao_shutdown(s4 status)
 {
-	if ((pCallgraph >= 1) && (opt_rt)) {
-		printCallgraph(NULL);
-	}
-
-	if ((pClassHeir >= 1) && (opt_rt)) {
-		printf("RTA Information -");
-		printRThierarchyInfo(NULL);
-	}
+	/**** RTAprint ***/
 
 	if (verbose || getcompilingtime || statistics) {
 		log_text ("CACAO terminated by shutdown");

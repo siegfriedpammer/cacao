@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: parseRT.h 601 2003-11-11 19:03:30Z carolyn $
 
 */
 
@@ -35,6 +35,22 @@
 #define _PARSERT_H
 
 #include "global.h"
+#include <stdio.h>  
+#include <string.h>
+#include "jit.h"
+#include "parse.h"
+#include "loader.h"
+#include "natcalls.h"
+
+#include "parseRTprint.h"
+#include "parseRTstats.h"
+#include "sets.h"
+
+#include "tables.h"
+#include"toolbox/loging.h"
+#include "toolbox/memory.h"
+
+#include "types.h"
 
 extern bool XTAOPTbypass;
 extern bool XTAOPTbypass2;

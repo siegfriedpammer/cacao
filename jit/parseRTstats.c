@@ -26,16 +26,12 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: parseRTstats.c 601 2003-11-11 19:03:30Z carolyn $
 
 */
 
 
-#include <stdio.h>
 #include "parseRT.h"
-#include "loader.h"
-#include "toolbox/loging.h"
-
 
 /*--- Statistics ----------------------------------------------------------*/
 
@@ -82,17 +78,17 @@ int subRedefsCntUsed =0;
 
 /*------------- RTAprint flags ------------------------------------------------------------------*/
 int pCallgraph  = 0;    /* 0 - dont print 1 - print at end from main                             */ 
-/* 2 - print at end of RT parse call                                     */
-/* 3- print after each method RT parse                                   */
+			/* 2 - print at end of RT parse call                                     */
+			/* 3- print after each method RT parse                                   */
 int pClassHeir  = 1;    /* 0 - dont print 1 - print at end from main                             */
-/* 2 - print at end of RT parse call  3-print after each method RT parse */
+			/* 2 - print at end of RT parse call  3-print after each method RT parse */
 int pClassHeirStatsOnly = 1;  /* usually 2 Print only the statistical summary info for class heirarchy     */
 
 int pOpcodes    = 0;    /* 0 - don't print 1- print in parse RT 2- print in parse                */
-/* 3 - print in both                                                     */
+			/* 3 - print in both                                                     */
 int pWhenMarked = 0;    /* 0 - don't print 1 - print when added to callgraph + when native parsed*/
-/* 2 - print when marked+methods called                                  */
-/* 3 - print when class/method looked at                                 */
+			/* 2 - print when marked+methods called                                  */
+			/* 3 - print when class/method looked at                                 */
 int pStats = 0;         /* 0 - don't print; 1= analysis only; 2= whole unanalysed class heirarchy*/
 
 /*-----------------------------------------------------------------------------------------------*/
@@ -120,7 +116,7 @@ void printXTACallgraph ()
 void printCallgraph ()
 { int i;
 
- printf("----- RTA Callgraph Worklist:<%i>\n",methRTlast);
+ printf("-*-*-*-*- RTA Callgraph Worklist:<%i>\n",methRTlast);
  for (i=0;i<=methRTlast;i++) {
 	 printf("  (%i): ",i);
 	 utf_display(callgraph[i]->class->name);
@@ -449,9 +445,9 @@ void printRTInterfaceClasses() {
 							RTmethodInterfacePolyReallyMonoCnt++;
 						}
 						else	{
-							if (imi->monoPoly != POLY) 
+							/**if (imi->monoPoly != POLY) 
 								panic ("interface monopoly not POLY");
-
+							**/
 							if (mii->monoPoly != POLY) {
 								imi->monoPoly = MONO1;
 								RTmethodInterfacePolyReallyMonoCnt++;
@@ -508,10 +504,10 @@ void printRThierarchyInfo(methodinfo *m) {
     }
 	printRTClassHeirarchy(class_java_lang_Object);
 	if (pClassHeirStatsOnly >= 2) {
+		fflush(stdout);
 		printf("--- end  of RT info ---------------\n");
     }
 	if (pClassHeirStatsOnly >= 1) {
-
 		/*--  statistic results --*/
 		printRTInterfaceClasses();
 	
