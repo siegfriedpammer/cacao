@@ -1,4 +1,4 @@
-/* vm/loader.h - class loader header
+/* src/vm/loader.h - class loader header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2062 2005-03-23 11:16:45Z twisti $
+   $Id: loader.h 2120 2005-03-29 22:00:33Z twisti $
 */
 
 
@@ -35,28 +35,106 @@
 
 #include <stdio.h>
 
+
+/* forward typedefs ***********************************************************/
+
+typedef struct classbuffer classbuffer;
+typedef struct classpath_info classpath_info;
+
+
+#include "config.h"
+#include "types.h"
+#include "vm/class.h"
+#include "vm/descriptor.h"
+#include "vm/global.h"
+#include "vm/method.h"
+#include "vm/utf8.h"
+
 #if defined(USE_ZLIB)
 # include "vm/unzip.h"
 #endif
 
 
-/* datastruture from a classfile */
+/* signed suck defines ********************************************************/
 
-typedef struct classbuffer {
+#define suck_s8(a)    (s8) suck_u8((a))
+#define suck_s2(a)    (s2) suck_u2((a))
+#define suck_s4(a)    (s4) suck_u4((a))
+#define suck_s1(a)    (s1) suck_u1((a))
+
+
+/* constant pool entries *******************************************************
+
+	All constant pool entries need a data structure which contain the entrys
+	value. In some cases this structure exist already, in the remaining cases
+	this structure must be generated:
+
+		kind                      structure                     generated?
+	----------------------------------------------------------------------
+    CONSTANT_Class               classinfo                           no   XXX this will change
+    CONSTANT_Fieldref            constant_FMIref                    yes
+    CONSTANT_Methodref           constant_FMIref                    yes
+    CONSTANT_InterfaceMethodref  constant_FMIref                    yes
+    CONSTANT_String              unicode                             no
+    CONSTANT_Integer             constant_integer                   yes
+    CONSTANT_Float               constant_float                     yes
+    CONSTANT_Long                constant_long                      yes
+    CONSTANT_Double              constant_double                    yes
+    CONSTANT_NameAndType         constant_nameandtype               yes
+    CONSTANT_Utf8                unicode                             no
+    CONSTANT_UNUSED              -
+
+*******************************************************************************/
+
+typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
+	classinfo *class;       /* class containing this field/method/intfmeth.   */ /* XXX remove */
+	constant_classref *classref;  /* class containing this field/meth./intfm. */
+	utf       *name;        /* field/method/interfacemethod name              */
+	utf       *descriptor;  /* field/method/intfmeth. type descriptor string  */
+	parseddesc parseddesc;  /* parsed descriptor                              */
+} constant_FMIref;
+
+
+typedef struct {            /* Integer                                        */
+	s4 value;
+} constant_integer;
+
+	
+typedef struct {            /* Float                                          */
+	float value;
+} constant_float;
+
+
+typedef struct {            /* Long                                           */
+	s8 value;
+} constant_long;
+	
+
+typedef struct {            /* Double                                         */
+	double value;
+} constant_double;
+
+
+typedef struct {            /* NameAndType (Field or Method)                  */
+	utf *name;              /* field/method name                              */
+	utf *descriptor;        /* field/method type descriptor string            */
+} constant_nameandtype;
+
+
+/* classbuffer ****************************************************************/
+
+struct classbuffer {
 	classinfo *class;                   /* pointer to classinfo structure     */
 	u1        *data;                    /* pointer to byte code               */
 	s4         size;                    /* size of the byte code              */
-	u1         *pos;                    /* current read position              */
-} classbuffer;
-
+	u1        *pos;                     /* current read position              */
+};
 
 
 /* classpath_info *************************************************************/
 
 #define CLASSPATH_PATH       0
 #define CLASSPATH_ARCHIVE    1
-
-typedef struct classpath_info classpath_info;
 
 struct classpath_info {
 #if defined(USE_THREADS)
@@ -69,12 +147,12 @@ struct classpath_info {
 	struct java_security_ProtectionDomain *pd;
 #if defined(USE_ZLIB)
 	unzFile            uf;
-#endif	
+#endif
 	classpath_info    *next;
 };
 
 
-/* export variables */
+/* export variables ***********************************************************/
 
 #if defined(USE_THREADS)
 extern int blockInts;
@@ -82,38 +160,8 @@ extern int blockInts;
 
 extern classpath_info *classpath_entries;
 
-/* pseudo classes for the type checker ****************************************/
 
-/*
- * pseudo_class_Arraystub
- *     (extends Object implements Cloneable, java.io.Serializable)
- *
- *     If two arrays of incompatible component types are merged,
- *     the resulting reference has no accessible components.
- *     The result does, however, implement the interfaces Cloneable
- *     and java.io.Serializable. This pseudo class is used internally
- *     to represent such results. (They are *not* considered arrays!)
- *
- * pseudo_class_Null
- *
- *     This pseudo class is used internally to represent the
- *     null type.
- *
- * pseudo_class_New
- *
- *     This pseudo class is used internally to represent the
- *     the 'uninitialized object' type.
- */
-
-extern classinfo *pseudo_class_Arraystub;
-extern classinfo *pseudo_class_Null;
-extern classinfo *pseudo_class_New;
-extern vftbl_t *pseudo_class_Arraystub_vftbl;
-
-extern utf *array_packagename;
-
-
-/************************ prototypes ******************************************/
+/* function prototypes ********************************************************/
 
 /* initialize loader, load important systemclasses */
 bool loader_init(u1 *stackbottom);
@@ -122,18 +170,20 @@ void suck_init(char *cpath);
 void create_all_classes(void);
 void suck_stop(classbuffer *cb);
 
+inline bool check_classbuffer_size(classbuffer *cb, s4 len);
+
+inline u1 suck_u1(classbuffer *cb);
+inline u2 suck_u2(classbuffer *cb);
+inline u4 suck_u4(classbuffer *cb);
+
 /* free resources */
 void loader_close(void);
-
-void loader_compute_subclasses(classinfo *c);
 
 /* retrieve constantpool element */
 voidptr class_getconstant(classinfo *class, u4 pos, u4 ctype);
 
 /* determine type of a constantpool element */
 u4 class_constanttype(classinfo *class, u4 pos);
-
-s4 class_findmethodIndex(classinfo *c, utf *name, utf *desc);
 
 /* search class for a field */
 fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc);
@@ -142,7 +192,6 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc, classinfo *ref
 /* search for a method with a specified name and descriptor */
 methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc);
 methodinfo *class_fetchmethod(classinfo *c, utf *name, utf *desc);
-methodinfo *class_findmethod_w(classinfo *c, utf *name, utf *desc, char*);
 methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool except);
 methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool except);
@@ -155,8 +204,6 @@ bool class_issubclass(classinfo *sub, classinfo *super);
 
 /* call initializer of class */
 classinfo *class_init(classinfo *c);
-
-void class_showconstanti(classinfo *c, int ii);
 
 /* debug purposes */
 void class_showmethods(classinfo *c);
@@ -206,18 +253,9 @@ void class_new_array(classinfo *c);
                 return; }
 
 
+classinfo *class_load_extern(classinfo *rc, classinfo *c);
 classinfo *class_load(classinfo *c);
 classinfo *class_load_intern(classbuffer *cb);
-classinfo *class_link(classinfo *c);
-void class_free(classinfo *c);
-
-void field_display(fieldinfo *f);
-
-void method_display(methodinfo *m);
-void method_display_w_class(methodinfo *m);
-
-utf* clinit_desc(void);
-utf* clinit_name(void);
 
 #endif /* _LOADER_H */
 
