@@ -335,11 +335,20 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 			
 *****************************************************************************/
 
+#define ALIGNMENT 3
+#define align_size(size)	((size + ((1 << ALIGNMENT) - 1)) & ~((1 << ALIGNMENT) - 1))
+
 java_objectheader *builtin_new (classinfo *c)
 {
 	java_objectheader *o;
-	
+
+#ifdef SIZE_FROM_CLASSINFO
+	c->alignedsize = align_size(c->instancesize);
+
+	o = heap_allocate ( c->alignedsize, true, c->finalizer );
+#else
 	o = heap_allocate ( c->instancesize, true, c->finalizer );
+#endif
 	if (!o) return NULL;
 	
 	memset (o, 0, c->instancesize);
@@ -362,20 +371,53 @@ java_objectheader *builtin_new (classinfo *c)
 
 *****************************************************************************/
 
+static
+void* __builtin_newarray(s4 base_size,
+						 s4 size, 
+						 bool references,
+						 int elementsize,
+						 int arraytype)
+{
+	java_arrayheader *a;
+#ifdef SIZE_FROM_CLASSINFO
+	s4 alignedsize = align_size(base_size + (size-1) * elementsize);
+
+	a = heap_allocate ( alignedsize, true, NULL );
+#else	
+	a = heap_allocate ( sizeof(java_objectarray) + (size-1) * elementsize, 
+	                    references, 
+						NULL);
+#endif
+	if (!a) return NULL;
+
+#if SIZE_FROM_CLASSINFO
+	memset(a, 0, alignedsize);
+#else
+	memset(a, 0, base_size + (size-1) * elementsize);
+#endif	
+
+	a -> objheader.vftbl = class_array -> vftbl;
+	a -> size = size;
+#ifdef SIZE_FROM_CLASSINFO
+	a -> alignedsize = alignedsize;
+#endif
+	a -> arraytype = arraytype;
+
+	return a;
+}
+
+
 java_objectarray *builtin_anewarray (s4 size, classinfo *elementtype)
 {
-	s4 i;
-	java_objectarray *a;
-	
-	a = heap_allocate ( sizeof(java_objectarray) + (size-1) * sizeof(void*), 
-	                    true, 0 /* FALSE */ );
+	java_objectarray *a;	
+	a = (java_objectarray*)__builtin_newarray(sizeof(java_objectarray),
+											  size, 
+											  true, 
+											  sizeof(void*), 
+											  ARRAYTYPE_OBJECT);
 	if (!a) return NULL;
-	
-	a -> header.objheader.vftbl = class_array -> vftbl;
-	a -> header.size = size;
-	a -> header.arraytype = ARRAYTYPE_OBJECT;
+
 	a -> elementtype = elementtype;
-	for (i=0; i<size; i++) a->data[i] = NULL;
 	return a;
 }
 
@@ -395,18 +437,15 @@ java_objectarray *builtin_anewarray (s4 size, classinfo *elementtype)
 java_arrayarray *builtin_newarray_array 
         (s4 size, constant_arraydescriptor *elementdesc)
 {
-	s4 i;
-	java_arrayarray *a;
-	
-	a = heap_allocate ( sizeof(java_arrayarray) + (size-1) * sizeof(void*), 
-	                    true, NULL );
+	java_arrayarray *a;	
+	a = (java_arrayarray*)__builtin_newarray(sizeof(java_arrayarray),
+											 size, 
+											 true, 
+											 sizeof(void*), 
+											 ARRAYTYPE_ARRAY);
 	if (!a) return NULL;
-	
-	a -> header.objheader.vftbl = class_array -> vftbl;
-	a -> header.size = size;
-	a -> header.arraytype = ARRAYTYPE_ARRAY;
+
 	a -> elementdescriptor = elementdesc;
-	for (i=0; i<size; i++) a->data[i] = NULL;
 	return a;
 }
 
@@ -422,17 +461,12 @@ java_arrayarray *builtin_newarray_array
 
 java_booleanarray *builtin_newarray_boolean (s4 size)
 {
-	java_booleanarray *a;
-	
-	a = heap_allocate ( sizeof(java_booleanarray) + (size-1) * sizeof(u1), 
-	                    false, NULL );
-	if (!a) return NULL;
-	
-	a -> header.objheader.vftbl = class_array -> vftbl;
-	a -> header.size = size;
-	a -> header.arraytype = ARRAYTYPE_BOOLEAN;
-	memset (a->data, 0, sizeof(u1) * size);
-
+	java_booleanarray *a;	
+	a = (java_booleanarray*)__builtin_newarray(sizeof(java_booleanarray),
+											   size, 
+											   false, 
+											   sizeof(u1), 
+											   ARRAYTYPE_BOOLEAN);
 	return a;
 }
 
@@ -445,17 +479,12 @@ java_booleanarray *builtin_newarray_boolean (s4 size)
 
 java_chararray *builtin_newarray_char (s4 size)
 {
-	java_chararray *a;
-	
-	a = heap_allocate ( sizeof(java_chararray) + (size-1) * sizeof(u2), 
-	                    false, NULL );
-	if (!a) return NULL;
-	
-	a -> header.objheader.vftbl = class_array -> vftbl;
-	a -> header.size = size;
-	a -> header.arraytype = ARRAYTYPE_CHAR;
-	memset (a->data, 0, sizeof(u2) * size);
-
+	java_chararray *a;	
+	a = (java_chararray*)__builtin_newarray(sizeof(java_chararray),
+											size, 
+											false, 
+											sizeof(u2), 
+											ARRAYTYPE_CHAR);
 	return a;
 }
 
@@ -469,17 +498,12 @@ java_chararray *builtin_newarray_char (s4 size)
 
 java_floatarray *builtin_newarray_float (s4 size)
 {
-	s4 i;
-	java_floatarray *a;
-	
-	a = heap_allocate ( sizeof(java_floatarray) + (size-1) * sizeof(float), 
-	                    false, NULL );
-	if (!a) return NULL;
-
-	a -> header.objheader.vftbl = class_array -> vftbl;
-	a -> header.size = size;
-	a -> header.arraytype = ARRAYTYPE_FLOAT;
-	for (i=0; i<size; i++) a->data[i] = 0.0;
+	java_floatarray *a;	
+	a = (java_floatarray*)__builtin_newarray(sizeof(java_floatarray),
+											 size, 
+											 false, 
+											 sizeof(float), 
+											 ARRAYTYPE_FLOAT);
 	return a;
 }
 
@@ -493,17 +517,12 @@ java_floatarray *builtin_newarray_float (s4 size)
 
 java_doublearray *builtin_newarray_double (s4 size)
 {
-	s4 i;
-	java_doublearray *a;
-	
-	a = heap_allocate ( sizeof(java_doublearray) + (size-1) * sizeof(double), 
-	                    false, NULL );
-	if (!a) return NULL;
-	
-	a -> header.objheader.vftbl = class_array -> vftbl;
-	a -> header.size = size;
-	a -> header.arraytype = ARRAYTYPE_DOUBLE;
-	for (i=0; i<size; i++) a->data[i] = 0.0;
+	java_doublearray *a;	
+	a = (java_doublearray*)__builtin_newarray(sizeof(java_doublearray),
+											  size, 
+											  false, 
+											  sizeof(double), 
+											  ARRAYTYPE_DOUBLE);
 	return a;
 }
 
@@ -519,16 +538,12 @@ java_doublearray *builtin_newarray_double (s4 size)
 
 java_bytearray *builtin_newarray_byte (s4 size)
 {
-	java_bytearray *a;
-	
-	a = heap_allocate ( sizeof(java_bytearray) + (size-1) * sizeof(s1), 
-	                    false, NULL );
-	if (!a) return NULL;
-	
-	a -> header.objheader.vftbl = class_array->vftbl;
-	a -> header.size = size;
-	a -> header.arraytype = ARRAYTYPE_BYTE;
-	memset (a->data, 0, sizeof(u1) * size);
+	java_bytearray *a;	
+	a = (java_bytearray*)__builtin_newarray(sizeof(java_bytearray),
+											size, 
+											false, 
+											sizeof(u1), 
+											ARRAYTYPE_BYTE);
 	return a;
 }
 
@@ -542,16 +557,12 @@ java_bytearray *builtin_newarray_byte (s4 size)
 
 java_shortarray *builtin_newarray_short (s4 size)
 {
-	java_shortarray *a;
-	
-	a = heap_allocate ( sizeof(java_shortarray) + (size-1) * sizeof(s2), 
-	                    false, NULL );
-	if (!a) return NULL;
-	
-	a -> header.objheader.vftbl = class_array -> vftbl;
-	a -> header.size = size;
-	a -> header.arraytype = ARRAYTYPE_SHORT;
-	memset (a->data, 0, sizeof(s2) * size);
+	java_shortarray *a;	
+	a = (java_shortarray*)__builtin_newarray(sizeof(java_shortarray),
+											   size, 
+											   false, 
+											   sizeof(s2), 
+											   ARRAYTYPE_SHORT);
 	return a;
 }
 
@@ -565,16 +576,12 @@ java_shortarray *builtin_newarray_short (s4 size)
 
 java_intarray *builtin_newarray_int (s4 size)
 {
-	java_intarray *a;
-	
-	a = heap_allocate ( sizeof(java_intarray) + (size-1) * sizeof(s4), 
-	                    false, NULL );
-	if (!a) return NULL;
-	
-	a -> header.objheader.vftbl = class_array -> vftbl;
-	a -> header.size = size;
-	a -> header.arraytype = ARRAYTYPE_INT;
-	memset (a->data, 0, sizeof(s4) * size);
+	java_intarray *a;	
+	a = (java_intarray*)__builtin_newarray(sizeof(java_intarray),
+										   size, 
+										   false, 
+										   sizeof(s4), 
+										   ARRAYTYPE_INT);
 	return a;
 }
 
@@ -588,16 +595,12 @@ java_intarray *builtin_newarray_int (s4 size)
 
 java_longarray *builtin_newarray_long (s4 size)
 {
-	java_longarray *a;
-	
-	a = heap_allocate ( sizeof(java_longarray) + (size-1) * sizeof(s8), 
-	                    false, NULL );
-	if (!a) return NULL;
-
-	a -> header.objheader.vftbl = class_array -> vftbl;
-	a -> header.size = size;
-	a -> header.arraytype = ARRAYTYPE_LONG;
-	memset (a->data, 0, sizeof(s8) * size);
+	java_longarray *a;	
+	a = (java_longarray*)__builtin_newarray(sizeof(java_longarray),
+											size, 
+											false, 
+											sizeof(s8), 
+											ARRAYTYPE_LONG);
 	return a;
 }
 

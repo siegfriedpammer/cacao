@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1998/10/30
+	Last Change: $Id: global.h 55 1998-11-10 17:33:40Z phil $
 
 *******************************************************************************/
 
@@ -23,10 +23,16 @@
 
 #define STATISTICS          /* if enabled collects program statistics         */
 
-/* JIT_MARKER_SUPPORT is the define used to toggle Just-in-time generated
-	marker functions on and off.
-*/
-#undef  JIT_MARKER_SUPPORT  /* phil   */
+/* 
+ * JIT_MARKER_SUPPORT is the define used to toggle Just-in-time generated
+ * marker functions on and off.
+ *
+ * SIZE_FROM_CLASSINFO toggles between the bitmap_based and the new method 
+ * of determining the sizes of objects on the heap.
+ */
+#undef JIT_MARKER_SUPPORT        /* phil */
+#undef SIZE_FROM_CLASSINFO
+//#define SIZE_FROM_CLASSINFO
 
 /* standard includes **********************************************************/
 
@@ -239,6 +245,9 @@ struct java_objectheader {              /* header for all objects             */
 typedef struct java_arrayheader {       /* header for all arrays              */
 	java_objectheader objheader;        /* object header                      */
 	s4 size;                            /* array size                         */
+#ifdef SIZE_FROM_CLASSINFO
+	s4 alignedsize; /* phil */
+#endif
 	s4 arraytype;                       /* array type from previous list      */
 } java_arrayheader;
 
@@ -398,6 +407,10 @@ struct classinfo {                /* class structure                          */
 	s4			index;            /* hierarchy depth (classes) or index
 	                                 (interfaces)                             */ 
 	s4          instancesize;     /* size of an instance of this class        */
+#ifdef SIZE_FROM_CLASSINFO
+	s4          alignedsize;      /* size of an instance, aligned to the 
+									 allocation size on the heap */
+#endif
 
 	vftbl      *vftbl;            /* pointer to virtual function table        */
 
