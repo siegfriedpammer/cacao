@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1785 2004-12-21 09:55:33Z twisti $
+   $Id: native.c 1852 2005-01-04 12:02:24Z twisti $
 
 */
 
@@ -448,7 +448,7 @@ java_lang_String *javastring_new(utf *u)
 
 *******************************************************************************/
 
-java_lang_String *javastring_new_char(char *text)
+java_lang_String *javastring_new_char(const char *text)
 {
 	s4 i;
 	s4 len;                /* length of the string */
@@ -583,9 +583,7 @@ java_objectheader *native_new_and_init(classinfo *c)
 
 	/* find initializer */
 
-	m = class_findmethod(c,
-						 utf_new_char("<init>"),
-						 utf_new_char("()V"));
+	m = class_findmethod(c, utf_new_char("<init>"), utf_new_char("()V"));
 	                      	                      
 	if (!m) {                           /* initializer not found              */
 		if (opt_verbose) {
