@@ -26,13 +26,13 @@
 
    Authors: Stefan Ring
 
-   $Id: threads.h 1650 2004-12-02 09:35:13Z twisti $
+   $Id: threads.h 1664 2004-12-03 16:21:28Z twisti $
 
 */
 
 
-#ifndef _NATIVETHREAD_H
-#define _NATIVETHREAD_H
+#ifndef _THREADS_H
+#define _THREADS_H
 
 #include <semaphore.h>
 
@@ -50,13 +50,68 @@
 #endif
 
 
-struct _threadobject;
+/* typedefs *******************************************************************/
 
-
+typedef struct ExecEnvironment ExecEnvironment;
+typedef struct nativethread nativethread;
+typedef struct threadobject threadobject;
 typedef struct monitorLockRecord monitorLockRecord;
+typedef struct lockRecordPoolHeader lockRecordPoolHeader;
+typedef struct lockRecordPool lockRecordPool;
+typedef java_lang_Thread thread;
+
+
+/* ExecEnvironment *************************************************************
+
+   Monitor lock implementation
+
+*******************************************************************************/
+
+struct ExecEnvironment {
+	monitorLockRecord *firstLR;
+	lockRecordPool    *lrpool;
+	int                numlr;
+};
+
+
+struct nativethread {
+	threadobject      *next;
+	threadobject      *prev;
+	java_objectheader *_exceptionptr;
+	methodinfo        *_threadrootmethod;
+	void              *_stackframeinfo;
+	pthread_t          tid;
+#if defined(__DARWIN__)
+	mach_port_t        mach_thread;
+#endif
+	pthread_mutex_t    joinMutex;
+	pthread_cond_t     joinCond;
+};
+
+
+/* threadobject ****************************************************************
+
+   DOCUMENT ME!
+
+*******************************************************************************/
+
+struct threadobject {
+	java_lang_VMThread  o;
+	nativethread        info;
+	ExecEnvironment     ee;
+
+	pthread_mutex_t     waitLock;
+	pthread_cond_t      waitCond;
+	bool                interrupted;
+	bool                signaled;
+	bool                isSleeping;
+
+	dumpinfo            dumpinfo;       /* dump memory info structure         */
+};
+
 
 struct monitorLockRecord {
-	struct _threadobject *ownerThread;
+	threadobject      *ownerThread;
 	java_objectheader *o;
 	int                lockCount;
 	monitorLockRecord *nextFree;
@@ -70,60 +125,16 @@ struct monitorLockRecord {
 };
 
 
-struct _lockRecordPool;
 
-typedef struct {
-	struct _lockRecordPool *next;
-	int size;
-} lockRecordPoolHeader; 
+struct lockRecordPoolHeader {
+	lockRecordPool *next;
+	int             size;
+}; 
 
-typedef struct _lockRecordPool {
+struct lockRecordPool {
 	lockRecordPoolHeader header;
-	monitorLockRecord lr[1];
-} lockRecordPool;
-
-/* Monitor lock implementation */
-typedef struct {
-	monitorLockRecord *firstLR;
-	lockRecordPool *lrpool;
-	int numlr;
-} ExecEnvironment;
-
-typedef struct {
-	struct _threadobject *next, *prev;
-	java_objectheader *_exceptionptr;
-	methodinfo *_threadrootmethod;
-	void *_stackframeinfo;
-	pthread_t tid;
-#if defined(__DARWIN__)
-	mach_port_t mach_thread;
-#endif
-	pthread_mutex_t joinMutex;
-	pthread_cond_t joinCond;
-} nativethread;
-
-typedef java_lang_Thread thread;
-
-
-/* threadobject ****************************************************************
-
-   TODO
-
-*******************************************************************************/
-
-typedef struct _threadobject {
-	java_lang_VMThread  o;
-	nativethread        info;
-	ExecEnvironment     ee;
-
-	pthread_mutex_t     waitLock;
-	pthread_cond_t      waitCond;
-	bool                interrupted;
-	bool                signaled;
-	bool                isSleeping;
-
-	dumpinfo            dumpinfo;       /* dump memory info structure         */
-} threadobject;
+	monitorLockRecord    lr[1];
+};
 
 
 monitorLockRecord *monitorEnter(threadobject *, java_objectheader *);
@@ -161,11 +172,12 @@ extern __thread threadobject *threadobj;
 #define THREADINFO (&threadobj->info)
 #endif
 
-/*#include "builtin.h"*/
 
 /* This must not be changed, it is used in asm_criticalsections */
 typedef struct {
-	u1 *mcodebegin, *mcodeend, *mcoderestart;
+	u1 *mcodebegin;
+	u1 *mcodeend;
+	u1 *mcoderestart;
 } threadcritnode;
 
 void thread_registercritical(threadcritnode *);
@@ -176,7 +188,7 @@ extern volatile int stopworldwhere;
 void cast_stopworld();
 void cast_startworld();
 
-#endif /* _NATIVETHREAD_H */
+#endif /* _THREADS_H */
 
 
 /*
