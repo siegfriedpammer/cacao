@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: jit.c 631 2003-11-14 09:21:47Z stefan $
+   $Id: jit.c 638 2003-11-14 23:51:34Z stefan $
 
 */
 
@@ -1296,9 +1296,9 @@ stdopdescriptor builtintable[] = {
 	{ ICMD_L2D,    TYPE_LONG, TYPE_VOID, TYPE_DOUBLE, ICMD_BUILTIN1, 
 	  (functionptr) builtin_l2d, SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_LONG_FCVT, true },
 	{ ICMD_F2L,    TYPE_FLOAT, TYPE_VOID, TYPE_LONG, ICMD_BUILTIN1,
-	  (functionptr) builtin_f2l, SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_LONG_FCVT, true },
+	  (functionptr) builtin_f2l, SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_LONG_ICVT, true },
 	{ ICMD_D2L,    TYPE_DOUBLE, TYPE_VOID, TYPE_LONG, ICMD_BUILTIN1,
-	  (functionptr) builtin_d2l, SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_LONG_FCVT, true },
+	  (functionptr) builtin_d2l, SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_LONG_ICVT, true },
 	{ ICMD_F2I,    TYPE_FLOAT, TYPE_VOID, TYPE_INT, ICMD_BUILTIN1,
 	  (functionptr) builtin_f2i, SUPPORT_FLOAT && SUPPORT_FICVT, true },
 	{ ICMD_D2I,    TYPE_DOUBLE, TYPE_VOID, TYPE_INT, ICMD_BUILTIN1,
@@ -1502,6 +1502,15 @@ static inline void sort_builtintable()
 
 	len = sizeof(builtintable) / sizeof(stdopdescriptor);
 	qsort(builtintable, len, sizeof(stdopdescriptor), stdopcompare);
+
+#if 0
+	{
+		int i;
+		for (i=0; i<len; i++)
+			if (!builtintable[i].supported)
+				printf("%s\n", icmd_names[builtintable[i].opcode]);
+	}
+#endif
 }
 
 

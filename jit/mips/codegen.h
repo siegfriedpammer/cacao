@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 597 2003-11-09 20:08:18Z twisti $
+   $Id: codegen.h 638 2003-11-14 23:51:34Z stefan $
 
 */
 
@@ -315,12 +315,15 @@
 #define M_FCMPOLEF(a,b)         M_FP3(0x36,FMT_F,a,b,0)         /* c = a <= b */
 #define M_FCMPOLED(a,b)         M_FP3(0x36,FMT_D,a,b,0)         /* c = a <= b */
 #define M_FCMPULEF(a,b)         M_FP3(0x37,FMT_F,a,b,0)         /* c = a <= b */
-#define M_FCMPULE(a,b)          M_FP3(0x37,FMT_D,a,b,0)         /* c = a <= b */
+#define M_FCMPULED(a,b)         M_FP3(0x37,FMT_D,a,b,0)         /* c = a <= b */
 
 #define M_FBF(disp)             M_ITYPE(0x11,8,0,disp)          /* br false   */
 #define M_FBT(disp)             M_ITYPE(0x11,8,1,disp)          /* br true    */
 #define M_FBFL(disp)            M_ITYPE(0x11,8,2,disp)          /* br false   */
 #define M_FBTL(disp)            M_ITYPE(0x11,8,3,disp)          /* br true    */
+
+#define M_CMOVF(a,b)			M_RTYPE(0x00,a,0,b,0,1)
+#define M_CMOVT(a,b)			M_RTYPE(0x00,a,1,b,0,1)
 
 /*
  * Load Address pseudo instruction:

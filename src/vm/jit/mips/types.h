@@ -31,7 +31,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: types.h 624 2003-11-13 14:06:52Z twisti $
+   $Id: types.h 638 2003-11-14 23:51:34Z stefan $
 
 */
 
@@ -46,6 +46,9 @@
 #define SUPPORT_LONG        1
 #define SUPPORT_FLOAT       1
 #define SUPPORT_DOUBLE      1
+#define SUPPORT_FMOD        1
+#define SUPPORT_FICVT       0
+#define SUPPORT_IFCVT       1
 
 #define SUPPORT_LONG_ADD    1
 #define SUPPORT_LONG_CMP    1
@@ -53,8 +56,10 @@
 #define SUPPORT_LONG_SHIFT  1
 #define SUPPORT_LONG_MUL    1
 #define SUPPORT_LONG_DIV    0
-#define SUPPORT_LONG_ICVT   1
+#define SUPPORT_LONG_ICVT   0
 #define SUPPORT_LONG_FCVT   1
+
+#define USEBUILTINTABLE
 
 #define U8_AVAILABLE        1
 

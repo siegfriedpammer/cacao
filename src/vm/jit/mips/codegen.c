@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 636 2003-11-14 20:19:21Z stefan $
+   $Id: codegen.c 638 2003-11-14 23:51:34Z stefan $
 
 */
 
@@ -1873,34 +1873,30 @@ void codegen()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_FCMPUEQF(s1, s2);
-			M_NOP;                             /* compare delay               */
-			M_FBF(2);                          /* jump over next instructions */
-			M_LSUB_IMM(REG_ZERO, 1, d);        /* delay slot                  */
-			M_CLR(d);
-			M_FCMPULTF(s2, s1);
-			M_NOP;                             /* compare delay               */
-			M_FBF(2);                          /* jump over next instruction  */
-			M_NOP;
+			M_FCMPULEF(s1, s2);
+			M_FBT(3);
 			M_LADD_IMM(REG_ZERO, 1, d);
+			M_BR(4);
+			M_NOP;
+			M_FCMPEQF(s1, s2);
+			M_LSUB_IMM(REG_ZERO, 1, d);
+			M_CMOVT(REG_ZERO, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
-			
+
 		case ICMD_DCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpl val2    */
 
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_FCMPUEQD(s1, s2);
-			M_NOP;                             /* compare delay               */
-			M_FBF(2);                          /* jump over next instructions */
-			M_LSUB_IMM(REG_ZERO, 1, d);        /* delay slot                  */
-			M_CLR(d);
-			M_FCMPULTD(s2, s1);
-			M_NOP;                             /* compare delay               */
-			M_FBF(2);                          /* jump over next instruction  */
-			M_NOP;
+			M_FCMPULED(s1, s2);
+			M_FBT(3);
 			M_LADD_IMM(REG_ZERO, 1, d);
+			M_BR(4);
+			M_NOP;
+			M_FCMPEQD(s1, s2);
+			M_LSUB_IMM(REG_ZERO, 1, d);
+			M_CMOVT(REG_ZERO, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 			
@@ -1909,16 +1905,14 @@ void codegen()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_FCMPUEQF(s1, s2);
-			M_NOP;                             /* compare delay               */
-			M_FBF(2);                          /* jump over next instruction  */
-			M_LADD_IMM(REG_ZERO, 1, d);        /* delay slot                  */
-			M_CLR(d);
-			M_FCMPULTF(s1, s2);
-			M_NOP;                             /* compare delay               */
-			M_FBF(2);                          /* jump over next instruction  */
-			M_NOP;
+			M_FCMPOLTF(s1, s2);
+			M_FBF(3);
 			M_LSUB_IMM(REG_ZERO, 1, d);
+			M_BR(4);
+			M_NOP;
+			M_FCMPEQF(s1, s2);
+			M_LADD_IMM(REG_ZERO, 1, d);
+			M_CMOVT(REG_ZERO, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1927,16 +1921,14 @@ void codegen()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_FCMPUEQD(s1, s2);
-			M_NOP;                             /* compare delay               */
-			M_FBF(2);                          /* jump over next instruction  */
-			M_LADD_IMM(REG_ZERO, 1, d);        /* delay slot                  */
-			M_CLR(d);
-			M_FCMPULTD(s1, s2);
-			M_NOP;                             /* compare delay               */
-			M_FBF(2);                          /* jump over next instruction  */
-			M_NOP;
+			M_FCMPOLTD(s1, s2);
+			M_FBF(3);
 			M_LSUB_IMM(REG_ZERO, 1, d);
+			M_BR(4);
+			M_NOP;
+			M_FCMPEQD(s1, s2);
+			M_LADD_IMM(REG_ZERO, 1, d);
+			M_CMOVT(REG_ZERO, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
