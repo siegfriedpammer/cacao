@@ -777,9 +777,12 @@ void heap_close ()
 
 	while (livefinalizees) {
 		finalizernode *n = livefinalizees->next;
+		asm_calljavamethod (livefinalizees->finalizer, 
+							heap+livefinalizees->objstart, 
+							NULL,NULL,NULL);
 		FREE (livefinalizees, finalizernode);
 		livefinalizees = n;
-		}
+	}
 }
 
 
