@@ -11,7 +11,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: boehm.c 211 2003-02-03 13:06:27Z stefan $
+	Last Change: $Id: boehm.c 239 2003-02-27 09:56:30Z stefan $
 
 *******************************************************************************/
 
@@ -57,6 +57,7 @@ static void *stackcall_realloc(void *p, u4 bytelength)
 	return GC_REALLOC(p, bytelength);
 }
 
+#ifdef USE_THREADS
 #define MAINTHREADCALL(r,m,pp,ll) \
 	if (currentThread == NULL || currentThread == mainThread) { \
 		r = m(pp, ll); \
@@ -69,6 +70,10 @@ static void *stackcall_realloc(void *p, u4 bytelength)
 				stackcall_twoargs, \
 				(void**)&(CONTEXT(currentThread).usedStackTop), &sc); \
 	}
+#else
+#define MAINTHREADCALL(r,m,pp,ll) \
+	{ r = m(pp, ll); }
+#endif
 
 void *heap_alloc_uncollectable(u4 bytelength)
 {
