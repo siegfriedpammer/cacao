@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: classes.am 1871 2005-01-12 14:09:30Z twisti $
+## $Id: classes.am 1900 2005-02-08 14:55:55Z twisti $
 
 ## This file is included by ./Makefile.am and ./include/Makefile.am
 
@@ -52,6 +52,7 @@ CLASSES= \
 	\
 	gnu.classpath.Configuration \
 	gnu.classpath.RawData \
+	gnu.classpath.VMStackWalker \
 	gnu.classpath.VMSystemProperties \
 	gnu.java.lang.reflect.TypeSignature \
 	gnu.java.math.MPN \
@@ -170,7 +171,6 @@ AWT_CLASSES = \
 	gnu.java.awt.peer.gtk.GtkImagePainter \
 	gnu.java.awt.peer.gtk.GtkLabelPeer \
 	gnu.java.awt.peer.gtk.GtkListPeer \
-	gnu.java.awt.peer.gtk.GtkMainThread \
 	gnu.java.awt.peer.gtk.GtkMenuBarPeer \
 	gnu.java.awt.peer.gtk.GtkMenuComponentPeer \
 	gnu.java.awt.peer.gtk.GtkMenuComponentPeer \
