@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 761 2003-12-13 22:39:25Z twisti $
+   $Id: jit.c 789 2003-12-16 14:46:55Z edwin $
 
 */
 
@@ -1366,6 +1366,13 @@ builtin_descriptor builtin_desc[] = {
 	/* this record marks the end of the automatically replaced opcodes */
 	{255       , NULL        ,0            ,0          ,0          ,0         ,0          ,
 	             true                            ,false,"<INVALID>"},
+
+#if defined(__ALPHA__)
+	{255, BUILTIN_f2l  ,ICMD_BUILTIN1,TYPE_FLOAT ,TYPE_VOID  ,TYPE_VOID ,TYPE_LONG  ,0,0,"f2l"},
+	{255, BUILTIN_d2l  ,ICMD_BUILTIN1,TYPE_DOUBLE,TYPE_VOID  ,TYPE_VOID ,TYPE_LONG  ,0,0,"d2l"},
+	{255, BUILTIN_f2i  ,ICMD_BUILTIN1,TYPE_FLOAT ,TYPE_VOID  ,TYPE_VOID ,TYPE_INT   ,0,0,"f2i"},
+	{255, BUILTIN_d2i  ,ICMD_BUILTIN1,TYPE_DOUBLE,TYPE_VOID  ,TYPE_VOID ,TYPE_INT   ,0,0,"d2i"},
+#endif
 
 	/* the following functions are not replaced automatically */
 	{255,BUILTIN_instanceof      ,ICMD_BUILTIN2,TYPE_ADR   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_INT   ,0,0,"instanceof"},
