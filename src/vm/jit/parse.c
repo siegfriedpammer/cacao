@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 1881 2005-01-21 13:46:51Z carolyn $
+   $Id: parse.c 1928 2005-02-10 10:51:12Z twisti $
 
 */
 
@@ -48,6 +48,7 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
