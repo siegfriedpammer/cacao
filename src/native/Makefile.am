@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 1740 2004-12-08 16:38:25Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -57,7 +57,7 @@ if USE_GTK_PEER
 AWT_HEADERS_TOUCH_FILE = $(srcdir)/include/awtheaders-generated
 endif
 
-nativetable.inc: $(top_srcdir)/src/classpath/lib/bootstrap.zip $(srcdir)/tools/gennativetable $(top_srcdir)/config.h $(srcdir)/include/headers-generated $(AWT_HEADERS_TOUCH_FILE)
+nativetable.inc: $(top_srcdir)/src/classpath/lib/bootstrap.zip $(srcdir)/tools/gennativetable $(top_srcdir)/config.h $(srcdir)/include/headers-generated $(AWT_HEADERS_TOUCH_FILE) $(srcdir)/classes.am
 	CLASSPATH=$(top_srcdir)/src/classpath/lib/bootstrap.zip \
 	$(top_srcdir)/src/native/tools/gennativetable \
 	$(NO_REGEN_CLASSES) \
