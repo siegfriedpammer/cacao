@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 930 2004-03-02 21:18:23Z jowenn $
+   $Id: codegen.c 939 2004-03-06 13:57:41Z twisti $
 
 */
 
@@ -337,9 +337,16 @@ void catch_NullPointerException(int sig)
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
-		sigctx->eax = (long) proto_java_lang_NullPointerException; /* REG_ITMP1_XPTR    */
+
+		/* is exception initialized? */
+		if (!proto_java_lang_NullPointerException) {
+			proto_java_lang_NullPointerException = 
+				new_exception(string_java_lang_NullPointerException);
+		}
+
+		sigctx->eax = (s4) proto_java_lang_NullPointerException;   /* REG_ITMP1_XPTR    */
 		sigctx->ecx = sigctx->eip;                                 /* REG_ITMP2_XPC     */
-		sigctx->eip = (long) asm_handle_exception;
+		sigctx->eip = (s4) asm_handle_exception;
 
 		return;
 
@@ -359,10 +366,7 @@ void catch_ArithmeticException(int sig)
 
 	void **_p = (void **) &sig;
 	struct sigcontext *sigctx = (struct sigcontext *) ++_p;
-
-	classinfo *c;
-	java_objectheader *p;
-	methodinfo *m;
+	java_objectheader *xptr;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD        */
 
@@ -371,17 +375,12 @@ void catch_ArithmeticException(int sig)
 	sigaddset(&nsig, sig);
 	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
 
-	c = loader_load_sysclass(NULL,utf_new_char("java/lang/ArithmeticException"));
-	p = builtin_new(c);
-	m = class_findmethod(c, 
-						 utf_new_char("<init>"), 
-						 utf_new_char("(Ljava/lang/String;)V"));
+	xptr = new_exception_message(string_java_lang_ArithmeticException,
+								   string_java_lang_ArithmeticException_message);
 
-	asm_calljavafunction(m, p, javastring_new_char("/ by zero"), NULL, NULL);
-
-	sigctx->eax = (long) p;                              /* REG_ITMP1_XPTR    */
+	sigctx->eax = (s4) xptr;                             /* REG_ITMP1_XPTR    */
 	sigctx->ecx = sigctx->eip;                           /* REG_ITMP2_XPC     */
-	sigctx->eip = (long) asm_handle_exception;
+	sigctx->eip = (s4) asm_handle_exception;
 
 	return;
 }
@@ -392,7 +391,6 @@ void init_exceptions(void)
 	/* install signal handlers we need to convert to exceptions */
 
 	if (!checknull) {
-
 #if defined(SIGSEGV)
 		signal(SIGSEGV, (void *) catch_NullPointerException);
 #endif
@@ -2251,26 +2249,10 @@ void codegen()
 
 			var = &(locals[iptr->op1][TYPE_INT]);
 			if (var->flags & INMEMORY) {
-				if (iptr->val.i == 1) {
-					i386_inc_membase(REG_SP, var->regoff * 8);
- 
-				} else if (iptr->val.i == -1) {
-					i386_dec_membase(REG_SP, var->regoff * 8);
-
-				} else {
-					i386_alu_imm_membase(I386_ADD, iptr->val.i, REG_SP, var->regoff * 8);
-				}
+				i386_alu_imm_membase(I386_ADD, iptr->val.i, REG_SP, var->regoff * 8);
 
 			} else {
-				if (iptr->val.i == 1) {
-					i386_inc_reg(var->regoff);
- 
-				} else if (iptr->val.i == -1) {
-					i386_dec_reg(var->regoff);
-
-				} else {
-					i386_alu_imm_reg(I386_ADD, iptr->val.i, var->regoff);
-				}
+				i386_alu_imm_reg(I386_ADD, iptr->val.i, var->regoff);
 			}
 			break;
 
@@ -2744,11 +2726,11 @@ void codegen()
 			i386_alu_imm_reg(I386_AND, 0x000000ff, EAX);
  			i386_sahf();
 			i386_mov_imm_reg(0, d);    /* does not affect flags */
-  			i386_jcc(I386_CC_E, 6 + 1 + 5 + 1);
-  			i386_jcc(I386_CC_B, 1 + 5);
-			i386_dec_reg(d);
-			i386_jmp_imm(1);
-			i386_inc_reg(d);
+  			i386_jcc(I386_CC_E, 6 + 3 + 5 + 3);
+  			i386_jcc(I386_CC_B, 3 + 5);
+			i386_alu_imm_reg(I386_SUB, 1, d);
+			i386_jmp_imm(3);
+			i386_alu_imm_reg(I386_ADD, 1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -2768,11 +2750,11 @@ void codegen()
 			i386_movb_imm_reg(1, I386_AH);
  			i386_sahf();
 			i386_mov_imm_reg(0, d);    /* does not affect flags */
-  			i386_jcc(I386_CC_E, 6 + 1 + 5 + 1);
-  			i386_jcc(I386_CC_B, 1 + 5);
-			i386_dec_reg(d);
-			i386_jmp_imm(1);
-			i386_inc_reg(d);
+  			i386_jcc(I386_CC_E, 6 + 3 + 5 + 3);
+  			i386_jcc(I386_CC_B, 3 + 5);
+			i386_alu_imm_reg(I386_SUB, 1, d);
+			i386_jmp_imm(3);
+			i386_alu_imm_reg(I386_ADD, 1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -2783,7 +2765,7 @@ void codegen()
     if (checkbounds) { \
         i386_alu_membase_reg(I386_CMP, s1, OFFSET(java_arrayheader, size), s2); \
         i386_jcc(I386_CC_AE, 0); \
-        codegen_addxboundrefs(mcodeptr); \
+        codegen_addxboundrefs(mcodeptr, s2); \
     }
 
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
@@ -3007,8 +2989,11 @@ void codegen()
 				gen_bound_check;
 			}
 			var_to_reg_int(s3, src, REG_ITMP3);
-  			M_INTMOVE(s3, REG_ITMP3);    /* because EBP, ESI, EDI have no xH and xL bytes */
-			i386_movb_reg_memindex(REG_ITMP3, OFFSET(java_bytearray, data[0]), s1, s2, 0);
+			if (s3 >= EBP) {    /* because EBP, ESI, EDI have no xH and xL nibbles */
+				M_INTMOVE(s3, REG_ITMP3);
+				s3 = REG_ITMP3;
+			}
+			i386_movb_reg_memindex(s3, OFFSET(java_bytearray, data[0]), s1, s2, 0);
 			break;
 
 
@@ -4597,7 +4582,7 @@ gen_method: {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
 							  xboundrefs->branchpos,
-							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
+							  (u1*) xcodeptr - (u1*) mcodebase - (2 + 5 + 5 + 2));
 			continue;
 		}
 
@@ -4607,10 +4592,13 @@ gen_method: {
 
 		MCODECHECK(8);
 
-		i386_mov_imm_reg(0, REG_ITMP2_XPC);    /* 5 bytes */
+		/* move index into REG_ITMP1 */
+		i386_mov_reg_reg(xboundrefs->reg, REG_ITMP1);              /* 2 bytes */
+
+		i386_mov_imm_reg(0, REG_ITMP2_XPC);                        /* 5 bytes */
 		dseg_adddata(mcodeptr);
-		i386_mov_imm_reg(xboundrefs->branchpos - 6, REG_ITMP1);    /* 5 bytes */
-		i386_alu_reg_reg(I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
+		i386_mov_imm_reg(xboundrefs->branchpos - 6, REG_ITMP3);    /* 5 bytes */
+		i386_alu_reg_reg(I386_ADD, REG_ITMP3, REG_ITMP2_XPC);      /* 2 bytes */
 
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 5);
@@ -4618,7 +4606,17 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 
-			i386_mov_imm_reg((s4) proto_java_lang_ArrayIndexOutOfBoundsException, REG_ITMP1_XPTR);
+			i386_push_reg(REG_ITMP2_XPC);
+
+			i386_alu_imm_reg(I386_SUB, 2 * 4, REG_SP);
+			i386_mov_imm_membase((s4) string_java_lang_ArrayIndexOutOfBoundsException, REG_SP, 0 * 4);
+			i386_mov_reg_membase(REG_ITMP1, REG_SP, 1 * 4);
+			i386_mov_imm_reg((s4) new_exception_int, REG_ITMP1);
+			i386_call_reg(REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
+			i386_alu_imm_reg(I386_ADD, 2 * 4, REG_SP);
+
+			i386_pop_reg(REG_ITMP2_XPC);
+
 			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
 			i386_jmp_reg(REG_ITMP3);
 		}
@@ -4640,10 +4638,10 @@ gen_method: {
 
 		MCODECHECK(8);
 
-		i386_mov_imm_reg(0, REG_ITMP2_XPC);    /* 5 bytes */
+		i386_mov_imm_reg(0, REG_ITMP2_XPC);                         /* 5 bytes */
 		dseg_adddata(mcodeptr);
 		i386_mov_imm_reg(xcheckarefs->branchpos - 6, REG_ITMP1);    /* 5 bytes */
-		i386_alu_reg_reg(I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
+		i386_alu_reg_reg(I386_ADD, REG_ITMP1, REG_ITMP2_XPC);       /* 2 bytes */
 
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 5);
@@ -4651,7 +4649,18 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 
-			i386_mov_imm_reg((s4) proto_java_lang_NegativeArraySizeException, REG_ITMP1_XPTR);
+/*  			i386_mov_imm_reg((s4) proto_java_lang_NegativeArraySizeException, REG_ITMP1_XPTR); */
+
+			i386_push_reg(REG_ITMP2_XPC);
+
+			i386_alu_imm_reg(I386_SUB, 1 * 4, REG_SP);
+			i386_mov_imm_membase((s4) string_java_lang_NegativeArraySizeException, REG_SP, 0 * 4);
+			i386_mov_imm_reg((s4) new_exception, REG_ITMP1);
+			i386_call_reg(REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
+			i386_alu_imm_reg(I386_ADD, 1 * 4, REG_SP);
+
+			i386_pop_reg(REG_ITMP2_XPC);
+
 			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
 			i386_jmp_reg(REG_ITMP3);
 		}
@@ -4684,7 +4693,18 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 
-			i386_mov_imm_reg((s4) proto_java_lang_ClassCastException, REG_ITMP1_XPTR);
+/*  			i386_mov_imm_reg((s4) proto_java_lang_ClassCastException, REG_ITMP1_XPTR); */
+
+			i386_push_reg(REG_ITMP2_XPC);
+
+			i386_alu_imm_reg(I386_SUB, 1 * 4, REG_SP);
+			i386_mov_imm_membase((s4) string_java_lang_ClassCastException, REG_SP, 0 * 4);
+			i386_mov_imm_reg((s4) new_exception, REG_ITMP1);
+			i386_call_reg(REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
+			i386_alu_imm_reg(I386_ADD, 1 * 4, REG_SP);
+
+			i386_pop_reg(REG_ITMP2_XPC);
+
 			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
 			i386_jmp_reg(REG_ITMP3);
 		}
@@ -4717,7 +4737,19 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 
-			i386_mov_imm_reg((s4) proto_java_lang_ArithmeticException, REG_ITMP1_XPTR);
+/*  			i386_mov_imm_reg((s4) proto_java_lang_ArithmeticException, REG_ITMP1_XPTR); */
+
+			i386_push_reg(REG_ITMP2_XPC);
+
+			i386_alu_imm_reg(I386_SUB, 2 * 4, REG_SP);
+			i386_mov_imm_membase((s4) string_java_lang_ArithmeticException, REG_SP, 0 * 4);
+			i386_mov_imm_membase((s4) string_java_lang_ArithmeticException_message, REG_SP, 1 * 4);
+			i386_mov_imm_reg((s4) new_exception_message, REG_ITMP1);
+			i386_call_reg(REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
+			i386_alu_imm_reg(I386_ADD, 2 * 4, REG_SP);
+
+			i386_pop_reg(REG_ITMP2_XPC);
+
 			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
 			i386_jmp_reg(REG_ITMP3);
 		}
@@ -4739,10 +4771,10 @@ gen_method: {
 		
 		MCODECHECK(8);
 
-		i386_mov_imm_reg(0, REG_ITMP2_XPC);    /* 5 bytes */
+		i386_mov_imm_reg(0, REG_ITMP2_XPC);                       /* 5 bytes */
 		dseg_adddata(mcodeptr);
 		i386_mov_imm_reg(xnullrefs->branchpos - 6, REG_ITMP1);    /* 5 bytes */
-		i386_alu_reg_reg(I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
+		i386_alu_reg_reg(I386_ADD, REG_ITMP1, REG_ITMP2_XPC);     /* 2 bytes */
 		
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 5);
@@ -4750,7 +4782,18 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 			
-			i386_mov_imm_reg((s4) proto_java_lang_NullPointerException, REG_ITMP1_XPTR);
+/*  			i386_mov_imm_reg((s4) proto_java_lang_NullPointerException, REG_ITMP1_XPTR); */
+
+			i386_push_reg(REG_ITMP2_XPC);
+
+			i386_alu_imm_reg(I386_SUB, 1 * 4, REG_SP);
+			i386_mov_imm_membase((s4) string_java_lang_NullPointerException, REG_SP, 0 * 4);
+			i386_mov_imm_reg((s4) new_exception, REG_ITMP1);
+			i386_call_reg(REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
+			i386_alu_imm_reg(I386_ADD, 1 * 4, REG_SP);
+
+			i386_pop_reg(REG_ITMP2_XPC);
+
 			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
 			i386_jmp_reg(REG_ITMP3);
 		}
@@ -5542,28 +5585,6 @@ void i386_test_imm_reg(s4 imm, s4 reg) {
 /*
  * inc, dec operations
  */
-void i386_inc_reg(s4 reg) {
-	*(mcodeptr++) = (u1) 0x40 + ((reg) & 0x07);
-}
-
-
-void i386_inc_membase(s4 basereg, s4 disp) {
-	*(mcodeptr++) = (u1) 0xff;
-	i386_emit_membase((basereg),(disp),0);
-}
-
-
-void i386_dec_reg(s4 reg) {
-	*(mcodeptr++) = (u1) 0x48 + ((reg) & 0x07);
-}
-
-                
-void i386_dec_membase(s4 basereg, s4 disp) {
-	*(mcodeptr++) = (u1) 0xff;
-	i386_emit_membase((basereg),(disp),1);
-}
-
-
 void i386_dec_mem(s4 mem) {
 	*(mcodeptr++) = (u1) 0xff;
 	i386_emit_mem(1,(mem));
