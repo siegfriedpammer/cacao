@@ -40,7 +40,7 @@ compare_and_swap (volatile long *p, long oldval, long newval)
 
 #define STORE_ORDER_BARRIER() __asm__ __volatile__ ("wmb" : : : "memory");
 #define MEMORY_BARRIER_BEFORE_ATOMIC() __asm__ __volatile__ ("mb" : : : "memory");
-#define MEMORY_BARRIER_AFTER_ATOMIC() __asm__ __volatile__ ("rmb" : : : "memory");
+#define MEMORY_BARRIER_AFTER_ATOMIC() __asm__ __volatile__ ("mb" : : : "memory");
 #define MEMORY_BARRIER() __asm__ __volatile__ ( \
 		"mb" : : : "memory" );
 
