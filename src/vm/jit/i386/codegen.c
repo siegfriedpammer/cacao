@@ -28,17 +28,18 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1506 2004-11-14 14:48:49Z jowenn $
+   $Id: codegen.c 1562 2004-11-23 15:52:25Z twisti $
 
 */
 
 #define _GNU_SOURCE
 
-#include "config.h"
-#include "global.h"
 #include <stdio.h>
 #include <signal.h>
 #include <sys/ucontext.h>
+
+#include "config.h"
+#include "global.h"
 #include "types.h"
 #include "main.h"
 #include "builtin.h"
@@ -66,13 +67,13 @@
 
 /* #define REG_END   -1        last entry in tables */
 
-int nregdescint[] = {
+static int nregdescint[] = {
     REG_RET, REG_RES, REG_RES, REG_TMP, REG_RES, REG_SAV, REG_SAV, REG_SAV,
     REG_END
 };
 
 
-int nregdescfloat[] = {
+static int nregdescfloat[] = {
   /* rounding problems with callee saved registers */
 /*      REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_RES, REG_RES, */
 /*      REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, */
@@ -153,7 +154,7 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 
 /*  	if (faultaddr == 0) { */
 /*  		signal(sig, (void *) catch_NullPointerException); */
-	act.sa_sigaction = (void *) catch_NullPointerException;
+	act.sa_sigaction = (functionptr) catch_NullPointerException;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(sig, &act, NULL);                          /* reinstall handler */
 
@@ -190,7 +191,7 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 	/* Reset signal handler - necessary for SysV, does no harm for BSD        */
 
 /*  	signal(sig, (void *) catch_ArithmeticException); */
-	act.sa_sigaction = (void *) catch_ArithmeticException;
+	act.sa_sigaction = (functionptr) catch_ArithmeticException;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(sig, &act, NULL);                          /* reinstall handler */
 
@@ -215,21 +216,21 @@ void init_exceptions(void)
 	if (!checknull) {
 #if defined(SIGSEGV)
 /*  		signal(SIGSEGV, (void *) catch_NullPointerException); */
-		act.sa_sigaction = (void *) catch_NullPointerException;
+		act.sa_sigaction = (functionptr) catch_NullPointerException;
 		act.sa_flags = SA_SIGINFO;
 		sigaction(SIGSEGV, &act, NULL);
 #endif
 
 #if defined(SIGBUS)
 /*  		signal(SIGBUS, (void *) catch_NullPointerException); */
-		act.sa_sigaction = (void *) catch_NullPointerException;
+		act.sa_sigaction = (functionptr) catch_NullPointerException;
 		act.sa_flags = SA_SIGINFO;
 		sigaction(SIGBUS, &act, NULL);
 #endif
 	}
 
 /*  	signal(SIGFPE, (void *) catch_ArithmeticException); */
-	act.sa_sigaction = (void *) catch_ArithmeticException;
+	act.sa_sigaction = (functionptr) catch_ArithmeticException;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGFPE, &act, NULL);
 }
@@ -342,10 +343,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* save monitorenter argument */
 
 #if defined(USE_THREADS)
-	s4 func_enter = (m->flags & ACC_STATIC) ?
-		(s4) builtin_staticmonitorenter : (s4) builtin_monitorenter;
-
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		s4 func_enter = (m->flags & ACC_STATIC) ?
+			(s4) builtin_staticmonitorenter : (s4) builtin_monitorenter;
+
 		if (m->flags & ACC_STATIC) {
 			i386_mov_imm_reg(cd, (s4) m->class, REG_ITMP1);
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, rd->maxmemuse * 8);
@@ -1161,7 +1162,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			/* should we use a inc optimization for smaller code size? */
 			i386_emit_ialuconst(cd, I386_ADD, src, iptr);
 			break;
 
@@ -2023,6 +2023,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_imm_membase(cd, I386_ADD, iptr->val.i, REG_SP, var->regoff * 8);
 
 			} else {
+				/* `inc reg' is slower on p4's (regarding to ia32             */
+				/* optimization reference manual and benchmarks) and as fast  */
+				/* on athlon's.                                               */
 				i386_alu_imm_reg(cd, I386_ADD, iptr->val.i, var->regoff);
 			}
 			break;
@@ -2832,195 +2835,219 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
 
-			/* if class isn't yet initialized, do it */
+			/* If the static fields' class is not yet initialized, we do it   */
+			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				/* call helper function which patches this code */
-				i386_mov_imm_reg(cd, (s4) ((fieldinfo *) iptr->val.a)->class, REG_ITMP1);
-				i386_mov_imm_reg(cd, (s4) asm_check_clinit, REG_ITMP2);
-				i386_call_reg(cd, REG_ITMP2);
+				codegen_addclinitref(cd, cd->mcodeptr, ((fieldinfo *) iptr->val.a)->class);
+
+				/* This is just for debugging purposes. Is very difficult to  */
+				/* read patched code. Here we patch the following 5 nop's     */
+				/* so that the real code keeps untouched.                     */
+				if (showdisassemble) {
+					i386_nop(cd);
+					i386_nop(cd);
+					i386_nop(cd);
+					i386_nop(cd);
+					i386_nop(cd);
+				}
   			}
 
-			a = dseg_addaddress(cd, &(((fieldinfo *) iptr->val.a)->value));
-			/* here it's slightly slower */
-			i386_mov_imm_reg(cd, 0, REG_ITMP2);
-			dseg_adddata(cd, cd->mcodeptr);
-			i386_mov_membase_reg(cd, REG_ITMP2, a, REG_ITMP2);
+			a = &(((fieldinfo *) iptr->val.a)->value);
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_ADR:
 				var_to_reg_int(s2, src, REG_ITMP1);
-				i386_mov_reg_membase(cd, s2, REG_ITMP2, 0);
+				i386_mov_reg_mem(cd, s2, a);
 				break;
 			case TYPE_LNG:
 				if (src->flags & INMEMORY) {
-					i386_mov_membase_reg(cd, REG_SP, src->regoff * 8, REG_ITMP1);
-					i386_mov_reg_membase(cd, REG_ITMP1, REG_ITMP2, 0);
-					i386_mov_membase_reg(cd, REG_SP, src->regoff * 8 + 4, REG_ITMP1);
-					i386_mov_reg_membase(cd, REG_ITMP1, REG_ITMP2, 0 + 4);
+					/* Using both REG_ITMP1 and REG_ITMP2 is faster than only */
+					/* using REG_ITMP1 alternating.                           */
+					s2 = src->regoff;
+					i386_mov_membase_reg(cd, REG_SP, s2 * 8, REG_ITMP1);
+					i386_mov_membase_reg(cd, REG_SP, s2 * 8 + 4, REG_ITMP2);
+					i386_mov_reg_mem(cd, REG_ITMP1, a);
+					i386_mov_reg_mem(cd, REG_ITMP2, a + 4);
 				} else {
 					panic("PUTSTATIC: longs have to be in memory");
 				}
 				break;
 			case TYPE_FLT:
 				var_to_reg_flt(s2, src, REG_FTMP1);
-				i386_fstps_membase(cd, REG_ITMP2, 0);
+				i386_fstps_mem(cd, a);
 				fpu_st_offset--;
 				break;
 			case TYPE_DBL:
 				var_to_reg_flt(s2, src, REG_FTMP1);
-				i386_fstpl_membase(cd, REG_ITMP2, 0);
+				i386_fstpl_mem(cd, a);
 				fpu_st_offset--;
 				break;
-			default: panic ("internal error");
+			default:
+				throw_cacao_exception_exit(string_java_lang_InternalError,
+										   "Unknown PUTSTATIC operand type %d",
+										   iptr->op1);
 			}
 			break;
 
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
 
-			/* if class isn't yet initialized, do it */
+			/* If the static fields' class is not yet initialized, we do it   */
+			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				/* call helper function which patches this code */
-				i386_mov_imm_reg(cd, (s4) ((fieldinfo *) iptr->val.a)->class, REG_ITMP1);
-				i386_mov_imm_reg(cd, (s4) asm_check_clinit, REG_ITMP2);
-				i386_call_reg(cd, REG_ITMP2);
-			}
+				codegen_addclinitref(cd, cd->mcodeptr, ((fieldinfo *) iptr->val.a)->class);
 
-			a = dseg_addaddress(cd, &(((fieldinfo *) iptr->val.a)->value));
-			i386_mov_imm_reg(cd, 0, REG_ITMP2);
-			dseg_adddata(cd, cd->mcodeptr);
-			i386_mov_membase_reg(cd, REG_ITMP2, a, REG_ITMP2);
+				/* This is just for debugging purposes. Is very difficult to  */
+				/* read patched code. Here we patch the following 5 nop's     */
+				/* so that the real code keeps untouched.                     */
+				if (showdisassemble) {
+					i386_nop(cd);
+					i386_nop(cd);
+					i386_nop(cd);
+					i386_nop(cd);
+					i386_nop(cd);
+				}
+  			}
+
+			a = &(((fieldinfo *) iptr->val.a)->value);
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_ADR:
 				d = reg_of_var(rd, iptr->dst, REG_ITMP1);
-				i386_mov_membase_reg(cd, REG_ITMP2, 0, d);
+				i386_mov_mem_reg(cd, a, d);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
 				d = reg_of_var(rd, iptr->dst, REG_NULL);
 				if (iptr->dst->flags & INMEMORY) {
-					i386_mov_membase_reg(cd, REG_ITMP2, 0, REG_ITMP1);
+					/* Using both REG_ITMP1 and REG_ITMP2 is faster than only */
+					/* using REG_ITMP1 alternating.                           */
+					i386_mov_mem_reg(cd, a, REG_ITMP1);
+					i386_mov_mem_reg(cd, a + 4, REG_ITMP2);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-					i386_mov_membase_reg(cd, REG_ITMP2, 0 + 4, REG_ITMP1);
-					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 8 + 4);
+					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
 				} else {
 					panic("GETSTATIC: longs have to be in memory");
 				}
 				break;
 			case TYPE_FLT:
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				i386_flds_membase(cd, REG_ITMP2, 0);
+				i386_flds_mem(cd, a);
 				fpu_st_offset++;
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			case TYPE_DBL:				
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				i386_fldl_membase(cd, REG_ITMP2, 0);
+				i386_fldl_mem(cd, a);
 				fpu_st_offset++;
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
-			default: panic ("internal error");
+			default:
+				throw_cacao_exception_exit(string_java_lang_InternalError,
+										   "Unknown GETSTATIC operand type %d",
+										   iptr->op1);
 			}
 			break;
 
 		case ICMD_PUTFIELD:   /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.i = field offset             */
 
-			a = ((fieldinfo *)(iptr->val.a))->offset;
+			a = ((fieldinfo *) (iptr->val.a))->offset;
 			switch (iptr->op1) {
-				case TYPE_INT:
-				case TYPE_ADR:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_int(s2, src, REG_ITMP2);
-					gen_nullptr_check(s1);
-					i386_mov_reg_membase(cd, s2, s1, a);
-					break;
-				case TYPE_LNG:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					gen_nullptr_check(s1);
-					if (src->flags & INMEMORY) {
-						i386_mov_membase_reg(cd, REG_SP, src->regoff * 8, REG_ITMP2);
-						i386_mov_reg_membase(cd, REG_ITMP2, s1, a);
-						i386_mov_membase_reg(cd, REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-						i386_mov_reg_membase(cd, REG_ITMP2, s1, a + 4);
-					} else {
-						panic("PUTFIELD: longs have to be in memory");
-					}
-					break;
-				case TYPE_FLT:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_flt(s2, src, REG_FTMP1);
-					gen_nullptr_check(s1);
-					i386_fstps_membase(cd, s1, a);
-					fpu_st_offset--;
-					break;
-				case TYPE_DBL:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_flt(s2, src, REG_FTMP1);
-					gen_nullptr_check(s1);
-					i386_fstpl_membase(cd, s1, a);
-					fpu_st_offset--;
-					break;
-				default: panic ("internal error");
+			case TYPE_INT:
+			case TYPE_ADR:
+				var_to_reg_int(s1, src->prev, REG_ITMP1);
+				var_to_reg_int(s2, src, REG_ITMP2);
+				gen_nullptr_check(s1);
+				i386_mov_reg_membase(cd, s2, s1, a);
+				break;
+			case TYPE_LNG:
+				var_to_reg_int(s1, src->prev, REG_ITMP1);
+				gen_nullptr_check(s1);
+				if (src->flags & INMEMORY) {
+					i386_mov_membase_reg(cd, REG_SP, src->regoff * 8, REG_ITMP2);
+					i386_mov_reg_membase(cd, REG_ITMP2, s1, a);
+					i386_mov_membase_reg(cd, REG_SP, src->regoff * 8 + 4, REG_ITMP2);
+					i386_mov_reg_membase(cd, REG_ITMP2, s1, a + 4);
+				} else {
+					panic("PUTFIELD: longs have to be in memory");
 				}
+				break;
+			case TYPE_FLT:
+				var_to_reg_int(s1, src->prev, REG_ITMP1);
+				var_to_reg_flt(s2, src, REG_FTMP1);
+				gen_nullptr_check(s1);
+				i386_fstps_membase(cd, s1, a);
+				fpu_st_offset--;
+				break;
+			case TYPE_DBL:
+				var_to_reg_int(s1, src->prev, REG_ITMP1);
+				var_to_reg_flt(s2, src, REG_FTMP1);
+				gen_nullptr_check(s1);
+				i386_fstpl_membase(cd, s1, a);
+				fpu_st_offset--;
+				break;
+			default:
+				throw_cacao_exception_exit(string_java_lang_InternalError,
+										   "Unknown PUTFIELD operand type %d",
+										   iptr->op1);
+			}
 			break;
 
 		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.i = field offset             */
 
-			a = ((fieldinfo *)(iptr->val.a))->offset;
+			a = ((fieldinfo *) (iptr->val.a))->offset;
 			switch (iptr->op1) {
-				case TYPE_INT:
-				case TYPE_ADR:
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_ITMP2);
-					gen_nullptr_check(s1);
-					i386_mov_membase_reg(cd, s1, a, d);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_LNG:
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_NULL);
-					gen_nullptr_check(s1);
-					i386_mov_membase_reg(cd, s1, a, REG_ITMP2);
-					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, iptr->dst->regoff * 8);
-					i386_mov_membase_reg(cd, s1, a + 4, REG_ITMP2);
-					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-					break;
-				case TYPE_FLT:
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-					gen_nullptr_check(s1);
-					i386_flds_membase(cd, s1, a);
-					fpu_st_offset++;
-   					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				case TYPE_DBL:				
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-					gen_nullptr_check(s1);
-					i386_fldl_membase(cd, s1, a);
-					fpu_st_offset++;
-  					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				default: panic ("internal error");
-				}
+			case TYPE_INT:
+			case TYPE_ADR:
+				var_to_reg_int(s1, src, REG_ITMP1);
+				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				gen_nullptr_check(s1);
+				i386_mov_membase_reg(cd, s1, a, d);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_LNG:
+				var_to_reg_int(s1, src, REG_ITMP1);
+				d = reg_of_var(rd, iptr->dst, REG_NULL);
+				gen_nullptr_check(s1);
+				i386_mov_membase_reg(cd, s1, a, REG_ITMP2);
+				i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, iptr->dst->regoff * 8);
+				i386_mov_membase_reg(cd, s1, a + 4, REG_ITMP2);
+				i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
+				break;
+			case TYPE_FLT:
+				var_to_reg_int(s1, src, REG_ITMP1);
+				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				gen_nullptr_check(s1);
+				i386_flds_membase(cd, s1, a);
+				fpu_st_offset++;
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			case TYPE_DBL:				
+				var_to_reg_int(s1, src, REG_ITMP1);
+				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				gen_nullptr_check(s1);
+				i386_fldl_membase(cd, s1, a);
+				fpu_st_offset++;
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			default:
+				throw_cacao_exception_exit(string_java_lang_InternalError,
+										   "Unknown GETSTATIC operand type %d",
+										   iptr->op1);
+			}
 			break;
 
 
 		/* branch operations **************************************************/
-
-			/* TWISTI */
-/*  #define ALIGNCODENOP {if((int)((long)cd->mcodeptr&7)){M_NOP;}} */
-#define ALIGNCODENOP do {} while (0)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
 
-			i386_call_imm(cd, 0);                    /* passing exception pointer */
+			i386_call_imm(cd, 0);                /* passing exception pointer */
 			i386_pop_reg(cd, REG_ITMP2_XPC);
 
   			i386_mov_imm_reg(cd, (s4) asm_handle_exception, REG_ITMP3);
@@ -4713,6 +4740,44 @@ java stack at this point*/
 			i386_jmp_reg(cd, REG_ITMP3);
 		}
 	}
+
+	/* generate put/getstatic stub call code */
+
+	{
+		clinitref   *cref;
+		codegendata *tmpcd;
+
+		tmpcd = DNEW(codegendata);
+
+		for (cref = cd->clinitrefs; cref != NULL; cref = cref->next) {
+			/* Get machine code which is patched back in later. A             */
+			/* `call rel32' is 5 bytes long.                                  */
+			xcodeptr = cd->mcodebase + cref->branchpos;
+			cref->xmcode = *xcodeptr;
+			cref->mcode =  *((u4 *) (xcodeptr + 1));
+
+			MCODECHECK(50);
+
+			/* patch in `call rel32' to call the following code               */
+			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
+			i386_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
+
+			/* Save current stack pointer into a temporary register.          */
+			i386_mov_reg_reg(cd, REG_SP, REG_ITMP1);
+
+			/* Push machine code bytes to patch onto the stack.               */
+			i386_push_imm(cd, (u4) cref->xmcode);
+			i386_push_imm(cd, (u4) cref->mcode);
+
+			i386_push_imm(cd, (u4) cref->class);
+
+			/* Push previously saved stack pointer onto stack.                */
+			i386_push_reg(cd, REG_ITMP1);
+
+			i386_mov_imm_reg(cd, (u4) asm_check_clinit, REG_ITMP1);
+			i386_jmp_reg(cd, REG_ITMP1);
+		}
+	}
 	}
 	
 	codegen_finish(m, cd, (u4) (cd->mcodeptr - cd->mcodebase));
@@ -4730,8 +4795,14 @@ java stack at this point*/
 u1 *createcompilerstub(methodinfo *m)
 {
     u1 *s = CNEW(u1, COMPSTUBSIZE);     /* memory to hold the stub            */
-	codegendata *cd = NEW(codegendata);
+	codegendata *cd;
+	s4 dumpsize;
 
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+	
+	cd = DNEW(codegendata);
     cd->mcodeptr = s;
 
     /* code for the stub */
@@ -4741,16 +4812,15 @@ u1 *createcompilerstub(methodinfo *m)
     i386_mov_imm_reg(cd, (u4) asm_call_jit_compiler, REG_ITMP3);
     i386_jmp_reg(cd, REG_ITMP3);        /* jump to compiler                   */
 
-	/* free codegendata memory */
-	codegen_close(m);
-
 #if defined(STATISTICS)
 	if (opt_stat)
 		count_cstub_len += COMPSTUBSIZE;
 #endif
 
-	FREE(cd, codegendata);
+	/* release dump area */
 
+	dump_release(dumpsize);
+	
     return s;
 }
 
@@ -4773,7 +4843,8 @@ void removecompilerstub(u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE 350
+#define NATIVESTUBSIZE    370 + 36
+
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 static java_objectheader **(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr;
@@ -4804,9 +4875,15 @@ void traverseStackInfo() {
 
 }
 
+
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
     u1 *s = CNEW(u1, NATIVESTUBSIZE);   /* memory to hold the stub            */
+	codegendata *cd;
+	registerdata *rd;
+	t_inlining_globals *id;
+	s4 dumpsize;
+
     int addmethod=0;
     u1 *tptr;
     int i;
@@ -4820,22 +4897,31 @@ u1 *createnativestub(functionptr f, methodinfo *m)
     u1* jmpInstrPos=0;
     void** jmpInstrPatchPos=0;
 
-	codegendata *cd = NEW(codegendata);
-	registerdata *rd = NEW(registerdata);
-	t_inlining_globals *id = NEW(t_inlining_globals);
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* allocate required dump memory */
+
+	cd = DNEW(codegendata);
+	rd = DNEW(registerdata);
+	id = DNEW(t_inlining_globals);
 
 	/* setup registers before using it */
+
 	inlining_setup(m, id);
 	reg_setup(m, rd, id);
 
+	/* set some required varibles which are normally set by codegen_setup */
+	cd->mcodebase = s;
 	cd->mcodeptr = s;
+	cd->clinitrefs = NULL;
 
 	if (m->flags & ACC_STATIC) {
 		stackframesize += 4;
 		stackframeoffset += 4;
 	}
 
-    reg_init(m);
     descriptor2types(m);                     /* set paramcount and paramtypes */
   
 /*DEBUG*/
@@ -4848,11 +4934,11 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	/* if function is static, check for initialized */
 
 	if (m->flags & ACC_STATIC) {
-	/* if class isn't yet initialized, do it */
+		/* if class isn't yet initialized, do it */
 		if (!m->class->initialized) {
 			s4 *header = (s4 *) s;
 			*header = 0;/*extablesize*/
-			header;
+			header++;
 			*header = 0;/*line number table start*/
 			header++;
 			*header = 0;/*line number table size*/
@@ -4868,14 +4954,15 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			*header = 0;/*framesize*/
 			header++;
 			*header = (u4) m;/*methodpointer*/
-			*header++;
-			cd->mcodeptr = s = (u1 *) header;
+			header++;
+
+			s = (u1 *) header;
+
+			cd->mcodebase = s;
+			cd->mcodeptr = s;
 			addmethod = 1;
 
-			/* call helper function which patches this code */
-			i386_mov_imm_reg(cd, (u4) m->class, REG_ITMP1);
-			i386_mov_imm_reg(cd, (u4) asm_check_clinit, REG_ITMP2);
-			i386_call_reg(cd, REG_ITMP2);
+			codegen_addclinitref(cd, cd->mcodeptr, m->class);
 		}
 	}
 
@@ -5092,7 +5179,6 @@ u1 *createnativestub(functionptr f, methodinfo *m)
         i386_alu_imm_reg(cd, I386_ADD, 4 + 8 + 8 + 4, REG_SP);
     }
 
-
 	/* we can't use REG_ITMP3 == REG_RESULT2 */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	i386_push_reg(cd, REG_RESULT);
@@ -5131,23 +5217,58 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		codegen_insertmethod(s, cd->mcodeptr);
 	}
 
+	{
+		u1          *xcodeptr;
+		clinitref   *cref;
+		codegendata *tmpcd;
+
+		tmpcd = DNEW(codegendata);
+
+		/* there can only be one clinit ref entry                             */
+		cref = cd->clinitrefs;
+
+		if (cref) {
+			/* Get machine code which is patched back in later. A             */
+			/* `call rel32' is 5 bytes long.                                  */
+			xcodeptr = cd->mcodebase + cref->branchpos;
+			cref->xmcode = *xcodeptr;
+			cref->mcode =  *((u4 *) (xcodeptr + 1));
+
+			/* patch in `call rel32' to call the following code               */
+			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
+			i386_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
+
+			/* Save current stack pointer into a temporary register.          */
+			i386_mov_reg_reg(cd, REG_SP, REG_ITMP1);
+
+			/* Push machine code bytes to patch onto the stack.               */
+			i386_push_imm(cd, (u4) cref->xmcode);
+			i386_push_imm(cd, (u4) cref->mcode);
+
+			i386_push_imm(cd, (u4) cref->class);
+
+			/* Push previously saved stack pointer onto stack.                */
+			i386_push_reg(cd, REG_ITMP1);
+
+			i386_mov_imm_reg(cd, (u4) asm_check_clinit, REG_ITMP1);
+			i386_jmp_reg(cd, REG_ITMP1);
+		}
+	}
+
 #if 0
-	dolog_plain("native stubentry: %p, stubsize: %x (for %d params) --", (s4)s,(s4) (cd->mcodeptr - s), m->paramcount);
+	dolog_plain("native stubentry: %p, stubsize: %d (for %d params) --", (s4)s,(s4) (cd->mcodeptr - s), m->paramcount);
 	utf_display(m->name);
 	dolog_plain("\n");
 #endif
-
-	/* free codegendata memory */
-	codegen_close(m);
 
 #if defined(STATISTICS)
 	if (opt_stat)
 		count_nstub_len += NATIVESTUBSIZE;
 #endif
 
-	FREE(cd, codegendata);
-	FREE(rd, registerdata);
-	FREE(id, t_inlining_globals);
+	/* release dump area */
+
+	dump_release(dumpsize);
 
 	return s;
 }
