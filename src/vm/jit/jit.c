@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: jit.c 624 2003-11-13 14:06:52Z twisti $
+   $Id: jit.c 631 2003-11-14 09:21:47Z stefan $
 
 */
 
@@ -1303,7 +1303,7 @@ stdopdescriptor builtintable[] = {
 	  (functionptr) builtin_f2i, SUPPORT_FLOAT && SUPPORT_FICVT, true },
 	{ ICMD_D2I,    TYPE_DOUBLE, TYPE_VOID, TYPE_INT, ICMD_BUILTIN1,
 	  (functionptr) builtin_d2i, SUPPORT_DOUBLE && SUPPORT_FICVT, true },
-/*  	{ 0, 0, 0, 0, 0, NULL, false, false }, */
+  	{ 255, 0, 0, 0, 0, NULL, true, false },
 };
 
 #endif /* USEBUILTINTABLE */
