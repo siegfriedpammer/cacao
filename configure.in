@@ -28,6 +28,13 @@ mips* )
 	COMPILER_OBJECTS=""
 	;;
 
+i386* | i486* | i586* | i686* )
+	SYSDEP_DIR="i386" 
+	CFLAGS="-O0 -g3 -D__I386__"
+	COMPILER_SOURCES="compiler.h compiler.c" 
+	COMPILER_OBJECTS="compiler.o"
+	;;
+
 sparc* | powerpc* | ppc* | * )
 	AC_MSG_ERROR($host-cpu systems are not supported at this time) ;;
 
@@ -140,6 +147,7 @@ AC_OUTPUT(Makefile \
 	  jit/Makefile \
           alpha/Makefile \
           mips/Makefile \
+          i386/Makefile \
           nat/Makefile \
           doc/Makefile \
           comp/Makefile \

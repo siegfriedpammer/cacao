@@ -1,9 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 192 2002-12-21 12:06:01Z stefan $
+# $Id: Makefile.am 204 2003-01-23 22:50:44Z twisti $
 
 MAINTAINERCLEANFILES = Makefile.in configure
-SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc narray jvmtst
+SUBDIRS = toolbox mm alpha i386 jit comp nat threads mips tst doc narray jvmtst
 
 EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html \
 				jni.c
@@ -16,7 +16,7 @@ CLEANFILES = @SYSDEP_DIR@/asmpart.o \
 bin_PROGRAMS = cacao
 noinst_PROGRAMS = cacaoh
 
-INCLUDES=-I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@ -I$(top_srcdir)
+INCLUDES=-I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@ -I$(top_srcdir)
 
 cacao_SOURCES = \
 	asmpart.h \
