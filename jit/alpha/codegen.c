@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1595 2004-11-25 15:49:48Z twisti $
+   $Id: codegen.c 1596 2004-11-26 12:02:31Z twisti $
 
 */
 
@@ -3808,7 +3808,7 @@ gen_method: {
 		for (cref = cd->clinitrefs; cref != NULL; cref = cref->next) {
 			/* Get machine code which is patched back in later. The call is   */
 			/* 1 instruction word long.                                       */
-			xcodeptr = cd->mcodebase + cref->branchpos;
+			xcodeptr = (s4 *) (cd->mcodebase + cref->branchpos);
 			mcode = *xcodeptr;
 
 			/* patch in the call to call the following code (done at compile  */
@@ -3945,7 +3945,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	mcodeptr = (s4 *) cs;               /* code generation pointer            */
 
 	/* set some required varibles which are normally set by codegen_setup     */
-	cd->mcodebase = mcodeptr;
+	cd->mcodebase = (u1 *) mcodeptr;
 	cd->clinitrefs = NULL;
 
 	*(cs-1)  = (u8) f;                  /* address of native method           */
@@ -4177,7 +4177,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		if (cref) {
 			/* Get machine code which is patched back in later. The call is   */
 			/* 2 instruction words long.                                      */
-			xcodeptr = cd->mcodebase + cref->branchpos;
+			xcodeptr = (s4 *) (cd->mcodebase + cref->branchpos);
 			*(cs-10) = (u4) *xcodeptr;
 
 			/* patch in the call to call the following code (done at compile  */
