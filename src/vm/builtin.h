@@ -28,13 +28,15 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 819 2003-12-31 14:07:20Z twisti $
+   $Id: builtin.h 820 2003-12-31 14:11:13Z twisti $
 
 */
 
 
 #ifndef _BUILTIN_H
 #define _BUILTIN_H
+
+#include "config.h"
 
 
 /* define infinity for floating point numbers */
@@ -53,6 +55,7 @@
 /* some platforms do not have float versions of these functions */
 
 #ifndef HAVE_COPYSIGNF
+#error XXX
 #define copysignf copysign
 #endif
 
