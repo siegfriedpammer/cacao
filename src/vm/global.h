@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 1931 2005-02-10 10:55:47Z twisti $
+   $Id: global.h 1959 2005-02-19 11:46:27Z carolyn $
 
 */
 
@@ -503,9 +503,10 @@ typedef struct xtainfo {
 	/*classSet 	*PartClassSet */   /* method class type set                 */ 
 
 	classSetNode    *paramClassSet; /* cone set of methods parameters       */
-
-	methSet  	*calls;            /* methods this method calls   	        */ 
-	methSet  	*calledBy;         /* methods that call this method         */ 
+	
+	/* Needed for interative checking */
+	methSet  	*calls;            /* Edges - methods this method calls   	        */ 
+	methSet  	*calledBy;         /* Edges - methods that call this method         */ 
 	methSet  	*marked;  /*not in Dez*/         /* methods that marked by this method    */ 
 	methSet         *markedBy;
 	fldSet          *fldsUsed;         /* fields used by this method             */ 

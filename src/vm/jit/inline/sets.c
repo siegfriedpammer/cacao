@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: sets.c 1959 2005-02-19 11:46:27Z carolyn $
 
 */
 
@@ -173,10 +173,10 @@ methSetNode *addMethRef(methSetNode *s,  methodinfo *m)
 }
 
 
-/*------------------------------------------------------------*/
+/*x------------------------------------------------------------*/
 methSet *add2MethSet(methSet *sm,  methodinfo *m)
 {
-	methSetNode *s1;
+	methSetNode *snew;
 	methSetNode *s;
  
 	if (sm == NULL) {
@@ -184,22 +184,22 @@ methSet *add2MethSet(methSet *sm,  methodinfo *m)
 	}
 	s = sm->head;
 	if (!inMethSet(s,m)) {
-		s1 = NEW(methSetNode);
+		snew = NEW(methSetNode);
 		if (sm->head == NULL) {
-			sm->head = s1;
-			sm->pos   = s1;
-			s1->index = 1;
+			sm->head  = snew;
+			sm->pos   = snew;
+			snew->index = 1;
 		}        
 		else {
-			sm->tail->nextmethRef  = s1;
+			sm->tail->nextmethRef  = snew;
 			sm->length++;
-			s1->index = sm->length;
+			snew->index = sm->length;
     	}
-		s1->monoPoly = MONO; 
-		s1->nextmethRef= NULL;
-		s1->methRef = m;
-		s1->lastptrIntoClassSet2 = NULL;
-		sm->tail = s1;
+		snew->monoPoly = MONO; 
+		snew->nextmethRef= NULL;
+		snew->methRef = m;
+		snew->lastptrIntoClassSet2 = NULL; /* ????? */
+		sm->tail = snew;
 	}
 	return sm;
 }

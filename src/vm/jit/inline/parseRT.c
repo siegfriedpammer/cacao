@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1927 2005-02-10 10:50:55Z twisti $
+   $Id: parseRT.c 1959 2005-02-19 11:46:27Z carolyn $
 
 */
 
@@ -165,8 +165,8 @@ void rtaAddUsedInterfaceMethods(classinfo *ci) {
 						/* Mark this method used in the (used) implementing class and its subclasses */
 						printf("rMAY ADD methods that was used by an interface\n");
 					}
-					if ((utf_new_char("<clinit>") != imi->name) &&
-					    (utf_new_char("<init>") != imi->name))
+					if ((utf_clinit != imi->name) &&
+					    (utf_init != imi->name))
 					    rtaMarkSubs(ci,imi);
 				}
 			}
@@ -232,8 +232,8 @@ void RTAaddClassInit(classinfo *ci, bool clinits, bool finalizes, bool addmark)
 	
   if (clinits) { /* No <clinit>  available - ignore */
     mi = class_findmethod(ci, 
-			utf_new_char("<clinit>"), 
-			utf_new_char("()V"));
+			utf_clinit, 
+			utf_void__void);
     if (mi) { 
 	if (ci->classUsed != USED)
 	    ci->classUsed = PARTUSED;
@@ -251,7 +251,7 @@ void RTAaddClassInit(classinfo *ci, bool clinits, bool finalizes, bool addmark)
   if (finalizes) {
     mi = class_findmethod(ci, 
 			utf_new_char("finalize"), 
-			utf_new_char("()V"));
+			utf_void__void);
     if (mi) { 
 	if (ci->classUsed != USED)
 	    ci->classUsed = PARTUSED;
@@ -424,12 +424,6 @@ void rtaMarkInterfaceSubs(methodinfo *mi) {
 		} /* end while */
 } 
 
-
-
-
-
-
-
 /*********************************************************************/
 
 int parseRT(methodinfo *m)
@@ -539,9 +533,6 @@ if ((RTA_DEBUGr)||(RTA_DEBUGopcodes)) printf("\n");
 					return 0; /* was NULL */
 
 				CLASSNAME(fi->class,"\tPUT/GETSTATIC: ",RTA_DEBUGr);
-				if (!fi->class->initialized) {
-					m->isleafmethod = false;
-					}	
 				RTAaddClassInit(	fi->class,
 						CLINITS_T,FINALIZE_T,ADDMARKED_F);
 			}
@@ -556,7 +547,6 @@ if ((RTA_DEBUGr)||(RTA_DEBUGopcodes)) printf("\n");
 				constant_FMIref *mr;
 				methodinfo *mi;
 
-				m->isleafmethod = false;
 				mr = class_getconstant(m->class, i, CONSTANT_Methodref);
 				LAZYLOADING(mr->class) 
 				mi = class_resolveclassmethod(	mr->class,
@@ -576,81 +566,73 @@ if ((RTA_DEBUGr)||(RTA_DEBUGopcodes)) printf("\n");
 				     || (mi->flags & ACC_PRIVATE)  
 				     || (mi->flags & ACC_FINAL) )  
 			         	{
-				     	if (mi->class->classUsed == PARTUSED){ 
-					   		RTAaddClassInit(mi->class, 
+				        if (mi->class->classUsed != USED){ /* = NOTUSED or PARTUSED */
+					   	RTAaddClassInit(mi->class, 
 					  			CLINITS_T,FINALIZE_T,ADDMARKED_T); 
-							} 
-				     	else { 
-				        	if (mi->class->classUsed == NOTUSED){ 
-					   			RTAaddClassInit(mi->class, 
-					  				CLINITS_T,FINALIZE_T,ADDMARKED_T); 
-				     	   		if (mi->class->classUsed == NOTUSED){    
-									/* Leaf methods are used whether class is or not */
-									/*   so mark class as PARTlyUSED                 */
-				     	       		mi->class->classUsed = PARTUSED; 						   
-									}  
-								} 
-							} 
-						/* Add to RTA working list/set of reachable methods	*/
-						if (opcode == JAVA_INVOKESTATIC)  /* if stmt just for debug tracing */	   
-							addToRtaWorkList(mi, 
-								"addTo INVOKESTATIC "); 
-						else 
-							addToRtaWorkList(mi, 
-								"addTo INVOKESPECIAL ");	
+								/* Leaf methods are used whether class is or not */
+								/*   so mark class as PARTlyUSED                 */
+				     	       	mi->class->classUsed = PARTUSED; 
 						} 
+					/* Add to RTA working list/set of reachable methods	*/
+					if (opcode == JAVA_INVOKESTATIC)  /* if stmt just for debug tracing */	   
+						addToRtaWorkList(mi, 
+								"addTo INVOKESTATIC "); 
+					else 
+						addToRtaWorkList(mi, 
+								"addTo INVOKESPECIAL ");	
+					} 
 				     	
-					else {
+				   else {
 					/*---- Handle special <init> calls ---------------------------------------------*/
 				   
-						if (mi->class->classUsed != USED) {
-				       		/* RTA special case:
-				          		call of super's <init> then
-				          		methods of super class not all used */
+					if (mi->class->classUsed != USED) {
+			       		/* RTA special case:
+			          		call of super's <init> then
+			          		methods of super class not all used */
 				          		
-				          	/*--- <init>  ()V  is equivalent to "new" 
-				          		indicating a class is used = instaniated ---- */	
-				       		if (utf_new_char("<init>")==mi->name) {
-					    		if ((m->class->super == mi->class) 
-					    		&&  (m->descriptor == utf_new_char("()V")) ) 
-									{
-									METHINFOt(mi,"SUPER INIT:",RTA_DEBUGopcodes);
-									/* super init so class may be only used because of its sub-class */
-					     			RTAaddClassInit(mi->class,
+			          		/*--- <init>  ()V  is equivalent to "new" 
+			          		indicating a class is used = instaniated ---- */	
+			       			if (utf_init==mi->name) {
+				    			if ((m->class->super == mi->class) 
+				    			&&  (m->descriptor == utf_void__void) ) 
+								{
+								METHINFOt(mi,"SUPER INIT:",RTA_DEBUGopcodes);
+								/* super init so class may be only used because of its sub-class */
+				     				RTAaddClassInit(mi->class,
 						        		CLINITS_T,FINALIZE_T,ADDMARKED_F);
-									if (mi->class->classUsed == NOTUSED) mi->class->classUsed = PARTUSED;
-									}
-					    		else {
-						    		/* since <init> indicates classes is used, then add marked methods, too */
-									METHINFOt(mi,"NORMAL INIT:",RTA_DEBUGopcodes);
-					        		RTAaddClassInit(mi->class,
-										CLINITS_T,FINALIZE_T,ADDMARKED_T);
-					        		}
-								addToRtaWorkList(mi,
-									"addTo INIT ");
-								} /* end just for <init> ()V */
+								if (mi->class->classUsed == NOTUSED) mi->class->classUsed = PARTUSED;
+								}
+				    			else {
+					    			/* since <init> indicates classes is used, then add marked methods, too */
+								METHINFOt(mi,"NORMAL INIT:",RTA_DEBUGopcodes);
+				        			RTAaddClassInit(mi->class,
+									CLINITS_T,FINALIZE_T,ADDMARKED_T);
+				        			}
+							addToRtaWorkList(mi,
+								"addTo INIT ");
+							} /* end just for <init> ()V */
 					 		
-							/* <clinit> for class inits do not add marked methods; class not yet instaniated */	 
-							if (utf_new_char("<clinit>")==mi->name)
-								RTAaddClassInit(	mi->class,
-									CLINITS_T,FINALIZE_T,ADDMARKED_F);
+						/* <clinit> for class inits do not add marked methods; class not yet instaniated */	 
+						if (utf_clinit==mi->name)
+							RTAaddClassInit(	mi->class,
+										CLINITS_T,FINALIZE_T,ADDMARKED_F);
 
-							if (!((utf_new_char("<init>")==mi->name))
-							||   (utf_new_char("<clinit>")==mi->name)) {
-								METHINFOt(mi,"SPECIAL not init:",RTA_DEBUGopcodes)
-								if (mi->class->classUsed !=USED)
-									mi->class->classUsed = PARTUSED;
-								addToRtaWorkList(mi,
-									"addTo SPEC notINIT ");
-								} 
-					  			
-							} /* end init'd class not used = class init process was needed */ 
+						if (!((utf_init==mi->name))
+						||   (utf_clinit==mi->name)) {
+							METHINFOt(mi,"SPECIAL not init:",RTA_DEBUGopcodes)
+							if (mi->class->classUsed !=USED)
+								mi->class->classUsed = PARTUSED;
+							addToRtaWorkList(mi,
+								"addTo SPEC notINIT ");
+							} 
+					 	 			
+						} /* end init'd class not used = class init process was needed */ 
 							
-						/* add method to RTA list = set of reachable methods */	
-						addToRtaWorkList(mi,
+					/* add method to RTA list = set of reachable methods */	
+					addToRtaWorkList(mi,
 							"addTo SPEC whymissed ");
-						} /* end inits */
-					} 
+					} /* end inits */
+				   } 
 /***  assume if method can't be resolved won't actually be called or
       there is a real error in classpath and in normal parse an exception
       will be thrown. Following debug print can verify this
@@ -668,7 +650,6 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 				constant_FMIref *mr;
                                 methodinfo *mi;
 
-                               	m->isleafmethod = false;
 			       	mr = m->class->cpinfos[i];
                                 /*mr = class_getconstant(m->class, i, CONSTANT_Methodref)*/
 			       	LAZYLOADING(mr->class) 
@@ -713,8 +694,6 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
                                 constant_FMIref *mr;
                                 methodinfo *mi;
 
-                                m->isleafmethod = false;
-
                                 mr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
                                 LAZYLOADING(mr->class)
 
@@ -742,9 +721,7 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 			{
 			classinfo *ci;
                         ci = class_getconstant(m->class, i, CONSTANT_Class);
-                        m->isleafmethod = false; /* why for new ? */
                         /*** s_count++; look for s_counts for VTA */
-			/***ci->classUsed=USED;  */
 			/* add marked methods */
 			CLASSNAME(ci,"NEW : do nothing",RTA_DEBUGr);
 			RTAaddClassInit(ci, CLINITS_T, FINALIZE_T,ADDMARKED_T);   
@@ -807,16 +784,15 @@ else
 	addToRtaWorkList(callmeth,txt);
 
 
-/*--  
-    Initialize RTA work list with methods/classes from:  
+/*-- ----------------------------------------------------------------------------- 
       System calls 
 	and 
       rtMissedIn list (missed becaused called from NATIVE &/or dynamic calls
---*/
+ *-- -----------------------------------------------------------------------------*/
 methodinfo *initializeRTAworklist(methodinfo *m) {
   	classinfo  *c;
         methodinfo* callmeth;
-	char systxt[]    = "System     Call :";
+		char systxt[]    = "System     Call :";
 	char missedtxt[] = "rtMissedIn Call :";
 
 	FILE *rtMissedIn; /* Methods missed during previous RTA parse */
@@ -863,6 +839,7 @@ methodinfo *initializeRTAworklist(methodinfo *m) {
 
 
 
+/*-------------------------------------------------------------------------------*/
 methodinfo *missedRTAworklist()  
 {
 	FILE *rtMissedIn; /* Methods missed during previous RTA parse */
@@ -891,11 +868,8 @@ methodinfo *missedRTAworklist()
 	    class = strtok(line, " \n");
 	    meth  = strtok(NULL, " \n");
 	    desc  = strtok(NULL, " \n");
-	    if ((class == NULL) || (meth == NULL) || (desc == NULL)) { 
-		fprintf(stderr,"Error in rtMissedIn file for: %s.%s %s\n",class, meth, desc); 
-		fflush(stderr);
+	    if ((class == NULL) || (meth == NULL) || (desc == NULL))  
 		panic ("Error in rtMissedIn file for: class.meth, desc\n"); 
-		}
  	    SYSADD(class,meth,desc,missedtxt)
 	    }
 	fclose(rtMissedIn);

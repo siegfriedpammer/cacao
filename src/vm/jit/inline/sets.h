@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.h 1793 2004-12-21 10:14:35Z twisti $
+   $Id: sets.h 1959 2005-02-19 11:46:27Z carolyn $
 
 */
 
@@ -66,6 +66,7 @@ typedef struct classSetNode classSetNode;
 #define MARKED    1
 #define NOTUSED   0
 
+#define SYSCALL   -1 /* XTA initialization */
 #define MONO      0
 #define MONO1	  1 /* potential poly that is really mono */
 #define POLY      2

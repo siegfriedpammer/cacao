@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1750 2004-12-10 23:21:03Z carolyn $
+   $Id: inline.c 1959 2005-02-19 11:46:27Z carolyn $
 
 */
 
@@ -70,7 +70,6 @@ Method to be inlined must:
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/inline/inline.h"
-#include "vm/jit/inline/sets.h"
 
 #undef  INVIRTDEBUG  /* prints if a method was found to be 
 			 a unique virt/interface method  definition */
