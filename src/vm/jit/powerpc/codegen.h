@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: codegen.h 2226 2005-04-05 22:52:46Z christian $
 
 */
 
@@ -39,6 +39,59 @@
 #include "vm/global.h"
 #include "vm/jit/reg.h"
 
+/* Macro for stack.c to set Argument Stackslots */
+#define SET_ARG_STACKSLOTS {											\
+		s4 iarg = 0;													\
+		s4 farg = 0;													\
+		s4 stacksize;													\
+																		\
+		stacksize = 6;													\
+																		\
+		copy = curstack;												\
+		while (--i >= 0) {												\
+			stacksize += (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;			\
+			if (IS_FLT_DBL_TYPE(copy->type))							\
+				farg++;													\
+			copy = copy->prev;											\
+		}																\
+																		\
+		if (stacksize > rd->ifmemuse)									\
+			rd->ifmemuse = stacksize;									\
+																		\
+		i = call_argcount;												\
+		copy = curstack;												\
+		while (--i >= 0) {												\
+			stacksize -= (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;			\
+			if (IS_FLT_DBL_TYPE(copy->type)) {							\
+				farg--;													\
+				if (!(copy->flags & SAVEDVAR)) {						\
+					copy->varnum = i;									\
+					copy->varkind = ARGVAR;								\
+					if (farg < rd->fltreg_argnum) {						\
+						copy->flags = 0;								\
+						copy->regoff = rd->argfltregs[farg];			\
+					} else {											\
+						copy->flags = INMEMORY;							\
+						copy->regoff = stacksize;						\
+					}													\
+				}														\
+			} else {													\
+				iarg = stacksize - 6;									\
+				if (!(copy->flags & SAVEDVAR)) {						\
+					copy->varnum = i;									\
+					copy->varkind = ARGVAR;								\
+					if ((iarg+((IS_2_WORD_TYPE(copy->type)) ? 1 : 0)) < rd->intreg_argnum) { \
+						copy->flags = 0;								\
+						copy->regoff = rd->argintregs[iarg];			\
+					} else {											\
+						copy->flags = INMEMORY;							\
+						copy->regoff = stacksize;						\
+					}													\
+				}														\
+			}															\
+			copy = copy->prev;											\
+		}																\
+	}
 
 /* additional functions and macros to generate code ***************************/
 
