@@ -44,6 +44,7 @@
 extern bool newcompiler;        /* true if new compiler is used               */    		
 bool opt_rt = false;            /* true if RTA parse should be used     RT-CO */
 bool opt_xta = false;           /* true if XTA parse should be used    XTA-CO */
+bool opt_vta = false;           /* true if VTA parse should be used    VTA-CO */
 
 int count_class_infos = 0;      /* variables for measurements                 */
 int count_const_pool_len = 0;
@@ -719,9 +720,8 @@ constant_arraydescriptor * buildarraydescriptor(char *utf_ptr, u4 namelen)
 		d -> arraytype = ARRAYTYPE_OBJECT;
 
 		d -> objectclass = class_new ( utf_new(utf_ptr+1, namelen-3) );
-                d -> objectclass  -> classUsed = 0; /* not used initially CO-RT */
+                d -> objectclass  -> classUsed = NOTUSED; /* not used initially CO-RT */
 		d -> objectclass  -> impldBy = NULL;
-		d -> objectclass  -> nextimpldBy = NULL;
 		break;
 	}
 	return d;
@@ -786,6 +786,10 @@ static void field_load (fieldinfo *f, classinfo *c)
 	f -> descriptor = class_getconstant (c, suck_u2(), CONSTANT_Utf8); /* JavaVM descriptor           */
 	f -> type = jtype = desc_to_type (f->descriptor);		   /* data type                   */
 	f -> offset = 0;						   /* offset from start of object */
+	f -> fieldUsed   = NOTUSED;  /*XTA*/
+	f -> fldClassType = NULL;    /*XTA*/
+	f -> XTAclassSet = NULL;     /*XTA*/
+	f -> lastRoundChgd = -1;
 	
 	switch (f->type) {
 	case TYPE_INT:        f->value.i = 0; break;
@@ -927,9 +931,27 @@ static void method_load (methodinfo *m, classinfo *c)
 	m -> entrypoint = NULL;
 	m -> mcode = NULL;
 	m -> stubroutine = NULL;
-        m -> methodUsed = 0;    
-	m -> XTAclasscount = 0; 
-        m -> numSubDefs = 0;    
+        m -> methodUsed = NOTUSED;    
+        m -> XTAmethodUsed = NOTUSED;    
+        m -> monoPoly = MONO;    
+	m -> subRedefs = 0;
+	m -> subRedefsUsed = 0;
+
+	/* --- XTA --- */
+	/*if (opt_xta) { */
+	m -> XTAclassSet  	= NULL;      /*XTA*/
+	m -> paramClassSet	= NULL;      /*XTA*/
+	m -> calls        	= NULL;      /*XTA*/
+	m -> calledBy     	= NULL;      /*XTA*/
+	m -> chgdSinceLastParse = false; /*XTA*/
+
+	m -> marked       = NULL;      /*XTA*/
+	m -> markedBy     = NULL;      /*XTA*/
+	m -> fldsUsed     = NULL;      /*XTA*/
+	m -> interfaceCalls    = NULL; /*XTA*/
+	m -> lastRoundParsed = -1;
+	m -> interfaceCalls    = NULL;      /*XTA*/
+	/*}*/	
 	
 	if (! (m->flags & ACC_NATIVE) ) {
 		m -> stubroutine = createcompilerstub (m);
@@ -1464,9 +1486,8 @@ static int class_load (classinfo *c)
 
 	class_loadcpool (c);
 	
-        c -> classUsed = 0; /* not used initially CO-RT */
+        c -> classUsed = NOTUSED; /* not used initially CO-RT */
 	c -> impldBy = NULL;
-	c -> nextimpldBy = NULL;
 
 	/* ACC flags */
 	c -> flags = suck_u2 (); 
@@ -1655,9 +1676,8 @@ static void class_link (classinfo *c)
 
 	if (super == NULL) {          /* class java.long.Object */
 		c->index = 0;
-                c->classUsed = 1;     /* Object class is always used CO-RT*/
+                c->classUsed = USED;     /* Object class is always used CO-RT*/
 		c -> impldBy = NULL;
-		c -> nextimpldBy = NULL;
 		c->instancesize = sizeof(java_objectheader);
 		
 		vftbllength = supervftbllength = 0;
@@ -2231,9 +2251,9 @@ void class_showconstanti(classinfo *c, int ii)
 	u4 i = ii;
 	voidptr e;
 
-printf ("#%d:  ", (int) i);
 		
 e = c -> cpinfos [i];
+printf ("#%d:  ", (int) i);
 if (e) {
 			switch (c -> cptags [i]) {
 				case CONSTANT_Class:
@@ -2511,9 +2531,8 @@ void create_primitive_classes()
 	for (i=0;i<PRIMITIVETYPE_COUNT;i++) {
 		/* create primitive class */
 		classinfo *c = class_new ( utf_new_char(primitivetype_table[i].name) );
-                c -> classUsed = 0; /* not used initially CO-RT */		
+                c -> classUsed = NOTUSED; /* not used initially CO-RT */		
 		c -> impldBy = NULL;
-		c -> nextimpldBy = NULL;
 
 		/* prevent loader from loading primitive class */
 		list_remove (&unloadedclasses, c);
@@ -2527,9 +2546,8 @@ void create_primitive_classes()
 		/* create class for wrapping the primitive type */
 		primitivetype_table[i].class_wrap =
 	        	class_new( utf_new_char(primitivetype_table[i].wrapname) );
-                primitivetype_table[i].class_wrap -> classUsed = 0; /* not used initially CO-RT */
+                primitivetype_table[i].class_wrap -> classUsed = NOTUSED; /* not used initially CO-RT */
 		primitivetype_table[i].class_wrap  -> impldBy = NULL;
-		primitivetype_table[i].class_wrap  -> nextimpldBy = NULL;
 	}
 }
 
@@ -2581,18 +2599,16 @@ void loader_init ()
 
 	/* create class for arrays */
 	class_array = class_new ( utf_new_char ("The_Array_Class") );
-        class_array -> classUsed = 0; /* not used initially CO-RT */
+        class_array -> classUsed = NOTUSED; /* not used initially CO-RT */
 	class_array -> impldBy = NULL;
-	class_array -> nextimpldBy = NULL;
 
  	list_remove (&unloadedclasses, class_array);
 
 	/* create class for strings, load it after class Object was loaded */
 	string_class = utf_new_char ("java/lang/String");
 	class_java_lang_String = class_new(string_class);
-        class_java_lang_String -> classUsed = 0; /* not used initially CO-RT */
+        class_java_lang_String -> classUsed = NOTUSED; /* not used initially CO-RT */
 	class_java_lang_String -> impldBy = NULL;
-	class_java_lang_String -> nextimpldBy = NULL;
 
  	list_remove (&unloadedclasses, class_java_lang_String);
 
@@ -2699,12 +2715,14 @@ static void loader_compute_class_values (classinfo *c)
 	classinfo *subs;
 
 	c->vftbl->baseval = ++classvalue;
+
 	subs = c->sub;
 	while (subs != NULL) {
 		loader_compute_class_values(subs);
 		subs = subs->nextsub;
 		}
 	c->vftbl->diffval = classvalue - c->vftbl->baseval;
+
 /*
 	{
 	int i;

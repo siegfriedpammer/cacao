@@ -1,7 +1,9 @@
 class C extends A {
 static int cx = 1;
+
 void m1( ) {ax = 100; cx=1;
 }
+
 public static void main(String[] s) {
   A a;
   B b = new B();

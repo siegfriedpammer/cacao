@@ -8,15 +8,42 @@
 
 
 
+#define XTAPRINTcallgraph1  if(pWhenMarked>=1) \
+        {printf("\n XTA Added to Call Graph #%i:",  \
+        methRTlast); \
+	printf("\t <used flags c/m> <%i/%i> %i\t",  \
+	  submeth->class->classUsed, \
+	  submeth->methodUsed, \
+	  USED);  \
+	printf(" method name =");   \
+        utf_display(submeth->class->name);printf("."); \
+        method_display(submeth);fflush(stdout);}
+
+#define XTAPRINTcallgraph2  if(pWhenMarked>=1) { \
+	printf("\n XTA Added to Call Graph #%i:", \
+		methXTAlast); \
+	printf(" method name ="); \
+	utf_display(mi->class->name);printf("."); \
+	method_display(mi);fflush(stdout); \
+	}
+
 #define RTAPRINTcallgraph1  if(pWhenMarked>=1) \
         {printf("\n Added to Call Graph #%i:",  \
-        methRTlast);printf(" method name =");   \
+        methRTlast); \
+	printf("\t <used flags c/m> <%i/%i> %i\t",  \
+	  meth->class->classUsed, \
+	  meth->methodUsed, \
+	  USED);  \
+	printf(" method name =");   \
         utf_display(meth->class->name);printf("."); \
-        method_display(meth);fflush(stdout);}
+        method_display(meth);fflush(stdout);} 
 
 
 #define RTAPRINTmarkMethod1 if (pWhenMarked >= 2) { \
-        printf("Just Marking Method - class:%s not used <%i>\n",class->name->text,class->index); \
+        printf("<%i/%i> Just Marking Method - class: <index=%i>\n",   \
+	submeth->methodUsed,  \
+	submeth->class->index); \
+	utf_display(submeth->class->name); \
         method_display(submeth);        \
         }
 
@@ -31,7 +58,7 @@
         }
 
 #define RTAPRINTmarkMethod2 if (pWhenMarked >= 2) { \
-        printf("Class marked Used by Subtype :");utf_display(s->name);printf("\n");}
+        printf("Class marked Used by Subtype :");utf_display(submeth->name);printf("\n");}
 
 #define RTAPRINTmarkSubs1 if (pWhenMarked>=3) { \
   utf *name = topmethod -> name; \
@@ -46,7 +73,7 @@
 
 #define RTAPRINT01method if ((pOpcodes == 1) || (pOpcodes == 3)) \
         {printf("*********************************\n"); \
-        printf("PARSE RT method name ="); \
+        printf("PARSE RT method name = <%i/%i>",rt_method->class->classUsed,rt_method->methodUsed); \
         utf_display(rt_method->class->name);printf("."); \
         utf_display(rt_method->name);printf("\n\n"); \
         method_display(rt_method); printf(">\n\n");fflush(stdout);}
@@ -56,7 +83,12 @@
                 p,rt_jcodelength,opcode,opcode_names[opcode]); \
         fflush(stdout); }
 
-#define RTAPRINT03putstatic1  if (pWhenMarked >= 5) { \
+#define RTAPRINT03putstatic1  if (pWhenMarked >= 1) { \
+	class_showconstanti(rt_class,i); \
+	}
+
+#define RTAPRINT03putstatic1o_OLD  if (pWhenMarked >= 1) { \
+	class_showconstanti(rt_class,i); \
 	printf("FMIref = ");  \
         utf_display ( fr->class->name );  \
         printf (".");  \
@@ -83,35 +115,90 @@
         printf("INVOKESTATIC\n"); fflush(stdout);}
 
 
-#define RTAPRINT06invoke_spec_virt1 if ((pOpcodes == 1) ||(pOpcodes == 3)  || (pWhenMarked >= 2)) { \
-        printf(" method name ="); \
-	method_display(mi); \
-        utf_display(mi->class->name); printf("."); \
-        utf_display(mi->name); \
-        printf("\taINVOKESPECIAL/VIRTUAL\n"); fflush(stdout); }
+#define RTAPRINT06Ainvoke_spec_super1 if (pWhenMarked >= 1) { \
+	printf("class flags:"); fflush(stdout); \
+	utf_display(ci->name); \
+	printflags(ci->flags); \
+	printf("\n"); fflush(stdout); \
+	printf("method flags:"); fflush(stdout); \
+	utf_display(mi->name); \
+	printflags(mi->flags); \
+	printf("\n"); fflush(stdout); \
+	}
 
-#define RTAPRINT07invoke_spec_virt2  if (pWhenMarked >= 3) { \
+#define RTAPRINT06Binvoke_spec_super2 if (pWhenMarked >= 1) { \
+        printf("SUPERRRRRRRRRRRRRRR");  \
+	utf_display(mi->descriptor);  \
+	printf("  class super ="); fflush(stdout); \
+	utf_display(rt_class->super->name); fflush(stdout); \
+        printf("\t ==?  ");     fflush(stdout); \
+        printf("  class =");fflush(stdout); \
+	utf_display(mi->class->name); fflush(stdout); \
+        printf("\n");   fflush(stdout); \
+        printf("Ainterface count = "); fflush(stdout); \
+        printf(" %i\n", ci -> interfacescount); \
+        fflush(stdout); \
+	}
+
+#define RTAPRINT06Binvoke_spec_init if (pWhenMarked >= 1) { \
+	printf("Binterface count = "); fflush(stdout); \
+	printf(" %i\n", ci -> interfacescount); \
+	fflush(stdout); \
+	}
+
+#define RTAPRINT06CXTAinvoke_spec_init1 if (pWhenMarked >= 1) { \
+	printf("\n XTA Added to Call Graph #%i:", \
+	methXTAlast); \
+	printf(" method name ="); \
+	utf_display(mi->class->name);printf("."); \
+	method_display(mi);fflush(stdout); \
+	}
+
+
+#define RTAPRINT06invoke_spec_virt1 if ((pOpcodes == 1) ||(pOpcodes == 3)  || (pWhenMarked >= 2)) { \
+        printf("INVOKE method name <%i/%i> =",mi->class->classUsed,mi->methodUsed); \
+        utf_display(mi->class->name); printf("."); \
+	method_display(mi); \
+        fflush(stdout); }
+
+#define RTAPRINT07invoke_spec_virt2  if (pWhenMarked >= 1) { \
         printf("Calling MarkSubs from SPECIAL/VIRTUAL :"); \
-        utf_display(mi->class->name);printf(":"); \
-        utf_display(mi->name);printf("\n"); }
+        utf_display(mi->class->name);printf(".V."); \
+	method_display(mi); }
 
 #define RTAPRINT08AinvokeInterface0 if (pWhenMarked >= 2) { \
 	utf_display(mi->class->name); \
-	method_display(mi); printf("\n");} 
+	method_display(mi); printf("\n");} \
+	if (pWhenMarked >= 1) { \
+		printf("INTERFACE CLASS <");fflush(stdout); \
+		utf_display(mi->class->name); fflush(stdout); \
+		printf("> used flag=%i\n", mi->class->classUsed); \
+		fflush(stdout); \
+		method_display(mi); \
+		fflush(stdout); \
+		printf("AAAAA\n");fflush(stdout); \
+	}
 
-#define RTAPRINT08invokeInterface1  if (pWhenMarked >= 3) { \
+#define RTAPRINT08invokeInterface1  if (pWhenMarked >= 1) { \
 	printf("Implemented By classes :\n");  \
+                fflush(stdout); \
 	if (subs == NULL) printf(" \tNOT IMPLEMENTED !!!\n"); \
+		printf("ZZZZZ\n");fflush(stdout); \
 	}
 
 #define RTAPRINT09invokeInterface2  if (pWhenMarked >= 3) { \
-	printf("\t");utf_display(subs->name);  printf(" <%i>\n",subs->classUsed); \
+	printf("\t");utf_display(isubs->name);  printf(" <%i>\n",isubs->classUsed); \
 	}
 
 #define RTAPRINT10new  if (pWhenMarked >= 2) { \
-        printf("NEW Class marked Used :"); \
+        printf("NEW Class marked Used :"); fflush(stdout);\
         utf_display(ci->name); \
         fflush(stdout);}
+
+#define RTAPRINT10newXTA  if (pWhenMarked >= 1) { \
+	utf_display(ci->name);printf(" XTA_NEW\n"); \
+	printSet(rt_method->XTAclassSet->head); \
+	}
 
 #define RTAPRINT11addedtoCallgraph  if (pWhenMarked >= 1){ \
 	printf("\n<Added to Call Graph #%i:",methRTlast); \
@@ -132,6 +219,12 @@
 	utf_display(rt_method->name); printf(" "); fflush(stdout); \
 	utf_display(rt_descriptor);   		   fflush(stdout); printf("\n"); \
 	}
+
+#define RTAPRINT12bAbstractNative if (pOpcodes == 1) { \
+                  printf("\nPROCESS_abstract or native\n"); \
+                  utf_display(rt_method->class->name); printf("."); \
+                  method_display(rt_method); printf("\n"); fflush(stdout); \
+                  }
 
 #define RTAPRINT12Callgraph  if (pCallgraph >= 3) { \
 	printf("RTA Callgraph after RTA Call\n"); \

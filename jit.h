@@ -102,6 +102,29 @@ u1 *createnativestub (functionptr f, methodinfo *m);
 
 void removecompilerstub (u1 *stub);
 void removenativestub (u1 *stub);
+/*------------ Method /Class Used Markers -------------------------------*/                 
+
+/* Class flags =
+   USED all methods and fields are available; 
+   PARTUSED = specific methods (static, <init>, <clinit>, inherited def used, special) used, 
+	      but not instanciated
+   NOTUSED = nothing used in class - not needed 
+*/
+
+/* Method Flags =
+   USED = method definition is used
+   PARTUSED = method definition will be used if class instanciated
+   NOTUSED  = method defintion never used
+*/
+
+#define USED      2
+#define PARTUSED  1
+#define MARKED    1
+#define NOTUSED   0
+
+#define MONO      0
+#define MONO1	  1 /* potential poly that is really mono */
+#define POLY      2
 
 #endif
 

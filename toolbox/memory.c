@@ -58,7 +58,7 @@ static void *lit_checked_alloc (int length)
 	void *m;
 
 	if (!nomallocmem) {
-		nomallocmem = malloc(16777216);
+		nomallocmem = malloc(16777216); 
 		nomalloctop = nomallocmem + 16777216;
 		nomallocptr = nomallocmem;
 	}

@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: main.c 467 2003-09-26 01:55:25Z didi $
+	Last Change: $Id: main.c 468 2003-10-04 17:15:31Z carolyn $
 
 *******************************************************************************/
 
@@ -92,6 +92,7 @@ void **stackbottom = 0;
 #define OPT_INLINING	25
 #define OPT_RT          26
 #define OPT_XTA         27 
+#define OPT_VTA         28 
 
 
 struct {char *name; bool arg; int value;} opts[] = {
@@ -129,6 +130,7 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{"i",		    true,  OPT_INLINING},
 	{"rt",          false,  OPT_RT},
 	{"xta",         false,  OPT_XTA},
+        {"vta",         false,  OPT_VTA},
 	{NULL,  false, 0}
 };
 
@@ -233,7 +235,8 @@ static void print_usage()
 	printf ("                 p ............. optimize argument renaming\n");
 	printf ("                 o ............. inline methods of foreign classes\n");
         printf ("          -rt .................. use rapid type analysis\n");
-        printf ("          -xta ................. use xta\n");
+        printf ("          -xta ................. use x type analysis\n");
+        printf ("          -vta ................. use variable type analysis\n");
 }   
 
 
@@ -724,7 +727,11 @@ int main(int argc, char **argv)
                         break;
 
                case OPT_XTA:
-                        opt_xta = true;
+                        /***opt_xta = true; not yet **/
+                        break;
+
+               case OPT_VTA:
+                        /***opt_vta = true; not yet **/
                         break;
 
 		default:
@@ -825,7 +832,7 @@ int main(int argc, char **argv)
                                         /*RTAprint*/    printCallgraph (); }
 
                                         /*RTprint*/ if ((pClassHeir >= 1) && (opt_rt)) {
-                                        /*RTprint*/     printf("Last RTA Class Heirarchy -");
+                                        /*RTprint*/     printf("Last RTA Info -");
                                         /*RTprint*/     printRThierarchyInfo(mainmethod); 
 					/*RTprint*/  	}
 					/*RTprint*/  	printObjectClassHeirarchy1( );
@@ -884,7 +891,7 @@ void cacao_shutdown(s4 status)
                                         /*RTAprint*/    printCallgraph (NULL); }
 
                                         /*RTprint*/ if ((pClassHeir >= 1) && (opt_rt)) {
-                                        /*RTprint*/     printf("Last RTA Class Heirarchy -");
+                                        /*RTprint*/     printf("RTA Information -");
                                         /*RTprint*/     printRThierarchyInfo(NULL); }
 
 	if (verbose || getcompilingtime || statistics) {

@@ -12,5 +12,6 @@ void m1( ) {ax = 1;
 void m2( ) {ax = 2; 
 //  System.out.println("In A.m2: "+ax);
   }
+
 }
 

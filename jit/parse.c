@@ -8,13 +8,14 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 467 2003-09-26 01:55:25Z didi $
+	Last Change: $Id: parse.c 468 2003-10-04 17:15:31Z carolyn $
                      include Rapid Type Analysis parse - 5/2003 - carolyn
 
 
 *******************************************************************************/
 
 #include "math.h"
+#include "sets.h"
                                 /* data about the currently parsed   method   */
 
 static classinfo  *rt_class;    /* class the compiled method belongs to       */
@@ -41,9 +42,9 @@ static u1       *rt_jcode;      /* pointer to start of JavaVM-code            */
 
 
 
-//INLINING
+/*INLINING*/
 #include "inline.c"
-//#define debug_writebranch printf("op: %s i: %d label_index[i]: %d\n",icmd_names[opcode], i, label_index[i]);
+/*#define debug_writebranch printf("op: %s i: %d label_index[i]: %d\n",icmd_names[opcode], i, label_index[i]);*/
 #define debug_writebranch
 
 /* functionc compiler_addinitclass *********************************************
@@ -89,6 +90,170 @@ static void compiler_addinitclass (classinfo *c)
 		}
 }                       
 
+
+/* function descriptor2typesL ***************************************************
+
+	decodes a already checked method descriptor. The parameter count, the
+	return type and the argument types are stored in the passed methodinfo.
+        gets and saves classptr for object ref.s
+
+*******************************************************************************/		
+
+classSetNode * descriptor2typesL (methodinfo *m)
+{
+int debugInfo = 0;
+	int i;
+	u1 *types, *tptr;
+	int pcount, c;
+	char *utf_ptr;
+	classinfo** classtypes;
+	char *class; 
+	char *desc;
+	classSetNode *p=NULL;
+if (debugInfo >= 1) {
+	printf("In descriptor2typesL >>>\t"); fflush(stdout);
+	utf_display(m->class->name); printf(".");
+	method_display(m);fflush(stdout);
+	}
+
+	pcount = 0;
+	desc =       MNEW (char, 256); 
+	types = DMNEW (u1, m->descriptor->blength); 
+	classtypes = MNEW (classinfo*, m->descriptor->blength+1);
+	m->returnclass = NULL;
+	tptr = types;
+	if (!(m->flags & ACC_STATIC)) {
+		*tptr++ = TYPE_ADR;
+		if (debugInfo >= 1) {
+			printf("param #0 (this?) method class =");utf_display(m->class->name);printf("\n");
+			}
+		classtypes[pcount] = m->class;
+		p = addClassCone(p,  m->class);
+		pcount++;
+		}
+
+	utf_ptr = m->descriptor->text + 1;
+	strcpy (desc,utf_ptr);
+   
+	while ((c = *desc++) != ')') {
+		pcount++;
+		switch (c) {
+			case 'B':
+			case 'C':
+			case 'I':
+			case 'S':
+			case 'Z':  *tptr++ = TYPE_INT;
+			           break;
+			case 'J':  *tptr++ = TYPE_LNG;
+			           break;
+			case 'F':  *tptr++ = TYPE_FLT;
+			           break;
+			case 'D':  *tptr++ = TYPE_DBL;
+			           break;
+			case 'L':  *tptr++ = TYPE_ADR;
+                                   /* get class string */
+                                   class = strtok(desc,";");
+				   desc = strtok(NULL,"\0");
+                                   /* get/save classinfo ptr */
+				   classtypes[pcount-1] = class_get(utf_new_char(class));
+				   p = addClassCone(p,  class_get(utf_new_char(class)));
+					if (debugInfo >= 1) {
+						printf("LParam#%i 's class type is: %s\n",pcount-1,class);fflush(stdout);
+						printf("Lclasstypes[%i]=",pcount-1);fflush(stdout);
+						utf_display(classtypes[pcount-1]->name);
+						}
+			           break;
+			case '[':  *tptr++ = TYPE_ADR;
+			           while (c == '[')
+			               c = *desc++;
+                                   /* get class string */
+				   if (c == 'L') {
+                                   	class = strtok(desc,";");
+                                   	desc = strtok(NULL,"\0");
+                                   	/* get/save classinfo ptr */
+				   	classtypes[pcount-1] = class_get(utf_new_char(class));
+				        p= addClassCone(p,  class_get(utf_new_char(class)));
+					if (debugInfo >= 1) {
+						printf("[Param#%i 's class type is: %s\n",pcount-1,class);
+						printf("[classtypes[%i]=",pcount-1);fflush(stdout);
+						utf_display(classtypes[pcount-1]->name);
+						printf("\n");
+						}
+				       	}
+				   else
+					classtypes[pcount-1] = NULL;
+			           break;
+			default:   
+				panic("Ill formed methodtype-descriptor");
+			}
+		}
+
+	/* compute return type */
+	switch (*desc++) {
+		case 'B':
+		case 'C':
+		case 'I':
+		case 'S':
+		case 'Z':  m->returntype = TYPE_INT;
+		           break;
+		case 'J':  m->returntype = TYPE_LNG;
+		           break;
+		case 'F':  m->returntype = TYPE_FLT;
+		           break;
+		case 'D':  m->returntype = TYPE_DBL;
+		           break;
+		case '[':
+			   m->returntype = TYPE_ADR;
+			   c = *desc;
+			   while (c == '[')
+			       c = *desc++;
+			   if (c != 'L') break;
+			   *desc++;
+			   
+		case 'L':  
+			   m->returntype = TYPE_ADR;
+			  
+                            /* get class string */
+			    class = strtok(desc,";");
+			    m->returnclass = class_get(utf_new_char(class));
+			    if (m->returnclass == NULL) {
+				printf("class=%s :\t",class);
+				panic ("return class not found");
+				}
+		           break;
+		case 'V':  m->returntype = TYPE_VOID;
+		           break;
+
+	default:   panic("Ill formed methodtype-descriptor-ReturnType");
+		}
+
+	m->paramcount = pcount;
+	m->paramtypes = types;
+	m->paramclass = classtypes;
+
+if (debugInfo >=1) {
+	if (pcount > 0) {
+  		for (i=0; i< m->paramcount; i++) {
+    			if ((m->paramtypes[i] == TYPE_ADR) && (m->paramclass[i] != NULL)) {
+			      printf("Param #%i is:\t",i);
+			      utf_display(m->paramclass[i]->name);
+			      printf("\n");
+			      }
+		   	 }
+               }
+	if ((m->returntype == TYPE_ADR) && (m->returnclass != NULL)) { 
+		  printf("\tReturn Type is:\t"); fflush(stdout);
+		  utf_display(m->returnclass->name);
+		  printf("\n");
+		  }
+
+	printf("params2types: START  results in a set \n");
+	printf("param2types: A Set size=%i=\n",sizeOfSet(p));
+	printSet(p);
+	}
+
+return p;
+}
 
 /* function descriptor2types ***************************************************
 
@@ -271,7 +436,7 @@ static void allocate_literals()
                                panic("branch target out of code-boundary");}
 #define bound_check1(i)    {if((i< 0) || (i>cumjcodelength)) \
                                panic("branch target out of code-boundary");}
-// FIXME really use cumjcodelength for the bound_checkers ?
+/* FIXME really use cumjcodelength for the bound_checkers ? */
 
 static xtable* fillextable (xtable* extable, exceptiontable *raw_extable, int exceptiontablelength, int *label_index, int *block_count)
 {
@@ -334,7 +499,7 @@ static void parse()
 	bool useinltmp;
 
 	static int xta1 = 0;
-//INLINING
+/*INLINING*/
 	if (useinlining)
 		{
 			label_index = inlinfo->label_index;
@@ -342,8 +507,8 @@ static void parse()
 			exceptiontablelength=cumextablelength;
 		}
 	
-	useinltmp = useinlining; //FIXME remove this after debugging
-    //useinlining = false; 	 // and merge the if-statements
+	useinltmp = useinlining; /*FIXME remove this after debugging */
+    /*useinlining = false; 	 /* and merge the if-statements  */
 	
 	if (!useinlining) {
 	  cumjcodelength = jcodelength;
@@ -352,26 +517,18 @@ static void parse()
 	  if (tmpinlinf != NULL) nextgp = tmpinlinf->startgp;
 	}
 
-                /*RTAprint*/ if  ((opt_rt) && ((pOpcodes == 2) || (pOpcodes == 3)) )
+                /*RTAprint*/ if  ( ((opt_rt) ||(opt_xta) || (opt_vta)) && ((pOpcodes == 2) || (pOpcodes == 3)) )
                 /*RTAprint*/    {printf("PARSE method name =");
                 /*RTAprint*/    utf_display(method->class->name);printf(".");
                 /*RTAprint*/    method_display(method); printf(">\n\n");fflush(stdout);}
-	if (opt_rt) { 
+	if ((opt_rt) || (opt_xta)) { 
             RT_jit_parse(method);
 	    }
-        else {
-		if ((opt_xta) && (xta1 == 0)) { 
-			/*printf("XTA - not available yet\n"); */
-			/*xta1++;  */
-           		 XTA_jit_parse(method);
-		                /*XTAprint*/ if (((pOpcodes == 1) || (pOpcodes == 3)) && opt_rt)
-                		/*XTAprint*/    {printf("XTA PARSE method name =");
-		                /*XTAprint*/    utf_display(rt_method->class->name);printf(".");
-		                /*XTAprint*/    method_display(rt_method); printf(">\n\n");fflush(stdout);}
-
-	    		}
-	
-	   }
+	else 	{
+		if (opt_vta) 
+			printf("VTA requested, but not yet implemented\n");
+		}
+	 
 
 #ifdef OLD_COMPILER
 	/* generate the same addresses as the old JIT compiler */
@@ -446,9 +603,9 @@ static void parse()
 
 	for (p = 0, gp = 0; p < jcodelength; gp += (nextp - p), p = nextp) {
 	  
-	  // DEBUG	  printf("p:%d gp:%d ",p,gp);
+	  /* DEBUG	  printf("p:%d gp:%d ",p,gp); */
 
-//INLINING
+/*INLINING*/
 	  if ((useinlining) && (gp == nextgp)) {
 		  u1 *tptr;
 		  bool *readonly = NULL;
@@ -475,7 +632,7 @@ static void parse()
 				  op += *tptr;
 				  OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i);
 
-				  // block_index[gp] |= (ipc << 1);  //FIXME: necessary ?
+				  /* block_index[gp] |= (ipc << 1);  /*FIXME: necessary ? */
 			  }
 		  inlining_save_compiler_variables();
 		  inlining_set_compiler_variables(tmpinlinf);
@@ -490,12 +647,11 @@ static void parse()
 	  }
 	  
 	  opcode = code_get_u1 (p);           /* fetch op code                  */
-	  
+
 	  
 	  /*RTAprint*/ if  ((opt_rt) && ((pOpcodes == 2) || (pOpcodes == 3)) )
 	  /*RTAprint*/    {printf("Parse<%i> p=%i<%i<   opcode=<%i> %s\n",
 	  /*RTAprint*/            pOpcodes, p,rt_jcodelength,opcode,icmd_names[opcode]);}
-
 	  
 	  block_index[gp] |= (ipc << 1);       /* store intermediate count       */
 
@@ -856,10 +1012,10 @@ static void parse()
 
 
 				if (isinlinedmethod) {
-					/*					if (p==jcodelength-1) { //return is at end of inlined method
+					/*					if (p==jcodelength-1) { /*return is at end of inlined method ** 
 						OP(ICMD_NOP);
 						break;
-						}*/
+						} */
 					blockend = true;
 					OP1(ICMD_GOTO, inlinfo->stopgp);
 					break;
@@ -1311,8 +1467,8 @@ static void parse()
 		
 		/* INLINING */
 		  
-		if ((isinlinedmethod) && (p==jcodelength-1)) { //end of an inlined method
-		  //		  printf("setting gp from %d to %d\n",gp, inlinfo->stopgp);
+		if ((isinlinedmethod) && (p==jcodelength-1)) { /*end of an inlined method */
+		  /*		  printf("setting gp from %d to %d\n",gp, inlinfo->stopgp); */
 		  gp = inlinfo->stopgp; 
 		  inlining_restore_compiler_variables();
 		  list_remove(inlinfo->inlinedmethods, list_first(inlinfo->inlinedmethods));
@@ -1321,7 +1477,7 @@ static void parse()
 			  tmpinlinf = list_first(inlinfo->inlinedmethods);
 			  nextgp = (tmpinlinf != NULL) ? tmpinlinf->startgp : -1;
 		  }
-		  //		  printf("nextpgp: %d\n", nextgp);
+		  /*		  printf("nextpgp: %d\n", nextgp); */
 		  label_index=inlinfo->label_index;
 		  firstlocal = inlinfo->firstlocal;
 		}
@@ -1436,9 +1592,8 @@ static void parse()
 	if (useinlining) inlining_cleanup();
 	useinlining = useinltmp;
 }
-
+#include "sets.c"
 #include "parseRT.h"
-#include "parseXTA.h"
 
 /*
  * These are local overrides for various environment variables in Emacs.

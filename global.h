@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 466 2003-09-25 07:55:50Z carolyn $
+	Last Change: $Id: global.h 468 2003-10-04 17:15:31Z carolyn $
 
 *******************************************************************************/
 
@@ -126,6 +126,8 @@ typedef struct java_objectheader java_objectheader;
 typedef struct classinfo classinfo; 
 typedef struct vftbl vftbl;
 typedef u1* methodptr;
+typedef struct fieldinfo  fieldinfo; 
+typedef struct methodinfo methodinfo; 
 
 
 /* constant pool entries *******************************************************
@@ -268,6 +270,7 @@ typedef struct constant_arraydescriptor {
 	struct constant_arraydescriptor *elementdescriptor;
 } constant_arraydescriptor;
 
+#include "jit/sets.h"
 
 /* data structures of the runtime system **************************************/
 
@@ -388,7 +391,7 @@ typedef struct primitivetypeinfo {
 
 /* fieldinfo ******************************************************************/
 
-typedef struct fieldinfo {/* field of a class                                 */
+struct fieldinfo {	      /* field of a class                                 */
 	s4       flags;       /* ACC flags                                        */
 	s4       type;        /* basic data type                                  */
 	utf *name;            /* name of field                                    */
@@ -403,8 +406,18 @@ typedef struct fieldinfo {/* field of a class                                 */
 		double d;
 		void *a; 
 	} value;
+	
+	/*--- XTA ---*/	
+        s4         fieldUsed; 		/* initialized to NOTUSED; set to USED when type checked */ 
+        bool       fieldChecked; 		
+	classinfo *fldClassType;
+	classSet  *XTAclassSet;      /* field class type set                  */  
+	s4	  lastRoundChgd;
+	/*--- VTA ---*/	
+        s4            VTAfieldUsed; 		/* -1=marked (might be used) 0=not used 1=used */ 
+	classSetNode *VTAclassSet;      /* field class type set                  */  
 
-} fieldinfo;
+} ;
 
 struct basicblock;
 
@@ -435,15 +448,22 @@ typedef struct exceptiontable { /* exceptiontable entry in a method           */
 } exceptiontable;
 
 
+/* methodinfo  static info ****************************************************/
+/*typedef struct rtainfo {
+
+} rtainfo; */
 /* methodinfo *****************************************************************/
 
-typedef struct methodinfo {         /* method structure                       */
-	s4	       flags;               /* ACC flags                              */
+struct methodinfo {        		/* method structure                       */
+	s4	       flags;           /* ACC flags                              */
 	utf       *name;                /* name of method                         */
 	utf       *descriptor;          /* JavaVM descriptor string of method     */
 	s4         returntype;          /* only temporary valid, return type      */
+	classinfo *returnclass;         /* pointer to classinfo for the rtn type  */ /*XTA*/ 
 	s4         paramcount;          /* only temporary valid, parameter count  */
 	u1        *paramtypes;          /* only temporary valid, parameter types  */
+	classinfo **paramclass;         /* pointer to classinfo for a parameter   */ /*XTA*/
+	
 	classinfo *class;               /* class, the method belongs to           */
 	s4         vftblindex;          /* index of method in virtual function table
 	                                   (if it is a virtual method)            */
@@ -461,16 +481,39 @@ typedef struct methodinfo {         /* method structure                       */
 	u1        *mcode;               /* pointer to machine code                */
 	u1        *entrypoint;          /* entry point in machine code            */
 
-        s4        methodUsed; 		/* -1=marked (might be used) 0=not used 1=used CO-RT*/
-	s4	  numSubDefs;		/* # sub definitions marked USED          */
+	/*rtainfo   rta;*/
+	/*xtainfo   xta;*/
 
-	s4          natCalls;     	/* number of methods  calls               */
+        s4        methodUsed; 		/* marked (might be used later) /not used /used */
+        s4        monoPoly; 		/* call is mono or poly or unknown        */ /*RT stats */
+        /* should # method def'd and used be kept after static parse (will it be used?) */
+	s4	  subRedefs;
+	s4	  subRedefsUsed;
 	
-	s4          XTAclasscount;     /* number of classes in XTA class set       */
-	classinfo   *XTAclassSet;       /* XTA class set*/
+	/* --- XTA --- */
+        s4            	XTAmethodUsed; 	/* XTA if used in callgraph -    not used /used */
+	classSet 	*XTAclassSet;      /* method class type set                 */ 
+	classSet 	*PartClassSet;     /* method class type set                 */ 
 
+	classSetNode    *paramClassSet;	    /* cone set of methods parameters       */
 
-} methodinfo;
+	methSet  	*calls;            /* methods this method calls   	    */ 
+	methSet  	*calledBy;         /* methods that call this method         */ 
+	methSet  	*marked;           /* methods that marked by this method    */ 
+	methSet         *markedBy;
+	fldSet          *fldsUsed;         /* fields used by this method             */ 
+	bool	         chgdSinceLastParse; /* Changed since last parse ?          */
+
+	s4           lastRoundParsed;   /* Last round parsed 		 	  */ 
+	methSetNode  *interfaceCalls;   /* methods this method calls as interface */ 
+	
+	/* --- VTA --- */
+	classSetNode  *VTAclassSet;      /* method class type set                  */  
+	methSetNode   *VTAcalls;         /* methods this method calls 		  */ 
+	classSetNode **VTAlocalSets;    /*VTA*/
+	classSetNode **VTAstackType;	/*VTA*/	
+};
+
 
 
 /* innerclassinfo *************************************************************/
@@ -516,7 +559,7 @@ struct classinfo {                /* class structure                          */
 	s4          instancesize;     /* size of an instance of this class        */
 #ifdef SIZE_FROM_CLASSINFO
 	s4          alignedsize;      /* size of an instance, aligned to the 
-									 allocation size on the heap */
+ 						      allocation size on the heap */
 #endif
 
 	vftbl      *vftbl;            /* pointer to virtual function table        */
@@ -534,9 +577,7 @@ struct classinfo {                /* class structure                          */
 
         s4          classUsed;        /* 0= not used 1 = used   CO-RT             */
 
-	classinfo  *impldBy;          /* implemented by class pointer             */
-	classinfo  *nextimpldBy;      /* ptr to next class in impldBy class list  */
-
+	classSetNode *impldBy;          /* implemented by class set */
 };
 
 
@@ -648,6 +689,7 @@ extern bool runverbose;
 extern bool verbose;         
 extern bool opt_rt;             /* Rapid Type Analysis for better inlining CO-RT*/
 extern bool opt_xta;            /* X Type Analysis for better inlining    CO-XTA*/
+extern bool opt_vta;            /* Variable Type Analysis for better inlining    CO-VTA*/
 
 extern int pClassHeir;
 extern int pCallgraph;
