@@ -31,7 +31,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: codegen.c 1806 2004-12-22 10:13:01Z twisti $
 
 */
 
@@ -3147,10 +3147,10 @@ afteractualcall:
 				codegen_addxcheckarefs(cd, mcodeptr);
 				M_NOP;
 
-				/* copy sizes to stack (argument numbers >= INT_ARG_CNT)      */
+				/* copy SAVEDVAR sizes to stack */
 
 				if (src->varkind != ARGVAR) {
-					M_LST(s2, REG_SP, 8 * (s1 + INT_ARG_CNT));
+					M_LST(s2, REG_SP, s1 * 8);
 				}
 			}
 
