@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2101 2005-03-28 21:59:45Z twisti $
+   $Id: linker.c 2118 2005-03-29 21:56:01Z twisti $
 
 */
 
@@ -53,8 +53,34 @@ static s4 interfaceindex;       /* sequential numbering of interfaces         */
 static s4 classvalue;
 
 
+/* primitivetype_table *********************************************************
+
+   Structure for primitive classes: contains the class for wrapping
+   the primitive type, the primitive class, the name of the class for
+   wrapping, the one character type signature and the name of the
+   primitive class.
+ 
+   CAUTION: Don't change the order of the types. This table is indexed
+   by the ARRAYTYPE_ constants (expcept ARRAYTYPE_OBJECT).
+
+*******************************************************************************/
+
+primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = { 
+	{ NULL, NULL, "java/lang/Integer",   'I', "int"     , "[I", NULL, NULL },
+	{ NULL, NULL, "java/lang/Long",      'J', "long"    , "[J", NULL, NULL },
+	{ NULL, NULL, "java/lang/Float",     'F', "float"   , "[F", NULL, NULL },
+	{ NULL, NULL, "java/lang/Double",    'D', "double"  , "[D", NULL, NULL },
+	{ NULL, NULL, "java/lang/Byte",	     'B', "byte"    , "[B", NULL, NULL },
+	{ NULL, NULL, "java/lang/Character", 'C', "char"    , "[C", NULL, NULL },
+	{ NULL, NULL, "java/lang/Short",     'S', "short"   , "[S", NULL, NULL },
+	{ NULL, NULL, "java/lang/Boolean",   'Z', "boolean" , "[Z", NULL, NULL },
+	{ NULL, NULL, "java/lang/Void",	     'V', "void"    , NULL, NULL, NULL }
+};
+
+
 /* private functions **********************************************************/
 
+static bool link_primitivetype_table(void);
 static classinfo *link_class_intern(classinfo *c);
 static arraydescriptor *link_array(classinfo *c);
 static void linker_compute_class_values(classinfo *c);
@@ -69,11 +95,113 @@ static s4 class_highestinterface(classinfo *c);
 
 *******************************************************************************/
 
-void linker_init(void)
+bool linker_init(void)
 {
 	/* reset interface index */
 
 	interfaceindex = 0;
+
+	/* link important system classes */
+
+	if (!class_link(class_java_lang_Object))
+		return false;
+
+	if (!class_link(class_java_lang_String))
+		return false;
+
+	if (!class_link(class_java_lang_Cloneable))
+		return false;
+
+	if (!class_link(class_java_io_Serializable))
+		return false;
+
+	/* create pseudo classes used by the typechecker */
+
+    /* pseudo class for Arraystubs (extends java.lang.Object) */
+    
+	pseudo_class_Arraystub->loaded = true;
+    pseudo_class_Arraystub->super = class_java_lang_Object;
+    pseudo_class_Arraystub->interfacescount = 2;
+    pseudo_class_Arraystub->interfaces = MNEW(classinfo*, 2);
+    pseudo_class_Arraystub->interfaces[0] = class_java_lang_Cloneable;
+    pseudo_class_Arraystub->interfaces[1] = class_java_io_Serializable;
+
+    if (!class_link(pseudo_class_Arraystub))
+		return false;
+
+    /* pseudo class representing the null type */
+    
+	pseudo_class_Null->loaded = true;
+    pseudo_class_Null->super = class_java_lang_Object;
+
+	if (!class_link(pseudo_class_Null))
+		return false;
+
+    /* pseudo class representing new uninitialized objects */
+    
+	pseudo_class_New->loaded = true;
+	pseudo_class_New->linked = true;
+	pseudo_class_New->super = class_java_lang_Object;
+
+
+	/* create classes representing primitive types */
+
+	if (!link_primitivetype_table())
+		return false;
+
+
+	/* Correct vftbl-entries (retarded loading and linking of class           */
+	/* java/lang/String).                                                     */
+
+	stringtable_update();
+
+	return true;
+}
+
+
+/* link_primitivetype_table ****************************************************
+
+   Create classes representing primitive types.
+
+*******************************************************************************/
+
+static bool link_primitivetype_table(void)
+{  
+	classinfo *c;
+	s4 i;
+
+	for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
+		/* create primitive class */
+		c = class_new_intern(utf_new_char(primitivetype_table[i].name));
+		c->classUsed = NOTUSED; /* not used initially CO-RT */
+		c->impldBy = NULL;
+		
+		/* prevent loader from loading primitive class */
+		c->loaded = true;
+		if (!class_link(c))
+			return false;
+
+		primitivetype_table[i].class_primitive = c;
+
+		/* create class for wrapping the primitive type */
+		c = class_new_intern(utf_new_char(primitivetype_table[i].wrapname));
+		primitivetype_table[i].class_wrap = c;
+		primitivetype_table[i].class_wrap->classUsed = NOTUSED; /* not used initially CO-RT */
+		primitivetype_table[i].class_wrap->impldBy = NULL;
+
+		/* create the primitive array class */
+		if (primitivetype_table[i].arrayname) {
+			c = class_new_intern(utf_new_char(primitivetype_table[i].arrayname));
+			primitivetype_table[i].arrayclass = c;
+			c->loaded = true;
+			if (!c->linked)
+				if (!class_link(c))
+					return false;
+			primitivetype_table[i].arrayvftbl = c->vftbl;
+		}
+	}
+
+	return true;
 }
 
 
