@@ -10,7 +10,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger
 
-    Last Change: $Id: disass.c 402 2003-08-03 21:00:47Z twisti $
+    Last Change: $Id: disass.c 432 2003-09-13 15:12:36Z twisti $
 
 *******************************************************************************/
 
@@ -69,6 +69,7 @@ static void disassinstr(u1 *code, int pos)
 	static disassemble_info info;
 	static int dis_initialized;
 	int seqlen;
+	int i;
 
 	if (!dis_initialized) {
 		INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
@@ -79,14 +80,17 @@ static void disassinstr(u1 *code, int pos)
 	printf("0x%08x:   ", code);
 	mylen = 0;
 	seqlen = print_insn_i386((bfd_vma) code, &info);
-	{
-		int i;
-		for (i = 0; i < seqlen; i++)
-			printf("%02x ", *(code++));
-		for (; i < 8; i++)
-			printf("   ");
-		printf("   %s\n", mylinebuf);
+
+	for (i = 0; i < seqlen; i++) {
+		printf("%02x ", *(code++));
 	}
+
+	for (; i < 8; i++) {
+		printf("   ");
+	}
+
+	printf("   %s\n", mylinebuf);
+
 	codestatic = code - 1;
 	pstatic = pos + seqlen - 1;
 }
@@ -103,15 +107,31 @@ static void disassinstr(u1 *code, int pos)
 static void disassemble(u1 *code, int len)
 {
 	int p;
+	int seqlen;
+	int i;
 	disassemble_info info;
 
 	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
 	info.mach = bfd_mach_i386_i386;
 
 	printf("  --- disassembler listing ---\n");
-	for (p = 0; p < len; p++) {
-		code += print_insn_i386((bfd_vma) code, &info);
-		myprintf(NULL, "\n");
+	for (p = 0; p < len;) {
+		printf("0x%08x:   ", code);
+		mylen = 0;
+
+		seqlen = print_insn_i386((bfd_vma) code, &info);
+		p += seqlen;
+/*  		myprintf(NULL, "\n"); */
+
+		for (i = 0; i < seqlen; i++) {
+			printf("%02x ", *(code++));
+		}
+
+		for (; i < 8; i++) {
+			printf("   ");
+		}
+
+		printf("   %s\n", mylinebuf);
 	}
 }
 
