@@ -11,11 +11,11 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1998/08/10
+	Last Change: $Id: ngen.c 115 1999-01-20 01:52:45Z phil $
 
 *******************************************************************************/
 
-
+#include "jitdef.h"   /* phil */
 
 /* *****************************************************************************
 

@@ -17,7 +17,8 @@
 #ifndef __sysdep_threads_h
 #define __sysdep_threads_h
 
-#include "../threads/thread.h"
+#include "config.h"
+#include "threads/thread.h"
 
 /* Thread handling */
 

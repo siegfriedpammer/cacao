@@ -1,0 +1,12 @@
+all:
+	autoconf;
+	aclocal;
+	autoheader;
+	automake;
+
+fixed_deps:
+	automake -i;
+
+clean:
+	rm -f *~ */*~;
+	make maintainer-clean;

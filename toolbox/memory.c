@@ -19,7 +19,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#include "../callargs.h"
+#include "callargs.h"
 #include "loging.h"
 #include "memory.h"
 

@@ -1,5 +1,5 @@
 # cacao/mm/Makefile
-# $Id: Makefile 96 1998-11-30 14:53:53Z phil $
+# $Id: Makefile.pre-automake 115 1999-01-20 01:52:45Z phil $
 
 AR = ar
 COMBINE = $(AR) rcs mm.o

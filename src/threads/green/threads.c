@@ -11,6 +11,8 @@
  * Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
  */
 
+#include "config.h"
+
 #include <assert.h>
 
 #include <sys/types.h>
@@ -19,14 +21,14 @@
 
 #include "thread.h"
 #include "locks.h"
-#include "sysdep/defines.h"
-#include "sysdep/threads.h"
+#include "defines.h"
+#include "threads.h"
 
-#include "../tables.h"
-#include "../native.h"
-#include "../loader.h"
-#include "../builtin.h"
-#include "../asmpart.h"
+#include "tables.h"
+#include "native.h"
+#include "loader.h"
+#include "builtin.h"
+#include "asmpart.h"
 
 static classinfo *class_java_lang_ThreadDeath;
 

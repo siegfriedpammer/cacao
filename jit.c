@@ -15,9 +15,9 @@
 
 *******************************************************************************/
 
-#include "signal.h"
-#include "global.h"
+#include <signal.h>
 
+#include "global.h"
 #include "tables.h"
 #include "loader.h"
 #include "jit.h"
@@ -148,13 +148,13 @@ static chain *uninitializedclasses;
 
 /* include compiler subsystems ************************************************/
 
-#include "sysdep/ngen.h"        /* code generator header file                 */ 
-#include "sysdep/disass.c"      /* disassembler (for debug purposes only)     */ 
+#include "ngen.h"        /* code generator header file                 */ 
+#include "disass.c"      /* disassembler (for debug purposes only)     */ 
 #include "jit/mcode.c"          /* code generation tool functions             */ 
 #include "jit/parse.c"          /* parsing of JavaVM code                     */ 
 #include "jit/reg.c"            /* register allocation and support routines   */ 
 #include "jit/stack.c"          /* analysing the stack operations             */ 
-#include "sysdep/ngen.c"        /* code generator                             */ 
+#include "ngen.c"        /* code generator                             */ 
 
 
 

@@ -8,12 +8,11 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1998/05/07
+	Last Change: $Id: parse.c 115 1999-01-20 01:52:45Z phil $
 
 *******************************************************************************/
 
 #include "math.h"
-
 
 /* macros for byte code fetching ***********************************************
 

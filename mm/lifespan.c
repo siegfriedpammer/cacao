@@ -1,6 +1,6 @@
 /*
  * cacao/mm/lifespan.c
- * $Id: lifespan.c 110 1999-01-05 19:26:33Z phil $
+ * $Id: lifespan.c 115 1999-01-20 01:52:45Z phil $
  */
 
 #include "mm.h"
@@ -42,7 +42,7 @@ void lifespan_init(void* heap_base, unsigned long heap_size)
 	memset(lifespan_objects, 0, heap_size);
 }
 
-static __inline__ void lifespan_free_object(lifespan_object** o)
+static inline void lifespan_free_object(lifespan_object** o)
 {
 	int size, high = 0;
 	/* file format: alloc time, size, lifespan */
@@ -99,10 +99,15 @@ void lifespan_emit()
 	int i;
 
 	for (i = 4; i < 32; ++i)
+#if 0
 		fprintf(stderr, "%Lu-%Lu\t%Lu\n", 
 				(1LL << (i-1)), 
 				(1LL << i) - 1,
 				lifespan_histo_size[i]);
+#else
+		fprintf(stderr, "%Lu\n", 
+				lifespan_histo_size[i]);
+#endif
 
 	fprintf(stderr, "\n\n\n");
 
@@ -126,6 +131,7 @@ void lifespan_free(void** from, void** limit)
 
 void lifespan_alloc(void* addr, unsigned long size) 
 {
+	int high = 0;
 	lifespan_object**  object;
 	object = (lifespan_object**)((unsigned long)addr + (unsigned long)lifespan_objects_off);
 
@@ -137,6 +143,12 @@ void lifespan_alloc(void* addr, unsigned long size)
 	(*object)->time = current_time;
 	(*object)->size = size;
 	(*object)->number = ++current_number;
+
+	while (size) {
+		++high;
+		size = size >> 1;
+	}
+	++lifespan_histo_size[high];
 	
 	current_time += size;
 }

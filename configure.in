@@ -1,0 +1,134 @@
+dnl autoconf; autoheader; automake
+
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(compiler.c)
+AC_CANONICAL_HOST
+
+AM_INIT_AUTOMAKE(cacao, 0.40)
+AM_CONFIG_HEADER(config.h)
+
+AC_PREFIX_DEFAULT(/usr/local/cacao)
+
+dnl system type
+
+case "$host_cpu" in
+alpha* )
+	SYSDEP_DIR="alpha" 
+	CFLAGS="-ieee -O2 -g3" ;;
+
+mips* )
+	SYSDEP_DIR="mips" 
+        CFLAGS="-g -DMAP_ANONYMOUS=0 -woff 1048,1110,1164,1515"
+	LIBS="-lelfutil" ;;
+
+sparc* | powerpc* | ppc* | * )
+	AC_MSG_ERROR($host-cpu systems are not supported at this time) ;;
+
+esac
+
+AC_DEFINE_UNQUOTED(SYSDEP_DIR, "$SYSDEP_DIR")
+AC_SUBST(SYSDEP_DIR)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_RANLIB
+
+dnl Checks for libraries.
+AC_CHECK_LIB(m, sin)
+
+dnl Checks for header files.
+AC_HEADER_DIRENT
+AC_HEADER_STDC
+AC_CHECK_HEADERS(fcntl.h sys/time.h unistd.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_C_INLINE
+AC_TYPE_OFF_T
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+AC_STRUCT_TM
+
+dnl Checks for library functions.
+AC_PROG_GCC_TRADITIONAL
+AC_FUNC_MEMCMP
+AC_FUNC_MMAP
+AC_TYPE_SIGNAL
+AC_CHECK_FUNCS(getcwd gettimeofday mkdir mktime select socket)
+
+dnl Check for mmap header anomalies (missing MAP_FAILED, etc.)
+if test $ac_cv_func_mmap_fixed_mapped = yes; then
+	AC_CACHE_CHECK(whether MAP_FAILED is defined,
+		       ac_cv_map_failed,
+		       AC_EGREP_CPP(yes, 
+			            [#include <sys/mman.h>
+				     #ifdef MAP_FAILED
+					yes
+				     #endif],
+				    ac_cv_map_failed=yes,
+				    ac_cv_map_failed=no))
+
+	AC_CACHE_CHECK(whether MAP_ANONYMOUS is defined,
+		       ac_cv_map_anonymous,
+		       AC_EGREP_CPP(yes, 
+			            [#include <sys/mman.h>
+				     #ifdef MAP_ANONYMOUS
+					yes
+				     #endif],
+				    ac_cv_map_anonymous=yes,
+				    ac_cv_map_anonymous=no))
+
+	if test $ac_cv_map_failed = yes; then
+		AC_DEFINE(HAVE_MAP_FAILED) 
+	fi
+
+	if test $ac_cv_map_failed = yes; then
+		AC_DEFINE(HAVE_MAP_ANONYMOUS) 
+	fi
+fi
+
+
+dnl Features
+
+dnl check arguments
+AC_ARG_ENABLE(threads, [  --enable-threads        enable threads support])
+AC_ARG_ENABLE(gc2, [  --enable-gc2            enable new garbage collector])
+
+dnl threads
+AC_MSG_CHECKING(whether to include threads support)
+if test x"$enable_threads" = "xno"; then
+	AC_MSG_RESULT(no)
+else
+	AC_MSG_RESULT(yes)
+
+	AC_DEFINE(USE_THREADS)
+	AC_DEFINE(EXTERNAL_OVERFLOW)
+	AC_DEFINE(DONT_FREE_FIRST)
+
+	LIBTHREAD="libthreads.a"
+	THREAD_OBJ="threads/libthreads.a"
+	AC_SUBST(LIBTHREAD)
+	AC_SUBST(THREAD_OBJ)
+fi
+
+dnl garbage collector version
+AC_MSG_CHECKING(which garbage collector to use)
+if test x"$enable_gc2" = "xno"; then
+	AC_MSG_RESULT(old garbage collector)
+	GC_OBJ="mm/libmm_old.a"
+else
+	AC_MSG_RESULT(new garbage collector)
+	GC_OBJ="mm/libmm_new.a"
+fi
+AC_SUBST(GC_OBJ)
+
+
+AC_OUTPUT(Makefile \
+	  toolbox/Makefile \
+          mm/Makefile \
+	  threads/Makefile \
+	  jit/Makefile \
+          alpha/Makefile \
+          mips/Makefile \
+          nat/Makefile \
+          comp/Makefile )

@@ -6,7 +6,7 @@
  *
  * Authors: Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
  *
- * $Id: bitmap2.c 93 1998-11-25 11:49:36Z phil $
+ * $Id: bitmap2.c 115 1999-01-20 01:52:45Z phil $
  */
 
 /*
@@ -51,7 +51,7 @@
 
 #include "bitmap2.h"
 
-#warning "bitmap2.c untested in 32-bit mode -- phil."
+/* #warning "bitmap2.c untested in 32-bit mode -- phil." */
 
 /* FIXME: I haven't decided, whether to keep these macro definitions here or 
  *        move them to the header file; they are implementation details, so 
@@ -114,28 +114,28 @@
  */
 
 
-__inline__
+inline
 void bitmap_setbit(BITBLOCK* bitmap, 
 				   void* addr)
 { 
 	SETBIT(bitmap, addr); 
 }
 
-__inline__
+inline
 void bitmap_clearbit(BITBLOCK* bitmap, 
 					 void* addr)
 { 
 	CLEARBIT(bitmap, addr); 
 }
 
-__inline__
+inline
 bool bitmap_testbit(BITBLOCK* bitmap, 
 					void* addr)
 { 
 	return TESTBIT(bitmap, addr); 
 }
 
-__inline__
+inline
 static
 void bitmap_boundscheck(bitmap_t* bitmap,
 						void*     addr)
@@ -148,7 +148,7 @@ void bitmap_boundscheck(bitmap_t* bitmap,
 	assert(addr < bitmap->bitmap_beyond_addr); /* a stricter way to check the upper bound */
 }
 
-__inline__
+inline
 void bitmap_checking_setbit(bitmap_t* bitmap,
 							void*	  addr)
 {
@@ -156,7 +156,7 @@ void bitmap_checking_setbit(bitmap_t* bitmap,
 	bitmap_setbit(bitmap->bitmap, addr);
 }
 
-__inline__
+inline
 void bitmap_checking_clearbit(bitmap_t* bitmap,
 							  void*	  addr)
 {
@@ -164,7 +164,7 @@ void bitmap_checking_clearbit(bitmap_t* bitmap,
 	bitmap_clearbit(bitmap->bitmap, addr);
 }
 
-__inline__
+inline
 bool bitmap_checking_testbit(bitmap_t* bitmap,
 							 void*	  addr)
 {
@@ -172,13 +172,13 @@ bool bitmap_checking_testbit(bitmap_t* bitmap,
 	return bitmap_testbit(bitmap->bitmap, addr);
 }
 
-__inline__
+inline
 void bitmap_clear(bitmap_t* bitmap)	
 {
 	memset(bitmap->bitmap_memory, 0, bitmap->bytesize);
 }
 
-__inline__
+inline
 bitmap_t* bitmap_allocate(void* 	zero_addr, 
 						  OFFSET_T	size)
 {
@@ -207,7 +207,7 @@ bitmap_t* bitmap_allocate(void* 	zero_addr,
 	return bitmap;
 }
 
-__inline__
+inline
 void bitmap_release(bitmap_t* bitmap)
 {
 	if (bitmap) {
@@ -218,7 +218,7 @@ void bitmap_release(bitmap_t* bitmap)
 }
 
 
-__inline__
+inline
 static 
 int offset_for_lowest(BITBLOCK i)
 {
@@ -295,7 +295,7 @@ int offset_for_lowest(BITBLOCK i)
 #endif
 }
 
-__inline__
+inline
 void*
 bitmap_find_next_setbit(bitmap_t* bitmap, 
 						void*     addr)
@@ -323,7 +323,7 @@ bitmap_find_next_setbit(bitmap_t* bitmap,
 	return bitmap->bitmap_beyond_addr;
 }
 
-__inline__
+inline
 void*
 bitmap_find_next_combination_set_unset(bitmap_t* bitmap, 
 									   bitmap_t* invertedmap, 
@@ -353,7 +353,7 @@ bitmap_find_next_combination_set_unset(bitmap_t* bitmap,
 	return bitmap->bitmap_beyond_addr;
 }
 
-__inline__
+inline
 void
 bitmap_mask_with_bitmap(bitmap_t* bitmap,
 						bitmap_t* mask)

@@ -28,7 +28,7 @@
 #include "threads/thread.h"
 #include "threads/locks.h"              /* schani */
 
-#include "sysdep/native-math.h"
+#include "native-math.h"
 
 builtin_descriptor builtin_desc[] = {
 	{(functionptr) builtin_instanceof,         "instanceof"},

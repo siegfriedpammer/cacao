@@ -147,8 +147,8 @@ static chain *uninitializedclasses;
 #include "comp/stack.c"    /* Verwaltung des JavaVM-Stacks */
 #include "comp/regalloc.c" /* Registerallokator */
 
-#include "sysdep/gen.c"    /* systemABh"angiger Codegenerator */
-#include "sysdep/disass.c" /* Disassembler (nur zu Debug-Zwecken) */ 
+#include "gen.c"    /* systemABh"angiger Codegenerator */
+#include "disass.c" /* Disassembler (nur zu Debug-Zwecken) */ 
 
 #include "comp/block.c"    /* Verwaltung der basic blocks */ 
 #include "comp/parse.c"    /* JavaVM - parser */

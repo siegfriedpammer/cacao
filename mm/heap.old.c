@@ -22,14 +22,14 @@
 #include <assert.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include "../global.h"
-#include "../tables.h"
-#include "../asmpart.h"
-#include "../callargs.h"
+#include "global.h"
+#include "tables.h"
+#include "asmpart.h"
+#include "callargs.h"
 
-#include "../threads/thread.h"                  /* schani */
-#include "../threads/locks.h"
-#include "../sysdep/threads.h"
+#include "threads/thread.h"                  /* schani */
+#include "threads/locks.h"
+#include "threads.h"
 
 
 

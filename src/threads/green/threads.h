@@ -14,9 +14,11 @@
 #ifndef __thread_h
 #define __thread_h
 
+#include "config.h"
+
 #ifdef USE_THREADS
 
-#include "../global.h"
+#include "global.h"
 
 #define MAXTHREADS              256          /* schani */
 

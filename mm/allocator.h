@@ -1,6 +1,6 @@
 /*
  * cacao/mm/allocator.h
- * $Id: allocator.h 105 1998-12-10 17:48:53Z phil $
+ * $Id: allocator.h 115 1999-01-20 01:52:45Z phil $
  */
 
 #ifndef __allocator_h_
@@ -32,6 +32,7 @@
 #  define SIZE	unsigned long
 #endif
 
+#undef ALIGN
 #define ALIGN	3	/* 64bit alignment */
 //#define ALIGN	2	/* 32bit allignment */
 
@@ -106,7 +107,7 @@ void allocator_reset(void);
 
 void allocator_mark_free_kludge(BITBLOCK* bitmap);
 
-unsigned char find_highest(SIZE bits);
+/* unsigned char find_highest(SIZE bits); */
 
 #endif /* !defined(__allocator_h_) */
 

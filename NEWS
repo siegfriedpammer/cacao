@@ -1,0 +1,55 @@
+* About this file
+=================
+
+This file lists the most important changes for each official as well as
+internal release of cacao.  See the "ChangeLog" for a more detailed list of
+all the changes in the code.
+
+* Version 0.40 (released)
+=========================
+
+
+
+* Version 0.35 (experimental)
+=============================
+
+** autoconf, automake support
+-----------------------------
+
+Finally moved the entire distribution to autoconf/automake. This should fix
+some of our problems with supporting different compilers. Thread support and
+the use of the new garbage collector can be enabled/disabled from using
+configure arguments:
+
+	--enable-threads [default]
+	--disable-threads
+
+	--enable-gc2 [default]
+	--disable-gc2
+
+** new garbage collector
+------------------------
+
+Included the new garbage collector as default garbage collector. 
+
+** new just-in-time compiler
+----------------------------
+
+Andi, write something...
+
+* Version 0.30 (released)
+=========================
+
+Andi, write something!!!
+
+* Version 0.20 (released)
+=========================
+
+Andi, write something down here, too!
+
+
+----------------------------------------------------------------------------
+Local variables:
+mode: outline
+fill-column: 76
+End:

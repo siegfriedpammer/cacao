@@ -10,7 +10,7 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1998/11/118
+	Last Change: 1998/11/18
 
 *******************************************************************************/
 

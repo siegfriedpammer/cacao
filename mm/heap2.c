@@ -1,20 +1,23 @@
 #include <stddef.h>
 #include <unistd.h>		/* getpagesize, mmap, ... */
 #include <sys/mman.h>
-#ifndef MAP_FAILED
-#define MAP_FAILED ((void*) -1)
-#endif
+
 #include <sys/types.h>
 #include <stdio.h>
-#include "../asmpart.h"
-#include "../callargs.h"
-#include "../threads/thread.h"
-#include "../threads/locks.h"
-#include "../sysdep/threads.h"
 #include <assert.h>
-#include "lifespan.h"
 
+#include "asmpart.h"
+#include "callargs.h"
+#include "threads/thread.h"
+#include "threads/locks.h"
+
+#include "lifespan.h"
 #include "mm.h"
+
+#if !defined(HAVE_MAP_FAILED)
+#define MAP_FAILED ((void*) -1)
+#endif
+
 
 #define PAGESIZE_MINUS_ONE	(getpagesize() - 1)
 
@@ -43,6 +46,8 @@
 //#define COLLECT_LIFESPAN
 //#define NEW_COLLECT_LIFESPAN
 //#define COLLECT_FRAGMENTATION
+//#define COLLECT_SIZES
+
 //#define GC_COLLECT_STATISTICS
 //#define FINALIZER_COUNTING
 
@@ -104,6 +109,8 @@ static unsigned long gc_mark_not_object = 0;
 static unsigned long gc_mark_objects_marked = 0;
 static unsigned long gc_mark_already_marked = 0;
 
+static unsigned long gc_mark_null_pointer = 0;
+
 #endif
 
 #ifdef FINALIZER_COUNTING
@@ -139,7 +146,7 @@ heap_init (SIZE size,
 	/* 2. Allocate at least (alignment!) size bytes of memory for the heap */
 	heap_size = align_size(size + ((1 << ALIGN) - 1));
 
-#ifdef DONT_MMAP
+#if !(defined(HAVE_MAP_ANONYMOUS))
 	heap_base = malloc(heap_size);
 #else
 	heap_base = (void*) mmap (NULL, 
@@ -210,7 +217,7 @@ heap_init (SIZE size,
 	fprintf(tracefile, "heap_top\t0x%lx\n", heap_top);
 #endif
 
-#ifdef NEW_COLLECT_LIFESPAN
+#if defined(NEW_COLLECT_LIFESPAN) || defined(COLLECT_SIZES)
 	lifespan_init(heap_base, heap_size);
 #endif
 
@@ -221,7 +228,7 @@ heap_init (SIZE size,
 #endif
 }
 
-__inline__
+inline
 static
 void
 heap_call_finalizer_for_object_at(java_objectheader* object_addr)
@@ -246,7 +253,7 @@ heap_close (void)
 #endif
 #endif
 
-#ifdef NEW_COLLECT_LIFESPAN
+#if defined(NEW_COLLECT_LIFESPAN)
 	lifespan_close();
 #endif
 
@@ -288,6 +295,8 @@ heap_close (void)
 	sprintf(logtext, "%ld heapblocks visited, %ld objects marked", 
 			gc_mark_heapblocks_visited, gc_mark_objects_marked);
 	dolog();
+	sprintf(logtext, "    %ld null pointers.", gc_mark_null_pointer);
+	dolog();
 	sprintf(logtext, "    %ld out of heap.", gc_mark_not_inheap);
 	dolog();
 	sprintf(logtext, "    %ld visits to objects already marked.", gc_mark_already_marked);
@@ -309,12 +318,12 @@ heap_close (void)
 	dolog();
 #endif
 
-#ifdef NEW_COLLECT_LIFESPAN
+#if defined(NEW_COLLECT_LIFESPAN) || defined(COLLECT_SIZES)
 	lifespan_emit();
 #endif
 }
 
-__inline__
+inline
 static
 void 
 heap_add_address_to_address_list(address_list_node** list, void* address)
@@ -340,7 +349,7 @@ heap_add_address_to_address_list(address_list_node** list, void* address)
 }
 
 
-__inline__
+inline
 static
 void
 heap_add_finalizer_for_object_at(void* addr)
@@ -446,7 +455,7 @@ heap_allocate (SIZE		  in_length,
 			free_chunk, (long)free_chunk + length);
 #endif
 
-#ifdef NEW_COLLECT_LIFESPAN
+#if defined(NEW_COLLECT_LIFESPAN) || defined(COLLECT_SIZES)
 	lifespan_alloc(free_chunk, length);
 #endif
 
@@ -469,7 +478,7 @@ heap_addreference (void **reflocation)
 }
 
 static
-__inline__
+inline
 void gc_finalize (void)
 {
 	/* This will have to be slightly rewritten as soon the JIT-marked heap-based lists are used. -- phil. */
@@ -499,7 +508,7 @@ void gc_finalize (void)
 }
 
 
-__inline__
+inline
 static 
 void gc_reclaim (void)
 {
@@ -634,9 +643,9 @@ void gc_reclaim (void)
 				heap_life,
 				free_size, 
 				free_fragments,
-				100*(float)free_size/free_fragments,
-				100*(float)heap_life/heap_full,
-				100*(float)free_size/heap_full
+				100*(float)free_size/(free_fragments ? free_fragments : 1),
+				100*(float)heap_life/(heap_full ? heap_full : 1),
+				100*(float)free_size/(heap_full ? heap_full : 1)
 				);
 	}
 	fflush(fragfile);
@@ -658,7 +667,7 @@ void gc_reclaim (void)
 #endif
 }
 
-__inline__
+inline
 static
 void 
 gc_mark_object_at (void** addr)
@@ -718,12 +727,14 @@ gc_mark_object_at (void** addr)
 	 * property first, should thus improve collection times.
 	 */
 
-
 	/* 1.a. if addr doesn't point into the heap, return. */
 	if ((unsigned long)addr - (unsigned long)heap_base >= 
 		((long)heap_top - (long)heap_base)) {
 #ifdef GC_COLLECT_STATISTICS
-		++gc_mark_not_inheap;
+		if (addr == NULL)
+			++gc_mark_null_pointer;
+		else
+			++gc_mark_not_inheap;
 #endif
 		return;
 	}
@@ -789,28 +800,35 @@ gc_mark_object_at (void** addr)
 }
 
 
-__inline__
+inline
 static
 void gc_mark_references (void)
 {
 	address_list_node* curr = references;
 
 	while (curr) {
+#ifdef GC_COLLECT_STATISTICS
+		++gc_mark_heapblocks_visited;
+#endif		
 		gc_mark_object_at(*((void**)(curr->address)));
 		curr = curr->next;
 	}
 }
 
-__inline__
+inline
 static
 void 
 markreferences(void** start, void** end)
 {
-	while (start < end)
+	while (start < end) {
+#ifdef GC_COLLECT_STATISTICS
+		++gc_mark_heapblocks_visited;
+#endif		
 		gc_mark_object_at(*(start++));
+	}
 }
 
-__inline__
+inline
 static
 void gc_mark_stack (void)
 {

@@ -1,21 +1,9 @@
 #ifndef __mm_h_
 #define __mm_h_
 
-#include "../sysdep/types.h"
-#include "../global.h"
-
-#ifndef CACAO_NO_INLINE
-#define __cacao_inline__  inline
-#else
-#define __cacao_inline__
-#endif
-
-#ifdef __GNUC__
-#define __inline__  __cacao_inline__
-#else
-#define __inline__
-#endif
-
+#include "config.h"  /* takes care of "inline" */
+#include "types.h"
+#include "global.h"
 
 #endif
 

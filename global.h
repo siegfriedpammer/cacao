@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 91 1998-11-25 11:47:42Z phil $
+	Last Change: $Id: global.h 115 1999-01-20 01:52:45Z phil $
 
 *******************************************************************************/
 
@@ -46,10 +46,9 @@
 #include "toolbox/list.h"
 #include "toolbox/loging.h"
 
-
 /* system dependent types *****************************************************/
 
-#include "sysdep/types.h"
+#include "types.h"
 
 
 /* additional data types ******************************************************/

@@ -12,15 +12,17 @@
  * Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
  */
 
+#include "config.h"
+
 #include <assert.h>
 #include <stdio.h>
 
 #include "thread.h"
 #include "locks.h"
 
-#include "../tables.h"
-#include "../native.h"
-#include "../loader.h"
+#include "tables.h"
+#include "native.h"
+#include "loader.h"
 
 static classinfo *class_java_lang_IllegalMonitorStateException;
 

@@ -1,0 +1,126 @@
+.TH CACAO 1 "January 12, 1999"
+.UC
+.SH NAME
+cacao \- a java just-in-time compiler
+.SH SYNOPSIS
+.B cacao 
+[\-ieee][options] classname [program arguments]
+.br
+.SH DESCRIPTION
+The method \fBmain\fP of the class \fIclassname\fP is executed.
+Method \fBmain\fP must have the signature \fBpublic static void
+main(String[] argv)\fP. The program arguments are passed to method
+\fBmain\fP in the string array \fBargv\fP. The environment variable
+\fICLASSPATH\fP must contain the directory of the Java class files.
+Class archives in \fBzip\fP format are not supported. The option
+\fI\-ieee\fP is needed for a compliant implementation, the default
+behaviour of CACAO (aborting in case of floating point exeptions) is both
+faster and more desirable. The other options for \fBcacao\fP are in most
+cases identical to the options of the \fBjava\fP interpreter of SUN's
+JDK, with some additions and minor changes.
+.SH OPTIONS
+Currently recognized options are:
+.TP
+.B -classpath \fIpath\fP
+Defines the search path for class files. Usually the environment variable
+CLASSPATH specifies the search path, but this option overides the
+value of the environment variable.
+.TP
+.B -propertyname=\fIvalue\fP
+Assigns a value to an entry of the system property list.
+.TP
+.B -ms \fIinitmem\fP { k | m }
+Specicfies the heap size at program start. If this size has been used
+garbage collection is started.
+.TP	
+.B -mx \fImaxmem\fP { k | m }
+Specifies maximal heap size. Default size is 16 MB.
+.TP	
+.B -oss \fIstacksize\fP { k | m }
+no effect, compatibility option
+.TP
+.B -ss \fIstacksize\fP { k | m }
+no effect, compatibility option
+.TP
+.B -noasyncgc
+no effect, compatibility option
+.TP
+.B -noverify
+no effect, compatibility option
+.TP
+.B -v, -verbose
+CACAO prints a log message of every class loaded.
+.TP
+.B -verbosegc
+CACAO prints a log message for each garbage collection.
+.TP
+.B -verbosecall
+CACAO prints a log message for each method call.
+.TP
+.B -ieee
+Enables IEEE compliant floating point arithmetic as specified in the
+JVM specification. The default behavior is aborting CACAO with a
+floating point exception on overflows.
+.TP
+.B -softnull
+Software null pointer check is used instead of hardware null pointer
+check. Needed for debugging of CACAO.
+.TP	
+.B -time
+Gives statistics about run time after the program has completed.
+.TP	
+.B -stat
+Gives detailed statistics about the compiled program.
+.TP	
+.B -log \fIlogfile\fP
+Specifies the logfile. Default is \fIstdout\fP.
+.TP
+.B -c(heck){[b][s]}]
+Disables different run time checks.
+These options improves the run time of programs. But instead of throwing
+an exception the program crashes. These options should only be used for
+completely debugged programs.
+.B b(ounds)
+Disables array bound checks. Works well for \fBjavac\fP.
+.B s(ync) 
+Disables synchronization. Only useful for single threaded programs like
+\fBjavac\fP or \fBjBYTEmark\fP
+.B -l
+Loads the class files into the CACAO system without calling method
+\fBmain\fP. Used for debugging of CACAO.
+.B -old
+Use the old JIT compiler instead the new one. Used for debugging and comparison
+of the two JIT compilers.
+.TP	
+.B -all
+Compiles all methods without calling them.
+Used for cross compilation and debugging of CACAO.
+.TP
+.B -m \fImethodname\fP
+Compiles the specified method without calling it.
+Used for debugging of CACAO.
+.TP	
+.B -sig \fIsignature\fP
+specifies the signature of the method specified with the -m option.
+Used for debugging of CACAO.
+.TP
+.B -s(how){[a][c][i][m][s][u]}
+The following options are used for debugging of the CACAO system. The
+compiler gives the values of internal data structures in readable form:
+.B a(ssembler)
+Gives an assembles listing of all compiled methods.
+.B c(onstant)
+Gives a listing of all constant pool entries.
+.B i(ntermediate)
+Gives the intermediate code of all compiled methods.
+.B m(ethod)
+Gives a description of all fields and methods of a class.
+.B s(tack)
+Gives the JavaVM stack for every compiled instruction.
+.B u(nicode)
+Gives the complete hash table with all unicode symbols.
+
+.SH AUTHOR
+Andreas Krall, Mark Probst, Philipp Tomsich, Reinhard Grafl, Markus Gschwind
+
+Send mail to cacao@complang.tuwien.ac.at

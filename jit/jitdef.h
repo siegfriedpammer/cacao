@@ -12,7 +12,8 @@
 
 *******************************************************************************/
 
-#include "../sysdep/types.h"
+#ifndef __jitdef__
+#define __jitdef__
 
 /**************************** resolve typedef-cycles **************************/
 
@@ -1119,3 +1120,5 @@ void asm_handle_nat_exception();
 
 static void disassinstr (int c, int pos);       /* disassemble an instruction */
 static void disassemble (int *code, int len);   /* disassemble a code block   */
+
+#endif

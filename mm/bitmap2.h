@@ -1,6 +1,6 @@
 /* 
  * cacao/mm/bitmap.h
- * $Id: bitmap2.h 93 1998-11-25 11:49:36Z phil $ 
+ * $Id: bitmap2.h 115 1999-01-20 01:52:45Z phil $ 
  */
 
 #ifndef __mm_bitmap_h_
@@ -24,22 +24,22 @@ typedef struct {
 	void*           bitmap_memory;  /* internal: the real address */
 } bitmap_t;
 
-__inline__ void       bitmap_setbit(BITBLOCK* bitmap, void* addr);
-__inline__ void       bitmap_clearbit(BITBLOCK* bitmap, void* addr);
-__inline__ bool       bitmap_testbit(BITBLOCK* bitmap, void* addr);
+void       bitmap_setbit(BITBLOCK* bitmap, void* addr);
+void       bitmap_clearbit(BITBLOCK* bitmap, void* addr);
+bool       bitmap_testbit(BITBLOCK* bitmap, void* addr);
 
-__inline__ void       bitmap_checking_setbit(bitmap_t* bitmap, void* addr);
-__inline__ void       bitmap_checking_clearbit(bitmap_t* bitmap, void* addr);
-__inline__ bool       bitmap_checking_testbit(bitmap_t* bitmap, void* addr);
+void       bitmap_checking_setbit(bitmap_t* bitmap, void* addr);
+void       bitmap_checking_clearbit(bitmap_t* bitmap, void* addr);
+bool       bitmap_checking_testbit(bitmap_t* bitmap, void* addr);
 
-__inline__ void	      bitmap_clear(bitmap_t* bitmap);
-__inline__ bitmap_t*  bitmap_allocate(void* zero_offset, OFFSET_T size);
-__inline__ void       bitmap_release(bitmap_t* bitmap);
+void	      bitmap_clear(bitmap_t* bitmap);
+bitmap_t*  bitmap_allocate(void* zero_offset, OFFSET_T size);
+void       bitmap_release(bitmap_t* bitmap);
 
-__inline__ void*      bitmap_find_next_setbit(bitmap_t* bitmap, void* addr);
-__inline__ void*      bitmap_find_next_combination_set_unset(bitmap_t* bitmap, bitmap_t* invertedmap, void* addr);
+void*      bitmap_find_next_setbit(bitmap_t* bitmap, void* addr);
+void*      bitmap_find_next_combination_set_unset(bitmap_t* bitmap, bitmap_t* invertedmap, void* addr);
 
-__inline__ void       bitmap_mask_with_bitmap(bitmap_t* bitmap, bitmap_t* mask);
+void       bitmap_mask_with_bitmap(bitmap_t* bitmap, bitmap_t* mask);
 #endif
 
 /*

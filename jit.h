@@ -13,6 +13,9 @@
 
 *******************************************************************************/
 
+#ifndef __jit__
+#define __jit__
+
 /* compiler switches (set by main function) ***********************************/
 
 extern bool runverbose;         /* trace all method invocation                */
@@ -92,6 +95,7 @@ u1 *createnativestub (functionptr f, methodinfo *m);
 void removecompilerstub (u1 *stub);
 void removenativestub (u1 *stub);
 
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

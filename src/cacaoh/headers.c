@@ -15,10 +15,13 @@
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
+	         Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1997/05/23
+	Last Change: $Id: headers.c 115 1999-01-20 01:52:45Z phil $
 
 *******************************************************************************/
+
+#include "config.h" /* phil */
 
 #include "global.h"
 
@@ -389,6 +392,7 @@ int main(int argc, char **argv)
    /********** interne (nur fuer main relevante Optionen) **************/
    
 	char classpath[500] = "";
+	char offsets_filename[1024] = ""; /* phil */
 	u4 heapsize = 100000;
 
    /*********** Optionen, damit wirklich nur headers generiert werden ***/
@@ -415,9 +419,12 @@ int main(int argc, char **argv)
 	log_init (NULL);
 	log_text ("Java - header-generator started");
 	
-	file = fopen("sysdep/offsets.h", "w");
-	if (file == NULL)
-		panic ("Can not open file 'sysdep/offsets.h' for write");
+	sprintf(offsets_filename, "%s/offsets.h", SYSDEP_DIR); /* phil */
+	file = fopen(offsets_filename, "w");
+	if (file == NULL) {
+		fprintf (stderr, "Can not open file '%s' for write", offsets_filename);
+		exit(-1);
+	}
 	
 	fprintf (file, "/* This file is machine generated, don't edit it !*/\n\n"); 
 

@@ -16,8 +16,8 @@
 
 #ifdef USE_THREADS
 
-#include "../global.h"
-#include "sysdep/defines.h"
+#include "global.h"
+#include "defines.h"
 
 #define	WAITFOREVER	-1
 

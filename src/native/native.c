@@ -18,7 +18,6 @@
 #include <unistd.h>
 #include <time.h>
 
-
 #include "global.h"
 #include "native.h"
 

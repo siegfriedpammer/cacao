@@ -12,7 +12,9 @@
 
 #define	DBG(s)                    
 
-#include "sysdep/defines.h"
+#include "config.h"
+
+#include "defines.h"
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -207,7 +209,7 @@ threadedAccept(int fd, struct sockaddr* addr, int* len)
 #if defined(BLOCKING_CALLS)
 	blockOnFile(fd, TH_ACCEPT);
 #endif
-	r = accept(fd, addr, len);
+	r = accept(fd, addr, (size_t*)len);
 	if (r >= 0
 	    || !(errno == EINPROGRESS || errno == EALREADY
 		 || errno == EWOULDBLOCK))

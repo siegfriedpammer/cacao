@@ -10,6 +10,8 @@
 
 *******************************************************************************/
 
+#include "global.h" /* for unicode. -- phil */
+
 extern bool collectverbose;
 
 

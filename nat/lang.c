@@ -9,8 +9,9 @@
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
+			 Philipp Tomsich	 EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1997/06/10
+	Last Change: $Id: lang.c 115 1999-01-20 01:52:45Z phil $
 
 *******************************************************************************/
 
@@ -452,8 +453,7 @@ double java_lang_Math_floor (double par1)
 
 double java_lang_Math_rint (double par1)
 {
-	panic ("native Methode java_lang_rint not implemented yet");
-	return 0.0;
+	return rint(par1); /* phil, 1998/12/12 */
 }
 
 double java_lang_Math_atan2 (double par1, double par2)
