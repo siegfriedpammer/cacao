@@ -1,3 +1,4 @@
+/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
 /****************************** compiler.h *************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
@@ -21,6 +22,7 @@
 extern bool compileverbose;     
 extern bool showstack;          
 extern bool showdisassemble;    
+extern bool showddatasegment;    
 extern bool showintermediate;   
 extern int   optimizelevel;      
 

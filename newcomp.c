@@ -1,3 +1,4 @@
+/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
 /***************************** ncomp/ncomp.c ***********************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
@@ -33,6 +34,7 @@
 bool compileverbose = false;
 bool showstack = false;
 bool showdisassemble = false; 
+bool showddatasegment = false; 
 bool showintermediate = false;
 int  optimizelevel = 0;
 
@@ -150,11 +152,11 @@ static chain *uninitializedclasses;
 #include "sysdep/ngen.h"        /* code generator header file                 */ 
 #include "ncomp/ntools.c"       /* compiler tool functions                    */ 
 #include "ncomp/mcode.c"        /* code generation tool functions             */ 
+#include "sysdep/disass.c"      /* disassembler (for debug purposes only)     */ 
 #include "ncomp/nparse.c"       /* parsing of JavaVM code                     */ 
 #include "ncomp/nreg.c"         /* register allocation and support routines   */ 
 #include "ncomp/nstack.c"       /* analysing the stack operations             */ 
 #include "sysdep/ngen.c"        /* code generator                             */ 
-#include "sysdep/disass.c"      /* disassembler (for debug purposes only)     */ 
 
 
 
@@ -284,12 +286,12 @@ methodptr new_compile(methodinfo *m)
 		
 	if (showintermediate)
 		show_icmd_method();
-
-	if (showdisassemble) {
-		dseg_display((void*) (m->mcode));
+	else if (showdisassemble)
 		disassemble((void*) (m->mcode + dseglen), m->mcodelength - dseglen);
-		fflush(stdout);
-		}
+
+	if (showddatasegment)
+		dseg_display((void*) (m->mcode));
+
 
 
 	/* release dump area */

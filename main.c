@@ -1,3 +1,4 @@
+/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
 /******************************* main.c ****************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
@@ -183,6 +184,7 @@ static void print_usage()
 	printf ("          -s(how)m(ethods) ..... show all methods&fields of a class\n");
 	printf ("                 c(onstants) ... show the constant pool\n");
 	printf ("                 a(ssembler) ... show disassembled listing\n");
+	printf ("                 d(atasegment).. show data segment listing\n");
 	printf ("                 s(tack) ....... show stack for every javaVM-command\n");
 	printf ("                 i(ntermediate). show intermediate representation\n");
 	printf ("                 u(nicode) ..... show the unicode - hash\n");
