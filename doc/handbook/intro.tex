@@ -19,8 +19,8 @@ GNU general public license.
 
 \section{History}
 
-CACAO started as a master thesis by Rainhard Grafl in the year 1996. It
-included a JIT compiler
+CACAO started as a master thesis by Rainhard Grafl in the year 1996 under
+my supervision. It included a JIT compiler
 for the Alpha archtecture. It used Sun's library 1.0
 and contained the native functions for {\tt lang}, {\tt io}, {\tt util} and
 {\tt math}. The first version was running in January 1997. This was the first
@@ -35,7 +35,12 @@ very little development on CACAO. Christopher Kr\"ugel added array bound check
 removal, Phil Tomsich wrote a new garbage collector and Roman Obermaisser
 made the change to the Java 1.2 library. In 2003 development became more
 intensive. Dieter Th\"urnbeck added inlining, Christian Thalinger did the
-port to the x86 and AMD64 architecture, Stefan Ring did the port to the
-PowerPC architecture, Josef Wenninger replaced the SUN library by GNU
-classpath and Edwin Steiner added verification.
+port to the x86 and AMD64 architecture and rewrote the loader, Stefan Ring
+improved the MIPS port and did the port to the PowerPC architecture and
+implemented native threads with thin locks, Josef Wenninger replaced the
+SUN library by the GNU classpath, Edwin Steiner added verification,
+Carolyn Oates works class hierarchy analysis and inlining, Christian
+Ullrich implemented the linear scan register allocator and Martin Platter
+maintained the AWT library. On December 7th 2004 we released version 0.90
+the first time as source.
 
