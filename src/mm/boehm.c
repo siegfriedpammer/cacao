@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 771 2003-12-13 23:11:08Z stefan $
+   $Id: boehm.c 838 2004-01-05 00:27:00Z twisti $
 
 */
 
@@ -34,8 +34,9 @@
 #include "main.h"
 #include "boehm.h"
 #include "global.h"
-#include "threads/thread.h"
+#include "native.h"
 #include "asmpart.h"
+#include "threads/thread.h"
 #include "toolbox/loging.h"
 
 /* this is temporary workaround */
@@ -113,6 +114,9 @@ void runboehmfinalizer(void *o, void *p)
 {
 	java_objectheader *ob = (java_objectheader *) o;
 	asm_calljavafunction(ob->vftbl->class->finalizer, ob, NULL, NULL, NULL);
+	
+	/* if we had an exception in the finalizer, ignore it */
+	exceptionptr = NULL;
 }
 
 
@@ -151,18 +155,13 @@ void heap_free(void *p)
 }
 
 
-void heap_init (u4 size, u4 startsize, void **stackbottom)
+void heap_init(u4 size, u4 startsize, void **stackbottom)
 {
 	GC_INIT();
 }
 
 
 void heap_close()
-{
-}
-
-
-void heap_addreference(void **reflocation)
 {
 }
 
@@ -176,7 +175,7 @@ void gc_call()
 {
   	if (collectverbose)
 		dolog("Garbage Collection:  previous/now = %d / %d ",
-				0, 0);
+			  0, 0);
 
 	GC_gcollect();
 }
