@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 780 2003-12-14 21:59:53Z edwin $
+   $Id: typecheck.c 788 2003-12-15 18:45:28Z edwin $
 
 */
 
@@ -148,6 +148,7 @@ typeinfo_print_block(FILE *file,stackptr instack,
 }
 
 
+#if 0
 static
 void
 typeinfo_print_blocks(FILE *file,int vnum,u1 *vtype,typeinfo *vinfo)
@@ -168,6 +169,7 @@ typeinfo_print_blocks(FILE *file,int vnum,u1 *vtype,typeinfo *vinfo)
         show_icmd_block(block+bi);
     }
 }
+#endif
 
 #endif
 
@@ -561,7 +563,7 @@ struct jsr_record {
             TYPECHECK_COPYVARS;                                         \
         }                                                               \
         else {                                                          \
-            TYPECHECK_COPYJSR(jsrchain);                                \
+            if (way != REACH_THROW) TYPECHECK_COPYJSR(jsrchain);		\
             TYPECHECK_COPYVARS;                                         \
         }                                                               \
         if (way != REACH_THROW) TYPECHECK_COPYSTACK;                    \
@@ -571,7 +573,7 @@ struct jsr_record {
         changed = false;                                                \
         if (way == REACH_JSR)                                           \
             TYPECHECK_CHECK_JSR_CHAIN;                                  \
-        else                                                            \
+        else if (way != REACH_THROW)									\
             TYPECHECK_MERGEJSR;                                         \
         TYPECHECK_MERGEVARS;                                            \
         if (way != REACH_THROW) TYPECHECK_MERGESTACK;                   \
