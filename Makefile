@@ -9,7 +9,7 @@
 # Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 #          Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 #
-# Last Change: $Id: Makefile 70 1998-11-16 16:49:18Z schani $
+# Last Change: $Id: Makefile 92 1998-11-25 11:48:50Z phil $
 #
 #
 # ATTENTION: This version of the makefile only works with gmake.
@@ -23,16 +23,16 @@
 ################################################################################
 
 VERSION_MAJOR = 0
-VERSION_MINOR = 30
-VERSION_POSTFIX = p2
+VERSION_MINOR = 31
+VERSION_POSTFIX = 
 
 VERSION_STRING=$(VERSION_MAJOR).$(VERSION_MINOR)$(VERSION_POSTFIX)
 
 ##################### generation of the excutable ##############################
 
 # Enabling/disabling thread support
-USE_THREADS = YES
-#USE_THREADS = NO
+# USE_THREADS = YES
+USE_THREADS = NO
 
 ifeq ($(USE_THREADS),YES)
 THREAD_OBJ = threads/threads.a
@@ -43,19 +43,25 @@ THREAD_CFLAGS =
 endif
 
 #CC = cc
-#CFLAGS = -g -mieee -Wall $(THREAD_CFLAGS)
-#CFLAGS = -mieee -O3 -Wall $(THREAD_CFLAGS)
+#ARCHFLAGS = 
+#CFLAGS = -g -mieee -Wall $(THREAD_CFLAGS) $(ARCHFLAGS)
+#CFLAGS = -mieee -O3 -Wall $(THREAD_CFLAGS) $(ARCHFLAGS)
 #LFLAGS = -lm
 
 CC = cc
-CFLAGS = -g -ieee $(THREAD_CFLAGS)
-#CFLAGS = -O3 -ieee $(THREAD_CFLAGS)
+ARCHFLAGS = 
+#CFLAGS = -g -ieee $(THREAD_CFLAGS) $(ARCHFLAGS)
+#CFLAGS = -O6 -g -pg -ieee $(THREAD_CFLAGS) $(ARCHFLAGS)
+CFLAGS = -O2 -g -ieee -fno-inline $(THREAD_CFLAGS) $(ARCHFLAGS)
+#CFLAGS = -O6 -ieee $(THREAD_CFLAGS) $(ARCHFLAGS)
+#CFLAGS = -O3 -ieee $(THREAD_CFLAGS) $(ARCHFLAGS)
 LFLAGS = -lm
 
 # IRIX 6.5 MIPSPro 7.2.1
 #CC = cc
-#CFLAGS = -g $(THREAD_CFLAGS) -DMAP_ANONYMOUS=0 -woff 1048,1110,1164,1515
-#CFLAGS = -O2 -OPT:Olimit=0 $(THREAD_CFLAGS) -DMAP_ANONYMOUS=0
+#ARCHFLAGS = -DDONT_MMAP
+#CFLAGS = -g $(THREAD_CFLAGS) -DMAP_ANONYMOUS=0 -woff 1048,1110,1164,1515 $(ARCHFLAGS)
+#CFLAGS = -O2 -OPT:Olimit=0 $(THREAD_CFLAGS) -DMAP_ANONYMOUS=0 $(ARCHFLAGS)
 #LFLAGS = -lm -lelfutil
 
 OBJ = main.o tables.o loader.o compiler.o jit.o builtin.o asmpart.o \
