@@ -66,9 +66,17 @@
 *   determines if the byte support instruction set (21164a and higher)         *
 *   is available.                                                              *
 *                                                                              *
+*   Use it on i386 architecture to init the fpu.                               *
+*                                                                              *
 *******************************************************************************/
 
 has_no_x_instr_set:
+		finit                         /* intitialize the fpu                  */
+
+		pushl	$0x027f   /* Round to nearest, 53-bit mode, exceptions masked */
+		fldcw	(%esp)
+		addl	$4,%esp
+		
 		xor		%eax,%eax				/* result code 0 (not used for i386   */
 		ret
 
@@ -135,12 +143,6 @@ asm_calljavamethod:
 		pushl	%ebp                  /* allocate stack space                 */
 		movl	%esp, %ebp
 
-		finit                         /* intitialize the fpu                  */
-
-		pushl	$0x027f   /* Round to nearest, 53-bit mode, exceptions masked */
-		fldcw	(%esp)
-		addl	$4,%esp
-		
 		subl	$32,%esp              /* pass the remaining parameters        */
 		xorl	%edx,%edx
 
@@ -412,7 +414,7 @@ asm_handle_exception:
 		pushl	%esi
 		pushl	%edi
 		
-ex_trace:
+ex_stack_loop:
 		subl	$16,%esp
 
 		movl	%eax,(%esp)					/* exception pointer */
@@ -480,6 +482,14 @@ empty_table:
 		xorl	%eax,%eax
 		movl	$0,(%eax)
 		
+		jmp		ex_already_cleared
+
+ex_already_cleared:		
+		jmp		no_monitor_exit
+
+ex_mon_load:
+		
+no_monitor_exit:		
 		popl	%edi
 		popl	%esi
 		popl	%ebx
@@ -495,8 +505,15 @@ empty_table:
 *******************************************************************************/
 
 asm_builtin_monitorenter:
-	jmp		builtin_monitorenter
+		cmpl	$0,4(%esp)
+		je		nb_monitorenter			/* if (null) throw exception          */
+		jmp		builtin_monitorenter	/* else call builtin_monitorenter     */
 
+nb_monitorenter:
+		movl	proto_java_lang_NullPointerException,%eax
+		subl	$2,%edx					/* faulting address is return adress - 2 */
+		jmp		asm_handle_nat_exception
+		
 
 /********************* function asm_builtin_monitorexit ************************
 *                                                                              *
@@ -505,7 +522,14 @@ asm_builtin_monitorenter:
 *******************************************************************************/
 
 asm_builtin_monitorexit:
-	jmp		builtin_monitorexit
+		cmpl	$0,4(%esp)
+		je		nb_monitorexit			/* if (null) throw exception          */
+		jmp		builtin_monitorexit		/* else call builtin_monitorenter     */
+
+nb_monitorexit:
+		movl	proto_java_lang_NullPointerException,%eax
+		subl	$2,%edx					/* faulting address is return adress - 2 */
+		jmp		asm_handle_nat_exception
 
 
 /************************ function asm_builtin_idiv ****************************
@@ -608,9 +632,9 @@ nb_lrem:
 *******************************************************************************/
 
 asm_builtin_checkcast:
-	xorl		%eax,%eax
-	movl		$0,(%eax)
-	ret
+		xorl	%eax,%eax
+		movl	$0,(%eax)
+		ret
 
 		
 /******************* function asm_builtin_checkarraycast ***********************
@@ -620,27 +644,28 @@ asm_builtin_checkcast:
 *******************************************************************************/
 
 asm_builtin_checkarraycast:
-		pushl	%ecx					/* save data segment address */
-		
-		subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
+		pushl	%ecx					/* save data segment address          */
+		subl	$8,%esp					/* build stack frame (2 * 4 bytes)    */
 
 		movl	16(%esp),%eax           /* 8 (frame) + 4 (return) + 4 (data) = 16 */
-		movl	%eax,(%esp)
+		movl	%eax,(%esp)				/* save object pointer                 */
 
 		movl	24(%esp),%eax
 		movl	%eax,4(%esp)
 
-		call	builtin_checkarraycast  /* builtin_checkarraycast               */
+		call	builtin_checkarraycast  /* builtin_checkarraycast              */
 	
-		addl	$8,%esp
-
-		test	%eax,%eax               /* if (false) throw exception           */
+		test	%eax,%eax               /* if (false) throw exception          */
 		je		nb_carray_throw
 
+		movl	16(%esp),%eax			/* return object pointer               */
+		addl	$8,%esp
 		addl	$4,%esp
 		ret
 
 nb_carray_throw:
+		addl	$8,%esp
+		
 		popl	%ecx					/* restore data segment address */
 		popl	%edx					/* delete return address */
 		
@@ -698,49 +723,39 @@ asm_builtin_newarray_array:
 *******************************************************************************/
 
 asm_builtin_aastore:
-		pushl	%ecx					/* save data segment address */
-		
-		subl	$12,%esp				/* build stack frame (3 * 4 bytes) */
+		pushl	%ecx					/* save data segment address          */
+		subl	$12,%esp				/* build stack frame (3 * 4 bytes)    */
 
 		movl	20(%esp),%eax           /* 12 (frame) + 4 (return) + 4 (data) */
-		test	%eax,%eax				/* if null pointer throw exception */
+		test	%eax,%eax				/* if null pointer throw exception    */
 		je		nb_aastore_null
 
-		movl	offarraysize(%eax),%edx /* load size */
-		movl	28(%esp),%ecx			/* index */
-		cmpl	%edx,%ecx				/* do bound check */
-		ja		nb_aastore_bound		/* if out of bounds throw exception */
-		
-/*		shll	$3,%ecx					/* index * 4 */
-/*		addl	%eax,%ecx				/* add index * 4 to arrayref */
-	
-/*		movl	20(%esp),%eax           /* 12 (frame) + 4 (return) + 4 (data) */
-/*		movl	%eax,(%esp)
+		movl	offarraysize(%eax),%edx /* load size                          */
+		movl	28(%esp),%ecx			/* index                              */
+		cmpl	%edx,%ecx				/* do bound check                     */
+		ja		nb_aastore_bound		/* if out of bounds throw exception   */
 
-/*		movl	36(%esp),%eax			/* object is second argument */
-/*		movl	%eax,4(%esp)
+		shll	$2,%ecx					/* index * 4                          */
+		addl	%eax,%ecx				/* add index * 4 to arrayref          */
 		
-/*		call	builtin_canstore		/* builtin_canstore(arrayref,object) */
-
-/*		test	%eax,%eax */
-/*		je		nb_aastore_throw */
-				
+		movl	%ecx,8(%esp)			/* save store position                */
+		
 		movl	20(%esp),%eax           /* 12 (frame) + 4 (return) + 4 (data) */
 		movl	%eax,(%esp)
 
-		movl	28(%esp),%eax
+		movl	36(%esp),%eax			/* object is second argument          */
 		movl	%eax,4(%esp)
+		
+		call	builtin_canstore		/* builtin_canstore(arrayref,object)  */
+
+		test	%eax,%eax				/* if (false) throw exception         */
+		je		nb_aastore_throw
 
 		movl	36(%esp),%eax
-		movl	%eax,8(%esp)
+		movl	8(%esp),%ecx
+		movl	%eax,offobjarrdata(%ecx)/* store objectptr in array           */
 		
-		call	builtin_aastore
-
-		test	%eax,%eax
-		je		nb_aastore_throw
-			
 		addl	$12,%esp
-
 		addl	$4,%esp
 		ret
 
@@ -900,6 +915,6 @@ asm_switchstackandcall:
 *******************************************************************************/
 
 asm_getcallingmethod:
-	xorl		%eax,%eax
-	movl		$0,(%eax)
-	ret
+		xorl	%eax,%eax
+		movl	$0,(%eax)
+		ret

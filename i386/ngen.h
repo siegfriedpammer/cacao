@@ -69,7 +69,7 @@ int nregdescint[] = {
 
 int nregdescfloat[] = {
 /*      REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, */
-    REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES,
+    REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_RES, REG_RES,
     REG_END };
 
 /* for use of reserved registers, see comment above */
@@ -207,24 +207,18 @@ static const unsigned char i386_jcc_map[] = {
  * modrm and stuff
  */
 #define i386_address_byte(mod, reg, rm) \
-    do { \
-        *(((u1 *) mcodeptr)++) = ((((mod) & 0x03) << 6) | (((reg) & 0x07) << 3) | (((rm) & 0x07))); \
-    } while (0)
+    *(((u1 *) mcodeptr)++) = ((((mod) & 0x03) << 6) | (((reg) & 0x07) << 3) | (((rm) & 0x07)));
 
 
 #define i386_emit_reg(reg,rm) \
-    do { \
-        i386_address_byte(3,(reg),(rm)); \
-    } while (0)
+    i386_address_byte(3,(reg),(rm));
 
 
 #define i386_is_imm8(imm)	(((int)(imm) >= -128 && (int)(imm) <= 127))
 
 
 #define i386_emit_imm8(imm) \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) ((imm) & 0xff); \
-    } while (0)
+    *(((u1 *) mcodeptr)++) = (u1) ((imm) & 0xff);
 
 
 #define i386_emit_imm16(imm) \
@@ -318,6 +312,7 @@ static const unsigned char i386_jcc_map[] = {
             i386_emit_imm32((disp)); \
         } \
     } while (0)
+
 
 #define i386_emit_memindex(reg,disp,basereg,indexreg,scale) \
     do { \
@@ -669,9 +664,7 @@ static const unsigned char i386_jcc_map[] = {
  * inc, dec operations
  */
 #define i386_inc_reg(reg) \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x40 + ((reg) & 0x07); \
-    } while (0)
+    *(((u1 *) mcodeptr)++) = (u1) 0x40 + ((reg) & 0x07);
 
 
 #define i386_inc_membase(basereg,disp) \
@@ -682,9 +675,7 @@ static const unsigned char i386_jcc_map[] = {
 
 
 #define i386_dec_reg(reg) \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x48 + ((reg) & 0x07); \
-    } while (0)
+    *(((u1 *) mcodeptr)++) = (u1) 0x48 + ((reg) & 0x07);
 
         
 #define i386_dec_membase(basereg,disp) \
@@ -697,9 +688,7 @@ static const unsigned char i386_jcc_map[] = {
 
 
 #define i386_cltd() \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x99; \
-    } while (0)
+    *(((u1 *) mcodeptr)++) = (u1) 0x99;
 
 
 
@@ -791,15 +780,11 @@ static const unsigned char i386_jcc_map[] = {
 
 
 #define i386_ret() \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0xc3; \
-    } while (0)
+    *(((u1 *) mcodeptr)++) = (u1) 0xc3;
 
 
 #define i386_leave() \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0xc9; \
-    } while (0)
+    *(((u1 *) mcodeptr)++) = (u1) 0xc9;
 
 
 
@@ -966,9 +951,7 @@ static const unsigned char i386_jcc_map[] = {
 
 
 #define i386_push_reg(reg) \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x50 + (0x07 & (reg)); \
-    } while (0)
+    *(((u1 *) mcodeptr)++) = (u1) 0x50 + (0x07 & (reg));
 
 
 #define i386_push_membase(basereg,disp) \
@@ -986,15 +969,11 @@ static const unsigned char i386_jcc_map[] = {
 
 
 #define i386_pop_reg(reg) \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x58 + (0x07 & (reg)); \
-    } while (0)
+    *(((u1 *) mcodeptr)++) = (u1) 0x58 + (0x07 & (reg));
 
 
 #define i386_nop() \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x90; \
-    } while (0)
+    *(((u1 *) mcodeptr)++) = (u1) 0x90;
 
 
 
@@ -1379,10 +1358,31 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_fdiv_reg_st(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xd8; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xf0 + (0x07 & (reg)); \
+    } while (0)
+
+
+#define i386_fdiv_st_reg(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdc; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xf8 + (0x07 & (reg)); \
+    } while (0)
+
+
 #define i386_fdivp() \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xde; \
         *(((u1 *) mcodeptr)++) = (u1) 0xf9; \
+    } while (0)
+
+
+#define i386_fdivp_st_reg(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xde; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xf8 + (0x07 & (reg)); \
     } while (0)
 
 
@@ -1450,9 +1450,7 @@ static const unsigned char i386_jcc_map[] = {
 
 
 #define i386_sahf() \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x9e; \
-    } while (0)
+    *(((u1 *) mcodeptr)++) = (u1) 0x9e;
 
 
 #define i386_finit() \
@@ -1471,9 +1469,7 @@ static const unsigned char i386_jcc_map[] = {
 
 
 #define i386_wait() \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x9b; \
-    } while (0)
+    *(((u1 *) mcodeptr)++) = (u1) 0x9b;
 
 
 #define i386_ffree_reg(reg) \
@@ -1498,256 +1494,9 @@ static const unsigned char i386_jcc_map[] = {
 
 
 
-/* macros for all used commands (see an Alpha-manual for description) *********/ 
-
-#define M_LDA(a,b,disp)         M_MEM (0x08,a,b,disp)           /* low const  */
-#define M_LDAH(a,b,disp)        M_MEM (0x09,a,b,disp)           /* high const */
-#define M_BLDU(a,b,disp)        M_MEM (0x0a,a,b,disp)           /*  8 load    */
-#define M_SLDU(a,b,disp)        M_MEM (0x0c,a,b,disp)           /* 16 load    */
-#define M_ILD(a,b,disp)         M_MEM (0x28,a,b,disp)           /* 32 load    */
-#define M_LLD(a,b,disp)         M_MEM (0x29,a,b,disp)           /* 64 load    */
-#define M_ALD(a,b,disp)         M_MEM (0x29,a,b,disp)           /* addr load  */
-#define M_BST(a,b,disp)         M_MEM (0x0e,a,b,disp)           /*  8 store   */
-#define M_SST(a,b,disp)         M_MEM (0x0d,a,b,disp)           /* 16 store   */
-#define M_IST(a,b,disp)         M_MEM (0x2c,a,b,disp)           /* 32 store   */
-#define M_LST(a,b,disp)         M_MEM (0x2d,a,b,disp)           /* 64 store   */
-#define M_AST(a,b,disp)         M_MEM (0x2d,a,b,disp)           /* addr store */
-
-#define M_BSEXT(b,c)            M_OP3 (0x1c,0x0,REG_ZERO,b,c,0) /*  8 signext */
-#define M_SSEXT(b,c)            M_OP3 (0x1c,0x1,REG_ZERO,b,c,0) /* 16 signext */
-
-#define M_BR(disp)              M_BRA (0x30,REG_ZERO,disp)      /* branch     */
-#define M_BSR(ra,disp)          M_BRA (0x34,ra,disp)            /* branch sbr */
-#define M_BEQZ(a,disp)          M_BRA (0x39,a,disp)             /* br a == 0  */
-#define M_BLTZ(a,disp)          M_BRA (0x3a,a,disp)             /* br a <  0  */
-#define M_BLEZ(a,disp)          M_BRA (0x3b,a,disp)             /* br a <= 0  */
-#define M_BNEZ(a,disp)          M_BRA (0x3d,a,disp)             /* br a != 0  */
-#define M_BGEZ(a,disp)          M_BRA (0x3e,a,disp)             /* br a >= 0  */
-#define M_BGTZ(a,disp)          M_BRA (0x3f,a,disp)             /* br a >  0  */
-
-#define M_JMP(a,b)              M_MEM (0x1a,a,b,0x0000)         /* jump       */
-#define M_JSR(a,b)              M_MEM (0x1a,a,b,0x4000)         /* call sbr   */
-#define M_RET(a,b)              M_MEM (0x1a,a,b,0x8000)         /* return     */
-
-#define M_IADD(a,b,c)           M_OP3 (0x10,0x0,  a,b,c,0)      /* 32 add     */
-#define M_LADD(a,b,c)           M_OP3 (0x10,0x20, a,b,c,0)      /* 64 add     */
-#define M_ISUB(a,b,c)           M_OP3 (0x10,0x09, a,b,c,0)      /* 32 sub     */
-#define M_LSUB(a,b,c)           M_OP3 (0x10,0x29, a,b,c,0)      /* 64 sub     */
-#define M_IMUL(a,b,c)           M_OP3 (0x13,0x00, a,b,c,0)      /* 32 mul     */
-#define M_LMUL(a,b,c)           M_OP3 (0x13,0x20, a,b,c,0)      /* 64 mul     */
-
-#define M_IADD_IMM(a,b,c)       M_OP3 (0x10,0x0,  a,b,c,1)      /* 32 add     */
-#define M_LADD_IMM(a,b,c)       M_OP3 (0x10,0x20, a,b,c,1)      /* 64 add     */
-#define M_ISUB_IMM(a,b,c)       M_OP3 (0x10,0x09, a,b,c,1)      /* 32 sub     */
-#define M_LSUB_IMM(a,b,c)       M_OP3 (0x10,0x29, a,b,c,1)      /* 64 sub     */
-#define M_IMUL_IMM(a,b,c)       M_OP3 (0x13,0x00, a,b,c,1)      /* 32 mul     */
-#define M_LMUL_IMM(a,b,c)       M_OP3 (0x13,0x20, a,b,c,1)      /* 64 mul     */
-
-#define M_CMPEQ(a,b,c)          M_OP3 (0x10,0x2d, a,b,c,0)      /* c = a == b */
-#define M_CMPLT(a,b,c)          M_OP3 (0x10,0x4d, a,b,c,0)      /* c = a <  b */
-#define M_CMPLE(a,b,c)          M_OP3 (0x10,0x6d, a,b,c,0)      /* c = a <= b */
-
-#define M_CMPULE(a,b,c)         M_OP3 (0x10,0x3d, a,b,c,0)      /* c = a <= b */
-#define M_CMPULT(a,b,c)         M_OP3 (0x10,0x1d, a,b,c,0)      /* c = a <= b */
-
-#define M_CMPEQ_IMM(a,b,c)      M_OP3 (0x10,0x2d, a,b,c,1)      /* c = a == b */
-#define M_CMPLT_IMM(a,b,c)      M_OP3 (0x10,0x4d, a,b,c,1)      /* c = a <  b */
-#define M_CMPLE_IMM(a,b,c)      M_OP3 (0x10,0x6d, a,b,c,1)      /* c = a <= b */
-
-#define M_CMPULE_IMM(a,b,c)     M_OP3 (0x10,0x3d, a,b,c,1)      /* c = a <= b */
-#define M_CMPULT_IMM(a,b,c)     M_OP3 (0x10,0x1d, a,b,c,1)      /* c = a <= b */
-
-#define M_AND(a,b,c)            M_OP3 (0x11,0x00, a,b,c,0)      /* c = a &  b */
-#define M_OR( a,b,c)            M_OP3 (0x11,0x20, a,b,c,0)      /* c = a |  b */
-#define M_XOR(a,b,c)            M_OP3 (0x11,0x40, a,b,c,0)      /* c = a ^  b */
-
-#define M_AND_IMM(a,b,c)        M_OP3 (0x11,0x00, a,b,c,1)      /* c = a &  b */
-#define M_OR_IMM( a,b,c)        M_OP3 (0x11,0x20, a,b,c,1)      /* c = a |  b */
-#define M_XOR_IMM(a,b,c)        M_OP3 (0x11,0x40, a,b,c,1)      /* c = a ^  b */
-
-#define M_MOV(a,c)              M_OR (a,a,c)                    /* c = a      */
-#define M_CLR(c)                M_OR (31,31,c)                  /* c = 0      */
-#define M_NOP                   M_OR (31,31,31)                 /* ;          */
-
-#define M_SLL(a,b,c)            M_OP3 (0x12,0x39, a,b,c,0)      /* c = a << b */
-#define M_SRA(a,b,c)            M_OP3 (0x12,0x3c, a,b,c,0)      /* c = a >> b */
-#define M_SRL(a,b,c)            M_OP3 (0x12,0x34, a,b,c,0)      /* c = a >>>b */
-
-#define M_SLL_IMM(a,b,c)        M_OP3 (0x12,0x39, a,b,c,1)      /* c = a << b */
-#define M_SRA_IMM(a,b,c)        M_OP3 (0x12,0x3c, a,b,c,1)      /* c = a >> b */
-#define M_SRL_IMM(a,b,c)        M_OP3 (0x12,0x34, a,b,c,1)      /* c = a >>>b */
-
-#define M_FLD(a,b,disp)         M_MEM (0x22,a,b,disp)           /* load flt   */
-#define M_DLD(a,b,disp)         M_MEM (0x23,a,b,disp)           /* load dbl   */
-#define M_FST(a,b,disp)         M_MEM (0x26,a,b,disp)           /* store flt  */
-#define M_DST(a,b,disp)         M_MEM (0x27,a,b,disp)           /* store dbl  */
-
-#define M_FADD(a,b,c)           M_FOP3 (0x16, 0x080, a,b,c)     /* flt add    */
-#define M_DADD(a,b,c)           M_FOP3 (0x16, 0x0a0, a,b,c)     /* dbl add    */
-#define M_FSUB(a,b,c)           M_FOP3 (0x16, 0x081, a,b,c)     /* flt sub    */
-#define M_DSUB(a,b,c)           M_FOP3 (0x16, 0x0a1, a,b,c)     /* dbl sub    */
-#define M_FMUL(a,b,c)           M_FOP3 (0x16, 0x082, a,b,c)     /* flt mul    */
-#define M_DMUL(a,b,c)           M_FOP3 (0x16, 0x0a2, a,b,c)     /* dbl mul    */
-#define M_FDIV(a,b,c)           M_FOP3 (0x16, 0x083, a,b,c)     /* flt div    */
-#define M_DDIV(a,b,c)           M_FOP3 (0x16, 0x0a3, a,b,c)     /* dbl div    */
-
-#define M_FADDS(a,b,c)          M_FOP3 (0x16, 0x580, a,b,c)     /* flt add    */
-#define M_DADDS(a,b,c)          M_FOP3 (0x16, 0x5a0, a,b,c)     /* dbl add    */
-#define M_FSUBS(a,b,c)          M_FOP3 (0x16, 0x581, a,b,c)     /* flt sub    */
-#define M_DSUBS(a,b,c)          M_FOP3 (0x16, 0x5a1, a,b,c)     /* dbl sub    */
-#define M_FMULS(a,b,c)          M_FOP3 (0x16, 0x582, a,b,c)     /* flt mul    */
-#define M_DMULS(a,b,c)          M_FOP3 (0x16, 0x5a2, a,b,c)     /* dbl mul    */
-#define M_FDIVS(a,b,c)          M_FOP3 (0x16, 0x583, a,b,c)     /* flt div    */
-#define M_DDIVS(a,b,c)          M_FOP3 (0x16, 0x5a3, a,b,c)     /* dbl div    */
-
-#define M_CVTDF(b,c)            M_FOP3 (0x16, 0x0ac, 31,b,c)    /* dbl2long   */
-#define M_CVTLF(b,c)            M_FOP3 (0x16, 0x0bc, 31,b,c)    /* long2flt   */
-#define M_CVTLD(b,c)            M_FOP3 (0x16, 0x0be, 31,b,c)    /* long2dbl   */
-#define M_CVTDL(b,c)            M_FOP3 (0x16, 0x1af, 31,b,c)    /* dbl2long   */
-#define M_CVTDL_C(b,c)          M_FOP3 (0x16, 0x12f, 31,b,c)    /* dbl2long   */
-#define M_CVTLI(b,c)            M_FOP3 (0x17, 0x130, 31,b,c)    /* long2int   */
-
-#define M_CVTDFS(b,c)           M_FOP3 (0x16, 0x5ac, 31,b,c)    /* dbl2long   */
-#define M_CVTDLS(b,c)           M_FOP3 (0x16, 0x5af, 31,b,c)    /* dbl2long   */
-#define M_CVTDL_CS(b,c)         M_FOP3 (0x16, 0x52f, 31,b,c)    /* dbl2long   */
-#define M_CVTLIS(b,c)           M_FOP3 (0x17, 0x530, 31,b,c)    /* long2int   */
-
-#define M_FCMPEQ(a,b,c)         M_FOP3 (0x16, 0x0a5, a,b,c)     /* c = a==b   */
-#define M_FCMPLT(a,b,c)         M_FOP3 (0x16, 0x0a6, a,b,c)     /* c = a<b    */
-
-#define M_FCMPEQS(a,b,c)        M_FOP3 (0x16, 0x5a5, a,b,c)     /* c = a==b   */
-#define M_FCMPLTS(a,b,c)        M_FOP3 (0x16, 0x5a6, a,b,c)     /* c = a<b    */
-
-#define M_FMOV(fa,fb)           M_FOP3 (0x17, 0x020, fa,fa,fb)  /* b = a      */
-#define M_FMOVN(fa,fb)          M_FOP3 (0x17, 0x021, fa,fa,fb)  /* b = -a     */
-
-#define M_FNOP                  M_FMOV (31,31)
-
-#define M_FBEQZ(fa,disp)        M_BRA (0x31,fa,disp)            /* br a == 0.0*/
-
-/* macros for special commands (see an Alpha-manual for description) **********/ 
-
-#define M_TRAPB                 M_MEM (0x18,0,0,0x0000)        /* trap barrier*/
-
-#define M_S4ADDL(a,b,c)         M_OP3 (0x10,0x02, a,b,c,0)     /* c = a*4 + b */
-#define M_S4ADDQ(a,b,c)         M_OP3 (0x10,0x22, a,b,c,0)     /* c = a*4 + b */
-#define M_S4SUBL(a,b,c)         M_OP3 (0x10,0x0b, a,b,c,0)     /* c = a*4 - b */
-#define M_S4SUBQ(a,b,c)         M_OP3 (0x10,0x2b, a,b,c,0)     /* c = a*4 - b */
-#define M_S8ADDL(a,b,c)         M_OP3 (0x10,0x12, a,b,c,0)     /* c = a*8 + b */
-#define M_S8ADDQ(a,b,c)         M_OP3 (0x10,0x32, a,b,c,0)     /* c = a*8 + b */
-#define M_S8SUBL(a,b,c)         M_OP3 (0x10,0x1b, a,b,c,0)     /* c = a*8 - b */
-#define M_S8SUBQ(a,b,c)         M_OP3 (0x10,0x3b, a,b,c,0)     /* c = a*8 - b */
-#define M_SAADDQ(a,b,c)         M_S8ADDQ(a,b,c)                /* c = a*8 + b */
-
-#define M_S4ADDL_IMM(a,b,c)     M_OP3 (0x10,0x02, a,b,c,1)     /* c = a*4 + b */
-#define M_S4ADDQ_IMM(a,b,c)     M_OP3 (0x10,0x22, a,b,c,1)     /* c = a*4 + b */
-#define M_S4SUBL_IMM(a,b,c)     M_OP3 (0x10,0x0b, a,b,c,1)     /* c = a*4 - b */
-#define M_S4SUBQ_IMM(a,b,c)     M_OP3 (0x10,0x2b, a,b,c,1)     /* c = a*4 - b */
-#define M_S8ADDL_IMM(a,b,c)     M_OP3 (0x10,0x12, a,b,c,1)     /* c = a*8 + b */
-#define M_S8ADDQ_IMM(a,b,c)     M_OP3 (0x10,0x32, a,b,c,1)     /* c = a*8 + b */
-#define M_S8SUBL_IMM(a,b,c)     M_OP3 (0x10,0x1b, a,b,c,1)     /* c = a*8 - b */
-#define M_S8SUBQ_IMM(a,b,c)     M_OP3 (0x10,0x3b, a,b,c,1)     /* c = a*8 - b */
-
-#define M_LLD_U(a,b,disp)       M_MEM (0x0b,a,b,disp)          /* unalign ld  */
-#define M_LST_U(a,b,disp)       M_MEM (0x0f,a,b,disp)          /* unalign st  */
-
-#define M_ZAP(a,b,c)            M_OP3 (0x12,0x30, a,b,c,0)
-#define M_ZAPNOT(a,b,c)         M_OP3 (0x12,0x31, a,b,c,0)
-
-#define M_ZAP_IMM(a,b,c)        M_OP3 (0x12,0x30, a,b,c,1)
-#define M_ZAPNOT_IMM(a,b,c)     M_OP3 (0x12,0x31, a,b,c,1)
-
-#define M_BZEXT(a,b)            M_ZAPNOT_IMM(a, 0x01, b)       /*  8 zeroext  */
-#define M_CZEXT(a,b)            M_ZAPNOT_IMM(a, 0x03, b)       /* 16 zeroext  */
-#define M_IZEXT(a,b)            M_ZAPNOT_IMM(a, 0x0f, b)       /* 32 zeroext  */
-
-#define M_EXTBL(a,b,c)          M_OP3 (0x12,0x06, a,b,c,0)
-#define M_EXTWL(a,b,c)          M_OP3 (0x12,0x16, a,b,c,0)
-#define M_EXTLL(a,b,c)          M_OP3 (0x12,0x26, a,b,c,0)
-#define M_EXTQL(a,b,c)          M_OP3 (0x12,0x36, a,b,c,0)
-#define M_EXTWH(a,b,c)          M_OP3 (0x12,0x5a, a,b,c,0)
-#define M_EXTLH(a,b,c)          M_OP3 (0x12,0x6a, a,b,c,0)
-#define M_EXTQH(a,b,c)          M_OP3 (0x12,0x7a, a,b,c,0)
-#define M_INSBL(a,b,c)          M_OP3 (0x12,0x0b, a,b,c,0)
-#define M_INSWL(a,b,c)          M_OP3 (0x12,0x1b, a,b,c,0)
-#define M_INSLL(a,b,c)          M_OP3 (0x12,0x2b, a,b,c,0)
-#define M_INSQL(a,b,c)          M_OP3 (0x12,0x3b, a,b,c,0)
-#define M_INSWH(a,b,c)          M_OP3 (0x12,0x57, a,b,c,0)
-#define M_INSLH(a,b,c)          M_OP3 (0x12,0x67, a,b,c,0)
-#define M_INSQH(a,b,c)          M_OP3 (0x12,0x77, a,b,c,0)
-#define M_MSKBL(a,b,c)          M_OP3 (0x12,0x02, a,b,c,0)
-#define M_MSKWL(a,b,c)          M_OP3 (0x12,0x12, a,b,c,0)
-#define M_MSKLL(a,b,c)          M_OP3 (0x12,0x22, a,b,c,0)
-#define M_MSKQL(a,b,c)          M_OP3 (0x12,0x32, a,b,c,0)
-#define M_MSKWH(a,b,c)          M_OP3 (0x12,0x52, a,b,c,0)
-#define M_MSKLH(a,b,c)          M_OP3 (0x12,0x62, a,b,c,0)
-#define M_MSKQH(a,b,c)          M_OP3 (0x12,0x72, a,b,c,0)
-
-#define M_EXTBL_IMM(a,b,c)      M_OP3 (0x12,0x06, a,b,c,1)
-#define M_EXTWL_IMM(a,b,c)      M_OP3 (0x12,0x16, a,b,c,1)
-#define M_EXTLL_IMM(a,b,c)      M_OP3 (0x12,0x26, a,b,c,1)
-#define M_EXTQL_IMM(a,b,c)      M_OP3 (0x12,0x36, a,b,c,1)
-#define M_EXTWH_IMM(a,b,c)      M_OP3 (0x12,0x5a, a,b,c,1)
-#define M_EXTLH_IMM(a,b,c)      M_OP3 (0x12,0x6a, a,b,c,1)
-#define M_EXTQH_IMM(a,b,c)      M_OP3 (0x12,0x7a, a,b,c,1)
-#define M_INSBL_IMM(a,b,c)      M_OP3 (0x12,0x0b, a,b,c,1)
-#define M_INSWL_IMM(a,b,c)      M_OP3 (0x12,0x1b, a,b,c,1)
-#define M_INSLL_IMM(a,b,c)      M_OP3 (0x12,0x2b, a,b,c,1)
-#define M_INSQL_IMM(a,b,c)      M_OP3 (0x12,0x3b, a,b,c,1)
-#define M_INSWH_IMM(a,b,c)      M_OP3 (0x12,0x57, a,b,c,1)
-#define M_INSLH_IMM(a,b,c)      M_OP3 (0x12,0x67, a,b,c,1)
-#define M_INSQH_IMM(a,b,c)      M_OP3 (0x12,0x77, a,b,c,1)
-#define M_MSKBL_IMM(a,b,c)      M_OP3 (0x12,0x02, a,b,c,1)
-#define M_MSKWL_IMM(a,b,c)      M_OP3 (0x12,0x12, a,b,c,1)
-#define M_MSKLL_IMM(a,b,c)      M_OP3 (0x12,0x22, a,b,c,1)
-#define M_MSKQL_IMM(a,b,c)      M_OP3 (0x12,0x32, a,b,c,1)
-#define M_MSKWH_IMM(a,b,c)      M_OP3 (0x12,0x52, a,b,c,1)
-#define M_MSKLH_IMM(a,b,c)      M_OP3 (0x12,0x62, a,b,c,1)
-#define M_MSKQH_IMM(a,b,c)      M_OP3 (0x12,0x72, a,b,c,1)
-
-#define M_UMULH(a,b,c)          M_OP3 (0x13,0x30, a,b,c,0)     /* 64 umulh    */
-
-#define M_UMULH_IMM(a,b,c)      M_OP3 (0x13,0x30, a,b,c,1)     /* 64 umulh    */
-
-#define M_CMOVEQ(a,b,c)         M_OP3 (0x11,0x24, a,b,c,0)     /* a==0 ? c=b  */
-#define M_CMOVNE(a,b,c)         M_OP3 (0x11,0x26, a,b,c,0)     /* a!=0 ? c=b  */
-#define M_CMOVLT(a,b,c)         M_OP3 (0x11,0x44, a,b,c,0)     /* a< 0 ? c=b  */
-#define M_CMOVGE(a,b,c)         M_OP3 (0x11,0x46, a,b,c,0)     /* a>=0 ? c=b  */
-#define M_CMOVLE(a,b,c)         M_OP3 (0x11,0x64, a,b,c,0)     /* a<=0 ? c=b  */
-#define M_CMOVGT(a,b,c)         M_OP3 (0x11,0x66, a,b,c,0)     /* a> 0 ? c=b  */
-
-#define M_CMOVEQ_IMM(a,b,c)     M_OP3 (0x11,0x24, a,b,c,1)     /* a==0 ? c=b  */
-#define M_CMOVNE_IMM(a,b,c)     M_OP3 (0x11,0x26, a,b,c,1)     /* a!=0 ? c=b  */
-#define M_CMOVLT_IMM(a,b,c)     M_OP3 (0x11,0x44, a,b,c,1)     /* a< 0 ? c=b  */
-#define M_CMOVGE_IMM(a,b,c)     M_OP3 (0x11,0x46, a,b,c,1)     /* a>=0 ? c=b  */
-#define M_CMOVLE_IMM(a,b,c)     M_OP3 (0x11,0x64, a,b,c,1)     /* a<=0 ? c=b  */
-#define M_CMOVGT_IMM(a,b,c)     M_OP3 (0x11,0x66, a,b,c,1)     /* a> 0 ? c=b  */
-
-/* macros for unused commands (see an Alpha-manual for description) ***********/ 
-
-#define M_ANDNOT(a,b,c,const)   M_OP3 (0x11,0x08, a,b,c,const) /* c = a &~ b  */
-#define M_ORNOT(a,b,c,const)    M_OP3 (0x11,0x28, a,b,c,const) /* c = a |~ b  */
-#define M_XORNOT(a,b,c,const)   M_OP3 (0x11,0x48, a,b,c,const) /* c = a ^~ b  */
-
-#define M_CMPBGE(a,b,c,const)   M_OP3 (0x10,0x0f, a,b,c,const)
-
-#define M_FCMPUN(a,b,c)         M_FOP3 (0x16, 0x0a4, a,b,c)    /* unordered   */
-#define M_FCMPLE(a,b,c)         M_FOP3 (0x16, 0x0a7, a,b,c)    /* c = a<=b    */
-
-#define M_FCMPUNS(a,b,c)        M_FOP3 (0x16, 0x5a4, a,b,c)    /* unordered   */
-#define M_FCMPLES(a,b,c)        M_FOP3 (0x16, 0x5a7, a,b,c)    /* c = a<=b    */
-
-#define M_FBNEZ(fa,disp)        M_BRA (0x35,fa,disp)
-#define M_FBLEZ(fa,disp)        M_BRA (0x33,fa,disp)
-
-#define M_JMP_CO(a,b)           M_MEM (0x1a,a,b,0xc000)        /* call cosub  */
-
-
 /* function gen_resolvebranch **************************************************
 
-    backpatches a branch instruction; Alpha branch instructions are very
-    regular, so it is only necessary to overwrite some fixed bits in the
-    instruction.
+    backpatches a branch instruction
 
     parameters: ip ... pointer to instruction after branch (void*)
                 so ... offset of instruction after branch  (s4)
@@ -1756,9 +1505,7 @@ static const unsigned char i386_jcc_map[] = {
 *******************************************************************************/
 
 #define gen_resolvebranch(ip,so,to) \
-    do { \
-        *((s4 *) (((u1 *) (ip)) - 4)) = ((s4) ((to) - (so))); \
-    } while (0)
+    *((void **) ((ip) - 4)) = (void **) ((to) - (so));
 
 #define SOFTNULLPTRCHECK       /* soft null pointer check supportet as option */
 
