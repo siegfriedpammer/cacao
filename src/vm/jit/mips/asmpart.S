@@ -27,12 +27,14 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1007 2004-03-31 19:16:23Z twisti $
+   $Id: asmpart.S 1119 2004-06-02 11:12:03Z twisti $
 
 */
 
 
+#include "config.h"
 #include "offsets.h"
+
 
 #define zero    $0
 #define itmp1   $1
@@ -131,6 +133,7 @@
 #define asll    dsll
 #define ashift  3
 
+
 #define MethodPointer   -8
 #define FrameSize       -12
 #define IsSync          -16
@@ -176,11 +179,14 @@
 	.globl asm_switchstackandcall
 	.globl asm_builtin_trace
 	.globl asm_builtin_exittrace
+	.globl asm_getclassvalues_atomic
+	.globl asm_criticalsections
 
 
 /*************************** imported functions *******************************/
 
 	.globl jit_compile
+	.globl _exceptionptr
 	.globl builtin_monitorexit
 	.globl builtin_throw_exception
 	.globl builtin_trace_exception
@@ -221,7 +227,7 @@ call_name:
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
 	.long   0                         /* IsSync                               */
-	.long   80                        /* frame size                           */
+	.long   10*8                      /* frame size                           */
 	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
@@ -453,8 +459,8 @@ calljava_xhandler2:
 
 
 	.ent    asm_call_jit_compiler
-asm_call_jit_compiler:
 
+asm_call_jit_compiler:
 	lw      t0,-12(ra)            /* load instruction LD PV,xxx($y)           */
 	srl     t0,t0,21              /* shift right register number $y           */
 	and     t0,t0,31              /* isolate register number                  */
@@ -467,7 +473,6 @@ asm_call_jit_compiler:
 	aaddu   mptr,t0,ra            /* compute update address                   */
 
 noregchange:
-
 	aaddiu  sp,sp,-18*8           /* allocate stack space                     */
 	sd      a0,0*8(sp)            /* save all argument registers              */
 	sd      a1,1*8(sp)            /* they could be used by method             */
@@ -539,6 +544,7 @@ noregchange:
 *******************************************************************************/
 
 	.ent    asm_handle_nat_exception
+
 asm_handle_nat_exception:
 	lw      t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
 	sll     t0,t0,16
@@ -546,6 +552,7 @@ asm_handle_nat_exception:
 	aaddu   pv,t0,ra              /* compute update address                   */
 
 	.aent    asm_handle_exception
+
 asm_handle_exception:
 	aaddiu  sp,sp,-14*8           /* allocate stack                           */
 	sd      v0,0*8(sp)            /* save possible used registers             */
@@ -593,14 +600,68 @@ ex_stack_loop:
 
 ex_table_loop:
 	ald     t2,ExStartPC(t1)      /* t2 = exception start pc                  */
-	slt     t2,xpc,t2             /* t2 = (xpc < startpc)                     */
-	bnez    t2,ex_table_cont      /* if (true) continue                       */
+	sle     t2,t2,xpc             /* t2 = (startpc <= xpc)                    */
+	beqz    t2,ex_table_cont      /* if (false) continue                      */
 	ald     t2,ExEndPC(t1)        /* t2 = exception end pc                    */
 	slt     t2,xpc,t2             /* t2 = (xpc < endpc)                       */
 	beqz    t2,ex_table_cont      /* if (false) continue                      */
 	ald     a1,ExCatchType(t1)    /* arg1 = exception catch type              */
 	beqz    a1,ex_handle_it       /* NULL catches everything                  */
 
+	lw      itmp3,offclassloaded(a1)
+	bnez    itmp3,L_class_loaded
+
+	aaddiu  sp,sp,-8*8            /* allocate stack                           */
+	sd      t0,0*8(sp)            /* save used register                       */
+	sd      t1,1*8(sp)
+	sd      t3,2*8(sp)
+	sd      xptr,3*8(sp)
+	sd      xpc,4*8(sp)
+	sd      pv,5*8(sp)
+	sd      ra,6*8(sp)
+	sd      a1,7*8(sp)
+		
+	move    a0,a1
+	jal     class_load
+		
+	ld      t0,0*8(sp)            /* restore used register                    */
+	ld      t1,1*8(sp)
+	ld      t3,2*8(sp)
+	ld      xptr,3*8(sp)
+	ld      xpc,4*8(sp)
+	ld      pv,5*8(sp)
+	ld      ra,6*8(sp)
+	ld      a1,7*8(sp)
+	aaddiu  sp,sp,8*8             /* deallocate stack                         */
+	
+L_class_loaded:
+	lw      itmp3,offclasslinked(a1)
+	bnez    itmp3,L_class_linked
+
+	aaddiu  sp,sp,-8*8            /* allocate stack                           */
+	sd      t0,0*8(sp)            /* save used register                       */
+	sd      t1,1*8(sp)
+	sd      t3,2*8(sp)
+	sd      xptr,3*8(sp)
+	sd      xpc,4*8(sp)
+	sd      pv,5*8(sp)
+	sd      ra,6*8(sp)
+	sd      a1,7*8(sp)
+		
+	move    a0,a1
+	jal     class_link
+		
+	ld      t0,0*8(sp)            /* restore used register                    */
+	ld      t1,1*8(sp)
+	ld      t3,2*8(sp)
+	ld      xptr,3*8(sp)
+	ld      xpc,4*8(sp)
+	ld      pv,5*8(sp)
+	ld      ra,6*8(sp)
+	ld      a1,7*8(sp)
+	aaddiu  sp,sp,8*8             /* deallocate stack                         */
+
+L_class_linked:
 	ald     a0,offobjvftbl(xptr)  /* a0 = vftblptr(xptr)                      */
 	ald     a1,offclassvftbl(a1)  /* a1 = vftblptr(catchtype) class (not obj) */
 	lw      a0,offbaseval(a0)     /* a0 = baseval(xptr)                       */
@@ -746,7 +807,7 @@ asm_check_clinit:
 	sdc1    fa5,14*8(sp)
 	sdc1    fa6,15*8(sp)
 	sdc1    fa7,16*8(sp)
-		
+
 	move    a0,itmp1
 	jal     class_init
 		
@@ -768,7 +829,9 @@ asm_check_clinit:
 	ldc1    fa6,15*8(sp)
 	ldc1    fa7,16*8(sp)
 	daddiu  sp,sp,18*8
-	
+
+	beqz    v0,L_initializererror
+
 L_is_initialized:
 	move    itmp1,ra              /* now patch the calling code               */
 	daddiu  itmp1,itmp1,-4*4      /* go back 4 instructions                   */
@@ -776,9 +839,27 @@ L_is_initialized:
 	daddiu  itmp2,itmp2,3         /* jump over 3 instructions                 */
 	sw      itmp2,0(itmp1)        /* store the new branch: br +3              */
 	sw      zero,4(itmp1)         /* and a nop delay slot                     */
-		
+
 	j       ra
-		
+
+L_initializererror:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#error TODO TWISTI please check me for correctness
+	daddiu  sp,sp,-1*8
+	sd      ra,0*8(sp)
+	jal     builtin_asm_get_exceptionptrptr
+	move    xptr,v0
+	ld      ra,0*8(sp)
+	daddiu  sp,sp,1*8
+#else
+	la      itmp3,_exceptionptr
+	ld      xptr,0(itmp3)
+	sd      zero,0(itmp3)
+#endif
+
+	aaddiu  xpc,ra,-4             /* faulting address is return adress - 4    */
+	b       asm_handle_exception
+
 	.end	asm_check_clinit
 
 		
@@ -1200,6 +1281,36 @@ asm_switchstackandcall:
 	j       ra              /* return                                         */
 
 	.end	asm_switchstackandcall
+
+
+	.ent    asm_getclassvalues_atomic
+
+asm_getclassvalues_atomic:
+_crit_restart2:
+_crit_begin2:
+	lw      t0,offbaseval(a0)
+	lw      t1,offdiffval(a0)
+	lw      t2,offbaseval(a1)
+_crit_end2:
+	sw      t0,offcast_super_baseval(a2)
+	sw      t1,offcast_super_diffval(a2)
+	sw      t2,offcast_sub_baseval(a2)
+	j       ra
+
+	.end    asm_getclassvalues_atomic
+
+    .data
+
+asm_criticalsections:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+    .quad   _crit_begin1
+    .quad   _crit_end1
+    .quad   _crit_restart1
+    .quad   _crit_begin2
+    .quad   _crit_end2
+    .quad   _crit_restart2
+#endif
+    .quad   0
 
 
 /*
