@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: loader.h 1184 2004-06-19 12:21:06Z twisti $
 */
 
 
@@ -174,6 +174,7 @@ void class_new_array(classinfo *c);
 classinfo *class_load(classinfo *c);
 classinfo *class_load_intern(classbuffer *cb);
 classinfo *class_link(classinfo *c);
+void class_free(classinfo *c);
 
 void field_display(fieldinfo *f);
 
