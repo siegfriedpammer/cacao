@@ -86,15 +86,19 @@ static utf *utf_systemclass;		/* java/lang/System 	   */
 
 classinfo *class_java_lang_Object;
 classinfo *class_java_lang_String;
-classinfo *class_java_lang_ClassCastException;
-classinfo *class_java_lang_NullPointerException;
-classinfo *class_java_lang_ArrayIndexOutOfBoundsException;
-classinfo *class_java_lang_NegativeArraySizeException;
-classinfo *class_java_lang_OutOfMemoryError;
-classinfo *class_java_lang_ArithmeticException;
-classinfo *class_java_lang_ArrayStoreException;
-classinfo *class_java_lang_ThreadDeath;
 classinfo *class_array = NULL;
+
+/* stefan */
+/* These are made static so they cannot be used for throwing in native */
+/* functions.                                                          */
+static classinfo *class_java_lang_ClassCastException;
+static classinfo *class_java_lang_NullPointerException;
+static classinfo *class_java_lang_ArrayIndexOutOfBoundsException;
+static classinfo *class_java_lang_NegativeArraySizeException;
+static classinfo *class_java_lang_OutOfMemoryError;
+static classinfo *class_java_lang_ArithmeticException;
+static classinfo *class_java_lang_ArrayStoreException;
+static classinfo *class_java_lang_ThreadDeath;
 
 
 /******************************************************************************
