@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 997 2004-03-30 21:49:28Z twisti $
+   $Id: boehm.c 1026 2004-04-25 21:45:48Z twisti $
 
 */
 
@@ -111,6 +111,7 @@ void *heap_alloc_uncollectable(u4 bytelength)
 void runboehmfinalizer(void *o, void *p)
 {
 	java_objectheader *ob = (java_objectheader *) o;
+
 	asm_calljavafunction(ob->vftbl->class->finalizer, ob, NULL, NULL, NULL);
 	
 	/* if we had an exception in the finalizer, ignore it */
@@ -130,8 +131,6 @@ void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
 	}
 
 	if (!result) {
-		log_text("java_lang_OutOfMemoryError");
-/*		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError); */
 		return NULL;
 	}
 
@@ -159,7 +158,7 @@ void heap_free(void *p)
 }
 
 
-void heap_init(u4 heapmaxsize, u4 heapstartsize)
+void gc_init(u4 heapmaxsize, u4 heapstartsize)
 {
 	size_t heapcurrentsize;
 
@@ -173,17 +172,9 @@ void heap_init(u4 heapmaxsize, u4 heapstartsize)
 	if (heapstartsize > heapcurrentsize) {
 		GC_expand_hp(heapstartsize - heapcurrentsize);
 	}
-}
 
-
-void heap_close()
-{
-}
-
-
-void gc_init()
-{
-	GC_init();
+	/* define OOM function */
+	GC_oom_fn = gc_out_of_memory;
 }
 
 
@@ -218,6 +209,30 @@ s8 gc_get_max_heap_size()
 void gc_finalize_all()
 {
 	GC_finalize_all();
+}
+
+
+/* This function is called when boehm detects that it is OOM */
+
+void *gc_out_of_memory()
+{
+	static bool in_gc_out_of_memory;
+
+	/* if this happens, we are REALLY out of memory */
+	if (in_gc_out_of_memory) {
+		/* this is all we can do... */
+		printf("Exception in thread \"main\" java.lang.OutOfMemoryError\n");
+		fflush(stdout);
+		exit(1);
+	}
+
+	in_gc_out_of_memory = true;
+
+	*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
+
+	in_gc_out_of_memory = false;
+
+	return NULL;
 }
 
 
