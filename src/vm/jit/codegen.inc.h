@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: codegen.inc.h 2234 2005-04-06 12:04:25Z twisti $
 
 */
 
@@ -43,7 +43,7 @@ typedef struct codegendata codegendata;
 typedef struct branchref branchref;
 typedef struct jumpref jumpref;
 typedef struct dataref dataref;
-typedef struct clinitref clinitref;
+typedef struct patchref patchref;
 typedef struct linenumberref linenumberref;
 typedef struct threadcritnodetemp threadcritnodetemp;
 
@@ -99,7 +99,7 @@ struct codegendata {
 	branchref      *xcastrefs;      /* list of cast check branches            */
 	branchref      *xdivrefs;       /* list of divide by zero branches        */
 	branchref      *xexceptionrefs; /* list of exception branches             */
-	clinitref      *clinitrefs;
+	patchref       *patchrefs;
 
 	linenumberref  *linenumberreferences; /* list of line numbers and the     */
 	                                /* program counters of their first        */
@@ -145,10 +145,11 @@ struct dataref {
 };
 
 
-struct clinitref {
-	s4         branchpos;
-	classinfo *class;
-	clinitref *next;
+struct patchref {
+	s4           branchpos;
+	functionptr  asmwrapper;
+	voidptr      ref;
+	patchref    *next;
 };
 
 
