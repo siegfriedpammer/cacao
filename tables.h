@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tables.h 724 2003-12-09 18:56:11Z edwin $
+   $Id: tables.h 754 2003-12-13 22:23:01Z twisti $
 
 */
 
@@ -42,10 +42,6 @@
 /* to determine the end of utf strings */
 #define utf_end(utf) ((char *) utf->text+utf->blength)
 
-/* switches for debug messages */
-extern bool collectverbose;
-extern list unloadedclasses;
-
 /* function for disposing javastrings */
 typedef void (*stringdeleter) (java_objectheader *string);
     
@@ -56,7 +52,7 @@ void tables_init();
 void tables_close(stringdeleter del);
 
 /* check if an UTF-8 string is valid */
-bool is_valid_utf(char *utf_ptr,char *end_pos);
+bool is_valid_utf(char *utf_ptr, char *end_pos);
 
 /* write utf symbol to file/buffer */
 void utf_sprint(char *buffer, utf *u);
@@ -88,7 +84,7 @@ classinfo *class_new(utf *u);
 classinfo *class_array_of(classinfo *component);
 
 /* return an array class with the given dimension and element class */
-classinfo *class_multiarray_of(int dim,classinfo *element);
+classinfo *class_multiarray_of(int dim, classinfo *element);
 
 /* get javatype according to a typedescriptor */
 u2 desc_to_type(utf *descriptor);
@@ -104,12 +100,6 @@ void init_hashtable(hashtable *hash, u4 size);
 
 /* search for class in classtable */
 classinfo *class_get(utf *u);
-
-
-void heap_init (u4 size, u4 startsize, void **stackbottom);
-void heap_close();
-void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer);
-void heap_addreference(void **reflocation);
 
 #endif /* _TABLES_H */
 
