@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1564 2004-11-23 15:55:58Z twisti $
+   $Id: asmpart.S 1577 2004-11-24 13:06:56Z twisti $
 
 */
 
@@ -66,9 +66,9 @@
 #define itmp2    %ecx
 #define itmp3    %edx
 
-#define itmp1l   %al
-#define itmp2l   %cl
-#define itmp3l   %dl
+#define itmp1b   %al
+#define itmp2b   %cl
+#define itmp3b   %dl
 		
 	.text
 
@@ -739,7 +739,7 @@ L_is_initialized:
 	sub     $5,itmp1                    /* remove size of `call rel32'        */
 
 	mov     12(%esp),itmp2              /* get xmcode machine code            */
-	movb    itmp2l,(itmp1)              /* patch back in 1 byte               */
+	movb    itmp2b,(itmp1)              /* patch back in 1 byte               */
 	mov     8(%esp),itmp2               /* get mcode machine code             */
 	mov     itmp2,1(itmp1)              /* patch back in 4 bytes              */
 

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1562 2004-11-23 15:52:25Z twisti $
+   $Id: codegen.c 1577 2004-11-24 13:06:56Z twisti $
 
 */
 
@@ -3034,7 +3034,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				break;
 			default:
 				throw_cacao_exception_exit(string_java_lang_InternalError,
-										   "Unknown GETSTATIC operand type %d",
+										   "Unknown GETFIELD operand type %d",
 										   iptr->op1);
 			}
 			break;
