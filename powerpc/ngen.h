@@ -34,7 +34,7 @@
 #define REG_ITMP2_XPC   12   /* exception pc = temporary register 2           */
 
 #define REG_SP           1   /* stack pointer                                 */
-//#define REG_ZERO        31   /* allways zero                                  */
+#define REG_ZERO         0   /* allways zero                                  */
 
 /* floating point registers */
 
@@ -110,8 +110,10 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_IADD(a,b,c) M_OP3(31, 266, 0, 0, c, a, b)
 #define M_IADD_IMM(a,b,c) M_OP2_IMM(14, c, a, b)
 #define M_ADDC(a,b,c) M_OP3(31, 10, 0, 0, c, a, b)
-#define M_ISUB(a,b,c) M_OP3(31, 40, 0, 0, c, a, b)
-#define M_SUBC(a,b,c) M_OP3(31, 8, 0, 0, c, a, b)
+#define M_ADDE(a,b,c) M_OP3(31, 138, 0, 0, c, a, b)
+#define M_ISUB(a,b,c) M_OP3(31, 40, 0, 0, c, b, a)
+#define M_SUBC(a,b,c) M_OP3(31, 8, 0, 0, c, b, a)
+#define M_SUBE(a,b,c) M_OP3(31, 136, 0, 0, c, b, a)
 #define M_AND(a,b,c) M_OP3(31, 28, 0, 0, a, c, b)
 #define M_AND_IMM(a,b,c) M_OP2_IMM(28, a, c, b)
 #define M_OR(a,b,c) M_OP3(31, 444, 0, 0, a, c, b)
@@ -122,6 +124,12 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_SRL(a,b,c) M_OP3(31, 536, 0, 0, a, c, b)
 #define M_SRA(a,b,c) M_OP3(31, 792, 0, 0, a, c, b)
 #define M_SRA_IMM(a,b,c) M_OP3(31, 824, 0, 0, a, c, b)
+
+#define M_SUBFIC(a,b,c) M_OP2_IMM(8, c, a, b)
+#define M_SUBFZE(a,b) M_OP3(31, 200, 0, 0, b, a, 0)
+#define M_RLWINM(a,b,c,d,e) M_OP4(21, d, 0, a, e, b, c)
+#define M_ADDZE(a,b) M_OP3(31, 202, 0, 0, b, a, 0)
+#define M_SLL_IMM(a,b,c) M_RLWINM(a,b,0,31-(b),c)
 
 #define M_NOP M_OR_IMM(0, 0, 0)
 #define M_MOV(a,b) M_OR(a, a, b)
@@ -154,6 +162,7 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 #define M_BSEXT(a,b) M_OP3(31, 954, 0, 0, a, b, 0)
 #define M_SSEXT(a,b) M_OP3(31, 922, 0, 0, a, b, 0)
+#define M_CZEXT(a,b) M_RLWINM(a,0,24,31,b)
 
 #define M_BR(a) M_BRA(18, a, 0, 0);
 #define M_RET M_OP3(19, 16, 0, 0, 20, 0, 0);

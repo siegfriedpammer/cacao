@@ -1,17 +1,17 @@
 /* alpha/ngen.c ****************************************************************
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+	Copyright (c) 1997, 2003 A. Krall, R. Grafl, M. Gschwind, M. Probst, S. Ring
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	Contains the codegenerator for an Alpha processor.
-	This module generates Alpha machine code for a sequence of
+	Contains the codegenerator for a PowerPC processor.
+	This module generates PowerPC machine code for a sequence of
 	pseudo commands (ICMDs).
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 316 2003-05-18 19:25:37Z stefan $
+	Last Change: $Id: ngen.c 317 2003-05-19 09:19:42Z stefan $
 
 *******************************************************************************/
 
@@ -86,13 +86,15 @@
             number allready given to v)
 */
 
-#define var_to_reg_int(regnr,v,tempnr) { \
+#define var_to_reg_int0(regnr,v,tempnr,a,b) { \
 	if ((v)->flags & INMEMORY) \
-		{COUNT_SPILLS;M_ILD(tempnr,REG_SP,4*(v)->regoff);regnr=tempnr; \
-		if (IS_2_WORD_TYPE((v)->type)) \
-			M_ILD(secondregs[tempnr],REG_SP,4*(v)->regoff+4);} \
-	else regnr=(v)->regoff; \
+		{COUNT_SPILLS;if (a) M_ILD(tempnr,REG_SP,4*(v)->regoff); \
+		regnr=tempnr; \
+		if ((b) && IS_2_WORD_TYPE((v)->type)) \
+			M_ILD((a)?secondregs[tempnr]:tempnr,REG_SP,4*(v)->regoff+4);} \
+	else regnr=(!(a)&&(b)) ? secondregs[(v)->regoff] : (v)->regoff; \
 }
+#define var_to_reg_int(regnr,v,tempnr) var_to_reg_int0(regnr,v,tempnr,1,1)
 
 
 #define var_to_reg_flt(regnr,v,tempnr) { \
@@ -176,7 +178,10 @@ static int reg_of_var(stackptr v, int tempregnum)
 #define store_reg_to_var_flt(sptr, tempregnum) {       \
 	if ((sptr)->flags & INMEMORY) {                    \
 		COUNT_SPILLS;                                  \
-		M_DST(tempregnum, REG_SP, 8 * (sptr)->regoff); \
+		if ((sptr)->type==TYPE_DBL) \
+			M_DST(tempregnum, REG_SP, 4 * (sptr)->regoff); \
+		else \
+			M_FST(tempregnum, REG_SP, 4 * (sptr)->regoff); \
 		}                                              \
 	}
 
@@ -606,14 +611,14 @@ static void gen_mcode()
 	MCODECHECK(64);           /* an instruction usually needs < 64 words      */
 	switch (iptr->opc) {
 
-#if 0
 		case ICMD_NOP:        /* ...  ==> ...                                 */
 			break;
 
 		case ICMD_NULLCHECKPOP: /* ..., objectref  ==> ...                    */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			M_BEQZ(s1, 0);
+			M_TST(s1);
+			M_BEQ(0);
 			mcode_addxnullrefs(mcodeptr);
 			break;
 
@@ -622,8 +627,7 @@ static void gen_mcode()
 #define ICONST(r,c) if(((c)>=-32768)&&((c)<= 32767)){M_LDA(r,REG_ZERO,c);} \
                     else{a=dseg_adds4(c);M_ILD(r,REG_PV,a);}
 
-#define LCONST(r,c) if(((c)>=-32768)&&((c)<= 32767)){M_LDA(r,REG_ZERO,c);} \
-                    else{a=dseg_adds8(c);M_LLD(r,REG_PV,a);}
+					//CUT
 
 		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.i = constant                    */
@@ -636,9 +640,7 @@ static void gen_mcode()
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.l = constant                    */
 
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			LCONST(d, iptr->val.l);
-			store_reg_to_var_int(iptr->dst, d);
+			//CUT
 			break;
 
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
@@ -663,13 +665,7 @@ static void gen_mcode()
 		                      /* op1 = 0, val.a = constant                    */
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->val.a) {
-				a = dseg_addaddress (iptr->val.a);
-				M_ALD(d, REG_PV, a);
-				}
-			else {
-				M_INTMOVE(REG_ZERO, d);
-				}
+			ICONST(d, (u4) iptr->val.a);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -685,9 +681,11 @@ static void gen_mcode()
 			    (iptr->dst->varnum == iptr->op1))
 				break;
 			var = &(locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
-			if (var->flags & INMEMORY)
-				M_LLD(d, REG_SP, 8 * var->regoff);
-			else
+			if (var->flags & INMEMORY) {
+				M_ILD(d, REG_SP, 4 * var->regoff);
+				if (var->type==TYPE_LNG)
+					M_ILD(secondregs[d], REG_SP, 4 * var->regoff + 4);
+			} else
 				{M_INTMOVE(var->regoff,d);}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -701,7 +699,10 @@ static void gen_mcode()
 				break;
 			var = &(locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
 			if (var->flags & INMEMORY)
-				M_DLD(d, REG_SP, 8 * var->regoff);
+				if (var->type==TYPE_DBL)
+					M_DLD(d, REG_SP, 4 * var->regoff);
+				else
+					M_FLD(d, REG_SP, 4 * var->regoff);
 			else
 				{M_FLTMOVE(var->regoff,d);}
 			store_reg_to_var_flt(iptr->dst, d);
@@ -718,7 +719,9 @@ static void gen_mcode()
 			var = &(locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
 				var_to_reg_int(s1, src, REG_ITMP1);
-				M_LST(s1, REG_SP, 8 * var->regoff);
+				M_IST(s1, REG_SP, 4 * var->regoff);
+				if (var->type==TYPE_LNG)
+					M_IST(secondregs[s1], REG_SP, 4 * var->regoff + 4);
 				}
 			else {
 				var_to_reg_int(s1, src, var->regoff);
@@ -735,7 +738,10 @@ static void gen_mcode()
 			var = &(locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
 				var_to_reg_flt(s1, src, REG_FTMP1);
-				M_DST(s1, REG_SP, 8 * var->regoff);
+				if (var->type==TYPE_DBL)
+					M_DST(s1, REG_SP, 4 * var->regoff);
+				else
+					M_FST(s1, REG_SP, 4 * var->regoff);
 				}
 			else {
 				var_to_reg_flt(s1, src, var->regoff);
@@ -817,7 +823,7 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1); 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_ISUB(REG_ZERO, s1, d);
+			M_NEG(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -825,7 +831,8 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_LSUB(REG_ZERO, s1, d);
+			M_SUBFIC(secondregs[s1], 0, secondregs[d]);
+			M_SUBFZE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -833,7 +840,8 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_INTMOVE(s1, d);
+			M_INTMOVE(s1, secondregs[d]);
+			M_CLR(d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -841,7 +849,7 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_IADD(s1, REG_ZERO, d );
+			M_MOV(secondregs[s1], d );
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -849,13 +857,7 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (has_ext_instr_set) {
-				M_BSEXT(s1, d);
-				}
-			else {
-				M_SLL_IMM(s1, 56, d);
-				M_SRA_IMM( d, 56, d);
-				}
+			M_BSEXT(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -871,13 +873,7 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (has_ext_instr_set) {
-				M_SSEXT(s1, d);
-				}
-			else {
-				M_SLL_IMM(s1, 48, d);
-				M_SRA_IMM( d, 48, d);
-				}
+			M_SSEXT(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -896,7 +892,7 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if ((iptr->val.i >= 0) && (iptr->val.i <= 255)) {
+			if ((iptr->val.i >= -32768) && (iptr->val.i <= 32767)) {
 				M_IADD_IMM(s1, iptr->val.i, d);
 				}
 			else {
@@ -908,26 +904,20 @@ static void gen_mcode()
 
 		case ICMD_LADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
+			var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
+			var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_LADD(s1, s2, d);
+			M_ADDC(s1, s2, d);
+			var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
+			var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
+			M_ADDE(s1, s2, secondregs[d]);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_LADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.l = constant                             */
 
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if ((iptr->val.l >= 0) && (iptr->val.l <= 255)) {
-				M_LADD_IMM(s1, iptr->val.l, d);
-				}
-			else {
-				LCONST(REG_ITMP2, iptr->val.l);
-				M_LADD(s1, REG_ITMP2, d);
-				}
-			store_reg_to_var_int(iptr->dst, d);
+			//CUT
 			break;
 
 		case ICMD_ISUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
@@ -944,38 +934,33 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if ((iptr->val.i >= 0) && (iptr->val.i <= 255)) {
-				M_ISUB_IMM(s1, iptr->val.i, d);
+			if ((iptr->val.i >= -32767) && (iptr->val.i <= 32768)) {
+				M_IADD_IMM(s1, -iptr->val.i, d);
 				}
 			else {
-				ICONST(REG_ITMP2, iptr->val.i);
-				M_ISUB(s1, REG_ITMP2, d);
+				ICONST(REG_ITMP2, -iptr->val.i);
+				M_IADD(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_LSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
+			var_to_reg_int0(s1, src->prev, REG_ITMP1, 0, 1);
+			var_to_reg_int0(s2, src, REG_ITMP2, 0, 1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_LSUB(s1, s2, d);
+			M_SUBC(s1, s2, d);
+			var_to_reg_int0(s1, src->prev, REG_ITMP1, 1, 0);
+			var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
+			M_SUBE(s1, s2, secondregs[d]);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
+
 
 		case ICMD_LSUBCONST:  /* ..., value  ==> ..., value - constant        */
 		                      /* val.l = constant                             */
 
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if ((iptr->val.l >= 0) && (iptr->val.l <= 255)) {
-				M_LSUB_IMM(s1, iptr->val.l, d);
-				}
-			else {
-				LCONST(REG_ITMP2, iptr->val.l);
-				M_LSUB(s1, REG_ITMP2, d);
-				}
-			store_reg_to_var_int(iptr->dst, d);
+			//CUT
 			break;
 
 		case ICMD_IMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
@@ -992,7 +977,7 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if ((iptr->val.i >= 0) && (iptr->val.i <= 255)) {
+			if ((iptr->val.i >= -32768) && (iptr->val.i <= 32767)) {
 				M_IMUL_IMM(s1, iptr->val.i, d);
 				}
 			else {
@@ -1004,44 +989,26 @@ static void gen_mcode()
 
 		case ICMD_LMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_LMUL (s1, s2, d);
-			store_reg_to_var_int(iptr->dst, d);
+			//CUT
 			break;
 
 		case ICMD_LMULCONST:  /* ..., value  ==> ..., value * constant        */
 		                      /* val.l = constant                             */
 
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if ((iptr->val.l >= 0) && (iptr->val.l <= 255)) {
-				M_LMUL_IMM(s1, iptr->val.l, d);
-				}
-			else {
-				LCONST(REG_ITMP2, iptr->val.l);
-				M_LMUL(s1, REG_ITMP2, d);
-				}
-			store_reg_to_var_int(iptr->dst, d);
+			//CUT
 			break;
 
 		case ICMD_IDIVPOW2:   /* ..., value  ==> ..., value << constant       */
-		case ICMD_LDIVPOW2:   /* val.i = constant                             */
 		                      
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->val.i <= 15) {
-				M_LDA(REG_ITMP2, s1, (1 << iptr->val.i) -1);
-				M_CMOVGE(s1, s1, REG_ITMP2);
-				}
-			else {
-				M_SRA_IMM(s1, 63, REG_ITMP2);
-				M_SRL_IMM(REG_ITMP2, 64 - iptr->val.i, REG_ITMP2);
-				M_LADD(s1, REG_ITMP2, REG_ITMP2);
-				}
-			M_SRA_IMM(REG_ITMP2, iptr->val.i, d);
+			M_SRA_IMM(s1, iptr->val.i, d);
+			M_ADDZE(d, d);
 			store_reg_to_var_int(iptr->dst, d);
+			break;
+
+		case ICMD_LDIVPOW2:   /* val.i = constant                             */
+			//CUT not really
 			break;
 
 		case ICMD_ISHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
@@ -1051,7 +1018,6 @@ static void gen_mcode()
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_AND_IMM(s2, 0x1f, REG_ITMP3);
 			M_SLL(s1, REG_ITMP3, d);
-			M_IADD(d, REG_ZERO, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1061,7 +1027,6 @@ static void gen_mcode()
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_SLL_IMM(s1, iptr->val.i & 0x1f, d);
-			M_IADD(d, REG_ZERO, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
