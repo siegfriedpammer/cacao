@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 589 2003-11-09 19:42:39Z twisti $
+   $Id: reg.inc 762 2003-12-13 22:42:03Z twisti $
 
 */
 
@@ -117,133 +117,144 @@ int arguments_num;              /* size of parameter field in the stackframe  */
 	
 *******************************************************************************/
 
-void reg_init(methodinfo *m)
+void reg_init()
 {
 	int n;
-	int i;
-	varinfo5 *v;
-	
-	if (!tmpintregs) {
-		if (TYPE_INT != 0 || TYPE_ADR != 4) 
-			panic ("JAVA-Basictypes have been changed");
 
-		intreg_argnum = 0;
-		tmpintregcnt = 0;
-		savintregcnt = 0;
+	if (TYPE_INT != 0 || TYPE_ADR != 4) 
+		panic("JAVA-Basictypes have been changed");
 
-		for (intregsnum = 0; nregdescint[intregsnum] != REG_END; intregsnum++) {
-			switch (nregdescint[intregsnum]) {
-			case REG_SAV: savintregcnt++;
-				break;
-			case REG_TMP: tmpintregcnt++;
-				break;
-			case REG_ARG: intreg_argnum++;
-			}
+	/* setup the integer register table */
+	intreg_argnum = 0;
+	tmpintregcnt = 0;
+	savintregcnt = 0;
+
+	for (intregsnum = 0; nregdescint[intregsnum] != REG_END; intregsnum++) {
+		switch (nregdescint[intregsnum]) {
+		case REG_SAV: savintregcnt++;
+			break;
+		case REG_TMP: tmpintregcnt++;
+			break;
+		case REG_ARG: intreg_argnum++;
 		}
+	}
 
-		argintregs = MNEW(int, intreg_argnum);
-		tmpintregs = MNEW(int, tmpintregcnt);
-		savintregs = MNEW(int, savintregcnt);
-		freeargintregs = MNEW(int, intreg_argnum);
-		freetmpintregs = MNEW(int, tmpintregcnt);
-		freesavintregs = MNEW(int, savintregcnt);
+	argintregs = MNEW(int, intreg_argnum);
+	tmpintregs = MNEW(int, tmpintregcnt);
+	savintregs = MNEW(int, savintregcnt);
+	freeargintregs = MNEW(int, intreg_argnum);
+	freetmpintregs = MNEW(int, tmpintregcnt);
+	freesavintregs = MNEW(int, savintregcnt);
 #ifdef USETWOREGS
-		secondregs = MNEW(int, intregsnum);
+	secondregs = MNEW(int, intregsnum);
 #endif
 
-		intreg_argnum = 0;
-		argintreguse = 0;
-		tmpintreguse = 0;
-		savintreguse = 0;
+	intreg_argnum = 0;
+	argintreguse = 0;
+	tmpintreguse = 0;
+	savintreguse = 0;
 
-   		for (n = 0; n < intregsnum; n++) {
-			switch (nregdescint[n]) {
-			case REG_RET: intreg_ret = n; 
-				break;
-			case REG_SAV: savintregs[savintreguse++] = n;
-				break;
-			case REG_TMP: tmpintregs[tmpintreguse++] = n;
-				break;
-			case REG_ARG: argintregs[intreg_argnum++] = n;
-				argintreguse++;
-				break;
-			}
+	for (n = 0; n < intregsnum; n++) {
+		switch (nregdescint[n]) {
+		case REG_RET: intreg_ret = n; 
+			break;
+		case REG_SAV: savintregs[savintreguse++] = n;
+			break;
+		case REG_TMP: tmpintregs[tmpintreguse++] = n;
+			break;
+		case REG_ARG: argintregs[intreg_argnum++] = n;
+			argintreguse++;
+			break;
 		}
+	}
+
+#if defined(__I386__)
+	/* 
+	   this assumes that we have 3 tmp regs (%ecx, %edx, %ebx) 
+	   sort to [ %ebx, %edx, %ecx ]
+	 */
+	n = tmpintregs[0];
+	tmpintregs[0] = tmpintregs[2];
+	tmpintregs[2] = n;
+#endif
 
 #if defined(__X86_64__)
-		/* 
-		 * on x86_64 the argument registers are not in ascending order 
-		 * a00 (%rdi) <-> a03 (%rcx) and a01 (%rsi) <-> a02 (%rdx)
-		 */
+	/* 
+	 * on x86_64 the argument registers are not in ascending order 
+	 * a00 (%rdi) <-> a03 (%rcx) and a01 (%rsi) <-> a02 (%rdx)
+	 */
+	n = argintregs[3];
+	argintregs[3] = argintregs[0];
+	argintregs[0] = n;
 
-		n = argintregs[3];
-		argintregs[3] = argintregs[0];
-		argintregs[0] = n;
-
-		n = argintregs[2];
-		argintregs[2] = argintregs[1];
-		argintregs[1] = n;
+	n = argintregs[2];
+	argintregs[2] = argintregs[1];
+	argintregs[1] = n;
 #endif
 		
 #ifdef USETWOREGS
-		for (n = 1; n < intreg_argnum; n++)
-			secondregs[argintregs[n - 1]] = argintregs[n];
-		for (n = 1; n < tmpintregcnt; n++)
-			secondregs[tmpintregs[n - 1]] = tmpintregs[n];
-		for (n = 1; n < savintregcnt; n++)
-			secondregs[savintregs[n - 1]] = savintregs[n];
+	for (n = 1; n < intreg_argnum; n++)
+		secondregs[argintregs[n - 1]] = argintregs[n];
+	for (n = 1; n < tmpintregcnt; n++)
+		secondregs[tmpintregs[n - 1]] = tmpintregs[n];
+	for (n = 1; n < savintregcnt; n++)
+		secondregs[savintregs[n - 1]] = savintregs[n];
 
-		secondregs[REG_ITMP1] = REG_ITMP2;
-		secondregs[REG_ITMP3] = REG_ITMP2;
-		secondregs[REG_RESULT] = REG_RESULT + 1;
-		secondregs[argintregs[intreg_argnum - 1]] = REG_ITMP3;
+	secondregs[REG_ITMP1] = REG_ITMP2;
+	secondregs[REG_ITMP3] = REG_ITMP2;
+	secondregs[REG_RESULT] = REG_RESULT + 1;
+	secondregs[argintregs[intreg_argnum - 1]] = REG_ITMP3;
 #endif
 
-		fltreg_argnum = 0;
-		tmpfltregcnt = 0;
-		savfltregcnt = 0;
+	/* setup the float register table */
+	fltreg_argnum = 0;
+	tmpfltregcnt = 0;
+	savfltregcnt = 0;
 
-		for (floatregsnum = 0; nregdescfloat[floatregsnum] != REG_END; floatregsnum++) {
-			switch (nregdescfloat[floatregsnum]) {
-			case REG_SAV: savfltregcnt++;
-				break;
-			case REG_TMP: tmpfltregcnt++;
-				break;
-			case REG_ARG: fltreg_argnum++;
-				break;
-			}
+	for (floatregsnum = 0; nregdescfloat[floatregsnum] != REG_END; floatregsnum++) {
+		switch (nregdescfloat[floatregsnum]) {
+		case REG_SAV: savfltregcnt++;
+			break;
+		case REG_TMP: tmpfltregcnt++;
+			break;
+		case REG_ARG: fltreg_argnum++;
+			break;
 		}
-
-		argfltregs = MNEW(int, fltreg_argnum);
-		tmpfltregs = MNEW(int, tmpfltregcnt);
-		savfltregs = MNEW(int, savfltregcnt);
-		freeargfltregs = MNEW(int, fltreg_argnum);
-		freetmpfltregs = MNEW(int, tmpfltregcnt);
-		freesavfltregs = MNEW(int, savfltregcnt);
-
-		fltreg_argnum = 0;
-		argfltreguse = 0;
-		tmpfltreguse = 0;
-		savfltreguse = 0;
-
-   		for (n = 0; n < floatregsnum; n++) {
-			switch (nregdescfloat[n]) {
-			case REG_RET:
-				floatreg_ret = n; 
-				break;
-			case REG_SAV: savfltregs[savfltreguse++] = n;
-				break;
-			case REG_TMP: tmpfltregs[tmpfltreguse++] = n;
-				break;
-			case REG_ARG: argfltregs[fltreg_argnum++] = n;
-				argfltreguse++;
-				break;
-			}
-		}
-					
 	}
 
-	/* intialize in every run */
+	argfltregs = MNEW(int, fltreg_argnum);
+	tmpfltregs = MNEW(int, tmpfltregcnt);
+	savfltregs = MNEW(int, savfltregcnt);
+	freeargfltregs = MNEW(int, fltreg_argnum);
+	freetmpfltregs = MNEW(int, tmpfltregcnt);
+	freesavfltregs = MNEW(int, savfltregcnt);
+
+	fltreg_argnum = 0;
+	argfltreguse = 0;
+	tmpfltreguse = 0;
+	savfltreguse = 0;
+
+	for (n = 0; n < floatregsnum; n++) {
+		switch (nregdescfloat[n]) {
+		case REG_RET:
+			floatreg_ret = n; 
+			break;
+		case REG_SAV: savfltregs[savfltreguse++] = n;
+			break;
+		case REG_TMP: tmpfltregs[tmpfltreguse++] = n;
+			break;
+		case REG_ARG: argfltregs[fltreg_argnum++] = n;
+			argfltreguse++;
+			break;
+		}
+	}
+}
+
+
+void reg_setup()
+{
+	int i;
+	varinfo5 *v;
 
 	freemem    = DMNEW(int, maxstack);
 	locals     = DMNEW(varinfo5, maxlocals);
@@ -309,9 +320,20 @@ void reg_close()
 	
 void regalloc()
 {
+#if defined(__I386__)
+	/* remove %edx from tmpintregs */
+	int origtmpintregcnt = tmpintregcnt;
+	if (method_uses_ecx) tmpintregcnt--;
+	if (method_uses_edx) tmpintregcnt--;
+#endif
+
 	interface_regalloc();
 	allocate_scratch_registers();
 	local_regalloc();
+
+#if defined(__I386__)
+	tmpintregcnt = origtmpintregcnt;
+#endif
 }
 
 
@@ -321,7 +343,7 @@ void regalloc()
 	
 *******************************************************************************/
 	
-static void interface_regalloc ()
+static void interface_regalloc()
 {
 	int     s, t, saved;
 	int     intalloc, fltalloc;
@@ -382,7 +404,7 @@ static void interface_regalloc ()
 						else {
 							v->flags |= INMEMORY;
 							v->regoff = ifmemuse;
-							ifmemuse += regsneeded+1;
+							ifmemuse += regsneeded + 1;
 						}
 						fltalloc = t;
 					}
@@ -401,17 +423,17 @@ static void interface_regalloc ()
 								v->regoff = interfaces[s][intalloc].regoff;
 							}
 							else if (iftmpintregcnt > regsneeded) {
-								iftmpintregcnt -= regsneeded+1;
+								iftmpintregcnt -= regsneeded + 1;
 								v->regoff = tmpintregs[iftmpintregcnt];
 							}
 							else if (ifsavintregcnt > regsneeded) {
-								ifsavintregcnt -= regsneeded+1;
+								ifsavintregcnt -= regsneeded + 1;
 								v->regoff = savintregs[ifsavintregcnt];
 							}
 							else {
 								v->flags |= INMEMORY;
 								v->regoff = ifmemuse;
-								ifmemuse += regsneeded+1;
+								ifmemuse += regsneeded + 1;
 							}
 #if defined(__I386__)
 						}
@@ -432,7 +454,7 @@ static void interface_regalloc ()
 						else {
 							v->flags |= INMEMORY;
 							v->regoff = ifmemuse;
-							ifmemuse += regsneeded+1;
+							ifmemuse += regsneeded + 1;
 						}
 						fltalloc = t;
 					}
@@ -451,13 +473,13 @@ static void interface_regalloc ()
 								v->regoff = interfaces[s][intalloc].regoff;
 							}
 							else if (ifsavintregcnt > regsneeded) {
-								ifsavintregcnt -= regsneeded+1;
+								ifsavintregcnt -= regsneeded + 1;
 								v->regoff = savintregs[ifsavintregcnt];
 							}
 							else {
 								v->flags |= INMEMORY;
 								v->regoff = ifmemuse;
-								ifmemuse += regsneeded+1;
+								ifmemuse += regsneeded + 1;
 							}
 #if defined(__I386__)
 						}
@@ -533,7 +555,7 @@ static void local_regalloc()
 						else {
 							v->flags = INMEMORY;
 							v->regoff = maxmemuse;
-							maxmemuse += regsneeded+1;
+							maxmemuse += regsneeded + 1;
 						}
 						fltalloc = t;
 
@@ -588,7 +610,7 @@ static void local_regalloc()
 							else {
 								v->flags = INMEMORY;
 								v->regoff = maxmemuse;
-								maxmemuse += regsneeded+1;
+								maxmemuse += regsneeded + 1;
 							}
 #if defined(__I386__)
 						}
@@ -648,7 +670,7 @@ static void local_regalloc()
 					else {
 						v->flags = INMEMORY;
 						v->regoff = maxmemuse;
-						maxmemuse += regsneeded+1;
+						maxmemuse += regsneeded + 1;
 					}
 					fltalloc = t;
 				}
@@ -674,7 +696,7 @@ static void local_regalloc()
 						else {
 							v->flags = INMEMORY;
 							v->regoff = maxmemuse;
-							maxmemuse += regsneeded+1;
+							maxmemuse += regsneeded + 1;
 						}
 #if defined(__I386__)
 					}
@@ -812,12 +834,12 @@ static void reg_new_temp_func(stackptr s)
 	}
 
 	if (freememtop > regsneeded) {
-		freememtop -= regsneeded+1;
+		freememtop -= regsneeded + 1;
 		s->regoff = freemem[freememtop];
 	}
 	else {
 		s->regoff = memuse;
-		memuse += regsneeded+1;
+		memuse += regsneeded + 1;
 		if (memuse > maxmemuse)
 			maxmemuse = memuse;
 	}
