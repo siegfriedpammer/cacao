@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2190 2005-04-02 10:07:44Z edwin $
+   $Id: codegen.c 2228 2005-04-06 09:05:34Z twisti $
 
 */
 
@@ -537,28 +537,31 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
  					M_FLTMOVE(rd->argfltregs[arg], var->regoff);
 
  				} else {			                 /* reg arg -> spilled    */
-					M_DST(rd->argfltregs[arg], REG_SP, 4 * var->regoff);
+					if (IS_2_WORD_TYPE(t))
+						M_DST(rd->argfltregs[arg], REG_SP, 4 * var->regoff);
+					else
+						M_FST(rd->argfltregs[arg], REG_SP, 4 * var->regoff);
  				}
 
  			} else {                                 /* stack arguments       */
  				pa = iarg + 6;
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
-					if (IS_2_WORD_TYPE(t)) {
+					if (IS_2_WORD_TYPE(t))
 						M_DLD(var->regoff, REG_SP, 4 * (parentargs_base + pa));
 
-					} else {
+					else
 						M_FLD(var->regoff, REG_SP, 4 * (parentargs_base + pa));
-					}
 
  				} else {                             /* stack-arg -> spilled  */
 					if (IS_2_WORD_TYPE(t)) {
 						M_DLD(REG_FTMP1, REG_SP, 4 * (parentargs_base + pa));
+						M_DST(REG_FTMP1, REG_SP, 4 * var->regoff);
 
 					} else {
 						M_FLD(REG_FTMP1, REG_SP, 4 * (parentargs_base + pa));
+						M_FST(REG_FTMP1, REG_SP, 4 * var->regoff);
 					}
-					M_DST(REG_FTMP1, REG_SP, 4 * var->regoff);
-				}
+			}
 			}
 		}
 	} /* end for */
@@ -676,8 +679,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	MCODECHECK(64);           /* an instruction usually needs < 64 words      */
 	switch (iptr->opc) {
-
 		case ICMD_NOP:        /* ...  ==> ...                                 */
+	case ICMD_INLINE_START:
+	case ICMD_INLINE_END:
 			break;
 
 		case ICMD_NULLCHECKPOP: /* ..., objectref  ==> ...                    */
@@ -2836,8 +2840,7 @@ makeactualcall:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			codegen_threadcritrestart(cd, (u1*) mcodeptr - cd->mcodebase);
 #endif
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
-			var_to_reg_int(s1, src, d);
+			var_to_reg_int(s1, src, REG_ITMP1);
 			if (iptr->op1) {                               /* class/interface */
 				M_TST(s1);
 				if (super->flags & ACC_INTERFACE) {        /* interface       */
@@ -2863,7 +2866,7 @@ makeactualcall:
                     M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
                     a = dseg_addaddress(cd, (void*) super->vftbl);
                     M_ALD(REG_ITMP2, REG_PV, a);
-                    if (d != REG_ITMP1) {
+                    if (s1 != REG_ITMP1) {
                         M_ILD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, baseval));
                         M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -2888,6 +2891,7 @@ makeactualcall:
 			else
 				panic ("internal error: no inlined array checkcast");
 			}
+			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -3303,13 +3307,15 @@ void removecompilerstub(u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE      200
-#define NATIVESTUBOFFSET    9
+#define NATIVESTUB_SIZE      200
+#define NATIVESTUB_OFFSET    9
+
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
 	s4 *s;                              /* memory to hold the stub            */
 	s4 *cs;
+	s4 stubsize;
 	s4 *mcodeptr;                       /* code generation pointer            */
 	s4 stackframesize = 0;              /* size of stackframe if needed       */
 	s4 disp;
@@ -3331,8 +3337,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	method_descriptor2types(m);                /* set paramcount and paramtypes      */
 
-	s = CNEW(s4, NATIVESTUBSIZE);
-	cs = s + NATIVESTUBOFFSET;
+	stubsize = NATIVESTUB_SIZE;         /* calculate nativestub size          */
+
+	s = CNEW(s4, stubsize);
+	cs = s + NATIVESTUB_OFFSET;
 	mcodeptr = cs;
 
 	*(cs-1) = (u4) f;                   /* address of native method           */
@@ -3493,23 +3501,40 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	if ((m->flags & ACC_STATIC && m->paramcount > (INT_ARG_CNT - 2)) ||
 		m->paramcount > (INT_ARG_CNT - 1)) {
 		s4 i;
+		u1 *tptr;
 		s4 paramshiftcnt = (m->flags & ACC_STATIC) ? 2 : 1;
 		s4 stackparamcnt = (m->paramcount > INT_ARG_CNT) ? m->paramcount - INT_ARG_CNT : 0;
 
-		stackframesize = stackparamcnt + paramshiftcnt;
+		/* calculate stackframe size for native function */
+		tptr = m->paramtypes;
+		for (i = INT_ARG_CNT; i < m->paramcount; i++) {
+			stackframesize += IS_2_WORD_TYPE(*tptr++) ? 8 : 4;
+		}
+
+		stackframesize += paramshiftcnt;
 
 		M_LDA(REG_SP, REG_SP, -stackframesize * 8);
 
-		panic("nativestub");
+		for (i = 0; i < stackparamcnt; i++) {
+			M_ILD(REG_ITMP1, REG_SP, stackparamcnt * 8 + 24 + i * 4);
+			M_IST(REG_ITMP1, REG_SP, (paramshiftcnt + i) * 4);
+
+			if (IS_2_WORD_TYPE(m->paramtypes[i])) {
+				M_ILD(REG_ITMP1, REG_SP, stackparamcnt * 8 + 24 + i * 4 + 4);
+				M_IST(REG_ITMP1, REG_SP, (paramshiftcnt + i) * 4);
+			}
+		}
+
+
 	}
 
 	if (m->flags & ACC_STATIC) {
-        M_MOV(rd->argintregs[5], rd->argintregs[7]);
-        M_MOV(rd->argintregs[4], rd->argintregs[6]);
-        M_MOV(rd->argintregs[3], rd->argintregs[5]);
-        M_MOV(rd->argintregs[2], rd->argintregs[4]);
-        M_MOV(rd->argintregs[1], rd->argintregs[3]);
-        M_MOV(rd->argintregs[0], rd->argintregs[2]);
+		M_MOV(rd->argintregs[5], rd->argintregs[7]);
+		M_MOV(rd->argintregs[4], rd->argintregs[6]);
+		M_MOV(rd->argintregs[3], rd->argintregs[5]);
+		M_MOV(rd->argintregs[2], rd->argintregs[4]);
+		M_MOV(rd->argintregs[1], rd->argintregs[3]);
+		M_MOV(rd->argintregs[0], rd->argintregs[2]);
 
 		/* put class into second argument register */
 		M_ALD(rd->argintregs[1], REG_PV, -8 * 4);
@@ -3609,8 +3634,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 #else
 	M_ALD(REG_ITMP2, REG_PV, -2 * 4);   /* get address of exceptionptr        */
 #endif
-	M_ALD(REG_ITMP1, REG_ITMP2, 0);     /* load exception into reg. itmp1     */
-	M_TST(REG_ITMP1);
+	M_ALD(REG_ITMP1_XPTR, REG_ITMP2, 0);/* load exception into reg. itmp1     */
+	M_TST(REG_ITMP1_XPTR);
 	M_BNE(4);                           /* if no exception then return        */
 
 	M_ALD(REG_ITMP1, REG_SP, 64 + 8);   /* load return address                */
@@ -3618,36 +3643,42 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_LDA(REG_SP, REG_SP, 64);          /* remove stackframe                  */
 
 	M_RET;
-	
+
 	M_CLR(REG_ITMP3);
 	M_AST(REG_ITMP3, REG_ITMP2, 0);     /* store NULL into exceptionptr       */
 
-	M_ALD(REG_ITMP3, REG_SP, 64 + 8);   /* load return address                */
-	M_MTLR(REG_ITMP3);
+	M_ALD(REG_ITMP2, REG_SP, 64 + 8);   /* load return address                */
+	M_MTLR(REG_ITMP2);
+
 	M_LDA(REG_SP, REG_SP, 64);          /* remove stackframe                  */
 
-	M_LDA(REG_ITMP2, REG_ITMP1, -4);    /* move fault address into reg. itmp2 */
+	M_IADD_IMM(REG_ITMP2, -4, REG_ITMP2_XPC); /* fault address                */
 
 	M_ALD(REG_ITMP3, REG_PV, -3 * 4);   /* load asm exception handler address */
 	M_MTCTR(REG_ITMP3);
 	M_RTS;
-	
-#if 0
-	dolog_plain("stubsize: %d (for %d params)\n", (int) (mcodeptr - (s4 *) s), m->paramcount);
-#endif
 
-    asm_cacheflush((void *) s, (u1*) mcodeptr - (u1*) s);
+	/* Check if the stub size is big enough to hold the whole stub generated. */
+	/* If not, this can lead into unpredictable crashes, because of heap      */
+	/* corruption.                                                            */
+	if ((s4) (mcodeptr - s) > stubsize) {
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+                                   "Native stub size %d is to small for current stub size %d",
+                                   stubsize, (s4) (mcodeptr - s));
+	}
+
+	asm_cacheflush((void *) s, (u1*) mcodeptr - (u1*) s);
 
 #if defined(STATISTICS)
 	if (opt_stat)
-		count_nstub_len += NATIVESTUBSIZE * 4;
+		count_nstub_len += NATIVESTUB_SIZE * 4;
 #endif
 
 	/* release dump area */
 
 	dump_release(dumpsize);
 
-	return (u1*) (s + NATIVESTUBOFFSET);
+	return (u1*) (s + NATIVESTUB_OFFSET);
 }
 
 
@@ -3659,7 +3690,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 void removenativestub(u1 *stub)
 {
-	CFREE((s4 *) stub - NATIVESTUBOFFSET, NATIVESTUBSIZE * 4);
+	CFREE((s4 *) stub - NATIVESTUB_OFFSET, NATIVESTUB_SIZE * 4);
 }
 
 
