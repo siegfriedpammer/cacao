@@ -11,7 +11,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: boehm.c 256 2003-03-17 11:48:18Z stefan $
+	Last Change: $Id: boehm.c 350 2003-06-03 07:07:25Z stefan $
 
 *******************************************************************************/
 
@@ -91,7 +91,7 @@ void runboehmfinalizer(void *o, void *p)
 void *heap_allocate (u4 bytelength, bool references, methodinfo *finalizer)
 {
 	void *result;
-	if (references, 1)
+	if (references)
 		{ MAINTHREADCALL(result, stackcall_malloc, NULL, bytelength); }
 	else
 		{ MAINTHREADCALL(result, stackcall_malloc_atomic, NULL, bytelength); }
