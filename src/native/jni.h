@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 1921 2005-02-10 10:34:40Z twisti $
+   $Id: jni.h 2129 2005-03-29 22:27:08Z twisti $
 
 */
 
@@ -41,7 +41,9 @@
 #include <stdarg.h>
 
 #include "types.h"
+#include "vm/field.h"
 #include "vm/global.h"
+#include "vm/method.h"
 
 
 /* JNI versions */
