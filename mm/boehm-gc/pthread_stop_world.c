@@ -293,7 +293,7 @@ int GC_suspend_all()
     return n_live_threads;
 }
 
-void lock_stopworld();
+void lock_stopworld(int);
 void unlock_stopworld();
 
 /* Caller holds allocation lock.	*/
