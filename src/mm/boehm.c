@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 984 2004-03-28 23:08:07Z twisti $
+   $Id: boehm.c 985 2004-03-28 23:32:53Z twisti $
 
 */
 
@@ -131,7 +131,7 @@ void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
 
 	if (!result) {
 		log_text("java_lang_OutOfMemoryError");
-		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
+/*		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError); */
 		return NULL;
 	}
 
