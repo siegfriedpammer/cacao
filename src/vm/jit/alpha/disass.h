@@ -1,4 +1,4 @@
-/* alpha/disass.h - disassembler header
+/* vm/jit/alpha/disass.h - disassembler header
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: disass.h 1062 2004-05-16 13:47:03Z twisti $
+   $Id: disass.h 1624 2004-11-30 14:49:45Z twisti $
 
 */
 
@@ -35,17 +35,18 @@
 #ifndef _DISASS_H
 #define _DISASS_H
 
-#include "types.h"
+#include "vm/jit/alpha/types.h"
 
 
 extern char *regs[];
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
+
 void disassinstr(s4 *code, int pos);
 void disassemble(s4 *code, int len);
 
-#endif
+#endif /* _DISASS_H */
 
 
 /*

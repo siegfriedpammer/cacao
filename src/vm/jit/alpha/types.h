@@ -1,4 +1,4 @@
-/* jit/alpha/types.h - machine specific definitions for alpha
+/* vm/jit/alpha/types.h - machine specific definitions for alpha
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -29,7 +29,7 @@
             Andreas  Krall
             Michael Gschwind
 
-   $Id: types.h 1587 2004-11-24 14:27:44Z twisti $
+   $Id: types.h 1624 2004-11-30 14:49:45Z twisti $
 
 */
 
@@ -37,7 +37,7 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 
-#include "jit/alpha/arch.h"
+#include "vm/jit/alpha/arch.h"
 
 
 /* Define the sizes of the integer types used internally by cacao. */

@@ -1,4 +1,4 @@
-/* jit/alpha/codegen.c - machine code generator for alpha
+/* vm/jit/alpha/codegen.c - machine code generator for alpha
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -28,28 +28,27 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1606 2004-11-29 10:06:44Z twisti $
+   $Id: codegen.c 1624 2004-11-30 14:49:45Z twisti $
 
 */
 
 
-#include "global.h"
 #include <stdio.h>
 #include <signal.h>
-#include "types.h"
-#include "main.h"
-#include "jit/alpha/codegen.h"
-#include "jit/jit.h"
-#include "jit/parse.h"
-#include "jit/reg.h"
-#include "jit/lsra.h"
-#include "builtin.h"
-#include "asmpart.h"
-#include "jni.h"
-#include "loader.h"
-#include "tables.h"
-#include "native.h"
-#include "main.h"
+
+#include "native/native.h"
+#include "vm/builtin.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/lsra.h"
+#include "vm/jit/parse.h"
+#include "vm/jit/reg.h"
+#include "vm/jit/alpha/codegen.h"
+#include "vm/jit/alpha/arch.h"
+#include "vm/jit/alpha/types.h"
 
 
 /* *****************************************************************************
@@ -105,14 +104,13 @@ int nregdescfloat[] = {
 	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES,
 	REG_END };
 
-/* for use of reserved registers, see comment above */
 
-/* include independent code generation stuff -- include after register        */
-/* descriptions to avoid extern definitions                                   */
+/* Include independent code generation stuff -- include after register        */
+/* descriptions to avoid extern definitions.                                  */
 
-#include "jit/codegen.inc"
-#include "jit/reg.inc"
-#include "jit/lsra.inc"
+#include "vm/jit/codegen.inc"
+#include "vm/jit/reg.inc"
+#include "vm/jit/lsra.inc"
 
 
 /* NullPointerException handlers and exception handling initialisation        */

@@ -1,4 +1,4 @@
-/* jit/alpha/disass.c - primitive disassembler for alpha machine code
+/* vm/jit/alpha/disass.c - primitive disassembler for alpha machine code
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -28,13 +28,15 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: disass.c 1062 2004-05-16 13:47:03Z twisti $
+   $Id: disass.c 1624 2004-11-30 14:49:45Z twisti $
 
 */
 
 
 #include <stdio.h>
-#include "disass.h"
+
+#include "vm/jit/alpha/disass.h"
+
 
 /*  The disassembler uses two tables for decoding the instructions. The first
 	table (ops) is used to classify the instructions based on the op code and

@@ -1,4 +1,4 @@
-/* jit/alpha/codegen.h - code generation macros and definitions for alpha
+/* vm/jit/alpha/codegen.h - code generation macros and definitions for alpha
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.h 1595 2004-11-25 15:49:48Z twisti $
+   $Id: codegen.h 1624 2004-11-30 14:49:45Z twisti $
 
 */
 
@@ -37,8 +37,6 @@
 #define _CODEGEN_H
 
 #include <ucontext.h>
-
-#include "jit/jit.h"
 
 
 /* additional functions and macros to generate code ***************************/

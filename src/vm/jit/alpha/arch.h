@@ -1,4 +1,4 @@
-/* jit/alpha/arch.h - architecture defines for Alpha
+/* vm/jit/alpha/arch.h - architecture defines for Alpha
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: arch.h 1586 2004-11-24 14:27:03Z twisti $
+   $Id: arch.h 1624 2004-11-30 14:49:45Z twisti $
 
 */
 

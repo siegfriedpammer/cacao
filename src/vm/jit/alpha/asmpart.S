@@ -1,4 +1,4 @@
-/* jit/alpha/asmpart.S - Java-C interface functions for alpha
+/* vm/jit/alpha/asmpart.S - Java-C interface functions for alpha
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -28,13 +28,13 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1595 2004-11-25 15:49:48Z twisti $
+   $Id: asmpart.S 1624 2004-11-30 14:49:45Z twisti $
 
 */
 
 
 #include "config.h"        
-#include "offsets.h"
+#include "vm/jit/alpha/offsets.h"
 
 
 #define    	MethodPointer   -8
