@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1240 2004-06-30 20:07:25Z twisti $
+   $Id: tables.c 1372 2004-08-01 21:56:10Z stefan $
 
 */
 
@@ -1091,6 +1091,9 @@ classinfo *class_new_intern(utf *classname)
 			}
 		}
 	}
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	initObjectLock(&c->header);
+#endif
 
 	return c;
 }

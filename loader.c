@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1329 2004-07-21 15:36:33Z twisti $
+   $Id: loader.c 1372 2004-08-01 21:56:10Z stefan $
 
 */
 
@@ -1143,6 +1143,10 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 	s4 i, j;
 	u4 attrnum;
 	u4 codeattrnum;
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	initObjectLock(&m->header);
+#endif
 
 #ifdef STATISTICS
 	if (opt_stat)
