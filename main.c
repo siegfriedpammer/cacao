@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1009 2004-03-31 22:44:07Z edwin $
+   $Id: main.c 1032 2004-04-26 16:09:10Z twisti $
 
 */
 
@@ -65,10 +65,10 @@
 
 /* command line option */
 
-bool verbose =  false;
+bool verbose = false;
 bool compileall = false;
 bool runverbose = false;       /* trace all method invocation                */
-bool verboseexception = false;       /* trace all method invocation                */
+bool verboseexception = false;
 bool collectverbose = false;
 
 bool loadverbose = false;
@@ -117,8 +117,8 @@ bool statistics = false;
 
 bool opt_verify = true;        /* true if classfiles should be verified      */
 
-char mainString[256];
-static classinfo *topclass;
+char *mainstring;
+static classinfo *mainclass;
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 void **stackbottom = 0;
@@ -251,8 +251,6 @@ static int get_opt(int argc, char **argv)
 }
 
 
-
-
 /******************** interne Function: print_usage ************************
 
 Prints the correct usage syntax to stdout.
@@ -308,7 +306,6 @@ static void print_usage()
 }   
 
 
-
 /***************************** Function: print_times *********************
 
 	Prints a summary of CPU time usage.
@@ -353,10 +350,6 @@ static void print_times()
 			totaltime / 1000000, (totaltime % 1000000) / 1000);
 	log_text(logtext);
 }
-
-
-
-
 
 
 /***************************** Function: print_stats *********************
@@ -532,29 +525,10 @@ static void print_stats()
 }
 
 
-/********** Function: class_compile_methods   (debugging only) ********/
-
-void class_compile_methods()
-{
-	int        i;
-	classinfo  *c;
-	methodinfo *m;
-	
-	c = list_first(&linkedclasses);
-	while (c) {
-		for (i = 0; i < c -> methodscount; i++) {
-			m = &(c->methods[i]);
-			if (m->jcode) {
-				(void) jit_compile(m);
-			}
-		}
-		c = list_next(&linkedclasses, c);
-	}
-}
-
 #ifdef TYPECHECK_STATISTICS
 void typecheck_print_statistics(FILE *file);
 #endif
+
 
 /*
  * void exit_handler(void)
@@ -566,8 +540,8 @@ void exit_handler(void)
 {
 	/********************* Print debug tables ************************/
 				
-	if (showmethods) class_showmethods(topclass);
-	if (showconstantpool) class_showconstantpool(topclass);
+	if (showmethods) class_showmethods(mainclass);
+	if (showconstantpool) class_showconstantpool(mainclass);
 	if (showutf) utf_show();
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
@@ -577,7 +551,7 @@ void exit_handler(void)
 
 	/************************ Free all resources *******************/
 
-	heap_close();               /* must be called before compiler_close and
+	/*heap_close();*/               /* must be called before compiler_close and
 	                               loader_close because finalization occurs
 	                               here */
 
@@ -608,7 +582,6 @@ void exit_handler(void)
 int main(int argc, char **argv)
 {
 	s4 i, j;
-	char *cp;
 	void *dummy;
 	
 	/********** interne (nur fuer main relevante Optionen) **************/
@@ -616,6 +589,7 @@ int main(int argc, char **argv)
 	char logfilename[200] = "";
 	u4 heapmaxsize = 64000000;
 	u4 heapstartsize = 200000;
+	char *cp;
 	char classpath[500] = ".";
 	bool startit = true;
 	char *specificmethodname = NULL;
@@ -666,17 +640,17 @@ int main(int argc, char **argv)
 			didit: ;
 			}	
 			break;
-				
+
 		case OPT_MS:
 		case OPT_MX:
 			if (opt_arg[strlen(opt_arg) - 1] == 'k') {
 				j = 1024 * atoi(opt_arg);
-			}
-			else if (opt_arg[strlen(opt_arg) - 1] == 'm') {
+
+			} else if (opt_arg[strlen(opt_arg) - 1] == 'm') {
 				j = 1024 * 1024 * atoi(opt_arg);
-			}
-			else j = atoi(opt_arg);
-				
+
+			} else j = atoi(opt_arg);
+
 			if (i == OPT_MX) heapmaxsize = j;
 			else heapstartsize = j;
 			break;
@@ -684,14 +658,15 @@ int main(int argc, char **argv)
 		case OPT_VERBOSE1:
 			verbose = true;
 			break;
-								
+
 		case OPT_VERBOSE:
 			verbose = true;
 			loadverbose = true;
+			linkverbose = true;
 			initverbose = true;
 			compileverbose = true;
 			break;
-				
+
 		case OPT_VERBOSEEXCEPTION:
 			verboseexception = true;
 			break;
@@ -859,12 +834,10 @@ int main(int argc, char **argv)
    		exit(10);
 	}
 
-   	cp = argv[opt_ind++];
-   	for (i = strlen(cp) - 1; i >= 0; i--) {     /* Transform dots into slashes */
- 	 	if (cp[i] == '.') cp[i] = '/';          /* in the class name */
+   	mainstring = argv[opt_ind++];
+   	for (i = strlen(mainstring) - 1; i >= 0; i--) {     /* Transform dots into slashes */
+ 	 	if (mainstring[i] == '.') mainstring[i] = '/';  /* in the class name */
 	}
-
-        strcpy(mainString,cp);
 
 
 	/**************************** Program start *****************************/
@@ -873,8 +846,8 @@ int main(int argc, char **argv)
 		log_text("CACAO started -------------------------------------------------------");
 	}
 
-	/* initalize the gc heap */
-	heap_init(heapmaxsize, heapstartsize);
+	/* initialize the garbage collector */
+	gc_init(heapmaxsize, heapstartsize);
 
 	native_setclasspath(classpath);
 		
@@ -891,27 +864,7 @@ int main(int argc, char **argv)
 
 	native_loadclasses();
 
-	/* initialize the garbage collector */
-	gc_init();
-
 #if defined(USE_THREADS)
-  	initThreads((u1*) &dummy);
-#endif
-
-	/*********************** Load JAVA classes  ***************************/
-   
-	/*printf("-------------------->%s\n",cp);*/
-	topclass = loader_load(utf_new_char(cp));
-	/*class_showmethods(topclass);	*/
-
-	if (*exceptionptr) {
-		throw_exception_exit();
-	}
-
-	/* initialize the garbage collector */
-	gc_init();
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
   	initThreads((u1*) &dummy);
 #endif
 
@@ -922,19 +875,34 @@ int main(int argc, char **argv)
 		methodinfo *mainmethod;
 		java_objectarray *a; 
 
-/*  		heap_addreference((void**) &a); */
+		/* create, load and link the main class */
+		mainclass = class_new(utf_new_char(mainstring));
+		class_load(mainclass);
 
-		mainmethod = class_resolveclassmethod(topclass,
-									  utf_new_char("main"), 
-									  utf_new_char("([Ljava/lang/String;)V"),
-										topclass,
-										true
-									  );
+		if (*exceptionptr)
+			throw_exception_exit();
+
+		class_link(mainclass);
+
+		if (*exceptionptr)
+			throw_exception_exit();
+
+		mainmethod = class_resolveclassmethod(mainclass,
+											  utf_new_char("main"), 
+											  utf_new_char("([Ljava/lang/String;)V"),
+											  mainclass,
+											  true);
+
+		/* problems with main method? */
+		if (*exceptionptr)
+			throw_exception_exit();
 
 		/* there is no main method or it isn't static */
 		if (!mainmethod || !(mainmethod->flags & ACC_STATIC)) {
-			printf("Exception in thread \"main\" java.lang.NoSuchMethodError: main\n");
-			exit(1);
+			*exceptionptr =
+				new_exception_message(string_java_lang_NoSuchMethodError,
+									  "main");
+			throw_exception_exit();
 		}
 
 		a = builtin_anewarray(argc - opt_ind, class_java_lang_String);
@@ -953,33 +921,10 @@ int main(int argc, char **argv)
 
 		/* here we go... */
 		asm_calljavafunction(mainmethod, a, NULL, NULL, NULL);
-	
-		if (*exceptionptr) {
-			methodinfo *main_unhandled_print =
-				class_resolvemethod_approx((*exceptionptr)->vftbl->class,
-										   utf_new_char("printStackTrace"),
-										   utf_new_char("()V"));
 
-			if (main_unhandled_print) {
-				java_objectheader *exo = *exceptionptr;
-				*exceptionptr = NULL;
-				asm_calljavafunction(main_unhandled_print, exo, NULL, NULL, NULL);
-
-			} else {
-				java_lang_String *msg;
-
-				printf("Exception in thread \"main\" ");
-				utf_display_classname((*exceptionptr)->vftbl->class->name);
-
-				/* do we have a detail message? */
-				msg = ((java_lang_Throwable *) *exceptionptr)->detailMessage;
-				if (msg) {
-					printf(": ");
-					utf_display(javastring_toutf(msg, false));
-				}
-				printf("\n");
-			}
-		}
+		/* exception occurred? */
+		if (*exceptionptr)
+			throw_exception_exit();
 
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
@@ -995,7 +940,37 @@ int main(int argc, char **argv)
 	/************* If requested, compile all methods ********************/
 
 	if (compileall) {
-		class_compile_methods();
+		classinfo *c;
+		methodinfo *m;
+		u4 slot;
+		s4 i;
+
+		/* create all classes found in the classpath */
+		/* XXX currently only works with zip/jar's */
+		create_all_classes();
+
+		/* load and link all classes */
+		for (slot = 0; slot < class_hash.size; slot++) {
+			c = class_hash.ptr[slot];
+
+			while (c) {
+				if (!c->loaded)
+					class_load(c);
+
+				if (!c->linked)
+					class_link(c);
+
+				/* compile all class methods */
+				for (i = 0; i < c->methodscount; i++) {
+					m = &(c->methods[i]);
+					if (m->jcode) {
+						(void) jit_compile(m);
+					}
+				}
+
+				c = c->hashlink;
+			}
+		}
 	}
 
 
@@ -1003,18 +978,44 @@ int main(int argc, char **argv)
 
 	if (specificmethodname) {
 		methodinfo *m;
+
+		/* create, load and link the main class */
+		mainclass = class_new(utf_new_char(mainstring));
+		class_load(mainclass);
+
+		if (*exceptionptr)
+			throw_exception_exit();
+
+		class_link(mainclass);
+
+		if (*exceptionptr)
+			throw_exception_exit();
+
 		if (specificsignature) {
-			m = class_findmethod(topclass, 
-								 utf_new_char(specificmethodname),
-								 utf_new_char(specificsignature));
+			m = class_resolveclassmethod(mainclass,
+										 utf_new_char(specificmethodname),
+										 utf_new_char(specificsignature),
+										 mainclass,
+										 false);
 		} else {
-			m = class_findmethod(topclass, 
-								 utf_new_char(specificmethodname),
-								 NULL);
+			m = class_resolveclassmethod(mainclass,
+										 utf_new_char(specificmethodname),
+										 NULL,
+										 mainclass,
+										 false);
 		}
 
-		if (!m)
-			panic("Specific method not found");
+		if (!m) {
+			char message[MAXLOGTEXT];
+			sprintf(message, "%s%s", specificmethodname,
+					specificmethodname ? specificmethodname : "");
+
+			*exceptionptr =
+				new_exception_message(string_java_lang_NoSuchMethodException,
+									  message);
+										 
+			throw_exception_exit();
+		}
 		
 		jit_compile(m);
 	}
@@ -1024,12 +1025,12 @@ int main(int argc, char **argv)
 
 
 
-/************************************ Shutdown function *********************************
+/*************************** Shutdown function *********************************
 
 	Terminates the system immediately without freeing memory explicitly (to be
 	used only for abnormal termination)
 	
-*****************************************************************************************/
+*******************************************************************************/
 
 void cacao_shutdown(s4 status)
 {

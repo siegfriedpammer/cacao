@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: cacao.h 963 2004-03-15 07:37:49Z jowenn $
+   $Id: cacao.h 1032 2004-04-26 16:09:10Z twisti $
 
 */
 
@@ -89,7 +89,8 @@ extern int has_ext_instr_set;
 
 extern bool statistics;
 
-extern char mainString[256];    /* class.method with main method */
+extern char *mainstring;    /* class.method with main method */
+
 #endif /* _MAIN_H */
 
 
