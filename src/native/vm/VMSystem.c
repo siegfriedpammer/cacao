@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSystem.c 930 2004-03-02 21:18:23Z jowenn $
+   $Id: VMSystem.c 1003 2004-03-30 22:56:04Z twisti $
 
 */
 
@@ -59,7 +59,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 		fflush(stdout);*/
 
 	if (!s || !d) { 
-		*exceptionptr = proto_java_lang_NullPointerException; 
+		*exceptionptr = new_exception(string_java_lang_NullPointerException);
 		return; 
 	}
 
@@ -67,12 +67,12 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 	ddesc = d->objheader.vftbl->arraydesc;
 
 	if (!sdesc || !ddesc || (sdesc->arraytype != ddesc->arraytype)) {
-		*exceptionptr = proto_java_lang_ArrayStoreException; 
+		*exceptionptr = new_exception(string_java_lang_ArrayStoreException);
 		return; 
 	}
 
 	if ((len < 0) || (sp < 0) || (sp + len > s->size) || (dp < 0) || (dp + len > d->size)) {
-		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException; 
+		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 		return; 
 	}
 
@@ -80,20 +80,20 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 		/* We copy primitive values or references of exactly the same type */
 		s4 dataoffset = sdesc->dataoffset;
 		s4 componentsize = sdesc->componentsize;
-		memmove(((u1*)d) + dataoffset + componentsize * dp,
-				((u1*)s) + dataoffset + componentsize * sp,
+		memmove(((u1 *) d) + dataoffset + componentsize * dp,
+				((u1 *) s) + dataoffset + componentsize * sp,
 				(size_t) len * componentsize);
-	}
-	else {
+
+	} else {
 		/* We copy references of different type */
-		java_objectarray *oas = (java_objectarray*) s;
-		java_objectarray *oad = (java_objectarray*) d;
+		java_objectarray *oas = (java_objectarray *) s;
+		java_objectarray *oad = (java_objectarray *) d;
                 
 		if (dp <= sp) {
 			for (i = 0; i < len; i++) {
 				java_objectheader *o = oas->data[sp + i];
 				if (!builtin_canstore(oad, o)) {
-					*exceptionptr = proto_java_lang_ArrayStoreException;
+					*exceptionptr = new_exception(string_java_lang_ArrayStoreException);
 					return;
 				}
 				oad->data[dp + i] = o;
@@ -110,7 +110,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 			for (i = len - 1; i >= 0; i--) {
 				java_objectheader *o = oas->data[sp + i];
 				if (!builtin_canstore(oad, o)) {
-					*exceptionptr = proto_java_lang_ArrayStoreException;
+					*exceptionptr = new_exception(string_java_lang_ArrayStoreException);
 					return;
 				}
 				oad->data[dp + i] = o;
@@ -119,6 +119,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 	}
 }
 
+
 /*
  * Class:     java/lang/System
  * Method:    identityHashCode
@@ -126,7 +127,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, java_lang_Object *par1)
 {
-	return ((char*) par1) - ((char*) 0);	
+	return ((char *) par1) - ((char *) 0);
 }
 
 

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMObject.c 991 2004-03-29 11:22:34Z stefan $
+   $Id: VMObject.c 1003 2004-03-30 22:56:04Z twisti $
 
 */
 
@@ -76,7 +76,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
     
     /* We are cloning a non-array */
     if (!builtin_instanceof((java_objectheader *) this, class_java_lang_Cloneable)) {
-        *exceptionptr = native_new_and_init (class_java_lang_CloneNotSupportedException);
+        *exceptionptr = new_exception(string_java_lang_CloneNotSupportedException);
         return NULL;
     }
 
@@ -84,7 +84,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
     c = this->header.vftbl->class;
     new = (java_lang_Object *) builtin_new(c);
     if (!new) {
-        *exceptionptr = proto_java_lang_OutOfMemoryError;
+        *exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
         return NULL;
     }
 

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClassLoader.c 930 2004-03-02 21:18:23Z jowenn $
+   $Id: VMClassLoader.c 1003 2004-03-30 22:56:04Z twisti $
 
 */
 
@@ -80,7 +80,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 	}
 
 	/* illegal primitive classname specified */
-	*exceptionptr = native_new_and_init(class_java_lang_ClassNotFoundException);
+	*exceptionptr = new_exception(string_java_lang_ClassNotFoundException);
 
 	return NULL;
 }
