@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1296 2004-07-10 17:02:15Z stefan $
+   $Id: typecheck.c 1348 2004-07-22 09:57:51Z twisti $
 
 */
 
@@ -246,7 +246,7 @@ typestack_copy(stackptr dst,stackptr y,typevector *selected)
 	for (;dst; dst=dst->prev, y=y->prev) {
 		if (!y) panic("Stack depth mismatch 1");
 		if (dst->type != y->type)
-			panic("Stack type mismatch");
+			panic("Stack type mismatch 1");
 		LOG3("copy %p -> %p (type %d)",y,dst,dst->type);
 		if (dst->type == TYPE_ADDRESS) {
 			if (TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
@@ -310,7 +310,7 @@ typestack_merge(stackptr dst,stackptr y)
 	for (; dst; dst = dst->prev, y=y->prev) {
 		if (!y)
 			panic("Stack depth mismatch 3");
-		if (dst->type != y->type) panic("Stack type mismatch");
+		if (dst->type != y->type) panic("Stack type mismatch 2");
 		if (dst->type == TYPE_ADDRESS) {
 			if (TYPEINFO_IS_PRIMITIVE(dst->typeinfo)) {
 				/* dst has returnAddress type */
@@ -1319,6 +1319,38 @@ methodinfo *typecheck(methodinfo *m)
                               panic("Array type mismatch");
                           maythrow = true;
                           break;
+
+                      case ICMD_IASTORECONST:
+                          if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo, ARRAYTYPE_INT))
+                              panic("Array type mismatch");
+                          maythrow = true;
+                          break;
+
+                      case ICMD_LASTORECONST:
+                          if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo, ARRAYTYPE_LONG))
+                              panic("Array type mismatch");
+                          maythrow = true;
+                          break;
+
+                      case ICMD_BASTORECONST:
+                          if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo, ARRAYTYPE_BOOLEAN)
+                              && !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo, ARRAYTYPE_BYTE))
+                              panic("Array type mismatch");
+                          maythrow = true;
+                          break;
+
+                      case ICMD_CASTORECONST:
+                          if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo, ARRAYTYPE_CHAR))
+                              panic("Array type mismatch");
+                          maythrow = true;
+                          break;
+
+                      case ICMD_SASTORECONST:
+                          if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo, ARRAYTYPE_SHORT))
+                              panic("Array type mismatch");
+                          maythrow = true;
+                          break;
+
 
                           /****************************************/
                           /* ADDRESS CONSTANTS                    */
