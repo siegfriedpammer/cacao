@@ -11,7 +11,7 @@
              Michael Gschwind    EMAIL: cacao@complang.tuwien.ac.at
              Christan Thalinger
 
-    Last Change: $Id: types.h 385 2003-07-10 10:45:57Z twisti $
+    Last Change: $Id: types.h 524 2003-10-22 21:13:55Z twisti $
 
 *******************************************************************************/
 
@@ -35,6 +35,7 @@
 #define SUPPORT_LONG_FCVT   1
 
 #define CONDITIONAL_LOADCONST
+#define NO_DIV_OPT
 
 #define U8_AVAILABLE        1
 
@@ -56,5 +57,4 @@ typedef struct {u4 low, high;}  u8;
 #define s8 u8
 #endif
 
-#endif
-
+#endif /* _CACAO_TYPES_H */
