@@ -18,17 +18,9 @@ typedef struct gnu_java_awt_peer_gtk_GtkScrollPanePeer {
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkScrollPanePeer
  * Method:    create
- * Signature: ()V
+ * Signature: (II)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkScrollPanePeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkScrollPanePeer* this);
-
-
-/*
- * Class:     gnu/java/awt/peer/gtk/GtkScrollPanePeer
- * Method:    gtkScrolledWindowNew
- * Signature: (Ljava/awt/peer/ComponentPeer;III[I)V
- */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkScrollPanePeer_gtkScrolledWindowNew(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkScrollPanePeer* this, struct java_awt_peer_ComponentPeer* par1, s4 par2, s4 par3, s4 par4, java_intarray* par5);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkScrollPanePeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkScrollPanePeer* this, s4 par1, s4 par2);
 
 
 /*
@@ -57,26 +49,10 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkScrollPanePeer_gtkScrolledW
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkScrollPanePeer
- * Method:    gtkScrolledWindowSetSize
- * Signature: (II)V
- */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkScrollPanePeer_gtkScrolledWindowSetSize(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkScrollPanePeer* this, s4 par1, s4 par2);
-
-
-/*
- * Class:     gnu/java/awt/peer/gtk/GtkScrollPanePeer
  * Method:    setPolicy
  * Signature: (I)V
  */
 JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkScrollPanePeer_setPolicy(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkScrollPanePeer* this, s4 par1);
-
-
-/*
- * Class:     gnu/java/awt/peer/gtk/GtkScrollPanePeer
- * Method:    childResized
- * Signature: (II)V
- */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkScrollPanePeer_childResized(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkScrollPanePeer* this, s4 par1, s4 par2);
 
 
 /*

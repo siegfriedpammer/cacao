@@ -16,17 +16,17 @@ typedef struct gnu_java_awt_peer_gtk_GdkFontMetrics {
 /*
  * Class:     gnu/java/awt/peer/gtk/GdkFontMetrics
  * Method:    initState
- * Signature: (Ljava/lang/String;I)[I
+ * Signature: (Ljava/lang/String;II)[I
  */
-JNIEXPORT java_intarray* JNICALL Java_gnu_java_awt_peer_gtk_GdkFontMetrics_initState(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkFontMetrics* this, struct java_lang_String* par1, s4 par2);
+JNIEXPORT java_intarray* JNICALL Java_gnu_java_awt_peer_gtk_GdkFontMetrics_initState(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkFontMetrics* this, struct java_lang_String* par1, s4 par2, s4 par3);
 
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GdkFontMetrics
  * Method:    stringWidth
- * Signature: (Ljava/lang/String;)I
+ * Signature: (Ljava/lang/String;IILjava/lang/String;)I
  */
-JNIEXPORT s4 JNICALL Java_gnu_java_awt_peer_gtk_GdkFontMetrics_stringWidth(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkFontMetrics* this, struct java_lang_String* par1);
+JNIEXPORT s4 JNICALL Java_gnu_java_awt_peer_gtk_GdkFontMetrics_stringWidth(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkFontMetrics* this, struct java_lang_String* par1, s4 par2, s4 par3, struct java_lang_String* par4);
 
 #endif
 

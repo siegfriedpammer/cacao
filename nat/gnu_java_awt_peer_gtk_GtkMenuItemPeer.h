@@ -22,6 +22,14 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkMenuItemPeer_create(JNIEnv 
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkMenuItemPeer
+ * Method:    connectSignals
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkMenuItemPeer_connectSignals(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkMenuItemPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkMenuItemPeer
  * Method:    setLabel
  * Signature: (Ljava/lang/String;)V
  */

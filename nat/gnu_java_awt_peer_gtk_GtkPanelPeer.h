@@ -25,10 +25,10 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkPanelPeer_create(JNIEnv *en
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkPanelPeer
- * Method:    connectHooks
+ * Method:    connectJObject
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkPanelPeer_connectHooks(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkPanelPeer* this);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkPanelPeer_connectJObject(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkPanelPeer* this);
 
 #endif
 

@@ -10,6 +10,10 @@ typedef struct gnu_java_awt_peer_gtk_GdkPixbufDecoder {
    struct java_util_Vector* consumers;
    struct java_lang_String* filename;
    struct java_net_URL* url;
+   java_bytearray* data;
+   s4 offset;
+   s4 length;
+   struct java_io_InputStream* input;
    s4 native_state;
    struct java_util_Vector* curr;
 } gnu_java_awt_peer_gtk_GdkPixbufDecoder;

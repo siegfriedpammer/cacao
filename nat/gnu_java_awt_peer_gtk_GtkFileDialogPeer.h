@@ -14,6 +14,8 @@ typedef struct gnu_java_awt_peer_gtk_GtkFileDialogPeer {
    struct java_awt_Container* c;
    s4 hasBeenShown;
    s4 oldState;
+   struct java_lang_String* currentFile;
+   struct java_lang_String* currentDirectory;
 } gnu_java_awt_peer_gtk_GtkFileDialogPeer;
 
 
@@ -27,18 +29,26 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFileDialogPeer_create(JNIEn
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkFileDialogPeer
- * Method:    setFile
- * Signature: (Ljava/lang/String;)V
+ * Method:    connectJObject
+ * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFileDialogPeer_setFile(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFileDialogPeer* this, struct java_lang_String* par1);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFileDialogPeer_connectJObject(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFileDialogPeer* this);
 
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkFileDialogPeer
- * Method:    connectHooks
+ * Method:    connectSignals
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFileDialogPeer_connectHooks(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFileDialogPeer* this);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFileDialogPeer_connectSignals(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFileDialogPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkFileDialogPeer
+ * Method:    nativeSetFile
+ * Signature: (Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFileDialogPeer_nativeSetFile(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFileDialogPeer* this, struct java_lang_String* par1);
 
 #endif
 

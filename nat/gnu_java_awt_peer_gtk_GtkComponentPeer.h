@@ -64,6 +64,14 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_gtkWidgetGetD
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkComponentPeer
+ * Method:    gtkWidgetGetPreferredDimensions
+ * Signature: ([I)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_gtkWidgetGetPreferredDimensions(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, java_intarray* par1);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkComponentPeer
  * Method:    gtkWidgetGetLocationOnScreen
  * Signature: ([I)V
  */
@@ -96,18 +104,66 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_gtkWidgetSetF
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkComponentPeer
- * Method:    connectHooks
+ * Method:    gtkWidgetRequestFocus
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_connectHooks(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_gtkWidgetRequestFocus(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this);
 
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkComponentPeer
- * Method:    requestFocus
+ * Method:    gtkWidgetDispatchKeyEvent
+ * Signature: (IJIII)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_gtkWidgetDispatchKeyEvent(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, s4 par1, s8 par2, s4 par3, s4 par4, s4 par5);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkComponentPeer
+ * Method:    gtkSetFont
+ * Signature: (Ljava/lang/String;II)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_gtkSetFont(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, struct java_lang_String* par1, s4 par2, s4 par3);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkComponentPeer
+ * Method:    gtkWidgetQueueDrawArea
+ * Signature: (IIII)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_gtkWidgetQueueDrawArea(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, s4 par1, s4 par2, s4 par3, s4 par4);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkComponentPeer
+ * Method:    addExposeFilter
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_requestFocus(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_addExposeFilter(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkComponentPeer
+ * Method:    removeExposeFilter
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_removeExposeFilter(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkComponentPeer
+ * Method:    connectJObject
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_connectJObject(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkComponentPeer
+ * Method:    connectSignals
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_connectSignals(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this);
 
 
 /*
@@ -123,7 +179,7 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_setNativeBoun
  * Method:    set
  * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_set(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, struct java_lang_String* par1, struct java_lang_String* par2);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_set__Ljava_lang_String_2Ljava_lang_String_2(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, struct java_lang_String* par1, struct java_lang_String* par2);
 
 
 /*
@@ -131,7 +187,7 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_set(JNIEnv *e
  * Method:    set
  * Signature: (Ljava/lang/String;Z)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer0_set(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, struct java_lang_String* par1, s4 par2);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_set__Ljava_lang_String_2Z(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, struct java_lang_String* par1, s4 par2);
 
 
 /*
@@ -139,7 +195,7 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer0_set(JNIEnv *
  * Method:    set
  * Signature: (Ljava/lang/String;I)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer1_set(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, struct java_lang_String* par1, s4 par2);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_set__Ljava_lang_String_2I(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, struct java_lang_String* par1, s4 par2);
 
 
 /*
@@ -147,7 +203,7 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer1_set(JNIEnv *
  * Method:    set
  * Signature: (Ljava/lang/String;F)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer2_set(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, struct java_lang_String* par1, float par2);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_set__Ljava_lang_String_2F(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, struct java_lang_String* par1, float par2);
 
 
 /*
@@ -155,7 +211,7 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer2_set(JNIEnv *
  * Method:    set
  * Signature: (Ljava/lang/String;Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer3_set(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, struct java_lang_String* par1, struct java_lang_Object* par2);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkComponentPeer_set__Ljava_lang_String_2Ljava_lang_Object_2(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkComponentPeer* this, struct java_lang_String* par1, struct java_lang_Object* par2);
 
 #endif
 

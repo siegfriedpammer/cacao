@@ -24,10 +24,10 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkLabelPeer_create(JNIEnv *en
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkLabelPeer
- * Method:    setText
- * Signature: (Ljava/lang/String;)V
+ * Method:    gtkSetFont
+ * Signature: (Ljava/lang/String;II)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkLabelPeer_setText(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkLabelPeer* this, struct java_lang_String* par1);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkLabelPeer_gtkSetFont(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkLabelPeer* this, struct java_lang_String* par1, s4 par2, s4 par3);
 
 
 /*
@@ -36,6 +36,14 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkLabelPeer_setText(JNIEnv *e
  * Signature: (F)V
  */
 JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkLabelPeer_nativeSetAlignment(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkLabelPeer* this, float par1);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkLabelPeer
+ * Method:    setText
+ * Signature: (Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkLabelPeer_setText(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkLabelPeer* this, struct java_lang_String* par1);
 
 #endif
 

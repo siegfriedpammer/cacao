@@ -20,17 +20,25 @@ typedef struct gnu_java_awt_peer_gtk_GtkWindowPeer {
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkWindowPeer
  * Method:    create
- * Signature: (IZIILgnu/java/awt/peer/gtk/GtkWindowPeer;)V
+ * Signature: (IZIILgnu/java/awt/peer/gtk/GtkWindowPeer;[I)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkWindowPeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkWindowPeer* this, s4 par1, s4 par2, s4 par3, s4 par4, struct gnu_java_awt_peer_gtk_GtkWindowPeer* par5);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkWindowPeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkWindowPeer* this, s4 par1, s4 par2, s4 par3, s4 par4, struct gnu_java_awt_peer_gtk_GtkWindowPeer* par5, java_intarray* par6);
 
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkWindowPeer
- * Method:    connectHooks
+ * Method:    connectJObject
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkWindowPeer_connectHooks(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkWindowPeer* this);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkWindowPeer_connectJObject(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkWindowPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkWindowPeer
+ * Method:    connectSignals
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkWindowPeer_connectSignals(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkWindowPeer* this);
 
 
 /*

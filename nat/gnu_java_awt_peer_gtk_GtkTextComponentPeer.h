@@ -16,10 +16,10 @@ typedef struct gnu_java_awt_peer_gtk_GtkTextComponentPeer {
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkTextComponentPeer
- * Method:    connectHooks
+ * Method:    connectSignals
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextComponentPeer_connectHooks(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextComponentPeer* this);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextComponentPeer_connectSignals(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextComponentPeer* this);
 
 
 /*

@@ -24,10 +24,18 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkScrollbarPeer_create(JNIEnv
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkScrollbarPeer
- * Method:    connectHooks
+ * Method:    connectJObject
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkScrollbarPeer_connectHooks(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkScrollbarPeer* this);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkScrollbarPeer_connectJObject(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkScrollbarPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkScrollbarPeer
+ * Method:    connectSignals
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkScrollbarPeer_connectSignals(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkScrollbarPeer* this);
 
 
 /*

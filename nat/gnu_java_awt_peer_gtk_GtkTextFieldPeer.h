@@ -17,17 +17,17 @@ typedef struct gnu_java_awt_peer_gtk_GtkTextFieldPeer {
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkTextFieldPeer
  * Method:    create
- * Signature: ()V
+ * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextFieldPeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextFieldPeer* this);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextFieldPeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextFieldPeer* this, s4 par1);
 
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkTextFieldPeer
- * Method:    gtkEntryGetSize
- * Signature: ([I)V
+ * Method:    gtkEntryGetBorderWidth
+ * Signature: ()I
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextFieldPeer_gtkEntryGetSize(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextFieldPeer* this, java_intarray* par1);
+JNIEXPORT s4 JNICALL Java_gnu_java_awt_peer_gtk_GtkTextFieldPeer_gtkEntryGetBorderWidth(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextFieldPeer* this);
 
 
 /*

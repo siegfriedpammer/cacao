@@ -15,15 +15,16 @@ typedef struct gnu_java_awt_peer_gtk_GtkFramePeer {
    s4 hasBeenShown;
    s4 oldState;
    s4 menuBarHeight;
+   struct java_awt_peer_MenuBarPeer* menuBar;
 } gnu_java_awt_peer_gtk_GtkFramePeer;
 
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkFramePeer
  * Method:    getMenuBarHeight
- * Signature: ()I
+ * Signature: (Ljava/awt/peer/MenuBarPeer;)I
  */
-JNIEXPORT s4 JNICALL Java_gnu_java_awt_peer_gtk_GtkFramePeer_getMenuBarHeight(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFramePeer* this);
+JNIEXPORT s4 JNICALL Java_gnu_java_awt_peer_gtk_GtkFramePeer_getMenuBarHeight(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFramePeer* this, struct java_awt_peer_MenuBarPeer* par1);
 
 
 /*
@@ -32,6 +33,30 @@ JNIEXPORT s4 JNICALL Java_gnu_java_awt_peer_gtk_GtkFramePeer_getMenuBarHeight(JN
  * Signature: (Ljava/awt/peer/MenuBarPeer;)V
  */
 JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFramePeer_setMenuBarPeer(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFramePeer* this, struct java_awt_peer_MenuBarPeer* par1);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkFramePeer
+ * Method:    removeMenuBarPeer
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFramePeer_removeMenuBarPeer(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFramePeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkFramePeer
+ * Method:    moveLayout
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFramePeer_moveLayout(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFramePeer* this, s4 par1);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkFramePeer
+ * Method:    gtkLayoutSetVisible
+ * Signature: (Z)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFramePeer_gtkLayoutSetVisible(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFramePeer* this, s4 par1);
 
 #endif
 

@@ -9,15 +9,16 @@ typedef struct gnu_java_awt_peer_gtk_GtkMainThread {
    java_objectheader header;
    s4 native_state;
    struct java_lang_Object* awtWidget;
+   s4 gtkInitCalled;
 } gnu_java_awt_peer_gtk_GtkMainThread;
 
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkMainThread
  * Method:    gtkInit
- * Signature: ()V
+ * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkMainThread_gtkInit(JNIEnv *env, jclass clazz);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkMainThread_gtkInit(JNIEnv *env, jclass clazz, s4 par1);
 
 
 /*

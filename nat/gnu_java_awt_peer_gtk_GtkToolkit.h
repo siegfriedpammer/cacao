@@ -9,6 +9,7 @@ typedef struct gnu_java_awt_peer_gtk_GtkToolkit {
    java_objectheader header;
    struct java_util_Map* desktopProperties;
    struct java_beans_PropertyChangeSupport* desktopPropsSupport;
+   struct java_util_Map* imageCache;
    struct gnu_java_awt_peer_gtk_GtkMainThread* main;
    struct java_util_Hashtable* containers;
 } gnu_java_awt_peer_gtk_GtkToolkit;
@@ -44,6 +45,14 @@ JNIEXPORT s4 JNICALL Java_gnu_java_awt_peer_gtk_GtkToolkit_getScreenResolution(J
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkToolkit_sync(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkToolkit* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkToolkit
+ * Method:    loadSystemColors
+ * Signature: ([I)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkToolkit_loadSystemColors(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkToolkit* this, java_intarray* par1);
 
 #endif
 

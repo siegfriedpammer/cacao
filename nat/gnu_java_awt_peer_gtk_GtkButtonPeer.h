@@ -24,6 +24,22 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkButtonPeer_create(JNIEnv *e
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkButtonPeer
+ * Method:    connectJObject
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkButtonPeer_connectJObject(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkButtonPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkButtonPeer
+ * Method:    connectSignals
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkButtonPeer_connectSignals(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkButtonPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkButtonPeer
  * Method:    gtkSetFont
  * Signature: (Ljava/lang/String;II)V
  */
@@ -32,10 +48,26 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkButtonPeer_gtkSetFont(JNIEn
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkButtonPeer
+ * Method:    gtkSetLabel
+ * Signature: (Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkButtonPeer_gtkSetLabel(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkButtonPeer* this, struct java_lang_String* par1);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkButtonPeer
  * Method:    gtkWidgetSetForeground
  * Signature: (III)V
  */
 JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkButtonPeer_gtkWidgetSetForeground(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkButtonPeer* this, s4 par1, s4 par2, s4 par3);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkButtonPeer
+ * Method:    gtkActivate
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkButtonPeer_gtkActivate(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkButtonPeer* this);
 
 #endif
 

@@ -17,25 +17,49 @@ typedef struct gnu_java_awt_peer_gtk_GtkListPeer {
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkListPeer
  * Method:    create
- * Signature: ()V
+ * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkListPeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkListPeer* this);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkListPeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkListPeer* this, s4 par1);
 
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkListPeer
- * Method:    connectHooks
+ * Method:    connectJObject
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkListPeer_connectHooks(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkListPeer* this);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkListPeer_connectJObject(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkListPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkListPeer
+ * Method:    connectSignals
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkListPeer_connectSignals(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkListPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkListPeer
+ * Method:    gtkSetFont
+ * Signature: (Ljava/lang/String;II)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkListPeer_gtkSetFont(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkListPeer* this, struct java_lang_String* par1, s4 par2, s4 par3);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkListPeer
+ * Method:    gtkWidgetRequestFocus
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkListPeer_gtkWidgetRequestFocus(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkListPeer* this);
 
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkListPeer
  * Method:    getSize
- * Signature: (I[I)V
+ * Signature: (II[I)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkListPeer_getSize(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkListPeer* this, s4 par1, java_intarray* par2);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkListPeer_getSize(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkListPeer* this, s4 par1, s4 par2, java_intarray* par3);
 
 
 /*

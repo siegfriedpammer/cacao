@@ -32,18 +32,26 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkChoicePeer_append(JNIEnv *e
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkChoicePeer
- * Method:    add
- * Signature: (Ljava/lang/String;I)V
+ * Method:    getHistory
+ * Signature: ()I
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkChoicePeer_add(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkChoicePeer* this, struct java_lang_String* par1, s4 par2);
+JNIEXPORT s4 JNICALL Java_gnu_java_awt_peer_gtk_GtkChoicePeer_getHistory(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkChoicePeer* this);
 
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkChoicePeer
- * Method:    remove
+ * Method:    nativeAdd
+ * Signature: (Ljava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkChoicePeer_nativeAdd(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkChoicePeer* this, struct java_lang_String* par1, s4 par2);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkChoicePeer
+ * Method:    nativeRemove
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkChoicePeer_remove(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkChoicePeer* this, s4 par1);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkChoicePeer_nativeRemove(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkChoicePeer* this, s4 par1);
 
 
 /*

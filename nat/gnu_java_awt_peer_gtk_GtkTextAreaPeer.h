@@ -17,9 +17,9 @@ typedef struct gnu_java_awt_peer_gtk_GtkTextAreaPeer {
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkTextAreaPeer
  * Method:    create
- * Signature: (I)V
+ * Signature: (III)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextAreaPeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextAreaPeer* this, s4 par1);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextAreaPeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextAreaPeer* this, s4 par1, s4 par2, s4 par3);
 
 
 /*
@@ -32,10 +32,10 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextAreaPeer_gtkSetFont(JNI
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkTextAreaPeer
- * Method:    gtkTextGetSize
- * Signature: ([I)V
+ * Method:    gtkWidgetRequestFocus
+ * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextAreaPeer_gtkTextGetSize(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextAreaPeer* this, java_intarray* par1);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextAreaPeer_gtkWidgetRequestFocus(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextAreaPeer* this);
 
 
 /*
@@ -52,6 +52,22 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextAreaPeer_insert(JNIEnv 
  * Signature: (Ljava/lang/String;II)V
  */
 JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextAreaPeer_replaceRange(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextAreaPeer* this, struct java_lang_String* par1, s4 par2, s4 par3);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkTextAreaPeer
+ * Method:    getHScrollbarHeight
+ * Signature: ()I
+ */
+JNIEXPORT s4 JNICALL Java_gnu_java_awt_peer_gtk_GtkTextAreaPeer_getHScrollbarHeight(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextAreaPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkTextAreaPeer
+ * Method:    getVScrollbarWidth
+ * Signature: ()I
+ */
+JNIEXPORT s4 JNICALL Java_gnu_java_awt_peer_gtk_GtkTextAreaPeer_getVScrollbarWidth(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextAreaPeer* this);
 
 #endif
 

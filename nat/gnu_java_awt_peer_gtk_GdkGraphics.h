@@ -23,7 +23,7 @@ typedef struct gnu_java_awt_peer_gtk_GdkGraphics {
  * Method:    initState
  * Signature: (Lgnu/java/awt/peer/gtk/GtkComponentPeer;)[I
  */
-JNIEXPORT java_intarray* JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics_initState(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkGraphics* this, struct gnu_java_awt_peer_gtk_GtkComponentPeer* par1);
+JNIEXPORT java_intarray* JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics_initState__Lgnu_java_awt_peer_gtk_GtkComponentPeer_2(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkGraphics* this, struct gnu_java_awt_peer_gtk_GtkComponentPeer* par1);
 
 
 /*
@@ -31,7 +31,7 @@ JNIEXPORT java_intarray* JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics_initStat
  * Method:    initState
  * Signature: (II)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics0_initState(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkGraphics* this, s4 par1, s4 par2);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics_initState__II(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkGraphics* this, s4 par1, s4 par2);
 
 
 /*
@@ -157,9 +157,9 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics_fillRect(JNIEnv *e
 /*
  * Class:     gnu/java/awt/peer/gtk/GdkGraphics
  * Method:    drawString
- * Signature: (Ljava/lang/String;IILjava/lang/String;I)V
+ * Signature: (Ljava/lang/String;IILjava/lang/String;II)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics_drawString(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkGraphics* this, struct java_lang_String* par1, s4 par2, s4 par3, struct java_lang_String* par4, s4 par5);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics_drawString(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkGraphics* this, struct java_lang_String* par1, s4 par2, s4 par3, struct java_lang_String* par4, s4 par5, s4 par6);
 
 
 /*
