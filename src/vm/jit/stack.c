@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2038 2005-03-20 11:22:40Z twisti $
+   $Id: stack.c 2041 2005-03-20 13:42:18Z twisti $
 
 */
 
@@ -301,7 +301,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								iptr[0].opc = ICMD_IADDCONST;
 							icmd_iconst_tail:
 								iptr[1].opc = ICMD_NOP;
-								OP1_1(TYPE_INT,TYPE_INT);
+								OP1_1(TYPE_INT, TYPE_INT);
 								COUNT(count_pcmd_op);
 								break;
 							case ICMD_ISUB:
@@ -556,8 +556,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_BASTORE:
 							case ICMD_CASTORE:
 							case ICMD_SASTORE:
-							case ICMD_PUTSTATIC:
-							case ICMD_PUTFIELD:
 #if SUPPORT_CONST_STORE_ZERO_ONLY
 								if (iptr[0].val.i == 0) {
 #endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
@@ -574,12 +572,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									case ICMD_SASTORE:
 										iptr[0].opc = ICMD_SASTORECONST;
 										break;
-									case ICMD_PUTSTATIC:
-										iptr[0].opc = ICMD_PUTSTATICCONST;
-										break;
-									case ICMD_PUTFIELD:
-										iptr[0].opc = ICMD_PUTFIELDCONST;
-										break;
 									}
 
 									iptr[1].opc = ICMD_NOP;
@@ -590,8 +582,31 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									PUSHCONST(TYPE_INT);
 #endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 								break;
-#endif /* SUPPORT_CONST_STORE */
 
+							case ICMD_PUTSTATIC:
+							case ICMD_PUTFIELD:
+#if SUPPORT_CONST_STORE_ZERO_ONLY
+								if (iptr[0].val.i == 0) {
+#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+									switch (iptr[1].opc) {
+									case ICMD_PUTSTATIC:
+										iptr[0].opc = ICMD_PUTSTATICCONST;
+										SETDST;
+										break;
+									case ICMD_PUTFIELD:
+										iptr[0].opc = ICMD_PUTFIELDCONST;
+										OP1_0(TYPE_ADR);
+										break;
+									}
+
+									iptr[1].opc = ICMD_NOP;
+									COUNT(count_pcmd_op);
+#if SUPPORT_CONST_STORE_ZERO_ONLY
+								} else
+									PUSHCONST(TYPE_INT);
+#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+								break;
+#endif /* SUPPORT_CONST_STORE */
 							default:
 								PUSHCONST(TYPE_INT);
 							}
@@ -861,23 +876,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 #if SUPPORT_CONST_STORE
 							case ICMD_LASTORE:
-							case ICMD_PUTSTATIC:
-							case ICMD_PUTFIELD:
 #if SUPPORT_CONST_STORE_ZERO_ONLY
 								if (iptr[0].val.l == 0) {
 #endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
-									switch (iptr[1].opc) {
-									case ICMD_LASTORE:
-										iptr[0].opc = ICMD_LASTORECONST;
-										break;
-									case ICMD_PUTSTATIC:
-										iptr[0].opc = ICMD_PUTSTATICCONST;
-										break;
-									case ICMD_PUTFIELD:
-										iptr[0].opc = ICMD_PUTFIELDCONST;
-										break;
-									}
-
+									iptr[0].opc = ICMD_LASTORECONST;
 									iptr[1].opc = ICMD_NOP;
 									OPTT2_0(TYPE_INT, TYPE_ADR);
 									COUNT(count_pcmd_op);
@@ -886,8 +888,31 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									PUSHCONST(TYPE_LNG);
 #endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 								break;
-#endif /* SUPPORT_CONST_STORE */
 
+							case ICMD_PUTSTATIC:
+							case ICMD_PUTFIELD:
+#if SUPPORT_CONST_STORE_ZERO_ONLY
+								if (iptr[0].val.l == 0) {
+#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+									switch (iptr[1].opc) {
+									case ICMD_PUTSTATIC:
+										iptr[0].opc = ICMD_PUTSTATICCONST;
+										SETDST;
+										break;
+									case ICMD_PUTFIELD:
+										iptr[0].opc = ICMD_PUTFIELDCONST;
+										OP1_0(TYPE_ADR);
+										break;
+									}
+
+									iptr[1].opc = ICMD_NOP;
+									COUNT(count_pcmd_op);
+#if SUPPORT_CONST_STORE_ZERO_ONLY
+								} else
+									PUSHCONST(TYPE_LNG);
+#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+								break;
+#endif /* SUPPORT_CONST_STORE */
 							default:
 								PUSHCONST(TYPE_LNG);
 							}
@@ -922,17 +947,19 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								switch (iptr[1].opc) {
 								case ICMD_BUILTIN3:
 									iptr[0].opc = ICMD_AASTORECONST;
+									OPTT2_0(TYPE_INT, TYPE_ADR);
 									break;
 								case ICMD_PUTSTATIC:
 									iptr[0].opc = ICMD_PUTSTATICCONST;
+									SETDST;
 									break;
 								case ICMD_PUTFIELD:
 									iptr[0].opc = ICMD_PUTFIELDCONST;
+									OP1_0(TYPE_ADR);
 									break;
 								}
 
 								iptr[1].opc = ICMD_NOP;
-								OPTT2_0(TYPE_INT, TYPE_ADR);
 								COUNT(count_pcmd_op);
 								break;
 
@@ -2495,7 +2522,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_LXORCONST:
 	case ICMD_LCONST:
 	case ICMD_LASTORECONST:
-#if defined(__I386__) && defined(__POWERPC__)
+#if defined(__I386__) || defined(__POWERPC__)
 		printf(" %lld", iptr->val.l);
 #else
 		printf(" %ld", iptr->val.l);
@@ -2536,18 +2563,14 @@ void show_icmd(instruction *iptr, bool deadcode)
 			printf(" %d,", iptr->val.i);
 			break;
 		case TYPE_LNG:
-#if defined(__I386__) && defined(__POWERPC__)
+#if defined(__I386__) || defined(__POWERPC__)
 			printf(" %lld,", iptr->val.l);
 #else
 			printf(" %ld,", iptr->val.l);
 #endif
 			break;
 		case TYPE_ADR:
-#if defined(__I386__) && defined(__POWERPC__)
-			printf(" 0x%08x,", iptr->val.a);
-#else
-			printf(" 0x%016lx,", iptr->val.a);
-#endif
+			printf(" %p,", iptr->val.a);
 			break;
 		case TYPE_FLT:
 			printf(" %g,", iptr->val.f);
@@ -2558,6 +2581,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		}
 		if (iptr->opc == ICMD_PUTFIELDCONST)
 			printf(" %d,", ((fieldinfo *) iptr[1].val.a)->offset);
+		printf(" ");
 		utf_fprint(stdout, ((fieldinfo *) iptr[1].val.a)->class->name);
 		printf(".");
 		utf_fprint(stdout, ((fieldinfo *) iptr[1].val.a)->name);
