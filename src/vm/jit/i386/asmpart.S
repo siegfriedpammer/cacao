@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 2145 2005-03-30 12:55:26Z twisti $
+   $Id: asmpart.S 2162 2005-03-30 20:14:10Z twisti $
 
 */
 
@@ -494,7 +494,7 @@ ex_table_loop:
 	mov     %ecx,2*4(%esp)
 
 	mov     %ebx,0*4(%esp)              /* exception class is argument        */
-	call    class_load
+	call    load_class_bootstrap
 
 	mov     0*4(%esp),%ebx
 	mov     1*4(%esp),%eax
@@ -510,7 +510,7 @@ L_class_loaded:
 	mov     %ecx,2*4(%esp)
 
 	mov     %ebx,0*4(%esp)              /* exception class is argument        */
-	call    class_link
+	call    link_class
 
 	mov     0*4(%esp),%ebx
 	mov     1*4(%esp),%eax
