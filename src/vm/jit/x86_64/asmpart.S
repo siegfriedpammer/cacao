@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1524 2004-11-17 15:49:32Z twisti $
+   $Id: asmpart.S 1581 2004-11-24 13:57:02Z twisti $
 
 */
 
@@ -82,6 +82,10 @@
 #define itmp1l   %eax
 #define itmp2l   %r10d
 #define itmp3l   %r11d
+
+#define itmp1b   %al
+#define itmp2b   %r10b
+#define itmp3b   %r11b
 
 #define xptr     itmp1
 #define xpc      itmp2
@@ -776,15 +780,24 @@ noflt:
 		jmp		ex_stack_loop
 
 
-/********************* function asm_check_clinit *******************************
-*                                                                              *
-*   Does null check and calls monitorenter or throws an exception              *
-*                                                                              *
+/* asm_check_clinit ************************************************************
+
+   DOCUMENT ME!!!
+
+   Stack layout:
+
+	32  ra      ; return address of patched call in java machine code
+	24  xmcode  ; additional machine code (only for i386 and x86_64)
+	16  mcode   ; machine code to patch back in
+	8   class   ; pointer to class
+	0   sp      ; stack pointer of java stack frame + return address
+
 *******************************************************************************/
 
 asm_check_clinit:
-	mov		offclassinit(%rax),%r10d    /* get initialized flag (int)         */
-	test	%r10,%r10
+	mov     8(%rsp),itmp1
+	mov		offclassinit(itmp1),itmp1l  /* get initialized flag (int)         */
+	test	itmp1,itmp1
 	jnz		L_is_initialized
 
 	sub		$(15*8),%rsp                /* keep stack 16-byte aligned         */
@@ -805,7 +818,7 @@ asm_check_clinit:
 	movq	%xmm6,12*8(%rsp)
 	movq	%xmm7,13*8(%rsp)
 
-	mov		%rax,%rdi                   /* pass classinfo pointer             */
+	mov		8+15*8(%rsp),%rdi           /* pass classinfo pointer             */
 	call	class_init                  /* call class_init function           */
 	
     mov     0*8(%rsp),%rdi              /* restore argument registers         */
@@ -826,17 +839,25 @@ asm_check_clinit:
 
 	add		$(15*8),%rsp
 
-	test    %rax,%rax                   /* we had an exception                */
+	test    v0,v0                       /* we had an exception                */
 	je      L_initializererror
 				
 L_is_initialized:
-	mov     (%rsp),%rax                 /* get return address                 */
-	sub     $23,%rax                    /* asm_putstatic call code size       */
-	movw    $0x15eb,(%rax)              /* 0xeb = jmp rel8, 0x15 = 21 byte    */
-	                                    /* 8-bit offset                       */
-	ret
+	mov     32(%rsp),itmp1              /* get return address                 */
+	sub     $5,itmp1                    /* remove size of `call rel32'        */
+
+	mov     24(%rsp),itmp2              /* get xmcode machine code            */
+	movb    itmp2b,(itmp1)              /* patch back in 1 byte               */
+	mov     16(%rsp),itmp2              /* get mcode machine code             */
+	movl    itmp2l,1(itmp1)             /* patch back in 4 bytes              */
+
+	add     $(5*8),%rsp                 /* remove stub stack frame incl. ra   */
+
+	jmp     *itmp1                      /* jump to patched code an execute it */
 
 L_initializererror:
+	add     $(4*8),%rsp                 /* remove stub stack frame            */
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	call    builtin_asm_get_exceptionptrptr
 	mov     %rax,itmp2
@@ -849,7 +870,7 @@ L_initializererror:
 #endif
 
 	pop     xpc                         /* delete return address              */
-	sub     $3,xpc                      /* faulting address is return adress - 3 */
+	sub     $5,xpc                      /* faulting address is ra - 5         */
 
 	jmp     asm_handle_exception
 		
