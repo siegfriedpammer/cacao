@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 589 2003-11-09 19:42:39Z twisti $
+   $Id: reg.h 767 2003-12-13 22:53:49Z twisti $
 
 */
 
@@ -46,6 +46,7 @@ extern int arguments_num;
 
 /* function prototypes */
 void reg_init();
+void reg_setup();
 void reg_close();
 void local_init();
 void regalloc();
