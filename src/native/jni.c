@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1470 2004-11-08 22:57:28Z motse $
+   $Id: jni.c 1471 2004-11-09 11:54:53Z motse $
 
 */
 
@@ -3188,26 +3188,36 @@ jint AttachCurrentThreadAsDaemon(JavaVM *vm, void **par1, void *par2)
 /************* JNI Initialization ****************************************************/
 
 jobject jni_init1(JNIEnv* env, jobject lobj) {
+#if defined(USE_THREADS)
 	while (initrunning) {yieldThread();} /* wait until init is done */
-	if (global_ref_table != NULL) {
+#endif
+	if (global_ref_table == NULL) {
+		jni_init();
+	} 
+#if defined(USE_THREADS)
+	else {
 		/* wait until jni_init is done */
 		MonitorEnter(env, *global_ref_table) ;
 		MonitorExit(env, *global_ref_table);
-	} else {
-		jni_init();
 	}
+#endif
 	return NewGlobalRef(env, lobj); 
 }
 void jni_init2(JNIEnv* env, jobject gref) {
 	log_text("DeleteGlobalref called before NewGlobalref");
+#if defined(USE_THREADS)
 	while (initrunning) {yieldThread();} /* wait until init is done */
-	if (global_ref_table != NULL) {
+#endif
+	if (global_ref_table == NULL) {
+		jni_init();
+	} 
+#if defined(USE_THREADS)
+	else {
 		/* wait until jni_init is done */
 		MonitorEnter(env, *global_ref_table) ;
 		MonitorExit(env, *global_ref_table);
-	} else {
-		jni_init();
 	}
+#endif
 	DeleteGlobalRef(env, gref); 
 }
 
