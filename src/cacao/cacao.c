@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1907 2005-02-10 09:53:44Z twisti $
+   $Id: cacao.c 2000 2005-03-05 17:05:40Z twisti $
 
 */
 
@@ -532,16 +532,16 @@ int main(int argc, char **argv)
 			
 		case OPT_D:
 			{
-				int n;
-				int l = strlen(opt_arg);
-				for (n = 0; n < l; n++) {
-					if (opt_arg[n] == '=') {
-						opt_arg[n] = '\0';
-						create_property(opt_arg, opt_arg + n + 1);
+				for (j = 0; j < strlen(opt_arg); j++) {
+					if (opt_arg[j] == '=') {
+						opt_arg[j] = '\0';
+						create_property(opt_arg, opt_arg + j + 1);
 						goto didit;
 					}
 				}
-				usage();
+
+				/* if no '=' is given, just create an empty property */
+				create_property(opt_arg, "");
 					
 			didit: ;
 			}	
