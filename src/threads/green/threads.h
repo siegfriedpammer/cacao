@@ -85,7 +85,7 @@ typedef struct _threadGroup
 typedef struct _thread
 {
     java_objectheader        header;
-    java_objectheader*       name;
+    java_chararray*          name;
     s4                       priority;
     struct _thread*          next;
     s8                       PrivateInfo;

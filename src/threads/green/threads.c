@@ -149,6 +149,9 @@ initThreads(u1 *stackbottom)
 {
 	thread *the_main_thread;
     int i;
+	methodinfo *m;
+	char mainname[] = "main";
+	int len = strlen(mainname);
 
 	signal(SIGPIPE, SIG_IGN);
 
@@ -168,7 +171,20 @@ initThreads(u1 *stackbottom)
     the_main_thread->PrivateInfo = 1;
     CONTEXT(the_main_thread).free = false;
 
-    the_main_thread->name = javastring_new(utf_new_char("main"));
+#if 0
+	/* stefan */
+	m = class_findmethod(
+			class_java_lang_String,
+			utf_new_char ("toCharArray"),
+			utf_new_char ("()[C")
+			);
+	the_main_thread->name = asm_calljavafunction (m, javastring_new(utf_new_char("main")), 0, 0, 0);
+#endif
+	the_main_thread->name = builtin_newarray_char(len);
+	{   u2 *d = the_main_thread->name->data;
+		for (i=0; i<len; i++)
+			d[i] = mainname[i];
+	}
     the_main_thread->priority = NORM_THREAD_PRIO;
     CONTEXT(the_main_thread).priority = (u1)the_main_thread->priority;
     CONTEXT(the_main_thread).exceptionptr = 0;
