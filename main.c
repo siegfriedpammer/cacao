@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: main.c 483 2003-10-14 17:08:38Z twisti $
+	Last Change: $Id: main.c 484 2003-10-14 18:42:30Z twisti $
 
 *******************************************************************************/
 
@@ -34,9 +34,6 @@
 
 bool compileall = false;
 bool verbose =  false;
-#ifdef NEW_GC
-bool new_gc = false;
-#endif
 
 static bool showmethods = false;
 static bool showconstantpool = false;
@@ -54,9 +51,9 @@ void **stackbottom = 0;
 	
 ******************************************************************************/
 
-#define OPT_DONE  -1
-#define OPT_ERROR  0
-#define OPT_IGNORE 1
+#define OPT_DONE       -1
+#define OPT_ERROR       0
+#define OPT_IGNORE      1
 
 #define OPT_CLASSPATH   2
 #define OPT_D           3
@@ -77,10 +74,6 @@ void **stackbottom = 0;
 #define OPT_SIGNATURE   18
 #define OPT_SHOW        19
 #define OPT_ALL         20
-#ifdef NEW_GC
-#define OPT_GC1         22
-#define OPT_GC2         23
-#endif
 #define OPT_OLOOP       24
 #define OPT_INLINING	25
 #define OPT_RT          26
@@ -112,15 +105,11 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{"sig",         true,   OPT_SIGNATURE},
 	{"s",           true,   OPT_SHOW},
 	{"all",         false,  OPT_ALL},
-#ifdef NEW_GC
-	{"gc1",         false,  OPT_GC1},
-	{"gc2",         false,  OPT_GC2},
-#endif
 	{"oloop",       false,  OPT_OLOOP},
-	{"i",		    true,  OPT_INLINING},
+	{"i",		    true,   OPT_INLINING},
 	{"rt",          false,  OPT_RT},
 	{"xta",         false,  OPT_XTA},
-        {"vta",         false,  OPT_VTA},
+	{"vta",         false,  OPT_VTA},
 	{NULL,  false, 0}
 };
 
@@ -201,10 +190,6 @@ static void print_usage()
 	printf ("          -oloop ............... optimize array accesses in loops\n"); 
 	printf ("          -l ................... don't start the class after loading\n");
 	printf ("          -all ................. compile all methods, no execution\n");
-#ifdef NEW_GC
-	printf ("          -gc1 ................. use the old garbage collector (default)\n");
-	printf ("          -gc2 ................. use the new garbage collector\n");
-#endif
 	printf ("          -m ................... compile only a specific method\n");
 	printf ("          -sig ................. specify signature for a specific method\n");
 	printf ("          -s(how)a(ssembler) ... show disassembled listing\n");
@@ -608,7 +593,6 @@ int main(int argc, char **argv)
 			strcpy (logfilename, opt_arg);
 			break;
 			
-			
 		case OPT_CHECK:
 			for (j=0; j<strlen(opt_arg); j++) {
 				switch (opt_arg[j]) {
@@ -641,16 +625,6 @@ int main(int argc, char **argv)
 			makeinitializations = false;
 			break;
          		
-#ifdef NEW_GC
-		case OPT_GC2:
-			new_gc = true;
-			break;
-
-		case OPT_GC1:
-			new_gc = false;
-			break;
-#endif
-         		
 		case OPT_SHOW:       /* Display options */
 			for (j=0; j<strlen(opt_arg); j++) {		
 				switch (opt_arg[j]) {
@@ -670,7 +644,6 @@ int main(int argc, char **argv)
 			opt_loops = true;
 			break;
 
-	
 		case OPT_INLINING:
 			for (j=0; j<strlen(opt_arg); j++) {		
 				switch (opt_arg[j]) {
@@ -685,25 +658,22 @@ int main(int argc, char **argv)
 			}
 			break;
 
+		case OPT_RT:
+			opt_rt = true;
+			break;
 
-               case OPT_RT:
-                        opt_rt = true;
-                        break;
+		case OPT_XTA:
+			/***opt_xta = true; not yet **/
+			break;
 
-               case OPT_XTA:
-                        /***opt_xta = true; not yet **/
-                        break;
-
-               case OPT_VTA:
-                        /***opt_vta = true; not yet **/
-                        break;
+		case OPT_VTA:
+			/***opt_vta = true; not yet **/
+			break;
 
 		default:
 			print_usage();
 			exit(10);
 		}
-			
-			
 	}
    
    
