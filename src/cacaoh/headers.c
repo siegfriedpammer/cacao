@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 1788 2004-12-21 10:08:06Z twisti $
+   $Id: headers.c 1911 2005-02-10 09:57:01Z twisti $
 
 */
 
@@ -66,33 +66,21 @@
 functionptr native_findfunction(utf *cname, utf *mname, utf *desc, bool isstatic)
 { return NULL; }
 
-java_objectheader *javastring_new(utf *text) { return NULL; }
-java_objectheader *javastring_new_char(char *text) { return NULL; }
-
-char *javastring_tochar(java_objectheader *so) { return NULL; }
-utf *javastring_toutf(java_lang_String *string, bool isclassname)
-{ return NULL; }
-
-
 java_objectheader *native_new_and_init(classinfo *c) { return NULL; }
 java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s) { return NULL; }
 java_objectheader *native_new_and_init_int(classinfo *c, s4 i) { return NULL; }
 java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t) { return NULL; }
 
-java_objectheader *literalstring_new(utf *u) { return NULL; }  
 
-
-void literalstring_free(java_objectheader *o) {}
-void stringtable_update(void) {}
 void synchronize_caches(void) {}
 void asm_call_jit_compiler(void) {}
 void asm_calljavafunction(void) {}
 s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class) { return 0; }
 
-s4 asm_builtin_idiv(s4 a, s4 b) {return 0;}
-s4 asm_builtin_irem(s4 a, s4 b) {return 0;}
-s8 asm_builtin_ldiv(s8 a, s8 b) {return 0;}
-s8 asm_builtin_lrem(s8 a, s8 b) {return 0;}
+s4 asm_builtin_idiv(s4 a, s4 b) { return 0; }
+s4 asm_builtin_irem(s4 a, s4 b) { return 0; }
+s8 asm_builtin_ldiv(s8 a, s8 b) { return 0; }
+s8 asm_builtin_lrem(s8 a, s8 b) { return 0; }
 
 s4 asm_builtin_f2i(float a) { return 0; }
 s8 asm_builtin_f2l(float a) { return 0; }
@@ -103,7 +91,9 @@ void use_class_as_object(void) {}
 void asm_builtin_monitorenter(java_objectheader *o) {}
 void *asm_builtin_monitorexit(java_objectheader *o) { return NULL; }
 
-s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl_t *target) {return 0;}
+s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl_t *target) {
+	return 0;
+}
 
 #if defined(__MIPS__)
 long compare_and_swap(long *p, long oldval, long newval)
@@ -118,15 +108,17 @@ long compare_and_swap(long *p, long oldval, long newval)
 
 
 #if defined(__I386__)
-s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class) { return 0; }
+s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class) {
+	return 0;
+}
 void asm_builtin_newarray(s4 size, vftbl_t *arrayvftbl) {}
 #endif
 
 void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o) {}
 
-u1 *createcompilerstub(methodinfo *m) {return NULL;}
-u1 *createnativestub(functionptr f, methodinfo *m) {return NULL;}
-u1 *oldcreatenativestub(functionptr f, methodinfo *m) {return NULL;}
+u1 *createcompilerstub(methodinfo *m) { return NULL; }
+u1 *createnativestub(functionptr f, methodinfo *m) { return NULL; }
+u1 *oldcreatenativestub(functionptr f, methodinfo *m) { return NULL; }
 
 void removecompilerstub(u1 *stub) {}
 void removenativestub(u1 *stub) {}
@@ -147,9 +139,14 @@ void thread_restartcriticalsection(ucontext_t *uc) {}
 #endif
 
 
-/************************ global variables **********************/
+void setVMClassField(classinfo *c) {}
+void *Java_java_lang_VMObject_clone(void *env, void *clazz, void * this)
+{
+	return NULL;
+}
 
-THREADSPECIFIC java_objectheader *_exceptionptr;
+
+/************************ global variables **********************/
 
 chain *nativemethod_chain;              /* chain with native methods          */
 chain *nativeclass_chain;               /* chain with processed classes       */
@@ -562,16 +559,6 @@ void printnativetableentry(methodinfo *m)
 	printID(m->name);
 	if (m->nativelyoverloaded) printOverloadPart(m->descriptor);
 	fprintf(file,"\n   },\n");
-}
-
-
-void setVMClassField(classinfo *c)
-{
-}
-
-
-void *Java_java_lang_VMObject_clone(void *env, void *clazz, void * this) {
-	return 0;
 }
 
 
