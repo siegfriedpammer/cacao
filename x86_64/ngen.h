@@ -11,7 +11,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: ngen.h 423 2003-09-01 00:03:50Z twisti $
+    Last Change: $Id: ngen.h 424 2003-09-07 16:09:37Z twisti $
 
 *******************************************************************************/
 
@@ -896,6 +896,22 @@ static const unsigned char x86_64_cc_map[] = {
         *(mcodeptr++) = (u1) 0xf6; \
         x86_64_emit_reg(0,(reg)); \
         x86_64_emit_imm8((imm)); \
+    } while (0)
+
+
+#define x86_64_lea_membase_reg(basereg, disp, reg) \
+    do { \
+        x86_64_emit_rex(1,(reg),0,(basereg)); \
+        *(mcodeptr++) = 0x8d; \
+        x86_64_emit_membase((basereg),(disp),(reg)); \
+    } while (0)
+
+
+#define x86_64_leal_membase_reg(basereg, disp, reg) \
+    do { \
+        x86_64_emit_rex(0,(reg),0,(basereg)); \
+        *(mcodeptr++) = 0x8d; \
+        x86_64_emit_membase((basereg),(disp),(reg)); \
     } while (0)
 
 

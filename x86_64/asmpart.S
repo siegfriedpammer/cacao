@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at            *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 423 2003-09-01 00:03:50Z twisti $         *
+*   Last Change: $Id: asmpart.S 424 2003-09-07 16:09:37Z twisti $         *
 *                                                                              *
 *******************************************************************************/
 
@@ -314,7 +314,7 @@ L_call_method:
 *   void asm_dumpregistersandcall (functionptr f);                             *
 *                                                                              *
 *******************************************************************************/
-#if 0
+
 asm_dumpregistersandcall:
         sub     $(7*8),%rsp             /* allocate stack space               */
 
@@ -348,7 +348,7 @@ asm_dumpregistersandcall:
         add     $(7*8),%rsp        
         ret
 
-#endif
+
 /********************* function asm_handle_exception ***************************
 *                                                                              *
 *   This function handles an exception. It does not use the usual calling      *
