@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1007 2004-03-31 19:16:23Z twisti $
+   $Id: codegen.c 1118 2004-06-02 11:10:17Z twisti $
 
 */
 
@@ -341,6 +341,7 @@ void catch_NullPointerException(int sig, int code, struct sigcontext *sigctx)
 	sigset_t nsig;
 	int      instr;
 	long     faultaddr;
+	java_objectheader *xptr;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
@@ -351,16 +352,13 @@ void catch_NullPointerException(int sig, int code, struct sigcontext *sigctx)
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
+		
+		xptr = new_exception(string_java_lang_NullPointerException);
 
-		if (!proto_java_lang_NullPointerException) {
-			proto_java_lang_NullPointerException =
-				new_exception(string_java_lang_NullPointerException);
-		}
 
-		sigctx->sc_regs[REG_ITMP1_XPTR] =
-			(long) proto_java_lang_NullPointerException;
+		sigctx->sc_regs[REG_ITMP1_XPTR] = (u8) xptr;
 		sigctx->sc_regs[REG_ITMP2_XPC] = sigctx->sc_pc;
-		sigctx->sc_pc = (long) asm_handle_exception;
+		sigctx->sc_pc = (u8) asm_handle_exception;
 
 	} else {
         faultaddr += (long) ((instr << 16) >> 16);
@@ -442,7 +440,7 @@ void codegen()
 
 	parentargs_base = maxmemuse + savedregs_num;
 
-#ifdef USE_THREADS                 /* space to save argument of monitor_enter */
+#if defined(USE_THREADS)           /* space to save argument of monitor_enter */
 
 	if (checksync && (method->flags & ACC_SYNCHRONIZED))
 		parentargs_base++;
@@ -462,7 +460,7 @@ void codegen()
 	(void) dseg_addaddress(method);                         /* MethodPointer  */
 	(void) dseg_adds4(parentargs_base * 8);                 /* FrameSize      */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 
 	/* IsSync contains the offset relative to the stack pointer for the
 	   argument of monitor_exit used in the exception handler. Since the
@@ -476,7 +474,7 @@ void codegen()
 
 #endif
 
-	(void) dseg_adds4(0);                                   /* IsSync         */
+		(void) dseg_adds4(0);                               /* IsSync         */
 	                                       
 	(void) dseg_adds4(isleafmethod);                        /* IsLeaf         */
 	(void) dseg_adds4(savintregcnt - maxsavintreguse);      /* IntSave        */
@@ -486,42 +484,11 @@ void codegen()
 	/* create exception table */
 
 	for (ex = extable; ex != NULL; ex = ex->down) {
-
-#ifdef LOOP_DEBUG	
-		if (ex->start != NULL)
-			printf("adding start - %d - ", ex->start->debug_nr);
-		else {
-			printf("PANIC - start is NULL");
-			exit(-1);
-		}
-#endif
-
 		dseg_addtarget(ex->start);
-
-#ifdef LOOP_DEBUG			
-		if (ex->end != NULL)
-			printf("adding end - %d - ", ex->end->debug_nr);
-		else {
-			printf("PANIC - end is NULL");
-			exit(-1);
-		}
-#endif
-
    		dseg_addtarget(ex->end);
-
-#ifdef LOOP_DEBUG		
-		if (ex->handler != NULL)
-			printf("adding handler - %d\n", ex->handler->debug_nr);
-		else {
-			printf("PANIC - handler is NULL");
-			exit(-1);
-		}
-#endif
-
 		dseg_addtarget(ex->handler);
-	   
 		(void) dseg_addaddress(ex->catchtype);
-		}
+	}
 	
 	/* initialize mcode variables */
 	
@@ -532,31 +499,31 @@ void codegen()
 	/* create stack frame (if necessary) */
 
 	if (parentargs_base)
-		{M_LDA (REG_SP, REG_SP, -parentargs_base * 8);}
+		{M_LDA(REG_SP, REG_SP, -parentargs_base * 8);}
 
 	/* save return address and used callee saved registers */
 
 	p = parentargs_base;
 	if (!isleafmethod)
-		{p--;  M_LST (REG_RA, REG_SP, 8*p);}
+		{p--; M_LST(REG_RA, REG_SP, 8*p);}
 	for (r = savintregcnt - 1; r >= maxsavintreguse; r--)
-		{p--; M_LST (savintregs[r], REG_SP, 8 * p);}
+		{p--; M_LST(savintregs[r], REG_SP, 8 * p);}
 	for (r = savfltregcnt - 1; r >= maxsavfltreguse; r--)
-		{p--; M_DST (savfltregs[r], REG_SP, 8 * p);}
+		{p--; M_DST(savfltregs[r], REG_SP, 8 * p);}
 
 	/* save monitorenter argument */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 		if (method->flags & ACC_STATIC) {
-			p = dseg_addaddress (class);
+			p = dseg_addaddress(class);
 			M_ALD(REG_ITMP1, REG_PV, p);
-			M_AST(REG_ITMP1, REG_SP, 8 * maxmemuse);
-			} 
-		else {
-			M_AST (argintregs[0], REG_SP, 8 * maxmemuse);
-			}
-		}			
+			M_AST(REG_ITMP1, REG_SP, maxmemuse * 8);
+
+		} else {
+			M_AST(argintregs[0], REG_SP, maxmemuse * 8);
+		}
+	}			
 #endif
 
 	/* copy argument registers to stack and call trace function with pointer
@@ -687,16 +654,16 @@ void codegen()
 
 	/* call monitorenter function */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-		int disp;
-		p = dseg_addaddress ((void*) (builtin_monitorenter));
+		s4 disp;
+		p = dseg_addaddress((void *) (builtin_monitorenter));
 		M_ALD(REG_ITMP3, REG_PV, p);
 		M_JSR(REG_RA, REG_ITMP3);
-		M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
-		disp = -(int)((u1*) mcodeptr - mcodebase);
+		M_ALD(argintregs[0], REG_SP, maxmemuse * 8);
+		disp = -(s4)((u1 *) mcodeptr - mcodebase);
 		M_LDA(REG_PV, REG_RA, disp);
-		}			
+	}
 #endif
 	}
 
@@ -2166,6 +2133,22 @@ void codegen()
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_NOP;
+
+#if 0
+				s1 = (s4) ((u1 *) mcodeptr - mcodebase);
+				if (s1 <= 32768) {
+					M_LDA(REG_PV, REG_RA, -s1);
+					M_NOP;
+					M_NOP;
+
+				} else {
+					s4 ml = -s1, mh = 0;
+					while (ml < -32768) { ml += 65536; mh--; }
+					M_LUI(REG_PV, mh);
+					M_IADD_IMM(REG_PV, ml, REG_PV);
+					M_LADD(REG_PV, REG_RA, REG_PV);
+				}
+#endif
   			}
 
 			a = dseg_addaddress(&(((fieldinfo *) iptr->val.a)->value));
@@ -2207,6 +2190,22 @@ void codegen()
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_NOP;
+
+#if 0
+				s1 = (s4) ((u1 *) mcodeptr - mcodebase);
+				if (s1 <= 32768) {
+					M_LDA(REG_PV, REG_RA, -s1);
+					M_NOP;
+					M_NOP;
+
+				} else {
+					s4 ml = -s1, mh = 0;
+					while (ml < -32768) { ml += 65536; mh--; }
+					M_LUI(REG_PV, mh);
+					M_IADD_IMM(REG_PV, ml, REG_PV);
+					M_LADD(REG_PV, REG_RA, REG_PV);
+				}
+#endif
   			}
 
 			a = dseg_addaddress(&(((fieldinfo *) iptr->val.a)->value));
@@ -2901,16 +2900,16 @@ void codegen()
 		case ICMD_LRETURN:
 		case ICMD_ARETURN:
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				int disp;
-				a = dseg_addaddress ((void*) (builtin_monitorexit));
+				s4 disp;
+				a = dseg_addaddress((void *) (builtin_monitorexit));
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
-				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);    /* delay slot */
-				disp = -(int)((u1*) mcodeptr - mcodebase);
+				M_ALD(argintregs[0], REG_SP, maxmemuse * 8);    /* delay slot */
+				disp = -(s4) ((u1 *) mcodeptr - mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
-				}			
+			}
 #endif
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
@@ -2919,16 +2918,16 @@ void codegen()
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				int disp;
-				a = dseg_addaddress ((void*) (builtin_monitorexit));
+				s4 disp;
+				a = dseg_addaddress((void *) (builtin_monitorexit));
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
-				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);    /* delay slot */
-				disp = -(int)((u1*) mcodeptr - mcodebase);
+				M_ALD(argintregs[0], REG_SP, maxmemuse * 8);    /* delay slot */
+				disp = -(s4) ((u1 *) mcodeptr - mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
-				}			
+			}
 #endif
 			var_to_reg_flt(s1, src, REG_FRESULT);
 			{
@@ -2939,16 +2938,16 @@ void codegen()
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				int disp;
-				a = dseg_addaddress ((void*) (builtin_monitorexit));
+				s4 disp;
+				a = dseg_addaddress((void *) (builtin_monitorexit));
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
-				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);    /* delay slot */
-				disp = -(int)((u1*) mcodeptr - mcodebase);
+				M_ALD(argintregs[0], REG_SP, maxmemuse * 8);    /* delay slot */
+				disp = -(s4) ((u1 *) mcodeptr - mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
-				}			
+			}
 #endif
 
 nowperformreturn:
@@ -3213,7 +3212,7 @@ makeactualcall:
 
 afteractualcall:
 
-			s1 = (int) ((u1*) mcodeptr - mcodebase);
+			s1 = (s4) ((u1 *) mcodeptr - mcodebase);
 			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
 			else {
 				s4 ml = -s1, mh = 0;
@@ -3410,6 +3409,13 @@ afteractualcall:
 			M_NOP;
 			break;
 
+		case ICMD_CHECKEXCEPTION:  /* ... ==> ...                             */
+
+			M_BEQZ(REG_RESULT, 0);
+			codegen_addxexceptionrefs(mcodeptr);
+			M_NOP;
+			break;
+
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
 		                      /* op1 = dimension, val.a = array descriptor    */
 
@@ -3510,21 +3516,23 @@ afteractualcall:
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-				xboundrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (4 + 4));
+							  xboundrefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - (4 + 4));
 			continue;
 		}
 
 
 		gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-		                  xboundrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		                  xboundrefs->branchpos,
+						  (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
 		M_MOV(xboundrefs->reg, REG_ITMP1);
-		M_LDA(REG_ITMP2_XPC, REG_PV, xboundrefs->branchpos - 4);
+		M_LADD_IMM(REG_PV, xboundrefs->branchpos - 4, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			M_BR(xcodeptr - mcodeptr);
 			M_NOP;
 
 		} else {
@@ -3541,18 +3549,6 @@ afteractualcall:
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
-
-			/* recompute pv */
-			s1 = (int) ((u1*) mcodeptr - mcodebase);
-			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
-			else {
-				s4 ml = -s1, mh = 0;
-				while (ml < -32768) { ml += 65536; mh--; }
-				M_LUI(REG_PV, mh);
-				M_IADD_IMM(REG_PV, ml, REG_PV);
-				M_LADD(REG_PV, REG_RA, REG_PV);
-			}
-
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
 			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
@@ -3560,10 +3556,7 @@ afteractualcall:
 
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
-
 			M_JMP(REG_ITMP3);
-/* 			a = dseg_addaddress(proto_java_lang_ArrayIndexOutOfBoundsException); */
-/* 			M_ALD(REG_ITMP1_XPTR, REG_PV, a); */
 			M_NOP;
 		}
 	}
@@ -3575,19 +3568,21 @@ afteractualcall:
 	for (; xcheckarefs != NULL; xcheckarefs = xcheckarefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
-				xcheckarefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - 4);
+							  xcheckarefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - 4);
 			continue;
 		}
 
 		gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
-		                  xcheckarefs->branchpos, (u1*) mcodeptr - mcodebase);
+		                  xcheckarefs->branchpos,
+						  (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, xcheckarefs->branchpos - 4);
+		M_LADD_IMM(REG_PV, xcheckarefs->branchpos - 4, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			M_BR(xcodeptr - mcodeptr);
 			M_NOP;
 
 		} else {
@@ -3603,18 +3598,6 @@ afteractualcall:
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
-
-			/* recompute pv */
-			s1 = (int) ((u1*) mcodeptr - mcodebase);
-			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
-			else {
-				s4 ml = -s1, mh = 0;
-				while (ml < -32768) { ml += 65536; mh--; }
-				M_LUI(REG_PV, mh);
-				M_IADD_IMM(REG_PV, ml, REG_PV);
-				M_LADD(REG_PV, REG_RA, REG_PV);
-			}
-
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
 			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
@@ -3622,10 +3605,7 @@ afteractualcall:
 
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
-
 			M_JMP(REG_ITMP3);
-/* 			a = dseg_addaddress(proto_java_lang_NegativeArraySizeException); */
-/* 			M_ALD(REG_ITMP1_XPTR, REG_PV, a); */
 			M_NOP;
 		}
 	}
@@ -3637,19 +3617,21 @@ afteractualcall:
 	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
-				xcastrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - 4);
+							  xcastrefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - 4);
 			continue;
 		}
 
 		gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
-		                  xcastrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		                  xcastrefs->branchpos,
+						  (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, xcastrefs->branchpos - 4);
+		M_LADD_IMM(REG_PV, xcastrefs->branchpos - 4, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			M_BR(xcodeptr - mcodeptr);
 			M_NOP;
 
 		} else {
@@ -3665,18 +3647,6 @@ afteractualcall:
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
-
-			/* recompute pv */
-			s1 = (int) ((u1*) mcodeptr - mcodebase);
-			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
-			else {
-				s4 ml = -s1, mh = 0;
-				while (ml < -32768) { ml += 65536; mh--; }
-				M_LUI(REG_PV, mh);
-				M_IADD_IMM(REG_PV, ml, REG_PV);
-				M_LADD(REG_PV, REG_RA, REG_PV);
-			}
-
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
 			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
@@ -3684,10 +3654,60 @@ afteractualcall:
 
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
-
 			M_JMP(REG_ITMP3);
-/* 			a = dseg_addaddress(proto_java_lang_ClassCastException); */
-/* 			M_ALD(REG_ITMP1_XPTR, REG_PV, a); */
+			M_NOP;
+		}
+	}
+
+	/* generate exception check stubs */
+
+	xcodeptr = NULL;
+
+	for (; xexceptionrefs != NULL; xexceptionrefs = xexceptionrefs->next) {
+		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+			gen_resolvebranch((u1*) mcodebase + xexceptionrefs->branchpos, 
+							  xexceptionrefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - 4);
+			continue;
+		}
+
+		gen_resolvebranch((u1*) mcodebase + xexceptionrefs->branchpos, 
+		                  xexceptionrefs->branchpos,
+						  (u1*) mcodeptr - mcodebase);
+
+		MCODECHECK(8);
+
+		M_LADD_IMM(REG_PV, xexceptionrefs->branchpos - 4, REG_ITMP2_XPC);
+
+		if (xcodeptr != NULL) {
+			M_BR(xcodeptr - mcodeptr);
+			M_NOP;
+
+		} else {
+			xcodeptr = mcodeptr;
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
+			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+			a = dseg_addaddress(builtin_get_exceptionptrptr);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_JSR(REG_RA, REG_ITMP3);
+			M_NOP;
+			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+
+			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
+#else
+			a = dseg_addaddress(&_exceptionptr);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_ALD(REG_ITMP1_XPTR, REG_ITMP3, 0);
+			M_AST(REG_ZERO, REG_ITMP3, 0);
+#endif
+
+			a = dseg_addaddress(asm_handle_exception);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_JMP(REG_ITMP3);
 			M_NOP;
 		}
 	}
@@ -3699,24 +3719,26 @@ afteractualcall:
 	for (; xnullrefs != NULL; xnullrefs = xnullrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
-				xnullrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - 4);
+							  xnullrefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - 4);
 			continue;
 		}
 
 		gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
-		                  xnullrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		                  xnullrefs->branchpos,
+						  (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, xnullrefs->branchpos - 4);
+		M_LADD_IMM(REG_PV, xnullrefs->branchpos - 4, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			M_BR(xcodeptr - mcodeptr);
 			M_NOP;
 
 		} else {
 			xcodeptr = mcodeptr;
-#if 0
+
 			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
 			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
@@ -3727,30 +3749,15 @@ afteractualcall:
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
-
-			/* recompute pv */
-			s1 = (int) ((u1*) mcodeptr - mcodebase);
-			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
-			else {
-				s4 ml = -s1, mh = 0;
-				while (ml < -32768) { ml += 65536; mh--; }
-				M_LUI(REG_PV, mh);
-				M_IADD_IMM(REG_PV, ml, REG_PV);
-				M_LADD(REG_PV, REG_RA, REG_PV);
-			}
-
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
 			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
 			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
-#endif
+
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
-
 			M_JMP(REG_ITMP3);
- 			a = dseg_addaddress(proto_java_lang_NullPointerException);
- 			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
-/* 			M_NOP; */
+			M_NOP;
 		}
 	}
 	}
@@ -3813,18 +3820,18 @@ void removecompilerstub(u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE      54
+#define NATIVESTUBSIZE      54 + 4
 #define NATIVEVERBOSESIZE   50 + 17
-#define NATIVESTUBOFFSET    8
+#define NATIVESTUBOFFSET    9
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
 	u8 *s;                              /* memory to hold the stub            */
 	u8 *cs;
 	s4 *mcodeptr;                       /* code generation pointer            */
-	int stackframesize = 0;             /* size of stackframe if needed       */
-	int disp;
-	int stubsize;
+	s4 stackframesize = 0;              /* size of stackframe if needed       */
+	s4 disp;
+	s4 stubsize;
 
 	reg_init();
 	descriptor2types(m);                /* set paramcount and paramtypes      */
@@ -3842,9 +3849,23 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	*(cs-6) = (u8) m;
  	*(cs-7) = (u8) builtin_displaymethodstop;
 	*(cs-8) = (u8) m->class;
+	*(cs-9) = (u8) asm_check_clinit;
 
 	M_LDA(REG_SP, REG_SP, -8);          /* build up stackframe                */
 	M_LST(REG_RA, REG_SP, 0);           /* store return address               */
+
+	/* if function is static, check for initialized */
+
+	if (m->flags & ACC_STATIC) {
+	/* if class isn't yet initialized, do it */
+		if (!m->class->initialized) {
+			/* call helper function which patches this code */
+			M_ALD(REG_ITMP1, REG_PV, -8 * 8);     /* class                    */
+			M_ALD(REG_ITMP3, REG_PV, -9 * 8);     /* asm_check_clinit         */
+			M_JSR(REG_RA, REG_ITMP3);
+			M_NOP;
+		}
+	}
 
 	/* max. 50 instructions */
 	if (runverbose) {
