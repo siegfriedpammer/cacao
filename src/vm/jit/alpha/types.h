@@ -27,9 +27,10 @@
 
    Authors: Reinhard Grafl
             Andreas  Krall
-            Michael Gschwind
 
-   $Id: types.h 1624 2004-11-30 14:49:45Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: types.h 1674 2004-12-03 16:46:49Z twisti $
 
 */
 

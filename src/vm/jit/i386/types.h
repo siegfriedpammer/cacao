@@ -27,11 +27,10 @@
 
    Authors: Reinhard Grafl
             Andreas  Krall
-            Michael Gschwind
 
    Changes: Christan Thalinger
 
-   $Id: types.h 1623 2004-11-30 14:18:19Z twisti $
+   $Id: types.h 1674 2004-12-03 16:46:49Z twisti $
 
 */
 
