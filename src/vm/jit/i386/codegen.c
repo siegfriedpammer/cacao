@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1590 2004-11-25 13:24:49Z christian $
+   $Id: codegen.c 1604 2004-11-29 09:59:37Z twisti $
 
 */
 
@@ -2883,7 +2883,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
   			}
 
-			a = &(((fieldinfo *) iptr->val.a)->value);
+			a = (u4) &(((fieldinfo *) iptr->val.a)->value);
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_ADR:
@@ -2940,7 +2940,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
   			}
 
-			a = &(((fieldinfo *) iptr->val.a)->value);
+			a = (u4) &(((fieldinfo *) iptr->val.a)->value);
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_ADR:
