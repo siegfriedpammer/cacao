@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: schedule.c 2025 2005-03-10 12:20:49Z twisti $
+   $Id: schedule.c 2033 2005-03-18 09:24:00Z twisti $
 
 */
 
@@ -45,13 +45,21 @@
 #include "vm/jit/schedule/schedule.h"
 
 
-#define DEBUGPRINT 1
+/* XXX quick hack */
+s4 stackrange;
 
-scheduledata *schedule_init(registerdata *rd)
+scheduledata *schedule_init(methodinfo *m, registerdata *rd)
 {
 	scheduledata *sd;
 
 	sd = DNEW(scheduledata);
+
+	stackrange = 
+		(rd->savintregcnt - rd->maxsavintreguse) +
+		(rd->savfltregcnt - rd->maxsavfltreguse) +
+		rd->maxmemuse +
+		m->paramcount +
+		1;                           /* index 0 are all other memory accesses */
 
 	/* XXX quick hack: just use a fixed number of instructions */
 	sd->mi = DMNEW(minstruction, 20000);
@@ -62,14 +70,13 @@ scheduledata *schedule_init(registerdata *rd)
 	sd->intregs_use_dep = DMNEW(nodelink*, rd->intregsnum);
 	sd->fltregs_use_dep = DMNEW(nodelink*, rd->fltregsnum);
 
-  	sd->memory_define_dep = NULL;
-  	sd->memory_use_dep = NULL;
+  	sd->memory_define_dep = DMNEW(nodelink*, stackrange);
+  	sd->memory_use_dep = DMNEW(nodelink*, stackrange);
 
 
-#if DEBUGPRINT
 	/* open graphviz file */
 
-	{
+	if (opt_verbose) {
 		FILE *file;
 
 		file = fopen("cacao.dot", "w+");
@@ -77,7 +84,6 @@ scheduledata *schedule_init(registerdata *rd)
 
 		sd->file = file;
 	}
-#endif
 
 	return sd;
 }
@@ -98,21 +104,21 @@ void schedule_reset(scheduledata *sd, registerdata *rd)
 	MSET(sd->intregs_use_dep, 0, nodelink*, rd->intregsnum);
 	MSET(sd->fltregs_use_dep, 0, nodelink*, rd->fltregsnum);
 
-  	sd->memory_define_dep = NULL;
-  	sd->memory_use_dep = NULL;
+  	MSET(sd->memory_define_dep, 0, nodelink*, stackrange);
+  	MSET(sd->memory_use_dep, 0, nodelink*, stackrange);
 }
 
 
 void schedule_close(scheduledata *sd)
 {
-#if DEBUGPRINT
-	FILE *file;
+	if (opt_verbose) {
+		FILE *file;
 
-	file = sd->file;
+		file = sd->file;
 
-	fprintf(file, "}\n");
-	fclose(file);
-#endif
+		fprintf(file, "}\n");
+		fclose(file);
+	}
 }
 
 
@@ -132,7 +138,6 @@ void schedule_add_define_dep(scheduledata *sd, s1 opnum, nodelink **define_dep, 
 	nodelink     *defnl;
 	nodelink     *tmpnl;
 	nodelink     *nl;
-	s4            defnode;
 	s4            minode;
 
 	/* get current machine instruction */
@@ -165,8 +170,9 @@ void schedule_add_define_dep(scheduledata *sd, s1 opnum, nodelink **define_dep, 
 				usenl->minode = minode;
 				usenl->opnum2 = opnum;
 
-				/* calculate latency */
-				usenl->latency = (usemi->op[usenl->opnum].lastcycle - mi->op[opnum].firstcycle) + 1;
+				/* calculate latency, for define add 1 cycle */
+				usenl->latency = (usemi->op[usenl->opnum].lastcycle -
+								  mi->op[opnum].firstcycle) + 1;
 
 				usenl->next = usemi->deps;
 				usemi->deps = usenl;
@@ -175,29 +181,27 @@ void schedule_add_define_dep(scheduledata *sd, s1 opnum, nodelink **define_dep, 
 			usenl = tmpnl;
 		}
 
-	} else {
 		/* ...otherwise use last define dependency, if non-null */
+	} else if ((defnl = *define_dep)) {
+		/* some edges to current machine instruction -> no leader */
 
-		if ((defnl = *define_dep)) {
-			/* some edges to current machine instruction -> no leader */
+		mi->flags &= ~SCHEDULE_LEADER;
 
-			mi->flags &= ~SCHEDULE_LEADER;
+		/* get last define machine instruction */
 
-			/* get last define machine instruction */
+		defmi = &sd->mi[defnl->minode];
 
-			defmi = &sd->mi[defnl->minode];
+		/* link current define node into dependency list */
 
-			/* link current define node into dependency list */
+		defnl->minode = minode;
+		defnl->opnum2 = opnum;
 
-			defnl->minode = minode;
-			defnl->opnum2 = opnum;
+		/* calculate latency, for define add 1 cycle */
+		defnl->latency = (defmi->op[defnl->opnum].lastcycle -
+						  mi->op[opnum].firstcycle) + 1;
 
-			/* calculate latency, for def-def add 1 cycle */
-			defnl->latency = (defmi->op[defnl->opnum].lastcycle - mi->op[opnum].firstcycle) + 1;
-
-			defnl->next = defmi->deps;
-			defmi->deps = defnl;
-		}
+		defnl->next = defmi->deps;
+		defmi->deps = defnl;
 	}
 
 	/* Set current instruction as new define dependency and clear use         */
@@ -224,7 +228,6 @@ void schedule_add_use_dep(scheduledata *sd, s1 opnum, nodelink **define_dep, nod
 	minstruction *defmi;
 	nodelink     *nl;
 	s4            minode;
-	s4            defnode;
 	nodelink     *defnl;
 
 	/* get current machine instruction */
@@ -303,37 +306,21 @@ void schedule_calc_priorities(scheduledata *sd)
 
 		/* last instruction has no dependencies, use virtual sink node */
 
-		firstcycle = 127;
 		lastcycle = 0;
 
 		for (j = 0; j < 4; j++) {
-			if (lastmi->op[j].firstcycle < firstcycle)
-				firstcycle = lastmi->op[j].firstcycle;
-
 			if (lastmi->op[j].lastcycle > lastcycle)
 				lastcycle = lastmi->op[j].lastcycle;
 		}
 
-		lastmi->priority = (lastcycle - firstcycle) + 1;
+#define EARLIEST_USE_CYCLE 3
+		lastmi->priority = (lastcycle - EARLIEST_USE_CYCLE) + 1;
 
 
 		/* walk through all remaining machine instructions backwards */
 
 		for (i = lastnode - 1, mi = &sd->mi[lastnode - 1]; i >= 0; i--, mi--) {
 			nl = mi->deps;
-
-#if 0
-			/* no dependencies (is a sink node), dependency to last node */
-
-			if (!nl) {
-				nl = DNEW(nodelink);
-				nl->minode = lastnode;
-				nl->next = mi->deps;
-				mi->deps = nl;
-			}
-
-			/* each node MUST have at least one dependency */
-#endif
 
 			if (nl) {
 				s4 priority;
@@ -360,18 +347,26 @@ void schedule_calc_priorities(scheduledata *sd)
 			} else {
 				/* no dependencies, use virtual sink node */
 
-				firstcycle = 127;
 				lastcycle = 0;
 
 				for (j = 0; j < 4; j++) {
-					if (mi->op[j].firstcycle < firstcycle)
-						firstcycle = mi->op[j].firstcycle;
-
 					if (mi->op[j].lastcycle > lastcycle)
 						lastcycle = mi->op[j].lastcycle;
 				}
 
-				mi->priority = (lastcycle - firstcycle);
+				mi->priority = (lastcycle - EARLIEST_USE_CYCLE);
+
+#if 0
+				for (j = 0, nl = &sd->intregs_define_dep; j < rd->intregsnum; j++, nl++) {
+					if ((tmpnl = *nl)) {
+						while (tmpnl) {
+							
+
+							tmpnl = tmpnl->next;
+						}
+					}
+				}
+#endif
 			}
 
 			/* add current machine instruction to leader list, if one */
@@ -417,13 +412,13 @@ static void schedule_create_graph(scheduledata *sd, s4 criticalpath)
 			while (nl) {
 				fprintf(file, "\"#%d.%d ", bb, i);
 				disassinstr(file, &mi->instr);
-				fprintf(file, "\"");
+				fprintf(file, "\\np=%d\"", mi->priority);
 
 				fprintf(file, " -> ");
 
 				fprintf(file, "\"#%d.%d ", bb, nl->minode);
 				disassinstr(file, &sd->mi[nl->minode].instr);
-				fprintf(file, "\"");
+				fprintf(file, "\\np=%d\"", sd->mi[nl->minode].priority);
 
 				fprintf(file, " [ label = \"%d\" ]\n", nl->latency);
 				nl = nl->next;
@@ -432,7 +427,7 @@ static void schedule_create_graph(scheduledata *sd, s4 criticalpath)
 		} else {
 			fprintf(file, "\"#%d.%d ", bb, i);
 			disassinstr(file, &mi->instr);
-			fprintf(file, "\"");
+			fprintf(file, "\\np=%d\"", mi->priority);
 
 			fprintf(file, " -> ");
 			
@@ -473,11 +468,73 @@ void schedule_do_schedule(scheduledata *sd)
 
 		schedule_calc_priorities(sd);
 
-#if DEBUGPRINT
-		printf("bb start ---\n");
-		printf("nodes: %d\n", sd->micount);
-		printf("leaders: ");
-#endif
+/*  		for (i = 0; i < sd->micount; i++)  */
+
+		for (j = 0; j < 2; j++ ) {
+
+			nl = sd->leaders;
+			prevnl = NULL;
+
+			alumi = NULL;
+			memmi = NULL;
+
+			while (nl) {
+				/* get current machine instruction from leader list */
+
+				mi = &sd->mi[nl->minode];
+
+				/* check for a suitable ALU instruction */
+
+				if (mi->flags & SCHEDULE_UNIT_ALU) {
+					if (!alumi || (mi->priority > alumi->priority)) {
+						alumi = mi;
+
+						/* remove current node from leaders list */
+
+						if (prevnl)
+							prevnl->next = nl->next;
+						else
+							sd->leaders = nl->next;
+					}
+				}
+
+				/* check for a suitable MEM instruction */
+
+				if (mi->flags & SCHEDULE_UNIT_MEM) {
+					if (!memmi || (mi->priority > memmi->priority)) {
+						memmi = mi;
+
+						/* remove current node from leaders list */
+
+						if (prevnl)
+							prevnl->next = nl->next;
+						else
+							sd->leaders = nl->next;
+					}
+				}
+
+				/* save previous (== current) node */
+				prevnl = nl;
+
+				nl = nl->next;
+			}
+
+			/* schedule ALU instruction, if one was found */
+
+			if (alumi) {
+				
+			}
+
+			if (!alunl && !memnl)
+				printf("nop");
+		}
+
+#if 0
+		if (opt_verbose) {
+			printf("bb start ---\n");
+			printf("nodes: %d\n", sd->micount);
+			printf("leaders: ");
+		}
 
 		leaders = 0;
 		criticalpath = 0;
@@ -485,9 +542,9 @@ void schedule_do_schedule(scheduledata *sd)
 		nl = sd->leaders;
 		while (nl) {
 
-#if DEBUGPRINT
-			printf("%d ", nl->minode);
-#endif
+			if (opt_verbose) {
+				printf("#%d ", nl->minode);
+			}
 
 			leaders++;
 			if (sd->mi[nl->minode].priority > criticalpath)
@@ -495,32 +552,38 @@ void schedule_do_schedule(scheduledata *sd)
 			nl = nl->next;
 		}
 
-#if DEBUGPRINT
-		printf("\n");
-		printf("critical path: %d\n", criticalpath);
+		/* check last node for critical path (e.g. ret) */
 
-		for (i = 0, mi = sd->mi; i < sd->micount; i++, mi++) {
-			disassinstr(stdout, &mi->instr);
-
-			printf("\t--> #%d, prio=%d", i, mi->priority);
-
-			printf(", mem=%d:%d", mi->op[0].firstcycle, mi->op[0].lastcycle);
-
-			for (j = 1; j <= 3; j++) {
-				printf(", op%d=%d:%d", j, mi->op[j].firstcycle, mi->op[j].lastcycle);
-			}
-
-			printf(", deps= ");
-			nl = mi->deps;
-			while (nl) {
-				printf("#%d (op%d->op%d: %d) ", nl->minode, nl->opnum, nl->opnum2, nl->latency);
-				nl = nl->next;
-			}
+		if (sd->mi[sd->micount - 1].priority > criticalpath)
+			criticalpath = sd->mi[sd->micount - 1].priority;
+		
+		if (opt_verbose) {
 			printf("\n");
-		}
-		printf("bb end ---\n\n");
+			printf("critical path: %d\n", criticalpath);
 
-		schedule_create_graph(sd, criticalpath);
+			for (i = 0, mi = sd->mi; i < sd->micount; i++, mi++) {
+				disassinstr(stdout, &mi->instr);
+
+				printf("\t--> #%d, prio=%d", i, mi->priority);
+
+				printf(", mem=%d:%d", mi->op[0].firstcycle, mi->op[0].lastcycle);
+
+				for (j = 1; j <= 3; j++) {
+					printf(", op%d=%d:%d", j, mi->op[j].firstcycle, mi->op[j].lastcycle);
+				}
+
+				printf(", deps= ");
+				nl = mi->deps;
+				while (nl) {
+					printf("#%d (op%d->op%d: %d) ", nl->minode, nl->opnum, nl->opnum2, nl->latency);
+					nl = nl->next;
+				}
+				printf("\n");
+			}
+			printf("bb end ---\n\n");
+
+			schedule_create_graph(sd, criticalpath);
+		}
 #endif
 
 #if defined(STATISTICS)

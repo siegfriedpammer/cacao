@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: schedule.h 2025 2005-03-10 12:20:49Z twisti $
+   $Id: schedule.h 2033 2005-03-18 09:24:00Z twisti $
 
 */
 
@@ -50,9 +50,12 @@ typedef struct opcycles opcycles;
 
 /* machine instruction flags **************************************************/
 
-#define SCHEDULE_LEADER    0x01
-#define SCHEDULE_SINK      0x02
-#define SCHEDULE_BRANCH    0x04
+#define SCHEDULE_LEADER         0x01
+#define SCHEDULE_SINK           0x02
+
+#define SCHEDULE_UNIT_ALU       0x04
+#define SCHEDULE_UNIT_MEM       0x08
+#define SCHEDULE_UNIT_BRANCH    0x10
 
 
 #define M_SCHEDULE_SET_EXCEPTION_POINT    /*  if (cd->exceptiontablelength > 0) { schedule_do_schedule(sd); schedule_reset(sd, rd); } */
@@ -77,11 +80,11 @@ struct scheduledata {
 
 	nodelink     **intregs_define_dep;
 	nodelink     **fltregs_define_dep;
-    nodelink      *memory_define_dep;
+    nodelink     **memory_define_dep;
 
 	nodelink     **intregs_use_dep;
 	nodelink     **fltregs_use_dep;
-	nodelink      *memory_use_dep;
+	nodelink     **memory_use_dep;
 
 	FILE *file;
 };
@@ -126,7 +129,7 @@ struct nodelink {
 
 /* function prototypes ********************************************************/
 
-scheduledata *schedule_init(registerdata *rd);
+scheduledata *schedule_init(methodinfo *m, registerdata *rd);
 void schedule_reset(scheduledata *sd, registerdata *rd);
 void schedule_close(scheduledata *sd);
 
