@@ -9,7 +9,7 @@
 # Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 #          Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 #
-# Last Change: 1998/10/30
+# Last Change: $Id: Makefile 50 1998-11-09 23:01:59Z phil $
 #
 #
 # ATTENTION: This version of the makefile only works with gmake.
@@ -24,7 +24,7 @@
 
 VERSION_MAJOR = 0
 VERSION_MINOR = 30
-VERSION_POSTFIX = p1
+VERSION_POSTFIX = p2
 
 VERSION_STRING=$(VERSION_MAJOR).$(VERSION_MINOR)$(VERSION_POSTFIX)
 
@@ -118,11 +118,30 @@ clean:
 	cd threads; $(MAKE) clean
 	cd mm; $(MAKE) clean
 
+
+### DISTRIBUTION TARGETS ###
+
+DISTRIBUTION_FILES = \
+Makefile \
+*/Makefile \
+README \
+COPYRIGHT \
+tst/*.java \
+doc/*.doc \
+html/*.html \
+*.[ch] \
+comp/*.[ch] \
+jit/*.[ch] \
+alpha/*.doc \
+alpha/*.[ch] \
+nat/*.[ch] \
+toolbox/*.[ch] \
+threads/*.[ch] \
+# sparc/*.[ch]
+
 tar:
 	rm -f cacao.tgz cacao.tar
-	tar -cvf cacao.tar Makefile */Makefile README COPYRIGHT tst/*.java \
-	    doc/*.doc html/*.html *.[ch] comp/*.[ch] ncomp/*.[ch] alpha/*.doc alpha/*.[ch] \
-	    nat/*.[ch] toolbox/*.[ch] threads/*.[ch] # sparc/*.[ch]
+	tar -cvf cacao.tar $(DISTRIBUTION_FILES)
 	ls -l cacao.tar
 	gzip -9 cacao.tar
 	mv cacao.tar.gz cacao.tgz
@@ -130,11 +149,8 @@ tar:
 
 dist:
 	rm -rf cacao-$(VERSION_STRING).tar.gz cacao-$(VERSION_STRING);
-#	  tar -cf cacao-$(VERSION_STRING).tar -T FILES;
 	( mkdir cacao-$(VERSION_STRING); \
-	  tar -cvf cacao-$(VERSION_STRING).tar Makefile */Makefile README COPYRIGHT \
-	    tst/*.java doc/*.doc html/*.html *.[ch] comp/*.[ch] ncomp/*.[ch] \
-	    alpha/*.doc alpha/*.[ch] nat/*.[ch] toolbox/*.[ch] threads/*.[ch]; \
+	  tar -cvf cacao-$(VERSION_STRING).tar $(DISTRIBUTION_FILES); \
 	  cd cacao-$(VERSION_STRING); \
 	  tar -xf ../cacao-$(VERSION_STRING).tar; \
 	  cd ..; \
