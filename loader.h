@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1088 2004-05-26 21:32:34Z twisti $
+   $Id: loader.h 1112 2004-05-31 15:47:20Z jowenn $
 */
 
 
@@ -63,7 +63,8 @@ extern classinfo *class_java_lang_Object;
 extern classinfo *class_java_lang_String;
 extern classinfo *class_java_lang_Cloneable;
 extern classinfo *class_java_io_Serializable;
-
+extern utf *utf_fillInStackTrace_name;
+extern utf *utf_fillInStackTrace_desc;
 
 /* pseudo classes for the type checker ****************************************/
 

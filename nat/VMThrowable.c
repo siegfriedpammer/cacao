@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: VMThrowable.c 1082 2004-05-26 15:04:54Z jowenn $
+   $Id: VMThrowable.c 1112 2004-05-31 15:47:20Z jowenn $
 
 */
 
@@ -106,13 +106,14 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,
 	
 	
 	for(resultPos=0;pos>=0;resultPos++,pos--) {
+		java_objectheader *element;
 
 		if (source[pos].method==0) {
 			resultPos--;
 			continue;
 		}
 
-		java_objectheader *element=builtin_new(c);
+		element=builtin_new(c);
 		if (!element) {
 			panic("Memory for stack trace element could not be allocated");
 		}
@@ -185,11 +186,21 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 	pos--;
 	pos--;
 	maxpos = pos;
-	if (el[pos].method->class->name == throwable && el[pos].method->name == init) {
-		for (; pos >= 0 && el[pos].method->name == init && el[pos].method->class->name != classname; pos--);
-		pos--;
-		if (pos < 0) {
-			log_text("Invalid stack trace for Throwable.getStackTrace()");
+	if (el[pos].method!=0) { /* if == 0 -> some builtin native */
+		if (el[pos].method->class->name == throwable && el[pos].method->name == init) {
+			for (; pos >= 0 && el[pos].method->name == init && el[pos].method->class->name != classname; pos--) {
+/*				log_text("ignoring:");
+				utf_display(el[pos].method->name);
+				log_text("");
+				utf_display(el[pos].method->class->name);
+				log_text("");*/
+
+			};
+			pos--;
+			if (pos < 0) {
+				log_text("Invalid stack trace for Throwable.getStackTrace()");
+
+			}
 		}
 	}
 	

@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1097 2004-05-27 15:58:34Z twisti $
+   $Id: headers.c 1112 2004-05-31 15:47:20Z jowenn $
 
 */
 
@@ -693,6 +693,7 @@ int main(int argc, char **argv)
 	fprintf(file, "#define offobjarrdata  %3d\n\n", (int) OFFSET(java_objectarray, data[0]));
 	fprintf(file, "#define offbaseval     %3d\n", (int) OFFSET(vftbl, baseval));
 	fprintf(file, "#define offdiffval     %3d\n\n", (int) OFFSET(vftbl, diffval));
+	fprintf(file, "#define offclass     %3d\n\n", (int) OFFSET(vftbl, class));
 
 	fprintf(file, "#define offclassvftbl  %3d\n", (int) OFFSET(classinfo, vftbl));
 	fprintf(file, "#define offclassinit   %3d\n", (int) OFFSET(classinfo, initialized));

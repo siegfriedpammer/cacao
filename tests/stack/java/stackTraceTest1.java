@@ -1,4 +1,4 @@
-
+/*GPL Licene Joseph Wenninger 2004*/
 public class stackTraceTest1 {
 
 	public static void a() throws Exception {

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1102 2004-05-27 16:30:45Z twisti $
+   $Id: codegen.c 1112 2004-05-31 15:47:20Z jowenn $
 
 */
 
@@ -320,6 +320,10 @@ void codegen_stubcalled() {
 	log_text("Stub has been called");
 }
 
+void codegen_general_stubcalled() {
+	log_text("general exception stub  has been called");
+}
+
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 void thread_restartcriticalsection(ucontext_t *uc)
@@ -383,7 +387,8 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
 
 		sigctx->ecx = sigctx->eip;                       /* REG_ITMP2_XPC     */
-		sigctx->eip = (u4) asm_throw_and_handle_hardware_nullpointer_exception;
+		sigctx->eax=string_java_lang_NullPointerException;
+		sigctx->eip = (u4) asm_throw_and_handle_exception;
 		
 		return;
 
@@ -4019,31 +4024,6 @@ gen_method: {
 
 			MCODECHECK((s3 << 1) + 64);
 
-			if ( (iptr->opc == ICMD_BUILTIN1) ||
-				(iptr->opc == ICMD_BUILTIN2) ||
-				(iptr->opc == ICMD_BUILTIN3) ) {
-#if 0
-				i386_push_reg(REG_ITMP1);
-				i386_push_reg(REG_ITMP2);
-				i386_push_reg(REG_ITMP3);
-
-			        i386_mov_imm_reg((s4) builtin_asm_new_stackframeinfo, REG_ITMP1);
-			        i386_call_reg(REG_ITMP1);
-
-				i386_pop_reg(REG_ITMP3);
-				i386_pop_reg(REG_ITMP2);
-				i386_pop_reg(REG_ITMP1);
-
-#if 0
-			        i386_mov_membase_reg(REG_SP, 0 , REG_ITMP2); /*save return adress*/
-			        i386_mov_membase_reg(REG_RESULT, 0 , REG_ITMP3); /*get direct access to structure*/
-
-			        i386_mov_imm_membase(0x1111, REG_ITMP3, offreturnfromnative); /*store return adress in stack frame info block*/
-			        i386_mov_imm_membase((s4) m, REG_ITMP3, offmethodnative); /*store methodpointer in stack frame info block*/
-			        i386_mov_imm_membase(1111,REG_ITMP3,offaddrreturnfromnative);
-#endif
-#endif
-			}
 			/* copy arguments to registers or stack location                  */
 
 			for (; --s3 >= 0; src = src->prev) {
@@ -4734,11 +4714,17 @@ gen_method: {
 
 			i386_push_reg(REG_ITMP2_XPC);
 
+
+			PREPARE_NATIVE_STACKINFO
+
 			i386_alu_imm_reg(I386_SUB, 1 * 4, REG_SP);
 			i386_mov_imm_membase((s4) string_java_lang_ClassCastException, REG_SP, 0 * 4);
 			i386_mov_imm_reg((s4) new_exception, REG_ITMP1);
 			i386_call_reg(REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
 			i386_alu_imm_reg(I386_ADD, 1 * 4, REG_SP);
+
+
+			REMOVE_NATIVE_STACKINFO
 
 			i386_pop_reg(REG_ITMP2_XPC);
 
@@ -4824,7 +4810,13 @@ gen_method: {
 			xcodeptr = mcodeptr;
 
 			i386_push_reg(REG_ITMP2_XPC);
+
 			PREPARE_NATIVE_STACKINFO
+
+                                i386_mov_imm_reg((s4) codegen_general_stubcalled,REG_ITMP1);
+                                i386_call_reg(REG_ITMP1);                
+
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			i386_mov_imm_reg((s4) &builtin_get_exceptionptrptr, REG_ITMP1);
 			i386_call_reg(REG_ITMP1);
@@ -4836,7 +4828,39 @@ gen_method: {
 			i386_mov_membase_reg(REG_ITMP3, 0, REG_ITMP1_XPTR);
 			i386_mov_imm_membase(0, REG_ITMP3, 0);
 #endif
+			i386_push_imm(0);
+			i386_push_reg(REG_ITMP1_XPTR);
+
+/*get the fillInStackTrace Method ID. I simulate a native call here, because I do not want to mess around with the
+java stack at this point*/
+			i386_mov_membase_reg(REG_ITMP1_XPTR, OFFSET(java_objectheader, vftbl), REG_ITMP3);
+			i386_mov_membase_reg(REG_ITMP3, OFFSET(vftbl,class), REG_ITMP1);
+			i386_push_imm(utf_fillInStackTrace_desc);
+			i386_push_imm(utf_fillInStackTrace_name);
+			i386_push_reg(REG_ITMP1);
+			i386_mov_imm_reg((s4) class_resolvemethod, REG_ITMP3);
+			i386_call_reg(REG_ITMP3);
+/*cleanup parameters of class_resolvemethod*/
+			i386_alu_imm_reg(I386_ADD,3*4 /*class reference + 2x string reference*/,REG_SP);
+/*prepare call to asm_calljavafunction2 */			
+			i386_push_imm(0);
+			i386_push_imm(TYPE_ADR); /* --> call block (TYPE,Exceptionptr), each 8 byte  (make this dynamic) (JOWENN)*/
+			i386_push_reg(REG_SP);
+			i386_push_imm(sizeof(jni_callblock));
+			i386_push_imm(1);
+			i386_push_reg(REG_RESULT);
+			
+			i386_mov_imm_reg((s4) asm_calljavafunction2, REG_ITMP3);
+			i386_call_reg(REG_ITMP3);
+
+			/* check exceptionptr + fail (JOWENN)*/			
+
+			i386_alu_imm_reg(I386_ADD,6*4,REG_SP);
+
+			i386_pop_reg(REG_ITMP1_XPTR);
+			i386_pop_reg(REG_ITMP3); /* just remove the no longer needed 0 from the stack*/
 			REMOVE_NATIVE_STACKINFO
+
 			i386_pop_reg(REG_ITMP2_XPC);
 
 			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);

@@ -1,3 +1,4 @@
+/*GPL license Joseph Wenninger 2004*/
 #include "stackTraceTest1.h"
 
 void JNICALL Java_stackTraceTest1_b_nested

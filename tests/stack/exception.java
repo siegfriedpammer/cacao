@@ -44,7 +44,7 @@ public class exception {
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			e.printStackTrace();
-			System.out.println("Caught in c(), refilling stacktrace and  rethrowing");
+			System.out.println("Caught in e(), refilling stacktrace and  rethrowing");
 			e.fillInStackTrace();
 			throw e;
 		}

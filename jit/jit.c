@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1093 2004-05-27 15:49:43Z twisti $
+   $Id: jit.c 1112 2004-05-31 15:47:20Z jowenn $
 
 */
 
@@ -794,8 +794,7 @@ int jcommandsize[256] = {
 	1,
 #define ICMD_CHECKEXCEPTION   203
 	1, /* unused */
-
-	      1,1,1,1,1,1,1,            /* unused */
+	1,1,1,1,1,1,1,            /* unused */
 	1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
@@ -1008,9 +1007,8 @@ char *icmd_names[256] = {
 	"UNDEF200     ", /* GOTO_W      200 */
 	"UNDEF201     ", /* JSR_W       201 */
 	"UNDEF202     ", /* BREAKPOINT  202 */
-	"CHECKEXCEPTION", /* UNDEF204    203 */
-
-	                                 "UNDEF204","UNDEF205",
+	"CHECKEXCEPTION", /* UNDEF203    203 */
+					"UNDEF204", "UNDEF205",
 	"UNDEF206","UNDEF207","UNDEF208","UNDEF209","UNDEF210",
 	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
 	"UNDEF216","UNDEF217","UNDEF218","UNDEF219","UNDEF220",
@@ -1233,8 +1231,7 @@ char *opcode_names[256] = {
 	"JSR_W        ", /* JSR_W       201 */
 	"BREAKPOINT   ", /* BREAKPOINT  202 */
 	"CHECKEXCEPTION", /* UNDEF203    203 */
-
-	                                 "UNDEF204","UNDEF205",
+					 "UNDEF204","UNDEF205",
 	"UNDEF206","UNDEF207","UNDEF208","UNDEF209","UNDEF210",
 	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
 	"UNDEF216","UNDEF217","UNDEF218","UNDEF219","UNDEF220",

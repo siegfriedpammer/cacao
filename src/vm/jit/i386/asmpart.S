@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1111 2004-05-29 07:51:40Z jowenn $
+   $Id: asmpart.S 1112 2004-05-31 15:47:20Z jowenn $
 
 */
 
@@ -116,10 +116,11 @@
 	.globl builtin_trace_exception
 	.globl class_java_lang_Object
 	.globl codegen_findmethod
+/*	.globl codegen_findmethod1*/
 	.globl builtin_asm_createclasscontextarray
 	.globl builtin_asm_getclassloader
 	.globl callgetexceptionptrptr
-	.globl asm_throw_and_handle_hardware_nullpointer_exception
+	.globl asm_throw_and_handle_exception
 	.globl asm_throw_and_handle_hardware_arithmetic_exception
 
 
@@ -394,6 +395,44 @@ L_exception:
 	pop     %ecx                /* delete return address                      */
 	sub     $2,%ecx             /* faulting address is return adress - 2      */
 
+L_refillinStacktrace:
+	push %ecx		/* store fault adress */
+	push %eax		/* temporarily save exception pointer*/
+	call builtin_asm_get_stackframeinfo
+	push %eax	/* save location of thread specific stack info head pointer */
+	mov (%eax),%ecx /* save old value of pointer*/
+	push %ecx
+	mov %esp,(%eax) /*store pointer to this structure*/
+	mov 8(%esp),%eax  /* get the exception pointer again*/
+	movl $0,8(%esp) /*mark this block as native*/
+	push $0 /*used for the jni_callblock structure*/
+	push %eax /*save eax for later */
+	/* get fillInStackTrace method*/
+	push utf_fillInStackTrace_desc
+	push utf_fillInStackTrace_name
+	mov offobjvftbl(%eax),%ecx
+	mov offclass(%ecx),%eax
+	push %eax
+	call class_resolvemethod
+	add $12,%esp
+	push $0
+	push $4 /*TYPE_ADR*/
+	push %esp
+	push $sizejniblock
+	push $1
+	push %eax
+	call asm_calljavafunction2
+	add $24,%esp
+
+	/*remove native stack info */
+	mov 8(%esp),%ecx
+	mov 12(%esp),%eax
+	mov %ecx,(%eax)
+	mov (%esp),%eax
+	add $20,%esp
+	pop %ecx
+
+	
 	jmp     asm_handle_exception
 
 
@@ -432,7 +471,7 @@ asm_handle_exception_loop:
 		push    %eax						/* save exception pointer         */
 		push    %ecx                        /* save exception pc              */
 
-	call    codegen_findmethod          /* get the data segment ptr           */
+		call    codegen_findmethod          /* get the data segment ptr           */
 		mov     %eax,%edx
 		        
 		mov     -4(%ebp),%eax
@@ -709,6 +748,12 @@ asm_builtin_monitorenter:
 	jmp		builtin_monitorenter        /* else call builtin_monitorenter     */
 
 nb_monitorenter:
+        mov string_java_lang_NullPointerException,%eax
+        pop %ecx
+        sub $2,%ecx
+        jmp asm_throw_and_handle_exception
+
+#if 0
 	push    string_java_lang_NullPointerException
 	call    new_exception
 	add     $(1*4),%esp
@@ -716,7 +761,7 @@ nb_monitorenter:
 	pop     %ecx                        /* delete return address              */
 	sub     $2,%ecx                     /* faulting address is return adress - 2 */
 	jmp     asm_handle_exception
-		
+#endif		
 
 /********************* function asm_builtin_monitorexit ************************
 *                                                                              *
@@ -738,6 +783,12 @@ asm_builtin_monitorexit:
     ret
 
 nb_monitorexit:
+        mov string_java_lang_NullPointerException,%eax
+        pop %ecx
+        sub $2,%ecx
+        jmp asm_throw_and_handle_exception
+
+#if 0
 	push    string_java_lang_NullPointerException
 	call    new_exception
 	add     $(1*4),%esp
@@ -745,7 +796,7 @@ nb_monitorexit:
 	pop     %ecx                    /* delete return address              */
 	sub     $2,%ecx                 /* faulting address is return adress - 2 */
 	jmp     asm_handle_exception
-
+#endif
 
 /************************ function asm_builtin_ldiv ****************************
 *                                                                              *
@@ -762,6 +813,10 @@ asm_builtin_ldiv:
 	jmp     builtin_ldiv
 
 nb_ldiv:
+	pop %ecx
+	sub $2,%ecx
+	jmp asm_throw_and_handle_hardware_arithmetic_exception
+#if 0
 	push    string_java_lang_ArithmeticException_message
 	push    string_java_lang_ArithmeticException
 	call    new_exception_message
@@ -770,7 +825,7 @@ nb_ldiv:
 	pop     %ecx                        /* delete return address              */
 	sub     $2,%ecx                     /* faulting address is return adress - 2 */
 	jmp     asm_handle_exception
-				
+#endif				
 
 /************************ function asm_builtin_lrem ****************************
 *                                                                              *
@@ -787,6 +842,10 @@ asm_builtin_lrem:
 	jmp     builtin_lrem
 
 nb_lrem:
+	pop %ecx
+	sub $2,%ecx
+	jmp asm_throw_and_handle_hardware_arithmetic_exception
+#if 0
 	push    string_java_lang_ArithmeticException_message
 	push    string_java_lang_ArithmeticException
 	call    new_exception_message
@@ -795,7 +854,7 @@ nb_lrem:
 	pop     %ecx                        /* delete return address              */
 	sub     $2,%ecx                     /* faulting address is return adress - 2 */
 	jmp     asm_handle_exception
-		
+#endif		
 
 /************************ function asm_builtin_x2x *****************************
 *                                                                              *
@@ -857,6 +916,12 @@ asm_builtin_checkarraycast:
 	ret
 
 nb_carray_throw:
+	add $8,%esp
+	mov string_java_lang_ClassCastException,%eax
+	pop %ecx
+	sub $2,%ecx
+	jmp asm_throw_and_handle_exception
+#if 0
 	push    string_java_lang_ClassCastException
 	call    new_exception
 	add     $(1*4),%esp
@@ -866,7 +931,7 @@ nb_carray_throw:
 	pop		%ecx                        /* delete return address              */
 	sub		$2,%ecx                     /* faulting address is return adress - 2 */
 	jmp		asm_handle_exception
-
+#endif
 		
 /******************* function asm_builtin_newarray *****************************
 *                                                                              *
@@ -931,6 +996,13 @@ asm_builtin_aastore:
 	ret
 
 nb_aastore_null:
+        add $12,%esp
+        mov string_java_lang_NullPointerException,%eax
+        pop %ecx
+        sub $2,%ecx
+        jmp asm_throw_and_handle_exception
+
+#if 0
 	push    string_java_lang_NullPointerException
 	call    new_exception
 	add     $(1*4),%esp
@@ -939,7 +1011,7 @@ nb_aastore_null:
 	pop     %ecx                        /* delete return address              */
 	sub     $2,%ecx                     /* faulting address is return adress - 2 */
 	jmp		asm_handle_exception
-
+#endif
 nb_aastore_bound:
 	push    %ecx                        /* itmp2 contains array index         */
 	push    string_java_lang_ArrayIndexOutOfBoundsException
@@ -952,6 +1024,14 @@ nb_aastore_bound:
 	jmp     asm_handle_exception
 		
 nb_aastore_store:
+	add     $12,%esp
+
+        mov string_java_lang_ArrayStoreException,%eax
+        pop %ecx
+        sub $2,%ecx
+        jmp asm_throw_and_handle_exception
+
+#if 0
 	push    string_java_lang_ArrayStoreException
 	call    new_exception
 	add     $(1*4),%esp
@@ -960,7 +1040,7 @@ nb_aastore_store:
 	pop     %ecx                        /* delete return address              */
 	sub     $2,%ecx                     /* faulting address is return adress - 2 */
 	jmp     asm_handle_exception
-
+#endif
 		
 /******************* function asm_builtin_arrayinstanceof **********************
 *                                                                              *
@@ -1253,10 +1333,10 @@ getClassContext_leave:
 	ret
 
 
-asm_throw_and_handle_hardware_nullpointer_exception:
+asm_throw_and_handle_exception:
 	sub $20,%esp /*build stack frame*/
 	mov %ecx,16(%esp) /*save eip of problem */
-	
+	mov %eax,(%esp)
 	movl $0,12(%esp) /*internal function -> no function description */
 	call builtin_asm_get_stackframeinfo
 	mov %eax,8(%esp)
@@ -1266,8 +1346,8 @@ asm_throw_and_handle_hardware_nullpointer_exception:
 	add $4,%ecx
 	mov %ecx,(%eax)
 	
-	mov string_java_lang_NullPointerException,%eax
-	mov %eax,(%esp)
+/*	mov string_java_lang_NullPointerException,%eax
+	mov %eax,(%esp)*/
         call new_exception
 	push %eax
 	mov 8(%esp),%eax

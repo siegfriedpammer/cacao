@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1106 2004-05-28 10:25:55Z twisti $
+   $Id: native.c 1112 2004-05-31 15:47:20Z jowenn $
 
 */
 
@@ -526,18 +526,26 @@ void throw_cacao_exception_exit(char *exception, char *message)
 }
 
 
+#define CREATENEW_EXCEPTION(ex) \
+	java_objectheader *newEx; \
+	java_objectheader *oldexception=*exceptionptr;\
+	*exceptionptr=0;\
+	newEx=ex;\
+	*exceptionptr=oldexception;\
+	return newEx;
+
 java_objectheader *new_exception(char *classname)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	return native_new_and_init(c);
+	CREATENEW_EXCEPTION(native_new_and_init(c));
 }
 
 java_objectheader *new_exception_message(char *classname, char *message)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	return native_new_and_init_string(c, javastring_new_char(message));
+	CREATENEW_EXCEPTION(native_new_and_init_string(c, javastring_new_char(message)));
 }
 
 
@@ -545,7 +553,7 @@ java_objectheader *new_exception_throwable(char *classname, java_lang_Throwable 
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	return native_new_and_init_throwable(c, throwable);
+	CREATENEW_EXCEPTION(native_new_and_init_throwable(c, throwable));
 }
 
 
@@ -553,7 +561,7 @@ java_objectheader *new_exception_utfmessage(char *classname, utf *message)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	return native_new_and_init_string(c, javastring_new(message));
+	CREATENEW_EXCEPTION(native_new_and_init_string(c, javastring_new(message)));
 }
 
 
@@ -561,7 +569,7 @@ java_objectheader *new_exception_javastring(char *classname, java_lang_String *m
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	return native_new_and_init_string(c, message);
+	CREATENEW_EXCEPTION(native_new_and_init_string(c, message));
 }
 
 
@@ -569,7 +577,7 @@ java_objectheader *new_exception_int(char *classname, s4 i)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	return native_new_and_init_int(c, i);
+	CREATENEW_EXCEPTION(native_new_and_init_int(c, i));
 }
 
 

@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1099 2004-05-27 16:06:14Z twisti $
+   $Id: codegen.inc 1112 2004-05-31 15:47:20Z jowenn $
 
 */
 
@@ -500,6 +500,22 @@ static int methodtree_comparator(const void *pc, const void *element,
 	}
 }
 
+
+#if 0
+void *codegen_findmethod1(void *pc)
+{
+	void * retVal=findmethod(pc);
+	methodinfo **ma=(methodinfo**)retVal;
+	methodinfo *m=ma[-1];
+	if (m)
+		if (m->name)
+			utf_display(m->name);
+		else 
+			log_text("No Name");
+	else log_text("No methodinfo");
+	return retVal;
+}
+#endif
 
 void *codegen_findmethod(void *pc)
 {

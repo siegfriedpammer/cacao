@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 1110 2004-05-28 21:45:51Z jowenn $
+   $Id: loader.c 1112 2004-05-31 15:47:20Z jowenn $
 
 */
 
@@ -96,6 +96,8 @@ static utf *utf_initialize;
 static utf *utf_initializedesc;
 static utf *utf_java_lang_Object;   /* java/lang/Object                       */
 
+utf *utf_fillInStackTrace_name;
+utf *utf_fillInStackTrace_desc;
 
 utf* clinit_desc(){
 	return utf_fidesc;
@@ -1832,7 +1834,7 @@ classinfo *class_load(classinfo *c)
 		*exceptionptr =
 			new_exception_utfmessage(string_java_lang_NoClassDefFoundError,
 									 c->name);
-
+/*		log_text("Leaving class_load with NoClassDefFoundError");*/
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
 		tables_unlock();
@@ -3155,12 +3157,20 @@ methodinfo *class_resolvemethod_approx(classinfo *c, utf *name, utf *desc)
 
 methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *desc)
 {
+	/*log_text("Trying to resolve a method");
+	utf_display(c->name);
+	utf_display(name);
+	utf_display(desc);*/
+
 	while (c) {
+		/*log_text("Looking in:");
+		utf_display(c->name);*/
 		methodinfo *m = class_findmethod(c, name, desc);
 		if (m) return m;
 		/* search superclass */
 		c = c->super;
 	}
+	/*log_text("method not found:");*/
 
 	return NULL;
 }
@@ -4011,6 +4021,8 @@ void loader_init(u1 *stackbottom)
 	utf_vmclass         = utf_new_char("java/lang/VMClass");
 	utf_java_lang_Object= utf_new_char("java/lang/Object");
 	array_packagename   = utf_new_char("<the array package>");
+	utf_fillInStackTrace_name = utf_new_char("fillInStackTrace");
+	utf_fillInStackTrace_desc = utf_new_char("()Ljava/lang/Throwable;");
 
 	/* create some important classes */
 	/* These classes have to be created now because the classinfo

@@ -1,5 +1,12 @@
 public class extest {
+
+    public static boolean printStackTrace;
+
     public static void main(String[] argv) {
+	printStackTrace=false;
+	if (argv.length>0) 
+		if (argv[0].equals("stacktrace")) printStackTrace=true;
+
         boolean catched = false;
 
 	pln("---------- normal exceptions --------------------");
@@ -10,6 +17,8 @@ public class extest {
     	} catch (Exception e) {
             catched = true;
       	    pln("OK");
+	    pstacktrace(e);
+
     	}
 
         /* check if catch block was executed */
@@ -23,6 +32,7 @@ public class extest {
             pln("FAILED");
     	} catch (Exception e) {
       	    pln("OK");
+	    pstacktrace(e);
     	}
 
         try {
@@ -32,6 +42,7 @@ public class extest {
             pln("FAILED");
         } catch (NullPointerException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
   	try {
@@ -61,6 +72,7 @@ public class extest {
 
 	    } else {
 		pln("OK");
+	        pstacktrace(e);
 	    }
   	}
 
@@ -77,6 +89,8 @@ public class extest {
 
 	    } else {
 		pln("OK");
+	        pstacktrace(e);
+
 	    }
   	}
 
@@ -87,6 +101,7 @@ public class extest {
             pln("FAILED");
         } catch (NegativeArraySizeException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         try {
@@ -95,6 +110,7 @@ public class extest {
             pln("FAILED");
         } catch (NegativeArraySizeException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         
@@ -115,6 +131,7 @@ public class extest {
             pln("FAILED");
         } catch (ClassCastException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
 
@@ -125,6 +142,7 @@ public class extest {
             pln("FAILED");
         } catch (OutOfMemoryError e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         try {
@@ -134,6 +152,7 @@ public class extest {
             pln("FAILED");
         } catch (OutOfMemoryError e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
         
 
@@ -144,6 +163,7 @@ public class extest {
             pln("FAILED");
         } catch (NullPointerException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         try {
@@ -153,6 +173,7 @@ public class extest {
             pln("FAILED");
         } catch (NullPointerException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
 	pln();
@@ -167,9 +188,9 @@ public class extest {
         } catch (ExceptionInInitializerError e) {
             if (e.getCause().getClass() != NullPointerException.class) {
                 pln("FAILED");
-
             } else {
                 pln("OK");
+  	        pstacktrace(e);
             }
         }
 
@@ -179,6 +200,7 @@ public class extest {
             pln("FAILED");
         } catch (ArithmeticException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         try {
@@ -187,6 +209,7 @@ public class extest {
             pln("FAILED");
         } catch (ArithmeticException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         try {
@@ -195,6 +218,7 @@ public class extest {
             pln("FAILED");
         } catch (ArithmeticException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         try {
@@ -203,6 +227,7 @@ public class extest {
             pln("FAILED");
         } catch (ArithmeticException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         try {
@@ -212,6 +237,7 @@ public class extest {
             pln("FAILED");
         } catch (NullPointerException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         try {
@@ -221,6 +247,7 @@ public class extest {
             pln("FAILED");
         } catch (ArrayIndexOutOfBoundsException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         try {
@@ -231,6 +258,7 @@ public class extest {
             pln("FAILED");
         } catch (ArrayStoreException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         try {
@@ -240,6 +268,7 @@ public class extest {
             pln("FAILED");
         } catch (ClassCastException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
 	pln();
@@ -255,6 +284,7 @@ public class extest {
                otherwise this test in useless */
         } catch (Exception e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         pln();
@@ -298,4 +328,12 @@ public class extest {
     public static void pln(String s) {
 	System.out.println(s);
     }
+
+    public static void pstacktrace(Throwable e) {
+	if (!printStackTrace) return;
+	System.out.println("================== Stacktrace");
+	e.printStackTrace();
+	System.out.println("Stacktrace ==================");
+    }
+
 }

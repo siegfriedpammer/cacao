@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1082 2004-05-26 15:04:54Z jowenn $
+   $Id: global.h 1112 2004-05-31 15:47:20Z jowenn $
 
 */
 
@@ -322,7 +322,7 @@ typedef struct stacktraceelement stacktraceelement;
 /* data structure for calls from c code to java methods */
 
 struct jni_callblock {
-	u1 itemtype;
+	u8 itemtype;
 	u8 item;
 };
 

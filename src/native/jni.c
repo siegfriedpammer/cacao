@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: jni.c 1112 2004-05-31 15:47:20Z jowenn $
 
 */
 
@@ -506,6 +506,7 @@ jmethodID get_virtual(jobject obj,jmethodID methodID) {
 
 jmethodID get_nonvirtual(jclass clazz,jmethodID methodID) {
 	if (clazz==methodID->class) return methodID;
+/*class_resolvemethod -> classfindmethod? (JOWENN)*/
 	return class_resolvemethod (clazz, methodID->name, methodID->descriptor);
 }
 
@@ -1167,7 +1168,10 @@ jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char *name, const char *s
     	);
 
 	if (!m) *exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-
+	else if (m->flags & ACC_STATIC)   {
+		m=0;
+		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
+	}
 	return m;
 }
 
@@ -1912,6 +1916,10 @@ jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name, const c
 							utf_new_char((char *) sig));
 
 	if (!m) *exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
+	else if (!(m->flags & ACC_STATIC))   {
+		m=0;
+		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
+	}
 
 	return m;
 }
