@@ -28,12 +28,28 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 961 2004-03-15 00:35:39Z twisti $
+   $Id: asmpart.S 979 2004-03-25 23:46:22Z twisti $
 
 */
 
 
 #include "offsets.h"
+
+
+#define     MethodPointer   -8
+#define     FrameSize       -12
+#define     IsSync          -16
+#define     IsLeaf          -20
+#define     IntSave         -24
+#define     FltSave         -28
+#define     ExTableSize     -32
+#define     ExTableStart    -32
+
+#define     ExEntrySize     -16
+#define     ExStartPC       -4
+#define     ExEndPC         -8
+#define     ExHandlerPC     -12
+#define     ExCatchType     -16
 
 #define itmp1 r11
 #define itmp2 r12
@@ -46,15 +62,23 @@
 #define mptr r12
 #define mptrn 12
 
+
 	.text
 
 	.align 2
 
-	.globl _builtin_throw_exception
+	.globl _asm_docalljavamethod
+	.globl _asm_calljavafunction2
+	.globl _asm_calljavafunction2long
+	.globl _asm_calljavafunction2double
+	.globl _asm_call_jit_compiler
+
 	.globl _jit_compile
+	.globl _asm_handle_nat_exception
+	.globl _asm_handle_exception
 	.globl _asm_check_clinit
 	.globl _asm_builtin_checkarraycast
-	.globl _class_init
+	.globl _asm_builtin_aastore
 	.globl _builtin_canstore
 	.globl _builtin_trace_exception
 	.globl _builtin_monitorenter
@@ -62,13 +86,81 @@
 	.globl _builtin_ldiv
 	.globl _builtin_lrem
 	.globl _builtin_checkarraycast
-	.globl _proto_java_lang_NullPointerException
-	.globl _proto_java_lang_ArrayIndexOutOfBoundsException
-	.globl _proto_java_lang_ArrayStoreException
-	.globl _proto_java_lang_ArithmeticException
-	.globl _proto_java_lang_ClassCastException
+	.globl _asm_builtin_monitorenter
+	.globl _asm_builtin_monitorexit
+	.globl _asm_builtin_idiv
+	.globl _asm_builtin_irem
+	.globl _asm_builtin_ldiv
+	.globl _asm_builtin_lrem
+	.globl _asm_cacheflush
+	.globl _asm_initialize_thread_stack
+	.globl _asm_perform_threadswitch
+	.globl _asm_switchstackandcall
 
+	.globl _string_java_lang_NullPointerException
+	.globl _string_java_lang_ArrayIndexOutOfBoundsException
+	.globl _string_java_lang_ArrayStoreException
+	.globl _string_java_lang_ArithmeticException
+	.globl _string_java_lang_ArithmeticException_message
+	.globl _string_java_lang_ClassCastException
+
+	.globl _builtin_throw_exception
+	.globl _class_init
 	.globl _catch_Handler
+	.globl _new_exception
+	.globl _new_exception_message
+	.globl _new_exception_int
+
+	.globl _asm_sighandler
+
+jitcompile:
+	.long _jit_compile
+
+class_init:
+	.long _class_init
+		
+builtinthrow:
+	.long _builtin_throw_exception
+
+builtin_traceexception:
+	.long _builtin_trace_exception
+builtin_monitorenter:
+	.long _builtin_monitorenter
+builtin_monitorexit:
+	.long _builtin_monitorexit
+builtin_ldiv:
+	.long _builtin_ldiv
+builtin_lrem:
+	.long _builtin_lrem
+
+builtincanstore:
+	.long _builtin_canstore
+builtincheckarraycast:
+	.long _builtin_checkarraycast
+	
+new_exception:
+	.long _new_exception
+new_exception_message:
+	.long _new_exception_message
+new_exception_int:
+	.long _new_exception_int
+
+string_java_lang_NullPointerException:
+	.long _string_java_lang_NullPointerException
+string_java_lang_ArrayIndexOutOfBoundsException:
+	.long _string_java_lang_ArrayIndexOutOfBoundsException
+string_java_lang_ArrayStoreException:
+	.long _string_java_lang_ArrayStoreException
+string_java_lang_ArithmeticException:
+	.long _string_java_lang_ArithmeticException
+string_java_lang_ArithmeticException_message:
+	.long _string_java_lang_ArithmeticException_message
+string_java_lang_ClassCastException:
+	.long _string_java_lang_ClassCastException
+
+catch_Handler:
+	.long _catch_Handler
+
 		
 #define     MethodPointer   -8
 #define     FrameSize       -12
@@ -85,9 +177,6 @@
 #define     ExHandlerPC     -12
 #define     ExCatchType     -16
 
-	.align 2
-builtinthrow:
-	.long _builtin_throw_exception
 
 	.align 2
     .long   0                         /* catch type all                       */
@@ -104,7 +193,6 @@ builtinthrow:
 	.long   0                         /* padding                              */
 
 
-.globl _asm_docalljavamethod
 _asm_docalljavamethod:
 	mflr    r0
 	stw     r31,-4(r1)
@@ -203,9 +291,6 @@ calljava_xhandler:
     .long   0                         /* method pointer (pointer to name)     */
 	.long   0                         /* padding                              */
 
-.globl _asm_calljavafunction2
-.globl _asm_calljavafunction2long
-.globl _asm_calljavafunction2double
 _asm_calljavafunction2:
 _asm_calljavafunction2long:
 _asm_calljavafunction2double:
@@ -315,12 +400,6 @@ calljava_xhandler2:
 	b       calljava_regrestore2
 
 
-
-
-jitcompile:
-	.long _jit_compile
-
-.globl _asm_call_jit_compiler
 _asm_call_jit_compiler:
 0:
 	mflr    itmp1
@@ -418,18 +497,7 @@ noregchange:
 	bctr
 
 
-builtin_traceexception:
-	.long _builtin_trace_exception
-builtin_monitorenter:
-	.long _builtin_monitorenter
-builtin_monitorexit:
-	.long _builtin_monitorexit
-builtin_ldiv:
-	.long _builtin_ldiv
-builtin_lrem:
-	.long _builtin_lrem
 
-.globl _asm_handle_nat_exception
 _asm_handle_nat_exception:
 	mflr    r2
 	lwz     itmp3,4(r2)
@@ -443,7 +511,6 @@ _asm_handle_nat_exception:
 	slwi    itmp3,itmp3,16
 	add     pv,pv,itmp3
 
-	.globl _asm_handle_exception
 _asm_handle_exception:
 	addi    r1,r1,-18*4
 	stw     r0,0*4(r1)
@@ -474,193 +541,195 @@ ex_stack_loop:
 	stw     xptr,2*4(r1)
 	stw     r2,3*4(r1)
 
-	lwz     r3,0*4(r1)                  /* exception pointer                  */
-	lwz     r4,MethodPointer(pv)        /* method pointer                     */
-	mr      r5,xpc                      /* exception pc                       */
+	lwz     r3,0*4(r1)            /* exception pointer                        */
+	lwz     r4,MethodPointer(pv)  /* method pointer                           */
+	mr      r5,xpc                /* exception pc                             */
 /*	mr      r6,r2 */
-	li      r6,1                        /* set no unwind flag                 */
+	li      r6,0                  /* line number                              */
+	li      r7,4                  /* set no unwind flag                       */
 
 	bl      0f
 0:
 	mflr    itmp1
 	lwz     itmp1,lo16(builtin_traceexception-0b)(itmp1)
 	mtctr   itmp1
+	addi    r1,r1,-(24+5*4)       /* 24 linkage area + 5 argument * 4         */
+	bctrl
+	addi    r1,r1,(24+5*4)
+
+	lwz     xptr,2*4(r1)
+	mtlr    xptr
+	lwz     xptr,0*4(r1)          /* restore xptr                             */
+	lwz     xpc,1*4(r1)
+	lwz     r2,3*4(r1)
+	addi    r1,r1,4*4
+
+	lwz     r3,ExTableSize(pv)    /* r3 = exception table size                */
+	mr.     r3,r3                 /* if empty table skip                      */
+	beq     empty_table
+
+	addi    r4,pv,ExTableStart    /* r4 = start of exception table            */
+
+ex_table_loop:
+	lwz     r5,ExStartPC(r4)
+	cmplw   r5,xpc
+	bgt     ex_table_cont
+	lwz     r5,ExEndPC(r4)
+	cmplw   xpc,r5
+	bge     ex_table_cont
+	lwz     r7,ExCatchType(r4)
+	mr.     r7,r7
+	beq     ex_handle_it
+
+	lwz     r6,offobjvftbl(xptr)  /* r6 = vftblptr(xptr)                      */
+	lwz     r7,offclassvftbl(r7)  /* r7 = vftblptr(catchtype) class (not obj) */
+	lwz     r6,offbaseval(r6)     /* r6 = baseval(xptr)                       */
+	lwz     r8,offbaseval(r7)     /* r8 = baseval(catchtype)                  */
+	lwz     r7,offdiffval(r7)     /* r7 = diffval(catchtype)                  */
+	subf    r6,r8,r6              /* r6 = baseval(xptr) - baseval(catchtype)  */
+	cmplw   r6,r7                 /* xptr is instanceof catchtype             */
+	bgt     ex_table_cont         /* if (false) continue                      */
+
+ex_handle_it:
+	lwz     xpc,ExHandlerPC(r4)   /* xpc = exception handler pc               */
+	mr.     r2,r2
+	beq     ex_jump
+
+	lwz     r0,0*4(r1)
+	lwz     r2,1*4(r1)
+	lwz     r3,2*4(r1)
+	lwz     r4,3*4(r1)
+	lwz     r5,4*4(r1)
+	lwz     r6,5*4(r1)
+	lwz     r7,6*4(r1)
+	lwz     r8,7*4(r1)
+	lwz     r9,8*4(r1)
+	lwz     r10,9*4(r1)
+	lwz     r16,10*4(r1)
+	lwz     r17,11*4(r1)
+	lwz     r18,12*4(r1)
+	lwz     r19,13*4(r1)
+	lwz     r20,14*4(r1)
+	lwz     r21,15*4(r1)
+	lwz     r22,16*4(r1)
+	lwz     r23,17*4(r1)
+	addi    r1,r1,18*4
+
+ex_jump:
+	mtctr   xpc
+	bctr
+
+ex_table_cont:
+	addi    r4,r4,ExEntrySize
+	addic.  r3,r3,-1
+	bgt     ex_table_loop
+
+empty_table:
+	mr.     r2,r2                 /* if here the first time, then             */
+	beq     ex_already_cleared
+	addi    r1,r1,18*4            /* deallocate stack and                     */
+	li      r2,0                  /* clear the no unwind flag                 */
+ex_already_cleared:
+	lwz     r3,IsSync(pv)
+	mr.     r3,r3
+	beq     no_monitor_exit
+	add     r3,r1,r3
+	lwz     r6,-4(r3)
+
+	addi    r1,r1,-6*4
+	stw     r3,0*4(r1)
+	stw     r4,1*4(r1)
+	stw     r2,2*4(r1)
+	stw     xptr,3*4(r1)
+	stw     xpc,4*4(r1)
+	mflr    xptr
+	stw     xptr,5*4(r1)
+
+	mr      r3,r6
+	bl      0f
+0:
+	mflr    itmp1
+	lwz     itmp1,lo16(builtin_monitorexit-0b)(itmp1)
+	mtctr   itmp1
 	addi    r1,r1,-40
 	bctrl
 	addi    r1,r1,40
 
-	lwz xptr,2*4(r1)
-	mtlr xptr
-	lwz xptr,0*4(r1)
-	lwz xpc,1*4(r1)
-	lwz r2,3*4(r1)
-	addi r1,r1,4*4
-
-	lwz r3,ExTableSize(pv)
-	mr. r3,r3
-	beq empty_table
-	addi r4,pv,ExTableStart
-
-ex_table_loop:
-	lwz r5,ExStartPC(r4)
-	cmplw r5,xpc
-	bgt ex_table_cont
-	lwz r5,ExEndPC(r4)
-	cmplw xpc,r5
-	bge ex_table_cont
-	lwz r7,ExCatchType(r4)
-	mr. r7,r7
-	beq ex_handle_it
-
-	lwz r6,offobjvftbl(xptr)
-	lwz r7,offclassvftbl(r7)
-	lwz r6,offbaseval(r6)
-	lwz r8,offbaseval(r7)
-	lwz r7,offdiffval(r7)
-	subf r6,r8,r6
-	cmplw r6,r7
-	bgt ex_table_cont
-
-ex_handle_it:
-	lwz xpc,ExHandlerPC(r4)
-	mr. r2,r2
-	beq ex_jump
-
-	lwz r0,0*4(r1)
-	lwz r2,1*4(r1)
-	lwz r3,2*4(r1)
-	lwz r4,3*4(r1)
-	lwz r5,4*4(r1)
-	lwz r6,5*4(r1)
-	lwz r7,6*4(r1)
-	lwz r8,7*4(r1)
-	lwz r9,8*4(r1)
-	lwz r10,9*4(r1)
-	lwz r16,10*4(r1)
-	lwz r17,11*4(r1)
-	lwz r18,12*4(r1)
-	lwz r19,13*4(r1)
-	lwz r20,14*4(r1)
-	lwz r21,15*4(r1)
-	lwz r22,16*4(r1)
-	lwz r23,17*4(r1)
-	addi r1,r1,18*4
-
-ex_jump:
-	mtctr xpc
-	bctr
-
-ex_table_cont:
-	addi r4,r4,ExEntrySize
-	addic. r3,r3,-1
-	bgt ex_table_loop
-
-empty_table:
-	mr. r2,r2
-	beq ex_already_cleared
-	addi r1,r1,18*4
-	li r2,0
-ex_already_cleared:
-	lwz r3,IsSync(pv)
-	mr. r3,r3
-	beq no_monitor_exit
-	add r3,r1,r3
-	lwz r6,-4(r3)
-
-	addi r1,r1,-6*4
-	stw r3,0*4(r1)
-	stw r4,1*4(r1)
-	stw r2,2*4(r1)
-	stw xptr,3*4(r1)
-	stw xpc,4*4(r1)
-	mflr xptr
-	stw xptr,5*4(r1)
-
-	mr r3,r6
-	bl 0f
-0:
-	mflr itmp1
-	lwz itmp1,lo16(builtin_monitorexit-0b)(itmp1)
-	mtctr itmp1
-	addi r1,r1,-40
-	bctrl
-	addi r1,r1,40
-
-	lwz xptr,5*4(r1)
-	mtlr xptr
-	lwz r3,0*4(r1)
-	lwz r4,1*4(r1)
-	lwz r2,2*4(r1)
-	lwz xptr,3*4(r1)
-	lwz xpc,4*4(r1)
-	addi r1,r1,6*4
+	lwz     xptr,5*4(r1)
+	mtlr    xptr
+	lwz     r3,0*4(r1)
+	lwz     r4,1*4(r1)
+	lwz     r2,2*4(r1)
+	lwz     xptr,3*4(r1)
+	lwz     xpc,4*4(r1)
+	addi    r1,r1,6*4
 
 no_monitor_exit:
-	lwz r3,FrameSize(pv)
-	add r1,r1,r3
-	mr r3,r1
-	lwz r4,IsLeaf(pv)
-	mr. r4,r4
-	bne ex_no_restore
-	lwz r4,8(r3)
-	mtlr r4
+	lwz     r3,FrameSize(pv)      /* r3 = frame size                          */
+	add     r1,r1,r3              /* unwind stack                             */
+	mr      r3,r1                 /* r3 = pointer to save area                */
+	lwz     r4,IsLeaf(pv)         /* r4 = is leaf procedure                   */
+	mr.     r4,r4
+	bne     ex_no_restore         /* if (leaf) skip                           */
+	lwz     r4,8(r3)              /* restore ra                               */
+	mtlr    r4                    /* t0--                                     */
 ex_no_restore:
-	mflr r4
-	mr xpc,r4
-	lwz r4,IntSave(pv)
-	bl ex_int1
+	mflr    r4                    /* the new xpc is ra                        */
+	mr      xpc,r4
+	lwz     r4,IntSave(pv)        /* r4 = saved int register count            */
+	bl      ex_int1
 ex_int1:
-	mflr r5
-	addi r5,r5,lo16(ex_int2-ex_int1)
-	slwi r4,r4,2
-	subf r5,r4,r5
-	mtctr r5
+	mflr    r5
+	addi    r5,r5,lo16(ex_int2-ex_int1)
+	slwi    r4,r4,2
+	subf    r5,r4,r5
+	mtctr   r5
 	bctr
-	lwz r14,-40(r3)
-	lwz r15,-36(r3)
-	lwz r24,-32(r3)
-	lwz r25,-28(r3)
-	lwz r26,-24(r3)
-	lwz r27,-20(r3)
-	lwz r28,-16(r3)
-	lwz r29,-12(r3)
-	lwz r30,-8(r3)
-	lwz r31,-4(r3)
+	lwz     r14,-40(r3)
+	lwz     r15,-36(r3)
+	lwz     r24,-32(r3)
+	lwz     r25,-28(r3)
+	lwz     r26,-24(r3)
+	lwz     r27,-20(r3)
+	lwz     r28,-16(r3)
+	lwz     r29,-12(r3)
+	lwz     r30,-8(r3)
+	lwz     r31,-4(r3)
 ex_int2:
-	subf r3,r4,r3
+	subf    r3,r4,r3
 
-	lwz r4,FltSave(pv)
-	bl ex_flt1
+	lwz     r4,FltSave(pv)
+	bl      ex_flt1
 ex_flt1:
-	mflr r5
-	addi r5,r5,lo16(ex_flt2-ex_flt1)
-	slwi r4,r4,2
-	subf r5,r4,r5
-	mtctr r5
+	mflr    r5
+	addi    r5,r5,lo16(ex_flt2-ex_flt1)
+	slwi    r4,r4,2
+	subf    r5,r4,r5
+	mtctr   r5
 	bctr
-	lfd f14,-80(r3)
-	lfd f15,-72(r3)
-	lfd f24,-64(r3)
-	lfd f25,-56(r3)
-	lfd f26,-48(r3)
-	lfd f27,-40(r3)
-	lfd f28,-32(r3)
-	lfd f29,-24(r3)
-	lfd f30,-16(r3)
-	lfd f31,-8(r3)
+	lfd     f14,-80(r3)
+	lfd     f15,-72(r3)
+	lfd     f24,-64(r3)
+	lfd     f25,-56(r3)
+	lfd     f26,-48(r3)
+	lfd     f27,-40(r3)
+	lfd     f28,-32(r3)
+	lfd     f29,-24(r3)
+	lfd     f30,-16(r3)
+	lfd     f31,-8(r3)
 ex_flt2:
-	mtlr xpc
-	lwz itmp3,4(xpc)
-	extsh itmp3,itmp3
-	add pv,itmp3,xpc
-	lwz itmp3,8(xpc)
-	srwi itmp3,itmp3,16
-	cmpwi itmp3,0x3dad
-	bne ex_stack_loop
-	lwz itmp3,8(xpc)
-	slwi itmp3,itmp3,16
-	add pv,pv,itmp3
-	b ex_stack_loop
+	mtlr    xpc
+	lwz     itmp3,4(xpc)
+	extsh   itmp3,itmp3
+	add     pv,itmp3,xpc
+	lwz     itmp3,8(xpc)
+	srwi    itmp3,itmp3,16
+	cmpwi   itmp3,0x3dad
+	bne     ex_stack_loop
+	lwz     itmp3,8(xpc)
+	slwi    itmp3,itmp3,16
+	add     pv,pv,itmp3
+	b       ex_stack_loop
 
 
 /********************* asm_check_clinit ****************************************
@@ -669,9 +738,6 @@ ex_flt2:
 *                                                                              *
 *******************************************************************************/
 
-class_init:
-	.long _class_init
-		
 _asm_check_clinit:
 0:
 	lwz     itmp2,offclassinit(itmp1)
@@ -741,301 +807,346 @@ L_is_initialized:
 	blr
 
 
+/******************* function asm_builtin_checkarraycast ***********************
+*                                                                              *
+*   Does the cast check and eventually throws an exception                     *
+*                                                                              *
+*******************************************************************************/
+		
 _asm_builtin_checkarraycast:
 0:
-	mflr r0
-	stw r0,8(r1)
-	stwu r1,-48(r1)
+	mflr    r0
+	stw     r0,8(r1)
+	stwu    r1,-48(r1)
 
-	stw r3,32(r1)
-	lwz itmp1,lo16(builtincheckarraycast-0b)(pv)
-	mtctr itmp1
+	stw     r3,32(r1)
+	lwz     itmp1,lo16(builtincheckarraycast-0b)(pv)
+	mtctr   itmp1
 	bctrl
 
-	lwz r0,48+8(r1)
-	mtlr r0
-	mr. r3,r3
-	beq nb_carray_throw
-	lwz r3,32(r1)
-	addi r1,r1,48
+	lwz     r0,48+8(r1)
+	mtlr    r0
+	mr.     r3,r3
+	beq     nb_carray_throw
+	lwz     r3,32(r1)
+	addi    r1,r1,48
 	blr
 
 nb_carray_throw:
-	lwz xptr,lo16(proto_java_lang_ClassCastException-0b)(pv)
-	lwz xptr,0(xptr)
-	addi r1,r1,48
-	mflr xpc
-	b _asm_handle_nat_exception
+	addi    r1,r1,48
+	mflr    r0
+	stw     r0,8(r1)
+	addi    r1,r1,-(24+4)
+	lwz     r3,lo16(string_java_lang_ClassCastException-0b)(pv)
+	lwz     r3,0(r3)
+	lwz     itmp1,lo16(new_exception-0b)(pv)
+	mtctr   itmp1
+	bctrl
+	mr      xptr,r3
+	addi    r1,r1,24+4
+	lwz     r0,8(r1)
+	mr      xpc,r0
+	mtlr    r0
+	b       _asm_handle_nat_exception
 
-.globl _asm_builtin_checkcast
-_asm_builtin_checkcast:
-0:
-	lwz xptr,lo16(proto_java_lang_NullPointerException-0b)(pv)
-	lwz xptr,0(xptr)
-	mflr xpc
-	b _asm_handle_nat_exception
 
-
+/******************* function asm_builtin_aastore ******************************
+*                                                                              *
+*   Does the cast check and eventually throws an exception                     *
+*                                                                              *
+*******************************************************************************/
 	
-	
-	
-	
-	
-builtincanstore:
-	.long _builtin_canstore
-builtincheckarraycast:
-	.long _builtin_checkarraycast
-	
-.globl _asm_builtin_aastore
 _asm_builtin_aastore:
 0:
-	mr. r3,r3
-	beq nb_aastore_null
-	mflr r0
-	stw r0,8(r1)
-	stwu r1,-48(r1)
+	mr.     r3,r3
+	beq     nb_aastore_null
+	mflr    r0
+	stw     r0,8(r1)
+	addi    r1,r1,-48
 
-	lwz itmp1,offarraysize(r3)
-	slwi itmp3,r4,2
-	add itmp2,r3,itmp3
-	cmplw r4,itmp1
-	bge nb_aastore_bound
-	mr r4,r5
-	stw itmp2,32(r1)
-	stw r4,36(r1)
-//	addis pv,r31,ha16(builtincanstore-0b)
-	lwz itmp1,lo16(builtincanstore-0b)(pv)
-	mtctr itmp1
+	lwz     itmp1,offarraysize(r3)
+	slwi    itmp3,r4,2
+	add     itmp2,r3,itmp3
+	cmplw   r4,itmp1
+	bge     nb_aastore_bound
+	mr      r4,r5
+	stw     itmp2,32(r1)
+	stw     r4,36(r1)
+//	addis   pv,r31,ha16(builtincanstore-0b)
+	lwz     itmp1,lo16(builtincanstore-0b)(pv)
+	mtctr   itmp1
 	bctrl
 
-	lwz r0,48+8(r1)
-	mtlr r0
-	lwz itmp1,32(r1)
-	lwz itmp2,36(r1)
-	addi r1,r1,48
-	mr. r3,r3
-	beq nb_aastore_throw
-	stw itmp2,offobjarrdata(itmp1)
+	lwz     r0,48+8(r1)
+	mtlr    r0
+	lwz     itmp1,32(r1)
+	lwz     itmp2,36(r1)
+	addi    r1,r1,48
+	mr.     r3,r3
+	beq     nb_aastore_store
+	stw     itmp2,offobjarrdata(itmp1)
 	blr
-
-proto_java_lang_NullPointerException:
-	.long _proto_java_lang_NullPointerException
-proto_java_lang_ArrayIndexOutOfBoundsException:
-	.long _proto_java_lang_ArrayIndexOutOfBoundsException
-proto_java_lang_ArrayStoreException:
-	.long _proto_java_lang_ArrayStoreException
-proto_java_lang_ArithmeticException:
-	.long _proto_java_lang_ArithmeticException
-proto_java_lang_ClassCastException:
-	.long _proto_java_lang_ClassCastException
 
 nb_aastore_null:
-	lwz xptr,lo16(proto_java_lang_NullPointerException-0b)(pv)
-	lwz xptr,0(xptr)
-	mflr xpc
-	b _asm_handle_nat_exception
-nb_aastore_bound:
-	lwz xptr,lo16(proto_java_lang_ArrayIndexOutOfBoundsException-0b)(pv)
-	lwz xptr,0(xptr)
-	addi r1,r1,48
-	mflr xpc
-	b _asm_handle_nat_exception
-nb_aastore_throw:
-	lwz xptr,lo16(proto_java_lang_ArrayStoreException-0b)(pv)
-	lwz xptr,0(xptr)
-	mflr xpc
-	b _asm_handle_nat_exception
-
-
-
-.globl _asm_dumpregistersandcall
-_asm_dumpregistersandcall:
-	mflr r0
-	stw r0,8(r1)
-
-	stw r16,-72(r1)
-	stw r17,-68(r1)
-	stw r18,-64(r1)
-	stw r19,-60(r1)
-	stw r20,-56(r1)
-	stw r21,-52(r1)
-	stw r22,-48(r1)
-	stw r23,-44(r1)
-
-	stw r14,-40(r1)
-	stw r15,-36(r1)
-	stw r24,-32(r1)
-	stw r25,-28(r1)
-	stw r26,-24(r1)
-	stw r27,-20(r1)
-	stw r28,-16(r1)
-	stw r29,-12(r1)
-	stw r30,-8(r1)
-	stw r31,-4(r1)
-	addi r1,r1,-96
-
-	mtctr r3
+	mflr    r0
+	stw     r0,8(r1)
+	addi    r1,r1,-(24+4)
+	lwz     r3,lo16(string_java_lang_NullPointerException-0b)(pv)
+	lwz     r3,0(r3)
+	lwz     itmp1,lo16(new_exception-0b)(pv)
+	mtctr   itmp1
 	bctrl
+	mr      xptr,r3
+	addi    r1,r1,(24+4)
+	lwz     r0,8(r1)
+	mr      xpc,r0
+	mtlr    r0
+	b       _asm_handle_nat_exception
 
-	lwz r0,96+8(r1)
-	mtlr r0
-	addi r1,r1,96
-	blr
+nb_aastore_bound:
+	addi    r1,r1,48
+	mflr    r0
+	stw     r0,8(r1)
+	addi    r1,r1,-(24+2*4)
+	lwz     r3,lo16(string_java_lang_ArrayIndexOutOfBoundsException-0b)(pv)
+	lwz     r3,0(r3)
+	lwz     itmp1,lo16(new_exception_int-0b)(pv)
+	mtctr   itmp1
+	bctrl                         /* r4 already contains the index            */
+	mr      xptr,r3
+	addi    r1,r1,(24+2*4)
+	lwz     r0,8(r1)
+	mr      xpc,r0
+	mtlr    r0
+	b       _asm_handle_nat_exception
 
-	
-	
-.globl _asm_builtin_monitorenter
+nb_aastore_store:
+	mflr    r0
+	stw     r0,8(r1)
+	addi    r1,r1,-(24+4)
+	lwz     r3,lo16(string_java_lang_ArrayStoreException-0b)(pv)
+	lwz     r3,0(r3)
+	lwz     itmp1,lo16(new_exception-0b)(pv)
+	mtctr   itmp1
+	bctrl
+	mr      xptr,r3
+	addi    r1,r1,(24+4)
+	lwz     r0,8(r1)
+	mr      xpc,r0
+	mtlr    r0
+	b       _asm_handle_nat_exception
+
+
 _asm_builtin_monitorenter:
 0:
-	lwz itmp2,lo16(builtin_monitorenter-0b)(pv)
-	mr. r3,r3
-	beq nb_monitorenter
-	mtctr itmp2
+	lwz     itmp2,lo16(builtin_monitorenter-0b)(pv)
+	mr.     r3,r3
+	beq     nb_monitorenter
+	mtctr   itmp2
 	bctr
-nb_monitorenter:
-	mflr r2
-	lwz xptr,lo16(proto_java_lang_NullPointerException-0b)(pv)
-	lwz xptr,0(xptr)
-	addi xpc,r2,-4
-	b _asm_handle_nat_exception
 
-.globl _asm_builtin_monitorexit
+nb_monitorenter:
+	mflr    r0
+	stw     r0,8(r1)
+	addi    r1,r1,-(24+4)
+	lwz     r3,lo16(string_java_lang_NullPointerException-0b)(pv)
+	lwz     r3,0(r3)
+	lwz     itmp1,lo16(new_exception-0b)(pv)
+	mtctr   itmp1
+	bctrl
+	mr      xptr,r3
+	addi    r1,r1,24+4
+	lwz     r0,8(r1)
+/*	addi    xpc,r0,-4 */
+	mr      xpc,r0
+	addi    xpc,xpc,-4
+
+	mtlr    r0
+	b       _asm_handle_nat_exception
+
+
 _asm_builtin_monitorexit:
 0:
-	lwz itmp2,lo16(builtin_monitorexit-0b)(pv)
-	mr. r3,r3
-	beq nb_monitorexit
-	mtctr itmp2
+	lwz     itmp2,lo16(builtin_monitorexit-0b)(pv)
+	mr.     r3,r3
+	beq     nb_monitorexit
+	mtctr   itmp2
 	bctr
+
 nb_monitorexit:
-	mflr r2
-	lwz xptr,lo16(proto_java_lang_NullPointerException-0b)(pv)
-	lwz xptr,0(xptr)
-	addi xpc,r2,-4
-	b _asm_handle_nat_exception
-	
-	
-	
-	
-	
-.globl _synchronize_caches
-_synchronize_caches:
-	blr
-.globl _asm_getcallingmethod
-_asm_getcallingmethod:
-	li r3,0
-	blr
+	mflr    r0
+	stw     r0,8(r1)
+	addi    r1,r1,-(24+4)
+	lwz     r3,lo16(string_java_lang_NullPointerException-0b)(pv)
+	lwz     r3,0(r3)
+	lwz     itmp1,lo16(new_exception-0b)(pv)
+	mtctr   itmp1
+	bctrl
+	mr      xptr,r3
+	addi    r1,r1,24+4
+	lwz     r0,8(r1)
+/*	addi    xpc,r0,-4 */
+	mr      xpc,r0
+	addi    xpc,xpc,-4
 
-.globl _asm_builtin_ldiv
-_asm_builtin_ldiv:
-0:
-	or. r0,r5,r6
-	beq nb_ldiv
-	lwz itmp1,lo16(builtin_ldiv-0b)(pv)
-	mtctr itmp1
-	bctr
-nb_ldiv:
-	lwz xptr,lo16(proto_java_lang_ArithmeticException-0b)(pv)
-	lwz xptr,0(xptr)
-	mflr xpc
-	b _asm_handle_nat_exception
-
-.globl _asm_builtin_lrem
-_asm_builtin_lrem:
-0:
-	or. r0,r5,r6
-	beq nb_lrem
-	lwz itmp1,lo16(builtin_lrem-0b)(pv)
-	mtctr itmp1
-	bctr
-nb_lrem:
-	lwz xptr,lo16(proto_java_lang_ArithmeticException-0b)(pv)
-	lwz xptr,0(xptr)
-	mflr xpc
-	b _asm_handle_nat_exception
-
-.globl _asm_builtin_idiv
+	mtlr    r0
+	b       _asm_handle_nat_exception
+	
+	
 _asm_builtin_idiv:
 0:
-	mr. r4,r4
-	beq nb_idiv
-	lis itmp3,0x8000
-	cmpw r3,itmp3
-	bne normal_idiv
-	cmpwi r4,-1
-	bne normal_idiv
+	mr.     r4,r4
+	beq     nb_idiv
+	lis     itmp3,0x8000
+	cmpw    r3,itmp3
+	bne     normal_idiv
+	cmpwi   r4,-1
+	bne     normal_idiv
 	blr
-normal_idiv:
-	divw r3,r3,r4
-	blr
-nb_idiv:
-	lwz xptr,lo16(proto_java_lang_ArithmeticException-0b)(pv)
-	lwz xptr,0(xptr)
-	mflr xpc
-	b _asm_handle_nat_exception
 
-.globl _asm_builtin_irem
+normal_idiv:
+	divw    r3,r3,r4
+	blr
+
+nb_idiv:
+	mflr    r0
+	stw     r0,8(r1)
+	addi    r1,r1,-(24+2*4)
+	lwz     r3,lo16(string_java_lang_ArithmeticException-0b)(pv)
+	lwz     r3,0(r3)
+	lwz     r4,lo16(string_java_lang_ArithmeticException_message-0b)(pv)
+	lwz     r4,0(r4)
+	lwz     itmp1,lo16(new_exception_message-0b)(pv)
+	mtctr   itmp1
+	bctrl
+	mr      xptr,r3
+	addi    r1,r1,(24+2*4)
+	lwz     r0,8(r1)
+	mr      xpc,r0
+	mtlr    r0
+	b       _asm_handle_nat_exception
+
+
 _asm_builtin_irem:
 0:
-	mr itmp2,r3
-	mr. r4,r4
-	beq nb_irem
-	lis itmp3,0x8000
-	cmpw itmp2,itmp3
-	bne normal_irem
-	cmpwi r4,-1
-	bne normal_irem
-	li r3,0
+	mr      itmp2,r3
+	mr.     r4,r4
+	beq     nb_irem
+	lis     itmp3,0x8000
+	cmpw    itmp2,itmp3
+	bne     normal_irem
+	cmpwi   r4,-1
+	bne     normal_irem
+	li      r3,0
 	beqlr
+
 normal_irem:
-	divw itmp3,itmp2,r4
-	mullw itmp3,itmp3,r4
-	subf r3,itmp3,itmp2
+	divw    itmp3,itmp2,r4
+	mullw   itmp3,itmp3,r4
+	subf    r3,itmp3,itmp2
 	blr
+
 nb_irem:
-	lwz xptr,lo16(proto_java_lang_ArithmeticException-0b)(pv)
-	lwz xptr,0(xptr)
-	mflr xpc
-	b _asm_handle_nat_exception
+	mflr    r0
+	stw     r0,8(r1)
+	addi    r1,r1,-(24+2*4)
+	lwz     r3,lo16(string_java_lang_ArithmeticException-0b)(pv)
+	lwz     r3,0(r3)
+	lwz     r4,lo16(string_java_lang_ArithmeticException_message-0b)(pv)
+	lwz     r4,0(r4)
+	lwz     itmp1,lo16(new_exception_message-0b)(pv)
+	mtctr   itmp1
+	bctrl
+	mr      xptr,r3
+	addi    r1,r1,(24+2*4)
+	lwz     r0,8(r1)
+	mr      xpc,r0
+	mtlr    r0
+	b       _asm_handle_nat_exception
 
 
-	
-	
-.globl _has_no_x_instr_set
-_has_no_x_instr_set:
-	li r3,0
-	blr
+_asm_builtin_ldiv:
+0:
+	or.     r0,r5,r6
+	beq     nb_ldiv
+	lwz     itmp1,lo16(builtin_ldiv-0b)(pv)
+	mtctr   itmp1
+	bctr
+
+nb_ldiv:
+	mflr    r0
+	stw     r0,8(r1)
+	addi    r1,r1,-(24+2*4)
+	lwz     r3,lo16(string_java_lang_ArithmeticException-0b)(pv)
+	lwz     r3,0(r3)
+	lwz     r4,lo16(string_java_lang_ArithmeticException_message-0b)(pv)
+	lwz     r4,0(r4)
+	lwz     itmp1,lo16(new_exception_message-0b)(pv)
+	mtctr   itmp1
+	bctrl
+	mr      xptr,r3
+	addi    r1,r1,(24+2*4)
+	lwz     r0,8(r1)
+	mr      xpc,r0
+	mtlr    r0
+	b       _asm_handle_nat_exception
 
 
-	.globl _asm_cacheflush
+ _asm_builtin_lrem:
+0:
+	or.     r0,r5,r6
+	beq     nb_lrem
+	lwz     itmp1,lo16(builtin_lrem-0b)(pv)
+	mtctr   itmp1
+	bctr
+
+nb_lrem:
+	mflr    r0
+	stw     r0,8(r1)
+	addi    r1,r1,-(24+2*4)
+	lwz     r3,lo16(string_java_lang_ArithmeticException-0b)(pv)
+	lwz     r3,0(r3)
+	lwz     r4,lo16(string_java_lang_ArithmeticException_message-0b)(pv)
+	lwz     r4,0(r4)
+	lwz     itmp1,lo16(new_exception_message-0b)(pv)
+	mtctr   itmp1
+	bctrl
+	mr      xptr,r3
+	addi    r1,r1,(24+2*4)
+	lwz     r0,8(r1)
+	mr      xpc,r0
+	mtlr    r0
+	b       _asm_handle_nat_exception
+
+
 _asm_cacheflush:
-	addi r4,r4,31
-	mr r5,r3
-	add r4,r3,r4
+	addi    r4,r4,31
+	mr      r5,r3
+	add     r4,r3,r4
 1:
-	cmplw r3,r4
-	bge 0f
-	dcbst 0,r3
-	addi r3,r3,32
-	b 1b
+	cmplw   r3,r4
+	bge     0f
+	dcbst   0,r3
+	addi    r3,r3,32
+	b       1b
 0:
 	sync
 1:
-	cmplw r5,r4
-	bge 0f
-	icbi 0,r5
-	addi r5,r5,32
-	b 1b
+	cmplw   r5,r4
+	bge     0f
+	icbi    0,r5
+	addi    r5,r5,32
+	b       1b
 0:
 	sync
 	isync
 	blr
 
+
 	.align 3
 doublezero:
 	.double 0.0
 
-.globl _asm_initialize_thread_stack
 _asm_initialize_thread_stack:
 	addi r4,r4,-256
 	stw r3,120(r4)
@@ -1091,7 +1202,7 @@ _asm_initialize_thread_stack:
 	mr r3,r4
 	blr
 
-.globl _asm_perform_threadswitch
+
 _asm_perform_threadswitch:
 	mflr r0
 	addi r1,r1,-224
@@ -1184,8 +1295,6 @@ _asm_perform_threadswitch:
 	blr
 
 
-
-.globl _asm_switchstackandcall
 _asm_switchstackandcall:
 	mflr r0
 	addi r3,r3,-48
@@ -1204,28 +1313,8 @@ _asm_switchstackandcall:
 	blr
 
 
-
-	.globl _my_dump
-_my_dump:
-	mflr r0
-	bl 0f
-0:
-	mflr itmp1
-	mtlr r0
-	lwz xptr,lo16(proto_java_lang_NullPointerException-0b)(itmp1)
-	lwz xptr,0(xptr)
-	b _asm_handle_exception
-
-
-
-
-
 #define C_RED_ZONE 224
 
-catch_Handler:
-	.long _catch_Handler
-
-	.globl _asm_sighandler
 _asm_sighandler:
 	addi r1,r1,-32*4 - 32 - C_RED_ZONE
 	stmw r0,32(r1)
