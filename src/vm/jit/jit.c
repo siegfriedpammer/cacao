@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 923 2004-02-24 13:28:08Z edwin $
+   $Id: jit.c 941 2004-03-06 17:27:56Z jowenn $
 
 */
 
@@ -153,6 +153,8 @@ int maxstack;                   /* maximal JavaVM stack size                  */
 int maxlocals;                  /* maximal number of local JavaVM variables   */
 int jcodelength;                /* length of JavaVM-codes                     */
 u1 *jcode;                      /* pointer to start of JavaVM-code            */
+lineinfo *jlinenumbers;		/* line information array		      */
+u2 jlinenumbercount;		/* number of entries in the linenumber array  */
 int exceptiontablelength;       /* length of exception table                  */
 xtable *extable;                /* pointer to start of exception table        */
 exceptiontable *raw_extable;
@@ -1517,6 +1519,8 @@ methodptr jit_compile(methodinfo *m)
 	maxlocals = m->maxlocals;
 	jcodelength = m->jcodelength;
 	jcode = m->jcode;
+	jlinenumbers = m->linenumbers;
+	jlinenumbercount = m->linenumbercount;
 	exceptiontablelength = m->exceptiontablelength;
 	raw_extable = m->exceptiontable;
 	regs_ok = false;

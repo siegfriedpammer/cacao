@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 940 2004-03-06 14:04:15Z jowenn $
+   $Id: loader.c 941 2004-03-06 17:27:56Z jowenn $
 
 */
 
@@ -86,6 +86,7 @@ static utf *utf_innerclasses; 		/* InnerClasses            */
 static utf *utf_constantvalue; 		/* ConstantValue           */
 static utf *utf_code;			    /* Code                    */
 static utf *utf_exceptions;		/* Exceptions                    */
+static utf *utf_linenumbertable;		/* LineNumberTable                    */
 static utf *utf_finalize;		    /* finalize                */
 static utf *utf_fidesc;   		    /* ()V changed             */
 static utf *utf_init;  		        /* <init>                  */
@@ -1047,6 +1048,8 @@ static void method_load(methodinfo *m, classinfo *c)
 	count_all_methods++;
 #endif
 	m->thrownexceptionscount=0;
+	m->linenumbercount=0;
+	m->linenumbers=0;
 	m->class = c;
 	
 	m->flags = suck_u2();
@@ -1183,8 +1186,28 @@ static void method_load(methodinfo *m, classinfo *c)
 				      class_getconstant(c, idx, CONSTANT_Class);
 				}
 			}			
-
-			skipattributes(suck_u2());
+			{
+				u2 codeattrnum;
+				for (codeattrnum=suck_u2();codeattrnum>0;codeattrnum--) {
+					utf * caname = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
+					if (caname==utf_linenumbertable) {
+						u2 lncid;
+						/*log_text("LineNumberTable found");*/
+						suck_u4();
+						m->linenumbercount=suck_u2();
+						/*printf("length:%d\n",m->linenumbercount);*/
+						m->linenumbers=MNEW(lineinfo,m->linenumbercount);
+						for (lncid=0;lncid<m->linenumbercount;lncid++) {
+							m->linenumbers[lncid].start_pc=suck_u2();
+							m->linenumbers[lncid].line_number=suck_u2();
+						}
+						codeattrnum--;
+						skipattributes(codeattrnum);
+						break;
+					} else skipattributebody();
+					
+				}				
+			}
 		}
 	}
 
@@ -3755,6 +3778,7 @@ void loader_init(u1 *stackbottom)
 	utf_constantvalue   = utf_new_char("ConstantValue");
 	utf_code	        = utf_new_char("Code");
 	utf_exceptions	        = utf_new_char("Exceptions");
+	utf_linenumbertable	= utf_new_char("LineNumberTable");
 	utf_finalize	    = utf_new_char("finalize");
 	utf_fidesc	        = utf_new_char("()V");
 	utf_init	        = utf_new_char("<init>");

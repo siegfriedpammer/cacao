@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 893 2004-01-19 12:53:24Z edwin $
+   $Id: parse.c 941 2004-03-06 17:27:56Z jowenn $
 
 */
 
@@ -344,13 +344,13 @@ void descriptor2types(methodinfo *m)
 #define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;PINC
 #define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;PINC
 #define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);PINC
-#define OP2A(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.a=(v);PINC
-#define BUILTIN1(v,t)  isleafmethod=false;iptr->opc=ICMD_BUILTIN1;iptr->op1=t;\
-                       iptr->val.a=(v);PINC
-#define BUILTIN2(v,t)  isleafmethod=false;iptr->opc=ICMD_BUILTIN2;iptr->op1=t;\
-                       iptr->val.a=(v);PINC
-#define BUILTIN3(v,t)  isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
-                       iptr->val.a=(v);PINC
+#define OP2A(o,o1,v,l)   iptr->opc=(o);iptr->op1=(o1);iptr->val.a=(v);iptr->line=l;PINC
+#define BUILTIN1(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN1;iptr->op1=t;\
+                       iptr->val.a=(v);iptr->line=l;PINC
+#define BUILTIN2(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN2;iptr->op1=t;\
+                       iptr->val.a=(v);iptr->line=l;PINC
+#define BUILTIN3(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
+                       iptr->val.a=(v);iptr->line=l;PINC
 
 /* We have to check local variables indices here because they are
  * used in stack.c to index the locals array. */
@@ -471,6 +471,10 @@ void parse()
 	xtable* nextex;             /* points next free entry in extable          */
 	u1 *instructionstart;       /* 1 for pcs which are valid instr. starts    */
 
+	u2 lineindex=0;
+	u2 currentline=0;
+	u2 linepcchange=0;
+
 	bool useinltmp;
 
 	if (compileverbose) {
@@ -588,14 +592,31 @@ void parse()
 #endif
 
 	/* scan all java instructions */
+	currentline=0;
+	linepcchange=0;
+	if (jlinenumbercount==0) {
+		lineindex=0;
+	} else {
+		linepcchange=jlinenumbers[0].start_pc;
+	}
 
 	for (p = 0, gp = 0; p < jcodelength; gp += (nextp - p), p = nextp) {
 	  
 		/* DEBUG */	  /*printf("p:%d gp:%d ",p,gp);*/
 
 		/* mark this position as a valid instruction start */
-		if (!iswide)
+		if (!iswide) {
 			instructionstart[p] = 1;
+			if (linepcchange==p) {
+				if (jlinenumbercount>lineindex) {
+					currentline=jlinenumbers[lineindex].line_number;
+					lineindex++;
+					if (lineindex<jlinenumbercount)
+						linepcchange=jlinenumbers[lineindex].start_pc;
+/*					printf("Line number changed to: %ld\n",currentline);*/
+				}
+			}
+		}
 
 		/*INLINING*/
 		if ((useinlining) && (gp == nextgp)) {
@@ -882,28 +903,28 @@ void parse()
 			OP2I(ICMD_CHECKASIZE, 0, 0);
 			switch (code_get_s1(p + 1)) {
 			case 4:
-				BUILTIN1(BUILTIN_newarray_boolean, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_boolean, TYPE_ADR,currentline);
 				break;
 			case 5:
-				BUILTIN1(BUILTIN_newarray_char, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_char, TYPE_ADR,currentline);
 				break;
 			case 6:
-				BUILTIN1(BUILTIN_newarray_float, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_float, TYPE_ADR,currentline);
 				break;
 			case 7:
-				BUILTIN1(BUILTIN_newarray_double, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_double, TYPE_ADR,currentline);
 				break;
 			case 8:
-				BUILTIN1(BUILTIN_newarray_byte, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_byte, TYPE_ADR,currentline);
 				break;
 			case 9:
-				BUILTIN1(BUILTIN_newarray_short, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_short, TYPE_ADR,currentline);
 				break;
 			case 10:
-				BUILTIN1(BUILTIN_newarray_int, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_int, TYPE_ADR,currentline);
 				break;
 			case 11:
-				BUILTIN1(BUILTIN_newarray_long, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_long, TYPE_ADR,currentline);
 				break;
 			default: panic("Invalid array-type to create");
 			}
@@ -918,7 +939,7 @@ void parse()
 
 				s_count++;
 
-				BUILTIN2(BUILTIN_newarray, TYPE_ADR);
+				BUILTIN2(BUILTIN_newarray, TYPE_ADR,currentline);
 			}
 			break;
 
@@ -928,7 +949,7 @@ void parse()
 			{
 				int v = code_get_u1(p + 3);
  				vftbl *arrayvftbl = ((classinfo*)class_getconstant (class, i, CONSTANT_Class))->vftbl;
- 				OP2A(opcode, v, arrayvftbl);			
+ 				OP2A(opcode, v, arrayvftbl,currentline);			
 			}
 			break;
 
@@ -1038,7 +1059,7 @@ void parse()
 					tablep = DMNEW(s4, num * 2 + 2);
 				}
 
-				OP2A(opcode, 0, tablep);
+				OP2A(opcode, 0, tablep,currentline);
 
 				/* default target */
 
@@ -1108,7 +1129,7 @@ void parse()
 					tablep = DMNEW(s4, num + 1 + 3);
 				}
 
-				OP2A(opcode, 0, tablep);
+				OP2A(opcode, 0, tablep,currentline);
 
 				/* default target */
 
@@ -1160,7 +1181,7 @@ void parse()
 			/* load and store of object fields *******************/
 
 		case JAVA_AASTORE:
-			BUILTIN3(BUILTIN_aastore, TYPE_VOID);
+			BUILTIN3(BUILTIN_aastore, TYPE_VOID,currentline);
 			break;
 
 		case JAVA_PUTSTATIC:
@@ -1171,7 +1192,7 @@ void parse()
 				fieldinfo *fi;
 				fr = class_getconstant(class, i, CONSTANT_Fieldref);
 				fi = class_findfield(fr->class, fr->name, fr->descriptor);
-				OP2A(opcode, fi->type, fi);
+				OP2A(opcode, fi->type, fi,currentline);
 				if (!fi->class->initialized) {
 					isleafmethod = false;
 				}
@@ -1186,7 +1207,7 @@ void parse()
 				fieldinfo *fi;
 				fr = class_getconstant (class, i, CONSTANT_Fieldref);
 				fi = class_findfield (fr->class, fr->name, fr->descriptor);
-				OP2A(opcode, fi->type, fi);
+				OP2A(opcode, fi->type, fi,currentline);
 			}
 			break;
 
@@ -1211,7 +1232,7 @@ void parse()
 				descriptor2types(mi);
 
 				isleafmethod=false;
-				OP2A(opcode, mi->paramcount, mi);
+				OP2A(opcode, mi->paramcount, mi,currentline);
 			}
 			break;
 
@@ -1235,7 +1256,7 @@ void parse()
 					panic ("Static/Nonstatic mismatch calling static method");
 				descriptor2types(mi);
 				isleafmethod=false;
-				OP2A(opcode, mi->paramcount, mi);
+				OP2A(opcode, mi->paramcount, mi,currentline);
 			}
 			break;
 
@@ -1251,7 +1272,7 @@ void parse()
 					panic ("Static/Nonstatic mismatch calling static method");
 				descriptor2types(mi);
 				isleafmethod=false;
-				OP2A(opcode, mi->paramcount, mi);
+				OP2A(opcode, mi->paramcount, mi,currentline);
 			}
 			break;
 
@@ -1262,7 +1283,7 @@ void parse()
 
 			LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
 			s_count++;
-			BUILTIN1(BUILTIN_new, TYPE_ADR);
+			BUILTIN1(BUILTIN_new, TYPE_ADR,currentline);
 			break;
 
 		case JAVA_CHECKCAST:
@@ -1276,15 +1297,15 @@ void parse()
  						/* array type cast-check */
  						LOADCONST_A_BUILTIN(cls->vftbl);
  						s_count++;
- 						BUILTIN2(BUILTIN_checkarraycast, TYPE_ADR);
+ 						BUILTIN2(BUILTIN_checkarraycast, TYPE_ADR,currentline);
   					}
  					else { /* object type cast-check */
  						/*
 + 						  LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
 + 						  s_count++;
-+ 						  BUILTIN2(BUILTIN_checkcast, TYPE_ADR);
++ 						  BUILTIN2(BUILTIN_checkcast, TYPE_ADR,currentline);
 + 						*/
- 						OP2A(opcode, 1, cls);
+ 						OP2A(opcode, 1, cls,currentline);
   					}
  				}
 
@@ -1302,15 +1323,15 @@ void parse()
  						/* array type cast-check */
  						LOADCONST_A_BUILTIN(cls->vftbl);
  						s_count++;
- 						BUILTIN2(BUILTIN_arrayinstanceof, TYPE_INT);
+ 						BUILTIN2(BUILTIN_arrayinstanceof, TYPE_INT,currentline);
   					}
  					else { /* object type cast-check */
  						/*
  						  LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
  						  s_count++;
- 						  BUILTIN2(BUILTIN_instanceof, TYPE_INT);
+ 						  BUILTIN2(BUILTIN_instanceof, TYPE_INT,currentline);
 + 						*/
- 						OP2A(opcode, 1, cls);
+ 						OP2A(opcode, 1, cls,currentline);
   					}
  				}
 			break;
@@ -1318,7 +1339,7 @@ void parse()
 		case JAVA_MONITORENTER:
 #ifdef USE_THREADS
 			if (checksync) {
-				BUILTIN1(BUILTIN_monitorenter, TYPE_VOID);
+				BUILTIN1(BUILTIN_monitorenter, TYPE_VOID,currentline);
 			} else
 #endif
 				{
@@ -1329,7 +1350,7 @@ void parse()
 		case JAVA_MONITOREXIT:
 #ifdef USE_THREADS
 			if (checksync) {
-				BUILTIN1(BUILTIN_monitorexit, TYPE_VOID);
+				BUILTIN1(BUILTIN_monitorexit, TYPE_VOID,currentline);
 			}
 			else
 #endif
@@ -1360,7 +1381,7 @@ void parse()
 #if defined(__I386__)
 			OP(opcode);
 #else
-			BUILTIN2(BUILTIN_frem, TYPE_FLOAT);
+			BUILTIN2(BUILTIN_frem, TYPE_FLOAT,currentline);
 #endif
 			break;
 
@@ -1368,14 +1389,14 @@ void parse()
 #if defined(__I386__)
 			OP(opcode);
 #else
-			BUILTIN2(BUILTIN_drem, TYPE_DOUBLE);
+			BUILTIN2(BUILTIN_drem, TYPE_DOUBLE,currentline);
 #endif
 			break;
 
 		case JAVA_F2I:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
-				BUILTIN1(BUILTIN_f2i, TYPE_INT);
+				BUILTIN1(BUILTIN_f2i, TYPE_INT,currentline);
 			} else
 #endif
 				{
@@ -1386,7 +1407,7 @@ void parse()
 		case JAVA_F2L:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
-				BUILTIN1(BUILTIN_f2l, TYPE_LONG);
+				BUILTIN1(BUILTIN_f2l, TYPE_LONG,currentline);
 			} else 
 #endif
 				{
@@ -1397,7 +1418,7 @@ void parse()
 		case JAVA_D2I:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
-				BUILTIN1(BUILTIN_d2i, TYPE_INT);
+				BUILTIN1(BUILTIN_d2i, TYPE_INT,currentline);
 			} else
 #endif
 				{
@@ -1408,7 +1429,7 @@ void parse()
 		case JAVA_D2L:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
-				BUILTIN1(BUILTIN_d2l, TYPE_LONG);
+				BUILTIN1(BUILTIN_d2l, TYPE_LONG,currentline);
 			} else
 #endif
 				{

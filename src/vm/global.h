@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 940 2004-03-06 14:04:15Z jowenn $
+   $Id: global.h 941 2004-03-06 17:27:56Z jowenn $
 
 */
 
@@ -195,6 +195,7 @@ typedef struct vftbl vftbl;
 typedef u1* methodptr;
 typedef struct fieldinfo  fieldinfo; 
 typedef struct methodinfo methodinfo; 
+typedef struct lineinfo lineinfo; 
 typedef struct arraydescriptor arraydescriptor;
 
 
@@ -545,6 +546,12 @@ typedef struct xtainfo {
 } xtainfo; 
 
 
+/* lineinfo *****************************************************************/
+struct lineinfo {
+	u2 start_pc;
+	u2 line_number;
+};
+
 /* methodinfo *****************************************************************/
 
 struct methodinfo {                 /* method structure                       */
@@ -566,11 +573,13 @@ struct methodinfo {                 /* method structure                       */
 	u1        *jcode;               /* pointer to JavaVM code                 */
 
 	s4         exceptiontablelength;/* exceptiontable length                  */
-	exceptiontable *exceptiontable; 
+	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
-	u2	thrownexceptionscount;
-	classinfo **thrownexceptions;
-                                    /* the exceptiontable                     */
+	u2	thrownexceptionscount; /*number of exceptions declared to be thrown by a method*/
+	classinfo **thrownexceptions;  /*array of classinfos of declared exceptions*/
+
+	u2	linenumbercount;	/*number of linenumber attributes*/
+	lineinfo *linenumbers;		/*array of lineinfo items (start_pc,line_number)*/
 
 	u1        *stubroutine;         /* stub for compiling or calling natives  */	
 	s4         mcodelength;         /* legth of generated machine code        */
