@@ -436,6 +436,41 @@ void class_compile_methods ()
 		}
 }
 
+/*
+ * void exit_handler(void)
+ * -----------------------
+ * The exit_handler function is called upon program termination to shutdown
+ * the various subsystems and release the resources allocated to the VM.
+ */
+
+void exit_handler(void)
+{
+#ifdef USE_THREADS
+	clear_thread_flags();
+#endif
+
+	/************************ Freigeben aller Resourcen *******************/
+
+	heap_close ();				/* must be called before compiler_close and
+								   loader_close because finalization occurs
+								   here */
+
+#ifdef OLD_COMPILER
+	compiler_close ();
+#endif
+	loader_close ();
+	unicode_close ( literalstring_free );
+
+
+	if (verbose || getcompilingtime || statistics) {
+		log_text ("CACAO terminated");
+		if (statistics)
+			print_stats ();
+		if (getcompilingtime)
+			print_times ();
+		mem_usagelog(1);
+	}
+}
 
 /************************** Funktion: main *******************************
 
@@ -443,7 +478,6 @@ void class_compile_methods ()
    Wird vom System zu Programstart aufgerufen (eh klar).
    
 **************************************************************************/
-
 
 int main(int argc, char **argv)
 {
@@ -470,10 +504,8 @@ int main(int argc, char **argv)
 	stackbottom = &dummy;
 #endif
 
-
-#ifdef USE_THREADS
-	atexit(clear_thread_flags);
-#endif
+	if (0 != atexit(exit_handler))
+		panic("unable to register exit_handler");
 
 	/************ Infos aus der Environment lesen ************************/
 
@@ -757,33 +789,7 @@ int main(int argc, char **argv)
 	if (showconstantpool)  class_showconstantpool (topclass);
 	if (showunicode)       unicode_show ();
 
-   
-
-	/************************ Freigeben aller Resourcen *******************/
-
-	heap_close ();				/* must be called before compiler_close and
-								   loader_close because finalization occurs
-								   here */
-#ifdef OLD_COMPILER
-	compiler_close ();
-#endif
-	loader_close ();
-	unicode_close ( literalstring_free );
-
-
-	/* Endemeldung ausgeben und mit entsprechendem exit-Status terminieren */
-
-	if (verbose || getcompilingtime || statistics) {
-		log_text ("CACAO terminated");
-		if (statistics)
-			print_stats ();
-		if (getcompilingtime)
-			print_times ();
-		mem_usagelog(1);
-	}
-		
 	exit(0);
-	return 1;
 }
 
 
@@ -808,7 +814,7 @@ void cacao_shutdown(s4 status)
 		sprintf (logtext, "Exit status: %d\n", (int) status);
 		dolog();
 		}
-		
+
 	exit(status);
 }
 
