@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 228 2003-02-12 16:24:36Z stefan $
+	Last Change: $Id: global.h 230 2003-02-13 10:21:07Z stefan $
 
 *******************************************************************************/
 
@@ -522,6 +522,7 @@ struct classinfo {                /* class structure                          */
     innerclassinfo *innerclass;
 
     classinfo      *hashlink;         /* link for external hash chain         */
+	bool        classvftbl;       /* has its own copy of the Class vtbl       */
 };
 
 

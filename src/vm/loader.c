@@ -1872,6 +1872,9 @@ static void class_free (classinfo *c)
 	if (c->innerclasscount)
 		MFREE (c->innerclass, innerclassinfo, c->innerclasscount);
 
+	if (c->classvftbl)
+		mem_free(c->vftbl, sizeof(vftbl) + sizeof(methodptr)*(c->vftbl->vftbllength-1));
+
 	FREE (c, classinfo);
 }
 

@@ -678,6 +678,7 @@ classinfo *class_new (utf *u)
 	c -> innerclass = NULL;
 	c -> vftbl = NULL;
 	c -> initialized = false;
+	c -> classvftbl = false;
 	
 	/* prepare loading of the class */
 	list_addlast (&unloadedclasses, c);
