@@ -66,8 +66,8 @@ u1 *oldcreatenativestub (functionptr f, methodinfo *m) {return NULL;}
 void removecompilerstub (u1 *stub) {}
 void removenativestub (u1 *stub) {}
 
-void perform_alpha_threadswitch (u1 **from, u1 **to) {}
-u1* initialize_thread_stack (void *func, u1 *stack) { return NULL; }
+void asm_perform_threadswitch (u1 **from, u1 **to) {}
+u1* asm_initialize_thread_stack (void *func, u1 *stack) { return NULL; }
 void asm_switchstackandcall () { }
 
 java_objectheader *native_new_and_init (void *p) { return NULL; }

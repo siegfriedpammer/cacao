@@ -99,8 +99,8 @@
 	.globl asm_builtin_irem
 	.globl asm_builtin_ldiv
 	.globl asm_builtin_lrem
-	.globl perform_alpha_threadswitch
-	.globl initialize_thread_stack
+	.globl asm_perform_threadswitch
+	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
 
 
@@ -860,14 +860,14 @@ nb_aastore_throw:
 	.end    asm_builtin_aastore
 
 
-/********************** function initialize_thread_stack ***********************
+/******************* function asm_initialize_thread_stack **********************
 *                                                                              *
 *   initialized a thread stack                                                 *
 *                                                                              *
 *******************************************************************************/
 
-	.ent    initialize_thread_stack
-initialize_thread_stack:
+	.ent    asm_initialize_thread_stack
+asm_initialize_thread_stack:
 
 	lda     a1,-128(a1)
 	stq     zero, 0(a1)
@@ -888,21 +888,21 @@ initialize_thread_stack:
 	stq     a0, 120(a1)
 	mov     a1, v0
 	jmp     zero,(ra)
-	.end    initialize_thread_stack
+	.end    asm_initialize_thread_stack
 
 
-/******************* function perform_alpha_threadswitch ***********************
+/******************* function asm_perform_threadswitch *************************
 *                                                                              *
-*   void perform_alpha_threadswitch (u1 **from, u1 **to, u1 **stackTop);       *
+*   void asm_perform_threadswitch (u1 **from, u1 **to, u1 **stackTop);         *
 *                                                                              *
 *   performs a threadswitch                                                    *
 *                                                                              *
 *******************************************************************************/
 
-	.ent    perform_alpha_threadswitch
-perform_alpha_threadswitch:
+	.ent    asm_perform_threadswitch
+asm_perform_threadswitch:
 
-	subq    sp,128,sp                                 
+	subq    sp,128,sp
 	stq     s0, 0(sp)
 	stq     s1, 8(sp)
 	stq     s2, 16(sp)
@@ -941,7 +941,7 @@ perform_alpha_threadswitch:
 	mov     ra, t12
 	addq    sp, 128, sp
 	jmp	zero,(ra)
-	.end    perform_alpha_threadswitch
+	.end    asm_perform_threadswitch
 
 
 /********************* function asm_switchstackandcall *************************
@@ -958,18 +958,18 @@ perform_alpha_threadswitch:
 
 	.ent	asm_switchstackandcall
 asm_switchstackandcall:
-	lda	a0,-2*8(a0)		/* allocate new stack                                 */
-	stq	ra,0(a0)		/* save return address on new stack                   */
-	stq	sp,1*8(a0)		/* save old stack pointer on new stack                */
-	stq sp,0(a2)		/* save old stack pointer to variable                 */
-	mov	a0,sp			/* switch to new stack                                */
+	lda	a0,-2*8(a0)     /* allocate new stack                                 */
+	stq	ra,0(a0)        /* save return address on new stack                   */
+	stq	sp,1*8(a0)      /* save old stack pointer on new stack                */
+	stq sp,0(a2)        /* save old stack pointer to variable                 */
+	mov	a0,sp           /* switch to new stack                                */
 	
-	mov	a1,pv			/* load function pointer                              */
-	jmp	ra,(pv)			/* and call function                                  */
+	mov	a1,pv           /* load function pointer                              */
+	jmp	ra,(pv)         /* and call function                                  */
 
-	ldq	ra,0(sp)		/* load return address                                */
-	ldq	sp,1*8(sp)		/* switch to old stack                                */
+	ldq	ra,0(sp)        /* load return address                                */
+	ldq	sp,1*8(sp)      /* switch to old stack                                */
 
-	jmp	zero,(ra)		/* return                                             */
+	jmp	zero,(ra)       /* return                                             */
 
 	.end	asm_switchstackandcall

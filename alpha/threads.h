@@ -1,70 +1,47 @@
-/*
- * i386/threads.h
- * i386 threading information.
- *
- * Copyright (c) 1996 T. J. Wilkinson & Associates, London, UK.
- *
- * See the file "license.terms" for information on usage and redistribution
- * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- *
- * Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
- * 
- * See file COPYRIGHT for information on usage and disclaimer of warranties
- *
- * Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
- */
+/****************************** threads.h **************************************
 
-#ifndef __alpha_threads_h
-#define __alpha_threads_h
+	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
-/**/
-/* Thread handling */
-/**/
+	See file COPYRIGHT for information on usage and disclaimer of warranties
+
+	System dependent part of thread header file.
+
+	Authors: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
+	         Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
+
+	Last Change: 1998/11/19
+
+*******************************************************************************/
+
+
+#ifndef __sysdep_threads_h
+#define __sysdep_threads_h
 
 #include "../threads/thread.h"
 
-void perform_alpha_threadswitch (u1 **from, u1 **to, u1 **stackTop);
-u1* initialize_thread_stack (void *func, u1 *stack);
+/* Thread handling */
+
+/* prototypes */
+
+void asm_perform_threadswitch (u1 **from, u1 **to, u1 **stackTop);
+u1*  asm_initialize_thread_stack (void *func, u1 *stack);
 void asm_switchstackandcall (void *stack, void *func, void **stacktopsave);
 
-#define	THREADSTACKSIZE		(32 * 1024)
+/* access macros */
 
-#define	THREADSWITCH(to, from)	   perform_alpha_threadswitch(&(from)->restorePoint,\
-                                                              &(to)->restorePoint, &(from)->usedStackTop)
+#define	THREADSTACKSIZE         (32 * 1024)
 
-#define THREADINIT(to, func)       (to)->restorePoint = \
-                                     initialize_thread_stack((u1*)(func), \
-                                                             (to)->stackEnd)
+#define	THREADSWITCH(to, from)	asm_perform_threadswitch(&(from)->restorePoint,\
+                                    &(to)->restorePoint, &(from)->usedStackTop)
 
-#define	THREADINFO(ee)						\
-		do {						\
-			(ee)->restorePoint = 0;			\
-			(ee)->flags = THREAD_FLAGS_NOSTACKALLOC;\
+#define THREADINIT(to, func)    (to)->restorePoint =                         \
+                                    asm_initialize_thread_stack((u1*)(func), \
+                                                            (to)->stackEnd)
+
+#define	THREADINFO(e)                               \
+		do {                                        \
+			(e)->restorePoint = 0;                  \
+			(e)->flags = THREAD_FLAGS_NOSTACKALLOC; \
 		} while(0)
-
-/*
-			void* ptr;				\
-			asm("addq $30,$31,%0" : "=r" (ptr));	\
-			(ee)->stackEnd = ptr;	                \
-			(ee)->stackBase = (ee)->stackEnd - threadStackSize;\
-*/
-
-/*
-#define	THREADFRAMES(tid, cnt)					\
-		do {						\
-			void** ptr;				\
-			cnt = 0;				\
-			if (tid == currentThread) {		\
-				asm("movl %%ebp,%0" : "=r" (ptr));\
-			}					\
-			else {					\
-				ptr = ((void***)tid->PrivateInfo->restorePoint)[2];\
-			}					\
-			while (*ptr != 0) {			\
-				cnt++;				\
-				ptr = (void**)*ptr;		\
-			}					\
-		} while (0)
-*/
 
 #endif
