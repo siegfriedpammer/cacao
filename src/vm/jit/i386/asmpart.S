@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 1801 2004-12-21 20:19:19Z jowenn $
+   $Id: asmpart.S 1830 2004-12-29 13:47:15Z twisti $
 
 */
 
@@ -71,8 +71,12 @@
 	.globl asm_builtin_anewarray
 	.globl asm_builtin_newarray_array
 	.globl asm_builtin_aastore
+
+#if defined(USE_THREADS)
 	.globl asm_builtin_monitorenter
 	.globl asm_builtin_monitorexit
+#endif
+
 	.globl asm_builtin_ldiv
 	.globl asm_builtin_lrem
     .globl asm_builtin_f2i
@@ -87,19 +91,12 @@
 	.globl asm_builtin_new
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
-	.globl asm_prepare_native_stackinfo
-	.globl asm_remove_native_stackinfo
-/*************************** imported functions *******************************/
 
-	.globl jit_compile
-	.globl builtin_monitorexit
-	.globl builtin_throw_exception
-	.globl builtin_trace_exception
-	.globl class_java_lang_Object
-	.globl codegen_findmethod
-	.globl callgetexceptionptrptr
 	.globl asm_throw_and_handle_exception
 	.globl asm_throw_and_handle_hardware_arithmetic_exception
+
+	.globl asm_prepare_native_stackinfo
+	.globl asm_remove_native_stackinfo
 
 
 /********************* function asm_calljavafunction ***************************
@@ -578,6 +575,7 @@ ex_already_cleared:
 		test    %eax,%eax					/* if zero no monitorexit         */
 		je      no_monitor_exit
 
+#if defined(USE_THREADS)
         add     %esp,%eax
         mov     -4(%eax),%eax               /* we have the xptr on the stack  */
         push    %edx                        /* save regs                      */
@@ -585,7 +583,8 @@ ex_already_cleared:
 		call    builtin_monitorexit
 		add     $4,%esp
         pop     %edx                        /* restore regs                   */
-        
+#endif
+
 no_monitor_exit:
         mov     %esp,%eax
         add     FrameSize(%edx),%eax        /* %eax = frame size              */
@@ -737,6 +736,7 @@ L_initializererror:
 *                                                                              *
 *******************************************************************************/
 
+#if defined(USE_THREADS)
 asm_builtin_monitorenter:
 	cmpl    $0,4(%esp)
 	je      nb_monitorenter             /* if (null) throw exception          */
@@ -757,6 +757,8 @@ nb_monitorenter:
 	sub     $2,%ecx                     /* faulting address is return adress - 2 */
 	jmp     asm_handle_exception
 #endif		
+#endif
+
 
 /********************* function asm_builtin_monitorexit ************************
 *                                                                              *
@@ -764,6 +766,7 @@ nb_monitorenter:
 *                                                                              *
 *******************************************************************************/
 
+#if defined(USE_THREADS)
 asm_builtin_monitorexit:
 	mov     4(%esp),%eax
     test    %eax,%eax
@@ -792,6 +795,8 @@ nb_monitorexit:
 	sub     $2,%ecx                 /* faulting address is return adress - 2 */
 	jmp     asm_handle_exception
 #endif
+#endif
+
 
 /************************ function asm_builtin_ldiv ****************************
 *                                                                              *
