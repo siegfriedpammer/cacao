@@ -761,6 +761,7 @@ extern int ZEXPORT unzGoToNextFile (file)
 
 void cacao_create_directoryList(unzFile file)
 {
+  cacao_entry_s* ent;
 	unz_s* s=(unz_s*)file;
 	char *c;
 	int i;
@@ -771,7 +772,7 @@ void cacao_create_directoryList(unzFile file)
 		return;
 	}
 	i=0;
-	cacao_entry_s* ent=s->cacao_dir_list=(cacao_entry_s*)ALLOC(sizeof(cacao_entry_s));
+	ent = s->cacao_dir_list = (cacao_entry_s *) ALLOC(sizeof(cacao_entry_s));
 	ent->next=0;
 	ent->pos=s->pos_in_central_dir;
 
