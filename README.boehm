@@ -1,5 +1,0 @@
-* README.boehm
-==============
-
-In order to use the Boehm GC, you must build it seperately and copy libgc.a and
-gc.h to the cacao directory.
