@@ -17,7 +17,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: cacao.c 139 1999-11-11 19:21:30Z andi $
+	Last Change: $Id: cacao.c 145 1999-11-18 18:29:54Z schani $
 
 *******************************************************************************/
 
@@ -506,7 +506,7 @@ int main(int argc, char **argv)
 {
 	s4 i,j;
 	char *cp;
-	java_objectheader *exceptionptr;
+	java_objectheader *local_exceptionptr = 0;
 	void *dummy;
 	
 	/********** interne (nur fuer main relevante Optionen) **************/
@@ -737,6 +737,21 @@ int main(int argc, char **argv)
 
 	topclass = loader_load ( utf_new_char (cp) );
 
+	if (exceptionptr != 0)
+	{
+		printf ("#### Class loader has thrown: ");
+		utf_display (exceptionptr->vftbl->class->name);
+		printf ("\n");
+
+		exceptionptr = 0;
+	}
+
+	if (topclass == 0)
+	{
+		printf("#### Could not find top class - exiting\n");
+		exit(1);
+	}
+
 	gc_init();
 
 #ifdef USE_THREADS
@@ -763,11 +778,11 @@ int main(int argc, char **argv)
 		for (i=opt_ind; i<argc; i++) {
 			a->data[i-opt_ind] = javastring_new (utf_new_char (argv[i]) );
 		}
-		exceptionptr = asm_calljavamethod (mainmethod, a, NULL,NULL,NULL );
+		local_exceptionptr = asm_calljavamethod (mainmethod, a, NULL,NULL,NULL );
 	
-		if (exceptionptr) {
+		if (local_exceptionptr) {
 			printf ("#### Program has thrown: ");
-			utf_display (exceptionptr->vftbl->class->name);
+			utf_display (local_exceptionptr->vftbl->class->name);
 			printf ("\n");
 		}
 
