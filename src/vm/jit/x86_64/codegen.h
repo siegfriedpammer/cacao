@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1621 2004-11-30 13:06:55Z twisti $
+   $Id: codegen.h 1668 2004-12-03 16:39:40Z twisti $
 
 */
 
@@ -37,7 +37,7 @@
 
 #include <ucontext.h>
 
-#include "vm/jit/jit.h"
+#include "vm/jit/x86_64/types.h"
 
 
 /* macros to create code ******************************************************/

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1641 2004-12-01 13:13:31Z christian $
+   $Id: codegen.c 1668 2004-12-03 16:39:40Z twisti $
 
 */
 
@@ -81,12 +81,8 @@ static int nregdescfloat[] = {
 };
 
 
-/*******************************************************************************
-
-    include independent code generation stuff -- include after register
-    descriptions to avoid extern definitions
-
-*******************************************************************************/
+/* Include independent code generation stuff -- include after register        */
+/* descriptions to avoid extern definitions.                                  */
 
 #include "vm/jit/codegen.inc"
 #include "vm/jit/reg.inc"
