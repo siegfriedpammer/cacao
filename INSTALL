@@ -14,7 +14,7 @@ this destination by providing the `--prefix=PATH' option to configure.
 This version of cacao only supports the `--prefix' option, even if
 configure processes the other options (`--bindir', `--libdir', etc.),
 it will screw up your installation since CACAO tries to setup a
-directory tree like Sun or IBM does.
+directory tree like the JVMs from Sun or IBM do.
 
 
 Requirements:

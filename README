@@ -5,9 +5,9 @@ CACAO is a Java Virtual Machine with a JIT compiler for different
 architectures. It includes the GNU classpath and the Boehm garbage
 collector.
 
-You will find the licensing condition in the file COPYING.
+You will find the licensing conditions in the file COPYING.
 
-For installation instruction, please refer to INSTALL.
+For installation instructions, please refer to INSTALL.
 
 New versions, updates and general information can be retrieved from
 http://www.cacaojvm.org/.
