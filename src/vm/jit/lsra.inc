@@ -1,9 +1,10 @@
-/* vm/jit/lsra.inc - linear scan register allocator
+/* jit/lsra.inc - linear scan register allocator
 
-   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004
+   Institut f. Computersprachen, TU Wien
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser, M. Probst,
+   S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich,
+   J. Wenninger, C. Ullrich
 
    This file is part of CACAO.
 
@@ -26,22 +27,11 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 1775 2004-12-20 21:04:08Z twisti $
+   $Id: lsra.inc 1944 2005-02-15 16:30:41Z christian $
 
 */
-
-/* #define LSRA_DEBUG */
-/* #define LSRA_SAVEDVAR */
-/* #define LSRA_MEMORY */
-/* #define LSRA_PRINTLIFETIMES */
-
-
 #include <stdio.h>
 #include <stdlib.h>
-
-#ifdef LSRA_DEBUG
-#define LSRA_PRINTLIFETIMES
-#endif
 
 #include "mm/memory.h"
 #include "vm/options.h"
@@ -50,38 +40,59 @@
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"
 
+/* #include "string.h" */
 
-void lsra(methodinfo *m, codegendata *cd, registerdata *rd, loopdata *ld, t_inlining_globals *id)
+
+#define MAX_TMP_REG_COUNT 100
+#define MAX_SAV_REG_COUNT 100
+
+
+#ifdef LSRA_TESTLT
+#define VS 200
+#define MAX_TMP_REG_COUNT 0
+#define MAX_SAV_REG_COUNT 0
+#endif
+
+#define PASSING_THROUGH_LT -2  /* is used as instruction index in *i_list of a lifetime, which is a "passthrough" stackslot */
+
+
+
+bool lsra(methodinfo *m, codegendata *cd, registerdata *rd, loopdata *ld, t_inlining_globals *id)
 {
 
 	lsradata *ls;
 
-#ifdef LSRA_DEBUG
+#if defined(LSRA_DEBUG) || defined(LSRA_DUMP_LOOPDATA)|| defined(LSRA_TESTLT)
 	char name[1256], name1[1256];
 
 	utf_sprint(name, m->class->name);
 	utf_sprint(name1, m->name);
+	strcat(name, ".");
 	strcat(name, name1);
 	utf_sprint(name1, m->descriptor);
 	strcat(name, name1);
 
 
+	printf("/******************************************************/\n");
 	printf("LSRA Start for %s\n", name); 
 
-	if (strcmp(name,"java/lang/SysteminitProperties()V")==0) {
+	if (strcmp(name,"java/util/Collections$SynchronizedCollection.iterator()Ljava/util/Iterator;")==0) {
 		printf("-------------------\n");
 	}
+	if (m->isleafmethod)
+		printf("**Leafmethod**\n");
 #endif
 
 	ls=DNEW(lsradata);
 	lsra_init(m, cd, id, ls);
-	lsra_setup(m, cd, rd, ls, ld);
+	if (!lsra_setup(m, cd, rd, ls, ld))
+		return false;
 	
 
 	/* Run LSRA */
-	lsra_main(m, ls, rd);
+	lsra_main(m, ls, rd, cd, ld);
 
-	return;
+	return true;
 }
 
 void lsra_init(methodinfo *m, codegendata *cd, t_inlining_globals *id, lsradata *ls) 
@@ -89,20 +100,19 @@ void lsra_init(methodinfo *m, codegendata *cd, t_inlining_globals *id, lsradata 
 	int i;
 
 	/* Init LSRA Data Structures */
-	ls->back_edge_panic=false;
 	/* lifetimes für alle Basicblocks allokieren */
-	ls->ss_lifetimes=DMNEW(struct lifetime *, m->basicblockcount);
+	ls->ss_lifetimes = DMNEW(struct lifetime *, m->basicblockcount);
 	for (i=0; i<m->basicblockcount; i++) ls->ss_lifetimes[i]=NULL;
 #ifdef LSRA_DEBUG
 	if (cd->maxlocals != id->cumlocals) panic("lsra: Welche locals nehmen?\n");
 #endif
-	ls->locals_lifetimes=DMNEW(struct lifetime *, cd->maxlocals);
+	ls->locals_lifetimes = DMNEW(struct lifetime *, cd->maxlocals);
 	for (i=0; i < cd->maxlocals; i++) ls->locals_lifetimes[i]=NULL;
 	ls->lifetimes=NULL;
 	ls->stackslots=NULL;
 }
 
-void lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, loopdata *ld)
+bool lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, loopdata *ld)
 {
 #ifdef LSRA_DEBUG
 	basicblock  *bptr;
@@ -113,20 +123,87 @@ void lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
 	int v_index;
 	struct stackslot *ss;
 	bool drop;
+	struct depthElement *de;
+
+	instruction *ip;
+
+	int *stack;
+	int *visited;
+	int stack_top;
+	bool not_finished;
+
+#ifdef LSRA_DUMP_LOOPDATA
+	struct LoopContainer *lc;
+	struct LoopElement *le;
+#endif
 	
-	/* Setup LSRA Data structures */
-	if (opt_loops) panic("lsra with -oloop not possible!\n");
-	if (!opt_loops) {
-		depthFirst(m, ld);
-		analyseGraph(m, ld);
+	bool jsr;
+
+	/* in case of exceptionhandlers or subroutines return to regalloc */
+	if (cd->exceptiontablelength > 0)
+		return false;
+
+	jsr=false;
+	for (i=0; i< m->basicblockcount; i++) {
+		ip = m->basicblocks[i].iinstr + m->basicblocks[i].icount -1;/* set ip to last instruction	*/
+		if (ip->opc == ICMD_JSR) {
+			/* check Instack of sub */
+			printf("SBR Instackdepth: %3i\n",m->basicblocks[m->basicblockindex[ip->op1]].indepth);
+			jsr=true;
+/* 			return false; */
+		}
 	}
+
+	if (jsr) return false;
+
+	/* Setup LSRA Data structures */
+	if (opt_loops) 
+		return false;
+
+
+	depthFirst(m, ld);
+	analyseGraph(m, ld);
+
+
+#ifdef LSRA_DUMP_LOOPDATA
+	printf("orig loop data\n");
+	lsra_dump_Graph(m, ld->c_dTable);
+
+	/* Ausgabe aller Loop Daten */
+	printf(" BB defnum numPre parent reverse\n");
+	for (i=0; i < m->basicblockcount; i++) {
+		printf("%3i   %4i   %4i   %4i    %4i\n",i ,ld->c_defnum[i], ld->c_numPre[i], ld->c_parent[i], ld->c_reverse[i]);
+	}
+	printf(" BB SemiDom iDom SameDom Ancestor Stack numBucket Contains\n");
+	for (i=0; i < m->basicblockcount; i++) {
+		printf("%3i    %4i %4i    %4i     %4i  %4i      %4i     %4i\n",i ,ld->c_semi_dom[i], ld->c_idom[i], ld->c_same_dom[i], ld->c_ancestor[i], ld->c_stack[i], ld->c_numBucket[i], ld->c_contains[i]);
+	}
+
+	printf("Loops \n");
+	for (i=0,lc=ld->c_allLoops;lc != NULL; i++,lc=lc->next) {
+		printf("Nr %3i  Head %3i Members ", i, lc->loop_head);
+		for (le = lc->nodes; le != NULL; le = le->next) {
+			printf("%3i ", le->node);
+		}
+		printf("\n");
+	}
+#endif
+
+
+
+
+
+
+
+
 
 	/* BBDELETED Blöcke aus loopdata->c_dTable rausschmeissen! */
 	/* Exceptionhandler in loopdata->c_dTable hinzufügen       */
 #ifdef LSRA_DEBUG
+/* 	lsra_dump_Graph(m, ld->c_dTable); */
 	printf("LSRA lsra_clean_Graph\n");
 #endif
-	lsra_clean_Graph(m, cd, ls, ld);
+/* 	lsra_clean_Graph(m, cd, ls, ld); */
 
 #ifdef LSRA_DEBUG
 	/* sicherheitshalber Konsistenz von m->basicblocks[..] mit basicblocks->next (Liste) überprüfen */
@@ -159,7 +236,7 @@ void lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
  		t = m->paramtypes[p];
 
 		if (rd->locals[i][t].type >= 0)	
-			lsra_usage_local(ls, i, t, 0, 0, LSRA_STORE);
+			lsra_usage_local(ls, i, t, 0, -1, LSRA_STORE); /* Param to Local init happens before normal Code */
  		i++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			i++;
@@ -168,8 +245,83 @@ void lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
 #ifdef LSRA_DEBUG
 	printf("LSRA lsra_scan_register_canditates\n");
 #endif
-	lsra_scan_registers_canditates(m, ls);
+	lsra_scan_registers_canditates(m, ld, ls);
 	lsra_join_lifetimes(m, cd, ls, ld);
+
+
+	/* Number Blocks in reverse Depth First order -> ld->c_defnum */
+
+	stack = DMNEW( int, m->basicblockcount);
+	visited = DMNEW( bool, m->basicblockcount);
+	for (i = 0; i < m->basicblockcount; i++)
+		visited[i] = 0;
+
+    stack[0] = 0; /* start with Block 0 */
+	stack_top = 1;
+	visited[0] = 0; /* Method invokation does not count as "pre" */
+	p = 0;
+	not_finished = true;
+	while (not_finished) {
+		while (stack_top != 0) {
+			stack_top--;
+			i = stack[stack_top];
+
+			ld->c_defnum[i] = p;
+			ld->c_reverse[p] = i;
+			p++;
+			for (de = ld->c_dTable[i]; de != NULL; de = de->next) {
+				if ((ld->c_parent[de->value] == -1) || (ld->c_defnum[i] < ld->c_defnum[ld->c_parent[de->value]]))
+					ld->c_parent[de->value] = i;
+				visited[de->value]++;
+				if (visited[de->value] == ld->c_numPre[de->value]) {
+					/* push the node on the stack, only if all ancestors have been visited */
+					stack[stack_top] = de->value;
+					stack_top++;
+				}
+			}
+		}
+		not_finished = false;
+		for (i=1; i < m->basicblockcount; i++) {
+			/* search for visited blocks, which have not reached the c_numPre */
+			/* and put them on the stack -> happens with backedges */
+			if ((visited[i] != 0) && (visited[i] < ld->c_numPre[i])) {
+				stack[stack_top] = i;
+				stack_top++;
+				visited[i] = ld->c_numPre[i];
+				not_finished=true;
+				break;
+			}
+		}
+	}
+
+
+	ld->c_globalCount = p;
+	/* loop analysis from jit/loop.c */
+	analyseGraph(m, ld);
+
+#ifdef LSRA_DUMP_LOOPDATA
+	printf("my loop data\n");
+	lsra_dump_Graph(m, ld->c_dTable);
+
+	/* Ausgabe aller Loop Daten */
+	printf(" BB defnum numPre parent reverse\n");
+	for (i=0; i < m->basicblockcount; i++) {
+		printf("%3i   %4i   %4i   %4i    %4i\n",i ,ld->c_defnum[i], ld->c_numPre[i], ld->c_parent[i], ld->c_reverse[i]);
+	}
+	printf(" BB SemiDom iDom SameDom Ancestor Stack numBucket Contains\n");
+	for (i=0; i < m->basicblockcount; i++) {
+		printf("%3i    %4i %4i    %4i     %4i  %4i      %4i     %4i\n",i ,ld->c_semi_dom[i], ld->c_idom[i], ld->c_same_dom[i], ld->c_ancestor[i], ld->c_stack[i], ld->c_numBucket[i], ld->c_contains[i]);
+	}
+
+	printf("Loops \n");
+	for (i=0,lc=ld->c_allLoops;lc != NULL; i++,lc=lc->next) {
+		printf("Nr %3i  Head %3i Members ", i, lc->loop_head);
+		for (le = lc->nodes; le != NULL; le = le->next) {
+			printf("%3i ", le->node);
+		}
+		printf("\n");
+	}
+#endif
 
 	v_index=-1;
 
@@ -183,6 +335,7 @@ void lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
 			ss->s->varnum=v_index;
 			ss->s->varkind=TEMPVAR; /* just another time */
 		}
+		v_index--;
 	}
 
 	/* add ss_lifetimes[i] to ls->lifetimes or local_lifetimes[lt->s->varnum] */
@@ -199,7 +352,7 @@ void lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
 				drop=false;
 				for (ss=lt->local_ss; (ss!=NULL) && (!drop); ss=ss->next) {
 					if (lt->local_ss->next == NULL) { /* only one Stackslot in local_ss */
-						/* Special Treatment for "lonely" LOCAL and ARGVARs */
+						/* Special Treatment for "lonely" LOCAL */
 						if (ss->s->varkind == LOCALVAR) {
 							/* join with LOCALVAR */
 							/* local Lifetime vom richtigen Type suchen */
@@ -212,8 +365,10 @@ void lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
 
 							drop = true;
 						}
-						if (lt->local_ss->s->varkind == ARGVAR) {
-							drop = true;
+						if (ss->s->varkind == ARGVAR) {
+							/* no special treatment for ARGVAR ! -> TODO: join this with normal branch */
+							ss->s->varnum=v_index;
+							ss->s->varkind=TEMPVAR; /* only TEMPVAR possible for now */
 						}
 					} else { 
 						/* no special treatment (only one Stackslot Lifetimes)? */
@@ -244,12 +399,13 @@ void lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
 	}	
 
 	/* calc lifetime length */
-#ifdef LSRA_DEBUG
+#ifdef LSRA_PRINTLIFETIMES
 	printf("Lifetimes before calc_lifetime_length: \n");
-	print_lifetimes(rd, ls->lifetimes);
+	print_lifetimes(rd, ls, ls->lifetimes);
 	printf("LSRA lsra_calc_lifetime_lengthe\n");
 #endif
 	lsra_calc_lifetime_length(m, ls, cd, ld);
+	return true;
 }
 
 int lsra_get_sbr_end(methodinfo *m, loopdata *ld, int bb, int *bb_visited)
@@ -276,6 +432,80 @@ int lsra_get_sbr_end(methodinfo *m, loopdata *ld, int bb, int *bb_visited)
 	return bb_end;
 }
 
+void lsra_mark_blocks(methodinfo *m, struct depthElement **table, int *blocks, int block_index, int *bb_max) 
+{
+	struct depthElement *hp;
+	
+	if (block_index > *bb_max) *bb_max = block_index;
+	blocks[block_index] = 1;
+	
+	for (hp=table[block_index]; hp!=NULL; hp=hp->next) {
+		if (blocks[hp->value] != 1) {
+			if (m->basicblocks[hp->value].type == BBTYPE_SBR) { /* do not look into subroutines -> go on after return */
+				if (blocks[block_index+1] != 1)
+					lsra_mark_blocks(m, table, blocks, block_index + 1, bb_max);
+			} else
+				lsra_mark_blocks(m, table, blocks, hp->value, bb_max);
+		}
+	}
+}
+
+int lsra_get_exmaxblock(methodinfo *m, loopdata *ld, int bb_start)
+{
+	int *blocks;
+	int bb_max, i;
+	
+	blocks=DMNEW(int, m->basicblockcount);
+	for (i=0; i < m->basicblockcount; i++) blocks[i] = -1;
+
+	/* Init blocks[0..m->basicblockcount[ with 1 (==visited) for all Basic Blocks, which can be reached */
+    /* by "normal" program execution (without exception) */
+
+	lsra_mark_blocks(m, ld->c_dTable, blocks, 0, &bb_max);
+	
+	bb_max=0;
+
+	lsra_mark_blocks(m, ld->c_dTable, blocks, bb_start, &bb_max);
+
+	return bb_max;
+}
+
+void lsra_setup_exceptiontable( methodinfo *m, codegendata *cd, loopdata *ld, lsradata *ls)
+{
+	exceptiontable *ex;
+	int i;
+	
+	ls->ex = DMNEW(struct lsra_exceptiontable, cd->exceptiontablelength); 
+
+	/* get the Basic Blocks of the exc.handler (exh_min[i]..exh_max[i]) + corresponding guarded Area (ex_min[i]..ex_max[i]) */
+	ex = cd->exceptiontable;
+	for (i=0; ex != NULL; i++,ex = ex->down) {
+ 		if (ex->handler == NULL) {
+#ifdef LSRA_DEBUG
+			printf("lsra_init_blocks EXCEPTIONTABLE without handler!\n");
+#endif
+		} else {
+			if ((ex->handler->debug_nr < 0) || (ex->handler->debug_nr >= m->basicblockcount)) {
+#ifdef LSRA_DEBUG
+				printf("lsra_init_blocks EXCEPTIONTABLE Handler Blocknummer invalid! %i\n", ex->handler->debug_nr);
+#endif
+			} else {
+				ls->ex[i].handler_min = ex->handler->debug_nr;
+				ls->ex[i].handler_max = lsra_get_exmaxblock(m, ld, ex->handler->debug_nr);
+
+				/* in because of deleted Basic Blocks the guardes area can be outside of valid ranges */
+				ls->ex[i].guarded_min = (ex->start->debug_nr >  m->basicblockcount) ? m->basicblockcount : ex->start->debug_nr;
+				ls->ex[i].guarded_max = (ex->end->debug_nr > m->basicblockcount) ? m->basicblockcount : ex->end->debug_nr;
+				if (ex->end->debug_nr >= m->basicblockcount) printf("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ\n m->basicblockcount: %3i",m->basicblockcount);
+#ifdef LSRA_DEBUG
+				printf("EX     Handler ex  %3i         Guarded min %3i max %3i\n",ex->handler->debug_nr, ex->start->debug_nr, ex->end->debug_nr);
+				printf("EX %3i Handler min %3i max %3i Guarded min %3i max %3i\n\n",i,ls->ex[i].handler_min,ls->ex[i].handler_max,ls->ex[i].guarded_min,ls->ex[i].guarded_max);
+#endif
+ 			} 
+		}
+	}
+}
+
 void lsra_clean_Graph( methodinfo *m, codegendata *cd, lsradata *ls, loopdata *ld)
 {
 	int i,j;
@@ -284,7 +514,11 @@ void lsra_clean_Graph( methodinfo *m, codegendata *cd, lsradata *ls, loopdata *l
 	exceptiontable *ex;
 	struct depthElement **table;
 	bool back_edge;
+	int back_edge_nodes_found;
 	struct LoopContainer *lc;
+	struct LoopElement *le;
+	bool all_reached;
+	bool *bb_reached;
 
 	table=ld->c_dTable;
 
@@ -304,75 +538,6 @@ void lsra_clean_Graph( methodinfo *m, codegendata *cd, lsradata *ls, loopdata *l
 		printf("%i ",ex->handler->debug_nr);
 #endif
 		dF(m, ld, -1, ex->handler->debug_nr);
-	}
-
-
-	/* Setting up successors of deleted Basic Blocks, in case c_dTable has an edge */
-	/* to a deleted block, so it can be replaced with the next "normal" Block */
-	bb_succ= DMNEW(int, m->basicblockcount);
-	for (i=0; i < m->basicblockcount; i++) {
-		if (m->basicblocks[i].flags >= BBREACHED)
-			bb_succ[i]=i;
-		else {
-			for(j=i; ((j < m->basicblockcount) && (m->basicblocks[j].flags < BBREACHED)); j++);
-			if (j < m->basicblockcount)
-				bb_succ[i]=j;
-			else
-				bb_succ[i]=-1;
-		}
-	}
-
-	back_edge=false;
-	for(i=0; i < m->basicblockcount; i++) {
-		if (m->basicblocks[i].flags < BBREACHED) {
-			table[i]=NULL;
-		} else {
-			for (de=table[i]; de != NULL; de=de->next) {
-				if (de->value < i) back_edge=true;
-				if (bb_succ[de->value] != de->value)
-					de->value = bb_succ[de->value];
-				if (de->value == -1) panic("lsra_clean_Graph: Sprung ins nichts....");
-			}
-		}
-	}
-
-	if (back_edge) {
-		if ( ld->c_allLoops == NULL ) {
-			/* Keine Loops in Datenstruktur aber backedge!                     */
-			/* sollte nach BasicBlock umsortieren (revererse Depth First sort) */
-			/* und überprüfen von jit/loop/loop.c nicht mehr nötig sein        */
-			/* TODO bis dahin eine loop über die backedge eintragen            */
-			/*      anstatt back_edge_panic zu setzen und alle Lifetimes über die */
-			/*      gesamt Methode auszudehnen                                    */
-/* 			ls->back_edge_panic = true; */
-
-			/* create loops from all back edges */
-			
-			for(i=0; i < m->basicblockcount; i++) {
-				if (m->basicblocks[i].flags >= BBREACHED) {
-					for (de=table[i]; de != NULL; de=de->next) {
-						if (de->value < i) {
-							if (ld->c_allLoops == NULL) {
-								ld->c_allLoops = lc = DNEW(struct LoopContainer);
-							} else {
-								lc->next=DNEW(struct LoopContainer);
-								lc=lc->next;
-							}
-							lc->nodes=DNEW(struct LoopElement);
-							lc->nodes->next=DNEW(struct LoopElement);
-							lc->nodes->next->next=NULL;
-
-							lc->nodes->block=&(m->basicblocks[i]);
-							lc->nodes->next->block=&(m->basicblocks[de->value]);
-							lc->next = NULL;
-						}
-					}
-				}
-			}
-#ifdef LSRA_DEBUG
-			printf("-------------Warnung Back Edge + no LOOP..\n");
-#endif
-		}
 	}
 
 	bb_visited=DMNEW(int, m->basicblockcount);
@@ -427,9 +592,150 @@ void lsra_clean_Graph( methodinfo *m, codegendata *cd, lsradata *ls, loopdata *l
 #endif
 		}
 	}
+
+	/* setting up lsra_exceptiontable data           */
+	/* min and max Basic Block Numbers of the        */
+	/*exceptionhandler and coresponding guarded area */
+
+    lsra_setup_exceptiontable( m, cd, ld, ls);
+
+	/* Setting up successors of deleted Basic Blocks, in case c_dTable has an edge */
+	/* to a deleted block, so it can be replaced with the next "normal" Block */
+	bb_succ= DMNEW(int, m->basicblockcount);
+	for (i=0; i < m->basicblockcount; i++) {
+		if (m->basicblocks[i].flags >= BBREACHED)
+			bb_succ[i]=i;
+		else {
+			for(j=i; ((j < m->basicblockcount) && (m->basicblocks[j].flags < BBREACHED)); j++);
+			if (j < m->basicblockcount)
+				bb_succ[i]=j;
+			else
+				bb_succ[i]=-1;
+		}
+	}
+
+	for(i=0; i < m->basicblockcount; i++) {
+		if (m->basicblocks[i].flags < BBREACHED) {
+			table[i]=NULL;
+		} else {
+			for (de=table[i]; de != NULL; de=de->next) {
+				if (bb_succ[de->value] != de->value)
+					de->value = bb_succ[de->value];
+				if (de->value == -1) panic("lsra_clean_Graph: Sprung ins nichts....");
+			}
+		}
+	}
+
+	/* now make an index to the basicblocks array ordered in reverse depth first search */
+	/* -> eliminate "unnecessary" back-edges                                            */
+
+	/* first patch in jumps from the last block in a guarded area (ls->ex[i]->guarded_max) */
+	/* to the coresponding exceptionhandler (ls->ex[i]->handler_min), so the new order is  */
+	/* valid for exceptions too. Afterwards eliminate this jumps again */
+	
+	for (i=0; i < cd->exceptiontablelength; i++) {
+		for (j=ls->ex[i].guarded_max; j>=0; j--) {
+			/* this patched jump only from blocks which are not deleted or exeptionhandler itself */
+			if (!((m->basicblocks[j].flags < BBREACHED) || (m->basicblocks[j].type == BBTYPE_EXH)))
+				break;
+		}
+		if (j == -1) panic( "lsra_clean_Graph: Problem with Basic Block Order\n");
+		de=DNEW(struct depthElement);
+		de->value = ls->ex[i].handler_min;
+		de->next = ld->c_dTable[j];
+		ld->c_dTable[j]=de;
+	}
+
+
+
+	bb_reached=DMNEW(int, m->basicblockcount);
+
+	for (i=0; i<m->basicblockcount; i++) {
+		bb_reached[i]=false;
+		bb_visited[i]=false;
+	}
+
+	index=m->basicblockcount-1;
+
+
+	/* now taking out the patched "exception" jumps again */
+	for (i=0; i < cd->exceptiontablelength; i++) {
+		for (j=ls->ex[i].guarded_max; j>=0; j--) {
+			/* this patched jump only from blocks which are not deleted or exeptionhandler itself */
+			if (!((m->basicblocks[j].flags < BBREACHED) || (m->basicblocks[j].type == BBTYPE_EXH)))
+				break;
+		}
+		ld->c_dTable[j]=ld->c_dTable[j]->next;
+	}
+
+	/* change (struct lsra_exception_handler) ls->ex to the newly ordered blocks! */
+
+/* 	for (i=0; i < cd->exceptiontablelength; i++) { */
+/* 		ls->ex[i].handler_min = ls->bb_neworder[ls->ex[i].handler_min]; */
+/* 		ls->ex[i].handler_max = ls->bb_neworder[ls->ex[i].handler_max]; */
+/* 		if (ls->ex[i].handler_min > ls->ex[i].handler_max) { */
+/* 			j=ls->ex[i].handler_max; */
+/* 			ls->ex[i].handler_max = ls->ex[i].handler_min; */
+/* 			ls->ex[i].handler_min=j; */
+/* 		} */
+/* 		ls->ex[i].guarded_min = ls->bb_neworder[ls->ex[i].guarded_min]; */
+/* 		ls->ex[i].guarded_max = ls->bb_neworder[ls->ex[i].guarded_max]; */
+/* 		if (ls->ex[i].guarded_min > ls->ex[i].guarded_max) { */
+/* 			j=ls->ex[i].guarded_max; */
+/* 			ls->ex[i].guarded_max = ls->ex[i].guarded_min; */
+/* 			ls->ex[i].guarded_min=j; */
+/* 		}  */
+
+/* 	} */
+
+/* 	back_edge = false; */
+/* 	for (i=0; (!back_edge) && (i < m->basicblockcount); i++) { */
+/* 		for (de = ld->c_dTable[i]; (!back_edge) && (de != NULL); de = de->next) { */
+/* 			if (ls->bb_neworder[i] > ls->bb_neworder[de->value] ) { */
+/* 				back_edge = true; */
+/* 			} */
+/* 		} */
+/* 	} */
+
+/* 	if (back_edge) { */
+			/* create loops from all back edges, which are not part of a loop */
+
+/* 			for(i=0; i < m->basicblockcount; i++) { */
+/* 				if (m->basicblocks[i].flags >= BBREACHED) { */
+/* 					for (de=table[i]; de != NULL; de=de->next) { */
+/* 						if (ls->bb_neworder[de->value] < ls->bb_neworder[i]) { */
+/* 							back_edge_nodes_found = 0; */
+/* 							for (lc=ld->c_allLoops;lc!=NULL;lc=lc->next) { */
+/* 								le = lc->nodes; */
+/* 								while (le != NULL) { */
+/* 									if (le->node == i) back_edge_nodes_found++; */
+/* 									if (le->node == de->value) back_edge_nodes_found++; */
+/* 									le = le->next; */
+/* 								} */
+/* 								if (back_edge_nodes_found >= 2) */
+/* 									break; */ /* both ends of back_edge found in loop -> everything ok */
+/* 							} */
+/* 							if (back_edge_nodes_found < 2) { */
+/**/ 								/* back_edge not covered by loop -> create one */
+/* 								lc = DNEW(struct LoopContainer); */
+/* 								lc->nodes=DNEW(struct LoopElement); */
+/* 								lc->nodes->next=DNEW(struct LoopElement); */
+/* 								lc->nodes->next->next=NULL; */
+
+/* 								lc->nodes->node=i; */
+/* 								lc->nodes->next->node=de->value; */
+
+/* 								lc->next = ld->c_allLoops; */
+/* 								ld->c_allLoops = lc; */
+/* 							} */
+/* 						} */
+/* 					} */
+/* 				} */
+/* 			} */
+/* 	} */
 }
 
-#ifdef LSRA_DEBUG
+#if defined(LSRA_DEBUG) || defined(LSRA_DUMP_LOOPDATA)
 void lsra_dump_Graph(methodinfo *m, struct depthElement **table)
 {
 	int i;
@@ -469,7 +775,7 @@ void lsra_dump_Graph(methodinfo *m, struct depthElement **table)
 }
 #endif
 
-void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd)
+void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd, loopdata *ld)
 {
 	struct lifetime *lt, *lt_prev, *lt_temp, *int_lt, *int_lt_last, *flt_lt, *flt_lt_last;
 #ifdef LSRA_DEBUG
@@ -484,6 +790,7 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd)
 	int type;
 	int flags; /* 0 INMEMORY->lifetimes, 1 INTREG->int_lt, 2 FLTREG->flt_lt */
 	int lsra_reg_use;
+
 
 	/* first split lifetimes for integer and float registers */
 	int_lt_last=int_lt=NULL;
@@ -522,6 +829,13 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd)
 			flags=1;
 			break;
 		case TYPE_DBL:
+#if defined(__I386__)
+			/*
+			 * for i386 put all longs in memory
+			 */
+			flags=0;
+			break;
+#endif
 		case TYPE_FLT:
 			flags=2;
 			break;
@@ -581,18 +895,38 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd)
 
 		reg=DMNEW(struct lsra_reg,reg_count);
 		sav_reg_count=0;
-		for (i=0; i<reg_count ; i++)
+		for (i=0; i<reg_count ; i++) {
+			if (sav_reg_count >= MAX_SAV_REG_COUNT)
+				break;
 			if (nregdescint[i]==REG_SAV) {
 				reg[sav_reg_count].reg_index=i;
 				reg[sav_reg_count].use=0;
 				sav_reg_count++;
 			}
+		}
 		tmp_reg_count=sav_reg_count;
 		for (i=0; i<reg_count ; i++) {
+#if defined(__I386__)
+			if (/* (method_uses_ecx) &&  */(i==ECX)) continue;
+			if (/* (method_uses_edx) && */ (i==EDX)) continue;
+#endif
+			if ((tmp_reg_count-sav_reg_count) >= MAX_TMP_REG_COUNT)
+				break;
 			if (nregdescint[i]==REG_TMP) {
 				reg[tmp_reg_count].reg_index=i;
 				reg[tmp_reg_count].use=0;
 				tmp_reg_count++;
+			}
+		}
+		if (m->isleafmethod) {
+			for (i = reg_count-1; i >= 0 ; i--) {
+				if ((tmp_reg_count-sav_reg_count) >= MAX_TMP_REG_COUNT)
+					break;
+				if (nregdescint[i]==REG_ARG) {
+					reg[tmp_reg_count].reg_index=i;
+					reg[tmp_reg_count].use=0;
+					tmp_reg_count++;
+				}
 			}
 		}
 		_lsra_main(m, ls, int_lt, reg, tmp_reg_count, sav_reg_count, &lsra_mem_use, &lsra_reg_use);
@@ -606,19 +940,35 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd)
 
 		reg=DMNEW(struct lsra_reg,reg_count);
 		sav_reg_count=0;
-		for (i=0; i<reg_count ; i++)
+		for (i=0; i<reg_count ; i++) {
+			if (sav_reg_count >= MAX_SAV_REG_COUNT)
+				break;
 			if ((nregdescfloat[i]==REG_SAV) || (m->isleafmethod && (nregdescfloat[i]==REG_ARG))) {
 				reg[sav_reg_count].reg_index=i;
 				reg[sav_reg_count].use=0;
 				sav_reg_count++;
 			}
+		}
 
 		tmp_reg_count=sav_reg_count;
-		for (i=0; i<reg_count ; i++)
+		for (i=0; i<reg_count ; i++) {
+			if ((tmp_reg_count-sav_reg_count) >= MAX_TMP_REG_COUNT)
+				break;
 			if (nregdescfloat[i]==REG_TMP) {
 				reg[tmp_reg_count].reg_index=i;
 				reg[tmp_reg_count].use=0;
 				tmp_reg_count++;
+			}
+		}
+		if (m->isleafmethod)
+			for (i = reg_count-1; i >= 0 ; i--) {
+				if ((tmp_reg_count-sav_reg_count) >= MAX_TMP_REG_COUNT)
+					break;
+				if (nregdescfloat[i]==REG_ARG) {
+					reg[tmp_reg_count].reg_index=i;
+					reg[tmp_reg_count].use=0;
+					tmp_reg_count++;
+				}
 			}
 		_lsra_main(m,ls, flt_lt, reg, tmp_reg_count, sav_reg_count, &lsra_mem_use, &lsra_reg_use);
 		if (lsra_reg_use > rd->savfltregcnt) lsra_reg_use=rd->savfltregcnt;
@@ -663,18 +1013,32 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd)
 #ifdef LSRA_PRINTLIFETIMES
 	printf("Int RA complete \n");
 	printf("Lifetimes after splitting int: \n");
-	print_lifetimes(rd, int_lt);
+	print_lifetimes(rd, ls, int_lt);
 
 	printf("Flt RA complete \n");
 	printf("Lifetimes after splitting flt:\n");
-	print_lifetimes(rd, flt_lt);
+	print_lifetimes(rd, ls, flt_lt);
 
 	printf("Rest RA complete \n");
 	printf("Lifetimes after leftt:\n");
-	print_lifetimes(rd, ls->lifetimes);
+	print_lifetimes(rd, ls, ls->lifetimes);
 #endif
 
 	rd->maxmemuse=lsra_mem_use;
+
+
+
+#ifdef LSRA_TESTLT
+	depthFirst(m, ld);
+	printf("TTTTTTTTTTTTTTTTTTTTTTTTTT\nTesting Lifetimes int\n");
+	test_lifetimes( m , ld, ls, int_lt, cd);
+	printf("Testing Lifetimes flt\n");
+	test_lifetimes( m , ld, ls, flt_lt, cd);
+	printf("Testing Lifetimes rest\n");
+	test_lifetimes(m, ld, ls, ls->lifetimes, cd);
+#endif
+
+
 }
 
 void lsra_alloc(methodinfo *m, registerdata *rd, struct lifetime *lifet, int *mem_use)
@@ -713,6 +1077,7 @@ void lsra_alloc(methodinfo *m, registerdata *rd, struct lifetime *lifet, int *me
 				rd->locals[lt->v_index][lt->type].regoff=regoff;
 			} else panic("Type Data mismatch 1\n");
 		}		
+		lt->reg = regoff;
 	}
 }
 
@@ -758,7 +1123,7 @@ struct freemem *lsra_getnewmem(int *mem_use)
 	return fm;
 }
 
-void _lsra_main( methodinfo *m, lsradata *ls, struct lifetime *lifet, 	struct lsra_reg *reg, int tmp_reg_count, int sav_reg_count, int *mem_use, int *reg_use)
+void _lsra_main( methodinfo *m, lsradata *ls, struct lifetime *lifet, struct lsra_reg *reg, int tmp_reg_count, int sav_reg_count, int *mem_use, int *reg_use)
 {
 	struct lifetime *lt;
 	int i;
@@ -775,6 +1140,25 @@ void _lsra_main( methodinfo *m, lsradata *ls, struct lifetime *lifet, 	struct ls
 	ls->active_sav = NULL;
 	ls->active_tmp_count=0;
 	ls->active_sav_count=0;
+
+#ifdef DONT_COMPILE
+	if (m->isleafmethod) {
+		/* do some precoloring -> all Locals with v_index < m->paramcount */
+		/* precoloring of params */
+		/* Local Vars, which get parameters passed have i_start == -1 and are      */
+		/* at the beginning of the lifetimes list (is sortet by increasing i_start */
+		for (lt=lifet; (lt!=NULL) && (lt->i_start == -1); lt = lt->next) {
+#ifdef LSRA_DEBUG
+			if ((lt->varnum < 0) || (lt->varnum >= m->paramcount))
+				panic("_lsra_main: lifetime <> parameter conflict\n");
+			if (m->paramtypes[lt->varnum] != lt->type)
+				panic("_lsra_main: lifetime <> parameter type conflict\n");
+#endif
+
+		}
+	}
+#endif
+
 	for (lt=lifet; lt != NULL; lt=lt->next) {
 		lsra_expire_old_intervalls(ls, lt,reg);
 		if (lt->savedvar && (!m->isleafmethod)) {
@@ -858,20 +1242,20 @@ void spill_at_intervall(lsradata *ls, struct lifetime *lt )
 		if (lt->reg == -1) /* kein tmp mehr frei gewesen */
 			_spill_at_intervall(lt, &(ls->active_sav), &(ls->active_sav_count));
 	}
-	if (lt->reg == -2) panic("spill_at_intervall: Keine Register mehr frei gewesen!\n");
+/* 	if (lt->reg == -2) panic("spill_at_intervall: Keine Register mehr frei gewesen!\n"); */
 }
 
 void _spill_at_intervall(struct lifetime *lt, struct active_lt **active, int *active_count)
 {
 	struct active_lt *alt,*alt1;
 	if (*active == NULL) {
-		lt->reg=-2;
+		lt->reg=-1;
 		return;
 	}
 	/* get last intervall from active */
 	for (alt1=alt=*active; alt->next != NULL; alt1=alt, alt=alt->next);
 	
-	if ((alt->lt->i_end > lt->i_end) && (alt->lt->usagecount < lt->usagecount)) {
+	if ((alt->lt->i_end > lt->i_end) /* || (alt->lt->usagecount < lt->usagecount) */ ) {
 			lt->reg=alt->lt->reg;
 			alt->lt->reg=-1;
 		
@@ -887,108 +1271,31 @@ void _spill_at_intervall(struct lifetime *lt, struct active_lt **active, int *ac
 	}
 }
 
-int lsra_getmaxblock(methodinfo *m, loopdata *ld, int bb_start)
-{
-	int i, *blocks;
-	int finished;
-	struct depthElement *hp;
-	int bb_max;
-	
-	blocks=DMNEW(int, m->basicblockcount);
-	/* ExTable Ablauf kann in die STD Code BB wieder "hineinspringen" */
-	/* -> deshalb */
-	/* TODO vorher alle "normalen" BB mit 2=bereits besucht initialisieren */
-	bb_max=0;
-
-	for (i=0; i<m->basicblockcount; i++) blocks[i]=-1;
-
-	blocks[bb_start]=1;
-
-	finished=0;
-	while (!finished) {
-		finished=1;
-		for (i=0; i<m->basicblockcount; i++) {
-	
-			if (blocks[i] == 1) {
-				if (i > bb_max) bb_max = i;
-				blocks[i]=2; /* visited */
-				for (hp=ld->c_dTable[i]; hp!=NULL; hp=hp->next) {
-					if (blocks[hp->value] != 2) {
-						blocks[hp->value]=1; /* to visit */
-						finished=0;
-					}
-				}
-			}
-		}
-	}
-#ifdef LSRA_DEBUG
-	printf("ExTable searching: BB_MAX %3i ",bb_max);
-	for (i=0; i<m->basicblockcount; i++) 
-		if (blocks[i] != -1) printf("%3i ",i);
-	printf("\n");
-#endif
-	return bb_max;
-}
-
 
 void lsra_calc_lifetime_length(methodinfo *m, lsradata *ls, codegendata *cd, loopdata *ld)
 {
 	struct lifetime *lt;
 	struct _i_list *il;
 	struct l_loop *loops;
-	struct b_loop *block_loop;
-	exceptiontable *ex;
-	int *exh_max; /* Exception Handler End BB */
-	int *exh_min; /* Exception Handler Start BB */
-	int *ex_max;  /* Exception guarded Area End BB */
-	int *ex_min;  /* Exception guarded Area Start BB */
+/* 	struct b_loop *block_loop; */
+	int *block2loop;
 
-	int blast,bfirst,ilast,ifirst,usage;
 
-	int i, j, num_loops;
+	int blast,bfirst,ilast,ifirst,usage, b_index, next_b_index;
+
+	int i, j, num_loops, max_nesting, nesting_level;
 	struct LoopContainer *lc;
 	struct LoopElement *le;
 
 	/**********/
 	/* Todo: */
-	/* Für Exceptionhandler Blocks wurde keine Loop Analyse durchgeführt! */
-	/* -> deshalb vorerst die einzelnen Handler als eine Loop eintragen */
-	/* oder loop analyse extra für jeden Handler aufrufen */
+	/* for Exceptionhandler Blocks loops were not analyed */
+	/* -> temporary solution:  expand all lifetimes used in a exceptionhandler to the extend of the corresponding exc.handler*/
 	/**/
-	/* lifetime der Vars des ExHandlers über guarded Bereich ausdehnen! */
 	/**/
 	/* Falls die einzelnen Blöcke einer Loop nicht durchgehend nummeriert sind */
 	/* auch nicht alle in block_loop eintragen! */
 
-	exh_max = DMNEW(int, cd->exceptiontablelength); 
-	exh_min = DMNEW(int, cd->exceptiontablelength); 
-	ex_max =  DMNEW(int, cd->exceptiontablelength); 
-	ex_min =  DMNEW(int, cd->exceptiontablelength); 
-
-	/* BB der Exhandler bestimmen + BB der guarded Area hinzu */
-	ex = cd->exceptiontable;
-	for (i=0; ex != NULL; i++,ex = ex->down) {
- 		if (ex->handler == NULL) {
-#ifdef LSRA_DEBUG
-			printf("lsra_init_blocks EXCEPTIONTABLE without handler!\n");
-#endif
-		} else {
-			if ((ex->handler->debug_nr < 0) || (ex->handler->debug_nr >= m->basicblockcount)) {
-#ifdef LSRA_DEBUG
-				printf("lsra_init_blocks EXCEPTIONTABLE Handler Blocknummer invalid! %i\n", ex->handler->debug_nr);
-#endif
-			} else {
-				exh_min[i]=ex->handler->debug_nr;
-				exh_max[i]=lsra_getmaxblock(m, ld, ex->handler->debug_nr);
-
-				ex_min[i]=ex->start->debug_nr;
-				ex_max[i]=ex->end->debug_nr;
-#ifdef LSRA_DEBUG
-				printf("EX %3i exmin %3i exmax %3i exhmin %3i exhmax %3i\n",i,ex_min[i],ex_max[i],exh_min[i],exh_max[i]);
-#endif
- 			} 
-		}
-	}
 
 	/* extend lifetime within loops */
   
@@ -996,19 +1303,31 @@ void lsra_calc_lifetime_length(methodinfo *m, lsradata *ls, codegendata *cd, loo
 
 	/* set up loops[i].b_first .b_last to hold the first and last node of all loops */
 	loops=DMNEW(struct l_loop,num_loops);
+#ifdef LSRA_DEBUG
+	printf("Loops original: \n");
+#endif
 	for (i=0,lc=ld->c_allLoops;i<num_loops;i++,lc=lc->next) {
 
+#ifdef LSRA_DEBUG
+		printf("Nr %3i   ", i);
+#endif
 		le = lc->nodes;
 		bfirst=m->basicblockcount;
 		blast=0;
 		while (le != NULL) {
-			if (le->node<bfirst) bfirst=le->node;
-			if (le->node>blast) blast=le->node;
+#ifdef LSRA_DEBUG
+			printf("%3i ", le->node);
+#endif
+			if (ld->c_defnum[le->node] < bfirst) bfirst = ld->c_defnum[le->node];
+			if (ld->c_defnum[le->node] > blast)  blast  = ld->c_defnum[le->node];
 			le = le->next;
 		}
 		loops[i].b_first=bfirst;
 		loops[i].b_last=blast;
 		loops[i].nesting=0;
+#ifdef LSRA_DEBUG
+		printf("  First %3i Last %3i\n", bfirst, blast);
+#endif
 	}
 
 	/* sort loops by b_first desc*/
@@ -1025,104 +1344,151 @@ void lsra_calc_lifetime_length(methodinfo *m, lsradata *ls, codegendata *cd, loo
 		}
 	}
 
-	/* check for nesting_level, overlapping */
-	for (i=0; i<num_loops-1;i++) {
-		/*! loops[i].b_first >= loops[i+1].b_first !*/
-		if (loops[i+1].b_last>=loops[i].b_first) {
-			if (loops[i+1].b_last<loops[i].b_last) {
-				/* overlapping -> make one loop of both */
-				loops[i+1].b_last=loops[i].b_last;
-				loops[i].b_first=-1;
-				loops[i].b_last=-1;
-			} else {
-				loops[i].nesting++; /* only boolean if nested... */
+	/* check foroverlapping */
+	for (i=0; i < num_loops-1; i++) {
+		if (loops[i].b_first != -1)
+			for ( j = i+1; j < num_loops; j++) {
+				if (loops[j].b_first != -1) {
+					if ((loops[j].b_last == loops[i].b_last) && (loops[j].b_first == loops[i].b_first)) {
+						/* "identical" loops */
+						loops[j].b_first = -1;
+					} else {
+						if ((loops[j].b_last < loops[i].b_last) && (loops[j].b_last>=loops[i].b_first)) {
+								/* overlapping -> make one loop of both */
+								loops[j].b_last=loops[i].b_last;
+								loops[i].b_first=-1;
+								loops[i].b_last=-1;
+								loops[j].nesting=(loops[i].nesting > loops[j].nesting) ? loops[i].nesting : loops[j].nesting;
+								break; /* out of for (j) -> iterate to next i */
+							}
+					}
+				}
+			} /* for j */
+	} /* for i */
+
+	/* eliminate entries without loops (b_first==b_last==-1) */
+	for (i=0,j=0;i < num_loops;) {
+		if (loops[i].b_first == -1) {
+			for (j=i+1; (j < num_loops) && (loops[j].b_first == -1); j++);
+			if (j >= num_loops) break; /* done */
+			/* swap loops[i] <-> loops[j] */
+			loops[i].b_first = loops[j].b_first;
+			loops[i].b_last = loops[j].b_last;
+			loops[i].nesting = loops[j].nesting;
+			loops[j].b_first = -1;
+		}
+		i++;
+	}
+	num_loops = i;
+
+	max_nesting=0;
+	/* check nesting */
+	for (i=0; i < num_loops-1; i++) {
+		for ( j = i+1; j < num_loops; j++) {
+			if (loops[j].b_last >= loops[i].b_last) {
+				/* loop j is fully in loop i -> loop[i].nesting++ */
+				loops[i].nesting++;
+			    if ( loops[i].nesting > max_nesting) max_nesting = loops[i].nesting;
 			}
-		}
-	}
+		} 
+	} 
 
-	/* cumulate basicblocks[i].icount in block_loop[i].instr*/
-	block_loop=DMNEW(struct b_loop, m->basicblockcount);
+
+	block2loop=DMNEW(int, (m->basicblockcount*(max_nesting+1)) );
+
 	for (i=0;i<m->basicblockcount; i++) {
-		block_loop[i].loop=-1;
-		if (i!=0) 
-			block_loop[i].instr=block_loop[i-1].instr+m->basicblocks[i-1].icount;
-		else
-			block_loop[i].instr=0;
-	}
+		for (j=0; j<=max_nesting; j++)
+			block2loop[i*(max_nesting+1)+j] = -1; /* init as no loop */
 
-	/* set block_loop[j].loop to loop index, if Basic Block is in this loop */
+	}
+#ifdef LSRA_DEBUG
+	printf("Loops processed: \n");
+	for (i=0; i < num_loops; i++)
+		printf("Nr %3i Start %3i(%3i) End %3i(%3i) Nesting %3i\n", i, loops[i].b_first, ls->icount_max * loops[i].b_first, loops[i].b_last, ls->icount_max * loops[i].b_last+m->basicblocks[loops[i].b_last].icount, loops[i].nesting);
+#endif
+	/* set block2loop[Basic Block Index][Nesting Level] to loop index, if Basic Block is in this loop */
 	for (i=0; i<num_loops;i++) {
-		if (loops[i].b_first!=-1) {
-			/* valid loop */
-			for (j=loops[i].b_first;j<=loops[i].b_last;j++) block_loop[j].loop=i;
-		}
+		for (j=loops[i].b_first;j<=loops[i].b_last;j++) block2loop[j*(max_nesting+1)+loops[i].nesting]=i;
 	}
 
 	/* now iterate through lifetimes and expand them */
 	lt=ls->lifetimes;
 	while(lt!=NULL) {
-
-		if (ls->back_edge_panic) {
-			lt->i_start=0;
-			lt->i_end=block_loop[m->basicblockcount-1].instr+m->basicblocks[m->basicblockcount-1].icount;
-		} else {
-			usage = 1;
-			il=lt->i_list;
-			blast=il->b_index;
-			ilast=il->instr;
-			while (il->next!=NULL) {
-				if ((il->b_index != il->next->b_index) || ((il->b_index == il->next->b_index) && (il->instr != il->next->instr))) {
-					if (block_loop[il->b_index].loop == -1)
+		usage = 1;
+		blast = -1;
+		bfirst = m->basicblockcount;
+		for (il=lt->i_list; il!=NULL; il = il->next) {
+			b_index = ld->c_defnum[il->b_index];
+			if ((b_index > blast) || ((b_index == blast) && (il->instr > ilast))) {
+				blast = b_index;
+				ilast = il->instr;
+			}
+			if ((b_index < bfirst) || ((b_index == bfirst) && (il->instr < ifirst))) {
+				bfirst = b_index;
+				ifirst = il->instr;
+			}
+			if (il->next != NULL) {
+				next_b_index = ld->c_defnum[il->next->b_index];
+				if ((b_index != next_b_index) || ((b_index == next_b_index) && (il->instr != il->next->instr))) {
+					for (nesting_level = max_nesting; nesting_level >= 0; nesting_level--)
+						if (block2loop[b_index*(max_nesting+1)+nesting_level] != -1)
+							break;
+					if (nesting_level == -1)
 						usage++; /* not in a loop */
-				}
-				il=il->next;
-			}
-			bfirst=il->b_index;
-			ifirst=il->instr;
-			/* expand lifetimes in a exceptionhandler to at least the whole handler */
-			/* TODO do a loop analyze for the exceptionhandler, too*/
-			for (i=0; i < cd->exceptiontablelength; i++) {
-			
-				if ( !((bfirst > exh_max[i]) || ( blast < exh_min[i])) ) {
-					/* Überschneidung mit exh_???[i]-> lt liegt in Exceptionhandler */
-					/* -> Start auf mindestens die erste Instruktion des geschützten Bereiches legen */
-					if (bfirst >= exh_min[i]) {
-						bfirst=exh_min[i];
-						ifirst=0;
-					}
-					/* -> Ende auf mindestens die letzte Instruktion des geschützten Bereiches legen */
-					if (blast <= exh_max[i]) {
-						blast=exh_max[i];
-						ilast= m->basicblocks[exh_max[i]].icount-1;
-					}
-				} 
-			}
-
-			ilast+=block_loop[blast].instr;   /* add icount of previous Basic Blocks */
-			ifirst+=block_loop[bfirst].instr; /* add icount of previous Basic Blocks */
-
-			if ((j=block_loop[bfirst].loop)==-1)
-				j=block_loop[blast].loop;
-
-			if (j!=-1) {
-				if (loops[j].b_first<=bfirst) {
-					bfirst=loops[j].b_first;
-					ifirst=block_loop[bfirst].instr;
-					usage+=loops[j].nesting*100;
-				}
-				if (blast <= loops[j].b_last) {
-					blast=loops[j].b_last;
-					ilast=block_loop[blast].instr+m->basicblocks[blast].icount;
-					usage+=loops[j].nesting*100;
+					else
+						usage+=100*nesting_level;
 				}
 			}
-
-			lt->i_start=ifirst;
-			lt->i_end=ilast;
-			i=ilast-ifirst;
-			if (i==0) i=1;
-			lt->usagecount=usage;
 		}
+
+		/* expand lifetimes in a exceptionhandler to at least the whole handler */
+		/* TODO do a loop analyze for the exceptionhandler*/
+
+		/* every lifetime of a guarded area, which is used in the exc. handler, */
+		/* has to be expanded to at least the whole guarded area */
+		for (i=0; i < cd->exceptiontablelength; i++) {
+			if ( !((bfirst > ls->ex[i].handler_max) || ( blast < ls->ex[i].handler_min)) ) {
+				/* lifetime lt lies within the exceptionhandler */
+				/* expand to at least the extends of this exceptionhandler */
+
+				/* -> Lifetime start has to be at minimum the start of the exceptionhandler */
+				if (bfirst >= ls->ex[i].handler_min) {
+					bfirst=ls->ex[i].handler_min;
+					ifirst=0;
+				}
+				/* -> Lifetime end has to be at minimum the end of the exceptionhandler */
+				if (blast <= ls->ex[i].handler_max) {
+					blast=ls->ex[i].handler_max;
+					ilast= m->basicblocks[ls->ex[i].handler_max].icount-1;
+				}
+			} 
+		}
+
+		ilast+=blast * ls->icount_max;   /* add icount of previous Basic Blocks */
+		ifirst+=bfirst * ls->icount_max; /* add icount of previous Basic Blocks */
+
+		for (nesting_level = max_nesting; nesting_level >= 0; nesting_level--) {
+			if (block2loop[bfirst*(max_nesting+1)+nesting_level] != block2loop[blast*(max_nesting+1)+nesting_level]) {
+				/* not fully in or out of loops -> expand bfirst and/or blast */
+				if ((j=block2loop[bfirst*(max_nesting+1)+nesting_level]) != -1) {
+					/* starts somewhere in a loop -> set bfirst back to loop start */
+					bfirst=loops[j].b_first;
+					ifirst=bfirst * ls->icount_max;
+				}
+				/* ends somewhere in a loop -> set blast forward to loop end */
+				if ((j=block2loop[blast*(max_nesting+1)+nesting_level]) != -1) {
+					blast=loops[j].b_last;
+					ilast=blast * ls->icount_max + m->basicblocks[ld->c_reverse[blast]].icount-1;
+				}
+			}
+		}
+
+		lt->i_start=ifirst;
+		lt->i_end=ilast;
+		i=ilast-ifirst;
+		if (i==0) i=1;
+		lt->usagecount=usage;
+
 		lt=lt->next;
 	}
 
@@ -1130,29 +1496,11 @@ void lsra_calc_lifetime_length(methodinfo *m, lsradata *ls, codegendata *cd, loo
 	for (i=0; i<num_loops;i++) {
 		printf("LoopNR: %3i Start: %3i End: %3i Nesting: %3i Block_loop[%3i]:",i,loops[i].b_first,loops[i].b_last,loops[i].nesting,i);
 		for (j=0;j<m->basicblockcount;j++)
-			if (block_loop[j].loop==i) printf(" %3i",j);
+			if (block2loop[j]==i) printf(" %3i",j);
 		printf("\n");
 	}
 #endif   
 }
-
-/* void lsra_sort_lt(struct lifetime **lifet) */
-/* { */
-/* 	struct lifetime *lt, lt_new, *temp, *tmp; */
-
-/*   	lt_new.next=NULL; */
-
-/* 	for (lt=*lifet; lt!= NULL;) { */
-/* 		temp=lt->next; */
-
-/* 		for(tmp=&lt_new; (tmp->next!= NULL) && (tmp->next->i_start < lt->i_start); tmp=tmp->next); */
-/* 		lt->next=tmp->next; */
-/* 		tmp->next=lt; */
-/* 		lt=temp; */
-/* 	} */
-/* 	*lifet=lt_new.next; */
-/* } */
-
 
 #define P_MAX 21
 void _lsra_merge_lt(struct lifetime **p, int i1, int i2)
@@ -1244,7 +1592,7 @@ void lsra_sort_lt(struct lifetime **lifet)
 }
 
 #ifdef LSRA_PRINTLIFETIMES
-void print_lifetimes(registerdata *rd, struct lifetime *lt)
+void print_lifetimes(registerdata *rd, lsradata *ls, struct lifetime *lt)
 {
 	struct lifetime *n;
 	struct _i_list *ni;
@@ -1269,7 +1617,21 @@ void print_lifetimes(registerdata *rd, struct lifetime *lt)
 		printf("i_Start: %3i i_stop: %3i reg: %3i VI: %3i Usage: %3i type: %3i flags: %3i varkind: %3i ILst: ",n->i_start,n->i_end,regoff,n->v_index,n->usagecount,type,flags, varkind);
 		for (ni=n->i_list; ni!=NULL; ni=ni->next) {
 			if (ni==ni->next) panic("loop in instruction list!\n");
-			printf( "(%3i,%3i) ",ni->b_index,ni->instr);
+			printf( "(%3i ,%3i, ",ni->b_index, ni->instr);
+			switch (ni->store) {
+			case LSRA_STORE:
+				printf("W)");
+				break;
+			case LSRA_LOAD:
+				printf("R)");
+				break;
+			case LSRA_POP:
+				printf("P)");
+				break;
+			default:
+				printf("?)");
+				break;
+			}
 		}
 		printf("\n");
 	}
@@ -1292,14 +1654,23 @@ void lsra_merge_i_lists(struct lifetime *lt, struct lifetime *lt1)
 {
 	struct _i_list *iptr, *iptr1, *iptr2;
 
+#ifdef LSRA_DEBUG
+	bool joining_lt; 
+
+	joining_lt = false;
+#endif
+
 	/* merge i_lists in order */
 	iptr=lt->i_list;
 	iptr2=lt->i_list=NULL;
 	iptr1=lt1->i_list;
 	while  ((iptr != NULL) && (iptr1 != NULL)) {
-		if (iptr1->instr == -1) { 
+		if (iptr1->instr == PASSING_THROUGH_LT) { 
 			/* throw away, just for joining */
 			iptr1=iptr1->next;
+#ifdef LSRA_DEBUG
+			joining_lt = true;
+#endif
 		} else {
 			if ((iptr->b_index > iptr1->b_index)|| ((iptr->b_index == iptr1->b_index) && (iptr->instr > iptr1->instr))) {
 				if (lt->i_list==NULL) {
@@ -1321,8 +1692,9 @@ void lsra_merge_i_lists(struct lifetime *lt, struct lifetime *lt1)
 		}
 	}
 #ifdef LSRA_DEBUG
-	if (iptr2 == NULL)
-		panic("lsra_merge_i_lists: Empty Instruction List in Lifetime\n");
+	if (!joining_lt)
+		if (iptr2 == NULL)
+			panic("lsra_merge_i_lists: Empty Instruction List in Lifetime\n");
 #endif
 	if (iptr==NULL) {
 		if (lt->i_list==NULL)
@@ -1508,7 +1880,7 @@ void lsra_join_lifetimes(methodinfo *m, codegendata *cd, lsradata *ls, loopdata 
 				lt->next=NULL;
 					
 				drop = false;
-				if (lt->i_list->instr==-1) {
+				if (lt->i_list->instr == PASSING_THROUGH_LT) {
 					if (out_stacks[in_stacks[ss->bb]] == out_stacks[ss->bb]) {
 						/* Throughpassing Basicblock is already in one "join Group" */
 						/* If this stackslot ((lt->local_ss)ss1->s == ss->s) is already in lt_new->local_ss */
@@ -1533,14 +1905,14 @@ void lsra_join_lifetimes(methodinfo *m, codegendata *cd, lsradata *ls, loopdata 
 					}
 
 
-					pt=(lt->i_list->instr==-1); /* remember this now, because merge_i_list could once destroy this link*/
+					pt=(lt->i_list->instr == PASSING_THROUGH_LT); /* remember this now, because merge_i_list could once destroy this link*/
 
 					/* add stackslot to local_ss of lt_new */
 					ss_new = DNEW(struct stackslot);
 					
 					lt_new->savedvar |= (lt->savedvar & SAVEDVAR);
 
-					if (pt) { /*lt->i_list->instr==-1) {*/
+					if (pt) { /*lt->i_list->instr == PASSING_THROUGH_LT) {*/
 					/* BB passes this stackslot through -> join later with other side!*/
 						if (out_stacks[in_stacks[ss->bb]] != out_stacks[ss->bb]) { 
 							/* Stackslot ist not passed through to same (this) "join group" */
@@ -1770,7 +2142,7 @@ void _lsra_from_stack(lsradata *ls, stackptr s, int block, int instr, int store)
 /* 		printf("type %i flags %i  varkind %i varnum %i regoff %i \n",s->type,s->flags ,s->varkind ,s->varnum ,s->regoff); */
 /* 		panic("lsra_from_stack: Var on Stack not found"); */
 	} else {
-		n->i_list=lsra_add_i_list(n->i_list, instr, block, store);
+		n->i_list=lsra_add_i_list( n->i_list, instr, block, store);
 	}
 }
 
@@ -1783,7 +2155,7 @@ void lsra_usage_local(lsradata *ls, s4 v_index, int type, int block, int instr, 
 
 	if (n==NULL) {
 #ifdef LSRA_DEBUG
-		if (store != LSRA_STORE) printf("lsra_local_store: Read before write Local var: %i paramcount: ?\n", v_index);
+/* 		if (store != LSRA_STORE) printf("lsra_local_store: Read before write Local var: %i paramcount: ?\n", v_index); */
 #endif
 		lsra_new_local(ls, v_index, type);
 		/* neue Lifetimes werden immer am Anfang der Liste eingehängt */
@@ -1866,7 +2238,7 @@ void dup_join( struct lsradata *ls, struct dup *dup, int block)
 				if (ss1 != NULL) break; /* found */
 			}
 			if (lt == NULL) panic("dup_join Lifetimes not found\n");
-			pt=(lt->i_list->instr == -1); /* joins with passthrough lifetimes not yet possible! */
+			pt=(lt->i_list->instr == PASSING_THROUGH_LT); /* joins with passthrough lifetimes not yet possible! */
 			pt|=(lt->i_list->next == NULL); /* joins with "interface" Stackslots not yet possible! */
 			if (!pt) {
 				join_lt_prev[join_lt_top]=lt_prev;
@@ -1882,11 +2254,13 @@ void dup_join( struct lsradata *ls, struct dup *dup, int block)
 			for (i=0; i<join_lt_top; i++) {
 				if (i != join_to) {
 					/* now join finally */
-					lsra_merge_i_lists(join_lt[join_to], join_lt[i]);
-					lsra_merge_local_ss(join_lt[join_to], join_lt[i]);
-					join_lt[join_to]->savedvar|=(join_lt[i]->savedvar & SAVEDVAR);
-					/* drop join_lt[i] from list */
-					join_lt_prev[i]->next = join_lt[i]->next;
+					if (join_lt[join_to] != join_lt[i]) {
+						lsra_merge_i_lists(join_lt[join_to], join_lt[i]);
+						lsra_merge_local_ss(join_lt[join_to], join_lt[i]);
+						join_lt[join_to]->savedvar|=(join_lt[i]->savedvar & SAVEDVAR);
+						/* drop join_lt[i] from list */
+						join_lt_prev[i]->next = join_lt[i]->next;
+					}
 				}
 			}
 		}
@@ -1894,7 +2268,7 @@ void dup_join( struct lsradata *ls, struct dup *dup, int block)
 	dup->next = NULL;
 }
 
-void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
+void lsra_scan_registers_canditates(methodinfo *m, loopdata *ld, lsradata *ls)
 {
 	int i;
 	int opcode;
@@ -1907,7 +2281,14 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 	int      id, od;
 	int b_index;
 	struct dup dup;
-	
+	int high, low, count;
+	s4 *s4ptr;
+
+
+	lsra_jump_init( m, ld );
+
+	ls->icount_max = 0;
+
 	dup.ss=NULL;
 	dup.next=NULL;
 	
@@ -1941,41 +2322,52 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 				/* stackslot adress equal, stackslot"number" equal */
 				for (;in!=NULL; in=in->prev) {
 					/* Make 2 entries -> one for the instack, one for the out stack */
-					lsra_new_stack(ls, in, b_index, -1);
-					lsra_new_stack(ls, in, b_index, -1);
+					lsra_new_stack(ls, in, b_index, PASSING_THROUGH_LT);
+					lsra_new_stack(ls, in, b_index, PASSING_THROUGH_LT);
 				}
 			}
 			iptr = m->basicblocks[b_index].iinstr;
 			len = m->basicblocks[b_index].icount;
 			iindex=0;
 
+			if (len > ls->icount_max)
+				ls->icount_max = len;
+
 			while (iindex<len)  {
 				src = dst;
 				dst = iptr->dst;
 				opcode = iptr->opc;
+
 #ifdef LSRA_DEBUG
-				printf("bb: %3i bcount: %3i iindex: %3i ilen: %3i opcode: %3i %s\n",b_index,m->basicblockcount,iindex,len,opcode,icmd_names[opcode]);
-				lsra_dump_stack(src);
-				lsra_dump_stack(dst);
+/* 				printf("bb: %3i bcount: %3i iindex: %3i ilen: %3i opcode: %3i %s\n",b_index,m->basicblockcount,iindex,len,opcode,icmd_names[opcode]); */
+/* 				lsra_dump_stack(src); */
+/* 				lsra_dump_stack(dst); */
 #endif
 				switch (opcode) {
 
+					/* pop 0 push 0 */
 				case ICMD_RET:
 					lsra_usage_local(ls,iptr->op1,TYPE_ADR, b_index,iindex,LSRA_LOAD); /* local read (return adress) */
-					
-					/* pop 0 push 0 */
-
+					lsra_sbr_ret( b_index );
+					break;
+				case ICMD_JSR:
+					lsra_sbr_call (b_index, m->basicblockindex[iptr->op1]);
+					lsra_jump( m, ld, b_index, b_index + 1 ); /* just note the code path without sbr call */
+					break;
+				case ICMD_GOTO:
+					lsra_jump(m, ld, b_index, m->basicblockindex[iptr->op1]);
+					break;
 				case ICMD_NOP:
 				case ICMD_ELSE_ICONST:
 				case ICMD_CHECKEXCEPTION:
 				case ICMD_CHECKASIZE:
 				case ICMD_IINC:
-				case ICMD_JSR:
-				case ICMD_RETURN:
-				case ICMD_GOTO:
 				case ICMD_INLINE_START:
 				case ICMD_INLINE_END:
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 ); /* fall through */
 					break;
+				case ICMD_RETURN:
+					break;                             /* end of method, no "jump" to remember */
 
 					/* pop 0 push 1 const */
 					/* const->stack */
@@ -1987,6 +2379,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 				case ICMD_ACONST:
 					/* new stack slot */
 					lsra_new_stack(ls,dst,b_index,iindex); /* const->stack */
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 ); /* fall through */
 					break;
 
 					/* pop 0 push 1 load */
@@ -2000,6 +2393,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 					lsra_usage_local(ls,iptr->op1,opcode-ICMD_ILOAD, b_index,iindex,LSRA_LOAD); /* local->value */
 					lsra_new_stack(ls,dst,b_index,iindex); /* value->stack */
 					/* ?Reference to local var?-> attention if local var is changed */
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 ); /* fall through */
 				break;
 
 					/* pop 2 push 1 */
@@ -2018,6 +2412,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
  					lsra_new_stack(ls,dst,b_index,iindex); /* arrayref[index]->stack */
  					lsra_from_stack(ls, src,b_index,iindex); /* stack->index */
  					lsra_from_stack(ls, src->prev,b_index,iindex); /* stack->arrayref */
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 ); /* fall through */
 					break;
 
 					/* pop 3 push 0 */
@@ -2036,10 +2431,12 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
  					lsra_from_stack(ls, src,b_index,iindex); /* stack -> value */
  					lsra_from_stack(ls, src->prev,b_index,iindex); /* stack -> index */
  					lsra_from_stack(ls, src->prev->prev,b_index,iindex); /* stack -> arrayref */
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 ); /* fall through */
 					break;
 
 				case ICMD_POP: /* throw away a stackslot -> check if used anyway! */
 					lsra_pop_from_stack(ls,src,b_index,iindex);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 ); /* fall through */
 					break;
 
 					/* pop 1 push 0 store */
@@ -2052,6 +2449,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 				case ICMD_ASTORE:
 					lsra_from_stack(ls, src,b_index,iindex); /* stack -> value */
 					lsra_usage_local(ls,iptr->op1,opcode-ICMD_ISTORE, b_index,iindex,LSRA_STORE); /* local->value */
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 ); /* fall through */
  					break;
 
 					/* pop 1 push 0 */
@@ -2060,46 +2458,81 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 				case ICMD_LRETURN:
 				case ICMD_FRETURN:
 				case ICMD_DRETURN:
-				case ICMD_ARETURN: /*stack(value) -> [empty] */
+				case ICMD_ARETURN: /* stack(value) -> [empty] */
+					               /* End of Method, no jump to remember */
 
 				case ICMD_ATHROW: /* stack(objref) -> undefined */
-
+					              /* "jump" to an excpetionhandler, nothing to remember */
+					              /* either this happens in a guarded area -> "jumps" will be set up */
+					              /* or exception handling leaves this method */
+					lsra_from_stack(ls, src,b_index,iindex); /* stack -> value */
+					break;
 				case ICMD_PUTSTATIC: /* stack(value) -> static_field */
 					/* pop 1 push 0 branch */
+				case ICMD_NULLCHECKPOP: /****** ????? -1 -> stack *********/
+				case ICMD_MONITORENTER:
+				case ICMD_MONITOREXIT:
+					lsra_from_stack(ls, src,b_index,iindex); /* stack -> value */
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 ); /* fall through */
+					break;
+
 
 				case ICMD_IFNULL: /* stack(value) -> branch? */
 				case ICMD_IFNONNULL:
-
 				case ICMD_IFEQ:
 				case ICMD_IFNE:
 				case ICMD_IFLT:
 				case ICMD_IFGE:
 				case ICMD_IFGT:
 				case ICMD_IFLE:
-
 				case ICMD_IF_LEQ:
 				case ICMD_IF_LNE:
 				case ICMD_IF_LLT:
 				case ICMD_IF_LGE:
 				case ICMD_IF_LGT:
 				case ICMD_IF_LLE:
+					lsra_from_stack(ls, src,b_index,iindex); /* stack -> value */
+					lsra_jump( m, ld, b_index, m->basicblockindex[iptr->op1] ); /* branch is taken */
+					lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
+					break;
 
 					/* pop 1 push 0 table branch */
 
 				case ICMD_TABLESWITCH:
-				case ICMD_LOOKUPSWITCH:
-
-				case ICMD_NULLCHECKPOP: /****** ????? -1 -> stack *********/
-				case ICMD_MONITORENTER:
-				case ICMD_MONITOREXIT:
 					lsra_from_stack(ls, src,b_index,iindex); /* stack -> value */
+
+					s4ptr = iptr->val.a;
+					lsra_jump( m, ld, b_index, m->basicblockindex[*s4ptr]);	/* default branch		*/
+					s4ptr++;
+					low = *s4ptr;
+					s4ptr++;
+					high = *s4ptr;
+					count = (high-low+1);
+					while (--count >= 0) {
+						s4ptr++;
+						lsra_jump( m, ld, b_index, m->basicblockindex[*s4ptr]);
+				    }
 					break;
+				case ICMD_LOOKUPSWITCH:
+					lsra_from_stack(ls, src,b_index,iindex); /* stack -> value */
+
+					s4ptr = iptr->val.a;
+					lsra_jump( m, ld, b_index, m->basicblockindex[*s4ptr]);	/* default branch		*/
+					++s4ptr;
+					count = *s4ptr++;
+					while (--count >= 0) {
+						lsra_jump( m, ld, b_index, m->basicblockindex[s4ptr[1]]);
+						s4ptr += 2;
+				    }
+					break;
+
 
 					/* pop 2 push 0 */
 
 				case ICMD_POP2: /* throw away 2 stackslots -> check if used anyway! */
 					lsra_pop_from_stack(ls,src,b_index,iindex);
 					lsra_pop_from_stack(ls,src->prev,b_index,iindex);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 ); /* fall through */
 					break;
 
 					/* pop 2 push 0 branch */
@@ -2120,6 +2553,11 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 
 				case ICMD_IF_ACMPEQ:
 				case ICMD_IF_ACMPNE:
+					lsra_from_stack(ls, src,b_index,iindex); 	   /* stack -> value*/
+					lsra_from_stack(ls, src->prev,b_index,iindex); /* stack -> objref*/
+					lsra_jump( m, ld, b_index, m->basicblockindex[iptr->op1] ); /* branch is taken */
+					lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
+					break;
 
 					/* pop 2 push 0 */
 
@@ -2133,6 +2571,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 				case ICMD_SASTORECONST:
 					lsra_from_stack(ls, src,b_index,iindex); 	   /* stack -> value*/
 					lsra_from_stack(ls, src->prev,b_index,iindex); /* stack -> objref*/
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 					/* pop 0 push 1 dup */
@@ -2143,6 +2582,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 					dup_mark(&dup, src);
 					dup_mark(&dup, dst);
 					dup_next(&dup);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 					/* pop 0 push 2 dup */
@@ -2161,6 +2601,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 					dup_mark(&dup, dst->prev);
 					dup_mark(&dup, dst->prev->prev->prev);
 					dup_next(&dup);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 					/* pop 2 push 3 dup */
@@ -2178,6 +2619,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 					dup_mark(&dup, src->prev);
 					dup_mark(&dup, dst->prev);
 					dup_next(&dup);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 					/* pop 3 push 4 dup */
@@ -2200,6 +2642,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 					dup_mark(&dup, src->prev->prev);
 					dup_mark(&dup, dst->prev->prev);
 					dup_next(&dup);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 					/* pop 3 push 5 dup */
@@ -2224,6 +2667,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 					dup_mark(&dup, src->prev->prev);
 					dup_mark(&dup, dst->prev->prev);
 					dup_next(&dup);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 					/* pop 4 push 6 dup */
@@ -2253,6 +2697,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 					dup_mark(&dup, src->prev->prev->prev);
 					dup_mark(&dup, dst->prev->prev->prev);
 					dup_next(&dup);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 					/* pop 2 push 2 swap */
@@ -2268,6 +2713,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 					dup_mark(&dup, src->prev);
 					dup_mark(&dup, dst);
 					dup_next(&dup);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 					/* pop 2 push 1 */
@@ -2319,10 +2765,10 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 					lsra_from_stack(ls, src,b_index,iindex);
 					lsra_from_stack(ls, src->prev,b_index,iindex);
 					lsra_new_stack(ls,dst,b_index,iindex);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 					/* pop 1 push 1 */
-					
 				case ICMD_IADDCONST:
 				case ICMD_ISUBCONST:
 				case ICMD_IMULCONST:
@@ -2386,6 +2832,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 				case ICMD_GETFIELD:
 					lsra_from_stack(ls, src,b_index,iindex);
 					lsra_new_stack(ls,dst,b_index,iindex);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 					/* pop 0 push 1 */
@@ -2395,6 +2842,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 				case ICMD_NEW:
 
  					lsra_new_stack(ls,dst,b_index,iindex);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 					/* pop many push any */
@@ -2402,17 +2850,16 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 				case ICMD_INVOKESPECIAL:
 				case ICMD_INVOKESTATIC:
 				case ICMD_INVOKEINTERFACE:
-					{
-						i = iptr->op1;
-						while (--i >= 0) {
-							lsra_from_stack(ls, src,b_index,iindex);
-							src = src->prev;
-						}
-						if (((methodinfo*)iptr->val.a)->returntype != TYPE_VOID) {
-							lsra_new_stack(ls,dst,b_index,iindex);
-						}
-						break;
+					i = iptr->op1;
+					while (--i >= 0) {
+						lsra_from_stack(ls, src,b_index,iindex);
+						src = src->prev;
 					}
+					if (((methodinfo*)iptr->val.a)->returntype != TYPE_VOID) {
+						lsra_new_stack(ls,dst,b_index,iindex);
+					}
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
+					break;
 
 				case ICMD_BUILTIN3:
 					lsra_from_stack(ls, src,b_index,iindex);
@@ -2425,6 +2872,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
  					src = src->prev; /* ??????????? */
 					if (iptr->op1 != TYPE_VOID)
 						lsra_new_stack(ls,dst,b_index,iindex);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 				case ICMD_MULTIANEWARRAY:
@@ -2434,6 +2882,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 						src = src->prev;
 					}
 					lsra_new_stack(ls,dst,b_index,iindex);
+					if (iindex == len-1) lsra_jump( m, ld, b_index, b_index + 1 );                 /* fall through */
 					break;
 
 				default:
@@ -2448,8 +2897,240 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls)
 		dup_join(ls, &dup, b_index);
 
 		b_index++;
+
 	} /* while blocks */
 }
+
+/* Build up jump graph in ld->c_dTable */
+void lsra_jump( methodinfo *m, loopdata *ld, int from, int to)
+{
+	struct depthElement *new, *de, *de_prev;
+	struct LoopContainer *lc;
+
+	if (m->basicblocks[to].flags < BBREACHED) {
+		/* normally a "fallthorugh" to a Deleted Block -> search next valid Block */
+		for (; ((to < m->basicblockcount) && (m->basicblocks[to].flags < BBREACHED)); to++);
+		if (to == m->basicblockcount) panic("lsra_jump: Jump to nowhere\n");
+	}
+	
+	/* search sort in position or if element already exists */
+	for (de=de_prev=ld->c_dTable[from]; de != NULL; de_prev=de, de = de->next) {
+		if (de->value < to )
+			break;
+		if (de->value == to)
+			return;
+	}
+
+	new = DNEW (struct depthElement);
+	new->value = to;
+	new->changes = NULL;
+	if (de == ld->c_dTable[from]) {
+		new->next = ld->c_dTable[from];
+		ld->c_dTable[from] = new;
+	} else {
+		de_prev->next = new;
+		new->next = de;
+	}
+
+	if (from == to) {	/* insert one node loops into loop container	*/
+		lc = DNEW(struct LoopContainer);
+		LoopContainerInit(m, lc, from);
+		lc->next = ld->c_allLoops;
+		ld->c_allLoops = lc;
+	}
+
+	ld->c_pre[to][ld->c_numPre[to]] = from;
+	ld->c_numPre[to]++;
+}
+
+void lsra_jump_init( methodinfo *m, loopdata *ld)
+{
+	int i;
+
+	ld->c_defnum = DMNEW(int, m->basicblockcount);
+	ld->c_numPre = DMNEW(int, m->basicblockcount);
+	ld->c_parent = DMNEW(int, m->basicblockcount);
+	ld->c_reverse = DMNEW(int, m->basicblockcount);
+	ld->c_pre = DMNEW(int *, m->basicblockcount);
+	ld->c_dTable = DMNEW(struct depthElement *, m->basicblockcount);
+	
+	for (i = 0; i < m->basicblockcount; ++i) {
+		ld->c_defnum[i] = ld->c_parent[i] = -1;
+		ld->c_numPre[i] = ld->c_reverse[i] = 0;
+
+		ld->c_pre[i] = DMNEW(int, m->basicblockcount);
+		ld->c_dTable[i] = NULL;
+	}
+  
+	ld->c_globalCount = 0;
+	ld->c_allLoops = NULL;
+}
+
+void lsra_sbr_ret( int b_index )
+{
+
+}
+
+void lsra_sbr_call ( int from, int to )
+{
+
+}
+
+
+#ifdef LSRA_TESTLT
+int _test_lifetimes(methodinfo *m, loopdata *ld, lsradata *ls, int b_index, int *values, bool* bb_visited, struct lifetime *lifet)
+{
+	int b_new_index;
+	struct lifetime *lt;
+	struct _i_list *il;
+
+	struct depthElement *de;
+	struct stackslot *ss;
+	int *v, i, j;
+
+/* 	bb_visited[b_index]++; */
+	
+	b_new_index = b_index;
+
+	if ((m->basicblocks[b_index].type == BBTYPE_EXH) || (m->basicblocks[b_index].type == BBTYPE_SBR)) {
+		/* initialize first stackslot which comes from the "system" */
+		for (lt = lifet; lt != NULL; lt = lt->next) {
+			for (il=lt->i_list; il != NULL; il = il->next) {
+				if ((il->b_index == b_new_index) && (il->instr == 0) && (il->store == LSRA_STORE)) {
+					for (ss=lt->local_ss; (ss != NULL) && (ss->s != m->basicblocks[b_index].instack); ss = ss->next);
+					if (ss != NULL) {
+						values[lt->reg] = lt->v_index;
+/* 						printf("BB %3i EXH/SBR init lt v_index %3i reg (%3i)=%3i\n", b_index, lt->v_index, lt->reg, values[lt->reg]); */
+					}
+				}
+			}
+		}
+	}			 
+
+	for (i = -1; i < m->basicblocks[b_index].icount; i++) {
+		/* search for Reads (LSRA_LOAD or LSRA_POP) at (b_new_index, i) and verify values[lt->reg]==v_index*/
+		for (lt = lifet; lt != NULL; lt = lt->next) {
+			for (il=lt->i_list; il != NULL; il = il->next) {
+				if ((il->b_index == b_new_index) && (il->instr == i) && ((il->store == LSRA_LOAD) || (il->store == LSRA_POP))) {
+					if (values[lt->reg] != lt->v_index) {
+						if (values[lt->reg] == VS)
+							printf("BB %3i Instr %3i lt v_index %3i reg %3i Warning: not initialized\n", b_index, i, lt->v_index, lt->reg);
+						else {
+							printf("BB %3i Instr %3i lt v_index %3i reg %3i Error: %3i \n", b_index, i, lt->v_index, lt->reg, values[lt->reg]);
+							printf("Backtracing: \n");
+							return (lt->reg);
+						}
+					}
+				}
+			}
+		}
+
+		/* search for Writes (LSRA_STORE) and do it values[lt->reg]=lt->v_index */
+		for (lt = lifet; lt != NULL; lt = lt->next) {
+			for (il=lt->i_list; il != NULL; il = il->next) {
+				if ((il->b_index == b_new_index) && (il->instr == i) && (il->store == LSRA_STORE)) {
+					values[lt->reg]=lt->v_index;
+/* 					printf("BB %3i Instr %3i v_index %3i reg(%3i)=%3i\n", b_index, i, lt->v_index, lt->reg, values[lt->reg]); */
+				}
+			}
+		}
+	}
+ 
+/* 	for (de = ld->c_dTable[b_index]; de != NULL; de = de->next) { */
+/* 		if (( de->value > b_index ) || (bb_visited[de->value] < 3)) { */ /* dont go in loops */
+			/* make an own copy for each test */
+/* 			v=DMNEW(int, VS); */
+/* 			for (i=0; i<VS; i++) v[i]=values[i]; */
+/* 			if ((i=_test_lifetimes(m, ld, ls, de->value, v, bb_visited, lifet)) != -1) { */
+/* 				printf(" BB %3i ((%3i)=%3i) ",b_index, i, values[i]); */
+/* 				return i; */
+/* 			} */
+/* 		} */
+/* 	} */
+
+	i=0;
+
+	for (de = ld->c_dTable[b_index]; de != NULL; de = de->next)
+		i++;
+
+	if (i != 0) {
+		j = rand() % i;
+
+		for (i=0, de = ld->c_dTable[b_index]; i!=j; i++, de=de->next);
+
+		if ((i=_test_lifetimes(m, ld, ls, de->value, values, bb_visited, lifet)) != -1) {
+			/* 		printf(" BB %3i ((%3i)=%3i) ",b_index, i, values[i]); */
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+void test_lifetimes( methodinfo *m, loopdata *ld, lsradata *ls, struct lifetime *lifet, codegendata *cd)
+{
+	int *values, i;
+	int *bb_visited;
+	int j, handler_min1, handler_min;
+	struct depthElement *de;
+
+	/* first patch in jumps from the last block in a guarded area (ls->ex[i]->guarded_max) */
+	/* to the coresponding exceptionhandler (ls->ex[i]->handler_min), so the tests is  */
+	/* valid for exceptions too. Afterwards eliminate this jumps again */
+	
+/* 	for (i=0; i < cd->exceptiontablelength; i++) { */
+/* 		for (j=ls->bb_rev[ls->ex[i].guarded_max]; j>=0; j--) { */
+			/* this patched jump only from blocks which are not deleted or exeptionhandler itself */
+/* 			if (!((m->basicblocks[j].flags < BBREACHED) || (m->basicblocks[j].type == BBTYPE_EXH))) */
+/* 				break; */
+/* 		} */
+/* 		if (j == -1) panic( "lsra_clean_Graph: Problem with Basic Block Order\n"); */
+/* 		de=DNEW(struct depthElement); */
+
+/* 		handler_min = ls->bb_rev[ls->ex[i].handler_min]; */
+/* 		handler_min1 = ls->bb_rev[ls->ex[i].handler_max]; */
+/* 		if (handler_min1 < handler_min) handler_min = handler_min1; */
+
+/* 		de->value = handler_min; */
+/* 		de->next = ld->c_dTable[j]; */
+/* 		ld->c_dTable[j]=de; */
+/* 	} */
+
+	if ( (values = calloc( VS, sizeof(int))) == NULL )
+		 panic("test_lifetimes: out of memory\n");
+
+	for (j=0; j < 100; j++ ) {
+		for (i=0; i < VS; i++) values[i]=VS;
+/* 		bb_visited=DMNEW(bool, m->basicblockcount); */
+/* 		for (i=0; i < m->basicblockcount; i++) bb_visited[i]=false; */
+
+/* 		bb_visited[0]=1; */
+		if (_test_lifetimes(m, ld, ls, 0, values, bb_visited, lifet) != -1) printf("\n");
+	}
+
+
+	free(values);
+
+	/* now taking out the patched "exception" jumps again */
+/* 	for (i=0; i < cd->exceptiontablelength; i++) { */
+/* 		for (j=ls->bb_rev[ls->ex[i].guarded_max]; j>=0; j--) { */
+ 			/* this patched jump only from blocks which are not deleted or exeptionhandler itself */ 
+/* 			if (!((m->basicblocks[j].flags < BBREACHED) || (m->basicblocks[j].type == BBTYPE_EXH))) */
+/* 				break; */
+/* 		} */
+/* 		ld->c_dTable[j]=ld->c_dTable[j]->next; */
+/* 	} */
+}
+#endif
+
+
+
+
+
+
+
+
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1897 2005-02-07 16:59:00Z twisti $
+   $Id: jit.c 1944 2005-02-15 16:30:41Z christian $
 
 */
 
@@ -1507,6 +1507,10 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 									  registerdata *rd, loopdata *ld,
 									  t_inlining_globals *id)
 {
+#ifdef LSRA
+	bool old_opt_lsra;
+#endif
+
 	/* print log message for compiled method */
 
 	if (compileverbose)
@@ -1600,8 +1604,14 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 
 	/* allocate registers */
 #ifdef LSRA
- 	if (opt_lsra)
- 		lsra(m, cd, rd, ld, id);
+	old_opt_lsra=opt_lsra;
+ 	if (opt_lsra) {
+ 		if (!lsra(m, cd, rd, ld, id)) {
+			opt_lsra = false;
+/* 			log_message_method("Regalloc Fallback: ", m); */
+			regalloc( m, cd, rd );
+		} /* else log_message_method("Regalloc LSRA: ", m); */
+	}
  	else
 #endif
 		regalloc(m, cd, rd);
@@ -1633,6 +1643,9 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 	if (compileverbose)
 		log_message_method("Compiling done: ", m);
 
+#ifdef LSRA
+	opt_lsra=old_opt_lsra;
+#endif
 	/* return pointer to the methods entry point */
 
 	return m->entrypoint;
