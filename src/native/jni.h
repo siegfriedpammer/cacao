@@ -26,7 +26,7 @@
 
    Authors: ?
 
-   $Id: jni.h 682 2003-12-01 15:33:30Z jowenn $
+   $Id: jni.h 747 2003-12-13 22:10:17Z twisti $
 
 */
 
@@ -48,31 +48,31 @@
 /* JNI datatypes */
 
 #define jobject         java_objectheader*
-#define jclass      	 struct classinfo*
-#define jthrowable     	  	   jobject
-#define jweak	   	  	   jobject
-#define jarray		 java_arrayheader*
-#define jlongArray	   java_longarray*
-#define jbooleanArray	java_booleanarray*
-#define jintArray           java_intarray*
-#define jcharArray	   java_chararray*
-#define jbyteArray	   java_bytearray*
-#define jshortArray	  java_shortarray*
-#define jdoubleArray	 java_doublearray*
-#define jfloatArray	  java_floatarray*
-#define jobjectArray	 java_objectarray*
-#define jstring	                   jobject
-#define jint      		        s4
-#define jchar     		        s2
-#define jboolean  		        u1
-#define jbyte     		        s1
-#define jshort     		        s2
-#define jlong			        s8
-#define jfloat	     		     float
-#define jdouble 	    	    double
-#define jsize         		      jint
-#define jfieldID 	        fieldinfo*
-#define jmethodID	       methodinfo*	
+#define jclass          struct classinfo*
+#define jthrowable      jobject
+#define jweak           jobject
+#define jarray          java_arrayheader*
+#define jlongArray      java_longarray*
+#define jbooleanArray   java_booleanarray*
+#define jintArray       java_intarray*
+#define jcharArray      java_chararray*
+#define jbyteArray      java_bytearray*
+#define jshortArray     java_shortarray*
+#define jdoubleArray    java_doublearray*
+#define jfloatArray     java_floatarray*
+#define jobjectArray    java_objectarray*
+#define jstring         jobject
+#define jint            s4
+#define jchar           s2
+#define jboolean        u1
+#define jbyte           s1
+#define jshort          s2
+#define jlong           s8
+#define jfloat          float
+#define jdouble         double
+#define jsize           jint
+#define jfieldID        fieldinfo*
+#define jmethodID       methodinfo*	
 
 
 typedef struct _JavaVM* JavaVM;
@@ -501,6 +501,7 @@ void SetDoubleField(JNIEnv *env, jobject obj, jfieldID fieldID, jdouble val);
 #define setfield_critical(clazz,obj,name,sig,jdatatype,val) setField(obj,jdatatype,getFieldID_critical(env,clazz,name,sig),val);
 
 jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *mi,jobject obj, java_objectarray *params);
+
 #endif /* _JNI_H */
 
 
