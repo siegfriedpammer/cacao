@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 594 2003-11-09 19:54:50Z twisti $
+   $Id: codegen.c 616 2003-11-13 00:57:22Z stefan $
 
 */
 
@@ -538,6 +538,7 @@ void codegen()
 	*/
 
 	if (runverbose) {
+		int disp;
 		M_LDA (REG_SP, REG_SP, -(14*8));
 		M_AST(REG_RA, REG_SP, 1*8);
 
@@ -561,7 +562,8 @@ void codegen()
 		p = dseg_addaddress ((void*) (builtin_trace_args));
 		M_ALD(REG_PV, REG_PV, p);
 		M_JSR(REG_RA, REG_PV);
-		M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
+		disp = -(int)((u1*) mcodeptr - mcodebase);
+		M_LDA(REG_PV, REG_RA, disp);
 		M_ALD(REG_RA, REG_SP, 1*8);
 
 		M_LLD(argintregs[0], REG_SP,  2*8);
@@ -648,11 +650,13 @@ void codegen()
 
 #ifdef USE_THREADS
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+		int disp;
 		p = dseg_addaddress ((void*) (builtin_monitorenter));
 		M_ALD(REG_PV, REG_PV, p);
 		M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
 		M_JSR(REG_RA, REG_PV);
-		M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
+		disp = -(int)((u1*) mcodeptr - mcodebase);
+		M_LDA(REG_PV, REG_RA, disp);
 		}			
 #endif
 	}
@@ -3004,11 +3008,13 @@ void codegen()
 
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+				int disp;
 				a = dseg_addaddress ((void*) (builtin_monitorexit));
 				M_ALD(REG_PV, REG_PV, a);
 				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
 				M_JSR(REG_RA, REG_PV);
-				M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
+				disp = -(int)((u1*) mcodeptr - mcodebase);
+				M_LDA(REG_PV, REG_RA, disp);
 				}			
 #endif
 			var_to_reg_int(s1, src, REG_RESULT);
@@ -3020,11 +3026,13 @@ void codegen()
 
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+				int disp;
 				a = dseg_addaddress ((void*) (builtin_monitorexit));
 				M_ALD(REG_PV, REG_PV, a);
 				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
 				M_JSR(REG_RA, REG_PV);
-				M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
+				disp = -(int)((u1*) mcodeptr - mcodebase);
+				M_LDA(REG_PV, REG_RA, disp);
 				}			
 #endif
 			var_to_reg_flt(s1, src, REG_FRESULT);
@@ -3035,11 +3043,13 @@ void codegen()
 
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+				int disp;
 				a = dseg_addaddress ((void*) (builtin_monitorexit));
 				M_ALD(REG_PV, REG_PV, a);
 				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
 				M_JSR(REG_RA, REG_PV);
-				M_LDA(REG_PV, REG_RA, -(int)((u1*) mcodeptr - mcodebase));
+				disp = -(int)((u1*) mcodeptr - mcodebase);
+				M_LDA(REG_PV, REG_RA, disp);
 				}			
 #endif
 
@@ -3632,7 +3642,8 @@ makeactualcall:
 		M_LDA(REG_ITMP2_XPC, REG_PV, xboundrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR((xcodeptr-mcodeptr)-1);
+			int disp = (xcodeptr-mcodeptr)-1;
+			M_BR(disp);
 			}
 		else {
 			xcodeptr = mcodeptr;
@@ -3666,7 +3677,8 @@ makeactualcall:
 		M_LDA(REG_ITMP2_XPC, REG_PV, xcheckarefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR((xcodeptr-mcodeptr)-1);
+			int disp = (xcodeptr-mcodeptr)-1;
+			M_BR(disp);
 			}
 		else {
 			xcodeptr = mcodeptr;
@@ -3700,7 +3712,8 @@ makeactualcall:
 		M_LDA(REG_ITMP2_XPC, REG_PV, xcastrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR((xcodeptr-mcodeptr)-1);
+			int disp = (xcodeptr-mcodeptr)-1;
+			M_BR(disp);
 			}
 		else {
 			xcodeptr = mcodeptr;
@@ -3737,7 +3750,8 @@ makeactualcall:
 		M_LDA(REG_ITMP2_XPC, REG_PV, xnullrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR((xcodeptr-mcodeptr)-1);
+			int disp = (xcodeptr-mcodeptr)-1;
+			M_BR(disp);
 			}
 		else {
 			xcodeptr = mcodeptr;
