@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1810 2004-12-22 11:07:18Z twisti $
+   $Id: codegen.c 1842 2005-01-04 11:19:46Z twisti $
 
 */
 
@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <ucontext.h>
 
+#include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/global.h"
 #include "vm/builtin.h"
