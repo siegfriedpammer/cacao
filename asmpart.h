@@ -53,4 +53,5 @@ void asm_dumpregistersandcall ( functionptr f);
 
 
 
-
+void asm_builtin_trace();
+void asm_builtin_exittrace();
