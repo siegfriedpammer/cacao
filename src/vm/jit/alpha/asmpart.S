@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 836 2004-01-05 00:00:25Z twisti $
+   $Id: asmpart.S 899 2004-01-22 13:24:36Z twisti $
 
 */
 
@@ -1172,9 +1172,9 @@ asm_switchstackandcall:
 /********************* function asm_getcallingmethod ***************************
 *                                                                              *
 *   classinfo *asm_getcallingmethodclass ();								   *
-*																			   *	
-*   goes back stack frames to get the calling method						   *	   
-*																			   *	
+*																			   *
+*   goes back stack frames to get the calling method						   *
+*																			   *
 *				t2 .. sp												       *
 *				t3 .. ra												       *
 *				t4 .. pv												       *
@@ -1185,8 +1185,8 @@ asm_switchstackandcall:
 	.ent	asm_getcallingmethod
 asm_getcallingmethod:
 
-	ldq		t3,16(sp)             /* load return address of native function   */				
-	addq    sp,24,t2			  /* skip frames of C-Function and nativestub */	
+	ldq		t3,16(sp)             /* load return address of native function   */
+	addq    sp,24,t2			  /* skip frames of C-Function and nativestub */
 		
     /* determine pv (t3) of java-function from ra */
 
@@ -1204,9 +1204,9 @@ asm_getcallingmethod:
 	addq    t0,t4,t4              /* compute update address                   */
 
 pv_ok1:			
-	ldl     t0,FrameSize(t4)      /* t0 = frame size                          */		
+	ldl     t0,FrameSize(t4)      /* t0 = frame size                          */
 	addq	t2,t0,t2			  /* skip frame of java function			  */
-	ldq		t3,-8(t2)			  /* load new ra                              */								
+	ldq		t3,-8(t2)			  /* load new ra                              */
 
     /* determine pv (t3) of java-function from ra */
 
@@ -1230,79 +1230,6 @@ pv_ok2:
 	jmp	zero,(ra)				  /* return                                   */
 
 	.end	asm_getcallingmethod
-
-
-/*********************** function asm_builtin_trace ****************************
-*                                                                              *
-*   Intended to be called from the native stub. Saves all argument registers   *
-*   and calls builtin_trace_args.                                              *
-*                                                                              *
-*******************************************************************************/
-
-	.ent asm_builtin_trace
-asm_builtin_trace:
-	ldgp gp,0(pv)
-	lda sp,-112(sp)
-	stq itmp1,0(sp)
-	stq ra,8(sp)
-	stq a0,16(sp)
-	stq a1,24(sp)
-	stq a2,32(sp)
-	stq a3,40(sp)
-	stq a4,48(sp)
-	stq a5,56(sp)
-	stt $f16,64(sp)
-	stt $f17,72(sp)
-	stt $f18,80(sp)
-	stt $f19,88(sp)
-	stt $f20,96(sp)
-	stt $f21,104(sp)
-	
-	jsr ra,builtin_trace_args
-	
-	ldq ra,8(sp)
-	ldq a0,16(sp)
-	ldq a1,24(sp)
-	ldq a2,32(sp)
-	ldq a3,40(sp)
-	ldq a4,48(sp)
-	ldq a5,56(sp)
-	ldt $f16,64(sp)
-	ldt $f17,72(sp)
-	ldt $f18,80(sp)
-	ldt $f19,88(sp)
-	ldt $f20,96(sp)
-	ldt $f21,104(sp)
-	lda sp,112(sp)
-	jmp zero,(ra)
-
-	.end asm_builtin_trace
-
-
-/********************* function asm_builtin_exittrace **************************
-*                                                                              *
-*   Intended to be called from the native stub. Saves return value and calls   *
-*   builtin_displaymethodstop.                                                 *
-*                                                                              *
-*******************************************************************************/
-
-	.ent asm_builtin_exittrace
-asm_builtin_exittrace:
-	ldgp gp,0(pv)
-	lda sp,-24(sp)
-	stq ra,0(sp)
-	stq v0,8(sp)
-	stt $f0,16(sp)
-	
-	jsr ra,builtin_displaymethodstop
-	
-	ldq ra,0(sp)
-	ldq v0,8(sp)
-	ldt $f0,16(sp)
-	lda sp,24(sp)
-	jmp zero,(ra)
-
-	.end asm_builtin_exittrace
 
 
 /*
