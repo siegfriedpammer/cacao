@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 1805 2004-12-22 09:54:48Z twisti $
+   $Id: codegen.c 1817 2004-12-22 14:50:00Z twisti $
 
 */
 
@@ -4236,9 +4236,14 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		}
 	}
 
-#if 0
-	dolog_plain("stubsize: %d (for %d params)\n", (int) (mcodeptr - (s4*) s), m->paramcount);
-#endif
+	/* Check if the stub size is big enough to hold the whole stub generated. */
+	/* If not, this can lead into unpredictable crashes, because of heap      */
+	/* corruption.                                                            */
+	if ((s4) ((ptrint) mcodeptr - (ptrint) s) > stubsize * sizeof(u8)) {
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Native stub size %d is to small for current stub size %d",
+								   stubsize, (s4) ((ptrint) mcodeptr - (ptrint) s));
+	}
 
 #if defined(STATISTICS)
 	if (opt_stat)
