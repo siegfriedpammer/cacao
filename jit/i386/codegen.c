@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1351 2004-07-22 22:39:05Z twisti $
+   $Id: codegen.c 1362 2004-07-28 11:34:45Z twisti $
 
 */
 
@@ -4374,21 +4374,22 @@ gen_method: {
 	/* generate bound check stubs */
 
 	u1 *xcodeptr = NULL;
-	
-	for (; cd->xboundrefs != NULL; cd->xboundrefs = cd->xboundrefs->next) {
-		gen_resolvebranch(cd->mcodebase + cd->xboundrefs->branchpos,
-		                  cd->xboundrefs->branchpos,
+	branchref *bref;
+
+	for (bref = cd->xboundrefs; bref != NULL; bref = bref->next) {
+		gen_resolvebranch(cd->mcodebase + bref->branchpos,
+		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(8);
+		MCODECHECK(100);
 
 		/* move index register into REG_ITMP1 */
-		i386_mov_reg_reg(cd, cd->xboundrefs->reg, REG_ITMP1);          /* 2 bytes */
+		i386_mov_reg_reg(cd, bref->reg, REG_ITMP1);                /* 2 bytes */
 
-		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                        /* 5 bytes */
+		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                    /* 5 bytes */
 		dseg_adddata(m, cd->mcodeptr);
-		i386_mov_imm_reg(cd, cd->xboundrefs->branchpos - 6, REG_ITMP3);/* 5 bytes */
-		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP3, REG_ITMP2_XPC);      /* 2 bytes */
+		i386_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP3);      /* 5 bytes */
+		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP3, REG_ITMP2_XPC);  /* 2 bytes */
 
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
@@ -4404,7 +4405,7 @@ gen_method: {
 			i386_mov_imm_membase(cd, (s4) string_java_lang_ArrayIndexOutOfBoundsException, REG_SP, 0 * 4);
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, 1 * 4);
 			i386_mov_imm_reg(cd, (s4) new_exception_int, REG_ITMP1);
-			i386_call_reg(cd, REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
+			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
 			i386_alu_imm_reg(cd, I386_ADD, 2 * 4, REG_SP);
 
 			REMOVE_NATIVE_STACKINFO;
@@ -4420,24 +4421,24 @@ gen_method: {
 
 	xcodeptr = NULL;
 	
-	for (; cd->xcheckarefs != NULL; cd->xcheckarefs = cd->xcheckarefs->next) {
+	for (bref = cd->xcheckarefs; bref != NULL; bref = bref->next) {
 		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + cd->xcheckarefs->branchpos, 
-							  cd->xcheckarefs->branchpos,
+			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (5 + 5 + 2));
 			continue;
 		}
 
-		gen_resolvebranch(cd->mcodebase + cd->xcheckarefs->branchpos, 
-		                  cd->xcheckarefs->branchpos,
+		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(8);
+		MCODECHECK(100);
 
-		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                        /* 5 bytes */
+		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                    /* 5 bytes */
 		dseg_adddata(m, cd->mcodeptr);
-		i386_mov_imm_reg(cd, cd->xcheckarefs->branchpos - 6, REG_ITMP1);/* 5 bytes */
-		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);      /* 2 bytes */
+		i386_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);      /* 5 bytes */
+		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
 
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
@@ -4452,7 +4453,7 @@ gen_method: {
 			i386_alu_imm_reg(cd, I386_SUB, 1 * 4, REG_SP);
 			i386_mov_imm_membase(cd, (s4) string_java_lang_NegativeArraySizeException, REG_SP, 0 * 4);
 			i386_mov_imm_reg(cd, (s4) new_exception, REG_ITMP1);
-			i386_call_reg(cd, REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
+			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
 			i386_alu_imm_reg(cd, I386_ADD, 1 * 4, REG_SP);
 
 
@@ -4469,24 +4470,24 @@ gen_method: {
 
 	xcodeptr = NULL;
 	
-	for (; cd->xcastrefs != NULL; cd->xcastrefs = cd->xcastrefs->next) {
+	for (bref = cd->xcastrefs; bref != NULL; bref = bref->next) {
 		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + cd->xcastrefs->branchpos, 
-							  cd->xcastrefs->branchpos,
+			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (5 + 5 + 2));
 			continue;
 		}
 
-		gen_resolvebranch(cd->mcodebase + cd->xcastrefs->branchpos, 
-		                  cd->xcastrefs->branchpos,
+		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(8);
+		MCODECHECK(100);
 
-		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);    /* 5 bytes */
+		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                    /* 5 bytes */
 		dseg_adddata(m, cd->mcodeptr);
-		i386_mov_imm_reg(cd, cd->xcastrefs->branchpos - 6, REG_ITMP1); /* 5 bytes */
-		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
+		i386_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);      /* 5 bytes */
+		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
 
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
@@ -4502,7 +4503,7 @@ gen_method: {
 			i386_alu_imm_reg(cd, I386_SUB, 1 * 4, REG_SP);
 			i386_mov_imm_membase(cd, (s4) string_java_lang_ClassCastException, REG_SP, 0 * 4);
 			i386_mov_imm_reg(cd, (s4) new_exception, REG_ITMP1);
-			i386_call_reg(cd, REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
+			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
 			i386_alu_imm_reg(cd, I386_ADD, 1 * 4, REG_SP);
 
 
@@ -4519,24 +4520,24 @@ gen_method: {
 
 	xcodeptr = NULL;
 	
-	for (; cd->xdivrefs != NULL; cd->xdivrefs = cd->xdivrefs->next) {
+	for (bref = cd->xdivrefs; bref != NULL; bref = bref->next) {
 		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + cd->xdivrefs->branchpos, 
-							  cd->xdivrefs->branchpos,
+			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (5 + 5 + 2));
 			continue;
 		}
 
-		gen_resolvebranch(cd->mcodebase + cd->xdivrefs->branchpos, 
-		                  cd->xdivrefs->branchpos,
+		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(8);
+		MCODECHECK(100);
 
-		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);    /* 5 bytes */
+		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                    /* 5 bytes */
 		dseg_adddata(m, cd->mcodeptr);
-		i386_mov_imm_reg(cd, cd->xdivrefs->branchpos - 6, REG_ITMP1);  /* 5 bytes */
-		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
+		i386_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);      /* 5 bytes */
+		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
 
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
@@ -4552,7 +4553,7 @@ gen_method: {
 			i386_mov_imm_membase(cd, (s4) string_java_lang_ArithmeticException, REG_SP, 0 * 4);
 			i386_mov_imm_membase(cd, (s4) string_java_lang_ArithmeticException_message, REG_SP, 1 * 4);
 			i386_mov_imm_reg(cd, (s4) new_exception_message, REG_ITMP1);
-			i386_call_reg(cd, REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
+			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
 			i386_alu_imm_reg(cd, I386_ADD, 2 * 4, REG_SP);
 
 			REMOVE_NATIVE_STACKINFO;
@@ -4568,24 +4569,24 @@ gen_method: {
 
 	xcodeptr = NULL;
 	
-	for (; cd->xexceptionrefs != NULL; cd->xexceptionrefs = cd->xexceptionrefs->next) {
+	for (bref = cd->xexceptionrefs; bref != NULL; bref = bref->next) {
 		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + cd->xexceptionrefs->branchpos,
-							  cd->xexceptionrefs->branchpos,
+			gen_resolvebranch(cd->mcodebase + bref->branchpos,
+							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (5 + 5 + 2));
 			continue;
 		}
 
-		gen_resolvebranch(cd->mcodebase + cd->xexceptionrefs->branchpos, 
-		                  cd->xexceptionrefs->branchpos,
+		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(8);
+		MCODECHECK(200);
 
-		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);    /* 5 bytes */
+		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                    /* 5 bytes */
 		dseg_adddata(m, cd->mcodeptr);
-		i386_mov_imm_reg(cd, cd->xexceptionrefs->branchpos - 6, REG_ITMP1);/* 5 bytes */
-		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
+		i386_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);      /* 5 bytes */
+		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
 
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
@@ -4656,24 +4657,24 @@ java stack at this point*/
 
 	xcodeptr = NULL;
 	
-	for (; cd->xnullrefs != NULL; cd->xnullrefs = cd->xnullrefs->next) {
+	for (bref = cd->xnullrefs; bref != NULL; bref = bref->next) {
 		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + cd->xnullrefs->branchpos, 
-							  cd->xnullrefs->branchpos,
+			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (5 + 5 + 2));
 			continue;
 		}
 
-		gen_resolvebranch(cd->mcodebase + cd->xnullrefs->branchpos, 
-						  cd->xnullrefs->branchpos,
+		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+						  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 		
-		MCODECHECK(8);
+		MCODECHECK(100);
 
-		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                       /* 5 bytes */
+		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                    /* 5 bytes */
 		dseg_adddata(m, cd->mcodeptr);
-		i386_mov_imm_reg(cd, cd->xnullrefs->branchpos - 6, REG_ITMP1); /* 5 bytes */
-		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);     /* 2 bytes */
+		i386_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);      /* 5 bytes */
+		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
 		
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
@@ -4682,7 +4683,6 @@ java stack at this point*/
 			xcodeptr = cd->mcodeptr;
 			
 			i386_push_reg(cd, REG_ITMP2_XPC);
-
 
 			PREPARE_NATIVE_STACKINFO;
 
@@ -4710,7 +4710,6 @@ java stack at this point*/
 			i386_call_reg(cd, REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
 			i386_alu_imm_reg(cd, I386_ADD, 1 * 4, REG_SP);
 
-
 			REMOVE_NATIVE_STACKINFO;
 
 #if 0
@@ -4720,7 +4719,6 @@ java stack at this point*/
 			i386_mov_reg_membase(cd, REG_ITMP2,REG_ITMP3,0);
 			i386_alu_imm_reg(cd, I386_ADD,3*4,REG_SP);
 #endif
-
 
 			i386_pop_reg(cd, REG_ITMP2_XPC);
 
