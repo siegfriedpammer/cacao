@@ -73,8 +73,11 @@ word GC_stop_count;	/* Incremented at the beginning of GC_stop_world. */
 
 sem_t GC_suspend_ack_sem;
 
+int cacao_suspendhandler(void *);
+
 void GC_suspend_handler(int sig)
 {
+	void **_p = (void *) &sig;
     int dummy;
     pthread_t my_thread = pthread_self();
     GC_thread me;
@@ -88,6 +91,9 @@ void GC_suspend_handler(int sig)
     word my_stop_count = GC_stop_count;
 
     if (sig != SIG_SUSPEND) ABORT("Bad signal in suspend_handler");
+
+	if (cacao_suspendhandler(++_p))
+		return;
 
 #if DEBUG_THREADS
     GC_printf1("Suspending 0x%lx\n", my_thread);
@@ -288,6 +294,9 @@ int GC_suspend_all()
     return n_live_threads;
 }
 
+void lock_stopworld();
+void unlock_stopworld();
+
 /* Caller holds allocation lock.	*/
 void GC_stop_world()
 {
@@ -298,6 +307,8 @@ void GC_stop_world()
     #if DEBUG_THREADS
     GC_printf1("Stopping the world from 0x%lx\n", pthread_self());
     #endif
+
+    lock_stopworld(1);
        
     /* Make sure all free list construction has stopped before we start. */
     /* No new construction can start, since free list construction is	*/
@@ -393,6 +404,9 @@ void GC_start_world()
         }
       }
     }
+
+	unlock_stopworld();
+
     #if DEBUG_THREADS
       GC_printf0("World started\n");
     #endif
@@ -441,5 +455,18 @@ void GC_stop_init() {
 	  }
 #     endif
 }
+
+/* Added for cacao */
+int GC_signum1()
+{
+    return SIG_SUSPEND;
+}
+
+int GC_signum2()
+{
+    return SIG_THR_RESTART;
+}
+
+/* cacao END */
 
 #endif

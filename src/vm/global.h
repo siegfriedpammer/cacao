@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 963 2004-03-15 07:37:49Z jowenn $
+   $Id: global.h 991 2004-03-29 11:22:34Z stefan $
 
 */
 
@@ -376,6 +376,9 @@ typedef struct {            /* NameAndType (Field or Method)                  */
 
 struct java_objectheader {              /* header for all objects             */
 	vftbl *vftbl;                       /* pointer to virtual function table  */
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	long monitorBits;
+#endif
 };
 
 
@@ -932,12 +935,10 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 /* Synchronization ************************************************************/
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-extern pthread_mutex_t compiler_mutex;
-extern int cast_counter;
-
 void cast_lock();
-void cast_lock2();
 void cast_unlock();
+void compiler_lock();
+void compiler_unlock();
 #endif
 
 #endif /* _GLOBAL_H */

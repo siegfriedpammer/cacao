@@ -780,5 +780,9 @@ void unlock_stopworld()
 {
 }
 
+void cacao_suspendhandler(void *ctx)
+{
+}
+
 #endif
 

@@ -28,12 +28,13 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Thread.c 964 2004-03-15 14:52:43Z jowenn $
+   $Id: Thread.c 991 2004-03-29 11:22:34Z stefan $
 
 */
 
 
 #include "jni.h"
+#include "builtin.h"
 #include "types.h"
 #include "native.h"
 #include "loader.h"
@@ -70,8 +71,12 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread(JNIEnv *
 	if (runverbose)
 		log_text("java_lang_Thread_currentThread called");
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
+#if !defined(NATIVE_THREADS)
 	t = (java_lang_Thread *) currentThread;
+#else
+	t = THREADOBJECT;
+#endif
   
 	if (!t->group) {
 		log_text("java_lang_Thread_currentThread: t->group=NULL");
@@ -84,7 +89,7 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread(JNIEnv *
 			log_text("unable to create ThreadGroup");
   	}
 
-	return (java_lang_Thread *) currentThread;
+	return (java_lang_Thread *) t;
 #else
 	return 0;	
 #endif
@@ -112,10 +117,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, java_lang_Thread
 	if (runverbose)
 		log_text("java_lang_Thread_isAlive called");
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
 	return aliveThread((thread *) this);
-#else
-	return 0;
 #endif
 }
 
@@ -186,7 +189,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_sleep(JNIEnv *env, jclass clazz, s8
 	if (runverbose)
 		log_text("java_lang_Thread_sleep called");
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
 	sleepThread(millis);
 #endif
 }
@@ -202,7 +205,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_start(JNIEnv *env, java_lang_Thread
 	if (runverbose) 
 		log_text("java_lang_Thread_start called");
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
 	startThread((thread*)this);
 #endif
 }
@@ -262,7 +265,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_yield(JNIEnv *env, jclass clazz)
 	if (runverbose)
 		log_text("java_lang_Thread_yield called");
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
 	yieldThread();
 #endif
 }
@@ -292,6 +295,9 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeInit(JNIEnv *env, java_lang_T
 	if (*exceptionptr)
 		log_text("There has been an exception, strange...");*/
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	initThread(this);
+#endif
 	this->priority = 5;
 }
 

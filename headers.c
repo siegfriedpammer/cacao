@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 975 2004-03-25 18:09:45Z twisti $
+   $Id: headers.c 991 2004-03-29 11:22:34Z stefan $
 
 */
 
@@ -146,7 +146,7 @@ u1 *oldcreatenativestub(functionptr f, methodinfo *m) {return NULL;}
 void removecompilerstub(u1 *stub) {}
 void removenativestub(u1 *stub) {}
 
-void asm_perform_threadswitch(u1 **from, u1 **to) {}
+void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop) {}
 u1* asm_initialize_thread_stack(void *func, u1 *stack) { return NULL; }
 void asm_switchstackandcall() {}
 void asm_handle_builtin_exception(classinfo *c) {}
@@ -651,6 +651,9 @@ int main(int argc, char **argv)
    
 	tables_init();
 	heap_init(heapsize, heapsize, &dummy);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	initThreadsEarly();
+#endif
 	loader_init();
 
 

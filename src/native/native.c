@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 951 2004-03-11 17:30:03Z jowenn $
+   $Id: native.c 991 2004-03-29 11:22:34Z stefan $
 
 */
 
@@ -152,7 +152,9 @@ char *string_java_lang_ArrayStoreException =
 struct java_lang_ClassLoader *SystemClassLoader = NULL;
 
 /* for raising exceptions from native methods */
-THREADSPECIFIC java_objectheader* _exceptionptr = NULL;
+#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
+java_objectheader* _exceptionptr = NULL;
+#endif
 
 /************* use classinfo structure as java.lang.Class object **************/
 

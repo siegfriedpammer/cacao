@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 963 2004-03-15 07:37:49Z jowenn $
+   $Id: builtin.h 991 2004-03-29 11:22:34Z stefan $
 
 */
 
@@ -38,6 +38,7 @@
 
 #include "config.h"
 #include "toolbox/loging.h"
+#include "threads/thread.h"
 
 
 /* define infinity for floating point numbers */
@@ -107,18 +108,18 @@ extern builtin_descriptor builtin_desc[];
 #undef THREADSPECIFIC
 #define THREADSPECIFIC __thread
 
-#else
+#endif
 
 #undef exceptionptr
 #undef threadrootmethod
 #define exceptionptr builtin_get_exceptionptrptr()
 #define threadrootmethod  builtin_get_threadrootmethod()
 #endif
-#endif
 
-extern THREADSPECIFIC java_objectheader* _exceptionptr;
-extern THREADSPECIFIC methodinfo* _threadrootmethod;
-extern THREADSPECIFIC void* _threadnativestackframeinfo;
+#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
+extern java_objectheader *_exceptionptr;
+extern methodinfo* _threadrootmethod;
+#endif
 
 
 /**********************************************************************/
@@ -378,11 +379,7 @@ inline float longBitsToDouble(s8 l);
 static inline java_objectheader **builtin_get_exceptionptrptr()
 {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#ifdef HAVE___THREAD
-    return &_exceptionptr;
-#else
-    return &((nativethread*) pthread_getspecific(tkey_exceptionptr))->_exceptionptr;
-#endif
+	return &THREADINFO->_exceptionptr;
 #else
     panic("builtin_get_exceptionptrptr should not be used in this configuration");
     return NULL;
@@ -392,11 +389,7 @@ static inline java_objectheader **builtin_get_exceptionptrptr()
 static inline methodinfo **builtin_get_threadrootmethod()
 {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#ifdef HAVE___THREAD
-    return &_threadrootmethod;
-#else
-    return &((nativethread*) pthread_getspecific(tkey_threadrootmethod))->_threadrootmethod;
-#endif
+	return &THREADINFO->_threadrootmethod;
 #else
     panic("builting_get_threadrootmethod should not be used in this configuration");
     return NULL;

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 964 2004-03-15 14:52:43Z jowenn $
+   $Id: main.c 991 2004-03-29 11:22:34Z stefan $
 
 */
 
@@ -873,19 +873,29 @@ int main(int argc, char **argv)
 		log_text("CACAO started -------------------------------------------------------");
 	}
 
+	heap_init(heapsize, heapstartsize, &dummy);
+
 	native_setclasspath(classpath);
 		
 	tables_init();
 	suck_init(classpath);
 
-	heap_init(heapsize, heapstartsize, &dummy);
-
 	jit_init();
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+  	initThreadsEarly();
+#endif
 
 	loader_init((u1 *) &dummy);
 
 	native_loadclasses();
 
+	/* initialize the garbage collector */
+	gc_init();
+
+#if defined(USE_THREADS)
+  	initThreads((u1*) &dummy);
+#endif
 
 	/*********************** Load JAVA classes  ***************************/
    
@@ -907,14 +917,6 @@ int main(int argc, char **argv)
 		/* should we print something out? we already have the exception */
 		exit(1);
 	}
-
-	/* initialize the garbage collector */
-	gc_init();
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-  	initThreads((u1*) &dummy);
-#endif
-
 
 	/************************* Start worker routines ********************/
 
@@ -972,10 +974,13 @@ int main(int argc, char **argv)
 			}
 		}
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+		joinAllThreads();
+#else
   		killThread(currentThread);
 		fprintf(stderr, "still here\n");
-
+#endif
 #endif
 		exit(0);
 	}

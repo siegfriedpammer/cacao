@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 972 2004-03-24 22:48:01Z edwin $
+   $Id: loader.c 991 2004-03-29 11:22:34Z stefan $
 
 */
 
@@ -3086,7 +3086,6 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 void class_init(classinfo *c)
 {
 	methodinfo *m;
-	native_stackframeinfo **info;
 	s4 i;
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	int b;
@@ -3500,13 +3499,13 @@ classinfo *loader_load(utf *topname)
 	s8 stoptime = 0;
 	classinfo *notlinkable;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	pthread_mutex_lock(&compiler_mutex);
-#endif
-
 	/* avoid recursive calls */
 	if (loader_load_running)
 		return class_new(topname);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	compiler_lock();
+#endif
 
 	loader_load_running++;
 	
@@ -3594,7 +3593,7 @@ classinfo *loader_load(utf *topname)
 #endif
 	
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	pthread_mutex_unlock(&compiler_mutex);
+	compiler_unlock();
 #endif
 
 	/* DEBUG */ /*if (linkverbose && !top) dolog("returning NULL from loader_load");*/
@@ -4029,7 +4028,7 @@ void loader_init(u1 *stackbottom)
 	/* correct vftbl-entries (retarded loading of class java/lang/String) */
 	stringtable_update();
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
 	if (stackbottom!=0)
 		initLocks();
 #endif

@@ -34,16 +34,16 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 967 2004-03-18 14:29:03Z jowenn $
+   $Id: builtin.c 991 2004-03-29 11:22:34Z stefan $
 
 */
 
 
+#include "global.h"
 #include <assert.h>
 #include <string.h>
 #include <math.h>
 #include "main.h"
-#include "global.h"
 #include "builtin.h"
 #include "native.h"
 #include "loader.h"
@@ -59,7 +59,6 @@
 
 
 #undef DEBUG /*define DEBUG 1*/
-
 
 THREADSPECIFIC methodinfo* _threadrootmethod = NULL;
 THREADSPECIFIC void *_thread_nativestackframeinfo=NULL;
@@ -302,11 +301,7 @@ java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr
 void builtin_reset_exceptionptr()
 {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#ifdef HAVE___THREAD
-	_exceptionptr = NULL;
-#else
-	((nativethread*) pthread_getspecific(tkey_exceptionptr))->_exceptionptr = 0;
-#endif
+	THREADINFO->_exceptionptr = NULL;
 #else
 	panic("builtin_reset_exceptionptr should not be used in this configuration");
 #endif
@@ -1166,7 +1161,8 @@ void internal_unlock_mutex_for_object (java_objectheader *object)
 
 void builtin_monitorenter(java_objectheader *o)
 {
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
+#if !defined(NATIVE_THREADS)
 	int hashValue;
 
 	/*log_text("Monitor enter");*/
@@ -1185,6 +1181,9 @@ void builtin_monitorenter(java_objectheader *o)
 	--blockInts;
 
 	assert(blockInts == 0);
+#else
+	monitorEnter((threadobject*) THREADOBJECT, o);
+#endif
 #endif
 }
 
@@ -1192,7 +1191,8 @@ void builtin_monitorenter(java_objectheader *o)
 void builtin_monitorexit (java_objectheader *o)
 {
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
+#if !defined(NATIVE_THREADS)
 	int hashValue;
 
 	/* log_text("Monitor leave"); */
@@ -1215,6 +1215,9 @@ void builtin_monitorexit (java_objectheader *o)
 	--blockInts;
 
 	assert(blockInts == 0);
+#else
+	monitorExit((threadobject*) THREADOBJECT, o);
+#endif
 #endif
 }
 
@@ -1830,12 +1833,7 @@ inline void*
 builtin_asm_get_stackframeinfo(){
 /*log_text("builtin_asm_get_stackframeinfo()");*/
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#ifdef HAVE___THREAD
-        return &_thread_nativestackframeinfo; /*support for __thread attribute*/
-#else
-    return &((nativethread*) pthread_getspecific(tkey_stackframeinfo))->_stackframeinfo /*copied from exception handling, is that really */
-        /*old pthread*/
-#endif
+	return &THREADINFO->_stackframeinfo;
 #else
 #warning FIXME FOR OLD THREAD IMPL (jowenn)
         return &_thread_nativestackframeinfo; /* no threading, at least no native*/

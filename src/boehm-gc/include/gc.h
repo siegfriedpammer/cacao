@@ -241,6 +241,11 @@ GC_API unsigned long GC_time_limit;
  */
 GC_API void GC_init GC_PROTO((void));
 
+/* Added for cacao */
+int GC_signum1();   
+int GC_signum2();   
+/* cacao END */
+
 /*
  * general purpose allocation routines, with roughly malloc calling conv.
  * The atomic versions promise that no relevant pointers are contained

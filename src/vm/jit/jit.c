@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 941 2004-03-06 17:27:56Z jowenn $
+   $Id: jit.c 991 2004-03-29 11:22:34Z stefan $
 
 */
 
@@ -1439,6 +1439,7 @@ static void* do_nothing_function()
 
 methodptr jit_compile(methodinfo *m)
 {
+	static bool jitrunning;
 	s4 dumpsize;
 	s8 starttime = 0;
 	s8 stoptime  = 0;
@@ -1453,7 +1454,7 @@ methodptr jit_compile(methodinfo *m)
 	count_methods++;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	pthread_mutex_lock(&compiler_mutex);
+	compiler_lock();
 #endif
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
@@ -1482,6 +1483,10 @@ methodptr jit_compile(methodinfo *m)
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 		intsRestore();                             /* enable interrupts again */
 #endif
+		jitrunning = false;
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+		compiler_unlock();
+#endif
 		return (methodptr) do_nothing_function;    /* return empty method     */
 	}
 
@@ -1507,6 +1512,10 @@ methodptr jit_compile(methodinfo *m)
 		}
 		class_init(m->class);
 	}
+
+	if (jitrunning)
+		panic("Compiler lock recursion");
+	jitrunning = true;
 
 	/* initialisation of variables and subsystems */
 
@@ -1605,13 +1614,13 @@ methodptr jit_compile(methodinfo *m)
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	intsRestore();    /* enable interrupts again */
 #endif
-
+	jitrunning = false;
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	pthread_mutex_unlock(&compiler_mutex);
+	compiler_unlock();
 #endif
 
 	/* return pointer to the methods entry point */
-	
+
 	LOG_STEP("Done compiling");
 	return m->entrypoint;
 } 

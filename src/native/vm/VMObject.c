@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMObject.c 930 2004-03-02 21:18:23Z jowenn $
+   $Id: VMObject.c 991 2004-03-29 11:22:34Z stefan $
 
 */
 
@@ -67,6 +67,9 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
         
 		new = (java_lang_Object *) heap_allocate(size, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
 		memcpy(new, this, size);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+		new->header.monitorBits = 0;
+#endif
         
 		return new;
 	}
@@ -86,6 +89,9 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
     }
 
     memcpy(new, this, c->instancesize);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	new->header.monitorBits = 0;
+#endif
 
     return new;
 }
@@ -101,7 +107,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz,
 	if (runverbose)
 		log_text("java_lang_Object_notify called");
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
 	signal_cond_for_object(&this->header);
 #endif
 }
@@ -117,7 +123,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
 	if (runverbose)
 		log_text("java_lang_Object_notifyAll called");
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
 	broadcast_cond_for_object(&this->header);
 #endif
 }
@@ -133,7 +139,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, j
 	if (runverbose)
 		log_text("java_lang_VMObject_wait called");
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
 	wait_cond_for_object(&this->header, time);
 #endif
 }
