@@ -10,7 +10,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: disass.c 388 2003-07-10 16:49:05Z twisti $
+    Last Change: $Id: disass.c 400 2003-08-01 10:50:34Z twisti $
 
 *******************************************************************************/
 
@@ -34,16 +34,18 @@ static void myprintf(PTR p, const char *fmt, ...)
 
 static int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, struct disassemble_info *info)
 {
-	if (length == 1)
+	if (length == 1) {
 		*myaddr = *((u1 *) memaddr);
-	else
+
+	} else {
 		memcpy(myaddr, (void *) memaddr, length);
+	}
+
 	return 0;
 }
 
 
-/* name table for 8 integer registers */
-
+/* name table for 16 integer registers */
 static char *regs[] = {
 	"rax",
 	"rcx",
@@ -84,7 +86,7 @@ static void disassinstr(u1 *code, int pos)
 		dis_initialized = 1;
 	}
 
-	printf("0x%016x:   ", code);
+	printf("0x%016lx:   ", code);
 	mylen = 0;
 	seqlen = print_insn_i386((bfd_vma) code, &info);
 	{
@@ -94,7 +96,7 @@ static void disassinstr(u1 *code, int pos)
 				printf("%02x ", *(code++));
 			}
 			printf("   %s\n", mylinebuf);
-			printf("0x%016x:   ", code);
+			printf("0x%016lx:   ", code);
 			for (; i < seqlen; i++) {
 				printf("%02x ", *(code++));
 			}
