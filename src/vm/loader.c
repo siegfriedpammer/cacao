@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 1031 2004-04-26 16:06:03Z twisti $
+   $Id: loader.c 1046 2004-04-27 11:57:03Z stefan $
 
 */
 
@@ -405,10 +405,10 @@ void suck_init(char *cpath)
 void create_all_classes()
 {
 	classpath_info *cpi;
-	unz_file_info file_info;
 
 	for (cpi = classpath_entries; cpi != 0; cpi = cpi->filepath.next) {
 #if defined(USE_ZLIB)
+		unz_file_info file_info;
 		if (cpi->filepath.type == CLASSPATH_ARCHIVE) {
 			cacao_entry_s *ce;
 			unz_s *s;
