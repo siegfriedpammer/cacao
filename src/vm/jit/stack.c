@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1886 2005-01-27 11:29:15Z twisti $
+   $Id: stack.c 1895 2005-02-01 08:59:24Z twisti $
 
 */
 
@@ -262,7 +262,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							}
 						}
 					}
-#endif
+#endif /* defined(USEBUILTINTABLE) */
 					
 					switch (opcode) {
 
@@ -306,9 +306,11 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_ISUB:
 								iptr[0].opc = ICMD_ISUBCONST;
 								goto icmd_iconst_tail;
+#if SUPPORT_MUL_CONST
 							case ICMD_IMUL:
 								iptr[0].opc = ICMD_IMULCONST;
 								goto icmd_iconst_tail;
+#endif /* SUPPORT_MUL_CONST */
 							case ICMD_IDIV:
 								if (iptr[0].val.i == 0x00000002)
 									iptr[0].val.i = 1;
@@ -446,7 +448,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_LUSHR:
 								iptr[0].opc = ICMD_LUSHRCONST;
 								goto icmd_lconst_tail;
-#endif
+#endif /* SUPPORT_LONG_SHIFT */
 							case ICMD_IF_ICMPEQ:
 								iptr[0].opc = ICMD_IFEQ;
 							icmd_if_icmp_tail:
@@ -534,12 +536,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_LSUB:
 								iptr[0].opc = ICMD_LSUBCONST;
 								goto icmd_lconst_tail;
-#endif /* SUPPORT_LOGICAL_CONST */
-#if SUPPORT_LONG_MUL
+#endif /* SUPPORT_LONG_ADD */
+#if SUPPORT_LONG_MUL && SUPPORT_MUL_CONST
 							case ICMD_LMUL:
 								iptr[0].opc = ICMD_LMULCONST;
 								goto icmd_lconst_tail;
-#endif
+#endif /* SUPPORT_LONG_MUL && SUPPORT_MUL_CONST */
 #if SUPPORT_LONG_DIV
 							case ICMD_LDIV:
 								if (iptr[0].val.l == 0x00000002)
@@ -648,7 +650,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								}
 								PUSHCONST(TYPE_LNG);
 								break;
-#endif
+#endif /* SUPPORT_LONG_DIV */
 #if SUPPORT_LONG_LOG
 #if SUPPORT_LOGICAL_CONST
 
@@ -662,7 +664,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								iptr[0].opc = ICMD_LXORCONST;
 								goto icmd_lconst_tail;
 #endif /* SUPPORT_LOGICAL_CONST */
-#endif
+#endif /* SUPPORT_LONG_LOG */
 #if !defined(NOLONG_CONDITIONAL)
 							case ICMD_LCMP:
 								if ((len > 1) && (iptr[2].val.i == 0)) {
@@ -706,7 +708,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								else
 									PUSHCONST(TYPE_LNG);
 								break;
-#endif
+#endif /* !defined(NOLONG_CONDITIONAL) */
 
 #if SUPPORT_CONST_ASTORE
 							case ICMD_LASTORE:
