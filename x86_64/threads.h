@@ -10,7 +10,7 @@
              Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: threads.h 388 2003-07-10 16:49:05Z twisti $
+    Last Change: $Id: threads.h 520 2003-10-22 20:56:57Z twisti $
 
 *******************************************************************************/
 
@@ -27,7 +27,6 @@
 
 void asm_perform_threadswitch (u1 **from, u1 **to, u1 **stackTop);
 u1*  asm_initialize_thread_stack (void *func, u1 *stack);
-void asm_switchstackandcall (void *stack, void *func, void **stacktopsave, void *p);
 
 /* access macros */
 
