@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: jit.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: jit.c 571 2003-11-06 16:04:23Z twisti $
 
 */
 
@@ -163,10 +163,10 @@ int *count_store_depth = count_store_depth_init;
 
 classinfo  *class;              /* class the compiled method belongs to       */
 methodinfo *method;             /* pointer to method info of compiled method  */
-static utf        *descriptor;  /* type descriptor of compiled method         */
+static utf *descriptor;         /* type descriptor of compiled method         */
 int         mparamcount;        /* number of parameters (incl. this)          */
 u1         *mparamtypes;        /* types of all parameters (TYPE_INT, ...)    */
-static int         mreturntype; /* return type of method                      */
+static int mreturntype;         /* return type of method                      */
 	
 int maxstack;                   /* maximal JavaVM stack size                  */
 int maxlocals;                  /* maximal number of local JavaVM variables   */
@@ -1295,7 +1295,7 @@ methodptr jit_compile(methodinfo *m)
 
 	/* mark start of dump memory area */
 
-	dumpsize = dump_size ();
+	dumpsize = dump_size();
 
 	/* measure time */
 
@@ -1361,10 +1361,12 @@ methodptr jit_compile(methodinfo *m)
 
 
 	/* call the compiler passes ***********************************************/
-	
-	reg_init();
 
-	if (useinlining) inlining_init();
+	/* must be call before reg_init, because it can change maxlocals */
+	if (useinlining)
+		inlining_init(m);
+
+	reg_init(m);
 
 	codegen_init();
 
@@ -1373,7 +1375,7 @@ methodptr jit_compile(methodinfo *m)
    
 	if (opt_loops) {
 		depthFirst();
-		analyseGraph();        	
+		analyseGraph();
 		optimize_loops();
 	}
    
@@ -1413,10 +1415,10 @@ methodptr jit_compile(methodinfo *m)
 		classinfo *c;                       /* single class                       */
 
 		while ((c = chain_first(ul)) != NULL) {
-			chain_remove (ul);
-			class_init (c);          	 	/* may again call the compiler        */
+			chain_remove(ul);
+			class_init(c);                  /* may again call the compiler        */
 		}
-		chain_free (ul);
+		chain_free(ul);
 	}
 
 	intsRestore();    /* enable interrupts again */
