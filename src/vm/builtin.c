@@ -983,6 +983,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
         case 0:
             break;
 
+#if defined(__I386__)
 		case 1:
 			sprintf(logtext+strlen(logtext), "%llx", a0);
 			break;
@@ -1030,6 +1031,56 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 			sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx, ...(%d)",
 											  a0,   a1,   a2,   a3,   a4,   a5,   method->paramcount - 6);
 			break;
+#endif
+#else
+		case 1:
+			sprintf(logtext+strlen(logtext), "%lx", a0);
+			break;
+
+		case 2:
+			sprintf(logtext+strlen(logtext), "%lx, %lx", a0, a1);
+			break;
+
+		case 3:
+			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx", a0, a1, a2);
+			break;
+
+		case 4:
+			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx",
+											  a0,  a1,  a2,  a3);
+			break;
+
+		case 5:
+			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx",
+											  a0,  a1,  a2,  a3,  a4);
+			break;
+
+		case 6:
+			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx",
+											  a0,  a1,  a2,  a3,  a4,  a5);
+			break;
+
+#if TRACE_ARGS_NUM > 6
+		case 7:
+			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx",
+											  a0,  a1,  a2,  a3,  a4,  a5,  a6);
+			break;
+
+		case 8:
+			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx, %lx",
+											  a0,  a1,  a2,  a3,  a4,  a5,  a6,  a7);
+			break;
+
+		default:
+			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx, %lx, ...(%d)",
+											  a0,  a1,  a2,  a3,  a4,  a5,  a6,  a7,  method->paramcount - 8);
+			break;
+#else
+		default:
+			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, ...(%d)",
+											  a0,  a1,  a2,  a3,  a4,  a5,   method->paramcount - 6);
+			break;
+#endif
 #endif
 		}
 	sprintf (logtext+strlen(logtext), ")");
