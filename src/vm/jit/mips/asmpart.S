@@ -1,4 +1,4 @@
-/* vm/jit/mips/asmpart.S - Java-C interface functions for mips
+/* src/vm/jit/mips/asmpart.S - Java-C interface functions for mips
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 2143 2005-03-30 12:54:14Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: asmpart.S 2180 2005-04-01 13:31:31Z twisti $
 
 */
 
@@ -141,6 +143,7 @@
 /********************* exported functions and variables ***********************/
 
 	.globl asm_calljavafunction
+	.globl asm_calljavafunction_int
 
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2int
@@ -196,7 +199,6 @@
 
 	.ent    asm_calljavafunction
 
-call_name:
 	.align  3
 
 	.dword  0                         /* catch type all                       */
@@ -212,6 +214,7 @@ call_name:
 	.dword  0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
+asm_calljavafunction_int:
 	aaddiu  sp,sp,-10*8               /* allocate stack space                 */
 	sd      ra,0(sp)                  /* save return address                  */
 
@@ -242,16 +245,13 @@ call_java_pc:
 	move    mptr,sp                   /* set method pointer                   */
 
 	.set    noreorder
-	
+
 	ald     pv,1*8(mptr)              /* method call as in Java               */
 	jalr    pv                        /* call JIT compiler                    */
 	nop
 	aaddiu  pv,ra,-23*4               /* recompute procedure vector           */
-#if 0
-	move    v0,zero                   /* clear return value (exception ptr)   */
-#else
-	nop
-#endif
+
+	.set    reorder
 
 calljava_return:
 	ld      ra,0(sp)                  /* restore return address               */
@@ -263,14 +263,13 @@ calljava_return:
 	ldc1    fss3,7*8(sp)
 	ldc1    fss4,8*8(sp)
 	ldc1    fss5,9*8(sp)
-	j       ra                        /* return                               */
 	aaddiu  sp,sp,10*8                /* free stack space                     */
+	j       ra                        /* return                               */
 
-	.set    reorder
-	
 calljava_xhandler:
 	move    a0,itmp1                  
 	jal     builtin_throw_exception
+	move    v0,zero                   /* clear return value for exception     */
 	b       calljava_return
 
 	.end    asm_calljavafunction
@@ -278,7 +277,6 @@ calljava_xhandler:
 
 	.ent    asm_calljavafunction2
 
-call_name2:
 	.align  3
 
 	.dword  0                         /* catch type all                       */
@@ -384,11 +382,13 @@ calljava_nocopy:
 	ala     mptr,8(t8)                /* set method pointer                   */
 
 	.set    noreorder
-	
+
 	ald     pv,8(mptr)                /* method call as in Java               */
 	jalr    pv                        /* call JIT compiler                    */
 	nop
 	aaddiu  pv,ra,-76*4               /* recompute procedure vector           */
+
+	.set    reorder
 
 calljava_return2:
 	ld      ra,0(sp)                  /* restore return address               */
@@ -401,11 +401,9 @@ calljava_return2:
 	ldc1    fss3,8*8(sp)
 	ldc1    fss4,9*8(sp)
 	ldc1    fss5,10*8(sp)
-	j       ra                        /* return                               */
 	aaddiu  sp,sp,12*8                /* free stack space                     */
+	j       ra                        /* return                               */
 
-	.set    reorder
-	
 calljava_xhandler2:
     sll     s7,s7,3
 	aaddu   sp,s7,sp
@@ -604,7 +602,7 @@ ex_table_loop:
 	sd      a1,7*8(sp)
 		
 	move    a0,a1
-	jal     class_load
+	jal     load_class_bootstrap
 		
 	ld      t0,0*8(sp)            /* restore used register                    */
 	ld      t1,1*8(sp)
@@ -631,7 +629,7 @@ L_class_loaded:
 	sd      ra,6*8(sp)
 		
 	move    a0,a1
-	jal     class_link
+	jal     link_class
 		
 	ld      t0,0*8(sp)            /* restore used register                    */
 	ld      t1,1*8(sp)
