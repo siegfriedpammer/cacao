@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1203 2004-06-22 23:14:55Z twisti $
+   $Id: parseRT.c 1235 2004-06-30 19:52:18Z twisti $
 
 Changes:
 opcode put into functions
@@ -35,13 +35,14 @@ changed class_findmethod class_fetchmethod
 */
 
 
-#include "parseRT.h"
+#include "options.h"
+#include "jit/parseRT.h"
 
  
 /*------------ global variables -----------------------------------------*/
 #define MAXCALLGRAPH 5000
 
-#include "parseRTflags.h"
+#include "jit/parseRTflags.h"
 
 
 bool NATIVE = false;  // Dez version chasing Native problems

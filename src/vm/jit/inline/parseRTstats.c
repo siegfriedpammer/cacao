@@ -26,13 +26,14 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 907 2004-01-29 13:20:05Z carolyn $
+   $Id: parseRTstats.c 1235 2004-06-30 19:52:18Z twisti $
 
 */
 
 
-#include "parseRT.h"
-#include "parseRTstats.h"
+#include "options.h"
+#include "jit/parseRT.h"
+#include "jit/parseRTstats.h"
 
 
 /*--- Statistics ----------------------------------------------------------*/
