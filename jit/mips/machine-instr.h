@@ -1,9 +1,11 @@
-/* If anyone wants to compile with gcc, use this file.
- * It is not usable with the MIPSPro compiler.
- */ 
-
 #ifndef _MACHINE_INSTR_H
 #define _MACHINE_INSTR_H
+
+#if 0
+
+/* If anyone wants to compile with gcc, use this section.
+ * It is not usable with the MIPSPro compiler.
+ */ 
 
 static inline long
 __attribute__ ((unused))
@@ -28,9 +30,9 @@ atomic_swap (volatile long *p, long val)
 }
 static inline int
 __attribute__ ((unused))
-compare_and_swap (volatile long int *p, long int oldval, long int newval)
+compare_and_swap (volatile long *p, long oldval, long newval)
 {
-  long int ret, temp;
+  long ret, temp;
 
   __asm__ __volatile__
     ("1:\n\t"
@@ -51,4 +53,10 @@ compare_and_swap (volatile long int *p, long int oldval, long int newval)
   return ret;
 }
 
+#else
+
+long atomic_swap (long *, long val);
+int compare_and_swap (long *p, long oldval, long newval);
+
+#endif
 #endif

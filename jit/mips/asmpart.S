@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1119 2004-06-02 11:12:03Z twisti $
+   $Id: asmpart.S 1160 2004-06-11 16:28:13Z stefan $
 
 */
 
@@ -181,6 +181,9 @@
 	.globl asm_builtin_exittrace
 	.globl asm_getclassvalues_atomic
 	.globl asm_criticalsections
+
+	.globl atomic_swap
+	.globl compare_and_swap
 
 
 /*************************** imported functions *******************************/
@@ -1313,6 +1316,28 @@ asm_criticalsections:
     .quad   0
 
 
+	.ent    atomic_swap
+atomic_swap:
+1:
+	lld		v0,0(a0)
+	move	t0,a1
+	scd		t0,0(a0)
+	beqz	t0,1b
+	j		ra
+	.end    atomic_swap
+
+	.ent    compare_and_swap
+compare_and_swap:
+	move    v0,zero
+1:
+	lld		t0,0(a0)
+	bne		t0,a1,2f
+	move    v0,a2
+	scd		v0,0(a0)
+	beqz	v0,1b
+2:
+	j		ra
+	.end    compare_and_swap
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
