@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 908 2004-02-02 00:51:04Z twisti $
+   $Id: builtin.c 921 2004-02-16 04:00:59Z jowenn $
 
 */
 
@@ -219,8 +219,11 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,arraydescriptor *t
 	if (desc->arraytype != ARRAYTYPE_OBJECT) return 1;
 	
 	/* {both arrays are arrays of references} */
-	if (desc->dimension == target->dimension)
+	if (desc->dimension == target->dimension) {
+		/* an array which contains elements of interface types is allowed to be casted to Object (JOWENN)*/
+		if ( (desc->elementvftbl->baseval<0) && (target->elementvftbl->baseval==1) ) return 1;
 		return builtin_isanysubclass_vftbl(desc->elementvftbl,target->elementvftbl);
+	}
 	if (desc->dimension < target->dimension) return 0;
 
 	/* {desc has higher dimension than target} */
@@ -574,6 +577,12 @@ java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl)
 
 java_objectarray *builtin_anewarray(s4 size, classinfo *component)
 {
+/*
+	printf("builtin_anewarray: classvftbl: %d\n",component->classvftbl);
+	printf("builtin_anewarray: baseval: %d\n",component->vftbl->baseval);
+	utf_display(component->vftbl->class->name);
+	printf("\nbuiltin_anewarray: linked: %d\n",component->linked);
+	utf_display(component->super->name);*/
 	return (java_objectarray*) builtin_newarray(size, class_array_of(component)->vftbl);
 }
 
