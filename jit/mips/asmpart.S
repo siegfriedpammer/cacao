@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 860 2004-01-06 18:49:09Z twisti $
+   $Id: asmpart.S 902 2004-01-22 21:38:58Z twisti $
 
 */
 
@@ -782,7 +782,7 @@ asm_check_clinit:
 	lw      itmp2,offclassinit(itmp1)
 	bnez    itmp2,L_is_initialized
 	
-	aaddiu  sp,sp,-18*8
+	daddiu  sp,sp,-18*8
 	sd      ra,0*8(sp)
 	sd      a0,1*8(sp)            /* save argument registers for leaf funcs   */
 	sd      a1,2*8(sp)
@@ -821,9 +821,16 @@ asm_check_clinit:
 	ldc1    fa5,14*8(sp)
 	ldc1    fa6,15*8(sp)
 	ldc1    fa7,16*8(sp)
-	aaddiu  sp,sp,18*8
+	daddiu  sp,sp,18*8
 	
 L_is_initialized:
+	move    itmp1,ra              /* now patch the calling code               */
+	daddiu  itmp1,itmp1,-4*4      /* go back 4 instructions                   */
+	lui     itmp2,0x1000          /* b                                        */
+	daddiu  itmp2,itmp2,3         /* jump over 3 instructions                 */
+	sw      itmp2,0(itmp1)        /* store the new branch: br +3              */
+	sw      zero,4(itmp1)         /* and a nop delay slot                     */
+		
 	j       ra
 		
 	.end	asm_check_clinit
@@ -1169,85 +1176,6 @@ asm_getcallingmethod:
 	li      v0,0
 	j       ra
 	.end    asm_getcallingmethod
-
-
-/*********************** function asm_builtin_trace ****************************
-*                                                                              *
-*   Intended to be called from the native stub. Saves all argument registers   *
-*   and calls builtin_trace_args.                                              *
-*                                                                              *
-*******************************************************************************/
-
-	.ent asm_builtin_trace
-asm_builtin_trace:
-	daddiu  sp,sp,-18*8
-	sd      itmp1,0*8(sp)
-	sd      ra,1*8(sp)
-	sd      a0,2*8(sp)
-	sd      a1,3*8(sp)
-	sd      a2,4*8(sp)
-	sd      a3,5*8(sp)
-	sd      a4,6*8(sp)
-	sd      a5,7*8(sp)
-	sd      a6,8*8(sp)
-	sd      a7,9*8(sp)
-	sdc1    fa0,10*8(sp)
-	sdc1    fa1,11*8(sp)
-	sdc1    fa2,12*8(sp)
-	sdc1    fa3,13*8(sp)
-	sdc1    fa4,14*8(sp)
-	sdc1    fa5,15*8(sp)
-	sdc1    fa6,16*8(sp)
-	sdc1    fa7,17*8(sp)
-	
-	jal     builtin_trace_args
-
-	ld      ra,1*8(sp)	
-	ld      a0,2*8(sp)            /* restore argument registers               */
-	ld      a1,3*8(sp)            /* they could be used by method             */
-	ld      a2,4*8(sp)
-	ld      a3,5*8(sp)
-	ld      a4,6*8(sp)
-	ld      a5,7*8(sp)
-	ld      a6,8*8(sp)
-	ld      a7,9*8(sp)
-	ldc1    fa0,10*8(sp)
-	ldc1    fa1,11*8(sp)
-	ldc1    fa2,12*8(sp)
-	ldc1    fa3,13*8(sp)
-	ldc1    fa4,14*8(sp)
-	ldc1    fa5,15*8(sp)
-	ldc1    fa6,16*8(sp)
-	ldc1    fa7,17*8(sp)
-	daddiu  sp,sp,18*8
-	j       ra
-
-	.end asm_builtin_trace
-
-
-/********************* function asm_builtin_exittrace **************************
-*                                                                              *
-*   Intended to be called from the native stub. Saves return value and calls   *
-*   builtin_displaymethodstop.                                                 *
-*                                                                              *
-*******************************************************************************/
-
-	.ent asm_builtin_exittrace
-asm_builtin_exittrace:
-	daddiu  sp,sp,-4*8
-	sd      ra,0*8(sp)
-	sd      v0,1*8(sp)
-	sdc1    fv0,2*8(sp)
-
-	jal     builtin_displaymethodstop
-	
-	ld      ra,0*8(sp)
-	ld      v0,1*8(sp)
-	ldc1    fv0,2*8(sp)
-	daddiu  sp,sp,4*8
-	j       ra
-
-	.end asm_builtin_exittrace
 
 
 /*

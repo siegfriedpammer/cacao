@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 862 2004-01-06 23:42:01Z stefan $
+   $Id: codegen.c 902 2004-01-22 21:38:58Z twisti $
 
 */
 
@@ -586,58 +586,63 @@ void codegen()
 	*/
 
 	if (runverbose) {
-		M_LDA (REG_SP, REG_SP, -(18*8));
+		M_LDA(REG_SP, REG_SP, -(18 * 8));
+		M_LST(REG_RA, REG_SP, 1 * 8);
 
-		M_LST(REG_RA,        REG_SP,  1*8);
+		/* save integer argument registers */
+		for (p = 0; p < mparamcount && p < INT_ARG_CNT; p++) {
+			M_LST(argintregs[p], REG_SP,  (2 + p) * 8);
+		}
 
-		M_LST(argintregs[0], REG_SP,  2*8);
-		M_LST(argintregs[1], REG_SP,  3*8);
-		M_LST(argintregs[2], REG_SP,  4*8);
-		M_LST(argintregs[3], REG_SP,  5*8);
-		M_LST(argintregs[4], REG_SP,  6*8);
-		M_LST(argintregs[5], REG_SP,  7*8);
-		M_LST(argintregs[6], REG_SP,  8*8);
-		M_LST(argintregs[7], REG_SP,  9*8);
+		/* save and copy float arguments into integer registers */
+		for (p = 0; p < mparamcount && p < FLT_ARG_CNT; p++) {
+			t = mparamtypes[p];
 
-		M_DST(argfltregs[0], REG_SP, 10*8);
-		M_DST(argfltregs[1], REG_SP, 11*8);
-		M_DST(argfltregs[2], REG_SP, 12*8);
-		M_DST(argfltregs[3], REG_SP, 13*8);
-		M_DST(argfltregs[4], REG_SP, 14*8);
-		M_DST(argfltregs[5], REG_SP, 15*8);
-		M_DST(argfltregs[6], REG_SP, 16*8);
-		M_DST(argfltregs[7], REG_SP, 17*8);
+			if (IS_FLT_DBL_TYPE(t)) {
+				if (IS_2_WORD_TYPE(t)) {
+					M_DST(argfltregs[p], REG_SP, (10 + p) * 8);
+					M_LLD(argintregs[p], REG_SP, (10 + p) * 8);
 
-		p = dseg_addaddress (method);
+				} else {
+					M_FST(argfltregs[p], REG_SP, (10 + p) * 8);
+					M_ILD(argintregs[p], REG_SP, (10 + p) * 8);
+				}
+
+			} else {
+				M_DST(argfltregs[p], REG_SP, (10 + p) * 8);
+			}
+		}
+
+		p = dseg_addaddress(method);
 		M_ALD(REG_ITMP1, REG_PV, p);
 		M_LST(REG_ITMP1, REG_SP, 0);
-		p = dseg_addaddress ((void*) (builtin_trace_args));
+		p = dseg_addaddress((void *) builtin_trace_args);
 		M_ALD(REG_ITMP3, REG_PV, p);
 		M_JSR(REG_RA, REG_ITMP3);
 		M_NOP;
 
-		M_LLD(REG_RA,        REG_SP,  1*8);
+		M_LLD(REG_RA, REG_SP, 1 * 8);
 
-		M_LLD(argintregs[0], REG_SP,  2*8);
-		M_LLD(argintregs[1], REG_SP,  3*8);
-		M_LLD(argintregs[2], REG_SP,  4*8);
-		M_LLD(argintregs[3], REG_SP,  5*8);
-		M_LLD(argintregs[4], REG_SP,  6*8);
-		M_LLD(argintregs[5], REG_SP,  7*8);
-		M_LLD(argintregs[6], REG_SP,  8*8);
-		M_LLD(argintregs[7], REG_SP,  9*8);
-
-		M_DLD(argfltregs[0], REG_SP, 10*8);
-		M_DLD(argfltregs[1], REG_SP, 11*8);
-		M_DLD(argfltregs[2], REG_SP, 12*8);
-		M_DLD(argfltregs[3], REG_SP, 13*8);
-		M_DLD(argfltregs[4], REG_SP, 14*8);
-		M_DLD(argfltregs[5], REG_SP, 15*8);
-		M_DLD(argfltregs[6], REG_SP, 16*8);
-		M_DLD(argfltregs[7], REG_SP, 17*8);
-
-		M_LDA (REG_SP, REG_SP, 18*8);
+		for (p = 0; p < mparamcount && p < INT_ARG_CNT; p++) {
+			M_LLD(argintregs[p], REG_SP, (2 + p) * 8);
 		}
+
+		for (p = 0; p < mparamcount && p < FLT_ARG_CNT; p++) {
+			t = mparamtypes[p];
+
+			if (IS_FLT_DBL_TYPE(t)) {
+				if (IS_2_WORD_TYPE(t)) {
+					M_DLD(argfltregs[p], REG_SP, (10 + p) * 8);
+				} else {
+					M_FLD(argfltregs[p], REG_SP, (10 + p) * 8);
+				}
+			} else {
+				M_DLD(argfltregs[p], REG_SP, (10 + p) * 8);
+			}
+		}
+
+		M_LDA(REG_SP, REG_SP, 18 * 8);
+	}
 
 	/* take arguments out of register or stack frame */
 
@@ -3725,35 +3730,139 @@ void removecompilerstub(u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE      60
-#define NATIVESTUBOFFSET    9
+#define NATIVESTUBSIZE      54
+#define NATIVEVERBOSESIZE   50 + 17
+#define NATIVESTUBOFFSET    8
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
-	u8 *s = CNEW(u8, NATIVESTUBSIZE);   /* memory to hold the stub            */
-	u8 *cs = s + NATIVESTUBOFFSET;
-	s4 *mcodeptr = (s4 *) (cs);         /* code generation pointer            */
-
-	*(cs-1) = (u8) f;                   /* address of native method           */
-	*(cs-2) = (u8) (&_exceptionptr);     /* address of exceptionptr            */
-	*(cs-3) = (u8) asm_handle_nat_exception;/* addr of asm exception handler  */
-	*(cs-4) = (u8) (&env);              /* addr of jni_environement           */
- 	*(cs-5) = (u8) asm_builtin_trace;
-	*(cs-6) = (u8) m;
- 	*(cs-7) = (u8) asm_builtin_exittrace;
-	*(cs-8) = (u8) m->class;
+	u8 *s;                              /* memory to hold the stub            */
+	u8 *cs;
+	s4 *mcodeptr;                       /* code generation pointer            */
+	int stackframesize = 0;             /* size of stackframe if needed       */
+	int disp;
+	int stubsize;
 
 	reg_init();
 	descriptor2types(m);                /* set paramcount and paramtypes      */
 
+	stubsize = runverbose ? NATIVESTUBSIZE + NATIVEVERBOSESIZE : NATIVESTUBSIZE;
+	s = CNEW(u8, stubsize);             /* memory to hold the stub            */
+	cs = s + NATIVESTUBOFFSET;
+	mcodeptr = (s4 *) (cs);             /* code generation pointer            */
+
+	*(cs-1) = (u8) f;                   /* address of native method           */
+	*(cs-2) = (u8) (&_exceptionptr);    /* address of exceptionptr            */
+	*(cs-3) = (u8) asm_handle_nat_exception;/* addr of asm exception handler  */
+	*(cs-4) = (u8) (&env);              /* addr of jni_environement           */
+ 	*(cs-5) = (u8) builtin_trace_args;
+	*(cs-6) = (u8) m;
+ 	*(cs-7) = (u8) builtin_displaymethodstop;
+	*(cs-8) = (u8) m->class;
+
 	M_LDA(REG_SP, REG_SP, -8);          /* build up stackframe                */
 	M_LST(REG_RA, REG_SP, 0);           /* store return address               */
 
+	/* max. 50 instructions */
 	if (runverbose) {
-		M_ALD(REG_ITMP1, REG_PV, -6 * 8);
-		M_ALD(REG_ITMP3, REG_PV, -5 * 8);
+		int p;
+		int t;
+
+		M_LDA(REG_SP, REG_SP, -(18 * 8));
+		M_AST(REG_RA, REG_SP, 1 * 8);
+
+		/* save integer argument registers */
+		for (p = 0; p < m->paramcount && p < INT_ARG_CNT; p++) {
+			M_LST(argintregs[p], REG_SP,  (2 + p) * 8);
+		}
+
+		/* save and copy float arguments into integer registers */
+		for (p = 0; p < m->paramcount && p < FLT_ARG_CNT; p++) {
+			t = m->paramtypes[p];
+
+			if (IS_FLT_DBL_TYPE(t)) {
+				if (IS_2_WORD_TYPE(t)) {
+					M_DST(argfltregs[p], REG_SP, (10 + p) * 8);
+					M_LLD(argintregs[p], REG_SP, (10 + p) * 8);
+
+				} else {
+					M_FST(argfltregs[p], REG_SP, (10 + p) * 8);
+					M_ILD(argintregs[p], REG_SP, (10 + p) * 8);
+				}
+
+			} else {
+				M_DST(argfltregs[p], REG_SP, (10 + p) * 8);
+			}
+		}
+
+		M_ALD(REG_ITMP1, REG_PV, -6 * 8); /* method address                   */
+		M_AST(REG_ITMP1, REG_SP, 0);
+		M_ALD(REG_ITMP3, REG_PV, -5 * 8); /* builtin_trace_args               */
 		M_JSR(REG_RA, REG_ITMP3);
 		M_NOP;
+		disp = -(int) (mcodeptr - (s4*) cs) * 4;
+		M_LDA(REG_PV, REG_RA, disp);
+
+		for (p = 0; p < m->paramcount && p < INT_ARG_CNT; p++) {
+			M_LLD(argintregs[p], REG_SP,  (2 + p) * 8);
+		}
+
+		for (p = 0; p < m->paramcount && p < FLT_ARG_CNT; p++) {
+			t = m->paramtypes[p];
+
+			if (IS_FLT_DBL_TYPE(t)) {
+				if (IS_2_WORD_TYPE(t)) {
+					M_DLD(argfltregs[p], REG_SP, (10 + p) * 8);
+
+				} else {
+					M_FLD(argfltregs[p], REG_SP, (10 + p) * 8);
+				}
+
+			} else {
+				M_DLD(argfltregs[p], REG_SP, (10 + p) * 8);
+			}
+		}
+
+		M_ALD(REG_RA, REG_SP, 1 * 8);
+		M_LDA(REG_SP, REG_SP, 18 * 8);
+	}
+
+	/* save argument registers on stack -- if we have to */
+	if ((m->flags & ACC_STATIC && m->paramcount > (INT_ARG_CNT - 2)) || m->paramcount > (INT_ARG_CNT - 1)) {
+		int i;
+		int paramshiftcnt = (m->flags & ACC_STATIC) ? 2 : 1;
+		int stackparamcnt = (m->paramcount > INT_ARG_CNT) ? m->paramcount - INT_ARG_CNT : 0;
+
+  		stackframesize = stackparamcnt + paramshiftcnt;
+
+		M_LDA(REG_SP, REG_SP, -stackframesize * 8);
+
+		/* copy stack arguments into new stack frame -- if any */
+		for (i = 0; i < stackparamcnt; i++) {
+			M_LLD(REG_ITMP1, REG_SP, (stackparamcnt + 1 + i) * 8);
+			M_LST(REG_ITMP1, REG_SP, (paramshiftcnt + i) * 8);
+		}
+
+		if (m->flags & ACC_STATIC) {
+			if (IS_FLT_DBL_TYPE(m->paramtypes[5])) {
+				M_DST(argfltregs[5], REG_SP, 1 * 8);
+			} else {
+				M_LST(argintregs[5], REG_SP, 1 * 8);
+			}
+
+			if (IS_FLT_DBL_TYPE(m->paramtypes[4])) {
+				M_DST(argfltregs[4], REG_SP, 0 * 8);
+			} else {
+				M_LST(argintregs[4], REG_SP, 0 * 8);
+			}
+
+		} else {
+			if (IS_FLT_DBL_TYPE(m->paramtypes[5])) {
+				M_DST(argfltregs[5], REG_SP, 0 * 8);
+			} else {
+				M_LST(argintregs[5], REG_SP, 0 * 8);
+			}
+		}
 	}
 
 	if (m->flags & ACC_STATIC) {
@@ -3827,15 +3936,31 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_JSR(REG_RA, REG_ITMP3);           /* call native method                 */
 	M_NOP;                              /* delay slot                         */
 
+	/* remove stackframe if there is one */
+	if (stackframesize) {
+		M_LDA(REG_SP, REG_SP, stackframesize * 8);
+	}
+
+	/* 17 instructions */
 	if (runverbose) {
+		M_LDA(REG_SP, REG_SP, -(3 * 8));
+		M_AST(REG_RA, REG_SP, 0 * 8);
+		M_LST(REG_RESULT, REG_SP, 1 * 8);
+		M_DST(REG_FRESULT, REG_SP, 2 * 8);
 		M_ALD(argintregs[0], REG_PV, -6 * 8);
 		M_MOV(REG_RESULT, argintregs[1]);
 		M_DMFC1(REG_ITMP1, REG_FRESULT);
 		M_DMTC1(REG_ITMP1, argfltregs[2]);
 		M_DMTC1(REG_ITMP1, argfltregs[3]);
-		M_ALD(REG_ITMP3, REG_PV, -7 * 8);/* asm_builtin_exittrace             */
+		M_ALD(REG_ITMP3, REG_PV, -7 * 8);/* builtin_displaymethodstop         */
 		M_JSR(REG_RA, REG_ITMP3);
 		M_NOP;
+		disp = -(int) (mcodeptr - (s4*) cs) * 4;
+		M_LDA(REG_PV, REG_RA, disp);
+		M_ALD(REG_RA, REG_SP, 0 * 8);
+		M_LLD(REG_RESULT, REG_SP, 1 * 8);
+		M_DLD(REG_FRESULT, REG_SP, 2 * 8);
+		M_LDA(REG_SP, REG_SP, 3 * 8);
 	}
 
 	M_ALD(REG_ITMP3, REG_PV, -2 * 8);   /* get address of exceptionptr        */
