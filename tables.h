@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tables.h 1034 2004-04-26 16:20:33Z twisti $
+   $Id: tables.h 1087 2004-05-26 21:27:03Z twisti $
 
 */
 
@@ -66,6 +66,7 @@ bool is_valid_name_utf(utf *u);
 void utf_sprint(char *buffer, utf *u);
 void utf_sprint_classname(char *buffer, utf *u);
 void utf_fprint(FILE *file, utf *u);
+void utf_fprint_classname(FILE *file, utf *u);
 void utf_display(utf *u);
 void utf_display_classname(utf *u);
 

@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1082 2004-05-26 15:04:54Z jowenn $
+   $Id: tables.c 1087 2004-05-26 21:27:03Z twisti $
 
 */
 
@@ -111,7 +111,8 @@ void tables_init()
 	init_hashtable(&class_hash,  HASHSTART);      /* hashtable for classes */ 
 	
 #ifdef STATISTICS
-	count_utf_len += sizeof(utf*) * utf_hash.size;
+	if (opt_stat)
+		count_utf_len += sizeof(utf*) * utf_hash.size;
 #endif
 
 }
@@ -243,7 +244,7 @@ void log_plain_utf(utf *u)
 	
     write utf symbol into c-string (debugging purposes)						 
 
-******************************************************************************/ 
+******************************************************************************/
 
 void utf_sprint(char *buffer, utf *u)
 {
@@ -288,7 +289,7 @@ void utf_sprint_classname(char *buffer, utf *u)
 	
     write utf symbol into file		
 
-******************************************************************************/ 
+******************************************************************************/
 
 void utf_fprint(FILE *file, utf *u)
 {
@@ -301,6 +302,31 @@ void utf_fprint(FILE *file, utf *u)
     while (utf_ptr < endpos) { 
 		/* read next unicode character */                
 		u2 c = utf_nextu2(&utf_ptr);				
+
+		if (c >= 32 && c <= 127) fprintf(file, "%c", c);
+		else fprintf(file, "?");
+	}
+}
+
+
+/********************* Funktion: utf_fprint **********************************
+	
+    write utf symbol into file		
+
+******************************************************************************/
+
+void utf_fprint_classname(FILE *file, utf *u)
+{
+    char *endpos  = utf_end(u);  /* points behind utf string       */
+    char *utf_ptr = u->text;     /* current position in utf text   */ 
+
+    if (!u)
+		return;
+
+    while (utf_ptr < endpos) { 
+		/* read next unicode character */                
+		u2 c = utf_nextu2(&utf_ptr);				
+		if (c == '/') c = '.';
 
 		if (c >= 32 && c <= 127) fprintf(file, "%c", c);
 		else fprintf(file, "?");
@@ -465,7 +491,8 @@ utf *utf_new_int(char *text, u2 length)
 	u2 i;
 
 #ifdef STATISTICS
-	count_utf_new++;
+	if (opt_stat)
+		count_utf_new++;
 #endif
 
 	key  = utf_hashkey(text, length);
@@ -481,7 +508,8 @@ utf *utf_new_int(char *text, u2 length)
 				if (text[i] != u->text[i]) goto nomatch;
 			
 #ifdef STATISTICS
-			count_utf_new_found++;
+			if (opt_stat)
+				count_utf_new_found++;
 #endif
 /*			log_text("symbol found in hash table");*/
 			/* symbol found in hashtable */
@@ -499,7 +527,8 @@ utf *utf_new_int(char *text, u2 length)
 	}
 
 #ifdef STATISTICS
-	count_utf_len += sizeof(utf) + length;
+	if (opt_stat)
+		count_utf_len += sizeof(utf) + length;
 #endif
 
 	/* location in hashtable found, create new utf element */
@@ -527,7 +556,8 @@ utf *utf_new_int(char *text, u2 length)
 		newhash.entries = utf_hash.entries;
 
 #ifdef STATISTICS
-		count_utf_len += sizeof(utf*) * utf_hash.size;
+		if (opt_stat)
+			count_utf_len += sizeof(utf*) * utf_hash.size;
 #endif
 
 		/* transfer elements to new hashtable */
@@ -957,7 +987,8 @@ classinfo *class_new_int(utf *classname)
 	/* location in hashtable found, create new classinfo structure */
 
 #ifdef STATISTICS
-	count_class_infos += sizeof(classinfo);
+	if (opt_stat)
+		count_class_infos += sizeof(classinfo);
 #endif
 
 	if (initverbose) {
@@ -1042,7 +1073,7 @@ classinfo *class_new_int(utf *classname)
     /* Array classes need further initialization. */
     if (c->name->text[0] == '[') {
 		/* Array classes are not loaded from classfiles. */
-		c->loaded = 1;
+		c->loaded = true;
         class_new_array(c);
 		c->packagename = array_packagename;
 
@@ -1058,26 +1089,47 @@ classinfo *class_new_int(utf *classname)
 			}
 		}
 	}
-        
+
+	/* we support eager class loading and linking on demand */
+
+	if (opt_eager) {
+		/* all super classes are loaded implicitly */
+/*  		if (!c->loaded) */
+/*  			class_load(c); */
+
+/*  		if (!c->linked) */
+/*  			class_link(c); */
+	}
+
 	return c;
 }
 
 
 classinfo *class_new(utf *classname)
 {
-    classinfo *r;
+    classinfo *c;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
     tables_lock();
 #endif
 
-    r = class_new_int(classname);
+    c = class_new_int(classname);
+
+	/* we support eager class loading and linking on demand */
+
+	if (opt_eager) {
+		if (!c->loaded)
+			class_load(c);
+
+		if (!c->linked)
+			class_link(c);
+	}
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
     tables_unlock();
 #endif
 
-    return r;
+    return c;
 }
 
 
@@ -1168,12 +1220,12 @@ classinfo *class_array_of(classinfo *component)
 
 *******************************************************************************/
 
-classinfo *class_multiarray_of(int dim,classinfo *element)
+classinfo *class_multiarray_of(int dim, classinfo *element)
 {
     int namelen;
     char *namebuf;
 
-	if (dim<1)
+	if (dim < 1)
 		panic("Invalid array dimension requested");
 
     /* Assemble the array class name */
@@ -1181,21 +1233,21 @@ classinfo *class_multiarray_of(int dim,classinfo *element)
     
     if (element->name->text[0] == '[') {
         /* the element is itself an array */
-        namebuf = DMNEW(char,namelen+dim);
-        memcpy(namebuf+dim,element->name->text,namelen);
+        namebuf = DMNEW(char, namelen + dim);
+        memcpy(namebuf + dim, element->name->text, namelen);
         namelen += dim;
     }
     else {
         /* the element is a non-array class */
-        namebuf = DMNEW(char,namelen+2+dim);
+        namebuf = DMNEW(char, namelen + 2 + dim);
         namebuf[dim] = 'L';
-        memcpy(namebuf+dim+1,element->name->text,namelen);
-        namelen += (2+dim);
-        namebuf[namelen-1] = ';';
+        memcpy(namebuf + dim + 1, element->name->text, namelen);
+        namelen += (2 + dim);
+        namebuf[namelen - 1] = ';';
     }
-	memset(namebuf,'[',dim);
+	memset(namebuf, '[', dim);
 
-    return class_new( utf_new(namebuf,namelen) );
+    return class_new(utf_new(namebuf, namelen));
 }
 
 /************************** function: utf_strlen ******************************
