@@ -94,7 +94,12 @@ java_objectheader* exceptionptr = NULL;
 
 static void use_class_as_object (classinfo *c) 
 {
-	c->header.vftbl = class_java_lang_Class -> vftbl;
+	vftbl *vt = class_java_lang_Class -> vftbl;
+	vftbl *newtbl;
+	copy_vftbl(&newtbl, vt);
+	newtbl->baseval = c->header.vftbl->baseval;
+	newtbl->diffval = c->header.vftbl->diffval;
+	c->header.vftbl = newtbl;
 }
 
 /*********************** include Java Native Interface ************************/ 
@@ -914,5 +919,9 @@ void literalstring_free (java_objectheader* sobj)
 
 
 
-
-
+void copy_vftbl(vftbl **dest, vftbl *src)
+{
+	*dest = heap_allocate(sizeof(vftbl) + sizeof(methodptr)*(src->vftbllength-1), false, NULL);
+	memcpy(*dest, src, sizeof(vftbl) - sizeof(methodptr));
+	memcpy(&(*dest)->table, &src->table, src->vftbllength * sizeof(methodptr));
+}

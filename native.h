@@ -84,3 +84,4 @@ void literalstring_free (java_objectheader*);
 void systemclassloader_addlibname(java_objectheader *o);
 void systemclassloader_addlibrary(java_objectheader *o);
 
+void copy_vtbl(vftbl **dest, vftbl *src);
