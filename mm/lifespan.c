@@ -1,9 +1,9 @@
 /*
  * cacao/mm/lifespan.c
- * $Id: lifespan.c 99 1998-11-30 22:29:56Z phil $
+ * $Id: lifespan.c 100 1998-11-30 22:30:41Z phil $
  */
 
-@include "mm.h"
+#include "mm.h"
 #include "lifespan.h"
 #include <stdio.h>
 #include <stdlib.h>
