@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1278 2004-07-05 17:29:35Z twisti $
+   $Id: codegen.c 1279 2004-07-05 18:48:45Z stefan $
 
 */
 
@@ -581,7 +581,7 @@ void codegen(methodinfo *m)
 #if defined(USE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		s4 disp;
-		s8 func_enter = (method->flags & ACC_STATIC) ?
+		s8 func_enter = (m->flags & ACC_STATIC) ?
 			(s8) builtin_staticmonitorenter : (s8) builtin_monitorenter;
 		p = dseg_addaddress((void*) func_enter);
 		M_ALD(REG_PV, REG_PV, p);
