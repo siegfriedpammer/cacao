@@ -16,16 +16,15 @@
 
 /************************* program switches ***********************************/
 
-extern bool loadverbose;         /* Debug-Meldungen beim Laden ausgeben */
+extern bool loadverbose;         /* Print debug messages during loading */
 extern bool linkverbose;
-extern bool initverbose;         /* Meldungen ausgeben, wenn Klasse 
-                                   initialisiert wird */
-extern bool makeinitializations; /* Klassen automatisch initialisieren */
+extern bool initverbose;         /* Log class initialization */ 
+extern bool makeinitializations; /* Initialize classes automatically */
 
 extern bool getloadingtime;
-extern long int loadingtime;     /* CPU-Zeit f"urs Laden der Klassen */
+extern long int loadingtime;     /* CPU time for class loading */
 
-extern list linkedclasses;       /* Liste aller fertig gelinkten Klassen */
+extern list linkedclasses;       /* List containing all linked classes */
 
 
 /************************ prototypes ******************************************/
