@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: typeinfo.c 1191 2004-06-19 12:46:00Z twisti $
 
 */
 
@@ -370,6 +370,14 @@ static
 bool
 classinfo_implements_interface(classinfo *cls,classinfo *interf)
 {
+	if (!cls->loaded)
+		if (!class_load(cls))
+			return false;
+
+	if (!cls->linked)
+		if (!class_link(cls))
+			return false;
+
     if (cls->flags & ACC_INTERFACE) {
         /* cls is an interface */
         if (cls == interf)
@@ -1030,6 +1038,24 @@ typeinfo_merge_nonarrays(typeinfo *dest,
     typeinfo_print(stdout,&dbgy,4);
 #endif
     */ 
+
+	/* check clsx */
+	if (!clsx->loaded)
+		if (!class_load(clsx))
+			return false;
+
+	if (!clsx->linked)
+		if (!class_link(clsx))
+			return false;
+
+	/* check clsy */
+	if (!clsy->loaded)
+		if (!class_load(clsy))
+			return false;
+
+	if (!clsy->linked)
+		if (!class_link(clsy))
+			return false;
 
     /* Common case: clsx == clsy */
     /* (This case is very simple unless *both* x and y really represent
