@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 778 2003-12-14 14:54:33Z stefan $
+   $Id: codegen.h 1041 2004-04-26 17:11:08Z twisti $
 
 */
 
@@ -74,15 +74,6 @@
 #define REG_FTMP1       6    /* temporary floating point register             */
 #define REG_FTMP2       7    /* temporary floating point register             */
 #define REG_FTMP3       7    /* temporary floating point register             */
-
-
-static u1 fpu_in_24bit_mode = 0;
-
-static u2 fpu_ctrlwrd_24bit = 0x007f;    /* Round to nearest, 24-bit mode, exceptions masked */
-static u2 fpu_ctrlwrd_53bit = 0x027f;    /* Round to nearest, 53-bit mode, exceptions masked */
-
-static u4 subnormal_bias1[3] = { 0x00000000, 0x80000000, 0x03ff };    /* 2^(-15360) */
-static u4 subnormal_bias2[3] = { 0x00000000, 0x80000000, 0x7bff };    /* 2^(+15360) */
 
 
 /* macros to create code ******************************************************/
