@@ -41,6 +41,7 @@
 
 extern bool newcompiler;        /* true if new compiler is used               */    		
 bool opt_rt = false;            /* true if RTA parse should be used     RT-CO */
+bool opt_xta = false;           /* true if XTA parse should be used    XTA-CO */
 
 int count_class_infos = 0;      /* variables for measurements                 */
 int count_const_pool_len = 0;

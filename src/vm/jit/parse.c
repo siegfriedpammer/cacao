@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 283 2003-05-11 16:45:10Z carolyn $
+	Last Change: $Id: parse.c 285 2003-05-12 20:05:38Z carolyn $
                      include Rapid Type Analysis parse - 5/2003 - carolyn
 
 
@@ -279,14 +279,23 @@ static void parse()
 	bool blockend = false;      /* true if basic block end has been reached   */
 	bool iswide = false;        /* true if last instruction was a wide        */
 	instruction *iptr;          /* current pointer into instruction array     */
+        static int xta1 = 0;
 
-	if (opt_rt) 
+	if (opt_rt) { 
             RT_jit_parse(method);
-                /*RTAprint*/ if ((pOpcodes == 2) || (pOpcodes == 3))
+                /*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
                 /*RTAprint*/    {printf("PARSE method name =");
                 /*RTAprint*/    utf_display(rt_method->class->name);printf(".");
                 /*RTAprint*/    utf_display(rt_method->name);printf("\n\n");
                 /*RTAprint*/    method_display(rt_method); printf(">\n\n");fflush(stdout);}
+	    }
+        else {
+		if ((opt_xta) && (xta1 == 0)) { 
+			printf("XTA - not available yet\n"); 
+			xta1++;
+	    		}
+	
+	   }
 
 #ifdef OLD_COMPILER
 	/* generate the same addresses as the old JIT compiler */
@@ -363,9 +372,9 @@ static void parse()
 
 		opcode = code_get_u1 (p);           /* fetch op code                  */
 
-                                /*RTAprint*/ if ((pOpcodes == 1) || (pOpcodes == 3))
-                                /*RTAprint*/    {printf("Parse RT p=%i<%i<   opcode=<%i> %s\n",
-                                /*RTAprint*/             p,rt_jcodelength,opcode,icmd_names[opcode]);}
+                                /*RTAprint*/ if  ((opt_rt) && ((pOpcodes == 2) || (pOpcodes == 3)) )
+                                /*RTAprint*/    {printf("Parse<%i> p=%i<%i<   opcode=<%i> %s\n",
+                                /*RTAprint*/            pOpcodes, p,rt_jcodelength,opcode,icmd_names[opcode]);}
 
 		block_index[p] |= (ipc << 1);       /* store intermediate count       */
 
@@ -842,6 +851,11 @@ static void parse()
 				
 				mr = class_getconstant (class, i, CONSTANT_Methodref);
 				mi = class_findmethod (mr->class, mr->name, mr->descriptor);
+                			/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
+                                        /*RTAprint*/    {printf(" method name =");
+                                        /*RTAprint*/    utf_display(mi->class->name); printf(".");
+                                        /*RTAprint*/    utf_display(mi->name);printf("\tINVOKE STATIC\n");
+                                        /*RTAprint*/    fflush(stdout);}
 				if (! (mi->flags & ACC_STATIC))
 					panic ("Static/Nonstatic mismatch calling static method");
 				descriptor2types(mi);
@@ -858,6 +872,12 @@ static void parse()
 				
 				mr = class_getconstant (class, i, CONSTANT_Methodref);
 				mi = class_findmethod (mr->class, mr->name, mr->descriptor);
+                			/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
+                                        /*RTAprint*/    {printf(" method name =");
+                                        /*RTAprint*/    utf_display(mi->class->name); printf(".");
+                                        /*RTAprint*/    utf_display(mi->name);printf("\tINVOKE SPECIAL/VIRTUAL\n");
+                                        /*RTAprint*/    fflush(stdout);}
+
 				if (mi->flags & ACC_STATIC)
 					panic ("Static/Nonstatic mismatch calling static method");
 				descriptor2types(mi);
@@ -1198,6 +1218,7 @@ static void parse()
 }
 
 #include "parseRT.h"
+#include "parseXTA.h"
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 274 2003-05-09 13:39:39Z carolyn $
+	Last Change: $Id: global.h 285 2003-05-12 20:05:38Z carolyn $
 
 *******************************************************************************/
 
@@ -638,6 +638,7 @@ extern bool compileall;
 extern bool runverbose;         
 extern bool verbose;         
 extern bool opt_rt;             /* Rapid Type Analysis for better inlining CO-RT*/
+extern bool opt_xta;            /* X Type Analysis for better inlining    CO-XTA*/
 
 extern int pClassHeir;
 extern int pCallgraph;
@@ -647,6 +648,7 @@ extern void RT_jit_parse(methodinfo *m);
 extern void printCallgraph ();
 extern void printRThierarchyInfo(methodinfo *m);
 
+extern void XTA_jit_parse(methodinfo *m);
 
 /* statistic variables ********************************************************/
 

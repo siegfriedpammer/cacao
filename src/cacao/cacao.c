@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: cacao.c 274 2003-05-09 13:39:39Z carolyn $
+	Last Change: $Id: cacao.c 285 2003-05-12 20:05:38Z carolyn $
 
 *******************************************************************************/
 
@@ -90,6 +90,7 @@ void **stackbottom = 0;
 #endif
 #define OPT_OLOOP       24
 #define OPT_RT          25
+#define OPT_XTA         26 
 
 struct {char *name; bool arg; int value;} opts[] = {
 	{"classpath",   true,   OPT_CLASSPATH},
@@ -124,6 +125,7 @@ struct {char *name; bool arg; int value;} opts[] = {
 #endif
 	{"oloop",       false,  OPT_OLOOP},
         {"rt",          false,  OPT_RT},
+        {"xta",         false,  OPT_XTA},
 	{NULL,  false, 0}
 };
 
@@ -223,6 +225,7 @@ static void print_usage()
 #endif
 	printf ("                 u(tf) ......... show the utf - hash\n");
         printf ("          -rt .................. use rapid type analysis\n");
+        printf ("          -xta ................. use xta\n");
 }   
 
 
@@ -694,6 +697,10 @@ int main(int argc, char **argv)
 
                case OPT_RT:
                         opt_rt = true;
+                        break;
+
+               case OPT_XTA:
+                        opt_xta = true;
                         break;
 
 		default:

@@ -104,40 +104,39 @@ void printRThierarchyInfo(methodinfo *m) {
 }
 
 /*--------------------------------------------------------------*/
+/* addToCallgraph - adds to RTA callgraph and                   */ 
+/*                  sets  meth->methodUsed  to USED             */
+/*                                                              */
+/* To avoid unnecessary calls and dup entries in callgraph      */
+/*      meth should not be null                                 */
+/*      meth->methodUsed should be NOTUSED when called          */
+/*      meth's class should be USED                             */
+/*                                                              */
 /*--------------------------------------------------------------*/
 
 void addToCallgraph (methodinfo * meth) {
   int mfound =0;
   int im;
+  int i;
 
 if (meth==NULL) {panic("Trying to add a NULL method to callgraph"); return; }
-if (meth->methodUsed == USED) {
-  printf("AddToCallGraph would put double in callgraph<%i>\n",meth->methodUsed); 
-  return;
-  }
+if (meth->methodUsed == USED)  return;  /*This should be test before fn call to avoid needless fn call */
+
 if ((meth->class->classUsed != USED) && (meth->class->classUsed != JUSTMARKED))  {
-  printf("AddToCallGraph method's class not used <%i>\n",meth->class->classUsed); 
+  printf("AddToCallGraph method's class not used nor marked<%i>\n",meth->class->classUsed); 
+  utf_display(meth->class->name);printf(".");
+  utf_display(meth->name);printf("\n");
   return;
   }
 
-
-  for (im=0;((im<methRTlast) && (mfound==0)); im++) {
-    if ((meth->name == callgraph[im]->name) && (meth->class->name == callgraph[im]->class->name))
-      mfound == 1;
-    }
-   
-  if (mfound == 0) {
   /*   Add it to callgraph (mark used) */
        callgraph[++methRTlast] = meth ;
   		/*RTAprint*/if (pWhenMarked >= 1) {
-		/*RTAprint*/	printf(" Added to Call Graph #%i:",methRTlast);
+		/*RTAprint*/	printf("\n Added to Call Graph #%i:",methRTlast);
 		/*RTAprint*/	printf(" method name =");utf_display(meth->class->name); printf(".");
 		/*RTAprint*/	utf_display(meth->name);printf("\n"); fflush(stdout);
 		/*RTAprint*/  }
        meth->methodUsed = USED;    
-      }
-  else
-      panic("Add to Callgraph found circular method calls");
 }
 
 /*--------------------------------------------------------------*/
@@ -146,18 +145,13 @@ void markMethod(classinfo *class, utf *name) {
 
   methodinfo *submeth;
 
-if (strcmp(name->text,"<init>") == 0) {    /* if new class just return */
-  return;
-  }
-else {
-
   submeth = class_findmethod(class, name, NULL); 
   if (submeth != NULL) {
 
-    if ((class->classUsed == NOTUSED)  && (class->index > USED) )   {
+    if (submeth->class->classUsed == NOTUSED) {
       submeth->methodUsed = JUSTMARKED;
-	/*RTAprint*/ if (pWhenMarked >= 2) 
-	/*RTAprint*/	printf("Just Marking Method - class not used <%i>\n",class->index);
+		/*RTAprint*/ if (pWhenMarked >= 2) 
+		/*RTAprint*/	printf("Just Marking Method - class not used <%i>\n",class->index);
       }      
     else {
       /*  method not used             && method's class is really used */
@@ -179,7 +173,9 @@ else {
 			 /*RTAprint*/if (pWhenMarked >= 2) { 
 			 /*RTAprint*/ printf("Class marked Used by Subtype :");utf_display(s->name);printf("\n");}
                } /* end mark */ 
-	     if ((supermeth->methodUsed !=USED) && (strcmp(name->text,"<init>") != NOTUSED)) {   
+	     if (supermeth->methodUsed !=USED) {   
+	     			/*COtest*/ if (strcmp(name->text,"<init>") == 0) 
+				/*COtest*/	{panic("HOW did meth <init> get into markMethod???"); return; }
 	       addToCallgraph(supermeth);
 	       }
              }   /* end if !NULL */
@@ -191,7 +187,7 @@ else {
 	   if ((s == NULL) && (found == 0))
 		panic("parse RT: Method not found in class hierarchy");
          }  /* if current class used  */
- }  } /* end else Null */
+    } /* end else Null */
 } 
 
 /*-------------------------------------------------------------------------------*/
@@ -239,7 +235,8 @@ static void parseRT()
         bool iswide = false;        /* true if last instruction was a wide        */
 
 		/*RTAprint*/ if ((pOpcodes == 1) || (pOpcodes == 3)) 
-		/*RTAprint*/ 	{printf("PARSE RT method name =");
+		/*RTAprint*/ 	{printf("*********************************\n");
+		/*RTAprint*/ 	printf("PARSE RT method name =");
 		/*RTAprint*/ 	utf_display(rt_method->class->name);printf(".");
 		/*RTAprint*/ 	utf_display(rt_method->name);printf("\n\n"); 
 		/*RTAprint*/ 	method_display(rt_method); printf(">\n\n");fflush(stdout);}
@@ -252,7 +249,8 @@ static void parseRT()
 
 				/*RTAprint*/ if ((pOpcodes == 1) || (pOpcodes == 3)) 
 				/*RTAprint*/ 	{printf("Parse RT p=%i<%i<   opcode=<%i> %s\n",
-				/*RTAprint*/                             p,rt_jcodelength,opcode,icmd_names[opcode]);}
+				/*RTAprint*/                             p,rt_jcodelength,opcode,icmd_names[opcode]);
+				/*RTAprint*/	fflush(stdout); }   
 
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
    switch (opcode) {
@@ -344,20 +342,22 @@ static void parseRT()
                                 mr = class_getconstant (rt_class, i, CONSTANT_Methodref);
                                 mi = class_findmethod (mr->class, mr->name, mr->descriptor);
 
-					/*RTAprint*/ if (pWhenMarked >= 2) {
+					/*RTAprint*/ if ((pOpcodes >= 1)  || (pWhenMarked >= 2)) {
 					/*RTAprint*/ 	printf(" method name =");
 					/*RTAprint*/ 	utf_display(mi->class->name); printf(".");
-					/*RTAprint*/	utf_display(mi->name);printf("\tINVOKE STATIC\n");}
+					/*RTAprint*/	utf_display(mi->name);printf("\t<%i>INVOKE STATIC\n",mi->methodUsed);
+					/*RTAprint*/	fflush(stdout);}
 
-                                if (rt_class->classUsed == NOTUSED) {
-                                    rt_class->classUsed = USED;
+                                if (mi->class->classUsed == NOTUSED) {
+                                    mi->class->classUsed = USED;
 
 					/*RTAprint*/ if (pWhenMarked >= 2) {
 					/*RTAprint*/ 	printf("Class marked Used :");
 					/*RTAprint*/ 	utf_display(rt_class->name);
-					/*RTAprint*/ 	 printf("INVOKESTATIC\n"); }
+					/*RTAprint*/ 	 printf("INVOKESTATIC\n"); fflush(stdout);}
                                     }
-                                 if (mi->methodUsed  != USED) {  /* if static method not in callgraph */
+
+                                if (mi->methodUsed  != USED) {  /* if static method not in callgraph */
 				    addToCallgraph(mi);
                                     }
                                 }
@@ -374,11 +374,11 @@ static void parseRT()
                                 mr = class_getconstant (rt_class, i, CONSTANT_Methodref);
                                 mi = class_findmethod (mr->class, mr->name, mr->descriptor);
 
-					/*RTAprint*/ if (pWhenMarked >= 2) {
+					/*RTAprint*/ if ((pOpcodes >= 1)  || (pWhenMarked >= 2)) {
 					/*RTAprint*/	 printf(" method name =");
 					/*RTAprint*/	 utf_display(mi->class->name); printf(".");
 					/*RTAprint*/ 	 utf_display(mi->name);
-					/*RTAprint*/ 	 printf("INVOKESPECIAL/VIRTUAL\n"); }
+					/*RTAprint*/ 	 printf("\tINVOKESPECIAL/VIRTUAL\n"); fflush(stdout); }
  
                                 if (strcmp(mi->name->text,"<init>") == 0) {     /* new class in method */
 				    if ( mi->methodUsed != USED) {
@@ -399,7 +399,7 @@ static void parseRT()
 
 					/*RTAprint*/	printf("\n/ calledMethod");
 					/*RTAprint*/	utf_display(mi->class->name);printf(".");
-					/*RTAprint*/	utf_display(mi->name);
+					/*RTAprint*/	utf_display(mi->name); printf("\n");
 					/*RTAprint*/ 	} 
 
                                	      if    (((strcmp(rt_method->name->text,"<init>") == 0) 
@@ -415,6 +415,8 @@ static void parseRT()
 					if (mi->class->classUsed == NOTUSED) {
                                         	int ii;
                                         	mi->class->classUsed = USED;    /* add to heirarchy    */
+				   		addToCallgraph(mi);   /* class was already marked - that init is not new */
+								      /* A class that was just super - has a new    5/11 */
 
 							/*RTAprint*/ if (pWhenMarked >= 2) { 
 							/*RTAprint*/ 	printf("Class marked Used :");;
@@ -424,7 +426,6 @@ static void parseRT()
                                            		if (mi->class->methods[ii].methodUsed == JUSTMARKED) { 
 				                	addToCallgraph(&mi->class->methods[ii]); 
                                     	} }   }
-				   addToCallgraph(mi);   /* class was already marked - that init is not new */
 				  }   }  }                                   	 
 				/*--------------------------------------------------------------*/
 				else {
@@ -458,7 +459,7 @@ void RT_jit_parse(methodinfo *m)
 
         callgraph[++methRTlast] = m;
   		/*RTAprint*/if (pWhenMarked >= 1) {
-		/*RTAprint*/	printf("<Added to Call Graph #%i:",methRTlast);
+		/*RTAprint*/	printf("\n<Added to Call Graph #%i:",methRTlast);
 		/*RTAprint*/	printf(" method name =");utf_display(m->class->name); printf(".");
 		/*RTAprint*/	utf_display(m->name);printf("\n");
 		/*RTAprint*/  }
