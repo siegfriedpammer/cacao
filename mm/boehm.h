@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: boehm.h 984 2004-03-28 23:08:07Z twisti $
+   $Id: boehm.h 997 2004-03-30 21:49:28Z twisti $
 
 */
 
@@ -53,12 +53,13 @@ void runboehmfinalizer(void *o, void *p);
 void *heap_allocate (u4 bytelength, bool references, methodinfo *finalizer);
 void *heap_reallocate(void *p, u4 bytelength);
 void heap_free(void *p);
-void heap_init(u4 size, u4 startsize, void **stackbottom);
+void heap_init(u4 heapmaxsize, u4 heapstartsize);
 void heap_close();
 void gc_init();
 void gc_call();
 s8 gc_get_heap_size();
 s8 gc_get_free_bytes();
+s8 gc_get_max_heap_size();
 void gc_finalize_all();
 
 #endif /* _BOEHM_H */

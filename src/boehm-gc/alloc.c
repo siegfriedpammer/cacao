@@ -872,6 +872,11 @@ ptr_t x, y;
     GC_max_heapsize = n;
 }
 
+word GC_get_max_heap_size()
+{
+    return GC_max_heapsize;
+}
+
 GC_word GC_max_retries = 0;
 
 /*

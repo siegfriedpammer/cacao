@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 991 2004-03-29 11:22:34Z stefan $
+   $Id: cacao.c 997 2004-03-30 21:49:28Z twisti $
 
 */
 
@@ -614,7 +614,7 @@ int main(int argc, char **argv)
 	/********** interne (nur fuer main relevante Optionen) **************/
    
 	char logfilename[200] = "";
-	u4 heapsize = 64000000;
+	u4 heapmaxsize = 64000000;
 	u4 heapstartsize = 200000;
 	char classpath[500] = ".";
 	bool startit = true;
@@ -677,7 +677,7 @@ int main(int argc, char **argv)
 			}
 			else j = atoi(opt_arg);
 				
-			if (i == OPT_MX) heapsize = j;
+			if (i == OPT_MX) heapmaxsize = j;
 			else heapstartsize = j;
 			break;
 
@@ -873,7 +873,8 @@ int main(int argc, char **argv)
 		log_text("CACAO started -------------------------------------------------------");
 	}
 
-	heap_init(heapsize, heapstartsize, &dummy);
+	/* initalize the gc heap */
+	heap_init(heapmaxsize, heapstartsize);
 
 	native_setclasspath(classpath);
 		
@@ -904,19 +905,16 @@ int main(int argc, char **argv)
 	/*class_showmethods(topclass);	*/
 
 	if (*exceptionptr) {
-		printf("Exception in thread \"main\" ");
-		utf_display_classname((*exceptionptr)->vftbl->class->name);
-		printf(": ");
-		utf_display(javastring_toutf(((java_lang_Throwable *) *exceptionptr)->detailMessage, false));
-		printf("\n");
-
-		*exceptionptr = NULL;
+		throw_exception_exit();
 	}
 
-	if (topclass == 0) {
-		/* should we print something out? we already have the exception */
-		exit(1);
-	}
+	/* initialize the garbage collector */
+	gc_init();
+
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+  	initThreads((u1*) &dummy);
+#endif
+
 
 	/************************* Start worker routines ********************/
 
@@ -949,26 +947,33 @@ int main(int argc, char **argv)
 #endif
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 
-		*threadrootmethod=mainmethod;
+		*threadrootmethod = mainmethod;
+
 		/* here we go... */
 		asm_calljavafunction(mainmethod, a, NULL, NULL, NULL);
 	
 		if (*exceptionptr) {
-			methodinfo *main_unhandled_print=class_resolvemethod_approx((*exceptionptr)->vftbl->class,
-				utf_new_char("printStackTrace"),
-				utf_new_char("()V"));
+			methodinfo *main_unhandled_print =
+				class_resolvemethod_approx((*exceptionptr)->vftbl->class,
+										   utf_new_char("printStackTrace"),
+										   utf_new_char("()V"));
+
 			if (main_unhandled_print) {
-				java_objectheader *exo=*exceptionptr;
-				*exceptionptr=0;
-				asm_calljavafunction(main_unhandled_print,exo,NULL,NULL,NULL);
+				java_objectheader *exo = *exceptionptr;
+				*exceptionptr = NULL;
+				asm_calljavafunction(main_unhandled_print, exo, NULL, NULL, NULL);
+
 			} else {
+				java_lang_String *msg;
+
 				printf("Exception in thread \"main\" ");
 				utf_display_classname((*exceptionptr)->vftbl->class->name);
 
 				/* do we have a detail message? */
-				if (((java_lang_Throwable *) *exceptionptr)->detailMessage) {
+				msg = ((java_lang_Throwable *) *exceptionptr)->detailMessage;
+				if (msg) {
 					printf(": ");
-				utf_display(javastring_toutf(((java_lang_Throwable *) *exceptionptr)->detailMessage, false));
+					utf_display(javastring_toutf(msg, false));
 				}
 				printf("\n");
 			}

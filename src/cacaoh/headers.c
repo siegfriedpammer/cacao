@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 991 2004-03-29 11:22:34Z stefan $
+   $Id: headers.c 997 2004-03-30 21:49:28Z twisti $
 
 */
 
@@ -88,23 +88,30 @@ java_objectheader *javastring_new(utf *text)
 utf *javastring_toutf(java_lang_String *string, bool isclassname)
 { return NULL; }
 
-void throw_noclassdeffounderror_message(utf* classname)
-{ 
-	printf("Class not found: ");
-	utf_display(classname);
+
+/* some exception stuff */
+
+char *string_java_lang_LinkageError =
+    "java/lang/LinkageError";
+
+char *string_java_lang_NegativeArraySizeException =
+    "java/lang/NegativeArraySizeException";
+
+char *string_java_lang_NoClassDefFoundError =
+    "java/lang/NoClassDefFoundError";
+
+char *string_java_lang_OutOfMemoryError =
+    "java/lang/OutOfMemoryError";
+
+void new_exception(char *classname) {}
+void new_exception_message(char *classname, char *message) {}
+void new_exception_utfmessage(char *classname, utf *message)
+{
+	printf("%s: ", classname);
+	utf_display(message);
 	printf("\n");
 	exit(1);
 }
-
-
-/* this is here to avoid link errors. 
-   We are not interested in linkagerrors in cacaoh right now
-*/
-void throw_linkageerror_message(utf* classname) {}
-
-void throw_exception() {}
-void new_exception(char *classname) {}
-void new_exception_message(char *classname, char *message) {}
 
 java_objectheader *literalstring_new(utf *u) { return NULL; }  
 
@@ -581,7 +588,6 @@ int main(int argc, char **argv)
 	s4 i,a;
 	char *cp;
 	classinfo *topclass;
-	void *dummy;
 		
 
 	/********** internal (only used by main) *****************************/
@@ -650,7 +656,10 @@ int main(int argc, char **argv)
 	suck_init(classpath);
    
 	tables_init();
-	heap_init(heapsize, heapsize, &dummy);
+
+	/* initialize the gc heap */
+	heap_init(heapsize, heapsize);
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initThreadsEarly();
 #endif

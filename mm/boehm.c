@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 985 2004-03-28 23:32:53Z twisti $
+   $Id: boehm.c 997 2004-03-30 21:49:28Z twisti $
 
 */
 
@@ -159,9 +159,20 @@ void heap_free(void *p)
 }
 
 
-void heap_init(u4 size, u4 startsize, void **stackbottom)
+void heap_init(u4 heapmaxsize, u4 heapstartsize)
 {
-	GC_INIT();
+	size_t heapcurrentsize;
+
+	GC_init();
+
+	/* set the maximal heap size */
+	GC_set_max_heap_size(heapmaxsize);
+
+	/* set the initial heap size */
+	heapcurrentsize = GC_get_heap_size();
+	if (heapstartsize > heapcurrentsize) {
+		GC_expand_hp(heapstartsize - heapcurrentsize);
+	}
 }
 
 
@@ -195,6 +206,12 @@ s8 gc_get_heap_size()
 s8 gc_get_free_bytes()
 {
 	return GC_get_free_bytes();
+}
+
+
+s8 gc_get_max_heap_size()
+{
+	return GC_get_max_heap_size();
 }
 
 

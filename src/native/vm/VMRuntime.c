@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 983 2004-03-28 23:06:43Z twisti $
+   $Id: VMRuntime.c 997 2004-03-30 21:49:28Z twisti $
 
 */
 
@@ -345,9 +345,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_insertSystemProperties(JNIEnv *env
  */
 JNIEXPORT s8 JNICALL Java_java_lang_Runtime_maxMemory(JNIEnv *env, java_lang_Runtime *this)
 {
-	log_text("Java_java_lang_Runtime_maxMemory");
-
-	return 0;
+	return gc_get_max_heap_size();
 }
 
 

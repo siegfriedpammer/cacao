@@ -332,6 +332,8 @@ GC_API int GC_expand_hp GC_PROTO((size_t number_of_bytes));
 /* n == 0 ==> unbounded.  This is the default.				*/
 GC_API void GC_set_max_heap_size GC_PROTO((GC_word n));
 
+GC_API GC_word GC_get_max_heap_size GC_PROTO((void));
+
 /* Inform the collector that a certain section of statically allocated	*/
 /* memory contains no pointers to garbage collected memory.  Thus it 	*/
 /* need not be scanned.  This is sometimes important if the application */
@@ -725,6 +727,8 @@ GC_API int GC_unregister_disappearing_link GC_PROTO((GC_PTR * /* link */));
 	/* Returns 0 if link was not actually registered.	*/
 	/* Undoes a registration by either of the above two	*/
 	/* routines.						*/
+
+GC_API void GC_finalize_all();
 
 /* Returns !=0  if GC_invoke_finalizers has something to do. 		*/
 GC_API int GC_should_invoke_finalizers GC_PROTO((void));
