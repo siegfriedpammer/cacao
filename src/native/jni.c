@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1864 2005-01-05 20:18:58Z motse $
+   $Id: jni.c 1866 2005-01-12 13:17:24Z twisti $
 
 */
 
@@ -3706,6 +3706,8 @@ jint JNI_GetDefaultJavaVMInitArgs(void *p_vm_args)
 jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 {
 	log_text("JNI_GetCreatedJavaVMs: IMPLEMENT ME!!!");
+
+	return 0;
 }
 
 
