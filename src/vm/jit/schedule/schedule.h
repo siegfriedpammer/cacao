@@ -1,4 +1,5 @@
-/* vm/jit/schedule/schedule.h - architecture independent instruction scheduler
+/* src/vm/jit/schedule/schedule.h - architecture independent instruction
+                                    scheduler
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +29,7 @@
 
    Changes:
 
-   $Id: schedule.h 1973 2005-03-02 16:27:05Z twisti $
+   $Id: schedule.h 1985 2005-03-04 17:09:13Z twisti $
 
 */
 
@@ -44,6 +45,11 @@
 typedef struct scheduledata scheduledata;
 typedef struct minstruction minstruction;
 typedef struct nodelink nodelink;
+
+
+/* machine instruction flags **************************************************/
+
+#define SCHEDULE_LEADER    0x01
 
 
 /* scheduledata ****************************************************************
@@ -76,9 +82,10 @@ struct scheduledata {
 
 struct minstruction {
 	u4             instr[2];            /* machine instruction word           */
-	u1             latency;             /* instruction latency                */
+	u1             flags;
+	u1             startcycle;          /* start pipeline cycle               */
+	u1             endcycle;            /* end pipeline cycle                 */
 	s4             priority;            /* priority of this instruction node  */
-	bool           leader;
 	nodelink      *deps;                /* operand dependencies               */
 	minstruction  *next;                /* link to next machine instruction   */
 };
@@ -99,13 +106,12 @@ struct nodelink {
 /* function prototypes ********************************************************/
 
 scheduledata *schedule_init(registerdata *rd);
+void schedule_setup(scheduledata *sd, registerdata *rd);
+
 void schedule_calc_priority(minstruction *mi);
 
-void schedule_add_int_define_dep(scheduledata *sd, s4 reg);
-void schedule_add_flt_define_dep(scheduledata *sd, s4 reg);
-
-void schedule_add_int_use_dep(scheduledata *sd, s4 reg);
-void schedule_add_flt_use_dep(scheduledata *sd, s4 reg);
+void schedule_add_define_dep(scheduledata *sd, s4 *define_dep, nodelink **use_dep);
+void schedule_add_use_dep(scheduledata *sd, s4 *define_dep, nodelink **use_dep);
 
 void schedule_add_memory_define_dep(scheduledata *sd);
 void schedule_add_memory_use_dep(scheduledata *sd);
