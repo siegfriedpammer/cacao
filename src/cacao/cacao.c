@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1395 2004-08-03 18:47:19Z twisti $
+   $Id: cacao.c 1406 2004-08-17 10:03:55Z twisti $
 
 */
 
@@ -595,8 +595,7 @@ int main(int argc, char **argv)
 			exit(10);
 		}
 	}
-   
-   
+
 	if (opt_ind >= argc) {
    		print_usage();
    		exit(10);
@@ -622,10 +621,12 @@ int main(int argc, char **argv)
 
 	cacao_initializing = true;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
   	initThreadsEarly();
 #endif
 	initLocks();
+#endif
 
 	/* install architecture dependent signal handler used for exceptions */
 	init_exceptions();

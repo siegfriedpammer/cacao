@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 1371 2004-08-01 21:55:39Z stefan $
+   $Id: cacaoh.c 1406 2004-08-17 10:03:55Z twisti $
 
 */
 
@@ -95,11 +95,13 @@ int main(int argc, char **argv)
 
 	suck_init(classpath);
    
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
 	initThreadsEarly();
 #endif
 	initLocks();
+#endif
+
 	loader_init();
 
 
