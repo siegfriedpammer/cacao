@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 1038 2004-04-26 16:41:30Z twisti $
+   $Id: jit.h 1082 2004-05-26 15:04:54Z jowenn $
 
 */
 
@@ -114,7 +114,7 @@ struct instruction {
 					/* and as address for list of targets for	  */
 					/* statements					*/
 	u2 line;				/* line number in source file */
-	classinfo *clazz;		/*needed for inlining. can't be done on basic block level, since an inlined
+	methodinfo *method;		/*needed for inlining. can't be done on basic block level, since an inlined
 					function doesn't start necessarily start a new block*/
 };
 

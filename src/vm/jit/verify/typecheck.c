@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: typecheck.c 1082 2004-05-26 15:04:54Z jowenn $
 
 */
 
@@ -1007,7 +1007,7 @@ typecheck()
                     DOLOG(show_icmd(iptr,false)); LOGNL; LOGFLUSH;
                         
                     opcode = iptr->opc;
-		    myclass = iptr->clazz;
+		    myclass = iptr->method->class;
                     dst = iptr->dst;
                     maythrow = false;
 						
@@ -1536,7 +1536,7 @@ typecheck()
 								  
 								  /* (If callinginit the class is checked later.) */
 								  if (!callinginit) { 
- 									  if (!builtin_isanysubclass(class,mi->class)) 
+ 									  if (!builtin_isanysubclass(myclass,mi->class)) 
  										  panic("Illegal instruction: INVOKESPECIAL calling non-superclass method"); 
  								  } 
 							  }

@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1073 2004-05-19 23:21:15Z stefan $
+   $Id: headers.c 1082 2004-05-26 15:04:54Z jowenn $
 
 */
 
@@ -672,10 +672,10 @@ int main(int argc, char **argv)
 	fprintf(file, "#define offclassmethodinfo   %3d\n\n", (int) OFFSET(methodinfo,class));
 
 	fprintf(file, "#define offmethodnative %3d\n", (int) OFFSET(native_stackframeinfo,method));
-	fprintf(file, "#define offreturnfromnative %3d\n", (int) OFFSET(native_stackframeinfo,returnFromNative));
+/*	fprintf(file, "#define offreturnfromnative %3d\n", (int) OFFSET(native_stackframeinfo,returnFromNative));
 	fprintf(file, "#define offaddrreturnfromnative %3d\n", (int) OFFSET(native_stackframeinfo,addrReturnFromNative));
 	fprintf(file, "#define offprevnative %3d\n", (int) OFFSET(native_stackframeinfo,prev));
-	fprintf(file, "#define offnextnative %3d\n", (int) OFFSET(native_stackframeinfo,next));
+	fprintf(file, "#define offnextnative %3d\n", (int) OFFSET(native_stackframeinfo,next));*/
 
 	fprintf(file, "\n");
 	fprintf(file, "#define offcast_super_baseval  %3d\n", (int) OFFSET(castinfo, super_baseval));

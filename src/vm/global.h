@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1028 2004-04-26 15:55:41Z twisti $
+   $Id: global.h 1082 2004-05-26 15:04:54Z jowenn $
 
 */
 
@@ -292,11 +292,18 @@ struct literalstring {
 
 /* data structure for storing information needed for a stacktrace across native functions*/
 struct native_stackframeinfo {
+	void *oldThreadspecificHeadValue;
+	void **addressOfThreadspecificHead;
+	methodinfo *method;
+	void *returnToFromNative;
+
+#if 0
 	void *returnFromNative;
 	void *addrReturnFromNative;
 	methodinfo *method;
 	struct native_stackframeinfo *next;
 	struct native_stackframeinfo *prev;
+#endif
 };
 
 typedef struct native_stackframeinfo native_stackframeinfo;

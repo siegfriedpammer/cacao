@@ -14,6 +14,7 @@
 #include <string.h>
 #include "zlib.h"
 #include "unzip.h"
+#include "toolbox/logging.h"
 
 #ifdef STDC
 #  include <stddef.h>

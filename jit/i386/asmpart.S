@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1080 2004-05-26 13:29:18Z twisti $
+   $Id: asmpart.S 1082 2004-05-26 15:04:54Z jowenn $
 
 */
 
@@ -119,6 +119,8 @@
 	.globl builtin_asm_createclasscontextarray
 	.globl builtin_asm_getclassloader
 	.globl callgetexceptionptrptr
+	.globl asm_throw_and_handle_hardware_nullpointer_exception
+	.globl asm_throw_and_handle_hardware_arithmetic_exception
 
 
 /********************* function asm_calljavafunction ***************************
@@ -1250,6 +1252,62 @@ getClassContext_leave:
 	add $8,%esp
 	ret
 
+
+asm_throw_and_handle_hardware_nullpointer_exception:
+	sub $20,%esp /*build stack frame*/
+	mov %ecx,16(%esp) /*save eip of problem */
+	
+	movl $0,12(%esp) /*internal function -> no function description */
+	call builtin_asm_get_stackframeinfo
+	mov %eax,8(%esp)
+	mov (%eax),%ecx
+	mov %ecx,4(%esp)
+	mov %esp,%ecx
+	add $4,%ecx
+	mov %ecx,(%eax)
+	
+	mov string_java_lang_NullPointerException,%eax
+	mov %eax,(%esp)
+        call new_exception
+	push %eax
+	mov 8(%esp),%eax
+	mov 12(%esp),%ecx
+	mov %eax,(%ecx)
+	pop %eax
+	add $16,%esp
+	pop %ecx
+	jmp asm_handle_exception
+	ret /*should never be reached */
+
+asm_throw_and_handle_hardware_arithmetic_exception:
+	sub $24,%esp /*build stack frame*/
+	mov %ecx,20(%esp) /*save eip of problem */
+	
+	movl $0,16(%esp) /*internal function -> no function description */
+	call builtin_asm_get_stackframeinfo
+	mov %eax,12(%esp)
+	mov (%eax),%ecx
+	mov %ecx,8(%esp)
+	mov %esp,%ecx
+	add $4,%ecx
+	mov %ecx,(%eax)
+	
+	mov string_java_lang_NullPointerException,%eax
+	mov %eax,4(%esp)
+        mov string_java_lang_ArithmeticException_message,%eax
+	mov %eax,(%esp)
+
+        call new_exception_message
+
+	push %eax
+	mov 12(%esp),%eax
+	mov 16(%esp),%ecx
+	mov %eax,(%ecx)
+	pop %eax
+	add $20,%esp
+	pop %ecx
+	jmp asm_handle_exception
+	ret /*should never be reached */
 
 asm_builtin_new:
 /*optimize a littlebit */

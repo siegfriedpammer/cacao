@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: native.c 1082 2004-05-26 15:04:54Z jowenn $
 
 */
 
@@ -207,16 +207,21 @@ void use_class_as_object(classinfo *c)
 			class_showmethods(class_java_lang_VMClass);
 			panic("Needed class initializer for VMClass could not be found");
 		}
+
+		vmo = builtin_new(class_java_lang_VMClass);
+
+		if (!vmo)
+			panic("Error while creating instance of java/lang/VMClass");
+
+		asm_calljavafunction(method_vmclass_init, vmo, c, NULL, NULL);
+
+		c->vmClass = (java_lang_VMClass *) vmo;
+#if 0
+		setfield_critical(class_java_lang_Class,vmo,"vmClass",          "Ljava/lang/VMClass;",  jobject, (jobject) class_java_lang_Class /*this*/);
+#endif
+
 	}
 	     
-	vmo = builtin_new(class_java_lang_VMClass);
-
-	if (!vmo)
-		panic("Error while creating instance of java/lang/VMClass");
-
-	asm_calljavafunction(method_vmclass_init, vmo, c, NULL, NULL);
-
-	c->vmClass = (java_lang_VMClass *) vmo;
 }
 
 

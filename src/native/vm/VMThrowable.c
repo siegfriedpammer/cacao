@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: VMThrowable.c 1042 2004-04-26 17:12:47Z twisti $
+   $Id: VMThrowable.c 1082 2004-05-26 15:04:54Z jowenn $
 
 */
 
@@ -74,7 +74,7 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 
 
 
-java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,long size)
+java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,long pos,long size)
 {
 	long resultPos;
 	methodinfo *m;
@@ -102,10 +102,16 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,
 		return 0;
 
 /*	printf("Should return an array with %ld element(s)\n",size);*/
-	size--;
+	pos--;
 	
 	
-	for(resultPos=0;size>=0;resultPos++,size--) {
+	for(resultPos=0;pos>=0;resultPos++,pos--) {
+
+		if (source[pos].method==0) {
+			resultPos--;
+			continue;
+		}
+
 		java_objectheader *element=builtin_new(c);
 		if (!element) {
 			panic("Memory for stack trace element could not be allocated");
@@ -115,23 +121,23 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,
 #endif
 #if 0
 		(*env)->CallVoidMethod(env,element,m,
-			javastring_new(source[size].method->class->sourcefile),
+			javastring_new(source[pos].method->class->sourcefile),
 			source[size].linenumber,
-			javastring_new(source[size].method->class->name),
-			javastring_new(source[size].method->name),
-			source[size].method->flags & ACC_NATIVE);
+			javastring_new(source[pos].method->class->name),
+			javastring_new(source[pos].method->name),
+			source[pos].method->flags & ACC_NATIVE);
 #else
-		if (!(source[size].method->flags & ACC_NATIVE))setfield_critical(c,element,"fileName",          
+		if (!(source[pos].method->flags & ACC_NATIVE))setfield_critical(c,element,"fileName",          
 		"Ljava/lang/String;",  jobject, 
-		(jobject) javastring_new(source[size].method->class->sourcefile));
+		(jobject) javastring_new(source[pos].method->class->sourcefile));
 		setfield_critical(c,element,"className",          "Ljava/lang/String;",  jobject, 
-		(jobject) javastring_new(source[size].method->class->name));
+		(jobject) javastring_new(source[pos].method->class->name));
 		setfield_critical(c,element,"methodName",          "Ljava/lang/String;",  jobject, 
-		(jobject) javastring_new(source[size].method->name));
+		(jobject) javastring_new(source[pos].method->name));
 		setfield_critical(c,element,"lineNumber",          "I",  jint, 
-		(jint) ((source[size].method->flags & ACC_NATIVE) ? -1:(source[size].linenumber)));
+		(jint) ((source[pos].method->flags & ACC_NATIVE) ? -1:(source[pos].linenumber)));
 		setfield_critical(c,element,"isNative",          "Z",  jboolean, 
-		(jboolean) ((source[size].method->flags & ACC_NATIVE) ? 1:0));
+		(jboolean) ((source[pos].method->flags & ACC_NATIVE) ? 1:0));
 
 
 #endif			
@@ -153,6 +159,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 {
 	long  pos;
 	long  maxpos;
+	long  sizediff;
 	utf*  classname=par1->header.vftbl->class->name;
 	utf*  init=utf_new_char("<init>");
 	utf*  throwable=utf_new_char("java/lang/Throwable");
@@ -162,11 +169,14 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 	utf_display(par1->header.vftbl->class->name);
 	printf("\n----------------------------------------------\n");*/
 
+	sizediff=0;
 	if (el == 0) {
-		return generateStackTraceArray(env, el, 0);
+		return generateStackTraceArray(env, el, 0,0);
 	}	
 
-	for (pos = 0; el[pos].method != 0; pos++);
+	for (pos = 0; !((el[pos].method == 0) && (el[pos].linenumber ==-1)); pos++) {
+		if (el[pos].method==0) sizediff++;
+	}
 
 	if (pos == 0) {
 		panic("Stacktrace cannot have zero length");
@@ -186,7 +196,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 	/* build the result array*/
 	pos++; /*arraysize*/
 
-	return generateStackTraceArray(env,el,pos);	
+	return generateStackTraceArray(env,el,pos,pos-sizediff);	
 }
 
 

@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 1038 2004-04-26 16:41:30Z twisti $
+   $Id: parse.h 1082 2004-05-26 15:04:54Z jowenn $
 
 */
 
@@ -40,36 +40,36 @@
 /* intermediate code generating macros */
 
 #define PINC           iptr++;ipc++
-#define LOADCONST_I(v) iptr->opc=ICMD_ICONST;/*iptr->op1=0*/;iptr->val.i=(v);iptr->line=currentline;iptr->clazz=class;PINC
-#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);iptr->line=currentline;iptr->clazz=class;PINC
-#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);iptr->line=currentline;iptr->clazz=class;PINC
-#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);iptr->line=currentline;iptr->clazz=class;PINC
-#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;/*iptr->op1=0*/;iptr->val.a=(v);iptr->line=currentline;iptr->clazz=class;PINC
+#define LOADCONST_I(v) iptr->opc=ICMD_ICONST;/*iptr->op1=0*/;iptr->val.i=(v);iptr->line=currentline;iptr->method=method;PINC
+#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);iptr->line=currentline;iptr->method=method;PINC
+#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);iptr->line=currentline;iptr->method=method;PINC
+#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);iptr->line=currentline;iptr->method=method;PINC
+#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;/*iptr->op1=0*/;iptr->val.a=(v);iptr->line=currentline;iptr->method=method;PINC
 
 /* ACONST instructions generated as arguments for builtin functions
  * have op1 set to non-zero. This is used for stack overflow checking
  * in stack.c. */
 #define LOADCONST_A_BUILTIN(v) \
-                       iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);iptr->line=currentline;iptr->clazz=class;PINC
+                       iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);iptr->line=currentline;iptr->method=method;PINC
 
-#define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;iptr->line=currentline;iptr->clazz=class;PINC
-#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;iptr->line=currentline;iptr->clazz=class;PINC
-#define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);iptr->line=currentline;iptr->clazz=class;PINC
+#define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;iptr->line=currentline;iptr->method=method;PINC
+#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;iptr->line=currentline;iptr->method=method;PINC
+#define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);iptr->line=currentline;iptr->method=method;PINC
 
 #define OP2A(o,o1,v,l) \
     iptr->opc = (o); \
     iptr->op1 = (o1); \
     iptr->val.a = (v); \
     iptr->line = l; \
-    iptr->clazz = class; \
+    iptr->method = method; \
     PINC
 
 #define BUILTIN1(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN1;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
+                       iptr->val.a=(v);iptr->line=l;iptr->method=method;PINC
 #define BUILTIN2(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN2;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
+                       iptr->val.a=(v);iptr->line=l;iptr->method=method;PINC
 #define BUILTIN3(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
+                       iptr->val.a=(v);iptr->line=l;iptr->method=method;PINC
 
 /* We have to check local variables indices here because they are
  * used in stack.c to index the locals array. */

@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1072 2004-05-19 17:20:12Z stefan $
+   $Id: builtin.c 1082 2004-05-26 15:04:54Z jowenn $
 
 */
 
@@ -1819,7 +1819,8 @@ stacktraceelement *builtin_stacktrace_copy(stacktraceelement **el,stacktraceelem
 	*el=GCNEW(stacktraceelement,s+1);
 	memcpy(*el,begin,(end-begin)*sizeof(stacktraceelement));
 	(*el)[s].method=0;
-	(*el)[s].linenumber=0;
+#warning change this if line numbers bigger than u2 are allowed, the currently supported class file format does no allow that
+	(*el)[s].linenumber=-1; /* -1 can never be reched otherwise, since line numbers are only u2, so it is save to use that as flag */
 	return *el;
 }
 

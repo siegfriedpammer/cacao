@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: tables.c 1082 2004-05-26 15:04:54Z jowenn $
 
 */
 
@@ -968,6 +968,7 @@ classinfo *class_new_int(utf *classname)
 	}
 
 	c = GCNEW(classinfo, 1); /*JOWENN: NEW*/
+	/*c=NEW(classinfo);*/
 	c->vmClass = 0;
 	c->flags = 0;
 	c->name = classname;

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1052 2004-05-05 12:26:36Z stefan $
+   $Id: codegen.c 1082 2004-05-26 15:04:54Z jowenn $
 
 */
 
@@ -314,6 +314,12 @@ static int reg_of_var(stackptr v, int tempregnum)
         } \
     }
 
+
+void codegen_stubcalled() {
+	log_text("Stub has been called");
+}
+
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 void thread_restartcriticalsection(ucontext_t *uc)
 {
@@ -322,6 +328,30 @@ void thread_restartcriticalsection(ucontext_t *uc)
 		uc->uc_mcontext.gregs[REG_EIP] = (u4) critical;
 }
 #endif
+
+
+#define PREPARE_NATIVE_STACKINFO \
+				i386_push_reg(REG_ITMP1);	/*save itmp1, needed by some stubs */ \
+                                i386_alu_imm_reg(I386_SUB, 2*4, REG_SP); /* build stack frame (2 * 4 bytes), together with previous =3*4 */ \
+                                i386_mov_imm_reg((s4) codegen_stubcalled,REG_ITMP1); \
+                                i386_call_reg(REG_ITMP1);                /*call    codegen_stubcalled*/ \
+                                i386_mov_imm_reg((s4) builtin_asm_get_stackframeinfo,REG_ITMP1); \
+                                i386_call_reg(REG_ITMP1);                /*call    builtin_asm_get_stackframeinfo*/ \
+                                i386_mov_reg_membase(REG_RESULT,REG_SP,1*4); /* save thread pointer  to native call stack*/ \
+                                i386_mov_membase_reg(REG_RESULT,0,REG_ITMP2); /* get old value of thread specific native call stack */ \
+                                i386_mov_reg_membase(REG_ITMP2,REG_SP,0*4);     /* store value on stack */ \
+                                i386_mov_reg_membase(REG_SP,REG_RESULT,0); /* store pointer to new stack frame information */ \
+				i386_mov_membase_reg(REG_SP,2*4,REG_ITMP1); /* restore ITMP1, need for some stubs*/ \
+                                i386_mov_imm_membase(0,REG_SP, 2*4);    /* builtin */ 
+
+
+#define REMOVE_NATIVE_STACKINFO \
+                        i386_mov_membase_reg(REG_SP,0,REG_ITMP2); \
+                        i386_mov_membase_reg(REG_SP,4,REG_ITMP3); \
+                        i386_mov_reg_membase(REG_ITMP2,REG_ITMP3,0); \
+                        i386_alu_imm_reg(I386_ADD,3*4,REG_SP);
+
+
 
 /* NullPointerException signal handler for hardware null pointer check */
 
@@ -332,14 +362,13 @@ void catch_NullPointerException(int sig)
 
 	void **_p = (void **) &sig;
 	struct sigcontext *sigctx = (struct sigcontext *) ++_p;
-	java_objectheader *xptr;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
 /*  	instr = *((int*)(sigctx->eip)); */
 /*    	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f]; */
 
-/*  	fprintf(stderr, "null=%d %p addr=%p\n", sig, sigctx, sigctx->eip); */
+/*  	fprintf(stderr, "null=%d %p addr=%p\n", sig, sigctx, sigctx->eip);*/
 
 /*  	if (faultaddr == 0) { */
 		signal(sig, (void *) catch_NullPointerException);    /* reinstall handler */
@@ -347,11 +376,9 @@ void catch_NullPointerException(int sig)
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
 
-		xptr = new_exception(string_java_lang_NullPointerException);
-
-		sigctx->eax = (s4) xptr;      /* REG_ITMP1_XPTR    */
 		sigctx->ecx = sigctx->eip;    /* REG_ITMP2_XPC     */
-		sigctx->eip = (s4) asm_handle_exception;
+		sigctx->eip = (s4) asm_throw_and_handle_hardware_nullpointer_exception;
+		
 
 		return;
 
@@ -371,7 +398,6 @@ void catch_ArithmeticException(int sig)
 
 	void **_p = (void **) &sig;
 	struct sigcontext *sigctx = (struct sigcontext *) ++_p;
-	java_objectheader *xptr;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD        */
 
@@ -380,12 +406,8 @@ void catch_ArithmeticException(int sig)
 	sigaddset(&nsig, sig);
 	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
 
-	xptr = new_exception_message(string_java_lang_ArithmeticException,
-								 string_java_lang_ArithmeticException_message);
-
-	sigctx->eax = (s4) xptr;                             /* REG_ITMP1_XPTR    */
 	sigctx->ecx = sigctx->eip;                           /* REG_ITMP2_XPC     */
-	sigctx->eip = (s4) asm_handle_exception;
+	sigctx->eip = (s4) asm_throw_and_handle_hardware_arithmetic_exception;
 
 	return;
 }
@@ -4602,12 +4624,16 @@ gen_method: {
 
 			i386_push_reg(REG_ITMP2_XPC);
 
+			PREPARE_NATIVE_STACKINFO	
+
 			i386_alu_imm_reg(I386_SUB, 2 * 4, REG_SP);
 			i386_mov_imm_membase((s4) string_java_lang_ArrayIndexOutOfBoundsException, REG_SP, 0 * 4);
 			i386_mov_reg_membase(REG_ITMP1, REG_SP, 1 * 4);
 			i386_mov_imm_reg((s4) new_exception_int, REG_ITMP1);
 			i386_call_reg(REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
 			i386_alu_imm_reg(I386_ADD, 2 * 4, REG_SP);
+
+			REMOVE_NATIVE_STACKINFO
 
 			i386_pop_reg(REG_ITMP2_XPC);
 
@@ -4645,11 +4671,16 @@ gen_method: {
 
 			i386_push_reg(REG_ITMP2_XPC);
 
+			PREPARE_NATIVE_STACKINFO
+
 			i386_alu_imm_reg(I386_SUB, 1 * 4, REG_SP);
 			i386_mov_imm_membase((s4) string_java_lang_NegativeArraySizeException, REG_SP, 0 * 4);
 			i386_mov_imm_reg((s4) new_exception, REG_ITMP1);
 			i386_call_reg(REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
 			i386_alu_imm_reg(I386_ADD, 1 * 4, REG_SP);
+
+
+			REMOVE_NATIVE_STACKINFO
 
 			i386_pop_reg(REG_ITMP2_XPC);
 
@@ -4729,12 +4760,16 @@ gen_method: {
 
 			i386_push_reg(REG_ITMP2_XPC);
 
+			PREPARE_NATIVE_STACKINFO
+
 			i386_alu_imm_reg(I386_SUB, 2 * 4, REG_SP);
 			i386_mov_imm_membase((s4) string_java_lang_ArithmeticException, REG_SP, 0 * 4);
 			i386_mov_imm_membase((s4) string_java_lang_ArithmeticException_message, REG_SP, 1 * 4);
 			i386_mov_imm_reg((s4) new_exception_message, REG_ITMP1);
 			i386_call_reg(REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
 			i386_alu_imm_reg(I386_ADD, 2 * 4, REG_SP);
+
+			REMOVE_NATIVE_STACKINFO
 
 			i386_pop_reg(REG_ITMP2_XPC);
 
@@ -4770,19 +4805,21 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			i386_push_reg(REG_ITMP2_XPC);
+			PREPARE_NATIVE_STACKINFO
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			i386_mov_imm_reg((s4) &builtin_get_exceptionptrptr, REG_ITMP1);
 			i386_call_reg(REG_ITMP1);
 			i386_mov_membase_reg(REG_RESULT, 0, REG_ITMP3);
 			i386_mov_imm_membase(0, REG_RESULT, 0);
 			i386_mov_reg_reg(REG_ITMP3, REG_ITMP1_XPTR);
-			i386_pop_reg(REG_ITMP2_XPC);
 #else
 			i386_mov_imm_reg((s4) &_exceptionptr, REG_ITMP3);
 			i386_mov_membase_reg(REG_ITMP3, 0, REG_ITMP1_XPTR);
 			i386_mov_imm_membase(0, REG_ITMP3, 0);
 #endif
+			REMOVE_NATIVE_STACKINFO
+			i386_pop_reg(REG_ITMP2_XPC);
 
 			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
 			i386_jmp_reg(REG_ITMP3);
@@ -4820,11 +4857,46 @@ gen_method: {
 
 			i386_push_reg(REG_ITMP2_XPC);
 
+
+
+			PREPARE_NATIVE_STACKINFO
+#if 0
+			/* create native call block*/
+		                i386_alu_imm_reg(I386_SUB, 3*4, REG_SP); /* build stack frame (4 * 4 bytes) */
+
+
+				i386_mov_imm_reg((s4) codegen_stubcalled,REG_ITMP1);
+				i386_call_reg(REG_ITMP1);                /*call    codegen_stubcalled*/
+
+				i386_mov_imm_reg((s4) builtin_asm_get_stackframeinfo,REG_ITMP1);
+				i386_call_reg(REG_ITMP1);                /*call    builtin_asm_get_stackframeinfo*/
+                		i386_mov_imm_membase(0,REG_SP, 2*4);	/* builtin */
+                		i386_mov_reg_membase(REG_RESULT,REG_SP,1*4); /* save thread pointer  to native call stack*/
+				i386_mov_membase_reg(REG_RESULT,0,REG_ITMP2); /* get old value of thread specific native call stack */
+				i386_mov_reg_membase(REG_ITMP2,REG_SP,0*4);	/* store value on stack */
+   				i386_mov_reg_membase(REG_SP,REG_RESULT,0); /* store pointer to new stack frame information */
+#endif				
+
+
+
+
+			/* create exception*/
 			i386_alu_imm_reg(I386_SUB, 1 * 4, REG_SP);
 			i386_mov_imm_membase((s4) string_java_lang_NullPointerException, REG_SP, 0 * 4);
 			i386_mov_imm_reg((s4) new_exception, REG_ITMP1);
 			i386_call_reg(REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
 			i386_alu_imm_reg(I386_ADD, 1 * 4, REG_SP);
+
+
+			REMOVE_NATIVE_STACKINFO
+#if 0
+			/* restore native call stack */
+			i386_mov_membase_reg(REG_SP,0,REG_ITMP2);
+			i386_mov_membase_reg(REG_SP,4,REG_ITMP3);
+			i386_mov_reg_membase(REG_ITMP2,REG_ITMP3,0);
+			i386_alu_imm_reg(I386_ADD,3*4,REG_SP);
+#endif
+
 
 			i386_pop_reg(REG_ITMP2_XPC);
 
