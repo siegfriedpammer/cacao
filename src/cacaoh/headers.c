@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2140 2005-03-30 12:32:06Z twisti $
+   $Id: headers.c 2187 2005-04-02 00:46:09Z edwin $
 
 */
 
@@ -325,7 +325,7 @@ static void printfields(classinfo *c)
 		return;
 	}
 		
-	printfields(c->super);
+	printfields(c->super.cls);
 	
 	for (i = 0; i < c->fieldscount; i++) {
 		f = &(c->fields[i]);
