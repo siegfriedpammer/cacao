@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2093 2005-03-27 15:16:57Z edwin $
+   $Id: class.c 2104 2005-03-28 22:34:15Z twisti $
 
 */
 
@@ -477,6 +477,113 @@ bool class_remove(classinfo *c)
 
 	/* class not found */
 	return false;
+}
+
+
+/* class_freepool **************************************************************
+
+	Frees all resources used by this classes Constant Pool.
+
+*******************************************************************************/
+
+static void class_freecpool(classinfo *c)
+{
+	u4 idx;
+	u4 tag;
+	voidptr info;
+	
+	if (c->cptags && c->cpinfos) {
+		for (idx = 0; idx < c->cpcount; idx++) {
+			tag = c->cptags[idx];
+			info = c->cpinfos[idx];
+		
+			if (info != NULL) {
+				switch (tag) {
+				case CONSTANT_Fieldref:
+				case CONSTANT_Methodref:
+				case CONSTANT_InterfaceMethodref:
+					FREE(info, constant_FMIref);
+					break;
+				case CONSTANT_Integer:
+					FREE(info, constant_integer);
+					break;
+				case CONSTANT_Float:
+					FREE(info, constant_float);
+					break;
+				case CONSTANT_Long:
+					FREE(info, constant_long);
+					break;
+				case CONSTANT_Double:
+					FREE(info, constant_double);
+					break;
+				case CONSTANT_NameAndType:
+					FREE(info, constant_nameandtype);
+					break;
+				}
+			}
+		}
+	}
+
+	if (c->cptags)
+		MFREE(c->cptags, u1, c->cpcount);
+
+	if (c->cpinfos)
+		MFREE(c->cpinfos, voidptr, c->cpcount);
+}
+
+
+/* class_free ******************************************************************
+
+   Frees all resources used by the class.
+
+*******************************************************************************/
+
+void class_free(classinfo *c)
+{
+	s4 i;
+	vftbl_t *v;
+		
+	class_freecpool(c);
+
+	if (c->interfaces)
+		MFREE(c->interfaces, classinfo*, c->interfacescount);
+
+	if (c->fields) {
+		for (i = 0; i < c->fieldscount; i++)
+			field_free(&(c->fields[i]));
+/*  	MFREE(c->fields, fieldinfo, c->fieldscount); */
+	}
+	
+	if (c->methods) {
+		for (i = 0; i < c->methodscount; i++)
+			method_free(&(c->methods[i]));
+		MFREE(c->methods, methodinfo, c->methodscount);
+	}
+
+	if ((v = c->vftbl) != NULL) {
+		if (v->arraydesc)
+			mem_free(v->arraydesc,sizeof(arraydescriptor));
+		
+		for (i = 0; i < v->interfacetablelength; i++) {
+			MFREE(v->interfacetable[-i], methodptr, v->interfacevftbllength[i]);
+		}
+		MFREE(v->interfacevftbllength, s4, v->interfacetablelength);
+
+		i = sizeof(vftbl_t) + sizeof(methodptr) * (v->vftbllength - 1) +
+		    sizeof(methodptr*) * (v->interfacetablelength -
+		                         (v->interfacetablelength > 0));
+		v = (vftbl_t*) (((methodptr*) v) -
+						(v->interfacetablelength - 1) * (v->interfacetablelength > 1));
+		mem_free(v, i);
+	}
+
+	if (c->innerclass)
+		MFREE(c->innerclass, innerclassinfo, c->innerclasscount);
+
+	/*	if (c->classvftbl)
+		mem_free(c->header.vftbl, sizeof(vftbl) + sizeof(methodptr)*(c->vftbl->vftbllength-1)); */
+	
+/*  	GCFREE(c); */
 }
 
 
