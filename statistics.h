@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 1224 2004-06-30 19:13:37Z twisti $
+   $Id: statistics.h 1408 2004-08-17 12:43:17Z twisti $
 
 */
 
@@ -40,9 +40,6 @@
 
 
 /* global variables */
-
-extern s8 loadingtime;
-extern s8 compilingtime;                /* accumulated compile time           */
 
 extern int count_class_infos;           /* variables for measurements         */
 extern int count_const_pool_len;
@@ -106,6 +103,12 @@ extern int *count_store_depth;
 /* function prototypes */
 
 s8 getcputime();
+
+void loadingtime_start();
+void loadingtime_stop();
+void compilingtime_start();
+void compilingtime_stop();
+
 void print_times();
 void print_stats();
 

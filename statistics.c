@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 1224 2004-06-30 19:13:37Z twisti $
+   $Id: statistics.c 1408 2004-08-17 12:43:17Z twisti $
 
 */
 
@@ -41,8 +41,15 @@
 
 /* global variables */
 
-s8 loadingtime = 0;
-s8 compilingtime = 0;                   /* accumulated compile time           */
+static s8 loadingtime = 0;              /* accumulated loading time           */
+static s8 loadingstarttime = 0;
+static s8 loadingstoptime = 0;
+static s4 loadingtime_recursion = 0;
+
+static s8 compilingtime = 0;            /* accumulated compile time           */
+static s8 compilingstarttime = 0;
+static s8 compilingstoptime = 0;
+static s4 compilingtime_recursion = 0;
 
 int count_class_infos = 0;              /* variables for measurements         */
 int count_const_pool_len = 0;
@@ -149,6 +156,70 @@ s8 getcputime()
 	usec = ru.ru_utime.tv_usec + ru.ru_stime.tv_usec;
 
 	return sec * 1000000 + usec;
+}
+
+
+/* loadingtime_stop ************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+void loadingtime_start()
+{
+	loadingtime_recursion++;
+
+	if (loadingtime_recursion == 1)
+		loadingstarttime = getcputime();
+}
+
+
+/* loadingtime_stop ************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+void loadingtime_stop()
+{
+	if (loadingtime_recursion == 1) {
+		loadingstoptime = getcputime();
+		loadingtime += (loadingstoptime - loadingstarttime);
+	}
+
+	loadingtime_recursion--;
+}
+
+
+/* compilingtime_stop **********************************************************
+
+   XXX
+
+*******************************************************************************/
+
+void compilingtime_start()
+{
+	compilingtime_recursion++;
+
+	if (compilingtime_recursion == 1)
+		compilingstarttime = getcputime();
+}
+
+
+/* compilingtime_stop **********************************************************
+
+   XXX
+
+*******************************************************************************/
+
+void compilingtime_stop()
+{
+	if (compilingtime_recursion == 1) {
+		compilingstoptime = getcputime();
+		compilingtime += (compilingstoptime - compilingstarttime);
+	}
+
+	compilingtime_recursion--;
 }
 
 
