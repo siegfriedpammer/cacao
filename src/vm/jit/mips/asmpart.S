@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1710 2004-12-06 15:37:58Z twisti $
+   $Id: asmpart.S 1711 2004-12-06 16:17:40Z twisti $
 
 */
 
@@ -202,20 +202,19 @@
 	.ent    asm_calljavafunction
 
 call_name:
-	.ascii  "calljavafunction\0\0"
-
 	.align  3
-	.quad   0                         /* catch type all                       */
-	.quad   calljava_xhandler         /* handler pc                           */
-	.quad   calljava_xhandler         /* end pc                               */
-	.quad   asm_calljavafunction      /* start pc                             */
-	.long   1                         /* extable size                         */
-	.long   0                         /* fltsave                              */
-	.long   0                         /* intsave                              */
-	.long   0                         /* isleaf                               */
-	.long   0                         /* IsSync                               */
-	.long   10*8                      /* frame size                           */
-	.quad   0                         /* method pointer (pointer to name)     */
+
+	.dword  0                         /* catch type all                       */
+	.dword  calljava_xhandler         /* handler pc                           */
+	.dword  calljava_xhandler         /* end pc                               */
+	.dword  asm_calljavafunction      /* start pc                             */
+	.word   1                         /* extable size                         */
+	.word   0                         /* fltsave                              */
+	.word   0                         /* intsave                              */
+	.word   0                         /* isleaf                               */
+	.word   0                         /* IsSync                               */
+	.word   10*8                      /* frame size                           */
+	.dword  0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
 	aaddiu  sp,sp,-10*8               /* allocate stack space                 */
@@ -285,20 +284,19 @@ calljava_xhandler:
 	.ent    asm_calljavafunction2
 
 call_name2:
-	.ascii  "calljavafunction2\0\0"
-
 	.align  3
-	.quad   0                         /* catch type all                       */
-	.quad   calljava_xhandler2        /* handler pc                           */
-	.quad   calljava_xhandler2        /* end pc                               */
-	.quad   asm_calljavafunction2     /* start pc                             */
-	.long   1                         /* extable size                         */
-	.long   0                         /* fltsave                              */
-	.long   1                         /* intsave                              */
-	.long   0                         /* isleaf                               */
-	.long   0                         /* IsSync                               */
-	.long   96                        /* frame size                           */
-	.quad   0                         /* method pointer (pointer to name)     */
+
+	.dword  0                         /* catch type all                       */
+	.dword  calljava_xhandler2        /* handler pc                           */
+	.dword  calljava_xhandler2        /* end pc                               */
+	.dword  asm_calljavafunction2     /* start pc                             */
+	.word   1                         /* extable size                         */
+	.word   0                         /* fltsave                              */
+	.word   1                         /* intsave                              */
+	.word   0                         /* isleaf                               */
+	.word   0                         /* IsSync                               */
+	.word   12*8                      /* frame size                           */
+	.dword  0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction2:
 asm_calljavafunction2double:
@@ -776,7 +774,7 @@ ex_flt2:
     .ent    asm_check_clinit
 
 asm_check_clinit:
-	daddiu  sp,sp,-23*8
+	daddiu  sp,sp,-24*8
 
 	sd      ra,0*8(sp)            /* save return address                      */
 
@@ -854,7 +852,7 @@ L_is_initialized:
 	ldc1    fa6,20*8(sp)
 	ldc1    fa7,21*8(sp)
 
-	daddiu  sp,sp,23*8
+	daddiu  sp,sp,24*8
 
 	daddiu  ra,ra,-2*4            /* go back 2 instructions (jal + nop delay) */
 	jr      ra
@@ -894,7 +892,7 @@ L_initializererror:
 	ldc1    fa6,20*8(sp)
 	ldc1    fa7,21*8(sp)
 
-	daddiu  sp,sp,23*8
+	daddiu  sp,sp,24*8
 
 	aaddiu  xpc,ra,-4             /* faulting address is return adress - 4    */
 	b       asm_handle_exception
@@ -916,13 +914,13 @@ asm_builtin_monitorenter:
 	j       t9
 
 nb_monitorenter:
-	daddiu  sp,sp,-1*8
+	daddiu  sp,sp,-2*8
 	sd      ra,0*8(sp)
 	ald     a0,string_java_lang_NullPointerException
 	jal     new_exception
 	move    xptr,v0
 	ld      ra,0*8(sp)
-	daddiu  sp,sp,1*8
+	daddiu  sp,sp,2*8
 
 	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
 	b       asm_handle_nat_exception
@@ -944,12 +942,12 @@ asm_builtin_monitorexit:
 	j       t9
 
 nb_monitorexit:
-	daddiu  sp,sp,-1*8
+	daddiu  sp,sp,-2*8
 	sd      ra,0*8(sp)
 	jal     new_nullpointerexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
-	daddiu  sp,sp,1*8
+	daddiu  sp,sp,2*8
 
 	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
 	b       asm_handle_nat_exception
@@ -971,12 +969,12 @@ asm_builtin_idiv:
 	j       itmp3
 
 nb_idiv:
-	daddiu  sp,sp,-1*8
+	daddiu  sp,sp,-2*8
 	sd      ra,0*8(sp)
 	jal     new_arithmeticexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
-	daddiu  sp,sp,1*8
+	daddiu  sp,sp,2*8
 
 	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
 	b       asm_handle_nat_exception
@@ -998,12 +996,12 @@ asm_builtin_ldiv:
 	j       itmp3
 
 nb_ldiv:
-	daddiu  sp,sp,-1*8
+	daddiu  sp,sp,-2*8
 	sd      ra,0*8(sp)
 	jal     new_arithmeticexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
-	daddiu  sp,sp,1*8
+	daddiu  sp,sp,2*8
 
 	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
 	b       asm_handle_nat_exception
@@ -1025,12 +1023,12 @@ asm_builtin_irem:
 	j       t9
 
 nb_irem:
-	daddiu  sp,sp,-1*8
+	daddiu  sp,sp,-2*8
 	sd      ra,0*8(sp)
 	jal     new_arithmeticexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
-	daddiu  sp,sp,1*8
+	daddiu  sp,sp,2*8
 
 	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
 	b       asm_handle_nat_exception
@@ -1052,12 +1050,12 @@ asm_builtin_lrem:
 	j       t9
 
 nb_lrem:
-	daddiu  sp,sp,-1*8
+	daddiu  sp,sp,-2*8
 	sd      ra,0*8(sp)
 	jal     new_arithmeticexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
-	daddiu  sp,sp,1*8
+	daddiu  sp,sp,2*8
 
 	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
 	b       asm_handle_nat_exception
@@ -1158,36 +1156,36 @@ asm_builtin_aastore:
 	j       ra                        /* return                               */
 
 nb_aastore_null:
-	daddiu  sp,sp,-1*8
+	daddiu  sp,sp,-2*8
 	sd      ra,0*8(sp)
 	jal     new_nullpointerexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
-	daddiu  sp,sp,1*8
+	daddiu  sp,sp,2*8
 	
 	move    xpc,ra                    /* faulting address is return adress    */
 	b       asm_handle_nat_exception
 
 nb_aastore_bound:
-	daddiu  sp,sp,-1*8
+	daddiu  sp,sp,-2*8
 	sd      ra,0*8(sp)
 	move    a0,a1                     /* move index into a0                   */
 	jal     new_arrayindexoutofboundsexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
-	daddiu  sp,sp,1*8
+	daddiu  sp,sp,2*8
 
 	aaddiu  sp,sp,32                  /* free stack space                     */
 	move    xpc,ra                    /* faulting address is return adress    */
 	b       asm_handle_nat_exception
 
 nb_aastore_store:
-	daddiu  sp,sp,-1*8
+	daddiu  sp,sp,-2*8
 	sd      ra,0*8(sp)
 	jal     new_arraystoreexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
-	daddiu  sp,sp,1*8
+	daddiu  sp,sp,2*8
 
 	move    xpc,ra                    /* faulting address is return adress    */
 	b       asm_handle_nat_exception
@@ -1329,14 +1327,14 @@ _crit_end2:
 
 asm_criticalsections:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-    .quad   _crit_begin1
-    .quad   _crit_end1
-    .quad   _crit_restart1
-    .quad   _crit_begin2
-    .quad   _crit_end2
-    .quad   _crit_restart2
+    .dword  _crit_begin1
+    .dword  _crit_end1
+    .dword  _crit_restart1
+    .dword  _crit_begin2
+    .dword  _crit_end2
+    .dword  _crit_restart2
 #endif
-    .quad   0
+    .dword  0
 
 
 	.text
