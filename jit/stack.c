@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1203 2004-06-22 23:14:55Z twisti $
+   $Id: stack.c 1232 2004-06-30 19:47:43Z twisti $
 
 */
 
@@ -36,15 +36,16 @@
 #include <stdio.h>
 #include <string.h>
 #include "global.h"
-#include "main.h"
 #include "native.h"
 #include "builtin.h"
 #include "disass.h"
+#include "tables.h"
+#include "types.h"
+#include "options.h"
+#include "statistics.h"
 #include "jit/jit.h"
 #include "jit/stack.h"
 #include "jit/reg.h"
-#include "tables.h"
-#include "types.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
@@ -271,17 +272,17 @@ extern int dseglen;
 			copy->varkind = STACKVAR; \
 			copy->varnum = i;\
 		} \
-		interfaces[i][copy->type].type = copy->type; \
-		interfaces[i][copy->type].flags |= copy->flags; \
+		m->registerdata->interfaces[i][copy->type].type = copy->type; \
+		m->registerdata->interfaces[i][copy->type].flags |= copy->flags; \
 		i--; copy = copy->prev; \
 	} \
 	i = bptr->indepth - 1; \
 	copy = bptr->instack; \
 	while (copy) { \
-		interfaces[i][copy->type].type = copy->type; \
+		m->registerdata->interfaces[i][copy->type].type = copy->type; \
 		if (copy->varkind == STACKVAR) { \
 			if (copy->flags & SAVEDVAR) \
-				interfaces[i][copy->type].flags |= SAVEDVAR; \
+				m->registerdata->interfaces[i][copy->type].flags |= SAVEDVAR; \
 		} \
 		i--; copy = copy->prev; \
 	} \
@@ -358,7 +359,7 @@ methodinfo *analyse_stack(methodinfo *m)
 	for (i = 0; i < m->maxlocals; i++)
 		argren[i] = i;
 	
-	arguments_num = 0;
+	m->registerdata->arguments_num = 0;
 	new = m->stack;
 	loops = 0;
 	m->basicblocks[0].flags = BBREACHED;
@@ -542,7 +543,7 @@ methodinfo *analyse_stack(methodinfo *m)
 						break;
 
 					case ICMD_RET:
-						locals[iptr->op1][TYPE_ADR].type = TYPE_ADR;
+						m->registerdata->locals[iptr->op1][TYPE_ADR].type = TYPE_ADR;
 					case ICMD_RETURN:
 						COUNT(count_pcmd_return);
 						SETDST;
@@ -752,6 +753,24 @@ methodinfo *analyse_stack(methodinfo *m)
 							case ICMD_IF_ICMPGE:
 								iptr[0].opc = ICMD_IFGE;
 								goto icmd_if_icmp_tail;
+
+							case ICMD_IASTORE:
+								iptr[0].opc = ICMD_IASTORECONST;
+							icmd_astore_tail:
+								iptr[1].opc = ICMD_NOP;
+								OPTT2_0(TYPE_INT, TYPE_ADR);
+								COUNT(count_pcmd_op);
+								break;
+							case ICMD_BASTORE:
+								iptr[0].opc = ICMD_BASTORECONST;
+								goto icmd_astore_tail;
+							case ICMD_CASTORE:
+								iptr[0].opc = ICMD_CASTORECONST;
+								goto icmd_astore_tail;
+							case ICMD_SASTORE:
+								iptr[0].opc = ICMD_SASTORECONST;
+								goto icmd_astore_tail;
+
 							default:
 								PUSHCONST(TYPE_INT);
 							}
@@ -759,6 +778,7 @@ methodinfo *analyse_stack(methodinfo *m)
 						else
 							PUSHCONST(TYPE_INT);
 						break;
+
 					case ICMD_LCONST:
 						COUNT(count_pcmd_load);
 						if (len > 0) {
@@ -966,6 +986,14 @@ methodinfo *analyse_stack(methodinfo *m)
 									PUSHCONST(TYPE_LNG);
 								break;
 #endif
+
+							case ICMD_LASTORE:
+								iptr[0].opc = ICMD_LASTORECONST;
+								iptr[1].opc = ICMD_NOP;
+								OPTT2_0(TYPE_INT, TYPE_ADR);
+								COUNT(count_pcmd_op);
+								break;
+
 							default:
 								PUSHCONST(TYPE_LNG);
 							}
@@ -973,17 +1001,34 @@ methodinfo *analyse_stack(methodinfo *m)
 						else
 							PUSHCONST(TYPE_LNG);
 						break;
+
 					case ICMD_FCONST:
 						COUNT(count_pcmd_load);
 						PUSHCONST(TYPE_FLT);
 						break;
+
 					case ICMD_DCONST:
 						COUNT(count_pcmd_load);
 						PUSHCONST(TYPE_DBL);
 						break;
+
 					case ICMD_ACONST:
 						COUNT(count_pcmd_load);
-						PUSHCONST(TYPE_ADR);
+						if (len > 0 && iptr->val.a == 0) {
+							if (iptr[1].opc == ICMD_BUILTIN3 &&
+								iptr[1].val.a == BUILTIN_aastore) {
+								iptr[0].opc = ICMD_AASTORECONST;
+								iptr[1].opc = ICMD_NOP;
+								OPTT2_0(TYPE_INT, TYPE_ADR);
+								COUNT(count_pcmd_op);
+
+							} else {
+								PUSHCONST(TYPE_ADR);
+							}
+
+						} else {
+							PUSHCONST(TYPE_ADR);
+						}
 						break;
 
 						/* pop 0 push 1 load */
@@ -996,7 +1041,7 @@ methodinfo *analyse_stack(methodinfo *m)
 						COUNT(count_load_instruction);
 						i = opcode-ICMD_ILOAD;
 						iptr->op1 = argren[iptr->op1];
-						locals[iptr->op1][i].type = i;
+						m->registerdata->locals[iptr->op1][i].type = i;
 						LOAD(i, LOCALVAR, iptr->op1);
 						break;
 
@@ -1067,7 +1112,7 @@ methodinfo *analyse_stack(methodinfo *m)
 						REQUIRE_1;
 
 					i = opcode - ICMD_ISTORE;
-					locals[iptr->op1][i].type = i;
+					m->registerdata->locals[iptr->op1][i].type = i;
 #ifdef STATISTICS
 					count_pcmd_store++;
 					i = new - curstack;
@@ -1885,12 +1930,12 @@ methodinfo *analyse_stack(methodinfo *m)
 						method_uses_ecx = true;
 #endif
 						{
-							methodinfo *m = iptr->val.a;
-							if (m->flags & ACC_STATIC)
+							methodinfo *lm = iptr->val.a;
+							if (lm->flags & ACC_STATIC)
 								{COUNT(count_check_null);}
 							i = iptr->op1;
-							if (i > arguments_num)
-								arguments_num = i;
+							if (i > m->registerdata->arguments_num)
+								m->registerdata->arguments_num = i;
 							REQUIRE(i);
 #if defined(__X86_64__)
 							{
@@ -1947,8 +1992,8 @@ methodinfo *analyse_stack(methodinfo *m)
 							}
 							i = iptr->op1;
 							POPMANY(i);
-							if (m->returntype != TYPE_VOID) {
-								OP0_1(m->returntype);
+							if (lm->returntype != TYPE_VOID) {
+								OP0_1(lm->returntype);
 							}
 							break;
 						}
@@ -1960,8 +2005,8 @@ methodinfo *analyse_stack(methodinfo *m)
 							curstack->varkind = ARGVAR;
 							curstack->varnum = 2;
 						}
-						if (3 > arguments_num) {
-							arguments_num = 3;
+						if (3 > m->registerdata->arguments_num) {
+							m->registerdata->arguments_num = 3;
 						}
 						OP1_0ANY;
 
@@ -1973,8 +2018,8 @@ methodinfo *analyse_stack(methodinfo *m)
 						curstack->varkind = ARGVAR;
 						curstack->varnum = 1;
 					}
-					if (2 > arguments_num) {
-						arguments_num = 2;
+					if (2 > m->registerdata->arguments_num) {
+						m->registerdata->arguments_num = 2;
 					}
 					OP1_0ANY;
 
@@ -1986,8 +2031,8 @@ methodinfo *analyse_stack(methodinfo *m)
 						curstack->varkind = ARGVAR;
 						curstack->varnum = 0;
 					}
-					if (1 > arguments_num) {
-						arguments_num = 1;
+					if (1 > m->registerdata->arguments_num) {
+						m->registerdata->arguments_num = 1;
 					}
 					OP1_0ANY;
 					copy = curstack;
@@ -2002,14 +2047,14 @@ methodinfo *analyse_stack(methodinfo *m)
 					case ICMD_MULTIANEWARRAY:
 						i = iptr->op1;
 						REQUIRE(i);
-						if ((i + intreg_argnum) > arguments_num)
-							arguments_num = i + intreg_argnum;
+						if ((i + m->registerdata->intreg_argnum) > m->registerdata->arguments_num)
+							m->registerdata->arguments_num = i + m->registerdata->intreg_argnum;
 						copy = curstack;
 						while (--i >= 0) {
 							/* check INT type here? Currently typecheck does this. */
 							if (! (copy->flags & SAVEDVAR)) {
 								copy->varkind = ARGVAR;
-								copy->varnum = i + intreg_argnum;
+								copy->varnum = i + m->registerdata->intreg_argnum;
 							}
 							copy = copy->prev;
 						}
@@ -2315,14 +2360,14 @@ void show_icmd_method(methodinfo *m)
 	for (i = 0; i < m->maxlocals; i++) {
 		printf("   %3d: ", i);
 		for (j = TYPE_INT; j <= TYPE_ADR; j++)
-			if (locals[i][j].type >= 0) {
+			if (m->registerdata->locals[i][j].type >= 0) {
 				printf("   (%s) ", jit_type[j]);
-				if (locals[i][j].flags & INMEMORY)
-					printf("m%2d", locals[i][j].regoff);
+				if (m->registerdata->locals[i][j].flags & INMEMORY)
+					printf("m%2d", m->registerdata->locals[i][j].regoff);
 				else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-					printf("f%02d", locals[i][j].regoff);
+					printf("f%02d", m->registerdata->locals[i][j].regoff);
 				else {
-					printf("%3s", regs[locals[i][j].regoff]);
+					printf("%3s", regs[m->registerdata->locals[i][j].regoff]);
 				}
 			}
 		printf("\n");
@@ -2331,29 +2376,31 @@ void show_icmd_method(methodinfo *m)
 
 	printf ("Interface Table:\n");
 	for (i = 0; i < m->maxstack; i++) {
-		if ((interfaces[i][0].type >= 0) || (interfaces[i][1].type >= 0) ||
-		    (interfaces[i][2].type >= 0) || (interfaces[i][3].type >= 0) ||
-		    (interfaces[i][4].type >= 0)) {
+		if ((m->registerdata->interfaces[i][0].type >= 0) ||
+			(m->registerdata->interfaces[i][1].type >= 0) ||
+		    (m->registerdata->interfaces[i][2].type >= 0) ||
+			(m->registerdata->interfaces[i][3].type >= 0) ||
+		    (m->registerdata->interfaces[i][4].type >= 0)) {
 			printf("   %3d: ", i);
 			for (j = TYPE_INT; j <= TYPE_ADR; j++)
-				if (interfaces[i][j].type >= 0) {
+				if (m->registerdata->interfaces[i][j].type >= 0) {
 					printf("   (%s) ", jit_type[j]);
-					if (interfaces[i][j].flags & SAVEDVAR) {
-						if (interfaces[i][j].flags & INMEMORY)
-							printf("M%2d", interfaces[i][j].regoff);
+					if (m->registerdata->interfaces[i][j].flags & SAVEDVAR) {
+						if (m->registerdata->interfaces[i][j].flags & INMEMORY)
+							printf("M%2d", m->registerdata->interfaces[i][j].regoff);
 						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-							printf("F%02d", interfaces[i][j].regoff);
+							printf("F%02d", m->registerdata->interfaces[i][j].regoff);
 						else {
-							printf("%3s", regs[interfaces[i][j].regoff]);
+							printf("%3s", regs[m->registerdata->interfaces[i][j].regoff]);
 						}
 					}
 					else {
-						if (interfaces[i][j].flags & INMEMORY)
-							printf("m%2d", interfaces[i][j].regoff);
+						if (m->registerdata->interfaces[i][j].flags & INMEMORY)
+							printf("m%2d", m->registerdata->interfaces[i][j].regoff);
 						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-							printf("f%02d", interfaces[i][j].regoff);
+							printf("f%02d", m->registerdata->interfaces[i][j].regoff);
 						else {
-							printf("%3s", regs[interfaces[i][j].regoff]);
+							printf("%3s", regs[m->registerdata->interfaces[i][j].regoff]);
 						}
 					}
 				}
@@ -2408,7 +2455,7 @@ void show_icmd_block(methodinfo *m, basicblock *bptr)
 		printf("] L%03d(%d - %d) flags=%d:\n", bptr->debug_nr, bptr->icount, bptr->pre_count,bptr->flags);
 		iptr = bptr->iinstr;
 
-		for (i=0; i < bptr->icount; i++, iptr++) {
+		for (i = 0; i < bptr->icount; i++, iptr++) {
 			printf("[");
 			if (deadcode) {
 				for (j = m->maxstack; j > 0; j--)
@@ -2417,8 +2464,7 @@ void show_icmd_block(methodinfo *m, basicblock *bptr)
 			else
 				icmd_print_stack(m, iptr->dst);
 			printf("]     %4d  ", i);
-			/* DEBUG */ /*fflush(stdout);*/
-			show_icmd(iptr,deadcode);
+			show_icmd(iptr, deadcode);
 			printf("\n");
 		}
 
@@ -2504,6 +2550,10 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IFGE_ICONST:
 	case ICMD_IFGT_ICONST:
 	case ICMD_IFLE_ICONST:
+	case ICMD_IASTORECONST:
+	case ICMD_BASTORECONST:
+	case ICMD_CASTORECONST:
+	case ICMD_SASTORECONST:
 		printf(" %d", iptr->val.i);
 		break;
 
@@ -2516,6 +2566,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_LORCONST:
 	case ICMD_LXORCONST:
 	case ICMD_LCONST:
+	case ICMD_LASTORECONST:
 #if defined(__I386__)
 		printf(" %lld", iptr->val.l);
 #else
@@ -2532,6 +2583,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 
 	case ICMD_ACONST:
+	case ICMD_AASTORECONST:
 		printf(" %p", iptr->val.a);
 		break;
 
