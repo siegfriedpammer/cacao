@@ -1,25 +1,24 @@
 import java.util.*;
 
 public class sleep extends Thread {
+    public static Random r = new Random();
 
     public sleep (String name) {
 	super(name);
     }
 
     public void run() {
-	Random random = new Random();
-
-	try {
-	    for (int i = 0; i < 10; ++i) {
-		System.out.println(getName());
-		sleep((long)(random.nextFloat() * 1000));
-	    }
-	} catch (Exception exc) {
-	    System.out.println("Exception: " + exc);
-	}
+        for (int i = 0; i < 10; ++i) {
+            System.out.println(getName());
+            try {
+		sleep((long) (r.nextFloat() * 1000));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
-    public static void main (String args[]) {
+    public static void main(String args[]) {
 	sleep t1 = new sleep("a");
 	sleep t2 = new sleep("b");
 
