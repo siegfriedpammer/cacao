@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1735 2004-12-07 14:33:27Z twisti $
+   $Id: asmpart.S 1754 2004-12-13 08:41:33Z twisti $
 
 */
 
@@ -216,12 +216,13 @@ asm_calljavafunction2long:
 	mov     %r15,5*8(%rsp)
 
 	mov     %rdi,%rax                 /* move method pointer for compiler     */
+	xor     %rbp,%rbp                 /* set argument stack frame to zero     */
+
+	test    %rsi,%rsi                 /* maybe we have no args...             */
+	jle     L_copy_done
 
 	mov     %rsi,itmp3                /* arg count                            */
 	mov     %rcx,itmp2                /* pointer to arg block                 */
-		
-	test    itmp3,itmp3               /* maybe we have no args...             */
-	jle     L_copy_done
 
 	mov     itmp2,%r14                /* save argument block pointer          */
 	mov     itmp3,%r15                /* save argument count                  */
@@ -238,7 +239,7 @@ L_register_copy:
 	andb    $0x02,offjniitemtype(itmp2) /* is this a float/double type?       */
 	jnz     L_register_handle_float   /* yes, handle it                       */
 
-	cmp     $(INT_ARG_CNT - 1),%r12   /* are we out of integer argument       */
+	cmp     $INT_ARG_CNT,%r12         /* are we out of integer argument       */
 	je      L_register_copy           /* register? yes, next loop             */
 
 	lea     jumptable_integer,%rbp
@@ -247,7 +248,7 @@ L_register_copy:
 	jmp     *%rbx
 
 L_register_handle_float:
-	cmp     $(FLT_ARG_CNT - 1),%r13   /* are we out of float argument         */
+	cmp     $FLT_ARG_CNT,%r13         /* are we out of float argument         */
 	je      L_register_copy           /* register? yes, next loop             */
 
 	lea     jumptable_float,%rbp
@@ -256,24 +257,24 @@ L_register_handle_float:
 	jmp     *%rbx
 	
 L_register_copy_done:
-	mov     %r15,itmp3                /* calculate remaining arguments after  */
-	sub     %r12,itmp3                /* register copy                        */
-	sub     %r13,itmp3
+	mov     %r15,%rbp                 /* calculate remaining arguments        */
+	sub     %r12,%rbp                 /* - integer arguments in registers     */
+	sub     %r13,%rbp                 /* - float arguments in registers       */
 	jle     L_copy_done               /* are all assigned to registers?       */
 
-	shl     $3,itmp3                  /* calculate stack size                 */
-	sub     itmp3,%rsp                /* stack frame for arguments            */
+	shl     $3,%rbp                   /* calculate stack size                 */
+	sub     %rbp,%rsp                 /* stack frame for arguments            */
 	mov     %rsp,%rbx                 /* use %rbx as temp sp                  */
 
-	sub     $sizejniblock,itmp2       /* initialize pointer (smaller code)    */
+	sub     $sizejniblock,%r14        /* initialize pointer (smaller code)    */
 	add     $1,%r15                   /* initialize argument count            */
 		
 L_stack_copy_loop:
-	add     $sizejniblock,itmp2       /* goto next argument block             */
+	add     $sizejniblock,%r14        /* goto next argument block             */
 	dec     %r15                      /* are there any arguments left?        */
 	jz      L_copy_done               /* no test needed after dec             */
 
-	andb    $0x02,offjniitemtype(itmp2) /* is this a float/double type?       */
+	andb    $0x02,offjniitemtype(%r14) /* is this a float/double type?        */
 	jnz     L_stack_handle_float
 	dec     %r12                      /* arguments assigned to registers      */
 	jge     L_stack_copy_loop
@@ -284,7 +285,7 @@ L_stack_handle_float:
 	jge     L_stack_copy_loop
 
 L_stack_copy:
-    mov     offjniitem(itmp2),itmp3   /* copy s8 argument onto stack          */
+    mov     offjniitem(%r14),itmp3    /* copy s8 argument onto stack          */
     mov     itmp3,0(%rbx)
     add     $8,%rbx                   /* increase sp to next argument         */
 	jmp     L_stack_copy_loop
@@ -292,6 +293,8 @@ L_stack_copy:
 L_copy_done:
 	lea     asm_call_jit_compiler,%r11/* %rax still contains method pointer   */
 	call    *%r11                     /* call JIT compiler                    */
+
+	add     %rbp,%rsp                 /* remove argument stack frame if any   */
 
 	mov     5*8(%rsp),%r15            /* restore callee saved registers       */
 	mov     4*8(%rsp),%r14
@@ -408,9 +411,9 @@ handle_fa7:
 *******************************************************************************/
 
 asm_call_jit_compiler:
-        sub     $8,%rsp         /* keep stack 16-byte aligned                 */
+	sub     $8,%rsp                 /* keep stack 16-byte aligned             */
 
-        mov     %rbx,(%rsp)     /* save register                              */
+	mov     %rbx,(%rsp)             /* save register                          */
         
         mov     8(%rsp),%r11    /* get return address                         */
         mov     -1(%r11),%bl	/* get function code                          */
@@ -439,21 +442,21 @@ L_call_jit_compile:
         
   		mov     %r11,0*8(%rsp)  /* save address for method pointer            */
 
-        mov     %rdi,1*8(%rsp)  /* save arguments                             */
-        mov     %rsi,2*8(%rsp)
-        mov     %rdx,3*8(%rsp)
-        mov     %rcx,4*8(%rsp)
-        mov     %r8,5*8(%rsp)
-        mov     %r9,6*8(%rsp)
+        mov     a0,1*8(%rsp)    /* save arguments                             */
+        mov     a1,2*8(%rsp)
+        mov     a2,3*8(%rsp)
+        mov     a3,4*8(%rsp)
+        mov     a4,5*8(%rsp)
+        mov     a5,6*8(%rsp)
 
-        movq    %xmm0,7*8(%rsp)
-        movq    %xmm1,8*8(%rsp)
-        movq    %xmm2,9*8(%rsp)
-        movq    %xmm3,10*8(%rsp)
-        movq    %xmm4,11*8(%rsp)
-        movq    %xmm5,12*8(%rsp)
-        movq    %xmm6,13*8(%rsp)
-        movq    %xmm7,14*8(%rsp)
+        movq    fa0,7*8(%rsp)
+        movq    fa1,8*8(%rsp)
+        movq    fa2,9*8(%rsp)
+        movq    fa3,10*8(%rsp)
+        movq    fa4,11*8(%rsp)
+        movq    fa5,12*8(%rsp)
+        movq    fa6,13*8(%rsp)
+        movq    fa7,14*8(%rsp)
 
         movq    %xmm8,15*8(%rsp)/* we use them as callee saved registers      */
         movq    %xmm9,16*8(%rsp)
@@ -469,21 +472,21 @@ L_call_jit_compile:
 
         mov     0*8(%rsp),%r11
         
-        mov     1*8(%rsp),%rdi
-        mov     2*8(%rsp),%rsi
-        mov     3*8(%rsp),%rdx
-        mov     4*8(%rsp),%rcx
-        mov     5*8(%rsp),%r8
-        mov     6*8(%rsp),%r9
+        mov     1*8(%rsp),a0
+        mov     2*8(%rsp),a1
+        mov     3*8(%rsp),a2
+        mov     4*8(%rsp),a3
+        mov     5*8(%rsp),a4
+        mov     6*8(%rsp),a5
 
-        movq    7*8(%rsp),%xmm0
-        movq    8*8(%rsp),%xmm1
-        movq    9*8(%rsp),%xmm2
-        movq    10*8(%rsp),%xmm3
-        movq    11*8(%rsp),%xmm4
-        movq    12*8(%rsp),%xmm5
-        movq    13*8(%rsp),%xmm6
-        movq    14*8(%rsp),%xmm7
+        movq    7*8(%rsp),fa0
+        movq    8*8(%rsp),fa1
+        movq    9*8(%rsp),fa2
+        movq    10*8(%rsp),fa3
+        movq    11*8(%rsp),fa4
+        movq    12*8(%rsp),fa5
+        movq    13*8(%rsp),fa6
+        movq    14*8(%rsp),fa7
 
         movq    15*8(%rsp),%xmm8
         movq    16*8(%rsp),%xmm9
@@ -496,14 +499,14 @@ L_call_jit_compile:
 
         add     $(24*8),%rsp
 
-		test	%r11,%r11		/* is address == 0 (asm_calljavamethod)       */
-		je		L_call_method
-		
-		mov     %rax,(%r11)		/* and now save the new pointer               */
+	test    %r11,%r11               /* is address == 0 (asm_calljavamethod)   */
+	je      L_call_method
+
+	mov     %rax,(%r11)             /* and now save the new pointer           */
 
 L_call_method:
-        add     $8,%rsp         /* keep stack 16-byte aligned                 */
-		jmp		*%rax			/* ...and now call the new method             */
+	add     $8,%rsp                 /* keep stack 16-byte aligned             */
+	jmp     *%rax                   /* ...and now call the new method         */
 
 
 /********************* function asm_handle_exception ***************************
@@ -786,40 +789,40 @@ asm_check_clinit:
 
 	sub		$(15*8),%rsp                /* keep stack 16-byte aligned         */
 
-	mov		%rdi,0*8(%rsp)              /* save argument registers            */
-	mov		%rsi,1*8(%rsp)
-	mov		%rdx,2*8(%rsp)
-	mov		%rcx,3*8(%rsp)
-	mov		%r8,4*8(%rsp)
-	mov		%r9,5*8(%rsp)
+	mov		a0,0*8(%rsp)                /* save argument registers            */
+	mov		a1,1*8(%rsp)
+	mov		a2,2*8(%rsp)
+	mov		a3,3*8(%rsp)
+	mov		a4,4*8(%rsp)
+	mov		a5,5*8(%rsp)
 
-	movq	%xmm0,6*8(%rsp)             /* maybe cacao does not use all 8     */
-	movq	%xmm1,7*8(%rsp)             /* argument register, but who knows   */
-	movq	%xmm2,8*8(%rsp)
-	movq	%xmm3,9*8(%rsp)
-	movq	%xmm4,10*8(%rsp)
-	movq	%xmm5,11*8(%rsp)
-	movq	%xmm6,12*8(%rsp)
-	movq	%xmm7,13*8(%rsp)
+	movq	fa0,6*8(%rsp)               /* maybe cacao does not use all 8     */
+	movq	fa1,7*8(%rsp)               /* argument register, but who knows   */
+	movq	fa2,8*8(%rsp)
+	movq	fa3,9*8(%rsp)
+	movq	fa4,10*8(%rsp)
+	movq	fa5,11*8(%rsp)
+	movq	fa6,12*8(%rsp)
+	movq	fa7,13*8(%rsp)
 
-	mov		8+15*8(%rsp),%rdi           /* pass classinfo pointer             */
+	mov		(15+1)*8(%rsp),%rdi         /* pass classinfo pointer             */
 	call	class_init                  /* call class_init function           */
 	
-    mov     0*8(%rsp),%rdi              /* restore argument registers         */
-    mov     1*8(%rsp),%rsi
-    mov     2*8(%rsp),%rdx
-    mov     3*8(%rsp),%rcx
-    mov     4*8(%rsp),%r8
-    mov     5*8(%rsp),%r9
+    mov     0*8(%rsp),a0                /* restore argument registers         */
+    mov     1*8(%rsp),a1
+    mov     2*8(%rsp),a2
+    mov     3*8(%rsp),a3
+    mov     4*8(%rsp),a4
+    mov     5*8(%rsp),a5
 
-	movq	6*8(%rsp),%xmm0
-	movq	7*8(%rsp),%xmm1
-	movq	8*8(%rsp),%xmm2
-	movq	9*8(%rsp),%xmm3
-	movq	10*8(%rsp),%xmm4
-	movq	11*8(%rsp),%xmm5
-	movq	12*8(%rsp),%xmm6
-	movq	13*8(%rsp),%xmm7
+	movq	6*8(%rsp),fa0
+	movq	7*8(%rsp),fa1
+	movq	8*8(%rsp),fa2
+	movq	9*8(%rsp),fa3
+	movq	10*8(%rsp),fa4
+	movq	11*8(%rsp),fa5
+	movq	12*8(%rsp),fa6
+	movq	13*8(%rsp),fa7
 
 	add		$(15*8),%rsp
 
@@ -835,23 +838,21 @@ L_is_initialized:
 	mov     16(%rsp),itmp2              /* get mcode machine code             */
 	movl    itmp2l,1(itmp1)             /* patch back in 4 bytes              */
 
-	add     $(5*8),%rsp                 /* remove stub stack frame incl. ra   */
+	add     $((4+1)*8),%rsp             /* remove stub stack frame incl. ra   */
 
 	jmp     *itmp1                      /* jump to patched code an execute it */
 
 L_initializererror:
-	add     $(4*8),%rsp                 /* remove stub stack frame            */
-
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	call    builtin_asm_get_exceptionptrptr
 	mov     %rax,itmp2
-	mov     (itmp2),xptr                /* get the exception pointer          */
-	movl    $0,(itmp2)                  /* clear the exception pointer        */
 #else
 	lea     _exceptionptr,itmp2
+#endif
 	mov     (itmp2),xptr                /* get the exception pointer          */
 	movl    $0,(itmp2)                  /* clear the exception pointer        */
-#endif
+
+	add     $(4*8),%rsp                 /* remove stub stack frame            */
 
 	pop     xpc                         /* delete return address              */
 	sub     $5,xpc                      /* faulting address is ra - 5         */
@@ -872,9 +873,9 @@ asm_builtin_monitorenter:
 
 nb_monitorenter:
 	call    new_nullpointerexception
-    pop     %r10                        /* delete return address              */
-    sub     $3,%r10                     /* faulting address is return adress - 3 */
-    jmp     asm_handle_exception
+	pop     %r10                        /* delete return address              */
+	sub     $3,%r10                     /* faulting address is ra - 3         */
+	jmp     asm_handle_exception
 		
 
 /********************* function asm_builtin_monitorexit ************************
@@ -890,9 +891,9 @@ asm_builtin_monitorexit:
 
 nb_monitorexit:
 	call    new_nullpointerexception
-    pop     %r10                        /* delete return address              */
-    sub     $3,%r10                     /* faulting address is return adress - 3 */
-    jmp     asm_handle_exception
+	pop     %r10                        /* delete return address              */
+	sub     $3,%r10                     /* faulting address is ra - 3         */
+	jmp     asm_handle_exception
 
 
 /********************* function asm_builtin_x2x ********************************
@@ -1069,84 +1070,85 @@ asm_builtin_d2l:
 	ret
 
 
-/******************* function asm_builtin_checkarraycast ***********************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
+/* asm_builtin_checkarraycast **************************************************
+
+   Does the cast check and eventually throws an exception.
+
 *******************************************************************************/
 
 asm_builtin_checkarraycast:
-	sub     $24,%rsp                /* keep stack 16-byte aligned         */
-	mov     %rdi,(%rsp)             /* save object pointer                */
-	call    builtin_checkarraycast  /* builtin_checkarraycast             */
-	test    %rax,%rax               /* if (false) throw exception         */
+	sub     $24,%rsp                    /* keep stack 16-byte aligned         */
+	mov     %rdi,(%rsp)                 /* save object pointer                */
+	call    builtin_checkarraycast      /* builtin_checkarraycast             */
+	test    %rax,%rax                   /* if (false) throw exception         */
 	je      nb_carray_throw
-	mov     (%rsp),%rax             /* return object pointer              */
-	add     $24,%rsp                /* free stack space                   */
+	mov     (%rsp),%rax                 /* return object pointer              */
+	add     $24,%rsp                    /* free stack space                   */
 	ret
 
 nb_carray_throw:
 	call    new_classcastexception
 	add     $24,%rsp
-	pop     %r10                    /* delete return address              */
-	sub     $3,%r10                 /* faulting address is return adress - 3 */
+	pop     %r10                        /* delete return address              */
+	sub     $3,%r10                     /* faulting address is ra - 3         */
 	jmp     asm_handle_exception
 
 		
-/******************* function asm_builtin_aastore ******************************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
+/* asm_builtin_aastore *********************************************************
+
+   Checks if the object can be stored in the given array and stores the
+   address if it's possible. This function can also throw some exceptions.
+
 *******************************************************************************/
 
 asm_builtin_aastore:
-        sub     $(3*8),%rsp             /* allocate stack space               */
-        test    %rdi,%rdi               /* if null pointer throw exception    */
-        je      nb_aastore_null
+	sub     $(3*8),%rsp             /* allocate stack space                   */
+	test    %rdi,%rdi               /* if null pointer throw exception        */
+	je      nb_aastore_null
 
-        movl    offarraysize(%rdi),%eax /* load size                          */
-        cmpl    %eax,%esi				/* do bound check                     */
-        jae     nb_aastore_bound		/* if out of bounds throw exception   */
+	movl    offarraysize(%rdi),%eax /* load size                              */
+	cmpl    %eax,%esi               /* do bound check                         */
+	jae     nb_aastore_bound        /* if out of bounds throw exception       */
 
-        shl     $3,%rsi					/* index * 8                          */
-        mov     %rdi,%r10
-        add     %rsi,%r10				/* add index * 8 to arrayref          */
-		
-        mov     %r10,(%rsp)     		/* save store position                */
-        mov     %rdx,8(%rsp)            /* save object                        */
-        
-        mov     %rdx,%rsi               /* object is second argument          */
-        call    builtin_canstore		/* builtin_canstore(arrayref,object)  */
-        test    %rax,%rax				/* if (false) throw exception         */
-        je      nb_aastore_throw
+	shl     $3,%rsi                 /* index * 8                              */
+	mov     %rdi,%r10
+	add     %rsi,%r10               /* add index * 8 to arrayref              */
 
-        mov     (%rsp),%r10             /* restore store position             */
-        mov     8(%rsp),%rdx            /* restore object                     */
-        mov     %rdx,offobjarrdata(%r10)/* store objectptr in array           */
-        add     $(3*8),%rsp             /* free stack space                   */
-        ret
+	mov     %r10,(%rsp)             /* save store position                    */
+	mov     %rdx,8(%rsp)            /* save object                            */
+
+	mov     %rdx,%rsi               /* object is second argument              */
+	call    builtin_canstore        /* builtin_canstore(arrayref,object)      */
+	test    %rax,%rax               /* if (false) throw exception             */
+	je      nb_aastore_throw
+
+	mov     (%rsp),%r10             /* restore store position                 */
+	mov     8(%rsp),%rdx            /* restore object                         */
+	mov     %rdx,offobjarrdata(%r10)/* store objectptr in array               */
+	add     $(3*8),%rsp             /* free stack space                       */
+	ret
 
 nb_aastore_null:
-		call    new_nullpointerexception
-        add     $24,%rsp
-        pop     %r10					/* delete return address              */
-        sub     $3,%r10					/* faulting address is return adress - 3 */
-        jmp     asm_handle_exception
+	call    new_nullpointerexception
+	add     $24,%rsp
+	pop     %r10                    /* delete return address                  */
+	sub     $3,%r10                 /* faulting address is return adress - 3  */
+	jmp     asm_handle_exception
 
 nb_aastore_bound:
-		mov     %rsi,%rdi               /* move index into a0                 */
-		call    new_arrayindexoutofboundsexception
-        add     $24,%rsp
-        pop     %r10					/* delete return address              */
-        sub     $3,%r10					/* faulting address is return adress - 3 */
-        jmp     asm_handle_exception
+	mov     %rsi,%rdi               /* move index into a0                     */
+	call    new_arrayindexoutofboundsexception
+	add     $24,%rsp
+	pop     %r10                    /* delete return address                  */
+	sub     $3,%r10                 /* faulting address is return adress - 3  */
+	jmp     asm_handle_exception
 		
 nb_aastore_throw:
-		call    new_arraystoreexception
-        add     $24,%rsp
-        pop     %r10					/* delete return address              */
-        sub     $3,%r10					/* faulting address is return adress - 3 */
-        jmp		asm_handle_exception
+	call    new_arraystoreexception
+	add     $24,%rsp
+	pop     %r10                    /* delete return address                  */
+	sub     $3,%r10                 /* faulting address is return adress - 3  */
+	jmp     asm_handle_exception
 
 		
 /******************* function asm_initialize_thread_stack **********************
