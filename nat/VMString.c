@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMString.c 1042 2004-04-26 17:12:47Z twisti $
+   $Id: VMString.c 1518 2004-11-17 11:54:55Z twisti $
 
 */
 
@@ -36,9 +36,8 @@
 #include <stdlib.h>
 #include "jni.h"
 #include "native.h"
-#include "java_lang_String.h"
+#include "nat/java_lang_String.h"
 
-#include <stdio.h>
 
 /*
  * Class:     java_lang_VMString
@@ -49,7 +48,8 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMString_intern(JNIEnv *env, 
 {
 	if (this) {
 		/* search table so identical strings will get identical pointers */
-		return (java_lang_String *) literalstring_u2(this->value, this->count, this->offset, true);
+		return (java_lang_String *)
+			literalstring_u2(this->value, this->count, this->offset, true);
 
 	} else {
 		return NULL;
