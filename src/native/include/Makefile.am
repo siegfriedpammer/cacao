@@ -26,7 +26,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1917 2005-02-10 10:06:56Z twisti $
+## $Id: Makefile.am 1968 2005-02-28 20:23:23Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -120,7 +120,6 @@ CLEANFILES = \
 	java_lang_Double.h \
 	java_lang_Float.h \
 	java_lang_Integer.h \
-	java_lang_JOWENNTest1.h \
 	java_lang_Long.h \
 	java_lang_Math.h \
 	java_lang_Process.h \
