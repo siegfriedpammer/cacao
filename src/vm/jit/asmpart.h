@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2126 2005-03-29 22:21:46Z twisti $
+   $Id: asmpart.h 2141 2005-03-30 12:51:58Z twisti $
 
 */
 
@@ -63,8 +63,6 @@ struct castinfo {
    is available.
 */
 int has_no_x_instr_set();
-
-void synchronize_caches();
 #endif
 
 
@@ -129,9 +127,6 @@ stacktraceelement *asm_get_stackTrace();
 /*java_lang_ClassLoader* Java_java_lang_VMSecurityManager_currentClassLoader(JNIEnv *env, jclass clazz);*/
 
 void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p);
-
-void asm_builtin_trace();
-void asm_builtin_exittrace();
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 extern threadcritnode asm_criticalsections;
