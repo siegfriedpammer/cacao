@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2007 2005-03-06 23:10:47Z stefan $
+   $Id: codegen.c 2014 2005-03-08 06:27:57Z christian $
 
 */
 
@@ -604,6 +604,24 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		src = bptr->instack;
 		len = bptr->indepth;
 		MCODECHECK(64+len);
+
+#ifdef LSRA
+		if (opt_lsra) {
+			while (src != NULL) {
+				len--;
+				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
+					/* 							d = reg_of_var(m, src, REG_ITMP1); */
+					if (!(src->flags & INMEMORY))
+						d= src->regoff;
+					else
+						d=REG_ITMP1;
+					M_INTMOVE(REG_ITMP1, d);
+					store_reg_to_var_int(src, d);
+
+					src = src->prev;
+				}
+			} else {
+#endif
 		while (src != NULL) {
 			len--;
 			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
@@ -647,6 +665,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			src = src->prev;
 		}
 
+#ifdef LSRA
+		}
+#endif
 		/* walk through all instructions */
 		
 		src = bptr->instack;
@@ -2950,6 +2971,9 @@ makeactualcall:
 	src = bptr->outstack;
 	len = bptr->outdepth;
 	MCODECHECK(64 + len);
+#ifdef LSRA
+	if (!opt_lsra)
+#endif
 	while (src) {
 		len--;
 		if ((src->varkind != STACKVAR)) {

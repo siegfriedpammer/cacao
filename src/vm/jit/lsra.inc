@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 2009 2005-03-07 09:04:27Z christian $
+   $Id: lsra.inc 2014 2005-03-08 06:27:57Z christian $
 
 */
 #include <stdio.h>
@@ -64,14 +64,16 @@ bool lsra(methodinfo *m, codegendata *cd, registerdata *rd, t_inlining_globals *
 	struct lifetime *lt;
 	int i,j;
 #endif	
-
+#if defined(LSRA_DEBUG) || defined(LSRA_DUMP_LOOPDATA)|| defined(LSRA_TESTLT)
+	char name[1256], name1[1256];
+#endif
 
 #ifdef LSRA_DEBUG
 	int b_index;
 	stackptr in,out;
 	int      ind, outd;
 
-
+	b_index = 0;
 	while (b_index < m->basicblockcount ) {
 
 		if (m->basicblocks[b_index].flags >= BBREACHED) {
@@ -94,8 +96,6 @@ bool lsra(methodinfo *m, codegendata *cd, registerdata *rd, t_inlining_globals *
 #endif
 
 #if defined(LSRA_DEBUG) || defined(LSRA_DUMP_LOOPDATA)|| defined(LSRA_TESTLT)
-	char name[1256], name1[1256];
-
 	utf_sprint(name, m->class->name);
 	utf_sprint(name1, m->name);
 	strcat(name, ".");
@@ -521,21 +521,11 @@ bool lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls)
 {
 #ifdef LSRA_DEBUG
 	basicblock  *bptr;
+	struct _list *nl;
 #endif
 	int i,p;
 	s4  t;
-	struct lifetime *lt, *n;
-	int v_index;
-	struct stackslot *ss;
-	bool drop;
-	struct depthElement *de;
-
-	int *stack;
-	int *visited;
-	int stack_top;
-	bool not_finished;
-
-	struct _list *nl;
+	struct lifetime *lt;
 
 #ifdef LSRA_DUMP_LOOPDATA
 	struct LoopContainer *lc;
@@ -666,7 +656,6 @@ bool lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls)
 void lsra_join_ss( struct lsradata *ls, struct stackelement *in, struct stackelement *out) {
 	struct lifetime *lt, *lto, *ltn;
 	struct stackslot *ss;
-	int vn;
 
 	if (in->varnum != out->varnum) {
 		for (lt = ls->ss_lifetimes; (lt != NULL) && (lt->v_index != in->varnum); lt = lt->next);
@@ -774,10 +763,11 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 
 		switch (type) {
 		case TYPE_LNG:
-#if defined(__I386__)
+#if defined(__I386__) || defined(USETWOREGS)
 			/*
 			 * for i386 put all longs in memory
 			 */
+			/* for PowerPC (USETWOREGS) for now into memory, too */
 			flags=0;
 			break;
 #endif
@@ -954,6 +944,8 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 	} else {
 		lsra_mem_use = 0;
 	}
+#else
+        lsra_mem_use = rd->ifmemuse; /* Init with if_memuse from pregregpass */
 #endif
 
 #ifdef LSRA_DEBUG
@@ -986,7 +978,6 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 	rd->maxmemuse=lsra_mem_use;
 
 
-
 #ifdef LSRA_TESTLT
 	printf("TTTTTTTTTTTTTTTTTTTTTTTTTT\nTesting Lifetimes int\n");
 	test_lifetimes( m , ls, int_lt, cd);
@@ -1005,10 +996,18 @@ void lsra_alloc(methodinfo *m, registerdata *rd, struct lifetime *lifet, int *me
 	struct lifetime *lt;
 	struct freemem *fmem;
 	struct stackslot *n;
-	
+#ifdef USETWOREGS
+	struct freemem *fmem_2;
+#endif
+
 	fmem=DNEW(struct freemem);
 	fmem->off=-1;
 	fmem->next=NULL;
+#ifdef USETWOREGS
+	fmem_2=DNEW(struct freemem);
+	fmem_2->off=-1;
+	fmem_2->next=NULL;
+#endif
 
 	for (lt=lifet;lt!=NULL;lt=lt->next) {
 #ifdef LSRA_MEMORY
@@ -1016,7 +1015,11 @@ void lsra_alloc(methodinfo *m, registerdata *rd, struct lifetime *lifet, int *me
 #endif
 		if (lt->reg==-1) {
 			flags=INMEMORY;
-
+#ifdef USETWOREGS
+			if (IS_2_WORD_TYPE(lt->type))
+				regoff=lsra_getmem(lt, fmem_2, mem_use);
+			else
+#endif
 			regoff=lsra_getmem(lt, fmem, mem_use);
 		} else {
 			flags=lt->savedvar;
@@ -1055,9 +1058,12 @@ int lsra_getmem(struct lifetime *lt, struct freemem *fmem, int *mem_use)
 	struct freemem *fm, *p;
 
 	/* noch kein Speicher vergeben, oder alle Enden später */
-	if ((fmem->next == NULL) || (fmem->next->end > lt->i_start)) 
+	if ((fmem->next == NULL) || (fmem->next->end > lt->i_start)) {
 		fm=lsra_getnewmem(mem_use);
-	else {
+#ifdef USETWOREGS
+		if (IS_2_WORD_TYPE(lt->type)) (*mem_use)++;
+#endif
+	} else {
 		/* Speicherstelle frei */
 		fm=fmem->next;
 		fmem->next=fm->next;
@@ -1234,7 +1240,7 @@ void lsra_calc_lifetime_length(methodinfo *m, lsradata *ls, codegendata *cd)
 {
 	struct lifetime *lt;
 	int i;
-	struct stackslot *ss;
+/* 	struct stackslot *ss; */
 
 #if 0
 	int lifetimecount;
@@ -1273,7 +1279,7 @@ void lsra_calc_lifetime_length(methodinfo *m, lsradata *ls, codegendata *cd)
 		if (lt->i_start > lt->i_end) 
 			printf("--------- Warning: last use before first def! ------------vi: %i start: %i end: %i\n", lt->v_index, lt->i_start, lt->i_end);
 
-#ifdef DONT_COMPILE_OLD_CODE
+#if 0
 		/* expand lifetimes in a exceptionhandler to at least the whole handler */
 		/* TODO do a loop analyze for the exceptionhandler*/
 
@@ -1374,7 +1380,6 @@ void lsra_merge_lt(struct lifetime **p, int top)
 void lsra_sort_lt(struct lifetime **lifet)
 {
 	/* sort lifetimes by increasing start point */
-/* 	struct lifetime **plt,**plt1; */
 	struct lifetime *lt, *temp, *tmp;
 	int i, top;
 	struct lifetime **p;
@@ -1396,7 +1401,6 @@ void lsra_sort_lt(struct lifetime **lifet)
 
 			if (temp->i_start < tmp->i_start) {
 				p[top]=temp;
-				/* temp->next == tmp */
 				tmp->next=NULL;
 			} else {
 				p[top]=tmp;
@@ -1418,7 +1422,6 @@ void lsra_sort_lt(struct lifetime **lifet)
 void print_lifetimes(registerdata *rd, lsradata *ls, struct lifetime *lt)
 {
 	struct lifetime *n;
-	struct _i_list *ni;
 	int type,flags,regoff,j,varkind;
 	/* 	int i; */
 
@@ -1438,6 +1441,7 @@ void print_lifetimes(registerdata *rd, lsradata *ls, struct lifetime *lt)
 				panic("Type Data mismatch 3\n");
 		}
 		printf("i_Start: %3i(%3i,%3i) i_stop: %3i(%3i,%3i) reg: %3i VI: %3i type: %3i flags: %3i varkind: %3i \n",n->i_start, ls->sorted[n->bb_first_def], n->i_first_def,n->i_end, ls->sorted[n->bb_last_use], n->i_last_use,regoff,n->v_index,type,flags, varkind);
+		printf("i_Start: %3i(%3i,%3i) i_stop: %3i(%3i,%3i) reg: %3i VI: %3i type: %3i flags: %3i varkind: %3i \n",n->i_start, ls->sorted[n->bb_first_def], n->i_first_def,n->i_end, ls->sorted[n->bb_last_use], n->i_last_use,n->reg,n->v_index,n->type,-10, -10);
 
 	}
 	printf( "%3i Lifetimes printed \n",j);
@@ -1454,66 +1458,6 @@ struct stackslot *lsra_make_ss(stackptr s, int bb_index)
 	return ss;
 }
 
-/* merge i_list from lt1 to lt in order */
-void lsra_merge_i_lists(struct lifetime *lt, struct lifetime *lt1)
-{
-	struct _i_list *iptr, *iptr1, *iptr2;
-
-#ifdef LSRA_DEBUG
-	bool joining_lt; 
-
-	joining_lt = false;
-#endif
-
-	/* merge i_lists in order */
-	iptr=lt->i_list;
-	iptr2=lt->i_list=NULL;
-	iptr1=lt1->i_list;
-	while  ((iptr != NULL) && (iptr1 != NULL)) {
-		if (iptr1->instr == PASSING_THROUGH_LT) { 
-			/* throw away, just for joining */
-			iptr1=iptr1->next;
-#ifdef LSRA_DEBUG
-			joining_lt = true;
-#endif
-		} else {
-			if ((iptr->b_index > iptr1->b_index)|| ((iptr->b_index == iptr1->b_index) && (iptr->instr > iptr1->instr))) {
-				if (lt->i_list==NULL) {
-					lt->i_list=iptr;
-				} else {
-					iptr2->next=iptr;
-				}
-				iptr2=iptr;
-				iptr=iptr->next;
-			} else {
-				if (lt->i_list==NULL) {
-					lt->i_list=iptr1;
-				} else {
-					iptr2->next=iptr1;
-				}
-				iptr2=iptr1;
-				iptr1=iptr1->next;
-			}
-		}
-	}
-#ifdef LSRA_DEBUG
-	if (!joining_lt)
-		if (iptr2 == NULL)
-			panic("lsra_merge_i_lists: Empty Instruction List in Lifetime\n");
-#endif
-	if (iptr==NULL) {
-		if (lt->i_list==NULL)
-			lt->i_list=iptr1;
-		else
-			iptr2->next=iptr1;
-	}
-	if (iptr1==NULL) {
-		if (lt->i_list==NULL)
-			lt->i_list=iptr;
-		else
-			iptr2->next=iptr;
-	}
-}
 
 /* merge local_ss from lt1 to lt in order */
 void lsra_merge_local_ss(struct lifetime *lt, struct lifetime *lt1)
@@ -1562,19 +1506,6 @@ void lsra_merge_local_ss(struct lifetime *lt, struct lifetime *lt1)
 	}
 }
 
-
-struct _i_list *lsra_add_i_list(struct _i_list *i_list, int instr, int b_index, int store)
-{
-	struct _i_list *n;
-
-	n=DNEW(struct _i_list);
-	n->instr=instr;
-	n->b_index=b_index;
-	n->store=store;
-	n->next=i_list;
-	return n;
-}
-
 void lsra_add_ss(struct lifetime *lt, stackptr s) {
 	struct stackslot *ss;
 	/* Stackslot noch nicht eingetragen? */
@@ -1588,6 +1519,7 @@ void lsra_add_ss(struct lifetime *lt, stackptr s) {
 		ss->next = lt->local_ss;
 		lt->local_ss = ss;
 		if (s != NULL) lt->savedvar |= s->flags & SAVEDVAR;
+		if (s != NULL) lt->type = s->type;
 	}
 }
 
@@ -1629,6 +1561,7 @@ void _lsra_new_stack(lsradata *ls, stackptr s, int block, int instr, int store)
 		n->bb_first_def = ls->sorted_rev[block];
 		n->i_first_def = instr;
 
+#ifdef __i386__
 		if (ls->edx_free != -1) {
 			if (n->bb_last_use == block) {
 				if (n->i_last_use <= ls->edx_free) {
@@ -1641,6 +1574,7 @@ void _lsra_new_stack(lsradata *ls, stackptr s, int block, int instr, int store)
 				}
 			}
 		}
+#endif
 	}
 }
 
@@ -1700,7 +1634,6 @@ void lsra_new_local(lsradata *ls, s4 v_index, int type)
 
 	n=DNEW(struct lifetime);
 	n->local_ss=NULL;
-	n->i_list=NULL;
 	n->v_index=v_index;
 	n->type=type;
 	n->savedvar = SAVEDVAR;
@@ -1732,10 +1665,10 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 	stackptr    src;
 	stackptr    dst;
 	instruction *iptr;
-	stackptr in,out;
-	int      id, od;
 
+#ifdef __I386__
 	ls->edx_free = -1;
+#endif
 
 	src = m->basicblocks[b_index].instack;
 	for (;src != NULL; src=src->prev) {
@@ -1753,37 +1686,6 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 		if (src->varkind == LOCALVAR ) printf("----- Error: LOCALVAR at BB outstack -----\n");
 	}
 			
-#ifdef DONT_COMPILE_OLD_CODE
-	if (dst != NULL) { /* create Lifetimes for pass-through Stackslots */
-		in=m->basicblocks[b_index].instack;
-		id=m->basicblocks[b_index].indepth;
-		if (m->basicblocks[b_index].type != BBTYPE_STD) {
-			/* Pay attention to the top Stackslot in BBTYPE_EXH and BBTYPE_SBR Basicblocks  */
-			/* this is not a passthrough, but set from the "system" to the exception object or */
-			/* the return adress -> just create a lifetime with a write at instr==0            */ 
-			lsra_new_stack(ls, in, b_index, 0);
-			in=in->prev;
-			--id;
-		} 
-
-		out=m->basicblocks[b_index].outstack;
-		od=m->basicblocks[b_index].outdepth;
-
-		/* ignore all in-stackslots not in outstack */
-		for (;id>od; in=in->prev, --id); 
-		/* ignore all out-stackslots not in instack */
-		for (;od>id; out=out->prev, --od);
-		/* ignore all non equal stackslots from in and outstack */
-		for (;in != out; in=in->prev, out=out->prev, --id); 
-		/* set up a lifetime for the rest: */
-		/* stackslot adress equal, stackslot"number" equal */
-		for (;in!=NULL; in=in->prev) {
-			/* Make 2 entries -> one for the instack, one for the out stack */
-			lsra_new_stack(ls, in, b_index, PASSING_THROUGH_LT);
-			lsra_new_stack(ls, in, b_index, PASSING_THROUGH_LT);
-		}
-	}
-#endif
 	iptr = m->basicblocks[b_index].iinstr;
 	iindex = m->basicblocks[b_index].icount - 1;
 	iptr+=iindex;
@@ -2012,9 +1914,6 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 		case ICMD_DUP:
 			/* lsra_from_stack(ls, src,b_index,iindex);*/ /* inc usage_count! */
 			lsra_new_stack(ls,dst,b_index,iindex);
-/* 			dup_mark(&dup, src); */
-/* 			dup_mark(&dup, dst); */
-/* 			dup_next(&dup); */
 			break;
 
 			/* pop 0 push 2 dup */
@@ -2024,15 +1923,6 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 			lsra_new_stack(ls,dst,b_index,iindex); 
 			lsra_from_stack(ls, src,b_index,iindex); /* or inc usage_count! */
 			lsra_from_stack(ls, src->prev,b_index,iindex); /* inc usage_count! */
-
-/* 			dup_mark(&dup, src); */
-/* 			dup_mark(&dup, dst); */
-/* 			dup_mark(&dup, dst->prev->prev); */
-/* 			dup_next(&dup); */
-/* 			dup_mark(&dup, src->prev); */
-/* 			dup_mark(&dup, dst->prev); */
-/* 			dup_mark(&dup, dst->prev->prev->prev); */
-/* 			dup_next(&dup); */
 			break;
 
 			/* pop 2 push 3 dup */
@@ -2043,13 +1933,6 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 			lsra_new_stack(ls,dst->prev->prev,b_index,iindex);
 			lsra_new_stack(ls,dst->prev,b_index,iindex);
 			lsra_new_stack(ls,dst,b_index,iindex); 
-/* 			dup_mark(&dup, src); */
-/* 			dup_mark(&dup, dst); */
-/* 			dup_mark(&dup, dst->prev->prev); */
-/* 			dup_next(&dup); */
-/* 			dup_mark(&dup, src->prev); */
-/* 			dup_mark(&dup, dst->prev); */
-/* 			dup_next(&dup); */
 			break;
 
 			/* pop 3 push 4 dup */
@@ -2062,16 +1945,6 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 			lsra_new_stack(ls,dst->prev->prev,b_index,iindex);
 			lsra_new_stack(ls,dst->prev,b_index,iindex);
 			lsra_new_stack(ls,dst,b_index,iindex); 
-/* 			dup_mark(&dup, src); */
-/* 			dup_mark(&dup, dst); */
-/* 			dup_mark(&dup, dst->prev->prev->prev); */
-/* 			dup_next(&dup); */
-/* 			dup_mark(&dup, src->prev); */
-/* 			dup_mark(&dup, dst->prev); */
-/* 			dup_next(&dup); */
-/* 			dup_mark(&dup, src->prev->prev); */
-/* 			dup_mark(&dup, dst->prev->prev); */
-/* 			dup_next(&dup); */
 			break;
 
 			/* pop 3 push 5 dup */
@@ -2085,17 +1958,6 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 			lsra_new_stack(ls,dst->prev->prev,b_index,iindex);
 			lsra_new_stack(ls,dst->prev,b_index,iindex);
 			lsra_new_stack(ls,dst,b_index,iindex); 
-/* 			dup_mark(&dup, src); */
-/* 			dup_mark(&dup, dst); */
-/* 			dup_mark(&dup, dst->prev->prev->prev); */
-/* 			dup_next(&dup); */
-/* 			dup_mark(&dup, src->prev); */
-/* 			dup_mark(&dup, dst->prev); */
-/* 			dup_mark(&dup, dst->prev->prev->prev->prev); */
-/* 			dup_next(&dup); */
-/* 			dup_mark(&dup, src->prev->prev); */
-/* 			dup_mark(&dup, dst->prev->prev); */
-/* 			dup_next(&dup); */
 			break;
 
 			/* pop 4 push 6 dup */
@@ -2111,20 +1973,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 			lsra_new_stack(ls,dst->prev->prev,b_index,iindex);
 			lsra_new_stack(ls,dst->prev,b_index,iindex);
 			lsra_new_stack(ls,dst,b_index,iindex); 
-/* 			dup_mark(&dup, src); */
-/* 			dup_mark(&dup, dst); */
-/* 			dup_mark(&dup, dst->prev->prev->prev->prev); */
-/* 			dup_next(&dup); */
-/* 			dup_mark(&dup, src->prev); */
-/* 			dup_mark(&dup, dst->prev); */
-/* 			dup_mark(&dup, dst->prev->prev->prev->prev->prev); */
-/* 			dup_next(&dup); */
-/* 			dup_mark(&dup, src->prev->prev); */
-/* 			dup_mark(&dup, dst->prev->prev); */
-/* 			dup_next(&dup); */
-/* 			dup_mark(&dup, src->prev->prev->prev); */
-/* 			dup_mark(&dup, dst->prev->prev->prev); */
-/* 			dup_next(&dup); */
+
 			break;
 
 			/* pop 2 push 2 swap */
@@ -2134,12 +1983,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 			lsra_from_stack(ls, src->prev,b_index,iindex); /*from for to, or it will not work!  inc usage_count! */
 			lsra_new_stack(ls,dst->prev,b_index,iindex);
 			lsra_new_stack(ls,dst,b_index,iindex);
-/* 			dup_mark(&dup, src); */
-/* 			dup_mark(&dup, dst->prev); */
-/* 			dup_next(&dup); */
-/* 			dup_mark(&dup, src->prev); */
-/* 			dup_mark(&dup, dst); */
-/* 			dup_next(&dup); */
+
 			break;
 
 			/* pop 2 push 1 */
@@ -2309,154 +2153,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 		} /* switch */
 
 	}
-		/* 		dup_join(ls, &dup, b_index); */
 }
-
-#ifdef LSRA_TESTLT
-int _test_lifetimes(methodinfo *m, lsradata *ls, int b_index, int *values, bool* bb_visited, struct lifetime *lifet)
-{
-	int b_new_index;
-	struct lifetime *lt;
-	struct _i_list *il;
-
-	struct depthElement *de;
-	struct stackslot *ss;
-	int *v, i, j;
-
-/* 	bb_visited[b_index]++; */
-	
-	b_new_index = b_index;
-
-	if ((m->basicblocks[b_index].type == BBTYPE_EXH) || (m->basicblocks[b_index].type == BBTYPE_SBR)) {
-		/* initialize first stackslot which comes from the "system" */
-		for (lt = lifet; lt != NULL; lt = lt->next) {
-			for (il=lt->i_list; il != NULL; il = il->next) {
-				if ((il->b_index == b_new_index) && (il->instr == 0) && (il->store == LSRA_STORE)) {
-					for (ss=lt->local_ss; (ss != NULL) && (ss->s != m->basicblocks[b_index].instack); ss = ss->next);
-					if (ss != NULL) {
-						values[lt->reg] = lt->v_index;
-/* 						printf("BB %3i EXH/SBR init lt v_index %3i reg (%3i)=%3i\n", b_index, lt->v_index, lt->reg, values[lt->reg]); */
-					}
-				}
-			}
-		}
-	}			 
-
-	for (i = -1; i < m->basicblocks[b_index].icount; i++) {
-		/* search for Reads (LSRA_LOAD or LSRA_POP) at (b_new_index, i) and verify values[lt->reg]==v_index*/
-		for (lt = lifet; lt != NULL; lt = lt->next) {
-			for (il=lt->i_list; il != NULL; il = il->next) {
-				if ((il->b_index == b_new_index) && (il->instr == i) && ((il->store == LSRA_LOAD) || (il->store == LSRA_POP))) {
-					if (values[lt->reg] != lt->v_index) {
-						if (values[lt->reg] == VS)
-							printf("BB %3i Instr %3i lt v_index %3i reg %3i Warning: not initialized\n", b_index, i, lt->v_index, lt->reg);
-						else {
-							printf("BB %3i Instr %3i lt v_index %3i reg %3i Error: %3i \n", b_index, i, lt->v_index, lt->reg, values[lt->reg]);
-							printf("Backtracing: \n");
-							return (lt->reg);
-						}
-					}
-				}
-			}
-		}
-
-		/* search for Writes (LSRA_STORE) and do it values[lt->reg]=lt->v_index */
-		for (lt = lifet; lt != NULL; lt = lt->next) {
-			for (il=lt->i_list; il != NULL; il = il->next) {
-				if ((il->b_index == b_new_index) && (il->instr == i) && (il->store == LSRA_STORE)) {
-					values[lt->reg]=lt->v_index;
-/* 					printf("BB %3i Instr %3i v_index %3i reg(%3i)=%3i\n", b_index, i, lt->v_index, lt->reg, values[lt->reg]); */
-				}
-			}
-		}
-	}
- 
-/* 	for (de = ld->c_dTable[b_index]; de != NULL; de = de->next) { */
-/* 		if (( de->value > b_index ) || (bb_visited[de->value] < 3)) { */ /* dont go in loops */
-			/* make an own copy for each test */
-/* 			v=DMNEW(int, VS); */
-/* 			for (i=0; i<VS; i++) v[i]=values[i]; */
-/* 			if ((i=_test_lifetimes(m, ld, ls, de->value, v, bb_visited, lifet)) != -1) { */
-/* 				printf(" BB %3i ((%3i)=%3i) ",b_index, i, values[i]); */
-/* 				return i; */
-/* 			} */
-/* 		} */
-/* 	} */
-
-	i=0;
-
-	for (de = ld->c_dTable[b_index]; de != NULL; de = de->next)
-		i++;
-
-	if (i != 0) {
-		j = rand() % i;
-
-		for (i=0, de = ld->c_dTable[b_index]; i!=j; i++, de=de->next);
-
-		if ((i=_test_lifetimes(m, ld, ls, de->value, values, bb_visited, lifet)) != -1) {
-			/* 		printf(" BB %3i ((%3i)=%3i) ",b_index, i, values[i]); */
-			return i;
-		}
-	}
-
-	return -1;
-}
-
-void test_lifetimes( methodinfo *m, lsradata *ls, struct lifetime *lifet, codegendata *cd)
-{
-	int *values, i;
-	int *bb_visited;
-	int j, handler_min1, handler_min;
-	struct depthElement *de;
-
-	/* first patch in jumps from the last block in a guarded area (ls->ex[i]->guarded_max) */
-	/* to the coresponding exceptionhandler (ls->ex[i]->handler_min), so the tests is  */
-	/* valid for exceptions too. Afterwards eliminate this jumps again */
-	
-/* 	for (i=0; i < cd->exceptiontablelength; i++) { */
-/* 		for (j=ls->bb_rev[ls->ex[i].guarded_max]; j>=0; j--) { */
-			/* this patched jump only from blocks which are not deleted or exeptionhandler itself */
-/* 			if (!((m->basicblocks[j].flags < BBREACHED) || (m->basicblocks[j].type == BBTYPE_EXH))) */
-/* 				break; */
-/* 		} */
-/* 		if (j == -1) panic( "lsra_clean_Graph: Problem with Basic Block Order\n"); */
-/* 		de=DNEW(struct depthElement); */
-
-/* 		handler_min = ls->bb_rev[ls->ex[i].handler_min]; */
-/* 		handler_min1 = ls->bb_rev[ls->ex[i].handler_max]; */
-/* 		if (handler_min1 < handler_min) handler_min = handler_min1; */
-
-/* 		de->value = handler_min; */
-/* 		de->next = ld->c_dTable[j]; */
-/* 		ld->c_dTable[j]=de; */
-/* 	} */
-
-	if ( (values = calloc( VS, sizeof(int))) == NULL )
-		 panic("test_lifetimes: out of memory\n");
-
-	for (j=0; j < 100; j++ ) {
-		for (i=0; i < VS; i++) values[i]=VS;
-/* 		bb_visited=DMNEW(bool, m->basicblockcount); */
-/* 		for (i=0; i < m->basicblockcount; i++) bb_visited[i]=false; */
-
-/* 		bb_visited[0]=1; */
-		if (_test_lifetimes(m, ld, ls, 0, values, bb_visited, lifet) != -1) printf("\n");
-	}
-
-
-	free(values);
-
-	/* now taking out the patched "exception" jumps again */
-/* 	for (i=0; i < cd->exceptiontablelength; i++) { */
-/* 		for (j=ls->bb_rev[ls->ex[i].guarded_max]; j>=0; j--) { */
- 			/* this patched jump only from blocks which are not deleted or exeptionhandler itself */ 
-/* 			if (!((m->basicblocks[j].flags < BBREACHED) || (m->basicblocks[j].type == BBTYPE_EXH))) */
-/* 				break; */
-/* 		} */
-/* 		ld->c_dTable[j]=ld->c_dTable[j]->next; */
-/* 	} */
-}
-#endif
 
 #ifdef __I386__
 

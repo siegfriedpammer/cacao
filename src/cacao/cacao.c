@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2008 2005-03-07 08:43:08Z christian $
+   $Id: cacao.c 2014 2005-03-08 06:27:57Z christian $
 
 */
 
@@ -751,7 +751,7 @@ int main(int argc, char **argv)
 
 #ifdef LSRA
 		case OPT_LSRA:
-#if defined(__I386__) || defined(__ALPHA__) || defined (__X86_64__)
+#if defined(__I386__) || defined(__ALPHA__) || defined (__X86_64__) || defined(__POWERPC__)
 			opt_lsra = true;
 #else
 			printf("LSRA not available for this architecture\n");
