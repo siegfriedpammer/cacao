@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 2162 2005-03-30 20:14:10Z twisti $
+   $Id: asmpart.S 2202 2005-04-03 21:56:13Z twisti $
 
 */
 
@@ -686,7 +686,7 @@ asm_check_clinit:
 	sub     $4,%esp
 	mov     20+4+4(%esp),itmp1          /* get class pointer                  */
 	mov     itmp1,(%esp)                /* store class pointer as a0          */
-	call    class_init                  /* call class_init function           */
+	call    initialize_class            /* call initialize class function     */
 	add     $4,%esp
 
 	call asm_remove_native_stackinfo  /* removes 4* 4 bytes and leaves ret
