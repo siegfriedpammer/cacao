@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Field.c 873 2004-01-11 20:59:29Z twisti $
+   $Id: Field.c 1002 2004-03-30 22:49:03Z twisti $
 
 */
 
@@ -190,7 +190,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 				return (java_lang_Object*) (*env)->GetObjectField(env, (jobject) obj, fid);
 		}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 
 	return NULL;
 }
@@ -207,15 +207,16 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_l
 
 	if (this->declaringClass && obj) {
 		/* get the fieldid represented by the field-object */
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
-		if (fid) 
+		if (fid)
 			/* call the JNI-function to retrieve the field */ 
 			return (*env)->GetBooleanField(env, (jobject) obj, fid);
 	}
 
 	/* raise exception */
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 
 	return 0;
 }
@@ -231,13 +232,15 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
-		if (fid) 
+		if (fid)
 			return (*env)->GetByteField(env, (jobject) obj, fid);
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 
 	return 0;
 }
@@ -253,13 +256,15 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
-		if (fid) 
+		if (fid)
 			return (*env)->GetCharField (env, (jobject) obj, fid);
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 
 	return 0;
 }
@@ -275,13 +280,15 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
-		if (fid) 
+		if (fid)
 			return (*env)->GetDoubleField(env, (jobject) obj, fid);
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 
 	return 0;
 }
@@ -297,13 +304,15 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
-		if (fid) 
+		if (fid)
 			return (*env)->GetFloatField(env, (jobject) obj, fid);
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 
 	return 0;
 }
@@ -319,13 +328,15 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
-		if (fid) 
+		if (fid)
 			return (*env)->GetIntField(env, (jobject) obj, fid);
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 
 	return 0;
 }
@@ -341,13 +352,15 @@ JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
-		if (fid) 
+		if (fid)
 			return (*env)->GetLongField(env, (jobject) obj, fid);
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 
 	return 0;
 }
@@ -363,13 +376,15 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lan
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
-		if (fid) 
+		if (fid)
 			return (*env)->GetShortField(env, (jobject) obj, fid);
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 
 	return 0;
 }
@@ -387,7 +402,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 	classinfo *c;
 	int st = (this->flag & ACC_STATIC); /* true if the field is static */
 
-	fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+	fid = class_findfield_approx((classinfo *) this->declaringClass,
+								 javastring_toutf(this->name, false));
 
 	if (val && (st || obj)) {
 
@@ -446,7 +462,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 		case 'D':
 			if (c != class_java_lang_Double)
 				break;
-			source_fid = (*env)->GetFieldID(env,c,"value","D");
+			source_fid = (*env)->GetFieldID(env, c, "value", "D");
 			if (!source_fid) break;
 				   
 			if (st)
@@ -523,7 +539,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 		}
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 }
 
 
@@ -537,15 +554,17 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
-		if (fid) { 
+		if (fid) {
 			(*env)->SetBooleanField(env, (jobject) obj, fid, val);
 			return;
 		}
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 }
 
 
@@ -559,7 +578,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_la
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
 		if (fid) {
 			(*env)->SetByteField(env, (jobject) obj, fid, val);
@@ -567,7 +587,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_la
 		}
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 }
 
 
@@ -581,7 +602,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_la
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
 		if (fid) {
 			(*env)->SetCharField(env, (jobject) obj, fid, val);
@@ -589,7 +611,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_la
 		}
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 }
 
 
@@ -603,7 +626,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
 		if (fid) {
 			(*env)->SetDoubleField(env, (jobject) obj, fid, val);
@@ -611,7 +635,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_
 		} 
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 }
 
 
@@ -625,7 +650,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setFloat(JNIEnv *env, java_l
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
 		if (fid) {
 			(*env)->SetFloatField(env, (jobject) obj, fid, val);
@@ -633,7 +659,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setFloat(JNIEnv *env, java_l
 		}
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 }
 
 
@@ -647,7 +674,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lan
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
 		if (fid) {
 			(*env)->SetIntField(env, (jobject) obj, fid, val);
@@ -655,7 +683,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lan
 		}
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 }
 
 
@@ -669,7 +698,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_la
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
 		if (fid) {
 			(*env)->SetLongField(env, (jobject) obj, fid, val);
@@ -677,7 +707,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_la
 		}
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 }
 
 
@@ -691,7 +722,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_l
 	jfieldID fid;
 
 	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));
+		fid = class_findfield_approx((classinfo *) this->declaringClass,
+									 javastring_toutf(this->name, false));
 
 		if (fid) {
 			(*env)->SetShortField(env, (jobject) obj, fid, val);
@@ -699,7 +731,8 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_l
 		}
 	}
 
-	*exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+	/* raise exception */
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 }
 
 
@@ -726,7 +759,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *
  */
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getModifiers(JNIEnv *env, java_lang_reflect_Field *this)
 {
-	return ((( classinfo *) this->declaringClass)->fields[this->slot]).flags;
+	return (((classinfo *) this->declaringClass)->fields[this->slot]).flags;
 }
 
 
