@@ -29,6 +29,7 @@
    Changes: Andi Krall
             Mark Probst
             Philipp Tomsich
+            Christian Thalinger
 
    This module does the following tasks:
      - Command line option handling
@@ -36,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1881 2005-01-21 13:46:51Z carolyn $
+   $Id: cacao.c 1907 2005-02-10 09:53:44Z twisti $
 
 */
 
@@ -55,6 +56,7 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
@@ -136,6 +138,7 @@ void **stackbottom = 0;
 #define OPT_BOOTCLASSPATH    36
 #define OPT_BOOTCLASSPATH_A  37
 #define OPT_BOOTCLASSPATH_P  38
+#define OPT_VERSION          39
 
 
 opt_struct opts[] = {
@@ -187,6 +190,7 @@ opt_struct opts[] = {
 	{ "Xbootclasspath:",   true,  OPT_BOOTCLASSPATH },
 	{ "Xbootclasspath/a:", true,  OPT_BOOTCLASSPATH_A },
 	{ "Xbootclasspath/p:", true,  OPT_BOOTCLASSPATH_P },
+	{ "version",           false, OPT_VERSION },
 	{ NULL,                false, 0 }
 };
 
@@ -221,6 +225,7 @@ static void usage()
 #ifdef TYPECHECK_VERBOSE
 	printf("          -verbosetc ........... write debug messages while typechecking\n");
 #endif
+	printf("    -version                 print product version and exit\n");
 #if defined(__ALPHA__)
 	printf("          -noieee .............. don't use ieee compliant arithmetic\n");
 #endif
@@ -263,6 +268,19 @@ static void usage()
 
 	exit(1);
 }   
+
+
+/* version *********************************************************************
+
+   Only prints cacao version information and exits.
+
+*******************************************************************************/
+
+static void version()
+{
+	printf("cacao "VERSION"\n");
+	exit(0);
+}
 
 
 #ifdef TYPECHECK_STATISTICS
@@ -577,7 +595,11 @@ int main(int argc, char **argv)
 		case OPT_VERBOSECALL:
 			runverbose = true;
 			break;
-				
+
+		case OPT_VERSION:
+			version();
+			break;
+
 		case OPT_NOIEEE:
 			opt_noieee = true;
 			break;
@@ -771,6 +793,7 @@ int main(int argc, char **argv)
 	/**************************** Program start *****************************/
 
 	log_init(logfilename);
+
 	if (opt_verbose)
 		log_text("CACAO started -------------------------------------------------------");
 
@@ -786,6 +809,7 @@ int main(int argc, char **argv)
 	/* load and initialize a Java VM, return a JNI interface pointer in env */
 
 	JNI_CreateJavaVM(&jvm, &env, &vm_args);
+
 
 	/* initialize the garbage collector */
 
@@ -813,13 +837,17 @@ int main(int argc, char **argv)
 	/* initializes jit compiler and codegen stuff */
 	jit_init();
 
+	/* initialize some cacao subsystems */
+
+	utf8_init();
+	class_init_foo();
 	loader_init((u1 *) &dummy);
 
-	/* initialize exceptions used in the system */
-	if (!init_system_exceptions())
+	if (!native_init())
 		throw_main_exception_exit();
 
-	native_loadclasses();
+	if (!exceptions_init())
+		throw_main_exception_exit();
 
 #if defined(USE_THREADS)
   	initThreads((u1 *) &dummy);
@@ -832,10 +860,9 @@ int main(int argc, char **argv)
 	  classpath 0.09. Another important thing is, that this has to happen
 	  after initThreads!!! */
 
-	if (!class_init(class_new(utf_new_char("java/lang/System"))))
+	if (!class_init(class_java_lang_System))
 		throw_main_exception_exit();
 
-/*        jni_init(); */
 	cacao_initializing = false;
 
 
