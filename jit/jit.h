@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 1274 2004-07-05 17:24:40Z twisti $
+   $Id: jit.h 1341 2004-07-21 16:06:48Z twisti $
 
 */
 
@@ -37,10 +37,12 @@
 #ifndef _JIT_H
 #define _JIT_H
 
-#include "toolbox/chain.h"
 #include "global.h"
 #include "builtin.h"
 #include "typeinfo.h"
+#include "jit/codegen.inc.h"
+#include "toolbox/chain.h"
+
 
 /**************************** resolve typedef-cycles **************************/
 
@@ -50,11 +52,7 @@ typedef struct basicblock basicblock;
 typedef struct instruction instruction;
 typedef struct subroutineinfo subroutineinfo;
 typedef struct varinfo varinfo;
-typedef struct branchref branchref;
-typedef struct jumpref jumpref;
-typedef struct dataref dataref;
 typedef varinfo *varinfoptr;
-typedef struct linenumberref linenumberref;
 
 
 /************************** stack element structure ***************************/
@@ -92,14 +90,14 @@ typedef struct linenumberref linenumberref;
 
 struct stackelement {
 	stackptr prev;              /* pointer to next element towards bottom     */
-	int type;                   /* slot type of stack element                 */
+	s4       type;              /* slot type of stack element                 */
 #ifdef CACAO_TYPECHECK
 	typeinfo typeinfo;          /* info on reference types                    */
 #endif
-	int flags;                  /* flags (SAVED, INMEMORY)                    */
-	int varkind;                /* kind of variable or register               */
-	int varnum;                 /* number of variable                         */
-	int regoff;                 /* register number or memory offset           */
+	s4       flags;             /* flags (SAVED, INMEMORY)                    */
+	s4       varkind;           /* kind of variable or register               */
+	s4       varnum;            /* number of variable                         */
+	s4       regoff;            /* register number or memory offset           */
 };
 
 
@@ -163,37 +161,6 @@ struct varinfo {
 	int type;                   /* basic type of variable                     */
 	int flags;                  /* flags (SAVED, INMEMORY)                    */
 	int regoff;                 /* register number or memory offset           */
-};
-
-
-/***************** forward references in branch instructions ******************/
-
-struct branchref {
-	s4 branchpos;               /* patching position in code segment          */
-	s4 reg;                     /* used for ArrayIndexOutOfBounds index reg   */
-	branchref *next;            /* next element in branchref list             */
-};
-
-
-/******************** forward references in tables  ***************************/
-
-struct jumpref {
-	s4 tablepos;                /* patching position in data segment          */
-	basicblock *target;         /* target basic block                         */
-	jumpref *next;              /* next element in jumpref list               */
-};
-
-struct linenumberref {
-	s4 tablepos;                /* patching position in data segment          */
-	int targetmpc;             /* machine code program counter of first instruction for given line*/
-	u2 linenumber;              /* line number, used for inserting into the table and for validty checking*/
-	linenumberref *next;        /* next element in linenumberref list               */
-};
-
-
-struct dataref {
-	u1 *pos;                    /* patching position in generated code        */
-	dataref *next;              /* next element in dataref list               */
 };
 
 
@@ -858,9 +825,6 @@ builtin_descriptor *find_builtin(int opcode);
 extern int nregdescint[];   /* description of integer registers               */
 extern int nregdescfloat[]; /* description of floating point registers        */
 
-extern int nreg_parammode;
-
-
 extern int stackreq[256];
 
 
@@ -876,6 +840,8 @@ methodptr jit_compile (methodinfo *m);  /* compile a method with jit compiler */
 
 void jit_init();                        /* compiler initialisation            */
 void jit_close();                       /* compiler finalisation              */
+
+void compile_all_class_methods(classinfo *c);
 
 u1 *createcompilerstub(methodinfo *m);
 u1 *createnativestub(functionptr f, methodinfo *m);
