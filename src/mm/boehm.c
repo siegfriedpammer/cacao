@@ -11,13 +11,18 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: boehm.c 505 2003-10-22 19:41:36Z twisti $
+	Last Change: $Id: boehm.c 512 2003-10-22 20:47:18Z twisti $
 
 *******************************************************************************/
 
 #include "global.h"
 #include "threads/thread.h"
 #include "asmpart.h"
+
+/* this is temporary workaround */
+#if defined(__X86_64__)
+#define GC_DEBUG
+#endif
 
 #include "gc.h"
 
