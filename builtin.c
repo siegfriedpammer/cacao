@@ -344,7 +344,6 @@ java_objectheader *builtin_new (classinfo *c)
 
 #ifdef SIZE_FROM_CLASSINFO
 	c->alignedsize = align_size(c->instancesize);
-
 	o = heap_allocate ( c->alignedsize, true, c->finalizer );
 #else
 	o = heap_allocate ( c->instancesize, true, c->finalizer );
@@ -381,7 +380,6 @@ void* __builtin_newarray(s4 base_size,
 	java_arrayheader *a;
 #ifdef SIZE_FROM_CLASSINFO
 	s4 alignedsize = align_size(base_size + (size-1) * elementsize);
-
 	a = heap_allocate ( alignedsize, true, NULL );
 #else	
 	a = heap_allocate ( sizeof(java_objectarray) + (size-1) * elementsize, 
