@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2138 2005-03-30 10:23:47Z twisti $
+   $Id: native.c 2151 2005-03-30 19:27:47Z twisti $
 
 */
 
@@ -90,7 +90,7 @@ void use_class_as_object(classinfo *c)
 
 		/* is the class linked */
 		if (!c->linked)
-			if (!class_link(c))
+			if (!link_class(c))
 				throw_exception_exit();
 
 		/*if (class_java_lang_Class ==0) panic("java/lang/Class not loaded in use_class_as_object");
@@ -137,60 +137,14 @@ struct nativeCompCall nativeCompCalls[NATIVECALLSSIZE];
 
 bool native_init(void)
 {
-	static int classesLoaded = 0; /*temporary hack JoWenn*/
 #if !defined(STATIC_CLASSPATH)
 	void *p;
-#endif
 
-	if (classesLoaded)
-		return true;
-
-	classesLoaded = 1;
-
-#if !defined(STATIC_CLASSPATH)
 	/* We need to access the dummy native table, not only to remove a warning */
 	/* but to be sure that the table is not optimized away (gcc does this     */
 	/* since 3.4).                                                            */
 	p = &dummynativetable;
 #endif
-
-	/* load classes for wrapping primitive types */
-
-	if (!class_load(class_java_lang_Void) ||
-		!class_link(class_java_lang_Void))
-		return false;
-
-	if (!class_load(class_java_lang_Boolean) ||
-		!class_link(class_java_lang_Boolean))
-		return false;
-
-	if (!class_load(class_java_lang_Byte) ||
-		!class_link(class_java_lang_Byte))
-		return false;
-
-	if (!class_load(class_java_lang_Character) ||
-		!class_link(class_java_lang_Character))
-		return false;
-
-	if (!class_load(class_java_lang_Short) ||
-		!class_link(class_java_lang_Short))
-		return false;
-
-	if (!class_load(class_java_lang_Integer) ||
-		!class_link(class_java_lang_Integer))
-		return false;
-
-	if (!class_load(class_java_lang_Long) ||
-		!class_link(class_java_lang_Long))
-		return false;
-
-	if (!class_load(class_java_lang_Float) ||
-		!class_link(class_java_lang_Float))
-		return false;
-
-	if (!class_load(class_java_lang_Double) ||
-		!class_link(class_java_lang_Double))
-		return false;
 
 	/* everything's ok */
 
