@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 723 2003-12-08 19:51:32Z edwin $
+   $Id: typeinfo.c 733 2003-12-12 17:29:40Z stefan $
 
 */
 
@@ -1096,6 +1096,7 @@ typeinfo_testrun(char *filename)
     int maxdim;
     int failed = 0;
     FILE *file = fopen(filename,"rt");
+	int res;
     
     if (!file)
         panic("could not open typeinfo test file");
@@ -1104,7 +1105,7 @@ typeinfo_testrun(char *filename)
         if (buf[0] == '#' || !strlen(buf))
             continue;
         
-        int res = sscanf(buf,"%s\t%s\t%s\n",bufa,bufb,bufc);
+        res = sscanf(buf,"%s\t%s\t%s\n",bufa,bufb,bufc);
         if (res != 3 || !strlen(bufa) || !strlen(bufb) || !strlen(bufc))
             panic("Invalid line in typeinfo test file (none of empty, comment or test)");
 

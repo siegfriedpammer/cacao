@@ -28,12 +28,13 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 730 2003-12-11 21:23:31Z edwin $
+   $Id: stack.c 733 2003-12-12 17:29:40Z stefan $
 
 */
 
 
 #include <stdio.h>
+#include <string.h>
 #include "stack.h"
 #include "global.h"
 #include "jit.h"
@@ -218,6 +219,7 @@ void analyse_stack()
 	basicblock *tbptr;
 	s4 *s4ptr;
 	void* *tptr;
+	int *argren;
 
 	if (compileverbose) {
 		char logtext[MAXLOGTEXT];
@@ -229,7 +231,7 @@ void analyse_stack()
 		log_text(logtext);
 	}
 
-	int *argren = DMNEW(int, maxlocals); 
+	argren = DMNEW(int, maxlocals); 
 	//int *argren = (int *)alloca(maxlocals * sizeof(int)); /* table for argument renaming */
 	for (i = 0; i < maxlocals; i++)
 		argren[i] = i;
