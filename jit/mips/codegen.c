@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1551 2004-11-19 14:38:04Z twisti $
+   $Id: codegen.c 1603 2004-11-29 09:56:45Z twisti $
 
 */
 
@@ -91,7 +91,7 @@ in the documention file: calling.doc
 
 /* #define REG_END   -1        last entry in tables */
  
-int nregdescint[] = {
+static int nregdescint[] = {
 	REG_RES, REG_RES, REG_RET, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
 	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
@@ -100,7 +100,7 @@ int nregdescint[] = {
 
 /* for use of reserved registers, see comment above */
 	
-int nregdescfloat[] = {
+static int nregdescfloat[] = {
 	REG_RET, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
 	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
 	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
@@ -115,6 +115,7 @@ int nregdescfloat[] = {
 
 #include "jit/codegen.inc"
 #include "jit/reg.inc"
+#include "jit/lsra.inc"
 
 
 /* NullPointerException handlers and exception handling initialisation        */
@@ -1846,15 +1847,20 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
 
-			/* if class isn't yet initialized, do it */
+			/* If the static fields' class is not yet initialized, we do it   */
+			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				/* call helper function which patches this code */
-				a = dseg_addaddress(cd, ((fieldinfo *) iptr->val.a)->class);
-				M_ALD(REG_ITMP1, REG_PV, a);
-				a = dseg_addaddress(cd, asm_check_clinit);
-				M_ALD(REG_ITMP3, REG_PV, a);
-				M_JSR(REG_RA, REG_ITMP3);
+				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr->val.a)->class);
 				M_NOP;
+				M_NOP;
+
+				/* This is just for debugging purposes. Is very difficult to  */
+				/* read patched code. Here we patch the following 2 nop's     */
+				/* so that the real code keeps untouched.                     */
+				if (showdisassemble) {
+					M_NOP;
+					M_NOP;
+				}
   			}
 
 			a = dseg_addaddress(cd, &(((fieldinfo *) iptr->val.a)->value));
@@ -1880,22 +1886,30 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				var_to_reg_flt(s2, src, REG_FTMP2);
 				M_DST(s2, REG_ITMP1, 0);
 				break;
-			default: panic ("internal error");
+			default:
+				throw_cacao_exception_exit(string_java_lang_InternalError,
+										   "Unknown PUTSTATIC operand type %d",
+										   iptr->op1);
 			}
 			break;
 
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
 
-			/* if class isn't yet initialized, do it */
+			/* If the static fields' class is not yet initialized, we do it   */
+			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				/* call helper function which patches this code */
-				a = dseg_addaddress(cd, ((fieldinfo *) iptr->val.a)->class);
-				M_ALD(REG_ITMP1, REG_PV, a);
-				a = dseg_addaddress(cd, asm_check_clinit);
-				M_ALD(REG_ITMP3, REG_PV, a);
-				M_JSR(REG_RA, REG_ITMP3);
+				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr->val.a)->class);
 				M_NOP;
+				M_NOP;
+
+				/* This is just for debugging purposes. Is very difficult to  */
+				/* read patched code. Here we patch the following 2 nop's     */
+				/* so that the real code keeps untouched.                     */
+				if (showdisassemble) {
+					M_NOP;
+					M_NOP;
+				}
   			}
 
 			a = dseg_addaddress(cd, &(((fieldinfo *) iptr->val.a)->value));
@@ -1926,7 +1940,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				M_DLD(d, REG_ITMP1, 0);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
-			default: panic ("internal error");
+			default:
+				throw_cacao_exception_exit(string_java_lang_InternalError,
+										   "Unknown GETSTATIC operand type %d",
+										   iptr->op1);
 			}
 			break;
 
@@ -1936,38 +1953,41 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			a = ((fieldinfo *)(iptr->val.a))->offset;
 			switch (iptr->op1) {
-				case TYPE_INT:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_int(s2, src, REG_ITMP2);
-					gen_nullptr_check(s1);
-					M_IST(s2, s1, a);
-					break;
-				case TYPE_LNG:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_int(s2, src, REG_ITMP2);
-					gen_nullptr_check(s1);
-					M_LST(s2, s1, a);
-					break;
-				case TYPE_ADR:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_int(s2, src, REG_ITMP2);
-					gen_nullptr_check(s1);
-					M_AST(s2, s1, a);
-					break;
-				case TYPE_FLT:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_flt(s2, src, REG_FTMP2);
-					gen_nullptr_check(s1);
-					M_FST(s2, s1, a);
-					break;
-				case TYPE_DBL:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_flt(s2, src, REG_FTMP2);
-					gen_nullptr_check(s1);
-					M_DST(s2, s1, a);
-					break;
-				default: panic ("internal error");
-				}
+			case TYPE_INT:
+				var_to_reg_int(s1, src->prev, REG_ITMP1);
+				var_to_reg_int(s2, src, REG_ITMP2);
+				gen_nullptr_check(s1);
+				M_IST(s2, s1, a);
+				break;
+			case TYPE_LNG:
+				var_to_reg_int(s1, src->prev, REG_ITMP1);
+				var_to_reg_int(s2, src, REG_ITMP2);
+				gen_nullptr_check(s1);
+				M_LST(s2, s1, a);
+				break;
+			case TYPE_ADR:
+				var_to_reg_int(s1, src->prev, REG_ITMP1);
+				var_to_reg_int(s2, src, REG_ITMP2);
+				gen_nullptr_check(s1);
+				M_AST(s2, s1, a);
+				break;
+			case TYPE_FLT:
+				var_to_reg_int(s1, src->prev, REG_ITMP1);
+				var_to_reg_flt(s2, src, REG_FTMP2);
+				gen_nullptr_check(s1);
+				M_FST(s2, s1, a);
+				break;
+			case TYPE_DBL:
+				var_to_reg_int(s1, src->prev, REG_ITMP1);
+				var_to_reg_flt(s2, src, REG_FTMP2);
+				gen_nullptr_check(s1);
+				M_DST(s2, s1, a);
+				break;
+			default:
+				throw_cacao_exception_exit(string_java_lang_InternalError,
+										   "Unknown PUTFIELD operand type %d",
+										   iptr->op1);
+			}
 			break;
 
 		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
@@ -1975,49 +1995,50 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			a = ((fieldinfo *)(iptr->val.a))->offset;
 			switch (iptr->op1) {
-				case TYPE_INT:
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-					gen_nullptr_check(s1);
-					M_ILD(d, s1, a);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_LNG:
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-					gen_nullptr_check(s1);
-					M_LLD(d, s1, a);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_ADR:
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-					gen_nullptr_check(s1);
-					M_ALD(d, s1, a);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_FLT:
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-					gen_nullptr_check(s1);
-					M_FLD(d, s1, a);
-					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				case TYPE_DBL:				
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-					gen_nullptr_check(s1);
-					M_DLD(d, s1, a);
-					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				default: panic ("internal error");
-				}
+			case TYPE_INT:
+				var_to_reg_int(s1, src, REG_ITMP1);
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				gen_nullptr_check(s1);
+				M_ILD(d, s1, a);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_LNG:
+				var_to_reg_int(s1, src, REG_ITMP1);
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				gen_nullptr_check(s1);
+				M_LLD(d, s1, a);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_ADR:
+				var_to_reg_int(s1, src, REG_ITMP1);
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				gen_nullptr_check(s1);
+				M_ALD(d, s1, a);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_FLT:
+				var_to_reg_int(s1, src, REG_ITMP1);
+				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				gen_nullptr_check(s1);
+				M_FLD(d, s1, a);
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			case TYPE_DBL:				
+				var_to_reg_int(s1, src, REG_ITMP1);
+				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				gen_nullptr_check(s1);
+				M_DLD(d, s1, a);
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			default:
+				throw_cacao_exception_exit(string_java_lang_InternalError,
+										   "Unknown GETFIELD operand type %d",
+										   iptr->op1);
+			}
 			break;
 
 
 		/* branch operations **************************************************/
-
-#define ALIGNCODENOP {if((int)((long)mcodeptr&7)){M_NOP;}}
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
@@ -3168,7 +3189,8 @@ afteractualcall:
 			break;
 
 		default:
-			error ("Unknown pseudo command: %d", iptr->opc);
+			throw_cacao_exception_exit(string_java_lang_InternalError,
+									   "Unknown ICMD %d", iptr->opc);
 	} /* switch */
 		
 	} /* for instruction */
@@ -3209,7 +3231,7 @@ afteractualcall:
 	{
 	/* generate bound check stubs */
 
-	s4 *xcodeptr = NULL;
+	s4        *xcodeptr = NULL;
 	branchref *bref;
 
 	for (bref = cd->xboundrefs; bref != NULL; bref = bref->next) {
@@ -3442,6 +3464,53 @@ afteractualcall:
 			M_NOP;
 		}
 	}
+
+
+	/* generate put/getstatic stub call code */
+
+	{
+		clinitref   *cref;
+		u4           mcode[2];
+		s4          *tmpmcodeptr;
+
+		for (cref = cd->clinitrefs; cref != NULL; cref = cref->next) {
+			/* Get machine code which is patched back in later. The call is   */
+			/* 2 instruction words long.                                      */
+			xcodeptr = (s4 *) (cd->mcodebase + cref->branchpos);
+
+			/* We need to split this, because an unaligned 8 byte read causes */
+			/* a SIGSEGV.                                                     */
+			mcode[0] = *xcodeptr;
+			mcode[1] = *(xcodeptr + 1);
+
+			/* patch in the call to call the following code (done at compile  */
+			/* time)                                                          */
+
+			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
+			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
+
+			M_BRS(tmpmcodeptr - (xcodeptr + 1));
+			M_NOP;
+
+			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
+
+			MCODECHECK(5);
+
+			/* move class pointer into REG_ITMP1                              */
+			a = dseg_addaddress(cd, cref->class);
+			M_ALD(REG_ITMP1, REG_PV, a);
+
+			/* move machine code into REG_ITMP2                               */
+			a = dseg_adds4(cd, mcode[1]);
+			a = dseg_adds4(cd, mcode[0]);
+			M_LLD(REG_ITMP2, REG_PV, a);
+
+			a = dseg_addaddress(cd, asm_check_clinit);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_JMP(REG_ITMP3);
+			M_NOP;
+		}
+	}
 	}
 
 	codegen_finish(m, cd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
@@ -3456,11 +3525,11 @@ afteractualcall:
 	
 *******************************************************************************/
 
-#define COMPSTUBSIZE 4
+#define COMPSTUB_SIZE    4
 
 u1 *createcompilerstub(methodinfo *m)
 {
-	u8 *s = CNEW(u8, COMPSTUBSIZE);     /* memory to hold the stub            */
+	u8 *s = CNEW(u8, COMPSTUB_SIZE);    /* memory to hold the stub            */
 	s4 *mcodeptr = (s4 *) s;            /* code generation pointer            */
 	
 	                                    /* code for the stub                  */
@@ -3477,7 +3546,7 @@ u1 *createcompilerstub(methodinfo *m)
 
 #if defined(STATISTICS)
 	if (opt_stat)
-		count_cstub_len += COMPSTUBSIZE * 8;
+		count_cstub_len += COMPSTUB_SIZE * 8;
 #endif
 
 	return (u1 *) s;
@@ -3492,7 +3561,7 @@ u1 *createcompilerstub(methodinfo *m)
 
 void removecompilerstub(u1 *stub)
 {
-	CFREE(stub, COMPSTUBSIZE * 8);
+	CFREE(stub, COMPSTUB_SIZE * 8);
 }
 
 
@@ -3503,16 +3572,18 @@ void removecompilerstub(u1 *stub)
 *******************************************************************************/
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#define NATIVESTUBSTACK       2
-#define NATIVESTUBTHREADEXTRA 5
+#define NATIVESTUB_STACK           2
+#define NATIVESTUB_THREAD_EXTRA    5
 #else
-#define NATIVESTUBSTACK       1
-#define NATIVESTUBTHREADEXTRA 1
+#define NATIVESTUB_STACK           1
+#define NATIVESTUB_THREAD_EXTRA    1
 #endif
 
-#define NATIVESTUBSIZE      (54 + 4 + NATIVESTUBTHREADEXTRA - 1)
-#define NATIVEVERBOSESIZE   (50 + 17)
-#define NATIVESTUBOFFSET    9
+#define NATIVESTUB_SIZE            (54 + 4 + NATIVESTUB_THREAD_EXTRA - 1)
+#define NATIVESTUB_STATIC_SIZE     5
+#define NATIVESTUB_VERBOSE_SIZE    (50 + 17)
+#define NATIVESTUB_OFFSET          10
+
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
@@ -3522,6 +3593,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	s4 stackframesize = 0;              /* size of stackframe if needed       */
 	s4 disp;
 	s4 stubsize;
+	codegendata  *cd;
 	registerdata *rd;
 	t_inlining_globals *id;
 	s4 dumpsize;
@@ -3532,6 +3604,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	/* setup registers before using it */
 	
+	cd = DNEW(codegendata);
 	rd = DNEW(registerdata);
 	id = DNEW(t_inlining_globals);
 
@@ -3540,45 +3613,52 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	descriptor2types(m);                /* set paramcount and paramtypes      */
 
-	stubsize = runverbose ? NATIVESTUBSIZE + NATIVEVERBOSESIZE : NATIVESTUBSIZE;
+	stubsize = NATIVESTUB_SIZE;         /* calculate nativestub size          */
+
+	if ((m->flags & ACC_STATIC) && !m->class->initialized)
+		stubsize += NATIVESTUB_STATIC_SIZE;
+
+	if (runverbose)
+		stubsize += NATIVESTUB_VERBOSE_SIZE;
+
 	s = CNEW(u8, stubsize);             /* memory to hold the stub            */
-	cs = s + NATIVESTUBOFFSET;
+	cs = s + NATIVESTUB_OFFSET;
 	mcodeptr = (s4 *) (cs);             /* code generation pointer            */
 
-	*(cs-1) = (u8) f;                   /* address of native method           */
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	*(cs-2) = (u8) &builtin_get_exceptionptrptr;
-#else
-	*(cs-2) = (u8) (&_exceptionptr);    /* address of exceptionptr            */
-#endif
-	*(cs-3) = (u8) asm_handle_nat_exception;/* addr of asm exception handler  */
-	*(cs-4) = (u8) (&env);              /* addr of jni_environement           */
- 	*(cs-5) = (u8) builtin_trace_args;
-	*(cs-6) = (u8) m;
- 	*(cs-7) = (u8) builtin_displaymethodstop;
-	*(cs-8) = (u8) m->class;
-	*(cs-9) = (u8) asm_check_clinit;
+	/* set some required varibles which are normally set by codegen_setup     */
+	cd->mcodebase = (u1 *) mcodeptr;
+	cd->clinitrefs = NULL;
 
-	M_LDA(REG_SP, REG_SP, -NATIVESTUBSTACK * 8); /* build up stackframe       */
+	*(cs-1)  = (u8) f;                  /* address of native method           */
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	*(cs-2)  = (u8) &builtin_get_exceptionptrptr;
+#else
+	*(cs-2)  = (u8) (&_exceptionptr);   /* address of exceptionptr            */
+#endif
+	*(cs-3)  = (u8) asm_handle_nat_exception;/* addr of asm exception handler */
+	*(cs-4)  = (u8) (&env);             /* addr of jni_environement           */
+ 	*(cs-5)  = (u8) builtin_trace_args;
+	*(cs-6)  = (u8) m;
+ 	*(cs-7)  = (u8) builtin_displaymethodstop;
+	*(cs-8)  = (u8) m->class;
+	*(cs-9)  = (u8) asm_check_clinit;
+	*(cs-10) = (u8) NULL;               /* filled with machine code           */
+
+	M_LDA(REG_SP, REG_SP, -NATIVESTUB_STACK * 8); /* build up stackframe      */
 	M_LST(REG_RA, REG_SP, 0);           /* store return address               */
 
 	/* if function is static, check for initialized */
 
-	if (m->flags & ACC_STATIC) {
-	/* if class isn't yet initialized, do it */
-		if (!m->class->initialized) {
-			/* call helper function which patches this code */
-			M_ALD(REG_ITMP1, REG_PV, -8 * 8);     /* class                    */
-			M_ALD(REG_ITMP3, REG_PV, -9 * 8);     /* asm_check_clinit         */
-			M_JSR(REG_RA, REG_ITMP3);
-			M_NOP;
-		}
+	if (m->flags & ACC_STATIC && !m->class->initialized) {
+		codegen_addclinitref(cd, mcodeptr, m->class);
+		M_NOP;
+		M_NOP;
 	}
 
 	/* max. 50 instructions */
 	if (runverbose) {
-		int p;
-		int t;
+		s4 p;
+		s4 t;
 
 		M_LDA(REG_SP, REG_SP, -(18 * 8));
 		M_AST(REG_RA, REG_SP, 1 * 8);
@@ -3780,15 +3860,21 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_JSR(REG_RA, REG_ITMP3);
 
 	/* delay slot */
-	if (IS_FLT_DBL_TYPE(m->returntype))
+	if (IS_FLT_DBL_TYPE(m->returntype)) {
 		M_DST(REG_FRESULT, REG_SP, 1 * 8);
-	else
+
+	} else {
 		M_AST(REG_RESULT, REG_SP, 1 * 8);
+	}
+
 	M_MOV(REG_RESULT, REG_ITMP3);
-	if (IS_FLT_DBL_TYPE(m->returntype))
+
+	if (IS_FLT_DBL_TYPE(m->returntype)) {
 		M_DLD(REG_FRESULT, REG_SP, 1 * 8);
-	else
+
+	} else {
 		M_ALD(REG_RESULT, REG_SP, 1 * 8);
+	}
 #else
 	M_ALD(REG_ITMP3, REG_PV, -2 * 8);   /* get address of exceptionptr        */
 #endif
@@ -3797,7 +3883,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_ALD(REG_ITMP1, REG_ITMP3, 0);     /* load exception into reg. itmp1     */
 
 	M_BNEZ(REG_ITMP1, 2);               /* if no exception then return        */
-	M_LDA(REG_SP, REG_SP, NATIVESTUBSTACK * 8);/*remove stackframe, delay slot*/
+	M_LDA(REG_SP, REG_SP, NATIVESTUB_STACK * 8);/*remove stackframe, delay slot*/
 
 	M_RET(REG_RA);                      /* return to caller                   */
 	M_NOP;                              /* delay slot                         */
@@ -3809,6 +3895,51 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_LDA(REG_ITMP2, REG_RA, -4);       /* move fault address into reg. itmp2 */
 	                                    /* delay slot                         */
 
+	/* generate static stub call code                                         */
+
+	{
+		s4          *xcodeptr;
+		clinitref   *cref;
+		u4           mcode[2];
+		s4          *tmpmcodeptr;
+
+		/* there can only be one clinit ref entry                             */
+		cref = cd->clinitrefs;
+
+		if (cref) {
+			/* Get machine code which is patched back in later. The call is   */
+			/* 2 instruction words long.                                      */
+			xcodeptr = (s4 *) (cd->mcodebase + cref->branchpos);
+
+			/* We need to split this, because an unaligned 8 byte read causes */
+			/* a SIGSEGV.                                                     */
+			mcode[0] = *xcodeptr;
+			mcode[1] = *(xcodeptr + 1);
+			*(cs-10) = *((u8 *) &mcode);
+
+			/* patch in the call to call the following code (done at compile  */
+			/* time)                                                          */
+
+			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
+			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
+
+			M_BRS(tmpmcodeptr - (xcodeptr + 1));
+			M_NOP;
+
+			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
+
+			/* move class pointer into REG_ITMP1                              */
+			M_ALD(REG_ITMP1, REG_PV, -8 * 8);     /* class                    */
+
+			/* move machine code into REG_ITMP2                               */
+			M_LLD(REG_ITMP2, REG_PV, -10 * 8);    /* machine code             */
+
+			M_ALD(REG_ITMP3, REG_PV, -9 * 8);     /* asm_check_clinit         */
+			M_JMP(REG_ITMP3);
+			M_NOP;
+		}
+	}
+
 	(void) docacheflush((void*) cs, (char*) mcodeptr - (char*) cs);
 
 #if 0
@@ -3818,14 +3949,14 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 #if defined(STATISTICS)
 	if (opt_stat)
-		count_nstub_len += NATIVESTUBSIZE * 8;
+		count_nstub_len += NATIVESTUB_SIZE * 8;
 #endif
 
 	/* release dump area */
 
 	dump_release(dumpsize);
 	
-	return (u1 *) (s + NATIVESTUBOFFSET);
+	return (u1 *) (s + NATIVESTUB_OFFSET);
 }
 
 
@@ -3837,7 +3968,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 void removenativestub(u1 *stub)
 {
-	CFREE((u8*) stub - NATIVESTUBOFFSET, NATIVESTUBSIZE * 8);
+	CFREE((u8 *) stub - NATIVESTUB_OFFSET, NATIVESTUB_SIZE * 8);
 }
 
 

@@ -27,13 +27,13 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1484 2004-11-11 14:40:48Z twisti $
+   $Id: asmpart.S 1603 2004-11-29 09:56:45Z twisti $
 
 */
 
 
 #include "config.h"
-#include "offsets.h"
+#include "jit/mips/offsets.h"
 
 
 #define zero    $0
@@ -791,11 +791,9 @@ ex_flt2:
     .ent    asm_check_clinit
 
 asm_check_clinit:
-	lw      itmp2,offclassinit(itmp1)
-	bnez    itmp2,L_is_initialized
-	
-	daddiu  sp,sp,-22*8
-	sd      ra,0*8(sp)
+	daddiu  sp,sp,-23*8
+
+	sd      ra,0*8(sp)            /* save return address                      */
 
 	sd      a0,1*8(sp)            /* save argument registers for leaf funcs   */
 	sd      a1,2*8(sp)
@@ -821,10 +819,33 @@ asm_check_clinit:
 	sdc1    fa6,20*8(sp)
 	sdc1    fa7,21*8(sp)
 
-	move    a0,itmp1
+	sd      itmp2,22*8(sp)        /* save machine code                        */
+
+	                              /* check if class is initialized            */
+	lw      itmp3,offclassinit(itmp1)
+	bnez    itmp3,L_is_initialized
+	
+	move    a0,itmp1              /* move class pointer to a0                 */
 	jal     class_init
 		
-	ld      ra,0*8(sp)
+	beqz    v0,L_initializererror
+
+L_is_initialized:
+#if 0
+	ld      ra,0*8(sp)            /* get return address                       */
+	ld      itmp1,22*8(sp)        /* get machine code                         */
+
+	daddiu  ra,ra,-2*4            /* go back 2 instructions (jal + nop delay) */
+	sw      itmp1,0(ra)           /* patch first instruction                  */
+	dsrl32  itmp1,itmp1,0         /* get high 32 bit                          */
+	sw      itmp1,4(ra)           /* patch second instruction                 */
+
+	move    a0,ra                 /* start of flush area                      */
+	addiu   a1,zero,2*4           /* 2 instruction words long                 */
+	jal     docacheflush          /* flush!                                   */
+#endif
+	
+	ld      ra,0*8(sp)            /* restore return address                   */
 
 	ld      a0,1*8(sp)            /* restore argument registers               */
 	ld      a1,2*8(sp)
@@ -850,36 +871,46 @@ asm_check_clinit:
 	ldc1    fa6,20*8(sp)
 	ldc1    fa7,21*8(sp)
 
-	daddiu  sp,sp,22*8
+	daddiu  sp,sp,23*8
 
-	beqz    v0,L_initializererror
-
-L_is_initialized:
-#if 0
-	move    itmp1,ra              /* now patch the calling code               */
-	daddiu  itmp1,itmp1,-4*4      /* go back 4 instructions                   */
-	lui     itmp2,0x1000          /* b                                        */
-	daddiu  itmp2,itmp2,3         /* jump over 3 instructions                 */
-	sw      itmp2,0(itmp1)        /* store the new branch: br +3              */
-	sw      zero,4(itmp1)         /* and a nop delay slot                     */
-#endif
-
-	j       ra
+	jr      ra
 
 L_initializererror:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	daddiu  sp,sp,-1*8
-	sd      ra,0*8(sp)
 	jal     builtin_asm_get_exceptionptrptr
-	ld      ra,0*8(sp)
-	daddiu  sp,sp,1*8
+#else
+	la      v0,_exceptionptr
+#endif
 	ld      xptr,0(v0)            /* get the exception pointer                */
 	sd      zero,0(v0)            /* clear the exception pointer              */
-#else
-	la      itmp3,_exceptionptr
-	ld      xptr,0(itmp3)
-	sd      zero,0(itmp3)
-#endif
+
+	ld      ra,0*8(sp)            /* restore return address                   */
+
+	ld      a0,1*8(sp)            /* restore argument registers               */
+	ld      a1,2*8(sp)
+	ld      a2,3*8(sp)
+	ld      a3,4*8(sp)
+	ld      a4,5*8(sp)
+	ld      a5,6*8(sp)
+	ld      a6,7*8(sp)
+	ld      a7,8*8(sp)
+
+	ld      t0,9*8(sp)
+	ld      t1,10*8(sp)
+	ld      t2,11*8(sp)
+	ld      t3,12*8(sp)
+	ld      t8,13*8(sp)
+
+	ldc1    fa0,14*8(sp)
+	ldc1    fa1,15*8(sp)
+	ldc1    fa2,16*8(sp)
+	ldc1    fa3,17*8(sp)
+	ldc1    fa4,18*8(sp)
+	ldc1    fa5,19*8(sp)
+	ldc1    fa6,20*8(sp)
+	ldc1    fa7,21*8(sp)
+
+	daddiu  sp,sp,23*8
 
 	aaddiu  xpc,ra,-4             /* faulting address is return adress - 4    */
 	b       asm_handle_exception
