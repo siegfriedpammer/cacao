@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1435 2004-11-05 09:48:33Z twisti $
+   $Id: exceptions.c 1441 2004-11-05 13:44:03Z twisti $
 
 */
 
@@ -514,6 +514,25 @@ java_objectheader *new_arrayindexoutofboundsexception(s4 index)
 
 	e = new_exception_javastring(string_java_lang_ArrayIndexOutOfBoundsException,
 								 s);
+
+	if (!e)
+		return *exceptionptr;
+
+	return e;
+}
+
+
+/* new_arraystoreexception *****************************************************
+
+   generates a java.lang.ArrayStoreException for the jit compiler
+
+*******************************************************************************/
+
+java_objectheader *new_arraystoreexception()
+{
+	java_objectheader *e;
+
+	e = new_exception(string_java_lang_ArrayStoreException);
 
 	if (!e)
 		return *exceptionptr;

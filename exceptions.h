@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 1435 2004-11-05 09:48:33Z twisti $
+   $Id: exceptions.h 1441 2004-11-05 13:44:03Z twisti $
 
 */
 
@@ -128,6 +128,7 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, char *message,
 
 java_objectheader *new_arithmeticexception();
 java_objectheader *new_arrayindexoutofboundsexception(s4 index);
+java_objectheader *new_arraystoreexception();
 java_objectheader *new_classcastexception();
 java_objectheader *new_negativearraysizeexception();
 java_objectheader *new_nullpointerexception();
