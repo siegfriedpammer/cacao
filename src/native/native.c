@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1888 2005-01-27 21:04:09Z motse $
+   $Id: native.c 1920 2005-02-10 10:10:32Z twisti $
 
 */
 
@@ -67,6 +67,7 @@
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
@@ -84,18 +85,8 @@
 #include "nativetable.inc"
 
 
-/* for java-string to char conversion */
-#define MAXSTRINGSIZE 1000                          
-
-
 /******************** systemclasses required for native methods ***************/
 
-classinfo *class_java_lang_Class;
-classinfo *class_java_lang_VMClass;
-classinfo *class_java_lang_System;
-classinfo *class_java_lang_ClassLoader;
-classinfo *class_gnu_java_lang_SystemClassLoader;
-classinfo *class_java_lang_SecurityManager;
 classinfo *class_java_lang_Double;
 classinfo *class_java_lang_Float;
 classinfo *class_java_lang_Long;
@@ -111,11 +102,6 @@ methodinfo *method_vmclass_init;
 
 /* the system classloader object */
 struct java_lang_ClassLoader *SystemClassLoader = NULL;
-
-/* for raising exceptions from native methods */
-#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
-java_objectheader* _exceptionptr = NULL;
-#endif
 
 
 /** Create a new ProtectionDomain object for a classpath_info structure. 
@@ -368,24 +354,20 @@ static struct nativeCall nativeCalls[] =
 
 struct nativeCompCall nativeCompCalls[NATIVECALLSSIZE];
 
-/******************************************************************************/
 
-/**include "natcalls.h" **/
+/* native_loadclasses **********************************************************
 
-
-/*********************** function: native_loadclasses **************************
-
-	load classes required for native methods	
+   Load classes required for native methods.
 
 *******************************************************************************/
 
-void native_loadclasses()
+bool native_init(void)
 {
 	static int classesLoaded = 0; /*temporary hack JoWenn*/
 	void *p;
 
 	if (classesLoaded)
-		return;
+		return true;
 
 	classesLoaded = 1;
 
@@ -396,83 +378,47 @@ void native_loadclasses()
 	p = &dummynativetable;
 #endif
 
-	class_java_lang_Cloneable =
-		class_new(utf_new_char("java/lang/Cloneable"));
-	class_load(class_java_lang_Cloneable);
-	class_link(class_java_lang_Cloneable);
-
-	class_java_lang_Class =
-		class_new(utf_new_char("java/lang/Class"));
-	class_load(class_java_lang_Class);
-	class_link(class_java_lang_Class);
-
-	class_java_lang_VMClass =
-		class_new(utf_new_char("java/lang/VMClass"));
-	class_load(class_java_lang_VMClass);
-	class_link(class_java_lang_VMClass);
-
-	class_java_lang_ClassLoader =
-		class_new(utf_new_char("java/lang/ClassLoader"));
-	class_load(class_java_lang_ClassLoader);
-	class_link(class_java_lang_ClassLoader);
-
 	/* load classes for wrapping primitive types */
-	class_java_lang_Double = class_new(utf_new_char("java/lang/Double"));
-	class_load(class_java_lang_Double);
-	class_link(class_java_lang_Double);
 
-	class_java_lang_Float =	class_new(utf_new_char("java/lang/Float"));
-	class_load(class_java_lang_Float);
-	class_link(class_java_lang_Float);
+	if (!class_load(class_java_lang_Void) ||
+		!class_link(class_java_lang_Void))
+		return false;
 
-	class_java_lang_Character =	class_new(utf_new_char("java/lang/Character"));
-	class_load(class_java_lang_Character);
-	class_link(class_java_lang_Character);
+	if (!class_load(class_java_lang_Boolean) ||
+		!class_link(class_java_lang_Boolean))
+		return false;
 
-	class_java_lang_Integer = class_new(utf_new_char("java/lang/Integer"));
-	class_load(class_java_lang_Integer);
-	class_link(class_java_lang_Integer);
+	if (!class_load(class_java_lang_Byte) ||
+		!class_link(class_java_lang_Byte))
+		return false;
 
-	class_java_lang_Long = class_new(utf_new_char("java/lang/Long"));
-	class_load(class_java_lang_Long);
-	class_link(class_java_lang_Long);
+	if (!class_load(class_java_lang_Character) ||
+		!class_link(class_java_lang_Character))
+		return false;
 
-	class_java_lang_Byte = class_new(utf_new_char("java/lang/Byte"));
-	class_load(class_java_lang_Byte);
-	class_link(class_java_lang_Byte);
+	if (!class_load(class_java_lang_Short) ||
+		!class_link(class_java_lang_Short))
+		return false;
 
-	class_java_lang_Short = class_new(utf_new_char("java/lang/Short"));
-	class_load(class_java_lang_Short);
-	class_link(class_java_lang_Short);
+	if (!class_load(class_java_lang_Integer) ||
+		!class_link(class_java_lang_Integer))
+		return false;
 
-	class_java_lang_Boolean = class_new(utf_new_char("java/lang/Boolean"));
-	class_load(class_java_lang_Boolean);
-	class_link(class_java_lang_Boolean);
+	if (!class_load(class_java_lang_Long) ||
+		!class_link(class_java_lang_Long))
+		return false;
 
-	class_java_lang_Void = class_new(utf_new_char("java/lang/Void"));
-	class_load(class_java_lang_Void);
-	class_link(class_java_lang_Void);
-}
+	if (!class_load(class_java_lang_Float) ||
+		!class_link(class_java_lang_Float))
+		return false;
 
+	if (!class_load(class_java_lang_Double) ||
+		!class_link(class_java_lang_Double))
+		return false;
 
-/*****************************************************************************
+	/* everything's ok */
 
-	create systemclassloader object and initialize instance fields  
-
-******************************************************************************/
-
-void init_systemclassloader() 
-{
-	if (!SystemClassLoader) {
-		native_loadclasses();
-
-		/* create object and call initializer */
-  		SystemClassLoader = (java_lang_ClassLoader *) native_new_and_init(class_new(utf_new_char("gnu/java/lang/SystemClassLoader")));
-
-		/* systemclassloader has no parent */
-		SystemClassLoader->parent      = NULL;
-		SystemClassLoader->initialized = true;
-	}
+	return true;
 }
 
 
@@ -595,132 +541,6 @@ functionptr native_findfunction(utf *cname, utf *mname,
 }
 
 
-/********************** function: javastring_new *******************************
-
-	creates a new object of type java/lang/String with the text of 
-	the specified utf8-string
-
-	return: pointer to the string or NULL if memory is exhausted.	
-
-*******************************************************************************/
-
-java_lang_String *javastring_new(utf *u)
-{
-	char *utf_ptr;                  /* current utf character in utf string    */
-	u4 utflength;                   /* length of utf-string if uncompressed   */
-	java_lang_String *s;		    /* result-string                          */
-	java_chararray *a;
-	s4 i;
-
-	if (!u) {
-		*exceptionptr = new_nullpointerexception();
-		return NULL;
-	}
-
-	utf_ptr = u->text;
-	utflength = utf_strlen(u);
-
-	s = (java_lang_String *) builtin_new(class_java_lang_String);
-	a = builtin_newarray_char(utflength);
-
-	/* javastring or character-array could not be created */
-	if (!a || !s)
-		return NULL;
-
-	/* decompress utf-string */
-	for (i = 0; i < utflength; i++)
-		a->data[i] = utf_nextu2(&utf_ptr);
-	
-	/* set fields of the javastring-object */
-	s->value  = a;
-	s->offset = 0;
-	s->count  = utflength;
-
-	return s;
-}
-
-
-/********************** function: javastring_new_char **************************
-
-	creates a new java/lang/String object which contains the convertet
-	C-string passed via text.
-
-	return: the object pointer or NULL if memory is exhausted.
-
-*******************************************************************************/
-
-java_lang_String *javastring_new_char(const char *text)
-{
-	s4 i;
-	s4 len;                /* length of the string */
-	java_lang_String *s;   /* result-string */
-	java_chararray *a;
-
-	if (!text) {
-		*exceptionptr = new_nullpointerexception();
-		return NULL;
-	}
-
-	len = strlen(text);
-
-	s = (java_lang_String *) builtin_new(class_java_lang_String);
-	a = builtin_newarray_char(len);
-
-	/* javastring or character-array could not be created */
-	if (!a || !s)
-		return NULL;
-
-	/* copy text */
-	for (i = 0; i < len; i++)
-		a->data[i] = text[i];
-	
-	/* set fields of the javastring-object */
-	s->value  = a;
-	s->offset = 0;
-	s->count  = len;
-
-	return s;
-}
-
-
-/************************* function javastring_tochar **************************
-
-	converts a Java string into a C string.
-	
-	return: pointer to C string
-	
-	Caution: every call of this function overwrites the previous string !!!
-	
-*******************************************************************************/
-
-static char stringbuffer[MAXSTRINGSIZE];
-
-char *javastring_tochar(java_objectheader *so) 
-{
-	java_lang_String *s = (java_lang_String *) so;
-	java_chararray *a;
-	s4 i;
-	
-	if (!s)
-		return "";
-
-	a = s->value;
-
-	if (!a)
-		return "";
-
-	if (s->count > MAXSTRINGSIZE)
-		return "";
-
-	for (i = 0; i < s->count; i++)
-		stringbuffer[i] = a->data[s->offset + i];
-
-	stringbuffer[i] = '\0';
-
-	return stringbuffer;
-}
-
-
 /****************** function class_findfield_approx ****************************
 	
 	searches in 'classinfo'-structure for a field with the
@@ -762,10 +582,10 @@ s4 class_findfield_index_approx(classinfo *c, utf *name)
 }
 
 
-/********************** function: native_new_and_init *************************
+/* native_new_and_init *********************************************************
 
-	Creates a new object on the heap and calls the initializer.
-	Returns the object pointer or NULL if memory is exhausted.
+   Creates a new object on the heap and calls the initializer.
+   Returns the object pointer or NULL if memory is exhausted.
 			
 *******************************************************************************/
 
@@ -786,7 +606,7 @@ java_objectheader *native_new_and_init(classinfo *c)
 
 	/* find initializer */
 
-	m = class_findmethod(c, utf_new_char("<init>"), utf_new_char("()V"));
+	m = class_findmethod(c, utf_init, utf_void__void);
 	                      	                      
 	/* initializer not found */
 
@@ -819,8 +639,8 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 	/* find initializer */
 
 	m = class_resolveclassmethod(c,
-								 utf_new_char("<init>"),
-								 utf_new_char("(Ljava/lang/String;)V"),
+								 utf_init,
+								 utf_java_lang_String__void,
 								 NULL,
 								 true);
 
@@ -854,13 +674,10 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 
 	/* find initializer */
 
-	m = class_resolveclassmethod(c,
-								 utf_new_char("<init>"),
-								 utf_new_char("(I)V"),
-								 NULL,
-								 true);
+	m = class_resolveclassmethod(c, utf_init, utf_int__void, NULL, true);
 
-	/* initializer not found  */	                      	                      
+	/* initializer not found  */
+
 	if (!m)
 		return NULL;
 
@@ -889,9 +706,7 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 
 	/* find initializer */
 
-	m = class_findmethod(c,
-						 utf_new_char("<init>"),
-						 utf_new_char("(Ljava/lang/Throwable;)V"));
+	m = class_findmethod(c, utf_init, utf_java_lang_Throwable__void);
 	                      	                      
 	/* initializer not found */
 
@@ -903,359 +718,6 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 	asm_calljavafunction(m, o, t, NULL, NULL);
 
 	return o;
-}
-
-
-/******************** function: stringtable_update ****************************
-
-	traverses the javastring hashtable and sets the vftbl-entries of
-	javastrings which were temporarily set to NULL, because	
-	java.lang.Object was not yet loaded
-
-*******************************************************************************/
- 
-void stringtable_update ()
-{
-	java_lang_String *js;   
-	java_chararray *a;
-	literalstring *s;	/* hashtable entry */
-	int i;
-
-	for (i = 0; i < string_hash.size; i++) {
-		s = string_hash.ptr[i];
-		if (s) {
-			while (s) {
-								
-				js = (java_lang_String *) s->string;
-				
-				if (!js || !js->value) 
-					/* error in hashtable found */
-					panic("invalid literalstring in hashtable");
-
-				a = js->value;
-
-				if (!js->header.vftbl) 
-					/* vftbl of javastring is NULL */ 
-					js->header.vftbl = class_java_lang_String->vftbl;
-
-				if (!a->header.objheader.vftbl) 
-					/* vftbl of character-array is NULL */ 
-					a->header.objheader.vftbl = primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
-
-				/* follow link in external hash chain */
-				s = s->hashlink;
-			}	
-		}		
-	}
-}
-
-
-/************************* function: u2_utflength ***************************
-
-	returns the utf length in bytes of a u2 array 
-
-*****************************************************************************/
-
-u4 u2_utflength(u2 *text, u4 u2_length)
-{
-	u4 result_len =  0;  /* utf length in bytes  */
-	u2 ch;               /* current unicode character */
-	u4 len;
-	
-	for (len = 0; len < u2_length; len++) {
-		/* next unicode character */
-		ch = *text++;
-	  
-		/* determine bytes required to store unicode character as utf */
-		if (ch && (ch < 0x80)) 
-			result_len++;
-		else if (ch < 0x800)
-			result_len += 2;	
-		else 
-			result_len += 3;	
-	}
-
-    return result_len;
-}
-
-
-/********************* function: utf_new_u2 ***********************************
-
-	make utf symbol from u2 array, 
-	if isclassname is true '.' is replaced by '/'
-
-*******************************************************************************/
-
-utf *utf_new_u2(u2 *unicode_pos, u4 unicode_length, bool isclassname)
-{
-	char *buffer; /* memory buffer for  unicode characters */
-	char *pos;    /* pointer to current position in buffer */
-	u4 left;      /* unicode characters left */
-	u4 buflength; /* utf length in bytes of the u2 array  */
-	utf *result;  /* resulting utf-string */
-	int i;    	
-
-	/* determine utf length in bytes and allocate memory */
-	/* printf("utf_new_u2: unicode_length=%d\n",unicode_length);    	*/
-	buflength = u2_utflength(unicode_pos, unicode_length); 
-	buffer    = MNEW(char, buflength);
- 
-	left = buflength;
-	pos  = buffer;
-
-	for (i = 0; i++ < unicode_length; unicode_pos++) {
-		/* next unicode character */
-		u2 c = *unicode_pos;
-		
-		if ((c != 0) && (c < 0x80)) {
-			/* 1 character */	
-			left--;
-	    	if ((int) left < 0) break;
-			/* convert classname */
-			if (isclassname && c == '.')
-				*pos++ = '/';
-			else
-				*pos++ = (char) c;
-
-		} else if (c < 0x800) { 	    
-			/* 2 characters */				
-	    	unsigned char high = c >> 6;
-	    	unsigned char low  = c & 0x3F;
-			left = left - 2;
-	    	if ((int) left < 0) break;
-	    	*pos++ = high | 0xC0; 
-	    	*pos++ = low  | 0x80;	  
-
-		} else {	 
-	    	/* 3 characters */				
-	    	char low  = c & 0x3f;
-	    	char mid  = (c >> 6) & 0x3F;
-	    	char high = c >> 12;
-			left = left - 3;
-	    	if ((int) left < 0) break;
-	    	*pos++ = high | 0xE0; 
-	    	*pos++ = mid  | 0x80;  
-	    	*pos++ = low  | 0x80;   
-		}
-	}
-	
-	/* insert utf-string into symbol-table */
-	result = utf_new(buffer,buflength);
-
-	MFREE(buffer, char, buflength);
-
-	return result;
-}
-
-
-/********************* function: javastring_toutf *****************************
-
-	make utf symbol from javastring
-
-*******************************************************************************/
-
-utf *javastring_toutf(java_lang_String *string, bool isclassname)
-{
-	java_lang_String *str = (java_lang_String *) string;
-
-/*  	printf("javastring_toutf offset: %d, len %d\n",str->offset, str->count); */
-/*  	fflush(stdout); */
-
-	return utf_new_u2(str->value->data + str->offset, str->count, isclassname);
-}
-
-
-/********************* function: literalstring_u2 *****************************
-
-    searches for the javastring with the specified u2-array in 
-    the string hashtable, if there is no such string a new one is 
-    created 
-
-    if copymode is true a copy of the u2-array is made
-
-*******************************************************************************/
-
-java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
-									bool copymode)
-{
-    literalstring *s;                /* hashtable element */
-    java_lang_String *js;            /* u2-array wrapped in javastring */
-    java_chararray *stringdata;      /* copy of u2-array */      
-    u4 key;
-    u4 slot;
-    u2 i;
-
-/* #define DEBUG_LITERALSTRING_U2 */
-#ifdef DEBUG_LITERALSTRING_U2
-    printf("literalstring_u2: length=%d, offset=%d\n", length, offset);
-	fflush(stdout);
-#endif
-    
-    /* find location in hashtable */
-    key  = unicode_hashkey(a->data + offset, length);
-    slot = key & (string_hash.size - 1);
-    s    = string_hash.ptr[slot];
-
-    while (s) {
-		js = (java_lang_String *) s->string;
-
-		if (length == js->count) {
-			/* compare text */
-			for (i = 0; i < length; i++) {
-				if (a->data[offset + i] != js->value->data[i])
-					goto nomatch;
-			}
-
-			/* string already in hashtable, free memory */
-			if (!copymode)
-				mem_free(a, sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10);
-
-#ifdef DEBUG_LITERALSTRING_U2
-			printf("literalstring_u2: foundentry at %p\n", js);
-			utf_display(javastring_toutf(js, 0));
-			printf("\n\n");
-			fflush(stdout);
-#endif
-			return (java_objectheader *) js;
-		}
-
-	nomatch:
-		/* follow link in external hash chain */
-		s = s->hashlink;
-    }
-
-    if (copymode) {
-		/* create copy of u2-array for new javastring */
-		u4 arraysize = sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10;
-		stringdata = mem_alloc(arraysize);
-/*    		memcpy(stringdata, a, arraysize); */
-  		memcpy(&(stringdata->header), &(a->header), sizeof(java_arrayheader));
-  		memcpy(&(stringdata->data), &(a->data) + offset, sizeof(u2) * (length - 1) + 10);
-
-    } else {
-		stringdata = a;
-	}
-
-    /* location in hashtable found, complete arrayheader */
-    stringdata->header.objheader.vftbl = primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
-    stringdata->header.size = length;
-
-	/* if we use eager loading, we have to check loaded String class */
-	if (opt_eager) {
-		class_java_lang_String =
-			class_new_intern(utf_new_char("java/lang/String"));
-
-		if (!class_load(class_java_lang_String))
-			return NULL;
-
-		list_addfirst(&unlinkedclasses, class_java_lang_String);
-	}
-
-	/* create new javastring */
-	js = NEW(java_lang_String);
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initObjectLock(&js->header);
-#endif
-	js->header.vftbl = class_java_lang_String->vftbl;
-	js->value  = stringdata;
-	js->offset = 0;
-	js->count  = length;
-
-#ifdef DEBUG_LITERALSTRING_U2
-	printf("literalstring_u2: newly created at %p\n", js);
-	utf_display(javastring_toutf(js, 0));
-	printf("\n\n");
-	fflush(stdout);
-#endif
-			
-	/* create new literalstring */
-	s = NEW(literalstring);
-	s->hashlink = string_hash.ptr[slot];
-	s->string   = (java_objectheader *) js;
-	string_hash.ptr[slot] = s;
-
-	/* update number of hashtable entries */
-	string_hash.entries++;
-
-	/* reorganization of hashtable */       
-	if (string_hash.entries > (string_hash.size * 2)) {
-		/* reorganization of hashtable, average length of 
-		   the external chains is approx. 2                */  
-
-		u4 i;
-		literalstring *s;
-		hashtable newhash; /* the new hashtable */
-      
-		/* create new hashtable, double the size */
-		init_hashtable(&newhash, string_hash.size * 2);
-		newhash.entries = string_hash.entries;
-      
-		/* transfer elements to new hashtable */
-		for (i = 0; i < string_hash.size; i++) {
-			s = string_hash.ptr[i];
-			while (s) {
-				literalstring *nexts = s->hashlink;
-				js   = (java_lang_String *) s->string;
-				slot = unicode_hashkey(js->value->data, js->count) & (newhash.size - 1);
-	  
-				s->hashlink = newhash.ptr[slot];
-				newhash.ptr[slot] = s;
-	
-				/* follow link in external hash chain */  
-				s = nexts;
-			}
-		}
-	
-		/* dispose old table */	
-		MFREE(string_hash.ptr, void*, string_hash.size);
-		string_hash = newhash;
-	}
-
-	return (java_objectheader *) js;
-}
-
-
-/******************** Function: literalstring_new *****************************
-
-    creates a new javastring with the text of the utf-symbol
-    and inserts it into the string hashtable
-
-*******************************************************************************/
-
-java_objectheader *literalstring_new(utf *u)
-{
-    char *utf_ptr = u->text;         /* pointer to current unicode character in utf string */
-    u4 utflength  = utf_strlen(u);   /* length of utf-string if uncompressed */
-    java_chararray *a;               /* u2-array constructed from utf string */
-    u4 i;
-
-    /* allocate memory */ 
-    a = mem_alloc(sizeof(java_chararray) + sizeof(u2) * (utflength - 1) + 10);
-
-    /* convert utf-string to u2-array */
-    for (i = 0; i < utflength; i++)
-		a->data[i] = utf_nextu2(&utf_ptr);
-
-    return literalstring_u2(a, utflength, 0, false);
-}
-
-
-/********************** function: literalstring_free **************************
-
-        removes a javastring from memory		       
-
-******************************************************************************/
-
-void literalstring_free(java_objectheader* sobj)
-{
-	java_lang_String *s = (java_lang_String *) sobj;
-	java_chararray *a = s->value;
-
-	/* dispose memory of java.lang.String object */
-	FREE(s, java_lang_String);
-
-	/* dispose memory of java-characterarray */
-	FREE(a, sizeof(java_chararray) + sizeof(u2) * (a->header.size - 1)); /* +10 ?? */
 }
 
 
