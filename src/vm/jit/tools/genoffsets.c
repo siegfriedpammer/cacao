@@ -1,4 +1,4 @@
-/* vm/jit/tools/genoffsets.c - generate asmpart offsets of structures
+/* src/vm/jit/tools/genoffsets.c - generate asmpart offsets of structures
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,19 +28,21 @@
 
    Changes:
 
-   $Id: genoffsets.c 2181 2005-04-01 16:53:33Z edwin $
+   $Id: genoffsets.c 2208 2005-04-04 09:31:17Z twisti $
 
 */
 
 
 #include <stdio.h>
 
+#include "types.h"
 #include "vm/global.h"
 #include "mm/memory.h"
 #include "vm/linker.h"
 #include "vm/method.h"
 #include "vm/class.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/stacktrace.h"
 
 
 int main(int argc, char **argv)
