@@ -2,16 +2,16 @@
 
 \subsection{Introduction}
 
-The AMD64 architecture, formerly know as x86\_64, is an improvement of
-the Intel IA32 architecture by AMD -- Advanced Micro Devices. The
-extraordinary success of the IA32 architecture and the upcoming memory
-address space problem on IA32 high-end servers, led to a special
-design decision. Unlike Intel, with it's completely new designed IA64
-architecture, AMD decided to extend the IA32 instruction set with
-new 64-bit instructions.
+The AMD64~\cite{AMD64} architecture, formerly know as x86\_64, is an
+improvement of the Intel IA32 architecture by AMD---Advanced Micro
+Devices~\cite{AMD}. The extraordinary success of the IA32 architecture
+and the upcoming memory address space problem on IA32 high-end
+servers, led to a special design decision by AMD. Unlike Intel, with
+it's completely new designed 64-bit architecture---IA64---AMD decided
+to extend the IA32 instruction set with new a 64-bit instruction mode.
 
-Due to the fact that the IA32 instructions have no fixed length, as
-this is the fact on RISC machines, it was easy for them to introduce a
+Due to the fact that the IA32 instructions have no fixed length, like
+this is the fact on RISC machines, it was easy for AMD to introduce a
 new \textit{prefix byte} called \texttt{REX}. The \textit{REX prefix}
 enables the 64-bit operation mode of the following instruction in the
 new \textit{64-bit mode} of the processor.
@@ -39,22 +39,23 @@ coexistent operating modes:
 The \textit{64-bit Mode} exposes the power of this architecture. Any
 memory operation now uses 64-bit addresses and ALU instructions can
 operate on 64-bit operands. Within \textit{Compatibility Mode} any
-IA32 software can be run under the control of 64-bit operation
+IA32 software can be run under the control of 64-bit operating
 system. This, as mentioned before, is yet another point for companies
 to change their hardware to AMD64. So their software can be slowly
-migrated to the new 64-bit system, but not every type of software is
-faster in 64-bit code.
+migrated to the new 64-bit systems, but not every type of software is
+faster in 64-bit code. Any memory address fetched or stored into
+memory needs to transfer now 64-bits instead of 32-bits. This means
+twice as much memory transfer as on IA32 machines.
 
-Another crucial pointer to make the AMD64 architecture faster than
-IA32, is the limited number of registers. Any IA32 architecture, from
-the early \textit{i386} to the newest generation of \textit{Intel
-Pentium 4} or \textit{AMD Athlon}, has only 8 general-purpose
-registers. With the \textit{REX prefix}, AMD has the ability to
-increase the amount of accessible registers by 1 bit. This means in
-\textit{64-bit Mode} 16 general-purpose registers are available. The
-value of a \textit{REX prefix} is in the range \texttt{40h} through
-\texttt{4Fh}, depending on the particular bits used (see table
-\ref{REX}).
+Another crucial point to make the AMD64 architecture faster than IA32,
+is the limited number of registers. Any IA32 architecture, from the
+early \textit{i386} to the newest generation of \textit{Intel Pentium
+4} or \textit{AMD Athlon}, has only 8 general-purpose registers. With
+the \textit{REX prefix}, AMD has the ability to increase the amount of
+accessible registers by 1 bit. This means in \textit{64-bit Mode} 16
+general-purpose registers are available. The value of a \textit{REX
+prefix} is in the range \texttt{40h} through \texttt{4Fh}, depending
+on the particular bits used (see table \ref{REX}).
 
 \begin{table}
 \begin{center}
@@ -88,9 +89,9 @@ implementation of the IA32 ICMDs.
 Much better code generation can be achieved in the area of
 \textit{long arithmetic}. Since all 16 general-purpose registers can
 hold 64-bit integer values, there is no need for special long
-handling, like on IA32 were we stored all long varibales in memory. A
-simple \texttt{ICMD\_LADD} on IA32, best case shown for AMD64 ---
-\texttt{src->regoff == iptr->dst->regoff}:
+handling, like on IA32 were we stored all long varibales in memory. As
+example a simple \texttt{ICMD\_LADD} on IA32, best case shown for
+AMD64 --- \texttt{src->regoff == iptr->dst->regoff}:
 
 \begin{verbatim}
         i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
@@ -101,10 +102,11 @@ simple \texttt{ICMD\_LADD} on IA32, best case shown for AMD64 ---
 
 First memory operand is added to second memory operand which is at the
 same stack location as the destination operand. This means, there are
-four instructions executed for one long addition. If we would use
-registers for long variables we could get a \textit{best-case} of two
-instructions, namely \textit{add} followed by an \textit{adc}. On
-AMD64 we can generate one instruction for this addition:
+four instructions executed for one \texttt{long} addition. If we would
+use registers for \texttt{long} variables we could get a
+\textit{best-case} of two instructions, namely \textit{add} followed
+by an \textit{adc}. On AMD64 we can generate one instruction for this
+addition:
 
 \begin{verbatim}
         x86_64_alu_reg_reg(X86_64_ADD, src->prev->regoff, iptr->dst->regoff);
@@ -112,20 +114,20 @@ AMD64 we can generate one instruction for this addition:
 
 This means, the AMD64 port is \textit{four-times} faster than the IA32
 port (maybe even more, because we do not use memory accesses). Even if
-we would implement the usage of registers for long variables on IA32,
-the AMD64 port would be at least twice as fast.
+we would implement the usage of registers for \texttt{long} variables
+on IA32, the AMD64 port would be at least twice as fast.
 
 To be able to use the new 64-bit instructions, we need to prefix
-nearly all instructions --- some instructions can be used in 64-bit
-mode without escaping --- with the mentioned \textit{REX prefix}
+nearly all instructions---some instructions can be used in their
+64-bit mode without escaping---with the mentioned \textit{REX prefix}
 byte. In CACAO we use a macro called
 
 \begin{verbatim}
         x86_64_emit_rex(size,reg,index,rm)
 \end{verbatim}
 
-The names of the arguments are respective to their use in the
-\textit{REX prefix} (see table \ref{REX}).
+to emit this byte. The names of the arguments are respective to their
+usage in the \textit{REX prefix} itself (see table \ref{REX}).
 
 The AMD64 architecture introduces also a new addressing method called
 \textit{RIP-relative addressing}. In 64-bit mode, addressing relative
@@ -175,8 +177,8 @@ mode in the code generating macro
 
 and generate the \textit{RIP-relative addressing} code. As shown in
 the code sample, it's an special encoding of the \textit{address byte}
-mit the \texttt{mod} field set to zero and \texttt{RBP}
-(\texttt{\%rbp}) as baseregister.
+with \texttt{mod} field set to zero and \texttt{RBP} (\texttt{\%rbp})
+as baseregister.
 
 
 \subsection{Constant handling}
@@ -187,9 +189,9 @@ registers. The 64-bit extensions of the AMD64 architecture can also
 load 64-bit immediates inline. So loading a \texttt{long} constant
 just uses one instruction, despite of two instructions on the IA32
 architecture. Of course the AMD64 code generator uses the \textit{move
-long} (\texttt{movl}) instruction to load 32-bit \texttt{int} constants
-to minimize code size. This instruction clears the upper 32-bit of the
-destination register.
+long} (\texttt{movl}) instruction to load 32-bit \texttt{int}
+constants to minimize code size. The \texttt{movl} instruction clears
+the upper 32-bit of the destination register.
 
 \begin{verbatim}
         case ICMD_ICONST:
@@ -210,9 +212,10 @@ instruction with \textit{RIP-relative addressing}.
 
 \subsection{Calling conventions}
 
-The AMD64 calling conventions are described here \ref{}. CACAO uses a
-subset of this calling convention, to cover its requirements. CACAO
-just needs to pass the JAVA data types, no other special features. The
+The AMD64 calling conventions are described here
+\cite{AMD64ABI}. CACAO uses a subset of this calling convention, to
+cover its requirements. CACAO just needs to pass the JAVA data types
+to called functions, no other special features are required. The byte
 sizes of the JAVA data types on the AMD64 port are shown in table
 \ref{javadatatypesizes}.
 
@@ -260,27 +263,28 @@ Register       & Argument Register \\ \hline
 \end{table}
 
 As on RISC machines, the remaining integer arguments are passed on the
-stack. Each integer argument, regardless of which size, uses 8 bytes
-on the stack.
+stack. Each integer argument, regardless of which integer JAVA data
+type, uses 8 bytes on the stack.
 
-Integer return values of any size are stored in \texttt{REG\_RESULT},
-which is \texttt{\%rax}.
+Integer return values of any integer JAVA data type are stored in
+\texttt{REG\_RESULT}, which is \texttt{\%rax}.
 
-\subsubsection{Floating point arguments}
+\subsubsection{Floating-point arguments}
 
 The AMD64 architecture has 8 floating point argument registers, namely
 \texttt{\%xmm0} through \texttt{\%xmm7}. \texttt{\%xmm} registers are
 128-bit wide floating point registers on which SSE and SSE2
 instructions can operate. Remaining floating point arguments are
-passed, like with integer arguments, on the stack using 8 bytes per
-argument.
+passed, like integer arguments, on the stack using 8 bytes per
+argument, regardless to the floating-point JAVA data type.
 
-Floating point return values are stored in \texttt{\%xmm0}.
+Floating point return values of any floating-point JAVA data type are
+stored in \texttt{\%xmm0}.
 
 As shown, the calling conventions for the AMD64 architecture are
-nearly the same as for RISC machines, which allows to use CACAOs
-\textit{register allocator algorithm} and \textit{stack space
-allocation algorithm} without any changes.
+similar to the calling conventions of RISC machines, which allows to
+use CACAOs \textit{register allocator algorithm} and \textit{stack
+space allocation algorithm} without any changes.
 
 Calling native functions means register moves and stack copying like
 on RISC machines. This depends on the count of the arguments used for
@@ -293,19 +297,19 @@ the current objects' class is passed in the 2$^{\rm nd}$ integer
 argument register. This means that the integer argument registers need
 to be shifted by two registers.
 
-One difference of the calling convention to RISC type machines, like
-Alpha or MIPS, is the usage of integer and floating point argument
-registers with mixed integer and floating point arguments. Assume a
-function like this:
+One difference of the AMD64 calling conventions to RISC type machines,
+like Alpha or MIPS, is the allocation of integer and floating point
+argument registers with mixed integer and floating point
+arguments. Assume a function like this:
 
 \begin{verbatim}
         void sub(int a, float b, long c, double d);
 \end{verbatim}
 
 On a RISC machine, like Alpha, we would have an argument register
-usage like in figure \ref{alphaargumentregisterusage}. \texttt{a?}
-represent integer argument registers and \texttt{fa?} floating point
-argument registers.
+allocation like in figure \ref{alphaargumentregisterusage}.
+\texttt{a?} represent integer argument registers and \texttt{fa?}
+floating point argument registers.
 
 \begin{figure}[htb]
 \begin{center}
@@ -353,29 +357,31 @@ analysis and some changes in the code generator itself.
 
 As mentioned in the introduction, the AMD64 architecture has 16
 general-purpose registers and 16 floating-point registers. One
-general-purpose register is reserved for the \textit{stack pointer}
---- namely \texttt{\%rsp} --- and thus cannot be used for arithmetic
-instructions. The register usage as used in CACAO is shown in table
-\ref{amd64registerusage}.
+general-purpose register is reserved for the \textit{stack
+pointer}---namely \texttt{\%rsp}---and thus cannot be used for
+arithmetic instructions. The register usage as used in CACAO is shown
+in table \ref{amd64registerusage}.
 
 \begin{table}
 \begin{center}
 \begin{tabular}{l|l|l}
-Register       & Usage                                        & Callee-saved \\ \hline
-\texttt{\%rax} & return register, reserved for code generator & no           \\
-\texttt{\%rcx} & 4$^{\rm th}$ argument register               & no           \\
-\texttt{\%rdx} & 3$^{\rm rd}$ argument register               & no           \\
-\texttt{\%rbx} & temporary register                           & no           \\
-\texttt{\%rsp} & stack pointer                                & yes          \\
-\texttt{\%rbp} & callee-saved register                        & yes          \\
-\texttt{\%rsi} & 2$^{\rm nd}$ argument register               & no           \\
-\texttt{\%rdi} & 1$^{\rm st}$ argument register               & no           \\
-\texttt{\%r8}  & 5$^{\rm th}$ argument register               & no           \\
-\texttt{\%r9}  & 6$^{\rm th}$ argument register               & no           \\
-\texttt{\%r10}-\texttt{\%r11} & reserved for code generator   & no           \\
-\texttt{\%r12}-\texttt{\%r15} & callee-saved register         & yes          \\
-\texttt{\%xmm0}-\texttt{\%xmm7} & argument registers          & no           \\
-\texttt{\%xmm8}-\texttt{\%xmm15} & temporary registers        & no           \\
+Register       & Usage                                         & Callee-saved \\ \hline
+\texttt{\%rax} & return register, reserved for code generator  & no           \\
+\texttt{\%rcx} & 4$^{\rm th}$ argument register                & no           \\
+\texttt{\%rdx} & 3$^{\rm rd}$ argument register                & no           \\
+\texttt{\%rbx} & temporary register                            & no           \\
+\texttt{\%rsp} & stack pointer                                 & yes          \\
+\texttt{\%rbp} & callee-saved register                         & yes          \\
+\texttt{\%rsi} & 2$^{\rm nd}$ argument register                & no           \\
+\texttt{\%rdi} & 1$^{\rm st}$ argument register                & no           \\
+\texttt{\%r8}  & 5$^{\rm th}$ argument register                & no           \\
+\texttt{\%r9}  & 6$^{\rm th}$ argument register                & no           \\
+\texttt{\%r10}-\texttt{\%r11} & reserved for code generator    & no           \\
+\texttt{\%r12}-\texttt{\%r15} & callee-saved register          & yes          \\
+\texttt{\%xmm0} & 1$^{\rm st}$ argument register, return register & no        \\
+\texttt{\%xmm1}-\texttt{\%xmm7} & argument registers           & no           \\
+\texttt{\%xmm8}-\texttt{\%xmm10} & reserved for code generator & no           \\
+\texttt{\%xmm11}-\texttt{\%xmm15} & temporary registers        & no           \\
 \end{tabular}
 \caption{AMD64 Register usage in CACAO}
 \label{amd64registerusage}
@@ -383,9 +389,12 @@ Register       & Usage                                        & Callee-saved \\ 
 \end{table}
 
 There is only one change to the original AMD64 \textit{application
-binary interface} --- ABI. CACAO uses \texttt{\%rbx} as temporary
+binary interface} (ABI). CACAO uses \texttt{\%rbx} as temporary
 register, while the AMD64 ABI uses the \texttt{\%rbx} register as
-callee-saved register.
+callee-saved register. So CACAO needs to save the \texttt{\%rbx}
+register when a JAVA method is called from a native function, like a
+JNI function. This is done in \texttt{asm\_calljavafunction} located in
+\texttt{jit/x86\_64/asmpart.S}.
 
 In adapting the register allocator there was a problem concerning the
 order of the integer argument registers. The order of the first four
@@ -415,15 +424,123 @@ array. This is done by a simple code sequence (taken from
 \end{verbatim}
 
 
-\subsection{Floating point arithmetic}
+\subsection{Floating-point arithmetic}
 
-The AMD64 architecture has implemented two sets of floating point instructions:
+The AMD64 architecture has implemented two sets of floating-point
+instructions:
 
 \begin{itemize}
-\item old i387 (x87)
-\item SSE and SSE2
+\item x87 (i387)
+\item SSE/SSE2
 \end{itemize}
 
-The x87 \textit{floating point unit} (FPU) implementation is
-completely compatible to the IA32 implementation with all its
-advantages and drawbacks, like the FPU stack.
+The x87 \textit{floating-point unit} (FPU) implementation is
+completely compatible to the IA32 implementation, since the i386 with
+its i387 coproccessor, with all the advantages and drawbacks, like the
+8 slot FPU stack.
+
+The SSE/SSE2 technique is taken from the newest generation of Intel
+processors, introduced with Intel's Pentium 4, and can process scalar
+32-bit \texttt{float} values and scalar 64-bit \texttt{double} values
+in the 128-bit wide \texttt{xmm} floating-point registers. While SSE
+instructions operate on 32-bit \texttt{float} values, SSE2 is
+responsible for 64-bit \texttt{double} values. In CACAO we implemented
+the JAVA floating-point instructions using SSE/SSE2, because SSE/SSE2
+is much easier to use and should be the technique of the future. In
+some areas SSE/SSE2 is slower than the old x87 implementation, even on
+the new designed AMD64 architecture, but SSE/SSE2 offers 16
+floating-point registers, which should speed up daily JAVA
+floating-point calculations. Another big advantage of SSE/SSE2 to x87
+is the missing \textit{single-double precision-rounding} problem, as
+described in detail in the ``IA32 code generator'' section. With
+SSE/SSE2 the 32-bit \texttt{float} and 64-bit \texttt{double}
+arithmetic is calculated and rounded completely IEEE 754 compliant, so
+no further adjustments need to take place to fullfil JAVAs
+floating-point requirements.
+
+In floating-point value to integer value conversions a JVM has to
+check for corner cases as described in the JVM specification. This is
+done via a simple inline integer compare of the integer result value
+and a call to special assembler wrapper functions for builtin calls,
+like \texttt{asm\_builtin\_f2i} for \texttt{ICMD\_F2I} ---
+\texttt{float} to \texttt{int} conversion. These corner cases are then
+computed in a builtin C function with respect to all special cases
+like \textit{Infinite} or \textit{NaN} values.
+
+
+\subsection{Exception handling}
+
+Since the AMD64 architecture is just an extension to the IA32
+architecture, an AMD64 processor itself raises the same signals as an
+IA32 processor, so we can catch the same signals in our own signal
+handlers. This includes the signals \texttt{SIGSEGV} and
+\texttt{SIGFPE}.
+
+When a signal of this type is raised and the signal hits our signal
+handler, we reinstall the handler, create a new exception object and
+jump to a---in assembler---written exception handling code. The
+difference to the exception handling code of RISC machines, is the
+fact that RISC machines have a \textit{procedure vector} (PV)
+register. So it's easy to find the methods' data segment, which starts
+at the PV growing down to smaller addresses like a stack. For the IA32
+and AMD64 architecture we had to implement a \textit{method tree}
+which contains the start \textit{program counter} (PC) and the end PC
+for every single JAVA method compiled in CACAO, to find for any
+exception PC the corresponding method and thus the PV. We need the
+data segment for the methods' exception table (for a detailed
+description see section ''Exception handling'').
+
+We use \texttt{SIGSEGV} for \textit{hardware null-pointer checking},
+so we can handle this common exception as fast as possible in
+CACAO. The signal handler creates a
+\texttt{java.lang.NullPointerException}.
+
+\texttt{SIGFPE} is used to catch integer division by zero exceptions
+in hardware. The signal handler generates a
+\texttt{java.lang.ArithmeticException} with \texttt{/ by zero} as detail
+message.
+
+Both exceptions are handled in hardware by default, but they can also
+be catched in software when using CACAOs commandline switch
+\texttt{-softnull}. On the RISC ports only the \textit{null-pointer
+exception} is checked in software when using this switch, but on IA32
+and AMD64 both are checked, \texttt{SIGSEGV} and \texttt{SIGFPE}.
+
+
+\subsection{Related work}
+
+The AMD64 architecture is a reasonably young architecture, released in
+April 2003. At the writing of this document the only available 64-bit
+operating systems for AMD64 are GNU/Linux---from different
+distributors---, FreeBSD, NetBSD and OpenBSD. Microsoft Windows is not
+available yet, although it was announced to be released in the first
+half of 2004.
+
+The first available 64-bit JVM for the AMD64 architecture was GCC's
+GCJ---The GNU Compiler for the Java Programming
+Language~\cite{GCJ}. \texttt{gcj} itself is a portable, optimizing,
+ahead-of-time compiler for the JAVA Programming Language, which can
+compile:
+
+\begin{itemize}
+\item JAVA source code directly to native machine code
+\item JAVA source code to JAVA bytecode (class files)
+\item JAVA bytecode to native machine code
+\end{itemize}
+
+One part of the GCJ is \texttt{gij}, which is the JVM
+interpreter. Much of the porting effort for the \textit{GNU Compiler
+Collection} to the AMD64 architecture was done by people working at
+SUSE~\cite{SUSE}.
+
+Long time no AMD64 JIT was available, till Sun~\cite{Sun} released
+their AMD64 version of J2SE 1.4.2-rc1 for GNU/Linux by
+Blackdown~\cite{Blackdown} in December 2003. At this time our AMD64
+JIT was already working for months, but we were not able to release
+CACAO, because of the common status of CACAO to be a compliant
+JVM. The Sun JVM uses the HotSpot Server VM by default, the HotSpot
+Client VM is not available for AMD64 at this time.
+
+The Kaffe~\cite{Wilkinson:97} JVM has ported their interpreter to the
+AMD64 architecture for GNU/Linux, but they still have no plans to port
+their JIT.
