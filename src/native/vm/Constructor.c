@@ -1,3 +1,4 @@
+#include "helpers.h"
 /* class: java/lang/reflect/Constructor */
 
 
@@ -13,29 +14,41 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
 #warning fix me for parameters float/double and long long  parameters
 
 	methodinfo *m;
-        java_objectheader *o = builtin_new (clazz);         /*          create object */
+        java_objectheader *o;
 
         
 /*	log_text("Java_java_lang_reflect_Constructor_constructNative called");
-        utf_display(((struct classinfo*)clazz)->name);
-        printf("\n");*/
-        if (!o) return NULL;
-        
-/*	printf("o!=NULL\n");*/
+        utf_display(((struct classinfo*)clazz)->name);*/
+        printf("\n");
+
         /* find initializer */
 
 	if (!parameters) {
 		if (this->parameterTypes->header.size!=0) {
-			log_text("Parameter count mismatch in Java_java_lang_reflect_Constructor_constructNative");
+			log_text("Parameter count mismatch in Java_java_lang_reflect_Constructor_constructNative(1)");
 #warning throw an exception here
 			return 0;
 		}
 	} else
 	if (this->parameterTypes->header.size!=parameters->header.size) {
-		log_text("Parameter count mismatch in Java_java_lang_reflect_Constructor_constructNative");
+		log_text("Parameter count mismatch in Java_java_lang_reflect_Constructor_constructNative(2)");
 #warning throw an exception here
 		return 0;
 	}
+
+	if (this->slot>=((classinfo*)clazz)->methodscount) {
+		log_text("illegal index in methods table");
+		return 0;
+	}
+
+	o = builtin_new (clazz);         /*          create object */
+        if (!o) {
+		log_text("Objet instance could not be created");
+		return NULL;
+	}
+        
+/*	log_text("o!=NULL\n");*/
+
 
         m = &((classinfo*)clazz)->methods[this->slot];
 	if (!((m->name == utf_new_char("<init>")) && 
@@ -53,6 +66,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
                 return o;
                 }
 
+/*	log_text("calling initializer");*/
         /* call initializer */
 
 	switch (this->parameterTypes->header.size) {
@@ -77,5 +91,9 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
  * Signature: ()I
  */
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiers (JNIEnv *env ,  struct java_lang_reflect_Constructor* this ) {
-	return (this->flag);
+	log_text("Java_java_lang_reflect_Constructor_getModifiers called");
+        classinfo *c=(classinfo*)(this->clazz);
+        if ((this->slot<0) || (this->slot>=c->methodscount))
+                panic("error illegal slot for method in class (getReturnType)");
+        return (c->methods[this->slot]).flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED);
 }

@@ -1,3 +1,4 @@
+#include "helpers.h"
 /* class: java/lang/reflect/Method */
 
 /*
@@ -7,9 +8,16 @@
  */
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Method_getModifiers (JNIEnv *env ,  struct java_lang_reflect_Method* this )
 {
-	log_text("Java_java_lang_reflect_Method_getModifiers called");
-	return 0;
+	/*log_text("Java_java_lang_reflect_Method_getModifiers called");*/
+	classinfo *c=(classinfo*)(this->declaringClass);
+	if ((this->slot<0) || (this->slot>=c->methodscount))
+		panic("error illegal slot for method in class (getReturnType)");
+	return (c->methods[this->slot]).flags &
+                  (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_ABSTRACT | ACC_STATIC | ACC_FINAL |
+                   ACC_SYNCHRONIZED | ACC_NATIVE | ACC_STRICT);
+
 }
+
 /*
  * Class:     java_lang_reflect_Method
  * Method:    getReturnType
@@ -17,8 +25,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Method_getModifiers (JNIEnv *env ,  
  */
 JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_reflect_Method_getReturnType (JNIEnv *env ,  struct java_lang_reflect_Method* this )
 {
-	log_text("Java_java_lang_reflect_Method_gerReturnType called");
-	return 0;
+/*	log_text("Java_java_lang_reflect_Method_getReturnType called");*/
+	classinfo *c=(classinfo*)(this->declaringClass);
+	if ((this->slot<0) || (this->slot>=c->methodscount))
+		panic("error illegal slot for method in class (getReturnType)");
+	return get_returntype(&(c->methods[this->slot]));
 
 }
 
@@ -29,8 +40,11 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_reflect_Method_getRetur
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getParameterTypes (JNIEnv *env ,  struct java_lang_reflect_Method* this )
 {
-	log_text("Java_java_lang_reflect_Method_getParameterTypes called");
-	return 0;
+/*	log_text("Java_java_lang_reflect_Method_getParameterTypes called");*/
+	classinfo *c=(classinfo*)(this->declaringClass);
+	if ((this->slot<0) || (this->slot>=c->methodscount))
+		panic("error illegal slot for method in class(getParameterTypes)");
+	return get_parametertypes(&(c->methods[this->slot]));
 }
 
 /*
@@ -39,8 +53,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getParameterTy
  * Signature: ()[Ljava/lang/Class;
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTypes (JNIEnv *env ,  struct java_lang_reflect_Method* this ) {
-	log_text("Java_java_lang_reflect_Method_getExceptionTypes called");
-	return 0;
+	java_objectarray *exceptiontypes;
+/*	log_text("Java_java_lang_reflect_Method_getExceptionTypes called");	*/
+            /* array of exceptions declared to be thrown, information not available !! */
+            exceptiontypes = builtin_anewarray (0, class_java_lang_Class);
+	return exceptiontypes;
 
 }
 /*

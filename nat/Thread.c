@@ -151,6 +151,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_start ( JNIEnv *env ,  struct java_
 {
   if (runverbose) 
     log_text ("java_lang_Thread_start called");
+    /*printf("THREAD PRIORITY: %d\n",this->priority);*/
 
   #ifdef USE_THREADS
 	startThread((thread*)this);

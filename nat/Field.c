@@ -20,7 +20,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Field_get ( JN
   /* The fieldid is used to retrieve the value, for primitive types a new 
      object for wrapping the primitive type is created.  */
   if (st || obj)
-    switch (this->slot) {
+    switch ((((struct classinfo*)this->declaringClass)->fields[this->slot]).descriptor->text[0]) {
       case 'I' : {
       		   /* create wrapping class */
 	           c = class_java_lang_Integer;
@@ -326,7 +326,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set ( JNIEnv *env ,  struct 
 
     /* The fieldid is used to set the new value, for primitive types the value
        has to be retrieved from the wrapping object */  
-    switch (this->slot) {
+    switch ((((struct classinfo*)this->declaringClass)->fields[this->slot]).descriptor->text[0]) {
       case 'I' : {
       		   /* illegal argument specified */
 	           if (c != class_java_lang_Integer) break;
@@ -627,8 +627,10 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort ( JNIEnv *env ,  st
  */
 JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType (JNIEnv *env ,  struct java_lang_reflect_Field* this )
 {
-	log_text("Java_java_lang_reflect_Field_getType");
-	return 0;
+/*	log_text("Java_java_lang_reflect_Field_getType");*/
+	utf *desc=(((struct classinfo*)this->declaringClass)->fields[this->slot]).descriptor;
+	if (!desc) return NULL;
+	return class_from_descriptor(desc->text,utf_end(desc),NULL,true);
 }
 
 
@@ -639,6 +641,6 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType (
  */
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getModifiers (JNIEnv *env ,  struct java_lang_reflect_Field* this ) 
 {
-	log_text("Java_java_lang_reflect_Field_getType");
-	return 0;
+/*	log_text("Java_java_lang_reflect_Field_getType");*/
+	return (((struct classinfo*)this->declaringClass)->fields[this->slot]).flags;
 }

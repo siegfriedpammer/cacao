@@ -282,16 +282,16 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
     utf *utf_constr=utf_new_char("<init>");
 
 
-    /*
+    
     log_text("Java_java_lang_VMClass_getDeclaredConstructors");
     utf_display(c->name);
     printf("\n");
-    */
+    class_showmethods(c);
 
 
     /* determine number of constructors */
     for (i = 0; i < c->methodscount; i++) 
-	if ((((c->methods[i].flags & ACC_PUBLIC)) || public_only) && 
+	if ((((c->methods[i].flags & ACC_PUBLIC)) || (!public_only)) && 
 		(c->methods[i].name==utf_constr)) public_methods++;
 
     class_constructor = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Constructor"));
@@ -317,9 +317,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 
 /*	    class_showconstantpool(class_constructor);*/
 	    /* initialize instance fields */
-	    ((java_lang_reflect_Constructor*)o)->flag=(m->flags & (ACC_PRIVATE | ACC_PUBLIC | ACC_PROTECTED));
+/*	    ((java_lang_reflect_Constructor*)o)->flag=(m->flags & (ACC_PRIVATE | ACC_PUBLIC | ACC_PROTECTED));*/
 	    setfield_critical(class_constructor,o,"clazz",          "Ljava/lang/Class;",  jobject, (jobject) c /*this*/);
 	    setfield_critical(class_constructor,o,"slot",           "I",		     jint,    i); 
+/*	    setfield_critical(class_constructor,o,"flag",           "I",		     jint,    (m->flags & (ACC_PRIVATE | 
+			ACC_PUBLIC | ACC_PROTECTED))); */
 	    setfield_critical(class_constructor,o,"exceptionTypes", "[Ljava/lang/Class;", jobject, (jobject) exceptiontypes);
     	    setfield_critical(class_constructor,o,"parameterTypes", "[Ljava/lang/Class;", jobject, (jobject) get_parametertypes(m));
         }	     
@@ -427,19 +429,23 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_java_lang_VMClass_getFiel
     java_lang_reflect_Field *o; /* result: field-object */
     utf *desc;			/* the fielddescriptor */
     char buffer[MAXSTRINGSIZE];
-    
+    int idx;
     /* create Field object */
     c = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Field"));
     o = (java_lang_reflect_Field*) native_new_and_init(c);
 
     /* get fieldinfo entry */
-    f = class_findfield_approx((classinfo*) (this->vmData), javastring_toutf(name, false));
-
+    idx = class_findfield_index_approx((classinfo*) (this->vmData), javastring_toutf(name, false));
+    if (idx<0) {
+	    exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
+	    return NULL;
+	}
+    f= &(((struct classinfo*)(this->vmData))->fields[idx]);
     if (f) {
 
 	if ( public_only && !(f->flags & ACC_PUBLIC))
 	{
-	    /* field is not public */
+	    /* field is not public  and public only had been requested*/
 	    exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
 	    return NULL;
 	}
@@ -449,12 +455,13 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_java_lang_VMClass_getFiel
       if (!fieldtype) return NULL;
 	 
       /* initialize instance fields */
-      setfield_critical(c,o,"clazz",          "Ljava/lang/Class;",  jobject, (jobject) (this->vmData) /*this*/);
-      setfield_critical(c,o,"modifiers",      "I",		    jint,    f->flags);
+      setfield_critical(c,o,"declaringClass",          "Ljava/lang/Class;",  jobject, (jobject) (this->vmData) /*this*/);
+/*      ((java_lang_reflect_Field*)(o))->flag=f->flags;*/
       /* save type in slot-field for faster processing */
-      setfield_critical(c,o,"slot",           "I",		    jint,    (jint) f->descriptor->text[0]);  
+/*      setfield_critical(c,o,"flag",           "I",		    jint,    (jint) f->flags);  */
+      setfield_critical(c,o,"slot",           "I",		    jint,    (jint) idx);  
       setfield_critical(c,o,"name",           "Ljava/lang/String;", jstring, (jstring) name);
-      setfield_critical(c,o,"type",           "Ljava/lang/Class;",  jclass,  fieldtype);
+      /*setfield_critical(c,o,"type",           "Ljava/lang/Class;",  jclass,  fieldtype);*/
 
       return o;
     }
@@ -589,13 +596,17 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods (J
 
     /* determine number of methods */
     for (i = 0; i < c->methodscount; i++) 
-	if (((c->methods[i].flags & ACC_PUBLIC)) || public_only) public_methods++;
+	if (((c->methods[i].flags & ACC_PUBLIC)) || (!public_only)) public_methods++;
 
     class_method = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Method"));
-
+/*	
+    class_showmethods(class_method);
+    panic("JOWENN");
+*/
     if (!class_method) 
 	return NULL;
     
+
     array_method = builtin_anewarray(public_methods, class_method);
 
     if (!array_method) 
@@ -611,14 +622,21 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods (J
 	    /* array of exceptions declared to be thrown, information not available !! */
 	    exceptiontypes = builtin_anewarray (0, class_java_lang_Class);
 
+
 	    /* initialize instance fields */
-	    setfield_critical(class_method,o,"clazz",          "Ljava/lang/Class;",  jobject, (jobject) c /*this*/);
+/*	    ((java_lang_reflect_Method*)o)->flag=(m->flags & 
+		(ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_ABSTRACT | ACC_STATIC | ACC_FINAL |
+			ACC_SYNCHRONIZED | ACC_NATIVE | ACC_STRICT)
+	    );*/
+	    setfield_critical(class_method,o,"declaringClass",          "Ljava/lang/Class;",  jobject, (jobject) c /*this*/);
 	    setfield_critical(class_method,o,"name",           "Ljava/lang/String;", jstring, javastring_new(m->name));
-	    setfield_critical(class_method,o,"flag",      "I",		     jint,    m->flags);
+/*	    setfield_critical(class_method,o,"flag",      "I",		     jint,   (m->flags &
+					(ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_ABSTRACT | ACC_STATIC | ACC_FINAL |
+                        		ACC_SYNCHRONIZED | ACC_NATIVE | ACC_STRICT)));*/
 	    setfield_critical(class_method,o,"slot",           "I",		     jint,    i); 
-	    setfield_critical(class_method,o,"returnType",     "Ljava/lang/Class;",  jclass,  get_returntype(m));
+/*	    setfield_critical(class_method,o,"returnType",     "Ljava/lang/Class;",  jclass,  get_returntype(m));
 	    setfield_critical(class_method,o,"exceptionTypes", "[Ljava/lang/Class;", jobject, (jobject) exceptiontypes);
-    	    setfield_critical(class_method,o,"parameterTypes", "[Ljava/lang/Class;", jobject, (jobject) get_parametertypes(m));
+    	    setfield_critical(class_method,o,"parameterTypes", "[Ljava/lang/Class;", jobject, (jobject) get_parametertypes(m));*/
         }	     
 
     return array_method;
@@ -715,7 +733,13 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom ( JNIEnv *env ,  st
 {
 #warning fixme
 	log_text("Java_java_lang_VMClass_isAssignableFrom");
- 	return (*env)->IsAssignableForm(env, (jclass) this, (jclass) sup->vmClass);
+	if (!this) return 0;
+	if (!sup) return 0;
+	if (!sup->vmClass) {
+		panic("sup->vmClass is NULL in VMClass.isAssignableFrom");
+		return 0;
+	}
+ 	return (*env)->IsAssignableForm(env, (jclass) (this->vmData), (jclass) sup/*->vmClass*/);
 }
 
 /*
