@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 728 2003-12-11 11:11:05Z edwin $
+   $Id: builtin.h 819 2003-12-31 14:07:20Z twisti $
 
 */
 
@@ -48,6 +48,26 @@
 #define DBL_NAN     0x7ff8000000000000LL
 #define DBL_POSINF  0x7ff0000000000000LL
 #define DBL_NEGINF  0xfff0000000000000LL
+
+
+/* some platforms do not have float versions of these functions */
+
+#ifndef HAVE_COPYSIGNF
+#define copysignf copysign
+#endif
+
+#ifndef HAVE_FINITEF
+#define finitef finite
+#endif
+
+#ifndef HAVE_FMODF
+#define fmodf fmod
+#endif
+
+#ifndef HAVE_ISNANF
+#define isnanf isnan
+#endif
+
 
 /**********************************************************************/
 /* BUILTIN FUNCTIONS TABLE                                            */
