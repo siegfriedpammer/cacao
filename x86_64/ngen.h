@@ -11,7 +11,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: ngen.h 389 2003-07-10 21:08:11Z twisti $
+    Last Change: $Id: ngen.h 393 2003-07-29 08:49:20Z twisti $
 
 *******************************************************************************/
 
@@ -483,6 +483,15 @@ static const unsigned char x86_64_jcc_map[] = {
 
 #define x86_64_mov_memindex_reg(disp,basereg,indexreg,scale,reg) \
     do { \
+        x86_64_emit_rex(1,(basereg),(indexreg)); \
+        *(mcodeptr++) = (u1) 0x8b; \
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define x86_64_movl_memindex_reg(disp,basereg,indexreg,scale,reg) \
+    do { \
+        x86_64_emit_rex(0,(basereg),(indexreg)); \
         *(mcodeptr++) = (u1) 0x8b; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
     } while (0)
@@ -490,6 +499,7 @@ static const unsigned char x86_64_jcc_map[] = {
 
 #define x86_64_movw_memindex_reg(disp,basereg,indexreg,scale,reg) \
     do { \
+        x86_64_emit_rex(0,(basereg),(indexreg)); \
         *(mcodeptr++) = (u1) 0x66; \
         *(mcodeptr++) = (u1) 0x8b; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
@@ -498,6 +508,7 @@ static const unsigned char x86_64_jcc_map[] = {
 
 #define x86_64_movb_memindex_reg(disp,basereg,indexreg,scale,reg) \
     do { \
+        x86_64_emit_rex(0,(basereg),(indexreg)); \
         *(mcodeptr++) = (u1) 0x8a; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
     } while (0)
@@ -505,6 +516,15 @@ static const unsigned char x86_64_jcc_map[] = {
 
 #define x86_64_mov_reg_memindex(reg,disp,basereg,indexreg,scale) \
     do { \
+        x86_64_emit_rex(1,(basereg),(indexreg)); \
+        *(mcodeptr++) = (u1) 0x89; \
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define x86_64_movl_reg_memindex(reg,disp,basereg,indexreg,scale) \
+    do { \
+        x86_64_emit_rex(0,(basereg),(indexreg)); \
         *(mcodeptr++) = (u1) 0x89; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
     } while (0)
@@ -512,6 +532,7 @@ static const unsigned char x86_64_jcc_map[] = {
 
 #define x86_64_movw_reg_memindex(reg,disp,basereg,indexreg,scale) \
     do { \
+        x86_64_emit_rex(0,(basereg),(indexreg)); \
         *(mcodeptr++) = (u1) 0x66; \
         *(mcodeptr++) = (u1) 0x89; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
@@ -520,6 +541,7 @@ static const unsigned char x86_64_jcc_map[] = {
 
 #define x86_64_movb_reg_memindex(reg,disp,basereg,indexreg,scale) \
     do { \
+        x86_64_emit_rex(1,(basereg),(indexreg)); \
         *(mcodeptr++) = (u1) 0x88; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
     } while (0)
@@ -661,34 +683,38 @@ static const unsigned char x86_64_jcc_map[] = {
     } while (0)
 
 
-#define x86_64_movsbl_memindex_reg(disp,basereg,indexreg,scale,reg) \
+#define x86_64_movswq_memindex_reg(disp,basereg,indexreg,scale,reg) \
     do { \
-        *(mcodeptr++) = (u1) 0x0f; \
-        *(mcodeptr++) = (u1) 0xbe; \
-        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
-    } while (0)
-
-
-#define x86_64_movswl_memindex_reg(disp,basereg,indexreg,scale,reg) \
-    do { \
+        x86_64_emit_rex(1,(basereg),(reg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xbf; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
     } while (0)
 
 
-#define x86_64_movzbl_memindex_reg(disp,basereg,indexreg,scale,reg) \
+#define x86_64_movsbq_memindex_reg(disp,basereg,indexreg,scale,reg) \
     do { \
+        x86_64_emit_rex(1,(basereg),(reg)); \
         *(mcodeptr++) = (u1) 0x0f; \
-        *(mcodeptr++) = (u1) 0xb6; \
+        *(mcodeptr++) = (u1) 0xbe; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
     } while (0)
 
 
-#define x86_64_movzwl_memindex_reg(disp,basereg,indexreg,scale,reg) \
+#define x86_64_movzwq_memindex_reg(disp,basereg,indexreg,scale,reg) \
     do { \
+        x86_64_emit_rex(1,(basereg),(reg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xb7; \
+        x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define x86_64_movzbq_memindex_reg(disp,basereg,indexreg,scale,reg) \
+    do { \
+        x86_64_emit_rex(1,(basereg),(reg)); \
+        *(mcodeptr++) = (u1) 0x0f; \
+        *(mcodeptr++) = (u1) 0xb6; \
         x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
     } while (0)
 
