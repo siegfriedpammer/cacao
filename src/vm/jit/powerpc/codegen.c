@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1860 2005-01-04 16:39:54Z twisti $
+   $Id: codegen.c 1878 2005-01-21 11:33:52Z stefan $
 
 */
 
@@ -131,11 +131,13 @@ int cacao_catch_Handler(mach_port_t thread)
 	reg = (instr >> 16) & 31;
 
 	if (!regs[reg]) {
-		xptr = new_nullpointerexception();
+/*      This is now handled in asmpart because it needs to run in the throwing
+ *      thread */
+/*		xptr = new_nullpointerexception(); */
 
 		regs[REG_ITMP2_XPC] = crashpc;
-		regs[REG_ITMP1_XPTR] = (u4) xptr;
-		thread_state.srr0 = (u4) asm_handle_exception;
+/*		regs[REG_ITMP1_XPTR] = (u4) xptr; */
+		thread_state.srr0 = (u4) asm_handle_nullptr_exception;
 
 		r = thread_set_state(thread, flavor,
 			(natural_t*)&thread_state, thread_state_count);
@@ -3319,7 +3321,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	M_MFLR(REG_ITMP1);
 	M_AST(REG_ITMP1, REG_SP, 8);        /* store return address               */
-	M_LDA(REG_SP, REG_SP, -64);         /* build up stackframe                */
+	M_STWU(REG_SP, REG_SP, -64);        /* build up stackframe                */
 
 	/* if function is static, check for initialized */
 
