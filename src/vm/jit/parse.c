@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 742 2003-12-13 20:25:05Z stefan $
+   $Id: parse.c 772 2003-12-14 12:24:02Z edwin $
 
 */
 
@@ -1442,6 +1442,7 @@ void parse()
 			panic("Illegal opcode Breakpoint encountered");
 			break;
 
+		  case 186: /* unused opcode */
 		case 203:
 		case 204:
 		case 205:
@@ -1495,7 +1496,7 @@ void parse()
 		case 253:
 		case 254:
 		case 255:
-			printf("Illegal opcode %d at instr %d", opcode, ipc);
+			printf("Illegal opcode %d at instr %d\n", opcode, ipc);
 			panic("Illegal opcode encountered");
 			break;
 
