@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: boehm.h 1793 2004-12-21 10:14:35Z twisti $
+   $Id: boehm.h 2128 2005-03-29 22:25:59Z twisti $
 
 */
 
@@ -35,7 +35,7 @@
 #define _BOEHM_H
 
 #include "types.h"
-#include "vm/global.h"
+#include "vm/method.h"
 
 
 struct otherstackcall;

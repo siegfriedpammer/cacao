@@ -1,4 +1,4 @@
-/* toolbox/logging.h - contains logging functions
+/* src/toolbox/logging.h - contains logging functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.h 2020 2005-03-09 12:01:42Z twisti $
+   Changes: Christan Thalinger
+
+   $Id: logging.h 2128 2005-03-29 22:25:59Z twisti $
 
 */
 
@@ -37,7 +39,9 @@
 #include <stdio.h>
 
 #include "config.h"
-#include "vm/global.h"
+#include "vm/class.h"
+#include "vm/method.h"
+#include "vm/utf8.h"
 
 
 #define MAXLOGTEXT 500
