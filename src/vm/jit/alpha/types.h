@@ -29,7 +29,7 @@
             Andreas  Krall
             Michael Gschwind
 
-   $Id: types.h 1277 2004-07-05 17:28:19Z twisti $
+   $Id: types.h 1587 2004-11-24 14:27:44Z twisti $
 
 */
 
@@ -37,31 +37,10 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 
-#define POINTERSIZE         8
-#define WORDS_BIGENDIAN     0
+#include "jit/alpha/arch.h"
 
-#define SUPPORT_DIVISION    0
-#define SUPPORT_LONG        1
-#define SUPPORT_FLOAT       1
-#define SUPPORT_DOUBLE      1
 
-#define SUPPORT_LONG_ADD    1
-#define SUPPORT_LONG_CMP    1
-#define SUPPORT_LONG_LOG    1
-#define SUPPORT_LONG_SHIFT  1
-#define SUPPORT_LONG_MUL    1
-#define SUPPORT_LONG_DIV    0
-#define SUPPORT_LONG_ICVT   1
-#define SUPPORT_LONG_FCVT   1
-
-#define SUPPORT_CONST_ASTORE     1      /* do we support const astores        */
-#define SUPPORT_ONLY_ZERO_ASTORE 1      /* on risc machines we can only store */
-                                        /* REG_ZERO                           */
-
-#define CONDITIONAL_LOADCONST
-
-#define U8_AVAILABLE        1
-
+/* Define the sizes of the integer types used internally by cacao. */
 
 typedef signed char             s1;
 typedef unsigned char           u1;
@@ -79,6 +58,11 @@ typedef unsigned long int       u8;
 typedef struct {u4 low, high;}  u8;
 #define s8 u8
 #endif
+
+
+/* Define the size of a function pointer used in function pointer casts. */
+
+typedef u8                      ptrint;
 
 #endif /* _TYPES_H */
 
