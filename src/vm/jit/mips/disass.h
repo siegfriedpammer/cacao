@@ -1,4 +1,4 @@
-/* vm/jit/mips/disass.h - disassembler header
+/* src/vm/jit/mips/disass.h - disassembler header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: disass.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: disass.h 1975 2005-03-03 10:59:37Z twisti $
 
 */
 
@@ -42,8 +42,8 @@ extern char *regs[];
 
 /* function prototypes ********************************************************/
 
-void disassinstr(s4 *code, int pos);
-void disassemble(s4 *code, int len);
+void disassinstr(s4 *code);
+void disassemble(s4 *code, s4 len);
 
 #endif /* _DISASS_H */
 

@@ -1,4 +1,4 @@
-/* jit/mips/disass.c - primitive disassembler for mips machine code
+/* src/vm/jit/mips/disass.c - primitive disassembler for mips machine code
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Andreas Krall
 
-   $Id: disass.c 1735 2004-12-07 14:33:27Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: disass.c 1975 2005-03-03 10:59:37Z twisti $
 
 */
 
@@ -447,21 +449,20 @@ static char *fregs[] = {
 #endif
 
 
-/* function disassinstr ********************************************************
+/* disassinstr *****************************************************************
 
 	outputs a disassembler listing of one machine code instruction on 'stdout'
 	c:   instructions machine code
-	pos: instructions address relative to method start
 
 *******************************************************************************/
 
-void disassinstr(s4 *code, int pos)
+void disassinstr(s4 *code)
 {
-	int op;                     /* 6 bit op code                              */
-	int opfun;                  /* 6 bit function code                        */
-	int rs, rt, rd;             /* 5 bit integer register specifiers          */
-	int fs, ft, fd;             /* 5 bit floating point register specifiers   */
-	int shift;                  /* 5 bit unsigned shift amount                */
+	s4 op;                      /* 6 bit op code                              */
+	s4 opfun;                   /* 6 bit function code                        */
+	s4 rs, rt, rd;              /* 5 bit integer register specifiers          */
+	s4 fs, ft, fd;              /* 5 bit floating point register specifiers   */
+	s4 shift;                   /* 5 bit unsigned shift amount                */
 	s4 c = *code;
 
 	op    = (c >> 26) & 0x3f;   /* 6 bit op code                              */
@@ -570,7 +571,7 @@ void disassinstr(s4 *code, int pos)
 			fd    = (c >>  6) & 0x1f;   /* 5 bit destination register         */
 
 			if (rs == 8) {              /* floating point branch              */
-				printf("%s %x\n", fbra[ft&3], pos + 4 + ((c << 16) >> 14));
+				printf("%s 0x%016lx\n", fbra[ft&3], (u8) code + 4 + ((c << 16) >> 14));
 				break;
 				}
 
@@ -616,7 +617,7 @@ void disassinstr(s4 *code, int pos)
 }
 
 
-/* function disassemble ********************************************************
+/* disassemble *****************************************************************
 
 	outputs a disassembler listing of some machine code on 'stdout'
 	code: pointer to first instruction
@@ -624,13 +625,13 @@ void disassinstr(s4 *code, int pos)
 
 *******************************************************************************/
 
-void disassemble(s4 *code, int len)
+void disassemble(s4 *code, s4 len)
 {
-	int p;
+	s4 i;
 
 	printf("  --- disassembler listing ---\n");	
-	for (p = 0; p < len; p += 4, code++)
-		disassinstr(code, p);
+	for (i = 0; i < len; i += 4, code++)
+		disassinstr(code);
 }
 
 
