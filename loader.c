@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: loader.c 1443 2004-11-05 13:53:13Z twisti $
 
 */
 
@@ -1322,7 +1322,6 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 	m->stackcount = 0;
 	m->stack = NULL;
 	m->exceptiontable = NULL;
-	m->registerdata = NULL;
 	m->stubroutine = NULL;
 	m->mcode = NULL;
 	m->entrypoint = NULL;
