@@ -1,4 +1,4 @@
-/* vm/class.c - class related functions
+/* src/vm/class.c - class related functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2104 2005-03-28 22:34:15Z twisti $
+   $Id: class.c 2122 2005-03-29 22:12:06Z twisti $
 
 */
 
@@ -53,8 +53,8 @@
 
 #include "toolbox/logging.h"
 #include "vm/class.h"
-#include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/tables.h"
 #include "vm/utf8.h"
@@ -73,6 +73,7 @@
 #else
 #define CLASS_ASSERT(cond)
 #endif
+
 
 /* global variables ***********************************************************/
 

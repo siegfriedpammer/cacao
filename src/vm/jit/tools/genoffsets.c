@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: genoffsets.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: genoffsets.c 2122 2005-03-29 22:12:06Z twisti $
 
 */
 
@@ -38,6 +38,8 @@
 #include "config.h"
 #include "types.h"
 #include "mm/memory.h"
+#include "vm/linker.h"
+#include "vm/method.h"
 #include "vm/global.h"
 #include "vm/jit/asmpart.h"
 
