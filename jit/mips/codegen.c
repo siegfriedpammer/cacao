@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 902 2004-01-22 21:38:58Z twisti $
+   $Id: codegen.c 947 2004-03-07 22:02:29Z twisti $
 
 */
 
@@ -147,29 +147,25 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 /* gen_nullptr_check(objreg) */
 
-#ifdef SOFTNULLPTRCHECK
 #define gen_nullptr_check(objreg) \
-	if (checknull) {\
-	M_BEQZ((objreg), 0);\
-	codegen_addxnullrefs(mcodeptr);\
-	M_NOP;\
-	}
-#else
-#define gen_nullptr_check(objreg)
-#endif
+    if (checknull) { \
+        M_BEQZ((objreg), 0); \
+        codegen_addxnullrefs(mcodeptr); \
+        M_NOP; \
+    }
 
 
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if((mcodeptr+(icnt))>mcodeend)mcodeptr=codegen_increase((u1*)mcodeptr)
+	if ((mcodeptr + (icnt)) > mcodeend) mcodeptr = codegen_increase((u1 *) mcodeptr)
 
 /* M_INTMOVE:
      generates an integer-move from register a to b.
      if a and b are the same int-register, no code will be generated.
 */ 
 
-#define M_INTMOVE(a,b) if(a!=b){M_MOV(a,b);}
+#define M_INTMOVE(a,b) if (a != b) { M_MOV(a, b); }
 
 
 /* M_FLTMOVE:
@@ -177,7 +173,7 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
     if a and b are the same float-register, no code will be generated
 */ 
 
-#define M_FLTMOVE(a,b) {if(a!=b){M_DMOV(a,b);}}
+#define M_FLTMOVE(a,b) if (a != b) { M_DMOV(a, b); }
 
 #define M_TFLTMOVE(t,a,b) \
 	{if(a!=b) \
@@ -355,16 +351,22 @@ void catch_NullPointerException(int sig, int code, struct sigcontext *sigctx)
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
+
+		if (!proto_java_lang_NullPointerException) {
+			proto_java_lang_NullPointerException =
+				new_exception(string_java_lang_NullPointerException);
+		}
+
 		sigctx->sc_regs[REG_ITMP1_XPTR] =
-		                            (long) proto_java_lang_NullPointerException;
+			(long) proto_java_lang_NullPointerException;
 		sigctx->sc_regs[REG_ITMP2_XPC] = sigctx->sc_pc;
 		sigctx->sc_pc = (long) asm_handle_exception;
-		}
-	else {
+
+	} else {
         faultaddr += (long) ((instr << 16) >> 16);
 		fprintf(stderr, "faulting address: 0x%lx at 0x%lx\n", (long) faultaddr, (long) sigctx->sc_pc);
 		panic("Stack overflow");
-		}
+	}
 }
 
 
@@ -388,7 +390,6 @@ void init_exceptions(void)
 	sigemptyset(&sa.sa_mask);
 
 	if (!checknull) {
-
 #if defined(SIGSEGV)
 		sigaction(SIGSEGV, &sa, NULL);
 		sigaddset(&unblockmask, SIGSEGV);
@@ -417,29 +418,6 @@ void init_exceptions(void)
 	generates machine code
 
 *******************************************************************************/
-
-#define    	MethodPointer   -8
-#define    	FrameSize       -12
-#define     IsSync          -16
-#define     IsLeaf          -20
-#define     IntSave         -24
-#define     FltSave         -28
-#define     ExTableSize     -32
-#define     ExTableStart    -32
-
-#if POINTERSIZE==8
-#define     ExEntrySize     -32
-#define     ExStartPC       -8
-#define     ExEndPC         -16
-#define     ExHandlerPC     -24
-#define     ExCatchType     -32
-#else
-#define     ExEntrySize     -16
-#define     ExStartPC       -4
-#define     ExEndPC         -8
-#define     ExHandlerPC     -12
-#define     ExCatchType     -16
-#endif
 
 void codegen()
 {
@@ -1940,13 +1918,13 @@ void codegen()
 		/* memory operations **************************************************/
 
 #define gen_bound_check \
-			if (checkbounds) {\
-				M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
-				M_CMPULT(s2, REG_ITMP3, REG_ITMP3);\
-				M_BEQZ(REG_ITMP3, 0);\
-				codegen_addxboundrefs(mcodeptr);\
-				M_NOP;\
-				}
+    if (checkbounds) { \
+        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size)); \
+        M_CMPULT(s2, REG_ITMP3, REG_ITMP3); \
+        M_BEQZ(REG_ITMP3, 0); \
+        codegen_addxboundrefs(mcodeptr, s2); \
+        M_NOP; \
+    }
 
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
 
@@ -3235,15 +3213,15 @@ makeactualcall:
 
 afteractualcall:
 
-			s1 = (int)((u1*) mcodeptr - mcodebase);
-			if (s1<=32768) M_LDA (REG_PV, REG_RA, -s1);
+			s1 = (int) ((u1*) mcodeptr - mcodebase);
+			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
 			else {
-					s4 ml=-s1, mh=0;
-					while (ml<-32768) { ml+=65536; mh--; }
-					M_LUI(REG_PV, mh);
-					M_IADD_IMM(REG_PV, ml, REG_PV);
-					M_LADD(REG_PV, REG_RA, REG_PV);
-				}
+				s4 ml = -s1, mh = 0;
+				while (ml < -32768) { ml += 65536; mh--; }
+				M_LUI(REG_PV, mh);
+				M_IADD_IMM(REG_PV, ml, REG_PV);
+				M_LADD(REG_PV, REG_RA, REG_PV);
+			}
 
 			/* d contains return type */
 
@@ -3532,9 +3510,9 @@ afteractualcall:
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-				xboundrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - 4);
+				xboundrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (4 + 4));
 			continue;
-			}
+		}
 
 
 		gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
@@ -3542,24 +3520,53 @@ afteractualcall:
 
 		MCODECHECK(8);
 
+		M_MOV(xboundrefs->reg, REG_ITMP1);
 		M_LDA(REG_ITMP2_XPC, REG_PV, xboundrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			int disp = xcodeptr-mcodeptr;
-			M_BR(disp-1);
+			M_BR(xcodeptr - mcodeptr - 1);
 			M_NOP;
-			}
-		else {
+
+		} else {
 			xcodeptr = mcodeptr;
+
+			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
+			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+			a = dseg_addaddress(string_java_lang_ArrayIndexOutOfBoundsException);
+			M_ALD(argintregs[0], REG_PV, a);
+			M_MOV(REG_ITMP1, argintregs[1]);
+
+			a = dseg_addaddress(new_exception_int);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_JSR(REG_RA, REG_ITMP3);
+			M_NOP;
+
+			/* recompute pv */
+			s1 = (int) ((u1*) mcodeptr - mcodebase);
+			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
+			else {
+				s4 ml = -s1, mh = 0;
+				while (ml < -32768) { ml += 65536; mh--; }
+				M_LUI(REG_PV, mh);
+				M_IADD_IMM(REG_PV, ml, REG_PV);
+				M_LADD(REG_PV, REG_RA, REG_PV);
+			}
+
+			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+
+			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
 
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 
 			M_JMP(REG_ITMP3);
-			a = dseg_addaddress(proto_java_lang_ArrayIndexOutOfBoundsException);
-			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
-			}
+/* 			a = dseg_addaddress(proto_java_lang_ArrayIndexOutOfBoundsException); */
+/* 			M_ALD(REG_ITMP1_XPTR, REG_PV, a); */
+			M_NOP;
 		}
+	}
 
 	/* generate negative array size check stubs */
 
@@ -3570,7 +3577,7 @@ afteractualcall:
 			gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
 				xcheckarefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - 4);
 			continue;
-			}
+		}
 
 		gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
 		                  xcheckarefs->branchpos, (u1*) mcodeptr - mcodebase);
@@ -3580,21 +3587,48 @@ afteractualcall:
 		M_LDA(REG_ITMP2_XPC, REG_PV, xcheckarefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			int disp = xcodeptr-mcodeptr;
-			M_BR(disp-1);
+			M_BR(xcodeptr - mcodeptr - 1);
 			M_NOP;
-			}
-		else {
+
+		} else {
 			xcodeptr = mcodeptr;
+
+			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
+			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+			a = dseg_addaddress(string_java_lang_NegativeArraySizeException);
+			M_ALD(argintregs[0], REG_PV, a);
+
+			a = dseg_addaddress(new_exception);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_JSR(REG_RA, REG_ITMP3);
+			M_NOP;
+
+			/* recompute pv */
+			s1 = (int) ((u1*) mcodeptr - mcodebase);
+			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
+			else {
+				s4 ml = -s1, mh = 0;
+				while (ml < -32768) { ml += 65536; mh--; }
+				M_LUI(REG_PV, mh);
+				M_IADD_IMM(REG_PV, ml, REG_PV);
+				M_LADD(REG_PV, REG_RA, REG_PV);
+			}
+
+			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+
+			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
 
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 
 			M_JMP(REG_ITMP3);
-			a = dseg_addaddress(proto_java_lang_NegativeArraySizeException);
-			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
-			}
+/* 			a = dseg_addaddress(proto_java_lang_NegativeArraySizeException); */
+/* 			M_ALD(REG_ITMP1_XPTR, REG_PV, a); */
+			M_NOP;
 		}
+	}
 
 	/* generate cast check stubs */
 
@@ -3605,7 +3639,7 @@ afteractualcall:
 			gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
 				xcastrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - 4);
 			continue;
-			}
+		}
 
 		gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
 		                  xcastrefs->branchpos, (u1*) mcodeptr - mcodebase);
@@ -3615,24 +3649,48 @@ afteractualcall:
 		M_LDA(REG_ITMP2_XPC, REG_PV, xcastrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			int disp = xcodeptr-mcodeptr;
-			M_BR(disp-1);
+			M_BR(xcodeptr - mcodeptr - 1);
 			M_NOP;
-			}
-		else {
+
+		} else {
 			xcodeptr = mcodeptr;
+
+			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
+			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+			a = dseg_addaddress(string_java_lang_ClassCastException);
+			M_ALD(argintregs[0], REG_PV, a);
+
+			a = dseg_addaddress(new_exception);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_JSR(REG_RA, REG_ITMP3);
+			M_NOP;
+
+			/* recompute pv */
+			s1 = (int) ((u1*) mcodeptr - mcodebase);
+			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
+			else {
+				s4 ml = -s1, mh = 0;
+				while (ml < -32768) { ml += 65536; mh--; }
+				M_LUI(REG_PV, mh);
+				M_IADD_IMM(REG_PV, ml, REG_PV);
+				M_LADD(REG_PV, REG_RA, REG_PV);
+			}
+
+			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+
+			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
 
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 
 			M_JMP(REG_ITMP3);
-			a = dseg_addaddress(proto_java_lang_ClassCastException);
-			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
-			}
+/* 			a = dseg_addaddress(proto_java_lang_ClassCastException); */
+/* 			M_ALD(REG_ITMP1_XPTR, REG_PV, a); */
+			M_NOP;
 		}
-
-
-#ifdef SOFTNULLPTRCHECK
+	}
 
 	/* generate null pointer check stubs */
 
@@ -3643,7 +3701,7 @@ afteractualcall:
 			gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
 				xnullrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - 4);
 			continue;
-			}
+		}
 
 		gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
 		                  xnullrefs->branchpos, (u1*) mcodeptr - mcodebase);
@@ -3653,23 +3711,48 @@ afteractualcall:
 		M_LDA(REG_ITMP2_XPC, REG_PV, xnullrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			int disp = xcodeptr-mcodeptr;
-			M_BR(disp-1);
+			M_BR(xcodeptr - mcodeptr - 1);
 			M_NOP;
-			}
-		else {
-			xcodeptr = mcodeptr;
 
+		} else {
+			xcodeptr = mcodeptr;
+#if 0
+			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
+			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+			a = dseg_addaddress(string_java_lang_NullPointerException);
+			M_ALD(argintregs[0], REG_PV, a);
+
+			a = dseg_addaddress(new_exception);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_JSR(REG_RA, REG_ITMP3);
+			M_NOP;
+
+			/* recompute pv */
+			s1 = (int) ((u1*) mcodeptr - mcodebase);
+			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
+			else {
+				s4 ml = -s1, mh = 0;
+				while (ml < -32768) { ml += 65536; mh--; }
+				M_LUI(REG_PV, mh);
+				M_IADD_IMM(REG_PV, ml, REG_PV);
+				M_LADD(REG_PV, REG_RA, REG_PV);
+			}
+
+			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+
+			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
+#endif
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 
 			M_JMP(REG_ITMP3);
-			a = dseg_addaddress(proto_java_lang_NullPointerException);
-			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
-			}
+ 			a = dseg_addaddress(proto_java_lang_NullPointerException);
+ 			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
+/* 			M_NOP; */
 		}
-
-#endif
+	}
 	}
 
 	codegen_finish((int)((u1*) mcodeptr - mcodebase));

@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 860 2004-01-06 18:49:09Z twisti $
+   $Id: codegen.h 947 2004-03-07 22:02:29Z twisti $
 
 */
 
@@ -376,8 +376,6 @@
 *******************************************************************************/
 
 #define gen_resolvebranch(ip,so,to) ((s4*)(ip))[-1]|=((s4)(to)-(so))>>2&0xffff
-
-#define SOFTNULLPTRCHECK       /* soft null pointer check supportet as option */
 
 
 /* function prototypes */
