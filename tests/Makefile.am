@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1819 2004-12-22 15:35:54Z twisti $
+## $Id: Makefile.am 1820 2004-12-23 11:19:44Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = jvm98 kaffe
+SUBDIRS = jvm98 kaffe native
 
 EXTRA_DIST = \
 	x.java x.output \
@@ -43,7 +43,7 @@ EXTRA_DIST = \
 	TestBase.java TestArrayClasses.java TestArrayClasses.output \
 	BasicToStrings.java BasicToStrings.output \
 	GCBench.java \
-	JavaPerformace.java
+	JavaPerformance.java
 
 JAVA = $(top_srcdir)/src/cacao/cacao
 JAVAC = jikes -nowarn
