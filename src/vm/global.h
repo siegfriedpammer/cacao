@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 1831 2004-12-29 13:47:33Z twisti $
+   $Id: global.h 1844 2005-01-04 11:21:18Z twisti $
 
 */
 
@@ -80,6 +80,7 @@ typedef int   bool;                     /* boolean data type                  */
 
 #define CACAO_LIBRARY_PATH    "/jre/lib/"ARCH_DIR"/"
 #define CACAO_RT_JAR_PATH     "/jre/lib/rt.jar"
+#define CACAO_EXT_DIR         "/jre/lib/ext"
 
 
 #define STATISTICS          /* if enabled collects program statistics         */
