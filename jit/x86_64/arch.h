@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: arch.h 1522 2004-11-17 15:47:52Z twisti $
+   $Id: arch.h 1555 2004-11-19 17:03:32Z twisti $
 
 */
 
@@ -106,16 +106,25 @@
 #define FLT_ARG_CNT      4   /* number of flt argument registers              */
 #define FLT_SAV_CNT      0   /* number of flt callee saved registers          */
 
+#define TRACE_ARGS_NUM   6
+
 
 /* define architecture features ***********************************************/
 
 #define POINTERSIZE              8
 #define WORDS_BIGENDIAN          0
 
+#define U8_AVAILABLE             1
+
+#define USE_CODEMMAP             1
+
 #define SUPPORT_DIVISION         1
 #define SUPPORT_LONG             1
 #define SUPPORT_FLOAT            1
 #define SUPPORT_DOUBLE           1
+
+/* #define SUPPORT_IFCVT            1 */
+/* #define SUPPORT_FICVT            1 */
 
 #define SUPPORT_LONG_ADD         1
 #define SUPPORT_LONG_CMP         1
@@ -130,11 +139,12 @@
 #define SUPPORT_ONLY_ZERO_ASTORE 0      /* on risc machines we can only store */
                                         /* REG_ZERO                           */
 
+/* #define USEBUILTINTABLE */
+
 #define CONDITIONAL_LOADCONST
+
 #define CONSECUTIVE_INTARGS
 #define CONSECUTIVE_FLOATARGS
-
-#define U8_AVAILABLE             1
 
 #endif /* _CODEGEN_H */
 
