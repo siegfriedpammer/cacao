@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 1494 2004-11-12 13:34:26Z twisti $
+   $Id: jit.h 1506 2004-11-14 14:48:49Z jowenn $
 
 */
 
@@ -112,7 +112,7 @@ struct instruction {
 	u2          line;           /* line number in source file                 */
 	methodinfo *method;         /* needed for inlining. can't be done on      */
 	                            /* basic block level, since an inlined        */
-	                            /* function doesn't start necessarily start   */
+	                            /* function doesn't necessarily start         */
 	                            /* a new block                                */
 };
 
@@ -779,6 +779,8 @@ extern int jcommandsize[256];
 
 #define ICMD_SASTORECONST     211
 
+#define ICMD_INLINE_START     251       /* before the first instruction of an inlined method */
+#define ICMD_INLINE_END       252       /* after the last instruction of an inlined method */
 #define ICMD_BUILTIN3         253       /* internal opcode */
 #define ICMD_BUILTIN2         254       /* internal opcode */
 #define ICMD_BUILTIN1         255       /* internal opcode */

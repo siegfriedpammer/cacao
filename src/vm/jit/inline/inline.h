@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.h 1494 2004-11-12 13:34:26Z twisti $
+   $Id: inline.h 1506 2004-11-14 14:48:49Z jowenn $
 
 */
 
@@ -37,9 +37,9 @@
 #include "global.h"
 #include "toolbox/list.h"
 
-#define INLINING_MAXDEPTH       1
-#define INLINING_MAXCODESIZE    32
-#define INLINING_MAXMETHODS     8
+#define INLINING_MAXDEPTH       2  /*1*/ 
+#define INLINING_MAXCODESIZE    128 /*32*/
+#define INLINING_MAXMETHODS     32 /*8*/
 
 
 /*typedef struct {

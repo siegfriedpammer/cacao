@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1483 2004-11-11 14:40:10Z twisti $
+   $Id: typecheck.c 1506 2004-11-14 14:48:49Z jowenn $
 
 */
 
@@ -497,7 +497,7 @@ typestate_merge(stackptr deststack,typevector *destloc,
 
 
 static bool
-typestate_reach(methodinfo *m, void *localbuf,
+typestate_reach(codegendata *cd, registerdata *rd,void *localbuf,
 				basicblock *current,
 				basicblock *destblock,
 				stackptr ystack,typevector *yloc,
@@ -510,7 +510,7 @@ typestate_reach(methodinfo *m, void *localbuf,
 	LOG1("reaching block L%03d",destblock->debug_nr);
 	TYPECHECK_COUNT(stat_reached);
 	
-	destidx = destblock - m->basicblocks;
+	destidx = destblock - cd->method->basicblocks;
 	destloc = MGET_TYPEVECTOR(localbuf,destidx,locsize);
 
 	/* When branching backwards we have to check for uninitialized objects */
@@ -518,19 +518,24 @@ typestate_reach(methodinfo *m, void *localbuf,
 	if (destblock <= current) {
 		stackptr sp;
 		int i;
-		
-		TYPECHECK_COUNT(stat_backwards);
-        LOG("BACKWARDS!");
-        for (sp = ystack; sp; sp=sp->prev)
-            if (sp->type == TYPE_ADR &&
-                TYPEINFO_IS_NEWOBJECT(sp->typeinfo))
-                panic("Branching backwards with uninitialized object on stack");
+#warning FIXME FOR INLINING
+		if (!useinlining) {
+			TYPECHECK_COUNT(stat_backwards);
+        		LOG("BACKWARDS!");
+		        for (sp = ystack; sp; sp=sp->prev)
+				if (sp->type == TYPE_ADR &&
+                		TYPEINFO_IS_NEWOBJECT(sp->typeinfo)) {
+					show_icmd_method(cd->method,cd,rd);
+				printf("current: %ld, dest: %ld\n",current->debug_nr,destblock->debug_nr);
+				panic("Branching backwards with uninitialized object on stack");
+            		}
 
-        for (i=0; i<locsize; ++i)
-            if (yloc->td[i].type == TYPE_ADR &&
-                TYPEINFO_IS_NEWOBJECT(yloc->td[i].info))
-                panic("Branching backwards with uninitialized object in local variable");
-    }
+			for (i=0; i<locsize; ++i)
+				if (yloc->td[i].type == TYPE_ADR &&
+				TYPEINFO_IS_NEWOBJECT(yloc->td[i].info))
+					panic("Branching backwards with uninitialized object in local variable");
+		}
+	}
 	
 	if (destblock->flags == BBTYPECHECK_UNDEF) {
 		/* The destblock has never been reached before */
@@ -564,7 +569,7 @@ typestate_reach(methodinfo *m, void *localbuf,
 
 
 static bool
-typestate_ret(methodinfo *m, void *localbuf,
+typestate_ret(codegendata *cd,registerdata *rd, void *localbuf,
 			  basicblock *current,
 			  stackptr ystack,typevector *yloc,
 			  int retindex,int locsize)
@@ -582,7 +587,7 @@ typestate_ret(methodinfo *m, void *localbuf,
 
 		selected = typevectorset_select(&yvec,retindex,destblock);
 		
-		repeat |= typestate_reach(m, localbuf,current,destblock,
+		repeat |= typestate_reach(cd, rd,  localbuf,current,destblock,
 								  ystack,selected,locsize,true);
 	}
 	return repeat;
@@ -767,7 +772,7 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
  */
 #define TYPECHECK_REACH                                                 \
     do {                                                                \
-    repeat |= typestate_reach(m, localbuf,bptr,tbptr,dst,               \
+    repeat |= typestate_reach(cd,rd, localbuf,bptr,tbptr,dst,               \
 							  localset,numlocals,jsrencountered);       \
     LOG("done.");                                                       \
     } while (0)
@@ -1549,7 +1554,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 						  if (bptr + 1 == (m->basicblocks + m->basicblockcount + 1))
 							  panic("Illegal instruction: JSR at end of bytecode");
 						  typestack_put_retaddr(dst,bptr+1,localset);
-						  repeat |= typestate_reach(m, localbuf,bptr,tbptr,dst,
+						  repeat |= typestate_reach(cd, rd,localbuf,bptr,tbptr,dst,
 													localset,numlocals,true);
 
 						  superblockend = true;
@@ -1560,7 +1565,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 						  if (!typevectorset_checkretaddr(localset,iptr->op1))
                               panic("illegal instruction: RET using non-returnAddress variable");
 
-						  repeat |= typestate_ret(m, localbuf,bptr,curstack,
+						  repeat |= typestate_ret(cd,rd, localbuf,bptr,curstack,
 												  localset,iptr->op1,numlocals);
 
                           superblockend = true;
@@ -2075,7 +2080,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 							cls = handlers[i]->catchtype;
 							excstack.typeinfo.typeclass = (cls) ? cls
 								: class_java_lang_Throwable;
-							repeat |= typestate_reach(m, localbuf,bptr,
+							repeat |= typestate_reach(cd,rd, localbuf,bptr,
 													  handlers[i]->handler,
 													  &excstack,localset,
 													  numlocals,

@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Runtime.c 1494 2004-11-12 13:34:26Z twisti $
+   $Id: Runtime.c 1506 2004-11-14 14:48:49Z jowenn $
 
 */
 
@@ -306,7 +306,9 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 	int buffer_len;
 	utf *data;
 
+#ifdef JOWENN_DEBUG
 	log_text("Java_java_lang_VMRuntime_nativeLoad");
+#endif
 
 	data = javastring_toutf(par1, 0);
 	
@@ -315,9 +317,9 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 		return 1;
 	}
 	
+#if JOWENN_DEBUG	
 	buffer_len = utf_strlen(data) + 40;
 
-	  	
 	buffer = MNEW(char, buffer_len);
 	strcpy(buffer, "Java_java_lang_VMRuntime_nativeLoad:");
 	utf_sprint(buffer + strlen((char *) data), data);
@@ -325,7 +327,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
         
   
 	MFREE(buffer, char, buffer_len);
-
+#endif
 
 #ifndef STATIC_CLASSPATH
 	/*here it could be interesting to store the references in a list eg for nicely cleaning up or for certain platforms*/
@@ -460,6 +462,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	/* XXX do we need this one? */
 	{ "java.protocol.handler.pkgs", "gnu.java.net.protocol"}
 #endif
+	insert_property(m,p,"java.protocol.handler.pkgs","gnu.java.net.protocol");
 
 	/* insert properties defined on commandline */
 

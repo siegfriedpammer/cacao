@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1456 2004-11-05 14:33:14Z twisti $
+   $Id: stack.c 1506 2004-11-14 14:48:49Z jowenn $
 
 */
 
@@ -1778,6 +1778,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							}
 							break;
 						}
+					case ICMD_INLINE_START:
+					case ICMD_INLINE_END:
+						SETDST;
+						break;
 
 					case ICMD_BUILTIN3:
 						/* DEBUG */ /*dolog("builtin3");*/
@@ -1898,8 +1902,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 		if (m->basicblockcount > count_max_basic_blocks)
 			count_max_basic_blocks = m->basicblockcount;
 		count_basic_blocks += m->basicblockcount;
-		if (m->instructioncount > count_max_javainstr)
-			count_max_javainstr = m->instructioncount;
+		if (m->instructioncount > count_max_javainstr)			count_max_javainstr = m->instructioncount;
 		count_javainstr += m->instructioncount;
 		if (m->stackcount > count_upper_bound_new_stack)
 			count_upper_bound_new_stack = m->stackcount;
@@ -2490,6 +2493,12 @@ void show_icmd(instruction *iptr, bool deadcode)
 		}
 		break;
 
+	case ICMD_INLINE_START:
+		printf("\t\t\t%s.%s%s",iptr->method->class->name->text,iptr->method->name->text,iptr->method->descriptor->text);
+		break;
+	case ICMD_INLINE_END:
+		break;
+
 	case ICMD_BUILTIN3:
 	case ICMD_BUILTIN2:
 	case ICMD_BUILTIN1:
@@ -2617,10 +2626,10 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 	}
 /*  	printf(" Line number: %d, method:",iptr->line); */
-        printf("\t\t");
+/*        printf("\t\t");
   	utf_display(iptr->method->class->name); 
   	printf("."); 
-  	utf_display(iptr->method->name); 
+  	utf_display(iptr->method->name); */
 }
 
 

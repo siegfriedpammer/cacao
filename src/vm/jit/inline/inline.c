@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1494 2004-11-12 13:34:26Z twisti $
+   $Id: inline.c 1506 2004-11-14 14:48:49Z jowenn $
 
 */
 
@@ -496,7 +496,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 
 			switch (opcode) {
 			case JAVA_INVOKEVIRTUAL:
-				if (!inlinevirtuals)
+				if (!inlinevirtuals) 
 					break;
 			 /*log_text("\nINLINE INVOKEVIRTUAL :\t");*/
 			case JAVA_INVOKESPECIAL:
@@ -544,6 +544,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 
 						if (!is_unique_method(imi->class, imi, imr->name, imr->descriptor))
 							break;
+                                                
 					}
 
 					/*if (imi->flags & ACC_NATIVE) log_text("Native method,no inlining");*/
@@ -592,7 +593,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 	} /* for */
 	
 	newnode->stopgp = gp;
-
+        label_index[jcodelength]=gp;
         if (DEBUGi==true) {
 	  printf ("\nResult of inlining analysis of: ");
 	  IMETHINFO(m);

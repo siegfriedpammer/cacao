@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1490 2004-11-12 13:24:14Z twisti $
+   $Id: builtin.c 1506 2004-11-14 14:48:49Z jowenn $
 
 */
 
@@ -1148,6 +1148,7 @@ void builtin_monitorenter(java_objectheader *o)
 	monitorEnter((threadobject *) THREADOBJECT, o);
 #endif
 #endif
+
 }
 
 /*

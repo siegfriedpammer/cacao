@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1466 2004-11-08 11:24:50Z twisti $
+   $Id: reg.inc 1506 2004-11-14 14:48:49Z jowenn $
 
 */
 
@@ -867,6 +867,8 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 				case ICMD_RET:
 				case ICMD_RETURN:
 				case ICMD_GOTO:
+				case ICMD_INLINE_START:
+				case ICMD_INLINE_END:
 					break;
 
 					/* pop 0 push 1 const */

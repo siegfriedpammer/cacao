@@ -1,4 +1,4 @@
-public class InlineExTest {
+public class InlineExTest4 {
 	public static void internal() throws Exception {
 		try {
 			throw new Exception("*");
@@ -11,7 +11,7 @@ public class InlineExTest {
 		try {
 			internal();
 			System.out.println("ERROR EXCEPTION EXPECTED");
-		} catch (Exception e) {
+		} catch (Throwable  e) {
 			System.out.println(e);
 			System.out.println("End of outer exception handler");
 			System.exit(0);

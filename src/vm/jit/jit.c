@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1494 2004-11-12 13:34:26Z twisti $
+   $Id: jit.c 1506 2004-11-14 14:48:49Z jowenn $
 
 */
 
@@ -923,7 +923,9 @@ char *icmd_names[256] = {
 	"UNDEF236","UNDEF237","UNDEF238","UNDEF239","UNDEF240",
 	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
 	"UNDEF246","UNDEF247","UNDEF248","UNDEF249","UNDEF250",
-	"UNDEF251","UNDEF252",
+
+	"INLINE_START", /*          251 */
+        "INLINE_END", /*            252"*/
 
 	"BUILTIN3     ", /*             253 */
 	"BUILTIN2     ", /*             254 */
@@ -1152,8 +1154,9 @@ char *opcode_names[256] = {
 	"UNDEF236","UNDEF237","UNDEF238","UNDEF239","UNDEF240",
 	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
 	"UNDEF246","UNDEF247","UNDEF248","UNDEF249","UNDEF250",
-	"UNDEF251","UNDEF252",
 
+	"INLINE_START", /*              251 */
+        "INLINE_END",  /*               252 */
 	"BUILTIN3     ", /*             253 */
 	"BUILTIN2     ", /*             254 */
 	"BUILTIN1     "  /*             255 */

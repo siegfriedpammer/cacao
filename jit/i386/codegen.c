@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1461 2004-11-05 16:23:47Z twisti $
+   $Id: codegen.c 1506 2004-11-14 14:48:49Z jowenn $
 
 */
 
@@ -4315,6 +4315,9 @@ gen_method: {
 			store_reg_to_var_int(iptr->dst, s1);
 			break;
 
+		case ICMD_INLINE_START:
+		case ICMD_INLINE_END:
+			break;
 		default:
 			error ("Unknown pseudo command: %d", iptr->opc);
 	} /* switch */
@@ -4449,6 +4452,8 @@ gen_method: {
 
 			i386_mov_imm_reg(cd, (u4) new_negativearraysizeexception, REG_ITMP1);
 			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
+			/*i386_alu_imm_reg(cd, I386_ADD, 1 * 4, REG_SP);*/
+
 
 			REMOVE_NATIVE_STACKINFO;
 
@@ -4494,6 +4499,8 @@ gen_method: {
 
 			i386_mov_imm_reg(cd, (u4) new_classcastexception, REG_ITMP1);
 			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
+			/*i386_alu_imm_reg(cd, I386_ADD, 1 * 4, REG_SP);*/
+
 
 			REMOVE_NATIVE_STACKINFO;
 

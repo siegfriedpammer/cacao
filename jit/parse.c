@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1494 2004-11-12 13:34:26Z twisti $
+   $Id: parse.c 1506 2004-11-14 14:48:49Z jowenn $
 
 */
 
@@ -361,7 +361,7 @@ static exceptiontable* fillextable(methodinfo *m,
 		int *label_index, int *block_count, 
 		t_inlining_globals *inline_env)
 {
-	int b_count, i, p;
+	int b_count, i, p, src, insertBlock;
 	
 	if (exceptiontablelength == 0) 
 		return extable;
@@ -375,41 +375,47 @@ static exceptiontable* fillextable(methodinfo *m,
 
 	b_count = *block_count;
 
-	for (i = 0; i < exceptiontablelength; i++) {
+	for (src = exceptiontablelength-1; src >=0; src--) {
 		/* printf("Excepiont table index: %d\n",i); */
-   		p = raw_extable[i].startpc;
+   		p = raw_extable[src].startpc;
 		if (label_index != NULL) p = label_index[p];
-		extable[i].startpc = p;
+		extable->startpc = p;
 		bound_check(p);
 		block_insert(p);
 		
 /*** if (DEBUG==true){printf("---------------------block_inserted:b_count=%i m->basicblockindex[(p=%i)]=%i=%p\n",b_count,p,m->basicblockindex[(p)],m->basicblockindex[(p)]); 
   fflush(stdout); } ***/   
-		p = raw_extable[i].endpc; /* see JVM Spec 4.7.3 */
-		if (p < raw_extable[i].startpc)
+		p = raw_extable[src].endpc; /* see JVM Spec 4.7.3 */
+		if (p <= raw_extable[src].startpc)
 			panic("Invalid exception handler range");
-		if (p > m->jcodelength) { 
+
+		if (p >inline_env->method->jcodelength) {
 			panic("Invalid exception handler end is after code end");
 		}
+		if (p<inline_env->method->jcodelength) insertBlock=1; else insertBlock=0;
+                /*if (label_index !=NULL) printf("%s:translating endpc:%ld to %ld, label_index:%p\n",m->name->text,p,label_index[p],label_index); else
+			printf("%s:fillextab: endpc:%ld\n",m->name->text,p);*/
 		if (label_index != NULL) p = label_index[p];
-		extable[i].endpc = p;
+		extable->endpc = p;
 		bound_check1(p);
-		if (p < m->jcodelength) {
-			block_insert(p); }
+		/*if (p < inline_env->method->jcodelength) {
+			block_insert(p); }*/
+                if (insertBlock) block_insert(p);
 
-		p = raw_extable[i].handlerpc;
+		p = raw_extable[src].handlerpc;
 		if (label_index != NULL) p = label_index[p];
-		extable[i].handlerpc = p;
+		extable->handlerpc = p;
 		bound_check(p);
 		block_insert(p);
 
-		extable[i].catchtype  = raw_extable[i].catchtype;
-		extable[i].next = NULL;
-		extable[i].down = &extable[i + 1];
+		extable->catchtype  = raw_extable[src].catchtype;
+		extable->next = NULL;
+		extable->down = &extable[1];
+		extable--;
 	}
 
 	*block_count = b_count;
-	return &extable[i];  /* return the next free xtable* */
+	return extable; /*&extable[i];*/  /* return the next free xtable* */
 }
 
 
@@ -526,7 +532,7 @@ if (m->exceptiontablelength > 0)
 	*/
 
 	nextex = fillextable(m, 
- 	  cd->exceptiontable, m->exceptiontable, m->exceptiontablelength, 
+ 	  &(cd->exceptiontable[cd->exceptiontablelength-1]), m->exceptiontable, m->exceptiontablelength, 
           label_index, &b_count, inline_env);
 	s_count = 1 + m->exceptiontablelength; /* initialize stack element counter   */
 
@@ -643,6 +649,8 @@ DEBUGMETH(inline_env->method);
 			}
 
 
+                        OP(ICMD_INLINE_START);
+
 			if (inlinfo->inlinedmethods == NULL) {
 				gp = -1;
 			} else {
@@ -661,6 +669,8 @@ DEBUGMETH(inline_env->method);
 		{
 			printf("Parse p=%i<%i<%i<   opcode=<%i> %s\n",
 			   p, gp, inline_env->jcodelength, opcode, opcode_names[opcode]);
+			if (label_index)
+				printf("label_index[%ld]=%ld\n",p,label_index[p]);
 		}
 	 /*
 printf("basicblockindex[gp=%i]=%i=%p ipc=%i=%p shifted ipc=%i=%p\n",
@@ -1672,7 +1682,9 @@ if (DEBUG4==true)
 			/*		  printf("setting gp from %d to %d\n",gp, inlinfo->stopgp); */
 			gp = inlinfo->stopgp; 
 			inlining_restore_compiler_variables();
+			OP(ICMD_INLINE_END);
 /*label_index = inlinfo->label_index;*/
+
 if (DEBUG==true) {
 printf("AFTER RESTORE : "); fflush(stdout);
 DEBUGMETH(inline_env->method);
@@ -1793,7 +1805,7 @@ DEBUGMETH(inline_env->method);
 			cd->exceptiontable[i].start = m->basicblocks + m->basicblockindex[p];
 
 			p = cd->exceptiontable[i].endpc;
-			cd->exceptiontable[i].end = (p == m->jcodelength) ? (m->basicblocks + m->basicblockcount + 1) : (m->basicblocks + m->basicblockindex[p]);
+			cd->exceptiontable[i].end = (p == inline_env->method->jcodelength) ? (m->basicblocks + m->basicblockcount /*+ 1*/) : (m->basicblocks + m->basicblockindex[p]);
 
 			p = cd->exceptiontable[i].handlerpc;
 			cd->exceptiontable[i].handler = m->basicblocks + m->basicblockindex[p];
