@@ -1,11 +1,14 @@
 #ifndef _NATIVETHREAD_H
 #define _NATIVETHREAD_H
 
+#include <semaphore.h>
+
 #include "jni.h"
 #include "nat/java_lang_Object.h"
 #include "nat/java_lang_Throwable.h"
 #include "nat/java_lang_Thread.h"
 #include "nat/java_lang_VMThread.h"
+#include "toolbox/memory.h"
 
 #if defined(__DARWIN__)
 #include <mach/mach.h>
@@ -63,15 +66,27 @@ typedef struct {
 
 typedef java_lang_Thread thread;
 
-typedef struct _threadobject {
-	java_lang_VMThread o;
-	nativethread info;
-	ExecEnvironment ee;
 
-	pthread_mutex_t waitLock;
-	pthread_cond_t waitCond;
-	bool interrupted, signaled, isSleeping;
+/* threadobject ****************************************************************
+
+   TODO
+
+*******************************************************************************/
+
+typedef struct _threadobject {
+	java_lang_VMThread  o;
+	nativethread        info;
+	ExecEnvironment     ee;
+
+	pthread_mutex_t     waitLock;
+	pthread_cond_t      waitCond;
+	bool                interrupted;
+	bool                signaled;
+	bool                isSleeping;
+
+	dumpinfo            dumpinfo;       /* dump memory info structure         */
 } threadobject;
+
 
 monitorLockRecord *monitorEnter(threadobject *, java_objectheader *);
 bool monitorExit(threadobject *, java_objectheader *);
@@ -122,3 +137,16 @@ void cast_startworld();
 
 #endif /* _NATIVETHREAD_H */
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
