@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.h 1468 2004-11-08 13:29:58Z twisti $
+   $Id: codegen.h 1586 2004-11-24 14:27:03Z twisti $
 
 */
 
@@ -39,45 +39,6 @@
 #include <ucontext.h>
 
 #include "jit/jit.h"
-
-
-/* see also file calling.doc for explanation of calling conventions           */
-
-/* preallocated registers *****************************************************/
-
-/* integer registers */
-  
-#define REG_RESULT      0    /* to deliver method results                     */ 
-
-#define REG_RA          26   /* return address                                */
-#define REG_PV          27   /* procedure vector, must be provided by caller  */
-#define REG_METHODPTR   28   /* pointer to the place from where the procedure */
-                             /* vector has been fetched                       */
-#define REG_ITMP1       25   /* temporary register                            */
-#define REG_ITMP2       28   /* temporary register and method pointer         */
-#define REG_ITMP3       29   /* temporary register                            */
-
-#define REG_ITMP1_XPTR  25   /* exception pointer = temporary register 1      */
-#define REG_ITMP2_XPC   28   /* exception pc = temporary register 2           */
-
-#define REG_SP          30   /* stack pointer                                 */
-#define REG_ZERO        31   /* allways zero                                  */
-
-/* floating point registers */
-
-#define REG_FRESULT     0    /* to deliver floating point method results      */ 
-#define REG_FTMP1       28   /* temporary floating point register             */
-#define REG_FTMP2       29   /* temporary floating point register             */
-#define REG_FTMP3       30   /* temporary floating point register             */
-
-#define REG_IFTMP       28   /* temporary integer and floating point register */
-
-
-#define INT_SAV_CNT      7   /* number of int callee saved registers          */
-#define INT_ARG_CNT      6   /* number of int argument registers              */
-
-#define FLT_SAV_CNT      8   /* number of flt callee saved registers          */
-#define FLT_ARG_CNT      6   /* number of flt argument registers              */
 
 
 /* additional functions and macros to generate code ***************************/
