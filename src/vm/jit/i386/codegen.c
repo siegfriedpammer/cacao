@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 1683 2004-12-05 21:33:36Z jowenn $
+   $Id: codegen.c 1715 2004-12-06 16:23:55Z twisti $
 
 */
 
@@ -59,7 +59,6 @@
 #include "vm/jit/i386/emitfuncs.h"
 #include "vm/jit/i386/types.h"
 #include "vm/jit/i386/asmoffsets.h"
-#include "vm/jit/stacktrace.inc"
 
 
 /* register descripton - array ************************************************/
