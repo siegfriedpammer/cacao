@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 951 2004-03-11 17:30:03Z jowenn $
+   $Id: stack.c 971 2004-03-24 22:44:29Z edwin $
 
 */
 
@@ -2077,7 +2077,7 @@ void icmd_print_stack(stackptr s)
 		printf("    ");
 	while (s) {
 		j--;
-		/* DEBUG */ /* printf("(%d)",s->flags); fflush(stdout); */
+		/* DEBUG */ /*printf("(%d,%d,%d,%d)",s->varkind,s->flags,s->regoff,s->varnum); fflush(stdout);*/
 		if (s->flags & SAVEDVAR)
 			switch (s->varkind) {
 			case TEMPVAR:
