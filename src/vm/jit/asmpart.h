@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2230 2005-04-06 10:28:04Z twisti $
+   $Id: asmpart.h 2243 2005-04-06 15:49:22Z twisti $
 
 */
 
@@ -145,7 +145,7 @@ void asm_builtin_new(unresolved_class *uc);
 void asm_invokespecial(void);
 
 /* code patching helper functions (in asmpart.c) */
-classinfo *asm_builtin_new_helper(constant_classref *ref, functionptr pv);
+classinfo *asm_builtin_new_helper(constant_classref *ref);
 u1 *asm_invokespecial_helper(unresolved_method *um);
 
 #endif /* _ASMPART_H */

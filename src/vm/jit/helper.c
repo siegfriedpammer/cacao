@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.c 2229 2005-04-06 10:27:42Z twisti $
+   $Id: helper.c 2243 2005-04-06 15:49:22Z twisti $
 
 */
 
@@ -49,24 +49,13 @@
 
 *******************************************************************************/
 
-classinfo *asm_builtin_new_helper(constant_classref *cr, functionptr pv)
+classinfo *asm_builtin_new_helper(constant_classref *cr)
 {
-	methodinfo *refmethod;
 	classinfo  *c;
-
-#if defined(__X86_64__)
-	/* on i386 and x86_64 the pv is the return address and must be resolved */
-
-	pv = codegen_findmethod(pv);
-#endif
-
-	/* now get the reference methodinfo pointer */
-
-	refmethod = (methodinfo *) ((ptrint) pv - sizeof(methodinfo*));
 
 	/* resolve and load the class */
 
-	if (!resolve_classref(refmethod, cr, resolveEager, true, &c))
+	if (!resolve_classref(NULL, cr, resolveEager, true, &c))
 		return NULL;
 
 	/* return the classinfo pointer */
