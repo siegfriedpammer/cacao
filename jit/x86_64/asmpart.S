@@ -29,52 +29,12 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 970 2004-03-24 00:16:07Z twisti $
+   $Id: asmpart.S 1065 2004-05-16 15:36:57Z twisti $
 
 */
 
 
 #include "offsets.h"
-
-	.text
-
-
-/********************* exported functions and variables ***********************/
-
-	.globl asm_calljavafunction
-	.globl asm_calljavafunction2
-	.globl asm_calljavafunction2long
-	.globl asm_calljavafunction2double
-	.globl asm_call_jit_compiler
-	.globl asm_dumpregistersandcall
-	.globl asm_handle_exception
-	.globl asm_handle_nat_exception
-	.globl asm_check_clinit
-	.globl asm_builtin_checkarraycast
-	.globl asm_builtin_anewarray
-	.globl asm_builtin_newarray_array
-	.globl asm_builtin_aastore
-	.globl asm_builtin_monitorenter
-	.globl asm_builtin_monitorexit
-    .globl asm_builtin_f2i
-    .globl asm_builtin_f2l
-    .globl asm_builtin_d2i
-    .globl asm_builtin_d2l
-	.globl asm_builtin_arrayinstanceof
-	.globl asm_perform_threadswitch
-	.globl asm_initialize_thread_stack
-	.globl asm_switchstackandcall
-
-    
-/*************************** imported functions *******************************/
-
-	.globl jit_compile
-	.globl builtin_monitorexit
-	.globl builtin_throw_exception
-	.globl builtin_trace_exception
-	.globl findmethod
-
-        
 
 #define    	MethodPointer   -8
 #define    	FrameSize       -12
@@ -91,6 +51,52 @@
 #define     ExHandlerPC     -24
 #define     ExCatchType     -32
 
+
+#define itmp1    %rax
+#define itmp2    %r10
+#define itmp3    %r11
+
+#define xptr     itmp1
+#define xpc      itmp2
+
+
+	.text
+
+
+/********************* exported functions and variables ***********************/
+
+	.globl asm_calljavafunction
+	.globl asm_calljavafunction2
+	.globl asm_calljavafunction2long
+	.globl asm_calljavafunction2double
+	.globl asm_call_jit_compiler
+	.globl asm_handle_exception
+	.globl asm_handle_nat_exception
+	.globl asm_check_clinit
+	.globl asm_builtin_checkarraycast
+	.globl asm_builtin_anewarray
+	.globl asm_builtin_newarray_array
+	.globl asm_builtin_aastore
+	.globl asm_builtin_monitorenter
+	.globl asm_builtin_monitorexit
+	.globl asm_builtin_f2i
+	.globl asm_builtin_f2l
+	.globl asm_builtin_d2i
+	.globl asm_builtin_d2l
+	.globl asm_builtin_arrayinstanceof
+	.globl asm_perform_threadswitch
+	.globl asm_initialize_thread_stack
+	.globl asm_switchstackandcall
+
+
+/*************************** imported functions *******************************/
+
+	.globl jit_compile
+	.globl builtin_monitorexit
+	.globl builtin_throw_exception
+	.globl builtin_trace_exception
+	.globl findmethod
+        
 
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
@@ -187,31 +193,44 @@ call_name2:
 asm_calljavafunction2:
 asm_calljavafunction2double:
 asm_calljavafunction2long:
-        sub     $8,%rsp               /* keep stack 16-byte aligned           */
+	sub     $(1*8),%rsp               /* keep stack 16-byte aligned           */
+	mov     %rbx,0*8(%rsp)            /* %rbx is not a callee saved in cacao  */
 
-        mov     %rdi,%rax             /* save method pointer for compiler     */
-        mov     %rcx,%r10             /* pointer to arg block                 */
-        
-        mov     offjniitem(%r10),%rdi /* move args into registers             */
-        mov     offjniitem + sizejniblock * 1(%r10),%rsi
-        mov     offjniitem + sizejniblock * 2(%r10),%rdx
-        mov     offjniitem + sizejniblock * 3(%r10),%rcx
-        
-        lea     asm_call_jit_compiler,%r11
-        call    *%r11                 /* call JIT compiler                    */
-	
-calljava_jit2:
-calljava_return2:
-calljava_ret2:
-        add     $8,%rsp               /* free stack space                     */
-        ret
+	mov     %rdi,%rax                 /* save method pointer for compiler     */
+	mov     %rsi,%r11                 /* arg count                            */
+	mov     %rcx,%r10                 /* pointer to arg block                 */
 
+	test    %r11,%r11                 /* maybe we have no args                */
+	jle     calljava_copydone
+
+	mov     offjniitem(%r10),%rdi     /* move args into registers             */
+	sub     $1,%r11
+	test    %r11,%r11
+ 	je      calljava_copydone
+
+	mov     offjniitem+sizejniblock*1(%r10),%rsi
+	sub     $1,%r11
+	test    %r11,%r11
+	je      calljava_copydone
+
+	mov     offjniitem+sizejniblock*2(%r10),%rdx
+	mov     offjniitem+sizejniblock*3(%r10),%rcx
+
+calljava_copydone:	
+	lea     asm_call_jit_compiler,%r11
+	call    *%r11                     /* call JIT compiler                    */
+
+	mov     0*8(%rsp),%rbx
+	add     $(1*8),%rsp               /* free stack space                     */
+	ret
+		
 calljava_xhandler2:
-        mov     %rax,%rdi       	  /* pass exception pointer               */
-        call    builtin_throw_exception
-        add     $8,%rsp
-        ret
-						
+	mov     %rax,%rdi                 /* pass exception pointer               */
+	call    builtin_throw_exception
+	mov     0*8(%rsp),%rbx
+	add     $(1*8),%rsp
+	ret
+
 
 /****************** function asm_call_jit_compiler *****************************
 *                                                                              *
@@ -339,54 +358,6 @@ L_call_method:
 		jmp		*%rax			/* ...and now call the new method             */
 
 
-
-/****************** function asm_dumpregistersandcall **************************
-*                                                                              *
-*   This funtion saves all callee saved registers and calls the function       *
-*   which is passed as parameter.                                              *
-*                                                                              *
-*   This function is needed by the garbage collector, which needs to access    *
-*   all registers which are stored on the stack. Unused registers are          *
-*   cleared to avoid interferances with the GC.                                *
-*                                                                              *
-*   void asm_dumpregistersandcall (functionptr f);                             *
-*                                                                              *
-*******************************************************************************/
-
-asm_dumpregistersandcall:
-        sub     $(7*8),%rsp             /* allocate stack space               */
-
-        mov     %rbx,0*8(%rsp)          /* save all callee saved registers    */
-        mov     %rsp,1*8(%rsp)
-        mov     %rbp,2*8(%rsp)
-        mov     %r12,3*8(%rsp)
-        mov     %r13,4*8(%rsp)
-        mov     %r14,5*8(%rsp)
-        mov     %r15,6*8(%rsp)
-
-        xor     %rax,%rax               /* intialize the remaining registers  */
-        xor     %rcx,%rcx
-        xor     %rdx,%rdx
-        xor     %rsi,%rsi
-        xor     %r8,%r8
-        xor     %r9,%r9
-        xor     %r10,%r10
-        xor     %r11,%r11
-        
-        call    *%rdi                   /* call function                      */
-
-        mov     0*8(%rsp),%rbx
-        mov     1*8(%rsp),%rsp
-        mov     2*8(%rsp),%rbp
-        mov     3*8(%rsp),%r12
-        mov     4*8(%rsp),%r13
-        mov     5*8(%rsp),%r14
-        mov     6*8(%rsp),%r15
-
-        add     $(7*8),%rsp        
-        ret
-
-
 /********************* function asm_handle_exception ***************************
 *                                                                              *
 *   This function handles an exception. It does not use the usual calling      *
@@ -400,65 +371,104 @@ asm_dumpregistersandcall:
 *******************************************************************************/
 
 asm_handle_nat_exception:
-        add     $8,%rsp						/* clear return address of native stub */
+	add     $8,%rsp                     /* clear return address of native stub*/
 		
 asm_handle_exception:
-        sub     $(4*8),%rsp
-        mov     %rax,0*8(%rsp)              /* save exception pointer         */
-        mov     %r10,1*8(%rsp)              /* save exception pc              */
+	sub     $(4*8),%rsp
+	mov     xptr,0*8(%rsp)              /* save exception pointer             */
+	mov     xpc,1*8(%rsp)               /* save exception pc                  */
         
-        mov     %r10,%rdi                   /* exception pc                   */
-        call	findmethod
-        mov     %rax,%r11
-        mov     %rax,2*8(%rsp)				/* save data segment pointer      */
+	mov     xpc,%rdi                    /* exception pc                       */
+	call    findmethod
+	mov     %rax,itmp3
+	mov     %rax,2*8(%rsp)              /* save data segment pointer          */
         
-        mov     0*8(%rsp),%rax              /* restore exception pointer      */
-        mov     1*8(%rsp),%r10              /* restore exception pc           */
+	mov     0*8(%rsp),%rax              /* restore exception pointer          */
+	mov     1*8(%rsp),%r10              /* restore exception pc               */
         
 ex_stack_loop:
-        mov     %rax,%rdi					/* exception pointer              */
-        mov     MethodPointer(%r11),%rsi	/* method pointer                 */
-        mov     %r10,%rdx                   /* exception pc                   */
-        mov     $1,%rcx 					/* set noindent flag              */
-        call	builtin_trace_exception
+	mov     %rax,%rdi                   /* exception pointer                  */
+	mov     MethodPointer(itmp3),%rsi   /* method pointer                     */
+	mov     xpc,%rdx                    /* exception pc                       */
+	mov     $0,%rcx
+	mov     $1,%r8                      /* set noindent flag                  */
+	call    builtin_trace_exception
 
-		mov     2*8(%rsp),%r11				/* %r11 = data segment pointer    */
-		mov     ExTableSize(%r11),%rcx		/* %rcx = exception table size    */
-		test	%rcx,%rcx					/* if empty table skip            */
-		je		empty_table
+	mov     2*8(%rsp),itmp3             /* %r11 = data segment pointer        */
+	mov     ExTableSize(itmp3),%rcx     /* %rcx = exception table size        */
+	test    %rcx,%rcx					/* if empty table skip                */
+	je      empty_table
 
-		lea		ExTableStart(%r11),%rdi		/* %rdi = start of exception table*/
-		mov     0*8(%rsp),%rax				/* get xptr                       */
+	lea     ExTableStart(itmp3),%rdi    /* %rdi = start of exception table    */
+	mov     0*8(%rsp),xptr              /* get xptr                           */
 		
 ex_table_loop:
-		mov     1*8(%rsp),%r10              /* get xpc                        */
+	mov     1*8(%rsp),xpc               /* get xpc                            */
 		
-		mov     ExStartPC(%rdi),%rdx        /* %rdx = exception start pc      */
-		cmp     %r10,%rdx                   /* %rdx = (startpc <= xpc)        */
-		jg		ex_table_cont               /* if (false) continue            */
-		mov     ExEndPC(%rdi),%rdx          /* %rdx = exception end pc        */
-		cmp     %rdx,%r10                   /* %rdx = (xpc < endpc)           */
-		jge		ex_table_cont               /* if (false) continue            */
-		mov     ExCatchType(%rdi),%rdx      /* %rdx = exception catch type    */
-		test	%rdx,%rdx                   /* NULL catches everything        */
-		je		ex_handle_it
+	mov     ExStartPC(%rdi),%rdx        /* %rdx = exception start pc          */
+	cmp     xpc,%rdx                    /* %rdx = (startpc <= xpc)            */
+	jg      ex_table_cont               /* if (false) continue                */
+	mov     ExEndPC(%rdi),%rdx          /* %rdx = exception end pc            */
+	cmp     %rdx,xpc                    /* %rdx = (xpc < endpc)               */
+	jge     ex_table_cont               /* if (false) continue                */
+	mov     ExCatchType(%rdi),%rdx      /* %rdx = exception catch type        */
+	test    %rdx,%rdx                   /* NULL catches everything            */
+	je      ex_handle_it
 
-		mov     offobjvftbl(%rax),%rsi      /* %rsi = vftblptr(xptr)          */
-		mov     offclassvftbl(%rdx),%rdx    /* %rdx = vftblptr(catchtype) class (not obj) */
-		mov     offbaseval(%rsi),%esi       /* %esi = baseval(xptr)           */
-		mov     offbaseval(%rdx),%r10d      /* %r10d = baseval(catchtype)     */
-		mov     offdiffval(%rdx),%edx       /* %edx = diffval(catchtype)      */
-		sub     %r10d,%esi                  /* %esi = baseval(xptr) - baseval(catchtype) */
-		cmp     %edx,%esi                   /* xptr is instanceof catchtype   */
-		ja		ex_table_cont
+	cmpl    $0,offclassloaded(%rdx)     /* check if class is loaded           */
+	jne     L_class_loaded
+
+	sub     $(4*8),%rsp
+	mov     %rax,0*8(%rsp)
+	mov     %rcx,1*8(%rsp)
+	mov     %rdx,2*8(%rsp)
+	mov     %rdi,3*8(%rsp)
+
+	mov     %rdx,%rdi
+	call    class_load
+
+	mov     0*8(%rsp),%rax
+	mov     1*8(%rsp),%rcx
+	mov     2*8(%rsp),%rdx
+	mov     3*8(%rsp),%rdi
+	add     $(4*8),%rsp
+
+L_class_loaded:
+	cmpl    $0,offclasslinked(%rdx)     /* check if class is linked           */
+	jne     L_class_linked
+
+	sub     $(4*8),%rsp
+	mov     %rax,0*8(%rsp)
+	mov     %rcx,1*8(%rsp)
+	mov     %rdx,2*8(%rsp)
+	mov     %rdi,3*8(%rsp)
+
+	mov     %rdx,%rdi
+	call    class_link
+
+	mov     0*8(%rsp),%rax
+	mov     1*8(%rsp),%rcx
+	mov     2*8(%rsp),%rdx
+	mov     3*8(%rsp),%rdi
+	add     $(4*8),%rsp
+
+L_class_linked:
+	mov     offobjvftbl(%rax),%rsi      /* %rsi = vftblptr(xptr)              */
+	mov     offclassvftbl(%rdx),%rdx    /* %rdx = vftblptr(catchtype) class (not obj) */
+	mov     offbaseval(%rsi),%esi       /* %esi = baseval(xptr)               */
+	mov     offbaseval(%rdx),%r10d      /* %r10d = baseval(catchtype)         */
+	mov     offdiffval(%rdx),%edx       /* %edx = diffval(catchtype)          */
+	sub     %r10d,%esi                  /* %esi = baseval(xptr) - baseval(catchtype) */
+	cmp     %edx,%esi                   /* xptr is instanceof catchtype       */
+	ja      ex_table_cont
 		
 ex_handle_it:
-		mov     ExHandlerPC(%rdi),%r10      /* xpc = exception handler pc     */
+		mov     ExHandlerPC(%rdi),xpc       /* xpc = exception handler pc     */
 
         mov     0*8(%rsp),%rax              /* restore exception pointer      */
         add     $(4*8),%rsp                 /* free stack frame               */
 
-        jmp		*%r10                       /* jump to the handler            */
+        jmp		*xpc                        /* jump to the handler            */
 
 ex_table_cont:
         lea		ExEntrySize(%rdi),%rdi      /* next exception table entry     */
@@ -599,36 +609,56 @@ noflt:
 *******************************************************************************/
 
 asm_check_clinit:
-		mov		offclassinit(%rax),%r10d    /* get initialized flag (int)     */
-		test	%r10,%r10
-		jnz		L_is_initialized
+	mov		offclassinit(%rax),%r10d    /* get initialized flag (int)         */
+	test	%r10,%r10
+	jnz		L_is_initialized
 
-		sub		$(7*8),%rsp                 /* keep stack 16-byte aligned     */
-		mov		%rdi,0*8(%rsp)              /* save argument registers        */
-		mov		%rsi,1*8(%rsp)
-		mov		%rdx,2*8(%rsp)
-		mov		%rcx,3*8(%rsp)
-		mov		%r8,4*8(%rsp)
-		mov		%r9,5*8(%rsp)
-		
-		mov		%rax,%rdi                   /* pass classinfo pointer         */
-		call	class_init                  /* call class_init function       */
-		
-        mov     0*8(%rsp),%rdi              /* restore argument registers     */
-        mov     1*8(%rsp),%rsi
-        mov     2*8(%rsp),%rdx
-        mov     3*8(%rsp),%rcx
-        mov     4*8(%rsp),%r8
-        mov     5*8(%rsp),%r9
-		add		$(7*8),%rsp
+	sub		$(7*8),%rsp                 /* keep stack 16-byte aligned         */
+	mov		%rdi,0*8(%rsp)              /* save argument registers            */
+	mov		%rsi,1*8(%rsp)
+	mov		%rdx,2*8(%rsp)
+	mov		%rcx,3*8(%rsp)
+	mov		%r8,4*8(%rsp)
+	mov		%r9,5*8(%rsp)
+	
+	mov		%rax,%rdi                   /* pass classinfo pointer             */
+	call	class_init                  /* call class_init function           */
+	
+    mov     0*8(%rsp),%rdi              /* restore argument registers         */
+    mov     1*8(%rsp),%rsi
+    mov     2*8(%rsp),%rdx
+    mov     3*8(%rsp),%rcx
+    mov     4*8(%rsp),%r8
+    mov     5*8(%rsp),%r9
+	add		$(7*8),%rsp
+
+	test    %rax,%rax                   /* we had an exception                */
+	je      L_initializererror
 				
 L_is_initialized:
-		mov     (%rsp),%rax                 /* get return address             */
-		sub     $23,%rax                    /* asm_putstatic call code size   */
-		movb    $0xeb,(%rax)                /* jmp rel8                       */
-		movb    $21,1(%rax)                 /* 8-bit offset                   */
-		ret
+	mov     (%rsp),%rax                 /* get return address                 */
+	sub     $23,%rax                    /* asm_putstatic call code size       */
+	movb    $0xeb,(%rax)                /* jmp rel8                           */
+	movb    $21,1(%rax)                 /* 8-bit offset                       */
+	ret
 
+L_initializererror:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	call    builtin_asm_get_exceptionptrptr
+	mov     %rax,itmp2
+	mov     (itmp2),xptr                /* get the exception pointer          */
+	movl    $0,(itmp2)                  /* clear the exception pointer        */
+#else
+	lea     _exceptionptr,itmp2
+	mov     (itmp2),xptr                /* get the exception pointer          */
+	movl    $0,(itmp2)                  /* clear the exception pointer        */
+#endif
+
+	pop     xpc                         /* delete return address              */
+	sub     $3,xpc                      /* faulting address is return adress - 3 */
+
+	jmp     asm_handle_exception
+		
 
 /********************* function asm_builtin_monitorenter ***********************
 *                                                                              *
