@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: stack.c 1758 2004-12-14 13:14:40Z twisti $
 
 */
 
@@ -1723,35 +1723,44 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								s4 farg = 0;
 								s4 stackargs = 0;
 
+								/* count integer and float arguments */
+
 								copy = curstack;
 								while (--i >= 0) {
 									(IS_FLT_DBL_TYPE(copy->type)) ? farg++ : iarg++;
 									copy = copy->prev;
 								}
 
-								stackargs += (iarg < rd->intreg_argnum) ?
-									0 : (iarg - rd->intreg_argnum);
-								stackargs += (farg < rd->fltreg_argnum) ?
-									0 : (farg - rd->fltreg_argnum);
+								/* calculate stack space required */
+
+								stackargs += (iarg < INT_ARG_CNT) ?
+									0 : (iarg - INT_ARG_CNT);
+								stackargs += (farg < FLT_ARG_CNT) ?
+									0 : (farg - FLT_ARG_CNT);
 
 								i = iptr->op1;
 								copy = curstack;
 								while (--i >= 0) {
 									if (!(copy->flags & SAVEDVAR)) {
 										copy->varkind = ARGVAR;
+
 										if (IS_FLT_DBL_TYPE(copy->type)) {
-											if (--farg < rd->fltreg_argnum) {
+											if (--farg < FLT_ARG_CNT) {
 												copy->varnum = farg;
+
 											} else {
-												copy->varnum = --stackargs + rd->intreg_argnum;
+												copy->varnum = --stackargs + FLT_ARG_CNT;
 											}
+
 										} else {
-											if (--iarg < rd->intreg_argnum) {
+											if (--iarg < INT_ARG_CNT) {
 												copy->varnum = iarg;
+
 											} else {
-												copy->varnum = --stackargs + rd->intreg_argnum;
+												copy->varnum = --stackargs + INT_ARG_CNT;
 											}
 										}
+
 									} else {
 										(IS_FLT_DBL_TYPE(copy->type)) ? --farg : --iarg;
 									}
@@ -2006,7 +2015,7 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 			case TEMPVAR:
 				if (s->flags & INMEMORY)
 					printf(" M%02d", s->regoff);
-				else if ((s->type == TYPE_FLT) || (s->type == TYPE_DBL))
+				else if (IS_FLT_DBL_TYPE(s->type))
 					printf(" F%02d", s->regoff);
 				else {
 					printf(" %3s", regs[s->regoff]);
@@ -2029,7 +2038,7 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 			case TEMPVAR:
 				if (s->flags & INMEMORY)
 					printf(" m%02d", s->regoff);
-				else if ((s->type == TYPE_FLT) || (s->type == TYPE_DBL))
+				else if (IS_FLT_DBL_TYPE(s->type))
 					printf(" f%02d", s->regoff);
 				else {
 					printf(" %3s", regs[s->regoff]);
