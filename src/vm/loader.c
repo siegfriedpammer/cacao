@@ -1,16 +1,18 @@
 
 /* loader.c ********************************************************************
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+	Copyright (c) 1999 A. Krall, R. Grafl, R. Obermaiser, M. Probst
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
 	Contains the functions of the class loader.
 
 	Author:  Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
+	Changes: Andreas Krall       EMAIL: cacao@complang.tuwien.ac.at
+	         Roman Obermaiser    EMAIL: cacao@complang.tuwien.ac.at
+	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1997/06/03
+	Last Change: 1999/11/08
 
 *******************************************************************************/
 
@@ -28,7 +30,7 @@
 #endif
 #include "asmpart.h"
 
-#include "threads/thread.h"                        /* schani */
+#include "threads/thread.h"
 #include <sys/stat.h>
 
 /* global variables ***********************************************************/
@@ -42,7 +44,7 @@ int count_all_methods = 0;
 int count_vmcode_len = 0;
 int count_extable_len = 0;
 
-bool loadverbose = false;    /* switches for debug messages                   */
+bool loadverbose = false;       /* switches for debug messages                */
 bool linkverbose = false;
 bool initverbose = false;
 
@@ -51,11 +53,11 @@ bool makeinitializations = true;
 bool getloadingtime  = false;   /* to measure the runtime                     */
 long int loadingtime = 0;
 
-static s4 interfaceindex;    /* sequential numbering of interfaces            */ 
+static s4 interfaceindex;       /* sequential numbering of interfaces         */ 
 
-list unloadedclasses; /* list of all referenced but not loaded classes */
-list unlinkedclasses; /* list of all loaded but not linked classes     */
-list linkedclasses;   /* list of all completely linked classes         */
+list unloadedclasses;       /* list of all referenced but not loaded classes  */
+list unlinkedclasses;       /* list of all loaded but not linked classes      */
+list linkedclasses;         /* list of all completely linked classes          */
 
 
 /* utf-symbols for pointer comparison of frequently used strings */
@@ -69,6 +71,7 @@ static utf *utf_clinit;  		    /* <clinit> 			   */
 static utf *utf_initsystemclass;	/* initializeSystemClass   */
 static utf *utf_systemclass;		/* java/lang/System 	   */
 
+
 /* important system classes ***************************************************/
 
 classinfo *class_java_lang_Object;
@@ -80,8 +83,9 @@ classinfo *class_java_lang_NegativeArraySizeException;
 classinfo *class_java_lang_OutOfMemoryError;
 classinfo *class_java_lang_ArithmeticException;
 classinfo *class_java_lang_ArrayStoreException;
-classinfo *class_java_lang_ThreadDeath;                 /* schani */
+classinfo *class_java_lang_ThreadDeath;
 classinfo *class_array = NULL;
+
 
 /******************************************************************************
 
@@ -102,6 +106,7 @@ primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
   		{ NULL, NULL, "java/lang/Boolean",   'Z', "boolean" },
   		{ NULL, NULL, "java/lang/Void",	     'V', "void"    }};
 
+
 /* instances of important system classes **************************************/
 
 java_objectheader *proto_java_lang_ClassCastException;
@@ -111,10 +116,10 @@ java_objectheader *proto_java_lang_NegativeArraySizeException;
 java_objectheader *proto_java_lang_OutOfMemoryError;
 java_objectheader *proto_java_lang_ArithmeticException;
 java_objectheader *proto_java_lang_ArrayStoreException;
-java_objectheader *proto_java_lang_ThreadDeath;         /* schani */
+java_objectheader *proto_java_lang_ThreadDeath;
 
 
-/************* functions for reading classdata ********************************
+/************* functions for reading classdata *********************************
 
     getting classdata in blocks of variable size
     (8,16,32,64-bit integer or float)
@@ -127,10 +132,13 @@ static u1 *classbuf_pos;            /* current position in classfile buffer   */
 static int classbuffer_size;        /* size of classfile-data                 */
 
 /* transfer block of classfile data into a buffer */
-#define suck_nbytes(buffer,len) memcpy(buffer,classbuf_pos+1,len);classbuf_pos+=len;
+
+#define suck_nbytes(buffer,len) memcpy(buffer,classbuf_pos+1,len); \
+                                classbuf_pos+=len;
 
 /* skip block of classfile data */
-#define skip_nbytes(len) classbuf_pos += len;
+
+#define skip_nbytes(len) classbuf_pos+=len;
 
 #define suck_u1() (*++classbuf_pos)
 #define suck_s8() (s8) suck_u8()
@@ -140,7 +148,9 @@ static int classbuffer_size;        /* size of classfile-data                 */
 #define suck_u2() (u2) ((suck_u1()<<8)+suck_u1())
 #define suck_u4() (u4) ((((u4)suck_u1())<<24)+(((u4)suck_u1())<<16)+(((u4)suck_u1())<<8)+((u4)suck_u1()))
 
+
 /* get u8 from classfile data */
+
 static u8 suck_u8 ()
 {
 #if U8_AVAILABLE
@@ -157,6 +167,7 @@ static u8 suck_u8 ()
 }
 
 /* get float from classfile data */
+
 static float suck_float ()
 {
 	float f;
@@ -194,11 +205,11 @@ static double suck_double ()
 	return d;
 }
 
-/************************** function: suck_init ******************************
+/************************** function suck_init *********************************
 
 	called once at startup, sets the searchpath for the classfiles
 
-******************************************************************************/
+*******************************************************************************/
 
 void suck_init (char *cpath)
 {
@@ -207,79 +218,74 @@ void suck_init (char *cpath)
 }
 
 
-/************************** function: suck_start ******************************
+/************************** function suck_start ********************************
 
-	open file for the specified class and the read classfile data,
-	all directory of the searchpath are used to find the classfile
-	( <classname>.class)
+	returns true if classbuffer is already loaded or a file for the
+	specified class has succussfully been read in. All directories of
+	the searchpath are used to find the classfile (<classname>.class).
+	Returns false if no classfile is found and writes an error message. 
 	
-******************************************************************************/
+*******************************************************************************/
 
 
-bool suck_start (utf *classname)
-{
-#define MAXFILENAME 1000 	       /* maximum length of a filename */
+bool suck_start (utf *classname) {
+
+#define MAXFILENAME 1000 	        /* maximum length of a filename           */
 	
-	char filename[MAXFILENAME+10]; /* room for '.class' */	
-	char *pathpos;                 /* position in searchpath */
+	char filename[MAXFILENAME+10];  /* room for '.class'                      */	
+	char *pathpos;                  /* position in searchpath                 */
+	char c, *utf_ptr;               /* pointer to the next utf8-character     */
 	FILE *classfile;
-	u2 filenamelen;
-	u2 c;
-
-	if (classbuffer)               /* classbuffer already valid */
+	int  filenamelen, err;
+	struct stat buffer;
+	
+	if (classbuffer)                /* classbuffer is already valid */
 		return true;
 
 	pathpos = classpath;
 	
 	while (*pathpos) {
-		/* pointer to the next utf8-character */
-		char *utf_ptr = classname->text; 
 
 		/* skip path separator */
-		while ( *pathpos == ':' ) pathpos++;
+
+		while (*pathpos == ':')
+			pathpos++;
  
  		/* extract directory from searchpath */
-		filenamelen=0;
-		while ( (*pathpos) && (*pathpos!=':') ) {
+
+		filenamelen = 0;
+		while ((*pathpos) && (*pathpos!=':')) {
 		    PANICIF (filenamelen >= MAXFILENAME, "Filename too long") ;
-			
 			filename[filenamelen++] = *(pathpos++);
 			}
 
 		filename[filenamelen++] = '/';  
    
    		/* add classname to filename */
-		while (utf_ptr<utf_end(classname)) {
+
+		utf_ptr = classname->text;
+		while (utf_ptr < utf_end(classname)) {
 			PANICIF (filenamelen >= MAXFILENAME, "Filename too long");
-			
 			c = *utf_ptr++;
-			if (c=='/') c = '/';     
-			else {
-				if ( c<=' ' || c>'z') { 
-					/* invalid character */
-					c = '?'; 
-					}
-				}
-			
+			if ((c <= ' ' || c > 'z') && (c != '/'))     /* invalid character */ 
+				c = '?'; 
 			filename[filenamelen++] = c;	
 			}
       
 		/* add suffix */
+
 		strcpy (filename+filenamelen, ".class");
 
 		classfile = fopen(filename, "r");
-		if (classfile) {
-			/* file exists */
-			struct stat buffer;
-			int err;
-	
+		if (classfile) {                                       /* file exists */
+			
 			/* determine size of classfile */
+
 			err = stat (filename, &buffer);
 
-			if (!err) {
-				/* read classfile data */				
+			if (!err) {                                /* read classfile data */				
 				classbuffer_size = buffer.st_size;				
-				classbuffer      = MNEW(u1,classbuffer_size);
+				classbuffer      = MNEW(u1, classbuffer_size);
 				classbuf_pos     = classbuffer-1;
 				fread(classbuffer, 1, classbuffer_size, classfile);
 				fclose(classfile);
@@ -288,33 +294,37 @@ bool suck_start (utf *classname)
 		}
 	}
 
-	sprintf (logtext,"Can not open class file '%s'", filename);
+	sprintf (logtext,"Warning: Can not open class file '%s'", filename);
 	dolog();
 
 	return false;
 }
 
 
-/************************** function: suck_stop *******************************
+/************************** function suck_stop *********************************
 
-	free memory for buffer with classfile data
+	frees memory for buffer with classfile data.
+	Caution: this function may only be called if buffer has been allocated
+	         by suck_start with reading a file
 	
-******************************************************************************/
+*******************************************************************************/
 
-void suck_stop ()
-{
-	/* determine number of bytes of classdata not retrieved by suck-operations */
-	int classdata_left = (classbuffer+classbuffer_size)-classbuf_pos-1;
+void suck_stop () {
 
-        if (classdata_left>0) {        	
-        		/* surplus */        	
-			sprintf (logtext,"There are %d access bytes at end of classfile",
-		                 classdata_left);
-			dolog();
+	/* determine amount of classdata not retrieved by suck-operations         */
+
+	int classdata_left = ((classbuffer+classbuffer_size)-classbuf_pos-1);
+
+	if (classdata_left > 0) {        	
+		/* surplus */        	
+		sprintf (logtext,"There are %d access bytes at end of classfile",
+	                 classdata_left);
+		dolog();
 	}
 
 	/* free memory */
-	MFREE(classbuffer,u1,classbuffer_size);
+
+	MFREE(classbuffer, u1, classbuffer_size);
 	classbuffer = NULL;
 }
 
@@ -531,10 +541,10 @@ static void checkfielddescriptor (char *utf_ptr, char *end_pos)
 }
 
 
-/******************* function: checkmethoddescriptor ***************************
+/******************* function checkmethoddescriptor ****************************
 
-    checks whether a method-descriptor is valid and aborts otherwise
-    all referenced classes are inserted into the list of unloaded classes	
+    checks whether a method-descriptor is valid and aborts otherwise.
+    All referenced classes are inserted into the list of unloaded classes.
 	
 *******************************************************************************/
 
@@ -2543,18 +2553,19 @@ void loader_compute_subclasses ()
 
 
 
-/******************** function: classloader_buffer ***************************
+/******************** function classloader_buffer ******************************
  
-    set buffer for reading classdata
+    sets buffer for reading classdata
 
-******************************************************************************/
+*******************************************************************************/
 
-void classload_buffer(u1 *buf,int len)
+void classload_buffer(u1 *buf, int len)
 {
 	classbuffer        =  buf;
 	classbuffer_size   =  len;
-	classbuf_pos       =  buf-1;
+	classbuf_pos       =  buf - 1;
 }
+
 
 /******************** Funktion: loader_close ***********************************
 
