@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1544 2004-11-18 12:21:44Z twisti $
+   $Id: loader.c 1547 2004-11-18 13:01:41Z twisti $
 
 */
 
@@ -344,7 +344,7 @@ void suck_init(char *classpath)
 
 			/* allocate memory for filename and fill it */
 
-			filename = MNEW(char, filenamelen + 1);
+			filename = MNEW(char, filenamelen + 2);  /* 2 = "/\0" */
 			strncpy(filename, start, filenamelen);
 			filename[filenamelen + 1] = '\0';
 			cpi = NULL;
@@ -369,20 +369,15 @@ void suck_init(char *classpath)
 				cpi->filepath.type = CLASSPATH_PATH;
 				cpi->filepath.next = NULL;
 
-#if 0
 				if (filename[filenamelen - 1] != '/') {/*PERHAPS THIS SHOULD BE READ FROM A GLOBAL CONFIGURATION */
 					filename[filenamelen] = '/';
 					filename[filenamelen + 1] = '\0';
 					filenamelen++;
 				}
-#endif
+
 				cpi->filepath.path = filename;
 				cpi->filepath.pathlen = filenamelen;
 			}
-
-			/* free allocated memory */
-
-			MFREE(filename, char, filenamelen);
 
 			/* attach current classpath entry */
 
@@ -492,7 +487,7 @@ classbuffer *suck_start(classinfo *c)
 
 	/* walk through all classpath entries */
 
-	for (cpi = classpath_entries; !cb && cpi; cpi = cpi->filepath.next) {
+	for (cpi = classpath_entries; cpi != NULL && cb == NULL; cpi = cpi->filepath.next) {
 #if defined(USE_ZLIB)
 		if (cpi->filepath.type == CLASSPATH_ARCHIVE) {
 			if (cacao_locate(cpi->archive.uf, c->name) == UNZ_OK) {
@@ -510,8 +505,7 @@ classbuffer *suck_start(classinfo *c)
 						len = unzReadCurrentFile(cpi->archive.uf, cb->data, cb->size);
 
 						if (len != cb->size) {
-							MFREE(cb->data, u1, cb->size);
-							FREE(cb, classbuffer);
+							suck_stop(cb);
 							log_text("Error while unzipping");
 						}
 
@@ -548,10 +542,11 @@ classbuffer *suck_start(classinfo *c)
 					/* read class data */
 					len = fread(cb->data, 1, cb->size, classfile);
 
-/*  					if (len != buffer.st_size) { */
+					if (len != buffer.st_size) {
+						suck_stop(cb);
 /*  						if (ferror(classfile)) { */
 /*  						} */
-/*  					} */
+					}
 				}
 			}
 
