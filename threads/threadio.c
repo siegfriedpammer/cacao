@@ -104,35 +104,38 @@ threadedFileDescriptor(int fd)
 void clear_thread_flags(void)
 {
 #if !defined(BLOCKING_CALLS)
-	int fl, fd;
-
 #if defined(HAVE_FCNTL) && defined(O_NONBLOCK)
-	fd = fileno(stdin);
+    int fl, fd;
+
+    fd = fileno(stdin);
     fl = fcntl(fd, F_GETFL, 0);
     fl = fcntl(fd, F_SETFL, fl & (~O_NONBLOCK));
 
-	fd = fileno(stdout);
+    fd = fileno(stdout);
     fl = fcntl(fd, F_GETFL, 0);
     fl = fcntl(fd, F_SETFL, fl & (~O_NONBLOCK));
 
-	fd = fileno(stderr);
+    fd = fileno(stderr);
     fl = fcntl(fd, F_GETFL, 0);
     fl = fcntl(fd, F_SETFL, fl & (~O_NONBLOCK));
+
 #elif defined(HAVE_IOCTL) && defined(FIONBIO)
-	fl = 0;
-	fd = fileno(stdin);
+    int fl, fd;
+
+    fl = 0;
+    fd = fileno(stdin);
     (void) ioctl(fd, FIONBIO, &fl);
 
-	fd = fileno(stdout);
+    fd = fileno(stdout);
     (void) ioctl(fd, FIONBIO, &fl);
 
-	fd = fileno(stderr);
+    fd = fileno(stderr);
     (void) ioctl(fd, FIONBIO, &fl);
 #endif
-
 #endif
-fflush (stdout);
-fflush (stderr);
+
+    fflush (stdout);
+    fflush (stderr);
 }
 
 
