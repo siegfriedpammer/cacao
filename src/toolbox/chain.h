@@ -4,7 +4,7 @@
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	dient zur Verwaltung doppelt verketteter Listen mit externer Verkettung
+	Management of doubly linked lists with external linking
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
@@ -15,12 +15,12 @@
 #ifndef CHAIN_H
 #define CHAIN_H
 
-typedef struct chainlink {          /* Struktur f"ur ein Listenelement */
+typedef struct chainlink {          /* structure for list element */
 	struct chainlink *next,*prev;
 	void *element;
 	} chainlink;
 
-typedef struct chain {	            /* Struktur f"ur eine Liste */
+typedef struct chain {	            /* structure for list */
 	int  usedump;   
 
 	chainlink *first,*last;
@@ -50,46 +50,39 @@ void *chain_last(chain *c);
 
 
 /*
---------------------------- Schnittstellenbeschreibung ------------------------
+--------------------------- interface description ------------------------
 
-Bei Verwendung dieser Funktionen f"ur die Listenverwaltung mu"s, im
-Gegenstatz zum Modul 'list', keine zus"atzliche Vorbereitung in den 
-Element-Strukturen gemacht werden.
+Usage of these functions for list management is possible without additional preparation in the element structures, as opposed to the module 'list'.
 
-Diese Funktionen sind daher auch ein wenig langsamer und brauchen 
-mehr Speicher.
+Consequently, the functions are a little slower and need more memory.
 
-Eine neue Liste wird mit 
-		  chain_new
-	oder  chain_dnew 
-angelegt. Der Unterschied ist, da"s bei der zweiten Variante alle
-zus"atzlichen Datenstrukturen am DUMP-Speicher angelegt werden (was
-schneller geht, und ein explizites Freigeben am Ende der Verarbeitung
-unn"otig macht). Dabei mu"s man aber achtgeben, da"s man nicht 
-versehentlich Teile dieser Strukturen durch ein verfr"uhtes 'dump_release'
-freigibt.
+A new list is created with
+	chain_new
+or  chain_dnew.
+The latter allocates all additional data structures on the dump memory (faster)
+for which no explicit freeing is necessary after the processing. Care needs to
+be taken to not accidentally free parts of these structures by calling
+'dump_release' too early.
 
-Eine nicht mehr verwendete Liste kann mit
-		chain_free
-freigegeben werden (nur verwenden, wenn mit 'chain_new' angefordert)
+After usage, a list can be freed with
+	chain_free.
+(use only if the list was created with 'chain_new')
 
 
-Das Eintragen neuer Elemente geht sehr einfach mit:
+Adding elements is easy with:
 	chain_addafter, chain_addlast, chain_addbefore, chain_addfirst		
 	
-Durchsuchen der Liste mit:
+Search the list with:
 	chain_first, chain_last, chain_prev, chain_next, chain_this
 	
-L"oschen von Elementen aus der Liste:
+Delete elements from the list:
 	chain_remove, chain_remove_go_prev, chain_removespecific
 	
 	
-ACHTUNG: In den zu verkettenden Elementen gibt es ja (wie oben gesagt) keine
-	Referenzen auf die Liste oder irgendwelche Listenknoten, deshalb k"onnen
-	die Elemente nicht als Ortsangabe innerhalb der Liste fungieren.
- 	Es gibt vielmehr ein Art 'Cursor', der ein Element als das gerade
- 	aktuelle festh"alt, und alle Ein-/und Ausf"ugeoperationen geschehen
- 	relativ zu diesem Cursor.
+ATTENTION: As mentioned earlier, there are no pointers to the list or to other
+nodes inside the list elements, so list elements cannot be used as pointers
+into the list. Therefore a 'cursor' is used to make one element current. Every
+insertion/deletion occurs at a position relative to this cursor.
 
 */
 
