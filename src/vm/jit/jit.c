@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1829 2004-12-29 13:24:01Z twisti $
+   $Id: jit.c 1833 2004-12-29 14:18:38Z twisti $
 
 */
 
@@ -1344,13 +1344,12 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 
 functionptr jit_compile(methodinfo *m)
 {
-	static bool jitrunning;
-	functionptr r;
-	s4 dumpsize;
-	codegendata *cd;
-	registerdata *rd;
-	loopdata *ld;
+	functionptr         r;
+	codegendata        *cd;
+	registerdata       *rd;
+	loopdata           *ld;
 	t_inlining_globals *id;
+	s4                  dumpsize;
 
 
 	if (m->flags & ACC_NATIVE) {
@@ -1391,18 +1390,6 @@ functionptr jit_compile(methodinfo *m)
 
 		return m->entrypoint;    /* return empty method     */
 	}
-
-#if 0
-	if (jitrunning) {
-		printf("JITRUNNING!!! new method=");
-		utf_display_classname(m->class->name);printf(".");utf_display(m->name);
-		printf("\n");
-	}
-
-	/* now the jit is running */
-
-	jitrunning = true;
-#endif
 
 	/* measure time */
 
@@ -1461,13 +1448,11 @@ functionptr jit_compile(methodinfo *m)
 	if (getcompilingtime)
 		compilingtime_stop();
 
-	jitrunning = false;
-
-        /* define in options.h; Used in main.c, jit.c & inline.c */
-	#ifdef INAFTERMAIN
+	/* define in options.h; Used in main.c, jit.c & inline.c */
+#ifdef INAFTERMAIN
 	if ((utf_new_char("main") == m->name) && (useinliningm))
-        	useinlining = false;
-	#endif
+		useinlining = false;
+#endif
 
 #if defined(USE_THREADS)
 	/* leave the monitor */
