@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1463 2004-11-06 21:20:53Z motse $
+   $Id: codegen.inc 1466 2004-11-08 11:24:50Z twisti $
 
 */
 
@@ -146,12 +146,12 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 	if (useinlining && id) {
 		if (id->cumextablelength > 0) {
 			cd->exceptiontablelength = id->cumextablelength;
-			cd->exceptiontable  = MNEW(exceptiontable, id->cumextablelength + 1);
+			cd->exceptiontable  = DMNEW(exceptiontable, id->cumextablelength + 1);
 		}
 
 	} else if (id && (id->method->exceptiontablelength >0)) {
 		cd->exceptiontablelength = m->exceptiontablelength;
-		cd->exceptiontable  = MNEW(exceptiontable, m->exceptiontablelength + 1);
+		cd->exceptiontable  = DMNEW(exceptiontable, m->exceptiontablelength + 1);
 	}
 
 	if (id) {
@@ -178,12 +178,14 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 void codegen_free(methodinfo *m, codegendata *cd)
 {
 	if (cd) {
+#if 0
 		if (cd->exceptiontablelength) {
 			cd->exceptiontablelength = m->exceptiontablelength;
 			MFREE(cd->exceptiontable, exceptiontable, cd->exceptiontablelength + 1);
 			cd->exceptiontable = 0;
 			cd->exceptiontablelength = 0;
 		}
+#endif
 
 		if (cd->mcodebase) {
 			MFREE(cd->mcodebase, u1, cd->mcodesize);

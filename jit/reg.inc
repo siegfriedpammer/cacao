@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1459 2004-11-05 16:23:02Z twisti $
+   $Id: reg.inc 1466 2004-11-08 11:24:50Z twisti $
 
 */
 
@@ -88,14 +88,14 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 		}
 	}
 
-	rd->argintregs = MNEW(s4, rd->intreg_argnum);
-	rd->tmpintregs = MNEW(s4, rd->tmpintregcnt);
-	rd->savintregs = MNEW(s4, rd->savintregcnt);
-	rd->freeargintregs = MNEW(s4, rd->intreg_argnum);
-	rd->freetmpintregs = MNEW(s4, rd->tmpintregcnt);
-	rd->freesavintregs = MNEW(s4, rd->savintregcnt);
+	rd->argintregs = DMNEW(s4, rd->intreg_argnum);
+	rd->tmpintregs = DMNEW(s4, rd->tmpintregcnt);
+	rd->savintregs = DMNEW(s4, rd->savintregcnt);
+	rd->freeargintregs = DMNEW(s4, rd->intreg_argnum);
+	rd->freetmpintregs = DMNEW(s4, rd->tmpintregcnt);
+	rd->freesavintregs = DMNEW(s4, rd->savintregcnt);
 #ifdef USETWOREGS
-	rd->secondregs = MNEW(s4, rd->intregsnum);
+	rd->secondregs = DMNEW(s4, rd->intregsnum);
 #endif
 
 	rd->intreg_argnum = 0;
@@ -168,12 +168,12 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 		}
 	}
 
-	rd->argfltregs = MNEW(s4, rd->fltreg_argnum);
-	rd->tmpfltregs = MNEW(s4, rd->tmpfltregcnt);
-	rd->savfltregs = MNEW(s4, rd->savfltregcnt);
-	rd->freeargfltregs = MNEW(s4, rd->fltreg_argnum);
-	rd->freetmpfltregs = MNEW(s4, rd->tmpfltregcnt);
-	rd->freesavfltregs = MNEW(s4, rd->savfltregcnt);
+	rd->argfltregs = DMNEW(s4, rd->fltreg_argnum);
+	rd->tmpfltregs = DMNEW(s4, rd->tmpfltregcnt);
+	rd->savfltregs = DMNEW(s4, rd->savfltregcnt);
+	rd->freeargfltregs = DMNEW(s4, rd->fltreg_argnum);
+	rd->freetmpfltregs = DMNEW(s4, rd->tmpfltregcnt);
+	rd->freesavfltregs = DMNEW(s4, rd->savfltregcnt);
 
 	rd->fltreg_argnum = 0;
 	rd->argfltreguse = 0;
@@ -199,9 +199,9 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 	}
 
 
-	rd->freemem    = MNEW(s4, id->cummaxstack);
-	rd->locals     = MNEW(varinfo5, id->cumlocals);
-	rd->interfaces = MNEW(varinfo5, id->cummaxstack);
+	rd->freemem    = DMNEW(s4, id->cummaxstack);
+	rd->locals     = DMNEW(varinfo5, id->cumlocals);
+	rd->interfaces = DMNEW(varinfo5, id->cummaxstack);
 
 	for (v = rd->locals, i = id->cumlocals; i > 0; v++, i--) {
 		v[0][TYPE_INT].type = -1;
@@ -234,27 +234,7 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 
 void reg_free(methodinfo *m, registerdata *rd)
 {
-	if (rd->argintregs) MFREE(rd->argintregs, s4, rd->intreg_argnum);
-	if (rd->argfltregs) MFREE(rd->argfltregs, s4, rd->fltreg_argnum);
-	if (rd->tmpintregs) MFREE(rd->tmpintregs, s4, rd->tmpintregcnt);
-	if (rd->savintregs) MFREE(rd->savintregs, s4, rd->savintregcnt);
-	if (rd->tmpfltregs) MFREE(rd->tmpfltregs, s4, rd->tmpfltregcnt);
-	if (rd->savfltregs) MFREE(rd->savfltregs, s4, rd->savfltregcnt);
-
-	if (rd->freeargintregs) MFREE(rd->freeargintregs, s4, rd->intreg_argnum);
-	if (rd->freeargfltregs) MFREE(rd->freeargfltregs, s4, rd->fltreg_argnum);
-	if (rd->freetmpintregs) MFREE(rd->freetmpintregs, s4, rd->tmpintregcnt);
-	if (rd->freesavintregs) MFREE(rd->freesavintregs, s4, rd->savintregcnt);
-	if (rd->freetmpfltregs) MFREE(rd->freetmpfltregs, s4, rd->tmpfltregcnt);
-	if (rd->freesavfltregs) MFREE(rd->freesavfltregs, s4, rd->savfltregcnt);
-
-#ifdef USETWOREGS
-	if (rd->secondregs) MFREE(rd->secondregs, s4, rd->intregsnum);
-#endif
-
-	if (rd->freemem) MFREE(rd->freemem, s4, m->maxstack);
-	if (rd->locals)  MFREE(rd->locals, varinfo5, m->maxlocals);
-	if (rd->interfaces) MFREE(rd->interfaces, varinfo5, m->maxstack);
+	/* void */
 }
 
 

@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1456 2004-11-05 14:33:14Z twisti $
+   $Id: jit.c 1466 2004-11-08 11:24:50Z twisti $
 
 */
 
@@ -1340,11 +1340,13 @@ static void* do_nothing_function()
 
 /* jit_compile *****************************************************************
 
-	jit_compile, new version of compiler, translates one method to machine code
+   jit_compile, new version of compiler, translates one method to machine code
 
 *******************************************************************************/
 
-static methodptr jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd, loopdata *ld, t_inlining_globals *id);
+static methodptr jit_compile_intern(methodinfo *m, codegendata *cd,
+									registerdata *rd, loopdata *ld,
+									t_inlining_globals *id);
 
 methodptr jit_compile(methodinfo *m)
 {
@@ -1397,21 +1399,21 @@ methodptr jit_compile(methodinfo *m)
 	jitrunning = true;
 #endif
 
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
 	/* measure time */
 
 	if (getcompilingtime)
 		compilingtime_start();
 
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
 	/* allocate memory */
 
-	cd = NEW(codegendata);
-	rd = NEW(registerdata);
-	ld = NEW(loopdata);
-	id = NEW(t_inlining_globals);
+	cd = DNEW(codegendata);
+	rd = DNEW(registerdata);
+	ld = DNEW(loopdata);
+	id = DNEW(t_inlining_globals);
 
 	/* RTA static analysis must be called before inlining */
 	if (opt_rt)
@@ -1449,13 +1451,6 @@ methodptr jit_compile(methodinfo *m)
 
 	dump_release(dumpsize);
 
-	/* free memory */
-
-	FREE(cd, codegendata);
-	FREE(rd, registerdata);
-	FREE(ld, loopdata);
-	FREE(id, t_inlining_globals);
-
 	/* measure time */
 
 	if (getcompilingtime)
@@ -1478,7 +1473,15 @@ methodptr jit_compile(methodinfo *m)
 }
 
 
-static methodptr jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd, loopdata *ld, t_inlining_globals *id)
+/* jit_compile_intern **********************************************************
+
+   Static internal function which does the actual compilation.
+
+*******************************************************************************/
+
+static methodptr jit_compile_intern(methodinfo *m, codegendata *cd,
+									registerdata *rd, loopdata *ld,
+									t_inlining_globals *id)
 {
 	/* print log message for compiled method */
 
@@ -1528,8 +1531,6 @@ static methodptr jit_compile_intern(methodinfo *m, codegendata *cd, registerdata
 #endif
 
 	/* call the compiler passes ***********************************************/
-
-	EXTABLEN
 
 	if (compileverbose)
 		log_message_method("Parsing: ", m);

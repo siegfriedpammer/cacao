@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1451 2004-11-05 14:14:15Z twisti $
+   $Id: codegen.c 1466 2004-11-08 11:24:50Z twisti $
 
 */
 
@@ -79,8 +79,12 @@ int nregdescfloat[] = {
 };
 
 
-/* include independent code generation stuff -- include after register        */
-/* descriptions to avoid extern definitions                                   */
+/*******************************************************************************
+
+    include independent code generation stuff -- include after register
+    descriptions to avoid extern definitions
+
+*******************************************************************************/
 
 #include "jit/codegen.inc"
 #include "jit/reg.inc"
@@ -3723,10 +3727,14 @@ gen_method: {
 u1 *createcompilerstub(methodinfo *m)
 {
 	u1 *s = CNEW(u1, COMPSTUBSIZE);     /* memory to hold the stub            */
-	codegendata *cd = NEW(codegendata);
+	codegendata *cd;
+	s4 dumpsize;
 
-	/* allocate code and data memory, with using inline stuff */
-	//codegen_setup(m, cd, NULL);
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	cd = DNEW(codegendata);
 	cd->mcodeptr = s;
 
 	/* code for the stub */
@@ -3739,10 +3747,9 @@ u1 *createcompilerstub(methodinfo *m)
 		count_cstub_len += COMPSTUBSIZE;
 #endif
 
-	/* free code and data memory */
-	//codegen_close(m, cd);
+	/* release dump area */
 
-	FREE(cd, codegendata);
+	dump_release(dumpsize);
 
 	return s;
 }
@@ -3776,11 +3783,21 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 {
 	u1 *s = CNEW(u1, NATIVESTUBSIZE);   /* memory to hold the stub            */
 	s4 stackframesize;                  /* size of stackframe if needed       */
-	codegendata *cd = NEW(codegendata);
-	registerdata *rd = NEW(registerdata);
-	t_inlining_globals *id = NEW(t_inlining_globals);
+	codegendata *cd;
+	registerdata *rd;
+	t_inlining_globals *id;
+	s4 dumpsize;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	cd = DNEW(codegendata);
+	rd = DNEW(registerdata);
+	id = DNEW(t_inlining_globals);
 
 	/* setup registers before using it */
+
 	inlining_setup(m, id);
 	reg_setup(m, rd, id);
 
@@ -4013,8 +4030,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		count_nstub_len += NATIVESTUBSIZE;
 #endif
 
-	FREE(cd, codegendata);
-	FREE(rd, registerdata);
+	/* release dump area */
+
+	dump_release(dumpsize);
 
 	return s;
 }
