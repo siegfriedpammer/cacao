@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 1529 2004-11-17 17:19:14Z twisti $
+   $Id: cacaoh.c 1534 2004-11-18 10:38:05Z twisti $
 
 */
 
@@ -38,6 +38,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "config.h"
 #include "types.h"
 #include "global.h"
 #include "headers.h"
@@ -52,13 +54,17 @@
 
 /* define cacaoh options ******************************************************/
 
-#define OPT_V         2
-#define OPT_DIRECTORY 3
+#define OPT_HELP      2
+#define OPT_VERSION   3
+#define OPT_VERBOSE   4
+#define OPT_DIRECTORY 5
 
 opt_struct opts[] = {
-	{ "v",                true,   OPT_V         },
-	{ "d",                true,   OPT_DIRECTORY },
-	{ NULL,               false,  0 }
+	{ "help",             false, OPT_HELP      },
+	{ "version",          false, OPT_VERSION   },
+	{ "verbose",          false, OPT_VERBOSE   },
+	{ "d",                true,  OPT_DIRECTORY },
+	{ NULL,               false, 0 }
 };
 
 
@@ -70,14 +76,24 @@ opt_struct opts[] = {
 
 static void usage()
 {
-	printf("Usage: cacaoh [options] <classes>\n");
-	printf("\n");
-	printf("        -v              verbose\n");
-	printf("        -d <dir>        output directory\n");
+	printf("Usage: cacaoh [options] <classes>\n"
+		   "\n"
+		   "Options:\n"
+		   "        -help           Print this message\n"
+		   "        -version        Print version information\n"
+		   "        -verbose        Enable verbose output\n"
+		   "        -d <dir>        Output directory\n");
 
 	/* exit with error code */
 
 	exit(1);
+}
+
+
+static void version()
+{
+	printf("cacaoh "VERSION"\n");
+	exit(0);
 }
 
 
@@ -92,7 +108,7 @@ int main(int argc, char **argv)
 	s4 i, a;
 	char *cp;
 	classinfo *c;
-	bool opt_v;
+	bool opt_verbose;
 	char *opt_directory;
 
 	/********** internal (only used by main) *****************************/
@@ -115,7 +131,7 @@ int main(int argc, char **argv)
 
 	/* initialize options with default values */
 
-	opt_v = false;
+	opt_verbose = false;
 	opt_directory = NULL;
 
 	while ((i = get_opt(argc, argv, opts)) != OPT_DONE) {
@@ -123,8 +139,16 @@ int main(int argc, char **argv)
 		case OPT_IGNORE:
 			break;
 
-		case OPT_V:
-			opt_v = true;
+		case OPT_HELP:
+			usage();
+			break;
+
+		case OPT_VERSION:
+			version();
+			break;
+
+		case OPT_VERBOSE:
+			opt_verbose = true;
 			break;
 
 		case OPT_DIRECTORY:
@@ -139,7 +163,7 @@ int main(int argc, char **argv)
 			
 	/**************************** Program start **************************/
 
-	if (opt_v) {
+	if (opt_verbose) {
 		log_init(NULL);
 		log_text("Java - header-generator started"); 
 	}
@@ -192,9 +216,7 @@ int main(int argc, char **argv)
 	loader_close();
 	tables_close(literalstring_free);
 
-	/* Print "finished" message */
-
-	if (opt_v) {
+	if (opt_verbose) {
 		log_text("Java - header-generator stopped");
 		log_cputime();
 		mem_usagelog(1);
