@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 1967 2005-02-25 15:51:05Z carolyn $
+   $Id: global.h 2008 2005-03-07 08:43:08Z christian $
 
 */
 
@@ -43,6 +43,7 @@
 #include "config.h"
 #include "types.h"
 
+#define LSRA
 
 /* additional data types ******************************************************/
 
@@ -585,6 +586,8 @@ struct methodinfo {                 /* method structure                       */
 	s4	        subRedefs;
 	s4	        subRedefsUsed;
 	s4	        nativelyoverloaded; /* used in header.c and only valid there  */
+	/* helper for lsra */
+	s4          maxlifetimes;
 };
 
 

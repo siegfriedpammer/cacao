@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1988 2005-03-05 15:55:51Z twisti $
+   $Id: codegen.c 2008 2005-03-07 08:43:08Z christian $
 
 */
 
@@ -462,7 +462,38 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		src = bptr->instack;
 		len = bptr->indepth;
 		MCODECHECK(64 + len);
-		while (src != NULL) {
+
+#ifdef LSRA
+		if (opt_lsra) {
+			while (src != NULL) {
+				len--;
+				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
+					if (bptr->type == BBTYPE_SBR) {
+						/*  					d = reg_of_var(rd, src, REG_ITMP1); */
+						if (!(src->flags & INMEMORY))
+							d= src->regoff;
+						else
+							d=REG_ITMP1;
+						x86_64_pop_reg(cd, d);
+						store_reg_to_var_int(src, d);
+
+					} else if (bptr->type == BBTYPE_EXH) {
+						/*  					d = reg_of_var(rd, src, REG_ITMP1); */
+						if (!(src->flags & INMEMORY))
+							d= src->regoff;
+						else
+							d=REG_ITMP1;
+						M_INTMOVE(REG_ITMP1, d);
+						store_reg_to_var_int(src, d);
+					}
+				}
+				src = src->prev;
+			}
+			
+		} else {
+#endif
+
+	while (src != NULL) {
 			len--;
   			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
 				if (bptr->type == BBTYPE_SBR) {
@@ -504,7 +535,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 			src = src->prev;
 		}
-
+#ifdef LSRA
+		}
+#endif
 		/* walk through all instructions */
 		
 		src = bptr->instack;
@@ -3434,6 +3467,9 @@ gen_method: {
 	src = bptr->outstack;
 	len = bptr->outdepth;
 	MCODECHECK(64 + len);
+#ifdef LSRA
+	if (!opt_lsra)
+#endif
 	while (src) {
 		len--;
 		if ((src->varkind != STACKVAR)) {

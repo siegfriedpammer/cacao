@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 1981 2005-03-04 15:49:41Z christian $
+   $Id: lsra.inc 2008 2005-03-07 08:43:08Z christian $
 
 */
 #include <stdio.h>
@@ -877,15 +877,24 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 		}
 		if (m->isleafmethod) {
 			for (i = reg_count-1; i >= 0 ; i--) {
-				if ((tmp_reg_count-sav_reg_count) >= MAX_TMP_REG_COUNT)
-					break;
-				if (nregdescint[i]==REG_ARG) {
-					reg[tmp_reg_count].reg_index=i;
-					reg[tmp_reg_count].use=0;
-					tmp_reg_count++;
-				}
-			}
-		}
+		   		if ((tmp_reg_count-sav_reg_count) >= MAX_TMP_REG_COUNT)
+		   			break;
+		   		if (nregdescint[i]==REG_ARG) {
+		   			reg[tmp_reg_count].reg_index=i;
+		   			reg[tmp_reg_count].use=0;
+		   			tmp_reg_count++;
+		   		}
+		   	}
+#if defined(__X86_64__)
+			i=reg[tmp_reg_count-1].reg_index;
+			reg[tmp_reg_count-1].reg_index = reg[tmp_reg_count-4].reg_index;
+			reg[tmp_reg_count-4].reg_index = i;
+			i=reg[tmp_reg_count-2].reg_index;
+			reg[tmp_reg_count-2].reg_index = reg[tmp_reg_count-3].reg_index;
+			reg[tmp_reg_count-3].reg_index = i;
+
+#endif
+   		}
 		_lsra_main(m, ls, int_lt, reg, tmp_reg_count, sav_reg_count, &lsra_mem_use, &lsra_reg_use);
 		if (lsra_reg_use > rd->savintregcnt) lsra_reg_use=rd->savintregcnt;
 	}
@@ -933,25 +942,18 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 
 	rd->maxsavfltreguse=lsra_reg_use;
 
-#ifndef SPECIALMEMUSE
-#if defined(__X86_64__)
-	/*
-	 * XXX: we have a problem here, but allocating a little more stack space
-	 *      is better than having a bug
-	 */
-	/*  	if (arguments_num > (intreg_argnum + fltreg_argnum)) */
-	/*  		ifmemuse = arguments_num - (intreg_argnum + fltreg_argnum); */
-	if (rd->arguments_num > rd->fltreg_argnum)
-		lsra_mem_use = rd->arguments_num - rd->fltreg_argnum;
-#else
-	if (rd->arguments_num > rd->intreg_argnum)
-		lsra_mem_use = rd->arguments_num - rd->intreg_argnum;
-#endif
-	else
+	/* allocate stack space for passing arguments to called methods */
+
+#if !defined(SPECIALMEMUSE)
+	/* For this to work properly the integer argument register count must be  */
+	/* less or equal the float argument register count (e.g. x86_64).         */
+	/* (arch.h: INT_ARG_CNT <= FLT_ARG_CNT)                                   */
+	if (rd->arguments_num > INT_ARG_CNT) {
+		lsra_mem_use = rd->arguments_num - INT_ARG_CNT;
+
+	} else {
 		lsra_mem_use = 0;
-#endif
-#ifdef SPECIALMEMUSE
-	lsra_mem_use = rd->ifmemuse;
+	}
 #endif
 
 #ifdef LSRA_DEBUG
@@ -1234,11 +1236,12 @@ void lsra_calc_lifetime_length(methodinfo *m, lsradata *ls, codegendata *cd)
 	int i;
 	struct stackslot *ss;
 
-/* 	int lifetimecount; */
-/* 	int max_local_ss; */
-/* 	int cum_local_ss,local_ss_count; */
-/* 	int i_count; */
-
+#if 0
+	int lifetimecount;
+	int max_local_ss;
+	int cum_local_ss,local_ss_count;
+	int i_count;
+#endif
 	/**********/
 	/* Todo: */
 	/* for Exceptionhandler Blocks loops were not analyed */
@@ -1252,14 +1255,18 @@ void lsra_calc_lifetime_length(methodinfo *m, lsradata *ls, codegendata *cd)
 	/* extend lifetime over backedges */
 	/* now iterate through lifetimes and expand them */
 	
-/* 	lifetimecount = max_local_ss = cum_local_ss = 0; */
+#if 0
+	lifetimecount = max_local_ss = cum_local_ss = 0;
+#endif
 
 	for(lt=ls->lifetimes ;lt != NULL; lt=lt->next) {
-/* 		lifetimecount ++; */
-/* 		local_ss_count = 0; */
-/* 		for (ss=lt->local_ss; ss != 0; ss = ss->next, local_ss_count++); */
-/* 		if (local_ss_count > max_local_ss) max_local_ss = local_ss_count; */
-/* 		cum_local_ss+=local_ss_count; */
+#if 0
+		lifetimecount ++;
+		local_ss_count = 0;
+		for (ss=lt->local_ss; ss != 0; ss = ss->next, local_ss_count++);
+		if (local_ss_count > max_local_ss) max_local_ss = local_ss_count;
+		cum_local_ss+=local_ss_count;
+#endif
 
 		lt->i_start =(m->basicblockcount - lt->bb_first_def) * ls->icount_max + lt->i_first_def;
 		lt->i_end = (m->basicblockcount - lt->bb_last_use) * ls->icount_max + lt->i_last_use;
@@ -1309,11 +1316,13 @@ void lsra_calc_lifetime_length(methodinfo *m, lsradata *ls, codegendata *cd)
 			}
 		}
 	}
-/* 	i_count=0; */
-/* 	for (i=0; i<m->basicblockcount; i++) */
-/* 		if (m->basicblocks[i].flags >= BBREACHED) */
-/* 			i_count+=m->basicblocks[i].icount; */
-/* 	printf("Instr: %5i Lifetimes: %5i Local SS Max: %4i Cum: %4i m->stackcount %4i\n",i_count, lifetimecount, max_local_ss, cum_local_ss, m->stackcount); */
+#if 0
+	i_count=0;
+	for (i=0; i<m->basicblockcount; i++)
+		if (m->basicblocks[i].flags >= BBREACHED)
+			i_count+=m->basicblocks[i].icount;
+	printf("Instr: %5i Lifetimes: %5i Local SS Max: %4i Cum: %4i m->maxlifetimes %4i\n",i_count, lifetimecount, max_local_ss, cum_local_ss, m->maxlifetimes);
+#endif
 }
 
 #define P_MAX 21
@@ -1612,16 +1621,26 @@ void _lsra_new_stack(lsradata *ls, stackptr s, int block, int instr, int store)
 	if (s->varkind == LOCALVAR) {
 		lsra_usage_local(ls, s->varnum, s->type, block, instr, LSRA_STORE);
 	} else if (s->varkind != ARGVAR) {
-/* 		if (s->varnum >= 0) { */
-			/* new Lifetime */
-/* 			s->varnum = ls->v_index--; */
-/* 		} */
+
 		n=get_ss_lifetime( ls, s->varnum );
 		lsra_add_ss( n, s);
 
 		/* remember first def -> overwrite everytime */
 		n->bb_first_def = ls->sorted_rev[block];
 		n->i_first_def = instr;
+
+		if (ls->edx_free != -1) {
+			if (n->bb_last_use == block) {
+				if (n->i_last_use <= ls->edx_free) {
+					/* ->  Lifetime wegschmeißen -> Stackslot nach EDX! */
+					ls->edx_free = -1;
+#ifdef LSRA_DEBUG
+					printf("------ SS Index %i in EDX\n", s->varnum);
+#endif
+/* 					n->regoff = EDX; */
+				}
+			}
+		}
 	}
 }
 
@@ -1634,10 +1653,7 @@ void _lsra_from_stack(lsradata *ls, stackptr s, int block, int instr, int store)
 	if (s->varkind == LOCALVAR) {
 		lsra_usage_local(ls, s->varnum, s->type, block, instr, LSRA_LOAD);
 	} else if (s->varkind != ARGVAR) {
-/* 		if (s->varnum >= 0) { */
-			/* new Lifetime */
-/* 			s->varnum = ls->v_index--; */
-/* 		} */
+
 		n=get_ss_lifetime( ls, s->varnum );
 		lsra_add_ss( n, s);
 
@@ -1718,12 +1734,8 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 	instruction *iptr;
 	stackptr in,out;
 	int      id, od;
-/* 	struct dup dup; */
 
-
-/* 	dup.ss=NULL; */
-/* 	dup.next=NULL; */
-	
+	ls->edx_free = -1;
 
 	src = m->basicblocks[b_index].instack;
 	for (;src != NULL; src=src->prev) {
@@ -1787,6 +1799,11 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 			src=(iptr-1)->dst;
 		else
 			src=m->basicblocks[b_index].instack;
+
+		if (icmd_uses_tmp[opcode].edx)
+			ls->edx_free = -1;
+		else
+			if (ls->edx_free == -1) ls->edx_free = iindex;
 
 #ifdef LSRA_DEBUG
 		/* 				printf("bb: %3i bcount: %3i iindex: %3i ilen: %3i opcode: %3i %s\n",b_index,m->basicblockcount,iindex,len,opcode,icmd_names[opcode]); */
@@ -2439,13 +2456,276 @@ void test_lifetimes( methodinfo *m, lsradata *ls, struct lifetime *lifet, codege
 }
 #endif
 
+#ifdef __I386__
 
+#define NO   0
+#define YES 64
+#define L   32
+#define D   16
+#define DP   8
+#define S    4
+#define SP   2
+#define SPP  1
 
-
-
-
-
-
+struct tmp_reg icmd_uses_tmp[256] ={
+{  NO,  NO,  NO},	/* ICMD_NOP */
+{   D,  NO,  NO},	/* ICMD_ACONST */	
+{  NO,  NO,  NO},	/* ICMD_NULLCHECKPOP */
+{   D,  NO,  NO},	/* ICMD_ICONST */	
+{  NO,  NO,  NO}, /* ICMD_UNDEF4	*/
+{ YES,  NO,  NO}, /* ICMD_IDIVPOW2	*/ 
+{ YES, YES,  NO}, /* ICMD_LDIVPOW2	*/
+{  NO,  NO,  NO}, /* ICMD_UNDEF7	*/
+{  NO,  NO,  NO}, /* ICMD_UNDEF8	*/
+{   D,  NO,  NO},	/* ICMD_LCONST */	
+{ YES, YES, YES}, /* ICMD_LCMPCONST	*/
+{ YES,  NO,  NO}, /* ICMD_FCONST	*/	
+{  NO,  NO,  NO}, /* ICMD_UNDEF12	*/
+{  NO,  NO,  NO}, /* ICMD_ELSE_ICONST	*/
+{ YES,  NO,  NO}, /* ICMD_DCONST	*/	
+{  NO,  NO,  NO}, /* ICMD_IFEQ_ICONST	*/
+{  NO,  NO,  NO}, /* ICMD_IFNE_ICONST	*/
+{  NO,  NO,  NO}, /* ICMD_IFLT_ICONST	*/
+{  NO,  NO,  NO}, /* ICMD_IFGE_ICONST	*/
+{  NO,  NO,  NO}, /* ICMD_IFGT_ICONST	*/
+{  NO,  NO,  NO}, /* ICMD_IFLE_ICONST	*/
+{ L|D,  NO, NO}, /* ICMD_ILOAD	*/ 
+{  NO,  NO,  NO}, /* ICMD_LLOAD	*/
+{  NO,  NO,  NO}, /* ICMD_FLOAD	*/
+{  NO,  NO,  NO}, /* ICMD_DLOAD	*/	
+{ L|D,  NO,  NO}, /* ICMD_ALOAD	*/
+{  NO,  NO,  NO}, /* ICMD_IADDCONST	*/
+{  NO,  NO,  NO}, /* ICMD_ISUBCONST	*/
+{   D,  NO,  NO}, /* ICMD_IMULCONST	*/
+{  NO,  NO,  NO}, /* ICMD_IANDCONST	*/
+{  NO,  NO,  NO}, /* ICMD_IORCONST	*/
+{  NO,  NO,  NO}, /* ICMD_IXORCONST	*/
+{  NO,  NO,  NO}, /* ICMD_ISHLCONST	*/
+{  NO,  NO,  NO}, /* ICMD_ISHRCONST	*/
+{  NO,  NO,  NO}, /* ICMD_IUSHRCONST	*/
+{ YES,  NO,  NO}, /* ICMD_IREMPOW2	*/
+{ S|D,  NO,  NO}, /* ICMD_LADDCONST	*/
+{ YES,  NO,  NO}, /* ICMD_LSUBCONST	*/	
+{ YES, YES, YES}, /* ICMD_LMULCONST	*/
+{  NO,  NO,  NO}, /* ICMD_LANDCONST	*/
+{  NO,  NO,  NO}, /* ICMD_LORCONST	*/
+{  NO,  NO,  NO}, /* ICMD_LXORCONST	*/
+{ YES, YES,  NO}, /* ICMD_LSHLCONST	*/
+{ YES, YES,  NO}, /* ICMD_LSHRCONST	*/
+{ YES, YES,  NO}, /* ICMD_LUSHRCONST	*/
+{ YES, YES,  NO}, /* ICMD_LREMPOW2	*/
+{ YES, YES,  NO}, /* ICMD_IALOAD	*/
+{ YES, YES, YES}, /* ICMD_LALOAD	*/
+{ YES, YES,  NO}, /* ICMD_FALOAD	*/
+{ YES, YES,  NO}, /* ICMD_DALOAD	*/
+{ YES, YES,  NO}, /* ICMD_AALOAD	*/
+{ YES, YES,  NO}, /* ICMD_BALOAD	*/
+{ YES, YES,  NO}, /* ICMD_CALOAD	*/
+{ YES, YES,  NO}, /* ICMD_SALOAD	*/
+{ L|S,  NO,  NO}, /* ICMD_ISTORE	*/
+{  NO,  NO,  NO}, /* ICMD_LSTORE	*/
+{  NO,  NO,  NO}, /* ICMD_FSTORE	*/
+{  NO,  NO,  NO}, /* ICMD_DSTORE	*/	
+{ L|S,  NO,  NO}, /* ICMD_ASTORE	*/
+{ YES, YES,  NO}, /* ICMD_IF_LEQ	*/
+{ YES, YES,  NO}, /* ICMD_IF_LNE	*/
+{  NO,  NO,  NO}, /* ICMD_IF_LLT	*/
+{  NO,  NO,  NO}, /* ICMD_IF_LGE	*/
+{  NO,  NO,  NO}, /* ICMD_IF_LGT	*/
+{  NO,  NO,  NO}, /* ICMD_IF_LLE	*/
+{ YES, YES,  NO}, /* ICMD_IF_LCMPEQ	*/
+{ YES, YES,  NO}, /* ICMD_IF_LCMPNE	*/
+{ YES,  NO,  NO}, /* ICMD_IF_LCMPLT	*/
+{ YES,  NO,  NO}, /* ICMD_IF_LCMPGE	*/
+{ YES,  NO,  NO}, /* ICMD_IF_LCMPGT	*/
+{ YES,  NO,  NO}, /* ICMD_IF_LCMPLE	*/
+{  NO,  NO,  NO}, /* ICMD_UNDEF71	*/
+{  NO,  NO,  NO}, /* ICMD_UNDEF72	*/
+{  NO,  NO,  NO}, /* ICMD_UNDEF73	*/
+{  NO,  NO,  NO}, /* ICMD_UNDEF74	*/
+{  NO,  NO,  NO}, /* ICMD_UNDEF75	*/
+{  NO,  NO,  NO}, /* ICMD_UNDEF76	*/
+{  NO,  NO,  NO}, /* ICMD_UNDEF77	*/
+{  NO,  NO,  NO}, /* ICMD_UNDEF78	*/
+{ YES, YES, YES}, /* ICMD_IASTORE	*/
+{ YES, YES, YES}, /* ICMD_LASTORE	*/
+{ YES, YES,  NO}, /* ICMD_FASTORE	*/
+{ YES, YES,  NO}, /* ICMD_DASTORE	*/
+{ YES, YES,  YES}, /* ICMD_AASTORE	*/
+{ YES, YES, YES}, /* ICMD_BASTORE	*/
+{ YES, YES, YES}, /* ICMD_CASTORE	*/
+{ YES, YES, YES}, /* ICMD_SASTORE	*/
+{  NO,  NO,  NO}, /* ICMD_POP	*/
+{  NO,  NO,  NO}, /* ICMD_POP2	*/
+{ S|D,  NO,  NO}, /* ICMD_DUP	*/
+{ YES,  NO,  NO}, /* ICMD_DUP_X1	*/
+{ YES,  NO,  NO}, /* ICMD_DUP_X2	*/
+{ S|D|SP|DP, NO, NO}, /* ICMD_DUP2	*/
+{ YES,  NO,  NO}, /* ICMD_DUP2_X1	*/
+{ YES,  NO,  NO}, /* ICMD_DUP2_X2	*/	
+{ YES,  NO,  NO}, /* ICMD_SWAP	*/
+{  NO,  NO,  NO}, /* ICMD_IADD	*/
+{ YES,  NO,  NO}, /* ICMD_LADD	*/
+{  NO,  NO,  NO}, /* ICMD_FADD	*/
+{  NO,  NO,  NO}, /* ICMD_DADD	*/
+{ YES,  NO,  NO}, /* ICMD_ISUB	*/
+{ YES,  NO,  NO}, /* ICMD_LSUB	*/
+{  NO,  NO,  NO}, /* ICMD_FSUB	*/
+{  NO,  NO,  NO}, /* ICMD_DSUB	*/
+{   D, NO, NO}, /* ICMD_IMUL	*/
+{ YES,  YES, YES}, /* ICMD_LMUL	*/
+{  NO,  NO,  NO}, /* ICMD_FMUL	*/
+{  NO,  NO,  NO}, /* ICMD_DMUL	*/
+{  YES,   S,  NO}, /* ICMD_IDIV	*/
+{  YES, YES,  YES}, /* ICMD_LDIV	*/
+{  NO,  NO,  NO}, /* ICMD_FDIV	*/
+{  NO,  NO,  NO}, /* ICMD_DDIV	*/
+{ YES,  S,  YES}, /* ICMD_IREM	*/
+{ YES, YES, YES}, /* ICMD_LREM	*/
+{  NO,  NO,  NO}, /* ICMD_FREM	*/
+{  NO,  NO,  NO}, /* ICMD_DREM	*/
+{ S|D,  NO,  NO}, /* ICMD_INEG	*/	
+{ YES,  NO,  NO}, /* ICMD_LNEG	*/	
+{  NO,  NO,  NO}, /* ICMD_FNEG	*/
+{  NO,  NO,  NO}, /* ICMD_DNEG	*/
+{  NO,  NO,  NO}, /* ICMD_ISHL	*/
+{ YES, YES, YES}, /* ICMD_LSHL	*/
+{  NO,  NO,  NO}, /* ICMD_ISHR	*/
+{ YES, YES, YES}, /* ICMD_LSHR	*/
+{  NO,  NO,  NO}, /* ICMD_IUSHR	*/
+{ YES, YES, YES}, /* ICMD_LUSHR	*/
+{  NO,  NO,  NO}, /* ICMD_IAND	*/
+{  NO,  NO,  NO}, /* ICMD_LAND	*/
+{  NO,  NO,  NO}, /* ICMD_IOR	*/
+{  NO,  NO,  NO}, /* ICMD_LOR	*/
+{  NO,  NO,  NO}, /* ICMD_IXOR	*/
+{  NO,  NO,  NO}, /* ICMD_LXOR	*/
+{  NO,  NO,  NO}, /* ICMD_IINC	*/
+{ S|D,  NO,  NO}, /* ICMD_I2L	*/
+{ YES,  NO,  NO}, /* ICMD_I2F	*/
+{ YES,  NO,  NO}, /* ICMD_I2D	*/
+{ S|D,  NO,  NO}, /* ICMD_L2I	*/
+{  NO,  NO,  NO}, /* ICMD_L2F	*/
+{  NO,  NO,  NO}, /* ICMD_L2D	*/
+{  YES, NO,  NO}, /* ICMD_F2I	*/
+{  YES, NO, YES}, /* ICMD_F2L	*/
+{  NO,  NO,  NO}, /* ICMD_F2D	*/
+{  YES, NO,  NO}, /* ICMD_D2I	*/
+{  YES, NO, YES}, /* ICMD_D2L	*/
+{  NO,  NO,  NO}, /* ICMD_D2F	*/
+{ S|D,  NO,  NO}, /* ICMD_INT2BYTE	*/
+{ S|D,  NO,  NO}, /* ICMD_INT2CHAR	*/
+{ S|D,  NO,  NO}, /* ICMD_INT2SHORT	*/
+{ YES, YES, YES}, /* ICMD_LCMP	*/
+{ YES,  NO,  NO}, /* ICMD_FCMPL	*/
+{ YES,  NO,  NO}, /* ICMD_FCMPG	*/
+{ YES,  NO,  NO}, /* ICMD_DCMPL	*/
+{ YES,  NO,  NO}, /* ICMD_DCMPG	*/
+{  NO,  NO,  NO}, /* ICMD_IFEQ	*/
+{  NO,  NO,  NO}, /* ICMD_IFNE	*/
+{  NO,  NO,  NO}, /* ICMD_IFLT	*/
+{  NO,  NO,  NO}, /* ICMD_IFGE	*/
+{  NO,  NO,  NO}, /* ICMD_IFGT	*/
+{  NO,  NO,  NO}, /* ICMD_IFLE	*/
+{ S|SP, NO,  NO}, /* ICMD_IF_ICMPEQ	*/
+{ S|SP, NO,  NO}, /* ICMD_IF_ICMPNE	*/
+{ S|SP, NO,  NO}, /* ICMD_IF_ICMPLT	*/
+{ S|SP, NO,  NO}, /* ICMD_IF_ICMPGE	*/
+{ S|SP, NO,  NO}, /* ICMD_IF_ICMPGT	*/
+{ S|SP, NO,  NO}, /* ICMD_IF_ICMPLE	*/
+{ S|SP, NO,  NO}, /* ICMD_IF_ACMPEQ	*/
+{ S|SP, NO,  NO}, /* ICMD_IF_ACMPNE	*/
+{  NO,  NO,  NO}, /* ICMD_GOTO	*/
+{  YES, NO,  NO}, /* ICMD_JSR	*/
+{   L,  NO,  NO}, /* ICMD_RET	*/
+{ YES, YES,  NO}, /* ICMD_TABLESWITCH	*/
+{ YES,  NO,  NO}, /* ICMD_LOOKUPSWITCH	*/
+{ YES, YES, YES}, /* ICMD_IRETURN	*/
+{ YES, YES, YES}, /* ICMD_LRETURN	*/
+{ YES, YES, YES}, /* ICMD_FRETURN	*/
+{ YES, YES, YES}, /* ICMD_DRETURN	*/
+{ YES, YES, YES}, /* ICMD_ARETURN	*/
+{ YES, YES, YES}, /* ICMD_RETURN	*/
+{ YES, YES,  NO}, /* ICMD_GETSTATIC	*/   
+{ YES, YES,  NO}, /* ICMD_PUTSTATIC	*/   
+{ YES, YES,  NO}, /* ICMD_GETFIELD	*/    
+{ YES, YES,  NO}, /* ICMD_PUTFIELD	*/   
+{ YES, YES, YES}, /* ICMD_INVOKEVIRTUAL	*/    
+{ YES, YES, YES}, /* ICMD_INVOKESPECIAL	*/  
+{ YES, YES, YES}, /* ICMD_INVOKESTATIC	*/     
+{ YES, YES, YES}, /* ICMD_INVOKEINTERFACE*/
+{  NO,  NO,  NO}, /* ICMD_CHECKASIZE	*/
+{ YES, YES, YES}, /* ICMD_NEW	*/
+{ YES, YES, YES}, /* ICMD_NEWARRAY	*/
+{ YES, YES, YES}, /* ICMD_ANEWARRAY	*/
+{ YES,  NO,  NO}, /* ICMD_ARRAYLENGTH	*/
+{ YES, YES, YES}, /* ICMD_ATHROW	*/
+{ YES, YES, YES}, /* ICMD_CHECKCAST	*/
+{ YES, YES, YES}, /* ICMD_INSTANCEOF	*/
+{ YES, YES, YES}, /* ICMD_MONITORENTER	*/
+{ YES, YES, YES}, /* ICMD_MONITOREXIT	*/
+{  NO,  NO,  NO}, /* ICMD_UNDEF196	*/
+{ YES,  NO,  NO}, /* ICMD_MULTIANEWARRAY	*/
+{  NO,  NO,  NO}, /* ICMD_IFNULL	*/
+{  NO,  NO,  NO}, /* ICMD_IFNONNULL	*/
+{ YES, YES, YES}, /* ICMD_UNDEF200	*/
+{ YES, YES, YES}, /* ICMD_UNDEF201	*/
+{ YES, YES, YES}, /* ICMD_UNDEF202	*/
+{ YES,  NO,  NO}, /* ICMD_CHECKEXCEPTION	*/
+{ YES, YES,  NO}, /* ICMD_IASTORECONST	*/
+{ YES, YES,  NO}, /* ICMD_LASTORECONST	*/
+{ YES, YES, YES}, /* ICMD_FASTORECONST	*/
+{ YES, YES, YES}, /* ICMD_DASTORECONST	*/
+{ YES, YES, YES}, /* ICMD_AASTORECONST	*/
+{ YES, YES, YES}, /* ICMD_BASTORECONST	*/
+{ YES, YES, YES}, /* ICMD_CASTORECONST	*/
+{ YES, YES, YES}, /* ICMD_SASTORECONST	*/
+{  NO,  NO,  NO}, /* 	"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	"UNDEF216"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF217"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF218"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF219"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF220",	*/
+{  NO,  NO,  NO}, /* 	"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF",	*/
+{  NO,  NO,  NO}, /* 	"UNDEF226"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF227"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF228"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF229"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF230",	*/
+{  NO,  NO,  NO}, /* 	"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF",	*/
+{  NO,  NO,  NO}, /* 	"UNDEF236"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF237"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF238"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF239"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF240",	*/
+{  NO,  NO,  NO}, /* 	"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF",	*/
+{  NO,  NO,  NO}, /* 	"UNDEF246"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF247"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF248"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF249"	*/
+{  NO,  NO,  NO}, /* 	,"UNDEF250",	*/
+{  NO,  NO,  NO}, /* ICMD_INLINE_START	*/
+{  NO,  NO,  NO}, /* ICMD_INLINE_END	*/
+{ YES,  NO, YES}, /* ICMD_BUILTIN3	*/  
+{ YES,  NO, YES}, /* ICMD_BUILTIN2	*/   
+{ YES,  NO, YES}, /* ICMD_BUILTIN1	*/   
+};
+#endif
 
 
 /*

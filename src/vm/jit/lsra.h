@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 1981 2005-03-04 15:49:41Z christian $
+   $Id: lsra.h 2008 2005-03-07 08:43:08Z christian $
 
 */
 
@@ -37,7 +37,7 @@
 
 #include "vm/jit/loop/loop.h"
 
-/* #define LSRA_DEBUG */
+ #define LSRA_DEBUG
 /* #define LSRA_SAVEDVAR */
 /* #define LSRA_MEMORY */
 /* #define LSRA_PRINTLIFETIMES */
@@ -55,6 +55,16 @@
 
 #define min(a,b) ((a)<(b)?(a):(b))
 #define max(a,b) ((a)<(b)?(b):(a))
+
+#ifdef __I386__
+struct tmp_reg {
+	int eax;
+	int ecx;
+	int edx;
+};
+
+extern struct tmp_reg icmd_uses_tmp[256];
+#endif
 
 struct _list {
 	int value;
@@ -121,6 +131,7 @@ struct lsra_reg {
 };
 
 struct lsradata {
+	int edx_free;
 	struct _list **succ;
 	struct _list **pred;
 	int *num_pred;
@@ -150,12 +161,6 @@ struct freemem {
 struct dup {
 	struct stackslot *ss;
 	struct dup *next;
-};
-
-struct tmp_reg {
-	int eax;
-	int ecx;
-	int edx;
 };
 
 struct lsra_exceptiontable {
@@ -220,6 +225,7 @@ void lsra_setflags(int *, int);
 void test_lifetimes( methodinfo *m, lsradata *ls, struct lifetime *lifet, codegendata *cd);
 int _test_lifetimes(methodinfo *m, lsradata *ls, int b_index, int *values, bool* bb_visited, struct lifetime *lifet);
 #endif
+
 
 #endif /* _LSRA_H */
 
