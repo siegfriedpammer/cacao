@@ -12,7 +12,7 @@
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 			 Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 394 2003-07-29 08:53:04Z twisti $
+	Last Change: $Id: ngen.c 405 2003-08-06 19:07:25Z twisti $
 
 *******************************************************************************/
 
@@ -71,23 +71,21 @@
      if a and b are the same int-register, no code will be generated.
 */ 
 
-#define M_INTMOVE(reg,dreg) if ((reg) != (dreg)) { x86_64_mov_reg_reg((reg),(dreg)); }
-
+#define M_INTMOVE(reg,dreg) \
+    if ((reg) != (dreg)) { \
+        x86_64_mov_reg_reg((reg),(dreg)); \
+    }
+#define M_LNGMEMMOVE
 
 /* M_FLTMOVE:
     generates a floating-point-move from register a to b.
     if a and b are the same float-register, no code will be generated
 */ 
 
-#define M_FLTMOVE(reg,dreg) if ((reg) != (dreg)){ M_OP3(0,0,0,0,0,0); }
-
-#define M_LNGMEMMOVE(reg,dreg) \
-    do { \
-        x86_64_mov_membase_reg(REG_SP, (reg) * 8, REG_ITMP1); \
-        x86_64_mov_membase_reg(REG_SP, (reg) * 8 + 4, REG_ITMP2); \
-        x86_64_mov_reg_membase(REG_ITMP1, REG_SP, (dreg) * 8); \
-        x86_64_mov_reg_membase(REG_ITMP2, REG_SP, (dreg) * 8 + 4); \
-    } while (0)
+#define M_FLTMOVE(reg,dreg) \
+    if ((reg) != (dreg)) { \
+/*        x86_64_movd_reg_reg((reg),(dreg)); */\
+    }
 
 
 /* var_to_reg_xxx:
@@ -248,6 +246,7 @@ void catch_NullPointerException(int sig)
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
+#if 0
 	instr = *((int*)(sigctx->rip));
 /*    	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f]; */
 
@@ -261,6 +260,21 @@ void catch_NullPointerException(int sig)
 		sigctx->rax = (long) proto_java_lang_NullPointerException; /* REG_ITMP1_XPTR    */
 		sigctx->rdx = sigctx->rip;                                 /* REG_ITMP2_XPC     */
 		sigctx->rip = (long) asm_handle_exception;
+#else
+	instr = *((int*)(sigctx->eip));
+/*    	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f]; */
+
+/*  	fprintf(stderr, "null=%d %p addr=%p\n", sig, sigctx, sigctx->eip); */
+
+/*  	if (faultaddr == 0) { */
+		signal(sig, (void *) catch_NullPointerException);          /* reinstall handler */
+		sigemptyset(&nsig);
+		sigaddset(&nsig, sig);
+		sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
+		sigctx->eax = (long) proto_java_lang_NullPointerException; /* REG_ITMP1_XPTR    */
+		sigctx->edx = sigctx->eip;                                 /* REG_ITMP2_XPC     */
+		sigctx->eip = (long) asm_handle_exception;
+#endif
 
 		return;
 
@@ -286,9 +300,15 @@ void catch_ArithmeticException(int sig)
 	sigemptyset(&nsig);
 	sigaddset(&nsig, sig);
 	sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
+#if 0
 	sigctx->rax = (long) proto_java_lang_ArithmeticException;  /* REG_ITMP1_XPTR    */
 	sigctx->rdx = sigctx->rip;                                 /* REG_ITMP2_XPC     */
 	sigctx->rip = (long) asm_handle_exception;
+#else
+	sigctx->eax = (long) proto_java_lang_ArithmeticException;  /* REG_ITMP1_XPTR    */
+	sigctx->edx = sigctx->eip;                                 /* REG_ITMP2_XPC     */
+	sigctx->eip = (long) asm_handle_exception;
+#endif
 
 	return;
 }
@@ -465,56 +485,7 @@ static void gen_mcode()
 	/* copy argument registers to stack and call trace function with pointer
 	   to arguments on stack.
 	*/
-
 	if (runverbose) {
-		x86_64_alu_imm_reg(X86_64_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
-
-		for (p = 0; p < mparamcount; p++) {
-			t = mparamtypes[p];
-			if (IS_INT_LNG_TYPE(t)) {
-				if (IS_2_WORD_TYPE(t)) {
-					x86_64_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
-					x86_64_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4 + 4, REG_ITMP2);
-
-				} else if (t == TYPE_ADR) {
-					x86_64_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
-					x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP2);
-
-				} else {
-					x86_64_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
-					x86_64_cltd();
-				}
-				x86_64_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
-				x86_64_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
-
-			} else {
-				if (t == TYPE_FLT) {
-					x86_64_flds_membase(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4);
-					x86_64_fstps_membase(REG_SP, p * 8);
-					x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP2);
-					x86_64_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
-
-				} else {
-					x86_64_fldl_membase(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4);
-					x86_64_fstpl_membase(REG_SP, p * 8);
-				}
-			}
-		}
-
-		/* fill up the remaining arguments */
-		x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP1, REG_ITMP1);
-		for (p = mparamcount; p < TRACE_ARGS_NUM; p++) {
-			x86_64_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
-			x86_64_mov_reg_membase(REG_ITMP1, REG_SP, p * 8 + 4);
-		}
-
-		x86_64_mov_imm_membase(method, REG_SP, TRACE_ARGS_NUM * 8);
-
-  		x86_64_mov_imm_reg(builtin_trace_args, REG_ITMP1);
-/*  		x86_64_mov_imm_reg(asm_builtin_trace, REG_ITMP1); */
-		x86_64_call_reg(REG_ITMP1);
-
-		x86_64_alu_imm_reg(X86_64_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
 	}
 
 	/* take arguments out of register or stack frame */
@@ -530,28 +501,19 @@ static void gen_mcode()
  		r = var->regoff; 
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
  			if (p < intreg_argnum) {                 /* register arguments    */
-				panic("integer register argument");
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
-/*   					M_INTMOVE (argintregs[p], r); */
+   					M_INTMOVE (argintregs[p], r);
 
 				} else {                             /* reg arg -> spilled    */
-/*   					M_LST (argintregs[p], REG_SP, 8 * r); */
+   				    x86_64_mov_reg_membase(argintregs[p], REG_SP, r * 8);
  				}
 			} else {                                 /* stack arguments       */
  				pa = p - intreg_argnum;
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */ 
- 					x86_64_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 4, r);            /* + 4 for return address */
+ 					x86_64_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 8, r);    /* + 8 for return address */
 				} else {                             /* stack arg -> spilled  */
-					if (!IS_2_WORD_TYPE(t)) {
-						x86_64_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 4, REG_ITMP1);    /* + 4 for return address */
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, r * 8);
-
-					} else {
-						x86_64_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 4, REG_ITMP1);    /* + 4 for return address */
-						x86_64_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 4 + 4, REG_ITMP2);    /* + 4 for return address */
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, r * 8);
-						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, r * 8 + 4);
-					}
+					x86_64_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 8, REG_ITMP1);    /* + 8 for return address */
+					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, r * 8);
 				}
 			}
 		
@@ -600,12 +562,9 @@ static void gen_mcode()
 
 #ifdef USE_THREADS
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-		x86_64_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP1);
-		x86_64_alu_imm_reg(X86_64_SUB, 4, REG_SP);
-		x86_64_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-		x86_64_mov_imm_reg(builtin_monitorenter, REG_ITMP2);
-		x86_64_call_reg(REG_ITMP2);
-		x86_64_alu_imm_reg(X86_64_ADD, 4, REG_SP);
+		x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, argintregs[0]);
+		x86_64_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
+		x86_64_call_reg(REG_ITMP1);
 	}			
 #endif
 	}
@@ -635,20 +594,15 @@ static void gen_mcode()
 		while (src != NULL) {
 			len--;
   			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
-				if (!IS_2_WORD_TYPE(src->type)) {
-					if (bptr->type == BBTYPE_SBR) {
-						d = reg_of_var(src, REG_ITMP1);
-						x86_64_pop_reg(d);
-						store_reg_to_var_int(src, d);
+				if (bptr->type == BBTYPE_SBR) {
+					d = reg_of_var(src, REG_ITMP1);
+					x86_64_pop_reg(d);
+					store_reg_to_var_int(src, d);
 
-					} else if (bptr->type == BBTYPE_EXH) {
-						d = reg_of_var(src, REG_ITMP1);
-						M_INTMOVE(REG_ITMP1, d);
-						store_reg_to_var_int(src, d);
-					}
-
-				} else {
-					panic("copy interface registers: longs have to me in memory (begin 1)");
+				} else if (bptr->type == BBTYPE_EXH) {
+					d = reg_of_var(src, REG_ITMP1);
+					M_INTMOVE(REG_ITMP1, d);
+					store_reg_to_var_int(src, d);
 				}
 
 			} else {
@@ -672,23 +626,13 @@ static void gen_mcode()
 
 					} else {
 						s1 = interfaces[len][s2].regoff;
-						if (!IS_2_WORD_TYPE(interfaces[len][s2].type)) {
-							if (!(interfaces[len][s2].flags & INMEMORY)) {
-								M_INTMOVE(s1, d);
-
-							} else {
-								x86_64_mov_membase_reg(REG_SP, s1 * 8, d);
-							}
-							store_reg_to_var_int(src, d);
+						if (!(interfaces[len][s2].flags & INMEMORY)) {
+							M_INTMOVE(s1, d);
 
 						} else {
-							if (interfaces[len][s2].flags & INMEMORY) {
-  								M_LNGMEMMOVE(s1, src->regoff);
-
-							} else {
-								panic("copy interface registers: longs have to be in memory (begin 2)");
-							}
+							x86_64_mov_membase_reg(REG_SP, s1 * 8, d);
 						}
+						store_reg_to_var_int(src, d);
 					}
 				}
 			}
@@ -3242,7 +3186,7 @@ static void gen_mcode()
 			var = &(locals[iptr->op1][TYPE_INT]);
 			if (var->flags & INMEMORY) {
 				if (iptr->val.i == 1) {
-					x86_64_inc_membase(REG_SP, var->regoff * 8);
+					x86_64_incl_membase(REG_SP, var->regoff * 8);
  
 				} else if (iptr->val.i == -1) {
 					x86_64_decl_membase(REG_SP, var->regoff * 8);
@@ -3446,7 +3390,6 @@ static void gen_mcode()
 			if (iptr->dst->flags & INMEMORY) {
 				x86_64_fistpl_membase(REG_SP, iptr->dst->regoff * 8);
 				fpu_st_offset--;
-/*  				x86_64_alu_imm_membase(X86_64_CMP, 0x80000000, REG_SP, iptr->dst->regoff * 8); */
 
 			} else {
 				a = dseg_adds4(0);
@@ -3550,11 +3493,11 @@ static void gen_mcode()
 		/* memory operations **************************************************/
 
 #define gen_bound_check \
-            if (checkbounds) { \
-                x86_64_alu_membase_reg(X86_64_CMP, s1, OFFSET(java_arrayheader, size), s2); \
-                x86_64_jcc(X86_64_CC_AE, 0); \
-				mcode_addxboundrefs(mcodeptr); \
-            }
+    if (checkbounds) { \
+        x86_64_alu_membase_reg(X86_64_CMP, s1, OFFSET(java_arrayheader, size), s2); \
+        x86_64_jcc(X86_64_CC_AE, 0); \
+        mcode_addxboundrefs(mcodeptr); \
+    }
 
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
 
@@ -3799,7 +3742,7 @@ static void gen_mcode()
 					x86_64_fstpl_membase(REG_ITMP3, 0);
 					fpu_st_offset--;
 					break;
-				default: panic ("internal error");
+				default: panic("internal error");
 				}
 			break;
 
@@ -3834,7 +3777,7 @@ static void gen_mcode()
 					fpu_st_offset++;
 					store_reg_to_var_flt(iptr->dst, d);
 					break;
-				default: panic ("internal error");
+				default: panic("internal error");
 				}
 			break;
 
@@ -3847,7 +3790,7 @@ static void gen_mcode()
 					var_to_reg_int(s1, src->prev, REG_ITMP1);
 					var_to_reg_int(s2, src, REG_ITMP2);
 					gen_nullptr_check(s1);
-					x86_64_mov_reg_membase(s2, s1, a);
+					x86_64_movl_reg_membase(s2, s1, a);
 					break;
 				case TYPE_LNG:
 				case TYPE_ADR:
@@ -3883,7 +3826,7 @@ static void gen_mcode()
 					var_to_reg_int(s1, src, REG_ITMP1);
 					d = reg_of_var(iptr->dst, REG_ITMP3);
 					gen_nullptr_check(s1);
-					x86_64_mov_membase_reg(s1, a, d);
+					x86_64_movl_membase_reg(s1, a, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 				case TYPE_LNG:
@@ -4069,11 +4012,18 @@ static void gen_mcode()
 					x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l, REG_SP, src->regoff * 8);
 
 				} else {
-					x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l, REG_SP, src->regoff * 8);
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_membase(X86_64_CMP, REG_ITMP1, REG_SP, src->regoff * 8);
 				}
 
 			} else {
-				x86_64_alu_imm_reg(X86_64_CMP, iptr->val.l, src->regoff);
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_reg(X86_64_CMP, iptr->val.l, src->regoff);
+
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP1, src->regoff);
+				}
 			}
 			x86_64_jcc(X86_64_CC_E, 0);
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
@@ -4082,59 +4032,74 @@ static void gen_mcode()
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			/* TODO: optimize as in IF_LEQ */
 			if (src->flags & INMEMORY) {
-				int offset;
-				x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 8 + 4);
-				x86_64_jcc(X86_64_CC_L, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l, REG_SP, src->regoff * 8);
 
-				offset = 3 + 6;
-				CALCREGOFFBYTES(src->regoff);
-				CALCIMMEDIATEBYTES(iptr->val.l);
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_membase(X86_64_CMP, REG_ITMP1, REG_SP, src->regoff * 8);
+				}
 
-				x86_64_jcc(X86_64_CC_G, offset);
+			} else {
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_reg(X86_64_CMP, iptr->val.l, src->regoff);
 
-				x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l, REG_SP, src->regoff * 8);
-				x86_64_jcc(X86_64_CC_B, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
-			}			
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP1, src->regoff);
+				}
+			}
+			x86_64_jcc(X86_64_CC_L, 0);
+			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			/* TODO: optimize as in IF_LEQ */
 			if (src->flags & INMEMORY) {
-				int offset;
-				x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 8 + 4);
-				x86_64_jcc(X86_64_CC_L, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l, REG_SP, src->regoff * 8);
 
-				offset = 3 + 6;
-				CALCREGOFFBYTES(src->regoff);
-				CALCIMMEDIATEBYTES(iptr->val.l);
-				
-				x86_64_jcc(X86_64_CC_G, offset);
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_membase(X86_64_CMP, REG_ITMP1, REG_SP, src->regoff * 8);
+				}
 
-				x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l, REG_SP, src->regoff * 8);
-				x86_64_jcc(X86_64_CC_BE, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
-			}			
+			} else {
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_reg(X86_64_CMP, iptr->val.l, src->regoff);
+
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP1, src->regoff);
+				}
+			}
+			x86_64_jcc(X86_64_CC_LE, 0);
+			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			/* TODO: optimize for val.l == 0 */
 			if (src->flags & INMEMORY) {
-				x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
-				x86_64_mov_imm_reg(iptr->val.l >> 32, REG_ITMP2);
-				x86_64_alu_membase_reg(X86_64_XOR, REG_SP, src->regoff * 8, REG_ITMP1);
-				x86_64_alu_membase_reg(X86_64_XOR, REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-				x86_64_alu_reg_reg(X86_64_OR, REG_ITMP2, REG_ITMP1);
-				x86_64_test_reg_reg(REG_ITMP1, REG_ITMP1);
-			}			
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l, REG_SP, src->regoff * 8);
+
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_membase(X86_64_CMP, REG_ITMP1, REG_SP, src->regoff * 8);
+				}
+
+			} else {
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_reg(X86_64_CMP, iptr->val.l, src->regoff);
+
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP1, src->regoff);
+				}
+			}
 			x86_64_jcc(X86_64_CC_NE, 0);
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
@@ -4142,48 +4107,74 @@ static void gen_mcode()
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			/* TODO: optimize as in IF_LEQ */
 			if (src->flags & INMEMORY) {
-				int offset;
-				x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 8 + 4);
-				x86_64_jcc(X86_64_CC_G, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l, REG_SP, src->regoff * 8);
 
-				offset = 3 + 6;
-				CALCREGOFFBYTES(src->regoff);
-				CALCIMMEDIATEBYTES(iptr->val.l);
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_membase(X86_64_CMP, REG_ITMP1, REG_SP, src->regoff * 8);
+				}
 
-				x86_64_jcc(X86_64_CC_L, offset);
+			} else {
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_reg(X86_64_CMP, iptr->val.l, src->regoff);
 
-				x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l, REG_SP, src->regoff * 8);
-				x86_64_jcc(X86_64_CC_A, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
-			}			
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP1, src->regoff);
+				}
+			}
+			x86_64_jcc(X86_64_CC_G, 0);
+			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			/* TODO: optimize as in IF_LEQ */
 			if (src->flags & INMEMORY) {
-				int offset;
-				x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 8 + 4);
-				x86_64_jcc(X86_64_CC_G, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l, REG_SP, src->regoff * 8);
 
-				offset = 3 + 6;
-				CALCREGOFFBYTES(src->regoff);
-				CALCIMMEDIATEBYTES(iptr->val.l);
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_membase(X86_64_CMP, REG_ITMP1, REG_SP, src->regoff * 8);
+				}
 
-				x86_64_jcc(X86_64_CC_L, offset);
+			} else {
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_reg(X86_64_CMP, iptr->val.l, src->regoff);
 
-				x86_64_alu_imm_membase(X86_64_CMP, iptr->val.l, REG_SP, src->regoff * 8);
-				x86_64_jcc(X86_64_CC_AE, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
-			}			
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP1, src->regoff);
+				}
+			}
+			x86_64_jcc(X86_64_CC_GE, 0);
+			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+				x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+				x86_64_alul_reg_membase(X86_64_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 8);
+
+			} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+				x86_64_alul_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8, src->prev->regoff);
+
+			} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+				x86_64_alul_reg_membase(X86_64_CMP, src->regoff, REG_SP, src->prev->regoff * 8);
+
+			} else {
+				x86_64_alul_reg_reg(X86_64_CMP, src->regoff, src->prev->regoff);
+			}
+			x86_64_jcc(X86_64_CC_E, 0);
+			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			break;
+
+		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_ACMPEQ:    /* op1 = target JavaVM pc                     */
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -4203,22 +4194,27 @@ static void gen_mcode()
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
-		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2);
-				x86_64_alu_membase_reg(X86_64_XOR, REG_SP, src->regoff * 8, REG_ITMP1);
-				x86_64_alu_membase_reg(X86_64_XOR, REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-				x86_64_alu_reg_reg(X86_64_OR, REG_ITMP2, REG_ITMP1);
-				x86_64_test_reg_reg(REG_ITMP1, REG_ITMP1);
-			}			
-			x86_64_jcc(X86_64_CC_E, 0);
+				x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+				x86_64_alul_reg_membase(X86_64_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 8);
+
+			} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+				x86_64_alul_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8, src->prev->regoff);
+
+			} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+				x86_64_alul_reg_membase(X86_64_CMP, src->regoff, REG_SP, src->prev->regoff * 8);
+
+			} else {
+				x86_64_alul_reg_reg(X86_64_CMP, src->regoff, src->prev->regoff);
+			}
+			x86_64_jcc(X86_64_CC_NE, 0);
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
-		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_ACMPNE:    /* op1 = target JavaVM pc                     */
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -4238,23 +4234,28 @@ static void gen_mcode()
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
-		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2);
-				x86_64_alu_membase_reg(X86_64_XOR, REG_SP, src->regoff * 8, REG_ITMP1);
-				x86_64_alu_membase_reg(X86_64_XOR, REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-				x86_64_alu_reg_reg(X86_64_OR, REG_ITMP2, REG_ITMP1);
-				x86_64_test_reg_reg(REG_ITMP1, REG_ITMP1);
-			}			
-			x86_64_jcc(X86_64_CC_NE, 0);
+				x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+				x86_64_alul_reg_membase(X86_64_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 8);
+
+			} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+				x86_64_alul_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8, src->prev->regoff);
+
+			} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+				x86_64_alul_reg_membase(X86_64_CMP, src->regoff, REG_SP, src->prev->regoff * 8);
+
+			} else {
+				x86_64_alul_reg_reg(X86_64_CMP, src->regoff, src->prev->regoff);
+			}
+			x86_64_jcc(X86_64_CC_L, 0);
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
-		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
-		                        /* op1 = target JavaVM pc                     */
+		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
+	                            /* op1 = target JavaVM pc                     */
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
@@ -4273,31 +4274,28 @@ static void gen_mcode()
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
-		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
-	                            /* op1 = target JavaVM pc                     */
-
-			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-				int offset;
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP1);
-				x86_64_alu_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8 + 4, REG_ITMP1);
-				x86_64_jcc(X86_64_CC_L, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
-
-				offset = 3 + 3 + 6;
-				CALCREGOFFBYTES(src->prev->regoff);
-				CALCREGOFFBYTES(src->regoff);
-
-				x86_64_jcc(X86_64_CC_G, offset);
-
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-				x86_64_alu_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8, REG_ITMP1);
-				x86_64_jcc(X86_64_CC_B, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
-			}			
-			break;
-
 		case ICMD_IF_ICMPGT:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
+
+			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+				x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+				x86_64_alul_reg_membase(X86_64_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 8);
+
+			} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+				x86_64_alul_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8, src->prev->regoff);
+
+			} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+				x86_64_alul_reg_membase(X86_64_CMP, src->regoff, REG_SP, src->prev->regoff * 8);
+
+			} else {
+				x86_64_alul_reg_reg(X86_64_CMP, src->regoff, src->prev->regoff);
+			}
+			x86_64_jcc(X86_64_CC_G, 0);
+			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			break;
+
+		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
+                                /* op1 = target JavaVM pc                     */
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
@@ -4316,30 +4314,27 @@ static void gen_mcode()
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
-		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
-                                /* op1 = target JavaVM pc                     */
+		case ICMD_IF_ICMPLE:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-				int offset;
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP1);
-				x86_64_alu_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8 + 4, REG_ITMP1);
-				x86_64_jcc(X86_64_CC_G, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+				x86_64_alul_reg_membase(X86_64_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 8);
 
-				offset = 3 + 3 + 6;
-				CALCREGOFFBYTES(src->prev->regoff);
-				CALCREGOFFBYTES(src->regoff);
+			} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+				x86_64_alul_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8, src->prev->regoff);
 
-				x86_64_jcc(X86_64_CC_L, offset);
+			} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+				x86_64_alul_reg_membase(X86_64_CMP, src->regoff, REG_SP, src->prev->regoff * 8);
 
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-				x86_64_alu_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8, REG_ITMP1);
-				x86_64_jcc(X86_64_CC_A, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
-			}			
+			} else {
+				x86_64_alul_reg_reg(X86_64_CMP, src->regoff, src->prev->regoff);
+			}
+			x86_64_jcc(X86_64_CC_LE, 0);
+			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
-		case ICMD_IF_ICMPLE:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -4359,31 +4354,28 @@ static void gen_mcode()
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
-		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-				int offset;
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP1);
-				x86_64_alu_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8 + 4, REG_ITMP1);
-				x86_64_jcc(X86_64_CC_L, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+				x86_64_alul_reg_membase(X86_64_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 8);
 
-				offset = 3 + 3 + 6;
-				CALCREGOFFBYTES(src->prev->regoff);
-				CALCREGOFFBYTES(src->regoff);
+			} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+				x86_64_alul_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8, src->prev->regoff);
 
-				x86_64_jcc(X86_64_CC_G, offset);
+			} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+				x86_64_alul_reg_membase(X86_64_CMP, src->regoff, REG_SP, src->prev->regoff * 8);
 
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-				x86_64_alu_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8, REG_ITMP1);
-				x86_64_jcc(X86_64_CC_BE, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
-			}			
+			} else {
+				x86_64_alul_reg_reg(X86_64_CMP, src->regoff, src->prev->regoff);
+			}
+			x86_64_jcc(X86_64_CC_GE, 0);
+			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
-		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
-		                        /* op1 = target JavaVM pc                     */
+		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
+	                            /* op1 = target JavaVM pc                     */
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
@@ -4402,29 +4394,6 @@ static void gen_mcode()
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
-		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
-	                            /* op1 = target JavaVM pc                     */
-
-			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-				int offset;
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP1);
-				x86_64_alu_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8 + 4, REG_ITMP1);
-				x86_64_jcc(X86_64_CC_G, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
-
-				offset = 3 + 3 + 6;
-				CALCREGOFFBYTES(src->prev->regoff);
-				CALCREGOFFBYTES(src->regoff);
-
-				x86_64_jcc(X86_64_CC_L, offset);
-
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-				x86_64_alu_membase_reg(X86_64_CMP, REG_SP, src->regoff * 8, REG_ITMP1);
-				x86_64_jcc(X86_64_CC_AE, 0);
-				mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
-			}			
-			break;
-
 		/* (value xx 0) ? IFxx_ICONST : ELSE_ICONST                           */
 
 		case ICMD_ELSE_ICONST:  /* handled by IFxx_ICONST                     */
@@ -4433,327 +4402,225 @@ static void gen_mcode()
 		case ICMD_IFEQ_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
 
+			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				int offset = 0;
-
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
+			s3 = iptr->val.i;
+			if (iptr[1].opc == ICMD_ELSE_ICONST) {
+/*  				if ((s3 == 1) && (iptr[1].val.i == 0)) { */
+/*  					x86_64_alu_reg_reg(X86_64_XOR, d, d); */
+/*  					x86_64_testl_reg_reg(s1, s1); */
+/*  					x86_64_setcc_reg(X86_64_CC_E, d); */
+/*  					store_reg_to_var_int(iptr->dst, d); */
+/*  					break; */
+/*  				} */
+/*  				if ((s3 == 0) && (iptr[1].val.i == 1)) { */
+/*  					x86_64_alu_reg_reg(X86_64_XOR, d, d); */
+/*  					x86_64_testl_reg_reg(s1, s1); */
+/*  					x86_64_setcc_reg(X86_64_CC_NE, d); */
+/*  					store_reg_to_var_int(iptr->dst, d); */
+/*  					break; */
+/*  				} */
+				if (s1 == d) {
+					M_INTMOVE(s1, REG_ITMP1);
+					s1 = REG_ITMP1;
 				}
-
-				offset += 7;
-				CALCOFFSETBYTES(iptr->dst->regoff * 8);
-	
-				x86_64_jcc(X86_64_CC_NE, offset + (iptr[1].opc == ICMD_ELSE_ICONST) ? 5 + offset : 0);
-				x86_64_mov_imm_membase(iptr->val.i, REG_SP, iptr->dst->regoff * 8);
-
-				if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-					x86_64_jmp_imm(offset);
-					x86_64_mov_imm_membase(iptr[1].val.i, REG_SP, iptr->dst->regoff * 8);
-				}
-
-			} else {
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
-				}
-
-				x86_64_jcc(X86_64_CC_NE, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
-				x86_64_mov_imm_reg(iptr->val.i, iptr->dst->regoff);
-
-				if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-					x86_64_jmp_imm(5);
-					x86_64_mov_imm_reg(iptr[1].val.i, iptr->dst->regoff);
-				}
+				x86_64_movl_imm_reg(iptr[1].val.i, d);
 			}
+			x86_64_movl_imm_reg(s3, REG_ITMP2);
+			x86_64_testl_reg_reg(s1, s1);
+			x86_64_cmovccl_reg_reg(X86_64_CC_E, REG_ITMP2, d);
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_IFNE_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
 
+			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				int offset = 0;
-
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
+			s3 = iptr->val.i;
+			if (iptr[1].opc == ICMD_ELSE_ICONST) {
+/*  				if ((s3 == 1) && (iptr[1].val.i == 0)) { */
+/*  					x86_64_alu_reg_reg(X86_64_XOR, d, d); */
+/*  					x86_64_testl_reg_reg(s1, s1); */
+/*  					x86_64_setcc_reg(X86_64_CC_NE, d); */
+/*  					store_reg_to_var_int(iptr->dst, d); */
+/*  					break; */
+/*  				} */
+/*  				if ((s3 == 0) && (iptr[1].val.i == 1)) { */
+/*  					x86_64_alu_reg_reg(X86_64_XOR, d, d); */
+/*  					x86_64_testl_reg_reg(s1, s1); */
+/*  					x86_64_setcc_reg(X86_64_CC_E, d); */
+/*  					store_reg_to_var_int(iptr->dst, d); */
+/*  					break; */
+/*  				} */
+				if (s1 == d) {
+					M_INTMOVE(s1, REG_ITMP1);
+					s1 = REG_ITMP1;
 				}
-
-				offset += 7;
-				CALCREGOFFBYTES(iptr->dst->regoff);
-	
-				x86_64_jcc(X86_64_CC_E, offset + (iptr[1].opc == ICMD_ELSE_ICONST) ? 5 + offset : 0);
-				x86_64_mov_imm_membase(iptr->val.i, REG_SP, iptr->dst->regoff * 8);
-
-				if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-					x86_64_jmp_imm(offset);
-					x86_64_mov_imm_membase(iptr[1].val.i, REG_SP, iptr->dst->regoff * 8);
-				}
-
-			} else {
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
-				}
-
-				x86_64_jcc(X86_64_CC_E, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
-				x86_64_mov_imm_reg(iptr->val.i, iptr->dst->regoff);
-
-				if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-					x86_64_jmp_imm(5);
-					x86_64_mov_imm_reg(iptr[1].val.i, iptr->dst->regoff);
-				}
+				x86_64_movl_imm_reg(iptr[1].val.i, d);
 			}
+			x86_64_movl_imm_reg(s3, REG_ITMP2);
+			x86_64_testl_reg_reg(s1, s1);
+			x86_64_cmovccl_reg_reg(X86_64_CC_NE, REG_ITMP2, d);
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_IFLT_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
 
+			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				int offset = 0;
-
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
+			s3 = iptr->val.i;
+			if (iptr[1].opc == ICMD_ELSE_ICONST) {
+/*  				if ((s3 == 1) && (iptr[1].val.i == 0)) { */
+/*  					x86_64_alu_reg_reg(X86_64_XOR, d, d); */
+/*  					x86_64_testl_reg_reg(s1, s1); */
+/*  					x86_64_setcc_reg(X86_64_CC_L, d); */
+/*  					store_reg_to_var_int(iptr->dst, d); */
+/*  					break; */
+/*  				} */
+/*  				if ((s3 == 0) && (iptr[1].val.i == 1)) { */
+/*  					x86_64_alu_reg_reg(X86_64_XOR, d, d); */
+/*  					x86_64_testl_reg_reg(s1, s1); */
+/*  					x86_64_setcc_reg(X86_64_CC_GE, d); */
+/*  					store_reg_to_var_int(iptr->dst, d); */
+/*  					break; */
+/*  				} */
+				if (s1 == d) {
+					M_INTMOVE(s1, REG_ITMP1);
+					s1 = REG_ITMP1;
 				}
-
-				offset += 7;
-				CALCREGOFFBYTES(iptr->dst->regoff);
-	
-				x86_64_jcc(X86_64_CC_GE, offset + (iptr[1].opc == ICMD_ELSE_ICONST) ? 5 + offset : 0);
-				x86_64_mov_imm_membase(iptr->val.i, REG_SP, iptr->dst->regoff * 8);
-
-				if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-					x86_64_jmp_imm(offset);
-					x86_64_mov_imm_membase(iptr[1].val.i, REG_SP, iptr->dst->regoff * 8);
-				}
-
-			} else {
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
-				}
-
-				x86_64_jcc(X86_64_CC_GE, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
-				x86_64_mov_imm_reg(iptr->val.i, iptr->dst->regoff);
-
-				if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-					x86_64_jmp_imm(5);
-					x86_64_mov_imm_reg(iptr[1].val.i, iptr->dst->regoff);
-				}
+				x86_64_movl_imm_reg(iptr[1].val.i, d);
 			}
+			x86_64_movl_imm_reg(s3, REG_ITMP2);
+			x86_64_testl_reg_reg(s1, s1);
+			x86_64_cmovccl_reg_reg(X86_64_CC_L, REG_ITMP2, d);
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_IFGE_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
 
+			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				int offset = 0;
-
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
+			s3 = iptr->val.i;
+			if (iptr[1].opc == ICMD_ELSE_ICONST) {
+/*  				if ((s3 == 1) && (iptr[1].val.i == 0)) { */
+/*  					x86_64_alu_reg_reg(X86_64_XOR, d, d); */
+/*  					x86_64_testl_reg_reg(s1, s1); */
+/*  					x86_64_setcc_reg(X86_64_CC_GE, d); */
+/*  					store_reg_to_var_int(iptr->dst, d); */
+/*  					break; */
+/*  				} */
+/*  				if ((s3 == 0) && (iptr[1].val.i == 1)) { */
+/*  					x86_64_alu_reg_reg(X86_64_XOR, d, d); */
+/*  					x86_64_testl_reg_reg(s1, s1); */
+/*  					x86_64_setcc_reg(X86_64_CC_L, d); */
+/*  					store_reg_to_var_int(iptr->dst, d); */
+/*  					break; */
+/*  				} */
+				if (s1 == d) {
+					M_INTMOVE(s1, REG_ITMP1);
+					s1 = REG_ITMP1;
 				}
-
-				offset += 7;
-				CALCREGOFFBYTES(iptr->dst->regoff);
-	
-				x86_64_jcc(X86_64_CC_L, offset + (iptr[1].opc == ICMD_ELSE_ICONST) ? 5 + offset : 0);
-				x86_64_mov_imm_membase(iptr->val.i, REG_SP, iptr->dst->regoff * 8);
-
-				if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-					x86_64_jmp_imm(offset);
-					x86_64_mov_imm_membase(iptr[1].val.i, REG_SP, iptr->dst->regoff * 8);
-				}
-
-			} else {
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
-				}
-
-				x86_64_jcc(X86_64_CC_L, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
-				x86_64_mov_imm_reg(iptr->val.i, iptr->dst->regoff);
-
-				if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-					x86_64_jmp_imm(5);
-					x86_64_mov_imm_reg(iptr[1].val.i, iptr->dst->regoff);
-				}
+				x86_64_movl_imm_reg(iptr[1].val.i, d);
 			}
+			x86_64_movl_imm_reg(s3, REG_ITMP2);
+			x86_64_testl_reg_reg(s1, s1);
+			x86_64_cmovccl_reg_reg(X86_64_CC_GE, REG_ITMP2, d);
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_IFGT_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
 
+			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				int offset = 0;
-
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
+			s3 = iptr->val.i;
+			if (iptr[1].opc == ICMD_ELSE_ICONST) {
+/*  				if ((s3 == 1) && (iptr[1].val.i == 0)) { */
+/*  					x86_64_alu_reg_reg(X86_64_XOR, d, d); */
+/*  					x86_64_testl_reg_reg(s1, s1); */
+/*  					x86_64_setcc_reg(X86_64_CC_G, d); */
+/*  					store_reg_to_var_int(iptr->dst, d); */
+/*  					break; */
+/*  				} */
+/*  				if ((s3 == 0) && (iptr[1].val.i == 1)) { */
+/*  					x86_64_alu_reg_reg(X86_64_XOR, d, d); */
+/*  					x86_64_testl_reg_reg(s1, s1); */
+/*  					x86_64_setcc_reg(X86_64_CC_LE, d); */
+/*  					store_reg_to_var_int(iptr->dst, d); */
+/*  					break; */
+/*  				} */
+				if (s1 == d) {
+					M_INTMOVE(s1, REG_ITMP1);
+					s1 = REG_ITMP1;
 				}
-
-				offset += 7;
-				CALCREGOFFBYTES(iptr->dst->regoff);
-	
-				x86_64_jcc(X86_64_CC_LE, offset + (iptr[1].opc == ICMD_ELSE_ICONST) ? 5 + offset : 0);
-				x86_64_mov_imm_membase(iptr->val.i, REG_SP, iptr->dst->regoff * 8);
-
-				if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-					x86_64_jmp_imm(offset);
-					x86_64_mov_imm_membase(iptr[1].val.i, REG_SP, iptr->dst->regoff * 8);
-				}
-
-			} else {
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
-				}
-
-				x86_64_jcc(X86_64_CC_LE, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
-				x86_64_mov_imm_reg(iptr->val.i, iptr->dst->regoff);
-
-				if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-					x86_64_jmp_imm(5);
-					x86_64_mov_imm_reg(iptr[1].val.i, iptr->dst->regoff);
-				}
+				x86_64_movl_imm_reg(iptr[1].val.i, d);
 			}
+			x86_64_movl_imm_reg(s3, REG_ITMP2);
+			x86_64_testl_reg_reg(s1, s1);
+			x86_64_cmovccl_reg_reg(X86_64_CC_G, REG_ITMP2, d);
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_IFLE_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
 
-			/* TWISTI: checked */
+			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				int offset = 0;
-
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
+			s3 = iptr->val.i;
+			if (iptr[1].opc == ICMD_ELSE_ICONST) {
+/*  				if ((s3 == 1) && (iptr[1].val.i == 0)) { */
+/*  					x86_64_alu_reg_reg(X86_64_XOR, d, d); */
+/*  					x86_64_testl_reg_reg(s1, s1); */
+/*  					x86_64_setcc_reg(X86_64_CC_LE, d); */
+/*  					store_reg_to_var_int(iptr->dst, d); */
+/*  					break; */
+/*  				} */
+/*  				if ((s3 == 0) && (iptr[1].val.i == 1)) { */
+/*  					x86_64_alu_reg_reg(X86_64_XOR, d, d); */
+/*  					x86_64_testl_reg_reg(s1, s1); */
+/*  					x86_64_setcc_reg(X86_64_CC_G, d); */
+/*  					store_reg_to_var_int(iptr->dst, d); */
+/*  					break; */
+/*  				} */
+				if (s1 == d) {
+					M_INTMOVE(s1, REG_ITMP1);
+					s1 = REG_ITMP1;
 				}
-
-				offset += 7;
-				CALCREGOFFBYTES(iptr->dst->regoff);
-	
-				x86_64_jcc(X86_64_CC_G, offset + (iptr[1].opc == ICMD_ELSE_ICONST) ? 5 + offset : 0);
-				x86_64_mov_imm_membase(iptr->val.i, REG_SP, iptr->dst->regoff * 8);
-
-				if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-					x86_64_jmp_imm(offset);
-					x86_64_mov_imm_membase(iptr[1].val.i, REG_SP, iptr->dst->regoff * 8);
-				}
-
-			} else {
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
-				}
-
-				x86_64_jcc(X86_64_CC_G, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
-				x86_64_mov_imm_reg(iptr->val.i, iptr->dst->regoff);
-
-				if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-					x86_64_jmp_imm(5);
-					x86_64_mov_imm_reg(iptr[1].val.i, iptr->dst->regoff);
-				}
+				x86_64_movl_imm_reg(iptr[1].val.i, d);
 			}
+			x86_64_movl_imm_reg(s3, REG_ITMP2);
+			x86_64_testl_reg_reg(s1, s1);
+			x86_64_cmovccl_reg_reg(X86_64_CC_LE, REG_ITMP2, d);
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
+		case ICMD_LRETURN:
 		case ICMD_ARETURN:
 
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
-				x86_64_alu_imm_reg(X86_64_SUB, 4, REG_SP);
-				x86_64_mov_reg_membase(REG_ITMP1, REG_SP, 0);
+				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, argintregs[0]);
 				x86_64_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
 				x86_64_call_reg(REG_ITMP1);
-				x86_64_alu_imm_reg(X86_64_ADD, 4, REG_SP);
 			}
 #endif
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 			goto nowperformreturn;
 
-		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
-
-#ifdef USE_THREADS
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
-				x86_64_alu_imm_reg(X86_64_SUB, 4, REG_SP);
-				x86_64_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-				x86_64_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
-				x86_64_call_reg(REG_ITMP1);
-				x86_64_alu_imm_reg(X86_64_ADD, 4, REG_SP);
-			}
-#endif
-			if (src->flags & INMEMORY) {
-				x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_RESULT);
-
-			} else {
-				panic("LRETURN: longs have to be in memory");
-			}
-			goto nowperformreturn;
-
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
+		case ICMD_DRETURN:
 
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
-				x86_64_alu_imm_reg(X86_64_SUB, 4, REG_SP);
-				x86_64_mov_reg_membase(REG_ITMP1, REG_SP, 0);
+				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, argintregs[0]);
 				x86_64_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
 				x86_64_call_reg(REG_ITMP1);
-				x86_64_alu_imm_reg(X86_64_ADD, 4, REG_SP);
-			}
-#endif
-			var_to_reg_flt(s1, src, REG_FRESULT);
-			/* this may be an early return -- keep the offset correct for the remaining code */
-			fpu_st_offset--;
-			goto nowperformreturn;
-
-		case ICMD_DRETURN:      /* ..., retvalue ==> ...                      */
-
-#ifdef USE_THREADS
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
-				x86_64_alu_imm_reg(X86_64_SUB, 4, REG_SP);
-				x86_64_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-				x86_64_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
-				x86_64_call_reg(REG_ITMP1);
-				x86_64_alu_imm_reg(X86_64_ADD, 4, REG_SP);
 			}
 #endif
 			var_to_reg_flt(s1, src, REG_FRESULT);
@@ -4765,12 +4632,9 @@ static void gen_mcode()
 
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
-				x86_64_alu_imm_reg(X86_64_SUB, 4, REG_SP);
-				x86_64_mov_reg_membase(REG_ITMP1, REG_SP, 0);
+				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, argintregs[0]);
 				x86_64_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
 				x86_64_call_reg(REG_ITMP1);
-				x86_64_alu_imm_reg(X86_64_ADD, 4, REG_SP);
 			}
 #endif
 
@@ -4852,7 +4716,6 @@ nowperformreturn:
 				i = i - l + 1;
 
                 /* range check */
-
 				x86_64_alu_imm_reg(X86_64_CMP, i - 1, REG_ITMP1);
 				x86_64_jcc(X86_64_CC_A, 0);
 
@@ -4960,26 +4823,13 @@ gen_method: {
 
 				if (IS_INT_LNG_TYPE(src->type)) {
 					if (s3 < intreg_argnum) {
-						panic("No integer argument registers available!");
+						s1 = argintregs[s3];
+						var_to_reg_int(d, src, s1);
+						M_INTMOVE(d, s1);
 
 					} else {
-						if (!IS_2_WORD_TYPE(src->type)) {
-							if (src->flags & INMEMORY) {
-								x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-								x86_64_mov_reg_membase(REG_ITMP1, REG_SP, s3 * 8);
-
-							} else {
-								x86_64_mov_reg_membase(src->regoff, REG_SP, s3 * 8);
-							}
-
-						} else {
-							if (src->flags & INMEMORY) {
-								M_LNGMEMMOVE(src->regoff, s3);
-
-							} else {
-								panic("copy arguments: longs have to be in memory");
-							}
-						}
+						var_to_reg_int(d, src, REG_ITMP1);
+						x86_64_mov_reg_membase(d, REG_SP, (s3 - intreg_argnum) * 8);
 					}
 
 				} else {
@@ -5025,9 +4875,8 @@ gen_method: {
 					a = (s4) m->stubroutine;
 					d = m->returntype;
 
-					x86_64_mov_membase_reg(REG_SP, 0, REG_ITMP2);
-					gen_nullptr_check(REG_ITMP2);
-					x86_64_mov_membase_reg(REG_ITMP2, 0, REG_ITMP2);    /* access memory for hardware nullptr */
+					gen_nullptr_check(argintregs[0]);    /* first argument contains pointer */
+					x86_64_mov_membase_reg(argintregs[0], 0, REG_ITMP2);    /* access memory for hardware nullptr */
 
 					x86_64_mov_imm_reg(a, REG_ITMP2);
 					x86_64_call_reg(REG_ITMP2);
@@ -5035,10 +4884,9 @@ gen_method: {
 
 				case ICMD_INVOKEVIRTUAL:
 
-					x86_64_mov_membase_reg(REG_SP, 0, REG_ITMP2);
-					gen_nullptr_check(REG_ITMP2);
-					x86_64_mov_membase_reg(REG_ITMP2, OFFSET(java_objectheader, vftbl), REG_ITMP3);
-					x86_64_mov_membase32_reg(REG_ITMP3, OFFSET(vftbl, table[0]) + sizeof(methodptr) * m->vftblindex, REG_ITMP1);
+					gen_nullptr_check(argintregs[0]);
+					x86_64_mov_membase_reg(argintregs[0], OFFSET(java_objectheader, vftbl), REG_ITMP2);
+					x86_64_mov_membase32_reg(REG_ITMP2, OFFSET(vftbl, table[0]) + sizeof(methodptr) * m->vftblindex, REG_ITMP1);
 
 					d = m->returntype;
 					x86_64_call_reg(REG_ITMP1);
@@ -5047,11 +4895,10 @@ gen_method: {
 				case ICMD_INVOKEINTERFACE:
 					ci = m->class;
 
-					x86_64_mov_membase_reg(REG_SP, 0, REG_ITMP2);
-					gen_nullptr_check(REG_ITMP2);
-					x86_64_mov_membase_reg(REG_ITMP2, OFFSET(java_objectheader, vftbl), REG_ITMP3);
-					x86_64_mov_membase_reg(REG_ITMP3, OFFSET(vftbl, interfacetable[0]) - sizeof(methodptr) * ci->index, REG_ITMP3);
-					x86_64_mov_membase32_reg(REG_ITMP3, sizeof(methodptr) * (m - ci->methods), REG_ITMP1);
+					gen_nullptr_check(argintregs[0]);
+					x86_64_mov_membase_reg(argintregs[0], OFFSET(java_objectheader, vftbl), REG_ITMP2);
+					x86_64_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, interfacetable[0]) - sizeof(methodptr) * ci->index, REG_ITMP2);
+					x86_64_mov_membase32_reg(REG_ITMP2, sizeof(methodptr) * (m - ci->methods), REG_ITMP1);
 
 					d = m->returntype;
 					x86_64_call_reg(REG_ITMP1);
@@ -5059,8 +4906,8 @@ gen_method: {
 
 				default:
 					d = 0;
-					sprintf (logtext, "Unkown ICMD-Command: %d", iptr->opc);
-					error ();
+					sprintf(logtext, "Unkown ICMD-Command: %d", iptr->opc);
+					error();
 				}
 
 			/* d contains return type */
@@ -5069,22 +4916,9 @@ gen_method: {
 				d = reg_of_var(iptr->dst, REG_ITMP3);
 
 				if (IS_INT_LNG_TYPE(iptr->dst->type)) {
-					if (IS_2_WORD_TYPE(iptr->dst->type)) {
-						if (iptr->dst->flags & INMEMORY) {
-							x86_64_mov_reg_membase(REG_RESULT, REG_SP, iptr->dst->regoff * 8);
-
-						} else {
-  							panic("RETURN: longs have to be in memory");
-						}
-
-					} else {
-						if (iptr->dst->flags & INMEMORY) {
-							x86_64_mov_reg_membase(REG_RESULT, REG_SP, iptr->dst->regoff * 8);
-
-						} else {
-							M_INTMOVE(REG_RESULT, iptr->dst->regoff);
-						}
-					}
+					s1 = reg_of_var(iptr->dst, REG_RESULT);
+					M_INTMOVE(REG_RESULT, s1);
+					store_reg_to_var_int(iptr->dst, s1);
 
 				} else {
 					/* fld from called function -- has other fpu_st_offset counter */
@@ -5130,80 +4964,69 @@ gen_method: {
 					x86_64_test_reg_reg(s1, s1);
 
 					/* TODO: clean up this calculation */
-					offset += 2;
+					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(OFFSET(java_objectheader, vftbl));
 
-					offset += 2;
+					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(OFFSET(vftbl, interfacetablelength));
 					
-					offset += 2;
+					offset += 3;    /* sub */
 					CALCOFFSETBYTES(-super->index);
 					
-					offset += 3;
-					offset += 6;
-
-					offset += 2;
-					CALCOFFSETBYTES(OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*));
-
-					offset += 3;
+					offset += 3;    /* test */
 
 					offset += 6;    /* jcc */
-					offset += 5;
+					offset += 3;    /* mov_membase_reg */
+					CALCOFFSETBYTES(OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*));
+
+					offset += 3;    /* test */
+					offset += (d > 7) ? 4 : 3;    /* setcc */
 
 					x86_64_jcc(X86_64_CC_E, offset);
 
 					x86_64_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					x86_64_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetablelength), REG_ITMP2);
 					x86_64_alu_imm_reg(X86_64_SUB, super->index, REG_ITMP2);
-					/* TODO: test */
-					x86_64_alu_imm_reg(X86_64_CMP, 0, REG_ITMP2);
+					x86_64_test_reg_reg(REG_ITMP2, REG_ITMP2);
 
 					/* TODO: clean up this calculation */
 					offset = 0;
-					offset += 2;
+					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*));
 
-					offset += 3;
-
-					offset += 6;    /* jcc */
-					offset += 5;
+					offset += 3;    /* test */
+					offset += (d > 7) ? 4 : 3;    /* setcc */
 
 					x86_64_jcc(X86_64_CC_LE, offset);
 					x86_64_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*), REG_ITMP1);
-					/* TODO: test */
-					x86_64_alu_imm_reg(X86_64_CMP, 0, REG_ITMP1);
-/*  					x86_64_setcc_reg(X86_64_CC_A, d); */
-/*  					x86_64_jcc(X86_64_CC_BE, 5); */
-					x86_64_jcc(X86_64_CC_E, 5);
-					x86_64_mov_imm_reg(1, d);
-					
+					x86_64_test_reg_reg(REG_ITMP1, REG_ITMP1);
+  					x86_64_setcc_reg(X86_64_CC_NE, d);
 
 				} else {                                   /* class           */
 					int offset = 0;
 					x86_64_test_reg_reg(s1, s1);
 
 					/* TODO: clean up this calculation */
-					offset += 2;
+					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(OFFSET(java_objectheader, vftbl));
 
-					offset += 5;
+					offset += 10;   /* mov_imm_reg */
 
-					offset += 2;
+					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(OFFSET(vftbl, baseval));
 					
-					offset += 2;
+					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(OFFSET(vftbl, baseval));
 					
-					offset += 2;
+					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(OFFSET(vftbl, diffval));
 					
-					offset += 2;
-					offset += 2;
+					offset += 3;    /* sub */
+					offset += 3;    /* xor */
 
-					offset += 2;    /* xor */
+					offset += 3;    /* cmp */
 
-					offset += 6;    /* jcc */
-					offset += 5;
+					offset += (d > 7) ? 4 : 3;    /* setcc */
 
 					x86_64_jcc(X86_64_CC_E, offset);
 
@@ -5215,14 +5038,11 @@ gen_method: {
 					x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP3, REG_ITMP1);
 					x86_64_alu_reg_reg(X86_64_XOR, d, d);
 					x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP2, REG_ITMP1);
-/*  					x86_64_setcc_reg(X86_64_CC_BE, d); */
-					x86_64_jcc(X86_64_CC_A, 5);
-					x86_64_mov_imm_reg(1, d);
-					
+  					x86_64_setcc_reg(X86_64_CC_BE, d);
 				}
 			}
 			else
-				panic ("internal error: no inlined array instanceof");
+				panic("internal error: no inlined array instanceof");
 			}
   			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -5256,36 +5076,34 @@ gen_method: {
 					x86_64_test_reg_reg(s1, s1);
 
 					/* TODO: clean up this calculation */
-					offset += 2;
+					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(OFFSET(java_objectheader, vftbl));
 
-					offset += 2;
+					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(OFFSET(vftbl, interfacetablelength));
 
-					offset += 2;
+					offset += 3;    /* sub */
 					CALCOFFSETBYTES(-super->index);
 
-					offset += 3;
-					offset += 6;
+					offset += 3;    /* test */
+					offset += 6;    /* jcc */
 
-					offset += 2;
+					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*));
 
-					offset += 3;
-					offset += 6;
+					offset += 3;    /* test */
+					offset += 6;    /* jcc */
 
 					x86_64_jcc(X86_64_CC_E, offset);
 
 					x86_64_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					x86_64_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetablelength), REG_ITMP2);
 					x86_64_alu_imm_reg(X86_64_SUB, super->index, REG_ITMP2);
-					/* TODO: test */
-					x86_64_alu_imm_reg(X86_64_CMP, 0, REG_ITMP2);
+					x86_64_test_reg_reg(REG_ITMP2, REG_ITMP2);
 					x86_64_jcc(X86_64_CC_LE, 0);
 					mcode_addxcastrefs(mcodeptr);
 					x86_64_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*), REG_ITMP2);
-					/* TODO: test */
-					x86_64_alu_imm_reg(X86_64_CMP, 0, REG_ITMP2);
+					x86_64_test_reg_reg(REG_ITMP2, REG_ITMP2);
 					x86_64_jcc(X86_64_CC_E, 0);
 					mcode_addxcastrefs(mcodeptr);
 
@@ -5294,38 +5112,30 @@ gen_method: {
 					x86_64_test_reg_reg(s1, s1);
 
 					/* TODO: clean up this calculation */
-					offset += 2;
+					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(OFFSET(java_objectheader, vftbl));
-
-					offset += 5;
-
-					offset += 2;
+					offset += 10;   /* mov_imm_reg */
+					offset += 3;    /* sub */
 					CALCOFFSETBYTES(OFFSET(vftbl, baseval));
 
 					if (d != REG_ITMP3) {
-						offset += 2;
+						offset += 3;    /* mov_membase_reg */
 						CALCOFFSETBYTES(OFFSET(vftbl, baseval));
-						
-						offset += 2;
+						offset += 3;    /* mov_membase_reg */
 						CALCOFFSETBYTES(OFFSET(vftbl, diffval));
-
-						offset += 2;
+						offset += 3;    /* sub */
 						
 					} else {
-						offset += 2;
+						offset += 3;    /* mov_membase_reg */
 						CALCOFFSETBYTES(OFFSET(vftbl, baseval));
-
-						offset += 2;
-
-						offset += 5;
-
-						offset += 2;
+						offset += 3;    /* sub */
+						offset += 10;   /* mov_imm_reg */
+						offset += 3;    /* mov_membase_reg */
 						CALCOFFSETBYTES(OFFSET(vftbl, diffval));
 					}
 
-					offset += 2;
-
-					offset += 6;
+					offset += 3;    /* cmp */
+					offset += 6;    /* jcc */
 
 					x86_64_jcc(X86_64_CC_E, offset);
 
@@ -5349,7 +5159,7 @@ gen_method: {
 				}
 
 			} else
-				panic ("internal error: no inlined array checkcast");
+				panic("internal error: no inlined array checkcast");
 			}
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -5375,55 +5185,29 @@ gen_method: {
   			MCODECHECK((iptr->op1 << 1) + 64);
 
 			for (s1 = iptr->op1; --s1 >= 0; src = src->prev) {
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-				} else {
-					x86_64_test_reg_reg(src->regoff, src->regoff);
-				}
+				var_to_reg_int(s2, src, REG_ITMP1);
+				x86_64_test_reg_reg(src->regoff, src->regoff);
 				x86_64_jcc(X86_64_CC_L, 0);
 				mcode_addxcheckarefs(mcodeptr);
-
-				/* 
-				 * copy sizes to new stack location, be cause native function
-				 * builtin_nmultianewarray access them as (int *)
-				 */
-				x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-				x86_64_mov_reg_membase(REG_ITMP1, REG_SP, -(iptr->op1 - s1) * 4);
 
 				/* copy sizes to stack (argument numbers >= INT_ARG_CNT)      */
 
 				if (src->varkind != ARGVAR) {
-					if (src->flags & INMEMORY) {
-						x86_64_mov_membase_reg(REG_SP, (src->regoff + intreg_argnum) * 8, REG_ITMP1);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, (s1 + intreg_argnum) * 8);
-
-					} else {
-						x86_64_mov_reg_membase(src->regoff, REG_SP, (s1 + intreg_argnum) * 8);
-					}
+					x86_64_mov_reg_membase(s2, REG_SP, (s1 + intreg_argnum) * 8);
 				}
 			}
-			x86_64_alu_imm_reg(X86_64_SUB, iptr->op1 * 4, REG_SP);
 
 			/* a0 = dimension count */
-
-			/* save stack pointer */
-			M_INTMOVE(REG_SP, REG_ITMP1);
-
-			x86_64_alu_imm_reg(X86_64_SUB, 12, REG_SP);
-			x86_64_mov_imm_membase(iptr->op1, REG_SP, 0);
+			x86_64_mov_imm_reg(iptr->op1, argintregs[0]);
 
 			/* a1 = arraydescriptor */
-
-			x86_64_mov_imm_membase(iptr->val.a, REG_SP, 4);
+			x86_64_mov_imm_reg(iptr->val.a, argintregs[1]);
 
 			/* a2 = pointer to dimensions = stack pointer */
-
-			x86_64_mov_reg_membase(REG_ITMP1, REG_SP, 8);
+			M_INTMOVE(REG_SP, argintregs[2]);
 
 			x86_64_mov_imm_reg((void*) (builtin_nmultianewarray), REG_ITMP1);
 			x86_64_call_reg(REG_ITMP1);
-			x86_64_alu_imm_reg(X86_64_ADD, 12 + iptr->op1 * 4, REG_SP);
 
 			s1 = reg_of_var(iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
@@ -5431,11 +5215,8 @@ gen_method: {
 			break;
 
 
-		default: sprintf (logtext, "Unknown pseudo command: %d", iptr->opc);
+		default: sprintf(logtext, "Unknown pseudo command: %d", iptr->opc);
 		         error();
-	
-   
-
 	} /* switch */
 		
 	} /* for instruction */
@@ -5461,21 +5242,11 @@ gen_method: {
 
 			} else {
 				var_to_reg_int(s1, src, REG_ITMP1);
-				if (!IS_2_WORD_TYPE(interfaces[len][s2].type)) {
-					if (!(interfaces[len][s2].flags & INMEMORY)) {
-						M_INTMOVE(s1, interfaces[len][s2].regoff);
-
-					} else {
-						x86_64_mov_reg_membase(s1, REG_SP, interfaces[len][s2].regoff * 8);
-					}
+				if (!(interfaces[len][s2].flags & INMEMORY)) {
+					M_INTMOVE(s1, interfaces[len][s2].regoff);
 
 				} else {
-					if (interfaces[len][s2].flags & INMEMORY) {
-						M_LNGMEMMOVE(s1, interfaces[len][s2].regoff);
-
-					} else {
-						panic("copy interface registers: longs have to be in memory (end)");
-					}
+					x86_64_mov_reg_membase(s1, REG_SP, interfaces[len][s2].regoff * 8);
 				}
 			}
 		}
@@ -5494,20 +5265,19 @@ gen_method: {
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-				xboundrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
+				xboundrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (10 + 10 + 3));
 			continue;
-			}
-
+		}
 
 		gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
 		                  xboundrefs->branchpos, (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
-		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 5 bytes */
+		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 10 bytes */
 		dseg_adddata(mcodeptr);
-		x86_64_mov_imm_reg(xboundrefs->branchpos - 6, REG_ITMP1);    /* 5 bytes */
-		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
+		x86_64_mov_imm_reg(xboundrefs->branchpos - 6, REG_ITMP1);    /* 10 bytes */
+		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
 			x86_64_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
@@ -5530,19 +5300,19 @@ gen_method: {
 	for (; xcheckarefs != NULL; xcheckarefs = xcheckarefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
-				xcheckarefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
+				xcheckarefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (10 + 10 + 3));
 			continue;
-			}
+		}
 
 		gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
 		                  xcheckarefs->branchpos, (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
-		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 5 bytes */
+		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 10 bytes */
 		dseg_adddata(mcodeptr);
-		x86_64_mov_imm_reg(xcheckarefs->branchpos - 6, REG_ITMP1);    /* 5 bytes */
-		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
+		x86_64_mov_imm_reg(xcheckarefs->branchpos - 6, REG_ITMP1);    /* 10 bytes */
+		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
 			x86_64_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
@@ -5565,7 +5335,7 @@ gen_method: {
 	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
-				xcastrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
+				xcastrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (10 + 10 + 3));
 			continue;
 		}
 
@@ -5574,10 +5344,10 @@ gen_method: {
 
 		MCODECHECK(8);
 
-		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 5 bytes */
+		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 10 bytes */
 		dseg_adddata(mcodeptr);
-		x86_64_mov_imm_reg(xcastrefs->branchpos - 6, REG_ITMP1);    /* 5 bytes */
-		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
+		x86_64_mov_imm_reg(xcastrefs->branchpos - 6, REG_ITMP1);    /* 10 bytes */
+		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
 			x86_64_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
@@ -5600,7 +5370,7 @@ gen_method: {
 	for (; xdivrefs != NULL; xdivrefs = xdivrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xdivrefs->branchpos, 
-				xdivrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
+				xdivrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (10 + 10 + 3));
 			continue;
 		}
 
@@ -5609,10 +5379,10 @@ gen_method: {
 
 		MCODECHECK(8);
 
-		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 5 bytes */
+		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 10 bytes */
 		dseg_adddata(mcodeptr);
-		x86_64_mov_imm_reg(xdivrefs->branchpos - 6, REG_ITMP1);    /* 5 bytes */
-		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
+		x86_64_mov_imm_reg(xdivrefs->branchpos - 6, REG_ITMP1);    /* 10 bytes */
+		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
 			x86_64_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
@@ -5636,7 +5406,7 @@ gen_method: {
 	for (; xnullrefs != NULL; xnullrefs = xnullrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
-				xnullrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
+				xnullrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (10 + 10 + 3));
 			continue;
 		}
 
@@ -5645,10 +5415,10 @@ gen_method: {
 
 		MCODECHECK(8);
 
-		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 5 bytes */
+		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 10 bytes */
 		dseg_adddata(mcodeptr);
-		x86_64_mov_imm_reg(xnullrefs->branchpos - 6, REG_ITMP1);    /* 5 bytes */
-		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
+		x86_64_mov_imm_reg(xnullrefs->branchpos - 6, REG_ITMP1);    /* 10 bytes */
+		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
 			x86_64_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
@@ -5678,7 +5448,7 @@ gen_method: {
 	
 *******************************************************************************/
 
-#define COMPSTUBSIZE 12
+#define COMPSTUBSIZE 23
 
 u1 *createcompilerstub(methodinfo *m)
 {
@@ -5686,9 +5456,9 @@ u1 *createcompilerstub(methodinfo *m)
 	u1 *mcodeptr = s;                   /* code generation pointer            */
 
 	                                    /* code for the stub                  */
-	x86_64_mov_imm_reg(m, REG_ITMP1);     /* pass method pointer to compiler    */
-	x86_64_mov_imm_reg(asm_call_jit_compiler, REG_ITMP2);    /* load address    */
-	x86_64_jmp_reg(REG_ITMP2);            /* jump to compiler                   */
+	x86_64_mov_imm_reg(m, REG_ITMP1);   /* pass method pointer to compiler    */
+	x86_64_mov_imm_reg(asm_call_jit_compiler, REG_ITMP2);    /* load address  */
+	x86_64_jmp_reg(REG_ITMP2);          /* jump to compiler                   */
 
 #ifdef STATISTICS
 	count_cstub_len += COMPSTUBSIZE;
@@ -5722,67 +5492,6 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	u1 *s = CNEW(u1, NATIVESTUBSIZE);   /* memory to hold the stub            */
 	u1 *mcodeptr = s;                   /* make macros work                   */
 
-	u1 *tptr;
-	int i;
-	int stackframesize = 4;           /* initial 4 bytes is space for jni env */
-	int stackframeoffset = 4;
-
-	int p, t;
-
-	reg_init();
-
-  	descriptor2types(m);                     /* set paramcount and paramtypes */
-
-	if (runverbose) {
-		x86_64_alu_imm_reg(X86_64_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
-
-		for (p = 0; p < m->paramcount; p++) {
-			t = m->paramtypes[p];
-			if (IS_INT_LNG_TYPE(t)) {
-				if (IS_2_WORD_TYPE(t)) {
-					x86_64_mov_membase_reg(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
-					x86_64_mov_membase_reg(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4 + 4, REG_ITMP2);
-
-				} else if (t == TYPE_ADR) {
-					x86_64_mov_membase_reg(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
-					x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP2);
-
-				} else {
-					x86_64_mov_membase_reg(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
-					x86_64_cltd();
-				}
-				x86_64_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
-				x86_64_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
-
-			} else {
-				if (t == TYPE_FLT) {
-					x86_64_flds_membase(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4);
-					x86_64_fstps_membase(REG_SP, p * 8);
-					x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP2);
-					x86_64_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
-
-				} else {
-					x86_64_fldl_membase(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4);
-					x86_64_fstpl_membase(REG_SP, p * 8);
-				}
-			}
-		}
-
-		
-		x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP1, REG_ITMP1);
-		for (p = m->paramcount; p < TRACE_ARGS_NUM; p++) {
-			x86_64_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
-			x86_64_mov_reg_membase(REG_ITMP1, REG_SP, p * 8 + 4);
-		}
-
-		x86_64_mov_imm_membase(m, REG_SP, TRACE_ARGS_NUM * 8);
-
-		x86_64_mov_imm_reg(asm_builtin_trace, REG_ITMP1);
-		x86_64_call_reg(REG_ITMP1);
-
-		x86_64_alu_imm_reg(X86_64_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
-	}
-
 	/*
 	 * mark the whole fpu stack as free for native functions
 	 * (only for saved register count == 0)
@@ -5796,76 +5505,20 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	x86_64_ffree_reg(6);
 	x86_64_ffree_reg(7);
 
-	/*
-	 * calculate stackframe size for native function
-	 */
-	tptr = m->paramtypes;
-	for (i = 0; i < m->paramcount; i++) {
-		switch (*tptr++) {
-		case TYPE_INT:
-		case TYPE_FLT:
-		case TYPE_ADR:
-			stackframesize += 4;
-			break;
+	reg_init();
 
-		case TYPE_LNG:
-		case TYPE_DBL:
-			stackframesize += 8;
-			break;
+	M_INTMOVE(argintregs[4], argintregs[5]);
+	M_INTMOVE(argintregs[3], argintregs[4]);
+	M_INTMOVE(argintregs[2], argintregs[3]);
+	M_INTMOVE(argintregs[1], argintregs[2]);
+	M_INTMOVE(argintregs[0], argintregs[1]);
 
-		default:
-			panic("unknown parameter type in native function");
-		}
-	}
+	x86_64_mov_imm_reg(&env, argintregs[0]);
 
-	x86_64_alu_imm_reg(X86_64_SUB, stackframesize, REG_SP);
-
-	tptr = m->paramtypes;
-	for (i = 0; i < m->paramcount; i++) {
-		switch (*tptr++) {
-		case TYPE_INT:
-		case TYPE_FLT:
-		case TYPE_ADR:
-			x86_64_mov_membase_reg(REG_SP, stackframesize + (1 * 4) + i * 8, REG_ITMP1);
-			x86_64_mov_reg_membase(REG_ITMP1, REG_SP, stackframeoffset);
-			stackframeoffset += 4;
-			break;
-
-		case TYPE_LNG:
-		case TYPE_DBL:
-			x86_64_mov_membase_reg(REG_SP, stackframesize + (1 * 4) + i * 8, REG_ITMP1);
-			x86_64_mov_membase_reg(REG_SP, stackframesize + (1 * 4) + i * 8 + 4, REG_ITMP2);
-			x86_64_mov_reg_membase(REG_ITMP1, REG_SP, stackframeoffset);
-			x86_64_mov_reg_membase(REG_ITMP2, REG_SP, stackframeoffset + 4);
-			stackframeoffset += 8;
-			break;
-
-		default:
-			panic("unknown parameter type in native function");
-		}
-	}
-
- 	x86_64_mov_imm_membase(&env, REG_SP, 0);
 	x86_64_mov_imm_reg(f, REG_ITMP1);
 	x86_64_call_reg(REG_ITMP1);
-	x86_64_alu_imm_reg(X86_64_ADD, stackframesize, REG_SP);
 
 	if (runverbose) {
-		x86_64_alu_imm_reg(X86_64_SUB, 4 + 8 + 8 + 4, REG_SP);
-		
-		x86_64_mov_imm_membase(m, REG_SP, 0);
-		
-		x86_64_mov_reg_membase(REG_RESULT, REG_SP, 4);
-		
-		x86_64_fstl_membase(REG_SP, 4 + 8);
-		x86_64_fsts_membase(REG_SP, 4 + 8 + 8);
-		
-		x86_64_mov_imm_reg(asm_builtin_exittrace, REG_ITMP1);
-		x86_64_call_reg(REG_ITMP1);
-		
-		x86_64_mov_membase_reg(REG_SP, 4, REG_RESULT);
-		
-		x86_64_alu_imm_reg(X86_64_ADD, 4 + 8 + 8 + 4, REG_SP);
 	}
 
 	x86_64_mov_imm_reg(&exceptionptr, REG_ITMP3);
@@ -5878,7 +5531,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	x86_64_mov_reg_reg(REG_ITMP3, REG_ITMP1_XPTR);
 	x86_64_mov_imm_reg(&exceptionptr, REG_ITMP3);
 	x86_64_mov_imm_membase(0, REG_ITMP3, 0);
-	x86_64_mov_membase_reg(REG_SP, 0, REG_ITMP2_XPC);
+
+	x86_64_mov_membase_reg(REG_SP, 0, REG_ITMP2_XPC);    /* get return address from stack */
 	x86_64_alu_imm_reg(X86_64_SUB, REG_ITMP2_XPC, 2);
 
 	x86_64_mov_imm_reg(asm_handle_nat_exception, REG_ITMP3);
