@@ -1,4 +1,4 @@
-/* vm/builtin.h - prototypes of builtin functions
+/* src/vm/builtin.h - prototypes of builtin functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,8 +27,9 @@
    Authors: Reinhard Grafl
 
    Changes: Edwin Steiner
+            Christian Thalinger
 
-   $Id: builtin.h 1933 2005-02-10 10:57:42Z twisti $
+   $Id: builtin.h 2116 2005-03-29 21:50:12Z twisti $
 
 */
 
@@ -47,6 +48,8 @@
 #  include "threads/green/threads.h"
 # endif
 #endif
+
+#include "vm/jit/stacktrace.h"
 
 
 /* define infinity for floating point numbers */
@@ -173,7 +176,7 @@ java_objectheader *asm_builtin_new(classinfo *c);
 java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl);
 #define BUILTIN_newarray (functionptr) builtin_newarray
 java_objectarray *builtin_anewarray(s4 size, classinfo *component);
-/* NOT AN OP */
+#define BUILTIN_anewarray (functionptr) builtin_anewarray
 
 #if defined(__I386__)
 void asm_builtin_newarray(s4 size, vftbl_t *arrayvftbl);
