@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 919 2004-02-08 20:24:57Z edwin $
+   $Id: typecheck.c 974 2004-03-25 17:31:13Z jowenn $
 
 */
 
@@ -593,11 +593,11 @@ typestate_ret(void *localbuf,
 
 /* If a field is checked, definingclass == implementingclass */
 static bool
-is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass,
+is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, classinfo *methodclass,
 			  typeinfo *instance)
 {
 	/* check access rights */
-	if (class != definingclass) {
+	if (methodclass != definingclass) {
 		switch (flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED)) {
 		  case ACC_PUBLIC:
 			  break;
@@ -605,23 +605,23 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass,
 			  /* In the cases below, definingclass cannot be an interface */
 			  
 		  case 0:
-			  if (definingclass->packagename != class->packagename)
+			  if (definingclass->packagename != methodclass->packagename)
 				  return false;
 			  break;
 		  case ACC_PROTECTED:
-			  if (definingclass->packagename != class->packagename) {
-				  if (!builtin_isanysubclass(class,implementingclass))
+			  if (definingclass->packagename != methodclass->packagename) {
+				  if (!builtin_isanysubclass(methodclass,implementingclass))
 					  return false;
 				  
 				  /* For protected access of super class members in another
 				   * package the instance must be a subclass of or the same
 				   * as the current class. */
 				  LOG("protected access into other package");
-				  implementingclass = class;
+				  implementingclass = methodclass;
 			  }
 			  break;
 		  case ACC_PRIVATE:
-			  if (definingclass != class) {
+			  if (definingclass != methodclass) {
 				  LOG("private access");
 				  return false;
 			  }
@@ -820,6 +820,8 @@ typecheck()
 	builtin_descriptor *builtindesc;    /* temp. descriptor of builtin */
 	bool jsrencountered = false;         /* true if we there was a JSR */
 
+    classinfo *myclass;
+
 #ifdef TYPECHECK_STATISTICS
 	int count_iterations = 0;
 	TYPECHECK_COUNT(stat_typechecked);
@@ -994,6 +996,7 @@ typecheck()
                     DOLOG(show_icmd(iptr,false)); LOGNL; LOGFLUSH;
                         
                     opcode = iptr->opc;
+		    myclass = iptr->clazz;
                     dst = iptr->dst;
                     maythrow = false;
 						
@@ -1056,6 +1059,15 @@ typecheck()
                           break;
 
                           /****************************************/
+
+
+
+
+
+
+
+
+
                           /* PRIMITIVE VARIABLE ACCESS            */
 
                       case ICMD_ILOAD: CHECK_ONEWORD(iptr->op1,TYPE_INT); break;
@@ -1142,7 +1154,7 @@ typecheck()
 								  }
 							  }
 							  else {
-								  if (!is_accessible(fi->flags,fi->class,fi->class,
+								  if (!is_accessible(fi->flags,fi->class,fi->class, myclass,
 													 &(curstack->prev->typeinfo)))
 									  panic("PUTFIELD: field is not accessible");
 							  }
@@ -1165,7 +1177,7 @@ typecheck()
 						  {
 							  fieldinfo *fi = (fieldinfo*) iptr[0].val.a;
 
-							  if (!is_accessible(fi->flags,fi->class,fi->class,NULL))
+							  if (!is_accessible(fi->flags,fi->class,fi->class,myclass,NULL))
 								  panic("PUTSTATIC: field is not accessible");
 
 							  if (curstack->type != fi->type)
@@ -1190,7 +1202,7 @@ typecheck()
                           {
                               fieldinfo *fi = (fieldinfo *)(iptr->val.a);
 
-							  if (!is_accessible(fi->flags,fi->class,fi->class,
+							  if (!is_accessible(fi->flags,fi->class,fi->class,myclass,
 												 &(curstack->typeinfo)))
 								  panic("GETFIELD: field is not accessible");
 							  
@@ -1206,8 +1218,16 @@ typecheck()
                           {
                               fieldinfo *fi = (fieldinfo *)(iptr->val.a);
 							  
-							  if (!is_accessible(fi->flags,fi->class,fi->class,NULL))
+							  if (!is_accessible(fi->flags,fi->class,fi->class,myclass,NULL)) {
+								printf("---------\n");
+								  utf_display(fi->class->name);
+								printf("\n");
+								  utf_display(myclass->name);
+								printf("\n");
+
+
 								  panic("GETSTATIC: field is not accessible");
+							}
 
                               if (dst->type == TYPE_ADR) {
                                   TYPEINFO_INIT_FROM_FIELDINFO(dst->typeinfo,fi);
@@ -1561,7 +1581,7 @@ typecheck()
 
 							  /* XXX We should resolve the method and pass its
 							   * class as implementingclass to is_accessible. */
-							  if (!is_accessible(mi->flags,mi->class,NULL,
+							  if (!is_accessible(mi->flags,mi->class,NULL, myclass,
 												 (opcode == ICMD_INVOKESTATIC) ? NULL
 												 : &(srcstack->typeinfo)))
 								  panic("Invoking unaccessible method");

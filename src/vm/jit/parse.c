@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 951 2004-03-11 17:30:03Z jowenn $
+   $Id: parse.c 974 2004-03-25 17:31:13Z jowenn $
 
 */
 
@@ -329,28 +329,28 @@ void descriptor2types(methodinfo *m)
 /* intermediate code generating macros */
 
 #define PINC           iptr++;ipc++
-#define LOADCONST_I(v) iptr->opc=ICMD_ICONST;/*iptr->op1=0*/;iptr->val.i=(v);iptr->line=currentline;PINC
-#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);iptr->line=currentline;PINC
-#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);iptr->line=currentline;PINC
-#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);iptr->line=currentline;PINC
-#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;/*iptr->op1=0*/;iptr->val.a=(v);iptr->line=currentline;PINC
+#define LOADCONST_I(v) iptr->opc=ICMD_ICONST;/*iptr->op1=0*/;iptr->val.i=(v);iptr->line=currentline;iptr->clazz=class;PINC
+#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);iptr->line=currentline;iptr->clazz=class;PINC
+#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);iptr->line=currentline;iptr->clazz=class;PINC
+#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);iptr->line=currentline;iptr->clazz=class;PINC
+#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;/*iptr->op1=0*/;iptr->val.a=(v);iptr->line=currentline;iptr->clazz=class;PINC
 
 /* ACONST instructions generated as arguments for builtin functions
  * have op1 set to non-zero. This is used for stack overflow checking
  * in stack.c. */
 #define LOADCONST_A_BUILTIN(v) \
-                       iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);iptr->line=currentline;PINC
+                       iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);iptr->line=currentline;iptr->clazz=class;PINC
 
-#define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;iptr->line=currentline;PINC
-#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;iptr->line=currentline;PINC
-#define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);iptr->line=currentline;PINC
-#define OP2A(o,o1,v,l)   iptr->opc=(o);iptr->op1=(o1);iptr->val.a=(v);iptr->line=l;PINC
+#define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;iptr->line=currentline;iptr->clazz=class;PINC
+#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;iptr->line=currentline;iptr->clazz=class;PINC
+#define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);iptr->line=currentline;iptr->clazz=class;PINC
+#define OP2A(o,o1,v,l)   iptr->opc=(o);iptr->op1=(o1);iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
 #define BUILTIN1(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN1;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;PINC
+                       iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
 #define BUILTIN2(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN2;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;PINC
+                       iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
 #define BUILTIN3(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;PINC
+                       iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
 
 /* We have to check local variables indices here because they are
  * used in stack.c to index the locals array. */
@@ -606,7 +606,7 @@ void parse()
 
 		/* mark this position as a valid instruction start */
 		if (!iswide) {
-			instructionstart[p] = 1;
+			instructionstart[gp] = 1;
 			/*log_text("new start of instruction");*/
 			if (linepcchange==p) {
 				if (jlinenumbercount>lineindex) {
@@ -623,6 +623,7 @@ void parse()
 		if ((useinlining) && (gp == nextgp)) {
 			u1 *tptr;
 			bool *readonly = NULL;
+
 
 			opcode = code_get_u1(p);
 			nextp = p += jcommandsize[opcode];
@@ -655,6 +656,16 @@ void parse()
 
 			inlining_save_compiler_variables();
 			inlining_set_compiler_variables(tmpinlinf);
+			if (compileverbose) {
+				char logtext[MAXLOGTEXT];
+				sprintf(logtext, "Parsing (inlined): ");
+				utf_sprint(logtext+strlen(logtext), method->class->name);
+				strcpy(logtext+strlen(logtext), ".");
+				utf_sprint(logtext+strlen(logtext), method->name);
+				utf_sprint(logtext+strlen(logtext), method->descriptor);
+				log_text(logtext);
+			}
+
 
 			if (inlinfo->inlinedmethods == NULL) {
 				gp = -1;
