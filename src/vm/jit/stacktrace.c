@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 1692 2004-12-06 12:30:17Z twisti $
+   $Id: stacktrace.c 1723 2004-12-07 10:38:51Z twisti $
 
 */
 
@@ -218,21 +218,21 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 						utf_display(currentMethod->name);*/
 						addEntry(&buffer,currentMethod,0);
 					}
-#ifdef __ALPHA__
+#if defined(__ALPHA__)
 					if (info->savedpv!=0)
 						dataseg=info->savedpv;
 					else
 						dataseg=codegen_findmethod(returnAdress);
-#else
+#elif defined(__I386__)
 					dataseg=codegen_findmethod(returnAdress);
 #endif
 					currentMethod=(*((methodinfo**)(dataseg+MethodPointer)));
 					if (info->beginOfJavaStackframe==0)
 						stackPtr=((char*)info)+sizeof(native_stackframeinfo);
 					else
-#ifdef __ALPHA__
+#if defined(__ALPHA__)
 						stackPtr=(char*)(info->beginOfJavaStackframe);
-#else
+#elif defined(__I386__)
 						stackPtr=(char*)(info->beginOfJavaStackframe)+sizeof(void*);
 #endif
 					info=info->oldThreadspecificHeadValue;
@@ -249,11 +249,11 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 					utf_display(currentMethod->name);*/
 					fillInStackTrace_method(&buffer,currentMethod,dataseg,returnAdress);
 					frameSize=*((u4*)(dataseg+FrameSize));
-#ifdef __ALPHA__
+#if defined(__ALPHA__)
 					/* cacao saves the return adress as the first element of the stack frame on alphas*/
 					dataseg=codegen_findmethod(*((void**)(stackPtr+frameSize-sizeof(void*))));
 					returnAdress=(*((void**)(stackPtr+frameSize-sizeof(void*))));
-#else
+#elif defined(__I386__)
 					/* on i386 the return adress is the first element before the stack frme*/
 					returnAdress=(*((void**)(stackPtr+frameSize)));
 					dataseg=codegen_findmethod(*((void**)(stackPtr+frameSize)));
@@ -261,9 +261,9 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 /*					printf ("threadrootmethod %p\n",builtin_asm_get_threadrootmethod());
 					if (currentMethod==builtin_asm_get_threadrootmethod()) break;*/
 					currentMethod=(*((methodinfo**)(dataseg+MethodPointer)));
-#ifdef __ALPHA__
+#if defined(__ALPHA__)
 					stackPtr+=frameSize;
-#else
+#elif defined(__I386__)
 					stackPtr+=frameSize+sizeof(void*);
 #endif
 				}
