@@ -1,1 +1,112 @@
 \section{X86 code generator}
+
+Porting to the famous x86 platform was more effort than
+expected. CACAO was designed to run on RISC machines from ground up,
+so the code generation part hat to be adapted. The first approach was
+to replace the simple RISC macros with x86 code, but this turned out
+to be not successful. So new x86 code generation macros where
+written. To be backward compatible, mostly in respect of embedded
+systems, all generated code can be run on i386 systems.
+
+Some smaller problems occured since the x86 port was the first 32 bit
+target platform, like segmentation faults due to heap
+corruption. Another problem was the access to the functions data
+segment. Since RISC platforms like ALPHA and MIPS have a procedure
+pointer register, for the x86 platform there had to be implemented a
+special handling for accesses to the data segment, like
+\texttt{PUTSTATIC} and \texttt{GETSTATIC} instructions. The solution
+is like the handling of \textit{jump references} or \textit{check cast
+references}, which also have to be code patched, when the code and
+data segment are relocated. This means, there has to be an extra
+\textit{immediate-to-register} move (\texttt{i386\_mov\_imm\_reg()})
+before every \texttt{PUT}/\texttt{GETSTATIC} instruction, which moves
+the start address of the procedure, and thus the start address of the
+data segment, in one of the temporary registers.
+
+Register usage was another problem in porting the CACAO to x86. An x86
+processor has 8 genernal purpose registers (GPR), of which one is the
+\textit{stack pointer} (SP) and thus it can not be used for arithmetic
+instructions. From the remaining 7 registers, in \textit{worst-case
+instructions} like \texttt{CHECKCAST} or \texttt{INSTANCEOF}, we need
+to reserve 3 temporary registers. So we have 4 registers available.
+
+
+\subsection{Calling conventions}
+
+Normal calling convention of the x86 processor is passing all function
+arguments on the stack. The store size depends on the data type (the
+following types reflect the JAVA data types):
+
+\begin{itemize}
+\item \texttt{byte}, \texttt{char}, \texttt{short}, \texttt{int}, 
+      \texttt{float}, \texttt{void} --- 4 bytes
+\item \texttt{long}, \texttt{double} --- 8 bytes
+\end{itemize}
+
+We changed this convention in a way, that we are using always 8 bytes
+on the stack for each datatype. With this adaptation, it was possible
+to use the \textit{stack space allocation algorithm} without any
+changes. The drawback of this decision was, that we have to copy all
+arguments of a native function call into a new stack frame and we have
+a slightly bigger memory footprint.
+
+But calling a native function always means a stack manipulation,
+because you have to put the \textit{JNI environment}, and for
+\texttt{static} functions the \textit{class pointer}, in front of the
+function parameters. So this negligible.
+
+For some \texttt{BUILTIN} functions there had to be written
+\texttt{asm\_} counterparts, which copy the 8 byte parameters in their
+correct size in a new stack frame. But this only affected
+\texttt{BUILTIN} functions with more than 1 function parameter. To be
+exactly, 2 functions, namely \texttt{arrayinstanceof} and
+\texttt{newarray}. So this is not a big speed impact.
+
+
+\subsection{Register allocator}
+
+As mentioned before, in  \textit{worst-case situations} there are only
+4 integer registers available. We use \texttt{\%ebp}, \texttt{\%esi},
+\texttt{\%edi} as callee saved registers (which are callee saved
+registers in the x86 ABI) and \texttt{\%ebx} as scratch register
+(which is also a callee saved register in the x86 ABI, but we need
+some scratch registers). So we have a lack of scratch registers. But
+for most ICMD instructions, we do not need all, or sometimes none, of
+the temporary registers.
+
+This fact we use in the \texttt{analyse\_stack()} pass. We try to use
+\texttt{\%edx} (which is \texttt{REG\_ITMP3}) and \texttt{\%ecx} (which
+is \texttt{REG\_ITMP2}) as scratch registers for the register allocator
+if certain ICMD instructions are not used in the compiled method.
+
+So, for \textit{best-case situations} CACAO has 3 \textit{callee
+saved} and 3 \textit{scratch} registers.
+
+This analysis should be changed from \textit{method level} to
+\textit{basic-block level}, so CACAO could emit better code on x86.
+
+
+\subsection{Long arithmetic}
+
+Unlike the PowerPC port, we cannot put \texttt{long}'s in 2 32 bit
+integer registers, since we have to little of them. Maybe this could
+bring a speedup, if the register allocator would be more intelligent
+or in leaf functions which have only \texttt{long} variables. But this
+is not implemented yet. So, the current approach is to store all
+\texttt{long}'s in memory, this means they are always spilled.
+
+Nearly all \texttt{long} instructions are inline, except 2 of them:
+\texttt{LDIV} and \texttt{LREM}. These 2 are computed via
+\texttt{BUILTIN} calls.
+
+All of the \texttt{long} instructions operate on 64 bit, even if it is
+not necessary. The dependency information that would be needed to just
+operate on the lower or upper half of the \texttt{long} variable, is
+not generated by CACAO.
+
+
+\subsection{Floating point arithmetic}
+
+Since the i386, with it's i387 counterpart or the i486, the x86
+processor has an \textit{floating point unit} (FPU). This FPU is
+implemented as a stack with 8 elements.
