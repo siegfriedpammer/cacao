@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1203 2004-06-22 23:14:55Z twisti $
+   $Id: jit.c 1229 2004-06-30 19:39:04Z twisti $
 
 */
 
@@ -37,7 +37,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "global.h"
-#include "main.h"
 #include "tables.h"
 #include "loader.h"
 #include "builtin.h"
@@ -45,6 +44,8 @@
 #include "asmpart.h"
 #include "codegen.h"
 #include "types.h"
+#include "options.h"
+#include "statistics.h"
 #include "jit/inline.h"
 #include "jit/jit.h"
 #include "jit/parse.h"
@@ -61,83 +62,6 @@
 
 
 /* global switches ************************************************************/
-
-int count_jit_calls = 0;
-int count_methods = 0;
-int count_spills = 0;
-int count_pcmd_activ = 0;
-int count_pcmd_drop = 0;
-int count_pcmd_zero = 0;
-int count_pcmd_const_store = 0;
-int count_pcmd_const_alu = 0;
-int count_pcmd_const_bra = 0;
-int count_pcmd_load = 0;
-int count_pcmd_move = 0;
-int count_load_instruction = 0;
-int count_pcmd_store = 0;
-int count_pcmd_store_comb = 0;
-int count_dup_instruction = 0;
-int count_pcmd_op = 0;
-int count_pcmd_mem = 0;
-int count_pcmd_met = 0;
-int count_pcmd_bra = 0;
-int count_pcmd_table = 0;
-int count_pcmd_return = 0;
-int count_pcmd_returnx = 0;
-int count_check_null = 0;
-int count_check_bound = 0;
-int count_max_basic_blocks = 0;
-int count_basic_blocks = 0;
-int count_javainstr = 0;
-int count_max_javainstr = 0;
-int count_javacodesize = 0;
-int count_javaexcsize = 0;
-int count_calls = 0;
-int count_tryblocks = 0;
-int count_code_len = 0;
-int count_data_len = 0;
-int count_cstub_len = 0;
-int count_nstub_len = 0;
-int count_max_new_stack = 0;
-int count_upper_bound_new_stack = 0;
-static int count_block_stack_init[11] = {
-	0, 0, 0, 0, 0, 
-	0, 0, 0, 0, 0, 
-	0
-};
-int *count_block_stack = count_block_stack_init;
-static int count_analyse_iterations_init[5] = {
-	0, 0, 0, 0, 0
-};
-int *count_analyse_iterations = count_analyse_iterations_init;
-static int count_method_bb_distribution_init[9] = {
-	0, 0, 0, 0, 0,
-	0, 0, 0, 0
-};
-int *count_method_bb_distribution = count_method_bb_distribution_init;
-static int count_block_size_distribution_init[18] = {
-	0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0,
-	0, 0, 0
-};
-int *count_block_size_distribution = count_block_size_distribution_init;
-static int count_store_length_init[21] = {
-	0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0,
-	0
-};
-int *count_store_length = count_store_length_init;
-static int count_store_depth_init[11] = {
-	0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0,
-	0
-};
-int *count_store_depth = count_store_depth_init;
-
-
 
 int stackreq[256];
 
@@ -750,9 +674,26 @@ int jcommandsize[256] = {
 #define JAVA_BREAKPOINT       202
 	1,
 #define ICMD_CHECKEXCEPTION   203
-	1, /* unused */
-	1,1,1,1,1,1,1,            /* unused */
-	1,1,1,1,1,1,1,1,1,1,
+	1,
+#define ICMD_IASTORECONST     204
+	1,
+#define ICMD_LASTORECONST     205
+	1,
+#define ICMD_FASTORECONST     206
+	1,
+#define ICMD_DASTORECONST     207
+	1,
+#define ICMD_AASTORECONST     208
+	1,
+#define ICMD_BASTORECONST     209
+	1,
+#define ICMD_CASTORECONST     210
+	1,
+#define ICMD_SASTORECONST     211
+	1,
+
+	/* unused */
+	1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
@@ -965,9 +906,15 @@ char *icmd_names[256] = {
 	"UNDEF201     ", /* JSR_W       201 */
 	"UNDEF202     ", /* BREAKPOINT  202 */
 	"CHECKEXCEPTION", /* UNDEF203    203 */
-					"UNDEF204", "UNDEF205",
-	"UNDEF206","UNDEF207","UNDEF208","UNDEF209","UNDEF210",
-	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
+	"IASTORECONST ", /*             204 */
+	"LASTORECONST ", /*             205 */
+	"FASTORECONST ", /*             206 */
+	"DASTORECONST ", /*             207 */
+	"AASTORECONST ", /*             208 */
+	"BASTORECONST ", /*             209 */
+	"CASTORECONST ", /*             210 */
+	"SASTORECONST ", /*             211 */
+	"UNDEF","UNDEF","UNDEF","UNDEF",
 	"UNDEF216","UNDEF217","UNDEF218","UNDEF219","UNDEF220",
 	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
 	"UNDEF226","UNDEF227","UNDEF228","UNDEF229","UNDEF230",
@@ -1188,9 +1135,15 @@ char *opcode_names[256] = {
 	"JSR_W        ", /* JSR_W       201 */
 	"BREAKPOINT   ", /* BREAKPOINT  202 */
 	"CHECKEXCEPTION", /* UNDEF203    203 */
-					 "UNDEF204","UNDEF205",
-	"UNDEF206","UNDEF207","UNDEF208","UNDEF209","UNDEF210",
-	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
+	"IASTORECONST ", /*             204 */
+	"LASTORECONST ", /*             205 */
+	"FASTORECONST ", /*             206 */
+	"DASTORECONST ", /*             207 */
+	"AASTORECONST ", /*             208 */
+	"BASTORECONST ", /*             209 */
+	"CASTORECONST ", /*             210 */
+	"SASTORECONST ", /*             211 */
+	"UNDEF","UNDEF","UNDEF","UNDEF",
 	"UNDEF216","UNDEF217","UNDEF218","UNDEF219","UNDEF220",
 	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
 	"UNDEF226","UNDEF227","UNDEF228","UNDEF229","UNDEF230",
@@ -1438,10 +1391,9 @@ methodptr jit_compile(methodinfo *m)
 	}
 
 	if (jitrunning) {
-		printf("new method=");
+		printf("JITRUNNING!!! new method=");
 		utf_display_classname(m->class->name);printf(".");utf_display(m->name);
 		printf("\n");
-		panic("Compiler lock recursion");
 	}
 
 	/* now the jit is running */
@@ -1462,18 +1414,6 @@ methodptr jit_compile(methodinfo *m)
 	r = jit_compile_intern(m);
 
 	if (r) {
-		/* intermediate and assembly code listings */
-		
-		if (showintermediate) {
-			show_icmd_method(m);
-
-		} else if (showdisassemble) {
-			disassemble((void *) (m->mcode + dseglen), m->mcodelength - dseglen);
-		}
-
-		if (showddatasegment)
-			dseg_display((void *) (m->mcode));
-
 		if (compileverbose)
 			log_message_method("Running: ", m);
 	}
@@ -1485,6 +1425,7 @@ methodptr jit_compile(methodinfo *m)
 	m->instructions = NULL;
 	m->stack = NULL;
 	m->exceptiontable = NULL;
+	m->registerdata = NULL;
 
 	/* release dump area */
 
@@ -1575,7 +1516,10 @@ static methodptr jit_compile_intern(methodinfo *m)
 
 	/* call the compiler passes ***********************************************/
 
-	/* must be called before reg_init, because it can change maxlocals */
+	/* first of all initialize the register allocator */
+	reg_init(m);
+
+	/* must be called before reg_setup, because it can change maxlocals */
 	if (useinlining)
 		inlining_init(m);
 
@@ -1586,17 +1530,25 @@ static methodptr jit_compile_intern(methodinfo *m)
 	if (compileverbose)
 		log_message_method("Parsing: ", m);
 
-	if (!parse(m))
+	if (!parse(m)) {
+		if (compileverbose)
+			log_message_method("Exception while parsing: ", m);
+
 		return NULL;
+	}
 
 	if (compileverbose) {
 		log_message_method("Parsing done: ", m);
 		log_message_method("Analysing: ", m);
 	}
 
-	if (!analyse_stack(m))
+	if (!analyse_stack(m)) {
+		if (compileverbose)
+			log_message_method("Exception while analysing: ", m);
+
 		return NULL;
-   
+	}
+
 	if (compileverbose)
 		log_message_method("Analysing done: ", m);
 
@@ -1605,8 +1557,12 @@ static methodptr jit_compile_intern(methodinfo *m)
 		if (compileverbose)
 			log_message_method("Typechecking: ", m);
 
-		if (!typecheck(m))
+		if (!typecheck(m)) {
+			if (compileverbose)
+				log_message_method("Exception while typechecking: ", m);
+
 			return NULL;
+		}
 
 		if (compileverbose)
 			log_message_method("Typechecking done: ", m);
@@ -1640,6 +1596,21 @@ static methodptr jit_compile_intern(methodinfo *m)
 		log_message_method("Generating code done: ", m);
 		log_message_method("Compiling done: ", m);
 	}
+
+	/* intermediate and assembly code listings */
+		
+	if (showintermediate) {
+		show_icmd_method(m);
+
+	} else if (showdisassemble) {
+		disassemble((void *) (m->mcode + dseglen), m->mcodelength - dseglen);
+	}
+
+	if (showddatasegment)
+		dseg_display((void *) (m->mcode));
+
+	/* close register allocator */
+	reg_close(m);
 
 	/* return pointer to the methods entry point */
 
@@ -1793,7 +1764,6 @@ void jit_init()
 	stackreq[JAVA_DUP2_X1] = 3;
 	stackreq[JAVA_DUP2_X2] = 4;
 
-	reg_init();
 	init_exceptions();
 
 	/* initialize exceptions used in the system */
@@ -1806,7 +1776,7 @@ void jit_init()
 void jit_close()
 {
 	codegen_close();
-	reg_close();
+/*  	reg_close(); */
 }
 
 
