@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: threads.c 1768 2004-12-16 22:13:10Z motse $
+   $Id: threads.c 1924 2005-02-10 10:43:57Z twisti $
 
 */
 
@@ -58,6 +58,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 
