@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 1408 2004-08-17 12:43:17Z twisti $
+   $Id: statistics.h 1416 2004-10-19 12:07:18Z carolyn $
 
 */
 
@@ -45,6 +45,7 @@ extern int count_class_infos;           /* variables for measurements         */
 extern int count_const_pool_len;
 extern int count_vftbl_len;
 extern int count_all_methods;
+extern int count_methods_marked_used;  /*RTA*/
 extern int count_vmcode_len;
 extern int count_extable_len;
 extern int count_class_loads;

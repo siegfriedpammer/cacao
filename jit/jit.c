@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: jit.c 1416 2004-10-19 12:07:18Z carolyn $
 
 */
 
@@ -49,6 +49,7 @@
 #include "jit/codegen.inc.h"
 #include "jit/inline.h"
 #include "jit/jit.h"
+#include "jit/parseRT.h"
 #include "jit/parse.h"
 #include "jit/stack.h"
 #include "jit/reg.h"
@@ -1489,6 +1490,10 @@ t_inlining_globals *inline_env = NULL;
 	EXTABLEN
 	/* first of all initialize the register allocator */
 	reg_init(m);
+
+       /* RTA static analysis must be called before inlining */
+        if (opt_rt) RT_jit_parse(m); // will be called just once
+                                /* return value ignored for now */
 
 	/* must be called before reg_setup, because it can change maxlocals */
         /* init reqd to initialize for parse even in no inlining */

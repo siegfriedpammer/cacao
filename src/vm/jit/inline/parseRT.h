@@ -26,66 +26,24 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.h 1067 2004-05-18 10:25:51Z stefan $
+   $Id: parseRT.h 1416 2004-10-19 12:07:18Z carolyn $
 
 */
-
 
 #ifndef _PARSERT_H
 #define _PARSERT_H
 
 #include "global.h"
-#include <stdio.h>  
-#include <string.h>
-#include "jit.h"
-#include "parse.h"
-#include "loader.h"
-#include "main.h"
-#include "natcalls.h"
 
-#include "parseRTprint.h"
-#include "parseRTstats.h"
-#include "sets.h"
+extern FILE *rtMissed;   /* Methods missed during RTA parse of Main  */
 
-#include "tables.h"
-#include "toolbox/logging.h"
-#include "toolbox/memory.h"
-
-#include "types.h"
-
-extern bool XTAOPTbypass;
-extern bool XTAOPTbypass2;
-extern bool XTAOPTbypass3;
-extern int XTAdebug;
-extern int XTAfld;
-
-extern int pWhenMarked;
-extern int pCallgraph;  /* 0 - dont print 1 - print at end from main                             */
-                        /* 2 - print at end of RT parse call                                     */
-                        /* 3- print after each method RT parse                                   */
-extern int pClassHeir;  /* 0 - dont print 1 - print at end from main                             */
-                        /* 2 - print at end of RT parse call  3-print after each method RT parse */
-extern int pClassHeirStatsOnly;  /* usually 2 Print only the statistical summary info for class heirarchy     */
-
-extern int pOpcodes;    /* 0 - don't print 1- print in parse RT 2- print in parse                */
-                        /* 3 - print in both                                                     */
-extern int pWhenMarked; /* 0 - don't print 1 - print when added to callgraph + when native parsed*/
-                        /* 2 - print when marked+methods called                                  */
-                        /* 3 - print when class/method looked at                                 */
-extern int pStats;       
+typedef struct {
+        listnode linkage;
+        methodinfo *method;
+        } rtaNode ;
 
 
-extern int methRT;
-extern int methRTlast;
-extern int methRTmax;
-extern methodinfo **callgraph;
- 
-extern int methXTA;
-extern int methXTAlast;
-extern int methXTAmax;
-extern methodinfo **XTAcallgraph;
-
-extern void RT_jit_parse(methodinfo *m);
+extern int RT_jit_parse(methodinfo *m);
 
 #endif /* _PARSERT_H */
 
@@ -101,3 +59,4 @@ extern void RT_jit_parse(methodinfo *m);
  * tab-width: 4
  * End:
  */
+
