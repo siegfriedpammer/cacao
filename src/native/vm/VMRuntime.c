@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: VMRuntime.c 1767 2004-12-16 16:46:57Z motse $
 
 */
 
@@ -493,6 +493,12 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	insert_property(m, p, "user.name", user ? user : "null");
 	insert_property(m, p, "user.home", home ? home : "null");
 	insert_property(m, p, "user.dir", cwd ? cwd : "null");
+
+#ifdef USE_GTK
+	/* disable gthread-jni's portable native sync due to yet unresolved 
+	   threading issues */
+	insert_property(m, p, "gnu.classpath.awt.gtk.portable.native.sync", "false");
+#endif
 
 #if 0
 	/* how do we get them? */
