@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 1830 2004-12-29 13:47:15Z twisti $
+   $Id: asmpart.S 1858 2005-01-04 12:36:07Z twisti $
 
 */
 
@@ -55,8 +55,11 @@
 
 	.globl asm_calljavafunction
 	.globl calljava_xhandler
+
 	.globl asm_calljavafunction2
+	.globl asm_calljavafunction2int
 	.globl asm_calljavafunction2long
+	.globl asm_calljavafunction2float
 	.globl asm_calljavafunction2double
 	.globl calljava_xhandler2
 
@@ -216,8 +219,10 @@ call_name2:
 	.long   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction2:
-asm_calljavafunction2double:
+asm_calljavafunction2int:
 asm_calljavafunction2long:
+asm_calljavafunction2float:
+asm_calljavafunction2double:
 	push    %ebp
 	mov     %esp,%ebp                 /* save stackptr                        */
 
