@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1481 2004-11-11 14:37:23Z twisti $
+   $Id: cacao.c 1504 2004-11-14 13:46:29Z jowenn $
 
 */
 
@@ -724,7 +724,7 @@ int main(int argc, char **argv)
 
 		/* exception occurred? */
 		if (*exceptionptr)
-			throw_main_exception();
+			throw_main_exception_exit();
 
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
