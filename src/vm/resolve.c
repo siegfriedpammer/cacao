@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: resolve.c 2215 2005-04-04 14:59:12Z edwin $
 
 */
 
@@ -70,7 +70,7 @@
 
 /* resolve symbolic class reference -- see resolve.h */
 bool
-resolve_class(classinfo *referer,methodinfo *refmethod,
+resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 			  utf *classname,
 			  resolve_mode_t mode,
 			  classinfo **result)
@@ -87,7 +87,7 @@ resolve_class(classinfo *referer,methodinfo *refmethod,
 	*result = NULL;
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"resolve_class(");
+	fprintf(stderr,"resolve_class_from_name(");
 	utf_fprint(stderr,referer->name);
 	fprintf(stderr,",");
 	utf_fprint(stderr,classname);
@@ -115,7 +115,7 @@ resolve_class(classinfo *referer,methodinfo *refmethod,
 				case '[':
 					/* the component type is a reference type */
 					/* resolve the component type */
-					if (!resolve_class(referer,refmethod,
+					if (!resolve_class_from_name(referer,refmethod,
 									   utf_new(utf_ptr,len),
 									   mode,&cls))
 						return false; /* exception */
@@ -202,8 +202,8 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 
 	if (IS_CLASSREF(cls)) {
 		/* we must resolve this reference */
-		if (!resolve_class(cls.ref->referer,refmethod,cls.ref->name,
-						   mode,&c))
+		if (!resolve_class_from_name(cls.ref->referer,refmethod,cls.ref->name,
+						   			mode,&c))
 			return false; /* exception */
 	}
 	else {
@@ -390,6 +390,60 @@ throw_error:
 }
 
 /******************************************************************************/
+/* CLASS RESOLUTION                                                           */
+/******************************************************************************/
+
+/* for documentation see resolve.h */
+bool
+resolve_class(unresolved_class *ref,
+			  resolve_mode_t mode,
+			  classinfo **result)
+{
+	classinfo *cls;
+	bool checked;
+	
+	RESOLVE_ASSERT(ref);
+	RESOLVE_ASSERT(result);
+	RESOLVE_ASSERT(mode == resolveLazy || mode == resolveEager);
+
+	*result = NULL;
+
+#ifdef RESOLVE_VERBOSE
+	unresolved_class_debug_dump(ref,stderr);
+#endif
+
+	/* first we must resolve the class */
+	if (!resolve_classref(ref->referermethod,
+					      ref->classref,mode,true,&cls))
+	{
+		/* the class reference could not be resolved */
+		return false; /* exception */
+	}
+	if (!cls)
+		return true; /* be lazy */
+
+	RESOLVE_ASSERT(cls);
+	RESOLVE_ASSERT(cls->loaded && cls->linked);
+
+	/* now we check the subtype constraints */
+	if (!resolve_and_check_subtype_set(ref->classref->referer,ref->referermethod,
+									   &(ref->subtypeconstraints),
+									   CLASSREF_OR_CLASSINFO(cls),
+									   false,
+									   mode,
+									   resolveLinkageError,&checked))
+	{
+		return false; /* exception */
+	}
+	if (!checked)
+		return true; /* be lazy */
+
+	/* succeed */
+	*result = cls;
+	return true;
+}
+
+/******************************************************************************/
 /* FIELD RESOLUTION                                                           */
 /******************************************************************************/
 
@@ -421,7 +475,7 @@ resolve_field(unresolved_field *ref,
 	RESOLVE_ASSERT(referer);
 
 	/* first we must resolve the class containg the field */
-	if (!resolve_class(referer,ref->referermethod,
+	if (!resolve_class_from_name(referer,ref->referermethod,
 					   ref->fieldref->classref->name,mode,&container))
 	{
 		/* the class reference could not be resolved */
@@ -573,7 +627,7 @@ resolve_method(unresolved_method *ref,
 	RESOLVE_ASSERT(referer);
 
 	/* first we must resolve the class containg the method */
-	if (!resolve_class(referer,ref->referermethod,
+	if (!resolve_class_from_name(referer,ref->referermethod,
 					   ref->methodref->classref->name,mode,&container))
 	{
 		/* the class reference could not be resolved */
@@ -664,7 +718,6 @@ resolve_method(unresolved_method *ref,
 
 	/* check protected access */
 	if (((mi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer)) {
-		/* XXX do we also need to check (referer subclass_of declarer)? */
 		if (!resolve_and_check_subtype_set(referer,ref->referermethod,
 										   &(ref->instancetypes),
 										   CLASSREF_OR_CLASSINFO(referer),
@@ -783,6 +836,35 @@ empty_set:
 	return true;
 }
 
+unresolved_class *
+create_unresolved_class(methodinfo *refmethod,
+						constant_classref *classref,
+						typeinfo *valuetype)
+{
+	unresolved_class *ref;
+	
+	RESOLVE_ASSERT(ref);
+	RESOLVE_ASSERT(valuetype);
+	
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"create_unresolved_class\n");
+	fprintf(stderr,"    referer: ");utf_fprint(stderr,classref->referer->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmdesc : ");utf_fprint(stderr,refmethod->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint(stderr,classref->name);fputc('\n',stderr);
+#endif
+
+	ref = NEW(unresolved_class);
+	ref->classref = classref;
+	ref->referermethod = refmethod;
+
+	if (!unresolved_subtype_set_from_typeinfo(classref->referer,refmethod,
+				&(ref->subtypeconstraints),valuetype,classref))
+		return NULL;
+
+	return ref;
+}
+
 unresolved_field *
 create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 						instruction *iptr,
@@ -892,7 +974,10 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 			/* we have a PUTSTATICCONST or PUTFIELDCONST with TYPE_ADR */
 			tip = &tinfo;
 			if (INSTRUCTION_PUTCONST_VALUE_ADR(iptr)) {
-				TYPEINFO_INIT_CLASSINFO(tinfo,class_java_lang_String); /* XXX assert loaded & linked? */
+				RESOLVE_ASSERT(class_java_lang_String);
+				RESOLVE_ASSERT(class_java_lang_String->loaded);
+				RESOLVE_ASSERT(class_java_lang_String->linked);
+				TYPEINFO_INIT_CLASSINFO(tinfo,class_java_lang_String);
 			}
 			else
 				TYPEINFO_INIT_NULLTYPE(tinfo);
@@ -1038,6 +1123,24 @@ unresolved_subtype_set_free_list(classref_or_classinfo *list)
 	}
 }
 
+/* unresolved_class_free *******************************************************
+ 
+   Free the memory used by an unresolved_class
+  
+   IN:
+       ref..............the unresolved_class
+
+*******************************************************************************/
+
+void 
+unresolved_class_free(unresolved_class *ref)
+{
+	RESOLVE_ASSERT(ref);
+
+	unresolved_subtype_set_free_list(ref->subtypeconstraints.subtyperefs);
+	FREE(ref,unresolved_class);
+}
+
 /* unresolved_field_free *******************************************************
  
    Free the memory used by an unresolved_field
@@ -1118,6 +1221,34 @@ unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file)
 			}
 			fputc('\n',file);
 		}
+	}
+}
+
+/* unresolved_class_debug_dump *************************************************
+ 
+   Print debug info for unresolved_class to stream
+  
+   IN:
+       ref..............the unresolved_class
+	   file.............the stream
+
+*******************************************************************************/
+
+void 
+unresolved_class_debug_dump(unresolved_class *ref,FILE *file)
+{
+	fprintf(file,"unresolved_class(%p):\n",(void *)ref);
+	if (ref) {
+		fprintf(file,"    referer   : ");
+		utf_fprint(file,ref->classref->referer->name); fputc('\n',file);
+		fprintf(file,"    refmethod  : ");
+		utf_fprint(file,ref->referermethod->name); fputc('\n',file);
+		fprintf(file,"    refmethodd : ");
+		utf_fprint(file,ref->referermethod->descriptor); fputc('\n',file);
+		fprintf(file,"    classname : ");
+		utf_fprint(file,ref->classref->name); fputc('\n',file);
+		fprintf(file,"    subtypeconstraints:\n");
+		unresolved_subtype_set_debug_dump(&(ref->subtypeconstraints),file);
 	}
 }
 

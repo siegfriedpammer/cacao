@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 2189 2005-04-02 02:05:59Z edwin $
+   $Id: resolve.h 2215 2005-04-04 14:59:12Z edwin $
 
 */
 
@@ -38,6 +38,7 @@
 
 /* forward declarations *******************************************************/
 
+typedef struct unresolved_class unresolved_class;
 typedef struct unresolved_field unresolved_field;
 typedef struct unresolved_method unresolved_method;
 typedef struct unresolved_subtype_set unresolved_subtype_set;
@@ -74,6 +75,11 @@ struct unresolved_subtype_set {
 	classref_or_classinfo *subtyperefs;     /* NULL terminated list */
 };
 
+struct unresolved_class {
+	constant_classref      *classref;
+	methodinfo		       *referermethod;
+	unresolved_subtype_set  subtypeconstraints;
+};
 
 /* XXX unify heads of unresolved_field and unresolved_method? */
 
@@ -103,7 +109,7 @@ struct unresolved_method {
 
 /* function prototypes ********************************************************/
 
-/* resolve_class ***************************************************************
+/* resolve_class_from_name *****************************************************
  
    Resolve a symbolic class reference
   
@@ -135,10 +141,10 @@ struct unresolved_method {
 *******************************************************************************/
 
 bool
-resolve_class(classinfo *referer,methodinfo *refmethod,
-			  utf *classname,
-			  resolve_mode_t mode,
-			  classinfo **result);
+resolve_class_from_name(classinfo* referer,methodinfo *refmethod,
+			  			utf *classname,
+			  			resolve_mode_t mode,
+			  			classinfo **result);
 
 /* resolve_classref ************************************************************
  
@@ -235,6 +241,35 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 
 bool resolve_class_from_typedesc(typedesc *d,bool link,classinfo **result);
 
+/* resolve_class ***************************************************************
+ 
+   Resolve an unresolved class reference
+  
+   IN:
+       ref..............struct containing the reference
+       mode.............mode of resolution:
+                            resolveLazy...only resolve if it does not
+                                          require loading classes
+                            resolveEager..load classes if necessary
+  
+   OUT:
+       *result..........set to the result of resolution, or to NULL if
+                        the reference has not been resolved
+                        In the case of an exception, *result is
+                        guaranteed to be set to NULL.
+  
+   RETURN VALUE:
+       true.............everything ok 
+                        (*result may still be NULL for resolveLazy)
+       false............an exception has been thrown
+   
+*******************************************************************************/
+
+bool
+resolve_class(unresolved_class *ref,
+			  resolve_mode_t mode,
+			  classinfo **result);
+
 /* resolve_field ***************************************************************
  
    Resolve an unresolved field reference
@@ -254,7 +289,7 @@ bool resolve_class_from_typedesc(typedesc *d,bool link,classinfo **result);
   
    RETURN VALUE:
        true.............everything ok 
-                        (*result may still be NULL for resolveLazy) XXX implement
+                        (*result may still be NULL for resolveLazy)
        false............an exception has been thrown
    
 *******************************************************************************/
@@ -283,7 +318,7 @@ resolve_field(unresolved_field *ref,
   
    RETURN VALUE:
        true.............everything ok 
-                        (*result may still be NULL for resolveLazy) XXX implement
+                        (*result may still be NULL for resolveLazy)
        false............an exception has been thrown
    
 *******************************************************************************/
@@ -343,6 +378,25 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 							  resolve_err_t error,
 							  bool *checked);
 
+/* create_unresolved_class *****************************************************
+ 
+   Create an unresolved_class struct for the given class reference
+  
+   IN:
+	   refmethod........the method triggering the resolution (if any)
+	   classref.........the class reference
+	   valuetype........value type to check against the resolved class
+
+   RETURN VALUE:
+       a pointer to a new unresolved_class struct
+
+*******************************************************************************/
+
+unresolved_class *
+create_unresolved_class(methodinfo *refmethod,
+						constant_classref *classref,
+						typeinfo *valuetype);
+
 /* create_unresolved_field *****************************************************
  
    Create an unresolved_field struct for the given field access instruction
@@ -383,6 +437,17 @@ create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 						 instruction *iptr,
 						 stackelement *stack);
 
+/* unresolved_class_free *******************************************************
+ 
+   Free the memory used by an unresolved_class
+  
+   IN:
+       ref..............the unresolved_class
+
+*******************************************************************************/
+
+void unresolved_class_free(unresolved_class *ref);
+
 /* unresolved_field_free *******************************************************
  
    Free the memory used by an unresolved_field
@@ -404,6 +469,18 @@ void unresolved_field_free(unresolved_field *ref);
 *******************************************************************************/
 
 void unresolved_method_free(unresolved_method *ref);
+
+/* unresolved_class_debug_dump *************************************************
+ 
+   Print debug info for unresolved_class to stream
+  
+   IN:
+       ref..............the unresolved_class
+	   file.............the stream
+
+*******************************************************************************/
+
+void unresolved_class_debug_dump(unresolved_class *ref,FILE *file);
 
 /* unresolved_field_debug_dump *************************************************
  
