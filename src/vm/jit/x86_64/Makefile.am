@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 617 2003-11-13 09:20:03Z stefan $
+# $Id: Makefile.am 1123 2004-06-03 20:44:56Z twisti $
 
 
 INCLUDES = -I$(top_srcdir)/jit
@@ -12,15 +12,13 @@ EXTRA_DIST = \
 	native-math.h \
 	codegen.c \
 	codegen.h \
-	methodtable.c \
-	methodtable.h \
 	types.h \
 	dis-asm.h \
 	bfd.h
 
 noinst_LIBRARIES = libarch.a
 
-libarch_a_SOURCES = asmpart.S codegen.c disass.c i386-dis.c dis-buf.c methodtable.c
+libarch_a_SOURCES = asmpart.S codegen.c disass.c i386-dis.c dis-buf.c
 
 %.o: %.S
 	$(COMPILE) -c $<
