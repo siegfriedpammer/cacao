@@ -764,7 +764,7 @@ icmd_lconst_lcmp_tail:
 							i = stackdepth - 1;
 							while (copy) {
 								if ((copy->varkind == LOCALVAR) &&
-								    (copy->varnum == curstack->varnum)) {
+								    (copy->varnum == iptr->op1)) {
 									copy->varkind = TEMPVAR;
 									copy->varnum = i;
 									}
@@ -800,7 +800,7 @@ icmd_lconst_lcmp_tail:
 							i = stackdepth - 2;
 							while (copy) {
 								if ((copy->varkind == LOCALVAR) &&
-								    (copy->varnum == curstack->varnum)) {
+								    (copy->varnum == iptr->op1)) {
 									copy->varkind = TEMPVAR;
 									copy->varnum = i;
 									}
