@@ -1,4 +1,4 @@
-/* vm/utf.h - utf string header
+/* src/vm/utf.h - utf string header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 1926 2005-02-10 10:47:29Z twisti $
+   $Id: utf8.h 2061 2005-03-23 11:10:33Z twisti $
 
 */
 
@@ -71,6 +71,8 @@ extern utf* utf_java_lang_Long;
 extern utf* utf_java_lang_Float;
 extern utf* utf_java_lang_Double;
 
+extern utf *utf_java_util_Vector;
+
 extern utf *utf_InnerClasses;
 extern utf *utf_ConstantValue;
 extern utf *utf_Code;
@@ -84,6 +86,7 @@ extern utf *utf_finalize;
 
 extern utf *utf_printStackTrace;
 extern utf *utf_fillInStackTrace;
+extern utf *utf_loadClass;
 
 extern utf *utf_void__void;
 extern utf *utf_boolean__void;
@@ -96,6 +99,7 @@ extern utf *utf_float__void;
 extern utf *utf_double__void;
 extern utf *utf_void__java_lang_Throwable;
 extern utf *utf_java_lang_String__void;
+extern utf *utf_java_lang_String__java_lang_Class;
 extern utf *utf_java_lang_Throwable__void;
 
 extern utf* utf_java_lang_Character;

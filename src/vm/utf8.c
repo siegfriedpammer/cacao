@@ -1,4 +1,4 @@
-/* vm/utf.c - utf functions
+/* src/vm/utf.c - utf functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 1926 2005-02-10 10:47:29Z twisti $
+   $Id: utf8.c 2061 2005-03-23 11:10:33Z twisti $
 
 */
 
@@ -76,6 +76,8 @@ utf* utf_java_lang_Long;
 utf* utf_java_lang_Float;
 utf* utf_java_lang_Double;
 
+utf *utf_java_util_Vector;
+
 utf *utf_InnerClasses;                  /* InnerClasses                       */
 utf *utf_ConstantValue;                 /* ConstantValue                      */
 utf *utf_Code;                          /* Code                               */
@@ -89,6 +91,7 @@ utf *utf_finalize;                      /* finalize                           */
 
 utf *utf_printStackTrace;
 utf *utf_fillInStackTrace;
+utf *utf_loadClass;
 
 utf *utf_void__void;                    /* ()V                                */
 utf *utf_boolean__void;                 /* (Z)V                               */
@@ -101,6 +104,7 @@ utf *utf_float__void;                   /* (F)V                               */
 utf *utf_double__void;                  /* (D)V                               */
 utf *utf_void__java_lang_Throwable;     /* ()Ljava/lang/Throwable;            */
 utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
+utf *utf_java_lang_String__java_lang_Class;
 utf *utf_java_lang_Throwable__void;     /* (Ljava/lang/Throwable;)V           */
 
 utf *array_packagename;
@@ -142,6 +146,8 @@ void utf8_init(void)
 	utf_java_lang_Float            = utf_new_char("java/lang/Float");
 	utf_java_lang_Double           = utf_new_char("java/lang/Double");
 
+	utf_java_util_Vector           = utf_new_char("java/util/Vector");
+
 	utf_InnerClasses               = utf_new_char("InnerClasses");
 	utf_ConstantValue              = utf_new_char("ConstantValue");
 	utf_Code                       = utf_new_char("Code");
@@ -155,6 +161,7 @@ void utf8_init(void)
 
 	utf_printStackTrace            = utf_new_char("printStackTrace");
 	utf_fillInStackTrace           = utf_new_char("fillInStackTrace");
+	utf_loadClass                  = utf_new_char("loadClass");
 
 	utf_void__void                 = utf_new_char("()V");
 	utf_boolean__void              = utf_new_char("(Z)V");
@@ -167,8 +174,11 @@ void utf8_init(void)
 	utf_double__void               = utf_new_char("(D)V");
 	utf_void__java_lang_Throwable  = utf_new_char("()Ljava/lang/Throwable;");
 	utf_java_lang_String__void     = utf_new_char("(Ljava/lang/String;)V");
-	utf_java_lang_Throwable__void  = utf_new_char("(Ljava/lang/Throwable;)V");
 
+	utf_java_lang_String__java_lang_Class =
+		utf_new_char("(Ljava/lang/String;)Ljava/lang/Class;");
+
+	utf_java_lang_Throwable__void  = utf_new_char("(Ljava/lang/Throwable;)V");
 	array_packagename              = utf_new_char("<the array package>");
 }
 
