@@ -28,10 +28,9 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 963 2004-03-15 07:37:49Z jowenn $
+   $Id: codegen.c 988 2004-03-29 07:13:42Z stefan $
 
 */
-
 
 #include <stdio.h>
 #include <signal.h>
@@ -412,10 +411,6 @@ void init_exceptions(void)
 
 /* global code generation pointer */
 u1 *mcodeptr;
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-static void *castlockptr = cast_lock;
-#endif
 
 void codegen()
 {
@@ -4279,25 +4274,7 @@ gen_method: {
 					a += 6;    /* jcc */
 					a += 5;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					a += 32 + (s1==REG_ITMP1)*2 + (d==REG_ITMP3)*2;
-#endif
-
 					i386_jcc(I386_CC_E, a);
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					i386_mov_imm_reg(1, REG_ITMP2);
-					i386_lock();
-					i386_xadd_reg_mem(REG_ITMP2, (u4) &cast_counter);
-					i386_jcc(I386_CC_E, 6 + (s1==REG_ITMP1)*2 + (d==REG_ITMP3)*2);
-					if (s1 == REG_ITMP1)
-						i386_push_reg(REG_ITMP1);
-					i386_call_mem((s4) &castlockptr);
-					if (s1 == REG_ITMP1)
-						i386_pop_reg(REG_ITMP1);
-					if (d == REG_ITMP3)
-						i386_alu_reg_reg(I386_XOR, d, d);
-#endif
 
 					i386_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
@@ -4306,11 +4283,6 @@ gen_method: {
 					i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
 					i386_alu_reg_reg(I386_SUB, REG_ITMP3, REG_ITMP1);
 					i386_alu_reg_reg(I386_XOR, d, d);
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					i386_lock();
-					i386_dec_mem((s4) &cast_counter);
-#endif
 
 					i386_alu_reg_reg(I386_CMP, REG_ITMP2, REG_ITMP1);
 					i386_jcc(I386_CC_A, 5);
@@ -4422,25 +4394,7 @@ gen_method: {
 
 					a += 6;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					a += 32 + (s1==REG_ITMP3)*2;
-#endif
-
 					i386_jcc(I386_CC_E, a);
-
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					i386_mov_imm_reg(1, REG_ITMP2);
-					i386_lock();
-					i386_xadd_reg_mem(REG_ITMP2, (u4) &cast_counter);
-					i386_jcc(I386_CC_E, 6 + (s1==REG_ITMP3)*2);
-					if (s1 == REG_ITMP3)
-						i386_push_reg(REG_ITMP3);
-					i386_call_mem((s4) &castlockptr);
-					if (s1 == REG_ITMP3)
-						i386_pop_reg(REG_ITMP3);
-#endif
-
 
 					i386_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
@@ -4466,11 +4420,6 @@ gen_method: {
 #endif
 					}
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					i386_lock();
-					i386_dec_mem((s4) &cast_counter);
-#endif
-					
 					i386_alu_reg_reg(I386_CMP, REG_ITMP2, REG_ITMP1);
 					i386_jcc(I386_CC_A, 0);    /* (u) REG_ITMP1 > (u) REG_ITMP2 -> jump */
 					codegen_addxcastrefs(mcodeptr);
