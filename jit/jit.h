@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 892 2004-01-19 12:32:29Z edwin $
+   $Id: jit.h 938 2004-03-06 00:56:43Z twisti $
 
 */
 
@@ -167,6 +167,7 @@ typedef varinfo varinfo5[5];
 
 struct branchref {
 	s4 branchpos;               /* patching position in code segment          */
+	s4 reg;                     /* used for ArrayIndexOutOfBounds index reg   */
 	branchref *next;            /* next element in branchref list             */
 };
 
