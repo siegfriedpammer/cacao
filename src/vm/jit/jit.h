@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 1775 2004-12-20 21:04:08Z twisti $
+   $Id: jit.h 2029 2005-03-10 13:47:01Z twisti $
 
 */
 
@@ -68,9 +68,10 @@ typedef struct subroutineinfo subroutineinfo;
 #define TYPE_DBL   TYPE_DOUBLE  /*3*/  /* integer, long, float, double, address      */
 #define TYPE_ADR   TYPE_ADDRESS /*4*/
 
-#define IS_INT_LNG_TYPE(a)      (!((a)&TYPE_FLT))
-#define IS_FLT_DBL_TYPE(a)      ((a)&TYPE_FLT)
-#define IS_2_WORD_TYPE(a)       ((a)&TYPE_LNG)
+#define IS_INT_LNG_TYPE(a)      (!((a) & TYPE_FLT))
+#define IS_FLT_DBL_TYPE(a)      ((a) & TYPE_FLT)
+#define IS_2_WORD_TYPE(a)       ((a) & TYPE_LNG)
+#define IS_ADR_TYPE(a)          ((a) & TYPE_ADR)
 
 
 /* flags */
