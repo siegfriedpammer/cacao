@@ -2153,7 +2153,7 @@ void class_init (classinfo *c)
 
 		if (!m) {
 			/* no method found */
-			log("initializeSystemClass failed");
+			printf("initializeSystemClass failed");
 			return;
 		}
 
