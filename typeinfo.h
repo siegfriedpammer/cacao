@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 719 2003-12-08 14:26:05Z edwin $
+   $Id: typeinfo.h 720 2003-12-08 14:44:40Z edwin $
 
 */
 
@@ -34,7 +34,6 @@
 #ifndef _TYPEINFO_H
 #define _TYPEINFO_H
 
-#include <stdio.h>
 #include "global.h"
 
 /* resolve typedef cycles *****************************************************/
@@ -348,6 +347,8 @@ bool typeinfo_merge(typeinfo *dest,typeinfo* y);
 /* debugging helpers ********************************************************/
 
 #ifdef TYPEINFO_DEBUG
+
+#include <stdio.h>
 
 void typeinfo_test();
 void typeinfo_init_from_fielddescriptor(typeinfo *info,char *desc);

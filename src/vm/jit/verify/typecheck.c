@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 719 2003-12-08 14:26:05Z edwin $
+   $Id: typecheck.c 720 2003-12-08 14:44:40Z edwin $
 
 */
 
@@ -34,6 +34,7 @@
 
 #ifdef CACAO_TYPECHECK
 
+#include <string.h>
 #include "jit.h"
 #include "builtin.h"
 #include "tables.h"
@@ -104,6 +105,8 @@ bool typecheckverbose = false;
 #endif
 
 #if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
+
+#include <stdio.h>
 
 static
 void
@@ -1735,3 +1738,16 @@ typecheck()
 #undef COPYTYPE
 
 #endif /* CACAO_TYPECHECK */
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
