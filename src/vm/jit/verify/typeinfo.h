@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: typeinfo.h 2087 2005-03-25 20:14:29Z edwin $
 
 */
 
@@ -49,7 +49,7 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
 /* The typeinfo structure stores detailed information on address types.
  * (stack elements, variables, etc. with type == TYPE_ADR.)
  *
- * There are two kinds of address types which can are distinguished by
+ * There are two kinds of address types which can be distinguished by
  * the value of the typeclass field:
  *
  * 1) typeclass == NULL: returnAddress type
@@ -60,6 +60,7 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  *
  * Note: For non-address types either there is no typeinfo allocated
  * or the fields of the typeinfo struct contain undefined values!
+ * DO NOT access the typeinfo for non-address types!
  *
  * CAUTION: The typeinfo structure should be considered opaque outside of
  *          typeinfo.[ch]. Please use the macros and functions defined here to
@@ -78,6 +79,8 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  *        stack slot: elementclass is a pointer to a
  *            typeinfo_retaddr_set which contains a return target for
  *            every vector in the current set of local variable vectors.
+ *            See typeinfo_retaddr_set and typevector below.
+ *
  *        local variable: elementclass is the return target (when cast
  *            to basicblock *)
  *
@@ -87,12 +90,13 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  *
  * B) typeclass == pseudo_class_Null
  *
- *        This is the null-reference type. Use TYPEINFO_IS_NULLTYPE to check for this.
+ *        This is the null-reference type. 
+ *        Use TYPEINFO_IS_NULLTYPE to check for this.
  *        Don't access other fields of the struct.
  *
  * C) typeclass == pseudo_class_New
  *
- *        This is a 'uninitialized object' type. elementclass can be
+ *        This is an 'uninitialized object' type. elementclass can be
  *        cast to instruction* and points to the NEW instruction
  *        responsible for creating this type.
  *
@@ -102,7 +106,15 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  *
  * D) typeclass == pseudo_class_Arraystub
  *
- *        See global.h for a describes of pseudo_class_Arraystub.
+ *        This type is used to represent the result of merging array types
+ *        with incompatible component types. An arraystub allows no access
+ *        to its components (since their type is undefined), but it allows
+ *        operations which act directly on an arbitrary array type (such as
+ *        requesting the array size).
+ *
+ *        NOTE: An array stub does *not* count as an array. It has dimension
+ *              zero.
+ *
  *        Otherwise like a normal class reference type.
  *        Don't access other fields of the struct.
  *
@@ -114,25 +126,46 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  *            elementtype....element type (ARRAYTYPE_...)
  *            merged.........mergedlist of the element type
  *
- * F) typeclass is an interface
+ *        Use TYPEINFO_IS_ARRAY to check for this case.
+ *
+ *        The elementclass may be one of the following:
+ *        1) pseudo_class_Arraystub
+ *        2) an unresolved type
+ *        3) a loaded interface
+ *        4) a loaded (non-pseudo-,non-array-)class != java.lang.Object
+ *                Note: `merged` may be used
+ *        5) java.lang.Object
+ *                Note: `merged` may be used
+ *
+ *        For the semantics of the merged field in cases 4) and 5) consult the 
+ *        corresponding descriptions with `elementclass` replaced by `typeclass`.
+ *
+ * X) typeclass is an unresolved type (a symbolic class/interface reference)
+ *
+ *        The type has not been resolved yet. (Meaning it corresponds to an
+ *        unloaded class or interface).
+ *        Don't access other fields of the struct.
+ *
+ * F) typeclass is a loaded interface
  *
  *        An interface reference type.
  *        Don't access other fields of the struct.
  *
- * G) typeclass is a (non-pseudo-,non-array-)class != java.lang.Object
+ * G) typeclass is a loaded (non-pseudo-,non-array-)class != java.lang.Object
  *
- *        A class reference type.
+ *        A loaded class type.
  *        All classinfos in u.merged.list (if any) are
- *        subclasses of typeclass (no interfaces or array classes).
+ *        loaded subclasses of typeclass (no interfaces, array classes, or
+ *        unresolved types).
  *        Don't access other fields of the struct.
  *
- * H) typeclass is java.lang.Object
+ * H) typeclass is (BOOTSTRAP)java.lang.Object
  *
  *        The most general kind of reference type.
  *        In this case u.merged.count and u.merged.list
  *        are valid and may be non-zero.
  *        The classinfos in u.merged.list (if any) may be
- *        classes, interfaces and pseudo classes.
+ *        classes, interfaces, pseudo classes or unresolved types.
  *        Don't access other fields of the struct.
  */
 
@@ -157,7 +190,7 @@ struct typeinfo {
 	classinfo           *elementclass; /* valid if dimension>0 */ /* various uses! */
 	typeinfo_mergedlist *merged;
 	u1                   dimension;
-	u1                   elementtype;  /* valid if dimension>0 */
+	u1                   elementtype;  /* valid if dimension>0           */
 };
 
 struct typeinfo_mergedlist {
@@ -165,22 +198,46 @@ struct typeinfo_mergedlist {
 	classinfo *list[1];       /* variable length!                        */
 };
 
+/*-----------------------------------------------------------------------*/
+/* a typeinfo_retaddr_set stores the set of possible returnAddresses     */
+/* that may be in a particular stack slot at a particular point in the   */
+/* program.                                                              */
+/*                                                                       */
+/* There may be one or more alternative returnAddresses if the           */
+/* instruction can be reached via one or more JSR jumps (among other     */
+/* control-flow paths                                                    */
+/*-----------------------------------------------------------------------*/
+
 struct typeinfo_retaddr_set {
 	typeinfo_retaddr_set *alt;  /* next alternative in set               */
 	void                 *addr; /* return address                        */
 };
+
+/* a type descriptor stores a basic type and the typeinfo                */
+/* this is used for storing the type of a local variable, and for        */
+/* storing types in the signature of a method                            */
 
 struct typedescriptor {
 	typeinfo        info;     /* valid if type == TYPE_ADR               */
 	u1              type;     /* basic type (TYPE_INT, ...)              */
 };
 
-/* typevectors are used to store the types of local variables */
+/*-----------------------------------------------------------------------*/
+/* typevectors are used to store the types of all local variables        */
+/* at a given point in the program.                                      */
+/*                                                                       */
+/* There may be more than one possible typevector for the local          */
+/* variables at a given instruction if the instruction can be reached    */
+/* via one or more JSR jumps (among other control-flow paths).           */
+/*                                                                       */
+/* This is called the set of alternative type vectors at that            */
+/* particular point in the program.                                      */
+/*-----------------------------------------------------------------------*/
 
 struct typevector {
-	typevector      *alt;     /* next alternative in typevector set */
-	int              k;       /* for lining up with the stack set   */
-	typedescriptor   td[1];   /* variable length!                   */
+	typevector      *alt;     /* next alternative in typevector set      */
+	int              k;       /* for lining up with the stack set        */
+	typedescriptor   td[1];   /* types of locals, variable length!       */
 };
 
 /****************************************************************************/
