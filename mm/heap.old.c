@@ -419,7 +419,7 @@ static void mark (heapblock *obj)
 	if ( isbitclear(startbits, blocknum) ) return;
 	if ( isbitset(markbits, blocknum) ) return;
 
-	fprintf(stderr, "mark: marking object at 0x%lx\n", obj);
+	/*	fprintf(stderr, "mark: marking object at 0x%lx\n", obj); */
 	setbit (markbits, blocknum);
 	
 	if ( isbitclear(referencebits, blocknum) ) return;
@@ -496,7 +496,7 @@ static void markstack ()                   /* schani */
 #else
     void **top_of_stack = &dummy;
 
-	fprintf(stderr, "marking stack\n");
+	/*	fprintf(stderr, "marking stack\n"); */
 
     if (top_of_stack > bottom_of_stack)
         markreferences(bottom_of_stack, top_of_stack);
@@ -598,7 +598,7 @@ static void heap_docollect ()
 		/* Alle vom Stack referenzierten Objekte markieren */
 	asm_dumpregistersandcall (markstack);
 
-   	fprintf(stderr, "marking references\n");
+	/*   	fprintf(stderr, "marking references\n"); */
 		/* Alle von globalen Variablen erreichbaren Objekte markieren */
 	p = chain_first (allglobalreferences);
 	while (p) {
@@ -839,9 +839,9 @@ void *heap_allocate (u4 bytelength, bool references, methodinfo *finalizer)
 	u4 freestart,freelength;
 	u4 length = ALIGN(bytelength, BLOCKSIZE) / BLOCKSIZE;
 	
-	//	fprintf(stderr, "heap_allocate: 0x%lx (%ld) requested, 0x%lx (%ld) aligned\n", bytelength, bytelength, length * BLOCKSIZE, length * BLOCKSIZE);
+	/*	fprintf(stderr, "heap_allocate: 0x%lx (%ld) requested, 0x%lx (%ld) aligned\n", bytelength, bytelength, length * BLOCKSIZE, length * BLOCKSIZE); */
 
-	//	heap_docollect();
+	/*	heap_docollect(); */
 
 	intsDisable();                        /* schani */
 
