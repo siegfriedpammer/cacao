@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1735 2004-12-07 14:33:27Z twisti $
+   $Id: asmpart.S 1760 2004-12-15 12:57:23Z twisti $
 
 */
 
@@ -48,118 +48,98 @@
 #define mptrn 12
 
 
+/* Defines for darwin's old gnu assembler *************************************/
+
+/* internal defines ***********************************************************/
+
+#define asm_calljavafunction                  _asm_calljavafunction
+#define asm_calljavafunction2                 _asm_calljavafunction2
+#define asm_calljavafunction2long             _asm_calljavafunction2long
+#define asm_calljavafunction2double           _asm_calljavafunction2double
+
+#define asm_call_jit_compiler                 _asm_call_jit_compiler
+
+#define asm_handle_nat_exception              _asm_handle_nat_exception
+#define asm_handle_exception                  _asm_handle_exception
+
+#define asm_check_clinit                      _asm_check_clinit
+
+#define asm_builtin_checkarraycast            _asm_builtin_checkarraycast
+#define asm_builtin_aastore                   _asm_builtin_aastore
+
+#define asm_builtin_monitorenter              _asm_builtin_monitorenter
+#define asm_builtin_monitorexit               _asm_builtin_monitorexit
+
+#define asm_builtin_idiv                      _asm_builtin_idiv
+#define asm_builtin_irem                      _asm_builtin_irem
+#define asm_builtin_ldiv                      _asm_builtin_ldiv
+#define asm_builtin_lrem                      _asm_builtin_lrem
+
+#define asm_cacheflush                        _asm_cacheflush
+#define asm_initialize_thread_stack           _asm_initialize_thread_stack
+#define asm_perform_threadswitch              _asm_perform_threadswitch
+#define asm_switchstackandcall                _asm_switchstackandcall
+#define asm_criticalsections                  _asm_criticalsections
+#define asm_getclassvalues_atomic             _asm_getclassvalues_atomic
+
+
+/* external defines ***********************************************************/
+
+#define builtin_asm_get_exceptionptrptr       _builtin_asm_get_exceptionptrptr
+#define builtin_canstore                      _builtin_canstore
+#define builtin_checkarraycast                _builtin_checkarraycast
+#define builtin_ldiv                          _builtin_ldiv
+#define builtin_lrem                          _builtin_lrem
+#define builtin_monitorenter                  _builtin_monitorenter
+#define builtin_monitorexit                   _builtin_monitorexit
+#define builtin_throw_exception               _builtin_throw_exception
+#define builtin_trace_exception               _builtin_trace_exception
+#define class_init                            _class_init
+#define class_link                            _class_link
+#define class_load                            _class_load
+#define jit_compile                           _jit_compile
+#define new_arithmeticexception               _new_arithmeticexception
+#define new_arrayindexoutofboundsexception    _new_arrayindexoutofboundsexception
+#define new_arraystoreexception               _new_arraystoreexception
+#define new_classcastexception                _new_classcastexception
+#define new_nullpointerexception              _new_nullpointerexception
+
+
 	.text
 
 	.align 2
 
-	.globl _asm_calljavafunction
-	.globl _asm_calljavafunction2
-	.globl _asm_calljavafunction2long
-	.globl _asm_calljavafunction2double
-	.globl _asm_call_jit_compiler
+	.globl asm_calljavafunction
+	.globl asm_calljavafunction2
+	.globl asm_calljavafunction2long
+	.globl asm_calljavafunction2double
 
-	.globl _jit_compile
-	.globl _asm_handle_nat_exception
-	.globl _asm_handle_exception
-	.globl _asm_check_clinit
-	.globl _asm_builtin_checkarraycast
-	.globl _asm_builtin_aastore
-	.globl _builtin_canstore
-	.globl _builtin_trace_exception
-	.globl _builtin_monitorenter
-	.globl _builtin_monitorexit
-	.globl _builtin_ldiv
-	.globl _builtin_lrem
-	.globl _builtin_checkarraycast
-	.globl _asm_builtin_monitorenter
-	.globl _asm_builtin_monitorexit
-	.globl _asm_builtin_idiv
-	.globl _asm_builtin_irem
-	.globl _asm_builtin_ldiv
-	.globl _asm_builtin_lrem
-	.globl _asm_cacheflush
-	.globl _asm_initialize_thread_stack
-	.globl _asm_perform_threadswitch
-	.globl _asm_switchstackandcall
-	.globl _asm_criticalsections
-	.globl _asm_getclassvalues_atomic
+	.globl asm_call_jit_compiler
 
-	.globl _string_java_lang_NullPointerException
-	.globl _string_java_lang_ArrayIndexOutOfBoundsException
-	.globl _string_java_lang_ArrayStoreException
-	.globl _string_java_lang_ArithmeticException
-	.globl _string_java_lang_ArithmeticException_message
-	.globl _string_java_lang_ClassCastException
+	.globl asm_handle_nat_exception
+	.globl asm_handle_exception
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	.globl _builtin_asm_get_exceptionptrptr
-#endif
-#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
-	.globl __exceptionptr
-#endif
+	.globl asm_check_clinit
 
-	.globl _builtin_throw_exception
-	.globl _class_load
-	.globl _class_link
-	.globl _class_init
+	.globl asm_builtin_checkarraycast
+	.globl asm_builtin_aastore
 
-	.globl _new_classcastexception
-	.globl _new_nullpointerexception
-	.globl _new_arrayindexoutofboundsexception
-	.globl _new_arraystoreexception
-	.globl _new_arithmeticexception
+	.globl asm_builtin_monitorenter
+	.globl asm_builtin_monitorexit
 
-jitcompile:
-	.long _jit_compile
+	.globl asm_builtin_idiv
+	.globl asm_builtin_irem
+	.globl asm_builtin_ldiv
+	.globl asm_builtin_lrem
 
-class_load:
-	.long _class_load
-class_link:
-	.long _class_link
-class_init:
-	.long _class_init
-		
-builtinthrow:
-	.long _builtin_throw_exception
-
-builtin_traceexception:
-	.long _builtin_trace_exception
-builtin_monitorenter:
-	.long _builtin_monitorenter
-builtin_monitorexit:
-	.long _builtin_monitorexit
-builtin_ldiv:
-	.long _builtin_ldiv
-builtin_lrem:
-	.long _builtin_lrem
-
-builtincanstore:
-	.long _builtin_canstore
-builtincheckarraycast:
-	.long _builtin_checkarraycast
-	
-new_classcastexception:
-	.long _new_classcastexception
-new_nullpointerexception:
-	.long _new_nullpointerexception
-new_arrayindexoutofboundsexception:
-	.long _new_arrayindexoutofboundsexception
-new_arraystoreexception:
-	.long _new_arraystoreexception
-new_arithmeticexception:
-	.long _new_arithmeticexception
+	.globl asm_cacheflush
+	.globl asm_initialize_thread_stack
+	.globl asm_perform_threadswitch
+	.globl asm_switchstackandcall
+	.globl asm_criticalsections
+	.globl asm_getclassvalues_atomic
 
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-builtin_asm_get_exceptionptrptr:
-	.long _builtin_asm_get_exceptionptrptr
-#endif
-#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
-_exceptionptr:
-	.long __exceptionptr
-#endif
-
-		
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
 *   This function calls a Java-method (which possibly needs compilation)       *
@@ -175,23 +155,24 @@ _exceptionptr:
 *******************************************************************************/
 		
 	.align 2
+
     .long   0                         /* catch type all                       */
-    .long   calljava_xhandler         /* handler pc                           */
-    .long   calljava_xhandler         /* end pc                               */
-    .long   _asm_calljavafunction     /* start pc                             */
-    .long   1                         /* extable size                         */
-    .long   0                         /* fltsave                              */
-    .long   0                         /* intsave                              */
-    .long   0                         /* isleaf                               */
-    .long   0                         /* IsSync                               */
-    .long   24                        /* frame size                           */
-    .long   0                         /* method pointer (pointer to name)     */
+	.long   calljava_xhandler         /* handler pc                           */
+	.long   calljava_xhandler         /* end pc                               */
+	.long   asm_calljavafunction      /* start pc                             */
+	.long   1                         /* extable size                         */
+	.long   0                         /* fltsave                              */
+	.long   0                         /* intsave                              */
+	.long   0                         /* isleaf                               */
+	.long   0                         /* IsSync                               */
+	.long   24                        /* frame size                           */
+	.long   0                         /* method pointer (pointer to name)     */
 	.long   0                         /* padding                              */
 
-_asm_calljavafunction:
+asm_calljavafunction:
 	mflr    r0
 	stw     r31,-4(r1)
-//	stw     r30,-8(r1)
+/*	stw     r30,-8(r1)*/
 	stw     pv,-12(r1)
 	stw     r0,8(r1)
 	stwu    r1,-148(r1)
@@ -223,7 +204,7 @@ _asm_calljavafunction:
 	mr      r5,r6
 	mr      r6,r7
 
-//	addis   mptr,r31,ha16(_asm_call_jit_compiler-0b)
+/*	addis   mptr,r31,ha16(_asm_call_jit_compiler-0b)*/
 	addi    mptr,r31,lo16(_asm_call_jit_compiler-0b)
 	stw     mptr,32(r1)
 	addi    mptr,r1,28
@@ -231,9 +212,10 @@ _asm_calljavafunction:
 	lwz     pv,4(mptr)
 	mtctr   pv
 	bctrl
+
 1:
 	mflr    itmp1
-	addi    pv,itmp1,lo16(_asm_calljavafunction-1b)
+	addi    pv,itmp1,lo16(asm_calljavafunction-1b)
 
 calljava_regrestore:
 	lwz     r16,40(r1)
@@ -257,41 +239,39 @@ calljava_regrestore:
 	mtlr    r0
 	addi    r1,r1,148
 	lwz     pv,-12(r1)
-//	lwz     r30,-8(r1)
+/*	lwz     r30,-8(r1)*/
 	lwz     r31,-4(r1)
 	blr
 
 calljava_xhandler:
 	mr      r3,itmp1
-//	addis   pv,r31,ha16(builtinthrow-0b)
-	lwz     itmp1,lo16(builtinthrow-0b)(r31)
-	mtctr   itmp1
-	bctrl
+	bl      builtin_throw_exception
 	b       calljava_regrestore
 
 
 
 
 	.align 2
-    .long   0                         /* catch type all                       */
-    .long   calljava_xhandler2        /* handler pc                           */
-    .long   calljava_xhandler2        /* end pc                               */
-    .long   _asm_calljavafunction2    /* start pc                             */
-    .long   1                         /* extable size                         */
-    .long   0                         /* fltsave                              */
-    .long   0                         /* intsave                              */
-    .long   0                         /* isleaf                               */
-    .long   0                         /* IsSync                               */
-    .long   24                        /* frame size                           */
-    .long   0                         /* method pointer (pointer to name)     */
+
+	.long   0                         /* catch type all                       */
+	.long   calljava_xhandler2        /* handler pc                           */
+	.long   calljava_xhandler2        /* end pc                               */
+	.long   asm_calljavafunction2     /* start pc                             */
+	.long   1                         /* extable size                         */
+	.long   0                         /* fltsave                              */
+	.long   0                         /* intsave                              */
+	.long   0                         /* isleaf                               */
+	.long   0                         /* IsSync                               */
+	.long   24                        /* frame size                           */
+	.long   0                         /* method pointer (pointer to name)     */
 	.long   0                         /* padding                              */
 
-_asm_calljavafunction2:
-_asm_calljavafunction2long:
-_asm_calljavafunction2double:
+asm_calljavafunction2:
+asm_calljavafunction2long:
+asm_calljavafunction2double:
 	mflr    r0
 	stw     r31,-4(r1)
-//	stw     r30,-8(r1)
+/*	stw     r30,-8(r1)*/
 	stw     pv,-12(r1)
 	stw     r0,8(r1)
 	addi    r1,r1,-148
@@ -348,8 +328,8 @@ _asm_calljavafunction2double:
     addi    itmp2,itmp2,-1
 
 calljava_argsloaded:
-//	addis   mptr,r31,ha16(_asm_call_jit_compiler-0b)
-	addi    mptr,r31,lo16(_asm_call_jit_compiler-0b)
+/*	addis   mptr,r31,ha16(_asm_call_jit_compiler-0b)*/
+	addi    mptr,r31,lo16(asm_call_jit_compiler-0b)
 	stw     mptr,32(r1)
 	addi    mptr,r1,28
 
@@ -358,8 +338,8 @@ calljava_argsloaded:
 	bctrl
 1:
 	mflr    itmp1
-	addi    pv,itmp1,lo16(_asm_calljavafunction2-1b)
-	
+	addi    pv,itmp1,lo16(asm_calljavafunction2-1b)
+
 calljava_regrestore2:
 	lwz		r16,40(r1)
 	lwz		r17,44(r1)
@@ -382,24 +362,20 @@ calljava_regrestore2:
 	mtlr    r0
 	addi    r1,r1,148
 	lwz     pv,-12(r1)
-//	lwz     r30,-8(r1)
+/*	lwz     r30,-8(r1)*/
 	lwz     r31,-4(r1)
 	blr
 
 calljava_xhandler2:
 	mr      r3,itmp1
-//	addis   pv,r31,ha16(builtinthrow-0b)
-	lwz     itmp1,lo16(builtinthrow-0b)(r31)
-	mtctr   itmp1
-	bctrl
+	bl      builtin_throw_exception
 	b       calljava_regrestore2
 
 
-_asm_call_jit_compiler:
-0:
+asm_call_jit_compiler:
 	mflr    itmp1
 	stw     r31,-4(r1)
-//	stw     pv,-8(r1)
+/*	stw     pv,-8(r1)*/
 	stw     r29,-12(r1)
 	stw     itmp1,8(r1)
 	addi    r1,r1,-176
@@ -446,10 +422,7 @@ noregchange:
 	stw     r10,160(r1)
 
 	lwz     r3,0(r2)
-//	addis   pv,r31,ha16(jitcompile-0b)
-	lwz     itmp1,lo16(jitcompile-0b)(r31)
-	mtctr   itmp1
-	bctrl
+	bl      jit_compile
 
 	mr      pv,r3
 	mr      mptr,r29
@@ -487,7 +460,7 @@ noregchange:
 	mtlr    r0
 	addi    r1,r1,176
 	lwz     r29,-12(r1)
-//	lwz     pv,-8(r1)
+/*	lwz     pv,-8(r1)*/
 	lwz     r31,-4(r1)
 	bctr
 
@@ -505,7 +478,7 @@ noregchange:
 *                                                                              *
 *******************************************************************************/
 		
-_asm_handle_nat_exception:
+asm_handle_nat_exception:
 	mflr    r2
 	lwz     itmp3,4(r2)
 	extsh   itmp3,itmp3
@@ -513,12 +486,12 @@ _asm_handle_nat_exception:
 	lwz     itmp3,8(r2)
 	srwi    itmp3,itmp3,16
 	cmpwi   itmp3,0x3dad
-	bne     _asm_handle_exception
+	bne     asm_handle_exception
 	lwz     itmp3,8(r2)
 	slwi    itmp3,itmp3,16
 	add     pv,pv,itmp3
 
-_asm_handle_exception:
+asm_handle_exception:
 	addi    r1,r1,-18*4
 	stw     r0,0*4(r1)
 	stw     r2,1*4(r1)
@@ -555,13 +528,8 @@ ex_stack_loop:
 	li      r6,0                  /* line number                              */
 	li      r7,4                  /* set no unwind flag                       */
 
-	bl      0f
-0:
-	mflr    itmp1
-	lwz     itmp1,lo16(builtin_traceexception-0b)(itmp1)
-	mtctr   itmp1
 	addi    r1,r1,-(24+5*4)       /* 24 linkage area + 5 argument * 4         */
-	bctrl
+	bl      builtin_trace_exception
 	addi    r1,r1,(24+5*4)
 
 	lwz     xptr,2*4(r1)
@@ -603,12 +571,7 @@ ex_table_loop:
 	stw     r7,13*4(r1)
 
 	mr      r3,r7                 /* arg1 = exceptionclass                    */
-	bl      0f
-0:
-	mflr    itmp1
-	lwz     itmp1,lo16(class_load-0b)(itmp1)
-	mtctr   itmp1
-	bctrl
+	bl      class_load
 
 	lwz     r3,7*4(r1)
 	lwz     r4,8*4(r1)
@@ -636,12 +599,7 @@ L_class_loaded:
 	stw     xptr,12*4(r1)
 
 	mr      r3,r7                 /* arg1 = exceptionclass                    */
-	bl      0f
-0:
-	mflr    itmp1
-	lwz     itmp1,lo16(class_link-0b)(itmp1)
-	mtctr   itmp1
-	bctrl
+	bl      class_link
 
 	lwz     r3,7*4(r1)
 	lwz     r4,8*4(r1)
@@ -722,13 +680,8 @@ ex_already_cleared:
 	stw     xptr,5*4(r1)
 
 	mr      r3,r6
-	bl      0f
-0:
-	mflr    itmp1
-	lwz     itmp1,lo16(builtin_monitorexit-0b)(itmp1)
-	mtctr   itmp1
 	addi    r1,r1,-40
-	bctrl
+	bl      builtin_monitorexit
 	addi    r1,r1,40
 
 	lwz     xptr,5*4(r1)
@@ -814,8 +767,7 @@ ex_flt2:
 *                                                                              *
 *******************************************************************************/
 
-_asm_check_clinit:
-0:
+asm_check_clinit:
 	lwz     itmp2,offclassinit(itmp1)
 	mr.     itmp2,itmp2
 	bne     L_is_initialized
@@ -848,9 +800,7 @@ _asm_check_clinit:
     stfd    f13,24*8(r1)
 		
 	mr      r3,itmp1
-	lwz     itmp1,lo16(class_init-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	bl      class_init
 	mr      itmp1,r3              /* save return value in temp register       */
 
 	lwz     r3,4*8(r1)
@@ -891,9 +841,7 @@ L_initializererror:
 	mflr	r0
 	stw     r0,8(r1)
 	addi    r1,r1,-4*8            /* preserve linkage area (24 bytes)         */
-	lwz     itmp1,lo16(builtin_asm_get_exceptionptrptr-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	bl      builtin_asm_get_exceptionptrptr
 	lwz     r0,(4*8)+8(r1)
 	mtlr    r0	
 	addi    r1,r1,4*8
@@ -906,7 +854,7 @@ L_initializererror:
 	stw     r0,0(r3)              /* clear the exception pointer              */
 
 	mflr    xpc
-	b       _asm_handle_nat_exception
+	b       asm_handle_nat_exception
 
 
 /******************* function asm_builtin_checkarraycast ***********************
@@ -915,16 +863,13 @@ L_initializererror:
 *                                                                              *
 *******************************************************************************/
 		
-_asm_builtin_checkarraycast:
-0:
+asm_builtin_checkarraycast:
 	mflr    r0
 	stw     r0,8(r1)
 	stwu    r1,-48(r1)
 
 	stw     r3,32(r1)
-	lwz     itmp1,lo16(builtincheckarraycast-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	bl      builtin_checkarraycast
 
 	lwz     r0,48+8(r1)
 	mtlr    r0
@@ -938,16 +883,14 @@ nb_carray_throw:
 	addi    r1,r1,48
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(24+4)
-	lwz     itmp1,lo16(new_classcastexception-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	addi    r1,r1,-24
+	bl      new_classcastexception
 	mr      xptr,r3
-	addi    r1,r1,24+4
+	addi    r1,r1,24
 	lwz     r0,8(r1)
 	mr      xpc,r0
 	mtlr    r0
-	b       _asm_handle_nat_exception
+	b       asm_handle_nat_exception
 
 
 /******************* function asm_builtin_aastore ******************************
@@ -956,8 +899,7 @@ nb_carray_throw:
 *                                                                              *
 *******************************************************************************/
 	
-_asm_builtin_aastore:
-0:
+asm_builtin_aastore:
 	mr.     r3,r3
 	beq     nb_aastore_null
 	mflr    r0
@@ -972,10 +914,7 @@ _asm_builtin_aastore:
 	mr      r4,r5
 	stw     itmp2,32(r1)
 	stw     r4,36(r1)
-//	addis   pv,r31,ha16(builtincanstore-0b)
-	lwz     itmp1,lo16(builtincanstore-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	bl      builtin_canstore
 
 	lwz     r0,48+8(r1)
 	mtlr    r0
@@ -990,102 +929,83 @@ _asm_builtin_aastore:
 nb_aastore_null:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(24+4)
-	lwz     itmp1,lo16(new_nullpointerexception-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	addi    r1,r1,-24
+	bl      new_nullpointerexception
 	mr      xptr,r3
-	addi    r1,r1,(24+4)
+	addi    r1,r1,24
 	lwz     r0,8(r1)
 	mr      xpc,r0
 	mtlr    r0
-	b       _asm_handle_nat_exception
+	b       asm_handle_nat_exception
 
 nb_aastore_bound:
 	addi    r1,r1,48
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(24+2*4)
-	lwz     itmp1,lo16(new_arrayindexoutofboundsexception-0b)(pv)
-	mtctr   itmp1
+	addi    r1,r1,-(24+1*4)
 	mr      r3,r4                 /* move index into a0                       */
-	bctrl
+	bl      new_arrayindexoutofboundsexception
 	mr      xptr,r3
-	addi    r1,r1,(24+2*4)
+	addi    r1,r1,(24+1*4)
 	lwz     r0,8(r1)
 	mr      xpc,r0
 	mtlr    r0
-	b       _asm_handle_nat_exception
+	b       asm_handle_nat_exception
 
 nb_aastore_store:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(24+4)
-	lwz     itmp1,lo16(new_arraystoreexception-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	addi    r1,r1,-24
+	bl      new_arraystoreexception
 	mr      xptr,r3
-	addi    r1,r1,(24+4)
+	addi    r1,r1,24
 	lwz     r0,8(r1)
 	mr      xpc,r0
 	mtlr    r0
-	b       _asm_handle_nat_exception
+	b       asm_handle_nat_exception
 
 
-_asm_builtin_monitorenter:
-0:
-	lwz     itmp2,lo16(builtin_monitorenter-0b)(pv)
+asm_builtin_monitorenter:
 	mr.     r3,r3
 	beq     nb_monitorenter
-	mtctr   itmp2
-	bctr
+	b       builtin_monitorenter
 
 nb_monitorenter:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(24+4)
-	lwz     itmp1,lo16(new_nullpointerexception-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	addi    r1,r1,-24
+	bl      new_nullpointerexception
 	mr      xptr,r3
-	addi    r1,r1,24+4
+	addi    r1,r1,24
 	lwz     r0,8(r1)
 /*	addi    xpc,r0,-4 */
 	mr      xpc,r0
 	addi    xpc,xpc,-4
-
 	mtlr    r0
-	b       _asm_handle_nat_exception
+	b       asm_handle_nat_exception
 
 
-_asm_builtin_monitorexit:
-0:
-	lwz     itmp2,lo16(builtin_monitorexit-0b)(pv)
+asm_builtin_monitorexit:
 	mr.     r3,r3
 	beq     nb_monitorexit
-	mtctr   itmp2
-	bctr
+	b       builtin_monitorexit
 
 nb_monitorexit:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(24+4)
-	lwz     itmp1,lo16(new_nullpointerexception-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	addi    r1,r1,-24
+	bl      new_nullpointerexception
 	mr      xptr,r3
-	addi    r1,r1,24+4
+	addi    r1,r1,24
 	lwz     r0,8(r1)
 /*	addi    xpc,r0,-4 */
 	mr      xpc,r0
 	addi    xpc,xpc,-4
-
 	mtlr    r0
-	b       _asm_handle_nat_exception
+	b       asm_handle_nat_exception
 	
 	
-_asm_builtin_idiv:
-0:
+asm_builtin_idiv:
 	mr.     r4,r4
 	beq     nb_idiv
 	lis     itmp3,0x8000
@@ -1102,20 +1022,17 @@ normal_idiv:
 nb_idiv:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(24+2*4)
-	lwz     itmp1,lo16(new_arithmeticexception-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	addi    r1,r1,-24
+	bl      new_arithmeticexception
 	mr      xptr,r3
-	addi    r1,r1,(24+2*4)
+	addi    r1,r1,24
 	lwz     r0,8(r1)
 	mr      xpc,r0
 	mtlr    r0
-	b       _asm_handle_nat_exception
+	b       asm_handle_nat_exception
 
 
-_asm_builtin_irem:
-0:
+asm_builtin_irem:
 	mr      itmp2,r3
 	mr.     r4,r4
 	beq     nb_irem
@@ -1136,65 +1053,53 @@ normal_irem:
 nb_irem:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(24+2*4)
-	lwz     itmp1,lo16(new_arithmeticexception-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	addi    r1,r1,-24
+	bl      new_arithmeticexception
 	mr      xptr,r3
-	addi    r1,r1,(24+2*4)
+	addi    r1,r1,24
 	lwz     r0,8(r1)
 	mr      xpc,r0
 	mtlr    r0
-	b       _asm_handle_nat_exception
+	b       asm_handle_nat_exception
 
 
-_asm_builtin_ldiv:
-0:
+asm_builtin_ldiv:
 	or.     r0,r5,r6
 	beq     nb_ldiv
-	lwz     itmp1,lo16(builtin_ldiv-0b)(pv)
-	mtctr   itmp1
-	bctr
+	b       builtin_ldiv
 
 nb_ldiv:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(24+2*4)
-	lwz     itmp1,lo16(new_arithmeticexception-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	addi    r1,r1,-24
+	bl      new_arithmeticexception
 	mr      xptr,r3
-	addi    r1,r1,(24+2*4)
+	addi    r1,r1,24
 	lwz     r0,8(r1)
 	mr      xpc,r0
 	mtlr    r0
-	b       _asm_handle_nat_exception
+	b       asm_handle_nat_exception
 
 
- _asm_builtin_lrem:
-0:
+asm_builtin_lrem:
 	or.     r0,r5,r6
 	beq     nb_lrem
-	lwz     itmp1,lo16(builtin_lrem-0b)(pv)
-	mtctr   itmp1
-	bctr
+	b       builtin_lrem
 
 nb_lrem:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(24+2*4)
-	lwz     itmp1,lo16(new_arithmeticexception-0b)(pv)
-	mtctr   itmp1
-	bctrl
+	addi    r1,r1,-24
+	bl      new_arithmeticexception
 	mr      xptr,r3
-	addi    r1,r1,(24+2*4)
+	addi    r1,r1,24
 	lwz     r0,8(r1)
 	mr      xpc,r0
 	mtlr    r0
-	b       _asm_handle_nat_exception
+	b       asm_handle_nat_exception
 
 
-_asm_cacheflush:
+asm_cacheflush:
 	addi    r4,r4,31
 	mr      r5,r3
 	add     r4,r3,r4
@@ -1222,7 +1127,7 @@ _asm_cacheflush:
 doublezero:
 	.double 0.0
 
-_asm_initialize_thread_stack:
+asm_initialize_thread_stack:
 	addi r4,r4,-256
 	stw r3,120(r4)
 	li r3,0
@@ -1278,7 +1183,7 @@ _asm_initialize_thread_stack:
 	blr
 
 
-_asm_perform_threadswitch:
+asm_perform_threadswitch:
 	mflr r0
 	addi r1,r1,-224
 	stw r0,120(r1)
@@ -1370,7 +1275,7 @@ _asm_perform_threadswitch:
 	blr
 
 
-_asm_switchstackandcall:
+asm_switchstackandcall:
 	mflr r0
 	addi r3,r3,-48
 	stw r0,40(r3)
@@ -1388,7 +1293,7 @@ _asm_switchstackandcall:
 	blr
 
 
-_asm_getclassvalues_atomic:
+asm_getclassvalues_atomic:
 _crit_restart2:
 _crit_begin2:
 	lwz     r6,offbaseval(r3)
@@ -1402,7 +1307,7 @@ _crit_end2:
 
 	.data
 
-_asm_criticalsections:
+asm_criticalsections:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	.long   _crit_begin1
 	.long   _crit_end1
