@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1372 2004-08-01 21:56:10Z stefan $
+   $Id: loader.c 1409 2004-08-17 12:48:52Z twisti $
 
 */
 
@@ -150,20 +150,12 @@ primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
 };
 
 
-/* instances of important system classes **************************************/
-
-java_objectheader *proto_java_lang_NullPointerException;
-
-
 /************* functions for reading classdata *********************************
 
     getting classdata in blocks of variable size
     (8,16,32,64-bit integer or float)
 
 *******************************************************************************/
-
-static char *classpath    = "";     /* searchpath for classfiles              */
-
 
 /* check_classbuffer_size ******************************************************
 
@@ -233,11 +225,6 @@ inline u4 suck_u4(classbuffer *cb)
 	return ((u4) a << 24) + ((u4) b << 16) + ((u4) c << 8) + (u4) d;
 }
 
-#define suck_s8(a) (s8) suck_u8((a))
-#define suck_s2(a) (s2) suck_u2((a))
-#define suck_s4(a) (s4) suck_u4((a))
-#define suck_s1(a) (s1) suck_u1((a))
-
 
 /* get u8 from classfile data */
 static u8 suck_u8(classbuffer *cb)
@@ -254,6 +241,12 @@ static u8 suck_u8(classbuffer *cb)
 	return v;
 #endif
 }
+
+
+#define suck_s8(a) (s8) suck_u8((a))
+#define suck_s2(a) (s2) suck_u2((a))
+#define suck_s4(a) (s4) suck_u4((a))
+#define suck_s1(a) (s1) suck_u1((a))
 
 
 /* get float from classfile data */
@@ -320,7 +313,7 @@ static double suck_double(classbuffer *cb)
 
 *******************************************************************************/
 
-void suck_init(char *cpath)
+void suck_init(char *classpath)
 {
 	char *filename=0;
 	char *start;
@@ -330,11 +323,9 @@ void suck_init(char *cpath)
 	union classpath_info *tmp;
 	union classpath_info *insertAfter=0;
 
-	if (!cpath)
+	if (!classpath)
 		return;
 
-	classpath = cpath;
-	
 	if (classpath_entries)
 		panic("suck_init should be called only once");
 
@@ -374,7 +365,8 @@ void suck_init(char *cpath)
 					filename = NULL;
 				}
 #else
-				throw_cacao_exception_exit(string_java_lang_InternalError, "zip/jar files not supported");
+				throw_cacao_exception_exit(string_java_lang_InternalError,
+										   "zip/jar files not supported");
 #endif
 				
 			} else {
@@ -660,17 +652,39 @@ static bool skipattributes(classbuffer *cb, u4 num)
 }
 
 
+/******************** function:: class_getconstant *****************************
+
+	retrieves the value at position 'pos' of the constantpool of a class
+	if the type of the value is other than 'ctype' the system is stopped
+
+*******************************************************************************/
+
+voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype)
+{
+	/* check index and type of constantpool entry */
+	/* (pos == 0 is caught by type comparison) */
+	if (pos >= c->cpcount || c->cptags[pos] != ctype) {
+		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
+		return NULL;
+	}
+
+	return c->cpinfos[pos];
+}
+
+
 /******************** function: innerclass_getconstant ************************
 
     like class_getconstant, but if cptags is ZERO null is returned
 	
 *******************************************************************************/
 
-voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype) 
+voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype)
 {
 	/* invalid position in constantpool */
-	if (pos >= c->cpcount)
-		panic("Attempt to access constant outside range");
+	if (pos >= c->cpcount) {
+		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
+		return NULL;
+	}
 
 	/* constantpool entry of type 0 */	
 	if (!c->cptags[pos])
@@ -678,11 +692,28 @@ voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype)
 
 	/* check type of constantpool entry */
 	if (c->cptags[pos] != ctype) {
-		error("Type mismatch on constant: %d requested, %d here (innerclass_getconstant)",
-			  (int) ctype, (int) c->cptags[pos] );
+		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
+		return NULL;
 	}
 		
 	return c->cpinfos[pos];
+}
+
+
+/********************* Function: class_constanttype ****************************
+
+	Determines the type of a class entry in the ConstantPool
+	
+*******************************************************************************/
+
+u4 class_constanttype(classinfo *c, u4 pos)
+{
+	if (pos <= 0 || pos >= c->cpcount) {
+		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
+		return 0;
+	}
+
+	return c->cptags[pos];
 }
 
 
@@ -694,26 +725,29 @@ voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype)
 
 static bool attribute_load(classbuffer *cb, classinfo *c, u4 num)
 {
+	utf *aname;
 	u4 i, j;
 
 	for (i = 0; i < num; i++) {
-		utf *aname;
-
 		/* retrieve attribute name */
 		if (!check_classbuffer_size(cb, 2))
 			return false;
 
-		aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
+		if (!(aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+			return false;
 
 		if (aname == utf_innerclasses) {
 			/* innerclasses attribute */
-			if (c->innerclass != NULL)
-				panic("Class has more than one InnerClasses attribute");
+			if (c->innerclass) {
+				*exceptionptr =
+					new_classformaterror(c, "Multiple InnerClasses attributes");
+				return false;
+			}
 				
 			if (!check_classbuffer_size(cb, 4 + 2))
 				return false;
 
-			/* skip attribute length */						
+			/* skip attribute length */
 			suck_u4(cb);
 
 			/* number of records */
@@ -727,7 +761,7 @@ static bool attribute_load(classbuffer *cb, classinfo *c, u4 num)
 
 			for (j = 0; j < c->innerclasscount; j++) {
 				/* The innerclass structure contains a class with an encoded
-				   name, its defining scope, its simple name  and a bitmask of
+				   name, its defining scope, its simple name and a bitmask of
 				   the access flags. If an inner class is not a member, its
 				   outer_class is NULL, if a class is anonymous, its name is
 				   NULL. */
@@ -747,8 +781,20 @@ static bool attribute_load(classbuffer *cb, classinfo *c, u4 num)
 			if (!check_classbuffer_size(cb, 4 + 2))
 				return false;
 
-			suck_u4(cb);
-			c->sourcefile = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
+			if (suck_u4(cb) != 2) {
+				*exceptionptr =
+					new_classformaterror(c, "Wrong size for VALUE attribute");
+				return false;
+			}
+
+			if (c->sourcefile) {
+				*exceptionptr =
+					new_classformaterror(c, "Multiple SourceFile attributes");
+				return false;
+			}
+
+			if (!(c->sourcefile = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+				return false;
 
 		} else {
 			/* unknown attribute */
@@ -963,38 +1009,51 @@ void print_arraydescriptor(FILE *file, arraydescriptor *desc)
 
 static bool field_load(classbuffer *cb, classinfo *c, fieldinfo *f)
 {
-	u4 attrnum,i;
+	u4 attrnum, i;
 	u4 jtype;
 	u4 pindex = field_load_NOVALUE;     /* constantvalue_index */
+	utf *u;
 
 	if (!check_classbuffer_size(cb, 2 + 2 + 2))
 		return false;
 
 	f->flags = suck_u2(cb);
-	f->name = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
-	f->descriptor = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
-	
+
+	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+		return false;
+	f->name = u;
+
+	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+		return false;
+	f->descriptor = u;
+
 	if (opt_verify) {
 		/* check name */
 		if (!is_valid_name_utf(f->name) || f->name->text[0] == '<')
 			panic("Field with invalid name");
 		
 		/* check flag consistency */
-		i = (f->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
+		i = f->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED);
 
-		if (i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED)
-			panic("Field has invalid access flags");
+		if ((i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED) ||
+			((f->flags & (ACC_FINAL | ACC_VOLATILE)) == (ACC_FINAL | ACC_VOLATILE))) {
+			*exceptionptr =
+				new_classformaterror(c,
+									 "Illegal field modifiers: 0x%X",
+									 f->flags);
+			return false;
+		}
 
-		if ((f->flags & (ACC_FINAL | ACC_VOLATILE)) == (ACC_FINAL | ACC_VOLATILE))
-			panic("Field is declared final and volatile");
-
-		if ((c->flags & ACC_INTERFACE) != 0) {
-			if ((f->flags & (ACC_STATIC | ACC_PUBLIC | ACC_FINAL))
-				!= (ACC_STATIC | ACC_PUBLIC | ACC_FINAL))
-				panic("Interface field is not declared static final public");
-
-			if ((f->flags & ACC_TRANSIENT) != 0)
-				panic("Interface field declared transient");
+		if (c->flags & ACC_INTERFACE) {
+			if (((f->flags & (ACC_STATIC | ACC_PUBLIC | ACC_FINAL))
+				!= (ACC_STATIC | ACC_PUBLIC | ACC_FINAL)) ||
+				f->flags & ACC_TRANSIENT) {
+				*exceptionptr =
+					new_classformaterror(c,
+										 "Illegal field modifiers: 0x%X",
+										 f->flags);
+				return false;
+			}
 		}
 
 		/* check descriptor */
@@ -1025,29 +1084,30 @@ static bool field_load(classbuffer *cb, classinfo *c, fieldinfo *f)
 
 	attrnum = suck_u2(cb);
 	for (i = 0; i < attrnum; i++) {
-		utf *aname;
-
 		if (!check_classbuffer_size(cb, 2))
 			return false;
 
-		aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
-		
-		if (aname != utf_constantvalue) {
-			/* unknown attribute */
-			if (!skipattributebody(cb))
-				return false;
+		if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+			return false;
 
-		} else {
-			/* constant value attribute */
-			if (pindex != field_load_NOVALUE)
-				panic("Field has more than one ConstantValue attribute");
-			
+		if (u == utf_constantvalue) {
 			if (!check_classbuffer_size(cb, 4 + 2))
 				return false;
 
 			/* check attribute length */
-			if (suck_u4(cb) != 2)
-				panic("ConstantValue attribute has invalid length");
+			if (suck_u4(cb) != 2) {
+				*exceptionptr =
+					new_classformaterror(c, "Wrong size for VALUE attribute");
+				return false;
+			}
+			
+			/* constant value attribute */
+			if (pindex != field_load_NOVALUE) {
+				*exceptionptr =
+					new_classformaterror(c,
+										 "Multiple ConstantValue attributes");
+				return false;
+			}
 			
 			/* index of value in constantpool */		
 			pindex = suck_u2(cb);
@@ -1055,43 +1115,61 @@ static bool field_load(classbuffer *cb, classinfo *c, fieldinfo *f)
 			/* initialize field with value from constantpool */		
 			switch (jtype) {
 			case TYPE_INT: {
-				constant_integer *ci = 
-					class_getconstant(c, pindex, CONSTANT_Integer);
+				constant_integer *ci; 
+
+				if (!(ci = class_getconstant(c, pindex, CONSTANT_Integer)))
+					return false;
+
 				f->value.i = ci->value;
 			}
 			break;
 					
 			case TYPE_LONG: {
-				constant_long *cl = 
-					class_getconstant(c, pindex, CONSTANT_Long);
+				constant_long *cl; 
+
+				if (!(cl = class_getconstant(c, pindex, CONSTANT_Long)))
+					return false;
+
 				f->value.l = cl->value;
 			}
 			break;
 
 			case TYPE_FLOAT: {
-				constant_float *cf = 
-					class_getconstant(c, pindex, CONSTANT_Float);
+				constant_float *cf;
+
+				if (!(cf = class_getconstant(c, pindex, CONSTANT_Float)))
+					return false;
+
 				f->value.f = cf->value;
 			}
 			break;
 											
 			case TYPE_DOUBLE: {
-				constant_double *cd = 
-					class_getconstant(c, pindex, CONSTANT_Double);
+				constant_double *cd;
+
+				if (!(cd = class_getconstant(c, pindex, CONSTANT_Double)))
+					return false;
+
 				f->value.d = cd->value;
 			}
 			break;
 						
-			case TYPE_ADDRESS: { 
-				utf *u = class_getconstant(c, pindex, CONSTANT_String);
-				/* create javastring from compressed utf8-string */					
+			case TYPE_ADDRESS:
+				if (!(u = class_getconstant(c, pindex, CONSTANT_String)))
+					return false;
+
+				/* create javastring from compressed utf8-string */
 				f->value.a = literalstring_new(u);
-			}
-			break;
+				break;
 	
 			default: 
-				log_text ("Invalid Constant - Type");
+				log_text("Invalid Constant - Type");
 			}
+
+		} else {
+			/* unknown attribute */
+			if (!skipattributebody(cb))
+				return false;
 		}
 	}
 
@@ -1143,6 +1221,7 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 	s4 i, j;
 	u4 attrnum;
 	u4 codeattrnum;
+	utf *u;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initObjectLock(&m->header);
@@ -1163,8 +1242,14 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 		return false;
 
 	m->flags = suck_u2(cb);
-	m->name = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
-	m->descriptor = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
+
+	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+		return false;
+	m->name = u;
+
+	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+		return false;
+	m->descriptor = u;
 
 	if (opt_verify) {
 		if (!is_valid_name_utf(m->name))
@@ -1181,37 +1266,48 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 		argcount++; /* count the 'this' argument */
 
 	if (opt_verify) {
-		if (argcount > 255)
-			panic("Too many arguments in signature");
+		if (argcount > 255) {
+			*exceptionptr =
+				new_classformaterror(c, "Too many arguments in signature");
+			return false;
+		}
 
 		/* check flag consistency */
 		if (m->name != utf_clinit) {
 			i = (m->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
 
-			if (i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED)
-				panic("Method has invalid access flags");
+			if (i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED) {
+				*exceptionptr =
+					new_classformaterror(c,
+										 "Illegal method modifiers: 0x%X",
+										 m->flags);
+				return false;
+			}
 
-			if ((m->flags & ACC_ABSTRACT) != 0) {
+			if (m->flags & ACC_ABSTRACT) {
 				if ((m->flags & (ACC_FINAL | ACC_NATIVE | ACC_PRIVATE |
 								 ACC_STATIC | ACC_STRICT | ACC_SYNCHRONIZED))) {
 					*exceptionptr =
 						new_classformaterror(c,
-											 "Illegal method modifiers: 0x%x",
+											 "Illegal method modifiers: 0x%X",
 											 m->flags);
-
 					return false;
 				}
 			}
 
-			if ((c->flags & ACC_INTERFACE) != 0) {
-				if ((m->flags & (ACC_ABSTRACT | ACC_PUBLIC))
-					!= (ACC_ABSTRACT | ACC_PUBLIC))
-					panic("Interface method is not declared abstract and public");
+			if (c->flags & ACC_INTERFACE) {
+				if ((m->flags & (ACC_ABSTRACT | ACC_PUBLIC)) != (ACC_ABSTRACT | ACC_PUBLIC)) {
+					*exceptionptr =
+						new_classformaterror(c,
+											 "Illegal method modifiers: 0x%X",
+											 m->flags);
+					return false;
+				}
 			}
 
 			if (m->name == utf_init) {
-				if ((m->flags & (ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED
-								 | ACC_NATIVE | ACC_ABSTRACT)) != 0)
+				if (m->flags & (ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED |
+								ACC_NATIVE | ACC_ABSTRACT))
 					panic("Instance initialization method has invalid flags set");
 			}
 		}
@@ -1258,34 +1354,10 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 		if (!check_classbuffer_size(cb, 2))
 			return false;
 
-		aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
+		if (!(aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+			return false;
 
-		if (aname != utf_code) {
-			if (aname == utf_exceptions) {
-				s4 j;
-				
-				if (!check_classbuffer_size(cb, 4 + 2))
-					return false;
-
-				suck_u4(cb); /*length*/
-				m->thrownexceptionscount = suck_u2(cb);
-
-				if (!check_classbuffer_size(cb, 2 * m->thrownexceptionscount))
-					return false;
-
-				m->thrownexceptions = MNEW(classinfo*, m->thrownexceptionscount);
-
-				for (j = 0; j < m->thrownexceptionscount; j++) {
-					(m->thrownexceptions)[j] =
-						class_getconstant(c, suck_u2(cb), CONSTANT_Class);
-				}
-				
-			} else {
-				if (!skipattributebody(cb))
-					return false;
-			}
-
-		} else {
+		if (aname == utf_code) {
 			if (m->flags & (ACC_ABSTRACT | ACC_NATIVE)) {
 					*exceptionptr =
 						new_classformaterror(c,
@@ -1369,8 +1441,9 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 					m->exceptiontable[j].catchtype = NULL;
 
 				} else {
-					m->exceptiontable[j].catchtype =
-						class_getconstant(c, idx, CONSTANT_Class);
+					if (!(m->exceptiontable[j].catchtype =
+						  class_getconstant(c, idx, CONSTANT_Class)))
+						return false;
 				}
 			}
 
@@ -1385,7 +1458,8 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 				if (!check_classbuffer_size(cb, 2))
 					return false;
 
-				caname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
+				if (!(caname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+					return false;
 
 				if (caname == utf_linenumbertable) {
 					u2 lncid;
@@ -1412,11 +1486,42 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 						return false;
 					
 					break;
+
 				} else {
 					if (!skipattributebody(cb))
 						return false;
 				}
 			}
+
+		} else if (aname == utf_exceptions) {
+			s4 j;
+
+			if (m->thrownexceptions) {
+				*exceptionptr =
+					new_classformaterror(c, "Multiple Exceptions attributes");
+				return false;
+			}
+
+			if (!check_classbuffer_size(cb, 4 + 2))
+				return false;
+
+			suck_u4(cb); /* length */
+			m->thrownexceptionscount = suck_u2(cb);
+
+			if (!check_classbuffer_size(cb, 2 * m->thrownexceptionscount))
+				return false;
+
+			m->thrownexceptions = MNEW(classinfo*, m->thrownexceptionscount);
+
+			for (j = 0; j < m->thrownexceptionscount; j++) {
+				if (!((m->thrownexceptions)[j] =
+					  class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
+					return false;
+			}
+				
+		} else {
+			if (!skipattributebody(cb))
+				return false;
 		}
 	}
 
@@ -1503,52 +1608,6 @@ static bool method_canoverwrite(methodinfo *m, methodinfo *old)
 }
 
 
-/******************************************************************************/
-/************************ Functions for class *********************************/
-/******************************************************************************/
-
-
-/******************** function:: class_getconstant *****************************
-
-	retrieves the value at position 'pos' of the constantpool of a class
-	if the type of the value is other than 'ctype' the system is stopped
-
-*******************************************************************************/
-
-voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype)
-{
-	/* invalid position in constantpool */
-	/* (pos == 0 is caught by type comparison) */
-	if (pos >= c->cpcount)
-		panic("Attempt to access constant outside range");
-
-	/* check type of constantpool entry */
-
-	if (c->cptags[pos] != ctype) {
-		class_showconstantpool(c);
-		error("Type mismatch on constant: %d requested, %d here (class_getconstant)",
-			  (int) ctype, (int) c->cptags[pos]);
-	}
-		
-	return c->cpinfos[pos];
-}
-
-
-/********************* Function: class_constanttype ****************************
-
-	Determines the type of a class entry in the ConstantPool
-	
-*******************************************************************************/
-
-u4 class_constanttype(classinfo *c, u4 pos)
-{
-	if (pos >= c->cpcount)
-		panic("Attempt to access constant outside range");
-
-	return c->cptags[pos];
-}
-
-
 /******************** function: class_loadcpool ********************************
 
 	loads the constantpool of a class, 
@@ -1566,17 +1625,17 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 	   been traversed the references can be resolved. 
 	   (only in specific order)						   */
 	
-	/* CONSTANT_Class_info entries */
-	typedef struct forward_class {      
-		struct forward_class *next; 
-		u2 thisindex;               
-		u2 name_index;              
-	} forward_class;                    
-                                        
-	/* CONSTANT_String */                                      
-	typedef struct forward_string {	
-		struct forward_string *next; 
-		u2 thisindex;	             
+	/* CONSTANT_Class entries */
+	typedef struct forward_class {
+		struct forward_class *next;
+		u2 thisindex;
+		u2 name_index;
+	} forward_class;
+
+	/* CONSTANT_String */
+	typedef struct forward_string {
+		struct forward_string *next;
+		u2 thisindex;
 		u2 string_index;
 	} forward_string;
 
@@ -1589,7 +1648,7 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 	} forward_nameandtype;
 
 	/* CONSTANT_Fieldref, CONSTANT_Methodref or CONSTANT_InterfaceMethodref */
-	typedef struct forward_fieldmethint {	
+	typedef struct forward_fieldmethint {
 		struct forward_fieldmethint *next;
 		u2 thisindex;
 		u1 tag;
@@ -1599,12 +1658,16 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 
 
 	u4 idx;
-	long int dumpsize = dump_size ();
 
 	forward_class *forward_classes = NULL;
 	forward_string *forward_strings = NULL;
 	forward_nameandtype *forward_nameandtypes = NULL;
 	forward_fieldmethint *forward_fieldmethints = NULL;
+
+	forward_class *nfc;
+	forward_string *nfs;
+	forward_nameandtype *nfn;
+	forward_fieldmethint *nff;
 
 	u4 cpcount;
 	u1 *cptags;
@@ -1620,8 +1683,10 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 	cptags  = c->cptags  = MNEW(u1, cpcount);
 	cpinfos = c->cpinfos = MNEW(voidptr, cpcount);
 
-	if (!cpcount)
-		panic("Invalid constant_pool_count (0)");
+	if (cpcount < 1) {
+		*exceptionptr = new_classformaterror(c, "Illegal constant pool size");
+		return false;
+	}
 	
 #if defined(STATISTICS)
 	if (opt_stat)
@@ -1650,8 +1715,8 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 		t = suck_u1(cb);
 
 		switch (t) {
-		case CONSTANT_Class: { 
-			forward_class *nfc = DNEW(forward_class);
+		case CONSTANT_Class:
+			nfc = NEW(forward_class);
 
 			nfc->next = forward_classes;
 			forward_classes = nfc;
@@ -1665,13 +1730,50 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 
 			idx++;
 			break;
-		}
 			
+		case CONSTANT_String:
+			nfs = NEW(forward_string);
+				
+			nfs->next = forward_strings;
+			forward_strings = nfs;
+				
+			nfs->thisindex = idx;
+
+			/* reference to CONSTANT_Utf8_info with string characters */
+			if (!check_classbuffer_size(cb, 2))
+				return false;
+
+			nfs->string_index = suck_u2(cb);
+				
+			idx++;
+			break;
+
+		case CONSTANT_NameAndType:
+			nfn = NEW(forward_nameandtype);
+				
+			nfn->next = forward_nameandtypes;
+			forward_nameandtypes = nfn;
+				
+			nfn->thisindex = idx;
+
+			if (!check_classbuffer_size(cb, 2 + 2))
+				return false;
+
+			/* reference to CONSTANT_Utf8_info containing simple name */
+			nfn->name_index = suck_u2(cb);
+
+			/* reference to CONSTANT_Utf8_info containing field or method
+			   descriptor */
+			nfn->sig_index = suck_u2(cb);
+				
+			idx++;
+			break;
+
 		case CONSTANT_Fieldref:
 		case CONSTANT_Methodref:
-		case CONSTANT_InterfaceMethodref: { 
-			forward_fieldmethint *nff = DNEW(forward_fieldmethint);
-				
+		case CONSTANT_InterfaceMethodref:
+			nff = NEW(forward_fieldmethint);
+			
 			nff->next = forward_fieldmethints;
 			forward_fieldmethints = nff;
 
@@ -1691,48 +1793,7 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 
 			idx++;
 			break;
-		}
 				
-		case CONSTANT_String: {
-			forward_string *nfs = DNEW(forward_string);
-				
-			nfs->next = forward_strings;
-			forward_strings = nfs;
-				
-			nfs->thisindex = idx;
-
-			/* reference to CONSTANT_Utf8_info with string characters */
-			if (!check_classbuffer_size(cb, 2))
-				return false;
-
-			nfs->string_index = suck_u2(cb);
-				
-			idx++;
-			break;
-		}
-
-		case CONSTANT_NameAndType: {
-			forward_nameandtype *nfn = DNEW(forward_nameandtype);
-				
-			nfn->next = forward_nameandtypes;
-			forward_nameandtypes = nfn;
-				
-			nfn->thisindex = idx;
-
-			if (!check_classbuffer_size(cb, 2 + 2))
-				return false;
-
-			/* reference to CONSTANT_Utf8_info containing simple name */
-			nfn->name_index = suck_u2(cb);
-
-			/* reference to CONSTANT_Utf8_info containing field or method
-			   descriptor */
-			nfn->sig_index = suck_u2(cb);
-				
-			idx++;
-			break;
-		}
-
 		case CONSTANT_Integer: {
 			constant_integer *ci = NEW(constant_integer);
 
@@ -1786,8 +1847,11 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 			cptags[idx] = CONSTANT_Long;
 			cpinfos[idx] = cl;
 			idx += 2;
-			if (idx > cpcount)
-				panic("Long constant exceeds constant pool");
+			if (idx > cpcount) {
+				*exceptionptr =
+					new_classformaterror(c, "Invalid constant pool entry");
+				return false;
+			}
 			break;
 		}
 			
@@ -1806,8 +1870,11 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 			cptags[idx] = CONSTANT_Double;
 			cpinfos[idx] = cd;
 			idx += 2;
-			if (idx > cpcount)
-				panic("Double constant exceeds constant pool");
+			if (idx > cpcount) {
+				*exceptionptr =
+					new_classformaterror(c, "Invalid constant pool entry");
+				return false;
+			}
 			break;
 		}
 				
@@ -1840,7 +1907,9 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 		}
 										
 		default:
-			error("Unkown constant type: %d",(int) t);
+			*exceptionptr =
+				new_classformaterror(c, "Illegal constant pool type");
+			return false;
 		}  /* end switch */
 	} /* end while */
 
@@ -1863,8 +1932,8 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 			if (!class_load(tc))
 				return false;
 
-			/* link the class later, so we cannot link the currently loaded
-			   class */
+			/* link the class later, because we cannot link the class currently
+			   loading */
 			list_addfirst(&unlinkedclasses, tc);
 
 			cpinfos[forward_classes->thisindex] = tc;
@@ -1873,18 +1942,22 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 			cpinfos[forward_classes->thisindex] = class_new(name);
 		}
 
+		nfc = forward_classes;
 		forward_classes = forward_classes->next;
+		FREE(nfc, forward_class);
 	}
 
 	while (forward_strings) {
 		utf *text =
 			class_getconstant(c, forward_strings->string_index, CONSTANT_Utf8);
 
-		/* resolve utf-string */		
+		/* resolve utf-string */
 		cptags[forward_strings->thisindex] = CONSTANT_String;
 		cpinfos[forward_strings->thisindex] = text;
 		
+		nfs = forward_strings;
 		forward_strings = forward_strings->next;
+		FREE(nfs, forward_string);
 	}
 
 	while (forward_nameandtypes) {
@@ -1915,8 +1988,10 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 
 		cptags[forward_nameandtypes->thisindex] = CONSTANT_NameAndType;
 		cpinfos[forward_nameandtypes->thisindex] = cn;
-		
+
+		nfn = forward_nameandtypes;
 		forward_nameandtypes = forward_nameandtypes->next;
+		FREE(nfn, forward_nameandtype);
 	}
 
 	while (forward_fieldmethints) {
@@ -1952,10 +2027,10 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 			break;
 		}
 	
+		nff = forward_fieldmethints;
 		forward_fieldmethints = forward_fieldmethints->next;
+		FREE(nff, forward_fieldmethint);
 	}
-
-	dump_release(dumpsize);
 
 	/* everything was ok */
 
@@ -1982,8 +2057,6 @@ classinfo *class_load(classinfo *c)
 {
 	classbuffer *cb;
 	classinfo *r;
-	s8 starttime;
-	s8 stoptime;
 
 	/* enter a monitor on the class */
 
@@ -1997,8 +2070,12 @@ classinfo *class_load(classinfo *c)
 	}
 
 	/* measure time */
+
+	if (getcompilingtime)
+		compilingtime_stop();
+
 	if (getloadingtime)
-		starttime = getcputime();
+		loadingtime_start();
 
 	/* load classdata, throw exception on error */
 
@@ -2032,10 +2109,12 @@ classinfo *class_load(classinfo *c)
 	suck_stop(cb);
 
 	/* measure time */
-	if (getloadingtime) {
-		stoptime = getcputime();
-		loadingtime += (stoptime - starttime);
-	}
+
+	if (getloadingtime)
+		loadingtime_stop();
+
+	if (getcompilingtime)
+		compilingtime_start();
 
 	/* leave the monitor */
 
@@ -2048,9 +2127,9 @@ classinfo *class_load(classinfo *c)
 classinfo *class_load_intern(classbuffer *cb)
 {
 	classinfo *c;
+	classinfo *tc;
 	u4 i;
-	u4 mi, ma;
-/*  	s4 classdata_left; */
+	u4 ma, mi;
 	char msg[MAXLOGTEXT];               /* maybe we get an exception */
 
 	/* get the classbuffer's class */
@@ -2088,13 +2167,14 @@ classinfo *class_load_intern(classbuffer *cb)
 
 	if (!(ma < MAJOR_VERSION || (ma == MAJOR_VERSION && mi <= MINOR_VERSION))) {
 		*exceptionptr =
-			new_classformaterror(c,
-								 "Unsupported major.minor version %d.%d",
-								 ma, mi);
+			new_unsupportedclassversionerror(c,
+											 "Unsupported major.minor version %d.%d",
+											 ma, mi);
 
 		return NULL;
 	}
 
+	/* load the constant pool */
 	if (!class_loadcpool(cb, c))
 		return NULL;
 
@@ -2125,7 +2205,7 @@ classinfo *class_load_intern(classbuffer *cb)
 		if (c->flags & ACC_FINAL) {
 			*exceptionptr =
 				new_classformaterror(c,
-									 "Illegal class modifiers: 0x%x", c->flags);
+									 "Illegal class modifiers: 0x%X", c->flags);
 
 			return NULL;
 		}
@@ -2137,7 +2217,7 @@ classinfo *class_load_intern(classbuffer *cb)
 
 	if ((c->flags & (ACC_ABSTRACT | ACC_FINAL)) == (ACC_ABSTRACT | ACC_FINAL)) {
 		*exceptionptr =
-			new_classformaterror(c, "Illegal class modifiers: 0x%x", c->flags);
+			new_classformaterror(c, "Illegal class modifiers: 0x%X", c->flags);
 
 		return NULL;
 	}
@@ -2147,11 +2227,13 @@ classinfo *class_load_intern(classbuffer *cb)
 
 	/* this class */
 	i = suck_u2(cb);
-	if (class_getconstant(c, i, CONSTANT_Class) != c) {
+	if (!(tc = class_getconstant(c, i, CONSTANT_Class)))
+		return NULL;
+
+	if (tc != c) {
 		utf_sprint(msg, c->name);
 		sprintf(msg + strlen(msg), " (wrong name: ");
-		utf_sprint(msg + strlen(msg),
-				   ((classinfo *) class_getconstant(c, i, CONSTANT_Class))->name);
+		utf_sprint(msg + strlen(msg), tc->name);
 		sprintf(msg + strlen(msg), ")");
 
 		*exceptionptr =
@@ -2162,7 +2244,8 @@ classinfo *class_load_intern(classbuffer *cb)
 	
 	/* retrieve superclass */
 	if ((i = suck_u2(cb))) {
-		c->super = class_getconstant(c, i, CONSTANT_Class);
+		if (!(c->super = class_getconstant(c, i, CONSTANT_Class)))
+			return NULL;
 
 		/* java.lang.Object may not have a super class. */
 		if (c->name == utf_java_lang_Object) {
@@ -2192,7 +2275,6 @@ classinfo *class_load_intern(classbuffer *cb)
 
 			return NULL;
 		}
-			
 	}
 			 
 	/* retrieve interfaces */
@@ -2206,7 +2288,8 @@ classinfo *class_load_intern(classbuffer *cb)
 
 	c->interfaces = MNEW(classinfo*, c->interfacescount);
 	for (i = 0; i < c->interfacescount; i++) {
-		c->interfaces[i] = class_getconstant(c, suck_u2(cb), CONSTANT_Class);
+		if (!(c->interfaces[i] = class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
+			return NULL;
 	}
 
 	/* load fields */
@@ -2328,7 +2411,7 @@ classinfo *class_load_intern(classbuffer *cb)
 	}
 #endif
 
-	/* load variable-length attribute structures */	
+	/* load attribute structures */
 	if (!check_classbuffer_size(cb, 2))
 		return NULL;
 
@@ -2336,16 +2419,19 @@ classinfo *class_load_intern(classbuffer *cb)
 		return NULL;
 
 #if 0
-	/* XXX TWISTI is this still in the JVM spec? SUN and IBM don't complain about it */
-	
-	/* check if all data has been read */
-	classdata_left = ((cb->data + cb->size) - cb->pos - 1);
+	/* Pre java 1.5 version don't check this. This implementation is like
+	   java 1.5 do it: for class file version 45.3 we don't check it, older
+	   versions are checked.
+	 */
+	if ((ma == 45 && mi > 3) || ma > 45) {
+		/* check if all data has been read */
+		s4 classdata_left = ((cb->data + cb->size) - cb->pos - 1);
 
-	if (classdata_left > 0) {
-		/* surplus */        	
-		dolog("There are %d extra bytes at end of classfile", classdata_left);
-		/* The JVM spec disallows extra bytes. */
-		panic("Extra bytes at end of classfile");
+		if (classdata_left > 0) {
+			*exceptionptr =
+				new_classformaterror(c, "Extra bytes at the end of class file");
+			return NULL;
+		}
 	}
 #endif
 
@@ -2369,13 +2455,8 @@ static s4 class_highestinterface(classinfo *c)
 	s4 h;
 	s4 i;
 	
-	if (!(c->flags & ACC_INTERFACE)) {
-		char logtext[MAXLOGTEXT];
-	  	sprintf(logtext, "Interface-methods count requested for non-interface:  ");
-    	utf_sprint(logtext + strlen(logtext), c->name);
-    	error("%s",logtext);
-	}
-    
+    /* check for ACC_INTERFACE bit already done in class_link_intern */
+
     h = c->index;
 	for (i = 0; i < c->interfacescount; i++) {
 		s4 h2 = class_highestinterface(c->interfaces[i]);
@@ -2388,33 +2469,33 @@ static s4 class_highestinterface(classinfo *c)
 
 /* class_addinterface **********************************************************
 
-	Is needed by class_link for adding a VTBL to a class. All interfaces
-	implemented by ic are added as well.
+   Is needed by class_link for adding a VTBL to a class. All interfaces
+   implemented by ic are added as well.
 
 *******************************************************************************/
 
 static void class_addinterface(classinfo *c, classinfo *ic)
 {
 	s4     j, m;
-	s4     i     = ic->index;
-	vftbl_t *vftbl = c->vftbl;
+	s4     i   = ic->index;
+	vftbl_t *v = c->vftbl;
 
-	if (i >= vftbl->interfacetablelength)
+	if (i >= v->interfacetablelength)
 		panic ("Inernal error: interfacetable overflow");
 
-	if (vftbl->interfacetable[-i])
+	if (v->interfacetable[-i])
 		return;
 
 	if (ic->methodscount == 0) {  /* fake entry needed for subtype test */
-		vftbl->interfacevftbllength[i] = 1;
-		vftbl->interfacetable[-i] = MNEW(methodptr, 1);
-		vftbl->interfacetable[-i][0] = NULL;
+		v->interfacevftbllength[i] = 1;
+		v->interfacetable[-i] = MNEW(methodptr, 1);
+		v->interfacetable[-i][0] = NULL;
 
 	} else {
-		vftbl->interfacevftbllength[i] = ic->methodscount;
-		vftbl->interfacetable[-i] = MNEW(methodptr, ic->methodscount);
+		v->interfacevftbllength[i] = ic->methodscount;
+		v->interfacetable[-i] = MNEW(methodptr, ic->methodscount);
 
-#ifdef STATISTICS
+#if defined(STATISTICS)
 		if (opt_stat)
 			count_vftbl_len += sizeof(methodptr) *
 				(ic->methodscount + (ic->methodscount == 0));
@@ -2426,8 +2507,7 @@ static void class_addinterface(classinfo *c, classinfo *ic)
 				for (m = 0; m < sc->methodscount; m++) {
 					methodinfo *mi = &(sc->methods[m]);
 					if (method_canoverwrite(mi, &(ic->methods[j]))) {
-						vftbl->interfacetable[-i][j] =
-							vftbl->table[mi->vftblindex];
+						v->interfacetable[-i][j] = v->table[mi->vftblindex];
 						goto foundmethod;
 					}
 				}
@@ -2557,7 +2637,6 @@ static arraydescriptor *class_link_array(classinfo *c)
 	switch (c->name->text[1]) {
 	case '[':
 		/* c is an array of arrays. */
-/*  		comp = class_get(utf_new_intern(c->name->text + 1, namelen - 1)); */
 		comp = class_new(utf_new_intern(c->name->text + 1, namelen - 1));
 		if (!comp)
 			panic("Could not find component array class.");
@@ -2565,7 +2644,6 @@ static arraydescriptor *class_link_array(classinfo *c)
 
 	case 'L':
 		/* c is an array of objects. */
-/*  		comp = class_get(utf_new_intern(c->name->text + 2, namelen - 3)); */
 		comp = class_new(utf_new_intern(c->name->text + 2, namelen - 3));
 		if (!comp)
 			panic("Could not find component class.");
@@ -2575,8 +2653,11 @@ static arraydescriptor *class_link_array(classinfo *c)
 	/* If the component type has not been linked, link it now */
 	if (comp && !comp->linked) {
 		if (!comp->loaded)
-			class_load(comp);
-  		class_link(comp);
+			if (!class_load(comp))
+				return NULL;
+
+		if (!class_link(comp))
+			return NULL;
 	}
 
 	/* Allocate the arraydescriptor */
@@ -2684,8 +2765,6 @@ static classinfo *class_link_intern(classinfo *c);
 classinfo *class_link(classinfo *c)
 {
 	classinfo *r;
-	s8 starttime;
-	s8 stoptime;
 
 	/* enter a monitor on the class */
 
@@ -2699,8 +2778,12 @@ classinfo *class_link(classinfo *c)
 	}
 
 	/* measure time */
+
+	if (getcompilingtime)
+		compilingtime_stop();
+
 	if (getloadingtime)
-		starttime = getcputime();
+		loadingtime_start();
 
 	/* call the internal function */
 	r = class_link_intern(c);
@@ -2710,10 +2793,12 @@ classinfo *class_link(classinfo *c)
 		c->linked = false;
 
 	/* measure time */
-	if (getloadingtime) {
-		stoptime = getcputime();
-		loadingtime += (stoptime - starttime);
-	}
+
+	if (getloadingtime)
+		loadingtime_stop();
+
+	if (getcompilingtime)
+		compilingtime_start();
 
 	/* leave the monitor */
 
@@ -2728,15 +2813,20 @@ static classinfo *class_link_intern(classinfo *c)
 	s4 supervftbllength;          /* vftbllegnth of super class               */
 	s4 vftbllength;               /* vftbllength of current class             */
 	s4 interfacetablelength;      /* interface table length                   */
-	classinfo *super = c->super;  /* super class                              */
-	classinfo *ic, *c2;           /* intermediate class variables             */
+	classinfo *super;             /* super class                              */
+	classinfo *tc;                /* temporary class variable                 */
 	vftbl_t *v;                   /* vftbl of current class                   */
 	s4 i;                         /* interface/method/field counter           */
-	arraydescriptor *arraydesc = NULL;  /* descriptor for array classes       */
+	arraydescriptor *arraydesc;   /* descriptor for array classes             */
 
 	/* maybe the class is already linked */
 	if (c->linked)
 		return c;
+
+	/* maybe the class is not loaded */
+	if (!c->loaded)
+		if (!class_load(c))
+			return NULL;
 
 	if (linkverbose)
 		log_message_class("Linking class: ", c);
@@ -2744,38 +2834,40 @@ static classinfo *class_link_intern(classinfo *c)
 	/* ok, this class is somewhat linked */
 	c->linked = true;
 
+	arraydesc = NULL;
+
 	/* check interfaces */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		ic = c->interfaces[i];
+		tc = c->interfaces[i];
 
 		/* detect circularity */
-		if (ic == c) {
+		if (tc == c) {
 			*exceptionptr =
 				new_exception_utfmessage(string_java_lang_ClassCircularityError,
 										 c->name);
-
 			return NULL;
 		}
 
-		if (!ic->loaded)
-  			if (!class_load(ic))
+		if (!tc->loaded)
+  			if (!class_load(tc))
 				return NULL;
 
-		if (!ic->linked)
-			if (!class_link(ic))
-				return NULL;
-
-		if (!(ic->flags & ACC_INTERFACE)) {
-			dolog("Specified interface is not declared as interface:");
-			log_utf(ic->name);
-			dolog("in");
-			log_utf(c->name);
-			panic("Specified interface is not declared as interface");
+		if (!(tc->flags & ACC_INTERFACE)) {
+			*exceptionptr =
+				new_exception_message(string_java_lang_IncompatibleClassChangeError,
+									  "Implementing class");
+			return NULL;
 		}
+
+		if (!tc->linked)
+			if (!class_link(tc))
+				return NULL;
 	}
 	
-	/*  check super class */
+	/* check super class */
+
+	super = c->super;
 
 	if (super == NULL) {          /* class java.lang.Object */
 		c->index = 0;
@@ -2793,7 +2885,6 @@ static classinfo *class_link_intern(classinfo *c)
 			*exceptionptr =
 				new_exception_utfmessage(string_java_lang_ClassCircularityError,
 										 c->name);
-
 			return NULL;
 		}
 
@@ -2801,25 +2892,28 @@ static classinfo *class_link_intern(classinfo *c)
 			if (!class_load(super))
 				return NULL;
 
+		if (super->flags & ACC_INTERFACE) {
+			// java.lang.IncompatibleClassChangeError: class a has interface java.lang.Cloneable as super class
+			panic("Interface specified as super class");
+		}
+
+		/* Don't allow extending final classes */
+		if (super->flags & ACC_FINAL) {
+			*exceptionptr =
+				new_exception_message(string_java_lang_VerifyError,
+									  "Cannot inherit from final class");
+			return NULL;
+		}
+		
 		if (!super->linked)
 			if (!class_link(super))
 				return NULL;
 
-		if (super->flags & ACC_INTERFACE)
-			panic("Interface specified as super class");
-
 		/* handle array classes */
-		/* The component class must have been linked already. */
-		if (c->name->text[0] == '[') {
-			if ((arraydesc = class_link_array(c)) == NULL) {
-  				panic("class_link: class_link_array");
-			}
-		}
+		if (c->name->text[0] == '[')
+			if (!(arraydesc = class_link_array(c)))
+  				return NULL;
 
-		/* Don't allow extending final classes */
-		if (super->flags & ACC_FINAL)
-			panic("Trying to extend final class");
-		
 		if (c->flags & ACC_INTERFACE)
 			c->index = interfaceindex++;
 		else
@@ -2838,26 +2932,26 @@ static classinfo *class_link_intern(classinfo *c)
 		methodinfo *m = &(c->methods[i]);
 			
 		if (!(m->flags & ACC_STATIC)) { /* is instance method */
-			classinfo *sc = super;
-			while (sc) {
+			tc = super;
+
+			while (tc) {
 				s4 j;
-				for (j = 0; j < sc->methodscount; j++) {
-					if (method_canoverwrite(m, &(sc->methods[j]))) {
-						if ((sc->methods[j].flags & ACC_PRIVATE) != 0)
+				for (j = 0; j < tc->methodscount; j++) {
+					if (method_canoverwrite(m, &(tc->methods[j]))) {
+						if (tc->methods[j].flags & ACC_PRIVATE)
 							goto notfoundvftblindex;
 
-						if ((sc->methods[j].flags & ACC_FINAL) != 0) {
-							log_utf(c->name);
-							log_utf(sc->name);
-							log_utf(sc->methods[j].name);
-							log_utf(sc->methods[j].descriptor);
-							panic("Trying to overwrite final method");
+						if (tc->methods[j].flags & ACC_FINAL) {
+							// class a overrides final method .
+							*exceptionptr =
+								new_exception(string_java_lang_VerifyError);
+							return NULL;
 						}
-						m->vftblindex = sc->methods[j].vftblindex;
+						m->vftblindex = tc->methods[j].vftblindex;
 						goto foundvftblindex;
 					}
 				}
-				sc = sc->super;
+				tc = tc->super;
 			}
 		notfoundvftblindex:
 			m->vftblindex = (vftbllength++);
@@ -2875,14 +2969,14 @@ static classinfo *class_link_intern(classinfo *c)
 	/* compute interfacetable length */
 
 	interfacetablelength = 0;
-	c2 = c;
-	while (c2) {
-		for (i = 0; i < c2->interfacescount; i++) {
-			s4 h = class_highestinterface(c2->interfaces[i]) + 1;
+	tc = c;
+	while (tc) {
+		for (i = 0; i < tc->interfacescount; i++) {
+			s4 h = class_highestinterface(tc->interfaces[i]) + 1;
 			if (h > interfacetablelength)
 				interfacetablelength = h;
 		}
-		c2 = c2->super;
+		tc = tc->super;
 	}
 
 	/* allocate virtual function table */
@@ -2893,11 +2987,10 @@ static classinfo *class_link_intern(classinfo *c)
 	v = (vftbl_t*) (((methodptr*) v) + (interfacetablelength - 1) *
 				  (interfacetablelength > 1));
 	c->header.vftbl = c->vftbl = v;
-/*  	utf_display_classname(c->name);printf(", c->header.vftbl=%p\n", c->header.vftbl); */
 	v->class = c;
 	v->vftbllength = vftbllength;
 	v->interfacetablelength = interfacetablelength;
-  	v->arraydesc = arraydesc;
+	v->arraydesc = arraydesc;
 
 	/* store interface index in vftbl */
 	if (c->flags & ACC_INTERFACE)
@@ -2947,25 +3040,20 @@ static classinfo *class_link_intern(classinfo *c)
 	
 	/* add interfaces */
 	
-	for (c2 = c; c2 != NULL; c2 = c2->super)
-		for (i = 0; i < c2->interfacescount; i++) {
-			class_addinterface(c, c2->interfaces[i]);
+	for (tc = c; tc != NULL; tc = tc->super) {
+		for (i = 0; i < tc->interfacescount; i++) {
+			class_addinterface(c, tc->interfaces[i]);
 		}
+	}
 
 	/* add finalizer method (not for java.lang.Object) */
 
-	if (super != NULL) {
+	if (super) {
 		methodinfo *fi;
-		static utf *finame = NULL;
-		static utf *fidesc = NULL;
 
-		if (finame == NULL)
-			finame = utf_finalize;
-		if (fidesc == NULL)
-			fidesc = utf_fidesc;
+		fi = class_findmethod(c, utf_finalize, utf_fidesc);
 
-		fi = class_findmethod(c, finame, fidesc);
-		if (fi != NULL) {
+		if (fi) {
 			if (!(fi->flags & ACC_STATIC)) {
 				c->finalizer = fi;
 			}
@@ -3606,10 +3694,12 @@ static classinfo *class_init_intern(classinfo *c)
 	int b;
 #endif
 
+	/* maybe the class is not already loaded */
 	if (!c->loaded)
 		if (!class_load(c))
 			return NULL;
 
+	/* maybe the class is not already linked */
 	if (!c->linked)
 		if (!class_link(c))
 			return NULL;
@@ -3620,15 +3710,8 @@ static classinfo *class_init_intern(classinfo *c)
 #endif
 
 	/* initialize super class */
+
 	if (c->super) {
-		if (!c->super->loaded)
-			if (!class_load(c->super))
-				return NULL;
-
-		if (!c->super->linked)
-			if (!class_link(c->super))
-				return NULL;
-
 		if (!c->super->initialized) {
 			if (initverbose) {
 				char logtext[MAXLOGTEXT];
@@ -3645,15 +3728,8 @@ static classinfo *class_init_intern(classinfo *c)
 	}
 
 	/* initialize interface classes */
+
 	for (i = 0; i < c->interfacescount; i++) {
-		if (!c->interfaces[i]->loaded)
-			if (!class_load(c->interfaces[i]))
-				return NULL;
-
-		if (!c->interfaces[i]->linked)
-			if (!class_link(c->interfaces[i]))
-				return NULL;
-
 		if (!c->interfaces[i]->initialized) {
 			if (initverbose) {
 				char logtext[MAXLOGTEXT];
@@ -3683,8 +3759,9 @@ static classinfo *class_init_intern(classinfo *c)
 		return c;
 	}
 
-	if (!(m->flags & ACC_STATIC))
-		panic("Class initializer is not static!");
+	/* Sun's and IBM's JVM don't care about the static flag */
+/*  	if (!(m->flags & ACC_STATIC)) { */
+/*  		panic("Class initializer is not static!"); */
 
 	if (initverbose)
 		log_message_class("Starting static class initializer for class: ", c);
@@ -3704,13 +3781,13 @@ static classinfo *class_init_intern(classinfo *c)
 
 	/* we have an exception or error */
 	if (*exceptionptr) {
+		/* class is NOT initialized */
+		c->initialized = false;
+
 		/* is this an exception, than wrap it */
 		if (builtin_instanceof(*exceptionptr, class_java_lang_Exception)) {
 			java_objectheader *xptr;
 			java_objectheader *cause;
-
-			/* class is NOT initialized */
-			c->initialized = false;
 
 			/* get the cause */
 			cause = *exceptionptr;
@@ -4000,9 +4077,9 @@ void class_showmethods (classinfo *c)
 
 *******************************************************************************/
 
-void create_primitive_classes()
+static bool create_primitive_classes()
 {  
-	int i;
+	s4 i;
 
 	for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
 		/* create primitive class */
@@ -4013,7 +4090,8 @@ void create_primitive_classes()
 		
 		/* prevent loader from loading primitive class */
 		c->loaded = true;
-		class_link(c);
+		if (!class_link(c))
+			return false;
 
 		primitivetype_table[i].class_primitive = c;
 
@@ -4029,10 +4107,13 @@ void create_primitive_classes()
 			primitivetype_table[i].arrayclass = c;
 			c->loaded = true;
 			if (!c->linked)
-				class_link(c);
+				if (!class_link(c))
+					return false;
 			primitivetype_table[i].arrayvftbl = c->vftbl;
 		}
 	}
+
+	return true;
 }
 
 
@@ -4292,23 +4373,20 @@ void loader_init(u1 *stackbottom)
 	/* These classes have to be created now because the classinfo
 	 * pointers are used in the loading code.
 	 */
-	class_java_lang_Object =
-		class_new_intern(utf_java_lang_Object);
+	class_java_lang_Object = class_new_intern(utf_java_lang_Object);
 	class_load(class_java_lang_Object);
 	class_link(class_java_lang_Object);
 
-	class_java_lang_String =
-		class_new_intern(utf_new_char("java/lang/String"));
+	class_java_lang_String = class_new(utf_new_char("java/lang/String"));
 	class_load(class_java_lang_String);
 	class_link(class_java_lang_String);
 
-	class_java_lang_Cloneable =
-		class_new_intern(utf_new_char("java/lang/Cloneable"));
+	class_java_lang_Cloneable = class_new(utf_new_char("java/lang/Cloneable"));
 	class_load(class_java_lang_Cloneable);
 	class_link(class_java_lang_Cloneable);
 
 	class_java_io_Serializable =
-		class_new_intern(utf_new_char("java/io/Serializable"));
+		class_new(utf_new_char("java/io/Serializable"));
 	class_load(class_java_io_Serializable);
 	class_link(class_java_io_Serializable);
 
@@ -4328,21 +4406,13 @@ void loader_init(u1 *stackbottom)
 }
 
 
-static void loader_compute_class_values(classinfo *c)
-{
-	classinfo *subs;
+/* loader_compute_subclasses ***************************************************
 
-	c->vftbl->baseval = ++classvalue;
+   XXX
 
-	subs = c->sub;
-	while (subs != NULL) {
-		loader_compute_class_values(subs);
-		subs = subs->nextsub;
-	}
+*******************************************************************************/
 
-	c->vftbl->diffval = classvalue - c->vftbl->baseval;
-}
-
+static void loader_compute_class_values(classinfo *c);
 
 void loader_compute_subclasses(classinfo *c)
 {
@@ -4367,6 +4437,7 @@ void loader_compute_subclasses(classinfo *c)
 	classvalue = 0;
 
 	/* this is the java.lang.Object special case */
+
 	if (!class_java_lang_Object) {
 		loader_compute_class_values(c);
 
@@ -4381,6 +4452,28 @@ void loader_compute_subclasses(classinfo *c)
 	intsRestore();
 #endif
 #endif
+}
+
+
+/* loader_compute_class_values *************************************************
+
+   XXX
+
+*******************************************************************************/
+
+static void loader_compute_class_values(classinfo *c)
+{
+	classinfo *subs;
+
+	c->vftbl->baseval = ++classvalue;
+
+	subs = c->sub;
+	while (subs) {
+		loader_compute_class_values(subs);
+		subs = subs->nextsub;
+	}
+
+	c->vftbl->diffval = classvalue - c->vftbl->baseval;
 }
 
 
