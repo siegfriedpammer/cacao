@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2220 2005-04-05 15:49:13Z christian $
+   $Id: codegen.inc 2233 2005-04-06 12:04:07Z twisti $
 
 */
 
@@ -103,17 +103,21 @@ void codegen_init()
 
 		methodtree = avl_create(methodtree_comparator, NULL, NULL);
 
+		/* insert asm_calljavafunction */
+
 		mte = NEW(methodtree_element);
 
 		mte->startpc = (functionptr) asm_calljavafunction;
-		mte->endpc = (functionptr) ((long) asm_calljavafunction2 - 1);
+		mte->endpc = (functionptr) ((ptrint) asm_calljavafunction2 - 1);
 
 		avl_insert(methodtree, mte);
+
+		/* insert asm_calljavafunction2 */
 
 		mte = NEW(methodtree_element);
 
 		mte->startpc = (functionptr) asm_calljavafunction2;
-		mte->endpc = (functionptr) ((long) asm_call_jit_compiler - 1);
+		mte->endpc = (functionptr) ((ptrint) asm_call_jit_compiler - 1);
 
 		avl_insert(methodtree, mte);
 	}
@@ -145,7 +149,7 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 	cd->xcastrefs = NULL;
 	cd->xdivrefs = NULL;
 	cd->xexceptionrefs = NULL;
-	cd->clinitrefs = NULL;
+	cd->patchrefs = NULL;
 
 	cd->linenumberreferences = NULL;
 	cd->linenumbertablesizepos = 0;
@@ -533,20 +537,22 @@ static void codegen_addxdivrefs(codegendata *cd, void *branchptr)
 #endif
 
 
-static void codegen_addclinitref(codegendata *cd,
-								 void *branchptr,
-								 classinfo *class)
+static void codegen_addpatchref(codegendata *cd,
+								voidptr branchptr,
+								functionptr asmwrapper,
+								voidptr ref)
 {
-	s4 branchpos;
-	clinitref *cr;
+	patchref *pr;
+	s4        branchpos;
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
-	cr = DNEW(clinitref);
-	cr->branchpos = branchpos;
-	cr->class = class;
-	cr->next = cd->clinitrefs;
-	cd->clinitrefs = cr;
+	pr = DNEW(patchref);
+	pr->branchpos = branchpos;
+	pr->asmwrapper = asmwrapper;
+	pr->ref = ref;
+	pr->next = cd->patchrefs;
+	cd->patchrefs = pr;
 }
 
 
@@ -789,18 +795,21 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 #endif
 
 #if defined(__I386__) || defined(__X86_64__)
+	/* add method into methodtree to find the entrypoint */
+
+	codegen_insertmethod(m->entrypoint,
+						 (functionptr) ((ptrint) m->entrypoint + mcodelen));
+#endif
+
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__)
 	{
 		dataref *dr;
 
-		/* add method into methodtree to find the entrypoint */
-		codegen_insertmethod(m->entrypoint,
-							 (functionptr) ((long) m->entrypoint + mcodelen));
-
 		/* data segment references resolving */
+
 		dr = cd->datareferences;
 		while (dr != NULL) {
-			*((functionptr *) ((long) epoint + (long) dr->pos - POINTERSIZE)) =
-				epoint;
+			*((functionptr *) ((ptrint) epoint + (ptrint) dr->pos - POINTERSIZE)) = epoint;
 			dr = dr->next;
 		}
 	}
@@ -833,9 +842,9 @@ void dseg_display(methodinfo *m, codegendata *cd)
 	s4ptr = (s4 *) (long) m->mcode;
 
 	printf("  --- dump of datasegment\n");
-	for (i = cd->dseglen; i > 0 ; i -= 4) {
-		printf("-%6x: %8x\n", i, (s4) (*s4ptr++));
-	}
+	for (i = cd->dseglen; i > 0 ; i -= 4)
+		printf("-%6x (%6d): %8x\n", i, i, (s4) (*s4ptr++));
+
 	printf("  --- begin of data segment: %p\n", (void *) s4ptr);
 }
 
