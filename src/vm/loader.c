@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1896 2005-02-03 16:15:35Z motse $
+   $Id: loader.c 1898 2005-02-07 17:21:30Z twisti $
 
 */
 
@@ -375,7 +375,6 @@ void suck_init(char *classpath)
 					cpi->next = NULL;
 					cpi->pd = NULL; /* ProtectionDomain not set yet */
 					cpi->path = filename;
-					cpi->lock = NULL; /* we'll be initialized  later */
 				}
 
 #else
@@ -402,12 +401,10 @@ void suck_init(char *classpath)
 			/* attach current classpath entry */
 
 			if (cpi) {
-				if (!classpath_entries) {
+				if (!classpath_entries)
 					classpath_entries = cpi;
-
-				} else {
+				else
 					lastcpi->next = cpi;
-				}
 
 				lastcpi = cpi;
 			}
@@ -491,8 +488,13 @@ classbuffer *suck_start(classinfo *c)
 	for (cpi = classpath_entries; cpi != NULL && cb == NULL; cpi = cpi->next) {
 #if defined(USE_ZLIB)
 		if (cpi->type == CLASSPATH_ARCHIVE) {
-			if (cpi->lock != NULL) 
- 				builtin_monitorenter(cpi->lock);
+
+#if defined(USE_THREADS)
+			/* enter a monitor on zip/jar archives */
+
+			builtin_monitorenter((java_objectheader *) cpi);
+#endif
+
 			if (cacao_locate(cpi->uf, c->name) == UNZ_OK) {
 				unz_file_info file_info;
 
@@ -504,9 +506,9 @@ classbuffer *suck_start(classinfo *c)
 						cb->size = file_info.uncompressed_size;
 						cb->data = MNEW(u1, cb->size);
 						cb->pos = cb->data - 1;
-						/* we need this later in use_class_as_object to set a correct 
-                            ProtectionDomain and CodeSource */
- 						c->pd = (struct java_security_ProtectionDomain*) cpi; 
+						/* We need this later in use_class_as_object to set a */
+						/* correct ProtectionDomain and CodeSource.           */
+ 						c->pd = (struct java_security_ProtectionDomain *) cpi; 
 
 						len = unzReadCurrentFile(cpi->uf, cb->data, cb->size);
 
@@ -527,8 +529,13 @@ classbuffer *suck_start(classinfo *c)
 				}
 			}
 			unzCloseCurrentFile(cpi->uf);
-			if (cpi->lock != NULL) 
-				builtin_monitorexit(cpi->lock);
+
+#if defined(USE_THREADS)
+			/* leave the monitor */
+
+			builtin_monitorexit((java_objectheader *) cpi);
+#endif
+
 		} else {
 #endif /* USE_ZLIB */
 			
@@ -545,9 +552,9 @@ classbuffer *suck_start(classinfo *c)
 					cb->size = buffer.st_size;
 					cb->data = MNEW(u1, cb->size);
 					cb->pos = cb->data - 1;
-					/* we need this later in use_class_as_object to set a correct 
-                       ProtectionDomain and CodeSource */
- 					c->pd = (struct java_security_ProtectionDomain*)cpi; 
+					/* We need this later in use_class_as_object to set a     */
+					/* correct ProtectionDomain and CodeSource.               */
+ 					c->pd = (struct java_security_ProtectionDomain *) cpi; 
 
 					/* read class data */
 					len = fread(cb->data, 1, cb->size, classfile);
@@ -4464,10 +4471,19 @@ void loader_init(u1 *stackbottom)
 	utf_fillInStackTrace_name = utf_new_char("fillInStackTrace");
 	utf_fillInStackTrace_desc = utf_new_char("()Ljava/lang/Throwable;");
 
-	/* create some important classes */
-	/* These classes have to be created now because the classinfo
-	 * pointers are used in the loading code.
-	 */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	/* Initialize the monitor pointer for zip/jar file locking.               */
+
+	for (cpi = classpath_entries; cpi != NULL; cpi = cpi->next) {
+		if (cpi->type == CLASSPATH_ARCHIVE) 
+			initObjectLock(&cpi->header);
+	}
+#endif
+
+	/* Create some important classes. These classes have to be created now    */
+	/* because the classinfo pointers are used in the loading code.           */
+
 	class_java_lang_Object = class_new_intern(utf_java_lang_Object);
 	class_load(class_java_lang_Object);
 	class_link(class_java_lang_Object);
@@ -4494,11 +4510,6 @@ void loader_init(u1 *stackbottom)
 	/* correct vftbl-entries (retarded loading of class java/lang/String) */
 	stringtable_update();
 
-   /* init cpi-locks */
-   	for (cpi = classpath_entries; cpi != NULL; cpi = cpi->next) {
-  		if (cpi->type == CLASSPATH_ARCHIVE) 
-		  cpi->lock = builtin_new(class_java_lang_Object);
-   	}
 #if defined(USE_THREADS)
 	if (stackbottom != 0)
 		initLocks();

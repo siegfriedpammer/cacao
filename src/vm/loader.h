@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1888 2005-01-27 21:04:09Z motse $
+   $Id: loader.h 1898 2005-02-07 17:21:30Z twisti $
 */
 
 
@@ -59,14 +59,18 @@ typedef struct classbuffer {
 typedef struct classpath_info classpath_info;
 
 struct classpath_info {
-	s4              type;
-	char           *path;
-	s4              pathlen;
-	struct java_security_ProtectionDomain* pd;
+#if defined(USE_THREADS)
+	/* Required for monitor locking on zip/jar files. */
+	java_objectheader  header;
+#endif
+	s4                 type;
+	char              *path;
+	s4                 pathlen;
+	struct java_security_ProtectionDomain *pd;
 #if defined(USE_ZLIB)
-	unzFile         uf;
+	unzFile            uf;
 #endif	
-	classpath_info *next;
+	classpath_info    *next;
 };
 
 
