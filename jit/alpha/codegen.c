@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1468 2004-11-08 13:29:58Z twisti $
+   $Id: codegen.c 1507 2004-11-14 17:02:15Z jowenn $
 
 */
 
@@ -3461,6 +3461,9 @@ gen_method: {
 			store_reg_to_var_int(iptr->dst, s1);
 			break;
 
+                case ICMD_INLINE_START:
+                case ICMD_INLINE_END:
+                        break;
 
 		default: error ("Unknown pseudo command: %d", iptr->opc);
 	
