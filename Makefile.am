@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 115 1999-01-20 01:52:45Z phil $
+# $Id: Makefile.am 117 1999-01-20 02:13:50Z phil $
 
 MAINTAINERCLEANFILES = Makefile.in configure
 SUBDIRS = toolbox mm alpha jit nat comp threads mips
@@ -18,7 +18,7 @@ bin_PROGRAMS = cacao
 noinst_PROGRAMS = cacaoh
 man_MANS = doc/cacao.1
 
-INCLUDES=-I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit
+INCLUDES=-I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@
 
 cacao_SOURCES = \
 	asmpart.h \
@@ -83,8 +83,9 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 
 @SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/asmpart.c @SYSDEP_DIR@/offsets.h
 	rm -f @SYSDEP_DIR@/asmpart.s
-	@CPP@ $(top_srcdir)/@SYSDEP_DIR@/asmpart.c > @SYSDEP_DIR@/asmpart.s
-	@CC@ -c -o @SYSDEP_DIR@/asmpart.o @SYSDEP_DIR@/asmpart.s
+	@CPP@ $(INCLUDES) $(top_srcdir)/@SYSDEP_DIR@/asmpart.c \
+			> @SYSDEP_DIR@/asmpart.s
+	@CC@ $(INCLUDES) -c -o @SYSDEP_DIR@/asmpart.o @SYSDEP_DIR@/asmpart.s
 	rm -f asmpart.s
 
 

@@ -10,7 +10,7 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-# $Id: Makefile.in 115 1999-01-20 01:52:45Z phil $
+# $Id: Makefile.in 117 1999-01-20 02:13:50Z phil $
 
 
 SHELL = @SHELL@
@@ -84,7 +84,7 @@ bin_PROGRAMS = cacao
 noinst_PROGRAMS = cacaoh
 man_MANS = doc/cacao.1
 
-INCLUDES = -I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit
+INCLUDES = -I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@
 
 cacao_SOURCES =  	asmpart.h 	builtin.c 	builtin.h 	callargs.h 	compiler.c 	compiler.h 	global.h 	jit.c 	jit.h 	loader.c 	loader.h 	main.c 	native.c 	native.h 	tables.c 	tables.h
 
@@ -549,8 +549,9 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 
 @SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/asmpart.c @SYSDEP_DIR@/offsets.h
 	rm -f @SYSDEP_DIR@/asmpart.s
-	@CPP@ $(top_srcdir)/@SYSDEP_DIR@/asmpart.c > @SYSDEP_DIR@/asmpart.s
-	@CC@ -c -o @SYSDEP_DIR@/asmpart.o @SYSDEP_DIR@/asmpart.s
+	@CPP@ $(INCLUDES) $(top_srcdir)/@SYSDEP_DIR@/asmpart.c \
+			> @SYSDEP_DIR@/asmpart.s
+	@CC@ $(INCLUDES) -c -o @SYSDEP_DIR@/asmpart.o @SYSDEP_DIR@/asmpart.s
 	rm -f asmpart.s
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
