@@ -11,13 +11,14 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: jit.c 488 2003-10-20 17:30:24Z twisti $
+	Last Change: $Id: jit.c 493 2003-10-20 18:22:24Z twisti $
 
 *******************************************************************************/
 
+#include "global.h"    /* we define _GNU_SOURCE there */
+
 #include <signal.h>
 
-#include "global.h"
 #include "tables.h"
 #include "loader.h"
 #include "jit.h"
