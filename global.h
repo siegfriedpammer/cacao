@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 719 2003-12-08 14:26:05Z edwin $
+   $Id: global.h 721 2003-12-08 15:46:56Z edwin $
 
 */
 
@@ -815,10 +815,11 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
  * CAUTION: This macro does not check for an unexpected end of the
  * descriptor.
  */
-#define SKIP_FIELDDESCRIPTOR(utf_ptr)                                           \
-            { while (*(utf_ptr)=='[') (utf_ptr)++;                      \
-              if (*(utf_ptr)++=='L')                                            \
-                  while(*(utf_ptr)++ != ';') /* skip */; }
+#define SKIP_FIELDDESCRIPTOR(utf_ptr)							\
+	do { while (*(utf_ptr)=='[') (utf_ptr)++;					\
+		if (*(utf_ptr)++=='L')									\
+			while(*(utf_ptr)++ != ';') /* skip */; } while(0)
+
 /* Input:
  *     utf_ptr....points to first char of descriptor
  *     end_ptr....points to first char after the end of the string
@@ -827,15 +828,15 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
  *     utf_ptr....points to first char after the descriptor
  *     errorflag..set to true if the string ended unexpectedly
  */
-#define SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr,end_ptr,errorflag)                                                    \
-            { while ((utf_ptr) != (end_ptr) && *(utf_ptr)=='[') (utf_ptr)++;                    \
-              if ((utf_ptr) == (end_ptr))                                                        \
-                  (errorflag) = true;                                                            \
-              else                                                                                   \
-                      if (*(utf_ptr)++=='L') {                                                        \
-                      while((utf_ptr) != (end_ptr) && *(utf_ptr)++ != ';') /* skip */;  \
-                      if ((utf_ptr)[-1] != ';')                                          \
-                          (errorflag) = true; }}
+#define SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr,end_ptr,errorflag)			\
+	do { while ((utf_ptr) != (end_ptr) && *(utf_ptr)=='[') (utf_ptr)++;	\
+		if ((utf_ptr) == (end_ptr))										\
+			(errorflag) = true;											\
+		else															\
+			if (*(utf_ptr)++=='L') {									\
+				while((utf_ptr) != (end_ptr) && *(utf_ptr)++ != ';') /* skip */; \
+				if ((utf_ptr)[-1] != ';')								\
+					(errorflag) = true; }} while(0)
 
 #endif /* _GLOBAL_H */
 
