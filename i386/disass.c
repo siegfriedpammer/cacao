@@ -76,7 +76,7 @@ static void disassinstr(int c, int pos)
 		dis_initialized = 1;
 	}
 
-	printf("%08x:   ", code);
+	printf("0x%08x:   ", code);
 	mylen = 0;
 	seqlen = print_insn_i386((bfd_vma) code, &info);
 	{
