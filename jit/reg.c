@@ -36,6 +36,10 @@ static int *freesavintregs;         /* free saved integer registers           */
 static int *freetmpfltregs;         /* free scratch float registers           */
 static int *freesavfltregs;         /* free saved float registers             */
 
+#ifdef USETWOREGS
+static int *secondregs;             /* used for longs in 2 32 bit registers   */
+#endif
+
 static int *freemem;                /* free scratch memory                    */
 static int memuse;                  /* used memory count                      */
 static int ifmemuse;                /* interface used memory count            */
@@ -106,6 +110,9 @@ static void reg_init()
 		savintregs = MNEW (int, savintregcnt);
 		freetmpintregs = MNEW (int, tmpintregcnt);
 		freesavintregs = MNEW (int, savintregcnt);
+#ifdef USETWOREGS
+		secondregs = MNEW (int, intregsnum);
+#endif
 
 		intreg_argnum = 0;
 		tmpintreguse = 0;
@@ -123,8 +130,20 @@ static void reg_init()
 				              break;
 				}
 			}
-					
-		
+
+#ifdef USETWOREGS
+		for (n = 1; n < intreg_argnum; n++)
+			secondregs[argintregs[n-1]] = argintregs[n];
+		for (n = 1; n < tmpintregcnt; n++)
+			secondregs[tmpintregs[n-1]] = tmpintregs[n];
+		for (n = 1; n < savintregcnt; n++)
+			secondregs[savintregs[n-1]] = savintregs[n];
+		secondregs[REG_ITMP1] = REG_ITMP2;
+		secondregs[REG_ITMP3] = REG_ITMP2;
+		secondregs[REG_RESULT] = REG_RESULT+1;
+		secondregs[argintregs[intreg_argnum-1]] = REG_ITMP3;
+#endif
+
 		fltreg_argnum = 0;
 		tmpfltregcnt = 0;
 		savfltregcnt = 0;
@@ -187,6 +206,10 @@ static void reg_close ()
 	if (freesavintregs) MFREE (freesavintregs, int, savintregcnt);
 	if (freetmpfltregs) MFREE (freetmpfltregs, int, tmpfltregcnt);
 	if (freesavfltregs) MFREE (freesavfltregs, int, savfltregcnt);
+
+#ifdef USETWOREGS
+	if (secondregs) MFREE (secondregs, int, intregsnum);
+#endif
 }
 
 
@@ -239,13 +262,16 @@ static void interface_regalloc ()
 	int     s, t, saved;
 	int     intalloc, fltalloc;
 	varinfo *v;
+	int		regsneeded = 0;
 	
 	/* allocate stack space for passing arguments to called methods */
 
+#ifndef SPECIALMEMUSE
 	if (arguments_num > intreg_argnum)
 		ifmemuse = arguments_num - intreg_argnum;
 	else
 		ifmemuse = 0;
+#endif
 
 	iftmpintregcnt = tmpintregcnt;
 	ifsavintregcnt = savintregcnt;
@@ -261,6 +287,9 @@ static void interface_regalloc ()
 		for (t = TYPE_INT; t <= TYPE_ADR; t++) {
 			v = &interfaces[s][t];
 			if (v->type >= 0) {
+#ifdef USETWOREGS
+						regsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
+#endif
 				if (!saved) {
 					if (IS_FLT_DBL_TYPE(t)) {
 						if (fltalloc >= 0) {
@@ -277,7 +306,8 @@ static void interface_regalloc ()
 							}
 						else {
 							v->flags |= INMEMORY;
-							v->regoff = ifmemuse++;
+							v->regoff = ifmemuse;
+							ifmemuse += regsneeded+1;
 							}
 						fltalloc = t;
 						}
@@ -295,17 +325,18 @@ static void interface_regalloc ()
 							v->flags |= interfaces[s][intalloc].flags & INMEMORY;
 							v->regoff = interfaces[s][intalloc].regoff;
 							}
-						else if (iftmpintregcnt > 0) {
-							iftmpintregcnt--;
+						else if (iftmpintregcnt > regsneeded) {
+							iftmpintregcnt -= regsneeded+1;
 							v->regoff = tmpintregs[iftmpintregcnt];
 							}
-						else if (ifsavintregcnt > 0) {
-							ifsavintregcnt--;
+						else if (ifsavintregcnt > regsneeded) {
+							ifsavintregcnt -= regsneeded+1;
 							v->regoff = savintregs[ifsavintregcnt];
 							}
 						else {
 							v->flags |= INMEMORY;
-							v->regoff = ifmemuse++;
+							v->regoff = ifmemuse;
+							ifmemuse += regsneeded+1;
 							}
 #if defined(__I386__)
 						}
@@ -325,7 +356,8 @@ static void interface_regalloc ()
 							}
 						else {
 							v->flags |= INMEMORY;
-							v->regoff = ifmemuse++;
+							v->regoff = ifmemuse;
+							ifmemuse += regsneeded+1;
 							}
 						fltalloc = t;
 						}
@@ -343,13 +375,14 @@ static void interface_regalloc ()
 							v->flags |= interfaces[s][intalloc].flags & INMEMORY;
 							v->regoff = interfaces[s][intalloc].regoff;
 							}
-						else if (ifsavintregcnt > 0) {
-							ifsavintregcnt--;
+						else if (ifsavintregcnt > regsneeded) {
+							ifsavintregcnt -= regsneeded+1;
 							v->regoff = savintregs[ifsavintregcnt];
 							}
 						else {
 							v->flags |= INMEMORY;
-							v->regoff = ifmemuse++;
+							v->regoff = ifmemuse;
+							ifmemuse += regsneeded+1;
 							}
 #if defined(__I386__)
 						}
@@ -378,40 +411,41 @@ static void interface_regalloc ()
 	
 static void local_regalloc ()
 {
-	int      s, t;
+	int      s, t, tt;
 	int      intalloc, fltalloc;
 	varinfo *v;
+	int		regsneeded = 0;
+	int typeloop[] = {TYPE_LNG,TYPE_DBL,TYPE_INT,TYPE_FLT,TYPE_ADR};
 	
 	if (isleafmethod) {
-		int arg, doublewordarg;
+		int arg, doublewordarg, fargcnt;
 #if defined(__X86_64__)
 		int iargcnt = 0;
-		int fargcnt = 0;
 #endif
-		arg = 0;
+		arg = 0, fargcnt = 0;
 		doublewordarg = 0;
 		for (s = 0; s < maxlocals; s++) {
 			intalloc = -1; fltalloc = -1;
-			for (t = TYPE_INT; t <= TYPE_ADR; t++) {
+			for (tt = 0; tt <= 4; tt++) {
+				t = typeloop[tt];
 				v = &locals[s][t];
 				if (v->type >= 0) {
+#ifdef USETWOREGS
+						regsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
+#endif
 					if (IS_FLT_DBL_TYPE(t)) {
+#ifndef CONSECUTIVE_FLOATARGS
+						fargcnt = arg;
+#endif
 						if (fltalloc >= 0) {
 							v->flags = locals[s][fltalloc].flags;
 							v->regoff = locals[s][fltalloc].regoff;
 							}
-#if defined(__X86_64__)
 						else if (!doublewordarg && (arg < mparamcount)
 						                        && (fargcnt < fltreg_argnum)) {
 							v->flags = 0;
 							v->regoff = argfltregs[fargcnt];
 							fargcnt++;
-#else
-						else if (!doublewordarg && (arg < mparamcount)
-						                        && (arg < fltreg_argnum)) {
-							v->flags = 0;
-							v->regoff = argfltregs[arg];
-#endif
 							}
 						else if (maxtmpfltreguse > 0) {
 							maxtmpfltreguse--;
@@ -425,11 +459,13 @@ static void local_regalloc ()
 							}
 						else {
 							v->flags = INMEMORY;
-							v->regoff = maxmemuse++;
+							v->regoff = maxmemuse;
+							maxmemuse += regsneeded+1;
 							}
 						fltalloc = t;
 						}
 					else {
+						int regtouse;
 #if defined(__I386__)
 						/*
 						 * for i386 put all longs in memory
@@ -450,25 +486,29 @@ static void local_regalloc ()
 							v->regoff = argintregs[iargcnt];
 							iargcnt++;
 #else
-						else if (!doublewordarg && (arg < mparamcount)
-						                        && (arg < intreg_argnum)) {
+						else if (!doublewordarg && ((regtouse = arg) < mparamcount)
+#ifdef USETWOREGS
+						                        && ((regtouse = s) < intreg_argnum - regsneeded)
+#endif
+								) {
 							v->flags = 0;
-							v->regoff = argintregs[arg];
+							v->regoff = argintregs[regtouse];
 #endif
 							}
-						else if (maxtmpintreguse > 0) {
-							maxtmpintreguse--;
+						else if (maxtmpintreguse > regsneeded) {
+							maxtmpintreguse -= regsneeded+1;
 							v->flags = 0;
 							v->regoff = tmpintregs[maxtmpintreguse];
 							}
-						else if (maxsavintreguse > 0) {
-							maxsavintreguse--;
+						else if (maxsavintreguse > regsneeded) {
+							maxsavintreguse -= regsneeded+1;
 							v->flags = 0;
 							v->regoff = savintregs[maxsavintreguse];
 							}
 						else {
 							v->flags = INMEMORY;
-							v->regoff = maxmemuse++;
+							v->regoff = maxmemuse;
+							maxmemuse += regsneeded+1;
 							}
 #if defined(__I386__)
 						}
@@ -492,9 +532,13 @@ static void local_regalloc ()
 		}
 	for (s = 0; s < maxlocals; s++) {
 		intalloc = -1; fltalloc = -1;
-		for (t=TYPE_INT; t<=TYPE_ADR; t++) {
+		for (tt=0; tt<=4; tt++) {
+			t = typeloop[tt];
 			v = &locals[s][t];
 			if (v->type >= 0) {
+#ifdef USETWOREGS
+						regsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
+#endif
 				if (IS_FLT_DBL_TYPE(t)) {
 					if (fltalloc >= 0) {
 						v->flags = locals[s][fltalloc].flags;
@@ -507,7 +551,8 @@ static void local_regalloc ()
 						}
 					else {
 						v->flags = INMEMORY;
-						v->regoff = maxmemuse++;
+						v->regoff = maxmemuse;
+						maxmemuse += regsneeded+1;
 						}
 					fltalloc = t;
 					}
@@ -525,14 +570,15 @@ static void local_regalloc ()
 						v->flags = locals[s][intalloc].flags;
 						v->regoff = locals[s][intalloc].regoff;
 						}
-					else if (maxsavintreguse > 0) {
-						maxsavintreguse--;
+					else if (maxsavintreguse > regsneeded) {
+						maxsavintreguse -= regsneeded+1;
 						v->flags = 0;
 						v->regoff = savintregs[maxsavintreguse];
 						}
 					else {
 						v->flags = INMEMORY;
-						v->regoff = maxmemuse++;
+						v->regoff = maxmemuse;
+						maxmemuse += regsneeded+1;
 						}
 #if defined(__I386__)
 					}
@@ -565,7 +611,17 @@ static void reg_init_temp()
 
 static void reg_new_temp_func(stackptr s)
 {
-if (s->flags & SAVEDVAR) {
+	int		regsneeded = 0;
+/* Try to allocate a saved register if there is no temporary one available.   */
+/* This is what happens during the second run.                                */
+	int tryagain = (s->flags & SAVEDVAR) ? 1 : 2;
+#ifdef USETWOREGS
+						regsneeded = (IS_2_WORD_TYPE(s->type)) ? 1 : 0;
+#endif
+						for(; tryagain; --tryagain) {
+if (tryagain == 1) {
+	if (!(s->flags & SAVEDVAR))
+		s->flags |= SAVEDTMP;
 	if (IS_FLT_DBL_TYPE(s->type)) {
 		if (freesavflttop > 0) {
 			freesavflttop--;
@@ -587,13 +643,13 @@ if (s->flags & SAVEDVAR) {
 		 */
         if (!IS_2_WORD_TYPE(s->type)) {
 #endif
-		if (freesavinttop > 0) {
-			freesavinttop--;
+		if (freesavinttop > regsneeded) {
+			freesavinttop -= regsneeded+1;
 			s->regoff = freesavintregs[freesavinttop];
 			return;
 			}
-		else if (savintreguse > 0) {
-			savintreguse--;
+		else if (savintreguse > regsneeded) {
+			savintreguse -= regsneeded+1;
 			if (savintreguse < maxsavintreguse)
 				maxsavintreguse = savintreguse;
 			s->regoff = savintregs[savintreguse];
@@ -626,13 +682,13 @@ else {
 		 */
         if (!IS_2_WORD_TYPE(s->type)) {
 #endif
-		if (freetmpinttop > 0) {
-			freetmpinttop--;
+		if (freetmpinttop > regsneeded) {
+			freetmpinttop -= regsneeded+1;
 			s->regoff = freetmpintregs[freetmpinttop];
 			return;
 			}
-		else if (tmpintreguse > 0) {
-			tmpintreguse--;
+		else if (tmpintreguse > regsneeded) {
+			tmpintreguse -= regsneeded+1;
 			if (tmpintreguse < maxtmpintreguse)
 				maxtmpintreguse = tmpintreguse;
 			s->regoff = tmpintregs[tmpintreguse];
@@ -643,12 +699,14 @@ else {
 #endif
 		}
 	}
-if (freememtop > 0) {
-	freememtop--;
+						}
+if (freememtop > regsneeded) {
+	freememtop -= regsneeded+1;
 	s->regoff = freemem[freememtop];
 	}
 else {
-	s->regoff = memuse++;
+	s->regoff = memuse;
+	memuse += regsneeded+1;
 	if (memuse > maxmemuse)
 		maxmemuse = memuse;
 	}
@@ -660,25 +718,46 @@ s->flags |= INMEMORY;
 
 static void reg_free_temp_func(stackptr s)
 {
-if (s->flags & INMEMORY)
-	freemem[freememtop++] = s->regoff;
+	int regsneeded = 0;
+#ifdef USETWOREGS
+						regsneeded = (IS_2_WORD_TYPE(s->type)) ? 1 : 0;
+#endif
+if (s->flags & INMEMORY) {
+	freemem[freememtop] = s->regoff;
+	if (regsneeded)
+		freemem[freememtop+1] = s->regoff + 1;
+	freememtop += regsneeded+1;
+	}
 else if (IS_FLT_DBL_TYPE(s->type)) {
-	if (s->flags & SAVEDVAR)
+	if (s->flags & (SAVEDVAR | SAVEDTMP)) {
+		s->flags &= ~SAVEDTMP;
 		freesavfltregs[freesavflttop++] = s->regoff;
-	else
+	} else
 		freetmpfltregs[freetmpflttop++] = s->regoff;
 	}
-else
-	if (s->flags & SAVEDVAR)
-		freesavintregs[freesavinttop++] = s->regoff;
-	else
-		freetmpintregs[freetmpinttop++] = s->regoff;
+else {
+		if (s->flags & (SAVEDVAR | SAVEDTMP)) {
+			s->flags &= ~SAVEDTMP;
+			freesavintregs[freesavinttop] = s->regoff;
+#ifdef USETWOREGS
+			if (regsneeded)
+				freesavintregs[freesavinttop+1] = secondregs[s->regoff];
+#endif
+			freesavinttop += regsneeded+1;
+		} else {
+			freetmpintregs[freetmpinttop] = s->regoff;
+#ifdef USETWOREGS
+			if (regsneeded)
+				freetmpintregs[freetmpinttop+1] = secondregs[s->regoff];
+#endif
+			freetmpinttop += regsneeded+1;
+		}
+	}
 }
 
 
 static void allocate_scratch_registers()
 {
-	int b_count;
 	int opcode, i, len;
 	stackptr    src, dst;
 	instruction *iptr = instr;

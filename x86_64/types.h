@@ -11,7 +11,7 @@
              Michael Gschwind    EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: types.h 417 2003-08-27 23:29:30Z twisti $
+    Last Change: $Id: types.h 443 2003-09-15 11:04:07Z stefan $
 
 *******************************************************************************/
 
@@ -35,6 +35,8 @@
 #define SUPPORT_LONG_FCVT   1
 
 #define CONDITIONAL_LOADCONST
+
+#define CONSECUTIVE_FLOATARGS
 
 #define U8_AVAILABLE        1
 
