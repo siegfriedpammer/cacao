@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2082 2005-03-25 14:05:04Z edwin $
+## $Id: Makefile.am 2130 2005-03-29 22:30:51Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -53,16 +53,30 @@ noinst_HEADERS = global.h
 noinst_LTLIBRARIES = libvmcore.la libvm.la
 
 libvmcore_la_SOURCES = \
+	access.c \
+	access.h \
 	builtin.c \
 	builtin.h \
 	class.c \
 	class.h \
+	classcache.c \
+	classcache.h \
+	descriptor.c \
+	descriptor.h \
 	exceptions.c \
 	exceptions.h \
+	field.c \
+	field.h \
+	linker.c \
+	linker.h \
 	loader.c \
 	loader.h \
+	method.c \
+	method.h \
 	options.c \
 	options.h \
+	resolve.c \
+	resolve.h \
 	$(STATISTICS_OBJ) \
 	string.c \
 	string.h \
@@ -70,14 +84,6 @@ libvmcore_la_SOURCES = \
 	tables.h \
 	utf8.c \
 	utf8.h \
-	descriptor.c \
-	descriptor.h \
-	access.c \
-	access.h \
-	classcache.c \
-	classcache.h \
-	resolve.c \
-	resolve.h \
 	$(ZLIB_OBJ)
 
 libvm_la_SOURCES =
