@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 726 2003-12-10 15:41:07Z edwin $
+   $Id: parse.c 727 2003-12-11 10:52:40Z edwin $
 
 */
 
@@ -915,28 +915,28 @@ void parse()
 			OP2I(ICMD_CHECKASIZE, 0, 0);
 			switch (code_get_s1(p + 1)) {
 			case 4:
-				BUILTIN1((functionptr) builtin_newarray_boolean, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_boolean, TYPE_ADR);
 				break;
 			case 5:
-				BUILTIN1((functionptr) builtin_newarray_char, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_char, TYPE_ADR);
 				break;
 			case 6:
-				BUILTIN1((functionptr) builtin_newarray_float, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_float, TYPE_ADR);
 				break;
 			case 7:
-				BUILTIN1((functionptr) builtin_newarray_double, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_double, TYPE_ADR);
 				break;
 			case 8:
-				BUILTIN1((functionptr) builtin_newarray_byte, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_byte, TYPE_ADR);
 				break;
 			case 9:
-				BUILTIN1((functionptr) builtin_newarray_short, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_short, TYPE_ADR);
 				break;
 			case 10:
-				BUILTIN1((functionptr) builtin_newarray_int, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_int, TYPE_ADR);
 				break;
 			case 11:
-				BUILTIN1((functionptr) builtin_newarray_long, TYPE_ADR);
+				BUILTIN1(BUILTIN_newarray_long, TYPE_ADR);
 				break;
 			default: panic("Invalid array-type to create");
 			}
@@ -951,11 +951,7 @@ void parse()
 
 				s_count++;
 
-#if defined(__I386__)
- 					BUILTIN2((functionptr) asm_builtin_newarray, TYPE_ADR);
-#else
- 					BUILTIN2((functionptr)builtin_newarray, TYPE_ADR);
-#endif
+				BUILTIN2(BUILTIN_newarray, TYPE_ADR);
 			}
 			break;
 
@@ -1188,7 +1184,7 @@ void parse()
 			/* load and store of object fields *******************/
 
 		case JAVA_AASTORE:
-			BUILTIN3((functionptr) asm_builtin_aastore, TYPE_VOID);
+			BUILTIN3(BUILTIN_aastore, TYPE_VOID);
 			break;
 
 		case JAVA_PUTSTATIC:
@@ -1288,7 +1284,7 @@ void parse()
 
 			LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
 			s_count++;
-			BUILTIN1((functionptr) builtin_new, TYPE_ADR);
+			BUILTIN1(BUILTIN_new, TYPE_ADR);
 			break;
 
 		case JAVA_CHECKCAST:
@@ -1299,13 +1295,13 @@ void parse()
  						/* array type cast-check */
  						LOADCONST_A(cls->vftbl);
  						s_count++;
- 						BUILTIN2((functionptr) asm_builtin_checkarraycast, TYPE_ADR);
+ 						BUILTIN2(BUILTIN_checkarraycast, TYPE_ADR);
   					}
  					else { /* object type cast-check */
  						/*
 + 						  LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
 + 						  s_count++;
-+ 						  BUILTIN2((functionptr) asm_builtin_checkcast, TYPE_ADR);
++ 						  BUILTIN2(BUILTIN_checkcast, TYPE_ADR);
 + 						*/
  						OP2A(opcode, 1, cls);
   					}
@@ -1322,17 +1318,13 @@ void parse()
  						/* array type cast-check */
  						LOADCONST_A(cls->vftbl);
  						s_count++;
-  #if defined(__I386__)
- 						BUILTIN2((functionptr) asm_builtin_arrayinstanceof, TYPE_INT);
-  #else
- 						BUILTIN2((functionptr) builtin_arrayinstanceof, TYPE_INT);
-  #endif
+ 						BUILTIN2(BUILTIN_arrayinstanceof, TYPE_INT);
   					}
  					else { /* object type cast-check */
  						/*
  						  LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
  						  s_count++;
- 						  BUILTIN2((functionptr) builtin_instanceof, TYPE_INT);
+ 						  BUILTIN2(BUILTIN_instanceof, TYPE_INT);
 + 						*/
  						OP2A(opcode, 1, cls);
   					}
@@ -1342,7 +1334,7 @@ void parse()
 		case JAVA_MONITORENTER:
 #ifdef USE_THREADS
 			if (checksync) {
-				BUILTIN1((functionptr) asm_builtin_monitorenter, TYPE_VOID);
+				BUILTIN1(BUILTIN_monitorenter, TYPE_VOID);
 			} else
 #endif
 				{
@@ -1353,7 +1345,7 @@ void parse()
 		case JAVA_MONITOREXIT:
 #ifdef USE_THREADS
 			if (checksync) {
-				BUILTIN1((functionptr) asm_builtin_monitorexit, TYPE_VOID);
+				BUILTIN1(BUILTIN_monitorexit, TYPE_VOID);
 			}
 			else
 #endif
@@ -1384,7 +1376,7 @@ void parse()
 #if defined(__I386__)
 			OP(opcode);
 #else
-			BUILTIN2((functionptr) builtin_frem, TYPE_FLOAT);
+			BUILTIN2(BUILTIN_frem, TYPE_FLOAT);
 #endif
 			break;
 
@@ -1392,14 +1384,14 @@ void parse()
 #if defined(__I386__)
 			OP(opcode);
 #else
-			BUILTIN2((functionptr) builtin_drem, TYPE_DOUBLE);
+			BUILTIN2(BUILTIN_drem, TYPE_DOUBLE);
 #endif
 			break;
 
 		case JAVA_F2I:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
-				BUILTIN1((functionptr) builtin_f2i, TYPE_INT);
+				BUILTIN1(BUILTIN_f2i, TYPE_INT);
 			} else
 #endif
 				{
@@ -1410,7 +1402,7 @@ void parse()
 		case JAVA_F2L:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
-				BUILTIN1((functionptr) builtin_f2l, TYPE_LONG);
+				BUILTIN1(BUILTIN_f2l, TYPE_LONG);
 			} else 
 #endif
 				{
@@ -1421,7 +1413,7 @@ void parse()
 		case JAVA_D2I:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
-				BUILTIN1((functionptr) builtin_d2i, TYPE_INT);
+				BUILTIN1(BUILTIN_d2i, TYPE_INT);
 			} else
 #endif
 				{
@@ -1432,7 +1424,7 @@ void parse()
 		case JAVA_D2L:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
-				BUILTIN1((functionptr) builtin_d2l, TYPE_LONG);
+				BUILTIN1(BUILTIN_d2l, TYPE_LONG);
 			} else
 #endif
 				{

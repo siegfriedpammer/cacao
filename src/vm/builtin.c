@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 718 2003-12-08 13:03:43Z jowenn $
+   $Id: builtin.c 727 2003-12-11 10:52:40Z edwin $
 
 */
 
@@ -59,6 +59,8 @@
 
 #undef DEBUG /*define DEBUG 1*/
 
+/* XXX delete? */
+#if 0
 builtin_descriptor builtin_desc[] = {
 	{(functionptr) builtin_instanceof,		   "instanceof"},
 	{(functionptr) builtin_checkcast,		   "checkcast"},
@@ -152,6 +154,7 @@ builtin_descriptor builtin_desc[] = {
 	{(functionptr) builtin_d2f,				   "d2f"},
 	{(functionptr) NULL,					   "unknown"}
 };
+#endif
 
 
 /*****************************************************************************

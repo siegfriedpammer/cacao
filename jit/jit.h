@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 723 2003-12-08 19:51:32Z edwin $
+   $Id: jit.h 727 2003-12-11 10:52:40Z edwin $
 
 */
 
@@ -39,6 +39,7 @@
 
 #include "toolbox/chain.h"
 #include "global.h"
+#include "builtin.h"
 #include "typeinfo.h"
 
 /**************************** resolve typedef-cycles **************************/
@@ -809,6 +810,8 @@ extern int jcommandsize[256];
 
 #if defined(USEBUILTINTABLE)
 
+/* XXX delete? */
+#if 0
 typedef struct {
 	u1 opcode;
 	u1 type_s1;
@@ -824,6 +827,9 @@ typedef struct {
 extern stdopdescriptor builtintable[];
 
 stdopdescriptor *find_builtin(int icmd);
+#endif
+
+builtin_descriptor *find_builtin(int opcode);
 
 #endif /* USEBUILTINTABLE */
 
@@ -980,9 +986,12 @@ u1 *createnativestub(functionptr f, methodinfo *m);
 void removecompilerstub(u1 *stub);
 void removenativestub(u1 *stub);
 
+void typecheck();
+
 /* debug helpers (in stack.c) */
 
 void icmd_print_stack(stackptr s);
+char *icmd_builtin_name(functionptr bptr);
 void show_icmd_block(basicblock *bptr);
 void show_icmd(instruction *iptr,bool deadcode);
 void show_icmd_method();

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 725 2003-12-10 00:24:36Z edwin $
+   $Id: stack.c 727 2003-12-11 10:52:40Z edwin $
 
 */
 
@@ -364,7 +364,24 @@ void analyse_stack()
 
 #ifdef USEBUILTINTABLE
 					{
+#if 0
 						stdopdescriptor *breplace;
+						breplace = find_builtin(opcode);
+
+						if (breplace && opcode == breplace->opcode) {
+							iptr[0].opc = breplace->icmd;
+							iptr[0].op1 = breplace->type_d;
+							iptr[0].val.a = breplace->builtin;
+							isleafmethod = false;
+							switch (breplace->icmd) {
+							case ICMD_BUILTIN1:
+								goto builtin1;
+							case ICMD_BUILTIN2:
+								goto builtin2;
+							}
+						}
+#endif
+						builtin_descriptor *breplace;
 						breplace = find_builtin(opcode);
 
 						if (breplace && opcode == breplace->opcode) {
@@ -1268,7 +1285,7 @@ void analyse_stack()
 #if !SUPPORT_DIVISION
 						iptr[0].opc = ICMD_BUILTIN2;
 						iptr[0].op1 = TYPE_INT;
-						iptr[0].val.a = (functionptr) asm_builtin_idiv;
+						iptr[0].val.a = BUILTIN_idiv;
 						isleafmethod = false;
 						goto builtin2;
 #endif
@@ -1277,7 +1294,7 @@ void analyse_stack()
 #if !SUPPORT_DIVISION
 						iptr[0].opc = ICMD_BUILTIN2;
 						iptr[0].op1 = TYPE_INT;
-						iptr[0].val.a = (functionptr) asm_builtin_irem;
+						iptr[0].val.a = BUILTIN_irem;
 						isleafmethod = false;
 						goto builtin2;
 #endif
@@ -1300,7 +1317,7 @@ void analyse_stack()
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 						iptr[0].opc = ICMD_BUILTIN2;
 						iptr[0].op1 = TYPE_LNG;
-						iptr[0].val.a = (functionptr) asm_builtin_ldiv;
+						iptr[0].val.a = BUILTIN_ldiv;
 						isleafmethod = false;
 						goto builtin2;
 #endif
@@ -1309,7 +1326,7 @@ void analyse_stack()
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 						iptr[0].opc = ICMD_BUILTIN2;
 						iptr[0].op1 = TYPE_LNG;
-						iptr[0].val.a = (functionptr) asm_builtin_lrem;
+						iptr[0].val.a = BUILTIN_lrem;
 						isleafmethod = false;
 						goto builtin2;
 #endif
@@ -1908,9 +1925,9 @@ static void print_reg(stackptr s) {
 char *icmd_builtin_name(functionptr bptr)
 {
 	builtin_descriptor *bdesc = builtin_desc;
-	while ((bdesc->bptr != NULL) && (bdesc->bptr != bptr))
+	while ((bdesc->opcode != 0) && (bdesc->builtin != bptr))
 		bdesc++;
-	return bdesc->name;
+	return (bdesc->opcode) ? bdesc->name : "<NOT IN TABLE>";
 }
 
 
@@ -2172,7 +2189,14 @@ show_icmd(instruction *iptr,bool deadcode)
 				case ICMD_GETSTATIC:
 					printf(" ");
 					utf_fprint(stdout,
+							   ((fieldinfo *) iptr->val.a)->class->name);
+					printf(".");
+					utf_fprint(stdout,
 							   ((fieldinfo *) iptr->val.a)->name);
+					printf(" (type ");
+					utf_fprint(stdout,
+							   ((fieldinfo *) iptr->val.a)->descriptor);
+					printf(")");
 					break;
 				case ICMD_IINC:
 					printf(" %d + %d", iptr->op1, iptr->val.i);
@@ -2250,6 +2274,17 @@ show_icmd(instruction *iptr,bool deadcode)
 						printf(" ");
 						utf_fprint(stdout,
 								   ((classinfo *) iptr->val.a)->name);
+					}
+					break;
+	            case ICMD_MULTIANEWARRAY:
+					{
+						vftbl *vft;
+						printf(" %d ",iptr->op1);
+						vft = (vftbl *)iptr->val.a;
+						if (vft)
+							utf_fprint(stdout,vft->class->name);
+						else
+							printf("<null>");
 					}
 					break;
 				case ICMD_CHECKCAST:

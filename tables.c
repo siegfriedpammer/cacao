@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 724 2003-12-09 18:56:11Z edwin $
+   $Id: tables.c 727 2003-12-11 10:52:40Z edwin $
 
 */
 
@@ -185,7 +185,7 @@ void log_utf(utf *u)
 {
 	char buf[MAXLOGTEXT];
 	utf_sprint(buf,u);
-	dolog(buf);
+	dolog("%s",buf);
 }
 
 /********************** function: log_plain_utf ******************************
@@ -198,7 +198,7 @@ void log_plain_utf(utf *u)
 {
 	char buf[MAXLOGTEXT];
 	utf_sprint(buf,u);
-	dolog_plain(buf);
+	dolog_plain("%s",buf);
 }
 
 /************************ function: utf_sprint *******************************

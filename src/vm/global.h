@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 723 2003-12-08 19:51:32Z edwin $
+   $Id: global.h 727 2003-12-11 10:52:40Z edwin $
 
 */
 
@@ -465,6 +465,10 @@ struct fieldinfo {	      /* field of a class                                 */
 	s4  offset;           /* offset from start of object (instance variables) */
 
 	imm_union value;      /* storage for static values (class variables)      */
+
+	classinfo *class;     /* XXX needed by typechecker. Could be optimized    */
+	                      /* away by using constant_FMIref instead of         */
+	                      /* fieldinfo throughout the compiler.               */
 	
 	xtafldinfo *xta;
 };

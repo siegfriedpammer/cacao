@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 726 2003-12-10 15:41:07Z edwin $
+   $Id: loader.c 727 2003-12-11 10:52:40Z edwin $
 
 */
 
@@ -192,8 +192,11 @@ static u1 *classbuffer    = NULL;   /* pointer to buffer with classfile-data  */
 static u1 *classbuf_pos;            /* current position in classfile buffer   */
 static int classbuffer_size;        /* size of classfile-data                 */
 
-#define ASSERT_LEFT(len) \
-	do {if (((classbuffer + classbuffer_size) - classbuf_pos - 1) < (len)) \
+/* assert that at least <len> bytes are left to read */
+/* <len> is limited to the range of non-negative s4 values */
+#define ASSERT_LEFT(len)												\
+	do {if ( ((s4)(len)) < 0											\
+			 || ((classbuffer + classbuffer_size) - classbuf_pos - 1) < (len)) \
 			panic("Unexpected end of classfile"); } while(0)
 
 /* transfer block of classfile data into a buffer */
@@ -791,6 +794,7 @@ static void field_load (fieldinfo *f, classinfo *c)
 	f -> descriptor = class_getconstant (c, suck_u2(), CONSTANT_Utf8); /* JavaVM descriptor           */
 	f -> type = jtype = desc_to_type (f->descriptor);		   /* data type                   */
 	f -> offset = 0;						   /* offset from start of object */
+	f -> class = c;
 	f->xta = NULL;
 	
 	switch (f->type) {

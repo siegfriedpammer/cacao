@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 726 2003-12-10 15:41:07Z edwin $
+   $Id: typecheck.c 727 2003-12-11 10:52:40Z edwin $
 
 */
 
@@ -270,6 +270,15 @@ struct jsr_record {
 #define TYPECHECK_LNG(sp)  TYPECHECK_STACK(sp,TYPE_LNG)
 #define TYPECHECK_FLT(sp)  TYPECHECK_STACK(sp,TYPE_FLT)
 #define TYPECHECK_DBL(sp)  TYPECHECK_STACK(sp,TYPE_DBL)
+
+#define TYPECHECK_ARGS1(t1)							            \
+	do {TYPECHECK_STACK(curstack,t1);} while (0)
+#define TYPECHECK_ARGS2(t1,t2)						            \
+	do {TYPECHECK_ARGS1(t1);									\
+		TYPECHECK_STACK(curstack->prev,t2);} while (0)
+#define TYPECHECK_ARGS3(t1,t2,t3)								\
+	do {TYPECHECK_ARGS2(t1,t2);									\
+		TYPECHECK_STACK(curstack->prev->prev,t3);} while (0)
 
 /* TYPECHECK_COPYVARS: copy the types and typeinfos of the current local
  *     variables to the local variables of the target block.
@@ -643,6 +652,7 @@ typecheck()
     bool maythrow;               /* true if this instruction may throw */
     utf *name_init;                                        /* "<init>" */
     bool initmethod;             /* true if this is an "<init>" method */
+	builtin_descriptor *builtindesc;
 
 #ifdef TYPECHECK_STATISTICS
 	int count_iterations = 0;
@@ -946,13 +956,53 @@ typecheck()
                           if (TYPEINFO_IS_ARRAY(curstack->prev->typeinfo)) /* XXX arraystub */
                               panic("illegal instruction: PUTFIELD on array");
 
-                          
-                          /* XXX */
+                          /* check if the value is assignable to the field */
+						  {
+							  fieldinfo *fi = (fieldinfo*) iptr[0].val.a;
+							  
+							  if (!TYPEINFO_IS_NULLTYPE(curstack->prev->typeinfo)) {
+								  cls = fi->class;
+								  /* XXX treat uinitialized objects specially? */
+								  if (!class_issubclass(curstack->prev->typeinfo.typeclass,
+														cls))
+									  panic("PUTFIELD reference type does not support field");
+							  }
+
+							  /* XXX check flags */
+
+							  /* XXX ---> unify with ICMD_PUTSTATIC? */
+							  
+							  /* XXX check access rights */
+							  
+							  if (curstack->type != fi->type)
+								  panic("PUTFIELD type mismatch");
+							  if (fi->type == TYPE_ADR) {
+								  TYPEINFO_INIT_FROM_FIELDINFO(rinfo,fi);
+								  if (!typeinfo_is_assignable(&(curstack->typeinfo),
+															  &rinfo))
+									  panic("PUTFIELD reference type not assignable");
+							  }
+						  }
                           maythrow = true;
                           break;
 
                       case ICMD_PUTSTATIC:
-                          /* XXX */
+                          /* check if the value is assignable to the field */
+						  {
+							  fieldinfo *fi = (fieldinfo*) iptr[0].val.a;
+
+							  /* check flags */
+							  /* XXX check access rights */
+							  
+							  if (curstack->type != fi->type)
+								  panic("PUTSTATIC type mismatch");
+							  if (fi->type == TYPE_ADR) {
+								  TYPEINFO_INIT_FROM_FIELDINFO(rinfo,fi);
+								  if (!typeinfo_is_assignable(&(curstack->typeinfo),
+															  &rinfo))
+									  panic("PUTSTATIC reference type not assignable");
+							  }
+						  }
                           maythrow = true;
                           break;
 
@@ -964,7 +1014,16 @@ typecheck()
                           
                           {
                               fieldinfo *fi = (fieldinfo *)(iptr->val.a);
-                              /* XXX check non-static? */
+
+							  if (!TYPEINFO_IS_NULLTYPE(curstack->typeinfo)) {
+								  cls = fi->class;
+								  if (!class_issubclass(curstack->typeinfo.typeclass,
+														cls))
+									  panic("GETFIELD reference type does not support field");
+							  }
+
+							  /* XXX check flags */
+							  /* XXX check access rights */
                               if (dst->type == TYPE_ADR) {
                                   TYPEINFO_INIT_FROM_FIELDINFO(dst->typeinfo,fi);
                               }
@@ -979,7 +1038,8 @@ typecheck()
                       case ICMD_GETSTATIC:
                           {
                               fieldinfo *fi = (fieldinfo *)(iptr->val.a);
-                              /* XXX check static? */
+                              /* XXX check flags */
+							  /* XXX check access rights */
                               if (dst->type == TYPE_ADR) {
                                   TYPEINFO_INIT_FROM_FIELDINFO(dst->typeinfo,fi);
                               }
@@ -1445,25 +1505,39 @@ typecheck()
                           break;
                           
                       case ICMD_MULTIANEWARRAY:
-                          /* check the array lengths on the stack */
-                          i = iptr[0].op1;
-                          if (i<1) panic("MULTIANEWARRAY with dimensions < 1");
-                          srcstack = curstack;
-                          while (i--) {
-                              if (!srcstack)
-                                  panic("MULTIANEWARRAY missing array length");
-                              if (srcstack->type != TYPE_INT)
-                                  panic("MULTIANEWARRAY using non-int as array length");
-                              srcstack = srcstack->prev;
-                          }
-                          
-                          /* set the array type of the result */
-                          TYPEINFO_INIT_CLASSINFO(dst->typeinfo,((vftbl *)iptr[0].val.a)->class);
+						  {
+							  vftbl *arrayvftbl;
+							  arraydescriptor *desc;
+							  
+							  /* check the array lengths on the stack */
+							  i = iptr[0].op1;
+							  if (i<1) panic("MULTIANEWARRAY with dimensions < 1");
+							  srcstack = curstack;
+							  while (i--) {
+								  if (!srcstack)
+									  panic("MULTIANEWARRAY missing array length");
+								  if (srcstack->type != TYPE_INT)
+									  panic("MULTIANEWARRAY using non-int as array length");
+								  srcstack = srcstack->prev;
+							  }
+							  
+							  /* check array descriptor */
+							  arrayvftbl = (vftbl*) iptr[0].val.a;
+							  if (!arrayvftbl)
+								  panic("MULTIANEWARRAY with unlinked class");
+							  if ((desc = arrayvftbl->arraydesc) == NULL)
+								  panic("MULTIANEWARRAY with non-array class");
+							  if (desc->dimension < iptr[0].op1)
+								  panic("MULTIANEWARRAY dimension to high");
+							  
+							  /* set the array type of the result */
+							  TYPEINFO_INIT_CLASSINFO(dst->typeinfo,arrayvftbl->class);
+						  }
                           maythrow = true;
                           break;
                           
                       case ICMD_BUILTIN3:
-                          if (ISBUILTIN(asm_builtin_aastore)) {
+                          if (ISBUILTIN(BUILTIN_aastore)) {
 							  TYPECHECK_ADR(curstack);
 							  TYPECHECK_INT(curstack->prev);
 							  TYPECHECK_ADR(curstack->prev->prev);
@@ -1477,74 +1551,120 @@ typecheck()
                                 panic("illegal instruction: AASTORE to incompatible type");
                               */
                           }
-                          /* XXX check for missed builtins in debug mode? */
+						  else {
+							  builtindesc = builtin_desc;
+							  while (builtindesc->opcode && builtindesc->builtin
+									 != (functionptr) iptr->val.a) builtindesc++;
+							  if (!builtindesc->opcode) {
+								  dolog("Builtin not in table: %s",icmd_builtin_name((functionptr) iptr->val.a));
+								  panic("Internal error: builtin not found in table");
+							  }
+							  TYPECHECK_ARGS3(builtindesc->type_s3,builtindesc->type_s2,builtindesc->type_s1);
+						  }
                           maythrow = true; /* XXX better safe than sorry */
                           break;
                           
                       case ICMD_BUILTIN2:
-                          if (
-#if defined(__I386__)
-                              ISBUILTIN(asm_builtin_newarray)
-#else
-                              ISBUILTIN(builtin_newarray)
-#endif
-                              )
+						  /* XXX use BUILTIN_ macros */
+                          if (ISBUILTIN(BUILTIN_newarray))
                           {
+							  vftbl *vft;
 							  TYPECHECK_INT(curstack->prev);
                               if (iptr[-1].opc != ICMD_ACONST)
                                   panic("illegal instruction: builtin_newarray without classinfo");
-                              TYPEINFO_INIT_CLASSINFO(dst->typeinfo,((vftbl *)iptr[-1].val.a)->class);
+							  vft = (vftbl *)iptr[-1].val.a;
+							  if (!vft)
+								  panic("ANEWARRAY with unlinked class");
+							  if (!vft->arraydesc)
+								  panic("ANEWARRAY with non-array class");
+                              TYPEINFO_INIT_CLASSINFO(dst->typeinfo,vft->class);
                           }
-                          else if (ISBUILTIN(asm_builtin_checkarraycast)) {
+                          else if (ISBUILTIN(BUILTIN_arrayinstanceof))
+                          {
+							  vftbl *vft;
 							  TYPECHECK_ADR(curstack->prev);
                               if (iptr[-1].opc != ICMD_ACONST)
-                                  panic("illegal instruction: asm_builtin_checkarraycast without classinfo");
-                              TYPEINFO_INIT_CLASSINFO(dst->typeinfo,((vftbl *)iptr[-1].val.a)->class);
+                                  panic("illegal instruction: builtin_arrayinstanceof without classinfo");
+							  vft = (vftbl *)iptr[-1].val.a;
+							  if (!vft)
+								  panic("INSTANCEOF with unlinked class");
+							  if (!vft->arraydesc)
+								  panic("internal error: builtin_arrayinstanceof with non-array class");
+						  }
+                          else if (ISBUILTIN(BUILTIN_checkarraycast)) {
+							  vftbl *vft;
+							  TYPECHECK_ADR(curstack->prev);
+                              if (iptr[-1].opc != ICMD_ACONST)
+                                  panic("illegal instruction: BUILTIN_checkarraycast without classinfo");
+							  vft = (vftbl *)iptr[-1].val.a;
+							  if (!vft)
+								  panic("CHECKCAST with unlinked class");
+							  if (!vft->arraydesc)
+								  panic("internal error: builtin_checkarraycast with non-array class");
+                              TYPEINFO_INIT_CLASSINFO(dst->typeinfo,vft->class);
                           }
-                          /* XXX check for missed builtins in debug mode? */
+						  else {
+							  builtindesc = builtin_desc;
+							  while (builtindesc->opcode && builtindesc->builtin
+									 != (functionptr) iptr->val.a) builtindesc++;
+							  if (!builtindesc->opcode) {
+								  dolog("Builtin not in table: %s",icmd_builtin_name((functionptr) iptr->val.a));
+								  panic("Internal error: builtin not found in table");
+							  }
+							  TYPECHECK_ARGS2(builtindesc->type_s2,builtindesc->type_s1);
+						  }
                           maythrow = true; /* XXX better safe than sorry */
                           break;
                           
                       case ICMD_BUILTIN1:
-                          if (ISBUILTIN(builtin_new)) {
+                          if (ISBUILTIN(BUILTIN_new)) {
                               if (iptr[-1].opc != ICMD_ACONST)
                                   panic("illegal instruction: builtin_new without classinfo");
                               TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,iptr);
                           }
 						  /* XXX unify the following cases */
-                          else if (ISBUILTIN(builtin_newarray_boolean)) {
+                          else if (ISBUILTIN(BUILTIN_newarray_boolean)) {
 							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_BOOLEAN);
                           }
-                          else if (ISBUILTIN(builtin_newarray_char)) {
+                          else if (ISBUILTIN(BUILTIN_newarray_char)) {
 							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_CHAR);
                           }
-                          else if (ISBUILTIN(builtin_newarray_float)) {
+                          else if (ISBUILTIN(BUILTIN_newarray_float)) {
 							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_FLOAT);
                           }
-                          else if (ISBUILTIN(builtin_newarray_double)) {
+                          else if (ISBUILTIN(BUILTIN_newarray_double)) {
 							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_DOUBLE);
                           }
-                          else if (ISBUILTIN(builtin_newarray_byte)) {
+                          else if (ISBUILTIN(BUILTIN_newarray_byte)) {
 							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_BYTE);
                           }
-                          else if (ISBUILTIN(builtin_newarray_short)) {
+                          else if (ISBUILTIN(BUILTIN_newarray_short)) {
 							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_SHORT);
                           }
-                          else if (ISBUILTIN(builtin_newarray_int)) {
+                          else if (ISBUILTIN(BUILTIN_newarray_int)) {
 							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_INT);
                           }
-                          else if (ISBUILTIN(builtin_newarray_long)) {
+                          else if (ISBUILTIN(BUILTIN_newarray_long)) {
 							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_LONG);
                           }
-                          /* XXX check for missed builtins in debug mode? */
+						  else {
+							  builtindesc = builtin_desc;
+							  while (builtindesc->opcode && builtindesc->builtin
+									 != (functionptr) iptr->val.a) builtindesc++;
+							  if (!builtindesc->opcode) {
+								  dolog("Builtin not in table: %s",icmd_builtin_name((functionptr) iptr->val.a));
+								  panic("Internal error: builtin not found in table");
+							  }
+							  TYPECHECK_ARGS1(builtindesc->type_s1);
+						  }
                           maythrow = true; /* XXX better safe than sorry */
                           break;
                                                      
@@ -1773,7 +1893,10 @@ typecheck()
 	for (i=0; i<block_count; ++i) {
 		if (block[i].flags != BBDELETED
 			&& block[i].flags != BBUNDEF
-			&& block[i].flags != BBFINISHED)
+			&& block[i].flags != BBFINISHED
+			&& block[i].flags != BBTYPECHECK_UNDEF) /* typecheck may never reach
+													 * some exception handlers,
+													 * that's ok. */
 		{
 			LOG2("block L%03d has invalid flags after typecheck: %d",
 				 block[i].debug_nr,block[i].flags);
@@ -1781,7 +1904,13 @@ typecheck()
 		}
 	}
 #endif
-
+	
+	/* Reset blocks we never reached */
+	for (i=0; i<block_count; ++i) {
+		if (block[i].flags == BBTYPECHECK_UNDEF)
+			block[i].flags = BBFINISHED;
+	}
+		
     LOGimp("exiting typecheck");
 }
 
