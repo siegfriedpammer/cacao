@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1188 2004-06-19 12:32:57Z twisti $
+   $Id: cacao.c 1228 2004-06-30 19:32:11Z twisti $
 
 */
 
@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "main.h"
+#include "options.h"
 #include "global.h"
 #include "tables.h"
 #include "loader.h"
@@ -52,6 +53,7 @@
 #include "asmpart.h"
 #include "builtin.h"
 #include "native.h"
+#include "statistics.h"
 #include "mm/boehm.h"
 #include "threads/thread.h"
 #include "toolbox/logging.h"
@@ -68,61 +70,6 @@
 
 
 bool cacao_initializing;
-
-/* command line option */
-bool verbose = false;
-bool compileall = false;
-bool runverbose = false;       /* trace all method invocation                */
-bool verboseexception = false;
-bool collectverbose = false;
-
-bool loadverbose = false;
-bool linkverbose = false;
-bool initverbose = false;
-
-bool opt_rt = false;           /* true if RTA parse should be used     RT-CO */
-bool opt_xta = false;          /* true if XTA parse should be used    XTA-CO */
-bool opt_vta = false;          /* true if VTA parse should be used    VTA-CO */
-
-bool opt_liberalutf = false;   /* Don't check overlong UTF-8 sequences       */
-
-bool showmethods = false;
-bool showconstantpool = false;
-bool showutf = false;
-
-bool compileverbose =  false;  /* trace compiler actions                     */
-bool showstack = false;
-bool showdisassemble = false;  /* generate disassembler listing              */
-bool showddatasegment = false; /* generate data segment listing              */
-bool showintermediate = false; /* generate intermediate code listing         */
-
-bool useinlining = false;      /* use method inlining                        */
-bool inlinevirtuals = false;   /* inline unique virtual methods              */
-bool inlineexceptions = false; /* inline methods, that contain excptions     */
-bool inlineparamopt = false;   /* optimize parameter passing to inlined methods */
-bool inlineoutsiders = false;  /* inline methods, that are not member of the invoker's class */
-
-bool checkbounds = true;       /* check array bounds                         */
-bool checknull = true;         /* check null pointers                        */
-bool opt_noieee = false;       /* don't implement ieee compliant floats      */
-bool checksync = true;         /* do synchronization                         */
-bool opt_loops = false;        /* optimize array accesses in loops           */
-
-bool makeinitializations = true;
-
-bool getloadingtime = false;   /* to measure the runtime                     */
-s8 loadingtime = 0;
-
-bool getcompilingtime = false; /* compute compile time                       */
-s8 compilingtime = 0;          /* accumulated compile time                   */
-
-int has_ext_instr_set = 0;     /* has instruction set extensions */
-
-bool opt_stat = false;
-
-bool opt_verify = true;        /* true if classfiles should be verified      */
-
-bool opt_eager = false;
 
 char *mainstring;
 static classinfo *mainclass;
@@ -323,225 +270,6 @@ static void print_usage()
 }   
 
 
-/***************************** Function: print_times *********************
-
-	Prints a summary of CPU time usage.
-
-**************************************************************************/
-
-static void print_times()
-{
-	s8 totaltime = getcputime();
-	s8 runtime = totaltime - loadingtime - compilingtime;
-	char logtext[MAXLOGTEXT];
-
-#if defined(__I386__) || defined(__POWERPC__)
-	sprintf(logtext, "Time for loading classes: %lld secs, %lld millis",
-#else
-	sprintf(logtext, "Time for loading classes: %ld secs, %ld millis",
-#endif
-			loadingtime / 1000000, (loadingtime % 1000000) / 1000);
-	log_text(logtext);
-
-#if defined(__I386__) || defined(__POWERPC__) 
-	sprintf(logtext, "Time for compiling code:  %lld secs, %lld millis",
-#else
-	sprintf(logtext, "Time for compiling code:  %ld secs, %ld millis",
-#endif
-			compilingtime / 1000000, (compilingtime % 1000000) / 1000);
-	log_text(logtext);
-
-#if defined(__I386__) || defined(__POWERPC__) 
-	sprintf(logtext, "Time for running program: %lld secs, %lld millis",
-#else
-	sprintf(logtext, "Time for running program: %ld secs, %ld millis",
-#endif
-			runtime / 1000000, (runtime % 1000000) / 1000);
-	log_text(logtext);
-
-#if defined(__I386__) || defined(__POWERPC__) 
-	sprintf(logtext, "Total time: %lld secs, %lld millis",
-#else
-	sprintf(logtext, "Total time: %ld secs, %ld millis",
-#endif
-			totaltime / 1000000, (totaltime % 1000000) / 1000);
-	log_text(logtext);
-}
-
-
-/***************************** Function: print_stats *********************
-
-	outputs detailed compiler statistics
-
-**************************************************************************/
-
-static void print_stats()
-{
-	char logtext[MAXLOGTEXT];
-
-	sprintf(logtext, "Number of JitCompiler Calls: %d", count_jit_calls);
-	log_text(logtext);
-	sprintf(logtext, "Number of compiled Methods: %d", count_methods);
-	log_text(logtext);
-	sprintf(logtext, "Number of max basic blocks per method: %d", count_max_basic_blocks);
-	log_text(logtext);
-	sprintf(logtext, "Number of compiled basic blocks: %d", count_basic_blocks);
-	log_text(logtext);
-	sprintf(logtext, "Number of max JavaVM-Instructions per method: %d", count_max_javainstr);
-	log_text(logtext);
-	sprintf(logtext, "Number of compiled JavaVM-Instructions: %d", count_javainstr);
-	log_text(logtext);
-	sprintf(logtext, "Size of compiled JavaVM-Instructions:   %d(%d)", count_javacodesize,
-			count_javacodesize - count_methods * 18);
-	log_text(logtext);
-	sprintf(logtext, "Size of compiled Exception Tables:      %d", count_javaexcsize);
-	log_text(logtext);
-	sprintf(logtext, "Value of extended instruction set var:  %d", has_ext_instr_set);
-	log_text(logtext);
-	sprintf(logtext, "Number of Machine-Instructions: %d", count_code_len >> 2);
-	log_text(logtext);
-	sprintf(logtext, "Number of Spills: %d", count_spills);
-	log_text(logtext);
-	sprintf(logtext, "Number of Activ    Pseudocommands: %5d", count_pcmd_activ);
-	log_text(logtext);
-	sprintf(logtext, "Number of Drop     Pseudocommands: %5d", count_pcmd_drop);
-	log_text(logtext);
-	sprintf(logtext, "Number of Const    Pseudocommands: %5d (zero:%5d)", count_pcmd_load, count_pcmd_zero);
-	log_text(logtext);
-	sprintf(logtext, "Number of ConstAlu Pseudocommands: %5d (cmp: %5d, store:%5d)", count_pcmd_const_alu, count_pcmd_const_bra, count_pcmd_const_store);
-	log_text(logtext);
-	sprintf(logtext, "Number of Move     Pseudocommands: %5d", count_pcmd_move);
-	log_text(logtext);
-	sprintf(logtext, "Number of Load     Pseudocommands: %5d", count_load_instruction);
-	log_text(logtext);
-	sprintf(logtext, "Number of Store    Pseudocommands: %5d (combined: %5d)", count_pcmd_store, count_pcmd_store - count_pcmd_store_comb);
-	log_text(logtext);
-	sprintf(logtext, "Number of OP       Pseudocommands: %5d", count_pcmd_op);
-	log_text(logtext);
-	sprintf(logtext, "Number of DUP      Pseudocommands: %5d", count_dup_instruction);
-	log_text(logtext);
-	sprintf(logtext, "Number of Mem      Pseudocommands: %5d", count_pcmd_mem);
-	log_text(logtext);
-	sprintf(logtext, "Number of Method   Pseudocommands: %5d", count_pcmd_met);
-	log_text(logtext);
-	sprintf(logtext, "Number of Branch   Pseudocommands: %5d (rets:%5d, Xrets: %5d)",
-			count_pcmd_bra, count_pcmd_return, count_pcmd_returnx);
-	log_text(logtext);
-	sprintf(logtext, "Number of Table    Pseudocommands: %5d", count_pcmd_table);
-	log_text(logtext);
-	sprintf(logtext, "Number of Useful   Pseudocommands: %5d", count_pcmd_table +
-			count_pcmd_bra + count_pcmd_load + count_pcmd_mem + count_pcmd_op);
-	log_text(logtext);
-	sprintf(logtext, "Number of Null Pointer Checks:     %5d", count_check_null);
-	log_text(logtext);
-	sprintf(logtext, "Number of Array Bound Checks:      %5d", count_check_bound);
-	log_text(logtext);
-	sprintf(logtext, "Number of Try-Blocks: %d", count_tryblocks);
-	log_text(logtext);
-	sprintf(logtext, "Maximal count of stack elements:   %d", count_max_new_stack);
-	log_text(logtext);
-	sprintf(logtext, "Upper bound of max stack elements: %d", count_upper_bound_new_stack);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of stack sizes at block boundary");
-	log_text(logtext);
-	sprintf(logtext, "    0    1    2    3    4    5    6    7    8    9    >=10");
-	log_text(logtext);
-	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_block_stack[0],
-			count_block_stack[1], count_block_stack[2], count_block_stack[3], count_block_stack[4],
-			count_block_stack[5], count_block_stack[6], count_block_stack[7], count_block_stack[8],
-			count_block_stack[9], count_block_stack[10]);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of store stack depth");
-	log_text(logtext);
-	sprintf(logtext, "    0    1    2    3    4    5    6    7    8    9    >=10");
-	log_text(logtext);
-	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_depth[0],
-			count_store_depth[1], count_store_depth[2], count_store_depth[3], count_store_depth[4],
-			count_store_depth[5], count_store_depth[6], count_store_depth[7], count_store_depth[8],
-			count_store_depth[9], count_store_depth[10]);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of store creator chains first part");
-	log_text(logtext);
-	sprintf(logtext, "    0    1    2    3    4    5    6    7    8    9  ");
-	log_text(logtext);
-	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_length[0],
-			count_store_length[1], count_store_length[2], count_store_length[3], count_store_length[4],
-			count_store_length[5], count_store_length[6], count_store_length[7], count_store_length[8],
-			count_store_length[9]);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of store creator chains second part");
-	log_text(logtext);
-	sprintf(logtext, "   10   11   12   13   14   15   16   17   18   19  >=20");
-	log_text(logtext);
-	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_length[10],
-			count_store_length[11], count_store_length[12], count_store_length[13], count_store_length[14],
-			count_store_length[15], count_store_length[16], count_store_length[17], count_store_length[18],
-			count_store_length[19], count_store_length[20]);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of analysis iterations");
-	log_text(logtext);
-	sprintf(logtext, "    1    2    3    4    >=5");
-	log_text(logtext);
-	sprintf(logtext, "%5d%5d%5d%5d%5d", count_analyse_iterations[0], count_analyse_iterations[1],
-			count_analyse_iterations[2], count_analyse_iterations[3], count_analyse_iterations[4]);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of basic blocks per method");
-	log_text(logtext);
-	sprintf(logtext, " <= 5 <=10 <=15 <=20 <=30 <=40 <=50 <=75  >75");
-	log_text(logtext);
-	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_method_bb_distribution[0],
-			count_method_bb_distribution[1], count_method_bb_distribution[2], count_method_bb_distribution[3],
-			count_method_bb_distribution[4], count_method_bb_distribution[5], count_method_bb_distribution[6],
-			count_method_bb_distribution[7], count_method_bb_distribution[8]);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of basic block sizes");
-	log_text(logtext);
-	sprintf(logtext,
-			 "  0    1    2    3    4   5   6   7   8   9 <13 <15 <17 <19 <21 <26 <31 >30");
-	log_text(logtext);
-	sprintf(logtext, "%3d%5d%5d%5d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d",
-			count_block_size_distribution[0], count_block_size_distribution[1], count_block_size_distribution[2],
-			count_block_size_distribution[3], count_block_size_distribution[4], count_block_size_distribution[5],
-			count_block_size_distribution[6], count_block_size_distribution[7], count_block_size_distribution[8],
-			count_block_size_distribution[9], count_block_size_distribution[10], count_block_size_distribution[11],
-			count_block_size_distribution[12], count_block_size_distribution[13], count_block_size_distribution[14],
-			count_block_size_distribution[15], count_block_size_distribution[16], count_block_size_distribution[17]);
-	log_text(logtext);
-	sprintf(logtext, "Size of Code Area (Kb):  %10.3f", (float) count_code_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of data Area (Kb):  %10.3f", (float) count_data_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of Class Infos (Kb):%10.3f", (float) (count_class_infos) / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of Const Pool (Kb): %10.3f", (float) (count_const_pool_len + count_utf_len) / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of Vftbl (Kb):      %10.3f", (float) count_vftbl_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of comp stub (Kb):  %10.3f", (float) count_cstub_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of native stub (Kb):%10.3f", (float) count_nstub_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of Utf (Kb):        %10.3f", (float) count_utf_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of VMCode (Kb):     %10.3f(%d)", (float) count_vmcode_len / 1024,
-			count_vmcode_len - 18 * count_all_methods);
-	log_text(logtext);
-	sprintf(logtext, "Size of ExTable (Kb):    %10.3f", (float) count_extable_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Number of class loads:   %d", count_class_loads);
-	log_text(logtext);
-	sprintf(logtext, "Number of class inits:   %d", count_class_inits);
-	log_text(logtext);
-	sprintf(logtext, "Number of loaded Methods: %d\n\n", count_all_methods);
-	log_text(logtext);
-
-	sprintf(logtext, "Calls of utf_new: %22d", count_utf_new);
-	log_text(logtext);
-	sprintf(logtext, "Calls of utf_new (element found): %6d\n\n", count_utf_new_found);
-	log_text(logtext);
-}
-
-
 #ifdef TYPECHECK_STATISTICS
 void typecheck_print_statistics(FILE *file);
 #endif
@@ -616,9 +344,9 @@ int main(int argc, char **argv)
 	stackbottom = &dummy;
 #endif
 	
-	if (0 != atexit(exit_handler)) 
+	if (atexit(exit_handler))
 		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "unable to register exit_handler");
+								   "Unable to register exit_handler");
 
 
 	/************ Collect info from the environment ************************/
@@ -765,16 +493,16 @@ int main(int argc, char **argv)
 
 		case OPT_METHOD:
 			startit = false;
-			specificmethodname = opt_arg;     		
+			specificmethodname = opt_arg;
 			makeinitializations = false;
 			break;
          		
 		case OPT_SIGNATURE:
-			specificsignature = opt_arg;     		
+			specificsignature = opt_arg;
 			break;
          		
 		case OPT_ALL:
-			compileall = true;     		
+			compileall = true;
 			startit = false;
 			makeinitializations = false;
 			break;
@@ -784,7 +512,7 @@ int main(int argc, char **argv)
 				switch (opt_arg[j]) {
 				case 'a':
 					showdisassemble = true;
-					compileverbose=true;
+					compileverbose = true;
 					break;
 				case 'c':
 					showconstantpool = true;
@@ -996,10 +724,12 @@ int main(int argc, char **argv)
 
 			while (c) {
 				if (!c->loaded)
-					class_load(c);
+					if (!class_load(c))
+						throw_main_exception_exit();
 
 				if (!c->linked)
-					class_link(c);
+					if (!class_link(c))
+						throw_main_exception_exit();
 
 				/* compile all class methods */
 				for (i = 0; i < c->methodscount; i++) {
