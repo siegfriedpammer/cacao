@@ -1,0 +1,128 @@
+\section{AMD64 (x86\_64) code generator}
+
+\subsection{Introduction}
+
+The AMD64 architecture, formerly know as x86\_64, is an improvement of
+the Intel IA32 architecture by AMD -- Advanced Micro Devices. The
+extraordinary success of the IA32 architecture and the upcoming memory
+address space problem on IA32 high end servers, led to a special
+design decision. Unlike Intel, with it's completely new designed IA64
+architecture, AMD decided to extend the IA32 instruction set with
+new 64-bit instructions.
+
+Due to the fact that the IA32 instructions have no fixed length, as
+this is the fact on RISC machines, it was easy for them to introduce a
+new \textit{prefix byte} called \texttt{REX}. The \textit{REX prefix}
+enables the 64-bit operation mode of the following instruction in the
+new \textit{64-bit mode} of the processor.
+
+A processor of the AMD64 architecture has two main operating modes:
+
+\begin{itemize}
+\item Long Mode
+\item Legacy Mode
+\end{itemize}
+
+In the \textit{Legacy Mode} the processor acts like an IA32
+processor. Any 32-bit operating system or software can be run on these
+type of processors without changes, so companies running IA32 servers
+and software can change their hardware to AMD64 and their systems are
+still operational. This was the main intention for AMD to develop this
+architecture. Furthermore the \textit{Long Mode} is split into two
+coexistent operating modes:
+
+\begin{itemize}
+\item 64-bit Mode
+\item Compatibility Mode
+\end{itemize}
+
+The \textit{64-bit Mode} exposes the power of this architecture. Any
+memory operation now uses 64-bit addresses and ALU instructions can
+operate on 64-bit operands. Within \textit{Compatibility Mode} any
+IA32 software can be run under the control of 64-bit operation
+system. This, as mentioned before, is yet another point for companies
+to change their hardware to AMD64. So their software can be slowly
+migrated to the new 64-bit system, but not every type of software is
+faster in 64-bit code.
+
+Another crucial pointer to make the AMD64 architecture faster than
+IA32, is the limited number of registers. Any IA32 architecture, from
+the early \textit{i386} to the newest generation of \textit{Intel
+Pentium 4} or \textit{AMD Athlon}, has only 8 general purpose
+registers. With the \textit{REX prefix}, AMD has the ability to
+increase the amount of accessible registers by 1 bit. This means in
+\textit{64-bit Mode} 16 general purpose registers are available. The
+value of a \textit{REX prefix} is in the range \texttt{40h} through
+\texttt{4Fh}, depending on the particular bits used (see table
+\ref{REX}).
+
+\begin{table}
+\begin{center}
+\begin{tabular}[b]{|c|c|l|}
+\hline
+Mnemonic & Bit Position & Definition \\ \hline
+-        & 7-4          & 0100 \\ \hline
+REX.W    & 3            & 0 = Default operand size \\
+         &              & 1 = 64-bit operand size \\ \hline
+REX.R    & 2            & 1-bit (high) extension of the ModRM \textit{reg} field, \\
+         &              & thus permitting access to 16 registers. \\ \hline
+REX.X    & 1            & 1-bit (high) extension of the SIB \textit{index} field, \\
+         &              & thus permitting access to 16 registers. \\ \hline
+REX.B    & 0            & 1-bit (high) extension of the ModRM \textit{r/m} field, \\
+         &              & SIB \textit{base} field, or opcode \textit{reg} field, thus \\
+         &              & permitting access to 16 registers. \\ \hline
+\end{tabular}
+\caption{REX Prefix Byte Fields}
+\label{REX}
+\end{center}
+\end{table}
+
+
+\subsection{Code generation}
+
+AMD64 code generation is mostly the same as on IA32. All new 64-bit
+instructions can handle both \textit{memory operands} and
+\textit{register operands}, so there is no need to change the
+implementation of the IA32 ICMDs.
+
+Much better code generation can be achieved in the area of
+\textit{long arithmetic}. Since all 16 general purpose registers can
+hold 64-bit integer values, there is no need for special long
+handling, like on IA32 were we stored all long varibales in memory. A
+simple \texttt{ICMD\_LADD} was on IA32 (best case shown for AMD64 ---
+\texttt{src->regoff == iptr->dst->regoff}):
+
+\begin{verbatim}
+i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+i386_alu_reg_membase(I386_ADD, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+i386_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP1);
+i386_alu_reg_membase(I386_ADC, REG_ITMP1, REG_SP, iptr->dst->regoff * 8 + 4);
+\end{verbatim}
+
+First memory operand is added to second memory operand which is at the
+same stack location as the destination operand. This are four
+instructions executed for one addition. If we would use registers for
+long variables we could get a \textit{best-case} of two instructions,
+namely \textit{add} followed by a \textit{adc}. On AMD64 we can
+generate one instruction for this addition:
+
+\begin{verbatim}
+x86_64_alu_reg_reg(X86_64_ADD, src->prev->regoff, iptr->dst->regoff);
+\end{verbatim}
+
+This means, the AMD64 port is \textit{four-times} faster than the IA32
+port (maybe even more, because we do not use memory accesses). Even if
+we would implement the usage of registers for long variables on IA32,
+the AMD64 port would be at least twice as fast.
+
+To be able to use the new 64-bit instructions, we need to prefix
+nearly all instructions --- some instructions can be used in 64-bit
+mode without escaping --- with the mentioned \textit{REX prefix}
+byte. In CACAO we use a macro called
+
+\begin{verbatim}
+x86_64_emit_rex(size,reg,index,rm)
+\end{verbatim}
+
+The names of the arguments are respective to their use in the
+\textit{REX prefix} (see table \ref{REX}).
