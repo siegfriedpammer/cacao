@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 367 2003-06-13 14:00:24Z twisti $
+	Last Change: $Id: ngen.c 376 2003-06-19 15:40:54Z twisti $
 
 *******************************************************************************/
 
@@ -620,7 +620,7 @@ static void gen_mcode()
 
 #ifdef USE_THREADS
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-		i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
+		i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP1);
 		i386_alu_imm_reg(I386_SUB, 4, REG_SP);
 		i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
 		i386_mov_imm_reg(builtin_monitorenter, REG_ITMP2);
@@ -3158,6 +3158,39 @@ static void gen_mcode()
 
 		case ICMD_FCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpl val2    */
 		case ICMD_DCMPL:
+
+			/* exchanged to skip fxch */
+/*  			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
+/*  				fprintf(stderr, "new FCMP\n"); */
+/*  				NEW_var_to_reg_flt(s2, src->prev, REG_FTMP1); */
+/*  				NEW_var_to_reg_flt(s1, src, REG_FTMP2); */
+/*  				d = reg_of_var(iptr->dst, REG_ITMP3); */
+/*  				i386_alu_reg_reg(I386_XOR, d, d); */
+/*  				i386_fxch_reg(s1 + fpu_st_offset); */
+/*  				i386_fucom_reg(s2 + fpu_st_offset); */
+/*  				i386_fxch_reg(s1 + fpu_st_offset); */
+/*  			} else { */
+				var_to_reg_flt(s2, src->prev, REG_FTMP1);
+				var_to_reg_flt(s1, src, REG_FTMP2);
+				d = reg_of_var(iptr->dst, REG_ITMP3);
+				i386_alu_reg_reg(I386_XOR, d, d);
+/*    			i386_fxch(); */
+				i386_fucompp();
+				fpu_st_offset -= 2;
+/*     			} */
+			i386_fnstsw();
+			i386_test_imm_reg(0x400, I386_EAX);    /* unordered treat as GT */
+			i386_jcc(I386_CC_E, 3);
+			i386_movb_imm_reg(0, I386_AH);
+ 			i386_sahf();
+  			i386_jcc(I386_CC_E, 6 + 1 + 5 + 1);
+  			i386_jcc(I386_CC_B, 1 + 5);
+			i386_dec_reg(d);
+			i386_jmp_imm(1);
+			i386_inc_reg(d);
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+
 		case ICMD_FCMPG:      /* ..., val1, val2  ==> ..., val1 fcmpg val2    */
 		case ICMD_DCMPG:
 
@@ -3181,6 +3214,9 @@ static void gen_mcode()
 				fpu_st_offset -= 2;
 /*     			} */
 			i386_fnstsw();
+			i386_test_imm_reg(0x400, I386_EAX);    /* unordered treat as LT */
+			i386_jcc(I386_CC_E, 3);
+			i386_movb_imm_reg(1, I386_AH);
  			i386_sahf();
   			i386_jcc(I386_CC_E, 6 + 1 + 5 + 1);
   			i386_jcc(I386_CC_B, 1 + 5);
@@ -5467,6 +5503,19 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 		i386_alu_imm_reg(I386_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
 	}
+
+	/*
+	 * mark the whole fpu stack as free for native functions
+	 * (only for zero saved registers)
+	 */
+	i386_ffree_reg(0);
+	i386_ffree_reg(1);
+	i386_ffree_reg(2);
+	i386_ffree_reg(3);
+	i386_ffree_reg(4);
+	i386_ffree_reg(5);
+	i386_ffree_reg(6);
+	i386_ffree_reg(7);
 
 	/*
 	 * calculate stackframe size for native function

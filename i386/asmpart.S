@@ -49,11 +49,6 @@
     .globl asm_builtin_trace
     .globl asm_builtin_exittrace
     
-/*************************** imported variables *******************************/
-
-	.globl newcompiler
-
-
 /*************************** imported functions *******************************/
 
 	.globl jit_compile
@@ -391,6 +386,7 @@ asm_handle_exception:
 /*		subl	$2,%edx */
 		pushl	%edx						/* save exception pc              */
 		pushl	%ecx						/* save data segment pointer      */
+        
 		pushl	%ebx
 		pushl	%esi
 		pushl	%edi
@@ -445,9 +441,13 @@ ex_handle_it:
 		popl	%edi
 		popl	%esi
 		popl	%ebx
-
+        
+        popl    %eax                        /* pop %ecx (dummy) */
+        popl    %eax                        /* pop %edx (dummy) */
+        popl    %eax                        /* pop %eax */
+        
 		leave
-		
+
 		jmp		*%edx
 
 ex_table_cont:
@@ -477,7 +477,7 @@ ex_already_cleared:
 		pushl	%eax
 		call	builtin_monitorexit
 		addl	$4,%esp
-
+        
 no_monitor_exit:
 		movl	FrameSize(%ecx),%eax		/* %eax = frame size              */
 		addl	%eax,%esp					/* unwind stack                   */
@@ -488,17 +488,12 @@ no_monitor_exit:
 		je		noint
 		cmpl	$1,%edx
 		je		int1
-		cmpl	$2,%edx
-		je		int2
 		
-int3:	
-		movl	-24(%eax),%ebx
-
 int2:	
-		movl	-16(%eax),%ebp
+		movl	-16(%eax),%ebx
 
 int1:	
-		movl	-8(%eax),%esi
+		movl	-8(%eax),%ebp
 
 		shll	$3,%edx						/* multiply by 8 bytes             */
 		subl	%edx,%eax
@@ -993,7 +988,7 @@ asm_switchstackandcall:
 		
 /********************* function asm_getcallingmethod ***************************
 *                                                                              *
-*   classinfo *asm_getcallingmethodclass ();								   *
+*   classinfo *asm_getcallingmethod ();         							   *
 *																			   *	
 *   goes back stack frames to get the calling method						   *	   
 *																			   *	
@@ -1005,7 +1000,7 @@ asm_switchstackandcall:
 
 asm_getcallingmethod:
 		xorl	%eax,%eax
-		movl	$0,(%eax)
+/*		movl	$0,(%eax) */
 		ret
 
 

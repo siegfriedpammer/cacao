@@ -128,6 +128,19 @@ typedef enum {
     I386_NREG
 } I386_Reg_No;
 
+typedef enum {
+    I386_AL = 0,
+    I386_CL = 1,
+    I386_DL = 2,
+    I386_BL = 3,
+    I386_AH = 4,
+    I386_CH = 5,
+    I386_DH = 6,
+    I386_BH = 7,
+    I386_NREGB
+} I386_RegB_No;
+
+
 /*
  * opcodes for alu instructions
  */
@@ -345,6 +358,14 @@ static const unsigned char i386_jcc_map[] = {
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xb8 + ((reg) & 0x07); \
         i386_emit_imm32((imm)); \
+    } while (0)
+
+
+#define i386_movb_imm_reg(imm,reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xc6; \
+        i386_emit_reg(0,(reg)); \
+        i386_emit_imm8((imm)); \
     } while (0)
 
 

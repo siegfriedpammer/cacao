@@ -2,32 +2,35 @@
 
 static mtentry *mtroot = NULL;
 
+
+
 void addmethod(u1 *start, u1 *end)
 {
-#ifdef USE_BOEHM
-    mtentry *mte = GCNEW(mtentry, 1);
-#else
+  /* boehm makes problems with jvm98 db */
+/*  #ifdef USE_BOEHM */
+/*      mtentry *mte = GCNEW(mtentry, 1); */
+/*  #else */
     mtentry *mte = NEW(mtentry);
-#endif
+/*  #endif */
 
-/*      printf("start=%lx end=%lx\n", start, end); */
+/*      fprintf(stderr, "start=%lx end=%lx\n", start, end); */
 
     if (mtroot == NULL) {
-#ifdef USE_BOEHM
-        mtentry *tmp = GCNEW(mtentry, 1);
-#else
+/*  #ifdef USE_BOEHM */
+/*          mtentry *tmp = GCNEW(mtentry, 1); */
+/*  #else */
         mtentry *tmp = NEW(mtentry);
-#endif
+/*  #endif */
 	tmp->start = (u1 *) asm_calljavamethod;
 	tmp->end = (u1 *) asm_calljavafunction;    /* little hack, but should work */
 	tmp->next = mtroot;
 	mtroot = tmp;
 
-#ifdef USE_BOEHM
-        tmp = GCNEW(mtentry, 1);
-#else
+/*  #ifdef USE_BOEHM */
+/*          tmp = GCNEW(mtentry, 1); */
+/*  #else */
         tmp = NEW(mtentry);
-#endif
+/*  #endif */
 	tmp->start = (u1 *) asm_calljavafunction;
 	tmp->end = (u1 *) asm_call_jit_compiler;    /* little hack, but should work */
 	tmp->next = mtroot;
@@ -41,15 +44,16 @@ void addmethod(u1 *start, u1 *end)
 }
 
 
+
 u1 *findmethod(u1 *pos)
 {
     mtentry *mte = mtroot;
 
-/*      printf("findentry: start\n"); */
+/*      printf("findmethod: start\n"); */
 
     while (mte != NULL) {
-/*  	printf("%lx <= %lx <= %lx, %lx\n", mte->start, pos, mte->end, mte->next); */
-
+/*          printf("%p <= %p <= %p\n", mte->start, pos, mte->end); */
+          
 	if (mte->start <= pos && pos <= mte->end) {
 	    return mte->start;
 
@@ -60,6 +64,7 @@ u1 *findmethod(u1 *pos)
 	
     return NULL;
 }
+
 
 
 void asmprintf(int x)
