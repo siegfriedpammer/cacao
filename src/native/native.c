@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1464 2004-11-06 22:55:46Z motse $
+   $Id: native.c 1497 2004-11-12 14:13:44Z twisti $
 
 */
 
@@ -872,12 +872,11 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
     literalstring *s;                /* hashtable element */
     java_lang_String *js;            /* u2-array wrapped in javastring */
     java_chararray *stringdata;      /* copy of u2-array */      
-	classinfo *c;
     u4 key;
     u4 slot;
     u2 i;
 
-//#define DEBUG_LITERALSTRING_U2
+/* #define DEBUG_LITERALSTRING_U2 */
 #ifdef DEBUG_LITERALSTRING_U2
     printf("literalstring_u2: length=%d, offset=%d\n", length, offset);
 	fflush(stdout);
@@ -1093,7 +1092,7 @@ utf *create_methodsig(java_objectarray* types, char *retType)
     if (retType) buffer_size += strlen(retType);
 
     /* allocate buffer */
-    buffer = MNEW(u1, buffer_size);
+    buffer = MNEW(char, buffer_size);
     pos    = buffer;
     
     /* method-desciptor starts with parenthesis */
@@ -1159,7 +1158,7 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 
     /* create utf-string */
     result = utf_new(buffer, (pos - buffer));
-    MFREE(buffer, u1, buffer_size);
+    MFREE(buffer, char, buffer_size);
 
     return result;
 }
@@ -1233,17 +1232,23 @@ java_objectarray* get_parametertypes(methodinfo *m)
 
 *******************************************************************************/
 
-java_objectarray* get_exceptiontypes(methodinfo *m) {
-    u2 exccount=m->thrownexceptionscount;
+java_objectarray* get_exceptiontypes(methodinfo *m)
+{
+    u2 excount;
     u2 i;
     java_objectarray *result;
+
+	excount = m->thrownexceptionscount;
+
     /* create class-array */
-    result = builtin_anewarray(exccount, class_java_lang_Class);
-    for (i=0;i<exccount;i++) {
-	java_objectheader *oh=(java_objectheader*)(m->thrownexceptions[i]);
-	use_class_as_object(oh);
-	result->data[i]=oh;
+    result = builtin_anewarray(excount, class_java_lang_Class);
+
+    for (i = 0; i < excount; i++) {
+		java_objectheader *o = (java_objectheader *) (m->thrownexceptions[i]);
+		use_class_as_object((classinfo *) o);
+		result->data[i] = o;
     }
+
     return result;
 }
 
@@ -1397,57 +1402,71 @@ return true;
 /*--------------------------------------------------------*/
 
 
-java_objectarray *builtin_asm_createclasscontextarray(classinfo **end,classinfo **start)
+java_objectarray *builtin_asm_createclasscontextarray(classinfo **end, classinfo **start)
 {
 #if defined(__GNUC__)
 #warning platform dependend
 #endif
-        java_objectarray *tmpArray;
-        int i;
-        classinfo **current;
+	java_objectarray *tmpArray;
+	int i;
+	classinfo **current;
 	classinfo *c;
-        size_t size=(((size_t)start)-((size_t)end)) / sizeof (classinfo*);
-        /*printf("end %p, start %p, size %ld\n",end,start,size);*/
-        if (!class_java_lang_Class)
-                class_java_lang_Class = class_new(utf_new_char ("java/lang/Class"));
-        if (!class_java_lang_SecurityManager)
-                class_java_lang_SecurityManager = class_new(utf_new_char ("java/lang/SecurityManager"));
-	if (size>0) {
-		if (start==class_java_lang_SecurityManager) {
+	size_t size;
+
+	size = (((size_t) start) - ((size_t) end)) / sizeof(classinfo*);
+
+	/*printf("end %p, start %p, size %ld\n",end,start,size);*/
+	if (!class_java_lang_Class)
+		class_java_lang_Class = class_new(utf_new_char("java/lang/Class"));
+
+	if (!class_java_lang_SecurityManager)
+		class_java_lang_SecurityManager =
+			class_new(utf_new_char("java/lang/SecurityManager"));
+
+	if (size > 0) {
+		if (start == class_java_lang_SecurityManager) {
 			size--;
 			start--;
 		}
 	}
-        tmpArray=builtin_newarray(size, class_array_of(class_java_lang_Class)->vftbl);
 
-        for(i=0,current=start;i<size;i++,current--) {
-		c=*current;
-/*		printf("%d\n",i);
+	tmpArray =
+		builtin_newarray(size, class_array_of(class_java_lang_Class)->vftbl);
+
+	for(i = 0, current = start; i < size; i++, current--) {
+		c = *current;
+		/*		printf("%d\n",i);
                 utf_display(c->name);*/
 		use_class_as_object(c);
-		tmpArray->data[i]=c;
-        }
-	return tmpArray;
+		tmpArray->data[i] = (java_objectheader *) c;
+	}
 
+	return tmpArray;
 }
 
-java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end,classinfo **start)
+
+java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end, classinfo **start)
 {
 #if defined(__GNUC__)
 #warning platform dependend
 #endif
-        int i;
-        classinfo **current;
+	int i;
+	classinfo **current;
 	classinfo *c;
 	classinfo *privilegedAction;
-        size_t size=(((size_t)start)-((size_t)end)) / sizeof (classinfo*);
-/*	log_text("builtin_asm_getclassloader");
+	size_t size;
+
+	size = (((size_t) start) - ((size_t) end)) / sizeof(classinfo*);
+
+	/*	log_text("builtin_asm_getclassloader");
         printf("end %p, start %p, size %ld\n",end,start,size);*/
 
-        if (!class_java_lang_SecurityManager)
-                class_java_lang_SecurityManager = class_new(utf_new_char ("java/lang/SecurityManager"));
-	if (size>0) {
-		if (start==class_java_lang_SecurityManager) {
+	if (!class_java_lang_SecurityManager)
+		class_java_lang_SecurityManager =
+			class_new(utf_new_char("java/lang/SecurityManager"));
+
+	if (size > 0) {
+		if (start == class_java_lang_SecurityManager) {
 			size--;
 			start--;
 		}
@@ -1455,22 +1474,25 @@ java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end,classinfo **st
 
 	privilegedAction=class_new(utf_new_char("java/security/PrivilegedAction"));
 
-        for(i=0,current=start;i<size;i++,current--) {
-		c=*current;
-		if (c==privilegedAction) return NULL;
-		if (c->classloader) return c->classloader;
-        }
+	for(i = 0, current = start; i < size; i++, current--) {
+		c = *current;
+
+		if (c == privilegedAction)
+			return NULL;
+
+		if (c->classloader)
+			return (java_lang_ClassLoader *) c->classloader;
+	}
+
 	return NULL;
 
-
-
-
-/*
+	/*
         log_text("Java_java_lang_VMSecurityManager_currentClassLoader");
         init_systemclassloader();
 
         return SystemClassLoader;*/
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
