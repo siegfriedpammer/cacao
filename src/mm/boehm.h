@@ -1,4 +1,4 @@
-/* mm/boehm.h - interface for boehm gc header
+/* src/mm/boehm.h - interface for boehm gc header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: boehm.h 2128 2005-03-29 22:25:59Z twisti $
+   Changes:
+
+   $Id: boehm.h 2166 2005-03-30 20:32:30Z twisti $
 
 */
 
@@ -64,7 +66,7 @@ s8    gc_get_free_bytes(void);
 s8    gc_get_max_heap_size(void);
 void  gc_invoke_finalizers(void);
 void  gc_finalize_all(void);
-void *gc_out_of_memory(void);
+void *gc_out_of_memory(size_t bytes_requested);
 
 #endif /* _BOEHM_H */
 

@@ -1,4 +1,4 @@
-/* mm/boehm.c - interface for boehm gc
+/* src/mm/boehm.c - interface for boehm gc
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 1735 2004-12-07 14:33:27Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: boehm.c 2166 2005-03-30 20:32:30Z twisti $
 
 */
 
@@ -204,7 +206,7 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 }
 
 
-void gc_call()
+void gc_call(void)
 {
   	if (collectverbose)
 		dolog("Garbage Collection:  previous/now = %d / %d ",
@@ -214,31 +216,31 @@ void gc_call()
 }
 
 
-s8 gc_get_heap_size()
+s8 gc_get_heap_size(void)
 {
 	return GC_get_heap_size();
 }
 
 
-s8 gc_get_free_bytes()
+s8 gc_get_free_bytes(void)
 {
 	return GC_get_free_bytes();
 }
 
 
-s8 gc_get_max_heap_size()
+s8 gc_get_max_heap_size(void)
 {
 	return GC_get_max_heap_size();
 }
 
 
-void gc_invoke_finalizers()
+void gc_invoke_finalizers(void)
 {
 	GC_invoke_finalizers();
 }
 
 
-void gc_finalize_all()
+void gc_finalize_all(void)
 {
 	GC_finalize_all();
 }
@@ -250,7 +252,7 @@ void gc_finalize_all()
 
 *******************************************************************************/
 
-void *gc_out_of_memory()
+void *gc_out_of_memory(size_t bytes_requested)
 {
 	/* if this happens, we are REALLY out of memory */
 
