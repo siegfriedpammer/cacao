@@ -202,7 +202,7 @@ else
 fi
 
 dnl check if zlib should be used
-AC_ARG_ENABLE(zlib, [  --enable-zlib           enable zip archive class storage (experimental), needs zlib [default=yes]])
+AC_ARG_ENABLE(zlib, [  --enable-zlib           enable zip archive class storage (experimental), needs zlib [[yes]]])
 
 AC_MSG_CHECKING(whether zip archives should be supported)
 if test x"$enable_zlib" = "xno"; then
