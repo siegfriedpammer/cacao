@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1048 2004-05-03 18:53:19Z stefan $
+   $Id: codegen.h 1101 2004-05-27 16:29:04Z twisti $
 
 */
 
@@ -35,10 +35,9 @@
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
-#include <ucontext.h>
 
-#include "global.h"
-#include "jit.h"
+#include <ucontext.h>
+#include "jit/jit.h"
 
 
 /* define x86 register numbers */
