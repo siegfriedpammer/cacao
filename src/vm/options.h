@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.h 1553 2004-11-19 15:47:13Z carolyn $
+   $Id: options.h 1590 2004-11-25 13:24:49Z christian $
 
 */
 
@@ -112,6 +112,9 @@ extern bool opt_stat;
 extern bool opt_verify;
 extern bool opt_eager;
 
+extern bool opt_lsra;
+
+
 extern int opt_ind;
 extern char *opt_arg;
 
@@ -119,6 +122,7 @@ extern char *opt_arg;
 /* function prototypes ********************************************************/
 
 int get_opt(int argc, char **argv, opt_struct *opts);
+
 
 #endif /* _OPTIONS_H */
 

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1585 2004-11-24 14:20:21Z twisti $
+   $Id: stack.c 1590 2004-11-25 13:24:49Z christian $
 
 */
 
@@ -2160,7 +2160,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 		printf("\n");
 	}
 	printf("\n");
-
+	if (!opt_lsra) {
 	printf("Interface Table:\n");
 	for (i = 0; i < cd->maxstack; i++) {
 		if ((rd->interfaces[i][0].type >= 0) ||
@@ -2195,7 +2195,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 		}
 	}
 	printf("\n");
-
+  	}
 	if (showdisassemble) {
 #if defined(__I386__) || defined(__X86_64__)
 		u1 *u1ptr;

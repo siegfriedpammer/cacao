@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1530 2004-11-17 20:43:28Z christian $
+   $Id: jit.c 1590 2004-11-25 13:24:49Z christian $
 
 */
 
@@ -63,6 +63,7 @@
 #include "toolbox/memory.h"
 #include "types.h"
 #include <stdio.h>
+#include "jit/lsra.h"
 
 /* global switches ************************************************************/
 
@@ -1601,7 +1602,10 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 		log_message_method("Allocating registers: ", m);
 
 	/* allocate registers */
-	regalloc(m, cd, rd);
+ 	if (opt_lsra)
+ 		lsra(m, cd, rd, ld, id);
+ 	else
+		regalloc(m, cd, rd);
 
 	if (compileverbose) {
 		log_message_method("Allocating registers done: ", m);

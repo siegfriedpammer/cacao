@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1577 2004-11-24 13:06:56Z twisti $
+   $Id: codegen.c 1590 2004-11-25 13:24:49Z christian $
 
 */
 
@@ -54,7 +54,6 @@
 #include "jit/reg.h"
 #include "jit/i386/codegen.h"
 #include "jit/i386/emitfuncs.h"
-
 
 /* register descripton - array ************************************************/
 
@@ -91,7 +90,7 @@ static int nregdescfloat[] = {
 
 #include "jit/codegen.inc"
 #include "jit/reg.inc"
-
+#include "jit/lsra.inc"
 
 void codegen_stubcalled() {
 	log_text("Stub has been called");
@@ -267,6 +266,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	parentargs_base = rd->maxmemuse + savedregs_num;
 
+	   
 #if defined(USE_THREADS)           /* space to save argument of monitor_enter */
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
@@ -528,15 +528,45 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		src = bptr->instack;
 		len = bptr->indepth;
 		MCODECHECK(64+len);
+
+		if (opt_lsra) {
 		while (src != NULL) {
 			len--;
   			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
 				if (!IS_2_WORD_TYPE(src->type)) {
 					if (bptr->type == BBTYPE_SBR) {
-						d = reg_of_var(rd, src, REG_ITMP1);
+							/* 							d = reg_of_var(m, src, REG_ITMP1); */
+							if (!(src->flags & INMEMORY))
+								d= src->regoff;
+							else
+								d=REG_ITMP1;
 						i386_pop_reg(cd, d);
 						store_reg_to_var_int(src, d);
+						} else if (bptr->type == BBTYPE_EXH) {
+							/* 							d = reg_of_var(m, src, REG_ITMP1); */
+							if (!(src->flags & INMEMORY))
+								d= src->regoff;
+							else
+								d=REG_ITMP1;
+							M_INTMOVE(REG_ITMP1, d);
+							store_reg_to_var_int(src, d);
+						}
 
+					} else {
+						panic("copy interface registers(EXH, SBR): longs have to me in memory (begin 1)");
+					}
+				}
+				src = src->prev;
+			}
+		} else {
+			while (src != NULL) {
+				len--;
+				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
+					if (!IS_2_WORD_TYPE(src->type)) {
+						if (bptr->type == BBTYPE_SBR) {
+							d = reg_of_var(rd, src, REG_ITMP1);
+							i386_pop_reg(cd, d);
+							store_reg_to_var_int(src, d);
 					} else if (bptr->type == BBTYPE_EXH) {
 						d = reg_of_var(rd, src, REG_ITMP1);
 						M_INTMOVE(REG_ITMP1, d);
@@ -589,6 +619,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 			}
 			src = src->prev;
+		}
 		}
 
 		/* walk through all instructions */
@@ -4356,6 +4387,7 @@ gen_method: {
 	src = bptr->outstack;
 	len = bptr->outdepth;
 	MCODECHECK(64+len);
+		if (!opt_lsra)
 	while (src) {
 		len--;
 		if ((src->varkind != STACKVAR)) {

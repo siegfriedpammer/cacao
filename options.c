@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.c 1546 2004-11-18 12:25:04Z twisti $
+   $Id: options.c 1590 2004-11-25 13:24:49Z christian $
 
 */
 
@@ -89,6 +89,7 @@ bool opt_stat = false;
 bool opt_verify = true;        /* true if classfiles should be verified      */
 bool opt_eager = false;
 
+bool opt_lsra = false;
 
 int opt_ind = 1;               /* index of processed arguments               */
 char *opt_arg;                 /* this one exports the option argument       */

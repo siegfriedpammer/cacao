@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1549 2004-11-19 13:17:33Z twisti $
+   $Id: cacao.c 1590 2004-11-25 13:24:49Z christian $
 
 */
 
@@ -80,7 +80,6 @@ static classinfo *mainclass;
 void **stackbottom = 0;
 #endif
 
-
 /* define command line options ************************************************/
 
 #define OPT_CLASSPATH   2
@@ -112,6 +111,7 @@ void **stackbottom = 0;
 #define OPT_LIBERALUTF  31
 #define OPT_VERBOSEEXCEPTION 32
 #define OPT_EAGER            33
+#define OPT_LSRA 34
 
 
 opt_struct opts[] = {
@@ -154,6 +154,7 @@ opt_struct opts[] = {
 	{"rt",               false,  OPT_RT},
 	{"xta",              false,  OPT_XTA},
 	{"vta",              false,  OPT_VTA},
+	{"lsra", false, OPT_LSRA},
 	{NULL,               false,  0}
 };
 
@@ -215,6 +216,7 @@ static void usage()
 	printf("          -rt .................. use rapid type analysis\n");
 	printf("          -xta ................. use x type analysis\n");
 	printf("          -vta ................. use variable type analysis\n");
+	printf("          -lsra ................ use linear scan register allocation\n");
 
 	/* exit with error code */
 
@@ -542,6 +544,15 @@ int main(int argc, char **argv)
 
 		case OPT_VTA:
 			/***opt_vta = true; not yet **/
+			break;
+
+		case OPT_LSRA:
+#if defined(__I386__) || defined(__ALPHA__)
+			opt_lsra = true;
+#else
+			printf("LSRA not available for this architecture\n");
+			opt_lsra = false;
+#endif
 			break;
 
 		default:

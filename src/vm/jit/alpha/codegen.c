@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1507 2004-11-14 17:02:15Z jowenn $
+   $Id: codegen.c 1590 2004-11-25 13:24:49Z christian $
 
 */
 
@@ -42,6 +42,7 @@
 #include "jit/jit.h"
 #include "jit/parse.h"
 #include "jit/reg.h"
+#include "jit/lsra.h"
 #include "builtin.h"
 #include "asmpart.h"
 #include "jni.h"
@@ -111,6 +112,7 @@ int nregdescfloat[] = {
 
 #include "jit/codegen.inc"
 #include "jit/reg.inc"
+#include "jit/lsra.inc"
 
 
 /* NullPointerException handlers and exception handling initialisation        */
@@ -499,9 +501,24 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		src = bptr->instack;
 		len = bptr->indepth;
 		MCODECHECK(64+len);
+		if (opt_lsra) {
 		while (src != NULL) {
 			len--;
 			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
+					/* 				d = reg_of_var(m, src, REG_ITMP1); */
+					if (!(src->flags & INMEMORY))
+						d= src->regoff;
+					else
+						d=REG_ITMP1;
+					M_INTMOVE(REG_ITMP1, d);
+					store_reg_to_var_int(src, d);
+				}
+				src = src->prev;
+			}
+		} else {
+			while (src != NULL) {
+				len--;
+				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
 				d = reg_of_var(rd, src, REG_ITMP1);
 				M_INTMOVE(REG_ITMP1, d);
 				store_reg_to_var_int(src, d);
@@ -534,6 +551,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 			src = src->prev;
 			}
+		}
 
 		/* walk through all instructions */
 		
@@ -3478,6 +3496,7 @@ gen_method: {
 	src = bptr->outstack;
 	len = bptr->outdepth;
 	MCODECHECK(64+len);
+	if (!opt_lsra) 
 	while (src) {
 		len--;
 		if ((src->varkind != STACKVAR)) {
