@@ -186,7 +186,6 @@ static void analyse_stack()
 	basicblock *bptr, *tbptr;
 	s4 *s4ptr;
 	void* *tptr;
-	xtable *ex;
 
 	//	int *argren = DMNEW(int, maxlocals); 
 	int *argren = (int *)alloca(maxlocals * sizeof(int)); /* table for argument renaming */
@@ -707,7 +706,7 @@ icmd_lconst_tail:
 										iptr[0].opc = ICMD_LXORCONST;
 										goto icmd_lconst_tail;
 #endif
-#ifndef NOLONG_CONDITIONAL
+#if defined(NOLONG_CONDITIONAL)
 									case ICMD_LCMP:
 										if ((len > 1) && (iptr[2].val.i == 0)) {
 											switch (iptr[2].opc) {
@@ -1212,22 +1211,22 @@ icmd_store:
 						/* pop 2 push 1 */
 						
 						case ICMD_IDIV:
-							if (!(SUPPORT_DIVISION)) {
-								iptr[0].opc = ICMD_BUILTIN2;
-								iptr[0].op1 = TYPE_INT;
-								iptr[0].val.a = (functionptr) asm_builtin_idiv;
-								isleafmethod = false;
-								goto builtin2;
-								}
+#if !SUPPORT_DIVISION
+							iptr[0].opc = ICMD_BUILTIN2;
+							iptr[0].op1 = TYPE_INT;
+							iptr[0].val.a = (functionptr) asm_builtin_idiv;
+							isleafmethod = false;
+							goto builtin2;
+#endif
 
 						case ICMD_IREM:
-							if (!(SUPPORT_DIVISION)) {
-								iptr[0].opc = ICMD_BUILTIN2;
-								iptr[0].op1 = TYPE_INT;
-								iptr[0].val.a = (functionptr) asm_builtin_irem;
-								isleafmethod = false;
-								goto builtin2;
-								}
+#if !SUPPORT_DIVISION
+							iptr[0].opc = ICMD_BUILTIN2;
+							iptr[0].op1 = TYPE_INT;
+							iptr[0].val.a = (functionptr) asm_builtin_irem;
+							isleafmethod = false;
+							goto builtin2;
+#endif
 
 						case ICMD_IADD:
 						case ICMD_ISUB:
@@ -1244,22 +1243,22 @@ icmd_store:
 							break;
 
 						case ICMD_LDIV:
-							if (!(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)) {
-								iptr[0].opc = ICMD_BUILTIN2;
-								iptr[0].op1 = TYPE_LNG;
-								iptr[0].val.a = (functionptr) asm_builtin_ldiv;
-								isleafmethod = false;
-								goto builtin2;
-								}
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)
+							iptr[0].opc = ICMD_BUILTIN2;
+							iptr[0].op1 = TYPE_LNG;
+							iptr[0].val.a = (functionptr) asm_builtin_ldiv;
+							isleafmethod = false;
+							goto builtin2;
+#endif
 
 						case ICMD_LREM:
-							if (!(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)) {
-								iptr[0].opc = ICMD_BUILTIN2;
-								iptr[0].op1 = TYPE_LNG;
-								iptr[0].val.a = (functionptr) asm_builtin_lrem;
-								isleafmethod = false;
-								goto builtin2;
-								}
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)
+							iptr[0].opc = ICMD_BUILTIN2;
+							iptr[0].op1 = TYPE_LNG;
+							iptr[0].val.a = (functionptr) asm_builtin_lrem;
+							isleafmethod = false;
+							goto builtin2;
+#endif
 
 						case ICMD_LADD:
 						case ICMD_LSUB:
@@ -1520,7 +1519,6 @@ builtin2:
 							OP1_0ANY;
 
 						case ICMD_BUILTIN1:
-builtin1:
 							if (! (curstack->flags & SAVEDVAR)) {
 								curstack->varkind = ARGVAR;
 								curstack->varnum = 0;
