@@ -2366,11 +2366,12 @@ jsize GetArrayLength (JNIEnv *env, jarray array)
 
 jobjectArray NewObjectArray (JNIEnv *env, jsize len, jclass clazz, jobject init)
 {
+	java_objectarray *j;
     if (len<0) {
 		exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
-    java_objectarray *j = builtin_anewarray (len, clazz);
+    j = builtin_anewarray (len, clazz);
     if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
@@ -2406,11 +2407,12 @@ void SetObjectArrayElement (JNIEnv *env, jobjectArray array, jsize index, jobjec
 
 jbooleanArray NewBooleanArray (JNIEnv *env, jsize len)
 {
+	java_booleanarray *j;
     if (len<0) {
 		exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
-    java_booleanarray *j = builtin_newarray_boolean(len);
+    j = builtin_newarray_boolean(len);
     if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
@@ -2418,11 +2420,12 @@ jbooleanArray NewBooleanArray (JNIEnv *env, jsize len)
 
 jbyteArray NewByteArray (JNIEnv *env, jsize len)
 {
+	java_bytearray *j;
     if (len<0) {
 		exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
-    java_bytearray *j = builtin_newarray_byte(len);
+    j = builtin_newarray_byte(len);
     if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
@@ -2430,11 +2433,12 @@ jbyteArray NewByteArray (JNIEnv *env, jsize len)
 
 jcharArray NewCharArray (JNIEnv *env, jsize len)
 {
+	java_chararray *j;
     if (len<0) {
 		exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
-    java_chararray *j = builtin_newarray_char(len);
+    j = builtin_newarray_char(len);
     if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
@@ -2442,11 +2446,12 @@ jcharArray NewCharArray (JNIEnv *env, jsize len)
 
 jshortArray NewShortArray (JNIEnv *env, jsize len)
 {
+	java_shortarray *j;
     if (len<0) {
 		exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
-    java_shortarray *j = builtin_newarray_short(len);   
+    j = builtin_newarray_short(len);   
     if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
@@ -2454,11 +2459,12 @@ jshortArray NewShortArray (JNIEnv *env, jsize len)
 
 jintArray NewIntArray (JNIEnv *env, jsize len)
 {
+	java_intarray *j;
     if (len<0) {
 		exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
-    java_intarray *j = builtin_newarray_int(len);
+    j = builtin_newarray_int(len);
     if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
@@ -2466,11 +2472,12 @@ jintArray NewIntArray (JNIEnv *env, jsize len)
 
 jlongArray NewLongArray (JNIEnv *env, jsize len)
 {
+	java_longarray *j;
     if (len<0) {
 		exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
-    java_longarray *j = builtin_newarray_long(len);
+    j = builtin_newarray_long(len);
     if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
@@ -2478,11 +2485,12 @@ jlongArray NewLongArray (JNIEnv *env, jsize len)
 
 jfloatArray NewFloatArray (JNIEnv *env, jsize len)
 {
+	java_floatarray *j;
     if (len<0) {
 		exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
-    java_floatarray *j = builtin_newarray_float(len);
+    j = builtin_newarray_float(len);
     if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
@@ -2490,11 +2498,12 @@ jfloatArray NewFloatArray (JNIEnv *env, jsize len)
 
 jdoubleArray NewDoubleArray (JNIEnv *env, jsize len)
 {
+	java_doublearray *j;
     if (len<0) {
 		exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
-    java_doublearray *j = builtin_newarray_double(len);
+    j = builtin_newarray_double(len);
     if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }

@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 685 2003-12-04 01:25:54Z jowenn $
+   $Id: builtin.c 686 2003-12-04 11:35:11Z stefan $
 
 */
 
@@ -533,15 +533,16 @@ java_arrayheader *builtin_newarray(s4 size,vftbl *arrayvftbl)
         arraydescriptor *desc = arrayvftbl->arraydesc;
         s4 dataoffset = desc->dataoffset;
         s4 componentsize = desc->componentsize;
+		s4 actualsize;
 
 	if (size<0) {
 		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/NegativeArraySizeException")));
 		return NULL;
 	}
 #ifdef SIZE_FROM_CLASSINFO
-        s4 actualsize = align_size(dataoffset + size * componentsize);
+        actualsize = align_size(dataoffset + size * componentsize);
 #else
-        s4 actualsize = dataoffset + size * componentsize;
+        actualsize = dataoffset + size * componentsize;
 #endif
         a = (java_arrayheader *)
                 heap_allocate(actualsize,
