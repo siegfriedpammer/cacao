@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1533 2004-11-18 10:37:24Z twisti $
+   $Id: builtin.c 1542 2004-11-18 12:19:49Z twisti $
 
 */
 
@@ -56,6 +56,7 @@
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 #include "nat/java_lang_Cloneable.h"
+#include "nat/java_lang_VMObject.h"
 
 
 #undef DEBUG /*define DEBUG 1*/
@@ -264,7 +265,7 @@ s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl_t *target)
 
 java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 {
-	if (verbose) {
+	if (opt_verbose) {
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Builtin exception thrown: ");
 		if (xptr) {
@@ -776,7 +777,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 		else
 			log_text("WARNING: unmatched methodindent--");
 	}
-	if (verbose || runverbose || verboseexception) {
+	if (opt_verbose || runverbose || verboseexception) {
 		if (xptr) {
 			printf("Exception ");
 			utf_display_classname(xptr->vftbl->class->name);
@@ -1798,7 +1799,8 @@ inline float longBitsToDouble(s8 l)
 
 java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o)
 {
-	return (java_arrayheader *) Java_java_lang_VMObject_clone(0, 0, (java_lang_Cloneable *) o);
+	return (java_arrayheader *)
+		Java_java_lang_VMObject_clone(0, 0, (java_lang_Cloneable *) o);
 }
 
 
