@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 1791 2004-12-21 10:12:44Z twisti $
+   $Id: exceptions.h 1846 2005-01-04 11:28:46Z twisti $
 
 */
 
@@ -50,47 +50,47 @@ extern classinfo *class_java_lang_OutOfMemoryError;
 
 /* exception/error super class */
 
-extern char *string_java_lang_Throwable;
+extern const char *string_java_lang_Throwable;
 
 
 /* specify some exception strings for code generation */
 
-extern char *string_java_lang_ArithmeticException;
-extern char *string_java_lang_ArithmeticException_message;
-extern char *string_java_lang_ArrayIndexOutOfBoundsException;
-extern char *string_java_lang_ArrayStoreException;
-extern char *string_java_lang_ClassCastException;
-extern char *string_java_lang_ClassNotFoundException;
-extern char *string_java_lang_CloneNotSupportedException;
-extern char *string_java_lang_Exception;
-extern char *string_java_lang_IllegalAccessException;
-extern char *string_java_lang_IllegalArgumentException;
-extern char *string_java_lang_IllegalMonitorStateException;
-extern char *string_java_lang_IndexOutOfBoundsException;
-extern char *string_java_lang_InterruptedException;
-extern char *string_java_lang_NegativeArraySizeException;
-extern char *string_java_lang_NoSuchFieldException;
-extern char *string_java_lang_NoSuchMethodException;
-extern char *string_java_lang_NullPointerException;
+extern const char *string_java_lang_ArithmeticException;
+extern const char *string_java_lang_ArithmeticException_message;
+extern const char *string_java_lang_ArrayIndexOutOfBoundsException;
+extern const char *string_java_lang_ArrayStoreException;
+extern const char *string_java_lang_ClassCastException;
+extern const char *string_java_lang_ClassNotFoundException;
+extern const char *string_java_lang_CloneNotSupportedException;
+extern const char *string_java_lang_Exception;
+extern const char *string_java_lang_IllegalAccessException;
+extern const char *string_java_lang_IllegalArgumentException;
+extern const char *string_java_lang_IllegalMonitorStateException;
+extern const char *string_java_lang_IndexOutOfBoundsException;
+extern const char *string_java_lang_InterruptedException;
+extern const char *string_java_lang_NegativeArraySizeException;
+extern const char *string_java_lang_NoSuchFieldException;
+extern const char *string_java_lang_NoSuchMethodException;
+extern const char *string_java_lang_NullPointerException;
 
 
 /* specify some error strings for code generation */
 
-extern char *string_java_lang_AbstractMethodError;
-extern char *string_java_lang_ClassCircularityError;
-extern char *string_java_lang_ClassFormatError;
-extern char *string_java_lang_Error;
-extern char *string_java_lang_ExceptionInInitializerError;
-extern char *string_java_lang_IncompatibleClassChangeError;
-extern char *string_java_lang_InternalError;
-extern char *string_java_lang_LinkageError;
-extern char *string_java_lang_NoClassDefFoundError;
-extern char *string_java_lang_NoSuchFieldError;
-extern char *string_java_lang_NoSuchMethodError;
-extern char *string_java_lang_OutOfMemoryError;
-extern char *string_java_lang_UnsupportedClassVersionError;
-extern char *string_java_lang_VerifyError;
-extern char *string_java_lang_VirtualMachineError;
+extern const char *string_java_lang_AbstractMethodError;
+extern const char *string_java_lang_ClassCircularityError;
+extern const char *string_java_lang_ClassFormatError;
+extern const char *string_java_lang_Error;
+extern const char *string_java_lang_ExceptionInInitializerError;
+extern const char *string_java_lang_IncompatibleClassChangeError;
+extern const char *string_java_lang_InternalError;
+extern const char *string_java_lang_LinkageError;
+extern const char *string_java_lang_NoClassDefFoundError;
+extern const char *string_java_lang_NoSuchFieldError;
+extern const char *string_java_lang_NoSuchMethodError;
+extern const char *string_java_lang_OutOfMemoryError;
+extern const char *string_java_lang_UnsupportedClassVersionError;
+extern const char *string_java_lang_VerifyError;
+extern const char *string_java_lang_VirtualMachineError;
 
 
 /* function prototypes */
@@ -113,19 +113,29 @@ void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 
 /* initialize new exceptions */
 
-java_objectheader *new_exception(char *classname);
-java_objectheader *new_exception_message(char *classname, char *message);
-java_objectheader *new_exception_throwable(char *classname, java_lang_Throwable *cause);
-java_objectheader *new_exception_utfmessage(char *classname, utf *message);
-java_objectheader *new_exception_javastring(char *classname, java_lang_String *message);
-java_objectheader *new_exception_int(char *classname, s4 i);
+java_objectheader *new_exception(const char *classname);
+
+java_objectheader *new_exception_message(const char *classname,
+										 const char *message);
+
+java_objectheader *new_exception_throwable(const char *classname,
+										   java_lang_Throwable *cause);
+
+java_objectheader *new_exception_utfmessage(const char *classname,
+											utf *message);
+
+java_objectheader *new_exception_javastring(const char *classname,
+											java_lang_String *message);
+
+java_objectheader *new_exception_int(const char *classname, s4 i);
 
 
 /* functions to generate compiler exceptions */
 
-java_objectheader *new_classformaterror(classinfo *c, char *message, ...);
-java_objectheader *new_verifyerror(methodinfo *m, char *message);
-java_objectheader *new_unsupportedclassversionerror(classinfo *c, char *message, ...);
+java_objectheader *new_classformaterror(classinfo *c, const char *message, ...);
+java_objectheader *new_verifyerror(methodinfo *m, const char *message);
+java_objectheader *new_unsupportedclassversionerror(classinfo *c,
+													const char *message, ...);
 
 java_objectheader *new_arithmeticexception();
 java_objectheader *new_arrayindexoutofboundsexception(s4 index);
