@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.h 739 2003-12-13 18:52:21Z stefan $
+   $Id: memory.h 1437 2004-11-05 09:51:07Z twisti $
 
 */
 
@@ -87,9 +87,45 @@ Some more macros:
 
 */
 
+
+#define DUMPBLOCKSIZE    2 << 13    /* 2 * 8192 bytes */
+#define ALIGNSIZE        8
+
+
+/* dumpblock *******************************************************************
+
+   TODO
+
+*******************************************************************************/
+
+typedef struct dumpblock dumpblock;
+
+struct dumpblock {
+	dumpblock *prev;
+	void      *dumpmem;
+	s4         size;
+};
+
+
+/* dumpinfo ********************************************************************
+
+   TODO
+
+*******************************************************************************/
+
+typedef struct dumpinfo dumpinfo;
+
+struct dumpinfo {
+	dumpblock *currentdumpblock;
+	s4         allocateddumpsize;
+	s4         useddumpsize;
+};
+
+
 /* Uncollectable memory which can contain references */
 void *heap_alloc_uncollectable(u4 bytelen);
 void heap_free(void *);
+
 #define GCNEW(type,num)       heap_alloc_uncollectable(sizeof(type) * (num))
 #define GCFREE(ptr)           heap_free(ptr)
 
@@ -100,9 +136,6 @@ void heap_free(void *);
 
 #define NEW(type)             ((type*) mem_alloc(sizeof(type)))
 #define FREE(ptr,type)        mem_free(ptr, sizeof(type))
-
-#define LNEW(type)            ((type*) lit_mem_alloc(sizeof(type)))
-#define LFREE(ptr,type)       lit_mem_free(ptr, sizeof(type))
 
 #define MNEW(type,num)        ((type*) mem_alloc(sizeof(type) * (num)))
 #define MFREE(ptr,type,num)   mem_free(ptr, sizeof(type) * (num))
@@ -116,7 +149,7 @@ void heap_free(void *);
 
 #define MCOPY(dest,src,type,num)  memcpy(dest,src, sizeof(type)* (num))
 
-#ifdef USE_CODEMMAP
+#if defined(USE_CODEMMAP)
 #define CNEW(type,num)        ((type*) mem_mmap( sizeof(type) * (num)))
 #define CFREE(ptr,num)
 #else
@@ -125,21 +158,18 @@ void heap_free(void *);
 #endif
 
 
-void *mem_alloc(int length);
-void *mem_mmap(int length);
-void *lit_mem_alloc(int length);
-void mem_free(void *m, int length);
-void lit_mem_free(void *m, int length);
-void *mem_realloc(void *m, int len1, int len2);
-long int mem_usage();
+/* function prototypes */
 
-void *dump_alloc(int length);
-void *dump_realloc(void *m, int len1, int len2);
-long int dump_size();
-void dump_release(long int size);
+void *mem_mmap(int size);
+void *mem_alloc(int size);
+void mem_free(void *m, int size);
+void *mem_realloc(void *src, int len1, int len2);
 
-void mem_usagelog(int givewarnings);
- 
+void *dump_alloc(int size);
+void *dump_realloc(void *src, int len1, int len2);
+long dump_size();
+void dump_release(int size);
+
 #endif /* _MEMORY_H */
 
 

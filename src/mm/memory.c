@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1335 2004-07-21 15:57:10Z twisti $
+   $Id: memory.c 1437 2004-11-05 09:51:07Z twisti $
 
 */
 
@@ -41,246 +41,237 @@
 #include "exceptions.h"
 #include "global.h"
 #include "native.h"
+#include "options.h"
+#include "statistics.h"
+#include "threads/nativethread.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
 
 /********* general types, variables and auxiliary functions *********/
 
-#define DUMPBLOCKSIZE  (2<<21)
-#define ALIGNSIZE           8
-
-typedef struct dumplist {
-	struct dumplist *prev;
-	char *dumpmem;
-	int size;
-} dumplist;
-
-
 static int mmapcodesize = 0;
 static void *mmapcodeptr = NULL;
 
-long int memoryusage = 0;
 
-long int dumpsize = 0;
-long int dumpspace = 0;
-dumplist *topdumpblock = NULL;
+/*******************************************************************************
 
-long int maxmemusage = 0;
-long int maxdumpsize = 0;
+    This structure is used for dump memory allocation if cacao runs without
+    threads.
+
+*******************************************************************************/
+
+#if !defined(USE_THREADS)
+static dumpinfo nothreads_dumpinfo;
+#endif
 
 
-static void *lit_checked_alloc(int length)
+void *mem_mmap(int size)
 {
-	void *m = malloc(length);
+	void *m;
 
-	if (!m)
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Out of memory");
+	size = ALIGN(size, ALIGNSIZE);
 
-	/* not setting to zero causes cacao to segfault (String.hashCode() is
-	   completely wrong) */
-	memset(m, 0, length);
-
-	return m;
-}
-
-
-static void *checked_alloc(int length)
-{
-	void *m = malloc(length);
-
-	if (!m)
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Out of memory");
-
-	return m;
-}
-
-
-void *mem_mmap(int length)
-{
-	void *retptr;
-
-	length = ALIGN(length, ALIGNSIZE);
-
-	if (length > mmapcodesize) {
+	if (size > mmapcodesize) {
 		mmapcodesize = 0x10000;
 
-		if (length > mmapcodesize)
-			mmapcodesize = length;
+		if (size > mmapcodesize)
+			mmapcodesize = size;
 
 		mmapcodesize = ALIGN(mmapcodesize, getpagesize());
-		mmapcodeptr = mmap (NULL,
-							(size_t) mmapcodesize,
-							PROT_READ | PROT_WRITE | PROT_EXEC,
-							MAP_PRIVATE | MAP_ANONYMOUS,
-							-1,
-							(off_t) 0);
+		mmapcodeptr = mmap(NULL,
+						   (size_t) mmapcodesize,
+						   PROT_READ | PROT_WRITE | PROT_EXEC,
+						   MAP_PRIVATE | MAP_ANONYMOUS,
+						   -1,
+						   (off_t) 0);
 
 		if (mmapcodeptr == MAP_FAILED)
 			throw_cacao_exception_exit(string_java_lang_InternalError,
 									   "Out of memory");
 	}
 
-	retptr = mmapcodeptr;
-	mmapcodeptr = (void *) ((char *) mmapcodeptr + length);
-	mmapcodesize -= length;
+	m = mmapcodeptr;
+	mmapcodeptr = (void *) ((char *) mmapcodeptr + size);
+	mmapcodesize -= size;
 
-	return retptr;
+	return m;
 }
 
 
-void *mem_alloc(int length)
+static void *checked_alloc(int size)
 {
-	if (length == 0)
-		return NULL;
+	/* always allocate memory zeroed out */
+	void *m = calloc(size, 1);
 
-	memoryusage += length;
-	if (memoryusage > maxmemusage)
-		maxmemusage = memoryusage;
-	
-	return checked_alloc(length);
-}
-
-
-void *lit_mem_alloc(int length)
-{
-	if (length == 0)
-		return NULL;
-
-	memoryusage += length;
-	if (memoryusage > maxmemusage)
-		maxmemusage = memoryusage;
-	
-	return lit_checked_alloc(length);
-}
-
-
-void mem_free(void *m, int length)
-{
-	if (!m) {
-		if (length == 0)
-			return;
-		panic("returned memoryblock with address NULL, length != 0");
-	}
-
-	memoryusage -= length;
-
-	free(m);
-}
-
-
-void lit_mem_free(void *m, int length)
-{
-	if (!m) {
-		if (length == 0)
-			return;
-		panic("returned memoryblock with address NULL, length != 0");
-	}
-
-	memoryusage -= length;
-
-	free(m);
-}
-
-
-void *mem_realloc(void *m1, int len1, int len2)
-{
-	void *m2;
-
-	if (!m1) {
-		if (len1 != 0)
-			panic("reallocating memoryblock with address NULL, length != 0");
-	}
-		
-	memoryusage = (memoryusage - len1) + len2;
-
-	m2 = realloc(m1, len2);
-
-	if (!m2)
+	if (!m)
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Out of memory");
 
-	return m2;
+	return m;
 }
 
 
-/******* common memory manager parts ******/
-
-long int mem_usage()
+void *mem_alloc(int size)
 {
-	return memoryusage;
-}
+	if (size == 0)
+		return NULL;
 
+	if (opt_stat) {
+		memoryusage += size;
 
-void *dump_alloc(int length)
-{
-#if 1
-	return checked_alloc(length);
-#else
-	void *m;
-	int blocksize = DUMPBLOCKSIZE;
-
-	if (length == 0) return NULL;
-	
-	length = ALIGN(length, ALIGNSIZE);
-
-	if (length > DUMPBLOCKSIZE)
-		blocksize = length;
-	assert(length > 0);
-
-	if (dumpsize + length > dumpspace) {
-		dumplist *newdumpblock = checked_alloc(sizeof(dumplist));
-
-		newdumpblock->prev = topdumpblock;
-		newdumpblock->size = blocksize;
-		topdumpblock = newdumpblock;
-
-		newdumpblock->dumpmem = checked_alloc(blocksize);
-
-		dumpsize = dumpspace;
-		dumpspace += blocksize;
+		if (memoryusage > maxmemusage)
+			maxmemusage = memoryusage;
 	}
 	
-	m = topdumpblock->dumpmem + blocksize - (dumpspace - dumpsize);
-	dumpsize += length;
-	
-	if (dumpsize > maxdumpsize) {
-		maxdumpsize = dumpsize;
+	return checked_alloc(size);
+}
+
+
+void *mem_realloc(void *src, int len1, int len2)
+{
+	void *dst;
+
+	if (!src) {
+		if (len1 != 0)
+			panic("reallocating memoryblock with address NULL, length != 0");
+	}
+
+	if (opt_stat)
+		memoryusage = (memoryusage - len1) + len2;
+
+	dst = realloc(src, len2);
+
+	if (!dst)
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Out of memory");
+
+	return dst;
+}
+
+
+void mem_free(void *m, int size)
+{
+	if (!m) {
+		if (size == 0)
+			return;
+		panic("returned memoryblock with address NULL, length != 0");
+	}
+
+	if (opt_stat)
+		memoryusage -= size;
+
+	free(m);
+}
+
+
+void *dump_alloc(int size)
+{
+	void *m;
+	dumpinfo *di;
+
+	/* If no threads are used, the dumpinfo structure is a static structure   */
+	/* defined at the top of this file.                                       */
+#if defined(USE_THREADS)
+	di = &((threadobject *) THREADOBJECT)->dumpinfo;
+#else
+	di = &nothreads_dumpinfo;
+#endif
+
+	if (size == 0)
+		return NULL;
+
+	size = ALIGN(size, ALIGNSIZE);
+
+	if (di->useddumpsize + size > di->allocateddumpsize) {
+		dumpblock *newdumpblock;
+		s4 newdumpblocksize;
+
+		/* allocate a new dumplist structure */
+		newdumpblock = checked_alloc(sizeof(dumpblock));
+
+		/* If requested size is greater than the default, make the new dump   */
+		/* block as big as the size requested. Else use the default size.     */
+		if (size > DUMPBLOCKSIZE) {
+			newdumpblocksize = size;
+
+		} else {
+			newdumpblocksize = DUMPBLOCKSIZE;
+		}
+
+		/* allocate dumpblock memory */
+		//printf("new dumpblock: %d\n", newdumpblocksize);
+		newdumpblock->dumpmem = checked_alloc(newdumpblocksize);
+
+		newdumpblock->prev = di->currentdumpblock;
+		newdumpblock->size = newdumpblocksize;
+		di->currentdumpblock = newdumpblock;
+
+		/* Used dump size is previously allocated dump size, because the      */
+		/* remaining free memory of the previous dump block cannot be used.   */
+		//printf("unused memory: %d\n", allocateddumpsize - useddumpsize);
+		di->useddumpsize = di->allocateddumpsize;
+
+		/* increase the allocated dump size by the size of the new dump block */
+		di->allocateddumpsize += newdumpblocksize;
+
+		/* the amount of globally allocated dump memory (thread save)         */
+		if (opt_stat)
+			globalallocateddumpsize += newdumpblocksize;
+	}
+
+	/* current dump block base address + the size of the current dump block - */
+	/* the size of the unused memory = new start address                      */
+	m = di->currentdumpblock->dumpmem + di->currentdumpblock->size -
+		(di->allocateddumpsize - di->useddumpsize);
+
+	/* increase used dump size by the allocated memory size                   */
+	di->useddumpsize += size;
+
+	if (opt_stat) {
+		if (di->useddumpsize > maxdumpsize) {
+			maxdumpsize = di->useddumpsize;
+		}
 	}
 		
 	return m;
-#endif
 }   
 
 
-void *dump_realloc(void *ptr, int len1, int len2)
+void *dump_realloc(void *src, int len1, int len2)
 {
-	void *p2 = dump_alloc(len2);
+	void *dst = dump_alloc(len2);
 
-	memcpy(p2, ptr, len1);
+	memcpy(dst, src, len1);
 
-	return p2;
+	return dst;
 }
 
 
-long int dump_size()
+void dump_release(int size)
 {
-	return dumpsize;
-}
+	dumpinfo *di;
 
+	/* If no threads are used, the dumpinfo structure is a static structure   */
+	/* defined at the top of this file.                                       */
+#if defined(USE_THREADS)
+	di = &((threadobject *) THREADOBJECT)->dumpinfo;
+#else
+	di = &nothreads_dumpinfo;
+#endif
 
-void dump_release(long int size)
-{
-	return;
-	assert(size >= 0 && size <= dumpsize);
+	if (size < 0 || size > di->useddumpsize)
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Illegal dump release size %d", size);
 
-	dumpsize = size;
-	
-	while (topdumpblock && (dumpspace - topdumpblock->size >= dumpsize)) {
-		dumplist *oldtop = topdumpblock;
+	/* reset the used dump size to the size specified                         */
+	di->useddumpsize = size;
 
+	while (di->currentdumpblock && di->allocateddumpsize - di->currentdumpblock->size >= di->useddumpsize) {
+		dumpblock *tmp = di->currentdumpblock;
+
+#if 0
+		/* XXX TWISTI: can someone explain this to me? */
 #ifdef TRACECALLARGS
 		/* Keep the first dumpblock if we don't free memory. Otherwise
 		 * a new dumpblock is allocated each time and we run out of
@@ -288,29 +279,35 @@ void dump_release(long int size)
 		 */
 		if (!oldtop->prev) break;
 #endif
-		
-		dumpspace -= oldtop->size;
-		topdumpblock = oldtop->prev;
-		
-		free(oldtop->dumpmem);
-		free(oldtop);
-	}		
+#endif
+
+		di->allocateddumpsize -= tmp->size;
+		di->currentdumpblock = tmp->prev;
+
+		/* the amount of globally allocated dump memory (thread save)         */
+		if (opt_stat)
+			globalallocateddumpsize -= tmp->size;
+
+		/* release the dump memory and the dumpinfo structure                 */
+		free(tmp->dumpmem);
+		free(tmp);
+	}
 }
 
 
-void mem_usagelog (int givewarnings)
+long dump_size()
 {
-	if ((memoryusage != 0) && givewarnings) {
-		dolog("Allocated memory not returned: %d", (s4) memoryusage);
-	}
+	dumpinfo *di;
 
-	if ((dumpsize != 0) && givewarnings) {
-		dolog("Dump memory not returned: %d", (s4) dumpsize);
-	}
+	/* If no threads are used, the dumpinfo structure is a static structure   */
+	/* defined at the top of this file.                                       */
+#if defined(USE_THREADS)
+	di = &((threadobject *) THREADOBJECT)->dumpinfo;
+#else
+	di = &nothreads_dumpinfo;
+#endif
 
-	dolog("Random/Dump - memory usage: %dK/%dK", 
-		  (s4) ((maxmemusage + 1023) / 1024),
-		  (s4) ((maxdumpsize + 1023) / 1024));
+	return di->useddumpsize;
 }
 
 
