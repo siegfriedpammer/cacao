@@ -48,11 +48,12 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 557 2003-11-02 22:51:59Z twisti $
+   $Id: codegen.inc 592 2003-11-09 19:46:15Z twisti $
 
 */
 
 
+#include <string.h>
 #include "toolbox/memory.h"
 #include "toolbox/loging.h"
 
@@ -76,6 +77,8 @@ static branchref *xcheckarefs;      /* list of array size check branches      */
 static branchref *xnullrefs;        /* list of null check branches            */
 static branchref *xcastrefs;        /* list of cast check branches            */
 static branchref *xdivrefs;         /* list of divide by zero branches        */
+
+int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 void codegen_init();                /* allocates code and data area           */
 void codegen_close();               /* releases temporary storage             */
