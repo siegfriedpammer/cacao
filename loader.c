@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 864 2004-01-07 18:51:16Z edwin $
+   $Id: loader.c 866 2004-01-07 20:05:30Z edwin $
 
 */
 
@@ -704,6 +704,8 @@ static void checkfielddescriptor (char *utf_ptr, char *end_pos)
 						  | CLASSLOAD_NULLPRIMITIVE
 						  | CLASSLOAD_NOVOID
 						  | CLASSLOAD_CHECKEND);
+	
+	/* XXX use the following if -noverify */
 #if 0
 	char *tstart;  /* pointer to start of classname */
 	char ch;
@@ -748,26 +750,34 @@ static void checkmethoddescriptor (utf *d)
 {
 	char *utf_ptr = d->text;     /* current position in utf text   */
 	char *end_pos = utf_end(d);  /* points behind utf string       */
+	int argcount = 0;            /* number of arguments            */
 
 	/* method descriptor must start with parenthesis */
 	if (utf_ptr == end_pos || *utf_ptr++ != '(') panic ("Missing '(' in method descriptor");
 
     /* check arguments */
     while (utf_ptr != end_pos && *utf_ptr != ')') {
+		/* XXX we cannot count the this argument here because
+		 * we don't know if the method is static. */
+		if (*utf_ptr == 'J' || *utf_ptr == 'D')
+			argcount++;
+		if (++argcount > 255)
+			panic("Invalid method descriptor: too many arguments");
 		class_from_descriptor(utf_ptr,end_pos,&utf_ptr,
 							  CLASSLOAD_NEW
 							  | CLASSLOAD_NULLPRIMITIVE
 							  | CLASSLOAD_NOVOID);
 	}
 
-	if (utf_ptr == end_pos) panic("Missing return type in method descriptor");
+	if (utf_ptr == end_pos) panic("Missing ')' in method descriptor");
     utf_ptr++; /* skip ')' */
 
 	class_from_descriptor(utf_ptr,end_pos,NULL,
 						  CLASSLOAD_NEW
 						  | CLASSLOAD_NULLPRIMITIVE
 						  | CLASSLOAD_CHECKEND);
-	
+
+	/* XXX use the following if -noverify */
 #if 0
 	/* XXX check length */
 	/* check arguments */
@@ -1663,6 +1673,10 @@ static int class_load(classinfo *c)
 	if ((i = suck_u2())) {
 		c->super = class_getconstant(c, i, CONSTANT_Class);
 
+		/* java.lang.Object may not have a super class. */
+		if (c->name == utf_java_lang_Object)
+			panic("java.lang.Object with super class");
+
 		/* Interfaces must have j.l.O as super class. */
 		if ((c->flags & ACC_INTERFACE) != 0
 			&& c->super->name != utf_java_lang_Object)
@@ -2043,6 +2057,8 @@ void class_link(classinfo *c)
 			list_addlast(&unlinkedclasses, c);
 			return;	
 		}
+		if ((ic->flags & ACC_INTERFACE) == 0)
+			panic("Specified interface is not declared as interface");
 	}
 	
 	/*  check super class */
@@ -2063,6 +2079,9 @@ void class_link(classinfo *c)
 			list_addlast(&unlinkedclasses, c);
 			return;	
 		}
+
+		if ((super->flags & ACC_INTERFACE) != 0)
+			panic("Interface specified as super class");
 
 		/* handle array classes */
 		/* The component class must have been linked already. */
