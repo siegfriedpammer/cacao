@@ -54,6 +54,7 @@
 #define ra      $31
 
 #define pv      s8
+#define t9      itmp3
 
 #define xptr    itmp1
 #define xpc     itmp2
@@ -136,12 +137,13 @@
 
 	.globl has_no_x_instr_set
 	.globl synchronize_caches
-	.globl asm_calljavamethod
+	.globl asm_calljavafunction
 	.globl asm_call_jit_compiler
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 	.globl asm_builtin_checkarraycast
+	.globl asm_builtin_checkcast
 	.globl asm_builtin_aastore
 	.globl asm_builtin_monitorenter
 	.globl asm_builtin_monitorexit
@@ -194,7 +196,7 @@ synchronize_caches:
 
 #if 0
 
-/********************* function asm_calljavamethod *****************************
+/********************* function asm_calljavafunction ****************************
 *                                                                              *
 *   This function calls a Java-method (which possibly needs compilation)       *
 *   with up to 4 address parameters.                                           *
@@ -208,22 +210,22 @@ synchronize_caches:
 *   function value).                                                           *
 *                                                                              *
 *   C-prototype:                                                               *
-*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
+*    javaobject_header *asm_calljavafunction (methodinfo *m,                   *
 *         void *arg1, void *arg2, void *arg3, void *arg4);                     *
 *                                                                              *
 *******************************************************************************/
 
-	.ent    asm_calljavamethod
+	.ent    asm_calljavafunction
 
 call_name:
 
-	.ascii  "calljavamethod\0\0"
+	.ascii  "calljavafunction\0\0"
 
 	.align  3
 	.dword  0                         /* catch type all                       */
 	.dword  calljava_xhandler         /* handler pc                           */
 	.dword  calljava_xhandler         /* end pc                               */
-	.dword  asm_calljavamethod        /* start pc                             */
+	.dword  asm_calljavafunction        /* start pc                             */
 	.word   1                         /* extable size                         */
 	.word   0                         /* fltsave                              */
 	.word   0                         /* intsave                              */
@@ -232,7 +234,7 @@ call_name:
 	.word   80                        /* frame size                           */
 	.dword  0                         /* method pointer (pointer to name)     */
 
-asm_calljavamethod:
+asm_calljavafunction:
 
 	aaddiu  sp,sp,-10*8               /* allocate stack space                 */
 	sd      ra,0(sp)                  /* save return address                  */
@@ -293,7 +295,7 @@ calljava_xhandler:
 	jal     builtin_throw_exception
 	b       calljava_return
 
-	.end    asm_calljavamethod
+	.end    asm_calljavafunction
 
 #endif
 
@@ -501,11 +503,11 @@ ex_stack_loop:
 
 ex_table_loop:
 	ald     t2,ExStartPC(t1)      /* t2 = exception start pc                  */
-	slt     t2,xpc,t2             /* t2 = (xpc < startpc)                     */
-	bnez    t2,ex_table_cont      /* if (true) continue                       */
+	slt     t2,t2,xpc             /* t2 = (xpc < startpc)                     */
+	beqz    t2,ex_table_cont      /* if (true) continue                       */
 	ald     t2,ExEndPC(t1)        /* t2 = exception end pc                    */
-	slt     t2,xpc,t2             /* t2 = (xpc < endpc)                       */
-	beqz    t2,ex_table_cont      /* if (false) continue                      */
+	slt     t2,t2,xpc             /* t2 = (xpc < endpc)                       */
+	bnez    t2,ex_table_cont      /* if (false) continue                      */
 	ald     a1,ExCatchType(t1)    /* arg1 = exception catch type              */
 	beqz    a1,ex_handle_it       /* NULL catches everything                  */
 
@@ -635,8 +637,8 @@ ex_flt2:
 asm_builtin_monitorenter:
 
 	beqz    a0,nb_monitorenter        /* if (null) throw exception            */
-	ala     v0,builtin_monitorenter   /* else call builtin_monitorenter       */
-	j       v0
+	ala     t9,builtin_monitorenter   /* else call builtin_monitorenter       */
+	j       t9
 
 nb_monitorenter:
 	ald     xptr,proto_java_lang_NullPointerException
@@ -655,8 +657,8 @@ nb_monitorenter:
 asm_builtin_monitorexit:
 
 	beqz    a0,nb_monitorexit         /* if (null) throw exception            */
-	ala     v0,builtin_monitorexit    /* else call builtin_monitorexit        */
-	j       v0
+	ala     t9,builtin_monitorexit    /* else call builtin_monitorexit        */
+	j       t9
 
 nb_monitorexit:
 	ald     xptr,proto_java_lang_NullPointerException
@@ -675,8 +677,8 @@ nb_monitorexit:
 asm_builtin_idiv:
 
 	beqz    a1,nb_idiv                /* if (null) throw exception            */
-	ala     v0,builtin_idiv           /* else call builtin_idiv               */
-	j       v0
+	ala     itmp3,builtin_idiv        /* else call builtin_idiv               */
+	j       itmp3
 
 nb_idiv:
 	ald     xptr,proto_java_lang_ArithmeticException
@@ -695,8 +697,8 @@ nb_idiv:
 asm_builtin_ldiv:
 
 	beqz    a1,nb_ldiv                /* if (null) throw exception            */
-	ala     v0,builtin_ldiv           /* else call builtin_ldiv               */
-	j       v0
+	ala     itmp3,builtin_ldiv        /* else call builtin_ldiv               */
+	j       itmp3
 
 nb_ldiv:
 	ald     xptr,proto_java_lang_ArithmeticException
@@ -715,8 +717,8 @@ nb_ldiv:
 asm_builtin_irem:
 
 	beqz    a1,nb_irem                /* if (null) throw exception            */
-	ala     v0,builtin_irem           /* else call builtin_irem               */
-	j       v0
+	ala     t9,builtin_irem           /* else call builtin_irem               */
+	j       t9
 
 nb_irem:
 	ald     xptr,proto_java_lang_ArithmeticException
@@ -735,8 +737,8 @@ nb_irem:
 asm_builtin_lrem:
 
 	beqz    a1,nb_lrem                /* if (null) throw exception            */
-	ala     v0,builtin_lrem           /* else call builtin_lrem               */
-	j       v0
+	ala     t9,builtin_lrem           /* else call builtin_lrem               */
+	j       t9
 
 nb_lrem:
 	ald     xptr,proto_java_lang_ArithmeticException
@@ -771,6 +773,34 @@ nb_carray_throw:
 	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
 	b       asm_handle_nat_exception
 	.end    asm_builtin_checkarraycast
+
+
+/********************* function asm_builtin_checkcast **************************
+*                                                                              *
+*   Does the cast check and eventually throws an exception                     *
+*                                                                              *
+*******************************************************************************/
+
+	.ent    asm_builtin_checkcast
+asm_builtin_checkcast:
+
+	aaddiu  sp,sp,-16                 /* allocate stack space                 */
+	sd      ra,0(sp)                  /* save return address                  */
+	sd      a0,8(sp)                  /* save object pointer                  */
+	jal     builtin_checkcast         /* builtin_checkcast                    */
+	beqz    v0,nb_ccast_throw         /* if (false) throw exception           */
+	ld      ra,0(sp)                  /* restore return address               */
+	ld      v0,8(sp)                  /* return object pointer                */
+	aaddiu  sp,sp,16                  /* deallocate stack                     */
+	j       ra                        /* return                               */
+
+nb_ccast_throw:
+	ald     xptr,proto_java_lang_ClassCastException
+	ld      ra,0(sp)                  /* restore return address               */
+	aaddiu  sp,sp,16                  /* free stack space                     */
+	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
+	b       asm_handle_nat_exception
+	.end    asm_builtin_checkcast
 
 
 /******************* function asm_builtin_aastore ******************************
@@ -873,7 +903,7 @@ asm_perform_threadswitch:
 	sd      s5,  5*8(sp)
 	sd      s6,  6*8(sp)
 	sd      s7,  7*8(sp)
-/*	sd      s8,  8*8(sp) */
+	sd      s8,  8*8(sp)
 	sdc1    fs0, 9*8(sp)
 	sdc1    fs1,10*8(sp)
 	sdc1    fs2,11*8(sp)
@@ -890,13 +920,14 @@ asm_perform_threadswitch:
 	ld      s5,  5*8(sp)
 	ld      s6,  6*8(sp)
 	ld      s7,  7*8(sp)
-/*	ld      s8,  8*8(sp) */
+	ld      s8,  8*8(sp)
 	ldc1    fs0, 9*8(sp)
 	ldc1    fs1,10*8(sp)
 	ldc1    fs2,11*8(sp)
 	ldc1    fs3,12*8(sp)
 	ld      ra, 13*8(sp)
 	aaddiu  sp,sp,14*8      /* deallocate new stack                           */
+	move    itmp3, ra
 	j       ra              /* return                                         */
 	.end    asm_perform_threadswitch
 
