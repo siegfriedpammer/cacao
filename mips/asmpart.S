@@ -504,11 +504,11 @@ ex_stack_loop:
 
 ex_table_loop:
 	ald     t2,ExStartPC(t1)      /* t2 = exception start pc                  */
-	slt     t2,t2,xpc             /* t2 = (xpc < startpc)                     */
-	beqz    t2,ex_table_cont      /* if (true) continue                       */
+	slt     t2,xpc,t2             /* t2 = (xpc < startpc)                     */
+	bnez    t2,ex_table_cont      /* if (true) continue                       */
 	ald     t2,ExEndPC(t1)        /* t2 = exception end pc                    */
-	slt     t2,t2,xpc             /* t2 = (xpc < endpc)                       */
-	bnez    t2,ex_table_cont      /* if (false) continue                      */
+	slt     t2,xpc,t2             /* t2 = (xpc < endpc)                       */
+	beqz    t2,ex_table_cont      /* if (false) continue                      */
 	ald     a1,ExCatchType(t1)    /* arg1 = exception catch type              */
 	beqz    a1,ex_handle_it       /* NULL catches everything                  */
 

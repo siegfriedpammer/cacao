@@ -10,7 +10,7 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 280 2003-05-09 20:55:46Z stefan $
+	Last Change: $Id: ngen.c 304 2003-05-14 14:04:09Z stefan $
 
 *******************************************************************************/
 
@@ -582,6 +582,7 @@ static void gen_mcode()
 
 	/* call trace function */
 
+#if 0
 	if (runverbose && !isleafmethod) {
 		M_LDA (REG_SP, REG_SP, -8);
 		p = dseg_addaddress (method);
@@ -593,6 +594,7 @@ static void gen_mcode()
 		M_NOP;
 		M_LDA(REG_SP, REG_SP, 8);
 		}
+#endif
 
 	/* call monitorenter function */
 
@@ -2233,6 +2235,8 @@ static void gen_mcode()
 			M_ALD(REG_ITMP2, REG_PV, a);
 			M_JSR(REG_ITMP2_XPC, REG_ITMP2);
 			M_NOP;
+			M_NOP;              /* nop ensures that XPC is less than the end */
+			                    /* of basic block                            */
 			ALIGNCODENOP;
 			break;
 
