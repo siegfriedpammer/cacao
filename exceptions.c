@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1480 2004-11-11 14:37:01Z twisti $
+   $Id: exceptions.c 1491 2004-11-12 13:25:02Z twisti $
 
 */
 
@@ -525,7 +525,11 @@ java_objectheader *new_arrayindexoutofboundsexception(s4 index)
 		return *exceptionptr;
 
 	s = (java_lang_String *) asm_calljavafunction(m,
+#if POINTERSIZE == 8
+												  (void *) (s8) index,
+#else
 												  (void *) index,
+#endif
 												  NULL,
 												  NULL,
 												  NULL);
