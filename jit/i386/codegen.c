@@ -28,10 +28,11 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1049 2004-05-05 11:43:11Z stefan $
+   $Id: codegen.c 1052 2004-05-05 12:26:36Z stefan $
 
 */
 
+#include "global.h"
 #include <stdio.h>
 #include <signal.h>
 #include "types.h"
