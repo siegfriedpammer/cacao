@@ -20,7 +20,7 @@ Especially comments in asmpart
 
 Description: Make kopi work with lsra.
 Assigned   : christian
-Status     : OPEN
+Status     : CLOSED
 Comments   :
 
 
@@ -32,7 +32,7 @@ Comments   :
 
 Description: Fix lsra problem with -in.
 Assigned   : christian
-Status     : OPEN
+Status     : CLOSED
 Comments   :
 
 
