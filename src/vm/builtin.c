@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1345 2004-07-21 17:14:11Z twisti $
+   $Id: builtin.c 1356 2004-07-28 10:05:07Z twisti $
 
 */
 
@@ -263,16 +263,16 @@ s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl_t *target)
 
 ******************************************************************************/
 
-java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr)
+java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 {
 	if (verbose) {
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Builtin exception thrown: ");
-		if (local_exceptionptr) {
-			java_lang_Throwable *t = (java_lang_Throwable *) local_exceptionptr;
+		if (xptr) {
+			java_lang_Throwable *t = (java_lang_Throwable *) xptr;
 
 			utf_sprint_classname(logtext + strlen(logtext),
-								 local_exceptionptr->vftbl->class->name);
+								 xptr->vftbl->class->name);
 
 			if (t->detailMessage) {
 				sprintf(logtext + strlen(logtext), ": %s",
@@ -285,9 +285,9 @@ java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr
 		log_text(logtext);
 	}
 
-	*exceptionptr = local_exceptionptr;
+	*exceptionptr = xptr;
 
-	return local_exceptionptr;
+	return xptr;
 }
 
 
@@ -519,6 +519,8 @@ java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl)
 #ifdef SIZE_FROM_CLASSINFO
 	actualsize = align_size(dataoffset + size * componentsize);
 	actualsize = dataoffset + size * componentsize;
+#else
+	actualsize = 0;
 #endif
 
 	if (((u4) actualsize) < ((u4) size)) { /* overflow */
@@ -757,11 +759,11 @@ java_arrayheader *builtin_nmultianewarray(int n, vftbl_t *arrayvftbl, long *dims
 
 u4 methodindent = 0;
 
-java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
+java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 										   methodinfo *m,
-										   int *pos,
-										   int line,
-										   int noindent)
+										   void *pos,
+										   s4 line,
+										   s4 noindent)
 {
 	if (!noindent) {
 		if (methodindent)
@@ -770,9 +772,9 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 			log_text("WARNING: unmatched methodindent--");
 	}
 	if (verbose || runverbose || verboseexception) {
-		if (_exceptionptr) {
+		if (xptr) {
 			printf("Exception ");
-			utf_display_classname(_exceptionptr->vftbl->class->name);
+			utf_display_classname(xptr->vftbl->class->name);
 
 		} else {
 			printf("Some Throwable");
@@ -791,12 +793,12 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 				printf(",NATIVE");
 				printf(")(%p) at position %p\n", m->entrypoint, pos);
 			} else {
-				printf(")(%p) at position %p (",m->entrypoint,pos);
+				printf(")(%p) at position %p (", m->entrypoint, pos);
 				if (m->class->sourcefile==NULL)
 					printf("<NO CLASSFILE INFORMATION>");
 				else
 					utf_display(m->class->sourcefile);
-				printf(":%d)\n",line);
+				printf(":%d)\n", line);
 			}
 
 		} else
@@ -804,7 +806,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 		fflush (stdout);
 	}
 
-	return _exceptionptr;
+	return xptr;
 }
 
 
@@ -815,7 +817,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 #endif
 						methodinfo *m)
 {
-	int i;
+	s4 i;
 	char logtext[MAXLOGTEXT];
 	for (i = 0; i < methodindent; i++)
 		logtext[i] = '\t';
@@ -1791,10 +1793,12 @@ s4 builtin_dummy()
 
 *******************************************************************************/
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 java_objectheader **builtin_asm_get_exceptionptrptr()
 {
 	return builtin_get_exceptionptrptr();
 }
+#endif
 
 
 methodinfo *builtin_asm_get_threadrootmethod()

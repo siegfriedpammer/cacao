@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1324 2004-07-21 12:35:07Z twisti $
+   $Id: builtin.h 1356 2004-07-28 10:05:07Z twisti $
 
 */
 
@@ -171,14 +171,11 @@ s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl_t *target);
 
 java_objectheader *builtin_throw_exception(java_objectheader *exception);
 /* NOT AN OP */
-java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
-										   methodinfo *method, 
-										   int *pos, int line, int noindent);
-/* NOT AN OP */
-
-static inline java_objectheader **builtin_get_exceptionptrptr();
-/* NOT AN OP */
-static inline methodinfo **builtin_get_threadrootmethod();
+java_objectheader *builtin_trace_exception(java_objectheader *xptr,
+										   methodinfo *m,
+										   void *pos,
+										   s4 line,
+										   s4 noindent);
 /* NOT AN OP */
 
 java_objectheader *builtin_new(classinfo *c);
@@ -227,16 +224,16 @@ void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o);
 
 #ifdef TRACE_ARGS_NUM
 #if TRACE_ARGS_NUM == 6
-void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5, methodinfo *method);
+void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5, methodinfo *m);
 /* NOT AN OP */
 #else
-void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5, s8 a6, s8 a7, methodinfo *method);
+void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5, s8 a6, s8 a7, methodinfo *m);
 /* NOT AN OP */
 #endif
 #endif
-void builtin_displaymethodstart(methodinfo *method);
+void builtin_displaymethodstart(methodinfo *m);
 /* NOT AN OP */
-void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f);
+void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f);
 /* NOT AN OP */
 
 void builtin_monitorenter(java_objectheader *o);
@@ -375,23 +372,23 @@ inline float longBitsToDouble(s8 l);
 /* this is a wrapper for calls from asmpart */
 java_objectheader **builtin_asm_get_exceptionptrptr();
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+static inline java_objectheader **builtin_get_exceptionptrptr();
+/* NOT AN OP */
+static inline methodinfo **builtin_get_threadrootmethod();
+/* NOT AN OP */
+
 inline java_objectheader **builtin_get_exceptionptrptr()
 {
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	return &THREADINFO->_exceptionptr;
-#else
-#error builtin_get_exceptionptrptr should not be used in this configuration
-#endif
 }
 
 inline methodinfo **builtin_get_threadrootmethod()
 {
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	return &THREADINFO->_threadrootmethod;
-#else
-#error builting_get_threadrootmethod should not be used in this configuration
-#endif
 }
+#endif
+
 
 /* returns the root method of a thread. this is used in asmpart.S and delivers the abort condition
    for the stack unwinding for getClassContext and getClassLoader. For the main thread this is the main function.
