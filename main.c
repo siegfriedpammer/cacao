@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: main.c 200 2003-01-21 12:37:13Z stefan $
+	Last Change: $Id: main.c 274 2003-05-09 13:39:39Z carolyn $
 
 *******************************************************************************/
 
@@ -89,6 +89,7 @@ void **stackbottom = 0;
 #define OPT_GC2         23
 #endif
 #define OPT_OLOOP       24
+#define OPT_RT          25
 
 struct {char *name; bool arg; int value;} opts[] = {
 	{"classpath",   true,   OPT_CLASSPATH},
@@ -122,6 +123,7 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{"gc2",         false,  OPT_GC2},
 #endif
 	{"oloop",       false,  OPT_OLOOP},
+        {"rt",          false,  OPT_RT},
 	{NULL,  false, 0}
 };
 
@@ -220,6 +222,7 @@ static void print_usage()
 	printf ("                 s(tack) ....... show stack for every javaVM-command\n");
 #endif
 	printf ("                 u(tf) ......... show the utf - hash\n");
+        printf ("          -rt .................. use rapid type analysis\n");
 }   
 
 
@@ -689,6 +692,10 @@ int main(int argc, char **argv)
 			opt_loops = true;
 			break;
 
+               case OPT_RT:
+                        opt_rt = true;
+                        break;
+
 		default:
 			print_usage();
 			exit(10);
@@ -783,6 +790,12 @@ int main(int argc, char **argv)
 			utf_display (local_exceptionptr->vftbl->class->name);
 			printf ("\n");
 		}
+                                        /*RTAprint*/ if ((pCallgraph >= 1) && (opt_rt)) {
+                                        /*RTAprint*/    printCallgraph (); }
+
+                                        /*RTprint*/ if ((pClassHeir >= 1) && (opt_rt)) {
+                                        /*RTprint*/     printf("Last RTA Class Heirarchy -");
+                                        /*RTprint*/     printRThierarchyInfo(mainmethod); }
 
 #ifdef USE_THREADS
 		killThread(currentThread);
@@ -833,6 +846,13 @@ int main(int argc, char **argv)
 
 void cacao_shutdown(s4 status)
 {
+                                        /*RTAprint*/ if ((pCallgraph >= 1) && (opt_rt)) {
+                                        /*RTAprint*/    printCallgraph (NULL); }
+
+                                        /*RTprint*/ if ((pClassHeir >= 1) && (opt_rt)) {
+                                        /*RTprint*/     printf("Last RTA Class Heirarchy -");
+                                        /*RTprint*/     printRThierarchyInfo(NULL); }
+
 	if (verbose || getcompilingtime || statistics) {
 		log_text ("CACAO terminated by shutdown");
 		if (statistics)

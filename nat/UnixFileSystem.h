@@ -10,10 +10,22 @@ typedef struct java_io_UnixFileSystem {
 
 /*
  * Class:     java/io/UnixFileSystem
+ * Method:    isAbsolute
+ * Signature: (Ljava/io/File;)Z
+ */
+JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_isAbsolute (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1);
+/*
+ * Class:     java/io/UnixFileSystem
  * Method:    canonicalize
  * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
 JNIEXPORT struct java_lang_String* JNICALL Java_java_io_UnixFileSystem_canonicalize (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_lang_String* par1);
+/*
+ * Class:     java/io/UnixFileSystem
+ * Method:    getBooleanAttributes0
+ * Signature: (Ljava/io/File;)I
+ */
+JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_getBooleanAttributes0 (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1);
 /*
  * Class:     java/io/UnixFileSystem
  * Method:    checkAccess
@@ -22,10 +34,16 @@ JNIEXPORT struct java_lang_String* JNICALL Java_java_io_UnixFileSystem_canonical
 JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_checkAccess (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1, s4 par2);
 /*
  * Class:     java/io/UnixFileSystem
- * Method:    createDirectory
- * Signature: (Ljava/io/File;)Z
+ * Method:    getLastModifiedTime
+ * Signature: (Ljava/io/File;)J
  */
-JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_createDirectory (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1);
+JNIEXPORT s8 JNICALL Java_java_io_UnixFileSystem_getLastModifiedTime (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1);
+/*
+ * Class:     java/io/UnixFileSystem
+ * Method:    getLength
+ * Signature: (Ljava/io/File;)J
+ */
+JNIEXPORT s8 JNICALL Java_java_io_UnixFileSystem_getLength (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1);
 /*
  * Class:     java/io/UnixFileSystem
  * Method:    createFileExclusively
@@ -46,34 +64,16 @@ JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_delete (JNIEnv *env ,  struct j
 JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_deleteOnExit (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1);
 /*
  * Class:     java/io/UnixFileSystem
- * Method:    getBooleanAttributes0
- * Signature: (Ljava/io/File;)I
- */
-JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_getBooleanAttributes0 (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1);
-/*
- * Class:     java/io/UnixFileSystem
- * Method:    getLastModifiedTime
- * Signature: (Ljava/io/File;)J
- */
-JNIEXPORT s8 JNICALL Java_java_io_UnixFileSystem_getLastModifiedTime (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1);
-/*
- * Class:     java/io/UnixFileSystem
- * Method:    getLength
- * Signature: (Ljava/io/File;)J
- */
-JNIEXPORT s8 JNICALL Java_java_io_UnixFileSystem_getLength (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1);
-/*
- * Class:     java/io/UnixFileSystem
- * Method:    initIDs
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_io_UnixFileSystem_initIDs (JNIEnv *env );
-/*
- * Class:     java/io/UnixFileSystem
  * Method:    list
  * Signature: (Ljava/io/File;)[Ljava/lang/String;
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_io_UnixFileSystem_list (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1);
+/*
+ * Class:     java/io/UnixFileSystem
+ * Method:    createDirectory
+ * Signature: (Ljava/io/File;)Z
+ */
+JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_createDirectory (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1);
 /*
  * Class:     java/io/UnixFileSystem
  * Method:    rename
@@ -92,3 +92,9 @@ JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_setLastModifiedTime (JNIEnv *en
  * Signature: (Ljava/io/File;)Z
  */
 JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_setReadOnly (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* par1);
+/*
+ * Class:     java/io/UnixFileSystem
+ * Method:    initIDs
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_java_io_UnixFileSystem_initIDs (JNIEnv *env );

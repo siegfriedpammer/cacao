@@ -8,11 +8,21 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 262 2003-03-23 15:04:54Z twisti $
+	Last Change: $Id: parse.c 274 2003-05-09 13:39:39Z carolyn $
+                     include Rapid Type Analysis parse - 5/2003 - carolyn
+
 
 *******************************************************************************/
 
 #include "math.h"
+                                /* data about the currently parsed   method   */
+
+static classinfo  *rt_class;    /* class the compiled method belongs to       */
+static methodinfo *rt_method;   /* pointer to method info of compiled method  */
+static utf      *rt_descriptor; /* type descriptor of compiled method         */
+static int       rt_jcodelength; /*length of JavaVM-codes                     */
+static u1       *rt_jcode;      /* pointer to start of JavaVM-code            */
+
 
 /* macros for byte code fetching ***********************************************
 
@@ -270,6 +280,12 @@ static void parse()
 	bool iswide = false;        /* true if last instruction was a wide        */
 	instruction *iptr;          /* current pointer into instruction array     */
 
+        RT_jit_parse(method);
+                /*RTAprint*/ if ((pOpcodes == 2) || (pOpcodes == 3))
+                /*RTAprint*/    {printf("PARSE method name =");
+                /*RTAprint*/    utf_display(rt_method->class->name);printf(".");
+                /*RTAprint*/    utf_display(rt_method->name);printf("\n\n");
+                /*RTAprint*/    method_display(rt_method); printf(">\n\n");fflush(stdout);}
 
 #ifdef OLD_COMPILER
 	/* generate the same addresses as the old JIT compiler */
@@ -345,6 +361,10 @@ static void parse()
 	for (p = 0; p < jcodelength; p = nextp) {
 
 		opcode = code_get_u1 (p);           /* fetch op code                  */
+
+                                /*RTAprint*/ if ((pOpcodes == 1) || (pOpcodes == 3))
+                                /*RTAprint*/    {printf("Parse RT p=%i<%i<   opcode=<%i> %s\n",
+                                /*RTAprint*/             p,rt_jcodelength,opcode,icmd_names[opcode]);}
 
 		block_index[p] |= (ipc << 1);       /* store intermediate count       */
 
@@ -1176,6 +1196,7 @@ static void parse()
 	}
 }
 
+#include "parseRT.h"
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -40,6 +40,7 @@
 /* global variables ***********************************************************/
 
 extern bool newcompiler;        /* true if new compiler is used               */    		
+bool opt_rt = false;            /* true if RTA parse should be used     RT-CO */
 
 int count_class_infos = 0;      /* variables for measurements                 */
 int count_const_pool_len = 0;
@@ -694,7 +695,9 @@ constant_arraydescriptor * buildarraydescriptor(char *utf_ptr, u4 namelen)
 		
 	case 'L':
 		d -> arraytype = ARRAYTYPE_OBJECT;
+
 		d -> objectclass = class_new ( utf_new(utf_ptr+1, namelen-3) );
+                d -> objectclass  -> classUsed = 0; /* not used initially CO-RT */
 		break;
 	}
 	return d;
@@ -900,6 +903,7 @@ static void method_load (methodinfo *m, classinfo *c)
 	m -> entrypoint = NULL;
 	m -> mcode = NULL;
 	m -> stubroutine = NULL;
+        m -> methodUsed = 0;    /* not used initially  CO-RT*/
 	
 	if (! (m->flags & ACC_NATIVE) ) {
 		m -> stubroutine = createcompilerstub (m);
@@ -1433,6 +1437,8 @@ static int class_load (classinfo *c)
 
 	class_loadcpool (c);
 	
+        c -> classUsed = 0; /* not used initially CO-RT */
+
 	/* ACC flags */
 	c -> flags = suck_u2 (); 
 	/* this class */
@@ -1620,6 +1626,7 @@ static void class_link (classinfo *c)
 
 	if (super == NULL) {          /* class java.long.Object */
 		c->index = 0;
+                c->classUsed = 1;     /* Object class is always used CO-RT*/
 		c->instancesize = sizeof(java_objectheader);
 		
 		vftbllength = supervftbllength = 0;
@@ -2349,7 +2356,8 @@ void create_primitive_classes()
 	for (i=0;i<PRIMITIVETYPE_COUNT;i++) {
 		/* create primitive class */
 		classinfo *c = class_new ( utf_new_char(primitivetype_table[i].name) );
-		
+                c -> classUsed = 0; /* not used initially CO-RT */		
+
 		/* prevent loader from loading primitive class */
 		list_remove (&unloadedclasses, c);
 		/* add to unlinked classes */
@@ -2362,6 +2370,7 @@ void create_primitive_classes()
 		/* create class for wrapping the primitive type */
 		primitivetype_table[i].class_wrap =
 	        	class_new( utf_new_char(primitivetype_table[i].wrapname) );
+                primitivetype_table[i].class_wrap -> classUsed = 0; /* not used initially CO-RT */
 	}
 }
 
@@ -2413,11 +2422,15 @@ void loader_init ()
 
 	/* create class for arrays */
 	class_array = class_new ( utf_new_char ("The_Array_Class") );
+        class_array -> classUsed = 0; /* not used initially CO-RT */
+
  	list_remove (&unloadedclasses, class_array);
 
 	/* create class for strings, load it after class Object was loaded */
 	string_class = utf_new_char ("java/lang/String");
 	class_java_lang_String = class_new(string_class);
+        class_java_lang_String -> classUsed = 0; /* not used initially CO-RT */
+
  	list_remove (&unloadedclasses, class_java_lang_String);
 
 	class_java_lang_Object = 

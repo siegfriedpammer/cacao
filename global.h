@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 230 2003-02-13 10:21:07Z stefan $
+	Last Change: $Id: global.h 274 2003-05-09 13:39:39Z carolyn $
 
 *******************************************************************************/
 
@@ -462,6 +462,8 @@ typedef struct methodinfo {         /* method structure                       */
 	u1        *mcode;               /* pointer to machine code                */
 	u1        *entrypoint;          /* entry point in machine code            */
 
+        s4        methodUsed; /* -1=marked (might be used) 0=not used 1=used CO-RT*/
+
 } methodinfo;
 
 
@@ -523,6 +525,9 @@ struct classinfo {                /* class structure                          */
 
     classinfo      *hashlink;         /* link for external hash chain         */
 	bool        classvftbl;       /* has its own copy of the Class vtbl       */
+
+        s4          classUsed;        /* 0= not used 1 = used   CO-RT             */
+
 };
 
 
@@ -632,6 +637,15 @@ extern java_objectheader *proto_java_lang_ThreadDeath;
 extern bool compileall;
 extern bool runverbose;         
 extern bool verbose;         
+extern bool opt_rt;             /* Rapid Type Analysis for better inlining CO-RT*/
+
+extern int pClassHeir;
+extern int pCallgraph;
+extern int pOpcodes;
+
+extern void RT_jit_parse(methodinfo *m);
+extern void printCallgraph ();
+extern void printRThierarchyInfo(methodinfo *m);
 
 
 /* statistic variables ********************************************************/
