@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1641 2004-12-01 13:13:31Z christian $
+   $Id: codegen.c 1652 2004-12-02 10:27:24Z twisti $
 
 */
 
@@ -1850,8 +1850,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
 				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr->val.a)->class);
-				M_NOP;
-				M_NOP;
 
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 2 nop's     */
@@ -1899,8 +1897,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
 				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr->val.a)->class);
-				M_NOP;
-				M_NOP;
 
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 2 nop's     */
@@ -3469,7 +3465,7 @@ afteractualcall:
 
 	{
 		clinitref   *cref;
-		u4           mcode[2];
+		u8           mcode;
 		s4          *tmpmcodeptr;
 
 		for (cref = cd->clinitrefs; cref != NULL; cref = cref->next) {
@@ -3479,8 +3475,7 @@ afteractualcall:
 
 			/* We need to split this, because an unaligned 8 byte read causes */
 			/* a SIGSEGV.                                                     */
-			mcode[0] = *xcodeptr;
-			mcode[1] = *(xcodeptr + 1);
+			mcode = ((u8) xcodeptr[1] << 32) + (u4) xcodeptr[0];
 
 			/* patch in the call to call the following code (done at compile  */
 			/* time)                                                          */
@@ -3500,8 +3495,7 @@ afteractualcall:
 			M_ALD(REG_ITMP1, REG_PV, a);
 
 			/* move machine code into REG_ITMP2                               */
-			a = dseg_adds4(cd, mcode[1]);
-			a = dseg_adds4(cd, mcode[0]);
+			a = dseg_adds8(cd, mcode);
 			M_LLD(REG_ITMP2, REG_PV, a);
 
 			a = dseg_addaddress(cd, asm_check_clinit);
@@ -3650,8 +3644,6 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	if (m->flags & ACC_STATIC && !m->class->initialized) {
 		codegen_addclinitref(cd, mcodeptr, m->class);
-		M_NOP;
-		M_NOP;
 	}
 
 	/* max. 50 instructions */
@@ -3899,7 +3891,6 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	{
 		s4          *xcodeptr;
 		clinitref   *cref;
-		u4           mcode[2];
 		s4          *tmpmcodeptr;
 
 		/* there can only be one clinit ref entry                             */
@@ -3912,9 +3903,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 			/* We need to split this, because an unaligned 8 byte read causes */
 			/* a SIGSEGV.                                                     */
-			mcode[0] = *xcodeptr;
-			mcode[1] = *(xcodeptr + 1);
-			*(cs-10) = *((u8 *) &mcode);
+			*(cs-10) = ((u8) xcodeptr[1] << 32) + (u4) xcodeptr[0];
 
 			/* patch in the call to call the following code (done at compile  */
 			/* time)                                                          */

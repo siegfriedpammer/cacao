@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1638 2004-12-01 10:42:28Z twisti $
+   $Id: asmpart.S 1652 2004-12-02 10:27:24Z twisti $
 
 */
 
@@ -831,7 +831,6 @@ asm_check_clinit:
 	beqz    v0,L_initializererror
 
 L_is_initialized:
-#if 0
 	ld      ra,0*8(sp)            /* get return address                       */
 	ld      itmp1,22*8(sp)        /* get machine code                         */
 
@@ -843,7 +842,6 @@ L_is_initialized:
 	move    a0,ra                 /* start of flush area                      */
 	addiu   a1,zero,2*4           /* 2 instruction words long                 */
 	jal     docacheflush          /* flush!                                   */
-#endif
 	
 	ld      ra,0*8(sp)            /* restore return address                   */
 
@@ -873,6 +871,7 @@ L_is_initialized:
 
 	daddiu  sp,sp,23*8
 
+	daddiu  ra,ra,-2*4            /* go back 2 instructions (jal + nop delay) */
 	jr      ra
 
 L_initializererror:
