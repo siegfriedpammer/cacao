@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 800 2003-12-16 22:47:59Z edwin $
+   $Id: cacao.c 806 2003-12-21 13:56:27Z twisti $
 
 */
 
@@ -304,16 +304,35 @@ static void print_times()
 	s8 runtime = totaltime - loadingtime - compilingtime;
 	char logtext[MAXLOGTEXT];
 
+#if defined(__I386__)
 	sprintf(logtext, "Time for loading classes: %lld secs, %lld millis",
+#else
+	sprintf(logtext, "Time for loading classes: %ld secs, %ld millis",
+#endif
 			loadingtime / 1000000, (loadingtime % 1000000) / 1000);
 	log_text(logtext);
+
+#if defined(__I386__)
 	sprintf(logtext, "Time for compiling code:  %lld secs, %lld millis",
+#else
+	sprintf(logtext, "Time for compiling code:  %ld secs, %ld millis",
+#endif
 			compilingtime / 1000000, (compilingtime % 1000000) / 1000);
 	log_text(logtext);
+
+#if defined(__I386__)
 	sprintf(logtext, "Time for running program: %lld secs, %lld millis",
+#else
+	sprintf(logtext, "Time for running program: %ld secs, %ld millis",
+#endif
 			runtime / 1000000, (runtime % 1000000) / 1000);
 	log_text(logtext);
+
+#if defined(__I386__)
 	sprintf(logtext, "Total time: %lld secs, %lld millis",
+#else
+	sprintf(logtext, "Total time: %ld secs, %ld millis",
+#endif
 			totaltime / 1000000, (totaltime % 1000000) / 1000);
 	log_text(logtext);
 }
@@ -575,7 +594,7 @@ int main(int argc, char **argv)
 	char logfilename[200] = "";
 	u4 heapsize = 64000000;
 	u4 heapstartsize = 200000;
-	char classpath[500] = ".:/usr/local/lib/java/classes";
+	char classpath[500] = ".";
 	bool startit = true;
 	char *specificmethodname = NULL;
 	char *specificsignature = NULL;
@@ -887,7 +906,8 @@ int main(int argc, char **argv)
 
 		a = builtin_anewarray(argc - opt_ind, class_java_lang_String);
 		for (i = opt_ind; i < argc; i++) {
-			a->data[i - opt_ind] = javastring_new(utf_new_char(argv[i]));
+			a->data[i - opt_ind] = 
+				(java_objectheader *) javastring_new(utf_new_char(argv[i]));
 		}
 
 #ifdef TYPEINFO_DEBUG_TEST
