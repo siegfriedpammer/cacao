@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: codegen.h 1987 2005-03-05 15:42:13Z twisti $
 
 */
 
@@ -399,10 +399,6 @@ typedef enum {
 			store_reg_to_var_int(to, d); \
 		} \
 	}
-
-
-/*  #define ALIGNCODENOP {if((int)((long)mcodeptr&7)){M_NOP;}} */
-#define ALIGNCODENOP
 
 
 /* function gen_resolvebranch **************************************************
