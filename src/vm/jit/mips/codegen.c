@@ -31,7 +31,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1859 2005-01-04 16:38:49Z twisti $
+   $Id: codegen.c 1862 2005-01-05 10:48:23Z twisti $
 
 */
 
@@ -131,32 +131,40 @@ void thread_restartcriticalsection(ucontext_t *uc)
 
 /* NullPointerException signal handler for hardware null pointer check */
 
-void catch_NullPointerException(int sig, int code, struct sigcontext *sigctx)
+void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 {
 	sigset_t nsig;
 	int      instr;
 	long     faultaddr;
 	java_objectheader *xptr;
 
-	/* Reset signal handler - necessary for SysV, does no harm for BSD */
+	struct ucontext *_uc = (struct ucontext *) _p;
+	mcontext_t *sigctx = &_uc->uc_mcontext;
+	struct sigaction act;
 
-	instr = *((int*)(sigctx->sc_pc));
-	faultaddr = sigctx->sc_regs[(instr >> 21) & 0x1f];
+	instr = *((s4 *) (sigctx->gregs[CTX_EPC]));
+	faultaddr = sigctx->gregs[(instr >> 21) & 0x1f];
 
 	if (faultaddr == 0) {
+		/* Reset signal handler - necessary for SysV, does no harm for BSD */
+
+		act.sa_sigaction = catch_NullPointerException;
+		act.sa_flags = SA_SIGINFO;
+		sigaction(sig, &act, NULL);
+
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
 		
 		xptr = new_nullpointerexception();
 
-		sigctx->sc_regs[REG_ITMP1_XPTR] = (u8) xptr;
-		sigctx->sc_regs[REG_ITMP2_XPC] = sigctx->sc_pc;
-		sigctx->sc_pc = (u8) asm_handle_exception;
+		sigctx->gregs[REG_ITMP1_XPTR] = (u8) xptr;
+		sigctx->gregs[REG_ITMP2_XPC] = sigctx->gregs[CTX_EPC];
+		sigctx->gregs[CTX_EPC] = (u8) asm_handle_exception;
 
 	} else {
         faultaddr += (long) ((instr << 16) >> 16);
-		fprintf(stderr, "faulting address: 0x%lx at 0x%lx\n", (long) faultaddr, (long) sigctx->sc_pc);
+		fprintf(stderr, "faulting address: 0x%lx at 0x%lx\n", (long) faultaddr, (long) sigctx->gregs[CTX_EPC]);
 		panic("Stack overflow");
 	}
 }
@@ -166,8 +174,7 @@ void catch_NullPointerException(int sig, int code, struct sigcontext *sigctx)
 
 void init_exceptions(void)
 {
-	struct sigaction sa;
-	sigset_t unblockmask;
+	struct sigaction act;
 
 	/* The Boehm GC initialization blocks the SIGSEGV signal. So we do a
 	   dummy allocation here to ensure that the GC is initialized.
@@ -176,24 +183,20 @@ void init_exceptions(void)
 
 	/* install signal handlers we need to convert to exceptions */
 
-	sigemptyset(&unblockmask);
-	sa.sa_flags = 0;
-	sa.sa_sigaction = (functionptr) catch_NullPointerException;
-	sigemptyset(&sa.sa_mask);
+	sigemptyset(&act.sa_mask);
 
 	if (!checknull) {
+		act.sa_sigaction = catch_NullPointerException;
+		act.sa_flags = SA_SIGINFO;
+
 #if defined(SIGSEGV)
-		sigaction(SIGSEGV, &sa, NULL);
-		sigaddset(&unblockmask, SIGSEGV);
+		sigaction(SIGSEGV, &act, NULL);
 #endif
 
 #if defined(SIGBUS)
-		sigaction(SIGBUS, &sa, NULL);
-		sigaddset(&unblockmask, SIGBUS);
+		sigaction(SIGBUS, &act, NULL);
 #endif
 	}
-
-	sigprocmask(SIG_UNBLOCK, &unblockmask, NULL);
 
 	/* Turn off flush-to-zero */
 	{
