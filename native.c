@@ -10,6 +10,8 @@
 	Methoden implementiert werden.
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at	
+	         Roman Obermaisser   EMAIL: cacao@complang.tuwien.ac.at	
+	         Andreas Krall       EMAIL: cacao@complang.tuwien.ac.at	
 
 	Last Change: 1996/11/14
 
@@ -50,7 +52,7 @@ static char *classpath;
 /* for java-string to char conversion */
 #define MAXSTRINGSIZE 1000                          
 
-/******************** systemclasses required for native methods *****/
+/******************** systemclasses required for native methods ***************/
 
 static classinfo *class_java_lang_Class;
 static classinfo *class_java_lang_Cloneable;
@@ -88,18 +90,18 @@ struct java_lang_ClassLoader *SystemClassLoader = NULL;
 /* for raising exceptions from native methods */
 java_objectheader* exceptionptr = NULL;
 
-/************* use classinfo structure as java.lang.Class object *************/
+/************* use classinfo structure as java.lang.Class object **************/
 
 static void use_class_as_object (classinfo *c) 
 {
 	c->header.vftbl = class_java_lang_Class -> vftbl;
 }
 
-/*********************** include Java Native Interface ***********************/ 
+/*********************** include Java Native Interface ************************/ 
 
 #include "jni.c"
 
-/*************************** include native methods **************************/ 
+/*************************** include native methods ***************************/ 
 
 #include "nat/Object.c"
 #include "nat/String.c"
@@ -147,7 +149,7 @@ static void use_class_as_object (classinfo *c)
 #include "nat/ClassLoader_NativeLibrary.c"
 #include "nat/UnixFileSystem.c"
 
-/************************** tables for methods *******************************/
+/************************** tables for methods ********************************/
 
 /* table for locating native methods */
 static struct nativeref {
@@ -178,11 +180,11 @@ static struct nativecompref {
 static bool nativecompdone = false;
 
 
-/*********************** function: native_loadclasses ************************
+/*********************** function: native_loadclasses **************************
 
 	load classes required for native methods	
 
-******************************************************************************/
+*******************************************************************************/
 
 void native_loadclasses()
 {
@@ -285,7 +287,7 @@ void systemclassloader_addclass(classinfo *c)
 			  );       
 }
 
-/*************** adds a library to the vector of loaded libraries ************/
+/*************** adds a library to the vector of loaded libraries *************/
 
 void systemclassloader_addlibrary(java_objectheader *o)
 {
@@ -321,6 +323,7 @@ void init_systemclassloader()
 
 	/* create object and call initializer */
 	SystemClassLoader = (java_lang_ClassLoader*) native_new_and_init(class_java_lang_ClassLoader);	
+	heap_addreference((void**) &SystemClassLoader);
 
 	/* systemclassloader has no parent */
 	SystemClassLoader->parent      = NULL;
@@ -329,7 +332,7 @@ void init_systemclassloader()
 }
 
 
-/********************* add loaded library name  ******************************/
+/********************* add loaded library name  *******************************/
 
 void systemclassloader_addlibname(java_objectheader *o)
 {
@@ -357,7 +360,7 @@ void systemclassloader_addlibname(java_objectheader *o)
 }
 
 
-/********************* function: native_setclasspath *************************/
+/********************* function: native_setclasspath **************************/
  
 void native_setclasspath (char *path)
 {
@@ -365,7 +368,7 @@ void native_setclasspath (char *path)
 	classpath = path;
 }
 
-/***************** function: throw_classnotfoundexception ********************/
+/***************** function: throw_classnotfoundexception *********************/
 
 void throw_classnotfoundexception()
 {
@@ -374,7 +377,7 @@ void throw_classnotfoundexception()
 }
 
 
-/*********************** Funktion: native_findfunction ************************
+/*********************** Funktion: native_findfunction *************************
 
 	Sucht in der Tabelle die passende Methode (muss mit Klassennamen,
 	Methodennamen, Descriptor und 'static'-Status "ubereinstimmen),
@@ -390,36 +393,37 @@ void throw_classnotfoundexception()
 functionptr native_findfunction (utf *cname, utf *mname, 
                                  utf *desc, bool isstatic)
 {
-	u4 i;
+	int i;
 	/* entry of table for fast string comparison */
 	struct nativecompref *n;
         /* for warning message if no function is found */
 	char *buffer;	         	
-	int buffer_len,pos;
+	int buffer_len, pos;
 
 	isstatic = isstatic ? true : false;
 
 	if (!nativecompdone) {
-		for (i=0; i<NATIVETABLESIZE; i++) {
-			nativecomptable[i].classname   = 
+		for (i = 0; i < NATIVETABLESIZE; i++) {
+			nativecomptable[i].classname  = 
 					utf_new_char(nativetable[i].classname);
-			nativecomptable[i].methodname  = 
+			nativecomptable[i].methodname = 
 					utf_new_char(nativetable[i].methodname);
-			nativecomptable[i].descriptor  = 
+			nativecomptable[i].descriptor = 
 					utf_new_char(nativetable[i].descriptor);
-			nativecomptable[i].isstatic    = 
+			nativecomptable[i].isstatic   = 
 					nativetable[i].isstatic;
-			nativecomptable[i].func        = 
+			nativecomptable[i].func       = 
 					nativetable[i].func;
 			}
 		nativecompdone = true;
 		}
 
-	for (i=0; i<NATIVETABLESIZE; i++) {
+	for (i = 0; i < NATIVETABLESIZE; i++) {
 		n = &(nativecomptable[i]);
 
-		if (cname==n->classname && mname==n->methodname &&
-		    desc==n->descriptor && isstatic==n->isstatic)  return n->func;
+		if (cname == n->classname && mname == n->methodname &&
+		    desc == n->descriptor && isstatic == n->isstatic)
+			return n->func;
 		}
 
 	/* no function was found, display warning */
@@ -429,46 +433,48 @@ functionptr native_findfunction (utf *cname, utf *mname,
 
 	buffer = MNEW(char, buffer_len);
 
-	strcpy(buffer,"warning: native function ");
-        utf_sprint(buffer+strlen(buffer),mname);
-	strcpy(buffer+strlen(buffer),": ");
-        utf_sprint(buffer+strlen(buffer),desc);
-	strcpy(buffer+strlen(buffer)," not found in class ");
-        utf_sprint(buffer+strlen(buffer),cname);
+	strcpy(buffer, "warning: native function ");
+        utf_sprint(buffer+strlen(buffer), mname);
+	strcpy(buffer+strlen(buffer), ": ");
+        utf_sprint(buffer+strlen(buffer), desc);
+	strcpy(buffer+strlen(buffer), " not found in class ");
+        utf_sprint(buffer+strlen(buffer), cname);
 
 	log_text(buffer);	
 
-	MFREE(buffer,char,buffer_len);
+	MFREE(buffer, char, buffer_len);
 
 	return NULL;
 }
 
 
-/********************** function: javastring_new *****************************
+/********************** function: javastring_new *******************************
 
 	creates a new object of type java/lang/String with the text of 
 	the specified utf8-string
-	
-	return: pointer to the string or NULL (no memory)	
 
-*****************************************************************************/
+	return: pointer to the string or NULL if memory is exhausted.	
+
+*******************************************************************************/
 
 java_objectheader *javastring_new (utf *u)
 {
-        char *utf_ptr = u->text;         /* pointer to current unicode character in utf string */
-	u4 utflength  = utf_strlen(u);   /* length of utf-string if uncompressed */
-	java_lang_String *s;		 /* result-string */
+	char *utf_ptr = u->text;        /* current utf character in utf string    */
+	int utflength = utf_strlen(u);  /* length of utf-string if uncompressed   */
+	java_lang_String *s;		    /* result-string                          */
 	java_chararray *a;
-	u4 i;
+	s4 i;
 	
 	s = (java_lang_String*) builtin_new (class_java_lang_String);
 	a = builtin_newarray_char (utflength);
 
 	/* javastring or character-array could not be created */
-	if ( (!a) || (!s) ) return NULL;
+	if ((!a) || (!s))
+		return NULL;
 
 	/* decompress utf-string */
-	for (i=0; i<utflength; i++) a->data[i] = utf_nextu2(&utf_ptr);
+	for (i = 0; i < utflength; i++)
+		a->data[i] = utf_nextu2(&utf_ptr);
 	
 	/* set fields of the javastring-object */
 	s -> value  = a;
@@ -478,18 +484,19 @@ java_objectheader *javastring_new (utf *u)
 	return (java_objectheader*) s;
 }
 
-/********************** Funktion: javastring_new_char ************************
+/********************** function: javastring_new_char **************************
 
-	Legt ein neues Objekt vom Typ java/lang/String an, und tr"agt als Text
-	den "ubergebenen C-String ein. 
-	Return: Zeiger auf den String, oder NULL (wenn Speicher aus)
+	creates a new java/lang/String object which contains the convertet
+	C-string passed via text.
 
-*****************************************************************************/
+	return: the object pointer or NULL if memory is exhausted.
+
+*******************************************************************************/
 
 java_objectheader *javastring_new_char (char *text)
 {
-	u4 i;
-	u4 len = strlen(text); /* length of the string */
+	s4 i;
+	s4 len = strlen(text); /* length of the string */
 	java_lang_String *s;   /* result-string */
 	java_chararray *a;
 	
@@ -497,10 +504,11 @@ java_objectheader *javastring_new_char (char *text)
 	a = builtin_newarray_char (len);
 
 	/* javastring or character-array could not be created */
-	if ( (!a) || (!s) ) return NULL;
+	if ((!a) || (!s)) return NULL;
 
 	/* copy text */
-	for (i=0; i<len; i++) a->data[i] = text[i];
+	for (i = 0; i < len; i++)
+		a->data[i] = text[i];
 	
 	/* set fields of the javastring-object */
 	s -> value = a;
@@ -511,33 +519,39 @@ java_objectheader *javastring_new_char (char *text)
 }
 
 
-/************************* Funktion: javastring_tochar *****************************
+/************************* function javastring_tochar **************************
 
-	Macht aus einem java-string einen C-String, und liefert den Zeiger
-	darauf zur"uck. 
-	Achtung: Beim n"achsten Aufruf der Funktion wird der vorige String 
-	"uberschrieben
+	converts a Java string into a C string.
 	
-***********************************************************************************/
+	return: pointer to C string
+	
+	Caution: every call of this function overwrites the previous string !!!
+	
+*******************************************************************************/
 
-char stringbuffer[MAXSTRINGSIZE];
+static char stringbuffer[MAXSTRINGSIZE];
 
 char *javastring_tochar (java_objectheader *so) 
 {
 	java_lang_String *s = (java_lang_String*) so;
 	java_chararray *a;
-	u4 i;
+	s4 i;
 	
-	if (!s) return "";
+	if (!s)
+		return "";
 	a = s->value;
-	if (!a) return "";
-	if (s->count > MAXSTRINGSIZE) return "";
-	for (i=0; i<s->count; i++) stringbuffer[i] = a->data[s->offset+i];
+	if (!a)
+		return "";
+	if (s->count > MAXSTRINGSIZE)
+		return "";
+	for (i = 0; i < s->count; i++)
+		stringbuffer[i] = a->data[s->offset+i];
 	stringbuffer[i] = '\0';
 	return stringbuffer;
 }
 
-/****************** function class_findfield_approx ***************************
+
+/****************** function class_findfield_approx ****************************
 	
 	searches in 'classinfo'-structure for a field with the
 	specified name
@@ -559,37 +573,34 @@ fieldinfo *class_findfield_approx (classinfo *c, utf *name)
 }
 
 
-/******************** Funktion: native_new_and_init *************************
+/********************** function: native_new_and_init *************************
 
-	Legt ein neues Objekt einer Klasse am Heap an, und ruft automatisch
-	die Initialisierungsmethode auf.
-	Return: Der Zeiger auf das Objekt, oder NULL, wenn kein Speicher
-			mehr frei ist.
+	Creates a new object on the heap and calls the initializer.
+	Returns the object pointer or NULL if memory is exhausted.
 			
-*****************************************************************************/
+*******************************************************************************/
 
 java_objectheader *native_new_and_init (classinfo *c)
 {
 	methodinfo *m;
-	java_objectheader *o = builtin_new (c); /* create object */
+	java_objectheader *o = builtin_new (c);         /*          create object */
 
 	if (!o) return NULL;
 	
 	/* find initializer */
-	m = class_findmethod (c, 
-	                      utf_new_char ("<init>"), 
-	                      utf_new_char ("()V"));
+
+	m = class_findmethod(c, utf_new_char("<init>"), utf_new_char("()V"));
 	                      	                      
-	if (!m) {
-		/* initializer not ofund */
-		log_text ("warning: class has no instance-initializer:");
-		utf_sprint (logtext, c->name);
+	if (!m) {                                       /* initializer not found  */
+		sprintf(logtext, "warning: class has no instance-initializer: ");
+		utf_sprint(logtext + strlen(logtext), c->name);
 		dolog();
 		return o;
 		}
 
 	/* call initializer */
-	asm_calljavamethod (m, o,NULL,NULL,NULL);
+
+	asm_calljavamethod (m, o, NULL, NULL, NULL);
 	return o;
 }
 
@@ -606,9 +617,9 @@ void stringtable_update ()
 	java_lang_String *js;   
 	java_chararray *a;
 	literalstring *s;	/* hashtable entry */
-	u4 i;
+	int i;
 
-	for (i=0; i<string_hash.size; i++) {
+	for (i = 0; i < string_hash.size; i++) {
 		s = string_hash.ptr[i];
 		if (s) {
 			while (s) {
@@ -616,16 +627,16 @@ void stringtable_update ()
 				js = (java_lang_String *) s->string;
 				
 				if (!js || !(a = js->value)) 
-				  /* error in hashtable found */
-				  panic("invalid literalstring in hashtable");
+					/* error in hashtable found */
+					panic("invalid literalstring in hashtable");
 
 				if (!js->header.vftbl) 
-				  /* vftbl of javastring is NULL */ 
-				  js->header.vftbl = class_java_lang_String -> vftbl;
+					/* vftbl of javastring is NULL */ 
+					js->header.vftbl = class_java_lang_String -> vftbl;
 
 				if (!a->header.objheader.vftbl) 
-				  /* vftbl of character-array is NULL */ 
-				  a->header.objheader.vftbl = class_array -> vftbl;
+					/* vftbl of character-array is NULL */ 
+					a->header.objheader.vftbl = class_array -> vftbl;
 
 				/* follow link in external hash chain */
 				s = s->hashlink;
