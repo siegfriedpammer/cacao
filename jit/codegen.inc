@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1456 2004-11-05 14:33:14Z twisti $
+   $Id: codegen.inc 1463 2004-11-06 21:20:53Z motse $
 
 */
 
@@ -915,7 +915,7 @@ static void codegen_fillInOverloadPart(char *target,utf *desc) {
 }
 
 static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmpTarget,void **jmpPatchTarget) {
-  char *nativeName;
+  char *nativeName, *nativeNameEscape;
   size_t nativeLen;
   size_t i;
 
@@ -934,11 +934,25 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
     /*generate the name of the native function in the form Java_package1_package2...._classname_methodname*/
     nativeLen=/*Java_*/5+strlen(m->class->name->text)+/*_*/1+strlen(m->name->text)+/*\0*/1;
     nativeName=MNEW(char,nativeLen);
-    sprintf(nativeName,"Java_%s_%s",m->class->name->text,m->name->text);
-    for (i=0;i<nativeLen;i++) {
-      if (nativeName[i]=='/') nativeName[i]='_';
+    sprintf(nativeName,"Java_%s/%s",m->class->name->text,m->name->text);
+	i=5;
+    while (i<nativeLen) {
+		if (nativeName[i]=='_') { // escape underscore
+			nativeNameEscape = MNEW(char,nativeLen+1);
+			memcpy(nativeNameEscape,nativeName,i+1);
+			nativeNameEscape[i+1] = '1'; // escape sequence for _ is _1
+			memcpy(&nativeNameEscape[i+2],&nativeName[i+1],nativeLen-i-1);
+			MFREE(nativeName,char,nativeLen);
+			i++;
+			nativeLen++;
+			nativeNameEscape[nativeLen]=0;
+			nativeName=nativeNameEscape;
+		}
+		if (nativeName[i]=='/') nativeName[i]='_';
+		i++;
     } 
 
+/*	printf("nativename: %s\n",nativeName); */
 
     void *sym=dlsym(lib,nativeName);
     if (sym) {
