@@ -32,6 +32,8 @@ extern list linkedclasses;       /* List containing all linked classes */
 /* initialize laoder, load important systemclasses */
 void loader_init ();
 
+void suck_init(char *cpath);
+
 /* free resources */
 void loader_close ();
 

@@ -34,6 +34,8 @@
 #include "toolbox/memory.h"
 #endif
 
+#include "toolbox/loging.h"
+
 #include "threads/thread.h"
 #include <sys/stat.h>
 
