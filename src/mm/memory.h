@@ -14,6 +14,11 @@
 
 #define CODEMMAP
 
+#ifdef USE_BOEHM
+/* Uncollectable memory which can contain references */
+#define GCNEW(type,num) heap_alloc_uncollectable(sizeof(type) * (num))
+#endif
+
 #define ALIGN(pos,size)       ( ( ((pos)+(size)-1) / (size))*(size) )
 #define PADDING(pos,size)     ( ALIGN((pos),(size)) - (pos) )
 #define OFFSET(s,el)          ( (int) ( (size_t) &( ((s*)0) -> el ) ) )

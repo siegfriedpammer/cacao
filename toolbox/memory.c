@@ -49,13 +49,19 @@ long int maxdumpsize = 0;
 /* #define TRACECALLARGS */
 
 #ifdef TRACECALLARGS
-static char  nomallocmem[16777216];
-static char *nomalloctop = nomallocmem + 16777216;
-static char *nomallocptr = nomallocmem;
+static char *nomallocmem;
+static char *nomalloctop;
+static char *nomallocptr;
 
 static void *lit_checked_alloc (int length)
 {
 	void *m;
+
+	if (!nomallocmem) {
+		nomallocmem = malloc(16777216);
+		nomalloctop = nomallocmem + 16777216;
+		nomallocptr = nomallocmem;
+	}
 
 	nomallocptr = (void*) ALIGN ((long) nomallocptr, ALIGNSIZE);
 	
