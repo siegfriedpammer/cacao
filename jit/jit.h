@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 1082 2004-05-26 15:04:54Z jowenn $
+   $Id: jit.h 1091 2004-05-27 15:44:54Z twisti $
 
 */
 
@@ -806,7 +806,7 @@ extern int jcommandsize[256];
 
 #define JAVA_BREAKPOINT       202
 
-#define ICMD_CHECKOOM         203       /* check for out of memory error      */
+#define ICMD_CHECKEXCEPTION   203       /* check for an exception             */
 
 #define ICMD_BUILTIN3         253       /* internal opcode */
 #define ICMD_BUILTIN2         254       /* internal opcode */
@@ -957,8 +957,6 @@ u1 *createnativestub(functionptr f, methodinfo *m);
 
 void removecompilerstub(u1 *stub);
 void removenativestub(u1 *stub);
-
-void typecheck();
 
 /* debug helpers (in stack.c) */
 
