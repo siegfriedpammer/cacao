@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1203 2004-06-22 23:14:55Z twisti $
+   $Id: global.h 1230 2004-06-30 19:41:23Z twisti $
 
 */
 
@@ -607,6 +607,8 @@ struct methodinfo {                 /* method structure                       */
 	u2         linenumbercount;     /* number of linenumber attributes        */
 	lineinfo  *linenumbers;         /* array of lineinfo items                */
 
+	struct registerdata *registerdata; /* struct with all regalloc stuff      */
+
 	u1        *stubroutine;         /* stub for compiling or calling natives  */
 	s4         mcodelength;         /* legth of generated machine code        */
 	u1        *mcode;               /* pointer to machine code                */
@@ -804,14 +806,7 @@ struct arraydescriptor {
 /* flag variables *************************************************************/
 
 extern bool cacao_initializing;
-extern bool compileall;
-extern bool runverbose;         
-extern bool verboseexception;         
-extern bool verbose;         
-extern bool opt_rt;             /* Rapid Type Analysis for better inlining CO-RT*/
-extern bool opt_xta;            /* X Type Analysis for better inlining    CO-XTA*/
-extern bool opt_vta;            /* Variable Type Analysis for better inlining    CO-VTA*/
-extern bool opt_verify;         /* true if classfiles should be verified      */
+
 #ifdef TYPECHECK_VERBOSE_OPT
 extern bool typecheckverbose;
 #endif
@@ -822,21 +817,6 @@ extern bool typecheckverbose;
 /*extern int pStats;*/
 
 /*extern void RT_jit_parse(methodinfo *m);*/
-
-
-/* statistic variables ********************************************************/
-
-extern int count_class_infos;
-extern int count_const_pool_len;
-extern int count_vftbl_len;
-extern int count_utf_len;
-extern int count_all_methods;
-extern int count_vmcode_len;
-extern int count_extable_len;
-extern int count_class_loads;
-extern int count_class_inits;
-extern int count_utf_new;
-extern int count_utf_new_found;
 
 
 /* table of primitive types ***************************************************/
