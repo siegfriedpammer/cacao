@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSecurityManager.c 930 2004-03-02 21:18:23Z jowenn $
+   $Id: VMSecurityManager.c 931 2004-03-05 17:04:35Z jowenn $
 
 */
 
@@ -40,9 +40,7 @@
 #include "toolbox/loging.h"
 #include "java_lang_ClassLoader.h"
 
-#if 0
-THIS IS IN ASMPART NOW
-
+#ifdef _ALPHA_
 /*
  * Class:     java/lang/SecurityManager
  * Method:    currentClassLoader
@@ -57,8 +55,8 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMSecurityManager_curren
 }
 #endif
 
-#if 0
-THIS IS IN ASMPART NOW
+#ifdef _ALPHA_
+/*THIS IS IN ASMPART NOW*/
 /*
  * Class:     java/lang/SecurityManager
  * Method:    getClassContext
@@ -66,16 +64,10 @@ THIS IS IN ASMPART NOW
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMSecurityManager_getClassContext(JNIEnv *env, jclass clazz)
 {
-  void *blah;
-  blah=0;
-  asm_getclasscontext(clazz);
-#if 0
   log_text("Java_java_lang_VMSecurityManager_getClassContext  called");
-#warning return something more usefull here
 
   /* XXX should use vftbl directly */
   return (java_objectarray *) builtin_newarray(0, class_array_of(class_java_lang_Class)->vftbl);
-#endif
 }
 #endif
 
