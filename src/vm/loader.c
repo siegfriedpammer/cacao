@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1888 2005-01-27 21:04:09Z motse $
+   $Id: loader.c 1889 2005-01-27 23:49:03Z motse $
 
 */
 
@@ -502,9 +502,8 @@ classbuffer *suck_start(classinfo *c)
 						cb->pos = cb->data - 1;
 						/* we need this later in use_class_as_object to set a correct 
                             ProtectionDomain and CodeSource */
- 						c->pd = cpi; 
- 						
-						len = unzReadCurrentFile(cpi->uf, cb->data, cb->size);
+ 						c->pd = (struct java_security_ProtectionDomain*) cpi; 
+
 
 						if (len != cb->size) {
 							suck_stop(cb);
@@ -542,7 +541,7 @@ classbuffer *suck_start(classinfo *c)
 					cb->pos = cb->data - 1;
 					/* we need this later in use_class_as_object to set a correct 
                        ProtectionDomain and CodeSource */
- 					c->pd = cpi; 
+ 					c->pd = (struct java_security_ProtectionDomain*)cpi; 
 
 					/* read class data */
 					len = fread(cb->data, 1, cb->size, classfile);
