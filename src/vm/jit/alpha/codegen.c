@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: codegen.c 2072 2005-03-24 18:48:31Z twisti $
+   $Id: codegen.c 2178 2005-04-01 13:20:47Z twisti $
 
 */
 
@@ -3385,18 +3385,18 @@ gen_method: {
 		                      /* op1:   0 == array, 1 == class                */
 		                      /* val.a: (classinfo*) superclass               */
 
-/*          superclass is an interface:
- *
- *          OK if ((sub == NULL) ||
- *                 (sub->vftbl->interfacetablelength > super->index) &&
- *                 (sub->vftbl->interfacetable[-super->index] != NULL));
- *
- *          superclass is a class:
- *
- *          OK if ((sub == NULL) || (0
- *                 <= (sub->vftbl->baseval - super->vftbl->baseval) <=
- *                 super->vftbl->diffvall));
- */
+			/*  superclass is an interface:
+			 *	
+			 *  OK if ((sub == NULL) ||
+			 *         (sub->vftbl->interfacetablelength > super->index) &&
+			 *         (sub->vftbl->interfacetable[-super->index] != NULL));
+			 *	
+			 *  superclass is a class:
+			 *	
+			 *  OK if ((sub == NULL) || (0
+			 *         <= (sub->vftbl->baseval - super->vftbl->baseval) <=
+			 *         super->vftbl->diffval));
+			 */
 
 			{
 			classinfo *super = (classinfo *) iptr->val.a;
@@ -3404,23 +3404,22 @@ gen_method: {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			codegen_threadcritrestart(cd, (u1 *) mcodeptr - cd->mcodebase);
 #endif
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			var_to_reg_int(s1, src, d);
+			var_to_reg_int(s1, src, REG_ITMP1);
 			if (iptr->op1) {                               /* class/interface */
 				if (super->flags & ACC_INTERFACE) {        /* interface       */
 					M_BEQZ(s1, 6);
-					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
-					M_LDA(REG_ITMP2, REG_ITMP2, - super->index);
-					M_BLEZ(REG_ITMP2, 0);
+					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
+					M_LDA(REG_ITMP3, REG_ITMP3, - super->index);
+					M_BLEZ(REG_ITMP3, 0);
 					codegen_addxcastrefs(cd, mcodeptr);
-					M_ALD(REG_ITMP2, REG_ITMP1,
+					M_ALD(REG_ITMP3, REG_ITMP2,
 					      OFFSET(vftbl_t, interfacetable[0]) -
 					      super->index * sizeof(methodptr*));
-					M_BEQZ(REG_ITMP2, 0);
+					M_BEQZ(REG_ITMP3, 0);
 					codegen_addxcastrefs(cd, mcodeptr);
-					}
-				else {                                     /* class           */
+
+				} else {                                   /* class           */
 /*
 					s2 = super->vftbl->diffval;
 					M_BEQZ(s1, 4 + (s2 != 0) + (s2 > 255));
@@ -3440,39 +3439,40 @@ gen_method: {
 						M_BEQZ(REG_ITMP2, 0);
 						}
 */
-					M_BEQZ(s1, 8 + (d == REG_ITMP3));
-					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+					M_BEQZ(s1, 8 + (s1 == REG_ITMP1));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 					a = dseg_addaddress(cd, (void *) super->vftbl);
-					M_ALD(REG_ITMP2, REG_PV, a);
+					M_ALD(REG_ITMP3, REG_PV, a);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstart(cd, (u1 *) mcodeptr - cd->mcodebase);
 #endif
-					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
-					if (d != REG_ITMP3) {
-						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
+					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
+					if (s1 != REG_ITMP1) {
+						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, baseval));
+						M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 						codegen_threadcritstop(cd, (u1 *) mcodeptr - cd->mcodebase);
 #endif
-						M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
-						}
-					else {
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
-						M_ISUB(REG_ITMP1, REG_ITMP2, REG_ITMP1);
-						M_ALD(REG_ITMP2, REG_PV, a);
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
+						M_ISUB(REG_ITMP2, REG_ITMP1, REG_ITMP2);
+
+					} else {
+						M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
+						M_ISUB(REG_ITMP2, REG_ITMP3, REG_ITMP2);
+						M_ALD(REG_ITMP3, REG_PV, a);
+						M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 						codegen_threadcritstop(cd, (u1 *) mcodeptr - cd->mcodebase);
 #endif
-						}
-					M_CMPULE(REG_ITMP1, REG_ITMP2, REG_ITMP2);
-					M_BEQZ(REG_ITMP2, 0);
+					}
+					M_CMPULE(REG_ITMP2, REG_ITMP3, REG_ITMP3);
+					M_BEQZ(REG_ITMP3, 0);
 					codegen_addxcastrefs(cd, mcodeptr);
 					}
 				}
 			else
 				panic ("internal error: no inlined array checkcast");
 			}
+			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
