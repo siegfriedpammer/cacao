@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 800 2003-12-16 22:47:59Z edwin $
+   $Id: jit.c 840 2004-01-05 00:42:13Z twisti $
 
 */
 
@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "global.h"    /* we define _GNU_SOURCE there */
+#include "main.h"
 #include "tables.h"
 #include "loader.h"
 #include "jit.h"
@@ -59,13 +60,6 @@
 
 
 /* global switches ************************************************************/
-
-bool getcompilingtime = false;
-long compilingtime = 0;
-
-int  has_ext_instr_set = 0;
-
-bool statistics = false;         
 
 int count_jit_calls = 0;
 int count_methods = 0;
@@ -1499,6 +1493,10 @@ methodptr jit_compile(methodinfo *m)
 		log_text(logtext);
 	}
 
+	/* initialize the function's class */
+	if (!m->class->initialized) {
+		class_init(m->class);
+	}
 
 	/* initialisation of variables and subsystems */
 
@@ -1527,11 +1525,12 @@ methodptr jit_compile(methodinfo *m)
 	mparamcount = m->paramcount;
 	mparamtypes = m->paramtypes;
 
+#if 0
 	/* initialize class list with class the compiled method belongs to */
 
-	uninitializedclasses = chain_new();
-	compiler_addinitclass(m->class);
-
+  	uninitializedclasses = chain_new();
+  	compiler_addinitclass(m->class);
+#endif
 
 #if defined(__I386__)
 	method_uses_ecx = true;
@@ -1600,6 +1599,7 @@ methodptr jit_compile(methodinfo *m)
 	/* initialize all used classes */
 	/* because of reentrant code global variables are not allowed here        */
 
+#if 0
 	LOG_STEP("Initializing");
 	{
 		chain *ul = uninitializedclasses;   /* list of uninitialized classes      */ 
@@ -1611,6 +1611,7 @@ methodptr jit_compile(methodinfo *m)
 		}
 		chain_free(ul);
 	}
+#endif
 
 	intsRestore();    /* enable interrupts again */
 
