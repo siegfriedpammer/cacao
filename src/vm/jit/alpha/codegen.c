@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 616 2003-11-13 00:57:22Z stefan $
+   $Id: codegen.c 630 2003-11-13 23:00:09Z stefan $
 
 */
 
@@ -1667,8 +1667,15 @@ void codegen()
 				M_FADD(s1, s2, d);
 				}
 			else {
-				M_FADDS(s1, s2, d);
-				M_TRAPB;
+				if (d == s1 || d == s2) {
+					M_FADDS(s1, s2, REG_FTMP3);
+					M_TRAPB;
+					M_FMOV(REG_FTMP3, d);
+					}
+				else {
+					M_FADDS(s1, s2, d);
+					M_TRAPB;
+					}
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1682,8 +1689,15 @@ void codegen()
 				M_DADD(s1, s2, d);
 				}
 			else {
-				M_DADDS(s1, s2, d);
-				M_TRAPB;
+				if (d == s1 || d == s2) {
+					M_DADDS(s1, s2, REG_FTMP3);
+					M_TRAPB;
+					M_FMOV(REG_FTMP3, d);
+					}
+				else {
+					M_DADDS(s1, s2, d);
+					M_TRAPB;
+					}
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1697,8 +1711,15 @@ void codegen()
 				M_FSUB(s1, s2, d);
 				}
 			else {
-				M_FSUBS(s1, s2, d);
-				M_TRAPB;
+				if (d == s1 || d == s2) {
+					M_FSUBS(s1, s2, REG_FTMP3);
+					M_TRAPB;
+					M_FMOV(REG_FTMP3, d);
+					}
+				else {
+					M_FSUBS(s1, s2, d);
+					M_TRAPB;
+					}
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1712,8 +1733,15 @@ void codegen()
 				M_DSUB(s1, s2, d);
 				}
 			else {
-				M_DSUBS(s1, s2, d);
-				M_TRAPB;
+				if (d == s1 || d == s2) {
+					M_DSUBS(s1, s2, REG_FTMP3);
+					M_TRAPB;
+					M_FMOV(REG_FTMP3, d);
+					}
+				else {
+					M_DSUBS(s1, s2, d);
+					M_TRAPB;
+					}
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1727,8 +1755,15 @@ void codegen()
 				M_FMUL(s1, s2, d);
 				}
 			else {
-				M_FMULS(s1, s2, d);
-				M_TRAPB;
+				if (d == s1 || d == s2) {
+					M_FMULS(s1, s2, REG_FTMP3);
+					M_TRAPB;
+					M_FMOV(REG_FTMP3, d);
+					}
+				else {
+					M_FMULS(s1, s2, d);
+					M_TRAPB;
+					}
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1742,8 +1777,15 @@ void codegen()
 				M_DMUL(s1, s2, d);
 				}
 			else {
-				M_DMULS(s1, s2, d);
-				M_TRAPB;
+				if (d == s1 || d == s2) {
+					M_DMULS(s1, s2, REG_FTMP3);
+					M_TRAPB;
+					M_FMOV(REG_FTMP3, d);
+					}
+				else {
+					M_DMULS(s1, s2, d);
+					M_TRAPB;
+					}
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1757,8 +1799,15 @@ void codegen()
 				M_FDIV(s1, s2, d);
 				}
 			else {
-				M_FDIVS(s1, s2, d);
-				M_TRAPB;
+				if (d == s1 || d == s2) {
+					M_FDIVS(s1, s2, REG_FTMP3);
+					M_TRAPB;
+					M_FMOV(REG_FTMP3, d);
+					}
+				else {
+					M_FDIVS(s1, s2, d);
+					M_TRAPB;
+					}
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1772,8 +1821,15 @@ void codegen()
 				M_DDIV(s1, s2, d);
 				}
 			else {
-				M_DDIVS(s1, s2, d);
-				M_TRAPB;
+				if (d == s1 || d == s2) {
+					M_DDIVS(s1, s2, REG_FTMP3);
+					M_TRAPB;
+					M_FMOV(REG_FTMP3, d);
+					}
+				else {
+					M_DDIVS(s1, s2, d);
+					M_TRAPB;
+					}
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
