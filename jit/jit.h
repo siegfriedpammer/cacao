@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 760 2003-12-13 22:38:03Z twisti $
+   $Id: jit.h 845 2004-01-05 10:38:06Z twisti $
 
 */
 
@@ -850,33 +850,6 @@ extern int nreg_parammode;
 
 
 /* compiler switches (set by main function) ***********************************/
-
-extern bool runverbose;         /* trace all method invocation                */
-extern bool compileverbose;     /* trace compiler actions                     */
-extern bool showdisassemble;    /* generate disassembler listing              */
-extern bool showddatasegment;   /* generate data segment listing              */
-extern bool showintermediate;   /* generate intermediate code listing         */
-extern int  optimizelevel;      /* optimzation level  (0 = no optimization)   */
-
-extern bool useinlining;        /* use method inlining                        */
-extern bool inlinevirtuals;     /* inline unique virtual methods              */
-extern bool inlineexceptions;   /* inline methods, that contain excptions     */
-extern bool inlineparamopt;     /* optimize parameter passing to inlined methods */
-extern bool inlineoutsiders;    /* inline methods, that are not member of the invoker's class */
-
-
-extern bool checkbounds;        /* check array bounds                         */
-extern bool opt_loops;          /* optimize array accesses in loops           */
-extern bool checknull;          /* check null pointers                        */
-extern bool opt_noieee;         /* don't implement ieee compliant floats      */
-extern bool checksync;          /* do synchronization                         */
-
-extern bool getcompilingtime;   /* compute compile time                       */
-extern long compilingtime;      /* accumulated compile time                   */
-
-extern int  has_ext_instr_set;  /* has instruction set extensions */
-
-extern bool statistics;         
 
 extern int count_jit_calls;
 extern int count_methods;
