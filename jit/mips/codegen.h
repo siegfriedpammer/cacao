@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 1349 2004-07-22 12:08:29Z twisti $
+   $Id: codegen.h 1485 2004-11-11 14:41:42Z twisti $
 
 */
 
@@ -104,7 +104,7 @@
 #define gen_nullptr_check(objreg) \
     if (checknull) { \
         M_BEQZ((objreg), 0); \
-        codegen_addxnullrefs(m, mcodeptr); \
+        codegen_addxnullrefs(cd, mcodeptr); \
         M_NOP; \
     }
 
@@ -113,7 +113,7 @@
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size)); \
         M_CMPULT(s2, REG_ITMP3, REG_ITMP3); \
         M_BEQZ(REG_ITMP3, 0); \
-        codegen_addxboundrefs(m, mcodeptr, s2); \
+        codegen_addxboundrefs(cd, mcodeptr, s2); \
         M_NOP; \
     }
 
@@ -122,7 +122,8 @@
 
 #define MCODECHECK(icnt) \
 	if ((mcodeptr + (icnt)) > cd->mcodeend) \
-        mcodeptr = codegen_increase(m, (u1 *) mcodeptr)
+        mcodeptr = codegen_increase(cd, (u1 *) mcodeptr)
+
 
 /* M_INTMOVE:
      generates an integer-move from register a to b.
@@ -206,16 +207,20 @@
 */
 
 #define var_to_reg_int(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) \
-		{COUNT_SPILLS;M_LLD(tempnr,REG_SP,8*(v)->regoff);regnr=tempnr;} \
-	else regnr=(v)->regoff; \
+	if ((v)->flags & INMEMORY) { \
+		COUNT_SPILLS; \
+        M_LLD(tempnr, REG_SP, 8 * (v)->regoff); \
+        regnr = tempnr; \
+	} else regnr = (v)->regoff; \
 }
 
 
 #define var_to_reg_flt(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) \
-		{COUNT_SPILLS;M_DLD(tempnr,REG_SP,8*(v)->regoff);regnr=tempnr;} \
-	else regnr=(v)->regoff; \
+	if ((v)->flags & INMEMORY) { \
+		COUNT_SPILLS; \
+        M_DLD(tempnr, REG_SP, 8 * (v)->regoff); \
+        regnr = tempnr; \
+	} else regnr = (v)->regoff; \
 }
 
 
@@ -246,7 +251,7 @@
 
 
 #define M_COPY(from,to) \
-	d = reg_of_var(m, to, REG_IFTMP); \
+	d = reg_of_var(rd, to, REG_IFTMP); \
 	if ((from->regoff != to->regoff) || \
 	    ((from->flags ^ to->flags) & INMEMORY)) { \
 		if (IS_FLT_DBL_TYPE(from->type)) { \
@@ -267,7 +272,7 @@
     } else if ((c) >= 0 && (c) <= 0xffff) { \
         M_OR_IMM(REG_ZERO, (c), (r)); \
     } else { \
-        a = dseg_adds4(m, (c)); \
+        a = dseg_adds4(cd, (c)); \
         M_ILD((r), REG_PV, a); \
     }
 
@@ -277,7 +282,7 @@
     } else if ((c) >= 0 && (c) <= 0xffff) { \
         M_OR_IMM(REG_ZERO, (c), (r)); \
     } else { \
-        a = dseg_adds8(m, (c)); \
+        a = dseg_adds8(cd, (c)); \
         M_LLD((r), REG_PV, a); \
     }
 
@@ -571,7 +576,8 @@
 
 *******************************************************************************/
 
-#define gen_resolvebranch(ip,so,to) ((s4*)(ip))[-1]|=((s4)(to)-(so))>>2&0xffff
+#define gen_resolvebranch(ip,so,to) \
+    ((s4 *) (ip))[-1] |= ((s4) (to) - (so)) >> 2 & 0xffff
 
 
 /* function prototypes */
