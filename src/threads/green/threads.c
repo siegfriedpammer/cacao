@@ -11,27 +11,25 @@
  * Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
  */
 
-#include "config.h"
-
 #include <assert.h>
-
 #include <sys/types.h>
 #include <sys/mman.h>                   /* for mprotect */
 #include <unistd.h>
 #include <signal.h>
 #include <sys/time.h>
 
+#include "config.h"
 #include "thread.h"
 #include "locks.h"
 #include "threads.h"
-
 #include "tables.h"
 #include "native.h"
 #include "loader.h"
 #include "builtin.h"
 #include "asmpart.h"
-
+#include "toolbox/loging.h"
 #include "toolbox/memory.h"
+
 
 static classinfo *class_java_lang_ThreadDeath;
 

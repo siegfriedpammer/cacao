@@ -1,23 +1,40 @@
-/* boehm.c *********************************************************************
+/* mm/boehm.c - interface for boehm gc
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	Contains the interface to the Boehm GC
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	Changes: Andi Krall          EMAIL: cacao@complang.tuwien.ac.at
-	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
-			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-	Last Change: $Id: boehm.c 512 2003-10-22 20:47:18Z twisti $
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-*******************************************************************************/
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Stefan Ring
+
+   $Id: boehm.c 557 2003-11-02 22:51:59Z twisti $
+
+*/
+
 
 #include "global.h"
 #include "threads/thread.h"
 #include "asmpart.h"
+#include "toolbox/loging.h"
 
 /* this is temporary workaround */
 #if defined(__X86_64__)
@@ -141,6 +158,7 @@ void gc_call()
 
 	GC_gcollect();
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -1,35 +1,58 @@
-/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
-/****************************** tables.c ***************************************
+/* tables.c - 
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	Contains support functions for:
-		- Reading of Java class files
-		- Unicode symbols
-		- the heap
-		- additional support functions
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
-	         Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
-	         	
-	Last Change: 1998/03/24
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-*******************************************************************************/
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Reinhard Grafl
+
+   Changes: Mark Probst
+            Andreas Krall
+
+   Contains support functions for:
+       - Reading of Java class files
+       - Unicode symbols
+       - the heap
+       - additional support functions
+
+   $Id: tables.c 557 2003-11-02 22:51:59Z twisti $
+
+*/
+
 
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include "types.h"
 #include "global.h"
 #include "tables.h"
 #include "asmpart.h"
-#include "callargs.h"
-
-#include "threads/thread.h"                  /* schani */
+#include "threads/thread.h"
 #include "threads/locks.h"
+#include "toolbox/loging.h"
+#include "toolbox/memory.h"
+
 
 bool runverbose = false;
 
@@ -65,10 +88,10 @@ void init_hashtable(hashtable *hash, u4 size)
 
 	hash->entries = 0;
 	hash->size    = size;
-	hash->ptr     = MNEW (void*, size);
+	hash->ptr     = MNEW(void*, size);
 
 	/* clear table */
-	for (i=0; i<size; i++) hash->ptr[i] = NULL;
+	for (i = 0; i < size; i++) hash->ptr[i] = NULL;
 }
 
 /*********************** function: tables_init  *****************************
@@ -104,15 +127,15 @@ void tables_close (stringdeleter del)
 	
 	/* dispose utf symbols */
 	for (i=0; i<utf_hash.size; i++) {
-	u = utf_hash.ptr[i];
+		u = utf_hash.ptr[i];
 		while (u) {
 			/* process elements in external hash chain */
 			utf *nextu = u->hashlink;
 			MFREE (u->text, u1, u->blength);
 			FREE (u, utf);
 			u = nextu;
-			}	
-		}
+		}	
+	}
 
 	/* dispose javastrings */
 	for (i=0; i<string_hash.size; i++) {
@@ -123,8 +146,8 @@ void tables_close (stringdeleter del)
 			del(s->string);
 			FREE(s, literalstring);
 			s = nexts;
-			}	
-		}
+		}	
+	}
 
 	/* dispose hashtable structures */
 	MFREE (utf_hash.ptr,    void*, utf_hash.size);
@@ -148,7 +171,7 @@ void utf_display (utf *u)
 		/* read next unicode character */                
 		u2 c = utf_nextu2(&utf_ptr);				
 		if (c>=32 && c<=127) printf ("%c",c);
-		                else printf ("?");
+		else printf ("?");
 	}
 
 	fflush (stdout);
@@ -191,8 +214,8 @@ void utf_fprint (FILE *file, utf *u)
 		u2 c = utf_nextu2(&utf_ptr);				
 
 		if (c>=32 && c<=127) fprintf (file,"%c",c);
-		                else fprintf (file,"?");
-		}
+		else fprintf (file,"?");
+	}
 } 
 
 
@@ -227,71 +250,71 @@ static u4 utf_hashkey (char *text, u4 length)
 	case 8: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7);
 
 	case 9: a = fbs(0) ^ nbs(1) ^ nbs(2);                
-                text++; 
-                return a ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7) ^ nbs(8);
+		text++; 
+		return a ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7) ^ nbs(8);
 
 	case 10: a = fbs(0);
-                 text++;
-                 a^= nbs(2) ^ nbs(3) ^ nbs(4);
-                 text++;
-                 return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9);
+		text++;
+		a^= nbs(2) ^ nbs(3) ^ nbs(4);
+		text++;
+		return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9);
 
 	case 11: a = fbs(0);
-                 text++;
-                 a^= nbs(2) ^ nbs(3) ^ nbs(4);
-                 text++;
-                 return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9) ^ nbs(10);
+		text++;
+		a^= nbs(2) ^ nbs(3) ^ nbs(4);
+		text++;
+		return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9) ^ nbs(10);
 
 	case 12: a = fbs(0);
-                 text+=2;
-                 a^= nbs(2) ^ nbs(3);
-                 text+=1;
-                 a^= nbs(5) ^ nbs(6) ^ nbs(7);
-                 text+=1;
-                 return a ^ nbs(9) ^ nbs(10);	   
+		text+=2;
+		a^= nbs(2) ^ nbs(3);
+		text+=1;
+		a^= nbs(5) ^ nbs(6) ^ nbs(7);
+		text+=1;
+		return a ^ nbs(9) ^ nbs(10);	   
 
 	case 13: a = fbs(0) ^ nbs(1);
-                 text+=1;	
-                 a^= nbs(3) ^ nbs(4);
-                 text+=2;	
-                 a^= nbs(7) ^ nbs(8);
-                 text+=2;
-                 return a ^ nbs(9) ^ nbs(10);
+		text+=1;	
+		a^= nbs(3) ^ nbs(4);
+		text+=2;	
+		a^= nbs(7) ^ nbs(8);
+		text+=2;
+		return a ^ nbs(9) ^ nbs(10);
 
 	case 14: a = fbs(0);
-                 text+=2;	
-                 a^= nbs(3) ^ nbs(4);
-                 text+=2;	
-                 a^= nbs(7) ^ nbs(8);
-                 text+=2;
-                 return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
+		text+=2;	
+		a^= nbs(3) ^ nbs(4);
+		text+=2;	
+		a^= nbs(7) ^ nbs(8);
+		text+=2;
+		return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
 
 	case 15: a = fbs(0);
-                 text+=2;	
-                 a^= nbs(3) ^ nbs(4);
-                 text+=2;	
-                 a^= nbs(7) ^ nbs(8);
-                 text+=2;
-                 return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
+		text+=2;	
+		a^= nbs(3) ^ nbs(4);
+		text+=2;	
+		a^= nbs(7) ^ nbs(8);
+		text+=2;
+		return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
 
 	default:  /* 3 characters from beginning */
-                  a = fbs(0);
-                  text+=2;
-                  a^= nbs(3) ^ nbs(4);
+		a = fbs(0);
+		text+=2;
+		a^= nbs(3) ^ nbs(4);
 
-                  /* 2 characters from middle */
-                  text = start_pos + (length / 2);
-                  a^= fbs(5);
-                  text+=2;
-                  a^= nbs(6);	
+		/* 2 characters from middle */
+		text = start_pos + (length / 2);
+		a^= fbs(5);
+		text+=2;
+		a^= nbs(6);	
 
-                  /* 3 characters from end */
-                  text = start_pos + length - 4;
+		/* 3 characters from end */
+		text = start_pos + length - 4;
 
-                  a^= fbs(7);
-                  text+=1;
+		a^= fbs(7);
+		text+=1;
 
-                  return a ^ nbs(10) ^ nbs(11);
+		return a ^ nbs(10) ^ nbs(11);
     }
 }
 
@@ -349,7 +372,7 @@ utf *utf_new (char *text, u2 length)
 			/* symbol found in hashtable */   				
 			return u;
 		}
-		nomatch:
+	nomatch:
 		u = u->hashlink; /* next element in external chain */
 	}
 
@@ -372,36 +395,36 @@ utf *utf_new (char *text, u2 length)
         /* reorganization of hashtable, average length of 
            the external chains is approx. 2                */  
 
-	  u4 i;
-	  utf *u;
-	  hashtable newhash; /* the new hashtable */
+		u4 i;
+		utf *u;
+		hashtable newhash; /* the new hashtable */
 
-	  /* create new hashtable, double the size */
-	  init_hashtable(&newhash, utf_hash.size*2);
-	  newhash.entries=utf_hash.entries;
+		/* create new hashtable, double the size */
+		init_hashtable(&newhash, utf_hash.size*2);
+		newhash.entries=utf_hash.entries;
 
 #ifdef STATISTICS
-	  count_utf_len += sizeof(utf*) * utf_hash.size;
+		count_utf_len += sizeof(utf*) * utf_hash.size;
 #endif
 
-	  /* transfer elements to new hashtable */
-	  for (i=0; i<utf_hash.size; i++) {
-		u = (utf*) utf_hash.ptr[i];
-		while (u) {
-			utf *nextu = u -> hashlink;
-			u4 slot = (utf_hashkey(u->text,u->blength)) & (newhash.size-1);
+		/* transfer elements to new hashtable */
+		for (i=0; i<utf_hash.size; i++) {
+			u = (utf*) utf_hash.ptr[i];
+			while (u) {
+				utf *nextu = u -> hashlink;
+				u4 slot = (utf_hashkey(u->text,u->blength)) & (newhash.size-1);
 						
-			u->hashlink = (utf*) newhash.ptr[slot];
-			newhash.ptr[slot] = u;
+				u->hashlink = (utf*) newhash.ptr[slot];
+				newhash.ptr[slot] = u;
 
-			/* follow link in external hash chain */
-			u = nextu;
+				/* follow link in external hash chain */
+				u = nextu;
 			}
 		}
 	
-	  /* dispose old table */
-	  MFREE (utf_hash.ptr, void*, utf_hash.size);
-	  utf_hash = newhash;
+		/* dispose old table */
+		MFREE (utf_hash.ptr, void*, utf_hash.size);
+		utf_hash = newhash;
 	}
 	
 	return u;
@@ -452,14 +475,14 @@ void utf_show ()
 				utf_display (u);
 				printf ("' ");
 				u = u->hashlink;
-				}	
+			}	
 			printf ("\n");
-			}
-		
 		}
+		
+	}
 
 	printf ("UTF-HASH: %d slots for %d entries\n", 
-	         (int) utf_hash.size, (int) utf_hash.entries );
+			(int) utf_hash.size, (int) utf_hash.entries );
 
 
 	if (utf_hash.entries == 0)
@@ -480,7 +503,7 @@ void utf_show ()
 		while (u) {
 			u = u->hashlink;
 			chain_length++;
-			}
+		}
 
 		/* update sum of all chainlengths */
 		sum_chainlength+=chain_length;
@@ -497,7 +520,7 @@ void utf_show ()
 
 		/* update number of hashchains of current length */
 		chain_count[chain_length]++;
-		}
+	}
 
 	/* display results */  
 	for (i=1;i<CHAIN_LIMIT-1;i++) 
@@ -524,11 +547,11 @@ void utf_show ()
 	
 ******************************************************************************/
 
-u2 desc_to_type (utf *descriptor)
+u2 desc_to_type(utf *descriptor)
 {
 	char *utf_ptr = descriptor->text;  /* current position in utf text */
 
-	if (descriptor->blength < 1) panic ("Type-Descriptor is empty string");
+	if (descriptor->blength < 1) panic("Type-Descriptor is empty string");
 	
 	switch (*utf_ptr++) {
 	case 'B': 
@@ -543,9 +566,10 @@ u2 desc_to_type (utf *descriptor)
 	case '[':  return TYPE_ADDRESS;
 	}
 			
-	sprintf (logtext, "Invalid Type-Descriptor: "); 
-	utf_sprint (logtext+strlen(logtext), descriptor);
-	error (); 
+	sprintf(logtext, "Invalid Type-Descriptor: ");
+	utf_sprint(logtext+strlen(logtext), descriptor);
+	error();
+
 	return 0;
 }
 
@@ -589,37 +613,38 @@ u2 utf_nextu2(char **utf_ptr)
     int len;		
 	
     switch ((ch1 = utf[0]) >> 4) {
-      default: /* 1 byte */
-               (*utf_ptr)++;
-               return ch1;
-       case 0xC: 
-       case 0xD: /* 2 bytes */
-                 if (((ch2 = utf[1]) & 0xC0) == 0x80) {
-                   unsigned char high = ch1 & 0x1F;
-                   unsigned char low  = ch2 & 0x3F;
-                   unicode_char = (high << 6) + low;
-                   len = 2;
-                 } 
-                 break;
+	default: /* 1 byte */
+		(*utf_ptr)++;
+		return ch1;
+	case 0xC: 
+	case 0xD: /* 2 bytes */
+		if (((ch2 = utf[1]) & 0xC0) == 0x80) {
+			unsigned char high = ch1 & 0x1F;
+			unsigned char low  = ch2 & 0x3F;
+			unicode_char = (high << 6) + low;
+			len = 2;
+		} 
+		break;
 
-       case 0xE: /* 2 or 3 bytes */
-                 if (((ch2 = utf[1]) & 0xC0) == 0x80) {
-                    if (((ch3 = utf[2]) & 0xC0) == 0x80) {
-                       unsigned char low  = ch3 & 0x3f;
-                       unsigned char mid  = ch2 & 0x3f;
-                       unsigned char high = ch1 & 0x0f;
-                       unicode_char = (((high << 6) + mid) << 6) + low;
-                       len = 3;
-                    } else
-                       len = 2;					   
-	         }
-                 break;
+	case 0xE: /* 2 or 3 bytes */
+		if (((ch2 = utf[1]) & 0xC0) == 0x80) {
+			if (((ch3 = utf[2]) & 0xC0) == 0x80) {
+				unsigned char low  = ch3 & 0x3f;
+				unsigned char mid  = ch2 & 0x3f;
+				unsigned char high = ch1 & 0x0f;
+				unicode_char = (((high << 6) + mid) << 6) + low;
+				len = 3;
+			} else
+				len = 2;					   
+		}
+		break;
     }
 
     /* update position in utf-text */
     *utf_ptr = (char *) (utf + len);
     return unicode_char;
 }
+
  
 /******************** Function: class_new **************************************
 
@@ -629,7 +654,7 @@ u2 utf_nextu2(char **utf_ptr)
 
 *******************************************************************************/
 
-classinfo *class_new (utf *u)
+classinfo *class_new(utf *u)
 {
 	classinfo *c;     /* hashtable element */ 
 	u4 key;           /* hashkey computed from classname */   
@@ -646,13 +671,13 @@ classinfo *class_new (utf *u)
 			for (i=0; i<u->blength; i++) 
 				if (u->text[i] != c->name->text[i]) goto nomatch;
 						
-				/* class found in hashtable */									
-				return c;
-			}
-			
-		nomatch:
-		c = c->hashlink; /* next element in external chain */
+			/* class found in hashtable */									
+			return c;
 		}
+			
+	nomatch:
+		c = c->hashlink; /* next element in external chain */
+	}
 
 	/* location in hashtable found, create new classinfo structure */
 
@@ -660,33 +685,33 @@ classinfo *class_new (utf *u)
 	count_class_infos += sizeof(classinfo);
 #endif
 
-	c = NEW (classinfo);
-	c -> flags = 0;
-	c -> name = u;
-	c -> cpcount = 0;
-	c -> cptags = NULL;
-	c -> cpinfos = NULL;
-	c -> super = NULL;
-	c -> sub = NULL;
-	c -> nextsub = NULL;
-	c -> interfacescount = 0;
-	c -> interfaces = NULL;
-	c -> fieldscount = 0;
-	c -> fields = NULL;
-	c -> methodscount = 0;
-	c -> methods = NULL;
-	c -> linked = false;
-	c -> index = 0;
-	c -> instancesize = 0;
-	c -> header.vftbl = NULL;
-	c -> innerclasscount = 0;
-	c -> innerclass = NULL;
-	c -> vftbl = NULL;
-	c -> initialized = false;
-	c -> classvftbl = false;
+	c = NEW(classinfo);
+	c->flags = 0;
+	c->name = u;
+	c->cpcount = 0;
+	c->cptags = NULL;
+	c->cpinfos = NULL;
+	c->super = NULL;
+	c->sub = NULL;
+	c->nextsub = NULL;
+	c->interfacescount = 0;
+	c->interfaces = NULL;
+	c->fieldscount = 0;
+	c->fields = NULL;
+	c->methodscount = 0;
+	c->methods = NULL;
+	c->linked = false;
+	c->index = 0;
+	c->instancesize = 0;
+	c->header.vftbl = NULL;
+	c->innerclasscount = 0;
+	c->innerclass = NULL;
+	c->vftbl = NULL;
+	c->initialized = false;
+	c->classvftbl = false;
 	
 	/* prepare loading of the class */
-	list_addlast (&unloadedclasses, c);
+	list_addlast(&unloadedclasses, c);
 
 	/* insert class into the hashtable */
 	c->hashlink = class_hash.ptr[slot];
@@ -695,36 +720,36 @@ classinfo *class_new (utf *u)
 	/* update number of hashtable-entries */
 	class_hash.entries++;
 
-	if ( class_hash.entries > (class_hash.size*2)) {  
+	if (class_hash.entries > (class_hash.size*2)) {  
 
-          /* reorganization of hashtable, average length of 
-             the external chains is approx. 2                */  
+		/* reorganization of hashtable, average length of 
+		   the external chains is approx. 2                */  
 
-	  u4 i;
-	  classinfo *c;
-	  hashtable newhash;  /* the new hashtable */
+		u4 i;
+		classinfo *c;
+		hashtable newhash;  /* the new hashtable */
 
-	  /* create new hashtable, double the size */
-	  init_hashtable(&newhash, class_hash.size*2);
-	  newhash.entries = class_hash.entries;
+		/* create new hashtable, double the size */
+		init_hashtable(&newhash, class_hash.size*2);
+		newhash.entries = class_hash.entries;
 
-	  /* transfer elements to new hashtable */
-	  for (i=0; i<class_hash.size; i++) {
-		c = (classinfo*) class_hash.ptr[i];
-		while (c) {
-			classinfo *nextc = c -> hashlink;
-			u4 slot = (utf_hashkey(c->name->text,c->name->blength)) & (newhash.size-1);
+		/* transfer elements to new hashtable */
+		for (i = 0; i < class_hash.size; i++) {
+			c = (classinfo*) class_hash.ptr[i];
+			while (c) {
+				classinfo *nextc = c->hashlink;
+				u4 slot = (utf_hashkey(c->name->text, c->name->blength)) & (newhash.size - 1);
 						
-			c->hashlink = newhash.ptr[slot];
-			newhash.ptr[slot] = c;
+				c->hashlink = newhash.ptr[slot];
+				newhash.ptr[slot] = c;
 
-			c = nextc;
+				c = nextc;
 			}
 		}
 	
-	  /* dispose old table */	
-	  MFREE (class_hash.ptr, void*, class_hash.size);
-	  class_hash = newhash;
+		/* dispose old table */	
+		MFREE(class_hash.ptr, void*, class_hash.size);
+		class_hash = newhash;
 	}
 			
 	return c;
@@ -737,7 +762,7 @@ classinfo *class_new (utf *u)
 
 *******************************************************************************/
 
-classinfo *class_get (utf *u)
+classinfo *class_get(utf *u)
 {
 	classinfo *c;  /* hashtable element */ 
 	u4 key;        /* hashkey computed from classname */   
@@ -758,11 +783,11 @@ classinfo *class_get (utf *u)
 
 			/* class found in hashtable */				
 			return c;
-			}
-			
-		nomatch:
-		c = c->hashlink;
 		}
+			
+	nomatch:
+		c = c->hashlink;
+	}
 
 	/* class not found */
 	return NULL;
@@ -782,40 +807,28 @@ u4 utf_strlen(utf *u)
     u4 len = 0;			 /* number of unicode characters   */
 
     while (utf_ptr<endpos) {
-      len++;
-      /* next unicode character */
-      utf_nextu2(&utf_ptr);
+		len++;
+		/* next unicode character */
+		utf_nextu2(&utf_ptr);
     }
 
     if (utf_ptr!=endpos)
     	/* string ended abruptly */
-	panic("illegal utf string"); 
+		panic("illegal utf string"); 
 
     return len;
 }
 
 
-
-
-
-
-
- 
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

@@ -1,30 +1,43 @@
-/****************************** native.c ***************************************
+/* native.c - table of native functions
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-    Contains the tables for native methods.
-	The .hh files created with the header file generator are all included here
-	as are the C functions implementing these methods.
-	
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at	
-	         Roman Obermaisser   EMAIL: cacao@complang.tuwien.ac.at	
-	         Andreas Krall       EMAIL: cacao@complang.tuwien.ac.at	
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Last Change: 2003/02/26
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-*******************************************************************************/
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Reinhard Grafl
+            Roman Obermaisser
+            Andreas Krall
+
+   The .hh files created with the header file generator are all
+   included here as are the C functions implementing these methods.
+
+   $Id: native.c 557 2003-11-02 22:51:59Z twisti $
+
+*/
+
 
 #include <unistd.h>
 #include <time.h>
-#include "global.h"
-#include "native.h"
-#include "nativetypes.hh"
-#include "builtin.h"
-#include "asmpart.h"
-#include "tables.h"
-#include "loader.h"
 #include <math.h>
 #include <string.h>
 #include <assert.h>
@@ -32,7 +45,16 @@
 #include <utime.h>
 #include <sys/utsname.h>
 
-#include "threads/thread.h"                       /* schani */
+#include "global.h"
+#include "native.h"
+#include "nativetypes.hh"
+#include "builtin.h"
+#include "asmpart.h"
+#include "tables.h"
+#include "loader.h"
+#include "toolbox/loging.h"
+#include "threads/thread.h"
+#include "threads/threadio.h"
 #include "threads/locks.h"
 
 /* Include files for IO functions */
@@ -45,7 +67,6 @@
 #endif
 #include <sys/stat.h>
 
-#include "../threads/threadio.h"                    
 
 /* searchpath for classfiles */
 static char *classpath;
@@ -1070,3 +1091,17 @@ for (i=0;i<NATIVECALLSSIZE; i++) {
 return true;
 }
 /*--------------------------------------------------------*/
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

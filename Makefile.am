@@ -1,26 +1,32 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 503 2003-10-22 17:35:21Z twisti $
+# $Id: Makefile.am 557 2003-11-02 22:51:59Z twisti $
 
 @SET_MAKE@
 
 MAINTAINERCLEANFILES = Makefile.in configure
-ALLSUBDIRS = mm toolbox jit nat threads tst doc narray jvmtst
-SUBDIRS = $(ALLSUBDIRS) @SYSDEP_DIR@
-DIST_SUBDIRS = $(ALLSUBDIRS) alpha mips i386 powerpc x86_64
+ALLSUBDIRS = mm toolbox threads jit nat tst doc jvmtst
+SUBDIRS = $(ALLSUBDIRS)
+DIST_SUBDIRS = $(ALLSUBDIRS)
 
-EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html \
-				jni.c natcalls.h nativecalls.h
+EXTRA_DIST = \
+	html/cacaoinstall.html \
+	html/cacaoman.html \
+	html/index.html \
+	jni.c \
+	natcalls.h \
+	nativecalls.h
 
-CLEANFILES = @SYSDEP_DIR@/asmpart.o \
-             @SYSDEP_DIR@/offsets.h \
-	         nativetable.hh \
-	         nativetypes.hh
+CLEANFILES = \
+	jit/@ARCH_DIR@/asmpart.o \
+	jit/@ARCH_DIR@/offsets.h \
+	nativetable.hh \
+	nativetypes.hh
 
 bin_PROGRAMS = cacao
 noinst_PROGRAMS = cacaoh
 
-INCLUDES = -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit
+INCLUDES = -I$(top_srcdir)/jit/@ARCH_DIR@ -I$(top_srcdir)/jit
 
 BOEHM_LIBS = mm/libboehm.a mm/boehm-gc/.libs/libgc.a
 
@@ -28,10 +34,7 @@ cacao_SOURCES = \
 	asmpart.h \
 	builtin.c \
 	builtin.h \
-	callargs.h \
 	global.h \
-	jit.c \
-	jit.h \
 	loader.c \
 	loader.h \
 	main.c \
@@ -42,15 +45,17 @@ cacao_SOURCES = \
 	tables.h
 
 cacao_LDADD = \
-	@SYSDEP_DIR@/asmpart.o \
-	@COMPILER_OBJECTS@ \
+	jit/libjit.a \
+	jit/loop/libloop.a \
+	jit/@ARCH_DIR@/libarch.a \
 	toolbox/libtoolbox.a \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@
 
 cacao_DEPENDENCIES = \
-	@SYSDEP_DIR@/asmpart.o \
-	@COMPILER_OBJECTS@ \
+	jit/libjit.a \
+	jit/loop/libloop.a \
+	jit/@ARCH_DIR@/libarch.a \
 	toolbox/libtoolbox.a \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@
@@ -71,9 +76,9 @@ cacaoh_DEPENDENCIES = \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@
 
-native.c: nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh
+native.c: nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh
 
-nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
+nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh
 	./cacaoh \
 		java.lang.Object \
 		java.lang.String \
@@ -133,16 +138,14 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 		java.io.UnixFileSystem \
 		java.lang.ClassLoader_NativeLibrary
 
-@SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/@ASMPART@ @SYSDEP_DIR@/offsets.h
-	@CC@ $(ASMFLAGS) $(INCLUDES) -c -g -o $@ $<
-
 checkjvm:
 	$(MAKE) -C jvmtst $@
+
 
 ## Local variables:
 ## mode: Makefile
 ## indent-tabs-mode: t
 ## c-basic-offset: 4
-## tab-width: 4
+## tab-width: 8
 ## compile-command: "automake --add-missing"
 ## End:

@@ -1,41 +1,63 @@
-/************************* toolbox/chain.h *************************************
+/* toolbox/chain.h - management of doubly linked lists with external linking
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	Management of doubly linked lists with external linking
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-	Last Change: 1996/10/03
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-*******************************************************************************/
+   Contact: cacao@complang.tuwien.ac.at
 
-#ifndef CHAIN_H
-#define CHAIN_H
+   Authors: Reinhard Grafl
+
+   $Id: chain.h 557 2003-11-02 22:51:59Z twisti $
+
+*/
+
+
+#ifndef _CHAIN_H
+#define _CHAIN_H
 
 typedef struct chainlink {          /* structure for list element */
-	struct chainlink *next,*prev;
+	struct chainlink *next;
+	struct chainlink *prev;
 	void *element;
-	} chainlink;
+} chainlink;
 
 typedef struct chain {	            /* structure for list */
 	int  usedump;   
 
-	chainlink *first,*last;
+	chainlink *first;
+	chainlink *last;
 	chainlink *active;
-	} chain;
+} chain;
 
 
-chain *chain_new ();
-chain *chain_dnew ();
+/* function prototypes */
+chain *chain_new();
+chain *chain_dnew();
 void chain_free(chain *c);
 
 void chain_addafter(chain *c, void *element);
 void chain_addbefore(chain *c, void *element);
-void chain_addlast (chain *c, void *element);
-void chain_addfirst (chain *c, void *element);
+void chain_addlast(chain *c, void *element);
+void chain_addfirst(chain *c, void *element);
 
 void chain_remove(chain *c);
 void *chain_remove_go_prev(chain *c);
@@ -87,4 +109,18 @@ insertion/deletion occurs at a position relative to this cursor.
 
 */
 
-#endif
+#endif /* _CHAIN_H */
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

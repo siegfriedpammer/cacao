@@ -1,16 +1,38 @@
-/************************* toolbox/memory.h ************************************
+/* toolbox/memory.h - macros for memory management
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	Macros for memory management
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-	Last Change: 1996/10/03
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-*******************************************************************************/
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Reinhard Grafl
+
+   $Id: memory.h 557 2003-11-02 22:51:59Z twisti $
+
+*/
+
+
+#ifndef _MEMORY_H
+#define _MEMORY_H
 
 #include "types.h"
 
@@ -18,36 +40,37 @@
 void *heap_alloc_uncollectable(u4 bytelen);
 #define GCNEW(type,num)       heap_alloc_uncollectable(sizeof(type) * (num))
 
-#define ALIGN(pos,size)       ( ( ((pos)+(size)-1) / (size))*(size) )
-#define PADDING(pos,size)     ( ALIGN((pos),(size)) - (pos) )
-#define OFFSET(s,el)          ( (int) ( (size_t) &( ((s*)0) -> el ) ) )
+#define ALIGN(pos,size)       ((((pos) + (size) - 1) / (size)) * (size))
+#define PADDING(pos,size)     (ALIGN((pos),(size)) - (pos))
+#define OFFSET(s,el)          ((int) ((size_t) & (((s*) 0)->el)))
 
 
-#define NEW(type)             ((type*) mem_alloc ( sizeof(type) ))
-#define FREE(ptr,type)        mem_free (ptr, sizeof(type) )
+#define NEW(type)             ((type*) mem_alloc(sizeof(type)))
+#define FREE(ptr,type)        mem_free(ptr, sizeof(type))
 
-#define LNEW(type)             ((type*) lit_mem_alloc ( sizeof(type) ))
-#define LFREE(ptr,type)        lit_mem_free (ptr, sizeof(type) )
+#define LNEW(type)            ((type*) lit_mem_alloc(sizeof(type)))
+#define LFREE(ptr,type)       lit_mem_free(ptr, sizeof(type))
 
-#define MNEW(type,num)        ((type*) mem_alloc ( sizeof(type) * (num) ))
-#define MFREE(ptr,type,num)   mem_free (ptr, sizeof(type) * (num) )
-#define MREALLOC(ptr,type,num1,num2) mem_realloc (ptr, sizeof(type) * (num1), \
-                                                       sizeof(type) * (num2) )
+#define MNEW(type,num)        ((type*) mem_alloc(sizeof(type) * (num)))
+#define MFREE(ptr,type,num)   mem_free(ptr, sizeof(type) * (num))
+#define MREALLOC(ptr,type,num1,num2) mem_realloc(ptr, sizeof(type) * (num1), \
+                                                      sizeof(type) * (num2))
 
-#define DNEW(type)            ((type*) dump_alloc ( sizeof(type) ))
-#define DMNEW(type,num)       ((type*) dump_alloc ( sizeof(type) * (num) ))
-#define DMREALLOC(ptr,type,num1,num2)  dump_realloc (ptr, sizeof(type)*(num1),\
-                                                       sizeof(type) * (num2) )
+#define DNEW(type)            ((type*) dump_alloc(sizeof(type)))
+#define DMNEW(type,num)       ((type*) dump_alloc(sizeof(type) * (num)))
+#define DMREALLOC(ptr,type,num1,num2)  dump_realloc(ptr, sizeof(type) * (num1),\
+                                                         sizeof(type) * (num2))
 
-#define MCOPY(dest,src,type,num)  memcpy (dest,src, sizeof(type)* (num) )
+#define MCOPY(dest,src,type,num)  memcpy(dest,src, sizeof(type)* (num))
 
 #ifdef USE_CODEMMAP
-#define CNEW(type,num)        ((type*) mem_mmap ( sizeof(type) * (num) ))
+#define CNEW(type,num)        ((type*) mem_mmap( sizeof(type) * (num)))
 #define CFREE(ptr,num)
 #else
-#define CNEW(type,num)        ((type*) mem_alloc ( sizeof(type) * (num) ))
-#define CFREE(ptr,num)        mem_free (ptr, num)
+#define CNEW(type,num)        ((type*) mem_alloc(sizeof(type) * (num)))
+#define CFREE(ptr,num)        mem_free(ptr, num)
 #endif
+
 
 void *mem_alloc(int length);
 void *mem_mmap(int length);
@@ -116,3 +139,19 @@ Some more macros:
 	
 
 */
+
+#endif /* _MEMORY_H */
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

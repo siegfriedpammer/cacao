@@ -1,20 +1,38 @@
+/* loader.c - class loader functions
 
-/* loader.c ********************************************************************
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-	Copyright (c) 1999 A. Krall, R. Grafl, R. Obermaiser, M. Probst
+   This file is part of CACAO.
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Contains the functions of the class loader.
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-	Author:  Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	Changes: Andreas Krall       EMAIL: cacao@complang.tuwien.ac.at
-	         Roman Obermaiser    EMAIL: cacao@complang.tuwien.ac.at
-	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-	Last Change: 1999/11/08
+   Contact: cacao@complang.tuwien.ac.at
 
-*******************************************************************************/
+   Authors: Reinhard Grafl
+
+   Changes: Andreas Krall
+            Roman Obermaiser
+            Mark Probst
+
+   $Id: loader.c 557 2003-11-02 22:51:59Z twisti $
+
+*/
 
 
 #include <assert.h>
@@ -105,15 +123,16 @@ static classinfo *class_java_lang_ThreadDeath;
  ******************************************************************************/
  
 primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = { 
-  		{ NULL, NULL, "java/lang/Integer",   'I', "int"     },
-  		{ NULL, NULL, "java/lang/Long",      'J', "long"    },
-		{ NULL, NULL, "java/lang/Float",     'F', "float"   },
-		{ NULL, NULL, "java/lang/Double",    'D', "double"  },
-  		{ NULL, NULL, "java/lang/Byte",	     'B', "byte"    },
-  		{ NULL, NULL, "java/lang/Character", 'C', "char"    },
-  		{ NULL, NULL, "java/lang/Short",     'S', "short"   },
-  		{ NULL, NULL, "java/lang/Boolean",   'Z', "boolean" },
-  		{ NULL, NULL, "java/lang/Void",	     'V', "void"    }};
+	{ NULL, NULL, "java/lang/Integer",   'I', "int"     },
+	{ NULL, NULL, "java/lang/Long",      'J', "long"    },
+	{ NULL, NULL, "java/lang/Float",     'F', "float"   },
+	{ NULL, NULL, "java/lang/Double",    'D', "double"  },
+	{ NULL, NULL, "java/lang/Byte",	     'B', "byte"    },
+	{ NULL, NULL, "java/lang/Character", 'C', "char"    },
+	{ NULL, NULL, "java/lang/Short",     'S', "short"   },
+	{ NULL, NULL, "java/lang/Boolean",   'Z', "boolean" },
+	{ NULL, NULL, "java/lang/Void",	     'V', "void"    }
+};
 
 
 /* instances of important system classes **************************************/
@@ -2538,7 +2557,7 @@ classinfo *create_array_class(utf *u)
 
 *******************************************************************************/
  
-void loader_init ()
+void loader_init()
 {
 	utf *string_class;
 	interfaceindex = 0;
@@ -2777,4 +2796,3 @@ void loader_close ()
  * tab-width: 4
  * End:
  */
-

@@ -10,6 +10,8 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
+# $Id: Makefile.in 557 2003-11-02 22:51:59Z twisti $
+
 
 SHELL = @SHELL@
 
@@ -59,26 +61,23 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_alias = @host_alias@
 host_triplet = @host@
-ASMPART = @ASMPART@
-BOEHM_LIB = @BOEHM_LIB@
+ARCH_DIR = @ARCH_DIR@
 CC = @CC@
 COMPILER_OBJECTS = @COMPILER_OBJECTS@
-GC_OBJ = @GC_OBJ@
 LIBTHREAD = @LIBTHREAD@
 MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
-SYSDEP_DIR = @SYSDEP_DIR@
 THREAD_OBJ = @THREAD_OBJ@
 VERSION = @VERSION@
 
 noinst_LIBRARIES = @LIBTHREAD@
 EXTRA_LIBRARIES = libthreads.a
 
-libthreads_a_SOURCES = locks.c locks.h 		       thread.c thread.h 		       threadio.c threadio.h
+libthreads_a_SOURCES =  	locks.c 	locks.h 	thread.c 	thread.h 	threadio.c 	threadio.h
 
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/@SYSDEP_DIR@
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit -I$(top_srcdir)/jit/@ARCH_DIR@
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../config.h
 CONFIG_CLEAN_FILES = 

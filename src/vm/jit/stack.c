@@ -1,16 +1,49 @@
-/* jit/stack.c *****************************************************************
+/* jit/stack.c - stack analysis
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	Parser for JavaVM to intermediate code translation
-	
-	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Last Change: 1997/11/18
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-*******************************************************************************/
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Andreas Krall
+
+   $Id: stack.c 557 2003-11-02 22:51:59Z twisti $
+
+*/
+
+
+#include <stdio.h>
+#include "stack.h"
+#include "jit.h"
+#include "builtin.h"
+#include "disass.h"
+#include "reg.h"
+#include "toolbox/loging.h"
+#include "toolbox/memory.h"
+
+
+/* from codegen.inc */
+extern int dseglen;
+
 
 #ifdef STATISTICS
 #define COUNT(cnt) cnt++
@@ -154,7 +187,7 @@
 
 #ifdef USEBUILTINTABLE
 static stdopdescriptor *find_builtin(stdopdescriptor *first, stdopdescriptor *last,
-		int icmd)
+									 int icmd)
 {
 	int len = last - first;
 	int half;
@@ -173,24 +206,27 @@ static stdopdescriptor *find_builtin(stdopdescriptor *first, stdopdescriptor *la
 }
 #endif
 
-static void show_icmd_method();
 
-static void analyse_stack()
+void analyse_stack()
 {
-	int b_count, b_index;
+	int b_count;
+	int b_index;
 	int stackdepth;
-	stackptr curstack, new, copy;
+	stackptr curstack;
+	stackptr new;
+	stackptr copy;
 	int opcode, i, len, loops;
 	int superblockend, repeat, deadcode;
-	instruction *iptr = instr;
-	basicblock *bptr, *tbptr;
+	instruction *iptr;
+	basicblock *bptr;
+	basicblock *tbptr;
 	s4 *s4ptr;
 	void* *tptr;
 
 	//	int *argren = DMNEW(int, maxlocals); 
 	int *argren = (int *)alloca(maxlocals * sizeof(int)); /* table for argument renaming */
 	for (i = 0; i < maxlocals; i++)
-		argren[i]=i;
+		argren[i] = i;
 	
 	arguments_num = 0;
 	new = stack;
@@ -208,7 +244,7 @@ static void analyse_stack()
 		bptr->pre_count = 10000;
 		STACKRESET;
 		NEWXSTACK;
-		}
+	}
 
 #ifdef CONDITIONAL_LOADCONST
 	b_count = block_count;
@@ -217,66 +253,66 @@ static void analyse_stack()
 		if (bptr->icount != 0) {
 			iptr = bptr->iinstr + bptr->icount - 1;
 			switch (iptr->opc) {
-				case ICMD_RET:
-				case ICMD_RETURN:
-				case ICMD_IRETURN:
-				case ICMD_LRETURN:
-				case ICMD_FRETURN:
-				case ICMD_DRETURN:
-				case ICMD_ARETURN:
-				case ICMD_ATHROW:
-					break;
+			case ICMD_RET:
+			case ICMD_RETURN:
+			case ICMD_IRETURN:
+			case ICMD_LRETURN:
+			case ICMD_FRETURN:
+			case ICMD_DRETURN:
+			case ICMD_ARETURN:
+			case ICMD_ATHROW:
+				break;
 
-				case ICMD_IFEQ:
-				case ICMD_IFNE:
-				case ICMD_IFLT:
-				case ICMD_IFGE:
-				case ICMD_IFGT:
-				case ICMD_IFLE:
+			case ICMD_IFEQ:
+			case ICMD_IFNE:
+			case ICMD_IFLT:
+			case ICMD_IFGE:
+			case ICMD_IFGT:
+			case ICMD_IFLE:
 
-				case ICMD_IFNULL:
-				case ICMD_IFNONNULL:
+			case ICMD_IFNULL:
+			case ICMD_IFNONNULL:
 
-				case ICMD_IF_ICMPEQ:
-				case ICMD_IF_ICMPNE:
-				case ICMD_IF_ICMPLT:
-				case ICMD_IF_ICMPGE:
-				case ICMD_IF_ICMPGT:
-				case ICMD_IF_ICMPLE:
+			case ICMD_IF_ICMPEQ:
+			case ICMD_IF_ICMPNE:
+			case ICMD_IF_ICMPLT:
+			case ICMD_IF_ICMPGE:
+			case ICMD_IF_ICMPGT:
+			case ICMD_IF_ICMPLE:
 
-				case ICMD_IF_ACMPEQ:
-				case ICMD_IF_ACMPNE:
-					bptr[1].pre_count++;
-				case ICMD_GOTO:
-					block[block_index[iptr->op1]].pre_count++;
-					break;
+			case ICMD_IF_ACMPEQ:
+			case ICMD_IF_ACMPNE:
+				bptr[1].pre_count++;
+			case ICMD_GOTO:
+				block[block_index[iptr->op1]].pre_count++;
+				break;
 
-				case ICMD_TABLESWITCH:
-					s4ptr = iptr->val.a;
-					block[block_index[*s4ptr++]].pre_count++;   /* default */
-					i = *s4ptr++;                               /* low     */
-					i = *s4ptr++ - i + 1;                       /* high    */
-					while (--i >= 0) {
-						block[block_index[*s4ptr++]].pre_count++;
-						}
-					break;
-					
-				case ICMD_LOOKUPSWITCH:
-					s4ptr = iptr->val.a;
-					block[block_index[*s4ptr++]].pre_count++;   /* default */
-					i = *s4ptr++;                               /* count   */
-					while (--i >= 0) {
-						block[block_index[s4ptr[1]]].pre_count++;
-						s4ptr += 2;
-						}
-					break;
-				default:
-					bptr[1].pre_count++;
-					break;
+			case ICMD_TABLESWITCH:
+				s4ptr = iptr->val.a;
+				block[block_index[*s4ptr++]].pre_count++;   /* default */
+				i = *s4ptr++;                               /* low     */
+				i = *s4ptr++ - i + 1;                       /* high    */
+				while (--i >= 0) {
+					block[block_index[*s4ptr++]].pre_count++;
 				}
+				break;
+					
+			case ICMD_LOOKUPSWITCH:
+				s4ptr = iptr->val.a;
+				block[block_index[*s4ptr++]].pre_count++;   /* default */
+				i = *s4ptr++;                               /* count   */
+				while (--i >= 0) {
+					block[block_index[s4ptr[1]]].pre_count++;
+					s4ptr += 2;
+				}
+				break;
+			default:
+				bptr[1].pre_count++;
+				break;
 			}
-		bptr++;
 		}
+		bptr++;
+	}
 #endif
 
 
@@ -291,7 +327,7 @@ static void analyse_stack()
 		while (--b_count >= 0) {
 			if (bptr->flags == BBDELETED) {
 				/* do nothing */
-				}
+			}
 			else if (superblockend && (bptr->flags < BBREACHED))
 				repeat = true;
 			else if (bptr->flags <= BBREACHED) {
@@ -301,12 +337,12 @@ static void analyse_stack()
 					COPYCURSTACK(copy);
 					bptr->instack = copy;
 					bptr->indepth = stackdepth;
-					}
+				}
 				else if (bptr->indepth != stackdepth) {
 					show_icmd_method();
 					panic("Stack depth mismatch");
 					
-					}
+				}
 				curstack = bptr->instack;
 				deadcode = false;
 				superblockend = false;
@@ -342,608 +378,608 @@ static void analyse_stack()
 
 						/* pop 0 push 0 */
 
-						case ICMD_NOP:
-						case ICMD_CHECKASIZE:
+					case ICMD_NOP:
+					case ICMD_CHECKASIZE:
 
-						case ICMD_IFEQ_ICONST:
-						case ICMD_IFNE_ICONST:
-						case ICMD_IFLT_ICONST:
-						case ICMD_IFGE_ICONST:
-						case ICMD_IFGT_ICONST:
-						case ICMD_IFLE_ICONST:
-						case ICMD_ELSE_ICONST:
-							SETDST;
-							break;
+					case ICMD_IFEQ_ICONST:
+					case ICMD_IFNE_ICONST:
+					case ICMD_IFLT_ICONST:
+					case ICMD_IFGE_ICONST:
+					case ICMD_IFGT_ICONST:
+					case ICMD_IFLE_ICONST:
+					case ICMD_ELSE_ICONST:
+						SETDST;
+						break;
 
-						case ICMD_RET:
-							locals[iptr->op1][TYPE_ADR].type = TYPE_ADR;
-						case ICMD_RETURN:
-							COUNT(count_pcmd_return);
-							SETDST;
-							superblockend = true;
-							break;
+					case ICMD_RET:
+						locals[iptr->op1][TYPE_ADR].type = TYPE_ADR;
+					case ICMD_RETURN:
+						COUNT(count_pcmd_return);
+						SETDST;
+						superblockend = true;
+						break;
 
 						/* pop 0 push 1 const */
 						
-						case ICMD_ICONST:
-							COUNT(count_pcmd_load);
-							if (len > 0) {
-								switch (iptr[1].opc) {
-									case ICMD_IADD:
-										iptr[0].opc = ICMD_IADDCONST;
-icmd_iconst_tail:
-										iptr[1].opc = ICMD_NOP;
-										OP1_1(TYPE_INT,TYPE_INT);
-										COUNT(count_pcmd_op);
-										break;
-									case ICMD_ISUB:
-										iptr[0].opc = ICMD_ISUBCONST;
-										goto icmd_iconst_tail;
-									case ICMD_IMUL:
-										iptr[0].opc = ICMD_IMULCONST;
-										goto icmd_iconst_tail;
-									case ICMD_IDIV:
-										if (iptr[0].val.i == 0x00000002)
-											iptr[0].val.i = 1;
-										else if (iptr[0].val.i == 0x00000004)
-											iptr[0].val.i = 2;
-										else if (iptr[0].val.i == 0x00000008)
-											iptr[0].val.i = 3;
-										else if (iptr[0].val.i == 0x00000010)
-											iptr[0].val.i = 4;
-										else if (iptr[0].val.i == 0x00000020)
-											iptr[0].val.i = 5;
-										else if (iptr[0].val.i == 0x00000040)
-											iptr[0].val.i = 6;
-										else if (iptr[0].val.i == 0x00000080)
-											iptr[0].val.i = 7;
-										else if (iptr[0].val.i == 0x00000100)
-											iptr[0].val.i = 8;
-										else if (iptr[0].val.i == 0x00000200)
-											iptr[0].val.i = 9;
-										else if (iptr[0].val.i == 0x00000400)
-											iptr[0].val.i = 10;
-										else if (iptr[0].val.i == 0x00000800)
-											iptr[0].val.i = 11;
-										else if (iptr[0].val.i == 0x00001000)
-											iptr[0].val.i = 12;
-										else if (iptr[0].val.i == 0x00002000)
-											iptr[0].val.i = 13;
-										else if (iptr[0].val.i == 0x00004000)
-											iptr[0].val.i = 14;
-										else if (iptr[0].val.i == 0x00008000)
-											iptr[0].val.i = 15;
-										else if (iptr[0].val.i == 0x00010000)
-											iptr[0].val.i = 16;
-										else if (iptr[0].val.i == 0x00020000)
-											iptr[0].val.i = 17;
-										else if (iptr[0].val.i == 0x00040000)
-											iptr[0].val.i = 18;
-										else if (iptr[0].val.i == 0x00080000)
-											iptr[0].val.i = 19;
-										else if (iptr[0].val.i == 0x00100000)
-											iptr[0].val.i = 20;
-										else if (iptr[0].val.i == 0x00200000)
-											iptr[0].val.i = 21;
-										else if (iptr[0].val.i == 0x00400000)
-											iptr[0].val.i = 22;
-										else if (iptr[0].val.i == 0x00800000)
-											iptr[0].val.i = 23;
-										else if (iptr[0].val.i == 0x01000000)
-											iptr[0].val.i = 24;
-										else if (iptr[0].val.i == 0x02000000)
-											iptr[0].val.i = 25;
-										else if (iptr[0].val.i == 0x04000000)
-											iptr[0].val.i = 26;
-										else if (iptr[0].val.i == 0x08000000)
-											iptr[0].val.i = 27;
-										else if (iptr[0].val.i == 0x10000000)
-											iptr[0].val.i = 28;
-										else if (iptr[0].val.i == 0x20000000)
-											iptr[0].val.i = 29;
-										else if (iptr[0].val.i == 0x40000000)
-											iptr[0].val.i = 30;
-										else if (iptr[0].val.i == 0x80000000)
-											iptr[0].val.i = 31;
-										else {
-											PUSHCONST(TYPE_INT);
-											break;
-											}
-										iptr[0].opc = ICMD_IDIVPOW2;
-										goto icmd_iconst_tail;
-									case ICMD_IREM:
+					case ICMD_ICONST:
+						COUNT(count_pcmd_load);
+						if (len > 0) {
+							switch (iptr[1].opc) {
+							case ICMD_IADD:
+								iptr[0].opc = ICMD_IADDCONST;
+							icmd_iconst_tail:
+								iptr[1].opc = ICMD_NOP;
+								OP1_1(TYPE_INT,TYPE_INT);
+								COUNT(count_pcmd_op);
+								break;
+							case ICMD_ISUB:
+								iptr[0].opc = ICMD_ISUBCONST;
+								goto icmd_iconst_tail;
+							case ICMD_IMUL:
+								iptr[0].opc = ICMD_IMULCONST;
+								goto icmd_iconst_tail;
+							case ICMD_IDIV:
+								if (iptr[0].val.i == 0x00000002)
+									iptr[0].val.i = 1;
+								else if (iptr[0].val.i == 0x00000004)
+									iptr[0].val.i = 2;
+								else if (iptr[0].val.i == 0x00000008)
+									iptr[0].val.i = 3;
+								else if (iptr[0].val.i == 0x00000010)
+									iptr[0].val.i = 4;
+								else if (iptr[0].val.i == 0x00000020)
+									iptr[0].val.i = 5;
+								else if (iptr[0].val.i == 0x00000040)
+									iptr[0].val.i = 6;
+								else if (iptr[0].val.i == 0x00000080)
+									iptr[0].val.i = 7;
+								else if (iptr[0].val.i == 0x00000100)
+									iptr[0].val.i = 8;
+								else if (iptr[0].val.i == 0x00000200)
+									iptr[0].val.i = 9;
+								else if (iptr[0].val.i == 0x00000400)
+									iptr[0].val.i = 10;
+								else if (iptr[0].val.i == 0x00000800)
+									iptr[0].val.i = 11;
+								else if (iptr[0].val.i == 0x00001000)
+									iptr[0].val.i = 12;
+								else if (iptr[0].val.i == 0x00002000)
+									iptr[0].val.i = 13;
+								else if (iptr[0].val.i == 0x00004000)
+									iptr[0].val.i = 14;
+								else if (iptr[0].val.i == 0x00008000)
+									iptr[0].val.i = 15;
+								else if (iptr[0].val.i == 0x00010000)
+									iptr[0].val.i = 16;
+								else if (iptr[0].val.i == 0x00020000)
+									iptr[0].val.i = 17;
+								else if (iptr[0].val.i == 0x00040000)
+									iptr[0].val.i = 18;
+								else if (iptr[0].val.i == 0x00080000)
+									iptr[0].val.i = 19;
+								else if (iptr[0].val.i == 0x00100000)
+									iptr[0].val.i = 20;
+								else if (iptr[0].val.i == 0x00200000)
+									iptr[0].val.i = 21;
+								else if (iptr[0].val.i == 0x00400000)
+									iptr[0].val.i = 22;
+								else if (iptr[0].val.i == 0x00800000)
+									iptr[0].val.i = 23;
+								else if (iptr[0].val.i == 0x01000000)
+									iptr[0].val.i = 24;
+								else if (iptr[0].val.i == 0x02000000)
+									iptr[0].val.i = 25;
+								else if (iptr[0].val.i == 0x04000000)
+									iptr[0].val.i = 26;
+								else if (iptr[0].val.i == 0x08000000)
+									iptr[0].val.i = 27;
+								else if (iptr[0].val.i == 0x10000000)
+									iptr[0].val.i = 28;
+								else if (iptr[0].val.i == 0x20000000)
+									iptr[0].val.i = 29;
+								else if (iptr[0].val.i == 0x40000000)
+									iptr[0].val.i = 30;
+								else if (iptr[0].val.i == 0x80000000)
+									iptr[0].val.i = 31;
+								else {
+									PUSHCONST(TYPE_INT);
+									break;
+								}
+								iptr[0].opc = ICMD_IDIVPOW2;
+								goto icmd_iconst_tail;
+							case ICMD_IREM:
 #if !defined(NO_DIV_OPT)
-										if (iptr[0].val.i == 0x10001) {
-											iptr[0].opc = ICMD_IREM0X10001;
-											goto icmd_iconst_tail;
-											}
+								if (iptr[0].val.i == 0x10001) {
+									iptr[0].opc = ICMD_IREM0X10001;
+									goto icmd_iconst_tail;
+								}
 #endif
-										if ((iptr[0].val.i == 0x00000002) ||
-										    (iptr[0].val.i == 0x00000004) ||
-										    (iptr[0].val.i == 0x00000008) ||
-										    (iptr[0].val.i == 0x00000010) ||
-										    (iptr[0].val.i == 0x00000020) ||
-										    (iptr[0].val.i == 0x00000040) ||
-										    (iptr[0].val.i == 0x00000080) ||
-										    (iptr[0].val.i == 0x00000100) ||
-										    (iptr[0].val.i == 0x00000200) ||
-										    (iptr[0].val.i == 0x00000400) ||
-										    (iptr[0].val.i == 0x00000800) ||
-										    (iptr[0].val.i == 0x00001000) ||
-										    (iptr[0].val.i == 0x00002000) ||
-										    (iptr[0].val.i == 0x00004000) ||
-										    (iptr[0].val.i == 0x00008000) ||
-										    (iptr[0].val.i == 0x00010000) ||
-										    (iptr[0].val.i == 0x00020000) ||
-										    (iptr[0].val.i == 0x00040000) ||
-										    (iptr[0].val.i == 0x00080000) ||
-										    (iptr[0].val.i == 0x00100000) ||
-										    (iptr[0].val.i == 0x00200000) ||
-										    (iptr[0].val.i == 0x00400000) ||
-										    (iptr[0].val.i == 0x00800000) ||
-										    (iptr[0].val.i == 0x01000000) ||
-										    (iptr[0].val.i == 0x02000000) ||
-										    (iptr[0].val.i == 0x04000000) ||
-										    (iptr[0].val.i == 0x08000000) ||
-										    (iptr[0].val.i == 0x10000000) ||
-										    (iptr[0].val.i == 0x20000000) ||
-										    (iptr[0].val.i == 0x40000000) ||
-										    (iptr[0].val.i == 0x80000000)) {
-											iptr[0].opc = ICMD_IREMPOW2;
-											iptr[0].val.i -= 1;
-											goto icmd_iconst_tail;
-											}
-										PUSHCONST(TYPE_INT);
-										break;
-									case ICMD_IAND:
-										iptr[0].opc = ICMD_IANDCONST;
-										goto icmd_iconst_tail;
-									case ICMD_IOR:
-										iptr[0].opc = ICMD_IORCONST;
-										goto icmd_iconst_tail;
-									case ICMD_IXOR:
-										iptr[0].opc = ICMD_IXORCONST;
-										goto icmd_iconst_tail;
-									case ICMD_ISHL:
-										iptr[0].opc = ICMD_ISHLCONST;
-										goto icmd_iconst_tail;
-									case ICMD_ISHR:
-										iptr[0].opc = ICMD_ISHRCONST;
-										goto icmd_iconst_tail;
-									case ICMD_IUSHR:
-										iptr[0].opc = ICMD_IUSHRCONST;
-										goto icmd_iconst_tail;
+								if ((iptr[0].val.i == 0x00000002) ||
+									(iptr[0].val.i == 0x00000004) ||
+									(iptr[0].val.i == 0x00000008) ||
+									(iptr[0].val.i == 0x00000010) ||
+									(iptr[0].val.i == 0x00000020) ||
+									(iptr[0].val.i == 0x00000040) ||
+									(iptr[0].val.i == 0x00000080) ||
+									(iptr[0].val.i == 0x00000100) ||
+									(iptr[0].val.i == 0x00000200) ||
+									(iptr[0].val.i == 0x00000400) ||
+									(iptr[0].val.i == 0x00000800) ||
+									(iptr[0].val.i == 0x00001000) ||
+									(iptr[0].val.i == 0x00002000) ||
+									(iptr[0].val.i == 0x00004000) ||
+									(iptr[0].val.i == 0x00008000) ||
+									(iptr[0].val.i == 0x00010000) ||
+									(iptr[0].val.i == 0x00020000) ||
+									(iptr[0].val.i == 0x00040000) ||
+									(iptr[0].val.i == 0x00080000) ||
+									(iptr[0].val.i == 0x00100000) ||
+									(iptr[0].val.i == 0x00200000) ||
+									(iptr[0].val.i == 0x00400000) ||
+									(iptr[0].val.i == 0x00800000) ||
+									(iptr[0].val.i == 0x01000000) ||
+									(iptr[0].val.i == 0x02000000) ||
+									(iptr[0].val.i == 0x04000000) ||
+									(iptr[0].val.i == 0x08000000) ||
+									(iptr[0].val.i == 0x10000000) ||
+									(iptr[0].val.i == 0x20000000) ||
+									(iptr[0].val.i == 0x40000000) ||
+									(iptr[0].val.i == 0x80000000)) {
+									iptr[0].opc = ICMD_IREMPOW2;
+									iptr[0].val.i -= 1;
+									goto icmd_iconst_tail;
+								}
+								PUSHCONST(TYPE_INT);
+								break;
+							case ICMD_IAND:
+								iptr[0].opc = ICMD_IANDCONST;
+								goto icmd_iconst_tail;
+							case ICMD_IOR:
+								iptr[0].opc = ICMD_IORCONST;
+								goto icmd_iconst_tail;
+							case ICMD_IXOR:
+								iptr[0].opc = ICMD_IXORCONST;
+								goto icmd_iconst_tail;
+							case ICMD_ISHL:
+								iptr[0].opc = ICMD_ISHLCONST;
+								goto icmd_iconst_tail;
+							case ICMD_ISHR:
+								iptr[0].opc = ICMD_ISHRCONST;
+								goto icmd_iconst_tail;
+							case ICMD_IUSHR:
+								iptr[0].opc = ICMD_IUSHRCONST;
+								goto icmd_iconst_tail;
 #if SUPPORT_LONG_SHIFT
-  									case ICMD_LSHL:
-  										iptr[0].opc = ICMD_LSHLCONST;
- 										goto icmd_lconst_tail;
-  									case ICMD_LSHR:
-  										iptr[0].opc = ICMD_LSHRCONST;
-										goto icmd_lconst_tail;
-									case ICMD_LUSHR:
-										iptr[0].opc = ICMD_LUSHRCONST;
-										goto icmd_lconst_tail;
+							case ICMD_LSHL:
+								iptr[0].opc = ICMD_LSHLCONST;
+								goto icmd_lconst_tail;
+							case ICMD_LSHR:
+								iptr[0].opc = ICMD_LSHRCONST;
+								goto icmd_lconst_tail;
+							case ICMD_LUSHR:
+								iptr[0].opc = ICMD_LUSHRCONST;
+								goto icmd_lconst_tail;
 #endif
-									case ICMD_IF_ICMPEQ:
-										iptr[0].opc = ICMD_IFEQ;
-icmd_if_icmp_tail:
-										iptr[0].op1 = iptr[1].op1;
-										bptr->icount--;
-										len--;
-										/* iptr[1].opc = ICMD_NOP; */
-										OP1_0(TYPE_INT);
+							case ICMD_IF_ICMPEQ:
+								iptr[0].opc = ICMD_IFEQ;
+							icmd_if_icmp_tail:
+								iptr[0].op1 = iptr[1].op1;
+								bptr->icount--;
+								len--;
+								/* iptr[1].opc = ICMD_NOP; */
+								OP1_0(TYPE_INT);
+								tbptr = block + block_index[iptr->op1];
+
+								iptr[0].target = (void *) tbptr;
+
+								MARKREACHED(tbptr, copy);
+								COUNT(count_pcmd_bra);
+								break;
+							case ICMD_IF_ICMPLT:
+								iptr[0].opc = ICMD_IFLT;
+								goto icmd_if_icmp_tail;
+							case ICMD_IF_ICMPLE:
+								iptr[0].opc = ICMD_IFLE;
+								goto icmd_if_icmp_tail;
+							case ICMD_IF_ICMPNE:
+								iptr[0].opc = ICMD_IFNE;
+								goto icmd_if_icmp_tail;
+							case ICMD_IF_ICMPGT:
+								iptr[0].opc = ICMD_IFGT;
+								goto icmd_if_icmp_tail;
+							case ICMD_IF_ICMPGE:
+								iptr[0].opc = ICMD_IFGE;
+								goto icmd_if_icmp_tail;
+							default:
+								PUSHCONST(TYPE_INT);
+							}
+						}
+						else
+							PUSHCONST(TYPE_INT);
+						break;
+					case ICMD_LCONST:
+						COUNT(count_pcmd_load);
+						if (len > 0) {
+							switch (iptr[1].opc) {
+#if SUPPORT_LONG_ADD
+							case ICMD_LADD:
+								iptr[0].opc = ICMD_LADDCONST;
+							icmd_lconst_tail:
+								iptr[1].opc = ICMD_NOP;
+								OP1_1(TYPE_LNG,TYPE_LNG);
+								COUNT(count_pcmd_op);
+								break;
+							case ICMD_LSUB:
+								iptr[0].opc = ICMD_LSUBCONST;
+								goto icmd_lconst_tail;
+#endif
+#if SUPPORT_LONG_MULDIV
+							case ICMD_LMUL:
+								iptr[0].opc = ICMD_LMULCONST;
+								goto icmd_lconst_tail;
+							case ICMD_LDIV:
+								if (iptr[0].val.l == 0x00000002)
+									iptr[0].val.i = 1;
+								else if (iptr[0].val.l == 0x00000004)
+									iptr[0].val.i = 2;
+								else if (iptr[0].val.l == 0x00000008)
+									iptr[0].val.i = 3;
+								else if (iptr[0].val.l == 0x00000010)
+									iptr[0].val.i = 4;
+								else if (iptr[0].val.l == 0x00000020)
+									iptr[0].val.i = 5;
+								else if (iptr[0].val.l == 0x00000040)
+									iptr[0].val.i = 6;
+								else if (iptr[0].val.l == 0x00000080)
+									iptr[0].val.i = 7;
+								else if (iptr[0].val.l == 0x00000100)
+									iptr[0].val.i = 8;
+								else if (iptr[0].val.l == 0x00000200)
+									iptr[0].val.i = 9;
+								else if (iptr[0].val.l == 0x00000400)
+									iptr[0].val.i = 10;
+								else if (iptr[0].val.l == 0x00000800)
+									iptr[0].val.i = 11;
+								else if (iptr[0].val.l == 0x00001000)
+									iptr[0].val.i = 12;
+								else if (iptr[0].val.l == 0x00002000)
+									iptr[0].val.i = 13;
+								else if (iptr[0].val.l == 0x00004000)
+									iptr[0].val.i = 14;
+								else if (iptr[0].val.l == 0x00008000)
+									iptr[0].val.i = 15;
+								else if (iptr[0].val.l == 0x00010000)
+									iptr[0].val.i = 16;
+								else if (iptr[0].val.l == 0x00020000)
+									iptr[0].val.i = 17;
+								else if (iptr[0].val.l == 0x00040000)
+									iptr[0].val.i = 18;
+								else if (iptr[0].val.l == 0x00080000)
+									iptr[0].val.i = 19;
+								else if (iptr[0].val.l == 0x00100000)
+									iptr[0].val.i = 20;
+								else if (iptr[0].val.l == 0x00200000)
+									iptr[0].val.i = 21;
+								else if (iptr[0].val.l == 0x00400000)
+									iptr[0].val.i = 22;
+								else if (iptr[0].val.l == 0x00800000)
+									iptr[0].val.i = 23;
+								else if (iptr[0].val.l == 0x01000000)
+									iptr[0].val.i = 24;
+								else if (iptr[0].val.l == 0x02000000)
+									iptr[0].val.i = 25;
+								else if (iptr[0].val.l == 0x04000000)
+									iptr[0].val.i = 26;
+								else if (iptr[0].val.l == 0x08000000)
+									iptr[0].val.i = 27;
+								else if (iptr[0].val.l == 0x10000000)
+									iptr[0].val.i = 28;
+								else if (iptr[0].val.l == 0x20000000)
+									iptr[0].val.i = 29;
+								else if (iptr[0].val.l == 0x40000000)
+									iptr[0].val.i = 30;
+								else if (iptr[0].val.l == 0x80000000)
+									iptr[0].val.i = 31;
+								else {
+									PUSHCONST(TYPE_LNG);
+									break;
+								}
+								iptr[0].opc = ICMD_LDIVPOW2;
+								goto icmd_lconst_tail;
+							case ICMD_LREM:
+#if !defined(NO_DIV_OPT)
+								if (iptr[0].val.l == 0x10001) {
+									iptr[0].opc = ICMD_LREM0X10001;
+									goto icmd_lconst_tail;
+								}
+#endif
+								if ((iptr[0].val.l == 0x00000002) ||
+									(iptr[0].val.l == 0x00000004) ||
+									(iptr[0].val.l == 0x00000008) ||
+									(iptr[0].val.l == 0x00000010) ||
+									(iptr[0].val.l == 0x00000020) ||
+									(iptr[0].val.l == 0x00000040) ||
+									(iptr[0].val.l == 0x00000080) ||
+									(iptr[0].val.l == 0x00000100) ||
+									(iptr[0].val.l == 0x00000200) ||
+									(iptr[0].val.l == 0x00000400) ||
+									(iptr[0].val.l == 0x00000800) ||
+									(iptr[0].val.l == 0x00001000) ||
+									(iptr[0].val.l == 0x00002000) ||
+									(iptr[0].val.l == 0x00004000) ||
+									(iptr[0].val.l == 0x00008000) ||
+									(iptr[0].val.l == 0x00010000) ||
+									(iptr[0].val.l == 0x00020000) ||
+									(iptr[0].val.l == 0x00040000) ||
+									(iptr[0].val.l == 0x00080000) ||
+									(iptr[0].val.l == 0x00100000) ||
+									(iptr[0].val.l == 0x00200000) ||
+									(iptr[0].val.l == 0x00400000) ||
+									(iptr[0].val.l == 0x00800000) ||
+									(iptr[0].val.l == 0x01000000) ||
+									(iptr[0].val.l == 0x02000000) ||
+									(iptr[0].val.l == 0x04000000) ||
+									(iptr[0].val.l == 0x08000000) ||
+									(iptr[0].val.l == 0x10000000) ||
+									(iptr[0].val.l == 0x20000000) ||
+									(iptr[0].val.l == 0x40000000) ||
+									(iptr[0].val.l == 0x80000000)) {
+									iptr[0].opc = ICMD_LREMPOW2;
+									iptr[0].val.l -= 1;
+									goto icmd_lconst_tail;
+								}
+								PUSHCONST(TYPE_LNG);
+								break;
+#endif
+#if SUPPORT_LONG_LOG
+							case ICMD_LAND:
+								iptr[0].opc = ICMD_LANDCONST;
+								goto icmd_lconst_tail;
+							case ICMD_LOR:
+								iptr[0].opc = ICMD_LORCONST;
+								goto icmd_lconst_tail;
+							case ICMD_LXOR:
+								iptr[0].opc = ICMD_LXORCONST;
+								goto icmd_lconst_tail;
+#endif
+#if defined(NOLONG_CONDITIONAL)
+							case ICMD_LCMP:
+								if ((len > 1) && (iptr[2].val.i == 0)) {
+									switch (iptr[2].opc) {
+									case ICMD_IFEQ:
+										iptr[0].opc = ICMD_IF_LEQ;
+									icmd_lconst_lcmp_tail:
+										iptr[0].op1 = iptr[2].op1;
+										bptr->icount -= 2;
+										len -= 2;
+										/* iptr[1].opc = ICMD_NOP;
+										   iptr[2].opc = ICMD_NOP; */
+										OP1_0(TYPE_LNG);
 										tbptr = block + block_index[iptr->op1];
 
 										iptr[0].target = (void *) tbptr;
 
 										MARKREACHED(tbptr, copy);
 										COUNT(count_pcmd_bra);
-										break;
-									case ICMD_IF_ICMPLT:
-										iptr[0].opc = ICMD_IFLT;
-										goto icmd_if_icmp_tail;
-									case ICMD_IF_ICMPLE:
-										iptr[0].opc = ICMD_IFLE;
-										goto icmd_if_icmp_tail;
-									case ICMD_IF_ICMPNE:
-										iptr[0].opc = ICMD_IFNE;
-										goto icmd_if_icmp_tail;
-									case ICMD_IF_ICMPGT:
-										iptr[0].opc = ICMD_IFGT;
-										goto icmd_if_icmp_tail;
-									case ICMD_IF_ICMPGE:
-										iptr[0].opc = ICMD_IFGE;
-										goto icmd_if_icmp_tail;
-									default:
-										PUSHCONST(TYPE_INT);
-									}
-								}
-							else
-								PUSHCONST(TYPE_INT);
-							break;
-						case ICMD_LCONST:
-							COUNT(count_pcmd_load);
-							if (len > 0) {
-								switch (iptr[1].opc) {
-#if SUPPORT_LONG_ADD
-									case ICMD_LADD:
-										iptr[0].opc = ICMD_LADDCONST;
-icmd_lconst_tail:
-										iptr[1].opc = ICMD_NOP;
-										OP1_1(TYPE_LNG,TYPE_LNG);
 										COUNT(count_pcmd_op);
 										break;
-									case ICMD_LSUB:
-										iptr[0].opc = ICMD_LSUBCONST;
-										goto icmd_lconst_tail;
-#endif
-#if SUPPORT_LONG_MULDIV
-									case ICMD_LMUL:
-										iptr[0].opc = ICMD_LMULCONST;
-										goto icmd_lconst_tail;
-									case ICMD_LDIV:
-										if (iptr[0].val.l == 0x00000002)
-											iptr[0].val.i = 1;
-										else if (iptr[0].val.l == 0x00000004)
-											iptr[0].val.i = 2;
-										else if (iptr[0].val.l == 0x00000008)
-											iptr[0].val.i = 3;
-										else if (iptr[0].val.l == 0x00000010)
-											iptr[0].val.i = 4;
-										else if (iptr[0].val.l == 0x00000020)
-											iptr[0].val.i = 5;
-										else if (iptr[0].val.l == 0x00000040)
-											iptr[0].val.i = 6;
-										else if (iptr[0].val.l == 0x00000080)
-											iptr[0].val.i = 7;
-										else if (iptr[0].val.l == 0x00000100)
-											iptr[0].val.i = 8;
-										else if (iptr[0].val.l == 0x00000200)
-											iptr[0].val.i = 9;
-										else if (iptr[0].val.l == 0x00000400)
-											iptr[0].val.i = 10;
-										else if (iptr[0].val.l == 0x00000800)
-											iptr[0].val.i = 11;
-										else if (iptr[0].val.l == 0x00001000)
-											iptr[0].val.i = 12;
-										else if (iptr[0].val.l == 0x00002000)
-											iptr[0].val.i = 13;
-										else if (iptr[0].val.l == 0x00004000)
-											iptr[0].val.i = 14;
-										else if (iptr[0].val.l == 0x00008000)
-											iptr[0].val.i = 15;
-										else if (iptr[0].val.l == 0x00010000)
-											iptr[0].val.i = 16;
-										else if (iptr[0].val.l == 0x00020000)
-											iptr[0].val.i = 17;
-										else if (iptr[0].val.l == 0x00040000)
-											iptr[0].val.i = 18;
-										else if (iptr[0].val.l == 0x00080000)
-											iptr[0].val.i = 19;
-										else if (iptr[0].val.l == 0x00100000)
-											iptr[0].val.i = 20;
-										else if (iptr[0].val.l == 0x00200000)
-											iptr[0].val.i = 21;
-										else if (iptr[0].val.l == 0x00400000)
-											iptr[0].val.i = 22;
-										else if (iptr[0].val.l == 0x00800000)
-											iptr[0].val.i = 23;
-										else if (iptr[0].val.l == 0x01000000)
-											iptr[0].val.i = 24;
-										else if (iptr[0].val.l == 0x02000000)
-											iptr[0].val.i = 25;
-										else if (iptr[0].val.l == 0x04000000)
-											iptr[0].val.i = 26;
-										else if (iptr[0].val.l == 0x08000000)
-											iptr[0].val.i = 27;
-										else if (iptr[0].val.l == 0x10000000)
-											iptr[0].val.i = 28;
-										else if (iptr[0].val.l == 0x20000000)
-											iptr[0].val.i = 29;
-										else if (iptr[0].val.l == 0x40000000)
-											iptr[0].val.i = 30;
-										else if (iptr[0].val.l == 0x80000000)
-											iptr[0].val.i = 31;
-										else {
-											PUSHCONST(TYPE_LNG);
-											break;
-											}
-										iptr[0].opc = ICMD_LDIVPOW2;
-										goto icmd_lconst_tail;
-									case ICMD_LREM:
-#if !defined(NO_DIV_OPT)
-										if (iptr[0].val.l == 0x10001) {
-											iptr[0].opc = ICMD_LREM0X10001;
-											goto icmd_lconst_tail;
-											}
-#endif
-										if ((iptr[0].val.l == 0x00000002) ||
-										    (iptr[0].val.l == 0x00000004) ||
-										    (iptr[0].val.l == 0x00000008) ||
-										    (iptr[0].val.l == 0x00000010) ||
-										    (iptr[0].val.l == 0x00000020) ||
-										    (iptr[0].val.l == 0x00000040) ||
-										    (iptr[0].val.l == 0x00000080) ||
-										    (iptr[0].val.l == 0x00000100) ||
-										    (iptr[0].val.l == 0x00000200) ||
-										    (iptr[0].val.l == 0x00000400) ||
-										    (iptr[0].val.l == 0x00000800) ||
-										    (iptr[0].val.l == 0x00001000) ||
-										    (iptr[0].val.l == 0x00002000) ||
-										    (iptr[0].val.l == 0x00004000) ||
-										    (iptr[0].val.l == 0x00008000) ||
-										    (iptr[0].val.l == 0x00010000) ||
-										    (iptr[0].val.l == 0x00020000) ||
-										    (iptr[0].val.l == 0x00040000) ||
-										    (iptr[0].val.l == 0x00080000) ||
-										    (iptr[0].val.l == 0x00100000) ||
-										    (iptr[0].val.l == 0x00200000) ||
-										    (iptr[0].val.l == 0x00400000) ||
-										    (iptr[0].val.l == 0x00800000) ||
-										    (iptr[0].val.l == 0x01000000) ||
-										    (iptr[0].val.l == 0x02000000) ||
-										    (iptr[0].val.l == 0x04000000) ||
-										    (iptr[0].val.l == 0x08000000) ||
-										    (iptr[0].val.l == 0x10000000) ||
-										    (iptr[0].val.l == 0x20000000) ||
-										    (iptr[0].val.l == 0x40000000) ||
-										    (iptr[0].val.l == 0x80000000)) {
-											iptr[0].opc = ICMD_LREMPOW2;
-											iptr[0].val.l -= 1;
-											goto icmd_lconst_tail;
-											}
-										PUSHCONST(TYPE_LNG);
-										break;
-#endif
-#if SUPPORT_LONG_LOG
-									case ICMD_LAND:
-										iptr[0].opc = ICMD_LANDCONST;
-										goto icmd_lconst_tail;
-									case ICMD_LOR:
-										iptr[0].opc = ICMD_LORCONST;
-										goto icmd_lconst_tail;
-									case ICMD_LXOR:
-										iptr[0].opc = ICMD_LXORCONST;
-										goto icmd_lconst_tail;
-#endif
-#if defined(NOLONG_CONDITIONAL)
-									case ICMD_LCMP:
-										if ((len > 1) && (iptr[2].val.i == 0)) {
-											switch (iptr[2].opc) {
-											case ICMD_IFEQ:
-												iptr[0].opc = ICMD_IF_LEQ;
-icmd_lconst_lcmp_tail:
-												iptr[0].op1 = iptr[2].op1;
-												bptr->icount -= 2;
-												len -= 2;
-												/* iptr[1].opc = ICMD_NOP;
-												iptr[2].opc = ICMD_NOP; */
-												OP1_0(TYPE_LNG);
-												tbptr = block + block_index[iptr->op1];
-
-												iptr[0].target = (void *) tbptr;
-
-												MARKREACHED(tbptr, copy);
-												COUNT(count_pcmd_bra);
-												COUNT(count_pcmd_op);
-												break;
-											case ICMD_IFNE:
-												iptr[0].opc = ICMD_IF_LNE;
-												goto icmd_lconst_lcmp_tail;
-											case ICMD_IFLT:
-												iptr[0].opc = ICMD_IF_LLT;
-												goto icmd_lconst_lcmp_tail;
-											case ICMD_IFGT:
-												iptr[0].opc = ICMD_IF_LGT;
-												goto icmd_lconst_lcmp_tail;
-											case ICMD_IFLE:
-												iptr[0].opc = ICMD_IF_LLE;
-												goto icmd_lconst_lcmp_tail;
-											case ICMD_IFGE:
-												iptr[0].opc = ICMD_IF_LGE;
-												goto icmd_lconst_lcmp_tail;
-											default:
-												PUSHCONST(TYPE_LNG);
-											} /* switch (iptr[2].opc) */
-											} /* if (iptr[2].val.i == 0) */
-										else
-											PUSHCONST(TYPE_LNG);
-										break;
-#endif
+									case ICMD_IFNE:
+										iptr[0].opc = ICMD_IF_LNE;
+										goto icmd_lconst_lcmp_tail;
+									case ICMD_IFLT:
+										iptr[0].opc = ICMD_IF_LLT;
+										goto icmd_lconst_lcmp_tail;
+									case ICMD_IFGT:
+										iptr[0].opc = ICMD_IF_LGT;
+										goto icmd_lconst_lcmp_tail;
+									case ICMD_IFLE:
+										iptr[0].opc = ICMD_IF_LLE;
+										goto icmd_lconst_lcmp_tail;
+									case ICMD_IFGE:
+										iptr[0].opc = ICMD_IF_LGE;
+										goto icmd_lconst_lcmp_tail;
 									default:
 										PUSHCONST(TYPE_LNG);
-									}
-								}
-							else
+									} /* switch (iptr[2].opc) */
+								} /* if (iptr[2].val.i == 0) */
+								else
+									PUSHCONST(TYPE_LNG);
+								break;
+#endif
+							default:
 								PUSHCONST(TYPE_LNG);
-							break;
-						case ICMD_FCONST:
-							COUNT(count_pcmd_load);
-							PUSHCONST(TYPE_FLT);
-							break;
-						case ICMD_DCONST:
-							COUNT(count_pcmd_load);
-							PUSHCONST(TYPE_DBL);
-							break;
-						case ICMD_ACONST:
-							COUNT(count_pcmd_load);
-							PUSHCONST(TYPE_ADR);
-							break;
+							}
+						}
+						else
+							PUSHCONST(TYPE_LNG);
+						break;
+					case ICMD_FCONST:
+						COUNT(count_pcmd_load);
+						PUSHCONST(TYPE_FLT);
+						break;
+					case ICMD_DCONST:
+						COUNT(count_pcmd_load);
+						PUSHCONST(TYPE_DBL);
+						break;
+					case ICMD_ACONST:
+						COUNT(count_pcmd_load);
+						PUSHCONST(TYPE_ADR);
+						break;
 
 						/* pop 0 push 1 load */
 						
-						case ICMD_ILOAD:
-						case ICMD_LLOAD:
-						case ICMD_FLOAD:
-						case ICMD_DLOAD:
-						case ICMD_ALOAD:
-							COUNT(count_load_instruction);
-							i = opcode-ICMD_ILOAD;
-							iptr->op1 = argren[iptr->op1];
-							locals[ iptr->op1 ][i].type = i;
-							LOAD(i, LOCALVAR, iptr->op1);
-							break;
+					case ICMD_ILOAD:
+					case ICMD_LLOAD:
+					case ICMD_FLOAD:
+					case ICMD_DLOAD:
+					case ICMD_ALOAD:
+						COUNT(count_load_instruction);
+						i = opcode-ICMD_ILOAD;
+						iptr->op1 = argren[iptr->op1];
+						locals[iptr->op1][i].type = i;
+						LOAD(i, LOCALVAR, iptr->op1);
+						break;
 
 						/* pop 2 push 1 */
 
-						case ICMD_IALOAD:
-						case ICMD_LALOAD:
-						case ICMD_FALOAD:
-						case ICMD_DALOAD:
-						case ICMD_AALOAD:
-							COUNT(count_check_null);
-							COUNT(count_check_bound);
-							COUNT(count_pcmd_mem);
-							OP2IAT_1(opcode-ICMD_IALOAD);
-							break;
+					case ICMD_IALOAD:
+					case ICMD_LALOAD:
+					case ICMD_FALOAD:
+					case ICMD_DALOAD:
+					case ICMD_AALOAD:
+						COUNT(count_check_null);
+						COUNT(count_check_bound);
+						COUNT(count_pcmd_mem);
+						OP2IAT_1(opcode-ICMD_IALOAD);
+						break;
 
-						case ICMD_BALOAD:
-						case ICMD_CALOAD:
-						case ICMD_SALOAD:
-							COUNT(count_check_null);
-							COUNT(count_check_bound);
-							COUNT(count_pcmd_mem);
-							OP2IAT_1(TYPE_INT);
-							break;
+					case ICMD_BALOAD:
+					case ICMD_CALOAD:
+					case ICMD_SALOAD:
+						COUNT(count_check_null);
+						COUNT(count_check_bound);
+						COUNT(count_pcmd_mem);
+						OP2IAT_1(TYPE_INT);
+						break;
 
 						/* pop 0 push 0 iinc */
 
-						case ICMD_IINC:
+					case ICMD_IINC:
 #ifdef STATISTICS
-							i = stackdepth;
-							if (i >= 10)
-								count_store_depth[10]++;
-							else
-								count_store_depth[i]++;
+						i = stackdepth;
+						if (i >= 10)
+							count_store_depth[10]++;
+						else
+							count_store_depth[i]++;
 #endif
-							copy = curstack;
-							i = stackdepth - 1;
-							while (copy) {
-								if ((copy->varkind == LOCALVAR) &&
-								    (copy->varnum == iptr->op1)) {
-									copy->varkind = TEMPVAR;
-									copy->varnum = i;
-									}
-								i--;
-								copy = copy->prev;
-								}
-							SETDST;
-							break;
+						copy = curstack;
+						i = stackdepth - 1;
+						while (copy) {
+							if ((copy->varkind == LOCALVAR) &&
+								(copy->varnum == iptr->op1)) {
+								copy->varkind = TEMPVAR;
+								copy->varnum = i;
+							}
+							i--;
+							copy = copy->prev;
+						}
+						SETDST;
+						break;
 
 						/* pop 1 push 0 store */
 
-						case ICMD_ISTORE:
-						case ICMD_LSTORE:
-						case ICMD_FSTORE:
-						case ICMD_DSTORE:
-						case ICMD_ASTORE:
-icmd_store:
+					case ICMD_ISTORE:
+					case ICMD_LSTORE:
+					case ICMD_FSTORE:
+					case ICMD_DSTORE:
+					case ICMD_ASTORE:
+					icmd_store:
 
-					        i = opcode-ICMD_ISTORE;
-							locals[iptr->op1][i].type = i;
+					i = opcode-ICMD_ISTORE;
+					locals[iptr->op1][i].type = i;
 #ifdef STATISTICS
-							count_pcmd_store++;
-							i = new - curstack;
-							if (i >= 20)
-								count_store_length[20]++;
-							else
-								count_store_length[i]++;
-							i = stackdepth - 1;
-							if (i >= 10)
-								count_store_depth[10]++;
-							else
-								count_store_depth[i]++;
+					count_pcmd_store++;
+					i = new - curstack;
+					if (i >= 20)
+						count_store_length[20]++;
+					else
+						count_store_length[i]++;
+					i = stackdepth - 1;
+					if (i >= 10)
+						count_store_depth[10]++;
+					else
+						count_store_depth[i]++;
 #endif
-							copy = curstack->prev;
-							i = stackdepth - 2;
-							while (copy) {
-								if ((copy->varkind == LOCALVAR) &&
-								    (copy->varnum == iptr->op1)) {
-									copy->varkind = TEMPVAR;
-									copy->varnum = i;
-									}
-								i--;
-								copy = copy->prev;
-								}
-							if ((new - curstack) == 1) {
-								curstack->varkind = LOCALVAR;
-								curstack->varnum = iptr->op1;
-								};
-							STORE(opcode-ICMD_ISTORE);
-							break;
+					copy = curstack->prev;
+					i = stackdepth - 2;
+					while (copy) {
+						if ((copy->varkind == LOCALVAR) &&
+							(copy->varnum == iptr->op1)) {
+							copy->varkind = TEMPVAR;
+							copy->varnum = i;
+						}
+						i--;
+						copy = copy->prev;
+					}
+					if ((new - curstack) == 1) {
+						curstack->varkind = LOCALVAR;
+						curstack->varnum = iptr->op1;
+					};
+					STORE(opcode-ICMD_ISTORE);
+					break;
 
-						/* pop 3 push 0 */
+					/* pop 3 push 0 */
 
-						case ICMD_IASTORE:
-						case ICMD_LASTORE:
-						case ICMD_FASTORE:
-						case ICMD_DASTORE:
-						case ICMD_AASTORE:
-							COUNT(count_check_null);
-							COUNT(count_check_bound);
-							COUNT(count_pcmd_mem);
-							OP3TIA_0(opcode-ICMD_IASTORE);
-							break;
-						case ICMD_BASTORE:
-						case ICMD_CASTORE:
-						case ICMD_SASTORE:
-							COUNT(count_check_null);
-							COUNT(count_check_bound);
-							COUNT(count_pcmd_mem);
-							OP3TIA_0(TYPE_INT);
-							break;
+					case ICMD_IASTORE:
+					case ICMD_LASTORE:
+					case ICMD_FASTORE:
+					case ICMD_DASTORE:
+					case ICMD_AASTORE:
+						COUNT(count_check_null);
+						COUNT(count_check_bound);
+						COUNT(count_pcmd_mem);
+						OP3TIA_0(opcode-ICMD_IASTORE);
+						break;
+					case ICMD_BASTORE:
+					case ICMD_CASTORE:
+					case ICMD_SASTORE:
+						COUNT(count_check_null);
+						COUNT(count_check_bound);
+						COUNT(count_pcmd_mem);
+						OP3TIA_0(TYPE_INT);
+						break;
 
 						/* pop 1 push 0 */
 
-						case ICMD_POP:
-							OP1_0ANY;
-							break;
+					case ICMD_POP:
+						OP1_0ANY;
+						break;
 
-						case ICMD_IRETURN:
-						case ICMD_LRETURN:
-						case ICMD_FRETURN:
-						case ICMD_DRETURN:
-						case ICMD_ARETURN:
-							COUNT(count_pcmd_return);
-							OP1_0(opcode-ICMD_IRETURN);
-							superblockend = true;
-							break;
+					case ICMD_IRETURN:
+					case ICMD_LRETURN:
+					case ICMD_FRETURN:
+					case ICMD_DRETURN:
+					case ICMD_ARETURN:
+						COUNT(count_pcmd_return);
+						OP1_0(opcode-ICMD_IRETURN);
+						superblockend = true;
+						break;
 
-						case ICMD_ATHROW:
-							COUNT(count_check_null);
-							OP1_0(TYPE_ADR);
-							STACKRESET;
-							SETDST;
-							superblockend = true;
-							break;
+					case ICMD_ATHROW:
+						COUNT(count_check_null);
+						OP1_0(TYPE_ADR);
+						STACKRESET;
+						SETDST;
+						superblockend = true;
+						break;
 
-						case ICMD_PUTSTATIC:
-							COUNT(count_pcmd_mem);
-							OP1_0(iptr->op1);
-							break;
+					case ICMD_PUTSTATIC:
+						COUNT(count_pcmd_mem);
+						OP1_0(iptr->op1);
+						break;
 
 						/* pop 1 push 0 branch */
 
-						case ICMD_IFNULL:
-						case ICMD_IFNONNULL:
-							COUNT(count_pcmd_bra);
-							OP1_0(TYPE_ADR);
-							tbptr = block + block_index[iptr->op1];
+					case ICMD_IFNULL:
+					case ICMD_IFNONNULL:
+						COUNT(count_pcmd_bra);
+						OP1_0(TYPE_ADR);
+						tbptr = block + block_index[iptr->op1];
 
-							iptr[0].target = (void *) tbptr;
+						iptr[0].target = (void *) tbptr;
 
-							MARKREACHED(tbptr, copy);
-							break;
+						MARKREACHED(tbptr, copy);
+						break;
 
-						case ICMD_IFEQ:
-						case ICMD_IFNE:
-						case ICMD_IFLT:
-						case ICMD_IFGE:
-						case ICMD_IFGT:
-						case ICMD_IFLE:
-							COUNT(count_pcmd_bra);
+					case ICMD_IFEQ:
+					case ICMD_IFNE:
+					case ICMD_IFLT:
+					case ICMD_IFGE:
+					case ICMD_IFGT:
+					case ICMD_IFLE:
+						COUNT(count_pcmd_bra);
 #ifdef CONDITIONAL_LOADCONST
-							{
+						{
 							tbptr = block + b_index;
 							if ((b_count >= 3) &&
 							    ((b_index + 2) == block_index[iptr[0].op1]) &&
@@ -955,25 +991,25 @@ icmd_store:
 							    (iptr[3].opc == ICMD_ICONST)) {
 								OP1_1(TYPE_INT, TYPE_INT);
 								switch (iptr[0].opc) {
-									case ICMD_IFEQ:
-										iptr[0].opc = ICMD_IFNE_ICONST;
-										break;
-									case ICMD_IFNE:
-										iptr[0].opc = ICMD_IFEQ_ICONST;
-										break;
-									case ICMD_IFLT:
-										iptr[0].opc = ICMD_IFGE_ICONST;
-										break;
-									case ICMD_IFGE:
-										iptr[0].opc = ICMD_IFLT_ICONST;
-										break;
-									case ICMD_IFGT:
-										iptr[0].opc = ICMD_IFLE_ICONST;
-										break;
-									case ICMD_IFLE:
-										iptr[0].opc = ICMD_IFGT_ICONST;
-										break;
-									}
+								case ICMD_IFEQ:
+									iptr[0].opc = ICMD_IFNE_ICONST;
+									break;
+								case ICMD_IFNE:
+									iptr[0].opc = ICMD_IFEQ_ICONST;
+									break;
+								case ICMD_IFLT:
+									iptr[0].opc = ICMD_IFGE_ICONST;
+									break;
+								case ICMD_IFGE:
+									iptr[0].opc = ICMD_IFLT_ICONST;
+									break;
+								case ICMD_IFGT:
+									iptr[0].opc = ICMD_IFLE_ICONST;
+									break;
+								case ICMD_IFLE:
+									iptr[0].opc = ICMD_IFGT_ICONST;
+									break;
+								}
 								iptr[0].val.i = iptr[1].val.i;
 								iptr[1].opc = ICMD_ELSE_ICONST;
 								iptr[1].val.i = iptr[3].val.i;
@@ -989,488 +1025,488 @@ icmd_store:
 									tbptr[3].flags = BBDELETED;
 									tbptr[3].icount = 0;
 									b_index++;
-									}
+								}
 								else {
 									bptr->icount++;
 									len ++;
-									}
+								}
 								b_index += 2;
 								break;
-								}
 							}
+						}
 #endif
-							OP1_0(TYPE_INT);
-							tbptr = block + block_index[iptr->op1];
+						OP1_0(TYPE_INT);
+						tbptr = block + block_index[iptr->op1];
 
-							iptr[0].target = (void *) tbptr;
+						iptr[0].target = (void *) tbptr;
 
-							MARKREACHED(tbptr, copy);
-							break;
+						MARKREACHED(tbptr, copy);
+						break;
 
 						/* pop 0 push 0 branch */
 
-						case ICMD_GOTO:
-							COUNT(count_pcmd_bra);
-							tbptr = block + block_index[iptr->op1];
+					case ICMD_GOTO:
+						COUNT(count_pcmd_bra);
+						tbptr = block + block_index[iptr->op1];
 
-							iptr[0].target = (void *) tbptr;
+						iptr[0].target = (void *) tbptr;
 
-							MARKREACHED(tbptr, copy);
-							SETDST;
-							superblockend = true;
-							break;
+						MARKREACHED(tbptr, copy);
+						SETDST;
+						superblockend = true;
+						break;
 
 						/* pop 1 push 0 table branch */
 
-						case ICMD_TABLESWITCH:
-							COUNT(count_pcmd_table);
-							OP1_0(TYPE_INT);
-							s4ptr = iptr->val.a;
-							tbptr = block + block_index[*s4ptr++]; /* default */
-							MARKREACHED(tbptr, copy);
-							i = *s4ptr++;                          /* low     */
-							i = *s4ptr++ - i + 1;                  /* high    */
+					case ICMD_TABLESWITCH:
+						COUNT(count_pcmd_table);
+						OP1_0(TYPE_INT);
+						s4ptr = iptr->val.a;
+						tbptr = block + block_index[*s4ptr++]; /* default */
+						MARKREACHED(tbptr, copy);
+						i = *s4ptr++;                          /* low     */
+						i = *s4ptr++ - i + 1;                  /* high    */
 
-							tptr = DMNEW(void*, i+1);
-							iptr->target = (void *) tptr;
+						tptr = DMNEW(void*, i+1);
+						iptr->target = (void *) tptr;
+
+						tptr[0] = (void *) tbptr;
+						tptr++;
+
+						while (--i >= 0) {
+							tbptr = block + block_index[*s4ptr++];
 
 							tptr[0] = (void *) tbptr;
 							tptr++;
 
-							while (--i >= 0) {
-								tbptr = block + block_index[*s4ptr++];
-
-								tptr[0] = (void *) tbptr;
-								tptr++;
-
-								MARKREACHED(tbptr, copy);
-								}
-							SETDST;
-							superblockend = true;
-							break;
+							MARKREACHED(tbptr, copy);
+						}
+						SETDST;
+						superblockend = true;
+						break;
 							
 						/* pop 1 push 0 table branch */
 
-						case ICMD_LOOKUPSWITCH:
-							COUNT(count_pcmd_table);
-							OP1_0(TYPE_INT);
-							s4ptr = iptr->val.a;
-							tbptr = block + block_index[*s4ptr++]; /* default */
-							MARKREACHED(tbptr, copy);
-							i = *s4ptr++;                          /* count   */
+					case ICMD_LOOKUPSWITCH:
+						COUNT(count_pcmd_table);
+						OP1_0(TYPE_INT);
+						s4ptr = iptr->val.a;
+						tbptr = block + block_index[*s4ptr++]; /* default */
+						MARKREACHED(tbptr, copy);
+						i = *s4ptr++;                          /* count   */
 
-							tptr = DMNEW(void*, i+1);
-							iptr->target = (void *) tptr;
+						tptr = DMNEW(void*, i+1);
+						iptr->target = (void *) tptr;
+
+						tptr[0] = (void *) tbptr;
+						tptr++;
+
+						while (--i >= 0) {
+							tbptr = block + block_index[s4ptr[1]];
 
 							tptr[0] = (void *) tbptr;
 							tptr++;
-
-							while (--i >= 0) {
-								tbptr = block + block_index[s4ptr[1]];
-
-								tptr[0] = (void *) tbptr;
-								tptr++;
 								
-								MARKREACHED(tbptr, copy);
-								s4ptr += 2;
-								}
-							SETDST;
-							superblockend = true;
-							break;
+							MARKREACHED(tbptr, copy);
+							s4ptr += 2;
+						}
+						SETDST;
+						superblockend = true;
+						break;
 
-						case ICMD_NULLCHECKPOP:
-						case ICMD_MONITORENTER:
-							COUNT(count_check_null);
-						case ICMD_MONITOREXIT:
-							OP1_0(TYPE_ADR);
-							break;
+					case ICMD_NULLCHECKPOP:
+					case ICMD_MONITORENTER:
+						COUNT(count_check_null);
+					case ICMD_MONITOREXIT:
+						OP1_0(TYPE_ADR);
+						break;
 
 						/* pop 2 push 0 branch */
 
-						case ICMD_IF_ICMPEQ:
-						case ICMD_IF_ICMPNE:
-						case ICMD_IF_ICMPLT:
-						case ICMD_IF_ICMPGE:
-						case ICMD_IF_ICMPGT:
-						case ICMD_IF_ICMPLE:
-							COUNT(count_pcmd_bra);
-							OP2_0(TYPE_INT);
-							tbptr = block + block_index[iptr->op1];
+					case ICMD_IF_ICMPEQ:
+					case ICMD_IF_ICMPNE:
+					case ICMD_IF_ICMPLT:
+					case ICMD_IF_ICMPGE:
+					case ICMD_IF_ICMPGT:
+					case ICMD_IF_ICMPLE:
+						COUNT(count_pcmd_bra);
+						OP2_0(TYPE_INT);
+						tbptr = block + block_index[iptr->op1];
 							
-							iptr[0].target = (void *) tbptr;
+						iptr[0].target = (void *) tbptr;
 
-							MARKREACHED(tbptr, copy);
-							break;
+						MARKREACHED(tbptr, copy);
+						break;
 
-						case ICMD_IF_ACMPEQ:
-						case ICMD_IF_ACMPNE:
-							COUNT(count_pcmd_bra);
-							OP2_0(TYPE_ADR);
-							tbptr = block + block_index[iptr->op1];
+					case ICMD_IF_ACMPEQ:
+					case ICMD_IF_ACMPNE:
+						COUNT(count_pcmd_bra);
+						OP2_0(TYPE_ADR);
+						tbptr = block + block_index[iptr->op1];
 
-							iptr[0].target = (void *) tbptr;
+						iptr[0].target = (void *) tbptr;
 
-							MARKREACHED(tbptr, copy);
-							break;
+						MARKREACHED(tbptr, copy);
+						break;
 
 						/* pop 2 push 0 */
 
-						case ICMD_PUTFIELD:
-							COUNT(count_check_null);
-							COUNT(count_pcmd_mem);
-							OPTT2_0(iptr->op1,TYPE_ADR);
-							break;
+					case ICMD_PUTFIELD:
+						COUNT(count_check_null);
+						COUNT(count_pcmd_mem);
+						OPTT2_0(iptr->op1,TYPE_ADR);
+						break;
 
-						case ICMD_POP2:
-							if (! IS_2_WORD_TYPE(curstack->type)) {
-								OP1_0ANY;                /* second pop */
-								}
-							else
-								iptr->opc = ICMD_POP;
-							OP1_0ANY;
-							break;
+					case ICMD_POP2:
+						if (! IS_2_WORD_TYPE(curstack->type)) {
+							OP1_0ANY;                /* second pop */
+						}
+						else
+							iptr->opc = ICMD_POP;
+						OP1_0ANY;
+						break;
 
 						/* pop 0 push 1 dup */
 						
-						case ICMD_DUP:
-							COUNT(count_dup_instruction);
-							DUP;
-							break;
+					case ICMD_DUP:
+						COUNT(count_dup_instruction);
+						DUP;
+						break;
 
-						case ICMD_DUP2:
-							if (IS_2_WORD_TYPE(curstack->type)) {
-								iptr->opc = ICMD_DUP;
-								DUP;
-								}
-							else {
-								copy = curstack;
-								NEWSTACK(copy->prev->type, copy->prev->varkind,
-								         copy->prev->varnum);
-								NEWSTACK(copy->type, copy->varkind,
-								         copy->varnum);
-								SETDST;
-								stackdepth+=2;
-								}
-							break;
+					case ICMD_DUP2:
+						if (IS_2_WORD_TYPE(curstack->type)) {
+							iptr->opc = ICMD_DUP;
+							DUP;
+						}
+						else {
+							copy = curstack;
+							NEWSTACK(copy->prev->type, copy->prev->varkind,
+									 copy->prev->varnum);
+							NEWSTACK(copy->type, copy->varkind,
+									 copy->varnum);
+							SETDST;
+							stackdepth+=2;
+						}
+						break;
 
 						/* pop 2 push 3 dup */
 						
-						case ICMD_DUP_X1:
-							DUP_X1;
-							break;
+					case ICMD_DUP_X1:
+						DUP_X1;
+						break;
 
-						case ICMD_DUP2_X1:
-							if (IS_2_WORD_TYPE(curstack->type)) {
-								iptr->opc = ICMD_DUP_X1;
-								DUP_X1;
-								}
-							else {
-								DUP2_X1;
-								}
-							break;
+					case ICMD_DUP2_X1:
+						if (IS_2_WORD_TYPE(curstack->type)) {
+							iptr->opc = ICMD_DUP_X1;
+							DUP_X1;
+						}
+						else {
+							DUP2_X1;
+						}
+						break;
 
 						/* pop 3 push 4 dup */
 						
-						case ICMD_DUP_X2:
+					case ICMD_DUP_X2:
+						if (IS_2_WORD_TYPE(curstack->prev->type)) {
+							iptr->opc = ICMD_DUP_X1;
+							DUP_X1;
+						}
+						else {
+							DUP_X2;
+						}
+						break;
+
+					case ICMD_DUP2_X2:
+						if (IS_2_WORD_TYPE(curstack->type)) {
 							if (IS_2_WORD_TYPE(curstack->prev->type)) {
 								iptr->opc = ICMD_DUP_X1;
 								DUP_X1;
-								}
+							}
 							else {
+								iptr->opc = ICMD_DUP_X2;
 								DUP_X2;
-								}
-							break;
-
-						case ICMD_DUP2_X2:
-							if (IS_2_WORD_TYPE(curstack->type)) {
-								if (IS_2_WORD_TYPE(curstack->prev->type)) {
-									iptr->opc = ICMD_DUP_X1;
-									DUP_X1;
-									}
-								else {
-									iptr->opc = ICMD_DUP_X2;
-									DUP_X2;
-									}
-								}
-							else
-								if (IS_2_WORD_TYPE(curstack->prev->prev->type)) {
-									iptr->opc = ICMD_DUP2_X1;
-									DUP2_X1;
-									}
-								else {
-									DUP2_X2;
-									}
-							break;
+							}
+						}
+						else
+							if (IS_2_WORD_TYPE(curstack->prev->prev->type)) {
+								iptr->opc = ICMD_DUP2_X1;
+								DUP2_X1;
+							}
+							else {
+								DUP2_X2;
+							}
+						break;
 
 						/* pop 2 push 2 swap */
 						
-						case ICMD_SWAP:
-							SWAP;
-							break;
+					case ICMD_SWAP:
+						SWAP;
+						break;
 
 						/* pop 2 push 1 */
 						
-						case ICMD_IDIV:
+					case ICMD_IDIV:
 #if !SUPPORT_DIVISION
-							iptr[0].opc = ICMD_BUILTIN2;
-							iptr[0].op1 = TYPE_INT;
-							iptr[0].val.a = (functionptr) asm_builtin_idiv;
-							isleafmethod = false;
-							goto builtin2;
+						iptr[0].opc = ICMD_BUILTIN2;
+						iptr[0].op1 = TYPE_INT;
+						iptr[0].val.a = (functionptr) asm_builtin_idiv;
+						isleafmethod = false;
+						goto builtin2;
 #endif
 
-						case ICMD_IREM:
+					case ICMD_IREM:
 #if !SUPPORT_DIVISION
-							iptr[0].opc = ICMD_BUILTIN2;
-							iptr[0].op1 = TYPE_INT;
-							iptr[0].val.a = (functionptr) asm_builtin_irem;
-							isleafmethod = false;
-							goto builtin2;
+						iptr[0].opc = ICMD_BUILTIN2;
+						iptr[0].op1 = TYPE_INT;
+						iptr[0].val.a = (functionptr) asm_builtin_irem;
+						isleafmethod = false;
+						goto builtin2;
 #endif
 
-						case ICMD_IADD:
-						case ICMD_ISUB:
-						case ICMD_IMUL:
+					case ICMD_IADD:
+					case ICMD_ISUB:
+					case ICMD_IMUL:
 
-						case ICMD_ISHL:
-						case ICMD_ISHR:
-						case ICMD_IUSHR:
-						case ICMD_IAND:
-						case ICMD_IOR:
-						case ICMD_IXOR:
-							COUNT(count_pcmd_op);
-							OP2_1(TYPE_INT);
-							break;
+					case ICMD_ISHL:
+					case ICMD_ISHR:
+					case ICMD_IUSHR:
+					case ICMD_IAND:
+					case ICMD_IOR:
+					case ICMD_IXOR:
+						COUNT(count_pcmd_op);
+						OP2_1(TYPE_INT);
+						break;
 
-						case ICMD_LDIV:
+					case ICMD_LDIV:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)
-							iptr[0].opc = ICMD_BUILTIN2;
-							iptr[0].op1 = TYPE_LNG;
-							iptr[0].val.a = (functionptr) asm_builtin_ldiv;
-							isleafmethod = false;
-							goto builtin2;
+						iptr[0].opc = ICMD_BUILTIN2;
+						iptr[0].op1 = TYPE_LNG;
+						iptr[0].val.a = (functionptr) asm_builtin_ldiv;
+						isleafmethod = false;
+						goto builtin2;
 #endif
 
-						case ICMD_LREM:
+					case ICMD_LREM:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)
-							iptr[0].opc = ICMD_BUILTIN2;
-							iptr[0].op1 = TYPE_LNG;
-							iptr[0].val.a = (functionptr) asm_builtin_lrem;
-							isleafmethod = false;
-							goto builtin2;
+						iptr[0].opc = ICMD_BUILTIN2;
+						iptr[0].op1 = TYPE_LNG;
+						iptr[0].val.a = (functionptr) asm_builtin_lrem;
+						isleafmethod = false;
+						goto builtin2;
 #endif
 
-						case ICMD_LADD:
-						case ICMD_LSUB:
-						case ICMD_LMUL:
+					case ICMD_LADD:
+					case ICMD_LSUB:
+					case ICMD_LMUL:
 
-						case ICMD_LOR:
-						case ICMD_LAND:
-						case ICMD_LXOR:
-							COUNT(count_pcmd_op);
-							OP2_1(TYPE_LNG);
-							break;
+					case ICMD_LOR:
+					case ICMD_LAND:
+					case ICMD_LXOR:
+						COUNT(count_pcmd_op);
+						OP2_1(TYPE_LNG);
+						break;
 
-						case ICMD_LSHL:
-						case ICMD_LSHR:
-						case ICMD_LUSHR:
-							COUNT(count_pcmd_op);
-							OP2IT_1(TYPE_LNG);
-							break;
+					case ICMD_LSHL:
+					case ICMD_LSHR:
+					case ICMD_LUSHR:
+						COUNT(count_pcmd_op);
+						OP2IT_1(TYPE_LNG);
+						break;
 
-						case ICMD_FADD:
-						case ICMD_FSUB:
-						case ICMD_FMUL:
-						case ICMD_FDIV:
-						case ICMD_FREM:
-							COUNT(count_pcmd_op);
-							OP2_1(TYPE_FLT);
-							break;
+					case ICMD_FADD:
+					case ICMD_FSUB:
+					case ICMD_FMUL:
+					case ICMD_FDIV:
+					case ICMD_FREM:
+						COUNT(count_pcmd_op);
+						OP2_1(TYPE_FLT);
+						break;
 
-						case ICMD_DADD:
-						case ICMD_DSUB:
-						case ICMD_DMUL:
-						case ICMD_DDIV:
-						case ICMD_DREM:
-							COUNT(count_pcmd_op);
-							OP2_1(TYPE_DBL);
-							break;
+					case ICMD_DADD:
+					case ICMD_DSUB:
+					case ICMD_DMUL:
+					case ICMD_DDIV:
+					case ICMD_DREM:
+						COUNT(count_pcmd_op);
+						OP2_1(TYPE_DBL);
+						break;
 
-						case ICMD_LCMP:
-							COUNT(count_pcmd_op);
+					case ICMD_LCMP:
+						COUNT(count_pcmd_op);
 #ifndef NOLONG_CONDITIONAL
-							if ((len > 0) && (iptr[1].val.i == 0)) {
-								switch (iptr[1].opc) {
-									case ICMD_IFEQ:
-										iptr[0].opc = ICMD_IF_LCMPEQ;
-icmd_lcmp_if_tail:
-										iptr[0].op1 = iptr[1].op1;
-										len--;
-										bptr->icount--;
-										/* iptr[1].opc = ICMD_NOP; */
-										OP2_0(TYPE_LNG);
-										tbptr = block + block_index[iptr->op1];
+						if ((len > 0) && (iptr[1].val.i == 0)) {
+							switch (iptr[1].opc) {
+							case ICMD_IFEQ:
+								iptr[0].opc = ICMD_IF_LCMPEQ;
+							icmd_lcmp_if_tail:
+								iptr[0].op1 = iptr[1].op1;
+								len--;
+								bptr->icount--;
+								/* iptr[1].opc = ICMD_NOP; */
+								OP2_0(TYPE_LNG);
+								tbptr = block + block_index[iptr->op1];
 			
-										iptr[0].target = (void *) tbptr;
+								iptr[0].target = (void *) tbptr;
 
-										MARKREACHED(tbptr, copy);
-										COUNT(count_pcmd_bra);
-										break;
-									case ICMD_IFNE:
-										iptr[0].opc = ICMD_IF_LCMPNE;
-										goto icmd_lcmp_if_tail;
-									case ICMD_IFLT:
-										iptr[0].opc = ICMD_IF_LCMPLT;
-										goto icmd_lcmp_if_tail;
-									case ICMD_IFGT:
-										iptr[0].opc = ICMD_IF_LCMPGT;
-										goto icmd_lcmp_if_tail;
-									case ICMD_IFLE:
-										iptr[0].opc = ICMD_IF_LCMPLE;
-										goto icmd_lcmp_if_tail;
-									case ICMD_IFGE:
-										iptr[0].opc = ICMD_IF_LCMPGE;
-										goto icmd_lcmp_if_tail;
-									default:
-										OPTT2_1(TYPE_LNG, TYPE_INT);
-									}
-								}
-							else
-#endif
+								MARKREACHED(tbptr, copy);
+								COUNT(count_pcmd_bra);
+								break;
+							case ICMD_IFNE:
+								iptr[0].opc = ICMD_IF_LCMPNE;
+								goto icmd_lcmp_if_tail;
+							case ICMD_IFLT:
+								iptr[0].opc = ICMD_IF_LCMPLT;
+								goto icmd_lcmp_if_tail;
+							case ICMD_IFGT:
+								iptr[0].opc = ICMD_IF_LCMPGT;
+								goto icmd_lcmp_if_tail;
+							case ICMD_IFLE:
+								iptr[0].opc = ICMD_IF_LCMPLE;
+								goto icmd_lcmp_if_tail;
+							case ICMD_IFGE:
+								iptr[0].opc = ICMD_IF_LCMPGE;
+								goto icmd_lcmp_if_tail;
+							default:
 								OPTT2_1(TYPE_LNG, TYPE_INT);
-							break;
-						case ICMD_FCMPL:
-						case ICMD_FCMPG:
-							COUNT(count_pcmd_op);
-							OPTT2_1(TYPE_FLT, TYPE_INT);
-							break;
-						case ICMD_DCMPL:
-						case ICMD_DCMPG:
-							COUNT(count_pcmd_op);
-							OPTT2_1(TYPE_DBL, TYPE_INT);
-							break;
+							}
+						}
+						else
+#endif
+							OPTT2_1(TYPE_LNG, TYPE_INT);
+						break;
+					case ICMD_FCMPL:
+					case ICMD_FCMPG:
+						COUNT(count_pcmd_op);
+						OPTT2_1(TYPE_FLT, TYPE_INT);
+						break;
+					case ICMD_DCMPL:
+					case ICMD_DCMPG:
+						COUNT(count_pcmd_op);
+						OPTT2_1(TYPE_DBL, TYPE_INT);
+						break;
 
 						/* pop 1 push 1 */
 						
-						case ICMD_INEG:
-						case ICMD_INT2BYTE:
-						case ICMD_INT2CHAR:
-						case ICMD_INT2SHORT:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_INT, TYPE_INT);
-							break;
-						case ICMD_LNEG:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_LNG, TYPE_LNG);
-							break;
-						case ICMD_FNEG:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_FLT, TYPE_FLT);
-							break;
-						case ICMD_DNEG:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_DBL, TYPE_DBL);
-							break;
+					case ICMD_INEG:
+					case ICMD_INT2BYTE:
+					case ICMD_INT2CHAR:
+					case ICMD_INT2SHORT:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_INT, TYPE_INT);
+						break;
+					case ICMD_LNEG:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_LNG, TYPE_LNG);
+						break;
+					case ICMD_FNEG:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_FLT, TYPE_FLT);
+						break;
+					case ICMD_DNEG:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_DBL, TYPE_DBL);
+						break;
 
-						case ICMD_I2L:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_INT, TYPE_LNG);
-							break;
-						case ICMD_I2F:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_INT, TYPE_FLT);
-							break;
-						case ICMD_I2D:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_INT, TYPE_DBL);
-							break;
-						case ICMD_L2I:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_LNG, TYPE_INT);
-							break;
-						case ICMD_L2F:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_LNG, TYPE_FLT);
-							break;
-						case ICMD_L2D:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_LNG, TYPE_DBL);
-							break;
-						case ICMD_F2I:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_FLT, TYPE_INT);
-							break;
-						case ICMD_F2L:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_FLT, TYPE_LNG);
-							break;
-						case ICMD_F2D:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_FLT, TYPE_DBL);
-							break;
-						case ICMD_D2I:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_DBL, TYPE_INT);
-							break;
-						case ICMD_D2L:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_DBL, TYPE_LNG);
-							break;
-						case ICMD_D2F:
-							COUNT(count_pcmd_op);
-							OP1_1(TYPE_DBL, TYPE_FLT);
-							break;
+					case ICMD_I2L:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_INT, TYPE_LNG);
+						break;
+					case ICMD_I2F:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_INT, TYPE_FLT);
+						break;
+					case ICMD_I2D:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_INT, TYPE_DBL);
+						break;
+					case ICMD_L2I:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_LNG, TYPE_INT);
+						break;
+					case ICMD_L2F:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_LNG, TYPE_FLT);
+						break;
+					case ICMD_L2D:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_LNG, TYPE_DBL);
+						break;
+					case ICMD_F2I:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_FLT, TYPE_INT);
+						break;
+					case ICMD_F2L:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_FLT, TYPE_LNG);
+						break;
+					case ICMD_F2D:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_FLT, TYPE_DBL);
+						break;
+					case ICMD_D2I:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_DBL, TYPE_INT);
+						break;
+					case ICMD_D2L:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_DBL, TYPE_LNG);
+						break;
+					case ICMD_D2F:
+						COUNT(count_pcmd_op);
+						OP1_1(TYPE_DBL, TYPE_FLT);
+						break;
 
-						case ICMD_CHECKCAST:
-							OP1_1(TYPE_ADR, TYPE_ADR);
-							break;
+					case ICMD_CHECKCAST:
+						OP1_1(TYPE_ADR, TYPE_ADR);
+						break;
 
-						case ICMD_ARRAYLENGTH:
-						case ICMD_INSTANCEOF:
-							OP1_1(TYPE_ADR, TYPE_INT);
-							break;
+					case ICMD_ARRAYLENGTH:
+					case ICMD_INSTANCEOF:
+						OP1_1(TYPE_ADR, TYPE_INT);
+						break;
 
-						case ICMD_NEWARRAY:
-						case ICMD_ANEWARRAY:
-							OP1_1(TYPE_INT, TYPE_ADR);
-							break;
+					case ICMD_NEWARRAY:
+					case ICMD_ANEWARRAY:
+						OP1_1(TYPE_INT, TYPE_ADR);
+						break;
 
-						case ICMD_GETFIELD:
-							COUNT(count_check_null);
-							COUNT(count_pcmd_mem);
-							OP1_1(TYPE_ADR, iptr->op1);
-							break;
+					case ICMD_GETFIELD:
+						COUNT(count_check_null);
+						COUNT(count_pcmd_mem);
+						OP1_1(TYPE_ADR, iptr->op1);
+						break;
 
 						/* pop 0 push 1 */
 						
-						case ICMD_GETSTATIC:
-							COUNT(count_pcmd_mem);
-							OP0_1(iptr->op1);
-							break;
+					case ICMD_GETSTATIC:
+						COUNT(count_pcmd_mem);
+						OP0_1(iptr->op1);
+						break;
 
-						case ICMD_NEW:
-							OP0_1(TYPE_ADR);
-							break;
+					case ICMD_NEW:
+						OP0_1(TYPE_ADR);
+						break;
 
-						case ICMD_JSR:
-							OP0_1(TYPE_ADR);
-							tbptr = block + block_index[iptr->op1];
+					case ICMD_JSR:
+						OP0_1(TYPE_ADR);
+						tbptr = block + block_index[iptr->op1];
 
-							iptr[0].target = (void *) tbptr;
+						iptr[0].target = (void *) tbptr;
 
-							tbptr->type=BBTYPE_SBR;
-							MARKREACHED(tbptr, copy);
-							OP1_0ANY;
-							break;
+						tbptr->type=BBTYPE_SBR;
+						MARKREACHED(tbptr, copy);
+						OP1_0ANY;
+						break;
 
 						/* pop many push any */
 						
-						case ICMD_INVOKEVIRTUAL:
-						case ICMD_INVOKESPECIAL:
-						case ICMD_INVOKEINTERFACE:
-						case ICMD_INVOKESTATIC:
-							COUNT(count_pcmd_met);
-							{
+					case ICMD_INVOKEVIRTUAL:
+					case ICMD_INVOKESPECIAL:
+					case ICMD_INVOKEINTERFACE:
+					case ICMD_INVOKESTATIC:
+						COUNT(count_pcmd_met);
+						{
 							methodinfo *m = iptr->val.a;
 							if (m->flags & ACC_STATIC)
 								{COUNT(count_check_null);}
@@ -1522,120 +1558,120 @@ icmd_lcmp_if_tail:
 								if (! (copy->flags & SAVEDVAR)) {
 									copy->varkind = ARGVAR;
 									copy->varnum = i;
-									}
-								copy = copy->prev;
 								}
+								copy = copy->prev;
+							}
 #endif
 							while (copy) {
 								copy->flags |= SAVEDVAR;
 								copy = copy->prev;
-								}
+							}
 							i = iptr->op1;
 							POPMANY(i);
 							if (m->returntype != TYPE_VOID) {
 								OP0_1(m->returntype);
-								}
-							break;
 							}
-
-						case ICMD_BUILTIN3:
-							if (! (curstack->flags & SAVEDVAR)) {
-								curstack->varkind = ARGVAR;
-								curstack->varnum = 2;
-								}
-							if (3 > arguments_num) {
-								arguments_num = 3;
-							}
-							OP1_0ANY;
-
-						case ICMD_BUILTIN2:
-builtin2:
-							if (! (curstack->flags & SAVEDVAR)) {
-								curstack->varkind = ARGVAR;
-								curstack->varnum = 1;
-								}
-							if (2 > arguments_num) {
-								arguments_num = 2;
-							}
-							OP1_0ANY;
-
-						case ICMD_BUILTIN1:
-							if (! (curstack->flags & SAVEDVAR)) {
-								curstack->varkind = ARGVAR;
-								curstack->varnum = 0;
-								}
-							if (1 > arguments_num) {
-								arguments_num = 1;
-							}
-							OP1_0ANY;
-							copy = curstack;
-							while (copy) {
-								copy->flags |= SAVEDVAR;
-								copy = copy->prev;
-								}
-							if (iptr->op1 != TYPE_VOID)
-								OP0_1(iptr->op1);
 							break;
+						}
 
-						case ICMD_MULTIANEWARRAY:
-							i = iptr->op1;
-							if ((i + intreg_argnum) > arguments_num)
-								arguments_num = i + intreg_argnum;
-							copy = curstack;
-							while (--i >= 0) {
-								if (! (copy->flags & SAVEDVAR)) {
-									copy->varkind = ARGVAR;
-									copy->varnum = i + intreg_argnum;
-									}
-								copy = copy->prev;
-								}
-							while (copy) {
-								copy->flags |= SAVEDVAR;
-								copy = copy->prev;
-								}
-							i = iptr->op1;
-							POPMANY(i);
-							OP0_1(TYPE_ADR);
-							break;
+					case ICMD_BUILTIN3:
+						if (! (curstack->flags & SAVEDVAR)) {
+							curstack->varkind = ARGVAR;
+							curstack->varnum = 2;
+						}
+						if (3 > arguments_num) {
+							arguments_num = 3;
+						}
+						OP1_0ANY;
 
-					    case ICMD_CLEAR_ARGREN:
-							for (i = iptr->op1; i<maxlocals; i++) 
-								argren[i] = i;
-							iptr->opc = opcode = ICMD_NOP;
-							SETDST;
-							break;
+					case ICMD_BUILTIN2:
+					builtin2:
+					if (! (curstack->flags & SAVEDVAR)) {
+						curstack->varkind = ARGVAR;
+						curstack->varnum = 1;
+					}
+					if (2 > arguments_num) {
+						arguments_num = 2;
+					}
+					OP1_0ANY;
+
+					case ICMD_BUILTIN1:
+						if (! (curstack->flags & SAVEDVAR)) {
+							curstack->varkind = ARGVAR;
+							curstack->varnum = 0;
+						}
+						if (1 > arguments_num) {
+							arguments_num = 1;
+						}
+						OP1_0ANY;
+						copy = curstack;
+						while (copy) {
+							copy->flags |= SAVEDVAR;
+							copy = copy->prev;
+						}
+						if (iptr->op1 != TYPE_VOID)
+							OP0_1(iptr->op1);
+						break;
+
+					case ICMD_MULTIANEWARRAY:
+						i = iptr->op1;
+						if ((i + intreg_argnum) > arguments_num)
+							arguments_num = i + intreg_argnum;
+						copy = curstack;
+						while (--i >= 0) {
+							if (! (copy->flags & SAVEDVAR)) {
+								copy->varkind = ARGVAR;
+								copy->varnum = i + intreg_argnum;
+							}
+							copy = copy->prev;
+						}
+						while (copy) {
+							copy->flags |= SAVEDVAR;
+							copy = copy->prev;
+						}
+						i = iptr->op1;
+						POPMANY(i);
+						OP0_1(TYPE_ADR);
+						break;
+
+					case ICMD_CLEAR_ARGREN:
+						for (i = iptr->op1; i<maxlocals; i++) 
+							argren[i] = i;
+						iptr->opc = opcode = ICMD_NOP;
+						SETDST;
+						break;
 						
-					    case ICMD_READONLY_ARG:
-					    case ICMD_READONLY_ARG+1:
-					    case ICMD_READONLY_ARG+2:
-					    case ICMD_READONLY_ARG+3:
-					    case ICMD_READONLY_ARG+4:
+					case ICMD_READONLY_ARG:
+					case ICMD_READONLY_ARG+1:
+					case ICMD_READONLY_ARG+2:
+					case ICMD_READONLY_ARG+3:
+					case ICMD_READONLY_ARG+4:
 
-							if (curstack->varkind == LOCALVAR) {
-								i = curstack->varnum;
-								argren[iptr->op1] = i;
-								iptr->op1 = i;
-							}
-							opcode = iptr->opc = opcode - ICMD_READONLY_ARG + ICMD_ISTORE;
-							goto icmd_store;
+						if (curstack->varkind == LOCALVAR) {
+							i = curstack->varnum;
+							argren[iptr->op1] = i;
+							iptr->op1 = i;
+						}
+						opcode = iptr->opc = opcode - ICMD_READONLY_ARG + ICMD_ISTORE;
+						goto icmd_store;
 
-							break;
+						break;
 
-					    default:
-							printf("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
-							panic("Missing ICMD code during stack analysis");
-						} /* switch */
+					default:
+						printf("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
+						panic("Missing ICMD code during stack analysis");
+					} /* switch */
 					iptr++;
-					} /* while instructions */
+				} /* while instructions */
 				bptr->outstack = curstack;
 				bptr->outdepth = stackdepth;
 				BBEND(curstack, i);
-				} /* if */
+			} /* if */
 			else
 				superblockend = true;
 			bptr++;
 		} /* while blocks */
-	} while (repeat && ! deadcode);
+	} while (repeat && !deadcode);
 
 #ifdef STATISTICS
 	if (block_count > count_max_basic_blocks)
@@ -1676,9 +1712,9 @@ builtin2:
 				count_block_size_distribution[16]++;
 			else
 				count_block_size_distribution[17]++;
-			}
-		bptr++;
 		}
+		bptr++;
+	}
 
 	if (loops == 1)
 		count_analyse_iterations[0]++;
@@ -1713,7 +1749,8 @@ builtin2:
 }
 
 
-static void print_stack(stackptr s) {
+static void print_stack(stackptr s)
+{
 	int i, j;
 	stackptr t;
 
@@ -1723,7 +1760,7 @@ static void print_stack(stackptr s) {
 	while (t) {
 		i--;
 		t = t->prev;
-		}
+	}
 	j = maxstack - i;
 	while (--i >= 0)
 		printf("    ");
@@ -1731,50 +1768,50 @@ static void print_stack(stackptr s) {
 		j--;
 		if (s->flags & SAVEDVAR)
 			switch (s->varkind) {
-				case TEMPVAR:
-					if (s->flags & INMEMORY)
-						printf(" M%02d", s->regoff);
-					else if ((s->type == TYPE_FLT) || (s->type == TYPE_DBL))
-						printf(" F%02d", s->regoff);
-					else
-						printf(" %3s", regs[s->regoff]);
-					break;
-				case STACKVAR:
-					printf(" I%02d", s->varnum);
-					break;
-				case LOCALVAR:
-					printf(" L%02d", s->varnum);
-					break;
-				case ARGVAR:
-					printf(" A%02d", s->varnum);
-					break;
-				default:
-					printf(" !%02d", j);
-				}
+			case TEMPVAR:
+				if (s->flags & INMEMORY)
+					printf(" M%02d", s->regoff);
+				else if ((s->type == TYPE_FLT) || (s->type == TYPE_DBL))
+					printf(" F%02d", s->regoff);
+				else
+					printf(" %3s", regs[s->regoff]);
+				break;
+			case STACKVAR:
+				printf(" I%02d", s->varnum);
+				break;
+			case LOCALVAR:
+				printf(" L%02d", s->varnum);
+				break;
+			case ARGVAR:
+				printf(" A%02d", s->varnum);
+				break;
+			default:
+				printf(" !%02d", j);
+			}
 		else
 			switch (s->varkind) {
-				case TEMPVAR:
-					if (s->flags & INMEMORY)
-						printf(" m%02d", s->regoff);
-					else if ((s->type == TYPE_FLT) || (s->type == TYPE_DBL))
-						printf(" f%02d", s->regoff);
-					else
-						printf(" %3s", regs[s->regoff]);
-					break;
-				case STACKVAR:
-					printf(" i%02d", s->varnum);
-					break;
-				case LOCALVAR:
-					printf(" l%02d", s->varnum);
-					break;
-				case ARGVAR:
-					printf(" a%02d", s->varnum);
-					break;
-				default:
-					printf(" ?%02d", j);
-				}
+			case TEMPVAR:
+				if (s->flags & INMEMORY)
+					printf(" m%02d", s->regoff);
+				else if ((s->type == TYPE_FLT) || (s->type == TYPE_DBL))
+					printf(" f%02d", s->regoff);
+				else
+					printf(" %3s", regs[s->regoff]);
+				break;
+			case STACKVAR:
+				printf(" i%02d", s->varnum);
+				break;
+			case LOCALVAR:
+				printf(" l%02d", s->varnum);
+				break;
+			case ARGVAR:
+				printf(" a%02d", s->varnum);
+				break;
+			default:
+				printf(" ?%02d", j);
+			}
 		s = s->prev;
-		}
+	}
 }
 
 
@@ -1783,45 +1820,45 @@ static void print_reg(stackptr s) {
 	if (s) {
 		if (s->flags & SAVEDVAR)
 			switch (s->varkind) {
-				case TEMPVAR:
-					if (s->flags & INMEMORY)
-						printf(" tm%02d", s->regoff);
-					else
-						printf(" tr%02d", s->regoff);
-					break;
-				case STACKVAR:
-					printf(" s %02d", s->varnum);
-					break;
-				case LOCALVAR:
-					printf(" l %02d", s->varnum);
-					break;
-				case ARGVAR:
-					printf(" a %02d", s->varnum);
-					break;
-				default:
-					printf(" ! %02d", s->varnum);
-				}
+			case TEMPVAR:
+				if (s->flags & INMEMORY)
+					printf(" tm%02d", s->regoff);
+				else
+					printf(" tr%02d", s->regoff);
+				break;
+			case STACKVAR:
+				printf(" s %02d", s->varnum);
+				break;
+			case LOCALVAR:
+				printf(" l %02d", s->varnum);
+				break;
+			case ARGVAR:
+				printf(" a %02d", s->varnum);
+				break;
+			default:
+				printf(" ! %02d", s->varnum);
+			}
 		else
 			switch (s->varkind) {
-				case TEMPVAR:
-					if (s->flags & INMEMORY)
-						printf(" Tm%02d", s->regoff);
-					else
-						printf(" Tr%02d", s->regoff);
-					break;
-				case STACKVAR:
-					printf(" S %02d", s->varnum);
-					break;
-				case LOCALVAR:
-					printf(" L %02d", s->varnum);
-					break;
-				case ARGVAR:
-					printf(" A %02d", s->varnum);
-					break;
-				default:
-					printf(" ? %02d", s->varnum);
-				}
-		}
+			case TEMPVAR:
+				if (s->flags & INMEMORY)
+					printf(" Tm%02d", s->regoff);
+				else
+					printf(" Tr%02d", s->regoff);
+				break;
+			case STACKVAR:
+				printf(" S %02d", s->varnum);
+				break;
+			case LOCALVAR:
+				printf(" L %02d", s->varnum);
+				break;
+			case ARGVAR:
+				printf(" A %02d", s->varnum);
+				break;
+			default:
+				printf(" ? %02d", s->varnum);
+			}
+	}
 	else
 		printf("     ");
 		
@@ -1847,7 +1884,7 @@ static char *jit_type[] = {
 };
 
 
-static void show_icmd_method()
+void show_icmd_method()
 {
 	int i, j;
 	int deadcode;
@@ -1871,7 +1908,7 @@ static void show_icmd_method()
 		printf("    L%03d ... ", ex->start->debug_nr );
 		printf("L%03d  = ", ex->end->debug_nr);
 		printf("L%03d\n", ex->handler->debug_nr);
-		}
+	}
 	
 	printf ("Local Table:\n");
 	for (i = 0; i < maxlocals; i++) {
@@ -1885,9 +1922,9 @@ static void show_icmd_method()
 					printf("f%02d", locals[i][j].regoff);
 				else
 					printf("%3s", regs[locals[i][j].regoff]);
-				}
+			}
 		printf("\n");
-		}
+	}
 	printf("\n");
 
 	printf ("Interface Table:\n");
@@ -1906,7 +1943,7 @@ static void show_icmd_method()
 							printf("F%02d", interfaces[i][j].regoff);
 						else
 							printf("%3s", regs[interfaces[i][j].regoff]);
-						}
+					}
 					else {
 						if (interfaces[i][j].flags & INMEMORY)
 							printf("m%2d", interfaces[i][j].regoff);
@@ -1914,56 +1951,57 @@ static void show_icmd_method()
 							printf("f%02d", interfaces[i][j].regoff);
 						else
 							printf("%3s", regs[interfaces[i][j].regoff]);
-						}
 					}
+				}
 			printf("\n");
-			}
 		}
+	}
 	printf("\n");
 
 	if (showdisassemble) {
 #if defined(__I386__) || defined(__X86_64__)
 		u1 *u1ptr;
+		int a;
 
 		u1ptr = method->mcode + dseglen;
 		for (i = 0; i < block[0].mpc; i++, u1ptr++) {
-			disassinstr(u1ptr, i);
-			i = pstatic;
-			u1ptr = codestatic;
+			a = disassinstr(u1ptr, i);
+			i += a;
+			u1ptr += a;
 		}
 		printf("\n");
 #else
 		s4ptr = (s4 *) (method->mcode + dseglen);
 		for (i = 0; i < block[0].mpc; i += 4, s4ptr++) {
 			disassinstr(*s4ptr, i); 
-			}
+		}
 		printf("\n");
 #endif
-		}
+	}
 
 	
-	for (bptr = block; bptr != NULL; bptr = bptr->next)
+	for (bptr = block; bptr != NULL; bptr = bptr->next) {
 		if (bptr->flags != BBDELETED) {
-		deadcode = bptr->flags <= BBREACHED;
-		printf("[");
-		if (deadcode)
-			for (j = maxstack; j > 0; j--)
-				printf(" ?  ");
-		else
-			print_stack(bptr->instack);
-		printf("] L%03d(%d - %d):\n", bptr->debug_nr, bptr->icount, bptr->pre_count);
-		iptr = bptr->iinstr;
-
-		for (i=0; i < bptr->icount; i++, iptr++) {
+			deadcode = bptr->flags <= BBREACHED;
 			printf("[");
-			if (deadcode) {
+			if (deadcode)
 				for (j = maxstack; j > 0; j--)
 					printf(" ?  ");
-				}
 			else
-				print_stack(iptr->dst);
-			printf("]     %4d  %s", i, icmd_names[iptr->opc]);
-			switch ((int) iptr->opc) {
+				print_stack(bptr->instack);
+			printf("] L%03d(%d - %d):\n", bptr->debug_nr, bptr->icount, bptr->pre_count);
+			iptr = bptr->iinstr;
+
+			for (i=0; i < bptr->icount; i++, iptr++) {
+				printf("[");
+				if (deadcode) {
+					for (j = maxstack; j > 0; j--)
+						printf(" ?  ");
+				}
+				else
+					print_stack(iptr->dst);
+				printf("]     %4d  %s", i, icmd_names[iptr->opc]);
+				switch ((int) iptr->opc) {
 				case ICMD_IADDCONST:
 				case ICMD_ISUBCONST:
 				case ICMD_IMULCONST:
@@ -2020,7 +2058,7 @@ static void show_icmd_method()
 				case ICMD_GETSTATIC:
 					printf(" ");
 					utf_fprint(stdout,
-					                ((fieldinfo *) iptr->val.a)->name);
+							   ((fieldinfo *) iptr->val.a)->name);
 					break;
 				case ICMD_IINC:
 					printf(" %d + %d", iptr->op1, iptr->val.i);
@@ -2063,42 +2101,42 @@ static void show_icmd_method()
 				case ICMD_NEW:
 					printf(" ");
 					utf_fprint(stdout,
-					               ((classinfo *) iptr->val.a)->name);
+							   ((classinfo *) iptr->val.a)->name);
 					break;
 				case ICMD_NEWARRAY:
 					switch (iptr->op1) {
-						case 4:
-							printf(" boolean");
-							break;
-						case 5:
-							printf(" char");
-							break;
-						case 6:
-							printf(" float");
-							break;
-						case 7:
-							printf(" double");
-							break;
-						case 8:
-							printf(" byte");
-							break;
-						case 9:
-							printf(" short");
-							break;
-						case 10:
-							printf(" int");
-							break;
-						case 11:
-							printf(" long");
-							break;
-						}
+					case 4:
+						printf(" boolean");
+						break;
+					case 5:
+						printf(" char");
+						break;
+					case 6:
+						printf(" float");
+						break;
+					case 7:
+						printf(" double");
+						break;
+					case 8:
+						printf(" byte");
+						break;
+					case 9:
+						printf(" short");
+						break;
+					case 10:
+						printf(" int");
+						break;
+					case 11:
+						printf(" long");
+						break;
+					}
 					break;
 				case ICMD_ANEWARRAY:
 					if (iptr->op1) {
 						printf(" ");
 						utf_fprint(stdout,
-						               ((classinfo *) iptr->val.a)->name);
-						}
+								   ((classinfo *) iptr->val.a)->name);
+					}
 					break;
 				case ICMD_CHECKCAST:
 				case ICMD_INSTANCEOF:
@@ -2109,7 +2147,7 @@ static void show_icmd_method()
 						else
 							printf(" (CLASS,%3d) ", c->vftbl->diffval);
 						utf_fprint(stdout, c->name);
-						}
+					}
 					break;
 				case ICMD_BUILTIN3:
 				case ICMD_BUILTIN2:
@@ -2122,10 +2160,10 @@ static void show_icmd_method()
 				case ICMD_INVOKEINTERFACE:
 					printf(" ");
 					utf_fprint(stdout,
-					               ((methodinfo *) iptr->val.a)->class->name);
+							   ((methodinfo *) iptr->val.a)->class->name);
 					printf(".");
 					utf_fprint(stdout,
-					               ((methodinfo *) iptr->val.a)->name);
+							   ((methodinfo *) iptr->val.a)->name);
 					break;
 				case ICMD_IFEQ:
 				case ICMD_IFNE:
@@ -2169,7 +2207,7 @@ static void show_icmd_method()
 					tptr = (void **) iptr->target;
 
 					printf(" L%03d;", ((basicblock *) *tptr)->debug_nr); 
-					                                            /* default */
+					/* default */
 
 					s4ptr++;
 					tptr++;
@@ -2180,7 +2218,7 @@ static void show_icmd_method()
 						printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
 						tptr++;
 						j--;
-						}
+					}
 					break;
 				case ICMD_LOOKUPSWITCH:
 					s4ptr = iptr->val.a;
@@ -2194,68 +2232,58 @@ static void show_icmd_method()
 					while (--j >= 0) {
 						printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
 						tptr++;
-						}
+					}
 					break;
 				}
-			printf("\n");
+				printf("\n");
 			}
 
-		if (showdisassemble && (!deadcode)) {
+			if (showdisassemble && (!deadcode)) {
 #if defined(__I386__) || defined(__X86_64__)
-			u1 *u1ptr;
+				u1 *u1ptr;
+				int a;
 
-			printf("\n");
-			i = bptr->mpc;
-			u1ptr = method->mcode + dseglen + i;
-
-			if (bptr->next != NULL) {
-				for (; i < bptr->next->mpc; i++, u1ptr++) {
-					disassinstr(u1ptr, i);
-					i = pstatic;
-					u1ptr = codestatic;
-				}
 				printf("\n");
+				i = bptr->mpc;
+				u1ptr = method->mcode + dseglen + i;
 
-			} else {
-				for (; u1ptr < (u1 *) (method->mcode + method->mcodelength); i++, u1ptr++) {
-					disassinstr(u1ptr, i); 
-					i = pstatic;
-					u1ptr = codestatic;
+				if (bptr->next != NULL) {
+					for (; i < bptr->next->mpc; i++, u1ptr++) {
+						a = disassinstr(u1ptr, i);
+						i += a;
+						u1ptr += a;
+					}
+					printf("\n");
+
+				} else {
+					for (; u1ptr < (u1 *) (method->mcode + method->mcodelength); i++, u1ptr++) {
+						a = disassinstr(u1ptr, i); 
+						i += a;
+						u1ptr += a;
+					}
+					printf("\n");
 				}
-				printf("\n");
-			}
 #else
-			printf("\n");
-			i = bptr->mpc;
-			s4ptr = (s4 *) (method->mcode + dseglen + i);
+				printf("\n");
+				i = bptr->mpc;
+				s4ptr = (s4 *) (method->mcode + dseglen + i);
 
-			if (bptr->next != NULL) {
-				for (; i < bptr->next->mpc; i += 4, s4ptr++) {
-					disassinstr(*s4ptr, i); 
+				if (bptr->next != NULL) {
+					for (; i < bptr->next->mpc; i += 4, s4ptr++) {
+						disassinstr(*s4ptr, i); 
 				    }
-				printf("\n");
+					printf("\n");
 			    }
-			else {
-				for (; s4ptr < (s4 *) (method->mcode + method->mcodelength); i += 4, s4ptr++) {
-					disassinstr(*s4ptr, i); 
+				else {
+					for (; s4ptr < (s4 *) (method->mcode + method->mcodelength); i += 4, s4ptr++) {
+						disassinstr(*s4ptr, i); 
 				    }
-				printf("\n");
+					printf("\n");
 			    }
 #endif
 		    }
-	}
-
-	/*
-	i = bptr->mpc;
-	s4ptr = (s4 *) (method->mcode + dseglen + i);
-	if (showdisassemble && (s4ptr < (s4 *) (method->mcode + method->mcodelength))) {
-		printf("\n");
-		for (; s4ptr < (s4 *) (method->mcode + method->mcodelength); i += 4, s4ptr++) {
-			disassinstr(*s4ptr, i); 
-			}
-		printf("\n");
 		}
-	*/
+	}
 }
 
 

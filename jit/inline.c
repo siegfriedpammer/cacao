@@ -1,59 +1,44 @@
-static void descriptor2types (methodinfo *m);
+/* jit/inline.c - code inliner
 
-/*typedef struct {
-        listnode linkage;
-        instruction *iptr;
-        } t_patchlistnode;*/
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Dieter Thuernbeck
+
+   $Id: inline.c 557 2003-11-02 22:51:59Z twisti $
+
+*/
 
 
-typedef struct {
-        listnode linkage;
+#include <stdio.h>
+#include "inline.h"
+#include "jit.h"
+#include "parse.h"
+#include "loader.h"
+#include "toolbox/loging.h"
+#include "toolbox/memory.h"
 
-        methodinfo *method;
-        int startgp;
-        int stopgp;
-        int firstlocal;
-
-        bool *readonly;
-        int  *label_index;
-        
-        list *inlinedmethods;
-} inlining_methodinfo;
-
-typedef struct {
-        listnode linkage;
-        
-	// saved static compiler variables
-        
-        methodinfo *method;
-        
-	// restored through method
-
-	// int jcodelength;
-	// u1 *jcode;
-	// classinfo *class;
-
-	// descriptor never used
-	// maxstack used outside of main for loop
-	// maxlocals never used
-	
-	// exceptiontablelength
-	// raw_extable used outside of main for loop
-	// mreturntype used outside of main for loop
-	// mparamcount used outside of main for loop
-	// mparamtypes used outside of main for loop
-
-	//local variables used in parse()  
-
-	int  i;                     /* temporary for different uses (counters)    */
-	int  p;                     /* java instruction counter                   */
-	int  nextp;                 /* start of next java instruction             */
-	int  opcode;                /* java opcode                                */
-
-	inlining_methodinfo *inlinfo;
-
-	/*	list *patchlist; */
-} t_inlining_stacknode;
 
 // checked functions and macros: LOADCONST code_get OP1 BUILTIN block_insert bound_check ALIGN
 
@@ -61,28 +46,16 @@ typedef struct {
 
 static list *inlining_stack;
 //static list *inlining_patchlist;
-static bool isinlinedmethod;
-static int cumjcodelength;         /* cumulative immediate intruction length      */
+bool isinlinedmethod;
+int cumjcodelength;         /* cumulative immediate intruction length      */
 static int cumlocals;
-static int cummaxstack;
-static int cumextablelength;
+int cummaxstack;
+int cumextablelength;
 static int cummethods;
-static inlining_methodinfo *inlining_rootinfo;
+inlining_methodinfo *inlining_rootinfo;
 
 
-void inlining_push_compiler_variables(int i, int p, int nextp, int opcode, inlining_methodinfo* inlinfo);
-void inlining_pop_compiler_variables(int *i, int *p, int *nextp, int *opcode, inlining_methodinfo** inlinfo); 
-void inlining_init(void);
-inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, int firstlocal, int maxstackdepth);
-
-#define inlining_save_compiler_variables() inlining_push_compiler_variables(i,p,nextp,opcode,inlinfo)
-#define inlining_restore_compiler_variables() inlining_pop_compiler_variables(&i,&p,&nextp,&opcode,&inlinfo)
-#define inlining_set_compiler_variables(i) p=nextp=0; inlining_set_compiler_variables_fun(i->method); inlinfo=i;
-#define INLINING_MAXDEPTH 1
-#define INLINING_MAXCODESIZE 32
-#define INLINING_MAXMETHODS 8
-
-void inlining_init(void) 
+void inlining_init()
 {
 	inlining_stack = NULL;
 	//	inlining_patchlist = NULL;
@@ -101,10 +74,12 @@ void inlining_init(void)
 	maxstack = cummaxstack;
 }
 
+
 void inlining_cleanup(void)
 {
 	FREE(inlining_stack, t_inlining_stacknode);
 }
+
 
 void inlining_push_compiler_variables(int i, int p, int nextp, int opcode, inlining_methodinfo *inlinfo) 
 {
@@ -121,6 +96,7 @@ void inlining_push_compiler_variables(int i, int p, int nextp, int opcode, inlin
 	list_addfirst(inlining_stack, new);
 	isinlinedmethod++;
 }
+
 
 void inlining_pop_compiler_variables(int *i, int *p, int *nextp, int *opcode, inlining_methodinfo **inlinfo) 
 {
@@ -156,6 +132,7 @@ void inlining_set_compiler_variables_fun(methodinfo *m)
 	//	list_init(inlining_patchlist, OFFSET(t_patchlistnode, linkage));
 }
 
+
 /*void inlining_addpatch(instruction *iptr)  
   {
   t_patchlistnode *patch = DNEW(t_patchlistnode);
@@ -175,6 +152,7 @@ classinfo *first_occurence(classinfo* class, utf* name, utf* desc) {
 		return first;
 }
 
+
 bool is_unique_rec(classinfo *class, methodinfo *m, utf* name, utf* desc) {
 	methodinfo *tmp = class_findmethod(class, name, desc);
 	if ((tmp != NULL) && (tmp != m))
@@ -187,6 +165,7 @@ bool is_unique_rec(classinfo *class, methodinfo *m, utf* name, utf* desc) {
 	}
 	return true;
 }
+
 
 bool is_unique_method(classinfo *class, methodinfo *m, utf* name, utf* desc) {
 	classinfo *firstclass;
@@ -440,6 +419,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
     return newnode;
 }
 
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
@@ -452,5 +432,3 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
  * tab-width: 4
  * End:
  */
-
-	

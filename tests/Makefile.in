@@ -59,22 +59,19 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_alias = @host_alias@
 host_triplet = @host@
-ASMPART = @ASMPART@
-BOEHM_LIB = @BOEHM_LIB@
+ARCH_DIR = @ARCH_DIR@
 CC = @CC@
 COMPILER_OBJECTS = @COMPILER_OBJECTS@
-GC_OBJ = @GC_OBJ@
 LIBTHREAD = @LIBTHREAD@
 MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
-SYSDEP_DIR = @SYSDEP_DIR@
 THREAD_OBJ = @THREAD_OBJ@
 VERSION = @VERSION@
 
 SUBDIRS = kaffe
 
-EXTRA_DIST = x.java x.output jctest.java fptest.java jctest.output fptest.output 		GCBench.java
+EXTRA_DIST = x.java x.output 	jctest.java jctest.output 	fp.java fp.output 	fptest.java fptest.output 	GCBench.java
 
 
 check_DATA = checkall
@@ -287,17 +284,17 @@ installdirs mostlyclean-generic distclean-generic clean-generic \
 maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
 
-checkall: x.tst jctest.tst fptest.tst GCBench.tstrun
+checkall: x.tst jctest.tst fp.tst fptest.tst GCBench.tstrun
 
 %.tst:
-	../cacao -ieee sun.tools.javac.Main $*.java
-	../cacao -ieee $* >$*.thisoutput
+	../cacao sun.tools.javac.Main $*.java
+	../cacao $* >$*.thisoutput
 	diff --brief $*.thisoutput $*.output
 	rm -f $*.thisoutput
 
 %.tstrun:
-	../cacao -ieee sun.tools.javac.Main $*.java
-	../cacao -ieee $*
+	../cacao sun.tools.javac.Main $*.java
+	../cacao $*
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

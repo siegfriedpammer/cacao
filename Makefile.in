@@ -10,7 +10,7 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-# $Id: Makefile.in 491 2003-10-20 17:56:03Z twisti $
+# $Id: Makefile.in 557 2003-11-02 22:51:59Z twisti $
 
 
 SHELL = @SHELL@
@@ -61,47 +61,51 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_alias = @host_alias@
 host_triplet = @host@
-ASMPART = @ASMPART@
-BOEHM_LIB = @BOEHM_LIB@
+ARCH_DIR = @ARCH_DIR@
 CC = @CC@
 COMPILER_OBJECTS = @COMPILER_OBJECTS@
-GC_OBJ = @GC_OBJ@
 LIBTHREAD = @LIBTHREAD@
 MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
-SYSDEP_DIR = @SYSDEP_DIR@
 THREAD_OBJ = @THREAD_OBJ@
 VERSION = @VERSION@
 
 MAINTAINERCLEANFILES = Makefile.in configure
-ALLSUBDIRS = toolbox mm jit nat threads tst doc narray jvmtst
-SUBDIRS = $(ALLSUBDIRS) @SYSDEP_DIR@
-DIST_SUBDIRS = $(ALLSUBDIRS) alpha mips i386 powerpc x86_64
+ALLSUBDIRS = mm toolbox threads jit nat tst doc jvmtst
+SUBDIRS = $(ALLSUBDIRS)
+DIST_SUBDIRS = $(ALLSUBDIRS)
 
-EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html 				jni.c natcalls.h nativecalls.h
+EXTRA_DIST =  	html/cacaoinstall.html 	html/cacaoman.html 	html/index.html 	jni.c 	natcalls.h 	nativecalls.h
 
 
-CLEANFILES = @SYSDEP_DIR@/asmpart.o              @SYSDEP_DIR@/offsets.h 	         nativetable.hh 	         nativetypes.hh
+CLEANFILES =  	jit/@ARCH_DIR@/asmpart.o 	jit/@ARCH_DIR@/offsets.h 	nativetable.hh 	nativetypes.hh
 
 
 bin_PROGRAMS = cacao
 noinst_PROGRAMS = cacaoh
 
-INCLUDES = -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@ -I$(top_srcdir)
+INCLUDES = -I$(top_srcdir)/jit/@ARCH_DIR@ -I$(top_srcdir)/jit
 
-cacao_SOURCES =  	asmpart.h 	builtin.c 	builtin.h 	callargs.h 	global.h 	jit.c 	jit.h 	loader.c 	loader.h 	main.c 	native.c 	native.h 	jni.h 	tables.c 	tables.h
+BOEHM_LIBS = mm/libboehm.a mm/boehm-gc/.libs/libgc.a
 
-
-cacao_LDADD =  	@SYSDEP_DIR@/asmpart.o 	@COMPILER_OBJECTS@ 	toolbox/libtoolbox.a 	@GC_OBJ@ 	@THREAD_OBJ@
-
-
-cacao_DEPENDENCIES =  	@SYSDEP_DIR@/asmpart.o 	@COMPILER_OBJECTS@ 	toolbox/libtoolbox.a 	@GC_OBJ@ 	@THREAD_OBJ@
+cacao_SOURCES =  	asmpart.h 	builtin.c 	builtin.h 	global.h 	loader.c 	loader.h 	main.c 	native.c 	native.h 	jni.h 	tables.c 	tables.h
 
 
-cacaoh_SOURCES = headers.c tables.c loader.c builtin.c
-cacaoh_LDADD = toolbox/libtoolbox.a @GC_OBJ@ @THREAD_OBJ@
-cacaoh_DEPENDENCIES = toolbox/libtoolbox.a @GC_OBJ@ @THREAD_OBJ@
+cacao_LDADD =  	jit/libjit.a 	jit/loop/libloop.a 	jit/@ARCH_DIR@/libarch.a 	toolbox/libtoolbox.a 	$(BOEHM_LIBS) 	@THREAD_OBJ@
+
+
+cacao_DEPENDENCIES =  	jit/libjit.a 	jit/loop/libloop.a 	jit/@ARCH_DIR@/libarch.a 	toolbox/libtoolbox.a 	$(BOEHM_LIBS) 	@THREAD_OBJ@
+
+
+cacaoh_SOURCES =  	headers.c 	tables.c 	loader.c 	builtin.c
+
+
+cacaoh_LDADD =  	toolbox/libtoolbox.a 	$(BOEHM_LIBS) 	@THREAD_OBJ@
+
+
+cacaoh_DEPENDENCIES =  	toolbox/libtoolbox.a 	$(BOEHM_LIBS) 	@THREAD_OBJ@
+
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
@@ -113,7 +117,7 @@ DEFS = @DEFS@ -I. -I$(srcdir) -I.
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-cacao_OBJECTS =  builtin.o jit.o loader.o main.o native.o tables.o
+cacao_OBJECTS =  builtin.o loader.o main.o native.o tables.o
 cacao_LDFLAGS = 
 cacaoh_OBJECTS =  headers.o tables.o loader.o builtin.o
 cacaoh_LDFLAGS = 
@@ -131,8 +135,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
-DEP_FILES =  .deps/builtin.P .deps/headers.P .deps/jit.P .deps/loader.P \
-.deps/main.P .deps/native.P .deps/tables.P
+DEP_FILES =  .deps/builtin.P .deps/headers.P .deps/loader.P .deps/main.P \
+.deps/native.P .deps/tables.P
 SOURCES = $(cacao_SOURCES) $(cacaoh_SOURCES)
 OBJECTS = $(cacao_OBJECTS) $(cacaoh_OBJECTS)
 
@@ -522,9 +526,9 @@ maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
 @SET_MAKE@
 
-native.c: nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh
+native.c: nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh
 
-nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
+nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh
 	./cacaoh \
 		java.lang.Object \
 		java.lang.String \
@@ -583,9 +587,6 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 		java.io.File \
 		java.io.UnixFileSystem \
 		java.lang.ClassLoader_NativeLibrary
-
-@SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/@ASMPART@ @SYSDEP_DIR@/offsets.h
-	@CC@ $(ASMFLAGS) $(INCLUDES) -c -g -o $@ $<
 
 checkjvm:
 	$(MAKE) -C jvmtst $@

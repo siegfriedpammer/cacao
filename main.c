@@ -1,36 +1,59 @@
-/* main.c **********************************************************************
+/* main.c - contains main() and variables for the global options
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   Institut f. Computersprachen, TU Wien
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser, M. Probst,
+   S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich,
+   J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	Contains main() and variables for the global options.
-	This module does the following tasks:
-	   - Command line option handling
-	   - Calling initialization routines
-	   - Calling the class loader
-	   - Running the main method
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	Changes: Andi Krall          EMAIL: cacao@complang.tuwien.ac.at
-	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
-			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-	Last Change: $Id: main.c 552 2003-11-01 20:47:35Z twisti $
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-*******************************************************************************/
+   Contact: cacao@complang.tuwien.ac.at
 
+   Authors: Reinhard Grafl
+
+   Changes: Andi Krall
+            Mark Probst
+            Philipp Tomsich
+
+   This module does the following tasks:
+     - Command line option handling
+     - Calling initialization routines
+     - Calling the class loader
+     - Running the main method
+
+   $Id: main.c 557 2003-11-02 22:51:59Z twisti $
+
+*/
+
+
+#include <stdlib.h>
 #include "global.h"
-
 #include "tables.h"
 #include "loader.h"
 #include "jit.h"
-
 #include "asmpart.h"
 #include "builtin.h"
 #include "native.h"
-
 #include "threads/thread.h"
+#include "toolbox/loging.h"
+#include "parseRTstats.h"
+
 
 bool compileall = false;
 bool verbose =  false;
@@ -170,42 +193,44 @@ Prints the correct usage syntax to stdout.
 
 static void print_usage()
 {
-	printf ("USAGE: cacao [options] classname [program arguments]\n");
-	printf ("Options:\n");
-	printf ("          -classpath path ...... specify a path to look for classes\n");
-	printf ("          -Dpropertyname=value . add an entry to the property list\n");
-	printf ("          -mx maxmem[k|m] ...... specify the size for the heap\n");
-	printf ("          -ms initmem[k|m] ..... specify the initial size for the heap\n");
-	printf ("          -v ................... write state-information\n");
-	printf ("          -verbose ............. write more information\n");
-	printf ("          -verbosegc ........... write message for each GC\n");
-	printf ("          -verbosecall ......... write message for each call\n");
-	printf ("          -noieee .............. don't use ieee compliant arithmetic\n");
-	printf ("          -softnull ............ use software nullpointer check\n");
-	printf ("          -time ................ measure the runtime\n");
-	printf ("          -stat ................ detailed compiler statistics\n");
-	printf ("          -log logfile ......... specify a name for the logfile\n");
-	printf ("          -c(heck)b(ounds) ..... don't check array bounds\n");
-	printf ("                  s(ync) ....... don't check for synchronization\n");
-	printf ("          -oloop ............... optimize array accesses in loops\n"); 
-	printf ("          -l ................... don't start the class after loading\n");
-	printf ("          -all ................. compile all methods, no execution\n");
-	printf ("          -m ................... compile only a specific method\n");
-	printf ("          -sig ................. specify signature for a specific method\n");
-	printf ("          -s(how)a(ssembler) ... show disassembled listing\n");
-	printf ("                 c(onstants) ... show the constant pool\n");
-	printf ("                 d(atasegment).. show data segment listing\n");
-	printf ("                 i(ntermediate). show intermediate representation\n");
-	printf ("                 m(ethods)...... show class fields and methods\n");
-	printf ("                 u(tf) ......... show the utf - hash\n");
-	printf ("          -i     n ............. activate inlining\n");
-	printf ("                 v ............. inline virtual methods\n");
-	printf ("                 e ............. inline methods with exceptions\n");
-	printf ("                 p ............. optimize argument renaming\n");
-	printf ("                 o ............. inline methods of foreign classes\n");
-	printf ("          -rt .................. use rapid type analysis\n");
-	printf ("          -xta ................. use x type analysis\n");
-	printf ("          -vta ................. use variable type analysis\n");
+	printf("USAGE: cacao [options] classname [program arguments]\n");
+	printf("Options:\n");
+	printf("          -classpath path ...... specify a path to look for classes\n");
+	printf("          -Dpropertyname=value . add an entry to the property list\n");
+	printf("          -mx maxmem[k|m] ...... specify the size for the heap\n");
+	printf("          -ms initmem[k|m] ..... specify the initial size for the heap\n");
+	printf("          -v ................... write state-information\n");
+	printf("          -verbose ............. write more information\n");
+	printf("          -verbosegc ........... write message for each GC\n");
+	printf("          -verbosecall ......... write message for each call\n");
+#if defined(__ALPHA__)
+	printf("          -noieee .............. don't use ieee compliant arithmetic\n");
+#endif
+	printf("          -softnull ............ use software nullpointer check\n");
+	printf("          -time ................ measure the runtime\n");
+	printf("          -stat ................ detailed compiler statistics\n");
+	printf("          -log logfile ......... specify a name for the logfile\n");
+	printf("          -c(heck)b(ounds) ..... don't check array bounds\n");
+	printf("                  s(ync) ....... don't check for synchronization\n");
+	printf("          -oloop ............... optimize array accesses in loops\n"); 
+	printf("          -l ................... don't start the class after loading\n");
+	printf("          -all ................. compile all methods, no execution\n");
+	printf("          -m ................... compile only a specific method\n");
+	printf("          -sig ................. specify signature for a specific method\n");
+	printf("          -s(how)a(ssembler) ... show disassembled listing\n");
+	printf("                 c(onstants) ... show the constant pool\n");
+	printf("                 d(atasegment).. show data segment listing\n");
+	printf("                 i(ntermediate). show intermediate representation\n");
+	printf("                 m(ethods)...... show class fields and methods\n");
+	printf("                 u(tf) ......... show the utf - hash\n");
+	printf("          -i     n ............. activate inlining\n");
+	printf("                 v ............. inline virtual methods\n");
+	printf("                 e ............. inline methods with exceptions\n");
+	printf("                 p ............. optimize argument renaming\n");
+	printf("                 o ............. inline methods of foreign classes\n");
+	printf("          -rt .................. use rapid type analysis\n");
+	printf("          -xta ................. use x type analysis\n");
+	printf("          -vta ................. use variable type analysis\n");
 }   
 
 
@@ -221,17 +246,17 @@ static void print_times()
 	long int totaltime = getcputime();
 	long int runtime = totaltime - loadingtime - compilingtime;
 
-	sprintf (logtext, "Time for loading classes: %ld secs, %ld millis",
-	     loadingtime / 1000000, (loadingtime % 1000000) / 1000);
+	sprintf(logtext, "Time for loading classes: %ld secs, %ld millis",
+			loadingtime / 1000000, (loadingtime % 1000000) / 1000);
 	dolog();
-	sprintf (logtext, "Time for compiling code:  %ld secs, %ld millis",
-	     compilingtime / 1000000, (compilingtime % 1000000) / 1000);
+	sprintf(logtext, "Time for compiling code:  %ld secs, %ld millis",
+			compilingtime / 1000000, (compilingtime % 1000000) / 1000);
 	dolog();
-	sprintf (logtext, "Time for running program: %ld secs, %ld millis",
-	     runtime / 1000000, (runtime % 1000000) / 1000);
+	sprintf(logtext, "Time for running program: %ld secs, %ld millis",
+			runtime / 1000000, (runtime % 1000000) / 1000);
 	dolog();
-	sprintf (logtext, "Total time: %ld secs, %ld millis",
-	     totaltime / 1000000, (totaltime % 1000000) / 1000);
+	sprintf(logtext, "Total time: %ld secs, %ld millis",
+			totaltime / 1000000, (totaltime % 1000000) / 1000);
 	dolog();
 }
 
@@ -248,167 +273,168 @@ static void print_times()
 
 static void print_stats()
 {
-	sprintf (logtext, "Number of JitCompiler Calls: %d", count_jit_calls);
+	sprintf(logtext, "Number of JitCompiler Calls: %d", count_jit_calls);
 	dolog();
-	sprintf (logtext, "Number of compiled Methods: %d", count_methods);
+	sprintf(logtext, "Number of compiled Methods: %d", count_methods);
 	dolog();
-	sprintf (logtext, "Number of max basic blocks per method: %d", count_max_basic_blocks);
+	sprintf(logtext, "Number of max basic blocks per method: %d", count_max_basic_blocks);
 	dolog();
-	sprintf (logtext, "Number of compiled basic blocks: %d", count_basic_blocks);
+	sprintf(logtext, "Number of compiled basic blocks: %d", count_basic_blocks);
 	dolog();
-	sprintf (logtext, "Number of max JavaVM-Instructions per method: %d", count_max_javainstr);
+	sprintf(logtext, "Number of max JavaVM-Instructions per method: %d", count_max_javainstr);
 	dolog();
-	sprintf (logtext, "Number of compiled JavaVM-Instructions: %d", count_javainstr);
+	sprintf(logtext, "Number of compiled JavaVM-Instructions: %d", count_javainstr);
 	dolog();
-	sprintf (logtext, "Size of compiled JavaVM-Instructions:   %d(%d)", count_javacodesize,
-	                                              count_javacodesize - count_methods * 18);
+	sprintf(logtext, "Size of compiled JavaVM-Instructions:   %d(%d)", count_javacodesize,
+			count_javacodesize - count_methods * 18);
 	dolog();
-	sprintf (logtext, "Size of compiled Exception Tables:      %d", count_javaexcsize);
+	sprintf(logtext, "Size of compiled Exception Tables:      %d", count_javaexcsize);
 	dolog();
-	sprintf (logtext, "Value of extended instruction set var:  %d", has_ext_instr_set);
+	sprintf(logtext, "Value of extended instruction set var:  %d", has_ext_instr_set);
 	dolog();
-	sprintf (logtext, "Number of Machine-Instructions: %d", count_code_len >> 2);
+	sprintf(logtext, "Number of Machine-Instructions: %d", count_code_len >> 2);
 	dolog();
-	sprintf (logtext, "Number of Spills: %d", count_spills);
+	sprintf(logtext, "Number of Spills: %d", count_spills);
 	dolog();
-	sprintf (logtext, "Number of Activ    Pseudocommands: %5d", count_pcmd_activ);
+	sprintf(logtext, "Number of Activ    Pseudocommands: %5d", count_pcmd_activ);
 	dolog();
-	sprintf (logtext, "Number of Drop     Pseudocommands: %5d", count_pcmd_drop);
+	sprintf(logtext, "Number of Drop     Pseudocommands: %5d", count_pcmd_drop);
 	dolog();
-	sprintf (logtext, "Number of Const    Pseudocommands: %5d (zero:%5d)", count_pcmd_load, count_pcmd_zero);
+	sprintf(logtext, "Number of Const    Pseudocommands: %5d (zero:%5d)", count_pcmd_load, count_pcmd_zero);
 	dolog();
-	sprintf (logtext, "Number of ConstAlu Pseudocommands: %5d (cmp: %5d, store:%5d)", count_pcmd_const_alu, count_pcmd_const_bra, count_pcmd_const_store);
+	sprintf(logtext, "Number of ConstAlu Pseudocommands: %5d (cmp: %5d, store:%5d)", count_pcmd_const_alu, count_pcmd_const_bra, count_pcmd_const_store);
 	dolog();
-	sprintf (logtext, "Number of Move     Pseudocommands: %5d", count_pcmd_move);
+	sprintf(logtext, "Number of Move     Pseudocommands: %5d", count_pcmd_move);
 	dolog();
-	sprintf (logtext, "Number of Load     Pseudocommands: %5d", count_load_instruction);
+	sprintf(logtext, "Number of Load     Pseudocommands: %5d", count_load_instruction);
 	dolog();
-	sprintf (logtext, "Number of Store    Pseudocommands: %5d (combined: %5d)", count_pcmd_store, count_pcmd_store - count_pcmd_store_comb);
+	sprintf(logtext, "Number of Store    Pseudocommands: %5d (combined: %5d)", count_pcmd_store, count_pcmd_store - count_pcmd_store_comb);
 	dolog();
-	sprintf (logtext, "Number of OP       Pseudocommands: %5d", count_pcmd_op);
+	sprintf(logtext, "Number of OP       Pseudocommands: %5d", count_pcmd_op);
 	dolog();
-	sprintf (logtext, "Number of DUP      Pseudocommands: %5d", count_dup_instruction);
+	sprintf(logtext, "Number of DUP      Pseudocommands: %5d", count_dup_instruction);
 	dolog();
-	sprintf (logtext, "Number of Mem      Pseudocommands: %5d", count_pcmd_mem);
+	sprintf(logtext, "Number of Mem      Pseudocommands: %5d", count_pcmd_mem);
 	dolog();
-	sprintf (logtext, "Number of Method   Pseudocommands: %5d", count_pcmd_met);
+	sprintf(logtext, "Number of Method   Pseudocommands: %5d", count_pcmd_met);
 	dolog();
-	sprintf (logtext, "Number of Branch   Pseudocommands: %5d (rets:%5d, Xrets: %5d)",
-	                  count_pcmd_bra, count_pcmd_return, count_pcmd_returnx);
+	sprintf(logtext, "Number of Branch   Pseudocommands: %5d (rets:%5d, Xrets: %5d)",
+			count_pcmd_bra, count_pcmd_return, count_pcmd_returnx);
 	dolog();
-	sprintf (logtext, "Number of Table    Pseudocommands: %5d", count_pcmd_table);
+	sprintf(logtext, "Number of Table    Pseudocommands: %5d", count_pcmd_table);
 	dolog();
-	sprintf (logtext, "Number of Useful   Pseudocommands: %5d", count_pcmd_table +
-	         count_pcmd_bra + count_pcmd_load + count_pcmd_mem + count_pcmd_op);
+	sprintf(logtext, "Number of Useful   Pseudocommands: %5d", count_pcmd_table +
+			count_pcmd_bra + count_pcmd_load + count_pcmd_mem + count_pcmd_op);
 	dolog();
-	sprintf (logtext, "Number of Null Pointer Checks:     %5d", count_check_null);
+	sprintf(logtext, "Number of Null Pointer Checks:     %5d", count_check_null);
 	dolog();
-	sprintf (logtext, "Number of Array Bound Checks:      %5d", count_check_bound);
+	sprintf(logtext, "Number of Array Bound Checks:      %5d", count_check_bound);
 	dolog();
-	sprintf (logtext, "Number of Try-Blocks: %d", count_tryblocks);
+	sprintf(logtext, "Number of Try-Blocks: %d", count_tryblocks);
 	dolog();
-	sprintf (logtext, "Maximal count of stack elements:   %d", count_max_new_stack);
+	sprintf(logtext, "Maximal count of stack elements:   %d", count_max_new_stack);
 	dolog();
-	sprintf (logtext, "Upper bound of max stack elements: %d", count_upper_bound_new_stack);
+	sprintf(logtext, "Upper bound of max stack elements: %d", count_upper_bound_new_stack);
 	dolog();
-	sprintf (logtext, "Distribution of stack sizes at block boundary");
+	sprintf(logtext, "Distribution of stack sizes at block boundary");
 	dolog();
-	sprintf (logtext, "    0    1    2    3    4    5    6    7    8    9    >=10");
+	sprintf(logtext, "    0    1    2    3    4    5    6    7    8    9    >=10");
 	dolog();
-	sprintf (logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_block_stack[0],
-		count_block_stack[1],count_block_stack[2],count_block_stack[3],count_block_stack[4],
-		count_block_stack[5],count_block_stack[6],count_block_stack[7],count_block_stack[8],
-		count_block_stack[9],count_block_stack[10]);
+	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_block_stack[0],
+			count_block_stack[1], count_block_stack[2], count_block_stack[3], count_block_stack[4],
+			count_block_stack[5], count_block_stack[6], count_block_stack[7], count_block_stack[8],
+			count_block_stack[9], count_block_stack[10]);
 	dolog();
-	sprintf (logtext, "Distribution of store stack depth");
+	sprintf(logtext, "Distribution of store stack depth");
 	dolog();
-	sprintf (logtext, "    0    1    2    3    4    5    6    7    8    9    >=10");
+	sprintf(logtext, "    0    1    2    3    4    5    6    7    8    9    >=10");
 	dolog();
-	sprintf (logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_depth[0],
-		count_store_depth[1],count_store_depth[2],count_store_depth[3],count_store_depth[4],
-		count_store_depth[5],count_store_depth[6],count_store_depth[7],count_store_depth[8],
-		count_store_depth[9],count_store_depth[10]);
+	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_depth[0],
+			count_store_depth[1], count_store_depth[2], count_store_depth[3], count_store_depth[4],
+			count_store_depth[5], count_store_depth[6], count_store_depth[7], count_store_depth[8],
+			count_store_depth[9], count_store_depth[10]);
 	dolog();
-	sprintf (logtext, "Distribution of store creator chains first part");
+	sprintf(logtext, "Distribution of store creator chains first part");
 	dolog();
-	sprintf (logtext, "    0    1    2    3    4    5    6    7    8    9  ");
+	sprintf(logtext, "    0    1    2    3    4    5    6    7    8    9  ");
 	dolog();
-	sprintf (logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_length[0],
-		count_store_length[1],count_store_length[2],count_store_length[3],count_store_length[4],
-		count_store_length[5],count_store_length[6],count_store_length[7],count_store_length[8],
-		count_store_length[9]);
+	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_length[0],
+			count_store_length[1], count_store_length[2], count_store_length[3], count_store_length[4],
+			count_store_length[5], count_store_length[6], count_store_length[7], count_store_length[8],
+			count_store_length[9]);
 	dolog();
-	sprintf (logtext, "Distribution of store creator chains second part");
+	sprintf(logtext, "Distribution of store creator chains second part");
 	dolog();
-	sprintf (logtext, "   10   11   12   13   14   15   16   17   18   19  >=20");
+	sprintf(logtext, "   10   11   12   13   14   15   16   17   18   19  >=20");
 	dolog();
-	sprintf (logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_length[10],
-		count_store_length[11],count_store_length[12],count_store_length[13],count_store_length[14],
-		count_store_length[15],count_store_length[16],count_store_length[17],count_store_length[18],
-		count_store_length[19],count_store_length[20]);
+	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_length[10],
+			count_store_length[11], count_store_length[12], count_store_length[13], count_store_length[14],
+			count_store_length[15], count_store_length[16], count_store_length[17], count_store_length[18],
+			count_store_length[19], count_store_length[20]);
 	dolog();
-	sprintf (logtext, "Distribution of analysis iterations");
+	sprintf(logtext, "Distribution of analysis iterations");
 	dolog();
-	sprintf (logtext, "    1    2    3    4    >=5");
+	sprintf(logtext, "    1    2    3    4    >=5");
 	dolog();
-	sprintf (logtext, "%5d%5d%5d%5d%5d", count_analyse_iterations[0],count_analyse_iterations[1],
-		count_analyse_iterations[2],count_analyse_iterations[3],count_analyse_iterations[4]);
+	sprintf(logtext, "%5d%5d%5d%5d%5d", count_analyse_iterations[0], count_analyse_iterations[1],
+			count_analyse_iterations[2], count_analyse_iterations[3], count_analyse_iterations[4]);
 	dolog();
-	sprintf (logtext, "Distribution of basic blocks per method");
+	sprintf(logtext, "Distribution of basic blocks per method");
 	dolog();
-	sprintf (logtext, " <= 5 <=10 <=15 <=20 <=30 <=40 <=50 <=75  >75");
+	sprintf(logtext, " <= 5 <=10 <=15 <=20 <=30 <=40 <=50 <=75  >75");
 	dolog();
-	sprintf (logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_method_bb_distribution[0],
-		count_method_bb_distribution[1],count_method_bb_distribution[2],count_method_bb_distribution[3],
-		count_method_bb_distribution[4],count_method_bb_distribution[5],count_method_bb_distribution[6],
-		count_method_bb_distribution[7],count_method_bb_distribution[8]);
+	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_method_bb_distribution[0],
+			count_method_bb_distribution[1], count_method_bb_distribution[2], count_method_bb_distribution[3],
+			count_method_bb_distribution[4], count_method_bb_distribution[5], count_method_bb_distribution[6],
+			count_method_bb_distribution[7], count_method_bb_distribution[8]);
 	dolog();
-	sprintf (logtext, "Distribution of basic block sizes");
+	sprintf(logtext, "Distribution of basic block sizes");
 	dolog();
-	sprintf (logtext,
-	"  0    1    2    3    4   5   6   7   8   9 <13 <15 <17 <19 <21 <26 <31 >30");
+	sprintf(logtext,
+			 "  0    1    2    3    4   5   6   7   8   9 <13 <15 <17 <19 <21 <26 <31 >30");
 	dolog();
-	sprintf (logtext, "%3d%5d%5d%5d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d",
-		count_block_size_distribution[0], count_block_size_distribution[1], count_block_size_distribution[2],
-		count_block_size_distribution[3], count_block_size_distribution[4], count_block_size_distribution[5],
-		count_block_size_distribution[6], count_block_size_distribution[7], count_block_size_distribution[8],
-		count_block_size_distribution[9], count_block_size_distribution[10],count_block_size_distribution[11],
-		count_block_size_distribution[12],count_block_size_distribution[13],count_block_size_distribution[14],
-		count_block_size_distribution[15],count_block_size_distribution[16],count_block_size_distribution[17]);
+	sprintf(logtext, "%3d%5d%5d%5d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d",
+			count_block_size_distribution[0], count_block_size_distribution[1], count_block_size_distribution[2],
+			count_block_size_distribution[3], count_block_size_distribution[4], count_block_size_distribution[5],
+			count_block_size_distribution[6], count_block_size_distribution[7], count_block_size_distribution[8],
+			count_block_size_distribution[9], count_block_size_distribution[10], count_block_size_distribution[11],
+			count_block_size_distribution[12], count_block_size_distribution[13], count_block_size_distribution[14],
+			count_block_size_distribution[15], count_block_size_distribution[16], count_block_size_distribution[17]);
 	dolog();
-	sprintf (logtext, "Size of Code Area (Kb):  %10.3f", (float) count_code_len / 1024);
+	sprintf(logtext, "Size of Code Area (Kb):  %10.3f", (float) count_code_len / 1024);
 	dolog();
-	sprintf (logtext, "Size of data Area (Kb):  %10.3f", (float) count_data_len / 1024);
+	sprintf(logtext, "Size of data Area (Kb):  %10.3f", (float) count_data_len / 1024);
 	dolog();
-	sprintf (logtext, "Size of Class Infos (Kb):%10.3f", (float) (count_class_infos) / 1024);
+	sprintf(logtext, "Size of Class Infos (Kb):%10.3f", (float) (count_class_infos) / 1024);
 	dolog();
-	sprintf (logtext, "Size of Const Pool (Kb): %10.3f", (float) (count_const_pool_len + count_utf_len) / 1024);
+	sprintf(logtext, "Size of Const Pool (Kb): %10.3f", (float) (count_const_pool_len + count_utf_len) / 1024);
 	dolog();
-	sprintf (logtext, "Size of Vftbl (Kb):      %10.3f", (float) count_vftbl_len / 1024);
+	sprintf(logtext, "Size of Vftbl (Kb):      %10.3f", (float) count_vftbl_len / 1024);
 	dolog();
-	sprintf (logtext, "Size of comp stub (Kb):  %10.3f", (float) count_cstub_len / 1024);
+	sprintf(logtext, "Size of comp stub (Kb):  %10.3f", (float) count_cstub_len / 1024);
 	dolog();
-	sprintf (logtext, "Size of native stub (Kb):%10.3f", (float) count_nstub_len / 1024);
+	sprintf(logtext, "Size of native stub (Kb):%10.3f", (float) count_nstub_len / 1024);
 	dolog();
-	sprintf (logtext, "Size of Utf (Kb):        %10.3f", (float) count_utf_len / 1024);
+	sprintf(logtext, "Size of Utf (Kb):        %10.3f", (float) count_utf_len / 1024);
 	dolog();
-	sprintf (logtext, "Size of VMCode (Kb):     %10.3f(%d)", (float) count_vmcode_len / 1024,
-	                                              count_vmcode_len - 18 * count_all_methods);
+	sprintf(logtext, "Size of VMCode (Kb):     %10.3f(%d)", (float) count_vmcode_len / 1024,
+			count_vmcode_len - 18 * count_all_methods);
 	dolog();
-	sprintf (logtext, "Size of ExTable (Kb):    %10.3f", (float) count_extable_len / 1024);
+	sprintf(logtext, "Size of ExTable (Kb):    %10.3f", (float) count_extable_len / 1024);
 	dolog();
-	sprintf (logtext, "Number of class loads:   %d", count_class_loads);
+	sprintf(logtext, "Number of class loads:   %d", count_class_loads);
 	dolog();
-	sprintf (logtext, "Number of class inits:   %d", count_class_inits);
+	sprintf(logtext, "Number of class inits:   %d", count_class_inits);
 	dolog();
-	sprintf (logtext, "Number of loaded Methods: %d\n\n", count_all_methods);
+	sprintf(logtext, "Number of loaded Methods: %d\n\n", count_all_methods);
 	dolog();
 
-	sprintf (logtext, "Calls of utf_new: %22d", count_utf_new);
+	sprintf(logtext, "Calls of utf_new: %22d", count_utf_new);
 	dolog();
-	sprintf (logtext, "Calls of utf_new (element found): %6d\n\n", count_utf_new_found);
+	sprintf(logtext, "Calls of utf_new (element found): %6d\n\n", count_utf_new_found);
 	dolog();
 }
+
 
 
 /********** Function: class_compile_methods   (debugging only) ********/
@@ -425,11 +451,13 @@ void class_compile_methods ()
 			m = &(c->methods[i]);
 			if (m->jcode) {
 				(void) jit_compile(m);
-				}
 			}
-		c = list_next (&linkedclasses, c);
 		}
+		c = list_next (&linkedclasses, c);
+	}
 }
+
+
 
 /*
  * void exit_handler(void)
@@ -437,7 +465,6 @@ void class_compile_methods ()
  * The exit_handler function is called upon program termination to shutdown
  * the various subsystems and release the resources allocated to the VM.
  */
-
 void exit_handler(void)
 {
 	/********************* Print debug tables ************************/
@@ -469,6 +496,8 @@ void exit_handler(void)
 		mem_usagelog(1);
 	}
 }
+
+
 
 /************************** Function: main *******************************
 
@@ -502,9 +531,9 @@ int main(int argc, char **argv)
 
 	/************ Collect info from the environment ************************/
 
-	cp = getenv ("CLASSPATH");
+	cp = getenv("CLASSPATH");
 	if (cp) {
-		strcpy (classpath, cp);
+		strcpy(classpath, cp);
 	}
 
 	/***************** Interpret the command line *****************/
@@ -512,8 +541,7 @@ int main(int argc, char **argv)
 	checknull = false;
 	opt_noieee = false;
 
-	while ( (i = get_opt(argc,argv)) != OPT_DONE) {
-
+	while ((i = get_opt(argc,argv)) != OPT_DONE) {
 		switch (i) {
 		case OPT_IGNORE: break;
 			
@@ -524,11 +552,12 @@ int main(int argc, char **argv)
 				
 		case OPT_D:
 			{
-				int n,l=strlen(opt_arg);
-				for (n=0; n<l; n++) {
+				int n;
+				int l = strlen(opt_arg);
+				for (n = 0; n < l; n++) {
 					if (opt_arg[n]=='=') {
 						opt_arg[n] = '\0';
-						attach_property (opt_arg, opt_arg+n+1);
+						attach_property(opt_arg, opt_arg + n + 1);
 						goto didit;
 					}
 				}
@@ -537,19 +566,19 @@ int main(int argc, char **argv)
 					
 			didit: ;
 			}	
-		break;
+			break;
 				
 		case OPT_MS:
 		case OPT_MX:
-			if (opt_arg[strlen(opt_arg)-1] == 'k') {
+			if (opt_arg[strlen(opt_arg) - 1] == 'k') {
 				j = 1024 * atoi(opt_arg);
 			}
-			else if (opt_arg[strlen(opt_arg)-1] == 'm') {
+			else if (opt_arg[strlen(opt_arg) - 1] == 'm') {
 				j = 1024 * 1024 * atoi(opt_arg);
 			}
 			else j = atoi(opt_arg);
 				
-			if (i==OPT_MX) heapsize = j;
+			if (i == OPT_MX) heapsize = j;
 			else heapstartsize = j;
 			break;
 
@@ -590,15 +619,20 @@ int main(int argc, char **argv)
 			break;
 					
 		case OPT_LOG:
-			strcpy (logfilename, opt_arg);
+			strcpy(logfilename, opt_arg);
 			break;
 			
 		case OPT_CHECK:
-			for (j=0; j<strlen(opt_arg); j++) {
+			for (j = 0; j < strlen(opt_arg); j++) {
 				switch (opt_arg[j]) {
-				case 'b': checkbounds=false; break;
-				case 's': checksync=false; break;
-				default:  print_usage();
+				case 'b':
+					checkbounds = false;
+					break;
+				case 's':
+					checksync = false;
+					break;
+				default:
+					print_usage();
 					exit(10);
 				}
 			}
@@ -626,15 +660,30 @@ int main(int argc, char **argv)
 			break;
          		
 		case OPT_SHOW:       /* Display options */
-			for (j=0; j<strlen(opt_arg); j++) {		
+			for (j = 0; j < strlen(opt_arg); j++) {		
 				switch (opt_arg[j]) {
-				case 'a':  showdisassemble=true; compileverbose=true; break;
-				case 'c':  showconstantpool=true; break;
-				case 'd':  showddatasegment=true; break;
-				case 'i':  showintermediate=true; compileverbose=true; break;
-				case 'm':  showmethods=true; break;
-				case 'u':  showutf=true; break;
-				default:   print_usage();
+				case 'a':
+					showdisassemble = true;
+					compileverbose=true;
+					break;
+				case 'c':
+					showconstantpool = true;
+					break;
+				case 'd':
+					showddatasegment = true;
+					break;
+				case 'i':
+					showintermediate = true;
+					compileverbose = true;
+					break;
+				case 'm':
+					showmethods = true;
+					break;
+				case 'u':
+					showutf = true;
+					break;
+				default:
+					print_usage();
 					exit(10);
 				}
 			}
@@ -645,14 +694,25 @@ int main(int argc, char **argv)
 			break;
 
 		case OPT_INLINING:
-			for (j=0; j<strlen(opt_arg); j++) {		
+			for (j = 0; j < strlen(opt_arg); j++) {		
 				switch (opt_arg[j]) {
-				case 'n':  useinlining = true; break;
-				case 'v':  inlinevirtuals = true; break;
-				case 'e':  inlineexceptions = true; break;
-				case 'p':  inlineparamopt = true; break;
-				case 'o':  inlineoutsiders = true; break;
-				default:   print_usage();
+				case 'n':
+					useinlining = true;
+					break;
+				case 'v':
+					inlinevirtuals = true;
+					break;
+				case 'e':
+					inlineexceptions = true;
+					break;
+				case 'p':
+					inlineparamopt = true;
+					break;
+				case 'o':
+					inlineoutsiders = true;
+					break;
+				default:
+					print_usage();
 					exit(10);
 				}
 			}
@@ -678,50 +738,47 @@ int main(int argc, char **argv)
    
    
 	if (opt_ind >= argc) {
-   		print_usage ();
+   		print_usage();
    		exit(10);
 	}
 
 
 	/**************************** Program start *****************************/
 
-	log_init (logfilename);
+	log_init(logfilename);
 	if (verbose) {
-		log_text (
-				  "CACAO started -------------------------------------------------------");
+		log_text("CACAO started -------------------------------------------------------");
 	}
 	
-	suck_init (classpath);
-	native_setclasspath (classpath);
+	suck_init(classpath);
+	native_setclasspath(classpath);
 		
 	tables_init();
 	heap_init(heapsize, heapstartsize, &dummy);
 	jit_init();
 	loader_init();
 
-	native_loadclasses ();
+	native_loadclasses();
 
 
 	/*********************** Load JAVA classes  ***************************/
    
    	cp = argv[opt_ind++];
-   	for (i=strlen(cp)-1; i>=0; i--) {     /* Transform dots into slashes */
- 	 	if (cp[i]=='.') cp[i]='/';        /* in the class name */
+   	for (i = strlen(cp) - 1; i >= 0; i--) {     /* Transform dots into slashes */
+ 	 	if (cp[i] == '.') cp[i] = '/';        /* in the class name */
 	}
 
-	topclass = loader_load ( utf_new_char (cp) );
+	topclass = loader_load( utf_new_char (cp) );
 
-	if (exceptionptr != 0)
-	{
-		printf ("#### Class loader has thrown: ");
-		utf_display (exceptionptr->vftbl->class->name);
-		printf ("\n");
+	if (exceptionptr != 0) {
+		printf("#### Class loader has thrown: ");
+		utf_display(exceptionptr->vftbl->class->name);
+		printf("\n");
 
 		exceptionptr = 0;
 	}
 
-	if (topclass == 0)
-	{
+	if (topclass == 0) {
 		printf("#### Could not find top class - exiting\n");
 		exit(1);
 	}
@@ -729,7 +786,7 @@ int main(int argc, char **argv)
 	gc_init();
 
 #ifdef USE_THREADS
-	initThreads((u1*)&dummy);                   /* schani */
+	initThreads((u1*) &dummy);                   /* schani */
 #endif
 
 	/************************* Start worker routines ********************/
@@ -745,28 +802,28 @@ int main(int argc, char **argv)
 									   utf_new_char ("main"), 
 									   utf_new_char ("([Ljava/lang/String;)V")
 									   );
-		if (!mainmethod) panic ("Can not find method 'void main(String[])'");
-		if ((mainmethod->flags & ACC_STATIC) != ACC_STATIC) panic ("main is not static!");
+		if (!mainmethod) panic("Can not find method 'void main(String[])'");
+		if ((mainmethod->flags & ACC_STATIC) != ACC_STATIC) panic("main is not static!");
 			
-		a = builtin_anewarray (argc - opt_ind, class_java_lang_String);
-		for (i=opt_ind; i<argc; i++) {
-			a->data[i-opt_ind] = javastring_new (utf_new_char (argv[i]) );
+		a = builtin_anewarray(argc - opt_ind, class_java_lang_String);
+		for (i = opt_ind; i < argc; i++) {
+			a->data[i - opt_ind] = javastring_new(utf_new_char(argv[i]));
 		}
-		local_exceptionptr = asm_calljavamethod (mainmethod, a, NULL, NULL, NULL );
+		local_exceptionptr = asm_calljavamethod(mainmethod, a, NULL, NULL, NULL);
 	
 		if (local_exceptionptr) {
-			printf ("#### Program has thrown: ");
-			utf_display (local_exceptionptr->vftbl->class->name);
-			printf ("\n");
+			printf("#### Program has thrown: ");
+			utf_display(local_exceptionptr->vftbl->class->name);
+			printf("\n");
 		}
-                                        /*RTAprint*/ if ((pCallgraph >= 1) && (opt_rt)) {
-                                        /*RTAprint*/    printCallgraph (); }
+		/*RTAprint*/ if ((pCallgraph >= 1) && (opt_rt)) {
+			/*RTAprint*/    printCallgraph (); }
 
-                                        /*RTprint*/ if ((pClassHeir >= 1) && (opt_rt)) {
-                                        /*RTprint*/     printf("Last RTA Info -");
-                                        /*RTprint*/     printRThierarchyInfo(mainmethod); 
-					/*RTprint*/  	}
-					/*RTprint*/  	printObjectClassHeirarchy1( );
+		/*RTprint*/ if ((pClassHeir >= 1) && (opt_rt)) {
+			/*RTprint*/     printf("Last RTA Info -");
+			/*RTprint*/     printRThierarchyInfo(mainmethod); 
+			/*RTprint*/  	}
+		/*RTprint*/  	printObjectClassHeirarchy1( );
 
 
 #ifdef USE_THREADS
@@ -794,7 +851,7 @@ int main(int argc, char **argv)
 			m = class_findmethod(topclass, 
 								 utf_new_char(specificmethodname), NULL);
 		if (!m) panic ("Specific method not found");
-			(void) jit_compile(m);
+		(void) jit_compile(m);
 	}
 
 	exit(0);
@@ -811,23 +868,25 @@ int main(int argc, char **argv)
 
 void cacao_shutdown(s4 status)
 {
-                                        /*RTAprint*/ if ((pCallgraph >= 1) && (opt_rt)) {
-                                        /*RTAprint*/    printCallgraph (NULL); }
+	if ((pCallgraph >= 1) && (opt_rt)) {
+		printCallgraph(NULL);
+	}
 
-                                        /*RTprint*/ if ((pClassHeir >= 1) && (opt_rt)) {
-                                        /*RTprint*/     printf("RTA Information -");
-                                        /*RTprint*/     printRThierarchyInfo(NULL); }
+	if ((pClassHeir >= 1) && (opt_rt)) {
+		printf("RTA Information -");
+		printRThierarchyInfo(NULL);
+	}
 
 	if (verbose || getcompilingtime || statistics) {
 		log_text ("CACAO terminated by shutdown");
 		if (statistics)
-			print_stats ();
+			print_stats();
 		if (getcompilingtime)
-			print_times ();
+			print_times();
 		mem_usagelog(0);
-		sprintf (logtext, "Exit status: %d\n", (int) status);
+		sprintf(logtext, "Exit status: %d\n", (int) status);
 		dolog();
-		}
+	}
 
 	exit(status);
 }

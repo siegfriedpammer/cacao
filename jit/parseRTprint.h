@@ -7,6 +7,8 @@
  */
 
 
+#include "parseRTstats.h"
+
 
 #define XTAPRINTcallgraph1  if(pWhenMarked>=1) \
         {printf("\n XTA Added to Call Graph #%i:",  \

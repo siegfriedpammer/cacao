@@ -1,22 +1,41 @@
-/****************************** asmpart.h **************************************
+/* asmpart.h - 
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	Headerfile for asmpart.S. asmpart.S contains the machine dependent
-	Java - C interface functions.
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	         Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-	Last Change: 1997/10/15
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-*******************************************************************************/
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Reinhard Grafl
+            Andreas Krall
+
+   $Id: asmpart.h 557 2003-11-02 22:51:59Z twisti $
+
+*/
+
 
 #include "global.h"
 
-/* determines if the byte support instruction set (21164a and higher)
+/* 
+   determines if the byte support instruction set (21164a and higher)
    is available.
 */
 int has_no_x_instr_set();
@@ -24,21 +43,24 @@ int has_no_x_instr_set();
 void synchronize_caches();
 
 
-/* invokes the compiler for untranslated JavaVM methods.
+/* 
+   invokes the compiler for untranslated JavaVM methods.
    Register R0 contains a pointer to the method info structure
    (prepared by createcompilerstub).
 */
 void asm_call_jit_compiler();
 
 
-/* This function calls a Java-method (which possibly needs compilation)
+/* 
+   This function calls a Java-method (which possibly needs compilation)
    with up to 4 parameters. This function calls a Java-method (which
    possibly needs compilation) with up to 4 parameters.
 */
 java_objectheader *asm_calljavamethod(methodinfo *m, void *arg1, void *arg2,
                                       void *arg3, void *arg4);
 
-/* This function calls a Java-method (which possibly needs compilation)
+/* 
+   This function calls a Java-method (which possibly needs compilation)
    with up to 4 parameters. This function calls a Java-method (which
    possibly needs compilation) with up to 4 parameters. 
    also supports a return value
@@ -46,12 +68,17 @@ java_objectheader *asm_calljavamethod(methodinfo *m, void *arg1, void *arg2,
 java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
                                         void *arg3, void *arg4);
 
-/* gets the class of the caller from the stack frame
+void asm_handle_exception();
+void asm_handle_nat_exception();
+
+/* 
+   gets the class of the caller from the stack frame
 */
 methodinfo *asm_getcallingmethod();
 
 
-/* This funtion saves all callee saved registers and calls the function
+/* 
+   This funtion saves all callee saved registers and calls the function
    which is passed as parameter.
    This function is needed by the garbage collector, which needs to access
    all registers which are stored on the stack. Unused registers are
@@ -64,3 +91,17 @@ void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void 
 
 void asm_builtin_trace();
 void asm_builtin_exittrace();
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

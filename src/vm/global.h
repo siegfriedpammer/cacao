@@ -1,25 +1,47 @@
-/* global.h ********************************************************************
+/* global.h - global definitions
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	Contains global definitions which are used in the whole program, includes
-	some files and contains global used macros.
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Authors: Reinhard Grafl              EMAIL: cacao@complang.tuwien.ac.at
-	         Andreas  Krall   (andi)     EMAIL: cacao@complang.tuwien.ac.at
-	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
-			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-	Last Change: $Id: global.h 548 2003-11-01 19:46:25Z twisti $
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-*******************************************************************************/
+   Contact: cacao@complang.tuwien.ac.at
 
-#ifndef __global_h_
-#define __global_h_
+   Authors: Reinhard Grafl
+            Andreas Krall
+
+   Changes: Mark Probst
+            Philipp Tomsich
+
+   $Id: global.h 557 2003-11-02 22:51:59Z twisti $
+
+*/
+
+
+#ifndef _GLOBAL_H
+#define _GLOBAL_H
 
 #include "config.h"
+#include "types.h"
+#include "toolbox/list.h"
+
 
 #define _GNU_SOURCE
 
@@ -30,22 +52,6 @@
  * of determining the sizes of objects on the heap.
  */
 #define SIZE_FROM_CLASSINFO
-
-/* standard includes **********************************************************/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-
-#include "toolbox/memory.h"
-#include "toolbox/chain.h"
-#include "toolbox/list.h"
-#include "toolbox/loging.h"
-
-/* system dependent types *****************************************************/
-
-#include "types.h"
 
 
 /* additional data types ******************************************************/
@@ -209,6 +215,7 @@ struct utf {
 	char       *text;           /* pointer to text                            */
 };
 
+
 /* data structure of internal javastrings stored in global hashtable **********/
 
 struct literalstring {
@@ -216,13 +223,15 @@ struct literalstring {
 	java_objectheader *string;  
 };
 
+
 /* data structure for accessing hashtables ************************************/
 
 typedef struct {            
-  u4 size;
-  u4 entries;        /* number of entries in the table */
-  void **ptr;        /* pointer to hashtable */
+	u4 size;
+	u4 entries;        /* number of entries in the table */
+	void **ptr;        /* pointer to hashtable */
 } hashtable;
+
 
 /* data structures of remaining constant pool entries *************************/
 
@@ -232,32 +241,39 @@ typedef struct {                /* Fieldref, Methodref and InterfaceMethodref   
 	utf       *descriptor;  /* field/method/interface type descriptor string  */
 } constant_FMIref;
 
+
 typedef struct {            /* Integer                                        */
 	s4 value;
 } constant_integer;
+
 	
 typedef struct {            /* Float                                          */
 	float value;
 } constant_float;
 
+
 typedef struct {            /* Long                                           */
 	s8 value;
 } constant_long;
 	
+
 typedef struct {            /* Double                                         */
 	double value;
 } constant_double;
+
 
 typedef struct {            /* NameAndType (Field or Method)                  */
 	utf *name;              /* field/method name                              */
 	utf *descriptor;        /* field/method type descriptor string            */
 } constant_nameandtype;
 
-/*  arraydescriptor describes array types. Basic array types contain their
-	type in the arraytype field, objectclass contains a class pointer for
-	arrays of objects (arraytype == ARRAYTYPE_OBJECT), elementdescriptor
-	contains a pointer to an arraydescriptor which describes the element
-	types in the case of arrays of arrays (arraytype == ARRAYTYPE_ARRAY).
+
+/* 
+   arraydescriptor describes array types. Basic array types contain their
+   type in the arraytype field, objectclass contains a class pointer for
+   arrays of objects (arraytype == ARRAYTYPE_OBJECT), elementdescriptor
+   contains a pointer to an arraydescriptor which describes the element
+   types in the case of arrays of arrays (arraytype == ARRAYTYPE_ARRAY).
 */
 
 typedef struct constant_arraydescriptor {
@@ -266,7 +282,6 @@ typedef struct constant_arraydescriptor {
 	struct constant_arraydescriptor *elementdescriptor;
 } constant_arraydescriptor;
 
-#include "jit/sets.h"
 
 /* data structures of the runtime system **************************************/
 
@@ -383,22 +398,26 @@ typedef struct primitivetypeinfo {
 	char *name;                          /* name of primitive class           */
 } primitivetypeinfo;
 
+
 /* field, method and class structures *****************************************/
 
+#include "sets.h"
 typedef	struct xtafldinfo {
-        	bool       fieldChecked; 		
-		classinfo *fldClassType;
-		classSet  *XTAclassSet;      /* field class type set                  */  
-		} xtafldinfo;
+	bool       fieldChecked; 		
+	classinfo *fldClassType;
+	classSet  *XTAclassSet;          /* field class type set                  */
+} xtafldinfo;
+
+
 /* fieldinfo ******************************************************************/
 
 struct fieldinfo {	      /* field of a class                                 */
-	s4       flags;       /* ACC flags                                        */
-	s4       type;        /* basic data type                                  */
+	s4  flags;            /* ACC flags                                        */
+	s4  type;             /* basic data type                                  */
 	utf *name;            /* name of field                                    */
 	utf *descriptor;      /* JavaVM descriptor string of field                */
 	
-	s4       offset;      /* offset from start of object (instance variables) */
+	s4  offset;           /* offset from start of object (instance variables) */
 
 	union {               /* storage for static values (class variables)      */
 		s4 i; 
@@ -409,8 +428,7 @@ struct fieldinfo {	      /* field of a class                                 */
 	} value;
 	
 	xtafldinfo *xta;
-
-} ;
+};
 
 struct basicblock;
 
@@ -701,7 +719,7 @@ extern int count_utf_new_found;
 
 extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 
-#endif
+#endif /* _GLOBAL_H */
 
 
 /*

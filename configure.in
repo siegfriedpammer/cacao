@@ -1,7 +1,7 @@
 dnl autoconf; autoheader; automake
 
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(jit.c)
+AC_INIT(main.c)
 AC_CANONICAL_HOST
 
 AM_INIT_AUTOMAKE(cacao, 0.40)
@@ -11,46 +11,39 @@ AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 dnl system type
 
-ASMPART="asmpart.S"
 case "$host_cpu" in
 alpha* )
-	SYSDEP_DIR="alpha"
+	ARCH_DIR="alpha"
 	CFLAGS="-mieee -O0 -g3 -D__ALPHA__"
-	COMPILER_OBJECTS=""
 	AC_DEFINE(TRACE_ARGS_NUM, 6)
+	AC_DEFINE(USE_CODEMMAP)
+	;;
+
+i386* | i486* | i586* | i686* )
+	ARCH_DIR="i386"
+	CFLAGS="-Wall -O0 -g3 -D__I386__"
+	AC_DEFINE(TRACE_ARGS_NUM, 8)
 	AC_DEFINE(USE_CODEMMAP)
 	;;
 
 mips* )
-	SYSDEP_DIR="mips"
-	ASMPART="asmpart.s"
+	ARCH_DIR="mips"
         CFLAGS="-64 -O2 -OPT:Olimit=0 -g -DMAP_ANONYMOUS=0 -woff 1110,1164,1515 -D__MIPS__"
 	LIBS="-lelfutil"
-	COMPILER_OBJECTS=""
 	AC_DEFINE(TRACE_ARGS_NUM, 8)
-	;;
-
-i386* | i486* | i586* | i686* )
-	SYSDEP_DIR="i386"
-	CFLAGS="-O0 -g3 -D__I386__"
-	COMPILER_OBJECTS="i386/libdisass.a"
-	AC_DEFINE(TRACE_ARGS_NUM, 8)
-	AC_DEFINE(USE_CODEMMAP)
-	;;
-
-x86_64* )
-	SYSDEP_DIR="x86_64"
-	CFLAGS="-O0 -g3 -D__X86_64__"
-	COMPILER_OBJECTS="x86_64/libdisass.a"
-	AC_DEFINE(TRACE_ARGS_NUM, 6)
-	AC_DEFINE(USE_CODEMMAP)
 	;;
 
 powerpc* | ppc* )
-	SYSDEP_DIR="powerpc"
+	ARCH_DIR="powerpc"
 	CFLAGS="-O2 -g -DMAP_ANONYMOUS=0 -no-cpp-precomp"
-	COMPILER_OBJECTS="powerpc/libdisass.a"
 	AC_DEFINE(TRACE_ARGS_NUM, 8)
+	;;
+
+x86_64* )
+	ARCH_DIR="x86_64"
+	CFLAGS="-O0 -g3 -D__X86_64__"
+	AC_DEFINE(TRACE_ARGS_NUM, 6)
+	AC_DEFINE(USE_CODEMMAP)
 	;;
 
 sparc* | * )
@@ -59,10 +52,9 @@ sparc* | * )
 esac
 
 AC_SUBST(COMPILER_OBJECTS)
-AC_SUBST(ASMPART)
 
-AC_DEFINE_UNQUOTED(SYSDEP_DIR, "$SYSDEP_DIR")
-AC_SUBST(SYSDEP_DIR)
+AC_DEFINE_UNQUOTED(ARCH_DIR, "$ARCH_DIR")
+AC_SUBST(ARCH_DIR)
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -157,14 +149,14 @@ AC_OUTPUT(Makefile \
 	  toolbox/Makefile \
 	  threads/Makefile \
 	  jit/Makefile \
-          alpha/Makefile \
-          mips/Makefile \
-          i386/Makefile \
-          x86_64/Makefile \
-          powerpc/Makefile \
+          jit/loop/Makefile \
+          jit/alpha/Makefile \
+          jit/i386/Makefile \
+          jit/mips/Makefile \
+          jit/powerpc/Makefile \
+          jit/x86_64/Makefile \
           nat/Makefile \
           doc/Makefile \
-	  narray/Makefile \
 	  tst/Makefile \
 	  tst/kaffe/Makefile \
 	  jvmtst/Makefile )

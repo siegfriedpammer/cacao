@@ -1,16 +1,35 @@
-/************************* toolbox/memory.c ************************************
+/* toolbox/memory.c - 
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	Not documented, see memory.h.
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-	Last Change: 1996/10/03
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-*******************************************************************************/
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Reinhard Grafl
+
+   $Id: memory.c 557 2003-11-02 22:51:59Z twisti $
+
+*/
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,12 +39,11 @@
 #include <unistd.h>
 
 #include "global.h"
-#include "callargs.h"
 #include "loging.h"
 #include "memory.h"
 
 
-	/********* general types, variables and auxiliary functions *********/
+/********* general types, variables and auxiliary functions *********/
 
 #define DUMPBLOCKSIZE  (2<<21)
 #define ALIGNSIZE           8
@@ -46,12 +64,13 @@ dumplist *topdumpblock = NULL;
 long int maxmemusage = 0;
 long int maxdumpsize = 0;
 
-/* #define TRACECALLARGS */
+#define TRACECALLARGS
 
 #ifdef TRACECALLARGS
 static char *nomallocmem = NULL;
 static char *nomalloctop;
 static char *nomallocptr;
+
 
 static void *lit_checked_alloc (int length)
 {
@@ -90,8 +109,10 @@ static void *checked_alloc (int length)
 	return m;
 }
 
+
 static int mmapcodesize = 0;
 static void *mmapcodeptr = NULL;
+
 
 void *mem_mmap(int length)
 {
@@ -104,11 +125,11 @@ void *mem_mmap(int length)
 			mmapcodesize = length;
 		mmapcodesize = (ALIGN(mmapcodesize, getpagesize()));
 		mmapcodeptr = mmap (NULL, (size_t) mmapcodesize,
-		              PROT_READ | PROT_WRITE | PROT_EXEC,
-		              MAP_PRIVATE | MAP_ANONYMOUS, -1, (off_t) 0);
+							PROT_READ | PROT_WRITE | PROT_EXEC,
+							MAP_PRIVATE | MAP_ANONYMOUS, -1, (off_t) 0);
 		if (mmapcodeptr == (void*) -1)
 			panic ("Out of memory");
-		}
+	}
 	retptr = mmapcodeptr;
 	mmapcodeptr = (void*) ((char*) mmapcodeptr + length);
 	mmapcodesize -= length;
@@ -118,7 +139,7 @@ void *mem_mmap(int length)
 
 #ifdef DEBUG
 
-	/************ Memory manager, safe version **************/
+/************ Memory manager, safe version **************/
 
 
 typedef struct memblock {
@@ -180,19 +201,19 @@ void mem_free(void *m, int length)
 	if (!m) {
 		if (length==0) return;
 		panic ("returned memoryblock with address NULL, length != 0");
-		}
+	}
 
 	mb = (memblock*) (((char*) m) - BLOCKOFFSET);
 	
 	if (mb->length != length) {
 		sprintf (logtext, 
-                        "Memory block of size %d has been return as size %d",
+				 "Memory block of size %d has been return as size %d",
 		         mb->length, length);
 		error();
-		}
+	}
 		
 	if (mb->prev) mb->prev->next = mb->next;
-	         else firstmemblock = mb->next;
+	else firstmemblock = mb->next;
 	if (mb->next) mb->next->prev = mb->prev;
 
 	free (mb);
@@ -207,19 +228,19 @@ void lit_mem_free(void *m, int length)
 	if (!m) {
 		if (length==0) return;
 		panic ("returned memoryblock with address NULL, length != 0");
-		}
+	}
 
 	mb = (memblock*) (((char*) m) - BLOCKOFFSET);
 	
 	if (mb->length != length) {
 		sprintf (logtext, 
-                        "Memory block of size %d has been return as size %d",
+				 "Memory block of size %d has been return as size %d",
 		         mb->length, length);
 		error();
-		}
+	}
 		
 	if (mb->prev) mb->prev->next = mb->next;
-	         else firstmemblock = mb->next;
+	else firstmemblock = mb->next;
 	if (mb->next) mb->next->prev = mb->prev;
 
 #ifdef TRACECALLARGS
@@ -255,23 +276,23 @@ static void mem_characterlog (unsigned char *m, int len)
 			
 		for (i=z; i<(z+LINESIZE) && i<len; i++) {
 			sprintf (logtext+strlen(logtext), "%2x ", m[i]);
-			}
+		}
 		for (; i<(z+LINESIZE); i++) {
 			sprintf (logtext+strlen(logtext), "   ");
-			}
+		}
 					
 		sprintf (logtext+strlen(logtext),"   ");
 		for (i=z; i<(z+LINESIZE) && i<len; i++) {
 			sprintf (logtext+strlen(logtext),
-			     "%c", (m[i]>=' ' && m[i]<=127) ? m[i] : '.');
-			}
+					 "%c", (m[i]>=' ' && m[i]<=127) ? m[i] : '.');
+		}
 			
 		dolog();
-		}
+	}
 }
 
 #else
-		/******* Memory manager, fast version ******/
+/******* Memory manager, fast version ******/
 
 
 void *mem_alloc(int length)
@@ -301,7 +322,7 @@ void mem_free(void *m, int length)
 	if (!m) {
 		if (length==0) return;
 		panic ("returned memoryblock with address NULL, length != 0");
-		}
+	}
 
 	memoryusage -= length;
 
@@ -314,7 +335,7 @@ void lit_mem_free(void *m, int length)
 	if (!m) {
 		if (length==0) return;
 		panic ("returned memoryblock with address NULL, length != 0");
-		}
+	}
 
 	memoryusage -= length;
 
@@ -331,8 +352,8 @@ void *mem_realloc (void *m1, int len1, int len2)
 
 	if (!m1) {
 		if (len1!=0) 
-		  panic ("reallocating memoryblock with address NULL, length != 0");
-		}
+			panic ("reallocating memoryblock with address NULL, length != 0");
+	}
 		
 	memoryusage = (memoryusage - len1) + len2;
 
@@ -344,9 +365,7 @@ void *mem_realloc (void *m1, int len1, int len2)
 
 #endif
 
-		/******* common memory manager parts ******/
-
-
+/******* common memory manager parts ******/
 
 long int mem_usage()
 {
@@ -354,38 +373,35 @@ long int mem_usage()
 }
 
 
-
-
-
 void *dump_alloc(int length)
 {
 	void *m;
 
-        if (length==0) return NULL;
+	if (length == 0) return NULL;
 	
-	length = ALIGN (length, ALIGNSIZE);
+	length = ALIGN(length, ALIGNSIZE);
 
-	assert (length <= DUMPBLOCKSIZE);
-	assert (length > 0);
+	assert(length <= DUMPBLOCKSIZE);
+	assert(length > 0);
 
 	if (dumpsize + length > dumpspace) {
-		dumplist *newdumpblock = checked_alloc (sizeof(dumplist));
+		dumplist *newdumpblock = checked_alloc(sizeof(dumplist));
 
-		newdumpblock -> prev = topdumpblock;
+		newdumpblock->prev = topdumpblock;
 		topdumpblock = newdumpblock;
 
-		newdumpblock -> dumpmem = checked_alloc (DUMPBLOCKSIZE);
+		newdumpblock->dumpmem = checked_alloc(DUMPBLOCKSIZE);
 
 		dumpsize = dumpspace;
 		dumpspace += DUMPBLOCKSIZE;		
-		}
+	}
 	
-	m = topdumpblock -> dumpmem + DUMPBLOCKSIZE - (dumpspace - dumpsize);
+	m = topdumpblock->dumpmem + DUMPBLOCKSIZE - (dumpspace - dumpsize);
 	dumpsize += length;
 	
 	if (dumpsize > maxdumpsize) {
 		maxdumpsize = dumpsize;
-		}
+	}
 		
 	return m;
 }   
@@ -393,8 +409,8 @@ void *dump_alloc(int length)
 
 void *dump_realloc(void *ptr, int len1, int len2)
 {
-	void *p2 = dump_alloc (len2);
-	memcpy (p2, ptr, len1);	
+	void *p2 = dump_alloc(len2);
+	memcpy(p2, ptr, len1);	
 	return p2;
 }
 
@@ -407,59 +423,70 @@ long int dump_size()
 
 void dump_release(long int size)
 {
-	assert (size >= 0 && size <= dumpsize);
+	assert(size >= 0 && size <= dumpsize);
 
 	dumpsize = size;
 	
-	while (dumpspace  >  dumpsize + DUMPBLOCKSIZE) {
+	while (dumpspace > dumpsize + DUMPBLOCKSIZE) {
 		dumplist *oldtop = topdumpblock;
 		
-		topdumpblock = oldtop -> prev;
+		topdumpblock = oldtop->prev;
 		dumpspace -= DUMPBLOCKSIZE;
 		
 #ifdef TRACECALLARGS
 #else
-		free (oldtop -> dumpmem);
-		free (oldtop);
+		free(oldtop->dumpmem);
+		free(oldtop);
 #endif
-		}		
+	}		
 }
-
-
 
 
 void mem_usagelog (int givewarnings)
 {
 	if ((memoryusage!=0) && givewarnings) {
 		sprintf (logtext, "Allocated memory not returned: %d",
-		      (int)memoryusage);
+				 (int)memoryusage);
 		dolog();
 
 #ifdef DEBUG
 		{ 
-		memblock *mb = firstmemblock;
-		while (mb) {
-			sprintf (logtext, "   Memory block size: %d", 
-			  (int)(mb->length) );
-			dolog();
-			mem_characterlog ( ((unsigned char*)mb) + BLOCKOFFSET, mb->length);
-			mb = mb->next;
+			memblock *mb = firstmemblock;
+			while (mb) {
+				sprintf (logtext, "   Memory block size: %d", 
+						 (int)(mb->length) );
+				dolog();
+				mem_characterlog ( ((unsigned char*)mb) + BLOCKOFFSET, mb->length);
+				mb = mb->next;
 			}
 		}
 #endif
 			
-		}
+	}
 
 	if ((dumpsize!=0) && givewarnings) {
 		sprintf (logtext, "Dump memory not returned: %d",(int)dumpsize);
 		dolog();
-		}
+	}
 
 
-	sprintf (logtext, "Random/Dump - memory usage: %dK/%dK", 
-	      (int)((maxmemusage+1023)/1024), 
-	      (int)((maxdumpsize+1023)/1024) );
+	sprintf(logtext, "Random/Dump - memory usage: %dK/%dK", 
+			(int)((maxmemusage+1023)/1024), 
+			(int)((maxdumpsize+1023)/1024) );
 	dolog();
 	
 }
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

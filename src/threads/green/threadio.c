@@ -10,8 +10,8 @@
  * Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
  */
 
-#include "config.h"
 
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -20,7 +20,9 @@
 #include <assert.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "thread.h"
+
 
 #define	TH_READ		0
 #define	TH_WRITE	1
@@ -134,8 +136,8 @@ void clear_thread_flags(void)
 #endif
 #endif
 
-    fflush (stdout);
-    fflush (stderr);
+    fflush(stdout);
+    fflush(stderr);
 }
 
 
