@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: cacao.c 383 2003-07-08 21:01:26Z carolyn $
+	Last Change: $Id: cacao.c 386 2003-07-10 11:43:50Z twisti $
 
 *******************************************************************************/
 
@@ -186,7 +186,7 @@ Prints the correct usage syntax to stdout.
 
 static void print_usage()
 {
-	printf ("USAGE: cacao [options] classname [program arguments\n");
+	printf ("USAGE: cacao [options] classname [program arguments]\n");
 	printf ("Options:\n");
 	printf ("          -classpath path ...... specify a path to look for classes\n");
 	printf ("          -Dpropertyname=value . add an entry to the property list\n");
@@ -287,7 +287,7 @@ static void print_stats()
 	dolog();
 	sprintf (logtext, "Value of extended instruction set var:  %d", has_ext_instr_set);
 	dolog();
-	sprintf (logtext, "Number of Alpha-Instructions: %d", count_code_len >> 2);
+	sprintf (logtext, "Number of Machine-Instructions: %d", count_code_len >> 2);
 	dolog();
 	sprintf (logtext, "Number of Spills: %d", count_spills);
 	dolog();
