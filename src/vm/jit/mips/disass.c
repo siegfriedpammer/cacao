@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: disass.c 1007 2004-03-31 19:16:23Z twisti $
+   $Id: disass.c 1109 2004-05-28 13:11:16Z twisti $
 
 */
 
@@ -472,7 +472,7 @@ void disassinstr(s4 *code, int pos)
 	rd    = (c >> 11) & 0x1f;   /* 5 bit destination register specifier       */
 	shift = (c >>  6) & 0x1f;   /* 5 bit unsigned shift amount                */
 
-	printf("0x%016lx:   %08x    ", code, c);
+	printf("0x%016lx:   %08x    ", (u8) code, c);
 	
 	switch (ops[op].itype) {
 		case ITYPE_JMP:                      /* 26 bit unsigned jump offset   */
@@ -496,11 +496,11 @@ void disassinstr(s4 *code, int pos)
 
 		case ITYPE_BRA:                      /* 16 bit signed branch offset   */
 			if (op == 0x04 && rs == 0 && rt == 0) {
-				printf("b        0x%x\n", pos + 4 + ((c << 16) >> 14));	
+				printf("b        0x%016lx\n", (u8) code + 4 + ((c << 16) >> 14));
 				break;
 				}	
-			printf("%s %s,%s,0x%x\n", ops[op].name, regs[rs], regs[rt], 
-			                          pos + 4 + ((c << 16) >> 14));
+			printf("%s %s,%s,0x%016lx\n", ops[op].name, regs[rs], regs[rt], 
+				   (u8) code + 4 + ((c << 16) >> 14));
 			break;
 			
 		case ITYPE_RIMM:
@@ -508,8 +508,8 @@ void disassinstr(s4 *code, int pos)
 				printf("%s %s,%d\n", regimms[rt].name, regs[rs],
 				       (c << 16) >> 16);
 			else if (regimms[rt].ftype == ITYPE_BRA)
-				printf("%s %s,%x\n", regimms[rt].name, regs[rs],
-				       pos + 4 + ((c << 16) >> 14));
+				printf("%s %s,0x%016lx\n", regimms[rt].name, regs[rs],
+				       (u8) code + 4 + ((c << 16) >> 14));
 			else
 				printf("regimm   %#04x,$%d,%d\n", rt, rs, (c << 16) >> 16);		
 			break;
