@@ -24,6 +24,8 @@
 #include "tables.h"
 #include "native.h"
 #include "loader.h"
+#include "toolbox/memory.h"
+
 
 #if !defined(NATIVE_THREADS)
 
@@ -50,7 +52,8 @@ initLocks (void)
     int i;
 
     mutexHashTableSize = MUTEX_HASH_TABLE_SIZE;
-    mutexHashTable = (mutexHashEntry*)malloc(sizeof(mutexHashEntry) * mutexHashTableSize);
+    mutexHashTable = (mutexHashEntry *) MNEW(mutexHashEntry*,
+                                             mutexHashTableSize);
     mutexHashMask = (mutexHashTableSize - 1) << 3;
 
     for (i = 0; i < mutexHashTableSize; ++i)
@@ -64,8 +67,8 @@ initLocks (void)
     }
 
     mutexOverflowTableSize = MUTEX_OVERFLOW_TABLE_SIZE;
-    mutexOverflowTable = (mutexHashEntry*)malloc(sizeof(mutexHashEntry)
-												 * mutexOverflowTableSize);
+    mutexOverflowTable = (mutexHashEntry *) MNEW(mutexHashEntry*,
+                                                 mutexOverflowTableSize);
 
     firstFreeOverflowEntry = &mutexOverflowTable[0];
 
@@ -81,8 +84,8 @@ initLocks (void)
     mutexOverflowTable[i - 1].next = 0;
 
     conditionHashTableSize = CONDITION_HASH_TABLE_SIZE;
-    conditionHashTable = (conditionHashEntry*)malloc(sizeof(conditionHashEntry)
-													 * conditionHashTableSize);
+    conditionHashTable = (conditionHashEntry *) MNEW(conditionHashEntry*,
+													 conditionHashTableSize);
     conditionHashMask = (conditionHashTableSize - 1) << 3;
 
     for (i = 0; i < conditionHashTableSize; ++i)
