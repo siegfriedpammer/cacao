@@ -75,6 +75,7 @@ typedef struct _threadobject {
 monitorLockRecord *monitorEnter(threadobject *, java_objectheader *);
 bool monitorExit(threadobject *, java_objectheader *);
 
+bool threadHoldsLock(threadobject *, java_objectheader *);
 void signal_cond_for_object (java_objectheader *obj);
 void broadcast_cond_for_object (java_objectheader *obj);
 void wait_cond_for_object (java_objectheader *obj, s8 time, s4 nanos);

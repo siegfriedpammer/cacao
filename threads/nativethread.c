@@ -677,7 +677,7 @@ static void initLockRecord(monitorLockRecord *r, threadobject *t)
 	r->queuers = 0;
 	r->o = NULL;
 	r->waiter = NULL;
-	r->incharge = NULL;
+	r->incharge = &dummyLR;
 	r->waiting = false;
 	sem_init(&r->queueSem, 0, 0);
 	pthread_mutex_init(&r->resolveLock, NULL);
@@ -789,19 +789,6 @@ static inline void recycleLockRecord(threadobject *t, monitorLockRecord *r)
 	t->ee.firstLR = r;
 }
 
-#if 0
-static monitorLockRecord *allocLockRecord(threadobject *t, monitorLockRecord *lr)
-{
-	monitorLockRecord *r = allocLockRecordSimple(t);
-	if (r == lr) {
-		monitorLockRecord *r2 = allocLockRecordSimple(t);
-		recycleLockRecord(t, r);
-		r = r2;
-	}
-	return r;
-}
-#endif
-
 void initObjectLock(java_objectheader *o)
 {
 	o->monitorPtr = dummyLR;
@@ -839,24 +826,26 @@ monitorLockRecord *monitorEnter(threadobject *t, java_objectheader *o)
 		if (lr->o != o) {
 			monitorLockRecord *nlr, *mlr = allocLockRecordSimple(t);
 			mlr->o = o;
-			MEMORY_BARRIER_BEFORE_ATOMIC();
-			nlr = (void*) compare_and_swap((long*) &o->monitorPtr, (long) lr, (long) mlr);
+			if (mlr == lr) {
+				MEMORY_BARRIER();
+				nlr = o->monitorPtr;
+				if (nlr == lr) {
+					handleWaiter(mlr, lr);
+					return mlr;
+				}
+			} else {
+				if (lr->ownerThread != t)
+					mlr->incharge = lr;
+				MEMORY_BARRIER_BEFORE_ATOMIC();
+				nlr = (void*) compare_and_swap((long*) &o->monitorPtr, (long) lr, (long) mlr);
+			}
 			if (nlr == lr) {
 				if (mlr == lr || lr->o != o) {
 					handleWaiter(mlr, lr);
 					return mlr;
-				} else {
-					void *incharge;
-					pthread_mutex_lock(&mlr->resolveLock);
-					incharge = mlr->incharge;
-					mlr->incharge = lr;
-					pthread_mutex_unlock(&mlr->resolveLock);
-					if (incharge)
-						pthread_cond_signal(&mlr->resolveWait);
 				}
 				while (lr->o == o)
 					queueOnLockRecord(lr, o);
-				mlr->incharge = NULL;
 				handleWaiter(mlr, lr);
 				return mlr;
 			}
@@ -873,17 +862,6 @@ monitorLockRecord *monitorEnter(threadobject *t, java_objectheader *o)
 	}
 }
 
-static monitorLockRecord *grabLockRecordInCharge(monitorLockRecord *lr)
-{
-	pthread_mutex_lock(&lr->resolveLock);
-	if (!lr->incharge) {
-		lr->incharge = lr;
-		pthread_cond_wait(&lr->resolveWait, &lr->resolveLock);
-	}
-	pthread_mutex_unlock(&lr->resolveLock);
-	return lr->incharge;
-}
-
 static void wakeWaiters(monitorLockRecord *lr)
 {
 	do {
@@ -896,12 +874,11 @@ static void wakeWaiters(monitorLockRecord *lr)
 
 #define GRAB_LR(lr,t) \
     if (lr->ownerThread != t) { \
-		lr = grabLockRecordInCharge(lr); \
-		assert(lr->ownerThread == t); \
+		lr = lr->incharge; \
 	}
 
-#define CHECK_MONITORSTATE(lr,mo,a) \
-    if (lr->o != mo) { \
+#define CHECK_MONITORSTATE(lr,t,mo,a) \
+    if (lr->o != mo || lr->ownerThread != t) { \
 		*exceptionptr = new_exception(string_java_lang_IllegalMonitorStateException); \
 		a; \
 	}
@@ -910,7 +887,7 @@ bool monitorExit(threadobject *t, java_objectheader *o)
 {
 	monitorLockRecord *lr = o->monitorPtr;
 	GRAB_LR(lr, t);
-	CHECK_MONITORSTATE(lr, o, return false);
+	CHECK_MONITORSTATE(lr, t, o, return false);
 	if (lr->lockCount > 1) {
 		lr->lockCount--;
 		return true;
@@ -982,7 +959,7 @@ void monitorWait(threadobject *t, java_objectheader *o, s8 millis, s4 nanos)
 	struct timespec wakeupTime;
 	monitorLockRecord *mlr, *lr = o->monitorPtr;
 	GRAB_LR(lr, t);
-	CHECK_MONITORSTATE(lr, o, return);
+	CHECK_MONITORSTATE(lr, t, o, return);
 
 	calcAbsoluteTime(&wakeupTime, millis, nanos);
 	
@@ -1008,7 +985,7 @@ static void notifyOneOrAll(threadobject *t, java_objectheader *o, bool one)
 {
 	monitorLockRecord *lr = o->monitorPtr;
 	GRAB_LR(lr, t);
-	CHECK_MONITORSTATE(lr, o, return);
+	CHECK_MONITORSTATE(lr, t, o, return);
 	do {
 		monitorLockRecord *wlr = lr->waiter;
 		if (!wlr)
@@ -1016,6 +993,13 @@ static void notifyOneOrAll(threadobject *t, java_objectheader *o, bool one)
 		pthread_cond_signal(&wlr->waitCond);
 		lr = wlr;
 	} while (!one);
+}
+
+bool threadHoldsLock(threadobject *t, java_objectheader *o)
+{
+	monitorLockRecord *lr = o->monitorPtr;
+	GRAB_LR(lr, t);
+	return lr->o == o && lr->ownerThread == t;
 }
 
 void interruptThread(java_lang_VMThread *thread)
