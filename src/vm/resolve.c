@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2217 2005-04-05 10:26:33Z edwin $
+   $Id: resolve.c 2224 2005-04-05 20:36:07Z edwin $
 
 */
 
@@ -653,6 +653,7 @@ resolve_method(unresolved_method *ref,
 	}
 	if (!mi)
 		return false; /* exception */ /* XXX set exceptionptr? */
+	method_descriptor2types(mi);
 
 	/* { the method reference has been resolved } */
 	declarer = mi->class;
