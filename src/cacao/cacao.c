@@ -37,13 +37,14 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 562 2003-11-03 00:34:34Z twisti $
+   $Id: cacao.c 582 2003-11-09 19:09:11Z twisti $
 
 */
 
 
 #include <stdlib.h>
 #include <string.h>
+#include "main.h"
 #include "global.h"
 #include "tables.h"
 #include "loader.h"
@@ -60,6 +61,9 @@
 
 bool compileall = false;
 bool verbose =  false;
+bool runverbose = false;
+bool collectverbose = false;
+
 
 static bool showmethods = false;
 static bool showconstantpool = false;
@@ -120,7 +124,9 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{"verbose",     false,  OPT_VERBOSE},
 	{"verbosegc",   false,  OPT_VERBOSEGC},
 	{"verbosecall", false,  OPT_VERBOSECALL},
+#if defined(__ALPHA__)
 	{"noieee",      false,  OPT_NOIEEE},
+#endif
 	{"softnull",    false,  OPT_SOFTNULL},
 	{"time",        false,  OPT_TIME},
 	{"stat",        false,  OPT_STAT},
@@ -142,7 +148,8 @@ struct {char *name; bool arg; int value;} opts[] = {
 static int opt_ind = 1;
 static char *opt_arg;
 
-static int get_opt (int argc, char **argv) 
+
+static int get_opt(int argc, char **argv)
 {
 	char *a;
 	int i;
@@ -152,15 +159,15 @@ static int get_opt (int argc, char **argv)
 	a = argv[opt_ind];
 	if (a[0] != '-') return OPT_DONE;
 
-	for (i=0; opts[i].name; i++) {
-		if (! opts[i].arg) {
-			if (strcmp(a+1, opts[i].name) == 0) {  /* boolean option found */
+	for (i = 0; opts[i].name; i++) {
+		if (!opts[i].arg) {
+			if (strcmp(a + 1, opts[i].name) == 0) { /* boolean option found */
 				opt_ind++;
 				return opts[i].value;
 			}
-		}
-		else {
-			if (strcmp(a+1, opts[i].name) == 0) { /* parameter option found */
+
+		} else {
+			if (strcmp(a + 1, opts[i].name) == 0) { /* parameter option found */
 				opt_ind++;
 				if (opt_ind < argc) {
 					opt_arg = argv[opt_ind];
@@ -168,13 +175,13 @@ static int get_opt (int argc, char **argv)
 					return opts[i].value;
 				}
 				return OPT_ERROR;
-			}
-			else {
+
+			} else {
 				size_t l = strlen(opts[i].name);
-				if (strlen(a+1) > l) {
-					if (memcmp (a+1, opts[i].name, l)==0) {
+				if (strlen(a + 1) > l) {
+					if (memcmp(a + 1, opts[i].name, l) == 0) {
 						opt_ind++;
-						opt_arg = a+1+l;
+						opt_arg = a + 1 + l;
 						return opts[i].value;
 					}
 				}
@@ -472,30 +479,30 @@ void exit_handler(void)
 {
 	/********************* Print debug tables ************************/
 				
-	if (showmethods) class_showmethods (topclass);
-	if (showconstantpool)  class_showconstantpool (topclass);
-	if (showutf)           utf_show ();
+	if (showmethods) class_showmethods(topclass);
+	if (showconstantpool)  class_showconstantpool(topclass);
+	if (showutf)           utf_show();
 
 #ifdef USE_THREADS
 	clear_thread_flags();		/* restores standard file descriptor
-								   flags */
+	                               flags */
 #endif
 
 	/************************ Free all resources *******************/
 
-	heap_close ();				/* must be called before compiler_close and
-								   loader_close because finalization occurs
-								   here */
+	heap_close();               /* must be called before compiler_close and
+	                               loader_close because finalization occurs
+	                               here */
 
-	loader_close ();
-	tables_close ( literalstring_free );
+	loader_close();
+	tables_close(literalstring_free);
 
 	if (verbose || getcompilingtime || statistics) {
 		log_text ("CACAO terminated");
 		if (statistics)
-			print_stats ();
+			print_stats();
 		if (getcompilingtime)
-			print_times ();
+			print_times();
 		mem_usagelog(1);
 	}
 }
@@ -544,13 +551,13 @@ int main(int argc, char **argv)
 	checknull = false;
 	opt_noieee = false;
 
-	while ((i = get_opt(argc,argv)) != OPT_DONE) {
+	while ((i = get_opt(argc, argv)) != OPT_DONE) {
 		switch (i) {
 		case OPT_IGNORE: break;
 			
 		case OPT_CLASSPATH:    
-			strcpy (classpath + strlen(classpath), ":");
-			strcpy (classpath + strlen(classpath), opt_arg);
+			strcpy(classpath + strlen(classpath), ":");
+			strcpy(classpath + strlen(classpath), opt_arg);
 			break;
 				
 		case OPT_D:
@@ -768,10 +775,10 @@ int main(int argc, char **argv)
    
    	cp = argv[opt_ind++];
    	for (i = strlen(cp) - 1; i >= 0; i--) {     /* Transform dots into slashes */
- 	 	if (cp[i] == '.') cp[i] = '/';        /* in the class name */
+ 	 	if (cp[i] == '.') cp[i] = '/';          /* in the class name */
 	}
 
-	topclass = loader_load( utf_new_char (cp) );
+	topclass = loader_load(utf_new_char(cp));
 
 	if (exceptionptr != 0) {
 		printf("#### Class loader has thrown: ");
@@ -815,7 +822,7 @@ int main(int argc, char **argv)
 		local_exceptionptr = asm_calljavamethod(mainmethod, a, NULL, NULL, NULL);
 	
 		if (local_exceptionptr) {
-			printf("#### Program has thrown: ");
+			printf("Exception in thread \"main\" ");
 			utf_display(local_exceptionptr->vftbl->class->name);
 			printf("\n");
 		}
