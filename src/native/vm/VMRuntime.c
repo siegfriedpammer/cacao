@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1869 2005-01-12 13:25:30Z twisti $
+   $Id: VMRuntime.c 1903 2005-02-08 14:59:35Z twisti $
 
 */
 
@@ -251,11 +251,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
 
 
 /*
- * Class:     java_lang_Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    nativeLoad
- * Signature: (Ljava/lang/String;)I
+ * Signature: (Ljava/lang/String;Ljava/lang/ClassLoader;)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *par1)
+JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *filename, java_lang_ClassLoader *loader)
 {
 	int retVal=0;
 
@@ -269,7 +269,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 	log_text("Java_java_lang_VMRuntime_nativeLoad");
 #endif
 
-	data = javastring_toutf(par1, 0);
+	data = javastring_toutf(filename, 0);
 	
 	if (!data) {
 		log_text("nativeLoad: Error: empty string");
