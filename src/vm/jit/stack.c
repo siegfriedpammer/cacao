@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1318 2004-07-16 13:30:51Z twisti $
+   $Id: stack.c 1338 2004-07-21 16:02:14Z twisti $
 
 */
 
@@ -43,272 +43,12 @@
 #include "types.h"
 #include "options.h"
 #include "statistics.h"
+#include "jit/codegen.inc.h"
 #include "jit/jit.h"
 #include "jit/stack.h"
 #include "jit/reg.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
-
-
-/* from codegen.inc */
-extern int dseglen;
-
-/**********************************************************************/
-/* Macros used internally by analyse_stack                            */
-/**********************************************************************/
-
-#ifdef STATISTICS
-#define COUNT(cnt) cnt++
-#else
-#define COUNT(cnt)
-#endif
- 
-/* convenient abbreviations */
-#define CURKIND    curstack->varkind
-#define CURTYPE    curstack->type
-
-/*--------------------------------------------------*/
-/* SIGNALING ERRORS                                 */
-/*--------------------------------------------------*/
-
-#define TYPEPANIC  {panic("Stack type mismatch");}
-
-
-/*--------------------------------------------------*/
-/* STACK UNDERFLOW/OVERFLOW CHECKS                  */
-/*--------------------------------------------------*/
-
-/* underflow checks */
-
-#define REQUIRE(num) \
-    do { \
-        if (stackdepth < (num)) { \
-            sprintf(msg, "(class: "); \
-            utf_sprint(msg + strlen(msg), m->class->name); \
-            sprintf(msg + strlen(msg), ", method: "); \
-            utf_sprint(msg + strlen(msg), m->name); \
-            sprintf(msg + strlen(msg), ", signature: "); \
-            utf_sprint(msg + strlen(msg), m->descriptor); \
-            sprintf(msg + strlen(msg), ") Unable to pop operand off an empty stack"); \
-            *exceptionptr = \
-                new_exception_message(string_java_lang_VerifyError, msg); \
-            return NULL; \
-        } \
-    } while(0)
-
-#define REQUIRE_1     REQUIRE(1)
-#define REQUIRE_2     REQUIRE(2)
-#define REQUIRE_3     REQUIRE(3)
-#define REQUIRE_4     REQUIRE(4)
-
-
-/* overflow check */
-/* We allow ACONST instructions inserted as arguments to builtin
- * functions to exceed the maximum stack depth.  Maybe we should check
- * against maximum stack depth only at block boundaries?
- */
-
-#define CHECKOVERFLOW \
-	do { \
-		if (stackdepth > m->maxstack) { \
-			if (iptr[0].opc != ICMD_ACONST \
-                || iptr[0].op1 == 0) { \
-                sprintf(msg, "(class: "); \
-                utf_sprint_classname(msg + strlen(msg), m->class->name); \
-                sprintf(msg + strlen(msg), ", method: "); \
-                utf_sprint(msg + strlen(msg), m->name); \
-                sprintf(msg + strlen(msg), ", signature: "); \
-                utf_sprint(msg + strlen(msg), m->descriptor); \
-                sprintf(msg + strlen(msg), ") Stack size too large"); \
-                *exceptionptr = \
-                    new_exception_message(string_java_lang_VerifyError, msg); \
-                return NULL; \
-            } \
-		} \
-	} while(0)
-
-
-/*--------------------------------------------------*/
-/* ALLOCATING STACK SLOTS                           */
-/*--------------------------------------------------*/
-
-#define NEWSTACK(s,v,n) {new->prev=curstack;new->type=s;new->flags=0;	\
-                        new->varkind=v;new->varnum=n;curstack=new;new++;}
-#define NEWSTACKn(s,n)  NEWSTACK(s,UNDEFVAR,n)
-#define NEWSTACK0(s)    NEWSTACK(s,UNDEFVAR,0)
-
-/* allocate the input stack for an exception handler */
-#define NEWXSTACK   {NEWSTACK(TYPE_ADR,STACKVAR,0);curstack=0;}
-
-
-/*--------------------------------------------------*/
-/* STACK MANIPULATION                               */
-/*--------------------------------------------------*/
-
-/* resetting to an empty operand stack */
-#define STACKRESET {curstack=0;stackdepth=0;}
-
-/* set the output stack of the current instruction */
-#define SETDST      {iptr->dst=curstack;}
-
-/* The following macros do NOT check stackdepth, set stackdepth or iptr->dst */
-#define POP(s)      {if(s!=curstack->type){TYPEPANIC;}										\
-                     if(curstack->varkind==UNDEFVAR)curstack->varkind=TEMPVAR;\
-                     curstack=curstack->prev;}
-#define POPANY      {if(curstack->varkind==UNDEFVAR)curstack->varkind=TEMPVAR;	\
-                     curstack=curstack->prev;}
-#define COPY(s,d)   {(d)->flags=0;(d)->type=(s)->type;\
-                     (d)->varkind=(s)->varkind;(d)->varnum=(s)->varnum;}
-
-
-/*--------------------------------------------------*/
-/* STACK OPERATIONS MODELING                        */
-/*--------------------------------------------------*/
-
-/* The following macros are used to model the stack manipulations of
- * different kinds of instructions.
- *
- * These macros check the input stackdepth and they set the output
- * stackdepth and the output stack of the instruction (iptr->dst).
- *
- * These macros do *not* check for stack overflows!
- */
-   
-#define PUSHCONST(s){NEWSTACKn(s,stackdepth);SETDST;stackdepth++;}
-#define LOAD(s,v,n) {NEWSTACK(s,v,n);SETDST;stackdepth++;}
-#define STORE(s)    {REQUIRE_1;POP(s);SETDST;stackdepth--;}
-#define OP1_0(s)    {REQUIRE_1;POP(s);SETDST;stackdepth--;}
-#define OP1_0ANY    {REQUIRE_1;POPANY;SETDST;stackdepth--;}
-#define OP0_1(s)    {NEWSTACKn(s,stackdepth);SETDST;stackdepth++;}
-#define OP1_1(s,d)  {REQUIRE_1;POP(s);NEWSTACKn(d,stackdepth-1);SETDST;}
-#define OP2_0(s)    {REQUIRE_2;POP(s);POP(s);SETDST;stackdepth-=2;}
-#define OPTT2_0(t,b){REQUIRE_2;POP(t);POP(b);SETDST;stackdepth-=2;}
-#define OP2_1(s)    {REQUIRE_2;POP(s);POP(s);NEWSTACKn(s,stackdepth-2);SETDST;stackdepth--;}
-#define OP2IAT_1(s) {REQUIRE_2;POP(TYPE_INT);POP(TYPE_ADR);NEWSTACKn(s,stackdepth-2);\
-                     SETDST;stackdepth--;}
-#define OP2IT_1(s)  {REQUIRE_2;POP(TYPE_INT);POP(s);NEWSTACKn(s,stackdepth-2);\
-                     SETDST;stackdepth--;}
-#define OPTT2_1(s,d){REQUIRE_2;POP(s);POP(s);NEWSTACKn(d,stackdepth-2);SETDST;stackdepth--;}
-#define OP2_2(s)    {REQUIRE_2;POP(s);POP(s);NEWSTACKn(s,stackdepth-2);\
-                     NEWSTACKn(s,stackdepth-1);SETDST;}
-#define OP3TIA_0(s) {REQUIRE_3;POP(s);POP(TYPE_INT);POP(TYPE_ADR);SETDST;stackdepth-=3;}
-#define OP3_0(s)    {REQUIRE_3;POP(s);POP(s);POP(s);SETDST;stackdepth-=3;}
-#define POPMANY(i)  {REQUIRE(i);stackdepth-=i;while(--i>=0){POPANY;}SETDST;}
-#define DUP         {REQUIRE_1;NEWSTACK(CURTYPE,CURKIND,curstack->varnum);SETDST; \
-                    stackdepth++;}
-#define SWAP        {REQUIRE_2;COPY(curstack,new);POPANY;COPY(curstack,new+1);POPANY;\
-                    new[0].prev=curstack;new[1].prev=new;\
-                    curstack=new+1;new+=2;SETDST;}
-#define DUP_X1      {REQUIRE_2;COPY(curstack,new);COPY(curstack,new+2);POPANY;\
-                    COPY(curstack,new+1);POPANY;new[0].prev=curstack;\
-                    new[1].prev=new;new[2].prev=new+1;\
-                    curstack=new+2;new+=3;SETDST;stackdepth++;}
-#define DUP2_X1     {REQUIRE_3;COPY(curstack,new+1);COPY(curstack,new+4);POPANY;\
-                    COPY(curstack,new);COPY(curstack,new+3);POPANY;\
-                    COPY(curstack,new+2);POPANY;new[0].prev=curstack;\
-                    new[1].prev=new;new[2].prev=new+1;\
-                    new[3].prev=new+2;new[4].prev=new+3;\
-                    curstack=new+4;new+=5;SETDST;stackdepth+=2;}
-#define DUP_X2      {REQUIRE_3;COPY(curstack,new);COPY(curstack,new+3);POPANY;\
-                    COPY(curstack,new+2);POPANY;COPY(curstack,new+1);POPANY;\
-                    new[0].prev=curstack;new[1].prev=new;\
-                    new[2].prev=new+1;new[3].prev=new+2;\
-                    curstack=new+3;new+=4;SETDST;stackdepth++;}
-#define DUP2_X2     {REQUIRE_4;COPY(curstack,new+1);COPY(curstack,new+5);POPANY;\
-                    COPY(curstack,new);COPY(curstack,new+4);POPANY;\
-                    COPY(curstack,new+3);POPANY;COPY(curstack,new+2);POPANY;\
-                    new[0].prev=curstack;new[1].prev=new;\
-                    new[2].prev=new+1;new[3].prev=new+2;\
-                    new[4].prev=new+3;new[5].prev=new+4;\
-                    curstack=new+5;new+=6;SETDST;stackdepth+=2;}
-
-
-/*--------------------------------------------------*/
-/* MACROS FOR HANDLING BASIC BLOCKS                 */
-/*--------------------------------------------------*/
-
-/* COPYCURSTACK makes a copy of the current operand stack (curstack)
- * and returns it in the variable copy.
- *
- * This macro is used to propagate the operand stack from one basic
- * block to another. The destination block receives the copy as its
- * input stack.
- */
-#define COPYCURSTACK(copy) {\
-	int d;\
-	stackptr s;\
-	if(curstack){\
-		s=curstack;\
-		new+=stackdepth;\
-		d=stackdepth;\
-		copy=new;\
-		while(s){\
-			copy--;d--;\
-			copy->prev=copy-1;\
-			copy->type=s->type;\
-			copy->flags=0;\
-			copy->varkind=STACKVAR;\
-			copy->varnum=d;\
-			s=s->prev;\
-			}\
-		copy->prev=NULL;\
-		copy=new-1;\
-		}\
-	else\
-		copy=NULL;\
-}
-
-/* BBEND is called at the end of each basic block (after the last
- * instruction of the block has been processed).
- */
-
-#define BBEND(s,i){ \
-	i = stackdepth - 1; \
-	copy = s; \
-	while (copy) { \
-		if ((copy->varkind == STACKVAR) && (copy->varnum > i)) \
-			copy->varkind = TEMPVAR; \
-		else { \
-			copy->varkind = STACKVAR; \
-			copy->varnum = i;\
-		} \
-		m->registerdata->interfaces[i][copy->type].type = copy->type; \
-		m->registerdata->interfaces[i][copy->type].flags |= copy->flags; \
-		i--; copy = copy->prev; \
-	} \
-	i = bptr->indepth - 1; \
-	copy = bptr->instack; \
-	while (copy) { \
-		m->registerdata->interfaces[i][copy->type].type = copy->type; \
-		if (copy->varkind == STACKVAR) { \
-			if (copy->flags & SAVEDVAR) \
-				m->registerdata->interfaces[i][copy->type].flags |= SAVEDVAR; \
-		} \
-		i--; copy = copy->prev; \
-	} \
-}
-
-
-/* MARKREACHED marks the destination block <b> as reached. If this
- * block has been reached before we check if stack depth and types
- * match. Otherwise the destination block receives a copy of the
- * current stack as its input stack.
- *
- * b...destination block
- * c...current stack
- */
-#define MARKREACHED(b,c) {												\
-	if(b->flags<0)														\
-		{COPYCURSTACK(c);b->flags=0;b->instack=c;b->indepth=stackdepth;} \
-	else {stackptr s=curstack;stackptr t=b->instack;					\
-		if(b->indepth!=stackdepth)										\
-			{show_icmd_method(m);panic("Stack depth mismatch");}			\
-		while(s){if (s->type!=t->type)									\
-				TYPEPANIC												\
-			s=s->prev;t=t->prev;										\
-			}															\
-		}																\
-}
 
 
 /**********************************************************************/
@@ -351,11 +91,9 @@ methodinfo *analyse_stack(methodinfo *m)
 	basicblock *tbptr;
 	s4 *s4ptr;
 	void* *tptr;
-	int *argren;
-	char msg[MAXLOGTEXT];               /* maybe we get an exception          */
+	s4 *argren;
 
-	argren = DMNEW(int, m->maxlocals);
-	/*int *argren = (int *)alloca(m->maxlocals * sizeof(int));*/ /* table for argument renaming */
+	argren = DMNEW(s4, m->maxlocals);   /* table for argument renaming        */
 	for (i = 0; i < m->maxlocals; i++)
 		argren[i] = i;
 	
@@ -1194,8 +932,10 @@ methodinfo *analyse_stack(methodinfo *m)
 #ifdef TYPECHECK_STACK_COMPCAT
 						if (opt_verify) {
 							REQUIRE_1;
-							if (IS_2_WORD_TYPE(curstack->type))
-								panic("Illegal instruction: POP on category 2 type");
+							if (IS_2_WORD_TYPE(curstack->type)) {
+								*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+								return NULL;
+							}
 						}
 #endif
 						OP1_0ANY;
@@ -1434,13 +1174,15 @@ methodinfo *analyse_stack(methodinfo *m)
 
 					case ICMD_POP2:
 						REQUIRE_1;
-						if (! IS_2_WORD_TYPE(curstack->type)) {
+						if (!IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., cat1 */
 #ifdef TYPECHECK_STACK_COMPCAT
 							if (opt_verify) {
 								REQUIRE_2;
-								if (IS_2_WORD_TYPE(curstack->prev->type))
-									panic("Illegal instruction: POP2 on cat2, cat1 types");
+								if (IS_2_WORD_TYPE(curstack->prev->type)) {
+									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+									return NULL;
+								}
 							}
 #endif
 							OP1_0ANY;                /* second pop */
@@ -1456,8 +1198,10 @@ methodinfo *analyse_stack(methodinfo *m)
 #ifdef TYPECHECK_STACK_COMPCAT
 						if (opt_verify) {
 							REQUIRE_1;
-							if (IS_2_WORD_TYPE(curstack->type))
-								panic("Illegal instruction: DUP on category 2 type");
+							if (IS_2_WORD_TYPE(curstack->type)) {
+								*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+								return NULL;
+							}
 						}
 #endif
 						COUNT(count_dup_instruction);
@@ -1476,8 +1220,10 @@ methodinfo *analyse_stack(methodinfo *m)
 							/* ..., ????, cat1 */
 #ifdef TYPECHECK_STACK_COMPCAT
 							if (opt_verify) {
-								if (IS_2_WORD_TYPE(curstack->prev->type))
-									panic("Illegal instruction: DUP2 on cat2, cat1 types");
+								if (IS_2_WORD_TYPE(curstack->prev->type)) {
+									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+									return NULL;
+								}
 							}
 #endif
 							copy = curstack;
@@ -1486,7 +1232,7 @@ methodinfo *analyse_stack(methodinfo *m)
 							NEWSTACK(copy->type, copy->varkind,
 									 copy->varnum);
 							SETDST;
-							stackdepth+=2;
+							stackdepth += 2;
 						}
 						break;
 
@@ -1497,8 +1243,10 @@ methodinfo *analyse_stack(methodinfo *m)
 						if (opt_verify) {
 							REQUIRE_2;
 							if (IS_2_WORD_TYPE(curstack->type) ||
-								IS_2_WORD_TYPE(curstack->prev->type))
-								panic("Illegal instruction: DUP_X1 on cat 2 type");
+								IS_2_WORD_TYPE(curstack->prev->type)) {
+									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+									return NULL;
+							}
 						}
 #endif
 						DUP_X1;
@@ -1510,8 +1258,10 @@ methodinfo *analyse_stack(methodinfo *m)
 							/* ..., ????, cat2 */
 #ifdef TYPECHECK_STACK_COMPCAT
 							if (opt_verify) {
-								if (IS_2_WORD_TYPE(curstack->prev->type))
-									panic("Illegal instruction: DUP2_X1 on cat2, cat2 types");
+								if (IS_2_WORD_TYPE(curstack->prev->type)) {
+									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+									return NULL;
+								}
 							}
 #endif
 							iptr->opc = ICMD_DUP_X1;
@@ -1523,8 +1273,10 @@ methodinfo *analyse_stack(methodinfo *m)
 							if (opt_verify) {
 								REQUIRE_3;
 								if (IS_2_WORD_TYPE(curstack->prev->type)
-									|| IS_2_WORD_TYPE(curstack->prev->prev->type))
-									panic("Illegal instruction: DUP2_X1 on invalid types");
+									|| IS_2_WORD_TYPE(curstack->prev->prev->type)) {
+									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+									return NULL;
+								}
 							}
 #endif
 							DUP2_X1;
@@ -1539,8 +1291,10 @@ methodinfo *analyse_stack(methodinfo *m)
 							/* ..., cat2, ???? */
 #ifdef TYPECHECK_STACK_COMPCAT
 							if (opt_verify) {
-								if (IS_2_WORD_TYPE(curstack->type))
-									panic("Illegal instruction: DUP_X2 on cat2, cat2 types");
+								if (IS_2_WORD_TYPE(curstack->type)) {
+									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+									return NULL;
+								}
 							}
 #endif
 							iptr->opc = ICMD_DUP_X1;
@@ -1552,8 +1306,10 @@ methodinfo *analyse_stack(methodinfo *m)
 							if (opt_verify) {
 								REQUIRE_3;
 								if (IS_2_WORD_TYPE(curstack->type)
-									|| IS_2_WORD_TYPE(curstack->prev->prev->type))
-									panic("Illegal instruction: DUP_X2 on invalid types");
+									|| IS_2_WORD_TYPE(curstack->prev->prev->type)) {
+									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+									return NULL;
+								}
 							}
 #endif
 							DUP_X2;
@@ -1574,8 +1330,10 @@ methodinfo *analyse_stack(methodinfo *m)
 #ifdef TYPECHECK_STACK_COMPCAT
 								if (opt_verify) {
 									REQUIRE_3;
-									if (IS_2_WORD_TYPE(curstack->prev->prev->type))
-										panic("Illegal instruction: DUP2_X2 on invalid types");
+									if (IS_2_WORD_TYPE(curstack->prev->prev->type)) {
+										*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+										return NULL;
+									}
 								}
 #endif
 								iptr->opc = ICMD_DUP_X2;
@@ -1589,8 +1347,10 @@ methodinfo *analyse_stack(methodinfo *m)
 								/* ..., cat2, ????, cat1 */
 #ifdef TYPECHECK_STACK_COMPCAT
 								if (opt_verify) {
-									if (IS_2_WORD_TYPE(curstack->prev->type))
-										panic("Illegal instruction: DUP2_X2 on invalid types");
+									if (IS_2_WORD_TYPE(curstack->prev->type)) {
+										*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+										return NULL;
+									}
 								}
 #endif
 								iptr->opc = ICMD_DUP2_X1;
@@ -1602,8 +1362,10 @@ methodinfo *analyse_stack(methodinfo *m)
 								if (opt_verify) {
 									REQUIRE_4;
 									if (IS_2_WORD_TYPE(curstack->prev->type)
-										|| IS_2_WORD_TYPE(curstack->prev->prev->prev->type))
-										panic("Illegal instruction: DUP2_X2 on invalid types");
+										|| IS_2_WORD_TYPE(curstack->prev->prev->prev->type)) {
+										*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+										return NULL;
+									}
 								}
 #endif
 								DUP2_X2;
@@ -1618,8 +1380,10 @@ methodinfo *analyse_stack(methodinfo *m)
 						if (opt_verify) {
 							REQUIRE_2;
 							if (IS_2_WORD_TYPE(curstack->type)
-								|| IS_2_WORD_TYPE(curstack->prev->type))
-								panic("Illegal instruction: SWAP on category 2 type");
+								|| IS_2_WORD_TYPE(curstack->prev->type)) {
+								*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
+								return NULL;
+							}
 						}
 #endif
 						SWAP;
@@ -2108,15 +1872,16 @@ methodinfo *analyse_stack(methodinfo *m)
 						break;
 
 					default:
-						printf("ICMD %d at %d\n", iptr->opc, (s4) (iptr - m->instructions));
-						panic("Missing ICMD code during stack analysis");
+						*exceptionptr =
+							new_exception_message(string_java_lang_InternalError,
+												  "Unknown ICMD");
+						return NULL;
 					} /* switch */
 
 					CHECKOVERFLOW;
-					
-					/* DEBUG */ /*dolog("iptr++");*/
 					iptr++;
 				} /* while instructions */
+
 				bptr->outstack = curstack;
 				bptr->outdepth = stackdepth;
 				BBEND(curstack, i);
@@ -2127,78 +1892,80 @@ methodinfo *analyse_stack(methodinfo *m)
 		} /* while blocks */
 	} while (repeat && !deadcode);
 
-#ifdef STATISTICS
-	if (m->basicblockcount > count_max_basic_blocks)
-		count_max_basic_blocks = m->basicblockcount;
-	count_basic_blocks += m->basicblockcount;
-	if (m->instructioncount > count_max_javainstr)
-		count_max_javainstr = m->instructioncount;
-	count_javainstr += m->instructioncount;
-	if (m->stackcount > count_upper_bound_new_stack)
-		count_upper_bound_new_stack = m->stackcount;
-	if ((new - m->stack) > count_max_new_stack)
-		count_max_new_stack = (new - m->stack);
+#if defined(STATISTICS)
+	if (opt_stat) {
+		if (m->basicblockcount > count_max_basic_blocks)
+			count_max_basic_blocks = m->basicblockcount;
+		count_basic_blocks += m->basicblockcount;
+		if (m->instructioncount > count_max_javainstr)
+			count_max_javainstr = m->instructioncount;
+		count_javainstr += m->instructioncount;
+		if (m->stackcount > count_upper_bound_new_stack)
+			count_upper_bound_new_stack = m->stackcount;
+		if ((new - m->stack) > count_max_new_stack)
+			count_max_new_stack = (new - m->stack);
 
-	b_count = m->basicblockcount;
-	bptr = m->basicblocks;
-	while (--b_count >= 0) {
-		if (bptr->flags > BBREACHED) {
-			if (bptr->indepth >= 10)
-				count_block_stack[10]++;
-			else
-				count_block_stack[bptr->indepth]++;
-			len = bptr->icount;
-			if (len < 10) 
-				count_block_size_distribution[len]++;
-			else if (len <= 12)
-				count_block_size_distribution[10]++;
-			else if (len <= 14)
-				count_block_size_distribution[11]++;
-			else if (len <= 16)
-				count_block_size_distribution[12]++;
-			else if (len <= 18)
-				count_block_size_distribution[13]++;
-			else if (len <= 20)
-				count_block_size_distribution[14]++;
-			else if (len <= 25)
-				count_block_size_distribution[15]++;
-			else if (len <= 30)
-				count_block_size_distribution[16]++;
-			else
-				count_block_size_distribution[17]++;
+		b_count = m->basicblockcount;
+		bptr = m->basicblocks;
+		while (--b_count >= 0) {
+			if (bptr->flags > BBREACHED) {
+				if (bptr->indepth >= 10)
+					count_block_stack[10]++;
+				else
+					count_block_stack[bptr->indepth]++;
+				len = bptr->icount;
+				if (len < 10) 
+					count_block_size_distribution[len]++;
+				else if (len <= 12)
+					count_block_size_distribution[10]++;
+				else if (len <= 14)
+					count_block_size_distribution[11]++;
+				else if (len <= 16)
+					count_block_size_distribution[12]++;
+				else if (len <= 18)
+					count_block_size_distribution[13]++;
+				else if (len <= 20)
+					count_block_size_distribution[14]++;
+				else if (len <= 25)
+					count_block_size_distribution[15]++;
+				else if (len <= 30)
+					count_block_size_distribution[16]++;
+				else
+					count_block_size_distribution[17]++;
+			}
+			bptr++;
 		}
-		bptr++;
+
+		if (loops == 1)
+			count_analyse_iterations[0]++;
+		else if (loops == 2)
+			count_analyse_iterations[1]++;
+		else if (loops == 3)
+			count_analyse_iterations[2]++;
+		else if (loops == 4)
+			count_analyse_iterations[3]++;
+		else
+			count_analyse_iterations[4]++;
+
+		if (m->basicblockcount <= 5)
+			count_method_bb_distribution[0]++;
+		else if (m->basicblockcount <= 10)
+			count_method_bb_distribution[1]++;
+		else if (m->basicblockcount <= 15)
+			count_method_bb_distribution[2]++;
+		else if (m->basicblockcount <= 20)
+			count_method_bb_distribution[3]++;
+		else if (m->basicblockcount <= 30)
+			count_method_bb_distribution[4]++;
+		else if (m->basicblockcount <= 40)
+			count_method_bb_distribution[5]++;
+		else if (m->basicblockcount <= 50)
+			count_method_bb_distribution[6]++;
+		else if (m->basicblockcount <= 75)
+			count_method_bb_distribution[7]++;
+		else
+			count_method_bb_distribution[8]++;
 	}
-
-	if (loops == 1)
-		count_analyse_iterations[0]++;
-	else if (loops == 2)
-		count_analyse_iterations[1]++;
-	else if (loops == 3)
-		count_analyse_iterations[2]++;
-	else if (loops == 4)
-		count_analyse_iterations[3]++;
-	else
-		count_analyse_iterations[4]++;
-
-	if (m->basicblockcount <= 5)
-		count_method_bb_distribution[0]++;
-	else if (m->basicblockcount <= 10)
-		count_method_bb_distribution[1]++;
-	else if (m->basicblockcount <= 15)
-		count_method_bb_distribution[2]++;
-	else if (m->basicblockcount <= 20)
-		count_method_bb_distribution[3]++;
-	else if (m->basicblockcount <= 30)
-		count_method_bb_distribution[4]++;
-	else if (m->basicblockcount <= 40)
-		count_method_bb_distribution[5]++;
-	else if (m->basicblockcount <= 50)
-		count_method_bb_distribution[6]++;
-	else if (m->basicblockcount <= 75)
-		count_method_bb_distribution[7]++;
-	else
-		count_method_bb_distribution[8]++;
 #endif
 
 	/* just return methodinfo* to signal everything was ok */
@@ -2430,7 +2197,7 @@ void show_icmd_method(methodinfo *m)
 		u1 *u1ptr;
 		s4 a;
 
-		u1ptr = m->mcode + dseglen;
+		u1ptr = m->mcode + m->codegendata->dseglen;
 		for (i = 0; i < m->basicblocks[0].mpc; i++, u1ptr++) {
 			a = disassinstr(u1ptr, i);
 			i += a;
@@ -2440,7 +2207,7 @@ void show_icmd_method(methodinfo *m)
 #else
 		s4 *s4ptr;
 
-		s4ptr = (s4 *) (m->mcode + dseglen);
+		s4ptr = (s4 *) (m->mcode + m->codegendata->dseglen);
 		for (i = 0; i < m->basicblocks[0].mpc; i += 4, s4ptr++) {
 			disassinstr(s4ptr, i); 
 		}
@@ -2491,7 +2258,7 @@ void show_icmd_block(methodinfo *m, basicblock *bptr)
 
 			printf("\n");
 			i = bptr->mpc;
-			u1ptr = m->mcode + dseglen + i;
+			u1ptr = m->mcode + m->codegendata->dseglen + i;
 
 			if (bptr->next != NULL) {
 				for (; i < bptr->next->mpc; i++, u1ptr++) {
@@ -2514,7 +2281,7 @@ void show_icmd_block(methodinfo *m, basicblock *bptr)
 
 			printf("\n");
 			i = bptr->mpc;
-			s4ptr = (s4 *) (m->mcode + dseglen + i);
+			s4ptr = (s4 *) (m->mcode + m->codegendata->dseglen + i);
 
 			if (bptr->next != NULL) {
 				for (; i < bptr->next->mpc; i += 4, s4ptr++) {
@@ -2542,7 +2309,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	
 	printf("%s", icmd_names[iptr->opc]);
 
-	switch ((int) iptr->opc) {
+	switch (iptr->opc) {
 	case ICMD_IADDCONST:
 	case ICMD_ISUBCONST:
 	case ICMD_IMULCONST:
@@ -2848,10 +2615,10 @@ void show_icmd(instruction *iptr, bool deadcode)
 		}
 		break;
 	}
-	printf(" Line number: %d, method:",iptr->line);
-	utf_display(iptr->method->class->name);
-	printf(".");
-	utf_display(iptr->method->name);
+/*  	printf(" Line number: %d, method:",iptr->line); */
+/*  	utf_display(iptr->method->class->name); */
+/*  	printf("."); */
+/*  	utf_display(iptr->method->name); */
 }
 
 
