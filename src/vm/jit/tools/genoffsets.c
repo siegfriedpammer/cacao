@@ -28,19 +28,18 @@
 
    Changes:
 
-   $Id: genoffsets.c 2122 2005-03-29 22:12:06Z twisti $
+   $Id: genoffsets.c 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
 
 #include <stdio.h>
 
-#include "config.h"
-#include "types.h"
+#include "vm/global.h"
 #include "mm/memory.h"
 #include "vm/linker.h"
 #include "vm/method.h"
-#include "vm/global.h"
+#include "vm/class.h"
 #include "vm/jit/asmpart.h"
 
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 2125 2005-03-29 22:20:49Z twisti $
+   $Id: codegen.inc.h 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -50,7 +50,7 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 
 #include "types.h"
 #include "vm/global.h"
-#include "vm/class.h"
+#include "vm/references.h"
 #include "vm/method.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"

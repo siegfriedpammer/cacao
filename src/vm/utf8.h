@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 2158 2005-03-30 20:06:37Z twisti $
+   $Id: utf8.h 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -44,7 +44,6 @@
 typedef struct utf utf;
 
 
-#include "types.h"
 #include "vm/global.h"
 
 

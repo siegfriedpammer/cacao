@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.h 2111 2005-03-29 21:28:24Z twisti $
+   $Id: classcache.h 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -38,8 +38,7 @@
 
 #include <stdio.h>  /* for FILE */
 
-#include "vm/class.h"
-#include "vm/utf8.h"
+#include "vm/references.h"
 
 
 /* forward declarations *******************************************************/

@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 2157 2005-03-30 20:05:55Z twisti $
+   $Id: global.h 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -291,46 +291,6 @@ struct java_objectarray {
 /* flag variables *************************************************************/
 
 extern bool cacao_initializing;
-
-
-/* macros for descriptor parsing **********************************************/
-
-/* SKIP_FIELDDESCRIPTOR:
- * utf_ptr must point to the first character of a field descriptor.
- * After the macro call utf_ptr points to the first character after
- * the field descriptor.
- *
- * CAUTION: This macro does not check for an unexpected end of the
- * descriptor. Better use SKIP_FIELDDESCRIPTOR_SAFE.
- */
-#define SKIP_FIELDDESCRIPTOR(utf_ptr)							\
-	do { while (*(utf_ptr)=='[') (utf_ptr)++;					\
-		if (*(utf_ptr)++=='L')									\
-			while(*(utf_ptr)++ != ';') /* skip */; } while(0)
-
-/* SKIP_FIELDDESCRIPTOR_SAFE:
- * utf_ptr must point to the first character of a field descriptor.
- * After the macro call utf_ptr points to the first character after
- * the field descriptor.
- *
- * Input:
- *     utf_ptr....points to first char of descriptor
- *     end_ptr....points to first char after the end of the string
- *     errorflag..must be initialized (to false) by the caller!
- * Output:
- *     utf_ptr....points to first char after the descriptor
- *     errorflag..set to true if the string ended unexpectedly
- */
-#define SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr,end_ptr,errorflag)			\
-	do { while ((utf_ptr) != (end_ptr) && *(utf_ptr)=='[') (utf_ptr)++;	\
-		if ((utf_ptr) == (end_ptr))										\
-			(errorflag) = true;											\
-		else															\
-			if (*(utf_ptr)++=='L') {									\
-				while((utf_ptr) != (end_ptr) && *(utf_ptr)++ != ';')	\
-					/* skip */;											\
-				if ((utf_ptr)[-1] != ';')								\
-					(errorflag) = true; }} while(0)
 
 
 /* Synchronization ************************************************************/

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2155 2005-03-30 20:04:42Z twisti $
+   $Id: loader.c 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -927,7 +927,7 @@ u4 class_constanttype(classinfo *c, u4 pos)
 
 *******************************************************************************/
 
-static bool load_constantpool(classbuffer *cb)
+static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 {
 
 	/* The following structures are used to save information which cannot be 
@@ -1227,6 +1227,18 @@ static bool load_constantpool(classbuffer *cb)
 		}  /* end switch */
 	} /* end while */
 
+	/* add all class references to the descriptor_pool */
+	for (nfc=forward_classes; nfc; nfc=nfc->next) {
+		utf *name = class_getconstant(c,nfc->name_index,CONSTANT_Utf8);
+		if (!descriptor_pool_add_class(descpool,name))
+			return false;
+	}
+	/* add all descriptors in NameAndTypes to the descriptor_pool */
+	for (nfn=forward_nameandtypes; nfn; nfn=nfn->next) {
+		utf *desc = class_getconstant(c,nfn->sig_index,CONSTANT_Utf8);
+		if (!descriptor_pool_add(descpool,desc))
+			return false;
+	}
 
 	/* resolve entries in temporary structures */
 
@@ -1373,7 +1385,7 @@ static bool load_constantpool(classbuffer *cb)
 
 #define field_load_NOVALUE  0xffffffff /* must be bigger than any u2 value! */
 
-static bool load_field(classbuffer *cb, fieldinfo *f)
+static bool load_field(classbuffer *cb, fieldinfo *f,descriptor_pool *descpool)
 {
 	classinfo *c;
 	u4 attrnum, i;
@@ -1395,6 +1407,9 @@ static bool load_field(classbuffer *cb, fieldinfo *f)
 	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
 	f->descriptor = u;
+	f->parseddesc = NULL;
+	if (!descriptor_pool_add(descpool,u))
+		return false;
 
 	if (opt_verify) {
 		/* check name */
@@ -1561,7 +1576,7 @@ static bool load_field(classbuffer *cb, fieldinfo *f)
 	
 *******************************************************************************/
 
-static bool load_method(classbuffer *cb, methodinfo *m)
+static bool load_method(classbuffer *cb, methodinfo *m,descriptor_pool *descpool)
 {
 	classinfo *c;
 	s4 argcount;
@@ -1599,6 +1614,9 @@ static bool load_method(classbuffer *cb, methodinfo *m)
 	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
 	m->descriptor = u;
+	m->parseddesc = NULL;
+	if (!descriptor_pool_add(descpool,u))
+		return false;
 
 	if (opt_verify) {
 		if (!is_valid_name_utf(m->name))
@@ -1966,43 +1984,6 @@ static bool load_attributes(classbuffer *cb, u4 num)
 }
 
 
-/***************** Function: print_arraydescriptor ****************************
-
-	Debugging helper for displaying an arraydescriptor
-	
-*******************************************************************************/
-
-void print_arraydescriptor(FILE *file, arraydescriptor *desc)
-{
-	if (!desc) {
-		fprintf(file, "<NULL>");
-		return;
-	}
-
-	fprintf(file, "{");
-	if (desc->componentvftbl) {
-		if (desc->componentvftbl->class)
-			utf_fprint(file, desc->componentvftbl->class->name);
-		else
-			fprintf(file, "<no classinfo>");
-	}
-	else
-		fprintf(file, "0");
-		
-	fprintf(file, ",");
-	if (desc->elementvftbl) {
-		if (desc->elementvftbl->class)
-			utf_fprint(file, desc->elementvftbl->class->name);
-		else
-			fprintf(file, "<no classinfo>");
-	}
-	else
-		fprintf(file, "0");
-	fprintf(file, ",%d,%d,%d,%d}", desc->arraytype, desc->dimension,
-			desc->dataoffset, desc->componentsize);
-}
-
-
 /* load_class_from_classloader *************************************************
 
    XXX
@@ -2150,7 +2131,13 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	classinfo *tc;
 	u4 i;
 	u4 ma, mi;
+	s4 dumpsize;
+	descriptor_pool *descpool;
 	char msg[MAXLOGTEXT];               /* maybe we get an exception */
+#if defined(STATISTICS)
+	u4 classrefsize;
+	u4 descsize;
+#endif
 
 	/* get the classbuffer's class */
 	c = cb->class;
@@ -2168,17 +2155,20 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	if (loadverbose)
 		log_message_class("Loading class: ", c);
 	
+	/* mark start of dump memory area */
+	dumpsize = dump_size();
+
 	/* class is somewhat loaded */
 	c->loaded = true;
 
 	if (!check_classbuffer_size(cb, 4 + 2 + 2))
-		return NULL;
+		goto return_exception;
 
 	/* check signature */
 	if (suck_u4(cb) != MAGIC) {
 		*exceptionptr = new_classformaterror(c, "Bad magic number");
 
-		return NULL;
+		goto return_exception;
 	}
 
 	/* check version */
@@ -2191,12 +2181,15 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 											 "Unsupported major.minor version %d.%d",
 											 ma, mi);
 
-		return NULL;
+		goto return_exception;
 	}
 
+	/* create a new descriptor pool */
+	descpool = descriptor_pool_new(c);
+	
 	/* load the constant pool */
-	if (!load_constantpool(cb))
-		return NULL;
+	if (!load_constantpool(cb,descpool))
+		goto return_exception;
 
 	/*JOWENN*/
 	c->erroneous_state = 0;
@@ -2207,7 +2200,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	/* ACC flags */
 	if (!check_classbuffer_size(cb, 2))
-		return NULL;
+		goto return_exception;
 
 	c->flags = suck_u2(cb);
 	/*if (!(c->flags & ACC_PUBLIC)) { log_text("CLASS NOT PUBLIC"); } JOWENN*/
@@ -2227,7 +2220,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 				new_classformaterror(c,
 									 "Illegal class modifiers: 0x%X", c->flags);
 
-			return NULL;
+			goto return_exception;
 		}
 
 		if (c->flags & ACC_SUPER) {
@@ -2239,16 +2232,16 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		*exceptionptr =
 			new_classformaterror(c, "Illegal class modifiers: 0x%X", c->flags);
 
-		return NULL;
+		goto return_exception;
 	}
 
 	if (!check_classbuffer_size(cb, 2 + 2))
-		return NULL;
+		goto return_exception;
 
 	/* this class */
 	i = suck_u2(cb);
 	if (!(tc = class_getconstant(c, i, CONSTANT_Class)))
-		return NULL;
+		goto return_exception;
 
 	if (tc != c) {
 		utf_sprint(msg, c->name);
@@ -2259,13 +2252,13 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		*exceptionptr =
 			new_exception_message(string_java_lang_NoClassDefFoundError, msg);
 
-		return NULL;
+		goto return_exception;
 	}
 	
 	/* retrieve superclass */
 	if ((i = suck_u2(cb))) {
 		if (!(c->super = class_getconstant(c, i, CONSTANT_Class)))
-			return NULL;
+			goto return_exception;
 
 		/* java.lang.Object may not have a super class. */
 		if (c->name == utf_java_lang_Object) {
@@ -2273,7 +2266,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 				new_exception_message(string_java_lang_ClassFormatError,
 									  "java.lang.Object with superclass");
 
-			return NULL;
+			goto return_exception;
 		}
 
 		/* Interfaces must have java.lang.Object as super class. */
@@ -2283,7 +2276,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 				new_exception_message(string_java_lang_ClassFormatError,
 									  "Interfaces must have java.lang.Object as superclass");
 
-			return NULL;
+			goto return_exception;
 		}
 
 	} else {
@@ -2293,47 +2286,100 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		if (c->name != utf_java_lang_Object) {
 			*exceptionptr = new_classformaterror(c, "Bad superclass index");
 
-			return NULL;
+			goto return_exception;
 		}
 	}
 			 
 	/* retrieve interfaces */
 	if (!check_classbuffer_size(cb, 2))
-		return NULL;
+		goto return_exception;
 
 	c->interfacescount = suck_u2(cb);
 
 	if (!check_classbuffer_size(cb, 2 * c->interfacescount))
-		return NULL;
+		goto return_exception;
 
 	c->interfaces = MNEW(classinfo*, c->interfacescount);
 	for (i = 0; i < c->interfacescount; i++) {
 		if (!(c->interfaces[i] = class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
-			return NULL;
+			goto return_exception;
 	}
 
 	/* load fields */
 	if (!check_classbuffer_size(cb, 2))
-		return NULL;
+		goto return_exception;
 
 	c->fieldscount = suck_u2(cb);
 	c->fields = GCNEW(fieldinfo, c->fieldscount);
 /*  	c->fields = MNEW(fieldinfo, c->fieldscount); */
 	for (i = 0; i < c->fieldscount; i++) {
-		if (!load_field(cb, &(c->fields[i])))
-			return NULL;
+		if (!load_field(cb, &(c->fields[i]),descpool))
+			goto return_exception;
 	}
 
 	/* load methods */
 	if (!check_classbuffer_size(cb, 2))
-		return NULL;
+		goto return_exception;
 
 	c->methodscount = suck_u2(cb);
 /*  	c->methods = GCNEW(methodinfo, c->methodscount); */
 	c->methods = MNEW(methodinfo, c->methodscount);
 	for (i = 0; i < c->methodscount; i++) {
-		if (!load_method(cb, &(c->methods[i])))
-			return NULL;
+		if (!load_method(cb, &(c->methods[i]),descpool))
+			goto return_exception;
+	}
+
+	/* create the class reference table */
+	c->classrefs = descriptor_pool_create_classrefs(descpool,&(c->classrefcount));
+
+	/* allocate space for the parsed descriptors */
+	descriptor_pool_alloc_parsed_descriptors(descpool);
+	c->parseddescs = descriptor_pool_get_parsed_descriptors(descpool,&(c->parseddescsize));
+
+#if defined(STATISTICS)
+	if (opt_stat) {
+		descriptor_pool_get_sizes(descpool,&classrefsize,&descsize);
+		count_classref_len += classrefsize;
+		count_parsed_desc_len += descsize;
+	}
+#endif
+
+	/* parse the loaded descriptors */
+	for (i=0; i<c->cpcount; ++i) {
+		constant_FMIref *fmi;
+		
+		switch (c->cptags[i]) {
+			case CONSTANT_Class:
+				/* XXX set classref */
+				break;
+			case CONSTANT_Fieldref:
+				fmi = (constant_FMIref *)c->cpinfos[i];
+				fmi->parseddesc.fd = 
+					descriptor_pool_parse_field_descriptor(descpool,fmi->descriptor);
+				if (!fmi->parseddesc.fd)
+					goto return_exception;
+				fmi->classref = descriptor_pool_lookup_classref(descpool,fmi->class->name);
+				break;
+			case CONSTANT_Methodref:
+			case CONSTANT_InterfaceMethodref:
+				fmi = (constant_FMIref *)c->cpinfos[i];
+				fmi->parseddesc.md = 
+					descriptor_pool_parse_method_descriptor(descpool,fmi->descriptor);
+				if (!fmi->parseddesc.md)
+					goto return_exception;
+				fmi->classref = descriptor_pool_lookup_classref(descpool,fmi->class->name);
+				break;
+		}
+	}
+	for (i = 0; i < c->fieldscount; i++) {
+		c->fields[i].parseddesc = descriptor_pool_parse_field_descriptor(descpool,c->fields[i].descriptor);
+		if (!c->fields[i].parseddesc)
+			goto return_exception;
+	}
+	for (i = 0; i < c->methodscount; i++) {
+		c->methods[i].parseddesc = descriptor_pool_parse_method_descriptor(descpool,c->methods[i].descriptor);
+		if (!c->methods[i].parseddesc)
+			goto return_exception;
 	}
 
 	/* Check if all fields and methods can be uniquely
@@ -2386,7 +2432,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 							new_classformaterror(c,
 												 "Repetitive field name/signature");
 
-						return NULL;
+						goto return_exception;
 					}
 				} while ((old = next[old]));
 			}
@@ -2420,7 +2466,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 							new_classformaterror(c,
 												 "Repetitive method name/signature");
 
-						return NULL;
+						goto return_exception;
 					}
 				} while ((old = next[old]));
 			}
@@ -2440,10 +2486,10 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	/* load attribute structures */
 	if (!check_classbuffer_size(cb, 2))
-		return NULL;
+		goto return_exception;
 
 	if (!load_attributes(cb, suck_u2(cb)))
-		return NULL;
+		goto return_exception;
 
 #if 0
 	/* Pre java 1.5 version don't check this. This implementation is like
@@ -2457,15 +2503,25 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		if (classdata_left > 0) {
 			*exceptionptr =
 				new_classformaterror(c, "Extra bytes at the end of class file");
-			return NULL;
+			goto return_exception;
 		}
 	}
 #endif
 
+	/* release dump area */
+	dump_release(dumpsize);
+	
 	if (loadverbose)
 		log_message_class("Loading done class: ", c);
 
 	return c;
+
+return_exception:
+	/* release dump area */
+	dump_release(dumpsize);
+
+	/* an exception has been thrown */
+	return NULL;
 }
 
 
@@ -2480,6 +2536,8 @@ void class_new_array(classinfo *c)
 {
 	classinfo *comp = NULL;
 	methodinfo *clone;
+	methoddesc *clonedesc;
+	constant_classref *classrefs;
 	int namelen;
 
 	/* Check array class name */
@@ -2547,11 +2605,22 @@ void class_new_array(classinfo *c)
 	c->methodscount = 1;
 	c->methods = MNEW(methodinfo, c->methodscount);
 
+	classrefs = MNEW(constant_classref,1);
+	CLASSREF_INIT(classrefs[0],c,utf_java_lang_Object);
+
+	clonedesc = NEW(methoddesc);
+	clonedesc->returntype.type = TYPE_ADDRESS;
+	clonedesc->returntype.classref = classrefs;
+	clonedesc->returntype.arraydim = 0;
+	clonedesc->paramcount = 0;
+	clonedesc->paramslots = 0;
+
 	clone = c->methods;
 	MSET(clone, 0, methodinfo, 1);
 	clone->flags = ACC_PUBLIC;
 	clone->name = utf_new_char("clone");
 	clone->descriptor = utf_void__java_lang_Object;
+	clone->parseddesc = clonedesc;
 	clone->class = c;
 	clone->stubroutine = createnativestub((functionptr) &builtin_clone_array, clone);
 	clone->monoPoly = MONO;
@@ -2560,6 +2629,12 @@ void class_new_array(classinfo *c)
 
 	/* array classes are not loaded from class files */
 	c->loaded = true;
+	c->parseddescs = (u1*) clonedesc;
+	c->parseddescsize = sizeof(methodinfo);
+	c->classrefs = classrefs;
+	c->classrefcount = 1;
+
+	/* XXX insert class into the loaded class cache */
 }
 
 

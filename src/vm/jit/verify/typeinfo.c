@@ -26,11 +26,11 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2161 2005-03-30 20:08:53Z twisti $
+   $Id: typeinfo.c 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
-
+#include <assert.h>
 #include <string.h>
 
 #include "mm/memory.h"
@@ -40,13 +40,26 @@
 #include "vm/tables.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/verify/typeinfo.h"
+#include "vm/descriptor.h"
+#include "vm/resolve.h"
 
-#define CLASS_IS_ARRAY(cls)                                     \
-	((cls)->vftbl->arraydesc != NULL)
 
-#define CLASS_IMPLEMENTS_INTERFACE(cls,index)                   \
+/* check if a linked class is an array class. Only use for linked classes! */
+#define CLASSINFO_IS_ARRAY(clsinfo)  ((clsinfo)->vftbl->arraydesc != NULL)
+
+#define CLASSINFO_IMPLEMENTS_INTERFACE(cls,index)                   \
     ( ((index) < (cls)->vftbl->interfacetablelength)            \
       && (VFTBLINTERFACETABLE((cls)->vftbl,(index)) != NULL) )
+
+/******************************************************************************/
+/* DEBUG HELPERS                                                              */
+/******************************************************************************/
+
+#ifdef TYPEINFO_DEBUG
+#define TYPEINFO_ASSERT(cond)  assert(cond)
+#else
+#define TYPEINFO_ASSERT(cond)
+#endif
 
 /**********************************************************************/
 /* TYPEVECTOR FUNCTIONS                                               */
@@ -183,7 +196,8 @@ typevectorset_store_twoword(typevector *vec,int index,int type)
 }
 
 void
-typevectorset_init_object(typevector *set,void *ins,classinfo *initclass,
+typevectorset_init_object(typevector *set,void *ins,
+						  classref_or_classinfo initclass,
 						  int size)
 {
 	int i;
@@ -194,7 +208,7 @@ typevectorset_init_object(typevector *set,void *ins,classinfo *initclass,
 				&& TYPEINFO_IS_NEWOBJECT(set->td[i].info)
 				&& TYPEINFO_NEWOBJECT_INSTRUCTION(set->td[i].info) == ins)
 			{
-				TYPEINFO_INIT_CLASSINFO(set->td[i].info,initclass);
+				TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(set->td[i].info,initclass);
 			}
 		}
 	}
@@ -334,27 +348,34 @@ typevectorset_collapse(typevector *dst,int size)
 bool
 typeinfo_is_array(typeinfo *info)
 {
+	TYPEINFO_ASSERT(info);
     return TYPEINFO_IS_ARRAY(*info);
 }
 
 bool
 typeinfo_is_primitive_array(typeinfo *info,int arraytype)
 {
+	TYPEINFO_ASSERT(info);
     return TYPEINFO_IS_PRIMITIVE_ARRAY(*info,arraytype);
 }
 
 bool
 typeinfo_is_array_of_refs(typeinfo *info)
 {
+	TYPEINFO_ASSERT(info);
     return TYPEINFO_IS_ARRAY_OF_REFS(*info);
 }
 
-static
-bool
+static bool
 interface_extends_interface(classinfo *cls,classinfo *interf)
 {
     int i;
     
+	TYPEINFO_ASSERT(cls);
+	TYPEINFO_ASSERT(interf);
+	TYPEINFO_ASSERT((interf->flags & ACC_INTERFACE) != 0);
+	TYPEINFO_ASSERT((cls->flags & ACC_INTERFACE) != 0);
+
     /* first check direct superinterfaces */
     for (i=0; i<cls->interfacescount; ++i) {
         if (cls->interfaces[i] == interf)
@@ -370,16 +391,19 @@ interface_extends_interface(classinfo *cls,classinfo *interf)
     return false;
 }
 
-static
-bool
+static bool
 classinfo_implements_interface(classinfo *cls,classinfo *interf)
 {
+	TYPEINFO_ASSERT(cls);
+	TYPEINFO_ASSERT(interf);
+	TYPEINFO_ASSERT((interf->flags & ACC_INTERFACE) != 0);
+
 	if (!cls->loaded)
-		if (!load_class_bootstrap(cls))
+		if (!load_class_bootstrap(cls)) /* XXX */
 			return false;
 
 	if (!cls->linked)
-		if (!link_class(cls))
+		if (!link_class(cls)) /* XXX */
 			return false;
 
     if (cls->flags & ACC_INTERFACE) {
@@ -391,15 +415,19 @@ classinfo_implements_interface(classinfo *cls,classinfo *interf)
         return interface_extends_interface(cls,interf);
     }
 
-    return CLASS_IMPLEMENTS_INTERFACE(cls,interf->index);
+    return CLASSINFO_IMPLEMENTS_INTERFACE(cls,interf->index);
 }
 
-bool mergedlist_implements_interface(typeinfo_mergedlist *merged,
-                                     classinfo *interf)
+tristate_t 
+mergedlist_implements_interface(typeinfo_mergedlist *merged,
+                                classinfo *interf)
 {
     int i;
-    classinfo **mlist;
+    classref_or_classinfo *mlist;
     
+	TYPEINFO_ASSERT(interf);
+	TYPEINFO_ASSERT((interf->flags & ACC_INTERFACE) != 0);
+
     /* Check if there is an non-empty mergedlist. */
     if (!merged)
         return false;
@@ -410,13 +438,16 @@ bool mergedlist_implements_interface(typeinfo_mergedlist *merged,
     mlist = merged->list;
     i = merged->count;
     while (i--) {
-        if (!classinfo_implements_interface(*mlist++,interf))
+		if (IS_CLASSREF(*mlist)) {
+			return MAYBE;
+		}
+        if (!classinfo_implements_interface((mlist++)->cls,interf))
             return false;
     }
     return true;
 }
 
-bool
+tristate_t
 merged_implements_interface(classinfo *typeclass,typeinfo_mergedlist *merged,
                             classinfo *interf)
 {
@@ -436,45 +467,35 @@ merged_implements_interface(classinfo *typeclass,typeinfo_mergedlist *merged,
     return (merged && mergedlist_implements_interface(merged,interf));
 }
 
-bool
+tristate_t
 typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
 {
-    /* DEBUG CHECK: dest must not have a merged list. */
-#ifdef TYPEINFO_DEBUG
-    if (dest->merged)
-        panic("Internal error: typeinfo_is_assignable on merged destination.");
-#endif
+	TYPEINFO_ASSERT(value);
+	TYPEINFO_ASSERT(dest);
+	TYPEINFO_ASSERT(dest->merged == NULL);
 
-	return typeinfo_is_assignable_to_classinfo(value,dest->typeclass);
+	return typeinfo_is_assignable_to_class(value,dest->typeclass);
 }
 
-bool
-typeinfo_is_assignable_to_classinfo(typeinfo *value,classinfo *dest)
+tristate_t
+typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 {
+	classref_or_classinfo c;
     classinfo *cls;
+	utf *classname;
 
-    cls = value->typeclass;
+	TYPEINFO_ASSERT(value);
+
+    c = value->typeclass;
 
     /* assignments of primitive values are not checked here. */
-    if (!cls && !dest)
+    if (!c.any && !dest.any)
         return true;
 
     /* primitive and reference types are not assignment compatible. */
-    if (!cls || !dest)
+    if (!c.any || !dest.any)
         return false;
 
-	/* maybe we need to load and link the class */
-	if (!cls->loaded)
-		load_class_bootstrap(cls);
-
-	if (!cls->linked)
-		link_class(cls);
-
-#ifdef TYPEINFO_DEBUG
-    if (!dest->linked)
-        panic("Internal error: typeinfo_is_assignable_to_classinfo: unlinked class.");
-#endif
-	
     /* the null type can be assigned to any type */
     if (TYPEINFO_IS_NULLTYPE(*value))
         return true;
@@ -483,13 +504,70 @@ typeinfo_is_assignable_to_classinfo(typeinfo *value,classinfo *dest)
     if (TYPEINFO_IS_NEWOBJECT(*value))
         return false;
 
-    if (dest->flags & ACC_INTERFACE) {
+	if (IS_CLASSREF(c)) {
+		/* The value type is an unresolved class reference. */
+		classname = c.ref->name;
+	}
+	else {
+		classname = c.cls->name;
+	}
+
+	if (IS_CLASSREF(dest)) {
+		/* the destination type is an unresolved class reference */
+		/* In this case we cannot tell a lot about assignability. */
+
+		/* the common case of value and dest type having the same classname */
+		if (dest.ref->name == classname && !value->merged)
+			return true;
+
+		/* we cannot tell if value is assignable to dest, so we */
+		/* leave it up to the resolving code to check this      */
+		return MAYBE;
+	}
+
+	/* { we know that dest is a loaded class } */
+
+	if (IS_CLASSREF(c)) {
+		/* the value type is an unresolved class reference */
+		
+		/* the common case of value and dest type having the same classname */
+		if (dest.cls->name == classname)
+			return true;
+
+		/* we cannot tell if value is assignable to dest, so we */
+		/* leave it up to the resolving code to check this      */
+		return MAYBE;
+	}
+
+	/* { we know that both c and dest are loaded classes } */
+
+	cls = c.cls;
+	
+	if (!cls->loaded)
+		load_class_bootstrap(cls); /* XXX */
+	if (!dest.cls->loaded)
+		load_class_bootstrap(dest.cls); /* XXX */
+
+	TYPEINFO_ASSERT(cls->loaded);
+	TYPEINFO_ASSERT(dest.cls->loaded);
+
+	/* maybe we need to link the classes */
+	if (!cls->linked)
+		link_class(cls); /* XXX */
+	if (!dest.cls->linked)
+		link_class(dest.cls); /* XXX */
+
+	/* { we know that both c and dest are linked classes } */
+	TYPEINFO_ASSERT(cls->linked);
+	TYPEINFO_ASSERT(dest.cls->linked);
+
+    if (dest.cls->flags & ACC_INTERFACE) {
         /* We are assigning to an interface type. */
-        return merged_implements_interface(cls,value->merged,dest);
+        return merged_implements_interface(cls,value->merged,dest.cls);
     }
 
-    if (CLASS_IS_ARRAY(dest)) {
-		arraydescriptor *arraydesc = dest->vftbl->arraydesc;
+    if (CLASSINFO_IS_ARRAY(dest.cls)) {
+		arraydescriptor *arraydesc = dest.cls->vftbl->arraydesc;
 		int dimension = arraydesc->dimension;
 		classinfo *elementclass = (arraydesc->elementvftbl)
 			? arraydesc->elementvftbl->class : NULL;
@@ -498,16 +576,16 @@ typeinfo_is_assignable_to_classinfo(typeinfo *value,classinfo *dest)
         if (!TYPEINFO_IS_ARRAY(*value))
             return false;
 
-        /* {Both value and dest are array types.} */
+        /* {Both value and dest.cls are array types.} */
 
-        /* value must have at least the dimension of dest. */
+        /* value must have at least the dimension of dest.cls. */
         if (value->dimension < dimension)
             return false;
 
         if (value->dimension > dimension) {
             /* value has higher dimension so we need to check
              * if its component array can be assigned to the
-             * element type of dest */
+             * element type of dest.cls */
 
 			if (!elementclass) return false;
             
@@ -521,12 +599,12 @@ typeinfo_is_assignable_to_classinfo(typeinfo *value,classinfo *dest)
             return class_issubclass(pseudo_class_Arraystub,elementclass);
         }
 
-        /* {value and dest have the same dimension} */
+        /* {value and dest.cls have the same dimension} */
 
         if (value->elementtype != arraydesc->elementtype)
             return false;
 
-        if (value->elementclass) {
+        if (value->elementclass.any) {
             /* We are assigning an array of objects so we have to
              * check if the elements are assignable.
              */
@@ -534,25 +612,37 @@ typeinfo_is_assignable_to_classinfo(typeinfo *value,classinfo *dest)
             if (elementclass->flags & ACC_INTERFACE) {
                 /* We are assigning to an interface type. */
 
-                return merged_implements_interface(value->elementclass,
+                return merged_implements_interface(value->elementclass.cls,
                                                    value->merged,
                                                    elementclass);
             }
             
             /* We are assigning to a class type. */
-            return class_issubclass(value->elementclass,elementclass);
+            return class_issubclass(value->elementclass.cls,elementclass);
         }
 
         return true;
     }
 
-    /* {dest is not an array} */
+    /* {dest.cls is not an array} */
+    /* {dest.cls is a loaded class} */
+
+	/* If there are any unresolved references in the merged list, we cannot */
+	/* tell if the assignment will be ok.                                   */
+	/* This can only happen when cls is java.lang.Object                    */
+	if (cls == class_java_lang_Object && value->merged) {
+		classref_or_classinfo *mlist = value->merged->list;
+		int i = value->merged->count;
+		while (i--)
+			if (IS_CLASSREF(*mlist++))
+				return MAYBE;
+	}
         
     /* We are assigning to a class type */
     if (cls->flags & ACC_INTERFACE)
         cls = class_java_lang_Object;
     
-    return class_issubclass(cls,dest);
+    return class_issubclass(cls,dest.cls);
 }
 
 /**********************************************************************/
@@ -560,229 +650,214 @@ typeinfo_is_assignable_to_classinfo(typeinfo *value,classinfo *dest)
 /* The following functions fill in uninitialized typeinfo structures. */
 /**********************************************************************/
 
-void
-typeinfo_init_from_descriptor(typeinfo *info,char *utf_ptr,char *end_ptr)
+bool
+typeinfo_init_class(typeinfo *info,classref_or_classinfo c)
 {
-    classinfo *cls;
-    char *end;
+	char *utf_ptr;
+	int len;
+	classinfo *cls;
+		
+	TYPEINFO_ASSERT(c.any);
+	TYPEINFO_ASSERT(info);
 
-    cls = class_from_descriptor(utf_ptr,end_ptr,&end,
-								CLASSLOAD_NULLPRIMITIVE
-								| CLASSLOAD_NEW
-								| CLASSLOAD_NOVOID
-								| CLASSLOAD_CHECKEND);
-
+	/* if necessary, try to resolve lazily */
+	if (!resolve_classref_or_classinfo(NULL /* XXX should now method */,
+				c,resolveLazy,true,&cls))
+	{
+		panic("XXX could not resolve class reference"); /* XXX */
+		return false;
+	}
+	
 	if (cls) {
-		if (!cls->loaded)
-			load_class_bootstrap(cls);
-
-		if (!cls->linked)
-			link_class(cls);
-
-		/* a class, interface or array descriptor */
 		TYPEINFO_INIT_CLASSINFO(*info,cls);
-	} else {
-		/* a primitive type */
-		TYPEINFO_INIT_PRIMITIVE(*info);
+		return true;
+	}
+
+	/* {the type could no be resolved lazily} */
+
+	info->typeclass.ref = c.ref;
+	info->elementclass.any = NULL;
+	info->dimension = 0;
+	info->merged = NULL;
+
+	/* handle array type references */
+	utf_ptr = c.ref->name->text;
+	len = c.ref->name->blength;
+	if (*utf_ptr == '[') {
+		/* count dimensions */
+		while (*utf_ptr == '[') {
+			utf_ptr++;
+			info->dimension++;
+			len--;
+		}
+		if (*utf_ptr == 'L') {
+			utf_ptr++;
+			len -= 2;
+			info->elementtype = ARRAYTYPE_OBJECT;
+			info->elementclass.ref = class_get_classref(c.ref->referer,utf_new(utf_ptr,len));
+		}
+		else {
+			/* an array with primitive element type */
+			/* should have been resolved above */
+			TYPEINFO_ASSERT(false);
+		}
+	}
+	return true;
+}
+
+void
+typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo *info)
+{
+	TYPEINFO_ASSERT(desc);
+
+#ifdef TYPEINFO_VERBOSE
+	fprintf(stderr,"typeinfo_init_from_typedesc(");
+	descriptor_debug_print_typedesc(stderr,desc);
+	fprintf(stderr,")\n");
+#endif
+
+	if (type)
+		*type = desc->type;
+
+	if (info) {
+		if (desc->type == TYPE_ADR) {
+			TYPEINFO_ASSERT(desc->classref);
+			TYPEINFO_INIT_CLASSREF(*info,desc->classref);
+		}
+		else {
+			TYPEINFO_INIT_PRIMITIVE(*info);
+		}
 	}
 }
 
-int
-typeinfo_count_method_args(utf *d,bool twoword)
-{
-    int args = 0;
-    char *utf_ptr = d->text;
-    char *end_pos = utf_end(d);
-    char c;
-
-    /* method descriptor must start with parenthesis */
-    if (*utf_ptr++ != '(') panic ("Missing '(' in method descriptor");
-
-	
-    /* check arguments */
-    while ((c = *utf_ptr) != ')') {
-		class_from_descriptor(utf_ptr,end_pos,&utf_ptr,
-							  CLASSLOAD_SKIP | CLASSLOAD_NOVOID
-							  | CLASSLOAD_NULLPRIMITIVE);
-		args++;
-		if (twoword && (c == 'J' || c == 'D'))
-			/* primitive two-word type */
-			args++;
-    }
-
-    return args;
-}
-
 void
-typeinfo_init_from_method_args(utf *desc,u1 *typebuf,typeinfo *infobuf,
-                               int buflen,bool twoword,
-                               int *returntype,typeinfo *returntypeinfo)
+typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
+                              int buflen,bool twoword,
+                              u1 *returntype,typeinfo *returntypeinfo)
 {
-    char *utf_ptr = desc->text;     /* current position in utf text   */
-    char *end_pos = utf_end(desc);  /* points behind utf string       */
+	int i;
     int args = 0;
-    classinfo *cls;
 
-    /* method descriptor must start with parenthesis */
-    if (utf_ptr == end_pos || *utf_ptr++ != '(') panic ("Missing '(' in method descriptor");
+	TYPEINFO_ASSERT(desc);
+	TYPEINFO_ASSERT(typebuf);
+	TYPEINFO_ASSERT(infobuf);
+
+#ifdef TYPEINFO_VERBOSE
+	fprintf(stderr,"typeinfo_init_from_methoddesc(");
+	descriptor_debug_print_methoddesc(stderr,desc);
+	fprintf(stderr,")\n");
+#endif
 
     /* check arguments */
-    while (utf_ptr != end_pos && *utf_ptr != ')') {
+    for (i=0; i<desc->paramcount; ++i) {
 		if (++args > buflen)
-			panic("Buffer too small for method arguments.");
+			panic("Buffer too small for method arguments."); /* XXX */
+
+		typeinfo_init_from_typedesc(desc->paramtypes + i,typebuf++,infobuf++);
 		
-        *typebuf++ = type_from_descriptor(&cls,utf_ptr,end_pos,&utf_ptr,
-										  CLASSLOAD_NEW
-										  | CLASSLOAD_NULLPRIMITIVE
-										  | CLASSLOAD_NOVOID);
-		
-		if (cls) {
-			if (!cls->loaded)
-				load_class_bootstrap(cls);
-
-			if (!cls->linked)
-				link_class(cls);
-
-			TYPEINFO_INIT_CLASSINFO(*infobuf, cls);
-
-		} else {
-			TYPEINFO_INIT_PRIMITIVE(*infobuf);
-		}
-		infobuf++;
-
 		if (twoword && (typebuf[-1] == TYPE_LONG || typebuf[-1] == TYPE_DOUBLE)) {
 			if (++args > buflen)
-				panic("Buffer too small for method arguments.");
+				panic("Buffer too small for method arguments."); /* XXX */
 			*typebuf++ = TYPE_VOID;
 			TYPEINFO_INIT_PRIMITIVE(*infobuf);
 			infobuf++;
 		}
     }
-    utf_ptr++; /* skip ')' */
 
     /* check returntype */
     if (returntype) {
-		*returntype = type_from_descriptor(&cls,utf_ptr,end_pos,&utf_ptr,
-										   CLASSLOAD_NULLPRIMITIVE
-										   | CLASSLOAD_NEW
-										   | CLASSLOAD_CHECKEND);
+		typeinfo_init_from_typedesc(&(desc->returntype),returntype,returntypeinfo);
+	}
+}
 
-		if (returntypeinfo) {
-			if (cls) {
-				if (!cls->loaded)
-					load_class_bootstrap(cls);
-
-				if (!cls->linked)
-					link_class(cls);
-
-				TYPEINFO_INIT_CLASSINFO(*returntypeinfo, cls);
-
-			} else {
-				TYPEINFO_INIT_PRIMITIVE(*returntypeinfo);
-			}
-		}
+void
+typedescriptor_init_from_typedesc(typedescriptor *td,
+								  typedesc *desc)
+{
+	td->type = desc->type;
+	if (td->type == TYPE_ADR) {
+		TYPEINFO_INIT_CLASSREF(td->info,desc->classref);
+	}
+	else {
+		TYPEINFO_INIT_PRIMITIVE(td->info);
 	}
 }
 
 int
-typedescriptors_init_from_method_args(typedescriptor *td,
-									  utf *desc,
-									  int buflen,bool twoword,
-									  typedescriptor *returntype)
+typedescriptors_init_from_methoddesc(typedescriptor *td,
+									 methoddesc *desc,
+									 int buflen,bool twoword,
+									 typedescriptor *returntype)
 {
-    char *utf_ptr = desc->text;     /* current position in utf text   */
-    char *end_pos = utf_end(desc);  /* points behind utf string       */
+	int i;
     int args = 0;
-    classinfo *cls;
-
-    /* method descriptor must start with parenthesis */
-    if (utf_ptr == end_pos || *utf_ptr++ != '(') panic ("Missing '(' in method descriptor");
 
     /* check arguments */
-    while (utf_ptr != end_pos && *utf_ptr != ')') {
+    for (i=0; i<desc->paramcount; ++i) {
 		if (++args > buflen)
-			panic("Buffer too small for method arguments.");
-		
-        td->type = type_from_descriptor(&cls,utf_ptr,end_pos,&utf_ptr,
-										CLASSLOAD_NEW
-										| CLASSLOAD_NULLPRIMITIVE
-										| CLASSLOAD_NOVOID);
-		
-		if (cls) {
-			if (!cls->loaded)
-				load_class_bootstrap(cls);
+			panic("Buffer too small for method arguments."); /* XXX */
 
-			if (!cls->linked)
-				link_class(cls);
-
-			TYPEINFO_INIT_CLASSINFO(td->info, cls);
-			
-		} else {
-			TYPEINFO_INIT_PRIMITIVE(td->info);
-		}
+		typedescriptor_init_from_typedesc(td,desc->paramtypes + i);
 		td++;
 
 		if (twoword && (td[-1].type == TYPE_LONG || td[-1].type == TYPE_DOUBLE)) {
 			if (++args > buflen)
-				panic("Buffer too small for method arguments.");
+				panic("Buffer too small for method arguments."); /* XXX */
 			td->type = TYPE_VOID;
 			TYPEINFO_INIT_PRIMITIVE(td->info);
 			td++;
 		}
     }
-    utf_ptr++; /* skip ')' */
 
     /* check returntype */
     if (returntype) {
-		returntype->type = type_from_descriptor(&cls,utf_ptr,end_pos,&utf_ptr,
-												CLASSLOAD_NULLPRIMITIVE
-												| CLASSLOAD_NEW
-												| CLASSLOAD_CHECKEND);
-		if (cls) {
-			if (!cls->loaded)
-				load_class_bootstrap(cls);
-
-			if (!cls->linked)
-				link_class(cls);
-
-			TYPEINFO_INIT_CLASSINFO(returntype->info,cls);
-
-		} else {
-			TYPEINFO_INIT_PRIMITIVE(returntype->info);
-		}
+		typedescriptor_init_from_typedesc(returntype,&(desc->returntype));
 	}
+
 	return args;
 }
 
 void
 typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 {
-    vftbl_t *comp = NULL;
-
     if (TYPEINFO_IS_NULLTYPE(*srcarray)) {
         TYPEINFO_INIT_NULLTYPE(*dst);
         return;
     }
     
     if (!TYPEINFO_IS_ARRAY(*srcarray))
-        panic("Trying to access component of non-array");
+        panic("Trying to access component of non-array"); /* XXX throw exception */
 
-    comp = srcarray->typeclass->vftbl->arraydesc->componentvftbl;
-    if (comp) {
-        TYPEINFO_INIT_CLASSINFO(*dst,comp->class);
-    }
-    else {
-        TYPEINFO_INIT_PRIMITIVE(*dst);
-    }
+	if (IS_CLASSREF(srcarray->typeclass)) {
+		constant_classref *comp;
+		comp = class_get_classref_component_of(srcarray->typeclass.ref);
+
+		if (comp)
+			TYPEINFO_INIT_CLASSREF(*dst,comp);
+		else
+			TYPEINFO_INIT_PRIMITIVE(*dst);
+	}
+	else {
+		vftbl_t *comp;
+
+		TYPEINFO_ASSERT(srcarray->typeclass.cls->vftbl);
+		TYPEINFO_ASSERT(srcarray->typeclass.cls->vftbl->arraydesc);
+
+		comp = srcarray->typeclass.cls->vftbl->arraydesc->componentvftbl;
+		if (comp)
+			TYPEINFO_INIT_CLASSINFO(*dst,comp->class);
+		else
+			TYPEINFO_INIT_PRIMITIVE(*dst);
+	}
     
-    dst->merged = srcarray->merged;
+    dst->merged = srcarray->merged; /* XXX should we do a deep copy? */
 }
 
 void
 typeinfo_clone(typeinfo *src,typeinfo *dest)
 {
     int count;
-    classinfo **srclist,**destlist;
+    classref_or_classinfo *srclist,*destlist;
 
     if (src == dest)
         return;
@@ -821,32 +896,29 @@ typeinfo_free(typeinfo *info)
 static
 void
 typeinfo_merge_error(char *str,typeinfo *x,typeinfo *y) {
-#ifdef TYPEINFO_DEBUG
+#ifdef TYPEINFO_VERBOSE
     fprintf(stderr,"Error in typeinfo_merge: %s\n",str);
     fprintf(stderr,"Typeinfo x:\n");
     typeinfo_print(stderr,x,1);
     fprintf(stderr,"Typeinfo y:\n");
     typeinfo_print(stderr,y,1);
 #endif
-    panic(str);
+    panic(str); /* XXX throw an exception */
 }
 
 /* Condition: clsx != clsy. */
-/* Returns: true if dest was changed (always true). */
+/* Returns: true if dest was changed (currently always true). */
 static
 bool
-typeinfo_merge_two(typeinfo *dest,classinfo *clsx,classinfo *clsy)
+typeinfo_merge_two(typeinfo *dest,classref_or_classinfo clsx,classref_or_classinfo clsy)
 {
     TYPEINFO_FREEMERGED_IF_ANY(dest->merged);
     TYPEINFO_ALLOCMERGED(dest->merged,2);
     dest->merged->count = 2;
 
-#ifdef TYPEINFO_DEBUG
-    if (clsx == clsy)
-        panic("Internal error: typeinfo_merge_two called with clsx==clsy.");
-#endif
+	TYPEINFO_ASSERT(clsx.any != clsy.any);
 
-    if (clsx < clsy) {
+    if (clsx.any < clsy.any) {
         dest->merged->list[0] = clsx;
         dest->merged->list[1] = clsy;
     }
@@ -861,18 +933,18 @@ typeinfo_merge_two(typeinfo *dest,classinfo *clsx,classinfo *clsy)
 /* Returns: true if dest was changed. */
 static
 bool
-typeinfo_merge_add(typeinfo *dest,typeinfo_mergedlist *m,classinfo *cls)
+typeinfo_merge_add(typeinfo *dest,typeinfo_mergedlist *m,classref_or_classinfo cls)
 {
     int count;
     typeinfo_mergedlist *newmerged;
-    classinfo **mlist,**newlist;
+    classref_or_classinfo *mlist,*newlist;
 
     count = m->count;
     mlist = m->list;
 
     /* Check if cls is already in the mergedlist m. */
     while (count--) {
-        if (*mlist++ == cls) {
+        if ((mlist++)->any == cls.any) { /* XXX check equal classrefs? */
             /* cls is in the list, so m is the resulting mergedlist */
             if (dest->merged == m)
                 return false;
@@ -898,7 +970,7 @@ typeinfo_merge_add(typeinfo *dest,typeinfo_mergedlist *m,classinfo *cls)
     newlist = newmerged->list;    
     mlist = m->list;
     while (count) {
-        if (*mlist > cls)
+        if (mlist->any > cls.any)
             break;
         *newlist++ = *mlist++;
         count--;
@@ -924,7 +996,7 @@ typeinfo_merge_mergedlists(typeinfo *dest,typeinfo_mergedlist *x,
     int count = 0;
     int countx,county;
     typeinfo_mergedlist *temp,*result;
-    classinfo **clsx,**clsy,**newlist;
+    classref_or_classinfo *clsx,*clsy,*newlist;
 
     /* count the elements that will be in the resulting list */
     /* (Both lists are sorted, equal elements are counted only once.) */
@@ -933,13 +1005,13 @@ typeinfo_merge_mergedlists(typeinfo *dest,typeinfo_mergedlist *x,
     countx = x->count;
     county = y->count;
     while (countx && county) {
-        if (*clsx == *clsy) {
+        if (clsx->any == clsy->any) {
             clsx++;
             clsy++;
             countx--;
             county--;
         }
-        else if (*clsx < *clsy) {
+        else if (clsx->any < clsy->any) {
             clsx++;
             countx--;
         }
@@ -989,13 +1061,13 @@ typeinfo_merge_mergedlists(typeinfo *dest,typeinfo_mergedlist *x,
     countx = x->count;
     county = y->count;
     while (countx && county) {
-        if (*clsx == *clsy) {
+        if (clsx->any == clsy->any) {
             *newlist++ = *clsx++;
             clsy++;
             countx--;
             county--;
         }
-        else if (*clsx < *clsy) {
+        else if (clsx->any < clsy->any) {
             *newlist++ = *clsx++;
             countx--;
         }
@@ -1019,30 +1091,25 @@ typeinfo_merge_mergedlists(typeinfo *dest,typeinfo_mergedlist *x,
 static
 bool
 typeinfo_merge_nonarrays(typeinfo *dest,
-                         classinfo **result,
-                         classinfo *clsx,classinfo *clsy,
+                         classref_or_classinfo *result,
+                         classref_or_classinfo x,classref_or_classinfo y,
                          typeinfo_mergedlist *mergedx,
                          typeinfo_mergedlist *mergedy)
 {
+	classref_or_classinfo t;
     classinfo *tcls,*common;
     typeinfo_mergedlist *tmerged;
     bool changed;
+	utf *xname;
+	utf *yname;
 
-    /* DEBUG */
-    /*
-#ifdef TYPEINFO_DEBUG
-    typeinfo dbgx,dbgy;
-    printf("typeinfo_merge_nonarrays:\n");
-    TYPEINFO_INIT_CLASSINFO(dbgx,clsx);
-    dbgx.merged = mergedx;
-    TYPEINFO_INIT_CLASSINFO(dbgy,clsy);
-    dbgy.merged = mergedy;
-    typeinfo_print(stdout,&dbgx,4);
-    printf("  with:\n");
-    typeinfo_print(stdout,&dbgy,4);
-#endif
-    */ 
+	TYPEINFO_ASSERT(dest && result && x.any && y.any);
+	TYPEINFO_ASSERT(x.cls != pseudo_class_Null);
+	TYPEINFO_ASSERT(y.cls != pseudo_class_Null);
+	TYPEINFO_ASSERT(x.cls != pseudo_class_New);
+	TYPEINFO_ASSERT(y.cls != pseudo_class_New);
 
+#ifdef XXX
 	/* check clsx */
 	if (!clsx->loaded)
 		if (!load_class_bootstrap(clsx))
@@ -1060,57 +1127,111 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 	if (!clsy->linked)
 		if (!link_class(clsy))
 			return false;
+#endif
 
-    /* Common case: clsx == clsy */
+	/*--------------------------------------------------*/
+	/* common cases                                     */
+	/*--------------------------------------------------*/
+
+    /* Common case 1: x and y are the same class or class reference */
     /* (This case is very simple unless *both* x and y really represent
      *  merges of subclasses of clsx==clsy.)
      */
-    if ((clsx == clsy) && (!mergedx || !mergedy)) {
+    if ( (x.any == y.any) && (!mergedx || !mergedy) ) {
   return_simple_x:
         /* DEBUG */ /* log_text("return simple x"); */
         changed = (dest->merged != NULL);
         TYPEINFO_FREEMERGED_IF_ANY(dest->merged);
         dest->merged = NULL;
-        *result = clsx;
+        *result = x;
         /* DEBUG */ /* log_text("returning"); */
         return changed;
     }
-    
-    /* If clsy is an interface, swap x and y. */
-    if (clsy->flags & ACC_INTERFACE) {
-        tcls = clsx; clsx = clsy; clsy = tcls;
+
+	xname = (IS_CLASSREF(x)) ? x.ref->name : x.cls->name;
+	yname = (IS_CLASSREF(y)) ? y.ref->name : y.cls->name;
+
+	/* Common case 2: xname == yname, at least one unresolved */
+    if ((IS_CLASSREF(x) || IS_CLASSREF(y)) && (xname == yname))
+	{
+		/* use the loaded one if any */
+		if (!IS_CLASSREF(y))
+			x = y;
+		goto return_simple_x;
+    }
+
+	/*--------------------------------------------------*/
+	/* non-trivial cases                                */
+	/*--------------------------------------------------*/
+
+#ifdef TYPEINFO_VERBOSE
+	{
+		typeinfo dbgx,dbgy;
+		fprintf(stderr,"merge_nonarrays:\n");
+		TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(dbgx,x);
+		dbgx.merged = mergedx;
+		TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(dbgy,y);
+		dbgy.merged = mergedy;
+		typeinfo_print(stderr,&dbgx,4);
+		fprintf(stderr,"  with:\n");
+		typeinfo_print(stderr,&dbgy,4);
+	}
+#endif
+
+    /* If y is unresolved or an interface, swap x and y. */
+    if (IS_CLASSREF(y) || (!IS_CLASSREF(x) && y.cls->flags & ACC_INTERFACE))
+	{
+        t = x; x = y; y = t;
         tmerged = mergedx; mergedx = mergedy; mergedy = tmerged;
     }
+	
+    /* {We know: If only one of x,y is unresolved it is x,} */
+    /* {         If both x,y are resolved and only one of x,y is an interface it is x.} */
+
+	if (IS_CLASSREF(x)) {
+		/* {We know: x and y have different class names} */
+		
+        /* Check if we are merging an unresolved type with java.lang.Object */
+        if (y.cls == class_java_lang_Object && !mergedy) {
+            x = y;
+            goto return_simple_x;
+        }
+            
+		common = class_java_lang_Object;
+		goto merge_with_simple_x;
+	}
+
+	/* {We know: both x and y are resolved} */
     /* {We know: If only one of x,y is an interface it is x.} */
 
     /* Handle merging of interfaces: */
-    if (clsx->flags & ACC_INTERFACE) {
-        /* {clsx is an interface and mergedx == NULL.} */
+    if (x.cls->flags & ACC_INTERFACE) {
+        /* {x.cls is an interface and mergedx == NULL.} */
         
-        if (clsy->flags & ACC_INTERFACE) {
+        if (y.cls->flags & ACC_INTERFACE) {
             /* We are merging two interfaces. */
             /* {mergedy == NULL} */
 
-            /* {We know that clsx!=clsy (see common case at beginning.)} */
-            *result = class_java_lang_Object;
-            return typeinfo_merge_two(dest,clsx,clsy);
+            /* {We know that x.cls!=y.cls (see common case at beginning.)} */
+            result->cls = class_java_lang_Object;
+            return typeinfo_merge_two(dest,x,y);
         }
 
-        /* {We know: x is an interface, clsy is a class.} */
+        /* {We know: x is an interface, y is a class.} */
 
         /* Check if we are merging an interface with java.lang.Object */
-        if (clsy == class_java_lang_Object && !mergedy) {
-            clsx = clsy;
+        if (y.cls == class_java_lang_Object && !mergedy) {
+            x = y;
             goto return_simple_x;
         }
             
 
-        /* If the type y implements clsx then the result of the merge
-         * is clsx regardless of mergedy.
+        /* If the type y implements x then the result of the merge
+         * is x regardless of mergedy.
          */
         
-        if (CLASS_IMPLEMENTS_INTERFACE(clsy,clsx->index)
-            || mergedlist_implements_interface(mergedy,clsx))
+        if (CLASSINFO_IMPLEMENTS_INTERFACE(y.cls,x.cls->index)
+            || mergedlist_implements_interface(mergedy,x.cls))
         {
             /* y implements x, so the result of the merge is x. */
             goto return_simple_x;
@@ -1120,7 +1241,7 @@ typeinfo_merge_nonarrays(typeinfo *dest,
          * of subclasses and does not implement x.} */
 
         /* There may still be superinterfaces of x which are implemented
-         * by y, too, so we have to add clsx to the mergedlist.
+         * by y, too, so we have to add x.cls to the mergedlist.
          */
 
         /* if x has no superinterfaces we could return a simple java.lang.Object */
@@ -1132,16 +1253,16 @@ typeinfo_merge_nonarrays(typeinfo *dest,
     /* {We know: x and y are classes (not interfaces).} */
     
     /* If *x is deeper in the inheritance hierarchy swap x and y. */
-    if (clsx->index > clsy->index) {
-        tcls = clsx; clsx = clsy; clsy = tcls;
+    if (x.cls->index > y.cls->index) {
+        t = x; x = y; y = t;
         tmerged = mergedx; mergedx = mergedy; mergedy = tmerged;
     }
 
     /* {We know: y is at least as deep in the hierarchy as x.} */
 
     /* Find nearest common anchestor for the classes. */
-    common = clsx;
-    tcls = clsy;
+    common = x.cls;
+    tcls = y.cls;
     while (tcls->index > common->index)
         tcls = tcls->super;
     while (common != tcls) {
@@ -1149,29 +1270,29 @@ typeinfo_merge_nonarrays(typeinfo *dest,
         tcls = tcls->super;
     }
 
-    /* {common == nearest common anchestor of clsx and clsy.} */
+    /* {common == nearest common anchestor of x and y.} */
 
-    /* If clsx==common and x is a whole class (not a merge of subclasses)
-     * then the result of the merge is clsx.
+    /* If x.cls==common and x is a whole class (not a merge of subclasses)
+     * then the result of the merge is x.
      */
-    if (clsx == common && !mergedx) {
+    if (x.cls == common && !mergedx) {
         goto return_simple_x;
     }
    
     if (mergedx) {
-        *result = common;
+        result->cls = common;
         if (mergedy)
             return typeinfo_merge_mergedlists(dest,mergedx,mergedy);
         else
-            return typeinfo_merge_add(dest,mergedx,clsy);
+            return typeinfo_merge_add(dest,mergedx,y);
     }
 
- merge_with_simple_x:
-    *result = common;
+merge_with_simple_x:
+    result->cls = common;
     if (mergedy)
-        return typeinfo_merge_add(dest,mergedy,clsx);
+        return typeinfo_merge_add(dest,mergedy,x);
     else
-        return typeinfo_merge_two(dest,clsx,clsy);
+        return typeinfo_merge_two(dest,x,y);
 }
 
 /* Condition: *dest must be a valid initialized typeinfo. */
@@ -1181,41 +1302,36 @@ bool
 typeinfo_merge(typeinfo *dest,typeinfo* y)
 {
     typeinfo *x;
-    typeinfo *tmp;                      /* used for swapping */
-    classinfo *common;
-    classinfo *elementclass;
+    typeinfo *tmp;
+    classref_or_classinfo common;
+    classref_or_classinfo elementclass;
     int dimension;
     int elementtype;
     bool changed;
 
-    /* DEBUG */
-    /*
-#ifdef TYPEINFO_DEBUG
-    typeinfo_print(stdout,dest,4);
-    typeinfo_print(stdout,y,4);
-#endif
-    */
+	/*--------------------------------------------------*/
+	/* fast checks                                      */
+	/*--------------------------------------------------*/
 
     /* Merging something with itself is a nop */
     if (dest == y)
         return false;
 
     /* Merging two returnAddress types is ok. */
-    if (!dest->typeclass && !y->typeclass) {
-#ifdef TYPEINFO_DEBUG
-		if (TYPEINFO_RETURNADDRESS(*dest) != TYPEINFO_RETURNADDRESS(*y))
-			panic("Internal error: typeinfo_merge merges different returnAddresses");
-#endif
+	/* Merging two different returnAddresses never happens, as the verifier */
+	/* keeps them separate in order to check all the possible return paths  */
+	/* from JSR subroutines.                                                */
+    if (!dest->typeclass.any && !y->typeclass.any) {
+		TYPEINFO_ASSERT(TYPEINFO_RETURNADDRESS(*dest) ==  TYPEINFO_RETURNADDRESS(*y));
         return false;
 	}
     
     /* Primitive types cannot be merged with reference types */
 	/* XXX only check this in debug mode? */
-    if (!dest->typeclass || !y->typeclass)
+    if (!dest->typeclass.any || !y->typeclass.any)
         typeinfo_merge_error("Trying to merge primitive types.",dest,y);
 
     /* handle uninitialized object types */
-    /* XXX is there a way we could put this after the common case? */
     if (TYPEINFO_IS_NEWOBJECT(*dest) || TYPEINFO_IS_NEWOBJECT(*y)) {
         if (!TYPEINFO_IS_NEWOBJECT(*dest) || !TYPEINFO_IS_NEWOBJECT(*y))
             typeinfo_merge_error("Trying to merge uninitialized object type.",dest,y);
@@ -1225,28 +1341,22 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
         return false;
     }
     
-    /* DEBUG */ /* log_text("Testing common case"); */
+	/*--------------------------------------------------*/
+	/* common cases                                     */
+	/*--------------------------------------------------*/
 
-    /* Common case: class dest == class y */
+    /* Common case: dest and y are the same class or class reference */
     /* (This case is very simple unless *both* dest and y really represent
      *  merges of subclasses of class dest==class y.)
      */
-    if ((dest->typeclass == y->typeclass) && (!dest->merged || !y->merged)) {
+    if ((dest->typeclass.any == y->typeclass.any) && (!dest->merged || !y->merged)) {
+return_simple:
         changed = (dest->merged != NULL);
-        TYPEINFO_FREEMERGED_IF_ANY(dest->merged); /* unify if? */
+        TYPEINFO_FREEMERGED_IF_ANY(dest->merged);
         dest->merged = NULL;
-        /* DEBUG */ /* log_text("common case handled"); */
         return changed;
     }
     
-#ifdef TYPEINFO_DEBUG
-    /* check that no unlinked classes are merged. */
-    if (!dest->typeclass->linked || !y->typeclass->linked)
-        typeinfo_merge_error("Trying to merge unlinked class(es).",dest,y);
-#endif
-
-    /* DEBUG */ /* log_text("Handling null types"); */
-
     /* Handle null types: */
     if (TYPEINFO_IS_NULLTYPE(*y)) {
         return false;
@@ -1257,6 +1367,36 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
         return true;
     }
 
+	/* Common case: two types with the same name, at least one unresolved */
+	if (IS_CLASSREF(dest->typeclass)) {
+		if (IS_CLASSREF(y->typeclass)) {
+			if (dest->typeclass.ref->name == y->typeclass.ref->name)
+				goto return_simple;
+		}
+		else {
+			/* XXX should we take y instead of dest here? */
+			if (dest->typeclass.ref->name == y->typeclass.cls->name)
+				goto return_simple;
+		}
+	}
+	else {
+		if (IS_CLASSREF(y->typeclass) 
+		    && (dest->typeclass.cls->name == y->typeclass.ref->name))
+		{
+			goto return_simple;
+		}
+	}
+
+	/*--------------------------------------------------*/
+	/* non-trivial cases                                */
+	/*--------------------------------------------------*/
+
+#ifdef TYPEINFO_VERBOSE
+	fprintf(stderr,"merge:\n");
+    typeinfo_print(stderr,dest,4);
+    typeinfo_print(stderr,y,4);
+#endif
+
     /* This function uses x internally, so x and y can be swapped
      * without changing dest. */
     x = dest;
@@ -1265,8 +1405,6 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
     /* Handle merging of arrays: */
     if (TYPEINFO_IS_ARRAY(*x) && TYPEINFO_IS_ARRAY(*y)) {
         
-        /* DEBUG */ /* log_text("Handling arrays"); */
-
         /* Make x the one with lesser dimension */
         if (x->dimension > y->dimension) {
             tmp = x; x = y; y = tmp;
@@ -1277,7 +1415,7 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
         if (x->dimension < y->dimension) {
             dimension = x->dimension;
             elementtype = ARRAYTYPE_OBJECT;
-            elementclass = pseudo_class_Arraystub;
+            elementclass.cls = pseudo_class_Arraystub;
         }
         else {
             dimension = y->dimension;
@@ -1291,14 +1429,14 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
             /* Different element types are merged, so the resulting array
              * type has one accessible dimension less. */
             if (--dimension == 0) {
-                common = pseudo_class_Arraystub;
+                common.cls = pseudo_class_Arraystub;
                 elementtype = 0;
-                elementclass = NULL;
+                elementclass.any = NULL;
             }
             else {
-                common = class_multiarray_of(dimension,pseudo_class_Arraystub);
+                common.cls = class_multiarray_of(dimension,pseudo_class_Arraystub);
                 elementtype = ARRAYTYPE_OBJECT;
-                elementclass = pseudo_class_Arraystub;
+                elementclass.cls = pseudo_class_Arraystub;
             }
         }
         else {
@@ -1315,9 +1453,15 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
                                                     x->merged,y->merged);
 
                 /* DEBUG */ /* log_text("finding resulting array class: "); */
-                common = class_multiarray_of(dimension,elementclass);
+				if (IS_CLASSREF(elementclass))
+					common.ref = class_get_classref_multiarray_of(dimension,elementclass.ref);
+				else
+					common.cls = class_multiarray_of(dimension,elementclass.cls);
                 /* DEBUG */ /* utf_display(common->name); printf("\n"); */
             }
+			else {
+				common.any = y->typeclass.any;
+			}
         }
     }
     else {
@@ -1331,13 +1475,13 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
 
         dimension = 0;
         elementtype = 0;
-        elementclass = NULL;
+        elementclass.any = NULL;
     }
 
     /* Put the new values into dest if neccessary. */
 
-    if (dest->typeclass != common) {
-        dest->typeclass = common;
+    if (dest->typeclass.any != common.any) {
+        dest->typeclass.any = common.any;
         changed = true;
     }
     if (dest->dimension != dimension) {
@@ -1348,13 +1492,11 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
         dest->elementtype = elementtype;
         changed = true;
     }
-    if (dest->elementclass != elementclass) {
-        dest->elementclass = elementclass;
+    if (dest->elementclass.any != elementclass.any) {
+        dest->elementclass.any = elementclass.any;
         changed = true;
     }
 
-    /* DEBUG */ /* log_text("returning from merge"); */
-    
     return changed;
 }
 
@@ -1365,17 +1507,15 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
 
 #ifdef TYPEINFO_DEBUG
 
-
-/*extern instruction *instr;*/
-
 static int
-typeinfo_test_compare(classinfo **a,classinfo **b)
+typeinfo_test_compare(classref_or_classinfo *a,classref_or_classinfo *b)
 {
-    if (*a == *b) return 0;
-    if (*a < *b) return -1;
+    if (a->any == b->any) return 0;
+    if (a->any < b->any) return -1;
     return +1;
 }
 
+#if 0
 static void
 typeinfo_test_parse(typeinfo *info,char *str)
 {
@@ -1400,9 +1540,9 @@ typeinfo_test_parse(typeinfo *info,char *str)
         for (i=0; i<num; ++i) {
             if (typebuf[i] != TYPE_ADDRESS)
                 panic("non-reference type in mergedlist");
-            info->merged->list[i] = infobuf[i].typeclass;
+            info->merged->list[i].any = infobuf[i].typeclass.any;
         }
-        qsort(info->merged->list,num,sizeof(classinfo*),
+        qsort(info->merged->list,num,sizeof(classref_or_classinfo),
               (int(*)(const void *,const void *))&typeinfo_test_compare);
     }
     else {
@@ -1410,6 +1550,7 @@ typeinfo_test_parse(typeinfo *info,char *str)
                                        &returntype,info);
     }
 }
+#endif
 
 #define TYPEINFO_TEST_BUFLEN  4000
 
@@ -1418,10 +1559,10 @@ typeinfo_equal(typeinfo *x,typeinfo *y)
 {
     int i;
     
-    if (x->typeclass != y->typeclass) return false;
+    if (x->typeclass.any != y->typeclass.any) return false;
     if (x->dimension != y->dimension) return false;
     if (x->dimension) {
-        if (x->elementclass != y->elementclass) return false;
+        if (x->elementclass.any != y->elementclass.any) return false;
         if (x->elementtype != y->elementtype) return false;
     }
 
@@ -1434,7 +1575,7 @@ typeinfo_equal(typeinfo *x,typeinfo *y)
         if (!(x->merged && y->merged)) return false;
         if (x->merged->count != y->merged->count) return false;
         for (i=0; i<x->merged->count; ++i)
-            if (x->merged->list[i] != y->merged->list[i])
+            if (x->merged->list[i].any != y->merged->list[i].any)
                 return false;
     }
     return true;
@@ -1479,6 +1620,7 @@ typeinfo_testmerge(typeinfo *a,typeinfo *b,typeinfo *result,int *failed)
     }
 }
 
+#if 0
 static void
 typeinfo_inc_dimension(typeinfo *info)
 {
@@ -1488,6 +1630,7 @@ typeinfo_inc_dimension(typeinfo *info)
     }
     info->typeclass = class_array_of(info->typeclass);
 }
+#endif
 
 #define TYPEINFO_TEST_MAXDIM  10
 
@@ -1514,11 +1657,14 @@ typeinfo_testrun(char *filename)
         res = sscanf(buf,"%s\t%s\t%s\n",bufa,bufb,bufc);
         if (res != 3 || !strlen(bufa) || !strlen(bufb) || !strlen(bufc))
             panic("Invalid line in typeinfo test file (none of empty, comment or test)");
-
+#if 0
         typeinfo_test_parse(&a,bufa);
         typeinfo_test_parse(&b,bufb);
         typeinfo_test_parse(&c,bufc);
+#endif
+#if 0
         do {
+#endif
             typeinfo_testmerge(&a,&b,&c,&failed); /* check result */
             typeinfo_testmerge(&b,&a,&c,&failed); /* check commutativity */
 
@@ -1530,12 +1676,14 @@ typeinfo_testrun(char *filename)
             if (b.dimension > maxdim) maxdim = b.dimension;
             if (c.dimension > maxdim) maxdim = c.dimension;
 
+#if 0
             if (maxdim < TYPEINFO_TEST_MAXDIM) {
                 typeinfo_inc_dimension(&a);
                 typeinfo_inc_dimension(&b);
                 typeinfo_inc_dimension(&c);
             }
         } while (maxdim < TYPEINFO_TEST_MAXDIM);
+#endif
     }
 
     fclose(file);
@@ -1554,13 +1702,34 @@ typeinfo_test()
     log_text("Finished typeinfo test file.");
 }
 
+#if 0
 void
 typeinfo_init_from_fielddescriptor(typeinfo *info,char *desc)
 {
     typeinfo_init_from_descriptor(info,desc,desc+strlen(desc));
 }
+#endif
 
 #define TYPEINFO_MAXINDENT  80
+
+void
+typeinfo_print_class(FILE *file,classref_or_classinfo c)
+{
+	/*fprintf(file,"<class %p>",c.any);*/
+
+	if (!c.any) {
+		fprintf(file,"<null>");
+	}
+	else {
+		if (IS_CLASSREF(c)) {
+			fprintf(file,"<ref>");
+			utf_fprint(file,c.ref->name);
+		}
+		else {
+			utf_fprint(file,c.cls->name);
+		}
+	}
+}
 
 void
 typeinfo_print(FILE *file,typeinfo *info,int indent)
@@ -1593,8 +1762,8 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
     if (TYPEINFO_IS_NEWOBJECT(*info)) {
         ins = (instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
         if (ins) {
-            fprintf(file,"%sNEW(%d):",ind,ins-bptr->iinstr);
-            utf_fprint(file,((classinfo *)ins[-1].val.a)->name);
+            fprintf(file,"%sNEW(%p):",ind,ins);
+			typeinfo_print_class(file,CLASSREF_OR_CLASSINFO(ins[-1].val.a));
             fprintf(file,"\n");
         }
         else {
@@ -1604,7 +1773,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
     }
 
     fprintf(file,"%sClass:      ",ind);
-    utf_fprint(file,info->typeclass->name);
+	typeinfo_print_class(file,info->typeclass);
     fprintf(file,"\n");
 
     if (TYPEINFO_IS_ARRAY(*info)) {
@@ -1621,8 +1790,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
           case ARRAYTYPE_BOOLEAN : fprintf(file,"boolean\n"); break;
               
           case ARRAYTYPE_OBJECT:
-              fprintf(file,"reference: ");
-              utf_fprint(file,info->elementclass->name);
+			  typeinfo_print_class(file,info->elementclass);
               fprintf(file,"\n");
               break;
               
@@ -1632,10 +1800,10 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
     }
 
     if (info->merged) {
-        fprintf(file,"%sMerged: ",ind);
+        fprintf(file,"%sMerged:     ",ind);
         for (i=0; i<info->merged->count; ++i) {
             if (i) fprintf(file,", ");
-            utf_fprint(file,info->merged->list[i]->name);
+			typeinfo_print_class(file,info->merged->list[i]);
         }
         fprintf(file,"\n");
     }
@@ -1647,6 +1815,14 @@ typeinfo_print_short(FILE *file,typeinfo *info)
     int i;
     instruction *ins;
 	basicblock *bptr;
+	classref_or_classinfo c;
+
+	/*fprintf(file,"<typeinfo %p>",info);*/
+
+	if (!info) {
+		fprintf(file,"(typeinfo*)NULL");
+		return;
+	}
 
     if (TYPEINFO_IS_PRIMITIVE(*info)) {
 		bptr = (basicblock*) TYPEINFO_RETURNADDRESS(*info);
@@ -1665,21 +1841,22 @@ typeinfo_print_short(FILE *file,typeinfo *info)
     if (TYPEINFO_IS_NEWOBJECT(*info)) {
         ins = (instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
         if (ins) {
-            fprintf(file,"NEW(%d):",ins-bptr->iinstr);
-            utf_fprint(file,((classinfo *)ins[-1].val.a)->name);
+			/*fprintf(file,"<ins %p>",ins);*/
+            fprintf(file,"NEW(%p):",ins);
+			typeinfo_print_class(file,CLASSREF_OR_CLASSINFO(ins[-1].val.a));
         }
         else
             fprintf(file,"NEW(this)");
         return;
     }
 
-    utf_fprint(file,info->typeclass->name);
+    typeinfo_print_class(file,info->typeclass);
 
     if (info->merged) {
         fprintf(file,"{");
         for (i=0; i<info->merged->count; ++i) {
             if (i) fprintf(file,",");
-            utf_fprint(file,info->merged->list[i]->name);
+			typeinfo_print_class(file,info->merged->list[i]);
         }
         fprintf(file,"}");
     }
@@ -1706,6 +1883,8 @@ typeinfo_print_type(FILE *file,int type,typeinfo *info)
 void
 typeinfo_print_stacktype(FILE *file,int type,typeinfo *info)
 {
+	TYPEINFO_ASSERT(file);
+	TYPEINFO_ASSERT(type != TYPE_ADDRESS || info != NULL);
 	if (type == TYPE_ADDRESS && TYPEINFO_IS_PRIMITIVE(*info)) {	
 		typeinfo_retaddr_set *set = (typeinfo_retaddr_set*)
 			TYPEINFO_RETURNADDRESS(*info);

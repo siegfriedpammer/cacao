@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: stack.h 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -34,8 +34,8 @@
 #ifndef _STACK_H
 #define _STACK_H
 
-#include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/exceptions.h"
 #include "vm/jit/reg.h"
 
 

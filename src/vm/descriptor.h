@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.h 2112 2005-03-29 21:29:08Z twisti $
+   $Id: descriptor.h 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -39,17 +39,10 @@
 /* forward typedefs ***********************************************************/
 
 typedef struct descriptor_pool descriptor_pool;
-typedef struct typedesc typedesc;
-typedef struct methoddesc methoddesc;
-typedef union parseddesc parseddesc;
 
-
-#include "types.h"
-#include "vm/class.h"
 #include "vm/global.h"
+#include "vm/references.h"
 #include "vm/tables.h"
-#include "vm/utf8.h"
-
 
 /* data structures ************************************************************/ 
 
@@ -108,12 +101,6 @@ struct methoddesc {
 	s2                 paramslots; /* like above but LONG,DOUBLE count twice  */
 	typedesc           returntype; /* parsed descriptor of the return type    */
 	typedesc           paramtypes[1]; /* parameter types, variable length!    */
-};
-
-union parseddesc {
-	typedesc          *fd;        /* parsed field descriptor                  */
-	methoddesc        *md;        /* parsed method descriptor                 */
-	void              *any;       /* used for simple test against NULL        */
 };
 
 
@@ -360,6 +347,48 @@ void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d);
 *******************************************************************************/
 
 void descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file);
+
+/* macros for descriptor parsing **********************************************/
+
+/* XXX These should be moved to descriptor.c */
+
+/* SKIP_FIELDDESCRIPTOR:
+ * utf_ptr must point to the first character of a field descriptor.
+ * After the macro call utf_ptr points to the first character after
+ * the field descriptor.
+ *
+ * CAUTION: This macro does not check for an unexpected end of the
+ * descriptor. Better use SKIP_FIELDDESCRIPTOR_SAFE.
+ */
+#define SKIP_FIELDDESCRIPTOR(utf_ptr)							\
+	do { while (*(utf_ptr)=='[') (utf_ptr)++;					\
+		if (*(utf_ptr)++=='L')									\
+			while(*(utf_ptr)++ != ';') /* skip */; } while(0)
+
+/* SKIP_FIELDDESCRIPTOR_SAFE:
+ * utf_ptr must point to the first character of a field descriptor.
+ * After the macro call utf_ptr points to the first character after
+ * the field descriptor.
+ *
+ * Input:
+ *     utf_ptr....points to first char of descriptor
+ *     end_ptr....points to first char after the end of the string
+ *     errorflag..must be initialized (to false) by the caller!
+ * Output:
+ *     utf_ptr....points to first char after the descriptor
+ *     errorflag..set to true if the string ended unexpectedly
+ */
+#define SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr,end_ptr,errorflag)			\
+	do { while ((utf_ptr) != (end_ptr) && *(utf_ptr)=='[') (utf_ptr)++;	\
+		if ((utf_ptr) == (end_ptr))										\
+			(errorflag) = true;											\
+		else															\
+			if (*(utf_ptr)++=='L') {									\
+				while((utf_ptr) != (end_ptr) && *(utf_ptr)++ != ';')	\
+					/* skip */;											\
+				if ((utf_ptr)[-1] != ';')								\
+					(errorflag) = true; }} while(0)
+
 
 #endif /* _DESCRIPTOR_H */
 

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2154 2005-03-30 20:03:06Z twisti $
+   $Id: loader.h 2181 2005-04-01 16:53:33Z edwin $
 */
 
 
@@ -42,13 +42,11 @@ typedef struct classbuffer classbuffer;
 typedef struct classpath_info classpath_info;
 
 
-#include "config.h"
-#include "types.h"
-#include "vm/class.h"
-#include "vm/descriptor.h"
 #include "vm/global.h"
-#include "vm/method.h"
 #include "vm/utf8.h"
+#include "vm/references.h"
+#include "vm/descriptor.h"
+#include "vm/method.h"
 
 #if defined(USE_ZLIB)
 # include "vm/unzip.h"
@@ -85,15 +83,6 @@ typedef struct classpath_info classpath_info;
     CONSTANT_UNUSED              -
 
 *******************************************************************************/
-
-typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
-	classinfo *class;       /* class containing this field/method/intfmeth.   */ /* XXX remove */
-	constant_classref *classref;  /* class containing this field/meth./intfm. */
-	utf       *name;        /* field/method/interfacemethod name              */
-	utf       *descriptor;  /* field/method/intfmeth. type descriptor string  */
-	parseddesc parseddesc;  /* parsed descriptor                              */
-} constant_FMIref;
-
 
 typedef struct {            /* Integer                                        */
 	s4 value;
@@ -213,7 +202,6 @@ classinfo *class_init(classinfo *c);
 /* debug purposes */
 void class_showmethods(classinfo *c);
 void class_showconstantpool(classinfo *c);
-void print_arraydescriptor(FILE *file, arraydescriptor *desc);
 
 /* return the primitive class inidicated by the given signature character */
 classinfo *class_primitive_from_sig(char sig);

@@ -28,14 +28,14 @@
 
    Changes:
 
-   $Id: classcache.c 2083 2005-03-25 14:25:15Z edwin $
+   $Id: classcache.c 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
 #include <assert.h>
 #include "vm/classcache.h"
-#include "vm/tables.h"
 #include "vm/utf8.h"
+#include "vm/tables.h"
 #include "vm/exceptions.h"
 #include "mm/memory.h"
 
@@ -57,6 +57,23 @@
 #endif
 
 /*============================================================================*/
+/* THREAD-SAFE LOCKING                                                        */
+/*============================================================================*/
+
+    /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+    /* CAUTION: The static functions below are */
+    /*          NOT synchronized!              */
+    /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#  define CLASSCACHE_LOCK()    tables_lock()
+#  define CLASSCACHE_UNLOCK()  tables_unlock()
+#else
+#  define CLASSCACHE_LOCK()
+#  define CLASSCACHE_UNLOCK()
+#endif
+
+/*============================================================================*/
 /* GLOBAL VARIABLES                                                           */
 /*============================================================================*/
 
@@ -69,6 +86,8 @@ static hashtable classcache_hash;
 /* classcache_init *************************************************************
  
    Initialize the loaded class cache
+
+   Note: NOT synchronized!
   
 *******************************************************************************/
 
@@ -303,6 +322,8 @@ classcache_new_name(utf *name)
    RETURN VALUE:
        The return value is a pointer to the cached class object,
        or NULL, if the class is not in the cache.
+
+   Note: synchronized with global tablelock
    
 *******************************************************************************/
 
@@ -312,6 +333,9 @@ classcache_lookup(classloader *initloader,utf *classname)
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
 	classcache_loader_entry *lden;
+	classinfo *cls = NULL;
+
+	CLASSCACHE_LOCK();
 
 	en = classcache_lookup_name(classname);
 	
@@ -323,14 +347,15 @@ classcache_lookup(classloader *initloader,utf *classname)
 				if (lden->loader == initloader) {
 					/* found the loaded class entry */
 					CLASSCACHE_ASSERT(clsen->classobj);
-					return clsen->classobj;
+					cls = clsen->classobj;
+					goto found;
 				}
 			}
 		}
 	}
-	
-	/* not found */
-	return NULL;
+found:
+	CLASSCACHE_UNLOCK();
+	return cls;
 }
 
 /* classcache_store ************************************************************
@@ -346,6 +371,8 @@ classcache_lookup(classloader *initloader,utf *classname)
                         the cache if necessary,
        false............an exception has been thrown.
    
+   Note: synchronized with global tablelock
+   
 *******************************************************************************/
 
 bool
@@ -357,7 +384,7 @@ classcache_store(classloader *initloader,classinfo *cls)
 
 	CLASSCACHE_ASSERT(cls);
 
-	/* XXX lock table */
+	CLASSCACHE_LOCK();
 
 	en = classcache_new_name(cls->name);
 
@@ -384,7 +411,7 @@ classcache_store(classloader *initloader,classinfo *cls)
 					/* a loading constraint is violated */
 					*exceptionptr = new_exception_message(string_java_lang_LinkageError,
 							"loading constraint violated XXX add message");
-					return false; /* exception */
+					goto return_exception;
 				}
 
 				/* record initloader as initiating loader */
@@ -394,7 +421,7 @@ classcache_store(classloader *initloader,classinfo *cls)
 				clsen->classobj = cls;
 
 				/* done */
-				return true;
+				goto return_success;
 			}
 		}
 		
@@ -411,8 +438,13 @@ classcache_store(classloader *initloader,classinfo *cls)
 	clsen->next = en->classes;
 	en->classes = clsen;
 
-	/* done */
+return_success:
+	CLASSCACHE_UNLOCK();
 	return true;
+
+return_exception:
+	CLASSCACHE_UNLOCK();
+	return false; /* exception */
 }
 
 /* classcache_find_loader ******************************************************
@@ -552,6 +584,8 @@ classcache_free_name_entry(classcache_name_entry *entry)
        The class cache may not be used any more after this call, except
 	   when it is reinitialized with classcache_init.
   
+   Note: NOT synchronized!
+  
 *******************************************************************************/
 
 void 
@@ -590,6 +624,8 @@ classcache_free()
        true.............everything ok, the constraint has been added,
        false............an exception has been thrown.
    
+   Note: synchronized with global tablelock
+   
 *******************************************************************************/
 
 bool
@@ -611,7 +647,7 @@ classcache_add_constraint(classloader *a,classloader *b,utf *classname)
 	if (a == b)
 		return true;
 
-	/* XXX lock table */
+	CLASSCACHE_LOCK();
 
 	en = classcache_new_name(classname);
 
@@ -626,14 +662,14 @@ classcache_add_constraint(classloader *a,classloader *b,utf *classname)
 
 		/* if the entries are the same, the constraint is already recorded */
 		if (clsenA == clsenB)
-			return true;
+			goto return_success;
 
 		/* check if the entries can be merged */
 		if (clsenA->classobj && clsenB->classobj && clsenA->classobj != clsenB->classobj) {
 			/* no, the constraint is violated */
 			*exceptionptr = new_exception_message(string_java_lang_LinkageError,
 					"loading constraint violated XXX add message");
-			return false; /* exception */
+			goto return_exception;
 		}
 
 		/* yes, merge the entries */
@@ -680,8 +716,13 @@ classcache_add_constraint(classloader *a,classloader *b,utf *classname)
 		}
 	}
 
-	/* done */
+return_success:
+	CLASSCACHE_UNLOCK();
 	return true;
+
+return_exception:
+	CLASSCACHE_UNLOCK();
+	return false; /* exception */
 }
 
 /*============================================================================*/
@@ -695,6 +736,8 @@ classcache_add_constraint(classloader *a,classloader *b,utf *classname)
    IN:
        file.............output stream
   
+   Note: synchronized with global tablelock
+   
 *******************************************************************************/
 
 void
@@ -704,6 +747,8 @@ classcache_debug_dump(FILE *file)
 	classcache_class_entry *clsen;
 	classcache_loader_entry *lden;
 	u4 slot;
+
+	CLASSCACHE_LOCK();
 
 	fprintf(file,"\n=== [loaded class cache] =====================================\n\n");
 	fprintf(file,"hash size   : %d\n",classcache_hash.size);
@@ -733,6 +778,8 @@ classcache_debug_dump(FILE *file)
 		}
 	}
 	fprintf(file,"\n==============================================================\n\n");
+
+	CLASSCACHE_UNLOCK();
 }
 
 /*

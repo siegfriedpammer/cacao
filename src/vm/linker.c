@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2169 2005-03-31 15:50:57Z twisti $
+   $Id: linker.c 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -972,6 +972,43 @@ static s4 class_highestinterface(classinfo *c)
 	}
 
 	return h;
+}
+
+
+/***************** Function: print_arraydescriptor ****************************
+
+	Debugging helper for displaying an arraydescriptor
+	
+*******************************************************************************/
+
+void print_arraydescriptor(FILE *file, arraydescriptor *desc)
+{
+	if (!desc) {
+		fprintf(file, "<NULL>");
+		return;
+	}
+
+	fprintf(file, "{");
+	if (desc->componentvftbl) {
+		if (desc->componentvftbl->class)
+			utf_fprint(file, desc->componentvftbl->class->name);
+		else
+			fprintf(file, "<no classinfo>");
+	}
+	else
+		fprintf(file, "0");
+		
+	fprintf(file, ",");
+	if (desc->elementvftbl) {
+		if (desc->elementvftbl->class)
+			utf_fprint(file, desc->elementvftbl->class->name);
+		else
+			fprintf(file, "<no classinfo>");
+	}
+	else
+		fprintf(file, "0");
+	fprintf(file, ",%d,%d,%d,%d}", desc->arraytype, desc->dimension,
+			desc->dataoffset, desc->componentsize);
 }
 
 

@@ -26,15 +26,43 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 2087 2005-03-25 20:14:29Z edwin $
+   $Id: typeinfo.h 2181 2005-04-01 16:53:33Z edwin $
 
 */
-
 
 #ifndef _TYPEINFO_H
 #define _TYPEINFO_H
 
 #include "vm/global.h"
+#include "vm/references.h"
+
+/* configuration **************************************************************/
+
+/*
+ * TYPECHECK_STATISTICS activates gathering statistical information.
+ * TYPEINFO_DEBUG activates debug checks and debug helpers in typeinfo.c
+ * TYPECHECK_DEBUG activates debug checks in typecheck.c
+ * TYPEINFO_DEBUG_TEST activates the typeinfo test at startup.
+ * TYPECHECK_VERBOSE_IMPORTANT activates important debug messages
+ * TYPECHECK_VERBOSE activates all debug messages
+ * TYPEINFO_VERBOSE activates debug prints in typeinfo.c
+ */
+#ifdef CACAO_TYPECHECK
+/*#define TYPECHECK_STATISTICS*/
+#define TYPEINFO_DEBUG
+/*#define TYPEINFO_VERBOSE*/
+#define TYPECHECK_DEBUG
+/*#define TYPEINFO_DEBUG_TEST
+#define TYPECHECK_VERBOSE
+#define TYPECHECK_VERBOSE_IMPORTANT*/
+#if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
+#define TYPECHECK_VERBOSE_OPT
+#endif
+#endif
+
+#ifdef TYPECHECK_VERBOSE_OPT
+extern bool typecheckverbose;
+#endif
 
 /* resolve typedef cycles *****************************************************/
 
@@ -43,6 +71,22 @@ typedef struct typeinfo_mergedlist typeinfo_mergedlist;
 typedef struct typedescriptor typedescriptor;
 typedef struct typevector typevector;
 typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
+
+/* constants ******************************************************************/
+
+#define MAYBE  2
+
+#if MAYBE == true
+#error "`MAYBE` must not be the same as `true`"
+#endif
+#if MAYBE == false
+#error "`MAYBE` must not be the same as `false`"
+#endif
+
+/* types **********************************************************************/
+
+/* a tristate_t is one of {true,false,MAYBE} */
+typedef int tristate_t;
 
 /* data structures for the type system ****************************************/
 
@@ -132,45 +176,45 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  *        1) pseudo_class_Arraystub
  *        2) an unresolved type
  *        3) a loaded interface
- *        4) a loaded (non-pseudo-,non-array-)class != java.lang.Object
+ *        4) a loaded (non-pseudo-,non-array-)class != (BOOTSTRAP)java.lang.Object
  *                Note: `merged` may be used
- *        5) java.lang.Object
+ *        5) (BOOTSTRAP)java.lang.Object
  *                Note: `merged` may be used
  *
  *        For the semantics of the merged field in cases 4) and 5) consult the 
  *        corresponding descriptions with `elementclass` replaced by `typeclass`.
  *
- * X) typeclass is an unresolved type (a symbolic class/interface reference)
+ * F) typeclass is an unresolved type (a symbolic class/interface reference)
  *
  *        The type has not been resolved yet. (Meaning it corresponds to an
  *        unloaded class or interface).
  *        Don't access other fields of the struct.
  *
- * F) typeclass is a loaded interface
+ * G) typeclass is a loaded interface
  *
  *        An interface reference type.
  *        Don't access other fields of the struct.
  *
- * G) typeclass is a loaded (non-pseudo-,non-array-)class != java.lang.Object
+ * H) typeclass is a loaded (non-pseudo-,non-array-)class != (BOOTSTRAP)java.lang.Object
  *
  *        A loaded class type.
- *        All classinfos in u.merged.list (if any) are
+ *        All classref_or_classinfos in u.merged.list (if any) are
  *        loaded subclasses of typeclass (no interfaces, array classes, or
  *        unresolved types).
  *        Don't access other fields of the struct.
  *
- * H) typeclass is (BOOTSTRAP)java.lang.Object
+ * I) typeclass is (BOOTSTRAP)java.lang.Object
  *
  *        The most general kind of reference type.
  *        In this case u.merged.count and u.merged.list
  *        are valid and may be non-zero.
- *        The classinfos in u.merged.list (if any) may be
+ *        The classref_or_classinfos in u.merged.list (if any) may be
  *        classes, interfaces, pseudo classes or unresolved types.
  *        Don't access other fields of the struct.
  */
 
 /* The following algorithm is used to determine if the type described
- * by this typeinfo struct supports the interface X:
+ * by this typeinfo struct supports the interface X:  * XXX add MAYBE *
  *
  *     1) If typeclass is X or a subinterface of X the answer is "yes".
  *     2) If typeclass is a (pseudo) class implementing X the answer is "yes".
@@ -186,16 +230,16 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  *          access typeinfo structures!
  */
 struct typeinfo {
-	classinfo           *typeclass;
-	classinfo           *elementclass; /* valid if dimension>0 */ /* various uses! */
-	typeinfo_mergedlist *merged;
-	u1                   dimension;
-	u1                   elementtype;  /* valid if dimension>0           */
+	classref_or_classinfo  typeclass;
+	classref_or_classinfo  elementclass; /* valid if dimension>0 */ /* various uses! */
+	typeinfo_mergedlist   *merged;
+	u1                     dimension;
+	u1                     elementtype;  /* valid if dimension>0           */
 };
 
 struct typeinfo_mergedlist {
-	s4         count;
-	classinfo *list[1];       /* variable length!                        */
+	s4                    count;
+	classref_or_classinfo list[1];       /* variable length!                        */
 };
 
 /*-----------------------------------------------------------------------*/
@@ -287,24 +331,24 @@ struct typevector {
 /* macros for type queries **************************************************/
 
 #define TYPEINFO_IS_PRIMITIVE(info)                             \
-            ((info).typeclass == NULL)
+            ((info).typeclass.any == NULL)
 
 #define TYPEINFO_IS_REFERENCE(info)                             \
-            ((info).typeclass != NULL)
+            ((info).typeclass.any != NULL)
 
 #define TYPEINFO_IS_NULLTYPE(info)                              \
-            ((info).typeclass == pseudo_class_Null)
+            ((info).typeclass.cls == pseudo_class_Null)
 
 #define TYPEINFO_IS_NEWOBJECT(info)                             \
-            ((info).typeclass == pseudo_class_New)
+            ((info).typeclass.cls == pseudo_class_New)
 
 /* only use this if TYPEINFO_IS_PRIMITIVE returned true! */
 #define TYPEINFO_RETURNADDRESS(info)                            \
-            ((void *)(info).elementclass)
+            ((void *)(info).elementclass.any)
 
 /* only use this if TYPEINFO_IS_NEWOBJECT returned true! */
 #define TYPEINFO_NEWOBJECT_INSTRUCTION(info)                    \
-            ((void *)(info).elementclass)
+            ((void *)(info).elementclass.any)
 
 /* macros for array type queries ********************************************/
 
@@ -324,11 +368,11 @@ struct typevector {
 
 #define TYPEINFO_IS_OBJECT_ARRAY(info)                          \
             ( TYPEINFO_IS_SIMPLE_ARRAY(info)                    \
-              && ((info).elementclass != NULL) )
+              && ((info).elementclass.any != NULL) )
 
 /* assumes that info describes an array type */
 #define TYPEINFO_IS_ARRAY_OF_REFS_NOCHECK(info)                 \
-            ( ((info).elementclass != NULL)                     \
+            ( ((info).elementclass.any != NULL)                 \
               || ((info).dimension >= 2) )
 
 #define TYPEINFO_IS_ARRAY_OF_REFS(info)                         \
@@ -363,22 +407,22 @@ struct typevector {
 /* macros for initializing typeinfo structures ******************************/
 
 #define TYPEINFO_INIT_PRIMITIVE(info)                           \
-         do {(info).typeclass = NULL;                           \
-             (info).elementclass = NULL;                        \
+         do {(info).typeclass.any = NULL;                       \
+             (info).elementclass.any = NULL;                    \
              (info).merged = NULL;                              \
              (info).dimension = 0;                              \
              (info).elementtype = 0;} while(0)
 
 #define TYPEINFO_INIT_RETURNADDRESS(info,adr)                   \
-         do {(info).typeclass = NULL;                           \
-             (info).elementclass = (classinfo*) (adr);          \
+         do {(info).typeclass.any = NULL;                       \
+             (info).elementclass.any = (adr);                   \
              (info).merged = NULL;                              \
              (info).dimension = 0;                              \
              (info).elementtype = 0;} while(0)
 
 #define TYPEINFO_INIT_NON_ARRAY_CLASSINFO(info,cinfo)   \
-         do {(info).typeclass = (cinfo);                \
-             (info).elementclass = NULL;                \
+         do {(info).typeclass.cls = (cinfo);            \
+             (info).elementclass.any = NULL;            \
              (info).merged = NULL;                      \
              (info).dimension = 0;                      \
              (info).elementtype = 0;} while(0)
@@ -387,8 +431,8 @@ struct typevector {
             TYPEINFO_INIT_CLASSINFO(info,pseudo_class_Null)
 
 #define TYPEINFO_INIT_NEWOBJECT(info,instr)             \
-         do {(info).typeclass = pseudo_class_New;       \
-             (info).elementclass = (classinfo*) (instr);\
+         do {(info).typeclass.cls = pseudo_class_New;   \
+             (info).elementclass.any = (instr);         \
              (info).merged = NULL;                      \
              (info).dimension = 0;                      \
              (info).elementtype = 0;} while(0)
@@ -396,25 +440,27 @@ struct typevector {
 #define TYPEINFO_INIT_PRIMITIVE_ARRAY(info,arraytype)                   \
     TYPEINFO_INIT_CLASSINFO(info,primitivetype_table[arraytype].arrayclass);
 
-#define TYPEINFO_INIT_CLASSINFO(info,cls)                               \
-        do {if (((info).typeclass = (cls))->vftbl->arraydesc) {         \
-                if ((cls)->vftbl->arraydesc->elementvftbl)              \
-                    (info).elementclass = (cls)->vftbl->arraydesc->elementvftbl->class; \
+#define TYPEINFO_INIT_CLASSINFO(info,c)                                 \
+        do {if (((info).typeclass.cls = (c))->vftbl->arraydesc) {       \
+                if ((c)->vftbl->arraydesc->elementvftbl)                \
+                    (info).elementclass.cls = (c)->vftbl->arraydesc->elementvftbl->class; \
                 else                                                    \
-                    (info).elementclass = NULL;                         \
-                (info).dimension = (cls)->vftbl->arraydesc->dimension;  \
-                (info).elementtype = (cls)->vftbl->arraydesc->elementtype; \
+                    (info).elementclass.any = NULL;                     \
+                (info).dimension = (c)->vftbl->arraydesc->dimension;    \
+                (info).elementtype = (c)->vftbl->arraydesc->elementtype;\
             }                                                           \
             else {                                                      \
-                (info).elementclass = NULL;                             \
+                (info).elementclass.any = NULL;                         \
                 (info).dimension = 0;                                   \
                 (info).elementtype = 0;                                 \
             }                                                           \
             (info).merged = NULL;} while(0)
 
-#define TYPEINFO_INIT_FROM_FIELDINFO(info,fi)                   \
-            typeinfo_init_from_descriptor(&(info),              \
-                (fi)->descriptor->text,utf_end((fi)->descriptor));
+#define TYPEINFO_INIT_CLASSREF(info,c)    \
+            typeinfo_init_class(&(info),CLASSREF_OR_CLASSINFO(c))
+
+#define TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(info,c)    \
+            typeinfo_init_class(&(info),c)
 
 /* macros for copying types (destinition is not checked or freed) ***********/
 
@@ -447,7 +493,7 @@ int typevectorset_mergedtype(typevector *set,int index,typeinfo *temp,typeinfo *
 void typevectorset_store(typevector *set,int index,int type,typeinfo *info);
 void typevectorset_store_retaddr(typevector *set,int index,typeinfo *info);
 void typevectorset_store_twoword(typevector *set,int index,int type);
-void typevectorset_init_object(typevector *set,void *ins,classinfo *initclass,int size);
+void typevectorset_init_object(typevector *set,void *ins,classref_or_classinfo initclass,int size);
 
 /* vector functions */
 bool typevector_separable_from(typevector *a,typevector *b,int size);
@@ -466,30 +512,34 @@ bool typeinfo_is_array(typeinfo *info);
 bool typeinfo_is_primitive_array(typeinfo *info,int arraytype);
 bool typeinfo_is_array_of_refs(typeinfo *info);
 
-bool typeinfo_implements_interface(typeinfo *info,classinfo *interf);
-bool typeinfo_is_assignable(typeinfo *value,typeinfo *dest);
-bool typeinfo_is_assignable_to_classinfo(typeinfo *value,classinfo *dest);
+tristate_t typeinfo_implements_interface(typeinfo *info,classinfo *interf);
+tristate_t typeinfo_is_assignable(typeinfo *value,typeinfo *dest);
+tristate_t typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest);
 
 /* initialization functions *************************************************/
 
-void typeinfo_init_from_descriptor(typeinfo *info,char *utf_ptr,char *end_ptr);
+bool typeinfo_init_class(typeinfo *info,classref_or_classinfo c);
 void typeinfo_init_component(typeinfo *srcarray,typeinfo *dst);
 
-int  typeinfo_count_method_args(utf *d,bool twoword); /* this not included */
-void typeinfo_init_from_method_args(utf *desc,u1 *typebuf,
-                                    typeinfo *infobuf,
-                                    int buflen,bool twoword,
-                                    int *returntype,typeinfo *returntypeinfo);
-int  typedescriptors_init_from_method_args(typedescriptor *td,
-										   utf *desc,
-										   int buflen,bool twoword,
-										   typedescriptor *returntype);
+void typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo *info);
+void typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,
+                                   typeinfo *infobuf,
+                                   int buflen,bool twoword,
+                                   u1 *returntype,typeinfo *returntypeinfo);
+void  typedescriptor_init_from_typedesc(typedescriptor *td,
+									    typedesc *desc);
+int  typedescriptors_init_from_methoddesc(typedescriptor *td,
+										  methoddesc *desc,
+										  int buflen,bool twoword,
+										  typedescriptor *returntype);
 
 void typeinfo_clone(typeinfo *src,typeinfo *dest);
 
-/* functions for the type system ********************************************/
+/* freeing memory ***********************************************************/
 
 void typeinfo_free(typeinfo *info);
+
+/* functions for merging types **********************************************/
 
 bool typeinfo_merge(typeinfo *dest,typeinfo* y);
 
@@ -500,7 +550,7 @@ bool typeinfo_merge(typeinfo *dest,typeinfo* y);
 #include <stdio.h>
 
 void typeinfo_test();
-void typeinfo_init_from_fielddescriptor(typeinfo *info,char *desc);
+void typeinfo_print_class(FILE *file,classref_or_classinfo c);
 void typeinfo_print(FILE *file,typeinfo *info,int indent);
 void typeinfo_print_short(FILE *file,typeinfo *info);
 void typeinfo_print_type(FILE *file,int type,typeinfo *info);

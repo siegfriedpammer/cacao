@@ -32,13 +32,15 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 2100 2005-03-28 21:57:23Z twisti $
+   $Id: method.c 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
 
+#include "vm/global.h"
 #include "mm/memory.h"
 #include "vm/method.h"
+#include "vm/class.h"
 #include "vm/jit/codegen.inc.h"
 
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2153 2005-03-30 19:30:05Z twisti $
+   $Id: class.h 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -38,21 +38,18 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct classinfo classinfo; 
 typedef struct innerclassinfo innerclassinfo;
-typedef struct constant_classref constant_classref;
 typedef struct extra_classref extra_classref;
-
 
 #include "config.h"
 #include "toolbox/list.h"
-#include "vm/field.h"
 #include "vm/global.h"
+#include "vm/utf8.h"
+#include "vm/references.h"
+#include "vm/field.h"
 #include "vm/linker.h"
 #include "vm/tables.h"
-#include "vm/utf8.h"
 #include "vm/jit/inline/sets.h"
-
 
 /* classinfo ******************************************************************/
 
@@ -132,15 +129,6 @@ struct innerclassinfo {
 	classinfo *outer_class;       /* outer class pointer                      */
 	utf       *name;              /* innerclass name                          */
 	s4         flags;             /* ACC flags                                */
-};
-
-
-/* constant_classref **********************************************************/
-
-struct constant_classref {
-	vftbl_t   *pseudo_vftbl;      /* for distinguishing it from classinfo     */
-	classinfo *referer;           /* class containing the reference           */
-	utf       *name;              /* name of the class refered to             */
 };
 
 
@@ -229,15 +217,6 @@ extern classinfo *class_java_util_Vector;
 extern classinfo *pseudo_class_Arraystub;
 extern classinfo *pseudo_class_Null;
 extern classinfo *pseudo_class_New;
-
-
-/* macros *********************************************************************/
-
-/* initialize a constant_classref with referer `ref` and name `classname` */
-#define CLASSREF_INIT(c,ref,classname)                          \
-			do { (c).pseudo_vftbl = CLASSREF_PSEUDO_VFTBL;      \
-				 (c).referer = (ref);                           \
-				 (c).name = (classname); } while (0)
 
 
 /* function prototypes ********************************************************/

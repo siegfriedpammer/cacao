@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 2112 2005-03-29 21:29:08Z twisti $
+   $Id: resolve.h 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -44,7 +44,7 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 
 
 #include "vm/global.h"
-#include "vm/loader.h"
+#include "vm/references.h"
 #include "vm/jit/jit.h"
 
 
@@ -66,15 +66,6 @@ typedef enum {
 	resolveLinkageError,
 	resolveIllegalAccessError
 } resolve_err_t;
-
-
-/* classref_or_classinfo ******************************************************/
-
-typedef union {
-	constant_classref *ref;       /* a symbolic class reference               */
-	classinfo         *cls;       /* an already loaded class                  */
-	void              *any;       /* used for general access (x != NULL,...)  */
-} classref_or_classinfo;
 
 
 /* structs ********************************************************************/
@@ -109,19 +100,6 @@ struct unresolved_method {
 
 #define UNRESOLVED_SUBTYPE_SET_EMTPY(stset) \
 	do { (stset).subtyperefs = NULL; } while(0)
-
-/* a value that never occurrs in classinfo.header.vftbl                       */
-#define CLASSREF_PSEUDO_VFTBL ((vftbl_t *) 1)
-
-/* macro for testing if a classref_or_classinfo is a classref                 */
-/* `reforinfo` is only evaluated once                                         */
-#define IS_CLASSREF(reforinfo)  \
-	((reforinfo).ref->pseudo_vftbl == CLASSREF_PSEUDO_VFTBL)
-
-/* macro for casting a classref/classinfo * to a classref_or_classinfo        */
-#define CLASSREF_OR_CLASSINFO(value) \
-	(*((classref_or_classinfo *)(&(value))))
-
 
 /* function prototypes ********************************************************/
 

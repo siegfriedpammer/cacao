@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2163 2005-03-30 20:18:18Z twisti $
+   $Id: stack.c 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -2140,7 +2140,7 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				else if (IS_FLT_DBL_TYPE(s->type))
 					printf(" F%02d", s->regoff);
 				else {
-					printf(" %3s", regs[s->regoff]);
+					printf(" R%02d", s->regoff);
 				}
 				break;
 			case STACKVAR:
@@ -2163,7 +2163,7 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				else if (IS_FLT_DBL_TYPE(s->type))
 					printf(" f%02d", s->regoff);
 				else {
-					printf(" %3s", regs[s->regoff]);
+					printf(" r%02d", s->regoff);
 				}
 				break;
 			case STACKVAR:
@@ -2286,7 +2286,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 				else if ((j == TYPE_FLT) || (j == TYPE_DBL))
 					printf("f%02d", rd->locals[i][j].regoff);
 				else {
-					printf("%3s", regs[rd->locals[i][j].regoff]);
+					printf("r%02d", rd->locals[i][j].regoff);
 				}
 			}
 		printf("\n");
@@ -2312,7 +2312,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
 							printf("F%02d", rd->interfaces[i][j].regoff);
 						else {
-							printf("%3s", regs[rd->interfaces[i][j].regoff]);
+							printf("R%02d", rd->interfaces[i][j].regoff);
 						}
 					}
 					else {
@@ -2321,7 +2321,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
 							printf("f%02d", rd->interfaces[i][j].regoff);
 						else {
-							printf("%3s", regs[rd->interfaces[i][j].regoff]);
+							printf("r%02d", rd->interfaces[i][j].regoff);
 						}
 					}
 				}

@@ -28,15 +28,14 @@
 
    Changes:
 
-   $Id: access.h 2111 2005-03-29 21:28:24Z twisti $
+   $Id: access.h 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
 #ifndef _ACCESS_H
 #define _ACCESS_H
 
-#include "types.h"
-#include "vm/class.h"
+#include "vm/references.h"
 
 
 /* macros *********************************************************************/

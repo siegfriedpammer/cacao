@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2130 2005-03-29 22:30:51Z twisti $
+## $Id: Makefile.am 2181 2005-04-01 16:53:33Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -75,6 +75,7 @@ libvmcore_la_SOURCES = \
 	method.h \
 	options.c \
 	options.h \
+	references.h \
 	resolve.c \
 	resolve.h \
 	$(STATISTICS_OBJ) \

@@ -30,16 +30,14 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2153 2005-03-30 19:30:05Z twisti $
+   $Id: class.c 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
 #include <assert.h>
 #include <string.h>
 
-#include "config.h"
-#include "types.h"
-
+#include "vm/global.h"
 #include "mm/memory.h"
 
 #if defined(USE_THREADS)
@@ -58,6 +56,7 @@
 #include "vm/statistics.h"
 #include "vm/tables.h"
 #include "vm/utf8.h"
+#include "vm/loader.h"
 
 
 /******************************************************************************/

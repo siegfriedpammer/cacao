@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2148 2005-03-30 16:49:40Z twisti $
+   $Id: resolve.c 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -47,6 +47,8 @@
 /******************************************************************************/
 /* DEBUG HELPERS                                                              */
 /******************************************************************************/
+
+/*#define RESOLVE_VERBOSE*/
 
 #ifndef NDEBUG
 #define RESOLVE_DEBUG
@@ -70,6 +72,8 @@ resolve_class(classinfo *referer,methodinfo *refmethod,
 			  classinfo **result)
 {
 	classinfo *cls = NULL;
+	char *utf_ptr;
+	int len;
 	
 	RESOLVE_ASSERT(result);
 	RESOLVE_ASSERT(referer);
@@ -78,7 +82,7 @@ resolve_class(classinfo *referer,methodinfo *refmethod,
 	
 	*result = NULL;
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"resolve_class(");
 	utf_fprint(stderr,referer->name);
 	fprintf(stderr,",");
@@ -89,35 +93,62 @@ resolve_class(classinfo *referer,methodinfo *refmethod,
 	/* lookup if this class has already been loaded */
 	cls = classcache_lookup(referer->classloader,classname);
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    lookup result: %p\n",(void*)cls);
 #endif
 	
 	if (!cls) {
-		/* the class has not been loaded, yet */
-		if (mode == resolveLazy)
-			return true; /* be lazy */
+		/* resolve array types */
+		if (classname->text[0] == '[') {
+			utf_ptr = classname->text + 1;
+			len = classname->blength - 1;
+			/* classname is an array type name */
+			switch (*utf_ptr) {
+				case 'L':
+					utf_ptr++;
+					len -= 2;
+					/* FALLTHROUGH */
+				case '[':
+					/* the component type is a reference type */
+					/* resolve the component type */
+					if (!resolve_class(referer,refmethod,
+									   utf_new(utf_ptr,len),
+									   mode,&cls))
+						return false; /* exception */
+					if (!cls) {
+						RESOLVE_ASSERT(mode == resolveLazy);
+						return true; /* be lazy */
+					}
+					/* create the array class */
+					cls = class_array_of(cls);
+			}
+		}
+		else {
+			/* the class has not been loaded, yet */
+			if (mode == resolveLazy)
+				return true; /* be lazy */
+		}
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 		fprintf(stderr,"    loading...\n");
 #endif
 
 		/* load the class */
-#ifdef XXX
-		if (!load_class(referer->classloader,classname,&cls))
-			return false; /* exception */
-#else
-		cls = class_new(classname);
-		if (!cls->loaded)
-			load_class_from_classloader(cls, referer->classloader);
-#endif
+		if (!cls) {
+			classinfo *c = class_new(classname);
+			cls = load_class_from_classloader(c,referer->classloader);
+			if (!cls) {
+				class_free(c);
+				return false; /* exception */
+			}
+		}
 	}
 
 	/* the class is now loaded */
 	RESOLVE_ASSERT(cls);
 	RESOLVE_ASSERT(cls->loaded);
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    checking access rights...\n");
 #endif
 	
@@ -129,7 +160,7 @@ resolve_class(classinfo *referer,methodinfo *refmethod,
 	}
 
 	/* resolution succeeds */
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    success.\n");
 #endif
 	*result = cls;
@@ -174,7 +205,7 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 
 	if (link) {
 		if (!c->linked)
-			if (!class_link(c))
+			if (!link_class(c))
 				return false; /* exception */
 		RESOLVE_ASSERT(c->linked);
 	}
@@ -210,7 +241,7 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 	RESOLVE_ASSERT(mode == resolveLazy || mode == resolveEager);
 	RESOLVE_ASSERT(error == resolveLinkageError || error == resolveIllegalAccessError);
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"resolve_and_check_subtype_set\n");
 	unresolved_subtype_set_debug_dump(ref,stderr);
 	if (IS_CLASSREF(typeref)) {
@@ -256,7 +287,7 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 		RESOLVE_ASSERT(result->loaded);
 		RESOLVE_ASSERT(result->linked);
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 		fprintf(stderr,"performing subclass test:\n");
 		fprintf(stderr,"    ");utf_fprint(stderr,result->name);fputc('\n',stderr);
 		fprintf(stderr,"  must be a %s of\n",(reversed) ? "superclass" : "subclass");
@@ -266,16 +297,18 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 		/* now check the subtype relationship */
 		TYPEINFO_INIT_CLASSINFO(resultti,result);
 		if (reversed) {
-			if (!typeinfo_is_assignable_to_classinfo(&typeti,result)) {
-#ifdef RESOLVE_DEBUG
+			/* we must test against `true` because `MAYBE` is also != 0 */
+			if (true != typeinfo_is_assignable_to_class(&typeti,CLASSREF_OR_CLASSINFO(result))) {
+#ifdef RESOLVE_VERBOSE
 				fprintf(stderr,"reversed subclass test failed\n");
 #endif
 				goto throw_error;
 			}
 		}
 		else {
-			if (!typeinfo_is_assignable_to_classinfo(&resultti,type)) {
-#ifdef RESOLVE_DEBUG
+			/* we must test against `true` because `MAYBE` is also != 0 */
+			if (true != typeinfo_is_assignable_to_class(&resultti,CLASSREF_OR_CLASSINFO(type))) {
+#ifdef RESOLVE_VERBOSE
 				fprintf(stderr,"subclass test failed\n");
 #endif
 				goto throw_error;
@@ -321,7 +354,7 @@ resolve_field(unresolved_field *ref,
 
 	*result = NULL;
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 	unresolved_field_debug_dump(ref,stderr);
 #endif
 
@@ -345,7 +378,7 @@ resolve_field(unresolved_field *ref,
 	/* now we must find the declaration of the field in `container`
 	 * or one of its superclasses */
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 		fprintf(stderr,"    resolving field in class...\n");
 #endif
 
@@ -360,7 +393,7 @@ resolve_field(unresolved_field *ref,
 	RESOLVE_ASSERT(declarer);
 	RESOLVE_ASSERT(declarer->loaded && declarer->linked);
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 		fprintf(stderr,"    checking static...\n");
 #endif
 
@@ -375,7 +408,7 @@ resolve_field(unresolved_field *ref,
 
 	/* for non-static accesses we have to check the constraints on the instance type */
 	if ((ref->flags & RESOLVE_STATIC) == 0) {
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 		fprintf(stderr,"    checking instance types...\n");
 #endif
 
@@ -396,6 +429,7 @@ resolve_field(unresolved_field *ref,
 
 	/* for PUT* instructions we have to check the constraints on the value type */
 	if (((ref->flags & RESOLVE_PUTFIELD) != 0) && fi->type == TYPE_ADR) {
+		RESOLVE_ASSERT(fieldtyperef);
 		if (!SUBTYPESET_IS_EMPTY(ref->valueconstraints)) {
 			/* check subtype constraints */
 			if (!resolve_and_check_subtype_set(referer,ref->referermethod,
@@ -436,6 +470,7 @@ resolve_field(unresolved_field *ref,
 
 	/* impose loading constraint on field type */
 	if (fi->type == TYPE_ADR) {
+		RESOLVE_ASSERT(fieldtyperef);
 		if (!classcache_add_constraint(declarer->classloader,referer->classloader,
 								  	   fieldtyperef->name))
 			return false; /* exception */
@@ -469,7 +504,7 @@ resolve_method(unresolved_method *ref,
 	RESOLVE_ASSERT(result);
 	RESOLVE_ASSERT(mode == resolveLazy || mode == resolveEager);
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 	unresolved_method_debug_dump(ref,stderr);
 #endif
 
@@ -628,7 +663,7 @@ unresolved_subtype_set_from_typeinfo(classinfo *referer,methodinfo *refmethod,
 	RESOLVE_ASSERT(stset);
 	RESOLVE_ASSERT(tinfo);
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"unresolved_subtype_set_from_typeinfo\n");
 #ifdef TYPEINFO_DEBUG
 	typeinfo_print(stderr,tinfo,4);
@@ -665,17 +700,20 @@ unresolved_subtype_set_from_typeinfo(classinfo *referer,methodinfo *refmethod,
 		count = tinfo->merged->count;
 		stset->subtyperefs = MNEW(classref_or_classinfo,count + 1);
 		for (i=0; i<count; ++i) {
-			stset->subtyperefs[i].cls = tinfo->merged->list[i];
+			stset->subtyperefs[i] = tinfo->merged->list[i];
 		}
 		stset->subtyperefs[count].any = NULL; /* terminate */
 	}
 	else {
-		if (tinfo->typeclass->name == declaredtype->name) {
+		if ((IS_CLASSREF(tinfo->typeclass)
+					? tinfo->typeclass.ref->name 
+					: tinfo->typeclass.cls->name) == declaredtype->name)
+		{
 			goto empty_set;
 		}
 		else {
 			stset->subtyperefs = MNEW(classref_or_classinfo,1 + 1);
-			stset->subtyperefs[0].cls = tinfo->typeclass;
+			stset->subtyperefs[0] = tinfo->typeclass;
 			stset->subtyperefs[1].any = NULL; /* terminate */
 		}
 	}
@@ -700,7 +738,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 	typeinfo *tip = NULL;
 	typedesc *fd;
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_field\n");
 	fprintf(stderr,"    referer: ");utf_fprint(stderr,referer->name);fputc('\n',stderr);
 	fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);
@@ -752,7 +790,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 	fd = fieldref->parseddesc.fd;
 	RESOLVE_ASSERT(fd);
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    class  : ");utf_fprint(stderr,fieldref->classref->name);fputc('\n',stderr);
 	fprintf(stderr,"    name   : ");utf_fprint(stderr,fieldref->name);fputc('\n',stderr);
 	fprintf(stderr,"    desc   : ");utf_fprint(stderr,fieldref->descriptor);fputc('\n',stderr);
@@ -831,7 +869,7 @@ create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 	md = methodref->parseddesc.md;
 	RESOLVE_ASSERT(md);
 
-#ifdef RESOLVE_DEBUG
+#ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_method\n");
 	fprintf(stderr,"    referer: ");utf_fprint(stderr,referer->name);fputc('\n',stderr);
 	fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);

@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: field.h 2113 2005-03-29 21:36:28Z twisti $
+   $Id: field.h 2181 2005-04-01 16:53:33Z edwin $
 */
 
 
@@ -40,11 +40,10 @@
 typedef struct fieldinfo fieldinfo; 
 
 
-#include "types.h"
-#include "vm/class.h"
-#include "vm/descriptor.h"
 #include "vm/global.h"
 #include "vm/utf8.h"
+#include "vm/references.h"
+#include "vm/descriptor.h"
 #include "vm/jit/inline/parseXTA.h"
 
 

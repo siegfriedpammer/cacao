@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 2147 2005-03-30 16:47:35Z twisti $
+   $Id: exceptions.h 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -35,13 +35,12 @@
 #define _EXCEPTIONS_H
 
 
-#include "config.h"
-
 #include "vm/global.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 #include "vm/builtin.h"
-#include "vm/class.h"
+#include "vm/references.h"
+#include "vm/method.h"
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)

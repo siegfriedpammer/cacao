@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.h 2160 2005-03-30 20:08:29Z twisti $
+   $Id: parseXTA.h 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -39,6 +39,7 @@ typedef struct xtainfo xtainfo;
 typedef	struct xtafldinfo xtafldinfo;
 
 
+#include "toolbox/list.h"
 #include "vm/global.h"
 #include "vm/jit/inline/sets.h"
 

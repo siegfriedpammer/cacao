@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.c 2111 2005-03-29 21:28:24Z twisti $
+   $Id: descriptor.c 2181 2005-04-01 16:53:33Z edwin $
 
 */
 
@@ -348,6 +348,8 @@ descriptor_pool_add_class(descriptor_pool *pool,utf *name)
 		*exceptionptr = new_classformaterror(pool->referer,"Invalid class name");
 		return false; /* exception */
 	}
+
+	/* XXX check maximum array dimension */
 	
 	c = DNEW(classref_hash_entry);
 	c->name = name;

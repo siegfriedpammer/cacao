@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: linker.h 2148 2005-03-30 16:49:40Z twisti $
+   $Id: linker.h 2181 2005-04-01 16:53:33Z edwin $
 */
 
 
@@ -42,7 +42,7 @@ typedef struct arraydescriptor arraydescriptor;
 typedef struct primitivetypeinfo primitivetypeinfo;
 
 
-#include "vm/class.h"
+#include "vm/references.h"
 
 
 /* virtual function table ******************************************************
@@ -162,6 +162,9 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 
 bool linker_init(void);
 classinfo *link_class(classinfo *c);
+
+/* debug print arraydescriptor */
+void print_arraydescriptor(FILE *file, arraydescriptor *desc);
 
 #endif /* _LINKER_H */
 

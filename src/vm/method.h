@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 2114 2005-03-29 21:42:33Z twisti $
+   $Id: method.h 2181 2005-04-01 16:53:33Z edwin $
 */
 
 
@@ -42,10 +42,10 @@ typedef struct exceptiontable exceptiontable;
 typedef struct lineinfo lineinfo; 
 
 
-#include "vm/class.h"
-#include "vm/descriptor.h"
 #include "vm/global.h"
 #include "vm/utf8.h"
+#include "vm/references.h"
+#include "vm/descriptor.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/inline/parseXTA.h"
 
