@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at            *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 413 2003-08-22 17:46:18Z twisti $         *
+*   Last Change: $Id: asmpart.S 414 2003-08-23 23:45:58Z twisti $         *
 *                                                                              *
 *******************************************************************************/
 
@@ -405,31 +405,39 @@ asm_dumpregistersandcall:
 *******************************************************************************/
 
 asm_handle_nat_exception:
-		add     $8,%rsp						/* clear return address of native stub */
+        add     $8,%rsp						/* clear return address of native stub */
 		
 asm_handle_exception:
-        mov     %rdx,%rdi
-        mov     %rax,%rsi
-		call	findmethod
-		mov     %rax,%rcx
-
-		push    %rbp
-		mov     %rsp,%rbp
-
-		push    %rax						/* save exception pointer         */
-/*		sub     $2,%edx */
-		push    %rdx						/* save exception pc              */
-		push	%rcx						/* save data segment pointer      */
+        sub     $16,%rsp
+        mov     %rax,(%rsp)                 /* save exception pointer         */
+        mov     %r10,8(%rsp)
         
-		push	%rbx
-		push	%rsi
-		push	%rdi
+        mov     %r11,%rdi
+        mov     %rax,%rsi
+        call	findmethod
+        mov     %rax,%rcx
+
+        mov     (%rsp),%rax                 /* restore exception pointer      */
+        mov     8(%rsp),%r10
+        
+        push    %rbp
+        mov     %rsp,%rbp
+
+        push    %rax						/* save exception pointer         */
+/*		sub     $2,%edx */
+        push    %rdx						/* save exception pc              */
+        push	%rcx						/* save data segment pointer      */
+        
+        push	%rbx
+        push	%rsi
+        push	%rdi
 		
 ex_stack_loop:
-		mov     %rax,%rdi					/* exception pointer */
-		mov     MethodPointer(%rcx),%rsi	/* method pointer */
-		mov     $1,%rcx 					/* set no unwind flag */
-		call	builtin_trace_exception
+        mov     %rax,%rdi					/* exception pointer              */
+        mov     MethodPointer(%rcx),%rsi	/* method pointer                 */
+        mov     %r10,%rdx                   /* exception pc                   */
+        mov     $1,%rcx 					/* set no unwind flag             */
+        call	builtin_trace_exception
 
         xor     %rax,%rax
         mov     %rax,(%rax)

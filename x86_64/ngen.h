@@ -11,7 +11,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: ngen.h 413 2003-08-22 17:46:18Z twisti $
+    Last Change: $Id: ngen.h 414 2003-08-23 23:45:58Z twisti $
 
 *******************************************************************************/
 
@@ -291,7 +291,7 @@ static const unsigned char x86_64_cc_map[] = {
             break; \
         } \
         \
-        if ((disp) == 0 && (basereg) != RBP) { \
+        if ((disp) == 0 && (basereg) != RBP && (basereg) != R13) { \
             x86_64_address_byte(0,(dreg),(basereg)); \
             break; \
         } \
@@ -977,7 +977,7 @@ static const unsigned char x86_64_cc_map[] = {
         x86_64_emit_rex(0,(reg),0,(dreg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xaf; \
-        x86_64_emit_reg((dreg),(reg)); \
+        x86_64_emit_reg((reg),(dreg)); \
     } while (0)
 
 
@@ -1018,12 +1018,12 @@ static const unsigned char x86_64_cc_map[] = {
 #define x86_64_imul_imm_reg_reg(imm,reg,dreg) \
     do { \
         if (x86_64_is_imm8((imm))) { \
-            x86_64_emit_rex(1,(reg),0,(dreg)); \
+            x86_64_emit_rex(1,(dreg),0,(reg)); \
             *(mcodeptr++) = (u1) 0x6b; \
             x86_64_emit_reg((dreg),(reg)); \
             x86_64_emit_imm8((imm)); \
         } else { \
-            x86_64_emit_rex(1,(reg),0,(dreg)); \
+            x86_64_emit_rex(1,(dreg),0,(reg)); \
             *(mcodeptr++) = (u1) 0x69; \
             x86_64_emit_reg((dreg),(reg)); \
             x86_64_emit_imm32((imm)); \
@@ -1034,12 +1034,12 @@ static const unsigned char x86_64_cc_map[] = {
 #define x86_64_imull_imm_reg_reg(imm,reg,dreg) \
     do { \
         if (x86_64_is_imm8((imm))) { \
-            x86_64_emit_rex(0,(reg),0,(dreg)); \
+            x86_64_emit_rex(0,(dreg),0,(reg)); \
             *(mcodeptr++) = (u1) 0x6b; \
             x86_64_emit_reg((dreg),(reg)); \
             x86_64_emit_imm8((imm)); \
         } else { \
-            x86_64_emit_rex(0,(reg),0,(dreg)); \
+            x86_64_emit_rex(0,(dreg),0,(reg)); \
             *(mcodeptr++) = (u1) 0x69; \
             x86_64_emit_reg((dreg),(reg)); \
             x86_64_emit_imm32((imm)); \

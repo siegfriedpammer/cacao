@@ -12,7 +12,7 @@
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 			 Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 413 2003-08-22 17:46:18Z twisti $
+	Last Change: $Id: ngen.c 414 2003-08-23 23:45:58Z twisti $
 
 *******************************************************************************/
 
@@ -35,7 +35,7 @@
 #define CALCOFFSETBYTES(reg,val) \
     if ((s4) (val) < -128 || (s4) (val) > 127) offset += 4; \
     else if ((s4) (val) != 0) offset += 1; \
-    else if ((reg) == RBP) offset += 1;
+    else if ((reg) == RBP || (reg) == RSP || (reg) == R12 || (reg) == R13) offset += 1;
 
 
 #define CALCREGOFFBYTES(val) \
@@ -496,8 +496,14 @@ static void gen_mcode()
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++;
- 		if (var->type < 0)
+ 		if (var->type < 0) {
+			if (IS_INT_LNG_TYPE(t)) {
+				s1++;
+			} else {
+				s2++;
+			}
  			continue;
+		}
  		r = var->regoff; 
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
  			if (s1 < intreg_argnum) {                /* register arguments    */
@@ -4824,7 +4830,7 @@ gen_method: {
 					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(s1, OFFSET(java_objectheader, vftbl));
 
-					offset += 3;    /* mov_membase_reg */
+					offset += 2;    /* movl_membase_reg - only if REG_ITMP1 == RAX */
 					CALCOFFSETBYTES(REG_ITMP1, OFFSET(vftbl, interfacetablelength));
 					
 					offset += 3;    /* sub */
@@ -4842,7 +4848,7 @@ gen_method: {
 					x86_64_jcc(X86_64_CC_E, offset);
 
 					x86_64_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					x86_64_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetablelength), REG_ITMP2);
+					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetablelength), REG_ITMP2);
 					x86_64_alu_imm_reg(X86_64_SUB, super->index, REG_ITMP2);
 					x86_64_test_reg_reg(REG_ITMP2, REG_ITMP2);
 
@@ -4869,13 +4875,13 @@ gen_method: {
 
 					offset += 10;   /* mov_imm_reg */
 
-					offset += 3;    /* mov_membase_reg */
+					offset += 2;    /* movl_membase_reg - only if REG_ITMP1 == RAX */
 					CALCOFFSETBYTES(REG_ITMP1, OFFSET(vftbl, baseval));
 					
-					offset += 3;    /* mov_membase_reg */
+					offset += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
 					CALCOFFSETBYTES(REG_ITMP2, OFFSET(vftbl, baseval));
 					
-					offset += 3;    /* mov_membase_reg */
+					offset += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
 					CALCOFFSETBYTES(REG_ITMP2, OFFSET(vftbl, diffval));
 					
 					offset += 3;    /* sub */
@@ -4889,9 +4895,9 @@ gen_method: {
 
 					x86_64_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					x86_64_mov_imm_reg((void *) super->vftbl, REG_ITMP2);
-					x86_64_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
-					x86_64_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
-					x86_64_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
+					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
+					x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
+					x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
 					x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP3, REG_ITMP1);
 					x86_64_alu_reg_reg(X86_64_XOR, d, d);
 					x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP2, REG_ITMP1);
@@ -4936,7 +4942,7 @@ gen_method: {
 					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(s1, OFFSET(java_objectheader, vftbl));
 
-					offset += 3;    /* mov_membase_reg */
+					offset += 2;    /* movl_membase_reg - only if REG_ITMP1 == RAX */
 					CALCOFFSETBYTES(REG_ITMP1, OFFSET(vftbl, interfacetablelength));
 
 					offset += 3;    /* sub */
@@ -4954,7 +4960,7 @@ gen_method: {
 					x86_64_jcc(X86_64_CC_E, offset);
 
 					x86_64_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					x86_64_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetablelength), REG_ITMP2);
+					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetablelength), REG_ITMP2);
 					x86_64_alu_imm_reg(X86_64_SUB, super->index, REG_ITMP2);
 					x86_64_test_reg_reg(REG_ITMP2, REG_ITMP2);
 					x86_64_jcc(X86_64_CC_LE, 0);
@@ -4972,22 +4978,22 @@ gen_method: {
 					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(s1, OFFSET(java_objectheader, vftbl));
 					offset += 10;   /* mov_imm_reg */
-					offset += 3;    /* sub */
+					offset += 2;    /* movl_membase_reg - only if REG_ITMP1 == RAX */
 					CALCOFFSETBYTES(REG_ITMP1, OFFSET(vftbl, baseval));
 
 					if (d != REG_ITMP3) {
-						offset += 3;    /* mov_membase_reg */
+						offset += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
 						CALCOFFSETBYTES(REG_ITMP2, OFFSET(vftbl, baseval));
-						offset += 3;    /* mov_membase_reg */
+						offset += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
 						CALCOFFSETBYTES(REG_ITMP2, OFFSET(vftbl, diffval));
 						offset += 3;    /* sub */
 						
 					} else {
-						offset += 3;    /* mov_membase_reg */
+						offset += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
 						CALCOFFSETBYTES(REG_ITMP2, OFFSET(vftbl, baseval));
 						offset += 3;    /* sub */
 						offset += 10;   /* mov_imm_reg */
-						offset += 3;    /* mov_membase_reg */
+						offset += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
 						CALCOFFSETBYTES(REG_ITMP2, OFFSET(vftbl, diffval));
 					}
 
@@ -4998,17 +5004,17 @@ gen_method: {
 
 					x86_64_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					x86_64_mov_imm_reg((void *) super->vftbl, REG_ITMP2);
-					x86_64_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
+					x86_64_movl_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
 					if (d != REG_ITMP3) {
-						x86_64_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
-						x86_64_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
+						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
+						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
 						x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP3, REG_ITMP1);
 
 					} else {
-						x86_64_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP2);
+						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP2);
 						x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP2, REG_ITMP1);
 						x86_64_mov_imm_reg((void *) super->vftbl, REG_ITMP2);
-						x86_64_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
+						x86_64_movl_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
 					}
 					x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP2, REG_ITMP1);
 					x86_64_jcc(X86_64_CC_A, 0);    /* (u) REG_ITMP1 > (u) REG_ITMP2 -> jump */

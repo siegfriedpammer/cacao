@@ -10,7 +10,7 @@
 
     Authors: Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: methodtable.c 413 2003-08-22 17:46:18Z twisti $
+    Last Change: $Id: methodtable.c 414 2003-08-23 23:45:58Z twisti $
 
 *******************************************************************************/
 
@@ -84,7 +84,7 @@ u1 *findmethod(u1 *pos)
 
 
 
-void asmprintf(int x)
+void asmprintf(s8 x)
 {
     printf("val=%lx\n", x);
     fflush(stdout);
