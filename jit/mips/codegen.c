@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1281 2004-07-05 22:03:43Z twisti $
+   $Id: codegen.c 1291 2004-07-09 13:20:56Z twisti $
 
 */
 
@@ -41,21 +41,21 @@
 #include <signal.h>
 #include <unistd.h>
 #include <sys/mman.h>
-#include "types.h"
+#include "jit/mips/types.h"
 #include "main.h"
-#include "codegen.h"
-#include "jit.h"
-#include "reg.h"
 #include "builtin.h"
 #include "asmpart.h"
 #include "jni.h"
 #include "loader.h"
 #include "tables.h"
 #include "native.h"
+#include "jit/jit.h"
+#include "jit/reg.h"
+#include "jit/mips/codegen.h"
 
 /* include independent code generation stuff */
-#include "codegen.inc"
-#include "reg.inc"
+#include "jit/codegen.inc"
+#include "jit/reg.inc"
 
 
 /* *****************************************************************************
@@ -112,173 +112,6 @@ int nregdescfloat[] = {
 	REG_END };
 
 /* for use of reserved registers, see comment above */
-
-
-/* parameter allocation mode */
-
-int nreg_parammode = PARAMMODE_NUMBERED;  
-
-   /* parameter-registers will be allocated by assigning the
-      1. parameter:   int/float-reg a0
-      2. parameter:   int/float-reg a1  
-      3. parameter:   int/float-reg a2 ....
-   */
-
-
-/* stackframe-infos ***********************************************************/
-
-int parentargs_base; /* offset in stackframe for the parameter from the caller*/
-
-/* -> see file 'calling.doc' */
-
-
-/* additional functions and macros to generate code ***************************/
-
-/* #define BlockPtrOfPC(pc)        block+block_index[pc] */
-#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
-
-
-#ifdef STATISTICS
-#define COUNT_SPILLS count_spills++
-#else
-#define COUNT_SPILLS
-#endif
-
-
-/* gen_nullptr_check(objreg) */
-
-#define gen_nullptr_check(objreg) \
-    if (checknull) { \
-        M_BEQZ((objreg), 0); \
-        codegen_addxnullrefs(mcodeptr); \
-        M_NOP; \
-    }
-
-
-/* MCODECHECK(icnt) */
-
-#define MCODECHECK(icnt) \
-	if ((mcodeptr + (icnt)) > mcodeend) mcodeptr = codegen_increase((u1 *) mcodeptr)
-
-/* M_INTMOVE:
-     generates an integer-move from register a to b.
-     if a and b are the same int-register, no code will be generated.
-*/ 
-
-#define M_INTMOVE(a,b) if (a != b) { M_MOV(a, b); }
-
-
-/* M_FLTMOVE:
-    generates a floating-point-move from register a to b.
-    if a and b are the same float-register, no code will be generated
-*/ 
-
-#define M_FLTMOVE(a,b) if (a != b) { M_DMOV(a, b); }
-
-#define M_TFLTMOVE(t,a,b) \
-	{if(a!=b) \
-		if ((t)==TYPE_DBL) \
-		    {M_DMOV(a,b);} \
-		else {M_FMOV(a,b);} \
-	}
-
-#define M_TFLD(t,a,b,disp) \
-    if ((t)==TYPE_DBL) \
-	  {M_DLD(a,b,disp);} \
-    else \
-	  {M_FLD(a,b,disp);}
-
-#define M_TFST(t,a,b,disp) \
-    if ((t)==TYPE_DBL) \
-	  {M_DST(a,b,disp);} \
-    else \
-	  {M_FST(a,b,disp);}
-
-#define M_CCFLTMOVE(t1,t2,a,b) \
-	if ((t1)==(t2)) \
-	  {M_TFLTMOVE(t1,a,b);} \
-	else \
-	  if ((t1)==TYPE_DBL) \
-		{M_CVTDF(a,b);} \
-	  else \
-		{M_CVTFD(a,b);}
-
-#define M_CCFLD(t1,t2,a,b,disp) \
-    if ((t1)==(t2)) \
-	  {M_DLD(a,b,disp);} \
-	else { \
-	  M_DLD(REG_FTMP1,b,disp); \
-	  if ((t1)==TYPE_DBL) \
-	    {M_CVTDF(REG_FTMP1,a);} \
-	  else \
-	    {M_CVTFD(REG_FTMP1,a);} \
-	}
-	  
-#define M_CCFST(t1,t2,a,b,disp) \
-    if ((t1)==(t2)) \
-	  {M_DST(a,b,disp);} \
-	else { \
-	  if ((t1)==TYPE_DBL) \
-	    {M_CVTDF(a,REG_FTMP1);} \
-	  else \
-	    {M_CVTFD(a,REG_FTMP1);} \
-	  M_DST(REG_FTMP1,b,disp); \
-	}
-	  
-
-/* var_to_reg_xxx:
-    this function generates code to fetch data from a pseudo-register
-    into a real register. 
-    If the pseudo-register has actually been assigned to a real 
-    register, no code will be emitted, since following operations
-    can use this register directly.
-    
-    v: pseudoregister to be fetched from
-    tempregnum: temporary register to be used if v is actually spilled to ram
-
-    return: the register number, where the operand can be found after 
-            fetching (this wil be either tempregnum or the register
-            number allready given to v)
-*/
-
-#define var_to_reg_int(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) \
-		{COUNT_SPILLS;M_LLD(tempnr,REG_SP,8*(v)->regoff);regnr=tempnr;} \
-	else regnr=(v)->regoff; \
-}
-
-
-#define var_to_reg_flt(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) \
-		{COUNT_SPILLS;M_DLD(tempnr,REG_SP,8*(v)->regoff);regnr=tempnr;} \
-	else regnr=(v)->regoff; \
-}
-
-
-/* store_reg_to_var_xxx:
-    This function generates the code to store the result of an operation
-    back into a spilled pseudo-variable.
-    If the pseudo-variable has not been spilled in the first place, this 
-    function will generate nothing.
-    
-    v ............ Pseudovariable
-    tempregnum ... Number of the temporary registers as returned by
-                   reg_of_var.
-*/	
-
-#define store_reg_to_var_int(sptr, tempregnum) {       \
-	if ((sptr)->flags & INMEMORY) {                    \
-		COUNT_SPILLS;                                  \
-		M_LST(tempregnum, REG_SP, 8 * (sptr)->regoff); \
-		}                                              \
-	}
-
-#define store_reg_to_var_flt(sptr, tempregnum) {       \
-	if ((sptr)->flags & INMEMORY) {                    \
-		COUNT_SPILLS;                                  \
-		M_DST(tempregnum, REG_SP, 8 * (sptr)->regoff); \
-		}                                              \
-	}
 
 
 /* NullPointerException handlers and exception handling initialisation        */
@@ -2051,22 +1884,6 @@ void codegen(methodinfo *m)
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_NOP;
-
-#if 0
-				s1 = (s4) ((u1 *) mcodeptr - mcodebase);
-				if (s1 <= 32768) {
-					M_LDA(REG_PV, REG_RA, -s1);
-					M_NOP;
-					M_NOP;
-
-				} else {
-					s4 ml = -s1, mh = 0;
-					while (ml < -32768) { ml += 65536; mh--; }
-					M_LUI(REG_PV, mh);
-					M_IADD_IMM(REG_PV, ml, REG_PV);
-					M_LADD(REG_PV, REG_RA, REG_PV);
-				}
-#endif
   			}
 
 			a = dseg_addaddress(&(((fieldinfo *) iptr->val.a)->value));
@@ -2108,22 +1925,6 @@ void codegen(methodinfo *m)
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_NOP;
-
-#if 0
-				s1 = (s4) ((u1 *) mcodeptr - mcodebase);
-				if (s1 <= 32768) {
-					M_LDA(REG_PV, REG_RA, -s1);
-					M_NOP;
-					M_NOP;
-
-				} else {
-					s4 ml = -s1, mh = 0;
-					while (ml < -32768) { ml += 65536; mh--; }
-					M_LUI(REG_PV, mh);
-					M_IADD_IMM(REG_PV, ml, REG_PV);
-					M_LADD(REG_PV, REG_RA, REG_PV);
-				}
-#endif
   			}
 
 			a = dseg_addaddress(&(((fieldinfo *) iptr->val.a)->value));
@@ -3043,7 +2844,6 @@ nowperformreturn:
 
 gen_method: {
 			methodinfo *lm;
-			classinfo  *ci;
 
 			MCODECHECK((s3 << 1) + 64);
 
@@ -3078,57 +2878,42 @@ gen_method: {
 
 			lm = iptr->val.a;
 			switch (iptr->opc) {
-				case ICMD_BUILTIN3:
-				case ICMD_BUILTIN2:
-				case ICMD_BUILTIN1:
-					a = dseg_addaddress((void *) lm);
-					M_ALD(REG_ITMP3, REG_PV, a); /* built-in-function pointer */
-					M_JSR (REG_RA, REG_ITMP3);
-					M_NOP;
-					d = iptr->op1;                             /* return type */
-					goto afteractualcall;
+			case ICMD_BUILTIN3:
+			case ICMD_BUILTIN2:
+			case ICMD_BUILTIN1:
+				a = dseg_addaddress((void *) lm);
+				d = iptr->op1;                                 /* return type */
 
-				case ICMD_INVOKESTATIC:
-				case ICMD_INVOKESPECIAL:
-					a = dseg_addaddress(lm->stubroutine);
+				M_ALD(REG_ITMP3, REG_PV, a);     /* built-in-function pointer */
+				M_JSR(REG_RA, REG_ITMP3);
+				M_NOP;
+				goto afteractualcall;
 
-					M_ALD(REG_PV, REG_PV, a);         /* method pointer in pv */
+			case ICMD_INVOKESTATIC:
+			case ICMD_INVOKESPECIAL:
+				a = dseg_addaddress(lm->stubroutine);
+				d = lm->returntype;
 
-					d = lm->returntype;
-					goto makeactualcall;
+				M_ALD(REG_PV, REG_PV, a);             /* method pointer in pv */
+				break;
 
-				case ICMD_INVOKEVIRTUAL:
+			case ICMD_INVOKEVIRTUAL:
+				d = lm->returntype;
 
-					gen_nullptr_check(r->argintregs[0]);
-					M_ALD(REG_METHODPTR, r->argintregs[0],
-						  OFFSET(java_objectheader, vftbl));
-					M_ALD(REG_PV, REG_METHODPTR, OFFSET(vftbl, table[0]) +
-						  sizeof(methodptr) * lm->vftblindex);
+				gen_nullptr_check(r->argintregs[0]);
+				M_ALD(REG_METHODPTR, r->argintregs[0], OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_PV, REG_METHODPTR, OFFSET(vftbl, table[0]) + sizeof(methodptr) * lm->vftblindex);
+				break;
 
-					d = lm->returntype;
-					goto makeactualcall;
-
-				case ICMD_INVOKEINTERFACE:
-					ci = lm->class;
+			case ICMD_INVOKEINTERFACE:
+				d = lm->returntype;
 					
-					gen_nullptr_check(r->argintregs[0]);
-					M_ALD(REG_METHODPTR, r->argintregs[0],
-						  OFFSET(java_objectheader, vftbl));
-					M_ALD(REG_METHODPTR, REG_METHODPTR,
-					      OFFSET(vftbl, interfacetable[0]) -
-					      sizeof(methodptr*) * ci->index);
-					M_ALD(REG_PV, REG_METHODPTR,
-						  sizeof(methodptr) * (lm - ci->methods));
-
-					d = lm->returntype;
-					goto makeactualcall;
-
-				default:
-					d = 0;
-					error ("Unkown ICMD-Command: %d", iptr->opc);
-				}
-
-makeactualcall:
+				gen_nullptr_check(r->argintregs[0]);
+				M_ALD(REG_METHODPTR, r->argintregs[0], OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_METHODPTR, REG_METHODPTR, OFFSET(vftbl, interfacetable[0]) - sizeof(methodptr*) * lm->class->index);
+				M_ALD(REG_PV, REG_METHODPTR, sizeof(methodptr) * (lm - lm->class->methods));
+				break;
+			}
 
 			M_JSR(REG_RA, REG_PV);
 			M_NOP;
@@ -3154,13 +2939,13 @@ afteractualcall:
 					s1 = reg_of_var(m, iptr->dst, REG_RESULT);
 					M_INTMOVE(REG_RESULT, s1);
 					store_reg_to_var_int(iptr->dst, s1);
-					}
-				else {
+
+				} else {
 					s1 = reg_of_var(m, iptr->dst, REG_FRESULT);
 					M_TFLTMOVE(iptr->dst->type, REG_FRESULT, s1);
 					store_reg_to_var_flt(iptr->dst, s1);
-					}
 				}
+			}
 			}
 			break;
 
@@ -3889,9 +3674,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	/* save argument registers on stack -- if we have to */
 	if ((m->flags & ACC_STATIC && m->paramcount > (INT_ARG_CNT - 2)) || m->paramcount > (INT_ARG_CNT - 1)) {
-		int i;
-		int paramshiftcnt = (m->flags & ACC_STATIC) ? 2 : 1;
-		int stackparamcnt = (m->paramcount > INT_ARG_CNT) ? m->paramcount - INT_ARG_CNT : 0;
+		s4 i;
+		s4 paramshiftcnt = (m->flags & ACC_STATIC) ? 2 : 1;
+		s4 stackparamcnt = (m->paramcount > INT_ARG_CNT) ? m->paramcount - INT_ARG_CNT : 0;
 
   		stackframesize = stackparamcnt + paramshiftcnt;
 

@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 1281 2004-07-05 22:03:43Z twisti $
+   $Id: codegen.h 1291 2004-07-09 13:20:56Z twisti $
 
 */
 
@@ -84,6 +84,155 @@
 
 #define FLT_SAV_CNT      4   /* number of flt callee saved registers          */
 #define FLT_ARG_CNT      8   /* number of flt argument registers              */
+
+
+/* additional functions and macros to generate code ***************************/
+
+/* #define BlockPtrOfPC(pc)        block+block_index[pc] */
+#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
+
+
+#ifdef STATISTICS
+#define COUNT_SPILLS count_spills++
+#else
+#define COUNT_SPILLS
+#endif
+
+
+/* gen_nullptr_check(objreg) */
+
+#define gen_nullptr_check(objreg) \
+    if (checknull) { \
+        M_BEQZ((objreg), 0); \
+        codegen_addxnullrefs(mcodeptr); \
+        M_NOP; \
+    }
+
+
+/* MCODECHECK(icnt) */
+
+#define MCODECHECK(icnt) \
+	if ((mcodeptr + (icnt)) > mcodeend) mcodeptr = codegen_increase((u1 *) mcodeptr)
+
+/* M_INTMOVE:
+     generates an integer-move from register a to b.
+     if a and b are the same int-register, no code will be generated.
+*/ 
+
+#define M_INTMOVE(a,b) if (a != b) { M_MOV(a, b); }
+
+
+/* M_FLTMOVE:
+    generates a floating-point-move from register a to b.
+    if a and b are the same float-register, no code will be generated
+*/ 
+
+#define M_FLTMOVE(a,b) if (a != b) { M_DMOV(a, b); }
+
+#define M_TFLTMOVE(t,a,b) \
+	{if(a!=b) \
+		if ((t)==TYPE_DBL) \
+		    {M_DMOV(a,b);} \
+		else {M_FMOV(a,b);} \
+	}
+
+#define M_TFLD(t,a,b,disp) \
+    if ((t)==TYPE_DBL) \
+	  {M_DLD(a,b,disp);} \
+    else \
+	  {M_FLD(a,b,disp);}
+
+#define M_TFST(t,a,b,disp) \
+    if ((t)==TYPE_DBL) \
+	  {M_DST(a,b,disp);} \
+    else \
+	  {M_FST(a,b,disp);}
+
+#define M_CCFLTMOVE(t1,t2,a,b) \
+	if ((t1)==(t2)) \
+	  {M_TFLTMOVE(t1,a,b);} \
+	else \
+	  if ((t1)==TYPE_DBL) \
+		{M_CVTDF(a,b);} \
+	  else \
+		{M_CVTFD(a,b);}
+
+#define M_CCFLD(t1,t2,a,b,disp) \
+    if ((t1)==(t2)) \
+	  {M_DLD(a,b,disp);} \
+	else { \
+	  M_DLD(REG_FTMP1,b,disp); \
+	  if ((t1)==TYPE_DBL) \
+	    {M_CVTDF(REG_FTMP1,a);} \
+	  else \
+	    {M_CVTFD(REG_FTMP1,a);} \
+	}
+	  
+#define M_CCFST(t1,t2,a,b,disp) \
+    if ((t1)==(t2)) \
+	  {M_DST(a,b,disp);} \
+	else { \
+	  if ((t1)==TYPE_DBL) \
+	    {M_CVTDF(a,REG_FTMP1);} \
+	  else \
+	    {M_CVTFD(a,REG_FTMP1);} \
+	  M_DST(REG_FTMP1,b,disp); \
+	}
+	  
+
+/* var_to_reg_xxx:
+    this function generates code to fetch data from a pseudo-register
+    into a real register. 
+    If the pseudo-register has actually been assigned to a real 
+    register, no code will be emitted, since following operations
+    can use this register directly.
+    
+    v: pseudoregister to be fetched from
+    tempregnum: temporary register to be used if v is actually spilled to ram
+
+    return: the register number, where the operand can be found after 
+            fetching (this wil be either tempregnum or the register
+            number allready given to v)
+*/
+
+#define var_to_reg_int(regnr,v,tempnr) { \
+	if ((v)->flags & INMEMORY) \
+		{COUNT_SPILLS;M_LLD(tempnr,REG_SP,8*(v)->regoff);regnr=tempnr;} \
+	else regnr=(v)->regoff; \
+}
+
+
+#define var_to_reg_flt(regnr,v,tempnr) { \
+	if ((v)->flags & INMEMORY) \
+		{COUNT_SPILLS;M_DLD(tempnr,REG_SP,8*(v)->regoff);regnr=tempnr;} \
+	else regnr=(v)->regoff; \
+}
+
+
+/* store_reg_to_var_xxx:
+    This function generates the code to store the result of an operation
+    back into a spilled pseudo-variable.
+    If the pseudo-variable has not been spilled in the first place, this 
+    function will generate nothing.
+    
+    v ............ Pseudovariable
+    tempregnum ... Number of the temporary registers as returned by
+                   reg_of_var.
+*/	
+
+#define store_reg_to_var_int(sptr, tempregnum) {       \
+	if ((sptr)->flags & INMEMORY) {                    \
+		COUNT_SPILLS;                                  \
+		M_LST(tempregnum, REG_SP, 8 * (sptr)->regoff); \
+		}                                              \
+	}
+
+#define store_reg_to_var_flt(sptr, tempregnum) {       \
+	if ((sptr)->flags & INMEMORY) {                    \
+		COUNT_SPILLS;                                  \
+		M_DST(tempregnum, REG_SP, 8 * (sptr)->regoff); \
+		}                                              \
+	}
 
 
 /* macros to create code ******************************************************/
