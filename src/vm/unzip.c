@@ -14,6 +14,7 @@
 #include <string.h>
 #include "zlib.h"
 #include "unzip.h"
+#include "mm/memory.h"
 #include "toolbox/logging.h"
 
 #ifdef STDC
@@ -702,53 +703,51 @@ const char unz_copyright[] =
 
 void cacao_create_directoryList(unzFile file)
 {
-  cacao_entry_s* ent;
-	unz_s* s=(unz_s*)file;
-	char *c;
-	int i;
-	unz_file_info tmp;
-	char filename[200];
-	if (unzGoToFirstFile(file)!=UNZ_OK) {
-		s->cacao_dir_list=0;
-		return;
-	}
-	i=0;
-	ent = s->cacao_dir_list = (cacao_entry_s *) ALLOC(sizeof(cacao_entry_s));
-	ent->next=0;
-	ent->pos=s->pos_in_central_dir;
+  cacao_entry_s *ent;
+  unz_s *s=(unz_s*)file;
+  char *c;
+  int i;
+  unz_file_info tmp;
+  char filename[200];
 
-	if (unzGetCurrentFileInfo (file,
-                                                  &tmp,
-                                                  filename, 200,
-                                                  0, 0,
-                                                  0,  0) !=UNZ_OK) {
-	
-		panic("Error in ZIP archive");
-	}
+  if (unzGoToFirstFile(file) != UNZ_OK) {
+    s->cacao_dir_list = NULL;
+    return;
+  }
 
+  i = 0;
+  ent = s->cacao_dir_list = NEW(cacao_entry_s);
+  ent->next = NULL;
+  ent->pos = s->pos_in_central_dir;
 
+  if (unzGetCurrentFileInfo(file, &tmp, filename, 200, 0, 0, 0, 0) != UNZ_OK) {
+    panic("Error in ZIP archive");
+  }
 
-	ent->name=utf_new_char(filename);
-	while (unzGoToNextFile(file)==UNZ_OK) {
-		i++;
-		ent->next=(cacao_entry_s*)ALLOC(sizeof(cacao_entry_s));
-		ent=ent->next;
-		ent->next=0;
-		ent->pos=s->pos_in_central_dir;
+  c = strstr(filename, ".class");
+  if (c)
+    *c = '\0';
 
-		if (unzGetCurrentFileInfo (file,
-                                                  &tmp,
-                                                  filename, 200,
-                                                  0, 0,
-                                                  0,  0) !=UNZ_OK) {
-	
-			panic("Error in ZIP archive");
-		}
-		c=strstr(filename,".class");
-		if (c) *c='\0';
-		ent->name=utf_new_char(filename);
-	};
-	/*printf("Archive contains %d files\n",i);*/
+  ent->name = utf_new_char(filename);
+
+  while (unzGoToNextFile(file) == UNZ_OK) {
+    i++;
+    ent->next = NEW(cacao_entry_s);
+    ent = ent->next;
+    ent->next = NULL;
+    ent->pos = s->pos_in_central_dir;
+
+    if (unzGetCurrentFileInfo(file, &tmp, filename, 200, 0, 0, 0, 0) != UNZ_OK) {
+      panic("Error in ZIP archive");
+    }
+
+    c = strstr(filename, ".class");
+    if (c)
+      *c = '\0';
+
+    ent->name = utf_new_char(filename);
+  }
+  /*printf("Archive contains %d files\n",i);*/
 }
 
 
@@ -811,23 +810,31 @@ void cacao_create_directoryList(unzFile file)
 	return err;
 }
 
-int cacao_locate(unzFile file,utf* filename) {
-	unz_s* s=(unz_s*)file;
-	cacao_entry_s *ent;
-	for (ent=s->cacao_dir_list;ent;ent=ent->next) {
-/*		printf("searching: ");utf_display(filename);
-		printf(" current: ");utf_display(ent->name);
-		printf("\n");*/
-		if (ent->name==filename) {
-			s->pos_in_central_dir=ent->pos;
-			return  unzlocal_GetCurrentFileInfoInternal(file,&s->cur_file_info,
-                                                                                           &s->cur_file_info_internal,
-                                                                                           NULL,0,NULL,0,NULL,0);
-		}
-	}
-	return UNZ_END_OF_LIST_OF_FILE;
-	/*return 0;*/
+int cacao_locate(unzFile file, utf* filename)
+{
+  unz_s         *s;
+  cacao_entry_s *ent;
+
+  s = (unz_s *) file;
+
+  for (ent = s->cacao_dir_list; ent; ent = ent->next) {
+    /*
+    printf("searching: ");utf_display(filename);
+    printf(" current: ");utf_display(ent->name);
+    printf("\n");
+    */
+    if (ent->name == filename) {
+      s->pos_in_central_dir = ent->pos;
+      return unzlocal_GetCurrentFileInfoInternal(file, &s->cur_file_info,
+                                                 &s->cur_file_info_internal,
+                                                 NULL, 0, NULL, 0, NULL, 0);
+    }
+  }
+
+  return UNZ_END_OF_LIST_OF_FILE;
+  /*return 0;*/
 }
+
 
 /*
   Read the local header of the current zipfile
