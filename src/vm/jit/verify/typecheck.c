@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 2046 2005-03-20 14:43:04Z edwin $
+   $Id: typecheck.c 2081 2005-03-25 13:45:26Z edwin $
 
 */
 
@@ -761,15 +761,6 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 /****************************************************************************/
 /* MISC MACROS                                                              */
 /****************************************************************************/
-
-#define INSTRUCTION_PUTCONST_TYPE(iptr) \
-	((iptr)[0].op1)
-
-#define INSTRUCTION_PUTCONST_VALUE_ADR(iptr) \
-	((iptr)[0].val.a)
-
-#define INSTRUCTION_PUTCONST_FIELDINFO(iptr) \
-	((fieldinfo *)((iptr)[1].val.a))
 
 #define COPYTYPE(source,dest)   \
 	{if ((source)->type == TYPE_ADR)								\

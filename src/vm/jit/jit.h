@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 2038 2005-03-20 11:22:40Z twisti $
+   $Id: jit.h 2081 2005-03-25 13:45:26Z edwin $
 
 */
 
@@ -118,6 +118,18 @@ struct instruction {
 	                            /* function doesn't necessarily start         */
 	                            /* a new block                                */
 };
+
+#define INSTRUCTION_PUTCONST_TYPE(iptr) \
+	((iptr)[0].op1)
+
+#define INSTRUCTION_PUTCONST_VALUE_ADR(iptr) \
+	((iptr)[0].val.a)
+
+#define INSTRUCTION_PUTCONST_FIELDINFO(iptr) \
+	((fieldinfo *)((iptr)[1].val.a))
+
+#define INSTRUCTION_PUTCONST_FIELDREF(iptr) \
+	((constant_FMIref *)((iptr)[1].val.a))
 
 
 /**************************** basic block structure ***************************/
