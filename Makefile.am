@@ -1,13 +1,13 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 311 2003-05-16 15:30:23Z stefan $
+# $Id: Makefile.am 323 2003-05-24 09:02:02Z stefan $
 
 @SET_MAKE@
 
 MAINTAINERCLEANFILES = Makefile.in configure
 ALLSUBDIRS = toolbox mm jit comp nat threads tst doc narray jvmtst
 SUBDIRS = $(ALLSUBDIRS) @SYSDEP_DIR@
-DIST_SUBDIRS = $(ALLSUBDIRS) alpha mips i386
+DIST_SUBDIRS = $(ALLSUBDIRS) alpha mips i386 powerpc
 
 EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html \
 				jni.c

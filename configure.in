@@ -47,8 +47,15 @@ x86_64* )
 	AC_DEFINE(USE_CODEMMAP)
 	;;
 
-sparc* | powerpc* | ppc* | * )
-	AC_MSG_ERROR($host-cpu systems are not supported at this time) ;;
+powerpc* | ppc* )
+	SYSDEP_DIR="powerpc"
+	CFLAGS="-O0 -g -DMAP_ANONYMOUS=0 -no-cpp-precomp"
+	COMPILER_OBJECTS="powerpc/libdisass.a"
+	AC_DEFINE(TRACE_ARGS_NUM, 8)
+	;;
+
+sparc* | * )
+	AC_MSG_ERROR($target systems are not supported at this time) ;;
 
 esac
 
@@ -180,6 +187,7 @@ AC_OUTPUT(Makefile \
           mips/Makefile \
           i386/Makefile \
           x86_64/Makefile \
+		  powerpc/Makefile \
           nat/Makefile \
           doc/Makefile \
           comp/Makefile \
