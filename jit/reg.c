@@ -285,7 +285,7 @@ static void interface_regalloc ()
 #ifdef __I386__
 						if (IS_2_WORD_TYPE(t)) {
 							v->flags = INMEMORY;
-							v->regoff = maxmemuse++;
+							v->regoff = ifmemuse++;
 						} else {
 #endif
 						if (intalloc >= 0) {
@@ -330,7 +330,7 @@ static void interface_regalloc ()
 #ifdef __I386__
 						if (IS_2_WORD_TYPE(t)) {
 							v->flags = INMEMORY;
-							v->regoff = maxmemuse++;
+							v->regoff = ifmemuse++;
 						} else {
 #endif
 						if (intalloc >= 0) {
