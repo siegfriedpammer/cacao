@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1246 2004-06-30 20:18:10Z twisti $
+   $Id: codegen.inc 1259 2004-06-30 21:35:45Z twisti $
 
 */
 
@@ -710,6 +710,58 @@ void dseg_display(s4 *s4ptr)
 	}
 	printf("  --- begin of data segment: %p\n", s4ptr);
 }
+
+
+/* reg_of_var:
+    This function determines a register, to which the result of an operation
+    should go, when it is ultimatively intended to store the result in
+    pseudoregister v.
+    If v is assigned to an actual register, this register will be returned.
+    Otherwise (when v is spilled) this function returns tempregnum.
+    If not already done, regoff and flags are set in the stack location.
+*/        
+
+static int reg_of_var(methodinfo *m, stackptr v, int tempregnum)
+{
+	varinfo *var;
+
+	switch (v->varkind) {
+	case TEMPVAR:
+		if (!(v->flags & INMEMORY))
+			return(v->regoff);
+		break;
+	case STACKVAR:
+		var = &(m->registerdata->interfaces[v->varnum][v->type]);
+		v->regoff = var->regoff;
+		if (!(var->flags & INMEMORY))
+			return(var->regoff);
+		break;
+	case LOCALVAR:
+		var = &(m->registerdata->locals[v->varnum][v->type]);
+		v->regoff = var->regoff;
+		if (!(var->flags & INMEMORY))
+			return(var->regoff);
+		break;
+	case ARGVAR:
+		v->regoff = v->varnum;
+		if (IS_FLT_DBL_TYPE(v->type)) {
+			if (v->varnum < m->registerdata->fltreg_argnum) {
+				v->regoff = m->registerdata->argfltregs[v->varnum];
+				return(m->registerdata->argfltregs[v->varnum]);
+			}
+		}
+		else
+			if (v->varnum < m->registerdata->intreg_argnum) {
+				v->regoff = m->registerdata->argintregs[v->varnum];
+				return(m->registerdata->argintregs[v->varnum]);
+			}
+		v->regoff -= m->registerdata->intreg_argnum;
+		break;
+	}
+	v->flags |= INMEMORY;
+	return tempregnum;
+}
+
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 void codegen_threadcritrestart(int offset)
