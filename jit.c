@@ -317,7 +317,10 @@ methodptr jit_compile(methodinfo *m)
 #endif 
 	}
    
-
+#ifdef SPECIALMEMUSE
+	preregpass();
+#endif
+	
 #ifdef LOOP_DEBUG
 	printf("Allocating registers  ");
 	fflush(stdout);
@@ -389,9 +392,32 @@ methodptr jit_compile(methodinfo *m)
 
 /* functions for compiler initialisation and finalisation *********************/
 
+#ifdef USEBUILTINTABLE
+static int stdopcompare(const void *a, const void *b)
+{
+	stdopdescriptor *o1 = (stdopdescriptor *) a;
+	stdopdescriptor *o2 = (stdopdescriptor *) b;
+	return (o1->opcode < o2->opcode) ? -1 : (o1->opcode > o2->opcode);
+}
+
+static inline void testsort()
+{
+	int len;
+
+	len = sizeof(stdopdescriptortable)/sizeof(stdopdescriptor);
+	qsort(stdopdescriptortable, len, sizeof(stdopdescriptor), stdopcompare);
+	len = sizeof(builtintable)/sizeof(stdopdescriptor);
+	qsort(builtintable, len, sizeof(stdopdescriptor), stdopcompare);
+}
+#endif
+
 void jit_init ()
 {
 	int i;
+
+#ifdef USEBUILTINTABLE
+	testsort();
+#endif
 
 #if defined(__ALPHA__)
 	has_ext_instr_set = ! has_no_x_instr_set();
