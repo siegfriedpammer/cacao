@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 759 2003-12-13 22:36:08Z stefan $
+   $Id: codegen.c 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -3274,7 +3274,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	s4 *mcodeptr = cs;                  /* code generation pointer            */
 
 	*(cs-1) = (s4) f;                   /* address of native method           */
-	*(cs-2) = (s4) (&exceptionptr);     /* address of exceptionptr            */
+	*(cs-2) = (s4) (&_exceptionptr);    /* address of exceptionptr            */
 	*(cs-3) = (s4) asm_handle_nat_exception; /* addr of asm exception handler */
 	*(cs-4) = (s4) (&env);              /* addr of jni_environement           */
 //	*(cs-5) = (s4) asm_builtin_trace;

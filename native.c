@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 861 2004-01-06 20:55:56Z twisti $
+   $Id: native.c 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -120,7 +120,7 @@ classinfo *class_java_lang_Integer;
 struct java_lang_ClassLoader *SystemClassLoader = NULL;
 
 /* for raising exceptions from native methods */
-java_objectheader* exceptionptr = NULL;
+THREADSPECIFIC java_objectheader* _exceptionptr = NULL;
 
 /************* use classinfo structure as java.lang.Class object **************/
 
@@ -240,7 +240,7 @@ void throw_noclassdeffounderror_message(utf* classname)
 	}
 
 	/* throws a NoClassDefFoundError with message */
-	exceptionptr = native_new_and_init_string(class_java_lang_NoClassDefFoundError,
+	*exceptionptr = native_new_and_init_string(class_java_lang_NoClassDefFoundError,
 											  javastring_new(classname));
 }
 
@@ -252,7 +252,7 @@ void throw_linkageerror_message(utf* classname)
 	}
 
 	/* throws a LinkageError with message */
-	exceptionptr = native_new_and_init_string(class_java_lang_LinkageError,
+	*exceptionptr = native_new_and_init_string(class_java_lang_LinkageError,
 											  javastring_new(classname));
 }
 
@@ -684,7 +684,7 @@ fieldinfo *class_findfield_approx(classinfo *c, utf *name)
 	}
 
 	/* field was not found, raise exception */	
-	exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
+	*exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
 
 	return NULL;
 }
@@ -699,7 +699,7 @@ s4 class_findfield_index_approx (classinfo *c, utf *name)
 		}
 
 	/* field was not found, raise exception */	
-	exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
+	*exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
 	return -1;
 }
 
@@ -717,7 +717,7 @@ java_objectheader *native_new_and_init(classinfo *c)
 	java_objectheader *o;
 
 	/* if c==NULL it is probebly because loader_load failed */
-	if (!c) return exceptionptr;
+	if (!c) return *exceptionptr;
 
 	o = builtin_new(c);          /* create object          */
 	
@@ -756,7 +756,7 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 	java_objectheader *o;
 
 	/* if c==NULL it is probebly because loader_load failed */
-	if (!c) return exceptionptr;
+	if (!c) return *exceptionptr;
 
 	o = builtin_new(c);          /* create object          */
 	

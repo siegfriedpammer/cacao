@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 724 2003-12-09 18:56:11Z edwin $
+   $Id: codegen.c 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -3874,7 +3874,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_alu_imm_reg(X86_64_ADD, 3 * 8, REG_SP);    /* keep stack 16-byte aligned */
 	}
 
-	x86_64_mov_imm_reg((s8) &exceptionptr, REG_ITMP3);
+	x86_64_mov_imm_reg((s8) &_exceptionptr, REG_ITMP3);
 	x86_64_mov_membase_reg(REG_ITMP3, 0, REG_ITMP3);
 	x86_64_test_reg_reg(REG_ITMP3, REG_ITMP3);
 	x86_64_jcc(X86_64_CC_NE, 1);
@@ -3882,7 +3882,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	x86_64_ret();
 
 	x86_64_mov_reg_reg(REG_ITMP3, REG_ITMP1_XPTR);
-	x86_64_mov_imm_reg((s8) &exceptionptr, REG_ITMP3);
+	x86_64_mov_imm_reg((s8) &_exceptionptr, REG_ITMP3);
 	x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP2);
 	x86_64_mov_reg_membase(REG_ITMP2, REG_ITMP3, 0);    /* clear exception pointer */
 

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 847 2004-01-05 10:49:05Z twisti $
+   $Id: codegen.c 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -4797,7 +4797,12 @@ void removecompilerstub(u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE 320
+#define NATIVESTUBSIZE 340
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+static java_objectheader *(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr;
+static void (*callresetexceptionptr)() = builtin_reset_exceptionptr;
+#endif
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
@@ -4964,16 +4969,32 @@ u1 *createnativestub(functionptr f, methodinfo *m)
     }
 
 	/* we can't use REG_ITMP3 == REG_RESULT2 */
-	i386_mov_imm_reg((s4) &exceptionptr, REG_ITMP2);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	i386_push_reg(REG_RESULT);
+	i386_push_reg(REG_RESULT2);
+	i386_call_mem(&callgetexceptionptrptr);
+	i386_mov_membase_reg(REG_RESULT, 0, REG_ITMP2);
+	i386_test_reg_reg(REG_ITMP2, REG_ITMP2);
+	i386_pop_reg(REG_RESULT2);
+	i386_pop_reg(REG_RESULT);
+#else
+	i386_mov_imm_reg((s4) &_exceptionptr, REG_ITMP2);
 	i386_mov_membase_reg(REG_ITMP2, 0, REG_ITMP2);
 	i386_test_reg_reg(REG_ITMP2, REG_ITMP2);
+#endif
 	i386_jcc(I386_CC_NE, 1);
 
 	i386_ret();
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	i386_push_reg(REG_ITMP2);
+	i386_call_mem(&callresetexceptionptr);
+	i386_pop_reg(REG_ITMP1_XPTR);
+#else
 	i386_mov_reg_reg(REG_ITMP2, REG_ITMP1_XPTR);
-	i386_mov_imm_reg((s4) &exceptionptr, REG_ITMP2);
+	i386_mov_imm_reg((s4) &_exceptionptr, REG_ITMP2);
 	i386_mov_imm_membase(0, REG_ITMP2, 0);
+#endif
 	i386_mov_membase_reg(REG_SP, 0, REG_ITMP2_XPC);
 	i386_alu_imm_reg(I386_SUB, 2, REG_ITMP2_XPC);
 

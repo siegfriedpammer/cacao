@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 853 2004-01-06 15:36:25Z twisti $
+   $Id: builtin.c 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -388,34 +388,20 @@ java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr
 			}
 		log_text(logtext);
 	}
-	exceptionptr = local_exceptionptr;
+	*exceptionptr = local_exceptionptr;
 	return local_exceptionptr;
 }
 
-java_objectheader *builtin_get_exceptionptr()
+void builtin_reset_exceptionptr()
 {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 #ifdef HAVE___THREAD
-	return exceptionptr;
+	_exceptionptr = NULL;
 #else
-	pthread_getspecific(tkey_exceptionptr);
+	((nativethread*) pthread_getspecific(tkey_exceptionptr))->_exceptionptr = 0;
 #endif
 #else
-	panic("builtin_get_exceptionptr should not be used in this configuration");
-	return NULL;
-#endif
-}
-
-void builtin_set_exceptionptr(java_objectheader *e)
-{
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#ifdef HAVE___THREAD
-	exceptionptr = e;
-#else
-	pthread_setspecific(tkey_exceptionptr, e);
-#endif
-#else
-	panic("builtin_set_exceptionptr should not be used in this configuration");
+	panic("builtin_reset_exceptionptr should not be used in this configuration");
 #endif
 }
 
@@ -639,7 +625,7 @@ java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl)
 	s4 actualsize;
 
 	if (size<0) {
-		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/NegativeArraySizeException")));
+		*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/NegativeArraySizeException")));
 		return NULL;
 	}
 #ifdef SIZE_FROM_CLASSINFO
@@ -649,7 +635,7 @@ java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl)
 #endif
 
 	if (((u4)actualsize)<((u4)size)) { /* overflow */
-		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/OutOfMemoryError")));
+		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/OutOfMemoryError")));
 		return NULL;
 	}
 	a = heap_allocate(actualsize,
@@ -861,7 +847,7 @@ java_arrayheader *builtin_nmultianewarray (int n, vftbl *arrayvftbl, long *dims)
 
 u4 methodindent = 0;
 
-java_objectheader *builtin_trace_exception(java_objectheader *exceptionptr,
+java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 										   methodinfo *method, int *pos, 
 										   int noindent)
 {
@@ -873,8 +859,8 @@ java_objectheader *builtin_trace_exception(java_objectheader *exceptionptr,
 	}
 	if (verbose || runverbose) {
 		printf("Exception ");
-		if (exceptionptr) {
-			utf_display (exceptionptr->vftbl->class->name);
+		if (_exceptionptr) {
+			utf_display (_exceptionptr->vftbl->class->name);
 		}
 		else {
 			printf("Error: <Nullpointer instead of exception>");
@@ -905,7 +891,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *exceptionptr,
 			printf("call_java_method\n");
 		fflush (stdout);
 	}
-	return exceptionptr;
+	return _exceptionptr;
 }
 
 

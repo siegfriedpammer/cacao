@@ -4,6 +4,7 @@
 #include "jni.h"
 #include "loader.h"
 #include "native.h"
+#include "builtin.h"
 #include "toolbox/loging.h"
 #include "java_lang_Class.h"
 #include "java_lang_String.h"
@@ -45,7 +46,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimit
     }
 
     /* illegal primitive classname specified */
-    exceptionptr = native_new_and_init (class_java_lang_ClassNotFoundException);
+    *exceptionptr = native_new_and_init (class_java_lang_ClassNotFoundException);
     return NULL;
 }
 

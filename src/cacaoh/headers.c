@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 809 2003-12-30 20:54:57Z twisti $
+   $Id: headers.c 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -41,6 +41,7 @@
 #include "global.h"
 #include "tables.h"
 #include "loader.h"
+#include "builtin.h"
 #include "mm/boehm.h"
 #include "toolbox/chain.h"
 #include "toolbox/memory.h"
@@ -123,7 +124,8 @@ s8 asm_builtin_d2l(double a) { return 0; }
 void asm_builtin_monitorenter(java_objectheader *o) {}
 void asm_builtin_monitorexit(java_objectheader *o) {}
 
-s4 asm_builtin_checkarraycast(java_objectheader *o,arraydescriptor *d) {return 0;}
+s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl *target) {return 0;}
+
 
 #if defined(__I386__)
 s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class) { return 0; }
@@ -149,7 +151,7 @@ java_objectheader *native_new_and_init(void *p) { return NULL; }
 
 /************************ global variables **********************/
 
-java_objectheader *exceptionptr;
+THREADSPECIFIC java_objectheader *_exceptionptr;
 
 static chain *nativemethod_chain;    /* chain with native methods     */
 static chain *nativeclass_chain;		               /* chain with processed classes  */	

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 833 2004-01-04 22:10:24Z jowenn $
+   $Id: native.h 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -81,7 +81,7 @@ extern classinfo *class_java_lang_Integer;
 extern struct java_lang_ClassLoader *SystemClassLoader;
 
 /* for raising exceptions from native methods */
-extern java_objectheader* exceptionptr;
+/* extern java_objectheader* exceptionptr; */
 
 /* javastring-hashtable */
 extern hashtable string_hash; 

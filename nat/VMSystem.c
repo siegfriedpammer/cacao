@@ -42,7 +42,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy (JNIEnv *env, jclass cl
 	fflush(stdout);*/
 
 	if (!s || !d) { 
-            exceptionptr = proto_java_lang_NullPointerException; 
+            *exceptionptr = proto_java_lang_NullPointerException; 
             return; 
         }
 
@@ -50,12 +50,12 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy (JNIEnv *env, jclass cl
         ddesc = d->objheader.vftbl->arraydesc;
 
         if (!sdesc || !ddesc || (sdesc->arraytype != ddesc->arraytype)) {
-            exceptionptr = proto_java_lang_ArrayStoreException; 
+            *exceptionptr = proto_java_lang_ArrayStoreException; 
             return; 
         }
 
 	if ((len<0) || (sp<0) || (sp+len > s->size) || (dp<0) || (dp+len > d->size)) {
-            exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException; 
+            *exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException; 
             return; 
         }
 
@@ -76,7 +76,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy (JNIEnv *env, jclass cl
                 for (i=0; i<len; i++) {
                     java_objectheader *o = oas->data[sp+i];
                     if (!builtin_canstore(oad, o)) {
-                        exceptionptr = proto_java_lang_ArrayStoreException;
+                        *exceptionptr = proto_java_lang_ArrayStoreException;
                         return;
                     }
                     oad->data[dp+i] = o;
@@ -92,7 +92,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy (JNIEnv *env, jclass cl
                 for (i=len-1; i>=0; i--) {
                     java_objectheader *o = oas->data[sp+i];
                     if (!builtin_canstore(oad, o)) {
-                        exceptionptr = proto_java_lang_ArrayStoreException;
+                        *exceptionptr = proto_java_lang_ArrayStoreException;
                         return;
                     }
                     oad->data[dp+i] = o;

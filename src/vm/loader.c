@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 861 2004-01-06 20:55:56Z twisti $
+   $Id: loader.c 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -2674,10 +2674,10 @@ void class_init(classinfo *c)
 #endif
 
 	/* we have to throw an exception */
-	if (exceptionptr) {
+	if (*exceptionptr) {
 		printf("Exception in thread \"main\" java.lang.ExceptionInInitializerError\n");
 		printf("Caused by: ");
-		utf_display(exceptionptr->vftbl->class->name);
+		utf_display((*exceptionptr)->vftbl->class->name);
 		printf("\n");
 		fflush(stdout);
 		exit(1);
@@ -2719,9 +2719,9 @@ void class_init(classinfo *c)
 		blockInts = b;
 #endif
 
-		if (exceptionptr) {
+		if (*exceptionptr) {
 			printf("#### initializeSystemClass has thrown: ");
-			utf_display(exceptionptr->vftbl->class->name);
+			utf_display((*exceptionptr)->vftbl->class->name);
 			printf("\n");
 			fflush(stdout);
 		}
@@ -3048,7 +3048,7 @@ classinfo *loader_load(utf *topname)
 				if (linkverbose)
 					dolog("Cannot resolve linking dependencies");
 				top = NULL;
-				if (!exceptionptr)
+				if (!*exceptionptr)
 					throw_linkageerror_message(c->name);
 				break;
 			}

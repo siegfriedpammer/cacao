@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 861 2004-01-06 20:55:56Z twisti $
+   $Id: main.c 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -867,14 +867,14 @@ int main(int argc, char **argv)
 	topclass = loader_load(utf_new_char(cp));
 	/*class_showmethods(topclass);	*/
 
-	if (exceptionptr != 0) {
+	if (*exceptionptr != 0) {
 		printf("Exception in thread \"main\" ");
-		utf_display(exceptionptr->vftbl->class->name);
+		utf_display((*exceptionptr)->vftbl->class->name);
 		printf(": ");
-		utf_display(javastring_toutf(((java_lang_Throwable *) exceptionptr)->detailMessage, false));
+		utf_display(javastring_toutf(((java_lang_Throwable *) *exceptionptr)->detailMessage, false));
 		printf("\n");
 
-		exceptionptr = 0;
+		*exceptionptr = 0;
 	}
 
 	if (topclass == 0) {
@@ -924,14 +924,14 @@ int main(int argc, char **argv)
 		/* here we go... */
 		asm_calljavafunction(mainmethod, a, NULL, NULL, NULL);
 	
-		if (exceptionptr) {
+		if (*exceptionptr) {
 			printf("Exception in thread \"main\" ");
-			utf_display(exceptionptr->vftbl->class->name);
+			utf_display((*exceptionptr)->vftbl->class->name);
 
 			/* do we have a detail message? */
-			if (((java_lang_Throwable *) exceptionptr)->detailMessage) {
+			if (((java_lang_Throwable *) *exceptionptr)->detailMessage) {
 				printf(": ");
-				utf_display(javastring_toutf(((java_lang_Throwable *) exceptionptr)->detailMessage, false));
+				utf_display(javastring_toutf(((java_lang_Throwable *) *exceptionptr)->detailMessage, false));
 			}
 			printf("\n");
 		}

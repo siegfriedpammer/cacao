@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 838 2004-01-05 00:27:00Z twisti $
+   $Id: boehm.c 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -36,6 +36,7 @@
 #include "global.h"
 #include "native.h"
 #include "asmpart.h"
+#include "builtin.h"
 #include "threads/thread.h"
 #include "toolbox/loging.h"
 
@@ -116,7 +117,7 @@ void runboehmfinalizer(void *o, void *p)
 	asm_calljavafunction(ob->vftbl->class->finalizer, ob, NULL, NULL, NULL);
 	
 	/* if we had an exception in the finalizer, ignore it */
-	exceptionptr = NULL;
+	*exceptionptr = NULL;
 }
 
 

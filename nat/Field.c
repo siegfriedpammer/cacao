@@ -151,7 +151,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Field_get ( JN
                  }
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 
   return NULL;
 }
@@ -176,7 +176,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean ( JNIEnv *env ,  st
   }
 
   /* raise exception */
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 
   return 0;
 }
@@ -198,7 +198,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte ( JNIEnv *env ,  struc
 	  return (*env)->GetByteField (env, (jobject) obj, fid);
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 
   return 0;
 }
@@ -220,7 +220,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar ( JNIEnv *env ,  struc
 	  return (*env)->GetCharField (env, (jobject) obj, fid);
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 
   return 0;
 }
@@ -242,7 +242,7 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble ( JNIEnv *env , 
 	  return (*env)->GetDoubleField (env, (jobject) obj, fid);
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 
   return 0;
 }
@@ -264,7 +264,7 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat ( JNIEnv *env ,  s
 	  return (*env)->GetFloatField (env, (jobject) obj, fid);
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 
   return 0;
 }
@@ -286,7 +286,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt ( JNIEnv *env ,  struct
 	  return (*env)->GetIntField (env, (jobject) obj, fid);
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 
   return 0;
 }
@@ -328,7 +328,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort ( JNIEnv *env ,  stru
 	  return (*env)->GetShortField (env, (jobject) obj, fid);
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 
   return 0;
 }
@@ -467,7 +467,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set ( JNIEnv *env ,  struct 
     }
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 }
 
 /*
@@ -489,7 +489,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean ( JNIEnv *env ,  
       }
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 }
 
 /*
@@ -511,7 +511,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte ( JNIEnv *env ,  str
       }
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 }
 
 /*
@@ -533,7 +533,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar ( JNIEnv *env ,  str
       }
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 }
 
 /*
@@ -555,7 +555,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble ( JNIEnv *env ,  s
       } 
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 }
 
 /*
@@ -577,7 +577,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setFloat ( JNIEnv *env ,  st
       }
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 }
 
 /*
@@ -599,7 +599,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt ( JNIEnv *env ,  stru
       }
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 }
 
 /*
@@ -621,7 +621,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong ( JNIEnv *env ,  str
       }
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 }
 
 /*
@@ -643,7 +643,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort ( JNIEnv *env ,  st
       }
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  *exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
 }
 
 

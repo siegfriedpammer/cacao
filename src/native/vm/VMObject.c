@@ -41,7 +41,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_VMObject_clone ( JNIEn
     
     /* We are cloning a non-array */
     if (! builtin_instanceof ((java_objectheader*) this, class_java_lang_Cloneable) ) {
-        exceptionptr = native_new_and_init (class_java_lang_CloneNotSupportedException);
+        *exceptionptr = native_new_and_init (class_java_lang_CloneNotSupportedException);
         return NULL;
     }
 
@@ -49,7 +49,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_VMObject_clone ( JNIEn
     c = this -> header.vftbl -> class;
     new = (java_lang_Object*) builtin_new (c);
     if (!new) {
-        exceptionptr = proto_java_lang_OutOfMemoryError;
+        *exceptionptr = proto_java_lang_OutOfMemoryError;
         return NULL;
     }
     memcpy (new, this, c->instancesize);

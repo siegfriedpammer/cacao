@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 851 2004-01-05 23:59:28Z stefan $
+   $Id: builtin.h 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -37,6 +37,7 @@
 #define _BUILTIN_H
 
 #include "config.h"
+#include "toolbox/loging.h"
 
 
 /* define infinity for floating point numbers */
@@ -115,7 +116,24 @@ extern builtin_descriptor builtin_desc[];
 /* GLOBAL VARIABLES                                                   */
 /**********************************************************************/
 
-extern java_objectheader* exceptionptr;
+#define THREADSPECIFIC
+#define exceptionptr (&_exceptionptr)
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#ifdef HAVE___THREAD
+
+#undef THREADSPECIFIC
+#define THREADSPECIFIC __thread
+
+#else
+
+#undef exceptionptr
+#define exceptionptr builtin_get_exceptionptrptr()
+
+#endif
+#endif
+
+extern THREADSPECIFIC java_objectheader* _exceptionptr;
 
 
 /**********************************************************************/
@@ -167,14 +185,14 @@ s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl *target);
 
 java_objectheader *builtin_throw_exception(java_objectheader *exception);
 /* NOT AN OP */
-java_objectheader *builtin_trace_exception(java_objectheader *exceptionptr,
+java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 										   methodinfo *method, 
 										   int *pos, int noindent);
 /* NOT AN OP */
 
-java_objectheader *builtin_get_exceptionptr();
+static inline java_objectheader **builtin_get_exceptionptrptr();
 /* NOT AN OP */
-void builtin_set_exceptionptr(java_objectheader*);
+void builtin_reset_exceptionptr();
 /* NOT AN OP */
 
 java_objectheader *builtin_new(classinfo *c);
@@ -360,6 +378,21 @@ java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o);
 
 inline float intBitsToFloat(s4 i);
 inline float longBitsToDouble(s8 l);
+
+
+static inline java_objectheader **builtin_get_exceptionptrptr()
+{
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#ifdef HAVE___THREAD
+    return &_exceptionptr;
+#else
+    return &((nativethread*) pthread_getspecific(tkey_exceptionptr))->_exceptionptr;
+#endif
+#else
+    panic("builtin_get_exceptionptrptr should not be used in this configuration");
+    return NULL;
+#endif
+}
 
 #endif /* _BUILTIN_H */
 

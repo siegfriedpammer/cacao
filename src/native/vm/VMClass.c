@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 833 2004-01-04 22:10:24Z jowenn $
+   $Id: VMClass.c 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -84,7 +84,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv 
 
 		/* there is already an exception (NoClassDefFoundError), but forName()
 		   returns a ClassNotFoundException */
-		exceptionptr = 
+		*exceptionptr = 
 			native_new_and_init_string(class_java_lang_ClassNotFoundException, s);
 
 	    return NULL;
@@ -317,7 +317,7 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_java_lang_VMClass_getFiel
     /* get fieldinfo entry */
     idx = class_findfield_index_approx((classinfo*) (this->vmData), javastring_toutf(name, false));
     if (idx<0) {
-	    exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
+	    *exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
 	    return NULL;
 	}
     f= &(((struct classinfo*)(this->vmData))->fields[idx]);
@@ -326,7 +326,7 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_java_lang_VMClass_getFiel
 		if ( public_only && !(f->flags & ACC_PUBLIC))
 			{
 				/* field is not public  and public only had been requested*/
-				exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
+				*exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
 				return NULL;
 			}
 
@@ -439,7 +439,7 @@ JNIEXPORT struct java_lang_reflect_Method* JNICALL Java_java_lang_VMClass_getMet
     if (!m || (which==MEMBER_PUBLIC && !(m->flags & ACC_PUBLIC)))
 		{
 			/* no apropriate method was found */
-			exceptionptr = native_new_and_init (class_java_lang_NoSuchMethodException);
+			*exceptionptr = native_new_and_init (class_java_lang_NoSuchMethodException);
 			return NULL;
 		}
    

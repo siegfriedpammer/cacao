@@ -40,7 +40,7 @@ pthread_mutex_t compiler_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 int cast_counter;
 
 #ifndef HAVE___THREAD
-pthread_key_t tkey_exceptionptr;
+pthread_key_t tkey_threadinfo;
 #endif
 #endif
 
@@ -129,7 +129,7 @@ void
 initThreads(u1 *stackbottom)
 {
 #if defined(NATIVE_THREADS) && !defined(HAVE___THREAD)
-	pthread_key_create(&tkey_exceptionptr, NULL);
+	pthread_key_create(&tkey_threadinfo, NULL);
 #endif
 
 	thread *the_main_thread;
@@ -174,7 +174,7 @@ printf("DEADCODE LIVES ?????????\n");fflush(stdout);
 	}*/
     the_main_thread->priority = NORM_THREAD_PRIO;
     CONTEXT(the_main_thread).priority = (u1)the_main_thread->priority;
-    CONTEXT(the_main_thread).exceptionptr = 0;
+    CONTEXT(the_main_thread).texceptionptr = 0;
     the_main_thread->next = 0;
     CONTEXT(the_main_thread).status = THREAD_SUSPENDED;
     CONTEXT(the_main_thread).stackBase = CONTEXT(the_main_thread).stackEnd = stackbottom;
@@ -245,7 +245,7 @@ startThread (thread* tid)
     CONTEXT(tid).flags = THREAD_FLAGS_GENERAL;
     CONTEXT(tid).status = THREAD_SUSPENDED;
     CONTEXT(tid).priority = (u1)tid->priority;
-    CONTEXT(tid).exceptionptr = 0;
+    CONTEXT(tid).texceptionptr = 0;
 
     /* Construct the initial restore point. */
     THREADINIT((&CONTEXT(tid)), firstStartThread);
@@ -332,8 +332,8 @@ firstStartThread(void)
 
 	asm_calljavafunction(method, currentThread, NULL, NULL, NULL);
 
-    if (exceptionptr) {
-        utf_display(exceptionptr->vftbl->class->name);
+    if (*exceptionptr) {
+        utf_display((*exceptionptr)->vftbl->class->name);
         printf("\n");
     }
 
@@ -737,14 +737,14 @@ reschedule(void)
 					lastThread = currentThread;
 					currentThread = threadQhead[i];
 
-					CONTEXT(currentThread).exceptionptr = exceptionptr;
+					CONTEXT(currentThread).texceptionptr = *exceptionptr;
 
                     DBG( fprintf(stderr, "thread switch from: %p to: %p\n", lastThread, currentThread); );
 					THREADSWITCH((&CONTEXT(currentThread)),
 								 (&CONTEXT(lastThread)));
 					blockInts = b;
 
-					exceptionptr = CONTEXT(currentThread).exceptionptr;
+					*exceptionptr = CONTEXT(currentThread).texceptionptr;
 
 					if (stack_to_be_freed != 0) {
 						stack_to_be_freed = 0;
@@ -767,7 +767,7 @@ reschedule(void)
 						!= 0)
 					{
 						CONTEXT(lastThread).flags &= ~THREAD_FLAGS_KILLED;
-						exceptionptr = native_new_and_init(class_java_lang_ThreadDeath);
+						*exceptionptr = native_new_and_init(class_java_lang_ThreadDeath);
 					}
 				}
 				/* Now we kill the schedule and turn ints

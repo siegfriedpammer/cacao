@@ -19,6 +19,7 @@
 
 #include "thread.h"
 #include "locks.h"
+#include "builtin.h"
 
 #include "tables.h"
 #include "native.h"
@@ -474,7 +475,7 @@ internal_wait_cond(iMux* mux, iCv* cv, s8 timeout)
     DBG( fprintf(stderr, "waiting on %p\n", cv); );
 
     if (mux->holder != currentThread) {
-		exceptionptr = native_new_and_init(class_java_lang_IllegalMonitorStateException);
+		*exceptionptr = native_new_and_init(class_java_lang_IllegalMonitorStateException);
     }
 
 	assert(blockInts > 0);
@@ -518,7 +519,7 @@ internal_signal_cond (iCv* cv)
     }
 
     if (cv->mux->holder != currentThread) {
-		exceptionptr = native_new_and_init(class_java_lang_IllegalMonitorStateException);
+		*exceptionptr = native_new_and_init(class_java_lang_IllegalMonitorStateException);
     }
 
 	assert(blockInts > 0);
@@ -550,7 +551,7 @@ internal_broadcast_cond (iCv* cv)
     }
 
     if (cv->mux->holder != currentThread) {
-		exceptionptr = native_new_and_init(class_java_lang_IllegalMonitorStateException);
+		*exceptionptr = native_new_and_init(class_java_lang_IllegalMonitorStateException);
     }
 
 	assert(blockInts > 0);

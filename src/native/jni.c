@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 808 2003-12-30 12:45:28Z twisti $
+   $Id: jni.c 862 2004-01-06 23:42:01Z stefan $
 
 */
 
@@ -253,28 +253,28 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'B': 	
 				param=params->data[cnts];
 				if (param==0) {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 				}
 				if (param->vftbl->class->name==utf_byte) {
 					blk[cnt].itemtype=TYPE_INT;
 					blk[cnt].item = (u8) ((struct java_lang_Byte * )param)->value;
 				} else  {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 				}
 			  	break;
 		case 'C':
 				param=params->data[cnts];
 				if (param==0) {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 				}
 				if (param->vftbl->class->name==utf_char) {
 					blk[cnt].itemtype=TYPE_INT;
 					blk[cnt].item = (u8) ((struct java_lang_Character * )param)->value;
 				} else  {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 				}
 			  	break;
@@ -282,7 +282,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'S': 
 				param=params->data[cnts];
 				if (param==0) {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 				}
 				if (param->vftbl->class->name==utf_short) {
@@ -293,7 +293,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 						blk[cnt].itemtype=TYPE_INT;
 						blk[cnt].item = (u8) ((struct java_lang_Byte * )param)->value;
 					} else {
-						exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+						*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 						return 0;
 					}
 				}
@@ -302,14 +302,14 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'Z':
 				param=params->data[cnts];
 				if (param==0) {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 				}
 				if (param->vftbl->class->name==utf_bool) {
 					blk[cnt].itemtype=TYPE_INT;
 					blk[cnt].item = (u8) ((struct java_lang_Boolean * )param)->value;
 				} else  {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 				}
 			  	break;
@@ -318,7 +318,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 				/*log_text("fill_callblock_objA: param 'I'");*/
 				param=params->data[cnts];
 				if (param==0) {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 				}
 				if (param->vftbl->class->name==utf_int) {
@@ -335,7 +335,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 							blk[cnt].item = (u8) ((struct java_lang_Byte * )param)->value;
 
 						} else  {
-							exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+							*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 							return 0;
 						}
 					}
@@ -344,7 +344,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'J':
 				param=params->data[cnts];
 				if (param==0) {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 				}
 				if (param->vftbl->class->name==utf_long) {
@@ -363,7 +363,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 								blk[cnt].itemtype=TYPE_LNG;
 								blk[cnt].item = (u8) ((struct java_lang_Byte * )param)->value;
 							} else  {
-								exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+								*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 								return 0;
 							}
 						}
@@ -375,7 +375,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'F' : 
 				param=params->data[cnts];
 				if (param==0) {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 				}
 
@@ -383,14 +383,14 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 					blk[cnt].itemtype=TYPE_FLT;
 				 	*((jfloat*)(&blk[cnt].item))=(jfloat) ((struct java_lang_Float*)param)->value;
 				} else  {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 				}
 	                 	break;
 	      	case 'D' : 
 				param=params->data[cnts];
 				if (param==0) {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 				}
 
@@ -402,7 +402,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 						blk[cnt].itemtype=TYPE_DBL;
 					 	*((jdouble*)(&blk[cnt].item))=(jdouble) ((struct java_lang_Float*)param)->value;
 					} else  {
-						exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+						*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 						return 0;
 					}
 				}
@@ -419,7 +419,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 				end=(*utf_ptr)+1;
 				if (!builtin_instanceof(params->data[cnts],class_from_descriptor(start,end,0,CLASSLOAD_LOAD))) {
 					if (params->data[cnts]!=0) {
-						exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+						*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 						return 0;
 					}			
 				}
@@ -441,7 +441,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 				end=(*utf_ptr)-1;
 				ch = utf_nextu2(utf_ptr);
 				if (!builtin_arrayinstanceof(params->data[cnts],class_from_descriptor(start,end,0,CLASSLOAD_LOAD)->vftbl)) {
-					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+					*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 					return 0;
 					
 				}
@@ -502,7 +502,7 @@ jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
 	*/
 
 	if (methodID == 0) {
-		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError); 
+		*exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError); 
 		return 0;
 	}
 
@@ -510,17 +510,17 @@ jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
 
 	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
 		((!(methodID->flags & ACC_STATIC)) && (obj != 0)) )) {
-		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
+		*exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 		return 0;
 	}
 	
 	if (obj && !builtin_instanceof(obj, methodID->class)) {
-		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
+		*exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 		return 0;
 	}
 
 	if (argcount > 3) {
-		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
@@ -562,7 +562,7 @@ jint callIntegerMethod(jobject obj, jmethodID methodID, char retType, va_list ar
         printf("\n");
         */
 	if (methodID == 0) {
-		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError); 
+		*exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError); 
 		return 0;
 	}
         
@@ -570,18 +570,18 @@ jint callIntegerMethod(jobject obj, jmethodID methodID, char retType, va_list ar
 
 	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
 		((!(methodID->flags & ACC_STATIC)) && (obj != 0)) )) {
-		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
+		*exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 		return 0;
 	}
 
 	if (obj && !builtin_instanceof(obj, methodID->class)) {
-		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
+		*exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 		return 0;
 	}
 
 
 	if (argcount > 3) {
-		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
@@ -619,7 +619,7 @@ jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
         printf("\n");
         */
 	if (methodID == 0) {
-		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError); 
+		*exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError); 
 		return 0;
 	}
 
@@ -627,18 +627,18 @@ jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 
 	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
 		   ((!(methodID->flags & ACC_STATIC)) && (obj!=0)) )) {
-		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
+		*exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 		return 0;
 	}
 
 	if (obj && !builtin_instanceof(obj,methodID->class)) {
-		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
+		*exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 		return 0;
 	}
 
 
 	if (argcount > 3) {
-		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
@@ -677,7 +677,7 @@ jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,char retTy
         */
 
 	if (argcount > 3) {
-		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
@@ -762,7 +762,7 @@ jclass FindClass (JNIEnv* env, const char *name)
 	else*/
 		c = loader_load(utf_new_char_classname ((char *) name));
 
-	if (!c) exceptionptr = native_new_and_init(class_java_lang_ClassFormatError);
+	if (!c) *exceptionptr = native_new_and_init(class_java_lang_ClassFormatError);
 
   	return c;
 }
@@ -821,7 +821,7 @@ jobject ToReflectedField(JNIEnv* env, jclass cls, jfieldID fieldID, jboolean isS
 
 jint Throw(JNIEnv* env, jthrowable obj)
 {
-	exceptionptr = (java_objectheader*) obj;
+	*exceptionptr = (java_objectheader*) obj;
 
 	return 0;
 }
@@ -845,7 +845,7 @@ jint ThrowNew(JNIEnv* env, jclass clazz, const char *msg)
 
   	o->detailMessage = (java_lang_String*) javastring_new_char((char *) msg);
 
-	exceptionptr = (java_objectheader*) o;
+	*exceptionptr = (java_objectheader*) o;
 
 	return 0;
 }
@@ -855,14 +855,14 @@ jint ThrowNew(JNIEnv* env, jclass clazz, const char *msg)
 
 jthrowable ExceptionOccurred (JNIEnv* env) 
 {
-	return (jthrowable) exceptionptr;
+	return (jthrowable) *exceptionptr;
 }
 
 /********** print exception and a backtrace of the stack (for debugging) **********/
 
 void ExceptionDescribe (JNIEnv* env) 
 {
-	utf_display(exceptionptr->vftbl->class->name);
+	utf_display((*exceptionptr)->vftbl->class->name);
 	printf ("\n");
 	fflush (stdout);	
 }
@@ -872,7 +872,7 @@ void ExceptionDescribe (JNIEnv* env)
 
 void ExceptionClear (JNIEnv* env) 
 {
-	exceptionptr = NULL;	
+	*exceptionptr = NULL;	
 }
 
 
@@ -978,7 +978,7 @@ jobject NewObject (JNIEnv* env, jclass clazz, jmethodID methodID, ...)
 	/* log_text("JNI-Call: NewObject"); */
 
 	if  (argcount>3) {
-		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		log_text("Too many arguments. NewObject does not support that");
 		return 0;
 	}
@@ -1089,7 +1089,7 @@ jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char *name, const char *s
 		utf_new_char ((char*) sig)
     	);
 
-	if (!m) exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);  	
+	if (!m) *exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);  	
 
 	return m;
 }
@@ -1694,7 +1694,7 @@ jfieldID GetFieldID (JNIEnv *env, jclass clazz, const char *name, const char *si
 /*		utf_display(clazz->name);
 		log_text(name);
 		log_text(sig);*/
-		exceptionptr =	native_new_and_init(class_java_lang_NoSuchFieldError);  
+		*exceptionptr =	native_new_and_init(class_java_lang_NoSuchFieldError);  
 	}
 	return f;
 }
@@ -1835,7 +1835,7 @@ jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name, const c
 							utf_new_char((char*) name),
 							utf_new_char((char*) sig));
 
-	if (!m) exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
+	if (!m) *exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 
 	return m;
 }
@@ -2146,7 +2146,7 @@ jfieldID GetStaticFieldID (JNIEnv *env, jclass clazz, const char *name, const ch
 			    utf_new_char ((char*) sig)
 		 	    ); 
 	
-	if (!f) exceptionptr =	native_new_and_init(class_java_lang_NoSuchFieldError);  
+	if (!f) *exceptionptr =	native_new_and_init(class_java_lang_NoSuchFieldError);  
 
 	return f;
 }
@@ -2418,11 +2418,11 @@ jobjectArray NewObjectArray (JNIEnv *env, jsize len, jclass clazz, jobject init)
 {
 	java_objectarray *j;
     if (len<0) {
-		exceptionptr=proto_java_lang_NegativeArraySizeException;
+		*exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
     j = builtin_anewarray (len, clazz);
-    if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
+    if (!j) *exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
 
@@ -2431,9 +2431,9 @@ jobject GetObjectArrayElement (JNIEnv *env, jobjectArray array, jsize index)
     jobject j = NULL;
 
     if (index<array->header.size)	
-	j = array->data[index];
+		j = array->data[index];
     else
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     
     return j;
 }
@@ -2441,13 +2441,13 @@ jobject GetObjectArrayElement (JNIEnv *env, jobjectArray array, jsize index)
 void SetObjectArrayElement (JNIEnv *env, jobjectArray array, jsize index, jobject val)
 {
     if (index>=array->header.size)	
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else {
 
 	/* check if the class of value is a subclass of the element class of the array */
 
 		if (!builtin_canstore((java_objectarray*)array,(java_objectheader*)val))
-			exceptionptr = proto_java_lang_ArrayStoreException;
+			*exceptionptr = proto_java_lang_ArrayStoreException;
 		else
 			array->data[index] = val;
     }
@@ -2459,11 +2459,11 @@ jbooleanArray NewBooleanArray (JNIEnv *env, jsize len)
 {
 	java_booleanarray *j;
     if (len<0) {
-		exceptionptr=proto_java_lang_NegativeArraySizeException;
+		*exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
     j = builtin_newarray_boolean(len);
-    if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
+    if (!j) *exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
 
@@ -2472,11 +2472,11 @@ jbyteArray NewByteArray (JNIEnv *env, jsize len)
 {
 	java_bytearray *j;
     if (len<0) {
-		exceptionptr=proto_java_lang_NegativeArraySizeException;
+		*exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
     j = builtin_newarray_byte(len);
-    if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
+    if (!j) *exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
 
@@ -2485,11 +2485,11 @@ jcharArray NewCharArray (JNIEnv *env, jsize len)
 {
 	java_chararray *j;
     if (len<0) {
-		exceptionptr=proto_java_lang_NegativeArraySizeException;
+		*exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
     j = builtin_newarray_char(len);
-    if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
+    if (!j) *exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
 
@@ -2498,11 +2498,11 @@ jshortArray NewShortArray (JNIEnv *env, jsize len)
 {
 	java_shortarray *j;
     if (len<0) {
-		exceptionptr=proto_java_lang_NegativeArraySizeException;
+		*exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
     j = builtin_newarray_short(len);   
-    if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
+    if (!j) *exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
 
@@ -2511,11 +2511,11 @@ jintArray NewIntArray (JNIEnv *env, jsize len)
 {
 	java_intarray *j;
     if (len<0) {
-		exceptionptr=proto_java_lang_NegativeArraySizeException;
+		*exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
     j = builtin_newarray_int(len);
-    if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
+    if (!j) *exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
 
@@ -2524,11 +2524,11 @@ jlongArray NewLongArray (JNIEnv *env, jsize len)
 {
 	java_longarray *j;
     if (len<0) {
-		exceptionptr=proto_java_lang_NegativeArraySizeException;
+		*exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
     j = builtin_newarray_long(len);
-    if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
+    if (!j) *exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
 
@@ -2537,11 +2537,11 @@ jfloatArray NewFloatArray (JNIEnv *env, jsize len)
 {
 	java_floatarray *j;
     if (len<0) {
-		exceptionptr=proto_java_lang_NegativeArraySizeException;
+		*exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
     j = builtin_newarray_float(len);
-    if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
+    if (!j) *exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
 
@@ -2550,11 +2550,11 @@ jdoubleArray NewDoubleArray (JNIEnv *env, jsize len)
 {
 	java_doublearray *j;
     if (len<0) {
-		exceptionptr=proto_java_lang_NegativeArraySizeException;
+		*exceptionptr=proto_java_lang_NegativeArraySizeException;
 		return NULL;
     }
     j = builtin_newarray_double(len);
-    if (!j) exceptionptr = proto_java_lang_OutOfMemoryError;
+    if (!j) *exceptionptr = proto_java_lang_OutOfMemoryError;
     return j;
 }
 
@@ -2666,99 +2666,99 @@ void ReleaseDoubleArrayElements (JNIEnv *env, jdoubleArray array, jdouble *elems
 void GetBooleanArrayRegion (JNIEnv* env, jbooleanArray array, jsize start, jsize len, jboolean *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size)
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
+		memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
 }
 
 
 void GetByteArrayRegion (JNIEnv* env, jbyteArray array, jsize start, jsize len, jbyte *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size) 
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(buf,&array->data[start],len*sizeof(array->data[0]));
+		memcpy(buf,&array->data[start],len*sizeof(array->data[0]));
 }
 
 
 void GetCharArrayRegion (JNIEnv* env, jcharArray array, jsize start, jsize len, jchar *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size)
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
+		memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
 }
 
 
 void GetShortArrayRegion (JNIEnv* env, jshortArray array, jsize start, jsize len, jshort *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size)
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else	
-	memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
+		memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
 }
 
 
 void GetIntArrayRegion (JNIEnv* env, jintArray array, jsize start, jsize len, jint *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size) 	
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
+		memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
 }
 
 
 void GetLongArrayRegion (JNIEnv* env, jlongArray array, jsize start, jsize len, jlong *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size) 	
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
+		memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
 }
 
 
 void GetFloatArrayRegion (JNIEnv* env, jfloatArray array, jsize start, jsize len, jfloat *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size) 	
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
+		memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
 }
 
 
 void GetDoubleArrayRegion (JNIEnv* env, jdoubleArray array, jsize start, jsize len, jdouble *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size) 
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
+		memcpy(buf,&array->data[start],len*sizeof(array->data[0]));	
 }
 
 
 void SetBooleanArrayRegion (JNIEnv* env, jbooleanArray array, jsize start, jsize len, jboolean *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size)
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
+		memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
 }
 
 
 void SetByteArrayRegion (JNIEnv* env, jbyteArray array, jsize start, jsize len, jbyte *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size)
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
+		memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
 }
 
 
 void SetCharArrayRegion (JNIEnv* env, jcharArray array, jsize start, jsize len, jchar *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size)
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
+		memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
 
 }
 
@@ -2766,45 +2766,45 @@ void SetCharArrayRegion (JNIEnv* env, jcharArray array, jsize start, jsize len, 
 void SetShortArrayRegion (JNIEnv* env, jshortArray array, jsize start, jsize len, jshort *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size)
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
+		memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
 }
 
 
 void SetIntArrayRegion (JNIEnv* env, jintArray array, jsize start, jsize len, jint *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size)
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
+		memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
 
 }
 
 void SetLongArrayRegion (JNIEnv* env, jlongArray array, jsize start, jsize len, jlong *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size)
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
+		memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
 
 }
 
 void SetFloatArrayRegion (JNIEnv* env, jfloatArray array, jsize start, jsize len, jfloat *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size)
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
+		memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
 
 }
 
 void SetDoubleArrayRegion (JNIEnv* env, jdoubleArray array, jsize start, jsize len, jdouble *buf)
 {
     if (start<0 || len<0 || start+len>array->header.size)
-	exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
+		*exceptionptr = proto_java_lang_ArrayIndexOutOfBoundsException;
     else
-	memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
+		memcpy(&array->data[start],buf,len*sizeof(array->data[0]));	
 }
 
 jint RegisterNatives (JNIEnv* env, jclass clazz, const JNINativeMethod *methods, jint nMethods)
@@ -2922,7 +2922,7 @@ jboolean ExceptionCheck(JNIEnv* env)
 {
 	log_text("JNI-Call: ExceptionCheck");
 
-	return exceptionptr ? JNI_TRUE : JNI_FALSE;
+	return *exceptionptr ? JNI_TRUE : JNI_FALSE;
 }
 
 
@@ -3231,7 +3231,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	jobject retVal;
 
 	if (methodID == 0) {
-		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError); 
+		*exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError); 
 		return 0;
 	}
 	argcount = get_parametercount(methodID);
@@ -3245,7 +3245,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 
 
 	if  (argcount > 3) {
-		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		log_text("Too many arguments. invokeNativeHelper does not support that");
 		return 0;
 	}
@@ -3253,7 +3253,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	if ( ((!params) && (argcount!=0)) || 
 		 (params && (params->header.size!=argcount))
 		 ) {
-		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		return 0;
 	}
 
@@ -3431,8 +3431,8 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 
 	MFREE(blk, jni_callblock, 4 /*argcount+2*/);
 
-	if (exceptionptr) {
-		java_objectheader *exceptionToWrap=exceptionptr;
+	if (*exceptionptr) {
+		java_objectheader *exceptionToWrap=*exceptionptr;
 		classinfo *ivtec = loader_load_sysclass(NULL,
 												utf_new_char("java/lang/reflect/InvocationTargetException"));
 		java_objectheader* ivte = builtin_new(ivtec);
@@ -3444,10 +3444,10 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 							 0,
 							 0);
 
-		if (exceptionptr != NULL)
+		if (*exceptionptr != NULL)
 			panic("jni.c: error while creating InvocationTargetException wrapper");
 
-		exceptionptr = ivte;
+		*exceptionptr = ivte;
 	}
 
 	return (jobject *) retVal;

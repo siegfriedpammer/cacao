@@ -19,6 +19,7 @@
 #ifdef USE_THREADS
 
 #include "global.h"
+#include "builtin.h"
 
 #define MAXTHREADS              256          /* schani */
 
@@ -62,7 +63,7 @@ typedef struct _ctx
     u1*                stackEnd;
     u1*                usedStackTop;
     s8                 time;
-    java_objectheader *exceptionptr;
+    java_objectheader *texceptionptr;
     struct _thread    *nextlive;
     u1                 flags;
 } ctx;
@@ -170,8 +171,12 @@ extern thread *threadQhead[MAX_THREAD_PRIO + 1];
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);
 u1*  asm_initialize_thread_stack(void *func, u1 *stack);
 
+typedef struct {
+	java_objectheader *_exceptionptr;
+} nativethread;
+
 #if defined(NATIVE_THREADS) && !defined(HAVE___THREAD)
-extern pthread_key_t tkey_exceptionptr;
+extern pthread_key_t tkey_threadinfo;
 #endif
 
 #else
