@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 1687 2004-12-05 23:57:27Z twisti $
+   $Id: global.h 1689 2004-12-06 08:44:20Z twisti $
 
 */
 
@@ -301,6 +301,9 @@ struct literalstring {
 
 
 /* data structure for storing information needed for a stacktrace across native functions*/
+
+typedef struct native_stackframeinfo native_stackframeinfo;
+
 struct native_stackframeinfo {
 	void *oldThreadspecificHeadValue;
 	void **addressOfThreadspecificHead;
@@ -320,7 +323,8 @@ struct native_stackframeinfo {
 #endif
 };
 
-typedef struct native_stackframeinfo native_stackframeinfo;
+
+typedef struct stacktraceelement stacktraceelement;
 
 struct stacktraceelement {
 #if POINTERSIZE == 8
@@ -331,14 +335,15 @@ struct stacktraceelement {
 	methodinfo *method;
 };
 
-typedef struct stacktraceelement stacktraceelement;
 
-typedef struct stackTraceBuffer {
-        int needsFree;
-        struct stacktraceelement* start;
-        size_t size;
-        size_t full;
-} stackTraceBuffer;
+typedef struct stackTraceBuffer stackTraceBuffer;
+
+struct stackTraceBuffer {
+	s4                 needsFree;
+	stacktraceelement *start;
+	s4                 size;
+	s4                 full;
+};
 
 
 
