@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 664 2003-11-21 18:24:01Z jowenn $
+   $Id: headers.c 667 2003-11-21 19:05:06Z jowenn $
 
 */
 
@@ -198,7 +198,7 @@ static char *printtype (char *utf_ptr)
 		case 'F':  fprintf (file, "java_floatarray*"); break;
 		case 'D':  fprintf (file, "java_doublearray*"); break;
 				
-		case '[':  fprintf (file, "java_arrayarray*");					       
+		case '[':  fprintf (file, "java_objectarray*");					       
 			while ((c = utf_nextu2(&utf_ptr)) == '[') ;
 			if (c=='L') 
 				while (utf_nextu2(&utf_ptr) != ';');

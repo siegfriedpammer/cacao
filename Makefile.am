@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 664 2003-11-21 18:24:01Z jowenn $
+# $Id: Makefile.am 667 2003-11-21 19:05:06Z jowenn $
 
 @SET_MAKE@
 
@@ -89,6 +89,7 @@ cacaoh_DEPENDENCIES = \
 
 nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makefile
 	CLASSPATH=./classpathbin/@ARCH_DIR@/lib ./cacaoh \
+	java.lang.String \
 	java.lang.Class \
 	java.io.FileDescriptor \
 	gnu.java.nio.SelectorImpl \
@@ -173,7 +174,6 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	java.util.Properties \
 	java.lang.Runtime \
 	java.lang.Throwable \
-	java.lang.String \
 	gnu.java.security.x509.X509Certificate  \
 	java.lang.JOWENNTest1 \
 	@AWTPEERS@
