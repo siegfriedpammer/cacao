@@ -1,4 +1,4 @@
-/* nat/VMClass.c -
+/* nat/VMClass.c - java/lang/Class
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 862 2004-01-06 23:42:01Z stefan $
+   $Id: VMClass.c 873 2004-01-11 20:59:29Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
 #include "java_lang_Class.h"
+#include "java_lang_ClassLoader.h"
 #include "java_lang_reflect_Constructor.h"
 #include "java_lang_reflect_Field.h"
 #include "java_lang_reflect_Method.h"
@@ -60,18 +61,19 @@
  * Method:    forName
  * Signature: (Ljava/lang/String;)Ljava/lang/Class;
  */
-JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, struct java_lang_String* s)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, java_lang_String *s)
 {
 	classinfo *c;
 	utf *u;
 
 	if (runverbose) {
 	    log_text("Java_java_lang_VMClass_forName called");
-	    log_text(javastring_tochar((java_objectheader*)s));
+	    log_text(javastring_tochar((java_objectheader *) s));
 	}
 
 	/* illegal argument */
-	if (!s) return NULL;
+	if (!s)
+		return NULL;
 	
 	/* create utf string in which '.' is replaced by '/' */
 	u = javastring_toutf(s, true);
@@ -93,7 +95,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv 
 	/*log_text("Returning class");*/
 	use_class_as_object (c);
 
-	return (java_lang_Class*) c;
+	return (java_lang_Class *) c;
 }
 
 
@@ -102,9 +104,10 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv 
  * Method:    getClassLoader
  * Signature: ()Ljava/lang/ClassLoader;
  */
-JNIEXPORT struct java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader (JNIEnv *env ,  struct java_lang_VMClass* this )
+JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, java_lang_VMClass *this)
 {  
 	init_systemclassloader();
+
 	return SystemClassLoader;
 }
 
@@ -114,9 +117,9 @@ JNIEXPORT struct java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassL
  * Method:    getModifiers
  * Signature: ()I
  */
-JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType (JNIEnv *env ,  struct java_lang_VMClass* this )
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEnv *env, java_lang_VMClass *this )
 {
-    classinfo *thisclass = (classinfo*) (this->vmData);
+    classinfo *thisclass = (classinfo *) this->vmData;
     classinfo *c = NULL;
     arraydescriptor *desc;
     
@@ -127,10 +130,10 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentTyp
             c = primitivetype_table[desc->arraytype].class_primitive;
         
         /* set vftbl */
-		use_class_as_object (c);
+		use_class_as_object(c);
     }
     
-    return (java_lang_Class*) c;
+    return (java_lang_Class *) c;
 }
 
 
@@ -139,10 +142,10 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentTyp
  * Method:    getDeclaredConstructors
  * Signature: (Z)[Ljava/lang/reflect/Constructor;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructors (JNIEnv *env ,  struct java_lang_VMClass* this , s4 public_only)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructors(JNIEnv *env, java_lang_VMClass *this, s4 public_only)
 {
   
-    classinfo *c = (classinfo *) (this->vmData);
+    classinfo *c = (classinfo *) this->vmData;
     java_objectheader *o;
     classinfo *class_constructor;
     java_objectarray *array_constructor;     /* result: array of Method-objects */
@@ -151,8 +154,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
     int public_methods = 0;		/* number of public methods of the class */
     int pos = 0;
     int i;
-    utf *utf_constr=utf_new_char("<init>");
-
+    utf *utf_constr = utf_new_char("<init>");
 
     
 	/*log_text("Java_java_lang_VMClass_getDeclaredConstructors");
@@ -167,10 +169,10 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 		if ((((c->methods[i].flags & ACC_PUBLIC)) || (!public_only)) && 
 			(c->methods[i].name==utf_constr)) public_methods++;
 
-    class_constructor = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Constructor"));
-    if (!class_constructor) 
-		return NULL;
+    class_constructor = (classinfo *) loader_load(utf_new_char ("java/lang/reflect/Constructor"));
 
+    if (!class_constructor)
+		return NULL;
 
     array_constructor = builtin_anewarray(public_methods, class_constructor);
 
@@ -179,14 +181,15 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 
     for (i = 0; i < c->methodscount; i++) 
 		if ((c->methods[i].flags & ACC_PUBLIC) || (!public_only)){
-	
 			m = &c->methods[i];	    
-			if (m->name!=utf_constr) continue;
+			if (m->name!=utf_constr)
+				continue;
+
 			o = native_new_and_init(class_constructor);     
 			array_constructor->data[pos++] = o;
 
 			/* array of exceptions declared to be thrown, information not available !! */
-			exceptiontypes = builtin_anewarray (0, class_java_lang_Class);
+			exceptiontypes = builtin_anewarray(0, class_java_lang_Class);
 
 			/*	    class_showconstantpool(class_constructor);*/
 			/* initialize instance fields */
@@ -199,14 +202,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
     	    setfield_critical(class_constructor,o,"parameterTypes", "[Ljava/lang/Class;", jobject, (jobject) get_parametertypes(m));
         }	     
     
-	/*log_text("leaving Java_java_lang_VMClass_getDeclaredConstructors");*/
 	return array_constructor;
-
-
-
-
-	/*  panic("Java_java_lang_Class_getConstructors0 called");
-		return NULL;*/
 }
 
 
@@ -215,10 +211,10 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
  * Method:    getDeclaredClasses
  * Signature: (Z)[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, struct java_lang_VMClass* this , s4 publicOnly)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, java_lang_VMClass *this, s4 publicOnly)
 {
 #warning fix the public only case
-	classinfo *c = (classinfo *) (this->vmData);
+	classinfo *c = (classinfo *) this->vmData;
 	int pos = 0;                /* current declared class */
 	int declaredclasscount = 0; /* number of declared classes */
 	java_objectarray *result;   /* array of declared classes */
@@ -246,11 +242,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 	result = builtin_anewarray(declaredclasscount, class_java_lang_Class);    	
 
 	for (i = 0; i < c->innerclasscount; i++) {
-    
 		classinfo *inner = c->innerclass[i].inner_class;
 		classinfo *outer = c->innerclass[i].outer_class;
-
-      
+		
 		if ((outer == c) && (notPublicOnly || (inner->flags & ACC_PUBLIC))) {
 			/* outer class is this class, store innerclass in array */
 			use_class_as_object(inner);
@@ -267,27 +261,26 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
  * Method:    getDeclaringClass
  * Signature: ()Ljava/lang/Class;
  */
-JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass ( JNIEnv *env ,  struct java_lang_VMClass* this)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, java_lang_VMClass *this)
 {
 #warning fixme
-	classinfo *c = (classinfo *) (this->vmData);
+	classinfo *c = (classinfo *) this->vmData;
 	log_text("Java_java_lang_VMClass_getDeclaringClass");
 
-	if (this && this->vmData && !Java_java_lang_VMClass_isPrimitive(env, this) && (c->name->text[0]!='[')) {    
+	if (this && this->vmData && !Java_java_lang_VMClass_isPrimitive(env, this) && (c->name->text[0] != '[')) {
 		int i;
 
 		if (c->innerclasscount == 0)  /* no innerclasses exist */
 			return NULL;
     
 		for (i = 0; i < c->innerclasscount; i++) {
-
 			classinfo *inner =  c->innerclass[i].inner_class;
 			classinfo *outer =  c->innerclass[i].outer_class;
       
 			if (inner == c) {
 				/* innerclass is this class */
-				use_class_as_object (outer);
-				return (java_lang_Class*) outer;
+				use_class_as_object(outer);
+				return (java_lang_Class *) outer;
 			}
 		}
 	}
@@ -302,37 +295,38 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringCla
  * Method:    getField0
  * Signature: (Ljava/lang/String;I)Ljava/lang/reflect/Field;
  */
-JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_java_lang_VMClass_getField0 ( JNIEnv *env ,  struct java_lang_VMClass* this, struct java_lang_String* name, s4 public_only)
+JNIEXPORT java_lang_reflect_Field* JNICALL Java_java_lang_VMClass_getField0(JNIEnv *env, java_lang_VMClass *this, java_lang_String *name, s4 public_only)
 {
-    classinfo *c, *fieldtype;   
+    classinfo *c;
+	classinfo *fieldtype;
     fieldinfo *f;               /* the field to be represented */
     java_lang_reflect_Field *o; /* result: field-object */
-    utf *desc;			/* the fielddescriptor */
+    utf *desc;			        /* the fielddescriptor */
     int idx;
 
     /* create Field object */
-    c = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Field"));
-    o = (java_lang_reflect_Field*) native_new_and_init(c);
+    c = (classinfo *) loader_load(utf_new_char ("java/lang/reflect/Field"));
+    o = (java_lang_reflect_Field *) native_new_and_init(c);
 
     /* get fieldinfo entry */
-    idx = class_findfield_index_approx((classinfo*) (this->vmData), javastring_toutf(name, false));
-    if (idx<0) {
+    idx = class_findfield_index_approx((classinfo *) this->vmData, javastring_toutf(name, false));
+    if (idx < 0) {
 	    *exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
 	    return NULL;
 	}
-    f= &(((struct classinfo*)(this->vmData))->fields[idx]);
-    if (f) {
 
-		if ( public_only && !(f->flags & ACC_PUBLIC))
-			{
-				/* field is not public  and public only had been requested*/
-				*exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
-				return NULL;
-			}
+    f= &(((classinfo *) this->vmData)->fields[idx]);
+    if (f) {
+		if (public_only && !(f->flags & ACC_PUBLIC)) {
+			/* field is not public  and public only had been requested*/
+			*exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
+			return NULL;
+		}
 
 		desc = f->descriptor;
-		fieldtype = class_from_descriptor(desc->text,utf_end(desc),NULL,CLASSLOAD_LOAD);
-		if (!fieldtype) return NULL;
+		fieldtype = class_from_descriptor(desc->text, utf_end(desc), NULL, CLASSLOAD_LOAD);
+		if (!fieldtype)
+			return NULL;
 	 
 		/* initialize instance fields */
 		setfield_critical(c,o,"declaringClass",          "Ljava/lang/Class;",  jobject, (jobject) (this->vmData) /*this*/);
@@ -355,9 +349,9 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_java_lang_VMClass_getFiel
  * Method:    getDeclaredFields
  * Signature: (Z)[Ljava/lang/reflect/Field;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields (JNIEnv *env ,  struct java_lang_VMClass* this , s4 public_only)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNIEnv *env, java_lang_VMClass *this, s4 public_only)
 {
-    classinfo *c = (classinfo *) (this->vmData);
+    classinfo *c = (classinfo *) this->vmData;
     classinfo *class_field;
     java_objectarray *array_field; /* result: array of field-objects */
     int public_fields = 0;         /* number of elements in field-array */
@@ -366,7 +360,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields (JN
 
     /* determine number of fields */
     for (i = 0; i < c->fieldscount; i++) 
-		if ((c->fields[i].flags & ACC_PUBLIC) || (!public_only)) public_fields++;
+		if ((c->fields[i].flags & ACC_PUBLIC) || (!public_only))
+			public_fields++;
 
     class_field = loader_load(utf_new_char("java/lang/reflect/Field"));
 
@@ -383,11 +378,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields (JN
     /* get the fields and store in the array */    
     for (i = 0; i < c->fieldscount; i++) 
 		if ( (c->fields[i].flags & ACC_PUBLIC) || (!public_only))
-			array_field->data[pos++] = (java_objectheader*) Java_java_lang_VMClass_getField0
-				(env,
-				 this,
-				 (java_lang_String*) javastring_new(c->fields[i].name), 
-				 public_only);
+			array_field->data[pos++] = 
+				(java_objectheader *) Java_java_lang_VMClass_getField0(env,
+																	   this,
+																	   (java_lang_String *) javastring_new(c->fields[i].name),
+																	   public_only);
     return array_field;
 }
 
@@ -397,17 +392,20 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields (JN
  * Method:    getInterfaces
  * Signature: ()[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces ( JNIEnv *env ,  struct java_lang_VMClass* this)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv *env, java_lang_VMClass *this)
 {
-	classinfo *c = (classinfo*) (this->vmData);
+	classinfo *c = (classinfo *) this->vmData;
 	u4 i;
-	java_objectarray *a = builtin_anewarray (c->interfacescount, class_java_lang_Class);
-	if (!a) return NULL;
-	for (i=0; i<c->interfacescount; i++) {
-		use_class_as_object (c->interfaces[i]);
+	java_objectarray *a = builtin_anewarray(c->interfacescount, class_java_lang_Class);
+	if (!a)
+		return NULL;
 
-		a->data[i] = (java_objectheader*) c->interfaces[i];
+	for (i = 0; i < c->interfacescount; i++) {
+		use_class_as_object(c->interfaces[i]);
+
+		a->data[i] = (java_objectheader *) c->interfaces[i];
 	}
+
 	return a;
 }
 
@@ -417,8 +415,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces ( JNIEn
  * Method:    getMethod0
  * Signature: (Ljava/lang/String;[Ljava/lang/Class;I)Ljava/lang/reflect/Method;
  */
-JNIEXPORT struct java_lang_reflect_Method* JNICALL Java_java_lang_VMClass_getMethod0 ( JNIEnv *env ,  struct java_lang_Class* 
-																					   this, struct java_lang_String* name, java_objectarray* types, s4 which)
+JNIEXPORT java_lang_reflect_Method* JNICALL Java_java_lang_VMClass_getMethod0(JNIEnv *env, java_lang_Class *this, java_lang_String *name, java_objectarray *types, s4 which)
 {
     classinfo *c; 
     classinfo *clazz = (classinfo *) this;
@@ -426,25 +423,23 @@ JNIEXPORT struct java_lang_reflect_Method* JNICALL Java_java_lang_VMClass_getMet
     java_objectarray *exceptiontypes;    /* the exceptions thrown by the method */
     methodinfo *m;			 /* the method to be represented */
 
-    c = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Method"));
-    o = (java_lang_reflect_Method*) native_new_and_init(c);
+    c = (classinfo *) loader_load(utf_new_char("java/lang/reflect/Method"));
+    o = (java_lang_reflect_Method *) native_new_and_init(c);
 
     /* find the method */
-    m = class_resolvemethod_approx (
-									clazz, 
-									javastring_toutf(name, false),
-									create_methodsig(types,0)
-									);
+    m = class_resolvemethod_approx(clazz, 
+								   javastring_toutf(name, false),
+								   create_methodsig(types,0)
+								   );
 
-    if (!m || (which==MEMBER_PUBLIC && !(m->flags & ACC_PUBLIC)))
-		{
-			/* no apropriate method was found */
-			*exceptionptr = native_new_and_init (class_java_lang_NoSuchMethodException);
-			return NULL;
-		}
+    if (!m || (which == MEMBER_PUBLIC && !(m->flags & ACC_PUBLIC))) {
+		/* no apropriate method was found */
+		*exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodException);
+		return NULL;
+	}
    
     /* array of exceptions declared to be thrown, information not available !! */
-    exceptiontypes = builtin_anewarray (0, class_java_lang_Class);
+    exceptiontypes = builtin_anewarray(0, class_java_lang_Class);
 
     /* initialize instance fields */
     setfield_critical(c,o,"clazz",          "Ljava/lang/Class;",  jobject, (jobject) clazz /*this*/);

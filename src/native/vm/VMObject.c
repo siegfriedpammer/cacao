@@ -1,4 +1,36 @@
-/* class: java/lang/Object */
+/* nat/VMObject.c - java/lang/Object
+
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Roman Obermaiser
+
+   Changes: Joseph Wenninger
+
+   $Id: VMObject.c 873 2004-01-11 20:59:29Z twisti $
+
+*/
 
 
 #include <stdlib.h>
@@ -19,40 +51,42 @@
  * Method:    clone
  * Signature: ()Ljava/lang/Object;
  */
-JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_VMObject_clone ( JNIEnv *env ,  jclass clazz, struct java_lang_Cloneable* this)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass clazz, java_lang_Cloneable *this)
 {
 /*	log_text("Java_java_lang_VMObject_clone called");
 	log_utf(((java_objectheader*)this)->vftbl->class->name);
 	log_text("starting cloning");     */
-    classinfo *c;
-    java_lang_Object *new;
-    arraydescriptor *desc;
+	classinfo *c;
+	java_lang_Object *new;
+	arraydescriptor *desc;
     
-    if ((desc = this->header.vftbl->arraydesc) != NULL) {
-        /* We are cloning an array */
+	if ((desc = this->header.vftbl->arraydesc) != NULL) {
+		/* We are cloning an array */
         
-        u4 size = desc->dataoffset + desc->componentsize * ((java_arrayheader*)this)->size;
+		u4 size = desc->dataoffset + desc->componentsize * ((java_arrayheader *) this)->size;
         
-        new = (java_lang_Object*)heap_allocate(size, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
-        memcpy(new, this, size);
+		new = (java_lang_Object *) heap_allocate(size, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
+		memcpy(new, this, size);
         
-        return new;
-    }
+		return new;
+	}
     
     /* We are cloning a non-array */
-    if (! builtin_instanceof ((java_objectheader*) this, class_java_lang_Cloneable) ) {
+    if (!builtin_instanceof((java_objectheader *) this, class_java_lang_Cloneable)) {
         *exceptionptr = native_new_and_init (class_java_lang_CloneNotSupportedException);
         return NULL;
     }
 
     /* XXX should use vftbl */
-    c = this -> header.vftbl -> class;
-    new = (java_lang_Object*) builtin_new (c);
+    c = this->header.vftbl->class;
+    new = (java_lang_Object *) builtin_new(c);
     if (!new) {
         *exceptionptr = proto_java_lang_OutOfMemoryError;
         return NULL;
     }
-    memcpy (new, this, c->instancesize);
+
+    memcpy(new, this, c->instancesize);
+
     return new;
 }
 
@@ -62,29 +96,30 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_VMObject_clone ( JNIEn
  * Method:    notify
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_notify ( JNIEnv *env ,  jclass clazz, struct java_lang_Object* this)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
 	if (runverbose)
-		log_text ("java_lang_Object_notify called");
+		log_text("java_lang_Object_notify called");
 
-        #ifdef USE_THREADS
-                signal_cond_for_object(&this->header);
-        #endif
+#ifdef USE_THREADS
+	signal_cond_for_object(&this->header);
+#endif
 }
+
 
 /*
  * Class:     java/lang/Object
  * Method:    notifyAll
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll ( JNIEnv *env ,  jclass clazz, struct java_lang_Object* this)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
 	if (runverbose)
-		log_text ("java_lang_Object_notifyAll called");
+		log_text("java_lang_Object_notifyAll called");
 
-	#ifdef USE_THREADS
-		broadcast_cond_for_object(&this->header);
-	#endif
+#ifdef USE_THREADS
+	broadcast_cond_for_object(&this->header);
+#endif
 }
 
 
@@ -93,14 +128,14 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll ( JNIEnv *env ,  jclass
  * Method:    wait
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_wait ( JNIEnv *env , jclass clazz, struct java_lang_Object* this, s8 time,s4 par3)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *this, s8 time, s4 par3)
 {
 	if (runverbose)
-		log_text ("java_lang_Object_wait called");
+		log_text("java_lang_Object_wait called");
 
-	#ifdef USE_THREADS
-		wait_cond_for_object(&this->header, time);
-	#endif
+#ifdef USE_THREADS
+	wait_cond_for_object(&this->header, time);
+#endif
 }
 
 

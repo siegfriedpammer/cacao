@@ -1,4 +1,4 @@
-/* nat/Constructor.c -
+/* nat/Constructor.c - java/lang/reflect/Constructor
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Constructor.c 835 2004-01-04 23:39:36Z twisti $
+   $Id: Constructor.c 873 2004-01-11 20:59:29Z twisti $
 
 */
 
@@ -51,7 +51,7 @@
  * Method:    newInstance
  * Signature: ([Ljava/lang/Object;)Ljava/lang/Object;
  */
-JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, struct java_lang_reflect_Constructor* this, java_objectarray* parameters, struct java_lang_Class* clazz, s4 par3)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *parameters, java_lang_Class *clazz, s4 par3)
 {
 
 #warning fix me for parameters float/double and long long  parameters
@@ -141,7 +141,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
  * Method:    getModifiers
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiers(JNIEnv *env, struct java_lang_reflect_Constructor* this)
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiers(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
 	/*	log_text("Java_java_lang_reflect_Constructor_getModifiers called");*/
 	classinfo *c = (classinfo *) (this->clazz);

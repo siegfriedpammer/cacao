@@ -1,4 +1,36 @@
-/* class: java/lang/Thread */
+/* nat/Thread.c - java/lang/Thread
+
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Roman Obermaiser
+
+   Changes: Joseph Wenninger
+
+   $Id: Thread.c 873 2004-01-11 20:59:29Z twisti $
+
+*/
 
 
 #include "jni.h"
@@ -19,10 +51,11 @@
  * Method:    countStackFrames
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_countStackFrames ( JNIEnv *env ,  struct java_lang_Thread* this)
+JNIEXPORT s4 JNICALL Java_java_lang_Thread_countStackFrames(JNIEnv *env, java_lang_Thread *this)
 {
-    log_text ("java_lang_Thread_countStackFrames called");
-    return 0;         /* not yet implemented */
+    log_text("java_lang_Thread_countStackFrames called");
+
+    return 0;
 }
 
 /*
@@ -30,60 +63,59 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_countStackFrames ( JNIEnv *env ,  str
  * Method:    currentThread
  * Signature: ()Ljava/lang/Thread;
  */
-JNIEXPORT struct java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread ( JNIEnv *env ,jclass clazz )
+JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread(JNIEnv *env, jclass clazz)
 {
-  struct java_lang_Thread* t;
+	java_lang_Thread *t;
 
-  if (runverbose)
-    log_text ("java_lang_Thread_currentThread called");
+	if (runverbose)
+		log_text("java_lang_Thread_currentThread called");
 
-
-  #ifdef USE_THREADS
-
- 	 t = (struct java_lang_Thread*) currentThread; 
+#ifdef USE_THREADS
+	t = (java_lang_Thread *) currentThread;
   
-	 if (!t->group) {
+	if (!t->group) {
 		log_text("java_lang_Thread_currentThread: t->group=NULL");
-    		/* ThreadGroup of currentThread is not initialized */
+		/* ThreadGroup of currentThread is not initialized */
 
-    		t->group = (java_lang_ThreadGroup *) 
+		t->group = (java_lang_ThreadGroup *) 
 			native_new_and_init(loader_load(utf_new_char("java/lang/ThreadGroup")));
 
-    		if (t->group == 0) 
-      			log_text("unable to create ThreadGroup");
+		if (t->group == 0) 
+			log_text("unable to create ThreadGroup");
   	}
 
-	return (struct java_lang_Thread*) currentThread;
-  #else
+	return (java_lang_Thread *) currentThread;
+#else
 	return 0;	
-  #endif
+#endif
 }
+
 
 /*
  * Class:     java/lang/Thread
  * Method:    nativeInterrupt
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_nativeInterrupt ( JNIEnv *env ,  struct java_lang_Thread* this)
+JNIEXPORT void JNICALL Java_java_lang_Thread_nativeInterrupt(JNIEnv *env, java_lang_Thread *this)
 {
-  log_text("Java_java_lang_Thread_interrupt0  called");
-  /* not yet implemented */
+	log_text("Java_java_lang_Thread_interrupt0 called");
 }
+
 
 /*
  * Class:     java/lang/Thread
  * Method:    isAlive
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_isAlive ( JNIEnv *env ,  struct java_lang_Thread* this)
+JNIEXPORT s4 JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, java_lang_Thread *this)
 {
-    if (runverbose)
-	log_text ("java_lang_Thread_isAlive called");
+	if (runverbose)
+		log_text("java_lang_Thread_isAlive called");
 
 #ifdef USE_THREADS
-    return aliveThread((thread*)this);
+	return aliveThread((thread *) this);
 #else
-    return 0;
+	return 0;
 #endif
 }
 
@@ -94,49 +126,52 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_isAlive ( JNIEnv *env ,  struct java_
  * Method:    isInterrupted
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_isInterrupted (JNIEnv *env ,  struct java_lang_Thread* this )
+JNIEXPORT s4 JNICALL Java_java_lang_Thread_isInterrupted(JNIEnv *env, java_lang_Thread *this)
 {
-    log_text("Java_java_lang_Thread_isInterrupted  called");
-    return 0;			/* not yet implemented */
+	log_text("Java_java_lang_Thread_isInterrupted  called");
+	return 0;
 }
+
 
 /*
  * Class:     java/lang/Thread
  * Method:    registerNatives
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_registerNatives ( JNIEnv *env ,jclass clazz )
+JNIEXPORT void JNICALL Java_java_lang_Thread_registerNatives(JNIEnv *env, jclass clazz)
 {
-  /* empty */
+	/* empty */
 }
+
 
 /*
  * Class:     java/lang/Thread
  * Method:    resume0
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_nativeResume ( JNIEnv *env ,  struct java_lang_Thread* this)
+JNIEXPORT void JNICALL Java_java_lang_Thread_nativeResume(JNIEnv *env, java_lang_Thread *this)
 {
-    if (runverbose)
-	log_text ("java_lang_Thread_resume0 called");
+	if (runverbose)
+		log_text("java_lang_Thread_resume0 called");
 
 #ifdef USE_THREADS
-    resumeThread((thread*)this);
+	resumeThread((thread *) this);
 #endif
 }
+
 
 /*
  * Class:     java/lang/Thread
  * Method:    setPriority0
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_nativeSetPriority ( JNIEnv *env ,  struct java_lang_Thread* this, s4 par1)
+JNIEXPORT void JNICALL Java_java_lang_Thread_nativeSetPriority(JNIEnv *env, java_lang_Thread *this, s4 par1)
 {
     if (runverbose) 
-	log_text ("java_lang_Thread_setPriority0 called");
+		log_text("java_lang_Thread_setPriority0 called");
 
 #ifdef USE_THREADS
-    setPriorityThread((thread*)this, par1);
+	setPriorityThread((thread *) this, par1);
 #endif
 }
 
@@ -146,119 +181,130 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeSetPriority ( JNIEnv *env ,  
  * Method:    sleep
  * Signature: (JI)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_sleep (JNIEnv *env , jclass clazz, s8 millis, s4 par2)
+JNIEXPORT void JNICALL Java_java_lang_Thread_sleep(JNIEnv *env, jclass clazz, s8 millis, s4 par2)
 {
-    if (runverbose)
-	log_text ("java_lang_Thread_sleep called");
+	if (runverbose)
+		log_text("java_lang_Thread_sleep called");
 
 #ifdef USE_THREADS
-    sleepThread(millis);
+	sleepThread(millis);
 #endif
 }
+
 
 /*
  * Class:     java/lang/Thread
  * Method:    start
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_start ( JNIEnv *env ,  struct java_lang_Thread* this)
+JNIEXPORT void JNICALL Java_java_lang_Thread_start(JNIEnv *env, java_lang_Thread *this)
 {
-  if (runverbose) 
-    log_text ("java_lang_Thread_start called");
-    /*printf("THREAD PRIORITY: %d\n",this->priority);*/
+	if (runverbose) 
+		log_text("java_lang_Thread_start called");
 
-  #ifdef USE_THREADS
+#ifdef USE_THREADS
 	startThread((thread*)this);
-  #endif
+#endif
 }
+
 
 /*
  * Class:     java/lang/Thread
  * Method:    stop0
  * Signature: (Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_nativeStop ( JNIEnv *env ,  struct java_lang_Thread* this, struct java_lang_Throwable* par1)
+JNIEXPORT void JNICALL Java_java_lang_Thread_nativeStop(JNIEnv *env, java_lang_Thread *this, java_lang_Throwable *par1)
 {
-  if (runverbose)
-    log_text ("java_lang_Thread_stop0 called");
+	if (runverbose)
+		log_text ("java_lang_Thread_stop0 called");
 
 
-  #ifdef USE_THREADS
-	if (currentThread == (thread*)this)
-	{
-	    log_text("killing");
-	    killThread(0);
-	    /*
-	        exceptionptr = proto_java_lang_ThreadDeath;
-	        return;
-	    */
+#ifdef USE_THREADS
+	if (currentThread == (thread*)this) {
+		log_text("killing");
+		killThread(0);
+		/*
+		  exceptionptr = proto_java_lang_ThreadDeath;
+		  return;
+		*/
+
+	} else {
+		CONTEXT((thread*)this).flags |= THREAD_FLAGS_KILLED;
+		resumeThread((thread*)this);
 	}
-	else
-	{
-	        CONTEXT((thread*)this).flags |= THREAD_FLAGS_KILLED;
-	        resumeThread((thread*)this);
-	}
-   #endif
+#endif
 }
+
 
 /*
  * Class:     java/lang/Thread
  * Method:    suspend0
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_nativeSuspend ( JNIEnv *env ,  struct java_lang_Thread* this)
+JNIEXPORT void JNICALL Java_java_lang_Thread_nativeSuspend(JNIEnv *env, java_lang_Thread *this)
 {
-  if (runverbose)
-    log_text ("java_lang_Thread_suspend0 called");
+	if (runverbose)
+		log_text("java_lang_Thread_suspend0 called");
 
-  #ifdef USE_THREADS
+#ifdef USE_THREADS
 	suspendThread((thread*)this);
-  #endif
-
+#endif
 }
+
 
 /*
  * Class:     java/lang/Thread
  * Method:    yield
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_yield ( JNIEnv *env  ,jclass clazz)
+JNIEXPORT void JNICALL Java_java_lang_Thread_yield(JNIEnv *env, jclass clazz)
 {
-  if (runverbose)
-    log_text ("java_lang_Thread_yield called");
-  #ifdef USE_THREADS
+	if (runverbose)
+		log_text("java_lang_Thread_yield called");
+
+#ifdef USE_THREADS
 	yieldThread();
-  #endif
+#endif
 }
+
 
 /*
  * Class:     java_lang_Thread
  * Method:    interrupted
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_interrupted (JNIEnv *env ,jclass clazz) {
+JNIEXPORT s4 JNICALL Java_java_lang_Thread_interrupted(JNIEnv *env, jclass clazz)
+{
 	log_text("Java_java_lang_Thread_interrupted");
+
 	return 0;
 }
+
+
 /*
  * Class:     java_lang_Thread
  * Method:    nativeInit
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_nativeInit (JNIEnv *env ,  struct java_lang_Thread* this , s8 par1) {
+JNIEXPORT void JNICALL Java_java_lang_Thread_nativeInit(JNIEnv *env, java_lang_Thread *this, s8 par1)
+{
 	log_text("Thread_nativeInit");
-	if (*exceptionptr) log_text("There has been an exception, strange...");
-	this->priority=5;
+
+	if (*exceptionptr)
+		log_text("There has been an exception, strange...");
+
+	this->priority = 5;
 }
+
 
 /*
  * Class:     java_lang_Thread
  * Method:    holdsLock
  * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_holdsLock (JNIEnv *env , jclass clazz, struct java_lang_Object* par1)
+JNIEXPORT s4 JNICALL Java_java_lang_Thread_holdsLock(JNIEnv *env, jclass clazz, java_lang_Object *par1)
 {
-  return 0;
+	return 0;
 }
 
 

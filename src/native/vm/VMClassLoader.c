@@ -1,4 +1,36 @@
-/* class: java/lang/ClassLoader */
+/* nat/VMClassLoader.c - java/lang/ClassLoader
+
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Roman Obermaiser
+
+   Changes: Joseph Wenninger
+
+   $Id: VMClassLoader.c 873 2004-01-11 20:59:29Z twisti $
+
+*/
 
 
 #include "jni.h"
@@ -16,49 +48,54 @@
  * Method:    defineClass0
  * Signature: (Ljava/lang/String;[BII)Ljava/lang/Class;
  */
-JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass ( JNIEnv *env ,  jclass clazz, struct java_lang_ClassLoader* this, struct java_lang_String* name, java_bytearray* buf, s4 off, s4 len)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *this, java_lang_String *name, java_bytearray *buf, s4 off, s4 len)
 {
-    classinfo *c;
+	classinfo *c;
 
-    log_text("Java_java_lang_VMClassLoader_defineClass called");
+	log_text("Java_java_lang_VMClassLoader_defineClass called");
 
-    /* call JNI-function to load the class */
-    c = (*env)->DefineClass(env, javastring_tochar((java_objectheader*) name), (jobject) this, (const jbyte *) &buf[off], len);
-    use_class_as_object (c);    
-    return (java_lang_Class*) c;
+	/* call JNI-function to load the class */
+	c = (*env)->DefineClass(env, javastring_tochar((java_objectheader*) name), (jobject) this, (const jbyte *) &buf[off], len);
+	use_class_as_object (c);
+
+	return (java_lang_Class *) c;
 }
+
 
 /*
  * Class:     java/lang/Class
  * Method:    getPrimitiveClass
  * Signature: (Ljava/lang/String;)Ljava/lang/Class;
  */
-JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass ( JNIEnv *env ,  jclass clazz, struct java_lang_String* name)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *env, jclass clazz, java_lang_String *name)
 {
-    classinfo *c;
-    utf *u = javastring_toutf(name, false);
+	classinfo *c;
+	utf *u = javastring_toutf(name, false);
 
-    if (u) {    	
-      /* get primitive class */
-		c = loader_load_sysclass(NULL,u);
-      use_class_as_object (c);
-      return (java_lang_Class*) c;      
-    }
+	if (u) {
+		/* get primitive class */
+		c = loader_load_sysclass(NULL, u);
+		use_class_as_object(c);
 
-    /* illegal primitive classname specified */
-    *exceptionptr = native_new_and_init (class_java_lang_ClassNotFoundException);
-    return NULL;
+		return (java_lang_Class *) c;
+	}
+
+	/* illegal primitive classname specified */
+	*exceptionptr = native_new_and_init(class_java_lang_ClassNotFoundException);
+
+	return NULL;
 }
+
 
 /*
  * Class:     java/lang/ClassLoader
  * Method:    resolveClass0
  * Signature: (Ljava/lang/Class;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass ( JNIEnv *env ,   jclass clazz, struct java_lang_Class* par1)
+JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jclass clazz, java_lang_Class *par1)
 {
-  /* class already linked, so return */
-  return;
+	/* class already linked, so return */
+	return;
 }
 
 
