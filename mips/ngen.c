@@ -10,7 +10,7 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 304 2003-05-14 14:04:09Z stefan $
+	Last Change: $Id: ngen.c 355 2003-06-07 06:46:30Z stefan $
 
 *******************************************************************************/
 
@@ -3847,8 +3847,8 @@ typedef java_objectheader* (*asm_fptr)(methodinfo*, void*, void*, void*, void*);
 java_objectheader *asm_calljavamethod (methodinfo *m, void *arg1, void *arg2,
                                                       void *arg3, void *arg4)
 {
-	((asm_fptr)(calljavamem + 20))(m, arg1, arg2, arg3, arg4);
-	return NULL;
+	java_objectheader *r = ((asm_fptr)(calljavamem + 20))(m, arg1, arg2, arg3, arg4);
+	return (exceptionptr ? r : NULL);
 }
 
 java_objectheader *asm_calljavafunction (methodinfo *m, void *arg1, void *arg2,
