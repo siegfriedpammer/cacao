@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1680 2004-12-04 12:02:08Z jowenn $
+   $Id: codegen.c 1701 2004-12-06 14:31:45Z twisti $
 
 */
 
@@ -53,9 +53,7 @@
 #include "vm/jit/x86_64/emitfuncs.h"
 #include "vm/jit/x86_64/types.h"
 #include "vm/jit/x86_64/asmoffsets.h"
-#if 0
-#include "vm/jit/stacktrace.inc"
-#endif
+
 
 /* register descripton - array ************************************************/
 
