@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: logging.h 1761 2004-12-15 15:48:43Z twisti $
 
 */
 
@@ -51,8 +51,8 @@ void log_nl();             /* newline and fflush */
 
 void log_cputime();
 
-void log_message_class(char *msg, classinfo *c);
-void log_message_method(char *msg, methodinfo *m);
+void log_message_class(const char *msg, classinfo *c);
+void log_message_method(const char *msg, methodinfo *m);
 
 void dolog(char *txt, ...);
 void dolog_plain(char *txt, ...); /* same as dolog without "LOG: " and newline */

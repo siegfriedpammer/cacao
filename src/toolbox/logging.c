@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: logging.c 1761 2004-12-15 15:48:43Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/global.h"
 #include "vm/tables.h"
@@ -179,14 +180,21 @@ void log_cputime()
 
 *******************************************************************************/
 
-void log_message_class(char *msg, classinfo *c)
+void log_message_class(const char *msg, classinfo *c)
 {
-	char logtext[MAXLOGTEXT];
+	char *buf;
+	s4    len;
 
-	sprintf(logtext, msg);
-	utf_sprint_classname(logtext + strlen(logtext), c->name);
+	len = strlen(msg) + utf_strlen(c->name) + 1;
 
-	log_text(logtext);
+	buf = MNEW(char, len);
+
+	sprintf(buf, msg);
+	utf_sprint_classname(buf + strlen(buf), c->name);
+
+	log_text(buf);
+
+	MFREE(buf, char, len);
 }
 
 
@@ -198,17 +206,25 @@ void log_message_class(char *msg, classinfo *c)
 
 *******************************************************************************/
 
-void log_message_method(char *msg, methodinfo *m)
+void log_message_method(const char *msg, methodinfo *m)
 {
-	char logtext[MAXLOGTEXT];
+	char *buf;
+	s4    len;
 
-	sprintf(logtext, msg);
-	utf_sprint_classname(logtext + strlen(logtext), m->class->name);
-	strcpy(logtext + strlen(logtext), ".");
-	utf_sprint(logtext + strlen(logtext), m->name);
-	utf_sprint_classname(logtext + strlen(logtext), m->descriptor);
+	len = strlen(msg) + utf_strlen(m->class->name) + 1 +
+		utf_strlen(m->name) + utf_strlen(m->descriptor) + 1;
 
-	log_text(logtext);
+	buf = MNEW(char, len);
+
+	sprintf(buf, msg);
+	utf_sprint_classname(buf + strlen(buf), m->class->name);
+	strcpy(buf + strlen(buf), ".");
+	utf_sprint(buf + strlen(buf), m->name);
+	utf_sprint_classname(buf + strlen(buf), m->descriptor);
+
+	log_text(buf);
+
+	MFREE(buf, char, len);
 }
 
 
