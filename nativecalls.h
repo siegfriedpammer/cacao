@@ -16,7 +16,7 @@
 
 {"wait" , "(J)V",
         {
-        {"Runner" , "run",  "()V;"},
+        {"Runner" , "run",  "()V"},
         },
 },
 
