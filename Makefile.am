@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 963 2004-03-15 07:37:49Z jowenn $
+# $Id: Makefile.am 993 2004-03-30 21:36:03Z twisti $
 
 @SET_MAKE@
 
@@ -18,6 +18,7 @@ EXTRA_DIST = \
 	nativecalls.h
 
 CLEANFILES = \
+	stamp-nat \
 	jit/@ARCH_DIR@/offsets.h \
 	nativetable.hh \
 	nativetypes.hh
@@ -209,9 +210,6 @@ native.c: nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh
 
 checkjvm:
 	$(MAKE) -C jvmtst $@
-
-clean:
-	rm -f stamp-nat
 
 
 ## Local variables:
