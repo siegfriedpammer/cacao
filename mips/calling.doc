@@ -62,16 +62,17 @@ R25 ....... pointer to 'methodinfo' structure. This register has to be set
 
 R26-R27 ... reserved register (reserved for kernel)
 
+R28 (gp) .. global pointer (left unchanged by called method). Used for the
+            addressing of global variables in C functions.
+
+R29 (sp) .. stack pointer. The stack grows from high to low.
+
 R28 (pv) .. procedure vector, points to the first instruction of the called
             method. This vector is used for addressing the entries in the
             data segment. The pv of the caller is recomputed from the ra in
             Java methods. R30 is callee saved in the MIPS ABI. So pv is not
             recomputed if builtin functions are called. For Java methods it
             is necessary that a return is always done using ra.
-
-R29 (sp) .. stack pointer. The stack grows from high to low.
-
-R30 ....... saved registers (left unchanged by called method)
 
 R31 (ra) .. return address (left unchanged by called method)
 

@@ -13,6 +13,8 @@
 
 *******************************************************************************/
 
+#include <sys/cachectl.h>
+
 /* see also file calling.doc for explanation of calling conventions           */
 
 /* preallocated registers *****************************************************/
@@ -25,12 +27,20 @@
 
 #define REG_ITMP1       1    /* temporary register                            */
 #define REG_ITMP2       3    /* temporary register and method pointer         */
-#define REG_ITMP3       24   /* temporary register                            */
+#define REG_ITMP3       25   /* temporary register                            */
+
+#define REG_ARG_0       4    /* argument register                             */
+#define REG_ARG_1       5    /* argument register                             */
+#define REG_ARG_2       6    /* argument register                             */
+#define REG_ARG_3       7    /* argument register                             */
+#define REG_ARG_4       8    /* argument register                             */
+#define REG_ARG_5       9    /* argument register                             */
 
 #define REG_RA          31   /* return address                                */
 #define REG_SP          29   /* stack pointer                                 */
+#define REG_GP          28   /* global pointer                                */
 
-#define REG_PV          28   /* procedure vector, must be provided by caller  */
+#define REG_PV          30   /* procedure vector, must be provided by caller  */
 #define REG_METHODPTR   25   /* pointer to the place from where the procedure */
                              /* vector has been fetched                       */
 #define REG_ITMP1_XPTR  1    /* exception pointer = temporary register 1      */
@@ -60,10 +70,10 @@ int nregdescint[] = {
 	REG_RES, REG_RES, REG_RET, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
 	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
-	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_SAV, REG_RES,
+	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
 	REG_END };
 
-#define INT_SAV_CNT      9   /* number of int callee saved registers          */
+#define INT_SAV_CNT      8   /* number of int callee saved registers          */
 #define INT_ARG_CNT      8   /* number of int argument registers              */
 
 /* for use of reserved registers, see comment above */
@@ -168,6 +178,7 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_BGTZL(a,disp)         M_ITYPE(0x17,a,0,disp)          /* br a >  0  */
 
 #define M_BR(disp)              M_ITYPE(0x04,0,0,disp)          /* branch     */
+#define M_BRS(disp)             M_ITYPE(0x01,0,17,disp)         /* branch sbr */
 
 #define M_JMP(a)                M_RTYPE(0,a,0,0,0,0x08)         /* jump       */
 #define M_JSR(r,a)              M_RTYPE(0,a,0,r,0,0x09)         /* call       */
@@ -205,7 +216,7 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_LSUB(a,b,c)           M_RTYPE(0,a,b,c,0,0x2f)         /* 64 sub     */
 #define M_IMUL(a,b)             M_ITYPE(0,a,b,0x18)             /* 32 mul     */
 #define M_LMUL(a,b)             M_ITYPE(0,a,b,0x1c)             /* 64 mul     */
-#define M_IDIV(a,b)             M_ITYPE(0,a,b,0x1b)             /* 32 div     */
+#define M_IDIV(a,b)             M_ITYPE(0,a,b,0x1a)             /* 32 div     */
 #define M_LDIV(a,b)             M_ITYPE(0,a,b,0x1e)             /* 64 div     */
 
 #define M_MFLO(a)              	M_RTYPE(0,0,0,a,0,0x12)         /* quotient   */
@@ -247,9 +258,9 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_ISLL_IMM(a,b,c)       M_RTYPE(0,0,a,c,(b)&31,0x00)    /* c = a << b */
 #define M_ISRL_IMM(a,b,c)       M_RTYPE(0,0,a,c,(b)&31,0x02)    /* c = a >>>b */
 #define M_ISRA_IMM(a,b,c)       M_RTYPE(0,0,a,c,(b)&31,0x03)    /* c = a >> b */
-#define M_LSLL_IMM(a,b,c) M_RTYPE(0,0,a,c,(b)&31,0x38+4*((b)&32)) /*c = a << b*/
-#define M_LSRL_IMM(a,b,c) M_RTYPE(0,0,a,c,(b)&31,0x3a+4*((b)&32)) /*c = a >>>b*/
-#define M_LSRA_IMM(a,b,c) M_RTYPE(0,0,a,c,(b)&31,0x3b+4*((b)&32)) /*c = a >> b*/
+#define M_LSLL_IMM(a,b,c) M_RTYPE(0,0,a,c,(b)&31,0x38+((b)>>3&4)) /*c = a << b*/
+#define M_LSRL_IMM(a,b,c) M_RTYPE(0,0,a,c,(b)&31,0x3a+((b)>>3&4)) /*c = a >>>b*/
+#define M_LSRA_IMM(a,b,c) M_RTYPE(0,0,a,c,(b)&31,0x3b+((b)>>3&4)) /*c = a >> b*/
 
 #define M_MOV(a,c)              M_OR(a,0,c)                     /* c = a      */
 #define M_CLR(c)                M_OR(0,0,c)                     /* c = 0      */
@@ -304,25 +315,27 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_CVTFL(a,c)            M_FP2(0x25,FMT_F,a,c)           /* flt2long   */
 #define M_CVTDL(a,c)            M_FP2(0x25,FMT_D,a,c)           /* dbl2long   */
 
+#define M_MOVDI(d,i)            M_FP3(0,0,d,i,0)                /* i = d      */
 #define M_MOVDL(d,l)            M_FP3(0,1,d,l,0)                /* l = d      */
+#define M_MOVID(i,d)            M_FP3(0,4,d,i,0)                /* d = i      */
 #define M_MOVLD(l,d)            M_FP3(0,5,d,l,0)                /* d = l      */
 
 #define M_FCMPFF(a,b)           M_FP3(0x30,FMT_F,a,b,0)         /* c = a == b */
 #define M_FCMPFD(a,b)           M_FP3(0x30,FMT_D,a,b,0)         /* c = a == b */
-#define M_FCMPUNF(a,b)          M_FP3(0x30,FMT_F,a,b,0)         /* c = a == b */
-#define M_FCMPUND(a,b)          M_FP3(0x30,FMT_D,a,b,0)         /* c = a == b */
-#define M_FCMPEQF(a,b)          M_FP3(0x30,FMT_F,a,b,0)         /* c = a == b */
-#define M_FCMPEQD(a,b)          M_FP3(0x30,FMT_D,a,b,0)         /* c = a == b */
-#define M_FCMPUEQF(a,b)         M_FP3(0x30,FMT_F,a,b,0)         /* c = a == b */
-#define M_FCMPUEQD(a,b)         M_FP3(0x30,FMT_D,a,b,0)         /* c = a == b */
-#define M_FCMPOLTF(a,b)         M_FP3(0x30,FMT_F,a,b,0)         /* c = a <  b */
-#define M_FCMPOLTD(a,b)         M_FP3(0x30,FMT_D,a,b,0)         /* c = a <  b */
-#define M_FCMPULTF(a,b)         M_FP3(0x30,FMT_F,a,b,0)         /* c = a <  b */
-#define M_FCMPULTD(a,b)         M_FP3(0x30,FMT_D,a,b,0)         /* c = a <  b */
-#define M_FCMPOLEF(a,b)         M_FP3(0x30,FMT_F,a,b,0)         /* c = a <= b */
-#define M_FCMPOLED(a,b)         M_FP3(0x30,FMT_D,a,b,0)         /* c = a <= b */
-#define M_FCMPULEF(a,b)         M_FP3(0x30,FMT_F,a,b,0)         /* c = a <= b */
-#define M_FCMPULE(a,b)          M_FP3(0x30,FMT_D,a,b,0)         /* c = a <= b */
+#define M_FCMPUNF(a,b)          M_FP3(0x31,FMT_F,a,b,0)         /* c = a == b */
+#define M_FCMPUND(a,b)          M_FP3(0x31,FMT_D,a,b,0)         /* c = a == b */
+#define M_FCMPEQF(a,b)          M_FP3(0x32,FMT_F,a,b,0)         /* c = a == b */
+#define M_FCMPEQD(a,b)          M_FP3(0x32,FMT_D,a,b,0)         /* c = a == b */
+#define M_FCMPUEQF(a,b)         M_FP3(0x33,FMT_F,a,b,0)         /* c = a == b */
+#define M_FCMPUEQD(a,b)         M_FP3(0x33,FMT_D,a,b,0)         /* c = a == b */
+#define M_FCMPOLTF(a,b)         M_FP3(0x34,FMT_F,a,b,0)         /* c = a <  b */
+#define M_FCMPOLTD(a,b)         M_FP3(0x34,FMT_D,a,b,0)         /* c = a <  b */
+#define M_FCMPULTF(a,b)         M_FP3(0x35,FMT_F,a,b,0)         /* c = a <  b */
+#define M_FCMPULTD(a,b)         M_FP3(0x35,FMT_D,a,b,0)         /* c = a <  b */
+#define M_FCMPOLEF(a,b)         M_FP3(0x36,FMT_F,a,b,0)         /* c = a <= b */
+#define M_FCMPOLED(a,b)         M_FP3(0x36,FMT_D,a,b,0)         /* c = a <= b */
+#define M_FCMPULEF(a,b)         M_FP3(0x37,FMT_F,a,b,0)         /* c = a <= b */
+#define M_FCMPULE(a,b)          M_FP3(0x37,FMT_D,a,b,0)         /* c = a <= b */
 
 #define M_FBF(disp)             M_ITYPE(0x11,8,0,disp)          /* br false   */
 #define M_FBT(disp)             M_ITYPE(0x11,8,1,disp)          /* br true    */

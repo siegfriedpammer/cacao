@@ -22,7 +22,7 @@ Datatypes and Register Allocations:
 ----------------------------------- 
 
 On 64-bit-machines (like the MIPS) all operands are stored in the
-registers in a 64-bit form, even when the correspondig JavaVM  operands
+registers in a 64-bit form, even when the correspondig JavaVM operands
 only need 32 bits. This is done by a canonical representation:
 
 32-bit integers are allways stored as sign-extended 64-bit values (this
@@ -226,9 +226,14 @@ void catch_NullPointerException(int sig, int code, struct sigcontext *sigctx)
 		}
 }
 
+void createcalljava ();
+
 
 void init_exceptions(void)
 {
+
+	createcalljava();
+	
 	/* install signal handlers we need to convert to exceptions */
 
 	if (!checknull) {
@@ -259,11 +264,19 @@ void init_exceptions(void)
 #define     ExTableSize     -32
 #define     ExTableStart    -32
 
+#if POINTERSIZE==8
 #define     ExEntrySize     -32
 #define     ExStartPC       -8
 #define     ExEndPC         -16
 #define     ExHandlerPC     -24
 #define     ExCatchType     -32
+#else
+#define     ExEntrySize     -16
+#define     ExStartPC       -4
+#define     ExEndPC         -8
+#define     ExHandlerPC     -12
+#define     ExCatchType     -16
+#endif
 
 static void gen_mcode()
 {
@@ -294,8 +307,16 @@ static void gen_mcode()
 
 #endif
 
+	/* adjust frame size for 16 byte alignment */
+
+	if (parentargs_base & 1)
+		parentargs_base++;
+
 	/* create method header */
 
+#if POINTERSIZE==4
+	(void) dseg_addaddress(method);                         /* Filler         */
+#endif
 	(void) dseg_addaddress(method);                         /* MethodPointer  */
 	(void) dseg_adds4(parentargs_base * 8);                 /* FrameSize      */
 
@@ -344,7 +365,7 @@ static void gen_mcode()
 
 	p = parentargs_base;
 	if (!isleafmethod)
-		{p--;  M_AST (REG_RA, REG_SP, 8*p);}
+		{p--;  M_LST (REG_RA, REG_SP, 8*p);}
 	for (r = savintregcnt - 1; r >= maxsavintreguse; r--)
 		{p--; M_LST (savintregs[r], REG_SP, 8 * p);}
 	for (r = savfltregcnt - 1; r >= maxsavfltreguse; r--)
@@ -372,7 +393,7 @@ static void gen_mcode()
 	if (runverbose && isleafmethod) {
 		M_LDA (REG_SP, REG_SP, -(18*8));
 
-		M_AST(REG_RA,        REG_SP,  1*8);
+		M_LST(REG_RA,        REG_SP,  1*8);
 
 		M_LST(argintregs[0], REG_SP,  2*8);
 		M_LST(argintregs[1], REG_SP,  3*8);
@@ -396,11 +417,11 @@ static void gen_mcode()
 		M_ALD(REG_ITMP1, REG_PV, p);
 		M_LST(REG_ITMP1, REG_SP, 0);
 		p = dseg_addaddress ((void*) (builtin_trace_args));
-		M_ALD(REG_ITMP1, REG_PV, p);
-		M_JSR(REG_RA, REG_ITMP1);
+		M_ALD(REG_ITMP3, REG_PV, p);
+		M_JSR(REG_RA, REG_ITMP3);
 		M_NOP;
 
-		M_ALD(REG_RA,        REG_SP,  1*8);
+		M_LLD(REG_RA,        REG_SP,  1*8);
 
 		M_LLD(argintregs[0], REG_SP,  2*8);
 		M_LLD(argintregs[1], REG_SP,  3*8);
@@ -478,8 +499,8 @@ static void gen_mcode()
 		M_ALD(REG_ITMP1, REG_PV, p);
 		M_AST(REG_ITMP1, REG_SP, 0);
 		p = dseg_addaddress ((void*) (builtin_trace_args));
-		M_ALD(REG_ITMP1, REG_PV, p);
-		M_JSR(REG_RA, REG_ITMP1);
+		M_ALD(REG_ITMP3, REG_PV, p);
+		M_JSR(REG_RA, REG_ITMP3);
 		M_NOP;
 		M_LDA(REG_SP, REG_SP, 8);
 		}
@@ -489,8 +510,8 @@ static void gen_mcode()
 #ifdef USE_THREADS
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 		p = dseg_addaddress ((void*) (builtin_monitorenter));
-		M_ALD(REG_ITMP1, REG_PV, p);
-		M_JSR(REG_RA, REG_ITMP1);
+		M_ALD(REG_ITMP3, REG_PV, p);
+		M_JSR(REG_RA, REG_ITMP3);
 		M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
 		}			
 #endif
@@ -1588,7 +1609,7 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_CVTFI(s1, REG_FTMP1);
-			M_MOVDL(REG_FTMP1, d);
+			M_MOVDI(REG_FTMP1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 		
@@ -1597,7 +1618,7 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_CVTDI(s1, REG_FTMP1);
-			M_MOVDL(REG_FTMP1, d);
+			M_MOVDI(REG_FTMP1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 		
@@ -1641,10 +1662,12 @@ static void gen_mcode()
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_FCMPUEQF(s1, s2);
+			M_NOP;                             /* compare delay               */
 			M_FBF(2);                          /* jump over next instructions */
-			M_LSUB_IMM(REG_ZERO, 1, d);
+			M_LSUB_IMM(REG_ZERO, 1, d);        /* delay slot                  */
 			M_CLR(d);
 			M_FCMPULTF(s2, s1);
+			M_NOP;                             /* compare delay               */
 			M_FBF(2);                          /* jump over next instruction  */
 			M_NOP;
 			M_LADD_IMM(REG_ZERO, 1, d);
@@ -1657,10 +1680,12 @@ static void gen_mcode()
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_FCMPUEQD(s1, s2);
+			M_NOP;                             /* compare delay               */
 			M_FBF(2);                          /* jump over next instructions */
-			M_LSUB_IMM(REG_ZERO, 1, d);
+			M_LSUB_IMM(REG_ZERO, 1, d);        /* delay slot                  */
 			M_CLR(d);
 			M_FCMPULTD(s2, s1);
+			M_NOP;                             /* compare delay               */
 			M_FBF(2);                          /* jump over next instruction  */
 			M_NOP;
 			M_LADD_IMM(REG_ZERO, 1, d);
@@ -1673,10 +1698,12 @@ static void gen_mcode()
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_FCMPUEQF(s1, s2);
+			M_NOP;                             /* compare delay               */
 			M_FBF(2);                          /* jump over next instruction  */
-			M_LADD_IMM(REG_ZERO, 1, d);
+			M_LADD_IMM(REG_ZERO, 1, d);        /* delay slot                  */
 			M_CLR(d);
 			M_FCMPULTF(s1, s2);
+			M_NOP;                             /* compare delay               */
 			M_FBF(2);                          /* jump over next instruction  */
 			M_NOP;
 			M_LSUB_IMM(REG_ZERO, 1, d);
@@ -1689,10 +1716,12 @@ static void gen_mcode()
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			M_FCMPUEQD(s1, s2);
+			M_NOP;                             /* compare delay               */
 			M_FBF(2);                          /* jump over next instruction  */
-			M_LADD_IMM(REG_ZERO, 1, d);
+			M_LADD_IMM(REG_ZERO, 1, d);        /* delay slot                  */
 			M_CLR(d);
 			M_FCMPULTD(s1, s2);
+			M_NOP;                             /* compare delay               */
 			M_FBF(2);                          /* jump over next instruction  */
 			M_NOP;
 			M_LSUB_IMM(REG_ZERO, 1, d);
@@ -1725,8 +1754,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_ASLL_IMM(s2, POINTERSHIFT, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
 			M_ALD(d, REG_ITMP1, OFFSET(java_objectarray, data[0]));
@@ -1738,8 +1769,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_ASLL_IMM(s2, 2, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
 			M_ILD(d, REG_ITMP1, OFFSET(java_intarray, data[0]));
@@ -1751,8 +1784,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_ASLL_IMM(s2, 3, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
 			M_LLD(d, REG_ITMP1, OFFSET(java_longarray, data[0]));
@@ -1764,8 +1799,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_ASLL_IMM(s2, 2, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
 			M_FLD(d, REG_ITMP1, OFFSET(java_floatarray, data[0]));
@@ -1777,8 +1814,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_ASLL_IMM(s2, 3, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
 			M_DLD(d, REG_ITMP1, OFFSET(java_doublearray, data[0]));
@@ -1790,8 +1829,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_AADD(s2, s1, REG_ITMP1);
 			M_AADD(s2, REG_ITMP1, REG_ITMP1);
 			M_SLDU(d, REG_ITMP1, OFFSET(java_chararray, data[0]));
@@ -1803,8 +1844,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_AADD(s2, s1, REG_ITMP1);
 			M_AADD(s2, REG_ITMP1, REG_ITMP1);
 			M_SLDS(d, REG_ITMP1, OFFSET(java_chararray, data[0]));
@@ -1816,8 +1859,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_AADD(s2, s1, REG_ITMP1);
 			M_BLDS(d, REG_ITMP1, OFFSET(java_chararray, data[0]));
 			store_reg_to_var_int(iptr->dst, d);
@@ -1828,8 +1873,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_ASLL_IMM(s2, POINTERSHIFT, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
@@ -1840,8 +1887,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_ASLL_IMM(s2, 2, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
@@ -1852,8 +1901,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_ASLL_IMM(s2, 3, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
@@ -1864,8 +1915,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_flt(s3, src, REG_FTMP3);
 			M_ASLL_IMM(s2, 2, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
@@ -1876,8 +1929,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_flt(s3, src, REG_FTMP3);
 			M_ASLL_IMM(s2, 3, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
@@ -1889,8 +1944,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_AADD(s2, s1, REG_ITMP1);
 			M_AADD(s2, REG_ITMP1, REG_ITMP1);
@@ -1901,8 +1958,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_AADD(s2, s1, REG_ITMP1);
 			M_BST(s3, REG_ITMP1, OFFSET(java_bytearray, data[0]));
@@ -2636,8 +2695,8 @@ static void gen_mcode()
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 				a = dseg_addaddress ((void*) (builtin_monitorexit));
-				M_ALD(REG_ITMP1, REG_PV, a);
-				M_JSR(REG_RA, REG_ITMP1);
+				M_ALD(REG_ITMP3, REG_PV, a);
+				M_JSR(REG_RA, REG_ITMP3);
 				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);    /* delay slot */
 				}			
 #endif
@@ -2651,8 +2710,8 @@ static void gen_mcode()
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 				a = dseg_addaddress ((void*) (builtin_monitorexit));
-				M_ALD(REG_ITMP1, REG_PV, a);
-				M_JSR(REG_RA, REG_ITMP1);
+				M_ALD(REG_ITMP3, REG_PV, a);
+				M_JSR(REG_RA, REG_ITMP3);
 				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);    /* delay slot */
 				}			
 #endif
@@ -2665,8 +2724,8 @@ static void gen_mcode()
 #ifdef USE_THREADS
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 				a = dseg_addaddress ((void*) (builtin_monitorexit));
-				M_ALD(REG_ITMP1, REG_PV, a);
-				M_JSR(REG_RA, REG_ITMP1);
+				M_ALD(REG_ITMP3, REG_PV, a);
+				M_JSR(REG_RA, REG_ITMP3);
 				M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);    /* delay slot */
 				}			
 #endif
@@ -2693,18 +2752,18 @@ nowperformreturn:
 
 			if (runverbose) {
 				M_LDA (REG_SP, REG_SP, -24);
-				M_AST(REG_RA, REG_SP, 0);
+				M_LST(REG_RA, REG_SP, 0);
 				M_LST(REG_RESULT, REG_SP, 8);
 				M_DST(REG_FRESULT, REG_SP,16);
 				a = dseg_addaddress (method);
 				M_ALD(argintregs[0], REG_PV, a);
 				M_MOV(REG_RESULT, argintregs[1]);
 				a = dseg_addaddress ((void*) (builtin_displaymethodstop));
-				M_ALD(REG_ITMP1, REG_PV, a);
-				M_JSR (REG_RA, REG_ITMP1);
+				M_ALD(REG_ITMP3, REG_PV, a);
+				M_JSR (REG_RA, REG_ITMP3);
 				M_FLTMOVE(REG_FRESULT, argfltregs[2]);          /* delay slot */
 
-				M_ALD(REG_RA, REG_SP, 0);
+				M_LLD(REG_RA, REG_SP, 0);
 				M_LLD(REG_RESULT, REG_SP, 8);
 				M_DLD(REG_FRESULT, REG_SP,16);
 				M_LDA (REG_SP, REG_SP, 24);
@@ -2871,8 +2930,8 @@ gen_method: {
 				case ICMD_BUILTIN2:
 				case ICMD_BUILTIN1:
 					a = dseg_addaddress ((void*) (m));
-					M_ALD(REG_ITMP1, REG_PV, a); /* built-in-function pointer */
-					M_JSR (REG_RA, REG_ITMP1);
+					M_ALD(REG_ITMP3, REG_PV, a); /* built-in-function pointer */
+					M_JSR (REG_RA, REG_ITMP3);
 					M_NOP;
 					d = iptr->op1;                             /* return type */
 					goto afteractualcall;
@@ -2925,13 +2984,13 @@ makeactualcall:
 
 			/* recompute pv */
 
+afteractualcall:
+
 			s1 = (int)((u1*) mcodeptr - mcodebase);
 			if (s1<=32768) M_LDA (REG_PV, REG_RA, -s1);
 			else {
 				panic("method to big");
 				}
-
-afteractualcall:
 
 			/* d contains return type */
 
@@ -3116,8 +3175,8 @@ afteractualcall:
 			M_INTMOVE(REG_SP, argintregs[2]);
 
 			a = dseg_addaddress((void*) (builtin_nmultianewarray));
-			M_ALD(REG_ITMP1, REG_PV, a);
-			M_JSR(REG_RA, REG_ITMP1);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
 			s1 = reg_of_var(iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
@@ -3182,23 +3241,21 @@ afteractualcall:
 
 		MCODECHECK(8);
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, xboundrefs->branchpos);
+		M_LDA(REG_ITMP2_XPC, REG_PV, xboundrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR((xcodeptr-mcodeptr)-1);
+			M_BR((xcodeptr-mcodeptr));
 			M_NOP;
 			}
 		else {
 			xcodeptr = mcodeptr;
 
-			a = dseg_addaddress(proto_java_lang_ArrayIndexOutOfBoundsException);
-			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
-
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 
 			M_JMP(REG_ITMP3);
-			M_NOP;
+			a = dseg_addaddress(proto_java_lang_ArrayIndexOutOfBoundsException);
+			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
 			}
 		}
 
@@ -3218,23 +3275,21 @@ afteractualcall:
 
 		MCODECHECK(8);
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, xcheckarefs->branchpos);
+		M_LDA(REG_ITMP2_XPC, REG_PV, xcheckarefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR((xcodeptr-mcodeptr)-1);
+			M_BR((xcodeptr-mcodeptr));
 			M_NOP;
 			}
 		else {
 			xcodeptr = mcodeptr;
 
-			a = dseg_addaddress(proto_java_lang_NegativeArraySizeException);
-			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
-
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 
 			M_JMP(REG_ITMP3);
-			M_NOP;
+			a = dseg_addaddress(proto_java_lang_NegativeArraySizeException);
+			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
 			}
 		}
 
@@ -3254,23 +3309,21 @@ afteractualcall:
 
 		MCODECHECK(8);
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, xcastrefs->branchpos);
+		M_LDA(REG_ITMP2_XPC, REG_PV, xcastrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR((xcodeptr-mcodeptr)-1);
+			M_BR((xcodeptr-mcodeptr));
 			M_NOP;
 			}
 		else {
 			xcodeptr = mcodeptr;
 
-			a = dseg_addaddress(proto_java_lang_ClassCastException);
-			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
-
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 
 			M_JMP(REG_ITMP3);
-			M_NOP;
+			a = dseg_addaddress(proto_java_lang_ClassCastException);
+			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
 			}
 		}
 
@@ -3296,20 +3349,18 @@ afteractualcall:
 		M_LDA(REG_ITMP2_XPC, REG_PV, xnullrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR((xcodeptr-mcodeptr)-1);
+			M_BR((xcodeptr-mcodeptr));
 			M_NOP;
 			}
 		else {
 			xcodeptr = mcodeptr;
 
-			a = dseg_addaddress(proto_java_lang_NullPointerException);
-			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
-
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 
 			M_JMP(REG_ITMP3);
-			M_NOP;
+			a = dseg_addaddress(proto_java_lang_NullPointerException);
+			M_ALD(REG_ITMP1_XPTR, REG_PV, a);
 			}
 		}
 
@@ -3317,6 +3368,9 @@ afteractualcall:
 	}
 
 	mcode_finish((int)((u1*) mcodeptr - mcodebase));
+
+	(void) cacheflush((void*) method->entrypoint,
+	                  (int)((u1*) mcodeptr - mcodebase), ICACHE);
 }
 
 
@@ -3361,11 +3415,13 @@ u1 *createcompilerstub (methodinfo *m)
 	s4 *p = (s4*) s;                    /* code generation pointer            */
 	
 	                                    /* code for the stub                  */
-	M_ALD(REG_PV, REG_PV, 16);          /* load pointer to the compiler       */
+	M_ALD(REG_PV, REG_PV, 24);          /* load pointer to the compiler       */
+	M_NOP;
 	M_JSR(REG_ITMP1, REG_PV);           /* jump to the compiler, return address
 	                                       in itmp1 is used as method pointer */
 	M_NOP;
-	M_NOP;
+
+	(void) cacheflush((void*) s, (char*) p - (char*) s, ICACHE);
 
 	s[2] = (u8) m;                      /* literals to be adressed            */  
 	s[3] = (u8) asm_call_jit_compiler;  /* jump directly via PV from above    */
@@ -3403,16 +3459,16 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	u8 *s = CNEW (u8, NATIVESTUBSIZE);  /* memory to hold the stub            */
 	s4 *p = (s4*) s;                    /* code generation pointer            */
 
-	M_ALD  (REG_ITMP1, REG_PV, 8*8);    /* load adress of native method       */
+	M_ALD  (REG_ITMP3, REG_PV, 8*8);    /* load adress of native method       */
 	M_LDA  (REG_SP, REG_SP, -8);        /* build up stackframe                */
 
-	M_AST  (REG_RA, REG_SP, 0);         /* store return address               */
-	M_JSR  (REG_RA, REG_ITMP1);         /* call native method                 */
+	M_LST  (REG_RA, REG_SP, 0);         /* store return address               */
+	M_JSR  (REG_RA, REG_ITMP3);         /* call native method                 */
 
 	M_NOP;                              /* delay slot                         */
 	M_ALD  (REG_ITMP3, REG_PV, 9*8);    /* get address of exceptionptr        */
 
-	M_ALD  (REG_RA, REG_SP, 0);         /* load return address                */
+	M_LLD  (REG_RA, REG_SP, 0);         /* load return address                */
 	M_ALD  (REG_ITMP1, REG_ITMP3, 0);   /* load exception into reg. itmp1     */
 
 	M_BNEZ (REG_ITMP1, 2);              /* if no exception then return        */
@@ -3427,6 +3483,8 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	M_JMP  (REG_ITMP3);                 /* jump to asm exception handler      */
 	M_LDA  (REG_ITMP2, REG_RA, -4);     /* move fault address into reg. itmp2 */
 	                                    /* delay slot                         */
+
+	(void) cacheflush((void*) s, (char*) p - (char*) s, ICACHE);
 
 	s[8] = (u8) f;                      /* address of native method           */
 	s[9] = (u8) (&exceptionptr);        /* address of exceptionptr            */
@@ -3449,6 +3507,136 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 void removenativestub (u1 *stub)
 {
 	CFREE (stub, NATIVESTUBSIZE * 8);
+}
+
+
+/* function: createcalljava ****************************************************
+
+	creates the asm_calljavamethod (MIPS assembler does not like data in the
+	text segment). Documentation can be found in asmpart.c.
+	
+*******************************************************************************/
+
+#define REG_FSS0    20
+#define REG_FSS1    22
+#define REG_FSS2    25
+#define REG_FSS3    27
+#define REG_FSS4    29
+#define REG_FSS5    31
+
+#define CALL_JAVA_MEM_SIZE 60
+#define CALL_JAVA_ENTRY    20
+#define CALL_JAVA_XHANDLER 55
+
+static s4 calljavamem[CALL_JAVA_MEM_SIZE];
+
+void createcalljava ()
+{
+	s4 *p;
+	
+	*((void**)(calljavamem + 0)) = (void*) asm_call_jit_compiler;
+	*((void**)(calljavamem + 2)) = (void*) builtin_throw_exception;
+#if POINTERSIZE==8
+	*((void**)(calljavamem + 4)) = NULL;
+	*((void**)(calljavamem + 6)) = (void*) (calljavamem + CALL_JAVA_XHANDLER);
+	*((void**)(calljavamem + 8)) = (void*) (calljavamem + CALL_JAVA_XHANDLER);
+	*((void**)(calljavamem +10)) = (void*) (calljavamem + CALL_JAVA_ENTRY);
+#else
+	*((void**)(calljavamem + 8)) = NULL;
+	*((void**)(calljavamem + 9)) = (void*) (calljavamem + CALL_JAVA_XHANDLER);
+	*((void**)(calljavamem +10)) = (void*) (calljavamem + CALL_JAVA_XHANDLER);
+	*((void**)(calljavamem +11)) = (void*) (calljavamem + CALL_JAVA_ENTRY);
+#endif
+	
+	calljavamem[12] = 1;                /* extable size                       */
+	calljavamem[13] = 0;                /* fltsave                            */
+	calljavamem[14] = 0;                /* intsave                            */
+	calljavamem[15] = 0;                /* isleaf                             */
+	calljavamem[16] = 0;                /* IsSync                             */
+	calljavamem[17] = 80;               /* frame size                         */
+	calljavamem[18] = 0;                /* method pointer (NULL)              */
+	calljavamem[19] = 0;                /* method pointer (NULL)              */
+
+	p = calljavamem + CALL_JAVA_ENTRY;  /* code generation pointer            */
+
+/*  20 */
+	M_LDA (REG_SP, REG_SP, -10*8);      /* allocate stackframe                */
+	M_LST (REG_RA, REG_SP, 0);          /* save return address                */
+
+	M_BRS(1);                           /* compute current program counter    */
+	M_LST (REG_PV, REG_SP, 3*8);        /* save procedure vector              */
+/*  24 */
+	M_LDA (REG_PV, REG_RA, -4*4);       /* compute procedure vector           */
+	M_DST (REG_FSS0, REG_SP, 4*8);      /* save non JavaABI saved flt regs    */
+
+	M_DST (REG_FSS1, REG_SP, 5*8);
+	M_DST (REG_FSS2, REG_SP, 6*8);
+/*  28 */
+	M_DST (REG_FSS3, REG_SP, 7*8);
+	M_DST (REG_FSS4, REG_SP, 8*8);
+
+	M_DST (REG_FSS5, REG_SP, 9*8);
+	M_LST (REG_ARG_0, REG_SP, 2*8);     /* save method pointer for compiler   */
+/*  32 */
+	M_LDA (REG_ITMP1, REG_SP, 2*8);     /* pass pointer to methodptr via itmp1*/
+	M_MOV (REG_ARG_1, REG_ARG_0);       /* pass the remaining parameters      */
+
+	M_MOV (REG_ARG_2, REG_ARG_1);
+	M_MOV (REG_ARG_3, REG_ARG_2);
+/*  36 */
+	M_MOV (REG_ARG_4, REG_ARG_3);
+	M_ALD (REG_METHODPTR, REG_PV, -80); /* address of asm_call_jit_compiler   */
+
+	M_AST (REG_METHODPTR, REG_SP, 8);   /* store function address             */
+	M_MOV (REG_SP, REG_METHODPTR);      /* set method pointer                 */
+/*  40 */
+	M_ALD (REG_PV, REG_METHODPTR, 8);   /* method call as in Java             */
+	M_JSR (REG_RA, REG_PV);             /* call JIT compiler                  */
+
+	M_NOP;                              /* delay slot                         */
+	M_LDA (REG_PV, REG_RA, -23*4);      /* recompute procedure vector         */
+
+/*  44 */
+	M_CLR (REG_RESULT);                 /* clear return value (exception ptr) */
+/*  calljava_return: */
+	M_LLD (REG_RA, REG_SP, 0);          /* restore return address             */
+
+	M_LLD (REG_PV, REG_SP, 3*8);        /* restore procedure vector           */
+	M_DLD (REG_FSS0, REG_SP, 4*8);      /* restore non JavaABI saved flt regs */
+/*  48 */
+	M_DLD (REG_FSS1, REG_SP, 5*8);
+	M_DLD (REG_FSS2, REG_SP, 6*8);
+
+	M_DLD (REG_FSS3, REG_SP, 7*8);
+	M_DLD (REG_FSS4, REG_SP, 8*8);
+/*  52 */
+	M_DLD (REG_FSS5, REG_SP, 9*8);
+	M_RET(REG_RA);                      /* return                             */
+
+	M_LDA (REG_SP, REG_SP, 10*8);       /* deallocate stackframe (delay slot) */
+
+/*  55 */
+/*  calljava_xhandler: */
+
+	M_ALD (REG_ITMP3, REG_PV, -72);     /* address of builtin_throw_exception */
+
+	M_JSR (REG_RA, REG_ITMP3);          /* call builtin                       */
+	M_MOV (REG_ITMP1, REG_ARG_0);       /* pass parameter (delay slot)        */
+/*  58 */
+	M_BR(-14);                          /* branch calljava_return             */
+	M_NOP;                              /* delay slot                         */
+
+	(void) cacheflush((void*)(calljavamem + CALL_JAVA_ENTRY),
+	       (CALL_JAVA_MEM_SIZE - CALL_JAVA_ENTRY) * (int) sizeof(s4), ICACHE);
+}
+
+
+typedef java_objectheader* (*asm_fptr)(methodinfo*, void*, void*, void*, void*);
+
+java_objectheader *asm_calljavamethod (methodinfo *m, void *arg1, void *arg2,
+                                                      void *arg3, void *arg4)
+{
+return ((asm_fptr)(calljavamem + 20))(m, arg1, arg2, arg3, arg4);
 }
 
 

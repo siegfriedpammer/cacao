@@ -185,11 +185,11 @@ static struct {char *name; int ftype;} regops[] = {
 
 	/* 0x38 */  {"dsll    ",   ITYPE_IMM},
 	/* 0x39 */  {""        , ITYPE_UNDEF},
-	/* 0x3a */  {"dslr    ",   ITYPE_IMM},
+	/* 0x3a */  {"dsrl    ",   ITYPE_IMM},
 	/* 0x3b */  {"dsra    ",   ITYPE_IMM},
 	/* 0x3c */  {"dsll32  ",   ITYPE_IMM},
 	/* 0x3d */  {""        , ITYPE_UNDEF},
-	/* 0x3e */  {"dslr32  ",   ITYPE_IMM},
+	/* 0x3e */  {"dsrl32  ",   ITYPE_IMM},
 	/* 0x3f */  {"dsra32  ",   ITYPE_IMM}
 };
 
@@ -355,10 +355,10 @@ static char *regs[] = {
 	/* 0x09 */  "a5",   /*  "$9", */
 	/* 0x0a */  "a6",   /* "$10", */
 	/* 0x0b */  "a7",   /* "$11", */
-	/* 0x0c */  "t0",   /* "$12", */
-	/* 0x0d */  "t1",   /* "$13", */
-	/* 0x0e */  "t2",   /* "$14", */
-	/* 0x0f */  "t3",   /* "$15", */
+	/* 0x0c */  "t4",   /* "$12", */
+	/* 0x0d */  "t5",   /* "$13", */
+	/* 0x0e */  "t6",   /* "$14", */
+	/* 0x0f */  "t7",   /* "$15", */
 
 	/* 0x10 */  "s0",   /* "$16", */
 	/* 0x11 */  "s1",   /* "$17", */
@@ -550,8 +550,18 @@ static void disassinstr(int c, int pos)
 				break;
 				}
 
+			if (rs == 0) {              /* move from                          */
+				printf("mfc1     %s,$f%d\n", regs[rt], fs);		
+				break;
+				}
+
 			if (rs == 1) {              /* double move from                   */
 				printf("dmfc1    %s,$f%d\n", regs[rt], fs);		
+				break;
+				}
+
+			if (rs == 4) {              /* move to                            */
+				printf("mtc1     %s,$f%d\n", regs[rt], fs);		
 				break;
 				}
 
@@ -568,6 +578,9 @@ static void disassinstr(int c, int pos)
 			else if (fops[opfun].ftype == ITYPE_FOP2)
 				printf("%s%s%s $f%d,$f%d\n", fops[opfun].name, fmt[rs],
 				                           fops[opfun].fill, fd, fs);
+			else if (fops[opfun].ftype == ITYPE_FCMP)
+				printf("%s%s%s $f%d,$f%d\n", fops[opfun].name, fmt[rs],
+				                           fops[opfun].fill, fs, ft);
 			else
 				printf("cop1     (%#04x) $f%d,$f%d,$f%d\n", opfun, fd, fs, ft);		
 
