@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1414 2004-10-04 12:55:33Z carolyn $
+   $Id: jit.c 1415 2004-10-11 20:12:08Z jowenn $
 
 */
 
@@ -60,7 +60,8 @@
 #include "loop/analyze.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
-
+#include "types.h"
+#include <stdio.h>
 
 /* global switches ************************************************************/
 
@@ -1210,6 +1211,19 @@ static int builtintablelen;
 #endif /* USEBUILTINTABLE */
 
 
+
+#define EXTABLEN
+/*	\
+        { \
+                printf("PARSE method name ="); \
+                utf_display(m->class->name); \
+                printf("."); \
+                method_display(m); \
+		printf("	exceptiontablelength %d\n",m->exceptiontablelength);	\
+                fflush(stdout); \
+        }
+*/
+
 /*****************************************************************************
 						 TABLE OF BUILTIN FUNCTIONS
 
@@ -1388,7 +1402,7 @@ methodptr jit_compile(methodinfo *m)
 	m->basicblockindex = NULL;
 	m->instructions = NULL;
 	m->stack = NULL;
-	m->exceptiontable = NULL;
+	/* NO !!! m->exceptiontable = NULL; */
 
 	/* release dump area */
 
@@ -1472,6 +1486,7 @@ t_inlining_globals *inline_env = NULL;
 
 	/* call the compiler passes ***********************************************/
 
+	EXTABLEN
 	/* first of all initialize the register allocator */
 	reg_init(m);
 
@@ -1479,10 +1494,14 @@ t_inlining_globals *inline_env = NULL;
         /* init reqd to initialize for parse even in no inlining */
 	inline_env = inlining_init(m);
 
+	EXTABLEN
+
 	reg_setup(m);
 
 	/* setup the codegendata memory */
-	codegen_setup(m);
+	codegen_setup(m,inline_env);
+
+	EXTABLEN
 
 	if (compileverbose)
 		log_message_method("Parsing: ", m);
@@ -1499,7 +1518,8 @@ t_inlining_globals *inline_env = NULL;
 		log_message_method("Analysing: ", m);
 	}
 
-	if (!analyse_stack(m)) {
+
+	if (!analyse_stack(m->codegendata)) {
 		if (compileverbose)
 			log_message_method("Exception while analysing: ", m);
 
@@ -1514,7 +1534,7 @@ t_inlining_globals *inline_env = NULL;
 		if (compileverbose)
 			log_message_method("Typechecking: ", m);
 
-		if (!typecheck(m)) {
+		if (!typecheck(m->codegendata)) {
 			if (compileverbose)
 				log_message_method("Exception while typechecking: ", m);
 
@@ -1525,7 +1545,6 @@ t_inlining_globals *inline_env = NULL;
 			log_message_method("Typechecking done: ", m);
 	}
 #endif
-	
 	if (opt_loops) {
 		depthFirst(m);
 		analyseGraph(m);

@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1414 2004-10-04 12:55:33Z carolyn $
+   $Id: inline.c 1415 2004-10-11 20:12:08Z jowenn $
 
 */
 
@@ -128,7 +128,7 @@ void inlining_cleanup(t_inlining_globals *inline_env)
 }
 
 
-void inlining_push_compiler_variables(int i, int p, int nextp, int opcode, inlining_methodinfo *inlinfo, t_inlining_globals *inline_env)
+void inlining_push_compiler_variables(int i, int p, int nextp, int opcode,  u2 lineindex,u2 currentline,u2 linepcchange,inlining_methodinfo *inlinfo, t_inlining_globals *inline_env)
 {
 	t_inlining_stacknode *new = NEW(t_inlining_stacknode);
 
@@ -137,15 +137,19 @@ void inlining_push_compiler_variables(int i, int p, int nextp, int opcode, inlin
 	new->nextp = nextp;
 	new->opcode = opcode;
 	new->method = inline_env->method;
+	new->lineindex=lineindex;
+	new->currentline=currentline;
+	new->linepcchange=linepcchange;
 	new->inlinfo = inlinfo;
-	
 	list_addfirst(inline_env->inlining_stack, new);
 	inline_env->isinlinedmethod++;
 }
 
 
 void inlining_pop_compiler_variables(
-                                    int *i, int *p, int *nextp, int *opcode,
+                                    int *i, int *p, int *nextp,
+				    int *opcode, u2 *lineindex,
+				    u2 *currentline,u2 *linepcchange,
                                     inlining_methodinfo **inlinfo,
                                     t_inlining_globals *inline_env)
 {
@@ -158,6 +162,11 @@ void inlining_pop_compiler_variables(
 	*p = tmp->p;
 	*nextp = tmp->nextp;
 	*opcode = tmp->opcode;
+
+	*lineindex=tmp->lineindex;
+	*currentline=tmp->currentline;
+	*currentline=tmp->linepcchange;
+
 	*inlinfo = tmp->inlinfo;
 
         inline_env->method = tmp->method; /*co*/
@@ -441,6 +450,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 							break;
 					}
 
+					if (imi->flags & ACC_NATIVE) log_text("Native method,no inlining"); //DEBUG
 					if ((inline_env->cummethods < INLINING_MAXMETHODS) &&
 						(!(imi->flags & ACC_NATIVE)) &&  
 						(!inlineoutsiders || (m->class == imr->class)) && 

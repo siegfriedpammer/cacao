@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1348 2004-07-22 09:57:51Z twisti $
+   $Id: typecheck.c 1415 2004-10-11 20:12:08Z jowenn $
 
 */
 
@@ -778,7 +778,7 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 
 /* typecheck is called directly after analyse_stack */
 
-methodinfo *typecheck(methodinfo *m)
+methodinfo *typecheck(codegendata *codegendata)
 {
     int b_count, b_index;
     stackptr curstack;      /* input stack top for current instruction */
@@ -821,6 +821,7 @@ methodinfo *typecheck(methodinfo *m)
 	bool jsrencountered = false;         /* true if we there was a JSR */
 
     classinfo *myclass;
+    methodinfo *m=codegendata->method;
 
 #ifdef TYPECHECK_STATISTICS
 	int count_iterations = 0;
@@ -892,7 +893,7 @@ methodinfo *typecheck(methodinfo *m)
     LOG("Variable buffer allocated.\n");
 
     /* allocate the buffer of active exception handlers */
-    handlers = DMNEW(exceptiontable*, m->exceptiontablelength + 1);
+    handlers = DMNEW(exceptiontable*, codegendata->exceptiontablelength + 1);
 
     /* initialize the variable types of the first block */
     /* to the types of the arguments */
@@ -968,10 +969,10 @@ methodinfo *typecheck(methodinfo *m)
                 /* XXX could use a faster algorithm with sorted lists or
                  * something? */
                 len = 0;
-                for (i = 0; i < m->exceptiontablelength; ++i) {
-                    if ((m->exceptiontable[i].start <= bptr) && (m->exceptiontable[i].end > bptr)) {
-                        LOG1("active handler L%03d", m->exceptiontable[i].handler->debug_nr);
-                        handlers[len++] = m->exceptiontable + i;
+                for (i = 0; i < codegendata->exceptiontablelength; ++i) {
+                    if ((codegendata->exceptiontable[i].start <= bptr) && (codegendata->exceptiontable[i].end > bptr)) {
+                        LOG1("active handler L%03d", codegendata->exceptiontable[i].handler->debug_nr);
+                        handlers[len++] = codegendata->exceptiontable + i;
                     }
                 }
                 handlers[len] = NULL;

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 1338 2004-07-21 16:02:14Z twisti $
+   $Id: stack.h 1415 2004-10-11 20:12:08Z jowenn $
 
 */
 
@@ -294,7 +294,7 @@
 
 /* function prototypes */
 
-methodinfo *analyse_stack(methodinfo *m);
+methodinfo *analyse_stack(codegendata *codegendata);
 
 void icmd_print_stack(methodinfo *m, stackptr s);
 char *icmd_builtin_name(functionptr bptr);

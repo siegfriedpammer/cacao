@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1346 2004-07-21 23:29:21Z twisti $
+   $Id: codegen.inc 1415 2004-10-11 20:12:08Z jowenn $
 
 */
 
@@ -113,7 +113,7 @@ void codegen_init()
 
 *******************************************************************************/
 
-void codegen_setup(methodinfo *m)
+void codegen_setup(methodinfo *m, t_inlining_globals * e)
 {
 	codegendata *cd;
 
@@ -143,6 +143,19 @@ void codegen_setup(methodinfo *m)
 	cd->linenumbertablesizepos = 0;
 	cd->linenumbertablestartpos = 0;
 	cd->linenumbertab = 0;
+	
+	cd->method=m;
+	cd->exceptiontable=0;
+	cd->exceptiontablelength=0;
+	if (useinlining && e) {
+		if (e->cumextablelength>0) {
+			cd->exceptiontablelength=e->cumextablelength;
+			cd->exceptiontable  = MNEW(exceptiontable, e->cumextablelength + 1);
+		}
+	} else if (e && (e->method->exceptiontablelength >0)) {
+			cd->exceptiontablelength=m->exceptiontablelength;
+			cd->exceptiontable  = MNEW(exceptiontable, m->exceptiontablelength + 1);
+	}
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	cd->threadcritcurrent.next = NULL;
@@ -160,6 +173,12 @@ void codegen_close(methodinfo *m)
 	cd = m->codegendata;
 
 	if (cd) {
+		if (cd->exceptiontablelength) {
+			cd->exceptiontablelength=m->exceptiontablelength;
+			MFREE(cd->exceptiontable, exceptiontable, cd->exceptiontablelength + 1);
+			cd->exceptiontable=0;
+			cd->exceptiontablelength=0;
+		}
 		if (cd->mcodebase) {
 			MFREE(cd->mcodebase, u1, cd->mcodesize);
 			cd->mcodebase = NULL;

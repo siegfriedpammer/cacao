@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1347 2004-07-21 23:29:39Z twisti $
+   $Id: codegen.c 1415 2004-10-11 20:12:08Z jowenn $
 
 */
 
@@ -295,11 +295,11 @@ void codegen(methodinfo *m)
 
 	dseg_addlinenumbertablesize(m);
 
-	(void) dseg_adds4(m, m->exceptiontablelength);          /* ExTableSize    */
+	(void) dseg_adds4(m, cd->exceptiontablelength);          /* ExTableSize    */
 
 	/* create exception table */
 
-	for (ex = m->exceptiontable; ex != NULL; ex = ex->down) {
+	for (ex = cd->exceptiontable; ex != NULL; ex = ex->down) {
 		dseg_addtarget(m, ex->start);
    		dseg_addtarget(m, ex->end);
 		dseg_addtarget(m, ex->handler);
@@ -3569,7 +3569,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (bref = cd->xcheckarefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
 							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
@@ -3627,7 +3627,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (bref = cd->xcastrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
 							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
@@ -3685,7 +3685,7 @@ gen_method: {
 	xcodeptr = NULL;
 
 	for (bref = cd->xexceptionrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos,
 							  bref->branchpos,
 							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
@@ -3748,7 +3748,7 @@ gen_method: {
 	xcodeptr = NULL;
 
 	for (bref = cd->xnullrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
 							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);

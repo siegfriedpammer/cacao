@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: codegen.inc.h 1352 2004-07-26 21:00:00Z twisti $
+   $Id: codegen.inc.h 1415 2004-10-11 20:12:08Z jowenn $
 
 */
 
@@ -38,6 +38,8 @@
 #include "types.h"
 #include "global.h"
 
+
+struct t_inlining_globals;
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 #define DSEGINITSIZE  (1<<12)       /*  4 Kbyte data area initialization size */
@@ -95,6 +97,10 @@ struct codegendata {
 	s4 linenumbertablestartpos;
 	s4 linenumbertab;
 
+	methodinfo *method;
+        s4  exceptiontablelength;/* exceptiontable length                  */
+        exceptiontable *exceptiontable; /* the exceptiontable                     */
+
 	threadcritnodetemp *threadcrit; /* List of critical code regions          */
 	threadcritnodetemp threadcritcurrent;
 	s4 threadcritcount;             /* Number of critical regions             */
@@ -148,7 +154,7 @@ struct _methodtree_element {
 /* function prototypes */
 
 void codegen_init();
-void codegen_setup(methodinfo *m);  /* allocates code and data area           */
+void codegen_setup(methodinfo *m, struct t_inlining_globals *e);  /* allocates code and data area           */
 void codegen(methodinfo *m);
 void codegen_close(methodinfo *m);  /* releases temporary storage             */
 void codegen_insertmethod(void *startpc, void *endpc);

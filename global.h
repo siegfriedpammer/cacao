@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1377 2004-08-01 22:01:00Z stefan $
+   $Id: global.h 1415 2004-10-11 20:12:08Z jowenn $
 
 */
 
@@ -81,12 +81,12 @@
  * TYPECHECK_VERBOSE activates all debug messages
  */
 #ifdef CACAO_TYPECHECK
-/*#define TYPECHECK_STATISTICS*/
-/*#define TYPEINFO_DEBUG*/
-/*#define TYPECHECK_DEBUG*/
-/*#define TYPEINFO_DEBUG_TEST*/
-/*#define TYPECHECK_VERBOSE*/
-/*#define TYPECHECK_VERBOSE_IMPORTANT*/
+/*#define TYPECHECK_STATISTICS
+#define TYPEINFO_DEBUG
+#define TYPECHECK_DEBUG
+#define TYPEINFO_DEBUG_TEST
+#define TYPECHECK_VERBOSE
+#define TYPECHECK_VERBOSE_IMPORTANT*/
 #if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
 #define TYPECHECK_VERBOSE_OPT
 #endif

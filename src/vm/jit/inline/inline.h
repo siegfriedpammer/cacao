@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.h 1414 2004-10-04 12:55:33Z carolyn $
+   $Id: inline.h 1415 2004-10-11 20:12:08Z jowenn $
 
 */
 
@@ -92,7 +92,9 @@ typedef struct {
     int  p;                     /* java instruction counter               */
     int  nextp;                 /* start of next java instruction         */
     int  opcode;                /* java opcode                            */
-
+    u2 lineindex;
+    u2 currentline;
+    u2 linepcchange;
     inlining_methodinfo *inlinfo;
 
 } t_inlining_stacknode;
@@ -117,10 +119,12 @@ t_inlining_globals *inlining_init(methodinfo *m);
 void inlining_cleanup(t_inlining_globals *inline_env);
 void inlining_push_compiler_variables(
 				      int i, int p, int nextp, int opcode, 
+				      u2 lineindex,u2 currentline,u2 linepcchange,
                                       inlining_methodinfo* inlinfo,
 				      t_inlining_globals *inline_env);
 void inlining_pop_compiler_variables(
  				    int *i, int *p, int *nextp, int *opcode,
+				    u2 *lineindex,u2 *currentline,u2 *linepcchange,
                                     inlining_methodinfo **inlinfo,
 				    t_inlining_globals *inline_env);
 void inlining_set_compiler_variables_fun(methodinfo *m, 
@@ -137,10 +141,12 @@ void print_inlining_stack     ( list                *s);
 void print_inlining_methodinfo( inlining_methodinfo *r);
 
 #define inlining_save_compiler_variables() \
-    inlining_push_compiler_variables(i,p,nextp,opcode,inlinfo,inline_env)
+    inlining_push_compiler_variables(i,p,nextp,opcode, lineindex,currentline, \
+	linepcchange,inlinfo,inline_env)
 
 #define inlining_restore_compiler_variables() \
-    inlining_pop_compiler_variables(&i, &p, &nextp, &opcode, &inlinfo, \
+    inlining_pop_compiler_variables(&i, &p, &nextp, &opcode, \
+	&lineindex,&currentline,&linepcchange,&inlinfo, \
 	inline_env)
 
 #define inlining_set_compiler_variables(i) \

@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1414 2004-10-04 12:55:33Z carolyn $
+   $Id: parse.c 1415 2004-10-11 20:12:08Z jowenn $
 
 Extra print is due backing changes that removed globals and merged variables that should not be merged... They will be removed... do not delete yet.
 */
@@ -374,6 +374,7 @@ static exceptiontable* fillextable(methodinfo *m,
 	b_count = *block_count;
 
 	for (i = 0; i < exceptiontablelength; i++) {
+		/* printf("Excepiont table index: %d\n",i); */
    		p = raw_extable[i].startpc;
 		if (label_index != NULL) p = label_index[p];
 		extable[i].startpc = p;
@@ -384,6 +385,9 @@ if (DEBUG3==true) {printf("B1 EEE1 \t"); fflush(stdout);}
 		p = raw_extable[i].endpc;
 		if (p <= raw_extable[i].startpc)
 			panic("Invalid exception handler range");
+		if (p >=m->jcodelength) {
+			panic("Invalid exception handler end is after code end");
+		}
 		if (label_index != NULL) p = label_index[p];
 		extable[i].endpc = p;
 		bound_check1(p);
@@ -435,7 +439,7 @@ methodinfo *parse(methodinfo *m, t_inlining_globals *inline_env)
 	u2 lineindex=0;
 	u2 currentline=0;
 	u2 linepcchange=0;
-
+	codegendata *cd=m->codegendata;
 
 if (DEBUG==true) {printf("PARSING: "); fflush(stdout);
 DEBUGMETH(m);
@@ -444,7 +448,7 @@ DEBUGMETH(m);
 	if (useinlining) {
 		label_index = inlinfo->label_index;
 		m->maxstack = inline_env->cummaxstack;
-		m->exceptiontablelength = inline_env->cumextablelength;
+		/*JOWENN m->exceptiontablelength = inline_env->cumextablelength;*/
 		tmpinlinf = (inlining_methodinfo*) 
 				list_first(inlinfo->inlinedmethods);
 		if (tmpinlinf != NULL) nextgp = tmpinlinf->startgp;
@@ -500,7 +504,7 @@ DEBUGMETH(m);
 //  	m->exceptiontable = DMNEW(exceptiontable, m->exceptiontablelength + 1); 
 
 	nextex = fillextable(m, 
- 	  m->exceptiontable, m->exceptiontable, m->exceptiontablelength, 
+ 	  cd->exceptiontable, m->exceptiontable, m->exceptiontablelength, 
           label_index, &b_count, inline_env);
 	s_count = 1 + m->exceptiontablelength; /* initialize stack element counter   */
 
@@ -530,11 +534,11 @@ DEBUGMETH(m);
 			instructionstart[gp] = 1;
 			/*log_text("new start of instruction");*/
 			if (linepcchange==p) {
-				if (m->linenumbercount > lineindex) {
-					currentline = m->linenumbers[lineindex].line_number;
+				if (inline_env->method->linenumbercount > lineindex) {
+					currentline = inline_env->method->linenumbers[lineindex].line_number;
 					lineindex++;
-					if (lineindex < m->linenumbercount)
-						linepcchange = m->linenumbers[lineindex].start_pc;
+					if (lineindex < inline_env->method->linenumbercount)
+						linepcchange = inline_env->method->linenumbers[lineindex].start_pc;
 					/*printf("Line number changed to: %ld\n",currentline);*/
 				}
 			}
@@ -572,7 +576,7 @@ DEBUGMETH(m);
 				op += *tptr;
 				OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i);
 
-				/* m->basicblockindex[gp] |= (ipc << 1);*/  /*FIXME: necessary ? */
+				/*m->basicblockindex[gp] |= (ipc << 1);*/  /*FIXME: necessary ? */
 			}
 if (DEBUG==true) {
 printf("BEFORE SAVE: "); fflush(stdout);
@@ -1670,8 +1674,8 @@ if (DEBUG==true) printf("&&&&&&&&&&&&&&&&\n");
 
 		/* allocate blocks */
 
-/*  		for (p = 0; p < inline_env->cumjcodelength; p++) {  */
-		for (p = 0; p < m->jcodelength; p++) { 
+  		for (p = 0; p < inline_env->cumjcodelength; p++) { 
+//		for (p = 0; p < m->jcodelength; p++) { 
 			if (m->basicblockindex[p] & 1) {
 				/* check if this block starts at the beginning of an instruction */
 				if (!instructionstart[p])
@@ -1711,22 +1715,19 @@ if (DEBUG==true) printf("&&&&&&&&&&&&&&&&\n");
 		(bptr - 1)->next = bptr;
 		bptr->next = NULL;
 
-		if (m->exceptiontablelength > 0) {
-			m->exceptiontable[m->exceptiontablelength - 1].down = NULL;
-
-		} else {
-			m->exceptiontable = NULL;
+		if (cd->exceptiontablelength > 0) {
+			cd->exceptiontable[cd->exceptiontablelength - 1].down = NULL;
 		}
+		
+		for (i = 0; i < cd->exceptiontablelength; ++i) {
+			p = cd->exceptiontable[i].startpc;
+			cd->exceptiontable[i].start = m->basicblocks + m->basicblockindex[p];
 
-		for (i = 0; i < m->exceptiontablelength; ++i) {
-			p = m->exceptiontable[i].startpc;
-			m->exceptiontable[i].start = m->basicblocks + m->basicblockindex[p];
+			p = cd->exceptiontable[i].endpc;
+			cd->exceptiontable[i].end = (p == m->jcodelength) ? (m->basicblocks + m->basicblockcount + 1) : (m->basicblocks + m->basicblockindex[p]);
 
-			p = m->exceptiontable[i].endpc;
-			m->exceptiontable[i].end = (p == m->jcodelength) ? (m->basicblocks + m->basicblockcount + 1) : (m->basicblocks + m->basicblockindex[p]);
-
-			p = m->exceptiontable[i].handlerpc;
-			m->exceptiontable[i].handler = m->basicblocks + m->basicblockindex[p];
+			p = cd->exceptiontable[i].handlerpc;
+			cd->exceptiontable[i].handler = m->basicblocks + m->basicblockindex[p];
 	    }
 	}
 	

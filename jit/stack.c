@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1338 2004-07-21 16:02:14Z twisti $
+   $Id: stack.c 1415 2004-10-11 20:12:08Z jowenn $
 
 */
 
@@ -76,7 +76,7 @@
  * types are not discerned.
  */
 
-methodinfo *analyse_stack(methodinfo *m)
+methodinfo *analyse_stack(codegendata *codegendata)
 {
 	int b_count;
 	int b_index;
@@ -92,6 +92,7 @@ methodinfo *analyse_stack(methodinfo *m)
 	s4 *s4ptr;
 	void* *tptr;
 	s4 *argren;
+	methodinfo *m=codegendata->method;
 
 	argren = DMNEW(s4, m->maxlocals);   /* table for argument renaming        */
 	for (i = 0; i < m->maxlocals; i++)
@@ -104,8 +105,8 @@ methodinfo *analyse_stack(methodinfo *m)
 	m->basicblocks[0].instack = 0;
 	m->basicblocks[0].indepth = 0;
 
-	for (i = 0; i < m->exceptiontablelength; i++) {
-		bptr = &m->basicblocks[m->basicblockindex[m->exceptiontable[i].handlerpc]];
+	for (i = 0; i < m->codegendata->exceptiontablelength; i++) {
+		bptr = &m->basicblocks[m->basicblockindex[m->codegendata->exceptiontable[i].handlerpc]];
 		bptr->flags = BBREACHED;
 		bptr->type = BBTYPE_EXH;
 		bptr->instack = new;
@@ -2132,8 +2133,8 @@ void show_icmd_method(methodinfo *m)
 
 	printf ("Line number table length: %d\n", m->linenumbercount);
 
-	printf ("Exceptions (Number: %d):\n", m->exceptiontablelength);
-	for (ex = m->exceptiontable; ex != NULL; ex = ex->down) {
+	printf ("Exceptions (Number: %d):\n", m->codegendata->exceptiontablelength);
+	for (ex = m->codegendata->exceptiontable; ex != NULL; ex = ex->down) {
 		printf("    L%03d ... ", ex->start->debug_nr );
 		printf("L%03d  = ", ex->end->debug_nr);
 		printf("L%03d\n", ex->handler->debug_nr);

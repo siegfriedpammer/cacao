@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1409 2004-08-17 12:48:52Z twisti $
+   $Id: loader.c 1415 2004-10-11 20:12:08Z jowenn $
 
 */
 
@@ -1337,6 +1337,10 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 		m->stubroutine = createcompilerstub(m);
 
 	} else {
+		/*if (useinlining) {
+			log_text("creating native stub:");
+			method_display(m);
+		}*/
 		functionptr f = native_findfunction(c->name, m->name, m->descriptor, 
 											(m->flags & ACC_STATIC) != 0);
 		if (f) {
@@ -1417,7 +1421,6 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 				return false;
 
 			m->exceptiontablelength = suck_u2(cb);
-
 			if (!check_classbuffer_size(cb, (2 + 2 + 2 + 2) * m->exceptiontablelength))
 				return false;
 
@@ -1532,6 +1535,8 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 	}
 
 	/* everything was ok */
+	/*		utf_display(m->name);
+			printf("\nexceptiontablelength:%ld\n",m->exceptiontablelength);*/
 
 	return true;
 }
@@ -2374,7 +2379,7 @@ classinfo *class_load_intern(classbuffer *cb)
 		}
 		
 		/* Check methods */
-		memset(hashtab, 0, sizeof(u2) * (hashlen + len));
+		memset(hashtab, 0, sizeof(u2) * (hashlen + hashlen/5));
 
 		for (i = 0; i < c->methodscount; ++i) {
 			methodinfo *mi = c->methods + i;
@@ -2382,6 +2387,13 @@ classinfo *class_load_intern(classbuffer *cb)
 			/* It's ok if we lose bits here */
 			index = ((((size_t) mi->name) +
 					  ((size_t) mi->descriptor)) >> shift) % hashlen;
+
+			/*{ JOWENN
+				int dbg;
+				for (dbg=0;dbg<hashlen+hashlen/5;++dbg){
+					printf("Hash[%d]:%d\n",dbg,hashtab[dbg]);
+				}
+			}*/
 
 			if ((old = hashtab[index])) {
 				old--;

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1367 2004-08-01 07:29:50Z stefan $
+   $Id: codegen.c 1415 2004-10-11 20:12:08Z jowenn $
 
 */
 
@@ -308,11 +308,11 @@ void codegen(methodinfo *m)
 	   to the information gotten from the class file */
 	(void) dseg_addlinenumbertablesize(m);
 
-	(void) dseg_adds4(m, m->exceptiontablelength);          /* ExTableSize    */
+	(void) dseg_adds4(m, cd->exceptiontablelength);          /* ExTableSize    */
 	
 	/* create exception table */
 
-	for (ex = m->exceptiontable; ex != NULL; ex = ex->down) {
+	for (ex = cd->exceptiontable; ex != NULL; ex = ex->down) {
 		dseg_addtarget(m, ex->start);
    		dseg_addtarget(m, ex->end);
 		dseg_addtarget(m, ex->handler);
@@ -4423,7 +4423,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (bref = cd->xcheckarefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (5 + 5 + 2));
@@ -4472,7 +4472,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (bref = cd->xcastrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (5 + 5 + 2));
@@ -4522,7 +4522,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (bref = cd->xdivrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (5 + 5 + 2));
@@ -4571,7 +4571,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (bref = cd->xexceptionrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(cd->mcodebase + bref->branchpos,
 							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (5 + 5 + 2));
@@ -4659,7 +4659,7 @@ java stack at this point*/
 	xcodeptr = NULL;
 	
 	for (bref = cd->xnullrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (5 + 5 + 2));
@@ -4747,7 +4747,7 @@ u1 *createcompilerstub(methodinfo *m)
 	codegendata *cd;
 
 	/* setup codegendata structure */
-	codegen_setup(m);
+	codegen_setup(m,0);
 
 	cd = m->codegendata;
     cd->mcodeptr = s;
@@ -4834,7 +4834,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	codegendata *cd;
 
 	/* setup codegendata structure */
-	codegen_setup(m);
+	codegen_setup(m,0);
 
 	cd = m->codegendata;
 	cd->mcodeptr = s;
