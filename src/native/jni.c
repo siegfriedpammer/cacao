@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2150 2005-03-30 19:16:55Z twisti $
+   $Id: jni.c 2171 2005-03-31 19:23:51Z twisti $
 
 */
 
@@ -52,6 +52,10 @@
 #include "native/include/java_lang_Float.h"
 #include "native/include/java_lang_Double.h"
 #include "native/include/java_lang_Throwable.h"
+
+#include "native/include/java_lang_Class.h" /* for java_lang_VMClass.h */
+#include "native/include/java_lang_VMClass.h"
+#include "native/include/java_lang_VMClassLoader.h"
 
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
@@ -777,79 +781,17 @@ jint GetVersion(JNIEnv *env)
 jclass DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyte *buf, jsize bufLen)
 {
 	jclass c;
-	jclass r;
-	classbuffer *cb;
 
-	c = class_new(utf_new_char_classname((char *) name));
+	c = (jclass) Java_java_lang_VMClassLoader_defineClass(env,
+														  NULL,
+														  (java_lang_ClassLoader *) loader,
+														  javastring_new_char(name),
+														  (java_bytearray *) buf,
+														  0,
+														  bufLen,
+														  NULL);
 
-#if defined(USE_THREADS)
-	/* enter a monitor on the class */
-
-	builtin_monitorenter((java_objectheader *) c);
-#endif
-
-#if defined(STATISTICS)
-	/* measure time */
-
-	if (getloadingtime)
-		loadingtime_start();
-#endif
-
-	/* build a classbuffer with the given data */
-
-	cb = NEW(classbuffer);
-	cb->class = c;
-	cb->size = bufLen;
-	cb->data = (u1 *) buf;
-	cb->pos = cb->data - 1;
-
-	/* load the class from this buffer */
-
-	r = load_class_from_classbuffer(cb);
-
-	/* If loading was successful, set the classloader */
-
-	if (r) {
-		r->classloader = loader;
-
-	} else {
-		/* If return value is NULL, we had a problem and the class is not     */
-		/* loaded. */
-
-		c->loaded = false;
-
-		/* now free the allocated memory, otherwise we could ran into a DOS */
-
-		class_remove(c);
-	}
-
-	/* free memory */
-
-	FREE(cb, classbuffer);
-
-#if defined(STATISTICS)
-	/* measure time */
-
-	if (getloadingtime)
-		loadingtime_stop();
-#endif
-
-#if defined(USE_THREADS)
-	/* leave the monitor */
-
-	builtin_monitorexit((java_objectheader *) c);
-#endif
-
-	/* XXX link the class here? */
-/*  	if (class_link(c)) */
-/*  		return NULL; */
-
-	if (r) {
-		c->classloader = loader;
-		use_class_as_object(r);
-	}
-
-	return r;
+	return c;
 }
 
 
@@ -925,7 +867,10 @@ jclass GetSuperclass(JNIEnv *env, jclass sub)
 
 jboolean IsAssignableFrom(JNIEnv *env, jclass sub, jclass sup)
 {
-	return builtin_isanysubclass(sub, sup);
+	return Java_java_lang_VMClass_isAssignableFrom(env,
+												   NULL,
+												   (java_lang_Class *) sup,
+												   (java_lang_Class *) sub);
 }
 
 
@@ -1247,11 +1192,18 @@ jclass GetObjectClass(JNIEnv *env, jobject obj)
 }
 
 
-/************* tests whether an object is an instance of a class ******************/
+/* IsInstanceOf ****************************************************************
 
-jboolean IsInstanceOf(JNIEnv* env, jobject obj, jclass clazz)
+   Tests whether an object is an instance of a class.
+
+*******************************************************************************/
+
+jboolean IsInstanceOf(JNIEnv *env, jobject obj, jclass clazz)
 {
-	return builtin_instanceof(obj,clazz);
+	return Java_java_lang_VMClass_isInstance(env,
+											 NULL,
+											 (java_lang_Class *) clazz,
+											 (java_lang_Object *) obj);
 }
 
 
