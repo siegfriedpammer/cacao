@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 2064 2005-03-23 11:19:37Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -39,14 +39,16 @@ noinst_LTLIBRARIES = libtoolbox.la
 libtoolbox_la_SOURCES = \
 	avl.c \
 	avl.h \
-	logging.c \
-	logging.h \
 	chain.c \
 	chain.h \
+	list.c \
+	list.h \
+	logging.c \
+	logging.h \
 	tree.c \
 	tree.h \
-	list.c \
-	list.h
+	util.c \
+	util.h
 
 
 ## Local variables:
