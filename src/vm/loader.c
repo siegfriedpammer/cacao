@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 897 2004-01-21 00:49:42Z stefan $
+   $Id: loader.c 907 2004-01-29 13:20:05Z carolyn $
 
 */
 
@@ -1219,6 +1219,19 @@ void method_display(methodinfo *m)
 	printf(" "); 
 	utf_display(m->descriptor);
 	printf("\n");
+}
+
+/************** Function: method_display_flags_last  (debugging only) **************/
+
+void method_display_flags_last(methodinfo *m)
+{
+        printf(" ");
+        utf_display(m->name);
+        printf(" ");
+        utf_display(m->descriptor);
+        printf("   ");
+        printflags(m->flags);
+        printf("\n");
 }
 
 
@@ -2671,6 +2684,28 @@ methodinfo *class_fetchmethod(classinfo *c, utf *name, utf *desc)
 }
 
 
+/*********************** Function: class_findmethod_w**************************
+
+    like class_findmethod, but logs a warning if the method is not found
+
+*******************************************************************************/
+
+methodinfo *class_findmethod_w(classinfo *c, utf *name, utf *desc)
+{
+        methodinfo *mi;
+        mi = class_findmethod(c, name, desc);
+
+        if (!mi) {
+                log_plain("Class: "); if (c) log_plain_utf(c->name); log_nl();
+                log_plain("Method: "); if (name) log_plain_utf(name); log_nl();
+                log_plain("Descriptor: "); if (desc) log_plain_utf(desc); log_nl();
+                log_plain("Method not found");log_nl( );
+        }
+
+        return mi;
+}
+
+
 /************************* Function: class_findmethod_approx ******************
 	
 	like class_findmethod but ignores the return value when comparing the
@@ -3535,6 +3570,80 @@ int type_from_descriptor(classinfo **cls, char *utf_ptr, char *end_ptr,
 }
 
 
+
+/*************** function: create_system_exception_classes *******************************
+
+	create system exception classes needed by default 
+
+********************************************************************************/
+
+static void create_system_exception_classes()
+{
+
+	if (verbose) log_text("loader_init:  create_system_exception_classs: loader_load: java/lang/ClassCastException");
+	loader_load_sysclass(&class_java_lang_ClassCastException,
+						 utf_new_char ("java/lang/ClassCastException"));
+	loader_load_sysclass(&class_java_lang_NullPointerException,
+						 utf_new_char ("java/lang/NullPointerException"));
+	loader_load_sysclass(&class_java_lang_ArrayIndexOutOfBoundsException,
+						 utf_new_char ("java/lang/ArrayIndexOutOfBoundsException"));
+	loader_load_sysclass(&class_java_lang_NegativeArraySizeException,
+						 utf_new_char ("java/lang/NegativeArraySizeException"));
+	loader_load_sysclass(&class_java_lang_OutOfMemoryError,
+						 utf_new_char ("java/lang/OutOfMemoryError"));
+	loader_load_sysclass(&class_java_lang_ArrayStoreException,
+						 utf_new_char ("java/lang/ArrayStoreException"));
+	loader_load_sysclass(&class_java_lang_ArithmeticException,
+						 utf_new_char ("java/lang/ArithmeticException"));
+	loader_load_sysclass(&class_java_lang_ThreadDeath,
+						 utf_new_char ("java/lang/ThreadDeath"));
+
+
+}
+
+
+/*************** function: create_system_exception_classes *******************************
+
+	create system exception proto classes needed by default 
+
+********************************************************************************/
+
+static void create_system_exception_proto_classes()
+{
+
+	if (verbose) log_text("loader_init: creating global proto_java_lang_ClassCastException");
+	proto_java_lang_ClassCastException =
+		builtin_new(class_java_lang_ClassCastException);
+
+	if (verbose) log_text("loader_init: proto_java_lang_ClassCastException has been initialized");
+
+	proto_java_lang_NullPointerException =
+		builtin_new(class_java_lang_NullPointerException);
+	if (verbose) log_text("loader_init: proto_java_lang_NullPointerException has been initialized");
+
+	proto_java_lang_ArrayIndexOutOfBoundsException =
+		builtin_new(class_java_lang_ArrayIndexOutOfBoundsException);
+
+	proto_java_lang_NegativeArraySizeException =
+		builtin_new(class_java_lang_NegativeArraySizeException);
+
+	proto_java_lang_OutOfMemoryError =
+		builtin_new(class_java_lang_OutOfMemoryError);
+
+	proto_java_lang_ArithmeticException =
+		builtin_new(class_java_lang_ArithmeticException);
+
+	proto_java_lang_ArrayStoreException =
+		builtin_new(class_java_lang_ArrayStoreException);
+
+	proto_java_lang_ThreadDeath =
+		builtin_new(class_java_lang_ThreadDeath);
+
+
+}
+
+
+
 /*************** function: create_pseudo_classes *******************************
 
 	create pseudo classes used by the typechecker
@@ -3633,24 +3742,8 @@ void loader_init(u1 *stackbottom)
 	loader_load_sysclass(&class_java_lang_Throwable,
 						 utf_new_char("java/lang/Throwable"));
 
-	if (verbose) log_text("loader_init:  loader_load: java/lang/ClassCastException");
-	loader_load_sysclass(&class_java_lang_ClassCastException,
-						 utf_new_char ("java/lang/ClassCastException"));
-	loader_load_sysclass(&class_java_lang_NullPointerException,
-						 utf_new_char ("java/lang/NullPointerException"));
-	loader_load_sysclass(&class_java_lang_ArrayIndexOutOfBoundsException,
-						 utf_new_char ("java/lang/ArrayIndexOutOfBoundsException"));
-	loader_load_sysclass(&class_java_lang_NegativeArraySizeException,
-						 utf_new_char ("java/lang/NegativeArraySizeException"));
-	loader_load_sysclass(&class_java_lang_OutOfMemoryError,
-						 utf_new_char ("java/lang/OutOfMemoryError"));
-	loader_load_sysclass(&class_java_lang_ArrayStoreException,
-						 utf_new_char ("java/lang/ArrayStoreException"));
-	loader_load_sysclass(&class_java_lang_ArithmeticException,
-						 utf_new_char ("java/lang/ArithmeticException"));
-	loader_load_sysclass(&class_java_lang_ThreadDeath,
-						 utf_new_char ("java/lang/ThreadDeath"));
-		
+        create_system_exception_classes();
+
 	/* create classes representing primitive types */
 	create_primitive_classes();
 
@@ -3664,34 +3757,7 @@ void loader_init(u1 *stackbottom)
 	if (stackbottom!=0)
 		initLocks();
 #endif
-
-	if (verbose) log_text("loader_init: creating global proto_java_lang_ClassCastException");
-	proto_java_lang_ClassCastException =
-		builtin_new(class_java_lang_ClassCastException);
-
-	if (verbose) log_text("loader_init: proto_java_lang_ClassCastException has been initialized");
-
-	proto_java_lang_NullPointerException =
-		builtin_new(class_java_lang_NullPointerException);
-	if (verbose) log_text("loader_init: proto_java_lang_NullPointerException has been initialized");
-
-	proto_java_lang_ArrayIndexOutOfBoundsException =
-		builtin_new(class_java_lang_ArrayIndexOutOfBoundsException);
-
-	proto_java_lang_NegativeArraySizeException =
-		builtin_new(class_java_lang_NegativeArraySizeException);
-
-	proto_java_lang_OutOfMemoryError =
-		builtin_new(class_java_lang_OutOfMemoryError);
-
-	proto_java_lang_ArithmeticException =
-		builtin_new(class_java_lang_ArithmeticException);
-
-	proto_java_lang_ArrayStoreException =
-		builtin_new(class_java_lang_ArrayStoreException);
-
-	proto_java_lang_ThreadDeath =
-		builtin_new(class_java_lang_ThreadDeath);
+        create_system_exception_proto_classes();
 
 	loader_inited = 1;
 }

@@ -19,14 +19,14 @@
 	  USED);  \
 	printf(" method name =");   \
         utf_display(submeth->class->name);printf("."); \
-        method_display(submeth);fflush(stdout);}
+        method_display_flags_last(submeth);fflush(stdout);}
 
 #define XTAPRINTcallgraph2  if(pWhenMarked>=1) { \
 	printf("\n XTA Added to Call Graph #%i:", \
 		methXTAlast); \
 	printf(" method name ="); fflush(stdout);\
 	utf_display(mi->class->name);printf(".");fflush(stdout); \
-	method_display(mi);fflush(stdout); \
+	method_display_flags_last(mi);fflush(stdout); \
 	}
 
 #define RTAPRINTcallgraph1  if(pWhenMarked>=1) \
@@ -38,7 +38,7 @@
 	  USED);  \
 	printf(" method name =");   \
         utf_display(meth->class->name);printf("."); \
-        method_display(meth);fflush(stdout);} 
+        method_display_flags_last(meth);fflush(stdout);} 
 
 
 #define RTAPRINTmarkMethod1 if (pWhenMarked >= 2) { \
@@ -73,7 +73,8 @@
 
 #define RTAPRINT01method if ((pOpcodes == 1) || (pOpcodes == 3)) \
         {printf("*********************************\n"); fflush(stdout); \
-        printf("PARSE RT method name = <%i/%i>",rt_method->class->classUsed,rt_method->methodUsed); fflush(stdout);\
+        printf("<%i/%i>PARSE RT method name = <%i/%i>", \
+		methRT,methRTlast,rt_method->class->classUsed,rt_method->methodUsed); fflush(stdout);\
         utf_display(rt_method->class->name);printf(".");fflush(stdout); \
         utf_display(rt_method->name);printf("\n\n"); fflush(stdout);\
         method_display(rt_method); printf(">\n\n");fflush(stdout);}
@@ -201,7 +202,7 @@
 #define RTAPRINT11addedtoCallgraph  if (pWhenMarked >= 1){ \
 	printf("\n<Added to Call Graph #%i:",methRTlast); \
 	method_display(m); \
-	printf(" method name =");utf_display(m->class->name); printf("."); \
+	printf("<%i> method name =",methRTlast);utf_display(m->class->name); printf("."); \
 	utf_display(m->name);printf("\n"); \
 	}
 

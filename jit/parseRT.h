@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.h 662 2003-11-21 18:06:25Z jowenn $
+   $Id: parseRT.h 907 2004-01-29 13:20:05Z carolyn $
 
 */
 
@@ -40,6 +40,7 @@
 #include "jit.h"
 #include "parse.h"
 #include "loader.h"
+#include "main.h"
 #include "natcalls.h"
 
 #include "parseRTprint.h"

@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 897 2004-01-21 00:49:42Z stefan $
+   $Id: builtin.c 907 2004-01-29 13:20:05Z carolyn $
 
 */
 
@@ -813,6 +813,20 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 	sprintf(logtext + strlen(logtext), ".");
 	utf_sprint(logtext + strlen(logtext), method->name);
 	utf_sprint(logtext + strlen(logtext), method->descriptor);
+
+	if ( method->flags & ACC_PUBLIC )       sprintf (logtext + strlen(logtext)," PUBLIC");
+	if ( method->flags & ACC_PRIVATE )      sprintf (logtext + strlen(logtext)," PRIVATE");
+	if ( method->flags & ACC_PROTECTED )    sprintf (logtext + strlen(logtext)," PROTECTED");
+   	if ( method->flags & ACC_STATIC )       sprintf (logtext + strlen(logtext)," STATIC");
+   	if ( method->flags & ACC_FINAL )        sprintf (logtext + strlen(logtext)," FINAL");
+   	if ( method->flags & ACC_SYNCHRONIZED ) sprintf (logtext + strlen(logtext)," SYNCHRONIZED");
+   	if ( method->flags & ACC_VOLATILE )     sprintf (logtext + strlen(logtext)," VOLATILE");
+   	if ( method->flags & ACC_TRANSIENT )    sprintf (logtext + strlen(logtext)," TRANSIENT");
+   	if ( method->flags & ACC_NATIVE )       sprintf (logtext + strlen(logtext)," NATIVE");
+   	if ( method->flags & ACC_INTERFACE )    sprintf (logtext + strlen(logtext)," INTERFACE");
+   	if ( method->flags & ACC_ABSTRACT )     sprintf (logtext + strlen(logtext)," ABSTRACT");
+	
+
 	sprintf(logtext + strlen(logtext), "(");
 
 	switch (method->paramcount) {
@@ -936,6 +950,19 @@ void builtin_displaymethodstart(methodinfo *method)
 	sprintf(logtext + strlen(logtext), ".");
 	utf_sprint(logtext + strlen(logtext), method->name);
 	utf_sprint(logtext + strlen(logtext), method->descriptor);
+
+	if ( method->flags & ACC_PUBLIC )       sprintf (logtext + strlen(logtext)," PUBLIC");
+	if ( method->flags & ACC_PRIVATE )      sprintf (logtext + strlen(logtext)," PRIVATE");
+	if ( method->flags & ACC_PROTECTED )    sprintf (logtext + strlen(logtext)," PROTECTED");
+   	if ( method->flags & ACC_STATIC )       sprintf (logtext + strlen(logtext)," STATIC");
+   	if ( method->flags & ACC_FINAL )        sprintf (logtext + strlen(logtext)," FINAL");
+   	if ( method->flags & ACC_SYNCHRONIZED ) sprintf (logtext + strlen(logtext)," SYNCHRONIZED");
+   	if ( method->flags & ACC_VOLATILE )     sprintf (logtext + strlen(logtext)," VOLATILE");
+   	if ( method->flags & ACC_TRANSIENT )    sprintf (logtext + strlen(logtext)," TRANSIENT");
+   	if ( method->flags & ACC_NATIVE )       sprintf (logtext + strlen(logtext)," NATIVE");
+   	if ( method->flags & ACC_INTERFACE )    sprintf (logtext + strlen(logtext)," INTERFACE");
+   	if ( method->flags & ACC_ABSTRACT )     sprintf (logtext + strlen(logtext)," ABSTRACT");
+
 	log_text(logtext);
 	methodindent++;
 }

@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 657 2003-11-20 15:18:33Z carolyn $
+   $Id: parseRTstats.c 907 2004-01-29 13:20:05Z carolyn $
 
 */
 
@@ -184,7 +184,7 @@ int subdefd(methodinfo *meth) {
 	/*printf("s exist for:");utf_display(meth->class->name);printf(".");method_display(meth);*/
 
     for (subs = meth->class->sub;subs != NULL;subs = subs->nextsub) {
-		submeth = class_findmethod(subs, meth->name, meth->descriptor); 
+		submeth = class_fetchmethod(subs, meth->name, meth->descriptor); 
 		if (submeth != NULL) {
 			subRedefsCnt++;
 			if (submeth->methodUsed == USED) {
@@ -430,7 +430,7 @@ void printRTInterfaceClasses() {
 				        inBy = ici->impldBy;
 						cii = inBy->classType;
 						
-						mii = class_findmethod(cii, imi->name, imi->descriptor); 
+						mii = class_fetchmethod(cii, imi->name, imi->descriptor); 
 						if (mii == NULL) {
 							/* assume its resolved up the heirarchy and just 1 possiblity so MONO1 */
 							imi->monoPoly = MONO1;

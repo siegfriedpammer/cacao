@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 897 2004-01-21 00:49:42Z stefan $
+   $Id: main.c 907 2004-01-29 13:20:05Z carolyn $
 
 */
 
@@ -116,7 +116,7 @@ bool statistics = false;
 
 bool opt_verify = true;        /* true if classfiles should be verified      */
 
-
+char mainString[256];
 static classinfo *topclass;
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
@@ -852,9 +852,15 @@ int main(int argc, char **argv)
    		exit(10);
 	}
 
+   	cp = argv[opt_ind++];
+   	for (i = strlen(cp) - 1; i >= 0; i--) {     /* Transform dots into slashes */
+ 	 	if (cp[i] == '.') cp[i] = '/';          /* in the class name */
+	}
+
+        strcpy(mainString,cp);
+
 
 	/**************************** Program start *****************************/
-
 	log_init(logfilename);
 	if (verbose) {
 		log_text("CACAO started -------------------------------------------------------");
@@ -876,11 +882,6 @@ int main(int argc, char **argv)
 
 	/*********************** Load JAVA classes  ***************************/
    
-   	cp = argv[opt_ind++];
-   	for (i = strlen(cp) - 1; i >= 0; i--) {     /* Transform dots into slashes */
- 	 	if (cp[i] == '.') cp[i] = '/';          /* in the class name */
-	}
-
 	/*printf("-------------------->%s\n",cp);*/
 	topclass = loader_load(utf_new_char(cp));
 	/*class_showmethods(topclass);	*/

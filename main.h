@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: main.h 895 2004-01-19 13:53:43Z edwin $
+   $Id: main.h 907 2004-01-29 13:20:05Z carolyn $
 
 */
 
@@ -88,6 +88,7 @@ extern int has_ext_instr_set;
 
 extern bool statistics;
 
+extern char mainString[256];    /* class.method with main method */
 #endif /* _MAIN_H */
 
 
