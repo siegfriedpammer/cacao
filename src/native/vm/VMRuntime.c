@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1825 2004-12-29 12:39:46Z twisti $
+   $Id: VMRuntime.c 1850 2005-01-04 12:00:15Z twisti $
 
 */
 
@@ -442,7 +442,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	insert_property(m, p, "java.version", VERSION);
 	insert_property(m, p, "java.vendor", "CACAO Team");
 	insert_property(m, p, "java.vendor.url", "http://www.cacaojvm.org/");
-	insert_property(m, p, "java.home", java_home ? java_home : INSTALL_PREFIX);
+	insert_property(m, p, "java.home", java_home ? java_home : CACAO_INSTALL_PREFIX);
 	insert_property(m, p, "java.vm.specification.version", "1.0");
 	insert_property(m, p, "java.vm.specification.vendor", "Sun Microsystems Inc.");
 	insert_property(m, p, "java.vm.specification.name", "Java Virtual Machine Specification");
@@ -455,10 +455,15 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	insert_property(m, p, "java.class.version", "48.0");
 	insert_property(m, p, "java.class.path", classpath);
 
+	/* Set bootclasspath properties. One for GNU classpath and the other for  */
+	/* compatibility with Sun (required by most applications).                */
+	insert_property(m, p, "java.boot.class.path", bootclasspath);
+	insert_property(m, p, "sun.boot.class.path", bootclasspath);
+
 #if defined(STATIC_CLASSPATH)
 	insert_property(m, p, "java.library.path" , ".");
 #else
-	libpathlen = strlen(INSTALL_PREFIX) + strlen(CACAO_LIBRARY_PATH) + 1;
+	libpathlen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_LIBRARY_PATH) + 1;
 
 	if (getenv("CACAO_LIB_OVERRIDE"))
 		libpathlen += strlen(getenv("CACAO_LIB_OVERRIDE")) + 1;
@@ -473,7 +478,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 		strcat(libpath, ":");
 	}
 
-	strcat(libpath, INSTALL_PREFIX);
+	strcat(libpath, CACAO_INSTALL_PREFIX);
 	strcat(libpath, CACAO_LIBRARY_PATH);
 
 	if (getenv("LD_LIBRARY_PATH")) {
@@ -486,8 +491,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 #endif
 
 	insert_property(m, p, "java.io.tmpdir", "/tmp");
-	insert_property(m, p, "java.compiler", "cacao.jit");
-	insert_property(m, p, "java.ext.dirs", "");
+
+	/* XXX We don't support java.lang.Compiler */
+/*  	insert_property(m, p, "java.compiler", "cacao.jit"); */
+
+	insert_property(m, p, "java.ext.dirs", CACAO_INSTALL_PREFIX""CACAO_EXT_DIR);
  	insert_property(m, p, "os.name", utsnamebuf.sysname);
 	insert_property(m, p, "os.arch", utsnamebuf.machine);
 	insert_property(m, p, "os.version", utsnamebuf.release);
