@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 246 2003-03-09 23:35:51Z twisti $
+	Last Change: $Id: ngen.c 247 2003-03-10 11:54:19Z twisti $
 
 *******************************************************************************/
 
@@ -843,7 +843,7 @@ static void gen_mcode()
 				}
 
 			} else {
-				panic("Longs have to be in memory!");
+				panic("longs have to be in memory");
 			}
 			break;
 
@@ -977,7 +977,6 @@ static void gen_mcode()
 /*  					store_reg_to_var_int(to, d); \ */
 /*  					}\ */
 /*  				} */
-/*  			printf("DUP: from,regoff=%d,%d to,regoff=%d,%d\n", from->flags & INMEMORY, from->regoff, to->flags & INMEMORY, to->regoff); \ */
 #define M_COPY(from,to) \
 			if ((from->regoff != to->regoff) || \
 			    ((from->flags ^ to->flags) & INMEMORY)) { \
@@ -1120,6 +1119,7 @@ static void gen_mcode()
 					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
 					i386_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 				}
+
 			} else {
 				if (src->flags & INMEMORY) {
 					i386_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
@@ -1594,30 +1594,18 @@ static void gen_mcode()
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-/*  					i386_mov_membase_reg(REG_SP, src->regoff * 8, I386_EAX);              /* mem -> EAX             */
-/*  					i386_mul_membase(REG_SP, src->prev->regoff * 8);                      /* mem * EAX -> EDX:EAX   */
-/*  					i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);       /* mem -> ITMP1           */
-/*  					i386_mov_reg_reg(REG_ITMP1, REG_ITMP2);                               /* ITMP1 -> ITMP2         */
-/*  					i386_imul_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);        /* mem * ITMP2 -> ITMP2   */
-/*  					i386_mov_reg_reg(I386_EDX, REG_ITMP1);                                /* EDX -> ITMP1           */
-/*  					i386_alu_reg_reg(I386_ADD, REG_ITMP2, REG_ITMP1);                     /* ITMP2 + ITMP1 -> ITMP1 */
-/*  					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP2);             /* mem -> ITMP2           */
-/*  					i386_imul_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2);  /* mem * ITMP2 -> ITMP2   */
-
-/*  					i386_alu_reg_reg(I386_ADD, REG_ITMP2, REG_ITMP1);                     /* ITMP2 + ITMP1 -> ITMP1 */
-/*  					i386_mov_reg_reg(REG_ITMP1, I386_EDX);                                /* ITMP1 -> EDX           */
-/*  					i386_mov_reg_membase(I386_EAX, REG_SP, iptr->dst->regoff * 8); */
-/*  					i386_mov_reg_membase(I386_EDX, REG_SP, iptr->dst->regoff * 8 + 4); */
-
 					i386_mov_membase_reg(REG_SP, src->regoff * 8, I386_EAX);              /* mem -> EAX             */
+					/* optimize move EAX -> REG_ITMP3 is slower??? */
+/*    					i386_mov_reg_reg(I386_EAX, REG_ITMP3); */
 					i386_mul_membase(REG_SP, src->prev->regoff * 8);                      /* mem * EAX -> EDX:EAX   */
-					/* TODO: optimize move EAX -> REG_ITMP3 */
-					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);             /* mem -> ITMP3           */
 
+  					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);             /* mem -> ITMP3           */
 					i386_imul_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP3);  /* mem * ITMP3 -> ITMP3   */
 					i386_alu_reg_reg(I386_ADD, REG_ITMP3, I386_EDX);                      /* ITMP3 + EDX -> EDX     */
+
 					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);             /* mem -> ITMP3           */
 					i386_imul_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP3);  /* mem * ITMP3 -> ITMP3   */
+
 					i386_alu_reg_reg(I386_ADD, REG_ITMP3, I386_EDX);                      /* ITMP3 + EDX -> EDX     */
 					i386_mov_reg_membase(I386_EAX, REG_SP, iptr->dst->regoff * 8);
 					i386_mov_reg_membase(I386_EDX, REG_SP, iptr->dst->regoff * 8 + 4);
@@ -1635,11 +1623,12 @@ static void gen_mcode()
 					i386_mul_membase(REG_SP, src->regoff * 8);                            /* mem * EAX -> EDX:EAX   */
 					/* TODO: optimize move EAX -> REG_ITMP3 */
 					i386_mov_imm_reg(iptr->val.l, REG_ITMP3);                             /* imm -> ITMP3           */
-
 					i386_imul_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP3);        /* mem * ITMP3 -> ITMP3   */
+
 					i386_alu_reg_reg(I386_ADD, REG_ITMP3, I386_EDX);                      /* ITMP3 + EDX -> EDX     */
 					i386_mov_imm_reg(iptr->val.l >> 32, REG_ITMP3);                       /* imm -> ITMP3           */
 					i386_imul_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP3);        /* mem * ITMP3 -> ITMP3   */
+
 					i386_alu_reg_reg(I386_ADD, REG_ITMP3, I386_EDX);                      /* ITMP3 + EDX -> EDX     */
 					i386_mov_reg_membase(I386_EAX, REG_SP, iptr->dst->regoff * 8);
 					i386_mov_reg_membase(I386_EDX, REG_SP, iptr->dst->regoff * 8 + 4);
@@ -2920,6 +2909,7 @@ static void gen_mcode()
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
 				i386_fistpll_membase(REG_SP, iptr->dst->regoff * 8);
+
 			} else {
 				panic("longs have to be in memory");
 			}
@@ -2927,12 +2917,24 @@ static void gen_mcode()
 
 		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
 
-			/* nothing to do */
+			d = reg_of_var(iptr->dst, REG_ITMP1);
+			if (iptr->dst->flags & INMEMORY) {
+				i386_fstl_membase(REG_SP, iptr->dst->regoff * 8);
+
+			} else {
+				panic("doubles have to be in memory");
+			}
 			break;
 
 		case ICMD_D2F:       /* ..., value  ==> ..., (float) value            */
 
-			/* nothing to do */
+			d = reg_of_var(iptr->dst, REG_ITMP1);
+			if (iptr->dst->flags & INMEMORY) {
+				i386_fsts_membase(REG_SP, iptr->dst->regoff * 8);
+
+			} else {
+				panic("floats have to be in memory");
+			}
 			break;
 
 		case ICMD_FCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpl val2    */
@@ -4862,22 +4864,27 @@ gen_method: {
 
 			/* check for negative sizes and copy sizes to stack if necessary  */
 
-			MCODECHECK((iptr->op1 << 1) + 64);
+  			MCODECHECK((iptr->op1 << 1) + 64);
 
 			for (s1 = iptr->op1; --s1 >= 0; src = src->prev) {
-/*  			var_to_reg_int(s2, src, REG_ITMP1); */
 				if (src->flags & INMEMORY) {
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
 					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
 				}
+				i386_jcc(I386_CC_LE, 0);
 				mcode_addxcheckarefs(mcodeptr);
+
+				/* copy sizes to new stack location, cause native function
+				 * builtin_nmultianewarray access them as (int *)
+				 */
+				i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+				i386_mov_reg_membase(REG_ITMP1, REG_SP, -(iptr->op1 - s1) * 4);
 
 				/* copy sizes to stack (argument numbers >= INT_ARG_CNT)      */
 
 				if (src->varkind != ARGVAR) {
-/*  				M_LST(s2, REG_SP, 8 * (s1 + INT_ARG_CNT)); */
 					if (src->flags & INMEMORY) {
 						i386_mov_membase_reg(REG_SP, (src->regoff + intreg_argnum) * 8, REG_ITMP1);
 						i386_mov_reg_membase(REG_ITMP1, REG_SP, (s1 + intreg_argnum) * 8);
@@ -4887,37 +4894,28 @@ gen_method: {
 					}
 				}
 			}
+			i386_alu_imm_reg(I386_SUB, iptr->op1 * 4, REG_SP);
 
 			/* a0 = dimension count */
 
-			/* TWISTI */
-/*  			ICONST(argintregs[0], iptr->op1); */
-			i386_mov_imm_membase(iptr->op1, REG_SP, -12);
+			/* save stack pointer */
+			M_INTMOVE(REG_SP, REG_ITMP1);
+
+			i386_alu_imm_reg(I386_SUB, 12, REG_SP);
+			i386_mov_imm_membase(iptr->op1, REG_SP, 0);
 
 			/* a1 = arraydescriptor */
 
-/*  			a = dseg_addaddress(iptr->val.a); */
-/*  			M_ALD(argintregs[1], REG_PV, a); */
-			i386_mov_imm_membase(iptr->val.a, REG_SP, -8);
+			i386_mov_imm_membase(iptr->val.a, REG_SP, 4);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
-/*  			M_INTMOVE(REG_SP, argintregs[2]); */
-			i386_mov_reg_membase(REG_SP, REG_SP, -4);
+			i386_mov_reg_membase(REG_ITMP1, REG_SP, 8);
 
-/*  			a = dseg_addaddress((void*) (builtin_nmultianewarray)); */
-/*  			M_ALD(REG_PV, REG_PV, a); */
-/*  			M_JSR(REG_RA, REG_PV); */
-			i386_call_imm((void*) (builtin_nmultianewarray));
-			s1 = (int)((u1*) mcodeptr - mcodebase);
-			if (s1 <= 32768)
-				M_LDA (REG_PV, REG_RA, -s1);
-			else {
-				s4 ml = -s1, mh = 0;
-				while (ml < -32768) {ml += 65536; mh--;}
-				M_LDA(REG_PV, REG_RA, ml);
-				M_LDAH(REG_PV, REG_PV, mh);
-			    }
+			i386_mov_imm_reg((void*) (builtin_nmultianewarray), REG_ITMP1);
+			i386_call_reg(REG_ITMP1);
+			i386_alu_imm_reg(I386_ADD, 12 + iptr->op1 * 4, REG_SP);
+
 			s1 = reg_of_var(iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
 			store_reg_to_var_int(iptr->dst, s1);
