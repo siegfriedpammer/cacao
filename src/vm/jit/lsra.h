@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 1590 2004-11-25 13:24:49Z christian $
+   $Id: lsra.h 1597 2004-11-28 16:37:23Z christian $
 
 */
 
@@ -42,28 +42,18 @@
 #define LSRA_POP -1
 
 struct lifetime {
-	int   index; /* unique index, LOCALVAR varnum or negative*/
-	int   b_start; /* bb of first use */
-	int   b_end;   /* bb of last use */
 	int i_start; /* instruction number of first use */
 	int i_end; /* instruction number of last use */
-	int length; /* lifetime in instructions */
-	stackptr s; /* stackslot or NULL */
-	int v_index; /* local variable index or -1 */
+	int v_index; /* local variable index or negative for stackslots */
 	int type;
-	int usagecount; /* number of refernces*/
+	int usagecount; /* number of references*/
 	int reg; /* regoffset durch lsra zugewiesen */
 	int savedvar;
 	struct stackslot *passthrough; /* List of Stackslots in Lifetime, which are passed through a Basic Block */
-	struct stackslot *local_ss;
+	struct stackslot *local_ss; /* Stackslots for this Lifetime or NULL (=="pure" Local Var) */
 	struct _i_list *i_list; /* list of instructions with references to var */
 	struct lifetime *next;
 };
-
-/* struct int_list { */
-/* 	int value; */
-/* 	int_list *next; */
-/* }; */
 
 struct active_lt {
 	struct lifetime *lt;
@@ -116,10 +106,9 @@ struct freemem {
 	struct freemem *next;
 };
 
-struct sss {
-	int bb;
-	bool out;
-	struct sss *next;
+struct dup {
+	struct stackslot *ss;
+	struct dup *next;
 };
 
 typedef struct lsradata lsradata;
@@ -133,6 +122,8 @@ void lsra_clean_Graph( methodinfo *, codegendata *, lsradata *, loopdata *);
 #ifdef LSRA_DEBUG
 void lsra_dump_Graph(methodinfo *, struct depthElement **);
 void lsra_dump_stack(stackptr );
+#endif
+#ifdef LSRA_PRINTLIFETIMES
 void print_lifetimes(registerdata *, struct lifetime *);
 #endif
 
@@ -143,8 +134,9 @@ int lsra_getmaxblock(methodinfo *, loopdata *, int );
 void lsra_calc_lifetime_length(methodinfo *, lsradata *, codegendata *, loopdata *);
 
 void lsra_merge_i_lists(struct lifetime *, struct lifetime *);
+void lsra_merge_local_ss(struct lifetime *, struct lifetime *);
 
-void _lsra_new_stack( lsradata *, stackptr , int , int , int);
+void _lsra_new_stack( lsradata *, stackptr , int , int, int);
 void _lsra_from_stack(lsradata *, stackptr , int , int, int);
 void lsra_add_ss(struct lifetime *, stackptr );
 void lsra_usage_local(lsradata *, s4 , int , int , int , int );
