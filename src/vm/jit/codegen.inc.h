@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: codegen.inc.h 1339 2004-07-21 16:03:08Z twisti $
+   $Id: codegen.inc.h 1352 2004-07-26 21:00:00Z twisti $
 
 */
 
@@ -152,6 +152,10 @@ void codegen_setup(methodinfo *m);  /* allocates code and data area           */
 void codegen(methodinfo *m);
 void codegen_close(methodinfo *m);  /* releases temporary storage             */
 void codegen_insertmethod(void *startpc, void *endpc);
+
+#if defined(__I386__) || defined(__X86_64__)
+void codegen_addreference(methodinfo *m, struct basicblock *target, void *branchptr);
+#endif
 
 void dseg_display(methodinfo *m);
 
