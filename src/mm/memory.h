@@ -1,4 +1,4 @@
-/* mm/memory.h - macros for memory management
+/* src/mm/memory.h - macros for memory management
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.h 1815 2004-12-22 12:52:24Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: memory.h 2149 2005-03-30 19:12:21Z twisti $
 
 */
 
@@ -35,6 +37,12 @@
 #define _MEMORY_H
 
 #include <string.h>
+
+/* forward typedefs ***********************************************************/
+
+typedef struct dumpblock dumpblock;
+typedef struct dumpinfo dumpinfo;
+
 
 #include "arch.h"
 #include "types.h"
@@ -97,13 +105,7 @@ Some more macros:
 #define ALIGNSIZE        8
 
 
-/* dumpblock *******************************************************************
-
-   TODO
-
-*******************************************************************************/
-
-typedef struct dumpblock dumpblock;
+/* dumpblock ******************************************************************/
 
 struct dumpblock {
 	dumpblock *prev;
@@ -112,13 +114,7 @@ struct dumpblock {
 };
 
 
-/* dumpinfo ********************************************************************
-
-   DOCUMENT ME!
-
-*******************************************************************************/
-
-typedef struct dumpinfo dumpinfo;
+/* dumpinfo *******************************************************************/
 
 struct dumpinfo {
 	dumpblock *currentdumpblock;
