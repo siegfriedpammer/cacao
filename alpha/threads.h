@@ -26,7 +26,7 @@
 
 void asm_perform_threadswitch (u1 **from, u1 **to, u1 **stackTop);
 u1*  asm_initialize_thread_stack (void *func, u1 *stack);
-void asm_switchstackandcall (void *stack, void *func, void **stacktopsave);
+void *asm_switchstackandcall (void *stack, void *func, void **stacktopsave, void *p);
 
 /* access macros */
 
