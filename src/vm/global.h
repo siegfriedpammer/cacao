@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1442 2004-11-05 13:51:49Z twisti $
+   $Id: global.h 1496 2004-11-12 14:05:10Z twisti $
 
 */
 
@@ -548,7 +548,7 @@ typedef struct xtainfo {
 
 	methSet  	*calls;            /* methods this method calls   	        */ 
 	methSet  	*calledBy;         /* methods that call this method         */ 
-	methSet  	*marked;  //not in Dez         /* methods that marked by this method    */ 
+	methSet  	*marked;  /*not in Dez*/         /* methods that marked by this method    */ 
 	methSet         *markedBy;
 	fldSet          *fldsUsed;         /* fields used by this method             */ 
 	/*methSetNode  *interfaceCalls*/   /* methods this method calls as interface */ 
@@ -614,8 +614,8 @@ struct methodinfo {                 /* method structure                       */
 
 	u1         *stubroutine;        /* stub for compiling or calling natives  */
 	s4          mcodelength;        /* legth of generated machine code        */
-	u1         *mcode;              /* pointer to machine code                */
-	u1         *entrypoint;         /* entry point in machine code            */
+	functionptr mcode;              /* pointer to machine code                */
+	functionptr entrypoint;         /* entry point in machine code            */
 
 	/*rtainfo   rta;*/
 	xtainfo    *xta;
