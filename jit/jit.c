@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: jit.c 1192 2004-06-19 12:47:25Z twisti $
 
 */
 
@@ -1615,8 +1615,12 @@ static methodptr jit_compile_intern(methodinfo *m)
 		method_uses_edx = true;
 
 	} else {
-		method_uses_ecx = false;
-		method_uses_edx = false;
+		/* XXX when we use this, we have to save used registers in asm_
+		   functions (see asm_check_clinit */
+/*  		method_uses_ecx = false; */
+/*  		method_uses_edx = false; */
+		method_uses_ecx = true;
+		method_uses_edx = true;
 	}
 #endif
 
