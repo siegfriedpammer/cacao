@@ -39,13 +39,24 @@ Comments   :
 Description: Inlining-reflection/virtual function problem.
 Assigned   : carolyn
 Status     : OPEN
-Comments   :
+Comments   : Design: use guards
 
 
 Description: Interfaces with inlining.
 Assigned   : carolyn
-Status     : OPEN
-Comments   :
+Status     : CLOSED 	 
+Comments   : 
+
+Description: Typecheck problems with inlining.
+Assigned   : carolyn
+Status     : OPEN 
+Comments   : 
+
+
+Description: Exception Problems with inlining.
+Assigned   : jowenn 
+Status     : OPEN 
+Comments   : 
 
 
 Description: asm_calljavafunction2 port to powerpc.
