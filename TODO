@@ -1,6 +1,124 @@
-* fix native header/cacaoh dependency problems in nat/Makefile.am
+TODO:
+=====
+
+Description: <short description>
+Assigned   : <login name>
+Status     : <OPEN/CLOSED>
+Comments   :
+
+<add some comments>
+
+--------------------------------------------------------------------------------
+
+Description: COMMENTS!!!!!
+Assigned   : all
+Status     : OPEN (ro)
+Comments   :
+
+Especially comments in asmpart
+
+
+Description: Make kopi work with lsra.
+Assigned   : christian
+Status     : OPEN
+Comments   :
+
+
+Description: Port lsra to other architectures (alpha, mips, powerpc, x86_64).
+Assigned   : christian
+Status     : OPEN
+Comments   :
+
+
+Description: Fix lsra problem with -in.
+Assigned   : christian
+Status     : OPEN
+Comments   :
+
+
+Description: Inlining-reflection/virtual function problem.
+Assigned   : carolyn
+Status     : OPEN
+Comments   :
+
+
+Description: Interfaces with inlining.
+Assigned   : carolyn
+Status     : OPEN
+Comments   :
+
+
+Description: asm_calljavafunction2 port to powerpc.
+Assigned   : stefan
+Status     : OPEN
+Comments   :
+
+
+Description: Port atomic instructions to all platforms.
+Assigned   : stefan
+Status     : OPEN
+Comments   :
+
+
+Description: Port exceptions/stacktrace to all platforms.
+Assigned   : jowenn
+Status     : OPEN
+Comments   :
+
+
+Description: Port library loading to all platforms.
+Assigned   : jowenn
+Status     : OPEN
+Comments   :
+
+
+Description: Make AWT work on i386 and x86_64.
+Assigned   : martin
+Status     : OPEN
+Comments   :
+
+
+Description: Make AWT work on all platforms.
+Assigned   : martin
+Status     : OPEN
+Comments   :
+
+
+Description: Port asm_calljavafunction2 to x86_64.
+Assigned   : twisti
+Status     : CLOSED
+Comments   :
+
+
+Description: Change boehm to use a config.h
+Assigned   : twisti
+Status     : OPEN
+Comments   :
+
+
+Description: Change PUT/GETSTATIC patch code on all platforms.
+Assigned   : twisti
+Status     : OPEN
+Comments   :
+
+
+Description: Look into jni call*Method* functions.
+Assigned   : twisti
+Status     : OPEN
+Comments   :
+
+
+Description: Runtime.exit() problem with SecurityManager.
+Assigned   : twisti
+Status     : OPEN
+Comments   :
+
+
+Description: fix native header/cacaoh dependency problems in nat/Makefile.am
+Assigned   : twisti
+Status     : OPEN
+Comments   :
 
 The header files of the java class files should be generated in the
-build process. But cacaoh need some of the headers to be bootstrapped.
-
-
+build process. But cacaoh need some of the headers to be
+bootstrapped. How can this be fixed properly?
