@@ -4,7 +4,7 @@
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	Verwaltung von doppelt verketteten Listen. 
+	Management of doubly linked lists
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
@@ -15,11 +15,11 @@
 #ifndef LIST_H
 #define LIST_H
 
-typedef struct listnode {           /* Struktur f"ur ein Listenelement */
+typedef struct listnode {           /* structure for list element */
 	struct listnode *next,*prev;
 	} listnode;
 
-typedef struct list {               /* Struktur f"ur den Listenkopf */
+typedef struct list {               /* structure for list head */
 	listnode *first,*last;
 	int nodeoffset;
 	} list;
@@ -40,23 +40,23 @@ void *list_prev (list *l, void *element);
 
 
 /*
----------------------- Schnittstellenbeschreibung -----------------------------
+---------------------- interface description -----------------------------
 
-Die Listenverwaltung mit diesem Modul geht so vor sich:
+The list management with this module works like this:
 	
-	- jede Struktur, die in die Liste eingeh"angt werden soll, mu"s 
-	  eine Komponente vom Typ 'listnode' haben.
+	- to be used in a list, a structure must have an element of type
+	  'listnode'.
 	  
-	- es mu"s ein Struktur vom Typ 'list' bereitgestellt werden.
+	- there needs to be a structure of type 'list'.
 	
-	- die Funktion list_init (l, nodeoffset) initialisiert diese Struktur,
-	  dabei gibt der nodeoffset den Offset der 'listnode'-Komponente in
-	  den Knotenstrukturen an.
+	- the function list_init(l, nodeoffset) initializes the structure.
+	  nodeoffset is the offset of the 'listnode' from the start of the
+	  structure in bytes.
 	  
-	- Einf"ugen, Aush"angen und Suchen von Elementen der Liste geht mit
-	  den "ubrigen Funktionen.
+	- The remaining functions provide inserting, removing and searching.
 	  
-Zum besseren Verst"andnis ein kleines Beispiel:
+This small example aims to demonstrate correct usage:
+
 
 
 	void bsp() {
@@ -84,17 +84,16 @@ Zum besseren Verst"andnis ein kleines Beispiel:
 	}
 	
 	
-	Dieses Programm w"urde also folgendes ausgeben:
+	The output from this program should be:
 		7
 		9
 		11
 
 
 
-Der Grund, warum beim Initialisieren der Liste der Offset mitangegeben
-werden mu"s, ist der da"s ein und das selbe Datenelement gleichzeitig
-in verschiedenen Listen eingeh"angt werden kann (f"ur jede Liste mu"s
-also eine Komponente vom Typ 'listnode' im Element enthalten sein).
+The reason for the usage of 'nodeoffset' is that this way, the same node can
+part of different lists (there must be one 'listnode' element for every
+distinct list).
 
 */
 
