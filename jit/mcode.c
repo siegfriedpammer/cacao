@@ -47,7 +47,7 @@ static int dseglen;                 /* used size of data area (bytes)         */
                                     /* data area grows from top to bottom     */
 
 static jumpref *jumpreferences;     /* list of jumptable target addresses     */
-static jumpref *datareferences;
+static dataref *datareferences;     /* list of data segment references        */
 static branchref *xboundrefs;       /* list of bound check branches           */
 static branchref *xcheckarefs;      /* list of array size check branches      */
 static branchref *xnullrefs;        /* list of null check branches            */
@@ -71,7 +71,7 @@ static s4 dseg_adddouble(double value); /* adds an double to data area        */
 #endif
 
 static void dseg_addtarget(basicblock *target);
-static void dseg_adddata(void *ptr);
+static void dseg_adddata(u1 *ptr);
 static void mcode_addreference(basicblock *target, void *branchptr);
 static void mcode_addxboundrefs(void *branchptr);
 static void mcode_addxnullrefs(void *branchptr);
@@ -242,11 +242,11 @@ static void dseg_addtarget(basicblock *target)
 }
 
 
-static void dseg_adddata(void *ptr)
+static void dseg_adddata(u1 *ptr)
 {
-	jumpref *dr = DNEW(jumpref);
+	dataref *dr = DNEW(dataref);
 
-	dr->tablepos = (s4) ((u1 *) ptr - (u1 *) mcodebase);
+	dr->pos = (u1 *) (ptr - mcodebase);
 	dr->next = datareferences;
 	datareferences = dr;
 }
@@ -332,7 +332,7 @@ static void mcode_addxdivrefs(void *branchptr)
 static void mcode_finish(int mcodelen)
 {
 	jumpref *jr;
-	jumpref *dr;
+	dataref *dr;
 	u1 *epoint;
 
 	count_code_len += mcodelen;
@@ -355,14 +355,14 @@ static void mcode_finish(int mcodelen)
 	    jr = jr->next;
 	    }
 
-#ifdef __I386__
+#if defined(__I386__) || defined(__X86_64__)
         /* add method into datastructure to find the entrypoint */
 	(void) addmethod(method->entrypoint, method->entrypoint + mcodelen);
 
 	/* data segment references resolving */
 	dr = datareferences;
 	while (dr != NULL) {
-  	    *((void **) (epoint + dr->tablepos - 4)) = epoint;
+  	    *((void**) ((long) epoint + (long) dr->pos - POINTERSIZE)) = epoint;
 	    dr = dr->next;
 	}
 #endif
