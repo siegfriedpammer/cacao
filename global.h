@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 792 2003-12-16 18:49:52Z edwin $
+   $Id: global.h 800 2003-12-16 22:47:59Z edwin $
 
 */
 
@@ -780,6 +780,7 @@ extern bool verbose;
 extern bool opt_rt;             /* Rapid Type Analysis for better inlining CO-RT*/
 extern bool opt_xta;            /* X Type Analysis for better inlining    CO-XTA*/
 extern bool opt_vta;            /* Variable Type Analysis for better inlining    CO-VTA*/
+extern bool opt_verify;         /* true if classfiles should be verified      */
 #ifdef TYPECHECK_VERBOSE_OPT
 extern bool typecheckverbose;
 #endif

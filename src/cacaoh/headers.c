@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 771 2003-12-13 23:11:08Z stefan $
+   $Id: headers.c 800 2003-12-16 22:47:59Z edwin $
 
 */
 
@@ -60,6 +60,7 @@ bool initverbose = false;
 bool opt_rt = false;            /* true if RTA parse should be used     RT-CO */
 bool opt_xta = false;           /* true if XTA parse should be used    XTA-CO */
 bool opt_vta = false;           /* true if VTA parse should be used    VTA-CO */
+bool opt_verify = true;        /* true if classfiles should be verified      */
 
 bool showmethods = false;
 bool showconstantpool = false;

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 771 2003-12-13 23:11:08Z stefan $
+   $Id: cacao.c 800 2003-12-16 22:47:59Z edwin $
 
 */
 
@@ -103,6 +103,8 @@ bool makeinitializations = true;
 bool getloadingtime = false;   /* to measure the runtime                     */
 s8 loadingtime = 0;
 
+bool opt_verify = true;        /* true if classfiles should be verified      */
+
 
 static classinfo *topclass;
 
@@ -146,6 +148,7 @@ void **stackbottom = 0;
 #define OPT_XTA         27 
 #define OPT_VTA         28
 #define OPT_VERBOSETC   29
+#define OPT_NOVERIFY    30
 
 
 struct {char *name; bool arg; int value;} opts[] = {
@@ -154,7 +157,7 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{"ms",          true,   OPT_MS},
 	{"mx",          true,   OPT_MX},
 	{"noasyncgc",   false,  OPT_IGNORE},
-	{"noverify",    false,  OPT_IGNORE},
+	{"noverify",    false,  OPT_NOVERIFY},
 	{"oss",         true,   OPT_IGNORE},
 	{"ss",          true,   OPT_IGNORE},
 	{"v",           false,  OPT_VERBOSE1},
@@ -259,6 +262,7 @@ static void print_usage()
 #if defined(__ALPHA__)
 	printf("          -noieee .............. don't use ieee compliant arithmetic\n");
 #endif
+	printf("          -noverify ............ don't verify classfiles\n");
 	printf("          -softnull ............ use software nullpointer check\n");
 	printf("          -time ................ measure the runtime\n");
 	printf("          -stat ................ detailed compiler statistics\n");
@@ -663,6 +667,10 @@ int main(int argc, char **argv)
 				
 		case OPT_NOIEEE:
 			opt_noieee = true;
+			break;
+
+		case OPT_NOVERIFY:
+			opt_verify = false;
 			break;
 
 		case OPT_SOFTNULL:

@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 796 2003-12-16 22:28:18Z edwin $
+   $Id: jit.c 800 2003-12-16 22:47:59Z edwin $
 
 */
 
@@ -1426,6 +1426,7 @@ static void* do_nothing_function()
 
 *******************************************************************************/
 
+#if 0
 #define LOG_STEP(step)											\
 	if (compileverbose) {										\
 		char logtext[MAXLOGTEXT];								\
@@ -1436,6 +1437,9 @@ static void* do_nothing_function()
 		utf_sprint(logtext+strlen(logtext), m->descriptor);		\
 		log_text(logtext);										\
 	}
+#else
+#define LOG_STEP(step)
+#endif
 
 methodptr jit_compile(methodinfo *m)
 {
@@ -1548,9 +1552,11 @@ methodptr jit_compile(methodinfo *m)
 	analyse_stack();
    
 #ifdef CACAO_TYPECHECK
-	LOG_STEP("Typechecking");
-	typecheck();
-	LOG_STEP("Done typechecking");
+	if (opt_verify) {
+		LOG_STEP("Typechecking");
+		typecheck();
+		LOG_STEP("Done typechecking");
+	}
 #endif
 	
 	if (opt_loops) {
