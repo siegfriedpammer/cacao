@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: stack.c 604 2003-11-11 22:14:20Z twisti $
+   $Id: stack.c 605 2003-11-11 23:06:33Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include "disass.h"
 #include "reg.h"
 #include "tables.h"
+//#include "types.h"
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
 
@@ -185,28 +186,6 @@ extern int dseglen;
 			}\
 		}\
 }
-
-
-#ifdef USEBUILTINTABLE
-static stdopdescriptor *find_builtin(stdopdescriptor *first, stdopdescriptor *last,
-									 int icmd)
-{
-	int len = last - first;
-	int half;
-	stdopdescriptor *middle;
-
-	while (len > 0) {
-		half = len / 2;
-		middle = first + half;
-		if (middle->opcode < icmd) {
-			first = middle + 1;
-			len -= half + 1;
-		} else
-			len = half;
-	}
-	return first;
-}
-#endif
 
 
 void analyse_stack()
@@ -358,11 +337,11 @@ void analyse_stack()
 
 #ifdef USEBUILTINTABLE
 					{
-/*  						stdopdescriptor *blast = builtintable + sizeof(builtintable) / sizeof(stdopdescriptor); */
-						stdopdescriptor *blast = builtintable + 21 * sizeof(stdopdescriptor);
 						stdopdescriptor *breplace;
-						breplace = find_builtin(builtintable, blast, opcode);
-						if (breplace != blast && opcode == breplace->opcode && !breplace->supported) {
+						breplace = find_builtin(opcode);
+
+/*  						if (breplace != blast && opcode == breplace->opcode && !breplace->supported) { */
+						if (opcode == breplace->opcode && !breplace->supported) {
 							iptr[0].opc = breplace->icmd;
 							iptr[0].op1 = breplace->type_d;
 							iptr[0].val.a = breplace->builtin;

@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 603 2003-11-11 22:13:33Z twisti $
+   $Id: jit.h 605 2003-11-11 23:06:33Z twisti $
 
 */
 
@@ -812,18 +812,9 @@ typedef struct {
 } stdopdescriptor;
 
 
-typedef struct {
-	u1 opcode;
-	u1 type_s1;
-	u1 type_s2;
-	u1 type_d;      
-	functionptr builtin;
-	bool supported;
-	bool isfloat;
-} stdopdescriptorold;
-
-
 extern stdopdescriptor builtintable[];
+
+stdopdescriptor *find_builtin(int icmd);
 
 #endif /* USEBUILTINTABLE */
 
