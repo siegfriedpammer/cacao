@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: schedule.h 1972 2005-03-02 10:56:49Z twisti $
+   $Id: schedule.h 1973 2005-03-02 16:27:05Z twisti $
 
 */
 
@@ -57,9 +57,9 @@ struct scheduledata {
 	s4             micount;             /* number of machine instructions     */
 	nodelink      *leaders;             /* list containing sink nodes         */
 
-	minstruction **intregs_define_dep;
-	minstruction **fltregs_define_dep;
-    minstruction **memory_define_dep;
+	s4            *intregs_define_dep;
+	s4            *fltregs_define_dep;
+    s4            *memory_define_dep;
 
 	nodelink     **intregs_use_dep;
 	nodelink     **fltregs_use_dep;
@@ -75,7 +75,7 @@ struct scheduledata {
 *******************************************************************************/
 
 struct minstruction {
-	u4             instr;               /* machine instruction word           */
+	u4             instr[2];            /* machine instruction word           */
 	u1             latency;             /* instruction latency                */
 	s4             priority;            /* priority of this instruction node  */
 	bool           leader;
@@ -91,8 +91,8 @@ struct minstruction {
 *******************************************************************************/
 
 struct nodelink {
-	minstruction *mi;                   /* pointer to machine instruction     */
-	nodelink     *next;                 /* link to next node                  */
+	s4        minode;                   /* pointer to machine instruction     */
+	nodelink *next;                     /* link to next node                  */
 };
 
 
