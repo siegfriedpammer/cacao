@@ -28,11 +28,12 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 1515 2004-11-17 11:53:23Z twisti $
+   $Id: VMThread.c 1573 2004-11-23 16:06:03Z twisti $
 
 */
 
 
+#include "config.h"
 #include "jni.h"
 #include "builtin.h"
 #include "exceptions.h"
