@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1384 2004-08-02 11:41:26Z motse $
+   $Id: jni.c 1411 2004-08-17 15:04:54Z twisti $
 
 */
 
@@ -762,74 +762,64 @@ jint GetVersion (JNIEnv* env)
 }
 
 
-/****************** loads a class from a buffer of raw class data *****************/
+/************** loads a class from a buffer of raw class data *****************/
 
 jclass DefineClass(JNIEnv* env, const char *name, jobject loader, const jbyte *buf, jsize len) 
 {
-	jclass clazz; 
+	jclass c; 
+	jclass r;
 	classbuffer *cb;
-	s8 starttime;
-	s8 stoptime;
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-	compiler_lock();
-	tables_lock();
-#else
-	intsDisable();
-#endif
-#endif
+	c = class_new(utf_new_char_classname((char *) name));
+
+	/* enter a monitor on the class */
+
+	builtin_monitorenter((java_objectheader *) c);
 
 	/* measure time */
 	if (getloadingtime)
-		starttime = getcputime();
-
-	clazz = class_new(utf_new_char((char *) name));
+		loadingtime_start();
 
 	/* build a classbuffer with the given data */
 	cb = NEW(classbuffer);
-	cb->class = clazz;
+	cb->class = c;
 	cb->size = len;
 	cb->data = (u1 *) buf;
 	cb->pos = cb->data - 1;
 
-	class_load_intern(cb);
+	r = class_load_intern(cb);
+
+	/* if return value is NULL, we had a problem and the class is not loaded */
+	if (!r) {
+		c->loaded = false;
+
+		/* now free the allocated memory, otherwise we could ran into a DOS */
+		class_remove(c);
+	}
 
 	/* free memory */
 	FREE(cb, classbuffer);
 
 	/* measure time */
-	if (getloadingtime) {
-		stoptime = getcputime();
-		loadingtime += (stoptime - starttime);
-	}
+	if (getloadingtime)
+		loadingtime_stop();
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-	tables_unlock();
-	compiler_unlock();
-#else
-	intsRestore();
-#endif
-#endif
+	/* leave the monitor */
 
-	if (*exceptionptr)
-		return NULL;
+	builtin_monitorexit((java_objectheader *) c);
 
 	/* XXX link the class here? */
-	class_link(clazz);
+/*  	if (class_link(c)) */
+/*  		return NULL; */
 
-	if (*exceptionptr)
-		return NULL;
+	if (r)
+		c->classloader = loader;
 
-	if (clazz)
-		clazz->classloader = loader;
-
-	return clazz;
+	return r;
 }
 
 
-/*************** loads locally defined class with the specified name **************/
+/*********** loads locally defined class with the specified name **************/
 
 jclass FindClass(JNIEnv* env, const char *name) 
 {
@@ -837,26 +827,22 @@ jclass FindClass(JNIEnv* env, const char *name)
   
 	c = class_new(utf_new_char_classname((char *) name));
 
-	class_load(c);
-
-	if (*exceptionptr)
+	if (!class_load(c))
 		return NULL;
 
-	class_link(c);
-
-	if (*exceptionptr)
+	if (!class_link(c))
 		return NULL;
 
   	return c;
 }
   
 
-/*********************************************************************************** 
+/*******************************************************************************
 
 	converts java.lang.reflect.Method or 
  	java.lang.reflect.Constructor object to a method ID  
   
- **********************************************************************************/   
+*******************************************************************************/
   
 jmethodID FromReflectedMethod(JNIEnv* env, jobject method)
 {
