@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 1870 2005-01-12 13:55:47Z twisti $
+   $Id: VMSystemProperties.c 1882 2005-01-24 16:53:38Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 
 #include "config.h"
 #include "cacao/cacao.h"
+#include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_util_Properties.h"
