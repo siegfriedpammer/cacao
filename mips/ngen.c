@@ -10,7 +10,7 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 461 2003-09-16 11:21:32Z stefan $
+	Last Change: $Id: ngen.c 543 2003-11-01 10:54:10Z stefan $
 
 *******************************************************************************/
 
@@ -267,7 +267,6 @@ void catch_NullPointerException(int sig, int code, struct sigcontext *sigctx)
 	faultaddr = sigctx->sc_regs[(instr >> 21) & 0x1f];
 
 	if (faultaddr == 0) {
-		signal(sig, (void*) catch_NullPointerException); /* reinstall handler */
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
@@ -288,21 +287,37 @@ void createcalljava ();
 
 void init_exceptions(void)
 {
+	struct sigaction sa;
+	sigset_t unblockmask;
 
 	createcalljava();
 	
+	/* The Boehm GC initialization blocks the SIGSEGV signal. So we do a
+	   dummy allocation here to ensure that the GC is initialized.
+	*/
+	heap_allocate(1, 0, NULL);
+
 	/* install signal handlers we need to convert to exceptions */
+
+	sigemptyset(&unblockmask);
+	sa.sa_flags = 0;
+	sa.sa_sigaction = catch_NullPointerException;
+	sigemptyset(&sa.sa_mask);
 
 	if (!checknull) {
 
 #if defined(SIGSEGV)
-		signal(SIGSEGV, (void*) catch_NullPointerException);
+		sigaction(SIGSEGV, &sa, NULL);
+		sigaddset(&unblockmask, SIGSEGV);
 #endif
 
 #if defined(SIGBUS)
-		signal(SIGBUS, (void*) catch_NullPointerException);
+		sigaction(SIGBUS, &sa, NULL);
+		sigaddset(&unblockmask, SIGBUS);
 #endif
-		}
+	}
+
+	sigprocmask(SIG_UNBLOCK, &unblockmask, NULL);
 }
 
 
