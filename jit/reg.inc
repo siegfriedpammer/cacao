@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1098 2004-05-27 16:01:29Z twisti $
+   $Id: reg.inc 1152 2004-06-07 10:09:20Z twisti $
 
 */
 
@@ -109,6 +109,12 @@ static int freesavflttop;           /* free saved float register count        */
 static int savedregs_num;      	/* total number of registers to be saved      */
 int arguments_num;              /* size of parameter field in the stackframe  */
 
+
+/* function prototypes for this file */
+
+static void interface_regalloc();
+static void local_regalloc();
+static void allocate_scratch_registers();
 
 
 /* function reg_init ***********************************************************
