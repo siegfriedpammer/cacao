@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1456 2004-11-05 14:33:14Z twisti $
+   $Id: inline.c 1472 2004-11-09 15:56:54Z carolyn $
 
 */
 
@@ -120,7 +120,6 @@ if (DEBUGi==true) {
         m->maxlocals = inline_env->cumlocals;   //orig not used
         m->maxstack = inline_env->cummaxstack;  //orig global maxstack var!!
 #endif
-//panic("TEMP so can test just inline init\n");
         }
 }
 
@@ -244,6 +243,71 @@ bool is_unique_method(classinfo *class, methodinfo *m, utf* name, utf* desc)
 
 	return is_unique_rec(class, m, name, desc);
 }
+
+/* is_unique_method2 - returns count of # methods used up to 2
+                        since if 2 used then not unique.
+                        Chose not to make an extra fn call so
+                        can return boolean instead of cnt.
+                        It looks for subclasses with method def'd.
+
+                        This replaces is_unique_method which for
+                        reasons unknown looks up the class heirarchy
+                        not down at subclasses.
+
+ * class - where looking for method
+ * m     - original method ptr
+ * name  - utf name of method
+ * desc  - utf method descriptor
+*/
+int is_unique_method2(classinfo *class, methodinfo *m, utf* name, utf* desc)
+{
+int cnt = 0;  /* number of times method found in USED classes in hierarchy*/
+classinfo *subs;
+
+if ((m->class == class) && (class->classUsed == USED))
+        cnt++;
+
+if ( ((m->flags & ACC_FINAL) &&
+      (m->monoPoly != POLY))
+  ||  (class->sub == NULL))
+  return cnt;
+
+for (subs = class->sub;subs != NULL;subs = subs->nextsub) {
+        methodinfo * sm;
+
+        sm = class_resolveclassmethod(subs,name,desc,class,false);
+        if (sm != NULL) {
+                cnt =+ is_unique_method2(subs,sm,name,desc);
+                if (cnt > 1)
+                        return cnt;
+                }
+        }
+
+return cnt;
+}
+
+methodinfo *get_unique_method2(classinfo *class, methodinfo *m, utf* name, utf* desc)
+{
+methodinfo * imi;
+classinfo *subs;
+
+if ((m->class == class) && (class->classUsed == USED))
+        return m;
+
+for (subs = class->sub;subs != NULL;subs = subs->nextsub) {
+        methodinfo * sm;
+
+        sm = class_resolveclassmethod(subs,name,desc,class,false);
+        if (sm != NULL) {
+                imi = get_unique_method2(subs,sm,name,desc);
+                if (imi != NULL)
+                        return sm;
+                }
+        }
+
+return NULL;
+}
+
 
 inlining_methodinfo *inlining_analyse_method(methodinfo *m, 
 					  int level, int gp, 
@@ -425,11 +489,16 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 			case JAVA_INVOKEVIRTUAL:
 				if (!inlinevirtuals)
 					break;
+log_text("\nINLINE INVOKEVIRTUAL :\t");
 			case JAVA_INVOKESTATIC:
 				i = code_get_u2(p + 1,m);
 				{
 					constant_FMIref *imr;
 					methodinfo *imi;
+
+                                        methodinfo *imi1;
+                                        bool uniqueVirt= false;
+                                        int vcnt=0;
 
 					imr = class_getconstant(m->class, i, CONSTANT_Methodref);
 
@@ -449,6 +518,18 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 						panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 
 					if (opcode == JAVA_INVOKEVIRTUAL) {
+						vcnt = is_unique_method2(imi->class, imi, imr->name, imr->descriptor);
+                                                if (vcnt == 1) {
+
+                                                  imi1 = get_unique_method2(imi->class, imi, imr->name, imr->descriptor);
+                                                  if (imi1 != NULL) {
+                                                        imi = imi1;
+                                                        log_text("WAS unique virtual\t");
+                        								/*if (utf_new_char("foo") == imi->name) hardcode test */
+                                                        /**/ uniqueVirt=true; /* comment out to permanently turn off inlining virtuals*/
+                                                        }
+                                                   } /* end if vcnt */
+
 						if (!is_unique_method(imi->class, imi, imr->name, imr->descriptor))
 							break;
 					}
@@ -456,9 +537,10 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 					/*if (imi->flags & ACC_NATIVE) log_text("Native method,no inlining");*/
 					if ((inline_env->cummethods < INLINING_MAXMETHODS) &&
 						(!(imi->flags & ACC_NATIVE)) &&  
-						(!inlineoutsiders || (m->class == imr->class)) && 
+						(inlineoutsiders || (m->class == imr->class)) && 
 						(imi->jcodelength < INLINING_MAXCODESIZE) && 
 						(imi->jcodelength > 0) && 
+					       ((!inlinevirtuals)  || (uniqueVirt)) &&
 						(inlineexceptions || (imi->exceptiontablelength == 0))) { //FIXME: eliminate empty methods?
 						inlining_methodinfo *tmp;
 						descriptor2types(imi);
