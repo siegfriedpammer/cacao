@@ -3,7 +3,7 @@
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
    M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
-   P. Tomsich, J. Wenninger
+   P. Tomsich, J. Wenninger, M. Platter
 
    This file is part of CACAO.
 
@@ -26,9 +26,9 @@
 
    Authors: ?
 
-   Changes: Joseph Wenninger
+   Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1328 2004-07-21 14:06:26Z twisti $
+   $Id: jni.c 1365 2004-07-31 22:57:44Z motse $
 
 */
 
@@ -1358,9 +1358,15 @@ jint CallIntMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 
 jlong CallLongMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 {
-	log_text("JNI-Call: CallLongMethod");
+	jlong ret;
+	va_list vaargs;
+	
+	va_start(vaargs,methodID);
+/*	log_text("JNI-Call: CallLongMethod");*/
+	ret = callLongMethod(obj,get_virtual(obj, methodID),vaargs);
+	va_end(vaargs);
 
-	return 0;
+	return ret;
 }
 
 
