@@ -1,0 +1,354 @@
+diff -u raytrace1/CacheIntersectPt.java raytrace/CacheIntersectPt.java
+--- raytrace1/CacheIntersectPt.java	Wed Jun 17 22:14:38 1998
++++ raytrace/CacheIntersectPt.java	Mon Nov 30 22:21:47 1998
+@@ -9,7 +9,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import IntersectPt;
+ 
+ /**
+diff -u raytrace1/Camera.java raytrace/Camera.java
+--- raytrace1/Camera.java	Wed Jun 17 22:14:38 1998
++++ raytrace/Camera.java	Mon Nov 30 22:21:47 1998
+@@ -10,7 +10,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import Point;
+ //import Vector;
+ 
+diff -u raytrace1/Canvas.java raytrace/Canvas.java
+--- raytrace1/Canvas.java	Wed Jun 17 22:14:39 1998
++++ raytrace/Canvas.java	Mon Nov 30 22:37:08 1998
+@@ -13,7 +13,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ 
+ 
+ /**
+@@ -147,8 +147,8 @@
+ 	 int min = Math.min(GetHeight(), GetWidth());
+ 
+ 	 for (int i = (min*min)-min; i>0; i -= min-1) {
+-	     spec.io.PrintStream p = (spec.io.PrintStream)spec.harness.Context.out;
+-	     if (Pixels [i] != 0) p.println('1', ""+Pixels[i]);  // NS
++	     java.io.PrintStream p = (java.io.PrintStream) System.out;
++	     if (Pixels [i] != 0) p.println("1"+Pixels[i]);  // NS
+ 	 }
+     }
+ 
+diff -u raytrace1/Color.java raytrace/Color.java
+--- raytrace1/Color.java	Wed Jun 17 22:14:40 1998
++++ raytrace/Color.java	Mon Nov 30 22:21:47 1998
+@@ -12,7 +12,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ /**
+  * class Color
+  */
+diff -u raytrace1/Face.java raytrace/Face.java
+--- raytrace1/Face.java	Wed Jun 17 22:14:41 1998
++++ raytrace/Face.java	Mon Nov 30 22:21:47 1998
+@@ -12,7 +12,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import Point;
+ 
+ /**
+diff -u raytrace1/IntersectPt.java raytrace/IntersectPt.java
+--- raytrace1/IntersectPt.java	Wed Jun 17 22:14:42 1998
++++ raytrace/IntersectPt.java	Mon Nov 30 22:21:47 1998
+@@ -14,7 +14,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import CacheIntersectPt;
+ //import ObjectType;
+ //import ObjNode;
+diff -u raytrace1/Light.java raytrace/Light.java
+--- raytrace1/Light.java	Wed Jun 17 22:14:43 1998
++++ raytrace/Light.java	Mon Nov 30 22:21:47 1998
+@@ -11,7 +11,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import Color;
+ //import Point;
+ 
+diff -u raytrace1/LightNode.java raytrace/LightNode.java
+--- raytrace1/LightNode.java	Wed Jun 17 22:14:44 1998
++++ raytrace/LightNode.java	Mon Nov 30 22:21:47 1998
+@@ -11,7 +11,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import Light;
+ //import LinkNode;
+ 
+diff -u raytrace1/LinkNode.java raytrace/LinkNode.java
+--- raytrace1/LinkNode.java	Wed Jun 17 22:14:45 1998
++++ raytrace/LinkNode.java	Mon Nov 30 22:21:47 1998
+@@ -11,7 +11,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ /**
+  * class LinkNode
+  */
+diff -u raytrace1/Main.java raytrace/Main.java
+--- raytrace1/Main.java	Wed Jun 17 22:14:45 1998
++++ raytrace/Main.java	Mon Nov 30 22:41:06 1998
+@@ -8,18 +8,19 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
+-import spec.harness.*;
++//package spec.benchmarks._205_raytrace;
+ 
+ 
+-public class Main implements SpecBenchmark {
++public class Main {
+ 
+ 
+     static long runBenchmark( String[] args ) {
+     
++    	int speed = 100;
++    	
+         if( args.length == 0 ) {
+    	    args = new String[3];	    
+-	    args[0] = "" + (200*spec.harness.Context.getSpeed())/100;
++	    args[0] = "" + (200 * speed)/100;
+ 	    args[1] = "200";		    
+ 	    args[2] = "input/time-test.model";
+ 	}
+diff -u raytrace1/Material.java raytrace/Material.java
+--- raytrace1/Material.java	Wed Jun 17 22:14:46 1998
++++ raytrace/Material.java	Mon Nov 30 22:21:47 1998
+@@ -12,7 +12,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import Color;
+ 
+ /**
+diff -u raytrace1/MaterialNode.java raytrace/MaterialNode.java
+--- raytrace1/MaterialNode.java	Wed Jun 17 22:14:47 1998
++++ raytrace/MaterialNode.java	Mon Nov 30 22:21:47 1998
+@@ -11,7 +11,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import LinkNode;
+ //import Material;
+ 
+diff -u raytrace1/ObjNode.java raytrace/ObjNode.java
+--- raytrace1/ObjNode.java	Wed Jun 17 22:14:49 1998
++++ raytrace/ObjNode.java	Mon Nov 30 22:21:47 1998
+@@ -11,7 +11,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import LinkNode;
+ //import ObjectType;
+ 
+diff -u raytrace1/ObjectType.java raytrace/ObjectType.java
+--- raytrace1/ObjectType.java	Wed Jun 17 22:14:48 1998
++++ raytrace/ObjectType.java	Mon Nov 30 22:21:47 1998
+@@ -12,7 +12,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import CacheIntersectPt;
+ //import IntersectPt;
+ //import Material;
+diff -u raytrace1/OctNode.java raytrace/OctNode.java
+--- raytrace1/OctNode.java	Wed Jun 17 22:14:50 1998
++++ raytrace/OctNode.java	Mon Nov 30 22:21:47 1998
+@@ -14,7 +14,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import Face;
+ //import ObjNode;
+ //import ObjectType;
+diff -u raytrace1/Point.java raytrace/Point.java
+--- raytrace1/Point.java	Wed Jun 17 22:14:51 1998
++++ raytrace/Point.java	Mon Nov 30 22:21:47 1998
+@@ -12,7 +12,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import Vector;
+ 
+ /**
+diff -u raytrace1/PolyTypeObj.java raytrace/PolyTypeObj.java
+--- raytrace1/PolyTypeObj.java	Wed Jun 17 22:14:53 1998
++++ raytrace/PolyTypeObj.java	Mon Nov 30 22:21:48 1998
+@@ -12,7 +12,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ 
+ //import IntersectPt;
+ //import Material;
+diff -u raytrace1/PolygonObj.java raytrace/PolygonObj.java
+--- raytrace1/PolygonObj.java	Wed Jun 17 22:14:52 1998
++++ raytrace/PolygonObj.java	Mon Nov 30 22:21:48 1998
+@@ -12,7 +12,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import IntersectPt;
+ //import Material;
+ //import Point;
+diff -u raytrace1/Ray.java raytrace/Ray.java
+--- raytrace1/Ray.java	Wed Jun 17 22:14:54 1998
++++ raytrace/Ray.java	Mon Nov 30 22:21:48 1998
+@@ -11,7 +11,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import Point;
+ //import Vector;
+ 
+diff -u raytrace1/RayTracer.java raytrace/RayTracer.java
+--- raytrace1/RayTracer.java	Wed Jun 17 22:14:55 1998
++++ raytrace/RayTracer.java	Tue Nov 26 09:00:21 2002
+@@ -17,9 +17,8 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ 
+-import spec.harness.*;
+ 
+ /**
+  * class RayTracer
+@@ -99,9 +98,7 @@
+           
+         }
+ 
+-        if (Context.getVerify()) {
+-            canvas.WriteDiag();
+-        }
++      canvas.WriteDiag();
+   
+     }
+ 
+diff -u raytrace1/Scene.java raytrace/Scene.java
+--- raytrace1/Scene.java	Wed Jun 17 22:14:56 1998
++++ raytrace/Scene.java	Mon Nov 30 22:29:58 1998
+@@ -14,7 +14,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ 
+ import java.io.*;
+ 
+@@ -84,7 +84,7 @@
+ 	 int numObj = 0, ObjID = 0;
+ 
+ 	 try {
+-		infile = new DataInputStream(new BufferedInputStream( new spec.io.FileInputStream(filename) ));
++		infile = new DataInputStream(new BufferedInputStream( new java.io.FileInputStream(filename) ));
+ 		
+ 		camera = null;
+ 		lights = null;
+@@ -628,7 +628,7 @@
+         int xstart = section * width/nsections;
+         int xend   = xstart  + width/nsections;
+ 
+-spec.harness.Context.out.println( "+"+xstart + " to " + (xend-1) + " by " + canvas.GetHeight()  );	
++System.out.println( "+"+xstart + " to " + (xend-1) + " by " + canvas.GetHeight()  );	
+ 	
+ 	for (ypixel = 0 ; ypixel < canvas.GetHeight(); ypixel++) {
+ 		current = new Point(base);
+@@ -645,7 +645,7 @@
+ 		}
+ 		base.Add(vertIncr);
+         }
+-spec.harness.Context.out.println( "-"+xstart + " to " + (xend-1) + " by " + canvas.GetHeight() );            
++System.out.println( "-"+xstart + " to " + (xend-1) + " by " + canvas.GetHeight() );            
+ //	}
+ 	
+     }
+diff -u raytrace1/SphereObj.java raytrace/SphereObj.java
+--- raytrace1/SphereObj.java	Wed Jun 17 22:14:57 1998
++++ raytrace/SphereObj.java	Mon Nov 30 22:21:48 1998
+@@ -12,7 +12,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import IntersectPt;
+ //import Material;
+ //import ObjectType;
+diff -u raytrace1/TriangleObj.java raytrace/TriangleObj.java
+--- raytrace1/TriangleObj.java	Wed Jun 17 22:14:58 1998
++++ raytrace/TriangleObj.java	Mon Nov 30 22:21:48 1998
+@@ -12,7 +12,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ 
+ //import IntersectPt;
+ //import Material;
+diff -u raytrace1/Vector.java raytrace/Vector.java
+--- raytrace1/Vector.java	Wed Jun 17 22:14:59 1998
++++ raytrace/Vector.java	Mon Nov 30 22:21:48 1998
+@@ -11,7 +11,7 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._205_raytrace;
++//package spec.benchmarks._205_raytrace;
+ //import Point;
+ 
+ /**

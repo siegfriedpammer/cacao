@@ -1,0 +1,212 @@
+diff -u javac1/input/lib/spec/benchmarks/_202_jess/Main.java javac/input/lib/spec/benchmarks/_202_jess/Main.java
+--- javac1/input/lib/spec/benchmarks/_202_jess/Main.java	Wed Jun 17 01:31:47 1998
++++ javac/input/lib/spec/benchmarks/_202_jess/Main.java	Mon Dec  2 00:03:00 2002
+@@ -5,7 +5,7 @@
+ 
+     static long runBenchmark( String[] args ) {
+     
+-        int speed = 1; 
++        int speed = 100; 
+ 
+         if( speed == 100 ) {
+ 	    args = new String[1];
+--- javac1/input/Middle.java	Wed Nov 12 00:51:07 1997
++++ javac/input/Middle.java	Mon Dec  2 00:40:16 2002
+@@ -1,5 +1,5 @@
+ 
+-public class Middle {
++public class Main {
+ 
+   public static void main(String args[]){
+ 
+diff -Nu javac2/postoutput.sh javac/postoutput.sh
+--- javac2/postoutput.sh	Thu Jan  1 01:00:00 1970
++++ javac/postoutput.sh	Mon Dec  2 09:53:53 2002
+@@ -0,0 +1,4 @@
++rm -fr sun
++../../cacao -ieee sun.tools.javap.JavaP -classpath .:lib -c `ls *.class|sed 's/\.class//g'` | sed 's/\#[0-9]*/#/g' >> javac.output
++../../cacao -ieee JavaLex sample.lex
++cat sample.lex.java >> javac.output
+--- javac1/input/JavaLex.java	Wed Jun 17 19:59:04 1998
++++ javac/input/JavaLex.java	Mon Dec  2 12:49:16 2002
+@@ -3407,7 +3407,6 @@
+         lg = new CLexGen(arg[0]);
+         lg.generate();
+ 
+-        spec.benchmarks._202_jess.Main.main(null);
+       }
+ }    
+
+diff -Nu javac2/setup.sh javac/setup.sh
+--- javac2/setup.sh	Thu Jan  1 01:00:00 1970
++++ javac/setup.sh	Mon Dec  2 12:52:56 2002
+@@ -0,0 +1,6 @@
++rm -f *.class
++mv input/* .
++mv Middle.java Main.java
++cp ../../jvm98/spec/benchmarks/_*_jess/input/* input
++mv lib/spec .
++../../cacao -ieee sun.tools.javac.Main -d . spec/*/*/*.java
+diff -Nu javac2/sample.lex javac/sample.lex
+--- javac2/sample.lex	Thu Jan  1 01:00:00 1970
++++ javac/sample.lex	Wed Sep  6 16:09:48 2000
+@@ -0,0 +1,159 @@
++import java.lang.System;
++
++class Sample {
++    public static void main(String argv[]) throws java.io.IOException {
++	Yylex yy = new Yylex(System.in);
++	Yytoken t;
++	while ((t = yy.yylex()) != null)
++	    System.out.println(t);
++    }
++}
++
++class Utility {
++  public static void assert
++    (
++     boolean expr
++     )
++      { 
++	if (false == expr) {
++	  throw (new Error("Error: Assertion failed."));
++	}
++      }
++  
++  private static final String errorMsg[] = {
++    "Error: Unmatched end-of-comment punctuation.",
++    "Error: Unmatched start-of-comment punctuation.",
++    "Error: Unclosed string.",
++    "Error: Illegal character."
++    };
++  
++  public static final int E_ENDCOMMENT = 0; 
++  public static final int E_STARTCOMMENT = 1; 
++  public static final int E_UNCLOSEDSTR = 2; 
++  public static final int E_UNMATCHED = 3; 
++
++  public static void error
++    (
++     int code
++     )
++      {
++	System.out.println(errorMsg[code]);
++      }
++}
++
++class Yytoken {
++  Yytoken 
++    (
++     int index,
++     String text,
++     int line,
++     int charBegin,
++     int charEnd
++     )
++      {
++	m_index = index;
++	m_text = new String(text);
++	m_line = line;
++	m_charBegin = charBegin;
++	m_charEnd = charEnd;
++      }
++
++  public int m_index;
++  public String m_text;
++  public int m_line;
++  public int m_charBegin;
++  public int m_charEnd;
++  public String toString() {
++      return "Token #"+m_index+": "+m_text+" (line "+m_line+")";
++  }
++}
++
++%%
++
++%{
++  private int comment_count = 0;
++%} 
++%line
++%char
++%state COMMENT
++
++ALPHA=[A-Za-z]
++DIGIT=[0-9]
++NONNEWLINE_WHITE_SPACE_CHAR=[\ \t\b\012]
++WHITE_SPACE_CHAR=[\n\ \t\b\012]
++STRING_TEXT=(\\\"|[^\n\"]|\\{WHITE_SPACE_CHAR}+\\)*
++COMMENT_TEXT=([^/*\n]|[^*\n]"/"[^*\n]|[^/\n]"*"[^/\n]|"*"[^/\n]|"/"[^*\n])*
++
++
++%% 
++
++<YYINITIAL> "," { return (new Yytoken(0,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> ":" { return (new Yytoken(1,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> ";" { return (new Yytoken(2,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "(" { return (new Yytoken(3,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> ")" { return (new Yytoken(4,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "[" { return (new Yytoken(5,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "]" { return (new Yytoken(6,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "{" { return (new Yytoken(7,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "}" { return (new Yytoken(8,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "." { return (new Yytoken(9,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "+" { return (new Yytoken(10,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "-" { return (new Yytoken(11,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "*" { return (new Yytoken(12,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "/" { return (new Yytoken(13,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "=" { return (new Yytoken(14,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "<>" { return (new Yytoken(15,yytext(),yyline,yychar,yychar+2)); }
++<YYINITIAL> "<"  { return (new Yytoken(16,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "<=" { return (new Yytoken(17,yytext(),yyline,yychar,yychar+2)); }
++<YYINITIAL> ">"  { return (new Yytoken(18,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> ">=" { return (new Yytoken(19,yytext(),yyline,yychar,yychar+2)); }
++<YYINITIAL> "&"  { return (new Yytoken(20,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> "|"  { return (new Yytoken(21,yytext(),yyline,yychar,yychar+1)); }
++<YYINITIAL> ":=" { return (new Yytoken(22,yytext(),yyline,yychar,yychar+2)); }
++
++<YYINITIAL> {NONNEWLINE_WHITE_SPACE_CHAR}+ { }
++
++<YYINITIAL,COMMENT> \n { }
++
++<YYINITIAL> "/*" { yybegin(COMMENT); comment_count = comment_count + 1; }
++
++<COMMENT> "/*" { comment_count = comment_count + 1; }
++<COMMENT> "*/" { 
++	comment_count = comment_count - 1; 
++	Utility.assert(comment_count >= 0);
++	if (comment_count == 0) {
++    		yybegin(YYINITIAL);
++	}
++}
++<COMMENT> {COMMENT_TEXT} { }
++
++<YYINITIAL> \"{STRING_TEXT}\" {
++	String str =  yytext().substring(1,yytext().length() - 1);
++	
++	Utility.assert(str.length() == yytext().length() - 2);
++	return (new Yytoken(40,str,yyline,yychar,yychar + str.length()));
++}
++<YYINITIAL> \"{STRING_TEXT} {
++	String str =  yytext().substring(1,yytext().length());
++
++	Utility.error(Utility.E_UNCLOSEDSTR);
++	Utility.assert(str.length() == yytext().length() - 1);
++	return (new Yytoken(41,str,yyline,yychar,yychar + str.length()));
++} 
++<YYINITIAL> {DIGIT}+ { 
++	return (new Yytoken(42,yytext(),yyline,yychar,yychar + yytext().length()));
++}	
++<YYINITIAL> {ALPHA}({ALPHA}|{DIGIT}|_)* {
++	return (new Yytoken(43,yytext(),yyline,yychar,yychar + yytext().length()));
++}	
++<YYINITIAL,COMMENT> . {
++        System.out.println("Illegal character: <" + yytext() + ">");
++	Utility.error(Utility.E_UNMATCHED);
++}
++
++
++
++
++
++
++

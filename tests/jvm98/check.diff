@@ -1,0 +1,777 @@
+diff -u check1/FloatingPointCheck.java check/FloatingPointCheck.java
+--- check1/FloatingPointCheck.java	Wed Jun 17 22:14:10 1998
++++ check/FloatingPointCheck.java	Fri Oct 25 16:11:23 2002
+@@ -47,9 +47,6 @@
+  * End of sample execution
+  */
+ 
+-package spec.benchmarks._200_check;
+-import spec.harness.Context;
+-
+ public class FloatingPointCheck {
+ 
+     //  Level of print output produced
+@@ -97,21 +94,21 @@
+ 	if (check != 0.0) {
+ 	    error = true;
+ 	    if (print) {
+-		Context.out.println("Ooops: double range too big near 0");
++		System.out.println("Ooops: double range too big near 0");
+ 	    }
+ 	}
+ 
+ 	if (print && verbose) {
+ 	    // Some diagnostics
+-	    Context.out.println("	tiny:             " +
++	    System.out.println("	tiny:             " +
+ 			       doubleTiny);
+-	    Context.out.println("	tiny/small:       " +
++	    System.out.println("	tiny/small:       " +
+ 			       (doubleTiny/doubleSmall));
+-	    Context.out.println("	(tiny/small)*big: " +
++	    System.out.println("	(tiny/small)*big: " +
+ 			       ((doubleTiny/doubleSmall)*doubleBig));
+-	    Context.out.println("	MIN_VALUE*big:    " +
++	    System.out.println("	MIN_VALUE*big:    " +
+ 			       (Double.MIN_VALUE*doubleBig));
+-	    Context.out.println("	(tiny*big)/small: " +
++	    System.out.println("	(tiny*big)/small: " +
+ 			       ((doubleTiny*doubleBig)/doubleSmall));
+ 	}
+ 
+@@ -127,16 +124,16 @@
+ 	if ( check != Double.POSITIVE_INFINITY ) {
+ 	    error = true;
+ 	    if (print) {
+-		Context.out.println("Ooops: double range too big near infinity");
++		System.out.println("Ooops: double range too big near infinity");
+ 	    }
+ 	}
+ 	if (print && verbose) {
+ 	    // Some diagnostics
+-	    Context.out.println("	huge:             " +
++	    System.out.println("	huge:             " +
+ 			       doubleHuge);
+-	    Context.out.println("	huge*small:       " +
++	    System.out.println("	huge*small:       " +
+ 			       (doubleHuge*doubleSmall));
+-	    Context.out.println("	(huge*small)/big: " +
++	    System.out.println("	(huge*small)/big: " +
+ 			       ((doubleHuge*doubleSmall)/doubleBig));
+ 	}
+     }
+@@ -148,21 +145,21 @@
+ 	if (check != 0.0) {
+ 	    error = true;
+ 	    if (print) {
+-		Context.out.println("Ooops: float range too big near 0");
++		System.out.println("Ooops: float range too big near 0");
+ 	    }
+ 	}
+ 
+ 	if (print && verbose) {
+ 	    // Some diagnostics
+-	    Context.out.println("	tiny:             " +
++	    System.out.println("	tiny:             " +
+ 			       floatTiny);
+-	    Context.out.println("	tiny/small:       " +
++	    System.out.println("	tiny/small:       " +
+ 			       (floatTiny/floatSmall));
+-	    Context.out.println("	(tiny/small)*big: " +
++	    System.out.println("	(tiny/small)*big: " +
+ 			       ((floatTiny/floatSmall)*floatBig));
+-	    Context.out.println("	MIN_VALUE*big:    " +
++	    System.out.println("	MIN_VALUE*big:    " +
+ 			       (Float.MIN_VALUE*floatBig));
+-	    Context.out.println("	(tiny*big)/small: " +
++	    System.out.println("	(tiny*big)/small: " +
+ 			       ((floatTiny*floatBig)/floatSmall));
+ 	}
+ 
+@@ -170,16 +167,16 @@
+ 	if ( check != Float.POSITIVE_INFINITY ) {
+ 	    error = true;
+ 	    if (print) {
+-		Context.out.println("Ooops: float range too big near infinity");
++		System.out.println("Ooops: float range too big near infinity");
+ 	    }
+ 	}
+ 	if (print && verbose) {
+ 	    // Some diagnostics
+-	    Context.out.println("	huge:             " +
++	    System.out.println("	huge:             " +
+ 			       floatHuge);
+-	    Context.out.println("	huge*small:       " +
++	    System.out.println("	huge*small:       " +
+ 			       (floatHuge*floatSmall));
+-	    Context.out.println("	(huge*small)/big: " +
++	    System.out.println("	(huge*small)/big: " +
+ 			       ((floatHuge*floatSmall)/floatBig));
+ 	}
+     }
+@@ -195,18 +192,18 @@
+ 	if (check != 0.0) {
+ 	    error = true;
+ 	    if (print) {
+-		Context.out.println("Ooops: double precision too big near 1");
++		System.out.println("Ooops: double precision too big near 1");
+ 	    }
+ 	}
+ 	if (print && verbose) {
+ 	    //  Some diagnostics
+-	    Context.out.println("	eps:	" +
++	    System.out.println("	eps:	" +
+ 			       doubleEpsilon );
+-	    Context.out.println("	eps:	0x" +
++	    System.out.println("	eps:	0x" +
+ 			       Long.toString(Double.doubleToLongBits(doubleEpsilon), 16));
+-	    Context.out.println("	1+eps:	" +
++	    System.out.println("	1+eps:	" +
+ 			       (doubleOne+doubleEpsilon) );
+-	    Context.out.println("	(1+eps)-1:	" +
++	    System.out.println("	(1+eps)-1:	" +
+ 			       ((doubleOne+doubleEpsilon)-doubleOne) );
+ 	}
+     }
+@@ -223,18 +220,18 @@
+ 	if (check != 0.0) {
+ 	    error = true;
+ 	    if (print) {
+-		Context.out.println("Ooops: float precision too big near 1");
++		System.out.println("Ooops: float precision too big near 1");
+ 	    }
+ 	}
+ 	if (print && verbose) {
+ 	    //  Some diagnostics
+-	    Context.out.println("	eps:	" +
++	    System.out.println("	eps:	" +
+ 			       floatEpsilon );
+-	    Context.out.println("	eps:	0x" +
++	    System.out.println("	eps:	0x" +
+ 			       Integer.toString(Float.floatToIntBits(floatEpsilon), 16));
+-	    Context.out.println("	1+eps:	" +
++	    System.out.println("	1+eps:	" +
+ 			       (floatOne+floatEpsilon) );
+-	    Context.out.println("	(1+eps)-1:	" +
++	    System.out.println("	(1+eps)-1:	" +
+ 			       ((floatOne+floatEpsilon)-floatOne) );
+ 	}
+     }
+@@ -254,7 +251,7 @@
+ 	// compiler with a floating point bug might pass at say 1% where
+ 	// it hadn't fully compiled everything, but then fail at 100%
+ 	// after it compiled erroneously
+-	Context.out.println("FloatingPointCheck");
++	System.out.println("FloatingPointCheck");
+ 	int count;
+ 	for (count = 0; count < 1*10000*length; count += 1) {
+ 	    test(false);
+@@ -262,9 +259,9 @@
+ 	// Run it once to get the answers
+ 	test(true);
+ 	if (error)
+-	    Context.out.println ("Error");
++	    System.out.println ("Error");
+ 	else
+-	    Context.out.println ("OK");
++	    System.out.println ("OK");
+     }
+ 
+     public static void main(String[] args) {
+diff -u check1/LoopBounds.java check/LoopBounds.java
+--- check1/LoopBounds.java	Wed Jun 17 22:14:11 1998
++++ check/LoopBounds.java	Fri Oct 25 22:31:48 2002
+@@ -15,10 +15,7 @@
+  * Walter Bays
+  */
+ 
+-package spec.benchmarks._200_check;
+-import spec.harness.*;
+ import java.util.Vector;
+-import spec.benchmarks._200_check.*;
+ 
+ class LoopBounds {
+ 
+@@ -50,9 +47,9 @@
+     public void execute(){
+         for (int i= 0; i < size(); ++i) {
+ 	    //System.out.println ("v.size()=" + v.size() + " size()=" + size());
+-            Context.out.print (constraintAt(i) + " ");
++            System.out.print (constraintAt(i) + " ");
+         }
+-        Context.out.println();
++        System.out.println();
+     }
+ 
+     public static void main (String[] args){
+@@ -61,20 +58,22 @@
+ 
+     public static void run (){
+         (new LoopBounds()).execute();
+-        String name = "spec.benchmarks._200_check.LoopBounds2";
++/*
++        String name = "LoopBounds2";
+         try{
+             Class c = Class.forName (name);
+             Object o = c.newInstance();
+             if (! (o instanceof LoopBounds)){
+-                Context.out.println (name + " is not a LoopBounds\n");
++                System.out.println (name + " is not a LoopBounds\n");
+ 		gotError = true;
+                 return;
+             }
+             ((LoopBounds) o).execute();
+         }catch (Exception e){
+-	    Context.out.println ("Error " + e);
++	    System.out.println ("Error " + e);
+ 	    gotError = true;
+ 	}
++*/
+     }
+ 
+ }//end LoopBounds
+diff -u check1/Main.java check/Main.java
+--- check1/Main.java	Wed Jun 17 22:14:12 1998
++++ check/Main.java	Fri Oct 25 16:17:32 2002
+@@ -19,10 +19,7 @@
+  * fail output verification.
+  */
+ 
+-package spec.benchmarks._200_check;
+-import spec.harness.*;
+-
+-public class Main implements SpecBenchmark {
++public class Main {
+ 
+ ///////////////////////////////////////
+ //class variable field declarations
+@@ -47,44 +44,45 @@
+         int[] a = new int[10];
+         for (int i=0; i<=10; i++)
+             a[i] = i;
+-        spec.harness.Context.out.println("Error: array bounds not checked");
++        System.out.println("Error: array bounds not checked");
+     }catch (ArrayIndexOutOfBoundsException e){
+         caughtIndex = true;
+     }finally{
+         gotToFinally = true;
+     }
+     if (!caughtIndex)
+-        spec.harness.Context.out.println("1st bounds test error:\tindex exception not received");
++        System.out.println("1st bounds test error:\tindex exception not received");
+     if (!gotToFinally)
+-        spec.harness.Context.out.println("1st bounds test error:\tfinally clause not executed");
++        System.out.println("1st bounds test error:\tfinally clause not executed");
+     if (caughtIndex && gotToFinally)
+-        spec.harness.Context.out.println("1st bounds test:\tOK");
++        System.out.println("1st bounds test:\tOK");
+     checkSubclassing();
+     LoopBounds mule = new LoopBounds();
+     mule.run();
+     if (mule.gotError)
+-        spec.harness.Context.out.println("2nd bounds test:\tfailed");
++        System.out.println("2nd bounds test:\tfailed");
+     else
+-        spec.harness.Context.out.println("2nd bounds test:\tOK");
++        System.out.println("2nd bounds test:\tOK");
+     PepTest horse = new PepTest();
+     horse.instanceMain();
+     if (horse.gotError)
+-        spec.harness.Context.out.println("PepTest failed");
++        System.out.println("PepTest failed");
+     return 0;
+ }
+ 
+ public static void main( String[] args ) {           
+     runBenchmark( args );
++    new FloatingPointCheck().run(100);
+ }
+ 
+ private static void checkSubclassing(){
+     Super sup = new Super (3);
+     Sub   sub = new Sub   (3);
+-    spec.harness.Context.out.println (sup.getName() + ": " + sup.toString());
+-    spec.harness.Context.out.println (sub.getName() + ": " + sub.toString());
+-    spec.harness.Context.out.println ("Super: prot=" + sup.getProtected() +
++    System.out.println (sup.getName() + ": " + sup.toString());
++    System.out.println (sub.getName() + ": " + sub.toString());
++    System.out.println ("Super: prot=" + sup.getProtected() +
+         ", priv=" + sup.getPrivate());
+-    spec.harness.Context.out.println ("Sub:  prot=" + sub.getProtected() +
++    System.out.println ("Sub:  prot=" + sub.getProtected() +
+         ", priv=" + sub.getPrivate());
+ }
+ 
+diff -u check1/PepTest.java check/PepTest.java
+--- check1/PepTest.java	Wed Jun 17 22:14:13 1998
++++ check/PepTest.java	Fri Oct 25 16:12:43 2002
+@@ -13,9 +13,6 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._200_check;
+-import spec.harness.*;
+-
+ class syncTest {
+   int x = 5;
+ 
+@@ -89,7 +86,7 @@
+   public boolean gotError = false;
+ 
+   String testDiv() {
+-    Context.out.print("testDiv:    ");
++    System.out.print("testDiv:    ");
+     int a, b;
+     long c, d;
+     double e, f;
+@@ -141,7 +138,7 @@
+   }
+ 
+   String testIf() {
+-    Context.out.print("testIf:     ");
++    System.out.print("testIf:     ");
+     int a = 3, b, c;
+     b = a;
+     if(b * b == 9) 
+@@ -217,7 +214,7 @@
+ 
+   String testBitOps() {
+     /* Simple test of a few bit operations. By no means complete. */
+-    Context.out.print("testBitOps: ");
++    System.out.print("testBitOps: ");
+     int v = 0xcafebabe;
+     if (shiftAnd(v, 24) != 0xca) return "bad shift-and 1";
+     if (shiftAnd(v, 16) != 0xfe) return "bad shift-and 2";
+@@ -228,7 +225,7 @@
+ 
+   String testFor() {
+     int s = 0;
+-    Context.out.print("testFor:    ");
++    System.out.print("testFor:    ");
+     for (int a = 0; a < 100; a++)
+       for (int b = a; b >=0; b = b - 2)
+         s = a + s + b;
+@@ -238,7 +235,7 @@
+   }
+ 
+   String testTableSwitch() {
+-    Context.out.print("testTableSwitch:  ");
++    System.out.print("testTableSwitch:  ");
+     int s = 2, r;
+     s = s * 3;
+     switch(s) {
+@@ -270,7 +267,7 @@
+   }
+ 
+   String testLookupSwitch() {
+-    Context.out.print("testLookupSwitch: ");
++    System.out.print("testLookupSwitch: ");
+     int s = 2, r;
+     s = s * 3000;
+     switch(s) {
+@@ -302,7 +299,7 @@
+   }
+ 
+   String testHiddenField() {
+-    Context.out.print("testHiddenField:  ");
++    System.out.print("testHiddenField:  ");
+     subClass f2 = new subClass();
+     superClass f1 = f2;
+     if (f1.val != 1) 
+@@ -318,10 +315,10 @@
+ 
+   void printTime() {
+     java.util.Date now = new java.util.Date();
+-    Context.out.print("Time now is ");
+-    Context.out.print(now.toString());
+-    Context.out.print(",   ms: ");
+-    Context.out.println(System.currentTimeMillis());
++    System.out.print("Time now is ");
++    System.out.print(now.toString());
++    System.out.print(",   ms: ");
++    System.out.println(System.currentTimeMillis());
+   }
+ 
+   String checkInst(superClass x, boolean r1, boolean r2, boolean r3, int c) {
+@@ -337,7 +334,7 @@
+   }
+ 
+   String checkInstanceOf() {
+-    Context.out.print("checkInstanceOf: ");
++    System.out.print("checkInstanceOf: ");
+ 
+  /* subClass a[] = new subClass[2];
+     ((superClass[])a)[1] = new superClass(); */
+@@ -363,7 +360,7 @@
+   }
+ 
+   String checkInterfaceInstanceOf() {
+-    Context.out.print("checkInterfaceInstanceOf: ");
++    System.out.print("checkInterfaceInstanceOf: ");
+     java.lang.Object c1 = new C1();
+     java.lang.Object c2 = new C2();
+     java.lang.Object c3 = new C3();
+@@ -390,7 +387,7 @@
+   }
+ 
+   String testExc1() {
+-    Context.out.print("testExc1(simple throw/catch):  ");
++    System.out.print("testExc1(simple throw/catch):  ");
+     int x = 0;
+     try {
+       if (x == 0) x = 1; else x = -1;
+@@ -413,7 +410,7 @@
+   }
+ 
+   String testExc2() {
+-    Context.out.print("testExc2(skip catch clauses):  ");
++    System.out.print("testExc2(skip catch clauses):  ");
+     int x = 0;
+     try {
+       if (x == 0) x = 1; else x = -1;
+@@ -433,7 +430,7 @@
+   }
+ 
+   String testExc3() {
+-    Context.out.print("testExc3(catch in inner):      ");
++    System.out.print("testExc3(catch in inner):      ");
+     int x = 0;
+     try {
+       if (x == 0) x = 1; else x = -1;
+@@ -457,7 +454,7 @@
+   }
+ 
+   String testExc4() {
+-    Context.out.print("testExc4(catch in outer):      ");
++    System.out.print("testExc4(catch in outer):      ");
+     int x = 0;
+     try {
+       if (x == 0) x = 1; else x = -1;
+@@ -477,7 +474,7 @@
+   }
+ 
+   String testExc5() {
+-    Context.out.print("testExc5(rethrow):             ");
++    System.out.print("testExc5(rethrow):             ");
+     int x = 0;
+     try {
+       if (x == 0) x = 1; else x = -1;
+@@ -498,7 +495,7 @@
+   }
+ 
+   String testExc6() {
+-    Context.out.print("testExc6(throw accross call):  ");
++    System.out.print("testExc6(throw accross call):  ");
+     int x = 0;
+     try {
+       x = 1;
+@@ -514,7 +511,7 @@
+   }
+ 
+   String testExc7() {
+-    Context.out.print("testExc7(throw accr. 2 calls): ");
++    System.out.print("testExc7(throw accr. 2 calls): ");
+     int x = 0;
+     try {
+       x = 1;
+@@ -540,7 +537,7 @@
+   final static int allocChunk = 50000;
+ 
+   String testExc8() {
+-    Context.out.print("testExc8(keep throwing; see if GC works): ");
++    System.out.print("testExc8(keep throwing; see if GC works): ");
+     System.gc();
+     Runtime runt = Runtime.getRuntime();
+     long freeSpace = runt.freeMemory();
+@@ -572,7 +569,7 @@
+   }
+  
+   String testExc9() {
+-    Context.out.print("testExc9(keep throwing accross fct; see if GC works): ");
++    System.out.print("testExc9(keep throwing accross fct; see if GC works): ");
+     System.gc();
+     Runtime runt = Runtime.getRuntime();
+     long freeSpace = runt.freeMemory();
+@@ -612,7 +609,7 @@
+   
+ 
+   String testStringHash() {
+-    Context.out.print("testStringHash:  ");
++    System.out.print("testStringHash:  ");
+     String res;
+     /* These are the  JDK1.1 values.  */
+     if (null != (res = stringHash("monkey", -817689237, -1068495917)))  
+@@ -630,7 +627,7 @@
+ 
+ 
+   String testObjectHash() {
+-    Context.out.print("testObjectHash:  ");
++    System.out.print("testObjectHash:  ");
+     java.util.Hashtable ht = new java.util.Hashtable();
+     Integer ii;
+     for (int i = 0; i < 1000; i++) {
+@@ -645,7 +642,7 @@
+   }
+ 
+   String loopExitContinueInExceptionHandler() {
+-    Context.out.print("loopExitContinueInExceptionHandler: ");
++    System.out.print("loopExitContinueInExceptionHandler: ");
+     int i = 0;
+     while(i < 10000) {
+       i++;
+@@ -667,7 +664,7 @@
+   }
+ 
+   String testClone() {
+-    Context.out.print("testClone:       ");
++    System.out.print("testClone:       ");
+     int[] w, v = new int[100];   /* Check that we can clone arrays. */
+     for (int i = 0; i < v.length; i++) v[i] = i * i;
+     w = (int[])v.clone();
+@@ -705,16 +702,16 @@
+   }
+ 
+   void printInterfaces(java.lang.Class cl) {
+-    Context.out.print(cl.getName() + ":  ");
++    System.out.print(cl.getName() + ":  ");
+     java.lang.Class intf[] = cl.getInterfaces();
+     for (int i = 0; i < intf.length; i++) {
+-      Context.out.print(intf[i].getName() + " ");
++      System.out.print(intf[i].getName() + " ");
+       if (!intf[i].isInterface())
+-        Context.out.println("Error: should have been an interface!");
++        System.out.println("Error: should have been an interface!");
+     }
+     if (0 == intf.length) 
+-      Context.out.print("no interfaces");
+-    Context.out.println();
++      System.out.print("no interfaces");
++    System.out.println();
+   }
+ 
+   String testClass() {
+@@ -754,7 +751,7 @@
+   }
+ 
+   String testWaitNull() {
+-    Context.out.print("testWaitNull: ");
++    System.out.print("testWaitNull: ");
+     try {
+       ((java.lang.Object)null).wait(43);
+     } catch (java.lang.Exception e) {
+@@ -766,7 +763,7 @@
+   }
+ 
+   String testVarAndMethodNameClash() {
+-    Context.out.print("testVarAndMethodNameClash: ");
++    System.out.print("testVarAndMethodNameClash: ");
+     superClass s = new superClass();
+     int x;
+ 
+@@ -801,12 +798,12 @@
+ 
+   void checkAllNull(java.lang.Object a[]) {
+     for (int i = 0; i < a.length; i++) {
+-      if (a[i] != null) Context.out.println("error: should have been null");
++      if (a[i] != null) System.out.println("error: should have been null");
+     }
+   }
+ 
+   String testObjectArray() {
+-    Context.out.print("testObjectArray: ");
++    System.out.print("testObjectArray: ");
+     subClass   a[] = new   subClass[10];
+     superClass b[] = new superClass[10];
+ 
+@@ -910,9 +907,9 @@
+     if (a == 1)
+       throw(new java.lang.ArithmeticException("fisk"));
+     if (a == 1)
+-      Context.out.println("should not print this");
++      System.out.println("should not print this");
+     else
+-      Context.out.println("should print this");
++      System.out.println("should print this");
+   }
+ 
+   int testDup() {
+@@ -933,7 +930,7 @@
+   static int      staticIntArray[][] = {{1,2,3}, {4,5,6}};
+ 
+   String testArray() {
+-    Context.out.print("testArray:  ");
++    System.out.print("testArray:  ");
+     int x[];
+     x = new int[6];
+     x[4] = 3;
+@@ -977,33 +974,33 @@
+   }
+ 
+   void printPrimes() {
+-    Context.out.print("Primes less than 50: ");
++    System.out.print("Primes less than 50: ");
+     for (int i = 2; i < 50; i++) {
+       if (isPrime(i)) {
+-        Context.out.print(i);
+-        Context.out.print(" ");
++        System.out.print(i);
++        System.out.print(" ");
+       }
+     }
+-    Context.out.println("");
++    System.out.println("");
+   }
+ 
+   public void Verify(String str) {
+     if (null == str || str.equals(""))
+-      Context.out.println("OK");
++      System.out.println("OK");
+     else {
+       gotError = true;
+-      Context.out.println();
+-      Context.out.println("******************************************");
+-      Context.out.println(str);
+-      Context.out.println("******************************************");
++      System.out.println();
++      System.out.println("******************************************");
++      System.out.println(str);
++      System.out.println("******************************************");
+     }
+   }
+ 
+   boolean checkRemL(long a, long b, long res) {
+     boolean ok = (res == a % b);
+     if (!ok) {
+-      Context.out.print("Failed: " + a + " % " + b + " = " + (a % b));
+-      Context.out.println("   (should be: " + res);
++      System.out.print("Failed: " + a + " % " + b + " = " + (a % b));
++      System.out.println("   (should be: " + res);
+     }
+     return ok;
+   }
+@@ -1011,21 +1008,21 @@
+   boolean checkRemD(double a, double b, double res) {
+     boolean ok = (res == a % b);
+     if (!ok) {
+-      Context.out.print("Failed: " + a + " % " + b + " = " + (a % b));
+-      Context.out.println("   (should be: " + res);
++      System.out.print("Failed: " + a + " % " + b + " = " + (a % b));
++      System.out.println("   (should be: " + res);
+     }
+     return ok;
+   }
+ 
+ 
+   void printRemD(double a, double b) {
+-    Context.out.print(a + " % " + b + " = " + (a % b));
++    System.out.print(a + " % " + b + " = " + (a % b));
+   }
+ 
+   String checkRemainders() {
+-    Context.out.print("checkRemainders: ");
++    System.out.print("checkRemainders: ");
+     boolean ok = true;
+-    Context.out.print(" long ");
++    System.out.print(" long ");
+     if (!checkRemL( 10L,  7L, 3L))  ok = false;
+     if (!checkRemL( 10L, -7L, 3L))  ok = false;
+     if (!checkRemL(-10L,  7L, -3L)) ok = false;
+@@ -1036,7 +1033,7 @@
+     if (!checkRemD(-10.5,  7.0, -3.5)) ok = false;
+     if (!checkRemD(-10.5, -7.0, -3.5)) ok = false;
+     if (!ok) return "remainders failed";
+-    Context.out.print("double ");
++    System.out.print("double ");
+     return null; 
+   }
+ 
+@@ -1050,14 +1047,14 @@
+       m = ar;
+     if (m == 0.0) m = 1.0;
+     if ((v - r) / m > 0.0001) {
+-      Context.out.println(exprStr + " evaluated to: " + v + ", expected: " + r);
++      System.out.println(exprStr + " evaluated to: " + v + ", expected: " + r);
+       return false;
+     }
+     return true;
+   }
+     
+   String checkMathFcts() {
+-    Context.out.print("checkMathFcts: ");
++    System.out.print("checkMathFcts: ");
+     boolean ok = true; 
+     if (!checkClose("log(0.7)",  Math.log(0.7),  -0.356675)) ok = false;
+     if (!checkClose("sin(0.7)",  Math.sin(0.7),   0.644218)) ok = false;
+@@ -1096,13 +1093,13 @@
+   }
+    
+   String testDeepStack() {
+-    Context.out.print("testDeepStack: ");
++    System.out.print("testDeepStack: ");
+     if (deepRecursion(5555, 0) != (5555 * 5555 + 5555) / 2) return "failed";
+     return null;
+   }
+ 
+   String testMisk() {
+-    Context.out.print("testMisk: ");
++    System.out.print("testMisk: ");
+     String right = "-9223372036854775808";
+     if (!right.equals("" + ((long)1 << 63)))
+       return "(long)1 << 63 failed, returned: " + ((long)1 << 63) +
+@@ -1134,7 +1131,7 @@
+   }
+ 
+   String testGC() {
+-    Context.out.print("testGC: ");
++    System.out.print("testGC: ");
+     byte[][] bytesArrays = new byte[1000][];
+     bytesArrays[0] = new byte[1000];  /* See if GC eats this array! */
+     Runtime.getRuntime().gc();
+@@ -1156,7 +1153,7 @@
+ /*
+  * Skip file tests in an applet, wnb 2/13/98
+   String testFileOps() {
+-    Context.out.print("testFileOps: ");
++    System.out.print("testFileOps: ");
+     java.io.File f = new java.io.File(".");
+     if (!f.isDirectory()) return "'.' is not a directory";
+     if (!f.exists())      return "'.' does not exist";
+@@ -1208,11 +1205,11 @@
+ //  Don't perform fp accuracy check so that 80-bit intermediate values
+ //  will not be flagged as invalid. Per precedent of (osgjava-143) November
+ //  1997 minutes, and (osgjava-340) May 1998 minutes: specifications section
+-//  (new FloatingPointCheck()).run (spec.harness.Context.getSpeed());
++//  (new FloatingPointCheck()).run (spec.harness.System.getSpeed());
+     if (gotError)
+-      Context.out.println("****** PepTest found an error ******");
++      System.out.println("****** PepTest found an error ******");
+     else
+-      Context.out.println("****** PepTest completed ******");
++      System.out.println("****** PepTest completed ******");
+   }
+ 
+   public static void main(String[] args) {
+diff -u check1/Sub.java check/Sub.java
+--- check1/Sub.java	Wed Jun 17 22:14:14 1998
++++ check/Sub.java	Fri Oct 25 16:12:54 2002
+@@ -9,8 +9,6 @@
+  * See what happens here where we subclass Super
+  */
+ 
+-package spec.benchmarks._200_check;
+-
+ public class Sub extends Super{
+ 
+ ///////////////////////////////////////
+diff -u check1/Super.java check/Super.java
+--- check1/Super.java	Wed Jun 17 22:14:15 1998
++++ check/Super.java	Fri Oct 25 16:13:01 2002
+@@ -9,8 +9,6 @@
+  * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._200_check;
+-
+ public class Super{
+ 
+ ///////////////////////////////////////
