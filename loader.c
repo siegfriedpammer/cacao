@@ -29,7 +29,7 @@
             Roman Obermaiser
             Mark Probst
 
-   $Id: loader.c 689 2003-12-05 18:03:47Z stefan $
+   $Id: loader.c 693 2003-12-05 19:00:58Z jowenn $
 
 */
 
@@ -1444,6 +1444,8 @@ static int class_load(classinfo *c)
 
 	/* ACC flags */
 	c -> flags = suck_u2 (); 
+	/*if (!(c->flags & ACC_PUBLIC)) { log_text("CLASS NOT PUBLIC"); } JOWENN*/
+
 	/* this class */
 	suck_u2 ();       
 	
@@ -2810,7 +2812,7 @@ void create_primitive_classes()
 		c->loaded=true;
 		/* add to unlinked classes */
 		list_addlast (&unlinkedclasses, c);		
-		c -> super = class_java_lang_Object;
+/*JOWENN primitive types don't have objects as super class		c -> super = class_java_lang_Object; */
 		class_link (c);
 
 		primitivetype_table[i].class_primitive = c;

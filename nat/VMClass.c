@@ -131,6 +131,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
     if (!class_constructor) 
 	return NULL;
 
+
     array_constructor = builtin_anewarray(public_methods, class_constructor);
 
     if (!array_constructor) 
@@ -190,17 +191,17 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses (J
   if (!this->vmData)
     return NULL;
 
-	printf("PublicOnly: %d\n",publicOnly);
+	/*printf("PublicOnly: %d\n",publicOnly);*/
   if (!Java_java_lang_VMClass_isPrimitive(env, c) && (c->name->text[0]!='[')) {
     /* determine number of declared classes */
     for (i = 0; i < c->innerclasscount; i++) {
-      if ( (c->innerclass[i].outer_class == c) && (notPublicOnly || (c->flags & ACC_PUBLIC)))
+      if ( (c->innerclass[i].outer_class == c) && (notPublicOnly || (c->innerclass[i].flags & ACC_PUBLIC)))
         /* outer class is this class */
 	declaredclasscount++;
     }
   }
 
-  class_showmethods(c);
+  /*class_showmethods(c); */
 
   result = builtin_anewarray(declaredclasscount, class_java_lang_Class);    	
 
@@ -208,8 +209,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses (J
     
     classinfo *inner =  c->innerclass[i].inner_class;
     classinfo *outer =  c->innerclass[i].outer_class;
+
       
-    if ( (outer == c) && (notPublicOnly || (c->flags & ACC_PUBLIC))) {
+    if ( (outer == c) && (notPublicOnly || (inner->flags & ACC_PUBLIC))) {
       /* outer class is this class, store innerclass in array */
       use_class_as_object (inner);
       result->data[pos++] = (java_objectheader *) inner;
@@ -429,18 +431,33 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods (J
     int public_methods = 0;		/* number of public methods of the class */
     int pos = 0;
     int i;
+    utf *utf_constr=utf_new_char("<init>");
+    utf *utf_clinit=utf_new_char("<clinit>");
+
+
+    class_method = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Method"));
+    if (!class_method) 
+	return NULL;
+
+/* JOWENN: array classes do not declare methods according to mauve test. It should be considered, if 
+   we should return to my old clone method overriding instead of declaring it as a member function */
+   if (Java_java_lang_VMClass_isArray(env,this)) {
+	return builtin_anewarray(0, class_method);
+   }
+
 
     /* determine number of methods */
     for (i = 0; i < c->methodscount; i++) 
-	if (((c->methods[i].flags & ACC_PUBLIC)) || (!public_only)) public_methods++;
+	if ((((c->methods[i].flags & ACC_PUBLIC)) || (!public_only)) && 
+	(!
+		((c->methods[i].name==utf_constr) ||
+		(c->methods[i].name==utf_clinit) )
+	)) public_methods++;
 
-    class_method = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Method"));
 /*	
     class_showmethods(class_method);
     panic("JOWENN");
 */
-    if (!class_method) 
-	return NULL;
     
 
     array_method = builtin_anewarray(public_methods, class_method);
@@ -449,7 +466,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods (J
 	return NULL;
 
     for (i = 0; i < c->methodscount; i++) 
-	if ((c->methods[i].flags & ACC_PUBLIC) || (!public_only)){
+	if (((c->methods[i].flags & ACC_PUBLIC) || (!public_only)) && 
+       (!
+                ((c->methods[i].name==utf_constr) ||
+                (c->methods[i].name==utf_clinit) )
+        )) {
 
 	    m = &c->methods[i];	    
 	    o = native_new_and_init(class_method);     
@@ -582,7 +603,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getSigners ( JNIEnv *
  */
 JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass ( JNIEnv *env ,  struct java_lang_VMClass* this)
 {
-	classinfo *c = ((classinfo*) this->vmData) -> super;
+	classinfo *cl= ((classinfo*)this->vmData);
+	classinfo *c=cl -> super;
+
 	if (!c) return NULL;
 
 	use_class_as_object (c);
