@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 921 2004-02-16 04:00:59Z jowenn $
+   $Id: builtin.c 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -60,6 +60,10 @@
 
 #undef DEBUG /*define DEBUG 1*/
 
+
+THREADSPECIFIC methodinfo* _threadrootmethod = NULL;
+THREADSPECIFIC native_stackframeinfo _thread_nativestackframeinfo_bottom={0,0,0,0};
+THREADSPECIFIC native_stackframeinfo *_thread_nativestackframeinfo=&_thread_nativestackframeinfo_bottom;
 
 /*****************************************************************************
 								TYPE CHECKS
@@ -1781,6 +1785,71 @@ s4 builtin_dummy()
 	return 0; /* for the compiler */
 }
 
+
+inline methodinfo *builtin_asm_get_threadrootmethod() {
+        return *threadrootmethod;
+}
+
+inline native_stackframeinfo **builtin_asm_new_stackframeinfo() {
+	native_stackframeinfo **infop;
+	native_stackframeinfo *info;
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#ifdef HAVE___THREAD
+/*	log_text("native_stackframeinfo **builtin_asm_new_stackframeinfo(): __thread");*/
+	infop=&_thread_nativestackframeinfo; /*support for __thread attribute*/
+#else
+/*    log_text("native_stackframeinfo **builtin_asm_new_stackframeinfo(): pthread");*/
+    infop= &((nativethread*) pthread_getspecific(tkey_stackframeinfo))->_stackframeinfo /*copied from exception handling, is that really correct */
+	/*old pthread*/
+#endif
+#else
+#warning FIXME FOR OLD THREAD IMPL (jowenn)
+/*        log_text("native_stackframeinfo **builtin_asm_new_stackframeinfo(): no thread");*/
+	infop=&_thread_nativestackframeinfo; /* no threading, at least no native*/
+#endif
+	info=*infop;
+	if (!(info->next)) {
+		info->next=MNEW(native_stackframeinfo,1);
+/*
+		info->next->returnFromNative=0;
+		info->next->method=0;
+*/
+		info->next->prev=info;
+		info->next->next=0;
+	}
+	(*infop)=info->next;
+/*	{
+		int i=0;
+		native_stackframeinfo *inf;
+		info=info->next;
+		log_text("returning from:  native_stackframeinfo **builtin_asm_new_stackframeinfo()");
+		for (inf=info;inf;inf=inf->prev) i++;
+		i--;
+		printf ("current depth: %ld\n",i);	
+		for (inf=info->next;inf;inf=inf->next) i++;
+		printf ("max depth: %ld\n",i);
+	}*/
+	return infop;
+}
+
+inline native_stackframeinfo *builtin_asm_get_framestackinfo(){
+        native_stackframeinfo **infop;
+        native_stackframeinfo *info;
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#ifdef HAVE___THREAD
+        return _thread_nativestackframeinfo; /*support for __thread attribute*/
+#else
+    return ((nativethread*) pthread_getspecific(tkey_stackframeinfo))->_stackframeinfo /*copied from exception handling, is that 
+really $
+        /*old pthread*/
+#endif
+#else
+#warning FIXME FOR OLD THREAD IMPL (jowenn)
+	printf("blockaddr=%p\n",_thread_nativestackframeinfo);
+	printf("retaddr=%p\n",_thread_nativestackframeinfo->returnFromNative);
+        return _thread_nativestackframeinfo; /* no threading, at least no native*/
+#endif
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

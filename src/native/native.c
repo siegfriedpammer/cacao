@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 912 2004-02-05 21:20:33Z twisti $
+   $Id: native.c 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -88,6 +88,7 @@ methodinfo *method_vmclass_init;
 classinfo *class_java_lang_CloneNotSupportedException;
 classinfo *class_java_lang_System;
 classinfo *class_java_lang_ClassLoader;
+classinfo *class_gnu_java_lang_SystemClassLoader;
 classinfo *class_java_lang_NoClassDefFoundError;
 classinfo *class_java_lang_ClassNotFoundException;
 classinfo *class_java_lang_LinkageError;
@@ -321,6 +322,9 @@ void native_loadclasses()
 /*	log_text("native_loadclasses: class_new(\"java/lang/ClassLoader\")");		*/
 	class_java_lang_ClassLoader =
 	        class_new(utf_new_char("java/lang/ClassLoader"));	
+	class_gnu_java_lang_SystemClassLoader =
+	        class_new(utf_new_char("gnu/java/lang/SystemClassLoader"));	
+
 /*	log_text("native_loadclasses: class_new(\"java/security/PrivilegedActionException\")");		*/
 	class_java_security_PrivilegedActionException =
 		class_new(utf_new_char("java/security/PrivilegedActionException"));
@@ -404,7 +408,7 @@ void init_systemclassloader()
 		native_loadclasses();
 		log_text("Initializing new system class loader");
 		/* create object and call initializer */
-		SystemClassLoader = (java_lang_ClassLoader*) native_new_and_init(class_java_lang_ClassLoader);	
+		SystemClassLoader = (java_lang_ClassLoader*) native_new_and_init(class_gnu_java_lang_SystemClassLoader);/*class_java_lang_ClassLoader);*/
 
 		/* systemclassloader has no parent */
 		SystemClassLoader->parent      = NULL;
@@ -1484,8 +1488,61 @@ for (i=0;i<NATIVECALLSSIZE; i++) {
 
 return true;
 }
+
 /*--------------------------------------------------------*/
 
+
+java_objectarray *builtin_asm_createclasscontextarray(classinfo **end,classinfo **start) {
+#warning platform dependend
+        java_objectarray *tmpArray;
+        int i;
+        classinfo **current;
+	classinfo *c;
+        size_t size=(((size_t)start)-((size_t)end)) / sizeof (classinfo*);
+        printf("end %p, start %p, size %ld\n",end,start,size);
+        if (!class_java_lang_Class)
+                class_java_lang_Class = class_new(utf_new_char ("java/lang/Class"));
+        tmpArray=builtin_newarray(size, class_array_of(class_java_lang_Class)->vftbl);
+
+        for(i=0,current=start;i<size;i++,current--) {
+		c=*current;
+		printf("%d\n",i);
+                utf_display(c->name);
+		use_class_as_object(c);
+		tmpArray->data[i]=c;
+        }
+	return tmpArray;
+
+}
+
+java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end,classinfo **start) {
+#warning platform dependend
+        int i;
+        classinfo **current;
+	classinfo *c;
+	classinfo *privilegedAction;
+        size_t size=(((size_t)start)-((size_t)end)) / sizeof (classinfo*);
+	log_text("builtin_asm_getclassloader");
+        printf("end %p, start %p, size %ld\n",end,start,size);
+
+	privilegedAction=class_new(utf_new_char("java/security/PrivilegedAction"));
+
+        for(i=0,current=start;i<size;i++,current--) {
+		c=*current;
+		if (c==privilegedAction) return NULL;
+		if (c->classloader) return c->classloader;
+        }
+	return NULL;
+
+
+
+
+/*
+        log_text("Java_java_lang_VMSecurityManager_currentClassLoader");
+        init_systemclassloader();
+
+        return SystemClassLoader;*/
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSystem.c 873 2004-01-11 20:59:29Z twisti $
+   $Id: VMSystem.c 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -40,22 +40,6 @@
 #include "native.h"
 #include "toolbox/loging.h"
 #include "java_lang_Object.h"
-
-
-#if 0
-/*
- * Class:     java/lang/System
- * Method:    currentTimeMillis
- * Signature: ()J
- */
-JNIEXPORT s8 JNICALL Java_java_lang_VMSystem_currentTimeMillis(JNIEnv *env)
-{
-	struct timeval tv;
-
-	(void) gettimeofday(&tv, NULL);
-	return ((s8) tv.tv_sec) * 1000 + tv.tv_usec / 1000;
-}
-#endif
 
 
 /*
@@ -134,19 +118,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 		}
 	}
 }
-
-
-void attach_property(char *name, char *value)
-{
-	log_text("attach_property not supported");
-#if 0
-	if (activeprops >= MAXPROPS) panic("Too many properties defined");
-	proplist[activeprops][0] = name;
-	proplist[activeprops][1] = value;
-	activeprops++;
-#endif
-}
-
 
 /*
  * Class:     java/lang/System

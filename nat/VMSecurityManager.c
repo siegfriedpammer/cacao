@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSecurityManager.c 873 2004-01-11 20:59:29Z twisti $
+   $Id: VMSecurityManager.c 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -40,6 +40,8 @@
 #include "toolbox/loging.h"
 #include "java_lang_ClassLoader.h"
 
+#if 0
+THIS IS IN ASMPART NOW
 
 /*
  * Class:     java/lang/SecurityManager
@@ -48,12 +50,15 @@
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMSecurityManager_currentClassLoader(JNIEnv *env, jclass clazz)
 {
+	log_text("Java_java_lang_VMSecurityManager_currentClassLoader");
 	init_systemclassloader();
 
 	return SystemClassLoader;
 }
+#endif
 
-
+#if 0
+THIS IS IN ASMPART NOW
 /*
  * Class:     java/lang/SecurityManager
  * Method:    getClassContext
@@ -61,13 +66,54 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMSecurityManager_curren
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMSecurityManager_getClassContext(JNIEnv *env, jclass clazz)
 {
-  /*log_text("Java_java_lang_VMSecurityManager_getClassContext  called");*/
+  void *blah;
+  blah=0;
+  asm_getclasscontext(clazz);
+#if 0
+  log_text("Java_java_lang_VMSecurityManager_getClassContext  called");
 #warning return something more usefull here
 
   /* XXX should use vftbl directly */
   return (java_objectarray *) builtin_newarray(0, class_array_of(class_java_lang_Class)->vftbl);
+#endif
+}
+#endif
+
+java_objectarray* temporaryGetClassContextHelper(methodinfo *m) {
+	if (!(m->name)) log_text("method or block has no name");
+	else
+	utf_display(m->name);
+	printf("--");  
+	if (!(m->class)) log_text("method or block has no class");
+	else
+	utf_display(m->class->name);
+	printf("\n");  
+#if 0
+  log_text("temporaryGetClassContextHelper called");
+  if (adr==0) log_text("NO REAL METHOD");
+  else {
+	
+	struct methodinfo *m=(struct methodinfo*)(*(adr-1));
+	if (!(m->name)) log_text("method or block has no name");
+	else
+	utf_display(m->name);
+	if (!(m->class)) log_text("method or block has no class");
+	else
+	utf_display(m->class->name);
+	printf("\nFrame size:%ld\n",(long)(*(adr-2)));
+	adr=adr-5;
+	printf("saveint:%ld\n",(long)(*adr));
+	printf("saveflt:%ld\n",(long)(*(adr-1)));
+  }
+  log_text("temporaryGetClassContextHelper leaving");
+  return (java_objectarray *) builtin_newarray(0, class_array_of(class_java_lang_Class)->vftbl);	
+#endif
 }
 
+java_objectarray* temporaryGetClassContextHelper2() {
+  log_text("temporaryGetClassContextHelper2 called");
+  return (java_objectarray *) builtin_newarray(0, class_array_of(class_java_lang_Class)->vftbl);	
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

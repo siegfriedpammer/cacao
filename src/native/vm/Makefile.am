@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 913 2004-02-05 21:23:19Z twisti $
+# $Id: Makefile.am 930 2004-03-02 21:18:23Z jowenn $
 
 
 INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit -I$(top_srcdir)/jit/@ARCH_DIR@
@@ -24,7 +24,8 @@ libnat_a_SOURCES = \
 	VMSecurityManager.c \
 	VMString.c \
 	VMSystem.c \
-	JOWENNTest1.c
+	JOWENNTest1.c \
+	classcontextnativeTest.c
 
 #libgtk_a_SOURCES = \
 	GdkGraphics.c \

@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 916 2004-02-08 15:17:10Z edwin $
+   $Id: loader.c 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -3835,7 +3835,7 @@ static void loader_compute_class_values(classinfo *c)
 	}
 	c->vftbl->diffval = classvalue - c->vftbl->baseval;
 	
-	/*
+/*	
 	{
 	int i;
 	for (i = 0; i < c->index; i++)
@@ -3844,7 +3844,7 @@ static void loader_compute_class_values(classinfo *c)
 	utf_display(c->name);
 	printf("\n");
 	}
-	*/
+*/	
 }
 
 

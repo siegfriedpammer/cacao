@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 911 2004-02-04 11:42:41Z carolyn $
+   $Id: global.h 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -288,6 +288,17 @@ struct literalstring {
 	java_objectheader *string;  
 };
 
+
+/* data structure for storing information needed for a stacktrace across native functions*/
+struct native_stackframeinfo {
+	void *returnFromNative;
+	void *addrReturnFromNative;
+	methodinfo *method;
+	struct native_stackframeinfo *next;
+	struct native_stackframeinfo *prev;
+};
+
+typedef struct native_stackframeinfo native_stackframeinfo;
 
 /* data structure for calls from c code to java methods */
 
@@ -645,6 +656,7 @@ struct classinfo {                /* class structure                          */
 
 	classSetNode *impldBy;        /* implemented by class set                 */
 	utf        *packagename;      /* full name of the package                 */
+	java_objectheader *classloader;	      /* 0 for bootstrap classloader */
 };
 
 /* check if class is an array class. Only use for linked classes! */

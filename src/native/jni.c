@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 897 2004-01-21 00:49:42Z stefan $
+   $Id: jni.c 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -749,7 +749,7 @@ jclass DefineClass(JNIEnv* env, const char *name, jobject loader, const jbyte *b
 
 	/* restore old suck-mode */
 	classload_buffer(NULL,0);
-
+	if (clazz) clazz->classloader=loader;
 	return clazz;
 }
 
@@ -3437,6 +3437,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 
 	if (*exceptionptr) {
 		java_objectheader *exceptionToWrap=*exceptionptr;
+		*exceptionptr=0;
 		classinfo *ivtec = loader_load_sysclass(NULL,
 												utf_new_char("java/lang/reflect/InvocationTargetException"));
 		java_objectheader* ivte = builtin_new(ivtec);

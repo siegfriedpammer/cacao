@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMObject.c 897 2004-01-21 00:49:42Z stefan $
+   $Id: VMObject.c 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -131,7 +131,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
 JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *this, s8 time, s4 par3)
 {
 	if (runverbose)
-		log_text("java_lang_Object_wait called");
+		log_text("java_lang_VMObject_wait called");
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	wait_cond_for_object(&this->header, time);

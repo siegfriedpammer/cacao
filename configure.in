@@ -51,6 +51,14 @@ sparc* | * )
         ;;
 esac
 
+
+case "$host_os" in
+*linux* | *Linux* )
+	CFLAGS="$CFLAGS -D__LINUX__"
+	;;
+* )
+	;;
+esac
 AC_SUBST(COMPILER_OBJECTS)
 
 AC_DEFINE_UNQUOTED(ARCH_DIR, "$ARCH_DIR")

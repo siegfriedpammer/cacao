@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 873 2004-01-11 20:59:29Z twisti $
+   $Id: VMClass.c 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -106,9 +106,10 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, java_lang_VMClass *this)
 {  
-	init_systemclassloader();
+	return ((classinfo*)(this->vmData))->classloader;
+/*	init_systemclassloader();
 
-	return SystemClassLoader;
+	return SystemClassLoader;*/
 }
 
 
@@ -832,7 +833,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_loadArrayClass 
  * Signature: (Ljava/lang/Throwable;)V
  */
 JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException (JNIEnv *env , jclass clazz, struct java_lang_Throwable* par1) {
-	log_text("Java_java_lang_VMClass_throwException");
+	log_text("Won't implement VmClass.throwException. (Not needed according to spec) Is only needed to be bug compatible with the SUN VM. (according to gnuclasspath team)");
 }
 
 

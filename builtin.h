@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 890 2004-01-19 12:24:13Z edwin $
+   $Id: builtin.h 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -99,6 +99,7 @@ extern builtin_descriptor builtin_desc[];
 
 #define THREADSPECIFIC
 #define exceptionptr (&_exceptionptr)
+#define threadrootmethod (&_threadrootmethod)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 #ifdef HAVE___THREAD
@@ -109,12 +110,15 @@ extern builtin_descriptor builtin_desc[];
 #else
 
 #undef exceptionptr
+#undef threadrootmethod
 #define exceptionptr builtin_get_exceptionptrptr()
-
+#define threadrootmethod  builtin_get_threadrootmethod()
 #endif
 #endif
 
 extern THREADSPECIFIC java_objectheader* _exceptionptr;
+extern THREADSPECIFIC methodinfo* _threadrootmethod;
+extern THREADSPECIFIC native_stackframeinfo* _threadnativestackframeinfo;
 
 
 /**********************************************************************/
@@ -172,6 +176,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 /* NOT AN OP */
 
 static inline java_objectheader **builtin_get_exceptionptrptr();
+static inline methodinfo **builtin_get_threadrootmethod();
 /* NOT AN OP */
 void builtin_reset_exceptionptr();
 /* NOT AN OP */
@@ -379,6 +384,30 @@ static inline java_objectheader **builtin_get_exceptionptrptr()
 #endif
 }
 
+static inline methodinfo **builtin_get_threadrootmethod()
+{
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#ifdef HAVE___THREAD
+    return &_threadrootmethod;
+#else
+    return &((nativethread*) pthread_getspecific(tkey_threadrootmethod))->_threadrootmethod;
+#endif
+#else
+    panic("builting_get_threadrootmethod should not be used in this configuration");
+    return NULL;
+#endif
+}
+
+/* returns the root method of a thread. this is used in asmpart.S and delivers the abort condition
+   for the stack unwinding for getClassContext and getClassLoader. For the main thread this is the main function.
+   Otherwhise it is the thread's run method (at least that's how I see it) (jowenn) */
+methodinfo *builtin_asm_get_threadrootmethod();
+
+/* adds an element to the stack frame info list (needed for unwinding across native functions) */
+native_stackframeinfo **builtin_asm_new_stackframeinfo();
+
+/* returns the current top element of the stack frame info list (needed for unwinding across native functions) */
+native_stackframeinfo *builtin_asm_get_stackframeinfo();
 #endif /* _BUILTIN_H */
 
 

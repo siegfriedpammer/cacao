@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 848 2004-01-05 10:51:58Z twisti $
+   $Id: asmpart.S 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -90,8 +90,8 @@
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
 	.globl asm_getcallingmethod
-
-    
+	.globl Java_java_lang_VMSecurityManager_getClassContext
+	.globl Java_java_lang_VMSecurityManager_currentClassLoader    
 /*************************** imported functions *******************************/
 
 	.globl jit_compile
@@ -100,6 +100,8 @@
 	.globl builtin_trace_exception
 	.globl class_java_lang_Object
 	.globl findmethod
+	.globl builtin_asm_createclasscontextarray
+	.globl builtin_asm_getclassloader
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	.globl cast_lock
 	.globl cast_unlock
@@ -1036,6 +1038,142 @@ asm_getcallingmethod:
 /*		movl	$0,(%eax) */
 		ret
 
+Java_java_lang_VMSecurityManager_currentClassLoader:
+	lea  builtin_asm_getclassloader,%eax 
+	push %eax	/*store collector function pointer*/
+	jmp getClassContext_begin
+Java_java_lang_VMSecurityManager_getClassContext:
+	lea  builtin_asm_createclasscontextarray,%eax 
+	push %eax /*store collector function pointer*/
+getClassContext_begin:	/*start the real work*/
+/* find the method calling this */
+	mov %esp,%eax
+	sub $4,%eax
+	sub $68,%esp /*64 memory location without overwriting return adress and collector function adress*/
+	mov %esp,%ebx	/*end of allocated memory block for classpointers is the adress of the working data block +4 */
+	push $0 /*%esp+32 was native*/
+	push %eax /*%esp+24 blkbegin*/
+	push %eax /*%esp+20 currentpos*/
+	push %ebx /*%esp+16 blkend*/
+
+	call builtin_asm_get_threadrootmethod
+	push %eax /*%esp+12*/
+	movl 104(%esp),%eax /*(stack contains: threadRootMethod,blkend,blkpos,blkbegin,was native, data(64kB),collector,ret,env,class,frame stack info of stub, we want the frame stack info  of thestub*/
+	movl %esp,%edx
+	addl $104, %edx
+	push %edx /*esp+8*/ /*position of return address of native stub*/
+	call builtin_asm_get_framestackinfo
+	push %eax /*esp+4*/ /*address of frame info block*/
+	movl  offreturnfromnative(%eax),%edx
+	movl  offprevnative(%eax),%ebx
+	mov  %ebx,(%esp)
+	push %edx /*esp+0*/ /*return adress out of native stub*/
+	call findmethod	/*find calling java method, this one is still to be skipped (==SecurityManager.getClassContext (or .currentClassLoader)*/
+
+
+	mov 8(%esp),%ebx /*pos of return adress */
+	add FrameSize(%eax),%ebx
+	add $4,%ebx	/*adress of new return adress (out of Securitymanager.*/
+	mov %ebx,8(%esp) 
+	mov %eax,(%esp)
+
+	/* by now we have skipped this method call and the one before (SecurityManager)*/
+
+getClassContext_next:	
+	movl 8(%esp),%eax
+	movl (%eax),%eax
+	movl %eax,(%esp) /*return adress*/
+
+	call findmethod
+
+	cmp $1,32(%esp)
+	je getClassContext_storeNextRetPrevWasNat
+	mov 8(%esp),%ebx
+	add FrameSize(%eax),%ebx
+	add $4,%ebx
+	mov %ebx,8(%esp) /*store adress of next return adress*/
+getClassContext_nextRetStored:
+
+	mov MethodPointer(%eax),%ecx	/*get struct methodinfo*/
+
+	cmp $0,%ecx
+	je getClassContext_nativeCall
+	/*save class pointer*/
+	movl $0,32(%esp)
+getClassContext_saveClassPointer:
+	movl 20(%esp),%ebx	/*get temporary memory adress in stack*/
+	movl offclassmethodinfo(%ecx),%edx /* get class pointer of method*/
+	movl %edx,(%ebx) /*save */
+	sub $4,%ebx	/*calculate next position */
+	movl %ebx,20(%esp) /* check if the new adress would overwrite our working data */
+	cmp %ebx,16(%esp)
+	je getClassContext_incStack
+getClassContext_checkLeave:
+	
+	cmp 12(%esp),%ecx	/*check if we reached the toplevel method of our thread*/
+	je  getClassContext_leave /*yes ->leave*/
+
+	mov %ecx,(%esp)
+	call temporaryGetClassContextHelper
+	
+	
+	jmp getClassContext_next /*continue*/
+
+getClassContext_storeNextRetPrevWasNat:
+	movl 8(%esp),%ebx
+	add $(offaddrreturnfromnative-offreturnfromnative),%ebx
+	movl (%ebx),%ebx
+	add FrameSize(%eax),%ebx
+	add $4,%ebx
+	movl %ebx,8(%esp) /*store adress of next return adress*/
+	jmp getClassContext_nextRetStored
+
+getClassContext_nativeCall:
+	movl $1,32(%esp)
+	movl 4(%esp),%eax
+	movl %eax,%ebx
+	addl $offreturnfromnative,%ebx
+	/*offreturnfromnative(%eax)+returnFromNativeoffset,%ebx*/
+	movl %ebx,8(%esp)
+	movl offmethodnative(%eax),%ecx
+	movl offprevnative(%eax),%edx
+	movl %edx,4(%esp)
+	jmp getClassContext_saveClassPointer
+
+getClassContext_incStack:
+	/*make another 64 kb in our temporary storage free and store the workingdata */
+	movl %esp,%edx
+	subl $40,%esp /*should be 32*/
+	push 32(%edx)
+	push 28(%edx)
+	push 24(%edx)
+	push 20(%edx)
+	push 16(%edx)
+	push 12(%edx)
+	push 8(%edx)
+	push 4(%edx)
+	push 0(%edx)
+	subl $64,16(%esp)
+
+	jmp getClassContext_checkLeave /* continue */
+
+getClassContext_leave:
+	mov %ecx,(%esp)
+	call temporaryGetClassContextHelper
+
+	/*call collector function with begin/end of temporary classarray*/
+	push 24(%esp)
+	push 24(%esp)
+	
+	movl 32(%esp),%eax
+	add $4,%eax
+	movl (%eax),%ebx
+	call *%ebx
+
+	/* free stack memory of this function*/
+	mov 32(%esp),%esp
+	add $8,%esp
+	ret
 
 /*
  * These are local overrides for various environment variables in Emacs.

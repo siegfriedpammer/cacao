@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 883 2004-01-14 12:42:52Z stefan $
+   $Id: codegen.c 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -48,6 +48,7 @@
 #include "tables.h"
 #include "native.h"
 #include "methodtable.h"
+#include "offsets.h"
 
 /* include independent code generation stuff */
 #include "codegen.inc"
@@ -4833,6 +4834,29 @@ u1 *createnativestub(functionptr f, methodinfo *m)
     reg_init();
     descriptor2types(m);                     /* set paramcount and paramtypes */
 
+/*SHOULD THAT BE OPTIMIZED FOR THE NOTHREAD CASE ?? */
+/*CREATE STACKINFO BEGIN */
+        i386_mov_imm_reg((s4) builtin_asm_new_stackframeinfo, REG_ITMP1);
+        i386_call_reg(REG_ITMP1);
+	i386_mov_membase_reg(REG_SP, 0 , REG_ITMP2); /*save return adress*/
+	i386_mov_reg_membase(REG_RESULT,REG_SP,0); /*save thread specific stack frame info block*/
+	i386_mov_membase_reg(REG_RESULT, 0 , REG_ITMP3); /*get direct access to structure*/
+#if 0
+	i386_mov_membase_reg(REG_ITMP3,0,REG_ITMP2);/*TESTING*/
+	i386_mov_reg_membase(REG_ITMP2,REG_SP,0);/*TESTING*/
+	i386_ret(); /*TESTING*/
+#endif
+	i386_mov_reg_membase(REG_ITMP2, REG_ITMP3, offreturnfromnative); /*store return adress in stack frame info block*/
+	i386_mov_imm_membase((s4) m, REG_ITMP3, offmethodnative); /*store methodpointer in stack frame info block*/
+	i386_mov_reg_membase(REG_SP,REG_ITMP3,offaddrreturnfromnative);
+
+#if 0
+	i386_mov_membase_reg(REG_ITMP3,0,REG_ITMP2);/*TESTING*/
+	i386_mov_reg_membase(REG_ITMP2,REG_SP,0);/*TESTING*/
+	i386_ret(); /*TESTING*/
+#endif
+
+/*CREATE STACKINFO END */
     if (runverbose) {
         i386_alu_imm_reg(I386_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
         
@@ -4956,6 +4980,36 @@ u1 *createnativestub(functionptr f, methodinfo *m)
     i386_call_reg(REG_ITMP1);
     i386_alu_imm_reg(I386_ADD, stackframesize, REG_SP);
 
+/*REMOVE STACKINFO BEGIN */
+/*Perhapse merge with thread code below, to avoid 2 times pushing and poping*/
+	/*save result registers*/
+	i386_push_reg(REG_RESULT);
+	i386_push_reg(REG_RESULT2);
+	i386_mov_membase_reg(REG_SP,8,REG_ITMP1); /*get stack frame info block **   */
+	i386_mov_membase_reg(REG_ITMP1,0,REG_ITMP2); /*get stack frame info block *   */
+	i386_mov_membase_reg(REG_ITMP2,offreturnfromnative,REG_ITMP3); /*get return value*/
+
+	i386_mov_reg_membase(REG_ITMP3,REG_SP,8);	/* put the correct return value where it belongs */
+	/* reduce stack frame info pseudo stack by 1 */
+	/* the memory is not freed here, since usally native methods are not nested really deep, 
+	   so we reuse the block during the next call. If that linked list gets really a problem you should
+	   consider writing native code instead of java code anyways */
+	i386_mov_membase_reg(REG_ITMP2,offprevnative,REG_ITMP3);
+	i386_mov_reg_membase(REG_ITMP3,REG_ITMP1,0);
+
+/*TESTING*/
+/*	i386_mov_imm_reg(0,REG_ITMP1);
+	i386_mov_reg_membase(REG_ITMP1,REG_SP,8);*/
+
+	
+	/*restore result registers*/
+	i386_pop_reg(REG_RESULT2);
+	i386_pop_reg(REG_RESULT);
+
+/*REMOVE STACKINFO END */
+
+
+
     if (runverbose) {
         i386_alu_imm_reg(I386_SUB, 4 + 8 + 8 + 4, REG_SP);
 		
@@ -4975,6 +5029,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		
         i386_alu_imm_reg(I386_ADD, 4 + 8 + 8 + 4, REG_SP);
     }
+
 
 	/* we can't use REG_ITMP3 == REG_RESULT2 */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)

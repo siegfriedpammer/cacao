@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 810 2003-12-30 21:35:46Z twisti $
+   $Id: asmpart.h 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -89,7 +89,8 @@ void asm_handle_builtin_exception(classinfo *);
 */
 methodinfo *asm_getcallingmethod();
 
-
+java_objectarray* Java_java_lang_VMSecurityManager_getClassContext(JNIEnv *env, jclass clazz);
+/*java_lang_ClassLoader* Java_java_lang_VMSecurityManager_currentClassLoader(JNIEnv *env, jclass clazz);*/
 /* 
    This funtion saves all callee saved registers and calls the function
    which is passed as parameter.

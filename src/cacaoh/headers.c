@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 895 2004-01-19 13:53:43Z edwin $
+   $Id: headers.c 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -632,6 +632,14 @@ int main(int argc, char **argv)
 	fprintf(file, "#define offjniitem     %3d\n", (int) OFFSET(jni_callblock, item));
 	fprintf(file, "#define sizejniblock   %3d\n\n", (int) sizeof(jni_callblock));
 
+	fprintf(file, "#define offclassmethodinfo   %3d\n\n", (int) OFFSET(methodinfo,class));
+
+	fprintf(file, "#define offmethodnative %3d\n", (int) OFFSET(native_stackframeinfo,method));
+	fprintf(file, "#define offreturnfromnative %3d\n", (int) OFFSET(native_stackframeinfo,returnFromNative));
+	fprintf(file, "#define offaddrreturnfromnative %3d\n", (int) OFFSET(native_stackframeinfo,addrReturnFromNative));
+	fprintf(file, "#define offprevnative %3d\n", (int) OFFSET(native_stackframeinfo,prev));
+	fprintf(file, "#define offnextnative %3d\n", (int) OFFSET(native_stackframeinfo,next));
+	
 
 	fclose(file);
 

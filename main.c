@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 907 2004-01-29 13:20:05Z carolyn $
+   $Id: main.c 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -940,6 +940,7 @@ int main(int argc, char **argv)
 #endif
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 
+		*threadrootmethod=mainmethod;
 		/* here we go... */
 		asm_calljavafunction(mainmethod, a, NULL, NULL, NULL);
 	

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Runtime.c 873 2004-01-11 20:59:29Z twisti $
+   $Id: Runtime.c 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -84,7 +84,13 @@ static char *proplist[MAXPROPS][2] = {
 	{ "java.protocol.handler.pkgs", "gnu.java.net.protocol"}
 };
 
-
+void attach_property(char *name, char *value)
+{
+        if (activeprops >= MAXPROPS) panic("Too many properties defined");
+        proplist[activeprops][0] = name;
+        proplist[activeprops][1] = value;
+        activeprops++;
+}
 /*
  * Class:     java_lang_Runtime
  * Method:    execInternal
@@ -189,6 +195,64 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_traceMethodCalls(JNIEnv *env, java
 	log_text("Java_java_lang_Runtime_traceMethodCalls called");
 }
 
+#define CPULINELEN 100
+
+#if defined(__ALPHA__)
+s4 getCPUCount() {
+	FILE *cpuinfo;
+	char line[CPULINELEN];
+	cpuinfo=fopen("/proc/cpuinfo","r");
+	if (!cpuinfo) {
+		if (verbose) log_text("/proc/cpuinfo not accessible, assuming 1 available processor");
+		return 1; /* we have at least one cpu ;) */
+	}
+	while (fgets(line,CPULINELEN,cpuinfo)!=EOF) {
+		if (strncmp("cpus detected",line,13)==0) {
+			s4 cpucnt=0;
+			char *p;
+			char *ep;
+			fclose(cpuinfo);
+			for (p=&line[strlen(line)-2];(*p>='0') && (*p<='9');p--);
+			cpucnt=strtol(p,&ep,10);
+			if (p==ep) return 1;
+			
+			if (verbose) log_text("returning value retrieved by parsing cpus detected line");
+			return cpucnt;
+		}
+	}
+	fclose (cpuinfo);
+	if (verbose) log_text("/proc/cpuinfo did not contain a cpus detected line, assuming 1 available processor");
+	return 1; /* we have at least one cpu ;) */
+}
+#endif
+
+#if (defined(__I386__) || defined(__X86_64__))
+s4 getCPUCount() {
+	FILE *cpuinfo;
+	char line[CPULINELEN];
+	int cnt=0;
+	cpuinfo=fopen("/proc/cpuinfo","r");
+	if (!cpuinfo) {
+		if (verbose) log_text("/proc/cpuinfo not accessible, assuming 1 available processor");
+		return 1; /* we have at least one cpu ;) */
+	}
+
+	while (fgets(line,CPULINELEN,cpuinfo)!=EOF) {
+		if (strncmp("processor",line,9)==0) {
+			cnt++;
+		}
+	}
+
+	fclose(cpuinfo);
+
+	if (cnt==0) {
+		if (verbose) log_text("/proc/cpuinfo did not contain processor, assuming 1 available processor");
+		return 1; /* we have at least one cpu ;) */
+	}
+
+	return cnt;
+}
+#endif
 
 /*
  * Class:     java_lang_Runtime
@@ -197,9 +261,24 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_traceMethodCalls(JNIEnv *env, java
  */
 JNIEXPORT s4 JNICALL Java_java_lang_Runtime_availableProcessors(JNIEnv *env, java_lang_Runtime *this)
 {
-	log_text("Java_java_lang_Runtime_availableProcessors called, returning hardcoded 1");
+/*	log_text("Java_java_lang_Runtime_availableProcessors called, returning hardcoded 1"); */
+/* the classpath documentations says, that the number of available cpu's for the vm could vary. No idea how to really determine 
+that. Let's try to find out the total number of cpus in the system for now (jowenn) */
 
-	return 1;
+/* If this gets more complex, it should be considered moving this into the jit/ subdirectory (jowenn)*/
+#if  (!defined(__LINUX__))
+        return 1;
+#else
+#if defined(__ALPHA__)
+        return getCPUCount();
+#else
+#if (defined(__I386__) || defined(__X86_64__))
+        return getCPUCount();
+#else
+        return 1;
+#endif
+#endif
+#endif
 }
 
 

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 912 2004-02-05 21:20:33Z twisti $
+   $Id: native.h 930 2004-03-02 21:18:23Z jowenn $
 
 */
 
@@ -37,6 +37,7 @@
 
 #include "jni.h"
 #include "nat/java_lang_String.h"
+#include "nat/java_lang_ClassLoader.h"
 
 
 /* searchpath for classfiles */
@@ -168,6 +169,12 @@ classinfo *get_type(char **utf_ptr,char *desc_end, bool skip);
 java_objectarray* get_parametertypes(methodinfo *m);
 java_objectarray* get_exceptiontypes(methodinfo *m);
 classinfo *get_returntype(methodinfo *m);
+
+
+
+
+java_objectarray *builtin_asm_createclasscontextarray(classinfo **end,classinfo **start);
+java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end,classinfo **start);
 
 #endif /* _NATIVE_H */
 
