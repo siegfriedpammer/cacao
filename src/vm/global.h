@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 800 2003-12-16 22:47:59Z edwin $
+   $Id: global.h 812 2003-12-31 00:11:12Z edwin $
 
 */
 
@@ -168,6 +168,7 @@ void cacao_shutdown(s4 status);
 #define ACC_PROTECTED             0x0004
 #define ACC_STATIC                0x0008
 #define ACC_FINAL                 0x0010
+#define ACC_SUPER                 0x0020
 #define ACC_SYNCHRONIZED          0x0020
 #define ACC_VOLATILE              0x0040
 #define ACC_TRANSIENT             0x0080
@@ -638,7 +639,7 @@ struct classinfo {                /* class structure                          */
 };
 
 /* check if class is an array class. Only use for linked classes! */
-#define CLASS_IS_ARRAY(clsinfo)  (clsinfo->vftbl->arraydesc != NULL)
+#define CLASS_IS_ARRAY(clsinfo)  ((clsinfo)->vftbl->arraydesc != NULL)
 
 
 /* virtual function table ******************************************************
