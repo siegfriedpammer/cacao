@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.c 1761 2004-12-15 15:48:43Z twisti $
+   $Id: logging.c 1848 2005-01-04 11:35:10Z twisti $
 
 */
 
@@ -51,7 +51,7 @@ FILE *logfile = NULL;
 
 
 
-void log_init(char *fname)
+void log_init(const char *fname)
 {
 	if (fname) {
 		if (fname[0]) {
@@ -67,7 +67,7 @@ Writes logtext to the protocol file (if opened) or to stdout.
 
 **************************************************************************/
 
-void dolog(char *txt, ...)
+void dolog(const char *txt, ...)
 {
 	char logtext[MAXLOGTEXT];
 	va_list ap;
@@ -93,7 +93,7 @@ Writes logtext to the protocol file (if opened) or to stdout.
 
 **************************************************************************/
 
-void dolog_plain(char *txt, ...)
+void dolog_plain(const char *txt, ...)
 {
 	char logtext[MAXLOGTEXT];
 	va_list ap;
@@ -115,7 +115,7 @@ void dolog_plain(char *txt, ...)
 
 /********************* Function: log_text ********************************/
 
-void log_text(char *text)
+void log_text(const char *text)
 {
 	dolog("%s", text);
 }
@@ -123,7 +123,7 @@ void log_text(char *text)
 
 /******************** Function: log_plain *******************************/
 
-void log_plain(char *text)
+void log_plain(const char *text)
 {
 	dolog_plain("%s", text);
 }
@@ -131,7 +131,7 @@ void log_plain(char *text)
 
 /****************** Function: get_logfile *******************************/
 
-FILE *get_logfile()
+FILE *get_logfile(void)
 {
 	return (logfile) ? logfile : stdout;
 }
@@ -139,7 +139,7 @@ FILE *get_logfile()
 
 /****************** Function: log_flush *********************************/
 
-void log_flush()
+void log_flush(void)
 {
 	fflush(get_logfile());
 }
@@ -147,7 +147,7 @@ void log_flush()
 
 /********************* Function: log_nl *********************************/
 
-void log_nl()
+void log_nl(void)
 {
 	log_plain("\n");
 	fflush(get_logfile());
@@ -156,7 +156,7 @@ void log_nl()
 
 /********************* Function: log_cputime ****************************/
 
-void log_cputime()
+void log_cputime(void)
 {
 	s8 t;
 	int sec, usec;
@@ -234,7 +234,7 @@ Like dolog(), but terminates the program immediately.
 
 **************************************************************************/
 
-void error(char *txt, ...)
+void error(const char *txt, ...)
 {
 	char logtext[MAXLOGTEXT];
 	va_list ap;
@@ -259,7 +259,7 @@ void error(char *txt, ...)
 
 ***************************************************************************/
 
-void panic(char *txt)
+void panic(const char *txt)
 {
 	error("%s", txt);
 }

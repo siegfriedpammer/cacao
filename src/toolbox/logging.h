@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.h 1793 2004-12-21 10:14:35Z twisti $
+   $Id: logging.h 1848 2005-01-04 11:35:10Z twisti $
 
 */
 
@@ -43,24 +43,33 @@
 
 /* function prototypes ********************************************************/
 
-void log_init(char *fname);
-void log_text(char *txt);
-void log_plain(char *txt); /* same as log_text without "LOG: " and newline */
-void log_flush(void);      /* fflush logfile */
-void log_nl(void);         /* newline and fflush */
+void log_init(const char *fname);
+void log_text(const char *txt);
+
+/* same as log_text without "LOG: " and newline */
+void log_plain(const char *txt);
+
+/* fflush logfile */
+void log_flush(void);
+
+/* newline and fflush */
+void log_nl(void);
 
 void log_cputime(void);
 
 void log_message_class(const char *msg, classinfo *c);
 void log_message_method(const char *msg, methodinfo *m);
 
-void dolog(char *txt, ...);
-void dolog_plain(char *txt, ...); /* same as dolog without "LOG: " and newline*/
-void error(char *txt, ...);
+void dolog(const char *txt, ...);
+
+/* same as dolog without "LOG: " and newline*/
+void dolog_plain(const char *txt, ...);
+
+void error(const char *txt, ...);
 
 /* XXX this is just a quick hack on darwin */
 #if !defined(__DARWIN__)
-void panic(char *txt);
+void panic(const char *txt);
 #endif
 
 FILE *get_logfile(void);                        /* return the current logfile */
