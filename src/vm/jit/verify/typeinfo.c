@@ -1,4 +1,4 @@
-/* vm/jit/verify/typeinfo.c - type system used by the type checker
+/* src/vm/jit/verify/typeinfo.c - type system used by the type checker
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2095 2005-03-27 15:38:49Z edwin $
+   $Id: typeinfo.c 2161 2005-03-30 20:08:53Z twisti $
 
 */
 
@@ -375,11 +375,11 @@ bool
 classinfo_implements_interface(classinfo *cls,classinfo *interf)
 {
 	if (!cls->loaded)
-		if (!class_load(cls))
+		if (!load_class_bootstrap(cls))
 			return false;
 
 	if (!cls->linked)
-		if (!class_link(cls))
+		if (!link_class(cls))
 			return false;
 
     if (cls->flags & ACC_INTERFACE) {
@@ -465,10 +465,10 @@ typeinfo_is_assignable_to_classinfo(typeinfo *value,classinfo *dest)
 
 	/* maybe we need to load and link the class */
 	if (!cls->loaded)
-		class_load(cls);
+		load_class_bootstrap(cls);
 
 	if (!cls->linked)
-		class_link(cls);
+		link_class(cls);
 
 #ifdef TYPEINFO_DEBUG
     if (!dest->linked)
@@ -574,10 +574,10 @@ typeinfo_init_from_descriptor(typeinfo *info,char *utf_ptr,char *end_ptr)
 
 	if (cls) {
 		if (!cls->loaded)
-			class_load(cls);
+			load_class_bootstrap(cls);
 
 		if (!cls->linked)
-			class_link(cls);
+			link_class(cls);
 
 		/* a class, interface or array descriptor */
 		TYPEINFO_INIT_CLASSINFO(*info,cls);
@@ -638,10 +638,10 @@ typeinfo_init_from_method_args(utf *desc,u1 *typebuf,typeinfo *infobuf,
 		
 		if (cls) {
 			if (!cls->loaded)
-				class_load(cls);
+				load_class_bootstrap(cls);
 
 			if (!cls->linked)
-				class_link(cls);
+				link_class(cls);
 
 			TYPEINFO_INIT_CLASSINFO(*infobuf, cls);
 
@@ -670,10 +670,10 @@ typeinfo_init_from_method_args(utf *desc,u1 *typebuf,typeinfo *infobuf,
 		if (returntypeinfo) {
 			if (cls) {
 				if (!cls->loaded)
-					class_load(cls);
+					load_class_bootstrap(cls);
 
 				if (!cls->linked)
-					class_link(cls);
+					link_class(cls);
 
 				TYPEINFO_INIT_CLASSINFO(*returntypeinfo, cls);
 
@@ -710,10 +710,10 @@ typedescriptors_init_from_method_args(typedescriptor *td,
 		
 		if (cls) {
 			if (!cls->loaded)
-				class_load(cls);
+				load_class_bootstrap(cls);
 
 			if (!cls->linked)
-				class_link(cls);
+				link_class(cls);
 
 			TYPEINFO_INIT_CLASSINFO(td->info, cls);
 			
@@ -740,10 +740,10 @@ typedescriptors_init_from_method_args(typedescriptor *td,
 												| CLASSLOAD_CHECKEND);
 		if (cls) {
 			if (!cls->loaded)
-				class_load(cls);
+				load_class_bootstrap(cls);
 
 			if (!cls->linked)
-				class_link(cls);
+				link_class(cls);
 
 			TYPEINFO_INIT_CLASSINFO(returntype->info,cls);
 
@@ -1045,20 +1045,20 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 
 	/* check clsx */
 	if (!clsx->loaded)
-		if (!class_load(clsx))
+		if (!load_class_bootstrap(clsx))
 			return false;
 
 	if (!clsx->linked)
-		if (!class_link(clsx))
+		if (!link_class(clsx))
 			return false;
 
 	/* check clsy */
 	if (!clsy->loaded)
-		if (!class_load(clsy))
+		if (!load_class_bootstrap(clsy))
 			return false;
 
 	if (!clsy->linked)
-		if (!class_link(clsy))
+		if (!link_class(clsy))
 			return false;
 
     /* Common case: clsx == clsy */
