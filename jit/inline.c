@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1472 2004-11-09 15:56:54Z carolyn $
+   $Id: inline.c 1474 2004-11-11 10:09:10Z carolyn $
 
 */
 
@@ -89,6 +89,13 @@ void inlining_setup(methodinfo *m, t_inlining_globals *inline_env)
 {
 /*    	t_inlining_globals *inline_env = DNEW(t_inlining_globals); */
         inlining_init0(m,inline_env);
+
+/* define in options.h; Used in main.c, jit.c & inline.c */
+#ifdef INAFTERMAIN
+if ((utf_new_char("main") == m->name) && (useinliningm))
+  	useinlining = true;
+#endif
+
 if (useinlining)
         {
 if (DEBUGi==true) {
@@ -489,7 +496,8 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 			case JAVA_INVOKEVIRTUAL:
 				if (!inlinevirtuals)
 					break;
-log_text("\nINLINE INVOKEVIRTUAL :\t");
+			 /*log_text("\nINLINE INVOKEVIRTUAL :\t");*/
+			case JAVA_INVOKESPECIAL:
 			case JAVA_INVOKESTATIC:
 				i = code_get_u2(p + 1,m);
 				{
@@ -517,6 +525,9 @@ log_text("\nINLINE INVOKEVIRTUAL :\t");
 					if (!imi)
 						panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 
+					if ( (utf_new_char("<init>")   == imi->name) ||
+					     (utf_new_char("<clinit>") == imi->name)) break; 
+
 					if (opcode == JAVA_INVOKEVIRTUAL) {
 						vcnt = is_unique_method2(imi->class, imi, imr->name, imr->descriptor);
                                                 if (vcnt == 1) {
@@ -524,8 +535,7 @@ log_text("\nINLINE INVOKEVIRTUAL :\t");
                                                   imi1 = get_unique_method2(imi->class, imi, imr->name, imr->descriptor);
                                                   if (imi1 != NULL) {
                                                         imi = imi1;
-                                                        log_text("WAS unique virtual\t");
-                        								/*if (utf_new_char("foo") == imi->name) hardcode test */
+                                                        /*log_text("WAS unique virtual\t");*/
                                                         /**/ uniqueVirt=true; /* comment out to permanently turn off inlining virtuals*/
                                                         }
                                                    } /* end if vcnt */
@@ -540,7 +550,7 @@ log_text("\nINLINE INVOKEVIRTUAL :\t");
 						(inlineoutsiders || (m->class == imr->class)) && 
 						(imi->jcodelength < INLINING_MAXCODESIZE) && 
 						(imi->jcodelength > 0) && 
-					       ((!inlinevirtuals)  || (uniqueVirt)) &&
+					       (((!inlinevirtuals)  || (uniqueVirt)) || (opcode != JAVA_INVOKEVIRTUAL)) &&
 						(inlineexceptions || (imi->exceptiontablelength == 0))) { //FIXME: eliminate empty methods?
 						inlining_methodinfo *tmp;
 						descriptor2types(imi);
@@ -555,6 +565,17 @@ log_text("\nINLINE INVOKEVIRTUAL :\t");
 							utf_sprint(logtext + strlen(logtext), imi->name);
 							utf_sprint(logtext + strlen(logtext), imi->descriptor);
 							log_text(logtext);
+							
+							if ( (!(opcode == JAVA_INVOKEVIRTUAL)) &&
+							     (! ( (imi->flags & ACC_STATIC )
+                                     			     ||   (imi->flags & ACC_PRIVATE)
+                                     			     ||   (imi->flags & ACC_FINAL  ))) )
+							   {
+							   printf("DEBUG WARNING:PROBABLE INLINE PROBLEM flags not static, private or final for non-virtual inlined method\n"); fflush(stdout);
+							   METHINFO(imi);
+							   log_text("PROBABLE INLINE PROBLEM flags not static, private or final for non-virtual inlined method\n See method info after DEBUG WARNING\n");
+							   }
+
 						}
 						
 						tmp =inlining_analyse_method(imi, level + 1, gp, firstlocal + m->maxlocals, maxstackdepth + m->maxstack, inline_env);

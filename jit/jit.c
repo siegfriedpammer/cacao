@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1466 2004-11-08 11:24:50Z twisti $
+   $Id: jit.c 1474 2004-11-11 10:09:10Z carolyn $
 
 */
 
@@ -1457,6 +1457,12 @@ methodptr jit_compile(methodinfo *m)
 		compilingtime_stop();
 
 	jitrunning = false;
+
+        /* define in options.h; Used in main.c, jit.c & inline.c */
+	#ifdef INAFTERMAIN
+	if ((utf_new_char("main") == m->name) && (useinliningm))
+        	useinlining = false;
+	#endif
 
 	/* leave the monitor */
 

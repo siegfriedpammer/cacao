@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1473 2004-11-10 10:33:59Z carolyn $
+   $Id: main.c 1474 2004-11-11 10:09:10Z carolyn $
 
 */
 
@@ -558,7 +558,13 @@ int main(int argc, char **argv)
 			for (j = 0; j < strlen(opt_arg); j++) {		
 				switch (opt_arg[j]) {
 				case 'n':
+				     /* define in options.h; Used in main.c, jit.c & inline.c */
+			             #ifdef INAFTERMAIN
+					useinliningm = true;
+					useinlining = false;
+				     #else
 					useinlining = true;
+				     #endif
 					break;
 				case 'v':
 					inlinevirtuals = true;
