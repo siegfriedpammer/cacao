@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 941 2004-03-06 17:27:56Z jowenn $
+   $Id: parse.c 942 2004-03-06 17:32:16Z jowenn $
 
 */
 
@@ -607,13 +607,14 @@ void parse()
 		/* mark this position as a valid instruction start */
 		if (!iswide) {
 			instructionstart[p] = 1;
+			/*log_text("new start of instruction");*/
 			if (linepcchange==p) {
 				if (jlinenumbercount>lineindex) {
 					currentline=jlinenumbers[lineindex].line_number;
 					lineindex++;
 					if (lineindex<jlinenumbercount)
 						linepcchange=jlinenumbers[lineindex].start_pc;
-/*					printf("Line number changed to: %ld\n",currentline);*/
+					/*printf("Line number changed to: %ld\n",currentline);*/
 				}
 			}
 		}

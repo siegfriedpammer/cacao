@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 941 2004-03-06 17:27:56Z jowenn $
+   $Id: jit.h 942 2004-03-06 17:32:16Z jowenn $
 
 */
 
@@ -113,7 +113,7 @@ struct instruction {
 	void *target;			/* used for targets of branches and jumps	  */
 					/* and as address for list of targets for	  */
 					/* statements					*/
-	u2 line				/* line number in source file */
+	u2 line;				/* line number in source file */
 };
 
 
@@ -896,8 +896,8 @@ extern int maxstack;            /* maximal JavaVM stack size                  */
 extern int maxlocals;           /* maximal number of local JavaVM variables   */
 extern int jcodelength;         /* length of JavaVM-codes                     */
 extern u1 *jcode;               /* pointer to start of JavaVM-code            */
-lineinfo *jlinenumbers;         /* line information array                     */
-u2 jlinenumbercount;            /* number of entries in the linenumber array  */
+extern lineinfo *jlinenumbers;         /* line information array                     */
+extern u2 jlinenumbercount;            /* number of entries in the linenumber array  */
 extern int exceptiontablelength;/* length of exception table                  */
 extern xtable *extable;         /* pointer to start of exception table        */
 extern exceptiontable *raw_extable;
