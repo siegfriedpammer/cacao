@@ -84,7 +84,6 @@
 /********************* exported functions and variables ***********************/
 
 	.globl has_no_x_instr_set
-	.globl my_bpt
 	.globl synchronize_caches
 	.globl asm_calljavamethod
 	.globl asm_calljavafunction
@@ -136,12 +135,6 @@ has_no_x_instr_set:
 	jmp     zero,(ra)                 /* return                               */
 
 	.end    has_no_x_instr_set
-
-	.ent my_bpt
-my_bpt:
-    call_pal 128
-	jmp zero,(ra)
-	.end my_bpt
 
 
 /********************* function synchronize_caches ****************************/

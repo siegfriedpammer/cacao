@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 474 2003-10-04 18:55:10Z stefan $
+	Last Change: $Id: ngen.c 475 2003-10-04 18:59:36Z stefan $
 
 *******************************************************************************/
 
@@ -276,15 +276,11 @@ void init_exceptions(void)
 {
 /* initialize floating point control */
 
-#if 0
 ieee_set_fp_control(ieee_get_fp_control()
                     & ~IEEE_TRAP_ENABLE_INV
                     & ~IEEE_TRAP_ENABLE_DZE
 /*                  & ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
-                    & ~IEEE_TRAP_ENABLE_INE
-                    & ~IEEE_TRAP_ENABLE_DNO
                     & ~IEEE_TRAP_ENABLE_OVF);
-#endif
 #endif
 
 	/* install signal handlers we need to convert to exceptions */
@@ -301,16 +297,6 @@ ieee_set_fp_control(ieee_get_fp_control()
 		}
 }
 
-
-void print_float(double d)
-{
-	static int count;
-	int *i1 = (int*) &d;
-//	printf("%d %08x %08x\n", ++count, i1[1], i1[0]);
-	char buf[30];
-	sprintf(buf, "%g", d);
-	printf("%d %s\n", ++count, buf+1);
-}
 
 /* function gen_mcode **********************************************************
 
@@ -333,8 +319,6 @@ void print_float(double d)
 #define     ExHandlerPC     -24
 #define     ExCatchType     -32
 
-void my_bpt();
-
 static void gen_mcode()
 {
 	int  len, s1, s2, s3, d, bbs;
@@ -348,10 +332,6 @@ static void gen_mcode()
 
 	{
 	int p, pa, t, l, r;
-	static int mcount;
-
-	if (++mcount == 99) {
-	}
 
 	savedregs_num = (isleafmethod) ? 0 : 1;           /* space to save the RA */
 
@@ -755,107 +735,15 @@ static void gen_mcode()
 		case ICMD_DLOAD:      /* op1 = local variable                         */
 
 			d = reg_of_var(iptr->dst, REG_FTMP1);
-#if 1
 			if ((iptr->dst->varkind == LOCALVAR) &&
 			    (iptr->dst->varnum == iptr->op1))
 				break;
-#endif
 			var = &(locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
 			if (var->flags & INMEMORY)
 				M_DLD(d, REG_SP, 8 * var->regoff);
 			else
 				{M_FLTMOVE(var->regoff,d);}
 			store_reg_to_var_flt(iptr->dst, d);
-
-#if 0
-			M_LDA(REG_SP, REG_SP, -8 * 38);
-			M_LST(REG_RA, REG_SP, 0);
-			M_LST(1, REG_SP, 8 * 1);
-			M_LST(2, REG_SP, 8 * 2);
-			M_LST(3, REG_SP, 8 * 3);
-			M_LST(4, REG_SP, 8 * 4);
-			M_LST(5, REG_SP, 8 * 5);
-			M_LST(6, REG_SP, 8 * 6);
-			M_LST(7, REG_SP, 8 * 7);
-			M_LST(8, REG_SP, 8 * 8);
-			M_LST(16, REG_SP, 8 * 9);
-			M_LST(17, REG_SP, 8 * 10);
-			M_LST(18, REG_SP, 8 * 11);
-			M_LST(19, REG_SP, 8 * 12);
-			M_LST(20, REG_SP, 8 * 13);
-			M_LST(21, REG_SP, 8 * 14);
-			M_LST(22, REG_SP, 8 * 15);
-			M_LST(23, REG_SP, 8 * 16);
-			M_LST(24, REG_SP, 8 * 17);
-			M_LST(REG_PV, REG_SP, 8 * 18);
-
-			M_DST(1, REG_SP, 8 * 19);
-			M_DST(10, REG_SP, 8 * 20);
-			M_DST(11, REG_SP, 8 * 21);
-			M_DST(12, REG_SP, 8 * 22);
-			M_DST(13, REG_SP, 8 * 23);
-			M_DST(14, REG_SP, 8 * 24);
-			M_DST(15, REG_SP, 8 * 25);
-			M_DST(16, REG_SP, 8 * 26);
-			M_DST(17, REG_SP, 8 * 27);
-			M_DST(18, REG_SP, 8 * 28);
-			M_DST(19, REG_SP, 8 * 29);
-			M_DST(20, REG_SP, 8 * 30);
-			M_DST(21, REG_SP, 8 * 31);
-			M_DST(22, REG_SP, 8 * 32);
-			M_DST(23, REG_SP, 8 * 33);
-			M_DST(24, REG_SP, 8 * 34);
-			M_DST(25, REG_SP, 8 * 35);
-			M_DST(26, REG_SP, 8 * 36);
-			M_DST(27, REG_SP, 8 * 37);
-
-			M_FLTMOVE(d, 16);
-			a = dseg_addaddress (print_float);
-			M_ALD(REG_PV, REG_PV, a);
-			M_JSR(REG_RA, REG_PV);
-			
-			M_LLD(REG_RA, REG_SP, 0);
-			M_LLD(1, REG_SP, 8 * 1);
-			M_LLD(2, REG_SP, 8 * 2);
-			M_LLD(3, REG_SP, 8 * 3);
-			M_LLD(4, REG_SP, 8 * 4);
-			M_LLD(5, REG_SP, 8 * 5);
-			M_LLD(6, REG_SP, 8 * 6);
-			M_LLD(7, REG_SP, 8 * 7);
-			M_LLD(8, REG_SP, 8 * 8);
-			M_LLD(16, REG_SP, 8 * 9);
-			M_LLD(17, REG_SP, 8 * 10);
-			M_LLD(18, REG_SP, 8 * 11);
-			M_LLD(19, REG_SP, 8 * 12);
-			M_LLD(20, REG_SP, 8 * 13);
-			M_LLD(21, REG_SP, 8 * 14);
-			M_LLD(22, REG_SP, 8 * 15);
-			M_LLD(23, REG_SP, 8 * 16);
-			M_LLD(24, REG_SP, 8 * 17);
-			M_LLD(REG_PV, REG_SP, 8 * 18);
-
-			M_DLD(1, REG_SP, 8 * 19);
-			M_DLD(10, REG_SP, 8 * 20);
-			M_DLD(11, REG_SP, 8 * 21);
-			M_DLD(12, REG_SP, 8 * 22);
-			M_DLD(13, REG_SP, 8 * 23);
-			M_DLD(14, REG_SP, 8 * 24);
-			M_DLD(15, REG_SP, 8 * 25);
-			M_DLD(16, REG_SP, 8 * 26);
-			M_DLD(17, REG_SP, 8 * 27);
-			M_DLD(18, REG_SP, 8 * 28);
-			M_DLD(19, REG_SP, 8 * 29);
-			M_DLD(20, REG_SP, 8 * 30);
-			M_DLD(21, REG_SP, 8 * 31);
-			M_DLD(22, REG_SP, 8 * 32);
-			M_DLD(23, REG_SP, 8 * 33);
-			M_DLD(24, REG_SP, 8 * 34);
-			M_DLD(25, REG_SP, 8 * 35);
-			M_DLD(26, REG_SP, 8 * 36);
-			M_DLD(27, REG_SP, 8 * 37);
-			M_LDA(REG_SP, REG_SP, 8 * 38);
-#endif
-
 			break;
 
 
