@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 1927 2005-02-10 10:50:55Z twisti $
+   $Id: typeinfo.c 2088 2005-03-25 20:15:05Z edwin $
 
 */
 
@@ -238,7 +238,8 @@ typevector_merge(typevector *dst,typevector *y,int size)
 	return changed;
 }
 
-bool typevector_separable_from(typevector *a,typevector *b,int size)
+bool 
+typevector_separable_from(typevector *a,typevector *b,int size)
 {
 	typedescriptor *tda = a->td;
 	typedescriptor *tdb = b->td;
@@ -1211,12 +1212,6 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
     if (!dest->typeclass || !y->typeclass)
         typeinfo_merge_error("Trying to merge primitive types.",dest,y);
 
-#ifdef TYPEINFO_DEBUG
-    /* check that no unlinked classes are merged. */
-    if (!dest->typeclass->linked || !y->typeclass->linked)
-        typeinfo_merge_error("Trying to merge unlinked class(es).",dest,y);
-#endif
-
     /* handle uninitialized object types */
     /* XXX is there a way we could put this after the common case? */
     if (TYPEINFO_IS_NEWOBJECT(*dest) || TYPEINFO_IS_NEWOBJECT(*y)) {
@@ -1242,6 +1237,12 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
         return changed;
     }
     
+#ifdef TYPEINFO_DEBUG
+    /* check that no unlinked classes are merged. */
+    if (!dest->typeclass->linked || !y->typeclass->linked)
+        typeinfo_merge_error("Trying to merge unlinked class(es).",dest,y);
+#endif
+
     /* DEBUG */ /* log_text("Handling null types"); */
 
     /* Handle null types: */
