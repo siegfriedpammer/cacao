@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 285 2003-05-12 20:05:38Z carolyn $
+	Last Change: $Id: parse.c 288 2003-05-12 20:41:31Z twisti $
                      include Rapid Type Analysis parse - 5/2003 - carolyn
 
 
@@ -308,7 +308,7 @@ static void parse()
 	
 	/* 1 additional for end ipc and 3 for loop unrolling */
 	
-	block_index = DMNEW(int, jcodelength + 3);
+	block_index = DMNEW(int, jcodelength + 4);
 
 	/* 1 additional for TRACEBUILTIN and 4 for MONITORENTER/EXIT */
 	/* additional MONITOREXITS are reached by branches which are 3 bytes */
@@ -638,7 +638,11 @@ static void parse()
 					s_count++;
 					LOADCONST_A(class_getconstant(class, i,
 					                              CONSTANT_Arraydescriptor));
+#ifdef __I386__
+					BUILTIN2((functionptr) asm_builtin_newarray_array, TYPE_ADR);
+#else
 					BUILTIN2((functionptr)builtin_newarray_array, TYPE_ADR);
+#endif
 					}
 				else {
 				 	LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
@@ -1001,11 +1005,20 @@ static void parse()
 				break;
 
 			case JAVA_FREM:
+#ifdef __I386__
+/*  				BUILTIN2((functionptr) asm_builtin_frem, TYPE_FLOAT); */
+  				OP(opcode);
+#else
 				BUILTIN2((functionptr) builtin_frem, TYPE_FLOAT);
+#endif
 				break;
 
 			case JAVA_DREM:
+#ifdef __I386__
+				OP(opcode);
+#else
 				BUILTIN2((functionptr) builtin_drem, TYPE_DOUBLE);
+#endif
 				break;
 
 			case JAVA_F2I:
