@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1502 2004-11-12 18:32:57Z motse $
+   $Id: codegen.inc 1503 2004-11-14 12:58:52Z twisti $
 
 */
 
@@ -932,6 +932,8 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
   char *nativeName, *nativeNameEscape;
   size_t nativeLen;
   size_t i;
+	void *lib;
+	void *sym;
 
   builtin_monitorenter((java_objectheader*) m);
   if ((*jmpPatchTarget)==jmpTarget) {
@@ -942,7 +944,7 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
   utf_display(m->class->name);
   utf_display(m->name);
   
-  void *lib=dlopen(0,RTLD_NOW | RTLD_GLOBAL);
+  lib=dlopen(0,RTLD_NOW | RTLD_GLOBAL);
   if (lib) {
     int ok=0;
     /*generate the name of the native function in the form Java_package1_package2...._classname_methodname*/
@@ -968,7 +970,7 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
 
 /*	printf("nativename: %s\n",nativeName); */
 
-    void *sym=dlsym(lib,nativeName);
+    sym=dlsym(lib,nativeName);
     if (sym) {
       ok=1;
       log_text("resolved");
