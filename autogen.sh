@@ -2,9 +2,8 @@
 
 aclocal
 autoheader
-automake --add-missing --include-deps
+automake --add-missing
 autoconf
 
 cd mm/boehm-gc && ./autogen.sh && cd ../..
-cd classpath && rm -f configure configure_int &&./autogen.sh && mv configure configure_int && cp cacaoconfigure configure && cd ../..
-
+cd classpath && ./autogen.sh && cd ../..

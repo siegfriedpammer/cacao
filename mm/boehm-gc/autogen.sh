@@ -2,6 +2,5 @@
 
 aclocal
 autoheader
-automake --add-missing --include-deps
+automake --add-missing
 autoconf
-
