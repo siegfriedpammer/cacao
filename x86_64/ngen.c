@@ -12,7 +12,7 @@
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 			 Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 521 2003-10-22 21:03:31Z twisti $
+	Last Change: $Id: ngen.c 533 2003-10-27 21:45:48Z twisti $
 
 *******************************************************************************/
 
@@ -3416,6 +3416,12 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			x86_64_cvttss2si_reg_reg(s1, d);
+			x86_64_alul_imm_reg(X86_64_CMP, 0x80000000, d);    /* corner cases */
+			x86_64_jcc(X86_64_CC_NE, ((s1 > 7) ? 5 : 4) + 10 + 3 + ((REG_RESULT == d) ? 0 : 3));
+			x86_64_movq_reg_reg(s1, argfltregs[0]);
+			x86_64_mov_imm_reg((s8) builtin_f2i, REG_ITMP2);
+			x86_64_call_reg(REG_ITMP2);
+			M_INTMOVE(REG_RESULT, d);
   			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -3424,6 +3430,12 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			x86_64_cvttsd2si_reg_reg(s1, d);
+			x86_64_alul_imm_reg(X86_64_CMP, 0x80000000, d);    /* corner cases */
+			x86_64_jcc(X86_64_CC_NE, ((s1 > 7) ? 5 : 4) + 10 + 3 + ((REG_RESULT == d) ? 0 : 3));
+			x86_64_movq_reg_reg(s1, argfltregs[0]);
+			x86_64_mov_imm_reg((s8) builtin_d2i, REG_ITMP2);
+			x86_64_call_reg(REG_ITMP2);
+			M_INTMOVE(REG_RESULT, d);
   			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -3432,6 +3444,13 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			x86_64_cvttss2siq_reg_reg(s1, d);
+			x86_64_mov_imm_reg(0x8000000000000000, REG_ITMP2);
+			x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP2, d);     /* corner cases */
+			x86_64_jcc(X86_64_CC_NE, ((s1 > 7) ? 5 : 4) + 10 + 3 + ((REG_RESULT == d) ? 0 : 3));
+			x86_64_movq_reg_reg(s1, argfltregs[0]);
+			x86_64_mov_imm_reg((s8) builtin_f2l, REG_ITMP2);
+			x86_64_call_reg(REG_ITMP2);
+			M_INTMOVE(REG_RESULT, d);
   			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -3440,6 +3459,13 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			x86_64_cvttsd2siq_reg_reg(s1, d);
+			x86_64_mov_imm_reg(0x8000000000000000, REG_ITMP2);
+			x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP2, d);     /* corner cases */
+			x86_64_jcc(X86_64_CC_NE, ((s1 > 7) ? 5 : 4) + 10 + 3 + ((REG_RESULT == d) ? 0 : 3));
+			x86_64_movq_reg_reg(s1, argfltregs[0]);
+			x86_64_mov_imm_reg((s8) builtin_d2l, REG_ITMP2);
+			x86_64_call_reg(REG_ITMP2);
+			M_INTMOVE(REG_RESULT, d);
   			store_reg_to_var_int(iptr->dst, d);
 			break;
 
