@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 2014 2005-03-08 06:27:57Z christian $
+   $Id: lsra.h 2024 2005-03-10 08:15:44Z christian $
 
 */
 
@@ -115,6 +115,14 @@ struct stackslot {
 	struct stackslot *next;
 };
 
+struct lsra_register {
+	int *sav_reg;
+	int *tmp_reg;
+	int *nregdesc;
+	int sav_top;
+	int tmp_top;
+};
+
 struct lsra_reg {
 	int reg_index;
 	int use;
@@ -175,6 +183,9 @@ void print_lifetimes(registerdata *, lsradata *, struct lifetime *);
 #endif
 
 
+void lsra_reg_setup(methodinfo *m ,registerdata *,struct lsra_register *,struct lsra_register * );
+
+
 void lsra_scan_registers_canditates(methodinfo *,  lsradata *, int);
 
 void lsra_join_lifetimes( methodinfo *, lsradata *, int);
@@ -189,12 +200,12 @@ void lsra_usage_local(lsradata *, s4 , int , int , int , int );
 void lsra_new_local(lsradata *, s4 , int );
 
 void lsra_sort_lt(struct lifetime **);
-void _lsra_main( methodinfo *, lsradata *, struct lifetime *, struct lsra_reg *, int , int , int *, int *);
-void lsra_expire_old_intervalls(lsradata *, struct lifetime *, struct lsra_reg *);
-void _lsra_expire_old_intervalls(struct lifetime *, struct lsra_reg *, struct active_lt **, int *);
-void spill_at_intervall(lsradata *, struct lifetime *);
-void _spill_at_intervall(struct lifetime *, struct active_lt **, int *);
-void lsra_add_active(struct lifetime *, struct active_lt **, int *);
+void _lsra_main( methodinfo *, lsradata *, struct lifetime *, struct lsra_register *, int *);
+void lsra_expire_old_intervalls(methodinfo *, lsradata *, struct lifetime *, struct lsra_register *);
+void _lsra_expire_old_intervalls(methodinfo *, struct lifetime *, struct lsra_register *, struct active_lt **/* , int * */);
+void spill_at_intervall(methodinfo *, lsradata *, struct lifetime *);
+void _spill_at_intervall(struct lifetime *, struct active_lt **);
+void lsra_add_active(struct lifetime *, struct active_lt **);
 void lsra_alloc(methodinfo *, registerdata *, struct lifetime *, int *);
 int lsra_getmem(struct lifetime *, struct freemem *, int *);
 struct freemem *lsra_getnewmem(int *);

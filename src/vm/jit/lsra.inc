@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 2014 2005-03-08 06:27:57Z christian $
+   $Id: lsra.inc 2024 2005-03-10 08:15:44Z christian $
 
 */
 #include <stdio.h>
@@ -721,21 +721,131 @@ void lsra_join_lifetimes(methodinfo *m, lsradata *ls, int b_index) {
 	}
 }
 
+void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_reg,struct lsra_register *flt_reg ) {
+	int i, iarg, farg;
+	int int_sav_top;
+	int flt_sav_top;
+
+	bool *fltarg_used, *intarg_used;
+
+	int_reg->nregdesc = nregdescint;
+	flt_reg->nregdesc = nregdescfloat;
+
+	if (m->isleafmethod) { 
+/* Temp and Argumentregister can be used as "saved" registers                           */
+		int_reg->sav_top = rd->intreg_argnum + rd->tmpintregcnt + rd->savintregcnt;
+		int_reg->sav_reg = DMNEW(int, int_reg->sav_top);
+		int_reg->tmp_reg = NULL;
+		int_reg->tmp_top = -1;
+		flt_reg->sav_top = rd->fltreg_argnum + rd->tmpfltregcnt + rd->savfltregcnt;
+		flt_reg->sav_reg = DMNEW(int, flt_reg->sav_top);
+		flt_reg->tmp_reg = NULL;
+		flt_reg->tmp_top = -1;
+
+
+/* additionaly precolour registers for Local Variables acting as Parameters */
+
+		farg = rd->fltreg_argnum;
+		iarg = rd->intreg_argnum;
+
+		intarg_used = DMNEW(bool, rd->intreg_argnum);
+		for (i=0; i < rd->intreg_argnum; i++)
+			intarg_used[i]=false;
+
+		fltarg_used = DMNEW(bool, rd->fltreg_argnum);
+		for (i=0; i < rd->fltreg_argnum; i++)
+			fltarg_used[i]=false;
+
+		int_sav_top=int_reg->sav_top;
+		flt_sav_top=flt_reg->sav_top;
+
+		iarg = -1;
+		farg = -1;
+
+		for (i=0; (i < m->paramcount) && ((farg < rd->fltreg_argnum) ||(iarg < rd->intreg_argnum) ); i++)
+			switch (m->paramtypes[i]) {
+			case TYPE_INT:
+			case TYPE_ADR:
+#ifndef __i386__
+			case TYPE_LNG: /* i386->longs stay in Memory */
+#endif
+				iarg++;
+#ifndef CONSECUTIVE_FLOATARGS
+				farg++;
+#endif
+				if (iarg < rd->intreg_argnum) {
+					int_reg->sav_reg[--int_sav_top]=rd->argintregs[iarg];
+					intarg_used[iarg]=true; /* used -> don't copy later on */
+				}
+				break;
+			case TYPE_FLT:
+#ifndef __i386__
+			case TYPE_DBL: /* i386->longs stay in Memory */
+#endif
+				farg++;
+#ifndef CONSECUTIVE_INTARGS
+				iarg++;
+#endif
+				if (farg < rd->fltreg_argnum) {
+					flt_reg->sav_reg[--flt_sav_top]=rd->argfltregs[farg];
+					fltarg_used[farg]=true; /* used -> don't copy later on */
+				}
+				break;
+			}
+		/* copy rest of argument registers to flt_reg->sav_reg and int_reg->sav_reg; */
+		for (i=0; i < rd->intreg_argnum; i++)
+			if (!intarg_used[i])
+				int_reg->sav_reg[--int_sav_top]=rd->argintregs[i];
+		for (i=0; i < rd->fltreg_argnum; i++)
+			if (!fltarg_used[i])
+				flt_reg->sav_reg[--flt_sav_top]=rd->argfltregs[i];
+
+		/* copy temp registers to flt_reg->sav_reg and int_reg->sav_reg */
+		for (i=0; i < rd->tmpintregcnt; i++)
+			int_reg->sav_reg[--int_sav_top]=rd->tmpintregs[i];
+		for (i=0; i < rd->tmpfltregcnt; i++)
+			flt_reg->sav_reg[--flt_sav_top]=rd->tmpfltregs[i];
+
+	} else {
+		/* non leaf method -> don't use Argument Registers, divide temp and saved registers */
+		int_sav_top = int_reg->sav_top = rd->savintregcnt;
+		int_reg->sav_reg = DMNEW(int, int_reg->sav_top);
+		int_reg->tmp_top = rd->tmpintregcnt;
+		int_reg->tmp_reg = DMNEW(int, int_reg->tmp_top);
+		flt_sav_top =flt_reg->sav_top = rd->savfltregcnt;
+		flt_reg->sav_reg = DMNEW(int, flt_reg->sav_top);
+		flt_reg->tmp_top = rd->tmpfltregcnt;
+		flt_reg->tmp_reg = DMNEW(int, flt_reg->tmp_top);
+
+		/* copy temp registers to flt_reg->tmp_reg and int_reg->tmp_reg */
+		for (i=0; i < rd->tmpintregcnt; i++)
+			int_reg->tmp_reg[i]=rd->tmpintregs[i];
+		for (i=0; i < rd->tmpfltregcnt; i++)
+			flt_reg->tmp_reg[i]=rd->tmpfltregs[i];
+	}
+
+	/* now copy saved registers to flt_reg->sav_reg and int_reg->sav_reg */
+	for (i = rd->savintregcnt-1; i >= 0; i--)
+		int_reg->sav_reg[--int_sav_top]=rd->savintregs[i];
+	for (i = rd->savfltregcnt-1; i >= 0; i--)
+		flt_reg->sav_reg[--flt_sav_top]=rd->savfltregs[i];
+	/* done */
+}
+
+
 void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 {
 	struct lifetime *lt, *lt_prev, *lt_temp, *int_lt, *int_lt_last, *flt_lt, *flt_lt_last;
 #ifdef LSRA_DEBUG
 	int lt_count,lt_int_count,lt_flt_count,lt_left_count;
-#endif
 	int i;
+#endif
 	int lsra_mem_use;
-	int sav_reg_count, tmp_reg_count;
-	struct lsra_reg *reg;
-	int reg_count;
 /* 	varinfo *v; */
 	int type;
 	int flags; /* 0 INMEMORY->lifetimes, 1 INTREG->int_lt, 2 FLTREG->flt_lt */
 	int lsra_reg_use;
+	struct lsra_register flt_reg, int_reg;
 
 
 	/* first split lifetimes for integer and float registers */
@@ -836,97 +946,33 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 		panic ("lifetimes missing\n");
 	} 
 #endif
+	lsra_reg_setup(m, rd, &int_reg, &flt_reg);
+
+#ifdef LSRA_DEBUG
+	printf("INTSAV REG: ");
+	for (i=0; i<int_reg.sav_top; i++)
+		printf("%2i ",int_reg.sav_reg[i]);
+	printf("\nINTTMP REG: ");
+	for (i=0; i<int_reg.tmp_top; i++)
+		printf("%2i ",int_reg.tmp_reg[i]);
+	printf("\nFLTSAV REG: ");
+	for (i=0; i<flt_reg.sav_top; i++)
+		printf("%2i ",flt_reg.sav_reg[i]);
+	printf("\nFLTTMP REG: ");
+	for (i=0; i<flt_reg.tmp_top; i++)
+		printf("%2i ",flt_reg.tmp_reg[i]);
+	printf("\n");
+#endif
 	lsra_reg_use=rd->savintregcnt;
 	if (int_lt!=NULL) {
-		for (reg_count = 0; nregdescint[reg_count] != REG_END; reg_count++);
-
-		reg=DMNEW(struct lsra_reg,reg_count);
-		sav_reg_count=0;
-		for (i=0; i<reg_count ; i++) {
-			if (sav_reg_count >= MAX_SAV_REG_COUNT)
-				break;
-			if (nregdescint[i]==REG_SAV) {
-				reg[sav_reg_count].reg_index=i;
-				reg[sav_reg_count].use=0;
-				sav_reg_count++;
-			}
-		}
-		tmp_reg_count=sav_reg_count;
-		for (i=0; i<reg_count ; i++) {
-#if defined(__I386__)
-			if (i==ECX) continue;
-			if (i==EDX) continue;
-#endif
-			if ((tmp_reg_count-sav_reg_count) >= MAX_TMP_REG_COUNT)
-				break;
-			if (nregdescint[i]==REG_TMP) {
-				reg[tmp_reg_count].reg_index=i;
-				reg[tmp_reg_count].use=0;
-				tmp_reg_count++;
-			}
-		}
-		if (m->isleafmethod) {
-			for (i = reg_count-1; i >= 0 ; i--) {
-		   		if ((tmp_reg_count-sav_reg_count) >= MAX_TMP_REG_COUNT)
-		   			break;
-		   		if (nregdescint[i]==REG_ARG) {
-		   			reg[tmp_reg_count].reg_index=i;
-		   			reg[tmp_reg_count].use=0;
-		   			tmp_reg_count++;
-		   		}
-		   	}
-#if defined(__X86_64__)
-			i=reg[tmp_reg_count-1].reg_index;
-			reg[tmp_reg_count-1].reg_index = reg[tmp_reg_count-4].reg_index;
-			reg[tmp_reg_count-4].reg_index = i;
-			i=reg[tmp_reg_count-2].reg_index;
-			reg[tmp_reg_count-2].reg_index = reg[tmp_reg_count-3].reg_index;
-			reg[tmp_reg_count-3].reg_index = i;
-
-#endif
-   		}
-		_lsra_main(m, ls, int_lt, reg, tmp_reg_count, sav_reg_count, &lsra_mem_use, &lsra_reg_use);
+		_lsra_main(m, ls, int_lt, &int_reg, &lsra_reg_use);
 		if (lsra_reg_use > rd->savintregcnt) lsra_reg_use=rd->savintregcnt;
 	}
 	rd->maxsavintreguse= lsra_reg_use;
 	lsra_reg_use=rd->savfltregcnt;
 
 	if (flt_lt!=NULL){
-		for (reg_count = 0; nregdescfloat[reg_count] != REG_END; reg_count++);
-
-		reg=DMNEW(struct lsra_reg,reg_count);
-		sav_reg_count=0;
-		for (i=0; i<reg_count ; i++) {
-			if (sav_reg_count >= MAX_SAV_REG_COUNT)
-				break;
-			if ((nregdescfloat[i]==REG_SAV) /* || (m->isleafmethod && (nregdescfloat[i]==REG_ARG)) */) {
-				reg[sav_reg_count].reg_index=i;
-				reg[sav_reg_count].use=0;
-				sav_reg_count++;
-			}
-		}
-
-		tmp_reg_count=sav_reg_count;
-		for (i=0; i<reg_count ; i++) {
-			if ((tmp_reg_count-sav_reg_count) >= MAX_TMP_REG_COUNT)
-				break;
-			if (nregdescfloat[i]==REG_TMP) {
-				reg[tmp_reg_count].reg_index=i;
-				reg[tmp_reg_count].use=0;
-				tmp_reg_count++;
-			}
-		}
-		if (m->isleafmethod)
-			for (i = reg_count-1; i >= 0 ; i--) {
-				if ((tmp_reg_count-sav_reg_count) >= MAX_TMP_REG_COUNT)
-					break;
-				if (nregdescfloat[i]==REG_ARG) {
-					reg[tmp_reg_count].reg_index=i;
-					reg[tmp_reg_count].use=0;
-					tmp_reg_count++;
-				}
-			}
-		_lsra_main(m,ls, flt_lt, reg, tmp_reg_count, sav_reg_count, &lsra_mem_use, &lsra_reg_use);
+		_lsra_main(m,ls, flt_lt, &flt_reg, &lsra_reg_use);
 		if (lsra_reg_use > rd->savfltregcnt) lsra_reg_use=rd->savfltregcnt;
 	}
 
@@ -1087,14 +1133,13 @@ struct freemem *lsra_getnewmem(int *mem_use)
 	return fm;
 }
 
-void _lsra_main( methodinfo *m, lsradata *ls, struct lifetime *lifet, struct lsra_reg *reg, int tmp_reg_count, int sav_reg_count, int *mem_use, int *reg_use)
+void _lsra_main( methodinfo *m, lsradata *ls, struct lifetime *lifet, struct lsra_register *reg, int *reg_use)
 {
 	struct lifetime *lt;
-	int i;
-	int _reg_use;
-	int reg_count, active_count;
+	int reg_index;
+	bool temp; /* reg from temp registers (true) or saved registers (false) */
 	
-	if ((tmp_reg_count+sav_reg_count) == 0) {
+	if ((reg->tmp_top+reg->sav_top) == 0) {
 		for (lt=lifet; lt != NULL; lt=lt->next)
 			lt->reg=-1;
 		return;
@@ -1102,58 +1147,39 @@ void _lsra_main( methodinfo *m, lsradata *ls, struct lifetime *lifet, struct lsr
 
 	ls->active_tmp = NULL;
 	ls->active_sav = NULL;
-	ls->active_tmp_count=0;
-	ls->active_sav_count=0;
-
-#ifdef DONT_COMPILE
-	if (m->isleafmethod) {
-		/* do some precoloring -> all Locals with v_index < m->paramcount */
-		/* precoloring of params */
-		/* Local Vars, which get parameters passed have i_start == -1 and are      */
-		/* at the beginning of the lifetimes list (is sortet by increasing i_start */
-		for (lt=lifet; (lt!=NULL) && (lt->i_start == -1); lt = lt->next) {
-#ifdef LSRA_DEBUG
-			if ((lt->varnum < 0) || (lt->varnum >= m->paramcount))
-				panic("_lsra_main: lifetime <> parameter conflict\n");
-			if (m->paramtypes[lt->varnum] != lt->type)
-				panic("_lsra_main: lifetime <> parameter type conflict\n");
-#endif
-
-		}
-	}
-#endif
 
 	for (lt=lifet; lt != NULL; lt=lt->next) {
-		lsra_expire_old_intervalls(ls, lt,reg);
-		if (lt->savedvar && (!m->isleafmethod)) {
-			reg_count=sav_reg_count;
-			active_count=ls->active_sav_count;
-		}
-		else {
-			reg_count=tmp_reg_count;
-			active_count=ls->active_sav_count+ls->active_tmp_count;
-		}
-		if (active_count == reg_count)
-			spill_at_intervall(ls, lt);
-		else {
-			for (i=reg_count-1;i>=0;i--) {
-				if (reg[i].use==0) {
-					reg[i].use=1;
-					lt->reg=reg[i].reg_index;
-					_reg_use=i;
-					if (_reg_use<*reg_use) *reg_use=_reg_use;
-					break;
-				}
+		lsra_expire_old_intervalls(m, ls, lt, reg);
+		reg_index = -1;
+		temp = false;
+		if (lt->savedvar || m->isleafmethod) { /* -> use Saved Reg (in case of leafmethod all regs are "saved" regs) */
+			if (reg->sav_top > 0) {
+				reg_index = reg->sav_reg[--reg->sav_top];
 			}
-			if (i < sav_reg_count)
-				lsra_add_active(lt, &(ls->active_sav), &(ls->active_sav_count));
+		} else { /* use Temp Reg or if non free a Saved Reg */
+			if (reg->tmp_top > 0) {
+				temp = true;
+				reg_index = reg->tmp_reg[--reg->tmp_top];
+			}
 			else
-				lsra_add_active(lt, &(ls->active_tmp), &(ls->active_tmp_count));
+				if (reg->sav_top > 0)
+					reg_index = reg->sav_reg[--reg->sav_top];
+		}
+		if (reg_index == -1) /* no reg is available anymore... -> spill */
+			spill_at_intervall(m, ls, lt);
+		else {
+			lt->reg = reg_index;
+			if (temp)
+				lsra_add_active(lt, &(ls->active_tmp));
+			else {
+				if (reg->sav_top<*reg_use) *reg_use=reg->sav_top;
+				lsra_add_active(lt, &(ls->active_sav));
+			}
 		}
 	}
 }
 
-void lsra_add_active(struct lifetime *lt, struct active_lt **active, int *active_count)
+void lsra_add_active(struct lifetime *lt, struct active_lt **active)
 {
 	struct active_lt *alt,*alt1,*alt2;
 	alt=DNEW(struct active_lt);
@@ -1169,20 +1195,19 @@ void lsra_add_active(struct lifetime *lt, struct active_lt **active, int *active
 		alt->next = alt2->next;
 		alt2->next = alt;
 	}
-	(*active_count)++;
 }
 
 
-void lsra_expire_old_intervalls(lsradata *ls, struct lifetime *lt, struct lsra_reg *reg)
+void lsra_expire_old_intervalls(methodinfo *m, lsradata *ls, struct lifetime *lt, struct lsra_register *reg)
 {
-	_lsra_expire_old_intervalls(lt, reg, &(ls->active_tmp), &(ls->active_tmp_count));
-	_lsra_expire_old_intervalls(lt, reg, &(ls->active_sav), &(ls->active_sav_count));
+	_lsra_expire_old_intervalls(m, lt, reg, &(ls->active_tmp));
+	_lsra_expire_old_intervalls(m, lt, reg, &(ls->active_sav));
 }
 
-void _lsra_expire_old_intervalls(struct lifetime *lt, struct lsra_reg *reg, struct active_lt **active, int *active_count)
+void _lsra_expire_old_intervalls(methodinfo *m, struct lifetime *lt, struct lsra_register *reg, struct active_lt **active)
 {
 	struct active_lt *alt,*alt1;
-	int i;
+/* 	int i; */
 
 	for (alt1=alt=*active; alt != NULL; alt1=alt, alt=alt->next) {
 		if (alt->lt->i_end >= lt->i_start) return;
@@ -1191,25 +1216,33 @@ void _lsra_expire_old_intervalls(struct lifetime *lt, struct lsra_reg *reg, stru
 		else
 			alt1->next=alt->next;
 
-		for (i=0;reg[i].reg_index != alt->lt->reg;i++);
-		reg[i].use=0;
-		(*active_count)--;
+		/* make alt->lt->reg available again */
+		if (m->isleafmethod) { 
+			/* leafmethod -> don't care about type -> put all again into reg->sav_reg */
+			reg->sav_reg[reg->sav_top++] = alt->lt->reg;
+		} else { 
+			/* no leafmethod -> distinguish between temp and saved register */
+			if ( reg->nregdesc[alt->lt->reg] == REG_SAV)
+				reg->sav_reg[reg->sav_top++] = alt->lt->reg;
+			else
+				reg->tmp_reg[reg->tmp_top++] = alt->lt->reg;
+		}
 	}
 }
 
-void spill_at_intervall(lsradata *ls, struct lifetime *lt )
+void spill_at_intervall(methodinfo *m, lsradata *ls, struct lifetime *lt )
 {
-	if (lt->savedvar)
-		_spill_at_intervall(lt, &(ls->active_sav), &(ls->active_sav_count));
+	if (lt->savedvar || m->isleafmethod)
+		_spill_at_intervall(lt, &(ls->active_sav));
 	else {
-		_spill_at_intervall(lt, &(ls->active_tmp), &(ls->active_tmp_count));
+		_spill_at_intervall(lt, &(ls->active_tmp));
 		if (lt->reg == -1) /* kein tmp mehr frei gewesen */
-			_spill_at_intervall(lt, &(ls->active_sav), &(ls->active_sav_count));
+			_spill_at_intervall(lt, &(ls->active_sav));
 	}
 /* 	if (lt->reg == -2) panic("spill_at_intervall: Keine Register mehr frei gewesen!\n"); */
 }
 
-void _spill_at_intervall(struct lifetime *lt, struct active_lt **active, int *active_count)
+void _spill_at_intervall(struct lifetime *lt, struct active_lt **active)
 {
 	struct active_lt *alt,*alt1;
 	if (*active == NULL) {
@@ -1219,7 +1252,7 @@ void _spill_at_intervall(struct lifetime *lt, struct active_lt **active, int *ac
 	/* get last intervall from active */
 	for (alt1=alt=*active; alt->next != NULL; alt1=alt, alt=alt->next);
 	
-	if ((alt->lt->i_end > lt->i_end) /* || (alt->lt->usagecount < lt->usagecount) */ ) {
+	if ((alt->lt->i_end > lt->i_end)) {
 			lt->reg=alt->lt->reg;
 			alt->lt->reg=-1;
 		
@@ -1227,9 +1260,7 @@ void _spill_at_intervall(struct lifetime *lt, struct active_lt **active, int *ac
 				*active=(*active)->next;
 			else
 				alt1->next=alt->next;
-			/* 		FREE(alt,struct active_lt); */
-			(*active_count)--;
-			lsra_add_active(lt, active, active_count);
+			lsra_add_active(lt, active);
 	} else {
 		lt->reg=-1;
 	}
@@ -1441,7 +1472,7 @@ void print_lifetimes(registerdata *rd, lsradata *ls, struct lifetime *lt)
 				panic("Type Data mismatch 3\n");
 		}
 		printf("i_Start: %3i(%3i,%3i) i_stop: %3i(%3i,%3i) reg: %3i VI: %3i type: %3i flags: %3i varkind: %3i \n",n->i_start, ls->sorted[n->bb_first_def], n->i_first_def,n->i_end, ls->sorted[n->bb_last_use], n->i_last_use,regoff,n->v_index,type,flags, varkind);
-		printf("i_Start: %3i(%3i,%3i) i_stop: %3i(%3i,%3i) reg: %3i VI: %3i type: %3i flags: %3i varkind: %3i \n",n->i_start, ls->sorted[n->bb_first_def], n->i_first_def,n->i_end, ls->sorted[n->bb_last_use], n->i_last_use,n->reg,n->v_index,n->type,-10, -10);
+/* 		printf("i_Start: %3i(%3i,%3i) i_stop: %3i(%3i,%3i) reg: %3i VI: %3i type: %3i flags: %3i varkind: %3i \n",n->i_start, ls->sorted[n->bb_first_def], n->i_first_def,n->i_end, ls->sorted[n->bb_last_use], n->i_last_use,n->reg,n->v_index,n->type,-10, -10); */
 
 	}
 	printf( "%3i Lifetimes printed \n",j);
