@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1920 2005-02-10 10:10:32Z twisti $
+   $Id: native.c 1940 2005-02-10 11:41:52Z twisti $
 
 */
 
@@ -83,25 +83,6 @@
 #endif
 
 #include "nativetable.inc"
-
-
-/******************** systemclasses required for native methods ***************/
-
-classinfo *class_java_lang_Double;
-classinfo *class_java_lang_Float;
-classinfo *class_java_lang_Long;
-classinfo *class_java_lang_Byte;
-classinfo *class_java_lang_Short;
-classinfo *class_java_lang_Boolean;
-classinfo *class_java_lang_Void;
-classinfo *class_java_lang_Character;
-classinfo *class_java_lang_Integer;
-
-methodinfo *method_vmclass_init;
-
-
-/* the system classloader object */
-struct java_lang_ClassLoader *SystemClassLoader = NULL;
 
 
 /** Create a new ProtectionDomain object for a classpath_info structure. 
@@ -1156,12 +1137,6 @@ java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end, classinfo **s
 	}
 
 	return NULL;
-
-	/*
-        log_text("Java_java_lang_VMSecurityManager_currentClassLoader");
-        init_systemclassloader();
-
-        return SystemClassLoader;*/
 }
 
 

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1920 2005-02-10 10:10:32Z twisti $
+   $Id: native.h 1940 2005-02-10 11:41:52Z twisti $
 
 */
 
@@ -64,9 +64,6 @@ struct nativecompref {
 	functionptr func;
 };
 
-
-/* the system classloader object */
-extern java_lang_ClassLoader *SystemClassLoader;
 
 void use_class_as_object(classinfo *c);
 
