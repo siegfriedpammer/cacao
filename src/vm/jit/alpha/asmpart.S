@@ -88,6 +88,8 @@
 	.globl asm_calljavamethod
 	.globl asm_calljavafunction
 	.globl asm_calljavafunction2
+	.globl asm_calljavafunction2double
+	.globl asm_calljavafunction2long
 	.globl asm_call_jit_compiler
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
@@ -320,6 +322,8 @@ calljava_xhandler2:
 
 
 	.ent    asm_calljavafunction2
+	.ent    asm_calljavafunction2double
+	.ent    asm_calljavafunction2long
 
 call_name3:
 	.ascii  "calljavafunction2\0\0"
