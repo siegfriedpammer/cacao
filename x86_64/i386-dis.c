@@ -36,13 +36,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
  */
 
 #include "dis-asm.h"
-/*  #include "sysdep.h" */
-/*  #include "opintl.h" */
-#include "dis-stuff.h"
 
 #define MAXLEN 20
 
 #include <setjmp.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 #ifndef UNIXWARE_COMPAT
 /* Set non-zero for broken, compatible instructions.  Set to zero for
