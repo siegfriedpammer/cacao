@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 2211 2005-04-04 10:39:36Z christian $
+   $Id: reg.h 2219 2005-04-05 15:42:57Z christian $
 
 */
 
@@ -34,8 +34,7 @@
 #ifndef _REG_H
 #define _REG_H
 
-/* #define INVOKE_NEW */
-/* #define INVOKE_NEW_DEBUG */
+#define INVOKE_NEW_DEBUG
 
 /* preliminary define for testing of the new creation of ARGVAR Stackslots in stack.c */
 /* Changes affect handling of ARGVAR Stackslots in reg_of_var in codegen.inc          */
@@ -115,6 +114,9 @@ struct registerdata {
 	int maxsavadrreguse;            /* max used saved address register count  */
 	int freetmpadrtop;              /* free scratch address register count    */
 	int freesavadrtop;              /* free saved address register count      */
+#if defined(USE_UNUSED_ARGUMENT_REGISTERS)
+	int ifargadrregcnt;             /* iface argument address register count     */
+#endif
 #endif
 
 #ifdef USETWOREGS
@@ -136,6 +138,10 @@ struct registerdata {
 	int ifsavintregcnt;             /* iface saved integer register count     */
 	int iftmpfltregcnt;             /* iface scratch float register count     */
 	int ifsavfltregcnt;             /* iface saved float register count       */
+#if defined(USE_UNUSED_ARGUMENT_REGISTERS)
+	int ifargintregcnt;             /* iface argument float register count     */
+	int ifargfltregcnt;             /* iface argument float register count       */
+#endif
 
 	int argintreguse;               /* used argument integer register count   */
 	int tmpintreguse;               /* used scratch integer register count    */

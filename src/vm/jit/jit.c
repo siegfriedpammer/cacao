@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2211 2005-04-04 10:39:36Z christian $
+   $Id: jit.c 2219 2005-04-05 15:42:57Z christian $
 
 */
 
@@ -1428,10 +1428,8 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 		optimize_loops(m, cd, ld);
 	}
    
-#ifndef INVOKE_NEW
 #ifdef SPECIALMEMUSE
-	preregpass(m, rd);
-#endif
+/* 	preregpass(m, rd); */
 #endif
 
 	if (compileverbose)

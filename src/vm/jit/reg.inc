@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2211 2005-04-04 10:39:36Z christian $
+   $Id: reg.inc 2219 2005-04-05 15:42:57Z christian $
 
 */
 
@@ -280,12 +280,10 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 		v[0][TYPE_ADR].type = -1;
 		v[0][TYPE_ADR].flags = 0;
 	}
-#ifdef INVOKE_NEW
 #ifdef SPECIALMEMUSE
 	rd->ifmemuse = 6;
 #else
 	rd->ifmemuse = 0; /* init to zero -> analyse_stack will set it to a higher value, if appropriate */
-#endif
 #endif
 }
 
@@ -344,27 +342,7 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* allocate stack space for passing arguments to called methods */
 #ifdef INVOKE_NEW_DEBUG
 	int temp;
-#endif
 
-#ifndef INVOKE_NEW
-#if !defined(SPECIALMEMUSE)
-	/* For this to work properly the integer argument register count must be  */
-	/* less or equal the float argument register count (e.g. x86_64).         */
-	/* (arch.h: INT_ARG_CNT <= FLT_ARG_CNT)                                   */
-	if (rd->arguments_num > INT_ARG_CNT) {
-		rd->ifmemuse = rd->arguments_num - INT_ARG_CNT;
-
-	} else {
-		rd->ifmemuse = 0;
-	}
-#endif
-#ifdef INVOKE_NEW_DEBUG
-	if (compileverbose) {
-		printf("ifmemuse by reg.inc: %3i,%3i\n",rd->ifmemuse, rd->maxmemuse);
-	}
-#endif
-#else /* ifndef INVOKE_NEW */
-#ifdef INVOKE_NEW_DEBUG
 	if (compileverbose) {
 		temp = rd->ifmemuse;
 #if !defined(SPECIALMEMUSE)
@@ -379,14 +357,13 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 		}
 #endif
 		if (compileverbose) {
-			printf("ifmemuse by reg.inc: %3i,%3i\n",rd->ifmemuse, rd->maxmemuse);
+			printf("ifmemuse by reg.inc: %3i,%3i by stack.c: %3i\n",rd->ifmemuse, rd->maxmemuse,temp);
 			if (temp != rd->ifmemuse)
-				printf("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
+				printf("Warning: Difference in ifmemuse calculated the old way and the new way\n");
 		}
 		rd->ifmemuse = temp;
 	}
 #endif
-#endif /* ifndef INVOKE_NEW */
 
 	rd->iftmpintregcnt = rd->tmpintregcnt;
 	rd->ifsavintregcnt = rd->savintregcnt;
@@ -837,8 +814,6 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 }
 
-
-
 static void reg_init_temp(registerdata *rd)
 {
 	rd->freememtop = 0;
@@ -862,12 +837,14 @@ static void reg_init_temp(registerdata *rd)
 	rd->savadrreguse = rd->ifsavadrregcnt;
 #endif
 
+#if defined(USE_UNUSED_ARGUMENT_REGISTERS)
 	/* all argument registers are available */
 	rd->argintreguse = rd->intreg_argnum;
 	rd->argfltreguse = rd->fltreg_argnum;
 #ifdef HAS_ADDRESS_REGISTER_FILE
 	rd->argadrreguse = rd->adrreg_argnum;
 #endif
+#endif /*defined(USE_UNUSED_ARGUMENT_REGISTERS)*/
 }
 
 
