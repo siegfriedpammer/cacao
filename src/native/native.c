@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1722 2004-12-07 10:23:05Z twisti $
+   $Id: native.c 1727 2004-12-07 10:56:02Z twisti $
 
 */
 
@@ -150,6 +150,13 @@ static bool nativecompdone = false;
 
 
 /* XXX don't define this in a header file!!! */
+
+static struct nativeCall nativeCalls[] =
+{
+#include "nativecalls.inc"
+};
+
+#define NATIVECALLSSIZE    (sizeof(nativeCalls) / sizeof(struct nativeCall))
 
 struct nativeCompCall nativeCompCalls[NATIVECALLSSIZE];
 

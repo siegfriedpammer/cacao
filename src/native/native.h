@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1722 2004-12-07 10:23:05Z twisti $
+   $Id: native.h 1727 2004-12-07 10:56:02Z twisti $
 
 */
 
@@ -205,17 +205,12 @@ struct  nativeMethod  {
 };
 
 
-static struct nativeCall {
+struct nativeCall {
 	char *classname;
 	struct nativeMethod methods[MAXCALLS];
 	int methCnt;
 	int callCnt[MAXCALLS];
-} nativeCalls[] =
-{
-#include "nativecalls.inc"
 };
-
-#define NATIVECALLSSIZE  (sizeof(nativeCalls)/sizeof(struct nativeCall))
 
 
 struct methodCompCall {
