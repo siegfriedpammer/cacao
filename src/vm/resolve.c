@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2215 2005-04-04 14:59:12Z edwin $
+   $Id: resolve.c 2216 2005-04-05 10:12:18Z edwin $
 
 */
 
@@ -844,7 +844,6 @@ create_unresolved_class(methodinfo *refmethod,
 	unresolved_class *ref;
 	
 	RESOLVE_ASSERT(ref);
-	RESOLVE_ASSERT(valuetype);
 	
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_class\n");
@@ -858,9 +857,14 @@ create_unresolved_class(methodinfo *refmethod,
 	ref->classref = classref;
 	ref->referermethod = refmethod;
 
-	if (!unresolved_subtype_set_from_typeinfo(classref->referer,refmethod,
-				&(ref->subtypeconstraints),valuetype,classref))
-		return NULL;
+	if (valuetype) {
+		if (!unresolved_subtype_set_from_typeinfo(classref->referer,refmethod,
+					&(ref->subtypeconstraints),valuetype,classref))
+			return NULL;
+	}
+	else {
+		UNRESOLVED_SUBTYPE_SET_EMTPY(ref->subtypeconstraints);
+	}
 
 	return ref;
 }
@@ -868,7 +872,8 @@ create_unresolved_class(methodinfo *refmethod,
 unresolved_field *
 create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 						instruction *iptr,
-						stackelement *stack)
+						stackelement *stack,
+						bool havetypeinfo)
 {
 	unresolved_field *ref;
 	constant_FMIref *fieldref = NULL;
@@ -942,7 +947,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 	ref->fieldref = fieldref;
 	
 	/* record subtype constraints for the instance type, if any */
-	if (instanceslot) {
+	if (instanceslot && havetypeinfo) {
 		typeinfo *insttip;
 		RESOLVE_ASSERT(instanceslot->type == TYPE_ADR);
 		
@@ -969,7 +974,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 	
 	/* record subtype constraints for the value type, if any */
 	type = fd->type;
-	if (type == TYPE_ADR && ((ref->flags & RESOLVE_PUTFIELD) != 0)) {
+	if (havetypeinfo && type == TYPE_ADR && ((ref->flags & RESOLVE_PUTFIELD) != 0)) {
 		if (!tip) {
 			/* we have a PUTSTATICCONST or PUTFIELDCONST with TYPE_ADR */
 			tip = &tinfo;
@@ -996,7 +1001,8 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 unresolved_method *
 create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 						 instruction *iptr,
-						 stackelement *stack)
+						 stackelement *stack,
+						 bool havetypeinfo)
 {
 	unresolved_method *ref;
 	constant_FMIref *methodref;
@@ -1051,7 +1057,7 @@ create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 	RESOLVE_ASSERT(instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
 
 	/* record subtype constraints for the instance type, if any */
-	if (instanceslot) {
+	if (havetypeinfo && instanceslot) {
 		typeinfo *tip;
 		
 		RESOLVE_ASSERT(instanceslot->type == TYPE_ADR);
@@ -1085,7 +1091,7 @@ create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 		RESOLVE_ASSERT(param);
 		RESOLVE_ASSERT(type == param->type);
 		
-		if (type == TYPE_ADR) {
+		if (havetypeinfo && type == TYPE_ADR) {
 			if (!ref->paramconstraints) {
 				ref->paramconstraints = MNEW(unresolved_subtype_set,md->paramcount);
 				for (j=md->paramcount-1; j>i; --j)

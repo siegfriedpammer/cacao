@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 2215 2005-04-04 14:59:12Z edwin $
+   $Id: resolve.h 2216 2005-04-05 10:12:18Z edwin $
 
 */
 
@@ -386,6 +386,7 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 	   refmethod........the method triggering the resolution (if any)
 	   classref.........the class reference
 	   valuetype........value type to check against the resolved class
+	   					may be NULL, if no typeinfo is available
 
    RETURN VALUE:
        a pointer to a new unresolved_class struct
@@ -406,6 +407,7 @@ create_unresolved_class(methodinfo *refmethod,
 	   refmethod........the method triggering the resolution (if any)
 	   iptr.............the {GET,PUT}{FIELD,STATIC}{,CONST} instruction
 	   stack............the input stack of the instruction
+	   havetypeinfo.....indicates whether typeinfo is available
 
    RETURN VALUE:
        a pointer to a new unresolved_field struct
@@ -415,7 +417,8 @@ create_unresolved_class(methodinfo *refmethod,
 unresolved_field *
 create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 						instruction *iptr,
-						stackelement *stack);
+						stackelement *stack,
+						bool havetypeinfo);
 
 /* create_unresolved_method ****************************************************
  
@@ -426,6 +429,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 	   refmethod........the method triggering the resolution (if any)
 	   iptr.............the INVOKE* instruction
 	   stack............the input stack of the instruction
+	   havetypeinfo.....indicates whether typeinfo is available
 
    RETURN VALUE:
        a pointer to a new unresolved_method struct
@@ -435,7 +439,8 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 unresolved_method *
 create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 						 instruction *iptr,
-						 stackelement *stack);
+						 stackelement *stack,
+						 bool havetypeinfo);
 
 /* unresolved_class_free *******************************************************
  
