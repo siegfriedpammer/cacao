@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1195 2004-06-20 19:44:46Z twisti $
+   $Id: tables.c 1240 2004-06-30 20:07:25Z twisti $
 
 */
 
@@ -48,20 +48,16 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include "types.h"
-#include "main.h"
+#include "options.h"
 #include "tables.h"
 #include "loader.h"
 #include "asmpart.h"
+#include "statistics.h"
 #include "threads/thread.h"
 #include "threads/locks.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
-
-/* statistics */
-int count_utf_len = 0;         /* size of utf hash                  */
-int count_utf_new = 0;         /* calls of utf_new                  */
-int count_utf_new_found  = 0;  /* calls of utf_new with fast return */
 
 hashtable utf_hash;     /* hashtable for utf8-symbols */
 hashtable string_hash;  /* hashtable for javastrings  */
