@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 1737 2004-12-07 17:31:44Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -56,7 +56,7 @@ asmpart.S: $(top_srcdir)/config.h offsets.h
 .S.lo:
 	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
 
-offsets.h: $(top_srcdir)/config.h $(top_srcdir)/src/vm/global.h $(top_srcdir)/src/threads/native/threads.h
+offsets.h: $(top_srcdir)/src/vm/jit/tools/genoffsets $(top_srcdir)/config.h $(top_srcdir)/src/vm/global.h $(top_srcdir)/src/threads/native/threads.h
 	$(top_srcdir)/src/vm/jit/tools/genoffsets > offsets.h
 
 
