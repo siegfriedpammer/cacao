@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 828 2004-01-03 16:20:06Z stefan $
+   $Id: asmpart.S 830 2004-01-03 16:46:45Z stefan $
 
 */
 
@@ -404,7 +404,7 @@ calljava_return2:
 
 	ld      ra,0(sp)                  /* restore return address               */
 	ld      pv,8(sp)                  /* restore procedure vector             */
-	ld      s7,16(sp)
+	ld      s7,24(sp)
 
 	ldc1    fss0,5*8(sp)              /* restore non JavaABI saved flt regs   */
 	ldc1    fss1,6*8(sp)
@@ -642,7 +642,7 @@ ex_table_loop:
 	beqz    a1,ex_handle_it       /* NULL catches everything                  */
 
 	ald     a0,offobjvftbl(xptr)  /* a0 = vftblptr(xptr)                      */
-	ald     a1,offobjvftbl(a1)    /* a1 = vftblptr(catchtype) class (not obj) */
+	ald     a1,offclassvftbl(a1)  /* a1 = vftblptr(catchtype) class (not obj) */
 	lw      a0,offbaseval(a0)     /* a0 = baseval(xptr)                       */
 	lw      v0,offbaseval(a1)     /* a2 = baseval(catchtype)                  */
 	lw      a1,offdiffval(a1)     /* a1 = diffval(catchtype)                  */
