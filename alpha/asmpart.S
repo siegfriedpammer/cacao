@@ -1064,12 +1064,14 @@ asm_perform_threadswitch:
 
 /********************* function asm_switchstackandcall *************************
 *                                                                              *
-*  void asm_switchstackandcall (void *stack, void *func, void **stacktopsave); *
+*  void *asm_switchstackandcall (void *stack, void *func, void **stacktopsave, *
+*                               void *p);                                      *
 *                                                                              *
 *   Switches to a new stack, calls a function and switches back.               *
 *       a0      new stack pointer                                              *
 *       a1      function pointer                                               *
 *		a2		pointer to variable where stack top should be stored           *
+*		a3      pointer to user data, is passed to the function                *
 *                                                                              *
 *******************************************************************************/
 
@@ -1083,6 +1085,7 @@ asm_switchstackandcall:
 	mov	a0,sp           /* switch to new stack                                */
 	
 	mov	a1,pv           /* load function pointer                              */
+	mov a3,a0           /* pass pointer */
 	jmp	ra,(pv)         /* and call function                                  */
 
 	ldq	ra,0(sp)        /* load return address                                */
