@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1203 2004-06-22 23:14:55Z twisti $
+   $Id: codegen.h 1250 2004-06-30 20:23:09Z twisti $
 
 */
 
@@ -75,6 +75,13 @@
 #define REG_FTMP1       6    /* temporary floating point register             */
 #define REG_FTMP2       7    /* temporary floating point register             */
 #define REG_FTMP3       7    /* temporary floating point register             */
+
+
+#define INT_SAV_CNT     3    /* number of int callee saved registers          */
+#define INT_ARG_CNT     0    /* number of int argument registers              */
+
+#define FLT_SAV_CNT     0    /* number of flt callee saved registers          */
+#define FLT_ARG_CNT     0    /* number of flt argument registers              */
 
 
 /* additional functions and macros to generate code ***************************/
