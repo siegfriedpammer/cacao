@@ -1036,10 +1036,10 @@ icmd_lconst_lcmp_tail:
 								}
 							else {
 								copy = curstack;
-								NEWSTACK(copy[-1].type, copy[-1].varkind,
-								         copy[-1].varnum);
-								NEWSTACK(copy[ 0].type, copy[ 0].varkind,
-								         copy[ 0].varnum);
+								NEWSTACK(copy->prev->type, copy->prev->varkind,
+								         copy->prev->varnum);
+								NEWSTACK(copy->type, copy->varkind,
+								         copy->varnum);
 								SETDST;
 								stackdepth+=2;
 								}
