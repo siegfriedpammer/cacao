@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 909 2004-02-02 00:52:42Z twisti $
+   $Id: jit.c 923 2004-02-24 13:28:08Z edwin $
 
 */
 
@@ -1458,8 +1458,6 @@ methodptr jit_compile(methodinfo *m)
 	intsDisable();      /* disable interrupts */
 #endif
 
-	regs_ok = false;
-
 	/* mark start of dump memory area */
 
 	dumpsize = dump_size();
@@ -1521,6 +1519,7 @@ methodptr jit_compile(methodinfo *m)
 	jcode = m->jcode;
 	exceptiontablelength = m->exceptiontablelength;
 	raw_extable = m->exceptiontable;
+	regs_ok = false;
 
 #ifdef STATISTICS
 	count_tryblocks += exceptiontablelength;
