@@ -140,7 +140,7 @@ void java_io_FileInputStream_close (struct java_io_FileInputStream* this)
 		this->fd->fd = -1;
 		if (r < 0) 
 			exceptionptr = native_new_and_init (class_java_io_IOException);
-		}
+	}
 }
 
 
@@ -199,6 +199,9 @@ void java_io_FileOutputStream_writeBytes (struct java_io_FileOutputStream* this,
                             
 void java_io_FileOutputStream_close (struct java_io_FileOutputStream* this)
 {
+	if (this->fd->fd == 1)  /* don't close stderr!!! -- phil. */
+		return;
+
 	if (this->fd->fd >= 0) {
 		s4 r = close (this->fd->fd);
 		this->fd->fd = -1;
@@ -463,11 +466,27 @@ s8 java_io_RandomAccessFile_length (struct java_io_RandomAccessFile* this)
 
 void java_io_RandomAccessFile_close (struct java_io_RandomAccessFile* this)
 {	
-	if (this->fd->fd >= 0) {
-		s4 r = close (this->fd->fd);
+  if (this->fd->fd >= 0) {
+    s4 r = close (this->fd->fd);
 		this->fd->fd = -1;
 		if (r<0) 
 			exceptionptr = native_new_and_init (class_java_io_IOException);
 		}
 }
+
+
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
 
