@@ -108,6 +108,7 @@ clean:
 	      core tst/core
 	cd toolbox; make clean
 	cd threads; make clean
+	cd mm; make clean
 
 tar:
 	rm -f cacao.tgz cacao.tar
