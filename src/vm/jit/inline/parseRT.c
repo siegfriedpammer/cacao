@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1009 2004-03-31 22:44:07Z edwin $
+   $Id: parseRT.c 1015 2004-04-08 15:08:11Z stefan $
 
 Changes:
 opcode put into functions
@@ -1220,9 +1220,9 @@ void  xtaMethodCalls_and_sendReturnType()
 /*-------------------------------------------------------------------------------*/
 /* -- Processes STATIC  & PRIVATE methods
 
-/* -- called for INVOKESTATIC, INVOKESPECIAL - PRIVATE and
-/*    STATIC / PRIVATE methods used by NATIVE methods
-/*-------------------------------------------------------------------------------*/
+ * -- called for INVOKESTATIC, INVOKESPECIAL - PRIVATE and
+ *    STATIC / PRIVATE methods used by NATIVE methods
+ *-------------------------------------------------------------------------------*/
 
 // Dez Version but gives too many Missed
 void invokestatic2( methodinfo *mi) {
@@ -1268,9 +1268,9 @@ if (mi->class->classUsed == NOTUSED) {
 /*-------------------------------------------------------------------------------*/
 /* -- Processes <INIT> methods
 
-/* -- called for INVOKESPECIAL - <init> and
-/*    <init> methods used by NATIVE methods
-/*-------------------------------------------------------------------------------*/
+ * -- called for INVOKESPECIAL - <init> and
+ *    <init> methods used by NATIVE methods
+ *-------------------------------------------------------------------------------*/
 
 void initMethods(methodinfo *mi) {
 
@@ -1314,9 +1314,9 @@ if ((XTAOPTbypass) || (opt_xta)) {
 /*-------------------------------------------------------------------------------*/
 /* -- Processes VIRTUAL methods
 
-/* -- called for INVOKEVIRTUAL and 
-/*    virtual methods used by NATIVE methods 
-/*-------------------------------------------------------------------------------*/
+ * -- called for INVOKEVIRTUAL and 
+ *    virtual methods used by NATIVE methods 
+ *-------------------------------------------------------------------------------*/
 
 void invokevirtual(methodinfo *mi) {
 
