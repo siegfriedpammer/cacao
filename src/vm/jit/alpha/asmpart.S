@@ -322,8 +322,6 @@ calljava_xhandler2:
 
 
 	.ent    asm_calljavafunction2
-	.ent    asm_calljavafunction2double
-	.ent    asm_calljavafunction2long
 
 call_name3:
 	.ascii  "calljavafunction2\0\0"
@@ -342,6 +340,8 @@ call_name3:
 	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction2:
+asm_calljavafunction2double:
+asm_calljavafunction2long:
 
 	ldgp    gp,0(pv)
 	lda     sp,-40(sp)                /* allocate stack space                 */
