@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 794 2003-12-16 19:29:19Z edwin $
+   $Id: codegen.c 837 2004-01-05 00:04:51Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include "types.h"
 #include "codegen.h"
 #include "jit.h"
+#include "parse.h"
 #include "reg.h"
 #include "builtin.h"
 #include "asmpart.h"
@@ -403,7 +404,7 @@ ieee_set_fp_control(ieee_get_fp_control()
 
 void codegen()
 {
-	int  len, s1, s2, s3, d, bbs;
+	int  len, s1, s2, s3, d;
 	s4   a;
 	s4          *mcodeptr;
 	stackptr    src;
@@ -664,9 +665,9 @@ void codegen()
 	/* end of header generation */
 
 	/* walk through all basic blocks */
-	for (/* bbs = block_count, */ bptr = block; /* --bbs >= 0 */ bptr != NULL; bptr = bptr->next) {
+	for (bptr = block; bptr != NULL; bptr = bptr->next) {
 
-		bptr -> mpc = (int)((u1*) mcodeptr - mcodebase);
+		bptr->mpc = (int)((u1*) mcodeptr - mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
 
@@ -2278,7 +2279,27 @@ void codegen()
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
 
-			a = dseg_addaddress (&(((fieldinfo *)(iptr->val.a))->value));
+			/* if class isn't yet initialized, do it */
+  			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
+				/* call helper function which patches this code */
+				a = dseg_addaddress(((fieldinfo *) iptr->val.a)->class);
+				M_ALD(REG_ITMP1, REG_PV, a);
+				a = dseg_addaddress(asm_check_clinit);
+				M_ALD(REG_PV, REG_PV, a);
+				M_JSR(REG_RA, REG_PV);
+
+				/* recompute pv */
+				s1 = (int) ((u1*) mcodeptr - mcodebase);
+				if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
+				else {
+					s4 ml = -s1, mh = 0;
+					while (ml < -32768) { ml += 65536; mh--; }
+					M_LDA(REG_PV, REG_RA, ml);
+					M_LDAH(REG_PV, REG_PV, mh);
+				}
+  			}
+			
+			a = dseg_addaddress(&(((fieldinfo *)(iptr->val.a))->value));
 			M_ALD(REG_ITMP1, REG_PV, a);
 			switch (iptr->op1) {
 				case TYPE_INT:
@@ -2308,6 +2329,26 @@ void codegen()
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
 
+			/* if class isn't yet initialized, do it */
+  			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
+				/* call helper function which patches this code */
+				a = dseg_addaddress(((fieldinfo *) iptr->val.a)->class);
+				M_ALD(REG_ITMP1, REG_PV, a);
+				a = dseg_addaddress(asm_check_clinit);
+				M_ALD(REG_PV, REG_PV, a);
+				M_JSR(REG_RA, REG_PV);
+
+				/* recompute pv */
+				s1 = (int) ((u1*) mcodeptr - mcodebase);
+				if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
+				else {
+					s4 ml = -s1, mh = 0;
+					while (ml < -32768) { ml += 65536; mh--; }
+					M_LDA(REG_PV, REG_RA, ml);
+					M_LDAH(REG_PV, REG_PV, mh);
+				}
+  			}
+			
 			a = dseg_addaddress (&(((fieldinfo *)(iptr->val.a))->value));
 			M_ALD(REG_ITMP1, REG_PV, a);
 			switch (iptr->op1) {
@@ -3761,51 +3802,22 @@ makeactualcall:
 }
 
 
-/* redefinition of code generation macros (compiling into array) **************/
-
-/* 
-These macros are newly defined to allow code generation into an array.
-This is necessary, because the original M_.. macros generate code by
-calling 'codegen_adds4' that uses an additional data structure to
-receive the code.
-
-For a faster (but less flexible) version to generate code, these
-macros directly use the (s4* p) - pointer to put the code directly
-in a locally defined array.
-This makes sense only for the stub-generation-routines below.
-*/
-
-#undef M_OP3
-#define M_OP3(op,fu,a,b,c,const) \
-	*(p++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<(16-3*(const)))| \
-	((const)<<12)|((fu)<<5)|((c)) )
-#undef M_FOP3
-#define M_FOP3(op,fu,a,b,c) \
-	*(p++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<16)|((fu)<<5)|(c) )
-#undef M_BRA
-#define M_BRA(op,a,disp) \
-	*(p++) = ( (((s4)(op))<<26)|((a)<<21)|((disp)&0x1fffff) )
-#undef M_MEM
-#define M_MEM(op,a,b,disp) \
-	*(p++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<16)|((disp)&0xffff) )
-
-
 /* function createcompilerstub *************************************************
 
 	creates a stub routine which calls the compiler
 	
 *******************************************************************************/
 
-#define COMPSTUBSIZE 3
+#define COMPSTUBSIZE    3
 
-u1 *createcompilerstub (methodinfo *m)
+u1 *createcompilerstub(methodinfo *m)
 {
-	u8 *s = CNEW (u8, COMPSTUBSIZE);    /* memory to hold the stub            */
-	s4 *p = (s4*) s;                    /* code generation pointer            */
+	u8 *s = CNEW(u8, COMPSTUBSIZE);     /* memory to hold the stub            */
+	s4 *mcodeptr = (s4 *) s;            /* code generation pointer            */
 	
 	                                    /* code for the stub                  */
-	M_ALD (REG_PV, REG_PV, 16);         /* load pointer to the compiler       */
-	M_JMP (0, REG_PV);                  /* jump to the compiler, return address
+	M_ALD(REG_PV, REG_PV, 16);          /* load pointer to the compiler       */
+	M_JMP(0, REG_PV);                   /* jump to the compiler, return address
 	                                       in reg 0 is used as method pointer */
 	s[1] = (u8) m;                      /* literals to be adressed            */  
 	s[2] = (u8) asm_call_jit_compiler;  /* jump directly via PV from above    */
@@ -3814,7 +3826,7 @@ u1 *createcompilerstub (methodinfo *m)
 	count_cstub_len += COMPSTUBSIZE * 8;
 #endif
 
-	return (u1*) s;
+	return (u1 *) s;
 }
 
 
@@ -3824,77 +3836,9 @@ u1 *createcompilerstub (methodinfo *m)
 
 *******************************************************************************/
 
-void removecompilerstub (u1 *stub) 
+void removecompilerstub(u1 *stub)
 {
-	CFREE (stub, COMPSTUBSIZE * 8);
-}
-
-
-bool isFloat(char **utf_ptr,char *desc_end)
-{
-    char c;
-
-    if (*utf_ptr>=desc_end)
-        panic("illegal methoddescriptor (isFloat)");
-    switch (c=utf_nextu2(utf_ptr)) {
-      case 'L' : {
-                    while (utf_nextu2(utf_ptr)!=';');
-                 }
-      case 'I' :
-      case 'J' :
-      case 'B' :
-      case 'C' :
-      case 'S' :
-      case 'Z' :
-      case 'V' :
-		return 0;
-
-      case 'F' : 
-      case 'D' : 
-		return 1;
-
-      case '[' : {
-                    /* arrayclass */
-                    char ch;
-
-                    while ((ch = utf_nextu2(utf_ptr))=='[')
-                        /* skip */ ;
-
-                    if (ch == 'L') {
-                        while (utf_nextu2(utf_ptr)!=';')
-                            /* skip */ ;
-                    }
-
-			return 0;
-		}
-     default:
-		printf("CHAR: %c\n",c);
-		panic ("illegal methoddescriptor(isFloat)");
-	}
-
-    return 0;
-}
-
-
-u4 ngen_get_parametercount(methodinfo *m)
-{
-    utf  *descr    =  m->descriptor;    /* method-descriptor */
-    char *utf_ptr  =  descr->text;      /* current position in utf-text */
-    char *desc_end =  utf_end(descr);   /* points behind utf string     */
-    java_objectarray* result;
-    int parametercount = 0;
-   int i;
-
-    /* skip '(' */
-    utf_nextu2(&utf_ptr);
-
-    /* determine number of parameters */
-    while ( *utf_ptr != ')' ) {
-        isFloat(&utf_ptr,desc_end);
-        parametercount++;
-    }
-
-    return parametercount;
+	CFREE(stub, COMPSTUBSIZE * 8);
 }
 
 
@@ -3904,30 +3848,23 @@ u4 ngen_get_parametercount(methodinfo *m)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE 35
-#define NATIVESTUBOFFSET 9
+#define NATIVESTUBSIZE      60
+#define NATIVESTUBOFFSET    8
 
-int runverbosenat = 1;
-
-u1 *createnativestub (functionptr f, methodinfo *m)
+u1 *createnativestub(functionptr f, methodinfo *m)
 {
+	u8 *s;                              /* memory pointer to hold the stub    */
+	u8 *cs;
+	s4 *mcodeptr;                       /* code generation pointer            */
+	int stackframesize = 0;             /* size of stackframe if needed       */
 	int disp;
-	int regoffset=0;
-	int paramsOnStack=0;
-	int paramCount=0;
-	int paramsStillToMove=0;
-	int paramTargetOffset=0;
-	int paramSourceOffset=0;
-	int i;
-	u8 *s = CNEW (u8, (NATIVESTUBSIZE));  /* memory to hold the stub            */
-	u8 *cs = s + NATIVESTUBOFFSET;
-	s4 *p = (s4*) (cs);                 /* code generation pointer            */
 
-    utf  *descr    =  m->descriptor;    /* method-descriptor */
-    char *utf_ptr  =  descr->text;      /* current position in utf-text */
-    char *desc_end =  utf_end(descr);   /* points behind utf string     */
+	reg_init();
+	descriptor2types(m);                /* set paramcount and paramtypes      */
 
-
+	s = CNEW(u8, NATIVESTUBSIZE);       /* memory to hold the stub            */
+	cs = s + NATIVESTUBOFFSET;
+	mcodeptr = (s4 *) (cs);             /* code generation pointer            */
 
 	*(cs-1) = (u8) f;                   /* address of native method           */
 	*(cs-2) = (u8) (&exceptionptr);     /* address of exceptionptr            */
@@ -3936,185 +3873,125 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	*(cs-5) = (u8) asm_builtin_trace;
 	*(cs-6) = (u8) m;
 	*(cs-7) = (u8) asm_builtin_exittrace;
-	*(cs-8) = (u8) builtin_trace_exception;
-	*(cs-9) = (u8) m->class;
+	*(cs-8) = (u8) m->class;
 
+	M_LDA(REG_SP, REG_SP, -8);          /* build up stackframe                */
+	M_AST(REG_RA, REG_SP, 0);           /* store return address               */
 
-
-
-
-#if 1
-	log_plain("stub: ");
-	log_plain_utf(m->class->name);
-	log_plain(".");
-	log_plain_utf(m->name);
-	dolog_plain(" 0x%p\n", cs);
-#endif
-
-	M_LDA  (REG_SP, REG_SP, -8);        /* build up stackframe                */
-	M_AST  (REG_RA, REG_SP, 0);         /* store return address               */
-
-#if 1
-	if (runverbosenat) {
-		M_ALD(REG_ITMP1, REG_PV, -6*8);
-		M_ALD(REG_PV, REG_PV, -5*8);
-
+	if (runverbose) {
+		M_ALD(REG_ITMP1, REG_PV, -6 * 8);
+		M_ALD(REG_PV, REG_PV, -5 * 8);
 		M_JSR(REG_RA, REG_PV);
-		disp = -(int) (p - (s4*) cs)*4;
+		disp = -(int) (mcodeptr - (s4*) cs) * 4;
 		M_LDA(REG_PV, REG_RA, disp);
 	}
-#endif
 
-	reg_init(m);
+	/* save argument registers on stack -- if we have to */
+	if ((m->flags & ACC_STATIC && m->paramcount > (INT_ARG_CNT - 2)) || m->paramcount > (INT_ARG_CNT - 1)) {
+		int i;
+		int paramshiftcnt = (m->flags & ACC_STATIC) ? 2 : 1;
+		int stackparamcnt = (m->paramcount > INT_ARG_CNT) ? m->paramcount - INT_ARG_CNT : 0;
 
-	log_plain_utf(m->descriptor);
+  		stackframesize = stackparamcnt + paramshiftcnt;
 
-	paramCount=ngen_get_parametercount(m);
+		M_LDA(REG_SP, REG_SP, -stackframesize * 8);
 
+		/* copy stack arguments into new stack frame -- if any */
+		for (i = 0; i < stackparamcnt; i++) {
+			M_LLD(REG_ITMP1, REG_SP, (stackparamcnt + 1 + i) * 8);
+			M_LST(REG_ITMP1, REG_SP, (paramshiftcnt + i) * 8);
+		}
 
-	paramsOnStack=paramCount-(6/*paramregs*/ -1/*env*/ - ((m->flags & ACC_STATIC)?1:0));
-	paramsStillToMove=paramsOnStack;
-	if (paramsOnStack>0)
-		M_LDA(REG_SP,REG_SP,-8*paramsOnStack);
-
-	if (m->flags & ACC_STATIC) {
-		regoffset=1;
-			if (paramsOnStack>0) {
-				utf_nextu2(&utf_ptr);
-				for (i=0;i<4;i++)
-					isFloat(&utf_ptr,desc_end);
-
-				if (isFloat(&utf_ptr,desc_end))
-					M_DST  (argfltregs[4], REG_SP, 0);
-				else
-					M_LST  (argintregs[4], REG_SP, 0);
-
-			if (paramsOnStack>1)
-				if (isFloat(&utf_ptr,desc_end))
-					M_DST  (argfltregs[5], REG_SP, 8);
-				else
-					M_LST  (argintregs[5], REG_SP, 8);
+		if (m->flags & ACC_STATIC) {
+			if (IS_FLT_DBL_TYPE(m->paramtypes[5])) {
+				M_DST(argfltregs[5], REG_SP, 1 * 8);
+			} else {
+				M_LST(argintregs[5], REG_SP, 1 * 8);
 			}
-			paramsStillToMove -=2;
-			paramTargetOffset=16;
 
+			if (IS_FLT_DBL_TYPE(m->paramtypes[4])) {
+				M_DST(argfltregs[4], REG_SP, 0 * 8);
+			} else {
+				M_LST(argintregs[4], REG_SP, 0 * 8);
+			}
 
-	}
-	else {
-		if (paramsOnStack>0) {
-			utf_nextu2(&utf_ptr);
-                        for (i=0;i<5;i++)
-                                isFloat(&utf_ptr,desc_end);
-
-			if (isFloat(&utf_ptr,desc_end))
-				M_DST  (argfltregs[5], REG_SP, 0);
-			else
-				M_LST  (argintregs[5], REG_SP, 0);
-			paramsStillToMove -=1;
-			paramTargetOffset = 8;
+		} else {
+			if (IS_FLT_DBL_TYPE(m->paramtypes[5])) {
+				M_DST(argfltregs[5], REG_SP, 0 * 8);
+			} else {
+				M_LST(argintregs[5], REG_SP, 0 * 8);
+			}
 		}
-		M_MOV  (argintregs[4],argintregs[5]); 
-		M_FMOV (argfltregs[4],argfltregs[5]);
 	}
-	M_MOV  (argintregs[3],argintregs[4+regoffset]);
-	M_FMOV (argfltregs[3],argfltregs[4+regoffset]);
-
-	M_MOV  (argintregs[2],argintregs[3+regoffset]);
-	M_FMOV (argfltregs[2],argfltregs[3+regoffset]);
-
-	M_MOV  (argintregs[1],argintregs[2+regoffset]);
-	M_FMOV (argfltregs[1],argfltregs[2+regoffset]);
-
-	M_MOV  (argintregs[0],argintregs[1+regoffset]);
-	M_FMOV (argfltregs[0],argfltregs[1+regoffset]);
 
 	if (m->flags & ACC_STATIC) {
-		M_ALD  (argintregs[1],REG_PV,  -9*8);/* class adress */
+		M_MOV(argintregs[3], argintregs[5]);
+		M_MOV(argintregs[2], argintregs[4]);
+		M_MOV(argintregs[1], argintregs[3]);
+		M_MOV(argintregs[0], argintregs[2]);
+		M_FMOV(argfltregs[3], argfltregs[5]);
+		M_FMOV(argfltregs[2], argfltregs[4]);
+		M_FMOV(argfltregs[1], argfltregs[3]);
+		M_FMOV(argfltregs[0], argfltregs[2]);
+
+		/* put class into second argument register */
+		M_ALD(argintregs[1], REG_PV, -8 * 8);
+
+	} else {
+		M_MOV(argintregs[4], argintregs[5]);
+		M_MOV(argintregs[3], argintregs[4]);
+		M_MOV(argintregs[2], argintregs[3]);
+		M_MOV(argintregs[1], argintregs[2]);
+		M_MOV(argintregs[0], argintregs[1]);
+		M_FMOV(argfltregs[4], argfltregs[5]);
+		M_FMOV(argfltregs[3], argfltregs[4]);
+		M_FMOV(argfltregs[2], argfltregs[3]);
+		M_FMOV(argfltregs[1], argfltregs[2]);
+		M_FMOV(argfltregs[0], argfltregs[1]);
 	}
 
-	paramSourceOffset=8*paramsOnStack+9;
-	for (i=0;i<paramsStillToMove;i++) {
-		if (isFloat(&utf_ptr,desc_end)) {
-			M_DLD(REG_ITMP1,REG_SP,paramSourceOffset);
-			M_DST  (REG_ITMP1, REG_SP, paramTargetOffset);
-		} else {
-			M_ALD(REG_ITMP1,REG_SP,paramSourceOffset);
-			M_LST  (REG_ITMP1, REG_SP, paramTargetOffset);
-		}
-		paramSourceOffset+=8;
-		paramTargetOffset+=8;
+	/* put env into first argument register */
+	M_ALD(argintregs[0], REG_PV, -4 * 8);
+
+	M_ALD(REG_PV, REG_PV, -1 * 8);      /* load adress of native method       */
+	M_JSR(REG_RA, REG_PV);              /* call native method                 */
+	disp = -(int) (mcodeptr - (s4*) cs) * 4;
+	M_LDA(REG_PV, REG_RA, disp);        /* recompute pv from ra               */
+
+	/* remove stackframe if there is one */
+	if (stackframesize) {
+		M_LDA(REG_SP, REG_SP, stackframesize * 8);
 	}
 
-	M_ALD  (argintregs[0], REG_PV, -4*8);/* load adress of jni_environement   */
-
-	M_ALD  (REG_PV, REG_PV, -1*8);      /* load adress of native method       */
-
-
-	M_JSR  (REG_RA, REG_PV);            /* call native method                 */
-
-	disp = -(int) (p - (s4*) cs)*4;
-	M_LDA  (REG_PV, REG_RA, disp);      /* recompute pv from ra               */
-	M_ALD  (REG_ITMP3, REG_PV, -2*8);   /* get address of exceptionptr        */
-
-	M_ALD  (REG_ITMP1, REG_ITMP3, 0);   /* load exception into reg. itmp1     */
-
-	if (paramsOnStack>0)
-		M_LDA(REG_SP,REG_SP,8*paramsOnStack);
-
-
-	M_BNEZ (REG_ITMP1,
-			3 + (runverbosenat ? 6 : 0));  /* if no exception then return        */
-
-#if 1
-	if (runverbosenat) {
-		M_ALD(argintregs[0], REG_PV, -6*8);
+	if (runverbose) {
+		M_ALD(argintregs[0], REG_PV, -6 * 8);
 		M_MOV(REG_RESULT, argintregs[1]);
 		M_FMOV(REG_FRESULT, argfltregs[2]);
 		M_FMOV(REG_FRESULT, argfltregs[3]);
-		M_ALD(REG_PV, REG_PV, -7*8);
+		M_ALD(REG_PV, REG_PV, -7 * 8);  /* asm_builtin_exittrace              */
 		M_JSR(REG_RA, REG_PV);
+		disp = -(int) (mcodeptr - (s4*) cs) * 4;
+		M_LDA(REG_PV, REG_RA, disp);
 	}
-#endif
 
-	M_ALD  (REG_RA, REG_SP, 0);         /* load return address                */
-	M_LDA  (REG_SP, REG_SP, 8);         /* remove stackframe                  */
+	M_ALD(REG_ITMP3, REG_PV, -2 * 8);   /* get address of exceptionptr        */
+	M_ALD(REG_ITMP1, REG_ITMP3, 0);     /* load exception into reg. itmp1     */
+	M_BNEZ(REG_ITMP1, 3);               /* if no exception then return        */
 
-	M_RET  (REG_ZERO, REG_RA);          /* return to caller                   */
+	M_ALD(REG_RA, REG_SP, 0);           /* load return address                */
+	M_LDA(REG_SP, REG_SP, 8);           /* remove stackframe                  */
+	M_RET(REG_ZERO, REG_RA);            /* return to caller                   */
+
+	M_AST(REG_ZERO, REG_ITMP3, 0);      /* store NULL into exceptionptr       */
+
+	M_ALD(REG_RA, REG_SP, 0);           /* load return address                */
+	M_LDA(REG_SP, REG_SP, 8);           /* remove stackframe                  */
+	M_LDA(REG_ITMP2, REG_RA, -4);       /* move fault address into reg. itmp2 */
+	M_ALD(REG_ITMP3, REG_PV, -3 * 8);   /* load asm exception handler address */
+	M_JMP(REG_ZERO, REG_ITMP3);         /* jump to asm exception handler      */
 	
-	M_AST  (REG_ZERO, REG_ITMP3, 0);    /* store NULL into exceptionptr       */
-
-#if 1
-	if (runverbosenat) {
-		M_LDA(REG_SP, REG_SP, -9);
-		M_AST(REG_ITMP1, REG_SP, 0);
-		M_MOV(REG_ITMP1, argintregs[0]);
-		M_ALD(argintregs[1], REG_PV, -6*8);
-		M_ALD(argintregs[2], REG_SP, 0);
-		M_CLR(argintregs[3]);
-		M_ALD(REG_PV, REG_PV, -8*8);
-		M_JSR(REG_RA, REG_PV);
-		disp = -(int) (p - (s4*) cs)*4;
-		M_LDA  (REG_PV, REG_RA, disp);
-		M_ALD(REG_ITMP1, REG_SP, 0);
-		M_LDA(REG_SP, REG_SP, 9);
-	}
-#endif
-
-	M_ALD  (REG_RA, REG_SP, 0);         /* load return address                */
-	M_LDA  (REG_SP, REG_SP, 8);         /* remove stackframe                  */
-
-	M_LDA  (REG_ITMP2, REG_RA, -4);     /* move fault address into reg. itmp2 */
-
-	M_ALD  (REG_ITMP3, REG_PV, -3*8);   /* load asm exception handler address */
-	M_JMP  (REG_ZERO, REG_ITMP3);       /* jump to asm exception handler      */
-	
-#if 1
-	{
-		static int stubprinted;
-		if (!stubprinted)
-			dolog_plain("stubsize: %d/2\n", (int) (p - (s4*) s));
-		stubprinted = 1;
-	}
+#if 0
+	dolog_plain("stubsize: %d (for %d params)\n", (int) (mcodeptr - (s4*) s), m->paramcount);
 #endif
 
 #ifdef STATISTICS
@@ -4124,15 +4001,16 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	return (u1*) (s + NATIVESTUBOFFSET);
 }
 
+
 /* function: removenativestub **************************************************
 
     removes a previously created native-stub from memory
     
 *******************************************************************************/
 
-void removenativestub (u1 *stub)
+void removenativestub(u1 *stub)
 {
-	CFREE ((u8*) stub - NATIVESTUBOFFSET, NATIVESTUBSIZE * 8);
+	CFREE((u8*) stub - NATIVESTUBOFFSET, NATIVESTUBSIZE * 8);
 }
 
 
