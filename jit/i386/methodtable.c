@@ -1,4 +1,4 @@
-/* jit/i386/methodtable.c -
+/* jit/i386/methodtable.c - builds a table of all methods
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,7 +27,7 @@
 
    Authores: Christian Thalinger
 
-   $Id: methodtable.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: methodtable.c 561 2003-11-02 23:39:06Z twisti $
 
 */
 
@@ -51,28 +51,26 @@ void addmethod(u1 *start, u1 *end)
     mtentry *mte = NEW(mtentry);
 #endif
 
-/*      fprintf(stderr, "start=%lx end=%lx\n", start, end); */
-
     if (mtroot == NULL) {
 #if 0
         mtentry *tmp = GCNEW(mtentry, 1);
 #else
         mtentry *tmp = NEW(mtentry);
 #endif
-	tmp->start = (u1 *) asm_calljavamethod;
-	tmp->end = (u1 *) asm_calljavafunction;    /* little hack, but should work */
-	tmp->next = mtroot;
-	mtroot = tmp;
+		tmp->start = (u1 *) asm_calljavamethod;
+		tmp->end = (u1 *) asm_calljavafunction;    /* little hack, but should work */
+		tmp->next = mtroot;
+		mtroot = tmp;
 
 #if 0
         tmp = GCNEW(mtentry, 1);
 #else
         tmp = NEW(mtentry);
 #endif
-	tmp->start = (u1 *) asm_calljavafunction;
-	tmp->end = (u1 *) asm_call_jit_compiler;    /* little hack, but should work */
-	tmp->next = mtroot;
-	mtroot = tmp;
+		tmp->start = (u1 *) asm_calljavafunction;
+		tmp->end = (u1 *) asm_call_jit_compiler;    /* little hack, but should work */
+		tmp->next = mtroot;
+		mtroot = tmp;
     }
 
     mte->start = start;
@@ -82,33 +80,20 @@ void addmethod(u1 *start, u1 *end)
 }
 
 
-
 u1 *findmethod(u1 *pos)
 {
     mtentry *mte = mtroot;
 
-/*      printf("findmethod: start\n"); */
-
     while (mte != NULL) {
-/*          printf("%p <= %p <= %p\n", mte->start, pos, mte->end); */
-          
-	if (mte->start <= pos && pos <= mte->end) {
-	    return mte->start;
+		if (mte->start <= pos && pos <= mte->end) {
+			return mte->start;
 
-	} else {
-	    mte = mte->next;
-	}
+		} else {
+			mte = mte->next;
+		}
     }
 	
     return NULL;
-}
-
-
-
-void asmprintf(int x)
-{
-    printf("val=%x\n", x);
-    fflush(stdout);
 }
 
 

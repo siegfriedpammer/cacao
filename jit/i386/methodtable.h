@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: methodtable.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: methodtable.h 561 2003-11-02 23:39:06Z twisti $
 
 */
 
@@ -49,7 +49,7 @@ struct _mtentry {
 void addmethod(u1 *start, u1 *end);
 u1 *findmethod(u1 *pos);
 
-#endif
+#endif /* _METHODTABLE_H */
 
 
 /*

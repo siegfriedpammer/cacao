@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 557 2003-11-02 22:51:59Z twisti $
+   $Id: reg.inc 561 2003-11-02 23:39:06Z twisti $
 
 */
 
@@ -48,7 +48,7 @@ static int intreg_ret;              /* register to return integer values      */
 int intreg_argnum;                  /* number of integer argument registers   */
 
 static int floatreg_ret;            /* register for return float values       */
-static int fltreg_argnum;           /* number of float argument registers     */
+int fltreg_argnum;                  /* number of float argument registers     */
 
 
 static int *argintregs;             /* scratch integer registers              */

@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: reg.h 561 2003-11-02 23:39:06Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 extern varinfo5 *locals;
 extern varinfo5 *interfaces;
 extern int intreg_argnum;
+extern int fltreg_argnum;
 extern int arguments_num;
 
 
