@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 284 2003-05-12 19:09:05Z stefan $
+# $Id: Makefile.am 311 2003-05-16 15:30:23Z stefan $
 
 @SET_MAKE@
 
@@ -27,7 +27,6 @@ cacao_SOURCES = \
 	builtin.c \
 	builtin.h \
 	callargs.h \
-	@COMPILER_SOURCES@ \
 	global.h \
 	jit.c \
 	jit.h \
