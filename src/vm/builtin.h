@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1296 2004-07-10 17:02:15Z stefan $
+   $Id: builtin.h 1324 2004-07-21 12:35:07Z twisti $
 
 */
 
@@ -380,8 +380,7 @@ inline java_objectheader **builtin_get_exceptionptrptr()
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	return &THREADINFO->_exceptionptr;
 #else
-    panic("builtin_get_exceptionptrptr should not be used in this configuration");
-    return NULL;
+#error builtin_get_exceptionptrptr should not be used in this configuration
 #endif
 }
 
@@ -390,8 +389,7 @@ inline methodinfo **builtin_get_threadrootmethod()
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	return &THREADINFO->_threadrootmethod;
 #else
-    panic("builting_get_threadrootmethod should not be used in this configuration");
-    return NULL;
+#error builting_get_threadrootmethod should not be used in this configuration
 #endif
 }
 
