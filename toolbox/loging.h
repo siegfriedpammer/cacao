@@ -8,11 +8,17 @@
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1996/10/03
+	Last Change: $Id: loging.h 65 1998-11-11 21:12:27Z phil $
 
 *******************************************************************************/
 
 #define PANICIF(when,txt)  if(when)panic(txt)
+
+/*
+ * Just added the LOG macro, so we our code becomes a little more
+ * readable, again. --phil.
+ */
+#define LOG(args...)               sprintf(logtext, ## args); dolog();
 
 #define MAXLOGTEXT 500
 extern char logtext[MAXLOGTEXT];
