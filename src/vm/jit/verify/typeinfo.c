@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 870 2004-01-10 22:49:32Z edwin $
+   $Id: typeinfo.c 887 2004-01-19 12:14:39Z edwin $
 
 */
 
@@ -144,7 +144,6 @@ typevectorset_mergedtypeinfo(typevector *vec,int index,typeinfo *temp)
 void
 typevectorset_store(typevector *vec,int index,int type,typeinfo *info)
 {
-	/* XXX check if a separator was overwritten */
 	do {
 		vec->td[index].type = type;
 		if (info)
@@ -159,7 +158,6 @@ typevectorset_store_retaddr(typevector *vec,int index,typeinfo *info)
 {
 	typeinfo_retaddr_set *adr;
 	
-	/* XXX check if a separator was overwritten */
 	adr = (typeinfo_retaddr_set*) TYPEINFO_RETURNADDRESS(*info);
 	do {
 		vec->td[index].type = TYPE_ADDRESS;
@@ -173,7 +171,6 @@ typevectorset_store_retaddr(typevector *vec,int index,typeinfo *info)
 void
 typevectorset_store_twoword(typevector *vec,int index,int type)
 {
-	/* XXX check if a separator was overwritten */
 	do {
 		vec->td[index].type = type;
 		vec->td[index+1].type = TYPE_VOID;
@@ -368,7 +365,6 @@ interface_extends_interface(classinfo *cls,classinfo *interf)
     return false;
 }
 
-/* XXX If really a performance issue, this could become a macro. */
 static
 bool
 classinfo_implements_interface(classinfo *cls,classinfo *interf)
@@ -437,94 +433,6 @@ typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
 #endif
 
 	return typeinfo_is_assignable_to_classinfo(value,dest->typeclass);
-
-	/* XXX delete */
-#if 0
-    classinfo *cls;
-
-    cls = value->typeclass;
-
-    /* assignments of primitive values are not checked here. */
-    if (!cls && !dest->typeclass)
-        return true;
-
-    /* primitive and reference types are not assignment compatible. */
-    if (!cls || !dest->typeclass)
-        return false;
-
-    /* the null type can be assigned to any type */
-    if (TYPEINFO_IS_NULLTYPE(*value))
-        return true;
-
-    /* uninitialized objects are not assignable */
-    if (TYPEINFO_IS_NEWOBJECT(*value))
-        return false;
-
-    if (dest->typeclass->flags & ACC_INTERFACE) {
-        /* We are assigning to an interface type. */
-        return merged_implements_interface(cls,value->merged,
-                                           dest->typeclass);
-    }
-
-    if (TYPEINFO_IS_ARRAY(*dest)) {
-        /* We are assigning to an array type. */
-        if (!TYPEINFO_IS_ARRAY(*value))
-            return false;
-
-        /* {Both value and dest are array types.} */
-
-        /* value must have at least the dimension of dest. */
-        if (value->dimension < dest->dimension)
-            return false;
-
-        if (value->dimension > dest->dimension) {
-            /* value has higher dimension so we need to check
-             * if its component array can be assigned to the
-             * element type of dest */
-            
-            if (dest->elementclass->flags & ACC_INTERFACE) {
-                /* We are assigning to an interface type. */
-                return classinfo_implements_interface(pseudo_class_Arraystub,
-                                                      dest->elementclass);
-            }
-
-            /* We are assigning to a class type. */
-            return class_issubclass(pseudo_class_Arraystub,dest->elementclass);
-        }
-
-        /* {value and dest have the same dimension} */
-
-        if (value->elementtype != dest->elementtype)
-            return false;
-
-        if (value->elementclass) {
-            /* We are assigning an array of objects so we have to
-             * check if the elements are assignable.
-             */
-
-            if (dest->elementclass->flags & ACC_INTERFACE) {
-                /* We are assigning to an interface type. */
-
-                return merged_implements_interface(value->elementclass,
-                                                   value->merged,
-                                                   dest->elementclass);
-            }
-            
-            /* We are assigning to a class type. */
-            return class_issubclass(value->elementclass,dest->elementclass);
-        }
-
-        return true;
-    }
-
-    /* {dest is not an array} */
-        
-    /* We are assigning to a class type */
-    if (cls->flags & ACC_INTERFACE)
-        cls = class_java_lang_Object;
-    
-    return class_issubclass(cls,dest->typeclass);
-#endif
 }
 
 bool
@@ -638,7 +546,6 @@ typeinfo_init_from_descriptor(typeinfo *info,char *utf_ptr,char *end_ptr)
     classinfo *cls;
     char *end;
 
-    /* XXX simplify */
     cls = class_from_descriptor(utf_ptr,end_ptr,&end,
 								CLASSLOAD_NULLPRIMITIVE
 								| CLASSLOAD_NEW
@@ -799,7 +706,6 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
         return;
     }
     
-    /* XXX find component class */
     if (!TYPEINFO_IS_ARRAY(*srcarray))
         panic("Trying to access component of non-array");
 
@@ -810,20 +716,6 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
     else {
         TYPEINFO_INIT_PRIMITIVE(*dst);
     }
-
-    /* XXX assign directly ? */
-#if 0
-    if ((dst->dimension = srcarray->dimension - 1) == 0) {
-        dst->typeclass = srcarray->elementclass;
-        dst->elementtype = 0;
-        dst->elementclass = NULL;
-    }
-    else {
-        dst->typeclass = srcarray->typeclass;
-        dst->elementtype = srcarray->elementtype;
-        dst->elementclass = srcarray->elementclass;
-    }
-#endif
     
     dst->merged = srcarray->merged;
 }
@@ -844,7 +736,6 @@ typeinfo_clone(typeinfo *src,typeinfo *dest)
         TYPEINFO_ALLOCMERGED(dest->merged,count);
         dest->merged->count = count;
 
-        /* XXX use memcpy? */
         srclist = src->merged->list;
         destlist = dest->merged->list;
         while (count--)
@@ -1079,7 +970,7 @@ typeinfo_merge_nonarrays(typeinfo *dest,
     typeinfo_mergedlist *tmerged;
     bool changed;
 
-    /* XXX remove */
+    /* DEBUG */
     /*
 #ifdef TYPEINFO_DEBUG
     typeinfo dbgx,dbgy;
@@ -1098,15 +989,14 @@ typeinfo_merge_nonarrays(typeinfo *dest,
     /* (This case is very simple unless *both* x and y really represent
      *  merges of subclasses of clsx==clsy.)
      */
-    /* XXX count this case for statistics */
     if ((clsx == clsy) && (!mergedx || !mergedy)) {
   return_simple_x:
-        /* XXX remove */ /* log_text("return simple x"); */
+        /* DEBUG */ /* log_text("return simple x"); */
         changed = (dest->merged != NULL);
         TYPEINFO_FREEMERGED_IF_ANY(dest->merged);
         dest->merged = NULL;
         *result = clsx;
-        /* XXX remove */ /* log_text("returning"); */
+        /* DEBUG */ /* log_text("returning"); */
         return changed;
     }
     
@@ -1124,7 +1014,6 @@ typeinfo_merge_nonarrays(typeinfo *dest,
         if (clsy->flags & ACC_INTERFACE) {
             /* We are merging two interfaces. */
             /* {mergedy == NULL} */
-            /* XXX: should we optimize direct superinterfaces? */
 
             /* {We know that clsx!=clsy (see common case at beginning.)} */
             *result = class_java_lang_Object;
@@ -1158,7 +1047,7 @@ typeinfo_merge_nonarrays(typeinfo *dest,
          * by y, too, so we have to add clsx to the mergedlist.
          */
 
-        /* XXX if x has no superinterfaces we could return a simple java.lang.Object */
+        /* if x has no superinterfaces we could return a simple java.lang.Object */
         
         common = class_java_lang_Object;
         goto merge_with_simple_x;
@@ -1223,7 +1112,7 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
     int elementtype;
     bool changed;
 
-    /* XXX remove */
+    /* DEBUG */
     /*
 #ifdef TYPEINFO_DEBUG
     typeinfo_print(stdout,dest,4);
@@ -1266,22 +1155,21 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
         return false;
     }
     
-    /* XXX remove */ /* log_text("Testing common case"); */
+    /* DEBUG */ /* log_text("Testing common case"); */
 
     /* Common case: class dest == class y */
     /* (This case is very simple unless *both* dest and y really represent
      *  merges of subclasses of class dest==class y.)
      */
-    /* XXX count this case for statistics */
     if ((dest->typeclass == y->typeclass) && (!dest->merged || !y->merged)) {
         changed = (dest->merged != NULL);
-        TYPEINFO_FREEMERGED_IF_ANY(dest->merged); /* XXX unify if? */
+        TYPEINFO_FREEMERGED_IF_ANY(dest->merged); /* unify if? */
         dest->merged = NULL;
-        /* XXX remove */ /* log_text("common case handled"); */
+        /* DEBUG */ /* log_text("common case handled"); */
         return changed;
     }
     
-    /* XXX remove */ /* log_text("Handling null types"); */
+    /* DEBUG */ /* log_text("Handling null types"); */
 
     /* Handle null types: */
     if (TYPEINFO_IS_NULLTYPE(*y)) {
@@ -1301,7 +1189,7 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
     /* Handle merging of arrays: */
     if (TYPEINFO_IS_ARRAY(*x) && TYPEINFO_IS_ARRAY(*y)) {
         
-        /* XXX remove */ /* log_text("Handling arrays"); */
+        /* DEBUG */ /* log_text("Handling arrays"); */
 
         /* Make x the one with lesser dimension */
         if (x->dimension > y->dimension) {
@@ -1350,10 +1238,9 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
                                                     elementclass,
                                                     x->merged,y->merged);
 
-                /* XXX otimize this? */
-                /* XXX remove */ /* log_text("finding resulting array class: "); */
+                /* DEBUG */ /* log_text("finding resulting array class: "); */
                 common = class_multiarray_of(dimension,elementclass);
-                /* XXX remove */ /* utf_display(common->name); printf("\n"); */
+                /* DEBUG */ /* utf_display(common->name); printf("\n"); */
             }
         }
     }
@@ -1390,7 +1277,7 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
         changed = true;
     }
 
-    /* XXX remove */ /* log_text("returning from merge"); */
+    /* DEBUG */ /* log_text("returning from merge"); */
     
     return changed;
 }

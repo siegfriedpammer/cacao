@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 870 2004-01-10 22:49:32Z edwin $
+   $Id: typeinfo.h 887 2004-01-19 12:14:39Z edwin $
 
 */
 
@@ -44,43 +44,22 @@ typedef struct typedescriptor typedescriptor;
 typedef struct typevector typevector;
 typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
 
-/* global variables ***********************************************************/
-
-/* XXX move this documentation to global.h */
-/* The following classinfo pointers are used internally by the type system.
- * Please do not use them directly, use the TYPEINFO_ macros instead.
- */
-
-/*
- * pseudo_class_Arraystub
- *     (extends Object implements Cloneable, java.io.Serializable)
- *
- *     If two arrays of incompatible component types are merged,
- *     the resulting reference has no accessible components.
- *     The result does, however, implement the interfaces Cloneable
- *     and java.io.Serializable. This pseudo class is used internally
- *     to represent such results. (They are *not* considered arrays!)
- *
- * pseudo_class_Null
- *
- *     This pseudo class is used internally to represent the
- *     null type.
- *
- * pseudo_class_New
- *
- *     This pseudo class is used internally to represent the
- *     the uninitialized object type.
- */
-
 /* data structures for the type system ****************************************/
 
-/* The typeinfo structure stores detailed information on reference types.
+/* The typeinfo structure stores detailed information on address types.
  * (stack elements, variables, etc. with type == TYPE_ADR.)
- * XXX: exclude ReturnAddresses?
  *
- * XXX
- * For primitive types either there is no typeinfo allocated or the
- * typeclass pointer in the typeinfo struct is NULL.
+ * There are two kinds of address types which can are distinguished by
+ * the value of the typeclass field:
+ *
+ * 1) typeclass == NULL: returnAddress type
+ *                       use TYPEINFO_IS_PRIMITIVE to test for this
+ *
+ * 2) typeclass != NULL: reference type
+ *                       use TYPEINFO_IS_REFERENCE to test for this
+ *
+ * Note: For non-address types either there is no typeinfo allocated
+ * or the fields of the typeinfo struct contain undefined values!
  *
  * CAUTION: The typeinfo structure should be considered opaque outside of
  *          typeinfo.[ch]. Please use the macros and functions defined here to
@@ -92,42 +71,69 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  *
  * A) typeclass == NULL
  *
- *        In this case the other fields of the structure
- *        are INVALID. XXX
+ *        This is a returnAddress type. The interpretation of the
+ *        elementclass field depends on wether this typeinfo describes
+ *        a stack slot or a local variable:
+ *
+ *        stack slot: elementclass is a pointer to a
+ *            typeinfo_retaddr_set which contains a return target for
+ *            every vector in the current set of local variable vectors.
+ *        local variable: elementclass is the return target (when cast
+ *            to basicblock *)
+ *
+ *        Use TYPEINFO_IS_PRIMITIVE to check for this.
+ *        Use TYPEINFO_RETURNADDRESS to access the pointer in elementclass.
+ *        Don't access other fields of the struct.
  *
  * B) typeclass == pseudo_class_Null
  *
- *        XXX
+ *        This is the null-reference type. Use TYPEINFO_IS_NULLTYPE to check for this.
+ *        Don't access other fields of the struct.
  *
  * C) typeclass == pseudo_class_New
  *
- *        XXX
+ *        This is a 'uninitialized object' type. elementclass can be
+ *        cast to instruction* and points to the NEW instruction
+ *        responsible for creating this type.
+ *
+ *        Use TYPEINFO_NEWOBJECT_INSTRUCTION to access the pointer in
+ *        elementclass.
+ *        Don't access other fields of the struct.
  *
  * D) typeclass == pseudo_class_Arraystub
  *
- *        XXX
+ *        See global.h for a describes of pseudo_class_Arraystub.
+ *        Otherwise like a normal class reference type.
+ *        Don't access other fields of the struct.
  *
  * E) typeclass is an array class
  *
- *        XXX
+ *        An array reference.
+ *            elementclass...typeclass of the element type
+ *            dimension......dimension of the array (>=1)
+ *            elementtype....element type (ARRAYTYPE_...)
+ *            merged.........mergedlist of the element type
  *
  * F) typeclass is an interface
  *
- *        XXX
+ *        An interface reference type.
+ *        Don't access other fields of the struct.
  *
- * G) typeclass is a (non-pseudo-)class != java.lang.Object
+ * G) typeclass is a (non-pseudo-,non-array-)class != java.lang.Object
  *
- *        XXX
+ *        A class reference type.
  *        All classinfos in u.merged.list (if any) are
- *        subclasses of typeclass.
+ *        subclasses of typeclass (no interfaces or array classes).
+ *        Don't access other fields of the struct.
  *
  * H) typeclass is java.lang.Object
  *
- *        XXX
+ *        The most general kind of reference type.
  *        In this case u.merged.count and u.merged.list
  *        are valid and may be non-zero.
- *        The classinfos in u.merged.list (if any) can be
- *        classes, interfaces or pseudo classes.
+ *        The classinfos in u.merged.list (if any) may be
+ *        classes, interfaces and pseudo classes.
+ *        Don't access other fields of the struct.
  */
 
 /* The following algorithm is used to determine if the type described
@@ -135,7 +141,7 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  *
  *     1) If typeclass is X or a subinterface of X the answer is "yes".
  *     2) If typeclass is a (pseudo) class implementing X the answer is "yes".
- *     3) XXX If typeclass is not an array and u.merged.count>0
+ *     3) If typeclass is not an array and u.merged.count>0
  *        and all classes/interfaces in u.merged.list implement X
  *        the answer is "yes".
  *     4) If none of the above is true the answer is "no".
@@ -148,7 +154,7 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  */
 struct typeinfo {
 	classinfo           *typeclass;
-	classinfo           *elementclass; /* valid if dimension>0 */ /* XXX various uses */
+	classinfo           *elementclass; /* valid if dimension>0 */ /* various uses! */
 	typeinfo_mergedlist *merged;
 	u1                   dimension;
 	u1                   elementtype;  /* valid if dimension>0 */
@@ -352,30 +358,6 @@ struct typevector {
 #define TYPEINFO_INIT_FROM_FIELDINFO(info,fi)                   \
             typeinfo_init_from_descriptor(&(info),              \
                 (fi)->descriptor->text,utf_end((fi)->descriptor));
-
-/* macros for writing types (destination must have been initialized) ********/
-/* XXX delete them? */
-#if 0
-
-#define TYPEINFO_PUT_NULLTYPE(info)                             \
-    do {(info).typeclass = pseudo_class_Null;} while(0)
-
-#define TYPEINFO_PUT_NON_ARRAY_CLASSINFO(info,cinfo)            \
-    do {(info).typeclass = (cinfo);} while(0)
-
-#define TYPEINFO_PUT_CLASSINFO(info,cls)                                \
-    do {if (((info).typeclass = (cls))->vftbl->arraydesc) {             \
-                if ((cls)->vftbl->arraydesc->elementvftbl)                \
-                    (info).elementclass = (cls)->vftbl->arraydesc->elementvftbl->class; \
-                (info).dimension = (cls)->vftbl->arraydesc->dimension;    \
-                (info).elementtype = (cls)->vftbl->arraydesc->elementtype; \
-        }} while(0)
-
-/* srcarray must be an array (not checked) */
-#define TYPEINFO_PUT_COMPONENT(srcarray,dst)                    \
-    do {typeinfo_put_component(&(srcarray),&(dst));} while(0)
-
-#endif
 
 /* macros for copying types (destinition is not checked or freed) ***********/
 
