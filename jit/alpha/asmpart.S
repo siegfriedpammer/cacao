@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 901 2004-01-22 19:06:00Z twisti $
+   $Id: asmpart.S 948 2004-03-07 22:12:28Z twisti $
 
 */
 
@@ -157,8 +157,8 @@ has_no_x_instr_set:
 /********************* function synchronize_caches ****************************/
 
 	.ent    synchronize_caches
-synchronize_caches:
 
+synchronize_caches:
 	call_pal PAL_imb                  /* synchronise instruction cache        */
 	jmp     zero,(ra)                 /* return                               */
 
@@ -826,14 +826,21 @@ L_is_initialized:
 
 	.ent    asm_builtin_monitorenter
 asm_builtin_monitorenter:
-
 	ldgp    gp,0(pv)
 	lda     pv,builtin_monitorenter
 	beq     a0,nb_monitorenter        /* if (null) throw exception            */
 	jmp     zero,(pv)                 /* else call builtin_monitorenter       */
 
 nb_monitorenter:
-	ldq     xptr,proto_java_lang_NullPointerException
+	subq    sp,8,sp
+    stq     ra,0(sp)
+	ldq     a0,string_java_lang_NullPointerException
+    jsr     ra,new_exception_message
+    ldgp    gp,0(ra)
+	mov     v0,xptr
+    ldq     ra,0(sp)
+	addq    sp,8,sp
+	
 	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
 	.end    asm_builtin_monitorenter
@@ -847,14 +854,21 @@ nb_monitorenter:
 
 	.ent    asm_builtin_monitorexit
 asm_builtin_monitorexit:
-
 	ldgp    gp,0(pv)
 	lda     pv,builtin_monitorexit
 	beq     a0,nb_monitorexit         /* if (null) throw exception            */
 	jmp     zero,(pv)                 /* else call builtin_monitorexit        */
 
 nb_monitorexit:
-	ldq     xptr,proto_java_lang_NullPointerException
+	subq    sp,8,sp
+    stq     ra,0(sp)
+	ldq     a0,string_java_lang_NullPointerException
+    jsr     ra,new_exception_message
+    ldgp    gp,0(ra)
+	mov     v0,xptr
+    ldq     ra,0(sp)
+	addq    sp,8,sp
+	
 	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
 	.end    asm_builtin_monitorexit
@@ -867,17 +881,27 @@ nb_monitorexit:
 *******************************************************************************/
 
 	.ent    asm_builtin_idiv
-asm_builtin_idiv:
 
+asm_builtin_idiv:
 	ldgp    gp,0(pv)
 	lda     pv,builtin_idiv
 	beq     a1,nb_idiv                /* if (null) throw exception            */
 	jmp     zero,(pv)                 /* else call builtin_idiv               */
 
 nb_idiv:
-	ldq     xptr,proto_java_lang_ArithmeticException
+	subq    sp,8,sp
+	stq     ra,0(sp)
+	ldq     a0,string_java_lang_ArithmeticException
+	ldq     a1,string_java_lang_ArithmeticException_message
+	jsr     ra,new_exception_message
+	ldgp    gp,0(ra)
+	mov     v0,xptr
+	ldq     ra,0(sp)
+	addq    sp,8,sp
+	
 	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
+
 	.end    asm_builtin_idiv
 
 
@@ -888,17 +912,27 @@ nb_idiv:
 *******************************************************************************/
 
 	.ent    asm_builtin_ldiv
-asm_builtin_ldiv:
 
+asm_builtin_ldiv:
 	ldgp    gp,0(pv)
 	lda     pv,builtin_ldiv
 	beq     a1,nb_ldiv                /* if (null) throw exception            */
 	jmp     zero,(pv)                 /* else call builtin_ldiv               */
 
 nb_ldiv:
-	ldq     xptr,proto_java_lang_ArithmeticException
+	subq    sp,8,sp
+	stq     ra,0(sp)
+	ldq     a0,string_java_lang_ArithmeticException
+	ldq     a1,string_java_lang_ArithmeticException_message
+	jsr     ra,new_exception_message
+	ldgp    gp,0(ra)
+	mov     v0,xptr
+	ldq     ra,0(sp)
+	addq    sp,8,sp
+
 	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
+
 	.end    asm_builtin_ldiv
 
 
@@ -909,17 +943,27 @@ nb_ldiv:
 *******************************************************************************/
 
 	.ent    asm_builtin_irem
-asm_builtin_irem:
 
+asm_builtin_irem:
 	ldgp    gp,0(pv)
 	lda     pv,builtin_irem
 	beq     a1,nb_irem                /* if (null) throw exception            */
 	jmp     zero,(pv)                 /* else call builtin_irem               */
 
 nb_irem:
-	ldq     xptr,proto_java_lang_ArithmeticException
+	subq    sp,8,sp
+	stq     ra,0(sp)
+	ldq     a0,string_java_lang_ArithmeticException
+	ldq     a1,string_java_lang_ArithmeticException_message
+	jsr     ra,new_exception_message
+	ldgp    gp,0(ra)
+	mov     v0,xptr
+	ldq     ra,0(sp)
+	addq    sp,8,sp
+
 	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
+
 	.end    asm_builtin_irem
 
 
@@ -930,17 +974,27 @@ nb_irem:
 *******************************************************************************/
 
 	.ent    asm_builtin_lrem
-asm_builtin_lrem:
 
+asm_builtin_lrem:
 	ldgp    gp,0(pv)
 	lda     pv,builtin_lrem
 	beq     a1,nb_lrem                /* if (null) throw exception            */
 	jmp     zero,(pv)                 /* else call builtin_lrem               */
 
 nb_lrem:
-	ldq     xptr,proto_java_lang_ArithmeticException
+	subq    sp,8,sp
+	stq     ra,0(sp)
+	ldq     a0,string_java_lang_ArithmeticException
+	ldq     a1,string_java_lang_ArithmeticException_message
+	jsr     ra,new_exception_message
+	ldgp    gp,0(ra)
+	mov     v0,xptr
+	ldq     ra,0(sp)
+	addq    sp,8,sp
+
 	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
+
 	.end    asm_builtin_lrem
 
 
@@ -951,8 +1005,8 @@ nb_lrem:
 *******************************************************************************/
 
     .ent    asm_builtin_checkcast
-asm_builtin_checkcast:
 
+asm_builtin_checkcast:
     ldgp    gp,0(pv)
     lda     sp,-16(sp)                  # allocate stack space
     stq     ra,0(sp)                    # save return address
@@ -966,11 +1020,16 @@ asm_builtin_checkcast:
     jmp     zero,(ra)
 
 nb_ccast_throw:
-    ldq     xptr,proto_java_lang_ClassCastException
+	ldq     a0,string_java_lang_ClassCastException
+	jsr     ra,new_exception
+	ldgp    gp,0(ra)
+	mov     v0,xptr
+
     ldq     ra,0(sp)                    # restore return address
     lda     sp,16(sp)                   # free stack space
     lda     xpc,-4(ra)                  # faulting address is return adress - 4
     br      asm_handle_nat_exception
+
     .end    asm_builtin_checkcast
 
 		
@@ -981,8 +1040,8 @@ nb_ccast_throw:
 *******************************************************************************/
 
 	.ent    asm_builtin_checkarraycast
-asm_builtin_checkarraycast:
 
+asm_builtin_checkarraycast:
 	ldgp    gp,0(pv)
 	lda     sp,-16(sp)                /* allocate stack space                 */
 	stq     ra,0(sp)                  /* save return address                  */
@@ -996,11 +1055,16 @@ asm_builtin_checkarraycast:
 	jmp     zero,(ra)
 
 nb_carray_throw:
-	ldq     xptr,proto_java_lang_ClassCastException
+	ldq     a0,string_java_lang_ClassCastException
+    jsr     ra,new_exception
+    ldgp    gp,0(ra)
+	mov     v0,xptr
+
 	ldq     ra,0(sp)                  /* restore return address               */
 	lda     sp,16(sp)                 /* free stack space                     */
 	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
+
 	.end    asm_builtin_checkarraycast
 
 
@@ -1011,8 +1075,8 @@ nb_carray_throw:
 *******************************************************************************/
 
 	.ent    asm_builtin_aastore
-asm_builtin_aastore:
 
+asm_builtin_aastore:
 	ldgp    gp,0(pv)
 	beq     a0,nb_aastore_null        /* if null pointer throw exception      */
 	ldl     t0,offarraysize(a0)       /* load size                            */
@@ -1034,19 +1098,40 @@ asm_builtin_aastore:
 	stq     a1,offobjarrdata(a0)      /* store objectptr in array             */
 	jmp     zero,(ra)
 
-nb_aastore_null:
-	ldq     xptr,proto_java_lang_NullPointerException
+nb_aastore_null:	
+	subq    sp,8,sp                   /* allocate stack space                 */
+	stq     ra,0(sp)                  /* save return address                  */
+	ldq     a0,string_java_lang_NullPointerException
+    jsr     ra,new_exception
+    ldgp    gp,0(ra)
+	mov     v0,xptr
+	ldq     ra,0(sp)
+	addq    sp,8,sp
+
 	mov     ra,xpc                    /* faulting address is return adress    */
 	br      asm_handle_nat_exception
 
 nb_aastore_bound:
-	ldq     xptr,proto_java_lang_ArrayIndexOutOfBoundsException
+	ldq     a0,string_java_lang_ArrayIndexOutOfBoundsException
+    jsr     ra,new_exception_int      /* a1 already contains the index        */
+    ldgp    gp,0(ra)
+	mov     v0,xptr
+
+	ldq     ra,0(sp)                  /* restore return address               */
 	lda     sp,24(sp)                 /* free stack space                     */
 	mov     ra,xpc                    /* faulting address is return adress    */
 	br      asm_handle_nat_exception
 
 nb_aastore_throw:
-	ldq     xptr,proto_java_lang_ArrayStoreException
+	subq    sp,8,sp                   /* allocate stack space                 */
+	stq     ra,0(sp)                  /* save return address                  */
+	ldq     a0,string_java_lang_ArrayStoreException
+    jsr     ra,new_exception
+    ldgp    gp,0(ra)
+	mov     v0,xptr
+	ldq     ra,0(sp)
+	addq    sp,8,sp
+
 	mov     ra,xpc                    /* faulting address is return adress    */
 	br      asm_handle_nat_exception
 
@@ -1060,8 +1145,8 @@ nb_aastore_throw:
 *******************************************************************************/
 
 	.ent    asm_initialize_thread_stack
-asm_initialize_thread_stack:
 
+asm_initialize_thread_stack:
 	lda     a1,-128(a1)
 	stq     zero, 0(a1)
 	stq     zero, 8(a1)
@@ -1081,6 +1166,7 @@ asm_initialize_thread_stack:
 	stq     a0, 120(a1)
 	mov     a1, v0
 	jmp     zero,(ra)
+
 	.end    asm_initialize_thread_stack
 
 
@@ -1093,8 +1179,8 @@ asm_initialize_thread_stack:
 *******************************************************************************/
 
 	.ent    asm_perform_threadswitch
-asm_perform_threadswitch:
 
+asm_perform_threadswitch:
 	subq    sp,128,sp
 	stq     s0, 0(sp)
 	stq     s1, 8(sp)
@@ -1134,6 +1220,7 @@ asm_perform_threadswitch:
 	mov     ra, pv
 	addq    sp, 128, sp
 	jmp	zero,(ra)
+
 	.end    asm_perform_threadswitch
 
 
@@ -1152,6 +1239,7 @@ asm_perform_threadswitch:
 
 
 	.ent	asm_switchstackandcall
+
 asm_switchstackandcall:
 	lda	a0,-2*8(a0)     /* allocate new stack                                 */
 	stq	ra,0(a0)        /* save return address on new stack                   */
@@ -1185,8 +1273,8 @@ asm_switchstackandcall:
 
 
 	.ent	asm_getcallingmethod
-asm_getcallingmethod:
 
+asm_getcallingmethod:
 	ldq		t3,16(sp)             /* load return address of native function   */
 	addq    sp,24,t2			  /* skip frames of C-Function and nativestub */
 		
@@ -1227,9 +1315,8 @@ pv_ok1:
 
 pv_ok2:		
 	ldq     v0,MethodPointer(t4)  /*										  */
-
 										
-	jmp	zero,(ra)				  /* return                                   */
+	jmp     zero,(ra)             /* return                                   */
 
 	.end	asm_getcallingmethod
 
