@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2171 2005-03-31 19:23:51Z twisti $
+   $Id: jni.c 2183 2005-04-01 20:57:17Z edwin $
 
 */
 
@@ -76,6 +76,7 @@
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
+#include "vm/resolve.h"
 
 
 /* XXX TWISTI hack: define it extern so they can be found in this file */
@@ -109,412 +110,223 @@ static jmethodID removemid = NULL;
 #define getField(obj,typ,var)     *((typ*) ((long int) obj + (long int) var->offset))
 #define setfield_critical(clazz,obj,name,sig,jdatatype,val) setField(obj,jdatatype,getFieldID_critical(env,clazz,name,sig),val); 
 
-
-
-u4 get_parametercount(methodinfo *m)
+static void fill_callblock(void *obj, methoddesc *descr, jni_callblock blk[], va_list data, int rettype)
 {
-	utf  *descr    =  m->descriptor;    /* method-descriptor */
-	char *utf_ptr  =  descr->text;      /* current position in utf-text */
-	char *desc_end =  utf_end(descr);   /* points behind utf string     */
-	u4 parametercount = 0;
-
-	/* skip '(' */
-	utf_nextu2(&utf_ptr);
-
-    /* determine number of parameters */
-	while (*utf_ptr != ')') {
-		get_type(&utf_ptr, desc_end, true);
-		parametercount++;
-	}
-
-	return parametercount;
-}
-
-
-
-void fill_callblock(void *obj, utf *descr, jni_callblock blk[], va_list data, char ret)
-{
-    char *utf__ptr = descr->text;      /* current position in utf-text */
-    char **utf_ptr = &utf__ptr;
-    char *desc_end = utf_end(descr);   /* points behind utf string     */
     int cnt;
     u4 dummy;
-    char c;
+	int i;
+	typedesc *paramtype;
 
-	/*
-    log_text("fill_callblock");
-    utf_display(descr);
-    log_text("====");
-	*/
-    /* skip '(' */
-    utf_nextu2(utf_ptr);
-
-    /* determine number of parameters */
 	if (obj) {
+		/* the this pointer */
 		blk[0].itemtype = TYPE_ADR;
 		blk[0].item = PTR_TO_ITEM(obj);
 		cnt = 1;
-	} else cnt = 0;
+	} 
+	else 
+		cnt = 0;
 
-	while (**utf_ptr != ')') {
-		if (*utf_ptr >= desc_end)
-        	panic("illegal method descriptor");
-
-		switch (utf_nextu2(utf_ptr)) {
+	paramtype = descr->paramtypes;
+	for (i=0; i<descr->paramcount; ++i,++cnt,++paramtype) {
+		switch (paramtype->decltype) {
 			/* primitive types */
-		case 'B':
-		case 'C':
-		case 'S': 
-		case 'Z':
+		case PRIMITIVETYPE_BYTE:
+		case PRIMITIVETYPE_CHAR:
+		case PRIMITIVETYPE_SHORT: 
+		case PRIMITIVETYPE_BOOLEAN: 
 			blk[cnt].itemtype = TYPE_INT;
 			blk[cnt].item = (u8) va_arg(data, int);
 			break;
 
-		case 'I':
+		case PRIMITIVETYPE_INT:
 			blk[cnt].itemtype = TYPE_INT;
 			dummy = va_arg(data, u4);
 			/*printf("fill_callblock: pos:%d, value:%d\n",cnt,dummy);*/
 			blk[cnt].item = (u8) dummy;
 			break;
 
-		case 'J':
+		case PRIMITIVETYPE_LONG:
 			blk[cnt].itemtype = TYPE_LNG;
 			blk[cnt].item = (u8) va_arg(data, jlong);
 			break;
 
-		case 'F':
+		case PRIMITIVETYPE_FLOAT:
 			blk[cnt].itemtype = TYPE_FLT;
 			*((jfloat *) (&blk[cnt].item)) = (jfloat) va_arg(data, jdouble);
 			break;
 
-		case 'D':
+		case PRIMITIVETYPE_DOUBLE:
 			blk[cnt].itemtype = TYPE_DBL;
 			*((jdouble *) (&blk[cnt].item)) = (jdouble) va_arg(data, jdouble);
 			break;
 
-		case 'V':
-			panic ("V not allowed as function parameter");
-			break;
-			
-		case 'L':
-			while (utf_nextu2(utf_ptr) != ';')
- 			    blk[cnt].itemtype = TYPE_ADR;
+		case TYPE_ADR: 
+			blk[cnt].itemtype = TYPE_ADR;
 			blk[cnt].item = PTR_TO_ITEM(va_arg(data, void*));
 			break;
-			
-		case '[':
-			{
-				/* XXX */
-				/* arrayclass */
-/*  				char *start = *utf_ptr; */
-				char ch;
-				while ((ch = utf_nextu2(utf_ptr)) == '[')
-					if (ch == 'L') {
-						while (utf_nextu2(utf_ptr) != ';') {}
-					}
-	
-				ch = utf_nextu2(utf_ptr);
-				blk[cnt].itemtype = TYPE_ADR;
-				blk[cnt].item = PTR_TO_ITEM(va_arg(data, void*));
-				break;			
-			}
 		}
-		cnt++;
 	}
 
 	/*the standard doesn't say anything about return value checking, but it appears to be usefull*/
-	c = utf_nextu2(utf_ptr);
-	c = utf_nextu2(utf_ptr);
-	/*printf("%c  %c\n",ret,c);*/
-	if (ret == 'O') {
-		if (!((c == 'L') || (c == '[')))
-			log_text("\n====\nWarning call*Method called for function with wrong return type\n====");
-	} else if (ret != c)
+	if (rettype != descr->returntype.decltype)
 		log_text("\n====\nWarning call*Method called for function with wrong return type\n====");
 }
 
-
 /* XXX it could be considered if we should do typechecking here in the future */
-char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_objectarray* params)
+static bool fill_callblock_objA(void *obj, methoddesc *descr, jni_callblock blk[], java_objectarray* params,
+								int *rettype)
 {
-    char *utf__ptr = descr->text;      /* current position in utf-text */
-    char **utf_ptr = &utf__ptr;
-    char *desc_end = utf_end(descr);   /* points behind utf string     */
-
     jobject param;
     int cnt;
     int cnts;
-    char c;
-
-	/*
-	  log_text("fill_callblock");
-	  utf_display(descr);
-	  log_text("====");
-	*/
-    /* skip '(' */
-    utf_nextu2(utf_ptr);
+	typedesc *paramtype;
 
     /* determine number of parameters */
 	if (obj) {
+		/* this pointer */
 		blk[0].itemtype = TYPE_ADR;
 		blk[0].item = PTR_TO_ITEM(obj);
 		cnt=1;
-
 	} else {
 		cnt = 0;
 	}
 
-	cnts = 0;
-	while (**utf_ptr != ')') {
-		if (*utf_ptr >= desc_end)
-        	panic("illegal method descriptor");
+	paramtype = descr->paramtypes;
+	for (cnts=0; cnts < descr->paramcount; ++cnts,++cnt,++paramtype) {
+		switch (paramtype->type) {
+			/* primitive types */
+			case TYPE_INT:
+			case TYPE_LONG:
+			case TYPE_FLOAT:
+			case TYPE_DOUBLE:
+			
+				param = params->data[cnts];
+				if (!param)
+					goto illegal_arg;
 
-		/* primitive types */
-		switch (utf_nextu2(utf_ptr)) {
-		case 'B':
-			param = params->data[cnts];
-			if (param == 0) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-			}
-			if (param->vftbl->class->name == utf_java_lang_Byte) {
-				blk[cnt].itemtype = TYPE_INT;
-				blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
+				/* internally used data type */
+				blk[cnt].itemtype = paramtype->type;
 
-			} else  {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-			}
-			break;
-
-		case 'C':
-			param = params->data[cnts];
-			if (param == 0) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-			}
-			if (param->vftbl->class->name == utf_java_lang_Character) {
-				blk[cnt].itemtype = TYPE_INT;
-				blk[cnt].item = (u8) ((java_lang_Character *) param)->value;
-
-			} else  {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-			}
-			break;
-
-		case 'S':
-			param = params->data[cnts];
-			if (param == 0) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-			}
-			if (param->vftbl->class->name == utf_java_lang_Short) {
-				blk[cnt].itemtype = TYPE_INT;
-				blk[cnt].item = (u8) ((java_lang_Short *) param)->value;
-
-			} else  {
-				if (param->vftbl->class->name == utf_java_lang_Byte) {
-					blk[cnt].itemtype = TYPE_INT;
-					blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
-
-				} else {
-					*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-					return 0;
-				}
-			}
-			break;
-
-		case 'Z':
-			param = params->data[cnts];
-			if (param == 0) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-			}
-			if (param->vftbl->class->name == utf_java_lang_Boolean) {
-				blk[cnt].itemtype = TYPE_INT;
-				blk[cnt].item = (u8) ((java_lang_Boolean *) param)->value;
-
-			} else {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-			}
-			break;
-
-		case 'I':
-			/*log_text("fill_callblock_objA: param 'I'");*/
-			param = params->data[cnts];
-			if (param == 0) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-			}
-			if (param->vftbl->class->name == utf_java_lang_Integer) {
-				blk[cnt].itemtype = TYPE_INT;
-				blk[cnt].item = (u8) ((java_lang_Integer *) param)->value;
-				/*printf("INT VALUE :%d\n",((struct java_lang_Integer * )param)->value);*/
-			} else {
-				if (param->vftbl->class->name == utf_java_lang_Short) {
-					blk[cnt].itemtype = TYPE_INT;
-					blk[cnt].item = (u8) ((java_lang_Short *) param)->value;
-
-				} else  {
-					if (param->vftbl->class->name == utf_java_lang_Byte) {
-						blk[cnt].itemtype = TYPE_INT;
-						blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
-
-					} else  {
-						*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-						return 0;
-					}
-				}
-			}
-			break;
-
-		case 'J':
-			param = params->data[cnts];
-			if (param == 0) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-			}
-			if (param->vftbl->class->name == utf_java_lang_Long) {
-				blk[cnt].itemtype = TYPE_LNG;
-				blk[cnt].item = (u8) ((java_lang_Long *) param)->value;
-
-			} else  {
-				if (param->vftbl->class->name == utf_java_lang_Integer) {
-					blk[cnt].itemtype = TYPE_LNG;
-					blk[cnt].item = (u8) ((java_lang_Integer *) param)->value;
-
-				} else {
-					if (param->vftbl->class->name == utf_java_lang_Short) {
-						blk[cnt].itemtype = TYPE_LNG;
-						blk[cnt].item = (u8) ((java_lang_Short *) param)->value;
-
-					} else  {
-						if (param->vftbl->class->name == utf_java_lang_Byte) {
-							blk[cnt].itemtype = TYPE_LNG;
-							blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
-						} else  {
-							*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-							return 0;
+				/* convert the value according to its declared type */
+				switch (paramtype->decltype) {
+						case PRIMITIVETYPE_BOOLEAN:
+							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
+								blk[cnt].item = (u8) ((java_lang_Boolean *) param)->value;
+							else
+								goto illegal_arg;
+							break;
+						case PRIMITIVETYPE_BYTE:
+							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
+								blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
+							else
+								goto illegal_arg;
+							break;
+						case PRIMITIVETYPE_CHAR:
+							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
+								blk[cnt].item = (u8) ((java_lang_Character *) param)->value;
+							else
+								goto illegal_arg;
+							break;
+						case PRIMITIVETYPE_SHORT:
+							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
+								blk[cnt].item = (u8) ((java_lang_Short *) param)->value;
+							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
+								blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
+							else
+								goto illegal_arg;
+							break;
+						case PRIMITIVETYPE_INT:
+							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
+								blk[cnt].item = (u8) ((java_lang_Integer *) param)->value;
+							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
+								blk[cnt].item = (u8) ((java_lang_Short *) param)->value;
+							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
+								blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
+							else
+								goto illegal_arg;
+							break;
+						case PRIMITIVETYPE_LONG:
+							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
+								blk[cnt].item = (u8) ((java_lang_Long *) param)->value;
+							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_INT].class_wrap)
+								blk[cnt].item = (u8) ((java_lang_Integer *) param)->value;
+							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
+								blk[cnt].item = (u8) ((java_lang_Short *) param)->value;
+							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
+								blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
+							else
+								goto illegal_arg;
+							break;
+						case PRIMITIVETYPE_FLOAT:
+							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
+								*((jfloat *) (&blk[cnt].item)) = (jfloat) ((java_lang_Float *) param)->value;
+							else
+								goto illegal_arg;
+							break;
+						case PRIMITIVETYPE_DOUBLE:
+							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
+								*((jdouble *) (&blk[cnt].item)) = (jdouble) ((java_lang_Float *) param)->value;
+							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_FLOAT].class_wrap)
+								*((jfloat *) (&blk[cnt].item)) = (jfloat) ((java_lang_Float *) param)->value;
+							else
+								goto illegal_arg;
+							break;
+						default:
+							goto illegal_arg;
+				} /* end declared type switch */
+				break;
+		
+			case TYPE_ADDRESS:
+				{
+					classinfo *cls;
+				   
+					if (!resolve_class_from_typedesc(paramtype,true,&cls))
+						return false; /* exception */
+					if (params->data[cnts] != 0) {
+						if (paramtype->arraydim > 0) {
+							if (!builtin_arrayinstanceof(params->data[cnts], cls->vftbl))
+								goto illegal_arg;
+						}
+						else {
+							if (!builtin_instanceof(params->data[cnts], cls))
+								goto illegal_arg;
 						}
 					}
+					blk[cnt].itemtype = TYPE_ADR;
+					blk[cnt].item = PTR_TO_ITEM(params->data[cnts]);
 				}
-
-			}
-			break;
-
-		case 'F':
-			param = params->data[cnts];
-			if (param == 0) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-			}
-
-			if (param->vftbl->class->name == utf_java_lang_Float) {
-				blk[cnt].itemtype = TYPE_FLT;
-				*((jfloat *) (&blk[cnt].item)) = (jfloat) ((java_lang_Float *) param)->value;
-
-			} else  {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-			}
-			break;
-
-		case 'D':
-			param = params->data[cnts];
-			if (param == 0) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-			}
-
-			if (param->vftbl->class->name == utf_java_lang_Double) {
-				blk[cnt].itemtype = TYPE_DBL;
-				*((jdouble *) (&blk[cnt].item)) = (jdouble) ((java_lang_Float *) param)->value;
-
-			} else  {
-				if (param->vftbl->class->name == utf_java_lang_Float) {
-					blk[cnt].itemtype = TYPE_DBL;
-					*((jdouble *) (&blk[cnt].item)) = (jdouble) ((java_lang_Float *) param)->value;
-
-				} else  {
-					*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-					return 0;
-				}
-			}
-			break;
-
-		case 'V':
-			panic("V not allowed as function parameter");
-			break;
-
-		case 'L':
-			{
-				char *start = (*utf_ptr) - 1;
-				/*char *end = NULL;
-
-				while (utf_nextu2(utf_ptr) != ';')
-					end = (*utf_ptr) + 1;*/
-
-				if (!builtin_instanceof(params->data[cnts], class_from_descriptor(start, desc_end, utf_ptr, CLASSLOAD_LOAD))) {
-					if (params->data[cnts] != 0) {
-						*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-						return 0;
-					}			
-				}
-				blk[cnt].itemtype = TYPE_ADR;
-				blk[cnt].item = PTR_TO_ITEM(params->data[cnts]);
 				break;			
-			}
 
-		case '[':
-			{
-				char *start = (*utf_ptr) - 1;
-				/*char *end;
-				
-				char ch;
-				while ((ch = utf_nextu2(utf_ptr)) == '[')
-					if (ch == 'L') {
-						while (utf_nextu2(utf_ptr) != ';') {}
-					}
+			default:
+				goto illegal_arg;
+		} /* end param type switch */
 
-				end = (*utf_ptr) - 1;
-				ch = utf_nextu2(utf_ptr); */
+	} /* end param loop */
 
-				if (!builtin_arrayinstanceof(params->data[cnts], class_from_descriptor(start, desc_end, utf_ptr, CLASSLOAD_LOAD)->vftbl)) {
-					*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-					return 0;
-				}
+	if (rettype)
+		*rettype = descr->returntype.decltype;
+	return true;
 
-				blk[cnt].itemtype = TYPE_ADR;
-				blk[cnt].item = PTR_TO_ITEM(params->data[cnts]);
-				break;
-			}
-		}
-		cnt++;
-		cnts++;
-	}
-
-	c = utf_nextu2(utf_ptr);
-	c = utf_nextu2(utf_ptr);
-	return c; /*return type needed usage of the right lowlevel methods*/
+illegal_arg:
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	return false;
 }
 
 
-jmethodID get_virtual(jobject obj,jmethodID methodID) {
+static jmethodID get_virtual(jobject obj,jmethodID methodID) {
 	if (obj->vftbl->class==methodID->class) return methodID;
 	return class_resolvemethod (obj->vftbl->class, methodID->name, methodID->descriptor);
 }
 
 
-jmethodID get_nonvirtual(jclass clazz,jmethodID methodID) {
+static jmethodID get_nonvirtual(jclass clazz,jmethodID methodID) {
 	if (clazz==methodID->class) return methodID;
 /*class_resolvemethod -> classfindmethod? (JOWENN)*/
 	return class_resolvemethod (clazz, methodID->name, methodID->descriptor);
 }
 
 
-jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
+static jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
 { 	
 	int argcount;
 	jni_callblock *blk;
@@ -527,7 +339,7 @@ jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
 		return 0;
 	}
 
-	argcount = get_parametercount(methodID);
+	argcount = methodID->parseddesc->paramcount;
 
 	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
 		((!(methodID->flags & ACC_STATIC)) && (obj != 0)) )) {
@@ -551,7 +363,7 @@ jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
 
 	blk = MNEW(jni_callblock, /*4 */argcount+2);
 
-	fill_callblock(obj, methodID->descriptor, blk, args, 'O');
+	fill_callblock(obj, methodID->parseddesc, blk, args, TYPE_ADR);
 	/*      printf("parameter: obj: %p",blk[0].item); */
 	ret = asm_calljavafunction2(methodID,
 								argcount + 1,
@@ -568,13 +380,11 @@ jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
   core function for integer class methods (bool, byte, short, integer)
   This is basically needed for i386
 */
-jint callIntegerMethod(jobject obj, jmethodID methodID, char retType, va_list args)
+static jint callIntegerMethod(jobject obj, jmethodID methodID, int retType, va_list args)
 {
 	int argcount;
 	jni_callblock *blk;
 	jint ret;
-
-/*	printf("%p,     %c\n",retType,methodID,retType);*/
 
         /*
         log_text("JNI-Call: CallObjectMethodV");
@@ -589,7 +399,7 @@ jint callIntegerMethod(jobject obj, jmethodID methodID, char retType, va_list ar
 		return 0;
 	}
         
-	argcount = get_parametercount(methodID);
+	argcount = methodID->parseddesc->paramcount;
 
 	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
 		((!(methodID->flags & ACC_STATIC)) && (obj != 0)) )) {
@@ -612,7 +422,7 @@ jint callIntegerMethod(jobject obj, jmethodID methodID, char retType, va_list ar
 
 	blk = MNEW(jni_callblock, /*4 */ argcount+2);
 
-	fill_callblock(obj, methodID->descriptor, blk, args, retType);
+	fill_callblock(obj, methodID->parseddesc, blk, args, retType);
 
 	/*      printf("parameter: obj: %p",blk[0].item); */
 	ret = asm_calljavafunction2int(methodID,
@@ -628,7 +438,7 @@ jint callIntegerMethod(jobject obj, jmethodID methodID, char retType, va_list ar
 
 
 /*core function for long class functions*/
-jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
+static jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 {
 	int argcount;
 	jni_callblock *blk;
@@ -647,7 +457,7 @@ jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 		return 0;
 	}
 
-	argcount = get_parametercount(methodID);
+	argcount = methodID->parseddesc->paramcount;
 
 	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
 		   ((!(methodID->flags & ACC_STATIC)) && (obj!=0)) )) {
@@ -670,7 +480,7 @@ jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 
 	blk = MNEW(jni_callblock,/* 4 */argcount+2);
 
-	fill_callblock(obj, methodID->descriptor, blk, args, 'J');
+	fill_callblock(obj, methodID->parseddesc, blk, args, TYPE_LNG);
 
 	/*      printf("parameter: obj: %p",blk[0].item); */
 	ret = asm_calljavafunction2long(methodID,
@@ -686,9 +496,9 @@ jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 
 
 /*core function for float class methods (float,double)*/
-jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,char retType)
+static jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,int retType)
 {
-	int argcount = get_parametercount(methodID);
+	int argcount = methodID->parseddesc->paramcount;
 	jni_callblock *blk;
 	jdouble ret;
 
@@ -711,7 +521,7 @@ jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,char retTy
 
 	blk = MNEW(jni_callblock, /*4 */ argcount+2);
 
-	fill_callblock(obj, methodID->descriptor, blk, args, retType);
+	fill_callblock(obj, methodID->parseddesc, blk, args, retType);
 
 	/*      printf("parameter: obj: %p",blk[0].item); */
 	ret = asm_calljavafunction2double(methodID,
@@ -733,7 +543,7 @@ jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,char retTy
 
 ************************************************************************************/
 
-fieldinfo *jclass_findfield (classinfo *c, utf *name, utf *desc)
+static fieldinfo *jclass_findfield (classinfo *c, utf *name, utf *desc)
 {
 	s4 i;
 /*	printf(" FieldCount: %d\n",c->fieldscount);
@@ -1112,7 +922,7 @@ jobject NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
 	java_objectheader *o;
 	void* args[3];
-	int argcount=get_parametercount(methodID);
+	int argcount=methodID->parseddesc->paramcount;
 	int i;
 	va_list vaargs;
 
@@ -1184,6 +994,9 @@ jobject NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID, jvalue *args)
 
 jclass GetObjectClass(JNIEnv *env, jobject obj)
 {
+	if (!obj || !obj->vftbl)
+		return NULL;
+
  	classinfo *c = obj->vftbl->class;
 
 	use_class_as_object(c);
@@ -1298,7 +1111,7 @@ jboolean CallBooleanMethod (JNIEnv *env, jobject obj, jmethodID methodID, ...)
 /*	log_text("JNI-Call: CallBooleanMethod");*/
 
 	va_start(vaargs,methodID);
-	ret = (jboolean)callIntegerMethod(obj,get_virtual(obj,methodID),'Z',vaargs);
+	ret = (jboolean)callIntegerMethod(obj,get_virtual(obj,methodID),PRIMITIVETYPE_BOOLEAN,vaargs);
 	va_end(vaargs);
 	return ret;
 
@@ -1306,7 +1119,7 @@ jboolean CallBooleanMethod (JNIEnv *env, jobject obj, jmethodID methodID, ...)
 
 jboolean CallBooleanMethodV (JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
-	return (jboolean)callIntegerMethod(obj,get_virtual(obj,methodID),'Z',args);
+	return (jboolean)callIntegerMethod(obj,get_virtual(obj,methodID),PRIMITIVETYPE_BOOLEAN,args);
 
 }
 
@@ -1325,7 +1138,7 @@ jbyte CallByteMethod (JNIEnv *env, jobject obj, jmethodID methodID, ...)
 /*	log_text("JNI-Call: CallVyteMethod");*/
 
 	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj,get_virtual(obj,methodID),'B',vaargs);
+	ret = callIntegerMethod(obj,get_virtual(obj,methodID),PRIMITIVETYPE_BYTE,vaargs);
 	va_end(vaargs);
 	return ret;
 
@@ -1334,7 +1147,7 @@ jbyte CallByteMethod (JNIEnv *env, jobject obj, jmethodID methodID, ...)
 jbyte CallByteMethodV (JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
 /*	log_text("JNI-Call: CallByteMethodV");*/
-	return callIntegerMethod(obj,methodID,'B',args);
+	return callIntegerMethod(obj,methodID,PRIMITIVETYPE_BYTE,args);
 }
 
 
@@ -1354,7 +1167,7 @@ jchar CallCharMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 /*	log_text("JNI-Call: CallCharMethod");*/
 
 	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj, get_virtual(obj, methodID), 'C', vaargs);
+	ret = callIntegerMethod(obj, get_virtual(obj, methodID),PRIMITIVETYPE_CHAR, vaargs);
 	va_end(vaargs);
 
 	return ret;
@@ -1364,7 +1177,7 @@ jchar CallCharMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 jchar CallCharMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
 /*	log_text("JNI-Call: CallCharMethodV");*/
-	return callIntegerMethod(obj,get_virtual(obj,methodID),'C',args);
+	return callIntegerMethod(obj,get_virtual(obj,methodID),PRIMITIVETYPE_CHAR,args);
 }
 
 
@@ -1384,7 +1197,7 @@ jshort CallShortMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 /*	log_text("JNI-Call: CallShortMethod");*/
 
 	va_start(vaargs, methodID);
-	ret = callIntegerMethod(obj, get_virtual(obj, methodID), 'S', vaargs);
+	ret = callIntegerMethod(obj, get_virtual(obj, methodID),PRIMITIVETYPE_SHORT, vaargs);
 	va_end(vaargs);
 
 	return ret;
@@ -1393,7 +1206,7 @@ jshort CallShortMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 
 jshort CallShortMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
-	return callIntegerMethod(obj, get_virtual(obj, methodID), 'S', args);
+	return callIntegerMethod(obj, get_virtual(obj, methodID),PRIMITIVETYPE_SHORT, args);
 }
 
 
@@ -1412,7 +1225,7 @@ jint CallIntMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 	va_list vaargs;
 
 	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj, get_virtual(obj, methodID), 'I', vaargs);
+	ret = callIntegerMethod(obj, get_virtual(obj, methodID),PRIMITIVETYPE_INT, vaargs);
 	va_end(vaargs);
 
 	return ret;
@@ -1421,7 +1234,7 @@ jint CallIntMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 
 jint CallIntMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
-	return callIntegerMethod(obj, get_virtual(obj, methodID), 'I', args);
+	return callIntegerMethod(obj, get_virtual(obj, methodID),PRIMITIVETYPE_INT, args);
 }
 
 
@@ -1470,7 +1283,7 @@ jfloat CallFloatMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 /*	log_text("JNI-Call: CallFloatMethod");*/
 
 	va_start(vaargs,methodID);
-	ret = callFloatMethod(obj, get_virtual(obj, methodID), vaargs, 'F');
+	ret = callFloatMethod(obj, get_virtual(obj, methodID), vaargs, PRIMITIVETYPE_FLOAT);
 	va_end(vaargs);
 
 	return ret;
@@ -1480,7 +1293,7 @@ jfloat CallFloatMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 jfloat CallFloatMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
 	log_text("JNI-Call: CallFloatMethodV");
-	return callFloatMethod(obj, get_virtual(obj, methodID), args, 'F');
+	return callFloatMethod(obj, get_virtual(obj, methodID), args, PRIMITIVETYPE_FLOAT);
 }
 
 
@@ -1501,7 +1314,7 @@ jdouble CallDoubleMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 /*	log_text("JNI-Call: CallDoubleMethod");*/
 
 	va_start(vaargs,methodID);
-	ret = callFloatMethod(obj, get_virtual(obj, methodID), vaargs, 'D');
+	ret = callFloatMethod(obj, get_virtual(obj, methodID), vaargs, PRIMITIVETYPE_DOUBLE);
 	va_end(vaargs);
 
 	return ret;
@@ -1511,7 +1324,7 @@ jdouble CallDoubleMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 jdouble CallDoubleMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
 	log_text("JNI-Call: CallDoubleMethodV");
-	return callFloatMethod(obj, get_virtual(obj, methodID), args, 'D');
+	return callFloatMethod(obj, get_virtual(obj, methodID), args, PRIMITIVETYPE_DOUBLE);
 }
 
 
@@ -1528,7 +1341,7 @@ void CallVoidMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 	va_list vaargs;
 
 	va_start(vaargs,methodID);
-	(void) callIntegerMethod(obj, get_virtual(obj, methodID), 'V', vaargs);
+	(void) callIntegerMethod(obj, get_virtual(obj, methodID),TYPE_VOID, vaargs);
 	va_end(vaargs);
 }
 
@@ -1536,7 +1349,7 @@ void CallVoidMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 void CallVoidMethodV (JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
 	log_text("JNI-Call: CallVoidMethodV");
-	(void)callIntegerMethod(obj,get_virtual(obj,methodID),'V',args);
+	(void)callIntegerMethod(obj,get_virtual(obj,methodID),TYPE_VOID,args);
 }
 
 
@@ -1580,7 +1393,7 @@ jboolean CallNonvirtualBooleanMethod (JNIEnv *env, jobject obj, jclass clazz, jm
 /*	log_text("JNI-Call: CallNonvirtualBooleanMethod");*/
 
 	va_start(vaargs,methodID);
-	ret = (jboolean)callIntegerMethod(obj,get_nonvirtual(clazz,methodID),'Z',vaargs);
+	ret = (jboolean)callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_BOOLEAN,vaargs);
 	va_end(vaargs);
 	return ret;
 
@@ -1590,7 +1403,7 @@ jboolean CallNonvirtualBooleanMethod (JNIEnv *env, jobject obj, jclass clazz, jm
 jboolean CallNonvirtualBooleanMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
 /*	log_text("JNI-Call: CallNonvirtualBooleanMethodV");*/
-	return (jboolean)callIntegerMethod(obj,get_nonvirtual(clazz,methodID),'Z',args);
+	return (jboolean)callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_BOOLEAN,args);
 }
 
 
@@ -1611,7 +1424,7 @@ jbyte CallNonvirtualByteMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodI
 /*	log_text("JNI-Call: CallNonvirutalByteMethod");*/
 
 	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj,get_nonvirtual(clazz,methodID),'B',vaargs);
+	ret = callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_BYTE,vaargs);
 	va_end(vaargs);
 	return ret;
 }
@@ -1620,7 +1433,7 @@ jbyte CallNonvirtualByteMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodI
 jbyte CallNonvirtualByteMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
 	/*log_text("JNI-Call: CallNonvirtualByteMethodV"); */
-	return callIntegerMethod(obj,get_nonvirtual(clazz,methodID),'B',args);
+	return callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_BYTE,args);
 
 }
 
@@ -1642,7 +1455,7 @@ jchar CallNonvirtualCharMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodI
 /*	log_text("JNI-Call: CallNonVirtualCharMethod");*/
 
 	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj,get_nonvirtual(clazz,methodID),'C',vaargs);
+	ret = callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_CHAR,vaargs);
 	va_end(vaargs);
 	return ret;
 }
@@ -1651,7 +1464,7 @@ jchar CallNonvirtualCharMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodI
 jchar CallNonvirtualCharMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
 	/*log_text("JNI-Call: CallNonvirtualCharMethodV");*/
-	return callIntegerMethod(obj,get_nonvirtual(clazz,methodID),'C',args);
+	return callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_CHAR,args);
 }
 
 
@@ -1672,7 +1485,7 @@ jshort CallNonvirtualShortMethod (JNIEnv *env, jobject obj, jclass clazz, jmetho
 	/*log_text("JNI-Call: CallNonvirtualShortMethod");*/
 
 	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj,get_nonvirtual(clazz,methodID),'S',vaargs);
+	ret = callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_SHORT,vaargs);
 	va_end(vaargs);
 	return ret;
 }
@@ -1681,7 +1494,7 @@ jshort CallNonvirtualShortMethod (JNIEnv *env, jobject obj, jclass clazz, jmetho
 jshort CallNonvirtualShortMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
 	/*log_text("JNI-Call: CallNonvirtualShortMethodV");*/
-	return callIntegerMethod(obj,get_nonvirtual(clazz,methodID),'S',args);
+	return callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_SHORT,args);
 }
 
 
@@ -1703,7 +1516,7 @@ jint CallNonvirtualIntMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodID 
 	/*log_text("JNI-Call: CallNonvirtualIntMethod");*/
 
         va_start(vaargs,methodID);
-        ret = callIntegerMethod(obj,get_nonvirtual(clazz,methodID),'I',vaargs);
+        ret = callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_INT,vaargs);
         va_end(vaargs);
         return ret;
 }
@@ -1712,7 +1525,7 @@ jint CallNonvirtualIntMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodID 
 jint CallNonvirtualIntMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
 	/*log_text("JNI-Call: CallNonvirtualIntMethodV");*/
-        return callIntegerMethod(obj,get_nonvirtual(clazz,methodID),'I',args);
+        return callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_INT,args);
 }
 
 
@@ -1759,7 +1572,7 @@ jfloat CallNonvirtualFloatMethod (JNIEnv *env, jobject obj, jclass clazz, jmetho
 
 
 	va_start(vaargs,methodID);
-	ret = callFloatMethod(obj,get_nonvirtual(clazz,methodID),vaargs,'F');
+	ret = callFloatMethod(obj,get_nonvirtual(clazz,methodID),vaargs,PRIMITIVETYPE_FLOAT);
 	va_end(vaargs);
 	return ret;
 
@@ -1769,7 +1582,7 @@ jfloat CallNonvirtualFloatMethod (JNIEnv *env, jobject obj, jclass clazz, jmetho
 jfloat CallNonvirtualFloatMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
 	log_text("JNI-Call: CallNonvirtualFloatMethodV");
-	return callFloatMethod(obj,get_nonvirtual(clazz,methodID),args,'F');
+	return callFloatMethod(obj,get_nonvirtual(clazz,methodID),args,PRIMITIVETYPE_FLOAT);
 }
 
 
@@ -1789,7 +1602,7 @@ jdouble CallNonvirtualDoubleMethod (JNIEnv *env, jobject obj, jclass clazz, jmet
 	log_text("JNI-Call: CallNonvirtualDoubleMethod");
 
 	va_start(vaargs,methodID);
-	ret = callFloatMethod(obj,get_nonvirtual(clazz,methodID),vaargs,'D');
+	ret = callFloatMethod(obj,get_nonvirtual(clazz,methodID),vaargs,PRIMITIVETYPE_DOUBLE);
 	va_end(vaargs);
 	return ret;
 
@@ -1799,7 +1612,7 @@ jdouble CallNonvirtualDoubleMethod (JNIEnv *env, jobject obj, jclass clazz, jmet
 jdouble CallNonvirtualDoubleMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
 /*	log_text("JNI-Call: CallNonvirtualDoubleMethodV");*/
-	return callFloatMethod(obj,get_nonvirtual(clazz,methodID),args,'D');
+	return callFloatMethod(obj,get_nonvirtual(clazz,methodID),args,PRIMITIVETYPE_DOUBLE);
 }
 
 
@@ -1819,7 +1632,7 @@ void CallNonvirtualVoidMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodID
 /*      log_text("JNI-Call: CallNonvirtualVoidMethod");*/
 
         va_start(vaargs,methodID);
-        (void)callIntegerMethod(obj,get_nonvirtual(clazz,methodID),'V',vaargs);
+        (void)callIntegerMethod(obj,get_nonvirtual(clazz,methodID),TYPE_VOID,vaargs);
         va_end(vaargs);
 
 }
@@ -1829,7 +1642,7 @@ void CallNonvirtualVoidMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodI
 {
 /*	log_text("JNI-Call: CallNonvirtualVoidMethodV");*/
 
-        (void)callIntegerMethod(obj,get_nonvirtual(clazz,methodID),'V',args);
+        (void)callIntegerMethod(obj,get_nonvirtual(clazz,methodID),TYPE_VOID,args);
 
 }
 
@@ -2074,7 +1887,7 @@ jboolean CallStaticBooleanMethod(JNIEnv *env, jclass clazz, jmethodID methodID, 
 	va_list vaargs;
 
 	va_start(vaargs, methodID);
-	ret = (jboolean) callIntegerMethod(0, methodID, 'Z', vaargs);
+	ret = (jboolean) callIntegerMethod(0, methodID, PRIMITIVETYPE_BOOLEAN, vaargs);
 	va_end(vaargs);
 
 	return ret;
@@ -2083,7 +1896,7 @@ jboolean CallStaticBooleanMethod(JNIEnv *env, jclass clazz, jmethodID methodID, 
 
 jboolean CallStaticBooleanMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
-	return (jboolean) callIntegerMethod(0, methodID, 'Z', args);
+	return (jboolean) callIntegerMethod(0, methodID, PRIMITIVETYPE_BOOLEAN, args);
 }
 
 
@@ -2103,7 +1916,7 @@ jbyte CallStaticByteMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	/*      log_text("JNI-Call: CallStaticByteMethod");*/
 
 	va_start(vaargs, methodID);
-	ret = (jbyte) callIntegerMethod(0, methodID, 'B', vaargs);
+	ret = (jbyte) callIntegerMethod(0, methodID, PRIMITIVETYPE_BYTE, vaargs);
 	va_end(vaargs);
 
 	return ret;
@@ -2112,7 +1925,7 @@ jbyte CallStaticByteMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 
 jbyte CallStaticByteMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
-	return (jbyte) callIntegerMethod(0, methodID, 'B', args);
+	return (jbyte) callIntegerMethod(0, methodID, PRIMITIVETYPE_BYTE, args);
 }
 
 
@@ -2132,7 +1945,7 @@ jchar CallStaticCharMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	/*      log_text("JNI-Call: CallStaticByteMethod");*/
 
 	va_start(vaargs, methodID);
-	ret = (jchar) callIntegerMethod(0, methodID, 'C', vaargs);
+	ret = (jchar) callIntegerMethod(0, methodID, PRIMITIVETYPE_CHAR, vaargs);
 	va_end(vaargs);
 
 	return ret;
@@ -2141,7 +1954,7 @@ jchar CallStaticCharMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 
 jchar CallStaticCharMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
-	return (jchar) callIntegerMethod(0, methodID, 'C', args);
+	return (jchar) callIntegerMethod(0, methodID, PRIMITIVETYPE_CHAR, args);
 }
 
 
@@ -2162,7 +1975,7 @@ jshort CallStaticShortMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	/*      log_text("JNI-Call: CallStaticByteMethod");*/
 
 	va_start(vaargs, methodID);
-	ret = (jshort) callIntegerMethod(0, methodID, 'S', vaargs);
+	ret = (jshort) callIntegerMethod(0, methodID, PRIMITIVETYPE_SHORT, vaargs);
 	va_end(vaargs);
 
 	return ret;
@@ -2172,7 +1985,7 @@ jshort CallStaticShortMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 jshort CallStaticShortMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
 	/*log_text("JNI-Call: CallStaticShortMethodV");*/
-	return (jshort) callIntegerMethod(0, methodID, 'S', args);
+	return (jshort) callIntegerMethod(0, methodID, PRIMITIVETYPE_SHORT, args);
 }
 
 
@@ -2193,7 +2006,7 @@ jint CallStaticIntMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	/*      log_text("JNI-Call: CallStaticIntMethod");*/
 
 	va_start(vaargs, methodID);
-	ret = callIntegerMethod(0, methodID, 'I', vaargs);
+	ret = callIntegerMethod(0, methodID, PRIMITIVETYPE_INT, vaargs);
 	va_end(vaargs);
 
 	return ret;
@@ -2204,7 +2017,7 @@ jint CallStaticIntMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list
 {
 	log_text("JNI-Call: CallStaticIntMethodV");
 
-	return callIntegerMethod(0, methodID, 'I', args);
+	return callIntegerMethod(0, methodID, PRIMITIVETYPE_INT, args);
 }
 
 
@@ -2257,7 +2070,7 @@ jfloat CallStaticFloatMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	/*      log_text("JNI-Call: CallStaticLongMethod");*/
 
 	va_start(vaargs, methodID);
-	ret = callFloatMethod(0, methodID, vaargs, 'F');
+	ret = callFloatMethod(0, methodID, vaargs, PRIMITIVETYPE_FLOAT);
 	va_end(vaargs);
 
 	return ret;
@@ -2267,7 +2080,7 @@ jfloat CallStaticFloatMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 jfloat CallStaticFloatMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
 
-	return callFloatMethod(0, methodID, args, 'F');
+	return callFloatMethod(0, methodID, args, PRIMITIVETYPE_FLOAT);
 
 }
 
@@ -2289,7 +2102,7 @@ jdouble CallStaticDoubleMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ..
 	/*      log_text("JNI-Call: CallStaticDoubleMethod");*/
 
 	va_start(vaargs,methodID);
-	ret = callFloatMethod(0, methodID, vaargs, 'D');
+	ret = callFloatMethod(0, methodID, vaargs, PRIMITIVETYPE_DOUBLE);
 	va_end(vaargs);
 
 	return ret;
@@ -2300,7 +2113,7 @@ jdouble CallStaticDoubleMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, v
 {
 	log_text("JNI-Call: CallStaticDoubleMethodV");
 
-	return callFloatMethod(0, methodID, args, 'D');
+	return callFloatMethod(0, methodID, args, PRIMITIVETYPE_DOUBLE);
 }
 
 
@@ -2317,7 +2130,7 @@ void CallStaticVoidMethod(JNIEnv *env, jclass cls, jmethodID methodID, ...)
 	va_list vaargs;
 
 	va_start(vaargs, methodID);
-	(void) callIntegerMethod(0, methodID, 'V', vaargs);
+	(void) callIntegerMethod(0, methodID, TYPE_VOID, vaargs);
 	va_end(vaargs);
 }
 
@@ -2325,7 +2138,7 @@ void CallStaticVoidMethod(JNIEnv *env, jclass cls, jmethodID methodID, ...)
 void CallStaticVoidMethodV(JNIEnv *env, jclass cls, jmethodID methodID, va_list args)
 {
 	log_text("JNI-Call: CallStaticVoidMethodV");
-	(void)callIntegerMethod(0, methodID, 'V', args);
+	(void)callIntegerMethod(0, methodID, TYPE_VOID, args);
 }
 
 
@@ -3831,7 +3644,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 {
 	int argcount;
 	jni_callblock *blk;
-	char retT;
+	int retT;
 	jobject retVal;
 
 	if (methodID == 0) {
@@ -3839,7 +3652,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 		return NULL;
 	}
 
-	argcount = get_parametercount(methodID);
+	argcount = methodID->parseddesc->paramcount;
 
 	/* the method is an instance method the obj has to be an instance of the 
 	   class the method belongs to. For static methods the obj parameter
@@ -3882,10 +3695,11 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 
 	blk = MNEW(jni_callblock, /*4 */argcount+2);
 
-	retT = fill_callblock_objA(obj, methodID->descriptor, blk, params);
+	if (!fill_callblock_objA(obj, methodID->parseddesc, blk, params,&retT))
+		return 0; /* exception */
 
 	switch (retT) {
-	case 'V':
+	case TYPE_VOID:
 		(void) asm_calljavafunction2(methodID,
 									 argcount + 1,
 									 (argcount + 1) * sizeof(jni_callblock),
@@ -3893,7 +3707,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 		retVal = NULL; /*native_new_and_init(loader_load(utf_new_char("java/lang/Void")));*/
 		break;
 
-	case 'I': {
+	case PRIMITIVETYPE_INT: {
 		s4 intVal;
 		intVal = asm_calljavafunction2int(methodID,
 										  argcount + 1,
@@ -3909,7 +3723,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	}
 	break;
 
-	case 'B': {
+	case PRIMITIVETYPE_BYTE: {
 		s4 intVal;
 		intVal = asm_calljavafunction2int(methodID,
 										  argcount + 1,
@@ -3925,7 +3739,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	}
 	break;
 
-	case 'C': {
+	case PRIMITIVETYPE_CHAR: {
 		s4 intVal;
 		intVal = asm_calljavafunction2int(methodID,
 										  argcount + 1,
@@ -3941,7 +3755,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	}
 	break;
 
-	case 'S': {
+	case PRIMITIVETYPE_SHORT: {
 		s4 intVal;
 		intVal = asm_calljavafunction2int(methodID,
 										  argcount + 1,
@@ -3957,7 +3771,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	}
 	break;
 
-	case 'Z': {
+	case PRIMITIVETYPE_BOOLEAN: {
 		s4 intVal;
 		intVal = asm_calljavafunction2int(methodID,
 										  argcount + 1,
@@ -3989,7 +3803,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	}
 	break;
 
-	case 'F': {
+	case PRIMITIVETYPE_FLOAT: {
 		jdouble floatVal;	
 		floatVal = asm_calljavafunction2float(methodID,
 											  argcount + 1,
@@ -4005,7 +3819,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	}
 	break;
 
-	case 'D': {
+	case PRIMITIVETYPE_DOUBLE: {
 		jdouble doubleVal;
 		doubleVal = asm_calljavafunction2double(methodID,
 												argcount + 1,
@@ -4021,8 +3835,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	}
 	break;
 
-	case 'L': /* fall through */
-	case '[':
+	case TYPE_ADR:
 		retVal = asm_calljavafunction2(methodID,
 									   argcount + 1,
 									   (argcount + 1) * sizeof(jni_callblock),

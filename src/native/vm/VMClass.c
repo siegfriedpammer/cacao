@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2174 2005-04-01 08:42:57Z twisti $
+   $Id: VMClass.c 2183 2005-04-01 20:57:17Z edwin $
 
 */
 
@@ -342,11 +342,6 @@ java_lang_reflect_Field* cacao_getField0(JNIEnv *env, java_lang_Class *that, jav
 			return NULL;
 		}
 
-		desc = f->descriptor;
-		fieldtype = class_from_descriptor(desc->text, utf_end(desc), NULL, CLASSLOAD_LOAD);
-		if (!fieldtype)
-			return NULL;
-	 
 		/* initialize instance fields */
 		setfield_critical(c,o,"declaringClass",          "Ljava/lang/Class;",  jobject, (jobject) that /*this*/);
 		/*      ((java_lang_reflect_Field*)(o))->flag=f->flags;*/

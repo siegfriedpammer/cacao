@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2151 2005-03-30 19:27:47Z twisti $
+   $Id: native.c 2183 2005-04-01 20:57:17Z edwin $
 
 */
 
@@ -70,6 +70,7 @@
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
+#include "vm/resolve.h"
 
 
 /* include table of native functions ******************************************/
@@ -565,28 +566,6 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 }
 
 
-/******************************************************************************************
-
-	retrieve the next argument or returntype from a descriptor
-	and return the corresponding class 
-
-*******************************************************************************************/
-
-classinfo *get_type(char **utf_ptr,char *desc_end, bool skip)
-{
-    classinfo *c = class_from_descriptor(*utf_ptr,desc_end,utf_ptr,
-                                         (skip) ? CLASSLOAD_SKIP : CLASSLOAD_LOAD);
-    if (!c)
-	/* unknown type */
-	panic("illegal descriptor");
-
-    if (skip) return NULL;
-
-    use_class_as_object(c);
-    return c;
-}
-
-
 /* get_parametertypes **********************************************************
 
    use the descriptor of a method to generate a java/lang/Class array
@@ -596,32 +575,20 @@ classinfo *get_type(char **utf_ptr,char *desc_end, bool skip)
 
 java_objectarray* get_parametertypes(methodinfo *m) 
 {
-    utf  *descr    =  m->descriptor;    /* method-descriptor */ 
-    char *utf_ptr  =  descr->text;      /* current position in utf-text */
-    char *desc_end =  utf_end(descr);   /* points behind utf string     */
+    methoddesc *descr =  m->parseddesc;    /* method-descriptor */ 
     java_objectarray* result;
-    int parametercount = 0;
+    int parametercount = descr->paramcount;
     int i;
-
-    /* skip '(' */
-    utf_nextu2(&utf_ptr);
-  
-    /* determine number of parameters */
-    while (*utf_ptr != ')') {
-    	get_type(&utf_ptr, desc_end, true);
-		parametercount++;
-    }
 
     /* create class-array */
     result = builtin_anewarray(parametercount, class_java_lang_Class);
 
-    utf_ptr = descr->text;
-    utf_nextu2(&utf_ptr);
-
-    /* get returntype classes */
-    for (i = 0; i < parametercount; i++)
-	    result->data[i] =
-			(java_objectheader *) get_type(&utf_ptr, desc_end, false);
+    /* get classes */
+    for (i = 0; i < parametercount; i++) {
+		if (!resolve_class_from_typedesc(descr->paramtypes + i,false,
+					(classinfo **) (result->data + i)))
+			return NULL; /* exception */
+	}
 
     return result;
 }
@@ -654,9 +621,6 @@ java_objectarray* get_exceptiontypes(methodinfo *m)
 }
 
 
-
-
-
 /******************************************************************************************
 
 	get the returntype class of a method
@@ -665,18 +629,11 @@ java_objectarray* get_exceptiontypes(methodinfo *m)
 
 classinfo *get_returntype(methodinfo *m) 
 {
-	char *utf_ptr;   /* current position in utf-text */
-	char *desc_end;  /* points behind utf string     */
-        utf *desc = m->descriptor; /* method-descriptor  */
+	classinfo *cls;
 
-	utf_ptr  = desc->text;
-	desc_end = utf_end(desc);
-
-	/* ignore parametertypes */
-        while ((utf_ptr<desc_end) && utf_nextu2(&utf_ptr)!=')')
-		/* skip */ ;
-
-	return get_type(&utf_ptr,desc_end, false);
+	if (!resolve_class_from_typedesc(&(m->parseddesc->returntype),false,&cls))
+		return NULL; /* exception */
+	return cls;
 }
 
 

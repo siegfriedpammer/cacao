@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Field.c 1919 2005-02-10 10:08:53Z twisti $
+   $Id: Field.c 2183 2005-04-01 20:57:17Z edwin $
 
 */
 
@@ -44,6 +44,7 @@
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
+#include "vm/resolve.h"
 #include "vm/jit/stacktrace.h"
 
 #undef DEBUG
@@ -1160,12 +1161,14 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_l
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *env, java_lang_reflect_Field *this)
 {
-	utf *desc = (((classinfo *) this->declaringClass)->fields[this->slot]).descriptor;
+	typedesc *desc = (((classinfo *) this->declaringClass)->fields[this->slot]).parseddesc;
 	java_lang_Class *ret;
 	if (!desc)
 		return NULL;
 
-	ret=(java_lang_Class *) class_from_descriptor(desc->text, utf_end(desc), NULL, CLASSLOAD_LOAD);
+	if (!resolve_class_from_typedesc(desc,false,(classinfo **)&ret))
+		return NULL; /* exception */
+	
 	use_class_as_object((classinfo*)ret);
 	return ret;
 }
