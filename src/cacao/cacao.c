@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1412 2004-08-17 19:33:16Z twisti $
+   $Id: cacao.c 1424 2004-10-30 11:15:23Z motse $
 
 */
 
@@ -657,6 +657,9 @@ int main(int argc, char **argv)
 	if (!class_init(class_new(utf_new_char("java/lang/System"))))
 		throw_main_exception_exit();
 
+	
+	
+        jni_init();
 	cacao_initializing = false;
 
 	/************************* Start worker routines ********************/

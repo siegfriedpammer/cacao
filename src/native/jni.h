@@ -26,7 +26,7 @@
 
    Authors: ?
 
-   $Id: jni.h 747 2003-12-13 22:10:17Z twisti $
+   $Id: jni.h 1424 2004-10-30 11:15:23Z motse $
 
 */
 
@@ -501,6 +501,8 @@ void SetDoubleField(JNIEnv *env, jobject obj, jfieldID fieldID, jdouble val);
 #define setfield_critical(clazz,obj,name,sig,jdatatype,val) setField(obj,jdatatype,getFieldID_critical(env,clazz,name,sig),val);
 
 jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *mi,jobject obj, java_objectarray *params);
+
+void jni_init ();
 
 #endif /* _JNI_H */
 

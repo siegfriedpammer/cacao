@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1411 2004-08-17 15:04:54Z twisti $
+   $Id: jni.c 1424 2004-10-30 11:15:23Z motse $
 
 */
 
@@ -57,7 +57,8 @@
 #include "nat/java_lang_Double.h"
 #include "nat/java_lang_Throwable.h"
 #include "jit/jit.h"
-#include "asmpart.h"	
+#include "asmpart.h"
+#include "mm/boehm.h"
 #define JNI_VERSION       0x00010002
 
 
@@ -71,6 +72,18 @@ static utf* utf_int = 0;
 static utf* utf_long = 0;
 static utf* utf_float = 0;
 static utf* utf_double = 0;
+
+/* global reference table */
+static jobject *global_ref_table;
+
+/* jmethodID and jclass caching variables for NewGlobalRef and DeleteGlobalRef*/
+static jmethodID getmid = NULL;
+static jmethodID putmid = NULL;
+static jclass intclass = NULL;
+static jmethodID intvalue = NULL;
+static jmethodID newint = NULL;
+static jclass ihmclass = NULL;
+static jmethodID removemid = NULL;
 
 
 /********************* accessing instance-fields **********************************/
@@ -521,14 +534,7 @@ jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
 	jni_callblock *blk;
 	jobject ret;
 
-	/*
-	  log_text("JNI-Call: CallObjectMethodV");
-	  utf_display(methodID->name);
-	  utf_display(methodID->descriptor);
-	  printf("\nParmaeter count: %d\n",argcount);
-	  utf_display(obj->vftbl->class->name);
-	  printf("\n");
-	*/
+
 
 	if (methodID == 0) {
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
@@ -542,30 +548,32 @@ jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
 		return 0;
 	}
-	
+
 	if (obj && !builtin_instanceof(obj, methodID->class)) {
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
 		return 0;
 	}
+
+#ifdef arglimit
 
 	if (argcount > 3) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
+#endif
 
 	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
 
 	fill_callblock(obj, methodID->descriptor, blk, args, 'O');
-
 	/*      printf("parameter: obj: %p",blk[0].item); */
 	ret = asm_calljavafunction2(methodID,
 								argcount + 1,
 								(argcount + 1) * sizeof(jni_callblock),
 								blk);
-
 	MFREE(blk, jni_callblock, argcount + 1);
 	/*      printf("(CallObjectMethodV)-->%p\n",ret); */
+
 	return ret;
 }
 
@@ -608,12 +616,13 @@ jint callIntegerMethod(jobject obj, jmethodID methodID, char retType, va_list ar
 		return 0;
 	}
 
-
+#ifdef arglimit
 	if (argcount > 3) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. CallIntegerMethod does not support that");
 		return 0;
 	}
+#endif
 
 	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
 
@@ -665,12 +674,13 @@ jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 		return 0;
 	}
 
-
+#ifdef arglimit
 	if (argcount > 3) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
+#endif
 
 	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
 
@@ -705,11 +715,13 @@ jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,char retTy
         printf("\n");
         */
 
+#ifdef arglimit
 	if (argcount > 3) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
+#endif
 
 	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
 
@@ -965,24 +977,10 @@ jint PushLocalFrame(JNIEnv* env, jint capacity)
 
 jobject PopLocalFrame(JNIEnv* env, jobject result)
 {
+    log_text("JNI-Call: PopLocalFrame");
 	/* empty */
 
 	return NULL;
-}
-    
-
-/** Creates a new global reference to the object referred to by the obj argument **/
-    
-jobject NewGlobalRef(JNIEnv* env, jobject lobj)
-{
-	return lobj;
-}
-
-/*************  Deletes the global reference pointed to by globalRef **************/
-
-void DeleteGlobalRef (JNIEnv* env, jobject gref)
-{
-	/* empty */
 }
 
 
@@ -990,6 +988,7 @@ void DeleteGlobalRef (JNIEnv* env, jobject gref)
 
 void DeleteLocalRef (JNIEnv* env, jobject localRef)
 {
+/*    log_text("JNI-Call: DeleteLocalRef");*/
 	/* empty */
 }
 
@@ -1046,12 +1045,13 @@ jobject NewObject (JNIEnv* env, jclass clazz, jmethodID methodID, ...)
 
 	/* log_text("JNI-Call: NewObject"); */
 
+#ifdef arglimit
 	if (argcount > 3) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. NewObject does not support that");
 		return 0;
 	}
-
+#endif
 	
 	o = builtin_new (clazz);         /*          create object */
 	
@@ -1764,9 +1764,9 @@ jfieldID GetFieldID (JNIEnv *env, jclass clazz, const char *name, const char *si
 		  	    ); 
 	
 	if (!f) { 
-/*		utf_display(clazz->name);
+		utf_display(clazz->name);
 		log_text(name);
-		log_text(sig);*/
+		log_text(sig);
 		*exceptionptr =	new_exception(string_java_lang_NoSuchFieldError);  
 	}
 	return f;
@@ -1793,7 +1793,33 @@ jfieldID getFieldID_critical(JNIEnv *env, jclass clazz, char *name, char *sig)
 
 jobject GetObjectField (JNIEnv *env, jobject obj, jfieldID fieldID)
 {
-	return getField(obj,jobject,fieldID);
+	jobject dbg,dretval,*dpretval;	
+	long int dli1, dli2, dli3;
+
+/*	printf("GetObjectField(1): thread: %s obj: %p name: %s desc: %s \n",GetStringUTFChars(env,
+			 ((threadobject *) THREADOBJECT)->o
+			 .thread->name,NULL)
+			 ,obj,((fieldinfo*)fieldID)->name->text,(fieldID->descriptor)->text);*/
+
+	dbg = getField(obj,jobject,fieldID);
+	dli1 = (long int) obj;
+	dli2 = (long int) fieldID->offset;
+	dli3 = dli1+dli2;
+	dpretval = (jobject*) dli3;
+	dretval = *dpretval;
+/*	jclass tmp;
+ 	jmethodID mid;
+	jstring jstr;
+
+	tmp = FindClass(env, "java/lang/Object");
+	mid = GetMethodID(env,tmp,"toString","()Ljava/lang/String;");
+	jstr = CallObjectMethod(env,dbg,mid);*/
+
+/*	printf("GetObjectField(2): retval %p (obj: %#lx + offset: %#lx = %#lx (jobject*) %p (jobject) %p\n"
+	,dbg, dli1, dli2, dli3,dpretval, dretval);*/
+
+
+	return dbg;
 }
 
 jboolean GetBooleanField (JNIEnv *env, jobject obj, jfieldID fieldID)
@@ -3043,6 +3069,52 @@ void DeleteWeakGlobalRef (JNIEnv* env, jweak ref)
 }
 
 
+/** Creates a new global reference to the object referred to by the obj argument **/
+    
+jobject NewGlobalRef(JNIEnv* env, jobject lobj)
+{	
+	MonitorEnter(env,*global_ref_table);
+	jobject refcount = CallObjectMethod(env, *global_ref_table, getmid, lobj);
+	jint val = (refcount == NULL) ? 0 : CallIntMethod(env,refcount,intvalue);
+	jobject newval = NewObject(env,intclass,newint,val+1);
+	if (newval != NULL) {
+
+		CallObjectMethod(env, *global_ref_table, putmid, lobj, newval);
+
+		MonitorExit(env,*global_ref_table);
+		return lobj;
+	} else {
+		log_text("JNI-NewGlobalRef: unable to create new java.lang.Integer");
+		MonitorExit(env,*global_ref_table);
+		return NULL;
+	}
+}
+
+/*************  Deletes the global reference pointed to by globalRef **************/
+
+void DeleteGlobalRef (JNIEnv* env, jobject gref)
+{
+	MonitorEnter(env,*global_ref_table);
+	jobject refcount = CallObjectMethod(env, *global_ref_table, getmid, gref);
+	if (refcount == NULL) {
+		log_text("JNI-DeleteGlobalRef: unable to find global reference");
+		return;
+	}
+	jint val = CallIntMethod(env,refcount,intvalue);
+	val--;
+	if (val == 0) {
+		CallObjectMethod(env, *global_ref_table, removemid,refcount);
+	} else {
+		jobject newval = NewObject(env,intclass,newint,val);
+		if (newval != NULL) {
+			CallObjectMethod(env,*global_ref_table, putmid,newval);
+		} else {
+			log_text("JNI-DeleteGlobalRef: unable to create new java.lang.Integer");
+		}
+	}
+	MonitorExit(env,*global_ref_table);
+}
+
 /******************************* check for pending exception ***********************/
 
 
@@ -3372,12 +3444,13 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	}
 
 
-
+#ifdef arglimit
 	if (argcount > 3) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. invokeNativeHelper does not support that");
 		return 0;
 	}
+#endif
 
 	if (((!params) && (argcount != 0)) || (params && (params->header.size != argcount))) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
@@ -3573,6 +3646,66 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	}
 
 	return (jobject *) retVal;
+}
+
+void jni_init() {
+	jmethodID mid;
+
+	log_text("JNI-Init: initialize global_ref_table");
+	// initalize global reference table
+	ihmclass = FindClass(NULL, "java/util/IdentityHashMap");
+	
+	if (ihmclass == NULL) {
+		log_text("JNI-Init: unable to find java.util.IdentityHashMap");
+	}
+
+	mid = GetMethodID(NULL, ihmclass, "<init>","()V");
+	if (mid == NULL) {
+		log_text("JNI-Init: unable to find constructor in java.util.IdentityHashMap");
+	}
+	
+	global_ref_table = (jobject*)heap_allocate(sizeof(jobject),true,NULL);
+
+	*global_ref_table = NewObject(NULL,ihmclass,mid);
+
+	if (*global_ref_table == NULL) {
+		log_text("JNI-Init: unable to create new global_ref_table");
+	}
+	
+	getmid = GetMethodID(NULL, ihmclass, "get","(Ljava/lang/Object;)Ljava/lang/Object;");
+	if (mid == NULL) {
+		log_text("JNI-Init: unable to find method \"get\" in java.util.IdentityHashMap");
+	}
+
+	getmid = GetMethodID(NULL ,ihmclass, "get","(Ljava/lang/Object;)Ljava/lang/Object;");
+	if (getmid == NULL) {
+		log_text("JNI-Init: unable to find method \"get\" in java.util.IdentityHashMap");
+	}
+
+	putmid = GetMethodID(NULL, ihmclass, "put","(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+	if (putmid == NULL) {
+		log_text("JNI-Init: unable to find method \"put\" in java.util.IdentityHashMap");
+	}
+
+	intclass = FindClass(NULL, "java/lang/Integer");
+	if (intclass == NULL) {
+		log_text("JNI-Init: unable to find java.lang.Integer");
+	}
+
+	newint = GetMethodID(NULL, intclass, "<init>","(I)V");
+	if (newint == NULL) {
+		log_text("JNI-Init: unable to find constructor in java.lang.Integer");
+	}
+
+	intvalue = GetMethodID(NULL, intclass, "intValue","()I");
+	if (intvalue == NULL) {
+		log_text("JNI-Init: unable to find method \"intValue\" in java.lang.Integer");
+	}
+
+	removemid = GetMethodID(NULL, ihmclass, "remove","(Ljava/lang/Object;)Ljava/lang/Object;");
+	if (removemid == NULL) {
+		log_text("JNI-DeleteGlobalRef: unable to find method \"remove\" in java.lang.Object");
+	}
 }
 
 
