@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: schedule.c 2055 2005-03-21 17:00:52Z twisti $
+   $Id: schedule.c 2056 2005-03-22 11:21:32Z twisti $
 
 */
 
@@ -168,7 +168,7 @@ void schedule_add_define_dep(scheduledata *sd, s1 opnum, edgenode **define_dep, 
 				/* link current use node into dependency list */
 
 				useen->minum = minum;
-/*  				useen->opnum2 = opnum; */
+				useen->opnum2 = opnum;
 
 				/* calculate latency, for define add 1 cycle */
 				useen->latency = (usemi->op[useen->opnum].lastcycle -
@@ -194,7 +194,7 @@ void schedule_add_define_dep(scheduledata *sd, s1 opnum, edgenode **define_dep, 
 		/* link current define node into dependency list */
 
 		defen->minum = minum;
-/*  		defen->opnum2 = opnum; */
+		defen->opnum2 = opnum;
 
 		/* calculate latency, for define add 1 cycle */
 		defen->latency = (defmi->op[defen->opnum].lastcycle -
@@ -249,7 +249,7 @@ void schedule_add_use_dep(scheduledata *sd, s1 opnum, edgenode **define_dep, edg
 		en = DNEW(edgenode);
 		en->minum = minum;
 		en->opnum = defen->opnum;
-/*  		en->opnum2 = opnum; */
+		en->opnum2 = opnum;
 
 		/* calculate latency */
 		en->latency = (defmi->op[defen->opnum].lastcycle -
@@ -501,9 +501,64 @@ void schedule_do_schedule(scheduledata *sd)
 
 		schedule_calc_priorities(sd);
 
-#if 1
+		if (opt_verbose) {
+			printf("bb start ---\n");
+			printf("nodes: %d\n", sd->micount);
+			printf("leaders: ");
+		}
+
+		leaders = 0;
+		criticalpath = 0;
+
+		en = sd->leaders;
+		while (en) {
+			if (opt_verbose) {
+				printf("#%d ", en->minum);
+			}
+
+			leaders++;
+			if (sd->mi[en->minum].priority > criticalpath)
+				criticalpath = sd->mi[en->minum].priority;
+			en = en->next;
+		}
+
+		/* check last node for critical path (e.g. ret) */
+
+		if (sd->mi[sd->micount - 1].priority > criticalpath)
+			criticalpath = sd->mi[sd->micount - 1].priority;
+		
+		if (opt_verbose) {
+			printf("\n");
+			printf("critical path: %d\n", criticalpath);
+
+			for (i = 0, mi = sd->mi; i < sd->micount; i++, mi++) {
+				disassinstr(stdout, &mi->instr);
+
+				printf("\t--> #%d, prio=%d", i, mi->priority);
+
+				printf(", mem=%d:%d", mi->op[0].firstcycle, mi->op[0].lastcycle);
+
+				for (j = 1; j <= 3; j++) {
+					printf(", op%d=%d:%d", j, mi->op[j].firstcycle, mi->op[j].lastcycle);
+				}
+
+				printf(", deps= ");
+				en = mi->deps;
+				while (en) {
+					printf("#%d (op%d->op%d: %d) ", en->minum, en->opnum, en->opnum2, en->latency);
+					en = en->next;
+				}
+				printf("\n");
+			}
+			printf("bb end ---\n\n");
+
+			schedule_create_graph(sd, criticalpath);
+		}
+
+
 		/* set start time to zero */
 
+		printf("\n\nschedule start ---\n");
 		time = 0;
 		schedulecount = 0;
 
@@ -563,7 +618,6 @@ void schedule_do_schedule(scheduledata *sd)
 
 						} else if ((mi->flags & SCHEDULE_UNIT_MEM) &&
 								   (!memmi || (mi->priority > memmi->priority))) {
-
 							if (preven)
 								if (memmi) {
 									preven->next = memen;
@@ -584,18 +638,15 @@ void schedule_do_schedule(scheduledata *sd)
 
 						/* check for a suitable BRANCH instruction */
 
-						} else if (mi->flags & SCHEDULE_UNIT_BRANCH) {
-							if (!brmi || (mi->priority > brmi->priority)) {
-								brmi = mi;
-								bren = en;
+						} else if ((mi->flags & SCHEDULE_UNIT_BRANCH) &&
+								   (!brmi || (mi->priority > brmi->priority))) {
+							if (preven)
+								preven->next = en->next;
+							else
+								sd->leaders = en->next;
 
-								/* remove current node from leaders list */
-
-								if (preven)
-									preven->next = en->next;
-								else
-									sd->leaders = en->next;
-							}
+							memmi = mi;
+							memen = en;
 
 						} else
 							preven = en;
@@ -657,63 +708,7 @@ void schedule_do_schedule(scheduledata *sd)
 
 			time++;
 		}
-
-#else
-		if (opt_verbose) {
-			printf("bb start ---\n");
-			printf("nodes: %d\n", sd->micount);
-			printf("leaders: ");
-		}
-
-		leaders = 0;
-		criticalpath = 0;
-
-		nl = sd->leaders;
-		while (nl) {
-
-			if (opt_verbose) {
-				printf("#%d ", nl->minum);
-			}
-
-			leaders++;
-			if (sd->mi[nl->minum].priority > criticalpath)
-				criticalpath = sd->mi[nl->minum].priority;
-			nl = nl->next;
-		}
-
-		/* check last node for critical path (e.g. ret) */
-
-		if (sd->mi[sd->micount - 1].priority > criticalpath)
-			criticalpath = sd->mi[sd->micount - 1].priority;
-		
-		if (opt_verbose) {
-			printf("\n");
-			printf("critical path: %d\n", criticalpath);
-
-			for (i = 0, mi = sd->mi; i < sd->micount; i++, mi++) {
-				disassinstr(stdout, &mi->instr);
-
-				printf("\t--> #%d, prio=%d", i, mi->priority);
-
-				printf(", mem=%d:%d", mi->op[0].firstcycle, mi->op[0].lastcycle);
-
-				for (j = 1; j <= 3; j++) {
-					printf(", op%d=%d:%d", j, mi->op[j].firstcycle, mi->op[j].lastcycle);
-				}
-
-				printf(", deps= ");
-				nl = mi->deps;
-				while (nl) {
-					printf("#%d (op%d->op%d: %d) ", nl->minum, nl->opnum, nl->opnum2, nl->latency);
-					nl = nl->next;
-				}
-				printf("\n");
-			}
-			printf("bb end ---\n\n");
-
-			schedule_create_graph(sd, criticalpath);
-		}
-#endif
+		printf("schedule end ---\n\n");
 
 #if defined(STATISTICS)
 		if (opt_stat) {
