@@ -10,6 +10,7 @@
 #include "../callargs.h"
 #include "../threads/thread.h"
 #include "../threads/locks.h"
+#include "../sysdep/threads.h"
 #include <assert.h>
 #include "lifespan.h"
 
@@ -42,7 +43,6 @@
 //#define COLLECT_LIFESPAN
 //#define NEW_COLLECT_LIFESPAN
 //#define COLLECT_FRAGMENTATION
-
 //#define GC_COLLECT_STATISTICS
 //#define FINALIZER_COUNTING
 
@@ -721,7 +721,7 @@ gc_mark_object_at (void** addr)
 
 	/* 1.a. if addr doesn't point into the heap, return. */
 	if ((unsigned long)addr - (unsigned long)heap_base >= 
-		(heap_top - heap_base)) {
+		((long)heap_top - (long)heap_base)) {
 #ifdef GC_COLLECT_STATISTICS
 		++gc_mark_not_inheap;
 #endif
@@ -831,22 +831,12 @@ void gc_mark_stack (void)
 		for (aThread = liveThreads; aThread != 0;
 			 aThread = CONTEXT(aThread).nextlive) {
 			gc_mark_object_at((void*)aThread);
-			if (aThread == currentThread) {
-				void **top_of_stack = &dummy;
-				
-				if (top_of_stack > (void**)CONTEXT(aThread).stackEnd)
-					markreferences((void**)CONTEXT(aThread).stackEnd, top_of_stack);
-				else 	
-					markreferences(top_of_stack, (void**)CONTEXT(aThread).stackEnd);
-			}
-			else {
-				if (CONTEXT(aThread).usedStackTop > CONTEXT(aThread).stackEnd)
-					markreferences((void**)CONTEXT(aThread).stackEnd,
-								   (void**)CONTEXT(aThread).usedStackTop);
-				else 	
-					markreferences((void**)CONTEXT(aThread).usedStackTop,
-								   (void**)CONTEXT(aThread).stackEnd);
-			}
+			if (CONTEXT(aThread).usedStackTop > CONTEXT(aThread).stackEnd)
+				markreferences((void**)CONTEXT(aThread).stackEnd,
+							   (void**)CONTEXT(aThread).usedStackTop);
+			else 	
+				markreferences((void**)CONTEXT(aThread).usedStackTop,
+							   (void**)CONTEXT(aThread).stackEnd);
 	    }
 
 		markreferences((void**)&threadQhead[0],
@@ -921,7 +911,8 @@ gc_call (void)
 	if (currentThread == NULL || currentThread == mainThread)
 		gc_run();
 	else
-		asm_switchstackandcall(CONTEXT(mainThread).usedStackTop, gc_run);
+		asm_switchstackandcall(CONTEXT(mainThread).usedStackTop, gc_run,
+							   (void**)&(CONTEXT(currentThread).usedStackTop));
 	intsRestore();
 #else
 	gc_run();
