@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: arch.h 1555 2004-11-19 17:03:32Z twisti $
+   $Id: arch.h 1667 2004-12-03 16:38:55Z twisti $
 
 */
 
@@ -122,7 +122,7 @@
 #define SUPPORT_LONG             1
 #define SUPPORT_FLOAT            1
 #define SUPPORT_DOUBLE           1
-
+/* #define SUPPORT_FMOD             1 */
 /* #define SUPPORT_IFCVT            1 */
 /* #define SUPPORT_FICVT            1 */
 
@@ -146,7 +146,7 @@
 #define CONSECUTIVE_INTARGS
 #define CONSECUTIVE_FLOATARGS
 
-#endif /* _CODEGEN_H */
+#endif /* _ARCH_H */
 
 
 /*
