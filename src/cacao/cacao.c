@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 930 2004-03-02 21:18:23Z jowenn $
+   $Id: cacao.c 936 2004-03-05 23:49:31Z twisti $
 
 */
 
@@ -886,18 +886,18 @@ int main(int argc, char **argv)
 	topclass = loader_load(utf_new_char(cp));
 	/*class_showmethods(topclass);	*/
 
-	if (*exceptionptr != 0) {
+	if (*exceptionptr) {
 		printf("Exception in thread \"main\" ");
-		utf_display((*exceptionptr)->vftbl->class->name);
+		utf_display_classname((*exceptionptr)->vftbl->class->name);
 		printf(": ");
 		utf_display(javastring_toutf(((java_lang_Throwable *) *exceptionptr)->detailMessage, false));
 		printf("\n");
 
-		*exceptionptr = 0;
+		*exceptionptr = NULL;
 	}
 
 	if (topclass == 0) {
-		/* should we print out something? we already have the exception */
+		/* should we print something out? we already have the exception */
 		exit(1);
 	}
 
@@ -946,7 +946,7 @@ int main(int argc, char **argv)
 	
 		if (*exceptionptr) {
 			printf("Exception in thread \"main\" ");
-			utf_display((*exceptionptr)->vftbl->class->name);
+			utf_display_classname((*exceptionptr)->vftbl->class->name);
 
 			/* do we have a detail message? */
 			if (((java_lang_Throwable *) *exceptionptr)->detailMessage) {
