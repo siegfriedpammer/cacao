@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1757 2004-12-13 16:58:37Z twisti $
+   $Id: codegen.c 1786 2004-12-21 09:56:58Z twisti $
 
 */
 
@@ -3424,10 +3424,10 @@ gen_method: {
 				x86_64_jcc(cd, X86_64_CC_L, 0);
 				codegen_addxcheckarefs(cd, cd->mcodeptr);
 
-				/* copy sizes to stack (argument numbers >= INT_ARG_CNT)      */
+				/* copy SAVEDVAR sizes to stack */
 
 				if (src->varkind != ARGVAR) {
-					x86_64_mov_reg_membase(cd, s2, REG_SP, (s1 + INT_ARG_CNT) * 8);
+					x86_64_mov_reg_membase(cd, s2, REG_SP, s1 * 8);
 				}
 			}
 
@@ -3435,12 +3435,12 @@ gen_method: {
 			x86_64_mov_imm_reg(cd, iptr->op1, rd->argintregs[0]);
 
 			/* a1 = arraydescriptor */
-			x86_64_mov_imm_reg(cd, (s8) iptr->val.a, rd->argintregs[1]);
+			x86_64_mov_imm_reg(cd, (u8) iptr->val.a, rd->argintregs[1]);
 
 			/* a2 = pointer to dimensions = stack pointer */
 			x86_64_mov_reg_reg(cd, REG_SP, rd->argintregs[2]);
 
-			x86_64_mov_imm_reg(cd, (s8) builtin_nmultianewarray, REG_ITMP1);
+			x86_64_mov_imm_reg(cd, (u8) builtin_nmultianewarray, REG_ITMP1);
 			x86_64_call_reg(cd, REG_ITMP1);
 
 			s1 = reg_of_var(rd, iptr->dst, REG_RESULT);
@@ -3500,14 +3500,14 @@ gen_method: {
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(50);
+		MCODECHECK(100);
 
 		/* move index register into REG_ITMP1 */
-		x86_64_mov_reg_reg(cd, bref->reg, REG_ITMP1);              /* 3 bytes  */
+		x86_64_mov_reg_reg(cd, bref->reg, REG_ITMP1);             /* 3 bytes  */
 
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                  /* 10 bytes */
+		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
-		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP3);    /* 10 bytes */
+		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP3);   /* 10 bytes */
 		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP3, REG_ITMP2_XPC); /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
@@ -3520,13 +3520,13 @@ gen_method: {
 			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 0 * 8);
 
 			x86_64_mov_reg_reg(cd, REG_ITMP1, rd->argintregs[0]);
-			x86_64_mov_imm_reg(cd, (s8) new_arrayindexoutofboundsexception, REG_ITMP3);
+			x86_64_mov_imm_reg(cd, (u8) new_arrayindexoutofboundsexception, REG_ITMP3);
 			x86_64_call_reg(cd, REG_ITMP3);
 
 			x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, REG_ITMP2_XPC);
 			x86_64_alu_imm_reg(cd, X86_64_ADD, 2 * 8, REG_SP);
 
-			x86_64_mov_imm_reg(cd, (s8) asm_handle_exception, REG_ITMP3);
+			x86_64_mov_imm_reg(cd, (u8) asm_handle_exception, REG_ITMP3);
 			x86_64_jmp_reg(cd, REG_ITMP3);
 		}
 	}
@@ -3547,12 +3547,12 @@ gen_method: {
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(50);
+		MCODECHECK(100);
 
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                         /* 10 bytes */
+		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
-		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP3);    /* 10 bytes */
-		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP3, REG_ITMP2_XPC);     /* 3 bytes  */
+		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP3);   /* 10 bytes */
+		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP3, REG_ITMP2_XPC); /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
 			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
@@ -3563,13 +3563,13 @@ gen_method: {
 			x86_64_alu_imm_reg(cd, X86_64_SUB, 2 * 8, REG_SP);
 			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			x86_64_mov_imm_reg(cd, (s8) new_negativearraysizeexception, REG_ITMP3);
+			x86_64_mov_imm_reg(cd, (u8) new_negativearraysizeexception, REG_ITMP3);
 			x86_64_call_reg(cd, REG_ITMP3);
 
 			x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, REG_ITMP2_XPC);
 			x86_64_alu_imm_reg(cd, X86_64_ADD, 2 * 8, REG_SP);
 
-			x86_64_mov_imm_reg(cd, (s8) asm_handle_exception, REG_ITMP3);
+			x86_64_mov_imm_reg(cd, (u8) asm_handle_exception, REG_ITMP3);
 			x86_64_jmp_reg(cd, REG_ITMP3);
 		}
 	}
@@ -3590,12 +3590,12 @@ gen_method: {
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(50);
+		MCODECHECK(100);
 
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                        /* 10 bytes */
+		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
-		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP3);     /* 10 bytes */
-		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP3, REG_ITMP2_XPC);    /* 3 bytes  */
+		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP3);   /* 10 bytes */
+		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP3, REG_ITMP2_XPC); /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
 			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
@@ -3606,13 +3606,13 @@ gen_method: {
 			x86_64_alu_imm_reg(cd, X86_64_SUB, 2 * 8, REG_SP);
 			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			x86_64_mov_imm_reg(cd, (s8) new_classcastexception, REG_ITMP3);
+			x86_64_mov_imm_reg(cd, (u8) new_classcastexception, REG_ITMP3);
 			x86_64_call_reg(cd, REG_ITMP3);
 
 			x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, REG_ITMP2_XPC);
 			x86_64_alu_imm_reg(cd, X86_64_ADD, 2 * 8, REG_SP);
 
-			x86_64_mov_imm_reg(cd, (s8) asm_handle_exception, REG_ITMP3);
+			x86_64_mov_imm_reg(cd, (u8) asm_handle_exception, REG_ITMP3);
 			x86_64_jmp_reg(cd, REG_ITMP3);
 		}
 	}
@@ -3633,12 +3633,12 @@ gen_method: {
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(50);
+		MCODECHECK(100);
 
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                        /* 10 bytes */
+		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
-		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP3);      /* 10 bytes */
-		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP3, REG_ITMP2_XPC);    /* 3 bytes  */
+		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP3);   /* 10 bytes */
+		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP3, REG_ITMP2_XPC); /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
 			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
@@ -3676,12 +3676,12 @@ gen_method: {
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(50);
+		MCODECHECK(100);
 
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                        /* 10 bytes */
+		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
-		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);     /* 10 bytes */
-		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes  */
+		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);   /* 10 bytes */
+		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC); /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
 			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
@@ -3726,12 +3726,12 @@ gen_method: {
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(50);
+		MCODECHECK(100);
 
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                        /* 10 bytes */
+		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
-		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);     /* 10 bytes */
-		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes  */
+		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);   /* 10 bytes */
+		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC); /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
 			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
@@ -3742,13 +3742,13 @@ gen_method: {
 			x86_64_alu_imm_reg(cd, X86_64_SUB, 2 * 8, REG_SP);
 			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			x86_64_mov_imm_reg(cd, (s8) new_nullpointerexception, REG_ITMP3);
+			x86_64_mov_imm_reg(cd, (u8) new_nullpointerexception, REG_ITMP3);
 			x86_64_call_reg(cd, REG_ITMP3);
 
 			x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, REG_ITMP2_XPC);
 			x86_64_alu_imm_reg(cd, X86_64_ADD, 2 * 8, REG_SP);
 
-			x86_64_mov_imm_reg(cd, (s8) asm_handle_exception, REG_ITMP3);
+			x86_64_mov_imm_reg(cd, (u8) asm_handle_exception, REG_ITMP3);
 			x86_64_jmp_reg(cd, REG_ITMP3);
 		}
 	}
@@ -3804,7 +3804,7 @@ gen_method: {
 	
 *******************************************************************************/
 
-#define COMPSTUBSIZE 23
+#define COMPSTUBSIZE    23
 
 u1 *createcompilerstub(methodinfo *m)
 {
@@ -4104,7 +4104,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	/* shift integer arguments for `env' and `class' arguments */
 
 	if (m->flags & ACC_STATIC) {
-		/* shift iargs count, if less than INT_ARG_CNT, or all */
+		/* shift iargs count if less than INT_ARG_CNT, or all */
 		for (i = (iargs < (INT_ARG_CNT - 2)) ? iargs : (INT_ARG_CNT - 2); i >= 0; i--) {
 			x86_64_mov_reg_reg(cd, rd->argintregs[i], rd->argintregs[i + 2]);
 		}
@@ -4113,7 +4113,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_mov_imm_reg(cd, (u8) m->class, rd->argintregs[1]);
 
 	} else {
-		/* shift iargs count, if less than INT_ARG_CNT, or all */
+		/* shift iargs count if less than INT_ARG_CNT, or all */
 		for (i = (iargs < (INT_ARG_CNT - 1)) ? iargs : (INT_ARG_CNT - 1); i >= 0; i--) {
 			x86_64_mov_reg_reg(cd, rd->argintregs[i], rd->argintregs[i + 1]);
 		}
