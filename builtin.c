@@ -18,7 +18,6 @@
 *******************************************************************************/
 
 #include <assert.h>
-#include <values.h>
 
 #include "global.h"
 #include "builtin.h"

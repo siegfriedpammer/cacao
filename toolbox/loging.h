@@ -8,11 +8,12 @@
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: loging.h 188 2002-12-16 21:03:29Z stefan $
+	Last Change: $Id: loging.h 455 2003-09-15 18:48:46Z stefan $
 
 *******************************************************************************/
 
 #define PANICIF(when,txt)  if(when)panic(txt)
+#define panic cacaopanic
 
 #define MAXLOGTEXT 500
 extern char logtext[MAXLOGTEXT];
