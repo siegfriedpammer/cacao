@@ -96,13 +96,13 @@ fields are valid Java identifiers since this would require including a
 Unicode database in Cacao. Instead the following checks are performed:
 
 \begin{itemize}
-\item Names must be valid non-empty UTF-8 strings.
+\item Names must be valid non-empty Java `Utf8' strings.
 \item Names must not contain ASCII control characters or the
       \code{NUL}-character.
 \item A method name starting with the ASCII character `\code{<}' must be
       either \code{<init>} or \code{<clinit>}.
 \item A \code{NameAndType} entry in the constant pool may not
-      reference a method named \code{<clinit>}.
+      refer to a method named \code{<clinit>}.
 \item Field names may not start with `\code{<}'.
 
 \end{itemize}
