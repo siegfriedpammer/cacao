@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 599 2003-11-09 20:12:53Z twisti $
+   $Id: codegen.c 602 2003-11-11 21:23:01Z twisti $
 
 */
 
@@ -3061,8 +3061,7 @@ makeactualcall:
 
 	codegen_finish((int)((u1*) mcodeptr - mcodebase));
 
-    docacheflush((void*) method->entrypoint,
-                      ((u1*) mcodeptr - mcodebase), ICACHE);
+    docacheflush((void*) method->entrypoint, ((u1*) mcodeptr - mcodebase));
 }
 
 
@@ -3087,7 +3086,7 @@ u1 *createcompilerstub (methodinfo *m)
 	s[4] = (s4) m;                      /* literals to be adressed            */
 	s[5] = (s4) asm_call_jit_compiler;  /* jump directly via PV from above    */
 
-    docacheflush((void*) s, (char*) mcodeptr - (char*) s, ICACHE);
+    docacheflush((void*) s, (char*) mcodeptr - (char*) s);
 
 #ifdef STATISTICS
 	count_cstub_len += COMPSTUBSIZE * 4;
@@ -3237,7 +3236,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	}
 #endif
 
-    docacheflush((void*) s, (char*) mcodeptr - (char*) s, ICACHE);
+    docacheflush((void*) s, (char*) mcodeptr - (char*) s);
 
 #ifdef STATISTICS
 	count_nstub_len += NATIVESTUBSIZE * 4;
