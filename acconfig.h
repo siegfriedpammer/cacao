@@ -18,7 +18,4 @@
 /* sysdep */
 #undef SYSDEP_DIR
 
-#undef OLD_COMPILER
 #undef USE_CODEMMAP
-
-#undef USE_BOEHM

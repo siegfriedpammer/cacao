@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 485 2003-10-20 17:16:25Z twisti $
+	Last Change: $Id: parse.c 530 2003-10-23 21:18:38Z stefan $
                      include Rapid Type Analysis parse - 5/2003 - carolyn
 
 
@@ -335,67 +335,6 @@ static void descriptor2types (methodinfo *m)
 }
 
 
-#ifdef OLD_COMPILER
-
-/* function allocate_literals **************************************************
-
-	Scans the JavaVM code of a method and allocates string literals (in the
-	same order as the old JIT). Needed to generate the same addresses as the
-	old JIT compiler.
-	
-*******************************************************************************/
-
-static void allocate_literals()
-{
-	int     p, nextp;
-	int     opcode, i;
-	s4      num;
-	utf     *s;
-
-	for (p = 0; p < jcodelength; p = nextp) {
-
-		opcode = jcode[p];
-		nextp = p + jcommandsize[opcode];
-
-		switch (opcode) {
-			case JAVA_WIDE:
-				if (code_get_u1(p + 1) == JAVA_IINC)
-					nextp = p + 6;
-				else
-					nextp = p + 4;
-				break;
-							
-			case JAVA_LOOKUPSWITCH:
-				nextp = ALIGN((p + 1), 4);
-				num = code_get_u4(nextp + 4);
-				nextp = nextp + 8 + 8 * num;
-				break;
-
-			case JAVA_TABLESWITCH:
-				nextp = ALIGN ((p + 1),4);
-				num = code_get_s4(nextp + 4);
-				num = code_get_s4(nextp + 8) - num;
-				nextp = nextp + 16 + 4 * num;
-				break;
-
-			case JAVA_LDC1:
-				i = code_get_u1(p+1);
-				goto pushconstantitem;
-			case JAVA_LDC2:
-			case JAVA_LDC2W:
-				i = code_get_u2(p + 1);
-			pushconstantitem:
-				if (class_constanttype(class, i) == CONSTANT_String) {
-					s = class_getconstant(class, i, CONSTANT_String);
-					(void) literalstring_new(s);
-					}
-				break;
-			} /* end switch */
-		} /* end while */
-}
-#endif
-
-
 /*******************************************************************************
 
 	function 'parse' scans the JavaVM code and generates intermediate code
@@ -528,13 +467,6 @@ static void parse()
 			printf("VTA requested, but not yet implemented\n");
 		}
 	 
-
-#ifdef OLD_COMPILER
-	/* generate the same addresses as the old JIT compiler */
-
-	if (runverbose)
-		allocate_literals();
-#endif
 
 	/* allocate instruction array and block index table */
 	
