@@ -1,3 +1,4 @@
+#include "native/include/gnu_java_awt_peer_gtk_GtkComponentPeer.h"
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkComponentPeer
  * Method:    gtkWidgetSetVisible

@@ -1,3 +1,5 @@
+#include "native/include/gnu_java_awt_peer_gtk_GtkScrollPanePeer.h"
+#include "native/include/java_awt_peer_ComponentPeer.h"
 
 JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkScrollPanePeer_gtkScrolledWindowNew (JNIEnv *env ,  struct gnu_java_awt_peer_gtk_GtkScrollPanePeer* this , struct java_awt_peer_ComponentPeer* par1, s4 par2, s4 par3, s4 par4, java_intarray* par5)
 {

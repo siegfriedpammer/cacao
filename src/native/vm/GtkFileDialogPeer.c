@@ -1,3 +1,5 @@
+#include "native/include/gnu_java_awt_peer_gtk_GtkFileDialogPeer.h"
+
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkFileDialogPeer
  * Method:    setFile
