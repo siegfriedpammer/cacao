@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2190 2005-04-02 10:07:44Z edwin $
+   $Id: codegen.c 2214 2005-04-04 14:36:06Z twisti $
 
 */
 
@@ -3039,28 +3039,24 @@ nowperformreturn:
 			s3 = iptr->op1;
 
 gen_method: {
-			methodinfo   *lm;
-			classinfo    *ci;
-			stackptr      tmpsrc;
-			s4 iarg, farg;
+			methodinfo *lm;
+			classinfo  *ci;
+			stackptr    tmpsrc;
+			s4          iarg;
+			s4          farg;
 
 			MCODECHECK((s3 << 1) + 64);
-
-			tmpsrc = src;
-			s2 = s3;
-			iarg = 0;
-			farg = 0;
 
 			/* copy arguments to registers or stack location ******************/
 
 			/* count integer and float arguments */
 
-			for (; --s3 >= 0; src = src->prev) {
-				IS_INT_LNG_TYPE(src->type) ? iarg++ : farg++;
-			}
+			iarg = 0;
+			farg = 0;
 
-			src = tmpsrc;
-			s3 = s2;
+			for (s2 = s3, tmpsrc = src; --s2 >= 0; tmpsrc = tmpsrc->prev) {
+				IS_INT_LNG_TYPE(tmpsrc->type) ? iarg++ : farg++;
+			}
 
 			/* calculate amount of arguments to be on stack */
 
