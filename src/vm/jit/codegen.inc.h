@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: codegen.inc.h 1634 2004-12-01 09:57:34Z twisti $
+   $Id: codegen.inc.h 1691 2004-12-06 12:29:35Z twisti $
 
 */
 
@@ -178,8 +178,15 @@ void codegen_close();
 void codegen_insertmethod(functionptr startpc, functionptr endpc);
 
 #if defined(__I386__) || defined(__X86_64__)
+functionptr codegen_findmethod(functionptr pc);
+#elif defined(__ALPHA__)
+void *codegen_findmethod(void *returnAdress);
+#endif
+
+#if defined(__I386__) || defined(__X86_64__)
 void codegen_addreference(codegendata *cd, struct basicblock *target, void *branchptr);
 #endif
+
 
 void dseg_display(methodinfo *m, codegendata *cd);
 
