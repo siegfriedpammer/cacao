@@ -1,11 +1,12 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 168 2002-11-30 15:25:24Z stefan $
+# $Id: Makefile.am 180 2002-12-14 21:53:55Z stefan $
 
 MAINTAINERCLEANFILES = Makefile.in configure
-SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc narray
+SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc narray jvmtst
 
-EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html
+EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html \
+				jni.c
 
 CLEANFILES = @SYSDEP_DIR@/asmpart.o \
              @SYSDEP_DIR@/offsets.h \
@@ -31,6 +32,7 @@ cacao_SOURCES = \
 	main.c \
 	native.c \
 	native.h \
+	jni.h \
 	tables.c \
 	tables.h 
 
@@ -126,7 +128,7 @@ compiler.o: $(top_srcdir)/builtin.h $(top_srcdir)/compiler.h \
 	        $(top_srcdir)/tables.h $(top_srcdir)/native.h \
             $(top_srcdir)/asmpart.h $(top_srcdir)/compiler.c $(top_srcdir)/comp/*.c \
             $(top_srcdir)/@SYSDEP_DIR@/gen.c $(top_srcdir)/@SYSDEP_DIR@/disass.c
-	@CC@ $(CFLAGS) -I. $(INCLUDES) -c $(top_srcdir)/compiler.c
+#	@CC@ $(CFLAGS) -I. $(INCLUDES) -c $(top_srcdir)/compiler.c
 
 jit.o: jit.c \
 	jit/mcode.c \
