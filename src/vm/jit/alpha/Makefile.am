@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1276 2004-07-05 17:27:52Z twisti $
+# $Id: Makefile.am 1467 2004-11-08 13:13:00Z twisti $
 
 
 INCLUDES = -I$(top_srcdir)
@@ -13,8 +13,7 @@ EXTRA_DIST = \
 	machine-instr.h \
 	codegen.c \
 	codegen.h \
-	types.h \
-	sigcontext.h
+	types.h
 
 noinst_LIBRARIES = libarch.a
 
