@@ -28,13 +28,18 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 1741 2004-12-08 16:38:48Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
 CLEANFILES = implementednatives.data
+
+EXTRA_DIST = \
+	GtkComponentPeer.c \
+	GtkFileDialogPeer.c \
+	GtkScrollPanePeer.c
 
 noinst_LTLIBRARIES = libnativevm.la
 
