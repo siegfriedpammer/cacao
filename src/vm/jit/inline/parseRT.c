@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1744 2004-12-09 10:17:12Z carolyn $
+   $Id: parseRT.c 1876 2005-01-21 11:09:08Z carolyn $
 
 */
 
@@ -546,95 +546,110 @@ if ((DEBUGr)||(DEBUGopcodes)) printf("\n");
 			}
 			break;
 
-		case JAVA_INVOKESTATIC:
-                case JAVA_INVOKESPECIAL:
-			i = code_get_u2(p + 1,m);
-			{
+
+				    	 	 		
+			case JAVA_INVOKESTATIC:
+			case JAVA_INVOKESPECIAL:
+				i = code_get_u2(p + 1,m);
+				{
 				constant_FMIref *mr;
-                                methodinfo *mi;
+				methodinfo *mi;
 
-                               	m->isleafmethod = false;
-                                mr = class_getconstant(m->class, i, CONSTANT_Methodref);
-			       	LAZYLOADING(mr->class) 
-				mi = class_resolveclassmethod(mr->class,
-                                                mr->name,
-                                                mr->descriptor,
-              					m->class,
-              					false);
-
+				m->isleafmethod = false;
+				mr = class_getconstant(m->class, i, CONSTANT_Methodref);
+				LAZYLOADING(mr->class) 
+				mi = class_resolveclassmethod(	mr->class,
+												mr->name,
+												mr->descriptor,
+												m->class,
+												false);
 
 				if (mi) 
 				   {
 				   METHINFOt(mi,"INVOKESTAT/SPEC:: ",DEBUGopcodes)
   				   mi->monoPoly = MONO;
+  				   
+  				   /*---- Handle "leaf" = static, private, final calls----------------------------*/
 			   	   if ((opcode == JAVA_INVOKESTATIC)	   
 				     || (mi->flags & ACC_STATIC)  
 				     || (mi->flags & ACC_PRIVATE)  
 				     || (mi->flags & ACC_FINAL) )  
-			             {
-				     if (mi->class->classUsed == PARTUSED){
-					   addClassInit(mi->class,
-					  		CLINITS_T,FINALIZE_T,ADDMARKED_T);
-					}
-				     else {
-				        if (mi->class->classUsed == NOTUSED){
-					   addClassInit(mi->class,
-					  	CLINITS_T,FINALIZE_T,ADDMARKED_T);
-				     	   if (mi->class->classUsed == NOTUSED){
-				     	       mi->class->classUsed = PARTUSED;						   } 
-					   }
-					}
-			   	     if (opcode == JAVA_INVOKESTATIC)	   
-	    		               addToRtaWorkList(mi,
-				    	 	     "addTo INVOKESTATIC ");
-				     else
-	    		               addToRtaWorkList(mi,
-				    	 	    "addTo INVOKESPECIAL ");
-				     } 
-				   else {
-				     /* Handle special <init> calls */
-					
-				     /* for now same as rest */
-				     if (mi->class->classUsed != USED){
-				       /* RTA special case:
-				          call of super's <init> then
-				          methods of super class not all used */
-				       if (utf_new_char("<init>")==mi->name) {
-					    if ((m->class->super == mi->class) 
-					    &&  (m->descriptor == utf_new_char("()V")) ) 
-						{
-						METHINFOt(mi,"SUPER INIT:",DEBUGopcodes);
-						/* super init */
-					     	addClassInit(mi->class,
-						        CLINITS_T,FINALIZE_T,ADDMARKED_F);
-						if (mi->class->classUsed == NOTUSED) mi->class->classUsed = PARTUSED;
-						}
-					    else {
-						METHINFOt(mi,"NORMAL INIT:",DEBUGopcodes);
-					        addClassInit(mi->class,
-							CLINITS_T,FINALIZE_T,ADDMARKED_T);
-					        }
-	    		               	    addToRtaWorkList(mi,
-				    	 	     "addTo INIT ");
-					 } 
-				       if (utf_new_char("<clinit>")==mi->name)
-					  addClassInit(	mi->class,
-							CLINITS_T,FINALIZE_T,ADDMARKED_F);
+			         	{
+				     	if (mi->class->classUsed == PARTUSED){ 
+					   		addClassInit(mi->class, 
+					  			CLINITS_T,FINALIZE_T,ADDMARKED_T); 
+							} 
+				     	else { 
+				        	if (mi->class->classUsed == NOTUSED){ 
+					   			addClassInit(mi->class, 
+					  				CLINITS_T,FINALIZE_T,ADDMARKED_T); 
+				     	   		if (mi->class->classUsed == NOTUSED){    
+									/* Leaf methods are used whether class is or not */
+									/*   so mark class as PARTlyUSED                 */
+				     	       		mi->class->classUsed = PARTUSED; 						   
+									}  
+								} 
+							} 
+						/* Add to RTA working list/set of reachable methods	*/
+						if (opcode == JAVA_INVOKESTATIC)  /* if stmt just for debug tracing */	   
+							addToRtaWorkList(mi, 
+								"addTo INVOKESTATIC "); 
+						else 
+							addToRtaWorkList(mi, 
+								"addTo INVOKESPECIAL ");	
+						} 
+				     	
+					else {
+					/*---- Handle special <init> calls ---------------------------------------------*/
+				   
+						if (mi->class->classUsed != USED) {
+				       		/* RTA special case:
+				          		call of super's <init> then
+				          		methods of super class not all used */
+				          		
+				          	/*--- <init>  ()V  is equivalent to "new" 
+				          		indicating a class is used = instaniated ---- */	
+				       		if (utf_new_char("<init>")==mi->name) {
+					    		if ((m->class->super == mi->class) 
+					    		&&  (m->descriptor == utf_new_char("()V")) ) 
+									{
+									METHINFOt(mi,"SUPER INIT:",DEBUGopcodes);
+									/* super init so class may be only used because of its sub-class */
+					     			addClassInit(mi->class,
+						        		CLINITS_T,FINALIZE_T,ADDMARKED_F);
+									if (mi->class->classUsed == NOTUSED) mi->class->classUsed = PARTUSED;
+									}
+					    		else {
+						    		/* since <init> indicates classes is used, then add marked methods, too */
+									METHINFOt(mi,"NORMAL INIT:",DEBUGopcodes);
+					        		addClassInit(mi->class,
+										CLINITS_T,FINALIZE_T,ADDMARKED_T);
+					        		}
+								addToRtaWorkList(mi,
+									"addTo INIT ");
+								} /* end just for <init> ()V */
+					 		
+							/* <clinit> for class inits do not add marked methods; class not yet instaniated */	 
+							if (utf_new_char("<clinit>")==mi->name)
+								addClassInit(	mi->class,
+									CLINITS_T,FINALIZE_T,ADDMARKED_F);
 
-				       if (!((utf_new_char("<init>")==mi->name))
-				       ||   (utf_new_char("<clinit>")==mi->name)) {
-					  METHINFOt(mi,"SPECIAL not init:",DEBUGopcodes)
-					    if (mi->class->classUsed !=USED)
-					      mi->class->classUsed = PARTUSED;
-	    		               	    addToRtaWorkList(mi,
-				    	 	     "addTo SPEC notINIT ");
-					  } 
-				       } 
-	    		               	    addToRtaWorkList(mi,
-				    	 	     "addTo SPEC whymissed ");
-					   
-				     } 
-				   } 
+							if (!((utf_new_char("<init>")==mi->name))
+							||   (utf_new_char("<clinit>")==mi->name)) {
+								METHINFOt(mi,"SPECIAL not init:",DEBUGopcodes)
+								if (mi->class->classUsed !=USED)
+									mi->class->classUsed = PARTUSED;
+								addToRtaWorkList(mi,
+									"addTo SPEC notINIT ");
+								} 
+					  			
+							} /* end init'd class not used = class init process was needed */ 
+							
+						/* add method to RTA list = set of reachable methods */	
+						addToRtaWorkList(mi,
+							"addTo SPEC whymissed ");
+						} /* end inits */
+					} 
 /***  assume if method can't be resolved won't actually be called or
       there is a real error in classpath and in normal parse an exception
       will be thrown. Following debug print can verify this

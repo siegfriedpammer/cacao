@@ -1,3 +1,4 @@
+java/lang/VMThrowable <init> ()V
 gnu/java/nio/channels/FileChannelImpl <init> (II)V
 java/lang/reflect/Constructor <init> ()V
 gnu/java/io/decode/Decoder8859_1 <init> (Ljava/io/InputStream;)V
