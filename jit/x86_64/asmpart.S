@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 950 2004-03-07 23:52:44Z twisti $
+   $Id: asmpart.S 970 2004-03-24 00:16:07Z twisti $
 
 */
 
@@ -50,7 +50,6 @@
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 	.globl asm_check_clinit
-	.globl asm_builtin_checkcast	
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_anewarray
 	.globl asm_builtin_newarray_array
@@ -65,9 +64,7 @@
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
-	.globl asm_getcallingmethod
-    .globl asm_builtin_trace
-    .globl asm_builtin_exittrace
+
     
 /*************************** imported functions *******************************/
 
@@ -126,36 +123,36 @@ call_name:
 	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
-        sub     $(3*8),%rsp           /* keep stack 16-byte aligned           */
-        mov     %rbp,0*8(%rsp)
-        mov     %rbx,1*8(%rsp)        /* %rbx is not a callee saved in cacao  */
-        mov     %rdi,%rax             /* move function pointer to %rax        */
-                                      /* compilerstub uses this               */
+	sub     $(3*8),%rsp               /* keep stack 16-byte aligned           */
+	mov     %rbp,0*8(%rsp)
+	mov     %rbx,1*8(%rsp)            /* %rbx is not a callee saved in cacao  */
+	mov     %rdi,%rax                 /* move function pointer to %rax        */
+	 								  /* compilerstub uses this               */
 
-        mov     %rsi,%rdi             /* pass remaining parameters            */
-        mov     %rdx,%rsi
-        mov     %rcx,%rdx
-        mov     %r8,%rcx
-        
-        lea     asm_call_jit_compiler,%r11
-        call    *%r11                 /* call JIT compiler                    */
+	mov     %rsi,%rdi                 /* pass remaining parameters            */
+	mov     %rdx,%rsi
+	mov     %rcx,%rdx
+	mov     %r8,%rcx
 	
+	lea     asm_call_jit_compiler,%r11
+	call    *%r11                     /* call JIT compiler                    */
+
 calljava_jit:
 calljava_return:
 calljava_ret:
-        mov     0*8(%rsp),%rbp
-		mov		1*8(%rsp),%rbx
-        add     $(3*8),%rsp           /* free stack space                     */
-        ret
+	mov     0*8(%rsp),%rbp
+	mov		1*8(%rsp),%rbx
+	add     $(3*8),%rsp              /* free stack space                     */
+	ret
 
 calljava_xhandler:
-        mov     %rax,%rdi       	  /* pass exception pointer               */
-        call    builtin_throw_exception
-        mov     0*8(%rsp),%rbp
-		mov		1*8(%rsp),%rbx
-        add     $(3*8),%rsp
-        ret
-						
+	mov     %rax,%rdi                /* pass exception pointer               */
+	call    builtin_throw_exception
+	mov     0*8(%rsp),%rbp
+	mov		1*8(%rsp),%rbx
+	add     $(3*8),%rsp
+	ret
+
 
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
@@ -640,17 +637,17 @@ L_is_initialized:
 *******************************************************************************/
 
 asm_builtin_monitorenter:
-        test    %rdi,%rdi
-        je      nb_monitorenter			/* if (null) throw exception          */
-        jmp     builtin_monitorenter	/* else call builtin_monitorenter     */
+	test    %rdi,%rdi
+	je      nb_monitorenter             /* if (null) throw exception          */
+	jmp     builtin_monitorenter        /* else call builtin_monitorenter     */
 
 nb_monitorenter:
-		mov     string_java_lang_NullPointerException,%rdi
-		call    new_exception
-		
-        pop     %r10					/* delete return address */
-        sub     $3,%r10					/* faulting address is return adress - 3 */
-        jmp     asm_handle_exception
+	mov     string_java_lang_NullPointerException,%rdi
+	call    new_exception
+	
+    pop     %r10                        /* delete return address              */
+    sub     $3,%r10                     /* faulting address is return adress - 3 */
+    jmp     asm_handle_exception
 		
 
 /********************* function asm_builtin_monitorexit ************************
@@ -660,17 +657,17 @@ nb_monitorenter:
 *******************************************************************************/
 
 asm_builtin_monitorexit:
-        test    %rdi,%rdi
-        je      nb_monitorexit			/* if (null) throw exception          */
-        jmp     builtin_monitorexit		/* else call builtin_monitorenter     */
+	test    %rdi,%rdi
+	je      nb_monitorexit              /* if (null) throw exception          */
+	jmp     builtin_monitorexit         /* else call builtin_monitorenter     */
 
 nb_monitorexit:
-		mov     string_java_lang_NullPointerException,%rdi
-		call    new_exception
-		
-        pop     %r10					/* delete return address */
-        sub     $3,%r10					/* faulting address is return adress - 3 */
-        jmp     asm_handle_exception
+	mov     string_java_lang_NullPointerException,%rdi
+	call    new_exception
+	
+    pop     %r10                        /* delete return address              */
+    sub     $3,%r10                     /* faulting address is return adress - 3 */
+    jmp     asm_handle_exception
 
 
 /********************* function asm_builtin_x2x ********************************
@@ -680,184 +677,173 @@ nb_monitorexit:
 *******************************************************************************/
 
 asm_builtin_f2i:
-        sub     $(14*8),%rsp
+	sub     $(14*8),%rsp
+	
+	mov     %rdi,0*8(%rsp)
+	mov     %rsi,1*8(%rsp)
+	mov     %rdx,2*8(%rsp)
+	mov     %rcx,3*8(%rsp)
+	mov     %r8,4*8(%rsp)
+	mov     %r9,5*8(%rsp)
+	
+	movq    %xmm0,6*8(%rsp)
+	movq    %xmm1,7*8(%rsp)
+	movq    %xmm2,8*8(%rsp)
+	movq    %xmm3,9*8(%rsp)
+	movq    %xmm4,10*8(%rsp)
+	movq    %xmm5,11*8(%rsp)
+	movq    %xmm6,12*8(%rsp)
+	movq    %xmm7,13*8(%rsp)
+	
+	movq    %xmm8,%xmm0
+	call    builtin_f2i
+	
+	mov     0*8(%rsp),%rdi
+	mov     1*8(%rsp),%rsi
+	mov     2*8(%rsp),%rdx
+	mov     3*8(%rsp),%rcx
+	mov     4*8(%rsp),%r8
+	mov     5*8(%rsp),%r9
+	
+	movq    6*8(%rsp),%xmm0
+	movq    7*8(%rsp),%xmm1
+	movq    8*8(%rsp),%xmm2
+	movq    9*8(%rsp),%xmm3
+	movq    10*8(%rsp),%xmm4
+	movq    11*8(%rsp),%xmm5
+	movq    12*8(%rsp),%xmm6
+	movq    13*8(%rsp),%xmm7
+	
+	add     $(14*8),%rsp
+	ret
 
-        mov     %rdi,0*8(%rsp)
-        mov     %rsi,1*8(%rsp)
-        mov     %rdx,2*8(%rsp)
-        mov     %rcx,3*8(%rsp)
-        mov     %r8,4*8(%rsp)
-        mov     %r9,5*8(%rsp)
-        
-        movq    %xmm0,6*8(%rsp)
-        movq    %xmm1,7*8(%rsp)
-        movq    %xmm2,8*8(%rsp)
-        movq    %xmm3,9*8(%rsp)
-        movq    %xmm4,10*8(%rsp)
-        movq    %xmm5,11*8(%rsp)
-        movq    %xmm6,12*8(%rsp)
-        movq    %xmm7,13*8(%rsp)
-
-        movq    %xmm8,%xmm0
-        call    builtin_f2i
-        
-        mov     0*8(%rsp),%rdi
-        mov     1*8(%rsp),%rsi
-        mov     2*8(%rsp),%rdx
-        mov     3*8(%rsp),%rcx
-        mov     4*8(%rsp),%r8
-        mov     5*8(%rsp),%r9
-
-        movq    6*8(%rsp),%xmm0
-        movq    7*8(%rsp),%xmm1
-        movq    8*8(%rsp),%xmm2
-        movq    9*8(%rsp),%xmm3
-        movq    10*8(%rsp),%xmm4
-        movq    11*8(%rsp),%xmm5
-        movq    12*8(%rsp),%xmm6
-        movq    13*8(%rsp),%xmm7
-        
-        add     $(14*8),%rsp
-        ret
 
 asm_builtin_f2l:
-        sub     $(14*8),%rsp
+	sub     $(14*8),%rsp
+	
+	mov     %rdi,0*8(%rsp)
+	mov     %rsi,1*8(%rsp)
+	mov     %rdx,2*8(%rsp)
+	mov     %rcx,3*8(%rsp)
+	mov     %r8,4*8(%rsp)
+	mov     %r9,5*8(%rsp)
+	
+	movq    %xmm0,6*8(%rsp)
+	movq    %xmm1,7*8(%rsp)
+	movq    %xmm2,8*8(%rsp)
+	movq    %xmm3,9*8(%rsp)
+	movq    %xmm4,10*8(%rsp)
+	movq    %xmm5,11*8(%rsp)
+	movq    %xmm6,12*8(%rsp)
+	movq    %xmm7,13*8(%rsp)
+	
+	movq    %xmm8,%xmm0
+	call    builtin_f2l
+	
+	mov     0*8(%rsp),%rdi
+	mov     1*8(%rsp),%rsi
+	mov     2*8(%rsp),%rdx
+	mov     3*8(%rsp),%rcx
+	mov     4*8(%rsp),%r8
+	mov     5*8(%rsp),%r9
+	
+	movq    6*8(%rsp),%xmm0
+	movq    7*8(%rsp),%xmm1
+	movq    8*8(%rsp),%xmm2
+	movq    9*8(%rsp),%xmm3
+	movq    10*8(%rsp),%xmm4
+	movq    11*8(%rsp),%xmm5
+	movq    12*8(%rsp),%xmm6
+	movq    13*8(%rsp),%xmm7
+	
+	add     $(14*8),%rsp
+	ret
 
-        mov     %rdi,0*8(%rsp)
-        mov     %rsi,1*8(%rsp)
-        mov     %rdx,2*8(%rsp)
-        mov     %rcx,3*8(%rsp)
-        mov     %r8,4*8(%rsp)
-        mov     %r9,5*8(%rsp)
-        
-        movq    %xmm0,6*8(%rsp)
-        movq    %xmm1,7*8(%rsp)
-        movq    %xmm2,8*8(%rsp)
-        movq    %xmm3,9*8(%rsp)
-        movq    %xmm4,10*8(%rsp)
-        movq    %xmm5,11*8(%rsp)
-        movq    %xmm6,12*8(%rsp)
-        movq    %xmm7,13*8(%rsp)
 
-        movq    %xmm8,%xmm0
-        call    builtin_f2l
-        
-        mov     0*8(%rsp),%rdi
-        mov     1*8(%rsp),%rsi
-        mov     2*8(%rsp),%rdx
-        mov     3*8(%rsp),%rcx
-        mov     4*8(%rsp),%r8
-        mov     5*8(%rsp),%r9
-
-        movq    6*8(%rsp),%xmm0
-        movq    7*8(%rsp),%xmm1
-        movq    8*8(%rsp),%xmm2
-        movq    9*8(%rsp),%xmm3
-        movq    10*8(%rsp),%xmm4
-        movq    11*8(%rsp),%xmm5
-        movq    12*8(%rsp),%xmm6
-        movq    13*8(%rsp),%xmm7
-        
-        add     $(14*8),%rsp
-        ret
-
-                
 asm_builtin_d2i:
-        sub     $(14*8),%rsp
-
-        mov     %rdi,0*8(%rsp)
-        mov     %rsi,1*8(%rsp)
-        mov     %rdx,2*8(%rsp)
-        mov     %rcx,3*8(%rsp)
-        mov     %r8,4*8(%rsp)
-        mov     %r9,5*8(%rsp)
-        
-        movq    %xmm0,6*8(%rsp)
-        movq    %xmm1,7*8(%rsp)
-        movq    %xmm2,8*8(%rsp)
-        movq    %xmm3,9*8(%rsp)
-        movq    %xmm4,10*8(%rsp)
-        movq    %xmm5,11*8(%rsp)
-        movq    %xmm6,12*8(%rsp)
-        movq    %xmm7,13*8(%rsp)
-
-        movq    %xmm8,%xmm0
-        call    builtin_d2i
-        
-        mov     0*8(%rsp),%rdi
-        mov     1*8(%rsp),%rsi
-        mov     2*8(%rsp),%rdx
-        mov     3*8(%rsp),%rcx
-        mov     4*8(%rsp),%r8
-        mov     5*8(%rsp),%r9
-
-        movq    6*8(%rsp),%xmm0
-        movq    7*8(%rsp),%xmm1
-        movq    8*8(%rsp),%xmm2
-        movq    9*8(%rsp),%xmm3
-        movq    10*8(%rsp),%xmm4
-        movq    11*8(%rsp),%xmm5
-        movq    12*8(%rsp),%xmm6
-        movq    13*8(%rsp),%xmm7
-        
-        add     $(14*8),%rsp
-        ret
+	sub     $(14*8),%rsp
+	
+	mov     %rdi,0*8(%rsp)
+	mov     %rsi,1*8(%rsp)
+	mov     %rdx,2*8(%rsp)
+	mov     %rcx,3*8(%rsp)
+	mov     %r8,4*8(%rsp)
+	mov     %r9,5*8(%rsp)
+	
+	movq    %xmm0,6*8(%rsp)
+	movq    %xmm1,7*8(%rsp)
+	movq    %xmm2,8*8(%rsp)
+	movq    %xmm3,9*8(%rsp)
+	movq    %xmm4,10*8(%rsp)
+	movq    %xmm5,11*8(%rsp)
+	movq    %xmm6,12*8(%rsp)
+	movq    %xmm7,13*8(%rsp)
+	
+	movq    %xmm8,%xmm0
+	call    builtin_d2i
+	
+	mov     0*8(%rsp),%rdi
+	mov     1*8(%rsp),%rsi
+	mov     2*8(%rsp),%rdx
+	mov     3*8(%rsp),%rcx
+	mov     4*8(%rsp),%r8
+	mov     5*8(%rsp),%r9
+	
+	movq    6*8(%rsp),%xmm0
+	movq    7*8(%rsp),%xmm1
+	movq    8*8(%rsp),%xmm2
+	movq    9*8(%rsp),%xmm3
+	movq    10*8(%rsp),%xmm4
+	movq    11*8(%rsp),%xmm5
+	movq    12*8(%rsp),%xmm6
+	movq    13*8(%rsp),%xmm7
+	
+	add     $(14*8),%rsp
+	ret
 
 
 asm_builtin_d2l:
-        sub     $(14*8),%rsp
+	sub     $(14*8),%rsp
+	
+	mov     %rdi,0*8(%rsp)
+	mov     %rsi,1*8(%rsp)
+	mov     %rdx,2*8(%rsp)
+	mov     %rcx,3*8(%rsp)
+	mov     %r8,4*8(%rsp)
+	mov     %r9,5*8(%rsp)
+	
+	movq    %xmm0,6*8(%rsp)
+	movq    %xmm1,7*8(%rsp)
+	movq    %xmm2,8*8(%rsp)
+	movq    %xmm3,9*8(%rsp)
+	movq    %xmm4,10*8(%rsp)
+	movq    %xmm5,11*8(%rsp)
+	movq    %xmm6,12*8(%rsp)
+	movq    %xmm7,13*8(%rsp)
+	
+	movq    %xmm8,%xmm0
+	call    builtin_d2l
+	
+	mov     0*8(%rsp),%rdi
+	mov     1*8(%rsp),%rsi
+	mov     2*8(%rsp),%rdx
+	mov     3*8(%rsp),%rcx
+	mov     4*8(%rsp),%r8
+	mov     5*8(%rsp),%r9
+	
+	movq    6*8(%rsp),%xmm0
+	movq    7*8(%rsp),%xmm1
+	movq    8*8(%rsp),%xmm2
+	movq    9*8(%rsp),%xmm3
+	movq    10*8(%rsp),%xmm4
+	movq    11*8(%rsp),%xmm5
+	movq    12*8(%rsp),%xmm6
+	movq    13*8(%rsp),%xmm7
+	
+	add     $(14*8),%rsp
+	ret
 
-        mov     %rdi,0*8(%rsp)
-        mov     %rsi,1*8(%rsp)
-        mov     %rdx,2*8(%rsp)
-        mov     %rcx,3*8(%rsp)
-        mov     %r8,4*8(%rsp)
-        mov     %r9,5*8(%rsp)
-        
-        movq    %xmm0,6*8(%rsp)
-        movq    %xmm1,7*8(%rsp)
-        movq    %xmm2,8*8(%rsp)
-        movq    %xmm3,9*8(%rsp)
-        movq    %xmm4,10*8(%rsp)
-        movq    %xmm5,11*8(%rsp)
-        movq    %xmm6,12*8(%rsp)
-        movq    %xmm7,13*8(%rsp)
 
-        movq    %xmm8,%xmm0
-        call    builtin_d2l
-        
-        mov     0*8(%rsp),%rdi
-        mov     1*8(%rsp),%rsi
-        mov     2*8(%rsp),%rdx
-        mov     3*8(%rsp),%rcx
-        mov     4*8(%rsp),%r8
-        mov     5*8(%rsp),%r9
-
-        movq    6*8(%rsp),%xmm0
-        movq    7*8(%rsp),%xmm1
-        movq    8*8(%rsp),%xmm2
-        movq    9*8(%rsp),%xmm3
-        movq    10*8(%rsp),%xmm4
-        movq    11*8(%rsp),%xmm5
-        movq    12*8(%rsp),%xmm6
-        movq    13*8(%rsp),%xmm7
-        
-        add     $(14*8),%rsp
-        ret
-
-        
-/*********************** function new_builtin_checkcast ************************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
-*******************************************************************************/
-
-asm_builtin_checkcast:
-        xor     %rax,%rax
-        mov     %rax,(%rax)
-        ret
-
-		
 /******************* function asm_builtin_checkarraycast ***********************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
@@ -1041,33 +1027,6 @@ asm_switchstackandcall:
         ret
 
 		
-/********************* function asm_getcallingmethod ***************************
-*                                                                              *
-*   classinfo *asm_getcallingmethod ();         							   *
-*																			   *	
-*   goes back stack frames to get the calling method						   *
-*																			   *
-*				t2 .. sp												       *
-*				t3 .. ra												       *
-*				t4 .. pv												       *
-*                                                                              *
-*   Stack:                                                                     *
-*       java function                                                          *
-*       native stub                                                            *
-*       Java_java_lang_System_getCallerClass                                   *
-*                                                                              *
-*******************************************************************************/
-
-asm_getcallingmethod:
-        mov     %rbp,%rax               /* return address of native function  */
-        add     $(2*8),%rax             /* %rsp, return address               */
-        add     $(7*8),%rax             /* native stub stackframe             */
-        mov     (%rax),%rdi             /* return address to java function    */
-        call    findmethod
-        mov     MethodPointer(%rax),%rax
-        ret
-
-
 asm_printf:
         push    %rbp
         mov     %rsp,%rbp
