@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 564 2003-11-03 15:47:13Z twisti $
+   $Id: codegen.h 566 2003-11-03 19:06:50Z twisti $
 
 */
 
@@ -421,6 +421,11 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define gen_resolvebranch(ip,so,to) ((s4*)(ip))[-1]|=((s4)(to)-(so))>>2&0xffff
 
 #define SOFTNULLPTRCHECK       /* soft null pointer check supportet as option */
+
+
+/* function prototypes */
+void createcalljava ();
+void docacheflush(u1 *p, long bytelen);
 
 #endif /* _CODEGEN_H */
 

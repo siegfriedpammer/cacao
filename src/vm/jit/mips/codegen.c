@@ -32,13 +32,15 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 564 2003-11-03 15:47:13Z twisti $
+   $Id: codegen.c 566 2003-11-03 19:06:50Z twisti $
 
 */
 
 
 #include <stdio.h>
 #include <signal.h>
+#include <unistd.h>
+#include <sys/mman.h>
 #include "types.h"
 #include "codegen.h"
 #include "jit.h"
@@ -285,8 +287,6 @@ static int reg_of_var(stackptr v, int tempregnum)
 	}
 
 
-void docacheflush(u1 *p, long bytelen, int dummy);
-
 /* NullPointerException handlers and exception handling initialisation        */
 
 /* NullPointerException signal handler for hardware null pointer check */
@@ -317,8 +317,6 @@ void catch_NullPointerException(int sig, int code, struct sigcontext *sigctx)
 		panic("Stack overflow");
 		}
 }
-
-void createcalljava ();
 
 
 void init_exceptions(void)
@@ -388,7 +386,7 @@ void init_exceptions(void)
 
 void codegen()
 {
-	int  len, s1, s2, s3, d, bbs;
+	int  len, s1, s2, s3, d;
 	s4   a;
 	s4          *mcodeptr;
 	stackptr    src;
@@ -665,7 +663,7 @@ void codegen()
 	/* end of header generation */
 
 	/* walk through all basic blocks */
-	for (/* bbs = block_count, */ bptr = block; /* --bbs >= 0 */ bptr != NULL; bptr = bptr->next) {
+	for (bptr = block; bptr != NULL; bptr = bptr->next) {
 
 		bptr -> mpc = (int)((u1*) mcodeptr - mcodebase);
 
@@ -3603,7 +3601,7 @@ afteractualcall:
 	codegen_finish((int)((u1*) mcodeptr - mcodebase));
 
 	docacheflush((void*) method->entrypoint,
-	                  ((u1*) mcodeptr - mcodebase), ICACHE);
+	                  ((u1*) mcodeptr - mcodebase));
 }
 
 
@@ -3657,7 +3655,7 @@ u1 *createcompilerstub (methodinfo *m)
 	s[2] = (u8) m;                      /* literals to be adressed            */  
 	s[3] = (u8) asm_call_jit_compiler;  /* jump directly via PV from above    */
 
-	(void) docacheflush((void*) s, (char*) p - (char*) s, ICACHE);
+	(void) docacheflush((void*) s, (char*) p - (char*) s);
 
 #ifdef STATISTICS
 	count_cstub_len += COMPSTUBSIZE * 8;
@@ -3747,7 +3745,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	s[18]= (u8) (asm_handle_nat_exception); /* addr of asm exception handler  */
 	s[19] = (u8) (&env);                  /* addr of jni_environement         */
 
-	(void) docacheflush((void*) s, (char*) p - (char*) s, ICACHE);
+	(void) docacheflush((void*) s, (char*) p - (char*) s);
 
 #ifdef STATISTICS
 	count_nstub_len += NATIVESTUBSIZE * 8;
@@ -3888,12 +3886,13 @@ void createcalljava ()
 	M_BR(-14);                          /* branch calljava_return             */
 	M_NOP;                              /* delay slot                         */
 
-	(void) cacheflush((void*)(calljavamem + CALL_JAVA_ENTRY),
-	       (CALL_JAVA_MEM_SIZE - CALL_JAVA_ENTRY) * (int) sizeof(s4), ICACHE);
+	(void) docacheflush((void*)(calljavamem + CALL_JAVA_ENTRY),
+	       (CALL_JAVA_MEM_SIZE - CALL_JAVA_ENTRY) * (int) sizeof(s4));
 }
 
 
 typedef java_objectheader* (*asm_fptr)(methodinfo*, void*, void*, void*, void*);
+
 
 java_objectheader *asm_calljavamethod (methodinfo *m, void *arg1, void *arg2,
                                                       void *arg3, void *arg4)
@@ -3902,18 +3901,15 @@ java_objectheader *asm_calljavamethod (methodinfo *m, void *arg1, void *arg2,
 	return (exceptionptr ? r : NULL);
 }
 
+
 java_objectheader *asm_calljavafunction (methodinfo *m, void *arg1, void *arg2,
                                                       void *arg3, void *arg4)
 {
 	return ((asm_fptr)(calljavamem + 20))(m, arg1, arg2, arg3, arg4);
 }
 
-void ngen_init()
-{
-	createcalljava();
-}
 
-void docacheflush(u1 *p, long bytelen, int dummy)
+void docacheflush(u1 *p, long bytelen)
 {
 	u1 *e = p + bytelen;
 	long psize = sysconf(_SC_PAGESIZE);
