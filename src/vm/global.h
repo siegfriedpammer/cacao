@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 2078 2005-03-25 13:30:14Z edwin $
+   $Id: global.h 2079 2005-03-25 13:32:58Z edwin $
 
 */
 
@@ -344,10 +344,10 @@ typedef union {
 /* data structures of remaining constant pool entries *************************/
 
 typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
-	classinfo *class;       /* class containing this field/method/interface   */
-	constant_classref *classref;  /* class containing this field/meth./intf.  */
-	utf       *name;        /* field/method/interface name                    */
-	utf       *descriptor;  /* field/method/interface type descriptor string  */
+	classinfo *class;       /* class containing this field/method/intfmeth.   */
+	constant_classref *classref;  /* class containing this field/meth./intfm. */
+	utf       *name;        /* field/method/interfacemethod name              */
+	utf       *descriptor;  /* field/method/intfmeth. type descriptor string  */
 	parseddesc parseddesc;  /* parsed descriptor                              */
 } constant_FMIref;
 
