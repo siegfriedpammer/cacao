@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 139 1999-11-11 19:21:30Z andi $
+	Last Change: $Id: parse.c 262 2003-03-23 15:04:54Z twisti $
 
 *******************************************************************************/
 
@@ -613,7 +613,11 @@ static void parse()
 				else {
 				 	LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
 					s_count++;
+#ifdef __I386__
+					BUILTIN2((functionptr) asm_builtin_anewarray, TYPE_ADR);
+#else
 					BUILTIN2((functionptr)builtin_anewarray, TYPE_ADR);
+#endif
 					}
 				break;
 
