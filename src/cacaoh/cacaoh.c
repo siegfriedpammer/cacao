@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 1788 2004-12-21 10:08:06Z twisti $
+   $Id: cacaoh.c 1874 2005-01-21 09:24:57Z twisti $
 
 */
 
@@ -57,22 +57,33 @@
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/statistics.h"
 #include "vm/tables.h"
+
+
+/* define heap sizes **********************************************************/
+
+#define HEAP_MAXSIZE      2 * 1024 * 1024;  /* default 2MB                    */
+#define HEAP_STARTSIZE    100 * 1024;       /* default 100kB                  */
 
 
 /* define cacaoh options ******************************************************/
 
-#define OPT_HELP      2
-#define OPT_VERSION   3
-#define OPT_VERBOSE   4
-#define OPT_DIRECTORY 5
+#define OPT_HELP          2
+#define OPT_VERSION       3
+#define OPT_VERBOSE       4
+#define OPT_DIRECTORY     5
+#define OPT_CLASSPATH     6
+#define OPT_BOOTCLASSPATH 7
 
 opt_struct opts[] = {
-	{ "help",             false, OPT_HELP      },
-	{ "version",          false, OPT_VERSION   },
-	{ "verbose",          false, OPT_VERBOSE   },
-	{ "d",                true,  OPT_DIRECTORY },
-	{ NULL,               false, 0 }
+	{ "help",             false, OPT_HELP          },
+	{ "version",          false, OPT_VERSION       },
+	{ "verbose",          false, OPT_VERBOSE       },
+	{ "d",                true,  OPT_DIRECTORY     },
+	{ "classpath",        true,  OPT_CLASSPATH     },
+	{ "bootclasspath",    true,  OPT_BOOTCLASSPATH },
+	{ NULL,               false, 0                 }
 };
 
 
@@ -87,10 +98,12 @@ static void usage()
 	printf("Usage: cacaoh [options] <classes>\n"
 		   "\n"
 		   "Options:\n"
-		   "        -help           Print this message\n"
-		   "        -version        Print version information\n"
-		   "        -verbose        Enable verbose output\n"
-		   "        -d <dir>        Output directory\n");
+		   "    -help                 Print this message\n"
+		   "    -classpath <path>     \n"
+		   "    -bootclasspath <path> \n"
+		   "    -d <dir>              Output directory\n"
+		   "    -version              Print version information\n"
+		   "    -verbose              Enable verbose output\n");
 
 	/* exit with error code */
 
@@ -114,33 +127,59 @@ static void version()
 int main(int argc, char **argv)
 {
 	s4 i, a;
-	char *cp;
 	classinfo *c;
 	char *opt_directory;
 	void *dummy;
 
 	/********** internal (only used by main) *****************************/
    
-	char classpath[500] = "";
-	u4 heapmaxsize = 2 * 1024 * 1024;
-	u4 heapstartsize = 100 * 1024;
-
-
-	/************ Collect some info from the environment *****************/
+	char *bootclasspath;
+	char *classpath;
+	char *cp;
+	s4    cplen;
+	u4    heapmaxsize;
+	u4    heapstartsize;
 
 	if (argc < 2)
 		usage();
 
+
+	/* set the bootclasspath */
+
+	cp = getenv("BOOTCLASSPATH");
+	if (cp) {
+		bootclasspath = MNEW(char, strlen(cp) + 1);
+		strcpy(bootclasspath, cp);
+
+	} else {
+		cplen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH);
+
+		bootclasspath = MNEW(char, cplen + 1);
+		strcpy(bootclasspath, CACAO_INSTALL_PREFIX);
+		strcat(bootclasspath, CACAO_RT_JAR_PATH);
+	}
+
+
+	/* set the classpath */
+
 	cp = getenv("CLASSPATH");
 	if (cp) {
-		strcpy(classpath + strlen(classpath), ":");
-		strcpy(classpath + strlen(classpath), cp);
+		classpath = MNEW(char, strlen(cp) + 1);
+		strcat(classpath, cp);
+
+	} else {
+		classpath = MNEW(char, 2);
+		strcpy(classpath, ".");
 	}
+
 
 	/* initialize options with default values */
 
 	opt_verbose = false;
 	opt_directory = NULL;
+
+	heapmaxsize = HEAP_MAXSIZE;
+	heapstartsize = HEAP_STARTSIZE;
 
 	while ((i = get_opt(argc, argv, opts)) != OPT_DONE) {
 		switch (i) {
@@ -151,17 +190,34 @@ int main(int argc, char **argv)
 			usage();
 			break;
 
+		case OPT_CLASSPATH:
+			/* forget old classpath and set the argument as new classpath */
+			MFREE(classpath, char, strlen(classpath));
+
+			classpath = MNEW(char, strlen(opt_arg) + 1);
+			strcpy(classpath, opt_arg);
+			break;
+
+		case OPT_BOOTCLASSPATH:
+			/* Forget default bootclasspath and set the argument as new boot  */
+			/* classpath.                                                     */
+			MFREE(bootclasspath, char, strlen(bootclasspath));
+
+			bootclasspath = MNEW(char, strlen(opt_arg) + 1);
+			strcpy(bootclasspath, opt_arg);
+			break;
+
+		case OPT_DIRECTORY:
+			opt_directory = MNEW(char, strlen(opt_arg) + 1);
+			strcpy(opt_directory, opt_arg);
+			break;
+
 		case OPT_VERSION:
 			version();
 			break;
 
 		case OPT_VERBOSE:
 			opt_verbose = true;
-			break;
-
-		case OPT_DIRECTORY:
-			opt_directory = MNEW(char, strlen(opt_arg));
-			strcpy(opt_directory, opt_arg);
 			break;
 
 		default:
@@ -177,10 +233,14 @@ int main(int argc, char **argv)
 	}
 	
 	/* initialize the garbage collector */
+
 	gc_init(heapmaxsize, heapstartsize);
 
 	tables_init();
+	
+	/* initialize the loader with bootclasspath and append classpath entries */
 
+	suck_init(bootclasspath);
 	suck_init(classpath);
    
 #if defined(USE_THREADS)
@@ -204,9 +264,9 @@ int main(int argc, char **argv)
 		/* convert classname */
    		for (i = strlen(cp) - 1; i >= 0; i--) {
 			switch (cp[i]) {
-			case '.': cp[i]='/';
+			case '.': cp[i] = '/';
 				break;
-			case '_': cp[i]='$';    
+			case '_': cp[i] = '$';
   	 		}
 		}
 	
@@ -227,7 +287,7 @@ int main(int argc, char **argv)
 	if (opt_verbose) {
 		log_text("Java - header-generator stopped");
 		log_cputime();
-		mem_usagelog(1);
+		mem_usagelog(true);
 	}
 	
 	return 0;
