@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 868 2004-01-10 20:12:10Z edwin $
+   $Id: tables.c 870 2004-01-10 22:49:32Z edwin $
 
 */
 
@@ -823,6 +823,7 @@ classinfo *class_new(utf *u)
 	c->vmClass = 0;
 	c->flags = 0;
 	c->name = u;
+	c->packagename = NULL;
 	c->cpcount = 0;
 	c->cptags = NULL;
 	c->cpinfos = NULL;
@@ -891,8 +892,21 @@ classinfo *class_new(utf *u)
 	}
 			
     /* Array classes need further initialization. */
-    if (u->text[0] == '[')
+    if (u->text[0] == '[') {
         class_new_array(c);
+		c->packagename = array_packagename;
+	}
+	else {
+		/* Find the package name */
+		/* Classes in the unnamed package keep packagename == NULL. */
+		char *p = utf_end(c->name) - 1;
+		char *start = c->name->text;
+		for (;p > start; --p)
+			if (*p == '.') {
+				c->packagename = utf_new(start,p-start);
+				break;
+			}
+	}
         
 	return c;
 }

@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 868 2004-01-10 20:12:10Z edwin $
+   $Id: typeinfo.c 870 2004-01-10 22:49:32Z edwin $
 
 */
 
@@ -60,45 +60,6 @@ typevectorset_copy(typevector *src,int k,int size)
 		dst->alt = typevectorset_copy(src->alt,k+1,size);
 	return dst;
 }
-
-#if 0
-typevector *
-typevectorset_copy_select(typevector *src,
-						  int retindex,void *retaddr,int size)
-{
-	typevector *dst;
-	
-	for (;src; src=src->alt) {
-		if (TYPEINFO_RETURNADDRESS(src->td[retindex].info) != retaddr)
-			continue;
-
-		dst = DNEW_TYPEVECTOR(size);
-		memcpy(dst,src,TYPEVECTOR_SIZE(size));
-		if (src->alt)
-			dst->alt = typevectorset_copy_select(src->alt,retindex,retaddr,size);
-		return dst;
-	}
-
-	return NULL;
-}
-
-void
-typevectorset_copy_select_to(typevector *src,typevector *dst,
-							 int retindex,void *retaddr,int size)
-{
-	for (;src; src=src->alt) {
-		if (TYPEINFO_RETURNADDRESS(src->td[retindex].info) != retaddr)
-			continue;
-
-		memcpy(dst,src,TYPEVECTOR_SIZE(size));
-		if (src->alt)
-			dst->alt = typevectorset_copy_select(src->alt,retindex,retaddr,size);
-		return dst;
-	}
-
-	return NULL;
-}
-#endif
 
 bool
 typevectorset_checktype(typevector *vec,int index,int type)
@@ -304,16 +265,6 @@ typevectorset_add(typevector *dst,typevector *v,int size)
 	dst->alt->k = dst->k + 1;
 }
 
-#if 0
-void
-typevectorset_union(typevector *dst,typevector *v,int size)
-{
-	while (dst->alt)
-		dst = dst->alt;
-	dst->alt = typevectorset_copy(v,size);
-}
-#endif
-
 typevector *
 typevectorset_select(typevector **set,int retindex,void *retaddr)
 {
@@ -331,29 +282,6 @@ typevectorset_select(typevector **set,int retindex,void *retaddr)
 	}
 	return selected;
 }
-
-/* XXX delete */
-#if 0
-bool
-typevectorset_separable(typevector *vec,int size)
-{
-	int i;
-	typevector *v;
-
-	for (i=0; i<size; ++i) {
-		v = vec;
-		do {
-			if (!TYPEDESC_IS_RETURNADDRESS(v->td[i]))
-				goto next_index;
-			
-			v = v->alt;
-			if (!v) return true;
-		} while (v);
-	next_index:
-	}
-	return false;
-}
-#endif
 
 bool
 typevectorset_separable_with(typevector *set,typevector *add,int size)
@@ -502,16 +430,20 @@ merged_implements_interface(classinfo *typeclass,typeinfo_mergedlist *merged,
 bool
 typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
 {
-    classinfo *cls;
-
-    cls = value->typeclass;
-
     /* DEBUG CHECK: dest must not have a merged list. */
 #ifdef TYPEINFO_DEBUG
     if (dest->merged)
         panic("Internal error: typeinfo_is_assignable on merged destination.");
 #endif
-    
+
+	return typeinfo_is_assignable_to_classinfo(value,dest->typeclass);
+
+	/* XXX delete */
+#if 0
+    classinfo *cls;
+
+    cls = value->typeclass;
+
     /* assignments of primitive values are not checked here. */
     if (!cls && !dest->typeclass)
         return true;
@@ -592,6 +524,107 @@ typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
         cls = class_java_lang_Object;
     
     return class_issubclass(cls,dest->typeclass);
+#endif
+}
+
+bool
+typeinfo_is_assignable_to_classinfo(typeinfo *value,classinfo *dest)
+{
+    classinfo *cls;
+
+    cls = value->typeclass;
+
+    /* assignments of primitive values are not checked here. */
+    if (!cls && !dest)
+        return true;
+
+    /* primitive and reference types are not assignment compatible. */
+    if (!cls || !dest)
+        return false;
+
+#ifdef TYPEINFO_DEBUG
+    if (!dest->linked)
+        panic("Internal error: typeinfo_is_assignable_to_classinfo: unlinked class.");
+#endif
+	
+    /* the null type can be assigned to any type */
+    if (TYPEINFO_IS_NULLTYPE(*value))
+        return true;
+
+    /* uninitialized objects are not assignable */
+    if (TYPEINFO_IS_NEWOBJECT(*value))
+        return false;
+
+    if (dest->flags & ACC_INTERFACE) {
+        /* We are assigning to an interface type. */
+        return merged_implements_interface(cls,value->merged,dest);
+    }
+
+    if (CLASS_IS_ARRAY(dest)) {
+		arraydescriptor *arraydesc = dest->vftbl->arraydesc;
+		int dimension = arraydesc->dimension;
+		classinfo *elementclass = (arraydesc->elementvftbl)
+			? arraydesc->elementvftbl->class : NULL;
+			
+        /* We are assigning to an array type. */
+        if (!TYPEINFO_IS_ARRAY(*value))
+            return false;
+
+        /* {Both value and dest are array types.} */
+
+        /* value must have at least the dimension of dest. */
+        if (value->dimension < dimension)
+            return false;
+
+        if (value->dimension > dimension) {
+            /* value has higher dimension so we need to check
+             * if its component array can be assigned to the
+             * element type of dest */
+
+			if (!elementclass) return false;
+            
+            if (elementclass->flags & ACC_INTERFACE) {
+                /* We are assigning to an interface type. */
+                return classinfo_implements_interface(pseudo_class_Arraystub,
+                                                      elementclass);
+            }
+
+            /* We are assigning to a class type. */
+            return class_issubclass(pseudo_class_Arraystub,elementclass);
+        }
+
+        /* {value and dest have the same dimension} */
+
+        if (value->elementtype != arraydesc->elementtype)
+            return false;
+
+        if (value->elementclass) {
+            /* We are assigning an array of objects so we have to
+             * check if the elements are assignable.
+             */
+
+            if (elementclass->flags & ACC_INTERFACE) {
+                /* We are assigning to an interface type. */
+
+                return merged_implements_interface(value->elementclass,
+                                                   value->merged,
+                                                   elementclass);
+            }
+            
+            /* We are assigning to a class type. */
+            return class_issubclass(value->elementclass,elementclass);
+        }
+
+        return true;
+    }
+
+    /* {dest is not an array} */
+        
+    /* We are assigning to a class type */
+    if (cls->flags & ACC_INTERFACE)
+        cls = class_java_lang_Object;
+    
+    return class_issubclass(cls,dest);
 }
 
 /**********************************************************************/

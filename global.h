@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 850 2004-01-05 23:58:39Z stefan $
+   $Id: global.h 870 2004-01-10 22:49:32Z edwin $
 
 */
 
@@ -597,7 +597,8 @@ struct classinfo {                /* class structure                          */
 	struct gnu_classpath_RawData* vmData; /* gnu classpath */
 
 	s4          flags;            /* ACC flags                                */
-	utf        *name;             /* class name                               */ 
+	utf        *name;             /* class name                               */
+	utf        *packagename;      /* full name of the package                 */
 
 	s4          cpcount;          /* number of entries in constant pool       */
 	u1         *cptags;           /* constant pool tags                       */
@@ -765,6 +766,8 @@ extern classinfo *pseudo_class_Arraystub;
 extern classinfo *pseudo_class_Null;
 extern classinfo *pseudo_class_New;
 extern vftbl *pseudo_class_Arraystub_vftbl;
+
+extern utf *array_packagename;
 
 
 /* instances of some system classes *******************************************/

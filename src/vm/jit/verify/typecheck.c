@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 869 2004-01-10 21:30:06Z edwin $
+   $Id: typecheck.c 870 2004-01-10 22:49:32Z edwin $
 
 */
 
@@ -496,16 +496,6 @@ typestate_ret(void *localbuf,
 	return repeat;
 }
 
-static bool
-typestate_jsr(void *localbuf,
-			  basicblock *current,basicblock *destblock,
-			  stackptr ystack,typevector *yloc,
-			  int locsize)
-{
-	typestack_put_retaddr(ystack,current+1,yloc);
-	return typestate_reach(localbuf,current,destblock,ystack,yloc,locsize);
-}
-
 /****************************************************************************/
 /* HELPER FUNCTIONS                                                         */
 /****************************************************************************/
@@ -524,10 +514,20 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass,
 			  /* In the cases below, definingclass cannot be an interface */
 			  
 		  case 0:
-			  /* XXX check package access */
+			  if (definingclass->packagename != class->packagename)
+				  return false;
 			  break;
 		  case ACC_PROTECTED:
-			  /* XXX check package access and superclass access */
+			  if (definingclass->packagename != class->packagename) {
+				  if (!builtin_isanysubclass(class,implementingclass))
+					  return false;
+				  
+				  /* For protected access of super class members in another
+				   * package the instance must be a subclass of or the same
+				   * as the current class. */
+				  LOG("protected access into other package");
+				  implementingclass = class;
+			  }
 			  break;
 		  case ACC_PRIVATE:
 			  if (definingclass != class) {
@@ -551,26 +551,12 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass,
 			&& !TYPEINFO_IS_NULLTYPE(*instance)
 			&& !TYPEINFO_IS_NEWOBJECT(*instance))
 		{
-			typeinfo tempinfo;
-			
-			if (((flags & ACC_PROTECTED) != 0)
-				&& builtin_isanysubclass(class,implementingclass))
+			if (!typeinfo_is_assignable_to_classinfo(instance,
+													 implementingclass))
 			{
-				/* For protected access of super class members
-				 * the instance must be a subclass of or the same
-				 * as the current class. */
-
-				/* XXX maybe we only are allowed to do this, if we
-				 * don't have package access? */
-				/* implementingclass = class; */ /* XXX does not work */
-			}
-			
-			/* XXX use classinfo directly? */
-			TYPEINFO_INIT_CLASSINFO(tempinfo,implementingclass);
-			if (!typeinfo_is_assignable(instance,&tempinfo)) {
 				LOG("instance not assignable");
 				LOGINFO(instance);
-				LOGINFO(&tempinfo);
+				LOGSTRu(implementingclass->name); LOGNL; LOGFLUSH;
 				return false;
 			}
 		}
@@ -600,11 +586,7 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass,
 #endif
 
 /****************************************************************************/
-/* INTERNAL DATA STRUCTURES                                                 */
-/****************************************************************************/
-
-/****************************************************************************/
-/* MACROS USED INTERNALLY IN typecheck()                                    */
+/* MACROS FOR LOCAL VARIABLE CHECKING                                       */
 /****************************************************************************/
 
 #define INDEX_ONEWORD(num)										\
@@ -642,14 +624,11 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass,
             panic("Variable type mismatch");	                        \
 		} while(0)
 
-/* XXX maybe it's faster to copy always */
-#define COPYTYPE(source,dest)   \
-            {if ((source)->type == TYPE_ADR) \
-                 TYPEINFO_COPY((source)->typeinfo,(dest)->typeinfo);}
+/****************************************************************************/
+/* MACROS FOR STACK TYPE CHECKING                                           */
+/****************************************************************************/
 
-#define ISBUILTIN(v)   (iptr->val.a == (functionptr)(v))
-
-/* Macros for basic typechecks which were not done in stack.c */
+/* These macros are for basic typechecks which were not done in stack.c */
 
 #define TYPECHECK_STACK(sp,tp)								\
 	do { if ((sp)->type != (tp))							\
@@ -669,6 +648,17 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass,
 #define TYPECHECK_ARGS3(t1,t2,t3)								\
 	do {TYPECHECK_ARGS2(t1,t2);									\
 		TYPECHECK_STACK(curstack->prev->prev,t3);} while (0)
+
+/****************************************************************************/
+/* MISC MACROS                                                              */
+/****************************************************************************/
+
+/* XXX maybe it's faster to copy always */
+#define COPYTYPE(source,dest)   \
+            {if ((source)->type == TYPE_ADR) \
+                 TYPEINFO_COPY((source)->typeinfo,(dest)->typeinfo);}
+
+#define ISBUILTIN(v)   (iptr->val.a == (functionptr)(v))
 
 /* TYPECHECK_COPYVARS: copy the types and typeinfos of the current local
  *     variables to the local variables of the target block.
@@ -1446,7 +1436,6 @@ typecheck()
 
                           /* propagate stack and variables to the target block */
                           TYPECHECK_REACH;
-                          /* XXX */
                           break;
 
                           /****************************************/
@@ -1483,8 +1472,8 @@ typecheck()
                           /* RETURNS AND THROW                    */
 
                       case ICMD_ATHROW:
-                          TYPEINFO_INIT_CLASSINFO(tempinfo,class_java_lang_Throwable);
-                          if (!typeinfo_is_assignable(&curstack->typeinfo,&tempinfo))
+                          if (!typeinfo_is_assignable_to_classinfo(
+                                   &curstack->typeinfo,class_java_lang_Throwable))
                               panic("illegal instruction: ATHROW on non-Throwable");
                           superblockend = true;
                           maythrow = true;
@@ -1608,8 +1597,6 @@ typecheck()
                                       LOGINFO(pinfo + i);
                                       if (i==0 && callinginit)
                                       {
-										  /* typeinfo tempinfo; */
-										  
                                           /* first argument to <init> method */
                                           if (!TYPEINFO_IS_NEWOBJECT(srcstack->typeinfo))
                                               panic("Calling <init> on initialized object");
@@ -1733,11 +1720,6 @@ typecheck()
                                   panic("illegal instruction: AASTORE to non-reference array");
 
                               /* XXX optimize */
-                              /*
-                                typeinfo_init_component(&curstack->prev->prev->typeinfo,&tempinfo);
-                                if (!typeinfo_is_assignable(&curstack->typeinfo,&tempinfo))
-                                panic("illegal instruction: AASTORE to incompatible type");
-                              */
                           }
 						  else {
 							  /* XXX put these checks in a function */

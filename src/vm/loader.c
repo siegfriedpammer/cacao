@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 868 2004-01-10 20:12:10Z edwin $
+   $Id: loader.c 870 2004-01-10 22:49:32Z edwin $
 
 */
 
@@ -134,6 +134,8 @@ static classinfo *class_java_lang_OutOfMemoryError;
 static classinfo *class_java_lang_ArithmeticException;
 static classinfo *class_java_lang_ArrayStoreException;
 static classinfo *class_java_lang_ThreadDeath;
+
+utf *array_packagename = NULL;
 
 static int loader_inited = 0;
 
@@ -3495,6 +3497,8 @@ void loader_init(u1 *stackbottom)
 
 	utf_vmclass         = utf_new_char("java/lang/VMClass");
 	utf_java_lang_Object= utf_new_char("java/lang/Object");
+
+	array_packagename   = utf_new_char("<the array package>");
 
 	/* create some important classes */
 	/* These classes have to be created now because the classinfo

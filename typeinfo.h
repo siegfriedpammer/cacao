@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 868 2004-01-10 20:12:10Z edwin $
+   $Id: typeinfo.h 870 2004-01-10 22:49:32Z edwin $
 
 */
 
@@ -65,6 +65,11 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  *
  *     This pseudo class is used internally to represent the
  *     null type.
+ *
+ * pseudo_class_New
+ *
+ *     This pseudo class is used internally to represent the
+ *     the uninitialized object type.
  */
 
 /* data structures for the type system ****************************************/
@@ -73,6 +78,7 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  * (stack elements, variables, etc. with type == TYPE_ADR.)
  * XXX: exclude ReturnAddresses?
  *
+ * XXX
  * For primitive types either there is no typeinfo allocated or the
  * typeclass pointer in the typeinfo struct is NULL.
  *
@@ -87,13 +93,13 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  * A) typeclass == NULL
  *
  *        In this case the other fields of the structure
- *        are INVALID.
+ *        are INVALID. XXX
  *
  * B) typeclass == pseudo_class_Null
  *
  *        XXX
  *
- * C) typeclass is an array class
+ * C) typeclass == pseudo_class_New
  *
  *        XXX
  *
@@ -101,17 +107,21 @@ typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
  *
  *        XXX
  *
- * E) typeclass is an interface
+ * E) typeclass is an array class
  *
  *        XXX
  *
- * F) typeclass is a (non-pseudo-)class != java.lang.Object
+ * F) typeclass is an interface
+ *
+ *        XXX
+ *
+ * G) typeclass is a (non-pseudo-)class != java.lang.Object
  *
  *        XXX
  *        All classinfos in u.merged.list (if any) are
  *        subclasses of typeclass.
  *
- * G) typeclass is java.lang.Object
+ * H) typeclass is java.lang.Object
  *
  *        XXX
  *        In this case u.merged.count and u.merged.list
@@ -406,15 +416,9 @@ bool typevector_merge(typevector *dst,typevector *y,int size);
 
 /* vector set functions */
 typevector *typevectorset_copy(typevector *src,int k,int size);
-/* typevector *typevectorset_copy_select(typevector *src,
-   int retindex,void *retaddr,int size);
-   void typevectorset_copy_select_to(typevector *src,typevector *dst,
-   int retindex,void *retaddr,int size); */
-/* bool typevectorset_separable(typevector *set,int size); */
 bool typevectorset_separable_with(typevector *set,typevector *add,int size);
 bool typevectorset_collapse(typevector *dst,int size);
 void typevectorset_add(typevector *dst,typevector *v,int size);
-/* void typevectorset_union(typevector *dst,typevector *v,int size); */
 typevector *typevectorset_select(typevector **set,int retindex,void *retaddr);
 
 /* inquiry functions (read-only) ********************************************/
@@ -425,6 +429,7 @@ bool typeinfo_is_array_of_refs(typeinfo *info);
 
 bool typeinfo_implements_interface(typeinfo *info,classinfo *interf);
 bool typeinfo_is_assignable(typeinfo *value,typeinfo *dest);
+bool typeinfo_is_assignable_to_classinfo(typeinfo *value,classinfo *dest);
 
 /* initialization functions *************************************************/
 
