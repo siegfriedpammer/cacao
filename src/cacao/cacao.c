@@ -36,7 +36,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1838 2005-01-04 11:15:21Z twisti $
+   $Id: cacao.c 1873 2005-01-21 09:24:12Z twisti $
 
 */
 
@@ -946,6 +946,8 @@ int main(int argc, char **argv)
 #endif
 
 		/* now exit the JavaVM */
+
+/*  		(*jvm)->DestroyJavaVM(jvm); */
 
 		cacao_exit(status);
 	}
