@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: threads.h 1790 2004-12-21 10:11:23Z twisti $
+   $Id: threads.h 1923 2005-02-10 10:43:41Z twisti $
 
 */
 
@@ -49,6 +49,25 @@
 /* We need to emulate recursive mutexes. */
 #define MUTEXSIM
 #endif
+
+
+#if defined(HAVE___THREAD)
+
+#define THREADSPECIFIC    __thread
+#define THREADOBJECT      ((java_lang_VMThread*) threadobj)
+#define THREADINFO        (&threadobj->info)
+
+extern __thread threadobject *threadobj;
+
+#else /* defined(HAVE___THREAD) */
+
+#define THREADSPECIFIC
+#define THREADOBJECT ((java_lang_VMThread*) pthread_getspecific(tkey_threadinfo))
+#define THREADINFO (&((threadobject*) pthread_getspecific(tkey_threadinfo))->info)
+
+extern pthread_key_t tkey_threadinfo;
+
+#endif /* defined(HAVE___THREAD) */
 
 
 /* typedefs *******************************************************************/
@@ -162,17 +181,6 @@ void setPriorityThread(thread *t, s4 priority);
 void interruptThread(java_lang_VMThread *);
 bool interruptedThread();
 bool isInterruptedThread(java_lang_VMThread *);
-
-#if !defined(HAVE___THREAD)
-extern pthread_key_t tkey_threadinfo;
-#define THREADOBJECT ((java_lang_VMThread*) pthread_getspecific(tkey_threadinfo))
-#define THREADINFO (&((threadobject*) pthread_getspecific(tkey_threadinfo))->info)
-#else
-extern __thread threadobject *threadobj;
-#define THREADOBJECT ((java_lang_VMThread*) threadobj)
-#define THREADINFO (&threadobj->info)
-#endif
-
 
 /* This must not be changed, it is used in asm_criticalsections */
 typedef struct {

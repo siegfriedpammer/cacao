@@ -41,6 +41,7 @@
 #define THREAD_FLAGS_USER_SUSPEND       2  /* Flag explicit suspend() call */
 #define	THREAD_FLAGS_KILLED		4
 
+#define THREADSPECIFIC
 
 #define MAXTHREADS              256          /* schani */
 
