@@ -34,6 +34,7 @@
 #include "loader.h"
 #include "builtin.h"
 #include "asmpart.h"
+#include "options.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 #include "toolbox/avl.h"
