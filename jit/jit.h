@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 868 2004-01-10 20:12:10Z edwin $
+   $Id: jit.h 892 2004-01-19 12:32:29Z edwin $
 
 */
 
@@ -61,7 +61,7 @@ typedef varinfo *varinfoptr;
 
 /* slot types */
 
-/* XXX unified these with longer names. Maybe someday use only
+/* Unified these with longer names. Maybe someday use only
  * one set of names? -Edwin
  */
 /*#define TYPE_INT   0*/               /* the stack slot types must numbered in the  */
@@ -806,25 +806,6 @@ extern int jcommandsize[256];
 /******************* description of JavaVM instructions ***********************/
 
 #if defined(USEBUILTINTABLE)
-
-/* XXX delete? */
-#if 0
-typedef struct {
-	u1 opcode;
-	u1 type_s1;
-	u1 type_s2;
-	u1 type_d;	
-	int icmd;
-	functionptr builtin;
-	bool supported;
-	bool isfloat;
-} stdopdescriptor;
-
-
-extern stdopdescriptor builtintable[];
-
-stdopdescriptor *find_builtin(int icmd);
-#endif
 
 builtin_descriptor *find_builtin(int opcode);
 

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 868 2004-01-10 20:12:10Z edwin $
+   $Id: stack.c 892 2004-01-19 12:32:29Z edwin $
 
 */
 
@@ -85,7 +85,7 @@ extern int dseglen;
 #define REQUIRE_4     REQUIRE(4)
 
 /* overflow check */
-/* XXX we allow ACONST instructions inserted as arguments to builtin
+/* We allow ACONST instructions inserted as arguments to builtin
  * functions to exceed the maximum stack depth.  Maybe we should check
  * against maximum stack depth only at block boundaries?
  */
@@ -293,7 +293,7 @@ extern int dseglen;
  *   - check basic types for instruction input (except for BUILTIN*
  *         opcodes, INVOKE* opcodes and MULTIANEWARRAY)
  *
- * [1]) XXX Checking this after the instruction should be ok. parse.c
+ * [1]) Checking this after the instruction should be ok. parse.c
  * counts the number of required stack slots in such a way that it is
  * only vital that we don't exceed `maxstack` at basic block
  * boundaries.
@@ -461,7 +461,7 @@ void analyse_stack()
 					opcode = iptr->opc;
 					iptr->target = NULL;
 
-					/* DEBUG XXX */	/*  dolog("p:%04d op: %s",iptr-instr,icmd_names[opcode]); */
+					/* DEBUG */	/*  dolog("p:%04d op: %s",iptr-instr,icmd_names[opcode]); */
 
 #ifdef USEBUILTINTABLE
 					{
@@ -1565,7 +1565,7 @@ void analyse_stack()
 					case ICMD_LOR:
 					case ICMD_LAND:
 					case ICMD_LXOR:
-						/* XXX DEBUG */ /*dolog("OP2_1(TYPE_LNG)"); */
+						/* DEBUG */ /*dolog("OP2_1(TYPE_LNG)"); */
 						COUNT(count_pcmd_op);
 						OP2_1(TYPE_LNG);
 						break;
@@ -1776,7 +1776,7 @@ void analyse_stack()
 
 						iptr[0].target = (void *) tbptr;
 
-						/* XXX This is a dirty hack. The typechecker
+						/* This is a dirty hack. The typechecker
 						 * needs it because the OP1_0ANY below
 						 * overwrites iptr->dst.
 						 */
@@ -1868,7 +1868,7 @@ void analyse_stack()
 						}
 
 					case ICMD_BUILTIN3:
-						/* XXX DEBUG */ /*dolog("builtin3");*/
+						/* DEBUG */ /*dolog("builtin3");*/
 						REQUIRE_3;
 						if (! (curstack->flags & SAVEDVAR)) {
 							curstack->varkind = ARGVAR;
@@ -1882,7 +1882,7 @@ void analyse_stack()
 					case ICMD_BUILTIN2:
 					builtin2:
 						REQUIRE_2;
-						/* XXX DEBUG */ /*dolog("builtin2");*/
+						/* DEBUG */ /*dolog("builtin2");*/
 					if (!(curstack->flags & SAVEDVAR)) {
 						curstack->varkind = ARGVAR;
 						curstack->varnum = 1;
@@ -1895,7 +1895,7 @@ void analyse_stack()
 					case ICMD_BUILTIN1:
 					builtin1:
 						REQUIRE_1;
-						/* XXX DEBUG */ /*dolog("builtin1");*/
+						/* DEBUG */ /*dolog("builtin1");*/
 					if (!(curstack->flags & SAVEDVAR)) {
 						curstack->varkind = ARGVAR;
 						curstack->varnum = 0;
@@ -1920,7 +1920,7 @@ void analyse_stack()
 							arguments_num = i + intreg_argnum;
 						copy = curstack;
 						while (--i >= 0) {
-							/* XXX check INT type here? Currently typecheck does this. */
+							/* check INT type here? Currently typecheck does this. */
 							if (! (copy->flags & SAVEDVAR)) {
 								copy->varkind = ARGVAR;
 								copy->varnum = i + intreg_argnum;
@@ -1967,7 +1967,7 @@ void analyse_stack()
 
 					CHECKOVERFLOW;
 					
-					/* XXX DEBUG */ /*dolog("iptr++");*/
+					/* DEBUG */ /*dolog("iptr++");*/
 					iptr++;
 				} /* while instructions */
 				bptr->outstack = curstack;
@@ -2077,7 +2077,7 @@ void icmd_print_stack(stackptr s)
 		printf("    ");
 	while (s) {
 		j--;
-		/* XXX remove */ /* printf("(%d)",s->flags); fflush(stdout); */
+		/* DEBUG */ /* printf("(%d)",s->flags); fflush(stdout); */
 		if (s->flags & SAVEDVAR)
 			switch (s->varkind) {
 			case TEMPVAR:
@@ -2327,7 +2327,7 @@ void show_icmd_block(basicblock *bptr)
 			else
 				icmd_print_stack(iptr->dst);
 			printf("]     %4d  ", i);
-			/* XXX remove */ /*fflush(stdout);*/
+			/* DEBUG */ /*fflush(stdout);*/
 			show_icmd(iptr,deadcode);
 			printf("\n");
 		}

@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 854 2004-01-06 15:37:05Z twisti $
+   $Id: jit.c 892 2004-01-19 12:32:29Z edwin $
 
 */
 
@@ -1613,19 +1613,6 @@ methodptr jit_compile(methodinfo *m)
 
 #ifdef USEBUILTINTABLE
 
-/* XXX delete */
-#if 0
-static int stdopcompare(const void *a, const void *b)
-{
-	stdopdescriptor *o1 = (stdopdescriptor *) a;
-	stdopdescriptor *o2 = (stdopdescriptor *) b;
-	if (!o1->supported && o2->supported)
-		return -1;
-	if (o1->supported && !o2->supported)
-		return 1;
-	return (o1->opcode < o2->opcode) ? -1 : (o1->opcode > o2->opcode);
-}
-#endif
 static int stdopcompare(const void *a, const void *b)
 {
 	builtin_descriptor *o1 = (builtin_descriptor *) a;
@@ -1636,29 +1623,6 @@ static int stdopcompare(const void *a, const void *b)
 		return 1;
 	return (o1->opcode < o2->opcode) ? -1 : (o1->opcode > o2->opcode);
 }
-
-/* XXX delete */
-#if 0
-static inline void sort_builtintable()
-{
-	int len;
-
-	len = sizeof(builtintable) / sizeof(stdopdescriptor);
-	qsort(builtintable, len, sizeof(builtin_descriptor), stdopcompare);
-
-	for (--len; len>=0 && builtintable[len].supported; len--);
-	builtintablelen = ++len;
-
-#if 0
-	{
-		int i;
-		for (i=0; i<len; i++)
-			if (!builtintable[i].supported)
-				printf("%s\n", icmd_names[builtintable[i].opcode]);
-	}
-#endif
-}
-#endif
 
 static inline void sort_builtintable()
 {
@@ -1673,12 +1637,6 @@ static inline void sort_builtintable()
 }
 
 
-#if 0
-stdopdescriptor *find_builtin(int icmd)
-{
-	builtin_descriptor *first = builtintable;
-	builtin_descriptor *last = builtintable + builtintablelen;
-#endif
 builtin_descriptor *find_builtin(int icmd)
 {
 	builtin_descriptor *first = builtin_desc;
