@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 2008 2005-03-07 08:43:08Z christian $
+   $Id: lsra.inc 2009 2005-03-07 09:04:27Z christian $
 
 */
 #include <stdio.h>
@@ -1800,10 +1800,12 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 		else
 			src=m->basicblocks[b_index].instack;
 
+#ifdef __I386__
 		if (icmd_uses_tmp[opcode].edx)
 			ls->edx_free = -1;
 		else
 			if (ls->edx_free == -1) ls->edx_free = iindex;
+#endif
 
 #ifdef LSRA_DEBUG
 		/* 				printf("bb: %3i bcount: %3i iindex: %3i ilen: %3i opcode: %3i %s\n",b_index,m->basicblockcount,iindex,len,opcode,icmd_names[opcode]); */

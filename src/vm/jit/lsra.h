@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 2008 2005-03-07 08:43:08Z christian $
+   $Id: lsra.h 2009 2005-03-07 09:04:27Z christian $
 
 */
 
@@ -37,7 +37,7 @@
 
 #include "vm/jit/loop/loop.h"
 
- #define LSRA_DEBUG
+/*   #define LSRA_DEBUG */
 /* #define LSRA_SAVEDVAR */
 /* #define LSRA_MEMORY */
 /* #define LSRA_PRINTLIFETIMES */
