@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2088 2005-03-25 20:15:05Z edwin $
+   $Id: typeinfo.c 2095 2005-03-27 15:38:49Z edwin $
 
 */
 
@@ -41,6 +41,8 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/verify/typeinfo.h"
 
+#define CLASS_IS_ARRAY(cls)                                     \
+	((cls)->vftbl->arraydesc != NULL)
 
 #define CLASS_IMPLEMENTS_INTERFACE(cls,index)                   \
     ( ((index) < (cls)->vftbl->interfacetablelength)            \
