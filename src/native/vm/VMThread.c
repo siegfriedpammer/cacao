@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 1227 2004-06-30 19:29:35Z twisti $
+   $Id: VMThread.c 1312 2004-07-14 18:30:06Z twisti $
 
 */
 
@@ -320,17 +320,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeInit(JNIEnv *env, java_lang
 	initThread(this->thread);
 #endif
 	this->thread->priority = 5;
-}
-
-
-/*
- * Class:     java_lang_Thread
- * Method:    holdsLock
- * Signature: (Ljava/lang/Object;)Z
- */
-JNIEXPORT s4 JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass clazz, java_lang_Object *par1)
-{
-	return 0;
 }
 
 
