@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Thread.c 1173 2004-06-16 14:56:18Z jowenn $
+   $Id: Thread.c 1206 2004-06-25 10:15:56Z twisti $
 
 */
 
@@ -185,13 +185,26 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, ja
  * Method:    sleep
  * Signature: (JI)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_sleep(JNIEnv *env, jclass clazz, s8 millis, s4 par2)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_sleep(JNIEnv *env, jclass clazz, s8 millis, s4 nanos)
 {
-	if (runverbose)
-		log_text("java_lang_VMThread_sleep called");
+	if (millis < 0) {
+		*exceptionptr =
+			new_exception_message(string_java_lang_IllegalArgumentException,
+								  "timeout value is negative");
+
+		return;
+	}
+
+	if (nanos < 0 || nanos > 999999) {
+		*exceptionptr =
+			new_exception_message(string_java_lang_IllegalArgumentException,
+								  "nanosecond timeout value out of range");
+
+		return;
+	}
 
 #if defined(USE_THREADS)
-	sleepThread(millis);
+	sleepThread(millis, nanos);
 #endif
 }
 
@@ -207,10 +220,13 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMTh
 		log_text("java_lang_VMThread_start called");
 
 #if defined(USE_THREADS)
+#if defined(__GNUC__)
 #warning perhaps it would be better to always work with the vmthread structure in the thread code (jowenn)
-	if (this->thread->vmThread==0)
-		this->thread->vmThread=this;
-	startThread((thread*)(this->thread));
+#endif
+	if (this->thread->vmThread == 0)
+		this->thread->vmThread = this;
+
+	startThread((thread *) (this->thread));
 #endif
 }
 
