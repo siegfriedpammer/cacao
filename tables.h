@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tables.h 1019 2004-04-10 13:33:21Z twisti $
+   $Id: tables.h 1034 2004-04-26 16:20:33Z twisti $
 
 */
 
@@ -45,6 +45,10 @@
 /* function for disposing javastrings */
 typedef void (*stringdeleter) (java_objectheader *string);
     
+extern hashtable utf_hash;     /* hashtable for utf8-symbols */
+extern hashtable string_hash;  /* hashtable for javastrings  */
+extern hashtable class_hash;   /* hashtable for classes      */
+
 /* creates hashtables for symboltables */
 void tables_init();
 

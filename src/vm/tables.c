@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1019 2004-04-10 13:33:21Z twisti $
+   $Id: tables.c 1034 2004-04-26 16:20:33Z twisti $
 
 */
 
@@ -464,7 +464,6 @@ utf *utf_new_int(char *text, u2 length)
 	utf *u;            /* hashtable element */
 	u2 i;
 
-/*	log_text("utf_new entered");*/
 #ifdef STATISTICS
 	count_utf_new++;
 #endif
@@ -504,15 +503,15 @@ utf *utf_new_int(char *text, u2 length)
 #endif
 
 	/* location in hashtable found, create new utf element */
-	u = NEW (utf);
-	u->blength  = length;             /* length in bytes of utfstring */
-	u->hashlink = utf_hash.ptr[slot]; /* link in external hashchain   */		
-	u->text     = mem_alloc(length/*JOWENN*/+1);  /* allocate memory for utf-text */
-	memcpy(u->text,text,length);      /* copy utf-text                */
-	u->text[length] = '\0';/*JOWENN*/
-	utf_hash.ptr[slot] = u;           /* insert symbol into table     */ 
+	u = NEW(utf);
+	u->blength  = length;               /* length in bytes of utfstring       */
+	u->hashlink = utf_hash.ptr[slot];   /* link in external hashchain         */
+	u->text     = mem_alloc(length + 1);/* allocate memory for utf-text       */
+	memcpy(u->text, text, length);      /* copy utf-text                      */
+	u->text[length] = '\0';
+	utf_hash.ptr[slot] = u;             /* insert symbol into table           */
 
-	utf_hash.entries++;               /* update number of entries     */
+	utf_hash.entries++;                 /* update number of entries           */
 
 	if (utf_hash.entries > (utf_hash.size * 2)) {
 
@@ -550,20 +549,25 @@ utf *utf_new_int(char *text, u2 length)
 		MFREE(utf_hash.ptr, void*, utf_hash.size);
 		utf_hash = newhash;
 	}
-		/*utf_display(u);*/
+
 	return u;
 }
+
 
 utf *utf_new(char *text, u2 length)
 {
     utf *r;
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
     tables_lock();
 #endif
+
     r = utf_new_int(text, length);
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
     tables_unlock();
 #endif
+
     return r;
 }
 
@@ -925,22 +929,22 @@ is_valid_name_utf(utf *u)
 
 *******************************************************************************/
 
-classinfo *class_new_int(utf *u)
+classinfo *class_new_int(utf *classname)
 {
 	classinfo *c;     /* hashtable element */
 	u4 key;           /* hashkey computed from classname */
 	u4 slot;          /* slot in hashtable */
 	u2 i;
 
-	key  = utf_hashkey(u->text, u->blength);
+	key  = utf_hashkey(classname->text, classname->blength);
 	slot = key & (class_hash.size - 1);
 	c    = class_hash.ptr[slot];
 
 	/* search external hash chain for the class */
 	while (c) {
-		if (c->name->blength == u->blength) {
-			for (i = 0; i < u->blength; i++)
-				if (u->text[i] != c->name->text[i]) goto nomatch;
+		if (c->name->blength == classname->blength) {
+			for (i = 0; i < classname->blength; i++)
+				if (classname->text[i] != c->name->text[i]) goto nomatch;
 						
 			/* class found in hashtable */
 			return c;
@@ -956,10 +960,17 @@ classinfo *class_new_int(utf *u)
 	count_class_infos += sizeof(classinfo);
 #endif
 
+	if (initverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Creating class: ");
+		utf_sprint_classname(logtext + strlen(logtext), classname);
+		log_text(logtext);
+	}
+
 	c = GCNEW(classinfo, 1); /*JOWENN: NEW*/
 	c->vmClass = 0;
 	c->flags = 0;
-	c->name = u;
+	c->name = classname;
 	c->packagename = NULL;
 	c->cpcount = 0;
 	c->cptags = NULL;
@@ -988,9 +999,6 @@ classinfo *class_new_int(utf *u)
 	c->classloader = NULL;
 	c->sourcefile = NULL;
 	
-	/* prepare loading of the class */
-	list_addlast(&unloadedclasses, c);
-
 	/* insert class into the hashtable */
 	c->hashlink = class_hash.ptr[slot];
 	class_hash.ptr[slot] = c;
@@ -1013,7 +1021,7 @@ classinfo *class_new_int(utf *u)
 
 		/* transfer elements to new hashtable */
 		for (i = 0; i < class_hash.size; i++) {
-			c = (classinfo*) class_hash.ptr[i];
+			c = (classinfo *) class_hash.ptr[i];
 			while (c) {
 				classinfo *nextc = c->hashlink;
 				u4 slot = (utf_hashkey(c->name->text, c->name->blength)) & (newhash.size - 1);
@@ -1029,37 +1037,45 @@ classinfo *class_new_int(utf *u)
 		MFREE(class_hash.ptr, void*, class_hash.size);
 		class_hash = newhash;
 	}
-			
+
     /* Array classes need further initialization. */
-    if (u->text[0] == '[') {
+    if (c->name->text[0] == '[') {
+		/* Array classes are not loaded from classfiles. */
+		c->loaded = 1;
         class_new_array(c);
 		c->packagename = array_packagename;
-	}
-	else {
+
+	} else {
 		/* Find the package name */
 		/* Classes in the unnamed package keep packagename == NULL. */
 		char *p = utf_end(c->name) - 1;
 		char *start = c->name->text;
-		for (;p > start; --p)
+		for (;p > start; --p) {
 			if (*p == '.') {
-				c->packagename = utf_new(start,p-start);
+				c->packagename = utf_new(start, p - start);
 				break;
 			}
+		}
 	}
         
 	return c;
 }
 
-classinfo *class_new(utf *u)
+
+classinfo *class_new(utf *classname)
 {
     classinfo *r;
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
     tables_lock();
 #endif
-    r = class_new_int(u);
+
+    r = class_new_int(classname);
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
     tables_unlock();
 #endif
+
     return r;
 }
 
@@ -1082,9 +1098,6 @@ classinfo *class_get(utf *u)
 	slot = key & (class_hash.size-1);
 	c    = class_hash.ptr[slot];
 
-/*
-	log_text("class_get: looking for class:");
-	utf_display(u); */
 	/* search external hash-chain */
 	while (c) {
 		if (c->name->blength == u->blength) {
@@ -1092,11 +1105,7 @@ classinfo *class_get(utf *u)
 			/* compare classnames */
 			for (i=0; i<u->blength; i++) 
 				if (u->text[i] != c->name->text[i]) goto nomatch;
-/*
-			log_text("class_get: class found");
-			utf_display(u);
-			log_text("");
-			utf_display(c->name); */
+
 			/* class found in hashtable */				
 			return c;
 		}
@@ -1109,6 +1118,7 @@ classinfo *class_get(utf *u)
 	return NULL;
 }
 
+
 /***************** Function: class_array_of ***********************************
 
     Returns an array class with the given component class.
@@ -1120,28 +1130,34 @@ classinfo *class_array_of(classinfo *component)
 {
     int namelen;
     char *namebuf;
+	classinfo *c;
 
     /* Assemble the array class name */
     namelen = component->name->blength;
     
     if (component->name->text[0] == '[') {
         /* the component is itself an array */
-        namebuf = DMNEW(char,namelen+1);
+        namebuf = DMNEW(char, namelen + 1);
         namebuf[0] = '[';
-        memcpy(namebuf+1,component->name->text,namelen);
+        memcpy(namebuf + 1, component->name->text, namelen);
         namelen++;
-    }
-    else {
+
+    } else {
         /* the component is a non-array class */
-        namebuf = DMNEW(char,namelen+3);
+        namebuf = DMNEW(char, namelen + 3);
         namebuf[0] = '[';
         namebuf[1] = 'L';
-        memcpy(namebuf+2,component->name->text,namelen);
-        namebuf[2+namelen] = ';';
-        namelen+=3;
+        memcpy(namebuf + 2, component->name->text, namelen);
+        namebuf[2 + namelen] = ';';
+        namelen += 3;
     }
 
-    return class_new( utf_new(namebuf,namelen) );
+	/* load this class ;-) and link it */
+	c = class_new(utf_new(namebuf, namelen));
+	c->loaded = 1;
+	class_link(c);
+
+    return c;
 }
 
 /*************** Function: class_multiarray_of ********************************
