@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 1096 2004-05-27 15:57:33Z twisti $
+   $Id: loader.c 1110 2004-05-28 21:45:51Z jowenn $
 
 */
 
@@ -2493,7 +2493,7 @@ classinfo *class_link(classinfo *c)
 #endif
 #endif
 
-		return;
+		return c;
 	}
 
 	/* measure time */
@@ -2521,6 +2521,7 @@ classinfo *class_link(classinfo *c)
 	intsRestore();
 #endif
 #endif
+	if (c->linked) return c; else return 0;
 }
 
 
