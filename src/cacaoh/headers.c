@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1173 2004-06-16 14:56:18Z jowenn $
+   $Id: headers.c 1179 2004-06-17 17:12:40Z twisti $
 
 */
 
@@ -135,6 +135,7 @@ char *string_java_lang_OutOfMemoryError =
     "java/lang/OutOfMemoryError";
 
 
+void throw_exception() {}
 void throw_exception_exit() {}
 
 void throw_cacao_exception_exit(char *exception, char *message)
