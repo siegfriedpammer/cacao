@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 383 2003-07-08 21:01:26Z carolyn $
+	Last Change: $Id: parse.c 384 2003-07-08 21:49:19Z carolyn $
                      include Rapid Type Analysis parse - 5/2003 - carolyn
 
 
@@ -484,12 +484,10 @@ static void parse()
 					i = code_get_u1(p+1);
 				else {
 					i = code_get_u2(p+1);
-//printf("WIDE ");
 					nextp = p+3;
 					iswide = false;
 					}
 				OP1(opcode, i);
-// printf("I-ALOAD %s i=%i <%x>\n", opcode_names[opcode],i,jcode[p+1]);
 				break;
 
 			case JAVA_ILOAD_0:
@@ -538,11 +536,9 @@ static void parse()
 					i = code_get_u1(p+1);
 				else {
 					i = code_get_u2(p+1);
-//printf("WIDE ");
 					iswide=false;
 					nextp = p+3;
 					}
-//printf("I-ASTORE %s i=%i <%x>\n", opcode_names[opcode],i,jcode[p+1]);
 				OP1(opcode, i);
 				break;
 
