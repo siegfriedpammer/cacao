@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 1858 2005-01-04 12:36:07Z twisti $
+   $Id: asmpart.S 1938 2005-02-10 11:13:29Z twisti $
 
 */
 
@@ -117,9 +117,8 @@
 *******************************************************************************/
 
 call_name:
-	.ascii  "calljavafunction\0\0"
-
 	.align	8
+
 	.long   0                         /* catch type all                       */
 	.long   calljava_xhandler         /* handler pc                           */
 	.long   calljava_xhandler         /* end pc                               */
@@ -201,9 +200,8 @@ calljava_xhandler:
 *******************************************************************************/
 
 call_name2:
-	.ascii  "calljavafunction2\0\0"
-
 	.align	8
+
 	.long   0                         /* catch type all                       */
 	.long   calljava_xhandler2        /* handler pc                           */
 	.long   calljava_xhandler2        /* end pc                               */
@@ -343,7 +341,7 @@ L_call_jit_compile:
 	pop     %ebp                /* restore address for method pointer         */
 
 	test    %eax,%eax           /* check for exception                        */
-	je      L_exception
+	je      L_asm_call_jit_compiler_exception
 
 	test	%ebp,%ebp           /* is address == 0 (asm_calljavafunction)     */
 	je		L_call_method
@@ -356,20 +354,18 @@ L_call_method:
 		
 	jmp		*%eax               /* ...and now call the new method             */
 
-L_exception:
+L_asm_call_jit_compiler_exception:
 	pop     %ebp                /* restore registers                          */
 	pop     %ebx
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	call    builtin_asm_get_exceptionptrptr
 	mov     %eax,%ecx
-	mov     (%ecx),%eax         /* get the exception pointer                  */
-	movl    $0,(%ecx)           /* clear the exception pointer                */
 #else
 	lea     _exceptionptr,%ecx
+#endif
 	mov     (%ecx),%eax         /* get the exception pointer                  */
 	movl    $0,(%ecx)           /* clear the exception pointer                */
-#endif
 
 	pop     %ecx                /* delete return address                      */
 	sub     $2,%ecx             /* faulting address is return adress - 2      */
@@ -398,8 +394,8 @@ L_refillinStacktrace:               /*a compilation error should cause a stacktr
 	push $0 /*used for the jni_callblock structure*/
 	push %eax /*save eax for later */
 	/* get fillInStackTrace method*/
-	push utf_fillInStackTrace_desc
-	push utf_fillInStackTrace_name
+	push utf_void__java_lang_Throwable
+	push utf_fillInStackTrace
 	mov offobjvftbl(%eax),%ecx
 	mov offclass(%ecx),%eax
 	push %eax
@@ -1430,7 +1426,7 @@ asm_remove_native_stackinfo:
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: asm
+ * mode: c
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
