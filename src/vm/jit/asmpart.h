@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 1621 2004-11-30 13:06:55Z twisti $
+   $Id: asmpart.h 1650 2004-12-02 09:35:13Z twisti $
 
 */
 
@@ -49,6 +49,16 @@
 #endif
 
 
+typedef struct castinfo castinfo;
+
+struct castinfo {
+	s4 super_baseval;
+	s4 super_diffval;
+	s4 sub_baseval;
+};
+
+
+#if defined(__ALPHA__)
 /* 
    determines if the byte support instruction set (21164a and higher)
    is available.
@@ -56,6 +66,7 @@
 int has_no_x_instr_set();
 
 void synchronize_caches();
+#endif
 
 
 /* 

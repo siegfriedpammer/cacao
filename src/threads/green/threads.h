@@ -16,9 +16,6 @@
 
 #include "config.h"
 
-typedef struct {
-	int super_baseval, super_diffval, sub_baseval;
-} castinfo;
 
 #ifdef USE_THREADS
 

@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: threads.h 1621 2004-11-30 13:06:55Z twisti $
+   $Id: threads.h 1650 2004-12-02 09:35:13Z twisti $
 
 */
 
@@ -49,12 +49,6 @@
 #define MUTEXSIM
 #endif
 
-
-typedef struct {
-	s4 super_baseval;
-	s4 super_diffval;
-	s4 sub_baseval;
-} castinfo;
 
 struct _threadobject;
 

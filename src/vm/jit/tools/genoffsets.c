@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: genoffsets.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: genoffsets.c 1650 2004-12-02 09:35:13Z twisti $
 
 */
 
@@ -39,14 +39,7 @@
 #include "types.h"
 #include "mm/memory.h"
 #include "vm/global.h"
-
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
-#endif
+#include "vm/jit/asmpart.h"
 
 
 int main(int argc, char **argv)
