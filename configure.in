@@ -155,9 +155,11 @@ else
 	AC_DEFINE([DONT_FREE_FIRST], 1, [don't free first])
 
 	LIBTHREAD="libthreads.a"
-	THREAD_OBJ="threads/libthreads.a -lpthread"
+	THREAD_OBJ="threads/libthreads.a"
+	THREAD_LIB=-lpthread
 	AC_SUBST(LIBTHREAD)
 	AC_SUBST(THREAD_OBJ)
+	AC_SUBST(THREAD_LIB)
 fi
 
 dnl Check whether the compiler supports the __thread keyword.

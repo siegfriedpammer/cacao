@@ -39,6 +39,59 @@
 #include "../mm/boehm-gc/include/gc.h"
 #endif
 
+#ifdef MUTEXSIM
+
+typedef struct {
+	pthread_mutex_t mutex;
+	pthread_t owner;
+	int count;
+} pthread_mutex_rec_t;
+
+static void pthread_mutex_init_rec(pthread_mutex_rec_t *m)
+{
+	pthread_mutex_init(&m->mutex, NULL);
+	m->count = 0;
+}
+
+static void pthread_mutex_destroy_rec(pthread_mutex_rec_t *m)
+{
+	pthread_mutex_destroy(&m->mutex);
+}
+
+static void pthread_mutex_lock_rec(pthread_mutex_rec_t *m)
+{
+	for (;;)
+		if (!m->count)
+		{
+			pthread_mutex_lock(&m->mutex);
+			m->owner = pthread_self();
+			m->count++;
+			break;
+		} else {
+			if (m->owner != pthread_self())
+				pthread_mutex_lock(&m->mutex);
+			else
+			{
+				m->count++;
+				break;
+			}
+		}
+}
+
+static void pthread_mutex_unlock_rec(pthread_mutex_rec_t *m)
+{
+	if (!--m->count)
+		pthread_mutex_unlock(&m->mutex);
+}
+
+#else /* MUTEXSIM */
+
+#define pthread_mutex_lock_rec pthread_mutex_lock
+#define pthread_mutex_unlock_rec pthread_mutex_unlock
+#define pthread_mutex_rec_t pthread_mutex_t
+
+#endif /* MUTEXSIM */
+
 #include "machine-instr.h"
 
 static struct avl_table *criticaltree;
@@ -50,38 +103,27 @@ pthread_key_t tkey_threadinfo;
 __thread threadobject *threadobj;
 #endif
 
-static pthread_mutex_t cast_mutex = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
-static pthread_mutex_t compiler_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-static pthread_mutex_t tablelock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-
-void cast_lock()
-{
-	pthread_mutex_lock(&cast_mutex);
-}
-
-void cast_unlock()
-{
-	pthread_mutex_unlock(&cast_mutex);
-}
+static pthread_mutex_rec_t compiler_mutex;
+static pthread_mutex_rec_t tablelock;
 
 void compiler_lock()
 {
-	pthread_mutex_lock(&compiler_mutex);
+	pthread_mutex_lock_rec(&compiler_mutex);
 }
 
 void compiler_unlock()
 {
-	pthread_mutex_unlock(&compiler_mutex);
+	pthread_mutex_unlock_rec(&compiler_mutex);
 }
 
 void tables_lock()
 {
-    pthread_mutex_lock(&tablelock);
+    pthread_mutex_lock_rec(&tablelock);
 }
 
 void tables_unlock()
 {
-    pthread_mutex_unlock(&tablelock);
+    pthread_mutex_unlock_rec(&tablelock);
 }
 
 static int criticalcompare(const void *pa, const void *pb, void *param)
@@ -141,9 +183,9 @@ static void thread_addstaticcritical()
 		thread_registercritical(n++);
 }
 
-static pthread_mutex_t threadlistlock = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
+static pthread_mutex_t threadlistlock;
 
-static pthread_mutex_t stopworldlock = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
+static pthread_mutex_t stopworldlock;
 volatile int stopworldwhere;
 
 static sem_t suspend_ack;
@@ -164,6 +206,7 @@ void unlock_stopworld()
 	pthread_mutex_unlock(&stopworldlock);
 }
 
+#if !defined(__DARWIN__)
 /* Caller must hold threadlistlock */
 static int cast_sendsignals(int sig, int count)
 {
@@ -186,26 +229,36 @@ static int cast_sendsignals(int sig, int count)
 
 	return count-1;
 }
+#endif
 
 void cast_stopworld()
 {
 	int count, i;
 	lock_stopworld(2);
 	pthread_mutex_lock(&threadlistlock);
+#if defined(__DARWIN__)
+	/* XXX stop threads using mach functions */
+#else
 	count = cast_sendsignals(GC_signum1(), 0);
 	for (i=0; i<count; i++)
 		sem_wait(&suspend_ack);
+#endif
 	pthread_mutex_unlock(&threadlistlock);
 }
 
 void cast_startworld()
 {
 	pthread_mutex_lock(&threadlistlock);
+#if defined(__DARWIN__)
+	/* XXX resume threads using mach functions */
+#else
 	cast_sendsignals(GC_signum2(), -1);
+#endif
 	pthread_mutex_unlock(&threadlistlock);
 	unlock_stopworld();
 }
 
+#if !defined(__DARWIN__)
 static void sigsuspend_handler(ucontext_t *ctx)
 {
 	int sig;
@@ -229,6 +282,7 @@ int cacao_suspendhandler(ucontext_t *ctx)
 	sigsuspend_handler(ctx);
 	return 1;
 }
+#endif
 
 static void setthreadobject(threadobject *thread)
 {
@@ -245,6 +299,21 @@ static void setthreadobject(threadobject *thread)
 void
 initThreadsEarly()
 {
+#ifndef MUTEXSIM
+	pthread_mutexattr_t mutexattr;
+	pthread_mutexattr_init(&mutexattr);
+	pthread_mutexattr_settype(&mutexattr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&compiler_mutex, &mutexattr);
+	pthread_mutex_init(&tablelock, &mutexattr);
+	pthread_mutexattr_destroy(&mutexattr);
+#else
+	pthread_mutex_init_rec(&compiler_mutex);
+	pthread_mutex_init_rec(&tablelock);
+#endif
+
+	pthread_mutex_init(&threadlistlock, NULL);
+	pthread_mutex_init(&stopworldlock, NULL);
+
 	/* Allocate something so the garbage collector's signal handlers are  */
 	/* installed. */
 	heap_allocate(1, false, NULL);
@@ -329,13 +398,16 @@ typedef struct {
 static void *threadstartup(void *t)
 {
 	startupinfo *startup = t;
-	t = NULL;
 	threadobject *thread = startup->thread;
 	sem_t *psem = startup->psem;
 	nativethread *info = &thread->info;
 	threadobject *tnext;
 	methodinfo *method;
 
+	t = NULL;
+#if defined(__DARWIN__)
+	info->mach_thread = mach_thread_self();
+#endif
 	setthreadobject(thread);
 
 	pthread_mutex_lock(&threadlistlock);

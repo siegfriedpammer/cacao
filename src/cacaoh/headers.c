@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1070 2004-05-19 16:32:18Z stefan $
+   $Id: headers.c 1073 2004-05-19 23:21:15Z stefan $
 
 */
 
@@ -171,6 +171,10 @@ void thread_restartcriticalsection() {}
 void asm_switchstackandcall() {}
 void asm_handle_builtin_exception(classinfo *c) {}
 void asm_getclassvalues_atomic() {}
+
+#if defined(__DARWIN__)
+int cacao_catch_Handler() {}
+#endif
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 threadcritnode asm_criticalsections;

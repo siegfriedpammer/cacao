@@ -6,6 +6,13 @@
 #include "nat/java_lang_Throwable.h"
 #include "nat/java_lang_Thread.h"
 
+#if defined(__DARWIN__)
+#include <mach/mach.h>
+
+/* We need to emulate recursive mutexes. */
+#define MUTEXSIM
+#endif
+
 struct _threadobject;
 
 typedef struct monitorLockRecord {
@@ -53,6 +60,9 @@ typedef struct {
 	methodinfo *_threadrootmethod;
 	void *_stackframeinfo;
 	pthread_t tid;
+#if defined(__DARWIN__)
+	mach_port_t mach_thread;
+#endif
 	pthread_mutex_t joinMutex;
 	pthread_cond_t joinCond;
 } nativethread;

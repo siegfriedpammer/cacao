@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.h 1067 2004-05-18 10:25:51Z stefan $
+   $Id: logging.h 1073 2004-05-19 23:21:15Z stefan $
 
 */
 
@@ -37,6 +37,9 @@
 
 #include <stdio.h>
 
+/* This is to bring in the conflicting panic from darwin */
+#include <sys/mman.h>
+#define panic cacao_panic
 
 #define PANICIF(when,txt)  if(when)panic(txt)
 

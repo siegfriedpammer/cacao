@@ -28,11 +28,11 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1059 2004-05-16 13:16:15Z twisti $
+   $Id: asmpart.S 1073 2004-05-19 23:21:15Z stefan $
 
 */
 
-
+#include "config.h"
 #include "offsets.h"
 
 
@@ -96,6 +96,8 @@
 	.globl _asm_initialize_thread_stack
 	.globl _asm_perform_threadswitch
 	.globl _asm_switchstackandcall
+	.globl _asm_criticalsections
+	.globl _asm_getclassvalues_atomic
 
 	.globl _string_java_lang_NullPointerException
 	.globl _string_java_lang_ArrayIndexOutOfBoundsException
@@ -105,18 +107,17 @@
 	.globl _string_java_lang_ClassCastException
 
 	.globl _builtin_asm_get_exceptionptrptr
+#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
 	.globl __exceptionptr
+#endif
 
 	.globl _builtin_throw_exception
 	.globl _class_load
 	.globl _class_link
 	.globl _class_init
-	.globl _catch_Handler
 	.globl _new_exception
 	.globl _new_exception_message
 	.globl _new_exception_int
-
-	.globl _asm_sighandler
 
 jitcompile:
 	.long _jit_compile
@@ -169,11 +170,10 @@ string_java_lang_ClassCastException:
 
 builtin_asm_get_exceptionptrptr:
 	.long _builtin_asm_get_exceptionptrptr
+#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
 _exceptionptr:
 	.long __exceptionptr
-
-catch_Handler:
-	.long _catch_Handler
+#endif
 
 		
 #define     MethodPointer   -8
@@ -630,9 +630,10 @@ ex_table_loop:
 L_class_loaded:
 	lwz     itmp3,offclasslinked(r7)
 	mr.     itmp3,itmp3
+	addi    r1,r1,-16*4           /* allocate stack                           */
+	stw     r7,13*4(r1)
 	bne     L_class_linked
 
-	addi    r1,r1,-16*4           /* allocate stack                           */
 	stw     r3,7*4(r1)            /* save used registers                      */
 	stw     r4,8*4(r1)            /* 6*4 (linkage) + 1*4 (arg1) + 7*4 (save)  */
 	stw     r2,9*4(r1)
@@ -640,7 +641,6 @@ L_class_loaded:
 	stw     xpc,11*4(r1)
 	mflr    xptr
 	stw     xptr,12*4(r1)
-	stw     r7,13*4(r1)
 
 	mr      r3,r7                 /* arg1 = exceptionclass                    */
 	bl      0f
@@ -657,17 +657,20 @@ L_class_loaded:
 	lwz     xpc,11*4(r1)
 	lwz     itmp3,12*4(r1)
 	mtlr    itmp3
-	lwz     r7,13*4(r1)	
-	addi    r1,r1,16*4
 
 L_class_linked:
+_crit_restart1:
+	lwz     r7,13*4(r1)	
+_crit_begin1:
 	lwz     r6,offobjvftbl(xptr)  /* r6 = vftblptr(xptr)                      */
 	lwz     r7,offclassvftbl(r7)  /* r7 = vftblptr(catchtype) class (not obj) */
 	lwz     r6,offbaseval(r6)     /* r6 = baseval(xptr)                       */
 	lwz     r8,offbaseval(r7)     /* r8 = baseval(catchtype)                  */
 	lwz     r7,offdiffval(r7)     /* r7 = diffval(catchtype)                  */
+_crit_end1:
 	subf    r6,r8,r6              /* r6 = baseval(xptr) - baseval(catchtype)  */
 	cmplw   r6,r7                 /* xptr is instanceof catchtype             */
+	addi    r1,r1,16*4
 	bgt     ex_table_cont         /* if (false) continue                      */
 
 ex_handle_it:
@@ -891,8 +894,8 @@ L_is_initialized:
 	blr
 
 L_initializererror:
+0:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#error XXX TWISTI please check me for correctness
 	mflr	r0
 	stw     r0,8(r1)
 	addi    r1,r1,-4*8            /* preserve linkage area (24 bytes)         */
@@ -903,11 +906,11 @@ L_initializererror:
 	mtlr    r0	
 	addi    r1,r1,4*8
 #else
-	lwz     itmp2,lo16(_exceptionptr-0b)(pv)
-	lwz     xptr,0(itmp2)         /* get the exception pointer                */
-	li      r0,0
-	stw     r0,0(itmp2)           /* clear the exception pointer              */
+	lwz     r3,lo16(_exceptionptr-0b)(pv)
 #endif
+	lwz     xptr,0(r3)         /* get the exception pointer                */
+	li      r0,0
+	stw     r0,0(r3)           /* clear the exception pointer              */
 
 	mflr    xpc
 	b       _asm_handle_nat_exception
@@ -1419,38 +1422,30 @@ _asm_switchstackandcall:
 	blr
 
 
-#define C_RED_ZONE 224
+_asm_getclassvalues_atomic:
+_crit_restart2:
+_crit_begin2:
+	lwz r6,offbaseval(r3)
+	lwz r7,offdiffval(r3)
+	lwz r8,offbaseval(r4)
+_crit_end2:
+	stw r6,offcast_super_baseval(r5)
+	stw r7,offcast_super_diffval(r5)
+	stw r8,offcast_sub_baseval(r5)
+	blr
 
-_asm_sighandler:
-	addi r1,r1,-32*4 - 32 - C_RED_ZONE
-	stmw r0,32(r1)
-	mflr r0
-	stw r0,28(r1)
+	.data
 
-	bl 0f
-0:
-	mflr r31
-	lwz r0,lo16(catch_Handler-0b)(r31)
-	mtctr r0
-	addi r3,r1,32
-	bctrl
-	
-	lwz r0,28(r1)
-	mtlr r0
-	cmpwi r3,0
-	bne 1f
-	lmw r2,32+8(r1)
-	lwz r0,32(r1)
-	addi r1,r1,32*4 + 32 + C_RED_ZONE
-	b _asm_handle_exception
-
-1:
-	mtctr r3
-	lmw r2,32+8(r1)
-	lwz r0,32(r1)
-	addi r1,r1,32*4 + 32 + C_RED_ZONE
-	bctr
-
+_asm_criticalsections:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	.long _crit_begin1
+	.long _crit_end1
+	.long _crit_restart1
+	.long _crit_begin2
+	.long _crit_end2
+	.long _crit_restart2
+#endif
+	.long 0
 
 /*
  * These are local overrides for various environment variables in Emacs.

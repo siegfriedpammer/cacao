@@ -28,11 +28,11 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1059 2004-05-16 13:16:15Z twisti $
+   $Id: codegen.c 1073 2004-05-19 23:21:15Z stefan $
 
 */
 
-
+#include "global.h"
 #include <stdio.h>
 #include <signal.h>
 #include "types.h"
@@ -264,63 +264,56 @@ static int reg_of_var(stackptr v, int tempregnum)
 
 //#include <architecture/ppc/cframe.h>
 
-/* NullPointerException signal handler for hardware null pointer check */
-
-void asm_sighandler();
-
-int lastsig;
-int crashpc;
-
-int catch_Handler(int *regs)
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+void thread_restartcriticalsection(void *u)
 {
-	sigset_t nsig;
-	int instr, reg;
+}
+#endif
+
+int cacao_catch_Handler(mach_port_t thread)
+{
+	unsigned int *regs;
+	unsigned int crashpc;
+	s4 instr, reg;
 	java_objectheader *xptr;
 
-	instr = *(int *) crashpc;
+	/* Mach stuff */
+	thread_state_flavor_t flavor = PPC_THREAD_STATE;
+	mach_msg_type_number_t thread_state_count = PPC_THREAD_STATE_COUNT;
+	ppc_thread_state_t thread_state;
+	kern_return_t r;
+
+	r = thread_get_state(thread, flavor,
+		(natural_t*)&thread_state, &thread_state_count);
+	if (r != KERN_SUCCESS)
+		panic("thread_get_state failed");
+
+	regs = &thread_state.r0;
+	crashpc = thread_state.srr0;
+
+	instr = *(s4*) crashpc;
 	reg = (instr >> 16) & 31;
 
 	if (!regs[reg]) {
-		sigemptyset(&nsig);
-		sigaddset(&nsig, lastsig);
-		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
-
 		xptr = new_exception(string_java_lang_NullPointerException);
 
 		regs[REG_ITMP2_XPC] = crashpc;
 		regs[REG_ITMP1_XPTR] = (u4) xptr;
 
-		return 0;
+		r = thread_set_state(thread, flavor,
+			(natural_t*)&thread_state, thread_state_count);
+		if (r != KERN_SUCCESS)
+			panic("thread_set_state failed");
+
+		return 1;
 	}
 
 	panic("segfault");
-
 	return 0;
 }
 
-void catch_NullPointerException(int sig, void *code, struct sigcontext *ctx)
-{
-	int oldsp = ctx->sc_sp;
-
-	lastsig = sig;
-	crashpc = ctx->sc_ir;
-	ctx->sc_ir = (s4) asm_sighandler;
-}
-
-
 void init_exceptions(void)
 {
-	/* install signal handlers we need to convert to exceptions */
-
-	if (!checknull) {
-#if defined(SIGSEGV)
-		signal(SIGSEGV, (void*) catch_NullPointerException);
-#endif
-
-#if defined(SIGBUS)
-		signal(SIGBUS, (void*) catch_NullPointerException);
-#endif
-	}
 }
 
 void adjust_argvars(stackptr s, int d, int *fa, int *ia)
@@ -335,12 +328,6 @@ void adjust_argvars(stackptr s, int d, int *fa, int *ia)
 	*fa += (IS_FLT_DBL_TYPE(s->type) != 0);
 	*ia += (IS_2_WORD_TYPE(s->type)) ? 2 : 1;
 }
-
-void nocode()
-{
-	printf("NOCODE\n");
-}
-
 
 
 #define intmaxf(a,b) (((a)<(b)) ? (b) : (a))
@@ -559,6 +546,7 @@ void codegen()
 		s4 dblargs = 0;
 
 		M_MFLR(REG_ITMP3);
+		/* XXX must be a multiple of 16 */
 		M_LDA(REG_SP, REG_SP, -(24 + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8));
 
 		M_IST(REG_ITMP3, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT) * 8);
@@ -2937,6 +2925,9 @@ makeactualcall:
 			{
 			classinfo *super = (classinfo*) iptr->val.a;
 			
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+            codegen_threadcritrestart((u1*) mcodeptr - mcodebase);
+#endif
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			if (s1 == d) {
@@ -2965,9 +2956,15 @@ makeactualcall:
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 					a = dseg_addaddress ((void*) super->vftbl);
 					M_ALD(REG_ITMP2, REG_PV, a);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstart((u1*) mcodeptr - mcodebase);
+#endif
 					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+#endif
 					M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 					M_CMPU(REG_ITMP1, REG_ITMP2);
 					M_CLR(d);
@@ -3002,6 +2999,9 @@ makeactualcall:
 			{
 			classinfo *super = (classinfo*) iptr->val.a;
 			
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			codegen_threadcritrestart((u1*) mcodeptr - mcodebase);
+#endif
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			var_to_reg_int(s1, src, d);
 			if (iptr->op1) {                               /* class/interface */
@@ -3023,12 +3023,18 @@ makeactualcall:
 				else {                                     /* class           */
                     M_BEQ(8 + (s1 == REG_ITMP1));
                     M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstart((u1*) mcodeptr - mcodebase);
+#endif
                     M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
                     a = dseg_addaddress ((void*) super->vftbl);
                     M_ALD(REG_ITMP2, REG_PV, a);
                     if (d != REG_ITMP1) {
                         M_ILD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl, baseval));
                         M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+						codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+#endif
                         M_ISUB(REG_ITMP3, REG_ITMP1, REG_ITMP3);
                         }
                     else {
@@ -3036,6 +3042,9 @@ makeactualcall:
                         M_ISUB(REG_ITMP3, REG_ITMP2, REG_ITMP3);
                         M_ALD(REG_ITMP2, REG_PV, a);
                         M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+						codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+#endif
                         }
                     M_CMPU(REG_ITMP3, REG_ITMP2);
                     M_BGT(0);
@@ -3333,6 +3342,7 @@ makeactualcall:
 		} else {
 			xcodeptr = mcodeptr;
 
+			/* XXX this cannot work - there is no link area */
             M_IADD_IMM(REG_SP, -1 * 8, REG_SP);
             M_IST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
@@ -3484,7 +3494,11 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	mcodeptr = cs;
 
 	*(cs-1) = (u4) f;                   /* address of native method           */
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	*(cs-2) = (u4) builtin_get_exceptionptrptr;
+#else
 	*(cs-2) = (u4) (&_exceptionptr);    /* address of exceptionptr            */
+#endif
 	*(cs-3) = (u4) asm_handle_nat_exception; /* addr of asm exception handler */
 	*(cs-4) = (u4) (&env);              /* addr of jni_environement           */
 	*(cs-5) = (u4) builtin_trace_args;
@@ -3520,6 +3534,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		s4 dblargs = 0;
 
 /*          M_MFLR(REG_ITMP3); */
+		/* XXX must be a multiple of 16 */
         M_LDA(REG_SP, REG_SP, -(24 + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8));
 
 /*          M_IST(REG_ITMP3, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT) * 8); */
@@ -3717,7 +3732,39 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		M_MTLR(REG_ITMP3);
 	}
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	if (IS_FLT_DBL_TYPE(m->returntype))
+		if (IS_2_WORD_TYPE(m->returntype))
+			M_DST(REG_FRESULT, REG_SP, 56);
+		else
+			M_FST(REG_FRESULT, REG_SP, 56);
+	else {
+		M_IST(REG_RESULT, REG_SP, 56);
+		if (IS_2_WORD_TYPE(m->returntype))
+			M_IST(REG_RESULT2, REG_SP, 60);
+	}
+
+	M_ALD(REG_ITMP2, REG_PV, -2 * 4);   /* builtin_get_exceptionptrptr        */
+	M_MTCTR(REG_ITMP2);
+	M_JSR;
+	disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
+	M_MFLR(REG_ITMP1);
+	M_LDA(REG_PV, REG_ITMP1, disp);
+	M_MOV(REG_RESULT, REG_ITMP2);
+
+	if (IS_FLT_DBL_TYPE(m->returntype))
+		if (IS_2_WORD_TYPE(m->returntype))
+			M_DLD(REG_FRESULT, REG_SP, 56);
+		else
+			M_FLD(REG_FRESULT, REG_SP, 56);
+	else {
+		M_ILD(REG_RESULT, REG_SP, 56);
+		if (IS_2_WORD_TYPE(m->returntype))
+			M_ILD(REG_RESULT2, REG_SP, 60);
+	}
+#else
 	M_ALD(REG_ITMP2, REG_PV, -2 * 4);   /* get address of exceptionptr        */
+#endif
 	M_ALD(REG_ITMP1, REG_ITMP2, 0);     /* load exception into reg. itmp1     */
 	M_TST(REG_ITMP1);
 	M_BNE(4);                           /* if no exception then return        */

@@ -3767,7 +3767,9 @@ catch_exception_raise(
         #else /* BROKEN_EXCEPTION_HANDLING */
             /* Pass it along to the next exception handler 
                (which should call SIGBUS/SIGSEGV) */
-            return FWD();
+			if (cacao_catch_Handler(thread))
+				return KERN_SUCCESS;
+			return FWD();
         #endif /* !BROKEN_EXCEPTION_HANDLING */
     }
 

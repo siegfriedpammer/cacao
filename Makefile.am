@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 993 2004-03-30 21:36:03Z twisti $
+# $Id: Makefile.am 1073 2004-05-19 23:21:15Z stefan $
 
 @SET_MAKE@
 
@@ -63,7 +63,8 @@ cacao_LDADD = \
 	gnuclasspathnat/native/jni/java-lang/.libs/libjavalang.a \
 	gnuclasspathnat/native/jni/java-lang/.libs/libjavalangreflect.a \
 	@AWT_OBJS@ \
-	@ZIP_LIBS@
+	@ZIP_LIBS@ \
+	@THREAD_LIB@
 
 
 cacao_DEPENDENCIES = \
@@ -95,7 +96,8 @@ cacaoh_LDADD = \
 	gnuclasspathnat/native/jni/java-lang/.libs/libjavalang.a \
 	@THREAD_OBJ@ \
 	@ZIP_LIBS@ \
-	toolbox/libtoolbox.a
+	toolbox/libtoolbox.a \
+	@THREAD_LIB@
 
 cacaoh_DEPENDENCIES = \
 	$(BOEHM_LIBS) \
