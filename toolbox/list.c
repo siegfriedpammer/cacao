@@ -27,14 +27,12 @@
 
    Authors: Reinhard Grafl
 
-   $Id: list.c 1196 2004-06-20 19:45:55Z twisti $
+   $Id: list.c 1552 2004-11-19 15:14:58Z twisti $
 
 */
 
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include "global.h"
 #include "toolbox/list.h"
