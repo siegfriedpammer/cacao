@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 720 2003-12-08 14:44:40Z edwin $
+   $Id: typeinfo.h 795 2003-12-16 22:27:52Z edwin $
 
 */
 
@@ -356,7 +356,7 @@ void typeinfo_print(FILE *file,typeinfo *info,int indent);
 void typeinfo_print_short(FILE *file,typeinfo *info);
 void typeinfo_print_type(FILE *file,int type,typeinfo *info);
 
-#endif // TYPEINFO_DEBUG
+#endif /* TYPEINFO_DEBUG */
 
 #endif /* _TYPEINFO_H */
 
