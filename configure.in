@@ -128,8 +128,7 @@ dnl Features
 dnl check arguments
 AC_ARG_ENABLE(threads, [  --enable-threads        enable threads support [default yes]])
 AC_ARG_ENABLE([__thread],
-            AC_HELP_STRING([--disable-__thread],
-                           [do not use TLS features even when supporting them]),
+            [  --disable-__thread      do not use TLS features even when supporting them],
             [use__thread=$enablevalval],
             [use__thread=yes])
 
