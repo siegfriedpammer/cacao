@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 949 2004-03-07 22:16:31Z twisti $
+   $Id: native.h 1001 2004-03-30 22:44:28Z twisti $
 
 */
 
@@ -45,29 +45,9 @@ extern char *classpath;
 
 extern classinfo *class_java_lang_Class;
 extern classinfo *class_java_lang_VMClass;
-extern methodinfo *method_vmclass_init;
 /* extern classinfo *class_java_lang_Cloneable=0; */ /* now in global.h */
-extern classinfo *class_java_lang_CloneNotSupportedException;
 extern classinfo *class_java_lang_System;
 extern classinfo *class_java_lang_ClassLoader;
-extern classinfo *class_java_lang_NoClassDefFoundError;
-extern classinfo *class_java_lang_ClassNotFoundException;
-extern classinfo *class_java_lang_LinkageError;
-extern classinfo *class_java_lang_InstantiationException;
-extern classinfo *class_java_lang_NoSuchMethodError;   
-extern classinfo *class_java_lang_NoSuchFieldError;
-extern classinfo *class_java_lang_ClassFormatError;
-extern classinfo *class_java_lang_IllegalArgumentException;
-extern classinfo *class_java_lang_ArrayIndexOutOfBoundsException;
-extern classinfo *class_java_lang_NoSuchFieldException;
-extern classinfo *class_java_io_SyncFailedException;
-extern classinfo *class_java_io_IOException;
-extern classinfo *class_java_io_FileNotFoundException;
-extern classinfo *class_java_io_UnixFileSystem;
-extern classinfo *class_java_security_PrivilegedActionException;
-extern classinfo *class_java_net_UnknownHostException;
-extern classinfo *class_java_net_SocketException;
-extern classinfo *class_java_lang_NoSuchMethodException;
 extern classinfo *class_java_lang_Double;
 extern classinfo *class_java_lang_Float;
 extern classinfo *class_java_lang_Long;
@@ -78,16 +58,32 @@ extern classinfo *class_java_lang_Void;
 extern classinfo *class_java_lang_Character;
 extern classinfo *class_java_lang_Integer;
 
+
 /* specify some exception strings for code generation */
-extern char *string_java_lang_NoClassDefFoundError;
-extern char *string_java_lang_LinkageError;
-extern char *string_java_lang_ArrayIndexOutOfBoundsException;
-extern char *string_java_lang_NegativeArraySizeException;
-extern char *string_java_lang_ClassCastException;
+
 extern char *string_java_lang_ArithmeticException;
 extern char *string_java_lang_ArithmeticException_message;
-extern char *string_java_lang_NullPointerException;
+extern char *string_java_lang_ArrayIndexOutOfBoundsException;
 extern char *string_java_lang_ArrayStoreException;
+extern char *string_java_lang_ClassCastException;
+extern char *string_java_lang_ClassNotFoundException;
+extern char *string_java_lang_CloneNotSupportedException;
+extern char *string_java_lang_IllegalArgumentException;
+extern char *string_java_lang_NegativeArraySizeException;
+extern char *string_java_lang_NoSuchFieldException;
+extern char *string_java_lang_NoSuchMethodException;
+extern char *string_java_lang_NullPointerException;
+
+
+/* specify some error strings for code generation */
+
+extern char *string_java_lang_ClassFormatError;
+extern char *string_java_lang_LinkageError;
+extern char *string_java_lang_NoClassDefFoundError;
+extern char *string_java_lang_NoSuchFieldError;
+extern char *string_java_lang_NoSuchMethodError;
+extern char *string_java_lang_OutOfMemoryError;
+
 
 /* the system classloader object */
 extern struct java_lang_ClassLoader *SystemClassLoader;
@@ -98,16 +94,14 @@ extern struct java_lang_ClassLoader *SystemClassLoader;
 /* javastring-hashtable */
 extern hashtable string_hash; 
 
+/* throw an exception and exit */
+void throw_exception_exit();
 
-/* throw classnotfoundexcetion with detail message */
-void throw_noclassdeffounderror_message(utf* classname);
-
-/* throw linkageerror with detail message */
-void throw_linkageerror_message(utf* classname);
-
-/* throw exception with detail message */
+/* initialize new exceptions */
 java_objectheader *new_exception(char *classname);
 java_objectheader *new_exception_message(char *classname, char *message);
+java_objectheader *new_exception_utfmessage(char *classname, utf *message);
+java_objectheader *new_exception_javastring(char *classname, java_lang_String *message);
 java_objectheader *new_exception_int(char *classname, s4 i);
 
 void use_class_as_object(classinfo *c);
