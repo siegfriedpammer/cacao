@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 1953 2005-02-17 13:42:23Z christian $
+   $Id: statistics.h 1954 2005-02-17 19:47:23Z christian $
 
 */
 
@@ -68,6 +68,10 @@ extern int count_ss_spilled;
 extern int count_ss_register;
 extern int count_methods_allocated_by_lsra;
 extern int count_mem_move_bb;
+extern int count_interface_size;
+extern int count_argument_mem_ss;
+extern int count_argument_reg_ss;
+extern int count_method_in_register;
 
 extern int count_jit_calls;
 extern int count_methods;

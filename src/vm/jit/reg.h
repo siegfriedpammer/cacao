@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: reg.h 1954 2005-02-17 19:47:23Z christian $
 
 */
 
@@ -135,6 +135,9 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id);
 void reg_free(methodinfo *m, registerdata *rd);
 void reg_close();
 void regalloc(methodinfo *m, codegendata *cd, registerdata *rd);
+#ifdef STATISTICS
+void reg_make_statistics( methodinfo *, codegendata *, registerdata *);
+#endif
 
 #endif /* _REG_H */
 

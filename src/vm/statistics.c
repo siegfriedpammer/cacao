@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 1953 2005-02-17 13:42:23Z christian $
+   $Id: statistics.c 1954 2005-02-17 19:47:23Z christian $
 
 */
 
@@ -81,6 +81,10 @@ int count_ss_spilled = 0;
 int count_ss_register = 0;
 int count_methods_allocated_by_lsra = 0;
 int count_mem_move_bb = 0;
+int count_interface_size = 0;
+int count_argument_mem_ss = 0;
+int count_argument_reg_ss = 0;
+int count_method_in_register = 0;
 
 int count_jit_calls = 0;
 int count_methods = 0;
@@ -475,7 +479,15 @@ void print_stats()
 	log_text(logtext);
 	sprintf(logtext, "Stackslots held in Registers:      %6d",count_ss_register );
 	log_text(logtext);
-	sprintf(logtext, "Memory moves at BB Boundaries:     %6d\n\n",count_mem_move_bb );
+	sprintf(logtext, "Memory moves at BB Boundaries:     %6d",count_mem_move_bb );
+	log_text(logtext);
+	sprintf(logtext, "Number of interface slots:         %6d\n\n",count_interface_size );
+	log_text(logtext);
+	sprintf(logtext, "Number of Argument stack slots in register:  %6d",count_argument_reg_ss );
+	log_text(logtext);
+	sprintf(logtext, "Number of Argument stack slots in memory:    %6d\n\n",count_argument_mem_ss );
+	log_text(logtext);
+	sprintf(logtext, "Number of Methods kept in registers:         %6d\n\n",count_method_in_register );
 	log_text(logtext);
 }
 

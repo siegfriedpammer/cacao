@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1753 2004-12-13 08:40:16Z twisti $
+   $Id: reg.inc 1954 2005-02-17 19:47:23Z christian $
 
 */
 
@@ -1248,6 +1248,156 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 }
 
 
+#ifdef STATISTICS
+void reg_make_statistics( methodinfo *m, codegendata *cd, registerdata *rd) {
+	int i,type;
+	s4 len;
+	stackptr    src, src_old;
+	stackptr    dst;
+	instruction *iptr;
+	basicblock  *bptr;
+	int size_interface; /* == maximum size of in/out stack at basic block boundaries */
+	bool in_register;
+
+	in_register = true;
+
+	size_interface = 0;
+
+		/* count how many local variables are held in memory or register */
+		for(i=0; i < cd->maxlocals; i++)
+			for (type=0; type <=4; type++)
+				if (rd->locals[i][type].type != -1) { /* valid local */
+					if (rd->locals[i][type].flags & INMEMORY) {
+						count_locals_spilled++;
+						in_register=false;
+					}
+					else
+						count_locals_register++;
+				}
+		/* count how many stack slots are held in memory or register */
+
+		bptr = m->basicblocks;
+		while (bptr != NULL) {
+			if (bptr->flags >= BBREACHED) {
+
+#ifdef LSRA
+			if (!opt_lsra) {
+#endif	
+				/* check for memory moves from interface to BB instack */
+				dst = bptr->instack;
+				len = bptr->indepth;
+				
+				if (len > size_interface) size_interface = len;
+
+				while (dst != NULL) {
+					len--;
+					if (dst->varkind != STACKVAR) {
+						if ( (dst->flags & INMEMORY) ||
+							 (rd->interfaces[len][dst->type].flags & INMEMORY) || 
+							 ( (dst->flags & INMEMORY) && 
+							   (rd->interfaces[len][dst->type].flags & INMEMORY) && 
+							   (dst->regoff != rd->interfaces[len][dst->type].regoff) ))
+						{
+							/* one in memory or both inmemory at different offsets */
+							count_mem_move_bb++;
+							in_register=false;
+						}
+					}
+
+					dst = dst->prev;
+				}
+
+				/* check for memory moves from BB outstack to interface */
+				dst = bptr->outstack;
+				len = bptr->outdepth;
+				if (len > size_interface) size_interface = len;
+
+				while (dst) {
+					len--;
+					if (dst->varkind != STACKVAR) {
+						if ( (dst->flags & INMEMORY) || \
+							 (rd->interfaces[len][dst->type].flags & INMEMORY) || \
+							 ( (dst->flags & INMEMORY) && \
+							   (rd->interfaces[len][dst->type].flags & INMEMORY) && \
+							   (dst->regoff != rd->interfaces[len][dst->type].regoff) ))
+						{
+							/* one in memory or both inmemory at different offsets */
+							count_mem_move_bb++;
+							in_register=false;
+						}
+					}
+
+					dst = dst->prev;
+				}
+#ifdef LSRA
+			}
+#endif	
+
+
+				dst = bptr->instack;
+				iptr = bptr->iinstr;
+				len = bptr->icount;
+				src_old = NULL;
+
+				while (--len >= 0)  {
+					src = dst;
+					dst = iptr->dst;
+
+					if ((src!= NULL) && (src != src_old)) { /* new stackslot */
+						switch (src->varkind) {
+						case TEMPVAR:
+						case STACKVAR:
+							if (!(src->flags & INMEMORY)) 
+								count_ss_register++;
+							else {
+								count_ss_spilled++;
+								in_register=false;
+							}				
+							break;
+							/* 					case LOCALVAR: */
+							/* 						if (!(rd->locals[src->varnum][src->type].flags & INMEMORY)) */
+							/* 							count_ss_register++; */
+							/* 						else */
+							/* 							count_ss_spilled++; */
+							/* 						break; */
+						case ARGVAR:
+							if (!(src->flags & INMEMORY)) 
+								count_argument_mem_ss++;
+							else
+								count_argument_reg_ss++;
+							break;
+
+
+							/* 						if (IS_FLT_DBL_TYPE(src->type)) { */
+							/* 							if (src->varnum < FLT_ARG_CNT) { */
+							/* 								count_ss_register++; */
+							/* 								break; */
+							/* 							} */
+							/* 						} else { */
+							/* #if defined(__POWERPC__) */
+							/* 							if (src->varnum < INT_ARG_CNT - (IS_2_WORD_TYPE(src->type) != 0)) { */
+							/* #else */
+							/* 							if (src->varnum < INT_ARG_CNT) { */
+							/* #endif */
+							/* 								count_ss_register++; */
+							/* 								break; */
+							/* 							} */
+							/* 						} */
+							/* 						count_ss_spilled++; */
+							/* 						break; */
+						}
+					}
+					src_old = src;
+					
+					iptr++;
+				} /* while instructions */
+			} /* if */
+			bptr = bptr->next;
+		} /* while blocks */
+		count_interface_size += size_interface; /* accummulate the size of the interface (between bb boundaries) */
+		if (in_register) count_method_in_register++;
+}
+#endif
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
