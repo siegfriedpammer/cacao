@@ -25,6 +25,7 @@ typedef struct subroutineinfo subroutineinfo;
 typedef struct varinfo varinfo;
 typedef struct branchref branchref;
 typedef struct jumpref jumpref;
+typedef struct dataref dataref;
 typedef varinfo *varinfoptr;
 
 
@@ -146,6 +147,12 @@ struct jumpref {
 	s4 tablepos;                /* patching position in data segment          */
 	basicblock *target;         /* target basic block                         */
 	jumpref *next;              /* next element in jumpref list               */
+	};
+
+
+struct dataref {
+        u1 *pos;                    /* patching position in generated code        */
+	dataref *next;              /* next element in dataref list               */
 	};
 
 
@@ -1351,7 +1358,12 @@ extern int nreg_parammode;
 void asm_handle_exception();
 void asm_handle_nat_exception();
 
+#if defined(__I386__) || defined(__X86_64__)
+static void disassinstr(u1 *code, int pos);     /* disassemble an instruction */
+static void disassemble(u1 *code, int len);     /* disassemble a code block   */
+#else
 static void disassinstr (int c, int pos);       /* disassemble an instruction */
 static void disassemble (int *code, int len);   /* disassemble a code block   */
+#endif
 
 #endif
