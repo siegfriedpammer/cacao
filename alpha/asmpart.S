@@ -736,7 +736,7 @@ ex_flt2:
 	srl     t0,16,t0              /* isolate instruction code                 */
 	lda     t0,-0x177b(t0)        /* test for LDAH                            */
 	bne     t0,ex_stack_loop       
-	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
+	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(RA)         */
 	sll     t0,16,t0              /* compute high offset                      */
 	addl    t0,0,t0               /* sign extend high offset                  */
 	addq    t0,pv,pv              /* compute update address                   */
