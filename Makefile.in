@@ -10,7 +10,7 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-# $Id: Makefile.in 163 2002-10-16 17:25:08Z stefan $
+# $Id: Makefile.in 164 2002-10-17 13:00:48Z stefan $
 
 
 SHELL = /bin/sh
@@ -79,7 +79,6 @@ SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc narray
 EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html
 
 CLEANFILES = @SYSDEP_DIR@/asmpart.o \
-			 @SYSDEP_DIR@/asmpart.s \
              @SYSDEP_DIR@/offsets.h \
 	         nativetable.hh \
 	         nativetypes.hh
@@ -562,13 +561,8 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 		java.io.UnixFileSystem \
 		java.lang.ClassLoader_NativeLibrary
 
-@SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/asmpart.c @SYSDEP_DIR@/offsets.h
-	rm -f @SYSDEP_DIR@/asmpart.s
-	@CPP@ $(INCLUDES) $(top_srcdir)/@SYSDEP_DIR@/asmpart.c \
-			> @SYSDEP_DIR@/asmpart.s
-	@CC@ $(CFLAGS) $(INCLUDES) -c -o @SYSDEP_DIR@/asmpart.o \
-			@SYSDEP_DIR@/asmpart.s
-	rm -f asmpart.s
+@SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/asmpart.S @SYSDEP_DIR@/offsets.h
+	@CC@ $(INCLUDES) -c -g -o $@ $<
 
 compiler.o: $(top_srcdir)/builtin.h $(top_srcdir)/compiler.h \
 		    $(top_srcdir)/global.h $(top_srcdir)/loader.h \
