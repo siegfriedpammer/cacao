@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1101 2004-05-27 16:29:04Z twisti $
+   $Id: codegen.h 1132 2004-06-05 16:29:07Z twisti $
 
 */
 
@@ -75,6 +75,183 @@
 #define REG_FTMP1       6    /* temporary floating point register             */
 #define REG_FTMP2       7    /* temporary floating point register             */
 #define REG_FTMP3       7    /* temporary floating point register             */
+
+
+/* additional functions and macros to generate code ***************************/
+
+#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
+
+
+#ifdef STATISTICS
+#define COUNT_SPILLS count_spills++
+#else
+#define COUNT_SPILLS
+#endif
+
+
+#define CALCOFFSETBYTES(var, reg, val) \
+    if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
+    else if ((s4) (val) != 0) (var) += 1; \
+    else if ((reg) == EBP) (var) += 1;
+
+
+#define CALCIMMEDIATEBYTES(var, val) \
+    if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
+    else (var) += 1;
+
+
+/* gen_nullptr_check(objreg) */
+
+#define gen_nullptr_check(objreg) \
+	if (checknull) { \
+        i386_test_reg_reg((objreg), (objreg)); \
+        i386_jcc(I386_CC_E, 0); \
+ 	    codegen_addxnullrefs(mcodeptr); \
+	}
+
+
+/* MCODECHECK(icnt) */
+
+#define MCODECHECK(icnt) \
+	if ((mcodeptr + (icnt)) > (u1*) mcodeend) mcodeptr = (u1*) codegen_increase((u1*) mcodeptr)
+
+/* M_INTMOVE:
+     generates an integer-move from register a to b.
+     if a and b are the same int-register, no code will be generated.
+*/ 
+
+#define M_INTMOVE(reg,dreg) if ((reg) != (dreg)) { i386_mov_reg_reg((reg),(dreg)); }
+
+
+/* M_FLTMOVE:
+    generates a floating-point-move from register a to b.
+    if a and b are the same float-register, no code will be generated
+*/
+
+#define M_FLTMOVE(reg,dreg) panic("M_FLTMOVE");
+
+#define M_LNGMEMMOVE(reg,dreg) \
+    do { \
+        i386_mov_membase_reg(REG_SP, (reg) * 8, REG_ITMP1); \
+        i386_mov_reg_membase(REG_ITMP1, REG_SP, (dreg) * 8); \
+        i386_mov_membase_reg(REG_SP, (reg) * 8 + 4, REG_ITMP1); \
+        i386_mov_reg_membase(REG_ITMP1, REG_SP, (dreg) * 8 + 4); \
+    } while (0)
+
+
+/* var_to_reg_xxx:
+    this function generates code to fetch data from a pseudo-register
+    into a real register. 
+    If the pseudo-register has actually been assigned to a real 
+    register, no code will be emitted, since following operations
+    can use this register directly.
+    
+    v: pseudoregister to be fetched from
+    tempregnum: temporary register to be used if v is actually spilled to ram
+
+    return: the register number, where the operand can be found after 
+            fetching (this wil be either tempregnum or the register
+            number allready given to v)
+*/
+
+#define var_to_reg_int(regnr,v,tempnr) \
+    if ((v)->flags & INMEMORY) { \
+        COUNT_SPILLS; \
+        i386_mov_membase_reg(REG_SP, (v)->regoff * 8, tempnr); \
+        regnr = tempnr; \
+    } else { \
+        regnr = (v)->regoff; \
+    }
+
+
+
+#define var_to_reg_flt(regnr,v,tempnr) \
+    if ((v)->type == TYPE_FLT) { \
+        if ((v)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            i386_flds_membase(REG_SP, (v)->regoff * 8); \
+            fpu_st_offset++; \
+            regnr = tempnr; \
+        } else { \
+            i386_fld_reg((v)->regoff + fpu_st_offset); \
+            fpu_st_offset++; \
+            regnr = (v)->regoff; \
+        } \
+    } else { \
+        if ((v)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            i386_fldl_membase(REG_SP, (v)->regoff * 8); \
+            fpu_st_offset++; \
+            regnr = tempnr; \
+        } else { \
+            i386_fld_reg((v)->regoff + fpu_st_offset); \
+            fpu_st_offset++; \
+            regnr = (v)->regoff; \
+        } \
+    }
+
+#define NEW_var_to_reg_flt(regnr,v,tempnr) \
+    if ((v)->type == TYPE_FLT) { \
+       if ((v)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            i386_flds_membase(REG_SP, (v)->regoff * 8); \
+            fpu_st_offset++; \
+            regnr = tempnr; \
+        } else { \
+            regnr = (v)->regoff; \
+        } \
+    } else { \
+        if ((v)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            i386_fldl_membase(REG_SP, (v)->regoff * 8); \
+            fpu_st_offset++; \
+            regnr = tempnr; \
+        } else { \
+            regnr = (v)->regoff; \
+        } \
+    }
+
+
+/* store_reg_to_var_xxx:
+    This function generates the code to store the result of an operation
+    back into a spilled pseudo-variable.
+    If the pseudo-variable has not been spilled in the first place, this 
+    function will generate nothing.
+    
+    v ............ Pseudovariable
+    tempregnum ... Number of the temporary registers as returned by
+                   reg_of_var.
+*/	
+
+#define store_reg_to_var_int(sptr, tempregnum) \
+    if ((sptr)->flags & INMEMORY) { \
+        COUNT_SPILLS; \
+        i386_mov_reg_membase(tempregnum, REG_SP, (sptr)->regoff * 8); \
+    }
+
+
+#define store_reg_to_var_flt(sptr, tempregnum) \
+    if ((sptr)->type == TYPE_FLT) { \
+        if ((sptr)->flags & INMEMORY) { \
+             COUNT_SPILLS; \
+             i386_fstps_membase(REG_SP, (sptr)->regoff * 8); \
+             fpu_st_offset--; \
+        } else { \
+/*                  i386_fxch_reg((sptr)->regoff);*/ \
+             i386_fstp_reg((sptr)->regoff + fpu_st_offset); \
+             fpu_st_offset--; \
+        } \
+    } else { \
+        if ((sptr)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            i386_fstpl_membase(REG_SP, (sptr)->regoff * 8); \
+            fpu_st_offset--; \
+        } else { \
+/*                  i386_fxch_reg((sptr)->regoff);*/ \
+            i386_fstp_reg((sptr)->regoff + fpu_st_offset); \
+            fpu_st_offset--; \
+        } \
+    }
 
 
 /* macros to create code ******************************************************/
@@ -240,151 +417,6 @@ typedef enum {
      } while (0)
 
 
-/* code generation prototypes */
-
-void i386_emit_ialu(s4 alu_op, stackptr src, instruction *iptr);
-void i386_emit_ialuconst(s4 alu_op, stackptr src, instruction *iptr);
-void i386_emit_lalu(s4 alu_op, stackptr src, instruction *iptr);
-void i386_emit_laluconst(s4 alu_op, stackptr src, instruction *iptr);
-void i386_emit_ishift(s4 shift_op, stackptr src, instruction *iptr);
-void i386_emit_ishiftconst(s4 shift_op, stackptr src, instruction *iptr);
-void i386_emit_ifcc_iconst(s4 if_op, stackptr src, instruction *iptr);
-
-
-/* integer instructions */
-
-void i386_mov_reg_reg(s4 reg, s4 dreg);
-void i386_mov_imm_reg(s4 imm, s4 dreg);
-void i386_movb_imm_reg(s4 imm, s4 dreg);
-void i386_mov_membase_reg(s4 basereg, s4 disp, s4 reg);
-void i386_mov_membase32_reg(s4 basereg, s4 disp, s4 reg);
-void i386_mov_reg_membase(s4 reg, s4 basereg, s4 disp);
-void i386_mov_memindex_reg(s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
-void i386_mov_reg_memindex(s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_mov_mem_reg(s4 mem, s4 dreg);
-void i386_movw_reg_memindex(s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_movb_reg_memindex(s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_mov_imm_membase(s4 imm, s4 basereg, s4 disp);
-void i386_movsbl_memindex_reg(s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
-void i386_movswl_memindex_reg(s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
-void i386_movzwl_memindex_reg(s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
-void i386_alu_reg_reg(s4 opc, s4 reg, s4 dreg);
-void i386_alu_reg_membase(s4 opc, s4 reg, s4 basereg, s4 disp);
-void i386_alu_membase_reg(s4 opc, s4 basereg, s4 disp, s4 reg);
-void i386_alu_imm_reg(s4 opc, s4 imm, s4 reg);
-void i386_alu_imm_membase(s4 opc, s4 imm, s4 basereg, s4 disp);
-void i386_test_reg_reg(s4 reg, s4 dreg);
-void i386_test_imm_reg(s4 imm, s4 dreg);
-void i386_inc_reg(s4 reg);
-void i386_inc_membase(s4 basereg, s4 disp);
-void i386_dec_reg(s4 reg);
-void i386_dec_membase(s4 basereg, s4 disp);
-void i386_dec_mem(s4 mem);
-void i386_cltd();
-void i386_imul_reg_reg(s4 reg, s4 dreg);
-void i386_imul_membase_reg(s4 basereg, s4 disp, s4 dreg);
-void i386_imul_imm_reg(s4 imm, s4 reg);
-void i386_imul_imm_reg_reg(s4 imm, s4 reg, s4 dreg);
-void i386_imul_imm_membase_reg(s4 imm, s4 basereg, s4 disp, s4 dreg);
-void i386_mul_membase(s4 basereg, s4 disp);
-void i386_idiv_reg(s4 reg);
-void i386_ret();
-void i386_shift_reg(s4 opc, s4 reg);
-void i386_shift_membase(s4 opc, s4 basereg, s4 disp);
-void i386_shift_imm_reg(s4 opc, s4 imm, s4 reg);
-void i386_shift_imm_membase(s4 opc, s4 imm, s4 basereg, s4 disp);
-void i386_shld_reg_reg(s4 reg, s4 dreg);
-void i386_shld_imm_reg_reg(s4 imm, s4 reg, s4 dreg);
-void i386_shld_reg_membase(s4 reg, s4 basereg, s4 disp);
-void i386_shrd_reg_reg(s4 reg, s4 dreg);
-void i386_shrd_imm_reg_reg(s4 imm, s4 reg, s4 dreg);
-void i386_shrd_reg_membase(s4 reg, s4 basereg, s4 disp);
-void i386_jmp_imm(s4 imm);
-void i386_jmp_reg(s4 reg);
-void i386_jcc(s4 opc, s4 imm);
-void i386_setcc_reg(s4 opc, s4 reg);
-void i386_setcc_membase(s4 opc, s4 basereg, s4 disp);
-void i386_xadd_reg_mem(s4 reg, s4 mem);
-void i386_neg_reg(s4 reg);
-void i386_neg_membase(s4 basereg, s4 disp);
-void i386_push_imm(s4 imm);
-void i386_pop_reg(s4 reg);
-void i386_push_reg(s4 reg);
-void i386_nop();
-void i386_lock();
-void i386_call_reg(s4 reg);
-void i386_call_imm(s4 imm);
-void i386_call_mem(s4 mem);
-
-
-/* floating point instructions */
-
-void i386_fld1();
-void i386_fldz();
-void i386_fld_reg(s4 reg);
-void i386_flds_membase(s4 basereg, s4 disp);
-void i386_fldl_membase(s4 basereg, s4 disp);
-void i386_fldt_membase(s4 basereg, s4 disp);
-void i386_flds_memindex(s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_fldl_memindex(s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_fildl_membase(s4 basereg, s4 disp);
-void i386_fildll_membase(s4 basereg, s4 disp);
-void i386_fst_reg(s4 reg);
-void i386_fsts_membase(s4 basereg, s4 disp);
-void i386_fstl_membase(s4 basereg, s4 disp);
-void i386_fsts_memindex(s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_fstl_memindex(s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_fstp_reg(s4 reg);
-void i386_fstps_membase(s4 basereg, s4 disp);
-void i386_fstpl_membase(s4 basereg, s4 disp);
-void i386_fstpt_membase(s4 basereg, s4 disp);
-void i386_fstps_memindex(s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_fstpl_memindex(s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_fistl_membase(s4 basereg, s4 disp);
-void i386_fistpl_membase(s4 basereg, s4 disp);
-void i386_fistpll_membase(s4 basereg, s4 disp);
-void i386_fchs();
-void i386_faddp();
-void i386_fadd_reg_st(s4 reg);
-void i386_fadd_st_reg(s4 reg);
-void i386_faddp_st_reg(s4 reg);
-void i386_fadds_membase(s4 basereg, s4 disp);
-void i386_faddl_membase(s4 basereg, s4 disp);
-void i386_fsub_reg_st(s4 reg);
-void i386_fsub_st_reg(s4 reg);
-void i386_fsubp_st_reg(s4 reg);
-void i386_fsubp();
-void i386_fsubs_membase(s4 basereg, s4 disp);
-void i386_fsubl_membase(s4 basereg, s4 disp);
-void i386_fmul_reg_st(s4 reg);
-void i386_fmul_st_reg(s4 reg);
-void i386_fmulp();
-void i386_fmulp_st_reg(s4 reg);
-void i386_fmuls_membase(s4 basereg, s4 disp);
-void i386_fmull_membase(s4 basereg, s4 disp);
-void i386_fdiv_reg_st(s4 reg);
-void i386_fdiv_st_reg(s4 reg);
-void i386_fdivp();
-void i386_fdivp_st_reg(s4 reg);
-void i386_fxch();
-void i386_fxch_reg(s4 reg);
-void i386_fprem();
-void i386_fprem1();
-void i386_fucom();
-void i386_fucom_reg(s4 reg);
-void i386_fucomp_reg(s4 reg);
-void i386_fucompp();
-void i386_fnstsw();
-void i386_sahf();
-void i386_finit();
-void i386_fldcw_mem(s4 mem);
-void i386_fldcw_membase(s4 basereg, s4 disp);
-void i386_wait();
-void i386_ffree_reg(s4 reg);
-void i386_fdecstp();
-void i386_fincstp();
-
-
 /* function gen_resolvebranch **************************************************
 
     backpatches a branch instruction
@@ -402,6 +434,7 @@ void i386_fincstp();
 /* function prototypes */
 
 void codegen_init();
+void *codegen_findmethod(void *pc);
 void init_exceptions();
 void codegen();
 void codegen_close();
