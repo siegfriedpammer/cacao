@@ -28,12 +28,14 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 950 2004-03-07 23:52:44Z twisti $
+   $Id: codegen.c 1064 2004-05-16 15:36:36Z twisti $
 
 */
 
 
-#define _GNU_SOURCE    /* we need this for signal handling */
+#define _POSIX_C_SOURCE 199506L
+#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE_EXTENDED
 
 #include <stdio.h>
 #include <signal.h>
@@ -274,6 +276,8 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 
 	struct ucontext *_uc = (struct ucontext *) _p;
 	struct sigcontext *sigctx = (struct sigcontext *) &_uc->uc_mcontext;
+	struct sigaction act;
+	java_objectheader *xptr;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
@@ -282,19 +286,19 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 /*    	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f]; */
 
 /*  	if (faultaddr == 0) { */
-	signal(sig, (void *) catch_NullPointerException);          /* reinstall handler */
+	act.sa_sigaction = (void *) catch_NullPointerException; /* reinstall handler */
+	act.sa_flags = SA_SIGINFO;
+	sigaction(sig, &act, NULL);
+	
 	sigemptyset(&nsig);
 	sigaddset(&nsig, sig);
-	sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
+	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
 
-	if (!proto_java_lang_NullPointerException) {
-		proto_java_lang_NullPointerException =
-			new_exception(string_java_lang_NullPointerException);
-	}
+	xptr = new_exception(string_java_lang_NullPointerException);
 
-	sigctx->rax = (s8) proto_java_lang_NullPointerException; /* REG_ITMP1_XPTR    */
-	sigctx->r10 = sigctx->rip;                               /* REG_ITMP2_XPC     */
-	sigctx->rip = (s8) asm_handle_exception;
+	sigctx->rax = (u8) xptr;                             /* REG_ITMP1_XPTR    */
+	sigctx->r10 = sigctx->rip;                           /* REG_ITMP2_XPC     */
+	sigctx->rip = (u8) asm_handle_exception;
 
 	return;
 
@@ -314,11 +318,15 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 
 	struct ucontext *_uc = (struct ucontext *) _p;
 	struct sigcontext *sigctx = (struct sigcontext *) &_uc->uc_mcontext;
+	struct sigaction act;
 	java_objectheader *xptr;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
-	signal(sig, (void *) catch_ArithmeticException);     /* reinstall handler */
+	act.sa_sigaction = (void *) catch_ArithmeticException; /* reinstall handler */
+	act.sa_flags = SA_SIGINFO;
+	sigaction(sig, &act, NULL);
+
 	sigemptyset(&nsig);
 	sigaddset(&nsig, sig);
 	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
@@ -336,19 +344,27 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 
 void init_exceptions(void)
 {
+	struct sigaction act;
+
 	/* install signal handlers we need to convert to exceptions */
 
 	if (!checknull) {
 #if defined(SIGSEGV)
-		signal(SIGSEGV, (void *) catch_NullPointerException);
+		act.sa_sigaction = (void *) catch_NullPointerException;
+		act.sa_flags = SA_SIGINFO;
+		sigaction(SIGSEGV, &act, NULL);
 #endif
 
 #if defined(SIGBUS)
-		signal(SIGBUS, (void *) catch_NullPointerException);
+		act.sa_sigaction = (void *) catch_NullPointerException;
+		act.sa_flags = SA_SIGINFO;
+		sigaction(SIGBUS, &act, NULL);
 #endif
 	}
 
-	signal(SIGFPE, (void *) catch_ArithmeticException);
+	act.sa_sigaction = (void *) catch_ArithmeticException;
+	act.sa_flags = SA_SIGINFO;
+	sigaction(SIGFPE, &act, NULL);
 }
 
 
@@ -386,7 +402,7 @@ void codegen()
 
 	parentargs_base = maxmemuse + savedregs_num;
 
-#ifdef USE_THREADS                 /* space to save argument of monitor_enter */
+#if defined(USE_THREADS)           /* space to save argument of monitor_enter */
 
 	if (checksync && (method->flags & ACC_SYNCHRONIZED))
 		parentargs_base++;
@@ -406,7 +422,7 @@ void codegen()
 	(void) dseg_addaddress(method);                         /* MethodPointer  */
 	(void) dseg_adds4(parentargs_base * 8);                 /* FrameSize      */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 
 	/* IsSync contains the offset relative to the stack pointer for the
 	   argument of monitor_exit used in the exception handler. Since the
@@ -430,40 +446,9 @@ void codegen()
 	/* create exception table */
 
 	for (ex = extable; ex != NULL; ex = ex->down) {
-
-#ifdef LOOP_DEBUG	
-		if (ex->start != NULL)
-			printf("adding start - %d - ", ex->start->debug_nr);
-		else {
-			printf("PANIC - start is NULL");
-			exit(-1);
-		}
-#endif
-
 		dseg_addtarget(ex->start);
-
-#ifdef LOOP_DEBUG			
-		if (ex->end != NULL)
-			printf("adding end - %d - ", ex->end->debug_nr);
-		else {
-			printf("PANIC - end is NULL");
-			exit(-1);
-		}
-#endif
-
    		dseg_addtarget(ex->end);
-
-#ifdef LOOP_DEBUG		
-		if (ex->handler != NULL)
-			printf("adding handler - %d\n", ex->handler->debug_nr);
-		else {
-			printf("PANIC - handler is NULL");
-			exit(-1);
-		}
-#endif
-
 		dseg_addtarget(ex->handler);
-	   
 		(void) dseg_addaddress(ex->catchtype);
 	}
 	
@@ -491,7 +476,7 @@ void codegen()
 
 	/* save monitorenter argument */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 		if (method->flags & ACC_STATIC) {
 			x86_64_mov_imm_reg((s8) class, REG_ITMP1);
@@ -629,9 +614,9 @@ void codegen()
 
 	/* call monitorenter function */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-		x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, argintregs[0]);
+		x86_64_mov_membase_reg(REG_SP, maxmemuse * 8, argintregs[0]);
 		x86_64_mov_imm_reg((s8) builtin_monitorenter, REG_ITMP1);
 		x86_64_call_reg(REG_ITMP1);
 	}			
@@ -2882,37 +2867,45 @@ void codegen()
 		case ICMD_LRETURN:
 		case ICMD_ARETURN:
 
-#ifdef USE_THREADS
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, argintregs[0]);
-				x86_64_mov_imm_reg((s8) builtin_monitorexit, REG_ITMP1);
-				x86_64_call_reg(REG_ITMP1);
-			}
-#endif
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
+
+#if defined(USE_THREADS)
+			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+				x86_64_mov_membase_reg(REG_SP, maxmemuse * 8, argintregs[0]);
+				x86_64_mov_reg_membase(REG_RESULT, REG_SP, maxmemuse * 8);
+				x86_64_mov_imm_reg((u8) builtin_monitorexit, REG_ITMP1);
+				x86_64_call_reg(REG_ITMP1);
+				x86_64_mov_membase_reg(REG_SP, maxmemuse * 8, REG_RESULT);
+			}
+#endif
+
 			goto nowperformreturn;
 
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:
 
-#ifdef USE_THREADS
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, argintregs[0]);
-				x86_64_mov_imm_reg((s8) builtin_monitorexit, REG_ITMP1);
-				x86_64_call_reg(REG_ITMP1);
-			}
-#endif
 			var_to_reg_flt(s1, src, REG_FRESULT);
 			M_FLTMOVE(s1, REG_FRESULT);
+
+#if defined(USE_THREADS)
+			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+				x86_64_mov_membase_reg(REG_SP, maxmemuse * 8, argintregs[0]);
+				x86_64_movq_reg_membase(REG_FRESULT, REG_SP, maxmemuse * 8);
+				x86_64_mov_imm_reg((u8) builtin_monitorexit, REG_ITMP1);
+				x86_64_call_reg(REG_ITMP1);
+				x86_64_movq_membase_reg(REG_SP, maxmemuse * 8, REG_FRESULT);
+			}
+#endif
+
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				x86_64_mov_membase_reg(REG_SP, 8 * maxmemuse, argintregs[0]);
-				x86_64_mov_imm_reg((s8) builtin_monitorexit, REG_ITMP1);
+				x86_64_mov_membase_reg(REG_SP, maxmemuse * 8, argintregs[0]);
+				x86_64_mov_imm_reg((u8) builtin_monitorexit, REG_ITMP1);
 				x86_64_call_reg(REG_ITMP1);
 			}
 #endif
@@ -3456,6 +3449,13 @@ gen_method: {
 			codegen_addxcheckarefs(mcodeptr);
 			break;
 
+		case ICMD_CHECKOOM:    /* ... ==> ...                                 */
+
+			x86_64_test_reg_reg(REG_RESULT, REG_RESULT);
+			x86_64_jcc(X86_64_CC_E, 0);
+			codegen_addxoomrefs(mcodeptr);
+			break;
+
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
 		                         /* op1 = dimension, val.a = array descriptor */
 
@@ -3536,6 +3536,7 @@ gen_method: {
 	{
 
 	/* generate bound check stubs */
+
 	u1 *xcodeptr = NULL;
 	
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
@@ -3579,6 +3580,7 @@ gen_method: {
 	}
 
 	/* generate negative array size check stubs */
+
 	xcodeptr = NULL;
 	
 	for (; xcheckarefs != NULL; xcheckarefs = xcheckarefs->next) {
@@ -3618,6 +3620,7 @@ gen_method: {
 	}
 
 	/* generate cast check stubs */
+
 	xcodeptr = NULL;
 	
 	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
@@ -3656,7 +3659,54 @@ gen_method: {
 		}
 	}
 
+	/* generate oom check stubs */
+
+	xcodeptr = NULL;
+	
+	for (; xoomrefs != NULL; xoomrefs = xoomrefs->next) {
+		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+			gen_resolvebranch(mcodebase + xoomrefs->branchpos, 
+				xoomrefs->branchpos, xcodeptr - mcodebase - (10 + 10 + 3));
+			continue;
+		}
+
+		gen_resolvebranch(mcodebase + xoomrefs->branchpos, 
+		                  xoomrefs->branchpos, mcodeptr - mcodebase);
+
+		MCODECHECK(8);
+
+		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);                        /* 10 bytes */
+		dseg_adddata(mcodeptr);
+		x86_64_mov_imm_reg(xoomrefs->branchpos - 6, REG_ITMP1);     /* 10 bytes */
+		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes  */
+
+		if (xcodeptr != NULL) {
+			x86_64_jmp_imm(xcodeptr - mcodeptr - 5);
+		
+		} else {
+			xcodeptr = mcodeptr;
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			x86_64_push_reg(REG_ITMP2_XPC);
+			x86_64_mov_imm_reg((u8) &builtin_get_exceptionptrptr, REG_ITMP1);
+			x86_64_call_reg(REG_ITMP1);
+			x86_64_mov_membase_reg(REG_RESULT, 0, REG_ITMP3);
+			x86_64_mov_imm_membase(0, REG_RESULT, 0);
+			x86_64_mov_reg_reg(REG_ITMP3, REG_ITMP1_XPTR);
+			x86_64_pop_reg(REG_ITMP2_XPC);
+#else
+			x86_64_mov_imm_reg((u8) &_exceptionptr, REG_ITMP3);
+			x86_64_mov_membase_reg(REG_ITMP3, 0, REG_ITMP1_XPTR);
+			x86_64_mov_imm_membase(0, REG_ITMP3, 0);
+#endif
+
+			x86_64_mov_imm_reg((u8) asm_handle_exception, REG_ITMP3);
+			x86_64_jmp_reg(REG_ITMP3);
+		}
+	}
+
 	/* generate null pointer check stubs */
+
 	xcodeptr = NULL;
 	
 	for (; xnullrefs != NULL; xnullrefs = xnullrefs->next) {
@@ -3754,6 +3804,18 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	reg_init();
     descriptor2types(m);                /* set paramcount and paramtypes      */
+
+	/* if function is static, check for initialized */
+
+	if (m->flags & ACC_STATIC) {
+		/* if class isn't yet initialized, do it */
+		if (!m->class->initialized) {
+			/* call helper function which patches this code */
+			x86_64_mov_imm_reg((u8) m->class, REG_ITMP1);
+			x86_64_mov_imm_reg((u8) asm_check_clinit, REG_ITMP2);
+			x86_64_call_reg(REG_ITMP2);
+		}
+	}
 
 	if (runverbose) {
 		int p, l, s1;
@@ -3948,7 +4010,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	count_nstub_len += NATIVESTUBSIZE;
 #endif
 
-	return (u1*) s;
+	return s;
 }
 
 
