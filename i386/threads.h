@@ -39,10 +39,10 @@ void asm_switchstackandcall (void *stack, void *func, void **stacktopsave, void 
                                     asm_initialize_thread_stack((u1*)(func), \
                                                             (to)->stackEnd)
 
-#define	THREADINFO(e)                               \
-		do {                                        \
-			(e)->restorePoint = 0;                  \
-			(e)->flags = THREAD_FLAGS_NOSTACKALLOC; \
-		} while(0)
+#define	THREADINFO(e) \
+    do { \
+        (e)->restorePoint = 0; \
+        (e)->flags = THREAD_FLAGS_NOSTACKALLOC; \
+    } while(0)
 
 #endif

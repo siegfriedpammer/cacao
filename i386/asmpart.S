@@ -319,8 +319,8 @@ asm_call_jit_compiler:
 		movl	%esp, %ebp
 
 		pushl	%ebx            /* save register                              */
-		pushl	%esi
-		pushl	%edi
+/*		pushl	%esi*/
+/*		pushl	%edi*/
 				
 		movl	4(%ebp),%edx	/* get return address                         */
 		movb	-1(%edx),%bl	/* get function code                          */
@@ -356,8 +356,8 @@ L_call_jit_compile:
 		movl	%eax,(%edx)		/* and now save the new pointer               */
 
 L_call_method:
-		popl	%edi            /* restore registers                          */
-		popl	%esi
+/*		popl	%edi            /* restore registers                          */
+/*		popl	%esi*/
 		popl	%ebx
 		
 		leave
@@ -604,34 +604,6 @@ asm_builtin_lrem:
 		jmp		builtin_lrem
 
 nb_lrem:
-		popl	%edx					/* delete return address */
-		
-		movl	proto_java_lang_ArithmeticException,%eax
-		subl	$2,%edx					/* faulting address is return adress - 2 */
-		jmp		asm_handle_nat_exception
-		
-
-/************************ function asm_builtin_frem ****************************
-*                                                                              *
-*   Does null check and calls frem or throws an exception                      *
-*                                                                              *
-*******************************************************************************/
-
-asm_builtin_frem:
-		subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
-
-		flds	12(%esp)                /* 8 (frame) + 4 (return) = 12 */
-		fstps	(%esp)
-
-		flds	20(%esp)
-		fstps	4(%esp)
-
-		call	builtin_frem
-
-		addl	$8,%esp
-		ret
-
-nb_frem:
 		popl	%edx					/* delete return address */
 		
 		movl	proto_java_lang_ArithmeticException,%eax

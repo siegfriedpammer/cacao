@@ -61,22 +61,16 @@
 /* #define REG_END   -1        last entry in tables */
 
 int nregdescint[] = {
-    REG_RET, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+/*      REG_RET, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, */
+    REG_RET, REG_RES, REG_RES, REG_SAV, REG_RES, REG_SAV, REG_SAV, REG_TMP,
     REG_END };
-
-/*  int nregdescint[] = { */
-/*      REG_RET, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, */
-/*      REG_END }; */
 
 /* for use of reserved registers, see comment above */
 
 int nregdescfloat[] = {
-    REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+/*      REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, */
+    REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES,
     REG_END };
-
-/*  int nregdescfloat[] = { */
-/*      REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES, */
-/*      REG_END }; */
 
 /* for use of reserved registers, see comment above */
 
@@ -532,6 +526,15 @@ static const unsigned char i386_jcc_map[] = {
         *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
         *(((u1 *) mcodeptr)++) = (u1) 0xbf; \
         i386_emit_reg((reg),(dreg)); \
+    } while (0)
+
+
+#define i386_movzbl_reg_reg(reg,dreg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xb6; \
+        /* XXX: why do reg and dreg have to be exchanged */ \
+        i386_emit_reg((dreg),(reg)); \
     } while (0)
 
 
@@ -1264,6 +1267,20 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_fadd_st_reg(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdc; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xc0 + (0x0f & (reg)); \
+    } while (0)
+
+
+#define i386_faddp_st_reg(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xde; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xc0 + (0x0f & (reg)); \
+    } while (0)
+
+
 #define i386_fadds_membase(basereg,disp) \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xd8; \
@@ -1275,6 +1292,27 @@ static const unsigned char i386_jcc_map[] = {
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xdc; \
         i386_emit_membase((basereg),(disp),0); \
+    } while (0)
+
+
+#define i386_fsub_reg_st(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xd8; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xe0 + (0x07 & (reg)); \
+    } while (0)
+
+
+#define i386_fsub_st_reg(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdc; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xe8 + (0x07 & (reg)); \
+    } while (0)
+
+
+#define i386_fsubp_st_reg(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xde; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xe8 + (0x07 & (reg)); \
     } while (0)
 
 
@@ -1299,10 +1337,31 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_fmul_reg_st(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xd8; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xc8 + (0x07 & (reg)); \
+    } while (0)
+
+
+#define i386_fmul_st_reg(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdc; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xc8 + (0x07 & (reg)); \
+    } while (0)
+
+
 #define i386_fmulp() \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xde; \
         *(((u1 *) mcodeptr)++) = (u1) 0xc9; \
+    } while (0)
+
+
+#define i386_fmulp_st_reg(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xde; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xc8 + (0x07 & (reg)); \
     } while (0)
 
 
@@ -1337,7 +1396,7 @@ static const unsigned char i386_jcc_map[] = {
 #define i386_fxch_reg(reg) \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xd9; \
-        *(((u1 *) mcodeptr)++) = (u1) 0xc8 + (0x0f & (reg)); \
+        *(((u1 *) mcodeptr)++) = (u1) 0xc8 + (0x07 & (reg)); \
     } while (0)
 
 
@@ -1359,6 +1418,20 @@ static const unsigned char i386_jcc_map[] = {
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xdd; \
         *(((u1 *) mcodeptr)++) = (u1) 0xe1; \
+    } while (0)
+
+
+#define i386_fucom_reg(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdd; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xe0 + (0x07 & (reg)); \
+    } while (0)
+
+
+#define i386_fucomp_reg(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdd; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xe8 + (0x07 & (reg)); \
     } while (0)
 
 
