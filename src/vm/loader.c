@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 833 2004-01-04 22:10:24Z jowenn $
+   $Id: loader.c 849 2004-01-05 21:27:29Z stefan $
 
 */
 
@@ -446,6 +446,7 @@ bool suck_start(utf *classname)
 	strcpy(filename + filenamelen, ".class");
 	filenamelen+=6;
 	for (currPos=classpath_entries;currPos!=0;currPos=currPos->filepath.next) {
+#ifdef USE_ZLIB
 		if (currPos->filepath.type==CLASSPATH_ARCHIVE) {
 			if (cacao_locate(currPos->archive.uf,classname) == UNZ_OK) {
 				unz_file_info file_info;
@@ -470,6 +471,7 @@ bool suck_start(utf *classname)
 			unzCloseCurrentFile(currPos->archive.uf);
 
 		} else {
+#endif
 			if ((currPos->filepath.pathlen+filenamelen)>=CLASSPATH_MAXFILENAME) continue;
 			strcpy(currPos->filepath.filename+currPos->filepath.pathlen,filename);
 			classfile = fopen(currPos->filepath.filename, "r");
@@ -490,7 +492,9 @@ bool suck_start(utf *classname)
 					return true;
 				}
 			}
+#ifdef USE_ZLIB
 		}
+#endif
 	}
 
 	if (verbose) {
