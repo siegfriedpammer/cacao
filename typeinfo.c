@@ -26,13 +26,19 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 698 2003-12-07 13:42:47Z edwin $
+   $Id: typeinfo.c 707 2003-12-07 17:29:08Z twisti $
 
 */
 
+
+#include <stdlib.h>
+#include <string.h>
 #include "typeinfo.h"
 #include "tables.h"
 #include "loader.h"
+#include "toolbox/loging.h"
+#include "toolbox/memory.h"
+
 
 #define TYPEINFO_REUSE_MERGED
 
@@ -1379,4 +1385,18 @@ typeinfo_print_type(FILE *file,int type,typeinfo *info)
     }
 }
 
-#endif // TYPEINFO_DEBUG
+#endif /* TYPEINFO_DEBUG */
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
