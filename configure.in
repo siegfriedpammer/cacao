@@ -202,20 +202,18 @@ else
 fi
 
 dnl check if zlib should be used
-AC_ARG_ENABLE(zlib, [  --enable-zlib           enable zip archive class storage (experimental), needs zlib [default=no]])
+AC_ARG_ENABLE(zlib, [  --enable-zlib           enable zip archive class storage (experimental), needs zlib [default=yes]])
 
 AC_MSG_CHECKING(whether zip archives should be supported)
-if test x"$enable_zlib" = "xyes"; then
+if test x"$enable_zlib" = "xno"; then
+	ZIP_LIBS=""
+	ZIP_C=""
+	AC_MSG_RESULT(no)
+else
 	ZIP_LIBS="-lz"
 	ZIP_C="unzip.c"
 	AC_DEFINE([USE_ZLIB], 1, [use zlib])
 	AC_MSG_RESULT(yes)
-
-else
-	ZIP_LIBS=""
-	ZIP_C=""
-	AC_MSG_RESULT(no)
-
 fi
 AC_SUBST(ZIP_LIBS)
 AC_SUBST(ZIP_C)
