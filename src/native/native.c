@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1238 2004-06-30 20:05:30Z twisti $
+   $Id: native.c 1269 2004-07-03 10:31:02Z stefan $
 
 */
 
@@ -228,9 +228,8 @@ java_objectheader* _exceptionptr = NULL;
 void use_class_as_object(classinfo *c) 
 {
 	if (!c->classvftbl) {
-		c->classvftbl = true;
-
 		c->header.vftbl = class_java_lang_Class->vftbl;
+		c->classvftbl = true;
   	}
 	     
 }
