@@ -92,9 +92,6 @@ AM_PROG_AS
 AC_PROG_RANLIB
 AC_PROG_MAKE_SET
 
-dnl Checks for libraries.
-dnl AC_CHECK_LIB(m, sin)
-
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
@@ -117,6 +114,9 @@ AC_FUNC_MEMCMP
 AC_FUNC_MMAP
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(getcwd gettimeofday mkdir mktime select socket)
+
+dnl Checks for libraries.
+AC_CHECK_LIB(m, fmod)
 
 dnl Check for mmap header anomalies (missing MAP_FAILED, etc.)
 if test $ac_cv_func_mmap_fixed_mapped = yes; then
