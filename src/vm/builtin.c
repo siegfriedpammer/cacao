@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 779 2003-12-14 18:11:35Z stefan $
+   $Id: builtin.c 781 2003-12-15 15:24:44Z twisti $
 
 */
 
@@ -171,9 +171,10 @@ builtin_descriptor builtin_desc[] = {
 				   0 ... otherwise
 					
 *****************************************************************************/					
-
-s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
+s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 { 
+	s4 res;
+
 	/*classinfo *tmp;*/
 	if (super->flags & ACC_INTERFACE)
 		return (sub->vftbl->interfacetablelength > super->index) &&
@@ -211,7 +212,7 @@ s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 	cast_lock();
 #endif
 
-	s4 res = (unsigned) (sub->vftbl->baseval - super->vftbl->baseval) <=
+	res = (unsigned) (sub->vftbl->baseval - super->vftbl->baseval) <=
 		(unsigned) (super->vftbl->diffval);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
