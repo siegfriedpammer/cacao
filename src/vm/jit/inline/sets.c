@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 1967 2005-02-25 15:51:05Z carolyn $
+   $Id: sets.c 2107 2005-03-28 22:44:28Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 #include "types.h"
 #include "mm/memory.h"
 #include "vm/global.h"
+#include "vm/linker.h"
 #include "vm/loader.h"
 #include "vm/tables.h"
 #include "vm/jit/inline/sets.h"

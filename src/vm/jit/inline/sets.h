@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.h 1967 2005-02-25 15:51:05Z carolyn $
+   $Id: sets.h 2107 2005-03-28 22:44:28Z twisti $
 
 */
 
@@ -44,6 +44,7 @@ typedef struct classSetNode classSetNode;
 
 #include "types.h"
 #include "vm/global.h"
+#include "vm/method.h"
 
 
 /*------------ Method /Class Used Markers -------------------------------*/                 

@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 2017 2005-03-09 11:37:33Z twisti $
+   $Id: inline.c 2107 2005-03-28 22:44:28Z twisti $
 
 */
 
@@ -62,6 +62,7 @@ Method to be inlined must:
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/global.h"
+#include "vm/linker.h"
 #include "vm/loader.h"
 #include "vm/tables.h"
 #include "vm/options.h"

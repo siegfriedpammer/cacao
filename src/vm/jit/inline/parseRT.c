@@ -27,7 +27,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 2017 2005-03-09 11:37:33Z twisti $
+   $Id: parseRT.c 2107 2005-03-28 22:44:28Z twisti $
 
 */
 
@@ -67,6 +67,7 @@ Results: (currently) with -stat see # methods marked used
 #include "mm/memory.h"   
 #include "toolbox/list.h"
 #include "vm/class.h"
+#include "vm/linker.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
