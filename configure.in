@@ -1,4 +1,4 @@
-dnl autoconf; autoheader; automake
+cdnl autoconf; autoheader; automake
 
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(main.c)
@@ -14,7 +14,7 @@ dnl system type
 case "$host_cpu" in
 alpha* )
 	ARCH_DIR="alpha"
-	CFLAGS="-mieee -O2 -g3 -D__ALPHA__"
+	CFLAGS="-Wall -O2 -g3 -mieee -D__ALPHA__"
 	AC_DEFINE(TRACE_ARGS_NUM, 6)
 	AC_DEFINE(USE_CODEMMAP)
 	;;
@@ -35,13 +35,13 @@ mips* )
 
 powerpc* | ppc* )
 	ARCH_DIR="powerpc"
-	CFLAGS="-O2 -g -DMAP_ANONYMOUS=0 -no-cpp-precomp"
+	CFLAGS="-Wall -O2 -g -DMAP_ANONYMOUS=0 -no-cpp-precomp -D__POWERPC__"
 	AC_DEFINE(TRACE_ARGS_NUM, 8)
 	;;
 
 x86_64* )
 	ARCH_DIR="x86_64"
-	CFLAGS="-O2 -g3 -D__X86_64__"
+	CFLAGS="-Wall -O2 -g3 -D__X86_64__"
 	AC_DEFINE(TRACE_ARGS_NUM, 6)
 	AC_DEFINE(USE_CODEMMAP)
 	;;
@@ -59,6 +59,7 @@ case "$host_os" in
 * )
 	;;
 esac
+
 AC_SUBST(COMPILER_OBJECTS)
 
 AC_DEFINE_UNQUOTED(ARCH_DIR, "$ARCH_DIR")
@@ -66,11 +67,12 @@ AC_SUBST(ARCH_DIR)
 
 dnl Checks for programs.
 AC_PROG_CC
+AM_PROG_AS
 AC_PROG_RANLIB
 AC_PROG_MAKE_SET
 
 dnl Checks for libraries.
-AC_CHECK_LIB(m, sin)
+dnl AC_CHECK_LIB(m, sin)
 
 dnl Checks for header files.
 AC_HEADER_DIRENT
@@ -94,10 +96,6 @@ AC_FUNC_MEMCMP
 AC_FUNC_MMAP
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(getcwd gettimeofday mkdir mktime select socket)
-AC_CHECK_FUNCS(copysign copysignf)
-AC_CHECK_FUNCS(finite finitef)
-AC_CHECK_FUNCS(fmod fmodf)
-AC_CHECK_FUNCS(isnan isnanf)
 
 dnl Check for mmap header anomalies (missing MAP_FAILED, etc.)
 if test $ac_cv_func_mmap_fixed_mapped = yes; then
@@ -134,7 +132,7 @@ fi
 dnl Features
 
 dnl check arguments
-AC_ARG_ENABLE(threads, [  --enable-threads        enable threads support [default yes]])
+AC_ARG_ENABLE(threads, [  --enable-threads        enable threads support [default=yes]])
 AC_ARG_ENABLE([__thread],
             [  --disable-__thread      do not use TLS features even when supporting them],
             [use__thread=$enablevalval],
@@ -177,32 +175,8 @@ else
   ac_cv_gcc___thread=no
 fi
 
-dnl now configure boehm gc
-AC_CONFIG_SUBDIRS(mm/boehm-gc)
-
-
-AC_ARG_WITH(classcompiler, [  --with-classcompiler[=ARG]         compiler for creating classpath  [jikes,javac13,complang] [default=javac13]])
-
-dnl java compiler
-AC_MSG_CHECKING(which java compiler to use to use)
-case "$with_classcompiler" in
-jikes )
-        AC_MSG_RESULT(jikes (good luck, doesn't seem to really work))
-        CCOMP="jikes"
-        ;;
-complang )
-        AC_MSG_RESULT(complang, make sure that CLASSPATH is set correctly)
-	CCOMP="complang"
-        ;;
-* | "")
-	AC_MSG_RESULT(javac13 (with -target 1.1))
-	CCOMP="javac13complang"
-	;;
-esac
-
-
 dnl check if zlib should be used
-AC_ARG_ENABLE(zlib, [  --enable-zlib           enable zip archive class storage (experimental), needs zlib [default no]])
+AC_ARG_ENABLE(zlib, [  --enable-zlib           enable zip archive class storage (experimental), needs zlib [default=no]])
 
 AC_MSG_CHECKING(whether zip archives should be supported)
 if test x"$enable_zlib" = "xyes"; then
@@ -221,11 +195,11 @@ AC_SUBST(ZIP_LIBS)
 AC_SUBST(ZIP_C)
 
 dnl check arguments
-AC_ARG_ENABLE(gtkpeer, [  --enable-gtkpeer        enable threads support [default no]])
+AC_ARG_ENABLE(gtk-peer, [  --enable-gtk-peer       enable threads support [default=no]])
 
 dnl threads
 AC_MSG_CHECKING(whether to use gtk awt peers)
-if test x"$enable_gtkpeer" = "xyes"; then
+if test x"$enable_gtk_peer" = "xyes"; then
 	AC_MSG_RESULT(yes)
 	AWTPEERS="java.awt.peer.ComponentPeer \
 		java.awt.peer.MenuPeer \
@@ -280,6 +254,11 @@ else
 	AC_MSG_RESULT(no)
 fi
 
+dnl now configure boehm gc and gnu classpath
+dnl the export is not my favorite (is there another way?)
+export CFLAGS
+AC_CONFIG_SUBDIRS(mm/boehm-gc gnuclasspathnat)
+
 AC_OUTPUT(Makefile \
           mm/Makefile \
 	  toolbox/Makefile \
@@ -296,17 +275,6 @@ AC_OUTPUT(Makefile \
 	  tst/Makefile \
 	  tst/kaffe/Makefile \
 	  jvmtst/Makefile )
-
-
-cd gnuclasspathnat
-echo "========================================================================"
-echo "calling: ./gnuclasspathnat/configure --prefix=$prefix/classpath --with-$CCOMP=yes --enable-jni=yes --enable-gtk-peer=$USEGTK --enable-shared=no --enable-static=yes --with-zip=no --enable-portable-native-sync -enable-java=no"
-echo "========================================================================"
-
-./configure --prefix=$prefix/classpath --with-$CCOMP=yes \
-        --enable-jni=yes --enable-gtk-peer=$USEGTK --enable-shared=no --enable-static=yes --with-zip=no \
-	--enable-portable-native-sync -enable-java=no
-cd ..
 
 
 
