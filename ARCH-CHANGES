@@ -28,3 +28,10 @@
     mips: TODO
     powerpc: TODO
     x86_64: TODO
+
+- codegen.c: ICMD_xASTORECONST (twisti)
+    alpha: TODO
+    i386: done
+    mips: TODO
+    powerpc: TODO
+    x86_64: TODO
