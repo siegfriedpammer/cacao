@@ -36,13 +36,13 @@ THREAD_OBJ =
 THREAD_CFLAGS =
 endif
 
-CC = cc
+#CC = gcc
 #CFLAGS = -g -mieee -Wall $(THREAD_CFLAGS)
-CFLAGS = -mieee -O3 -Wall $(THREAD_CFLAGS)
+#CFLAGS = -mieee -O3 -Wall $(THREAD_CFLAGS)
 
-#CC = cc
+CC = cc
 #CFLAGS = -g3 -ieee $(THREAD_CFLAGS)
-#CFLAGS = -O3 -ieee $(THREAD_CFLAGS)
+CFLAGS = -O3 -ieee $(THREAD_CFLAGS)
 
 OBJ = main.o tables.o loader.o compiler.o newcomp.o builtin.o asmpart.o \
     toolbox/toolbox.a native.o $(THREAD_OBJ)
