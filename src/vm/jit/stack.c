@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 787 2003-12-15 18:20:31Z edwin $
+   $Id: stack.c 797 2003-12-16 22:29:21Z edwin $
 
 */
 
@@ -50,6 +50,9 @@
 /* from codegen.inc */
 extern int dseglen;
 
+/**********************************************************************/
+/* Macros used internally by analyse_stack                            */
+/**********************************************************************/
 
 #ifdef STATISTICS
 #define COUNT(cnt) cnt++
@@ -57,18 +60,48 @@ extern int dseglen;
 #define COUNT(cnt)
 #endif
  
-#define STACKRESET {curstack=0;stackdepth=0;}
-
-#define TYPEPANIC  {show_icmd_method();panic("Stack type mismatch");}
-#define UNDERFLOW  {show_icmd_method();panic("Stack underflow");} /* XXX why isn't this caught in parse.c? */
+/* convenient abbreviations */
 #define CURKIND    curstack->varkind
 #define CURTYPE    curstack->type
 
+/*--------------------------------------------------*/
+/* SIGNALING ERRORS                                 */
+/*--------------------------------------------------*/
+
+#define TYPEPANIC  {show_icmd_method();panic("Stack type mismatch");}
+#define UNDERFLOW  {show_icmd_method();panic("Stack underflow");}
+#define OVERFLOW   {show_icmd_method();panic("Stack overflow");}
+
+/*--------------------------------------------------*/
+/* STACK UNDERFLOW/OVERFLOW CHECKS                  */
+/*--------------------------------------------------*/
+
+/* underflow checks */
 #define REQUIRE(num)  do { if (stackdepth<(num)) {UNDERFLOW;} } while(0)
 #define REQUIRE_1     REQUIRE(1)
 #define REQUIRE_2     REQUIRE(2)
 #define REQUIRE_3     REQUIRE(3)
 #define REQUIRE_4     REQUIRE(4)
+
+/* overflow check */
+/* XXX we allow ACONST to exceed the maximum stack depth because it is
+ * generated for builtin calls. Maybe we should check against maximum
+ * stack depth only at block boundaries?
+ */
+#define CHECKOVERFLOW							\
+	do {										\
+		if (stackdepth > maxstack) {			\
+			if (iptr[0].opc != ICMD_ACONST)		\
+			{OVERFLOW;}							\
+		}										\
+	} while(0)
+
+/*--------------------------------------------------*/
+/* STACK MANIPULATION                               */
+/*--------------------------------------------------*/
+
+/* resetting to an empty operand stack */
+#define STACKRESET {curstack=0;stackdepth=0;}
 
 #define NEWSTACK(s,v,n) {new->prev=curstack;new->type=s;new->flags=0;	\
                         new->varkind=v;new->varnum=n;curstack=new;new++;}
@@ -76,9 +109,10 @@ extern int dseglen;
 #define NEWSTACK0(s)    NEWSTACK(s,UNDEFVAR,0)
 #define NEWXSTACK   {NEWSTACK(TYPE_ADR,STACKVAR,0);curstack=0;}
 
+/* set the output stack of the current instruction */
 #define SETDST      {iptr->dst=curstack;}
 
-/* The following macros do NOT check stackdepth, set stackdepth and iptr->dst */
+/* The following macros do NOT check stackdepth, set stackdepth or iptr->dst */
 #define POP(s)      {if(s!=curstack->type){TYPEPANIC;}										\
                      if(curstack->varkind==UNDEFVAR)curstack->varkind=TEMPVAR;\
                      curstack=curstack->prev;}
@@ -88,7 +122,13 @@ extern int dseglen;
                      (d)->varkind=(s)->varkind;(d)->varnum=(s)->varnum;}
 /******************************/
 
-/* The following macros check stackdepth, set stackdepth and itpr->dst */
+/* The following macros are used to model the stack manipulations of
+ * different kinds of instructions.
+ *
+ * These macros check the input stackdepth and they set the output
+ * stackdepth and the output stack of the instruction (iptr->dst).
+ */
+   
 #define PUSHCONST(s){NEWSTACKn(s,stackdepth);SETDST;stackdepth++;}
 #define LOAD(s,v,n) {NEWSTACK(s,v,n);SETDST;stackdepth++;}
 #define STORE(s)    {REQUIRE_1;POP(s);SETDST;stackdepth--;}
@@ -138,6 +178,13 @@ extern int dseglen;
                     curstack=new+5;new+=6;SETDST;stackdepth+=2;}
 /******************************/
 
+/* COPYCURSTACK makes a copy of the current operand stack (curstack)
+ * and returns it in the variable copy.
+ *
+ * This macro is used to propagate the operand stack from one basic
+ * block to another. The destination block receives the copy as its
+ * input stack.
+ */
 #define COPYCURSTACK(copy) {\
 	int d;\
 	stackptr s;\
@@ -189,18 +236,26 @@ extern int dseglen;
 		}\
 }
 
-	
-#define MARKREACHED(b,c) {\
-	if(b->flags<0)\
-		{COPYCURSTACK(c);b->flags=0;b->instack=c;b->indepth=stackdepth;}\
-	else {stackptr s=curstack;stackptr t=b->instack;\
-		if(b->indepth!=stackdepth)\
-			{show_icmd_method();panic("Stack depth mismatch");}\
-		while(s){if (s->type!=t->type)\
-				TYPEPANIC\
-			s=s->prev;t=t->prev;\
-			}\
-		}\
+
+/* MARKREACHED marks the destination block <b> as reached. If this
+ * block has been reached before we check if stack depth and types
+ * match. Otherwise the destination block receives a copy of the
+ * current stack as its input stack.
+ *
+ * b...destination block
+ * c...current stack
+ */
+#define MARKREACHED(b,c) {												\
+	if(b->flags<0)														\
+		{COPYCURSTACK(c);b->flags=0;b->instack=c;b->indepth=stackdepth;} \
+	else {stackptr s=curstack;stackptr t=b->instack;					\
+		if(b->indepth!=stackdepth)										\
+			{show_icmd_method();panic("Stack depth mismatch");}			\
+		while(s){if (s->type!=t->type)									\
+				TYPEPANIC												\
+			s=s->prev;t=t->prev;										\
+			}															\
+		}																\
 }
 
 
@@ -231,8 +286,8 @@ void analyse_stack()
 		log_text(logtext);
 	}
 
-	argren = DMNEW(int, maxlocals); 
-	//int *argren = (int *)alloca(maxlocals * sizeof(int)); /* table for argument renaming */
+	argren = DMNEW(int, maxlocals);
+	/*int *argren = (int *)alloca(maxlocals * sizeof(int));*/ /* table for argument renaming */
 	for (i = 0; i < maxlocals; i++)
 		argren[i] = i;
 	
@@ -1579,6 +1634,7 @@ void analyse_stack()
 						iptr->val.a = (void*) iptr->dst;
 
 						tbptr->type=BBTYPE_SBR;
+						CHECKOVERFLOW;
 						MARKREACHED(tbptr, copy);
 						OP1_0ANY;
 						break;
@@ -1755,6 +1811,9 @@ void analyse_stack()
 						printf("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
 						panic("Missing ICMD code during stack analysis");
 					} /* switch */
+
+					CHECKOVERFLOW;
+					
 					/* XXX DEBUG */ /*dolog("iptr++");*/
 					iptr++;
 				} /* while instructions */
@@ -1985,11 +2044,8 @@ static char *jit_type[] = {
 void show_icmd_method()
 {
 	int i, j;
-	int deadcode;
-	s4  *s4ptr;
-	instruction *iptr;
+	s4  *s4ptr; /* used */
 	basicblock *bptr;
-	void **tptr;
 	xtable *ex;
 
 	printf("\n");
@@ -2091,7 +2147,7 @@ void show_icmd_block(basicblock *bptr)
 {
 	int i, j;
 	int deadcode;
-	s4  *s4ptr;
+	s4  *s4ptr; /* used */
 	instruction *iptr;
 
 	if (bptr->flags != BBDELETED) {
