@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 926 2004-02-26 00:16:50Z twisti $
+   $Id: asmpart.S 950 2004-03-07 23:52:44Z twisti $
 
 */
 
@@ -645,9 +645,11 @@ asm_builtin_monitorenter:
         jmp     builtin_monitorenter	/* else call builtin_monitorenter     */
 
 nb_monitorenter:
+		mov     string_java_lang_NullPointerException,%rdi
+		call    new_exception
+		
         pop     %r10					/* delete return address */
         sub     $3,%r10					/* faulting address is return adress - 3 */
-        mov     proto_java_lang_NullPointerException,%rax
         jmp     asm_handle_exception
 		
 
@@ -663,9 +665,11 @@ asm_builtin_monitorexit:
         jmp     builtin_monitorexit		/* else call builtin_monitorenter     */
 
 nb_monitorexit:
+		mov     string_java_lang_NullPointerException,%rdi
+		call    new_exception
+		
         pop     %r10					/* delete return address */
         sub     $3,%r10					/* faulting address is return adress - 3 */
-        mov     proto_java_lang_NullPointerException,%rax
         jmp     asm_handle_exception
 
 
@@ -871,10 +875,12 @@ asm_builtin_checkarraycast:
         ret
 
 nb_carray_throw:
+		mov     string_java_lang_ClassCastException,%rdi
+		call    new_exception
+		
         add     $24,%rsp
         pop     %r10					/* delete return address              */
         sub     $3,%r10					/* faulting address is return adress - 3 */
-        mov     proto_java_lang_ClassCastException,%rax
         jmp     asm_handle_exception
 
 		
@@ -885,13 +891,13 @@ nb_carray_throw:
 *******************************************************************************/
 
 asm_builtin_aastore:
-        sub     $24,%rsp         		/* allocate stack space               */
-        test    %rdi,%rdi				/* if null pointer throw exception    */
+        sub     $(3*8),%rsp             /* allocate stack space               */
+        test    %rdi,%rdi               /* if null pointer throw exception    */
         je      nb_aastore_null
 
         movl    offarraysize(%rdi),%eax /* load size                          */
         cmpl    %eax,%esi				/* do bound check                     */
-        ja      nb_aastore_bound		/* if out of bounds throw exception   */
+        jae     nb_aastore_bound		/* if out of bounds throw exception   */
 
         shl     $3,%rsi					/* index * 8                          */
         mov     %rdi,%r10
@@ -908,31 +914,34 @@ asm_builtin_aastore:
         mov     (%rsp),%r10             /* restore store position             */
         mov     8(%rsp),%rdx            /* restore object                     */
         mov     %rdx,offobjarrdata(%r10)/* store objectptr in array           */
-        add     $24,%rsp                /* free stack space                   */
+        add     $(3*8),%rsp             /* free stack space                   */
         ret
 
 nb_aastore_null:
+		mov     string_java_lang_NullPointerException,%rdi
+		call    new_exception
+		
         add     $24,%rsp
         pop     %r10					/* delete return address */
         sub     $3,%r10					/* faulting address is return adress - 3 */
-		
-        mov     proto_java_lang_NullPointerException,%rax
         jmp     asm_handle_exception
 
 nb_aastore_bound:
+		mov     string_java_lang_ArrayIndexOutOfBoundsException,%rdi
+		call    new_exception_int       /* %rsi already contains the index    */
+		
         add     $24,%rsp
         pop     %r10					/* delete return address */
         sub     $3,%r10					/* faulting address is return adress - 3 */
-		
-        mov     proto_java_lang_ArrayIndexOutOfBoundsException,%rax
         jmp     asm_handle_exception
 		
 nb_aastore_throw:
+		mov     string_java_lang_ArrayStoreException,%rdi
+		call    new_exception
+		
         add     $24,%rsp
         pop     %r10					/* delete return address */
         sub     $3,%r10					/* faulting address is return adress - 3 */
-		
-        mov     proto_java_lang_ArrayStoreException,%rax
         jmp		asm_handle_exception
 
 		

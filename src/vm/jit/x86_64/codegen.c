@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 929 2004-02-26 00:20:02Z twisti $
+   $Id: codegen.c 950 2004-03-07 23:52:44Z twisti $
 
 */
 
@@ -75,8 +75,8 @@ int nregdescint[] = {
 
 
 int nregdescfloat[] = {
-/*      REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, */
-/*      REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, */
+	/*      REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, */
+	/*      REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, */
     REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
     REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
     REG_END
@@ -202,38 +202,38 @@ static int reg_of_var(stackptr v, int tempregnum)
 	varinfo      *var;
 
 	switch (v->varkind) {
-		case TEMPVAR:
-			if (!(v->flags & INMEMORY))
-				return(v->regoff);
-			break;
-		case STACKVAR:
-			var = &(interfaces[v->varnum][v->type]);
-			v->regoff = var->regoff;
-			if (!(var->flags & INMEMORY))
-				return(var->regoff);
-			break;
-		case LOCALVAR:
-			var = &(locals[v->varnum][v->type]);
-			v->regoff = var->regoff;
-			if (!(var->flags & INMEMORY))
-				return(var->regoff);
-			break;
-		case ARGVAR:
-			v->regoff = v->varnum;
-			if (IS_FLT_DBL_TYPE(v->type)) {
-				if (v->varnum < FLT_ARG_CNT) {
-					v->regoff = argfltregs[v->varnum];
-					return(argfltregs[v->varnum]);
-				}
-			} else {
-				if (v->varnum < INT_ARG_CNT) {
-					v->regoff = argintregs[v->varnum];
-					return(argintregs[v->varnum]);
-				}
+	case TEMPVAR:
+		if (!(v->flags & INMEMORY))
+			return(v->regoff);
+		break;
+	case STACKVAR:
+		var = &(interfaces[v->varnum][v->type]);
+		v->regoff = var->regoff;
+		if (!(var->flags & INMEMORY))
+			return(var->regoff);
+		break;
+	case LOCALVAR:
+		var = &(locals[v->varnum][v->type]);
+		v->regoff = var->regoff;
+		if (!(var->flags & INMEMORY))
+			return(var->regoff);
+		break;
+	case ARGVAR:
+		v->regoff = v->varnum;
+		if (IS_FLT_DBL_TYPE(v->type)) {
+			if (v->varnum < FLT_ARG_CNT) {
+				v->regoff = argfltregs[v->varnum];
+				return(argfltregs[v->varnum]);
 			}
-			v->regoff -= INT_ARG_CNT;
-			break;
+		} else {
+			if (v->varnum < INT_ARG_CNT) {
+				v->regoff = argintregs[v->varnum];
+				return(argintregs[v->varnum]);
+			}
 		}
+		v->regoff -= INT_ARG_CNT;
+		break;
+	}
 	v->flags |= INMEMORY;
 	return tempregnum;
 }
@@ -269,8 +269,8 @@ static int reg_of_var(stackptr v, int tempregnum)
 void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 {
 	sigset_t nsig;
-/*  	int      instr; */
-/*  	long     faultaddr; */
+	/*  	int      instr; */
+	/*  	long     faultaddr; */
 
 	struct ucontext *_uc = (struct ucontext *) _p;
 	struct sigcontext *sigctx = (struct sigcontext *) &_uc->uc_mcontext;
@@ -282,15 +282,21 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 /*    	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f]; */
 
 /*  	if (faultaddr == 0) { */
-		signal(sig, (void *) catch_NullPointerException);          /* reinstall handler */
-		sigemptyset(&nsig);
-		sigaddset(&nsig, sig);
-		sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
-		sigctx->rax = (long) proto_java_lang_NullPointerException; /* REG_ITMP1_XPTR    */
-		sigctx->r10 = sigctx->rip;                                 /* REG_ITMP2_XPC     */
-		sigctx->rip = (long) asm_handle_exception;
+	signal(sig, (void *) catch_NullPointerException);          /* reinstall handler */
+	sigemptyset(&nsig);
+	sigaddset(&nsig, sig);
+	sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
 
-		return;
+	if (!proto_java_lang_NullPointerException) {
+		proto_java_lang_NullPointerException =
+			new_exception(string_java_lang_NullPointerException);
+	}
+
+	sigctx->rax = (s8) proto_java_lang_NullPointerException; /* REG_ITMP1_XPTR    */
+	sigctx->r10 = sigctx->rip;                               /* REG_ITMP2_XPC     */
+	sigctx->rip = (s8) asm_handle_exception;
+
+	return;
 
 /*  	} else { */
 /*  		faultaddr += (long) ((instr << 16) >> 16); */
@@ -308,10 +314,7 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 
 	struct ucontext *_uc = (struct ucontext *) _p;
 	struct sigcontext *sigctx = (struct sigcontext *) &_uc->uc_mcontext;
-
-	classinfo *c;
-	java_objectheader *p;
-	methodinfo *m;
+	java_objectheader *xptr;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
@@ -320,17 +323,12 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 	sigaddset(&nsig, sig);
 	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
 
-	c = loader_load_sysclass(NULL,utf_new_char("java/lang/ArithmeticException"));
-	p = builtin_new(c);
-	m = class_fetchmethod(c, 
-						 utf_new_char("<init>"), 
-						 utf_new_char("(Ljava/lang/String;)V"));
+	xptr = new_exception_message(string_java_lang_ArithmeticException,
+								 string_java_lang_ArithmeticException_message);
 
-	asm_calljavafunction(m, p, javastring_new_char("/ by zero"), NULL, NULL);
-
-	sigctx->rax = (long) p;                              /* REG_ITMP1_XPTR    */
+	sigctx->rax = (s8) xptr;                             /* REG_ITMP1_XPTR    */
 	sigctx->r10 = sigctx->rip;                           /* REG_ITMP2_XPC     */
-	sigctx->rip = (long) asm_handle_exception;
+	sigctx->rip = (s8) asm_handle_exception;
 
 	return;
 }
@@ -2180,7 +2178,7 @@ void codegen()
     if (checkbounds) { \
         x86_64_alul_membase_reg(X86_64_CMP, s1, OFFSET(java_arrayheader, size), s2); \
         x86_64_jcc(X86_64_CC_AE, 0); \
-        codegen_addxboundrefs(mcodeptr); \
+        codegen_addxboundrefs(mcodeptr, s2); \
     }
 
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., (int) length        */
@@ -3543,7 +3541,7 @@ gen_method: {
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(mcodebase + xboundrefs->branchpos, 
-				xboundrefs->branchpos, xcodeptr - mcodebase - (10 + 10 + 3));
+				xboundrefs->branchpos, xcodeptr - mcodebase - (3 + 10 + 10 + 3));
 			continue;
 		}
 
@@ -3552,18 +3550,29 @@ gen_method: {
 
 		MCODECHECK(8);
 
-		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 10 bytes */
+		/* move index register into REG_ITMP1 */
+		x86_64_mov_reg_reg(xboundrefs->reg, REG_ITMP1);              /* 3 bytes  */
+
+		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);                        /* 10 bytes */
 		dseg_adddata(mcodeptr);
-		x86_64_mov_imm_reg(xboundrefs->branchpos - 6, REG_ITMP1);    /* 10 bytes */
-		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
+		x86_64_mov_imm_reg(xboundrefs->branchpos - 6, REG_ITMP3);    /* 10 bytes */
+		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP3, REG_ITMP2_XPC);    /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm((xcodeptr - mcodeptr) - 5);
+			x86_64_jmp_imm(xcodeptr - mcodeptr - 5);
 
 		} else {
 			xcodeptr = mcodeptr;
 
-			x86_64_mov_imm_reg((s8) proto_java_lang_ArrayIndexOutOfBoundsException, REG_ITMP1_XPTR);
+			x86_64_alu_imm_reg(X86_64_SUB, 2 * 8, REG_SP);
+			x86_64_mov_reg_membase(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			x86_64_mov_imm_reg((s8) string_java_lang_ArrayIndexOutOfBoundsException, argintregs[0]);
+			x86_64_mov_reg_reg(REG_ITMP1, argintregs[1]);
+			x86_64_mov_imm_reg((s8) new_exception_int, REG_ITMP3);
+			x86_64_call_reg(REG_ITMP3);
+			x86_64_mov_membase_reg(REG_SP, 0 * 8, REG_ITMP2_XPC);
+			x86_64_alu_imm_reg(X86_64_ADD, 2 * 8, REG_SP);
+
 			x86_64_mov_imm_reg((s8) asm_handle_exception, REG_ITMP3);
 			x86_64_jmp_reg(REG_ITMP3);
 		}
@@ -3584,18 +3593,25 @@ gen_method: {
 
 		MCODECHECK(8);
 
-		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 10 bytes */
+		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);                         /* 10 bytes */
 		dseg_adddata(mcodeptr);
-		x86_64_mov_imm_reg(xcheckarefs->branchpos - 6, REG_ITMP1);    /* 10 bytes */
-		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
+		x86_64_mov_imm_reg(xcheckarefs->branchpos - 6, REG_ITMP3);    /* 10 bytes */
+		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP3, REG_ITMP2_XPC);     /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm((xcodeptr - mcodeptr) - 5);
+			x86_64_jmp_imm(xcodeptr - mcodeptr - 5);
 
 		} else {
 			xcodeptr = mcodeptr;
 
-			x86_64_mov_imm_reg((s8) proto_java_lang_NegativeArraySizeException, REG_ITMP1_XPTR);
+			x86_64_alu_imm_reg(X86_64_SUB, 2 * 8, REG_SP);
+			x86_64_mov_reg_membase(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			x86_64_mov_imm_reg((s8) string_java_lang_NegativeArraySizeException, argintregs[0]);
+			x86_64_mov_imm_reg((s8) new_exception, REG_ITMP3);
+			x86_64_call_reg(REG_ITMP3);
+			x86_64_mov_membase_reg(REG_SP, 0 * 8, REG_ITMP2_XPC);
+			x86_64_alu_imm_reg(X86_64_ADD, 2 * 8, REG_SP);
+
 			x86_64_mov_imm_reg((s8) asm_handle_exception, REG_ITMP3);
 			x86_64_jmp_reg(REG_ITMP3);
 		}
@@ -3616,18 +3632,25 @@ gen_method: {
 
 		MCODECHECK(8);
 
-		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 10 bytes */
+		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);                        /* 10 bytes */
 		dseg_adddata(mcodeptr);
-		x86_64_mov_imm_reg(xcastrefs->branchpos - 6, REG_ITMP1);    /* 10 bytes */
-		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
+		x86_64_mov_imm_reg(xcastrefs->branchpos - 6, REG_ITMP3);     /* 10 bytes */
+		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP3, REG_ITMP2_XPC);    /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm((xcodeptr - mcodeptr) - 5);
+			x86_64_jmp_imm(xcodeptr - mcodeptr - 5);
 		
 		} else {
 			xcodeptr = mcodeptr;
 
-			x86_64_mov_imm_reg((s8) proto_java_lang_ClassCastException, REG_ITMP1_XPTR);
+			x86_64_alu_imm_reg(X86_64_SUB, 2 * 8, REG_SP);
+			x86_64_mov_reg_membase(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			x86_64_mov_imm_reg((s8) string_java_lang_ClassCastException, argintregs[0]);
+			x86_64_mov_imm_reg((s8) new_exception, REG_ITMP3);
+			x86_64_call_reg(REG_ITMP3);
+			x86_64_mov_membase_reg(REG_SP, 0 * 8, REG_ITMP2_XPC);
+			x86_64_alu_imm_reg(X86_64_ADD, 2 * 8, REG_SP);
+
 			x86_64_mov_imm_reg((s8) asm_handle_exception, REG_ITMP3);
 			x86_64_jmp_reg(REG_ITMP3);
 		}
@@ -3648,18 +3671,25 @@ gen_method: {
 
 		MCODECHECK(8);
 
-		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);    /* 10 bytes */
+		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);                        /* 10 bytes */
 		dseg_adddata(mcodeptr);
-		x86_64_mov_imm_reg(xnullrefs->branchpos - 6, REG_ITMP1);    /* 10 bytes */
-		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
+		x86_64_mov_imm_reg(xnullrefs->branchpos - 6, REG_ITMP1);     /* 10 bytes */
+		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm((xcodeptr - mcodeptr) - 5);
+			x86_64_jmp_imm(xcodeptr - mcodeptr - 5);
 		
 		} else {
 			xcodeptr = mcodeptr;
 
-			x86_64_mov_imm_reg((s8) proto_java_lang_NullPointerException, REG_ITMP1_XPTR);
+			x86_64_alu_imm_reg(X86_64_SUB, 2 * 8, REG_SP);
+			x86_64_mov_reg_membase(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			x86_64_mov_imm_reg((s8) string_java_lang_NullPointerException, argintregs[0]);
+			x86_64_mov_imm_reg((s8) new_exception, REG_ITMP3);
+			x86_64_call_reg(REG_ITMP3);
+			x86_64_mov_membase_reg(REG_SP, 0 * 8, REG_ITMP2_XPC);
+			x86_64_alu_imm_reg(X86_64_ADD, 2 * 8, REG_SP);
+
 			x86_64_mov_imm_reg((s8) asm_handle_exception, REG_ITMP3);
 			x86_64_jmp_reg(REG_ITMP3);
 		}
