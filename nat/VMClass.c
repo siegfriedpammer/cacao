@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 1173 2004-06-16 14:56:18Z jowenn $
+   $Id: VMClass.c 1201 2004-06-20 21:24:17Z twisti $
 
 */
 
@@ -79,28 +79,33 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 	c = class_new(u);
 
 	/* load, ... */
-	class_load(c);
+	if (!class_load(c)) {
+		classinfo *xclass;
 
-	/* class was not loaded. raise exception */
-	if (!c->loaded) {
-		/* there is already an exception (NoClassDefFoundError), but forName()
-		   returns a ClassNotFoundException */
+		xclass = (*exceptionptr)->vftbl->class;
 
-		/* clear exceptionptr, because builtin_new checks for 
-		   ExceptionInInitializerError */
-		*exceptionptr = NULL;
+		/* if the exception is a NoClassDefFoundError, we replace it with a
+		   ClassNotFoundException, otherwise return the exception */
 
-		*exceptionptr =
-			new_exception_javastring(string_java_lang_ClassNotFoundException, s);
+		if (xclass == class_get(utf_new_char(string_java_lang_NoClassDefFoundError))) {
+			/* clear exceptionptr, because builtin_new checks for 
+			   ExceptionInInitializerError */
+			*exceptionptr = NULL;
+
+			*exceptionptr =
+				new_exception_javastring(string_java_lang_ClassNotFoundException, s);
+		}
 
 	    return NULL;
 	}
 
 	/* link, ... */
-	class_link(c);
-
+	if (!class_link(c))
+		return NULL;
+	
 	/* ...and initialize it */
-	class_init(c);
+	if (!class_init(c))
+		return NULL;
 
 	use_class_as_object(c);
 
@@ -720,7 +725,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz, java_lang_Class *that, java_lang_Object *obj)
 {
-	classinfo *clazz = (classinfo *) that;
+/*  	classinfo *clazz = (classinfo *) that; */
 
 	return (*env)->IsInstanceOf(env, (jobject) obj, that);
 }
