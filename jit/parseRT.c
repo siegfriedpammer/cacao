@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1508 2004-11-15 08:34:10Z carolyn $
+   $Id: parseRT.c 1546 2004-11-18 12:25:04Z twisti $
 
 Changes:
 opcode put into functions
@@ -921,7 +921,7 @@ int RT_jit_parse(methodinfo *m)
         firstCall = false; /* turn flag off */
 
         /*----- RTA initializations --------*/
-  	if (verbose) 
+  	if (opt_verbose) 
       	    log_text("RTA static analysis started.\n");
 
 	mainmeth = initializeRTAworklist(m);
@@ -958,14 +958,14 @@ int RT_jit_parse(methodinfo *m)
             }            	
     	}	
     fclose(rtMissed);
-    if (verbose) {
+    if (opt_verbose) {
         if (opt_stat) {
           printRThierarchyInfo(m); 
 	  }
       printCallgraph(rtaWorkList); 
       }
 
-    if (verbose) {
+    if (opt_verbose) {
       log_text("RTA static analysis done.\n");
       }
   }

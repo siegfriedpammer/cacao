@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1506 2004-11-14 14:48:49Z jowenn $
+   $Id: parse.c 1546 2004-11-18 12:25:04Z twisti $
 
 */
 
@@ -454,7 +454,7 @@ DEBUGMETH(m);
 }
 if (opt_rt) {
   if (m->methodUsed != USED) {
-    if (verbose) {
+    if (opt_verbose) {
       printf(" rta missed: "); fflush(stdout);
       METHINFO(m);
       }
@@ -488,11 +488,11 @@ if (opt_rt) {
         which has to be called before parse (or ???)
         will check if method being parsed was analysed here
 	****/ 
-	if ((opt_xta) && (verbose)) { 
+	if (opt_xta && opt_verbose) { 
 		/**RT_jit_parse(m);**/
 		printf("XTA requested, not available\n");
 		}
-	if ((opt_vta) && (verbose))  
+	if (opt_vta && opt_verbose)  
 		    printf("VTA requested, not yet implemented\n");
 
 	/* allocate instruction array and block index table */

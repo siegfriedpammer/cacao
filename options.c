@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.c 1529 2004-11-17 17:19:14Z twisti $
+   $Id: options.c 1546 2004-11-18 12:25:04Z twisti $
 
 */
 
@@ -39,7 +39,7 @@
 
 /* command line option */
 
-bool verbose = false;
+bool opt_verbose = false;
 bool compileall = false;
 bool runverbose = false;       /* trace all method invocation                */
 bool verboseexception = false;

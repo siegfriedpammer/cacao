@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1512 2004-11-17 11:45:31Z twisti $
+   $Id: native.c 1546 2004-11-18 12:25:04Z twisti $
 
 */
 
@@ -567,7 +567,7 @@ java_objectheader *native_new_and_init(classinfo *c)
 						 utf_new_char("()V"));
 	                      	                      
 	if (!m) {                           /* initializer not found              */
-		if (verbose) {
+		if (opt_verbose) {
 			char logtext[MAXLOGTEXT];
 			sprintf(logtext, "Warning: class has no instance-initializer: ");
 			utf_sprint_classname(logtext + strlen(logtext), c->name);
@@ -604,7 +604,7 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 						 utf_new_char("(Ljava/lang/String;)V"));
 	                      	                      
 	if (!m) {                                       /* initializer not found  */
-		if (verbose) {
+		if (opt_verbose) {
 			char logtext[MAXLOGTEXT];
 			sprintf(logtext, "Warning: class has no instance-initializer: ");
 			utf_sprint_classname(logtext + strlen(logtext), c->name);
@@ -640,7 +640,7 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 						 utf_new_char("(I)V"));
 	                      	                      
 	if (!m) {                                       /* initializer not found  */
-		if (verbose) {
+		if (opt_verbose) {
 			char logtext[MAXLOGTEXT];
 			sprintf(logtext, "Warning: class has no instance-initializer: ");
 			utf_sprint_classname(logtext + strlen(logtext), c->name);
@@ -680,7 +680,7 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 						 utf_new_char("(Ljava/lang/Throwable;)V"));
 	                      	                      
 	if (!m) {                                       /* initializer not found  */
-		if (verbose) {
+		if (opt_verbose) {
 			char logtext[MAXLOGTEXT];
 			sprintf(logtext, "Warning: class has no instance-initializer: ");
 			utf_sprint_classname(logtext + strlen(logtext), c->name);

@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.h 1529 2004-11-17 17:19:14Z twisti $
+   $Id: options.h 1546 2004-11-18 12:25:04Z twisti $
 
 */
 
@@ -57,8 +57,8 @@ struct opt_struct {
 
 /* global variables ***********************************************************/
 
+extern bool opt_verbose;
 extern bool compileall;
-extern bool verbose;
 extern bool runverbose;
 extern bool verboseexception;
 extern bool collectverbose;

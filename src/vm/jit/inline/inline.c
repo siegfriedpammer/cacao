@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1506 2004-11-14 14:48:49Z jowenn $
+   $Id: inline.c 1546 2004-11-18 12:25:04Z twisti $
 
 */
 
@@ -560,7 +560,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 
 						inline_env->cummethods++;
 
-						if (verbose) {
+						if (opt_verbose) {
 							char logtext[MAXLOGTEXT];
 							sprintf(logtext, "Going to inline: ");
 							utf_sprint(logtext  +strlen(logtext), imi->class->name);
