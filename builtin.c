@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 957 2004-03-14 21:01:12Z twisti $
+   $Id: builtin.c 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -775,8 +775,8 @@ java_arrayheader *builtin_nmultianewarray (int n, vftbl *arrayvftbl, long *dims)
 u4 methodindent = 0;
 
 java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
-										   methodinfo *method,
-										   int *pos, 
+										   methodinfo *method, int *pos, 
+										   int line,
 										   int noindent)
 {
 	if (!noindent) {
@@ -785,12 +785,14 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 		else
 			log_text("WARNING: unmatched methodindent--");
 	}
-	if (verbose || runverbose) {
-		printf("Exception ");
+	if (verbose || runverbose || verboseexception) {
 		if (_exceptionptr) {
-			utf_display_classname(_exceptionptr->vftbl->class->name);
+			printf("Exception ");
+			utf_display(_exceptionptr->vftbl->class->name);
 
 		} else {
+			printf("Some Throwable");
+/*
 			printf("Error: <Nullpointer instead of exception>");
 			if (!proto_java_lang_ClassCastException) printf("%s","proto_java_lang_ClassCastException==0");
 			if (!proto_java_lang_NullPointerException) printf("%s","proto_java_lang_NullPointerException==0");
@@ -802,7 +804,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 			if (!proto_java_lang_ArrayStoreException) printf("%s","proto_java_lang_ArrayStoreException==0");
 			if (!proto_java_lang_ThreadDeath) printf("%s","proto_java_lang_ThreadDeath==0");
 			if (!proto_java_lang_ThreadDeath) printf("%s","proto_java_lang_ThreadDeath==0");
-
+			*/
 		}
 		printf(" thrown in ");
 
@@ -811,10 +813,20 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 			printf(".");
 			utf_display(method->name);
 			if (method->flags & ACC_SYNCHRONIZED)
-				printf("(SYNC)");
+				printf("(SYNC");
 			else
-				printf("(NOSYNC)");
-			printf("(%p) at position %p\n", method->entrypoint, pos);
+				printf("(NOSYNC");
+			if (method->flags & ACC_NATIVE) {
+				printf(",NATIVE");
+				printf(")(%p) at position %p\n", method->entrypoint, pos);
+			} else {
+				printf(")(%p) at position %p (",method->entrypoint,pos);
+				if (method->class->sourcefile==NULL)
+					printf("<NO CLASSFILE INFORMATION>");
+				else
+					utf_display(method->class->sourcefile);
+				printf(":%d)\n",line);
+			}
 
 		} else
 			printf("call_java_method\n");
@@ -1823,6 +1835,18 @@ builtin_asm_get_stackframeinfo(){
 #warning FIXME FOR OLD THREAD IMPL (jowenn)
         return &_thread_nativestackframeinfo; /* no threading, at least no native*/
 #endif
+}
+
+stacktraceelement *builtin_stacktrace_copy(stacktraceelement **el,stacktraceelement *begin, stacktraceelement *end) {
+/*	stacktraceelement *el;*/
+	size_t s;
+	s=(end-begin);
+	/*printf ("begin: %p, end: %p, diff: %ld, size :%ld\n",begin,end,s,s*sizeof(stacktraceelement));*/
+	*el=GCNEW(stacktraceelement,s+1);
+	memcpy(*el,begin,(end-begin)*sizeof(stacktraceelement));
+	(*el)[s].method=0;
+	(*el)[s].linenumber=0;
+	return *el;
 }
 
 /*

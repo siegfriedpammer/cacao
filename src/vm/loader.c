@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 959 2004-03-14 23:39:31Z twisti $
+   $Id: loader.c 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -87,6 +87,7 @@ static utf *utf_constantvalue; 		/* ConstantValue           */
 static utf *utf_code;			    /* Code                    */
 static utf *utf_exceptions;		/* Exceptions                    */
 static utf *utf_linenumbertable;		/* LineNumberTable                    */
+static utf *utf_sourcefile;		/*SourceFile*/
 static utf *utf_finalize;		    /* finalize                */
 static utf *utf_fidesc;   		    /* ()V changed             */
 static utf *utf_init;  		        /* <init>                  */
@@ -696,7 +697,10 @@ static void attribute_load(u4 num, classinfo *c)
 				info->name  = innerclass_getconstant(c, suck_u2(), CONSTANT_Utf8);        /* CONSTANT_Utf8_info index  */
 				info->flags = suck_u2();					          /* access_flags bitmask      */
 			}
-
+		} else if (aname==utf_sourcefile) {
+			suck_u4();
+			/*log_text("source file attribute found");*/
+			c->sourcefile = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
 		} else {
 			/* unknown attribute */
 			skipattributebody();
@@ -2279,7 +2283,7 @@ void class_link(classinfo *c)
 	
 	/*  check super class */
 
-	if (super == NULL) {          /* class java.long.Object */
+	if (super == NULL) {          /* class java.lang.Object */
 		c->index = 0;
         c->classUsed = USED;     /* Object class is always used CO-RT*/
 		c->impldBy = NULL;
@@ -3803,6 +3807,7 @@ void loader_init(u1 *stackbottom)
 	utf_code	        = utf_new_char("Code");
 	utf_exceptions	        = utf_new_char("Exceptions");
 	utf_linenumbertable	= utf_new_char("LineNumberTable");
+	utf_sourcefile		= utf_new_char("SourceFile");
 	utf_finalize	    = utf_new_char("finalize");
 	utf_fidesc	        = utf_new_char("()V");
 	utf_init	        = utf_new_char("<init>");

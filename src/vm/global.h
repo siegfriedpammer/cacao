@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 941 2004-03-06 17:27:56Z jowenn $
+   $Id: global.h 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -300,6 +300,17 @@ struct native_stackframeinfo {
 };
 
 typedef struct native_stackframeinfo native_stackframeinfo;
+
+struct stacktraceelement {
+#if POINTERSIZE == 8
+	u8 linenumber;
+#else
+	u4 linenumber;
+#endif
+	methodinfo *method;
+};
+
+typedef struct stacktraceelement stacktraceelement;
 
 /* data structure for calls from c code to java methods */
 
@@ -668,6 +679,7 @@ struct classinfo {                /* class structure                          */
 
 	classSetNode *impldBy;        /* implemented by class set                 */
 	utf        *packagename;      /* full name of the package                 */
+	utf	   *sourcefile;	      /* classfile name containing this class     */
 	java_objectheader *classloader;	      /* 0 for bootstrap classloader */
 };
 
@@ -836,6 +848,7 @@ extern java_objectheader *proto_java_lang_ThreadDeath;
 
 extern bool compileall;
 extern bool runverbose;         
+extern bool verboseexception;         
 extern bool verbose;         
 extern bool opt_rt;             /* Rapid Type Analysis for better inlining CO-RT*/
 extern bool opt_xta;            /* X Type Analysis for better inlining    CO-XTA*/

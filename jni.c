@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 944 2004-03-06 20:50:31Z twisti $
+   $Id: jni.c 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -586,7 +586,7 @@ jint callIntegerMethod(jobject obj, jmethodID methodID, char retType, va_list ar
 
 	if (argcount > 3) {
 		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
-		log_text("Too many arguments. CallObjectMethod does not support that");
+		log_text("Too many arguments. CallIntegerMethod does not support that");
 		return 0;
 	}
 

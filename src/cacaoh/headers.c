@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 960 2004-03-14 23:41:11Z twisti $
+   $Id: headers.c 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -52,6 +52,7 @@
 /* replace command line options */
 
 bool verbose =  false;
+bool verboseexception =  false;
 bool compileall = false;
 bool runverbose = false;
 bool collectverbose = false;

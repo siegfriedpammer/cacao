@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 935 2004-03-05 23:49:12Z twisti $
+   $Id: tables.c 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -922,6 +922,7 @@ classinfo *class_new(utf *u)
     c->classUsed = 0;
     c->impldBy = NULL;
 	c->classloader = NULL;
+	c->sourcefile = NULL;
 	
 	/* prepare loading of the class */
 	list_addlast(&unloadedclasses, c);

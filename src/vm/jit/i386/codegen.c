@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 955 2004-03-13 12:51:30Z jowenn $
+   $Id: codegen.c 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -4608,6 +4608,8 @@ gen_method: {
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
+	codegen_createlinenumbertable();
+
 	/* bptr -> mpc = (int)((u1*) mcodeptr - mcodebase); */
 
 	{
@@ -4836,7 +4838,7 @@ gen_method: {
 		}
 	}
 	}
-
+	
 	codegen_finish((int)((u1*) mcodeptr - mcodebase));
 }
 

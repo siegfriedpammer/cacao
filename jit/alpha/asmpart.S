@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 948 2004-03-07 22:12:28Z twisti $
+   $Id: asmpart.S 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -171,14 +171,22 @@ synchronize_caches:
 #define     IsLeaf          -20
 #define     IntSave         -24
 #define     FltSave         -28
-#define     ExTableSize     -32
-#define     ExTableStart    -32
+#define     LineNumberTableSize     -32
+#define     LineNumberTableStart    -40
+#define     ExTableSize             -48
+#define     ExTableStart            -48
+
 
 #define     ExEntrySize     -32
 #define     ExStartPC       -8
 #define     ExEndPC         -16
 #define     ExHandlerPC     -24
 #define     ExCatchType     -32
+
+#define LineEntrySize   -16
+#define LinePC          0
+#define LineLine        -8
+
 
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
@@ -205,6 +213,8 @@ call_name:
 	.quad   calljava_xhandler         /* end pc                               */
 	.quad   asm_calljavafunction      /* start pc                             */
 	.long   1                         /* extable size                         */
+	.quad   0			  /* line number table start		  */
+	.quad   0			  /* line number table size		  */
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
@@ -266,6 +276,8 @@ call_name2:
 	.quad   calljava_xhandler2        /* end pc                               */
 	.quad   asm_calljavafunction2     /* start pc                             */
 	.long   1                         /* extable size                         */
+	.quad   0			  /* line number table start		  */
+	.quad   0			  /* line number table size		  */
 	.long   0                         /* fltsave                              */
 	.long   1                         /* intsave                              */
 	.long   0                         /* isleaf                               */

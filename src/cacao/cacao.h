@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: cacao.h 907 2004-01-29 13:20:05Z carolyn $
+   $Id: cacao.h 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -42,6 +42,7 @@
 extern bool compileall;
 extern bool verbose;
 extern bool runverbose;
+extern bool verboseexception;
 extern bool collectverbose;
 
 extern bool loadverbose;         /* Print debug messages during loading */

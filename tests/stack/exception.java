@@ -94,6 +94,13 @@ public class exception {
 			
 		}
 
+		try {
+			throw new ClassCastException();
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+			e.printStackTrace();
+		}
+
 		throw new ClassCastException();
 	}
 }

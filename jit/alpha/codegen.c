@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 948 2004-03-07 22:12:28Z twisti $
+   $Id: codegen.c 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -400,6 +400,7 @@ void codegen()
 	basicblock  *bptr;
 	instruction *iptr;
 	xtable *ex;
+	u2 currentline=0;
 
 	{
 	int p, pa, t, l, r;
@@ -444,6 +445,9 @@ void codegen()
 	(void) dseg_adds4(isleafmethod);                        /* IsLeaf         */
 	(void) dseg_adds4(savintregcnt - maxsavintreguse);      /* IntSave        */
 	(void) dseg_adds4(savfltregcnt - maxsavfltreguse);      /* FltSave        */
+
+	(void) dseg_addlinenumbertablesize()			/* line number table size + start*/
+
 	(void) dseg_adds4(exceptiontablelength);                /* ExTableSize    */
 
 	/* create exception table */
@@ -732,6 +736,12 @@ void codegen()
 		    src = iptr->dst, len--, iptr++) {
 
 	MCODECHECK(64);           /* an instruction usually needs < 64 words      */
+
+        if (iptr->line!=currentline) {
+                dseg_addlinenumber(iptr->line,mcodeptr);
+                currentline=iptr->line;
+        }
+
 	switch (iptr->opc) {
 
 		case ICMD_NOP:        /* ...  ==> ...                                 */
@@ -3657,6 +3667,8 @@ makeactualcall:
 	} /* for basic block */
 
 	/* bptr -> mpc = (int)((u1*) mcodeptr - mcodebase); */
+
+	codegen_createlinenumbertable();
 
 	{
 	/* generate bound check stubs */

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 930 2004-03-02 21:18:23Z jowenn $
+# $Id: Makefile.am 963 2004-03-15 07:37:49Z jowenn $
 
 
 INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit -I$(top_srcdir)/jit/@ARCH_DIR@
@@ -24,6 +24,7 @@ libnat_a_SOURCES = \
 	VMSecurityManager.c \
 	VMString.c \
 	VMSystem.c \
+	VMThrowable.c \
 	JOWENNTest1.c \
 	classcontextnativeTest.c
 

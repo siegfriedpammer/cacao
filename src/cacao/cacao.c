@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 958 2004-03-14 21:02:49Z twisti $
+   $Id: cacao.c 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -68,6 +68,7 @@
 bool verbose =  false;
 bool compileall = false;
 bool runverbose = false;       /* trace all method invocation                */
+bool verboseexception = false;       /* trace all method invocation                */
 bool collectverbose = false;
 
 bool loadverbose = false;
@@ -161,7 +162,7 @@ void **stackbottom = 0;
 #define OPT_VERBOSETC   29
 #define OPT_NOVERIFY    30
 #define OPT_LIBERALUTF  31
-
+#define OPT_VERBOSEEXCEPTION 32
 
 struct {char *name; bool arg; int value;} opts[] = {
 	{"classpath",   true,   OPT_CLASSPATH},
@@ -177,6 +178,7 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{"verbose",     false,  OPT_VERBOSE},
 	{"verbosegc",   false,  OPT_VERBOSEGC},
 	{"verbosecall", false,  OPT_VERBOSECALL},
+	{"verboseexception", false, OPT_VERBOSEEXCEPTION},
 #ifdef TYPECHECK_VERBOSE
 	{"verbosetc",   false,  OPT_VERBOSETC},
 #endif
@@ -269,6 +271,7 @@ static void print_usage()
 	printf("          -verbose ............. write more information\n");
 	printf("          -verbosegc ........... write message for each GC\n");
 	printf("          -verbosecall ......... write message for each call\n");
+	printf("          -verboseexception .... write message for each step of stack unwinding\n");
 #ifdef TYPECHECK_VERBOSE
 	printf("          -verbosetc ........... write debug messages while typechecking\n");
 #endif
@@ -689,6 +692,10 @@ int main(int argc, char **argv)
 			compileverbose = true;
 			break;
 				
+		case OPT_VERBOSEEXCEPTION:
+			verboseexception = true;
+			break;
+
 		case OPT_VERBOSEGC:
 			collectverbose = true;
 			break;
@@ -945,15 +952,24 @@ int main(int argc, char **argv)
 		asm_calljavafunction(mainmethod, a, NULL, NULL, NULL);
 	
 		if (*exceptionptr) {
-			printf("Exception in thread \"main\" ");
-			utf_display_classname((*exceptionptr)->vftbl->class->name);
+			methodinfo *main_unhandled_print=class_resolvemethod_approx((*exceptionptr)->vftbl->class,
+				utf_new_char("printStackTrace"),
+				utf_new_char("()V"));
+			if (main_unhandled_print) {
+				java_objectheader *exo=*exceptionptr;
+				*exceptionptr=0;
+				asm_calljavafunction(main_unhandled_print,exo,NULL,NULL,NULL);
+			} else {
+				printf("Exception in thread \"main\" ");
+				utf_display_classname((*exceptionptr)->vftbl->class->name);
 
-			/* do we have a detail message? */
-			if (((java_lang_Throwable *) *exceptionptr)->detailMessage) {
-				printf(": ");
+				/* do we have a detail message? */
+				if (((java_lang_Throwable *) *exceptionptr)->detailMessage) {
+					printf(": ");
 				utf_display(javastring_toutf(((java_lang_Throwable *) *exceptionptr)->detailMessage, false));
+				}
+				printf("\n");
 			}
-			printf("\n");
 		}
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)

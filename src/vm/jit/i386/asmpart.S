@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 951 2004-03-11 17:30:03Z jowenn $
+   $Id: asmpart.S 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -45,8 +45,9 @@
 #define IntSave         	-20
 #define FltSave         	-24
 #define LineNumberTableSize	-28
-#define ExTableSize     	-32
-#define ExTableStart    	-32
+#define LineNumberTableStart	-32
+#define ExTableSize     	-36
+#define ExTableStart    	-36
 
 #define ExEntrySize     -16
 #define ExStartPC       -4
@@ -54,6 +55,10 @@
 #define ExHandlerPC     -12
 #define ExCatchType     -16
 
+
+#define LineEntrySize	-8
+#define LinePC		0
+#define LineLine	-4
 		
 	.text
 
@@ -94,6 +99,8 @@
 	.globl Java_java_lang_VMSecurityManager_getClassContext
 	.globl Java_java_lang_VMSecurityManager_currentClassLoader    
 	.globl asm_builtin_new
+	.globl asm_get_stackTrace
+
 /*************************** imported functions *******************************/
 
 	.globl jit_compile
@@ -153,6 +160,7 @@ call_name:
 	.long   calljava_xhandler         /* end pc                               */
 	.long   asm_calljavafunction      /* start pc                             */
 	.long   1                         /* extable size                         */
+	.long   0			  /* line number table	start		  */
 	.long   0			  /* line number table	size		  */
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
@@ -238,6 +246,7 @@ call_name2:
 	.long   calljava_xhandler2        /* end pc                               */
 	.long   asm_calljavafunction2     /* start pc                             */
 	.long   1                         /* extable size                         */
+	.long   0                         /* line number table start              */
 	.long   0                         /* line number table size               */
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
@@ -442,6 +451,19 @@ asm_handle_nat_exception:
 		add     $4,%esp						/* clear return address of native stub */
 		
 asm_handle_exception:
+#if 0
+		push %ebp
+		mov %esp,%ebp
+		push %eax	/* exception pointer */
+		push %ecx	/* excepiton pc */
+
+		call asm_get_stackTrace
+
+		pop %ecx
+		pop %eax
+		pop %ebp
+#endif
+asm_handle_exception_loop:
 		push    %ebp
 		mov     %esp,%ebp
         
@@ -464,15 +486,17 @@ asm_handle_exception:
 		push    %edi
 		
 ex_stack_loop:
-		sub     $16,%esp
+		sub     $20,%esp
 		mov     %eax,(%esp)					/* exception pointer              */
 		mov     MethodPointer(%edx),%eax	/* method pointer                 */
 		mov     %eax,4(%esp)
 		mov     %ecx,8(%esp)				/* exception pc                   */
-		movl    $1,12(%esp)					/* set no unwind flag             */
-		call	builtin_trace_exception
-		add     $16,%esp
 
+		movl	$0,12(%esp)		/* line number */
+
+		movl    $1,16(%esp)					/* set no unwind flag             */
+		call	builtin_trace_exception
+		add     $20,%esp
 		mov     -12(%ebp),%esi				/* %esi = data segment pointer    */
 		mov     ExTableSize(%esi),%ecx		/* %ecx = exception table size    */
 		test    %ecx,%ecx					/* if empty table skip            */
@@ -615,7 +639,7 @@ noflt:
 		pop     %ecx                        /* the new xpc is return address  */
 		sub     $2,%ecx
 		
-		jmp		asm_handle_exception
+		jmp		asm_handle_exception_loop
 		
 
 /********************* function asm_check_clinit *******************************
@@ -1230,6 +1254,114 @@ asm_builtin_new:
                 add             $16,%esp
                 ret
 
+
+
+
+
+
+
+
+
+
+
+
+asm_get_stackTrace:
+	push %ebp /*(%ebp-4)*/
+	mov %esp,%ebp
+	add $4,%ebp
+	push %edi /*(%ebp-8)*/
+	push %esi /*(%ebp-12)*/
+	push %ebx /*(%ebp-16)*/
+	call builtin_asm_get_stackframeinfo
+	movl (%eax),%eax
+	pushl 0(%eax) /*(%ebp-20)*/
+	lea 12(%eax),%edi
+	call builtin_asm_get_threadrootmethod
+	pushl %eax /*(%ebp-24)*/
+
+	pushl (%edi)
+asm_get_stackTraceLoop:
+	call findmethod
+	mov %eax,%esi
+	add $4,%esp
+	pushl $1 /*no indent*/
+
+	mov (%edi),%edx
+	sub $4,%edx
+
+get_stackTrace_line:
+	movl LineNumberTableSize(%esi),%ecx
+	test    %ecx,%ecx /* skip if empty line table */
+	je      get_stackTrace_noLineInfo
+
+	movl LineNumberTableStart(%esi),%ebx
+	
+get_stackTrace_lineLoop:
+	cmp %edx,LinePC(%ebx)
+	jg get_stackTrace_nextLineInfo
+
+	pushl LineLine(%ebx)
+	jmp get_stackTrace_cont
+
+get_stackTrace_nextLineInfo:	
+	lea LineEntrySize(%ebx),%ebx
+	dec %ecx
+	test %ecx,%ecx
+
+	jne get_stackTrace_lineLoop
+
+get_stackTrace_noLineInfo:
+	pushl $0
+
+
+get_stackTrace_cont:
+	pushl (%edi) /*4*/
+	pushl MethodPointer(%esi)
+	pushl $0 /*8(%ebp)*/ /*exception ptr*/
+	call builtin_trace_exception
+	add $12,%esp
+
+	movl MethodPointer(%esi),%eax
+	movl %eax,4(%esp)
+	test %eax,%eax
+	je get_stackTrace_nat
+
+	cmp %eax,-24(%ebp)
+	je get_stackTrace_leave
+
+	mov FrameSize(%esi),%eax
+	add $4,%edi
+	add %eax,%edi
+	pushl (%edi)
+	jmp asm_get_stackTraceLoop
+
+get_stackTrace_nat:
+	add $8,%esp
+	movl -20(%ebp),%eax
+	cmp $0,%eax
+	je get_stackTrace_leave
+	movl  0(%eax),%ebx
+	movl  %ebx,-20(%ebp)
+	pushl 8(%eax)
+	pushl $0
+	lea 12(%eax),%edi
+	pushl (%edi)
+	jmp asm_get_stackTraceLoop
+
+get_stackTrace_leave:
+	mov %esp,%eax
+	lea -24(%ebp),%ebx
+	push %ebx
+	push %eax
+	push 4(%ebp)
+	call builtin_stacktrace_copy
+
+	lea -16(%ebp),%esp
+	pop %ebx
+	pop %esi
+	pop %edi
+	pop %ebp
+	ret
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 914 2004-02-05 21:44:29Z twisti $
+# $Id: Makefile.am 963 2004-03-15 07:37:49Z jowenn $
 
 @SET_MAKE@
 
@@ -199,6 +199,7 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	java.util.Properties \
 	java.lang.Runtime \
 	java.lang.Throwable \
+	java.lang.VMThrowable \
 	gnu.java.security.x509.X509Certificate  \
 	java.lang.JOWENNTest1 \
 	@AWTPEERS@

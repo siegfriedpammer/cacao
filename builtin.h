@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 951 2004-03-11 17:30:03Z jowenn $
+   $Id: builtin.h 963 2004-03-15 07:37:49Z jowenn $
 
 */
 
@@ -172,7 +172,7 @@ java_objectheader *builtin_throw_exception(java_objectheader *exception);
 /* NOT AN OP */
 java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 										   methodinfo *method, 
-										   int *pos, int noindent);
+										   int *pos, int line, int noindent);
 /* NOT AN OP */
 
 static inline java_objectheader **builtin_get_exceptionptrptr();
@@ -418,6 +418,7 @@ points here---->| previous element in list        		|
 		------------------------------------------------
 */
 void *builtin_asm_get_stackframeinfo();
+stacktraceelement *builtin_stacktrace_copy(stacktraceelement **,stacktraceelement *begin, stacktraceelement *end);
 #endif /* _BUILTIN_H */
 
 
