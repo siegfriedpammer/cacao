@@ -458,7 +458,7 @@ suspendOnQThread(thread* tid, thread** queue)
 
 	DBG( printf("suspendOnQThread %p %p\n", tid, queue); );
 
-	assert(blockInts == 1);
+	assert(blockInts > 0);
 
 	if (CONTEXT(tid).status != THREAD_SUSPENDED)
 	{

@@ -421,7 +421,7 @@ broadcast_cond (iCv *cond)
 void
 internal_lock_mutex(iMux* mux)
 {
-	assert(blockInts == 1);
+	assert(blockInts > 0);
 
     if (mux->holder == 0)
     {
@@ -452,7 +452,7 @@ internal_unlock_mutex(iMux* mux)
 {
     thread* tid;
 
-	assert(blockInts == 1);
+	assert(blockInts > 0);
 
     assert(mux->holder == currentThread);
     
@@ -485,7 +485,7 @@ internal_wait_cond(iMux* mux, iCv* cv, s8 timeout)
 		exceptionptr = native_new_and_init(class_java_lang_IllegalMonitorStateException);
     }
 
-	assert(blockInts == 1);
+	assert(blockInts > 0);
 
     count = mux->count;
     mux->holder = 0;
@@ -529,7 +529,7 @@ internal_signal_cond (iCv* cv)
 		exceptionptr = native_new_and_init(class_java_lang_IllegalMonitorStateException);
     }
 
-	assert(blockInts == 1);
+	assert(blockInts > 0);
 
     /* Remove one thread from cv list */
     if (cv->cvWaiters != 0) {
@@ -561,7 +561,7 @@ internal_broadcast_cond (iCv* cv)
 		exceptionptr = native_new_and_init(class_java_lang_IllegalMonitorStateException);
     }
 
-	assert(blockInts == 1);
+	assert(blockInts > 0);
 
     /* Find the end of the cv list */
     if (cv->cvWaiters) {
