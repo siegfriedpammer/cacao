@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1072 2004-05-19 17:20:12Z stefan $
+   $Id: asmpart.S 1080 2004-05-26 13:29:18Z twisti $
 
 */
 
@@ -60,6 +60,12 @@
 #define LineEntrySize	-8
 #define LinePC		0
 #define LineLine	-4
+
+
+#define itmp1    %eax
+#define itmp2    %ecx
+#define itmp3    %edx
+
 		
 	.text
 
@@ -339,7 +345,7 @@ L_not_static_special:
 	
 	sub     $6,%ebp             /* calculate address of offset                */
 	mov     (%ebp),%ebp         /* get offset                                 */
-	add     %ecx,%ebp           /* add base address to get method address     */
+	add     itmp2,%ebp          /* add base address to get method address     */
 	jmp		L_call_jit_compile
 
 L_not_virtual_interface:        /* a call from asm_calljavafunction           */
@@ -353,6 +359,10 @@ L_call_jit_compile:
 	add     $4,%esp
 
 	pop     %ebp                /* restore address for method pointer         */
+
+	test    %eax,%eax           /* check for exception                        */
+	je      L_exception
+
 	test	%ebp,%ebp           /* is address == 0 (asm_calljavafunction)     */
 	je		L_call_method
 	
@@ -363,6 +373,26 @@ L_call_method:
 	pop     %ebx
 		
 	jmp		*%eax               /* ...and now call the new method             */
+
+L_exception:
+	pop     %ebp                /* restore registers                          */
+	pop     %ebx
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	call    builtin_asm_get_exceptionptrptr
+	mov     %eax,%ecx
+	mov     (%ecx),%eax         /* get the exception pointer                  */
+	movl    $0,(%ecx)           /* clear the exception pointer                */
+#else
+	lea     _exceptionptr,%ecx
+	mov     (%ecx),%eax         /* get the exception pointer                  */
+	movl    $0,(%ecx)           /* clear the exception pointer                */
+#endif
+
+	pop     %ecx                /* delete return address                      */
+	sub     $2,%ecx             /* faulting address is return adress - 2      */
+
+	jmp     asm_handle_exception
 
 
 /********************* function asm_handle_exception ***************************
@@ -442,36 +472,36 @@ ex_table_loop:
 		test    %ebx,%ebx					/* NULL catches everything        */
 		je      ex_handle_it
 
-#if 1
 	cmpl    $0,offclassloaded(%ebx)     /* check if class is loaded           */
 	jne     L_class_loaded
 
-	push    %eax                        /* save not callee saved regs         */
-	push    %ecx
+	sub     $3*4,%esp
+	mov     %eax,1*4(%esp)              /* save not callee saved regs         */
+	mov     %ecx,2*4(%esp)
 
-	push    %ebx                        /* exception class is argument        */
+	mov     %ebx,0*4(%esp)              /* exception class is argument        */
 	call    class_load
-	add     $4,%esp
 
-	pop     %ecx
-	pop     %eax
+	mov     1*4(%esp),%eax
+	mov     2*4(%esp),%ecx
+	add     $3*4,%esp
 
 L_class_loaded:
 	cmpl    $0,offclasslinked(%ebx)
 	jne     L_class_linked
 
-	push    %eax                        /* save not callee saved regs         */
-	push    %ecx
+	sub     $3*4,%esp
+	mov     %eax,1*4(%esp)              /* save not callee saved regs         */
+	mov     %ecx,2*4(%esp)
 
-	push    %ebx                        /* exception class is argument        */
+	mov     %ebx,0*4(%esp)              /* exception class is argument        */
 	call    class_link
-	add     $4,%esp
 
-	pop    %ecx
-	pop    %eax
+	mov     1*4(%esp),%eax
+	mov     2*4(%esp),%ecx
+	add     $3*4,%esp
 
 L_class_linked:
-#endif
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 		push    %ebx
 
