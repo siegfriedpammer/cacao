@@ -28,10 +28,12 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 559 2003-11-02 23:20:06Z twisti $
+   $Id: codegen.c 573 2003-11-07 08:53:55Z twisti $
 
 */
 
+
+#define _GNU_SOURCE    /* we need this for signal handling */
 
 #include <stdio.h>
 #include <signal.h>
@@ -50,6 +52,33 @@
 /* include independent code generation stuff */
 #include "codegen.inc"
 #include "reg.inc"
+
+
+/* register descripton - array ************************************************/
+
+/* #define REG_RES   0         reserved register for OS or code generator     */
+/* #define REG_RET   1         return value register                          */
+/* #define REG_EXC   2         exception value register (only old jit)        */
+/* #define REG_SAV   3         (callee) saved register                        */
+/* #define REG_TMP   4         scratch temporary register (caller saved)      */
+/* #define REG_ARG   5         argument register (caller saved)               */
+
+/* #define REG_END   -1        last entry in tables                           */
+
+int nregdescint[] = {
+    REG_RET, REG_ARG, REG_ARG, REG_TMP, REG_RES, REG_SAV, REG_ARG, REG_ARG,
+    REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+    REG_END
+};
+
+
+int nregdescfloat[] = {
+/*      REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, */
+/*      REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, */
+    REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+    REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+    REG_END
+};
 
 
 /* additional functions and macros to generate code ***************************/
@@ -340,7 +369,7 @@ void init_exceptions(void)
 
 u1          *mcodeptr;
 
-static void codegen()
+void codegen()
 {
 	int  len, s1, s2, s3, d /*, bbs */;
 	s8   a;
@@ -5083,7 +5112,7 @@ void x86_64_jmp_reg(s8 reg) {
 
 void x86_64_jcc(s8 opc, s8 imm) {
 	*(mcodeptr++) = 0x0f;
-	*(mcodeptr++) = (0x80 + x86_64_cc_map[(opc)]);
+	*(mcodeptr++) = (0x80 + (opc));
 	x86_64_emit_imm32((imm));
 }
 
@@ -5097,7 +5126,7 @@ void x86_64_jcc(s8 opc, s8 imm) {
 void x86_64_setcc_reg(s8 opc, s8 reg) {
 	*(mcodeptr++) = (0x40 | (((reg) >> 3) & 0x01));
 	*(mcodeptr++) = 0x0f;
-	*(mcodeptr++) = (0x90 + x86_64_cc_map[(opc)]);
+	*(mcodeptr++) = (0x90 + (opc));
 	x86_64_emit_reg(0,(reg));
 }
 
@@ -5106,7 +5135,7 @@ void x86_64_setcc_reg(s8 opc, s8 reg) {
 void x86_64_setcc_membase(s8 opc, s8 basereg, s8 disp) {
 	*(mcodeptr++) = (0x40 | (((basereg) >> 3) & 0x01));
 	*(mcodeptr++) = 0x0f;
-	*(mcodeptr++) = (0x90 + x86_64_cc_map[(opc)]);
+	*(mcodeptr++) = (0x90 + (opc));
 	x86_64_emit_membase((basereg),(disp),0);
 }
 
@@ -5114,7 +5143,7 @@ void x86_64_setcc_membase(s8 opc, s8 basereg, s8 disp) {
 void x86_64_cmovcc_reg_reg(s8 opc, s8 reg, s8 dreg) {
 	x86_64_emit_rex(1,(dreg),0,(reg));
 	*(mcodeptr++) = 0x0f;
-	*(mcodeptr++) = (0x40 + x86_64_cc_map[(opc)]);
+	*(mcodeptr++) = (0x40 + (opc));
 	x86_64_emit_reg((dreg),(reg));
 }
 
@@ -5122,7 +5151,7 @@ void x86_64_cmovcc_reg_reg(s8 opc, s8 reg, s8 dreg) {
 void x86_64_cmovccl_reg_reg(s8 opc, s8 reg, s8 dreg) {
 	x86_64_emit_rex(0,(dreg),0,(reg));
 	*(mcodeptr++) = 0x0f;
-	*(mcodeptr++) = (0x40 + x86_64_cc_map[(opc)]);
+	*(mcodeptr++) = (0x40 + (opc));
 	x86_64_emit_reg((dreg),(reg));
 }
 
