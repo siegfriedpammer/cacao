@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1022 2004-04-21 18:30:53Z stefan $
+   $Id: builtin.h 1027 2004-04-26 15:53:01Z twisti $
 
 */
 
@@ -216,8 +216,8 @@ java_intarray *builtin_newarray_int(s4 size);
 #define BUILTIN_newarray_int (functionptr) builtin_newarray_int
 java_longarray *builtin_newarray_long(s4 size);
 #define BUILTIN_newarray_long (functionptr) builtin_newarray_long
-java_arrayheader *builtin_nmultianewarray(int n,
-                                          vftbl *arrayvftbl, long *dims);
+java_arrayheader *builtin_nmultianewarray(int n, vftbl *arrayvftbl, long *dims);
+/*  java_arrayheader *builtin_nmultianewarray(int n, classinfo *arrayclass, long *dims); */
 /* NOT AN OP */
 
 s4 builtin_canstore(java_objectarray *a, java_objectheader *o);
@@ -237,9 +237,6 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5, s8 a6, s8 a7, 
 void builtin_displaymethodstart(methodinfo *method);
 /* NOT AN OP */
 void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f);
-/* NOT AN OP */
-/* void builtin_displaymethodstop(methodinfo *method); */
-void builtin_displaymethodexception(methodinfo *method);
 /* NOT AN OP */
 
 void builtin_monitorenter(java_objectheader *o);
@@ -370,12 +367,13 @@ s4 builtin_dummy();
 /* NOT AN OP */
 
 /* conversion helper functions */
-
 inline float intBitsToFloat(s4 i);
 inline float longBitsToDouble(s8 l);
 
+/* this is a wrapper for calls from asmpart */
+java_objectheader **builtin_asm_get_exceptionptrptr();
 
-static inline java_objectheader **builtin_get_exceptionptrptr()
+inline java_objectheader **builtin_get_exceptionptrptr()
 {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	return &THREADINFO->_exceptionptr;
@@ -385,7 +383,7 @@ static inline java_objectheader **builtin_get_exceptionptrptr()
 #endif
 }
 
-static inline methodinfo **builtin_get_threadrootmethod()
+inline methodinfo **builtin_get_threadrootmethod()
 {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	return &THREADINFO->_threadrootmethod;

@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1022 2004-04-21 18:30:53Z stefan $
+   $Id: builtin.c 1027 2004-04-26 15:53:01Z twisti $
 
 */
 
@@ -278,14 +278,17 @@ java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Builtin exception thrown: ");
 		if (local_exceptionptr) {
-			utf_sprint(logtext + strlen(logtext), local_exceptionptr->vftbl->class->name);
+			utf_sprint_classname(logtext + strlen(logtext),
+								 local_exceptionptr->vftbl->class->name);
 
 		} else {
 			sprintf(logtext + strlen(logtext), "Error: <Nullpointer instead of exception>");
 		}
 		log_text(logtext);
 	}
+
 	*exceptionptr = local_exceptionptr;
+
 	return local_exceptionptr;
 }
 
@@ -464,20 +467,31 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 java_objectheader *builtin_new(classinfo *c)
 {
 	java_objectheader *o;
-/*DEBUGING - NOT THREAD SAFE*/
-/*	static long depth=0;
-	depth++;
-	printf("Entering builtin_new:depth(%ld)",depth);*/
+
+	/* is the class loaded */
+	if (!c->loaded) {
+		class_load(c);
+	}
+
+	/* is the class linked */
+	if (!c->linked) {
+		class_link(c);
+	}
 
 	if (!c->initialized) {
 		if (initverbose) {
 			char logtext[MAXLOGTEXT];
 			sprintf(logtext, "Initialize class ");
-			utf_sprint(logtext + strlen(logtext), c->name);
+			utf_sprint_classname(logtext + strlen(logtext), c->name);
 			sprintf(logtext + strlen(logtext), " (from builtin_new)");
 			log_text(logtext);
 		}
-		class_init(c);
+		(void) class_init(c);
+
+		/* we had an ExceptionInInitializerError */
+		if (*exceptionptr) {
+			return NULL;
+		}
 	}
 
 #ifdef SIZE_FROM_CLASSINFO
@@ -486,20 +500,13 @@ java_objectheader *builtin_new(classinfo *c)
 #else
 	o = heap_allocate(c->instancesize, true, c->finalizer);
 #endif
-	if (!o) {
-		/*DEBUGING - NOT THREAD SAFE*/
-		/*printf("Leaving builtin_new: depth(%ld): NULL",depth);
-		depth--;*/
+	if (!o)
 		return NULL;
-	}
 	
 	memset(o, 0, c->instancesize);
 
 	o->vftbl = c->vftbl;
 
-	/*DEBUGING - NOT THREAD SAFE*/
-	/* printf("Leaving builtin_new: depth(%ld): object",depth);
-	depth--;*/
 	return o;
 }
 
@@ -517,13 +524,18 @@ java_objectheader *builtin_new(classinfo *c)
 java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl)
 {
 	java_arrayheader *a;
-	arraydescriptor *desc = arrayvftbl->arraydesc;
-	s4 dataoffset = desc->dataoffset;
-	s4 componentsize = desc->componentsize;
+	arraydescriptor *desc;
+	s4 dataoffset;
+	s4 componentsize;
 	s4 actualsize;
 
+	desc = arrayvftbl->arraydesc;
+	dataoffset = desc->dataoffset;
+	componentsize = desc->componentsize;
+
 	if (size < 0) {
-		*exceptionptr = new_exception(string_java_lang_NegativeArraySizeException);
+		*exceptionptr =
+			new_exception(string_java_lang_NegativeArraySizeException);
 		return NULL;
 	}
 
@@ -546,8 +558,6 @@ java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl)
 
 	memset(a, 0, actualsize);
 
-	/*printf("builtin_newarray: Created an array of size : %d\n",size);*/
-
 	a->objheader.vftbl = arrayvftbl;
 	a->size = size;
 #ifdef SIZE_FROM_CLASSINFO
@@ -562,7 +572,7 @@ java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl)
 
 	Creates an array of references to the given class type on the heap.
 
-	Return value:  pointer to the array or NULL if no memory is available
+	Return value: pointer to the array or NULL if no memory is available
 
     XXX This function does not do The Right Thing, because it uses a
     classinfo pointer at runtime. builtin_newarray should be used
@@ -572,13 +582,15 @@ java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl)
 
 java_objectarray *builtin_anewarray(s4 size, classinfo *component)
 {
-/*
-	printf("builtin_anewarray: classvftbl: %d\n",component->classvftbl);
-	printf("builtin_anewarray: baseval: %d\n",component->vftbl->baseval);
-	utf_display(component->vftbl->class->name);
-	printf("\nbuiltin_anewarray: linked: %d\n",component->linked);
-	utf_display(component->super->name);*/
-	return (java_objectarray*) builtin_newarray(size, class_array_of(component)->vftbl);
+	/* is class loaded */
+	if (!component->loaded)
+		class_load(component);
+
+	/* is class linked */
+	if (!component->linked)
+		class_link(component);
+
+	return (java_objectarray *) builtin_newarray(size, class_array_of(component)->vftbl);
 }
 
 
@@ -709,24 +721,33 @@ java_booleanarray *builtin_newarray_boolean(s4 size)
 
 ******************************************************************************/
 
-	/* Helper functions */
-
-java_arrayheader *builtin_nmultianewarray (int n, vftbl *arrayvftbl, long *dims)
+java_arrayheader *builtin_nmultianewarray(int n, vftbl *arrayvftbl, long *dims)
+/*  java_arrayheader *builtin_nmultianewarray(int n, classinfo *arrayclass, long *dims) */
 {
-	int size, i;
+	s4 size, i;
 	java_arrayheader *a;
 	vftbl *componentvftbl;
 
+/*  	utf_display(arrayclass->name); */
+
+/*  	class_load(arrayclass); */
+/*  	class_link(arrayclass); */
+	
 	/* create this dimension */
-	size = (int) dims[0];
-	a = builtin_newarray(size,arrayvftbl);
-	if (!a) return NULL;
+	size = (s4) dims[0];
+  	a = builtin_newarray(size, arrayvftbl);
+/*  	a = builtin_newarray(size, arrayclass->vftbl); */
+
+	if (!a)
+		return NULL;
 
 	/* if this is the last dimension return */
-	if (!--n) return a;
+	if (!--n)
+		return a;
 
 	/* get the vftbl of the components to create */
 	componentvftbl = arrayvftbl->arraydesc->componentvftbl;
+/*  	component = arrayclass->vftbl->arraydesc; */
 
 	/* The verifier guarantees this. */
 	/* if (!componentvftbl) */
@@ -735,9 +756,12 @@ java_arrayheader *builtin_nmultianewarray (int n, vftbl *arrayvftbl, long *dims)
 	/* create the component arrays */
 	for (i = 0; i < size; i++) {
 		java_arrayheader *ea = 
-			builtin_nmultianewarray(n,componentvftbl,dims+1);
-		if (!ea) return NULL;
-		((java_objectarray*)a)->data[i] = (java_objectheader *) ea;
+			builtin_nmultianewarray(n, componentvftbl, dims + 1);
+
+		if (!ea)
+			return NULL;
+		
+		((java_objectarray *) a)->data[i] = (java_objectheader *) ea;
 	}
 
 	return a;
@@ -769,7 +793,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 	if (verbose || runverbose || verboseexception) {
 		if (_exceptionptr) {
 			printf("Exception ");
-			utf_display(_exceptionptr->vftbl->class->name);
+			utf_display_classname(_exceptionptr->vftbl->class->name);
 
 		} else {
 			printf("Some Throwable");
@@ -818,10 +842,10 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 		logtext[i] = '\t';
 
 	sprintf(logtext + methodindent, "called: ");
-	utf_sprint(logtext + strlen(logtext), method->class->name);
+	utf_sprint_classname(logtext + strlen(logtext), method->class->name);
 	sprintf(logtext + strlen(logtext), ".");
 	utf_sprint(logtext + strlen(logtext), method->name);
-	utf_sprint(logtext + strlen(logtext), method->descriptor);
+	utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
 
 	if ( method->flags & ACC_PUBLIC )       sprintf (logtext + strlen(logtext)," PUBLIC");
 	if ( method->flags & ACC_PRIVATE )      sprintf (logtext + strlen(logtext)," PRIVATE");
@@ -990,10 +1014,10 @@ void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
 		log_text("WARNING: unmatched methodindent--");
 
 	sprintf(logtext + methodindent, "finished: ");
-	utf_sprint(logtext + strlen(logtext), method->class->name);
+	utf_sprint_classname(logtext + strlen(logtext), method->class->name);
 	sprintf(logtext + strlen(logtext), ".");
 	utf_sprint(logtext + strlen(logtext), method->name);
-	utf_sprint(logtext + strlen(logtext), method->descriptor);
+	utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
 
 	switch (method->returntype) {
 	case TYPE_INT:
@@ -1024,21 +1048,6 @@ void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
 		sprintf(logtext + strlen(logtext), "->%g", d);
 		break;
 	}
-	log_text(logtext);
-}
-
-
-void builtin_displaymethodexception(methodinfo *method)
-{
-	int i;
-	char logtext[MAXLOGTEXT];
-	for (i = 0; i < methodindent; i++)
-		logtext[i] = '\t';
-	sprintf(logtext + methodindent, "exception abort: ");
-	utf_sprint(logtext + strlen(logtext), method->class->name);
-	sprintf(logtext + strlen(logtext), ".");
-	utf_sprint(logtext + strlen(logtext), method->name);
-	utf_sprint(logtext + strlen(logtext), method->descriptor);
 	log_text(logtext);
 }
 
@@ -1798,7 +1807,19 @@ s4 builtin_dummy()
 }
 
 
-inline methodinfo *builtin_asm_get_threadrootmethod()
+/* builtin_asm_get_exceptionptrptr *********************************************
+
+   this is a wrapper for calls from asmpart
+
+*******************************************************************************/
+
+java_objectheader **builtin_asm_get_exceptionptrptr()
+{
+	return builtin_get_exceptionptrptr();
+}
+
+
+methodinfo *builtin_asm_get_threadrootmethod()
 {
 	return *threadrootmethod;
 }
