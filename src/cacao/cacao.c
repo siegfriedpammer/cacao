@@ -36,7 +36,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1685 2004-12-05 22:57:53Z jowenn $
+   $Id: cacao.c 1686 2004-12-05 23:56:47Z twisti $
 
 */
 
@@ -308,8 +308,8 @@ int main(int argc, char **argv)
 	/************ Collect info from the environment ************************/
 
 	/* set an initial, minimal classpath */
-	classpath = MNEW(char, strlen(INSTALL_PREFIX"/share/classpath/glibj.zip:.")+1);
-	strcpy(classpath,INSTALL_PREFIX"/share/classpath/glibj.zip:.");
+	classpath = MNEW(char, 2);
+	strcpy(classpath, ".");
 
 	/* get classpath environment */
 	cp = getenv("CLASSPATH");
@@ -574,18 +574,20 @@ int main(int argc, char **argv)
 
 
 	/* insert the rt.jar in front of all other classpath entries */
-	cplen = strlen(INSTALL_PREFIX) + strlen(RT_JAR_PATH);
+
+	cplen = strlen(INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH);
 	cp = classpath;
 
 	classpath = MNEW(char, cplen + strlen(classpath) + 1);
 	strcpy(classpath, INSTALL_PREFIX);
-	strcat(classpath, RT_JAR_PATH);
+	strcat(classpath, CACAO_RT_JAR_PATH);
 	strcat(classpath, cp);
 
 	MFREE(cp, char, strlen(cp));
 
 
 	/* transform dots into slashes in the class name */
+
    	mainstring = argv[opt_ind++];
    	for (i = strlen(mainstring) - 1; i >= 0; i--) {
  	 	if (mainstring[i] == '.') mainstring[i] = '/';
