@@ -9,7 +9,7 @@
     Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: 1998/11/05
+    Last Change: 2003/03/07
 
 *******************************************************************************/
 
@@ -28,6 +28,12 @@ R28 ..... contains a pointer to the correct 'methodinfo' structure for this
           'methodinfo' structures associated naturally), the value of this
           register is undefined. Every function called by the JavaVM
           (builtin_new, etc.) is called this way.
+
+R27 (pv)  This register needs to maintain its value all the time. It must
+		  be restored after each method call. More importantly, the code
+		  sequence for this operation is standardized and is interpreted
+		  by the exception handling code.
+
 
 The other registers are used according to the standard Alpha calling
 conventions. Here is a summary of the usage:
