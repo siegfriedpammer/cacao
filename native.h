@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 682 2003-12-01 15:33:30Z jowenn $
+   $Id: native.h 756 2003-12-13 22:26:17Z twisti $
 
 */
 
@@ -49,7 +49,9 @@ extern methodinfo *method_vmclass_init;
 extern classinfo *class_java_lang_CloneNotSupportedException;
 extern classinfo *class_java_lang_System;
 extern classinfo *class_java_lang_ClassLoader;
+extern classinfo *class_java_lang_NoClassDefFoundError;
 extern classinfo *class_java_lang_ClassNotFoundException;
+extern classinfo *class_java_lang_LinkageError;
 extern classinfo *class_java_lang_InstantiationException;
 extern classinfo *class_java_lang_NoSuchMethodError;   
 extern classinfo *class_java_lang_NoSuchFieldError;
@@ -85,6 +87,12 @@ extern java_objectheader* exceptionptr;
 extern hashtable string_hash; 
 
 
+/* throw classnotfoundexcetion with detail message */
+void throw_noclassdeffounderror_message(utf* classname);
+
+/* throw linkageerror with detail message */
+void throw_linkageerror_message(utf* classname);
+
 void use_class_as_object(classinfo *c);
 
 /* load classes required for native methods */
@@ -98,10 +106,12 @@ functionptr native_findfunction(utf *cname, utf *mname,
 								utf *desc, bool isstatic);
 
 /* creates a new object of type java/lang/String from a utf-text */
-java_objectheader *javastring_new(utf *text);
+/*  java_objectheader *javastring_new(utf *text); */
+java_lang_String *javastring_new(utf *text);
 
 /* creates a new object of type java/lang/String from a c-string */
-java_objectheader *javastring_new_char(char *text);
+/*  java_objectheader *javastring_new_char(char *text); */
+java_lang_String *javastring_new_char(char *text);
 
 /* make c-string from a javastring (debugging) */
 char *javastring_tochar(java_objectheader *s);
@@ -120,15 +130,6 @@ void attach_property(char *name, char *value);
 
 /* correct vftbl-entries of javastring-hash */
 void stringtable_update();
-
-/* throw classnotfoundexcetion */
-void throw_classnotfoundexception();
-
-/* throw classnotfoundexcetion with description*/
-void throw_classnotfoundexception2(utf* classname);
-
-/* throw linkageerror with description*/
-void throw_linkageerror2(utf* classname);
 
 
 /* make utf symbol from javastring */
