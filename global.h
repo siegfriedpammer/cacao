@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: global.h 1442 2004-11-05 13:51:49Z twisti $
 
 */
 
@@ -521,16 +521,16 @@ struct fieldinfo {	      /* field of a class                                 */
 /* exceptiontable *************************************************************/
 
 struct exceptiontable {         /* exceptiontable entry in a method           */
-	s4         startpc;         /* start pc of guarded area (inclusive)       */
+	s4              startpc;    /* start pc of guarded area (inclusive)       */
 	struct basicblock *start;
 
-	s4         endpc;           /* end pc of guarded area (exklusive)         */
+	s4              endpc;      /* end pc of guarded area (exklusive)         */
 	struct basicblock *end;
 
-	s4         handlerpc;       /* pc of exception handler                    */
+	s4              handlerpc;  /* pc of exception handler                    */
 	struct basicblock *handler;
 
-	classinfo *catchtype;       /* catchtype of exception (NULL == catchall)  */
+	classinfo      *catchtype;  /* catchtype of exception (NULL == catchall)  */
 	exceptiontable *next;       /* used to build a list of exception when     */
 	                            /* loops are copied */
 	exceptiontable *down;       /* instead of the old array, a list is used   */
@@ -568,65 +568,64 @@ struct lineinfo {
 
 struct methodinfo {                 /* method structure                       */
 	java_objectheader header;       /* we need this in jit's monitorenter     */
-	s4	       flags;               /* ACC flags                              */
-	utf       *name;                /* name of method                         */
-	utf       *descriptor;          /* JavaVM descriptor string of method     */
-	s4         returntype;          /* only temporary valid, return type      */
-	classinfo *returnclass;         /* pointer to classinfo for the rtn type  */ /*XTA*/ 
-	s4         paramcount;          /* only temporary valid, parameter count  */
-	u1        *paramtypes;          /* only temporary valid, parameter types  */
+	s4          flags;              /* ACC flags                              */
+	utf        *name;               /* name of method                         */
+	utf        *descriptor;         /* JavaVM descriptor string of method     */
+	s4          returntype;         /* only temporary valid, return type      */
+	classinfo  *returnclass;        /* pointer to classinfo for the rtn type  */ /*XTA*/ 
+	s4          paramcount;         /* only temporary valid, parameter count  */
+	u1         *paramtypes;         /* only temporary valid, parameter types  */
 	classinfo **paramclass;         /* pointer to classinfo for a parameter   */ /*XTA*/
 
-	bool       isleafmethod;        /* does method call subroutines           */
+	bool        isleafmethod;       /* does method call subroutines           */
 
-	classinfo *class;               /* class, the method belongs to           */
-	s4         vftblindex;          /* index of method in virtual function table
-	                                   (if it is a virtual method)            */
-	s4         maxstack;            /* maximum stack depth of method          */
-	s4         maxlocals;           /* maximum number of local variables      */
-	s4         jcodelength;         /* length of JavaVM code                  */
-	u1        *jcode;               /* pointer to JavaVM code                 */
+	classinfo  *class;              /* class, the method belongs to           */
+	s4          vftblindex;         /* index of method in virtual function    */
+	                                /* table (if it is a virtual method)      */
+	s4          maxstack;           /* maximum stack depth of method          */
+	s4          maxlocals;          /* maximum number of local variables      */
+	s4          jcodelength;        /* length of JavaVM code                  */
+	u1         *jcode;              /* pointer to JavaVM code                 */
 
-	s4         basicblockcount;     /* number of basic blocks                 */
+	s4          basicblockcount;    /* number of basic blocks                 */
 	struct basicblock *basicblocks; /* points to basic block array            */
-	s4        *basicblockindex;     /* a table which contains for every byte  */
+	s4         *basicblockindex;    /* a table which contains for every byte  */
 	                                /* of JavaVM code a basic block index if  */
 	                                /* at this byte is the start of a basic   */
 	                                /* block                                  */
 
-	s4         instructioncount;    /* number of JavaVM instructions          */
+	s4          instructioncount;   /* number of JavaVM instructions          */
 	struct instruction *instructions; /* points to intermediate code instructions */
 
-	s4         stackcount;          /* number of stack elements               */
+	s4          stackcount;         /* number of stack elements               */
 	struct stackelement *stack;     /* points to intermediate code instructions */
 
-	s4         exceptiontablelength;/* exceptiontable length                  */
+	s4          exceptiontablelength;/* exceptiontable length                 */
 	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
-	u2        thrownexceptionscount;/*number of exceptions declared to be thrown by a method*/
-	classinfo **thrownexceptions;   /*array of classinfos of declared exceptions*/
+	u2          thrownexceptionscount;/* number of exceptions attribute       */
+	classinfo **thrownexceptions;   /* checked exceptions a method may throw  */
 
-	u2         linenumbercount;     /* number of linenumber attributes        */
-	lineinfo  *linenumbers;         /* array of lineinfo items                */
+	u2          linenumbercount;    /* number of linenumber attributes        */
+	lineinfo   *linenumbers;        /* array of lineinfo items                */
 
-	struct registerdata *registerdata; /* struct with all regalloc stuff      */
+	int       c_debug_nr;           /* a counter to number all BB with an     */
+	                                /* unique value                           */
 
-	struct codegendata *codegendata;/* struct with codegen stuff              */
-
-	u1        *stubroutine;         /* stub for compiling or calling natives  */
-	s4         mcodelength;         /* legth of generated machine code        */
-	u1        *mcode;               /* pointer to machine code                */
-	u1        *entrypoint;          /* entry point in machine code            */
+	u1         *stubroutine;        /* stub for compiling or calling natives  */
+	s4          mcodelength;        /* legth of generated machine code        */
+	u1         *mcode;              /* pointer to machine code                */
+	u1         *entrypoint;         /* entry point in machine code            */
 
 	/*rtainfo   rta;*/
 	xtainfo    *xta;
 
-	s4        methodUsed; 		/* marked (might be used later) /not used /used */
-	s4        monoPoly; 		/* call is mono or poly or unknown        */ /*RT stats */
+	s4          methodUsed;         /* marked (might be used later) /not used /used */
+	s4          monoPoly;           /* call is mono or poly or unknown        */ /*RT stats */
         /* should # method def'd and used be kept after static parse (will it be used?) */
-	s4	  subRedefs;
-	s4	  subRedefsUsed;
-	s4	  nativelyoverloaded; 		/*used in header.c and only valid there*/
+	s4	        subRedefs;
+	s4	        subRedefsUsed;
+	s4	        nativelyoverloaded; /* used in header.c and only valid there  */
 };
 
 
@@ -635,8 +634,8 @@ struct methodinfo {                 /* method structure                       */
 typedef struct innerclassinfo {
 	classinfo *inner_class;       /* inner class pointer                      */
 	classinfo *outer_class;       /* outer class pointer                      */
-	utf *name;                    /* innerclass name                          */ 
-	s4 flags;                     /* ACC flags                                */
+	utf       *name;              /* innerclass name                          */
+	s4         flags;             /* ACC flags                                */
 } innerclassinfo;
 
 
@@ -675,34 +674,34 @@ struct classinfo {                /* class structure                          */
 
 	listnode    listnode;         /* linkage                                  */
 
-	bool        initialized;      /* true, if class already initialised       */
+	bool        initialized;      /* true, if class already initialized       */
 	bool        initializing;     /* flag for the compiler                    */
 	bool        loaded;           /* true, if class already loaded            */
 	bool        linked;           /* true, if class already linked            */
-	s4          index;            /* hierarchy depth (classes) or index
-	                                 (interfaces)                             */
+	s4          index;            /* hierarchy depth (classes) or index       */
+	                              /* (interfaces)                             */
 	s4          instancesize;     /* size of an instance of this class        */
 #ifdef SIZE_FROM_CLASSINFO
-	s4          alignedsize;      /* size of an instance, aligned to the 
-									 allocation size on the heap              */
+	s4          alignedsize;      /* size of an instance, aligned to the      */
+	                              /* allocation size on the heap              */
 #endif
 
-	vftbl_t      *vftbl;          /* pointer to virtual function table        */
+	vftbl_t    *vftbl;            /* pointer to virtual function table        */
 
 	methodinfo *finalizer;        /* finalizer method                         */
 
-    u2             innerclasscount;   /* number of inner classes              */
+    u2          innerclasscount;  /* number of inner classes                  */
     innerclassinfo *innerclass;
 
-    classinfo      *hashlink;         /* link for external hash chain         */
+    classinfo  *hashlink;         /* link for external hash chain             */
 	bool        classvftbl;       /* has its own copy of the Class vtbl       */
 
 	s4          classUsed;        /* 0= not used 1 = used   CO-RT             */
 
 	classSetNode *impldBy;        /* implemented by class set                 */
 	utf        *packagename;      /* full name of the package                 */
-	utf	   *sourcefile;	      /* classfile name containing this class     */
-	java_objectheader *classloader;	      /* 0 for bootstrap classloader */
+	utf        *sourcefile;       /* classfile name containing this class     */
+	java_objectheader *classloader; /* NULL for bootstrap classloader         */
 };
 
 /* check if class is an array class. Only use for linked classes! */
@@ -799,11 +798,11 @@ struct _vftbl {
 struct arraydescriptor {
 	vftbl_t *componentvftbl; /* vftbl of the component type, NULL for primit. */
 	vftbl_t *elementvftbl;   /* vftbl of the element type, NULL for primitive */
-	short  arraytype;        /* ARRAYTYPE_* constant                          */
-	short  dimension;        /* dimension of the array (always >= 1)          */
-    s4     dataoffset;       /* offset of the array data from object pointer  */
-	s4     componentsize;    /* size of a component in bytes                  */
-	short  elementtype;      /* ARRAYTYPE_* constant                          */
+	s2       arraytype;      /* ARRAYTYPE_* constant                          */
+	s2       dimension;      /* dimension of the array (always >= 1)          */
+	s4       dataoffset;     /* offset of the array data from object pointer  */
+	s4       componentsize;  /* size of a component in bytes                  */
+	s2       elementtype;    /* ARRAYTYPE_* constant                          */
 };
 
 
