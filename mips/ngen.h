@@ -396,6 +396,8 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 #define SOFTNULLPTRCHECK       /* soft null pointer check supportet as option */
 
+void ngen_init();
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
