@@ -14,14 +14,17 @@ endif
 
 CFLAGS = $(THREAD_CFLAGS)
 
-threads.a: $(OBJECTS) Makefile sysdep/threads.h
+threads.a: $(OBJECTS) Makefile
 	rm -f threads.a
 	ar qcs threads.a $(OBJECTS)
 #	ranlib threads.a
 
-locks.o : locks.c
-thread.o : thread.c
-threadio.o : threadio.c
+locks.o : locks.c thread.h sysdep/threads.h ../tables.h ../native.h\
+           ../loader.h ../builtin.h ../asmpart.h
+thread.o : thread.c thread.h sysdep/threads.h ../tables.h ../native.h\
+           ../loader.h ../builtin.h ../asmpart.h
+threadio.o : threadio.c thread.h sysdep/threads.h ../tables.h ../native.h\
+           ../loader.h ../builtin.h ../asmpart.h
 
 clean: 
 	rm -f *.o *.a
