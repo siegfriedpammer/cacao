@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1779 2004-12-21 09:13:53Z twisti $
+   $Id: typecheck.c 1795 2004-12-21 15:15:26Z jowenn $
 
 */
 
@@ -67,7 +67,12 @@ bool typecheckverbose = false;
 #define LOG2(str,a,b)      DOLOG(dolog(str,a,b))
 #define LOG3(str,a,b,c)    DOLOG(dolog(str,a,b,c))
 #define LOGIF(cond,str)    DOLOG(do {if (cond) log_text(str);} while(0))
+#ifdef  TYPEINFO_DEBUG
 #define LOGINFO(info)      DOLOG(do {typeinfo_print_short(get_logfile(),(info));log_plain("\n");} while(0))
+#else
+#define LOGINFO(info)
+#define typevectorset_print(x,y,z)
+#endif
 #define LOGFLUSH           DOLOG(fflush(get_logfile()))
 #define LOGNL              DOLOG(log_plain("\n"))
 #define LOGSTR(str)        DOLOG(log_plain(str))
@@ -109,11 +114,13 @@ static
 void
 typestack_print(FILE *file,stackptr stack)
 {
+#ifdef TYPEINFO_DEBUG
     while (stack) {
         typeinfo_print_stacktype(file,stack->type,&stack->typeinfo);
         stack = stack->prev;
         if (stack) fprintf(file," ");
     }
+#endif
 }
 
 static
@@ -627,7 +634,9 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 				   * package the instance must be a subclass of or the same
 				   * as the current class. */
 				  LOG("protected access into other package");
-				  implementingclass = methodclass;
+				  implementingclass = 0; /*dont't fail, don't really get it (was: methodclass)
+					This code was never triggered before, since all packagenames had been 0-pointers
+					anybody an idea ?*/
 			  }
 			  break;
 		  case ACC_PRIVATE:
@@ -853,19 +862,19 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 #ifdef TYPECHECK_STATISTICS
 	int count_iterations = 0;
 	TYPECHECK_COUNT(stat_typechecked);
-	TYPECHECK_COUNT_FREQ(stat_locals,m->codegendata->maxlocals,STAT_LOCALS);
+	TYPECHECK_COUNT_FREQ(stat_locals,cd->maxlocals,STAT_LOCALS);
 	TYPECHECK_COUNT_FREQ(stat_blocks,m->basicblockcount/10,STAT_BLOCKS);
 #endif
 
     LOGSTR("\n==============================================================================\n");
-    DOLOG(show_icmd_method());
+    /*DOLOG( show_icmd_method(cd->method,cd,rd));*/
     LOGSTR("\n==============================================================================\n");
     LOGimpSTR("Entering typecheck: ");
-    LOGimpSTRu(method->name);
+    LOGimpSTRu(cd->method->name);
     LOGimpSTR("    ");
-    LOGimpSTRu(method->descriptor);
+    LOGimpSTRu(cd->method->descriptor);
     LOGimpSTR("    (class ");
-    LOGimpSTRu(method->class->name);
+    LOGimpSTRu(cd->method->class->name);
     LOGimpSTR(")\n");
 	LOGFLUSH;
 
@@ -888,7 +897,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
         if (bptr->flags != BBFINISHED && bptr->flags != BBDELETED
             && bptr->flags != BBUNDEF)
         {
-            show_icmd_method();
+            /*show_icmd_method(cd->method,cd,rd);*/
             LOGSTR1("block flags: %d\n",bptr->flags); LOGFLUSH;
             panic("Internal error: Unexpected block flags in typecheck()");
         }
@@ -977,12 +986,12 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
         bptr = m->basicblocks;
 
         while (--b_count >= 0) {
-            LOGSTR1("---- BLOCK %04d, ",bptr-block);
+            LOGSTR1("---- BLOCK %04d, ",bptr->debug_nr);
             LOGSTR1("blockflags: %d\n",bptr->flags);
             LOGFLUSH;
                 
             if (bptr->flags == BBTYPECHECK_REACHED) {
-                LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",bptr-block);
+                LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",bptr->debug_nr);
                 LOGFLUSH;
                 
                 superblockend = false;
@@ -1490,7 +1499,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           
                           while (--i >= 0) {
                               tbptr = *tptr++;
-                              LOG2("target %d is block %04d",(tptr-(basicblock **)iptr->target)-1,tbptr-block);
+                              LOG2("target %d is block %04d",(tptr-(basicblock **)iptr->target)-1,tbptr->debug_nr);
                               TYPECHECK_REACH;
                           }
                           LOG("switch done");
@@ -1926,14 +1935,14 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                       case ICMD_MONITORENTER:
                       case ICMD_MONITOREXIT:
                       case ICMD_AASTORE:
-                          LOG2("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
+                          LOG2("ICMD %d at %d\n", iptr->opc, (int)(iptr-bptr->iinstr));
 						  LOG("Should have been converted to builtin function call.");
                           panic("Internal error: unexpected instruction encountered");
                           break;
                                                      
                       case ICMD_READONLY_ARG:
                       case ICMD_CLEAR_ARGREN:
-                          LOG2("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
+                          LOG2("ICMD %d at %d\n", iptr->opc, (int)(iptr-bptr->iinstr));
 						  LOG("Should have been replaced in stack.c.");
                           panic("Internal error: unexpected pseudo instruction encountered");
                           break;
@@ -2001,8 +2010,10 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                       case ICMD_LSHL:
                       case ICMD_LSHR:
                       case ICMD_LUSHR:
+#if 0
                       case ICMD_IREM0X10001:
                       case ICMD_LREM0X10001:
+#endif
                       case ICMD_IDIVPOW2:
                       case ICMD_LDIVPOW2:
                       case ICMD_IADDCONST:
@@ -2061,14 +2072,18 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                       case ICMD_DREM:
                       case ICMD_FNEG:
                       case ICMD_DNEG:
+                      
 
+                      /*What shall we do with the following ?*/
+                      case ICMD_CHECKEXCEPTION:
+                      case ICMD_AASTORECONST:
 						  TYPECHECK_COUNT(stat_ins_unchecked);
                           break;
                           
                           /****************************************/
 
                       default:
-                          LOG2("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
+                          LOG2("ICMD %d at %d\n", iptr->opc, (int)(iptr-bptr->iinstr));
                           panic("Missing ICMD code during typecheck");
 #endif
 					}
@@ -2109,7 +2124,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                     while (tbptr->flags == BBDELETED) {
                         tbptr++;
 #ifdef TYPECHECK_DEBUG
-                        if ((tbptr-block) >= m->basicblockcount)
+                        if ((tbptr->debug_nr) >= m->basicblockcount)
                             panic("Control flow falls off the last block");
 #endif
                     }

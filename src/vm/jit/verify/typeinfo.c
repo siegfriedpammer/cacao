@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: typeinfo.c 1795 2004-12-21 15:15:26Z jowenn $
 
 */
 
@@ -1361,11 +1361,8 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
 
 #ifdef TYPEINFO_DEBUG
 
-#include "tables.h"
-#include "loader.h"
-#include "jit/jit.h"
 
-extern instruction *instr;
+/*extern instruction *instr;*/
 
 static int
 typeinfo_test_compare(classinfo **a,classinfo **b)
@@ -1592,7 +1589,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
     if (TYPEINFO_IS_NEWOBJECT(*info)) {
         ins = (instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
         if (ins) {
-            fprintf(file,"%sNEW(%d):",ind,ins-instr);
+            fprintf(file,"%sNEW(%d):",ind,ins-bptr->iinstr);
             utf_fprint(file,((classinfo *)ins[-1].val.a)->name);
             fprintf(file,"\n");
         }
@@ -1664,7 +1661,7 @@ typeinfo_print_short(FILE *file,typeinfo *info)
     if (TYPEINFO_IS_NEWOBJECT(*info)) {
         ins = (instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
         if (ins) {
-            fprintf(file,"NEW(%d):",ins-instr);
+            fprintf(file,"NEW(%d):",ins-bptr->iinstr);
             utf_fprint(file,((classinfo *)ins[-1].val.a)->name);
         }
         else

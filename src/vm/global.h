@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 1792 2004-12-21 10:13:27Z twisti $
+   $Id: global.h 1795 2004-12-21 15:15:26Z jowenn $
 
 */
 
@@ -116,7 +116,7 @@ typedef int   bool;                     /* boolean data type                  */
 /*#define TYPECHECK_STATISTICS
 #define TYPEINFO_DEBUG
 #define TYPECHECK_DEBUG
-#define TYPEINFO_DEBUG_TEST
+#define TYPEINFO_DEBUG_TEST*/
 #define TYPECHECK_VERBOSE
 #define TYPECHECK_VERBOSE_IMPORTANT*/
 #if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
