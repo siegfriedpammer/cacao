@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.h 1532 2004-11-18 10:30:43Z twisti $
+   $Id: memory.h 1569 2004-11-23 16:02:46Z twisti $
 
 */
 
@@ -34,7 +34,9 @@
 #ifndef _MEMORY_H
 #define _MEMORY_H
 
+#include "arch.h"
 #include "types.h"
+
 
 /* 
 ---------------------------- Interface description -----------------------
