@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.h 1351 2004-07-22 22:39:05Z twisti $
+   $Id: emitfuncs.h 1561 2004-11-23 15:51:28Z twisti $
 
 */
 
@@ -60,6 +60,7 @@ void i386_mov_mem_reg(codegendata *cd, s4 mem, s4 dreg);
 void i386_movw_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void i386_movb_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void i386_mov_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp);
+void i386_movb_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp);
 void i386_movsbl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
 void i386_movswl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
 void i386_movzwl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
@@ -74,10 +75,6 @@ void i386_alu_imm_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
 void i386_alu_imm_membase(codegendata *cd, s4 opc, s4 imm, s4 basereg, s4 disp);
 void i386_test_reg_reg(codegendata *cd, s4 reg, s4 dreg);
 void i386_test_imm_reg(codegendata *cd, s4 imm, s4 dreg);
-void i386_inc_reg(codegendata *cd, s4 reg);
-void i386_inc_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_dec_reg(codegendata *cd, s4 reg);
-void i386_dec_membase(codegendata *cd, s4 basereg, s4 disp);
 void i386_dec_mem(codegendata *cd, s4 mem);
 void i386_cltd(codegendata *cd);
 void i386_imul_reg_reg(codegendata *cd, s4 reg, s4 dreg);
@@ -126,6 +123,8 @@ void i386_fldl_membase(codegendata *cd, s4 basereg, s4 disp);
 void i386_fldt_membase(codegendata *cd, s4 basereg, s4 disp);
 void i386_flds_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void i386_fldl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void i386_flds_mem(codegendata *cd, s4 mem);
+void i386_fldl_mem(codegendata *cd, s4 mem);
 void i386_fildl_membase(codegendata *cd, s4 basereg, s4 disp);
 void i386_fildll_membase(codegendata *cd, s4 basereg, s4 disp);
 void i386_fst_reg(codegendata *cd, s4 reg);
@@ -139,6 +138,8 @@ void i386_fstpl_membase(codegendata *cd, s4 basereg, s4 disp);
 void i386_fstpt_membase(codegendata *cd, s4 basereg, s4 disp);
 void i386_fstps_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void i386_fstpl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void i386_fstps_mem(codegendata *cd, s4 mem);
+void i386_fstpl_mem(codegendata *cd, s4 mem);
 void i386_fistl_membase(codegendata *cd, s4 basereg, s4 disp);
 void i386_fistpl_membase(codegendata *cd, s4 basereg, s4 disp);
 void i386_fistpll_membase(codegendata *cd, s4 basereg, s4 disp);

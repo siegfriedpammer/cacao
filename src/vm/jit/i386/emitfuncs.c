@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 1351 2004-07-22 22:39:05Z twisti $
+   $Id: emitfuncs.c 1561 2004-11-23 15:51:28Z twisti $
 
 */
 
@@ -140,6 +140,8 @@ void i386_emit_ialuconst(codegendata *cd, s4 alu_op, stackptr src, instruction *
 			if (src->regoff != iptr->dst->regoff)
 				i386_mov_reg_reg(cd, src->regoff, iptr->dst->regoff);
 
+			/* `inc reg' is slower on p4's (regarding to ia32 optimization    */
+			/* reference manual and benchmarks) and as fast on athlon's.      */
 			i386_alu_imm_reg(cd, alu_op, iptr->val.i, iptr->dst->regoff);
 		}
 	}
@@ -411,6 +413,13 @@ void i386_mov_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 inde
 }
 
 
+void i386_mov_reg_mem(codegendata *cd, s4 reg, s4 mem)
+{
+	*(cd->mcodeptr++) = 0x89;
+	i386_emit_mem((reg),(mem));
+}
+
+
 void i386_mov_mem_reg(codegendata *cd, s4 mem, s4 dreg)
 {
 	*(cd->mcodeptr++) = 0x8b;
@@ -438,6 +447,14 @@ void i386_mov_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp)
 	*(cd->mcodeptr++) = 0xc7;
 	i386_emit_membase((basereg),(disp),0);
 	i386_emit_imm32((imm));
+}
+
+
+void i386_movb_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp)
+{
+	*(cd->mcodeptr++) = 0xc6;
+	i386_emit_membase((basereg),(disp),0);
+	i386_emit_imm8((imm));
 }
 
 
@@ -930,6 +947,20 @@ void i386_fldl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 sc
 }
 
 
+void i386_flds_mem(codegendata *cd, s4 mem)
+{
+	*(cd->mcodeptr++) = 0xd9;
+	i386_emit_mem(0,(mem));
+}
+
+
+void i386_fldl_mem(codegendata *cd, s4 mem)
+{
+	*(cd->mcodeptr++) = 0xdd;
+	i386_emit_mem(0,(mem));
+}
+
+
 void i386_fildl_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdb;
@@ -1018,6 +1049,20 @@ void i386_fstpl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 s
 {
 	*(cd->mcodeptr++) = 0xdd;
 	i386_emit_memindex(3,(disp),(basereg),(indexreg),(scale));
+}
+
+
+void i386_fstps_mem(codegendata *cd, s4 mem)
+{
+	*(cd->mcodeptr++) = 0xd9;
+	i386_emit_mem(3,(mem));
+}
+
+
+void i386_fstpl_mem(codegendata *cd, s4 mem)
+{
+	*(cd->mcodeptr++) = 0xdd;
+	i386_emit_mem(3,(mem));
 }
 
 
