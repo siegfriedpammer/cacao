@@ -49,3 +49,10 @@
     mips: TODO
     powerpc: TODO
     x86_64: TODO
+
+- codegen.c: vftbl -> vftbl_t (stefan)
+    alpha: done (1.31)
+    i386: done (1.41)
+    mips: TODO
+    powerpc: TODO
+    x86_64: TODO
