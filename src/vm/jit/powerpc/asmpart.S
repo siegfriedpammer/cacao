@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1941 2005-02-14 20:25:40Z stefan $
+   $Id: asmpart.S 2007 2005-03-06 23:10:47Z stefan $
 
 */
 
@@ -263,7 +263,7 @@ asm_calljavafunction:
 	stfd	fr23,128(r1)
 
 	stw     r3,36(r1)
-	addi    r2,r1,36
+	addi    itmp1,r1,36
 	mr      r3,r4
 	mr      r4,r5
 	mr      r5,r6
@@ -372,7 +372,6 @@ asm_calljavafunction2double:
 	stfd	fr23,128(r1)
 
 	stw     r3,36(r1)                 /* save method pointer for compiler     */
-	addi    r2,r1,36
 	mr      itmp1,r6                  /* pointer to arg block                 */
 	mr      itmp2,r4                  /* arg count                            */
 
@@ -403,6 +402,7 @@ asm_calljavafunction2double:
     addi    itmp2,itmp2,-1
 
 calljava_argsloaded:
+	addi    itmp1,r1,36
 #if defined(__DARWIN__)
 /*	addis   mptr,r31,ha16(_asm_call_jit_compiler-0b)*/
 	addi    mptr,r31,lo16(asm_call_jit_compiler-0b)
@@ -456,9 +456,9 @@ calljava_xhandler2:
 
 
 asm_call_jit_compiler:
+	stw     itmp1,-8(r1)
 	mflr    itmp1
 	stw     r31,-4(r1)
-/*	stw     pv,-8(r1)*/
 	stw     r29,-12(r1)
 	stw     itmp1,8(r1)
 	stwu    r1,-176(r1)
@@ -481,6 +481,7 @@ asm_call_jit_compiler:
 	add     mptr,mptr,itmp3
 		
 noregchange:
+	lwz     itmp1,168(r1)
 	mr      r29,mptr
 	stw     r3,28(r1)
 	stw     r4,32(r1)
@@ -504,7 +505,7 @@ noregchange:
 	stfd    fr13,152(r1)
 	stw     r10,160(r1)
 
-	lwz     r3,0(r2)
+	lwz     r3,0(itmp1)
 	bl      jit_compile
 	mr      pv,r3
 
@@ -577,15 +578,15 @@ asm_handle_nullptr_exception:
 *******************************************************************************/
 		
 asm_handle_nat_exception:
-	mflr    r2
-	lwz     itmp3,4(r2)
+	mflr    r9
+	lwz     itmp3,4(r9)
 	extsh   itmp3,itmp3
-	add     pv,itmp3,r2
-	lwz     itmp3,8(r2)
+	add     pv,itmp3,r9
+	lwz     itmp3,8(r9)
 	srwi    itmp3,itmp3,16
 	cmpwi   itmp3,0x3dad
 	bne     asm_handle_exception
-	lwz     itmp3,8(r2)
+	lwz     itmp3,8(r9)
 	slwi    itmp3,itmp3,16
 	add     pv,pv,itmp3
 
@@ -610,19 +611,19 @@ asm_handle_exception:
 	stw     r22,16*4(r1)
 	stw     r23,17*4(r1)
 
-	li      r2,1
+	li      r9,1
 ex_stack_loop:
 	addi    r1,r1,-4*4
 	stw     xptr,0*4(r1)
 	stw     xpc,1*4(r1)
 	mflr    xptr
 	stw     xptr,2*4(r1)
-	stw     r2,3*4(r1)
+	stw     r9,3*4(r1)
 
 	lwz     r3,0*4(r1)            /* exception pointer                        */
 	lwz     r4,MethodPointer(pv)  /* method pointer                           */
 	mr      r5,xpc                /* exception pc                             */
-/*	mr      r6,r2 */
+/*	mr      r6,r9 */
 	li      r6,0                  /* line number                              */
 	li      r7,4                  /* set no unwind flag                       */
 
@@ -635,7 +636,7 @@ ex_stack_loop:
 	mtlr    xptr
 	lwz     xptr,0*4(r1)          /* restore xptr                             */
 	lwz     xpc,1*4(r1)
-	lwz     r2,3*4(r1)
+	lwz     r9,3*4(r1)
 	addi    r1,r1,4*4
 
 	lwz     r3,ExTableSize(pv)    /* r3 = exception table size                */
@@ -663,7 +664,7 @@ ex_table_loop:
 	addi    r1,r1,-16*4           /* allocate stack                           */
 	stw     r3,7*4(r1)            /* save used registers                      */
 	stw     r4,8*4(r1)            /* 6*4 (linkage) + 1*4 (arg1) + 7*4 (save)  */
-	stw     r2,9*4(r1)
+	stw     r9,9*4(r1)
 	stw     xptr,10*4(r1)
 	stw     xpc,11*4(r1)
 	mflr    xptr
@@ -675,7 +676,7 @@ ex_table_loop:
 
 	lwz     r3,7*4(r1)
 	lwz     r4,8*4(r1)
-	lwz     r2,9*4(r1)
+	lwz     r9,9*4(r1)
 	lwz     xptr,10*4(r1)
 	lwz     xpc,11*4(r1)
 	lwz     itmp3,12*4(r1)
@@ -693,7 +694,7 @@ L_class_loaded:
 
 	stw     r3,7*4(r1)            /* save used registers                      */
 	stw     r4,8*4(r1)            /* 6*4 (linkage) + 1*4 (arg1) + 7*4 (save)  */
-	stw     r2,9*4(r1)
+	stw     r9,9*4(r1)
 	stw     xptr,10*4(r1)
 	stw     xpc,11*4(r1)
 	mflr    xptr
@@ -704,7 +705,7 @@ L_class_loaded:
 
 	lwz     r3,7*4(r1)
 	lwz     r4,8*4(r1)
-	lwz     r2,9*4(r1)
+	lwz     r9,9*4(r1)
 	lwz     xptr,10*4(r1)
 	lwz     xpc,11*4(r1)
 	lwz     itmp3,12*4(r1)
@@ -727,7 +728,7 @@ _crit_end1:
 
 ex_handle_it:
 	lwz     xpc,ExHandlerPC(r4)   /* xpc = exception handler pc               */
-	mr.     r2,r2
+	mr.     r9,r9
 	beq     ex_jump
 
 	lwz     r0,0*4(r1)
@@ -760,10 +761,10 @@ ex_table_cont:
 	bgt     ex_table_loop
 
 empty_table:
-	mr.     r2,r2                 /* if here the first time, then             */
+	mr.     r9,r9                 /* if here the first time, then             */
 	beq     ex_already_cleared
 	addi    r1,r1,18*4            /* deallocate stack and                     */
-	li      r2,0                  /* clear the no unwind flag                 */
+	li      r9,0                  /* clear the no unwind flag                 */
 ex_already_cleared:
 	lwz     r3,IsSync(pv)
 	mr.     r3,r3
@@ -776,7 +777,7 @@ ex_already_cleared:
 	addi    r1,r1,-6*4
 	stw     r3,0*4(r1)
 	stw     r4,1*4(r1)
-	stw     r2,2*4(r1)
+	stw     r9,2*4(r1)
 	stw     xptr,3*4(r1)
 	stw     xpc,4*4(r1)
 	mflr    xptr
@@ -792,7 +793,7 @@ ex_already_cleared:
 	mtlr    xptr
 	lwz     r3,0*4(r1)
 	lwz     r4,1*4(r1)
-	lwz     r2,2*4(r1)
+	lwz     r9,2*4(r1)
 	lwz     xptr,3*4(r1)
 	lwz     xpc,4*4(r1)
 	addi    r1,r1,6*4

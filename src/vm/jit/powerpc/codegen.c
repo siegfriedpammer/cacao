@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 1949 2005-02-16 14:46:52Z twisti $
+   $Id: codegen.c 2007 2005-03-06 23:10:47Z stefan $
 
 */
 
@@ -161,6 +161,10 @@ int cacao_catch_Handler(mach_port_t thread)
 void init_exceptions(void)
 {
 	GC_dirty_init(1);
+
+#if !defined(__DARWIN__)
+	nregdescint[2] = REG_RES;
+#endif
 }
 
 void adjust_argvars(stackptr s, int d, int *fa, int *ia)
@@ -3238,7 +3242,7 @@ u1 *createcompilerstub(methodinfo *m)
 	s4 *s = CNEW (s4, COMPSTUBSIZE);    /* memory to hold the stub            */
 	s4 *mcodeptr = s;                   /* code generation pointer            */
 
-	M_LDA(2, REG_PV, 4*4);
+	M_LDA(REG_ITMP1, REG_PV, 4*4);
 	M_ALD(REG_PV, REG_PV, 5*4);
 	M_MTCTR(REG_PV);
 	M_RTS;
