@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1014 2004-04-08 15:07:25Z stefan $
+   $Id: tables.c 1019 2004-04-10 13:33:21Z twisti $
 
 */
 
@@ -254,6 +254,30 @@ void utf_sprint(char *buffer, utf *u)
     while (utf_ptr < endpos) 
 		/* copy next unicode character */       
 		buffer[pos++] = utf_nextu2(&utf_ptr);
+
+    /* terminate string */
+    buffer[pos] = '\0';
+}
+
+
+/************************ function: utf_sprint_classname *********************
+	
+    write utf symbol into c-string (debugging purposes)
+
+******************************************************************************/ 
+
+void utf_sprint_classname(char *buffer, utf *u)
+{
+    char *endpos  = utf_end(u);  /* points behind utf string       */
+    char *utf_ptr = u->text;     /* current position in utf text   */ 
+    u2 pos = 0;                  /* position in c-string           */
+
+    while (utf_ptr < endpos) {
+		/* copy next unicode character */       
+		u2 c = utf_nextu2(&utf_ptr);
+		if (c == '/') c = '.';
+		buffer[pos++] = c;
+	}
 
     /* terminate string */
     buffer[pos] = '\0';
