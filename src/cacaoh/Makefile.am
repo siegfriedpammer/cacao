@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1909 2005-02-10 09:55:14Z twisti $
+## $Id: Makefile.am 1914 2005-02-10 10:03:43Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -46,7 +46,9 @@ endif
 
 noinst_LTLIBRARIES = libcacaoh.la
 
-libcacaoh_la_SOURCES =
+libcacaoh_la_SOURCES = \
+	headers.c \
+	headers.h
 
 libcacaoh_la_LIBADD = \
 	$(top_builddir)/src/mm/libmm.la \
@@ -59,9 +61,7 @@ bindir = $(prefix)/bin
 bin_PROGRAMS = cacaoh
 
 cacaoh_SOURCES = \
-	cacaoh.c \
-	headers.c \
-	headers.h
+	cacaoh.c
 
 cacaoh_LDADD = \
 	libcacaoh.la \
