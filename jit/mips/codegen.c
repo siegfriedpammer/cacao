@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 947 2004-03-07 22:02:29Z twisti $
+   $Id: codegen.c 1007 2004-03-31 19:16:23Z twisti $
 
 */
 
@@ -3058,13 +3058,13 @@ nowperformreturn:
 
 		case ICMD_LOOKUPSWITCH: /* ..., key ==> ...                           */
 			{
-			s4 i, l, val, *s4ptr;
+			s4 i, /*l, */val, *s4ptr;
 			void **tptr;
 
 			tptr = (void **) iptr->target;
 
 			s4ptr = iptr->val.a;
-			l = s4ptr[0];                          /* default  */
+			/*l = s4ptr[0];*/                          /* default  */
 			i = s4ptr[1];                          /* count    */
 			
 			MCODECHECK((i<<2)+8);

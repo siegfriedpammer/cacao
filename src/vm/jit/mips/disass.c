@@ -27,13 +27,15 @@
 
    Authors: Andreas Krall
 
-   $Id: disass.c 564 2003-11-03 15:47:13Z twisti $
+   $Id: disass.c 1007 2004-03-31 19:16:23Z twisti $
 
 */
 
 
 #include <stdio.h>
+#include "types.h"
 #include "disass.h"
+
 
 /*  The disassembler uses four tables for decoding the instructions. The first
 	table (ops) is used to classify the instructions based on the op code and
@@ -454,13 +456,14 @@ static char *fregs[] = {
 
 *******************************************************************************/
 
-void disassinstr(int c, int pos)
+void disassinstr(s4 *code, int pos)
 {
 	int op;                     /* 6 bit op code                              */
 	int opfun;                  /* 6 bit function code                        */
 	int rs, rt, rd;             /* 5 bit integer register specifiers          */
 	int fs, ft, fd;             /* 5 bit floating point register specifiers   */
 	int shift;                  /* 5 bit unsigned shift amount                */
+	s4 c = *code;
 
 	op    = (c >> 26) & 0x3f;   /* 6 bit op code                              */
 	opfun = (c >>  0) & 0x3f;   /* 6 bit function code                        */
@@ -469,7 +472,7 @@ void disassinstr(int c, int pos)
 	rd    = (c >> 11) & 0x1f;   /* 5 bit destination register specifier       */
 	shift = (c >>  6) & 0x1f;   /* 5 bit unsigned shift amount                */
 
-	printf ("%6x: 0x%08x  ", pos, c);
+	printf("0x%016lx:   %08x    ", code, c);
 	
 	switch (ops[op].itype) {
 		case ITYPE_JMP:                      /* 26 bit unsigned jump offset   */
@@ -622,13 +625,13 @@ void disassinstr(int c, int pos)
 
 *******************************************************************************/
 
-void disassemble(int *code, int len)
+void disassemble(s4 *code, int len)
 {
 	int p;
 
-	printf ("  --- disassembler listing ---\n");	
+	printf("  --- disassembler listing ---\n");	
 	for (p = 0; p < len; p += 4, code++)
-		disassinstr(*code, p); 
+		disassinstr(code, p);
 }
 
 

@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 947 2004-03-07 22:02:29Z twisti $
+   $Id: asmpart.S 1007 2004-03-31 19:16:23Z twisti $
 
 */
 
@@ -153,7 +153,6 @@
 
 /********************* exported functions and variables ***********************/
 
-	.globl synchronize_caches
 	.globl asm_calljavafunction
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2long
@@ -175,7 +174,6 @@
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
-	.globl asm_getcallingmethod
 	.globl asm_builtin_trace
 	.globl asm_builtin_exittrace
 
@@ -187,19 +185,6 @@
 	.globl builtin_throw_exception
 	.globl builtin_trace_exception
 	.globl class_java_lang_Object
-
-
-/********************* function synchronize_caches ****************************/
-
-	.ent    synchronize_caches
-synchronize_caches:
-
-/* 	li      a0,BCACHE          */     /* flush both caches                    */
-/* 	li      v0,SYS_cacheflush  */     /* Syscall number for cacheflush()      */
-/* 	syscall                    */     /* call cacheflush()                    */
-	j       ra                        /* return                               */
-
-	.end    synchronize_caches
 
 
 /********************* function asm_calljavafunction ****************************
@@ -541,44 +526,6 @@ noregchange:
 	.end    asm_call_jit_compiler
 
 
-/****************** function asm_dumpregistersandcall **************************
-*                                                                              *
-*   This funtion saves all callee saved (address) registers and calls the      *
-*   function which is passed as parameter.                                     *
-*                                                                              *
-*   This function is needed by the garbage collector, which needs to access    *
-*   all registers which are stored on the stack. Unused registers are          *
-*   cleared to avoid interferances with the GC.                                *
-*                                                                              *
-*   void asm_dumpregistersandcall (functionptr f);                             *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_dumpregistersandcall
-asm_dumpregistersandcall:
-	aaddiu  sp,sp,-10*8           /* allocate stack                           */
-	sd      ra,0(sp)              /* save return address                      */
-
-	sd      s0,1*8(sp)            /* save all callee saved registers          */
-	sd      s1,2*8(sp)
-	sd      s2,3*8(sp)
-	sd      s3,4*8(sp)
-	sd      s4,5*8(sp)
-	sd      s5,6*8(sp)
-	sd      s6,7*8(sp)
-	sd      s7,8*8(sp)
-	sd      s8,9*8(sp)
-
-	move    itmp3,a0
-	jalr    itmp3                 /* and call function                        */
-
-	ld      ra,0(sp)              /* restore return address                   */
-	aaddiu  sp,sp,10*8            /* deallocate stack                         */
-	j       ra                    /* return                                   */
-
-	.end    asm_dumpregistersandcall
-
-
 /********************* function asm_handle_exception ***************************
 *                                                                              *
 *   This function handles an exception. It does not use the usual calling      *
@@ -593,7 +540,6 @@ asm_dumpregistersandcall:
 
 	.ent    asm_handle_nat_exception
 asm_handle_nat_exception:
-
 	lw      t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
 	sll     t0,t0,16
 	sra     t0,t0,16              /* isolate offset                           */
@@ -601,7 +547,6 @@ asm_handle_nat_exception:
 
 	.aent    asm_handle_exception
 asm_handle_exception:
-
 	aaddiu  sp,sp,-14*8           /* allocate stack                           */
 	sd      v0,0*8(sp)            /* save possible used registers             */
 	sd      t0,1*8(sp)            /* also registers used by trace_exception   */
@@ -631,7 +576,8 @@ ex_stack_loop:
 	ald     a1,MethodPointer(pv)
 	move    a2,xpc
 /*	move    a3,t3 */
-	addu    a3,zero,1
+	move    a3,zero
+	addu    a4,zero,1
 	jal     builtin_trace_exception /* trace_exception(xptr,methodptr)        */
 	
 	ld      xptr,0*8(sp)          /* restore used register                    */
@@ -665,7 +611,6 @@ ex_table_loop:
 	bnez    v0,ex_table_cont      /* if (false) continue                      */
 
 ex_handle_it:
-
 	ald     xpc,ExHandlerPC(t1)   /* xpc = exception handler pc               */
 
 	beqz    t3,ex_jump            /* if (!(no stack unwinding) skip           */
@@ -851,7 +796,6 @@ asm_builtin_monitorenter:
 	j       t9
 
 nb_monitorenter:
-/*	ald     xptr,proto_java_lang_NullPointerException */
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
 	ald     a0,string_java_lang_NullPointerException
@@ -880,7 +824,6 @@ asm_builtin_monitorexit:
 	j       t9
 
 nb_monitorexit:
-/*	ald     xptr,proto_java_lang_NullPointerException */
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
 	ald     a0,string_java_lang_NullPointerException
@@ -909,7 +852,6 @@ asm_builtin_idiv:
 	j       itmp3
 
 nb_idiv:
-/*	ald     xptr,proto_java_lang_ArithmeticException */
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
 	ald     a0,string_java_lang_ArithmeticException
@@ -939,8 +881,6 @@ asm_builtin_ldiv:
 	j       itmp3
 
 nb_ldiv:
-/*	ald     xptr,proto_java_lang_ArithmeticException */
-
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
 	ald     a0,string_java_lang_ArithmeticException
@@ -970,7 +910,6 @@ asm_builtin_irem:
 	j       t9
 
 nb_irem:
-/*	ald     xptr,proto_java_lang_ArithmeticException */
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
 	ald     a0,string_java_lang_ArithmeticException
@@ -1000,7 +939,6 @@ asm_builtin_lrem:
 	j       t9
 
 nb_lrem:
-/*	ald     xptr,proto_java_lang_ArithmeticException */
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
 	ald     a0,string_java_lang_ArithmeticException
@@ -1036,7 +974,6 @@ asm_builtin_checkarraycast:
 	j       ra                        /* return                               */
 
 nb_carray_throw:
-/*	ald     xptr,proto_java_lang_ClassCastException */
 	ald     a0,string_java_lang_ClassCastException
 	jal     new_exception
 	move    xptr,v0
@@ -1069,7 +1006,6 @@ asm_builtin_checkcast:
 	j       ra                        /* return                               */
 
 nb_ccast_throw:
-/*	ald     xptr,proto_java_lang_ClassCastException */
 	ald     a0,string_java_lang_ClassCastException
 	jal     new_exception
 	move    xptr,v0
@@ -1113,7 +1049,6 @@ asm_builtin_aastore:
 	j       ra                        /* return                               */
 
 nb_aastore_null:
-/*	ald     xptr,proto_java_lang_NullPointerException */
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
 	ald     a0,string_java_lang_NullPointerException
@@ -1126,7 +1061,6 @@ nb_aastore_null:
 	b       asm_handle_nat_exception
 
 nb_aastore_bound:
-/*	ald     xptr,proto_java_lang_ArrayIndexOutOfBoundsException */
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
 	ald     a0,string_java_lang_ArrayIndexOutOfBoundsException
@@ -1140,7 +1074,6 @@ nb_aastore_bound:
 	b       asm_handle_nat_exception
 
 nb_aastore_store:
-/*	ald     xptr,proto_java_lang_ArrayStoreException */
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
 	ald     a0,string_java_lang_ArrayStoreException
@@ -1267,14 +1200,6 @@ asm_switchstackandcall:
 	j       ra              /* return                                         */
 
 	.end	asm_switchstackandcall
-
-	.ent    asm_getcallingmethod
-
-asm_getcallingmethod:
-	li      v0,0
-	j       ra
-
-	.end    asm_getcallingmethod
 
 
 /*
