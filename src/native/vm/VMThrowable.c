@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: VMThrowable.c 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: VMThrowable.c 1448 2004-11-05 14:06:38Z twisti $
 
 */
 
@@ -38,8 +38,10 @@
 #include "builtin.h"
 #include "tables.h"
 #include "native.h"
-#include "java_lang_Throwable.h"
-#include "java_lang_VMThrowable.h"
+#include "nat/java_lang_Class.h"
+#include "nat/java_lang_Throwable.h"
+#include "nat/java_lang_VMClass.h"
+#include "nat/java_lang_VMThrowable.h"
 
 
 /*
@@ -131,8 +133,10 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,
 		if (!(source[pos].method->flags & ACC_NATIVE))setfield_critical(c,element,"fileName",          
 		"Ljava/lang/String;",  jobject, 
 		(jobject) javastring_new(source[pos].method->class->sourcefile));
+/*  		setfield_critical(c,element,"className",          "Ljava/lang/String;",  jobject,  */
+/*  		(jobject) javastring_new(source[pos].method->class->name)); */
 		setfield_critical(c,element,"className",          "Ljava/lang/String;",  jobject, 
-		(jobject) javastring_new(source[pos].method->class->name));
+		(jobject) Java_java_lang_VMClass_getName(env, NULL, (java_lang_Class *) source[pos].method->class));
 		setfield_critical(c,element,"methodName",          "Ljava/lang/String;",  jobject, 
 		(jobject) javastring_new(source[pos].method->name));
 		setfield_critical(c,element,"lineNumber",          "I",  jint, 
