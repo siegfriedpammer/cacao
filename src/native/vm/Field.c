@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Field.c 1774 2004-12-20 20:16:57Z jowenn $
+   $Id: Field.c 1778 2004-12-21 07:46:58Z jowenn $
 
 */
 
@@ -89,7 +89,7 @@
 		}	\
 	}	
 #else
-define CHECKFIELDACCESS(this,fi)
+#define CHECKFIELDACCESS(this,fi,c)
 #endif
 
 
