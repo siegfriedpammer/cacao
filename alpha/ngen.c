@@ -221,14 +221,6 @@ typedef struct sigctx_struct {
 } sigctx_struct;
 
 
-/* asm_signal_exception passes exception pointer and the signal context
-	structure (contains the saved registers) to the assembler handler which
-	restores registers and walks through the Java exception tables.
-*/
-
-void asm_signal_exception(void *xptr, void *sigctx);
-
-
 /* NullPointerException signal handler for hardware null pointer check */
 
 void catch_NullPointerException(int sig, int code, sigctx_struct *sigctx)
@@ -247,7 +239,11 @@ void catch_NullPointerException(int sig, int code, sigctx_struct *sigctx)
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
-		asm_signal_exception(proto_java_lang_NullPointerException, sigctx);
+		sigctx->sc_regs[REG_ITMP1_XPTR] =
+		                            (long) proto_java_lang_NullPointerException;
+		sigctx->sc_regs[REG_ITMP2_XPC] = sigctx->sc_pc;
+		sigctx->sc_pc = (long) asm_handle_nat_exception;
+		return;
 		}
 	else {
 		faultaddr += (long) ((instr << 16) >> 16);

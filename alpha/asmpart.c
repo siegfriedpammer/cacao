@@ -91,7 +91,6 @@
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
-	.globl asm_signal_exception
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_aastore
 	.globl asm_builtin_monitorenter
@@ -283,7 +282,7 @@ asm_call_jit_compiler:
 	srl     t8,16,t8              /* isolate instruction code                 */
 	lda     t8,-0x177b(t8)        /* test for LDAH                            */
 	bne     t8,noregchange       
-	ldl     t8,0(ra)              /* load instruction LDA PV,xxx(RA)          */
+	ldl     t8,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
 	sll     t8,16,t8              /* compute high offset                      */
 	addl    t8,0,t8               /* sign extend high offset                  */
 	addq    t8,$28,$28            /* compute update address                   */
@@ -453,7 +452,7 @@ asm_handle_nat_exception:
 	srl     t0,16,t0              /* isolate instruction code                 */
 	lda     t0,-0x177b(t0)        /* test for LDAH                            */
 	bne     t0,asm_handle_exception       
-	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
+	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
 	sll     t0,16,t0              /* compute high offset                      */
 	addl    t0,0,t0               /* sign extend high offset                  */
 	addq    t0,pv,pv              /* compute update address                   */
@@ -654,126 +653,6 @@ ex_flt2:
 	br      ex_stack_loop
 
 	.end    asm_handle_exception
-
-
-/********************* function asm_signal_exception ***************************
-*                                                                              *
-*   This function handles an exception which was catched by a signal.          *
-*                                                                              *
-*   void asm_signal_exception (exceptionptr, signalcontext);                   *
-*                                                                              *
-*******************************************************************************/
-
-#define     sigctxstack  0*8   /* sigstack state to restore                   */
-#define     sigctxmask   1*8   /* signal mask to restore                      */
-#define     sigctxpc     2*8   /* pc at time of signal                        */
-#define     sigctxpsl    3*8   /* psl to retore                               */
-#define     sigctxr00    4*8   /* processor regs 0 to 31                      */
-#define     sigctxr01    5*8
-#define     sigctxr02    6*8
-#define     sigctxr03    7*8
-#define     sigctxr04    8*8
-#define     sigctxr05    9*8
-#define     sigctxr06   10*8
-#define     sigctxr07   11*8
-#define     sigctxr08   12*8
-#define     sigctxr09   13*8
-#define     sigctxr10   14*8
-#define     sigctxr11   15*8
-#define     sigctxr12   16*8
-#define     sigctxr13   17*8
-#define     sigctxr14   18*8
-#define     sigctxr15   19*8
-#define     sigctxr16   20*8
-#define     sigctxr17   21*8
-#define     sigctxr18   22*8
-#define     sigctxr19   23*8
-#define     sigctxr20   24*8
-#define     sigctxr21   25*8
-#define     sigctxr22   26*8
-#define     sigctxr23   27*8
-#define     sigctxr24   28*8
-#define     sigctxr25   29*8
-#define     sigctxr26   30*8
-#define     sigctxr27   31*8
-#define     sigctxr28   32*8
-#define     sigctxr29   33*8
-#define     sigctxr30   34*8
-#define     sigctxr31   35*8
-
-#define     sigctxfpuse 36*8   /* fp has been used                            */
-#define     sigctxf00   37*8   /* fp regs 0 to 31                             */
-#define     sigctxf01   38*8
-#define     sigctxf02   39*8
-#define     sigctxf03   40*8
-#define     sigctxf04   41*8
-#define     sigctxf05   42*8
-#define     sigctxf06   43*8
-#define     sigctxf07   44*8
-#define     sigctxf08   45*8
-#define     sigctxf09   46*8
-#define     sigctxf10   47*8
-#define     sigctxf11   48*8
-#define     sigctxf12   49*8
-#define     sigctxf13   50*8
-#define     sigctxf14   51*8
-#define     sigctxf15   52*8
-#define     sigctxf16   53*8
-#define     sigctxf17   54*8
-#define     sigctxf18   55*8
-#define     sigctxf19   56*8
-#define     sigctxf20   57*8
-#define     sigctxf21   58*8
-#define     sigctxf22   59*8
-#define     sigctxf23   60*8
-#define     sigctxf24   61*8
-#define     sigctxf25   62*8
-#define     sigctxf26   63*8
-#define     sigctxf27   64*8
-#define     sigctxf28   65*8
-#define     sigctxf29   66*8
-#define     sigctxf30   67*8
-#define     sigctxf31   68*8
-
-#define     sigctxhfpcr 69*8   /* floating point control register             */
-#define     sigctxsfpcr 70*8   /* software fpcr                               */
-
-	.ent    asm_signal_exception
-asm_signal_exception:
-
-	mov     a0,xptr
-	mov     a1,sp
-	ldq     xpc,sigctxpc(sp)
-	ldq     v0,sigctxr00(sp)   /* restore possible used registers             */
-	ldq     t0,sigctxr01(sp)
-	ldq     t1,sigctxr02(sp)
-	ldq     t2,sigctxr03(sp)
-	ldq     t3,sigctxr04(sp)
-	ldq     t4,sigctxr05(sp)
-	ldq     t5,sigctxr06(sp)
-	ldq     t6,sigctxr07(sp)
-	ldq     t7,sigctxr08(sp)
-	ldq     s0,sigctxr09(sp)
-	ldq     s1,sigctxr10(sp)
-	ldq     s2,sigctxr11(sp)
-	ldq     s3,sigctxr12(sp)
-	ldq     s4,sigctxr13(sp)
-	ldq     s5,sigctxr14(sp)
-	ldq     s6,sigctxr15(sp)
-	ldq     a0,sigctxr16(sp)
-	ldq     a1,sigctxr17(sp)
-	ldq     a2,sigctxr18(sp)
-	ldq     a3,sigctxr19(sp)
-	ldq     a4,sigctxr20(sp)
-	ldq     a5,sigctxr21(sp)
-	ldq     t8,sigctxr22(sp)
-	ldq     t9,sigctxr23(sp)
-	ldq     t10,sigctxr24(sp)
-	ldq     ra,sigctxr26(sp)
-	ldq     pv,sigctxr27(sp)
-	ldq     sp,sigctxr30(sp)
-	br      asm_handle_nat_exception
-	.end    asm_signal_exception
 
 
 /********************* function asm_builtin_monitorenter ***********************
