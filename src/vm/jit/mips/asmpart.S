@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1735 2004-12-07 14:33:27Z twisti $
+   $Id: asmpart.S 1814 2004-12-22 12:37:58Z twisti $
 
 */
 
@@ -152,8 +152,12 @@
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_checkcast
 	.globl asm_builtin_aastore
+
+#if defined(USE_THREADS)
 	.globl asm_builtin_monitorenter
 	.globl asm_builtin_monitorexit
+#endif
+
 	.globl asm_builtin_idiv
 	.globl asm_builtin_irem
 	.globl asm_builtin_ldiv
@@ -167,16 +171,6 @@
 	.globl asm_criticalsections
 
 	.globl compare_and_swap
-
-
-/*************************** imported functions *******************************/
-
-	.globl jit_compile
-	.globl _exceptionptr
-	.globl builtin_monitorexit
-	.globl builtin_throw_exception
-	.globl builtin_trace_exception
-	.globl class_java_lang_Object
 
 
 /********************* function asm_calljavafunction ***************************
@@ -695,6 +689,8 @@ empty_table:
 ex_already_cleared:
 	lw      t0,IsSync(pv)         /* t0 = SyncOffset                          */
 	beqz    t0,no_monitor_exit    /* if zero no monitorexit                   */
+
+#if defined(USE_THREADS)
 	aaddu   t0,sp,t0              /* add stackptr to Offset                   */
 	ald     a0,-8(t0)             /* load monitorexit pointer                 */
 
@@ -717,6 +713,7 @@ ex_already_cleared:
 	ld      pv,5*8(sp)
 	ld      ra,6*8(sp)
 	aaddiu  sp,sp,8*8             /* deallocate stack                         */
+#endif
 
 no_monitor_exit:
 	lw      t0,FrameSize(pv)      /* t0 = frame size                          */
@@ -905,6 +902,7 @@ L_initializererror:
 *                                                                              *
 *******************************************************************************/
 
+#if defined(USE_THREADS)
 	.ent    asm_builtin_monitorenter
 
 asm_builtin_monitorenter:
@@ -925,6 +923,7 @@ nb_monitorenter:
 	b       asm_handle_nat_exception
 
 	.end    asm_builtin_monitorenter
+#endif
 
 
 /********************* function asm_builtin_monitorexit ************************
@@ -933,6 +932,7 @@ nb_monitorenter:
 *                                                                              *
 *******************************************************************************/
 
+#if defined(USE_THREADS)
 	.ent    asm_builtin_monitorexit
 
 asm_builtin_monitorexit:
@@ -952,6 +952,7 @@ nb_monitorexit:
 	b       asm_handle_nat_exception
 
 	.end    asm_builtin_monitorexit
+#endif
 
 
 /************************ function asm_builtin_idiv ****************************
