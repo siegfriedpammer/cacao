@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1241 2004-06-30 20:10:17Z twisti $
+# $Id: Makefile.am 1262 2004-07-01 11:10:43Z jowenn $
 
 @SET_MAKE@
 
@@ -85,6 +85,7 @@ cacao_DEPENDENCIES = \
 	gnuclasspathnat/native/jni/java-util/.libs/libjavautil.a \
 	gnuclasspathnat/native/jni/java-lang/.libs/libjavalang.a \
 	gnuclasspathnat/native/jni/java-lang/.libs/libjavalangreflect.a \
+	nativetable.inc \
 	@AWT_OBJS@ \
 	@ZIP_LIBS@
 
@@ -135,7 +136,7 @@ natheaders: cacaoh
 	CLASSPATH=$(top_srcdir)/gnuclassfiles ./cacaoh $(CLASSES)
 
 nativetable.inc: gennativetable
-	$(top_srcdir)/gennativetable $(CLASSES) > nativetable.inc
+	CLASSPATH=$(top_srcdir)/gnuclassfiles $(top_srcdir)/gennativetable $(CLASSES) > nativetable.inc
 
 CLASSES= \
 	java.lang.String \
