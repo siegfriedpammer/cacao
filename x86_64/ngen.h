@@ -11,7 +11,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: ngen.h 521 2003-10-22 21:03:31Z twisti $
+    Last Change: $Id: ngen.h 545 2003-11-01 19:20:38Z twisti $
 
 *******************************************************************************/
 
@@ -33,6 +33,8 @@
 #define REG_ITMP1       RAX      /* temporary register                        */
 #define REG_ITMP2       R10      /* temporary register and method pointer     */
 #define REG_ITMP3       R11      /* temporary register                        */
+
+#define REG_NULL        -1       /* used for reg_of_var where d is not needed */
 
 #define REG_ITMP1_XPTR  RAX      /* exception pointer = temporary register 1  */
 #define REG_ITMP2_XPC   R10      /* exception pc = temporary register 2       */
@@ -67,8 +69,10 @@ int nregdescint[] = {
 /* for use of reserved registers, see comment above */
 
 int nregdescfloat[] = {
+/*      REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, */
+/*      REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, */
     REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
-    REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+    REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
     REG_END
 };
 
@@ -338,6 +342,21 @@ static const unsigned char x86_64_cc_map[] = {
         *(mcodeptr++) = imb.b[6]; \
         *(mcodeptr++) = imb.b[7]; \
     } while (0)
+
+
+
+void x86_64_emit_ialu(s4 alu_op, stackptr src, instruction *iptr);
+void x86_64_emit_lalu(s4 alu_op, stackptr src, instruction *iptr);
+void x86_64_emit_ialuconst(s4 alu_op, stackptr src, instruction *iptr);
+void x86_64_emit_laluconst(s4 alu_op, stackptr src, instruction *iptr);
+void x86_64_emit_ishift(s4 shift_op, stackptr src, instruction *iptr);
+void x86_64_emit_lshift(s4 shift_op, stackptr src, instruction *iptr);
+void x86_64_emit_ishiftconst(s4 shift_op, stackptr src, instruction *iptr);
+void x86_64_emit_lshiftconst(s4 shift_op, stackptr src, instruction *iptr);
+void x86_64_emit_ifcc(s4 if_op, stackptr src, instruction *iptr);
+void x86_64_emit_if_lcc(s4 if_op, stackptr src, instruction *iptr);
+void x86_64_emit_if_icmpcc(s4 if_op, stackptr src, instruction *iptr);
+void x86_64_emit_if_lcmpcc(s4 if_op, stackptr src, instruction *iptr);
 
 
 
