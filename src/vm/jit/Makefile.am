@@ -1,9 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 557 2003-11-02 22:51:59Z twisti $
+# $Id: Makefile.am 608 2003-11-12 00:48:27Z stefan $
 
 
-SUBDIRS = loop @ARCH_DIR@
+SUBDIRS = . loop @ARCH_DIR@
 DIST_SUBDIRS = loop alpha i386 mips powerpc x86_64
 
 INCLUDES = -I$(top_srcdir)/jit/@ARCH_DIR@ -I$(top_srcdir)/jit
@@ -27,6 +27,8 @@ noinst_LIBRARIES = libjit.a
 
 libjit_a_SOURCES = jit.c parse.c stack.c inline.c sets.c parseRT.c parseRTstats.c
 
+all-local:
+	$(MAKE) $(AM_MAKEFLAGS) -C .. jit/@ARCH_DIR@/offsets.h
 
 ## Local variables:
 ## mode: Makefile
