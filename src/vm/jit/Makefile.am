@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2032 2005-03-10 16:33:45Z twisti $
+## $Id: Makefile.am 2231 2005-04-06 10:29:55Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -44,7 +44,6 @@ SUBDIRS += schedule
 endif
 
 noinst_HEADERS = \
-	asmpart.h \
 	codegen.inc \
 	codegen.inc.h \
 	lsra.inc \
@@ -55,6 +54,8 @@ noinst_HEADERS = \
 noinst_LTLIBRARIES = libjit.la
 
 libjit_la_SOURCES = \
+	asmpart.c \
+	asmpart.h \
 	jit.c \
 	jit.h \
 	parse.c \
