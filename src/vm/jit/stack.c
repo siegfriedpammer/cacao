@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1776 2004-12-20 21:05:31Z twisti $
+   $Id: stack.c 1886 2005-01-27 11:29:15Z twisti $
 
 */
 
@@ -416,6 +416,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								}
 								PUSHCONST(TYPE_INT);
 								break;
+#if SUPPORT_LOGICAL_CONST
 							case ICMD_IAND:
 								iptr[0].opc = ICMD_IANDCONST;
 								goto icmd_iconst_tail;
@@ -425,6 +426,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_IXOR:
 								iptr[0].opc = ICMD_IXORCONST;
 								goto icmd_iconst_tail;
+#endif /* SUPPORT_LOGICAL_CONST */
 							case ICMD_ISHL:
 								iptr[0].opc = ICMD_ISHLCONST;
 								goto icmd_iconst_tail;
@@ -532,7 +534,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_LSUB:
 								iptr[0].opc = ICMD_LSUBCONST;
 								goto icmd_lconst_tail;
-#endif
+#endif /* SUPPORT_LOGICAL_CONST */
 #if SUPPORT_LONG_MUL
 							case ICMD_LMUL:
 								iptr[0].opc = ICMD_LMULCONST;
@@ -648,6 +650,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								break;
 #endif
 #if SUPPORT_LONG_LOG
+#if SUPPORT_LOGICAL_CONST
+
 							case ICMD_LAND:
 								iptr[0].opc = ICMD_LANDCONST;
 								goto icmd_lconst_tail;
@@ -657,6 +661,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_LXOR:
 								iptr[0].opc = ICMD_LXORCONST;
 								goto icmd_lconst_tail;
+#endif /* SUPPORT_LOGICAL_CONST */
 #endif
 #if !defined(NOLONG_CONDITIONAL)
 							case ICMD_LCMP:
@@ -2124,10 +2129,21 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 		s4 a;
 
 		u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen);
-		for (i = 0; i < m->basicblocks[0].mpc; i++, u1ptr++) {
+		for (i = 0; i < m->basicblocks[0].mpc;) {
 			a = disassinstr(u1ptr, i);
 			i += a;
 			u1ptr += a;
+		}
+		printf("\n");
+#elif defined(__XDSPCORE__)
+		s4 *s4ptr;
+		s4 a;
+
+		s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen);
+		for (i = 0; i < m->basicblocks[0].mpc;) {
+			a = disassinstr(s4ptr);
+			i += a * 4;
+			s4ptr += a;
 		}
 		printf("\n");
 #else
@@ -2135,7 +2151,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen);
 		for (i = 0; i < m->basicblocks[0].mpc; i += 4, s4ptr++) {
-			disassinstr(s4ptr, i); 
+			disassinstr(s4ptr, i);
 		}
 		printf("\n");
 #endif
@@ -2202,6 +2218,30 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 				}
 				printf("\n");
 			}
+#elif defined(__XDSPCORE__)
+			s4 *s4ptr;
+			s4 a;
+
+			printf("\n");
+			i = bptr->mpc;
+			s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen + i);
+
+			if (bptr->next != NULL) {
+				for (; i < bptr->next->mpc;) {
+					a = disassinstr(s4ptr);
+					i += a * 4;
+					s4ptr += a;
+				}
+				printf("\n");
+
+			} else {
+				for (; s4ptr < (s4 *) ((ptrint) m->mcode + m->mcodelength); ) {
+					a = disassinstr(s4ptr);
+					i += a * 4;
+					s4ptr += a;
+				}
+				printf("\n");
+			}
 #else
 			s4 *s4ptr;
 
@@ -2210,15 +2250,13 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 			s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen + i);
 
 			if (bptr->next != NULL) {
-				for (; i < bptr->next->mpc; i += 4, s4ptr++) {
+				for (; i < bptr->next->mpc; i += 4, s4ptr++)
 					disassinstr(s4ptr, i); 
-				}
 				printf("\n");
 
 			} else {
-				for (; s4ptr < (s4 *) ((ptrint) m->mcode + m->mcodelength); i += 4, s4ptr++) {
+				for (; s4ptr < (s4 *) ((ptrint) m->mcode + m->mcodelength); i += 4, s4ptr++)
 					disassinstr(s4ptr, i); 
-				}
 				printf("\n");
 			}
 #endif
