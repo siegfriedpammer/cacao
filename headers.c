@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1006 2004-03-31 13:34:45Z twisti $
+   $Id: headers.c 1029 2004-04-26 15:56:34Z twisti $
 
 */
 
@@ -91,6 +91,15 @@ utf *javastring_toutf(java_lang_String *string, bool isclassname)
 
 /* some exception stuff */
 
+char *string_java_lang_ClassCircularityError =
+    "java/lang/ClassCircularityError";
+
+char *string_java_lang_ClassFormatError =
+    "java/lang/ClassFormatError";
+
+char *string_java_lang_IllegalMonitorStateException =
+    "java/lang/IllegalMonitorStateException";
+
 char *string_java_lang_LinkageError =
     "java/lang/LinkageError";
 
@@ -103,8 +112,11 @@ char *string_java_lang_NoClassDefFoundError =
 char *string_java_lang_OutOfMemoryError =
     "java/lang/OutOfMemoryError";
 
+
+void throw_exception_exit() {}
 void new_exception(char *classname) {}
 void new_exception_message(char *classname, char *message) {}
+void new_exception_throwable(char *classname, java_objectheader *t) {}
 void new_exception_utfmessage(char *classname, utf *message)
 {
 	printf("%s: ", classname);
@@ -405,7 +417,7 @@ static void headerfile_generate(classinfo *c)
 	methodinfo *m;	      		
 		      
 	/* store class in chain */		      
-	chain_addlast(nativeclass_chain, c);								
+	chain_addlast(nativeclass_chain, c);
 			    	
 	/* open headerfile for class */
 	gen_header_filename(classname, c->name);
@@ -436,7 +448,9 @@ static void headerfile_generate(classinfo *c)
 	fprintf(file, " {\n");
 	outputsize = 0;
 	dopadding = true;
+
 	printfields(c);
+
 	fprintf(file, "} ");
 	printID(c->name);
 	fprintf(file, ";\n\n");
@@ -637,7 +651,9 @@ int main(int argc, char **argv)
 	fprintf(file, "#define offdiffval     %3d\n\n", (int) OFFSET(vftbl, diffval));
 
 	fprintf(file, "#define offclassvftbl  %3d\n", (int) OFFSET(classinfo, vftbl));
-	fprintf(file, "#define offclassinit   %3d\n\n", (int) OFFSET(classinfo, initialized));
+	fprintf(file, "#define offclassinit   %3d\n", (int) OFFSET(classinfo, initialized));
+	fprintf(file, "#define offclassloaded %3d\n", (int) OFFSET(classinfo, loaded));
+	fprintf(file, "#define offclasslinked %3d\n\n", (int) OFFSET(classinfo, linked));
 
 	fprintf(file, "#define offjniitemtype %3d\n", (int) OFFSET(jni_callblock, itemtype));
 	fprintf(file, "#define offjniitem     %3d\n", (int) OFFSET(jni_callblock, item));
@@ -654,12 +670,12 @@ int main(int argc, char **argv)
 
 	fclose(file);
 
+	/* initialize the garbage collector */
+	gc_init(heapmaxsize, heapstartsize);
+
 	suck_init(classpath);
    
 	tables_init();
-
-	/* initialize the gc heap */
-	heap_init(heapmaxsize, heapstartsize);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initThreadsEarly();
@@ -684,8 +700,10 @@ int main(int argc, char **argv)
   	 		}
 		}
 	
-		topclass = loader_load(utf_new_char(cp));
-		
+/*  		topclass = loader_load(utf_new_char(cp)); */
+		topclass = class_load(class_new(utf_new_char(cp)));
+		class_link(topclass);
+
         headerfile_generate(topclass);
 	}
 
@@ -694,9 +712,7 @@ int main(int argc, char **argv)
 	/************************ Release all resources **********************/
 
 	loader_close();
-	heap_close();
 	tables_close(literalstring_free);
-	
 
 	/* Print "finished" message */
 
