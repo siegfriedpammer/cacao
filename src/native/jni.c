@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1827 2004-12-29 12:55:32Z twisti $
+   $Id: jni.c 1853 2005-01-04 12:07:41Z twisti $
 
 */
 
@@ -69,7 +69,9 @@
 #include "vm/jit/jit.h"
 
 
-#define JNI_VERSION       0x00010002
+/* XXX TWISTI hack: define it extern to be found in this file */
+extern struct _JavaVM JNI_javaVMTable;
+extern struct JNI_Table JNI_envTable;
 
 
 #define PTR_TO_ITEM(ptr)   ((u8)(size_t)(ptr))
@@ -639,10 +641,10 @@ jint callIntegerMethod(jobject obj, jmethodID methodID, char retType, va_list ar
 	fill_callblock(obj, methodID->descriptor, blk, args, retType);
 
 	/*      printf("parameter: obj: %p",blk[0].item); */
-	ret = (jint) asm_calljavafunction2(methodID,
-									   argcount + 1,
-									   (argcount + 1) * sizeof(jni_callblock),
-									   blk);
+	ret = asm_calljavafunction2int(methodID,
+								   argcount + 1,
+								   (argcount + 1) * sizeof(jni_callblock),
+								   blk);
 
 	MFREE(blk, jni_callblock, argcount + 1);
 	/*      printf("(CallObjectMethodV)-->%p\n",ret); */
@@ -898,9 +900,13 @@ jclass GetSuperclass(JNIEnv* env, jclass sub)
 }
   
  
-/*********************** check whether sub can be cast to sup  ********************/
-  
-jboolean IsAssignableForm(JNIEnv* env, jclass sub, jclass sup)
+/* IsAssignableFrom ************************************************************
+
+   Determines whether an object of sub can be safely cast to sup.
+
+*******************************************************************************/
+
+jboolean IsAssignableFrom(JNIEnv *env, jclass sub, jclass sup)
 {
 	return builtin_isanysubclass(sub, sup);
 }
@@ -1813,13 +1819,14 @@ jfieldID getFieldID_critical(JNIEnv *env, jclass clazz, char *name, char *sig)
 
 jobject GetObjectField (JNIEnv *env, jobject obj, jfieldID fieldID)
 {
+	/*
 	jobject dbg,dretval,*dpretval;	
 	long int dli1, dli2, dli3;
 
-/*	printf("GetObjectField(1): thread: %s obj: %p name: %s desc: %s \n",GetStringUTFChars(env,
+	printf("GetObjectField(1): thread: %s obj: %p name: %s desc: %s \n",GetStringUTFChars(env,
 			 ((threadobject *) THREADOBJECT)->o
 			 .thread->name,NULL)
-			 ,obj,((fieldinfo*)fieldID)->name->text,(fieldID->descriptor)->text);*/
+			 ,obj,((fieldinfo*)fieldID)->name->text,(fieldID->descriptor)->text);
 
 	dbg = getField(obj,jobject,fieldID);
 	dli1 = (long int) obj;
@@ -1827,7 +1834,7 @@ jobject GetObjectField (JNIEnv *env, jobject obj, jfieldID fieldID)
 	dli3 = dli1+dli2;
 	dpretval = (jobject*) dli3;
 	dretval = *dpretval;
-/*	jclass tmp;
+	jclass tmp;
  	jmethodID mid;
 	jstring jstr;
 
@@ -1839,7 +1846,9 @@ jobject GetObjectField (JNIEnv *env, jobject obj, jfieldID fieldID)
 	,dbg, dli1, dli2, dli3,dpretval, dretval);*/
 
 
-	return dbg;
+/*	return dbg;*/
+
+	return getField(obj,jobject,fieldID);
 }
 
 jboolean GetBooleanField (JNIEnv *env, jobject obj, jfieldID fieldID)
@@ -2489,13 +2498,18 @@ void ReleaseStringChars (JNIEnv *env, jstring str, const jchar *chars)
 	MFREE(((jchar*) chars),jchar,((java_lang_String*) str)->count+1);
 }
 
-/************ create new java.lang.String object from utf8-characterarray **********/
 
-jstring NewStringUTF (JNIEnv *env, const char *utf)
+/* NewStringUTF ****************************************************************
+
+   Constructs a new java.lang.String object from an array of UTF-8 characters.
+
+*******************************************************************************/
+
+jstring NewStringUTF(JNIEnv *env, const char *bytes)
 {
-/*    log_text("NewStringUTF called");*/
-    return (jstring) javastring_new(utf_new_char((char *) utf));
+    return (jstring) javastring_new(utf_new_char(bytes));
 }
+
 
 /****************** returns the utf8 length in bytes of a string *******************/
 
@@ -3015,17 +3029,23 @@ jint MonitorExit(JNIEnv* env, jobject obj)
 }
 
 
-/************************************* JavaVM interface ****************************/
-#ifdef __cplusplus
-#error CPP mode not supported yet
-#else
-jint GetJavaVM (JNIEnv* env, JavaVM **vm)
+/* JavaVM interface ***********************************************************/
+
+/* GetJavaVM *******************************************************************
+
+   Returns the Java VM interface (used in the Invocation API) associated with
+   the current thread. The result is placed at the location pointed to by the
+   second argument, vm.
+
+*******************************************************************************/
+
+jint GetJavaVM(JNIEnv* env, JavaVM **vm)
 {
-    log_text("JNI-Call: GetJavaVM");
-    *vm=&javaVM;
+    *vm = &JNI_javaVMTable;
+
     return 0;
 }
-#endif /*__cplusplus*/
+
 
 void GetStringRegion (JNIEnv* env, jstring str, jsize start, jsize len, jchar *buf)
 {
@@ -3155,19 +3175,64 @@ void DeleteGlobalRef(JNIEnv* env, jobject gref)
 	MonitorExit(env,*global_ref_table);
 }
 
-/******************************* check for pending exception ***********************/
 
+/* ExceptionCheck *****************************************************************
 
-jboolean ExceptionCheck(JNIEnv* env)
+   check for pending exception
+
+**********************************************************************************/
+
+jboolean ExceptionCheck(JNIEnv *env)
 {
-	log_text("JNI-Call: ExceptionCheck");
-
 	return *exceptionptr ? JNI_TRUE : JNI_FALSE;
 }
 
 
+/* New JNI 1.4 functions ******************************************************/
+
+/* NewDirectByteBuffer *********************************************************
+
+   Allocates and returns a direct java.nio.ByteBuffer referring to the block of
+   memory starting at the memory address address and extending capacity bytes.
+
+*******************************************************************************/
+
+jobject NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
+{
+	log_text("NewDirectByteBuffer: IMPLEMENT ME!");
+
+	return NULL;
+}
 
 
+/* GetDirectBufferAddress ******************************************************
+
+   Fetches and returns the starting address of the memory region referenced by
+   the given direct java.nio.Buffer.
+
+*******************************************************************************/
+
+void *GetDirectBufferAddress(JNIEnv *env, jobject buf)
+{
+	log_text("GetDirectBufferAddress: IMPLEMENT ME!");
+
+	return NULL;
+}
+
+
+/* GetDirectBufferCapacity *****************************************************
+
+   Fetches and returns the capacity in bytes of the memory region referenced by
+   the given direct java.nio.Buffer.
+
+*******************************************************************************/
+
+jlong GetDirectBufferCapacity(JNIEnv* env, jobject buf)
+{
+	log_text("GetDirectBufferCapacity: IMPLEMENT ME!");
+
+	return 0;
+}
 
 
 jint DestroyJavaVM(JavaVM *vm)
@@ -3196,7 +3261,7 @@ jint DetachCurrentThread(JavaVM *vm)
 
 jint GetEnv(JavaVM *vm, void **environment, jint jniversion)
 {
-	*environment = &env;
+	*environment = &JNI_envTable;
 
 	return 0;
 }
@@ -3308,262 +3373,348 @@ void jni_init(){
 	}
 	
 	/* set NewGlobalRef, DeleteGlobalRef envTable entry to real implementation */
-	envTable.NewGlobalRef = &NewGlobalRef;
-	envTable.DeleteGlobalRef = &DeleteGlobalRef;
+
+	JNI_envTable.NewGlobalRef = &NewGlobalRef;
+	JNI_envTable.DeleteGlobalRef = &DeleteGlobalRef;
 }
 
 
-/********************************* JNI invocation table ******************************/
+/* JNI invocation table *******************************************************/
 
-struct _JavaVM javaVMTable={
-   NULL,
-   NULL,
-   NULL,
-   &DestroyJavaVM,
-   &AttachCurrentThread,
-   &DetachCurrentThread,
-   &GetEnv,
-   &AttachCurrentThreadAsDaemon
+struct _JavaVM JNI_javaVMTable = {
+	NULL,
+	NULL,
+	NULL,
+	&DestroyJavaVM,
+	&AttachCurrentThread,
+	&DetachCurrentThread,
+	&GetEnv,
+	&AttachCurrentThreadAsDaemon
 };
 
-JavaVM javaVM = &javaVMTable;
 
+/* JNI function table *********************************************************/
 
-/********************************* JNI function table ******************************/
+struct JNI_Table JNI_envTable = {
+	NULL,
+	NULL,
+	NULL,
+	NULL,    
+	&GetVersion,
 
-struct JNI_Table envTable = {   
-    NULL,
-    NULL,
-    NULL,
-    NULL,    
-    &GetVersion,
-    &DefineClass,
-    &FindClass,
-    &FromReflectedMethod,
-    &FromReflectedField,
-    &ToReflectedMethod,
-    &GetSuperclass,
-    &IsAssignableForm,
-    &ToReflectedField,
-    &Throw,
-    &ThrowNew,
-    &ExceptionOccurred,
-    &ExceptionDescribe,
-    &ExceptionClear,
-    &FatalError,
-    &PushLocalFrame,
-    &PopLocalFrame,
+	&DefineClass,
+	&FindClass,
+	&FromReflectedMethod,
+	&FromReflectedField,
+	&ToReflectedMethod,
+	&GetSuperclass,
+	&IsAssignableFrom,
+	&ToReflectedField,
+
+	&Throw,
+	&ThrowNew,
+	&ExceptionOccurred,
+	&ExceptionDescribe,
+	&ExceptionClear,
+	&FatalError,
+	&PushLocalFrame,
+	&PopLocalFrame,
+
 	&jni_init1, /* &NewGlobalRef,    initialize Global_Ref_Table*/
 	&jni_init2, /* &DeleteGlobalRef,*/
-    &DeleteLocalRef,
-    &IsSameObject,
-    &NewLocalRef,
-    &EnsureLocalCapacity,
-    &AllocObject,
-    &NewObject,
-    &NewObjectV,
-    &NewObjectA,
-    &GetObjectClass,
-    &IsInstanceOf,
-    &GetMethodID,
-    &CallObjectMethod,
-    &CallObjectMethodV,
-    &CallObjectMethodA,
-    &CallBooleanMethod,
-    &CallBooleanMethodV,
-    &CallBooleanMethodA,
-    &CallByteMethod,
-    &CallByteMethodV,
-    &CallByteMethodA,
-    &CallCharMethod,
-    &CallCharMethodV,
-    &CallCharMethodA,
-    &CallShortMethod,
-    &CallShortMethodV,
-    &CallShortMethodA,
-    &CallIntMethod,
-    &CallIntMethodV,
-    &CallIntMethodA,
-    &CallLongMethod,
-    &CallLongMethodV,
-    &CallLongMethodA,
-    &CallFloatMethod,
-    &CallFloatMethodV,
-    &CallFloatMethodA,
-    &CallDoubleMethod,
-    &CallDoubleMethodV,
-    &CallDoubleMethodA,
-    &CallVoidMethod,
-    &CallVoidMethodV,
-    &CallVoidMethodA,
-    &CallNonvirtualObjectMethod,
-    &CallNonvirtualObjectMethodV,
-    &CallNonvirtualObjectMethodA,
-    &CallNonvirtualBooleanMethod,
-    &CallNonvirtualBooleanMethodV,
-    &CallNonvirtualBooleanMethodA,
-    &CallNonvirtualByteMethod,
-    &CallNonvirtualByteMethodV,
-    &CallNonvirtualByteMethodA,
-    &CallNonvirtualCharMethod,
-    &CallNonvirtualCharMethodV,
-    &CallNonvirtualCharMethodA,
-    &CallNonvirtualShortMethod,
-    &CallNonvirtualShortMethodV,
-    &CallNonvirtualShortMethodA,
-    &CallNonvirtualIntMethod,
-    &CallNonvirtualIntMethodV,
-    &CallNonvirtualIntMethodA,
-    &CallNonvirtualLongMethod,
-    &CallNonvirtualLongMethodV,
-    &CallNonvirtualLongMethodA,
-    &CallNonvirtualFloatMethod,
-    &CallNonvirtualFloatMethodV,
-    &CallNonvirtualFloatMethodA,
-    &CallNonvirtualDoubleMethod,
-    &CallNonvirtualDoubleMethodV,
-    &CallNonvirtualDoubleMethodA,
-    &CallNonvirtualVoidMethod,
-    &CallNonvirtualVoidMethodV,
-    &CallNonvirtualVoidMethodA,
-    &GetFieldID,
-    &GetObjectField,
-    &GetBooleanField,
-    &GetByteField,
-    &GetCharField,
-    &GetShortField,
-    &GetIntField,
-    &GetLongField,
-    &GetFloatField,
-    &GetDoubleField,
-    &SetObjectField,
-    &SetBooleanField,
-    &SetByteField,
-    &SetCharField,
-    &SetShortField,
-    &SetIntField,
-    &SetLongField,
-    &SetFloatField,
-    &SetDoubleField,
-    &GetStaticMethodID,
-    &CallStaticObjectMethod,
-    &CallStaticObjectMethodV,
-    &CallStaticObjectMethodA,
-    &CallStaticBooleanMethod,
-    &CallStaticBooleanMethodV,
-    &CallStaticBooleanMethodA,
-    &CallStaticByteMethod,
-    &CallStaticByteMethodV,
-    &CallStaticByteMethodA,
-    &CallStaticCharMethod,
-    &CallStaticCharMethodV,
-    &CallStaticCharMethodA,
-    &CallStaticShortMethod,
-    &CallStaticShortMethodV,
-    &CallStaticShortMethodA,
-    &CallStaticIntMethod,
-    &CallStaticIntMethodV,
-    &CallStaticIntMethodA,
-    &CallStaticLongMethod,
-    &CallStaticLongMethodV,
-    &CallStaticLongMethodA,
-    &CallStaticFloatMethod,
-    &CallStaticFloatMethodV,
-    &CallStaticFloatMethodA,
-    &CallStaticDoubleMethod,
-    &CallStaticDoubleMethodV,
-    &CallStaticDoubleMethodA,
-    &CallStaticVoidMethod,
-    &CallStaticVoidMethodV,
-    &CallStaticVoidMethodA,
-    &GetStaticFieldID,
-    &GetStaticObjectField,
-    &GetStaticBooleanField,
-    &GetStaticByteField,
-    &GetStaticCharField,
-    &GetStaticShortField,
-    &GetStaticIntField,
-    &GetStaticLongField,
-    &GetStaticFloatField,
-    &GetStaticDoubleField,
-    &SetStaticObjectField,
-    &SetStaticBooleanField,
-    &SetStaticByteField,
-    &SetStaticCharField,
-    &SetStaticShortField,
-    &SetStaticIntField,
-    &SetStaticLongField,
-    &SetStaticFloatField,
-    &SetStaticDoubleField,
-    &NewString,
-    &GetStringLength,
-    &GetStringChars,
-    &ReleaseStringChars,
-    &NewStringUTF,
-    &GetStringUTFLength,
-    &GetStringUTFChars,
-    &ReleaseStringUTFChars,
-    &GetArrayLength,
-    &NewObjectArray,
-    &GetObjectArrayElement,
-    &SetObjectArrayElement,
-    &NewBooleanArray,
-    &NewByteArray,
-    &NewCharArray,
-    &NewShortArray,
-    &NewIntArray,
-    &NewLongArray,
-    &NewFloatArray,
-    &NewDoubleArray,
-    &GetBooleanArrayElements,
-    &GetByteArrayElements,
-    &GetCharArrayElements,
-    &GetShortArrayElements,
-    &GetIntArrayElements,
-    &GetLongArrayElements,
-    &GetFloatArrayElements,
-    &GetDoubleArrayElements,
-    &ReleaseBooleanArrayElements,
-    &ReleaseByteArrayElements,
-    &ReleaseCharArrayElements,
-    &ReleaseShortArrayElements,
-    &ReleaseIntArrayElements,
-    &ReleaseLongArrayElements,
-    &ReleaseFloatArrayElements,
-    &ReleaseDoubleArrayElements,
-    &GetBooleanArrayRegion,
-    &GetByteArrayRegion,
-    &GetCharArrayRegion,
-    &GetShortArrayRegion,
-    &GetIntArrayRegion,
-    &GetLongArrayRegion,
-    &GetFloatArrayRegion,
-    &GetDoubleArrayRegion,
-    &SetBooleanArrayRegion,
-    &SetByteArrayRegion,
-    &SetCharArrayRegion,
-    &SetShortArrayRegion,
-    &SetIntArrayRegion,
-    &SetLongArrayRegion,
-    &SetFloatArrayRegion,
-    &SetDoubleArrayRegion,
-    &RegisterNatives,
-    &UnregisterNatives,
-    &MonitorEnter,
-    &MonitorExit,
-    &GetJavaVM,
-    &GetStringRegion,
-    &GetStringUTFRegion,
-    &GetPrimitiveArrayCritical,
-    &ReleasePrimitiveArrayCritical,
-    &GetStringCritical,
-    &ReleaseStringCritical,
-    &NewWeakGlobalRef,
-    &DeleteWeakGlobalRef,
-    &ExceptionCheck
+	&DeleteLocalRef,
+	&IsSameObject,
+	&NewLocalRef,
+	&EnsureLocalCapacity,
+
+	&AllocObject,
+	&NewObject,
+	&NewObjectV,
+	&NewObjectA,
+
+	&GetObjectClass,
+	&IsInstanceOf,
+
+	&GetMethodID,
+
+	&CallObjectMethod,
+	&CallObjectMethodV,
+	&CallObjectMethodA,
+	&CallBooleanMethod,
+	&CallBooleanMethodV,
+	&CallBooleanMethodA,
+	&CallByteMethod,
+	&CallByteMethodV,
+	&CallByteMethodA,
+	&CallCharMethod,
+	&CallCharMethodV,
+	&CallCharMethodA,
+	&CallShortMethod,
+	&CallShortMethodV,
+	&CallShortMethodA,
+	&CallIntMethod,
+	&CallIntMethodV,
+	&CallIntMethodA,
+	&CallLongMethod,
+	&CallLongMethodV,
+	&CallLongMethodA,
+	&CallFloatMethod,
+	&CallFloatMethodV,
+	&CallFloatMethodA,
+	&CallDoubleMethod,
+	&CallDoubleMethodV,
+	&CallDoubleMethodA,
+	&CallVoidMethod,
+	&CallVoidMethodV,
+	&CallVoidMethodA,
+
+	&CallNonvirtualObjectMethod,
+	&CallNonvirtualObjectMethodV,
+	&CallNonvirtualObjectMethodA,
+	&CallNonvirtualBooleanMethod,
+	&CallNonvirtualBooleanMethodV,
+	&CallNonvirtualBooleanMethodA,
+	&CallNonvirtualByteMethod,
+	&CallNonvirtualByteMethodV,
+	&CallNonvirtualByteMethodA,
+	&CallNonvirtualCharMethod,
+	&CallNonvirtualCharMethodV,
+	&CallNonvirtualCharMethodA,
+	&CallNonvirtualShortMethod,
+	&CallNonvirtualShortMethodV,
+	&CallNonvirtualShortMethodA,
+	&CallNonvirtualIntMethod,
+	&CallNonvirtualIntMethodV,
+	&CallNonvirtualIntMethodA,
+	&CallNonvirtualLongMethod,
+	&CallNonvirtualLongMethodV,
+	&CallNonvirtualLongMethodA,
+	&CallNonvirtualFloatMethod,
+	&CallNonvirtualFloatMethodV,
+	&CallNonvirtualFloatMethodA,
+	&CallNonvirtualDoubleMethod,
+	&CallNonvirtualDoubleMethodV,
+	&CallNonvirtualDoubleMethodA,
+	&CallNonvirtualVoidMethod,
+	&CallNonvirtualVoidMethodV,
+	&CallNonvirtualVoidMethodA,
+
+	&GetFieldID,
+
+	&GetObjectField,
+	&GetBooleanField,
+	&GetByteField,
+	&GetCharField,
+	&GetShortField,
+	&GetIntField,
+	&GetLongField,
+	&GetFloatField,
+	&GetDoubleField,
+	&SetObjectField,
+	&SetBooleanField,
+	&SetByteField,
+	&SetCharField,
+	&SetShortField,
+	&SetIntField,
+	&SetLongField,
+	&SetFloatField,
+	&SetDoubleField,
+
+	&GetStaticMethodID,
+
+	&CallStaticObjectMethod,
+	&CallStaticObjectMethodV,
+	&CallStaticObjectMethodA,
+	&CallStaticBooleanMethod,
+	&CallStaticBooleanMethodV,
+	&CallStaticBooleanMethodA,
+	&CallStaticByteMethod,
+	&CallStaticByteMethodV,
+	&CallStaticByteMethodA,
+	&CallStaticCharMethod,
+	&CallStaticCharMethodV,
+	&CallStaticCharMethodA,
+	&CallStaticShortMethod,
+	&CallStaticShortMethodV,
+	&CallStaticShortMethodA,
+	&CallStaticIntMethod,
+	&CallStaticIntMethodV,
+	&CallStaticIntMethodA,
+	&CallStaticLongMethod,
+	&CallStaticLongMethodV,
+	&CallStaticLongMethodA,
+	&CallStaticFloatMethod,
+	&CallStaticFloatMethodV,
+	&CallStaticFloatMethodA,
+	&CallStaticDoubleMethod,
+	&CallStaticDoubleMethodV,
+	&CallStaticDoubleMethodA,
+	&CallStaticVoidMethod,
+	&CallStaticVoidMethodV,
+	&CallStaticVoidMethodA,
+
+	&GetStaticFieldID,
+
+	&GetStaticObjectField,
+	&GetStaticBooleanField,
+	&GetStaticByteField,
+	&GetStaticCharField,
+	&GetStaticShortField,
+	&GetStaticIntField,
+	&GetStaticLongField,
+	&GetStaticFloatField,
+	&GetStaticDoubleField,
+	&SetStaticObjectField,
+	&SetStaticBooleanField,
+	&SetStaticByteField,
+	&SetStaticCharField,
+	&SetStaticShortField,
+	&SetStaticIntField,
+	&SetStaticLongField,
+	&SetStaticFloatField,
+	&SetStaticDoubleField,
+
+	&NewString,
+	&GetStringLength,
+	&GetStringChars,
+	&ReleaseStringChars,
+
+	&NewStringUTF,
+	&GetStringUTFLength,
+	&GetStringUTFChars,
+	&ReleaseStringUTFChars,
+
+	&GetArrayLength,
+
+	&NewObjectArray,
+	&GetObjectArrayElement,
+	&SetObjectArrayElement,
+
+	&NewBooleanArray,
+	&NewByteArray,
+	&NewCharArray,
+	&NewShortArray,
+	&NewIntArray,
+	&NewLongArray,
+	&NewFloatArray,
+	&NewDoubleArray,
+
+	&GetBooleanArrayElements,
+	&GetByteArrayElements,
+	&GetCharArrayElements,
+	&GetShortArrayElements,
+	&GetIntArrayElements,
+	&GetLongArrayElements,
+	&GetFloatArrayElements,
+	&GetDoubleArrayElements,
+
+	&ReleaseBooleanArrayElements,
+	&ReleaseByteArrayElements,
+	&ReleaseCharArrayElements,
+	&ReleaseShortArrayElements,
+	&ReleaseIntArrayElements,
+	&ReleaseLongArrayElements,
+	&ReleaseFloatArrayElements,
+	&ReleaseDoubleArrayElements,
+
+	&GetBooleanArrayRegion,
+	&GetByteArrayRegion,
+	&GetCharArrayRegion,
+	&GetShortArrayRegion,
+	&GetIntArrayRegion,
+	&GetLongArrayRegion,
+	&GetFloatArrayRegion,
+	&GetDoubleArrayRegion,
+	&SetBooleanArrayRegion,
+	&SetByteArrayRegion,
+	&SetCharArrayRegion,
+	&SetShortArrayRegion,
+	&SetIntArrayRegion,
+	&SetLongArrayRegion,
+	&SetFloatArrayRegion,
+	&SetDoubleArrayRegion,
+
+	&RegisterNatives,
+	&UnregisterNatives,
+
+	&MonitorEnter,
+	&MonitorExit,
+
+	&GetJavaVM,
+
+	/* new JNI 1.2 functions */
+
+	&GetStringRegion,
+	&GetStringUTFRegion,
+
+	&GetPrimitiveArrayCritical,
+	&ReleasePrimitiveArrayCritical,
+
+	&GetStringCritical,
+	&ReleaseStringCritical,
+
+	&NewWeakGlobalRef,
+	&DeleteWeakGlobalRef,
+
+	&ExceptionCheck,
+
+	/* new JNI 1.4 functions */
+
+	&NewDirectByteBuffer,
+	&GetDirectBufferAddress,
+	&GetDirectBufferCapacity
 };
 
-JNIEnv env = &envTable;
+
+/* Invocation API Functions ***************************************************/
+
+/* JNI_GetDefaultJavaVMInitArgs ************************************************
+
+   Returns a default configuration for the Java VM.
+
+*******************************************************************************/
+
+jint JNI_GetDefaultJavaVMInitArgs(void *p_vm_args)
+{
+	JDK1_1InitArgs *vm_args = (JDK1_1InitArgs *) p_vm_args;
+
+	/* GNU classpath currently supports JNI 1.2 */
+
+	vm_args->version = JNI_VERSION_1_2;
+
+	return 0;
+}
+
+
+/* JNI_GetCreatedJavaVMs *******************************************************
+
+   Returns all Java VMs that have been created. Pointers to VMs are written in
+   the buffer vmBuf in the order they are created. At most bufLen number of
+   entries will be written. The total number of created VMs is returned in
+   *nVMs.
+
+*******************************************************************************/
+
+jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
+{
+	log_text("JNI_GetCreatedJavaVMs: IMPLEMENT ME!!!");
+}
+
+
+/* JNI_CreateJavaVM ************************************************************
+
+   Loads and initializes a Java VM. The current thread becomes the main thread.
+   Sets the env argument to the JNI interface pointer of the main thread.
+
+*******************************************************************************/
+
+jint JNI_CreateJavaVM(JavaVM **p_vm, JNIEnv **p_env, void *p_vm_args)
+{
+	*p_vm = &JNI_javaVMTable;
+	*p_env = &JNI_envTable;
+
+	return 0;
+}
 
 
 jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID, jobject obj, java_objectarray *params)
@@ -3629,11 +3780,11 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 		break;
 
 	case 'I': {
-		s4 intVal;	
-		intVal = (s4) asm_calljavafunction2(methodID,
-											argcount + 1,
-											(argcount + 1) * sizeof(jni_callblock),
-											blk);
+		s4 intVal;
+		intVal = asm_calljavafunction2int(methodID,
+										  argcount + 1,
+										  (argcount + 1) * sizeof(jni_callblock),
+										  blk);
 		retVal = builtin_new(class_new(utf_new_char("java/lang/Integer")));
 		CallVoidMethod(env,
 					   retVal,
@@ -3645,11 +3796,11 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	break;
 
 	case 'B': {
-		s4 intVal;	
-		intVal = (s4) asm_calljavafunction2(methodID,
-											argcount + 1,
-											(argcount + 1) * sizeof(jni_callblock),
-											blk);
+		s4 intVal;
+		intVal = asm_calljavafunction2int(methodID,
+										  argcount + 1,
+										  (argcount + 1) * sizeof(jni_callblock),
+										  blk);
 		retVal = builtin_new(class_new(utf_new_char("java/lang/Byte")));
 		CallVoidMethod(env,
 					   retVal,
@@ -3661,11 +3812,11 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	break;
 
 	case 'C': {
-		s4 intVal;	
-		intVal = (s4) asm_calljavafunction2(methodID,
-											argcount + 1,
-											(argcount + 1) * sizeof(jni_callblock),
-											blk);
+		s4 intVal;
+		intVal = asm_calljavafunction2int(methodID,
+										  argcount + 1,
+										  (argcount + 1) * sizeof(jni_callblock),
+										  blk);
 		retVal = builtin_new(class_new(utf_new_char("java/lang/Character")));
 		CallVoidMethod(env,
 					   retVal,
@@ -3677,11 +3828,11 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	break;
 
 	case 'S': {
-		s4 intVal;	
-		intVal = (s4) asm_calljavafunction2(methodID,
-											argcount + 1,
-											(argcount + 1) * sizeof(jni_callblock),
-											blk);
+		s4 intVal;
+		intVal = asm_calljavafunction2int(methodID,
+										  argcount + 1,
+										  (argcount + 1) * sizeof(jni_callblock),
+										  blk);
 		retVal = builtin_new(class_new(utf_new_char("java/lang/Short")));
 		CallVoidMethod(env,
 					   retVal,
@@ -3693,11 +3844,11 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	break;
 
 	case 'Z': {
-		s4 intVal;	
-		intVal = (s4) asm_calljavafunction2(methodID,
-											argcount + 1,
-											(argcount + 1) * sizeof(jni_callblock),
-											blk);
+		s4 intVal;
+		intVal = asm_calljavafunction2int(methodID,
+										  argcount + 1,
+										  (argcount + 1) * sizeof(jni_callblock),
+										  blk);
 		retVal = builtin_new(class_new(utf_new_char("java/lang/Boolean")));
 		CallVoidMethod(env,
 					   retVal,
@@ -3709,27 +3860,27 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	break;
 
 	case 'J': {
-		jlong intVal;	
-		intVal = asm_calljavafunction2long(methodID,
-										   argcount + 1,
-										   (argcount + 1) * sizeof(jni_callblock),
-										   blk);
+		jlong longVal;
+		longVal = asm_calljavafunction2long(methodID,
+											argcount + 1,
+											(argcount + 1) * sizeof(jni_callblock),
+											blk);
 		retVal = builtin_new(class_new(utf_new_char("java/lang/Long")));
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
 										   utf_new_char("<init>"),
 										   utf_new_char("(J)V")),
-					   intVal);
+					   longVal);
 	}
 	break;
 
 	case 'F': {
 		jdouble floatVal;	
-		floatVal = asm_calljavafunction2double(methodID,
-											   argcount + 1,
-											   (argcount + 1) * sizeof(jni_callblock),
-											   blk);
+		floatVal = asm_calljavafunction2float(methodID,
+											  argcount + 1,
+											  (argcount + 1) * sizeof(jni_callblock),
+											  blk);
 		retVal = builtin_new(class_new(utf_new_char("java/lang/Float")));
 		CallVoidMethod(env,
 					   retVal,
@@ -3741,18 +3892,18 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	break;
 
 	case 'D': {
-		jdouble floatVal;	
-		floatVal = asm_calljavafunction2double(methodID,
-											   argcount + 1,
-											   (argcount + 1) * sizeof(jni_callblock),
-											   blk);
+		jdouble doubleVal;
+		doubleVal = asm_calljavafunction2double(methodID,
+												argcount + 1,
+												(argcount + 1) * sizeof(jni_callblock),
+												blk);
 		retVal = builtin_new(class_new(utf_new_char("java/lang/Double")));
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
 										   utf_new_char("<init>"),
 										   utf_new_char("(D)V")),
-					   floatVal);
+					   doubleVal);
 	}
 	break;
 
