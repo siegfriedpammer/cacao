@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1219 2004-06-29 14:37:41Z twisti $
+   $Id: builtin.c 1236 2004-06-30 19:53:03Z twisti $
 
 */
 
@@ -43,7 +43,7 @@
 #include <assert.h>
 #include <string.h>
 #include <math.h>
-#include "main.h"
+#include "options.h"
 #include "builtin.h"
 #include "native.h"
 #include "loader.h"

@@ -26,19 +26,20 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1205 2004-06-25 06:18:44Z carolyn $
+   $Id: inline.c 1236 2004-06-30 19:53:03Z twisti $
 
 */
 
 
 #include <stdio.h>
 #include <string.h>
-#include "main.h"
+#include "global.h"
+#include "loader.h"
+#include "tables.h"
+#include "options.h"
 #include "jit/inline.h"
 #include "jit/jit.h"
 #include "jit/parse.h"
-#include "loader.h"
-#include "tables.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
