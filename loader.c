@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 731 2003-12-12 17:18:07Z stefan $
+   $Id: loader.c 740 2003-12-13 19:57:12Z stefan $
 
 */
 
@@ -2133,7 +2133,7 @@ static void class_free (classinfo *c)
 	/*	if (c->classvftbl)
 		mem_free(c->header.vftbl, sizeof(vftbl) + sizeof(methodptr)*(c->vftbl->vftbllength-1)); */
 	
-	FREE (c, classinfo);
+	GCFREE (c);
 }
 
 /************************* Function: class_findfield ***************************
@@ -3412,16 +3412,15 @@ void loader_close ()
 
 	while ( (c=list_first(&unloadedclasses)) ) {
 		list_remove (&unloadedclasses,c);
-		/* XXX [stefan] I'm sick of this */
-		/* TODO find out why it crashes */
+		class_free(c);
 		}
 	while ( (c=list_first(&unlinkedclasses)) ) {
 		list_remove (&unlinkedclasses,c);
-		/* XXX [stefan] I'm sick of this */
+		class_free(c);
 		}
 	while ( (c=list_first(&linkedclasses)) ) {
 		list_remove (&linkedclasses,c);
-		/* XXX [stefan] I'm sick of this */
+		class_free(c);
 		}
 }
 
