@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2071 2005-03-24 17:56:17Z christian $
+   $Id: codegen.c 2175 2005-04-01 11:23:18Z twisti $
 
 */
 
@@ -228,11 +228,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 #endif
 
-    /* keep stack 16-byte aligned for calls into native code e.g. libc or jni */
-    /* (alignment problems with movaps)                                       */
+    /* Keep stack of non-leaf functions 16-byte aligned for calls into native */
+	/* code e.g. libc or jni (alignment problems with movaps).                */
 
-	if (!(parentargs_base & 0x1)) {
-		parentargs_base++;
+	if (!m->isleafmethod || runverbose) {
+		parentargs_base |= 0x1;
 	}
 
 	/* create method header */
@@ -3198,7 +3198,7 @@ gen_method: {
  */
 
 			{
-			classinfo *super = (classinfo*) iptr->val.a;
+			classinfo *super = (classinfo *) iptr->val.a;
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
             codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
@@ -3280,7 +3280,7 @@ gen_method: {
 					x86_64_jcc(cd, X86_64_CC_E, a);
 
 					x86_64_mov_membase_reg(cd, s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					x86_64_mov_imm_reg(cd, (s8) super->vftbl, REG_ITMP2);
+					x86_64_mov_imm_reg(cd, (ptrint) super->vftbl, REG_ITMP2);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
@@ -3321,13 +3321,12 @@ gen_method: {
  */
 
 			{
-			classinfo *super = (classinfo*) iptr->val.a;
+			classinfo *super = (classinfo *) iptr->val.a;
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
             codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			var_to_reg_int(s1, src, d);
+			var_to_reg_int(s1, src, REG_ITMP1);
 			if (iptr->op1) {                               /* class/interface */
 				if (super->flags & ACC_INTERFACE) {        /* interface       */
 					x86_64_test_reg_reg(cd, s1, s1);
@@ -3336,8 +3335,8 @@ gen_method: {
 					a = 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(a, s1, OFFSET(java_objectheader, vftbl));
 
-					a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
+					a += 3;    /* movl_membase_reg - if REG_ITMP3 == R10 */
+					CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
 
 					a += 3;    /* sub */
 					CALCIMMEDIATEBYTES(a, super->index);
@@ -3346,79 +3345,60 @@ gen_method: {
 					a += 6;    /* jcc */
 
 					a += 3;    /* mov_membase_reg */
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*));
+					CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*));
 
 					a += 3;    /* test */
 					a += 6;    /* jcc */
 
 					x86_64_jcc(cd, X86_64_CC_E, a);
 
-					x86_64_mov_membase_reg(cd, s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					x86_64_movl_membase_reg(cd, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength), REG_ITMP2);
-					x86_64_alu_imm_reg(cd, X86_64_SUB, super->index, REG_ITMP2);
-					x86_64_test_reg_reg(cd, REG_ITMP2, REG_ITMP2);
+					x86_64_mov_membase_reg(cd, s1, OFFSET(java_objectheader, vftbl), REG_ITMP2);
+					x86_64_movl_membase_reg(cd, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength), REG_ITMP3);
+					x86_64_alu_imm_reg(cd, X86_64_SUB, super->index, REG_ITMP3);
+					x86_64_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
 					x86_64_jcc(cd, X86_64_CC_LE, 0);
 					codegen_addxcastrefs(cd, cd->mcodeptr);
-					x86_64_mov_membase_reg(cd, REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*), REG_ITMP2);
-					x86_64_test_reg_reg(cd, REG_ITMP2, REG_ITMP2);
+					x86_64_mov_membase_reg(cd, REG_ITMP2, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*), REG_ITMP3);
+					x86_64_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
 					x86_64_jcc(cd, X86_64_CC_E, 0);
 					codegen_addxcastrefs(cd, cd->mcodeptr);
 
-				} else {                                     /* class           */
+				} else {                                   /* class           */
 					x86_64_test_reg_reg(cd, s1, s1);
 
 					/* TODO: clean up this calculation */
-					a = 3;    /* mov_membase_reg */
+					a = 3;     /* mov_membase_reg */
 					CALCOFFSETBYTES(a, s1, OFFSET(java_objectheader, vftbl));
 					a += 10;   /* mov_imm_reg */
-					a += 2;    /* movl_membase_reg - only if REG_ITMP1 == RAX */
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, baseval));
+					a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
+					CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, baseval));
 
-					if (d != REG_ITMP3) {
-						a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, baseval));
-						a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, diffval));
-						a += 3;    /* sub */
-						
-					} else {
-						a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, baseval));
-						a += 3;    /* sub */
-						a += 10;   /* mov_imm_reg */
-						a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
-						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, diffval));
-					}
+					a += 3;    /* movl_membase_reg - only if REG_ITMP3 == R11 */
+					CALCOFFSETBYTES(a, REG_ITMP3, OFFSET(vftbl_t, baseval));
+					a += 3;    /* sub */
+					a += 10;   /* mov_imm_reg */
+					a += 3;    /* movl_membase_reg - only if REG_ITMP3 == R11 */
+					CALCOFFSETBYTES(a, REG_ITMP3, OFFSET(vftbl_t, diffval));
 
 					a += 3;    /* cmp */
 					a += 6;    /* jcc */
 
 					x86_64_jcc(cd, X86_64_CC_E, a);
 
-					x86_64_mov_membase_reg(cd, s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					x86_64_mov_imm_reg(cd, (s8) super->vftbl, REG_ITMP2);
+					x86_64_mov_membase_reg(cd, s1, OFFSET(java_objectheader, vftbl), REG_ITMP2);
+					x86_64_mov_imm_reg(cd, (ptrint) super->vftbl, REG_ITMP3);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
                     codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-					x86_64_movl_membase_reg(cd, REG_ITMP1, OFFSET(vftbl_t, baseval), REG_ITMP1);
-					if (d != REG_ITMP3) {
-						x86_64_movl_membase_reg(cd, REG_ITMP2, OFFSET(vftbl_t, baseval), REG_ITMP3);
-						x86_64_movl_membase_reg(cd, REG_ITMP2, OFFSET(vftbl_t, diffval), REG_ITMP2);
+					x86_64_movl_membase_reg(cd, REG_ITMP2, OFFSET(vftbl_t, baseval), REG_ITMP2);
+					x86_64_movl_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, baseval), REG_ITMP3);
+					x86_64_alu_reg_reg(cd, X86_64_SUB, REG_ITMP3, REG_ITMP2);
+					x86_64_mov_imm_reg(cd, (ptrint) super->vftbl, REG_ITMP3);
+					x86_64_movl_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, diffval), REG_ITMP3);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-                        codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
+					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-						x86_64_alu_reg_reg(cd, X86_64_SUB, REG_ITMP3, REG_ITMP1);
-
-					} else {
-						x86_64_movl_membase_reg(cd, REG_ITMP2, OFFSET(vftbl_t, baseval), REG_ITMP2);
-						x86_64_alu_reg_reg(cd, X86_64_SUB, REG_ITMP2, REG_ITMP1);
-						x86_64_mov_imm_reg(cd, (s8) super->vftbl, REG_ITMP2);
-						x86_64_movl_membase_reg(cd, REG_ITMP2, OFFSET(vftbl_t, diffval), REG_ITMP2);
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-                        codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
-					}
-					x86_64_alu_reg_reg(cd, X86_64_CMP, REG_ITMP2, REG_ITMP1);
+					x86_64_alu_reg_reg(cd, X86_64_CMP, REG_ITMP3, REG_ITMP2);
 					x86_64_jcc(cd, X86_64_CC_A, 0);    /* (u) REG_ITMP1 > (u) REG_ITMP2 -> jump */
 					codegen_addxcastrefs(cd, cd->mcodeptr);
 				}
@@ -3426,6 +3406,7 @@ gen_method: {
 			} else
 				panic("internal error: no inlined array checkcast");
 			}
+			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
