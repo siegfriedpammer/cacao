@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: stack.c 624 2003-11-13 14:06:52Z twisti $
+   $Id: stack.c 640 2003-11-15 12:14:05Z stefan $
 
 */
 
@@ -340,8 +340,7 @@ void analyse_stack()
 						stdopdescriptor *breplace;
 						breplace = find_builtin(opcode);
 
-/*  						if (breplace != blast && opcode == breplace->opcode && !breplace->supported) { */
-						if (opcode == breplace->opcode && !breplace->supported) {
+						if (breplace && opcode == breplace->opcode) {
 							iptr[0].opc = breplace->icmd;
 							iptr[0].op1 = breplace->type_d;
 							iptr[0].val.a = breplace->builtin;

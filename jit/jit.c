@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: jit.c 638 2003-11-14 23:51:34Z stefan $
+   $Id: jit.c 640 2003-11-15 12:14:05Z stefan $
 
 */
 
@@ -1283,10 +1283,6 @@ stdopdescriptor builtintable[] = {
 	  (functionptr) builtin_lneg, SUPPORT_LONG && SUPPORT_LONG_ADD, true },
 	{ ICMD_LMUL,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
 	  (functionptr) builtin_lmul , SUPPORT_LONG && SUPPORT_LONG_MUL, false },
-	{ ICMD_FREM,   TYPE_FLOAT, TYPE_FLOAT, TYPE_FLOAT, ICMD_BUILTIN2,
-	  (functionptr) builtin_frem, SUPPORT_FLOAT && SUPPORT_FMOD, true },
-	{ ICMD_DREM,   TYPE_DOUBLE, TYPE_DOUBLE, TYPE_DOUBLE, ICMD_BUILTIN2,
-	  (functionptr) builtin_drem, SUPPORT_DOUBLE && SUPPORT_FMOD, true },
 	{ ICMD_I2F,    TYPE_INT, TYPE_VOID, TYPE_FLOAT, ICMD_BUILTIN1,
 	  (functionptr) builtin_i2f, SUPPORT_FLOAT && SUPPORT_IFCVT, true },
 	{ ICMD_I2D,    TYPE_INT, TYPE_VOID, TYPE_DOUBLE, ICMD_BUILTIN1, 
@@ -1305,6 +1301,8 @@ stdopdescriptor builtintable[] = {
 	  (functionptr) builtin_d2i, SUPPORT_DOUBLE && SUPPORT_FICVT, true },
   	{ 255, 0, 0, 0, 0, NULL, true, false },
 };
+
+static int builtintablelen;
 
 #endif /* USEBUILTINTABLE */
 
@@ -1492,6 +1490,10 @@ static int stdopcompare(const void *a, const void *b)
 {
 	stdopdescriptor *o1 = (stdopdescriptor *) a;
 	stdopdescriptor *o2 = (stdopdescriptor *) b;
+	if (!o1->supported && o2->supported)
+		return -1;
+	if (o1->supported && !o2->supported)
+		return 1;
 	return (o1->opcode < o2->opcode) ? -1 : (o1->opcode > o2->opcode);
 }
 
@@ -1502,6 +1504,9 @@ static inline void sort_builtintable()
 
 	len = sizeof(builtintable) / sizeof(stdopdescriptor);
 	qsort(builtintable, len, sizeof(stdopdescriptor), stdopcompare);
+
+	for (--len; len>=0 && builtintable[len].supported; len--);
+	builtintablelen = ++len;
 
 #if 0
 	{
@@ -1517,7 +1522,7 @@ static inline void sort_builtintable()
 stdopdescriptor *find_builtin(int icmd)
 {
 	stdopdescriptor *first = builtintable;
-	stdopdescriptor *last = builtintable + sizeof(builtintable) / sizeof(stdopdescriptor);
+	stdopdescriptor *last = builtintable + builtintablelen;
 	int len = last - first;
 	int half;
 	stdopdescriptor *middle;
@@ -1531,7 +1536,7 @@ stdopdescriptor *find_builtin(int icmd)
 		} else
 			len = half;
 	}
-	return first;
+	return first != last ? first : NULL;
 }
 
 #endif
