@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1291 2004-07-09 13:20:56Z twisti $
+   $Id: codegen.c 1301 2004-07-11 11:21:21Z stefan $
 
 */
 
@@ -2902,7 +2902,7 @@ gen_method: {
 
 				gen_nullptr_check(r->argintregs[0]);
 				M_ALD(REG_METHODPTR, r->argintregs[0], OFFSET(java_objectheader, vftbl));
-				M_ALD(REG_PV, REG_METHODPTR, OFFSET(vftbl, table[0]) + sizeof(methodptr) * lm->vftblindex);
+				M_ALD(REG_PV, REG_METHODPTR, OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * lm->vftblindex);
 				break;
 
 			case ICMD_INVOKEINTERFACE:
@@ -2910,7 +2910,7 @@ gen_method: {
 					
 				gen_nullptr_check(r->argintregs[0]);
 				M_ALD(REG_METHODPTR, r->argintregs[0], OFFSET(java_objectheader, vftbl));
-				M_ALD(REG_METHODPTR, REG_METHODPTR, OFFSET(vftbl, interfacetable[0]) - sizeof(methodptr*) * lm->class->index);
+				M_ALD(REG_METHODPTR, REG_METHODPTR, OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * lm->class->index);
 				M_ALD(REG_PV, REG_METHODPTR, sizeof(methodptr) * (lm - lm->class->methods));
 				break;
 			}
@@ -2986,12 +2986,12 @@ afteractualcall:
 					M_BEQZ(s1, 8);
 					M_NOP;
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
+					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 					M_IADD_IMM(REG_ITMP2, - super->index, REG_ITMP2);
 					M_BLEZ(REG_ITMP2, 3);
 					M_NOP;
 					M_ALD(REG_ITMP1, REG_ITMP1,
-					      OFFSET(vftbl, interfacetable[0]) -
+					      OFFSET(vftbl_t, interfacetable[0]) -
 					      super->index * sizeof(methodptr*));
 					M_CMPULT(REG_ZERO, REG_ITMP1, d);      /* REG_ITMP1 != 0  */
 					}
@@ -3001,7 +3001,7 @@ afteractualcall:
 					M_BEQZ(s1, 5);
 					M_NOP;
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
+					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 					M_IADD_IMM(REG_ITMP1, - super->vftbl->baseval, REG_ITMP1);
 					M_CMPULT_IMM(REG_ITMP1, s2 + 1, d);
 					*/
@@ -3014,9 +3014,9 @@ afteractualcall:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstart((u1*) mcodeptr - mcodebase);
 #endif
-                    M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
-                    M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
-                    M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+                    M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
+                    M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
+                    M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstop((u1*) mcodeptr - mcodebase);
 #endif
@@ -3064,13 +3064,13 @@ afteractualcall:
 					M_BEQZ(s1, 9);
 					M_NOP;
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
+					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 					M_IADD_IMM(REG_ITMP2, - super->index, REG_ITMP2);
 					M_BLEZ(REG_ITMP2, 0);
 					codegen_addxcastrefs(mcodeptr);
 					M_NOP;
 					M_ALD(REG_ITMP2, REG_ITMP1,
-					      OFFSET(vftbl, interfacetable[0]) -
+					      OFFSET(vftbl_t, interfacetable[0]) -
 					      super->index * sizeof(methodptr*));
 					M_BEQZ(REG_ITMP2, 0);
 					codegen_addxcastrefs(mcodeptr);
@@ -3083,7 +3083,7 @@ afteractualcall:
 					M_BEQZ(s1, 6 + (s2 != 0));
 					M_NOP;
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
+					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 					M_IADD_IMM(REG_ITMP1, - super->vftbl->baseval, REG_ITMP1);
 					if (s2 == 0) {
 						M_BNEZ(REG_ITMP1, 0);
@@ -3102,19 +3102,19 @@ afteractualcall:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstart((u1*) mcodeptr - mcodebase);
 #endif
-                    M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
+                    M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 					if (d != REG_ITMP3) {
-						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
+						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 						codegen_threadcritstop((u1*) mcodeptr - mcodebase);
 #endif
 						M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
 					} else {
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, baseval));
+						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 						M_ISUB(REG_ITMP1, REG_ITMP2, REG_ITMP1); 
 						M_ALD(REG_ITMP2, REG_PV, a);
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 						codegen_threadcritstop((u1*) mcodeptr - mcodebase);
 #endif
