@@ -87,6 +87,14 @@ JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv
 
 /*
  * Class:     java/lang/VMClass
+ * Method:    getBeautifiedName
+ * Signature: (Ljava/lang/Class;)Ljava/lang/String;
+ */
+JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getBeautifiedName(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
+
+
+/*
+ * Class:     java/lang/VMClass
  * Method:    getSuperclass
  * Signature: ()Ljava/lang/Class;
  */

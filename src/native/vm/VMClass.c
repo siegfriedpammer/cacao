@@ -515,10 +515,30 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers ( JNIEnv *env ,  struct
  * Method:    getName
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getName ( JNIEnv *env ,  struct java_lang_VMClass* this)
+JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getName ( JNIEnv *env ,  struct java_lang_VMClass* this) {
+       u4 i;
+       classinfo *c = (classinfo*) (this->vmData);
+       java_lang_String *s = (java_lang_String*) javastring_new(c->name);
+       if (!s) return NULL;
+
+        /* return string where '/' is replaced by '.' */
+        for (i=0; i<s->value->header.size; i++) {
+                if (s->value->data[i] == '/') s->value->data[i] = '.';
+                }
+
+        return s;
+	
+}
+
+/*
+ * Class:     java/lang/VMClass
+ * Method:    getBeautifiedName
+ * Signature: (Ljava/lang/Class;)Ljava/lang/String;
+ */
+JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getBeautifiedName(JNIEnv *env, jclass clazz, struct java_lang_Class* par1)
 {
     u4 dimCnt;
-    classinfo *c = (classinfo*) (this->vmData);
+    classinfo *c = (classinfo*) (par1);
 
     char *utf__ptr  =  c->name->text;      /* current position in utf-text */
     char **utf_ptr  =  &utf__ptr;
@@ -548,9 +568,9 @@ JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getName ( JNIE
 	    }
     }
     if (len==0) {
-	len=dimCnt+strlen(c->name->text);
+	len=dimCnt+strlen(c->name->text)-2;
 	str=MNEW(char,len+1);
-	strcpy(str,utf__ptr);	   
+	strncpy(str,++utf__ptr,len-2*dimCnt);	   
     }	
 
     dimCnt=len-2*dimCnt;
