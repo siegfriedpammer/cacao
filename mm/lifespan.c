@@ -1,8 +1,9 @@
 /*
  * cacao/mm/lifespan.c
- * $Id: lifespan.c 95 1998-11-30 14:53:05Z phil $
+ * $Id: lifespan.c 99 1998-11-30 22:29:56Z phil $
  */
 
+@include "mm.h"
 #include "lifespan.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,7 +37,7 @@ void lifespan_init(void* heap_base, unsigned long heap_size)
 	memset(lifespan_objects, 0, heap_size);
 }
 
-static inline void lifespan_free_object(lifespan_object** o)
+static __inline__ void lifespan_free_object(lifespan_object** o)
 {
 	/* file format: alloc time, size, lifespan */
 
@@ -65,7 +66,7 @@ void lifespan_emit()
 	/* emit summary */
 }
 
-void lifespan_free(void* from, void* limit)
+void lifespan_free(void** from, void** limit)
 {
 	lifespan_object**  object;
 	object = (lifespan_object**)((unsigned long)from + (unsigned long)lifespan_objects_off);

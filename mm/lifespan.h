@@ -5,7 +5,7 @@ void lifespan_init(void* heap_base, unsigned long heap_size);
 void lifespan_close();
 void lifespan_emit();
 
-void lifespan_free(void* from, void* limit);
+void lifespan_free(void** from, void** limit);
 void lifespan_alloc(void* addr, unsigned long size);
 
 #endif
