@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 638 2003-11-14 23:51:34Z stefan $
+   $Id: codegen.h 856 2004-01-06 16:21:51Z twisti $
 
 */
 
@@ -297,8 +297,8 @@
 #define M_MOVID(i,d)            M_FP3(0,4,d,i,0)                /* d = i      */
 #define M_MOVLD(l,d)            M_FP3(0,5,d,l,0)                /* d = l      */
 
-#define M_DMFC1(l,f)				M_FP3(0,1,f,l,0)
-#define M_DMTC1(l,f)				M_FP3(0,5,f,l,0)
+#define M_DMFC1(l,f)            M_FP3(0,1,f,l,0)
+#define M_DMTC1(l,f)            M_FP3(0,5,f,l,0)
 
 #define M_FCMPFF(a,b)           M_FP3(0x30,FMT_F,a,b,0)         /* c = a == b */
 #define M_FCMPFD(a,b)           M_FP3(0x30,FMT_D,a,b,0)         /* c = a == b */
@@ -381,7 +381,14 @@
 
 
 /* function prototypes */
-void createcalljava ();
+
+void codegen_init();
+void init_exceptions();
+void codegen();
+void codegen_close();
+void dseg_display(s4 *s4ptr);
+
+void createcalljava();
 void docacheflush(u1 *p, long bytelen);
 
 #endif /* _CODEGEN_H */
