@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1130 2004-06-05 14:37:51Z twisti $
+   $Id: codegen.inc 1165 2004-06-12 13:33:38Z stefan $
 
 */
 
@@ -563,6 +563,7 @@ static void codegen_finish(int mcodelen)
 	u1 *epoint;
 
 	int extralen = 0;
+	int alignedlen;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	extralen += sizeof(threadcritnode) * threadcritcount;
@@ -572,9 +573,10 @@ static void codegen_finish(int mcodelen)
 	count_data_len += dseglen;
 
 	dseglen = ALIGN(dseglen, MAX_ALIGN);
+	alignedlen = ALIGN(mcodelen, MAX_ALIGN) + dseglen;
 
 	method->mcodelength = mcodelen + dseglen;
-	method->mcode = CNEW(u1, mcodelen + dseglen + extralen);
+	method->mcode = CNEW(u1, alignedlen + extralen);
 
 	memcpy(method->mcode, dsegtop - dseglen, dseglen);
 	memcpy(method->mcode + dseglen, mcodebase, mcodelen);
@@ -639,7 +641,7 @@ static void codegen_finish(int mcodelen)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	{
-		threadcritnode *n = (threadcritnode*) (method->mcode + mcodelen + dseglen);
+		threadcritnode *n = (threadcritnode*) (method->mcode + alignedlen);
 		int i;
 		struct threadcritnodetemp *nt = threadcrit;
 
