@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: asmpart.h 1129 2004-06-05 14:37:14Z twisti $
 
 */
 
@@ -76,6 +76,12 @@ java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size, void 
 jdouble asm_calljavafunction2double(methodinfo *m, u4 count, u4 size, void *callblock);
 jlong asm_calljavafunction2long(methodinfo *m, u4 count, u4 size, void *callblock);
 
+/* We need these two labels in codegen.inc to add the asm_calljavafunction*'s
+   into the methodtable */
+#if defined(__I386__) || defined(__X86_64__)
+void calljava_xhandler();
+void calljava_xhandler2();
+#endif
 
 
 void asm_handle_exception();
