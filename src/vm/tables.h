@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tables.h 1793 2004-12-21 10:14:35Z twisti $
+   $Id: tables.h 1843 2005-01-04 11:21:02Z twisti $
 
 */
 
@@ -77,13 +77,13 @@ void log_utf(utf *u);
 void log_plain_utf(utf *u);
 
 /* create new utf-symbol */
-utf *utf_new(char *text, u2 length);
+utf *utf_new(const char *text, u2 length);
 
 /* without locking (caller already holding lock*/
-utf *utf_new_intern(char *text, u2 length);
+utf *utf_new_intern(const char *text, u2 length);
 
-utf *utf_new_char(char *text);
-utf *utf_new_char_classname(char *text);
+utf *utf_new_char(const char *text);
+utf *utf_new_char_classname(const char *text);
 
 /* show utf-table */
 void utf_show(void);

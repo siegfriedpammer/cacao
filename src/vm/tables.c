@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1774 2004-12-20 20:16:57Z jowenn $
+   $Id: tables.c 1843 2005-01-04 11:21:02Z twisti $
 
 */
 
@@ -363,20 +363,20 @@ void utf_fprint_classname(FILE *file, utf *u)
 }
 
 
-/****************** internal function: utf_hashkey ***************************
+/****************** internal function: utf_hashkey *****************************
 
 	The hashkey is computed from the utf-text by using up to 8 characters.
 	For utf-symbols longer than 15 characters 3 characters are taken from
 	the beginning and the end, 2 characters are taken from the middle.
 
-******************************************************************************/ 
+*******************************************************************************/
 
 #define nbs(val) ((u4) *(++text) << val) /* get next byte, left shift by val  */
 #define fbs(val) ((u4) *(  text) << val) /* get first byte, left shift by val */
 
-static u4 utf_hashkey(char *text, u4 length)
+static u4 utf_hashkey(const char *text, u4 length)
 {
-	char *start_pos = text; /* pointer to utf text */
+	const char *start_pos = text;       /* pointer to utf text                */
 	u4 a;
 
 	switch (length) {		
@@ -512,7 +512,27 @@ u4 unicode_hashkey(u2 *text, u2 len)
 
 ******************************************************************************/
 
-utf *utf_new_intern(char *text, u2 length)
+utf *utf_new_intern(const char *text, u2 length);
+
+utf *utf_new(const char *text, u2 length)
+{
+    utf *r;
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+    tables_lock();
+#endif
+
+    r = utf_new_intern(text, length);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+    tables_unlock();
+#endif
+
+    return r;
+}
+
+
+utf *utf_new_intern(const char *text, u2 length)
 {
 	u4 key;            /* hashkey computed from utf-text */
 	u4 slot;           /* slot in hashtable */
@@ -613,24 +633,6 @@ utf *utf_new_intern(char *text, u2 length)
 }
 
 
-utf *utf_new(char *text, u2 length)
-{
-    utf *r;
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-    tables_lock();
-#endif
-
-    r = utf_new_intern(text, length);
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-    tables_unlock();
-#endif
-
-    return r;
-}
-
-
 /********************* function: utf_new_char ********************************
 
     creates a new utf symbol, the text for this symbol is passed
@@ -638,7 +640,7 @@ utf *utf_new(char *text, u2 length)
 
 ******************************************************************************/
 
-utf *utf_new_char(char *text)
+utf *utf_new_char(const char *text)
 {
 	return utf_new(text, strlen(text));
 }
@@ -653,7 +655,7 @@ utf *utf_new_char(char *text)
 
 ******************************************************************************/
 
-utf *utf_new_char_classname(char *text)
+utf *utf_new_char_classname(const char *text)
 {
 	if (strchr(text, '.')) {
 		char *txt = strdup(text);
@@ -680,7 +682,7 @@ utf *utf_new_char_classname(char *text)
 
 *****************************************************************************/
 
-void utf_show()
+void utf_show(void)
 {
 
 #define CHAIN_LIMIT 20               /* limit for seperated enumeration */
