@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1956 2005-02-17 20:43:07Z christian $
+   $Id: jit.c 1981 2005-03-04 15:49:41Z christian $
 
 */
 
@@ -1607,7 +1607,7 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 #ifdef LSRA
 	old_opt_lsra=opt_lsra;
  	if (opt_lsra) {
- 		if (!lsra(m, cd, rd, ld, id)) {
+ 		if (!lsra(m, cd, rd, id)) {
 			opt_lsra = false;
 /* 			log_message_method("Regalloc Fallback: ", m); */
 			regalloc( m, cd, rd );

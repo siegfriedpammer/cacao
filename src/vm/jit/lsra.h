@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 1953 2005-02-17 13:42:23Z christian $
+   $Id: lsra.h 1981 2005-03-04 15:49:41Z christian $
 
 */
 
@@ -43,7 +43,6 @@
 /* #define LSRA_PRINTLIFETIMES */
 /* #define LSRA_EDX */
 /* #define LSRA_TESTLT */ /* not to be used with register allocation - only INMEMORY */
-/* #define LSRA_DUMP_LOOPDATA */
 
 
 #ifdef LSRA_DEBUG
@@ -53,6 +52,20 @@
 #define LSRA_STORE 1
 #define LSRA_LOAD 0
 #define LSRA_POP -1
+
+#define min(a,b) ((a)<(b)?(a):(b))
+#define max(a,b) ((a)<(b)?(b):(a))
+
+struct _list {
+	int value;
+	struct _list *next;
+};
+
+struct _backedge {
+	int start;
+	int end;
+	struct _backedge *next;
+};
 
 struct lifetime {
 	int i_start; /* instruction number of first use */
@@ -65,6 +78,11 @@ struct lifetime {
 	struct stackslot *passthrough; /* List of Stackslots in Lifetime, which are passed through a Basic Block */
 	struct stackslot *local_ss; /* Stackslots for this Lifetime or NULL (=="pure" Local Var) */
 	struct _i_list *i_list; /* list of instructions with references to var */
+
+	int bb_last_use;
+	int i_last_use;
+	int bb_first_def;
+	int i_first_def;
 	struct lifetime *next;
 };
 
@@ -103,7 +121,15 @@ struct lsra_reg {
 };
 
 struct lsradata {
-	struct lifetime **ss_lifetimes;
+	struct _list **succ;
+	struct _list **pred;
+	int *num_pred;
+	int *sorted;
+	int *sorted_rev;
+	struct _backedge *_backedges;
+	struct _backedge **backedge;
+	int backedge_count;
+	struct lifetime *ss_lifetimes;
 	struct lifetime **locals_lifetimes;
 	struct lifetime *lifetimes;
 	struct stackslot *stackslots;
@@ -111,6 +137,8 @@ struct lsradata {
 	int active_sav_count, active_tmp_count;
 	struct lsra_exceptiontable *ex;
 	int icount_max;
+	int end_bb;
+	int v_index;
 };
 
 struct freemem {
@@ -140,16 +168,13 @@ struct lsra_exceptiontable {
 typedef struct lsradata lsradata;
 
 /* function prototypes */
-bool lsra(methodinfo *, codegendata *, registerdata *, loopdata *, t_inlining_globals *);
+bool lsra(methodinfo *, codegendata *, registerdata *,t_inlining_globals *);
 bool lsra_test(methodinfo *, codegendata *);
 void lsra_init(methodinfo *, codegendata *, t_inlining_globals *, lsradata *);
-bool lsra_setup(methodinfo *, codegendata *, registerdata *, lsradata *, loopdata *);
-void lsra_main(methodinfo *, lsradata *, registerdata *, codegendata *, loopdata *ld);
-void lsra_clean_Graph( methodinfo *, codegendata *, lsradata *, loopdata *);
+bool lsra_setup(methodinfo *, codegendata *, registerdata *, lsradata *);
+void lsra_main(methodinfo *, lsradata *, registerdata *, codegendata *);
+void lsra_clean_Graph( methodinfo *, codegendata *, lsradata *);
 
-#if defined(LSRA_DEBUG) || defined(LSRA_DUMP_LOOPDATA)
-void lsra_dump_Graph(methodinfo *, struct depthElement **);
-#endif
 #ifdef LSRA_DEBUG 
 void lsra_dump_stack(stackptr );
 #endif
@@ -157,20 +182,16 @@ void lsra_dump_stack(stackptr );
 void print_lifetimes(registerdata *, lsradata *, struct lifetime *);
 #endif
 
-int lsra_get_sbr_end(methodinfo *, loopdata *, int , int *);
+int lsra_get_sbr_end(methodinfo *, int , int *);
 void lsra_mark_blocks(methodinfo *,struct depthElement **, int *, int , int *);
-int lsra_get_exmaxblock(methodinfo *, loopdata *, int );
-void lsra_setup_exceptiontable( methodinfo *, codegendata *, loopdata *, lsradata *);
+int lsra_get_exmaxblock(methodinfo *, int );
+void lsra_setup_exceptiontable( methodinfo *, codegendata *, lsradata *);
 void _df( struct depthElement **, int , bool *, int *, bool *, int *);
 
-void lsra_scan_registers_canditates(methodinfo *, loopdata *, lsradata *);
-void lsra_jump( methodinfo *, loopdata *, int, int );
-void lsra_jump_init( methodinfo *, loopdata *);
-void lsra_sbr_call ( int , int );
-void lsra_sbr_ret( int );
+void lsra_scan_registers_canditates(methodinfo *,  lsradata *, int);
 
-void lsra_join_lifetimes( methodinfo *, codegendata *, lsradata *, loopdata *);
-void lsra_calc_lifetime_length(methodinfo *, lsradata *, codegendata *, loopdata *);
+void lsra_join_lifetimes( methodinfo *, lsradata *, int);
+void lsra_calc_lifetime_length(methodinfo *, lsradata *, codegendata *);
 
 void lsra_merge_i_lists(struct lifetime *, struct lifetime *);
 void lsra_merge_local_ss(struct lifetime *, struct lifetime *);
@@ -196,8 +217,8 @@ void lsra_align_stackslots(struct lsradata *, stackptr, stackptr);
 void lsra_setflags(int *, int);
 
 #ifdef LSRA_TESTLT
-void test_lifetimes( methodinfo *m, loopdata *ld, lsradata *ls, struct lifetime *lifet, codegendata *cd);
-int _test_lifetimes(methodinfo *m, loopdata *ld, lsradata *ls, int b_index, int *values, bool* bb_visited, struct lifetime *lifet);
+void test_lifetimes( methodinfo *m, lsradata *ls, struct lifetime *lifet, codegendata *cd);
+int _test_lifetimes(methodinfo *m, lsradata *ls, int b_index, int *values, bool* bb_visited, struct lifetime *lifet);
 #endif
 
 #endif /* _LSRA_H */
