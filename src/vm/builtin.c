@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 781 2003-12-15 15:24:44Z twisti $
+   $Id: builtin.c 782 2003-12-15 15:47:09Z twisti $
 
 */
 
@@ -49,6 +49,7 @@
 #include "loader.h"
 #include "tables.h"
 #include "asmpart.h"
+#include "mm/boehm.h"
 #include "threads/thread.h"
 #include "threads/locks.h"
 #include "toolbox/loging.h"
@@ -597,42 +598,43 @@ java_objectheader *builtin_new(classinfo *c)
 
 java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl)
 {
-        java_arrayheader *a;
-        arraydescriptor *desc = arrayvftbl->arraydesc;
-        s4 dataoffset = desc->dataoffset;
-        s4 componentsize = desc->componentsize;
-		s4 actualsize;
+	java_arrayheader *a;
+	arraydescriptor *desc = arrayvftbl->arraydesc;
+	s4 dataoffset = desc->dataoffset;
+	s4 componentsize = desc->componentsize;
+	s4 actualsize;
 
 	if (size<0) {
 		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/NegativeArraySizeException")));
 		return NULL;
 	}
 #ifdef SIZE_FROM_CLASSINFO
-        actualsize = align_size(dataoffset + size * componentsize);
+	actualsize = align_size(dataoffset + size * componentsize);
 #else
-        actualsize = dataoffset + size * componentsize;
+	actualsize = dataoffset + size * componentsize;
 #endif
 
-        if (((u4)actualsize)<((u4)size)) { /* overflow */
-		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/OutOfMemoryError")));
+	if (((u4)actualsize)<((u4)size)) { /* overflow */
+		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/OutOfMemoryError")));
 		return NULL;
 	}
-        a = (java_arrayheader *) heap_allocate(actualsize,
-											   (desc->arraytype == ARRAYTYPE_OBJECT),
-											   NULL);
-        if (!a) return NULL;
-        memset(a,0,actualsize);
+	a = heap_allocate(actualsize,
+					  (desc->arraytype == ARRAYTYPE_OBJECT),
+					  NULL);
+
+	if (!a) return NULL;
+	memset(a, 0, actualsize);
 
 
 	/*printf("builtin_newarray: Created an array of size : %d\n",size);*/
 
-        a->objheader.vftbl = arrayvftbl;
-        a->size = size;
+	a->objheader.vftbl = arrayvftbl;
+	a->size = size;
 #ifdef SIZE_FROM_CLASSINFO
-        a->alignedsize = actualsize;
+	a->alignedsize = actualsize;
 #endif
 
-        return a;
+	return a;
 }
 
 
@@ -1801,7 +1803,7 @@ inline float longBitsToDouble(s8 l)
 
 java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o)
 {
-	return Java_java_lang_VMObject_clone(0, 0, o);
+	return (java_arrayheader *) Java_java_lang_VMObject_clone(0, 0, (java_lang_Cloneable *) o);
 }
 
 
