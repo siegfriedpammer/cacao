@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1282 2004-07-05 22:15:51Z twisti $
+# $Id: Makefile.am 1287 2004-07-08 18:49:58Z twisti $
 
 @SET_MAKE@
 
@@ -130,10 +130,10 @@ gennativetable_LDADD = \
 	@THREAD_LIB@
 
 natheaders: cacaoh
-	CLASSPATH=$(top_srcdir)/classpath/lib/glibj.zip ./cacaoh $(CLASSES)
+	CLASSPATH=$(top_srcdir)/classpath/lib/bootstrap.zip ./cacaoh $(CLASSES)
 
 nativetable.inc: gennativetable
-	CLASSPATH=$(top_srcdir)/classpath/lib/glibj.zip $(top_srcdir)/gennativetable $(CLASSES) > nativetable.inc
+	CLASSPATH=$(top_srcdir)/classpath/lib/bootstrap.zip $(top_srcdir)/gennativetable $(CLASSES) > nativetable.inc
 
 native.c: nativetable.inc
 
