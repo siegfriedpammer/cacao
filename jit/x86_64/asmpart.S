@@ -1,19 +1,38 @@
-/* -*- mode: asm; tab-width: 4 -*- */
-/* x86_64/asmpart.S ************************************************************
-*                                                                              *
-*   It contains the Java-C interface functions for x86_64 processors.          *
-*                                                                              *
-*   Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst              *
-*                                                                              *
-*   See file COPYRIGHT for information on usage and disclaimer of warranties   *
-*                                                                              *
-*   Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at            *
-*            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
-*            Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at            *
-*                                                                              *
-*   Last Change: $Id: asmpart.S 560 2003-11-02 23:30:59Z twisti $         *
-*                                                                              *
-*******************************************************************************/
+/* jit/x86_64/asmpart.S - Java-C interface functions for x86_64
+
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   Institut f. Computersprachen, TU Wien
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser, M. Probst,
+   S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich,
+   J. Wenninger
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Andreas Krall
+            Reinhard Grafl
+            Christian Thalinger
+
+   $Id: asmpart.S 713 2003-12-07 20:40:43Z twisti $
+
+*/
+
 
 #include "offsets.h"
 
@@ -24,6 +43,9 @@
 
 	.globl asm_calljavamethod
 	.globl asm_calljavafunction
+	.globl asm_calljavafunction2
+	.globl asm_calljavafunction2long
+	.globl asm_calljavafunction2double
 	.globl asm_call_jit_compiler
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
@@ -192,6 +214,65 @@ calljava_xhandler2:
         mov     %rax,%rdi       	  /* pass exception pointer               */
         call    builtin_throw_exception
         mov     (%rsp),%rbp
+        add     $8,%rsp
+        ret
+						
+
+/********************* function asm_calljavafunction ***************************
+*                                                                              *
+*   This function calls a Java-method (which possibly needs compilation)       *
+*   with up to 4 address parameters.                                           *
+*                                                                              *
+*   This functions calls the JIT-compiler which eventually translates the      *
+*   method into machine code.                                                  *
+*                                                                              *
+*   C-prototype:                                                               *
+*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
+*         void *arg1, void *arg2, void *arg3, void *arg4);                     *
+*                                                                              *
+*******************************************************************************/
+
+call_name3:
+	.ascii  "calljavafunction2\0\0"
+
+	.align	8
+	.quad   0                         /* catch type all                       */
+	.quad   calljava_xhandler3        /* handler pc                           */
+	.quad   calljava_xhandler3        /* end pc                               */
+	.quad   asm_calljavafunction2     /* start pc                             */
+	.long   1                         /* extable size                         */
+	.long   0                         /* fltsave                              */
+	.long   0                         /* intsave                              */
+	.long   0                         /* isleaf                               */
+	.long   0                         /* IsSync                               */
+	.long   8                         /* frame size                           */
+	.quad   0                         /* method pointer (pointer to name)     */
+
+asm_calljavafunction2:
+asm_calljavafunction2double:
+asm_calljavafunction2long:
+        sub     $8,%rsp               /* keep stack 16-byte aligned           */
+
+        mov     %rdi,%rax             /* save method pointer for compiler     */
+        mov     %rcx,%r10             /* pointer to arg block                 */
+        
+        mov     offjniitem(%r10),%rdi /* move args into registers             */
+        mov     offjniitem + sizejniblock * 1(%r10),%rsi
+        mov     offjniitem + sizejniblock * 2(%r10),%rdx
+        mov     offjniitem + sizejniblock * 3(%r10),%rcx
+        
+        lea     asm_call_jit_compiler,%r11
+        call    *%r11                 /* call JIT compiler                    */
+	
+calljava_jit3:
+calljava_return3:
+calljava_ret3:
+        add     $8,%rsp               /* free stack space                     */
+        ret
+
+calljava_xhandler3:
+        mov     %rax,%rdi       	  /* pass exception pointer               */
+        call    builtin_throw_exception
         add     $8,%rsp
         ret
 						
@@ -415,25 +496,25 @@ ex_stack_loop:
 		mov     0*8(%rsp),%rax				/* get xptr                       */
 		
 ex_table_loop:
-		mov     1*8(%rsp),%r10				/* get xpc                        */
+		mov     1*8(%rsp),%r10              /* get xpc                        */
 		
-		mov     ExStartPC(%rdi),%rdx		/* %rdx = exception start pc      */
-		cmp     %r10,%rdx					/* %rdx = (startpc <= xpc)        */
-		jg		ex_table_cont				/* if (false) continue            */
-		mov     ExEndPC(%rdi),%rdx			/* %rdx = exception end pc        */
-		cmp     %rdx,%r10					/* %rdx = (xpc < endpc)           */
-		jge		ex_table_cont				/* if (false) continue            */
-		mov     ExCatchType(%rdi),%rdx		/* %rdx = exception catch type    */
-		test	%rdx,%rdx					/* NULL catches everything        */
+		mov     ExStartPC(%rdi),%rdx        /* %rdx = exception start pc      */
+		cmp     %r10,%rdx                   /* %rdx = (startpc <= xpc)        */
+		jg		ex_table_cont               /* if (false) continue            */
+		mov     ExEndPC(%rdi),%rdx          /* %rdx = exception end pc        */
+		cmp     %rdx,%r10                   /* %rdx = (xpc < endpc)           */
+		jge		ex_table_cont               /* if (false) continue            */
+		mov     ExCatchType(%rdi),%rdx      /* %rdx = exception catch type    */
+		test	%rdx,%rdx                   /* NULL catches everything        */
 		je		ex_handle_it
 
-		mov     offobjvftbl(%rax),%rsi		/* %rsi = vftblptr(xptr)          */
-		mov     offobjvftbl(%rdx),%rdx		/* %rdx = vftblptr(catchtype) class (not obj) */
-		mov     offbaseval(%rsi),%esi		/* %esi = baseval(xptr)           */
-		mov     offbaseval(%rdx),%r10d		/* %r10d = baseval(catchtype)     */
-		mov     offdiffval(%rdx),%edx		/* %edx = diffval(catchtype)      */
-		sub     %r10d,%esi					/* %esi = baseval(xptr) - baseval(catchtype) */
-		cmp     %edx,%esi					/* xptr is instanceof catchtype   */
+		mov     offobjvftbl(%rax),%rsi      /* %rsi = vftblptr(xptr)          */
+		mov     offclassvftbl(%rdx),%rdx    /* %rdx = vftblptr(catchtype) class (not obj) */
+		mov     offbaseval(%rsi),%esi       /* %esi = baseval(xptr)           */
+		mov     offbaseval(%rdx),%r10d      /* %r10d = baseval(catchtype)     */
+		mov     offdiffval(%rdx),%edx       /* %edx = diffval(catchtype)      */
+		sub     %r10d,%esi                  /* %esi = baseval(xptr) - baseval(catchtype) */
+		cmp     %edx,%esi                   /* xptr is instanceof catchtype   */
 		ja		ex_table_cont
 		
 ex_handle_it:
@@ -479,23 +560,23 @@ ex_already_cleared:
         add     $(4*8),%rsp
                 
 no_monitor_exit:
-		movl    FrameSize(%r11),%eax		/* %eax = frame size              */
-		add     %rax,%rsp					/* unwind stack                   */
-		mov     %rsp,%rax					/* %rax = pointer to save area    */
+		mov		FrameSize(%r11),%eax        /* %eax = frame size              */
+		add		%rax,%rsp                   /* unwind stack                   */
+		mov		%rsp,%rax                   /* %rax = pointer to save area    */
 
-		movl    IntSave(%r11),%edx			/* %edx = saved int register count */
-        testl   %edx,%edx
-        je      noint
+		mov		IntSave(%r11),%edx          /* %edx = saved int register count */
+        test	%edx,%edx
+        je		noint
         
-   		cmpl    $1,%edx
+   		cmp     $1,%edx
 		je		int1
-		cmpl	$2,%edx
+		cmp		$2,%edx
 		je		int2
-		cmpl	$3,%edx
+		cmp		$3,%edx
 		je		int3
-		cmpl	$4,%edx
+		cmp		$4,%edx
 		je		int4
-		cmpl	$5,%edx
+		cmp		$5,%edx
 		je		int5
         
         mov     -48(%rax),%rbx
@@ -510,12 +591,12 @@ int2:
 int1:   
 		mov     -8(%rax),%r15
 
-		shll    $3,%edx						/* multiply by 8 bytes             */
+		shl		$3,%edx                     /* multiply by 8 bytes             */
 		sub     %rdx,%rax
 		
 noint:
-		mov     FltSave(%r11),%edx			/* %edx = saved flt register count */
-		testl   %edx,%edx
+		mov     FltSave(%r11),%edx          /* %edx = saved flt register count */
+		test	%edx,%edx
 		je      noflt
 
         cmpl    $1,%edx
@@ -1067,3 +1148,57 @@ asm_builtin_exittrace:
         movq    1*8(%rsp),%xmm0
         add     $(3*8),%rsp
         ret
+
+
+asm_printf:
+        push    %rbp
+        mov     %rsp,%rbp
+        
+        push    %rax
+        push    %rcx
+        push    %rdx
+        push    %rbx
+        push    %rsi
+        push    %rdi
+        push    %r8
+        push    %r9
+        push    %r10
+        push    %r11
+        push    %r12
+        push    %r13
+        push    %r14
+        push    %r15
+
+        mov     16(%rbp),%rdi
+        call    asmprintf
+
+        pop     %r15
+        pop     %r14
+        pop     %r13
+        pop     %r12
+        pop     %r11
+        pop     %r10
+        pop     %r9
+        pop     %r8
+        pop     %rdi
+        pop     %rsi
+        pop     %rbx
+        pop     %rdx
+        pop     %rcx
+        pop     %rax
+        
+        leave
+        ret
+        
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: asm
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
