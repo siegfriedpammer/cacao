@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 771 2003-12-13 23:11:08Z stefan $
+   $Id: native.c 785 2003-12-15 16:34:26Z twisti $
 
 */
 
@@ -54,6 +54,7 @@
 #include "asmpart.h"
 #include "tables.h"
 #include "loader.h"
+#include "jni.h"
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
 #include "threads/thread.h"
@@ -126,7 +127,7 @@ java_objectheader* exceptionptr = NULL;
 void use_class_as_object(classinfo *c) 
 {
 	vftbl *vt;
-	vftbl *newtbl;
+/*  	vftbl *newtbl; */
 
 	if (!class_java_lang_Class)
 		class_java_lang_Class = class_new(utf_new_char ("java/lang/Class"));
@@ -327,28 +328,19 @@ void native_loadclasses()
 		class_new(utf_new_char("java/lang/NoSuchMethodException"));
 
 	/* load classes for wrapping primitive types */
-	class_java_lang_Double =
-		class_new( utf_new_char ("java/lang/Double") );
+	class_java_lang_Double    = class_new(utf_new_char("java/lang/Double"));
 	class_init(class_java_lang_Double);
 
-	class_java_lang_Float =
-		class_new(utf_new_char("java/lang/Float"));
-	class_java_lang_Character =
-		class_new(utf_new_char("java/lang/Character"));
-	class_java_lang_Integer =
-		class_new(utf_new_char("java/lang/Integer"));
-	class_java_lang_Long =
-		class_new(utf_new_char("java/lang/Long"));
-	class_java_lang_Byte =
-		class_new(utf_new_char("java/lang/Byte"));
-	class_java_lang_Short =
-		class_new(utf_new_char("java/lang/Short"));
-	class_java_lang_Boolean =
-		class_new(utf_new_char("java/lang/Boolean"));
-	class_java_lang_Void =
-		class_new(utf_new_char("java/lang/Void"));
+	class_java_lang_Float     = class_new(utf_new_char("java/lang/Float"));
+	class_java_lang_Character =	class_new(utf_new_char("java/lang/Character"));
+	class_java_lang_Integer   = class_new(utf_new_char("java/lang/Integer"));
+	class_java_lang_Long      = class_new(utf_new_char("java/lang/Long"));
+	class_java_lang_Byte      = class_new(utf_new_char("java/lang/Byte"));
+	class_java_lang_Short     = class_new(utf_new_char("java/lang/Short"));
+	class_java_lang_Boolean   = class_new(utf_new_char("java/lang/Boolean"));
+	class_java_lang_Void      = class_new(utf_new_char("java/lang/Void"));
 
-	classesLoaded=1;
+	classesLoaded = 1;
 	log_text("native_loadclasses finished");
 }
 
@@ -380,12 +372,14 @@ void systemclassloader_addclass(classinfo *c)
 					   );
 }
 
+
 /*************** adds a library to the vector of loaded libraries *************/
 
 void systemclassloader_addlibrary(java_objectheader *o)
 {
 	log_text("systemclassloader_addlibrary");
 }
+
 
 /*****************************************************************************
 
@@ -395,18 +389,17 @@ void systemclassloader_addlibrary(java_objectheader *o)
 
 void init_systemclassloader() 
 {
-  if (!SystemClassLoader) {
-	native_loadclasses();
-	log_text("Initializing new system class loader");
-	/* create object and call initializer */
-	SystemClassLoader = (java_lang_ClassLoader*) native_new_and_init(class_java_lang_ClassLoader);	
-/*  	heap_addreference((void**) &SystemClassLoader); */
+	if (!SystemClassLoader) {
+		native_loadclasses();
+		log_text("Initializing new system class loader");
+		/* create object and call initializer */
+		SystemClassLoader = (java_lang_ClassLoader*) native_new_and_init(class_java_lang_ClassLoader);	
 
-	/* systemclassloader has no parent */
-	SystemClassLoader->parent      = NULL;
-	SystemClassLoader->initialized = true;
-  }
-  log_text("leaving system class loader");
+		/* systemclassloader has no parent */
+		SystemClassLoader->parent      = NULL;
+		SystemClassLoader->initialized = true;
+	}
+	log_text("leaving system class loader");
 }
 
 
@@ -417,28 +410,30 @@ void systemclassloader_addlibname(java_objectheader *o)
 	methodinfo *m;
 	jfieldID id;
 
-	m = class_resolvemethod(loader_load_sysclass(NULL,utf_new_char ("java/util/Vector")),
+	m = class_resolvemethod(loader_load_sysclass(NULL, utf_new_char ("java/util/Vector")),
 							utf_new_char("addElement"),
-							utf_new_char("(Ljava/lang/Object;)V")
-							);
+							utf_new_char("(Ljava/lang/Object;)V"));
 
 	if (!m) panic("cannot initialize classloader");
 
-	id = envTable.GetStaticFieldID(&env,class_java_lang_ClassLoader,"loadedLibraryNames","Ljava/util/Vector;");
+	id = envTable.GetStaticFieldID(&env,
+								   class_java_lang_ClassLoader,
+								   "loadedLibraryNames",
+								   "Ljava/util/Vector;");
+
 	if (!id) panic("can not access ClassLoader");
 
   	asm_calljavafunction(m,
-					   GetStaticObjectField(&env,class_java_lang_ClassLoader,id),
-					   o,
-					   NULL,  
-					   NULL
-					   );       
+						 envTable.GetStaticObjectField(&env, class_java_lang_ClassLoader, id),
+						 o,
+						 NULL,  
+						 NULL);
 }
 
 
 /********************* function: native_setclasspath **************************/
  
-void native_setclasspath (char *path)
+void native_setclasspath(char *path)
 {
 	/* set searchpath for classfiles */
 	classpath = path;
@@ -486,16 +481,16 @@ functionptr native_findfunction(utf *cname, utf *mname,
 
 #ifdef JOWENN_DEBUG
 	buffer_len = 
-	  utf_strlen(cname) + utf_strlen(mname) + utf_strlen(desc) + 64;
+		utf_strlen(cname) + utf_strlen(mname) + utf_strlen(desc) + 64;
 	
 	buffer = MNEW(char, buffer_len);
 
 	strcpy(buffer, "searching matching function in native table:");
-        utf_sprint(buffer+strlen(buffer), mname);
+	utf_sprint(buffer+strlen(buffer), mname);
 	strcpy(buffer+strlen(buffer), ": ");
-        utf_sprint(buffer+strlen(buffer), desc);
+	utf_sprint(buffer+strlen(buffer), desc);
 	strcpy(buffer+strlen(buffer), " for class ");
-        utf_sprint(buffer+strlen(buffer), cname);
+	utf_sprint(buffer+strlen(buffer), cname);
 
 	log_text(buffer);	
 
@@ -519,16 +514,15 @@ functionptr native_findfunction(utf *cname, utf *mname,
 					buffer = MNEW(char, buffer_len);
 
 					strcpy(buffer, "comparing with:");
-		        		utf_sprint(buffer+strlen(buffer), n->methodname);
+					utf_sprint(buffer+strlen(buffer), n->methodname);
 					strcpy (buffer+strlen(buffer), ": ");
-	        			utf_sprint(buffer+strlen(buffer), n->descriptor);
+					utf_sprint(buffer+strlen(buffer), n->descriptor);
 					strcpy(buffer+strlen(buffer), " for class ");
-		        		utf_sprint(buffer+strlen(buffer), n->classname);
+					utf_sprint(buffer+strlen(buffer), n->classname);
 
 					log_text(buffer);	
 
 					MFREE(buffer, char, buffer_len);
-			
 				}
 			} 
 #endif
@@ -553,10 +547,9 @@ functionptr native_findfunction(utf *cname, utf *mname,
 
 	MFREE(buffer, char, buffer_len);
 
-
 	exit(1);
 
-	
+	/* keep compiler happy */
 	return NULL;
 }
 
@@ -816,9 +809,11 @@ void stringtable_update ()
 								
 				js = (java_lang_String *) s->string;
 				
-				if (!js || !(a = js->value)) 
+				if (!js || !js->value) 
 					/* error in hashtable found */
 					panic("invalid literalstring in hashtable");
+
+				a = js->value;
 
 				if (!js->header.vftbl) 
 					/* vftbl of javastring is NULL */ 
@@ -1162,12 +1157,12 @@ utf *create_methodsig(java_objectarray* types, char *retType)
     if (!types) return NULL;
 
     /* determine required buffer-size */    
-    for (i=0;i<types->header.size;i++) {
-      classinfo *c = (classinfo *) types->data[i];
-      buffer_size  = buffer_size + c->name->blength+2;
+    for (i = 0; i < types->header.size; i++) {
+		classinfo *c = (classinfo *) types->data[i];
+		buffer_size  = buffer_size + c->name->blength + 2;
     }
 
-    if (retType) buffer_size+=strlen(retType);
+    if (retType) buffer_size += strlen(retType);
 
     /* allocate buffer */
     buffer = MNEW(u1, buffer_size);
@@ -1176,60 +1171,64 @@ utf *create_methodsig(java_objectarray* types, char *retType)
     /* method-desciptor starts with parenthesis */
     *pos++ = '(';
 
-    for (i=0;i<types->header.size;i++) {
+    for (i = 0; i < types->header.size; i++) {
+		char ch;	   
 
-            char ch;	   
-            /* current argument */
+		/* current argument */
 	    classinfo *c = (classinfo *) types->data[i];
+
 	    /* current position in utf-text */
 	    char *utf_ptr = c->name->text; 
 	    
 	    /* determine type of argument */
-	    if ( (ch = utf_nextu2(&utf_ptr)) == '[' ) {
-	
+	    if ((ch = utf_nextu2(&utf_ptr)) == '[') {
 	    	/* arrayclass */
-	        for ( utf_ptr--; utf_ptr<utf_end(c->name); utf_ptr++)
-		   *pos++ = *utf_ptr; /* copy text */
+	        for (utf_ptr--; utf_ptr < utf_end(c->name); utf_ptr++) {
+				*pos++ = *utf_ptr; /* copy text */
+			}
 
-	    } else
-	    {	   	
-	      	/* check for primitive types */
-		for (j=0; j<PRIMITIVETYPE_COUNT; j++) {
+	    } else {	   	
+			/* check for primitive types */
+			for (j = 0; j < PRIMITIVETYPE_COUNT; j++) {
+				char *utf_pos	= utf_ptr - 1;
+				char *primitive = primitivetype_table[j].wrapname;
 
-			char *utf_pos	= utf_ptr-1;
-			char *primitive = primitivetype_table[j].wrapname;
+				/* compare text */
+				while (utf_pos < utf_end(c->name)) {
+					if (*utf_pos++ != *primitive++) goto nomatch;
+				}
 
-			/* compare text */
-			while (utf_pos<utf_end(c->name))
-		   		if (*utf_pos++ != *primitive++) goto nomatch;
+				/* primitive type found */
+				*pos++ = primitivetype_table[j].typesig;
+				goto next_type;
 
-			/* primitive type found */
-			*pos++ = primitivetype_table[j].typesig;
-			goto next_type;
+			nomatch:
+			}
 
-		nomatch:
-		}
+			/* no primitive type and no arrayclass, so must be object */
+			*pos++ = 'L';
 
-		/* no primitive type and no arrayclass, so must be object */
-	      	*pos++ = 'L';
-	      	/* copy text */
-	        for ( utf_ptr--; utf_ptr<utf_end(c->name); utf_ptr++)
-		   	*pos++ = *utf_ptr;
-	      	*pos++ = ';';
+			/* copy text */
+			for (utf_ptr--; utf_ptr < utf_end(c->name); utf_ptr++) {
+				*pos++ = *utf_ptr;
+			}
+
+			*pos++ = ';';
 
 		next_type:
-	    }  
+		}  
     }	    
 
     *pos++ = ')';
 
     if (retType) {
-	for (i=0;i<strlen(retType);i++) {
-		*pos++=retType[i];
-	}
+		for (i = 0; i < strlen(retType); i++) {
+			*pos++ = retType[i];
+		}
     }
+
     /* create utf-string */
-    result = utf_new(buffer,(pos-buffer));
+    result = utf_new(buffer, (pos - buffer));
     MFREE(buffer, u1, buffer_size);
 
     return result;
