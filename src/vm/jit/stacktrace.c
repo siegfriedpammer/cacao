@@ -1,4 +1,4 @@
-/* jit/stacktrace.inc
+/* vm/jit/stacktrace.c
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,19 +26,24 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 1683 2004-12-05 21:33:36Z jowenn $
+   $Id: stacktrace.c 1692 2004-12-06 12:30:17Z twisti $
 
 */
 
-#ifndef _STACKTRACE_H_
-#define _STACKTRACE_H_
-
-#include "vm/global.h"
-#include "toolbox/logging.h"
-#include "vm/jit/codegen.inc"
 
 #include <stdlib.h>
 #include <string.h>
+
+#include "asmoffsets.h"
+#include "mm/boehm.h"
+#include "native/native.h"
+#include "vm/global.h"                   /* required here for native includes */
+#include "native/include/java_lang_ClassLoader.h"
+#include "toolbox/logging.h"
+#include "vm/builtin.h"
+#include "vm/tables.h"
+#include "vm/jit/codegen.inc.h"
+
 
 #undef JWDEBUG
 
@@ -408,7 +413,6 @@ java_objectheader *cacao_currentClassLoader() {
 	return header;
 }
 
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
