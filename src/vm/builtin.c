@@ -1,4 +1,4 @@
-/* vm/builtin.c - functions for unsupported operations
+/* src/vm/builtin.c - functions for unsupported operations
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,13 +28,15 @@
             Andreas Krall
             Mark Probst
 
+   Changes: Christian Thalinger
+
    Contains C functions for JavaVM Instructions that cannot be
    translated to machine language directly. Consequently, the
    generated machine code for these instructions contains function
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1958 2005-02-19 11:32:42Z carolyn $
+   $Id: builtin.c 2115 2005-03-29 21:49:41Z twisti $
 
 */
 
@@ -43,6 +45,8 @@
 #include <string.h>
 #include <math.h>
 
+#include "config.h"
+#include "types.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
 #include "native/native.h"
@@ -149,8 +153,10 @@ s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
 #ifdef DEBUG
 	log_text ("builtin_instanceof called");
 #endif	
-	if (!obj) return 0;
-	return builtin_isanysubclass (obj->vftbl->class, class);
+	if (!obj)
+		return 0;
+
+	return builtin_isanysubclass(obj->vftbl->class, class);
 }
 
 
@@ -209,7 +215,7 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,arraydescriptor *t
 	if (desc->dimension < target->dimension) return 0;
 
 	/* {desc has higher dimension than target} */
-	return builtin_isanysubclass_vftbl(pseudo_class_Arraystub_vftbl,target->elementvftbl);
+	return builtin_isanysubclass_vftbl(pseudo_class_Arraystub->vftbl, target->elementvftbl);
 }
 
 
@@ -430,16 +436,14 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 }
 
 
-/******************** Function: builtin_new **********************************
+/* builtin_new *****************************************************************
 
-	Creates a new instance of class c on the heap.
-	Return value:  pointer to the object or NULL if no memory is
-				   available
+   Creates a new instance of class c on the heap.
+
+   Return value: pointer to the object or NULL if no memory is
+   available
 			
-*****************************************************************************/
-
-#define ALIGNMENT 3
-#define align_size(size)	((size + ((1 << ALIGNMENT) - 1)) & ~((1 << ALIGNMENT) - 1))
+*******************************************************************************/
 
 java_objectheader *builtin_new(classinfo *c)
 {
@@ -463,19 +467,15 @@ java_objectheader *builtin_new(classinfo *c)
 			return NULL;
 	}
 
-#ifdef SIZE_FROM_CLASSINFO
-	c->alignedsize = align_size(c->instancesize);
-	o = heap_allocate(c->alignedsize, true, c->finalizer);
-#else
 	o = heap_allocate(c->instancesize, true, c->finalizer);
-#endif
 
 	if (!o)
 		return NULL;
 
-	memset(o, 0, c->instancesize);
+	MSET(o, 0, u1, c->instancesize);
 
 	o->vftbl = c->vftbl;
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initObjectLock(o);
 #endif
@@ -484,16 +484,16 @@ java_objectheader *builtin_new(classinfo *c)
 }
 
 
-/********************** Function: builtin_newarray **************************
+/* builtin_newarray ************************************************************
 
-	Creates an array with the given vftbl on the heap.
+   Creates an array with the given vftbl on the heap.
 
-	Return value:  pointer to the array or NULL if no memory is available
+   Return value:  pointer to the array or NULL if no memory is available
 
-    CAUTION: The given vftbl must be the vftbl of the *array* class,
-    not of the element class.
+   CAUTION: The given vftbl must be the vftbl of the *array* class,
+   not of the element class.
 
-*****************************************************************************/
+*******************************************************************************/
 
 java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl)
 {
@@ -508,40 +508,31 @@ java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl)
 	componentsize = desc->componentsize;
 
 	if (size < 0) {
-		*exceptionptr =
-			new_exception(string_java_lang_NegativeArraySizeException);
+		*exceptionptr = new_negativearraysizeexception();
 		return NULL;
 	}
 
-#ifdef SIZE_FROM_CLASSINFO
-	actualsize = align_size(dataoffset + size * componentsize);
 	actualsize = dataoffset + size * componentsize;
-#else
-	actualsize = 0;
-#endif
 
 	if (((u4) actualsize) < ((u4) size)) { /* overflow */
 		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
 		return NULL;
 	}
 
-	a = heap_allocate(actualsize,
-					  (desc->arraytype == ARRAYTYPE_OBJECT),
-					  NULL);
+	a = heap_allocate(actualsize, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
 
 	if (!a)
 		return NULL;
 
-	memset(a, 0, actualsize);
+	MSET(a, 0, u1, actualsize);
 
 	a->objheader.vftbl = arrayvftbl;
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initObjectLock(&a->objheader);
 #endif
+
 	a->size = size;
-#ifdef SIZE_FROM_CLASSINFO
-	a->alignedsize = actualsize;
-#endif
 
 	return a;
 }
@@ -846,7 +837,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 	utf_sprint_classname(logtext + strlen(logtext), m->class->name);
 	sprintf(logtext + strlen(logtext), ".");
 	utf_sprint(logtext + strlen(logtext), m->name);
-	utf_sprint_classname(logtext + strlen(logtext), m->descriptor);
+	utf_sprint(logtext + strlen(logtext), m->descriptor);
 
 	if (m->flags & ACC_PUBLIC)       sprintf(logtext + strlen(logtext), " PUBLIC");
 	if (m->flags & ACC_PRIVATE)      sprintf(logtext + strlen(logtext), " PRIVATE");
@@ -1027,7 +1018,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 	utf_sprint_classname(logtext + strlen(logtext), m->class->name);
 	sprintf(logtext + strlen(logtext), ".");
 	utf_sprint(logtext + strlen(logtext), m->name);
-	utf_sprint_classname(logtext + strlen(logtext), m->descriptor);
+	utf_sprint(logtext + strlen(logtext), m->descriptor);
 
 	switch (m->returntype) {
 	case TYPE_INT:
