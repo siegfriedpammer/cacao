@@ -139,7 +139,7 @@ JNIEXPORT void JNICALL Java_java_io_RandomAccessFile_write ( JNIEnv *env ,  stru
 {
 	u1 buffer[1];
 	int r;
-	buffer[1] = byte;
+	buffer[0] = byte;
 	r = write (this->fd->fd, buffer, 1);
 	if (r<0) {
 		exceptionptr = native_new_and_init (class_java_io_IOException);
