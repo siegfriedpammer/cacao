@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 975 2004-03-25 18:09:45Z twisti $
+   $Id: asmpart.h 1063 2004-05-16 13:48:43Z twisti $
 
 */
 
@@ -71,9 +71,9 @@ void asm_call_jit_compiler();
 */
 java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
                                         void *arg3, void *arg4);
-java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size , void *callblock);
-jdouble asm_calljavafunction2double(methodinfo *m, u4 count, u4 size , void *callblock);
-jlong asm_calljavafunction2long(methodinfo *m, u4 count, u4 size , void *callblock);
+java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size, void *callblock);
+jdouble asm_calljavafunction2double(methodinfo *m, u4 count, u4 size, void *callblock);
+jlong asm_calljavafunction2long(methodinfo *m, u4 count, u4 size, void *callblock);
 
 
 
@@ -83,11 +83,6 @@ void asm_handle_nat_exception();
 void asm_check_clinit();
 
 void asm_handle_builtin_exception(classinfo *);
-
-/* 
-   gets the class of the caller from the stack frame
-*/
-methodinfo *asm_getcallingmethod();
 
 java_objectarray* Java_java_lang_VMSecurityManager_getClassContext(JNIEnv *env, jclass clazz);
 stacktraceelement *asm_get_stackTrace();
