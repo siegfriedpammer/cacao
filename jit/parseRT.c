@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1015 2004-04-08 15:08:11Z stefan $
+   $Id: parseRT.c 1044 2004-04-26 17:30:38Z twisti $
 
 Changes:
 opcode put into functions
@@ -1674,8 +1674,9 @@ void   findMarkNativeUsedMeth (utf * c1, utf* m1, utf* d1) {
 	if (class == NULL)  {
 		utf_display(c1);
 		printf("  WARNING: CLASS used by NATIVE method is NULL so loaded\n");
-		loader_load_sysclass(NULL, c1);	
-		class = class_get(c1);
+/*  		loader_load_sysclass(NULL, c1);	 */
+/*  		class = class_get(c1); */
+		class = class_new(c1);
 		if (class == NULL)  {
 			panic("CLASS used by NATIVE method is NULL and loading didn't help\n");
 			return;    /*Note: Since NativeCalls is for mult programs some may not be loaded - that's ok */
@@ -1995,7 +1996,8 @@ if ( getdymline(line,512,appldynm) != 0)
 
         class = class_get(utf_new_char(classname));
 	if (class == NULL) {
-		class = loader_load_sysclass(NULL,  utf_new_char(classname));	
+/*  		class = loader_load_sysclass(NULL,  utf_new_char(classname));	 */
+		class = class_new(utf_new_char(classname));
 		}
 	mi = class_fetchmethod(class,utf_new_char(methname), utf_new_char(desc)) ;
 	printf("+++++--3--+++++\t");
@@ -2058,8 +2060,9 @@ classinfo *topclass;
 	printf("+++++--4--+++++\t");
 	RTparseCGWorklist (mi) ;  
 
-	printf("mainString=%s=\n",mainString);fflush(stdout);
-	class = loader_load_sysclass(NULL,  utf_new_char(mainString));	
+	printf("mainstring=%s=\n",mainstring);fflush(stdout);
+/*  	class = loader_load_sysclass(NULL,  utf_new_char(mainString));	 */
+	class = class_new(utf_new_char(mainstring));
 	mi = class_fetchmethod(	class,
 				utf_new_char("main"),
 				utf_new_char("([Ljava/lang/String;)V")
