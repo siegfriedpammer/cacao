@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 1789 2004-12-21 10:09:08Z twisti $
+   $Id: gennativetable.c 1832 2004-12-29 13:48:07Z twisti $
 
 */
 
@@ -81,7 +81,6 @@ int main(int argc, char **argv)
 
 	cp = getenv("CLASSPATH");
 	if (cp) {
-		strcpy(classpath + strlen(classpath), ":");
 		strcpy(classpath + strlen(classpath), cp);
 	}
 
