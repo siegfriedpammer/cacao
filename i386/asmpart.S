@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger                                               *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 491 2003-10-20 17:56:03Z twisti $        *
+*   Last Change: $Id: asmpart.S 510 2003-10-22 20:21:50Z twisti $        *
 *                                                                              *
 *******************************************************************************/
 
@@ -1042,4 +1042,3 @@ asm_builtin_exittrace:
 
         popa
         ret
-        
