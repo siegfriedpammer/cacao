@@ -30,11 +30,11 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2078 2005-03-25 13:30:14Z edwin $
+   $Id: class.c 2093 2005-03-27 15:16:57Z edwin $
 
 */
 
-
+#include <assert.h>
 #include <string.h>
 
 #include "config.h"
@@ -59,6 +59,20 @@
 #include "vm/tables.h"
 #include "vm/utf8.h"
 
+
+/******************************************************************************/
+/* DEBUG HELPERS                                                              */
+/******************************************************************************/
+
+#ifndef NDEBUG
+#define CLASS_DEBUG
+#endif
+
+#ifdef CLASS_DEBUG
+#define CLASS_ASSERT(cond)  assert(cond)
+#else
+#define CLASS_ASSERT(cond)
+#endif
 
 /* global variables ***********************************************************/
 
@@ -280,6 +294,7 @@ classinfo *class_new_intern(utf *classname)
 	c->cptags = NULL;
 	c->cpinfos = NULL;
 	c->classrefs = NULL;
+	c->extclassrefs = NULL;
 	c->classrefcount = 0;
 	c->parseddescs = NULL;
 	c->parseddescsize = 0;
@@ -548,6 +563,173 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element)
 	memset(namebuf, '[', dim);
 
     return class_new(utf_new(namebuf, namelen));
+}
+
+/* class_lookup_classref *******************************************************
+
+   Looks up the constant_classref for a given classname in the classref
+   tables of a class.
+
+   IN:
+       cls..............the class containing the reference
+	   name.............the name of the class refered to
+
+    RETURN VALUE:
+	   a pointer to a constant_classref, or 
+	   NULL if the reference was not found
+   
+*******************************************************************************/
+
+constant_classref *class_lookup_classref(classinfo *cls,utf *name)
+{
+	constant_classref *ref;
+	extra_classref *xref;
+	int count;
+
+	CLASS_ASSERT(cls);
+	CLASS_ASSERT(name);
+	CLASS_ASSERT(!cls->classrefcount || cls->classrefs);
+	
+	/* first search the main classref table */
+	count = cls->classrefcount;
+	ref = cls->classrefs;
+	for (; count; --count, ++ref)
+		if (ref->name == name)
+			return ref;
+
+	/* next try the list of extra classrefs */
+	for (xref=cls->extclassrefs; xref; xref=xref->next) {
+		if (xref->classref.name == name)
+			return &(xref->classref);
+	}
+
+	/* not found */
+	return NULL;
+}
+
+
+/* class_get_classref **********************************************************
+
+   Returns the constant_classref for a given classname.
+
+   IN:
+       cls..............the class containing the reference
+	   name.............the name of the class refered to
+
+   RETURN VALUE:
+       a pointer to a constant_classref (never NULL)
+
+   NOTE:
+       The given name is not checked for validity!
+   
+*******************************************************************************/
+
+constant_classref *class_get_classref(classinfo *cls,utf *name)
+{
+	constant_classref *ref;
+	extra_classref *xref;
+
+	CLASS_ASSERT(cls);
+	CLASS_ASSERT(name);
+
+	ref = class_lookup_classref(cls,name);
+	if (ref)
+		return ref;
+
+	xref = NEW(extra_classref);
+	CLASSREF_INIT(xref->classref,cls,name);
+
+	xref->next = cls->extclassrefs;
+	cls->extclassrefs = xref;
+
+	return &(xref->classref);
+}
+
+/* class_get_classref_multiarray_of ********************************************
+
+   Returns an array type reference with the given dimension and element class
+   reference.
+
+   IN:
+       dim..............the requested dimension
+	                    dim must be in [1;255]. This is NOT checked!
+	   ref..............the component class reference
+
+   RETURN VALUE:
+       a pointer to the class reference for the array type
+
+   NOTE:
+       The referer of `ref` is used as the referer for the new classref.
+
+*******************************************************************************/
+
+constant_classref *class_get_classref_multiarray_of(s4 dim,constant_classref *ref)
+{
+    s4 namelen;
+    char *namebuf;
+
+	CLASS_ASSERT(ref);
+	CLASS_ASSERT(dim >= 1 && dim <= 255);
+
+    /* Assemble the array class name */
+    namelen = ref->name->blength;
+    
+    if (ref->name->text[0] == '[') {
+        /* the element is itself an array */
+        namebuf = DMNEW(char, namelen + dim);
+        memcpy(namebuf + dim, ref->name->text, namelen);
+        namelen += dim;
+    }
+    else {
+        /* the element is a non-array class */
+        namebuf = DMNEW(char, namelen + 2 + dim);
+        namebuf[dim] = 'L';
+        memcpy(namebuf + dim + 1, ref->name->text, namelen);
+        namelen += (2 + dim);
+        namebuf[namelen - 1] = ';';
+    }
+	memset(namebuf, '[', dim);
+
+    return class_get_classref(ref->referer,utf_new(namebuf, namelen));
+}
+
+/* class_get_classref_component_of *********************************************
+
+   Returns the component classref of a given array type reference
+
+   IN:
+       ref..............the array type reference
+
+   RETURN VALUE:
+       a reference to the component class, or
+	   NULL if `ref` is not an object array type reference
+
+   NOTE:
+       The referer of `ref` is used as the referer for the new classref.
+
+*******************************************************************************/
+
+constant_classref *class_get_classref_component_of(constant_classref *ref)
+{
+	s4 namelen;
+	char *name;
+	
+	CLASS_ASSERT(ref);
+
+	name = ref->name->text;
+	if (*name++ != '[')
+		return NULL;
+	
+	namelen = ref->name->blength - 1;
+	if (*name == 'L') {
+		name++;
+		namelen -= 2;
+	}
+	else if (*name != '[') {
+		return NULL;
+	}
+
+    return class_get_classref(ref->referer,utf_new(name, namelen));
 }
 
 

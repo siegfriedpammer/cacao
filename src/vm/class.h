@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2091 2005-03-27 14:49:48Z edwin $
+   $Id: class.h 2093 2005-03-27 15:16:57Z edwin $
 
 */
 
@@ -85,6 +85,14 @@ extern classinfo *class_java_lang_Double;
 
 extern classinfo *class_java_util_Vector;
 
+
+/* macros *********************************************************************/
+
+/* initialize a constant_classref with referer `ref` and name `classname` */
+#define CLASSREF_INIT(c,ref,classname)                          \
+			do { (c).pseudo_vftbl = CLASSREF_PSEUDO_VFTBL;      \
+				 (c).referer = (ref);                           \
+				 (c).name = (classname); } while (0)
 
 /* function prototypes ********************************************************/
 
