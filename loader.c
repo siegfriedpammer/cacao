@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1183 2004-06-19 12:20:06Z twisti $
+   $Id: loader.c 1237 2004-06-30 19:54:59Z twisti $
 
 */
 
@@ -43,12 +43,14 @@
 #include <sys/stat.h>
 #include "global.h"
 #include "loader.h"
-#include "main.h"
+#include "options.h"
 #include "native.h"
 #include "tables.h"
 #include "builtin.h"
 #include "jit/jit.h"
 #include "asmpart.h"
+#include "options.h"
+#include "statistics.h"
 #include "toolbox/memory.h"
 #include "toolbox/logging.h"
 #include "threads/thread.h"
@@ -64,15 +66,6 @@
 #undef JOWENN_DEBUG2
 
 /* global variables ***********************************************************/
-
-int count_class_infos = 0;      /* variables for measurements                 */
-int count_const_pool_len = 0;
-int count_vftbl_len = 0;
-int count_all_methods = 0;
-int count_vmcode_len = 0;
-int count_extable_len = 0;
-int count_class_loads = 0;
-int count_class_inits = 0;
 
 static s4 interfaceindex;       /* sequential numbering of interfaces         */
 static s4 classvalue;
@@ -1238,10 +1231,18 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 	}
 		
 	m->jcode = NULL;
+	m->basicblockcount = 0;
+	m->basicblocks = NULL;
+	m->basicblockindex = NULL;
+	m->instructioncount = 0;
+	m->instructions = NULL;
+	m->stackcount = 0;
+	m->stack = NULL;
 	m->exceptiontable = NULL;
-	m->entrypoint = NULL;
-	m->mcode = NULL;
+	m->registerdata = NULL;
 	m->stubroutine = NULL;
+	m->mcode = NULL;
+	m->entrypoint = NULL;
 	m->methodUsed = NOTUSED;    
 	m->monoPoly = MONO;    
 	m->subRedefs = 0;
@@ -3751,31 +3752,34 @@ static classinfo *class_init_intern(classinfo *c)
 	blockInts = b;
 #endif
 
-	/* we have an exception */
+	/* we have an exception or error */
 	if (*exceptionptr) {
-		java_objectheader *xptr;
-		java_objectheader *cause;
+		/* is this an exception, than wrap it */
+		if (builtin_instanceof(*exceptionptr, class_java_lang_Exception)) {
+			java_objectheader *xptr;
+			java_objectheader *cause;
 
-		/* class is NOT initialized */
-		c->initialized = false;
+			/* class is NOT initialized */
+			c->initialized = false;
 
-		/* get the cause */
-		cause = *exceptionptr;
+			/* get the cause */
+			cause = *exceptionptr;
 
-		/* clear exception, because we are calling jit code again */
-		*exceptionptr = NULL;
+			/* clear exception, because we are calling jit code again */
+			*exceptionptr = NULL;
 
-		/* wrap the exception */
-		xptr =
-			new_exception_throwable(string_java_lang_ExceptionInInitializerError,
-									(java_lang_Throwable *) cause);
+			/* wrap the exception */
+			xptr =
+				new_exception_throwable(string_java_lang_ExceptionInInitializerError,
+										(java_lang_Throwable *) cause);
 
-		if (*exceptionptr) {
-			panic("problem");
+			/* XXX should we exit here? */
+			if (*exceptionptr)
+				throw_exception();
+
+			/* set new exception */
+			*exceptionptr = xptr;
 		}
-
-		/* set new exception */
-		*exceptionptr = xptr;
 
 		return NULL;
 	}
