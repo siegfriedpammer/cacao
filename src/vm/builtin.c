@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 951 2004-03-11 17:30:03Z jowenn $
+   $Id: builtin.c 957 2004-03-14 21:01:12Z twisti $
 
 */
 
@@ -772,11 +772,11 @@ java_arrayheader *builtin_nmultianewarray (int n, vftbl *arrayvftbl, long *dims)
 	
 *****************************************************************************/
 
-
 u4 methodindent = 0;
 
 java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
-										   methodinfo *method, int *pos, 
+										   methodinfo *method,
+										   int *pos, 
 										   int noindent)
 {
 	if (!noindent) {
@@ -788,7 +788,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 	if (verbose || runverbose) {
 		printf("Exception ");
 		if (_exceptionptr) {
-			utf_display(_exceptionptr->vftbl->class->name);
+			utf_display_classname(_exceptionptr->vftbl->class->name);
 
 		} else {
 			printf("Error: <Nullpointer instead of exception>");
@@ -807,7 +807,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 		printf(" thrown in ");
 
 		if (method) {
-			utf_display(method->class->name);
+			utf_display_classname(method->class->name);
 			printf(".");
 			utf_display(method->name);
 			if (method->flags & ACC_SYNCHRONIZED)
@@ -836,6 +836,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 	char logtext[MAXLOGTEXT];
 	for (i = 0; i < methodindent; i++)
 		logtext[i] = '\t';
+
 	sprintf(logtext + methodindent, "called: ");
 	utf_sprint(logtext + strlen(logtext), method->class->name);
 	sprintf(logtext + strlen(logtext), ".");
@@ -861,7 +862,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 	case 0:
 		break;
 
-#if defined(__I386__)
+#if defined(__I386__) || defined(__POWERPC__)
 	case 1:
 		sprintf(logtext+strlen(logtext), "%llx", a0);
 		break;
@@ -961,7 +962,8 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 #endif
 #endif
 	}
-	sprintf (logtext+strlen(logtext), ")");
+
+	sprintf(logtext + strlen(logtext), ")");
 	log_text(logtext);
 
 	methodindent++;
@@ -1006,6 +1008,7 @@ void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
 		methodindent--;
 	else
 		log_text("WARNING: unmatched methodindent--");
+
 	sprintf(logtext + methodindent, "finished: ");
 	utf_sprint(logtext + strlen(logtext), method->class->name);
 	sprintf(logtext + strlen(logtext), ".");
@@ -1016,23 +1019,27 @@ void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
 	case TYPE_INT:
 		sprintf(logtext + strlen(logtext), "->%d", (s4) l);
 		break;
+
 	case TYPE_LONG:
-#if defined(__I386__)
+#if defined(__I386__) || defined(__POWERPC__)
 		sprintf(logtext + strlen(logtext), "->%lld", (s8) l);
 #else
 		sprintf(logtext + strlen(logtext), "->%ld", (s8) l);
 #endif
 		break;
+
 	case TYPE_ADDRESS:
-#if defined(__I386__)
+#if defined(__I386__) || defined(__POWERPC__)
 		sprintf(logtext + strlen(logtext), "->%p", (u1*) ((s4) l));
 #else
 		sprintf(logtext + strlen(logtext), "->%p", (u1*) l);
 #endif
 		break;
+
 	case TYPE_FLOAT:
 		sprintf(logtext + strlen(logtext), "->%g", f);
 		break;
+
 	case TYPE_DOUBLE:
 		sprintf(logtext + strlen(logtext), "->%g", d);
 		break;
