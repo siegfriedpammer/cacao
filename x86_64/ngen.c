@@ -12,7 +12,7 @@
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 			 Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 392 2003-07-29 08:48:46Z twisti $
+	Last Change: $Id: ngen.c 394 2003-07-29 08:53:04Z twisti $
 
 *******************************************************************************/
 
@@ -248,7 +248,7 @@ void catch_NullPointerException(int sig)
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
-	instr = *((int*)(sigctx->eip));
+	instr = *((int*)(sigctx->rip));
 /*    	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f]; */
 
 /*  	fprintf(stderr, "null=%d %p addr=%p\n", sig, sigctx, sigctx->eip); */
@@ -258,9 +258,9 @@ void catch_NullPointerException(int sig)
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
-		sigctx->eax = (long) proto_java_lang_NullPointerException; /* REG_ITMP1_XPTR    */
-		sigctx->edx = sigctx->eip;                                 /* REG_ITMP2_XPC     */
-		sigctx->eip = (long) asm_handle_exception;
+		sigctx->rax = (long) proto_java_lang_NullPointerException; /* REG_ITMP1_XPTR    */
+		sigctx->rdx = sigctx->rip;                                 /* REG_ITMP2_XPC     */
+		sigctx->rip = (long) asm_handle_exception;
 
 		return;
 
@@ -286,9 +286,9 @@ void catch_ArithmeticException(int sig)
 	sigemptyset(&nsig);
 	sigaddset(&nsig, sig);
 	sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
-	sigctx->eax = (long) proto_java_lang_ArithmeticException;  /* REG_ITMP1_XPTR    */
-	sigctx->edx = sigctx->eip;                                 /* REG_ITMP2_XPC     */
-	sigctx->eip = (long) asm_handle_exception;
+	sigctx->rax = (long) proto_java_lang_ArithmeticException;  /* REG_ITMP1_XPTR    */
+	sigctx->rdx = sigctx->rip;                                 /* REG_ITMP2_XPC     */
+	sigctx->rip = (long) asm_handle_exception;
 
 	return;
 }
