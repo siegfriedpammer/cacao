@@ -1,9 +1,9 @@
 - asmpart.S, codegen.c: native thread changes (stefan)
-    alpha: (asmpart.S:1.16, codegen.c:1.20)
+    alpha: done (asmpart.S:1.16, codegen.c:1.20)
     i386: done (asmpart.S:mostly 1.18, codegen.c:every change by me from 1.11-1.27)
-    mips: (asmpart.S:1.13, codegen.c:1.20)
-    powerpc: (asmpart.S:1.7, codegen.c:1.13)
-    x86_64: (asmpart.S:1.8, codegen.c:1.17)
+    mips: done (asmpart.S:1.13, codegen.c:1.20)
+    powerpc: done (asmpart.S:1.7, codegen.c:1.13)
+    x86_64: done (asmpart.S:1.8, codegen.c:1.16-1.17)
 
 - codegen.c: builtin_staticmonitorenter (stefan)
     alpha: done (1.26.2.1)
@@ -26,8 +26,8 @@
     alpha: done (codegen.c:1.27, codegen.h:1.7)
     i386: done (codegen.c:1.37, codegen.h:1.12)
     mips: done (codegen.c:1.22, codegen.h:1.9)
-    powerpc: TODO
-    x86_64: TODO
+    powerpc: done (codegen.c:1.18, codegen.h:1.4)
+    x86_64: done (codegen.c:1.16, codegen.h:1.6)
 
 - codegen.c: ICMD_xASTORECONST (twisti)
     alpha: TODO
@@ -40,12 +40,12 @@
     alpha: TODO
     i386: done (1.39)
     mips: TODO
-    powerpc: TODO
+    powerpc: ON HOLD (stefan)
     x86_64: TODO
 
 - codegen.c: vftbl -> vftbl_t (stefan)
     alpha: done (1.31)
     i386: done (1.41)
     mips: done (1.24)
-    powerpc: TODO
+    powerpc: done (1.18)
     x86_64: done (1.17)
