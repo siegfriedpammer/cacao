@@ -229,6 +229,61 @@ static int cast_sendsignals(int sig, int count)
 
 	return count-1;
 }
+
+#else
+
+static void cast_darwinstop()
+{
+	threadobject *tobj = mainthreadobj;
+	nativethread *infoself = THREADINFO;
+
+	do {
+		nativethread *info = &tobj->info;
+		if (info != infoself)
+		{
+			thread_state_flavor_t flavor = PPC_THREAD_STATE;
+			mach_msg_type_number_t thread_state_count = PPC_THREAD_STATE_COUNT;
+			ppc_thread_state_t thread_state;
+			mach_port_t thread = info->mach_thread;
+			kern_return_t r;
+
+			r = thread_suspend(thread);
+			if (r != KERN_SUCCESS)
+				panic("thread_suspend failed");
+
+			r = thread_get_state(thread, flavor,
+				(natural_t*)&thread_state, &thread_state_count);
+			if (r != KERN_SUCCESS)
+				panic("thread_get_state failed");
+
+			thread_restartcriticalsection(&thread_state);
+
+			r = thread_set_state(thread, flavor,
+				(natural_t*)&thread_state, thread_state_count);
+			if (r != KERN_SUCCESS)
+				panic("thread_set_state failed");
+		}
+		tobj = tobj->info.next;
+	} while (tobj != mainthreadobj);
+}
+
+static void cast_darwinresume()
+{
+	threadobject *tobj = mainthreadobj;
+	nativethread *infoself = THREADINFO;
+
+	do {
+		nativethread *info = &tobj->info;
+		if (info != infoself)
+		{
+			r = thread_resume(thread);
+			if (r != KERN_SUCCESS)
+				panic("thread_resume failed");
+		}
+		tobj = tobj->info.next;
+	} while (tobj != mainthreadobj);
+}
+
 #endif
 
 void cast_stopworld()
@@ -237,7 +292,7 @@ void cast_stopworld()
 	lock_stopworld(2);
 	pthread_mutex_lock(&threadlistlock);
 #if defined(__DARWIN__)
-	/* XXX stop threads using mach functions */
+	cast_darwinstop();
 #else
 	count = cast_sendsignals(GC_signum1(), 0);
 	for (i=0; i<count; i++)
@@ -250,7 +305,7 @@ void cast_startworld()
 {
 	pthread_mutex_lock(&threadlistlock);
 #if defined(__DARWIN__)
-	/* XXX resume threads using mach functions */
+	cast_darwinresume();
 #else
 	cast_sendsignals(GC_signum2(), -1);
 #endif
