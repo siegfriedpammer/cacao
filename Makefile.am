@@ -1,9 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 128 1999-03-03 15:54:06Z phil $
+# $Id: Makefile.am 131 1999-09-27 15:33:16Z chris $
 
 MAINTAINERCLEANFILES = Makefile.in configure
-SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc
+SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc narray
 
 EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html
 
@@ -33,7 +33,7 @@ cacao_SOURCES = \
 	native.c \
 	native.h \
 	tables.c \
-	tables.h
+	tables.h 
 
 EXTRA_cacao_SOURCES = \
 	compiler.c \
@@ -92,17 +92,24 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 			@SYSDEP_DIR@/asmpart.s
 	rm -f asmpart.s
 
-compiler.o: builtin.h compiler.h global.h loader.h tables.h native.h \
-            asmpart.h compiler.c comp/*.c \
-            @SYSDEP_DIR@/gen.c @SYSDEP_DIR@/disass.c
-	@CC@ $(CFLAGS) $(INCLUDES) -c compiler.c
+compiler.o: $(top_srcdir)/builtin.h $(top_srcdir)/compiler.h \
+		    $(top_srcdir)/global.h $(top_srcdir)/loader.h \
+	        $(top_srcdir)/tables.h $(top_srcdir)/native.h \
+            $(top_srcdir)/asmpart.h $(top_srcdir)/compiler.c $(top_srcdir)/comp/*.c \
+            $(top_srcdir)/@SYSDEP_DIR@/gen.c $(top_srcdir)/@SYSDEP_DIR@/disass.c
+	@CC@ $(CFLAGS) -I. $(INCLUDES) -c $(top_srcdir)/compiler.c
 
 jit.o: jit.c \
 	jit/mcode.c \
 	jit/parse.c \
 	jit/reg.c \
 	jit/stack.c \
-	jit/jitdef.h
+	jit/jitdef.h \
+	narray/graph.c \
+	narray/loop.c \
+	narray/analyze.c \
+	narray/tracing.c \
+	narray/loop.h
 
 ## Local variables:
 ## mode: Makefile
