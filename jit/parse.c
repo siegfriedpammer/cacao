@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 468 2003-10-04 17:15:31Z carolyn $
+	Last Change: $Id: parse.c 485 2003-10-20 17:16:25Z twisti $
                      include Rapid Type Analysis parse - 5/2003 - carolyn
 
 
@@ -208,7 +208,7 @@ if (debugInfo >= 1) {
 			   while (c == '[')
 			       c = *desc++;
 			   if (c != 'L') break;
-			   *desc++;
+			   *(desc++);
 			   
 		case 'L':  
 			   m->returntype = TYPE_ADR;
@@ -498,7 +498,6 @@ static void parse()
 
 	bool useinltmp;
 
-	static int xta1 = 0;
 /*INLINING*/
 	if (useinlining)
 		{
@@ -508,7 +507,7 @@ static void parse()
 		}
 	
 	useinltmp = useinlining; /*FIXME remove this after debugging */
-    /*useinlining = false; 	 /* and merge the if-statements  */
+    /*useinlining = false;*/ 	 /* and merge the if-statements  */
 	
 	if (!useinlining) {
 	  cumjcodelength = jcodelength;
@@ -609,7 +608,6 @@ static void parse()
 	  if ((useinlining) && (gp == nextgp)) {
 		  u1 *tptr;
 		  bool *readonly = NULL;
-		  bool firstreadonly = true;
 
 		  opcode = code_get_u1 (p);
 		  nextp = p += jcommandsize[opcode];
@@ -632,7 +630,7 @@ static void parse()
 				  op += *tptr;
 				  OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i);
 
-				  /* block_index[gp] |= (ipc << 1);  /*FIXME: necessary ? */
+				  /* block_index[gp] |= (ipc << 1);*/  /*FIXME: necessary ? */
 			  }
 		  inlining_save_compiler_variables();
 		  inlining_set_compiler_variables(tmpinlinf);
@@ -1012,10 +1010,10 @@ static void parse()
 
 
 				if (isinlinedmethod) {
-					/*					if (p==jcodelength-1) { /*return is at end of inlined method ** 
-						OP(ICMD_NOP);
-						break;
-						} */
+/*  					if (p==jcodelength-1) {*/ /* return is at end of inlined method */
+/*  						OP(ICMD_NOP); */
+/*  						break; */
+/*  					} */
 					blockend = true;
 					OP1(ICMD_GOTO, inlinfo->stopgp);
 					break;
@@ -1296,19 +1294,8 @@ static void parse()
 			case JAVA_MONITORENTER:
 #ifdef USE_THREADS
 				if (checksync) {
-#ifdef SOFTNULLPTRCHECK
-					if (checknull) {
-						BUILTIN1((functionptr) asm_builtin_monitorenter, TYPE_VOID);
-						}
-					else {
-/*						BUILTIN1((functionptr) builtin_monitorenter, TYPE_VOID); */
-						BUILTIN1((functionptr) asm_builtin_monitorenter, TYPE_VOID);
-						}
-#else
-					BUILTIN1((functionptr) builtin_monitorenter, TYPE_VOID);
-#endif
-					}
-				else
+					BUILTIN1((functionptr) asm_builtin_monitorenter, TYPE_VOID);
+				} else
 #endif
 					{
 					OP(ICMD_NULLCHECKPOP);
@@ -1318,7 +1305,7 @@ static void parse()
 			case JAVA_MONITOREXIT:
 #ifdef USE_THREADS
 				if (checksync) {
-					BUILTIN1((functionptr) builtin_monitorexit, TYPE_VOID);
+					BUILTIN1((functionptr) asm_builtin_monitorexit, TYPE_VOID);
 					}
 				else
 #endif
@@ -1347,7 +1334,6 @@ static void parse()
 
 			case JAVA_FREM:
 #if defined(__I386__)
-/*  				BUILTIN2((functionptr) asm_builtin_frem, TYPE_FLOAT); */
   				OP(opcode);
 #else
 				BUILTIN2((functionptr) builtin_frem, TYPE_FLOAT);
