@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2020 2005-03-09 12:01:42Z twisti $
+   $Id: loader.c 2062 2005-03-23 11:16:45Z twisti $
 
 */
 
@@ -92,7 +92,7 @@ vftbl_t *pseudo_class_Arraystub_vftbl = NULL;
    ZIP/JAR archives
 ********************************************************************/
 
-static classpath_info *classpath_entries = NULL;
+classpath_info *classpath_entries = NULL;
 
 
 /******************************************************************************

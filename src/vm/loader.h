@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1967 2005-02-25 15:51:05Z carolyn $
+   $Id: loader.h 2062 2005-03-23 11:16:45Z twisti $
 */
 
 
@@ -80,6 +80,7 @@ struct classpath_info {
 extern int blockInts;
 #endif
 
+extern classpath_info *classpath_entries;
 
 /* pseudo classes for the type checker ****************************************/
 
