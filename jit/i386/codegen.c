@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1604 2004-11-29 09:59:37Z twisti $
+   $Id: codegen.c 1608 2004-11-29 10:24:31Z twisti $
 
 */
 
@@ -4778,6 +4778,8 @@ java stack at this point*/
 	{
 		clinitref   *cref;
 		codegendata *tmpcd;
+		u1           xmcode;
+		u4           mcode;
 
 		tmpcd = DNEW(codegendata);
 
@@ -4785,8 +4787,8 @@ java stack at this point*/
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long.                                  */
 			xcodeptr = cd->mcodebase + cref->branchpos;
-			cref->xmcode = *xcodeptr;
-			cref->mcode =  *((u4 *) (xcodeptr + 1));
+			xmcode = *xcodeptr;
+			mcode = *((u4 *) (xcodeptr + 1));
 
 			MCODECHECK(50);
 
@@ -4798,8 +4800,8 @@ java stack at this point*/
 			i386_mov_reg_reg(cd, REG_SP, REG_ITMP1);
 
 			/* Push machine code bytes to patch onto the stack.               */
-			i386_push_imm(cd, (u4) cref->xmcode);
-			i386_push_imm(cd, (u4) cref->mcode);
+			i386_push_imm(cd, (u4) xmcode);
+			i386_push_imm(cd, (u4) mcode);
 
 			i386_push_imm(cd, (u4) cref->class);
 
@@ -5253,6 +5255,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		u1          *xcodeptr;
 		clinitref   *cref;
 		codegendata *tmpcd;
+		u1           xmcode;
+		u4           mcode;
 
 		tmpcd = DNEW(codegendata);
 
@@ -5263,8 +5267,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long.                                  */
 			xcodeptr = cd->mcodebase + cref->branchpos;
-			cref->xmcode = *xcodeptr;
-			cref->mcode =  *((u4 *) (xcodeptr + 1));
+			xmcode = *xcodeptr;
+			mcode =  *((u4 *) (xcodeptr + 1));
 
 			/* patch in `call rel32' to call the following code               */
 			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
@@ -5274,8 +5278,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			i386_mov_reg_reg(cd, REG_SP, REG_ITMP1);
 
 			/* Push machine code bytes to patch onto the stack.               */
-			i386_push_imm(cd, (u4) cref->xmcode);
-			i386_push_imm(cd, (u4) cref->mcode);
+			i386_push_imm(cd, (u4) xmcode);
+			i386_push_imm(cd, (u4) mcode);
 
 			i386_push_imm(cd, (u4) cref->class);
 
