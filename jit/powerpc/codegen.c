@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 598 2003-11-09 20:12:22Z twisti $
+   $Id: codegen.c 599 2003-11-09 20:12:53Z twisti $
 
 */
 
@@ -3156,7 +3156,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	}
 #endif
 
-	reg_init();
+	reg_init(m);
 
 	M_MOV  (argintregs[6],argintregs[7]); 
 	M_MOV  (argintregs[5],argintregs[6]); 
