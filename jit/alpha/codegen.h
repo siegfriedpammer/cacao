@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.h 1347 2004-07-21 23:29:39Z twisti $
+   $Id: codegen.h 1468 2004-11-08 13:29:58Z twisti $
 
 */
 
@@ -98,7 +98,7 @@
 #define gen_nullptr_check(objreg) \
     if (checknull) { \
         M_BEQZ((objreg), 0); \
-        codegen_addxnullrefs(m, mcodeptr); \
+        codegen_addxnullrefs(cd, mcodeptr); \
     }
 
 #define gen_bound_check \
@@ -106,7 +106,7 @@
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
         M_CMPULT(s2, REG_ITMP3, REG_ITMP3);\
         M_BEQZ(REG_ITMP3, 0);\
-        codegen_addxboundrefs(m, mcodeptr, s2); \
+        codegen_addxboundrefs(cd, mcodeptr, s2); \
     }
 
 
@@ -114,7 +114,7 @@
 
 #define MCODECHECK(icnt) \
 	if ((mcodeptr + (icnt)) > cd->mcodeend) \
-        mcodeptr = codegen_increase(m, (u1 *) mcodeptr)
+        mcodeptr = codegen_increase(cd, (u1 *) mcodeptr)
 
 /* M_INTMOVE:
      generates an integer-move from register a to b.
@@ -148,16 +148,20 @@
 */
 
 #define var_to_reg_int(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) \
-		{COUNT_SPILLS;M_LLD(tempnr,REG_SP,8*(v)->regoff);regnr=tempnr;} \
-	else regnr=(v)->regoff; \
+	if ((v)->flags & INMEMORY) { \
+		COUNT_SPILLS; \
+        M_LLD(tempnr, REG_SP, 8 * (v)->regoff); \
+        regnr = tempnr; \
+    } else regnr = (v)->regoff; \
 }
 
 
 #define var_to_reg_flt(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) \
-		{COUNT_SPILLS;M_DLD(tempnr,REG_SP,8*(v)->regoff);regnr=tempnr;} \
-	else regnr=(v)->regoff; \
+	if ((v)->flags & INMEMORY) { \
+		COUNT_SPILLS; \
+        M_DLD(tempnr, REG_SP, 8 * (v)->regoff); \
+        regnr = tempnr; \
+    } else regnr = (v)->regoff; \
 }
 
 
@@ -188,7 +192,7 @@
 
 
 #define M_COPY(from,to) \
-	d = reg_of_var(m, to, REG_IFTMP); \
+	d = reg_of_var(rd, to, REG_IFTMP); \
 	if ((from->regoff != to->regoff) || \
 	    ((from->flags ^ to->flags) & INMEMORY)) { \
 		if (IS_FLT_DBL_TYPE(from->type)) { \
@@ -208,7 +212,7 @@
     if ((c) >= -32768 && (c) <= 32767) { \
         M_LDA((r), REG_ZERO, c); \
     } else { \
-        a = dseg_adds4(m, (c)); \
+        a = dseg_adds4(cd, (c)); \
         M_ILD((r), REG_PV, a); \
     }
 
@@ -216,7 +220,7 @@
     if ((c) >= -32768 && (c) <= 32767) { \
         M_LDA((r), REG_ZERO, (c)); \
     } else { \
-        a = dseg_adds8(m, (c)); \
+        a = dseg_adds8(cd, (c)); \
         M_LLD((r), REG_PV, a); \
     }
 
@@ -526,9 +530,9 @@
 
 *******************************************************************************/
 
-#define gen_resolvebranch(ip,so,to) ((s4*)(ip))[-1]|=((s4)(to)-(so))>>2&0x1fffff
+#define gen_resolvebranch(ip,so,to) \
+    ((s4 *) (ip))[-1] |= ((s4) (to) - (so)) >> 2 & 0x1fffff
 
-#define SOFTNULLPTRCHECK       /* soft null pointer check supportet as option */
 
 /* function prototypes */
 
