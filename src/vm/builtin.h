@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1807 2004-12-22 10:47:13Z twisti $
+   $Id: builtin.h 1891 2005-01-28 20:24:47Z twisti $
 
 */
 
@@ -230,15 +230,17 @@ s4 builtin_canstore(java_objectarray *a, java_objectheader *o);
 void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o);
 #define BUILTIN_aastore (functionptr) asm_builtin_aastore
 
-#ifdef TRACE_ARGS_NUM
-#if TRACE_ARGS_NUM == 6
-void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5, methodinfo *m);
+#if defined(TRACE_ARGS_NUM)
+void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
+#if TRACE_ARGS_NUM >= 6
+						s8 a4, s8 a5,
+#endif /* TRACE_ARGS_NUM >= 6 */
+#if TRACE_ARGS_NUM == 8
+						s8 a6, s8 a7,
+#endif /* TRACE_ARGS_NUM == 8 */
+						methodinfo *m);
 /* NOT AN OP */
-#else
-void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5, s8 a6, s8 a7, methodinfo *m);
-/* NOT AN OP */
-#endif
-#endif
+#endif /* defined(TRACE_ARGS_NUM) */
 void builtin_displaymethodstart(methodinfo *m);
 /* NOT AN OP */
 void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f);

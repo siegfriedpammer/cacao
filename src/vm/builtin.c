@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1847 2005-01-04 11:34:28Z twisti $
+   $Id: builtin.c 1891 2005-01-28 20:24:47Z twisti $
 
 */
 
@@ -818,8 +818,11 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 
 #ifdef TRACE_ARGS_NUM
-void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
-#if TRACE_ARGS_NUM > 6
+void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
+#if TRACE_ARGS_NUM >= 6
+						s8 a4, s8 a5,
+#endif
+#if TRACE_ARGS_NUM == 8
 						s8 a6, s8 a7,
 #endif
 						methodinfo *m)
@@ -872,6 +875,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 				a0,   a1,   a2,   a3);
 		break;
 
+#if TRACE_ARGS_NUM >= 6
 	case 5:
 		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx",
 				a0,   a1,   a2,   a3,   a4);
@@ -881,8 +885,9 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx",
 				a0,   a1,   a2,   a3,   a4,   a5);
 		break;
+#endif /* TRACE_ARGS_NUM >= 6 */
 
-#if TRACE_ARGS_NUM > 6
+#if TRACE_ARGS_NUM == 8
 	case 7:
 		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx, %llx",
 				a0,   a1,   a2,   a3,   a4,   a5,   a6);
@@ -897,13 +902,13 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx, %llx, %llx, ...(%d)",
 				a0,   a1,   a2,   a3,   a4,   a5,   a6,   a7,   m->paramcount - 8);
 		break;
-#else
+#else /* TRACE_ARGS_NUM == 8 */
 	default:
 		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx, ...(%d)",
 				a0,   a1,   a2,   a3,   a4,   a5,   m->paramcount - 6);
 		break;
-#endif
-#else
+#endif /* TRACE_ARGS_NUM == 8 */
+#else /* defined(__I386__) || defined(__POWERPC__) */
 	case 1:
 		sprintf(logtext+strlen(logtext), "%lx", a0);
 		break;
@@ -921,6 +926,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 				a0,  a1,  a2,  a3);
 		break;
 
+#if TRACE_ARGS_NUM >= 6
 	case 5:
 		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx",
 				a0,  a1,  a2,  a3,  a4);
@@ -930,8 +936,9 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx",
 				a0,  a1,  a2,  a3,  a4,  a5);
 		break;
+#endif /* TRACE_ARGS_NUM >= 6 */
 
-#if TRACE_ARGS_NUM > 6
+#if TRACE_ARGS_NUM == 8
 	case 7:
 		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx",
 				a0,  a1,  a2,  a3,  a4,  a5,  a6);
@@ -941,18 +948,23 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx, %lx",
 				a0,  a1,  a2,  a3,  a4,  a5,  a6,  a7);
 		break;
+#endif /* TRACE_ARGS_NUM == 8 */
 
 	default:
+#if TRACE_ARGS_NUM == 4
+		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, ...(%d)",
+				a0,  a1,  a2,  a3,   m->paramcount - 4);
+
+#elif TRACE_ARGS_NUM == 6
+		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, ...(%d)",
+				a0,  a1,  a2,  a3,  a4,  a5,  m->paramcount - 6);
+
+#elif TRACE_ARGS_NUM == 8
 		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx, %lx, ...(%d)",
 				a0,  a1,  a2,  a3,  a4,  a5,  a6,  a7,  m->paramcount - 8);
-		break;
-#else
-	default:
-		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, ...(%d)",
-				a0,  a1,  a2,  a3,  a4,  a5,   m->paramcount - 6);
-		break;
 #endif
-#endif
+		break;
+#endif /* defined(__I386__) || defined(__POWERPC__) */
 	}
 
 	sprintf(logtext + strlen(logtext), ")");
