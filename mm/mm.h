@@ -4,6 +4,19 @@
 #include "../sysdep/types.h"
 #include "../global.h"
 
+#ifndef CACAO_NO_INLINE
+#define __cacao_inline__  inline
+#else
+#define __cacao_inline__
+#endif
+
+#ifdef __GNUC__
+#define __inline__  __cacao_inline__
+#else
+#define __inline__
+#endif
+
+
 #endif
 
 

@@ -6,7 +6,7 @@
  *
  * Authors: Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
  *
- * $Id: bitmap2.c 56 1998-11-10 17:35:47Z phil $
+ * $Id: bitmap2.c 60 1998-11-11 02:22:30Z phil $
  */
 
 /*
@@ -191,10 +191,10 @@ bitmap_t* bitmap_allocate(void* 	zero_addr,
 
 	bitmap->bytesize = bytesize;
 	bitmap->bitmap_memory = malloc(bytesize);
-	bitmap->bitmap = bitmap->bitmap_memory - CALC_ZERO_OFFSET(zero_addr);   /* offset for fast access */
+	bitmap->bitmap = (void*)((long)bitmap->bitmap_memory - CALC_ZERO_OFFSET(zero_addr));   /* offset for fast access */
 
-	bitmap->bitmap_beyond_addr = zero_addr + size;
-	bitmap->bitmap_top_block = ADDR_TO_BLOCK(bitmap->bitmap_beyond_addr - sizeof(BITBLOCK));
+	bitmap->bitmap_beyond_addr = (void*)((long)zero_addr + size);
+	bitmap->bitmap_top_block = ADDR_TO_BLOCK((long)bitmap->bitmap_beyond_addr - sizeof(BITBLOCK));
 
 	if (!bitmap->bitmap_memory) {
 		/* handle error -- unable to allocate enough memory */
@@ -309,7 +309,7 @@ bitmap_find_next_setbit(bitmap_t* bitmap,
 	/* 1. check the current block, starting from the bit indicated by addr */
 	pattern = bitmap->bitmap[block] >> offset;
 	if (pattern)
-		return (void*)(addr + offset_for_lowest(pattern));
+		return (void*)((long)addr + offset_for_lowest(pattern));
 
 	/* 2. iteratively check block by block until the end of the bitmap */
 	while (block < bitmap->bitmap_top_block) {
@@ -339,7 +339,7 @@ bitmap_find_next_combination_set_unset(bitmap_t* bitmap,
 	/* 1. check the current block, starting from the bit indicated by addr */
 	pattern = (bitmap->bitmap[block] & ~invertedmap->bitmap[block]) >> offset;
 	if (pattern)
-		return (void*)(addr + offset_for_lowest(pattern));
+		return (void*)((long)addr + offset_for_lowest(pattern));
 
 	/* 2. iteratively check block by block until the end of the bitmap */
 	while (block < bitmap->bitmap_top_block) {

@@ -6,7 +6,7 @@
  *
  * Authors: Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
  *
- * $Id: allocator.c 34 1998-11-03 11:29:37Z phil $
+ * $Id: allocator.c 60 1998-11-11 02:22:30Z phil $
  */
 
 /* 
@@ -264,7 +264,7 @@ void
 allocator_init()
 {
 	fprintf(stderr, 
-			"allocator_init: $Id: allocator.c 34 1998-11-03 11:29:37Z phil $\n\n");
+			"allocator_init: $Id: allocator.c 60 1998-11-11 02:22:30Z phil $\n\n");
 	
 	fprintf(stderr, "\t%d bit addresses\n", ADDRESS);
 	fprintf(stderr, "\t%d bit alignment\n", ALIGN);
@@ -428,7 +428,7 @@ allocator_alloc(SIZE size)
 
 				/* split */
 				if ((bin << ALIGN) > size)
-					allocator_free(result + size, (bin << ALIGN) - size);
+					allocator_free((void*)((long)result + size), (bin << ALIGN) - size);
 
 				//				fprintf(stderr, "found chunk in exact bin %d\n", bin);
 
@@ -456,7 +456,7 @@ allocator_alloc(SIZE size)
 
 				/* split */
 				if (chunk->size > size)
-					allocator_free((void*)chunk + size, (chunk->size - size));
+					allocator_free((void*)((long)chunk + size), (chunk->size - size));
 				
 				return (void*)chunk;
 			}
@@ -471,7 +471,7 @@ allocator_alloc(SIZE size)
 
 				/* split */
 				if (new_chunk->size > size)
-					allocator_free((void*)new_chunk + size, (new_chunk->size - size));
+					allocator_free((void*)((long)new_chunk + size), (new_chunk->size - size));
 				
 				return (void*)new_chunk;
 			}

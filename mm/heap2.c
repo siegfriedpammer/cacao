@@ -110,7 +110,7 @@ heap_init (SIZE size,
 	heap_base = malloc(heap_size);
 #endif
 
-	if (heap_base == MAP_FAILED) {
+	if (heap_base == (void*)MAP_FAILED) {
 		/* unable to allocate the requested amount of memory */
 		fprintf(stderr, "The queen, mylord, is dead!\n");
 		exit(-1);
@@ -132,12 +132,12 @@ heap_init (SIZE size,
 	stackbottom = in_stackbottom; /* copy the stackbottom */
 
 	heap_top = heap_base; /* the current end of the heap (just behind the last allocated object) */
-	heap_limit = heap_base + heap_size; /* points just behind the last accessible block of the heap */
+	heap_limit = (void*)((long)heap_base + heap_size); /* points just behind the last accessible block of the heap */
 
 	/* 6. calculate a useful first collection limit */
 	/* This is extremly primitive at this point... 
 	   we should replace it with something more useful -- phil. */
-	heap_next_collection = heap_base + (heap_size / 8);
+	heap_next_collection = (void*)((long)heap_base + (heap_size / 8));
 
 	/* 7. Init the global reference lists & finalizer addresses */
 	references = NULL;
@@ -171,9 +171,9 @@ heap_close (void)
 		munmap(heap_base, heap_size);
 }
 
+__inline__
 static
-inline
-void
+void 
 heap_add_address_to_address_list(address_list_node** list, void* address)
 {
 	/* Note: address lists are kept sorted to simplify finalization */
@@ -202,8 +202,9 @@ heap_add_address_to_address_list(address_list_node** list, void* address)
 	*list = new_node;
 }
 
+
+__inline__
 static
-inline
 void
 heap_add_finalizer_for_object_at(void* addr)
 {
@@ -238,7 +239,7 @@ heap_allocate (SIZE		  in_length,
 	if (finalizer)
 		fprintf(stderr, "finalizer detected\n");
 
-#if VERBOSITY >= VERBOSITY_LIFESPAN 
+#if VERBOSITY >= VERBOSITY_LIFESPAN
 	/* perform garbage collection to collect data for lifespan analysis */
 	if (heap_top > heap_base)
 		gc_call();
@@ -253,7 +254,7 @@ heap_allocate (SIZE		  in_length,
 	/* 2. if unsuccessful, try alternative allocation strategies */
 	if (!free_chunk) {
 		/* 2.a if the collection threshold would be exceeded, collect the heap */
-		if (heap_top + length > heap_next_collection) {
+		if ((long)heap_top + length > (long)heap_next_collection) {
 			/* 2.a.1. collect if the next_collection threshold would be exceeded */
 			gc_call();
 
@@ -264,13 +265,13 @@ heap_allocate (SIZE		  in_length,
 
 			/* 2.a.3. we can't satisfy the request from the freelists, check
 			          against the heap_limit whether growing the heap is possible */
-			if (heap_top + length > heap_limit)
+			if ((long)heap_top + length > (long)heap_limit)
 				goto failure;
 		}
 
 		/* 2.b. grow the heap */
 		free_chunk = heap_top;
-		heap_top += length;
+		heap_top = (void*)((long)heap_top + length);
 	}
 
  success:
@@ -280,7 +281,7 @@ heap_allocate (SIZE		  in_length,
 	   which already is marked (Note: The first free-block gets marked in heap_init). -- phil. */
   	bitmap_setbit(start_bits, free_chunk); /* mark the new object */
 #endif
-	bitmap_setbit(start_bits, free_chunk + length); /* mark the freespace behind the new object */
+	bitmap_setbit(start_bits, (void*)((long)free_chunk + (long)length)); /* mark the freespace behind the new object */
 	if (references)
 		bitmap_setbit(reference_bits, free_chunk);
 	else 
@@ -294,7 +295,7 @@ heap_allocate (SIZE		  in_length,
 #   warning "finalizers disabled."
 #endif
 
-#if VERBOSITY >= VERBOSITY_TRACE
+#if VERBOSITY >= VERBOSITY_TRACE && 0
 	fprintf(stderr, "heap_allocate: returning free block of 0x%lx bytes at 0x%lx\n", length, free_chunk);
 #endif
 #if VERBOSITY >= VERBOSITY_PARANOIA && 0
@@ -336,7 +337,7 @@ heap_addreference (void **reflocation)
 }
 
 static
-inline
+__inline__
 void gc_finalize (void)
 {
 	/* This will have to be slightly rewritten as soon the JIT-marked heap-based lists are used. -- phil. */
@@ -374,8 +375,9 @@ void gc_finalize (void)
 #endif
 }
 
+
+__inline__
 static 
-inline 
 void gc_reclaim (void)
 {
 	void* free_start;
@@ -436,12 +438,12 @@ bitmap_find_next_setbit(mark_bitmap, free_start + 8); /* FIXME: constant used */
 			fprintf(stderr, "gc_reclaim: inconsistent bit info for 0x%lx\n", free_start);
 
 		if (free_start < heap_top) {
-			free_end   = bitmap_find_next_setbit(mark_bitmap, free_start + 8); /* FIXME: constant used */
+			free_end   = bitmap_find_next_setbit(mark_bitmap, (void*)((long)free_start + 8)); /* FIXME: constant used */
 
 			//			fprintf(stderr, "%lx -- %lx\n", free_start, free_end);
 			
 			if (free_end < heap_top) {
-				allocator_free(free_start, free_end - free_start);
+				allocator_free(free_start, (long)free_end - (long)free_start);
 
 				//				fprintf(stderr, "gc_reclaim: freed 0x%lx bytes at 0x%lx\n", free_end - free_start, free_start);
 
@@ -478,7 +480,7 @@ bitmap_find_next_setbit(mark_bitmap, free_start + 8); /* FIXME: constant used */
 		bitmap_setbit(start_bits, heap_top);
 
 	/* 4. adjust the collection threshold */
-	heap_next_collection = heap_top + (heap_limit - heap_top) / 8;
+	heap_next_collection = (void*)((long)heap_top + ((long)heap_limit - (long)heap_top) / 8);
 	if (heap_next_collection > heap_limit)
 		heap_next_collection = heap_limit;
 
@@ -493,8 +495,8 @@ bitmap_find_next_setbit(mark_bitmap, free_start + 8); /* FIXME: constant used */
 #endif
 }
 
+__inline__
 static
-inline 
 void 
 gc_mark_object_at (void** addr)
 {
@@ -565,8 +567,9 @@ gc_mark_object_at (void** addr)
 	return;
 }
 
+
+__inline__
 static
-inline 
 void gc_mark_references (void)
 {
 	address_list_node* curr = references;
@@ -579,8 +582,8 @@ void gc_mark_references (void)
 	}
 }
 
+__inline__
 static
-inline
 void 
 markreferences(void** start, void** end)
 {
@@ -588,8 +591,8 @@ markreferences(void** start, void** end)
 		gc_mark_object_at(*(start++));
 }
 
+__inline__
 static
-inline 
 void gc_mark_stack (void)
 {
 	void *dummy;
