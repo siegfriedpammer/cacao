@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: asmpart.h 1841 2005-01-04 11:18:50Z twisti $
 
 */
 
@@ -82,6 +82,8 @@ void asm_call_jit_compiler();
    with up to 4 parameters. This function calls a Java-method (which
    possibly needs compilation) with up to 4 parameters.
 */
+java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
+                                        void *arg3, void *arg4);
 
 /* 
    This function calls a Java-method (which possibly needs compilation)
@@ -89,11 +91,11 @@ void asm_call_jit_compiler();
    possibly needs compilation) with up to 4 parameters. 
    also supports a return value
 */
-java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
-                                        void *arg3, void *arg4);
 java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size, void *callblock);
-jdouble asm_calljavafunction2double(methodinfo *m, u4 count, u4 size, void *callblock);
+jint asm_calljavafunction2int(methodinfo *m, u4 count, u4 size, void *callblock);
 jlong asm_calljavafunction2long(methodinfo *m, u4 count, u4 size, void *callblock);
+jfloat asm_calljavafunction2float(methodinfo *m, u4 count, u4 size, void *callblock);
+jdouble asm_calljavafunction2double(methodinfo *m, u4 count, u4 size, void *callblock);
 
 /* We need these two labels in codegen.inc to add the asm_calljavafunction*'s
    into the methodtable */
