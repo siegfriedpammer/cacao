@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2212 2005-04-04 11:34:46Z christian $
+   $Id: stack.c 2218 2005-04-05 15:26:35Z christian $
 
 */
 
@@ -39,6 +39,7 @@
 
 #include "disass.h"
 #include "types.h"
+#include "codegen.h"
 #include "mm/memory.h"
 #include "native/native.h"
 #include "toolbox/logging.h"
@@ -1871,9 +1872,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							call_returntype = lm->returntype;
 
 						_callhandling:
-#endif
-#ifdef INVOKE_NEW
 							i = call_argcount;
+
 #else
 							i = iptr->op1;
 #endif
@@ -1881,217 +1881,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							if (i > rd->arguments_num)
 								rd->arguments_num = i;
 							REQUIRE(i);
-/* --------- old and unchanged till here (almoust ;)----------- */
-#ifdef INVOKE_NEW
-/* --------- new try from here on till #else            ------- */
-							{
-								s4 iarg = 0;
-								s4 farg = 0;
-#ifdef HAS_ADDRESS_REGISTER_FILE
-								s4 aarg = 0;
-#endif
-								s4 stacksize = 0;     /* Stackoffset for spilled arg */
-								s4 maxstacksize = 0;  /* Stackspace required for spilled args */
-								s4 paramsize;
+#if defined(INVOKE_NEW)
+							/* Macro in codegen.h */
 
-#ifdef SPECIALMEMUSE
-/* normaly Parameters are spilled beginning from offset 0, regardless the argument index */
-/* with SPECIALMEMUSE, Parameters are spilled from offset 6, regarding the argument index -> Parameters in registers "waste" Stackspace */
-								stacksize = 6;
-#endif
-							/* Calc ARGVAR Stackslots regarding CONSECUTIVE_[INT|FLOAT|ADDR]ARGS and */
-							/* rd->[int|flt|adr]reg_argnum                                           */
+							SET_ARG_STACKSLOTS;
 
-								/* count integer, float and if existing address arguments and possibly used stackspace*/
-
-								copy = curstack;
-								while (--i >= 0) {
-#ifdef SPECIALMEMUSE
-#ifdef USETWOREGS
-									stacksize += (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;
 #else
-									stacksize++;
-#endif
-#endif
-									switch (copy->type) {
-									case TYPE_ADR:
-#ifdef HAS_ADDRESS_REGISTER_FILE
-#ifdef CONSECUTIVE_ADDRARGS
-										aarg++;
-#endif
-#ifndef SPECIALMEMUSE
-#ifdef CONSECUTIVE_ADDRARGS
-										if (aarg > rd->adrreg_argnum)
-#else
-										if (i >= rd->adrreg_argnum)
-#endif
-										    stacksize++;
-#endif
-										break;
-#endif
-									case TYPE_INT:
-									case TYPE_LNG:
-#ifdef CONSECUTIVE_INTARGS
-#ifdef USETWOREGS
-										iarg += (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;
-#else
-	   									iarg++;
-#endif
-#endif
-#ifndef SPECIALMEMUSE
-#ifdef CONSECUTIVE_INTARGS
-										if (iarg > rd->intreg_argnum)
-#else
-										if (i >= rd->intreg_argnum)
-#endif
-#ifdef USETWOREGS
-											stacksize += (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;
-#else
-										    stacksize++;
-#endif
-#endif
-										break;
-									case TYPE_FLT:
-									case TYPE_DBL:
-#ifdef CONSECUTIVE_FLOATARGS
-										farg++;
-#endif
-#ifndef SPECIALMEMUSE
-#ifdef CONSECUTIVE_FLOATARGS
-
-										if (farg > rd->fltreg_argnum)
-#else
-										if (i >= rd->fltreg_argnum)
-#endif
-#ifdef USETWOREGS
-											stacksize += (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;
-#else
-										    stacksize++;
-#endif
-#endif
-										break;
-									}
-
-									copy = copy->prev;
-								}
-								/* Set ARGVAR to appropriate registerfile index, calc rd->ifmemuse (max stackspace) */
-#ifdef SPECIALMEMUSE
-								if (stacksize > rd->ifmemuse)
-									rd->ifmemuse = stacksize;
-#endif
-								i = call_argcount;
-								copy = curstack;
-								paramsize = 1;
-								while (--i >= 0) {
-#ifdef USETWOREGS
-									paramsize = (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;
-#endif
-#ifdef HAS_ADDRESS_REGISTER_FILE
-									if (copy->type == TYPE_ADR) {
-#ifdef CONSECUTIVE_ADDRARGS
-										aarg--;
-#else
-										aarg = i;
-#endif
-#ifndef SPECIALMEMUSE
-										if (aarg >= rd->adrreg_argnum)
-											if (!maxstacksize)
-												maxstacksize = stacksize;
-#endif
-										if (!(copy->flags & SAVEDVAR)) {
-											copy->varnum = aarg;
-											copy->varkind = ARGVAR;
-											if (aarg < rd->adrreg_argnum) {
-												copy->flags = 0;
-												copy->regoff = rd->argadrregs[aarg];
-											} else {
-												copy->flags = INMEMORY;
-												copy->regoff = stacksize - paramsize;
-#ifndef SPECIALMEMUSE
-												stacksize -=paramsize;
-#endif
-											}
-										}												
-									} else {
-#endif
-										if (IS_FLT_DBL_TYPE(copy->type)) {
-#ifdef CONSECUTIVE_FLOATARGS
-											farg--;
-#else
-											farg = i;
-#endif
-#ifndef SPECIALMEMUSE
-
-											if (farg >= rd->fltreg_argnum)
-												if (!maxstacksize)
-													maxstacksize = stacksize;
-#endif
-											if (!(copy->flags & SAVEDVAR)) {
-												copy->varnum = farg;
-												copy->varkind = ARGVAR;
-												if (farg < rd->fltreg_argnum) {
-													copy->flags = 0;
-													copy->regoff = rd->argfltregs[farg];
-												} else {
-													copy->flags = INMEMORY;
-													copy->regoff = stacksize - paramsize;
-#ifndef SPECIALMEMUSE
-													stacksize -=paramsize;
-#endif
-												}
-											}												
-										} else { /* int_arg */
-#ifdef CONSECUTIVE_INTARGS
-											iarg--;
-#else
-#ifndef SPECIALMEMUSE
-											iarg = i;
-#else
-#ifdef USETWOREGS
-											iarg = stacksize - paramsize - 6;
-#endif
-#endif
-#endif
-#ifndef SPECIALMEMUSE
-											if (iarg >= rd->intreg_argnum)
-												if (!maxstacksize)
-													maxstacksize = stacksize;
-#endif
-											if (!(copy->flags & SAVEDVAR)) {
-												copy->varnum = iarg;
-												copy->varkind = ARGVAR;
-#ifdef USETWOREGS
-												if ((iarg+paramsize-1) < rd->intreg_argnum) {
-#else
-												if (iarg < rd->intreg_argnum) {
-#endif
-													copy->flags = 0;
-													copy->regoff = rd->argintregs[iarg];
-												} else {
-													copy->flags = INMEMORY;
-													copy->regoff = stacksize - paramsize;
-#ifndef SPECIALMEMUSE
-													stacksize -=paramsize;
-#endif
-												}
-											}
-										}
-#ifdef HAS_ADDRESS_REGISTER_FILE
-									}
-#endif
-#ifdef SPECIALMEMUSE
-									stacksize -=paramsize;
-#endif
-									copy = copy->prev;
-								}
-#ifndef SPECIALMEMUSE
-								if (rd->ifmemuse < maxstacksize)
-									rd->ifmemuse = maxstacksize;
-#endif
-	if (compileverbose)
-		printf("ifmemuse,maxstacksize by stack.c: %3i,%3i\n",rd->ifmemuse, maxstacksize);
-							}
-#else /* ifdef INVOKE_NEW */
 #if defined(__X86_64__)
 							{
 								s4 iarg = 0;
@@ -2148,7 +1943,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								copy = copy->prev;
 							}
 #endif /* defined(__X86_64__) */
-#endif /* ifdef INVOKE_NEW */
+#endif /* defined(INVOKE_NEW) */
 							while (copy) {
 								copy->flags |= SAVEDVAR;
 								copy = copy->prev;

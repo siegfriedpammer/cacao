@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: codegen.h 2218 2005-04-05 15:26:35Z christian $
 
 */
 
@@ -36,6 +36,23 @@
 #define _CODEGEN_H
 
 #include <ucontext.h>
+
+/* Macro for stack.c to set Argument Stackslots */
+
+#define SET_ARG_STACKSLOTS {					\
+		copy = curstack;						\
+		if (i > rd->ifmemuse)					\
+			rd->ifmemuse = i;					\
+		while (--i >= 0) {						\
+			if (!(copy->flags & SAVEDVAR)) {	\
+				copy->varkind = ARGVAR;			\
+				copy->varnum = i;				\
+				copy->flags |= INMEMORY;		\
+				copy->regoff = i;				\
+			}									\
+			copy = copy->prev;					\
+		}										\
+	}											\
 
 
 /* additional functions and macros to generate code ***************************/
