@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 774 2003-12-14 12:55:27Z stefan $
+   $Id: codegen.c 776 2003-12-14 13:38:14Z twisti $
 
 */
 
@@ -4387,14 +4387,12 @@ gen_method: {
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					i386_mov_imm_reg(1, EDX);
-					*(mcodeptr++) = (u1) 0xf0;
-					i386_xadd_membase((u4) &cast_counter);
+					i386_mov_imm_reg(1, REG_ITMP2);
+					i386_lock();
+					i386_xadd_reg_mem(REG_ITMP2, (u4) &cast_counter);
 					i386_jcc(I386_CC_E, 8);
-					*(mcodeptr++) = (u1) 0x8b;
-					*(mcodeptr++) = (u1) 0x15;
-					i386_emit_imm32(&castlockptr);
-					i386_call_reg(EDX);
+					i386_mov_reg_mem(REG_ITMP2, &castlockptr);
+					i386_call_reg(REG_ITMP2);
 #endif
 
 
@@ -4414,9 +4412,9 @@ gen_method: {
 					}
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					i386_mov_imm_reg(-1, EDX);
-					*(mcodeptr++) = (u1) 0xf0;
-					i386_xadd_membase((u4) &cast_counter);
+					i386_mov_imm_reg(-1, REG_ITMP2);
+					i386_lock();
+					i386_xadd_reg_mem(REG_ITMP2, (u4) &cast_counter);
 #endif
 					
 					i386_alu_reg_reg(I386_CMP, REG_ITMP2, REG_ITMP1);
@@ -5322,6 +5320,12 @@ void i386_mov_reg_memindex(s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale) {
 }
 
 
+void i386_mov_mem_reg(s4 mem, s4 dreg) {
+	*(mcodeptr++) = (u1) 0x8b;
+	i386_emit_mem((dreg),(mem));
+}
+
+
 void i386_movw_reg_memindex(s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale) {
 	*(mcodeptr++) = (u1) 0x66;
 	*(mcodeptr++) = (u1) 0x89;
@@ -5447,6 +5451,12 @@ void i386_dec_reg(s4 reg) {
 void i386_dec_membase(s4 basereg, s4 disp) {
 	*(mcodeptr++) = (u1) 0xff;
 	i386_emit_membase((basereg),(disp),1);
+}
+
+
+void i386_dec_mem(s4 mem) {
+	*(mcodeptr++) = (u1) 0xff;
+	i386_emit_mem(1,(mem));
 }
 
 
@@ -5653,11 +5663,10 @@ void i386_setcc_membase(s4 opc, s4 basereg, s4 disp) {
 }
 
 
-void i386_xadd_membase(s4 disp) {
+void i386_xadd_reg_mem(s4 reg, s4 mem) {
 	*(mcodeptr++) = (u1) 0x0f;
 	*(mcodeptr++) = (u1) 0xc1;
-	*(mcodeptr++) = (u1) 0x15;
-	i386_emit_imm32((disp));
+	i386_emit_mem((reg),(mem));
 }
 
 
@@ -5687,6 +5696,11 @@ void i386_pop_reg(s4 reg) {
 
 void i386_nop() {
 	*(mcodeptr++) = (u1) 0x90;
+}
+
+
+void i386_lock() {
+	*(mcodeptr++) = (u1) 0xf0;
 }
 
 

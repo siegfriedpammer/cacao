@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 766 2003-12-13 22:52:32Z twisti $
+   $Id: codegen.h 776 2003-12-14 13:38:14Z twisti $
 
 */
 
@@ -184,10 +184,10 @@ typedef enum {
     } while (0)
 
 
-#define i386_emit_mem(r,disp) \
+#define i386_emit_mem(r,mem) \
     do { \
         i386_address_byte(0,(r),5); \
-        i386_emit_imm32((disp)); \
+        i386_emit_imm32((mem)); \
     } while (0)
 
 
@@ -269,6 +269,7 @@ void i386_mov_membase32_reg(s4 basereg, s4 disp, s4 reg);
 void i386_mov_reg_membase(s4 reg, s4 basereg, s4 disp);
 void i386_mov_memindex_reg(s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
 void i386_mov_reg_memindex(s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void i386_mov_mem_reg(s4 mem, s4 dreg);
 void i386_movw_reg_memindex(s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void i386_movb_reg_memindex(s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void i386_mov_imm_membase(s4 imm, s4 basereg, s4 disp);
@@ -310,11 +311,13 @@ void i386_jmp_reg(s4 reg);
 void i386_jcc(s4 opc, s4 imm);
 void i386_setcc_reg(s4 opc, s4 reg);
 void i386_setcc_membase(s4 opc, s4 basereg, s4 disp);
+void i386_xadd_reg_mem(s4 reg, s4 mem);
 void i386_neg_reg(s4 reg);
 void i386_neg_membase(s4 basereg, s4 disp);
 void i386_push_imm(s4 imm);
 void i386_pop_reg(s4 reg);
 void i386_nop();
+void i386_lock();
 void i386_call_reg(s4 reg);
 void i386_call_imm(s4 imm);
 
