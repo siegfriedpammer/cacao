@@ -26,14 +26,13 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1532 2004-11-18 10:30:43Z twisti $
+   $Id: memory.c 1568 2004-11-23 16:02:31Z twisti $
 
 */
 
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
 
 #if defined(__DARWIN__)
@@ -45,6 +44,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "exceptions.h"
 #include "global.h"
 #include "native.h"
