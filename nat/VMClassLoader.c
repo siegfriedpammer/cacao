@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClassLoader.c 1075 2004-05-20 16:58:49Z twisti $
+   $Id: VMClassLoader.c 1314 2004-07-14 18:31:49Z twisti $
 
 */
 
@@ -39,13 +39,15 @@
 #include "builtin.h"
 #include "tables.h"
 #include "toolbox/logging.h"
-#include "java_lang_Class.h"
-#include "java_lang_String.h"
-#include "java_lang_ClassLoader.h"
+#include "nat/java_lang_Class.h"
+#include "nat/java_lang_String.h"
+#include "nat/java_lang_ClassLoader.h"
+#include "nat/java_net_URL.h"
+
 
 /*
  * Class:     java/lang/ClassLoader
- * Method:    defineClass0
+ * Method:    defineClass
  * Signature: (Ljava/lang/String;[BII)Ljava/lang/Class;
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *this, java_lang_String *name, java_bytearray *buf, s4 off, s4 len)
@@ -96,16 +98,79 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 
 /*
  * Class:     java/lang/ClassLoader
- * Method:    resolveClass0
+ * Method:    resolveClass
  * Signature: (Ljava/lang/Class;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jclass clazz, java_lang_Class *par1)
+JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jclass clazz, java_lang_Class *c)
 {
+	classinfo *ci;
+
+	ci = (classinfo *) c;
+
+	if (!ci) {
+		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		return;
+	}
+
 	/* link the class */
-	if (!clazz->linked)
-		class_link(clazz);
+	if (!ci->linked)
+		class_link(ci);
 
 	return;
+}
+
+
+/*
+ * Class:     java/lang/VMClassLoader
+ * Method:    loadClass
+ * Signature: (Ljava/lang/String;Z)Ljava/lang/Class;
+ */
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv *env, jclass clazz, java_lang_String *name, jboolean resolve)
+{
+	classinfo *c;
+	utf *u;
+
+	if (!name) {
+		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		return NULL;
+	}
+
+	/* create utf string in which '.' is replaced by '/' */
+	u = javastring_toutf(name, true);
+
+	/* create class */
+	c = class_new(u);
+
+	/* load class */
+	if (!class_load(c)) {
+		classinfo *xclass;
+
+		xclass = (*exceptionptr)->vftbl->class;
+
+		/* if the exception is a NoClassDefFoundError, we replace it with a
+		   ClassNotFoundException, otherwise return the exception */
+
+		if (xclass == class_get(utf_new_char(string_java_lang_NoClassDefFoundError))) {
+			/* clear exceptionptr, because builtin_new checks for 
+			   ExceptionInInitializerError */
+			*exceptionptr = NULL;
+
+			*exceptionptr =
+				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
+		}
+
+		return NULL;
+	}
+
+	/* resolve class -- if requested */
+	/* XXX TWISTI: we do not support REAL (at runtime) lazy linking */
+/*  	if (resolve) */
+		if (!class_link(c))
+			return NULL;
+
+	use_class_as_object(c);
+
+	return (java_lang_Class *) c;
 }
 
 
