@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 597 2003-11-09 20:08:18Z twisti $
+   $Id: codegen.c 636 2003-11-14 20:19:21Z stefan $
 
 */
 
@@ -367,6 +367,8 @@ void catch_NullPointerException(int sig, int code, struct sigcontext *sigctx)
 }
 
 
+#include <sys/fpu.h>
+
 void init_exceptions(void)
 {
 	struct sigaction sa;
@@ -400,6 +402,14 @@ void init_exceptions(void)
 	}
 
 	sigprocmask(SIG_UNBLOCK, &unblockmask, NULL);
+
+	/* Turn off flush-to-zero */
+	{
+		union fpc_csr n;
+		n.fc_word = get_fpc_csr();
+		n.fc_struct.flush = 0;
+		set_fpc_csr(n.fc_word);
+	}
 }
 
 
