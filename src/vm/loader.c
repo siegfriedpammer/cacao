@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2189 2005-04-02 02:05:59Z edwin $
+   $Id: loader.c 2190 2005-04-02 10:07:44Z edwin $
 
 */
 
@@ -67,6 +67,7 @@
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
+#include "vm/classcache.h"
 
 #if defined(USE_ZLIB)
 # include "vm/unzip.h"
@@ -1614,10 +1615,10 @@ static bool load_method(classbuffer *cb, methodinfo *m,descriptor_pool *descpool
 
 				idx = suck_u2(cb);
 				if (!idx) {
-					m->exceptiontable[j].catchtype = NULL;
+					m->exceptiontable[j].catchtype.any = NULL;
 
 				} else {
-					if (!(m->exceptiontable[j].catchtype =
+					if (!(m->exceptiontable[j].catchtype.cls =
 						  class_getconstant(c, idx, CONSTANT_Class)))
 						return false;
 				}
@@ -1687,10 +1688,10 @@ static bool load_method(classbuffer *cb, methodinfo *m,descriptor_pool *descpool
 			if (!check_classbuffer_size(cb, 2 * m->thrownexceptionscount))
 				return false;
 
-			m->thrownexceptions = MNEW(classinfo*, m->thrownexceptionscount);
+			m->thrownexceptions = MNEW(classref_or_classinfo, m->thrownexceptionscount);
 
 			for (j = 0; j < m->thrownexceptionscount; j++) {
-				if (!((m->thrownexceptions)[j] =
+				if (!((m->thrownexceptions)[j].cls =
 					  class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
 					return false;
 			}
@@ -1767,9 +1768,9 @@ static bool load_attributes(classbuffer *cb, u4 num)
    								
 				innerclassinfo *info = c->innerclass + j;
 
-				info->inner_class =
+				info->inner_class.cls =
 					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
-				info->outer_class =
+				info->outer_class.cls =
 					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
 				info->name =
 					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
@@ -1816,6 +1817,11 @@ classinfo *load_class_from_classloader(classinfo *c, java_objectheader *cl)
 {
 	classinfo *r;
 
+	/* lookup if this class has already been loaded */
+	r = classcache_lookup(cl,c->name);
+	if (r)
+		return r;
+
 	/* if other class loader than bootstrap, call it */
 
 	if (cl) {
@@ -1835,6 +1841,14 @@ classinfo *load_class_from_classloader(classinfo *c, java_objectheader *cl)
 											   javastring_new(c->name),
 											   NULL, NULL);
 
+		/* store this class in the loaded class cache */
+		if (r && !classcache_store(cl,r)) {
+			log_message_class("Could not cache:",c);
+			r->loaded = false;
+			class_remove(r);
+			r = NULL; /* exception */
+		}
+
 		return r;
 
 	} else {
@@ -1853,6 +1867,11 @@ classinfo *load_class_bootstrap(classinfo *c)
 {
 	classbuffer *cb;
 	classinfo *r;
+
+	/* lookup if this class has already been loaded */
+	r = classcache_lookup(NULL,c->name);
+	if (r)
+		return r;
 
 #if defined(USE_THREADS)
 	/* enter a monitor on the class */
@@ -1923,6 +1942,14 @@ classinfo *load_class_bootstrap(classinfo *c)
 	if (getcompilingtime)
 		compilingtime_start();
 #endif
+
+	/* store this class in the loaded class cache */
+	if (r && !classcache_store(NULL,c)) {
+		log_message_class("Could not cache:",c);
+		c->loaded = false;
+		class_remove(c);
+		r = NULL; /* exception */
+	}
 
 #if defined(USE_THREADS)
 	/* leave the monitor */

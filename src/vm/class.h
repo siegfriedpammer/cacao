@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2186 2005-04-02 00:43:25Z edwin $
+   $Id: class.h 2190 2005-04-02 10:07:44Z edwin $
 
 */
 
@@ -125,10 +125,10 @@ struct classinfo {                /* class structure                          */
 /* innerclassinfo *************************************************************/
 
 struct innerclassinfo {
-	classinfo *inner_class;       /* inner class pointer                      */
-	classinfo *outer_class;       /* outer class pointer                      */
-	utf       *name;              /* innerclass name                          */
-	s4         flags;             /* ACC flags                                */
+	classref_or_classinfo inner_class; /* inner class pointer                 */
+	classref_or_classinfo outer_class; /* outer class pointer                 */
+	utf                  *name;        /* innerclass name                     */
+	s4                    flags;       /* ACC flags                           */
 };
 
 

@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 2184 2005-04-01 21:19:05Z edwin $
+   $Id: method.h 2190 2005-04-02 10:07:44Z edwin $
 */
 
 
@@ -93,7 +93,7 @@ struct methodinfo {                 /* method structure                       */
 	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
 	u2          thrownexceptionscount;/* number of exceptions attribute       */
-	classinfo **thrownexceptions;   /* checked exceptions a method may throw  */
+	classref_or_classinfo *thrownexceptions; /* except. a method may throw    */
 
 	u2          linenumbercount;    /* number of linenumber attributes        */
 	lineinfo   *linenumbers;        /* array of lineinfo items                */
@@ -133,7 +133,7 @@ struct exceptiontable {         /* exceptiontable entry in a method           */
 	s4              handlerpc;  /* pc of exception handler                    */
 	basicblock     *handler;
 
-	classinfo      *catchtype;  /* catchtype of exception (NULL == catchall)  */
+	classref_or_classinfo catchtype; /* catchtype of exc. (NULL == catchall)  */
 	exceptiontable *next;       /* used to build a list of exception when     */
 	                            /* loops are copied */
 	exceptiontable *down;       /* instead of the old array, a list is used   */

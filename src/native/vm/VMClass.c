@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: VMClass.c 2190 2005-04-02 10:07:44Z edwin $
 
 */
 
@@ -252,7 +252,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 	if (!Java_java_lang_VMClass_isPrimitive(env, clazz, (java_lang_Class *) c) && (c->name->text[0] != '[')) {
 		/* determine number of declared classes */
 		for (i = 0; i < c->innerclasscount; i++) {
-			if ( (c->innerclass[i].outer_class == c) && (notPublicOnly || (c->innerclass[i].flags & ACC_PUBLIC)))
+			if ( (c->innerclass[i].outer_class.cls == c) && (notPublicOnly || (c->innerclass[i].flags & ACC_PUBLIC)))
 				/* outer class is this class */
 				declaredclasscount++;
 		}
@@ -263,8 +263,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 	result = builtin_anewarray(declaredclasscount, class_java_lang_Class);    	
 
 	for (i = 0; i < c->innerclasscount; i++) {
-		classinfo *inner = c->innerclass[i].inner_class;
-		classinfo *outer = c->innerclass[i].outer_class;
+		classinfo *inner = c->innerclass[i].inner_class.cls;
+		classinfo *outer = c->innerclass[i].outer_class.cls;
 		
 		if ((outer == c) && (notPublicOnly || (inner->flags & ACC_PUBLIC))) {
 			/* outer class is this class, store innerclass in array */
@@ -296,8 +296,8 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIE
 			return NULL;
     
 		for (i = 0; i < c->innerclasscount; i++) {
-			classinfo *inner =  c->innerclass[i].inner_class;
-			classinfo *outer =  c->innerclass[i].outer_class;
+			classinfo *inner =  c->innerclass[i].inner_class.cls;
+			classinfo *outer =  c->innerclass[i].outer_class.cls;
       
 			if (inner == c) {
 				/* innerclass is this class */

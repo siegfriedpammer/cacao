@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 2184 2005-04-01 21:19:05Z edwin $
+   $Id: codegen.c 2190 2005-04-02 10:07:44Z edwin $
 
 */
 
@@ -305,7 +305,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		dseg_addtarget(cd, ex->start);
    		dseg_addtarget(cd, ex->end);
 		dseg_addtarget(cd, ex->handler);
-		(void) dseg_addaddress(cd, ex->catchtype);
+		(void) dseg_addaddress(cd, ex->catchtype.cls);
 	}
 
 	

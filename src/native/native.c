@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: native.c 2190 2005-04-02 10:07:44Z edwin $
 
 */
 
@@ -606,6 +606,7 @@ java_objectarray* get_exceptiontypes(methodinfo *m)
     u2 excount;
     u2 i;
     java_objectarray *result;
+	classinfo *cls;
 
 	excount = m->thrownexceptionscount;
 
@@ -613,9 +614,10 @@ java_objectarray* get_exceptiontypes(methodinfo *m)
     result = builtin_anewarray(excount, class_java_lang_Class);
 
     for (i = 0; i < excount; i++) {
-		java_objectheader *o = (java_objectheader *) (m->thrownexceptions[i]);
-		use_class_as_object((classinfo *) o);
-		result->data[i] = o;
+		if (!resolve_classref_or_classinfo(NULL,m->thrownexceptions[i],resolveEager,false,&cls))
+			return NULL; /* exception */
+		use_class_as_object(cls);
+		result->data[i] = (java_objectheader *)cls;
     }
 
     return result;

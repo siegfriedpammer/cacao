@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: linker.c 2190 2005-04-02 10:07:44Z edwin $
 
 */
 
@@ -329,13 +329,13 @@ static classinfo *link_class_intern(classinfo *c)
 	if (c->linked)
 		return c;
 
+	if (linkverbose)
+		log_message_class("Linking class: ", c);
+
 	/* the class must be loaded */
 	if (!c->loaded)
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Trying to link unloaded class");
-
-	if (linkverbose)
-		log_message_class("Linking class: ", c);
 
 	/* ok, this class is somewhat linked */
 	c->linked = true;

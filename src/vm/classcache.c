@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: classcache.c 2190 2005-04-02 10:07:44Z edwin $
 
 */
 
@@ -385,6 +385,12 @@ classcache_store(classloader *initloader,classinfo *cls)
 	classcache_loader_entry *lden;
 
 	CLASSCACHE_ASSERT(cls);
+
+#ifdef CLASSCACHE_VERBOSE
+	fprintf(stderr,"classcache_store(%p,",initloader);
+	utf_fprint_classname(stderr,cls->name);
+	fprintf(stderr,")\n");
+#endif
 
 	CLASSCACHE_LOCK();
 

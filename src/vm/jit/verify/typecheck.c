@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: typecheck.c 2190 2005-04-02 10:07:44Z edwin $
 
 */
 
@@ -2133,9 +2133,10 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                         i = 0;
                         while (handlers[i]) {
 							TYPECHECK_COUNT(stat_handlers_reached);
-							cls = handlers[i]->catchtype; /* XXX change to classref */
-							excstack.typeinfo.typeclass.cls = (cls) ? cls
-								: class_java_lang_Throwable;
+							if (handlers[i]->catchtype.any)
+								excstack.typeinfo.typeclass = handlers[i]->catchtype;
+							else
+								excstack.typeinfo.typeclass.cls = class_java_lang_Throwable;
 							repeat |= typestate_reach(cd,rd, localbuf,bptr,
 													  handlers[i]->handler,
 													  &excstack,localset,
