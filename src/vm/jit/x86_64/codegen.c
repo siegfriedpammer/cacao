@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1353 2004-07-26 22:31:24Z twisti $
+   $Id: codegen.c 1367 2004-08-01 07:29:50Z stefan $
 
 */
 
@@ -177,6 +177,7 @@ void init_exceptions(void)
 	struct sigaction act;
 
 	/* install signal handlers we need to convert to exceptions */
+	sigemptyset(&act.sa_mask);
 
 	if (!checknull) {
 #if defined(SIGSEGV)
