@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1232 2004-06-30 19:47:43Z twisti $
+   $Id: stack.c 1275 2004-07-05 17:27:07Z twisti $
 
 */
 
@@ -639,12 +639,6 @@ methodinfo *analyse_stack(methodinfo *m)
 								iptr[0].opc = ICMD_IDIVPOW2;
 								goto icmd_iconst_tail;
 							case ICMD_IREM:
-#if !defined(NO_DIV_OPT)
-								if (iptr[0].val.i == 0x10001) {
-									iptr[0].opc = ICMD_IREM0X10001;
-									goto icmd_iconst_tail;
-								}
-#endif
 								if ((iptr[0].val.i == 0x00000002) ||
 									(iptr[0].val.i == 0x00000004) ||
 									(iptr[0].val.i == 0x00000008) ||
@@ -754,22 +748,38 @@ methodinfo *analyse_stack(methodinfo *m)
 								iptr[0].opc = ICMD_IFGE;
 								goto icmd_if_icmp_tail;
 
+#if SUPPORT_CONST_ASTORE
 							case ICMD_IASTORE:
-								iptr[0].opc = ICMD_IASTORECONST;
-							icmd_astore_tail:
-								iptr[1].opc = ICMD_NOP;
-								OPTT2_0(TYPE_INT, TYPE_ADR);
-								COUNT(count_pcmd_op);
-								break;
 							case ICMD_BASTORE:
-								iptr[0].opc = ICMD_BASTORECONST;
-								goto icmd_astore_tail;
 							case ICMD_CASTORE:
-								iptr[0].opc = ICMD_CASTORECONST;
-								goto icmd_astore_tail;
 							case ICMD_SASTORE:
-								iptr[0].opc = ICMD_SASTORECONST;
-								goto icmd_astore_tail;
+#if SUPPORT_ONLY_ZERO_ASTORE
+								if (iptr[0].val.i == 0) {
+#endif /* SUPPORT_ONLY_ZERO_ASTORE */
+									switch (iptr[1].opc) {
+									case ICMD_IASTORE:
+										iptr[0].opc = ICMD_IASTORECONST;
+										break;
+									case ICMD_BASTORE:
+										iptr[0].opc = ICMD_BASTORECONST;
+										break;
+									case ICMD_CASTORE:
+										iptr[0].opc = ICMD_CASTORECONST;
+										break;
+									case ICMD_SASTORE:
+										iptr[0].opc = ICMD_SASTORECONST;
+										break;
+									}
+
+									iptr[1].opc = ICMD_NOP;
+									OPTT2_0(TYPE_INT, TYPE_ADR);
+									COUNT(count_pcmd_op);
+#if SUPPORT_ONLY_ZERO_ASTORE
+								} else
+#endif /* SUPPORT_ONLY_ZERO_ASTORE */
+									PUSHCONST(TYPE_INT);
+								break;
+#endif /* SUPPORT_CONST_ASTORE */
 
 							default:
 								PUSHCONST(TYPE_INT);
@@ -878,12 +888,6 @@ methodinfo *analyse_stack(methodinfo *m)
 #endif
 								goto icmd_lconst_tail;
 							case ICMD_LREM:
-#if !defined(NO_DIV_OPT)
-								if (iptr[0].val.l == 0x10001) {
-									iptr[0].opc = ICMD_LREM0X10001;
-									goto icmd_lconst_tail;
-								}
-#endif
 								if ((iptr[0].val.l == 0x00000002) ||
 									(iptr[0].val.l == 0x00000004) ||
 									(iptr[0].val.l == 0x00000008) ||
@@ -987,12 +991,21 @@ methodinfo *analyse_stack(methodinfo *m)
 								break;
 #endif
 
+#if SUPPORT_CONST_ASTORE
 							case ICMD_LASTORE:
-								iptr[0].opc = ICMD_LASTORECONST;
-								iptr[1].opc = ICMD_NOP;
-								OPTT2_0(TYPE_INT, TYPE_ADR);
-								COUNT(count_pcmd_op);
+#if SUPPORT_ONLY_ZERO_ASTORE
+								if (iptr[0].val.l == 0) {
+#endif /* SUPPORT_ONLY_ZERO_ASTORE */
+									iptr[0].opc = ICMD_LASTORECONST;
+									iptr[1].opc = ICMD_NOP;
+									OPTT2_0(TYPE_INT, TYPE_ADR);
+									COUNT(count_pcmd_op);
+#if SUPPORT_ONLY_ZERO_ASTORE
+								} else
+#endif /* SUPPORT_ONLY_ZERO_ASTORE */
+									PUSHCONST(TYPE_LNG);
 								break;
+#endif /* SUPPORT_CONST_ASTORE */
 
 							default:
 								PUSHCONST(TYPE_LNG);
@@ -1014,6 +1027,7 @@ methodinfo *analyse_stack(methodinfo *m)
 
 					case ICMD_ACONST:
 						COUNT(count_pcmd_load);
+#if SUPPORT_CONST_ASTORE
 						if (len > 0 && iptr->val.a == 0) {
 							if (iptr[1].opc == ICMD_BUILTIN3 &&
 								iptr[1].val.a == BUILTIN_aastore) {
@@ -1026,9 +1040,9 @@ methodinfo *analyse_stack(methodinfo *m)
 								PUSHCONST(TYPE_ADR);
 							}
 
-						} else {
+						} else
+#endif /* SUPPORT_CONST_ASTORE */
 							PUSHCONST(TYPE_ADR);
-						}
 						break;
 
 						/* pop 0 push 1 load */
@@ -2532,7 +2546,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IMULCONST:
 	case ICMD_IDIVPOW2:
 	case ICMD_IREMPOW2:
-	case ICMD_IREM0X10001:
 	case ICMD_IANDCONST:
 	case ICMD_IORCONST:
 	case ICMD_IXORCONST:
@@ -2744,9 +2757,17 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IF_LGT:
 	case ICMD_IF_LLE:
 		if (deadcode || !iptr->target)
+#if defined(__I386__) || defined(__POWERPC__)
 			printf("(%lld) op1=%d", iptr->val.l, iptr->op1);
+#else
+			printf("(%ld) op1=%d", iptr->val.l, iptr->op1);
+#endif
 		else
+#if defined(__I386__) || defined(__POWERPC__)
 			printf("(%lld) L%03d", iptr->val.l, ((basicblock *) iptr->target)->debug_nr);
+#else
+			printf("(%ld) L%03d", iptr->val.l, ((basicblock *) iptr->target)->debug_nr);
+#endif
 		break;
 
 	case ICMD_JSR:
