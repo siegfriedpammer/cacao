@@ -1,3 +1,16 @@
+/*****
+If V() then why add call edges since no type info passed? 
+   does nothing happen when the method with V() is XTA parsed? class info is standalone then
+   what about clinits?
+Check initialization... need at least a dummy called by ...
+
+... why no error now????
+
+What about recursion???  x.a calls x.a
+
+Now wondering if there is a memory corruption because XTA seems to finish ok
+****/
+
 /* jit/parseXTA.c - parser and print functions for Rapid Type Analyis
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
@@ -26,7 +39,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.c 1959 2005-02-19 11:46:27Z carolyn $
+   $Id: parseXTA.c 1967 2005-02-25 15:51:05Z carolyn $
 
 */
 
@@ -58,8 +71,8 @@ Testing
 						+ missed methods
 2. For virtual method call from M of e.m then
   a. Add all static lookup of m in the cone of e = ce.mi to reachable worklist
-	JAVA_INVOKESTATIC/ JAVA_INVOKESPECIAL - addXTAcallededges
-	JAVA_INVOKEVIRTUAL - xtaMarkSubs
+	JAVA_INVOKESTATIC/ JAVA_INVOKESPECIAL - xtaAddCallEdges
+	JAVA_INVOKEVIRTUAL - xtaMarkSubs 
 	JAVA_INVOKEINTERFACES
   b. Add mi's parameters class + subtypes that are used by M to mi used classes
 	When XTA parsed follow the calls list (beg. parseXTA)
@@ -67,6 +80,8 @@ Testing
 	When XTA parsed follow the calledBy list (end parseXTA)
   d. Add ce of mi to mi's used classes
 	static/special  - addXTAcalledges
+	virtual - xtaMarkSubs if subclass used     -> xtaAddCallEdges
+			      if subclass not used -> add ce.mi to markedby temp set 
 
 3. new C (new, <init>, & similiar) then add  C to M's used classes
 	JAVA_NEW, INVOKE_SPECIAL <init>, JAVA_CHECKCAST / JAVA_INSTANCEOF - classinit 
@@ -126,7 +141,10 @@ FILE *xtaMissed;   /* Methods missed during XTA parse of Main  */
 bool XTA_DEBUGinf = false;
 bool XTA_DEBUGr = false;
 bool XTA_DEBUGopcodes = false;
- 
+
+char * clsFlgs  [] = {"NOTUSED", "PARTUSED", "USED"};
+char * methFlgs [] = {"NOTUSED", "MARKED",   "USED"};
+
 /*********************************************************************/
 /*********************************************************************/
 
@@ -165,39 +183,72 @@ xtainfo *xtainfoInit(methodinfo *m)
         m ->xta-> XTAclassSet   = add2ClassSet ( m ->xta-> XTAclassSet, m->class);  
 	/* cone set of methods parameters */ 
        		 /* what if no param?? is it NULL then, too? */ 
+   /****** class not loaded so take param info from superclass ??? */
         m->xta->paramClassSet = descriptor2typesL(m); 
 
 	/* Edges */
         m->xta->calls         = NULL;
         m->xta->calledBy      = NULL;
+        m ->xta->markedBy     = NULL; 
 
-        m ->xta->markedBy     = NULL;
         m->xta->chgdSinceLastParse = false;
         return m->xta;
 
 	/* thought needed at some earlier point */
-        /*m->xta->marked        = NULL; * comment out*/
         /*m ->xta->interfaceCalls    = NULL*/
 }
 
 /*-------------------------------------------------------------------------------*/
 void xtaAddCallEdges(methodinfo *mCalls, methodinfo *mCalled, s4 monoPoly, char *info) {
-    xtaNode    *xta;
+    xtaNode    *xta = NULL;
 
+
+if (mCalled->flags & ACC_ABSTRACT) return;
 /* First call to this method initializations */
+		/******
+printf("mCalled->methodUsed =%i != %i = USED is ",mCalled->methodUsed, USED); fflush(stdout);
+printf(" <%i> T%i/%iF\n",(mCalled->methodUsed!= USED), true,false); fflush(stdout);
+		******/
+
 if (mCalled->methodUsed != USED) {
-  if (!(mCalled->flags & ACC_ABSTRACT))  {
+		/******
+		printf("\n>>>>>>%s:\n",info); fflush(stdout);
+		printf("Add to Worklist mCalls_=");fflush(stdout);
+		if (mCalls!=NULL) {
+			printf("<"); fflush(stdout);
+			METHINFOx(mCalls)
+			printf("> "); fflush(stdout);
+			}
+		else
+			{
+			printf("NULL\n");fflush(stdout);
+			}
+
+		printf("mCalled=");fflush(stdout);
+		if (mCalled!=NULL) {
+			printf("<"); fflush(stdout);
+			METHINFOx(mCalled)
+			printf("> "); fflush(stdout);
+			}
+		else
+			{printf("NULL\n");fflush(stdout);}
+		****/
     mCalled->xta = xtainfoInit(mCalled);
     mCalled ->methodUsed = USED; /* used to see if method in the work list of methods */ 
     xta = NEW(xtaNode);
     xta->method = mCalled ;
-    list_addlast(xtaWorkList,xta);
+    list_addlast(xtaWorkList,xta);  
     }
-  else return; /* abstract */
-  }
 
-if ((mCalls == NULL) && (monoPoly == SYSCALL)) return;
+if ((mCalls == NULL) && (!(monoPoly == SYSCALL)) ) {} /* panic when init file correct is */
+
+if ((mCalls == mCalled)  /* recursion doesn't change class set nor field set so ignore */
+  || (mCalls == NULL)) {return; }  
+
+
+/***		printf(" AddCallEdges\n"); fflush(stdout); ***/
 /* Add call edges */
+mCalls->xta = xtainfoInit(mCalls);
 mCalls->xta->calls = add2MethSet(mCalls->xta->calls, mCalled);
 			/* mono if static, private, final else virtual so poly */
 mCalls->xta->calls->tail->monoPoly = monoPoly;  
@@ -238,8 +289,13 @@ bool xtaPassParams (methodinfo *Called, methodinfo *Calls, methSetNode *lastptrI
 
                 /* for each SmCalls class */
                 for (c=c1; c != NULL; c = c->nextClass) {
-                        vftbl_t *p_cl_vt = p->classType->vftbl;
-                        vftbl_t *c_cl_vt = c->classType->vftbl;
+                        vftbl_t *p_cl_vt;
+                        vftbl_t *c_cl_vt;
+
+			LAZYLOADING(c->classType)  /* if not loaded is it really needed ??? */
+
+                        p_cl_vt = p->classType->vftbl;
+                        c_cl_vt = c->classType->vftbl;
 
                         /* if SmCalls class is in the Params Class range */
                         if (  (p_cl_vt->baseval <=  c_cl_vt->baseval)
@@ -281,11 +337,12 @@ void xtaPassFldPUT(methodinfo *m, fldSetNode *fN)
 	classSetNode *cprev= NULL;
 
 	fieldinfo *fi;
+		
 	if (fN != NULL)
 		fi = fN->fldRef;
 	else
 		return;
-
+	
 /* Use lastptr  so don't check whole XTA class set each time */
 	cp = fN->lastptrPUT;
 	if (cp != NULL) {
@@ -301,9 +358,13 @@ void xtaPassFldPUT(methodinfo *m, fldSetNode *fN)
 	/* Sx = intersection of type+subtypes(field x)   */
 	/*   and Sm (where putstatic code is)            */
 	for (c=c1; c != NULL; c=c->nextClass) {
-		vftbl_t *f_cl_vt = fi->xta->fldClassType->vftbl;
-		vftbl_t *c_cl_vt =  c->   classType->vftbl;
+		vftbl_t *f_cl_vt;
+		vftbl_t *c_cl_vt;
 
+		LAZYLOADING1(fi->xta->fldClassType)
+
+		f_cl_vt = fi->xta->fldClassType->vftbl;
+		c_cl_vt = c->   classType->vftbl;
 		if ((f_cl_vt->baseval <= c_cl_vt->baseval)
 			&& (c_cl_vt->baseval <= (f_cl_vt->baseval+f_cl_vt->diffval)) ) {
 			fi->xta->XTAclassSet = add2ClassSet(fi->xta->XTAclassSet,c->classType);
@@ -402,8 +463,12 @@ bool xtaPassReturnType(methodinfo *Called, methodinfo *Calls) {
 
 	for (cs =cs1; cs != NULL; cs = cs->nextClass) {
 		classinfo *c = cs->classType;
-		vftbl_t *r_cl_vt = Called->returnclass->vftbl; 
-		vftbl_t *c_cl_vt = c->vftbl; 
+		vftbl_t *r_cl_vt; 
+		vftbl_t *c_cl_vt; 
+		LAZYLOADING(c)
+		LAZYLOADING(Called->returnclass)
+		r_cl_vt = Called->returnclass->vftbl; 
+		c_cl_vt = c->vftbl; 
 
 		/* if class is a subtype of the return type, then add to Calls class set (ie.interscection)*/
 		if (  (r_cl_vt->baseval <=  r_cl_vt->baseval)
@@ -424,8 +489,10 @@ void  xtaMethodCalls_and_sendReturnType(methodinfo *m)
         methSetNode *SmCalls;   /* for calls param types */
         methSetNode *s1=NULL;
         bool chgd = false;
+
         xtaAllFldsUsed (m);
 
+	if (m->xta == NULL) panic("m->xta null for return type\n");
         /* for each method that this method calls */
         if (m->xta->calls == NULL)
                 s1 = NULL;
@@ -455,6 +522,7 @@ void  xtaMethodCalls_and_sendReturnType(methodinfo *m)
                         SmCalled->methRef->xta->chgdSinceLastParse = chgd;
                 }
         }
+
 }
 
 /*-------------------------------------------------------------------------------*/
@@ -534,14 +602,12 @@ if (mCalls->xta->calls != NULL) {
 
 #undef CTA 
 #ifdef CTA
-  /* Class Type Analysis if class.method in virt cone marks it used */
-  /*   very inexact, too many extra methods */
   XTAaddClassInit(submeth,	submeth->class,
 		CLINITS_T,FINALIZE_T,ADDMARKED_T);
   if (inSet(subtypesUsedSet,submeth->class)) {
       submeth->monoPoly = POLY;
       xtaAddCallEdges(mCalls, submeth, submeth->monoPoly, 
- 		      "addTo XTA VIRT CONE:");
+ 		      "00addTo XTA VIRT CONE:");
       }
   return;
 #endif
@@ -555,7 +621,7 @@ if (mCalls->xta->calls != NULL) {
 		/*    -> mark method as USED       */
   		submeth->monoPoly = POLY;
       		xtaAddCallEdges(mCalls, submeth, submeth->monoPoly, 
-	   		"addTo VIRT CONE 1:");
+	   		"01addTo VIRT CONE 1:");
 		}
 	else 	{
 		/* method defined in this class -> */
@@ -564,6 +630,10 @@ if (mCalls->xta->calls != NULL) {
 		METHINFOt(submeth,
 	 		"\tmarked VIRT CONE 2:",XTA_DEBUGr);
 		submeth->monoPoly = POLY;
+		if (submeth->xta == NULL) {
+    			submeth->xta = xtainfoInit(submeth);
+			}
+    		submeth->methodUsed = MARKED; /* used to see if method in the work list of methods */ 
 		submeth->xta->markedBy = add2MethSet(submeth->xta->markedBy,mCalls);
 		/* Note: if class NOTUSED and subclass is used handled  */
 		/*       by subsequent calls to xtaMarkMethods for cone */
@@ -571,22 +641,26 @@ if (mCalls->xta->calls != NULL) {
 	} /* end defined in class */
 
   else {
-	/*--- Method NOT defined in class ---------------*/
+	/*--- Method NOT defined in class  - defined up the heirarchy ---------------*/
+        /* then check class the method could be called with */
+
         /* first mark classes if needed */
   	if (!(inSet(subtypesUsedSet,submeth->class))) {
-		submeth->class->classUsed = PARTUSED; /**** ???? equivalant for xta ???? */
+		submeth->class->classUsed = PARTUSED; 
   		if (!(inSet(subtypesUsedSet,class))) {
 			submeth->monoPoly = POLY;
+			if (submeth->xta == NULL)
+    				submeth->xta = xtainfoInit(submeth);
+    			submeth->methodUsed = MARKED; /* used to see if method in the work list of methods */ 
 			submeth->xta->markedBy = add2MethSet(submeth->xta->markedBy,mCalls);
 			METHINFOt(submeth,"JUST MARKED :",XTA_DEBUGr);
 			}
 		}
         /* add method to xta work list if conditions met */
-		/*??if ( (submeth->class->classUsed == USED) ||  */
   	if (inSet(subtypesUsedSet,class)) {
   		submeth->monoPoly = POLY;
   		xtaAddCallEdges(mCalls, submeth, submeth->monoPoly, 
-	  			"addTo VIRT CONE 3:");
+	  			"02addTo VIRT CONE 3:");
 		}
   	} /* end NOT defined in class */
 
@@ -606,7 +680,6 @@ void xtaMarkSubs(methodinfo *mCalls, classinfo *class, methodinfo *topmethod, cl
 
                 if (!(topmethod->flags & ACC_FINAL )) {
                         for (subs = class->sub; subs != NULL; subs = subs->nextsub) {
-                                /* xtaPRINTmarkSubs1 */
                                 xtaMarkSubs(mCalls, subs, topmethod, subtypesUsedSet);
                                 }
                         }
@@ -618,7 +691,7 @@ void xtaMarkSubs(methodinfo *mCalls, classinfo *class, methodinfo *topmethod, cl
 /* Add Marked methods for input class ci                                  */
 /* Add methods with the same name and descriptor as implemented interfaces*/
 /*   with the same method name                                            */
-/*  ??? not XTA checked                                                                      */
+/*  ??? interface part not XTA checked                                    */
 /*------------------------------------------------------------------------*/
 void xtaAddMarkedMethods(methodinfo *mCalls, classinfo *ci) {
 int ii,jj,mm;
@@ -627,32 +700,94 @@ int ii,jj,mm;
 for (ii=0; ii<ci->methodscount; ii++) { 
 	methodinfo *mi = &(ci->methods[ii]);
 
-	if (mi->methodUsed == MARKED) { 
-		xtaAddCallEdges(mCalls, mi, MONO,  /* SHOULD this really be MONO ?????? */
-				"addTo was MARKED:");
-		}
-	else	{
-		for (jj=0; jj < ci -> interfacescount; jj++) {
-			classinfo *ici = ci -> interfaces [jj];
-			/*  use resolve method....!!!! */
-			if (ici -> classUsed != NOTUSED) {
-				for (mm=0; mm< ici->methodscount; mm++) {
-					methodinfo *imi = &(ici->methods[mm]);
-					METHINFOt(imi,"NEW IMPD INTERFACE:",XTA_DEBUGinf)
-				      /*if interface method=method is used*/
-					if  (  	   (imi->methodUsed == USED)
-			   &&	 ( (imi->name == mi->name) 
-			   && 	   (imi->descriptor == mi->descriptor))) {
+	if (mi->xta != NULL) {
+		if (mi->xta->markedBy != NULL) {
+			methSetNode *mcnode;
+			for (mcnode = mi->xta->markedBy->head; mcnode  != NULL; mcnode  = mcnode ->nextmethRef) {
+				methodinfo *mCalls = mcnode->methRef;
 				xtaAddCallEdges(mCalls, mi, mi->monoPoly, 
-				     "addTo was interfaced used/MARKED:");
-					  }
-					} /*end for */	
+        				"03addToInit was Marked added:");
 				}
 			}
-		}
+
+		else	{ /* NOT XTA checked yet */
+			for (jj=0; jj < ci -> interfacescount; jj++) {
+				classinfo *ici = ci -> interfaces [jj];
+				/*  use resolve method....!!!! */
+				if (ici -> classUsed != NOTUSED) {
+					for (mm=0; mm< ici->methodscount; mm++) {
+						methodinfo *imi = &(ici->methods[mm]);
+						METHINFOt(imi,"NEW IMPD INTERFACE:",XTA_DEBUGinf)
+					      /*if interface method=method is used*/
+						if  (  	   (imi->methodUsed == USED)
+						   &&	 ( (imi->name == mi->name) 
+			  	 		   &&      (imi->descriptor == mi->descriptor))) {
+							xtaAddCallEdges(mCalls, mi, mi->monoPoly, 
+				    				 "04addTo was interfaced used/MARKED:");
+					 		} 
+						} /*end for */	
+					}
+				}
+			}
+		}	
 	}
 }    
-void xtaAddUsedInterfaceMethods(methodinfo *m, classinfo *ci); /* prototype until check code for xta */
+
+
+/*------------------------------------------------------------------------*/
+void xtaAddUsedInterfaceMethods(methodinfo *m, classinfo *ci) {
+	int jj,mm;
+
+	/* add used interfaces methods to callgraph */
+	for (jj=0; jj < ci -> interfacescount; jj++) {
+		classinfo *ici = ci -> interfaces [jj];
+	
+		if (XTA_DEBUGinf) { 
+			printf("BInterface used: ");fflush(stdout); 
+			utf_display(ici->name);
+			printf("<%i>\tclassUsed=%s\n",ici -> classUsed,clsFlgs[ici->classUsed] ); fflush(stdout); 
+			}
+		/* add class to interfaces list of classes that implement it */
+		ici -> impldBy =  addElement(ici -> impldBy,  ci);
+
+		/* if interface class is used */
+       		 if (ici -> classUsed != NOTUSED) {
+
+			/* for each interface method implementation that has already been used */
+			for (mm=0; mm< ici->methodscount; mm++) {
+				methodinfo *imi = &(ici->methods[mm]);
+					if  ( (XTA_DEBUGinf) && (imi->methodUsed != USED)) {
+						printf("Interface Method %s: ", methFlgs[imi->methodUsed]); 
+						utf_display(ici->name);printf(".");method_display(imi);fflush(stdout);
+					}
+				if  (imi->methodUsed == USED) {
+					    if (XTA_DEBUGinf) { 
+						printf("Interface Method used: "); utf_display(ici->name);printf(".");method_display(imi);fflush(stdout);
+						/* Mark this method used in the (used) implementing class &its subclasses */
+						printf("rMAY ADD methods that was used by an interface\n");
+						}
+					if ((utf_clinit != imi->name) &&
+					    (utf_init   != imi->name))
+						{
+						classSetNode *subtypesUsedSet = NULL;
+						if (m->xta->XTAclassSet != NULL) {
+							subtypesUsedSet =
+								intersectSubtypesWithSet
+								(imi->class, m->xta->XTAclassSet->head);
+							}
+						else /* can any methods be added if 1 set is NULL ??? */
+							subtypesUsedSet = addElement(subtypesUsedSet, m->class);
+					    	xtaMarkSubs(m, ci, imi, subtypesUsedSet); 
+						imi->monoPoly = POLY;
+
+						}
+					}	
+				} /* end for method */
+			} /* end != NOTUSED */
+		} /* end for interface */
+
+}
+
 
 /*----------------------------------------------------------------------*/
 
@@ -679,7 +814,7 @@ void XTAaddClassInit(methodinfo *mCalls, classinfo *ci, bool clinits, bool final
 	    ci->classUsed = PARTUSED;
         mi->monoPoly = MONO;
 	xtaAddCallEdges(mCalls, mi, mi->monoPoly, 
-        		"addTo CLINIT added:");
+        		"05addTo CLINIT added:");
       }     
     }        
 
@@ -696,14 +831,16 @@ void XTAaddClassInit(methodinfo *mCalls, classinfo *ci, bool clinits, bool final
 	    ci->classUsed = PARTUSED;
 	mi->monoPoly = MONO;
 	xtaAddCallEdges(mCalls, mi, mi->monoPoly, 
-        		"addTo FINALIZE added:");
+        		"06addTo FINALIZE added:");
       }     
     }        
 
   if (addmark) {
     xtaAddMarkedMethods(mCalls, ci);
     }
-  xtaAddUsedInterfaceMethods(mi,ci);
+
+  /* always so know have access to the interface methods */
+  xtaAddUsedInterfaceMethods(mCalls,ci);
 
 }
 
@@ -712,116 +849,53 @@ void XTAaddClassInit(methodinfo *mCalls, classinfo *ci, bool clinits, bool final
 /*********************************************************************/
 /*********************************************************************/
 
-/**************************************************************************/
-
-/*------------------------------------------------------------------------*/
-void xtaAddUsedInterfaceMethods(methodinfo *m, classinfo *ci) {
-	int jj,mm;
-
-	/* add used interfaces methods to callgraph */
-	for (jj=0; jj < ci -> interfacescount; jj++) {
-		classinfo *ici = ci -> interfaces [jj];
-	
-		if (XTA_DEBUGinf) { 
-			printf("BInterface used: ");fflush(stdout); 
-			utf_display(ici->name);
-			printf("<%i>\t",ici -> classUsed ); fflush(stdout); 
-			if (ici -> classUsed == NOTUSED) printf("\t classUsed=NOTUSED\n" );
-			if (ici -> classUsed == USED) printf("\t classUsed=USED\n");
-			if (ici -> classUsed == PARTUSED) printf("\t classUsed=PARTUSED\n");
-			fflush(stdout);
-		}
-		/* add class to interfaces list of classes that implement it */
-		ici -> impldBy =  addElement(ici -> impldBy,  ci);
-
-		/* if interface class is used */
-        if (ici -> classUsed != NOTUSED) {
-
-			/* for each interface method implementation that has already been used */
-			for (mm=0; mm< ici->methodscount; mm++) {
-				methodinfo *imi = &(ici->methods[mm]);
-				if (XTA_DEBUGinf) { 
-					if  (imi->methodUsed != USED) {
-						if (imi->methodUsed == NOTUSED) printf("Interface Method notused: "); 
-						if (imi->methodUsed == MARKED) printf("Interface Method marked: "); 
-						utf_display(ici->name);printf(".");method_display(imi);fflush(stdout);
-					}
-				} 
-				if  (imi->methodUsed == USED) {
-					if (XTA_DEBUGinf) { 
-						printf("Interface Method used: "); utf_display(ici->name);printf(".");method_display(imi);fflush(stdout);
-
-						/* Mark this method used in the (used) implementing class and its subclasses */
-						printf("rMAY ADD methods that was used by an interface\n");
-					}
-					if ((utf_clinit != imi->name) &&
-					    (utf_init != imi->name))
-						{
-						classSetNode *subtypesUsedSet = NULL;
-					    	xtaMarkSubs(m, ci, imi, subtypesUsedSet); /*** CODE not finished for set */
-						}
-				}
-			}
-		}
-	}
-
-}
-
-
-/*********************************************************************/
+/*-------------------------------------------------------------------*/
 
 void xtaMarkInterfaceSubs(methodinfo *m, methodinfo *mi) {				
 	classSetNode *subs;
 	if (mi->class->classUsed == NOTUSED) {
 		mi->class->classUsed = USED; 
+		/* add interface class to list kept in Object */
 		class_java_lang_Object->impldBy =  addElement(class_java_lang_Object -> impldBy,  mi->class);
 		}
 
-	/* add interface class to list kept in Object */
 	mi->methodUsed = USED;
 	mi->monoPoly   = POLY;
 
-	subs =  mi->class->impldBy; 
-            /*XTAPRINT08invokeInterface1*/
+               	   /*XTAPRINT08invokeInterface1*/
 		   if (XTA_DEBUGinf) {
+			subs =  mi->class->impldBy; 
 			METHINFO(mi,XTA_DEBUGinf)
                         printf("Implemented By classes :\n");fflush(stdout);
-                        if (subs == NULL) printf("\tNOT IMPLEMENTED !!!\n");
-                        fflush(stdout);
+                        if (subs == NULL) printf("\tNOT IMPLEMENTED !!!\n"); fflush(stdout);
 			}
-	while (subs != NULL) { 			
+	for (subs =  mi->class->impldBy; subs != NULL; subs = subs->nextClass) {
 		methodinfo *submeth;
 		   if (XTA_DEBUGinf) {
 		       printf("\t");utf_display(subs->classType->name);fflush(stdout);
 			printf(" <%i>\n",subs->classType->classUsed);fflush(stdout);
 			}
+
 		/*Mark method (mark/used) in classes that implement method*/
-						
 		submeth = class_findmethod(subs->classType, mi->name, mi->descriptor); 
 		if (submeth != NULL) {
 			classSetNode *subtypesUsedSet = NULL;
 			submeth->monoPoly = POLY; /*  poly even if nosubs */
-			mi->xta->XTAmethodUsed = USED;
+    			submeth->xta = xtainfoInit(submeth);
+			
+			submeth->xta->XTAmethodUsed = USED;
 			if (m->xta->XTAclassSet != NULL) {
-				subtypesUsedSet =
-				intersectSubtypesWithSet
-					(subs->classType, m->xta->XTAclassSet->head);
-
-                                 subtypesUsedSet =
-                                 intersectSubtypesWithSet(mi->class, m->xta->XTAclassSet->head);
+				subtypesUsedSet =     /* interface classes cone */
+				intersectSubtypesWithSet(subs->classType, m->xta->XTAclassSet->head);
 				}
-                         else
+                         else {  /* can any methods be added if 1 set is NULL ??? */
                                  subtypesUsedSet = addElement(subtypesUsedSet, m->class);
-                         xtaMarkSubs(m, subs->classType, mi, subtypesUsedSet);
+				}
+                         xtaMarkSubs(m, subs->classType, submeth, subtypesUsedSet);
                          }
 				
-		subs = subs->nextClass;
-		} /* end while */
+		} /* end for */
 } 
-
-
-
-
 
 				
 
@@ -836,8 +910,14 @@ int parseXTA(methodinfo *m)
         bool iswide = false;        /* true if last instruction was a wide*/
         int rc = 1;
 
+if (m->methodXTAparsed) return 0;
+else m->methodXTAparsed = true;
+
+/***XTA_DEBUGopcodes=false;***/
+/***printf("\n-----------------------------------\n"); **/
 METHINFOt(m,"\n----XTA PARSING:",XTA_DEBUGopcodes); 
 if ((XTA_DEBUGr)||(XTA_DEBUGopcodes)) printf("\n");
+/***XTA_DEBUGopcodes=false;***/
         if (m->xta == NULL) {
 		xtainfoInit (m);
 		}
@@ -938,7 +1018,10 @@ if ((XTA_DEBUGr)||(XTA_DEBUGopcodes)) printf("\n");
 
 				if (!fi)
 					return 0; /* was NULL */
-
+/***
+printf(" PUTSTATIC:");fflush(stdout); utf_display(fi->class->name);printf(".");fflush(stdout);
+				      utf_display(fi->name);printf("\n");fflush(stdout);
+***/
 				fi->xta = xtafldinfoInit(fi);
 				XTAaddClassInit(m,	fi->class,
 						CLINITS_T,FINALIZE_T,ADDMARKED_F);
@@ -968,6 +1051,10 @@ if ((XTA_DEBUGr)||(XTA_DEBUGopcodes)) printf("\n");
 				if (!fi)
 					return 0; /* was NULL */
 
+/***
+printf(" GETSTATIC:");fflush(stdout); utf_display(fi->class->name);printf(".");fflush(stdout);
+				      utf_display(fi->name);printf("\n");fflush(stdout);
+***/
 				fi->xta = xtafldinfoInit(fi);
 				XTAaddClassInit(m,	fi->class,
 						CLINITS_T,FINALIZE_T,ADDMARKED_F);
@@ -1017,10 +1104,10 @@ if ((XTA_DEBUGr)||(XTA_DEBUGopcodes)) printf("\n");
 					if (opcode == JAVA_INVOKESTATIC)  /* if stmt just for debug tracing */	   
 						             /* calls , called */
 						xtaAddCallEdges(m, mi, MONO, 
-							"addTo INVOKESTATIC "); 
+							"07addTo INVOKESTATIC "); 
 					else 
 						xtaAddCallEdges(m, mi, MONO, 
-							"addTo INVOKESPECIAL ");	
+							"08addTo INVOKESPECIAL ");	
 					} /* end STATIC, PRIVATE, FINAL */ 
 				     	
 				   else {
@@ -1050,7 +1137,7 @@ if ((XTA_DEBUGr)||(XTA_DEBUGopcodes)) printf("\n");
 										CLINITS_T,FINALIZE_T,ADDMARKED_T);
 					        		}
 							xtaAddCallEdges(m, mi, MONO, 
-									"addTo INIT ");
+									"09addTo INIT ");
 							} /* end just for <init> ()V */
 					 		
 						/* <clinit> for class inits do not add marked methods; 
@@ -1065,14 +1152,14 @@ if ((XTA_DEBUGr)||(XTA_DEBUGopcodes)) printf("\n");
 							if (mi->class->classUsed !=USED)
 								mi->class->classUsed = PARTUSED;
 							xtaAddCallEdges(m, mi, MONO, 
-								"addTo SPEC notINIT ");
+								"10addTo SPEC notINIT ");
 							} 
 					  			
 						} /* end init'd class not used = class init process was needed */ 
 							
 					/* add method to XTA list = set of reachable methods */	
 					xtaAddCallEdges(m, mi, MONO, 
-						"addTo SPEC whymissed ");
+						"11addTo SPEC whymissed ");
 					} /* end inits */
 				} 
 /***  assume if method can't be resolved won't actually be called or
@@ -1115,15 +1202,18 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 				       }
   				      mi->monoPoly = MONO;
 				      xtaAddCallEdges(m, mi, MONO, 
-				  	            "addTo INVOKEVIRTUAL ");
+				  	            "12addTo INVOKEVIRTUAL ");
 				      } 
 				   else { /* normal virtual */
+					  /* get the set of used subtypes if none at least the current methods class */
         				classSetNode *subtypesUsedSet = NULL;
-				        if (m->xta->XTAclassSet != NULL)
+				        if (m->xta->XTAclassSet != NULL) {
 					        subtypesUsedSet =
 				                intersectSubtypesWithSet(mi->class, m->xta->XTAclassSet->head);
-				        else
+						}
+				        else { /* can any methods be added if 1 set is NULL ??? */
 				                subtypesUsedSet = addElement(subtypesUsedSet, m->class);
+						}
 				       mi->monoPoly = POLY;
 				       xtaMarkSubs(m, mi->class, mi, subtypesUsedSet);
 				       }
@@ -1167,13 +1257,13 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
                 /* class is really instantiated when class.<init> called*/
                         i = code_get_u2(p + 1,m);
 			{
-			classinfo *ci;
-                        ci = class_getconstant(m->class, i, CONSTANT_Class);
+			classinfo *cls;
+                        cls = class_getconstant(m->class, i, CONSTANT_Class);
                         /*** s_count++; look for s_counts for VTA */
 			/* add marked methods */
-			CLASSNAME(ci,"NEW : do nothing",XTA_DEBUGr);
-			XTAaddClassInit(m, ci, CLINITS_T, FINALIZE_T,ADDMARKED_T); 
-			m->xta->XTAclassSet = add2ClassSet(m->xta->XTAclassSet,ci );
+			CLASSNAME(cls,"NEW : do nothing",XTA_DEBUGr);
+			XTAaddClassInit(m, cls, CLINITS_T, FINALIZE_T,ADDMARKED_T); 
+			m->xta->XTAclassSet = add2ClassSet(m->xta->XTAclassSet,cls );
 			}
                         break;
 
@@ -1243,8 +1333,8 @@ else
 methodinfo *initializeXTAworklist(methodinfo *m) {
   	classinfo  *c;
         methodinfo* callmeth;
-	char systxt[]    = "System     Call :";
-	char missedtxt[] = "xtaMissedIn Call :";
+	char systxt[]    = "2S addTo System     Call :";
+	char missedtxt[] = "2M addTo xtaMissedIn Call :";
 
 	FILE *xtaMissedIn; /* Methods missed during previous XTA parse */
 	char line[256];
@@ -1259,6 +1349,7 @@ methodinfo *initializeXTAworklist(methodinfo *m) {
 	/* Add first method to call list */
        	m->class->classUsed = USED; 
         xtaAddCallEdges(NULL, m, SYSCALL, systxt); 
+
 	/* Add system called methods */
 /*** 	SYSADD(mainstring, "main","([Ljava/lang/String;)V", SYSCALL, systxt) ***/
  	SYSADD(MAINCLASS, MAINMETH, MAINDESC, SYSCALL, systxt)
@@ -1297,7 +1388,9 @@ methodinfo *missedXTAworklist()
 	char filenameIn[256] = "xtaIn/";
 	char line[256];
 	char* class, *meth, *desc;
+	/****
 	char* calls_class, *calls_meth, *calls_desc;
+	****/
 	char missedtxt[] = "xtaIn/ missed Call :";
   	classinfo  *c;
         methodinfo* callmeth;
@@ -1317,16 +1410,22 @@ methodinfo *missedXTAworklist()
 		return rm;
 		}
 	while (XTAgetline(line,256,xtaMissedIn)) {
+	/****
 	    calls_class = strtok(line, " \n");
 	    calls_meth  = strtok(NULL, " \n");
 	    calls_desc  = strtok(NULL, " \n");
 	    
 	    class = strtok(NULL, " \n");
+	****/
+	    class = strtok(line, " \n");
 	    meth  = strtok(NULL, " \n");
 	    desc  = strtok(NULL, " \n");
 	    
+	/****
 	    if ((calls_class == NULL) || (calls_meth == NULL) || (calls_desc == NULL) 
 	    ||        (class == NULL) ||       (meth == NULL) ||       (desc == NULL))  
+	****/
+	    if (        (class == NULL) ||       (meth == NULL) ||       (desc == NULL))  
 		panic (
 		"Error in xtaMissedIn file: Missing a part of calls_class.calls_meth calls calls_desc class.meth desc \n"); 
  	    SYSADD(class,meth,desc, POLY, missedtxt)
@@ -1364,6 +1463,7 @@ void parseXTAmethod(methodinfo *xta_method) {
             }            	
 }
 
+void XTAprintCallgraph (list *xtaWorkList, char * txt);
 
 /*-- XTA -- *******************************************************/
 int XTA_jit_parse(methodinfo *m)
@@ -1379,6 +1479,7 @@ int XTA_jit_parse(methodinfo *m)
       	    log_text("XTA static analysis started.\n");
 
     mainmeth = initializeXTAworklist(m);
+/**	XTAprintCallgraph (xtaWorkList, "after init1"); **/
     firstCall = false; /* turn flag off */
 
     if ( (xtaMissed = fopen("xtaMissed", "w")) == NULL) {
@@ -1392,13 +1493,16 @@ int XTA_jit_parse(methodinfo *m)
 	 xta =list_next(xtaWorkList,xta)) 
         { 
 	parseXTAmethod(xta->method);
+/**	XTAprintCallgraph (xtaWorkList, "after an XTA method parse 1"); **/
     	}	
     missedXTAworklist();  
+/**	XTAprintCallgraph (xtaWorkList, "after missed"); **/
     for (xta =list_first(xtaWorkList); 
 	 xta != NULL; 
 	 xta =list_next(xtaWorkList,xta)) 
         { 
 	parseXTAmethod(xta->method);
+/**	XTAprintCallgraph (xtaWorkList, "after an XTA method parse 2"); **/
     	}	
 
     fclose(xtaMissed);
@@ -1406,7 +1510,7 @@ int XTA_jit_parse(methodinfo *m)
         if (opt_stat) {
           printf("printXTAhierarchyInfo(m); not yet there\n");
 	  }
-      printf("printCallgraph(xtaWorkList); should be called here\n");
+	XTAprintCallgraph (xtaWorkList, "After all XTA parses");
       }
 
     if (opt_verbose) {
@@ -1415,6 +1519,31 @@ int XTA_jit_parse(methodinfo *m)
   }
 return 0;
 }
+
+/*--------------------------------------------------------------*/
+void XTAprintCallgraph (list *xtaWorkList, char * txt)
+{
+    int i = 1;
+    xtaNode    *xta;
+    methodinfo *xta_meth;
+
+ printf("\n%s\n",txt);
+ printf("-*-*-*-*- XTA Callgraph Worklist:<%i>\n",count_methods_marked_used);
+
+   for (xta =list_first(xtaWorkList);
+         xta != NULL;
+         xta =list_next(xtaWorkList,xta))
+        {
+         xta_meth = xta->method;
+
+         printf("  (%i): ",i++);
+         method_display_w_class(xta_meth);
+        }
+
+ printf("\n\n");
+
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 1928 2005-02-10 10:51:12Z twisti $
+   $Id: parse.c 1967 2005-02-25 15:51:05Z carolyn $
 
 */
 
@@ -182,11 +182,13 @@ classSetNode *descriptor2typesL(methodinfo *m)
 	case '[':
 		m->returntype = TYPE_ADR;
 		c = *desc;
-		while (c == '[')
+		while (c == '[') {
 			c = *desc++;
+			}
 		if (c != 'L') break;
-		*(desc++);
-			   
+		c = *desc;
+		if (c == 'L')
+		   	*(desc++); 
 	case 'L':  
 		m->returntype = TYPE_ADR;
 			  
@@ -194,7 +196,7 @@ classSetNode *descriptor2typesL(methodinfo *m)
 		class = strtok(desc,";");
 		m->returnclass = class_get(utf_new_char(class));
 		if (m->returnclass == NULL) {
-			printf("class=%s :\t",class);
+			printf("class=<%s>\t",class); fflush(stdout);
 			panic ("return class not found");
 		}
 		break;

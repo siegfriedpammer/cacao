@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 1959 2005-02-19 11:46:27Z carolyn $
+   $Id: global.h 1967 2005-02-25 15:51:05Z carolyn $
 
 */
 
@@ -507,8 +507,7 @@ typedef struct xtainfo {
 	/* Needed for interative checking */
 	methSet  	*calls;            /* Edges - methods this method calls   	        */ 
 	methSet  	*calledBy;         /* Edges - methods that call this method         */ 
-	methSet  	*marked;  /*not in Dez*/         /* methods that marked by this method    */ 
-	methSet         *markedBy;
+	methSet         *markedBy;  
 	fldSet          *fldsUsed;         /* fields used by this method             */ 
 	/*methSetNode  *interfaceCalls*/   /* methods this method calls as interface */ 
 	bool           chgdSinceLastParse; /* Changed since last parse ?          */
@@ -579,6 +578,7 @@ struct methodinfo {                 /* method structure                       */
 	/*rtainfo   rta;*/
 	xtainfo    *xta;
 
+	bool        methodXTAparsed;    /*  true if xta parsed */
 	s4          methodUsed;         /* marked (might be used later) /not used /used */
 	s4          monoPoly;           /* call is mono or poly or unknown        */ /*RT stats */
         /* should # method def'd and used be kept after static parse (will it be used?) */
@@ -657,7 +657,10 @@ struct classinfo {                /* class structure                          */
 
 	s4          classUsed;        /* 0= not used 1 = used   CO-RT             */
 
-	classSetNode *impldBy;        /* implemented by class set                 */
+	classSetNode *impldBy;        /* interface class implemented by class set */
+				      /*   Object class 's impldBy is list of all */
+				      /*   interface classes used (RT & XTA only  */
+				      /*     normally no list of interfaces used) */
 	utf        *packagename;      /* full name of the package                 */
 	utf        *sourcefile;       /* classfile name containing this class     */
 	java_objectheader *classloader; /* NULL for bootstrap classloader         */

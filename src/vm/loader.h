@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1936 2005-02-10 11:04:10Z twisti $
+   $Id: loader.h 1967 2005-02-25 15:51:05Z carolyn $
 */
 
 
@@ -193,6 +193,16 @@ void class_new_array(classinfo *c);
         if (!class->linked) \
             if (!class_link(class)) \
                 return 0; }
+
+
+
+#define LAZYLOADING1(class) { \
+        if (!class->loaded) \
+            if (!class_load(class)) \
+                return; \
+        if (!class->linked) \
+            if (!class_link(class)) \
+                return; }
 
 
 classinfo *class_load(classinfo *c);

@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.h 1959 2005-02-19 11:46:27Z carolyn $
+   $Id: sets.h 1967 2005-02-25 15:51:05Z carolyn $
 
 */
 
@@ -66,11 +66,10 @@ typedef struct classSetNode classSetNode;
 #define MARKED    1
 #define NOTUSED   0
 
-#define SYSCALL   -1 /* XTA initialization */
+#define SYSCALL   -1 /* XTA initialization ??? should it be used for RTA for main ??? */
 #define MONO      0
 #define MONO1	  1 /* potential poly that is really mono */
 #define POLY      2
-
 
 /*------------------------------------------------------------*/
 /*-- flds used by a method set fns */
@@ -94,12 +93,12 @@ struct fldSetNode {
 };
 
 
-fldSetNode *inFldSet (fldSetNode *, fieldinfo *);
-fldSetNode *addFldRef(fldSetNode *, fieldinfo *);
-fldSet *add2FldSet(fldSet *, fieldinfo *, bool, bool);
-fldSet *createFldSet(void);
-int printFldSet(fldSetNode *);
-int printFieldSet(fldSet *);
+fldSetNode 	*inFldSet 	(fldSetNode *, fieldinfo *);
+fldSetNode 	*addFldRef	(fldSetNode *, fieldinfo *);
+fldSet 		*add2FldSet	(fldSet *,     fieldinfo *, bool, bool);
+fldSet 		*createFldSet	(void);
+int 		 printFldSet	(fldSetNode *);
+int 		 printFieldSet	(fldSet *);
 
 
 /*------------------------------------------------------------*/
@@ -122,12 +121,12 @@ struct methSetNode {
 };
 
 
-int inMethSet (methSetNode *, methodinfo *);
-methSetNode *addMethRef(methSetNode *, methodinfo *);
-methSet *add2MethSet(methSet    *, methodinfo *);
-methSet *createMethSet(void);
-int printMethSet   (methSetNode *);
-int printMethodSet (methSet *);
+int 		 inMethSet 	(methSetNode *, methodinfo *);
+methSetNode 	*addMethRef	(methSetNode *, methodinfo *);
+methSet 	*add2MethSet	(methSet     *, methodinfo *);
+methSet 	*createMethSet	(void);
+int 		 printMethSet   (methSetNode *);
+int 		 printMethodSet (methSet *);
 
 
 /*------------------------------------------------------------*/
@@ -149,17 +148,18 @@ struct classSetNode {
 };
 
 
-int inSet(classSetNode *, classinfo *);
-classSetNode *addElement(classSetNode *,  classinfo *);
-classSet *add2ClassSet(classSet *,  classinfo *);
-classSet *createClassSet(void);
-int inRange(classSetNode *, classinfo *);
-classSetNode *addClassCone(classSetNode *,  classinfo *);
-classSetNode *intersectSubtypesWithSet(classinfo *, classSetNode *); 
-int sizeOfSet(classSetNode *s);
-int setSize(classSetNode *);
-int printSet(classSetNode *);
-int printClassSet(classSet *);
+int 		 inSet		(classSetNode *, 	classinfo *);
+classSetNode 	*addElement	(classSetNode *, 	classinfo *);
+classSet 	*add2ClassSet	(classSet *,  		classinfo *);
+classSet 	*createClassSet	(void);
+int 		 inRange	(classSetNode *, 	classinfo *);
+classSetNode 	*addClassCone	(classSetNode *,  	classinfo *);
+classSetNode 	*intersectSubtypesWithSet(classinfo *, 	classSetNode *); 
+int 		 sizeOfSet	(classSetNode *s);
+int 		 setSize	(classSetNode *);
+int 		 printSet	(classSetNode *);
+int 		 printClassSet	(classSet *);
+/**classSetNode 	*copyClassSet	(classSetNode *);  **/
 
 #endif /* _SETS_H */
 

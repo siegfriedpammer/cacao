@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 1959 2005-02-19 11:46:27Z carolyn $
+   $Id: sets.c 1967 2005-02-25 15:51:05Z carolyn $
 
 */
 
@@ -307,6 +307,7 @@ int inRange(classSetNode *s, classinfo *c)
 
 	for (i = s; i != NULL; i = i->nextClass) {
 		classinfo *cs = i->classType;
+		LAZYLOADING(c)  /* ??? is c reallz needed ???*/
 		if (cs->vftbl->baseval <= c->vftbl->baseval) {
 			if (c->vftbl->baseval <= (cs->vftbl->baseval+cs->vftbl->diffval)) {
 				rc = -1;  /* subtype */
@@ -354,9 +355,12 @@ classSetNode * intersectSubtypesWithSet(classinfo *t, classSetNode *s) {
 
 	/* for each s class */
 	for (c=s; c != NULL; c = c->nextClass) {
-		vftbl_t *t_cl_vt = t->vftbl;
-		vftbl_t *c_cl_vt = c->classType->vftbl;
-
+		vftbl_t *t_cl_vt;
+		vftbl_t *c_cl_vt;
+		LAZYLOADING(c->classType)
+		LAZYLOADING(t)
+		t_cl_vt = t->vftbl;
+		c_cl_vt = c->classType->vftbl;
 		/* if s class is in the t Class range */
 		if (  (t_cl_vt->baseval <=  c_cl_vt->baseval)
 			  && (c_cl_vt->baseval <= (t_cl_vt->baseval+t_cl_vt->diffval)) ) {

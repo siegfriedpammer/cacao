@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1959 2005-02-19 11:46:27Z carolyn $
+   $Id: parseRT.c 1967 2005-02-25 15:51:05Z carolyn $
 
 */
 
@@ -193,7 +193,7 @@ for (ii=0; ii<ci->methodscount; ii++) {
        		addToRtaWorkList(mi,
 				"addTo was MARKED:");
 		}
-	else	{
+	else	{ /*** ??? Should this be an else or ??? */
 		for (jj=0; jj < ci -> interfacescount; jj++) {
 			classinfo *ici = ci -> interfaces [jj];
 			/*  use resolve method....!!!! */
@@ -263,7 +263,7 @@ void RTAaddClassInit(classinfo *ci, bool clinits, bool finalizes, bool addmark)
   if (addmark) {
     rtaAddMarkedMethods(ci);
     }
-    rtaAddUsedInterfaceMethods(ci);
+  rtaAddUsedInterfaceMethods(ci);
 
 }
 
@@ -338,6 +338,8 @@ if (submeth->methodUsed == USED) return;
 
   else {
 	/*--- Method NOT defined in class ---------------*/
+	/* then check class the method could be called with */
+
         /* first mark classes if needed */
 	if (submeth->class->classUsed == NOTUSED) {
 		submeth->class->classUsed = PARTUSED;
