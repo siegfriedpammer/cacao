@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1764 2004-12-15 16:21:20Z jowenn $
+   $Id: jni.c 1771 2004-12-17 23:05:27Z jowenn $
 
 */
 
@@ -462,18 +462,17 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case 'L':
 			{
 				char *start = (*utf_ptr) - 1;
-				char *end = NULL;
+				/*char *end = NULL;
 
 				while (utf_nextu2(utf_ptr) != ';')
-					end = (*utf_ptr) + 1;
+					end = (*utf_ptr) + 1;*/
 
-				if (!builtin_instanceof(params->data[cnts], class_from_descriptor(start, end, 0, CLASSLOAD_LOAD))) {
+				if (!builtin_instanceof(params->data[cnts], class_from_descriptor(start, desc_end, utf_ptr, CLASSLOAD_LOAD))) {
 					if (params->data[cnts] != 0) {
 						*exceptionptr = new_exception("java/lang/IllegalArgumentException");
 						return 0;
 					}			
 				}
-
 				blk[cnt].itemtype = TYPE_ADR;
 				blk[cnt].item = PTR_TO_ITEM(params->data[cnts]);
 				break;			
@@ -482,8 +481,8 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		case '[':
 			{
 				char *start = (*utf_ptr) - 1;
-				char *end;
-
+				/*char *end;
+				
 				char ch;
 				while ((ch = utf_nextu2(utf_ptr)) == '[')
 					if (ch == 'L') {
@@ -491,13 +490,13 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 					}
 
 				end = (*utf_ptr) - 1;
-				ch = utf_nextu2(utf_ptr);
+				ch = utf_nextu2(utf_ptr); */
 
-				if (!builtin_arrayinstanceof(params->data[cnts], class_from_descriptor(start, end, 0, CLASSLOAD_LOAD)->vftbl)) {
+				if (!builtin_arrayinstanceof(params->data[cnts], class_from_descriptor(start, desc_end, utf_ptr, CLASSLOAD_LOAD)->vftbl)) {
 					*exceptionptr = new_exception("java/lang/IllegalArgumentException");
 					return 0;
 				}
-	
+
 				blk[cnt].itemtype = TYPE_ADR;
 				blk[cnt].item = PTR_TO_ITEM(params->data[cnts]);
 				break;

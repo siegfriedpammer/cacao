@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: stacktrace.c 1771 2004-12-17 23:05:27Z jowenn $
 
 */
 
@@ -239,12 +239,14 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 				} else { /*method created by jit*/
 					u4 frameSize;
 					/*log_text("JIT");*/
+#if defined (__ALPHA__)
 					if (currentMethod->isleafmethod) {
 #ifdef JWDEBUG
 						printf("class.method:%s.%s\n",currentMethod->class->name->text,currentMethod->name->text);
 #endif
 						panic("How could that happen ??? A leaf method in the middle of a stacktrace ??");
 					}
+#endif
 					/*utf_display(currentMethod->class->name);
 					utf_display(currentMethod->name);*/
 					fillInStackTrace_method(&buffer,currentMethod,dataseg,returnAdress);

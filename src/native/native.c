@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1764 2004-12-15 16:21:20Z jowenn $
+   $Id: native.c 1771 2004-12-17 23:05:27Z jowenn $
 
 */
 
@@ -121,6 +121,15 @@ java_objectheader* _exceptionptr = NULL;
 void use_class_as_object(classinfo *c) 
 {
 	if (!c->classvftbl) {
+		/* is the class loaded */
+		if (!c->loaded)
+			if (!class_load(c))
+	                        panic("Class could not be loaded in use_class_as_object");
+		/* is the class linked */
+		if (!c->linked)
+			if (!class_link(c))
+				panic("Class could not be linked in use_class_as_object");
+
 		/*if (class_java_lang_Class ==0) panic("java/lang/Class not loaded in use_class_as_object");
 		if (class_java_lang_Class->vftbl ==0) panic ("vftbl == 0 in use_class_as_object");*/
 		c->header.vftbl = class_java_lang_Class->vftbl;
