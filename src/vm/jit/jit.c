@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 842 2004-01-05 00:48:22Z twisti $
+   $Id: jit.c 854 2004-01-06 15:37:05Z twisti $
 
 */
 
@@ -1495,6 +1495,12 @@ methodptr jit_compile(methodinfo *m)
 
 	/* initialize the function's class */
 	if (!m->class->initialized) {
+		if (initverbose) {
+			char logtext[MAXLOGTEXT];
+			sprintf(logtext, "Initialize class ");
+			utf_sprint(logtext + strlen(logtext), m->class->name);
+			log_text(logtext);
+		}
 		class_init(m->class);
 	}
 
