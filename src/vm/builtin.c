@@ -1352,36 +1352,7 @@ float builtin_fdiv (float a, float b)
 
 float builtin_frem (float a, float b)
 {
-
-/* return (float) builtin_drem((double) a, (double) b); */
-
-	float f;
-
-	if (finite((double) a) && finite((double) b)) {
-		f = a / b;
-		if (finite((double) f))
-			return fmodf(a, b);
-		return FLT_NAN;
-		}
-	if (isnan((double) b))
-		return FLT_NAN;
-	if (finite((double) a))
-		return a;
-	return FLT_NAN;
-
-/*	float f;
-
-	if (finitef(a) && finitef(b)) {
-		f = a / b;
-		if (finitef(f))
-			return a - floorf(f) * b;
-		return FLT_NAN;
-		}
-	if (isnanf(b))
-		return FLT_NAN;
-	if (finitef(a))
-		return a;
-	return FLT_NAN; */
+	return fmodf(a, b);
 }
 
 
@@ -1485,22 +1456,7 @@ double builtin_ddiv (double a, double b)
 
 double builtin_drem (double a, double b)
 {
-	double d;
-
-	if (finite(a) && finite(b)) {
-		d = a / b;
-		if (finite(d)) {
-			if ((d < 1.0) && (d > 0.0))
-				return a;
-			return fmod(a, b);
-			}
-		return DBL_NAN;
-		}
-	if (isnan(b))
-		return DBL_NAN;
-	if (finite(a))
-		return a;
-	return DBL_NAN;
+	return fmod(a, b);
 }
 
 double builtin_dneg (double a)
