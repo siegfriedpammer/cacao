@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2152 2005-03-30 19:28:40Z twisti $
+   $Id: VMClass.c 2172 2005-03-31 19:27:07Z twisti $
 
 */
 
@@ -68,6 +68,11 @@
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, java_lang_String *s)
 {
+	return NULL;
+
+	/* XXX TWISTI: we currently use the classpath default implementation, maybe 
+	   we change this someday to a faster native version */
+#if 1
 	classinfo *c;
 	utf       *u;
 
@@ -119,6 +124,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 	use_class_as_object(c);
 
 	return (java_lang_Class *) c;
+#endif
 }
 
 
@@ -138,7 +144,7 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(J
  * Method:    getComponentType
  * Signature: ()Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEnv *env, jclass clazz,java_lang_Class *that)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEnv *env, jclass clazz, java_lang_Class *that)
 {
     classinfo *thisclass = (classinfo *) that;
     classinfo *c = NULL;
@@ -698,7 +704,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *
 	if (!c)
 		return NULL;
 
-	use_class_as_object (c);
+	use_class_as_object(c);
 
 	return (java_lang_Class *) c;
 }
@@ -729,7 +735,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass
 		return 0;
 	}
 
- 	return (*env)->IsAssignableFrom(env, (jclass) sup, (jclass) that);
+	return builtin_isanysubclass(sup, that);
+
 }
 
 
@@ -740,7 +747,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz, java_lang_Class *that, java_lang_Object *obj)
 {
-	return (*env)->IsInstanceOf(env, (jobject) obj, (jclass) that);
+	return builtin_instanceof(obj, that);
 }
 
 
@@ -780,7 +787,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass claz
 
 
 /*
- * Class:     java_lang_VMClass
+ * Class:     java/lang/VMClass
  * Method:    initialize
  * Signature: ()V
  */
@@ -799,15 +806,30 @@ JNIEXPORT void JNICALL Java_java_lang_VMClass_initialize(JNIEnv *env, jclass cla
 
 
 /*
- * Class:     java_lang_VMClass
+ * Class:     java/lang/VMClass
  * Method:    loadArrayClass
  * Signature: (Ljava/lang/String;Ljava/lang/ClassLoader;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_loadArrayClass(JNIEnv *env, jclass clazz, java_lang_String *par1, java_lang_ClassLoader* par2)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_loadArrayClass(JNIEnv *env, jclass clazz, java_lang_String *name, java_lang_ClassLoader *classloader)
 {
-	log_text("Java_java_lang_VMClass_loadArrayClass");
+	classinfo *c;
+	utf       *u;
 
-	return 0;
+	/* create utf string with `.' replaced by `/' */
+
+	u = javastring_toutf(name, true);
+
+	/* class_new "loads" the array class */
+
+	c = class_new(u);
+
+	/* set the classloader */
+
+	c->classloader = classloader;
+
+	use_class_as_object(c);
+
+	return (java_lang_Class *) c;
 }
 
 
