@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2105 2005-03-28 22:35:02Z twisti $
+   $Id: class.h 2121 2005-03-29 22:09:53Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 
 typedef struct classinfo classinfo; 
 typedef struct innerclassinfo innerclassinfo;
+typedef struct constant_classref constant_classref;
 typedef struct extra_classref extra_classref;
 
 
@@ -227,7 +228,6 @@ extern classinfo *class_java_util_Vector;
 extern classinfo *pseudo_class_Arraystub;
 extern classinfo *pseudo_class_Null;
 extern classinfo *pseudo_class_New;
-extern vftbl_t *pseudo_class_Arraystub_vftbl;
 
 
 /* macros *********************************************************************/
