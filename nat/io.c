@@ -199,7 +199,10 @@ void java_io_FileOutputStream_writeBytes (struct java_io_FileOutputStream* this,
                             
 void java_io_FileOutputStream_close (struct java_io_FileOutputStream* this)
 {
-	if (this->fd->fd == 1)  /* don't close stderr!!! -- phil. */
+	if (this->fd->fd == fileno(stderr))  /* don't close stderr!!! -- phil. */
+		return;
+
+	if (this->fd->fd == fileno(stdout))
 		return;
 
 	if (this->fd->fd >= 0) {
