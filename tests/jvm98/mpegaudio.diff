@@ -2748,4 +2748,4 @@ diff -Nu mpegaudio2/postoutput.sh mpegaudio/postoutput.sh
 --- mpegaudio2/postoutput.sh	Thu Jan  1 01:00:00 1970
 +++ mpegaudio/postoutput.sh	Mon Dec  9 15:11:24 2002
 @@ -0,0 +1 @@
-+brik -Gb output.wav > mpegaudio.output
++md5sum output.wav > mpegaudio.output
