@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1121 2004-06-03 20:40:39Z twisti $
+   $Id: codegen.inc 1130 2004-06-05 14:37:51Z twisti $
 
 */
 
@@ -185,13 +185,13 @@ void codegen_init()
 		methodtree = avl_create(methodtree_comparator, NULL, NULL);
 
 		mte = NEW(methodtree_element);
-		mte->startpc = asm_calljavafunction;
-		mte->endpc = asm_calljavafunction2;
+		mte->startpc = (void *) asm_calljavafunction;
+		mte->endpc = (void *) calljava_xhandler;
 		avl_insert(methodtree, mte);
 
 		mte = NEW(methodtree_element);
-		mte->startpc = asm_calljavafunction2;
-		mte->endpc = asm_call_jit_compiler;
+		mte->startpc = (void *) asm_calljavafunction2;
+		mte->endpc = (void *) calljava_xhandler2;
 		avl_insert(methodtree, mte);
 	}
 #endif
@@ -498,13 +498,17 @@ static void codegen_createlinenumbertable() {
 static int methodtree_comparator(const void *pc, const void *element,
 								 void *param)
 {
-	methodtree_element *mtepc;
 	methodtree_element *mte;
+	methodtree_element *mtepc;
 
-	mtepc = (methodtree_element *) pc;
 	mte = (methodtree_element *) element;
+	mtepc = (methodtree_element *) pc;
 
-	if (mte->startpc <= mtepc->startpc && mtepc->startpc <= mte->endpc) {
+	/* compare both startpc and endpc of pc, even if they have the same value,
+	   otherwise the avl_probe sometime thinks the element is still in the
+	   tree */
+	if (mte->startpc <= mtepc->startpc && mtepc->startpc <= mte->endpc &&
+		mte->startpc <= mtepc->endpc   && mtepc->endpc   <= mte->endpc) {
 		return 0;
 
 	} else if (mtepc->startpc < mte->startpc) {
@@ -539,6 +543,7 @@ void *codegen_findmethod(void *pc)
 
 	mtepc = NEW(methodtree_element);
 	mtepc->startpc = pc;
+	mtepc->endpc = pc;
 
 	mte = avl_find(methodtree, mtepc);
 
