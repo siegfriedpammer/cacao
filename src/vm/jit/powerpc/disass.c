@@ -1,4 +1,4 @@
-/* jit/powerpc/disass.c - wrapper functions for GNU binutils disassembler
+/* src/vm/jit/powerpc/disass.c - wrapper functions for GNU binutils disassembler
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,8 +28,9 @@
             Reinhard Grafl
 
    Changes: Stefan Ring
+            Christian Thalinger
 
-   $Id: disass.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: disass.c 1976 2005-03-03 11:25:06Z twisti $
 
 */
 
@@ -130,7 +131,7 @@ void sprintf_vma(char *buf, bfd_vma disp)
 }
 
 
-void disassinstr(s4 *code, s4 pos)
+void disassinstr(s4 *code)
 {
 	disassemble_info info;
 
@@ -145,17 +146,14 @@ void disassinstr(s4 *code, s4 pos)
 
 void disassemble(s4 *code, s4 len)
 {
-	int p;
+	s4 i;
 	disassemble_info info;
 
 	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
 /*    	info.application_data = code; */
 	printf ("  --- disassembler listing ---\n");
-	for (p = 0; p < len; p += 4, code++) {
-		myprintf(NULL, "0x%08x:   %08x    ", (s4) code, *code);
-		print_insn_big_powerpc((bfd_vma) code, &info);
-		myprintf(NULL, "\n");
-	}
+	for (i = 0; i < len; i += 4, code++)
+		disassinstr(code);
 }
 
 

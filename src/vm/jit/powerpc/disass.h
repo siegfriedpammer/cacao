@@ -1,4 +1,4 @@
-/* jit/powerpc/disass.h - disassembler header
+/* srv/vm/jit/powerpc/disass.h - disassembler header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: disass.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: disass.h 1976 2005-03-03 11:25:06Z twisti $
 
 */
 
@@ -41,10 +41,11 @@
 extern char *regs[];
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
+
 void myprintf(PTR p, const char *fmt, ...);
 int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, struct disassemble_info *info);
-void disassinstr(s4 *code, s4 pos);
+void disassinstr(s4 *code);
 void disassemble(s4 *code, s4 len);
 
 #endif /* _DISASS_H */
