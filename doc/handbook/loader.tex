@@ -77,10 +77,61 @@ Then a new \texttt{classinfo} structure is created via the
 
 function call. This function creates a unique representation of this
 class, identified by its name, in the JVM's internal \textit{class
-hashtable}. The newly created \texttt{classinfo} structure is
-initialized with correct values, like \texttt{loaded = false;},
-\texttt{linked = false;} and \texttt{initialized = false;}. This
-guarantees a definite state of a new class.
+hashtable}. The newly created \texttt{classinfo} structure (Figure
+\ref{classinfostructure}) is initialized with correct values, like
+\texttt{loaded = false;}, \texttt{linked = false;} and
+\texttt{initialized = false;}. This guarantees a definite state of a
+new class.
+
+\begin{figure}
+\begin{verbatim}
+    struct classinfo {                /* class structure                          */
+        ...
+        s4          flags;            /* ACC flags                                */
+        utf        *name;             /* class name                               */
+
+        s4          cpcount;          /* number of entries in constant pool       */
+        u1         *cptags;           /* constant pool tags                       */
+        voidptr    *cpinfos;          /* pointer to constant pool info structures */
+
+        classinfo  *super;            /* super class pointer                      */
+        ...
+        s4          interfacescount;  /* number of interfaces                     */
+        classinfo **interfaces;       /* pointer to interfaces                    */
+
+        s4          fieldscount;      /* number of fields                         */
+        fieldinfo  *fields;           /* field table                              */
+
+        s4          methodscount;     /* number of methods                        */
+        methodinfo *methods;          /* method table                             */
+        ...
+        bool        initialized;      /* true, if class already initialized       */
+        bool        initializing;     /* flag for the compiler                    */
+        bool        loaded;           /* true, if class already loaded            */
+        bool        linked;           /* true, if class already linked            */
+        s4          index;            /* hierarchy depth (classes) or index       */
+                                      /* (interfaces)                             */
+        s4          instancesize;     /* size of an instance of this class        */
+    #ifdef SIZE_FROM_CLASSINFO
+        s4          alignedsize;      /* size of an instance, aligned to the      */
+                                      /* allocation size on the heap              */
+    #endif
+
+        vftbl_t    *vftbl;            /* pointer to virtual function table        */
+
+        methodinfo *finalizer;        /* finalizer method                         */
+
+        u2          innerclasscount;  /* number of inner classes                  */
+        innerclassinfo *innerclass;
+        ...
+        utf        *packagename;      /* full name of the package                 */
+        utf        *sourcefile;       /* classfile name containing this class     */
+        java_objectheader *classloader; /* NULL for bootstrap classloader         */
+    };
+\end{verbatim}
+\caption{\texttt{classinfo} structure}
+\label{classinfostructure}
+\end{figure}
 
 The next step is to actually load the class requested. Thus the main
 loader function
@@ -152,20 +203,20 @@ via the \texttt{suck\_*} functions. These functions are
 Loading \texttt{signed} values is done via the
 \texttt{suck\_s[1,2,4,8]} macros which cast the loaded bytes to
 \texttt{signed} values. All these functions take a
-\texttt{classbuffer} (Figure \ref{classbuffer}) structure pointer as
-argument.
+\texttt{classbuffer} (Figure \ref{classbufferstructure}) structure
+pointer as argument.
 
 \begin{figure}[h]
 \begin{verbatim}
         typedef struct classbuffer {
-            classinfo *class;                   /* pointer to classinfo structure */
-            u1        *data;                    /* pointer to byte code           */
-            s4         size;                    /* size of the byte code          */
-            u1        *pos;                     /* current read position          */
+            classinfo *class;               /* pointer to classinfo structure     */
+            u1        *data;                /* pointer to byte code               */
+            s4         size;                /* size of the byte code              */
+            u1        *pos;                 /* current read position              */
         } classbuffer;
 \end{verbatim}
 \caption{\texttt{classbuffer} structure}
-\label{classbuffer}
+\label{classbufferstructure}
 \end{figure}
 
 This \texttt{classbuffer} structure is filled with data via the
@@ -366,10 +417,13 @@ requested \texttt{cpinfos} slot of the specified class.
 Interface loading is very simple and straightforward. After reading
 the number of interfaces, for every interface referenced, a
 \texttt{u2} constant pool index is read from the currently loading
-class or interface. This index is used to resolve the class via the
-\texttt{class\_getconstant} function from the class' constant
+class or interface. This index is used to resolve the interface class
+via the \texttt{class\_getconstant} function from the class' constant
 pool. This means, interface \textit{loading} is more interface
-\textit{resolving} than loading.
+\textit{resolving} than loading. The resolved interfaces are stored
+in an \texttt{classinfo *} array allocated by the class loader. The
+memory pointer of the array is assigned to the \texttt{interfaces}
+field of the \texttt{clasinfo} structure.
 
 
 \subsection{Field loading}
@@ -382,12 +436,35 @@ value. For each field the function
 \end{verbatim}
 
 is called. The \texttt{fieldinfo *} argument is a pointer to a
-\texttt{fieldinfo} structure allocated by the class loader. The
-fields' \texttt{name} and \texttt{descriptor} are resolved from the
-class constant pool via \texttt{class\_getconstant}. If the verifier
-option is turned on, the fields' \texttt{flags}, \texttt{name} and
-\texttt{descriptor} are checked for validity and can result in a
+\texttt{fieldinfo} structure (Figure \ref{fieldinfostructure})
+allocated by the class loader. The fields' \texttt{name} and
+\texttt{descriptor} are resolved from the class constant pool via
+\texttt{class\_getconstant}. If the verifier option is turned on, the
+fields' \texttt{flags}, \texttt{name} and \texttt{descriptor} are
+checked for validity and can result in a
 \texttt{java.lang.ClassFormatError}.
+
+\begin{figure}[h]
+\begin{verbatim}
+    struct fieldinfo {        /* field of a class                                 */
+        s4   flags;           /* ACC flags                                        */
+        s4   type;            /* basic data type                                  */
+        utf *name;            /* name of field                                    */
+        utf *descriptor;      /* JavaVM descriptor string of field                */
+	
+        s4   offset;          /* offset from start of object (instance variables) */
+
+        imm_union  value;     /* storage for static values (class variables)      */
+
+        classinfo *class;     /* needed by typechecker. Could be optimized        */
+                              /* away by using constant_FMIref instead of         */
+                              /* fieldinfo throughout the compiler.               */
+        ...
+    };
+\end{verbatim}
+\caption{\texttt{fieldinfo} structure}
+\label{fieldinfostructure}
+\end{figure}
 
 Each field can have some attributes. The number of attributes is read
 as \texttt{u2} value from the binary representation. If the field has
@@ -418,6 +495,41 @@ resolved from the class constant pool via
 checks are carried out. These include \texttt{flags}, \texttt{name}
 and \texttt{descriptor} checks and argument count check.
 
+\begin{figure}[h]
+\begin{verbatim}
+    struct methodinfo {                 /* method structure                       */
+        java_objectheader header;       /* we need this in jit's monitorenter     */
+        s4          flags;              /* ACC flags                              */
+        utf        *name;               /* name of method                         */
+        utf        *descriptor;         /* JavaVM descriptor string of method     */
+        ...
+        bool        isleafmethod;       /* does method call subroutines           */
+
+        classinfo  *class;              /* class, the method belongs to           */
+        s4          vftblindex;         /* index of method in virtual function    */
+                                        /* table (if it is a virtual method)      */
+        s4          maxstack;           /* maximum stack depth of method          */
+        s4          maxlocals;          /* maximum number of local variables      */
+        s4          jcodelength;        /* length of JavaVM code                  */
+        u1         *jcode;              /* pointer to JavaVM code                 */
+        ...
+        s4          exceptiontablelength;/* exceptiontable length                 */
+        exceptiontable *exceptiontable; /* the exceptiontable                     */
+
+        u2          thrownexceptionscount;/* number of exceptions attribute       */
+        classinfo **thrownexceptions;   /* checked exceptions a method may throw  */
+
+        u2          linenumbercount;    /* number of linenumber attributes        */
+        lineinfo   *linenumbers;        /* array of lineinfo items                */
+        ...
+        u1         *stubroutine;        /* stub for compiling or calling natives  */
+        ...
+    };
+\end{verbatim}
+\caption{\texttt{methodinfo} structure}
+\label{methodinfostructure}
+\end{figure}
+
 The method loading function has to distinguish between a
 \texttt{native} and a ''normal'' JAVA method. Depending on the
 \texttt{ACC\_NATIVE} flags, a different stub is created.
@@ -445,23 +557,54 @@ native stub is generated, a \texttt{asm\_check\_clinit} calling code
 is emitted.
 
 Each method can have some attributes. The method loading function
-processes two of them: \texttt{Code} and \texttt{Exceptions}. The
-\texttt{Code} attribute is the byte code of the JAVA method itself. If
-the method is either \texttt{native} or \texttt{abstract}, it must not
-have a \texttt{Code} attribute, otherwise it must have exactly one
-\texttt{Code} attribute. Additionally to the byte code, the
-\texttt{Code} attribute contains the exception table and attributes to
-\texttt{Code} attribute itself. One exception table entry contains
-the \texttt{start\_pc}, \texttt{end\_pc} and \texttt{handler\_pc} of
-the \texttt{try-catch} block, each read as \texttt{u2} value, plus a
-reference to the class of the \texttt{catch\_type}. Currently there
-are two attributes of the \texttt{Code} attribute defined in the JVM
-specification: \texttt{LineNumberTable} and
-\texttt{LocalVariableTable}. CACAO only processes the
-\texttt{LineNumberTable} attribute. A \texttt{LineNumberTable} entry
-contains the \texttt{start\_pc} and the \texttt{line\_number}. Any
-attributes which are not processed by the CACAO class loading system,
-are skipped via
+processes two of them: \texttt{Code} and \texttt{Exceptions}.
+
+The \texttt{Code} attribute is a \textit{variable-length} attribute
+which contains the Java Virtual Machine instructions---the byte
+code---of the JAVA method. If the method is either \texttt{native} or
+\texttt{abstract}, it must not have a \texttt{Code} attribute,
+otherwise it must have exactly one \texttt{Code}
+attribute. Additionally to the byte code, the \texttt{Code} attribute
+contains the exception table and attributes to \texttt{Code} attribute
+itself. One exception table entry contains the \texttt{start\_pc},
+\texttt{end\_pc} and
+\texttt{handler\_pc} of the \texttt{try-catch} block, each read as
+\texttt{u2} value, plus a reference to the class of the
+\texttt{catch\_type}. Currently there are two attributes of the
+\texttt{Code} attribute defined in the JVM specification:
+\texttt{LineNumberTable} and \texttt{LocalVariableTable}. CACAO only
+processes the \texttt{LineNumberTable} attribute. A
+\texttt{LineNumberTable} entry consist of the \texttt{start\_pc} and
+the \texttt{line\_number}, which are stored in a \texttt{lineinfo}
+structure (Figure \ref{lineinfostructure}).
+
+\begin{figure}[h]
+\begin{verbatim}
+    struct lineinfo {
+        u2 start_pc;
+        u2 line_number;
+    };
+\end{verbatim}
+\caption{\texttt{lineinfo} structure}
+\label{lineinfostructure}
+\end{figure}
+
+The linenumber count and the memory pointer of the \texttt{lineinfo}
+structure array are assigned to the \texttt{classinfo} fields
+\texttt{linenumbercount} and \texttt{linenumbers} respectively.
+
+The \texttt{Exceptions} attribute is a \textit{variable-length}
+attribute and contains the checked exceptions the JAVA method may
+throw. The \texttt{Exceptions} attribute consist of the count of
+exceptions, which is stored in the \texttt{classinfo} field
+\texttt{thrownexceptionscount}, and the adequate amount of \texttt{u2}
+constant pool index values. The exception classes are resolved from
+the constant pool and stored in an allocated \texttt{classinfo *}
+array, whose memory pointer is assigned to the \texttt{classinfo}
+field \texttt{thrownexceptions}.
+
+Any attributes which are not processed by the CACAO class loading
+system, are skipped via
 
 \begin{verbatim}
         static bool skipattributebody(classbuffer *cb);
@@ -497,19 +640,36 @@ attribute in the \texttt{attributes} table of the binary
 representation of the class or interface. A \texttt{InnerClass} entry
 contains the \texttt{inner\_class} constant pool index itself, the
 \texttt{outer\_class} index, the \texttt{name} index of the inner
-class' name and the inner class' flags bitmask. All these values are
-read in \texttt{u2} chunks. The constant pool indexes are used with
-the
+class' name and the inner class' \texttt{flags} bitmask. All these
+values are read in \texttt{u2} chunks.
+
+The constant pool indexes are used with the
 
 \begin{verbatim}
         voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype);
 \end{verbatim}
 
-function call to resolve the classes or UTF8 strings.
+function call to resolve the classes or UTF8 strings. After resolving
+is done, all values are stored in the \texttt{innerclassinfo}
+structure (Figure \ref{innerclassinfostructure}).
+
+\begin{figure}[h]
+\begin{verbatim}
+    struct innerclassinfo {
+        classinfo *inner_class;       /* inner class pointer                      */
+        classinfo *outer_class;       /* outer class pointer                      */
+        utf       *name;              /* innerclass name                          */
+        s4         flags;             /* ACC flags                                */
+    };
+\end{verbatim}
+\caption{\texttt{innerclassinfo} structure}
+\label{innerclassinfostructure}
+\end{figure}
 
 The other attribute, \texttt{SourceFile}, is just one \texttt{u2}
-constant pool index value to get the reference of the class'
-\texttt{SourceFile} name.
+constant pool index value to get the UTF8 string reference of the
+class' \texttt{SourceFile} name. The string pointer is assigned to the
+\texttt{sourcefile} field of the \texttt{classinfo} structure.
 
 Both attributes must occur only once. Other attributes than these two
 are skipped with the earlier mentioned \texttt{skipattributebody}
