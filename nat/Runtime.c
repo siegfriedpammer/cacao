@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Runtime.c 1147 2004-06-06 13:20:11Z twisti $
+   $Id: Runtime.c 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -51,8 +51,8 @@
 #include "java_io_File.h"
 #include "java_lang_String.h"
 #include "java_lang_Process.h"
-#include "java_util_Properties.h"    /* required by java_lang_Runtime.h */
-#include "java_lang_Runtime.h"
+#include "java_util_Properties.h"    /* needed for java_lang_Runtime.h */
+#include "java_lang_VMRuntime.h"
 
 
 #define JOWENN_DEBUG
@@ -61,6 +61,7 @@
 static s4 finalizeOnExit = false;
 
 #define MAXPROPS 100
+static bool shouldFinalizersBeRunOnExit=false;
 static int activeprops = 19;  
    
 static char *proplist[MAXPROPS][2] = {
@@ -96,11 +97,11 @@ void attach_property(char *name, char *value)
         activeprops++;
 }
 /*
- * Class:     java_lang_Runtime
+ * Class:     java_lang_VMRuntime
  * Method:    execInternal
  * Signature: ([Ljava/lang/String;[Ljava/lang/String;Ljava/io/File;)Ljava/lang/Process;
  */
-JNIEXPORT java_lang_Process* JNICALL Java_java_lang_Runtime_execInternal(JNIEnv *env, java_lang_Runtime *this, java_objectarray *cmd, java_objectarray *shellenv, java_io_File *workingdir)
+JNIEXPORT java_lang_Process* JNICALL Java_java_lang_VMRuntime_execInternal(JNIEnv *env, jclass clazz, java_objectarray *cmd, java_objectarray *shellenv, java_io_File *workingdir)
 {
 	log_text("Java_java_lang_Runtime_execInternal called");
 
@@ -109,11 +110,11 @@ JNIEXPORT java_lang_Process* JNICALL Java_java_lang_Runtime_execInternal(JNIEnv 
 
 
 /*
- * Class:     java/lang/Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    exitInternal
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal(JNIEnv *env, java_lang_Runtime *this, s4 par1)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, s4 par1)
 {
 	if (finalizeOnExit)
 		gc_finalize_all();
@@ -127,7 +128,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal(JNIEnv *env, java_lan
  * Method:    freeMemory
  * Signature: ()J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Runtime_freeMemory(JNIEnv *env, java_lang_Runtime *this)
+JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclass clazz)
 {
 	return gc_get_free_bytes();
 }
@@ -138,7 +139,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_Runtime_freeMemory(JNIEnv *env, java_lang_Ru
  * Method:    gc
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_gc(JNIEnv *env, java_lang_Runtime *this)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_gc(JNIEnv *env, jclass clazz)
 {
 	gc_call();
 }
@@ -149,7 +150,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_gc(JNIEnv *env, java_lang_Runtime 
  * Method:    runFinalization
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_runFinalization(JNIEnv *env, java_lang_Runtime *this)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalization(JNIEnv *env, jclass clazz)
 {
 	gc_invoke_finalizers();
 }
@@ -160,9 +161,25 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_runFinalization(JNIEnv *env, java_
  * Method:    runFinalizersOnExit
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_runFinalizersOnExitInternal(JNIEnv *env, jclass clazz, s4 par1)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizersOnExit(JNIEnv *env, jclass clazz, s4 par1)
 {
-	finalizeOnExit = par1;
+#warning threading
+	shouldFinalizersBeRunOnExit=par1;
+}
+
+/*
+ * Class:     java/lang/Runtime
+ * Method:    runFinalizationsForExit
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizationForExit(JNIEnv *env, jclass clazz)
+{
+	if (shouldFinalizersBeRunOnExit) {
+		gc_call();
+	//	gc_finalize_all();
+	}
+	log_text("Java_java_lang_VMRuntime_runFinalizationForExit called");
+
 }
 
 
@@ -171,7 +188,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_runFinalizersOnExitInternal(JNIEnv
  * Method:    totalMemory
  * Signature: ()J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, java_lang_Runtime *this)
+JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jclass clazz)
 {
 	return gc_get_heap_size();
 }
@@ -182,7 +199,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, java_lang_R
  * Method:    traceInstructions
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_traceInstructions(JNIEnv *env, java_lang_Runtime *this, s4 par1)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceInstructions(JNIEnv *env, jclass clazz, s4 par1)
 {
 	/* not supported */
 }
@@ -193,7 +210,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_traceInstructions(JNIEnv *env, jav
  * Method:    traceMethodCalls
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_traceMethodCalls(JNIEnv *env, java_lang_Runtime *this, s4 par1)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceMethodCalls(JNIEnv *env, jclass clazz, s4 par1)
 {
 	/* not supported */
 }
@@ -204,7 +221,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_traceMethodCalls(JNIEnv *env, java
  * Method:    availableProcessors
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Runtime_availableProcessors(JNIEnv *env, java_lang_Runtime *this)
+JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, jclass clazz)
 {
 #if defined(_SC_NPROC_ONLN)
 	return (s4) sysconf(_SC_NPROC_ONLN);
@@ -223,7 +240,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_Runtime_availableProcessors(JNIEnv *env, jav
  * Method:    nativeLoad
  * Signature: (Ljava/lang/String;)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Runtime_nativeLoad(JNIEnv *env, java_lang_Runtime *this, java_lang_String *par1)
+JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *par1)
 {
 #ifdef JOWENN_DEBUG	
 	char *buffer;
@@ -242,30 +259,29 @@ JNIEXPORT s4 JNICALL Java_java_lang_Runtime_nativeLoad(JNIEnv *env, java_lang_Ru
 	  	
 	buffer = MNEW(char, buffer_len);
 
-	strcpy(buffer, "Java_java_lang_Runtime_nativeLoad:");
+	strcpy(buffer, "Java_java_lang_VMRuntime_nativeLoad:");
 	utf_sprint(buffer + strlen((char *) data), data);
 	log_text(buffer);	
 
 	MFREE(buffer, char, buffer_len);
 #endif
-	log_text("Java_java_lang_Runtime_nativeLoad");
+	log_text("Java_java_lang_VMRuntime_nativeLoad");
 
 	return 1;
 }
 
 
 /*
- * Class:     java_lang_Runtime
+ * Class:     java_lang_VMRuntime
  * Method:    nativeGetLibname
  * Signature: (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_Runtime_nativeGetLibname(JNIEnv *env, jclass clazz, java_lang_String *par1, java_lang_String *par2)
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_nativeGetLibname(JNIEnv *env, jclass clazz, java_lang_String *par1, java_lang_String *par2)
 {
-#ifdef JOWENN_DEBUG	
 	char *buffer;
 	int buffer_len;
 	utf *data;
-	
+	java_lang_String *resultString;	
 	data = javastring_toutf(par2, 0);
 	
 	if (!data) {
@@ -273,28 +289,28 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_Runtime_nativeGetLibname(JNIE
 		return 0;;
 	}
 	
-	buffer_len = utf_strlen(data) + 40;
-	
+	buffer_len = utf_strlen(data) + 6/*lib .so*/ +1 /*0*/;
 	buffer = MNEW(char, buffer_len);
+	sprintf(buffer,"lib");
+	utf_sprint(buffer+3,data);
+	strcat(buffer,".so");
 
-	strcpy(buffer, "Java_java_lang_Runtime_nativeGetLibname:");
-	utf_sprint(buffer + strlen((char *) data), data);
-	log_text(buffer);	
+	log_text(buffer);
+	
+	resultString=javastring_new_char(buffer);	
 
 	MFREE(buffer, char, buffer_len);
-#endif
-	log_text("Java_java_lang_Runtime_nativeGetLibname");
 
-	return 0;
+	return resultString;
 }
 
 
 /*
- * Class:     java_lang_Runtime
+ * Class:     java_lang_VMRuntime
  * Method:    insertSystemProperties
  * Signature: (Ljava/util/Properties;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_insertSystemProperties(JNIEnv *env, jclass clazz, java_util_Properties *p)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *env, jclass clazz, java_util_Properties *p)
 {
 
 #define BUFFERSIZE 200
@@ -350,11 +366,11 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_insertSystemProperties(JNIEnv *env
 
 
 /*
- * Class:     java_lang_Runtime
+ * Class:     java_lang_VMRuntime
  * Method:    maxMemory
  * Signature: ()J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Runtime_maxMemory(JNIEnv *env, java_lang_Runtime *this)
+JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_maxMemory(JNIEnv *env, jclass clazz)
 {
 	return gc_get_max_heap_size();
 }

@@ -56,6 +56,7 @@ typedef struct {
 
 struct _thread;
 
+#if 0
 typedef struct _ctx
 {
     struct _thread    *thread;
@@ -72,6 +73,7 @@ typedef struct _ctx
     struct _thread    *nextlive;
     u1                 flags;
 } ctx;
+#endif
 
 /*
 struct _stringClass;
@@ -91,17 +93,38 @@ typedef struct _threadGroup {
 } threadGroup;
 
 
+
+/* This structure mirrors java.lang.VMThread.h */
+typedef struct vmthread {
+   java_objectheader header;
+   struct _thread* thread;
+   s4 running;
+   s4 status;
+   s4 priority;
+   void* restorePoint;
+   void* stackMem;
+   void* stackBase;
+   void* stackEnd;
+   void* usedStackTop;
+   s8 time;
+   java_objectheader *texceptionptr;
+   struct _thread* nextlive;
+   struct _thread* next;
+   s4 flags;
+} vmthread;
+
 /* This structure mirrors java.lang.Thread.h */
 typedef struct _thread {
    java_objectheader header;
-   struct _threadGroup* group;
-   struct java_objectheader* toRun;
-   struct java_objectheader* name;
-   s8 PrivateInfo;
-   struct _thread* next;
+   vmthread* vmThread;
+   threadGroup* group;
+   struct java_lang_Runnable* runnable;
+   struct java_lang_String* name;
    s4 daemon;
    s4 priority;
-   struct java_objectheader* contextClassLoader;
+   s8 stacksize;
+   struct java_lang_Throwable* stillborn;
+   struct java_lang_ClassLoader* contextClassLoader;
 } thread;
 
 void initThreads (u1 *stackbottom);
@@ -128,7 +151,7 @@ extern int blockInts;
 extern bool needReschedule;
 extern thread *currentThread;
 extern thread *mainThread;
-extern ctx contexts[];
+/*extern ctx contexts[];*/
 extern int threadStackSize;
 
 extern thread *liveThreads;
@@ -137,7 +160,8 @@ extern thread *sleepThreads;
 extern thread *threadQhead[MAX_THREAD_PRIO + 1];
 
 
-#define CONTEXT(_t)     (contexts[(_t)->PrivateInfo - 1])
+/*#define CONTEXT(_t)     (contexts[(_t)->PrivateInfo - 1])*/
+#define CONTEXT(_t)	(*(_t->vmThread))
 
 #define	intsDisable()	blockInts++
 
@@ -153,8 +177,10 @@ extern thread *threadQhead[MAX_THREAD_PRIO + 1];
 
 #define	THREADSWITCH(to, from) \
     do { \
-        asm_perform_threadswitch(&(from)->restorePoint,\
-                                 &(to)->restorePoint, &(from)->usedStackTop); \
+	void *from1; \
+	void *from2; \
+        asm_perform_threadswitch((from?&(from)->restorePoint:&from1),\
+                                 &(to)->restorePoint, (from?&(from)->usedStackTop:&from2)); \
     } while (0)
 
 

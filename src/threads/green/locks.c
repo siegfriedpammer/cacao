@@ -453,7 +453,7 @@ internal_unlock_mutex(iMux* mux)
 		if (mux->muxWaiters != 0)
 		{
 			tid = mux->muxWaiters;
-			mux->muxWaiters = tid->next;
+			mux->muxWaiters = tid->vmThread->next;
 			iresumeThread(tid);
 		}
     }
@@ -485,7 +485,7 @@ internal_wait_cond(iMux* mux, iCv* cv, s8 timeout)
     /* If there's anyone waiting here, wake them up */
     if (mux->muxWaiters != 0) {
 		tid = mux->muxWaiters;
-		mux->muxWaiters = tid->next;
+		mux->muxWaiters = tid->vmThread->next;
 		iresumeThread(tid);
     }
 
@@ -526,10 +526,10 @@ internal_signal_cond (iCv* cv)
 		DBG( fprintf(stderr, "releasing a waiter\n"); );
 
 		tid = cv->cvWaiters;
-		cv->cvWaiters = tid->next;
+		cv->cvWaiters = tid->vmThread->next;
 
 		/* Place it on mux list */
-		tid->next = cv->mux->muxWaiters;
+		tid->vmThread->next = cv->mux->muxWaiters;
 		cv->mux->muxWaiters = tid;
     }
 }
@@ -555,7 +555,7 @@ internal_broadcast_cond (iCv* cv)
 
     /* Find the end of the cv list */
     if (cv->cvWaiters) {
-		for (tidp = &cv->cvWaiters; *tidp != 0; tidp = &(*tidp)->next)
+		for (tidp = &cv->cvWaiters; *tidp != 0; tidp = &(*tidp)->vmThread->next)
 			;
 
 		/* Place entire cv list on mux list */

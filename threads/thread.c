@@ -51,7 +51,7 @@ thread* sleepThreads = NULL;
 int blockInts;
 bool needReschedule;
 
-ctx contexts[MAXTHREADS];
+vmthread *contexts[MAXTHREADS];
 
 /* Number of threads alive, also counting daemons */
 static int talive;
@@ -70,6 +70,47 @@ int threadStackSize = THREADSTACKSIZE;
 void *stack_to_be_freed = 0;
 
 static thread* startDaemon(void* func, char* nm, int stackSize);
+
+
+
+java_objectheader *init_vmthread(void *thr)
+{
+        methodinfo *m;
+        java_objectheader *o;
+	classinfo *c=class_new(utf_new_char("java/lang/VMThread"));
+
+        if (!c)
+                return *exceptionptr;
+
+        o = builtin_new(c);          /* create object          */
+
+        if (!o)
+                return NULL;
+
+        /* find initializer */
+
+        m = class_findmethod(c,
+                                                 utf_new_char("<init>"),
+                                                 utf_new_char("(Ljava/lang/Thread;)V"));
+
+        if (!m) {                                       /* initializer not found  */
+                if (verbose) {
+                        char logtext[MAXLOGTEXT];
+                        sprintf(logtext, "Warning: class has no instance-initializer: ");
+                        utf_sprint_classname(logtext + strlen(logtext), c->name);
+                        log_text(logtext);
+                }
+                return o;
+        }
+
+        /* call initializer */
+
+        asm_calljavafunction(m, o, thr, NULL, NULL);
+	return o;
+}
+
+
+
 
 /*
  * Allocate the stack for a thread
@@ -97,23 +138,23 @@ allocThreadStack (thread *tid, int size)
  * immediately because it is still in use!
  */
 void
-freeThreadStack (thread *tid)
+freeThreadStack (vmthread *vmtid)
 {
-    if (!(CONTEXT(tid).flags & THREAD_FLAGS_NOSTACKALLOC))
+    if (!(vmtid->flags & THREAD_FLAGS_NOSTACKALLOC))
     {
 		int pageSize = getpagesize();
 		unsigned long pageBegin;
 
-		pageBegin = (unsigned long)(CONTEXT(tid).stackMem) + pageSize - 1;
+		pageBegin = (unsigned long)(vmtid->stackMem) + pageSize - 1;
 		pageBegin = pageBegin - pageBegin % pageSize;
 
 		assert(stack_to_be_freed == 0);
 
-		stack_to_be_freed = CONTEXT(tid).stackMem;
+		stack_to_be_freed = vmtid->stackMem;
     }
-    CONTEXT(tid).stackMem = 0;
-    CONTEXT(tid).stackBase = 0;
-    CONTEXT(tid).stackEnd = 0;
+    vmtid->stackMem = 0;
+    vmtid->stackBase = 0;
+    vmtid->stackEnd = 0;
 }
 
 /*
@@ -132,17 +173,17 @@ initThreads(u1 *stackbottom)
     initLocks();
 
     for (i = 0; i < MAXTHREADS; ++i) {
-		contexts[i].free = true;
-		contexts[i].thread = NULL;
+		contexts[i]=0;
 	}
 
     /* Allocate a thread to be the main thread */
     liveThreads = the_main_thread = 
         (thread *) builtin_new(class_new(utf_new_char("java/lang/Thread")));
+    the_main_thread->vmThread=init_vmthread(the_main_thread);
     assert(the_main_thread != 0);
     
-    the_main_thread->PrivateInfo = 1;
-    CONTEXT(the_main_thread).free = false;
+/*    the_main_thread->PrivateInfo = 1;
+    CONTEXT(the_main_thread).free = false;*/
 
 #if 0
     {
@@ -163,10 +204,11 @@ printf("DEADCODE LIVES ?????????\n");fflush(stdout);
 		for (i=0; i<len; i++)
 			d[i] = mainname[i];
 	}*/
+
     the_main_thread->priority = NORM_THREAD_PRIO;
     CONTEXT(the_main_thread).priority = (u1)the_main_thread->priority;
     CONTEXT(the_main_thread).texceptionptr = 0;
-    the_main_thread->next = 0;
+    the_main_thread->vmThread->next = 0;
     CONTEXT(the_main_thread).status = THREAD_SUSPENDED;
     CONTEXT(the_main_thread).stackBase = CONTEXT(the_main_thread).stackEnd = stackbottom;
     THREADINFO(&CONTEXT(the_main_thread));
@@ -178,7 +220,7 @@ printf("DEADCODE LIVES ?????????\n");fflush(stdout);
 
 	CONTEXT(the_main_thread).flags = THREAD_FLAGS_NOSTACKALLOC;
 	CONTEXT(the_main_thread).nextlive = 0;
-	CONTEXT(the_main_thread).thread = the_main_thread;
+	/*CONTEXT(the_main_thread).thread = the_main_thread;*/
 	/*the_main_thread->single_step = 0;*/
 	the_main_thread->daemon = 0;
 	/*the_main_thread->stillborn = 0;*/
@@ -204,7 +246,7 @@ printf("DEADCODE LIVES ?????????\n");fflush(stdout);
 	DBG( fprintf(stderr, "finishing initThreads\n"); );
 
     mainThread = currentThread = the_main_thread;
-
+	contexts[0]=mainThread->vmThread;
 	/* Add thread into runQ */
 	iresumeThread(mainThread);
 
@@ -221,17 +263,22 @@ startThread (thread* tid)
 
     /* Allocate a stack context */
     for (i = 0; i < MAXTHREADS; ++i)
-		if (contexts[i].free)
+		if (contexts[i]==0)
 			break;
 
-    if (i == MAXTHREADS)
+   if (i == MAXTHREADS)
 		panic("Too many threads");
 
 	assert(tid->priority >= MIN_THREAD_PRIO && tid->priority <= MAX_THREAD_PRIO);
+	contexts[i]=tid->vmThread;
+/*    tid->PrivateInfo = i + 1;
+    CONTEXT(tid).free = false;*/
+    if (tid->vmThread==0) {
+	panic("vmThread field not set");
+/*	tid->vmThread=init_vmthread(tid);*/
+    }
 
-    tid->PrivateInfo = i + 1;
-    CONTEXT(tid).free = false;
-	CONTEXT(tid).thread = tid;
+/*	CONTEXT(tid).thread = tid;*/
     CONTEXT(tid).nextlive = liveThreads;
     liveThreads = tid;
     allocThreadStack(tid, threadStackSize);
@@ -270,18 +317,18 @@ static thread *startDaemon(void* func, char* nm, int stackSize)
 	tid = (thread *) builtin_new(class_new(utf_new_char("java/lang/Thread")));
 	assert(tid != 0);
 
-	for (i = 0; i < MAXTHREADS; ++i)
-		if (contexts[i].free)
+/*	for (i = 0; i < MAXTHREADS; ++i)
+		if (contexts[i]==0)
 			break;
 	if (i == MAXTHREADS)
-		panic("Too many threads");
+		panic("Too many threads");*/
 
-	tid->PrivateInfo = i + 1;
-	CONTEXT(tid).free = false;
+/*	tid->PrivateInfo = i + 1;
+	CONTEXT(tid).free = false;*/
 	tid->name = 0;          /* for the moment */
 	tid->priority = MAX_THREAD_PRIO;
 	CONTEXT(tid).priority = (u1)tid->priority;
-	tid->next = 0;
+	tid->vmThread->next = 0;
 	CONTEXT(tid).status = THREAD_SUSPENDED;
 
 	allocThreadStack(tid, stackSize);
@@ -319,12 +366,12 @@ firstStartThread(void)
 	assert(blockInts == 0);
 
 	/* Find the run()V method and call it */
-	method = class_findmethod(currentThread->header.vftbl->class,
+	method = class_findmethod(currentThread->vmThread->header.vftbl->class,
 							  utf_new_char("run"), utf_new_char("()V"));
 	if (method == 0)
 		panic("Cannot find method \'void run ()\'");
 
-	asm_calljavafunction(method, currentThread, NULL, NULL, NULL);
+	asm_calljavafunction(method, currentThread->vmThread, NULL, NULL, NULL);
 
     if (*exceptionptr) {
         utf_display((*exceptionptr)->vftbl->class->name);
@@ -345,9 +392,29 @@ firstStartThread(void)
 void
 iresumeThread(thread* tid)
 {
+	vmthread *vmctid;
     DBG( printf("resumeThread %p\n", tid); );
 
 	intsDisable();
+	if (tid->vmThread==0) {
+		intsRestore();
+		return;
+	}
+	
+	if (currentThread->vmThread==0) {
+		long i1;
+		for (i1=0;i1<MAXTHREADS;i1++) {
+			if (!contexts[i1]) continue;
+			if (contexts[i1]->thread==currentThread) {
+				vmctid=contexts[i1];
+				break;
+			}
+		}
+		if (i1==MAXTHREADS) vmctid=0; /*panic("Thread not found in iresumeThread");*/
+
+	} else {
+		vmctid=currentThread->vmThread;
+	}
 
 	if (CONTEXT(tid).status != THREAD_RUNNING)
 	{
@@ -359,16 +426,17 @@ iresumeThread(thread* tid)
 		if (threadQhead[CONTEXT(tid).priority] == 0) {
 			threadQhead[CONTEXT(tid).priority] = tid;
 			threadQtail[CONTEXT(tid).priority] = tid;
-			if (CONTEXT(tid).priority
-				> CONTEXT(currentThread).priority)
+			
+			if ((vmctid==0) ||  (CONTEXT(tid).priority
+				> vmctid->priority) )
 				needReschedule = true;
 		}
 		else
 		{
-			threadQtail[CONTEXT(tid).priority]->next = tid;
+			threadQtail[CONTEXT(tid).priority]->vmThread->next = tid;
 			threadQtail[CONTEXT(tid).priority] = tid;
 		}
-		tid->next = 0;
+		tid->vmThread->next = 0;
 	}
 	SDBG( else { printf("Re-resuming %p\n", tid); } );
 
@@ -387,10 +455,10 @@ yieldThread()
 		!= threadQtail[CONTEXT(currentThread).priority])
     {
 		/* Get the next thread and move me to the end */
-		threadQhead[CONTEXT(currentThread).priority] = currentThread->next;
-		threadQtail[CONTEXT(currentThread).priority]->next = currentThread;
+		threadQhead[CONTEXT(currentThread).priority] = currentThread->vmThread->next;
+		threadQtail[CONTEXT(currentThread).priority]->vmThread->next = currentThread;
 		threadQtail[CONTEXT(currentThread).priority] = currentThread;
-		currentThread->next = 0;
+		currentThread->vmThread->next = 0;
 		needReschedule = true;
     }
 
@@ -447,12 +515,12 @@ suspendThread(thread* tid)
 
 		for (ntid = &threadQhead[CONTEXT(tid).priority];
 			 *ntid != 0;
-			 ntid = &(*ntid)->next)
+			 ntid = &(*ntid)->vmThread->next)
 		{
 			if (*ntid == tid)
 			{
-				*ntid = tid->next;
-				tid->next = 0;
+				*ntid = tid->vmThread->next;
+				tid->vmThread->next = 0;
 				if (tid == currentThread)
 				{
 					reschedule();
@@ -484,13 +552,13 @@ suspendOnQThread(thread* tid, thread** queue)
 
 		for (ntid = &threadQhead[CONTEXT(tid).priority];
 			 *ntid != 0;
-			 ntid = &(*ntid)->next)
+			 ntid = &(*ntid)->vmThread->next)
 		{
 			if (*ntid == tid)
 			{
-				*ntid = tid->next;
+				*ntid = tid->vmThread->next;
 				/* Insert onto head of lock wait Q */
-				tid->next = *queue;
+				tid->vmThread->next = *queue;
 				*queue = tid;
 				if (tid == currentThread)
 				{
@@ -511,6 +579,7 @@ suspendOnQThread(thread* tid, thread** queue)
 void
 killThread(thread* tid)
 {
+    vmthread *context;
     thread** ntid;
 
     intsDisable();
@@ -521,26 +590,39 @@ killThread(thread* tid)
 		tid = currentThread;
     }
 
+	if (tid->vmThread==0) {
+		long i1;
+		for (i1=0;i1<MAXTHREADS;i1++) {
+			if (!contexts[i1]) continue;
+			if (contexts[i1]->thread==tid) {
+				context=contexts[i1];
+				break;
+			}
+		}
+		if (i1==MAXTHREADS) panic("Thread not found in killThread");
+
+	} else context=tid->vmThread;
+
 	DBG( printf("killThread %p\n", tid); );
 
-	if (CONTEXT(tid).status != THREAD_DEAD)
+	if (context->status != THREAD_DEAD)
 	{
 		/* Get thread off runq (if it needs it) */
-		if (CONTEXT(tid).status == THREAD_RUNNING)
+		if (context->status == THREAD_RUNNING)
 		{
-			for (ntid = &threadQhead[CONTEXT(tid).priority];
+			for (ntid = &threadQhead[context->priority];
 				 *ntid != 0;
-				 ntid = &(*ntid)->next)
+				 ntid = &(*ntid)->vmThread->next)
 			{
 				if (*ntid == tid)
 				{
-					*ntid = tid->next;
+					*ntid = context->next;
 					break;
 				}
 			}
 		}
 
-		CONTEXT(tid).status = THREAD_DEAD;
+		context->status = THREAD_DEAD;
 		talive--;
 		if (tid->daemon) {
 			tdaemon--;
@@ -565,23 +647,46 @@ killThread(thread* tid)
 		{
 			if (tid == (*ntid))
 			{
-				(*ntid) = CONTEXT(tid).nextlive;
+				(*ntid) = context->nextlive;
 				break;
 			}
 		}
 
+
 		/* Free stack */
-		freeThreadStack(tid);
+		freeThreadStack(context);
 
 		/* free context */
-		if (tid != mainThread) {
+		if (tid != mainThread)
+		{
+			long i;
+			for (i=0;i<MAXTHREADS;i++) {
+				if (!contexts[i]) continue;
+				if (contexts[i]==context) {
+					contexts[i]=0;
+					break;
+				}
+			}
+		}
+/*		if (tid != mainThread) {
 			CONTEXT(tid).free = true;
 			CONTEXT(tid).thread = NULL;
-		}
+		}*/
 
 		/* Run something else */
 		needReschedule = true;
 	}
+		for (ntid = &sleepThreads;
+			 *ntid != 0;
+			 ntid = &(CONTEXT((*ntid)).next))
+		{
+			if (tid == (*ntid))
+			{
+				(*ntid) = context->next;
+				break;
+			}
+		}
+
 	intsRestore();
 }
 
@@ -595,10 +700,11 @@ setPriorityThread(thread* tid, int prio)
 
 	assert(prio >= MIN_THREAD_PRIO && prio <= MAX_THREAD_PRIO);
 
-    if (tid->PrivateInfo == 0) {
+#warning fixme ??
+/*    if (tid->PrivateInfo == 0) {
 		tid->priority = prio;
 		return;
-    }
+    }*/
 
     if (CONTEXT(tid).status == THREAD_SUSPENDED) {
 		CONTEXT(tid).priority = (u8)prio;
@@ -608,9 +714,9 @@ setPriorityThread(thread* tid, int prio)
     intsDisable();
 
     /* Remove from current thread list */
-    for (ntid = &threadQhead[CONTEXT(tid).priority]; *ntid != 0; ntid = &(*ntid)->next) {
+    for (ntid = &threadQhead[CONTEXT(tid).priority]; *ntid != 0; ntid = &(*ntid)->vmThread->next) {
 		if (*ntid == tid) {
-			*ntid = tid->next;
+			*ntid = tid->vmThread->next;
 			break;
 		}
     }
@@ -626,10 +732,10 @@ setPriorityThread(thread* tid, int prio)
 		}
     }
     else {
-		threadQtail[prio]->next = tid;
+		threadQtail[prio]->vmThread->next = tid;
 		threadQtail[prio] = tid;
     }
-    tid->next = 0;
+    tid->vmThread->next = 0;
 
     intsRestore();
 }
@@ -671,9 +777,9 @@ sleepThread (s8 time)
     CONTEXT(currentThread).time = time + currentTime();
 
     /* Find place in alarm list */
-    for (tidp = &sleepThreads; (*tidp) != 0; tidp = &(*tidp)->next)
+    for (tidp = &sleepThreads; (*tidp) != 0; tidp = &((*tidp)->vmThread->next))
 	{
-		if (CONTEXT(*tidp).time > CONTEXT(currentThread).time)
+		if (CONTEXT((*tidp)).time > CONTEXT(currentThread).time)
 			break;
     }
 
@@ -689,7 +795,7 @@ sleepThread (s8 time)
 bool
 aliveThread(thread* tid)
 {
-    if (tid->PrivateInfo != 0 && CONTEXT(tid).status != THREAD_DEAD)
+    if (tid!=mainThread  && CONTEXT(tid).status != THREAD_DEAD)
 		return (true);
     else
 		return (false);
@@ -734,8 +840,10 @@ reschedule(void)
 					CONTEXT(currentThread).texceptionptr = *exceptionptr;
 
                     DBG( fprintf(stderr, "thread switch from: %p to: %p\n", lastThread, currentThread); );
+					{
 					THREADSWITCH((&CONTEXT(currentThread)),
 								 (&CONTEXT(lastThread)));
+					}
 					blockInts = b;
 
 					*exceptionptr = CONTEXT(currentThread).texceptionptr;

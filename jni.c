@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: jni.c 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -1927,17 +1927,24 @@ jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name, const c
 
 jobject CallStaticObjectMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	log_text("JNI-Call: CallStaticObjectMethod");
+	jobject ret;
+	va_list vaargs;
 
-	return NULL;
+	/* log_text("JNI-Call: CallStaticObjectMethod");*/
+
+	va_start(vaargs, methodID);
+	ret = callObjectMethod(0, methodID, vaargs);
+	va_end(vaargs);
+
+	return ret;
 }
 
 
 jobject CallStaticObjectMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
-	log_text("JNI-Call: CallStaticObjectMethodV");
-
-	return NULL;
+	/* log_text("JNI-Call: CallStaticObjectMethodV"); */
+	
+	return callObjectMethod(0,methodID,args);
 }
 
 

@@ -8,7 +8,7 @@
 typedef struct java_io_FileInputStream {
    java_objectheader header;
    struct java_io_FileDescriptor* fd;
-   struct java_nio_channels_FileChannel* ch;
+   struct gnu_java_nio_channels_FileChannelImpl* ch;
 } java_io_FileInputStream;
 
 #endif

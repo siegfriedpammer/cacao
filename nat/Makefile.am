@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1148 2004-06-06 13:20:49Z twisti $
+# $Id: Makefile.am 1173 2004-06-16 14:56:18Z jowenn $
 
 
 INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit/@ARCH_DIR@
@@ -12,7 +12,6 @@ noinst_LIBRARIES = libnat.a
 libnat_a_SOURCES = \
 	Constructor.c \
 	Field.c \
-	FileChannelImpl.c \
 	Method.c \
 	Proxy.c \
 	Runtime.c \
@@ -20,7 +19,6 @@ libnat_a_SOURCES = \
 	VMClass.c \
 	VMClassLoader.c \
 	VMObject.c \
-	VMObjectStreamClass.c \
 	VMSecurityManager.c \
 	VMString.c \
 	VMSystem.c \

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Thread.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: Thread.c 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -44,6 +44,7 @@
 #include "java_lang_ThreadGroup.h"
 #include "java_lang_Object.h"         /* needed for java_lang_Thread.h */
 #include "java_lang_Throwable.h"      /* needed for java_lang_Thread.h */
+#include "java_lang_VMThread.h"
 #include "java_lang_Thread.h"
 
 
@@ -52,9 +53,9 @@
  * Method:    countStackFrames
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_countStackFrames(JNIEnv *env, java_lang_Thread *this)
+JNIEXPORT s4 JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_lang_VMThread *this)
 {
-    log_text("java_lang_Thread_countStackFrames called");
+    log_text("java_lang_VMThread_countStackFrames called");
 
     return 0;
 }
@@ -64,12 +65,12 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_countStackFrames(JNIEnv *env, java_la
  * Method:    currentThread
  * Signature: ()Ljava/lang/Thread;
  */
-JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread(JNIEnv *env, jclass clazz)
+JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv *env, jclass clazz)
 {
 	java_lang_Thread *t;
 
 	if (runverbose)
-		log_text("java_lang_Thread_currentThread called");
+		log_text("java_lang_VMThread_currentThread called");
 
 #if defined(USE_THREADS)
 #if !defined(NATIVE_THREADS)
@@ -79,7 +80,7 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread(JNIEnv *
 #endif
   
 	if (!t->group) {
-		log_text("java_lang_Thread_currentThread: t->group=NULL");
+		log_text("java_lang_VMThread_currentThread: t->group=NULL");
 		/* ThreadGroup of currentThread is not initialized */
 
 		t->group = (java_lang_ThreadGroup *) 
@@ -101,9 +102,9 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread(JNIEnv *
  * Method:    nativeInterrupt
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_nativeInterrupt(JNIEnv *env, java_lang_Thread *this)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_VMThread *this)
 {
-	log_text("Java_java_lang_Thread_interrupt0 called");
+	log_text("Java_java_lang_VMThread_interrupt0 called");
 }
 
 
@@ -112,13 +113,13 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeInterrupt(JNIEnv *env, java_l
  * Method:    isAlive
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, java_lang_Thread *this)
+JNIEXPORT s4 JNICALL Java_java_lang_VMThread_isAlive(JNIEnv *env, java_lang_VMThread *this)
 {
 	if (runverbose)
-		log_text("java_lang_Thread_isAlive called");
+		log_text("java_lang_VMThread_isAlive called");
 
 #if defined(USE_THREADS)
-	return aliveThread((thread *) this);
+	return aliveThread((thread *) this->thread);
 #endif
 }
 
@@ -129,9 +130,9 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, java_lang_Thread
  * Method:    isInterrupted
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_isInterrupted(JNIEnv *env, java_lang_Thread *this)
+JNIEXPORT s4 JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, java_lang_VMThread *this)
 {
-	log_text("Java_java_lang_Thread_isInterrupted  called");
+	log_text("Java_java_lang_VMThread_isInterrupted  called");
 	return 0;
 }
 
@@ -141,7 +142,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_isInterrupted(JNIEnv *env, java_lang_
  * Method:    registerNatives
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_registerNatives(JNIEnv *env, jclass clazz)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_registerNatives(JNIEnv *env, jclass clazz)
 {
 	/* empty */
 }
@@ -152,13 +153,13 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_registerNatives(JNIEnv *env, jclass
  * Method:    resume0
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_nativeResume(JNIEnv *env, java_lang_Thread *this)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMThread *this)
 {
 	if (runverbose)
-		log_text("java_lang_Thread_resume0 called");
+		log_text("java_lang_VMThread_resume0 called");
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	resumeThread((thread *) this);
+	resumeThread((thread *) this->thread);
 #endif
 }
 
@@ -168,13 +169,13 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeResume(JNIEnv *env, java_lang
  * Method:    setPriority0
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_nativeSetPriority(JNIEnv *env, java_lang_Thread *this, s4 par1)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, java_lang_VMThread *this, s4 par1)
 {
     if (runverbose) 
-		log_text("java_lang_Thread_setPriority0 called");
+		log_text("java_lang_VMThread_setPriority0 called");
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	setPriorityThread((thread *) this, par1);
+	setPriorityThread((thread *) this->thread, par1);
 #endif
 }
 
@@ -184,10 +185,10 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeSetPriority(JNIEnv *env, java
  * Method:    sleep
  * Signature: (JI)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_sleep(JNIEnv *env, jclass clazz, s8 millis, s4 par2)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_sleep(JNIEnv *env, jclass clazz, s8 millis, s4 par2)
 {
 	if (runverbose)
-		log_text("java_lang_Thread_sleep called");
+		log_text("java_lang_VMThread_sleep called");
 
 #if defined(USE_THREADS)
 	sleepThread(millis);
@@ -200,13 +201,16 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_sleep(JNIEnv *env, jclass clazz, s8
  * Method:    start
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_start(JNIEnv *env, java_lang_Thread *this)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMThread *this, s8 par1)
 {
 	if (runverbose) 
-		log_text("java_lang_Thread_start called");
+		log_text("java_lang_VMThread_start called");
 
 #if defined(USE_THREADS)
-	startThread((thread*)this);
+#warning perhaps it would be better to always work with the vmthread structure in the thread code (jowenn)
+	if (this->thread->vmThread==0)
+		this->thread->vmThread=this;
+	startThread((thread*)(this->thread));
 #endif
 }
 
@@ -216,14 +220,14 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_start(JNIEnv *env, java_lang_Thread
  * Method:    stop0
  * Signature: (Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_nativeStop(JNIEnv *env, java_lang_Thread *this, java_lang_Throwable *par1)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang_VMThread *this, java_lang_Throwable *par1)
 {
 	if (runverbose)
-		log_text ("java_lang_Thread_stop0 called");
+		log_text ("java_lang_VMThread_stop0 called");
 
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	if (currentThread == (thread*)this) {
+	if (currentThread == (thread*)this->thread) {
 		log_text("killing");
 		killThread(0);
 		/*
@@ -232,8 +236,8 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeStop(JNIEnv *env, java_lang_T
 		*/
 
 	} else {
-		CONTEXT((thread*)this).flags |= THREAD_FLAGS_KILLED;
-		resumeThread((thread*)this);
+		/*CONTEXT((thread*)this)*/ this->flags |= THREAD_FLAGS_KILLED;
+		resumeThread((thread*)this->thread);
 	}
 #endif
 }
@@ -244,13 +248,13 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeStop(JNIEnv *env, java_lang_T
  * Method:    suspend0
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_nativeSuspend(JNIEnv *env, java_lang_Thread *this)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VMThread *this)
 {
 	if (runverbose)
-		log_text("java_lang_Thread_suspend0 called");
+		log_text("java_lang_VMThread_suspend0 called");
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	suspendThread((thread*)this);
+	suspendThread((thread*)this->thread);
 #endif
 }
 
@@ -260,10 +264,10 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeSuspend(JNIEnv *env, java_lan
  * Method:    yield
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_yield(JNIEnv *env, jclass clazz)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_yield(JNIEnv *env, jclass clazz)
 {
 	if (runverbose)
-		log_text("java_lang_Thread_yield called");
+		log_text("java_lang_VMThread_yield called");
 
 #if defined(USE_THREADS)
 	yieldThread();
@@ -276,9 +280,9 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_yield(JNIEnv *env, jclass clazz)
  * Method:    interrupted
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_interrupted(JNIEnv *env, jclass clazz)
+JNIEXPORT s4 JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass clazz)
 {
-	log_text("Java_java_lang_Thread_interrupted");
+	log_text("Java_java_lang_VMThread_interrupted");
 
 	return 0;
 }
@@ -289,16 +293,16 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_interrupted(JNIEnv *env, jclass clazz
  * Method:    nativeInit
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_nativeInit(JNIEnv *env, java_lang_Thread *this, s8 par1)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeInit(JNIEnv *env, java_lang_VMThread *this, s8 par1)
 {
 /*
 	if (*exceptionptr)
 		log_text("There has been an exception, strange...");*/
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initThread(this);
+	initThread(this->thread);
 #endif
-	this->priority = 5;
+	this->thread->priority = 5;
 }
 
 
@@ -307,7 +311,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeInit(JNIEnv *env, java_lang_T
  * Method:    holdsLock
  * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_holdsLock(JNIEnv *env, jclass clazz, java_lang_Object *par1)
+JNIEXPORT s4 JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass clazz, java_lang_Object *par1)
 {
 	return 0;
 }

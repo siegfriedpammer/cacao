@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1113 2004-06-02 10:31:09Z twisti $
+   $Id: native.c 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -221,46 +221,11 @@ java_objectheader* _exceptionptr = NULL;
 
 void use_class_as_object(classinfo *c) 
 {
-/*  	vftbl *vt; */
-/*  	vftbl *newtbl; */
-	java_objectheader *vmo;
-
-/*  	vt = class_java_lang_Class->vftbl; */
-
 	if (!c->classvftbl) {
 		c->classvftbl = true;
 
-		/*                copy_vftbl(&newtbl, vt);
-						  newtbl->class = c->header.vftbl->class;
-						  newtbl->baseval = c->header.vftbl->baseval;
-						  newtbl->diffval = c->header.vftbl->diffval;
-						  c->header.vftbl = newtbl;*/
-		
 		c->header.vftbl = class_java_lang_Class->vftbl;
-        
-		method_vmclass_init =
-			class_findmethod(class_java_lang_VMClass,
-							 utf_new_char("<init>"),
-							 utf_new_char("(Lgnu/classpath/RawData;)V"));
-
-		if (method_vmclass_init == 0) {
-			class_showmethods(class_java_lang_VMClass);
-			panic("Needed class initializer for VMClass could not be found");
-		}
-
-		vmo = builtin_new(class_java_lang_VMClass);
-
-		if (!vmo)
-			panic("Error while creating instance of java/lang/VMClass");
-
-		asm_calljavafunction(method_vmclass_init, vmo, c, NULL, NULL);
-
-		c->vmClass = (java_lang_VMClass *) vmo;
-#if 0
-		setfield_critical(class_java_lang_Class,vmo,"vmClass",          "Ljava/lang/VMClass;",  jobject, (jobject) class_java_lang_Class /*this*/);
-#endif
-
-	}
+  	}
 	     
 }
 
@@ -652,6 +617,7 @@ void native_loadclasses()
 	class_java_lang_Void = class_new(utf_new_char("java/lang/Void"));
 	class_load(class_java_lang_Void);
 	class_link(class_java_lang_Void);
+
 }
 
 
@@ -1815,7 +1781,7 @@ java_objectarray *builtin_asm_createclasscontextarray(classinfo **end,classinfo 
         classinfo **current;
 	classinfo *c;
         size_t size=(((size_t)start)-((size_t)end)) / sizeof (classinfo*);
-/*      printf("end %p, start %p, size %ld\n",end,start,size);*/
+        /*printf("end %p, start %p, size %ld\n",end,start,size);*/
         if (!class_java_lang_Class)
                 class_java_lang_Class = class_new(utf_new_char ("java/lang/Class"));
         if (!class_java_lang_SecurityManager)

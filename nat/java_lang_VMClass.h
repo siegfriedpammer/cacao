@@ -7,170 +7,127 @@
 
 typedef struct java_lang_VMClass {
    java_objectheader header;
-   s4 initializing_thread;
-   s4 erroneous_state;
-   struct gnu_classpath_RawData* vmData;
 } java_lang_VMClass;
 
 
 /*
  * Class:     java/lang/VMClass
- * Method:    isInitialized
- * Signature: ()Z
- */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInitialized(JNIEnv *env, struct java_lang_VMClass* this);
-
-
-/*
- * Class:     java/lang/VMClass
- * Method:    setInitialized
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_VMClass_setInitialized(JNIEnv *env, struct java_lang_VMClass* this);
-
-
-/*
- * Class:     java/lang/VMClass
- * Method:    step7
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_VMClass_step7(JNIEnv *env, struct java_lang_VMClass* this);
-
-
-/*
- * Class:     java/lang/VMClass
- * Method:    step8
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_VMClass_step8(JNIEnv *env, struct java_lang_VMClass* this);
-
-
-/*
- * Class:     java/lang/VMClass
  * Method:    isInstance
- * Signature: (Ljava/lang/Object;)Z
+ * Signature: (Ljava/lang/Class;Ljava/lang/Object;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, struct java_lang_VMClass* this, struct java_lang_Object* par1);
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz, struct java_lang_Class* par1, struct java_lang_Object* par2);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    isAssignableFrom
- * Signature: (Ljava/lang/Class;)Z
+ * Signature: (Ljava/lang/Class;Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, struct java_lang_VMClass* this, struct java_lang_Class* par1);
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass clazz, struct java_lang_Class* par1, struct java_lang_Class* par2);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    isInterface
- * Signature: ()Z
+ * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface(JNIEnv *env, struct java_lang_VMClass* this);
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    isPrimitive
- * Signature: ()Z
+ * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, struct java_lang_VMClass* this);
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    getName
- * Signature: ()Ljava/lang/String;
- */
-JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv *env, struct java_lang_VMClass* this);
-
-
-/*
- * Class:     java/lang/VMClass
- * Method:    getBeautifiedName
  * Signature: (Ljava/lang/Class;)Ljava/lang/String;
  */
-JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getBeautifiedName(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
+JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    getSuperclass
- * Signature: ()Ljava/lang/Class;
+ * Signature: (Ljava/lang/Class;)Ljava/lang/Class;
  */
-JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *env, struct java_lang_VMClass* this);
+JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    getInterfaces
- * Signature: ()[Ljava/lang/Class;
+ * Signature: (Ljava/lang/Class;)[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv *env, struct java_lang_VMClass* this);
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    getComponentType
- * Signature: ()Ljava/lang/Class;
+ * Signature: (Ljava/lang/Class;)Ljava/lang/Class;
  */
-JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEnv *env, struct java_lang_VMClass* this);
+JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    getModifiers
- * Signature: ()I
+ * Signature: (Ljava/lang/Class;)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, struct java_lang_VMClass* this);
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaringClass
- * Signature: ()Ljava/lang/Class;
+ * Signature: (Ljava/lang/Class;)Ljava/lang/Class;
  */
-JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, struct java_lang_VMClass* this);
+JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaredClasses
- * Signature: (Z)[Ljava/lang/Class;
+ * Signature: (Ljava/lang/Class;Z)[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, struct java_lang_VMClass* this, s4 par1);
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, jclass clazz, struct java_lang_Class* par1, s4 par2);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaredFields
- * Signature: (Z)[Ljava/lang/reflect/Field;
+ * Signature: (Ljava/lang/Class;Z)[Ljava/lang/reflect/Field;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNIEnv *env, struct java_lang_VMClass* this, s4 par1);
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNIEnv *env, jclass clazz, struct java_lang_Class* par1, s4 par2);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaredMethods
- * Signature: (Z)[Ljava/lang/reflect/Method;
+ * Signature: (Ljava/lang/Class;Z)[Ljava/lang/reflect/Method;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JNIEnv *env, struct java_lang_VMClass* this, s4 par1);
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JNIEnv *env, jclass clazz, struct java_lang_Class* par1, s4 par2);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaredConstructors
- * Signature: (Z)[Ljava/lang/reflect/Constructor;
+ * Signature: (Ljava/lang/Class;Z)[Ljava/lang/reflect/Constructor;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructors(JNIEnv *env, struct java_lang_VMClass* this, s4 par1);
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructors(JNIEnv *env, jclass clazz, struct java_lang_Class* par1, s4 par2);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    getClassLoader
- * Signature: ()Ljava/lang/ClassLoader;
+ * Signature: (Ljava/lang/Class;)Ljava/lang/ClassLoader;
  */
-JNIEXPORT struct java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, struct java_lang_VMClass* this);
+JNIEXPORT struct java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 
 
 /*
@@ -184,17 +141,17 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv 
 /*
  * Class:     java/lang/VMClass
  * Method:    isArray
- * Signature: ()I
+ * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, struct java_lang_VMClass* this);
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 
 
 /*
  * Class:     java/lang/VMClass
  * Method:    initialize
- * Signature: ()V
+ * Signature: (Ljava/lang/Class;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMClass_initialize(JNIEnv *env, struct java_lang_VMClass* this);
+JNIEXPORT void JNICALL Java_java_lang_VMClass_initialize(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 
 
 /*

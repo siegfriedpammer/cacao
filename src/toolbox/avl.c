@@ -70,7 +70,7 @@ avl_find (const struct avl_table *tree, const void *item)
     {
       int cmp = tree->avl_compare (item, p->avl_data, tree->avl_param);
 
-      if (cmp < 0)
+      if (cmp < 0)  
         p = p->avl_link[0];
       else if (cmp > 0)
         p = p->avl_link[1];

@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1171 2004-06-12 15:04:31Z stefan $
+   $Id: headers.c 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -267,6 +267,39 @@ static void addoutputsize (int len)
 	outputsize = newsize;
 }
 
+static void printOverloadPart(utf *desc)
+{
+	char *utf_ptr=desc->text;
+	u2 c;
+
+	fprintf(file,"__");
+	while ((c=utf_nextu2(&utf_ptr))!=')') {
+		switch (c) {
+			case 'I':
+			case 'S':
+			case 'B':
+			case 'C':
+			case 'Z':
+			case 'J':
+			case 'F':
+			case 'D': 
+				fprintf (file, "%c",(char)c);
+				break;
+			case '[':
+				fprintf(file,"_3");
+                           	break;
+			case 'L':
+				putc('L',file);
+				while ( (c=utf_nextu2(&utf_ptr)) != ';')
+					printIDpart (c);
+				fprintf(file,"_2");
+				break;
+			case '(':
+				break;
+			default: panic ("invalid method descriptor");
+		}
+	}
+}
 
 static char *printtype(char *utf_ptr)
 {
@@ -409,13 +442,11 @@ static void printmethod(methodinfo *m)
 	fprintf(file, " JNICALL Java_");
 	printID(m->class->name);           
 
-	/* rename overloaded method */
-	if ((ident_count = searchidentchain_utf(m->name)))
-		fprintf(file, "%d", ident_count - 1);		
 	chain_addlast(ident_chain, m->name);	
 
 	fprintf(file, "_");
 	printID(m->name);
+	if (m->nativelyoverloaded) printOverloadPart(m->descriptor);
 	fprintf(file, "(JNIEnv *env");
 	
 	utf_ptr = m->descriptor->text + 1;
@@ -464,6 +495,9 @@ static void headerfile_generate(classinfo *c)
 	char uclassname[1024];
 	u2 i;
 	methodinfo *m;	      		
+	u2 i2;
+	methodinfo *m2;
+	u2 nativelyoverloaded;	      		
 		      
 	/* store class in chain */		      
 	chain_addlast(nativeclass_chain, c);
@@ -510,6 +544,27 @@ static void headerfile_generate(classinfo *c)
 
 	/* create method-prototypes */
 		      		
+	/* find overloaded methods */
+	for (i = 0; i < c->methodscount; i++) {
+
+		m = &(c->methods[i]);
+
+		if (!(m->flags & ACC_NATIVE)) continue;
+		if (!m->nativelyoverloaded) {
+			nativelyoverloaded=false;
+			for (i2=i+1;i2<c->methodscount; i2++) {
+				m2 = &(c->methods[i2]);
+				if (!(m2->flags & ACC_NATIVE)) continue;
+				if (m->name==m2->name) {
+					m2->nativelyoverloaded=true;
+					nativelyoverloaded=true;
+				}
+			}
+			m->nativelyoverloaded=nativelyoverloaded;
+		}
+
+	}
+
 	for (i = 0; i < c->methodscount; i++) {
 
 		m = &(c->methods[i]);
@@ -570,6 +625,7 @@ static void printnativetableentry(methodinfo *m)
 	printID(m->class->name);
 	fprintf(file,"_");
 	printID(m->name);
+	if (m->nativelyoverloaded) printOverloadPart(m->descriptor);
 	fprintf(file,"\n   },\n");
 }
 

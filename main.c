@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1150 2004-06-06 13:29:25Z twisti $
+   $Id: main.c 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -66,8 +66,10 @@
 #include "typeinfo.h"
 #endif
 
-/* command line option */
 
+bool cacao_initializing;
+
+/* command line option */
 bool verbose = false;
 bool compileall = false;
 bool runverbose = false;       /* trace all method invocation                */
@@ -869,6 +871,8 @@ int main(int argc, char **argv)
 	tables_init();
 	suck_init(classpath);
 
+	cacao_initializing=true;
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
   	initThreadsEarly();
 #endif
@@ -883,7 +887,13 @@ int main(int argc, char **argv)
   	initThreads((u1*) &dummy);
 #endif
 
+	*threadrootmethod=0;
+	class_init(class_new(utf_new_char("java/lang/System"))); /*That's important, otherwise we get into trouble, if
+			the Runtime static initializer is called before (circular dependency. This is with classpath 
+			0.09. Another important thing is, that this has to happen after initThreads!!!
+		*/
 
+	cacao_initializing=false;
 	/************************* Start worker routines ********************/
 
 	if (startit) {
@@ -930,6 +940,7 @@ int main(int argc, char **argv)
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 
 		*threadrootmethod = mainmethod;
+
 
 		/* here we go... */
 		asm_calljavafunction(mainmethod, a, NULL, NULL, NULL);

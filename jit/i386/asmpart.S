@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1140 2004-06-05 20:58:14Z twisti $
+   $Id: asmpart.S 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -1179,6 +1179,13 @@ asm_switchstackandcall:
 
 		
 Java_java_lang_VMSecurityManager_currentClassLoader:
+	mov  cacao_initializing,%eax
+	test %eax,%eax
+	jz   Java_java_lang_VMSecurityManager_cont
+
+	mov $0,%eax
+	ret
+Java_java_lang_VMSecurityManager_cont:
 	lea  builtin_asm_getclassloader,%eax 
 	push %eax	/*store collector function pointer*/
 	jmp getClassContext_begin
@@ -1203,7 +1210,7 @@ getClassContext_begin:	/*start the real work*/
 	addl $116, %edx
 	push %edx /*esp+8*/ /*position of return address of native stub*/
 	call builtin_asm_get_stackframeinfo
-	movl (%eax),%eax /*comment ??*/
+/*	movl (%eax),%eax*/ /*TEST*/
 	push 0(%eax) /*esp+4*/ /*address of frame info block*/
 	movl 124(%esp),%edx
 
@@ -1287,6 +1294,8 @@ getClassContext_checkLeave:
 getClassContext_nativeCall:
 	movl $1,32(%esp)
 	movl 4(%esp),%eax	/*get top most element on stackframe help information stack*/
+	test %eax,%eax
+	jz getClassContext_leave
 	movl 0(%eax),%ecx 
 	movl %ecx,4(%esp)
 	addl $8,%eax

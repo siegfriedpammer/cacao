@@ -7,21 +7,21 @@
 
 typedef struct java_net_InetAddress {
    java_objectheader header;
+   s4 address;
    java_bytearray* addr;
    struct java_lang_String* hostName;
    struct java_lang_String* hostname_alias;
    s8 lookup_time;
-   s4 address;
    s4 family;
 } java_net_InetAddress;
 
 
 /*
  * Class:     java/net/InetAddress
- * Method:    getLocalHostName
+ * Method:    getLocalHostname
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT struct java_lang_String* JNICALL Java_java_net_InetAddress_getLocalHostName(JNIEnv *env, jclass clazz);
+JNIEXPORT struct java_lang_String* JNICALL Java_java_net_InetAddress_getLocalHostname(JNIEnv *env, jclass clazz);
 
 
 /*

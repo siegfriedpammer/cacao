@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1145 2004-06-05 23:57:56Z twisti $
+# $Id: Makefile.am 1173 2004-06-16 14:56:18Z jowenn $
 
 @SET_MAKE@
 
@@ -113,6 +113,7 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	java.lang.String \
 	java.lang.Class \
 	java.io.FileDescriptor \
+	java.io.VMFile \
 	gnu.java.nio.SelectorImpl \
 	gnu.java.nio.FileLockImpl \
 	gnu.java.lang.reflect.TypeSignature \
@@ -135,13 +136,12 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	java.io.FileWriter \
 	java.net.NetworkInterface \
 	java.net.SocketImpl \
-	java.net.PlainSocketImpl \
+	gnu.java.net.PlainSocketImpl \
 	java.net.DatagramSocketImpl \
 	java.net.InetAddress \
 	java.net.DatagramPacket \
-	java.net.PlainDatagramSocketImpl \
+	gnu.java.net.PlainDatagramSocketImpl \
 	java.nio.CharBufferImpl \
-	java.nio.channels.FileChannelImpl \
 	java.nio.DoubleBufferImpl \
 	java.nio.LongBufferImpl \
 	java.nio.ByteOrder \
@@ -149,6 +149,7 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	java.nio.IntBufferImpl \
 	java.nio.DirectByteBufferImpl \
 	java.nio.FloatBufferImpl \
+	gnu.java.nio.channels.FileChannelImpl \
 	java.sql.Connection \
 	java.lang.Math \
 	java.lang.StringBuffer \
@@ -190,7 +191,7 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	java.lang.reflect.Constructor \
 	java.lang.reflect.Method \
 	java.lang.ThreadGroup \
-	java.lang.Thread \
+	java.lang.VMThread \
 	java.lang.VMDouble \
 	java.lang.VMFloat \
 	java.lang.Cloneable \
@@ -201,6 +202,7 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	java.lang.VMString \
 	java.util.Properties \
 	java.lang.Runtime \
+	java.lang.VMRuntime \
 	java.lang.Throwable \
 	java.lang.VMThrowable \
 	gnu.java.security.x509.X509Certificate  \

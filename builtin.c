@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1113 2004-06-02 10:31:09Z twisti $
+   $Id: builtin.c 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -1814,7 +1814,10 @@ stacktraceelement *builtin_stacktrace_copy(stacktraceelement **el,stacktraceelem
 	size_t s;
 	s=(end-begin);
 	/*printf ("begin: %p, end: %p, diff: %ld, size :%ld\n",begin,end,s,s*sizeof(stacktraceelement));*/
+	*el=heap_allocate(sizeof(stacktraceelement)*(s+1), true, 0);
+#if 0
 	*el=MNEW(stacktraceelement,s+1); /*GC*/
+#endif
 	memcpy(*el,begin,(end-begin)*sizeof(stacktraceelement));
 	(*el)[s].method=0;
 #if defined(__GNUC__)

@@ -14,8 +14,8 @@ typedef struct java_nio_DirectByteBufferImpl {
    struct java_nio_ByteOrder* endian;
    s4 array_offset;
    java_bytearray* backing_buffer;
+   struct java_lang_Object* owner;
    struct gnu_classpath_RawData* address;
-   s4 offset;
    s4 readOnly;
 } java_nio_DirectByteBufferImpl;
 
@@ -39,17 +39,41 @@ JNIEXPORT void JNICALL Java_java_nio_DirectByteBufferImpl_freeImpl(JNIEnv *env, 
 /*
  * Class:     java/nio/DirectByteBufferImpl
  * Method:    getImpl
- * Signature: (I)B
+ * Signature: (Lgnu/classpath/RawData;I)B
  */
-JNIEXPORT s4 JNICALL Java_java_nio_DirectByteBufferImpl_getImpl(JNIEnv *env, struct java_nio_DirectByteBufferImpl* this, s4 par1);
+JNIEXPORT s4 JNICALL Java_java_nio_DirectByteBufferImpl_getImpl__Lgnu_classpath_RawData_2I(JNIEnv *env, jclass clazz, struct gnu_classpath_RawData* par1, s4 par2);
 
 
 /*
  * Class:     java/nio/DirectByteBufferImpl
  * Method:    putImpl
- * Signature: (IB)V
+ * Signature: (Lgnu/classpath/RawData;IB)V
  */
-JNIEXPORT void JNICALL Java_java_nio_DirectByteBufferImpl_putImpl(JNIEnv *env, struct java_nio_DirectByteBufferImpl* this, s4 par1, s4 par2);
+JNIEXPORT void JNICALL Java_java_nio_DirectByteBufferImpl_putImpl(JNIEnv *env, jclass clazz, struct gnu_classpath_RawData* par1, s4 par2, s4 par3);
+
+
+/*
+ * Class:     java/nio/DirectByteBufferImpl
+ * Method:    getImpl
+ * Signature: (Lgnu/classpath/RawData;I[BII)V
+ */
+JNIEXPORT void JNICALL Java_java_nio_DirectByteBufferImpl_getImpl__Lgnu_classpath_RawData_2I_3BII(JNIEnv *env, jclass clazz, struct gnu_classpath_RawData* par1, s4 par2, java_bytearray* par3, s4 par4, s4 par5);
+
+
+/*
+ * Class:     java/nio/DirectByteBufferImpl
+ * Method:    shiftDown
+ * Signature: (Lgnu/classpath/RawData;III)V
+ */
+JNIEXPORT void JNICALL Java_java_nio_DirectByteBufferImpl_shiftDown(JNIEnv *env, jclass clazz, struct gnu_classpath_RawData* par1, s4 par2, s4 par3, s4 par4);
+
+
+/*
+ * Class:     java/nio/DirectByteBufferImpl
+ * Method:    adjustAddress
+ * Signature: (Lgnu/classpath/RawData;I)Lgnu/classpath/RawData;
+ */
+JNIEXPORT struct gnu_classpath_RawData* JNICALL Java_java_nio_DirectByteBufferImpl_adjustAddress(JNIEnv *env, jclass clazz, struct gnu_classpath_RawData* par1, s4 par2);
 
 #endif
 

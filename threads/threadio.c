@@ -392,8 +392,8 @@ checkEvents(bool block)
 	while (sleepThreads != 0 && time >= CONTEXT(sleepThreads).time)
 	{
 	    tid = sleepThreads;
-	    sleepThreads = sleepThreads->next;
-	    tid->next = 0;
+	    sleepThreads = sleepThreads->vmThread->next;
+	    tid->vmThread->next = 0;
 
 	    iresumeThread(tid);
 	}
@@ -445,8 +445,8 @@ checkEvents(bool block)
 	while (sleepThreads != 0 && time >= CONTEXT(sleepThreads).time)
 	{
 	    tid = sleepThreads;
-	    sleepThreads = sleepThreads->next;
-	    tid->next = 0;
+	    sleepThreads = sleepThreads->vmThread->next;
+	    tid->vmThread->next = 0;
 
 	    iresumeThread(tid);
 	}
@@ -458,7 +458,7 @@ checkEvents(bool block)
 	{
 	    for (tid = readQ[i]; tid != 0; tid = ntid)
 	    {
-		ntid = tid->next;
+		ntid = tid->vmThread->next;
 		iresumeThread(tid);
 	    }
 	    readQ[i] = 0;
@@ -468,7 +468,7 @@ checkEvents(bool block)
 	{
 	    for (tid = writeQ[i]; tid != 0; tid = ntid)
 	    {
-		ntid = tid->next;
+		ntid = tid->vmThread->next;
 		iresumeThread(tid);
 	    }
 	    writeQ[i] = 0;

@@ -153,7 +153,7 @@ class ServerThread extends Thread
 public class httpd
 {
 
-    static String document_root = "/nethome/hansolo/schani/public_html";
+    static String document_root;
     static int num_threads = 10;
 
     ServerThread threads[] = null;
@@ -190,6 +190,7 @@ public class httpd
 
     public static void main (String args[])
     {
+	document_root=args[0];
 	new httpd().run();
     }
 

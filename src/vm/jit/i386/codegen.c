@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1168 2004-06-12 14:58:25Z stefan $
+   $Id: codegen.c 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -4841,7 +4841,7 @@ void traverseStackInfo() {
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
     u1 *s = CNEW(u1, NATIVESTUBSIZE);   /* memory to hold the stub            */
-
+    int addmethod=0;
     u1 *tptr;
     int i;
     int stackframesize = 4+12;           /* initial 4 bytes is space for jni env,
@@ -4849,7 +4849,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
     int stackframeoffset = 4;
 
     int p, t;
-
+ 
 	mcodeptr = s;                       /* make macros work                   */
 
 	if (m->flags & ACC_STATIC) {
@@ -4872,6 +4872,27 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	if (m->flags & ACC_STATIC) {
 	/* if class isn't yet initialized, do it */
 		if (!m->class->initialized) {
+			s4 *header=(s4*)s;
+			*header = 0;/*extablesize*/
+			header;
+			*header = 0;/*line number table start*/
+			header++;
+			*header = 0;/*line number table size*/
+			header++;
+			*header = 0;/*fltsave*/
+			header++;
+			*header = 0;/*intsave*/
+			header++;
+			*header = 0;/*isleaf*/
+			header++;
+			*header = 0;/*issync*/
+			header++;
+			*header = 0;/*framesize*/
+			header++;
+			*header = m;/*methodpointer*/
+			*header++;
+			mcodeptr=s=header;
+			addmethod=1;
 			/* call helper function which patches this code */
 			i386_mov_imm_reg((s4) m->class, REG_ITMP1);
 			i386_mov_imm_reg((s4) asm_check_clinit, REG_ITMP2);
@@ -5087,8 +5108,14 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	i386_mov_imm_reg((s4) asm_handle_nat_exception, REG_ITMP3);
 	i386_jmp_reg(REG_ITMP3);
 
+	if (addmethod) {
+		codegen_insertNative(s,mcodeptr);
+	}
+
 #if 0
-	dolog_plain("stubsize: %d (for %d params)\n", (s4) (mcodeptr - s), m->paramcount);
+	dolog_plain("native stubentry: %p, stubsize: %x (for %d params) --", (s4)s,(s4) (mcodeptr - s), m->paramcount);
+	utf_display(m->name);
+	dolog_plain("\n");
 #endif
 
 #if defined(STATISTICS)

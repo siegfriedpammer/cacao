@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1165 2004-06-12 13:33:38Z stefan $
+   $Id: codegen.inc 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -139,7 +139,7 @@ struct _methodtree_element {
 	void *endpc;
 };
 
-static struct avl_table *methodtree;
+static struct avl_table *methodtree=0;
 static int methodtree_comparator(const void *pc, const void *element,
 								 void *param);
 #endif
@@ -185,13 +185,17 @@ void codegen_init()
 		methodtree = avl_create(methodtree_comparator, NULL, NULL);
 
 		mte = NEW(methodtree_element);
-		mte->startpc = (void *) asm_calljavafunction;
-		mte->endpc = (void *) calljava_xhandler;
+
+		mte->startpc = asm_calljavafunction;
+		mte->endpc = asm_calljavafunction2-1;
+
 		avl_insert(methodtree, mte);
 
 		mte = NEW(methodtree_element);
-		mte->startpc = (void *) asm_calljavafunction2;
-		mte->endpc = (void *) calljava_xhandler2;
+
+		mte->startpc = asm_calljavafunction2;
+		mte->endpc = asm_call_jit_compiler-1;
+
 		avl_insert(methodtree, mte);
 	}
 #endif
@@ -659,6 +663,33 @@ static void codegen_finish(int mcodelen)
 }
 
 
+void codegen_insertNative(void *startpc,void *endpc) {
+		methodtree_element *mte;
+
+	if (!methodtree) {
+		methodtree_element *mte;
+
+		methodtree = avl_create(methodtree_comparator, NULL, NULL);
+
+		mte = NEW(methodtree_element);
+		mte->startpc = asm_calljavafunction;
+		mte->endpc = asm_calljavafunction2-1;
+		avl_insert(methodtree, mte);
+
+		mte = NEW(methodtree_element);
+		mte->startpc = asm_calljavafunction2;
+		mte->endpc = asm_call_jit_compiler-1;
+		avl_insert(methodtree, mte);
+	}
+
+
+		mte = NEW(methodtree_element);
+		mte->startpc = startpc;
+		mte->endpc = endpc;
+
+		if (avl_insert(methodtree, mte))
+			panic("duplicate entry");
+}
 
 void dseg_display(s4 *s4ptr)
 {

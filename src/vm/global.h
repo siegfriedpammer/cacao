@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1155 2004-06-09 16:28:52Z twisti $
+   $Id: global.h 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -611,6 +611,7 @@ struct methodinfo {                 /* method structure                       */
         /* should # method def'd and used be kept after static parse (will it be used?) */
 	s4	  subRedefs;
 	s4	  subRedefsUsed;
+	s4	  nativelyoverloaded; 		/*used in header.c and only valid there*/
 };
 
 
@@ -792,6 +793,7 @@ struct arraydescriptor {
 
 /* flag variables *************************************************************/
 
+extern bool cacao_initializing;
 extern bool compileall;
 extern bool runverbose;         
 extern bool verboseexception;         

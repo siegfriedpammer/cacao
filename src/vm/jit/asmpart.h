@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 1164 2004-06-12 13:32:49Z stefan $
+   $Id: asmpart.h 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -106,7 +106,9 @@ void asm_builtin_exittrace();
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 extern threadcritnode asm_criticalsections;
 #endif
+
 void asm_getclassvalues_atomic(vftbl *super, vftbl *sub, castinfo *out);
+
 
 #endif /* _ASMPART_H */
 

@@ -7,10 +7,10 @@
 
 typedef struct java_io_RandomAccessFile {
    java_objectheader header;
+   struct gnu_java_nio_channels_FileChannelImpl* ch;
    struct java_io_FileDescriptor* fd;
    struct java_io_DataOutputStream* out;
    struct java_io_DataInputStream* in;
-   struct java_nio_channels_FileChannel* ch;
 } java_io_RandomAccessFile;
 
 #endif

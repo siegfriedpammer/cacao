@@ -23,6 +23,8 @@ typedef struct java_io_ObjectInputStream {
    s4 isDeserializing;
    s4 fieldsAlreadyRead;
    struct java_util_Vector* validators;
+   struct java_util_Hashtable* classLookupTable;
+   struct java_io_ObjectInputStream_GetField* prereadFields;
 } java_io_ObjectInputStream;
 
 

@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 1154 2004-06-09 16:28:00Z twisti $
+   $Id: loader.c 1173 2004-06-16 14:56:18Z jowenn $
 
 */
 
@@ -1091,7 +1091,7 @@ static methodinfo *method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 	m->linenumbercount = 0;
 	m->linenumbers = 0;
 	m->class = c;
-	
+	m->nativelyoverloaded=false;
 	m->flags = suck_u2(cb);
 	m->name = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
 
