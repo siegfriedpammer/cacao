@@ -10,7 +10,7 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 257 2003-03-17 12:23:16Z stefan $
+	Last Change: $Id: ngen.c 277 2003-05-09 19:36:04Z stefan $
 
 *******************************************************************************/
 
@@ -274,7 +274,7 @@ void catch_NullPointerException(int sig, int code, struct sigcontext *sigctx)
 		sigctx->sc_regs[REG_ITMP1_XPTR] =
 		                            (long) proto_java_lang_NullPointerException;
 		sigctx->sc_regs[REG_ITMP2_XPC] = sigctx->sc_pc;
-		sigctx->sc_pc = (long) asm_handle_nat_exception;
+		sigctx->sc_pc = (long) asm_handle_exception;
 		}
 	else {
         faultaddr += (long) ((instr << 16) >> 16);
