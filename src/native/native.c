@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 833 2004-01-04 22:10:24Z jowenn $
+   $Id: native.c 861 2004-01-06 20:55:56Z twisti $
 
 */
 
@@ -341,7 +341,6 @@ void native_loadclasses()
 	class_java_lang_Void      = class_new(utf_new_char("java/lang/Void"));
 
 	classesLoaded = 1;
-	log_text("native_loadclasses finished");
 }
 
 
@@ -352,24 +351,24 @@ void systemclassloader_addclass(classinfo *c)
 	methodinfo *m;
 
 	/* find method addClass of java.lang.ClassLoader */
-	m = class_resolvemethod(
-							class_java_lang_ClassLoader, 
+	m = class_resolvemethod(class_java_lang_ClassLoader,
 							utf_new_char("addClass"),
 							utf_new_char("(Ljava/lang/Class;)")
 							);
 	
-	if (!m) panic("warning: cannot initialize classloader");
+	if (!m)
+		panic("warning: cannot initialize classloader");
 
 	/* prepare class to be passed as argument */
 	use_class_as_object (c);
 
 	/* call 'addClass' */
 	asm_calljavafunction(m,
-					   (java_objectheader*) SystemClassLoader, 
-					   (java_objectheader*) c,
-					   NULL,  
-					   NULL
-					   );
+						 (java_objectheader*) SystemClassLoader, 
+						 (java_objectheader*) c,
+						 NULL,  
+						 NULL
+						 );
 }
 
 

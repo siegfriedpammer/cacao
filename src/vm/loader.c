@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 852 2004-01-06 15:29:14Z twisti $
+   $Id: loader.c 861 2004-01-06 20:55:56Z twisti $
 
 */
 
@@ -3398,8 +3398,6 @@ static void create_pseudo_classes()
 void loader_init(u1 *stackbottom)
 {
 	interfaceindex = 0;
-	
-	log_text("Entering loader_init");
 	
 	list_init(&unloadedclasses, OFFSET(classinfo, listnode));
 	list_init(&unlinkedclasses, OFFSET(classinfo, listnode));

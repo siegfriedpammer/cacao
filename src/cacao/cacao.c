@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 841 2004-01-05 00:43:03Z twisti $
+   $Id: cacao.c 861 2004-01-06 20:55:56Z twisti $
 
 */
 
@@ -849,13 +849,10 @@ int main(int argc, char **argv)
 
 	heap_init(heapsize, heapstartsize, &dummy);
 
-	log_text("calling jit_init");
 	jit_init();
 
-	log_text("calling loader_init");
 	loader_init((u1 *) &dummy);
 
-	log_text("calling native_loadclasses");
 	native_loadclasses();
 
 
