@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSecurityManager.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: VMSecurityManager.c 1208 2004-06-25 12:20:52Z twisti $
 
 */
 
@@ -50,6 +50,11 @@
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMSecurityManager_currentClassLoader(JNIEnv *env, jclass clazz)
 {
 	log_text("Java_java_lang_VMSecurityManager_currentClassLoader");
+
+	/* XXX TWISTI temporary hack! FIX ME jowenn */
+	if (cacao_initializing)
+		return NULL;
+
 	init_systemclassloader();
 
 	return SystemClassLoader;
