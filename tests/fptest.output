@@ -30,34 +30,34 @@
   28.    convert  MAX (3.4028235E38,1.7976931348623157E308) to int:    2147483647
   29.    convert  MAX (3.4028235E38,1.7976931348623157E308) to long:   9223372036854775807
   30.    convert  MAX (3.4028235E38,1.7976931348623157E308) to long:   9223372036854775807
-  31.    convert  MIN (1.4E-45,4.9E-324) to int:    0
-  32.    convert  MIN (1.4E-45,4.9E-324) to int:    0
-  33.    convert  MIN (1.4E-45,4.9E-324) to long:   0
-  34.    convert  MIN (1.4E-45,4.9E-324) to long:   0
-  35.    convert MAXINT-1 (2.14748365E9,2.147483646E9) to int:    2147483647
-  36.    convert MAXINT-1 (2.14748365E9,2.147483646E9) to int:    2147483646
-  37.    convert MAXINT-1 (2.14748365E9,2.147483646E9) to long:   2147483648
-  38.    convert MAXINT-1 (2.14748365E9,2.147483646E9) to long:   2147483646
-  39.    convert MAXINT+0 (2.14748365E9,2.147483647E9) to int:    2147483647
-  40.    convert MAXINT+0 (2.14748365E9,2.147483647E9) to int:    2147483647
-  41.    convert MAXINT+0 (2.14748365E9,2.147483647E9) to long:   2147483648
-  42.    convert MAXINT+0 (2.14748365E9,2.147483647E9) to long:   2147483647
-  43.    convert MAXINT+1 (2.14748365E9,2.147483648E9) to int:    2147483647
-  44.    convert MAXINT+1 (2.14748365E9,2.147483648E9) to int:    2147483647
-  45.    convert MAXINT+1 (2.14748365E9,2.147483648E9) to long:   2147483648
-  46.    convert MAXINT+1 (2.14748365E9,2.147483648E9) to long:   2147483648
-  47.    convert -MAXINT+1 (-2.14748365E9,-2.147483647E9) to int:    -2147483648
-  48.    convert -MAXINT+1 (-2.14748365E9,-2.147483647E9) to int:    -2147483647
-  49.    convert -MAXINT+1 (-2.14748365E9,-2.147483647E9) to long:   -2147483648
-  50.    convert -MAXINT+1 (-2.14748365E9,-2.147483647E9) to long:   -2147483647
-  51.    convert -MAXINT+0 (-2.14748365E9,-2.147483648E9) to int:    -2147483648
-  52.    convert -MAXINT+0 (-2.14748365E9,-2.147483648E9) to int:    -2147483648
-  53.    convert -MAXINT+0 (-2.14748365E9,-2.147483648E9) to long:   -2147483648
-  54.    convert -MAXINT+0 (-2.14748365E9,-2.147483648E9) to long:   -2147483648
-  55.    convert -MAXINT-1 (-2.14748365E9,-2.147483649E9) to int:    -2147483648
-  56.    convert -MAXINT-1 (-2.14748365E9,-2.147483649E9) to int:    -2147483648
-  57.    convert -MAXINT-1 (-2.14748365E9,-2.147483649E9) to long:   -2147483648
-  58.    convert -MAXINT-1 (-2.14748365E9,-2.147483649E9) to long:   -2147483649
+  31.    convert  MIN (1.4012985E-45,5.0E-324) to int:    0
+  32.    convert  MIN (1.4012985E-45,5.0E-324) to int:    0
+  33.    convert  MIN (1.4012985E-45,5.0E-324) to long:   0
+  34.    convert  MIN (1.4012985E-45,5.0E-324) to long:   0
+  35.    convert MAXINT-1 (2.147483648E9,2.147483646E9) to int:    2147483647
+  36.    convert MAXINT-1 (2.147483648E9,2.147483646E9) to int:    2147483646
+  37.    convert MAXINT-1 (2.147483648E9,2.147483646E9) to long:   2147483648
+  38.    convert MAXINT-1 (2.147483648E9,2.147483646E9) to long:   2147483646
+  39.    convert MAXINT+0 (2.147483648E9,2.147483647E9) to int:    2147483647
+  40.    convert MAXINT+0 (2.147483648E9,2.147483647E9) to int:    2147483647
+  41.    convert MAXINT+0 (2.147483648E9,2.147483647E9) to long:   2147483648
+  42.    convert MAXINT+0 (2.147483648E9,2.147483647E9) to long:   2147483647
+  43.    convert MAXINT+1 (2.147483648E9,2.147483648E9) to int:    2147483647
+  44.    convert MAXINT+1 (2.147483648E9,2.147483648E9) to int:    2147483647
+  45.    convert MAXINT+1 (2.147483648E9,2.147483648E9) to long:   2147483648
+  46.    convert MAXINT+1 (2.147483648E9,2.147483648E9) to long:   2147483648
+  47.    convert -MAXINT+1 (-2.147483648E9,-2.147483647E9) to int:    -2147483648
+  48.    convert -MAXINT+1 (-2.147483648E9,-2.147483647E9) to int:    -2147483647
+  49.    convert -MAXINT+1 (-2.147483648E9,-2.147483647E9) to long:   -2147483648
+  50.    convert -MAXINT+1 (-2.147483648E9,-2.147483647E9) to long:   -2147483647
+  51.    convert -MAXINT+0 (-2.147483648E9,-2.147483648E9) to int:    -2147483648
+  52.    convert -MAXINT+0 (-2.147483648E9,-2.147483648E9) to int:    -2147483648
+  53.    convert -MAXINT+0 (-2.147483648E9,-2.147483648E9) to long:   -2147483648
+  54.    convert -MAXINT+0 (-2.147483648E9,-2.147483648E9) to long:   -2147483648
+  55.    convert -MAXINT-1 (-2.147483648E9,-2.147483649E9) to int:    -2147483648
+  56.    convert -MAXINT-1 (-2.147483648E9,-2.147483649E9) to int:    -2147483648
+  57.    convert -MAXINT-1 (-2.147483648E9,-2.147483649E9) to long:   -2147483648
+  58.    convert -MAXINT-1 (-2.147483648E9,-2.147483649E9) to long:   -2147483649
   59.    convert MAXLNG-1 (9.223372E18,9.223372036854776E18) to int:    2147483647
   60.    convert MAXLNG-1 (9.223372E18,9.223372036854776E18) to int:    2147483647
   61.    convert MAXLNG-1 (9.223372E18,9.223372036854776E18) to long:   9223372036854775807
@@ -317,18 +317,18 @@
  315.    ------------------- test MIN op value
  316.    MIN + 5.0 = float:  5.0
  317.    MIN - 5.0 = float:  -5.0
- 318.    MIN * 5.0 = float:  7.0E-45
+ 318.    MIN * 5.0 = float:  7.006492E-45
  319.    MIN / 5.0 = float:  0.0
- 320.    MIN % 5.0 = float:  1.4E-45
+ 320.    MIN % 5.0 = float:  1.4012985E-45
  321.    MIN + 5.0 = double: 5.0
  322.    MIN - 5.0 = double: -5.0
  323.    MIN * 5.0 = double: 2.5E-323
  324.    MIN / 5.0 = double: 0.0
- 325.    MIN % 5.0 = double: 4.9E-324
+ 325.    MIN % 5.0 = double: 5.0E-324
  326.    ------------------- test value op MIN
  327.    5.0 + MIN = float:  5.0
  328.    5.0 - MIN = float:  5.0
- 329.    5.0 * MIN = float:  7.0E-45
+ 329.    5.0 * MIN = float:  7.006492E-45
  330.    5.0 / MIN = float:  Infinity
  331.    5.0 % MIN = float:  0.0
  332.    5.0 + MIN = double: 5.0
