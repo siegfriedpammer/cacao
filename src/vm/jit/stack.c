@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1506 2004-11-14 14:48:49Z jowenn $
+   $Id: stack.c 1510 2004-11-17 11:33:44Z twisti $
 
 */
 
@@ -769,7 +769,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #if SUPPORT_CONST_ASTORE
 						if (len > 0 && iptr->val.a == 0) {
 							if (iptr[1].opc == ICMD_BUILTIN3 &&
-								iptr[1].val.a == BUILTIN_aastore) {
+								iptr[1].val.fp == BUILTIN_aastore) {
 								iptr[0].opc = ICMD_AASTORECONST;
 								iptr[1].opc = ICMD_NOP;
 								OPTT2_0(TYPE_INT, TYPE_ADR);
@@ -2201,7 +2201,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 		u1 *u1ptr;
 		s4 a;
 
-		u1ptr = m->mcode + cd->dseglen;
+		u1ptr = (u1 *) (long) m->mcode + cd->dseglen;
 		for (i = 0; i < m->basicblocks[0].mpc; i++, u1ptr++) {
 			a = disassinstr(u1ptr, i);
 			i += a;
@@ -2262,7 +2262,7 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 
 			printf("\n");
 			i = bptr->mpc;
-			u1ptr = m->mcode + cd->dseglen + i;
+			u1ptr = (u1 *) ((long) m->mcode + cd->dseglen + i);
 
 			if (bptr->next != NULL) {
 				for (; i < bptr->next->mpc; i++, u1ptr++) {
@@ -2273,7 +2273,7 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 				printf("\n");
 
 			} else {
-				for (; u1ptr < (u1 *) (m->mcode + m->mcodelength); i++, u1ptr++) {
+				for (; u1ptr < (u1 *) ((long) m->mcode + m->mcodelength); i++, u1ptr++) {
 					a = disassinstr(u1ptr, i); 
 					i += a;
 					u1ptr += a;
@@ -2502,7 +2502,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_BUILTIN3:
 	case ICMD_BUILTIN2:
 	case ICMD_BUILTIN1:
-		printf(" %s", icmd_builtin_name((functionptr) iptr->val.a));
+		printf(" %s", icmd_builtin_name((functionptr) iptr->val.fp));
 		break;
 
 	case ICMD_INVOKEVIRTUAL:

@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 1456 2004-11-05 14:33:14Z twisti $
+   $Id: parse.h 1510 2004-11-17 11:33:44Z twisti $
 
 */
 
@@ -70,23 +70,36 @@
     iptr->opc = (o); \
     iptr->op1 = (o1); \
     iptr->val.a = (v); \
-    iptr->line = l; \
+    iptr->line = (l); \
     iptr->method = inline_env->method; \
     PINC
 
 #define BUILTIN1(v,t,l) \
     inline_env->method->isleafmethod = false; \
     iptr->opc = ICMD_BUILTIN1; \
-    iptr->val.a = (v); \
     iptr->op1 = (t); \
+    iptr->val.fp = (v); \
     iptr->line = (l); \
     iptr->method = inline_env->method; \
     PINC
 
-#define BUILTIN2(v,t,l)  inline_env->method->isleafmethod=false;iptr->opc=ICMD_BUILTIN2;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->method=inline_env->method;PINC
-#define BUILTIN3(v,t,l)  inline_env->method->isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->method=inline_env->method;PINC
+#define BUILTIN2(v,t,l) \
+    inline_env->method->isleafmethod = false; \
+    iptr->opc = ICMD_BUILTIN2; \
+    iptr->op1 = (t);\
+    iptr->val.fp = (v); \
+    iptr->line = (l); \
+    iptr->method = inline_env->method; \
+    PINC
+
+#define BUILTIN3(v,t,l) \
+    inline_env->method->isleafmethod = false; \
+    iptr->opc = ICMD_BUILTIN3; \
+    iptr->op1 = (t);\
+    iptr->val.fp = (v); \
+    iptr->line = (l); \
+    iptr->method = inline_env->method; \
+    PINC
 
 
 /* We have to check local variables indices here because they are

@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1506 2004-11-14 14:48:49Z jowenn $
+   $Id: typecheck.c 1510 2004-11-17 11:33:44Z twisti $
 
 */
 
@@ -753,7 +753,7 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 	{if ((source)->type == TYPE_ADR)								\
 			TYPEINFO_COPY((source)->typeinfo,(dest)->typeinfo);}
 
-#define ISBUILTIN(v)   (iptr->val.a == (functionptr)(v))
+#define ISBUILTIN(v)   (iptr->val.fp == (functionptr) (v))
 
 /* TYPECHECK_REACH: executed, when the target block (tbptr) can be reached
  *     from the current block (bptr). The types of local variables and
@@ -1772,9 +1772,9 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 							  TYPECHECK_COUNT(stat_ins_builtin_gen);
 							  builtindesc = builtin_desc;
 							  while (builtindesc->opcode && builtindesc->builtin
-									 != (functionptr) iptr->val.a) builtindesc++;
+									 != iptr->val.fp) builtindesc++;
 							  if (!builtindesc->opcode) {
-								  dolog("Builtin not in table: %s",icmd_builtin_name((functionptr) iptr->val.a));
+								  dolog("Builtin not in table: %s",icmd_builtin_name(iptr->val.fp));
 								  panic("Internal error: builtin not found in table");
 							  }
 							  TYPECHECK_ARGS3(builtindesc->type_s3,builtindesc->type_s2,builtindesc->type_s1);
@@ -1825,9 +1825,9 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 							  TYPECHECK_COUNT(stat_ins_builtin_gen);
 							  builtindesc = builtin_desc;
 							  while (builtindesc->opcode && builtindesc->builtin
-									 != (functionptr) iptr->val.a) builtindesc++;
+									 != iptr->val.fp) builtindesc++;
 							  if (!builtindesc->opcode) {
-								  dolog("Builtin not in table: %s",icmd_builtin_name((functionptr) iptr->val.a));
+								  dolog("Builtin not in table: %s",icmd_builtin_name(iptr->val.fp));
 								  panic("Internal error: builtin not found in table");
 							  }
 							  TYPECHECK_ARGS2(builtindesc->type_s2,builtindesc->type_s1);
@@ -1885,9 +1885,9 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 							  TYPECHECK_COUNT(stat_ins_builtin_gen);
 							  builtindesc = builtin_desc;
 							  while (builtindesc->opcode && builtindesc->builtin
-									 != (functionptr) iptr->val.a) builtindesc++;
+									 != iptr->val.fp) builtindesc++;
 							  if (!builtindesc->opcode) {
-								  dolog("Builtin not in table: %s",icmd_builtin_name((functionptr) iptr->val.a));
+								  dolog("Builtin not in table: %s",icmd_builtin_name(iptr->val.fp));
 								  panic("Internal error: builtin not found in table");
 							  }
 							  TYPECHECK_ARGS1(builtindesc->type_s1);

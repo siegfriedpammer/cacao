@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1496 2004-11-12 14:05:10Z twisti $
+   $Id: global.h 1510 2004-11-17 11:33:44Z twisti $
 
 */
 
@@ -95,25 +95,25 @@
 
 /* additional data types ******************************************************/
 
-typedef void *voidptr;          /* generic pointer */
+typedef void *voidptr;                  /* generic pointer                    */
+typedef void (*functionptr) ();         /* generic function pointer           */
 
-typedef int   bool;             /* boolean data type */
+typedef int   bool;                     /* boolean data type                  */
 
 #define true  1
 #define false 0
-
-typedef void (*functionptr) (); /* generic function pointer */
 
 
 /* immediate data union */
 
 typedef union {
-    s4 i;
-    s8 l;
-    float f;
-    double d;
-    void *a;
-    u1 b[8];
+	s4          i;
+	s8          l;
+	float       f;
+	double      d;
+	void       *a;
+	functionptr fp;
+	u1          b[8];
 } imm_union;
 
 
