@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1072 2004-05-19 17:20:12Z stefan $
+   $Id: asmpart.S 1074 2004-05-20 07:15:54Z stefan $
 
 */
 
@@ -1249,7 +1249,7 @@ asm_criticalsections:
     .quad _crit_end2
     .quad _crit_restart2
 #endif
-    .long 0
+    .quad 0
 
 /*
  * These are local overrides for various environment variables in Emacs.
