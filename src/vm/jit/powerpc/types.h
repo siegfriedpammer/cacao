@@ -31,7 +31,7 @@
 
    Changes: Stefan Ring
 
-   $Id: types.h 568 2003-11-06 14:42:16Z twisti $
+   $Id: types.h 624 2003-11-13 14:06:52Z twisti $
 
 */
 
@@ -54,7 +54,8 @@
 #define SUPPORT_LONG_CMP    1
 #define SUPPORT_LONG_LOG    1
 #define SUPPORT_LONG_SHIFT  0
-#define SUPPORT_LONG_MULDIV 0
+#define SUPPORT_LONG_MUL    0
+#define SUPPORT_LONG_DIV    0
 #define SUPPORT_LONG_ICVT   0
 #define SUPPORT_LONG_FCVT   0
 

@@ -11,7 +11,7 @@
              Michael Gschwind    EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: types.h 559 2003-11-02 23:20:06Z twisti $
+    Last Change: $Id: types.h 624 2003-11-13 14:06:52Z twisti $
 
 *******************************************************************************/
 
@@ -30,7 +30,8 @@
 #define SUPPORT_LONG_CMP    1
 #define SUPPORT_LONG_LOG    1
 #define SUPPORT_LONG_SHIFT  1
-#define SUPPORT_LONG_MULDIV 1
+#define SUPPORT_LONG_MUL    1
+#define SUPPORT_LONG_DIV    1
 #define SUPPORT_LONG_ICVT   1
 #define SUPPORT_LONG_FCVT   1
 

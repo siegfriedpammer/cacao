@@ -31,7 +31,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: types.h 564 2003-11-03 15:47:13Z twisti $
+   $Id: types.h 624 2003-11-13 14:06:52Z twisti $
 
 */
 
@@ -51,7 +51,8 @@
 #define SUPPORT_LONG_CMP    1
 #define SUPPORT_LONG_LOG    1
 #define SUPPORT_LONG_SHIFT  1
-#define SUPPORT_LONG_MULDIV 1
+#define SUPPORT_LONG_MUL    1
+#define SUPPORT_LONG_DIV    0
 #define SUPPORT_LONG_ICVT   1
 #define SUPPORT_LONG_FCVT   1
 

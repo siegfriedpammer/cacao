@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 613 2003-11-12 13:17:58Z twisti $
+   $Id: builtin.c 624 2003-11-13 14:06:52Z twisti $
 
 */
 
@@ -98,7 +98,7 @@ builtin_descriptor builtin_desc[] = {
 	{(functionptr) builtin_ladd,			   "ladd"},
 	{(functionptr) builtin_lsub,			   "lsub"},
 	{(functionptr) builtin_lmul,			   "lmul"},
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 	{(functionptr) builtin_ldiv,			   "ldiv"},
 	{(functionptr) asm_builtin_ldiv,		   "ldiv"},
 	{(functionptr) builtin_lrem,			   "lrem"},

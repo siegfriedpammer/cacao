@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: stack.c 614 2003-11-12 21:53:42Z stefan $
+   $Id: stack.c 624 2003-11-13 14:06:52Z twisti $
 
 */
 
@@ -595,10 +595,12 @@ void analyse_stack()
 								iptr[0].opc = ICMD_LSUBCONST;
 								goto icmd_lconst_tail;
 #endif
-#if SUPPORT_LONG_MULDIV
+#if SUPPORT_LONG_MUL
 							case ICMD_LMUL:
 								iptr[0].opc = ICMD_LMULCONST;
 								goto icmd_lconst_tail;
+#endif
+#if SUPPORT_LONG_DIV
 							case ICMD_LDIV:
 								if (iptr[0].val.l == 0x00000002)
 									iptr[0].val.i = 1;
@@ -1261,7 +1263,7 @@ void analyse_stack()
 						break;
 
 					case ICMD_LDIV:
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 						iptr[0].opc = ICMD_BUILTIN2;
 						iptr[0].op1 = TYPE_LNG;
 						iptr[0].val.a = (functionptr) asm_builtin_ldiv;
@@ -1270,7 +1272,7 @@ void analyse_stack()
 #endif
 
 					case ICMD_LREM:
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 						iptr[0].opc = ICMD_BUILTIN2;
 						iptr[0].op1 = TYPE_LNG;
 						iptr[0].val.a = (functionptr) asm_builtin_lrem;

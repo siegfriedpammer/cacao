@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: jit.c 605 2003-11-11 23:06:33Z twisti $
+   $Id: jit.c 624 2003-11-13 14:06:52Z twisti $
 
 */
 
@@ -1282,7 +1282,7 @@ stdopdescriptor builtintable[] = {
 	{ ICMD_LNEG,   TYPE_LONG, TYPE_VOID, TYPE_LONG, ICMD_BUILTIN1, 
 	  (functionptr) builtin_lneg, SUPPORT_LONG && SUPPORT_LONG_ADD, true },
 	{ ICMD_LMUL,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_lmul , SUPPORT_LONG && SUPPORT_LONG_MULDIV, false },
+	  (functionptr) builtin_lmul , SUPPORT_LONG && SUPPORT_LONG_MUL, false },
 	{ ICMD_FREM,   TYPE_FLOAT, TYPE_FLOAT, TYPE_FLOAT, ICMD_BUILTIN2,
 	  (functionptr) builtin_frem, SUPPORT_FLOAT && SUPPORT_FMOD, true },
 	{ ICMD_DREM,   TYPE_DOUBLE, TYPE_DOUBLE, TYPE_DOUBLE, ICMD_BUILTIN2,

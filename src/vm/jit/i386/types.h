@@ -1,4 +1,4 @@
-/* jit/i386/types.h - machine specific definitions for i386 processor
+/* jit/i386/types.h - machine specific definitions for i386
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -31,7 +31,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: types.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: types.h 624 2003-11-13 14:06:52Z twisti $
 
 */
 
@@ -51,9 +51,16 @@
 #define SUPPORT_LONG_CMP    1
 #define SUPPORT_LONG_LOG    1
 #define SUPPORT_LONG_SHIFT  1
-#define SUPPORT_LONG_MULDIV 0
+#define SUPPORT_LONG_MUL    1
+#define SUPPORT_LONG_DIV    0
 #define SUPPORT_LONG_ICVT   1
 #define SUPPORT_LONG_FCVT   1
+
+#define USEBUILTINTABLE
+
+#define SUPPORT_IFCVT       0
+#define SUPPORT_FICVT       0
+#define SUPPORT_FMOD        1
 
 #define CONDITIONAL_LOADCONST
 #define NO_DIV_OPT
