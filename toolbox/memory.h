@@ -14,11 +14,9 @@
 
 #include "types.h"
 
-#ifdef USE_BOEHM
 /* Uncollectable memory which can contain references */
 void *heap_alloc_uncollectable(u4 bytelen);
-#define GCNEW(type,num) heap_alloc_uncollectable(sizeof(type) * (num))
-#endif
+#define GCNEW(type,num)       heap_alloc_uncollectable(sizeof(type) * (num))
 
 #define ALIGN(pos,size)       ( ( ((pos)+(size)-1) / (size))*(size) )
 #define PADDING(pos,size)     ( ALIGN((pos),(size)) - (pos) )
