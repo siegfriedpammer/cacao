@@ -85,7 +85,6 @@
 
 	.globl has_no_x_instr_set
 	.globl synchronize_caches
-	.globl asm_calljavamethod
 	.globl asm_calljavafunction
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2double
@@ -146,25 +145,6 @@ synchronize_caches:
 	.end    synchronize_caches
 
 
-/********************* function asm_calljavamethod *****************************
-*                                                                              *
-*   This function calls a Java-method (which possibly needs compilation)       *
-*   with up to 4 parameters.                                                   *
-*                                                                              *
-*   This functions calls the JIT-compiler which eventually translates the      *
-*   method into machine code.                                                  *
-*                                                                              *
-*   An possibly throwed exception will be returned to the caller as function   *
-*   return value, so the java method cannot return a fucntion value (this      *
-*   function usually calls 'main' and '<clinit>' which do not return a         *
-*   function value).                                                           *
-*                                                                              *
-*   C-prototype:                                                               *
-*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
-*         void *arg1, void *arg2, void *arg3, void *arg4);                     *
-*                                                                              *
-*******************************************************************************/
-
 #define    	MethodPointer   -8
 #define    	FrameSize       -12
 #define     IsSync          -16
@@ -180,69 +160,6 @@ synchronize_caches:
 #define     ExHandlerPC     -24
 #define     ExCatchType     -32
 
-	.ent    asm_calljavamethod
-
-call_name:
-	.ascii  "calljavamethod\0\0"
-
-	.align  3
-	.quad   0                         /* catch type all                       */
-	.quad   calljava_xhandler         /* handler pc                           */
-	.quad   calljava_xhandler         /* end pc                               */
-	.quad   asm_calljavamethod        /* start pc                             */
-	.long   1                         /* extable size                         */
-	.long   0                         /* fltsave                              */
-	.long   0                         /* intsave                              */
-	.long   0                         /* isleaf                               */
-	.long   0                         /* IsSync                               */
-	.long   32                        /* frame size                           */
-	.quad   0                         /* method pointer (pointer to name)     */
-
-asm_calljavamethod:
-
-	ldgp    gp,0(pv)
-	lda     sp,-32(sp)                /* allocate stack space                 */
-	stq     gp,24(sp)                 /* save global pointer                  */
-	stq     ra,0(sp)                  /* save return address                  */
-
-	stq     a0,16(sp)                 /* save method pointer for compiler     */
-	lda     v0,16(sp)                 /* pass pointer to method pointer via v0*/
-
-	mov     a1,a0                     /* pass the remaining parameters        */
-	mov     a2,a1
-	mov     a3,a2
-	mov     a4,a3
-
-	lda     $28,asm_call_jit_compiler /* fake virtual function call (2 instr) */
-	stq     $28,8(sp)                 /* store function address               */
-	mov     sp,$28                    /* set method pointer                   */
-
-	ldq     pv,8($28)                 /* method call as in Java               */
-	jmp     ra,(pv)                   /* call JIT compiler                    */
-calljava_jit:
-	lda     pv,-64(ra)                /* asm_calljavamethod-calljava_jit !!!!!*/
-
-calljava_return:
-
-	ldq     ra,0(sp)                  /* restore return address               */
-	ldq     gp,24(sp)                 /* restore global pointer               */
-	lda     sp,32(sp)                 /* free stack space                     */
-    clr     v0
-
-calljava_ret:
-	jmp     zero,(ra)
-
-calljava_xhandler:
-
-	ldq     gp,24(sp)                 /* restore global pointer               */
-	mov     itmp1,a0
-	jsr     ra,builtin_throw_exception
-	ldq     ra,0(sp)                  /* restore return address               */
-	lda     sp,32(sp)                 /* free stack space                     */
-	jmp     zero,(ra)
-	.end    asm_calljavamethod
-
-
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
 *   This function calls a Java-method (which possibly needs compilation)       *
@@ -252,7 +169,7 @@ calljava_xhandler:
 *   method into machine code.                                                  *
 *                                                                              *
 *   C-prototype:                                                               *
-*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
+*    javaobject_header *asm_calljavafunction (methodinfo *m,                   *
 *         void *arg1, void *arg2, void *arg3, void *arg4);                     *
 *                                                                              *
 *******************************************************************************/

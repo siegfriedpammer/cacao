@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 691 2003-12-05 18:17:22Z stefan $
+   $Id: codegen.c 759 2003-12-13 22:36:08Z stefan $
 
 */
 
@@ -3409,14 +3409,6 @@ void removenativestub(u1 *stub)
 
 java_objectheader *asm_docalljavamethod(methodinfo *m, void *arg1, void *arg2,
 										void *arg3, void *arg4);
-
-java_objectheader *asm_calljavamethod(methodinfo *m, void *arg1, void *arg2,
-									  void *arg3, void *arg4)
-{
-	java_objectheader *r = asm_docalljavamethod(m, arg1, arg2, arg3, arg4);
-	return (exceptionptr ? r : NULL);
-}
-
 
 java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
 										void *arg3, void *arg4)
