@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1452 2004-11-05 14:16:19Z twisti $
+   $Id: asmpart.S 1460 2004-11-05 16:23:29Z twisti $
 
 */
 
@@ -717,8 +717,8 @@ asm_check_clinit:
 L_is_initialized:
 	mov     (%esp),%eax                 /* get return address                 */
 	sub     $12,%eax                    /* asm_check_clinit call code size    */
-	movb    $0xeb,(%eax)                /* jmp rel8                           */
-	movb    $10,1(%eax)                 /* 8-bit offset                       */
+	movw    $0x0aeb,(%eax)              /* 0xeb = jmp rel8, 0x0a = 10 byte    */
+	                                    /* 8-bit offset                       */
 	ret
 
 L_initializererror:
