@@ -24,9 +24,12 @@
 
    Contact: cacao@complang.tuwien.ac.at
 
-   Authors: ?
+   Authors: Reinhard Grafl
+            Roman Obermaisser
 
-   $Id: jni.h 1854 2005-01-04 12:09:57Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: jni.h 1921 2005-02-10 10:34:40Z twisti $
 
 */
 
@@ -53,8 +56,16 @@
 
 /* JNI-Boolean */
 
-#define JNI_FALSE 0
-#define JNI_TRUE  1
+#define JNI_FALSE        0
+#define JNI_TRUE         1
+
+
+/* Error codes */
+
+#define JNI_OK           0
+#define JNI_ERR          (-1)
+#define JNI_EDETACHED    (-2)              /* thread detached from the VM */
+#define JNI_EVERSION     (-3)              /* JNI version error */
 
 
 /* JNI datatypes */
@@ -172,9 +183,11 @@ typedef struct JDK1_1AttachArgs {
 } JDK1_1AttachArgs;
 
 
-typedef struct _JavaVM* JavaVM;
+typedef struct JNIInvokeInterface *JavaVM;
+/*  typedef struct _JavaVM *JavaVM; */
 
-struct _JavaVM {
+/*  struct _JavaVM { */
+struct JNIInvokeInterface {
    void *(*reserved0) ();
    void *(*reserved1) ();
    void *(*reserved2) ();
@@ -214,10 +227,11 @@ typedef struct {
 	Java VM Interface 
 */
 
-typedef struct JNI_Table *JNIEnv;
+typedef struct JNINativeInterface *JNIEnv;
+/*  typedef struct JNI_Table *JNIEnv; */
 
-struct JNI_Table {
-    
+/*  struct JNI_Table { */
+struct JNINativeInterface {
     /* reserverd for future JNI-functions */
     void *unused0;
     void *unused1;
