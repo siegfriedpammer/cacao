@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 638 2003-11-14 23:51:34Z stefan $
+   $Id: codegen.c 644 2003-11-15 23:54:46Z stefan $
 
 */
 
@@ -3830,18 +3830,18 @@ void removenativestub (u1 *stub)
 #define REG_FSS4    29
 #define REG_FSS5    31
 
-#define CALL_JAVA_MEM_SIZE 60
+#define CALL_JAVA_MEM_SIZE 61
 #define CALL_JAVA_ENTRY    20
 #define CALL_JAVA_XHANDLER 55
 
 static s4 calljavamem[CALL_JAVA_MEM_SIZE];
 
+void asm_calljavafunction_asm();
+
 void createcalljava ()
 {
 	s4 *p;
 	
-	*((void**)(calljavamem + 0)) = (void*) asm_call_jit_compiler;
-	*((void**)(calljavamem + 2)) = (void*) builtin_throw_exception;
 #if POINTERSIZE==8
 	*((void**)(calljavamem + 4)) = NULL;
 	*((void**)(calljavamem + 6)) = (void*) (calljavamem + CALL_JAVA_XHANDLER);
@@ -3865,76 +3865,8 @@ void createcalljava ()
 
 	p = calljavamem + CALL_JAVA_ENTRY;  /* code generation pointer            */
 
-/*  20 */
-	M_LDA (REG_SP, REG_SP, -10*8);      /* allocate stackframe                */
-	M_LST (REG_RA, REG_SP, 0);          /* save return address                */
-
-	M_BRS(1);                           /* compute current program counter    */
-	M_LST (REG_PV, REG_SP, 3*8);        /* save procedure vector              */
-/*  24 */
-	M_LDA (REG_PV, REG_RA, -4*4);       /* compute procedure vector           */
-	M_DST (REG_FSS0, REG_SP, 4*8);      /* save non JavaABI saved flt regs    */
-
-	M_DST (REG_FSS1, REG_SP, 5*8);
-	M_DST (REG_FSS2, REG_SP, 6*8);
-/*  28 */
-	M_DST (REG_FSS3, REG_SP, 7*8);
-	M_DST (REG_FSS4, REG_SP, 8*8);
-
-	M_DST (REG_FSS5, REG_SP, 9*8);
-	M_LST (REG_ARG_0, REG_SP, 2*8);     /* save method pointer for compiler   */
-/*  32 */
-	M_LDA (REG_ITMP1, REG_SP, 2*8);     /* pass pointer to methodptr via itmp1*/
-	M_MOV (REG_ARG_1, REG_ARG_0);       /* pass the remaining parameters      */
-
-	M_MOV (REG_ARG_2, REG_ARG_1);
-	M_MOV (REG_ARG_3, REG_ARG_2);
-/*  36 */
-	M_MOV (REG_ARG_4, REG_ARG_3);
-	M_ALD (REG_METHODPTR, REG_PV, -80); /* address of asm_call_jit_compiler   */
-
-	M_AST (REG_METHODPTR, REG_SP, 8);   /* store function address             */
-	M_MOV (REG_SP, REG_METHODPTR);      /* set method pointer                 */
-/*  40 */
-	M_ALD (REG_PV, REG_METHODPTR, 8);   /* method call as in Java             */
-	M_JSR (REG_RA, REG_PV);             /* call JIT compiler                  */
-
-	M_NOP;                              /* delay slot                         */
-	M_LDA (REG_PV, REG_RA, -23*4);      /* recompute procedure vector         */
-
-/*  44 */
-#if 0
-	M_CLR (REG_RESULT);                 /* clear return value (exception ptr) */
-#else
-	M_NOP;
-#endif
-/*  calljava_return: */
-	M_LLD (REG_RA, REG_SP, 0);          /* restore return address             */
-
-	M_LLD (REG_PV, REG_SP, 3*8);        /* restore procedure vector           */
-	M_DLD (REG_FSS0, REG_SP, 4*8);      /* restore non JavaABI saved flt regs */
-/*  48 */
-	M_DLD (REG_FSS1, REG_SP, 5*8);
-	M_DLD (REG_FSS2, REG_SP, 6*8);
-
-	M_DLD (REG_FSS3, REG_SP, 7*8);
-	M_DLD (REG_FSS4, REG_SP, 8*8);
-/*  52 */
-	M_DLD (REG_FSS5, REG_SP, 9*8);
-	M_RET(REG_RA);                      /* return                             */
-
-	M_LDA (REG_SP, REG_SP, 10*8);       /* deallocate stackframe (delay slot) */
-
-/*  55 */
-/*  calljava_xhandler: */
-
-	M_ALD (REG_ITMP3, REG_PV, -72);     /* address of builtin_throw_exception */
-
-	M_JSR (REG_RA, REG_ITMP3);          /* call builtin                       */
-	M_MOV (REG_ITMP1, REG_ARG_0);       /* pass parameter (delay slot)        */
-/*  58 */
-	M_BR(-14);                          /* branch calljava_return             */
-	M_NOP;                              /* delay slot                         */
+	memcpy(p, asm_calljavafunction_asm,
+			(CALL_JAVA_MEM_SIZE - CALL_JAVA_ENTRY) * (int) sizeof(s4));
 
 	(void) docacheflush((void*)(calljavamem + CALL_JAVA_ENTRY),
 	       (CALL_JAVA_MEM_SIZE - CALL_JAVA_ENTRY) * (int) sizeof(s4));

@@ -137,7 +137,7 @@
 
 	.globl has_no_x_instr_set
 	.globl synchronize_caches
-	.globl asm_calljavafunction
+	.globl asm_calljavafunction_asm
 	.globl asm_call_jit_compiler
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
@@ -195,7 +195,7 @@ synchronize_caches:
 	.end    synchronize_caches
 
 
-#if 0
+#if 1
 
 /********************* function asm_calljavafunction ****************************
 *                                                                              *
@@ -216,26 +216,12 @@ synchronize_caches:
 *                                                                              *
 *******************************************************************************/
 
-	.ent    asm_calljavafunction
+	.ent    asm_calljavafunction_asm
 
 call_name:
 
-	.ascii  "calljavafunction\0\0"
-
 	.align  3
-	.dword  0                         /* catch type all                       */
-	.dword  calljava_xhandler         /* handler pc                           */
-	.dword  calljava_xhandler         /* end pc                               */
-	.dword  asm_calljavafunction        /* start pc                             */
-	.word   1                         /* extable size                         */
-	.word   0                         /* fltsave                              */
-	.word   0                         /* intsave                              */
-	.word   0                         /* isleaf                               */
-	.word   0                         /* IsSync                               */
-	.word   80                        /* frame size                           */
-	.dword  0                         /* method pointer (pointer to name)     */
-
-asm_calljavafunction:
+asm_calljavafunction_asm:
 
 	aaddiu  sp,sp,-10*8               /* allocate stack space                 */
 	sd      ra,0(sp)                  /* save return address                  */
@@ -272,10 +258,12 @@ call_java_pc:
 	jalr    pv                        /* call JIT compiler                    */
 	nop
 	aaddiu  pv,ra,-23*4               /* recompute procedure vector           */
+#if 0
 	move    v0,zero                   /* clear return value (exception ptr)   */
+#else
+	nop
+#endif
 
-	.set    reorder
-	
 calljava_return:
 
 	ld      ra,0(sp)                  /* restore return address               */
@@ -287,16 +275,18 @@ calljava_return:
 	ldc1    fss3,7*8(sp)
 	ldc1    fss4,8*8(sp)
 	ldc1    fss5,9*8(sp)
-	aaddiu  sp,sp,10*8                /* free stack space                     */
 	j       ra                        /* return                               */
+	aaddiu  sp,sp,10*8                /* free stack space                     */
 
+	.set    reorder
+	
 calljava_xhandler:
 
 	move    a0,itmp1                  
 	jal     builtin_throw_exception
 	b       calljava_return
 
-	.end    asm_calljavafunction
+	.end    asm_calljavafunction_asm
 
 #endif
 
