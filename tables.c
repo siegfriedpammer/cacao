@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 963 2004-03-15 07:37:49Z jowenn $
+   $Id: tables.c 981 2004-03-26 00:34:51Z twisti $
 
 */
 
@@ -312,70 +312,94 @@ static u4 utf_hashkey(char *text, u4 length)
 	case 7: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6);
 	case 8: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7);
 
-	case 9: a = fbs(0) ^ nbs(1) ^ nbs(2);                
-		text++; 
+	case 9:
+		a = fbs(0);
+		a ^= nbs(1);
+		a ^= nbs(2);
+		text++;
 		return a ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7) ^ nbs(8);
 
-	case 10: a = fbs(0);
+	case 10:
+		a = fbs(0);
 		text++;
-		a^= nbs(2) ^ nbs(3) ^ nbs(4);
+		a ^= nbs(2);
+		a ^= nbs(3);
+		a ^= nbs(4);
 		text++;
 		return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9);
 
-	case 11: a = fbs(0);
+	case 11:
+		a = fbs(0);
 		text++;
-		a^= nbs(2) ^ nbs(3) ^ nbs(4);
+		a ^= nbs(2);
+		a ^= nbs(3);
+		a ^= nbs(4);
 		text++;
 		return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9) ^ nbs(10);
 
-	case 12: a = fbs(0);
-		text+=2;
-		a^= nbs(2) ^ nbs(3);
-		text+=1;
-		a^= nbs(5) ^ nbs(6) ^ nbs(7);
-		text+=1;
-		return a ^ nbs(9) ^ nbs(10);	   
-
-	case 13: a = fbs(0) ^ nbs(1);
-		text+=1;	
-		a^= nbs(3) ^ nbs(4);
-		text+=2;	
-		a^= nbs(7) ^ nbs(8);
-		text+=2;
+	case 12:
+		a = fbs(0);
+		text += 2;
+		a ^= nbs(2);
+		a ^= nbs(3);
+		text++;
+		a ^= nbs(5);
+		a ^= nbs(6);
+		a ^= nbs(7);
+		text++;
 		return a ^ nbs(9) ^ nbs(10);
 
-	case 14: a = fbs(0);
-		text+=2;	
-		a^= nbs(3) ^ nbs(4);
-		text+=2;	
-		a^= nbs(7) ^ nbs(8);
-		text+=2;
+	case 13:
+		a = fbs(0);
+		a ^= nbs(1);
+		text++;
+		a ^= nbs(3);
+		a ^= nbs(4);
+		text += 2;	
+		a ^= nbs(7);
+		a ^= nbs(8);
+		text += 2;
+		return a ^ nbs(9) ^ nbs(10);
+
+	case 14:
+		a = fbs(0);
+		text += 2;	
+		a ^= nbs(3);
+		a ^= nbs(4);
+		text += 2;	
+		a ^= nbs(7);
+		a ^= nbs(8);
+		text += 2;
 		return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
 
-	case 15: a = fbs(0);
-		text+=2;	
-		a^= nbs(3) ^ nbs(4);
-		text+=2;	
-		a^= nbs(7) ^ nbs(8);
-		text+=2;
+	case 15:
+		a = fbs(0);
+		text += 2;	
+		a ^= nbs(3);
+		a ^= nbs(4);
+		text += 2;	
+		a ^= nbs(7);
+		a ^= nbs(8);
+		text += 2;
 		return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
 
 	default:  /* 3 characters from beginning */
 		a = fbs(0);
-		text+=2;
-		a^= nbs(3) ^ nbs(4);
+		text += 2;
+		a ^= nbs(3);
+		a ^= nbs(4);
 
 		/* 2 characters from middle */
 		text = start_pos + (length / 2);
-		a^= fbs(5);
-		text+=2;
-		a^= nbs(6);	
+		a ^= fbs(5);
+		text += 2;
+		a ^= nbs(6);	
 
 		/* 3 characters from end */
 		text = start_pos + length - 4;
 
-		a^= fbs(7);
-		text+=1;
+		a ^= fbs(7);
+		text++;
 
 		return a ^ nbs(10) ^ nbs(11);
     }
@@ -707,13 +731,13 @@ u2 desc_typesize(utf *descriptor)
 u2 utf_nextu2(char **utf_ptr) 
 {
     /* uncompressed unicode character */
-    u2 unicode_char;	
+    u2 unicode_char = 0;
     /* current position in utf text */	
-    unsigned char *utf = (unsigned char *) (*utf_ptr);  
+    unsigned char *utf = (unsigned char *) (*utf_ptr);
     /* bytes representing the unicode character */
     unsigned char ch1, ch2, ch3;
     /* number of bytes used to represent the unicode character */
-    int len;		
+    int len = 0;
 	
     switch ((ch1 = utf[0]) >> 4) {
 	default: /* 1 byte */
@@ -747,6 +771,7 @@ u2 utf_nextu2(char **utf_ptr)
     *utf_ptr = (char *) (utf + len);
     return unicode_char;
 }
+
 
 /********************* function: is_valid_utf ********************************
 
