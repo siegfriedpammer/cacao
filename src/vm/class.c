@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2060 2005-03-23 11:09:37Z twisti $
+   $Id: class.c 2078 2005-03-25 13:30:14Z edwin $
 
 */
 
@@ -279,6 +279,10 @@ classinfo *class_new_intern(utf *classname)
 	c->cpcount = 0;
 	c->cptags = NULL;
 	c->cpinfos = NULL;
+	c->classrefs = NULL;
+	c->classrefcount = 0;
+	c->parseddescs = NULL;
+	c->parseddescsize = 0;
 	c->super = NULL;
 	c->sub = NULL;
 	c->nextsub = NULL;

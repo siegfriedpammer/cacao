@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 2018 2005-03-09 11:53:25Z twisti $
+   $Id: global.h 2078 2005-03-25 13:30:14Z edwin $
 
 */
 
@@ -70,6 +70,9 @@ typedef struct exceptiontable exceptiontable;
 typedef struct methodinfo methodinfo; 
 typedef struct lineinfo lineinfo; 
 typedef struct arraydescriptor arraydescriptor;
+typedef struct typedesc typedesc;
+typedef struct methoddesc methoddesc;
+typedef struct constant_classref constant_classref;
 
 
 /* additional includes ********************************************************/
@@ -293,12 +296,59 @@ struct jni_callblock {
 typedef struct jni_callblock jni_callblock;
 
 
+/* data structures for parsed field/method descriptors ************************/
+
+struct typedesc {
+	constant_classref *classref;   /* class reference for TYPE_ADR types      */
+	u1                 type;       /* TYPE_??? constant                       */
+	u1                 arraydim;   /* array dimension (0 if no array)         */
+};
+
+struct methoddesc {
+	s4                 paramcount; /* number of parameters                    */
+	typedesc           returntype; /* parsed descriptor of the return type    */
+	typedesc           paramtypes[1]; /* parameter types, variable length!    */
+};
+
+typedef union {
+	typedesc          *fd;        /* parsed field descriptor                  */
+	methoddesc        *md;        /* parsed method descriptor                 */
+	void              *any;       /* used for simple test against NULL        */
+} parseddesc;
+
+/* data structures for symbolic class references ******************************/
+
+struct constant_classref {
+	vftbl_t   *pseudo_vftbl;      /* for distinguishing it from classinfo     */
+	classinfo *referer;           /* class containing the reference           */
+	utf       *name;              /* name of the class refered to             */
+};
+
+typedef union {
+	constant_classref *ref;       /* a symbolic class reference               */
+	classinfo         *cls;       /* an already loaded class                  */
+	void              *any;       /* used for general access (x != NULL,...)  */
+} classref_or_classinfo;
+
+/* a value that never occurrs in classinfo.header.vftbl                       */
+#define CLASSREF_PSEUDO_VFTBL ((vftbl_t *) 1)
+
+/* macro for testing if a classref_or_classinfo is a classref                 */
+#define IS_CLASSREF(reforinfo)  \
+	((reforinfo).ref->pseudo_vftbl == CLASSREF_PSEUDO_VFTBL)
+
+/* macro for casting a classref/classinfo * to a classref_or_classinfo        */
+#define CLASSREF_OR_CLASSINFO(value) \
+	(*((classref_or_classinfo *)(&(value))))
+
 /* data structures of remaining constant pool entries *************************/
 
 typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
 	classinfo *class;       /* class containing this field/method/interface   */
+	constant_classref *classref;  /* class containing this field/meth./intf.  */
 	utf       *name;        /* field/method/interface name                    */
 	utf       *descriptor;  /* field/method/interface type descriptor string  */
+	parseddesc parseddesc;  /* parsed descriptor                              */
 } constant_FMIref;
 
 
@@ -617,6 +667,11 @@ struct classinfo {                /* class structure                          */
 	s4          cpcount;          /* number of entries in constant pool       */
 	u1         *cptags;           /* constant pool tags                       */
 	voidptr    *cpinfos;          /* pointer to constant pool info structures */
+
+	s4          classrefcount;    /* number of symbolic class references      */
+	constant_classref *classrefs; /* table of symbolic class references       */
+	s4          parseddescsize;   /* size of the parsed descriptors block     */
+	u1         *parseddescs;      /* parsed descriptors                       */
 
 	classinfo  *super;            /* super class pointer                      */
 	classinfo  *sub;              /* sub class pointer                        */
