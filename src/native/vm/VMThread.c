@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 1206 2004-06-25 10:15:56Z twisti $
+   $Id: VMThread.c 1227 2004-06-30 19:29:35Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include "types.h"
 #include "native.h"
 #include "loader.h"
+#include "options.h"
 #include "tables.h"
 #include "threads/thread.h"
 #include "toolbox/logging.h"

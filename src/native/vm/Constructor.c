@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Constructor.c 1075 2004-05-20 16:58:49Z twisti $
+   $Id: Constructor.c 1227 2004-06-30 19:29:35Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 #include "native.h"
 #include "tables.h"
 #include "asmpart.h"
+#include "options.h"
 #include "toolbox/logging.h"
 #include "java_lang_Object.h"
 #include "java_lang_Class.h"

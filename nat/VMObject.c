@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMObject.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: VMObject.c 1227 2004-06-30 19:29:35Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 #include "builtin.h"
 #include "loader.h"
 #include "native.h"
+#include "options.h"
 #include "mm/boehm.h"
 #include "threads/locks.h"
 #include "toolbox/logging.h"
