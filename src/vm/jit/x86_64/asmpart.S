@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2144 2005-03-30 12:55:00Z twisti $
+   $Id: asmpart.S 2168 2005-03-31 14:49:00Z twisti $
 
 */
 
@@ -160,15 +160,16 @@ asm_calljavafunction_int:
 
 	mov     0*8(%rsp),%rbp
 	mov		1*8(%rsp),%rbx
-	add     $(3*8),%rsp              /* free stack space                     */
+	add     $(3*8),%rsp               /* free stack space                     */
 	ret
 
 calljava_xhandler:
-	mov     %rax,%rdi                /* pass exception pointer               */
+	mov     %rax,%rdi                 /* pass exception pointer               */
 	call    builtin_throw_exception
 	mov     0*8(%rsp),%rbp
 	mov		1*8(%rsp),%rbx
 	add     $(3*8),%rsp
+	xor     %rax,%rax                 /* return NULL                          */
 	ret
 
 
@@ -315,6 +316,7 @@ calljava_xhandler2:
 	mov     1*8(%rsp),%rbp
 	mov     0*8(%rsp),%rbx
 	add     $(7*8),%rsp               /* free stack space                     */
+	xor     %rax,%rax                 /* return NULL                          */
 	ret
 
 
@@ -437,7 +439,7 @@ L_not_virtual_interface:        /* a call from asm_calljavamethod             */
 L_call_jit_compile:
         mov     (%rsp),%rbx     /* restore register                           */
         
-        sub     $(24*8),%rsp    /* 8 + 48 + 64 + 64                           */
+        sub     $(24*8),%rsp    /* 8 + 6*8 + 8*8 + 8*8                        */
         
   		mov     %r11,0*8(%rsp)  /* save address for method pointer            */
 
@@ -593,7 +595,7 @@ ex_table_loop:
 	mov     %rdi,3*8(%rsp)
 
 	mov     %rdx,%rdi
-	call    class_load
+	call    load_class_bootstrap
 
 	mov     0*8(%rsp),%rax
 	mov     1*8(%rsp),%rcx
@@ -612,7 +614,7 @@ L_class_loaded:
 	mov     %rdi,3*8(%rsp)
 
 	mov     %rdx,%rdi
-	call    class_link
+	call    link_class
 
 	mov     0*8(%rsp),%rax
 	mov     1*8(%rsp),%rcx
