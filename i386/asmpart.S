@@ -61,7 +61,7 @@
 	.globl builtin_throw_exception
 	.globl builtin_trace_exception
 	.globl class_java_lang_Object
-	.globl findentry
+	.globl findmethod
 
 /*********************** function has_no_x_instr_set ***************************
 *                                                                              *
@@ -379,7 +379,7 @@ asm_handle_nat_exception:
 asm_handle_exception:
 		pushl   %eax
 		pushl	%edx						/* get the data segment ptr       */
-		call	findentry
+		call	findmethod
 		movl	%eax,%ecx
 		popl	%edx
 		popl	%eax
@@ -541,7 +541,7 @@ noflt:
 		pushl	%edi
 								
 		pushl	%edx						/* get the new data segment ptr   */
-		call	findentry
+		call	findmethod
 		movl	%eax,%ecx
 		addl	$4,%esp
 
@@ -880,13 +880,14 @@ asm_builtin_arrayinstanceof:
 		
 /******************* function asm_initialize_thread_stack **********************
 *                                                                              *
-*   initialized a thread stack                                                 *
+* initialized a thread stack                                                   *
+* (to)->restorePoint = asm_initialize_thread_stack((u1*)(func), (to)->stackEnd)*
 *                                                                              *
 *******************************************************************************/
 
 asm_initialize_thread_stack:
-		movl	8(%esp),%eax
-		subl	$36,%eax				/* 4 bytes * 8 regs + 4 bytes func */
+		movl	8(%esp),%eax            /* (to)->stackEnd                     */
+		subl	$36,%eax				/* 4 bytes * 8 regs + 4 bytes func    */
 
 		xorl	%edx,%edx
 		movl	%edx,0(%eax)
@@ -898,10 +899,10 @@ asm_initialize_thread_stack:
 		movl	%edx,24(%eax)
 		movl	%edx,28(%eax)
 
-		movl	4(%esp),%edx
+		movl	4(%esp),%edx            /* save (u1*) (func)                  */
 		movl	%edx,32(%eax)
-		
-		ret
+
+		ret                             /* return restorepoint in %eax        */
 
 
 /******************* function asm_perform_threadswitch *************************
@@ -924,7 +925,7 @@ asm_perform_threadswitch:
 		movl	%esi,24(%esp)
 		movl	%edi,28(%esp)
 
-		movl	36(%esp),%eax			/* save return address */
+		movl	36(%esp),%eax			/* save current return address */
 		movl	%eax,32(%esp)
 
 		movl	40(%esp),%eax			/* first argument **from */
@@ -936,9 +937,6 @@ asm_perform_threadswitch:
 		movl	44(%esp),%eax			/* second argument **to */
 		movl	0(%eax),%esp			/* load new stack pointer */
 
-		movl	32(%esp),%eax			/* restore return address */
-		movl	%eax,36(%esp)
-		
 		movl	0(%esp),%eax
 		movl	4(%esp),%edx
 		movl	8(%esp),%ecx
@@ -948,13 +946,13 @@ asm_perform_threadswitch:
 		movl	24(%esp),%esi
 		movl	28(%esp),%edi
 
-		addl	$36,%esp
+		addl	$32,%esp                /* leave return address on stack      */
 		ret
 		
 
 /********************* function asm_switchstackandcall *************************
 *                                                                              *
-*  void asm_switchstackandcall (void *stack, void *func, void **stacktopsave,  *
+*  int asm_switchstackandcall (void *stack, void *func, void **stacktopsave,   *
 *		                       void *p);                                       *
 *                                                                              *
 *   Switches to a new stack, calls a function and switches back.               *
