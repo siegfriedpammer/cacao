@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: stack.c 577 2003-11-09 17:34:59Z twisti $
+   $Id: stack.c 604 2003-11-11 22:14:20Z twisti $
 
 */
 
@@ -186,6 +186,7 @@ extern int dseglen;
 		}\
 }
 
+
 #ifdef USEBUILTINTABLE
 static stdopdescriptor *find_builtin(stdopdescriptor *first, stdopdescriptor *last,
 									 int icmd)
@@ -195,7 +196,7 @@ static stdopdescriptor *find_builtin(stdopdescriptor *first, stdopdescriptor *la
 	stdopdescriptor *middle;
 
 	while (len > 0) {
-		half = len/2;
+		half = len / 2;
 		middle = first + half;
 		if (middle->opcode < icmd) {
 			first = middle + 1;
@@ -357,7 +358,8 @@ void analyse_stack()
 
 #ifdef USEBUILTINTABLE
 					{
-						stdopdescriptor *blast = builtintable + sizeof(builtintable)/sizeof(stdopdescriptor);
+/*  						stdopdescriptor *blast = builtintable + sizeof(builtintable) / sizeof(stdopdescriptor); */
+						stdopdescriptor *blast = builtintable + 21 * sizeof(stdopdescriptor);
 						stdopdescriptor *breplace;
 						breplace = find_builtin(builtintable, blast, opcode);
 						if (breplace != blast && opcode == breplace->opcode && !breplace->supported) {
@@ -1587,7 +1589,7 @@ void analyse_stack()
 
 					case ICMD_BUILTIN2:
 					builtin2:
-					if (! (curstack->flags & SAVEDVAR)) {
+					if (!(curstack->flags & SAVEDVAR)) {
 						curstack->varkind = ARGVAR;
 						curstack->varnum = 1;
 					}
@@ -1597,22 +1599,23 @@ void analyse_stack()
 					OP1_0ANY;
 
 					case ICMD_BUILTIN1:
-						if (! (curstack->flags & SAVEDVAR)) {
-							curstack->varkind = ARGVAR;
-							curstack->varnum = 0;
-						}
-						if (1 > arguments_num) {
-							arguments_num = 1;
-						}
-						OP1_0ANY;
-						copy = curstack;
-						while (copy) {
-							copy->flags |= SAVEDVAR;
-							copy = copy->prev;
-						}
-						if (iptr->op1 != TYPE_VOID)
-							OP0_1(iptr->op1);
-						break;
+					builtin1:
+					if (!(curstack->flags & SAVEDVAR)) {
+						curstack->varkind = ARGVAR;
+						curstack->varnum = 0;
+					}
+					if (1 > arguments_num) {
+						arguments_num = 1;
+					}
+					OP1_0ANY;
+					copy = curstack;
+					while (copy) {
+						copy->flags |= SAVEDVAR;
+						copy = copy->prev;
+					}
+					if (iptr->op1 != TYPE_VOID)
+						OP0_1(iptr->op1);
+					break;
 
 					case ICMD_MULTIANEWARRAY:
 						i = iptr->op1;
