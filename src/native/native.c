@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 730 2003-12-11 21:23:31Z edwin $
+   $Id: native.c 755 2003-12-13 22:25:24Z twisti $
 
 */
 
@@ -87,6 +87,7 @@ methodinfo *method_vmclass_init;
 classinfo *class_java_lang_CloneNotSupportedException;
 classinfo *class_java_lang_System;
 classinfo *class_java_lang_ClassLoader;
+classinfo *class_java_lang_NoClassDefFoundError;
 classinfo *class_java_lang_ClassNotFoundException;
 classinfo *class_java_lang_LinkageError;
 classinfo *class_java_lang_InstantiationException;
@@ -229,6 +230,31 @@ static bool nativecompdone = false;
 
 
 
+/* throw some loader exceptions */
+
+void throw_noclassdeffounderror_message(utf* classname)
+{
+	if (!class_java_lang_NoClassDefFoundError) {
+		panic("java.lang.NoClassDefFoundError not found. Maybe wrong classpath?");
+	}
+
+	/* throws a NoClassDefFoundError with message */
+	exceptionptr = native_new_and_init_string(class_java_lang_NoClassDefFoundError,
+											  javastring_new(classname));
+}
+
+
+void throw_linkageerror_message(utf* classname)
+{
+	if (!class_java_lang_LinkageError) {
+		panic("java.lang.LinkageError not found. Maybe wrong classpath?");
+	}
+
+	/* throws a LinkageError with message */
+	exceptionptr = native_new_and_init_string(class_java_lang_LinkageError,
+											  javastring_new(classname));
+}
+
 
 /*********************** function: native_loadclasses **************************
 
@@ -240,27 +266,30 @@ void native_loadclasses()
 {
 	static int classesLoaded=0; /*temporary hack JoWenn*/
 	if (classesLoaded) return;
-	classesLoaded=1;
+	classesLoaded = 1;
 /*	log_text("loadclasses entered");*/
 
 
 	/*class_java_lang_System =*/
-	        (void)class_new ( utf_new_char ("java/lang/VMClass") );/*JoWenn*/
-	        (void)class_new ( utf_new_char ("java/lang/Class") );/*JoWenn*/
+	(void) class_new(utf_new_char("java/lang/VMClass"));/*JoWenn*/
+	(void) class_new(utf_new_char("java/lang/Class"));/*JoWenn*/
+
 	/* class_new adds the class to the list of classes to be loaded */
 	if (!class_java_lang_Cloneable)
 		class_java_lang_Cloneable = 
-			class_new ( utf_new_char ("java/lang/Cloneable") );
+			class_new(utf_new_char("java/lang/Cloneable"));
 /*	log_text("loadclasses: class_java_lang_Cloneable has been initialized");*/
 	class_java_lang_CloneNotSupportedException = 
-		class_new ( utf_new_char ("java/lang/CloneNotSupportedException") );
+		class_new(utf_new_char("java/lang/CloneNotSupportedException"));
 	if (!class_java_lang_Class)
 		class_java_lang_Class =
-			class_new ( utf_new_char ("java/lang/Class") );
+			class_new(utf_new_char("java/lang/Class"));
 	class_java_io_IOException = 
 		class_new(utf_new_char("java/io/IOException"));
 	class_java_io_FileNotFoundException = 
 		class_new(utf_new_char("java/io/FileNotFoundException"));
+	class_java_lang_NoClassDefFoundError =
+		class_new(utf_new_char("java/lang/NoClassDefFoundError"));
 	class_java_lang_ClassNotFoundException =
 		class_new(utf_new_char("java/lang/ClassNotFoundException"));
 	class_java_lang_LinkageError =
@@ -274,11 +303,11 @@ void native_loadclasses()
 	class_java_lang_ClassFormatError =
 		class_new(utf_new_char("java/lang/ClassFormatError"));	
 	class_java_io_SyncFailedException =
-	        class_new ( utf_new_char ("java/io/SyncFailedException") );
+		class_new(utf_new_char("java/io/SyncFailedException"));
 		
 /*	log_text("native_loadclasses: class_new(\"java/lang/ClassLoader\")");		*/
 	class_java_lang_ClassLoader =
-	        class_new ( utf_new_char ("java/lang/ClassLoader") );	
+	        class_new(utf_new_char("java/lang/ClassLoader"));	
 /*	log_text("native_loadclasses: class_new(\"java/security/PrivilegedActionException\")");		*/
 	class_java_security_PrivilegedActionException =
 		class_new(utf_new_char("java/security/PrivilegedActionException"));
@@ -371,7 +400,7 @@ void init_systemclassloader()
 	log_text("Initializing new system class loader");
 	/* create object and call initializer */
 	SystemClassLoader = (java_lang_ClassLoader*) native_new_and_init(class_java_lang_ClassLoader);	
-	heap_addreference((void**) &SystemClassLoader);
+/*  	heap_addreference((void**) &SystemClassLoader); */
 
 	/* systemclassloader has no parent */
 	SystemClassLoader->parent      = NULL;
@@ -413,52 +442,6 @@ void native_setclasspath (char *path)
 {
 	/* set searchpath for classfiles */
 	classpath = path;
-}
-
-
-/***************** function: throw_classnotfoundexception *********************/
-
-void throw_classnotfoundexception()
-{
-	dolog("throw_classnotfoundexception");
-    if (!class_java_lang_ClassNotFoundException) {
-        panic("java.lang.ClassNotFoundException not found. Maybe wrong classpath?");
-    }
-
-	/* throws a ClassNotFoundException */
-	exceptionptr = native_new_and_init(class_java_lang_ClassNotFoundException);
-	dolog("set exceptionptr");
-}
-
-
-void throw_classnotfoundexception2(utf* classname)
-{
-	dolog("throw_classnotfoundexception2");
-	log_plain("Class: "); log_plain_utf(classname); log_nl();
-	
-	if (!class_java_lang_ClassNotFoundException) {
-		panic("java.lang.ClassNotFoundException not found. Maybe wrong classpath?");
-	}
-
-	/* throws a ClassNotFoundException with message */
-	exceptionptr = native_new_and_init_string(class_java_lang_ClassNotFoundException,
-											  javastring_new(classname));
-	dolog("set exceptionptr");
-}
-
-void throw_linkageerror2(utf* classname)
-{
-	dolog("throw_linkageerror2");
-	log_plain("Class: "); log_plain_utf(classname); log_nl();
-	
-	if (!class_java_lang_LinkageError) {
-		panic("java.lang.LinkageError not found. Maybe wrong classpath?");
-	}
-
-	/* throws a ClassNotFoundException with message */
-	exceptionptr = native_new_and_init_string(class_java_lang_LinkageError,
-											  javastring_new(classname));
-	dolog("set exceptionptr");
 }
 
 
@@ -587,7 +570,8 @@ functionptr native_findfunction(utf *cname, utf *mname,
 
 *******************************************************************************/
 
-java_objectheader *javastring_new (utf *u)
+/*  java_objectheader *javastring_new(utf *u) */
+java_lang_String *javastring_new(utf *u)
 {
 	char *utf_ptr = u->text;        /* current utf character in utf string    */
 	int utflength = utf_strlen(u);  /* length of utf-string if uncompressed   */
@@ -597,8 +581,8 @@ java_objectheader *javastring_new (utf *u)
 	
 /*	log_text("javastring_new");*/
 	
-	s = (java_lang_String*) builtin_new (class_java_lang_String);
-	a = builtin_newarray_char (utflength);
+	s = (java_lang_String*) builtin_new(class_java_lang_String);
+	a = builtin_newarray_char(utflength);
 
 	/* javastring or character-array could not be created */
 	if ((!a) || (!s))
@@ -613,8 +597,10 @@ java_objectheader *javastring_new (utf *u)
 	s->offset = 0;
 	s->count  = utflength;
 
-	return (java_objectheader*) s;
+/*  	return (java_objectheader*) s; */
+	return s;
 }
+
 
 /********************** function: javastring_new_char **************************
 
@@ -625,7 +611,8 @@ java_objectheader *javastring_new (utf *u)
 
 *******************************************************************************/
 
-java_objectheader *javastring_new_char (char *text)
+/*  java_objectheader *javastring_new_char (char *text) */
+java_lang_String *javastring_new_char (char *text)
 {
 	s4 i;
 	s4 len = strlen(text); /* length of the string */
@@ -633,22 +620,24 @@ java_objectheader *javastring_new_char (char *text)
 	java_chararray *a;
 	
 	/*log_text("javastring_new_char");*/
-	s = (java_lang_String*) builtin_new (class_java_lang_String);
-	a = builtin_newarray_char (len);
+	s = (java_lang_String*) builtin_new(class_java_lang_String);
+	a = builtin_newarray_char(len);
 
 	/* javastring or character-array could not be created */
-	if ((!a) || (!s)) return NULL;
+	if ((!a) || (!s))
+		return NULL;
 
 	/* copy text */
 	for (i = 0; i < len; i++)
 		a->data[i] = text[i];
 	
 	/* set fields of the javastring-object */
-	s->value = a;
+	s->value  = a;
 	s->offset = 0;
-	s->count = len;
+	s->count  = len;
 
-	return (java_objectheader*) s;
+/*  	return (java_objectheader*) s; */
+	return s;
 }
 
 
@@ -853,29 +842,28 @@ void stringtable_update ()
 
 *****************************************************************************/
 
-
 u4 u2_utflength(u2 *text, u4 u2_length)
 {
 	u4 result_len =  0;  /* utf length in bytes  */
 	u2 ch;               /* current unicode character */
 	u4 len;
 	
-        for (len = 0; len < u2_length; len++) {
+	for (len = 0; len < u2_length; len++) {
+		/* next unicode character */
+		ch = *text++;
 	  
-	  /* next unicode character */
-	  ch = *text++;
-	  
-	  /* determine bytes required to store unicode character as utf */
-	  if (ch && (ch < 0x80)) 
-	    result_len++;
-	  else if (ch < 0x800)
-	    result_len += 2;	
-	  else 
-	    result_len += 3;	
+		/* determine bytes required to store unicode character as utf */
+		if (ch && (ch < 0x80)) 
+			result_len++;
+		else if (ch < 0x800)
+			result_len += 2;	
+		else 
+			result_len += 3;	
 	}
 
     return result_len;
 }
+
 
 /********************* function: utf_new_u2 ***********************************
 
@@ -887,16 +875,16 @@ u4 u2_utflength(u2 *text, u4 u2_length)
 utf *utf_new_u2(u2 *unicode_pos, u4 unicode_length, bool isclassname)
 {
 	char *buffer; /* memory buffer for  unicode characters */
-    	char *pos;    /* pointer to current position in buffer */
-    	u4 left;      /* unicode characters left */
-    	u4 buflength; /* utf length in bytes of the u2 array  */
+	char *pos;    /* pointer to current position in buffer */
+	u4 left;      /* unicode characters left */
+	u4 buflength; /* utf length in bytes of the u2 array  */
 	utf *result;  /* resulting utf-string */
-    	int i;    	
+	int i;    	
 
 	/* determine utf length in bytes and allocate memory */
 	/* printf("utf_new_u2: unicode_length=%d\n",unicode_length);    	*/
 	buflength = u2_utflength(unicode_pos, unicode_length); 
-    	buffer    = MNEW(char,buflength);
+	buffer    = MNEW(char, buflength);
  
  	/* memory allocation failed */
 	if (!buffer) {
@@ -904,49 +892,53 @@ utf *utf_new_u2(u2 *unicode_pos, u4 unicode_length, bool isclassname)
 		log_text("utf_new_u2:buffer==NULL");
 	}
 
-    	left = buflength;
+	left = buflength;
 	pos  = buffer;
 
-    	for (i = 0; i++ < unicode_length; unicode_pos++) {
+	for (i = 0; i++ < unicode_length; unicode_pos++) {
 		/* next unicode character */
 		u2 c = *unicode_pos;
 		
 		if ((c != 0) && (c < 0x80)) {
-		/* 1 character */	
-		left--;
+			/* 1 character */	
+			left--;
 	    	if ((int) left < 0) break;
-		/* convert classname */
-		if (isclassname && c=='.') 
-		  *pos++ = '/';
-		else
-		  *pos++ = (char) c;
+			/* convert classname */
+			if (isclassname && c == '.')
+				*pos++ = '/';
+			else
+				*pos++ = (char) c;
+
 		} else if (c < 0x800) { 	    
-		/* 2 characters */				
+			/* 2 characters */				
 	    	unsigned char high = c >> 6;
 	    	unsigned char low  = c & 0x3F;
-		left = left - 2;
+			left = left - 2;
 	    	if ((int) left < 0) break;
 	    	*pos++ = high | 0xC0; 
 	    	*pos++ = low  | 0x80;	  
+
 		} else {	 
 	    	/* 3 characters */				
 	    	char low  = c & 0x3f;
 	    	char mid  = (c >> 6) & 0x3F;
 	    	char high = c >> 12;
-		left = left - 3;
+			left = left - 3;
 	    	if ((int) left < 0) break;
 	    	*pos++ = high | 0xE0; 
 	    	*pos++ = mid  | 0x80;  
 	    	*pos++ = low  | 0x80;   
 		}
-    	}
+	}
 	
 	/* insert utf-string into symbol-table */
 	result = utf_new(buffer,buflength);
 
-    	MFREE(buffer, char, buflength);
+	MFREE(buffer, char, buflength);
+
 	return result;
 }
+
 
 /********************* function: javastring_toutf *****************************
 
@@ -956,11 +948,12 @@ utf *utf_new_u2(u2 *unicode_pos, u4 unicode_length, bool isclassname)
 
 utf *javastring_toutf(java_lang_String *string, bool isclassname)
 {
-        java_lang_String *str = (java_lang_String *) string;
+	java_lang_String *str = (java_lang_String *) string;
 /*	printf("javastring_toutf offset: %d, len %d\n",str->offset, str->count);
 	fflush(stdout);*/
-	return utf_new_u2(str->value->data+str->offset,str->count, isclassname);
+	return utf_new_u2(str->value->data + str->offset, str->count, isclassname);
 }
+
 
 /********************* function: literalstring_u2 *****************************
 
@@ -1002,7 +995,7 @@ java_objectheader *literalstring_u2 (java_chararray *a, u4 length, bool copymode
 					
 	/* string already in hashtable, free memory */
 	if (!copymode)
-	  lit_mem_free(a, sizeof(java_chararray) + sizeof(u2)*(length-1)+10);
+		lit_mem_free(a, sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10);
 
 #ifdef JOWENN_DEBUG1
 	log_text("literalstring_u2: foundentry");
