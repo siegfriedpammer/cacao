@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 771 2003-12-13 23:11:08Z stefan $
+   $Id: codegen.c 774 2003-12-14 12:55:27Z stefan $
 
 */
 
@@ -413,6 +413,8 @@ void init_exceptions(void)
 
 /* global code generation pointer */
 u1 *mcodeptr;
+
+void *castlockptr = cast_lock;
 
 void codegen()
 {
@@ -4236,7 +4238,22 @@ gen_method: {
 					a += 6;    /* jcc */
 					a += 5;
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					a += 40;
+#endif
+
 					i386_jcc(I386_CC_E, a);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					i386_mov_imm_reg(1, EDX);
+					*(mcodeptr++) = (u1) 0xf0;
+					i386_xadd_membase((u4) &cast_counter);
+					i386_jcc(I386_CC_E, 8);
+					*(mcodeptr++) = (u1) 0x8b;
+					*(mcodeptr++) = (u1) 0x15;
+					i386_emit_imm32(&castlockptr);
+					i386_call_reg(EDX);
+#endif
 
 					i386_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
@@ -4245,6 +4262,13 @@ gen_method: {
 					i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
 					i386_alu_reg_reg(I386_SUB, REG_ITMP3, REG_ITMP1);
 					i386_alu_reg_reg(I386_XOR, d, d);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					i386_mov_imm_reg(-1, EDX);
+					*(mcodeptr++) = (u1) 0xf0;
+					i386_xadd_membase((u4) &cast_counter);
+#endif
+
 					i386_alu_reg_reg(I386_CMP, REG_ITMP2, REG_ITMP1);
 					i386_jcc(I386_CC_A, 5);
 					i386_mov_imm_reg(1, d);
@@ -4355,7 +4379,24 @@ gen_method: {
 
 					a += 6;
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					a += 40;
+#endif
+
 					i386_jcc(I386_CC_E, a);
+
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					i386_mov_imm_reg(1, EDX);
+					*(mcodeptr++) = (u1) 0xf0;
+					i386_xadd_membase((u4) &cast_counter);
+					i386_jcc(I386_CC_E, 8);
+					*(mcodeptr++) = (u1) 0x8b;
+					*(mcodeptr++) = (u1) 0x15;
+					i386_emit_imm32(&castlockptr);
+					i386_call_reg(EDX);
+#endif
+
 
 					i386_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
@@ -4371,6 +4412,13 @@ gen_method: {
 						i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
 						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
 					}
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					i386_mov_imm_reg(-1, EDX);
+					*(mcodeptr++) = (u1) 0xf0;
+					i386_xadd_membase((u4) &cast_counter);
+#endif
+					
 					i386_alu_reg_reg(I386_CMP, REG_ITMP2, REG_ITMP1);
 					i386_jcc(I386_CC_A, 0);    /* (u) REG_ITMP1 > (u) REG_ITMP2 -> jump */
 					codegen_addxcastrefs(mcodeptr);
@@ -5604,6 +5652,13 @@ void i386_setcc_membase(s4 opc, s4 basereg, s4 disp) {
 	i386_emit_membase((basereg),(disp),0);
 }
 
+
+void i386_xadd_membase(s4 disp) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) 0xc1;
+	*(mcodeptr++) = (u1) 0x15;
+	i386_emit_imm32((disp));
+}
 
 
 void i386_neg_reg(s4 reg) {
