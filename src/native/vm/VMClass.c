@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: VMClass.c 1774 2004-12-20 20:16:57Z jowenn $
 
 */
 
@@ -345,7 +345,7 @@ java_lang_reflect_Field* cacao_getField0(JNIEnv *env, java_lang_Class *that, jav
 		/*      ((java_lang_reflect_Field*)(o))->flag=f->flags;*/
 		/* save type in slot-field for faster processing */
 		/* setfield_critical(c,o,"flag",           "I",		    jint,    (jint) f->flags); */
-		o->flag = f->flags;
+		/*o->flag = f->flags;*/
 		setfield_critical(c,o,"slot",           "I",		    jint,    (jint) idx);  
 		setfield_critical(c,o,"name",           "Ljava/lang/String;", jstring, (jstring) name);
 		/*setfield_critical(c,o,"type",           "Ljava/lang/Class;",  jclass,  fieldtype);*/

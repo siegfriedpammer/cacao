@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: builtin.c 1774 2004-12-20 20:16:57Z jowenn $
 
 */
 
@@ -96,34 +96,6 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 	if (super->flags & ACC_INTERFACE)
 		return (sub->vftbl->interfacetablelength > super->index) &&
 			(sub->vftbl->interfacetable[-super->index] != NULL);
-
-	/*
-	  while (sub != 0)
-	  if (sub == super)
-	  return 1;
-	  else
-	  sub = sub->super;
-
-	  return 0;
-	*/
-
-/*
-	for (tmp=sub;tmp!=0;tmp=tmp->super) {
-		printf("->");
-		utf_display(tmp->name);
-	}
-		printf("\n\n");
-	
-	for (tmp=super;tmp!=0;tmp=tmp->super) {
-		printf("->");
-		utf_display(tmp->name);
-	}
-		printf("\n");
-	
-
-	printf("sub->vftbl->baseval %d, super->vftbl->baseval %d\n diff %d, super->vftbl->diffval %d\n",
-			sub->vftbl->baseval, super->vftbl->baseval, (unsigned)(sub->vftbl->baseval - super->vftbl->baseval),
-			super->vftbl->diffval); */
 
 	asm_getclassvalues_atomic(super->vftbl, sub->vftbl, &classvalues);
 

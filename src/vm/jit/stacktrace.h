@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: stacktrace.h 1774 2004-12-20 20:16:57Z jowenn $
 
 */
 
@@ -41,6 +41,7 @@
 void cacao_stacktrace_NormalTrace(void **target);
 java_objectarray *cacao_createClassContextArray();
 java_objectheader *cacao_currentClassLoader();
+methodinfo* cacao_callingMethod();
 
 #endif /* _STACKTRACE_H */
 

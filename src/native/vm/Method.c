@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Method.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: Method.c 1774 2004-12-20 20:16:57Z jowenn $
 
 */
 
@@ -40,7 +40,10 @@
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_reflect_Method.h"
 #include "toolbox/logging.h"
-
+#include "vm/global.h"
+#include "vm/builtin.h"
+#include "vm/jit/stacktrace.h"
+#include "vm/exceptions.h"
 
 /*
  * Class:     java_lang_reflect_Method
@@ -116,14 +119,50 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(JNIEnv *env, java_lang_reflect_Method *this, java_lang_Object *obj, java_objectarray *params, java_lang_Class *declaringClass, s4 slot)
 {
-    struct methodinfo *mi;
+	struct methodinfo *mi;
 
-    classinfo *c = (classinfo *) declaringClass;
-    if (slot < 0 || slot >= c->methodscount) {
+	classinfo *c = (classinfo *) declaringClass;
+
+	if (slot < 0 || slot >= c->methodscount) {
 		panic("error illegal slot for method in class(getParameterTypes)");
-    }
+	}
+	mi = &(c->methods[slot]);
 
-    mi = &(c->methods[slot]);
+#if (defined(__ALPHA__) || defined(__I386__))
+	/*log_text("Checking access rights");*/
+	if (!(getField(this,jboolean,getFieldID_critical(env,this->header.vftbl->class,"flag","Z")))) {
+		int throwAccess=0;
+		struct methodinfo *callingMethod;
+
+		if ((mi->flags & ACC_PUBLIC)==0) {
+			callingMethod=cacao_callingMethod();
+
+			if ((mi->flags & ACC_PRIVATE)!=0) {
+				if (c!=callingMethod->class) {
+					throwAccess=1;
+				}
+			} else {
+				if ((mi->flags & ACC_PROTECTED)!=0) {
+					if (!builtin_isanysubclass(callingMethod->class, c)) {
+						throwAccess=1;
+					} 
+				} else {
+					/* default visibility*/
+					if (c->packagename!=callingMethod->class->packagename) {
+						throwAccess=1;
+					}
+				}
+			}
+		}
+		if (throwAccess) {
+			*exceptionptr=0;
+			*exceptionptr = new_exception(string_java_lang_IllegalAccessException);
+			return 0;
+		}
+
+	}
+
+#endif
 
     return (java_lang_Object *) jni_method_invokeNativeHelper(env, mi, (jobject) obj, params);
 }

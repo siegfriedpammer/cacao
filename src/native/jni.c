@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1771 2004-12-17 23:05:27Z jowenn $
+   $Id: jni.c 1774 2004-12-20 20:16:57Z jowenn $
 
 */
 
@@ -3583,14 +3583,13 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 		return 0;
 	}
 #endif
-
-	if (((!params) && (argcount != 0)) || (params && (params->header.size != argcount))) {
+	if (((params==0) && (argcount != 0)) || (params && (params->header.size != argcount))) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
 	}
 
 
-	if (!(methodID->flags & ACC_STATIC) && (!obj))  {
+	if (((methodID->flags & ACC_STATIC)==0) && (0==obj))  {
 		*exceptionptr =
 			new_exception_message(string_java_lang_NullPointerException,
 								  "Static mismatch in Java_java_lang_reflect_Method_invokeNative");
@@ -3598,6 +3597,12 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	}
 
 	if ((methodID->flags & ACC_STATIC) && (obj)) obj = 0;
+
+	if (obj) {
+		if ( (methodID->flags & ACC_ABSTRACT) || (methodID->class->flags & ACC_INTERFACE) ) {
+			methodID=get_virtual(obj,methodID);
+		}
+	}
 
 	blk = MNEW(jni_callblock, /*4 */argcount+2);
 

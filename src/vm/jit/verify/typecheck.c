@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: typecheck.c 1774 2004-12-20 20:16:57Z jowenn $
 
 */
 
@@ -1654,7 +1654,8 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 
 							  /* XXX We should resolve the method and pass its
 							   * class as implementingclass to is_accessible. */
-							  if (!is_accessible(mi->flags,mi->class,NULL, myclass,
+							  /* JOWENN: FIXME (and on other invokation places of is_accessible too) */
+							  if (!is_accessible(mi->flags,mi->class,/*NULL have to check what here should really be*/ mi->class /*dont't crash right now*/, myclass,
 												 (opcode == ICMD_INVOKESTATIC) ? NULL
 												 : &(srcstack->typeinfo)))
 								  panic("Invoking unaccessible method");

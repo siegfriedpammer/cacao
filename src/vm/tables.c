@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: tables.c 1774 2004-12-20 20:16:57Z jowenn $
 
 */
 
@@ -1113,8 +1113,8 @@ classinfo *class_new_intern(utf *classname)
 		char *p = utf_end(c->name) - 1;
 		char *start = c->name->text;
 		for (;p > start; --p) {
-			if (*p == '.') {
-				c->packagename = utf_new(start, p - start);
+			if (*p == '/') {
+				c->packagename = utf_new (start, p - start);
 				break;
 			}
 		}

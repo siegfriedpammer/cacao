@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 1771 2004-12-17 23:05:27Z jowenn $
+   $Id: stacktrace.c 1774 2004-12-20 20:16:57Z jowenn $
 
 */
 
@@ -46,6 +46,7 @@
 
 
 #undef JWDEBUG
+/*JoWenn: simplify collectors (trace doesn't contain internal methods)*/
 
 extern classinfo *class_java_lang_Class;
 extern classinfo *class_java_lang_SecurityManager;
@@ -415,6 +416,18 @@ java_objectheader *cacao_currentClassLoader() {
 	return header;
 }
 
+
+static
+void callingMethodCollector(void **target, stackTraceBuffer *buffer) {	
+        if (buffer->full >2) (*target)=buffer->start[2].method;
+	else (*target=0);
+}
+
+methodinfo *cacao_callingMethod() {
+	methodinfo *method;
+	cacao_stacktrace_fillInStackTrace(&method,&callingMethodCollector);
+	return method;
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

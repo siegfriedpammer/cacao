@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: exceptions.h 1774 2004-12-20 20:16:57Z jowenn $
 
 */
 
@@ -63,6 +63,7 @@ extern char *string_java_lang_ClassCastException;
 extern char *string_java_lang_ClassNotFoundException;
 extern char *string_java_lang_CloneNotSupportedException;
 extern char *string_java_lang_Exception;
+extern char *string_java_lang_IllegalAccessException;
 extern char *string_java_lang_IllegalArgumentException;
 extern char *string_java_lang_IllegalMonitorStateException;
 extern char *string_java_lang_IndexOutOfBoundsException;
