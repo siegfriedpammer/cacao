@@ -1,9 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 963 2004-03-15 07:37:49Z jowenn $
+# $Id: Makefile.am 1148 2004-06-06 13:20:49Z twisti $
 
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit -I$(top_srcdir)/jit/@ARCH_DIR@
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit/@ARCH_DIR@
 
 EXTRA_DIST =
 
