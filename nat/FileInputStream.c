@@ -1,5 +1,7 @@
 /* class: java/io/FileInputStream */
 
+#include <sys/ioctl.h>
+
 /*
  * Class:     java/io/FileInputStream
  * Method:    available
@@ -7,18 +9,56 @@
  */
 JNIEXPORT s4 JNICALL Java_java_io_FileInputStream_available ( JNIEnv *env ,  struct java_io_FileInputStream* this)
 {
-	struct stat buffer;
-	s4 r1,r2;
+    struct stat buffer;
+    s4 r1, r2;
 	
-	r1 = fstat (this->fd->fd, &buffer);
-	r2 = lseek(this->fd->fd, 0, SEEK_CUR);
+    r1 = fstat(this->fd->fd, &buffer);
+    r2 = lseek(this->fd->fd, 0, SEEK_CUR);
 	
-	if ( (r1 >= 0) && (r2 >= 0) )  
-		return buffer.st_size - r2; 
+    if ((r1 >= 0) && (r2 >= 0)) {
+        return buffer.st_size - r2;
+    }
 
-	exceptionptr = native_new_and_init (class_java_io_IOException);
-	return 0;
+    /* If lseek or fstat fail, try another mechanism... */
+
+#if defined(HAVE_IOCTL) && defined(FIONREAD)
+    /* XXX make part of jsyscall interface */
+    r1 = ioctl(this->fd->fd, FIONREAD, &r2);
+
+    if (r1 >= 0 && r2 != 0) {
+        return r2;
+
+    } else
+        /* FIONREAD may report 0 for files for which data is
+           available; maybe select will do... */
+#endif
+        {
+            /* This uses select() to work out if we can read - but
+             * what happens at the end of file?  */
+            static struct timeval tm = { 0, 0 };
+            fd_set rd;
+        
+            FD_ZERO(&rd);
+            FD_SET(this->fd->fd, &rd);
+            r1 = select(this->fd->fd + 1, &rd, NULL, NULL, &tm);
+
+            if (r1 == 1) {
+                r2 = 1;
+
+            } else {
+                r2 = 0;
+            }
+            
+            return r2;
+        }
+        
+    exceptionptr = native_new_and_init(class_java_io_IOException);
+
+    return 0;
 }
+
+
+
 /*
  * Class:     java/io/FileInputStream
  * Method:    close
