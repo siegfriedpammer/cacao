@@ -49,12 +49,9 @@ pthread_key_t tkey_threadinfo;
 __thread threadobject *threadobj;
 #endif
 
-/* CAST has to die */
-
 static pthread_mutex_t cast_mutex = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
 static pthread_mutex_t compiler_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-
-int cast_counter;
+static pthread_mutex_t tablelock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
 void cast_lock()
 {
@@ -76,7 +73,15 @@ void compiler_unlock()
 	pthread_mutex_unlock(&compiler_mutex);
 }
 
-/* END CAST */
+void tables_lock()
+{
+    pthread_mutex_lock(&tablelock);
+}
+
+void tables_unlock()
+{
+    pthread_mutex_unlock(&tablelock);
+}
 
 static int criticalcompare(const void *pa, const void *pb, void *param)
 {

@@ -35,9 +35,11 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 981 2004-03-26 00:34:51Z twisti $
+   $Id: tables.c 1011 2004-04-06 20:27:41Z stefan $
 
 */
+
+#include "global.h"
 
 #include <string.h>
 #include <assert.h>
@@ -45,7 +47,6 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include "types.h"
-#include "global.h"
 #include "main.h"
 #include "tables.h"
 #include "loader.h"
@@ -431,13 +432,13 @@ u4 unicode_hashkey(u2 *text, u2 len)
 
 ******************************************************************************/
 
-utf *utf_new(char *text, u2 length)
+utf *utf_new_int(char *text, u2 length)
 {
 	u4 key;            /* hashkey computed from utf-text */
 	u4 slot;           /* slot in hashtable */
 	utf *u;            /* hashtable element */
 	u2 i;
-	
+
 /*	log_text("utf_new entered");*/
 #ifdef STATISTICS
 	count_utf_new++;
@@ -526,6 +527,15 @@ utf *utf_new(char *text, u2 length)
 	}
 		/*utf_display(u);*/
 	return u;
+}
+
+utf *utf_new(char *text, u2 length)
+{
+    utf *r;
+    tables_lock();
+    r = utf_new_int(text, length);
+    tables_unlock();
+    return r;
 }
 
 
@@ -886,7 +896,7 @@ is_valid_name_utf(utf *u)
 
 *******************************************************************************/
 
-classinfo *class_new(utf *u)
+classinfo *class_new_int(utf *u)
 {
 	classinfo *c;     /* hashtable element */
 	u4 key;           /* hashkey computed from classname */
@@ -1009,6 +1019,15 @@ classinfo *class_new(utf *u)
 	}
         
 	return c;
+}
+
+classinfo *class_new(utf *u)
+{
+    classinfo *r;
+    tables_lock();
+    r = class_new_int(u);
+    tables_unlock();
+    return r;
 }
 
 

@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 1008 2004-03-31 20:13:14Z edwin $
+   $Id: loader.c 1011 2004-04-06 20:27:41Z stefan $
 
 */
 
@@ -1558,7 +1558,7 @@ static void class_loadcpool(classinfo *c)
 					panic("Invalid UTF-8 string");
 				}
 				/* insert utf-string into the utf-symboltable */
-				cpinfos [idx] = utf_new(classbuf_pos+1, length);
+				cpinfos [idx] = utf_new_int(classbuf_pos+1, length);
 				/* skip bytes of the string */
 				skip_nbytes(length);
 				idx++;
@@ -1585,7 +1585,7 @@ static void class_loadcpool(classinfo *c)
 
 		cptags  [forward_classes -> thisindex] = CONSTANT_Class;
 		/* retrieve class from class-table */
-		cpinfos [forward_classes -> thisindex] = class_new (name);
+		cpinfos [forward_classes -> thisindex] = class_new_int (name);
 
 		forward_classes = forward_classes -> next;
 		
@@ -2049,14 +2049,14 @@ void class_new_array(classinfo *c)
 	switch (c->name->text[1]) {
 	  case '[':
 		  /* c is an array of arrays. We have to create the component class. */
-		  comp = class_new(utf_new(c->name->text + 1,namelen - 1));
+		  comp = class_new_int(utf_new_int(c->name->text + 1,namelen - 1));
 		  break;
 
 	  case 'L':
 		  /* c is an array of objects. */
 		  if (namelen < 4 || c->name->text[namelen - 1] != ';')
 			  panic("Invalid array class name");
-		  comp = class_new(utf_new(c->name->text + 2,namelen - 3));
+		  comp = class_new_int(utf_new_int(c->name->text + 2,namelen - 3));
 		  break;
 	}
 
@@ -2118,13 +2118,13 @@ static arraydescriptor *class_link_array(classinfo *c)
 	switch (c->name->text[1]) {
 	  case '[':
 		  /* c is an array of arrays. */
-		  comp = class_get(utf_new(c->name->text + 1,namelen - 1));
+		  comp = class_get(utf_new_int(c->name->text + 1,namelen - 1));
 		  if (!comp) panic("Could not find component array class.");
 		  break;
 
 	  case 'L':
 		  /* c is an array of objects. */
-		  comp = class_get(utf_new(c->name->text + 2,namelen - 3));
+		  comp = class_get(utf_new_int(c->name->text + 2,namelen - 3));
 		  if (!comp) panic("Could not find component class.");
 		  break;
 	}
@@ -3503,13 +3503,17 @@ classinfo *loader_load(utf *topname)
 	s8 stoptime = 0;
 	classinfo *notlinkable;
 
-	/* avoid recursive calls */
-	if (loader_load_running)
-		return class_new(topname);
-
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	compiler_lock();
+	tables_lock();
 #endif
+
+	/* avoid recursive calls */
+	if (loader_load_running) {
+		tables_unlock();
+	    compiler_unlock();
+		return class_new_int(topname);
+	}
 
 	loader_load_running++;
 	
@@ -3520,7 +3524,7 @@ classinfo *loader_load(utf *topname)
 	if (getloadingtime)
 		starttime = getcputime();
 
-	top = class_new(topname);
+	top = class_new_int(topname);
 
 	/* load classes */
 	while ((c = list_first(&unloadedclasses))) {
@@ -3604,6 +3608,7 @@ classinfo *loader_load(utf *topname)
 #endif
 	
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	tables_unlock();
 	compiler_unlock();
 #endif
 
@@ -3654,7 +3659,7 @@ void create_primitive_classes()
 
 	for (i=0;i<PRIMITIVETYPE_COUNT;i++) {
 		/* create primitive class */
-		classinfo *c = class_new ( utf_new_char(primitivetype_table[i].name) );
+		classinfo *c = class_new_int ( utf_new_char(primitivetype_table[i].name) );
                 c -> classUsed = NOTUSED; /* not used initially CO-RT */		
 		c -> impldBy = NULL;
 		
@@ -3670,13 +3675,13 @@ void create_primitive_classes()
 
 		/* create class for wrapping the primitive type */
 		primitivetype_table[i].class_wrap =
-	        	class_new( utf_new_char(primitivetype_table[i].wrapname) );
+	        	class_new_int( utf_new_char(primitivetype_table[i].wrapname) );
                 primitivetype_table[i].class_wrap -> classUsed = NOTUSED; /* not used initially CO-RT */
 		primitivetype_table[i].class_wrap  -> impldBy = NULL;
 
 		/* create the primitive array class */
 		if (primitivetype_table[i].arrayname) {
-			c = class_new( utf_new_char(primitivetype_table[i].arrayname) );
+			c = class_new_int( utf_new_char(primitivetype_table[i].arrayname) );
 			primitivetype_table[i].arrayclass = c;
 			c->loaded=true;
 			if (!c->linked) class_link(c);
@@ -3864,7 +3869,7 @@ static void create_pseudo_classes()
 {
     /* pseudo class for Arraystubs (extends java.lang.Object) */
     
-    pseudo_class_Arraystub = class_new(utf_new_char("$ARRAYSTUB$"));
+    pseudo_class_Arraystub = class_new_int(utf_new_char("$ARRAYSTUB$"));
     list_remove(&unloadedclasses, pseudo_class_Arraystub);
 
     pseudo_class_Arraystub->super = class_java_lang_Object;
@@ -3880,7 +3885,7 @@ static void create_pseudo_classes()
 
     /* pseudo class representing the null type */
     
-    pseudo_class_Null = class_new(utf_new_char("$NULL$"));
+    pseudo_class_Null = class_new_int(utf_new_char("$NULL$"));
     list_remove(&unloadedclasses, pseudo_class_Null);
 
     pseudo_class_Null->super = class_java_lang_Object;
@@ -3890,7 +3895,7 @@ static void create_pseudo_classes()
 
     /* pseudo class representing new uninitialized objects */
     
-    pseudo_class_New = class_new(utf_new_char("$NEW$"));
+    pseudo_class_New = class_new_int(utf_new_char("$NEW$"));
     list_remove(&unloadedclasses, pseudo_class_New);
 
     pseudo_class_New->super = class_java_lang_Object;
@@ -3941,10 +3946,10 @@ void loader_init(u1 *stackbottom)
 	/* These classes have to be created now because the classinfo
 	 * pointers are used in the loading code.
 	 */
-	class_java_lang_Object = class_new(utf_new_char("java/lang/Object"));
-	class_java_lang_String = class_new(utf_new_char("java/lang/String"));
-	class_java_lang_Cloneable = class_new(utf_new_char("java/lang/Cloneable"));
-	class_java_io_Serializable = class_new(utf_new_char("java/io/Serializable"));
+	class_java_lang_Object = class_new_int(utf_new_char("java/lang/Object"));
+	class_java_lang_String = class_new_int(utf_new_char("java/lang/String"));
+	class_java_lang_Cloneable = class_new_int(utf_new_char("java/lang/Cloneable"));
+	class_java_io_Serializable = class_new_int(utf_new_char("java/io/Serializable"));
 
 	if (verbose) log_text("loader_init: java/lang/Object");
 	/* load the classes which were created above */

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tables.h 935 2004-03-05 23:49:12Z twisti $
+   $Id: tables.h 1011 2004-04-06 20:27:41Z stefan $
 
 */
 
@@ -70,6 +70,8 @@ void log_plain_utf(utf *u);
 
 /* create new utf-symbol */
 utf *utf_new(char *text, u2 length);
+/* without locking (caller already holding lock*/
+utf *utf_new_int(char *text, u2 length);
 utf *utf_new_char(char *text);
 utf *utf_new_char_classname(char *text);
 
@@ -84,6 +86,8 @@ u4 utf_strlen(utf *u);
 
 /* search for class and create it if not found */
 classinfo *class_new(utf *u);
+/* without locking (caller already holding lock*/
+classinfo *class_new_int(utf *u);
 
 /* return an array class with the given component class */
 classinfo *class_array_of(classinfo *component);
@@ -105,6 +109,11 @@ void init_hashtable(hashtable *hash, u4 size);
 
 /* search for class in classtable */
 classinfo *class_get(utf *u);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+void tables_lock();
+void tables_unlock();
+#endif
 
 #endif /* _TABLES_H */
 
