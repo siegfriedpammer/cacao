@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: global.h 1128 2004-06-05 12:22:26Z twisti $
 
 */
 
@@ -39,11 +39,11 @@
 #ifndef _GLOBAL_H
 #define _GLOBAL_H
 
-#define _GNU_SOURCE
 
 #include "config.h"
 #include "types.h"
 #include "toolbox/list.h"
+
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 #include <pthread.h>
@@ -492,7 +492,7 @@ typedef struct primitivetypeinfo {
 
 /* field, method and class structures *****************************************/
 
-#include "sets.h"
+#include "jit/sets.h"
 typedef	struct xtafldinfo {
 	bool       fieldChecked; 		
 	classinfo *fldClassType;
