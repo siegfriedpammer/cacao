@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 769 2003-12-13 23:04:49Z twisti $
+   $Id: VMClass.c 827 2004-01-03 15:02:53Z twisti $
 
 */
 
@@ -215,14 +215,14 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
  * Method:    getDeclaredClasses
  * Signature: (Z)[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses (JNIEnv *env ,  struct java_lang_VMClass* this , s4 publicOnly)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, struct java_lang_VMClass* this , s4 publicOnly)
 {
 #warning fix the public only case
 	classinfo *c = (classinfo *) (this->vmData);
 	int pos = 0;                /* current declared class */
 	int declaredclasscount = 0; /* number of declared classes */
 	java_objectarray *result;   /* array of declared classes */
-	int notPublicOnly=!publicOnly;
+	int notPublicOnly = !publicOnly;
 	int i;
 
 	if (!this)
@@ -232,7 +232,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses (J
 		return NULL;
 
 	/*printf("PublicOnly: %d\n",publicOnly);*/
-	if (!Java_java_lang_VMClass_isPrimitive(env, c) && (c->name->text[0]!='[')) {
+	if (!Java_java_lang_VMClass_isPrimitive(env, (java_lang_VMClass *) c) && (c->name->text[0] != '[')) {
 		/* determine number of declared classes */
 		for (i = 0; i < c->innerclasscount; i++) {
 			if ( (c->innerclass[i].outer_class == c) && (notPublicOnly || (c->innerclass[i].flags & ACC_PUBLIC)))
@@ -247,13 +247,13 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses (J
 
 	for (i = 0; i < c->innerclasscount; i++) {
     
-		classinfo *inner =  c->innerclass[i].inner_class;
-		classinfo *outer =  c->innerclass[i].outer_class;
+		classinfo *inner = c->innerclass[i].inner_class;
+		classinfo *outer = c->innerclass[i].outer_class;
 
       
-		if ( (outer == c) && (notPublicOnly || (inner->flags & ACC_PUBLIC))) {
+		if ((outer == c) && (notPublicOnly || (inner->flags & ACC_PUBLIC))) {
 			/* outer class is this class, store innerclass in array */
-			use_class_as_object (inner);
+			use_class_as_object(inner);
 			result->data[pos++] = (java_objectheader *) inner;
 		}
 	}
@@ -587,52 +587,55 @@ JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getBeautifiedN
     u4 dimCnt;
     classinfo *c = (classinfo*) (par1);
 
-    char *utf__ptr  =  c->name->text;      /* current position in utf-text */
-    char **utf_ptr  =  &utf__ptr;
-    char *desc_end =  utf_end(c->name);   /* points behind utf string     */
+    char *utf__ptr = c->name->text;      /* current position in utf-text */
+    char **utf_ptr = &utf__ptr;
+    char *desc_end = utf_end(c->name);   /* points behind utf string     */
     java_lang_String *s;
-    char *str;
+    char *str = NULL;
     s4   len;
     s4   i;
+
     if (runverbose) log_text("Java_java_lang_VMClass_getName");
 
-    dimCnt=0;
-    while ( *utf_ptr != desc_end ) {
-		if (utf_nextu2(utf_ptr)=='[') dimCnt++;
+    dimCnt = 0;
+    while (*utf_ptr != desc_end) {
+		if (utf_nextu2(utf_ptr) == '[') dimCnt++;
 		else break;
     }
-    utf__ptr=(*utf_ptr)-1;
+    utf__ptr = (*utf_ptr) - 1;
 
-    len=0;
-    if (((*utf_ptr)+1)==desc_end) {
-	    for (i=0;i<PRIMITIVETYPE_COUNT;i++) {
-			if (primitivetype_table[i].typesig==(*utf__ptr)) {
-				len=dimCnt*2+strlen(primitivetype_table[i].name);
-				str=MNEW(char,len+1);
-				strcpy(str,primitivetype_table[i].name);
+    len = 0;
+    if (((*utf_ptr) + 1) == desc_end) {
+	    for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
+			if (primitivetype_table[i].typesig == (*utf__ptr)) {
+				len = dimCnt * 2 + strlen(primitivetype_table[i].name);
+				str = MNEW(char, len + 1);
+				strcpy(str, primitivetype_table[i].name);
 				break;
 			}
 	    }
     }
-    if (len==0) {
-		len=dimCnt+strlen(c->name->text)-2;
-		str=MNEW(char,len+1);
-		strncpy(str,++utf__ptr,len-2*dimCnt);	   
+
+    if (len == 0) {
+		len = dimCnt + strlen(c->name->text) - 2;
+		str = MNEW(char, len + 1);
+		strncpy(str, ++utf__ptr, len - 2 * dimCnt);	   
     }	
 
-    dimCnt=len-2*dimCnt;
-    str[len]=0;
-    for (i=len-1;i>=dimCnt;i=i-2) {
-		str[i]=']';
-		str[i-1]='[';
+    dimCnt = len - 2 * dimCnt;
+    str[len] = 0;
+    for (i = len - 1; i >= dimCnt; i = i - 2) {
+		str[i] = ']';
+		str[i - 1] = '[';
     }
-    s=(java_lang_String*)javastring_new(utf_new_char(str));
-    MFREE(str,char,len+1);
+
+    s = javastring_new(utf_new_char(str));
+    MFREE(str, char, len + 1);
 
     if (!s) return NULL;
 
 	/* return string where '/' is replaced by '.' */
-	for (i=0; i<s->value->header.size; i++) {
+	for (i = 0; i < s->value->header.size; i++) {
 		if (s->value->data[i] == '/') s->value->data[i] = '.';
 	}
 	
@@ -741,13 +744,13 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface ( JNIEnv *env ,  struct 
  * Method:    isPrimitive
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive ( JNIEnv *env ,  struct java_lang_VMClass* this)
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, struct java_lang_VMClass* this)
 {
 	int i;
 	classinfo *c = (classinfo *) this->vmData;
 
 	/* search table of primitive classes */
-	for (i=0;i<PRIMITIVETYPE_COUNT;i++)
+	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
 		if (primitivetype_table[i].class_primitive == c) return true;
 
 	return false;
