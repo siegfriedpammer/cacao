@@ -26,12 +26,15 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 1374 2004-08-01 21:58:42Z stefan $
+   $Id: boehm.c 1378 2004-08-01 22:34:16Z stefan $
 
 */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS) && defined(__LINUX__)
 #define GC_LINUX_THREADS
+#endif
+#if defined(USE_THREADS) && defined(NATIVE_THREADS) && defined(__IRIX__)
+#define GC_IRIX_THREADS
 #endif
 
 #include "options.h"
