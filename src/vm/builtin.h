@@ -45,9 +45,9 @@ java_objectheader *builtin_new (classinfo *c);
 java_objectarray *builtin_anewarray (s4 size, classinfo *elementtype);
 #ifdef __I386__
 void asm_builtin_anewarray (s4 size, classinfo *elementtype);
+void asm_builtin_newarray_array (s4 size, constant_arraydescriptor *elementdesc);
 #endif
-java_arrayarray *builtin_newarray_array 
-        (s4 size, constant_arraydescriptor *elementdesc);
+java_arrayarray *builtin_newarray_array (s4 size, constant_arraydescriptor *elementdesc);
 java_booleanarray *builtin_newarray_boolean (s4 size);
 java_chararray *builtin_newarray_char (s4 size);
 java_floatarray *builtin_newarray_float (s4 size);

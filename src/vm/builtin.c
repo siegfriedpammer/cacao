@@ -40,15 +40,15 @@ builtin_descriptor builtin_desc[] = {
 	{(functionptr) asm_builtin_checkarraycast, "checkarraycast"},
 	{(functionptr) asm_builtin_aastore,		   "aastore"},
 	{(functionptr) builtin_new,				   "new"},
+	{(functionptr) builtin_anewarray,          "anewarray"},
+	{(functionptr) builtin_newarray_array,	   "newarray_array"},
 #ifdef __I386__
 	/*
-	 * anewarray has 2 parameters (needs stack manipulation)
+	 * have 2 parameters (needs stack manipulation)
 	 */
 	{(functionptr) asm_builtin_anewarray,      "anewarray"},
-#else
-	{(functionptr) builtin_anewarray,          "anewarray"},
+	{(functionptr) asm_builtin_newarray_array, "newarray_array"},
 #endif
-	{(functionptr) builtin_newarray_array,	   "newarray_array"},
 	{(functionptr) builtin_newarray_boolean,   "newarray_boolean"},
 	{(functionptr) builtin_newarray_char,	   "newarray_char"},
 	{(functionptr) builtin_newarray_float,	   "newarray_float"},
