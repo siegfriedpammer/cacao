@@ -14,7 +14,7 @@
 #ifndef __locks_h
 #define __locks_h
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 
 #include "global.h"
 

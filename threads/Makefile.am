@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 662 2003-11-21 18:06:25Z jowenn $
+# $Id: Makefile.am 990 2004-03-29 11:03:56Z stefan $
 
 
 noinst_LIBRARIES = @LIBTHREAD@
@@ -11,6 +11,8 @@ libthreads_a_SOURCES = \
 	locks.h \
 	thread.c \
 	thread.h \
+	nativethread.c \
+	nativethread.h \
 	threadio.c \
 	threadio.h
 

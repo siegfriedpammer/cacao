@@ -11,8 +11,10 @@
  * Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
  */
 
-
 #include "global.h"
+
+#if !defined(NATIVE_THREADS)
+
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -21,6 +23,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <time.h>
+#include <errno.h>
 
 #include "config.h"
 #include "thread.h"
@@ -33,80 +37,6 @@
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
 #include "toolbox/avl.h"
-
-#if defined(NATIVE_THREADS)
-
-static struct avl_table *criticaltree;
-
-static int criticalcompare(const void *pa, const void *pb, void *param)
-{
-	const threadcritnode *na = pa;
-	const threadcritnode *nb = pb;
-
-	if (na->mcodebegin < nb->mcodebegin)
-		return -1;
-	if (na->mcodebegin > nb->mcodebegin)
-		return 1;
-	return 0;
-}
-
-static const threadcritnode *findcritical(u1 *mcodeptr)
-{
-    struct avl_node *n = criticaltree->avl_root;
-    const threadcritnode *m = NULL;
-    if (!n)
-        return NULL;
-    for (;;)
-    {
-        const threadcritnode *d = n->avl_data;
-        if (mcodeptr == d->mcodebegin)
-            return d;
-        if (mcodeptr < d->mcodebegin) {
-            if (n->avl_link[0])
-                n = n->avl_link[0];
-            else
-                return m;
-        } else {
-            if (n->avl_link[1]) {
-                m = n->avl_data;
-                n = n->avl_link[1];
-            } else
-                return n->avl_data;
-        }
-    }
-}
-
-void thread_registercritical(threadcritnode *n)
-{
-	avl_insert(criticaltree, n);
-}
-
-static int thread_checkcritical(u1 *mcodeptr)
-{
-	const threadcritnode *n = findcritical(mcodeptr);
-	if (!n)
-		return 0;
-	return (mcodeptr < n->mcodeend);
-}
-
-pthread_mutex_t cast_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t compiler_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-
-int cast_counter;
-
-#ifndef HAVE___THREAD
-pthread_key_t tkey_threadinfo;
-#endif
-
-void cast_lock()
-{
-}
-
-void cast_unlock()
-{
-}
-
-#else // !defined(NATIVE_THREADS)
 
 static classinfo *class_java_lang_ThreadDeath;
 
@@ -192,15 +122,6 @@ freeThreadStack (thread *tid)
 void
 initThreads(u1 *stackbottom)
 {
-#if defined(NATIVE_THREADS)
-#if !defined(HAVE___THREAD)
-	pthread_key_create(&tkey_threadinfo, NULL);
-#endif
-
-    criticaltree = avl_create(criticalcompare, NULL, NULL);
-
-#endif
-
 	thread *the_main_thread;
     int i;
 	char mainname[] = "main";
@@ -851,4 +772,13 @@ reschedule(void)
     }
 }
 
+void lock_stopworld(int dummy)
+{
+}
+
+void unlock_stopworld()
+{
+}
+
 #endif
+

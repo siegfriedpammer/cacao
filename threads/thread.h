@@ -19,9 +19,6 @@
 #ifdef USE_THREADS
 
 #include "global.h"
-#include "builtin.h"
-
-#define MAXTHREADS              256          /* schani */
 
 #define	THREADCLASS         "java/lang/Thread"
 #define	THREADGROUPCLASS    "java/lang/ThreadGroup"
@@ -41,6 +38,10 @@
 #define THREAD_FLAGS_USER_SUSPEND       2  /* Flag explicit suspend() call */
 #define	THREAD_FLAGS_KILLED		4
 
+#if !defined(NATIVE_THREADS)
+
+#define MAXTHREADS              256          /* schani */
+
 #if 1
 #define DBG(s)
 #define SDBG(s)
@@ -48,8 +49,6 @@
 #define DBG(s)                 s
 #define SDBG(s)                s
 #endif
-
-#if !defined(NATIVE_THREADS)
 
 struct _thread;
 
@@ -173,22 +172,8 @@ extern thread *threadQhead[MAX_THREAD_PRIO + 1];
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);
 u1*  asm_initialize_thread_stack(void *func, u1 *stack);
 
-typedef struct {
-	java_objectheader *_exceptionptr;
-} nativethread;
-
 #else // defined(NATIVE_THREADS)
-
-#if !defined(HAVE___THREAD)
-extern pthread_key_t tkey_threadinfo;
-#endif
-
-typedef struct {
-	u1 *mcodebegin, *mcodeend;
-} threadcritnode;
-
-void thread_registercritical(threadcritnode *);
-
+#include "nativethread.h"
 #endif
 
 #else
