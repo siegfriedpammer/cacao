@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 907 2004-01-29 13:20:05Z carolyn $
+   $Id: loader.c 911 2004-02-04 11:42:41Z carolyn $
 
 */
 
@@ -2690,7 +2690,7 @@ methodinfo *class_fetchmethod(classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
 
-methodinfo *class_findmethod_w(classinfo *c, utf *name, utf *desc)
+methodinfo *class_findmethod_w(classinfo *c, utf *name, utf *desc, char *from)
 {
         methodinfo *mi;
         mi = class_findmethod(c, name, desc);
@@ -2699,7 +2699,21 @@ methodinfo *class_findmethod_w(classinfo *c, utf *name, utf *desc)
                 log_plain("Class: "); if (c) log_plain_utf(c->name); log_nl();
                 log_plain("Method: "); if (name) log_plain_utf(name); log_nl();
                 log_plain("Descriptor: "); if (desc) log_plain_utf(desc); log_nl();
-                log_plain("Method not found");log_nl( );
+
+       		if ( c->flags & ACC_PUBLIC )       log_plain(" PUBLIC ");
+        	if ( c->flags & ACC_PRIVATE )      log_plain(" PRIVATE ");
+        	if ( c->flags & ACC_PROTECTED )    log_plain(" PROTECTED ");
+        	if ( c->flags & ACC_STATIC )       log_plain(" STATIC ");
+        	if ( c->flags & ACC_FINAL )        log_plain(" FINAL ");
+        	if ( c->flags & ACC_SYNCHRONIZED ) log_plain(" SYNCHRONIZED ");
+        	if ( c->flags & ACC_VOLATILE )     log_plain(" VOLATILE ");
+        	if ( c->flags & ACC_TRANSIENT )    log_plain(" TRANSIENT ");
+        	if ( c->flags & ACC_NATIVE )       log_plain(" NATIVE ");
+        	if ( c->flags & ACC_INTERFACE )    log_plain(" INTERFACE ");
+        	if ( c->flags & ACC_ABSTRACT )     log_plain(" ABSTRACT ");
+
+		log_plain(from); 
+                log_plain(" : WARNING: Method not found");log_nl( );
         }
 
         return mi;

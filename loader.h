@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 907 2004-01-29 13:20:05Z carolyn $
+   $Id: loader.h 911 2004-02-04 11:42:41Z carolyn $
 */
 
 
@@ -82,7 +82,7 @@ fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc);
 /* search for a method with a specified name and descriptor */
 methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc);
 methodinfo *class_fetchmethod(classinfo *c, utf *name, utf *desc);
-methodinfo *class_findmethod_w(classinfo *c, utf *name, utf *desc);
+methodinfo *class_findmethod_w(classinfo *c, utf *name, utf *desc, char*);
 methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 
 /* search for a method with specified name and arguments (returntype ignored) */

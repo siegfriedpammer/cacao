@@ -14,8 +14,43 @@
         }
 },
 
+
 },
-1,  {1 }
+1,  {1}
+},
+/*------------------------------------*/
+
+
+{"java/lang/reflect/Constructor",
+{
+{"constructNative" , "([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;",
+        {
+        {"gnu/java/io/decode/Decoder" , "<clinit>",  "()V"},
+        {"gnu/java/io/decode/Decoder8859_1" , "<clinit>",  "()V"},
+        {"gnu/java/io/decode/Decoder8859_1" , "<init>",  "(Ljava/io/InputStream;)V"},
+        {"gnu/java/io/encode/Encoder" , "<clinit>",  "()V"},
+        {"gnu/java/io/encode/Encoder8859_1" , "<clinit>",  "()V"},
+        {"gnu/java/io/encode/Encoder8859_1" , "<init>",  "(Ljava/io/OutputStream;)V"},
+        {"gnu/java/net/protocol/file/Handler" , "<init>",  "()V"},
+        }
+},
+
+},
+1,  {7 }
+},
+/*------------------------------------*/
+
+
+{"java/lang/Thread",
+{
+{"sleep" , "(JI)V",
+        {
+        {"Runner" , "run",  "()V"},
+        }
+},
+
+},
+1,  {1}
 },
 /*------------------------------------*/
 
@@ -39,22 +74,20 @@
 /*------------------------------------*/
 
 
-{"java/lang/reflect/Constructor",
+{"java/lang/VMSystem",
 {
-{"constructNative" , "([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;",
-        {
-        {"gnu/java/io/decode/Decoder" , "<clinit>",  "()V"},
-        {"gnu/java/io/decode/Decoder8859_1" , "<clinit>",  "()V"},
-        {"gnu/java/io/decode/Decoder8859_1" , "<init>",  "(Ljava/io/InputStream;)V"},
-        {"gnu/java/io/encode/Encoder" , "<clinit>",  "()V"},
-        {"gnu/java/io/encode/Encoder8859_1" , "<clinit>",  "()V"},
-        {"gnu/java/io/encode/Encoder8859_1" , "<init>",  "(Ljava/io/OutputStream;)V"},
-        {"gnu/java/net/protocol/file/Handler" , "<init>",  "()V"},
-        }
+{"identityHashCode" , "(Ljava/lang/Object;)I",
+	{
+        {"java/lang/Class" , "getConstructor",  "([Ljava/lang/Class;)Ljava/lang/reflect/Constructor;"},
+        {"java/lang/Class" , "getDeclaredConstructors",  "(Z)[Ljava/lang/reflect/Constructor;"},
+        {"java/lang/reflect/Constructor" , "<init>",  "()V"},
+	/* really getDeclaredConstructors calls VMClass.getDeclaredConstructors 	*/ 
+	/* 	which is not NATIVE & has no constructor to use to flag class as used 	*/
+	}
 },
 
 },
-1,  {7 }
+1,  {3}
 },
 /*------------------------------------*/
 

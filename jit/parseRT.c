@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 907 2004-01-29 13:20:05Z carolyn $
+   $Id: parseRT.c 911 2004-02-04 11:42:41Z carolyn $
 
 Changes:
 opcode put into functions
@@ -36,8 +36,6 @@ changed class_findmethod class_fetchmethod
 
 
 #include "parseRT.h"
-#include <string.h>
-#include  <stdio.h>
 
  
 /*------------ global variables -----------------------------------------*/
@@ -45,8 +43,10 @@ changed class_findmethod class_fetchmethod
 
 #include "parseRTflags.h"
 
-int callgraphAddedBy[MAXCALLGRAPH];
 
+bool NATIVE = false;  // Dez version chasing Native problems
+
+int callgraphAddedBy[MAXCALLGRAPH];   // add comment
 
 int methRT = 0;
 int methRTlast = -1;
@@ -64,11 +64,13 @@ methodinfo **XTAcallgraph;
 static bool nativecallcompdone=0 ;
 
 static bool firstCall= true;
+static bool parse1 = true;
 static bool AfterMain = false;
 static FILE *rtMissed;   /* Methods missed during RTA parse of Main  */
 /*   so easier to build dynmanic calls file */
 static FILE *appldynm;  /* Methods dynamically loaded by application */
 
+static utf *utf_OBJECT;   /*  utf_new_char("Object"); */
 static utf *utf_MAIN;   /*  utf_new_char("main"); */
 static utf *INIT    ;   /*  utf_new_char("<init>"); */
 static utf *CLINIT  ;   /*  utf_new_char("<clinit>"); */
@@ -104,7 +106,7 @@ bool rtaSubUsed(classinfo *class, methodinfo *meth) {
 
 	for (subs=class->sub; subs != NULL; subs = subs->nextsub) {
 		if (subs->classUsed == USED) {
-			if (class_findmethod_w(class, meth->name, meth->descriptor) == NULL)
+			if (class_findmethod_w(class, meth->name, meth->descriptor,"rtaSubUsed") == NULL)
 				return false;
 			else 	
 				return true;
@@ -212,7 +214,7 @@ void rtaMarkSubs(classinfo *class, methodinfo *topmethod) {
 /*   with the same method name                                                   */
 /*                                                                               */
 /*-------------------------------------------------------------------------------*/
-void addMarkedMethods(classinfo *ci) {
+void rtaAddMarkedMethods(classinfo *ci) {
 	int ii,jj,mm;
 
 	/* add marked methods to callgraph */ 
@@ -225,7 +227,8 @@ void addMarkedMethods(classinfo *ci) {
 			ADDTOCALLGRAPH(mi)  
 			}
 		else {
-	
+// from Dez                         if (NATIVE == true) { printf("NOT MARKED: "); method_display(mi);}
+
 			for (jj=0; jj < ci -> interfacescount; jj++) {
 				classinfo *ici = ci -> interfaces [jj];
 				/*  use resolve method....!!!! */
@@ -264,8 +267,8 @@ xtainfo *xtainfoInit(methodinfo *m)
 	m->xta->calls         = NULL;
 	m->xta->calledBy      = NULL;
 
-	m->xta->marked        = NULL;
-	/*m ->xta->markedBy     = NULL */
+	m->xta->marked        = NULL; /* comment out*/
+	m ->xta->markedBy     = NULL; 
 	m->xta->fldsUsed      = NULL;
 	/*m ->xta->interfaceCalls    = NULL*/
 	m->xta->chgdSinceLastParse = false;
@@ -454,8 +457,13 @@ void xtaAddCallEdges(methodinfo *mi, s4 monoPoly) {
 	if (mi->xta->XTAmethodUsed  != USED) {  /* if static method not in callgraph */
 		mi->xta->XTAmethodUsed = USED;
 		if (!(mi->flags & ACC_ABSTRACT)) { 
-			XTAcallgraph[++methXTAlast] = mi;
-						XTAPRINTcallgraph2 
+			if (mi->methodUsed != USED) {
+				XTAcallgraph[++methXTAlast] = mi;
+	                        mi->methodUsed = USED;
+                                        /*RTprint*/ if (pClassHeir >= 1) {
+                                                XTAPRINTcallgraph2
+                                                }
+                                }
 			}
 
 		}
@@ -485,10 +493,10 @@ bool xtaSubUsed(classinfo *class, methodinfo *meth, classSetNode *subtypesUsedSe
 	for (subs=class->sub; subs != NULL; subs = subs->nextsub) {
 		/* if class used */
 		if (inSet(subtypesUsedSet,subs)) {
-			if (class_findmethod_w(class, meth->name, meth->descriptor) == NULL) 
+			if (class_findmethod_w(class, meth->name, meth->descriptor, "xtaSubUsed") == NULL) 
 				return false;
 			else 	{
-				if (class_findmethod_w(subs, meth->name, meth->descriptor) == NULL) 
+				if (class_findmethod_w(subs, meth->name, meth->descriptor, "xtaSubUsed") == NULL) 
 					return true;
 				}
 		}
@@ -514,13 +522,12 @@ void xtaMarkMethod(classinfo *class, methodinfo *topmethod, classSetNode *subtyp
 	submeth = class_resolvemethod(class, name, descriptor);
 
 	/***/
-		printf(" def: "); utf_display(submeth->class->name);fflush(stdout);
-		method_display(submeth);
+                printf(" def: "); utf_display(submeth->class->name); printf("\n");fflush(stdout);
 	/****/
 
 	/* Basic checks */
 	if (submeth == NULL)
-        panic("parse XTA: Method not found in class hierarchy");
+	        panic("parse XTA: Method not found in class hierarchy");
 	if (submeth->xta == NULL) 
 		submeth->xta = xtainfoInit(submeth);
 
@@ -532,18 +539,22 @@ void xtaMarkMethod(classinfo *class, methodinfo *topmethod, classSetNode *subtyp
 
         /*--- Method defined in class -----------------------------*/
 		if (inSet(subtypesUsedSet,submeth->class)) {
-printf("in set submeth->class:"); utf_display(submeth->class->name);
 			xtaAddCallEdges(submeth,POLY);	
 		}
 		else	{
 			if (subtypesUsedSet != NULL) {	
 				if (xtaSubUsed (class,submeth,subtypesUsedSet)) {
-printf("xtaSubUsed "); 
 					xtaAddCallEdges(submeth,POLY);
+					return; //Dez
 				}
-			}
-			else	{
-				rt_method->xta->marked = add2MethSet(rt_method->xta->marked, submeth);
+                        submeth->xta->markedBy = add2MethSet(submeth->xta->markedBy,rt_method);
+                                /****
+                                        printf("\t(defd) Added to MarkBy Set\n"); fflush(stdout);
+                                        utf_display(submeth->class->name); printf("."); fflush(stdout);
+                                        method_display(submeth);
+                                        printMethodSet(submeth->xta->markedBy);
+                                ****/
+
 			}
 		}
 	}
@@ -551,8 +562,14 @@ printf("xtaSubUsed ");
         /*--- Method NOT defined in class -----------------------------*/
 		if (!(inSet(subtypesUsedSet,submeth->class) )){  /* class with method def     is not used */
 			if (!(inSet(subtypesUsedSet,class) )) { /* class currently resolving is not used */ 
-				rt_method->xta->marked = add2MethSet(rt_method->xta->marked, submeth);
-				/*printf("Added to marked Set: "); fflush(stdout);printMethodSet(rt_method->xta->marked);*/
+                                submeth->xta->markedBy = add2MethSet(submeth->xta->markedBy,rt_method);
+                                submeth->xta->markedBy = add2MethSet(submeth->xta->markedBy,rt_method);
+                                /****
+                                        printf("\t(^^defd) Added to MarkBy Set\n"); fflush(stdout);
+                                        utf_display(submeth->class->name); printf("."); fflush(stdout);
+                                        method_display(submeth);
+                                        printMethodSet(submeth->xta->markedBy);
+                                ****/
 			}
 		}
 		if ( (inSet(subtypesUsedSet,submeth->class))  /* class with method def     is used */
@@ -580,10 +597,57 @@ void xtaMarkSubs(classinfo *class, methodinfo *topmethod, classSetNode *subtypes
 }
 
 /*-------------------------------------------------------------------------------*/
+/* Add Marked methods for input class ci                                         */
+/* Add methods with the same name and descriptor as implemented interfaces       */
+/*   with the same method name                                                   */
+/*                                                                               */
+/*-------------------------------------------------------------------------------*/
+void xtaAddMarkedMethods(classinfo *ci) {
+        int ii,jj,mm;
+
+        /* add marked methods to callgraph */
+        for (ii=0; ii<ci->methodscount; ii++) {
+                methodinfo *mi = &(ci->methods[ii]);
+          if (mi->xta != NULL) {
+                if (mi->xta->markedBy != NULL) {
+                        methSetNode *mcnode;
+                        for (mcnode = mi->xta->markedBy->head; mcnode  != NULL; mcnode  = mcnode ->nextmethRef) {
+                                methodinfo *mc = mcnode->methRef;
+                                if (pWhenMarked >= 1) {
+                                        printf("ADDED a method that was MARKED\n");
+                                        }
+                                xtaAddCallEdges(mi,POLY);
+                                }
+                        }
+                {
+                        for (jj=0; jj < ci -> interfacescount; jj++) {
+                                classinfo *ici = ci -> interfaces [jj];
+                                /*  use resolve method....!!!! */
+                                if (ici -> classUsed != NOTUSED) {
+                                        for (mm=0; mm< ici->methodscount; mm++) {
+                                                methodinfo *imi = &(ici->methods[mm]);
+                                                if (imi->xta != NULL) {
+                                                if      ((imi->xta->XTAmethodUsed == USED)
+                                                           &&    ( (imi->name == mi->name)
+                                                           &&      (imi->descriptor == mi->descriptor))) {
+                                                        if (pWhenMarked >= 1)
+                                                                printf("ADDED a method that was used by an interface\n");
+                                                        xtaAddCallEdges(mi,POLY);
+                                                        }
+                                                        }
+                                                }
+                                        }
+                                }
+                        }
+                  }
+                }
+}
+
+/*-------------------------------------------------------------------------------*/
 /* Both RTA and XTA */
 /*-------------------------------------------------------------------------------*/
 
-int addClassInit(classinfo *ci) {
+int addClassInit(classinfo *ci, bool clinits, bool finalizes, bool addmark) {
 	/* CHANGE to a kind of table look-up for a list of class/methods (currently 3)
 	 */
 
@@ -594,80 +658,79 @@ int addClassInit(classinfo *ci) {
 	int m, m1=-1, m2=-1, mf=-1;
 	methodinfo *mi;
 
-	for  (m=0; m < ci->methodscount; m++) {
-		/*<clnit> class init method */
-		if (ci->methods[m].name == CLINIT) {
-			m1=m;
-		}
-		/* Special case: System class has an extra initializer method */
-		if 	  ((utf_java_lang_system == ci->name) 
-			   && (utf_initializeSystemClass == ci->methods[m].name)) {
-			m2=m;  
-        }
-
-		/* Finalize methods */
-		if    ((ci->methods[m].name == FINALIZE) 
-			   && (ci->name != utf_java_lang_Object)) {
-			mf=m;  
-        }
-
-    }
-
-	if (m1 >= 0) { /* No <clinit>  available - ignore */  
+	if (clinits) { /* No <clinit>  available - ignore */  
 
 		/* Get clinit methodinfo ptr */
-		mi = class_fetchmethod (ci,ci->methods[m1].name , NULL); 
-
-		/*--- RTA ---*/
-		if ( mi->methodUsed != USED) {
-			mi->class->classUsed = PARTUSED;  
-			ADDTOCALLGRAPH(mi)  
+		if ((mi = class_resolvemethod(ci,CLINIT, EMPTY_DESC)) !=NULL) {
+			if (mi->class != ci) {
+				printf("WARNING:::::<clinit> method not found in class requested: ");
+				utf_display(ci->name); printf(" found in:"); utf_display(mi->class->name);
+				printf("\n");
+				}
+			/*--- RTA ---*/
+			if ( mi->methodUsed != USED) {
+				mi->class->classUsed = PARTUSED;  
+				ADDTOCALLGRAPH(mi)  
 				}
 
-		/*--- XTA ---*/
-		if ((XTAOPTbypass) || (opt_xta)) {
-			xtaAddCallEdges(mi,MONO); 
+			/*--- XTA ---*/
+			if ((XTAOPTbypass) || (opt_xta)) {
+				xtaAddCallEdges(mi,MONO); 
+				}
+			}
+		else	{
+			printf("class=");utf_display(ci->name);
+			printf(" super="); 
+			if (ci->super != NULL)
+				utf_display(ci->super->name);
+			else
+				printf("NULL");
+			if ( (ci->super->name != utf_OBJECT) && (ci->name != utf_OBJECT)  )
+				panic("<clinit> method not found");
+			}
 		}
 
-	}
-
-	if (mf >= 0) {   
+	if (finalizes) {   
 
 		/* Get finalize methodinfo ptr */
-		mi = class_fetchmethod (ci,ci->methods[mf].name , NULL); 
-
-		/*--- RTA ---*/
-		if ( mi->methodUsed != USED) {
-			mi->class->classUsed = PARTUSED;  
-			ADDTOCALLGRAPH(mi)  
+		if ( (mi = class_findmethod (ci,FINALIZE, EMPTY_DESC)) != NULL) { 
+			/*--- RTA ---*/
+			if ( mi->methodUsed != USED) {
+				mi->class->classUsed = PARTUSED;  
+				ADDTOCALLGRAPH(mi)  
 				}
 
-		/*--- XTA ---*/
-		if ((XTAOPTbypass) || (opt_xta)) {
-			xtaAddCallEdges(mi,MONO); 
+			/*--- XTA ---*/
+			if ((XTAOPTbypass) || (opt_xta)) {
+				xtaAddCallEdges(mi,MONO); 
+				}
+			}
 		}
-	}
 
 	/*Special Case for System class init:  
 	add java/lang/initializeSystemClass to callgraph */
-	if (m2 >= 0) {
+	if (class->name == utf_initializeSystemClass) {
 		/* Get clinit methodinfo ptr */
-		mi = class_fetchmethod (ci,ci->methods[m2].name , NULL); 
-
-		/*--- RTA ---*/
-		if ( mi->methodUsed != USED) {
-			mi->class->classUsed = PARTUSED;
-			ADDTOCALLGRAPH(mi)  
+		if ((mi = class_findmethod (ci,utf_initializeSystemClass, EMPTY_DESC)) != NULL) {
+			/*--- RTA ---*/
+			if ( mi->methodUsed != USED) {
+				mi->class->classUsed = PARTUSED;
+				ADDTOCALLGRAPH(mi)  
 				}
 
-		/*--- XTA ---*/
-		if ((XTAOPTbypass) || (opt_xta)) {
-			xtaAddCallEdges(mi,MONO);
+			/*--- XTA ---*/
+			if ((XTAOPTbypass) || (opt_xta)) {
+				xtaAddCallEdges(mi,MONO);
+				}
+			}
 		}
-	}
-
-	/* add marked methods to callgraph */ 
-	addMarkedMethods(ci); 
+	if (addmark) {
+		/* add marked methods to callgraph */ 
+	       	if ((XTAOPTbypass) || (opt_xta))
+        	        xtaAddMarkedMethods(ci);
+        	else
+                	rtaAddMarkedMethods(ci);
+		}
 		
 	return m;
 } 
@@ -752,7 +815,7 @@ void rtaMarkInterfaceSubs(methodinfo *mi) {
 		if (isubs->classUsed != NOTUSED) {
 			methodinfo *submeth;
 						
-			submeth = class_findmethod_w(isubs,mi->name, mi->descriptor); 
+			submeth = class_findmethod(isubs,mi->name, mi->descriptor); 
 			if (submeth != NULL)
 				submeth->monoPoly = POLY; /*  poly even if nosubs */
 			rtaMarkSubs(isubs, mi);  
@@ -815,21 +878,27 @@ printf("==%i==%i\n",ici->methodscount,mm);
 						/* Mark this method used in the (used) implementing class &its subclasses */
 						printf("xMAY ADD methods that was used by an interface\n"); fflush(stdout);
 						}
-printf("calledBy set ="); fflush(stdout);
-printMethodSet(imi->xta->calledBy);
+                                        if (pWhenMarked >= 1) {
+                                                printf("calledBy set ="); fflush(stdout);
+                                                printMethodSet(imi->xta->calledBy);
+                                                }
 				if (imi->xta->calledBy != NULL) { 
 					/* for each calledBy method */
 					for (	mCalledBy = imi->xta->calledBy->head; 
 						mCalledBy != NULL; 
 						mCalledBy = mCalledBy->nextmethRef) {
+						if (pWhenMarked >= 1) {
 								printf("xtaMarkSubs(");
 								utf_display(ci->name); printf("."); fflush(stdout);
 								method_display(imi);
 								printf("mCalledBy method class set BEFORE\n"); fflush(stdout);
 								printSet(mCalledBy->methRef->xta->XTAclassSet->head);
+						}
 						xtaMarkSubs(ci,imi,mCalledBy->methRef->xta->XTAclassSet->head);
+							if (pWhenMarked >= 1) {
 								printf("mCalledBy method class set AFTER \n"); fflush(stdout);
 								printSet(mCalledBy->methRef->xta->XTAclassSet->head);
+							}
 						}
 					}
 				}
@@ -854,7 +923,9 @@ void xtaMarkInterfaceSubs(methodinfo *mi) {
 		}
 
 	/* add interface class to list kept in Object */
-printf("Marking Interface Method: "); fflush(stdout);
+				if (pWhenMarked >= 1) {
+					printf("Marking Interface Method: "); fflush(stdout);
+					}
 	xtaAddCallEdges(mi,POLY);	
 
 	subs =  mi->class->impldBy; 
@@ -878,9 +949,11 @@ printf("Marking Interface Method: "); fflush(stdout);
                     				intersectSubtypesWithSet
                         				(subs->classType, rt_method->xta->XTAclassSet->head);
 
+							if (pWhenMarked >= 1) {
                                    				/*RTAprint*/ printf(" \nXTA subtypesUsedSet: ");
                                                 		/*RTAprint*/ fflush(stdout);
                                                 		/*RTAprint*/ printSet(subtypesUsedSet);
+							}
 		                xtaMarkSubs(subs->classType, mi, subtypesUsedSet);
                 		}
             		}
@@ -888,28 +961,6 @@ printf("Marking Interface Method: "); fflush(stdout);
 		}
 }
 /*-------------------------------------------------------------------------------*/
-void xxxtaMarkInterfaceSubs(methodinfo *mCalled) {
-	classSetNode * Si;
-	
-	/* for every class that implements the interface of the method called */
-	for (Si = mCalled->class->impldBy; Si != NULL; Si = Si->nextClass) {
-		/* add all definitions of this method for this interface */
-		methodinfo *submeth;
-		classSetNode *subtypesUsedSet = NULL;
-
-		submeth = class_findmethod_w(Si->classType, mCalled->name, mCalled->descriptor); 
-		if (submeth == NULL) { /* search up the heir - ignore for now!!! */
-                       submeth = class_resolvemethod(Si->classType, mCalled->name, mCalled->descriptor);
-                        }
-
-		if (rt_method->xta->XTAclassSet != NULL)
-			subtypesUsedSet = intersectSubtypesWithSet(Si->classType, rt_method->xta->XTAclassSet->head);
-				
-				printf(" \nXTA subtypesUsedSet: "); fflush(stdout);
-				printSet(subtypesUsedSet);
-			xtaMarkSubs(Si->classType, submeth, subtypesUsedSet);   
-	}
-}
 
 /*-------------------------------------------------------------------------------*/
 bool xtaAddFldClassTypeInfo(fieldinfo *fi) {
@@ -1167,13 +1218,42 @@ void  xtaMethodCalls_and_sendReturnType()
 }
 
 /*-------------------------------------------------------------------------------*/
+/* -- Processes STATIC  & PRIVATE methods
+
+/* -- called for INVOKESTATIC, INVOKESPECIAL - PRIVATE and
+/*    STATIC / PRIVATE methods used by NATIVE methods
+/*-------------------------------------------------------------------------------*/
+
+// Dez Version but gives too many Missed
+void invokestatic2( methodinfo *mi) {
+
+mi->class->classUsed = PARTUSED;
+/*-- RTA --*/
+addClassInit(mi->class, true, true, true);
+                RTAPRINT04invokestatic1
+
+if (opt_rt) {
+        ADDTOCALLGRAPH(mi)
+        } /* end RTA */
+
+/*-- XTA --*/
+if ((XTAOPTbypass) || (opt_xta)) {
+        mi->class->classUsed = PARTUSED;
+        rt_method->xta->XTAclassSet = add2ClassSet(rt_method->xta->XTAclassSet,mi->class);
+        xtaAddCallEdges(mi,MONO);
+        } /* end XTA */
+}
+
+
+
+//// from just RTA version before Dez changes
 void invokestatic(methodinfo *mi){
 		RTAPRINT04invokestatic1
 if (mi->class->classUsed == NOTUSED) {
 	mi->class->classUsed = USED;
 			RTAPRINT05invokestatic2
 	}
-	addClassInit(mi->class);
+	addClassInit(mi->class,true, true, true);
 
 	if (opt_rt) {
 		ADDTOCALLGRAPH(mi)  
@@ -1186,6 +1266,12 @@ if (mi->class->classUsed == NOTUSED) {
 
 
 /*-------------------------------------------------------------------------------*/
+/* -- Processes <INIT> methods
+
+/* -- called for INVOKESPECIAL - <init> and
+/*    <init> methods used by NATIVE methods
+/*-------------------------------------------------------------------------------*/
+
 void initMethods(methodinfo *mi) {
 
 classinfo  *ci = mi->class;
@@ -1199,8 +1285,9 @@ if (opt_rt) {
 			- mark class as USED and <init> to callgraph */
 
 			/*-- RTA --*/
+//	addClassInit(mi->class,true, true, false);
 			ci->classUsed = USED;
-			addMarkedMethods(ci);  /* add to callgraph marked methods */
+			rtaAddMarkedMethods(ci);  /* add to callgraph marked methods */
 					RTAPRINT06Binvoke_spec_init
 			rtaAddUsedInterfaceMethods(ci); 
 			ADDTOCALLGRAPH(mi)  
@@ -1216,6 +1303,7 @@ if ((XTAOPTbypass) || (opt_xta)) {
 	if ((mi->xta->XTAmethodUsed != USED) || (mi->class->classUsed == PARTUSED)) {
 		ci->classUsed = USED;
 		rt_method->xta->XTAclassSet = add2ClassSet(rt_method->xta->XTAclassSet,ci ); 
+		xtaAddMarkedMethods(ci);  /* add to callgraph marked methods */
 		xtaAddUsedInterfaceMethods(ci); 
 		xtaAddCallEdges(mi,MONO);
 			RTAPRINT06CXTAinvoke_spec_init1
@@ -1224,10 +1312,24 @@ if ((XTAOPTbypass) || (opt_xta)) {
 }
 
 /*-------------------------------------------------------------------------------*/
+/* -- Processes VIRTUAL methods
+
+/* -- called for INVOKEVIRTUAL and 
+/*    virtual methods used by NATIVE methods 
+/*-------------------------------------------------------------------------------*/
+
 void invokevirtual(methodinfo *mi) {
 
 /*--- RTA ---*/
 			RTAPRINT07invoke_spec_virt2
+mi->class->classUsed = USED;  // Should this be later?
+
+if ((mi->flags & ACC_STATIC)  || (mi->flags & ACC_PRIVATE)  || (mi->flags & ACC_FINAL) ) {
+        invokestatic(mi);
+        return;
+        }
+
+
 mi->monoPoly = POLY;
 
 if (opt_rt) { 
@@ -1285,7 +1387,7 @@ if (ci->classUsed != USED) {
 	ci->classUsed = USED;    /* add to heirarchy    */
 	/* Add this class to the implemented by list of the abstract interface */
 	rtaAddUsedInterfaceMethods(ci);
-	addClassInit(ci);
+	addClassInit(ci, true, true, false);
 	} 
 /*--- XTA ---*/
 if ((XTAOPTbypass) || (opt_xta))
@@ -1416,7 +1518,7 @@ static void parseRT()
 
 				/*--- RTA ---*/
                                 /* class with field - marked in addClassinit */
-				addClassInit(fr->class);
+				addClassInit(fr->class, true, true, false);
 
 				/*--- XTA ---*/
 				if   ((XTAOPTbypass) || (opt_xta))
@@ -1443,7 +1545,7 @@ static void parseRT()
 
 				/*--- RTA ---*/
                                	/* class with field - marked in addClassinit */
-				addClassInit(fr->class);
+				addClassInit(fr->class,true, true, true);
 
 				/*--- XTA ---*/
 				if  ((XTAOPTbypass) || (opt_xta) ) 
@@ -1573,12 +1675,13 @@ void   findMarkNativeUsedMeth (utf * c1, utf* m1, utf* d1) {
 	}
 
 	if (class->classUsed == NOTUSED) {
+printf("NATIVE_MARKED CLASS USED "); utf_display(class->name); printf("\n");
 		class->classUsed = USED; /* MARK CLASS USED */
 		/* add marked methods to callgraph */ 
-		addMarkedMethods(class);
+		rtaAddMarkedMethods(class);
 	}
 
-	meth = class_findmethod_w (class, m1, d1);
+	meth = class_findmethod_w (class, m1, d1,"findMarkNativeUsedMeth");
 	if (meth == NULL) {
 		utf_display(class->name);printf(".");utf_display(m1);printf(" ");utf_display(d1);
 		panic("WARNING from parseRT:  Method given is used by Native method call, but NOT FOUND\n");
@@ -1597,7 +1700,7 @@ void   findMarkNativeUsedClass (utf * c) {
 	class->classUsed = USED;
 
 	/* add marked methods to callgraph */
-	addMarkedMethods(class);
+	rtaAddMarkedMethods(class);
 }
 
 
@@ -1715,6 +1818,7 @@ void mainRTAparseInit (methodinfo *m )
 		firstCall=false;
 
 		/* Frequently used utf strings */
+		utf_OBJECT = utf_new_char("java/lang/Object");
 		utf_MAIN  = utf_new_char("main");
 		INIT      = utf_new_char("<init>");
 		CLINIT    = utf_new_char("<clinit>");
@@ -1784,7 +1888,9 @@ void mainRTAparseInit (methodinfo *m )
 void RTparseCGWorklist (methodinfo *m) {  
 printf("IIIIIIIIIIIIIIIIIIIIn RTparseCGWorklist\n"); fflush(stdout);
 	if (m->methodUsed == USED) return;
-	mainRTAparseInit (m);
+	if ((firstCall) || (parse1) || (m->name == utf_MAIN))
+		mainRTAparseInit (m);
+	parse1= false;
 	m->methodUsed = USED;
 
 	/* initialise parameter type descriptor */
@@ -1800,7 +1906,7 @@ printf("IIIIIIIIIIIIIIIIIIIIn RTparseCGWorklist\n"); fflush(stdout);
 			}
 			/* add marked methods to callgraph */
 			RTAPRINT11addedtoCallgraph2
-		addMarkedMethods(ci);
+		rtaAddMarkedMethods(ci);
 		} /* if */
 
 	/*---- RTA call graph worklist -----***/
@@ -1907,6 +2013,7 @@ classinfo *topclass;
 	/*---- java/lang/Object.<clinit> ----*/
  if ((firstCall == false) || (true == false))  
 	{
+	parse1 = true;
 	if (m->methodUsed == USED) return;
 	printf("MMMMMMMMMMMMMMMMMMMMMMMMMMMMissed\n"); fflush(stdout);
 	RTparseCGWorklist (m) ;  
@@ -1922,6 +2029,7 @@ classinfo *topclass;
 	}
  else
 	{
+	parse1 = true;
 	printf("SSSSSSSSSSSSSSSSSSSSSStatic Analysis \n"); fflush(stdout);
 	printf("+++++--1--+++++\t");
 	RTparseCGWorklist (m) ;  
@@ -1936,16 +2044,22 @@ classinfo *topclass;
 	printf("+++++--3--+++++\t");
 	RTparseCGWorklist (mi) ;  
 
+
+        class = class_get(utf_new_char("java/lang/Throwable"));
+	mi = class_fetchmethod(class,clinit_name(),clinit_desc()) ;
+	printf("+++++--4--+++++\t");
+	RTparseCGWorklist (mi) ;  
+
 	printf("mainString=%s=\n",mainString);fflush(stdout);
 	class = loader_load_sysclass(NULL,  utf_new_char(mainString));	
 	mi = class_fetchmethod(	class,
 				utf_new_char("main"),
 				utf_new_char("([Ljava/lang/String;)V")
                                );
-	printf("+++++--4--+++++\t");
+	printf("+++++--5--+++++\t");
 	RTparseCGWorklist (mi) ;  
 
-	printf("+++++--5--+++++\t");
+	printf("+++++--6--+++++\t");
 	getApplicationDynamics();
 
 printf("-+-+-+-+-+-+-+-+-+-+-33"); fflush(stdout);

@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 888 2004-01-19 12:16:11Z edwin $
+   $Id: global.h 911 2004-02-04 11:42:41Z carolyn $
 
 */
 
@@ -526,8 +526,8 @@ typedef struct xtainfo {
 
 	methSet  	*calls;            /* methods this method calls   	        */ 
 	methSet  	*calledBy;         /* methods that call this method         */ 
-	methSet  	*marked;           /* methods that marked by this method    */ 
-	/*methSet         *markedBy*/
+	methSet  	*marked;  //not in Dez         /* methods that marked by this method    */ 
+	methSet         *markedBy;
 	fldSet          *fldsUsed;         /* fields used by this method             */ 
 	/*methSetNode  *interfaceCalls*/   /* methods this method calls as interface */ 
 	bool           chgdSinceLastParse; /* Changed since last parse ?          */
