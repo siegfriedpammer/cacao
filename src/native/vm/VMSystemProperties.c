@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 1867 2005-01-12 13:17:51Z twisti $
+   $Id: VMSystemProperties.c 1870 2005-01-12 13:55:47Z twisti $
 
 */
 
@@ -118,8 +118,13 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	char *locale;
 	char *lang;
 	char *region;
-
 	struct utsname utsnamebuf;
+
+	union {
+		u4 i;
+		u1 c[4];
+	} u;
+
 #if !defined(STATIC_CLASSPATH)
 	char *libpath;
 	s4    libpathlen;
@@ -216,7 +221,10 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	insert_property(m, p, "user.name", user ? user : "null");
 	insert_property(m, p, "user.home", home ? home : "null");
 	insert_property(m, p, "user.dir", cwd ? cwd : "null");
-	insert_property(m, p, "gnu.cpu.endian", "little");
+
+	/* Are we little or big endian? */
+	u.i = 1;
+	insert_property(m, p, "gnu.cpu.endian", u.c[0] ? "little" : "big");
 
 #ifdef USE_GTK
 	/* disable gthread-jni's portable native sync due to yet unresolved 
