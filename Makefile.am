@@ -1,11 +1,11 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 124 1999-01-28 19:49:32Z phil $
+# $Id: Makefile.am 125 1999-01-28 19:50:01Z phil $
 
 MAINTAINERCLEANFILES = Makefile.in configure
 SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc
 
-EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html \
+EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html
 
 CLEANFILES = @SYSDEP_DIR@/asmpart.o \
 			 @SYSDEP_DIR@/asmpart.s \

@@ -10,7 +10,7 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-# $Id: Makefile.in 123 1999-01-28 19:48:49Z phil $
+# $Id: Makefile.in 125 1999-01-28 19:50:01Z phil $
 
 
 SHELL = @SHELL@
@@ -74,10 +74,9 @@ THREAD_OBJ = @THREAD_OBJ@
 VERSION = @VERSION@
 
 MAINTAINERCLEANFILES = Makefile.in configure
-SUBDIRS = toolbox mm alpha jit comp nat threads mips tst
+SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc
 
-EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html 			 doc
-
+EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html
 
 CLEANFILES = @SYSDEP_DIR@/asmpart.o 			 @SYSDEP_DIR@/asmpart.s              @SYSDEP_DIR@/offsets.h 	         nativetable.hh 	         nativetypes.hh
 
