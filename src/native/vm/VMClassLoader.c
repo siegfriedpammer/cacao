@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClassLoader.c 2066 2005-03-23 11:46:35Z twisti $
+   $Id: VMClassLoader.c 2152 2005-03-30 19:28:40Z twisti $
 
 */
 
@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 
 #include "config.h"
+#include "types.h"
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
@@ -107,21 +108,25 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
  * Method:    getPrimitiveClass
  * Signature: (Ljava/lang/String;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *env, jclass clazz, java_lang_String *name)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *env, jclass clazz, java_lang_String *type)
 {
 	classinfo *c;
-	utf *u = javastring_toutf(name, false);
+	utf       *u;
+
+	u = javastring_toutf(type, false);
 
 	/* illegal primitive classname specified */
+
 	if (!u) {
 		*exceptionptr = new_exception(string_java_lang_ClassNotFoundException);
 		return NULL;
 	}
 
 	/* get primitive class */
+
 	c = class_new(u);
 
-	if (!class_load(c) || !class_init(c))
+	if (!load_class_bootstrap(c) || !class_init(c))
 		return NULL;
 
 	use_class_as_object(c);
@@ -142,13 +147,14 @@ JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jc
 	ci = (classinfo *) c;
 
 	if (!ci) {
-		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		*exceptionptr = new_nullpointerexception();
 		return;
 	}
 
 	/* link the class */
+
 	if (!ci->linked)
-		class_link(ci);
+		link_class(ci);
 
 	return;
 }
@@ -170,13 +176,16 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 	}
 
 	/* create utf string in which '.' is replaced by '/' */
+
 	u = javastring_toutf(name, true);
 
 	/* create class */
+
 	c = class_new(u);
 
 	/* load class */
-	if (!class_load(c)) {
+
+	if (!load_class_bootstrap(c)) {
 		classinfo *xclass;
 
 		xclass = (*exceptionptr)->vftbl->class;
@@ -184,7 +193,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 		/* if the exception is a NoClassDefFoundError, we replace it with a
 		   ClassNotFoundException, otherwise return the exception */
 
-		if (xclass == class_get(utf_new_char(string_java_lang_NoClassDefFoundError))) {
+		if (xclass == class_java_lang_NoClassDefFoundError) {
 			/* clear exceptionptr, because builtin_new checks for 
 			   ExceptionInInitializerError */
 			*exceptionptr = NULL;
@@ -199,7 +208,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 	/* resolve class -- if requested */
 	/* XXX TWISTI: we do not support REAL (at runtime) lazy linking */
 /*  	if (resolve) */
-		if (!class_link(c))
+		if (!link_class(c))
 			return NULL;
 
 	use_class_as_object(c);

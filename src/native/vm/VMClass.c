@@ -1,4 +1,4 @@
-/* native/vm/VMClass.c - java/lang/VMClass
+/* src/native/vm/VMClass.c - java/lang/VMClass
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 1990 2005-03-05 16:50:13Z twisti $
+   $Id: VMClass.c 2152 2005-03-30 19:28:40Z twisti $
 
 */
 
@@ -62,27 +62,31 @@
 
 
 /*
- * Class:     java_lang_VMClass
+ * Class:     java/lang/VMClass
  * Method:    forName
  * Signature: (Ljava/lang/String;)Ljava/lang/Class;
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, java_lang_String *s)
 {
 	classinfo *c;
-	utf *u;
+	utf       *u;
 
 	/* illegal argument */
+
 	if (!s)
 		return NULL;
 	
 	/* create utf string in which '.' is replaced by '/' */
+
 	u = javastring_toutf(s, true);
 
 	/* create a new class, ... */
+
 	c = class_new(u);
 
-	/* load, ... */
-	if (!class_load(c)) {
+	/* try to load, ... */
+
+	if (!load_class_bootstrap(c)) {
 		classinfo *xclass;
 
 		xclass = (*exceptionptr)->vftbl->class;
@@ -90,7 +94,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 		/* if the exception is a NoClassDefFoundError, we replace it with a
 		   ClassNotFoundException, otherwise return the exception */
 
-		if (xclass == class_get(utf_new_char(string_java_lang_NoClassDefFoundError))) {
+		if (xclass == class_java_lang_NoClassDefFoundError) {
 			/* clear exceptionptr, because builtin_new checks for 
 			   ExceptionInInitializerError */
 			*exceptionptr = NULL;
@@ -103,10 +107,12 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 	}
 
 	/* link, ... */
-	if (!class_link(c))
+
+	if (!link_class(c))
 		return NULL;
 	
 	/* ...and initialize it */
+
 	if (!class_init(c))
 		return NULL;
 
@@ -117,17 +123,13 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 
 
 /*
- * Class:     java_lang_VMClass
+ * Class:     java/lang/VMClass
  * Method:    getClassLoader
  * Signature: ()Ljava/lang/ClassLoader;
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, jclass clazz, java_lang_Class *that)
 {  
 	return (java_lang_ClassLoader *) ((classinfo *) that)->classloader;
-
-/*	init_systemclassloader();
-
-	return SystemClassLoader;*/
 }
 
 
@@ -157,12 +159,11 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEn
 
 
 /*
- * Class:     java_lang_VMClass
+ * Class:     java/lang/VMClass
  * Method:    getDeclaredConstructors
  * Signature: (Z)[Ljava/lang/reflect/Constructor;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructors(JNIEnv *env, jclass clazz,
-	struct java_lang_Class *that, s4 public_only)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructors(JNIEnv *env, jclass clazz, java_lang_Class *that, s4 public_only)
 {
   
     classinfo *c = (classinfo *) that;
@@ -174,21 +175,20 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
     int public_methods = 0;		/* number of public methods of the class */
     int pos = 0;
     int i;
-    utf *utf_constr = utf_new_char("<init>");
 
     /* determine number of constructors */
     for (i = 0; i < c->methodscount; i++) 
 		if (((c->methods[i].flags & ACC_PUBLIC) || !public_only) && 
-			(c->methods[i].name == utf_constr))
+			(c->methods[i].name == utf_init))
 			public_methods++;
 
     class_constructor = class_new(utf_new_char("java/lang/reflect/Constructor"));
 
 	if (!class_constructor->loaded)
-		class_load(class_constructor);
+		load_class_bootstrap(class_constructor);
 
 	if (!class_constructor->linked)
-		class_link(class_constructor);
+		link_class(class_constructor);
 
     array_constructor = builtin_anewarray(public_methods, class_constructor);
 
@@ -198,7 +198,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
     for (i = 0; i < c->methodscount; i++) 
 		if ((c->methods[i].flags & ACC_PUBLIC) || !public_only){
 			m = &c->methods[i];	    
-			if (m->name!=utf_constr)
+			if (m->name != utf_init)
 				continue;
 
 			o = native_new_and_init(class_constructor);     
@@ -496,8 +496,6 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
     int public_methods = 0;		/* number of public methods of the class */
     int pos = 0;
     int i;
-    utf *utf_constr=utf_new_char("<init>");
-    utf *utf_clinit=utf_new_char("<clinit>");
 
 /*      class_method = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Method")); */
     class_method = class_new(utf_new_char("java/lang/reflect/Method"));
@@ -516,8 +514,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
     for (i = 0; i < c->methodscount; i++) 
 		if ((((c->methods[i].flags & ACC_PUBLIC)) || (!public_only)) && 
 			(!
-			 ((c->methods[i].name==utf_constr) ||
-			  (c->methods[i].name==utf_clinit) )
+			 ((c->methods[i].name == utf_init) ||
+			  (c->methods[i].name == utf_clinit) )
 			 )) public_methods++;
 
 	/*	
@@ -534,8 +532,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
     for (i = 0; i < c->methodscount; i++) 
 		if (((c->methods[i].flags & ACC_PUBLIC) || (!public_only)) && 
 			(!
-			 ((c->methods[i].name==utf_constr) ||
-			  (c->methods[i].name==utf_clinit) )
+			 ((c->methods[i].name == utf_init) ||
+			  (c->methods[i].name == utf_clinit) )
 			 )) {
 
 			m = &c->methods[i];	    

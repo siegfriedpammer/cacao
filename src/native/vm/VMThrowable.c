@@ -1,4 +1,4 @@
-/* native/vm/VMThrowable.c - java/lang/VMThrowable
+/* src/native/vm/VMThrowable.c - java/lang/VMThrowable
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 1919 2005-02-10 10:08:53Z twisti $
+   $Id: VMThrowable.c 2152 2005-03-30 19:28:40Z twisti $
 
 */
 
@@ -80,13 +80,13 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *el,long
 	c = class_new(utf_new_char("java/lang/StackTraceElement"));
 
 	if (!c->loaded)
-		class_load(c);
+		load_class_bootstrap(c);
 
 	if (!c->linked)
-		class_link(c);
+		link_class(c);
 
 	m = class_findmethod(c,
-						 utf_new_char("<init>"),
+						 utf_init,
 						 utf_new_char("(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Z)V"));
 
 	if (!m)
@@ -160,8 +160,6 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 	u8 size;
 	stacktraceelement *el;
 	classinfo  *excClass=par1->header.vftbl->class;
-	utf*  init=utf_new_char("<init>");
-	utf*  throwable=utf_new_char("java/lang/Throwable");
 	long destElementCount;
 	stacktraceelement *tmpEl;
 
@@ -172,10 +170,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 	size -=2;
 	el=&(buf->start[2]); /* element 0==VMThrowable.fillInStackTrace native call, 1==Throwable.fillInStackTrace*/
 	if (el->method!=0) { /* => not a builtin native wrapper*/
-		if ((el->method->class->name==throwable) && (el->method->name == init) ){
+		if ((el->method->class->name == utf_java_lang_Throwable) &&
+			(el->method->name == utf_init)) {
 			/* We assume that we are within the initializer of the exception object, the exception object itself should not appear
 				in the stack trace, so we skip till we reach the first function, which is not an init function or till we reach the exception object class*/
-			for (; (size>0) && (el->method->name==init) && (el->method->class!=excClass); el++, size--) {
+			for (; (size>0) && (el->method->name == utf_init) && (el->method->class!=excClass); el++, size--) {
 				/* just loop*/
 			}
 			size --;
