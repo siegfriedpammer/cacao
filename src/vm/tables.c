@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 753 2003-12-13 22:22:09Z twisti $
+   $Id: tables.c 775 2003-12-14 12:57:05Z edwin $
 
 */
 
@@ -635,7 +635,7 @@ u2 desc_to_type(utf *descriptor)
 			
 	sprintf(logtext, "Invalid Type-Descriptor: ");
 	utf_sprint(logtext+strlen(logtext), descriptor);
-	error(logtext);
+	error("%s",logtext);
 
 	return 0;
 }

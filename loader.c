@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 771 2003-12-13 23:11:08Z stefan $
+   $Id: loader.c 775 2003-12-14 12:57:05Z edwin $
 
 */
 
@@ -1580,7 +1580,7 @@ static s4 class_highestinterface(classinfo *c)
 		char logtext[MAXLOGTEXT];
 	  	sprintf(logtext, "Interface-methods count requested for non-interface:  ");
     	utf_sprint(logtext + strlen(logtext), c->name);
-    	error(logtext);
+    	error("%s",logtext);
 	}
     
     h = c->index;
