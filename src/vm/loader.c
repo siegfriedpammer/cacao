@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1807 2004-12-22 10:47:13Z twisti $
+   $Id: loader.c 1826 2004-12-29 12:47:18Z twisti $
 
 */
 
@@ -334,8 +334,12 @@ void suck_init(char *classpath)
 	classpath_info *cpi;
 	classpath_info *lastcpi;
 
-	if (!classpath)
-		return;
+	/* search for last classpath entry (only if there already some) */
+
+	if ((lastcpi = classpath_entries)) {
+		while (lastcpi->next)
+			lastcpi = lastcpi->next;
+	}
 
 	for (start = classpath; (*start) != '\0';) {
 
@@ -365,10 +369,10 @@ void suck_init(char *classpath)
 				unzFile uf = unzOpen(filename);
 
 				if (uf) {
-					cpi = (union classpath_info *) NEW(classpath_info);
-					cpi->archive.type = CLASSPATH_ARCHIVE;
-					cpi->archive.uf = uf;
-					cpi->archive.next = NULL;
+					cpi = NEW(classpath_info);
+					cpi->type = CLASSPATH_ARCHIVE;
+					cpi->uf = uf;
+					cpi->next = NULL;
 				}
 #else
 				throw_cacao_exception_exit(string_java_lang_InternalError,
@@ -376,9 +380,9 @@ void suck_init(char *classpath)
 #endif
 				
 			} else {
-				cpi = (union classpath_info *) NEW(classpath_info);
-				cpi->filepath.type = CLASSPATH_PATH;
-				cpi->filepath.next = NULL;
+				cpi = NEW(classpath_info);
+				cpi->type = CLASSPATH_PATH;
+				cpi->next = NULL;
 
 				if (filename[filenamelen - 1] != '/') {/*PERHAPS THIS SHOULD BE READ FROM A GLOBAL CONFIGURATION */
 					filename[filenamelen] = '/';
@@ -386,8 +390,8 @@ void suck_init(char *classpath)
 					filenamelen++;
 				}
 
-				cpi->filepath.path = filename;
-				cpi->filepath.pathlen = filenamelen;
+				cpi->path = filename;
+				cpi->pathlen = filenamelen;
 			}
 
 			/* attach current classpath entry */
@@ -397,7 +401,7 @@ void suck_init(char *classpath)
 					classpath_entries = cpi;
 
 				} else {
-					lastcpi->filepath.next = cpi;
+					lastcpi->next = cpi;
 				}
 
 				lastcpi = cpi;
@@ -420,13 +424,13 @@ void create_all_classes()
 {
 	classpath_info *cpi;
 
-	for (cpi = classpath_entries; cpi != 0; cpi = cpi->filepath.next) {
+	for (cpi = classpath_entries; cpi != 0; cpi = cpi->next) {
 #if defined(USE_ZLIB)
-		if (cpi->filepath.type == CLASSPATH_ARCHIVE) {
+		if (cpi->type == CLASSPATH_ARCHIVE) {
 			cacao_entry_s *ce;
 			unz_s *s;
 
-			s = (unz_s *) cpi->archive.uf;
+			s = (unz_s *) cpi->uf;
 			ce = s->cacao_dir_list;
 				
 			while (ce) {
@@ -466,26 +470,6 @@ classbuffer *suck_start(classinfo *c)
 	struct stat buffer;
 	classbuffer *cb;
 
-#if 0
-	utf_ptr = c->name->text;
-
-	while (utf_ptr < utf_end(c->name)) {
-		if (filenamelen >= CLASSPATH_MAXFILENAME) {
-			*exceptionptr =
-				new_exception_message(string_java_lang_InternalError,
-									  "Filename too long");
-
-			/* XXX should we exit in such a case? */
-			throw_exception_exit();
-		}
-
-		ch = *utf_ptr++;
-		if ((ch <= ' ' || ch > 'z') && (ch != '/'))     /* invalid character */
-			ch = '?';
-		filename[filenamelen++] = ch;
-	}
-#endif
-
 	/* initialize return value */
 
 	found = false;
@@ -499,22 +483,22 @@ classbuffer *suck_start(classinfo *c)
 
 	/* walk through all classpath entries */
 
-	for (cpi = classpath_entries; cpi != NULL && cb == NULL; cpi = cpi->filepath.next) {
+	for (cpi = classpath_entries; cpi != NULL && cb == NULL; cpi = cpi->next) {
 #if defined(USE_ZLIB)
-		if (cpi->filepath.type == CLASSPATH_ARCHIVE) {
-			if (cacao_locate(cpi->archive.uf, c->name) == UNZ_OK) {
+		if (cpi->type == CLASSPATH_ARCHIVE) {
+			if (cacao_locate(cpi->uf, c->name) == UNZ_OK) {
 				unz_file_info file_info;
 
-				if (unzGetCurrentFileInfo(cpi->archive.uf, &file_info, filename,
+				if (unzGetCurrentFileInfo(cpi->uf, &file_info, filename,
 										  sizeof(filename), NULL, 0, NULL, 0) == UNZ_OK) {
-					if (unzOpenCurrentFile(cpi->archive.uf) == UNZ_OK) {
+					if (unzOpenCurrentFile(cpi->uf) == UNZ_OK) {
 						cb = NEW(classbuffer);
 						cb->class = c;
 						cb->size = file_info.uncompressed_size;
 						cb->data = MNEW(u1, cb->size);
 						cb->pos = cb->data - 1;
 
-						len = unzReadCurrentFile(cpi->archive.uf, cb->data, cb->size);
+						len = unzReadCurrentFile(cpi->uf, cb->data, cb->size);
 
 						if (len != cb->size) {
 							suck_stop(cb);
@@ -532,13 +516,13 @@ classbuffer *suck_start(classinfo *c)
 					log_text("Error while retrieving fileinfo");
 				}
 			}
-			unzCloseCurrentFile(cpi->archive.uf);
+			unzCloseCurrentFile(cpi->uf);
 
 		} else {
 #endif /* USE_ZLIB */
 			
-			path = MNEW(char, cpi->filepath.pathlen + filenamelen + 1);
-			strcpy(path, cpi->filepath.path);
+			path = MNEW(char, cpi->pathlen + filenamelen + 1);
+			strcpy(path, cpi->path);
 			strcat(path, filename);
 
 			classfile = fopen(path, "r");
@@ -565,7 +549,7 @@ classbuffer *suck_start(classinfo *c)
 				}
 			}
 
-			MFREE(path, char, cpi->filepath.pathlen + filenamelen + 1);
+			MFREE(path, char, cpi->pathlen + filenamelen + 1);
 #if defined(USE_ZLIB)
 		}
 #endif
@@ -2935,7 +2919,7 @@ static classinfo *class_link_intern(classinfo *c)
 		}
 
 		if (!tc->loaded)
-  			if (!class_load(tc))
+			if (!class_load(tc))
 				return NULL;
 
 		if (!(tc->flags & ACC_INTERFACE)) {

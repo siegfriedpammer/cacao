@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1793 2004-12-21 10:14:35Z twisti $
+   $Id: loader.h 1826 2004-12-29 12:47:18Z twisti $
 */
 
 
@@ -48,6 +48,25 @@ typedef struct classbuffer {
 	s4         size;                    /* size of the byte code              */
 	u1         *pos;                    /* current read position              */
 } classbuffer;
+
+
+
+/* classpath_info *************************************************************/
+
+#define CLASSPATH_PATH       0
+#define CLASSPATH_ARCHIVE    1
+
+typedef struct classpath_info classpath_info;
+
+struct classpath_info {
+	s4              type;
+	char           *path;
+	s4              pathlen;
+#if defined(USE_ZLIB)
+	unzFile         uf;
+#endif	
+	classpath_info *next;
+};
 
 
 /* export variables */
@@ -192,28 +211,6 @@ void method_display_w_class(methodinfo *m);
 
 utf* clinit_desc(void);
 utf* clinit_name(void);
-
-
-/******************************** CLASSPATH handling *******************/
-#define CLASSPATH_MAXFILENAME 1000                /* maximum length of a filename           */
-#define CLASSPATH_PATH 0
-#define CLASSPATH_ARCHIVE 1
-
-typedef union classpath_info {
-	struct {
-		s4                    type;
-		union classpath_info *next;
-		char                 *path;
-		s4                    pathlen;
-	} filepath;
-#if defined(USE_ZLIB)
-	struct {
-		s4                    type;
-		union classpath_info *next;
-		unzFile               uf;
-	} archive;
-#endif	
-} classpath_info;
 
 #endif /* _LOADER_H */
 
