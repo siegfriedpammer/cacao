@@ -15,7 +15,7 @@
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 	         Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: headers.c 300 2003-05-13 09:18:34Z stefan $
+	Last Change: $Id: headers.c 303 2003-05-14 13:14:46Z stefan $
 
 *******************************************************************************/
 
@@ -302,7 +302,7 @@ static void printmethod (methodinfo *m)
 
 static void simple_classname(char *buffer, utf *u)
 {
-  u2 i, simplename_start;
+  int i, simplename_start;
 
   for (i=utf_strlen(u)-1; i>=0; i--) { 
 
