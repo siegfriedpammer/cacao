@@ -1,12 +1,12 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 834 2004-01-04 23:24:25Z twisti $
+# $Id: Makefile.am 884 2004-01-15 21:39:01Z jowenn $
 
 @SET_MAKE@
 
 MAINTAINERCLEANFILES = Makefile.in configure
 ALLSUBDIRS = mm toolbox threads jit nat tst doc jvmtst
-SUBDIRS = classpathbin $(ALLSUBDIRS)
+SUBDIRS = gnuclasspathnat $(ALLSUBDIRS)
 DIST_SUBDIRS = $(ALLSUBDIRS)
 
 EXTRA_DIST = \

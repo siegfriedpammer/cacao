@@ -291,15 +291,15 @@ AC_OUTPUT(Makefile \
           classpathbin/Makefile)
 
 
-cd classpathbin/$ARCH_DIR
+cd gnuclasspathnat
 echo "========================================================================"
-echo "calling: ../../gnuclasspath/configure --prefix=$prefix/classpath --with-$CCOMP=yes --enable-jni=yes --enable-gtk-peer=$USEGTK --enable-shared=no --enable-static=yes --with-zip=no --enable-portable-native-sync"
+echo "calling: ./gnuclasspathnat/configure --prefix=$prefix/classpath --with-$CCOMP=yes --enable-jni=yes --enable-gtk-peer=$USEGTK --enable-shared=no --enable-static=yes --with-zip=no --enable-portable-native-sync -enable-java=no"
 echo "========================================================================"
 
-../../gnuclasspath/configure --prefix=$prefix/classpath --with-$CCOMP=yes \
+./configure --prefix=$prefix/classpath --with-$CCOMP=yes \
         --enable-jni=yes --enable-gtk-peer=$USEGTK --enable-shared=no --enable-static=yes --with-zip=no \
-	--enable-portable-native-sync
-cd ../..
+	--enable-portable-native-sync -enable-java=no
+cd ..
 
 
 
