@@ -103,7 +103,7 @@ Comments   :
 
 Description: Change boehm to use a config.h
 Assigned   : twisti
-Status     : OPEN
+Status     : CLOSED
 Comments   :
 
 
@@ -127,7 +127,7 @@ Comments   :
 
 Description: fix native header/cacaoh dependency problems in nat/Makefile.am
 Assigned   : twisti
-Status     : OPEN
+Status     : CLOSED
 Comments   :
 
 The header files of the java class files should be generated in the
