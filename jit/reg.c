@@ -384,6 +384,10 @@ static void local_regalloc ()
 	
 	if (isleafmethod) {
 		int arg, doublewordarg;
+#if defined(__X86_64__)
+		int iargcnt = 0;
+		int fargcnt = 0;
+#endif
 		arg = 0;
 		doublewordarg = 0;
 		for (s = 0; s < maxlocals; s++) {
@@ -396,10 +400,18 @@ static void local_regalloc ()
 							v->flags = locals[s][fltalloc].flags;
 							v->regoff = locals[s][fltalloc].regoff;
 							}
+#if defined(__X86_64__)
+						else if (!doublewordarg && (arg < mparamcount)
+						                        && (fargcnt < fltreg_argnum)) {
+							v->flags = 0;
+							v->regoff = argfltregs[fargcnt];
+							fargcnt++;
+#else
 						else if (!doublewordarg && (arg < mparamcount)
 						                        && (arg < fltreg_argnum)) {
 							v->flags = 0;
 							v->regoff = argfltregs[arg];
+#endif
 							}
 						else if (maxtmpfltreguse > 0) {
 							maxtmpfltreguse--;
@@ -431,10 +443,18 @@ static void local_regalloc ()
 							v->flags = locals[s][intalloc].flags;
 							v->regoff = locals[s][intalloc].regoff;
 							}
+#if defined(__X86_64__)
+						else if (!doublewordarg && (arg < mparamcount)
+						                        && (iargcnt < intreg_argnum)) {
+							v->flags = 0;
+							v->regoff = argintregs[iargcnt];
+							iargcnt++;
+#else
 						else if (!doublewordarg && (arg < mparamcount)
 						                        && (arg < intreg_argnum)) {
 							v->flags = 0;
 							v->regoff = argintregs[arg];
+#endif
 							}
 						else if (maxtmpintreguse > 0) {
 							maxtmpintreguse--;
