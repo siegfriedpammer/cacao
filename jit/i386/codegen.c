@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 777 2003-12-14 14:53:30Z stefan $
+   $Id: codegen.c 847 2004-01-05 10:49:05Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include "types.h"
+#include "main.h"
 #include "parse.h"
 #include "codegen.h"
 #include "jit.h"
@@ -3014,80 +3015,96 @@ void codegen()
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
 
-			a = dseg_addaddress(&(((fieldinfo *)(iptr->val.a))->value));
+			/* if class isn't yet initialized, do it */
+  			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
+				/* call helper function which patches this code */
+				i386_mov_imm_reg((s4) ((fieldinfo *) iptr->val.a)->class, REG_ITMP1);
+				i386_mov_imm_reg((s4) asm_check_clinit, REG_ITMP2);
+				i386_call_reg(REG_ITMP2);
+  			}
+
+			a = dseg_addaddress(&(((fieldinfo *) iptr->val.a)->value));
 			/* here it's slightly slower */
-  			i386_mov_imm_reg(0, REG_ITMP2);
-  			dseg_adddata(mcodeptr);
-  			i386_mov_membase_reg(REG_ITMP2, a, REG_ITMP2);
+			i386_mov_imm_reg(0, REG_ITMP2);
+			dseg_adddata(mcodeptr);
+			i386_mov_membase_reg(REG_ITMP2, a, REG_ITMP2);
 			switch (iptr->op1) {
-				case TYPE_INT:
-				case TYPE_ADR:
-					var_to_reg_int(s2, src, REG_ITMP1);
-					i386_mov_reg_membase(s2, REG_ITMP2, 0);
-					break;
-				case TYPE_LNG:
-					if (src->flags & INMEMORY) {
-						i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						i386_mov_reg_membase(REG_ITMP1, REG_ITMP2, 0);
-						i386_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP1);
-						i386_mov_reg_membase(REG_ITMP1, REG_ITMP2, 0 + 4);
-					} else {
-						panic("PUTSTATIC: longs have to be in memory");
-					}
-					break;
-				case TYPE_FLT:
-					var_to_reg_flt(s2, src, REG_FTMP1);
-					i386_fstps_membase(REG_ITMP2, 0);
-					fpu_st_offset--;
-					break;
-				case TYPE_DBL:
-					var_to_reg_flt(s2, src, REG_FTMP1);
-					i386_fstpl_membase(REG_ITMP2, 0);
-					fpu_st_offset--;
-					break;
-				default: panic ("internal error");
+			case TYPE_INT:
+			case TYPE_ADR:
+				var_to_reg_int(s2, src, REG_ITMP1);
+				i386_mov_reg_membase(s2, REG_ITMP2, 0);
+				break;
+			case TYPE_LNG:
+				if (src->flags & INMEMORY) {
+					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+					i386_mov_reg_membase(REG_ITMP1, REG_ITMP2, 0);
+					i386_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP1);
+					i386_mov_reg_membase(REG_ITMP1, REG_ITMP2, 0 + 4);
+				} else {
+					panic("PUTSTATIC: longs have to be in memory");
 				}
+				break;
+			case TYPE_FLT:
+				var_to_reg_flt(s2, src, REG_FTMP1);
+				i386_fstps_membase(REG_ITMP2, 0);
+				fpu_st_offset--;
+				break;
+			case TYPE_DBL:
+				var_to_reg_flt(s2, src, REG_FTMP1);
+				i386_fstpl_membase(REG_ITMP2, 0);
+				fpu_st_offset--;
+				break;
+			default: panic ("internal error");
+			}
 			break;
 
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
 
-			a = dseg_addaddress(&(((fieldinfo *)(iptr->val.a))->value));
+			/* if class isn't yet initialized, do it */
+  			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
+				/* call helper function which patches this code */
+				i386_mov_imm_reg((s4) ((fieldinfo *) iptr->val.a)->class, REG_ITMP1);
+				i386_mov_imm_reg((s4) asm_check_clinit, REG_ITMP2);
+				i386_call_reg(REG_ITMP2);
+			}
+
+			a = dseg_addaddress(&(((fieldinfo *) iptr->val.a)->value));
 			i386_mov_imm_reg(0, REG_ITMP2);
 			dseg_adddata(mcodeptr);
 			i386_mov_membase_reg(REG_ITMP2, a, REG_ITMP2);
 			switch (iptr->op1) {
-				case TYPE_INT:
-				case TYPE_ADR:
-					d = reg_of_var(iptr->dst, REG_ITMP1);
-					i386_mov_membase_reg(REG_ITMP2, 0, d);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_LNG:
-					d = reg_of_var(iptr->dst, REG_NULL);
-					if (iptr->dst->flags & INMEMORY) {
-						i386_mov_membase_reg(REG_ITMP2, 0, REG_ITMP1);
-						i386_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						i386_mov_membase_reg(REG_ITMP2, 0 + 4, REG_ITMP1);
-						i386_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8 + 4);
-					} else {
-						panic("GETSTATIC: longs have to be in memory");
-					}
-					break;
-				case TYPE_FLT:
-					d = reg_of_var(iptr->dst, REG_FTMP1);
-					i386_flds_membase(REG_ITMP2, 0);
-					fpu_st_offset++;
-					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				case TYPE_DBL:				
-					d = reg_of_var(iptr->dst, REG_FTMP1);
-					i386_fldl_membase(REG_ITMP2, 0);
-					fpu_st_offset++;
-					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				default: panic ("internal error");
+			case TYPE_INT:
+			case TYPE_ADR:
+				d = reg_of_var(iptr->dst, REG_ITMP1);
+				i386_mov_membase_reg(REG_ITMP2, 0, d);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_LNG:
+				d = reg_of_var(iptr->dst, REG_NULL);
+				if (iptr->dst->flags & INMEMORY) {
+					i386_mov_membase_reg(REG_ITMP2, 0, REG_ITMP1);
+					i386_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					i386_mov_membase_reg(REG_ITMP2, 0 + 4, REG_ITMP1);
+					i386_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8 + 4);
+				} else {
+					panic("GETSTATIC: longs have to be in memory");
 				}
+				break;
+			case TYPE_FLT:
+				d = reg_of_var(iptr->dst, REG_FTMP1);
+				i386_flds_membase(REG_ITMP2, 0);
+				fpu_st_offset++;
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			case TYPE_DBL:				
+				d = reg_of_var(iptr->dst, REG_FTMP1);
+				i386_fldl_membase(REG_ITMP2, 0);
+				fpu_st_offset++;
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			default: panic ("internal error");
+			}
 			break;
 
 		case ICMD_PUTFIELD:   /* ..., value  ==> ...                          */
@@ -4510,11 +4527,8 @@ gen_method: {
 			store_reg_to_var_int(iptr->dst, s1);
 			break;
 
-
-		default: error ("Unknown pseudo command: %d", iptr->opc);
-	
-   
-
+		default:
+			error ("Unknown pseudo command: %d", iptr->opc);
 	} /* switch */
 		
 	} /* for instruction */
@@ -4573,9 +4587,10 @@ gen_method: {
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-				xboundrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
+							  xboundrefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
 			continue;
-			}
+		}
 
 
 		gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
@@ -4606,9 +4621,10 @@ gen_method: {
 	for (; xcheckarefs != NULL; xcheckarefs = xcheckarefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
-				xcheckarefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
+							  xcheckarefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
 			continue;
-			}
+		}
 
 		gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
 		                  xcheckarefs->branchpos, (u1*) mcodeptr - mcodebase);
@@ -4638,7 +4654,8 @@ gen_method: {
 	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
-				xcastrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
+							  xcastrefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
 			continue;
 		}
 
@@ -4670,7 +4687,8 @@ gen_method: {
 	for (; xdivrefs != NULL; xdivrefs = xdivrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xdivrefs->branchpos, 
-				xdivrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
+							  xdivrefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
 			continue;
 		}
 
@@ -4702,7 +4720,8 @@ gen_method: {
 	for (; xnullrefs != NULL; xnullrefs = xnullrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
-							  xnullrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
+							  xnullrefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
 			continue;
 		}
 
@@ -4798,8 +4817,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		stackframeoffset += 4;
 	}
 
-    reg_init(m);
-    
+    reg_init();
     descriptor2types(m);                     /* set paramcount and paramtypes */
 
     if (runverbose) {
@@ -4849,7 +4867,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
         i386_mov_imm_membase((s4) m, REG_SP, TRACE_ARGS_NUM * 8);
 
-        i386_mov_imm_reg((s4) asm_builtin_trace, REG_ITMP1);
+        i386_mov_imm_reg((s4) builtin_trace_args, REG_ITMP1);
         i386_call_reg(REG_ITMP1);
 
         i386_alu_imm_reg(I386_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
@@ -4915,9 +4933,11 @@ u1 *createnativestub(functionptr f, methodinfo *m)
         }
     }
 
-    i386_mov_imm_membase((s4) &env, REG_SP, 0);
-    if (m->flags & ACC_STATIC) 
-	i386_mov_imm_membase((s4) m->class, REG_SP,4);
+	if (m->flags & ACC_STATIC) {
+		i386_mov_imm_membase((s4) m->class, REG_SP, 4);
+	}
+
+	i386_mov_imm_membase((s4) &env, REG_SP, 0);
 
     i386_mov_imm_reg((s4) f, REG_ITMP1);
     i386_call_reg(REG_ITMP1);
@@ -4934,7 +4954,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
         i386_fstl_membase(REG_SP, 4 + 8);
         i386_fsts_membase(REG_SP, 4 + 8 + 8);
 		
-        i386_mov_imm_reg((s4) asm_builtin_exittrace, REG_ITMP1);
+        i386_mov_imm_reg((s4) builtin_displaymethodstop, REG_ITMP1);
         i386_call_reg(REG_ITMP1);
 		
         i386_mov_membase_reg(REG_SP, 4, REG_RESULT);
