@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 789 2003-12-16 14:46:55Z edwin $
+   $Id: jit.c 796 2003-12-16 22:28:18Z edwin $
 
 */
 
@@ -1364,9 +1364,10 @@ builtin_descriptor builtin_desc[] = {
 #endif
 
 	/* this record marks the end of the automatically replaced opcodes */
-	{255       , NULL        ,0            ,0          ,0          ,0         ,0          ,
-	             true                            ,false,"<INVALID>"},
+	{255,NULL,0,0,0,0,0,0,0,"<INVALID>"},
 
+	/* the following functions are not replaced automatically */
+	
 #if defined(__ALPHA__)
 	{255, BUILTIN_f2l  ,ICMD_BUILTIN1,TYPE_FLOAT ,TYPE_VOID  ,TYPE_VOID ,TYPE_LONG  ,0,0,"f2l"},
 	{255, BUILTIN_d2l  ,ICMD_BUILTIN1,TYPE_DOUBLE,TYPE_VOID  ,TYPE_VOID ,TYPE_LONG  ,0,0,"d2l"},
@@ -1374,13 +1375,12 @@ builtin_descriptor builtin_desc[] = {
 	{255, BUILTIN_d2i  ,ICMD_BUILTIN1,TYPE_DOUBLE,TYPE_VOID  ,TYPE_VOID ,TYPE_INT   ,0,0,"d2i"},
 #endif
 
-	/* the following functions are not replaced automatically */
 	{255,BUILTIN_instanceof      ,ICMD_BUILTIN2,TYPE_ADR   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_INT   ,0,0,"instanceof"},
 	{255,BUILTIN_arrayinstanceof ,ICMD_BUILTIN2,TYPE_ADR   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_INT   ,0,0,"arrayinstanceof"},
 	{255,BUILTIN_checkarraycast  ,ICMD_BUILTIN2,TYPE_ADR   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,0,0,"checkarraycast"},
 	{255,BUILTIN_aastore         ,ICMD_BUILTIN3,TYPE_ADR   ,TYPE_INT   ,TYPE_ADR   ,TYPE_VOID  ,0,0,"aastore"},
 	{255,BUILTIN_new             ,ICMD_BUILTIN1,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"new"},
-	{255,BUILTIN_newarray        ,ICMD_BUILTIN1,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray"},
+	{255,BUILTIN_newarray        ,ICMD_BUILTIN2,TYPE_INT   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray"},
 	{255,BUILTIN_newarray_boolean,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_boolean"},
 	{255,BUILTIN_newarray_char   ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_char"},
 	{255,BUILTIN_newarray_float  ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_float"},
@@ -1425,6 +1425,17 @@ static void* do_nothing_function()
 	jit_compile, new version of compiler, translates one method to machine code
 
 *******************************************************************************/
+
+#define LOG_STEP(step)											\
+	if (compileverbose) {										\
+		char logtext[MAXLOGTEXT];								\
+		sprintf(logtext, "%s: ",step);							\
+		utf_sprint(logtext+strlen(logtext), m->class->name);	\
+		strcpy(logtext+strlen(logtext), ".");					\
+		utf_sprint(logtext+strlen(logtext), m->name);			\
+		utf_sprint(logtext+strlen(logtext), m->descriptor);		\
+		log_text(logtext);										\
+	}
 
 methodptr jit_compile(methodinfo *m)
 {
@@ -1537,23 +1548,9 @@ methodptr jit_compile(methodinfo *m)
 	analyse_stack();
    
 #ifdef CACAO_TYPECHECK
-	/* print log message for compiled method */
-
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Typechecking: ");
-		utf_sprint(logtext+strlen(logtext), m->class->name);
-		strcpy(logtext+strlen(logtext), ".");
-		utf_sprint(logtext+strlen(logtext), m->name);
-		utf_sprint(logtext+strlen(logtext), m->descriptor);
-		log_text(logtext);
-	}
-
+	LOG_STEP("Typechecking");
 	typecheck();
-	
-	if (compileverbose) {
-		dolog("Typechecking done.");
-	}
+	LOG_STEP("Done typechecking");
 #endif
 	
 	if (opt_loops) {
@@ -1566,8 +1563,11 @@ methodptr jit_compile(methodinfo *m)
 	preregpass();
 #endif
 
+	LOG_STEP("Regalloc");
 	regalloc();
 	regs_ok = true;
+
+	LOG_STEP("Codegen");
 	codegen();
 
 	/* intermediate and assembly code listings ********************************/
@@ -1594,6 +1594,7 @@ methodptr jit_compile(methodinfo *m)
 	/* initialize all used classes */
 	/* because of reentrant code global variables are not allowed here        */
 
+	LOG_STEP("Initializing");
 	{
 		chain *ul = uninitializedclasses;   /* list of uninitialized classes      */ 
 		classinfo *c;                       /* single class                       */
@@ -1613,6 +1614,7 @@ methodptr jit_compile(methodinfo *m)
 
 	/* return pointer to the methods entry point */
 	
+	LOG_STEP("Done compiling");
 	return m->entrypoint;
 } 
 
