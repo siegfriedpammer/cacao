@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 2081 2005-03-25 13:45:26Z edwin $
+   $Id: jit.h 2124 2005-03-29 22:18:30Z twisti $
 
 */
 
@@ -47,8 +47,9 @@ typedef struct subroutineinfo subroutineinfo;
 
 
 #include "toolbox/chain.h"
+#include "vm/class.h"
 #include "vm/global.h"
-#include "vm/builtin.h"
+#include "vm/method.h"
 #include "vm/jit/codegen.inc.h"
 #include "vm/jit/verify/typeinfo.h"
 
@@ -848,12 +849,6 @@ void jit_init();                        /* compiler initialisation            */
 void jit_close();                       /* compiler finalisation              */
 
 void compile_all_class_methods(classinfo *c);
-
-u1 *createcompilerstub(methodinfo *m);
-u1 *createnativestub(functionptr f, methodinfo *m);
-
-void removecompilerstub(u1 *stub);
-void removenativestub(u1 *stub);
 
 #endif /* _JIT_H */
 
