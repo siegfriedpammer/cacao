@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "global.h"
 #include "memory.h"
 #include "tree.h"
 

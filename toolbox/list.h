@@ -12,6 +12,9 @@
 
 *******************************************************************************/
 
+#ifndef LIST_H
+#define LIST_H
+
 typedef struct listnode {           /* Struktur f"ur ein Listenelement */
 	struct listnode *next,*prev;
 	} listnode;
@@ -95,3 +98,4 @@ also eine Komponente vom Typ 'listnode' im Element enthalten sein).
 
 */
 
+#endif

@@ -19,6 +19,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "global.h"
 #include "callargs.h"
 #include "loging.h"
 #include "memory.h"

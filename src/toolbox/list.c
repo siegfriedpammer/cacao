@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "global.h"
 #include "list.h"
 
 

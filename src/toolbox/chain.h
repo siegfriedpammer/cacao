@@ -12,6 +12,9 @@
 
 *******************************************************************************/
 
+#ifndef CHAIN_H
+#define CHAIN_H
+
 typedef struct chainlink {          /* Struktur f"ur ein Listenelement */
 	struct chainlink *next,*prev;
 	void *element;
@@ -90,3 +93,4 @@ ACHTUNG: In den zu verkettenden Elementen gibt es ja (wie oben gesagt) keine
 
 */
 
+#endif

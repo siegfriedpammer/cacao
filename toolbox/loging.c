@@ -16,6 +16,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+#include "global.h"
 #include "loging.h"
 
 /***************************************************************************
