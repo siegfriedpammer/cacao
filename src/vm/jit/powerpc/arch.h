@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: arch.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: arch.h 1887 2005-01-27 11:29:56Z twisti $
 
 */
 
@@ -88,6 +88,7 @@
 #define SUPPORT_LONG        1
 #define SUPPORT_FLOAT       1
 #define SUPPORT_DOUBLE      1
+
 #define SUPPORT_FMOD        0
 #define SUPPORT_FICVT       1
 #define SUPPORT_IFCVT       0
@@ -100,6 +101,12 @@
 #define SUPPORT_LONG_DIV    0
 #define SUPPORT_LONG_ICVT   0
 #define SUPPORT_LONG_FCVT   0
+
+#define SUPPORT_LOGICAL_CONST    1      /* AND, OR, XOR with immediates       */
+
+#define SUPPORT_CONST_ASTORE     0      /* do we support const astores        */
+#define SUPPORT_ONLY_ZERO_ASTORE 1      /* on risc machines we can only store */
+                                        /* REG_ZERO                           */
 
 #define USEBUILTINTABLE
 
