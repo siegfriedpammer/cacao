@@ -187,22 +187,22 @@ typedef enum {
 } I386_CC;
 
 static const unsigned char i386_jcc_map[] = {
-    0x70, /* o  */
-    0x71, /* no */
-    0x72, /* b, lt  */
-    0x73, /* ae */
-    0x74, /* e  */
-    0x75, /* ne */
-    0x76, /* be */
-    0x77, /* a  */
-    0x78, /* s  */
-    0x79, /* ns */
-    0x7a, /* p  */
-    0x7b, /* np */
-    0x7c, /* l  */
-    0x7d, /* ge */
-    0x7e, /* le */
-    0x7f  /* g  */
+    0x00, /* o  */
+    0x01, /* no */
+    0x02, /* b, lt  */
+    0x03, /* ae */
+    0x04, /* e  */
+    0x05, /* ne */
+    0x06, /* be */
+    0x07, /* a  */
+    0x08, /* s  */
+    0x09, /* ns */
+    0x0a, /* p  */
+    0x0b, /* np */
+    0x0c, /* l  */
+    0x0d, /* ge */
+    0x0e, /* le */
+    0x0f  /* g  */
 };
 
 
@@ -387,7 +387,8 @@ static const unsigned char i386_jcc_map[] = {
 #define i386_movw_reg_membase(reg,basereg,disp) \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0x66; \
-        i386_mov_reg_membase((reg),(basereg),(disp)); \
+        *(((u1 *) mcodeptr)++) = (u1) 0x89; \
+        i386_emit_membase((basereg),(disp),(reg)); \
     } while (0)
 
 
@@ -405,9 +406,32 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_movw_memindex_reg(disp,basereg,indexreg,scale,reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x66; \
+        *(((u1 *) mcodeptr)++) = (u1) 0x8b; \
+        i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
 #define i386_mov_reg_memindex(reg,disp,basereg,indexreg,scale) \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0x89; \
+        i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define i386_movw_reg_memindex(reg,disp,basereg,indexreg,scale) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x66; \
+        *(((u1 *) mcodeptr)++) = (u1) 0x89; \
+        i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define i386_movb_reg_memindex(reg,disp,basereg,indexreg,scale) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x88; \
         i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
     } while (0)
 
@@ -433,6 +457,46 @@ static const unsigned char i386_jcc_map[] = {
         *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
         *(((u1 *) mcodeptr)++) = (u1) 0xbe; \
         i386_emit_reg((reg),(dreg)); \
+    } while (0)
+
+
+#define i386_movswl_reg_reg(reg,dreg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xbf; \
+        i386_emit_reg((reg),(dreg)); \
+    } while (0)
+
+
+#define i386_movsbl_memindex_reg(disp,basereg,indexreg,scale,reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xbe; \
+        i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define i386_movswl_memindex_reg(disp,basereg,indexreg,scale,reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xbf; \
+        i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define i386_movzbl_memindex_reg(disp,basereg,indexreg,scale,reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xb6; \
+        i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define i386_movzwl_memindex_reg(disp,basereg,indexreg,scale,reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xb7; \
+        i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
     } while (0)
 
 
@@ -501,6 +565,14 @@ static const unsigned char i386_jcc_map[] = {
         *(((u1 *) mcodeptr)++) = (u1) 0xf7; \
         i386_emit_reg(0,(reg)); \
         i386_emit_imm32((imm)); \
+    } while (0)
+
+
+#define i386_testb_imm_reg(imm,reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xf6; \
+        i386_emit_reg(0,(reg)); \
+        i386_emit_imm8((imm)); \
     } while (0)
 
 
@@ -739,10 +811,29 @@ static const unsigned char i386_jcc_map[] = {
 #define i386_jcc(opc,imm) \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
-        *(((u1 *) mcodeptr)++) = (u1) (i386_jcc_map[(opc)] + 0x10); \
+        *(((u1 *) mcodeptr)++) = (u1) (0x80 + i386_jcc_map[(opc)]); \
         i386_emit_imm32((imm)); \
     } while (0)
 
+
+
+/*
+ * conditional set operations
+ */
+#define i386_setcc_reg(opc,reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) (0x90 + i386_jcc_map[(opc)]); \
+        i386_emit_reg(0,(reg)); \
+    } while (0)
+
+
+#define i386_setcc_membase(opc,basereg,disp) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) (0x90 + i386_jcc_map[(opc)]); \
+        i386_emit_membase((basereg),(disp),0); \
+    } while (0)
 
 
 
@@ -991,6 +1082,13 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_fistl_membase(basereg,disp) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdb; \
+        i386_emit_membase((basereg),(disp),2); \
+    } while (0)
+
+
 #define i386_fistpl_membase(basereg,disp) \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xdb; \
@@ -1102,6 +1200,14 @@ static const unsigned char i386_jcc_map[] = {
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xdf; \
         *(((u1 *) mcodeptr)++) = (u1) 0xe0; \
+    } while (0)
+
+
+#define i386_finit() \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x9b; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdb; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xe3; \
     } while (0)
 
 

@@ -591,7 +591,7 @@ static void block_genmcode(basicblock *b)
 			a = dseg_addaddress (c->u.a.value);
 			M_LLD(REG_ITMP1, REG_PV, a);
 			M_LST(REG_ITMP1, REG_SP, 0);
-			a = dseg_addaddress ((void*) (builtin_trace_args));
+/*  			a = dseg_addaddress ((void*) (builtin_trace_args)); */
 			M_LLD(REG_PV, REG_PV, a);
 			M_JSR (REG_RA, REG_PV);
 			if (mcodelen<=32768) M_LDA (REG_PV, REG_RA, -mcodelen);

@@ -119,8 +119,6 @@ synchronize_caches:
 #define     ExHandlerPC     -24
 #define     ExCatchType     -32
 
-/*	.ent    asm_calljavamethod */
-
 call_name:
 	.ascii  "calljavamethod\0\0"
 
@@ -140,32 +138,29 @@ call_name:
 
 asm_calljavamethod:
 
-/*	ldgp    gp,0(pv) */
-/*	lda     sp,-32(sp)                /* allocate stack space                 */
 		pushl	%ebp                  /* allocate stack space                 */
 		movl	%esp, %ebp
-/*	stq     gp,24(sp)                 /* save global pointer                  */
-/*	stq     ra,0(sp)                  /* save return address                  */
 
-/*	stq     a0,16(sp)                 /* save method pointer for compiler     */
-/*	lda     v0,16(sp)                 /* pass pointer to method pointer via v0*/
+		subl	$32,%esp              /* pass the remaining parameters        */
+		xorl	%edx,%edx
 
-/*	mov     a1,a0                     /* pass the remaining parameters        */
-/*	mov     a2,a1 */
-/*	mov     a3,a2 */
-/*	mov     a4,a3 */
-		pushl	24(%ebp)              /* pass the remaining parameters        */
-		pushl   20(%ebp)
-		pushl	16(%ebp)
-		pushl	12(%ebp)
-		movl	8(%ebp),%eax
-				
-/*	lda     $28,asm_call_jit_compiler /* fake virtual function call (2 instr) */
-/*	stq     $28,8(sp)                 /* store function address               */
-/*	mov     sp,$28                    /* set method pointer                   */
+		movl	%edx,28(%esp)         /* convert parms to 8 byte              */
+		movl	24(%ebp),%eax
+		movl	%eax,24(%esp)
+		
+		movl	%edx,20(%esp)
+		movl	20(%ebp),%eax
+		movl	%eax,16(%esp)
 
-/*	ldq     pv,8($28)                 /* method call as in Java               */
-/*	jmp     ra,(pv)                   /* call JIT compiler                    */
+		movl	%edx,12(%esp)
+		movl	16(%ebp),%eax
+		movl	%eax,8(%esp)
+
+		movl	%edx,4(%esp)
+		movl	12(%ebp),%eax
+		movl	%eax,(%esp)
+
+		movl	8(%ebp),%eax          /* move function pointer to %eax        */
 
 /*		pushl	%ebp                  /* save %ebp, cause it's a tmp reg      */
 		
@@ -178,21 +173,18 @@ calljava_jit:
 
 calljava_return:
 
-/*	ldq     ra,0(sp)                  /* restore return address               */
-/*	ldq     gp,24(sp)                 /* restore global pointer               */
-/*	lda     sp,32(sp)                 /* free stack space                     */
-		addl	$20, %esp             /* free stack space                     */
+		addl	$32,%esp              /* free stack space                     */
+		
 /*	ldl     v0,newcompiler            /* load newcompiler flag                */
 		movl    newcompiler, %eax     /* load newcompiler flag                */
 /*	subq    v0,1,v0                   /* negate for clearing v0               */
-		subl    $1, %eax              /* negate for clearing v0               */
+		subl    $1,%eax               /* negate for clearing v0               */
 /*	beq     v0,calljava_ret           /* if newcompiler skip ex copying       */
-		cmpl    $0, %eax              /* if newcompiler skip ex copying       */
+		cmpl    $0,%eax               /* if newcompiler skip ex copying       */
 		je      calljava_ret
 /*	mov     $1,v0                     /* pass exception to caller (C)         */
 		movl    $1, %eax              /* pass exception to caller (C)         */
 calljava_ret:
-/*	jmp     zero,(ra) */
 		leave
 		ret
 
@@ -200,7 +192,7 @@ calljava_xhandler:
 
 /*	ldq     gp,24(sp)                 /* restore global pointer               */
 /*	mov     itmp1,a0 */
-		movl	$0, %eax
+		movl	$0,%eax
 /*	jsr     ra,builtin_throw_exception */
 		call    builtin_throw_exception
 /*	ldq     ra,0(sp)                  /* restore return address               */
@@ -208,7 +200,6 @@ calljava_xhandler:
 /*	jmp     zero,(ra) */
 		leave
 		ret
-/*	.end    asm_calljavamethod */
 
 
 /********************* function asm_calljavafunction ***************************
@@ -224,8 +215,6 @@ calljava_xhandler:
 *         void *arg1, void *arg2, void *arg3, void *arg4);                     *
 *                                                                              *
 *******************************************************************************/
-
-/*	.ent    asm_calljavafunction */
 
 call_name2:
 	.ascii  "calljavafunction\0\0"
@@ -245,50 +234,43 @@ call_name2:
 	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
-/*	ldgp    gp,0(pv) */
-/*	lda     sp,-32(sp)                /* allocate stack space                 */
 		pushl	%ebp                  /* allocate stack space                 */
 		movl	%esp, %ebp
-		subl	$8, %esp
-/*	stq     gp,24(sp)                 /* save global pointer                  */
-/*	stq     ra,0(sp)                  /* save return address                  */
 
-/*	stq     a0,16(sp)                 /* save method pointer for compiler     */
-/*	lda     v0,16(sp)                 /* pass pointer to method pointer via v0*/
+		subl	$32,%esp              /* pass the remaining parameters        */
+		xorl	%edx,%edx
 
-/*	mov     a1,a0                     /* pass the remaining parameters        */
-/*	mov     a2,a1 */
-/*	mov     a3,a2 */
-/*	mov     a4,a3 */
-		pushl	24(%ebp)              /* pass the remaining parameters        */
-		pushl	20(%ebp)
-		pushl	16(%ebp)
-		pushl	12(%ebp)
-		movl	8(%ebp),%eax          /* method pointer is passed in %eax     */
+		movl	%edx,28(%esp)         /* convert parms to 8 byte              */
+		movl	24(%ebp),%eax
+		movl	%eax,24(%esp)
+		
+		movl	%edx,20(%esp)
+		movl	20(%ebp),%eax
+		movl	%eax,16(%esp)
 
-/*	lda     $28,asm_call_jit_compiler /* fake virtual function call (2 instr) */
-/*	stq     $28,8(sp)                 /* store function address               */
-/*	mov     sp,$28                    /* set method pointer                   */
+		movl	%edx,12(%esp)
+		movl	16(%ebp),%eax
+		movl	%eax,8(%esp)
 
-/*	ldq     pv,8($28)                 /* method call as in Java               */
-/*	jmp     ra,(pv)                   /* call JIT compiler                    */
+		movl	%edx,4(%esp)
+		movl	12(%ebp),%eax
+		movl	%eax,(%esp)
+
+		movl	8(%ebp),%eax          /* move function pointer to %eax        */
+
+/*		pushl	%ebp                  /* save %ebp, cause it's a tmp reg      */
+		
 		call	asm_call_jit_compiler /* call JIT compiler                    */
+		
+/*		popl	%ebp                  /* restore %ebp, changed in java code   */
+		
 calljava_jit2:
-/*	lda     pv,-64(ra)                /* asm_calljavafunction-calljava_jit !!!!!*/
+/*	lda     pv,-64(ra)                /* asm_calljavamethod-calljava_jit !!!!!*/
 
 calljava_return2:
-
-/*	ldq     ra,0(sp)                  /* restore return address               */
-/*	ldq     gp,24(sp)                 /* restore global pointer               */
-/*	lda     sp,32(sp)                 /* free stack space                     */
-		addl	$0x10, %esp           /* free stack space                     */
-
-/*	ldl     v0,newcompiler */         /* load newcompiler flag                */
-/*	subq    v0,1,v0        */         /* negate for clearing v0               */
-/*	beq     v0,calljava_ret*/         /* if newcompiler skip ex copying       */
-/*	mov     $1,v0 */                  /* pass exception to caller (C)         */
+		addl	$32,%esp              /* free stack space                     */
+		
 calljava_ret2:
-/*	jmp     zero,(ra) */
 		leave
 		ret
 
@@ -296,15 +278,14 @@ calljava_xhandler2:
 
 /*	ldq     gp,24(sp)                 /* restore global pointer               */
 /*	mov     itmp1,a0 */
-		movl	$0, %eax
+		movl	$0,%eax
 /*	jsr     ra,builtin_throw_exception */
-		call builtin_throw_exception
+		call    builtin_throw_exception
 /*	ldq     ra,0(sp)                  /* restore return address               */
 /*	lda     sp,32(sp)                 /* free stack space                     */
 /*	jmp     zero,(ra) */
 		leave
 		ret
-/*	.end    asm_calljavafunction */
 						
 
 /****************** function asm_call_jit_compiler *****************************
@@ -479,8 +460,17 @@ asm_builtin_checkcast:
 *******************************************************************************/
 
 asm_builtin_checkarraycast:
-	xorl		%eax,%eax
-	movl		$0,(%eax)
+	subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
+
+	movl	12(%esp),%eax
+	movl	%eax,(%esp)
+
+	movl	20(%esp),%eax
+	movl	%eax,4(%esp)
+
+	call	builtin_checkarraycast
+	
+	addl	$8,%esp
 	ret
 		
 
