@@ -1,4 +1,4 @@
-/* nat/SecurityManager.c - java/lang/SecurityManager
+/* native/vm/VMSecurityManager.c - java/lang/VMSecurityManager
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSecurityManager.c 1697 2004-12-06 12:33:42Z twisti $
+   $Id: VMSecurityManager.c 1716 2004-12-06 17:01:21Z twisti $
 
 */
 
@@ -43,7 +43,7 @@
 
 
 /*
- * Class:     java/lang/SecurityManager
+ * Class:     java/lang/VMSecurityManager
  * Method:    currentClassLoader
  * Signature: ()Ljava/lang/ClassLoader;
  */
@@ -57,16 +57,16 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMSecurityManager_curren
 #if defined(__I386__) || defined(__ALPHA__)
 	return (java_lang_ClassLoader *) cacao_currentClassLoader();
 #else
-	return 0;
+/*  	return 0; */
+	/* XXX TWISTI: only a quick hack */
+	init_systemclassloader();
+	return SystemClassLoader;
 #endif
-/*	init_systemclassloader();
-
-	return SystemClassLoader;*/
 }
 
 
 /*
- * Class:     java/lang/SecurityManager
+ * Class:     java/lang/VMSecurityManager
  * Method:    getClassContext
  * Signature: ()[Ljava/lang/Class;
  */
@@ -77,7 +77,10 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMSecurityManager_getClassCon
 #if defined(__I386__) || defined(__ALPHA__)
 	return cacao_createClassContextArray();
 #else
-	return 0;
+/*  	return 0; */
+
+	/* XXX TWISTI: only a quick hack */
+	return (java_objectarray *) builtin_newarray(0, class_array_of(class_java_lang_Class)->vftbl);
 #endif
 }
 
