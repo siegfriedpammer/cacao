@@ -26,12 +26,16 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 601 2003-11-11 19:03:30Z carolyn $
+   $Id: parseRTstats.c 620 2003-11-13 13:50:10Z twisti $
 
 */
 
 
 #include "parseRT.h"
+#include "loader.h"
+#include "tables.h"
+#include "toolbox/loging.h"
+
 
 /*--- Statistics ----------------------------------------------------------*/
 
@@ -93,7 +97,7 @@ int pStats = 0;         /* 0 - don't print; 1= analysis only; 2= whole unanalyse
 
 /*-----------------------------------------------------------------------------------------------*/
 /*-----------------------------------------------------------------------------------------------*/
-void printXTACallgraph ()
+void printXTACallgraph()
 { 
 	int i;
 
