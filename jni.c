@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 790 2003-12-16 15:46:40Z edwin $
+   $Id: jni.c 791 2003-12-16 18:49:19Z edwin $
 
 */
 
@@ -56,6 +56,8 @@
 #include "asmpart.h"	
 #define JNI_VERSION       0x00010002
 
+
+#define PTR_TO_ITEM(ptr)   ((u8)(size_t)(ptr))
 
 static utf* utf_char = 0;
 static utf* utf_bool = 0;
@@ -120,7 +122,7 @@ void fill_callblock(void *obj,utf *descr,jni_callblock blk[], va_list data, char
     /* determine number of parameters */
    if (obj) {
 	   blk[0].itemtype=TYPE_ADR;
-	   blk[0].item=(u8)(u4)obj;
+	   blk[0].item=PTR_TO_ITEM(obj);
 	   cnt=1;
    } else cnt=0;
    while ( **utf_ptr != ')' ) {
@@ -163,7 +165,7 @@ void fill_callblock(void *obj,utf *descr,jni_callblock blk[], va_list data, char
         	            while (utf_nextu2(utf_ptr)!=';')
 
  			    blk[cnt].itemtype=TYPE_ADR;
-			    blk[cnt].item=(u8)(u4)va_arg(data,void*);
+				blk[cnt].item=PTR_TO_ITEM(va_arg(data,void*));
 	                    break;			
 	                 }
 	      case '[' : {
@@ -178,7 +180,7 @@ void fill_callblock(void *obj,utf *descr,jni_callblock blk[], va_list data, char
 	
 			     ch=utf_nextu2(utf_ptr);
 			    blk[cnt].itemtype=TYPE_ADR;
-			    blk[cnt].item=(u8)(u4)va_arg(data,void*);
+			    blk[cnt].item=PTR_TO_ITEM(va_arg(data,void*));
 	                    break;			
                 	 }
 	}
@@ -233,7 +235,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
     /* determine number of parameters */
 	if (obj) {
 		blk[0].itemtype = TYPE_ADR;
-		blk[0].item = (u8)(u4)obj;
+		blk[0].item = PTR_TO_ITEM(obj);
 		cnt=1;
 
 	} else {
@@ -421,7 +423,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 					}			
 				}
    			        blk[cnt].itemtype = TYPE_ADR;
-			        blk[cnt].item= (u8)(u4) (params->data[cnts]);
+			        blk[cnt].item= PTR_TO_ITEM(params->data[cnts]);
 				break;			
 
 			  }
@@ -444,7 +446,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 				}
 	
 				blk[cnt].itemtype = TYPE_ADR;
-				blk[cnt].item = (u8)(u4) (params->data[cnts]);
+				blk[cnt].item = PTR_TO_ITEM(params->data[cnts]);
 				break;
 			}
 		}
