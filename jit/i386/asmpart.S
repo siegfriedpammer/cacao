@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: asmpart.S 1140 2004-06-05 20:58:14Z twisti $
 
 */
 
@@ -73,9 +73,11 @@
 /********************* exported functions and variables ***********************/
 
 	.globl asm_calljavafunction
+	.globl calljava_xhandler
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2long
 	.globl asm_calljavafunction2double
+	.globl calljava_xhandler2
 
 	.globl asm_call_jit_compiler
 	.globl asm_handle_builtin_exception
@@ -157,56 +159,56 @@ call_name:
 	.long   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
-		push	%ebp                  /* allocate stack space                 */
-		mov		%esp, %ebp
+	push    %ebp                      /* allocate stack space                 */
+	mov     %esp, %ebp
 
-        push    %ebx                  /* save registers                       */
-        push    %esi
-        push    %edi
+	push    %ebx                      /* save registers                       */
+	push    %esi
+	push    %edi
         
-		sub		$32,%esp              /* pass the remaining parameters        */
-		xor		%edx,%edx
+	sub     $32,%esp                  /* pass the remaining parameters        */
+	xor     %edx,%edx
 
-		mov		%edx,28(%esp)         /* convert parms to 8 byte              */
-		mov		24(%ebp),%eax
-		mov		%eax,24(%esp)
+	mov     %edx,28(%esp)             /* convert parms to 8 byte              */
+	mov     24(%ebp),%eax
+	mov     %eax,24(%esp)
 		
-		mov		%edx,20(%esp)
-		mov		20(%ebp),%eax
-		mov		%eax,16(%esp)
+	mov     %edx,20(%esp)
+	mov     20(%ebp),%eax
+	mov     %eax,16(%esp)
 
-		mov		%edx,12(%esp)
-		mov		16(%ebp),%eax
-		mov		%eax,8(%esp)
+	mov     %edx,12(%esp)
+	mov     16(%ebp),%eax
+	mov     %eax,8(%esp)
 
-		mov		%edx,4(%esp)
-		mov		12(%ebp),%eax
-		mov		%eax,(%esp)
+	mov     %edx,4(%esp)
+	mov     12(%ebp),%eax
+	mov     %eax,(%esp)
 
-		mov		8(%ebp),%eax          /* move function pointer to %eax        */
+	mov     8(%ebp),%eax              /* move function pointer to %eax        */
 
-		lea		asm_call_jit_compiler,%edx 
-		call	*%edx                 /* call JIT compiler                    */
+	lea     asm_call_jit_compiler,%edx 
+	call    *%edx                     /* call JIT compiler                    */
 	
 calljava_return:
-        add     $32,%esp
-        pop     %edi                 /* restore registers                     */
-        pop     %esi
-        pop     %ebx
-		leave
-		ret
+	add     $32,%esp
+	pop     %edi                      /* restore registers                    */
+	pop     %esi
+	pop     %ebx
+	leave
+	ret
 
 calljava_xhandler:
-		push    %eax				  /* pass exception pointer               */
-		call    builtin_throw_exception
-		add     $4,%esp
+	push    %eax                      /* pass exception pointer               */
+	call    builtin_throw_exception
+	add     $4,%esp
 
-   		add     $32,%esp
-        pop     %edi                 /* restore registers                     */
-        pop     %esi
-        pop     %ebx
-        leave
-		ret
+	add     $32,%esp
+	pop     %edi                      /* restore registers                    */
+	pop     %esi
+	pop     %ebx
+	leave
+	ret
 
 
 /********************* function asm_calljavafunction ***************************
