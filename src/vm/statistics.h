@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 2026 2005-03-10 13:31:37Z twisti $
+   $Id: statistics.h 2080 2005-03-25 13:35:06Z edwin $
 
 */
 
@@ -72,6 +72,8 @@ extern s4 globaluseddumpsize;
 
 extern int count_class_infos;           /* variables for measurements         */
 extern int count_const_pool_len;
+extern int count_classref_len;
+extern int count_parsed_desc_len;
 extern int count_vftbl_len;
 extern int count_all_methods;
 extern int count_methods_marked_used;  /*RTA*/

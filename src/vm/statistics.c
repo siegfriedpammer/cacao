@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 2026 2005-03-10 13:31:37Z twisti $
+   $Id: statistics.c 2080 2005-03-25 13:35:06Z edwin $
 
 */
 
@@ -62,6 +62,8 @@ s4 globaluseddumpsize = 0;
 
 int count_class_infos = 0;              /* variables for measurements         */
 int count_const_pool_len = 0;
+int count_classref_len = 0;
+int count_parsed_desc_len = 0;
 int count_vftbl_len = 0;
 int count_all_methods = 0;
 int count_methods_marked_used = 0;  /* RTA */
@@ -469,6 +471,10 @@ void print_stats()
 	sprintf(logtext, "Size of Class Infos (Kb):%10.3f", (float) (count_class_infos) / 1024);
 	log_text(logtext);
 	sprintf(logtext, "Size of Const Pool (Kb): %10.3f", (float) (count_const_pool_len + count_utf_len) / 1024);
+	log_text(logtext);
+	sprintf(logtext, "Size of Class refs (Kb): %10.3f", (float) (count_classref_len) / 1024);
+	log_text(logtext);
+	sprintf(logtext, "Size of descriptors(Kb): %10.3f", (float) (count_parsed_desc_len) / 1024);
 	log_text(logtext);
 	sprintf(logtext, "Size of Vftbl (Kb):      %10.3f", (float) count_vftbl_len / 1024);
 	log_text(logtext);
