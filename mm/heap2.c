@@ -491,7 +491,7 @@ heap_addreference (void **reflocation)
 	   in blocks on the heap; we'll have to add JIT-Marker code for those Java
 	   objects then. -- phil. */
 
-	heap_add_address_to_address_list(&references, reflocation);
+	heap_add_address_to_address_list_unsorted(&references, reflocation);
 }
 
 static
