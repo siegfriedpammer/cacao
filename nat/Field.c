@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Field.c 1344 2004-07-21 17:12:53Z twisti $
+   $Id: Field.c 1537 2004-11-18 12:12:05Z twisti $
 
 */
 
@@ -39,9 +39,9 @@
 #include "loader.h"
 #include "native.h"
 #include "tables.h"
-#include "java_lang_Object.h"
-#include "java_lang_Class.h"
-#include "java_lang_reflect_Field.h"
+#include "nat/java_lang_Object.h"
+#include "nat/java_lang_Class.h"
+#include "nat/java_lang_reflect_Field.h"
 
 
 /*

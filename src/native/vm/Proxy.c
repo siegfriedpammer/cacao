@@ -28,15 +28,15 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Proxy.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: Proxy.c 1537 2004-11-18 12:12:05Z twisti $
 
 */
 
 
 #include "jni.h"
 #include "toolbox/logging.h"
-#include "java_lang_Class.h"
-#include "java_lang_ClassLoader.h"
+#include "nat/java_lang_Class.h"
+#include "nat/java_lang_ClassLoader.h"
 
 
 /*

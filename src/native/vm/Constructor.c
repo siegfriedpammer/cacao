@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Constructor.c 1344 2004-07-21 17:12:53Z twisti $
+   $Id: Constructor.c 1537 2004-11-18 12:12:05Z twisti $
 
 */
 
@@ -43,9 +43,9 @@
 #include "asmpart.h"
 #include "options.h"
 #include "toolbox/logging.h"
-#include "java_lang_Object.h"
-#include "java_lang_Class.h"
-#include "java_lang_reflect_Constructor.h"
+#include "nat/java_lang_Object.h"
+#include "nat/java_lang_Class.h"
+#include "nat/java_lang_reflect_Constructor.h"
 
 
 /*
@@ -101,7 +101,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 		/* && 
 		   (m->descriptor == create_methodsig(this->parameterTypes,"V"))))*/
 		{
-			if (verbose) {
+			if (opt_verbose) {
 				char logtext[MAXLOGTEXT];
 				sprintf(logtext, "Warning: class has no instance-initializer of specified type: ");
 				utf_sprint(logtext + strlen(logtext), ((classinfo *) clazz)->name);
