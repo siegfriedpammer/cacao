@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 833 2004-01-04 22:10:24Z jowenn $
+   $Id: main.c 841 2004-01-05 00:43:03Z twisti $
 
 */
 
@@ -65,43 +65,50 @@
 
 bool verbose =  false;
 bool compileall = false;
-bool runverbose = false;
+bool runverbose = false;       /* trace all method invocation                */
 bool collectverbose = false;
 
 bool loadverbose = false;
 bool linkverbose = false;
 bool initverbose = false;
 
-bool opt_rt = false;            /* true if RTA parse should be used     RT-CO */
-bool opt_xta = false;           /* true if XTA parse should be used    XTA-CO */
-bool opt_vta = false;           /* true if VTA parse should be used    VTA-CO */
+bool opt_rt = false;           /* true if RTA parse should be used     RT-CO */
+bool opt_xta = false;          /* true if XTA parse should be used    XTA-CO */
+bool opt_vta = false;          /* true if VTA parse should be used    VTA-CO */
 
 bool showmethods = false;
 bool showconstantpool = false;
 bool showutf = false;
 
-bool compileverbose =  false;
+bool compileverbose =  false;  /* trace compiler actions                     */
 bool showstack = false;
-bool showdisassemble = false; 
-bool showddatasegment = false; 
-bool showintermediate = false;
+bool showdisassemble = false;  /* generate disassembler listing              */
+bool showddatasegment = false; /* generate data segment listing              */
+bool showintermediate = false; /* generate intermediate code listing         */
 
-bool useinlining = false;
-bool inlinevirtuals = false;
-bool inlineexceptions = false;
-bool inlineparamopt = false;
-bool inlineoutsiders = false;
+bool useinlining = false;      /* use method inlining                        */
+bool inlinevirtuals = false;   /* inline unique virtual methods              */
+bool inlineexceptions = false; /* inline methods, that contain excptions     */
+bool inlineparamopt = false;   /* optimize parameter passing to inlined methods */
+bool inlineoutsiders = false;  /* inline methods, that are not member of the invoker's class */
 
-bool checkbounds = true;
-bool checknull = true;
-bool opt_noieee = false;
-bool checksync = true;
-bool opt_loops = false;
+bool checkbounds = true;       /* check array bounds                         */
+bool checknull = true;         /* check null pointers                        */
+bool opt_noieee = false;       /* don't implement ieee compliant floats      */
+bool checksync = true;         /* do synchronization                         */
+bool opt_loops = false;        /* optimize array accesses in loops           */
 
 bool makeinitializations = true;
 
 bool getloadingtime = false;   /* to measure the runtime                     */
 s8 loadingtime = 0;
+
+bool getcompilingtime = false; /* compute compile time                       */
+s8 compilingtime = 0;          /* accumulated compile time                   */
+
+int has_ext_instr_set = 0;     /* has instruction set extensions */
+
+bool statistics = false;
 
 bool opt_verify = true;        /* true if classfiles should be verified      */
 
@@ -515,16 +522,15 @@ static void print_stats()
 }
 
 
-
 /********** Function: class_compile_methods   (debugging only) ********/
 
-void class_compile_methods ()
+void class_compile_methods()
 {
 	int        i;
 	classinfo  *c;
 	methodinfo *m;
 	
-	c = list_first (&linkedclasses);
+	c = list_first(&linkedclasses);
 	while (c) {
 		for (i = 0; i < c -> methodscount; i++) {
 			m = &(c->methods[i]);
@@ -535,7 +541,6 @@ void class_compile_methods ()
 		c = list_next(&linkedclasses, c);
 	}
 }
-
 
 
 /*

@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: cacao.h 749 2003-12-13 22:14:42Z twisti $
+   $Id: cacao.h 841 2004-01-05 00:43:03Z twisti $
 
 */
 
@@ -78,6 +78,13 @@ extern bool makeinitializations;
 
 extern bool getloadingtime;
 extern s8 loadingtime;
+
+extern bool getcompilingtime;
+extern s8 compilingtime;
+
+extern int has_ext_instr_set;
+
+extern bool statistics;
 
 #endif /* _MAIN_H */
 
