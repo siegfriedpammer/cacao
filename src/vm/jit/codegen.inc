@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1503 2004-11-14 12:58:52Z twisti $
+   $Id: codegen.inc 1565 2004-11-23 15:56:37Z twisti $
 
 */
 
@@ -133,6 +133,7 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 	cd->xcastrefs = NULL;
 	cd->xdivrefs = NULL;
 	cd->xexceptionrefs = NULL;
+	cd->clinitrefs = NULL;
 
 	cd->linenumberreferences = NULL;
 	cd->linenumbertablesizepos = 0;
@@ -518,6 +519,23 @@ static void codegen_addxdivrefs(codegendata *cd, void *branchptr)
 #endif
 
 
+static void codegen_addclinitref(codegendata *cd,
+								 void *branchptr,
+								 classinfo *class)
+{
+	s4 branchpos;
+	clinitref *cr;
+
+	branchpos = (u1 *) branchptr - cd->mcodebase;
+
+	cr = DNEW(clinitref);
+	cr->branchpos = branchpos;
+	cr->class = class;
+	cr->next = cd->clinitrefs;
+	cd->clinitrefs = cr;
+}
+
+
 static void codegen_createlinenumbertable(codegendata *cd)
 {
 #ifdef __I386__
@@ -702,15 +720,16 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
 		for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
 			lrtlen++;
-			*((void**) (epoint + lr->tablepos)) = epoint + lr->targetmpc;
+			*((functionptr *) ((long) epoint + (long) lr->tablepos)) =
+				(functionptr) ((long) epoint + (long) lr->targetmpc);
 		}
 		
-		*((void**) (epoint + cd->linenumbertablestartpos)) =
-			epoint + cd->linenumbertab;
+		*((functionptr *) ((long) epoint + cd->linenumbertablestartpos)) =
+			(functionptr) ((long) epoint + cd->linenumbertab);
 #if POINTERSIZE == 8
-		*((s8*) (epoint + cd->linenumbertablesizepos)) = lrtlen;
+		*((s8 *) ((s8) epoint + cd->linenumbertablesizepos)) = lrtlen;
 #else
-		*((s4*) (epoint + cd->linenumbertablesizepos)) = lrtlen;
+		*((s4 *) ((s4) epoint + cd->linenumbertablesizepos)) = lrtlen;
 #endif
 	}
 #endif

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: codegen.inc.h 1494 2004-11-12 13:34:26Z twisti $
+   $Id: codegen.inc.h 1565 2004-11-23 15:56:37Z twisti $
 
 */
 
@@ -41,6 +41,7 @@ typedef struct codegendata codegendata;
 typedef struct branchref branchref;
 typedef struct jumpref jumpref;
 typedef struct dataref dataref;
+typedef struct clinitref clinitref;
 typedef struct linenumberref linenumberref;
 typedef struct threadcritnodetemp threadcritnodetemp;
 
@@ -91,6 +92,7 @@ struct codegendata {
 	branchref *xcastrefs;           /* list of cast check branches            */
 	branchref *xdivrefs;            /* list of divide by zero branches        */
 	branchref *xexceptionrefs;      /* list of exception branches             */
+	clinitref *clinitrefs;
 
 	linenumberref *linenumberreferences; /* list of line numbers and the      */
 	                                /* program counters of their first        */
@@ -132,6 +134,18 @@ struct jumpref {
 struct dataref {
 	u1 *pos;                    /* patching position in generated code        */
 	dataref *next;              /* next element in dataref list               */
+};
+
+
+struct clinitref {
+	s4         branchpos;
+	classinfo *class;
+	u4         mcode;
+#if defined(__I386__) || defined(__X86_64__)
+	u1         xmcode;
+	u1        *mcodeptr;        /* codegendata dummy pointer to generate code */
+#endif
+	clinitref *next;
 };
 
 
