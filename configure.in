@@ -23,7 +23,7 @@ alpha* )
 mips* )
 	SYSDEP_DIR="mips" 
         CFLAGS="-64 -g -DMAP_ANONYMOUS=0 -woff 1048,1110,1164,1515"
-	LIBS="-lelfutil" 
+dnl	LIBS="-lelfutil" 
 	COMPILER_SOURCES=""
 	COMPILER_OBJECTS=""
 	;;
