@@ -100,5 +100,8 @@ void thread_registercritical(threadcritnode *);
 
 extern volatile int stopworldwhere;
 
+void cast_stopworld();
+void cast_startworld();
+
 #endif /* _NATIVETHREAD_H */
 

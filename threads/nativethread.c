@@ -132,8 +132,12 @@ static u1 *thread_checkcritical(u1 *mcodeptr)
 	return (n && mcodeptr < n->mcodeend) ? n->mcodebegin : NULL;
 }
 
+static pthread_mutex_t threadlistlock = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
+
 static pthread_mutex_t stopworldlock = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
 volatile int stopworldwhere;
+
+static sem_t suspend_ack;
 
 /*
  * where - 1 from within GC
@@ -151,7 +155,47 @@ void unlock_stopworld()
 	pthread_mutex_unlock(&stopworldlock);
 }
 
-static sem_t suspend_ack;
+/* Caller must hold threadlistlock */
+static int cast_sendsignals(int sig, int count)
+{
+	/* Count threads */
+	threadobject *tobj = mainthreadobj;
+	nativethread *infoself = THREADINFO;
+
+	if (count == 0)
+		do {
+			count++;
+			tobj = tobj->info.next;
+		} while (tobj != mainthreadobj);
+
+	do {
+		nativethread *info = &tobj->info;
+		if (info != infoself)
+			pthread_kill(info->tid, sig);
+		tobj = tobj->info.next;
+	} while (tobj != mainthreadobj);
+
+	return count-1;
+}
+
+void cast_stopworld()
+{
+	int count, i;
+	lock_stopworld(2);
+	pthread_mutex_lock(&threadlistlock);
+	count = cast_sendsignals(GC_signum1(), 0);
+	for (i=0; i<count; i++)
+		sem_wait(&suspend_ack);
+	pthread_mutex_unlock(&threadlistlock);
+}
+
+void cast_startworld()
+{
+	pthread_mutex_lock(&threadlistlock);
+	cast_sendsignals(GC_signum2(), -1);
+	pthread_mutex_unlock(&threadlistlock);
+	unlock_stopworld();
+}
 
 static void sigsuspend_handler(struct sigcontext *ctx)
 {
@@ -197,10 +241,9 @@ void
 initThreadsEarly()
 {
 	struct sigaction sa;
-//	int sig1 = GC_signum1(), sig2 = GC_signum2();
 
 	/* Allocate something so the garbage collector's signal handlers are  */
-	/* initalized. */
+	/* installed. */
 	heap_allocate(1, false, NULL);
 
 	mainthreadobj = NEW(threadobject);
@@ -211,6 +254,7 @@ initThreadsEarly()
 	setthreadobject(mainthreadobj);
 
     criticaltree = avl_create(criticalcompare, NULL, NULL);
+	sem_init(&suspend_ack, 0, 0);
 }
 
 static void freeLockRecordPools(lockRecordPool *);
@@ -221,8 +265,6 @@ initThreads(u1 *stackbottom)
 	classinfo *threadclass;
 	java_lang_Thread *mainthread;
 	threadobject *tempthread = mainthreadobj;
-
-//	exit(1);
 
 	threadclass = loader_load_sysclass(NULL,utf_new_char("java/lang/Thread"));
 	assert(threadclass);
@@ -257,8 +299,6 @@ void initThread(java_lang_Thread *t)
 	pthread_mutex_init(&info->joinMutex, NULL);
 	pthread_cond_init(&info->joinCond, NULL);
 }
-
-static pthread_mutex_t threadlistlock = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
 
 static void initThreadLocks(threadobject *);
 
