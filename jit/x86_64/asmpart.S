@@ -29,12 +29,13 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1521 2004-11-17 12:49:38Z twisti $
+   $Id: asmpart.S 1524 2004-11-17 15:49:32Z twisti $
 
 */
 
 
 #include "config.h"
+#include "jit/x86_64/arch.h"
 #include "jit/x86_64/offsets.h"
 
 
@@ -218,186 +219,177 @@ call_name2:
 asm_calljavafunction2:
 asm_calljavafunction2double:
 asm_calljavafunction2long:
-	sub     $(3*8),%rsp               /* keep stack 16-byte aligned           */
+	sub     $(7*8),%rsp               /* keep stack 16-byte aligned           */
 	mov     %rbx,0*8(%rsp)            /* %rbx is not a callee saved in cacao  */
-	mov     %r14,1*8(%rsp)
-	mov     %r15,2*8(%rsp)
+	mov     %rbp,1*8(%rsp)
+	mov     %r12,2*8(%rsp)
+	mov     %r13,3*8(%rsp)
+	mov     %r14,4*8(%rsp)
+	mov     %r15,5*8(%rsp)
 
 	mov     %rdi,%rax                 /* move method pointer for compiler     */
 
-	test    %r11,%r11                 /* maybe we have no args...             */
-	jle     L_copydone
+	mov     %rsi,itmp3                /* arg count                            */
+	mov     %rcx,itmp2                /* pointer to arg block                 */
+		
+	test    itmp3,itmp3               /* maybe we have no args...             */
+	jle     L_copy_done
 
-	mov     %rsi,%r11                 /* arg count                            */
-	mov     %rcx,%r10                 /* pointer to arg block                 */
+	mov     itmp2,%r14                /* save argument block pointer          */
+	mov     itmp3,%r15                /* save argument count                  */
 
-	mov     %r10,%r14                 /* save argument block pointer          */
-	mov     %r11,%r15                 /* save argument count                  */
-	sub     $sizejniblock,%r10        /* initialize pointer (smaller code)    */
-	add     $1,%r11                   /* initialize argument counter          */
+	sub     $sizejniblock,itmp2       /* initialize pointer (smaller code)    */
+	add     $1,itmp3                  /* initialize argument count            */
+	xor     %r12,%r12                 /* initialize integer argument counter  */
+	xor     %r13,%r13                 /* initialize float argument counter    */
 
-L_a0:
-	sub     $1,%r11                   /* argument count - 1                   */
- 	jz      L_integer_copydone        /* are we out of arguments?             */
-	add     $sizejniblock,%r10        /* goto next argument                   */
-	andb    $0x02,offjniitemtype(%r10)/* is this a float/double type?         */
-	jnz     L_a0                      /* yes, goto next argument              */
-	mov     offjniitem(%r10),a0       /* no, move arg into register           */
+L_register_copy:
+	add     $sizejniblock,itmp2       /* goto next argument block             */
+	dec     itmp3                     /* argument count - 1                   */
+	jz      L_register_copy_done
+	andb    $0x02,offjniitemtype(itmp2) /* is this a float/double type?       */
+	jnz     L_register_handle_float   /* yes, handle it                       */
 
-L_a1:
-	sub     $1,%r11
- 	jz      L_integer_copydone
-	add     $sizejniblock,%r10
-	andb    $0x02,offjniitemtype(%r10)
-	jnz     L_a1
-	mov     offjniitem(%r10),a1
+	cmp     $(INT_ARG_CNT - 1),%r12   /* are we out of integer argument       */
+	je      L_register_copy           /* register? yes, next loop             */
 
-L_a2:
-	sub     $1,%r11
- 	jz      L_integer_copydone
-	add     $sizejniblock,%r10
-	andb    $0x02,offjniitemtype(%r10)
-	jnz     L_a2
-	mov     offjniitem(%r10),a2
+	lea     jumptable_integer,%rbp
+	mov     0(%rbp,%r12,8),%rbx
+	inc     %r12                      /* integer argument counter + 1         */
+	jmp     *%rbx
 
-L_a3:
-	sub     $1,%r11
- 	jz      L_integer_copydone
-	add     $sizejniblock,%r10
-	andb    $0x02,offjniitemtype(%r10)
-	jnz     L_a3
-	mov     offjniitem(%r10),a3
+L_register_handle_float:
+	cmp     $(FLT_ARG_CNT - 1),%r13   /* are we out of float argument         */
+	je      L_register_copy           /* register? yes, next loop             */
 
-L_a4:
-	sub     $1,%r11
- 	jz      L_integer_copydone
-	add     $sizejniblock,%r10
-	andb    $0x02,offjniitemtype(%r10)
-	jnz     L_a4
-	mov     offjniitem(%r10),a4
+	lea     jumptable_float,%rbp
+	mov     0(%rbp,%r13,8),%rbx
+	inc     %r13                      /* float argument counter + 1           */
+	jmp     *%rbx
+	
+L_register_copy_done:
+	mov     %r15,itmp3                /* calculate remaining arguments after  */
+	sub     %r12,itmp3                /* register copy                        */
+	sub     %r13,itmp3
+	jle     L_copy_done               /* are all assigned to registers?       */
 
-L_a5:
-	sub     $1,%r11
- 	jz      L_integer_copydone
-	add     $sizejniblock,%r10
-	andb    $0x02,offjniitemtype(%r10)
-	jnz     L_a5
-	mov     offjniitem(%r10),a5
-
-
-L_integer_copydone:
-	mov     %r14,%r10                 /* restore argument block pointer       */
-	mov     %r15,%r11                 /* restore argument count               */
-	sub     $sizejniblock,%r10        /* initialize pointer (smaller code)    */
-	add     $1,%r11                   /* initialize argument count            */
-
-L_fa0:
-	sub     $1,%r11                   /* argument count - 1                   */
- 	jz      L_float_copydone          /* are we out of arguments?             */
-	add     $sizejniblock,%r10        /* goto next argument                   */
-	andb    $0x02,offjniitemtype(%r10)/* is this a float/double type?         */
-	jz      L_fa0                     /* no, goto next argument               */
-	movq    offjniitem(%r10),fa0      /* yes, move arg into register          */
-
-L_fa1:
-	sub     $1,%r11
- 	jz      L_float_copydone
-	add     $sizejniblock,%r10
-	andb    $0x02,offjniitemtype(%r10)
-	jz      L_fa1
-	movq    offjniitem(%r10),fa1
-
-L_fa2:
-	sub     $1,%r11
- 	jz      L_float_copydone
-	add     $sizejniblock,%r10
-	andb    $0x02,offjniitemtype(%r10)
-	jz      L_fa2
-	movq    offjniitem(%r10),fa2
-
-L_fa3:
-	sub     $1,%r11
- 	jz      L_float_copydone
-	add     $sizejniblock,%r10
-	andb    $0x02,offjniitemtype(%r10)
-	jz      L_fa3
-	movq    offjniitem(%r10),fa3
-
-L_fa4:
-	sub     $1,%r11
- 	jz      L_float_copydone
-	add     $sizejniblock,%r10
-	andb    $0x02,offjniitemtype(%r10)
-	jz      L_fa4
-	movq    offjniitem(%r10),fa4
-
-L_fa5:
-	sub     $1,%r11
- 	jz      L_float_copydone
-	add     $sizejniblock,%r10
-	andb    $0x02,offjniitemtype(%r10)
-	jz      L_fa5
-	movq    offjniitem(%r10),fa5
-
-L_fa6:
-	sub     $1,%r11
- 	jz      L_float_copydone
-	add     $sizejniblock,%r10
-	andb    $0x02,offjniitemtype(%r10)
-	jz      L_fa6
-	movq    offjniitem(%r10),fa6
-
-L_fa7:
-	sub     $1,%r11
- 	jz      L_float_copydone
-	add     $sizejniblock,%r10
-	andb    $0x02,offjniitemtype(%r10)
-	jz      L_fa7
-	movq    offjniitem(%r10),fa7
-
-
-L_float_copydone:
-#if 0
-	test    %r11,%r11                 /* are there any args left for the      */
-	jz      L_copydone                /* stack?                               */
-
-	mov     %r11,%rbx                 /* calculate stack size                 */
-	shl     $3,%rbx                   /* arg count * 8                        */
-	mov     %rbx,%r15                 /* save in callee saved register        */
-	sub     %rbx,%rsp                 /* stack frame for arguments            */
+	shl     $3,itmp3                  /* calculate stack size                 */
+	sub     itmp3,%rsp                /* stack frame for arguments            */
 	mov     %rsp,%rbx                 /* use %rbx as temp sp                  */
 
-calljava_stackcopyloop:
-    mov     offjniitem(%r10),%r14     /* copy s8 argument onto stack          */
-    mov     %r14,0(%rbx)
+	sub     $sizejniblock,itmp2       /* initialize pointer (smaller code)    */
+	add     $1,%r15                   /* initialize argument count            */
+		
+L_stack_copy_loop:
+	add     $sizejniblock,itmp2       /* goto next argument block             */
+	dec     %r15                      /* are there any arguments left?        */
+	jz      L_copy_done               /* no test needed after dec             */
 
-	sub     $1,%r11                   /* are there any args left?             */
-	jle     L_copydone                /* no test needed after sub             */
+	andb    $0x02,offjniitemtype(itmp2) /* is this a float/double type?       */
+	jnz     L_stack_handle_float
+	dec     %r12                      /* arguments assigned to registers      */
+	jge     L_stack_copy_loop
+	jmp     L_stack_copy
 
-	add     $sizejniblock,%r10        /* goto next argument block             */
+L_stack_handle_float:
+	dec     %r13                      /* arguments assigned to registers      */
+	jge     L_stack_copy_loop
+
+L_stack_copy:
+    mov     offjniitem(itmp2),itmp3   /* copy s8 argument onto stack          */
+    mov     itmp3,0(%rbx)
     add     $8,%rbx                   /* increase sp to next argument         */
-	jmp     calljava_stackcopyloop
-#endif
+	jmp     L_stack_copy_loop
 
-L_copydone:
+L_copy_done:
 	lea     asm_call_jit_compiler,%r11/* %rax still contains method pointer   */
 	call    *%r11                     /* call JIT compiler                    */
 
-	mov     2*8(%rsp),%r15            /* restore callee saved registers       */
-	mov     1*8(%rsp),%r14
+	mov     5*8(%rsp),%r15            /* restore callee saved registers       */
+	mov     4*8(%rsp),%r14
+	mov     3*8(%rsp),%r13
+	mov     2*8(%rsp),%r12
+	mov     1*8(%rsp),%rbp
 	mov     0*8(%rsp),%rbx
-	add     $(3*8),%rsp               /* free stack space                     */
+	add     $(7*8),%rsp               /* free stack space                     */
 	ret
 		
 calljava_xhandler2:
 	mov     %rax,%rdi                 /* pass exception pointer               */
 	call    builtin_throw_exception
 
-	mov     2*8(%rsp),%r15            /* restore callee saved registers       */
-	mov     1*8(%rsp),%r14
+	mov     5*8(%rsp),%r15            /* restore callee saved registers       */
+	mov     4*8(%rsp),%r14
+	mov     3*8(%rsp),%r13
+	mov     2*8(%rsp),%r12
+	mov     1*8(%rsp),%rbp
 	mov     0*8(%rsp),%rbx
-	add     $(3*8),%rsp               /* free stack space                     */
+	add     $(7*8),%rsp               /* free stack space                     */
 	ret
+
+
+jumptable_integer:
+	.quad   handle_a0
+	.quad   handle_a1
+	.quad   handle_a2
+	.quad   handle_a3
+	.quad   handle_a4
+	.quad   handle_a5
+
+handle_a0:
+	mov     offjniitem(itmp2),a0
+	jmp     L_register_copy
+handle_a1:
+	mov     offjniitem(itmp2),a1
+	jmp     L_register_copy
+handle_a2:
+	mov     offjniitem(itmp2),a2
+	jmp     L_register_copy
+handle_a3:
+	mov     offjniitem(itmp2),a3
+	jmp     L_register_copy
+handle_a4:
+	mov     offjniitem(itmp2),a4
+	jmp     L_register_copy
+handle_a5:
+	mov     offjniitem(itmp2),a5
+	jmp     L_register_copy
+
+
+jumptable_float:
+	.quad   handle_fa0
+	.quad   handle_fa1
+	.quad   handle_fa2
+	.quad   handle_fa3
+	.quad   handle_fa4
+	.quad   handle_fa5
+	.quad   handle_fa6
+	.quad   handle_fa7
+
+handle_fa0:
+	movq    offjniitem(itmp2),fa0
+	jmp     L_register_copy
+handle_fa1:
+	movq    offjniitem(itmp2),fa1
+	jmp     L_register_copy
+handle_fa2:
+	movq    offjniitem(itmp2),fa2
+	jmp     L_register_copy
+handle_fa3:
+	movq    offjniitem(itmp2),fa3
+	jmp     L_register_copy
+handle_fa4:
+	movq    offjniitem(itmp2),fa4
+	jmp     L_register_copy
+handle_fa5:
+	movq    offjniitem(itmp2),fa5
+	jmp     L_register_copy
+handle_fa6:
+	movq    offjniitem(itmp2),fa6
+	jmp     L_register_copy
+handle_fa7:
+	movq    offjniitem(itmp2),fa7
+	jmp     L_register_copy
 
 
 /****************** function asm_call_jit_compiler *****************************
