@@ -29,32 +29,49 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1065 2004-05-16 15:36:57Z twisti $
+   $Id: asmpart.S 1125 2004-06-03 21:30:30Z twisti $
 
 */
 
 
+#include "config.h"
 #include "offsets.h"
 
-#define    	MethodPointer   -8
-#define    	FrameSize       -12
-#define     IsSync          -16
-#define     IsLeaf          -20
-#define     IntSave         -24
-#define     FltSave         -28
-#define     ExTableSize     -32
-#define     ExTableStart    -32
 
-#define     ExEntrySize     -32
-#define     ExStartPC       -8
-#define     ExEndPC         -16
-#define     ExHandlerPC     -24
-#define     ExCatchType     -32
+#define MethodPointer   -8
+#define FrameSize       -12
+#define IsSync          -16
+#define IsLeaf          -20
+#define IntSave         -24
+#define FltSave         -28
+#define ExTableSize     -32
+#define ExTableStart    -32
 
+#define ExEntrySize     -32
+#define ExStartPC       -8
+#define ExEndPC         -16
+#define ExHandlerPC     -24
+#define ExCatchType     -32
+
+
+/* define it like the risc way */
+
+#define v0       %rax
+
+#define a0       %rdi
+#define a1       %rsi
+#define a2       %rdx
+#define a3       %rcx
+#define a4       %r8
+#define a5       %r9
 
 #define itmp1    %rax
 #define itmp2    %r10
 #define itmp3    %r11
+
+#define itmp1l   %eax
+#define itmp2l   %r10d
+#define itmp3l   %r11d
 
 #define xptr     itmp1
 #define xpc      itmp2
@@ -87,7 +104,9 @@
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
-
+	.globl asm_criticalsections
+	.globl asm_getclassvalues_atomic
+		
 
 /*************************** imported functions *******************************/
 
@@ -95,7 +114,7 @@
 	.globl builtin_monitorexit
 	.globl builtin_throw_exception
 	.globl builtin_trace_exception
-	.globl findmethod
+	.globl codegen_findmethod
         
 
 /********************* function asm_calljavafunction ***************************
@@ -200,9 +219,17 @@ asm_calljavafunction2long:
 	mov     %rsi,%r11                 /* arg count                            */
 	mov     %rcx,%r10                 /* pointer to arg block                 */
 
+#if 0
+L_noint_1:
 	test    %r11,%r11                 /* maybe we have no args                */
 	jle     calljava_copydone
 
+	movb    offjniitemtype(%r10),%dil /* which type has the current item      */
+	andb    0x02,%dil                 /* is this a float/double type          */
+	je      L_int_1
+	
+L_int_1:
+#endif
 	mov     offjniitem(%r10),%rdi     /* move args into registers             */
 	sub     $1,%r11
 	test    %r11,%r11
@@ -379,7 +406,7 @@ asm_handle_exception:
 	mov     xpc,1*8(%rsp)               /* save exception pc                  */
         
 	mov     xpc,%rdi                    /* exception pc                       */
-	call    findmethod
+	call    codegen_findmethod
 	mov     %rax,itmp3
 	mov     %rax,2*8(%rsp)              /* save data segment pointer          */
         
@@ -584,7 +611,7 @@ noflt:
         mov     %r10,1*8(%rsp)
 
         mov     %r10,%rdi
-        call	findmethod      			/* get the new data segment ptr   */
+        call	codegen_findmethod          /* get the new data segment ptr   */
         mov     %rax,%r11
         
         mov     0*8(%rsp),%rcx
@@ -1056,47 +1083,33 @@ asm_switchstackandcall:
         mov     %r10,(%rsp)             /* write return adress                */
         ret
 
+
+asm_getclassvalues_atomic:		
+_crit_restart2:	
+_crit_begin2:	
+	movl    offbaseval(a0),itmp1l
+	movl    offdiffval(a0),itmp2l
+	movl    offbaseval(a1),itmp3l
+_crit_end2:		
+	movl    itmp1l,offcast_super_baseval(a2)
+	movl    itmp2l,offcast_super_diffval(a2)
+	movl    itmp3l,offcast_sub_baseval(a2)
+	ret
+
+	.data
 		
-asm_printf:
-        push    %rbp
-        mov     %rsp,%rbp
-        
-        push    %rax
-        push    %rcx
-        push    %rdx
-        push    %rbx
-        push    %rsi
-        push    %rdi
-        push    %r8
-        push    %r9
-        push    %r10
-        push    %r11
-        push    %r12
-        push    %r13
-        push    %r14
-        push    %r15
+asm_criticalsections:	
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	.long   _crit_begin1
+	.long   _crit_end1
+	.long   _crit_restart1
+	.long   _crit_begin2
+	.long   _crit_end2
+	.long   _crit_restart2
+#endif
+	.long 0
 
-        mov     16(%rbp),%rdi
-        call    asmprintf
-
-        pop     %r15
-        pop     %r14
-        pop     %r13
-        pop     %r12
-        pop     %r11
-        pop     %r10
-        pop     %r9
-        pop     %r8
-        pop     %rdi
-        pop     %rsi
-        pop     %rbx
-        pop     %rdx
-        pop     %rcx
-        pop     %rax
-        
-        leave
-        ret
-        
+				
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
