@@ -26,11 +26,11 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 952 2004-03-11 21:52:35Z stefan $
+   $Id: boehm.c 953 2004-03-11 23:02:26Z stefan $
 
 */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(USE_THREADS) && defined(NATIVE_THREADS) && defined(__LINUX__)
 #define GC_LINUX_THREADS
 #endif
 
