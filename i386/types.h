@@ -15,7 +15,6 @@
 *******************************************************************************/
 
 #ifndef _CACAO_TYPES_H
-
 #define _CACAO_TYPES_H
 
 #define POINTERSIZE         4
@@ -30,7 +29,7 @@
 #define SUPPORT_LONG_CMP    1
 #define SUPPORT_LONG_LOG    1
 #define SUPPORT_LONG_SHIFT  1
-#define SUPPORT_LONG_MULDIV 1
+#define SUPPORT_LONG_MULDIV 0
 #define SUPPORT_LONG_ICVT   1
 #define SUPPORT_LONG_FCVT   1
 

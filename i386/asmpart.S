@@ -149,7 +149,6 @@ asm_calljavamethod:
 /*	lda     sp,-32(sp)                /* allocate stack space                 */
 		pushl	%ebp                  /* allocate stack space                 */
 		movl	%esp, %ebp
-		subl	$8, %esp
 /*	stq     gp,24(sp)                 /* save global pointer                  */
 /*	stq     ra,0(sp)                  /* save return address                  */
 
@@ -172,7 +171,9 @@ asm_calljavamethod:
 
 /*	ldq     pv,8($28)                 /* method call as in Java               */
 /*	jmp     ra,(pv)                   /* call JIT compiler                    */
+		pushl	%ebp                  /* save %ebp, cause it's a tmp reg      */
 		call	asm_call_jit_compiler /* call JIT compiler                    */
+		popl	%ebp                  /* restore %ebp, changed in java code   */
 calljava_jit:
 /*	lda     pv,-64(ra)                /* asm_calljavamethod-calljava_jit !!!!!*/
 
@@ -181,7 +182,7 @@ calljava_return:
 /*	ldq     ra,0(sp)                  /* restore return address               */
 /*	ldq     gp,24(sp)                 /* restore global pointer               */
 /*	lda     sp,32(sp)                 /* free stack space                     */
-		addl	$16, %esp                 /* free stack space                     */
+		addl	$20, %esp             /* free stack space                     */
 /*	ldl     v0,newcompiler            /* load newcompiler flag                */
 		movl    newcompiler, %eax     /* load newcompiler flag                */
 /*	subq    v0,1,v0                   /* negate for clearing v0               */
@@ -264,7 +265,7 @@ asm_calljavafunction:
 		pushl	20(%ebp)
 		pushl	16(%ebp)
 		pushl	12(%ebp)
-		pushl	8(%ebp)
+		movl	8(%ebp),%eax          /* method pointer is passed in %eax     */
 
 /*	lda     $28,asm_call_jit_compiler /* fake virtual function call (2 instr) */
 /*	stq     $28,8(sp)                 /* store function address               */
@@ -281,7 +282,7 @@ calljava_return2:
 /*	ldq     ra,0(sp)                  /* restore return address               */
 /*	ldq     gp,24(sp)                 /* restore global pointer               */
 /*	lda     sp,32(sp)                 /* free stack space                     */
-		addl	$16, %esp             /* free stack space                     */
+		addl	$0x10, %esp           /* free stack space                     */
 
 /*	ldl     v0,newcompiler */         /* load newcompiler flag                */
 /*	subq    v0,1,v0        */         /* negate for clearing v0               */
@@ -317,36 +318,47 @@ calljava_xhandler2:
 *   patching address for storing the method address can be computed:           *
 *                                                                              *
 *   method address was either loaded using                                     *
-*   M_LDQ (REG_PV, REG_PV, a)        ; invokestatic/special    ($27)           *
-*   M_LDA (REG_PV, REG_RA, low)                                                *
-*   M_LDAH(REG_PV, REG_RA, high)     ; optional                                *
+*                                                                              *
+*   i386_mov_imm_reg(a, REG_ITMP2)                ; invokestatic/special       *
+*   i386_call_reg(REG_ITMP2)                                                   *
+*                                                                              *
 *   or                                                                         *
-*   M_LDQ (REG_PV, REG_METHODPTR, m) ; invokevirtual/interface ($28)           *
+*                                                                              *
+*   i386_mov_membase_reg(REG_SP, 0, REG_ITMP2)    ; invokevirtual/interface    *
+*   i386_mov_membase_reg(REG_ITMP2, OFFSET(, vftbl), REG_ITMP3)                *
+*   i386_mov_membase_reg(REG_ITMP3, OFFSET(vftbl, table[0]) + \                *
+*       sizeof(methodptr) * m->vftblindex, REG_ITMP1)                          *
+*   i386_call_reg(REG_ITMP1)                                                   *
+*                                                                              *
 *   in the static case the method pointer can be computed using the            *
 *   return address and the lda function following the jmp instruction          *
 *                                                                              *
 *******************************************************************************/
 
 
-/*	.ent    asm_call_jit_compiler */
 asm_call_jit_compiler:
 
-/*	ldgp    gp,0(pv) */
 		pushl	%ebp
 		movl	%esp, %ebp
-		
-/*	ldq     a0,0(v0)              /* pass 'methodinfo' pointer to             */
-/*	jsr     ra,jit_compile        /* jit compiler                             */
-	                              /* directly to the caller (ra).             */
-		pushl	8(%ebp)
+
+		pushl	%eax			/* push methodpointer on stack */
 		call	jit_compile
+		addl	$4,%esp
 
 		leave
+		jmp		*%eax
+		
+		movl	4(%ebp),%edx	/* see how we have been called */
+		movb	-1(%edx),%bl
+		cmpb	$0xd2,%bl		/* called with `call *REG_ITMP2' (%edx)? */
+		jne		L01
 
-/*		jmp		*%eax */
-		ret
+		subl	$6,%edx			/* calculate immediate address */
+		movl	%eax,(%edx)		/* and now save the pointer */
 
-/*	.end    asm_call_jit_compiler */
+L01:	leave
+		jmp		*%eax			/* ...and now call the new method */
+
 
 
 /****************** function asm_dumpregistersandcall **************************
@@ -362,11 +374,10 @@ asm_call_jit_compiler:
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    asm_dumpregistersandcall */
 asm_dumpregistersandcall:
+	xorl		%eax,%eax
+	movl		$0,(%eax)
 	ret
-		
-/*	.end    asm_dumpregistersandcall */
 
 
 /********************* function asm_handle_exception ***************************
@@ -381,12 +392,11 @@ asm_dumpregistersandcall:
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    asm_handle_nat_exception */
 asm_handle_nat_exception:
 asm_handle_exception:
+	xorl		%eax,%eax
+	movl		$0,(%eax)
 	ret
-	
-/*	.end    asm_handle_nat_exception */
 
 
 /********************* function asm_builtin_monitorenter ***********************
@@ -395,11 +405,8 @@ asm_handle_exception:
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    asm_builtin_monitorenter */
 asm_builtin_monitorenter:
-	ret
-		
-/*	.end    asm_builtin_monitorenter */
+	jmp		builtin_monitorenter
 
 
 /********************* function asm_builtin_monitorexit ************************
@@ -408,11 +415,8 @@ asm_builtin_monitorenter:
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    asm_builtin_monitorexit */
 asm_builtin_monitorexit:
-	ret
-		
-/*	.end    asm_builtin_monitorexit */
+	jmp		builtin_monitorexit
 
 
 /************************ function asm_builtin_idiv ****************************
@@ -421,12 +425,9 @@ asm_builtin_monitorexit:
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    asm_builtin_idiv */
 asm_builtin_idiv:
 	ret
 		
-/*	.end    asm_builtin_idiv */
-
 
 /************************ function asm_builtin_ldiv ****************************
 *                                                                              *
@@ -434,12 +435,9 @@ asm_builtin_idiv:
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    asm_builtin_ldiv */
 asm_builtin_ldiv:
-	ret
-		
-/*	.end    asm_builtin_ldiv */
-
+	jmp		builtin_ldiv
+				
 
 /************************ function asm_builtin_irem ****************************
 *                                                                              *
@@ -447,11 +445,8 @@ asm_builtin_ldiv:
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    asm_builtin_irem */
 asm_builtin_irem:
 	ret
-		
-/*	.end    asm_builtin_irem */
 
 
 /************************ function asm_builtin_lrem ****************************
@@ -460,24 +455,20 @@ asm_builtin_irem:
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    asm_builtin_lrem */
 asm_builtin_lrem:
-	ret
+	jmp		builtin_lrem
 		
-/*	.end    asm_builtin_lrem */
 
+/*********************** function new_builtin_checkcast ************************
+*                                                                              *
+*   Does the cast check and eventually throws an exception                     *
+*                                                                              *
+*******************************************************************************/
 
- /*********************** function new_builtin_checkcast ************************
- *                                                                              *
- *   Does the cast check and eventually throws an exception                     *
- *                                                                              *
- *******************************************************************************/
-
-/*    .ent    asm_builtin_checkcast */
 asm_builtin_checkcast:
+	xorl		%eax,%eax
+	movl		$0,(%eax)
 	ret
-
-/*    .end    asm_builtin_checkcast */
 
 		
 /******************* function asm_builtin_checkarraycast ***********************
@@ -486,12 +477,11 @@ asm_builtin_checkcast:
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    asm_builtin_checkarraycast */
 asm_builtin_checkarraycast:
+	xorl		%eax,%eax
+	movl		$0,(%eax)
 	ret
 		
-/*	.end    asm_builtin_checkarraycast */
-
 
 /******************* function asm_builtin_aastore ******************************
 *                                                                              *
@@ -499,11 +489,10 @@ asm_builtin_checkarraycast:
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    asm_builtin_aastore */
 asm_builtin_aastore:
+	xorl		%eax,%eax
+	movl		$0,(%eax)
 	ret
-		
-/*	.end    asm_builtin_aastore */
 
 
 /******************* function asm_initialize_thread_stack **********************
@@ -512,11 +501,10 @@ asm_builtin_aastore:
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    asm_initialize_thread_stack */
 asm_initialize_thread_stack:
+	xorl		%eax,%eax
+	movl		$0,(%eax)
 	ret
-		
-/*	.end    asm_initialize_thread_stack */
 
 
 /******************* function asm_perform_threadswitch *************************
@@ -527,12 +515,11 @@ asm_initialize_thread_stack:
 *                                                                              *
 *******************************************************************************/
 
-/*	.ent    asm_perform_threadswitch */
 asm_perform_threadswitch:
+	xorl		%eax,%eax
+	movl		$0,(%eax)
 	ret
 		
-/*	.end    asm_perform_threadswitch */
-
 
 /********************* function asm_switchstackandcall *************************
 *                                                                              *
@@ -545,12 +532,10 @@ asm_perform_threadswitch:
 *                                                                              *
 *******************************************************************************/
 
-
-/*	.ent	asm_switchstackandcall */
 asm_switchstackandcall:
+	xorl		%eax,%eax
+	movl		$0,(%eax)
 	ret
-		
-/*	.end	asm_switchstackandcall */
 
 		
 /********************* function asm_getcallingmethod ***************************
@@ -565,9 +550,7 @@ asm_switchstackandcall:
 *                                                                              *
 *******************************************************************************/
 
-
-/*	.ent	asm_getcallingmethod */
 asm_getcallingmethod:
+	xorl		%eax,%eax
+	movl		$0,(%eax)
 	ret
-
-/*	.end	asm_getcallingmethod */
