@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1194 2004-06-19 12:59:20Z twisti $
+   $Id: builtin.c 1219 2004-06-29 14:37:41Z twisti $
 
 */
 
@@ -268,8 +268,15 @@ java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Builtin exception thrown: ");
 		if (local_exceptionptr) {
+			java_lang_Throwable *t = (java_lang_Throwable *) local_exceptionptr;
+
 			utf_sprint_classname(logtext + strlen(logtext),
 								 local_exceptionptr->vftbl->class->name);
+
+			if (t->detailMessage) {
+				sprintf(logtext + strlen(logtext), ": %s",
+						javastring_tochar(t->detailMessage));
+			}
 
 		} else {
 			sprintf(logtext + strlen(logtext), "Error: <Nullpointer instead of exception>");
