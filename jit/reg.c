@@ -282,7 +282,10 @@ static void interface_regalloc ()
 						fltalloc = t;
 						}
 					else {
-#ifdef __I386__
+#if defined(__I386__)
+						/*
+						 * for i386 put all longs in memory
+						 */
 						if (IS_2_WORD_TYPE(t)) {
 							v->flags |= INMEMORY;
 							v->regoff = ifmemuse++;
@@ -304,7 +307,7 @@ static void interface_regalloc ()
 							v->flags |= INMEMORY;
 							v->regoff = ifmemuse++;
 							}
-#ifdef __I386__
+#if defined(__I386__)
 						}
 #endif
 						intalloc = t;
@@ -327,7 +330,10 @@ static void interface_regalloc ()
 						fltalloc = t;
 						}
 					else {
-#ifdef __I386__
+#if defined(__I386__)
+						/*
+						 * for i386 put all longs in memory
+						 */
 						if (IS_2_WORD_TYPE(t)) {
 							v->flags |= INMEMORY;
 							v->regoff = ifmemuse++;
@@ -345,7 +351,7 @@ static void interface_regalloc ()
 							v->flags |= INMEMORY;
 							v->regoff = ifmemuse++;
 							}
-#ifdef __I386__
+#if defined(__I386__)
 						}
 #endif
 						intalloc = t;
@@ -412,7 +418,10 @@ static void local_regalloc ()
 						fltalloc = t;
 						}
 					else {
-#ifdef __I386__
+#if defined(__I386__)
+						/*
+						 * for i386 put all longs in memory
+						 */
 						if (IS_2_WORD_TYPE(t)) {
 							v->flags = INMEMORY;
 							v->regoff = maxmemuse++;
@@ -441,7 +450,7 @@ static void local_regalloc ()
 							v->flags = INMEMORY;
 							v->regoff = maxmemuse++;
 							}
-#ifdef __I386__
+#if defined(__I386__)
 						}
 #endif
 						intalloc = t;
@@ -483,7 +492,10 @@ static void local_regalloc ()
 					fltalloc = t;
 					}
 				else {
-#ifdef __I386__
+#if defined(__I386__)
+					/*
+					 * for i386 put all longs in memory
+					 */
 					if (IS_2_WORD_TYPE(t)) {
 						v->flags = INMEMORY;
 						v->regoff = maxmemuse++;
@@ -502,7 +514,7 @@ static void local_regalloc ()
 						v->flags = INMEMORY;
 						v->regoff = maxmemuse++;
 						}
-#ifdef __I386__
+#if defined(__I386__)
 					}
 #endif
 					intalloc = t;
@@ -549,7 +561,10 @@ if (s->flags & SAVEDVAR) {
 			}
 		}
 	else {
-#ifdef __I386__
+#if defined(__I386__)
+		/*
+		 * for i386 put all longs in memory
+		 */
         if (!IS_2_WORD_TYPE(s->type)) {
 #endif
 		if (freesavinttop > 0) {
@@ -564,7 +579,7 @@ if (s->flags & SAVEDVAR) {
 			s->regoff = savintregs[savintreguse];
 			return;
 			}
-#ifdef __I386__
+#if defined(__I386__)
 	    }
 #endif
 		}
@@ -585,7 +600,10 @@ else {
 			}
 		}
 	else {
-#ifdef __I386__
+#if defined(__I386__)
+		/*
+		 * for i386 put all longs in memory
+		 */
         if (!IS_2_WORD_TYPE(s->type)) {
 #endif
 		if (freetmpinttop > 0) {
@@ -600,7 +618,7 @@ else {
 			s->regoff = tmpintregs[tmpintreguse];
 			return;
 			}
-#ifdef __I386__
+#if defined(__I386__)
 	    }
 #endif
 		}

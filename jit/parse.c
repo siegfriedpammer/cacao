@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 384 2003-07-08 21:49:19Z carolyn $
+	Last Change: $Id: parse.c 403 2003-08-03 21:04:13Z twisti $
                      include Rapid Type Analysis parse - 5/2003 - carolyn
 
 
@@ -643,7 +643,7 @@ static void parse()
 					s_count++;
 					LOADCONST_A(class_getconstant(class, i,
 					                              CONSTANT_Arraydescriptor));
-#ifdef __I386__
+#if defined(__I386__)
 					BUILTIN2((functionptr) asm_builtin_newarray_array, TYPE_ADR);
 #else
 					BUILTIN2((functionptr)builtin_newarray_array, TYPE_ADR);
@@ -652,7 +652,7 @@ static void parse()
 				else {
 				 	LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
 					s_count++;
-#ifdef __I386__
+#if defined(__I386__)
 					BUILTIN2((functionptr) asm_builtin_anewarray, TYPE_ADR);
 #else
 					BUILTIN2((functionptr)builtin_anewarray, TYPE_ADR);
@@ -947,7 +947,7 @@ static void parse()
 				if (class_constanttype (class, i) == CONSTANT_Arraydescriptor) {
 					LOADCONST_A(class_getconstant(class, i, CONSTANT_Arraydescriptor));
 					s_count++;
-#ifdef __I386__
+#if defined(__I386__)
 					BUILTIN2((functionptr) asm_builtin_arrayinstanceof, TYPE_INT);
 #else
 					BUILTIN2((functionptr) builtin_arrayinstanceof, TYPE_INT);
@@ -1016,7 +1016,7 @@ static void parse()
 				break;
 
 			case JAVA_FREM:
-#ifdef __I386__
+#if defined(__I386__)
 /*  				BUILTIN2((functionptr) asm_builtin_frem, TYPE_FLOAT); */
   				OP(opcode);
 #else
@@ -1025,7 +1025,7 @@ static void parse()
 				break;
 
 			case JAVA_DREM:
-#ifdef __I386__
+#if defined(__I386__)
 				OP(opcode);
 #else
 				BUILTIN2((functionptr) builtin_drem, TYPE_DOUBLE);
