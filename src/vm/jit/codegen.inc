@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1735 2004-12-07 14:33:27Z twisti $
+   $Id: codegen.inc 1759 2004-12-14 13:16:11Z twisti $
 
 */
 
@@ -856,43 +856,54 @@ static int reg_of_var(registerdata *rd, stackptr v, int tempregnum)
 		if (!(v->flags & INMEMORY))
 			return(v->regoff);
 		break;
+
 	case STACKVAR:
 		var = &(rd->interfaces[v->varnum][v->type]);
 		v->regoff = var->regoff;
 		if (!(var->flags & INMEMORY))
 			return(var->regoff);
 		break;
+
 	case LOCALVAR:
 		var = &(rd->locals[v->varnum][v->type]);
 		v->regoff = var->regoff;
 		if (!(var->flags & INMEMORY))
 			return(var->regoff);
 		break;
+
 	case ARGVAR:
 		v->regoff = v->varnum;
 		if (IS_FLT_DBL_TYPE(v->type)) {
-			if (v->varnum < rd->fltreg_argnum) {
+			if (v->varnum < FLT_ARG_CNT) {
 				v->regoff = rd->argfltregs[v->varnum];
 				return(rd->argfltregs[v->varnum]);
 			}
 
+#if defined(__POWERPC__)
+			v->regoff += 6;
+#else
+			v->regoff -= FLT_ARG_CNT;
+#endif
+
 		} else {
 #if defined(__POWERPC__)
-			if (v->varnum < rd->intreg_argnum - (IS_2_WORD_TYPE(v->type) != 0)) {
+			if (v->varnum < INT_ARG_CNT - (IS_2_WORD_TYPE(v->type) != 0)) {
 #else
-			if (v->varnum < rd->intreg_argnum) {
+			if (v->varnum < INT_ARG_CNT) {
 #endif
 				v->regoff = rd->argintregs[v->varnum];
 				return (rd->argintregs[v->varnum]);
 			}
-		}
+
 #if defined(__POWERPC__)
-		v->regoff += 6;
+			v->regoff += 6;
 #else
-		v->regoff -= rd->intreg_argnum;
+			v->regoff -= INT_ARG_CNT;
 #endif
+		}
 		break;
 	}
+
 	v->flags |= INMEMORY;
 	return tempregnum;
 }
