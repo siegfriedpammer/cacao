@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 390 2003-07-15 15:52:21Z carolyn $
+	Last Change: $Id: global.h 466 2003-09-25 07:55:50Z carolyn $
 
 *******************************************************************************/
 
@@ -466,8 +466,6 @@ typedef struct methodinfo {         /* method structure                       */
 
 	s4          natCalls;     	/* number of methods  calls               */
 	
-//	methodinfo *natCalledMethods;   /* methods called table                   */
-        
 	s4          XTAclasscount;     /* number of classes in XTA class set       */
 	classinfo   *XTAclassSet;       /* XTA class set*/
 

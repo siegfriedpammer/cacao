@@ -2091,7 +2091,7 @@ void class_init (classinfo *c)
   	if (c->super)
   		class_init (c->super);
 	for (i=0; i < c->interfacescount; i++)
-		class_init(c->interfaces[i]);  // real
+		class_init(c->interfaces[i]);  /* real */
 
 	m = class_findmethod (c, utf_clinit, utf_fidesc);
 	if (!m) {
@@ -2189,7 +2189,6 @@ int find_class_method_constant (classinfo *c, utf * c1, utf* m1, utf* d1)
 	voidptr e;
 
 	for (i=0; i<c->cpcount; i++) {
-		//printf ("#%d:  ", (int) i);
 		
 		e = c -> cpinfos [i];
 		if (e) {

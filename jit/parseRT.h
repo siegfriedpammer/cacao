@@ -29,9 +29,9 @@ static FILE *rtMissed;   /* Methods missed during RTA parse of Main  */
 		  /*   so easier to build dynmanic calls file */
 static FILE *dynClasss;  /* Classes /methods used, but seen by static analysis */
 
-static utf *INIT    ; //= utf_new_char("<init>");
-static utf *CLINIT  ; //= utf_new_char("<clinit>");
-static utf *FINALIZE;  // = utf_new_char("finalize");
+static utf *INIT    ; 
+static utf *CLINIT  ; 
+static utf *FINALIZE;  
 static int missedCnt = 0;
 
 /*--- Statistics ----------------------------------------------------------*/
@@ -341,7 +341,7 @@ if (meth->methodUsed == USED)  	 return;  /*This should be test before fn call t
 				/* need to try to resolve /mark method 	*/
 				/* but... need document what should be 	*/
 				/* done / how to tell if doesn't resolved*/
-if (meth->flags & ACC_ABSTRACT) {   //printf("addToCallGraph returning because Abstract method\n"); 
+if (meth->flags & ACC_ABSTRACT) {   /*printf("addToCallGraph returning because Abstract method\n"); */
 				return;}
 
 if (meth->class->classUsed == NOTUSED) {
@@ -477,7 +477,6 @@ return;
 /*-------------------------------------------------------------------------------*/
 
 int addClassInit(classinfo *ci) {
-// CHANGE to a kind of table look-up for a list of class/methods (currently 3)
 
 utf* utf_java_lang_system = utf_new_char("java/lang/System"); 
 utf* utf_initializeSystemClass = utf_new_char("initializeSystemClass"); 
@@ -896,7 +895,7 @@ if (class == NULL)  {
 	}
 
 if (class->classUsed == NOTUSED) {
-	class->classUsed = USED; // MARK CLASS USED????
+	class->classUsed = USED; 
 	/* add marked methods to callgraph */ 
 	for (ii=0; ii<class->methodscount; ii++) { 
 		if (class->methods[ii].methodUsed == JUSTMARKED) { 
@@ -988,7 +987,6 @@ for (i=0; i<NATIVECALLSSIZE; i++) {
 /*-------------------------------------------------------------------------------*/
 void mainRTAparseInit ( )
 {
-//printf("MAIN_NOT_STARTED \n"); 
 if (class_java_lang_Object->sub != NULL) { 
 	RTAPRINT16stats1
 	}
@@ -1010,8 +1008,9 @@ if (firstCall) {
 
 	}
 
-	// At moment start RTA before main when parsed
-	// Will definitely use flag with to know if ok to apply in-lining.
+	/* At moment start RTA before main when parsed
+	/* Will definitely use flag with to know if ok to apply in-lining.
+	*/
 }
 
 

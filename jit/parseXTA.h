@@ -85,20 +85,20 @@ static void parseXTA()
 /* LOADCONST opcodes              */
                         case JAVA_BIPUSH:
 				printf("BIPUSH value=%i\n",(rt_code_get_s1(p+1)));
-                                //LOADCONST_I(code_get_s1(p+1));
+                                /*LOADCONST_I(code_get_s1(p+1));*/
                                 break;
 
                         case JAVA_SIPUSH:
 				printf("SIPUSH value=%i\n",(rt_code_get_s2(p+1)));
-                                //LOADCONST_I(code_get_s2(p+1));
+                                /*LOADCONST_I(code_get_s2(p+1));*/
                                 break;
-
-			// case JAVA_LDC1:
-			//...
-                        //case JAVA_LDC2:
-                        //case JAVA_LDC2W:
-			//...
-
+			/*
+			case JAVA_LDC1:
+			...
+                        case JAVA_LDC2:
+                        case JAVA_LDC2W:
+			...
+			*/
                         case JAVA_ACONST_NULL:
 				printf("ACONST_NULL value=NULL\n" );
                                 /* LOADCONST_A(NULL);*/
@@ -290,10 +290,12 @@ printf("JAVA_DCONST_x value=%d\n",(opcode - JAVA_DCONST_0 ) );
                                 if (class_constanttype (rt_class, i) != CONSTANT_Arraydescriptor) {
                                         e = class_getconstant(rt_class, i, CONSTANT_Class);
 /*COtest*/ utf_display ( ((classinfo*)e) -> name );printf(">b\n");
-                                        ///*COtest*/ if (ar == NULL) printf(" ARRAY2xNULL\n");
-                                        ///*COtest*/ else {
-                                        ///*COtest*/      printf(" ARRAY2 Name=");utf_display(ar->name);printf("\n");
-                                        ///*COtest*/      }
+					/******
+                                        /*COtest if (ar == NULL) printf(" ARRAY2xNULL\n");
+                                        /*COtest else {
+                                        /*COtest      printf(" ARRAY2 Name=");utf_display(ar->name);printf("\n");
+                                        /*COtest      }
+					****/
                                         }
                                 }
                                 break;
@@ -302,12 +304,14 @@ printf("JAVA_DCONST_x value=%d\n",(opcode - JAVA_DCONST_0 ) );
                                 {
                                 constant_FMIref *ar;
                                         ar = class_getconstant(rt_class, i, CONSTANT_Arraydescriptor);
-                                        ///*COtest*/ if (ar == NULL) printf(" ARRAY2xNULL\n");
-                                        ///*COtest*/ else {
-                                        ///*COtest*/      printf(" ARRAY2 Name=");utf_display(ar->name);printf("\n");
-                                        ///*COtest*/      }
-                                //constant_arraydescriptor *desc =
-                                //    class_getconstant (rt_class, i, CONSTANT_Arraydescriptor);
+					/******
+                                        /*COtest if (ar == NULL) printf(" ARRAY2xNULL\n");
+                                        /*COtest else {
+                                        /*COtest      printf(" ARRAY2 Name=");utf_display(ar->name);printf("\n");
+                                        /*COtest      }
+                                constant_arraydescriptor *desc =
+                                    class_getconstant (rt_class, i, CONSTANT_Arraydescriptor);
+				****/
                                 }
                                 break;
 
@@ -367,7 +371,7 @@ printf("JAVA_DCONST_x value=%d\n",(opcode - JAVA_DCONST_0 ) );
  
                                 if (mi->flags & ACC_STATIC)
                                         panic ("Static/Nonstatic mismatch calling static method");
-                                //descriptor2types(mi);
+                                /*descriptor2types(mi); */
                                 }
                                 break;
 
