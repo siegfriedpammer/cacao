@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 887 2004-01-19 12:14:39Z edwin $
+   $Id: typeinfo.c 922 2004-02-24 13:26:24Z edwin $
 
 */
 
@@ -304,6 +304,7 @@ typevectorset_separable_with(typevector *set,typevector *add,int size)
 			if (!v && separable) return true;
 		} while (v);
 	next_index:
+		;
 	}
 	return false;
 }
