@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1914 2005-02-10 10:03:43Z twisti $
+## $Id: Makefile.am 2036 2005-03-18 13:23:40Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -65,8 +65,7 @@ cacaoh_SOURCES = \
 
 cacaoh_LDADD = \
 	libcacaoh.la \
-	$(top_builddir)/src/boehm-gc/libgc.la \
-	$(top_builddir)/src/classpath/native/jni/java-lang/.libs/libjavalang.a
+	$(top_builddir)/src/boehm-gc/libgc.la
 
 cacaoh_DEPENDENCIES = $(cacaoh_LDADD)
 
