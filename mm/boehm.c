@@ -1,0 +1,133 @@
+/* boehm.c *********************************************************************
+
+	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+
+	See file COPYRIGHT for information on usage and disclaimer of warranties
+
+	Contains main() and variables for the global options.
+	This module does the following tasks:
+	   - Interface to the Boehm GC
+
+	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
+	Changes: Andi Krall          EMAIL: cacao@complang.tuwien.ac.at
+	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
+			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
+
+	Last Change: $Id: boehm.c 210 2003-02-03 13:05:24Z stefan $
+
+*******************************************************************************/
+
+#include "global.h"
+#include "threads/thread.h"
+
+#include "gc.h"
+
+void *asm_switchstackandcall (void *stack, void *func, void **stacktopsave, void *);
+
+struct otherstackcall;
+
+typedef void *(*calltwoargs)(void *, u4);
+
+struct otherstackcall {
+	calltwoargs p2;
+	void *p;
+	u4 l;
+};
+
+static void *stackcall_twoargs(struct otherstackcall *p)
+{
+	return (*p->p2)(p->p, p->l);
+}
+
+static void *stackcall_malloc(void *p, u4 bytelength)
+{
+	return GC_MALLOC(bytelength);
+}
+
+static void *stackcall_malloc_atomic(void *p, u4 bytelength)
+{
+	return GC_MALLOC_ATOMIC(bytelength);
+}
+
+static void *stackcall_malloc_uncollectable(void *p, u4 bytelength)
+{
+	return GC_MALLOC_UNCOLLECTABLE(bytelength);
+}
+
+static void *stackcall_realloc(void *p, u4 bytelength)
+{
+	return GC_REALLOC(p, bytelength);
+}
+
+#define MAINTHREADCALL(r,m,pp,ll) \
+	if (currentThread == NULL || currentThread == mainThread) { \
+		r = m(pp, ll); \
+	} else { \
+		struct otherstackcall sc; \
+		sc.p2 = m; \
+		sc.p = pp; \
+		sc.l = ll; \
+		r = (*asm_switchstackandcall)(CONTEXT(mainThread).usedStackTop, \
+				stackcall_twoargs, \
+				(void**)&(CONTEXT(currentThread).usedStackTop), &sc); \
+	}
+
+void *heap_alloc_uncollectable(u4 bytelength)
+{
+	void *result;
+	MAINTHREADCALL(result, stackcall_malloc_uncollectable, NULL, bytelength);
+	return result;
+}
+
+void *heap_allocate (u4 bytelength, bool references, methodinfo *finalizer)
+{
+	void *result;
+	if (references, 1)
+		{ MAINTHREADCALL(result, stackcall_malloc, NULL, bytelength); }
+	else
+		{ MAINTHREADCALL(result, stackcall_malloc_atomic, NULL, bytelength); }
+	return (u1*) result;
+}
+
+void *heap_reallocate(void *p, u4 bytelength)
+{
+	void *result;
+	MAINTHREADCALL(result, stackcall_realloc, p, bytelength);
+	return result;
+}
+
+void heap_init (u4 size, u4 startsize, void **stackbottom)
+{
+}
+
+void heap_close()
+{
+}
+
+void heap_addreference (void **reflocation)
+{
+}
+
+int collectverbose;
+
+void gc_init()
+{
+}
+
+void gc_call()
+{
+	GC_gcollect();
+}
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
