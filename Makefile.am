@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 218 2003-02-04 12:47:51Z stefan $
+# $Id: Makefile.am 221 2003-02-05 14:09:38Z stefan $
 
 @SET_MAKE@
 
@@ -122,8 +122,8 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 		java.io.UnixFileSystem \
 		java.lang.ClassLoader_NativeLibrary
 
-@SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/asmpart.S @SYSDEP_DIR@/offsets.h
-	@CC@ $(INCLUDES) -c -g -o $@ $<
+@SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/@ASMPART@ @SYSDEP_DIR@/offsets.h
+	@CC@ $(CFLAGS) $(INCLUDES) -c -g -o $@ $<
 
 checkjvm:
 	$(MAKE) -C jvmtst $@

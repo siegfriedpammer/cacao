@@ -152,7 +152,7 @@ heap_init (SIZE size,
 	heap_size = align_size(size + ((1 << ALIGN) - 1));
 
 #if !(defined(HAVE_MAP_ANONYMOUS))
-	heap_base = malloc(heap_size);
+	heap_base = (void*)(((u8)malloc(heap_size+1023)+1023) & ~1023);
 #else
 	heap_base = (void*) mmap ((void*) 0x10000000, 
 							  ((size_t)heap_size + PAGESIZE_MINUS_ONE) & ~PAGESIZE_MINUS_ONE,
@@ -967,8 +967,8 @@ gc_call (void)
 
 	if (collectverbose) {
 		sprintf(logtext, "Garbage Collection:  previous/now = %d / %d ",
-		        (int) (heap_top - heap_base), 
-		        (int) (heap_top - heap_base));
+		        (int) ((u1*) heap_top - (u1*) heap_base), 
+		        (int) ((u1*) heap_top - (u1*) heap_base));
 		dolog ();
 		}
 }

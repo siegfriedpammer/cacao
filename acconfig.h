@@ -4,6 +4,8 @@
 /* Define if mman.h defines MAP_ANONYMOUS  */
 #undef HAVE_MAP_ANONYMOUS
 
+#undef TRACE_ARGS_NUM
+
 /* Define to include thread support */
 #undef USE_THREADS
 #undef EXTERNAL_OVERFLOW
@@ -17,5 +19,6 @@
 #undef SYSDEP_DIR
 
 #undef OLD_COMPILER
+#undef USE_CODEMMAP
 
 #undef USE_BOEHM

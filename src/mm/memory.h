@@ -12,8 +12,6 @@
 
 *******************************************************************************/
 
-#define CODEMMAP
-
 #include "types.h"
 
 #ifdef USE_BOEHM
@@ -45,7 +43,7 @@ void *heap_alloc_uncollectable(u4 bytelen);
 
 #define MCOPY(dest,src,type,num)  memcpy (dest,src, sizeof(type)* (num) )
 
-#ifdef CODEMMAP
+#ifdef USE_CODEMMAP
 #define CNEW(type,num)        ((type*) mem_mmap ( sizeof(type) * (num) ))
 #define CFREE(ptr,num)
 #else

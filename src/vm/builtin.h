@@ -62,9 +62,15 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o);
 s4 builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o);
 void asm_builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o);
 
+#ifdef TRACE_ARGS_NUM
+#if TRACE_ARGS_NUM == 6
 void builtin_trace_args(long a0, long a1, long a2, long a3, long a4, long a5, methodinfo *method);
+#else
+void builtin_trace_args(long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, methodinfo *method);
+#endif
+#endif
 void builtin_displaymethodstart(methodinfo *method);
-void builtin_displaymethodstop(methodinfo *method, long l, double d);
+void builtin_displaymethodstop(methodinfo *method, long l, double d, float f);
 /* void builtin_displaymethodstop(methodinfo *method); */
 void builtin_displaymethodexception(methodinfo *method);
 

@@ -11,6 +11,7 @@ AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 dnl system type
 
+ASMPART="asmpart.S"
 case "$host_cpu" in
 alpha* )
 	SYSDEP_DIR="alpha" 
@@ -18,14 +19,18 @@ alpha* )
 	COMPILER_SOURCES="compiler.h compiler.c" 
 	COMPILER_OBJECTS="compiler.o"
 	AC_DEFINE(OLD_COMPILER)
+	AC_DEFINE(TRACE_ARGS_NUM, 6)
+	AC_DEFINE(USE_CODEMMAP)
 	;;
 
 mips* )
 	SYSDEP_DIR="mips" 
+	ASMPART="asmpart.s"
         CFLAGS="-64 -g -DMAP_ANONYMOUS=0 -woff 1048,1110,1164,1515"
 	LIBS="-lelfutil" 
 	COMPILER_SOURCES=""
 	COMPILER_OBJECTS=""
+	AC_DEFINE(TRACE_ARGS_NUM, 8)
 	;;
 
 i386* | i486* | i586* | i686* )
@@ -42,6 +47,7 @@ esac
 
 AC_SUBST(COMPILER_SOURCES)
 AC_SUBST(COMPILER_OBJECTS)
+AC_SUBST(ASMPART)
 
 AC_DEFINE_UNQUOTED(SYSDEP_DIR, "$SYSDEP_DIR")
 AC_SUBST(SYSDEP_DIR)

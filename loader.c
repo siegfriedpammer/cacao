@@ -146,13 +146,24 @@ static int classbuffer_size;        /* size of classfile-data                 */
 
 #define skip_nbytes(len) classbuf_pos+=len;
 
-#define suck_u1() (*++classbuf_pos)
+inline u1 suck_u1()
+{
+	return *++classbuf_pos;
+}
+inline u2 suck_u2()
+{
+	u1 a=suck_u1(), b=suck_u1();
+	return ((u2)a<<8)+(u2)b;
+}
+inline u4 suck_u4()
+{
+	u1 a=suck_u1(), b=suck_u1(), c=suck_u1(), d=suck_u1();
+	return ((u4)a<<24)+((u4)b<<16)+((u4)c<<8)+(u4)d;
+}
 #define suck_s8() (s8) suck_u8()
 #define suck_s2() (s2) suck_u2()
 #define suck_s4() (s4) suck_u4()
 #define suck_s1() (s1) suck_u1()
-#define suck_u2() (u2) ((suck_u1()<<8)+suck_u1())
-#define suck_u4() (u4) ((((u4)suck_u1())<<24)+(((u4)suck_u1())<<16)+(((u4)suck_u1())<<8)+((u4)suck_u1()))
 
 
 /* get u8 from classfile data */

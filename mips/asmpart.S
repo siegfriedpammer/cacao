@@ -154,6 +154,7 @@
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
+	.globl asm_getcallingmethod
 
 
 /*************************** imported functions *******************************/
@@ -953,6 +954,7 @@ asm_switchstackandcall:
 	move    sp,a0           /* switch to new stack                            */
 	
 	move    itmp3,a1
+	move    a0,a3
 	jalr    itmp3           /* and call function                              */
 
 	ld      ra,0(sp)        /* load return address                            */
@@ -961,3 +963,9 @@ asm_switchstackandcall:
 	j       ra              /* return                                         */
 
 	.end	asm_switchstackandcall
+
+	.ent    asm_getcallingmethod
+asm_getcallingmethod:
+	li      v0,0
+	j       ra
+	.end    asm_getcallingmethod

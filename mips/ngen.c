@@ -10,11 +10,14 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 199 2003-01-21 12:32:18Z stefan $
+	Last Change: $Id: ngen.c 221 2003-02-05 14:09:38Z stefan $
 
 *******************************************************************************/
 
 #include "jitdef.h"   /* phil */
+
+#include <errno.h>
+#include <unistd.h>
 
 /* *****************************************************************************
 
@@ -87,8 +90,58 @@ in the documention file: calling.doc
     if a and b are the same float-register, no code will be generated
 */ 
 
-#define M_FLTMOVE(a,b) if(a!=b){M_DMOV(a,b);}
+#define M_FLTMOVE(a,b) {if(a!=b){M_DMOV(a,b);}}
 
+#define M_TFLTMOVE(t,a,b) \
+	{if(a!=b) \
+		if ((t)==TYPE_DBL) \
+		    {M_DMOV(a,b);} \
+		else {M_FMOV(a,b);} \
+	}
+
+#define M_TFLD(t,a,b,disp) \
+    if ((t)==TYPE_DBL) \
+	  {M_DLD(a,b,disp);} \
+    else \
+	  {M_FLD(a,b,disp);}
+
+#define M_TFST(t,a,b,disp) \
+    if ((t)==TYPE_DBL) \
+	  {M_DST(a,b,disp);} \
+    else \
+	  {M_FST(a,b,disp);}
+
+#define M_CCFLTMOVE(t1,t2,a,b) \
+	if ((t1)==(t2)) \
+	  {M_TFLTMOVE(t1,a,b);} \
+	else \
+	  if ((t1)==TYPE_DBL) \
+		{M_CVTDF(a,b);} \
+	  else \
+		{M_CVTFD(a,b);}
+
+#define M_CCFLD(t1,t2,a,b,disp) \
+    if ((t1)==(t2)) \
+	  {M_DLD(a,b,disp);} \
+	else { \
+	  M_DLD(REG_FTMP1,b,disp); \
+	  if ((t1)==TYPE_DBL) \
+	    {M_CVTDF(REG_FTMP1,a);} \
+	  else \
+	    {M_CVTFD(REG_FTMP1,a);} \
+	}
+	  
+#define M_CCFST(t1,t2,a,b,disp) \
+    if ((t1)==(t2)) \
+	  {M_DST(a,b,disp);} \
+	else { \
+	  if ((t1)==TYPE_DBL) \
+	    {M_CVTDF(a,REG_FTMP1);} \
+	  else \
+	    {M_CVTFD(a,REG_FTMP1);} \
+	  M_DST(REG_FTMP1,b,disp); \
+	}
+	  
 
 /* var_to_reg_xxx:
     this function generates code to fetch data from a pseudo-register
@@ -195,6 +248,8 @@ static int reg_of_var(stackptr v, int tempregnum)
 		}                                              \
 	}
 
+
+void docacheflush(u1 *p, long bytelen, int dummy);
 
 /* NullPointerException handlers and exception handling initialisation        */
 
@@ -424,7 +479,7 @@ static void gen_mcode()
 	   to arguments on stack. ToDo: save floating point registers !!!!!!!!!
 	*/
 
-	if (runverbose && isleafmethod) {
+	if (runverbose) {
 		M_LDA (REG_SP, REG_SP, -(18*8));
 
 		M_LST(REG_RA,        REG_SP,  1*8);
@@ -509,15 +564,15 @@ static void gen_mcode()
  		else {                                       /* floating args         */   
  			if (p < FLT_ARG_CNT) {                   /* register arguments    */
  				if (!(var->flags & INMEMORY))        /* reg arg -> register   */
- 					{M_FLTMOVE (argfltregs[p], r);}
+ 					{M_TFLTMOVE (var->type, argfltregs[p], r);}
  				else				                 /* reg arg -> spilled    */
  					M_DST (argfltregs[p], REG_SP, 8 * r);
  				}
  			else {                                   /* stack arguments       */
  				pa = p - FLT_ARG_CNT;
- 				if (!(var->flags & INMEMORY))        /* stack-arg -> register */
+ 				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
  					M_DLD (r, REG_SP, 8 * (parentargs_base + pa) );
- 				else {                               /* stack-arg -> spilled  */
+				} else {                             /* stack-arg -> spilled  */
  					M_DLD (REG_FTMP1, REG_SP, 8 * (parentargs_base + pa));
  					M_DST (REG_FTMP1, REG_SP, 8 * r);
  					}
@@ -592,7 +647,7 @@ static void gen_mcode()
 					if (IS_FLT_DBL_TYPE(s2)) {
 						if (!(interfaces[len][s2].flags & INMEMORY)) {
 							s1 = interfaces[len][s2].regoff;
-							M_FLTMOVE(s1,d);
+							M_TFLTMOVE(s2,s1,d);
 							}
 						else {
 							M_DLD(d, REG_SP, 8 * interfaces[len][s2].regoff);
@@ -721,10 +776,13 @@ static void gen_mcode()
 			    (iptr->dst->varnum == iptr->op1))
 				break;
 			var = &(locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
-			if (var->flags & INMEMORY)
-				M_DLD(d, REG_SP, 8 * var->regoff);
-			else
-				{M_FLTMOVE(var->regoff,d);}
+			{
+				int t2 = ((iptr->opc == ICMD_FLOAD) ? TYPE_FLT : TYPE_DBL);
+				if (var->flags & INMEMORY)
+					{M_CCFLD(var->type,t2,d, REG_SP, 8 * var->regoff);}
+				else
+					{M_CCFLTMOVE(var->type,t2,var->regoff,d);}
+			}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
@@ -754,14 +812,17 @@ static void gen_mcode()
 			    (src->varnum == iptr->op1))
 				break;
 			var = &(locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
-			if (var->flags & INMEMORY) {
-				var_to_reg_flt(s1, src, REG_FTMP1);
-				M_DST(s1, REG_SP, 8 * var->regoff);
-				}
-			else {
-				var_to_reg_flt(s1, src, var->regoff);
-				M_FLTMOVE(s1, var->regoff);
-				}
+			{
+				int t1 = ((iptr->opc == ICMD_FSTORE) ? TYPE_FLT : TYPE_DBL);
+				if (var->flags & INMEMORY) {
+					var_to_reg_flt(s1, src, REG_FTMP1);
+					M_CCFST(t1,var->type,s1, REG_SP, 8 * var->regoff);
+					}
+				else {
+					var_to_reg_flt(s1, src, var->regoff);
+					M_CCFLTMOVE(t1,var->type,s1, var->regoff);
+					}
+			}
 			break;
 
 
@@ -779,7 +840,7 @@ static void gen_mcode()
 			    ((from->flags ^ to->flags) & INMEMORY)) { \
 				if (IS_FLT_DBL_TYPE(from->type)) { \
 					var_to_reg_flt(s1, from, d); \
-					M_FLTMOVE(s1,d); \
+					M_TFLTMOVE(from->type,s1,d); \
 					store_reg_to_var_flt(to, d); \
 					}\
 				else { \
@@ -1598,6 +1659,7 @@ static void gen_mcode()
 			break;
 		
 		case ICMD_FREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
+			panic("FREM");
 
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
@@ -1645,8 +1707,9 @@ static void gen_mcode()
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_CVTFI(s1, REG_FTMP1);
+			M_TRUNCFI(s1, REG_FTMP1);
 			M_MOVDI(REG_FTMP1, d);
+			M_NOP;
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 		
@@ -1654,8 +1717,9 @@ static void gen_mcode()
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_CVTDI(s1, REG_FTMP1);
+			M_TRUNCDI(s1, REG_FTMP1);
 			M_MOVDI(REG_FTMP1, d);
+			M_NOP;
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 		
@@ -1663,8 +1727,9 @@ static void gen_mcode()
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_CVTFL(s1, REG_FTMP1);
+			M_TRUNCFL(s1, REG_FTMP1);
 			M_MOVDL(REG_FTMP1, d);
+			M_NOP;
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1672,8 +1737,9 @@ static void gen_mcode()
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_CVTDL(s1, REG_FTMP1);
+			M_TRUNCDL(s1, REG_FTMP1);
 			M_MOVDL(REG_FTMP1, d);
+			M_NOP;
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -2758,7 +2824,10 @@ static void gen_mcode()
 				}			
 #endif
 			var_to_reg_flt(s1, src, REG_FRESULT);
-			M_FLTMOVE(s1, REG_FRESULT);
+			{
+				int t = ((iptr->opc == ICMD_FRETURN) ? TYPE_FLT : TYPE_DBL);
+				M_TFLTMOVE(t, s1, REG_FRESULT);
+			}
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
@@ -2804,6 +2873,7 @@ nowperformreturn:
 				M_ALD(argintregs[0], REG_PV, a);
 				M_MOV(REG_RESULT, argintregs[1]);
 				M_FLTMOVE(REG_FRESULT, argfltregs[2]);
+				M_FMOV(REG_FRESULT, argfltregs[3]);
 				a = dseg_addaddress ((void*) (builtin_displaymethodstop));
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR (REG_RA, REG_ITMP3);
@@ -2967,7 +3037,7 @@ gen_method: {
 					if (s3 < FLT_ARG_CNT) {
 						s1 = argfltregs[s3];
 						var_to_reg_flt(d, src, s1);
-						M_FLTMOVE(d, s1);
+						M_TFLTMOVE(src->type,d, s1);
 						}
 					else {
 						var_to_reg_flt(d, src, REG_FTMP1);
@@ -3043,8 +3113,8 @@ afteractualcall:
 					s4 ml=-s1, mh=0;
 					while (ml<-32768) { ml+=65536; mh--; }
 					M_LUI(REG_PV, mh);
-					M_IADD_IMM(REG_PV, ml, REG_RA);
-	/*				panic("method to big"); */
+					M_IADD_IMM(REG_PV, ml, REG_PV);
+					M_LADD(REG_PV, REG_RA, REG_PV);
 				}
 
 			/* d contains return type */
@@ -3057,7 +3127,7 @@ afteractualcall:
 					}
 				else {
 					s1 = reg_of_var(iptr->dst, REG_FRESULT);
-					M_FLTMOVE(REG_FRESULT, s1);
+					M_TFLTMOVE(iptr->dst->type, REG_FRESULT, s1);
 					store_reg_to_var_flt(iptr->dst, s1);
 					}
 				}
@@ -3292,7 +3362,7 @@ TODO (old alpha code - commented out)
 			if (IS_FLT_DBL_TYPE(s2)) {
 				var_to_reg_flt(s1, src, REG_FTMP1);
 				if (!(interfaces[len][s2].flags & INMEMORY)) {
-					M_FLTMOVE(s1,interfaces[len][s2].regoff);
+					M_TFLTMOVE(s2,s1,interfaces[len][s2].regoff);
 					}
 				else {
 					M_DST(s1, REG_SP, 8 * interfaces[len][s2].regoff);
@@ -3465,8 +3535,8 @@ TODO (old alpha code - commented out)
 
 	mcode_finish((int)((u1*) mcodeptr - mcodebase));
 
-	(void) cacheflush((void*) method->entrypoint,
-	                  (int)((u1*) mcodeptr - mcodebase), ICACHE);
+	docacheflush((void*) method->entrypoint,
+	                  ((u1*) mcodeptr - mcodebase), ICACHE);
 }
 
 
@@ -3517,10 +3587,10 @@ u1 *createcompilerstub (methodinfo *m)
 	                                       in itmp1 is used as method pointer */
 	M_NOP;
 
-	(void) cacheflush((void*) s, (char*) p - (char*) s, ICACHE);
-
 	s[2] = (u8) m;                      /* literals to be adressed            */  
 	s[3] = (u8) asm_call_jit_compiler;  /* jump directly via PV from above    */
+
+	(void) docacheflush((void*) s, (char*) p - (char*) s, ICACHE);
 
 #ifdef STATISTICS
 	count_cstub_len += COMPSTUBSIZE * 8;
@@ -3598,12 +3668,12 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	M_LDA  (REG_ITMP2, REG_RA, -4);     /* move fault address into reg. itmp2 */
 	                                    /* delay slot                         */
 
-	(void) cacheflush((void*) s, (char*) p - (char*) s, ICACHE);
-
 	s[14] = (u8) f;                     /* address of native method           */
 	s[15] = (u8) (&exceptionptr);       /* address of exceptionptr            */
 	s[16]= (u8) (asm_handle_nat_exception); /* addr of asm exception handler  */
 	s[17] = (u8) (&env);                  /* addr of jni_environement         */
+
+	(void) docacheflush((void*) s, (char*) p - (char*) s, ICACHE);
 
 #ifdef STATISTICS
 	count_nstub_len += NATIVESTUBSIZE * 8;
@@ -3769,6 +3839,15 @@ void ngen_init()
 	createcalljava();
 }
 
+void docacheflush(u1 *p, long bytelen, int dummy)
+{
+	u1 *e = p + bytelen;
+	long psize = sysconf(_SC_PAGESIZE);
+	p -= (long) p & (psize-1);
+	e += psize - ((((long) e - 1) & (psize-1)) + 1);
+	bytelen = e-p;
+	mprotect(p, bytelen, PROT_READ|PROT_WRITE|PROT_EXEC);
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

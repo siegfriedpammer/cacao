@@ -271,9 +271,12 @@ JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_rename (JNIEnv *env ,  struct j
  */
 JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_setLastModifiedTime (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* file, s8 time)
 {
-        log_text("Java_java_io_FileSystemImpl_setLastModifiedTime called");
+	struct utimbuf ub;
+	log_text("Java_java_io_FileSystemImpl_setLastModifiedTime called");
 
-	if (!utime(javastring_tochar( (java_objectheader*) (file->path)), time / 1000))
+	ub.actime = time/1000;
+	ub.modtime = time/1000;
+	if (!utime(javastring_tochar( (java_objectheader*) (file->path)), &ub))
 	    return 1;
 	else
 	    return 0;

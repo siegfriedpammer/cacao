@@ -14,6 +14,7 @@
 *******************************************************************************/
 
 #include <sys/cachectl.h>
+#include <sys/mman.h>
 
 /* see also file calling.doc for explanation of calling conventions           */
 

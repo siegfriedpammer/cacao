@@ -29,6 +29,7 @@
 #include <string.h>
 #include <assert.h>
 #include <sys/time.h>
+#include <utime.h>
 
 #include "threads/thread.h"                       /* schani */
 #include "threads/locks.h"

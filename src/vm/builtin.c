@@ -845,7 +845,11 @@ java_objectheader *builtin_trace_exception (java_objectheader *exceptionptr,
 }
 
 
+#ifdef TRACE_ARGS_NUM
 void builtin_trace_args(long a0, long a1, long a2, long a3, long a4, long a5,
+#if TRACE_ARGS_NUM > 6
+		long a6, long a7,
+#endif
 						methodinfo *method)
 {
 	sprintf (logtext, "												");
@@ -856,6 +860,16 @@ void builtin_trace_args(long a0, long a1, long a2, long a3, long a4, long a5,
 	utf_sprint (logtext+strlen(logtext), method->descriptor);
 	sprintf (logtext+strlen(logtext), "(");
 	switch (method->paramcount) {
+#if TRACE_ARGS_NUM > 6
+		case 8:
+			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx, %lx",
+											   a0,	a1,	 a2,  a3,  a4,	a5, a6, a7);
+			break;
+		case 7:
+			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx",
+											   a0,	a1,	 a2,  a3,  a4,	a5, a6);
+			break;
+#endif
 		case 6:
 			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx",
 											   a0,	a1,	 a2,  a3,  a4,	a5);
@@ -883,6 +897,7 @@ void builtin_trace_args(long a0, long a1, long a2, long a3, long a4, long a5,
 	dolog ();
 	methodindent++;
 }
+#endif
 
 void builtin_displaymethodstart(methodinfo *method)
 {
@@ -896,7 +911,7 @@ void builtin_displaymethodstart(methodinfo *method)
 	methodindent++;
 }
 
-void builtin_displaymethodstop(methodinfo *method, long l, double d)
+void builtin_displaymethodstop(methodinfo *method, long l, double d, float f)
 {
 	methodindent--;
 	sprintf (logtext, "												");
@@ -912,6 +927,8 @@ void builtin_displaymethodstop(methodinfo *method, long l, double d)
 			sprintf (logtext+strlen(logtext), "->%ld", l);
 			break;
 		case TYPE_FLOAT:
+			sprintf (logtext+strlen(logtext), "->%g", f);
+			break;
 		case TYPE_DOUBLE:
 			sprintf (logtext+strlen(logtext), "->%g", d);
 			break;

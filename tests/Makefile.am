@@ -1,4 +1,4 @@
-EXTRA_DIST = x.java x.output jctest.java jctest.output fptest.java GCBench.java
+EXTRA_DIST = x.java x.output jctest.java fptest.java
 
 check_DATA = checkall
 
