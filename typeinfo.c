@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 696 2003-12-06 20:10:05Z edwin $
+   $Id: typeinfo.c 697 2003-12-07 12:45:27Z edwin $
 
 */
 
@@ -470,7 +470,6 @@ typeinfo_init_from_method_args(utf *desc,u1 *typebuf,typeinfo *infobuf,
     }
 }
 
-/* XXX could be made a macro if really performance critical */
 void
 typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 {
@@ -510,17 +509,14 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
     dst->merged = srcarray->merged;
 }
 
-/* Condition: src != dest. */
 void
 typeinfo_clone(typeinfo *src,typeinfo *dest)
 {
     int count;
     classinfo **srclist,**destlist;
 
-#ifdef TYPEINFO_DEBUG
     if (src == dest)
-        panic("Internal error: typeinfo_clone with src==dest");
-#endif
+        return;
     
     *dest = *src;
 
@@ -913,7 +909,11 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
     typeinfo_print(stdout,dest,4);
     typeinfo_print(stdout,y,4);
 #endif
-    */ 
+    */
+
+    /* Merging something with itself is a nop */
+    if (dest == y)
+        return false;
 
     /* Merging two returnAddress types is ok. */
     if (!dest->typeclass && !y->typeclass)
@@ -924,9 +924,6 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
         typeinfo_merge_error("Trying to merge primitive types.",dest,y);
 
 #ifdef TYPEINFO_DEBUG
-    if (dest == y)
-        panic("Internal error: typeinfo_merge with dest==y");
-    
     /* check that no unlinked classes are merged. */
     if (!dest->typeclass->linked || !y->typeclass->linked)
         typeinfo_merge_error("Trying to merge unlinked class(es).",dest,y);

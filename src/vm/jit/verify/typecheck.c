@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 696 2003-12-06 20:10:05Z edwin $
+   $Id: typecheck.c 697 2003-12-07 12:45:27Z edwin $
 
 */
 
@@ -495,15 +495,16 @@ typecheck()
 {
     int b_count, b_index;
     stackptr curstack;      /* input stack top for current instruction */
-    stackptr srcstack;       /* source stack for copying and merging */
-    stackptr dststack;       /* target stack for copying and merging */
-    int opcode, macro_i, len, i;
+    stackptr srcstack;         /* source stack for copying and merging */
+    stackptr dststack;         /* target stack for copying and merging */
+    int opcode;                                      /* current opcode */
+    int macro_i, len, i;                         /* temporary counters */
     bool superblockend;        /* true if no fallthrough to next block */
     bool repeat;            /* if true, blocks are iterated over again */
-    bool changed;
-    instruction *iptr = instr;       /* pointer to current instruction */
+    bool changed;                                    /* used in macros */
+    instruction *iptr;               /* pointer to current instruction */
     basicblock *bptr;                /* pointer to current basic block */
-    basicblock *tbptr;
+    basicblock *tbptr;                   /* temporary for target block */
     u1 *vartype;            /* type of each local for each basic block */
     typeinfo *vartypeinfo;  /* type of each local for each basic block */
     u1 *vtype;           /* type of each local for current instruction */
@@ -518,14 +519,15 @@ typecheck()
     int rtype;                         /* return type of called method */
     typeinfo rinfo;       /* typeinfo for return type of called method */
     stackptr dst;               /* output stack of current instruction */
-    int changeddepth;          /* depth to which the stack has changed */ /* XXX */
-    bool fulltypecheck;           /* false == check only changed types */ /* XXX */
     basicblock **tptr;    /* pointer into target list of switch instructions */
     jsr_record **jsrbuffer;   /* JSR target chain for each basic block */
     jsr_record *jsrchain;               /* JSR chain for current block */
-    jsr_record *jsrtemp,*jsrtemp2,*jsrold;      /* temporary variables */
+    jsr_record *jsrtemp,*jsrtemp2;              /* temporary variables */
     jsr_record *subroutine;    /* jsr_record of the current subroutine */
     u1 *touched;                  /* touched flags for local variables */
+    xtable **handlers;                    /* active exception handlers */
+    classinfo *cls;                                       /* temporary */
+    bool maythrow;               /* true if this instruction may throw */
 
     LOGSTR("\n==============================================================================\n");
     DOLOG(show_icmd_method());
@@ -587,6 +589,9 @@ typecheck()
     
     LOG("jsrbuffer initialized.\n");
 
+    /* allocate the buffer of active exception handlers */
+    handlers = DMNEW(xtable*,method->exceptiontablelength + 1);
+
     /* initialize the variable types of the first block */
     /* to the types of the arguments */
     ttype = vartype;
@@ -609,8 +614,17 @@ typecheck()
 
     LOG("Arguments set.\n");
 
+    /* initialize the input stack of exception handlers */
+    for (i=0; i<method->exceptiontablelength; ++i) {
+        cls = extable[i].catchtype;
+        if (!cls) cls = class_java_lang_Throwable;
+        LOGSTR1("handler %i: ",i); LOGSTRu(cls->name); LOGNL;
+        TYPEINFO_INIT_CLASSINFO(extable[i].handler->instack->typeinfo,cls);
+    }
+
+    LOG("Exception handler stacks set.\n");
+
     /* loop while there are still blocks to be checked */
-    fulltypecheck = true; /* XXX */
     do {
 
         repeat = false;
@@ -667,6 +681,18 @@ typecheck()
                     LOGNL; LOGFLUSH;
                 }
 #endif
+
+                /* determine the active exception handlers for this block */
+                /* XXX could use a faster algorithm with sorted lists or
+                 * something? */
+                len = 0;
+                for (i=0; i<method->exceptiontablelength; ++i) {
+                    if ((extable[i].start <= bptr) && (extable[i].end > bptr)) {
+                        LOG1("active handler L%03d",extable[i].handler->debug_nr);
+                        handlers[len++] = extable + i;
+                    }
+                }
+                handlers[len] = NULL;
 					
                 /* loop over the instructions */
                 len = bptr->icount;
@@ -678,6 +704,7 @@ typecheck()
                         
                     opcode = iptr->opc;
                     dst = iptr->dst;
+                    maythrow = false;
 						
                     switch (opcode) {
 
@@ -768,6 +795,7 @@ typecheck()
                               panic("illegal instruction: AALOAD on non-reference array");
 
                           typeinfo_init_component(&curstack->prev->typeinfo,&dst->typeinfo);
+                          maythrow = true;
                           break;
 							  
                           /****************************************/
@@ -775,6 +803,7 @@ typecheck()
 
                       case ICMD_AASTORE:
                           /* XXX also handled by builtin3 */
+                          /* XXX move this to unexpected instructions? */
                           if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(curstack->prev->prev->typeinfo))
                               panic("illegal instruction: AASTORE to non-reference array");
 
@@ -784,6 +813,7 @@ typecheck()
                             if (!typeinfo_is_assignable(&curstack->typeinfo,&tempinfo))
                             panic("illegal instruction: AASTORE to incompatible type");
                           */
+                          maythrow = true;
                           break;
 
                           /****************************************/
@@ -797,10 +827,12 @@ typecheck()
 
                           
                           /* XXX */
+                          maythrow = true;
                           break;
 
                       case ICMD_PUTSTATIC:
                           /* XXX */
+                          maythrow = true; /* XXX ? */
                           break;
 
                       case ICMD_GETFIELD:
@@ -816,9 +848,11 @@ typecheck()
                                   TYPEINFO_INIT_FROM_FIELDINFO(dst->typeinfo,fi);
                               }
                               else {
+                                  /* XXX check field type? */
                                   TYPEINFO_INIT_PRIMITIVE(dst->typeinfo);
                               }
                           }
+                          maythrow = true;
                           break;
 
                       case ICMD_GETSTATIC:
@@ -829,9 +863,11 @@ typecheck()
                                   TYPEINFO_INIT_FROM_FIELDINFO(dst->typeinfo,fi);
                               }
                               else {
+                                  /* XXX check field type? */
                                   TYPEINFO_INIT_PRIMITIVE(dst->typeinfo);
                               }
                           }
+                          /* XXX may throw? */
                           break;
 
                           /****************************************/
@@ -841,66 +877,81 @@ typecheck()
                           /* XXX should this also work on arraystubs? */
                           if (!TYPEINFO_MAYBE_ARRAY(curstack->typeinfo))
                               panic("illegal instruction: ARRAYLENGTH on non-array");
+                          maythrow = true;
                           break;
 							  
                       case ICMD_BALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_BOOLEAN)
                               && !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_BYTE))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
                       case ICMD_CALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_CHAR))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
                       case ICMD_DALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_DOUBLE))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
                       case ICMD_FALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_FLOAT))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
                       case ICMD_IALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_INT))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
                       case ICMD_SALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_SHORT))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
                       case ICMD_LALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_LONG))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
 
                       case ICMD_BASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_BOOLEAN)
                               && !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_BYTE))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
                       case ICMD_CASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_CHAR))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
                       case ICMD_DASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_DOUBLE))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
                       case ICMD_FASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_FLOAT))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
                       case ICMD_IASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_INT))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
                       case ICMD_SASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_SHORT))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
                       case ICMD_LASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_LONG))
                               panic("Array type mismatch");
+                          maythrow = true;
                           break;
 
                           /****************************************/
@@ -914,6 +965,7 @@ typecheck()
                           /* XXX check if the cast can be done statically */
                           TYPEINFO_INIT_CLASSINFO(dst->typeinfo,(classinfo *)iptr[0].val.a);
                           /* XXX */
+                          maythrow = true;
                           break;
 
                       case ICMD_INSTANCEOF:
@@ -921,7 +973,7 @@ typecheck()
                           if (!TYPEINFO_IS_REFERENCE(curstack->typeinfo))
                               panic("Illegal instruction: INSTANCEOF on non-reference");
                           
-                          /* XXX */
+                          /* XXX may throw ? */
                           break;
                           
                       case ICMD_ACONST:
@@ -1012,6 +1064,7 @@ typecheck()
                           if (!typeinfo_is_assignable(&curstack->typeinfo,&tempinfo))
                               panic("illegal instruction: ATHROW on non-Throwable");
                           superblockend = true;
+                          maythrow = true;
                           break;
 
                       case ICMD_ARETURN:
@@ -1106,6 +1159,7 @@ typecheck()
                               repeat = true;
                               superblockend = true;
                           }
+                          /* XXX may throw? */
                           break;
                           
                       case ICMD_RET:
@@ -1138,6 +1192,7 @@ typecheck()
                                   if (vtype[i] == TYPE_ADR)
                                       TYPEINFO_CLONE(vinfo[i],subroutine->sbr_vinfo[i]);
                           }
+                          /* XXX check if subroutine changed types? */
 
                           LOGSTR("subroutine touches:");
                           DOLOG(typeinfo_print_locals(stdout,subroutine->sbr_vtype,subroutine->sbr_vinfo,
@@ -1147,9 +1202,11 @@ typecheck()
                           /* reach blocks after JSR statements */
                           for (i=0; i<block_count; ++i) {
                               tbptr = block + i;
+                              LOG1("block L%03d",tbptr->debug_nr);
                               if (tbptr->iinstr[tbptr->icount - 1].opc != ICMD_JSR)
                                   continue;
-                              if ((basicblock*) tbptr->iinstr[tbptr->icount - 1].target != jsrold->target)
+                              LOG("ends with JSR");
+                              if ((basicblock*) tbptr->iinstr[tbptr->icount - 1].target != subroutine->target)
                                   continue;
                               tbptr++;
 
@@ -1181,6 +1238,7 @@ typecheck()
                                   TYPEINFO_COPY(rinfo,dst->typeinfo);
                               }
                           }
+                          maythrow = true;
                           break;
                           
                       case ICMD_MULTIANEWARRAY:
@@ -1198,6 +1256,7 @@ typecheck()
                           
                           /* set the array type of the result */
                           TYPEINFO_INIT_CLASSINFO(dst->typeinfo,((vftbl *)iptr[0].val.a)->class);
+                          maythrow = true;
                           break;
                           
                       case ICMD_BUILTIN3:
@@ -1214,6 +1273,7 @@ typecheck()
                               */
                           }
                           /* XXX check for missed builtins in debug mode? */
+                          maythrow = true; /* XXX better safe than sorry */
                           break;
                           
                       case ICMD_BUILTIN2:
@@ -1235,6 +1295,7 @@ typecheck()
                               TYPEINFO_INIT_CLASSINFO(dst->typeinfo,((vftbl *)iptr[-1].val.a)->class);
                           }
                           /* XXX check for missed builtins in debug mode? */
+                          maythrow = true; /* XXX better safe than sorry */
                           break;
                           
                       case ICMD_BUILTIN1:
@@ -1268,6 +1329,7 @@ typecheck()
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_LONG);
                           }
                           /* XXX check for missed builtins in debug mode? */
+                          maythrow = true; /* XXX better safe than sorry */
                           break;
                                                      
                           /****************************************/
@@ -1306,10 +1368,13 @@ typecheck()
                                                 /* XXX only add cases for them in debug mode? */
 
                       case ICMD_NOP:
-                      case ICMD_CHECKASIZE: /* XXX ? */
-                      case ICMD_NULLCHECKPOP: /* XXX ? */
                       case ICMD_READONLY_ARG: /* XXX ? */
                       case ICMD_CLEAR_ARGREN: /* XXX ? */
+                          break;
+
+                      case ICMD_CHECKASIZE:
+                      case ICMD_NULLCHECKPOP:
+                          maythrow = true;
                           break;
 
                           /****************************************/
@@ -1403,6 +1468,9 @@ typecheck()
                       case ICMD_INT2CHAR:
                       case ICMD_INT2SHORT:
 
+                          maythrow = true; /* XXX be more selective here */
+                          break;
+                          
                       case ICMD_ICONST:
                       case ICMD_LCONST:
                       case ICMD_FCONST:
@@ -1424,9 +1492,22 @@ typecheck()
                           LOGSTR2("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
                           panic("Missing ICMD code during typecheck");
                     }
-                    
+
                     /* the output of this instruction becomes the current stack */
                     curstack = dst;
+                    
+                    /* reach exception handlers for this instruction */
+                    if (maythrow) {
+                        LOG("reaching exception handlers");
+                        i = 0;
+                        while (handlers[i]) {
+                            tbptr = handlers[i]->handler;
+                            dst = tbptr->instack;
+                            TYPECHECK_REACH(REACH_STD); /* XXX jsr chain? */
+                            i++;
+                        }
+                        dst = curstack; /* restore dst */
+                    }
                     
                     iptr++;
                 } /* while instructions */
@@ -1454,9 +1535,6 @@ typecheck()
             bptr++;
         } /* while blocks */
         
-        /* the following iterations only check if any types changed */
-        fulltypecheck = false; /* XXX */
-
         LOGIF(repeat,"repeat=true");
     } while (repeat);
 
