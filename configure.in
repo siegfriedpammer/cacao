@@ -77,12 +77,12 @@ esac
 
 dnl define install prefix
 if test "x$prefix" = xNONE; then
-	INSTALL_PREFIX=$ac_default_prefix
+	CACAO_INSTALL_PREFIX=$ac_default_prefix
 else
-	INSTALL_PREFIX=$prefix
+	CACAO_INSTALL_PREFIX=$prefix
 fi
-AC_DEFINE_UNQUOTED([INSTALL_PREFIX], "$INSTALL_PREFIX", [Installation prefix])
-AC_SUBST(INSTALL_PREFIX)
+AC_DEFINE_UNQUOTED([CACAO_INSTALL_PREFIX], "$CACAO_INSTALL_PREFIX", [Installation prefix])
+AC_SUBST(CACAO_INSTALL_PREFIX)
 
 
 AC_DEFINE_UNQUOTED([ARCH_DIR], "$ARCH_DIR", [Architecture directory])
@@ -310,37 +310,44 @@ export CFLAGS
 AC_CONFIG_SUBDIRS(src/boehm-gc src/classpath)
 
 
-AC_OUTPUT(Makefile \
-          doc/Makefile \
-          doc/handbook/Makefile \
-          man/Makefile \
-          src/Makefile \
-	  src/cacao/Makefile \
-          src/cacaoh/Makefile \
-          src/mm/Makefile \
-          src/native/Makefile \
-          src/native/include/Makefile \
-          src/native/tools/Makefile \
-          src/native/vm/Makefile \
-	  src/threads/Makefile \
-	  src/threads/green/Makefile \
-	  src/threads/native/Makefile \
-          src/toolbox/Makefile \
-          src/vm/Makefile \
-	  src/vm/jit/Makefile \
-          src/vm/jit/alpha/Makefile \
-          src/vm/jit/i386/Makefile \
-          src/vm/jit/inline/Makefile \
-          src/vm/jit/loop/Makefile \
-          src/vm/jit/mips/Makefile \
-          src/vm/jit/powerpc/Makefile \
-          src/vm/jit/tools/Makefile \
-          src/vm/jit/verify/Makefile \
-          src/vm/jit/x86_64/Makefile \
-	  tests/Makefile \
-          tests/jvm98/Makefile \
-	  tests/kaffe/Makefile \
-	  tests/native/Makefile )
+AC_CONFIG_FILES([Makefile]
+		[doc/Makefile]
+		[doc/handbook/Makefile]
+		[man/Makefile]
+		[src/Makefile]
+		[src/cacao/Makefile]
+		[src/cacaoh/Makefile]
+		[src/mm/Makefile]
+		[src/native/Makefile]
+		[src/native/include/Makefile]
+		[src/native/tools/Makefile]
+		[src/native/vm/Makefile]
+		[src/scripts/Makefile]
+		[src/scripts/cacao]
+		[src/scripts/java]
+		[src/scripts/rmic]
+		[src/scripts/rmiregistry]
+		[src/threads/Makefile]
+		[src/threads/green/Makefile]
+		[src/threads/native/Makefile]
+		[src/toolbox/Makefile]
+		[src/vm/Makefile]
+		[src/vm/jit/Makefile]
+		[src/vm/jit/alpha/Makefile]
+		[src/vm/jit/i386/Makefile]
+		[src/vm/jit/inline/Makefile]
+		[src/vm/jit/loop/Makefile]
+		[src/vm/jit/mips/Makefile]
+		[src/vm/jit/powerpc/Makefile]
+		[src/vm/jit/tools/Makefile]
+		[src/vm/jit/verify/Makefile]
+		[src/vm/jit/x86_64/Makefile]
+		[tests/Makefile]
+		[tests/jvm98/Makefile]
+		[tests/kaffe/Makefile]
+		[tests/native/Makefile])
+
+AC_OUTPUT
 
 
 ## Local variables:
