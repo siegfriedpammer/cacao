@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 1817 2004-12-22 14:50:00Z twisti $
+   $Id: codegen.c 1946 2005-02-15 16:52:08Z twisti $
 
 */
 
@@ -37,7 +37,8 @@
 #include <stdio.h>
 #include <signal.h>
 
-#include "vm/jit/alpha/arch.h"
+#include "config.h"
+#include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/global.h"
@@ -50,6 +51,7 @@
 #endif
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
+#include "vm/jit/alpha/arch.h"
 #include "vm/jit/alpha/codegen.h"
 #include "vm/jit/alpha/types.h"
 #include "vm/jit/alpha/asmoffsets.h"
@@ -154,33 +156,34 @@ void thread_restartcriticalsection(ucontext_t *uc)
 }
 #endif
 
+
 /* NullPointerException signal handler for hardware null pointer check */
 
-void catch_NullPointerException(int sig, int code, sigctx_struct *sigctx)
+void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 {
-	sigset_t nsig;
-	int      instr;
-	long     faultaddr;
-	java_objectheader *xptr;
+	struct sigaction act;
+	sigset_t         nsig;
+	int              instr;
+	long             faultaddr;
 
-	/* Reset signal handler - necessary for SysV, does no harm for BSD */
+	ucontext_t *_uc = (ucontext_t *) _p;
+	mcontext_t *sigctx = &_uc->uc_mcontext;
 
-	instr = *((int*)(sigctx->sc_pc));
+	instr = *((s4 *) (sigctx->sc_pc));
 	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f];
 
 	if (faultaddr == 0) {
-		/* reinstall handler */
-		signal(sig, catch_NullPointerException);
+		/* Reset signal handler - necessary for SysV, does no harm for BSD */
+		act.sa_sigaction = catch_NullPointerException;
+		act.sa_flags = SA_SIGINFO;
+		sigaction(sig, &act, NULL);
+
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
 
-		/*xptr = new_nullpointerexception();
-		sigctx->sc_regs[REG_ITMP1_XPTR] = (u8) xptr;*/
-
 		sigctx->sc_regs[REG_ITMP1_XPTR] = (u8) string_java_lang_NullPointerException;
 		sigctx->sc_regs[REG_ITMP2_XPC] = sigctx->sc_pc;
-		/*sigctx->sc_pc = (u8) asm_handle_exception;*/
 		sigctx->sc_pc = (u8) asm_throw_and_handle_exception;
 		return;
 
@@ -211,24 +214,29 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 
 void init_exceptions(void)
 {
-/* initialize floating point control */
+	struct sigaction act;
 
-ieee_set_fp_control(ieee_get_fp_control()
-                    & ~IEEE_TRAP_ENABLE_INV
-                    & ~IEEE_TRAP_ENABLE_DZE
-/*                  & ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
-                    & ~IEEE_TRAP_ENABLE_OVF);
+	/* initialize floating point control */
+
+	ieee_set_fp_control(ieee_get_fp_control()
+						& ~IEEE_TRAP_ENABLE_INV
+						& ~IEEE_TRAP_ENABLE_DZE
+/*  						& ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
+						& ~IEEE_TRAP_ENABLE_OVF);
 #endif
 
 	/* install signal handlers we need to convert to exceptions */
 
 	if (!checknull) {
+		act.sa_sigaction = catch_NullPointerException;
+		act.sa_flags = SA_SIGINFO;
+
 #if defined(SIGSEGV)
-		signal(SIGSEGV, (functionptr) catch_NullPointerException);
+		sigaction(SIGSEGV, &act, NULL);
 #endif
 
 #if defined(SIGBUS)
-		signal(SIGBUS, (functionptr) catch_NullPointerException);
+		sigaction(SIGBUS, &act, NULL);
 #endif
 	}
 }
