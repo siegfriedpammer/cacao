@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.c 2090 2005-03-27 14:43:25Z edwin $
+   $Id: descriptor.c 2094 2005-03-27 15:17:46Z edwin $
 
 */
 
@@ -495,9 +495,7 @@ descriptor_pool_create_classrefs(descriptor_pool *pool,s4 *count)
 		c = (classref_hash_entry *) pool->classrefhash.ptr[slot];
 		while (c) {
 			ref = pool->classrefs + c->index;
-			ref->pseudo_vftbl = CLASSREF_PSEUDO_VFTBL;
-			ref->referer = pool->referer;
-			ref->name = c->name;
+			CLASSREF_INIT(*ref,pool->referer,c->name);
 			c = c->hashlink;
 		}
 	}
