@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1367 2004-08-01 07:29:50Z stefan $
+   $Id: codegen.c 1427 2004-11-01 12:22:52Z twisti $
 
 */
 
@@ -274,11 +274,11 @@ void codegen(methodinfo *m)
 	(void) dseg_adds4(m, m->isleafmethod);                  /* IsLeaf         */
 	(void) dseg_adds4(m, r->savintregcnt - r->maxsavintreguse);/* IntSave     */
 	(void) dseg_adds4(m, r->savfltregcnt - r->maxsavfltreguse);/* FltSave     */
-	(void) dseg_adds4(m, m->exceptiontablelength);          /* ExTableSize    */
+	(void) dseg_adds4(m, cd->exceptiontablelength);          /* ExTableSize    */
 
 	/* create exception table */
 
-	for (ex = m->exceptiontable; ex != NULL; ex = ex->down) {
+	for (ex = cd->exceptiontable; ex != NULL; ex = ex->down) {
 		dseg_addtarget(m, ex->start);
    		dseg_addtarget(m, ex->end);
 		dseg_addtarget(m, ex->handler);
@@ -2203,6 +2203,80 @@ void codegen(methodinfo *m)
 			break;
 
 
+		case ICMD_IASTORECONST: /* ..., arrayref, index  ==> ...              */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			x86_64_movl_imm_memindex(cd, iptr->val.i, OFFSET(java_intarray, data[0]), s1, s2, 2);
+			break;
+
+		case ICMD_LASTORECONST: /* ..., arrayref, index  ==> ...              */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+
+			if (x86_64_is_imm32(iptr->val.l)) {
+				x86_64_mov_imm_memindex(cd, iptr->val.l, OFFSET(java_longarray, data[0]), s1, s2, 3);
+
+			} else {
+				x86_64_movl_imm_memindex(cd, (iptr->val.l & 0x00000000ffffffff), OFFSET(java_longarray, data[0]), s1, s2, 3);
+				x86_64_movl_imm_memindex(cd, (iptr->val.l >> 32), OFFSET(java_longarray, data[0]) + 4, s1, s2, 3);
+			}
+			break;
+
+		case ICMD_AASTORECONST: /* ..., arrayref, index  ==> ...              */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			x86_64_mov_imm_memindex(cd, 0, OFFSET(java_objectarray, data[0]), s1, s2, 2);
+			break;
+
+		case ICMD_BASTORECONST: /* ..., arrayref, index  ==> ...              */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			x86_64_movb_imm_memindex(cd, iptr->val.i, OFFSET(java_bytearray, data[0]), s1, s2, 0);
+			break;
+
+		case ICMD_CASTORECONST:   /* ..., arrayref, index  ==> ...            */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			x86_64_movw_imm_memindex(cd, iptr->val.i, OFFSET(java_chararray, data[0]), s1, s2, 1);
+			break;
+
+		case ICMD_SASTORECONST:   /* ..., arrayref, index  ==> ...            */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			x86_64_movw_imm_memindex(cd, iptr->val.i, OFFSET(java_shortarray, data[0]), s1, s2, 1);
+			break;
+
+
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
 
@@ -3424,7 +3498,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (bref = cd->xcheckarefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (10 + 10 + 3));
@@ -3466,7 +3540,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (bref = cd->xcastrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (10 + 10 + 3));
@@ -3508,7 +3582,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (bref = cd->xdivrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (10 + 10 + 3));
@@ -3551,7 +3625,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (bref = cd->xexceptionrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (10 + 10 + 3));
@@ -3601,7 +3675,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (bref = cd->xnullrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
 							  xcodeptr - cd->mcodebase - (10 + 10 + 3));
@@ -3657,7 +3731,7 @@ u1 *createcompilerstub(methodinfo *m)
 	codegendata *cd;
 
 	/* setup codegendata structure */
-	codegen_setup(m);
+	codegen_setup(m, NULL);
 
 	cd = m->codegendata;
     cd->mcodeptr = s;
@@ -3711,7 +3785,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	codegendata *cd;
 
 	/* setup codegendata structure */
-	codegen_setup(m);
+	codegen_setup(m, NULL);
 
 	/* initialize registers before using it */
 	reg_init(m);
