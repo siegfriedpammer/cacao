@@ -28,11 +28,12 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1061 2004-05-16 13:45:15Z twisti $
+   $Id: codegen.c 1066 2004-05-16 17:08:11Z stefan $
 
 */
 
 
+#include "global.h"
 #include <stdio.h>
 #include <signal.h>
 #include "types.h"
@@ -406,6 +407,16 @@ void codegen()
 	basicblock  *bptr;
 	instruction *iptr;
 	xtable *ex;
+
+	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Generating code: ");
+		utf_sprint_classname(logtext + strlen(logtext), class->name);
+		sprintf(logtext + strlen(logtext), ".");
+		utf_sprint(logtext + strlen(logtext), method->name);
+		utf_sprint_classname(logtext + strlen(logtext), descriptor);
+		log_text(logtext);
+	}
 
 	{
 	int p, pa, t, l, r;
@@ -3982,6 +3993,16 @@ makeactualcall:
 	}
 
 	codegen_finish((int)((u1*) mcodeptr - mcodebase));
+
+	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Generating code done: ");
+		utf_sprint_classname(logtext + strlen(logtext), class->name);
+		sprintf(logtext + strlen(logtext), ".");
+		utf_sprint(logtext + strlen(logtext), method->name);
+		utf_sprint_classname(logtext + strlen(logtext), descriptor);
+		log_text(logtext);
+	}
 }
 
 
