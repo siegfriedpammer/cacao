@@ -27,7 +27,7 @@
 
    Authors:
 
-   $Id: acconfig.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: acconfig.h 664 2003-11-21 18:24:01Z jowenn $
 
 */
 
@@ -53,6 +53,10 @@
 #undef ARCH_DIR
 
 #undef USE_CODEMMAP
+
+#undef USE_GTK
+
+#undef USE_ZLIB
 
 
 /*

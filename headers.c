@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 583 2003-11-09 19:14:31Z twisti $
+   $Id: headers.c 664 2003-11-21 18:24:01Z jowenn $
 
 */
 
@@ -55,7 +55,14 @@ java_objectheader *javastring_new (utf *text)         /* schani */
 
 void throw_classnotfoundexception() 
 { 
-	panic("class not found"); 
+	panic("class not found----------"); 
+}
+/*  */
+void throw_classnotfoundexception2(utf* classname) 
+{ 
+	sprintf (logtext, "Loading class: ");
+        utf_sprint (logtext+strlen(logtext), classname);
+	panic("******class not found"); 
 }
 
 java_objectheader *literalstring_new (utf *u)
@@ -82,13 +89,14 @@ s8 asm_builtin_d2l(double a) { return 0; }
 void asm_builtin_monitorenter(java_objectheader *o) {}
 void asm_builtin_monitorexit(java_objectheader *o) {}
 
-s4 asm_builtin_checkarraycast(java_objectheader *o, constant_arraydescriptor *d) {return 0;}
+s4 asm_builtin_checkarraycast(java_objectheader *o,arraydescriptor *d) {return 0;}
 
 #if defined(__I386__)
 s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class) { return 0; }
-void asm_builtin_anewarray(s4 size, classinfo *elementtype) {}
-void asm_builtin_newarray_array(s4 size, constant_arraydescriptor *elementdesc) {}
+
+void asm_builtin_newarray (s4 size, vftbl *arrayvftbl) {}
 #endif
+
 void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o) {}
 
 u1 *createcompilerstub(methodinfo *m) {return NULL;}
@@ -310,7 +318,11 @@ static void printmethod (methodinfo *m)
 		printID (m->class->name);
 		fprintf (file, "* this ");
 
-	};
+	    } 
+	else
+	    {
+		fprintf (file, ", jclass clazz ");
+	    }
 
 	if ((*utf_ptr)!=')') fprintf (file, ", "); 
 			
@@ -326,24 +338,17 @@ static void printmethod (methodinfo *m)
 
 /****************** remove package-name in fully-qualified classname *********************/
 
-static void simple_classname(char *buffer, utf *u)
+static void gen_header_filename(char *buffer, utf *u)
 {
-	int i, simplename_start;
+  int i, simplename_start;
+  int slash_cnt=0;
 
-	for (i=utf_strlen(u)-1; i>=0; i--) { 
-
-		if (u->text[i] == '$') u->text[i] = '_'; else /* convert '$' to '_' */
-			if (u->text[i] == '/') {
-				/* beginning of simple name */
-				simplename_start = i+1;
-				break;
-			}
-	}
-
-	for (i=simplename_start; i < utf_strlen(u); i++) 
-		buffer[i-simplename_start] = u->text[i];
-
-	buffer[i-simplename_start] = '\0';                
+  
+  for (i=0;i<utf_strlen(u);i++) {
+  	if ((u->text[i] == '/') || (u->text[i] == '$')) buffer[i] = '_';  /* convert '$' and '/' to '_' */
+	else buffer[i]=u->text[i];
+  }
+  buffer[utf_strlen(u)]='\0';
 }
 
 /*********** create headerfile for classes and store native methods in chain ************/
@@ -359,7 +364,7 @@ static void headerfile_generate (classinfo *c)
 	chain_addlast (nativeclass_chain, c);								
 			    	
 	/* open headerfile for class */
-	simple_classname(classname,c->name);										    								
+	gen_header_filename(classname,c->name);										    								
 
 	/* create chain for renaming fields */
 	ident_chain = chain_new ();
@@ -468,7 +473,7 @@ static void headers_finish ()
 	while (c) {
 	
 		dopadding=false;
-		simple_classname(classname,c->name);										    													
+		gen_header_filename(classname,c->name);										    													
 		fprintf(file,"#include \"nat/%s.h\"\n",classname);		
 		c = chain_next (nativeclass_chain);		
 	}
@@ -561,15 +566,19 @@ int main(int argc, char **argv)
 	
 	fprintf(file, "/* This file is machine generated, don't edit it !*/\n\n"); 
 
-	fprintf(file, "#define offobjvftbl    %3d\n", (int) OFFSET(java_objectheader, vftbl));
-	fprintf(file, "#define offarraysize   %3d\n", (int) OFFSET(java_arrayheader, size));
-	fprintf(file, "#define offobjarrdata  %3d\n\n", (int) OFFSET(java_objectarray, data[0]));
-	fprintf(file, "#define offbaseval     %3d\n", (int) OFFSET(vftbl, baseval));
-	fprintf(file, "#define offdiffval     %3d\n", (int) OFFSET(vftbl, diffval));
+	fprintf (file, "#define offobjvftbl    %3d\n", (int) OFFSET(java_objectheader, vftbl));
+	fprintf (file, "#define offarraysize   %3d\n", (int) OFFSET(java_arrayheader, size));
+	fprintf (file, "#define offobjarrdata  %3d\n\n", (int) OFFSET(java_objectarray, data[0]));
+	fprintf (file, "#define offbaseval     %3d\n", (int) OFFSET(vftbl, baseval));
+	fprintf (file, "#define offdiffval     %3d\n\n", (int) OFFSET(vftbl, diffval));
 
-	fclose(file);
+	fprintf (file, "#define offjniitemtype %3d\n", (int) OFFSET(jni_callblock, itemtype));
+	fprintf (file, "#define offjniitem     %3d\n", (int) OFFSET(jni_callblock, item));
+	fprintf (file, "#define sizejniblock   %3d\n\n", (int) sizeof(jni_callblock));
 
-	suck_init(classpath);
+	fclose (file);
+
+	suck_init (classpath);
    
 	tables_init();
 	heap_init(heapsize, heapsize, &dummy);
@@ -615,6 +624,13 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+
+void setVMClassField(classinfo *c)
+{
+}
+
+
+void* Java_java_lang_VMObject_clone ( void *env ,  void  *clazz, void * this){return 0;}
 
 /*
  * These are local overrides for various environment variables in Emacs.

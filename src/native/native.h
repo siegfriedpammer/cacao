@@ -57,6 +57,8 @@ void stringtable_update();
 /* throw classnotfoundexcetion */
 void throw_classnotfoundexception();
 
+void throw_classnotfoundexception2(utf* classname);
+
 /* make utf symbol from javastring */
 utf *javastring_toutf(struct java_lang_String *string, bool isclassname);
 

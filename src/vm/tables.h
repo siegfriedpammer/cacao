@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tables.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: tables.h 664 2003-11-21 18:24:01Z jowenn $
 
 */
 
@@ -63,6 +63,7 @@ void utf_display(utf *u);
 /* create new utf-symbol */
 utf *utf_new(char *text, u2 length);
 utf *utf_new_char(char *text);
+utf *utf_new_char_classname(char *text);
 
 /* show utf-table */
 void utf_show();
@@ -75,6 +76,9 @@ u4 utf_strlen(utf *u);
 
 /* search for class and create it if not found */
 classinfo *class_new(utf *u);
+
+/* return an array class with the given component class */
+classinfo *class_array_of(classinfo *component);
 
 /* get javatype according to a typedescriptor */
 u2 desc_to_type(utf *descriptor);

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 657 2003-11-20 15:18:33Z carolyn $
+   $Id: cacao.c 664 2003-11-21 18:24:01Z jowenn $
 
 */
 
@@ -759,16 +759,26 @@ int main(int argc, char **argv)
 	if (verbose) {
 		log_text("CACAO started -------------------------------------------------------");
 	}
-	
-	suck_init(classpath);
-	native_setclasspath(classpath);
+
+	suck_init (classpath);
+	native_setclasspath (classpath);
 		
 	tables_init();
 	heap_init(heapsize, heapstartsize, &dummy);
-	jit_init();
-	loader_init();
 
-	native_loadclasses();
+	
+	
+	log_text("calling jit_init");
+	jit_init();
+
+
+
+	log_text("calling loader_init");
+
+	loader_init((u1*)&dummy);
+
+	log_text("calling native_loadclasses");
+	native_loadclasses ();
 
 
 	/*********************** Load JAVA classes  ***************************/
@@ -793,11 +803,13 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	gc_init();
 
+
+	gc_init();	
 #ifdef USE_THREADS
 	initThreads((u1*) &dummy);                   /* schani */
 #endif
+
 
 	/************************* Start worker routines ********************/
 
@@ -819,7 +831,11 @@ int main(int argc, char **argv)
 		for (i = opt_ind; i < argc; i++) {
 			a->data[i - opt_ind] = javastring_new(utf_new_char(argv[i]));
 		}
-		local_exceptionptr = asm_calljavamethod(mainmethod, a, NULL, NULL, NULL);
+
+
+		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
+	
+		local_exceptionptr = asm_calljavamethod (mainmethod, a, NULL, NULL, NULL );
 	
 		if (local_exceptionptr) {
 			printf("Exception in thread \"main\" ");

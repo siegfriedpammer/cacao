@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 584 2003-11-09 19:15:25Z twisti $
+   $Id: tables.c 664 2003-11-21 18:24:01Z jowenn $
 
 */
 
@@ -348,6 +348,7 @@ utf *utf_new (char *text, u2 length)
 	utf *u;            /* hashtable element */
 	u2 i;
 	
+/*	log_text("utf_new entered");*/
 #ifdef STATISTICS
 	count_utf_new++;
 #endif
@@ -367,7 +368,15 @@ utf *utf_new (char *text, u2 length)
 #ifdef STATISTICS
 			count_utf_new_found++;
 #endif
-			/* symbol found in hashtable */   				
+/*			log_text("symbol found in hash table");*/
+			/* symbol found in hashtable */
+/*   					utf_display(u);
+					{
+						utf blup;
+						blup.blength=length;
+						blup.text=text;
+						utf_display(&blup);
+					}*/
 			return u;
 		}
 	nomatch:
@@ -382,8 +391,9 @@ utf *utf_new (char *text, u2 length)
 	u = NEW (utf);
 	u->blength  = length;             /* length in bytes of utfstring */
 	u->hashlink = utf_hash.ptr[slot]; /* link in external hashchain   */		
-	u->text     = mem_alloc(length);  /* allocate memory for utf-text */
+	u->text     = mem_alloc(length/*JOWENN*/+1);  /* allocate memory for utf-text */
 	memcpy(u->text,text,length);      /* copy utf-text                */
+        u->text[length]='\0';/*JOWENN*/
 	utf_hash.ptr[slot] = u;           /* insert symbol into table     */ 
 
 	utf_hash.entries++;               /* update number of entries     */
@@ -424,7 +434,7 @@ utf *utf_new (char *text, u2 length)
 		MFREE (utf_hash.ptr, void*, utf_hash.size);
 		utf_hash = newhash;
 	}
-	
+		/*utf_display(u);*/
 	return u;
 }
 
@@ -438,6 +448,33 @@ utf *utf_new (char *text, u2 length)
 
 utf *utf_new_char (char *text)
 {
+	return utf_new(text, strlen(text));
+}
+
+
+/********************* function: utf_new_char ********************************
+
+    creates a new utf symbol, the text for this symbol is passed
+    as a c-string ( = char* )
+    "." characters are going to be replaced by "/". since the above function is
+    used often, this is a separte function, instead of an if
+
+******************************************************************************/
+
+utf *utf_new_char_classname (char *text)
+{
+	if (strchr(text,'.')) {
+		char *txt=strdup(text);
+		char *end=txt+strlen(txt);
+		char *c;
+		utf *tmpRes;
+		for (c=txt;c<end;c++)
+			if (*c=='.') *c='/';
+		tmpRes=utf_new(txt,strlen(txt));
+		free(txt);
+		return tmpRes;
+	}
+	else
 	return utf_new(text, strlen(text));
 }
 
@@ -683,30 +720,33 @@ classinfo *class_new(utf *u)
 	count_class_infos += sizeof(classinfo);
 #endif
 
-	c = NEW(classinfo);
-	c->flags = 0;
-	c->name = u;
-	c->cpcount = 0;
-	c->cptags = NULL;
-	c->cpinfos = NULL;
-	c->super = NULL;
-	c->sub = NULL;
-	c->nextsub = NULL;
-	c->interfacescount = 0;
-	c->interfaces = NULL;
-	c->fieldscount = 0;
-	c->fields = NULL;
-	c->methodscount = 0;
-	c->methods = NULL;
-	c->linked = false;
-	c->index = 0;
-	c->instancesize = 0;
-	c->header.vftbl = NULL;
-	c->innerclasscount = 0;
-	c->innerclass = NULL;
-	c->vftbl = NULL;
-	c->initialized = false;
-	c->classvftbl = false;
+	c = NEW (classinfo);
+	c -> vmClass = 0;
+	c -> flags = 0;
+	c -> name = u;
+	c -> cpcount = 0;
+	c -> cptags = NULL;
+	c -> cpinfos = NULL;
+	c -> super = NULL;
+	c -> sub = NULL;
+	c -> nextsub = NULL;
+	c -> interfacescount = 0;
+	c -> interfaces = NULL;
+	c -> fieldscount = 0;
+	c -> fields = NULL;
+	c -> methodscount = 0;
+	c -> methods = NULL;
+	c -> linked = false;
+	c -> index = 0;
+	c -> instancesize = 0;
+	c -> header.vftbl = NULL;
+	c -> innerclasscount = 0;
+	c -> innerclass = NULL;
+	c -> vftbl = NULL;
+	c -> initialized = false;
+	c -> classvftbl = false;
+    c -> classUsed = 0;
+    c -> impldBy = NULL;
 	
 	/* prepare loading of the class */
 	list_addlast(&unloadedclasses, c);
@@ -750,6 +790,10 @@ classinfo *class_new(utf *u)
 		class_hash = newhash;
 	}
 			
+    /* Array classes need further initialization. */
+    if (u->text[0] == '[')
+        class_new_array(c);
+        
 	return c;
 }
 
@@ -791,6 +835,40 @@ classinfo *class_get(utf *u)
 	return NULL;
 }
 
+/***************** Function: class_array_of ***********************************
+
+    Returns an array class with the given component class.
+    The array class is dynamically created if neccessary.
+
+*******************************************************************************/
+
+classinfo *class_array_of(classinfo *component)
+{
+    int namelen;
+    char *namebuf;
+
+    /* Assemble the array class name */
+    namelen = component->name->blength;
+    
+    if (component->name->text[0] == '[') {
+        /* the component is itself an array */
+        namebuf = DMNEW(char,namelen+1);
+        namebuf[0] = '[';
+        memcpy(namebuf+1,component->name->text,namelen);
+        namelen++;
+    }
+    else {
+        /* the component is a non-array class */
+        namebuf = DMNEW(char,namelen+3);
+        namebuf[0] = '[';
+        namebuf[1] = 'L';
+        memcpy(namebuf+2,component->name->text,namelen);
+        namebuf[2+namelen] = ';';
+        namelen+=3;
+    }
+
+    return class_new( utf_new(namebuf,namelen) );
+}
 
 /************************** function: utf_strlen ******************************
 

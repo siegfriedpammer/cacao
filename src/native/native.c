@@ -31,10 +31,9 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 595 2003-11-09 20:04:01Z twisti $
+   $Id: native.c 664 2003-11-21 18:24:01Z jowenn $
 
 */
-
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -46,6 +45,7 @@
 #include <utime.h>
 #include <sys/utsname.h>
 
+#include "config.h"
 #include "global.h"
 #include "native.h"
 #include "nativetypes.hh"
@@ -68,6 +68,7 @@
 #endif
 #include <sys/stat.h>
 
+#include "../threads/threadio.h"                    
 
 /* searchpath for classfiles */
 static char *classpath;
@@ -78,7 +79,9 @@ static char *classpath;
 /******************** systemclasses required for native methods ***************/
 
 static classinfo *class_java_lang_Class;
-static classinfo *class_java_lang_Cloneable;
+static classinfo *class_java_lang_VMClass;
+static methodinfo *method_vmclass_init;
+/* static classinfo *class_java_lang_Cloneable=0; */ /* now in global.h */
 static classinfo *class_java_lang_CloneNotSupportedException;
 static classinfo *class_java_lang_System;
 static classinfo *class_java_lang_ClassLoader;
@@ -118,16 +121,36 @@ java_objectheader* exceptionptr = NULL;
 
 void use_class_as_object(classinfo *c) 
 {
-	vftbl *vt = class_java_lang_Class->vftbl;
-	vftbl *newtbl;
-	if (!c->classvftbl) {
-		c->classvftbl = true;
-		copy_vftbl(&newtbl, vt);
-		newtbl->class = c->header.vftbl->class;
-		newtbl->baseval = c->header.vftbl->baseval;
-		newtbl->diffval = c->header.vftbl->diffval;
-		c->header.vftbl = newtbl;
-	}
+        if (!class_java_lang_Class)
+                class_java_lang_Class =
+                        class_new ( utf_new_char ("java/lang/Class") );
+        vftbl *vt = class_java_lang_Class->vftbl;
+        vftbl *newtbl;
+        if (!c->classvftbl) {
+                c->classvftbl = true;
+                copy_vftbl(&newtbl, vt);
+                newtbl->class = c->header.vftbl->class;
+                newtbl->baseval = c->header.vftbl->baseval;
+                newtbl->diffval = c->header.vftbl->diffval;
+                c->header.vftbl = newtbl;
+        }
+        
+	if (!class_java_lang_VMClass) {
+		class_java_lang_VMClass =
+                                class_new ( utf_new_char("java/lang/VMClass"));
+                method_vmclass_init = 
+				class_findmethod(class_java_lang_VMClass,utf_new_char("<init>"),
+					utf_new_char("(Lgnu/classpath/RawData;)V"));
+                if (method_vmclass_init==0) {
+			class_showmethods(class_java_lang_VMClass);
+                        panic("Needed class initializer for VMClass could not be found");
+                }
+        }
+        {
+                java_objectheader *vmo = builtin_new (class_java_lang_VMClass);
+                asm_calljavamethod (method_vmclass_init, vmo, c, NULL, NULL);
+                c->vmClass=(java_lang_VMClass*)vmo;
+        }
 }
 
 /*********************** include Java Native Interface ************************/ 
@@ -136,53 +159,33 @@ void use_class_as_object(classinfo *c)
 
 /*************************** include native methods ***************************/ 
 
-#include "nat/Object.c"
-#include "nat/String.c"
-#include "nat/ClassLoader.c"
-#include "nat/Class.c"
-#include "nat/Compiler.c"
-#include "nat/Double.c"
-#include "nat/Float.c"
-#include "nat/Math.c"
-#include "nat/Package.c"
 #include "nat/Runtime.c"
-#include "nat/SecurityManager.c"
-#include "nat/System.c"
 #include "nat/Thread.c"
-#include "nat/Throwable.c"
-#include "nat/Finalizer.c"
-#include "nat/Array.c"
-#include "nat/Constructor.c"
-#include "nat/Field.c"
+#include "nat/VMClass.c"
 #include "nat/Method.c"
-#include "nat/FileDescriptor.c"
-#include "nat/FileInputStream.c"
-#include "nat/FileOutputStream.c"
-#include "nat/FileSystem.c"
-#include "nat/ObjectInputStream.c"
-#include "nat/ObjectStreamClass.c"
-#include "nat/RandomAccessFile.c"
-#include "nat/ResourceBundle.c"
-#include "nat/JarFile.c"
-#include "nat/Adler32.c"
-#include "nat/CRC32.c"
-#include "nat/Deflater.c"
-#include "nat/Inflater.c"
-#include "nat/ZipEntry.c"
-#include "nat/ZipFile.c"
-#include "nat/BigInteger.c"
-#include "nat/InetAddress.c"
-#include "nat/InetAddressImpl.c"
-#include "nat/DatagramPacket.c"
-#include "nat/PlainDatagramSocketImpl.c"
-#include "nat/PlainSocketImpl.c"
-#include "nat/SocketInputStream.c"
-#include "nat/SocketOutputStream.c"
-#include "nat/AccessController.c"
-#include "nat/ClassLoader_NativeLibrary.c"
-#include "nat/UnixFileSystem.c"
+#include "nat/VMSecurityManager.c"
+#include "nat/VMClassLoader.c"
+#include "nat/VMObject.c"
+#include "nat/Proxy.c"
+#include "nat/Field.c"
+#include "nat/VMSystem.c"
+#include "nat/Constructor.c"
+#include "nat/FileChannelImpl.c"
+#include "nat/VMObjectStreamClass.c"
+#include "nat/JOWENNTest1.c"
 
+#ifdef USE_GTK 
+#include "nat/GdkGraphics.c"
+#include "nat/GtkComponentPeer.c"
+#include "nat/GdkPixbufDecoder.c"
+#include "nat/GtkScrollPanePeer.c"
+#include "nat/GtkFileDialogPeer.c"
+#include "nat/GtkLabelPeer.c"
+#endif
 /************************** tables for methods ********************************/
+
+#undef JOWENN_DEBUG
+#undef JOWENN_DEBUG1
 
 /* table for locating native methods */
 static struct nativeref {
@@ -235,13 +238,25 @@ static bool nativecompdone = false;
 
 void native_loadclasses()
 {
+	static int classesLoaded=0; /*temporary hack JoWenn*/
+	if (classesLoaded) return;
+	classesLoaded=1;
+/*	log_text("loadclasses entered");*/
+
+
+	/*class_java_lang_System =*/
+	        (void)class_new ( utf_new_char ("java/lang/VMClass") );/*JoWenn*/
+	        (void)class_new ( utf_new_char ("java/lang/Class") );/*JoWenn*/
 	/* class_new adds the class to the list of classes to be loaded */
-	class_java_lang_Cloneable = 
-		class_new(utf_new_char("java/lang/Cloneable"));
+	if (!class_java_lang_Cloneable)
+		class_java_lang_Cloneable = 
+			class_new ( utf_new_char ("java/lang/Cloneable") );
+/*	log_text("loadclasses: class_java_lang_Cloneable has been initialized");*/
 	class_java_lang_CloneNotSupportedException = 
-		class_new(utf_new_char("java/lang/CloneNotSupportedException"));
-	class_java_lang_Class =
-		class_new(utf_new_char("java/lang/Class"));
+		class_new ( utf_new_char ("java/lang/CloneNotSupportedException") );
+	if (!class_java_lang_Class)
+		class_java_lang_Class =
+			class_new ( utf_new_char ("java/lang/Class") );
 	class_java_io_IOException = 
 		class_new(utf_new_char("java/io/IOException"));
 	class_java_io_FileNotFoundException = 
@@ -257,13 +272,12 @@ void native_loadclasses()
 	class_java_lang_ClassFormatError =
 		class_new(utf_new_char("java/lang/ClassFormatError"));	
 	class_java_io_SyncFailedException =
-		class_new(utf_new_char("java/io/SyncFailedException"));
-	class_java_io_UnixFileSystem =
-		class_new(utf_new_char("java/io/UnixFileSystem"));
-	class_java_lang_System =
-		class_new(utf_new_char("java/lang/System"));
+	        class_new ( utf_new_char ("java/io/SyncFailedException") );
+		
+/*	log_text("native_loadclasses: class_new(\"java/lang/ClassLoader\")");		*/
 	class_java_lang_ClassLoader =
-		class_new(utf_new_char("java/lang/ClassLoader"));
+	        class_new ( utf_new_char ("java/lang/ClassLoader") );	
+/*	log_text("native_loadclasses: class_new(\"java/security/PrivilegedActionException\")");		*/
 	class_java_security_PrivilegedActionException =
 		class_new(utf_new_char("java/security/PrivilegedActionException"));
 
@@ -283,7 +297,9 @@ void native_loadclasses()
 
 	/* load classes for wrapping primitive types */
 	class_java_lang_Double =
-		class_new(utf_new_char("java/lang/Double"));
+		class_new( utf_new_char ("java/lang/Double") );
+	class_init(class_java_lang_Double);
+
 	class_java_lang_Float =
 		class_new(utf_new_char("java/lang/Float"));
 	class_java_lang_Character =
@@ -302,12 +318,15 @@ void native_loadclasses()
 		class_new(utf_new_char("java/lang/Void"));
 
 	/* load to avoid dynamic classloading */
-	class_new(utf_new_char("sun/net/www/protocol/file/Handler"));
+/*JoWenn	class_new(utf_new_char("sun/net/www/protocol/file/Handler"));
 	class_new(utf_new_char("sun/net/www/protocol/jar/Handler"));	
-	class_new(utf_new_char("sun/io/CharToByteISO8859_1"));
+	class_new(utf_new_char("sun/io/CharToByteISO8859_1"));*/
 	
 	/* start classloader */
-	loader_load(utf_new_char("sun/io/ByteToCharISO8859_1")); 
+/*JoWenn	loader_load(utf_new_char("sun/io/ByteToCharISO8859_1")); */
+
+	classesLoaded=1;
+	log_text("native_loadclasses finished");
 }
 
 
@@ -342,24 +361,7 @@ void systemclassloader_addclass(classinfo *c)
 
 void systemclassloader_addlibrary(java_objectheader *o)
 {
-	methodinfo *m;
-
-	/* find method addElement of java.util.Vector */
-	m = class_resolvemethod(
-							loader_load ( utf_new_char ("java/util/Vector") ),
-							utf_new_char("addElement"),
-							utf_new_char("(Ljava/lang/Object;)V")
-							);
-
-	if (!m) panic("cannot initialize classloader");
-
-	/* call 'addElement' */
-  	asm_calljavamethod(m,
-					   SystemClassLoader->nativeLibraries,
-					   o,
-					   NULL,  
-					   NULL
-					   );       
+	log_text("systemclassloader_addlibrary");
 }
 
 /*****************************************************************************
@@ -370,15 +372,18 @@ void systemclassloader_addlibrary(java_objectheader *o)
 
 void init_systemclassloader() 
 {
-	if (!SystemClassLoader) {
-		/* create object and call initializer */
-		SystemClassLoader = (java_lang_ClassLoader*) native_new_and_init(class_java_lang_ClassLoader);	
-		heap_addreference((void**) &SystemClassLoader);
+  if (!SystemClassLoader) {
+	native_loadclasses();
+	log_text("Initializing new system class loader");
+	/* create object and call initializer */
+	SystemClassLoader = (java_lang_ClassLoader*) native_new_and_init(class_java_lang_ClassLoader);	
+	heap_addreference((void**) &SystemClassLoader);
 
-		/* systemclassloader has no parent */
-		SystemClassLoader->parent      = NULL;
-		SystemClassLoader->initialized = true;
-	}
+	/* systemclassloader has no parent */
+	SystemClassLoader->parent      = NULL;
+	SystemClassLoader->initialized = true;
+  }
+  log_text("leaving system class loader");
 }
 
 
@@ -396,7 +401,7 @@ void systemclassloader_addlibname(java_objectheader *o)
 
 	if (!m) panic("cannot initialize classloader");
 
-	id = env.GetStaticFieldID(&env,class_java_lang_ClassLoader,"loadedLibraryNames","Ljava/util/Vector;");
+	id = envTable.GetStaticFieldID(&env,class_java_lang_ClassLoader,"loadedLibraryNames","Ljava/util/Vector;");
 	if (!id) panic("can not access ClassLoader");
 
   	asm_calljavamethod(m,
@@ -429,6 +434,24 @@ void throw_classnotfoundexception()
 }
 
 
+void throw_classnotfoundexception2(utf* classname)
+{
+    	if (!class_java_lang_ClassNotFoundException) {
+        	panic("java.lang.ClassNotFoundException not found. Maybe wrong classpath?");
+    	}
+
+	/* throws a ClassNotFoundException */
+	exceptionptr = native_new_and_init (class_java_lang_ClassNotFoundException);
+
+        /*
+        sprintf (logtext, "Loading class: ");
+        utf_sprint (logtext+strlen(logtext), classname);
+        dolog();
+        log_text("Class not found");
+        */
+}
+
+
 /*********************** Function: native_findfunction *************************
 
 	Looks up a method (must have the same class name, method name, descriptor
@@ -451,7 +474,7 @@ functionptr native_findfunction(utf *cname, utf *mname,
 	int buffer_len;
 
 	isstatic = isstatic ? true : false;
-
+	
 	if (!nativecompdone) {
 		for (i = 0; i < NATIVETABLESIZE; i++) {
 			nativecomptable[i].classname  = 
@@ -468,14 +491,57 @@ functionptr native_findfunction(utf *cname, utf *mname,
 		nativecompdone = true;
 	}
 
+#ifdef JOWENN_DEBUG
+	buffer_len = 
+	  utf_strlen(cname) + utf_strlen(mname) + utf_strlen(desc) + 64;
+	
+	buffer = MNEW(char, buffer_len);
+
+	strcpy(buffer, "searching matching function in native table:");
+        utf_sprint(buffer+strlen(buffer), mname);
+	strcpy(buffer+strlen(buffer), ": ");
+        utf_sprint(buffer+strlen(buffer), desc);
+	strcpy(buffer+strlen(buffer), " for class ");
+        utf_sprint(buffer+strlen(buffer), cname);
+
+	log_text(buffer);	
+
+	MFREE(buffer, char, buffer_len);
+#endif
+		
 	for (i = 0; i < NATIVETABLESIZE; i++) {
 		n = &(nativecomptable[i]);
 
 		if (cname == n->classname && mname == n->methodname &&
 		    desc == n->descriptor && isstatic == n->isstatic)
 			return n->func;
+#ifdef JOWENN_DEBUG
+			else {
+				if (cname == n->classname && mname == n->methodname )  log_text("static and descriptor mismatch");
+			
+				else {
+					buffer_len = 
+					  utf_strlen(n->classname) + utf_strlen(n->methodname) + utf_strlen(n->descriptor) + 64;
+	
+					buffer = MNEW(char, buffer_len);
+
+					strcpy(buffer, "comparing with:");
+		        		utf_sprint(buffer+strlen(buffer), n->methodname);
+					strcpy (buffer+strlen(buffer), ": ");
+	        			utf_sprint(buffer+strlen(buffer), n->descriptor);
+					strcpy(buffer+strlen(buffer), " for class ");
+		        		utf_sprint(buffer+strlen(buffer), n->classname);
+
+					log_text(buffer);	
+
+					MFREE(buffer, char, buffer_len);
+			
+				}
+			} 
+#endif
 	}
 
+		
 	/* no function was found, display warning */
 
 	buffer_len = 
@@ -494,6 +560,10 @@ functionptr native_findfunction(utf *cname, utf *mname,
 
 	MFREE(buffer, char, buffer_len);
 
+
+	exit(1);
+
+	
 	return NULL;
 }
 
@@ -514,6 +584,8 @@ java_objectheader *javastring_new (utf *u)
 	java_lang_String *s;		    /* result-string                          */
 	java_chararray *a;
 	s4 i;
+	
+/*	log_text("javastring_new");*/
 	
 	s = (java_lang_String*) builtin_new (class_java_lang_String);
 	a = builtin_newarray_char (utflength);
@@ -550,8 +622,9 @@ java_objectheader *javastring_new_char (char *text)
 	java_lang_String *s;   /* result-string */
 	java_chararray *a;
 	
-	s = (java_lang_String*) builtin_new(class_java_lang_String);
-	a = builtin_newarray_char(len);
+	/*log_text("javastring_new_char");*/
+	s = (java_lang_String*) builtin_new (class_java_lang_String);
+	a = builtin_newarray_char (len);
 
 	/* javastring or character-array could not be created */
 	if ((!a) || (!s)) return NULL;
@@ -586,6 +659,8 @@ char *javastring_tochar (java_objectheader *so)
 	java_lang_String *s = (java_lang_String*) so;
 	java_chararray *a;
 	s4 i;
+	
+	log_text("javastring_tochar");
 	
 	if (!s)
 		return "";
@@ -635,8 +710,13 @@ java_objectheader *native_new_and_init(classinfo *c)
 	methodinfo *m;
 	java_objectheader *o = builtin_new(c);          /*          create object */
 
+        /*
+	printf("native_new_and_init ");
+	utf_display(c->name);
+	printf("\n");
+        */
 	if (!o) return NULL;
-	
+	/* printf("o!=NULL\n"); */
 	/* find initializer */
 
 	m = class_findmethod(c, utf_new_char("<init>"), utf_new_char("()V"));
@@ -679,22 +759,20 @@ void stringtable_update ()
 								
 				js = (java_lang_String *) s->string;
 				
-				if (!js || !(a = js->value)) {
+				if (!js || !(a = js->value)) 
 					/* error in hashtable found */
 					panic("invalid literalstring in hashtable");
 
-				} else {
-					if (!js->header.vftbl) 
-						/* vftbl of javastring is NULL */ 
-						js->header.vftbl = class_java_lang_String -> vftbl;
+				if (!js->header.vftbl) 
+					/* vftbl of javastring is NULL */ 
+					js->header.vftbl = class_java_lang_String -> vftbl;
 
-					if (!a->header.objheader.vftbl) 
-						/* vftbl of character-array is NULL */ 
-						a->header.objheader.vftbl = class_array -> vftbl;
+				if (!a->header.objheader.vftbl) 
+					/* vftbl of character-array is NULL */ 
+					a->header.objheader.vftbl = primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
 
-					/* follow link in external hash chain */
-					s = s->hashlink;
-				}
+				/* follow link in external hash chain */
+				s = s->hashlink;
 			}	
 		}		
 	}
@@ -747,12 +825,17 @@ utf *utf_new_u2(u2 *unicode_pos, u4 unicode_length, bool isclassname)
 	utf *result;  /* resulting utf-string */
     	int i;    	
 
-	/* determine utf length in bytes and allocate memory */    	
+	/* determine utf length in bytes and allocate memory */
+	/* printf("utf_new_u2: unicode_length=%d\n",unicode_length);    	*/
 	buflength = u2_utflength(unicode_pos, unicode_length); 
     	buffer    = MNEW(char,buflength);
  
  	/* memory allocation failed */
-	if (!buffer) return NULL;
+	if (!buffer) {
+		printf("length: %d\n",buflength);
+		log_text("utf_new_u2:buffer==NULL");
+		return NULL;
+	}
 
     	left = buflength;
 	pos  = buffer;
@@ -793,6 +876,7 @@ utf *utf_new_u2(u2 *unicode_pos, u4 unicode_length, bool isclassname)
 	
 	/* insert utf-string into symbol-table */
 	result = utf_new(buffer,buflength);
+
     	MFREE(buffer, char, buflength);
 	return result;
 }
@@ -806,7 +890,9 @@ utf *utf_new_u2(u2 *unicode_pos, u4 unicode_length, bool isclassname)
 utf *javastring_toutf(java_lang_String *string, bool isclassname)
 {
         java_lang_String *str = (java_lang_String *) string;
-	return utf_new_u2(str->value->data,str->count, isclassname);
+/*	printf("javastring_toutf offset: %d, len %d\n",str->offset, str->count);
+	fflush(stdout);*/
+	return utf_new_u2(str->value->data+str->offset,str->count, isclassname);
 }
 
 /********************* function: literalstring_u2 *****************************
@@ -828,6 +914,11 @@ java_objectheader *literalstring_u2 (java_chararray *a, u4 length, bool copymode
     u4 slot;  
     u2 i;
 
+#if JOWENN_DEBUG1
+    printf("literalstring_u2: length: %d\n",length);    
+    log_text("literalstring_u2");
+#endif
+    
     /* find location in hashtable */
     key  = unicode_hashkey (a->data, length);
     slot = key & (string_hash.size-1);
@@ -846,6 +937,10 @@ java_objectheader *literalstring_u2 (java_chararray *a, u4 length, bool copymode
 	if (!copymode)
 	  lit_mem_free(a, sizeof(java_chararray) + sizeof(u2)*(length-1)+10);
 
+#ifdef JOWENN_DEBUG1
+	log_text("literalstring_u2: foundentry");
+	utf_display(javastring_toutf(js,0));
+#endif
 	return (java_objectheader *) js;
       }
 
@@ -864,10 +959,8 @@ java_objectheader *literalstring_u2 (java_chararray *a, u4 length, bool copymode
       stringdata = a;
 
     /* location in hashtable found, complete arrayheader */
-    if (class_array==NULL) panic("class_array not initialized");
-    stringdata -> header.objheader.vftbl = class_array -> vftbl;
+    stringdata -> header.objheader.vftbl = primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
     stringdata -> header.size = length;	
-    stringdata -> header.arraytype = ARRAYTYPE_CHAR;	
 
     /* create new javastring */
     js = LNEW (java_lang_String);
@@ -919,6 +1012,10 @@ java_objectheader *literalstring_u2 (java_chararray *a, u4 length, bool copymode
       MFREE (string_hash.ptr, void*, string_hash.size);
       string_hash = newhash;
     }
+#ifdef JOWENN_DEBUG1
+	log_text("literalstring_u2: newly created");
+/*	utf_display(javastring_toutf(js,0));*/
+#endif
 			
     return (java_objectheader *) js;
 }
@@ -936,7 +1033,10 @@ java_objectheader *literalstring_new (utf *u)
     u4 utflength  = utf_strlen(u);   /* length of utf-string if uncompressed */
     java_chararray *a;               /* u2-array constructed from utf string */
     u4 i;
-    
+/*    log_text("literalstring_new"); */
+/*    utf_display(u);*/
+    /*if (utflength==0) while (1) sleep(60);*/
+/*    log_text("------------------");    */
     /* allocate memory */ 
     a = lit_mem_alloc (sizeof(java_chararray) + sizeof(u2)*(utflength-1)+10 );	
     /* convert utf-string to u2-array */
@@ -970,9 +1070,16 @@ void literalstring_free (java_objectheader* sobj)
 
 void copy_vftbl(vftbl **dest, vftbl *src)
 {
-	*dest = mem_alloc(sizeof(vftbl) + sizeof(methodptr) * (src->vftbllength - 1));
+    *dest = src;
+#if 0
+    /* XXX this kind of copying does not work (in the general
+     * case). The interface tables would have to be copied, too. I
+     * don't see why we should make a copy anyway. -Edwin
+     */
+	*dest = mem_alloc(sizeof(vftbl) + sizeof(methodptr)*(src->vftbllength-1));
 	memcpy(*dest, src, sizeof(vftbl) - sizeof(methodptr));
 	memcpy(&(*dest)->table, &src->table, src->vftbllength * sizeof(methodptr));
+#endif
 }
 
 /*****************************************************************************/
@@ -985,22 +1092,22 @@ void printNativeCall(nativeCall nc) {
 
   printf("\n%s's Native Methods call:\n",nc.classname); fflush(stdout);
   for (i=0; i<nc.methCnt; i++) {  
-    printf("\tMethod=%s %s\n",nc.methods[i].methodname, nc.methods[i].descriptor);fflush(stdout);
+      printf("\tMethod=%s %s\n",nc.methods[i].methodname, nc.methods[i].descriptor);fflush(stdout);
 
     for (j=0; j<nc.callCnt[i]; j++) {  
-      printf("\t\t<%i,%i>aCalled = %s %s %s\n",i,j,
+        printf("\t\t<%i,%i>aCalled = %s %s %s\n",i,j,
 	nc.methods[i].methodCalls[j].classname, 
 	nc.methods[i].methodCalls[j].methodname, 
 	nc.methods[i].methodCalls[j].descriptor);fflush(stdout);
       }
     }
-printf("-+++++--------------------\n");fflush(stdout);
+  printf("-+++++--------------------\n");fflush(stdout);
 }
 
 /*--------------------------------------------------------*/
 void printCompNativeCall(nativeCompCall nc) {
   int i,j;
-printf("printCompNativeCall BEGIN\n");fflush(stdout);
+  printf("printCompNativeCall BEGIN\n");fflush(stdout); 
   printf("\n%s's Native Comp Methods call:\n",nc.classname->text);fflush(stdout);
   utf_display(nc.classname); fflush(stdout);
   

@@ -26,14 +26,16 @@ extern java_objectheader* exceptionptr;
 
 s4 builtin_instanceof(java_objectheader *obj, classinfo *class);
 s4 builtin_isanysubclass (classinfo *sub, classinfo *super);
+s4 builtin_isanysubclass_vftbl (vftbl *sub, vftbl *super);
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
 s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class);
-s4 builtin_arrayinstanceof(java_objectheader *obj, constant_arraydescriptor *desc);
-#if defined(__I386__)
-s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class);
+
+s4 builtin_arrayinstanceof(java_objectheader *obj, arraydescriptor *desc);
+#ifdef __I386__
+s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class); /* XXX ? */
 #endif
-s4 builtin_checkarraycast(java_objectheader *obj, constant_arraydescriptor *desc);
-s4 asm_builtin_checkarraycast(java_objectheader *obj, constant_arraydescriptor *desc);
+s4 builtin_checkarraycast(java_objectheader *obj, arraydescriptor *desc);
+s4 asm_builtin_checkarraycast(java_objectheader *obj, arraydescriptor *desc);
 
 java_objectheader *builtin_throw_exception (java_objectheader *exception);
 java_objectheader *builtin_trace_exception (java_objectheader *exceptionptr,
@@ -42,12 +44,11 @@ java_objectheader *builtin_trace_exception (java_objectheader *exceptionptr,
 java_objectheader *builtin_new (classinfo *c);
 
 
-java_objectarray *builtin_anewarray (s4 size, classinfo *elementtype);
+java_arrayheader *builtin_newarray (s4 size, vftbl *arrayvftbl);
+java_objectarray *builtin_anewarray (s4 size, classinfo *component);
 #ifdef __I386__
-void asm_builtin_anewarray (s4 size, classinfo *elementtype);
-void asm_builtin_newarray_array (s4 size, constant_arraydescriptor *elementdesc);
+void asm_builtin_newarray (s4 size, vftbl *arrayvftbl);
 #endif
-java_arrayarray *builtin_newarray_array (s4 size, constant_arraydescriptor *elementdesc);
 java_booleanarray *builtin_newarray_boolean (s4 size);
 java_chararray *builtin_newarray_char (s4 size);
 java_floatarray *builtin_newarray_float (s4 size);
@@ -56,13 +57,10 @@ java_bytearray *builtin_newarray_byte (s4 size);
 java_shortarray *builtin_newarray_short (s4 size);
 java_intarray *builtin_newarray_int (s4 size);
 java_longarray *builtin_newarray_long (s4 size);
-java_arrayheader *builtin_multianewarray (java_intarray *dims,
-                       constant_arraydescriptor *desc);
-java_arrayheader *builtin_nmultianewarray (int size,
-                      constant_arraydescriptor *desc, long *dims);
+java_arrayheader *builtin_nmultianewarray (int n,
+                                           vftbl *arrayvftbl, long *dims);
 
 s4 builtin_canstore (java_objectarray *a, java_objectheader *o);
-s4 builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o);
 void asm_builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o);
 
 #ifdef TRACE_ARGS_NUM
@@ -141,6 +139,8 @@ s8       builtin_d2l (double a);
 s8       asm_builtin_d2l (double a);
 
 float    builtin_d2f (double a);
+
+java_arrayheader *builtin_clone_array(void *env,java_arrayheader *o);
 
 
 /*

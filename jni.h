@@ -26,7 +26,7 @@
 
    Authors: ?
 
-   $Id: jni.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: jni.h 664 2003-11-21 18:24:01Z jowenn $
 
 */
 
@@ -68,8 +68,20 @@
 #define jfieldID 	        fieldinfo*
 #define jmethodID	       methodinfo*	
 
-struct _JavaVM;				     /* opaque structure */
 typedef struct _JavaVM* JavaVM;
+
+struct _JavaVM{
+   void *(*reserved0) ();
+   void *(*reserved1) ();
+   void *(*reserved2) ();
+   jint (*DestroyJavaVM) (JavaVM *);
+   jint (*AttachCurrentThread) (JavaVM *, void **, void *);
+   jint (*DetachCurrentThread) (JavaVM *);
+   jint (*GetEnv) (JavaVM *, void **, jint);
+   jint (*AttachCurrentThreadAsDaemon) (JavaVM *, void **, void *);
+
+};
+
 
 typedef union jvalue {
     jboolean z;
@@ -116,7 +128,7 @@ typedef struct {
 	Java VM Interface 
 */
 
-typedef struct JNI_Table JNIEnv;
+typedef struct JNI_Table *JNIEnv;
 
 struct JNI_Table {
     
@@ -427,7 +439,6 @@ struct JNI_Table {
     jint (*MonitorExit) (JNIEnv*, jobject obj);
 
     /* JavaVM interface */
-
     jint (*GetJavaVM) (JNIEnv*, JavaVM **vm);
 
     void (*GetStringRegion) (JNIEnv*, jstring str, jsize start, jsize len, jchar *buf);
@@ -450,8 +461,9 @@ struct JNI_Table {
 
 extern JNIEnv env;
 
-#endif /* _JNI_H */
+extern JavaVM javaVM;
 
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

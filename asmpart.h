@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 596 2003-11-09 20:05:07Z twisti $
+   $Id: asmpart.h 664 2003-11-21 18:24:01Z jowenn $
 
 */
 
@@ -38,6 +38,7 @@
 #define _ASMPART_H
 
 #include "global.h"
+#include "jni.h"
 
 /* 
    determines if the byte support instruction set (21164a and higher)
@@ -72,6 +73,11 @@ java_objectheader *asm_calljavamethod(methodinfo *m, void *arg1, void *arg2,
 */
 java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
                                         void *arg3, void *arg4);
+java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size , void *callblock);
+jdouble asm_calljavafunction2double(methodinfo *m, u4 count, u4 size , void *callblock);
+jlong asm_calljavafunction2long(methodinfo *m, u4 count, u4 size , void *callblock);
+
+
 
 void asm_handle_exception();
 void asm_handle_nat_exception();

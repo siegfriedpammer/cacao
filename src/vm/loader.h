@@ -26,8 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 593 2003-11-09 19:50:55Z twisti $
-
+   $Id: loader.h 664 2003-11-21 18:24:01Z jowenn $
 */
 
 
@@ -91,25 +90,38 @@ void class_init(classinfo *c);
 void class_showconstanti(classinfo *c, int ii);
 
 /* debug purposes */
-void class_showconstantpool(classinfo *c);
-void class_showmethods(classinfo *c);
+void class_showmethods (classinfo *c);
+void class_showconstantpool (classinfo *c);
+void print_arraydescriptor(FILE *file,arraydescriptor *desc);
 
 classinfo *loader_load(utf *topname);
 
 /* set buffer for reading classdata */
 void classload_buffer(u1 *buf,int len);
 
-/* create class representing specific arraytype */
+/* return the primitive class inidicated by the given signature character */
+classinfo *class_primitive_from_sig(char sig);
+
+/* return the class indicated by the given descriptor */
+#define CLASSLOAD_SKIP  0
+#define CLASSLOAD_NEW   1
+#define CLASSLOAD_LOAD  2
+classinfo *class_from_descriptor(char *utf_ptr,char *end_ptr,char **next,int mode);
+
+/* create class representing specific arraytype */ /* XXX delete */
 classinfo *create_array_class(utf *u);
 
-/* create the arraydescriptor for the arraytype specified by the utf-string */
-constant_arraydescriptor * buildarraydescriptor(char *utf, u4 namelen);
+/* (used by class_new, don't use directly) */
+void class_new_array(classinfo *c);
 
 void class_link(classinfo *c);
 
 void field_display(fieldinfo *f);
 
 void method_display(methodinfo *m);
+
+utf* clinit_desc();
+utf* clinit_name();
 
 #endif /* _LOADER_H */
 

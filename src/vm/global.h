@@ -30,7 +30,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: global.h 655 2003-11-20 14:52:00Z carolyn $
+   $Id: global.h 664 2003-11-21 18:24:01Z jowenn $
 
 */
 
@@ -53,6 +53,22 @@
  */
 #define SIZE_FROM_CLASSINFO
 
+/* standard includes **********************************************************/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#include "toolbox/memory.h"
+#include "toolbox/chain.h"
+#include "toolbox/list.h"
+#include "toolbox/loging.h"
+
+/* system dependent types *****************************************************/
+
+#include "types.h"
+
 
 /* additional data types ******************************************************/
 
@@ -64,6 +80,19 @@ typedef int   bool;             /* boolean data type */
 #define false 0
 
 #define PRIMITIVETYPE_COUNT  9  /* number of primitive types */
+
+/* CAUTION: Don't change the numerical values! These constants are
+ * used as indices into the primitive type table.
+ */
+#define PRIMITIVETYPE_INT     0
+#define PRIMITIVETYPE_LONG    1
+#define PRIMITIVETYPE_FLOAT   2
+#define PRIMITIVETYPE_DOUBLE  3
+#define PRIMITIVETYPE_BYTE    4
+#define PRIMITIVETYPE_CHAR    5
+#define PRIMITIVETYPE_SHORT   6
+#define PRIMITIVETYPE_BOOLEAN 7
+#define PRIMITIVETYPE_VOID    8
 
 typedef void (*functionptr) (); /* generic function pointer */
 
@@ -104,7 +133,6 @@ void cacao_shutdown(s4 status);
 #define CONSTANT_NameAndType          12
 #define CONSTANT_Utf8                  1
 
-#define CONSTANT_Arraydescriptor      13
 #define CONSTANT_UNUSED                0
 
 #define ACC_PUBLIC                0x0001
@@ -118,7 +146,7 @@ void cacao_shutdown(s4 status);
 #define ACC_NATIVE                0x0100
 #define ACC_INTERFACE             0x0200
 #define ACC_ABSTRACT              0x0400
-
+#define ACC_STRICT		  0x0800
 
 /* resolve typedef cycles *****************************************************/
 
@@ -130,6 +158,7 @@ typedef struct vftbl vftbl;
 typedef u1* methodptr;
 typedef struct fieldinfo  fieldinfo; 
 typedef struct methodinfo methodinfo; 
+typedef struct arraydescriptor arraydescriptor;
 
 
 /* constant pool entries *******************************************************
@@ -151,7 +180,6 @@ typedef struct methodinfo methodinfo;
     CONSTANT_Double              constant_double                    yes
     CONSTANT_NameAndType         constant_nameandtype               yes
     CONSTANT_Utf8                unicode                             no
-    CONSTANT_Arraydescriptor     constant_arraydescriptor           yes
     CONSTANT_UNUSED              -
 
 *******************************************************************************/
@@ -224,6 +252,16 @@ struct literalstring {
 };
 
 
+/* data structure for calls from c code to java methods */
+
+struct jni_callblock {
+	u1 itemtype;
+	u8 item;
+};
+
+typedef struct jni_callblock jni_callblock;
+
+
 /* data structure for accessing hashtables ************************************/
 
 typedef struct {            
@@ -276,11 +314,14 @@ typedef struct {            /* NameAndType (Field or Method)                  */
    types in the case of arrays of arrays (arraytype == ARRAYTYPE_ARRAY).
 */
 
+/* XXX delete */
+#if 0
 typedef struct constant_arraydescriptor {
 	int arraytype;
 	classinfo *objectclass;
 	struct constant_arraydescriptor *elementdescriptor;
 } constant_arraydescriptor;
+#endif
 
 
 /* data structures of the runtime system **************************************/
@@ -300,21 +341,24 @@ struct java_objectheader {              /* header for all objects             */
 /* arrays **********************************************************************
 
 	All arrays are objects (they need the object header with a pointer to a
-	vvftbl (array class table). There is only one class for all arrays. The
+	vvftbl (array class table). There is only one class for all arrays. The    XXX change
 	type of an array is stored directly in the array object. Following types
 	are defined:
 */
 
-#define ARRAYTYPE_INT      0
-#define ARRAYTYPE_LONG     1
-#define ARRAYTYPE_FLOAT    2
-#define ARRAYTYPE_DOUBLE   3
-#define ARRAYTYPE_BYTE     4
-#define ARRAYTYPE_CHAR     5
-#define ARRAYTYPE_SHORT    6
-#define ARRAYTYPE_BOOLEAN  7
-#define ARRAYTYPE_OBJECT   8
-#define ARRAYTYPE_ARRAY    9
+/* CAUTION: Don't change the numerical values! These constants (with
+ * the exception of ARRAYTYPE_OBJECT) are used as indices in the
+ * primitive type table.
+ */
+#define ARRAYTYPE_INT      PRIMITIVETYPE_INT
+#define ARRAYTYPE_LONG     PRIMITIVETYPE_LONG
+#define ARRAYTYPE_FLOAT    PRIMITIVETYPE_FLOAT
+#define ARRAYTYPE_DOUBLE   PRIMITIVETYPE_DOUBLE
+#define ARRAYTYPE_BYTE     PRIMITIVETYPE_BYTE
+#define ARRAYTYPE_CHAR     PRIMITIVETYPE_CHAR
+#define ARRAYTYPE_SHORT    PRIMITIVETYPE_SHORT
+#define ARRAYTYPE_BOOLEAN  PRIMITIVETYPE_BOOLEAN
+#define ARRAYTYPE_OBJECT   PRIMITIVETYPE_VOID     /* don't use as index! */
 
 typedef struct java_arrayheader {       /* header for all arrays              */
 	java_objectheader objheader;        /* object header                      */
@@ -322,7 +366,6 @@ typedef struct java_arrayheader {       /* header for all arrays              */
 #ifdef SIZE_FROM_CLASSINFO
 	s4 alignedsize; /* phil */
 #endif
-	s4 arraytype;                       /* array type from previous list      */
 } java_arrayheader;
 
 
@@ -377,16 +420,17 @@ typedef struct java_longarray {
 
 typedef struct java_objectarray {
 	java_arrayheader header;
-	classinfo *elementtype;
 	java_objectheader *data[1];
 } java_objectarray;
 
+/* XXX delete */
+#if 0
 typedef struct java_arrayarray {
 	java_arrayheader header;
 	constant_arraydescriptor *elementdescriptor;
 	java_arrayheader *data[1];
 } java_arrayarray;
-
+#endif
 
 /* structure for primitive classes ********************************************/
 
@@ -396,6 +440,9 @@ typedef struct primitivetypeinfo {
 	char *wrapname;                      /* name of class for wrapping        */
 	char typesig;                        /* one character type signature      */
 	char *name;                          /* name of primitive class           */
+	char *arrayname;                     /* name of primitive array class     */
+	classinfo *arrayclass;               /* primitive array class             */
+	vftbl *arrayvftbl;                   /* vftbl of primitive array class    */
 } primitivetypeinfo;
 
 
@@ -530,6 +577,15 @@ typedef struct innerclassinfo {
 
 struct classinfo {                /* class structure                          */
 	java_objectheader header;     /* classes are also objects                 */
+	java_objectarray* signers;
+	struct java_security_ProtectionDomain* pd;
+	struct java_lang_VMClass* vmClass;
+	struct java_lang_reflect_Constructor* constructor;
+
+
+        s4 initializing_thread; /* gnu classpath*/
+        s4 erroneous_state; /* gnu classpath*/
+        struct gnu_classpath_RawData* vmData; /* gnu classpath*/
 
 	s4          flags;            /* ACC flags                                */
 	utf        *name;             /* class name                               */ 
@@ -577,6 +633,9 @@ struct classinfo {                /* class structure                          */
 
 	classSetNode *impldBy;          /* implemented by class set */
 };
+
+/* check if class is an array class. Only use for linked classes! */
+#define CLASS_IS_ARRAY(clsinfo)  (clsinfo->vftbl->arraydesc != NULL)
 
 
 /* virtual function table ******************************************************
@@ -640,10 +699,13 @@ struct vftbl {
 
 	classinfo   *class;                /* class, the vtbl belongs to          */
 
+	arraydescriptor *arraydesc;        /* for array classes, otherwise NULL   */
+
 	s4           vftbllength;          /* virtual function table length       */
 	s4           interfacetablelength; /* interface table length              */
 
 	s4           baseval;              /* base for runtime type check         */
+	                                   /* (-index for interfaces)             */
 	s4           diffval;              /* high - base for runtime type check  */
 
 	s4          *interfacevftbllength; /* length of interface vftbls          */
@@ -654,10 +716,31 @@ struct vftbl {
 #define VFTBLINTERFACETABLE(v,i)       (v)->interfacetable[-i]
 
 
+/* arraydescriptor ************************************************************
+
+    For every array class an arraydescriptor is allocated which
+    describes the array class.
+	The arraydescriptor is referenced from the vftbl of the array
+	class.
+
+*******************************************************************************/
+
+struct arraydescriptor {
+	vftbl *componentvftbl;   /* vftbl of the component type, NULL for primit. */
+	vftbl *elementvftbl;     /* vftbl of the element type, NULL for primitive */
+	short  arraytype;        /* ARRAYTYPE_* constant                          */
+	short  dimension;        /* dimension of the array (always >= 1)          */
+    s4     dataoffset;       /* offset of the array data from object pointer  */
+	s4     componentsize;    /* size of a component in bytes                  */
+};
+
 /* references to some system classes ******************************************/
 
 extern classinfo *class_java_lang_Object;
 extern classinfo *class_java_lang_String;
+extern classinfo *class_java_lang_Throwable;
+extern classinfo *class_java_lang_Cloneable;
+extern classinfo *class_java_io_Serializable;
 extern classinfo *class_java_lang_ClassCastException;
 extern classinfo *class_java_lang_NullPointerException;
 extern classinfo *class_java_lang_ArrayIndexOutOfBoundsException;
@@ -666,7 +749,9 @@ extern classinfo *class_java_lang_OutOfMemoryError;
 extern classinfo *class_java_lang_ArithmeticException;
 extern classinfo *class_java_lang_ArrayStoreException;
 extern classinfo *class_java_lang_ThreadDeath;
-extern classinfo *class_array;
+extern classinfo *pseudo_class_Arraystub;
+extern classinfo *pseudo_class_Null;
+extern vftbl *pseudo_class_Arraystub_vftbl;
 
 /* instances of some system classes *******************************************/
 
@@ -712,10 +797,47 @@ extern int count_utf_new_found;
 
 /* table of primitive types ***************************************************/
 
+/* This array can be indexed by the PRIMITIVETYPE_ and ARRAYTYPE_
+ * constants (except ARRAYTYPE_OBJECT).
+ */
 extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 
-#endif /* _GLOBAL_H */
 
+/* macros for descriptor parsing **********************************************/
+
+/* utf_ptr must point to the 'L' or the '[' of a field descriptor.
+ * After the macro call utf_ptr points to the first character after
+ * the field descriptor.
+ *
+ * CAUTION: This macro does not check for an unexpected end of the
+ * descriptor.
+ */
+#define SKIP_FIELDDESCRIPTOR(utf_ptr)                                           \
+            { while (*(utf_ptr)=='[') (utf_ptr)++;                      \
+              if (*(utf_ptr)++=='L')                                            \
+                  while(*(utf_ptr)++ != ';') /* skip */; }
+/* Input:
+ *     utf_ptr....points to first char of descriptor
+ *     end_ptr....points to first char after the end of the string
+ *     errorflag..must be initialized (to false) by the caller!
+ * Output:
+ *     utf_ptr....points to first char after the descriptor
+ *     errorflag..set to true if the string ended unexpectedly
+ */
+#define SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr,end_ptr,errorflag)                                                    \
+            { while ((utf_ptr) != (end_ptr) && *(utf_ptr)=='[') (utf_ptr)++;                    \
+              if ((utf_ptr) == (end_ptr))                                                        \
+                  (errorflag) = true;                                                            \
+              else                                                                                   \
+                      if (*(utf_ptr)++=='L') {                                                        \
+                      while((utf_ptr) != (end_ptr) && *(utf_ptr)++ != ';') /* skip */;  \
+                      if ((utf_ptr)[-1] != ';')                                          \
+                          (errorflag) = true; }}
+
+
+extern classinfo *class_array;
+
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

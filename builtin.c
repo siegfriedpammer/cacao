@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 624 2003-11-13 14:06:52Z twisti $
+   $Id: builtin.c 664 2003-11-21 18:24:01Z jowenn $
 
 */
 
@@ -55,6 +55,7 @@
 
 #include "native-math.h"
 
+#undef DEBUG /*define DEBUG 1*/
 
 builtin_descriptor builtin_desc[] = {
 	{(functionptr) builtin_instanceof,		   "instanceof"},
@@ -68,12 +69,13 @@ builtin_descriptor builtin_desc[] = {
 	{(functionptr) asm_builtin_checkarraycast, "checkarraycast"},
 	{(functionptr) asm_builtin_aastore,		   "aastore"},
 	{(functionptr) builtin_new,				   "new"},
+	{(functionptr) builtin_newarray,       "newarray"},
 	{(functionptr) builtin_anewarray,          "anewarray"},
-	{(functionptr) builtin_newarray_array,	   "newarray_array"},
 #if defined(__I386__)
-	/* have 2 parameters (needs stack manipulation) */
-	{(functionptr) asm_builtin_anewarray,      "anewarray"},
-	{(functionptr) asm_builtin_newarray_array, "newarray_array"},
+	/*
+	 * have 2 parameters (needs stack manipulation)
+	 */
+	{(functionptr) asm_builtin_newarray,       "newarray"},
 #endif
 	{(functionptr) builtin_newarray_boolean,   "newarray_boolean"},
 	{(functionptr) builtin_newarray_char,	   "newarray_char"},
@@ -167,6 +169,7 @@ builtin_descriptor builtin_desc[] = {
 
 s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 { 
+	classinfo *tmp;
 	if (super->flags & ACC_INTERFACE)
 		return (sub->vftbl->interfacetablelength > super->index) &&
 			(sub->vftbl->interfacetable[-super->index] != NULL);
@@ -181,8 +184,39 @@ s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 	  return 0;
 	*/
 
+/*
+	for (tmp=sub;tmp!=0;tmp=tmp->super) {
+		printf("->");
+		utf_display(tmp->name);
+	}
+		printf("\n\n");
+	
+	for (tmp=super;tmp!=0;tmp=tmp->super) {
+		printf("->");
+		utf_display(tmp->name);
+	}
+		printf("\n");
+	
+
+	printf("sub->vftbl->baseval %d, super->vftbl->baseval %d\n diff %d, super->vftbl->diffval %d\n",
+			sub->vftbl->baseval, super->vftbl->baseval, (unsigned)(sub->vftbl->baseval - super->vftbl->baseval),
+			super->vftbl->diffval); */
+
 	return (unsigned) (sub->vftbl->baseval - super->vftbl->baseval) <=
 		(unsigned) (super->vftbl->diffval);
+}
+
+/* XXX inline this? */
+s4 builtin_isanysubclass_vftbl(vftbl *sub,vftbl *super)
+{
+	int base;
+	
+	if ((base = super->baseval) <= 0)
+		/* super is an interface */
+		return (sub->interfacetablelength > -base) &&
+			(sub->interfacetable[base] != NULL);
+	return (unsigned) (sub->baseval - base)
+		<= (unsigned) (super->diffval);
 }
 
 
@@ -196,12 +230,22 @@ s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 			 
 *****************************************************************************/
 
+/* XXX should use vftbl */
 s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
 {
 #ifdef DEBUG
 	log_text ("builtin_instanceof called");
-#endif
-	
+
+	/* XXX remove log */
+	/*
+	sprintf(logtext,"instanceof(");
+	utf_sprint(logtext+strlen(logtext),obj->vftbl->class->name);
+	sprintf(logtext+strlen(logtext),",");
+	utf_sprint(logtext+strlen(logtext),class);
+	sprintf(logtext+strlen(logtext),")");
+	dolog();
+	*/
+#endif	
 	if (!obj) return 0;
 	return builtin_isanysubclass (obj->vftbl->class, class);
 }
@@ -215,12 +259,23 @@ s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
 			  
 ****************************************************************************/
 
+/* XXX should use vftbl */
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 {
 #ifdef DEBUG
 	log_text("builtin_checkcast called");
 #endif
 
+	/* XXX remove log */
+	/*
+	sprintf(logtext,"checkcast(");
+	utf_sprint(logtext+strlen(logtext),obj->vftbl->class->name);
+	sprintf(logtext+strlen(logtext),",");
+	utf_sprint(logtext+strlen(logtext),class);
+	sprintf(logtext+strlen(logtext),")");
+	dolog();
+	*/
+	
 	if (obj == NULL)
 		return 1;
 	if (builtin_isanysubclass(obj->vftbl->class, class))
@@ -246,6 +301,8 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 			
 ******************************************************************************/
 
+/* XXX delete */
+#if 0
 static s4 builtin_descriptorscompatible(constant_arraydescriptor *desc, constant_arraydescriptor *target)
 {
 	if (desc == target) return 1;
@@ -260,8 +317,23 @@ static s4 builtin_descriptorscompatible(constant_arraydescriptor *desc, constant
 	default: return 1;
 	}
 }
+#endif
 
+/* XXX inline this? */
+static s4 builtin_descriptorscompatible(arraydescriptor *desc,arraydescriptor *target)
+{
+	if (desc==target) return 1;
+	if (desc->arraytype != target->arraytype) return 0;
+	if (desc->arraytype != ARRAYTYPE_OBJECT) return 1;
+	
+	/* {both arrays are arrays of references} */
+	if (desc->dimension == target->dimension)
+		return builtin_isanysubclass_vftbl(desc->elementvftbl,target->elementvftbl);
+	if (desc->dimension < target->dimension) return 0;
 
+	/* {desc has higher dimension than target} */
+	return builtin_isanysubclass_vftbl(pseudo_class_Arraystub_vftbl,target->elementvftbl);
+}
 
 /******************** function: builtin_checkarraycast ***********************
 
@@ -280,6 +352,8 @@ static s4 builtin_descriptorscompatible(constant_arraydescriptor *desc, constant
 			
 *****************************************************************************/
 
+/* XXX delete */
+#if 0
 s4 builtin_checkarraycast(java_objectheader *o, constant_arraydescriptor *desc)
 {
 	java_arrayheader *a = (java_arrayheader*) o;
@@ -325,14 +399,32 @@ s4 builtin_checkarraycast(java_objectheader *o, constant_arraydescriptor *desc)
 		return 1;
 	}
 }
+#endif
 
+s4 builtin_checkarraycast(java_objectheader *o,arraydescriptor *target)
+{
+	arraydescriptor *desc;
+	
+	if (!o) return 1;
+	if ((desc = o->vftbl->arraydesc) == NULL) return 0;
 
+	return builtin_descriptorscompatible(desc,target);
+}
+
+/* XXX delete */
+#if 0
 s4 builtin_arrayinstanceof(java_objectheader *obj, constant_arraydescriptor *desc)
 {
 	if (!obj) return 1;
 	return builtin_checkarraycast (obj, desc);
 }
+#endif
 
+s4 builtin_arrayinstanceof(java_objectheader *obj,arraydescriptor *desc)
+{
+	if (!obj) return 1;
+	return builtin_checkarraycast (obj, desc);
+}
 
 /************************** exception functions *******************************
 
@@ -342,7 +434,21 @@ java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr
 {
 	if (verbose) {
 		sprintf(logtext, "Builtin exception thrown: ");
-		utf_sprint(logtext + strlen(logtext), local_exceptionptr->vftbl->class->name);
+		if (local_exceptionptr)
+			utf_sprint(logtext + strlen(logtext), local_exceptionptr->vftbl->class->name);
+		else {
+			sprintf(logtext+strlen(logtext),"%s","Error: <Nullpointer instead of exception>");
+			if (!proto_java_lang_ClassCastException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ClassCastException==0");
+			if (!proto_java_lang_NullPointerException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_NullPointerException==0");
+			if (!proto_java_lang_NullPointerException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_NullPointerException==0");
+			if (!proto_java_lang_ArrayIndexOutOfBoundsException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ArrayIndexOutOfBoundsException==0");
+			if (!proto_java_lang_NegativeArraySizeException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_NegativeArraySizeException==0");
+			if (!proto_java_lang_OutOfMemoryError) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_OutOfMemoryError==0");
+			if (!proto_java_lang_ArithmeticException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ArithmeticException==0");
+			if (!proto_java_lang_ArrayStoreException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ArrayStoreException==0");
+			if (!proto_java_lang_ThreadDeath) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ThreadDeath==0");
+			if (!proto_java_lang_ThreadDeath) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ThreadDeath==0");
+			}
 		dolog();
 	}
 	exceptionptr = local_exceptionptr;
@@ -358,7 +464,8 @@ java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr
 
 ******************************************************************************/
 
-
+/* XXX delete */
+#if 0
 s4 builtin_canstore(java_objectarray *a, java_objectheader *o)
 {
 	if (!o) return 1;
@@ -384,13 +491,133 @@ s4 builtin_canstore(java_objectarray *a, java_objectheader *o)
 		return 0;
 	}
 }
+#endif
 
+s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
+{
+	arraydescriptor *desc;
+	arraydescriptor *valuedesc;
+	vftbl *componentvftbl;
+	vftbl *valuevftbl;
+    int dim_m1;
+	int base;
+	
+	if (!o) return 1;
 
+	/* The following is guaranteed (by verifier checks):
+	 *
+	 *     *) a->...vftbl->arraydesc != NULL
+	 *     *) a->...vftbl->arraydesc->componentvftbl != NULL
+	 *     *) o->vftbl is not an interface vftbl
+	 */
+	
+	desc = a->header.objheader.vftbl->arraydesc;
+    componentvftbl = desc->componentvftbl;
+	valuevftbl = o->vftbl;
 
-/*****************************************************************************
-						  ARRAY OPERATIONS
-*****************************************************************************/
+	/* XXX remove log */
+	/*
+	log_text("builtin_canstore");
+	print_arraydescriptor(stdout,desc);
+	utf_sprint(logtext,valuevftbl->class->name);
+	dolog();
+	*/
 
+    if ((dim_m1 = desc->dimension - 1) == 0) {
+		/* {a is a one-dimensional array} */
+		/* {a is an array of references} */
+		
+		if (valuevftbl == componentvftbl)
+			return 1;
+
+		/* XXX remove log */
+		/* log_text("not same vftbl"); */
+
+		if ((base = componentvftbl->baseval) <= 0)
+			/* an array of interface references */
+			return (valuevftbl->interfacetablelength > -base &&
+					valuevftbl->interfacetable[base] != NULL);
+		
+		return (unsigned)(valuevftbl->baseval - base)
+			<= (unsigned)(componentvftbl->diffval);
+    }
+    /* {a has dimension > 1} */
+	/* {componentvftbl->arraydesc != NULL} */
+
+	/* check if o is an array */
+	if ((valuedesc = valuevftbl->arraydesc) == NULL)
+		return 0;
+	/* {o is an array} */
+
+	return builtin_descriptorscompatible(valuedesc,componentvftbl->arraydesc);
+}
+
+/* This is an optimized version where a is guaranteed to be one-dimensional */
+s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
+{
+	arraydescriptor *desc;
+	vftbl *elementvftbl;
+	vftbl *valuevftbl;
+	int base;
+	
+	if (!o) return 1;
+
+	/* The following is guaranteed (by verifier checks):
+	 *
+	 *     *) a->...vftbl->arraydesc != NULL
+	 *     *) a->...vftbl->arraydesc->elementvftbl != NULL
+	 *     *) a->...vftbl->arraydesc->dimension == 1
+	 *     *) o->vftbl is not an interface vftbl
+	 */
+
+	desc = a->header.objheader.vftbl->arraydesc;
+    elementvftbl = desc->elementvftbl;
+	valuevftbl = o->vftbl;
+
+	/* {a is a one-dimensional array} */
+	
+	if (valuevftbl == elementvftbl)
+		return 1;
+
+	if ((base = elementvftbl->baseval) <= 0)
+		/* an array of interface references */
+		return (valuevftbl->interfacetablelength > -base &&
+				valuevftbl->interfacetable[base] != NULL);
+	
+	return (unsigned)(valuevftbl->baseval - base)
+		<= (unsigned)(elementvftbl->diffval);
+}
+
+/* This is an optimized version where a is guaranteed to be a
+ * one-dimensional array of a class type */
+/* XXX this could be inlined by the code generator */
+s4 builtin_canstore_onedim_class (java_objectarray *a, java_objectheader *o)
+{
+	vftbl *elementvftbl;
+	vftbl *valuevftbl;
+	
+	if (!o) return 1;
+
+	/* The following is guaranteed (by verifier checks):
+	 *
+	 *     *) a->...vftbl->arraydesc != NULL
+	 *     *) a->...vftbl->arraydesc->elementvftbl != NULL
+	 *     *) a->...vftbl->arraydesc->elementvftbl is not an interface vftbl
+	 *     *) a->...vftbl->arraydesc->dimension == 1
+	 *     *) o->vftbl is not an interface vftbl
+	 */
+
+    elementvftbl = a->header.objheader.vftbl->arraydesc->elementvftbl;
+	valuevftbl = o->vftbl;
+
+	/* {a is a one-dimensional array} */
+	
+	if (valuevftbl == elementvftbl)
+		return 1;
+
+	return (unsigned)(valuevftbl->baseval - elementvftbl->baseval)
+		<= (unsigned)(elementvftbl->diffval);
+}
 
 
 /******************** Function: builtin_new **********************************
@@ -427,128 +654,51 @@ java_objectheader *builtin_new(classinfo *c)
 
 
 
-/******************** function: builtin_anewarray ****************************
 
-	Creates an array of pointers to objects on the heap.
-	Parameters:
-		size ......... number of elements
-	elementtype .. pointer to the classinfo structure for the element type
-	
-	Return value:  pointer to the array or NULL if no memory is available
-
-*****************************************************************************/
-
-static
-void* __builtin_newarray(s4 base_size,
-						 s4 size, 
-						 bool references,
-						 int elementsize,
-						 int arraytype,
-						 classinfo *el)
+java_arrayheader *builtin_newarray(s4 size,vftbl *arrayvftbl)
 {
-	java_arrayheader *a;
+        /* XXX remove log */
+        /*
+        sprintf(logtext,"newarray size=%d class=",size);
+        utf_sprint(logtext+strlen(logtext),arrayvftbl->class->name);
+        dolog();
+        */
+
+        java_arrayheader *a;
+        arraydescriptor *desc = arrayvftbl->arraydesc;
+        s4 dataoffset = desc->dataoffset;
+        s4 componentsize = desc->componentsize;
 
 #ifdef SIZE_FROM_CLASSINFO
-	s4 alignedsize = align_size(base_size + (size-1) * elementsize);
-	a = heap_allocate(alignedsize, references, NULL);
-#else	
-	a = heap_allocate(sizeof(java_objectarray) + (size-1) * elementsize, 
-					  references, 
-					  NULL);
-#endif
-	if (!a) return NULL;
-
-#ifdef SIZE_FROM_CLASSINFO
-	memset(a, 0, alignedsize);
+        s4 actualsize = align_size(dataoffset + size * componentsize);
 #else
-	memset(a, 0, base_size + (size-1) * elementsize);
-#endif	
-
-#if 0
-	{
-		classinfo *c;
-
-		switch (arraytype) {
-		case ARRAYTYPE_INT:
-			c = create_array_class(utf_new_char("[I"));
-			use_class_as_object(c, "int");
-			break;
-
-		case ARRAYTYPE_LONG:
-			c = create_array_class(utf_new_char("[J"));
-			use_class_as_object(c, "long");
-			break;
-
-		case ARRAYTYPE_FLOAT:
-			c = create_array_class(utf_new_char("[F"));
-			use_class_as_object(c, "float");
-			break;
-
-		case ARRAYTYPE_DOUBLE:
-			c = create_array_class(utf_new_char("[D"));
-			use_class_as_object(c, "double");
-			break;
-
-		case ARRAYTYPE_BYTE:
-			c = create_array_class(utf_new_char("[B"));
-			use_class_as_object(c, "byte");
-			break;
-
-		case ARRAYTYPE_CHAR:
-			c = create_array_class(utf_new_char("[C"));
-			use_class_as_object(c, "char");
-			break;
-
-		case ARRAYTYPE_SHORT:
-			c = create_array_class(utf_new_char("[S"));
-			use_class_as_object(c, "short");
-			break;
-
-		case ARRAYTYPE_BOOLEAN:
-			c = create_array_class(utf_new_char("[Z"));
-			use_class_as_object(c, "boolean");
-			break;
-
-		case ARRAYTYPE_OBJECT:
-			{
-				char *cname, *buf;
-				cname = heap_allocate(utf_strlen(el->name), false, NULL);
-				utf_sprint(cname, el->name);
-				buf = heap_allocate(strlen(cname) + 3, false, NULL);
-				/*  printf("\n\n[L%s;\n\n", cname); */
-				sprintf(buf, "[L%s;", cname);
-				c = create_array_class(utf_new_char(buf));
-				/*    		MFREE(buf, char, strlen(cname) + 3); */
-				/*    		MFREE(cname, char, utf_strlen(el->name)); */
-				use_class_as_object(c, cname);
-			}
-			break;
-
-		case ARRAYTYPE_ARRAY:
-			c = create_array_class(utf_new_char("[["));
-			use_class_as_object(c, "java/lang/Boolean");
-			break;
-
-		default:
-			panic("unknown array type");
-		}
-
-		a->objheader.vftbl = c->vftbl;
-	}
-#else
-  	a->objheader.vftbl = class_array->vftbl;
+        s4 actualsize = dataoffset + size * componentsize;
 #endif
-	a->size = size;
+        a = (java_arrayheader *)
+                heap_allocate(actualsize,
+                                          (desc->arraytype == ARRAYTYPE_OBJECT),
+                                          NULL);
+
+        if (!a) return NULL;
+        memset(a,0,actualsize);
+
+        a->objheader.vftbl = arrayvftbl;
+        a->size = size;
 #ifdef SIZE_FROM_CLASSINFO
-	a->alignedsize = alignedsize;
+        a->alignedsize = actualsize;
 #endif
-	a->arraytype = arraytype;
-
-	return a;
+        return a;
 }
 
+java_objectarray *
+builtin_anewarray(s4 size,classinfo *component)
+{
+	return (java_objectarray*) builtin_newarray(size,class_array_of(component)->vftbl);
+}
 
-java_objectarray *builtin_anewarray(s4 size, classinfo *elementtype)
+/* XXX delete */
+#if 0
+java_objectarray *builtin_anewarray (s4 size, classinfo *elementtype)
 {
 	java_objectarray *a;	
 	a = (java_objectarray*)__builtin_newarray(sizeof(java_objectarray),
@@ -562,8 +712,7 @@ java_objectarray *builtin_anewarray(s4 size, classinfo *elementtype)
 	a->elementtype = elementtype;
 	return a;
 }
-
-
+#endif
 
 /******************** function: builtin_newarray_array ***********************
 
@@ -577,8 +726,10 @@ java_objectarray *builtin_anewarray(s4 size, classinfo *elementtype)
 
 *****************************************************************************/
 
-java_arrayarray *builtin_newarray_array(s4 size, 
-										constant_arraydescriptor *elementdesc)
+/* XXX delete */
+#if 0
+java_arrayarray *builtin_newarray_array 
+		(s4 size, constant_arraydescriptor *elementdesc)
 {
 	java_arrayarray *a; 
 	a = (java_arrayarray*)__builtin_newarray(sizeof(java_arrayarray),
@@ -592,6 +743,7 @@ java_arrayarray *builtin_newarray_array(s4 size,
 	a->elementdescriptor = elementdesc;
 	return a;
 }
+#endif
 
 
 /******************** function: builtin_newarray_boolean ************************
@@ -603,7 +755,9 @@ java_arrayarray *builtin_newarray_array(s4 size,
 
 *****************************************************************************/
 
-java_booleanarray *builtin_newarray_boolean(s4 size)
+/* XXX delete */
+#if 0
+java_booleanarray *builtin_newarray_boolean (s4 size)
 {
 	java_booleanarray *a;	
 	a = (java_booleanarray*)__builtin_newarray(sizeof(java_booleanarray),
@@ -614,6 +768,47 @@ java_booleanarray *builtin_newarray_boolean(s4 size)
 											   NULL);
 	return a;
 }
+#endif
+
+java_intarray *builtin_newarray_int (s4 size)
+{
+	return (java_intarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_INT].arrayvftbl);
+}
+
+java_longarray *builtin_newarray_long (s4 size)
+{
+	return (java_longarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_LONG].arrayvftbl);
+}
+
+java_floatarray *builtin_newarray_float (s4 size)
+{
+	return (java_floatarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_FLOAT].arrayvftbl);
+}
+
+java_doublearray *builtin_newarray_double (s4 size)
+{
+	return (java_doublearray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_DOUBLE].arrayvftbl);
+}
+
+java_bytearray *builtin_newarray_byte (s4 size)
+{
+	return (java_bytearray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_BYTE].arrayvftbl);
+}
+
+java_chararray *builtin_newarray_char (s4 size)
+{
+	return (java_chararray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl);
+}
+
+java_shortarray *builtin_newarray_short (s4 size)
+{
+	return (java_shortarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_SHORT].arrayvftbl);
+}
+
+java_booleanarray *builtin_newarray_boolean (s4 size)
+{
+	return (java_booleanarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_BOOLEAN].arrayvftbl);
+}
 
 /******************** function: builtin_newarray_char ************************
 
@@ -623,7 +818,9 @@ java_booleanarray *builtin_newarray_boolean(s4 size)
 
 *****************************************************************************/
 
-java_chararray *builtin_newarray_char(s4 size)
+/* XXX delete */
+#if 0
+java_chararray *builtin_newarray_char (s4 size)
 {
 	java_chararray *a;	
 	a = (java_chararray*)__builtin_newarray(sizeof(java_chararray),
@@ -644,7 +841,8 @@ java_chararray *builtin_newarray_char(s4 size)
 
 *****************************************************************************/
 
-java_floatarray *builtin_newarray_float(s4 size)
+/* XXX delete */
+java_floatarray *builtin_newarray_float (s4 size)
 {
 	java_floatarray *a; 
 	a = (java_floatarray*)__builtin_newarray(sizeof(java_floatarray),
@@ -665,7 +863,7 @@ java_floatarray *builtin_newarray_float(s4 size)
 
 *****************************************************************************/
 
-java_doublearray *builtin_newarray_double(s4 size)
+java_doublearray *builtin_newarray_double (s4 size)
 {
 	java_doublearray *a;	
 	a = (java_doublearray*)__builtin_newarray(sizeof(java_doublearray),
@@ -688,7 +886,8 @@ java_doublearray *builtin_newarray_double(s4 size)
 
 *****************************************************************************/
 
-java_bytearray *builtin_newarray_byte(s4 size)
+/* XXX delete */
+java_bytearray *builtin_newarray_byte (s4 size)
 {
 	java_bytearray *a;	
 	a = (java_bytearray*)__builtin_newarray(sizeof(java_bytearray),
@@ -709,6 +908,7 @@ java_bytearray *builtin_newarray_byte(s4 size)
 
 *****************************************************************************/
 
+/* XXX delete */
 java_shortarray *builtin_newarray_short(s4 size)
 {
 	java_shortarray *a; 
@@ -730,6 +930,8 @@ java_shortarray *builtin_newarray_short(s4 size)
 
 *****************************************************************************/
 
+<<<<<<< builtin.c
+/* XXX delete */
 java_intarray *builtin_newarray_int(s4 size)
 {
 	java_intarray *a;	
@@ -758,6 +960,8 @@ java_intarray *builtin_newarray_int(s4 size)
 
 *****************************************************************************/
 
+<<<<<<< builtin.c
+/* XXX delete */
 java_longarray *builtin_newarray_long(s4 size)
 {
 	java_longarray *a;	
@@ -771,7 +975,7 @@ java_longarray *builtin_newarray_long(s4 size)
 }
 
 
-
+/* XXX delete */
 /***************** function: builtin_multianewarray ***************************
 
 	Creates a multi-dimensional array on the heap. The dimensions are passed in
@@ -784,6 +988,7 @@ java_longarray *builtin_newarray_long(s4 size)
 
 	/* Helper functions */
 
+/* XXX delete */
 static java_arrayheader *multianewarray_part(java_intarray *dims, int thisdim,
 											 constant_arraydescriptor *desc)
 {
@@ -841,7 +1046,7 @@ static java_arrayheader *multianewarray_part(java_intarray *dims, int thisdim,
 	return (java_arrayheader*) a;
 }
 
-
+/* XXX delete */
 java_arrayheader *builtin_multianewarray(java_intarray *dims,
 										 constant_arraydescriptor *desc)
 {
@@ -906,15 +1111,62 @@ static java_arrayheader *nmultianewarray_part(int n, long *dims, int thisdim,
 		
 	return (java_arrayheader*) a;
 }
+#endif
 
+/**************** function: builtin_nmultianewarray ***************************
 
+	Creates a multi-dimensional array on the heap. The dimensions are passed in
+	an array of longs.
+
+    Arguments:
+        n............number of dimensions to create
+        arrayvftbl...vftbl of the array class
+        dims.........array containing the size of each dimension to create
+
+	Return value:  pointer to the array or NULL if no memory is available
+
+******************************************************************************/
+
+java_arrayheader *builtin_nmultianewarray (int n,
+										   vftbl *arrayvftbl, long *dims)
+{
+	int size, i;
+	java_arrayheader *a;
+	vftbl *componentvftbl;
+
+	/* create this dimension */
+	size = (int) dims[0];
+	a = builtin_newarray(size,arrayvftbl);
+	if (!a) return NULL;
+
+	/* if this is the last dimension return */
+	if (!--n) return a;
+
+	/* get the vftbl of the components to create */
+	componentvftbl = arrayvftbl->arraydesc->componentvftbl;
+	if (!componentvftbl) /* XXX the verifier could check this */
+		panic ("multianewarray with too many dimensions");
+
+	/* create the component arrays */
+	for (i = 0; i < size; i++) {
+		java_arrayheader *ea = 
+			builtin_nmultianewarray(n,componentvftbl,dims+1);
+		if (!ea) return NULL;
+		((java_objectarray*)a)->data[i] = (java_objectheader *) ea;
+	}
+
+	return a;
+}
+
+/* XXX delete */
+#if 0
 java_arrayheader *builtin_nmultianewarray (int size,
 										   constant_arraydescriptor *desc, long *dims)
 {
 	(void) builtin_newarray_int(size); /* for compatibility with -old */
 	return nmultianewarray_part (size, dims, 0, desc);
 }
-
+#endif
 
 
 
@@ -929,6 +1181,8 @@ java_arrayheader *builtin_nmultianewarray (int size,
 
 *****************************************************************************/
 
+/* XXX delete */
+#if 0
 s4 builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o)
 {
 	if (builtin_canstore(a,o)) {
@@ -937,7 +1191,7 @@ s4 builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o)
 	}
 	return 0;
 }
-
+#endif
 
 
 
@@ -963,7 +1217,23 @@ java_objectheader *builtin_trace_exception(java_objectheader *exceptionptr,
 		methodindent--;
 	if (verbose || runverbose) {
 		printf("Exception ");
-		utf_display (exceptionptr->vftbl->class->name);
+		if (exceptionptr) {
+			utf_display (exceptionptr->vftbl->class->name);
+		}
+		else {
+			printf("Error: <Nullpointer instead of exception>");
+			if (!proto_java_lang_ClassCastException) printf("%s","proto_java_lang_ClassCastException==0");
+			if (!proto_java_lang_NullPointerException) printf("%s","proto_java_lang_NullPointerException==0");
+			if (!proto_java_lang_NullPointerException) printf("%s","proto_java_lang_NullPointerException==0");
+			if (!proto_java_lang_ArrayIndexOutOfBoundsException) printf("%s","proto_java_lang_ArrayIndexOutOfBoundsException==0");
+			if (!proto_java_lang_NegativeArraySizeException) printf("%s","proto_java_lang_NegativeArraySizeException==0");
+			if (!proto_java_lang_OutOfMemoryError) printf("%s","proto_java_lang_OutOfMemoryError==0");
+			if (!proto_java_lang_ArithmeticException) printf("%s","proto_java_lang_ArithmeticException==0");
+			if (!proto_java_lang_ArrayStoreException) printf("%s","proto_java_lang_ArrayStoreException==0");
+			if (!proto_java_lang_ThreadDeath) printf("%s","proto_java_lang_ThreadDeath==0");
+			if (!proto_java_lang_ThreadDeath) printf("%s","proto_java_lang_ThreadDeath==0");
+
+		}
 		printf(" thrown in ");
 		if (method) {
 			utf_display (method->class->name);
@@ -990,6 +1260,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 #endif
 						methodinfo *method)
 {
+
 	int i;
 	for (i = 0; i < methodindent; i++)
 		logtext[i] = '\t';
@@ -1104,9 +1375,9 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 #endif
 #endif
 	}
-	sprintf(logtext + strlen(logtext), ")");
+	sprintf (logtext+strlen(logtext), ")");
+	dolog ();
 
-	dolog();
 	methodindent++;
 }
 #endif
@@ -1281,7 +1552,7 @@ void builtin_monitorenter(java_objectheader *o)
 	++blockInts;
 
 	hashValue = MUTEX_HASH_VALUE(o);
-	if (mutexHashTable[hashValue].object == o
+	if (mutexHashTable[hashValue].object == o 
 		&& mutexHashTable[hashValue].mutex.holder == currentThread)
 		++mutexHashTable[hashValue].mutex.count;
 	else
@@ -1859,6 +2130,11 @@ float builtin_d2f(double a)
 		else
 			return copysignf(FLT_POSINF, (float) copysign(1.0, a));
 	}
+}
+
+
+java_arrayheader *builtin_clone_array(void *env,java_arrayheader *o) {
+        return Java_java_lang_VMObject_clone ( 0 ,  0, o);
 }
 
 
