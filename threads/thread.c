@@ -11,6 +11,9 @@
  * Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
  */
 
+
+#include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/mman.h>                   /* for mprotect */
@@ -21,7 +24,6 @@
 #include "config.h"
 #include "thread.h"
 #include "locks.h"
-#include "threads.h"
 #include "tables.h"
 #include "native.h"
 #include "loader.h"

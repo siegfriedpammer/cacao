@@ -11,8 +11,8 @@
  * Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
  */
 
-#ifndef __thread_h
-#define __thread_h
+#ifndef _THREAD_H
+#define _THREAD_H
 
 #include "config.h"
 
@@ -22,9 +22,9 @@
 
 #define MAXTHREADS              256          /* schani */
 
-#define	THREADCLASS		"java/lang/Thread"
-#define	THREADGROUPCLASS	"java/lang/ThreadGroup"
-#define	THREADDEATHCLASS	"java/lang/ThreadDeath"
+#define	THREADCLASS         "java/lang/Thread"
+#define	THREADGROUPCLASS    "java/lang/ThreadGroup"
+#define	THREADDEATHCLASS    "java/lang/ThreadDeath"
 
 #define	MIN_THREAD_PRIO		1
 #define	NORM_THREAD_PRIO	5
@@ -139,35 +139,52 @@ extern thread *sleepThreads;
 
 extern thread *threadQhead[MAX_THREAD_PRIO + 1];
 
+
 #define CONTEXT(_t)     (contexts[(_t)->PrivateInfo - 1])
 
-#if 1
 #define	intsDisable()	blockInts++
 
 #define	intsRestore()   if (blockInts == 1 && needReschedule) { \
                             reschedule(); \
                         } \
                         blockInts--
-#else
-#define	intsDisable()	do { \
-                            blockInts++; \
-                            fprintf(stderr, "++: %d (%s:%d)\n", blockInts, __FILE__, __LINE__); \
-                        } while (0)
 
-#define	intsRestore()	do { \
-                            if (blockInts == 1 && needReschedule) {	\
-                                reschedule(); \
-                            } \
-                            blockInts--; \
-                            fprintf(stderr, "--: %d (%s:%d)\n", blockInts, __FILE__, __LINE__); \
-                        } while (0)
-#endif
+
+/* access macros */
+
+#define	THREADSTACKSIZE         (32 * 1024)
+
+#define	THREADSWITCH(to, from) \
+    do { \
+        asm_perform_threadswitch(&(from)->restorePoint,\
+                                 &(to)->restorePoint, &(from)->usedStackTop); \
+    } while (0)
+
+
+#define THREADINIT(to, func) \
+    do { \
+        (to)->restorePoint = asm_initialize_thread_stack((u1*)(func), \
+                                                         (to)->stackEnd); \
+    } while (0)
+
+
+#define	THREADINFO(e) \
+    do { \
+        (e)->restorePoint = 0; \
+        (e)->flags = THREAD_FLAGS_NOSTACKALLOC; \
+    } while(0)
+
+
+/* function prototypes */
+void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);
+u1*  asm_initialize_thread_stack(void *func, u1 *stack);
 
 #else
 
 #define intsDisable()
 #define intsRestore()
 
-#endif
+#endif /* USE_THREADS */
 
-#endif
+#endif /* _THREAD_H */
+
