@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1173 2004-06-16 14:56:18Z jowenn $
+   $Id: asmpart.S 1193 2004-06-19 12:49:53Z twisti $
 
 */
 
@@ -190,7 +190,6 @@ asm_calljavafunction:
 	lea     asm_call_jit_compiler,%edx 
 	call    *%edx                     /* call JIT compiler                    */
 	
-calljava_return:
 	add     $32,%esp
 	pop     %edi                      /* restore registers                    */
 	pop     %esi
@@ -473,7 +472,7 @@ asm_handle_exception_loop:
 		push    %eax						/* save exception pointer         */
 		push    %ecx                        /* save exception pc              */
 
-		call    codegen_findmethod          /* get the data segment ptr           */
+		call    codegen_findmethod          /* get the data segment ptr       */
 		mov     %eax,%edx
 		        
 		mov     -4(%ebp),%eax
@@ -525,6 +524,7 @@ ex_table_loop:
 	mov     %ebx,0*4(%esp)              /* exception class is argument        */
 	call    class_load
 
+	mov     0*4(%esp),%ebx
 	mov     1*4(%esp),%eax
 	mov     2*4(%esp),%ecx
 	add     $3*4,%esp
@@ -540,33 +540,34 @@ L_class_loaded:
 	mov     %ebx,0*4(%esp)              /* exception class is argument        */
 	call    class_link
 
+	mov     0*4(%esp),%ebx
 	mov     1*4(%esp),%eax
 	mov     2*4(%esp),%ecx
 	add     $3*4,%esp
 
 L_class_linked:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		push    %ebx
+	push    %ebx
 
 _crit_restart1:
-		mov     0(%esp),%ebx
+	mov     0(%esp),%ebx
 #endif
 		
 _crit_begin1:
-		mov     offobjvftbl(%eax),%esi		/* %esi = vftblptr(xptr)          */
-		mov     offclassvftbl(%ebx),%ebx    /* %ebx = vftblptr(catchtype) class (not obj) */
-		mov     offbaseval(%esi),%esi		/* %esi = baseval(xptr)           */
-		mov     offbaseval(%ebx),%edx		/* %edx = baseval(catchtype)      */
-		mov     offdiffval(%ebx),%ebx		/* %ebx = diffval(catchtype)      */
+	mov     offobjvftbl(%eax),%esi		/* %esi = vftblptr(xptr)              */
+	mov     offclassvftbl(%ebx),%ebx    /* %ebx = vftblptr(catchtype) class (not obj) */
+	mov     offbaseval(%esi),%esi		/* %esi = baseval(xptr)               */
+	mov     offbaseval(%ebx),%edx		/* %edx = baseval(catchtype)          */
+	mov     offdiffval(%ebx),%ebx		/* %ebx = diffval(catchtype)          */
 _crit_end1:
-		sub     %edx,%esi					/* %esi = baseval(xptr) - baseval(catchtype) */
+	sub     %edx,%esi					/* %esi = baseval(xptr) - baseval(catchtype) */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		add     $4,%esp
+	add     $4,%esp
 #endif
         
-		cmp     %ebx,%esi					/* xptr is instanceof catchtype   */
-		ja      ex_table_cont
+	cmp     %ebx,%esi					/* xptr is instanceof catchtype       */
+	ja      ex_table_cont
 		
 ex_handle_it:
 		mov     ExHandlerPC(%edi),%edx
@@ -691,7 +692,7 @@ asm_check_clinit:
 	jnz     L_is_initialized
 
 	sub     $16,%esp                    /* build stack frame (4 * 4 bytes)    */
-	mov     %eax,(%esp)
+	mov     %eax,(%esp)                 /* put classpointer on stack          */
 	call    builtin_asm_get_stackframeinfo
 
 	movl    $0,12(%esp)
@@ -704,9 +705,9 @@ asm_check_clinit:
 
 	call    class_init                  /* call class_init function           */
 
-	mov     4(%esp),%ebx
+	mov     4(%esp),%edx
 	mov     8(%esp),%ecx
-	mov     %ebx,(%ecx)
+	mov     %edx,(%ecx)
 
 	add     $16,%esp
 
@@ -715,7 +716,7 @@ asm_check_clinit:
 
 L_is_initialized:
 	mov     (%esp),%eax                 /* get return address                 */
-	sub     $12,%eax                    /* asm_putstatic call code size       */
+	sub     $12,%eax                    /* asm_check_clinit call code size    */
 	movb    $0xeb,(%eax)                /* jmp rel8                           */
 	movb    $10,1(%eax)                 /* 8-bit offset                       */
 	ret
@@ -1554,33 +1555,34 @@ get_stackTrace_leave:
 	pop %ebp
 	ret
 
+
 asm_getclassvalues_atomic:
 _crit_restart2:
-	mov 4(%esp),%ecx        /* super */
-	mov 8(%esp),%edx        /* sub */
+	mov     4(%esp),%ecx        /* super */
+	mov     8(%esp),%edx        /* sub */
 _crit_begin2:
-	mov offbaseval(%ecx),%eax
-	mov offdiffval(%ecx),%ecx
-	mov offbaseval(%edx),%edx
+	mov     offbaseval(%ecx),%eax
+	mov     offdiffval(%ecx),%ecx
+	mov     offbaseval(%edx),%edx
 _crit_end2:
-	push %ebx
-	mov 16(%esp),%ebx      /* out */
-	mov %eax,offcast_super_baseval(%ebx)
-	mov %ecx,offcast_super_diffval(%ebx)
-	mov %edx,offcast_sub_baseval(%ebx)
-	pop %ebx
+	push    %ebx
+	mov     16(%esp),%ebx      /* out */
+	mov     %eax,offcast_super_baseval(%ebx)
+	mov     %ecx,offcast_super_diffval(%ebx)
+	mov     %edx,offcast_sub_baseval(%ebx)
+	pop     %ebx
 	ret
 
 	.data
 
 asm_criticalsections:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	.long _crit_begin1
-	.long _crit_end1
-	.long _crit_restart1
-	.long _crit_begin2
-	.long _crit_end2
-	.long _crit_restart2
+	.long   _crit_begin1
+	.long   _crit_end1
+	.long   _crit_restart1
+	.long   _crit_begin2
+	.long   _crit_end2
+	.long   _crit_restart2
 #endif
 	.long 0
 
