@@ -28,15 +28,15 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 1952 2005-02-17 11:41:16Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
-SUBDIRS = inline loop verify tools @ARCH_DIR@
+SUBDIRS = inline loop schedule tools verify @ARCH_DIR@
 
-DIST_SUBDIRS = inline loop verify tools alpha i386 mips powerpc x86_64
+DIST_SUBDIRS = inline loop schedule tools verify alpha i386 mips powerpc x86_64
 
 noinst_HEADERS = \
 	asmpart.h \
@@ -62,6 +62,7 @@ libjit_la_SOURCES = \
 libjit_la_LIBADD = \
 	inline/libinline.la \
 	loop/libloop.la \
+	schedule/libschedule.la \
 	verify/libverify.la \
 	@ARCH_DIR@/libarch.la
 
