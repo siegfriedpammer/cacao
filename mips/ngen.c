@@ -10,7 +10,7 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 277 2003-05-09 19:36:04Z stefan $
+	Last Change: $Id: ngen.c 280 2003-05-09 20:55:46Z stefan $
 
 *******************************************************************************/
 
@@ -3639,28 +3639,28 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	reg_init();
 
 	M_MOV  (argintregs[4], argintregs[5]);
-	M_MFC1 (REG_ITMP1, argfltregs[4]);
+	M_DMFC1 (REG_ITMP1, argfltregs[4]);
 
 	M_MOV  (argintregs[3], argintregs[4]);
-	M_MTC1 (REG_ITMP1, argfltregs[5]);
+	M_DMTC1 (REG_ITMP1, argfltregs[5]);
 
 	M_MOV  (argintregs[2], argintregs[3]);
-	M_MFC1 (REG_ITMP1, argfltregs[3]);
+	M_DMFC1 (REG_ITMP1, argfltregs[3]);
 
 	M_MOV  (argintregs[1], argintregs[2]);
-	M_MTC1 (REG_ITMP1, argfltregs[4]);
+	M_DMTC1 (REG_ITMP1, argfltregs[4]);
 
 	M_MOV  (argintregs[0], argintregs[1]);
-	M_MFC1 (REG_ITMP1, argfltregs[2]);
+	M_DMFC1 (REG_ITMP1, argfltregs[2]);
 
 	M_ALD  (argintregs[0], REG_PV, 19*8); /* load adress of jni_environement  */
-	M_MTC1 (REG_ITMP1, argfltregs[3]);
+	M_DMTC1 (REG_ITMP1, argfltregs[3]);
 
-	M_MFC1 (REG_ITMP1, argfltregs[1]);
-	M_MFC1 (REG_ITMP2, argfltregs[0]);
+	M_DMFC1 (REG_ITMP1, argfltregs[1]);
+	M_DMFC1 (REG_ITMP2, argfltregs[0]);
 
-	M_MTC1 (REG_ITMP1, argfltregs[2]);
-	M_MTC1 (REG_ITMP2, argfltregs[1]);
+	M_DMTC1 (REG_ITMP1, argfltregs[2]);
+	M_DMTC1 (REG_ITMP2, argfltregs[1]);
 
 	M_ALD  (REG_ITMP3, REG_PV, 16*8);   /* load adress of native method       */
 	M_LDA  (REG_SP, REG_SP, -8);        /* build up stackframe                */
