@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1190 2004-06-19 12:44:12Z twisti $
+   $Id: native.c 1238 2004-06-30 20:05:30Z twisti $
 
 */
 
@@ -47,10 +47,9 @@
 
 #include "config.h"
 #include "global.h"
-#include "main.h"
+#include "options.h"
 #include "jni.h"
 #include "native.h"
-#include "nativetypes.hh"
 #include "builtin.h"
 #include "asmpart.h"
 #include "tables.h"
@@ -76,6 +75,11 @@
 #include <sys/stat.h>
 
 #include "threads/threadio.h"
+
+/* include table of native functions */
+
+#include "nativetable.inc"
+
 
 /* searchpath for classfiles */
 char *classpath;
@@ -105,9 +109,11 @@ classinfo *class_java_lang_Integer;
 methodinfo *method_vmclass_init;
 
 
-/* system exception classes required while compiling */
+/* system exception classes required in cacao */
 
 classinfo *class_java_lang_Throwable;
+classinfo *class_java_lang_Exception;
+classinfo *class_java_lang_Error;
 
 
 /* exception/error super class */
@@ -247,30 +253,10 @@ void use_class_as_object(classinfo *c)
 #undef JOWENN_DEBUG
 #undef JOWENN_DEBUG1
 
-/* table for locating native methods */
-static struct nativeref {
-	char *classname;
-	char *methodname;
-	char *descriptor;
-	bool isstatic;
-	functionptr func;
-} nativetable [] = {
-
-#include "nativetable.hh"
-
-};
-
-
 #define NATIVETABLESIZE  (sizeof(nativetable)/sizeof(struct nativeref))
 
 /* table for fast string comparison */
-static struct nativecompref {
-	utf *classname;
-	utf *methodname;
-	utf *descriptor;
-	bool isstatic;
-	functionptr func;
-} nativecomptable [NATIVETABLESIZE];
+static nativecompref nativecomptable[NATIVETABLESIZE];
 
 /* string comparsion table initialized */
 static bool nativecompdone = false;
@@ -293,101 +279,26 @@ static bool nativecompdone = false;
 
 void init_system_exceptions()
 {
-	classinfo *c;
-
 	/* java/lang/Throwable */
 
 	class_java_lang_Throwable =
 		class_new(utf_new_char(string_java_lang_Throwable));
 	class_load(class_java_lang_Throwable);
 	class_link(class_java_lang_Throwable);
-#if 0
-	compile_all_class_methods(class_java_lang_Throwable);
-
-	/* java/lang/VMThrowable */
-
-	c = class_new(utf_new_char(string_java_lang_VMThrowable));
-	class_load(c);
-	class_link(c);
-	compile_all_class_methods(c);
-
-	/* java/lang/ClassFormatError */
-
-	c = class_new(utf_new_char(string_java_lang_ClassFormatError));
-	class_load(c);
-	class_link(c);
-	compile_all_class_methods(c);
-
-	/* java/lang/Error */
-
-	c = class_new(utf_new_char(string_java_lang_Error));
-	class_load(c);
-	class_link(c);
-	compile_all_class_methods(c);
 
 	/* java/lang/Exception */
 
-	c = class_new(utf_new_char(string_java_lang_Exception));
-	class_load(c);
-	class_link(c);
-	compile_all_class_methods(c);
+	class_java_lang_Exception =
+		class_new(utf_new_char(string_java_lang_Exception));
+	class_load(class_java_lang_Exception);
+	class_link(class_java_lang_Exception);
 
-	/* java/lang/IncompatibleClassChangeError */
+	/* java/lang/Error */
 
-	c = class_new(utf_new_char(string_java_lang_IncompatibleClassChangeError));
-	class_load(c);
-	class_link(c);
-	compile_all_class_methods(c);
-
-	/* java/lang/LinkageError */
-
-	c = class_new(utf_new_char(string_java_lang_LinkageError));
-	class_load(c);
-	class_link(c);
-	compile_all_class_methods(c);
-
-	/* java/lang/NoClassDefFoundError */
-
-	c = class_new(utf_new_char(string_java_lang_NoClassDefFoundError));
-	class_load(c);
-	class_link(c);
-	compile_all_class_methods(c);
-
-	/* java/lang/NoSuchFieldError */
-
-	c = class_new(utf_new_char(string_java_lang_NoSuchFieldError));
-	class_load(c);
-	class_link(c);
-	compile_all_class_methods(c);
-
-	/* java/lang/NoSuchMethodError */
-
-	c = class_new(utf_new_char(string_java_lang_NoSuchMethodError));
-	class_load(c);
-	class_link(c);
-	compile_all_class_methods(c);
-
-	/* java/lang/OutOfMemoryError */
-
-	c = class_new(utf_new_char(string_java_lang_OutOfMemoryError));
-	class_load(c);
-	class_link(c);
-	compile_all_class_methods(c);
-
-	/* java/lang/VerifyError */
-
-	c = class_new(utf_new_char(string_java_lang_VerifyError));
-	class_load(c);
-	class_link(c);
-	compile_all_class_methods(c);
-
-	/* java/lang/VirtualMachineError */
-
-	c = class_new(utf_new_char(string_java_lang_VirtualMachineError));
-	class_load(c);
-	class_link(c);
-	compile_all_class_methods(c);
-#endif
+	class_java_lang_Error =
+		class_new(utf_new_char(string_java_lang_Error));
+	class_load(class_java_lang_Error);
+	class_link(class_java_lang_Error);
 }
 
 
@@ -1580,12 +1491,12 @@ classinfo *get_type(char **utf_ptr,char *desc_end, bool skip)
 }
 
 
-/******************************************************************************************
+/* get_parametertypes **********************************************************
 
-	use the descriptor of a method to generate a java/lang/Class array
-	which contains the classes of the parametertypes of the method
+   use the descriptor of a method to generate a java/lang/Class array
+   which contains the classes of the parametertypes of the method
 
-*******************************************************************************************/
+*******************************************************************************/
 
 java_objectarray* get_parametertypes(methodinfo *m) 
 {
@@ -1600,33 +1511,31 @@ java_objectarray* get_parametertypes(methodinfo *m)
     utf_nextu2(&utf_ptr);
   
     /* determine number of parameters */
-    while ( *utf_ptr != ')' ) {
-    	get_type(&utf_ptr,desc_end,true);
-	parametercount++;
+    while (*utf_ptr != ')') {
+    	get_type(&utf_ptr, desc_end, true);
+		parametercount++;
     }
 
     /* create class-array */
     result = builtin_anewarray(parametercount, class_java_lang_Class);
 
-    utf_ptr  =  descr->text;
+    utf_ptr = descr->text;
     utf_nextu2(&utf_ptr);
 
     /* get returntype classes */
     for (i = 0; i < parametercount; i++)
-	    result->data[i] = (java_objectheader *) get_type(&utf_ptr,desc_end, false);
+	    result->data[i] =
+			(java_objectheader *) get_type(&utf_ptr, desc_end, false);
 
     return result;
 }
 
 
+/* get_exceptiontypes **********************************************************
 
+   get the exceptions which can be thrown by a method
 
-
-/******************************************************************************************
-
-	get the exceptions which can be thrown by a method	
-
-*******************************************************************************************/
+*******************************************************************************/
 
 java_objectarray* get_exceptiontypes(methodinfo *m) {
     u2 exccount=m->thrownexceptionscount;
