@@ -111,5 +111,13 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_sleep(JNIEnv *env, jclass clazz, 
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass clazz);
 
+
+/*
+ * Class:     java/lang/VMThread
+ * Method:    holdsLock
+ * Signature: (Ljava/lang/Object;)Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass clazz, struct java_lang_Object* par1);
+
 #endif
 

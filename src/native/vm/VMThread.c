@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 1377 2004-08-01 22:01:00Z stefan $
+   $Id: VMThread.c 1389 2004-08-02 21:51:33Z stefan $
 
 */
 
@@ -316,6 +316,22 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeInit(JNIEnv *env, java_lang
 	initThread(this);
 #endif
 }
+
+/*
+ * Class:     java/lang/VMThread
+ * Method:    holdsLock
+ * Signature: (Ljava/lang/Object;)Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass clazz, struct java_lang_Object* o)
+{
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	return threadHoldsLock((threadobject*) THREADOBJECT, o);
+#else
+	/* I don't know how to find out [stefan] */
+	return 0;
+#endif
+}
+
 
 
 /*
