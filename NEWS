@@ -8,6 +8,15 @@ all the changes in the code.
 * Version 0.40 (released)
 =========================
 
+** mips port
+------------
+
+Now runs on some SGI systems, which are based on the mips architecture.
+
+** multiple bug fixes
+---------------------
+
+Even more java programs work as expected!
 
 
 * Version 0.35 (experimental)
@@ -32,21 +41,30 @@ configure arguments:
 
 Included the new garbage collector as default garbage collector. 
 
-** new just-in-time compiler
-----------------------------
-
-Andi, write something...
-
 * Version 0.30 (released)
 =========================
 
-Andi, write something!!!
+Added unlimited stack for GC and main thread. 
+Some optimzations for instructions which operate on constants. 
 
 * Version 0.20 (released)
 =========================
 
-Andi, write something down here, too!
+Hardware null pointer check added, fixed severe errors in GC/Threads, type
+check and IEEE arithmetic.
 
+* Version 0.20beta (can't remember)
+=========================
+
+There is a completely new JIT compiler which is about 7 times faster and
+produces better code. 
+Multithreading is now supported. 
+A lot of bugs have been fixed.
+
+* Version 0.10 (ancient history)
+==============
+
+The initial version included the old JIT and support for lang, util and io.
 
 ----------------------------------------------------------------------------
 Local variables:
