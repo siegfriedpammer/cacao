@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 310 2003-05-15 15:12:09Z stefan $
+	Last Change: $Id: ngen.c 319 2003-05-20 06:57:11Z stefan $
 
 *******************************************************************************/
 
@@ -2042,7 +2042,7 @@ static void gen_mcode()
 				}
 			if (has_ext_instr_set) {
 				M_LADD   (s2, s1, REG_ITMP1);
-				M_BLDU   (d, REG_ITMP1, OFFSET (java_shortarray, data[0]));
+				M_BLDU   (d, REG_ITMP1, OFFSET (java_bytearray, data[0]));
 				M_BSEXT  (d, d);
 				}
 			else {
