@@ -28,12 +28,13 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 1005 2004-03-30 23:01:45Z twisti $
+   $Id: jni.c 1030 2004-04-26 16:03:01Z twisti $
 
 */
 
 
 #include <string.h>
+#include "main.h"
 #include "jni.h"
 #include "global.h"
 #include "loader.h"
@@ -544,7 +545,7 @@ jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
 	}
 
 	if (argcount > 3) {
-		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
@@ -605,7 +606,7 @@ jint callIntegerMethod(jobject obj, jmethodID methodID, char retType, va_list ar
 
 
 	if (argcount > 3) {
-		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. CallIntegerMethod does not support that");
 		return 0;
 	}
@@ -662,7 +663,7 @@ jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 
 
 	if (argcount > 3) {
-		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
@@ -701,7 +702,7 @@ jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,char retTy
         */
 
 	if (argcount > 3) {
-		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
@@ -756,20 +757,70 @@ jint GetVersion (JNIEnv* env)
 	return JNI_VERSION;
 }
 
+
 /****************** loads a class from a buffer of raw class data *****************/
 
 jclass DefineClass(JNIEnv* env, const char *name, jobject loader, const jbyte *buf, jsize len) 
 {
-        jclass clazz; 
+	jclass clazz; 
+	classbuffer *cb;
+	s8 starttime;
+	s8 stoptime;
 
-	/* change suck-mode, so subsequent class_load will read from memory-buffer */
-	classload_buffer( (u1*) buf,len);
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+	compiler_lock();
+	tables_lock();
+#else
+	intsDisable();
+#endif
+#endif
 
-        clazz = loader_load(utf_new_char ((char *) name));
+	/* measure time */
+	if (getloadingtime)
+		starttime = getcputime();
 
-	/* restore old suck-mode */
-	classload_buffer(NULL,0);
-	if (clazz) clazz->classloader=loader;
+	clazz = class_new(utf_new_char((char *) name));
+
+	/* build a classbuffer with the given data */
+	cb = NEW(classbuffer);
+	cb->class = clazz;
+	cb->size = len;
+	cb->data = (u1 *) buf;
+	cb->pos = cb->data - 1;
+
+	class_load_intern(cb);
+
+	/* free memory */
+	FREE(cb, classbuffer);
+
+	/* measure time */
+	if (getloadingtime) {
+		stoptime = getcputime();
+		loadingtime += (stoptime - starttime);
+	}
+
+#if defined(USE_THREADS)
+#if defined(NATIVE_THREADS)
+	tables_unlock();
+	compiler_unlock();
+#else
+	intsRestore();
+#endif
+#endif
+
+	if (*exceptionptr)
+		return NULL;
+
+	/* XXX link the class here? */
+	class_link(clazz);
+
+	if (*exceptionptr)
+		return NULL;
+
+	if (clazz)
+		clazz->classloader = loader;
+
 	return clazz;
 }
 
@@ -780,14 +831,17 @@ jclass FindClass(JNIEnv* env, const char *name)
 {
 	classinfo *c;  
   
-/*	if (strcmp(name,"[B")==0) {
-		c = loader_load(utf_new_char("The_Array_Class"));
-	}
-	else*/
-		c = loader_load(utf_new_char_classname((char *) name));
+	c = class_new(utf_new_char_classname((char *) name));
 
-	if (!c)
-		*exceptionptr = new_exception(string_java_lang_ClassFormatError);
+	class_load(c);
+
+	if (*exceptionptr)
+		return NULL;
+
+	class_link(c);
+
+	if (*exceptionptr)
+		return NULL;
 
   	return c;
 }
@@ -1002,8 +1056,8 @@ jobject NewObject (JNIEnv* env, jclass clazz, jmethodID methodID, ...)
 
 	/* log_text("JNI-Call: NewObject"); */
 
-	if  (argcount>3) {
-		*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+	if (argcount > 3) {
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. NewObject does not support that");
 		return 0;
 	}
@@ -1112,7 +1166,7 @@ jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char *name, const char *s
 		utf_new_char ((char*) sig)
     	);
 
-	if (!m) *exceptionptr = new_exception(string_java_lang_NoSuchMethodError);  	
+	if (!m) *exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
 
 	return m;
 }
@@ -1892,8 +1946,6 @@ jboolean CallStaticBooleanMethod(JNIEnv *env, jclass clazz, jmethodID methodID, 
 	jboolean ret;
 	va_list vaargs;
 
-	/*      log_text("JNI-Call: CallStaticBooleanMethod");*/
-
 	va_start(vaargs, methodID);
 	ret = (jboolean) callIntegerMethod(0, methodID, 'Z', vaargs);
 	va_end(vaargs);
@@ -2453,9 +2505,6 @@ jobjectArray NewObjectArray (JNIEnv *env, jsize len, jclass clazz, jobject init)
 
     j = builtin_anewarray(len, clazz);
 
-    if (!j)
-		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
-
     return j;
 }
 
@@ -2501,9 +2550,6 @@ jbooleanArray NewBooleanArray(JNIEnv *env, jsize len)
 
     j = builtin_newarray_boolean(len);
 
-    if (!j)
-		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
-
     return j;
 }
 
@@ -2518,9 +2564,6 @@ jbyteArray NewByteArray(JNIEnv *env, jsize len)
     }
 
     j = builtin_newarray_byte(len);
-
-    if (!j)
-		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
 
     return j;
 }
@@ -2537,9 +2580,6 @@ jcharArray NewCharArray(JNIEnv *env, jsize len)
 
     j = builtin_newarray_char(len);
 
-    if (!j)
-		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
-
     return j;
 }
 
@@ -2554,9 +2594,6 @@ jshortArray NewShortArray(JNIEnv *env, jsize len)
     }
 
     j = builtin_newarray_short(len);
-
-    if (!j)
-		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
 
     return j;
 }
@@ -2573,9 +2610,6 @@ jintArray NewIntArray(JNIEnv *env, jsize len)
 
     j = builtin_newarray_int(len);
 
-    if (!j)
-		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
-
     return j;
 }
 
@@ -2590,9 +2624,6 @@ jlongArray NewLongArray(JNIEnv *env, jsize len)
     }
 
     j = builtin_newarray_long(len);
-
-    if (!j)
-		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
 
     return j;
 }
@@ -2609,9 +2640,6 @@ jfloatArray NewFloatArray(JNIEnv *env, jsize len)
 
     j = builtin_newarray_float(len);
 
-    if (!j)
-		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
-
     return j;
 }
 
@@ -2626,9 +2654,6 @@ jdoubleArray NewDoubleArray(JNIEnv *env, jsize len)
     }
 
     j = builtin_newarray_double(len);
-
-    if (!j)
-		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
 
     return j;
 }
@@ -3334,28 +3359,28 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	argcount = get_parametercount(methodID);
 
 	if (obj && (!builtin_instanceof((java_objectheader *) obj, methodID->class))) {
-		(*env)->ThrowNew(env, loader_load(utf_new_char("java/lang/IllegalArgumentException")),
-						 "Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
+		*exceptionptr = new_exception_message(string_java_lang_IllegalArgumentException,
+											  "Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
 		return 0;
 	}
 
 
 
 	if (argcount > 3) {
-		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. invokeNativeHelper does not support that");
 		return 0;
 	}
 
 	if (((!params) && (argcount != 0)) || (params && (params->header.size != argcount))) {
-		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
 	}
 
 
 	if (!(methodID->flags & ACC_STATIC) && (!obj))  {
-		(*env)->ThrowNew(env, loader_load(utf_new_char("java/lang/NullPointerException")),
-						 "Static mismatch in Java_java_lang_reflect_Method_invokeNative");
+		*exceptionptr = new_exception_message(string_java_lang_NullPointerException,
+											  "Static mismatch in Java_java_lang_reflect_Method_invokeNative");
 		return 0;
 	}
 
@@ -3380,8 +3405,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 											argcount + 1,
 											(argcount + 1) * sizeof(jni_callblock),
 											blk);
-		retVal = builtin_new(loader_load_sysclass(NULL,
-												  utf_new_char("java/lang/Integer")));
+		retVal = builtin_new(class_new(utf_new_char("java/lang/Integer")));
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
@@ -3397,8 +3421,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 											argcount + 1,
 											(argcount + 1) * sizeof(jni_callblock),
 											blk);
-		retVal = builtin_new(loader_load_sysclass(NULL,
-												  utf_new_char("java/lang/Byte")));
+		retVal = builtin_new(class_new(utf_new_char("java/lang/Byte")));
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
@@ -3414,8 +3437,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 											argcount + 1,
 											(argcount + 1) * sizeof(jni_callblock),
 											blk);
-		retVal = builtin_new(loader_load_sysclass(NULL,
-												  utf_new_char("java/lang/Character")));
+		retVal = builtin_new(class_new(utf_new_char("java/lang/Character")));
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
@@ -3431,8 +3453,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 											argcount + 1,
 											(argcount + 1) * sizeof(jni_callblock),
 											blk);
-		retVal = builtin_new(loader_load_sysclass(NULL,
-												  utf_new_char("java/lang/Short")));
+		retVal = builtin_new(class_new(utf_new_char("java/lang/Short")));
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
@@ -3448,8 +3469,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 											argcount + 1,
 											(argcount + 1) * sizeof(jni_callblock),
 											blk);
-		retVal = builtin_new(loader_load_sysclass(NULL,
-												  utf_new_char("java/lang/Boolean")));
+		retVal = builtin_new(class_new(utf_new_char("java/lang/Boolean")));
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
@@ -3465,8 +3485,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 										   argcount + 1,
 										   (argcount + 1) * sizeof(jni_callblock),
 										   blk);
-		retVal = builtin_new(loader_load_sysclass(NULL,
-												  utf_new_char("java/lang/Long")));
+		retVal = builtin_new(class_new(utf_new_char("java/lang/Long")));
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
@@ -3482,8 +3501,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 											   argcount + 1,
 											   (argcount + 1) * sizeof(jni_callblock),
 											   blk);
-		retVal = builtin_new(loader_load_sysclass(NULL,
-												  utf_new_char("java/lang/Float")));
+		retVal = builtin_new(class_new(utf_new_char("java/lang/Float")));
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
@@ -3499,8 +3517,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 											   argcount + 1,
 											   (argcount + 1) * sizeof(jni_callblock),
 											   blk);
-		retVal = builtin_new(loader_load_sysclass(NULL,
-												  utf_new_char("java/lang/Double")));
+		retVal = builtin_new(class_new(utf_new_char("java/lang/Double")));
 		CallVoidMethod(env,
 					   retVal,
 					   class_resolvemethod(retVal->vftbl->class,
@@ -3527,13 +3544,12 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	MFREE(blk, jni_callblock, 4 /*argcount+2*/);
 
 	if (*exceptionptr) {
-		java_objectheader *exceptionToWrap=*exceptionptr;
+		java_objectheader *exceptionToWrap = *exceptionptr;
 		classinfo *ivtec;
 		java_objectheader *ivte;
 
-		*exceptionptr=0;
-		ivtec = loader_load_sysclass(NULL,
-												utf_new_char("java/lang/reflect/InvocationTargetException"));
+		*exceptionptr = NULL;
+		ivtec = class_new(utf_new_char("java/lang/reflect/InvocationTargetException"));
 		ivte = builtin_new(ivtec);
 		asm_calljavafunction(class_resolvemethod(ivtec,
 												 utf_new_char("<init>"),
