@@ -1,3 +1,5 @@
+## src/native/include/Makefile.am
+##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
 ## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
@@ -26,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1968 2005-02-28 20:23:23Z twisti $
+## $Id: Makefile.am 1984 2005-03-04 16:30:45Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -199,14 +201,14 @@ if USE_GTK_PEER
 noinst_DATA += awtheaders-generated
 
 awtheaders-generated: $(top_srcdir)/src/classpath/lib/bootstrap.zip $(top_builddir)/config.h
-	CLASSPATH=$(top_srcdir)/src/classpath/lib/ \
+	BOOTCLASSPATH=$(top_builddir)/src/classpath/lib/ \
 	$(top_builddir)/src/cacaoh/cacaoh -d . \
 	$(AWT_CLASSES)
 	touch awtheaders-generated
 endif
 
 headers-generated: $(top_srcdir)/src/classpath/lib/bootstrap.zip $(top_builddir)/config.h
-	CLASSPATH=$(top_srcdir)/src/classpath/lib/ \
+	BOOTCLASSPATH=$(top_builddir)/src/classpath/lib/ \
 	$(top_builddir)/src/cacaoh/cacaoh -d . \
 	$(CLASSES)
 	touch headers-generated

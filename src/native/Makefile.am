@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1905 2005-02-09 11:24:06Z twisti $
+## $Id: Makefile.am 1984 2005-03-04 16:30:45Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -61,7 +61,7 @@ AWT_HEADERS_TOUCH_FILE = $(top_builddir)/src/native/include/awtheaders-generated
 endif
 
 nativetable.inc: $(top_srcdir)/src/classpath/lib/bootstrap.zip $(top_builddir)/src/native/tools/gennativetable $(top_builddir)/config.h $(HEADERS_TOUCH_FILE) $(AWT_HEADERS_TOUCH_FILE) $(srcdir)/classes.am
-	CLASSPATH=$(top_srcdir)/src/classpath/lib/ \
+	CLASSPATH=$(top_builddir)/src/classpath/lib/ \
 	$(top_builddir)/src/native/tools/gennativetable \
 	$(NO_REGEN_CLASSES) \
 	$(CLASSES) \
