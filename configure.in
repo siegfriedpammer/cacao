@@ -57,7 +57,7 @@ esac
 
 
 dnl set optimization and debugging for all architectures and systems
-CFLAGS="-O2 -g3 $CFLAGS"
+CFLAGS="-O0 -g3 $CFLAGS"
 
 
 case "$host_os" in
@@ -337,7 +337,8 @@ AC_OUTPUT(Makefile \
           src/vm/jit/x86_64/Makefile \
 	  tests/Makefile \
           tests/jvm98/Makefile \
-	  tests/kaffe/Makefile )
+	  tests/kaffe/Makefile \
+	  tests/native/Makefile )
 
 
 ## Local variables:
