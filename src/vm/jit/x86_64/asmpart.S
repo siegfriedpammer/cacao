@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2085 2005-03-25 15:54:09Z twisti $
+   $Id: asmpart.S 2144 2005-03-30 12:55:00Z twisti $
 
 */
 
@@ -94,8 +94,6 @@
 	.globl asm_handle_nat_exception
 	.globl asm_check_clinit
 	.globl asm_builtin_checkarraycast
-	.globl asm_builtin_anewarray
-	.globl asm_builtin_newarray_array
 	.globl asm_builtin_aastore
 
 #if defined(USE_THREADS)
@@ -108,7 +106,6 @@
 	.globl asm_builtin_d2i
 	.globl asm_builtin_d2l
 
-	.globl asm_builtin_arrayinstanceof
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
