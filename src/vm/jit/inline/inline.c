@@ -2,10 +2,10 @@
 
 globals moved to structure and passed as parameter
 
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
-   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
-   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
-   P. Tomsich, J. Wenninger
+   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1632 2004-11-30 20:42:14Z carolyn $
+   $Id: inline.c 1735 2004-12-07 14:33:27Z twisti $
 
 */
 

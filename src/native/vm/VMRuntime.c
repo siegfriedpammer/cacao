@@ -1,9 +1,9 @@
 /* native/vm/VMRuntime.c - java/lang/VMRuntime
 
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
-   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
-   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
-   P. Tomsich, J. Wenninger
+   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1688 2004-12-05 23:59:04Z twisti $
+   $Id: VMRuntime.c 1735 2004-12-07 14:33:27Z twisti $
 
 */
 

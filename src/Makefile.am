@@ -1,7 +1,7 @@
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
 ## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-## TU Wien
+## Institut f. Computersprachen - TU Wien
 ##
 ## This file is part of CACAO.
 ##
@@ -26,7 +26,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1676 2004-12-03 16:52:15Z twisti $
+## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 

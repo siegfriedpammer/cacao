@@ -3,7 +3,7 @@
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   TU Wien
+   Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -36,7 +36,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1686 2004-12-05 23:56:47Z twisti $
+   $Id: cacao.c 1735 2004-12-07 14:33:27Z twisti $
 
 */
 

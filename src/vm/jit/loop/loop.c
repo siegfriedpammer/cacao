@@ -1,9 +1,9 @@
 /* vm/jit/loop/loop.c - array bound removal
 
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
-   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
-   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
-   P. Tomsich, J. Wenninger
+   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -30,7 +30,7 @@
    algorithm that uses dominator trees (found eg. in modern compiler
    implementation by a.w. appel)
 
-   $Id: loop.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: loop.c 1735 2004-12-07 14:33:27Z twisti $
 
 */
 

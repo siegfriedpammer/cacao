@@ -1,10 +1,9 @@
 /* vm/jit/powerpc/codegen.c - machine code generator for 32-bit powerpc
 
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
-   Institut f. Computersprachen, TU Wien
-   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser, M. Probst,
-   S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich,
-   J. Wenninger
+   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -28,7 +27,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1682 2004-12-05 17:22:27Z stefan $
+   $Id: codegen.c 1735 2004-12-07 14:33:27Z twisti $
 
 */
 
