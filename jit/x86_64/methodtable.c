@@ -27,7 +27,7 @@
 
    Authores: Christian Thalinger
 
-   $Id: methodtable.c 714 2003-12-07 20:41:24Z twisti $
+   $Id: methodtable.c 927 2004-02-26 00:17:51Z twisti $
 
 */
 
@@ -57,8 +57,8 @@ void addmethod(u1 *start, u1 *end)
 #else
         mtentry *tmp = NEW(mtentry);
 #endif
-		tmp->start = (u1 *) asm_calljavamethod;
-		tmp->end = (u1 *) asm_calljavafunction;    /* little hack, but should work */
+		tmp->start = (u1 *) asm_calljavafunction;
+		tmp->end = (u1 *) asm_calljavafunction2;    /* little hack, but should work */
 		tmp->next = mtroot;
 		mtroot = tmp;
 
@@ -67,7 +67,7 @@ void addmethod(u1 *start, u1 *end)
 #else
         tmp = NEW(mtentry);
 #endif
-		tmp->start = (u1 *) asm_calljavafunction;
+		tmp->start = (u1 *) asm_calljavafunction2;
 		tmp->end = (u1 *) asm_call_jit_compiler;    /* little hack, but should work */
 		tmp->next = mtroot;
 		mtroot = tmp;
