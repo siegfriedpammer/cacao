@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: memory.c 575 2003-11-09 17:26:53Z twisti $
 
 */
 
@@ -82,17 +82,19 @@ static void *lit_checked_alloc (int length)
 		nomallocptr = nomallocmem;
 	}
 
-	nomallocptr = (void*) ALIGN ((long) nomallocptr, ALIGNSIZE);
+	nomallocptr = (void*) ALIGN((long) nomallocptr, ALIGNSIZE);
 	
 	m = nomallocptr;
 	nomallocptr += length;
-	if (nomallocptr > nomalloctop) panic ("Out of memory");
+	if (nomallocptr > nomalloctop)
+		panic("Out of memory");
+
 	return m;
 }
 
 #else
 
-static void *lit_checked_alloc (int length)
+static void *lit_checked_alloc(int length)
 {
 	void *m = malloc(length);
 	if (!m) panic ("Out of memory");
@@ -102,10 +104,10 @@ static void *lit_checked_alloc (int length)
 #endif
 
 
-static void *checked_alloc (int length)
+static void *checked_alloc(int length)
 {
 	void *m = malloc(length);
-	if (!m) panic ("Out of memory");
+	if (!m) panic("Out of memory");
 	return m;
 }
 
@@ -143,7 +145,7 @@ void *mem_mmap(int length)
 
 
 typedef struct memblock {
-	struct memblock *prev,*next;
+	struct memblock *prev, *next;
 	int length;
 } memblock;
 
@@ -157,18 +159,19 @@ void *mem_alloc(int length)
 {
 	memblock *mb;
 
-	if (length==0) return NULL;
-	mb = checked_alloc (length + BLOCKOFFSET);
+	if (length == 0) return NULL;
+	mb = checked_alloc(length + BLOCKOFFSET);
 
-	mb -> prev = NULL;
-	mb -> next = firstmemblock;	
-	mb -> length = length;
+	mb->prev = NULL;
+	mb->next = firstmemblock;	
+	mb->length = length;
 
-	if (firstmemblock) firstmemblock -> prev = mb;
+	if (firstmemblock) firstmemblock->prev = mb;
 	firstmemblock = mb;
 
 	memoryusage += length;
-	if (memoryusage > maxmemusage) maxmemusage = memoryusage;
+	if (memoryusage > maxmemusage)
+		maxmemusage = memoryusage;
 
 	return ((char*) mb) + BLOCKOFFSET;
 }
@@ -178,12 +181,12 @@ void *lit_mem_alloc(int length)
 {
 	memblock *mb;
 
-	if (length==0) return NULL;
-	mb = lit_checked_alloc (length + BLOCKOFFSET);
+	if (length == 0) return NULL;
+	mb = lit_checked_alloc(length + BLOCKOFFSET);
 
-	mb -> prev = NULL;
-	mb -> next = firstmemblock;	
-	mb -> length = length;
+	mb->prev = NULL;
+	mb->next = firstmemblock;	
+	mb->length = length;
 
 	if (firstmemblock) firstmemblock -> prev = mb;
 	firstmemblock = mb;
@@ -199,16 +202,16 @@ void mem_free(void *m, int length)
 {
 	memblock *mb;
 	if (!m) {
-		if (length==0) return;
-		panic ("returned memoryblock with address NULL, length != 0");
+		if (length == 0) return;
+		panic("returned memoryblock with address NULL, length != 0");
 	}
 
 	mb = (memblock*) (((char*) m) - BLOCKOFFSET);
 	
 	if (mb->length != length) {
-		sprintf (logtext, 
-				 "Memory block of size %d has been return as size %d",
-		         mb->length, length);
+		sprintf(logtext, 
+				"Memory block of size %d has been return as size %d",
+				mb->length, length);
 		error();
 	}
 		
@@ -227,15 +230,15 @@ void lit_mem_free(void *m, int length)
 	memblock *mb;
 	if (!m) {
 		if (length==0) return;
-		panic ("returned memoryblock with address NULL, length != 0");
+		panic("returned memoryblock with address NULL, length != 0");
 	}
 
 	mb = (memblock*) (((char*) m) - BLOCKOFFSET);
 	
 	if (mb->length != length) {
-		sprintf (logtext, 
-				 "Memory block of size %d has been return as size %d",
-		         mb->length, length);
+		sprintf(logtext, 
+				"Memory block of size %d has been return as size %d",
+				mb->length, length);
 		error();
 	}
 		
@@ -245,20 +248,20 @@ void lit_mem_free(void *m, int length)
 
 #ifdef TRACECALLARGS
 #else
-	free (mb);
+	free(mb);
 #endif
 
 	memoryusage -= length;
 }
 
 
-void *mem_realloc (void *m1, int len1, int len2)
+void *mem_realloc(void *m1, int len1, int len2)
 {
 	void *m2;
 	
-	m2 = mem_alloc (len2);
-	memcpy (m2, m1, len1);
-	mem_free (m1, len1);
+	m2 = mem_alloc(len2);
+	memcpy(m2, m1, len1);
+	mem_free(m1, len1);
 
 	return m2;
 }
@@ -266,25 +269,25 @@ void *mem_realloc (void *m1, int len1, int len2)
 
 
 
-static void mem_characterlog (unsigned char *m, int len)
+static void mem_characterlog(unsigned char *m, int len)
 {
 #	define LINESIZE 16
-	int z,i;
+	int z, i;
 	
-	for (z=0; z<len; z+=LINESIZE) {
-		sprintf (logtext, "   ");
+	for (z = 0; z < len; z += LINESIZE) {
+		sprintf(logtext, "   ");
 			
-		for (i=z; i<(z+LINESIZE) && i<len; i++) {
-			sprintf (logtext+strlen(logtext), "%2x ", m[i]);
+		for (i = z; i < (z + LINESIZE) && i < len; i++) {
+			sprintf(logtext + strlen(logtext), "%2x ", m[i]);
 		}
-		for (; i<(z+LINESIZE); i++) {
-			sprintf (logtext+strlen(logtext), "   ");
+		for (; i < (z + LINESIZE); i++) {
+			sprintf(logtext + strlen(logtext), "   ");
 		}
 					
-		sprintf (logtext+strlen(logtext),"   ");
-		for (i=z; i<(z+LINESIZE) && i<len; i++) {
-			sprintf (logtext+strlen(logtext),
-					 "%c", (m[i]>=' ' && m[i]<=127) ? m[i] : '.');
+		sprintf(logtext + strlen(logtext),"   ");
+		for (i = z; i < (z + LINESIZE) && i < len; i++) {
+			sprintf(logtext+strlen(logtext),
+					"%c", (m[i] >= ' ' && m[i] <= 127) ? m[i] : '.');
 		}
 			
 		dolog();
@@ -297,51 +300,51 @@ static void mem_characterlog (unsigned char *m, int len)
 
 void *mem_alloc(int length)
 {
-	if (length==0) return NULL;
+	if (length == 0) return NULL;
 
 	memoryusage += length;
 	if (memoryusage > maxmemusage) maxmemusage = memoryusage;
 	
-	return checked_alloc (length);
+	return checked_alloc(length);
 }
 
 
 void *lit_mem_alloc(int length)
 {
-	if (length==0) return NULL;
+	if (length == 0) return NULL;
 
 	memoryusage += length;
 	if (memoryusage > maxmemusage) maxmemusage = memoryusage;
 	
-	return lit_checked_alloc (length);
+	return lit_checked_alloc(length);
 }
 
 
 void mem_free(void *m, int length)
 {
 	if (!m) {
-		if (length==0) return;
-		panic ("returned memoryblock with address NULL, length != 0");
+		if (length == 0) return;
+		panic("returned memoryblock with address NULL, length != 0");
 	}
 
 	memoryusage -= length;
 
-	free (m);
+	free(m);
 }
 
 
 void lit_mem_free(void *m, int length)
 {
 	if (!m) {
-		if (length==0) return;
-		panic ("returned memoryblock with address NULL, length != 0");
+		if (length == 0) return;
+		panic("returned memoryblock with address NULL, length != 0");
 	}
 
 	memoryusage -= length;
 
 #ifdef TRACECALLARGS
 #else
-	free (m);
+	free(m);
 #endif
 }
 

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: memory.h 575 2003-11-09 17:26:53Z twisti $
 
 */
 
@@ -35,6 +35,57 @@
 #define _MEMORY_H
 
 #include "types.h"
+
+/* 
+---------------------------- Interface description -----------------------
+
+There are two possible choices for allocating memory:
+
+	1.   explicit allocating / deallocating
+
+			mem_alloc ..... allocate a memory block 
+			mem_free ...... free a memory block
+			mem_realloc ... change size of a memory block (position may change)
+			mem_usage ..... amount of allocated memory
+
+
+	2.   explicit allocating, automatic deallocating
+	
+			dump_alloc .... allocate a memory block in the dump area
+			dump_realloc .. change size of a memory block (position may change)
+			dump_size ..... marks the current top of dump
+			dump_release .. free all memory requested after the mark
+			                
+	
+There are some useful macros:
+
+	NEW (type) ....... allocate memory for an element of type `type`
+	FREE (ptr,type) .. free memory
+	
+	MNEW (type,num) .. allocate memory for an array
+	MFREE (ptr,type,num) .. free memory
+	
+	MREALLOC (ptr,type,num1,num2) .. enlarge the array to size num2
+	                                 
+These macros do the same except they operate on the dump area:
+	
+	DNEW,  DMNEW, DMREALLOC   (there is no DFREE)
+
+
+-------------------------------------------------------------------------------
+
+Some more macros:
+
+	ALIGN (pos, size) ... make pos divisible by size. always returns an
+						  address >= pos.
+	                      
+	
+	OFFSET (s,el) ....... returns the offset of 'el' in structure 's' in bytes.
+	                      
+	MCOPY (dest,src,type,num) ... copy 'num' elements of type 'type'.
+	
+
+*/
 
 /* Uncollectable memory which can contain references */
 void *heap_alloc_uncollectable(u4 bytelen);
@@ -87,59 +138,6 @@ void dump_release(long int size);
 
 void mem_usagelog(int givewarnings);
  
- 
- 
-/* 
----------------------------- Interface description -----------------------
-
-There are two possible choices for allocating memory:
-
-	1.   explicit allocating / deallocating
-
-			mem_alloc ..... allocate a memory block 
-			mem_free ...... free a memory block
-			mem_realloc ... change size of a memory block (position may change)
-			mem_usage ..... amount of allocated memory
-
-
-	2.   explicit allocating, automatic deallocating
-	
-			dump_alloc .... allocate a memory block in the dump area
-			dump_realloc .. change size of a memory block (position may change)
-			dump_size ..... marks the current top of dump
-			dump_release .. free all memory requested after the mark
-			                
-	
-There are some useful macros:
-
-	NEW (type) ....... allocate memory for an element of type `type`
-	FREE (ptr,type) .. free memory
-	
-	MNEW (type,num) .. allocate memory for an array
-	MFREE (ptr,type,num) .. free memory
-	
-	MREALLOC (ptr,type,num1,num2) .. enlarge the array to size num2
-	                                 
-These macros do the same except they operate on the dump area:
-	
-	DNEW,  DMNEW, DMREALLOC   (there is no DFREE)
-
-
--------------------------------------------------------------------------------
-
-Some more macros:
-
-	ALIGN (pos, size) ... make pos divisible by size. always returns an
-						  address >= pos.
-	                      
-	
-	OFFSET (s,el) ....... returns the offset of 'el' in structure 's' in bytes.
-	                      
-	MCOPY (dest,src,type,num) ... copy 'num' elements of type 'type'.
-	
-
-*/
-
 #endif /* _MEMORY_H */
 
 
