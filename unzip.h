@@ -181,6 +181,8 @@ extern int ZEXPORT unzGoToNextFile OF((unzFile file));
   return UNZ_END_OF_LIST_OF_FILE if the actual file was the latest.
 */
 
+extern void cacao_create_directoryList(unzFile file);
+
 extern int ZEXPORT unzLocateFile OF((unzFile file, 
 				     const char *szFileName,
 				     int iCaseSensitivity));
