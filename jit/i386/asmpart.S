@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 779 2003-12-14 18:11:35Z stefan $
+   $Id: asmpart.S 848 2004-01-05 10:51:58Z twisti $
 
 */
 
@@ -70,6 +70,7 @@
 	.globl asm_handle_builtin_exception
 	.globl asm_handle_nat_exception
 	.globl asm_handle_exception
+	.globl asm_check_clinit
 	.globl asm_builtin_checkcast	
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_newarray
@@ -89,9 +90,7 @@
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
 	.globl asm_getcallingmethod
-    .globl asm_builtin_trace
-    .globl asm_builtin_exittrace
-	.globl asm_xadd
+
     
 /*************************** imported functions *******************************/
 
@@ -105,6 +104,7 @@
 	.globl cast_lock
 	.globl cast_unlock
 #endif
+
 
 /*********************** function has_no_x_instr_set ***************************
 *                                                                              *
@@ -140,13 +140,13 @@ has_no_x_instr_set:
 *                                                                              *
 *******************************************************************************/
 
-call_name2:
+call_name:
 	.ascii  "calljavafunction\0\0"
 
 	.align	8
 	.long   0                         /* catch type all                       */
-	.long   calljava_xhandler2        /* handler pc                           */
-	.long   calljava_xhandler2        /* end pc                               */
+	.long   calljava_xhandler         /* handler pc                           */
+	.long   calljava_xhandler         /* end pc                               */
 	.long   asm_calljavafunction      /* start pc                             */
 	.long   1                         /* extable size                         */
 	.long   0                         /* fltsave                              */
@@ -188,9 +188,7 @@ asm_calljavafunction:
 		lea		asm_call_jit_compiler,%edx 
 		call	*%edx                 /* call JIT compiler                    */
 	
-calljava_jit2:
-calljava_return2:
-calljava_ret2:
+calljava_return:
         add     $32,%esp
         pop     %edi                 /* restore registers                     */
         pop     %esi
@@ -198,7 +196,7 @@ calljava_ret2:
 		leave
 		ret
 
-calljava_xhandler2:
+calljava_xhandler:
 		push    %eax				  /* pass exception pointer               */
 		call    builtin_throw_exception
 		add     $4,%esp
@@ -226,13 +224,13 @@ calljava_xhandler2:
 *                                                                              *
 *******************************************************************************/
 
-call_name3:
+call_name2:
 	.ascii  "calljavafunction2\0\0"
 
 	.align	8
 	.long   0                         /* catch type all                       */
-	.long   calljava_xhandler3        /* handler pc                           */
-	.long   calljava_xhandler3        /* end pc                               */
+	.long   calljava_xhandler2        /* handler pc                           */
+	.long   calljava_xhandler2        /* end pc                               */
 	.long   asm_calljavafunction2     /* start pc                             */
 	.long   1                         /* extable size                         */
 	.long   0                         /* fltsave                              */
@@ -241,67 +239,6 @@ call_name3:
 	.long   0                         /* IsSync                               */
 	.long   32                        /* frame size                           */
 	.long   0                         /* method pointer (pointer to name)     */
-
-/********************* function asm_calljavafunction ***************************
-*                                                                              *
-*   This function calls a Java-method (which possibly needs compilation)       *
-*   with up to 4 address parameters.                                           *
-*                                                                              *
-*   This functions calls the JIT-compiler which eventually translates the      *
-*   method into machine code.                                                  *
-*                                                                              *
-*   C-prototype:                                                               *
-*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
-*         void *arg1, void *arg2, void *arg3, void *arg4);                     *
-*                                                                              *
-*******************************************************************************/
-
-call_name4:
-	.ascii  "calljavafunction2double\0\0"
-
-	.align	8
-	.long   0                         /* catch type all                       */
-	.long   calljava_xhandler3        /* handler pc                           */
-	.long   calljava_xhandler3        /* end pc                               */
-	.long   asm_calljavafunction2double      /* start pc                      */
-	.long   1                         /* extable size                         */
-	.long   0                         /* fltsave                              */
-	.long   0                         /* intsave                              */
-	.long   0                         /* isleaf                               */
-	.long   0                         /* IsSync                               */
-	.long   32                        /* frame size                           */
-	.long   0                         /* method pointer (pointer to name)     */
-
-/********************* function asm_calljavafunction ***************************
-*                                                                              *
-*   This function calls a Java-method (which possibly needs compilation)       *
-*   with up to 4 address parameters.                                           *
-*                                                                              *
-*   This functions calls the JIT-compiler which eventually translates the      *
-*   method into machine code.                                                  *
-*                                                                              *
-*   C-prototype:                                                               *
-*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
-*         void *arg1, void *arg2, void *arg3, void *arg4);                     *
-*                                                                              *
-*******************************************************************************/
-
-call_name5:
-	.ascii  "calljavafunction2long\0\0"
-
-	.align	8
-	.long   0                         /* catch type all                       */
-	.long   calljava_xhandler3        /* handler pc                           */
-	.long   calljava_xhandler3        /* end pc                               */
-	.long   asm_calljavafunction2long /* start pc                             */
-	.long   1                         /* extable size                         */
-	.long   0                         /* fltsave                              */
-	.long   0                         /* intsave                              */
-	.long   0                         /* isleaf                               */
-	.long   0                         /* IsSync                               */
-	.long   32                        /* frame size                           */
-	.long   0                         /* method pointer (pointer to name)     */
-
 
 asm_calljavafunction2:
 asm_calljavafunction2double:
@@ -344,9 +281,7 @@ asm_calljavafunction2long:
 		lea     asm_call_jit_compiler,%edx 
 		call    *%edx                 /* call JIT compiler                    */
 	
-calljava_jit3:
-calljava_return3:
-calljava_ret3:
+calljava_return2:
         add     $32,%esp
         pop     %edi                  /* restore registers                    */
         pop     %esi
@@ -354,7 +289,7 @@ calljava_ret3:
 		leave
 		ret
 
-calljava_xhandler3:
+calljava_xhandler2:
 		push    %eax				  /* pass exception pointer               */
 		call    builtin_throw_exception
 		add     $4,%esp
@@ -416,7 +351,7 @@ L_not_static_special:
 		add     %ecx,%ebp       /* add base address to get method address     */
 		jmp		L_call_jit_compile
 
-L_not_virtual_interface:        /* a call from asm_calljavamethod             */
+L_not_virtual_interface:        /* a call from asm_calljavafunction           */
 		xor     %ebp,%ebp
 		
 L_call_jit_compile:
@@ -427,7 +362,7 @@ L_call_jit_compile:
 		add     $4,%esp
 
 		pop     %ebp            /* restore address for method pointer         */
-		test	%ebp,%ebp		/* is address == 0 (asm_calljavamethod)       */
+		test	%ebp,%ebp		/* is address == 0 (asm_calljavafunction)     */
 		je		L_call_method
 		
 		mov     %eax,(%ebp)		/* and now save the new pointer               */
@@ -677,6 +612,29 @@ noflt:
 		jmp		asm_handle_exception
 		
 
+/********************* function asm_check_clinit *******************************
+*                                                                              *
+*   Does null check and calls monitorenter or throws an exception              *
+*                                                                              *
+*******************************************************************************/
+
+asm_check_clinit:
+		mov		offclassinit(%eax),%ecx     /* get initialized flag           */
+		test	%ecx,%ecx
+		jnz		L_is_initialized
+
+		push	%eax                        /* pass classinfo pointer         */
+		call	class_init                  /* call class_init function       */
+		add		$4,%esp
+				
+L_is_initialized:
+		mov		(%esp),%eax                 /* get return address             */
+		sub		$12,%eax                    /* asm_putstatic call code size   */
+		movb	$0xeb,(%eax)                /* jmp rel8                       */
+		movl	$10,1(%eax)                 /* 32-bit offset                  */
+		ret
+
+		
 /********************* function asm_builtin_monitorenter ***********************
 *                                                                              *
 *   Does null check and calls monitorenter or throws an exception              *
@@ -728,17 +686,17 @@ nb_monitorexit:
 *******************************************************************************/
 
 asm_builtin_ldiv:
-		movl	12(%esp),%eax
-		orl		16(%esp),%eax
+		mov		12(%esp),%eax
+		or		16(%esp),%eax
 		test	%eax,%eax				/* if (null) throw exception */
 		je		nb_ldiv
 
 		jmp		builtin_ldiv
 
 nb_ldiv:
-		popl	%ecx					/* delete return address */
-		subl	$2,%ecx					/* faulting address is return adress - 2 */
-		movl	proto_java_lang_ArithmeticException,%eax
+		pop		%ecx					/* delete return address */
+		sub		$2,%ecx					/* faulting address is return adress - 2 */
+		mov		proto_java_lang_ArithmeticException,%eax
 		jmp		asm_handle_exception
 				
 
@@ -749,17 +707,17 @@ nb_ldiv:
 *******************************************************************************/
 
 asm_builtin_lrem:
-		movl	12(%esp),%eax
-		orl		16(%esp),%eax
+		mov		12(%esp),%eax
+		or			16(%esp),%eax
 		test	%eax,%eax				/* if (null) throw exception */
 		je		nb_lrem
 
 		jmp		builtin_lrem
 
 nb_lrem:
-		popl	%ecx					/* delete return address */
-		subl	$2,%ecx					/* faulting address is return adress - 2 */
-		movl	proto_java_lang_ArithmeticException,%eax
+		pop		%ecx					/* delete return address */
+		sub		$2,%ecx					/* faulting address is return adress - 2 */
+		mov		proto_java_lang_ArithmeticException,%eax
 		jmp		asm_handle_exception
 		
 
@@ -805,8 +763,8 @@ asm_builtin_d2l:
 *******************************************************************************/
 
 asm_builtin_checkcast:
-		xorl	%eax,%eax
-		movl	$0,(%eax)
+		xor		%eax,%eax
+		mov		%eax,(%eax)
 		ret
 
 		
@@ -817,29 +775,29 @@ asm_builtin_checkcast:
 *******************************************************************************/
 
 asm_builtin_checkarraycast:
-		subl	$8,%esp					/* build stack frame (2 * 4 bytes)    */
+		sub		$8,%esp					/* build stack frame (2 * 4 bytes)    */
 
-		movl	12(%esp),%eax           /* 8 (frame) + 4 (return)             */
-		movl	%eax,(%esp)				/* save object pointer                */
+		mov		12(%esp),%eax           /* 8 (frame) + 4 (return)             */
+		mov		%eax,(%esp)				/* save object pointer                */
 
-		movl	20(%esp),%eax
-		movl	%eax,4(%esp)
+		mov		20(%esp),%eax
+		mov		%eax,4(%esp)
 
 		call	builtin_checkarraycast  /* builtin_checkarraycast             */
 	
 		test	%eax,%eax               /* if (false) throw exception         */
 		je		nb_carray_throw
 
-		movl	12(%esp),%eax			/* return object pointer              */
-		addl	$8,%esp
+		mov		12(%esp),%eax			/* return object pointer              */
+		add		$8,%esp
 		ret
 
 nb_carray_throw:
-		addl	$8,%esp
+		add		$8,%esp
 		
-		popl	%ecx					/* delete return address              */
-		subl	$2,%ecx					/* faulting address is return adress - 2 */
-		movl	proto_java_lang_ClassCastException,%eax
+		pop		%ecx					/* delete return address              */
+		sub		$2,%ecx					/* faulting address is return adress - 2 */
+		mov		proto_java_lang_ClassCastException,%eax
 		jmp		asm_handle_exception
 
 		
@@ -850,17 +808,17 @@ nb_carray_throw:
 *******************************************************************************/
 
 asm_builtin_newarray:
-		subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
+		sub		$8,%esp					/* build stack frame (2 * 4 bytes) */
 
-		movl	12(%esp),%eax
-		movl	%eax,(%esp)
+		mov		12(%esp),%eax
+		mov		%eax,(%esp)
 
-		movl	20(%esp),%eax
-		movl	%eax,4(%esp)
+		mov		20(%esp),%eax
+		mov		%eax,4(%esp)
 
 		call	builtin_newarray
 	
-		addl	$8,%esp
+		add		$8,%esp
 		ret
 
 		
@@ -1078,108 +1036,6 @@ asm_getcallingmethod:
 /*		movl	$0,(%eax) */
 		ret
 
-
-/*********************** function asm_builtin_trace ****************************
-*                                                                              *
-*   Intended to be called from the native stub. Saves all argument registers   *
-*   and calls builtin_trace_args.                                              *
-*                                                                              *
-*******************************************************************************/
-
-asm_builtin_trace:
-        pusha
-        subl    $68,%esp                /* 4 + 8 * 4 + 68 = 104 */
-
-        movl    104(%esp),%eax
-        movl    108(%esp),%edx
-        movl    %eax,(%esp)
-        movl    %edx,4(%esp)
-
-        movl    112(%esp),%eax
-        movl    116(%esp),%edx
-        movl    %eax,8(%esp)
-        movl    %edx,12(%esp)
-
-        movl    120(%esp),%eax
-        movl    124(%esp),%edx
-        movl    %eax,16(%esp)
-        movl    %edx,20(%esp)
-
-        movl    128(%esp),%eax
-        movl    132(%esp),%edx
-        movl    %eax,24(%esp)
-        movl    %edx,28(%esp)
-
-        movl    136(%esp),%eax
-        movl    140(%esp),%edx
-        movl    %eax,32(%esp)
-        movl    %edx,36(%esp)
-
-        movl    144(%esp),%eax
-        movl    148(%esp),%edx
-        movl    %eax,40(%esp)
-        movl    %edx,44(%esp)
-
-        movl    152(%esp),%eax
-        movl    156(%esp),%edx
-        movl    %eax,48(%esp)
-        movl    %edx,52(%esp)
-
-        movl    160(%esp),%eax
-        movl    164(%esp),%edx
-        movl    %eax,56(%esp)
-        movl    %edx,60(%esp)
-
-        movl    168(%esp),%eax
-        movl    %eax,64(%esp)
-        
-        call    builtin_trace_args
-        addl    $68,%esp
-
-        popa
-        ret
-
-
-/********************* function asm_builtin_exittrace **************************
-*                                                                              *
-*   Intended to be called from the native stub. Saves return value and calls   *
-*   builtin_displaymethodstop.                                                 *
-*                                                                              *
-*******************************************************************************/
-
-asm_builtin_exittrace:
-        pusha
-        subl    $24,%esp
-        
-        movl    60(%esp),%eax           /* 4 + 8 * 4 + 24 = 60 */
-        movl    %eax,(%esp)
-
-        movl    64(%esp),%eax
-        movl    68(%esp),%edx
-        movl    %eax,4(%esp)
-        movl    %edx,8(%esp)
-
-        movl    72(%esp),%eax
-        movl    76(%esp),%edx
-        movl    %eax,12(%esp)
-        movl    %edx,16(%esp)
-
-        movl    80(%esp),%eax
-        movl    %eax,20(%esp)
-
-        call    builtin_displaymethodstop
-        addl    $24,%esp
-
-        popa
-        ret
-
-asm_xadd:
-		mov 4(%esp),%ecx
-		mov 8(%esp),%eax
-		lock
-		xaddl %eax,0(%ecx)
-	    incl %eax
-		ret
 
 /*
  * These are local overrides for various environment variables in Emacs.
