@@ -26,7 +26,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1783 2004-12-21 09:37:22Z twisti $
+## $Id: Makefile.am 1872 2005-01-12 14:09:52Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,6 +36,7 @@ CLEANFILES = \
 	\
 	gnu_classpath_Configuration.h \
 	gnu_classpath_RawData.h \
+	gnu_classpath_VMSystemProperties.h \
 	\
 	gnu_java_awt_image_GdkPixbufDecoder.h \
 	gnu_java_awt_peer_gtk_GThreadMutex.h \
