@@ -1,10 +1,12 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 557 2003-11-02 22:51:59Z twisti $
+# $Id: Makefile.am 618 2003-11-13 09:39:28Z stefan $
 
 SUBDIRS = boehm-gc
 
 noinst_LIBRARIES = libboehm.a
+
+noinst_HEADERS = boehm.h
 
 libboehm_a_SOURCES = boehm.c
 

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 557 2003-11-02 22:51:59Z twisti $
+# $Id: Makefile.am 618 2003-11-13 09:39:28Z stefan $
 
 INCLUDES = -I$(top_srcdir)/jit/@ARCH_DIR@ -I$(top_srcdir)/jit
 
@@ -10,6 +10,11 @@ EXTRA_DIST = \
 	loop.h \
 	analyze.c \
 	tracing.c
+
+noinst_HEADERS = \
+	graph.h \
+	analyze.h \
+	tracing.h
 
 noinst_LIBRARIES = libloop.a
 

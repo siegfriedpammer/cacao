@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 557 2003-11-02 22:51:59Z twisti $
+# $Id: Makefile.am 618 2003-11-13 09:39:28Z stefan $
 
 @SET_MAKE@
 
@@ -14,6 +14,7 @@ EXTRA_DIST = \
 	html/cacaoman.html \
 	html/index.html \
 	jni.c \
+	main.h \
 	natcalls.h \
 	nativecalls.h
 
