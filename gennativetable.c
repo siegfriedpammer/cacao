@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 1264 2004-07-01 14:21:05Z jowenn $
+   $Id: gennativetable.c 1371 2004-08-01 21:55:39Z stefan $
 
 */
 
@@ -86,6 +86,7 @@ int main(int argc, char **argv)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initThreadsEarly();
 #endif
+	initLocks();
 	loader_init((u1 *) &dummy);
 
 

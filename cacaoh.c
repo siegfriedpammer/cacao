@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 1294 2004-07-10 16:43:37Z stefan $
+   $Id: cacaoh.c 1371 2004-08-01 21:55:39Z stefan $
 
 */
 
@@ -99,6 +99,7 @@ int main(int argc, char **argv)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initThreadsEarly();
 #endif
+	initLocks();
 	loader_init();
 
 
