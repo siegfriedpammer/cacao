@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMObject.c 1003 2004-03-30 22:56:04Z twisti $
+   $Id: VMObject.c 1042 2004-04-26 17:12:47Z twisti $
 
 */
 
@@ -37,6 +37,7 @@
 #include <string.h>
 #include "jni.h"
 #include "builtin.h"
+#include "loader.h"
 #include "native.h"
 #include "mm/boehm.h"
 #include "threads/locks.h"
@@ -53,9 +54,6 @@
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass clazz, java_lang_Cloneable *this)
 {
-/*	log_text("Java_java_lang_VMObject_clone called");
-	log_utf(((java_objectheader*)this)->vftbl->class->name);
-	log_text("starting cloning");     */
 	classinfo *c;
 	java_lang_Object *new;
 	arraydescriptor *desc;
@@ -76,17 +74,17 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
     
     /* We are cloning a non-array */
     if (!builtin_instanceof((java_objectheader *) this, class_java_lang_Cloneable)) {
-        *exceptionptr = new_exception(string_java_lang_CloneNotSupportedException);
+        *exceptionptr =
+			new_exception(string_java_lang_CloneNotSupportedException);
         return NULL;
     }
 
     /* XXX should use vftbl */
     c = this->header.vftbl->class;
     new = (java_lang_Object *) builtin_new(c);
-    if (!new) {
-        *exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
+
+    if (!new)
         return NULL;
-    }
 
     memcpy(new, this, c->instancesize);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)

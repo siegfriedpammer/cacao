@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 991 2004-03-29 11:22:34Z stefan $
+   $Id: VMThread.c 1042 2004-04-26 17:12:47Z twisti $
 
 */
 
@@ -83,7 +83,7 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread(JNIEnv *
 		/* ThreadGroup of currentThread is not initialized */
 
 		t->group = (java_lang_ThreadGroup *) 
-			native_new_and_init(loader_load(utf_new_char("java/lang/ThreadGroup")));
+			native_new_and_init(class_new(utf_new_char("java/lang/ThreadGroup")));
 
 		if (t->group == 0) 
 			log_text("unable to create ThreadGroup");

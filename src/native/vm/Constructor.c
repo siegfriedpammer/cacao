@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Constructor.c 951 2004-03-11 17:30:03Z jowenn $
+   $Id: Constructor.c 1042 2004-04-26 17:12:47Z twisti $
 
 */
 
@@ -68,13 +68,13 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 
 	if (!parameters) {
 		if (this->parameterTypes->header.size != 0) {
-			(*env)->ThrowNew(env, loader_load(utf_new_char("java/lang/IllegalArgumentException")), "wrong number of arguments");
+			*exceptionptr = new_exception_message(string_java_lang_IllegalArgumentException, "wrong number of arguments");
 			return 0;
 		}
 
 	} else {
 		if (this->parameterTypes->header.size != parameters->header.size) {
-			(*env)->ThrowNew(env, loader_load(utf_new_char("java/lang/IllegalArgumentException")), "wrong number of arguments");
+			*exceptionptr = new_exception_message(string_java_lang_IllegalArgumentException, "wrong number of arguments");
 			return 0;
 		}
 	}

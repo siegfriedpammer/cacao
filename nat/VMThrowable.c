@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: VMThrowable.c 973 2004-03-25 15:19:16Z twisti $
+   $Id: VMThrowable.c 1042 2004-04-26 17:12:47Z twisti $
 
 */
 
@@ -77,31 +77,36 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,long size)
 {
 	long resultPos;
-	methodinfo *constructor;
-	classinfo *class_stacktraceelement;
-	java_objectarray *array_stacktraceelement;
-	class_stacktraceelement = (classinfo *) loader_load(utf_new_char ("java/lang/StackTraceElement"));
+	methodinfo *m;
+	classinfo *c;
+	java_objectarray *oa;
 
-	if (!class_stacktraceelement)
-		return 0;
+	c = class_new(utf_new_char("java/lang/StackTraceElement"));
 
+	if (!c->loaded)
+		class_load(c);
 
-	constructor=class_findmethod(class_stacktraceelement,utf_new_char("<init>"),
-		utf_new_char("(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Z)V"));
-	if (!constructor)
+	if (!c->linked)
+		class_link(c);
+
+	m = class_findmethod(c,
+						 utf_new_char("<init>"),
+						 utf_new_char("(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Z)V"));
+
+	if (!m)
 		panic("java.lang.StackTraceElement misses needed constructor");	
 
-	array_stacktraceelement = builtin_anewarray(size, class_stacktraceelement);
+	oa = builtin_anewarray(size, c);
 
-	if (!array_stacktraceelement)
-                return 0;
+	if (!oa)
+		return 0;
 
 /*	printf("Should return an array with %ld element(s)\n",size);*/
 	size--;
 	
 	
 	for(resultPos=0;size>=0;resultPos++,size--) {
-		java_objectheader *element=builtin_new(class_stacktraceelement);
+		java_objectheader *element=builtin_new(c);
 		if (!element) {
 			panic("Memory for stack trace element could not be allocated");
 		}
@@ -109,32 +114,32 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,
 #warning call constructor once jni is fixed to allow more than three parameters
 #endif
 #if 0
-		(*env)->CallVoidMethod(env,element,constructor,
+		(*env)->CallVoidMethod(env,element,m,
 			javastring_new(source[size].method->class->sourcefile),
 			source[size].linenumber,
 			javastring_new(source[size].method->class->name),
 			javastring_new(source[size].method->name),
 			source[size].method->flags & ACC_NATIVE);
 #else
-		if (!(source[size].method->flags & ACC_NATIVE))setfield_critical(class_stacktraceelement,element,"fileName",          
+		if (!(source[size].method->flags & ACC_NATIVE))setfield_critical(c,element,"fileName",          
 		"Ljava/lang/String;",  jobject, 
 		(jobject) javastring_new(source[size].method->class->sourcefile));
-		setfield_critical(class_stacktraceelement,element,"className",          "Ljava/lang/String;",  jobject, 
+		setfield_critical(c,element,"className",          "Ljava/lang/String;",  jobject, 
 		(jobject) javastring_new(source[size].method->class->name));
-		setfield_critical(class_stacktraceelement,element,"methodName",          "Ljava/lang/String;",  jobject, 
+		setfield_critical(c,element,"methodName",          "Ljava/lang/String;",  jobject, 
 		(jobject) javastring_new(source[size].method->name));
-		setfield_critical(class_stacktraceelement,element,"lineNumber",          "I",  jint, 
+		setfield_critical(c,element,"lineNumber",          "I",  jint, 
 		(jint) ((source[size].method->flags & ACC_NATIVE) ? -1:(source[size].linenumber)));
-		setfield_critical(class_stacktraceelement,element,"isNative",          "Z",  jboolean, 
+		setfield_critical(c,element,"isNative",          "Z",  jboolean, 
 		(jboolean) ((source[size].method->flags & ACC_NATIVE) ? 1:0));
 
 
 #endif			
 
-		array_stacktraceelement->data[resultPos]=element;
+		oa->data[resultPos]=element;
 	}
 
-	return array_stacktraceelement;
+	return oa;
 
 }
 
@@ -174,7 +179,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 		for (; pos >= 0 && el[pos].method->name == init && el[pos].method->class->name != classname; pos--);
 		pos--;
 		if (pos < 0) {
-			panic("Invalid stack trace for Throwable.getStackTrace()");
+			log_text("Invalid stack trace for Throwable.getStackTrace()");
 		}
 	}
 	

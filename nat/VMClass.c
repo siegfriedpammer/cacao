@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 1003 2004-03-30 22:56:04Z twisti $
+   $Id: VMClass.c 1042 2004-04-26 17:12:47Z twisti $
 
 */
 
@@ -74,23 +74,35 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 	
 	/* create utf string in which '.' is replaced by '/' */
 	u = javastring_toutf(s, true);
-        
-	c = loader_load(u);
-	if (c == NULL) {
-		/* class was not loaded. raise exception */
-		if (runverbose)
-			log_text("Setting class not found exception");
 
+	/* create a new class, ... */
+	c = class_new(u);
+
+	/* load, ... */
+	class_load(c);
+
+	/* class was not loaded. raise exception */
+	if (!c->loaded) {
 		/* there is already an exception (NoClassDefFoundError), but forName()
 		   returns a ClassNotFoundException */
+
+		/* clear exceptionptr, because builtin_new checks for 
+		   ExceptionInInitializerError */
+		*exceptionptr = NULL;
+
 		*exceptionptr =
 			new_exception_javastring(string_java_lang_ClassNotFoundException, s);
 
 	    return NULL;
 	}
 
-	/*log_text("Returning class");*/
-	use_class_as_object (c);
+	/* link, ... */
+	class_link(c);
+
+	/* ...and initialize it */
+	class_init(c);
+
+	use_class_as_object(c);
 
 	return (java_lang_Class *) c;
 }
@@ -168,10 +180,13 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 			(c->methods[i].name == utf_constr))
 			public_methods++;
 
-    class_constructor = (classinfo *) loader_load(utf_new_char ("java/lang/reflect/Constructor"));
+    class_constructor = class_new(utf_new_char("java/lang/reflect/Constructor"));
 
-    if (!class_constructor)
-		return NULL;
+	if (!class_constructor->loaded)
+		class_load(class_constructor);
+
+	if (!class_constructor->linked)
+		class_link(class_constructor);
 
     array_constructor = builtin_anewarray(public_methods, class_constructor);
 
@@ -303,7 +318,8 @@ JNIEXPORT java_lang_reflect_Field* JNICALL Java_java_lang_VMClass_getField0(JNIE
     int idx;
 
     /* create Field object */
-    c = (classinfo *) loader_load(utf_new_char("java/lang/reflect/Field"));
+/*      c = (classinfo *) loader_load(utf_new_char("java/lang/reflect/Field")); */
+    c = class_new(utf_new_char("java/lang/reflect/Field"));
     o = (java_lang_reflect_Field *) native_new_and_init(c);
 
     /* get fieldinfo entry */
@@ -362,7 +378,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNI
 		if ((c->fields[i].flags & ACC_PUBLIC) || (!public_only))
 			public_fields++;
 
-    class_field = loader_load(utf_new_char("java/lang/reflect/Field"));
+/*      class_field = loader_load(utf_new_char("java/lang/reflect/Field")); */
+    class_field = class_new(utf_new_char("java/lang/reflect/Field"));
 
     if (!class_field) 
 		return NULL;
@@ -425,7 +442,8 @@ JNIEXPORT java_lang_reflect_Method* JNICALL Java_java_lang_VMClass_getMethod0(JN
     java_objectarray *exceptiontypes;    /* the exceptions thrown by the method */
     methodinfo *m;			 /* the method to be represented */
 
-    c = (classinfo *) loader_load(utf_new_char("java/lang/reflect/Method"));
+/*      c = (classinfo *) loader_load(utf_new_char("java/lang/reflect/Method")); */
+    c = class_new(utf_new_char("java/lang/reflect/Method"));
     o = (java_lang_reflect_Method *) native_new_and_init(c);
 
     /* find the method */
@@ -475,14 +493,15 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
     utf *utf_constr=utf_new_char("<init>");
     utf *utf_clinit=utf_new_char("<clinit>");
 
+/*      class_method = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Method")); */
+    class_method = class_new(utf_new_char("java/lang/reflect/Method"));
 
-    class_method = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Method"));
     if (!class_method) 
 		return NULL;
 
 	/* JOWENN: array classes do not declare methods according to mauve test. It should be considered, if 
 	   we should return to my old clone method overriding instead of declaring it as a member function */
-	if (Java_java_lang_VMClass_isArray(env,this)) {
+	if (Java_java_lang_VMClass_isArray(env, this)) {
 		return builtin_anewarray(0, class_method);
 	}
 

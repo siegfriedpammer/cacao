@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMString.c 913 2004-02-05 21:23:19Z twisti $
+   $Id: VMString.c 1042 2004-04-26 17:12:47Z twisti $
 
 */
 
@@ -47,11 +47,6 @@
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMString_intern(JNIEnv *env, jclass clazz, java_lang_String *this)
 {
-/*  	printf("Java_java_lang_VMString_intern: count=%d offset=%d", this->count, this->offset); */
-/*  	utf_display(javastring_toutf(this, 0)); */
-/*  	printf("\n"); */
-/*  	fflush(stdout); */
-
 	if (this) {
 		/* search table so identical strings will get identical pointers */
 		return (java_lang_String *) literalstring_u2(this->value, this->count, this->offset, true);

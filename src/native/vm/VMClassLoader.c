@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClassLoader.c 1003 2004-03-30 22:56:04Z twisti $
+   $Id: VMClassLoader.c 1042 2004-04-26 17:12:47Z twisti $
 
 */
 
@@ -54,8 +54,13 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	log_text("Java_java_lang_VMClassLoader_defineClass called");
 
 	/* call JNI-function to load the class */
-	c = (*env)->DefineClass(env, javastring_tochar((java_objectheader*) name), (jobject) this, (const jbyte *) &buf[off], len);
-	use_class_as_object (c);
+	c = (*env)->DefineClass(env,
+							javastring_tochar((java_objectheader*) name),
+							(jobject) this,
+							(const jbyte *) &buf[off],
+							len);
+
+	use_class_as_object(c);
 
 	return (java_lang_Class *) c;
 }
@@ -73,7 +78,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 
 	if (u) {
 		/* get primitive class */
-		c = loader_load_sysclass(NULL, u);
+		c = class_new(u);
+		class_load(c);
+		class_init(c);
 		use_class_as_object(c);
 
 		return (java_lang_Class *) c;
@@ -93,7 +100,10 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
  */
 JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jclass clazz, java_lang_Class *par1)
 {
-	/* class already linked, so return */
+	/* linked the class */
+	if (!clazz->linked)
+		class_link(clazz);
+
 	return;
 }
 

@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 997 2004-03-30 21:49:28Z twisti $
+   $Id: VMRuntime.c 1042 2004-04-26 17:12:47Z twisti $
 
 */
 
@@ -309,8 +309,10 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_insertSystemProperties(JNIEnv *env
 	proplist[6][1] = utsnamebuf.sysname;
 	proplist[7][1] = utsnamebuf.release;
 
-	if (!p)
-		panic("Java_java_lang_Runtime_insertSystemProperties called with NULL-Argument");
+	if (!p) {
+		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		return;
+	}
 
 	/* search for method to add properties */
 	m = class_resolvemethod(p->header.vftbl->class,
@@ -318,8 +320,11 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_insertSystemProperties(JNIEnv *env
 							utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;")
 							);
 
-	if (!m)
-		panic("Can not find method 'put' for class Properties");
+	if (!m) {
+		*exceptionptr = new_exception_message(string_java_lang_NoSuchMethodError,
+											  "java.lang.Properties.put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;)");
+		return;
+	}
 
 	/* add the properties */
 	for (i = 0; i < activeprops; i++) {
