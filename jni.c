@@ -3237,7 +3237,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 
 	switch (retT) {
 		case 'V':	(void)asm_calljavafunction2(methodID,argcount+1,(argcount+1)*sizeof(jni_callblock),blk);
-				retVal=native_new_and_init(loader_load(utf_new_char("java/lang/Void")));
+				retVal=NULL; /*native_new_and_init(loader_load(utf_new_char("java/lang/Void")));*/
 				break;
 		case 'I':	{
 					s4 intVal;	
@@ -3332,7 +3332,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 	MFREE(blk, jni_callblock, 4 /*argcount+2*/);
 
 	if (exceptionptr)
-		exceptionptr=native_new_and_init(loader_load("java/lang/reflect/InvocationTargetException"));
+		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/reflect/InvocationTargetException")));
 	return retVal;	
 
 }
