@@ -16,10 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
-/*  #include "sysdep.h" */
+/* #include "sysdep.h" */
 #include "dis-asm.h"
 #include <errno.h>
-/*  #include "opintl.h" */
+/* #include "opintl.h" */
 
 /* Get LENGTH bytes from info's buffer, at target address memaddr.
    Transfer them to myaddr.  */
@@ -36,7 +36,6 @@ buffer_read_memory (memaddr, myaddr, length, info)
   unsigned int max_addr_offset = info->buffer_length / opb; 
   unsigned int octets = (memaddr - info->buffer_vma) * opb;
 
-  printf("%d %d\n", memaddr, info->buffer_vma);
   if (memaddr < info->buffer_vma
       || memaddr - info->buffer_vma + end_addr_offset > max_addr_offset)
     /* Out of bounds.  Use EIO because GDB uses it.  */
@@ -110,7 +109,7 @@ generic_strcat_address (addr, buf, len)
 }
 #endif
 
-/* Just return the given address.  */
+/* Just return true.  */
 
 int
 generic_symbol_at_address (addr, info)
@@ -119,3 +118,14 @@ generic_symbol_at_address (addr, info)
 {
   return 1;
 }
+
+/* Just return TRUE.  */
+
+#if 0
+bfd_boolean
+generic_symbol_is_valid (asymbol * sym ATTRIBUTE_UNUSED,
+			 struct disassemble_info *info ATTRIBUTE_UNUSED)
+{
+  return TRUE;
+}
+#endif
