@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2181 2005-04-01 16:53:33Z edwin $
+   $Id: resolve.c 2182 2005-04-01 20:56:33Z edwin $
 
 */
 
@@ -38,6 +38,7 @@
 #include "vm/access.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
+#include "vm/loader.h"
 #include "vm/linker.h"
 #include "vm/classcache.h"
 #include "vm/descriptor.h"
@@ -212,6 +213,34 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 
 	/* succeeded */
 	*result = c;
+	return true;
+}
+
+bool 
+resolve_class_from_typedesc(typedesc *d,bool link,classinfo **result)
+{
+	classinfo *cls;
+	
+	RESOLVE_ASSERT(d);
+	RESOLVE_ASSERT(result);
+
+	*result = NULL;
+
+	if (d->classref) {
+		/* a reference type */
+		if (!resolve_classref_or_classinfo(NULL,CLASSREF_OR_CLASSINFO(d->classref),
+										   resolveEager,link,&cls))
+			return false; /* exception */
+	}
+	else {
+		/* a primitive type */
+		cls = primitivetype_table[d->decltype].class_primitive;
+		if (!cls->linked)
+			if (!link_class(cls))
+				return false; /* exception */
+	}
+
+	*result = cls;
 	return true;
 }
 

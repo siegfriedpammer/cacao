@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: loader.h 2182 2005-04-01 20:56:33Z edwin $
 */
 
 
@@ -205,24 +205,6 @@ void class_showconstantpool(classinfo *c);
 
 /* return the primitive class inidicated by the given signature character */
 classinfo *class_primitive_from_sig(char sig);
-
-
-/* return the class indicated by the given descriptor */
-/* (see loader.c for documentation) */
-#define CLASSLOAD_NEW           0      /* default */
-#define CLASSLOAD_LOAD          0x0001
-#define CLASSLOAD_SKIP          0x0002
-#define CLASSLOAD_PANIC         0      /* default */
-#define CLASSLOAD_NOPANIC       0x0010
-#define CLASSLOAD_PRIMITIVE     0      /* default */
-#define CLASSLOAD_NULLPRIMITIVE 0x0020
-#define CLASSLOAD_VOID          0      /* default */
-#define CLASSLOAD_NOVOID        0x0040
-#define CLASSLOAD_NOCHECKEND    0      /* default */
-#define CLASSLOAD_CHECKEND      0x1000
-
-classinfo *class_from_descriptor(char *utf_ptr,char *end_ptr,char **next,int mode);
-int type_from_descriptor(classinfo **cls,char *utf_ptr,char *end_ptr,char **next,int mode);
 
 /* (used by class_new, don't use directly) */
 void class_new_array(classinfo *c);

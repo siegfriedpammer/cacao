@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.c 2181 2005-04-01 16:53:33Z edwin $
+   $Id: descriptor.c 2182 2005-04-01 20:56:33Z edwin $
 
 */
 
@@ -66,6 +66,7 @@ struct descriptor_hash_entry {
 	descriptor_hash_entry *hashlink;
 	utf                   *desc;
 	parseddesc             parseddesc;
+	s2                     paramslots; /* number of params, LONG/DOUBLE counted as 2 */
 };
 
 /****************************************************************************/
@@ -173,45 +174,6 @@ name_from_descriptor(classinfo *c,
 	return false;
 }
 
-/* primitive_type_from_char ****************************************************
- 
-   Return the primitive type corresponding to the given descriptor character
-   (Internally used helper function)
-
-   IN:
-       ch...............the character
-
-   RETURN VALUE:
-       The primitive type (a TYPE_* constant)
-
-   NOTE:
-       This function assumes that the descriptor has already been checked.
-
-*******************************************************************************/
-
-static int
-primitive_type_from_char(int ch)
-{
-	switch (ch) {
-		case 'B': 
-		case 'C':
-		case 'I':
-		case 'S':  
-		case 'Z':
-			return TYPE_INT;
-		case 'D':
-			return TYPE_DOUBLE;
-		case 'F':
-			return TYPE_FLOAT;
-		case 'J':
-			return TYPE_LONG;
-		case 'V':
-			return TYPE_VOID;
-	}
-	DESCRIPTOR_ASSERT(false);
-	return 0; /* for the compiler */
-}
-				
 /* descriptor_to_typedesc ******************************************************
  
    Parse the given type descriptor and fill a typedesc struct
@@ -244,15 +206,52 @@ descriptor_to_typedesc(descriptor_pool *pool,char *utf_ptr,char *end_pos,
 	if (name) {
 		/* a reference type */
 		d->type = TYPE_ADDRESS;
+		d->decltype = TYPE_ADDRESS;
 		d->arraydim = 0;
 		for (utf_ptr=name->text; *utf_ptr == '['; ++utf_ptr)
 			d->arraydim++;
 		d->classref = descriptor_pool_lookup_classref(pool,name);
 	}
 	else {
-		DESCRIPTOR_ASSERT(utf_ptr[0] != '[' && utf_ptr[0] != 'L');
 		/* a primitive type */
-		d->type = primitive_type_from_char(*utf_ptr);
+		switch (*utf_ptr) {
+			case 'B': 
+				d->decltype = PRIMITIVETYPE_BYTE;
+				goto int_type;
+			case 'C':
+				d->decltype = PRIMITIVETYPE_CHAR;
+				goto int_type;
+			case 'S':  
+				d->decltype = PRIMITIVETYPE_SHORT;
+				goto int_type;
+			case 'Z':
+				d->decltype = PRIMITIVETYPE_BOOLEAN;
+				goto int_type;
+			case 'I':
+				d->decltype = PRIMITIVETYPE_INT;
+				/* FALLTHROUGH */
+int_type:
+				d->type = TYPE_INT;
+				break;
+			case 'D':
+				d->decltype = PRIMITIVETYPE_DOUBLE;
+				d->type = TYPE_DOUBLE;
+				break;
+			case 'F':
+				d->decltype = PRIMITIVETYPE_FLOAT;
+				d->type = TYPE_FLOAT;
+				break;
+			case 'J':
+				d->decltype = PRIMITIVETYPE_LONG;
+				d->type = TYPE_LONG;
+				break;
+			case 'V':
+				d->decltype = PRIMITIVETYPE_VOID;
+				d->type = TYPE_VOID;
+				break;
+			default:
+				DESCRIPTOR_ASSERT(false);
+		}
 		d->arraydim = 0;
 		d->classref = NULL;
 	}
@@ -368,6 +367,10 @@ descriptor_pool_add_class(descriptor_pool *pool,utf *name)
        pool.............the descriptor_pool
 	   desc.............the descriptor to add. Maybe a field or method desc.
 
+   OUT:
+       *paramslots......if non-NULL, set to the number of parameters.
+	                    LONG and DOUBLE are counted twice
+
    RETURN VALUE:
        true.............descriptor has been added
 	   false............an exception has been thrown
@@ -375,13 +378,14 @@ descriptor_pool_add_class(descriptor_pool *pool,utf *name)
 *******************************************************************************/
 
 bool 
-descriptor_pool_add(descriptor_pool *pool,utf *desc)
+descriptor_pool_add(descriptor_pool *pool,utf *desc,int *paramslots)
 {
 	u4 key,slot;
 	descriptor_hash_entry *c;
 	char *utf_ptr;
 	char *end_pos;
 	utf *name;
+	s4 argcount = 0;
 	
 	DESCRIPTOR_ASSERT(pool);
 	DESCRIPTOR_ASSERT(desc);
@@ -391,8 +395,11 @@ descriptor_pool_add(descriptor_pool *pool,utf *desc)
 	slot = key & (pool->descriptorhash.size - 1);
 	c = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
 	while (c) {
-		if (c->desc == desc)
+		if (c->desc == desc) {
+			if (paramslots)
+				*paramslots = c->paramslots;
 			return true; /* already stored */
+		}
 		c = c->hashlink;
 	}
 	/* add the descriptor to the pool */
@@ -407,8 +414,6 @@ descriptor_pool_add(descriptor_pool *pool,utf *desc)
 	end_pos = utf_end(desc);
 	
 	if (*utf_ptr == '(') {
-		s4 argcount = 0;
-		
 		/* a method descriptor */
 		pool->methodcount++;
 		utf_ptr++;
@@ -462,6 +467,10 @@ descriptor_pool_add(descriptor_pool *pool,utf *desc)
 		if (name)
 			descriptor_pool_add_class(pool,name);
 	}
+
+	c->paramslots = argcount;
+	if (paramslots)
+		*paramslots = argcount;
 
 	return true;
 }
@@ -825,14 +834,17 @@ descriptor_debug_print_typedesc(FILE *file,typedesc *d)
 		utf_fprint(file,d->classref->name);
 	}
 	else {
-		switch (d->type) {
-			case TYPE_INT    : ch='I'; break;
-			case TYPE_LONG   : ch='J'; break;
-			case TYPE_FLOAT  : ch='F'; break;
-			case TYPE_DOUBLE : ch='D'; break;
-			case TYPE_ADDRESS: ch='A'; break;
-			case TYPE_VOID   : ch='V'; break;
-			default          : ch='!';
+		switch (d->decltype) {
+			case PRIMITIVETYPE_INT    : ch='I'; break;
+			case PRIMITIVETYPE_CHAR   : ch='C'; break;
+			case PRIMITIVETYPE_BYTE   : ch='B'; break;
+			case PRIMITIVETYPE_SHORT  : ch='S'; break;
+			case PRIMITIVETYPE_BOOLEAN: ch='Z'; break;
+			case PRIMITIVETYPE_LONG   : ch='J'; break;
+			case PRIMITIVETYPE_FLOAT  : ch='F'; break;
+			case PRIMITIVETYPE_DOUBLE : ch='D'; break;
+			case PRIMITIVETYPE_VOID   : ch='V'; break;
+			default                   : ch='!';
 		}
 		fputc(ch,file);
 	}
@@ -898,7 +910,7 @@ descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file)
 	fprintf(file,"classrefcount:  %d\n",pool->classrefhash.entries);
 	fprintf(file,"descriptorsize: %d bytes\n",pool->descriptorsize);
 	fprintf(file,"classrefsize:   %d bytes\n",
-			pool->classrefhash.entries * sizeof(constant_classref));
+			(int)pool->classrefhash.entries * sizeof(constant_classref));
 
 	fprintf(file,"class references:\n");
 	for (slot=0; slot<pool->classrefhash.size; ++slot) {

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: descriptor.h 2182 2005-04-01 20:56:33Z edwin $
 
 */
 
@@ -92,9 +92,16 @@ struct descriptor_pool {
 
 struct typedesc {
 	constant_classref *classref;   /* class reference for TYPE_ADR types      */
-	u1                 type;       /* TYPE_??? constant                       */
+	u1                 type;       /* TYPE_??? constant [1]                   */
+	u1                 decltype;   /* (PRIMITIVE)TYPE_??? constant [2]        */
 	u1                 arraydim;   /* array dimension (0 if no array)         */
 };
+
+/* [1]...the type field contains the basic type used within the VM. So ints,  */
+/*       shorts, chars, bytes, booleans all have TYPE_INT.                    */
+/* [2]...the decltype field contains the declared type.                       */
+/*       So short is PRIMITIVETYPE_SHORT, char is PRIMITIVETYPE_CHAR.         */
+/*       For non-primitive types decltype is TYPE_ADR.                        */
 
 struct methoddesc {
 	s2                 paramcount; /* number of parameters                    */
@@ -168,13 +175,17 @@ bool descriptor_pool_add_class(descriptor_pool *pool,utf *name);
        pool.............the descriptor_pool
 	   desc.............the descriptor to add. Maybe a field or method desc.
 
+   OUT:
+       *paramslots......if non-NULL, set to the number of parameters.
+	                    LONG and DOUBLE are counted twice
+
    RETURN VALUE:
        true.............descriptor has been added
 	   false............an exception has been thrown
 
 *******************************************************************************/
 
-bool descriptor_pool_add(descriptor_pool *pool,utf *desc);
+bool descriptor_pool_add(descriptor_pool *pool,utf *desc,int *paramslots);
 
 /* descriptor_pool_create_classrefs ********************************************
  

@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: global.h 2182 2005-04-01 20:56:33Z edwin $
 
 */
 
@@ -109,22 +109,6 @@ typedef struct java_objectarray java_objectarray;
 #endif
 
 
-#define PRIMITIVETYPE_COUNT  9  /* number of primitive types */
-
-/* CAUTION: Don't change the numerical values! These constants are
- * used as indices into the primitive type table.
- */
-#define PRIMITIVETYPE_INT     0
-#define PRIMITIVETYPE_LONG    1
-#define PRIMITIVETYPE_FLOAT   2
-#define PRIMITIVETYPE_DOUBLE  3
-#define PRIMITIVETYPE_BYTE    4
-#define PRIMITIVETYPE_CHAR    5
-#define PRIMITIVETYPE_SHORT   6
-#define PRIMITIVETYPE_BOOLEAN 7
-#define PRIMITIVETYPE_VOID    8
-
-
 #define MAX_ALIGN 8             /* most generic alignment for JavaVM values   */
 
 
@@ -139,6 +123,28 @@ typedef struct java_objectarray java_objectarray;
 
 #define TYPE_VOID    10
 
+/* primitive data types *******************************************************/
+
+/* These values are used in parsed descriptors and in some other places       */
+/* were the different types handled internally as TYPE_INT have to be         */
+/* distinguished.                                                             */
+
+#define PRIMITIVETYPE_COUNT  11  /* number of primitive types (+ dummies)     */
+
+/* CAUTION: Don't change the numerical values! These constants are
+ * used as indices into the primitive type table.
+ */
+#define PRIMITIVETYPE_INT     TYPE_INT
+#define PRIMITIVETYPE_LONG    TYPE_LONG
+#define PRIMITIVETYPE_FLOAT   TYPE_FLOAT
+#define PRIMITIVETYPE_DOUBLE  TYPE_DOUBLE
+#define PRIMITIVETYPE_DUMMY1  TYPE_ADR     /* not used! */
+#define PRIMITIVETYPE_BYTE    5
+#define PRIMITIVETYPE_CHAR    6
+#define PRIMITIVETYPE_SHORT   7
+#define PRIMITIVETYPE_BOOLEAN 8
+#define PRIMITIVETYPE_DUMMY2  9            /* not used! */
+#define PRIMITIVETYPE_VOID    TYPE_VOID
 
 /* Java class file constants **************************************************/
 

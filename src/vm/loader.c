@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2181 2005-04-01 16:53:33Z edwin $
+   $Id: loader.c 2182 2005-04-01 20:56:33Z edwin $
 
 */
 
@@ -87,155 +87,6 @@
 ********************************************************************/
 
 classpath_info *classpath_entries = NULL;
-
-
-/******************* function: checkfielddescriptor ****************************
-
-	checks whether a field-descriptor is valid and aborts otherwise
-	all referenced classes are inserted into the list of unloaded classes
-	
-*******************************************************************************/
-
-static void checkfielddescriptor (char *utf_ptr, char *end_pos)
-{
-	class_from_descriptor(utf_ptr,end_pos,NULL,
-						  CLASSLOAD_NEW
-						  | CLASSLOAD_NULLPRIMITIVE
-						  | CLASSLOAD_NOVOID
-						  | CLASSLOAD_CHECKEND);
-	
-	/* XXX use the following if -noverify */
-#if 0
-	char *tstart;  /* pointer to start of classname */
-	char ch;
-	char *start = utf_ptr;
-
-	switch (*utf_ptr++) {
-	  case 'B':
-	  case 'C':
-	  case 'I':
-	  case 'S':
-	  case 'Z':  
-	  case 'J':  
-	  case 'F':  
-	  case 'D':
-		  /* primitive type */  
-		  break;
-		  
-	  case '[':
-	  case 'L':
-		  if (!class_from_descriptor(start,end_pos,&utf_ptr,CLASSLOAD_NEW))
-			  panic ("Ill formed descriptor");
-		  break;
-		  
-	  default:   
-		  panic ("Ill formed descriptor");
-	}			
-	
-	/* exceeding characters */        	
-	if (utf_ptr!=end_pos) panic ("descriptor has exceeding chars");
-#endif
-}
-
-
-/******************* function checkmethoddescriptor ****************************
-
-    checks whether a method-descriptor is valid and aborts otherwise.
-    All referenced classes are inserted into the list of unloaded classes.
-
-    The number of arguments is returned. A long or double argument is counted
-    as two arguments.
-	
-*******************************************************************************/
-
-static int checkmethoddescriptor(classinfo *c, utf *descriptor)
-{
-	char *utf_ptr;                      /* current position in utf text       */
-	char *end_pos;                      /* points behind utf string           */
-	s4 argcount = 0;                    /* number of arguments                */
-
-	utf_ptr = descriptor->text;
-	end_pos = utf_end(descriptor);
-
-	/* method descriptor must start with parenthesis */
-	if (utf_ptr == end_pos || *utf_ptr++ != '(')
-		panic ("Missing '(' in method descriptor");
-
-    /* check arguments */
-    while (utf_ptr != end_pos && *utf_ptr != ')') {
-		/* We cannot count the this argument here because
-		 * we don't know if the method is static. */
-		if (*utf_ptr == 'J' || *utf_ptr == 'D')
-			argcount+=2;
-		else
-			argcount++;
-		class_from_descriptor(utf_ptr,end_pos,&utf_ptr,
-							  CLASSLOAD_NEW
-							  | CLASSLOAD_NULLPRIMITIVE
-							  | CLASSLOAD_NOVOID);
-	}
-
-	if (utf_ptr == end_pos)
-		panic("Missing ')' in method descriptor");
-
-    utf_ptr++; /* skip ')' */
-
-	class_from_descriptor(utf_ptr,
-						  end_pos,
-						  NULL,
-						  CLASSLOAD_NEW |
-						  CLASSLOAD_NULLPRIMITIVE |
-						  CLASSLOAD_CHECKEND);
-
-	if (argcount > 255) {
-		*exceptionptr =
-			new_classformaterror(c, "Too many arguments in signature");
-
-		return 0;
-	}
-
-	return argcount;
-
-	/* XXX use the following if -noverify */
-#if 0
-	/* check arguments */
-	while ((c = *utf_ptr++) != ')') {
-		start = utf_ptr-1;
-		
-		switch (c) {
-		case 'B':
-		case 'C':
-		case 'I':
-		case 'S':
-		case 'Z':  
-		case 'J':  
-		case 'F':  
-		case 'D':
-			/* primitive type */  
-			break;
-
-		case '[':
-		case 'L':
-			if (!class_from_descriptor(start,end_pos,&utf_ptr,CLASSLOAD_NEW))
-				panic ("Ill formed method descriptor");
-			break;
-			
-		default:   
-			panic ("Ill formed methodtype-descriptor");
-		}
-	}
-
-	/* check returntype */
-	if (*utf_ptr=='V') {
-		/* returntype void */
-		if ((utf_ptr+1) != end_pos) panic ("Method-descriptor has exceeding chars");
-	}
-	else
-		/* treat as field-descriptor */
-		checkfielddescriptor (utf_ptr,end_pos);
-#endif
-}
-
 
 /* loader_init *****************************************************************
 
@@ -1236,7 +1087,7 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 	/* add all descriptors in NameAndTypes to the descriptor_pool */
 	for (nfn=forward_nameandtypes; nfn; nfn=nfn->next) {
 		utf *desc = class_getconstant(c,nfn->sig_index,CONSTANT_Utf8);
-		if (!descriptor_pool_add(descpool,desc))
+		if (!descriptor_pool_add(descpool,desc,NULL))
 			return false;
 	}
 
@@ -1353,17 +1204,6 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 		cptags[forward_fieldmethints->thisindex] = forward_fieldmethints->tag;
 		cpinfos[forward_fieldmethints->thisindex] = fmi;
 	
-		switch (forward_fieldmethints->tag) {
-		case CONSTANT_Fieldref:  /* check validity of descriptor */
-			checkfielddescriptor(fmi->descriptor->text,
-								 utf_end(fmi->descriptor));
-			break;
-		case CONSTANT_InterfaceMethodref:
-		case CONSTANT_Methodref: /* check validity of descriptor */
-			checkmethoddescriptor(c, fmi->descriptor);
-			break;
-		}
-	
 		nff = forward_fieldmethints;
 		forward_fieldmethints = forward_fieldmethints->next;
 		FREE(nff, forward_fieldmethint);
@@ -1408,7 +1248,7 @@ static bool load_field(classbuffer *cb, fieldinfo *f,descriptor_pool *descpool)
 		return false;
 	f->descriptor = u;
 	f->parseddesc = NULL;
-	if (!descriptor_pool_add(descpool,u))
+	if (!descriptor_pool_add(descpool,u,NULL))
 		return false;
 
 	if (opt_verify) {
@@ -1443,9 +1283,6 @@ static bool load_field(classbuffer *cb, fieldinfo *f,descriptor_pool *descpool)
 				return false;
 			}
 		}
-
-		/* check descriptor */
-		checkfielddescriptor(f->descriptor->text, utf_end(f->descriptor));
 	}
 		
 	f->type = jtype = desc_to_type(f->descriptor);    /* data type            */
@@ -1579,7 +1416,7 @@ static bool load_field(classbuffer *cb, fieldinfo *f,descriptor_pool *descpool)
 static bool load_method(classbuffer *cb, methodinfo *m,descriptor_pool *descpool)
 {
 	classinfo *c;
-	s4 argcount;
+	int argcount;
 	s4 i, j;
 	u4 attrnum;
 	u4 codeattrnum;
@@ -1615,7 +1452,7 @@ static bool load_method(classbuffer *cb, methodinfo *m,descriptor_pool *descpool
 		return false;
 	m->descriptor = u;
 	m->parseddesc = NULL;
-	if (!descriptor_pool_add(descpool,u))
+	if (!descriptor_pool_add(descpool,u,&argcount))
 		return false;
 
 	if (opt_verify) {
@@ -1627,8 +1464,6 @@ static bool load_method(classbuffer *cb, methodinfo *m,descriptor_pool *descpool
 			panic("Method with invalid special name");
 	}
 	
-	argcount = checkmethoddescriptor(c, m->descriptor);
-
 	if (!(m->flags & ACC_STATIC))
 		argcount++; /* count the 'this' argument */
 
@@ -3452,186 +3287,6 @@ void class_showmethods (classinfo *c)
 /******************************************************************************/
 /******************* General functions for the class loader *******************/
 /******************************************************************************/
-
-/**************** function: class_primitive_from_sig ***************************
-
-	return the primitive class indicated by the given signature character
-
-    If the descriptor does not indicate a valid primitive type the
-    return value is NULL.
-
-********************************************************************************/
-
-classinfo *class_primitive_from_sig(char sig)
-{
-	switch (sig) {
-	  case 'I': return primitivetype_table[PRIMITIVETYPE_INT].class_primitive;
-	  case 'J': return primitivetype_table[PRIMITIVETYPE_LONG].class_primitive;
-	  case 'F': return primitivetype_table[PRIMITIVETYPE_FLOAT].class_primitive;
-	  case 'D': return primitivetype_table[PRIMITIVETYPE_DOUBLE].class_primitive;
-	  case 'B': return primitivetype_table[PRIMITIVETYPE_BYTE].class_primitive;
-	  case 'C': return primitivetype_table[PRIMITIVETYPE_CHAR].class_primitive;
-	  case 'S': return primitivetype_table[PRIMITIVETYPE_SHORT].class_primitive;
-	  case 'Z': return primitivetype_table[PRIMITIVETYPE_BOOLEAN].class_primitive;
-	  case 'V': return primitivetype_table[PRIMITIVETYPE_VOID].class_primitive;
-	}
-	return NULL;
-}
-
-/****************** function: class_from_descriptor ****************************
-
-    return the class indicated by the given descriptor
-
-    utf_ptr....first character of descriptor
-    end_ptr....first character after the end of the string
-    next.......if non-NULL, *next is set to the first character after
-               the descriptor. (Undefined if an error occurs.)
-
-    mode.......a combination (binary or) of the following flags:
-
-               (Flags marked with * are the default settings.)
-
-               What to do if a reference type descriptor is parsed successfully:
-
-                   CLASSLOAD_SKIP...skip it and return something != NULL
-				 * CLASSLOAD_NEW....get classinfo * via class_new
-                   CLASSLOAD_LOAD...get classinfo * via loader_load
-
-               How to handle primitive types:
-
-			     * CLASSLOAD_PRIMITIVE.......return primitive class (eg. "int")
-                   CLASSLOAD_NULLPRIMITIVE...return NULL for primitive types
-
-               How to handle "V" descriptors:
-
-			     * CLASSLOAD_VOID.....handle it like other primitive types
-                   CLASSLOAD_NOVOID...treat it as an error
-
-               How to deal with extra characters after the end of the
-               descriptor:
-
-			     * CLASSLOAD_NOCHECKEND...ignore (useful for parameter lists)
-                   CLASSLOAD_CHECKEND.....treat them as an error
-
-               How to deal with errors:
-
-			     * CLASSLOAD_PANIC....abort execution with an error message
-                   CLASSLOAD_NOPANIC..return NULL on error
-
-*******************************************************************************/
-
-classinfo *class_from_descriptor(char *utf_ptr, char *end_ptr,
-								 char **next, int mode)
-{
-	char *start = utf_ptr;
-	bool error = false;
-	utf *name;
-
-	SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr, end_ptr, error);
-
-	if (mode & CLASSLOAD_CHECKEND)
-		error |= (utf_ptr != end_ptr);
-	
-	if (!error) {
-		if (next) *next = utf_ptr;
-		
-		switch (*start) {
-		  case 'V':
-			  if (mode & CLASSLOAD_NOVOID)
-				  break;
-			  /* FALLTHROUGH! */
-		  case 'I':
-		  case 'J':
-		  case 'F':
-		  case 'D':
-		  case 'B':
-		  case 'C':
-		  case 'S':
-		  case 'Z':
-			  return (mode & CLASSLOAD_NULLPRIMITIVE)
-				  ? NULL
-				  : class_primitive_from_sig(*start);
-			  
-		  case 'L':
-			  start++;
-			  utf_ptr--;
-			  /* FALLTHROUGH! */
-		  case '[':
-			  if (mode & CLASSLOAD_SKIP) return class_java_lang_Object;
-			  name = utf_new(start, utf_ptr - start);
-			  if (opt_eager) {
-				  classinfo *tc;
-
-				  tc = class_new_intern(name);
-				  load_class_from_classloader(tc, NULL);
-				  list_addfirst(&unlinkedclasses, tc);
-
-				  return tc;
-
-			  } else {
-				  return (mode & CLASSLOAD_LOAD)
-					  ? load_class_from_classloader(class_new(name), NULL) : class_new(name); /* XXX handle errors */
-			  }
-		}
-	}
-
-	/* An error occurred */
-	if (mode & CLASSLOAD_NOPANIC)
-		return NULL;
-
-	log_plain("Invalid descriptor at beginning of '");
-	log_plain_utf(utf_new(start, end_ptr - start));
-	log_plain("'");
-	log_nl();
-						  
-	panic("Invalid descriptor");
-
-	/* keep compiler happy */
-	return NULL;
-}
-
-
-/******************* function: type_from_descriptor ****************************
-
-    return the basic type indicated by the given descriptor
-
-    This function parses a descriptor and returns its basic type as
-    TYPE_INT, TYPE_LONG, TYPE_FLOAT, TYPE_DOUBLE, TYPE_ADDRESS or TYPE_VOID.
-
-    cls...if non-NULL the referenced variable is set to the classinfo *
-          returned by class_from_descriptor.
-
-    For documentation of the arguments utf_ptr, end_ptr, next and mode
-    see class_from_descriptor. The only difference is that
-    type_from_descriptor always uses CLASSLOAD_PANIC.
-
-********************************************************************************/
-
-int type_from_descriptor(classinfo **cls, char *utf_ptr, char *end_ptr,
-						 char **next, int mode)
-{
-	classinfo *mycls;
-	if (!cls) cls = &mycls;
-	*cls = class_from_descriptor(utf_ptr, end_ptr, next, mode & (~CLASSLOAD_NOPANIC));
-	switch (*utf_ptr) {
-	  case 'B': 
-	  case 'C':
-	  case 'I':
-	  case 'S':  
-	  case 'Z':
-		  return TYPE_INT;
-	  case 'D':
-		  return TYPE_DOUBLE;
-	  case 'F':
-		  return TYPE_FLOAT;
-	  case 'J':
-		  return TYPE_LONG;
-	  case 'V':
-		  return TYPE_VOID;
-	}
-	return TYPE_ADDRESS;
-}
-
 
 /******************** Function: loader_close ***********************************
 

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2181 2005-04-01 16:53:33Z edwin $
+   $Id: linker.c 2182 2005-04-01 20:56:33Z edwin $
 
 */
 
@@ -71,10 +71,12 @@ primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
 	{ NULL, NULL, "java/lang/Long",      'J', "long"    , "[J", NULL, NULL },
 	{ NULL, NULL, "java/lang/Float",     'F', "float"   , "[F", NULL, NULL },
 	{ NULL, NULL, "java/lang/Double",    'D', "double"  , "[D", NULL, NULL },
+	{ NULL, NULL, NULL,                   0 , NULL      , NULL, NULL, NULL },
 	{ NULL, NULL, "java/lang/Byte",	     'B', "byte"    , "[B", NULL, NULL },
 	{ NULL, NULL, "java/lang/Character", 'C', "char"    , "[C", NULL, NULL },
 	{ NULL, NULL, "java/lang/Short",     'S', "short"   , "[S", NULL, NULL },
 	{ NULL, NULL, "java/lang/Boolean",   'Z', "boolean" , "[Z", NULL, NULL },
+	{ NULL, NULL, NULL,                   0 , NULL      , NULL, NULL, NULL },
 	{ NULL, NULL, "java/lang/Void",	     'V', "void"    , NULL, NULL, NULL }
 };
 
@@ -203,6 +205,10 @@ static bool link_primitivetype_table(void)
 	s4 i;
 
 	for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
+		/* skip dummies */
+		if (!primitivetype_table[i].name)
+			continue;
+		
 		/* create primitive class */
 		c = class_new_intern(utf_new_char(primitivetype_table[i].name));
 		c->classUsed = NOTUSED; /* not used initially CO-RT */
@@ -977,7 +983,7 @@ static s4 class_highestinterface(classinfo *c)
 
 /***************** Function: print_arraydescriptor ****************************
 
-	Debugging helper for displaying an arraydescriptor
+	Debug helper for displaying an arraydescriptor
 	
 *******************************************************************************/
 

@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2181 2005-04-01 16:53:33Z edwin $
+   $Id: typeinfo.c 2182 2005-04-01 20:56:33Z edwin $
 
 */
 
@@ -1507,6 +1507,7 @@ return_simple:
 
 #ifdef TYPEINFO_DEBUG
 
+#if 0
 static int
 typeinfo_test_compare(classref_or_classinfo *a,classref_or_classinfo *b)
 {
@@ -1515,7 +1516,6 @@ typeinfo_test_compare(classref_or_classinfo *a,classref_or_classinfo *b)
     return +1;
 }
 
-#if 0
 static void
 typeinfo_test_parse(typeinfo *info,char *str)
 {
@@ -1762,7 +1762,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
     if (TYPEINFO_IS_NEWOBJECT(*info)) {
         ins = (instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
         if (ins) {
-            fprintf(file,"%sNEW(%p):",ind,ins);
+            fprintf(file,"%sNEW(%p):",ind,(void*)ins);
 			typeinfo_print_class(file,CLASSREF_OR_CLASSINFO(ins[-1].val.a));
             fprintf(file,"\n");
         }
@@ -1815,7 +1815,6 @@ typeinfo_print_short(FILE *file,typeinfo *info)
     int i;
     instruction *ins;
 	basicblock *bptr;
-	classref_or_classinfo c;
 
 	/*fprintf(file,"<typeinfo %p>",info);*/
 
@@ -1842,7 +1841,7 @@ typeinfo_print_short(FILE *file,typeinfo *info)
         ins = (instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
         if (ins) {
 			/*fprintf(file,"<ins %p>",ins);*/
-            fprintf(file,"NEW(%p):",ins);
+            fprintf(file,"NEW(%p):",(void*)ins);
 			typeinfo_print_class(file,CLASSREF_OR_CLASSINFO(ins[-1].val.a));
         }
         else

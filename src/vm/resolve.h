@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: resolve.h 2182 2005-04-01 20:56:33Z edwin $
 
 */
 
@@ -174,6 +174,31 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 							  resolve_mode_t mode,
 							  bool link,
 							  classinfo **result);
+
+/* resolve_class_from_typedesc *************************************************
+ 
+   Return a classinfo * for the given type descriptor
+  
+   IN:
+       d................type descriptor
+	   link.............if true, guarantee that the returned class, if any,
+	                    has been linked
+   OUT:
+       *result..........set to result of resolution, or to NULL if
+                        the reference has not been resolved
+                        In the case of an exception, *result is
+                        guaranteed to be set to NULL.
+  
+   RETURN VALUE:
+       true.............everything ok 
+       false............an exception has been thrown
+
+   NOTE:
+       This function always resolved eagerly.
+   
+*******************************************************************************/
+
+bool resolve_class_from_typedesc(typedesc *d,bool link,classinfo **result);
 
 /* resolve_field ***************************************************************
  
