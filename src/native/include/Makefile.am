@@ -26,7 +26,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1780 2004-12-21 09:15:09Z twisti $
+## $Id: Makefile.am 1783 2004-12-21 09:37:22Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -41,6 +41,7 @@ CLEANFILES = \
 	gnu_java_awt_peer_gtk_GThreadMutex.h \
 	gnu_java_awt_peer_gtk_GThreadNativeMethodRunner.h \
 	gnu_java_awt_peer_gtk_GdkFontMetrics.h \
+	gnu_java_awt_peer_gtk_GdkFontPeer.h \
 	gnu_java_awt_peer_gtk_GdkGraphics.h \
 	gnu_java_awt_peer_gtk_GdkGraphicsEnvironment.h \
 	gnu_java_awt_peer_gtk_GdkPixbufDecoder.h \
