@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1004 2004-03-30 23:00:14Z twisti $
+   $Id: headers.c 1006 2004-03-31 13:34:45Z twisti $
 
 */
 
@@ -594,7 +594,7 @@ int main(int argc, char **argv)
    
 	char classpath[500] = "";
 	char offsets_filename[1024] = ""; /* phil */
-	u4 heapmaxsize = 500000;
+	u4 heapmaxsize = 1000000;
 	u4 heapstartsize = 100000;
 
 	/*********** options so only headers are generated *******************/
