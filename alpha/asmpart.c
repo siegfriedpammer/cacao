@@ -112,7 +112,7 @@
 
 /*************************** imported functions *******************************/
 
-	.globl compiler_compile
+	.globl jit_compile
 	.globl builtin_monitorexit
 	.globl builtin_throw_exception
 	.globl builtin_trace_exception
@@ -305,7 +305,7 @@ noregchange:
 	stq     ra,13*8(sp)           /* save return address                      */
 
 	ldq     a0,0(v0)              /* pass 'methodinfo' pointer to             */
-	jsr     ra,compiler_compile   /* compiler                                 */
+	jsr     ra,jit_compile        /* jit compiler                             */
 	ldgp    gp,0(ra)
 
 	call_pal PAL_imb              /* synchronise instruction cache            */
@@ -1015,6 +1015,7 @@ initialize_thread_stack:
 /******************* function perform_alpha_threadswitch ***********************
 *                                                                              *
 *   void perform_alpha_threadswitch (u1 **from, u1 **to, u1 **stackTop);       *
+*                                                                              *
 *   performs a threadswitch                                                    *
 *                                                                              *
 *******************************************************************************/
@@ -1065,6 +1066,8 @@ perform_alpha_threadswitch:
 
 
 /********************* function asm_switchstackandcall *************************
+*                                                                              *
+*   void asm_switchstackandcall (void *stack, void *func);                     *
 *                                                                              *
 *   Switches to a new stack, calls a function and switches back.               *
 *       a0      new stack pointer                                              *

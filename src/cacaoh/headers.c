@@ -1,5 +1,4 @@
-/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
-/****************************** headers.c **************************************
+/* headers.c *******************************************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
@@ -62,7 +61,7 @@ void asm_builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o) {
 
 u1 *createcompilerstub (methodinfo *m) {return NULL;}
 u1 *createnativestub (functionptr f, methodinfo *m) {return NULL;}
-u1 *ncreatenativestub (functionptr f, methodinfo *m) {return NULL;}
+u1 *oldcreatenativestub (functionptr f, methodinfo *m) {return NULL;}
 
 void removecompilerstub (u1 *stub) {}
 void removenativestub (u1 *stub) {}
@@ -474,3 +473,15 @@ int main(int argc, char **argv)
 }
 
 
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

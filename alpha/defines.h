@@ -1,4 +1,4 @@
-/*************************** alpha/defines.h ***********************************
+/* alpha/defines.h *************************************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
@@ -6,8 +6,7 @@
 
 	system-dependent definitions
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
+	Authors: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 
 	Last Change: 1997/09/11
 

@@ -29,6 +29,7 @@
 
 #include "../threads/thread.h"                  /* schani */
 #include "../threads/locks.h"
+#include "../sysdep/threads.h"
 
 
 

@@ -58,7 +58,7 @@ LFLAGS = -lm
 #CFLAGS = -O2 -OPT:Olimit=0 $(THREAD_CFLAGS) -DMAP_ANONYMOUS=0
 #LFLAGS = -lm -lelfutil
 
-OBJ = main.o tables.o loader.o compiler.o newcomp.o builtin.o asmpart.o \
+OBJ = main.o tables.o loader.o compiler.o jit.o builtin.o asmpart.o \
 	toolbox/toolbox.a native.o $(THREAD_OBJ) mm/mm.o
 OBJH = headers.o tables.o loader.o builtin.o toolbox/toolbox.a $(THREAD_OBJ) \
 mm/mm.o
@@ -68,7 +68,7 @@ cacao: $(OBJ)
 cacaoh: $(OBJH)
 	$(CC) $(CFLAGS) -o cacaoh $(OBJH) $(LFLAGS)
 
-main.o: main.c global.h tables.h compiler.h ncomp/ncomp.h loader.h \
+main.o: main.c global.h tables.h loader.h jit.h compiler.h \
         asmpart.h builtin.h native.h
 
 headers.o:  headers.c global.h tables.h loader.h
@@ -78,8 +78,8 @@ loader.o:   loader.c global.h loader.h tables.h native.h asmpart.h
 compiler.o: builtin.h compiler.h global.h loader.h tables.h native.h \
             asmpart.h compiler.c comp/*.c sysdep/gen.c sysdep/disass.c
 
-newcomp.o:  builtin.h ncomp/ncomp.h global.h loader.h tables.h native.h \
-            asmpart.h ncomp/ncompdef.h ncomp/*.c sysdep/ngen.h sysdep/ngen.c sysdep/disass.c
+jit.o:  builtin.h jit.h global.h loader.h tables.h native.h asmpart.h \
+            jit/jitdef.h jit/*.c sysdep/ngen.h sysdep/ngen.c sysdep/disass.c
 
 builtin.o: builtin.c global.h loader.h builtin.h tables.h sysdep/native-math.h
 

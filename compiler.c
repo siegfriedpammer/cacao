@@ -32,10 +32,7 @@
 
 /*************************** globale Schalter ********************************/
 
-extern int newcompiler;     		
-methodptr new_compile (methodinfo *m);  /* compile a method with new compiler */
-
-/**************************  no all in newcomp.c
+/**************************  now all in newcomp.c
 
 bool compileverbose = false;
 bool showstack = false;
@@ -181,9 +178,6 @@ methodptr compiler_compile (methodinfo *m)
 	long int starttime=0,stoptime=0;
 	long int dumpsize;
 	
-	if (newcompiler) {
-		return new_compile(m);
-		}
 
 	/*** Wenn schon ein Maschinencode vorliegt, dann sofort beenden ****/
 

@@ -1818,7 +1818,7 @@ void removenativestub (u1 *stub)
 
 #define NATIVESTUBSIZE 11
 
-u1 *createnativestub (functionptr f, methodinfo *m)
+u1 *oldcreatenativestub (functionptr f, methodinfo *m)
 {
 	u8 *s = CNEW (u8, NATIVESTUBSIZE);  /* memory to hold the stub      */
 	s4 *p = (s4*) s;                    /* code generation pointer      */

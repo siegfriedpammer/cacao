@@ -1,5 +1,4 @@
-/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
-/***************************** ncomp/ncomp.c ***********************************
+/* jit.c ***********************************************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
@@ -18,10 +17,10 @@
 
 #include "signal.h"
 #include "global.h"
-#include "ncomp/ncomp.h"
 
-#include "loader.h"
 #include "tables.h"
+#include "loader.h"
+#include "jit.h"
 #include "builtin.h"
 #include "native.h"
 #include "asmpart.h"
@@ -29,7 +28,7 @@
 #include "threads/thread.h"
 
 
-/*************************** global switches **********************************/
+/* global switches ************************************************************/
 
 bool compileverbose = false;
 bool showstack = false;
@@ -104,12 +103,12 @@ static int count_store_depth_init[11] = {0, 0, 0, 0, 0,  0, 0, 0, 0, 0,   0};
 int *count_store_depth = count_store_depth_init;
 
 
-/*********************** include compiler data types **************************/ 
+/* include compiler data types ************************************************/ 
 
-#include "ncomp/ncompdef.h"
+#include "jit/jitdef.h"
 
 
-/*********************** global compiler variables ****************************/
+/* global compiler variables **************************************************/
 
                                 /* data about the currently compiled method   */
 
@@ -147,15 +146,14 @@ static bool isleafmethod;       /* true if a method doesn't call subroutines  */
 static chain *uninitializedclasses;  
                                 
 
-/******************** include compiler subsystems *****************************/
+/* include compiler subsystems ************************************************/
 
 #include "sysdep/ngen.h"        /* code generator header file                 */ 
-#include "ncomp/ntools.c"       /* compiler tool functions                    */ 
-#include "ncomp/mcode.c"        /* code generation tool functions             */ 
 #include "sysdep/disass.c"      /* disassembler (for debug purposes only)     */ 
-#include "ncomp/nparse.c"       /* parsing of JavaVM code                     */ 
-#include "ncomp/nreg.c"         /* register allocation and support routines   */ 
-#include "ncomp/nstack.c"       /* analysing the stack operations             */ 
+#include "jit/mcode.c"          /* code generation tool functions             */ 
+#include "jit/parse.c"          /* parsing of JavaVM code                     */ 
+#include "jit/reg.c"            /* register allocation and support routines   */ 
+#include "jit/stack.c"          /* analysing the stack operations             */ 
 #include "sysdep/ngen.c"        /* code generator                             */ 
 
 
@@ -169,17 +167,29 @@ static void* do_nothing_function()
 }
 
 
-/*******************************************************************************
+#ifdef OLD_COMPILER
+extern bool newcompiler;
+methodptr compiler_compile (methodinfo *m); /* compile method with old compiler*/
+#endif
 
-	new_compile, new version of compiler, translates one method to machine code
+
+/* jit_compile *****************************************************************
+
+	jit_compile, new version of compiler, translates one method to machine code
 
 *******************************************************************************/
 
-methodptr new_compile(methodinfo *m)
+methodptr jit_compile(methodinfo *m)
 {
 	int  dumpsize;
 	long starttime = 0;
 	long stoptime  = 0;
+
+#ifdef OLD_COMPILER
+	if (!newcompiler) {
+		return compiler_compile(m);
+		}
+#endif
 
 	/* if method has been already compiled return immediately */
 
@@ -260,7 +270,7 @@ methodptr new_compile(methodinfo *m)
 	compiler_addinitclass (m->class);
 
 
-	/********************** call the compiler passes **************************/
+	/* call the compiler passes ***********************************************/
 	
 	reg_init();
 	local_init();
@@ -282,7 +292,7 @@ methodptr new_compile(methodinfo *m)
 	gen_mcode();
 
 	
-	/*********** Zwischendarstellungen auf Wunsch ausgeben **********/
+	/* intermediate and assembly code listings ********************************/
 		
 	if (showintermediate)
 		show_icmd_method();
@@ -327,9 +337,9 @@ methodptr new_compile(methodinfo *m)
 }
 
 
-/************ functions for compiler initialisation and finalisation **********/
+/* functions for compiler initialisation and finalisation *********************/
 
-void ncomp_init ()
+void jit_init ()
 {
 	int i;
 
@@ -432,8 +442,22 @@ void ncomp_init ()
 }
 
 
-void ncomp_close()
+void jit_close()
 {
-/*	mcode_close(); */
+	mcode_close();
+	reg_close();
 }
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

@@ -17,13 +17,16 @@
 *******************************************************************************/
 
 #ifndef __global_h_
-#define __global_h_                        /* schani */
+#define __global_h_
 
-#define STATISTICS                         /* andi   */
+#define OLD_COMPILER        /* if enabled makes old compiler available        */
+
+#define STATISTICS          /* if enabled collects program statistics         */
 
 /* JIT_MARKER_SUPPORT is the define used to toggle Just-in-time generated
-   marker functions on and off. */
-#undef JIT_MARKER_SUPPORT                  /* phil   */
+	marker functions on and off.
+*/
+#undef  JIT_MARKER_SUPPORT  /* phil   */
 
 /* standard includes **********************************************************/
 

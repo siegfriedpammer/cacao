@@ -1,5 +1,4 @@
-/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
-/******************************* main.c ****************************************
+/* main.c **********************************************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
@@ -24,9 +23,11 @@
 #include "global.h"
 
 #include "tables.h"
-#include "compiler.h"
-#include "ncomp/ncomp.h"
 #include "loader.h"
+#include "jit.h"
+#ifdef OLD_COMPILER
+#include "compiler.h"
+#endif
 
 #include "asmpart.h"
 #include "builtin.h"
@@ -43,9 +44,9 @@ void **stackbottom = 0;
 #endif
 
 
-/********************* interne Funktion: get_opt *****************************
+/* internal function: get_opt *************************************************
 	
-	liest die n"achste Option aus der Kommandozeile
+	decodes the next command line option
 	
 ******************************************************************************/
 
@@ -54,52 +55,56 @@ void **stackbottom = 0;
 #define OPT_IGNORE 1
 
 #define OPT_CLASSPATH   2
-#define OPT_D           3  
-#define OPT_MS          4  
-#define OPT_MX          5  
-#define OPT_VERBOSE1    6  
-#define OPT_VERBOSE     7  
-#define OPT_VERBOSEGC   8         
-#define OPT_VERBOSECALL 9          
+#define OPT_D           3
+#define OPT_MS          4
+#define OPT_MX          5
+#define OPT_VERBOSE1    6
+#define OPT_VERBOSE     7
+#define OPT_VERBOSEGC   8
+#define OPT_VERBOSECALL 9
 #define OPT_IEEE        10
 #define OPT_SOFTNULL    11
 #define OPT_TIME        12
 #define OPT_STAT        13
-#define OPT_LOG         14  
+#define OPT_LOG         14
 #define OPT_CHECK       15
-#define OPT_LOAD        16  
-#define OPT_METHOD      17  
-#define OPT_SIGNATURE   18  
-#define OPT_SHOW        19 
-#define OPT_ALL         20 
-#define OPT_OLD         21 
+#define OPT_LOAD        16
+#define OPT_METHOD      17
+#define OPT_SIGNATURE   18
+#define OPT_SHOW        19
+#define OPT_ALL         20
+#ifdef OLD_COMPILER
+#define OPT_OLD         21
+#endif
 
-struct { char *name; bool arg; int value; } opts[] = {
-  { "classpath",   true,   OPT_CLASSPATH },
-  { "D",           true,   OPT_D },
-  { "ms",          true,   OPT_MS },
-  { "mx",          true,   OPT_MX },
-  { "noasyncgc",   false,  OPT_IGNORE },  
-  { "noverify",    false,  OPT_IGNORE },  
-  { "oss",         true,   OPT_IGNORE },  
-  { "ss",          true,   OPT_IGNORE },  
-  { "v",           false,  OPT_VERBOSE1 },
-  { "verbose",     false,  OPT_VERBOSE },
-  { "verbosegc",   false,  OPT_VERBOSEGC },
-  { "verbosecall", false,  OPT_VERBOSECALL },
-  { "ieee",        false,  OPT_IEEE },
-  { "softnull",    false,  OPT_SOFTNULL },
-  { "time",        false,  OPT_TIME },
-  { "stat",        false,  OPT_STAT },
-  { "log",         true,   OPT_LOG },
-  { "c",           true,   OPT_CHECK },
-  { "l",           false,  OPT_LOAD },
-  { "m",           true,   OPT_METHOD },
-  { "sig",         true,   OPT_SIGNATURE },
-  { "s",           true,   OPT_SHOW },          
-  { "all",         false,  OPT_ALL },          
-  { "old",         false,  OPT_OLD },          
-  { NULL,  false, 0 }
+struct {char *name; bool arg; int value;} opts[] = {
+  {"classpath",   true,   OPT_CLASSPATH},
+  {"D",           true,   OPT_D},
+  {"ms",          true,   OPT_MS},
+  {"mx",          true,   OPT_MX},
+  {"noasyncgc",   false,  OPT_IGNORE},
+  {"noverify",    false,  OPT_IGNORE},
+  {"oss",         true,   OPT_IGNORE},
+  {"ss",          true,   OPT_IGNORE},
+  {"v",           false,  OPT_VERBOSE1},
+  {"verbose",     false,  OPT_VERBOSE},
+  {"verbosegc",   false,  OPT_VERBOSEGC},
+  {"verbosecall", false,  OPT_VERBOSECALL},
+  {"ieee",        false,  OPT_IEEE},
+  {"softnull",    false,  OPT_SOFTNULL},
+  {"time",        false,  OPT_TIME},
+  {"stat",        false,  OPT_STAT},
+  {"log",         true,   OPT_LOG},
+  {"c",           true,   OPT_CHECK},
+  {"l",           false,  OPT_LOAD},
+  {"m",           true,   OPT_METHOD},
+  {"sig",         true,   OPT_SIGNATURE},
+  {"s",           true,   OPT_SHOW},
+  {"all",         false,  OPT_ALL},
+#ifdef OLD_COMPILER
+  {"old",         false,  OPT_OLD},
+#endif
+  {NULL,  false, 0}
 };
 
 static int opt_ind = 1;
@@ -178,15 +183,20 @@ static void print_usage()
 	printf ("                   s(ync) ...... don't check for synchronization\n");
 	printf ("          -l ................... don't start the class after loading\n");
 	printf ("          -all ................. compile all methods, no execution\n");
+#ifdef OLD_COMPILER
 	printf ("          -old ................. use old JIT compiler\n");
+#endif
 	printf ("          -m ................... compile only a specific method\n");
 	printf ("          -sig ................. specify signature for a specific method\n");
 	printf ("          -s(how)m(ethods) ..... show all methods&fields of a class\n");
-	printf ("                 c(onstants) ... show the constant pool\n");
 	printf ("                 a(ssembler) ... show disassembled listing\n");
+	printf ("                 c(onstants) ... show the constant pool\n");
 	printf ("                 d(atasegment).. show data segment listing\n");
-	printf ("                 s(tack) ....... show stack for every javaVM-command\n");
 	printf ("                 i(ntermediate). show intermediate representation\n");
+	printf ("                 m(ethods)...... show class fields and methods\n");
+#ifdef OLD_COMPILER
+	printf ("                 s(tack) ....... show stack for every javaVM-command\n");
+#endif
 	printf ("                 u(nicode) ..... show the unicode - hash\n");
 }   
 
@@ -397,10 +407,14 @@ void class_compile_methods ()
 		for (i = 0; i < c -> methodscount; i++) {
 			m = &(c->methods[i]);
 			if (m->jcode) {
+#ifdef OLD_COMPILER
 				if (newcompiler)
-					(void) new_compile(m);
+#endif
+					(void) jit_compile(m);
+#ifdef OLD_COMPILER
 				else
 					(void) compiler_compile(m);
+#endif
 				}
 			}
 		c = list_next (&linkedclasses, c);
@@ -572,19 +586,24 @@ int main(int argc, char **argv)
 				makeinitializations = false;
          		break;
          		
+#ifdef OLD_COMPILER
  			case OPT_OLD:
 				newcompiler = false;     		
 				checknull = true;
          		break;
+#endif
          		
         	case OPT_SHOW:       /* Anzeigeoptionen */
          		for (j=0; j<strlen(opt_arg); j++) {		
          			switch (opt_arg[j]) {
-         			case 'm':  showmethods=true; break;
-         			case 'c':  showconstantpool=true; break;
          			case 'a':  showdisassemble=true; compileverbose=true; break;
-         			case 's':  showstack=true; compileverbose=true; break;
+         			case 'c':  showconstantpool=true; break;
+         			case 'd':  showddatasegment=true; break;
          			case 'i':  showintermediate=true; compileverbose=true; break;
+         			case 'm':  showmethods=true; break;
+#ifdef OLD_COMPILER
+         			case 's':  showstack=true; compileverbose=true; break;
+#endif
          			case 'u':  showunicode=true; break;
          			default:   print_usage();
          		    	       exit(10);
@@ -621,8 +640,10 @@ int main(int argc, char **argv)
 	unicode_init();
 	heap_init(heapsize, heapstartsize, &dummy);
 	loader_init();
+#ifdef OLD_COMPILER
 	compiler_init();
-	ncomp_init();
+#endif
+	jit_init();
 
 	native_loadclasses ();
 
@@ -695,10 +716,14 @@ int main(int argc, char **argv)
 			m = class_findmethod(topclass, 
 					unicode_new_char(specificmethodname), NULL);
 		if (!m) panic ("Specific method not found");
+#ifdef OLD_COMPILER
 		if (newcompiler)
-			(void) new_compile(m);
+#endif
+			(void) jit_compile(m);
+#ifdef OLD_COMPILER
 		else
 			(void) compiler_compile(m);
+#endif
 		}
 
 	/********************* Debug-Tabellen ausgeben ************************/
@@ -714,7 +739,9 @@ int main(int argc, char **argv)
 	heap_close ();				/* must be called before compiler_close and
 								   loader_close because finalization occurs
 								   here */
+#ifdef OLD_COMPILER
 	compiler_close ();
+#endif
 	loader_close ();
 	unicode_close ( literalstring_free );
 
@@ -759,3 +786,17 @@ void cacao_shutdown(s4 status)
 		
 	exit(status);
 }
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

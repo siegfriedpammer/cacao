@@ -1,4 +1,4 @@
-/************************* alpha/native-math.h *********************************
+/* alpha/native-math.h *********************************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 

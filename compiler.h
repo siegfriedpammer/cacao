@@ -78,10 +78,12 @@ methodptr compiler_compile (methodinfo *m);
 void compiler_init ();
 void compiler_close ();
 
+u1 *oldcreatenativestub (functionptr f, methodinfo *m);
+
+/*
 u1 *createcompilerstub (methodinfo *m);
-u1 *createnativestub (functionptr f, methodinfo *m);
-u1 *ncreatenativestub (functionptr f, methodinfo *m);
 
 void removecompilerstub (u1 *stub);
 void removenativestub (u1 *stub);
+*/
 

@@ -214,7 +214,7 @@ static struct { u2 op, fun; char *name; }  op3s[] = {
 };
 
 
-/* function disassemble ********************************************************
+/* function disassinstr ********************************************************
 
 	outputs a disassembler listing of one machine code instruction on 'stdout'
 	c:   instructions machine code
@@ -222,7 +222,7 @@ static struct { u2 op, fun; char *name; }  op3s[] = {
 
 *******************************************************************************/
 
-static void disasscmd (int c, int pos)
+static void disassinstr(int c, int pos)
 {
 	int op;                     /* 6 bit op code                              */
 	int opfun;                  /* 7 bit function code                        */
@@ -328,13 +328,13 @@ static void disasscmd (int c, int pos)
 
 *******************************************************************************/
 
-static void disassemble (int *code, int len)
+static void disassemble(int *code, int len)
 {
 	int p;
 
 	printf ("  --- disassembler listing ---\n");	
 	for (p = 0; p < len; p += 4, code++)
-		disasscmd (*code, p); 
+		disassinstr(*code, p); 
 }
 
 

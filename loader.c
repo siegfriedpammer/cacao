@@ -22,7 +22,10 @@
 #include "tables.h"
 #include "native.h"
 #include "builtin.h"
+#include "jit.h"
+#ifdef OLD_COMPILER
 #include "compiler.h"
+#endif
 #include "asmpart.h"
 
 #include "threads/thread.h"                        /* schani */
@@ -548,10 +551,14 @@ static void method_load (methodinfo *m, classinfo *c)
 		functionptr f = native_findfunction 
 	 	       (c->name, m->name, m->descriptor, (m->flags & ACC_STATIC) != 0);
 		if (f) {
+#ifdef OLD_COMPILER
 		if (newcompiler)
-			m -> stubroutine = ncreatenativestub (f, m);
-		else
+#endif
 			m -> stubroutine = createnativestub (f, m);
+#ifdef OLD_COMPILER
+		else
+			m -> stubroutine = oldcreatenativestub (f, m);
+#endif
 			}
 		}
 	
