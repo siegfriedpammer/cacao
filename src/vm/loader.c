@@ -29,7 +29,7 @@
             Roman Obermaiser
             Mark Probst
 
-   $Id: loader.c 673 2003-11-23 22:14:35Z jowenn $
+   $Id: loader.c 680 2003-11-24 23:12:29Z twisti $
 
 */
 
@@ -104,7 +104,9 @@ static utf *utf_initialize;
 static utf *utf_initializedesc;
 
 
-static unzFile uf=0;
+#ifdef USE_ZLIB
+static unzFile uf = 0;
+#endif
 
 
 utf* clinit_desc(){
@@ -218,14 +220,13 @@ inline u4 suck_u4()
 
 
 /* get u8 from classfile data */
-
-static u8 suck_u8 ()
+static u8 suck_u8()
 {
 #if U8_AVAILABLE
-	u8 lo,hi;
+	u8 lo, hi;
 	hi = suck_u4();
 	lo = suck_u4();
-	return (hi<<32) + lo;
+	return (hi << 32) + lo;
 #else
 	u8 v;
 	v.high = suck_u4();
@@ -234,19 +235,19 @@ static u8 suck_u8 ()
 #endif
 }
 
-/* get float from classfile data */
 
-static float suck_float ()
+/* get float from classfile data */
+static float suck_float()
 {
 	float f;
 
 #if !WORDS_BIGENDIAN 
 		u1 buffer[4];
 		u2 i;
-		for (i=0; i<4; i++) buffer[3-i] = suck_u1 ();
-		memcpy ( (u1*) (&f), buffer, 4);
+		for (i = 0; i < 4; i++) buffer[3 - i] = suck_u1();
+		memcpy((u1*) (&f), buffer, 4);
 #else 
-		suck_nbytes ( (u1*) (&f), 4 );
+		suck_nbytes((u1*) (&f), 4);
 #endif
 
 	PANICIF (sizeof(float) != 4, "Incompatible float-format");
@@ -254,18 +255,19 @@ static float suck_float ()
 	return f;
 }
 
+
 /* get double from classfile data */
-static double suck_double ()
+static double suck_double()
 {
 	double d;
 
 #if !WORDS_BIGENDIAN 
 		u1 buffer[8];
 		u2 i;	
-		for (i=0; i<8; i++) buffer[7-i] = suck_u1 ();
-		memcpy ( (u1*) (&d), buffer, 8);
+		for (i = 0; i < 8; i++) buffer[7 - i] = suck_u1 ();
+		memcpy((u1*) (&d), buffer, 8);
 #else 
-		suck_nbytes ( (u1*) (&d), 8 );
+		suck_nbytes((u1*) (&d), 8);
 #endif
 
 	PANICIF (sizeof(double) != 8, "Incompatible double-format" );
@@ -273,13 +275,14 @@ static double suck_double ()
 	return d;
 }
 
+
 /************************** function suck_init *********************************
 
 	called once at startup, sets the searchpath for the classfiles
 
 *******************************************************************************/
 
-void suck_init (char *cpath)
+void suck_init(char *cpath)
 {
 	classpath   = cpath;
 	classbuffer = NULL;
@@ -295,8 +298,8 @@ void suck_init (char *cpath)
 	
 *******************************************************************************/
 
-
-bool suck_start (utf *classname) {
+bool suck_start(utf *classname)
+{
 
 #define MAXFILENAME 1000 	        /* maximum length of a filename           */
 	
@@ -323,28 +326,27 @@ bool suck_start (utf *classname) {
  		/* extract directory from searchpath */
 
 		filenamelen = 0;
-		while ((*pathpos) && (*pathpos!=':')) {
-		    PANICIF (filenamelen >= MAXFILENAME, "Filename too long") ;
+		while ((*pathpos) && (*pathpos != ':')) {
+		    PANICIF (filenamelen >= MAXFILENAME, "Filename too long");
 			filename[filenamelen++] = *(pathpos++);
 			}
 
-		isZip=0;
-		if (filenamelen>4) {
-			if ( ((filename[filenamelen-1]=='p') || (filename[filenamelen-1]=='P')) &
-			     ((filename[filenamelen-2]=='i') || (filename[filenamelen-1]=='I')) &
-                             ((filename[filenamelen-3]=='z') || (filename[filenamelen-1]=='Z')) ) {
-				isZip=1;
+		isZip = 0;
+		if (filenamelen > 4) {
+			if ( ((filename[filenamelen - 1] == 'p') || (filename[filenamelen - 1] == 'P')) &
+			     ((filename[filenamelen - 2] == 'i') || (filename[filenamelen - 2] == 'I')) &
+				 ((filename[filenamelen - 3] == 'z') || (filename[filenamelen - 3] == 'Z')) ) {
+				isZip = 1;
 			}
 		}
 
 		if (isZip) {
 #ifdef USE_ZLIB
-
-			filename[filenamelen++]='\0';
-			if (uf==0) uf=unzOpen(filename);
-			if (uf!=0) {
+			filename[filenamelen++] = '\0';
+			if (uf == 0) uf = unzOpen(filename);
+			if (uf != 0) {
 				utf_ptr = classname->text;
-				filenamelen=0;
+				filenamelen = 0;
 				while (utf_ptr < utf_end(classname)) {
 					PANICIF (filenamelen >= MAXFILENAME, "Filename too long");
 					c = *utf_ptr++;
@@ -352,27 +354,27 @@ bool suck_start (utf *classname) {
 						c = '?'; 
 					filename[filenamelen++] = c;	
 				}
-				strcpy (filename+filenamelen, ".class");
-				if (cacao_locate(uf,classname)==UNZ_OK) {
+				strcpy(filename + filenamelen, ".class");
+				if (cacao_locate(uf,classname) == UNZ_OK) {
 					unz_file_info file_info;
 					log_text("Class found in zip file");
-				        if (unzGetCurrentFileInfo(uf,&file_info,filename,
-						sizeof(filename),NULL,0,NULL,0) ==UNZ_OK) {
-						if (unzOpenCurrentFile(uf)==UNZ_OK) {
+				        if (unzGetCurrentFileInfo(uf, &file_info, filename,
+												  sizeof(filename), NULL, 0, NULL, 0) == UNZ_OK) {
+						if (unzOpenCurrentFile(uf) == UNZ_OK) {
 							classbuffer_size = file_info.uncompressed_size;				
 							classbuffer      = MNEW(u1, classbuffer_size);
-							classbuf_pos     = classbuffer-1;
+							classbuf_pos     = classbuffer - 1;
 							/*printf("classfile size: %d\n",file_info.uncompressed_size);*/
-							if (unzReadCurrentFile(uf,classbuffer,classbuffer_size)==classbuffer_size) {
+							if (unzReadCurrentFile(uf, classbuffer, classbuffer_size) == classbuffer_size) {
 								unzCloseCurrentFile(uf);
 								return true;
 							} else {
-								MFREE(classbuffer,u1,classbuffer_size);
+								MFREE(classbuffer, u1, classbuffer_size);
 								log_text("Error while unzipping");
 							}
 						} else log_text("Error while opening file in archive");
 					} else log_text("Error while retrieving fileinfo");
-				}; 
+				}
 				unzCloseCurrentFile(uf);
 
 			}
@@ -393,19 +395,19 @@ bool suck_start (utf *classname) {
       	
 			/* add suffix */
 
-			strcpy (filename+filenamelen, ".class");
+			strcpy(filename + filenamelen, ".class");
 
 			classfile = fopen(filename, "r");
 			if (classfile) {                                       /* file exists */
 
 				/* determine size of classfile */
 
-				err = stat (filename, &buffer);
+				err = stat(filename, &buffer);
 
 				if (!err) {                                /* read classfile data */				
 					classbuffer_size = buffer.st_size;				
 					classbuffer      = MNEW(u1, classbuffer_size);
-					classbuf_pos     = classbuffer-1;
+					classbuf_pos     = classbuffer - 1;
 					fread(classbuffer, 1, classbuffer_size, classfile);
 					fclose(classfile);
 					return true;
@@ -414,7 +416,7 @@ bool suck_start (utf *classname) {
 		}
 	}
 	if (verbose) {
-		sprintf (logtext, "Warning: Can not open class file '%s'", filename);
+		sprintf(logtext, "Warning: Can not open class file '%s'", filename);
 		dolog();
 	}
 
@@ -430,16 +432,16 @@ bool suck_start (utf *classname) {
 	
 *******************************************************************************/
 
-void suck_stop () {
-
+void suck_stop()
+{
 	/* determine amount of classdata not retrieved by suck-operations         */
 
-	int classdata_left = ((classbuffer+classbuffer_size)-classbuf_pos-1);
+	int classdata_left = ((classbuffer + classbuffer_size) - classbuf_pos - 1);
 
-	if (classdata_left > 0) {        	
+	if (classdata_left > 0) {
 		/* surplus */        	
-		sprintf (logtext,"There are %d access bytes at end of classfile",
-	                 classdata_left);
+		sprintf(logtext, "There are %d access bytes at end of classfile",
+				classdata_left);
 		dolog();
 	}
 
@@ -448,6 +450,7 @@ void suck_stop () {
 	MFREE(classbuffer, u1, classbuffer_size);
 	classbuffer = NULL;
 }
+
 
 /******************************************************************************/
 /******************* Some support functions ***********************************/
@@ -1402,7 +1405,7 @@ static void class_loadcpool (classinfo *c)
 	
 *******************************************************************************/
 
-static int class_load (classinfo *c)
+static int class_load(classinfo *c)
 {
 	u4 i;
 	u4 mi,ma;
@@ -1413,16 +1416,15 @@ static int class_load (classinfo *c)
 
 	/* output for debugging purposes */
 	if (loadverbose) {		
-
-		sprintf (logtext, "Loading class: ");
-		utf_sprint (logtext+strlen(logtext), c->name );
+		sprintf(logtext, "Loading class: ");
+		utf_sprint(logtext+strlen(logtext), c->name);
 		dolog();
-		}
+	}
 	
 	/* load classdata, throw exception on error */
 
-	if (!suck_start (c->name)) {
-		throw_classnotfoundexception2(c->name);		   
+	if (!suck_start(c->name)) {
+		throw_classnotfoundexception2(c->name);
 		return false;
 	}
 	
