@@ -240,8 +240,6 @@ static void setthreadobject(threadobject *thread)
 void
 initThreadsEarly()
 {
-	struct sigaction sa;
-
 	/* Allocate something so the garbage collector's signal handlers are  */
 	/* installed. */
 	heap_allocate(1, false, NULL);
@@ -619,7 +617,6 @@ void monitorEnter(threadobject *t, java_objectheader *o)
 static void monitorEnterSlow(threadobject *t, java_objectheader *o, long r)
 {
 	monitorLockRecord *lr;
-	monitorLockRecord *firstWaiterLR;
 	while (lockState(r) == LOCKED) {
 		pthread_mutex_lock(&t->ee.monitorLockMutex);
 		releaseMetaLock(t, o, r);

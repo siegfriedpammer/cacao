@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 988 2004-03-29 07:13:42Z stefan $
+   $Id: codegen.c 1016 2004-04-08 15:09:05Z stefan $
 
 */
 
@@ -4840,7 +4840,7 @@ void removecompilerstub(u1 *stub)
 #define NATIVESTUBSIZE 340
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-static java_objectheader *(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr;
+static java_objectheader **(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr;
 static void (*callresetexceptionptr)() = builtin_reset_exceptionptr;
 #endif
 
@@ -5073,7 +5073,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	i386_push_reg(REG_RESULT);
 	i386_push_reg(REG_RESULT2);
-	i386_call_mem(&callgetexceptionptrptr);
+	i386_call_mem((s4) &callgetexceptionptrptr);
 	i386_mov_membase_reg(REG_RESULT, 0, REG_ITMP2);
 	i386_test_reg_reg(REG_ITMP2, REG_ITMP2);
 	i386_pop_reg(REG_RESULT2);
@@ -5089,7 +5089,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	i386_push_reg(REG_ITMP2);
-	i386_call_mem(&callresetexceptionptr);
+	i386_call_mem((s4) &callresetexceptionptr);
 	i386_pop_reg(REG_ITMP1_XPTR);
 #else
 	i386_mov_reg_reg(REG_ITMP2, REG_ITMP1_XPTR);

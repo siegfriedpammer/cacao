@@ -38,6 +38,8 @@
 #define THREAD_FLAGS_USER_SUSPEND       2  /* Flag explicit suspend() call */
 #define	THREAD_FLAGS_KILLED		4
 
+void startThread (thread*);
+
 #if !defined(NATIVE_THREADS)
 
 #define MAXTHREADS              256          /* schani */
@@ -102,7 +104,6 @@ typedef struct _thread {
 
 void initThreads (u1 *stackbottom);
 void clear_thread_flags (void);
-void startThread (thread*);
 void resumeThread (thread*);
 void iresumeThread (thread*);
 void suspendThread (thread*);
