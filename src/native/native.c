@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1546 2004-11-18 12:25:04Z twisti $
+   $Id: native.c 1567 2004-11-23 16:01:51Z twisti $
 
 */
 
@@ -62,8 +62,8 @@
 #include "threads/thread.h"
 #include "threads/threadio.h"
 #include "threads/locks.h"
-#include "nat/java_lang_VMClass.h"
 #include "nat/java_lang_Throwable.h"
+
 
 /* Include files for IO functions */
 
