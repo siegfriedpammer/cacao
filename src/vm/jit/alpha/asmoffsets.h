@@ -1,4 +1,4 @@
-/* vm/jit/alpha/asmoffsets.h - machine code generator for alpha
+/* vm/jit/alpha/asmoffsets.h - data segment offsets for Alpha
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,13 +27,15 @@
 
    Authors: Joseph Wenninger
 
-   $Id: asmoffsets.h 1696 2004-12-06 12:32:24Z twisti $
+   $Id: asmoffsets.h 1700 2004-12-06 14:31:01Z twisti $
 
 */
 
 
-#ifndef _ASM_OFFSETS_H_
-#define _ASMOFFSETS_H_
+#ifndef _ASMOFFSETS_H
+#define _ASMOFFSETS_H
+
+/* data segment offsets *******************************************************/
 
 #define MethodPointer           -8
 #define FrameSize               -12
@@ -62,7 +64,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: asm
+ * mode: c
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
