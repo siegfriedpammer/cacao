@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 696 2003-12-06 20:10:05Z edwin $
+   $Id: loader.c 719 2003-12-08 14:26:05Z edwin $
 
 */
 
@@ -128,6 +128,7 @@ classinfo *class_java_io_Serializable;
 /* Pseudo classes for the typechecker */
 classinfo *pseudo_class_Arraystub = NULL;
 classinfo *pseudo_class_Null = NULL;
+classinfo *pseudo_class_New = NULL;
 vftbl *pseudo_class_Arraystub_vftbl = NULL;
 
 /* stefan */
@@ -2940,6 +2941,16 @@ create_pseudo_classes()
 
     list_addlast(&unlinkedclasses,pseudo_class_Null);
     class_link(pseudo_class_Null);	
+
+    /* pseudo class representing new uninitialized objects */
+    
+    pseudo_class_New = class_new( utf_new_char("$NEW$") );
+    list_remove(&unloadedclasses,pseudo_class_New);
+
+    pseudo_class_New->super = class_java_lang_Object;
+
+    list_addlast(&unlinkedclasses,pseudo_class_New);
+    class_link(pseudo_class_New);	
 }
 
 /********************** Function: loader_init **********************************

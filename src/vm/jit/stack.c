@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 696 2003-12-06 20:10:05Z edwin $
+   $Id: stack.c 719 2003-12-08 14:26:05Z edwin $
 
 */
 
@@ -1505,6 +1505,7 @@ void analyse_stack()
 							i = iptr->op1;
 							if (i > arguments_num)
 								arguments_num = i;
+							/* XXX verify that there are enough arguments on the stack */
 #if defined(__X86_64__)
 							{
 								int iarg = 0;

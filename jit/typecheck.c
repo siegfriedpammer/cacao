@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 701 2003-12-07 16:26:58Z edwin $
+   $Id: typecheck.c 719 2003-12-08 14:26:05Z edwin $
 
 */
 
@@ -136,18 +136,18 @@ typeinfo_print_stack(FILE *file,stackptr stack)
 static
 void
 typeinfo_print_block(FILE *file,stackptr instack,
-                     u1 *vtype,typeinfo *vinfo,u1 *touched)
+                     int vnum,u1 *vtype,typeinfo *vinfo,u1 *touched)
 {
     fprintf(file,"Stack: ");
     typeinfo_print_stack(file,instack);
     fprintf(file," Locals:");
-    typeinfo_print_locals(file,vtype,vinfo,touched,maxlocals);
+    typeinfo_print_locals(file,vtype,vinfo,touched,vnum);
 }
 
 
 static
 void
-typeinfo_print_blocks(FILE *file,u1 *vtype,typeinfo *vinfo)
+typeinfo_print_blocks(FILE *file,int vnum,u1 *vtype,typeinfo *vinfo)
 {
     int bi;
     /*    int j;*/
@@ -155,7 +155,7 @@ typeinfo_print_blocks(FILE *file,u1 *vtype,typeinfo *vinfo)
     for (bi=0; bi<block_count; ++bi) {
         fprintf(file,"%04d: (%3d) ",bi,block[bi].flags);
         typeinfo_print_block(file,block[bi].instack,
-                             vtype+maxlocals*bi,vinfo+maxlocals*bi,NULL);
+                             vnum,vtype+vnum*bi,vinfo+vnum*bi,NULL);
         fprintf(file,"\n");
 
 /*         for (j=0; j<block[bi].icount; ++j) { */
@@ -223,14 +223,14 @@ struct jsr_record {
  *     vinfo......current local variable typeinfos
  *     ttype......local variable types of target block
  *     tinfo......local variable typeinfos of target block
- *     maxlocals..number of local variables
+ *     numlocals..number of local variables
  * Used:
  *     macro_i
  */
 #define TYPECHECK_COPYVARS                                      \
     do {                                                        \
     LOG("TYPECHECK_COPYVARS");                                  \
-    for (macro_i=0; macro_i<maxlocals; ++macro_i) {             \
+    for (macro_i=0; macro_i<numlocals; ++macro_i) {             \
         if ((ttype[macro_i] = vtype[macro_i]) == TYPE_ADR)      \
             TYPEINFO_CLONE(vinfo[macro_i],tinfo[macro_i]);      \
     } } while(0)
@@ -242,7 +242,7 @@ struct jsr_record {
  *     vinfo......current local variable typeinfos
  *     ttype......local variable types of target block
  *     tinfo......local variable typeinfos of target block
- *     maxlocals..number of local variables
+ *     numlocals..number of local variables
  * Ouput:
  *     changed....set to true if any typeinfo has changed
  * Used:
@@ -251,7 +251,7 @@ struct jsr_record {
 #define TYPECHECK_MERGEVARS                                             \
     do {                                                                \
     LOG("TYPECHECK_MERGEVARS");                                         \
-    for (macro_i=0; macro_i<maxlocals; ++macro_i) {                     \
+    for (macro_i=0; macro_i<numlocals; ++macro_i) {                     \
         if ((ttype[macro_i] != TYPE_VOID) && (vtype[macro_i] != ttype[macro_i])) { \
             LOG3("var %d: type %d + type %d = void",macro_i,ttype[macro_i],vtype[macro_i]); \
             ttype[macro_i] = TYPE_VOID;                                 \
@@ -281,7 +281,7 @@ struct jsr_record {
  * Ouput:
  *     tbptr......target block
  *     changed....set to true if any typeinfo has changed
- *     maxlocals..number of local variables
+ *     numlocals..number of local variables
  *     touched....current touched flags of local variables
  * Used:
  *     macro_i, jsrtemp, jsrtemp2
@@ -301,7 +301,7 @@ struct jsr_record {
     }                                                                   \
     jsrtemp = jsrbuffer[tbptr-block];                                   \
     if (jsrtemp)                                                        \
-        for (macro_i=0; macro_i<maxlocals; ++macro_i) {                 \
+        for (macro_i=0; macro_i<numlocals; ++macro_i) {                 \
             jsrtemp->touched[i] |= touched[i];                          \
     } } while (0)
 
@@ -393,7 +393,7 @@ struct jsr_record {
  * Input:
  *     jsrchain...current JSR target chain
  *     tbptr.....the basic block targeted by the JSR
- *     maxlocals..number of local variables
+ *     numlocals..number of local variables
  *     jsrbuffer..JSR target chain for each basic block
  * Used:
  *     jsrtemp
@@ -401,11 +401,11 @@ struct jsr_record {
 #define TYPECHECK_ADD_JSR                                               \
     do {                                                                \
         LOG1("adding JSR to block %04d",(tbptr)-block);                 \
-    jsrtemp = (jsr_record *) dump_alloc(sizeof(jsr_record)+(maxlocals-1)*sizeof(u1)); \
+    jsrtemp = (jsr_record *) dump_alloc(sizeof(jsr_record)+(numlocals-1)*sizeof(u1)); \
     jsrtemp->target = (tbptr);                                          \
     jsrtemp->next = jsrchain;                                           \
     jsrtemp->sbr_touched = NULL;                                        \
-    memset(&jsrtemp->touched,TOUCHED_NO,sizeof(u1)*maxlocals);          \
+    memset(&jsrtemp->touched,TOUCHED_NO,sizeof(u1)*numlocals);          \
     jsrbuffer[tbptr-block] = jsrtemp;                                   \
     } while (0)
 
@@ -414,7 +414,7 @@ struct jsr_record {
  * Input:
  *     chain......current JSR target chain
  *     tbptr.....the basic block targeted by the JSR
- *     maxlocals..number of local variables
+ *     numlocals..number of local variables
  *     jsrbuffer..JSR target chain for each basic block
  *     touched....current touched flags of local variables
  * Used:
@@ -424,16 +424,42 @@ struct jsr_record {
     do {                                                                \
         LOG("TYPECHECK_COPYJSR");                                       \
         if (chain) {                                                    \
-            jsrtemp = (jsr_record *) dump_alloc(sizeof(jsr_record)+(maxlocals-1)*sizeof(u1)); \
+            jsrtemp = (jsr_record *) dump_alloc(sizeof(jsr_record)+(numlocals-1)*sizeof(u1)); \
             jsrtemp->target = (chain)->target;                          \
             jsrtemp->next = (chain)->next;                              \
             jsrtemp->sbr_touched = NULL;                                \
-            memcpy(&jsrtemp->touched,touched,sizeof(u1)*maxlocals);     \
+            memcpy(&jsrtemp->touched,touched,sizeof(u1)*numlocals);     \
             jsrbuffer[tbptr-block] = jsrtemp;                           \
         }                                                               \
         else                                                            \
             jsrbuffer[tbptr-block] = NULL;                              \
     } while (0)
+
+/* TYPECHECK_BRANCH_BACKWARDS: executed when control flow moves
+ *     backwards. Checks if there are uninitialized objects on the
+ *     stack or in local variables.
+ * Input:
+ *     dst........current output stack pointer (not needed for REACH_THROW)
+ *     vtype......current local variable types
+ *     vinfo......current local variable typeinfos
+ * Used:
+ *     srcstack, macro_i
+ */
+#define TYPECHECK_BRANCH_BACKWARDS                                      \
+    do {                                                                \
+        LOG("BACKWARDS!");                                              \
+        srcstack = dst;                                                 \
+        while (srcstack) {                                              \
+            if (srcstack->type == TYPE_ADR &&                           \
+                TYPEINFO_IS_NEWOBJECT(srcstack->typeinfo))              \
+                panic("Branching backwards with uninitialized object on stack"); \
+            srcstack = srcstack->prev;                                  \
+        }                                                               \
+        for (macro_i=0; macro_i<numlocals; ++macro_i)                   \
+            if (vtype[macro_i] == TYPE_ADR &&                           \
+                TYPEINFO_IS_NEWOBJECT(vinfo[macro_i]))                  \
+                panic("Branching backwards with uninitialized object in local variable"); \
+    } while(0)
 
 /* TYPECHECK_REACH: executed, when the target block (tbptr) can be reached
  *     from the current block (bptr). The types of local variables and
@@ -442,6 +468,7 @@ struct jsr_record {
  *     bptr.......current block
  *     tbptr......target block
  *     dst........current output stack pointer (not needed for REACH_THROW)
+ *     numlocals..number of local variables
  *     vtype......current local variable types
  *     vinfo......current local variable typeinfos
  *     jsrchain...current JSR target chain
@@ -457,10 +484,12 @@ struct jsr_record {
 #define TYPECHECK_REACH(way)                                            \
     do {                                                                \
     LOG2("reaching block %04d (%d)",tbptr-block,way);                   \
+    if (tbptr <= bptr && way != REACH_THROW)                            \
+        TYPECHECK_BRANCH_BACKWARDS;                                     \
     srcstack = dst;                                                     \
     dststack = tbptr->instack;                                          \
-    ttype = vartype + maxlocals*(tbptr-block);                          \
-    tinfo = vartypeinfo + maxlocals*(tbptr-block);                      \
+    ttype = vartype + numlocals*(tbptr-block);                          \
+    tinfo = vartypeinfo + numlocals*(tbptr-block);                      \
     if (tbptr->flags == BBTYPECHECK_UNDEF) {                            \
         /* This block is reached for the first time */                  \
         if (way == REACH_JSR) {                                         \
@@ -486,9 +515,27 @@ struct jsr_record {
     if (changed) {                                                      \
         LOG("REACHED!");                                                \
         tbptr->flags = BBTYPECHECK_REACHED;                             \
-        if (tbptr <= bptr) {repeat = true; LOG("MUST REPEAT!");}        \
+        if (tbptr <= bptr) {repeat = true; LOG("REPEAT!");}             \
     }                                                                   \
     LOG("done.");                                                       \
+    } while (0)
+
+/* TYPECHECK_LEAVE: executed when the method is exited non-abruptly
+ * Input:
+ *     class........class of the current method
+ *     numlocals....number of local variables
+ *     vtype........current local variable types
+ *     vinfo........current local variable typeinfos
+ *     initmethod...true if this is an <init> method
+ */
+#define TYPECHECK_LEAVE                                                 \
+    do {                                                                \
+        if (initmethod && class != class_java_lang_Object) {            \
+            /* check the marker variable */                             \
+            LOG("Checking <init> marker");                              \
+            if (vtype[numlocals-1] == TYPE_VOID)                        \
+                panic("<init> method does not initialize 'this'");      \
+        }                                                               \
     } while (0)
 
 /****************************************************************************/
@@ -514,6 +561,7 @@ typecheck()
     instruction *iptr;               /* pointer to current instruction */
     basicblock *bptr;                /* pointer to current basic block */
     basicblock *tbptr;                   /* temporary for target block */
+    int numlocals;                        /* number of local variables */
     u1 *vartype;            /* type of each local for each basic block */
     typeinfo *vartypeinfo;  /* type of each local for each basic block */
     u1 *vtype;           /* type of each local for current instruction */
@@ -537,6 +585,8 @@ typecheck()
     xtable **handlers;                    /* active exception handlers */
     classinfo *cls;                                       /* temporary */
     bool maythrow;               /* true if this instruction may throw */
+    utf *name_init;                                        /* "<init>" */
+    bool initmethod;             /* true if this is an "<init>" method */
 
     LOGSTR("\n==============================================================================\n");
     DOLOG(show_icmd_method());
@@ -548,6 +598,9 @@ typecheck()
     LOGimpSTR("    (class ");
     LOGimpSTRu(method->class->name);
     LOGimpSTR(")\n");
+
+    name_init = utf_new_char("<init>");
+    initmethod = (method->name == name_init);
 
     /* XXX allocate buffers for method arguments */
     ptype = DMNEW(u1,MAXPARAMS);
@@ -580,14 +633,21 @@ typecheck()
 
     LOG("Blocks reset.\n");
 
+    /* number of local variables */
+    
+    /* In <init> methods we use an extra local variable to signal if
+     * the 'this' reference has been initialized. */
+    numlocals = maxlocals;
+    if (initmethod) numlocals++;
+
     /* allocate the buffers for local variables */
-    vartype = DMNEW(u1,maxlocals * (block_count+1));
-    vartypeinfo = DMNEW(typeinfo,maxlocals * (block_count+1));
-    touched = DMNEW(u1,maxlocals);
-    vtype = vartype + maxlocals * block_count;
-    vinfo = vartypeinfo + maxlocals * block_count;
-    memset(vartype,TYPE_VOID,maxlocals * (block_count+1) * sizeof(typeinfo));
-    memset(vartypeinfo,0,maxlocals * (block_count+1) * sizeof(typeinfo));
+    vartype = DMNEW(u1,numlocals * (block_count+1));
+    vartypeinfo = DMNEW(typeinfo,numlocals * (block_count+1));
+    touched = DMNEW(u1,numlocals);
+    vtype = vartype + numlocals * block_count;
+    vinfo = vartypeinfo + numlocals * block_count;
+    memset(vartype,TYPE_VOID,numlocals * (block_count+1) * sizeof(typeinfo));
+    memset(vartypeinfo,0,numlocals * (block_count+1) * sizeof(typeinfo));
 
     LOG("Variable buffer initialized.\n");
 
@@ -609,7 +669,10 @@ typecheck()
     /* if this is an instance method initialize the "this" ref type */
     if (!(method->flags & ACC_STATIC)) {
         *ttype++ = TYPE_ADDRESS;
-        TYPEINFO_INIT_CLASSINFO(*tinfo,class);
+        if (initmethod)
+            TYPEINFO_INIT_NEWOBJECT(*tinfo,NULL);
+        else
+            TYPEINFO_INIT_CLASSINFO(*tinfo,class);
         tinfo++;
     }
 
@@ -617,7 +680,7 @@ typecheck()
 
     /* the rest of the arguments and the return type */
     typeinfo_init_from_method_args(method->descriptor,ttype,tinfo,
-                                   maxlocals - (tinfo-vartypeinfo),
+                                   numlocals - (tinfo-vartypeinfo),
                                    true, /* two word types use two slots */
                                    &returntype,&returntypeinfo);
 
@@ -657,10 +720,26 @@ typecheck()
                 /* init stack at the start of this block */
                 curstack = bptr->instack;
 					
+                /* determine the active exception handlers for this block */
+                /* XXX could use a faster algorithm with sorted lists or
+                 * something? */
+                len = 0;
+                for (i=0; i<method->exceptiontablelength; ++i) {
+                    if ((extable[i].start <= bptr) && (extable[i].end > bptr)) {
+                        LOG1("active handler L%03d",extable[i].handler->debug_nr);
+                        handlers[len++] = extable + i;
+                    }
+                }
+                handlers[len] = NULL;
+					
                 /* init variable types at the start of this block */
-                for (i=0; i<maxlocals; ++i) {
-                    vtype[i] = vartype[maxlocals*b_index + i];
-                    TYPEINFO_COPY(vartypeinfo[maxlocals*b_index + i],vinfo[i]);
+                for (i=0; i<numlocals; ++i) {
+                    vtype[i] = vartype[numlocals*b_index + i];
+                    TYPEINFO_COPY(vartypeinfo[numlocals*b_index + i],vinfo[i]);
+
+                    if (handlers[0] &&
+                        vtype[i] == TYPE_ADR && TYPEINFO_IS_NEWOBJECT(vinfo[i]))
+                        panic("Uninitialized object in local variable inside try block");
                 }
 
                 /* init JSR target chain */
@@ -679,30 +758,18 @@ typecheck()
 #endif
 
                     subroutine = jsrbuffer[jsrchain->target - block];
-                    memcpy(touched,jsrchain->touched,sizeof(u1)*maxlocals);
+                    memcpy(touched,jsrchain->touched,sizeof(u1)*numlocals);
                 }
                 else
                     subroutine = NULL;
 #ifdef TYPECHECK_VERBOSE
                 if (typecheckverbose) {
                     if (subroutine) {LOGSTR1("subroutine L%03d\n",subroutine->target->debug_nr);LOGFLUSH;}
-                    typeinfo_print_block(get_logfile(),curstack,vtype,vinfo,(jsrchain) ? touched : NULL);
+                    typeinfo_print_block(get_logfile(),curstack,numlocals,vtype,vinfo,(jsrchain) ? touched : NULL);
                     LOGNL; LOGFLUSH;
                 }
 #endif
 
-                /* determine the active exception handlers for this block */
-                /* XXX could use a faster algorithm with sorted lists or
-                 * something? */
-                len = 0;
-                for (i=0; i<method->exceptiontablelength; ++i) {
-                    if ((extable[i].start <= bptr) && (extable[i].end > bptr)) {
-                        LOG1("active handler L%03d",extable[i].handler->debug_nr);
-                        handlers[len++] = extable + i;
-                    }
-                }
-                handlers[len] = NULL;
-					
                 /* loop over the instructions */
                 len = bptr->icount;
                 iptr = bptr->iinstr;
@@ -722,6 +789,12 @@ typecheck()
 
                         /* We just need to copy the typeinfo */
                         /* for slots containing addresses.   */
+
+                        /* XXX We assume that the destination stack
+                         * slots were continuously allocated in
+                         * memory.  (The current implementation in
+                         * stack.c)
+                         */
 
                       case ICMD_DUP:
                           COPYTYPE(curstack,dst);
@@ -792,6 +865,11 @@ typecheck()
 
                       case ICMD_ASTORE:
                           /* TYPE_ADR has already been checked. */
+                          
+                          if (handlers[0] &&
+                              TYPEINFO_IS_NEWOBJECT(curstack->typeinfo))
+                              panic("Storing uninitialized object in local variable inside try block");
+                          
                           STORE_TYPE(iptr->op1,TYPE_ADDRESS);
                           TYPEINFO_COPY(curstack->typeinfo,vinfo[iptr->op1]);
                           break;
@@ -841,7 +919,7 @@ typecheck()
 
                       case ICMD_PUTSTATIC:
                           /* XXX */
-                          maythrow = true; /* XXX ? */
+                          maythrow = true;
                           break;
 
                       case ICMD_GETFIELD:
@@ -876,7 +954,7 @@ typecheck()
                                   TYPEINFO_INIT_PRIMITIVE(dst->typeinfo);
                               }
                           }
-                          /* XXX may throw? */
+                          maythrow = true;
                           break;
 
                           /****************************************/
@@ -987,7 +1065,7 @@ typecheck()
                           
                       case ICMD_ACONST:
                           if (iptr->val.a == NULL)
-                              TYPEINFO_INIT_NULLTYPE(dst->typeinfo)
+                              TYPEINFO_INIT_NULLTYPE(dst->typeinfo);
                           else
                               /* XXX constants for builtin functions */
                               /* string constants */
@@ -1068,6 +1146,8 @@ typecheck()
                           /****************************************/
                           /* RETURNS AND THROW                    */
 
+                          /* XXX returns may throw */
+
                       case ICMD_ATHROW:
                           TYPEINFO_INIT_CLASSINFO(tempinfo,class_java_lang_Throwable);
                           if (!typeinfo_is_assignable(&curstack->typeinfo,&tempinfo))
@@ -1083,33 +1163,39 @@ typecheck()
                           if (returntype != TYPE_ADDRESS
                               || !typeinfo_is_assignable(&curstack->typeinfo,&returntypeinfo))
                               panic("Return type mismatch");
-							  
+
+                          TYPECHECK_LEAVE;
                           superblockend = true;
                           break;
 
                       case ICMD_IRETURN:
                           if (returntype != TYPE_INT)
                               panic("Return type mismatch");
+                          TYPECHECK_LEAVE;
                           superblockend = true;
                           break;                           
                       case ICMD_LRETURN:
                           if (returntype != TYPE_LONG)
                               panic("Return type mismatch");
+                          TYPECHECK_LEAVE;
                           superblockend = true;
                           break;
                       case ICMD_FRETURN:
                           if (returntype != TYPE_FLOAT)
                               panic("Return type mismatch");
+                          TYPECHECK_LEAVE;
                           superblockend = true;
                           break;
                       case ICMD_DRETURN:
                           if (returntype != TYPE_DOUBLE)
                               panic("Return type mismatch");
+                          TYPECHECK_LEAVE;
                           superblockend = true;
                           break;
                       case ICMD_RETURN:
                           if (returntype != TYPE_VOID)
                               panic("Return type mismatch");
+                          TYPECHECK_LEAVE;
                           superblockend = true;
                           break;
                                                     
@@ -1151,7 +1237,7 @@ typecheck()
                            */
                           if (jsrtemp->sbr_touched) {
                               /* Calculate the local variables after the subroutine call */
-                              for (i=0; i<maxlocals; ++i)
+                              for (i=0; i<numlocals; ++i)
                                   if (jsrtemp->sbr_touched[i] != TOUCHED_NO) {
                                       TOUCH_VARIABLE(i);
                                       if ((vtype[i] = jsrtemp->sbr_vtype[i]) == TYPE_ADR)
@@ -1185,19 +1271,19 @@ typecheck()
                           /* determine which variables are touched by this subroutine */
                           /* and their types */
                           if (subroutine->sbr_touched) {
-                              for (i=0; i<maxlocals; ++i)
+                              for (i=0; i<numlocals; ++i)
                                   subroutine->sbr_touched[i] |= touched[i];
                               ttype = subroutine->sbr_vtype;
                               tinfo = subroutine->sbr_vinfo;
                               TYPECHECK_MERGEVARS;
                           }
                           else {
-                              subroutine->sbr_touched = DMNEW(u1,maxlocals);
-                              memcpy(subroutine->sbr_touched,touched,sizeof(u1)*maxlocals);
-                              subroutine->sbr_vtype = DMNEW(u1,maxlocals);
-                              memcpy(subroutine->sbr_vtype,vtype,sizeof(u1)*maxlocals);
-                              subroutine->sbr_vinfo = DMNEW(typeinfo,maxlocals);
-                              for (i=0; i<maxlocals; ++i)
+                              subroutine->sbr_touched = DMNEW(u1,numlocals);
+                              memcpy(subroutine->sbr_touched,touched,sizeof(u1)*numlocals);
+                              subroutine->sbr_vtype = DMNEW(u1,numlocals);
+                              memcpy(subroutine->sbr_vtype,vtype,sizeof(u1)*numlocals);
+                              subroutine->sbr_vinfo = DMNEW(typeinfo,numlocals);
+                              for (i=0; i<numlocals; ++i)
                                   if (vtype[i] == TYPE_ADR)
                                       TYPEINFO_CLONE(vinfo[i],subroutine->sbr_vinfo[i]);
                           }
@@ -1205,7 +1291,7 @@ typecheck()
 
                           LOGSTR("subroutine touches:");
                           DOLOG(typeinfo_print_locals(get_logfile(),subroutine->sbr_vtype,subroutine->sbr_vinfo,
-                                                      subroutine->sbr_touched,maxlocals));
+                                                      subroutine->sbr_touched,numlocals));
                           LOGNL; LOGFLUSH;
 
                           /* reach blocks after JSR statements */
@@ -1238,6 +1324,9 @@ typecheck()
                               /* XXX check access rights */
                               
                               methodinfo *mi = (methodinfo*) iptr->val.a;
+                              bool callinginit = (opcode == ICMD_INVOKESPECIAL && mi->name == name_init);
+                              instruction *ins;
+                              classinfo *initclass;
 
                               /* XXX for INVOKESPECIAL: check if the invokation is done at all */
 
@@ -1263,8 +1352,24 @@ typecheck()
                                   if (srcstack->type == TYPE_ADR) {
                                       LOGINFO(&(srcstack->typeinfo));
                                       LOGINFO(pinfo + i);
-                                      if (!typeinfo_is_assignable(&(srcstack->typeinfo),pinfo+i))
-                                          panic("Parameter reference type mismatch in method invocation");
+                                      if (i==0 && callinginit)
+                                      {
+                                          /* first argument to <init> method */
+                                          if (!TYPEINFO_IS_NEWOBJECT(srcstack->typeinfo))
+                                              panic("Calling <init> on initialized object");
+                                          
+                                          /* get the address of the NEW instruction */
+                                          LOGINFO(&(srcstack->typeinfo));
+                                          ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(srcstack->typeinfo);
+                                          initclass = (ins) ? (classinfo*)ins[-1].val.a : method->class;
+                                          LOGSTR("class: "); LOGSTRu(initclass->name); LOGNL;
+
+                                          /* XXX check type */
+                                      }
+                                      else {
+                                          if (!typeinfo_is_assignable(&(srcstack->typeinfo),pinfo+i))
+                                              panic("Parameter reference type mismatch in method invocation");
+                                      }
                                   }
                                   LOG("ok");
 
@@ -1275,6 +1380,38 @@ typecheck()
                                   if (rtype != dst->type)
                                       panic("Return type mismatch in method invocation");
                                   TYPEINFO_COPY(rinfo,dst->typeinfo);
+                              }
+
+                              if (callinginit) {
+                                  /* replace uninitialized object type on stack */
+                                  srcstack = dst;
+                                  while (srcstack) {
+                                      if (srcstack->type == TYPE_ADR
+                                          && TYPEINFO_IS_NEWOBJECT(srcstack->typeinfo)
+                                          && TYPEINFO_NEWOBJECT_INSTRUCTION(srcstack->typeinfo) == ins)
+                                      {
+                                          LOG("replacing uninitialized type on stack");
+                                          TYPEINFO_INIT_CLASSINFO(srcstack->typeinfo,initclass);
+                                      }
+                                      srcstack = srcstack->prev;
+                                  }
+                                  /* replace uninitialized object type in locals */
+                                  for (i=0; i<numlocals; ++i) {
+                                      if (vtype[i] == TYPE_ADR
+                                          && TYPEINFO_IS_NEWOBJECT(vinfo[i])
+                                          && TYPEINFO_NEWOBJECT_INSTRUCTION(vinfo[i]) == ins)
+                                      {
+                                          LOG1("replacing uninitialized type in local %d",i);
+                                          TYPEINFO_INIT_CLASSINFO(vinfo[i],initclass);
+                                      }
+                                  }
+
+                                  /* initializing the 'this' reference? */
+                                  if (initmethod && !ins) {
+                                      /* set our marker variable to type int */
+                                      LOG("setting <init> marker");
+                                      STORE_PRIMITIVE(numlocals-1,TYPE_INT);
+                                  }
                               }
                           }
                           maythrow = true;
@@ -1341,7 +1478,7 @@ typecheck()
                           if (ISBUILTIN(builtin_new)) {
                               if (iptr[-1].opc != ICMD_ACONST)
                                   panic("illegal instruction: builtin_new without classinfo");
-                              TYPEINFO_INIT_CLASSINFO(dst->typeinfo,(classinfo *)iptr[-1].val.a);
+                              TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,iptr);
                           }
                           else if (ISBUILTIN(builtin_newarray_boolean)) {
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_BOOLEAN);
@@ -1418,15 +1555,37 @@ typecheck()
 
                           /****************************************/
                           /* ARITHMETIC AND CONVERSION            */
+                          /* (These instructions are typechecked in analyse_stack.) */
 
-                          /* These instructions are typechecked in analyse_stack. */
-                                                /* XXX only add cases for them in debug mode? */
+                          /* The following instructions may throw a runtime exception: */
+                          
+                      case ICMD_IDIV:
+                      case ICMD_IREM:
+                      case ICMD_LDIV:
+                      case ICMD_LREM:
+                          
+                          maythrow = true;
+                          break;
+                          
+                          /* The following instructions never throw a runtime exception: */
+                          /* XXX only add cases for them in debug mode? */
+                          
+                      case ICMD_ICONST:
+                      case ICMD_LCONST:
+                      case ICMD_FCONST:
+                      case ICMD_DCONST:
+
+                      case ICMD_IFEQ_ICONST:
+                      case ICMD_IFNE_ICONST:
+                      case ICMD_IFLT_ICONST:
+                      case ICMD_IFGE_ICONST:
+                      case ICMD_IFGT_ICONST:
+                      case ICMD_IFLE_ICONST:
+                      case ICMD_ELSE_ICONST:
 
                       case ICMD_IADD:
                       case ICMD_ISUB:
                       case ICMD_IMUL:
-                      case ICMD_IDIV:
-                      case ICMD_IREM:
                       case ICMD_INEG:
                       case ICMD_IAND:
                       case ICMD_IOR:
@@ -1437,8 +1596,6 @@ typecheck()
                       case ICMD_LADD:
                       case ICMD_LSUB:
                       case ICMD_LMUL:
-                      case ICMD_LDIV:
-                      case ICMD_LREM:
                       case ICMD_LNEG:
                       case ICMD_LAND:
                       case ICMD_LOR:
@@ -1471,6 +1628,22 @@ typecheck()
                       case ICMD_LUSHRCONST:
                       case ICMD_LREMPOW2:
                           
+                      case ICMD_I2L:
+                      case ICMD_I2F:
+                      case ICMD_I2D:
+                      case ICMD_L2I:
+                      case ICMD_L2F:
+                      case ICMD_L2D:
+                      case ICMD_F2I:
+                      case ICMD_F2L:
+                      case ICMD_F2D:
+                      case ICMD_D2I:
+                      case ICMD_D2L:
+                      case ICMD_D2F:
+                      case ICMD_INT2BYTE:
+                      case ICMD_INT2CHAR:
+                      case ICMD_INT2SHORT:
+
                       case ICMD_LCMP:
                       case ICMD_LCMPCONST:
                       case ICMD_FCMPL:
@@ -1491,44 +1664,12 @@ typecheck()
                       case ICMD_FNEG:
                       case ICMD_DNEG:
 
-                      case ICMD_I2L:
-                      case ICMD_I2F:
-                      case ICMD_I2D:
-                      case ICMD_L2I:
-                      case ICMD_L2F:
-                      case ICMD_L2D:
-                      case ICMD_F2I:
-                      case ICMD_F2L:
-                      case ICMD_F2D:
-                      case ICMD_D2I:
-                      case ICMD_D2L:
-                      case ICMD_D2F:
-                      case ICMD_INT2BYTE:
-                      case ICMD_INT2CHAR:
-                      case ICMD_INT2SHORT:
-
-                          maythrow = true; /* XXX be more selective here */
-                          break;
-                          
-                      case ICMD_ICONST:
-                      case ICMD_LCONST:
-                      case ICMD_FCONST:
-                      case ICMD_DCONST:
-
-                      case ICMD_IFEQ_ICONST:
-                      case ICMD_IFNE_ICONST:
-                      case ICMD_IFLT_ICONST:
-                      case ICMD_IFGE_ICONST:
-                      case ICMD_IFGT_ICONST:
-                      case ICMD_IFLE_ICONST:
-                      case ICMD_ELSE_ICONST:
-
                           break;
                           
                           /****************************************/
 
                       default:
-                          LOGSTR2("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
+                          LOG2("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
                           panic("Missing ICMD code during typecheck");
                     }
 
@@ -1545,13 +1686,18 @@ typecheck()
                             i++;
                         }
                     }
+
+                    /*
+                      DOLOG(typeinfo_print_block(get_logfile(),curstack,numlocals,vtype,vinfo,(jsrchain) ? touched : NULL));
+                      LOGNL; LOGFLUSH;
+                    */
                     
                     iptr++;
                 } /* while instructions */
 
                 LOG("instructions done");
                 LOGSTR("RESULT=> ");
-                DOLOG(typeinfo_print_block(get_logfile(),curstack,vtype,vinfo,(jsrchain) ? touched : NULL));
+                DOLOG(typeinfo_print_block(get_logfile(),curstack,numlocals,vtype,vinfo,(jsrchain) ? touched : NULL));
                 LOGNL; LOGFLUSH;
                 
                 /* propagate stack and variables to the following block */

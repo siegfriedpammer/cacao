@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 707 2003-12-07 17:29:08Z twisti $
+   $Id: typeinfo.c 719 2003-12-08 14:26:05Z edwin $
 
 */
 
@@ -39,8 +39,6 @@
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
 
-
-#define TYPEINFO_REUSE_MERGED
 
 #define CLASS_IMPLEMENTS_INTERFACE(cls,index)                   \
     ( ((index) < (cls)->vftbl->interfacetablelength)            \
@@ -174,6 +172,10 @@ typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
     if (TYPEINFO_IS_NULLTYPE(*value))
         return true;
 
+    /* uninitialized objects are not assignable */
+    if (TYPEINFO_IS_NEWOBJECT(*value))
+        return false;
+
     if (dest->typeclass->flags & ACC_INTERFACE) {
         /* We are assigning to an interface type. */
         return merged_implements_interface(cls,value->merged,
@@ -250,6 +252,8 @@ typeinfo_init_from_descriptor(typeinfo *info,char *utf_ptr,char *end_ptr)
 {
     classinfo *cls;
     char *end;
+
+    /* XXX simplify */
     cls = class_from_descriptor(utf_ptr,end_ptr,&end,CLASSLOAD_NEW);
 
     if (!cls)
@@ -270,6 +274,7 @@ typeinfo_init_from_descriptor(typeinfo *info,char *utf_ptr,char *end_ptr)
     if (end!=end_ptr) panic ("descriptor has exceeding chars");
 }
 
+/* XXX delete or use SKIP_FIELDDESCRIPTOR_SAFE */
 int
 typeinfo_count_method_args(utf *d,bool twoword)
 {
@@ -366,6 +371,7 @@ typeinfo_init_from_method_args(utf *desc,u1 *typebuf,typeinfo *infobuf,
 
     /* check arguments */
     while ((c = *utf_ptr) != ')') {
+        /* XXX simplify */
         cls = class_from_descriptor(utf_ptr,end_pos,&utf_ptr,CLASSLOAD_NEW);
         if (!cls)
             panic("Invalid method descriptor.");
@@ -546,7 +552,8 @@ typeinfo_clone(typeinfo *src,typeinfo *dest)
 void
 typeinfo_free(typeinfo *info)
 {
-    TYPEINFO_FREE(*info);
+    TYPEINFO_FREEMERGED_IF_ANY(info->merged);
+    info->merged = NULL;
 }
 
 /**********************************************************************/
@@ -935,6 +942,17 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
         typeinfo_merge_error("Trying to merge unlinked class(es).",dest,y);
 #endif
 
+    /* handle uninitialized object types */
+    /* XXX is there a way we could put this after the common case? */
+    if (TYPEINFO_IS_NEWOBJECT(*dest) || TYPEINFO_IS_NEWOBJECT(*y)) {
+        if (!TYPEINFO_IS_NEWOBJECT(*dest) || !TYPEINFO_IS_NEWOBJECT(*y))
+            typeinfo_merge_error("Trying to merge uninitialized object type.",dest,y);
+        if (TYPEINFO_NEWOBJECT_INSTRUCTION(*dest)
+            != TYPEINFO_NEWOBJECT_INSTRUCTION(*y))
+            typeinfo_merge_error("Trying to merge different uninitialized objects.",dest,y);
+        return false;
+    }
+    
     /* XXX remove */ /* log_text("Testing common case"); */
 
     /* Common case: class dest == class y */
@@ -944,7 +962,7 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
     /* XXX count this case for statistics */
     if ((dest->typeclass == y->typeclass) && (!dest->merged || !y->merged)) {
         changed = (dest->merged != NULL);
-        TYPEINFO_FREEMERGED_IF_ANY(dest->merged); /* XXX unify if */
+        TYPEINFO_FREEMERGED_IF_ANY(dest->merged); /* XXX unify if? */
         dest->merged = NULL;
         /* XXX remove */ /* log_text("common case handled"); */
         return changed;
@@ -1073,6 +1091,9 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
 
 #include "tables.h"
 #include "loader.h"
+#include "jit/jit.h"
+
+extern instruction *instr;
 
 static int
 typeinfo_test_compare(classinfo **a,classinfo **b)
@@ -1130,6 +1151,12 @@ typeinfo_equal(typeinfo *x,typeinfo *y)
         if (x->elementclass != y->elementclass) return false;
         if (x->elementtype != y->elementtype) return false;
     }
+
+    if (TYPEINFO_IS_NEWOBJECT(*x))
+        if (TYPEINFO_NEWOBJECT_INSTRUCTION(*x)
+            != TYPEINFO_NEWOBJECT_INSTRUCTION(*y))
+            return false;
+
     if (x->merged || y->merged) {
         if (!(x->merged && y->merged)) return false;
         if (x->merged->count != y->merged->count) return false;
@@ -1248,21 +1275,6 @@ typeinfo_testrun(char *filename)
 void
 typeinfo_test()
 {
-/*     typeinfo i1,i2,i3,i4,i5,i6,i7,i8; */
-        
-/*     typeinfo_init_from_fielddescriptor(&i1,"[Ljava/lang/Integer;"); */
-/*     typeinfo_init_from_fielddescriptor(&i2,"[[Ljava/lang/String;"); */
-/*     typeinfo_init_from_fielddescriptor(&i3,"[Ljava/lang/Cloneable;"); */
-/*     typeinfo_init_from_fielddescriptor(&i3,"[[Ljava/lang/String;"); */
-/*     TYPEINFO_INIT_NULLTYPE(i1); */
-/*     typeinfo_print_short(stdout,&i1); printf("\n"); */
-/*     typeinfo_print_short(stdout,&i2); printf("\n"); */
-/*     typeinfo_merge(&i1,&i2); */
-/*     typeinfo_print_short(stdout,&i1); printf("\n"); */
-/*     typeinfo_print_short(stdout,&i3); printf("\n"); */
-/*     typeinfo_merge(&i1,&i3); */
-/*     typeinfo_print_short(stdout,&i1); printf("\n"); */
-
     log_text("Running typeinfo test file...");
     typeinfo_testrun("typeinfo.tst");
     log_text("Finished typeinfo test file.");
@@ -1281,6 +1293,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
 {
     int i;
     char ind[TYPEINFO_MAXINDENT + 1];
+    instruction *ins;
 
     if (indent > TYPEINFO_MAXINDENT) indent = TYPEINFO_MAXINDENT;
     
@@ -1297,7 +1310,20 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
         fprintf(file,"%snull\n",ind);
         return;
     }
-    
+
+    if (TYPEINFO_IS_NEWOBJECT(*info)) {
+        ins = (instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
+        if (ins) {
+            fprintf(file,"%sNEW(%d):",ind,ins-instr);
+            utf_fprint(file,((classinfo *)ins[-1].val.a)->name);
+            fprintf(file,"\n");
+        }
+        else {
+            fprintf(file,"%sNEW(this)",ind);
+        }
+        return;
+    }
+
     fprintf(file,"%sClass:      ",ind);
     utf_fprint(file,info->typeclass->name);
     fprintf(file,"\n");
@@ -1340,6 +1366,7 @@ void
 typeinfo_print_short(FILE *file,typeinfo *info)
 {
     int i;
+    instruction *ins;
 
     if (TYPEINFO_IS_PRIMITIVE(*info)) {
         fprintf(file,"primitive");
@@ -1351,6 +1378,17 @@ typeinfo_print_short(FILE *file,typeinfo *info)
         return;
     }
     
+    if (TYPEINFO_IS_NEWOBJECT(*info)) {
+        ins = (instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
+        if (ins) {
+            fprintf(file,"NEW(%d):",ins-instr);
+            utf_fprint(file,((classinfo *)ins[-1].val.a)->name);
+        }
+        else
+            fprintf(file,"NEW(this)");
+        return;
+    }
+
     utf_fprint(file,info->typeclass->name);
 
     if (info->merged) {

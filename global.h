@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 717 2003-12-07 22:02:19Z twisti $
+   $Id: global.h 719 2003-12-08 14:26:05Z edwin $
 
 */
 
@@ -747,6 +747,7 @@ extern classinfo *class_java_lang_ArrayStoreException;
 extern classinfo *class_java_lang_ThreadDeath;
 extern classinfo *pseudo_class_Arraystub;
 extern classinfo *pseudo_class_Null;
+extern classinfo *pseudo_class_New;
 extern vftbl *pseudo_class_Arraystub_vftbl;
 
 

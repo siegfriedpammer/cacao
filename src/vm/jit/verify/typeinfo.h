@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 706 2003-12-07 17:28:29Z twisti $
+   $Id: typeinfo.h 719 2003-12-08 14:26:05Z edwin $
 
 */
 
@@ -151,8 +151,6 @@ struct typeinfo_mergedlist {
 /* MACROS                                                                   */
 /****************************************************************************/
 
-/* XXX wrap macro blocks in do { } while(0) */
-
 /* NOTE: These macros take typeinfo *structs* not pointers as arguments.
  *       You have to dereference any pointers.
  */
@@ -161,9 +159,9 @@ struct typeinfo_mergedlist {
 
 /* internal, don't use this explicitly! */
 #define TYPEINFO_ALLOCMERGED(mergedlist,count)                  \
-            {(mergedlist) = (typeinfo_mergedlist*)dump_alloc(   \
-                sizeof(typeinfo_mergedlist)                     \
-                + ((count)-1)*sizeof(classinfo*));}
+    do {(mergedlist) = (typeinfo_mergedlist*)dump_alloc(        \
+            sizeof(typeinfo_mergedlist)                         \
+            + ((count)-1)*sizeof(classinfo*));} while(0)
 
 /* internal, don't use this explicitly! */
 #define TYPEINFO_FREEMERGED(mergedlist)
@@ -181,6 +179,13 @@ struct typeinfo_mergedlist {
 
 #define TYPEINFO_IS_NULLTYPE(info)                              \
             ((info).typeclass == pseudo_class_Null)
+
+#define TYPEINFO_IS_NEWOBJECT(info)                             \
+            ((info).typeclass == pseudo_class_New)
+
+/* only use this if TYPEINFO_IS_NEWOBJECT returned true! */
+#define TYPEINFO_NEWOBJECT_INSTRUCTION(info)                    \
+            ((void *)(info).elementclass)
 
 /* macros for array type queries ********************************************/
 
@@ -211,7 +216,7 @@ struct typeinfo_mergedlist {
             ( TYPEINFO_IS_ARRAY(info)                           \
               && TYPEINFO_IS_ARRAY_OF_REFS_NOCHECK(info) )
 
-/* queries allowing null types **********************************************/
+/* queries allowing the null type ********************************************/
 
 #define TYPEINFO_MAYBE_ARRAY(info)                              \
     (TYPEINFO_IS_ARRAY(info) || TYPEINFO_IS_NULLTYPE(info))
@@ -222,88 +227,91 @@ struct typeinfo_mergedlist {
 #define TYPEINFO_MAYBE_ARRAY_OF_REFS(info)                      \
     (TYPEINFO_IS_ARRAY_OF_REFS(info) || TYPEINFO_IS_NULLTYPE(info))
 
-
 /* macros for initializing typeinfo structures ******************************/
 
 #define TYPEINFO_INIT_PRIMITIVE(info)                           \
-            {(info).typeclass = NULL;                           \
+         do {(info).typeclass = NULL;                           \
              (info).elementclass = NULL;                        \
              (info).merged = NULL;                              \
              (info).dimension = 0;                              \
-             (info).elementtype = 0;}
+             (info).elementtype = 0;} while(0)
 
 #define TYPEINFO_INIT_NON_ARRAY_CLASSINFO(info,cinfo)   \
-            {(info).typeclass = (cinfo);                \
+         do {(info).typeclass = (cinfo);                \
              (info).elementclass = NULL;                \
              (info).merged = NULL;                      \
              (info).dimension = 0;                      \
-             (info).elementtype = 0;}
+             (info).elementtype = 0;} while(0)
 
 #define TYPEINFO_INIT_NULLTYPE(info)                            \
             TYPEINFO_INIT_CLASSINFO(info,pseudo_class_Null)
+
+#define TYPEINFO_INIT_NEWOBJECT(info,instr)             \
+         do {(info).typeclass = pseudo_class_New;       \
+             (info).elementclass = (classinfo*) (instr);\
+             (info).merged = NULL;                      \
+             (info).dimension = 0;                      \
+             (info).elementtype = 0;} while(0)
 
 #define TYPEINFO_INIT_PRIMITIVE_ARRAY(info,arraytype)                   \
     TYPEINFO_INIT_CLASSINFO(info,primitivetype_table[arraytype].arrayclass);
 
 #define TYPEINFO_INIT_CLASSINFO(info,cls)                               \
-        {if (((info).typeclass = (cls))->vftbl->arraydesc) {              \
-                if ((cls)->vftbl->arraydesc->elementvftbl)                \
+        do {if (((info).typeclass = (cls))->vftbl->arraydesc) {         \
+                if ((cls)->vftbl->arraydesc->elementvftbl)              \
                     (info).elementclass = (cls)->vftbl->arraydesc->elementvftbl->class; \
                 else                                                    \
                     (info).elementclass = NULL;                         \
-                (info).dimension = (cls)->vftbl->arraydesc->dimension;    \
-                (info).elementtype = (cls)->vftbl->arraydesc->elementtype;\
+                (info).dimension = (cls)->vftbl->arraydesc->dimension;  \
+                (info).elementtype = (cls)->vftbl->arraydesc->elementtype; \
             }                                                           \
             else {                                                      \
                 (info).elementclass = NULL;                             \
                 (info).dimension = 0;                                   \
                 (info).elementtype = 0;                                 \
             }                                                           \
-            (info).merged = NULL;}
+            (info).merged = NULL;} while(0)
 
 #define TYPEINFO_INIT_FROM_FIELDINFO(info,fi)                   \
             typeinfo_init_from_descriptor(&(info),              \
                 (fi)->descriptor->text,utf_end((fi)->descriptor));
 
-/* macros for freeing typeinfo structures ***********************************/
-
-#define TYPEINFO_FREE(info)                                     \
-            {TYPEINFO_FREEMERGED_IF_ANY((info).merged);         \
-             (info).merged = NULL;}
-
 /* macros for writing types (destination must have been initialized) ********/
 /* XXX delete them? */
+#if 0
 
 #define TYPEINFO_PUT_NULLTYPE(info)                             \
-            {(info).typeclass = pseudo_class_Null;}
+    do {(info).typeclass = pseudo_class_Null;} while(0)
 
 #define TYPEINFO_PUT_NON_ARRAY_CLASSINFO(info,cinfo)            \
-            {(info).typeclass = (cinfo);}
+    do {(info).typeclass = (cinfo);} while(0)
 
 #define TYPEINFO_PUT_CLASSINFO(info,cls)                                \
-        {if (((info).typeclass = (cls))->vftbl->arraydesc) {              \
+    do {if (((info).typeclass = (cls))->vftbl->arraydesc) {             \
                 if ((cls)->vftbl->arraydesc->elementvftbl)                \
                     (info).elementclass = (cls)->vftbl->arraydesc->elementvftbl->class; \
                 (info).dimension = (cls)->vftbl->arraydesc->dimension;    \
                 (info).elementtype = (cls)->vftbl->arraydesc->elementtype; \
-            }}
+        }} while(0)
 
 /* srcarray must be an array (not checked) */
 #define TYPEINFO_PUT_COMPONENT(srcarray,dst)                    \
-            {typeinfo_put_component(&(srcarray),&(dst));}
+    do {typeinfo_put_component(&(srcarray),&(dst));} while(0)
+
+#endif
 
 /* macros for copying types (destinition is not checked or freed) ***********/
 
 /* TYPEINFO_COPY makes a shallow copy, the merged pointer is simply copied. */
 #define TYPEINFO_COPY(src,dst)                                  \
-            {(dst) = (src);}
+    do {(dst) = (src);} while(0)
 
 /* TYPEINFO_CLONE makes a deep copy, the merged list (if any) is duplicated
  * into a newly allocated array.
  */
 #define TYPEINFO_CLONE(src,dst)                                 \
-            {(dst) = (src);                                     \
-             if ((dst).merged) typeinfo_clone(&(src),&(dst));}
+    do {(dst) = (src);                                          \
+        if ((dst).merged) typeinfo_clone(&(src),&(dst));} while(0)
 
 /****************************************************************************/
 /* FUNCTIONS                                                                */
