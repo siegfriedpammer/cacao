@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 880 2004-01-13 17:17:12Z edwin $
+   $Id: loader.c 881 2004-01-13 19:57:08Z edwin $
 
 */
 
@@ -891,13 +891,13 @@ static void field_load(fieldinfo *f, classinfo *c)
 	f->flags = suck_u2();                                           /* ACC flags         */
 	f->name = class_getconstant(c, suck_u2(), CONSTANT_Utf8);       /* name of field     */
 	f->descriptor = class_getconstant(c, suck_u2(), CONSTANT_Utf8); /* JavaVM descriptor */
-	f->type = jtype = desc_to_type(f->descriptor);		            /* data type         */
-	f->offset = 0;						                  /* offset from start of object */
-	f->class = c;
-	f->xta = NULL;
 	
-	/* check flag consistency */
 	if (opt_verify) {
+		/* check name */
+		if (!is_valid_name_utf(f->name) || f->name->text[0] == '<')
+			panic("Field with invalid name");
+		
+		/* check flag consistency */
 		i = (f->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
 		if (i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED)
 			panic("Field has invalid access flags");
@@ -910,8 +910,16 @@ static void field_load(fieldinfo *f, classinfo *c)
 			if ((f->flags & ACC_TRANSIENT) != 0)
 				panic("Interface field declared transient");
 		}
+
+		/* check descriptor */
+		checkfielddescriptor(f->descriptor->text,utf_end(f->descriptor));
 	}
 		
+	f->type = jtype = desc_to_type(f->descriptor);		            /* data type         */
+	f->offset = 0;						                  /* offset from start of object */
+	f->class = c;
+	f->xta = NULL;
+	
 	switch (f->type) {
 	case TYPE_INT:        f->value.i = 0; break;
 	case TYPE_FLOAT:      f->value.f = 0.0; break;
@@ -1043,6 +1051,15 @@ static void method_load(methodinfo *m, classinfo *c)
 	
 	m->flags = suck_u2();
 	m->name = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
+
+	if (opt_verify) {
+		if (!is_valid_name_utf(m->name))
+			panic("Method with invalid name");
+		if (m->name->text[0] == '<'
+			&& m->name != utf_init && m->name != utf_clinit)
+			panic("Method with invalid special name");
+	}
+	
 	m->descriptor = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
 	argcount = checkmethoddescriptor(m->descriptor);
 	if ((m->flags & ACC_STATIC) == 0)
@@ -1519,6 +1536,9 @@ static void class_loadcpool(classinfo *c)
 		utf *name =
 		  class_getconstant (c, forward_classes -> name_index, CONSTANT_Utf8);
 
+		if (opt_verify && !is_valid_name_utf(name))
+			panic("Class reference with invalid name");
+
 		cptags  [forward_classes -> thisindex] = CONSTANT_Class;
 		/* retrieve class from class-table */
 		cpinfos [forward_classes -> thisindex] = class_new (name);
@@ -1554,7 +1574,16 @@ static void class_loadcpool(classinfo *c)
 		   (c, forward_nameandtypes -> name_index, CONSTANT_Utf8);
 		cn -> descriptor = class_getconstant
 		   (c, forward_nameandtypes -> sig_index, CONSTANT_Utf8);
-		 
+
+		if (opt_verify) {
+			/* check name */
+			if (!is_valid_name_utf(cn->name))
+				panic("NameAndType with invalid name");
+			/* disallow referencing <clinit> among others */
+			if (cn->name->text[0] == '<' && cn->name != utf_init)
+				panic("NameAndType with invalid special name");
+		}
+
 		cptags   [forward_nameandtypes -> thisindex] = CONSTANT_NameAndType;
 		cpinfos  [forward_nameandtypes -> thisindex] = cn;
 		
@@ -1602,7 +1631,6 @@ static void class_loadcpool(classinfo *c)
 		                         break;
 		case CONSTANT_InterfaceMethodref: 
 		case CONSTANT_Methodref: /* check validity of descriptor */
-			/* XXX check special names (<init>) */
 					 checkmethoddescriptor (fmi->descriptor);
 		                         break;
 		}		

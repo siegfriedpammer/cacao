@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 870 2004-01-10 22:49:32Z edwin $
+   $Id: tables.c 881 2004-01-13 19:57:08Z edwin $
 
 */
 
@@ -780,6 +780,38 @@ is_valid_utf(char *utf_ptr,char *end_pos)
 	return true;
 }
  
+/********************* function: is_valid_name *******************************
+
+    return true if the given string may be used as a class/field/method name.
+    (Currently this only disallows empty strings and control characters.)
+
+    NOTE: The string is assumed to have passed is_valid_utf!
+
+    utf_ptr...points to first character
+    end_pos...points after last character
+
+******************************************************************************/
+
+bool
+is_valid_name(char *utf_ptr,char *end_pos)
+{
+	if (end_pos <= utf_ptr) return false; /* disallow empty names */
+
+	while (utf_ptr < end_pos) {
+		unsigned char c = *utf_ptr++;
+
+		if (c < 0x20) return false; /* disallow control characters */
+		if (c == 0xc0 && (unsigned char)*utf_ptr == 0x80) return false; /* disallow zero */
+	}
+	return true;
+}
+
+bool
+is_valid_name_utf(utf *u)
+{
+	return is_valid_name(u->text,utf_end(u));
+}
+
 /******************** Function: class_new **************************************
 
     searches for the class with the specified name in the classes hashtable,

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tables.h 754 2003-12-13 22:23:01Z twisti $
+   $Id: tables.h 881 2004-01-13 19:57:08Z edwin $
 
 */
 
@@ -51,8 +51,12 @@ void tables_init();
 /* free memory for hashtables */ 
 void tables_close(stringdeleter del);
 
-/* check if an UTF-8 string is valid */
+/* check if a UTF-8 string is valid */
 bool is_valid_utf(char *utf_ptr, char *end_pos);
+
+/* check if a UTF-8 string may be used as a class/field/method name */
+bool is_valid_name(char *utf_ptr, char *end_pos);
+bool is_valid_name_utf(utf *u);
 
 /* write utf symbol to file/buffer */
 void utf_sprint(char *buffer, utf *u);
