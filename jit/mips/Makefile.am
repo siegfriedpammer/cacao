@@ -1,9 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1280 2004-07-05 22:01:50Z twisti $
+# $Id: Makefile.am 1289 2004-07-09 11:41:47Z twisti $
 
 
-INCLUDES = -I$(top_srcdir)/jit
+INCLUDES = -I$(top_srcdir)
 
 EXTRA_DIST = \
 	asmpart.S \
