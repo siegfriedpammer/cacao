@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1390 2004-08-02 22:33:03Z twisti $
+   $Id: cacao.c 1395 2004-08-03 18:47:19Z twisti $
 
 */
 
@@ -351,18 +351,18 @@ int main(int argc, char **argv)
 	/************ Collect info from the environment ************************/
 
 	/* set an initial, minimal classpath */
-	classpath = MNEW(u1, 2);
+	classpath = MNEW(char, 2);
 	strcpy(classpath, ".");
 
 	/* get classpath environment */
 	cp = getenv("CLASSPATH");
 	if (cp) {
 		classpath = MREALLOC(classpath,
-							 u1,
+							 char,
 							 strlen(classpath),
 							 strlen(classpath) + 1 + strlen(cp) + 1);
 		strcat(classpath, ":");
-		strncat(classpath, cp, strlen(cp));
+		strcat(classpath, cp);
 	}
 
 	/***************** Interpret the command line *****************/
@@ -376,11 +376,10 @@ int main(int argc, char **argv)
 			
 		case OPT_CLASSPATH:
 			/* forget old classpath and set the argument as new classpath */
-			classpath = MREALLOC(classpath,
-								 u1,
-								 strlen(classpath),
-								 strlen(opt_arg) + 1);
-			strncpy(classpath, opt_arg, strlen(opt_arg));
+			MFREE(classpath, char, strlen(classpath));
+
+			classpath = MNEW(char, strlen(opt_arg) + 1);
+			strcpy(classpath, opt_arg);
 			break;
 				
 		case OPT_D:
