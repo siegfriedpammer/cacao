@@ -1,4 +1,4 @@
-################################################################################
+###############################################################################
 #                    Makefile for the JavaVM - compiler CACAO                  #
 ################################################################################
 #
@@ -21,6 +21,8 @@
 #            generated automatically.
 #
 ################################################################################
+
+MAKE = make
 
 VERSION_MAJOR = 0
 VERSION_MINOR = 30
@@ -46,14 +48,14 @@ endif
 #CFLAGS = -g -mieee -Wall $(THREAD_CFLAGS)
 #CFLAGS = -mieee -O3 -Wall $(THREAD_CFLAGS)
 
-CC = cc
+CC = gcc
 #CFLAGS = -g3 -ieee $(THREAD_CFLAGS)
 CFLAGS = -O3 -ieee $(THREAD_CFLAGS)
 
 OBJ = main.o tables.o loader.o compiler.o newcomp.o builtin.o asmpart.o \
 	toolbox/toolbox.a native.o $(THREAD_OBJ) mm/mm.o
 OBJH = headers.o tables.o loader.o builtin.o toolbox/toolbox.a $(THREAD_OBJ) \
-	 mm/mm.o
+mm/mm.o
 
 cacao: $(OBJ)
 	$(CC) $(CFLAGS) -o cacao $(OBJ) -lm
@@ -84,15 +86,15 @@ global.h: sysdep/types.h toolbox/*.h
 	touch global.h
 
 toolbox/toolbox.a: toolbox/*.c toolbox/*.h
-	cd toolbox; make toolbox.a "CFLAGS=$(CFLAGS)" "CC=$(CC)" 
+	cd toolbox; $(MAKE) toolbox.a "CFLAGS=$(CFLAGS)" "CC=$(CC)" 
 
 ifeq ($(USE_THREADS),YES)
 threads/threads.a: threads/*.c threads/*.h sysdep/threads.h
-	cd threads; make threads.a "USE_THREADS=$(USE_THREADS)" "CFLAGS=$(CFLAGS)" "CC=$(CC)" 
+	cd threads; $(MAKE) threads.a "USE_THREADS=$(USE_THREADS)" "CFLAGS=$(CFLAGS)" "CC=$(CC)" 
 endif
 
 mm/mm.o: mm/*.[ch] mm/Makefile
-	cd mm; make mm.o "USE_THREADS=$(USE_THREADS)" "CFLAGS=$(CFLAGS)" "CC=$(CC)"
+	cd mm; $(MAKE) mm.o "USE_THREADS=$(USE_THREADS)" "CFLAGS=$(CFLAGS)" "CC=$(CC)"
 
 asmpart.o: sysdep/asmpart.c sysdep/offsets.h
 	rm -f asmpart.s
@@ -106,10 +108,9 @@ asmpart.o: sysdep/asmpart.c sysdep/offsets.h
 clean:
 	rm -f *.o cacao cacaoh cacao.tgz nativetable.hh nativetypes.hh \
 	      core tst/core
-	cd toolbox; make clean
-	cd threads; make clean
-	cd mm; make clean
-
+	cd toolbox; $(MAKE) clean
+	cd threads; $(MAKE) clean
+	cd mm; $(MAKE) clean
 tar:
 	rm -f cacao.tgz cacao.tar
 	tar -cvf cacao.tar Makefile */Makefile README COPYRIGHT tst/*.java \
@@ -143,14 +144,14 @@ config-alpha:
 	ln -s alpha sysdep
 	rm -f threads/sysdep
 	ln -s ../sysdep threads/sysdep
-	make clean
+	$(MAKE) clean
 
 config-sparc:
 	rm -f sysdep
 	ln -s sparc sysdep
 	rm -f threads/sysdep
 	ln -s ../sysdep threads/sysdep
-	make clean
+	$(MAKE) clean
 
 
 
