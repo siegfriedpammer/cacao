@@ -21,6 +21,7 @@ are described.
 
 
 \section{System class loader}
+\label{sectionsystemclassloader}
 
 The class loader of a \textit{Java Virtual Machine} (JVM) is
 responsible for loading all type of classes and interfaces into the
@@ -152,14 +153,25 @@ This wrapper function is required to ensure some requirements:
  \item enter a monitor on the \texttt{classinfo} structure, so that
  only one thread can load the same class at the same time
 
+ \item measure the loading time if requested
+
  \item initialize the \texttt{classbuffer} structure with the actual
  class file data
 
- \item remove the \texttt{classinfo} structure from the internal table
- if we got an exception during loading
+ \item reset the \texttt{loaded} field of the \texttt{classinfo}
+ structure to \texttt{false} amd remove the \texttt{classinfo}
+ structure from the internal class hashtable if we got an error or
+ exception during loading
 
  \item free any allocated memory and leave the monitor
 \end{itemize}
+
+The \texttt{class\_load} function is implemented to be
+\textit{reentrant}. This must be the case for the \textit{eager class
+loading} algorithm implemented in CACAO (described in more detail in
+section \ref{sectioneagerclassloading}). Furthermore this means that
+serveral threads can load different classes or interfaces at the same
+time on multiprocessor machines.
 
 The \texttt{class\_load\_intern} functions preforms the actual loading
 of the binary representation of the class or interface. During loading
@@ -252,6 +264,7 @@ representation.
 
 
 \subsection{Constant pool loading}
+\label{sectionconstantpoolloading}
 
 The class' constant pool is loaded via
 
@@ -600,8 +613,8 @@ exceptions, which is stored in the \texttt{classinfo} field
 \texttt{thrownexceptionscount}, and the adequate amount of \texttt{u2}
 constant pool index values. The exception classes are resolved from
 the constant pool and stored in an allocated \texttt{classinfo *}
-array, whose memory pointer is assigned to the \texttt{classinfo}
-field \texttt{thrownexceptions}.
+array, whose memory pointer is assigned to the
+\texttt{thrownexceptions} field of the \texttt{classinfo} structure.
 
 Any attributes which are not processed by the CACAO class loading
 system, are skipped via
@@ -683,8 +696,225 @@ returned, there was an exception.
 
 \section{Dynamic class loader}
 
+
 \section{Eager - lazy class loading}
 
+A Java Virtual Machine can implement two different algorithms for the
+system class loader to load classes or interfaces: \textit{eager class
+loading} and \textit{lazy class loading}.
+
+
+\subsection{Eager class loading}
+\label{sectioneagerclassloading}
+
+The Java Virtual Machine initially creates, loads and links the class
+of the main program with the system class loader. The creation of the
+class is done via the \texttt{class\_new} function call (see section
+\ref{sectionsystemclassloader}). In this function, with \textit{eager
+loading} enabled, firstly the currently created class or interface is
+loaded with \texttt{class\_load}. CACAO uses the \textit{eager class
+loading} algorithm with the command line switch \texttt{-eager}. As
+described in the ''Constant pool loading'' section (see
+\ref{sectionconstantpoolloading}), the binary representation of a
+class or interface contains references to other classes or
+interfaces. With \textit{eager loading} enabled, referenced classes or
+interfaces are loaded immediately.
+
+If a class reference is found in the second pass of the constant pool
+loading process, the class is created in the class hashtable with
+\texttt{class\_new\_intern}. CACAO uses the intern function here
+because the normal \texttt{class\_new} function, which is a wrapper
+function, instantly tries to \textit{link} all referenced
+classes. This must not happen until all classes or interfaces
+referenced are loaded, otherwise the Java Virtual Machine gets into an
+indefinite state.
+
+After the \texttt{classinfo} of the class referenced is created, the
+class or interface is \textit{loaded} via the \texttt{class\_load}
+function (described in more detail in section
+\ref{sectionsystemclassloader}). When the class loading function
+returns, the current referenced class or interface is added to a list
+called \texttt{unlinkedclasses}, which contains all loaded but
+unlinked classes referenced by the currently loaded class or
+interface. This list is processed in the \texttt{class\_new} function
+of the currently created class or interface after \texttt{class\_load}
+returns. For each entry in the \texttt{unlinkedclasses} list,
+\texttt{class\_link} is called which finally \textit{links} the class
+(described in more detail in section \ref{sectionlinking}) and then
+the class entry is removed from the list. When all referenced classes
+or interfaces are linked, the currently created class or interface is
+linked and the \texttt{class\_new} functions returns.
+
+
+\subsection{Lazy class loading}
+\label{sectionlazyclassloading}
+
+With \textit{eager class loading}, usually it takes much more time for
+a Java Virtual Machine to start a program as with \textit{lazy class
+loading}. With \textit{eager class loading}, a typical
+\texttt{HelloWorld} program needs 513 class loads with the current GNU
+classpath CACAO is using. When using \textit{lazy class loading},
+CACAO only needs 121 class loads for the same \texttt{HelloWorld}
+program. This means with \textit{lazy class loading} CACAO needs to
+load more than four times less class files. Furthermore CACAO does
+also \textit{lazy class linking}, which saves much more run-time here.
+
+CACAO's \textit{lazy class loading} implementation does not completely
+follow the JVM specification. A Java Virtual Machine which implements
+\textit{lazy class loading} should load and link requested classes or
+interfaces at runtime. But CACAO does class loading and linking at
+parse time, because of some problems not resolved yet. That means, if
+a Java Virtual Machine instruction is parsed which uses any class or
+interface references, like \texttt{JAVA\_PUTSTATIC},
+\texttt{JAVA\_GETFIELD} or any \texttt{JAVA\_INVOKE*} instructions,
+the referenced class or interface is loaded and linked immediately
+during the parse pass of currently compiled method. This introduces
+some incompatibilities with other Java Virtual Machines like Sun's
+JVM, IBM's JVM or Kaffe.
+
+Imagine a code snippet like this
+
+\begin{verbatim}
+        void sub(boolean b) {
+            if (b) {
+                new A();
+            }
+            System.out.println("foobar");
+        }
+\end{verbatim}
+
+If the function is called with \texttt{b} equal \texttt{false} and the
+class file \texttt{A.class} does not exist, a Java Virtual Machine
+should execute the code without any problems, print \texttt{foobar}
+and exit the Java Virtual Machine with exit code 0. Due to the fact
+that CACAO does class loading and linking at parse time, the CACAO
+Virtual Machine throws an \texttt{java.lang.NoClassDefFoundError:~A}
+exception which is not caught and thus discontinues the execution
+without printing \texttt{foobar} and exits.
+
+The CACAO development team has not yet a solution for this
+problem. It's not trivial to move the loading and linking process from
+the compilation phase into runtime, especially CACAO was initially
+designed for \textit{eager class loading} and \textit{lazy class
+loading} was implemented at a later time to optimize class loading and
+to get a little closer to the JVM specification. \textit{Lazy class
+loading} at runtime is one of the most important features to be
+implemented in the future. It is essential to make CACAO a standard
+compliant Java Virtual Machine.
+
+
 \section{Linking}
+\label{sectionlinking}
+
+Linking is the process of preparing a previously loaded class or
+interface to be used in the Java Virtual Machine's runtime
+environment. The function which performs the linking in CACAO is
+
+\begin{verbatim}
+        classinfo *class_link(classinfo *c);
+\end{verbatim}
+
+This function, as for class loading, is just a wrapper function for
+the main linking function
+
+\begin{verbatim}
+        static classinfo *class_link_intern(classinfo *c);
+\end{verbatim}
+
+This function should not be called directly and is thus declared as
+\texttt{static}. The purposes of the wrapper function are
+
+\begin{itemize}
+ \item enter a monitor on the \texttt{classinfo} structure, so that is
+ guaranteed that only one thread can link the same class at the same
+ time
+
+ \item measure linking time if requested
+
+ \item check if the intern linking function has thrown an error or an
+ exception and reset the \texttt{linked} field of the
+ \texttt{classinfo} structure
+
+ \item leave the monitor
+\end{itemize}
+
+The \texttt{class\_link} function, like the \texttt{class\_load}
+function, is implemented to be \textit{reentrant}. This must be the
+case for the linking algorithm implemented in CACAO. Furthermore this
+means that serveral threads can link different classes or interfaces
+at the same time on multiprocessor machines.
+
+The first step in the \texttt{class\_link\_intern} function is to set
+the \texttt{linked} field of the currently linked \texttt{classinfo}
+structure to \texttt{true}. This is essential, that the linker does
+not try to link a class or interface again, while it's already in the
+linking process. Such a case can occur because the linker also
+processes the class' direct superclass and direct superinterfaces.
+
+In CACAO's linker the direct superinterfaces are processed first. For
+each interface in the \texttt{interfaces} field of the
+\texttt{classinfo} structure is checked if there occured an
+\texttt{java.lang.ClassCircularityError}, which happens when the
+currently linked class or interface is equal the interface which
+should be processed. Otherwise the interface is loaded and linked if
+not already done. After the interface is loaded successfully, the
+interface flags are checked for the \texttt{ACC\_INTERFACE} bit. If
+this is not the case, a
+\texttt{java.lang.IncompatibleClassChangeError} is thrown and
+\texttt{class\_link\_intern} returns.
+
+Then the direct superclass is handled. If the direct superclass is
+equal \texttt{NULL}, we have the special case of linking
+\texttt{java.lang.Object}. There are only set some \texttt{classinfo}
+fields to special values for \texttt{java.lang.Object} like
+
+\begin{verbatim}
+        c->index = 0;
+        c->instancesize = sizeof(java_objectheader);
+        vftbllength = 0;
+        c->finalizer = NULL;
+\end{verbatim}
+
+If the direct superclass is non-\texttt{NULL}, CACAO firstly detects
+class circularity as for interfaces. If no
+\texttt{java.lang.ClassCircularityError} was thrown, the superclass is
+loaded and linked if not already done before. Then some flag bits of
+the superclass are checked: \texttt{ACC\_INTERFACE} and
+\texttt{ACC\_FINAL}. If one of these bits is set an error is thrown.
+
+If the currently linked class is an array, CACAO calls a special array
+linking function
+
+\begin{verbatim}
+        static arraydescriptor *class_link_array(classinfo *c);
+\end{verbatim}
+
+This function firstly checks if the passed \texttt{classinfo} is an
+\textit{array of arrays} or an \textit{array of objects}. In both
+cases the component type is created in the class hashtable via
+\texttt{class\_new} and then loaded and linked. If none is the case,
+the passed array is a \textit{primitive type array}. No matter of
+which type the array is, an \texttt{arraydescriptor} structure (Figure
+\ref{arraydescriptorstructure}) is allocated and filled with the
+appropriate values of the array type.
+
+\begin{figure}[h]
+\begin{verbatim}
+    struct arraydescriptor {
+        vftbl_t *componentvftbl; /* vftbl of the component type, NULL for primit. */
+        vftbl_t *elementvftbl;   /* vftbl of the element type, NULL for primitive */
+        s2       arraytype;      /* ARRAYTYPE_* constant                          */
+        s2       dimension;      /* dimension of the array (always >= 1)          */
+        s4       dataoffset;     /* offset of the array data from object pointer  */
+        s4       componentsize;  /* size of a component in bytes                  */
+        s2       elementtype;    /* ARRAYTYPE_* constant                          */
+    };
+\end{verbatim}
+\caption{\texttt{arraydescriptor} structure}
+\label{arraydescriptorstructure}
+\end{figure}
+
+
 
 \section{Initialization}
+
