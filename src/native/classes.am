@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: classes.am 1900 2005-02-08 14:55:55Z twisti $
+## $Id: classes.am 1913 2005-02-10 09:57:55Z twisti $
 
 ## This file is included by ./Makefile.am and ./include/Makefile.am
 
@@ -102,7 +102,6 @@ CLASSES= \
 	java.lang.VMDouble \
 	java.lang.VMFloat \
 	java.lang.VMRuntime \
-	java.lang.VMSecurityManager \
 	java.lang.VMString \
 	java.lang.VMSystem \
 	java.lang.VMThrowable \
