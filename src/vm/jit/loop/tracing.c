@@ -31,7 +31,7 @@
    instruction. For more details see function tracing(basicblock, int,
    int) below.
 
-   $Id: tracing.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: tracing.c 576 2003-11-09 17:31:38Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include "tracing.h"
 #include "loop.h"
+#include "toolbox/memory.h"
 
 
 /*	Test function -> will be removed in final release
@@ -74,8 +75,9 @@ void printTraceResult(struct Trace *p)
 struct Trace* create_trace(int type, int var, int constant, int nr)
 {
 	struct Trace *t;
-	if ((t = (struct Trace *) malloc(sizeof(struct Trace))) == NULL)
-		c_mem_error();
+/*  	if ((t = (struct Trace *) malloc(sizeof(struct Trace))) == NULL) */
+/*  		c_mem_error(); */
+	t = DNEW(struct Trace);
 
 	t->type = type;
 

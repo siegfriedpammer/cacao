@@ -32,12 +32,14 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: analyze.c 576 2003-11-09 17:31:38Z twisti $
 
 */
 
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "analyze.h"
 #include "loop.h"
 #include "graph.h"

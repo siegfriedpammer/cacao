@@ -31,7 +31,7 @@
    Contains the functions which build a list, that represents the
    control flow graph of the procedure, that is being analyzed.
 
-   $Id: graph.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: graph.c 576 2003-11-09 17:31:38Z twisti $
 
 */
 
@@ -78,29 +78,44 @@ void depthFirst()
 
 /*	allocate memory and init gobal variables needed by function dF(int, int)	*/
   
-	if ((c_defnum = (int *) malloc(block_count * sizeof(int))) == NULL)		
-		c_mem_error();
-	if ((c_numPre = (int *) malloc(block_count * sizeof(int))) == NULL)
-		c_mem_error();
-	if ((c_parent = (int *) malloc(block_count * sizeof(int))) == NULL)
-		c_mem_error();
-	if ((c_reverse = (int *) malloc(block_count * sizeof(int))) == NULL)
-		c_mem_error();
+/*  	if ((c_defnum = (int *) malloc(block_count * sizeof(int))) == NULL)		 */
+/*  		c_mem_error(); */
+/*  	if ((c_numPre = (int *) malloc(block_count * sizeof(int))) == NULL) */
+/*  		c_mem_error(); */
+/*  	if ((c_parent = (int *) malloc(block_count * sizeof(int))) == NULL) */
+/*  		c_mem_error(); */
+/*  	if ((c_reverse = (int *) malloc(block_count * sizeof(int))) == NULL) */
+/*  		c_mem_error(); */
 	
-	if ((c_pre = (int **) malloc(block_count * sizeof(int *))) == NULL)
-		c_mem_error(); 
+/*  	if ((c_pre = (int **) malloc(block_count * sizeof(int *))) == NULL) */
+/*  		c_mem_error();  */
 
-	if ((c_dTable = (struct depthElement **) malloc(block_count * sizeof(struct depthElement *))) == NULL)
-		c_mem_error();
+/*  	if ((c_dTable = (struct depthElement **) malloc(block_count * sizeof(struct depthElement *))) == NULL) */
+/*  		c_mem_error(); */
+	
+/*  	for (i = 0; i < block_count; ++i) { */
+/*  		c_defnum[i] = c_parent[i] = -1; */
+/*  		c_numPre[i] = c_reverse[i] = 0; */
+
+/*  		if ((c_pre[i] = (int *) malloc(block_count * sizeof(int))) == NULL) */
+/*  			c_mem_error(); */
+/*  		c_dTable[i] = NULL; */
+/*  	    } */
+  
+	c_defnum = DMNEW(int, block_count);
+	c_numPre = DMNEW(int, block_count);
+	c_parent = DMNEW(int, block_count);
+	c_reverse = DMNEW(int, block_count);
+	c_pre = DMNEW(int *, block_count);
+	c_dTable = DMNEW(struct depthElement *, block_count);
 	
 	for (i = 0; i < block_count; ++i) {
 		c_defnum[i] = c_parent[i] = -1;
 		c_numPre[i] = c_reverse[i] = 0;
 
-		if ((c_pre[i] = (int *) malloc(block_count * sizeof(int))) == NULL)
-			c_mem_error();
+		c_pre[i] = DMNEW(int, block_count);
 		c_dTable[i] = NULL;
-	    }
+	}
   
 	c_globalCount = 0;
 	c_allLoops = NULL;
@@ -125,29 +140,30 @@ void dF(int from, int blockIndex)
 	
 	if (from >= 0) {	
 /*	the current basic block has a predecessor (ie. is not the first one)		*/
-		if ((hp = (struct depthElement *) malloc(sizeof(struct depthElement))) == NULL)
-			c_mem_error();			/* cretae new depth element					*/
+/*  		if ((hp = (struct depthElement *) malloc(sizeof(struct depthElement))) == NULL) */
+		/*  			c_mem_error(); */
+		hp = DNEW(struct depthElement);/* create new depth element					*/
 
 		hp->next = c_dTable[from];	/* insert values							*/
 		hp->value = blockIndex;
 		hp->changes = NULL;
 		
 		c_dTable[from] = hp;	/* insert into table							*/
-	    }
+	}
   
 	if (from == blockIndex) {	/* insert one node loops into loop container	*/
-		if ((tmp = (struct LoopContainer *) malloc(sizeof(struct LoopContainer))) == NULL)
-			c_mem_error();
+/*  		if ((tmp = (struct LoopContainer *) malloc(sizeof(struct LoopContainer))) == NULL) */
+/*  			c_mem_error(); */
+		tmp = DNEW(struct LoopContainer);
 		LoopContainerInit(tmp, blockIndex);
 		tmp->next = c_allLoops;
 		c_allLoops = tmp;
-	    }
+	}
 
 #ifdef C_DEBUG
 	if (blockIndex > block_count) {
-		fprintf(stderr, "DepthFirst: BlockIndex exceeded\n");
-		exit(1);
-		}		
+		panic("DepthFirst: BlockIndex exceeded\n");
+	}		
 #endif
 
 	ip = block[blockIndex].iinstr + block[blockIndex].icount -1;
@@ -280,21 +296,20 @@ void dF_Exception(int from, int blockIndex)
 		return;
 
 	if (from >= 0) {		/* build exception graph (in c_exceptionGraph) 	   	*/
-	    if ((hp = (struct depthElement *) malloc(sizeof(struct depthElement))) == NULL)
-			c_mem_error();
-
-		hp->next = c_exceptionGraph[from];		
+/*  	    if ((hp = (struct depthElement *) malloc(sizeof(struct depthElement))) == NULL) */
+/*  			c_mem_error(); */
+	    hp = DNEW(struct depthElement);
+		hp->next = c_exceptionGraph[from];
 		hp->value = blockIndex;
 		hp->changes = NULL;
 
 		c_exceptionGraph[from] = hp;
-	    }
+	}
 	
 #ifdef C_DEBUG
 	if (blockIndex > block_count) {
-		fprintf(stderr, "DepthFirst: BlockIndex exceeded\n");
-		exit(1);
-        }
+		panic("DepthFirst: BlockIndex exceeded");
+	}
 #endif
 
 	ip = block[blockIndex].iinstr + block[blockIndex].icount -1;
