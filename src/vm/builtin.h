@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 868 2004-01-10 20:12:10Z edwin $
+   $Id: builtin.h 879 2004-01-12 13:31:56Z twisti $
 
 */
 
@@ -53,23 +53,12 @@
 #define DBL_NEGINF  0xfff0000000000000LL
 
 
-/* some platforms do not have float versions of these functions */
+/* float versions are not defined in gnu classpath's fdlibm */
 
-#ifndef HAVE_COPYSIGNF
-#define copysignf copysign
-#endif
-
-#ifndef HAVE_FINITEF
-#define finitef finite
-#endif
-
-#ifndef HAVE_FMODF
-#define fmodf fmod
-#endif
-
-#ifndef HAVE_ISNANF
-#define isnanf isnan
-#endif
+#define copysignf    copysign
+#define finitef      finite
+#define fmodf        fmod
+#define isnanf       isnan
 
 
 /**********************************************************************/
