@@ -743,7 +743,7 @@ static char *proplist[MAXPROPS][2] = {
 	{ "user.dir",  NULL }, 
 	
 	{ "java.class.version", "45.3" },
-	{ "java.version", "cacao:0.2" },
+	{ "java.version", "cacao:0.3" },
 	{ "java.vendor", "CACAO Team" },
 	{ "java.vendor.url", "http://www.complang.tuwien.ac.at/java/cacao/" },
 	{ "os.arch", "Alpha" },
@@ -771,7 +771,7 @@ struct java_util_Properties* java_lang_System_initProperties (struct java_util_P
 	char buffer[BUFFERSIZE];
 	
 	proplist[0][1] = classpath;
-	proplist[1][1] = getenv("JAVAHOME");
+	proplist[1][1] = getenv("JAVA_HOME");
 	proplist[2][1] = getenv("HOME");
 	proplist[3][1] = getenv("USER");
 	proplist[4][1] = getcwd(buffer,BUFFERSIZE);
