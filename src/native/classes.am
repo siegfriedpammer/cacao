@@ -148,7 +148,8 @@ AWT_CLASSES = \
 	gnu.java.awt.peer.gtk.GtkContainerPeer \
 	gnu.java.awt.peer.gtk.GtkDialogPeer \
 	gnu.java.awt.peer.gtk.GtkEmbeddedWindowPeer \
-	gnu.java.awt.peer.gtk.GtkFontPeer \
+	gnu.java.awt.peer.gtk.GdkFontPeer \
+        gnu.java.awt.peer.gtk.GtkFontPeer \
 	gnu.java.awt.peer.gtk.GtkMenuComponentPeer \
 	gnu.java.awt.peer.gtk.GtkOffScreenImage 
 
