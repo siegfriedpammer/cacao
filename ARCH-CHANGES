@@ -56,3 +56,10 @@
     mips: done (codegen.c:1.26, codegen.h:1.12)
     powerpc: TODO
     x86_64: done (codegen.c:1.19, codegen.h:1.8)
+
+- machine-instr.h: Atomic operations for new locking implementation (stefan)
+    alpha: done (1.2)
+    i386: done (1.3)
+    mips: TODO
+    powerpc: TODO
+    x86_64: done (1.2)
