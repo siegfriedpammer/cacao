@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 966 2004-03-17 15:58:01Z twisti $
+   $Id: codegen.c 967 2004-03-18 14:29:03Z jowenn $
 
 */
 
@@ -444,6 +444,10 @@ void codegen()
 	(void) dseg_adds4(isleafmethod);                        /* IsLeaf         */
 	(void) dseg_adds4(savintregcnt - maxsavintreguse);      /* IntSave        */
 	(void) dseg_adds4(savfltregcnt - maxsavfltreguse);      /* FltSave        */
+
+	dseg_addlinenumbertablesize();
+
+
 	(void) dseg_adds4(exceptiontablelength);                /* ExTableSize    */
 
 	/* create exception table */

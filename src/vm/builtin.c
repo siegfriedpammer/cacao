@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 964 2004-03-15 14:52:43Z jowenn $
+   $Id: builtin.c 967 2004-03-18 14:29:03Z jowenn $
 
 */
 
@@ -1169,7 +1169,7 @@ void builtin_monitorenter(java_objectheader *o)
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	int hashValue;
 
-	log_text("Monitor enter");
+	/*log_text("Monitor enter");*/
 
 	assert(blockInts == 0);
 
@@ -1195,7 +1195,7 @@ void builtin_monitorexit (java_objectheader *o)
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	int hashValue;
 
-	log_text("Monitor leave");
+	/* log_text("Monitor leave"); */
 
 	assert(blockInts == 0);
 
