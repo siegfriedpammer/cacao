@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: codegen.inc.h 1621 2004-11-30 13:06:55Z twisti $
+   $Id: codegen.inc.h 1634 2004-12-01 09:57:34Z twisti $
 
 */
 
@@ -48,6 +48,7 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 
 #include "types.h"
 #include "vm/global.h"
+#include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/inline/inline.h"
 
