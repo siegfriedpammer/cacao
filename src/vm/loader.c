@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 915 2004-02-05 23:13:19Z edwin $
+   $Id: loader.c 916 2004-02-08 15:17:10Z edwin $
 
 */
 
@@ -2284,6 +2284,8 @@ void class_link(classinfo *c)
 				int j;
 				for (j = 0; j < sc->methodscount; j++) {
 					if (method_canoverwrite(m, &(sc->methods[j]))) {
+						if ((sc->methods[j].flags & ACC_PRIVATE) != 0)
+							goto notfoundvftblindex;
 						if ((sc->methods[j].flags & ACC_FINAL) != 0) {
 							log_utf(c->name);
 							log_utf(sc->name);
@@ -2297,6 +2299,7 @@ void class_link(classinfo *c)
 				}
 				sc = sc->super;
 			}
+		notfoundvftblindex:
 			m->vftblindex = (vftbllength++);
 		foundvftblindex: ;
 		}
