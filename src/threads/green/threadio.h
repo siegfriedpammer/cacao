@@ -16,8 +16,8 @@ int threadedConnect(int fd, struct sockaddr* addr, int len);
 int threadedAccept(int fd, struct sockaddr* addr, int* len);
 int threadedRead(int fd, char* buf, int len);
 int threadedWrite(int fd, char* buf, int len);
-int threadedRecvfrom(int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen);
-int threadedSendto(int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t addrlen);
+int threadedRecvfrom(int fd, void *buf, size_t len, int flags, struct sockaddr *addr, int *addrlen);
+int threadedSendto(int fd, void *buf, size_t len, int flags, struct sockaddr *addr, int addrlen);
 #else
 #define threadedFileDescriptor(fd)
 #define threadedRead(fd,buf,len)          read(fd,buf,len)

@@ -246,15 +246,15 @@ JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_createDirectory (JNIEnv *env , 
 JNIEXPORT s4 JNICALL Java_java_io_UnixFileSystem_rename (JNIEnv *env ,  struct java_io_UnixFileSystem* this , struct java_io_File* file, struct java_io_File* new)
 {
 
-#define MAXPATHLEN 200
+#define MAXJAVAPATHLEN 200
 
-	char newname[MAXPATHLEN];
+	char newname[MAXJAVAPATHLEN];
 	char *n; 
 	int err;
 
 	if (file && new) {
 	    n = javastring_tochar ( (java_objectheader*) (new->path) );
-	    if (strlen(n)>=MAXPATHLEN) return 0;
+	    if (strlen(n)>=MAXJAVAPATHLEN) return 0;
 	    strcpy (newname, n);
 	    n = javastring_tochar ( (java_objectheader*) (file->path) );
 	    err = rename (n, newname);

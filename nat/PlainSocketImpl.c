@@ -1,8 +1,8 @@
 /* class: java/net/PlainSocketImpl */
 
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <netinet/tcp.h>
-#include <ioctls.h>		/* a little linux-centric maybe?? (should be in autoconf) */
 
 /*
  * Class:     java/net/PlainSocketImpl

@@ -314,7 +314,7 @@ Java_java_net_PlainDatagramSocketImpl_socketGetOption (JNIEnv *env,
 		struct sockaddr_in sockaddr;
 		int size = sizeof(struct sockaddr_in);
 
-		if (getsockname(this->fd->fd, &sockaddr, &size) == -1)
+		if (getsockname(this->fd->fd, (struct sockaddr*) &sockaddr, &size) == -1)
 		{
 		    exceptionptr = native_new_and_init(class_java_net_SocketException);
 		    return 0;
