@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1919 2005-02-10 10:08:53Z twisti $
+   $Id: VMRuntime.c 1991 2005-03-05 16:50:28Z twisti $
 
 */
 
@@ -57,8 +57,6 @@
 #include "native/include/java_io_File.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Process.h"
-#include "native/include/java_util_Properties.h"     /* java_lang_VMRuntime.h */
-#include "native/include/java_lang_VMRuntime.h"
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
