@@ -10,7 +10,7 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 355 2003-06-07 06:46:30Z stefan $
+	Last Change: $Id: ngen.c 459 2003-09-16 10:52:43Z stefan $
 
 *******************************************************************************/
 
@@ -1278,11 +1278,11 @@ static void gen_mcode()
 			break;
 
 		case ICMD_LSHLCONST:  /* ..., value  ==> ..., value << constant       */
-		                      /* val.l = constant                             */
+		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_LSLL_IMM(s1, iptr->val.l, d);
+			M_LSLL_IMM(s1, iptr->val.i, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1296,11 +1296,11 @@ static void gen_mcode()
 			break;
 
 		case ICMD_LSHRCONST:  /* ..., value  ==> ..., value >> constant       */
-		                      /* val.l = constant                             */
+		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_LSRA_IMM(s1, iptr->val.l, d);
+			M_LSRA_IMM(s1, iptr->val.i, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1314,11 +1314,11 @@ static void gen_mcode()
 			break;
 
 		case ICMD_LUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
-		                      /* val.l = constant                             */
+		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_LSRL_IMM(s1, iptr->val.l, d);
+			M_LSRL_IMM(s1, iptr->val.i, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
