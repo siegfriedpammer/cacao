@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 862 2004-01-06 23:42:01Z stefan $
+   $Id: main.c 889 2004-01-19 12:18:14Z edwin $
 
 */
 
@@ -57,9 +57,11 @@
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
 #include "parseRTstats.h"
-#include "typeinfo.h" /* XXX remove debug */
 #include "nat/java_lang_Throwable.h"
 
+#ifdef TYPEINFO_DEBUG_TEST
+#include "typeinfo.h"
+#endif
 
 /* command line option */
 
@@ -542,6 +544,9 @@ void class_compile_methods()
 	}
 }
 
+#ifdef TYPECHECK_STATISTICS
+void typecheck_print_statistics(FILE *file);
+#endif
 
 /*
  * void exit_handler(void)
@@ -573,8 +578,12 @@ void exit_handler(void)
 
 	if (verbose || getcompilingtime || statistics) {
 		log_text("CACAO terminated");
-		if (statistics)
+		if (statistics) {
 			print_stats();
+#ifdef TYPECHECK_STATISTICS
+			typecheck_print_statistics(get_logfile());
+#endif
+		}
 		if (getcompilingtime)
 			print_times();
 		mem_usagelog(1);
