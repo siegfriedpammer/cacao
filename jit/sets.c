@@ -27,7 +27,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 601 2003-11-11 19:03:30Z carolyn $
+   $Id: sets.c 622 2003-11-13 13:57:18Z twisti $
 
 */
 
@@ -36,6 +36,8 @@
 #include "sets.h"
 #include "types.h"
 #include "global.h"
+#include "loader.h"
+#include "tables.h"
 #include "toolbox/memory.h"
 
 
@@ -139,10 +141,10 @@ fldSet *createFldSet( )
 /*------------------------------------------------------------*/
 /*-- methodinfo call set fns */
 /*------------------------------------------------------------*/
-int  inMethSet    (methSetNode *s, methodinfo *m)
+int inMethSet(methSetNode *s, methodinfo *m)
 {
 	methSetNode* i;
-	for (i=s; i != NULL; i = i->nextmethRef) {
+	for (i = s; i != NULL; i = i->nextmethRef) {
 		if (i->methRef == m) {
 			return (int)1; /* true = found */
 		}
@@ -219,12 +221,12 @@ methSet *createMethSet( )
 /*------------------------------------------------------------*/
 /*-- classinfo XTA set fns  */
 /*------------------------------------------------------------*/
-int  inSet    (classSetNode *s, classinfo *c)
+int inSet(classSetNode *s, classinfo *c)
 {
 	classSetNode* i;
-	for (i=s; i != NULL; i = i->nextClass) {
+	for (i = s; i != NULL; i = i->nextClass) {
 		if (i->classType == c) {
-			return  ((i->index)+1); /* true = found */
+			return  ((i->index) + 1); /* true = found */
 		}
 	}
 	return (int)0;
@@ -280,7 +282,7 @@ classSet *add2ClassSet(classSet *sc,  classinfo *c)
 
 
 /*------------------------------------------------------------*/
-classSet *createClassSet( )
+classSet *createClassSet()
 {
 	classSet *s;
 	s = NEW(classSet);
@@ -298,12 +300,12 @@ classSet *createClassSet( )
 /*     0  c class type cone does not overlap any set element  */
 /*     1  c is a superclass of an existing set element        */
 
-int inRange (classSetNode *s, classinfo *c)
+int inRange(classSetNode *s, classinfo *c)
 {
 	classSetNode* i;
-	int rc=0;
+	int rc = 0;
 
-	for (i=s; i != NULL; i = i->nextClass) {
+	for (i = s; i != NULL; i = i->nextClass) {
 		classinfo *cs = i->classType;
 		if (cs->vftbl->baseval <= c->vftbl->baseval) {
 			if (c->vftbl->baseval <= (cs->vftbl->baseval+cs->vftbl->diffval)) {
@@ -385,16 +387,16 @@ int printSet(classSetNode *s)
 	if (s == NULL) {
 		printf("Set of types: <");
 		printf("\t\tEmpty Set\n");
-	}
-	else 	{
+
+	} else {
 		printf("<%i>Set of types: ",s->index);
-		for (i=s; i != NULL; i = i->nextClass) {
+		for (i = s; i != NULL; i = i->nextClass) {
         	printf("\t#%i: ",cnt);
 			if (i->classType == NULL)  {
 				printf("NULL CLASS");
 				fflush(stdout);
-			}
-			else	{
+
+			} else {
 				utf_display(i->classType->name);
 				fflush(stdout); 
 				printf("<b%i/d%i> ",i->classType->vftbl->baseval,i->classType->vftbl->diffval); 
@@ -409,12 +411,13 @@ int printSet(classSetNode *s)
 
 
 /*------------------------------------------------------------*/
-int printClassSet(classSet *sc) {
+int printClassSet(classSet *sc)
+{
 	if (sc == NULL) {
 		printf("Class Set not yet created\n");
 		return 0;
-	}
-	else
+
+	} else 
 		return (printSet(sc->head));
 }
 
