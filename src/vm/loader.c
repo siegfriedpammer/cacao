@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 930 2004-03-02 21:18:23Z jowenn $
+   $Id: loader.c 940 2004-03-06 14:04:15Z jowenn $
 
 */
 
@@ -85,6 +85,7 @@ list linkedclasses;         /* list of all completely linked classes          */
 static utf *utf_innerclasses; 		/* InnerClasses            */
 static utf *utf_constantvalue; 		/* ConstantValue           */
 static utf *utf_code;			    /* Code                    */
+static utf *utf_exceptions;		/* Exceptions                    */
 static utf *utf_finalize;		    /* finalize                */
 static utf *utf_fidesc;   		    /* ()V changed             */
 static utf *utf_init;  		        /* <init>                  */
@@ -1045,7 +1046,7 @@ static void method_load(methodinfo *m, classinfo *c)
 #ifdef STATISTICS
 	count_all_methods++;
 #endif
-
+	m->thrownexceptionscount=0;
 	m->class = c;
 	
 	m->flags = suck_u2();
@@ -1122,6 +1123,18 @@ static void method_load(methodinfo *m, classinfo *c)
 		aname = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
 
 		if (aname != utf_code) {
+			if (aname == utf_exceptions) {
+				u2 exceptionCount;
+				u2 exceptionID;
+				suck_u4(); /*length*/
+				exceptionCount=suck_u2();
+				m->thrownexceptionscount=exceptionCount;
+				m->thrownexceptions=MNEW(classinfo*,exceptionCount);
+				for (exceptionID=0;exceptionID<exceptionCount;exceptionID++) {
+					(m->thrownexceptions)[exceptionID]=class_getconstant(c,suck_u2(),CONSTANT_Class);
+				}
+			}
+			else
 			skipattributebody();
 
 		} else {
@@ -2913,8 +2926,16 @@ void class_init(classinfo *c)
 	blockInts = 0;
 #endif
 
+
+                        native_stackframeinfo **info=builtin_asm_new_stackframeinfo();
+                        (*info)->method=m;
+                        (*info)->returnFromNative=0;
+                        (*info)->addrReturnFromNative=0;
+			log_text("cl_init");
+			utf_display(m->class->name);
 	/* now call the initializer */
 	asm_calljavafunction(m, NULL, NULL, NULL, NULL);
+                        *info=(*info)->prev;
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	assert(blockInts == 0);
@@ -3733,6 +3754,7 @@ void loader_init(u1 *stackbottom)
 	utf_innerclasses    = utf_new_char("InnerClasses");
 	utf_constantvalue   = utf_new_char("ConstantValue");
 	utf_code	        = utf_new_char("Code");
+	utf_exceptions	        = utf_new_char("Exceptions");
 	utf_finalize	    = utf_new_char("finalize");
 	utf_fidesc	        = utf_new_char("()V");
 	utf_init	        = utf_new_char("<init>");

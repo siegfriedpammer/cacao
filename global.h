@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 930 2004-03-02 21:18:23Z jowenn $
+   $Id: global.h 940 2004-03-06 14:04:15Z jowenn $
 
 */
 
@@ -567,6 +567,9 @@ struct methodinfo {                 /* method structure                       */
 
 	s4         exceptiontablelength;/* exceptiontable length                  */
 	exceptiontable *exceptiontable; 
+
+	u2	thrownexceptionscount;
+	classinfo **thrownexceptions;
                                     /* the exceptiontable                     */
 
 	u1        *stubroutine;         /* stub for compiling or calling natives  */	

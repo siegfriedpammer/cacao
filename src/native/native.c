@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 934 2004-03-05 23:20:53Z twisti $
+   $Id: native.c 940 2004-03-06 14:04:15Z jowenn $
 
 */
 
@@ -298,7 +298,6 @@ java_objectheader *new_exception(char *classname)
 
 	return native_new_and_init(c);
 }
-
 
 java_objectheader *new_exception_message(char *classname, char *message)
 {
@@ -1427,8 +1426,18 @@ java_objectarray* get_parametertypes(methodinfo *m)
 
 *******************************************************************************************/
 
-java_objectarray* get_exceptiontypes(methodinfo *m) 
-{
+java_objectarray* get_exceptiontypes(methodinfo *m) {
+    u2 exccount=m->thrownexceptionscount;
+    u2 i;
+    java_objectarray *result;
+    /* create class-array */
+    result = builtin_anewarray(exccount, class_java_lang_Class);
+    for (i=0;i<exccount;i++) {
+	java_objectheader *oh=(java_objectheader*)(m->thrownexceptions[i]);
+	use_class_as_object(oh);
+	result->data[i]=oh;
+    }
+    return result;
 }
 
 

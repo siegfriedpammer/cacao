@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Method.c 873 2004-01-11 20:59:29Z twisti $
+   $Id: Method.c 940 2004-03-06 14:04:15Z jowenn $
 
 */
 
@@ -102,20 +102,12 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getParameterTy
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTypes(JNIEnv *env, java_lang_reflect_Method *this)
 {
-#if 0
-	classinfo *c=(classinfo*)(this->declaringClass);
-	if ((this->slot<0) || (this->slot>=c->methodscount))
-		panic("error illegal slot for method in class(getParameterTypes)");
+	classinfo *c = (classinfo *) this->declaringClass;
+
+	if (this->slot < 0 || this->slot >= c->methodscount)
+		panic("error illegal slot for method in class(getExceptionTypes)");
+
 	return get_exceptiontypes(&(c->methods[this->slot]));
-
-#else
-	java_objectarray *exceptiontypes;
-
-	/* array of exceptions declared to be thrown, information not available !! */
-	exceptiontypes = builtin_anewarray(0, class_java_lang_Class);
-
-	return exceptiontypes;
-#endif
 
 }
 

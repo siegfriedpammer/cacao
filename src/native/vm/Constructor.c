@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Constructor.c 873 2004-01-11 20:59:29Z twisti $
+   $Id: Constructor.c 940 2004-03-06 14:04:15Z jowenn $
 
 */
 
@@ -132,6 +132,8 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 	  log_text("calling constructor");*/
 	(void) jni_method_invokeNativeHelper(env, m ,o, parameters); 
 
+	log_text("Java_java_lang_reflect_Constructor: returning object");
+
 	return (java_lang_Object *) o;
 }
 
@@ -147,7 +149,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiers(JNIEnv *env
 	classinfo *c = (classinfo *) (this->clazz);
 
 	if ((this->slot < 0) || (this->slot >= c->methodscount))
-		panic("error illegal slot for method in class (getReturnType)");
+		panic("error illegal slot for constructor in class (getModifiers)");
 
 	return (c->methods[this->slot]).flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED);
 }
