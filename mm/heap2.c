@@ -247,7 +247,7 @@ heap_close (void)
 	dolog();
 #endif
 
-	if (gc_finalizers_detected != gc_finalizers_executed)
+	if (gc_finalizers_detected == gc_finalizers_executed)
 		sprintf(logtext, "    all finalizers executed.");
 	else
 		sprintf(logtext, "    only %ld finalizers executed.", gc_finalizers_executed);
