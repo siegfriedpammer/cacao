@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2225 2005-04-05 20:51:01Z edwin $
+   $Id: resolve.c 2227 2005-04-05 23:00:37Z edwin $
 
 */
 
@@ -73,6 +73,7 @@ bool
 resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 			  utf *classname,
 			  resolve_mode_t mode,
+			  bool link,
 			  classinfo **result)
 {
 	classinfo *cls = NULL;
@@ -117,7 +118,7 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 					/* resolve the component type */
 					if (!resolve_class_from_name(referer,refmethod,
 									   utf_new(utf_ptr,len),
-									   mode,&cls))
+									   mode,link,&cls))
 						return false; /* exception */
 					if (!cls) {
 						RESOLVE_ASSERT(mode == resolveLazy);
@@ -159,6 +160,14 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,
 				"class is not accessible XXX add message");
 		return false; /* exception */
+	}
+
+	/* link the class if necessary */
+	if (link) {
+		if (!cls->linked)
+			if (!link_class(cls))
+				return false; /* exception */
+		RESOLVE_ASSERT(cls->linked);
 	}
 
 	/* resolution succeeds */
@@ -203,7 +212,7 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 	if (IS_CLASSREF(cls)) {
 		/* we must resolve this reference */
 		if (!resolve_class_from_name(cls.ref->referer,refmethod,cls.ref->name,
-						   			mode,&c))
+						   			mode,link,&c))
 			return false; /* exception */
 	}
 	else {
@@ -476,7 +485,7 @@ resolve_field(unresolved_field *ref,
 
 	/* first we must resolve the class containg the field */
 	if (!resolve_class_from_name(referer,ref->referermethod,
-					   ref->fieldref->classref->name,mode,&container))
+					   ref->fieldref->classref->name,mode,true,&container))
 	{
 		/* the class reference could not be resolved */
 		return false; /* exception */
@@ -628,7 +637,7 @@ resolve_method(unresolved_method *ref,
 
 	/* first we must resolve the class containg the method */
 	if (!resolve_class_from_name(referer,ref->referermethod,
-					   ref->methodref->classref->name,mode,&container))
+					   ref->methodref->classref->name,mode,true,&container))
 	{
 		/* the class reference could not be resolved */
 		return false; /* exception */

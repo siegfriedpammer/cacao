@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 2217 2005-04-05 10:26:33Z edwin $
+   $Id: resolve.h 2227 2005-04-05 23:00:37Z edwin $
 
 */
 
@@ -122,6 +122,8 @@ struct unresolved_method {
                             resolveLazy...only resolve if it does not
                                           require loading classes
                             resolveEager..load classes if necessary
+	   link.............if true, guarantee that the returned class, if any,
+	                    has been linked
   
    OUT:
        *result..........set to result of resolution, or to NULL if
@@ -144,6 +146,7 @@ bool
 resolve_class_from_name(classinfo* referer,methodinfo *refmethod,
 			  			utf *classname,
 			  			resolve_mode_t mode,
+						bool link,
 			  			classinfo **result);
 
 /* resolve_classref ************************************************************
