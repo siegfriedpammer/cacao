@@ -407,10 +407,12 @@ icmd_iconst_tail:
 										iptr[0].opc = ICMD_IDIVPOW2;
 										goto icmd_iconst_tail;
 									case ICMD_IREM:
+#ifndef __I386__
 										if (iptr[0].val.i == 0x10001) {
 											iptr[0].opc = ICMD_IREM0X10001;
 											goto icmd_iconst_tail;
 											}
+#endif
 										if ((iptr[0].val.i == 0x00000002) ||
 										    (iptr[0].val.i == 0x00000004) ||
 										    (iptr[0].val.i == 0x00000008) ||
@@ -466,6 +468,15 @@ icmd_iconst_tail:
 									case ICMD_IUSHR:
 										iptr[0].opc = ICMD_IUSHRCONST;
 										goto icmd_iconst_tail;
+  									case ICMD_LSHL:
+  										iptr[0].opc = ICMD_LSHLCONST;
+ 										goto icmd_lconst_tail;
+  									case ICMD_LSHR:
+  										iptr[0].opc = ICMD_LSHRCONST;
+										goto icmd_lconst_tail;
+									case ICMD_LUSHR:
+										iptr[0].opc = ICMD_LUSHRCONST;
+										goto icmd_lconst_tail;
 									case ICMD_IF_ICMPEQ:
 										iptr[0].opc = ICMD_IFEQ;
 icmd_if_icmp_tail:
@@ -590,10 +601,12 @@ icmd_lconst_tail:
 										iptr[0].opc = ICMD_LDIVPOW2;
 										goto icmd_lconst_tail;
 									case ICMD_LREM:
+#ifndef __I386__
 										if (iptr[0].val.l == 0x10001) {
 											iptr[0].opc = ICMD_LREM0X10001;
 											goto icmd_lconst_tail;
 											}
+#endif
 										if ((iptr[0].val.l == 0x00000002) ||
 										    (iptr[0].val.l == 0x00000004) ||
 										    (iptr[0].val.l == 0x00000008) ||
@@ -639,15 +652,6 @@ icmd_lconst_tail:
 										goto icmd_lconst_tail;
 									case ICMD_LXOR:
 										iptr[0].opc = ICMD_LXORCONST;
-										goto icmd_lconst_tail;
-									case ICMD_LSHL:
-										iptr[0].opc = ICMD_LSHLCONST;
-										goto icmd_lconst_tail;
-									case ICMD_LSHR:
-										iptr[0].opc = ICMD_LSHRCONST;
-										goto icmd_lconst_tail;
-									case ICMD_LUSHR:
-										iptr[0].opc = ICMD_LUSHRCONST;
 										goto icmd_lconst_tail;
 									case ICMD_LCMP:
 										if ((len > 1) && (iptr[2].val.i == 0)) {
@@ -1849,6 +1853,9 @@ static void show_icmd_method()
 				case ICMD_ISHLCONST:
 				case ICMD_ISHRCONST:
 				case ICMD_IUSHRCONST:
+				case ICMD_LSHLCONST:
+				case ICMD_LSHRCONST:
+				case ICMD_LUSHRCONST:
 				case ICMD_ICONST:
 				case ICMD_ELSE_ICONST:
 				case ICMD_IFEQ_ICONST:
@@ -1867,11 +1874,12 @@ static void show_icmd_method()
 				case ICMD_LANDCONST:
 				case ICMD_LORCONST:
 				case ICMD_LXORCONST:
-				case ICMD_LSHLCONST:
-				case ICMD_LSHRCONST:
-				case ICMD_LUSHRCONST:
 				case ICMD_LCONST:
+#ifdef __I386__
+					printf(" %lld", iptr->val.l);
+#else
 					printf(" %ld", iptr->val.l);
+#endif
 					break;
 				case ICMD_FCONST:
 					printf(" %f", iptr->val.f);
