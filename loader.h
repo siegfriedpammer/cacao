@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1184 2004-06-19 12:21:06Z twisti $
+   $Id: loader.h 1296 2004-07-10 17:02:15Z stefan $
 */
 
 
@@ -92,7 +92,7 @@ extern utf *utf_fillInStackTrace_desc;
 extern classinfo *pseudo_class_Arraystub;
 extern classinfo *pseudo_class_Null;
 extern classinfo *pseudo_class_New;
-extern vftbl *pseudo_class_Arraystub_vftbl;
+extern vftbl_t *pseudo_class_Arraystub_vftbl;
 
 extern utf *array_packagename;
 

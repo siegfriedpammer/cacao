@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1271 2004-07-03 10:35:42Z stefan $
+   $Id: builtin.h 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -151,11 +151,11 @@ s4 builtin_instanceof(java_objectheader *obj, classinfo *class);
 #define BUILTIN_instanceof (functionptr) builtin_instanceof
 s4 builtin_isanysubclass (classinfo *sub, classinfo *super);
 /* NOT AN OP */
-s4 builtin_isanysubclass_vftbl (vftbl *sub, vftbl *super);
+s4 builtin_isanysubclass_vftbl (vftbl_t *sub, vftbl_t *super);
 /* NOT AN OP */
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
 /* NOT AN OP */
-s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl *target);
+s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl_t *target);
 #define BUILTIN_arrayinstanceof (functionptr) builtin_arrayinstanceof
 
 #if defined(__I386__)
@@ -164,9 +164,9 @@ s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class); /* XXX
 #define BUILTIN_arrayinstanceof (functionptr) asm_builtin_arrayinstanceof
 #endif
 
-s4 builtin_checkarraycast(java_objectheader *obj, vftbl *target);
+s4 builtin_checkarraycast(java_objectheader *obj, vftbl_t *target);
 /* NOT AN OP */
-s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl *target);
+s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl_t *target);
 #define BUILTIN_checkarraycast (functionptr) asm_builtin_checkarraycast
 
 java_objectheader *builtin_throw_exception(java_objectheader *exception);
@@ -189,13 +189,13 @@ java_objectheader *asm_builtin_new(classinfo *c);
 #define BUILTIN_new (functionptr) builtin_new
 #endif
 
-java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl);
+java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl);
 #define BUILTIN_newarray (functionptr) builtin_newarray
 java_objectarray *builtin_anewarray(s4 size, classinfo *component);
 /* NOT AN OP */
 
 #if defined(__I386__)
-void asm_builtin_newarray(s4 size, vftbl *arrayvftbl);
+void asm_builtin_newarray(s4 size, vftbl_t *arrayvftbl);
 #undef  BUILTIN_newarray
 #define BUILTIN_newarray (functionptr) asm_builtin_newarray
 #endif
@@ -216,7 +216,7 @@ java_intarray *builtin_newarray_int(s4 size);
 #define BUILTIN_newarray_int (functionptr) builtin_newarray_int
 java_longarray *builtin_newarray_long(s4 size);
 #define BUILTIN_newarray_long (functionptr) builtin_newarray_long
-java_arrayheader *builtin_nmultianewarray(int n, vftbl *arrayvftbl, long *dims);
+java_arrayheader *builtin_nmultianewarray(int n, vftbl_t *arrayvftbl, long *dims);
 /*  java_arrayheader *builtin_nmultianewarray(int n, classinfo *arrayclass, long *dims); */
 /* NOT AN OP */
 

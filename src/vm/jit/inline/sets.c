@@ -27,7 +27,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 665 2003-11-21 18:36:43Z jowenn $
+   $Id: sets.c 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -354,8 +354,8 @@ classSetNode * intersectSubtypesWithSet(classinfo *t, classSetNode *s) {
 
 	/* for each s class */
 	for (c=s; c != NULL; c = c->nextClass) {
-		vftbl *t_cl_vt = t->vftbl;
-		vftbl *c_cl_vt = c->classType->vftbl;
+		vftbl_t *t_cl_vt = t->vftbl;
+		vftbl_t *c_cl_vt = c->classType->vftbl;
 
 		/* if s class is in the t Class range */
 		if (  (t_cl_vt->baseval <=  c_cl_vt->baseval)

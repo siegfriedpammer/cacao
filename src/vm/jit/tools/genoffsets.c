@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: genoffsets.c 1221 2004-06-30 19:12:01Z twisti $
+   $Id: genoffsets.c 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -49,10 +49,10 @@ int main(int argc, char **argv)
 	printf("#define offarraysize          %3d\n", (s4) OFFSET(java_arrayheader, size));
 	printf("#define offobjarrdata         %3d\n\n", (s4) OFFSET(java_objectarray, data[0]));
 
-	printf("#define offbaseval            %3d\n", (s4) OFFSET(vftbl, baseval));
-	printf("#define offdiffval            %3d\n\n", (s4) OFFSET(vftbl, diffval));
+	printf("#define offbaseval            %3d\n", (s4) OFFSET(vftbl_t, baseval));
+	printf("#define offdiffval            %3d\n\n", (s4) OFFSET(vftbl_t, diffval));
 
-	printf("#define offclass              %3d\n\n", (s4) OFFSET(vftbl, class));
+	printf("#define offclass              %3d\n\n", (s4) OFFSET(vftbl_t, class));
 
 	printf("#define offclassvftbl         %3d\n", (s4) OFFSET(classinfo, vftbl));
 	printf("#define offclassinit          %3d\n", (s4) OFFSET(classinfo, initialized));

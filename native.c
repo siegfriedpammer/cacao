@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1269 2004-07-03 10:31:02Z stefan $
+   $Id: native.c 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -1354,7 +1354,7 @@ void literalstring_free(java_objectheader* sobj)
 }
 
 
-void copy_vftbl(vftbl **dest, vftbl *src)
+void copy_vftbl(vftbl_t **dest, vftbl_t *src)
 {
     *dest = src;
 #if 0

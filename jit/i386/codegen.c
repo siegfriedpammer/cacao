@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1270 2004-07-03 10:32:02Z stefan $
+   $Id: codegen.c 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -3926,7 +3926,7 @@ gen_method: {
 					i386_mov_membase_reg(REG_SP, 0, REG_ITMP1);
 					gen_nullptr_check(REG_ITMP1);
 					i386_mov_membase_reg(REG_ITMP1, OFFSET(java_objectheader, vftbl), REG_ITMP2);
-					i386_mov_membase32_reg(REG_ITMP2, OFFSET(vftbl, table[0]) + sizeof(methodptr) * lm->vftblindex, REG_ITMP1);
+					i386_mov_membase32_reg(REG_ITMP2, OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * lm->vftblindex, REG_ITMP1);
 
 					i386_call_reg(REG_ITMP1);
 					break;
@@ -3939,7 +3939,7 @@ gen_method: {
 					i386_mov_membase_reg(REG_SP, 0, REG_ITMP1);
 					gen_nullptr_check(REG_ITMP1);
 					i386_mov_membase_reg(REG_ITMP1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - sizeof(methodptr) * ci->index, REG_ITMP2);
+					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * ci->index, REG_ITMP2);
 					i386_mov_membase32_reg(REG_ITMP2, sizeof(methodptr) * (lm - ci->methods), REG_ITMP1);
 
 					i386_call_reg(REG_ITMP1);
@@ -4024,7 +4024,7 @@ gen_method: {
 					CALCOFFSETBYTES(a, s1, OFFSET(java_objectheader, vftbl));
 
 					a += 2;
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 					
 					a += 2;
 /*  					CALCOFFSETBYTES(a, super->index); */
@@ -4034,7 +4034,7 @@ gen_method: {
 					a += 6;
 
 					a += 2;
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*));
 
 					a += 3;
 
@@ -4044,7 +4044,7 @@ gen_method: {
 					i386_jcc(I386_CC_E, a);
 
 					i386_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetablelength), REG_ITMP2);
+					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl_t, interfacetablelength), REG_ITMP2);
 					i386_alu_imm_reg(I386_SUB, super->index, REG_ITMP2);
 					/* TODO: test */
 					i386_alu_imm_reg(I386_CMP, 0, REG_ITMP2);
@@ -4052,7 +4052,7 @@ gen_method: {
 					/* TODO: clean up this calculation */
 					a = 0;
 					a += 2;
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*));
 
 					a += 3;
 
@@ -4060,7 +4060,7 @@ gen_method: {
 					a += 5;
 
 					i386_jcc(I386_CC_LE, a);
-					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*), REG_ITMP1);
+					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*), REG_ITMP1);
 					/* TODO: test */
 					i386_alu_imm_reg(I386_CMP, 0, REG_ITMP1);
 /*  					i386_setcc_reg(I386_CC_A, d); */
@@ -4077,12 +4077,12 @@ gen_method: {
 					CALCOFFSETBYTES(a, s1, OFFSET(java_objectheader, vftbl));
 					a += 5;
 					a += 2;
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, baseval));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, baseval));
 					a += 2;
-					CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl, baseval));
+					CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					
 					a += 2;
-					CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl, diffval));
+					CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, diffval));
 					
 					a += 2;
 					a += 2;    /* xor */
@@ -4099,9 +4099,9 @@ gen_method: {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstart(mcodeptr - mcodebase);
 #endif
-					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
-					i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
-					i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
+					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl_t, baseval), REG_ITMP1);
+					i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl_t, baseval), REG_ITMP3);
+					i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl_t, diffval), REG_ITMP2);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstop(mcodeptr - mcodebase);
 #endif
@@ -4154,7 +4154,7 @@ gen_method: {
 					CALCOFFSETBYTES(a, s1, OFFSET(java_objectheader, vftbl));
 
 					a += 2;
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 
 					a += 2;
 /*  					CALCOFFSETBYTES(a, super->index); */
@@ -4164,7 +4164,7 @@ gen_method: {
 					a += 6;
 
 					a += 2;
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*));
 
 					a += 3;
 					a += 6;
@@ -4172,13 +4172,13 @@ gen_method: {
 					i386_jcc(I386_CC_E, a);
 
 					i386_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetablelength), REG_ITMP2);
+					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl_t, interfacetablelength), REG_ITMP2);
 					i386_alu_imm_reg(I386_SUB, super->index, REG_ITMP2);
 					/* TODO: test */
 					i386_alu_imm_reg(I386_CMP, 0, REG_ITMP2);
 					i386_jcc(I386_CC_LE, 0);
 					codegen_addxcastrefs(mcodeptr);
-					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - super->index * sizeof(methodptr*), REG_ITMP2);
+					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl_t, interfacetable[0]) - super->index * sizeof(methodptr*), REG_ITMP2);
 					/* TODO: test */
 					i386_alu_imm_reg(I386_CMP, 0, REG_ITMP2);
 					i386_jcc(I386_CC_E, 0);
@@ -4194,27 +4194,27 @@ gen_method: {
 					a += 5;
 
 					a += 2;
-					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl, baseval));
+					CALCOFFSETBYTES(a, REG_ITMP1, OFFSET(vftbl_t, baseval));
 
 					if (d != REG_ITMP3) {
 						a += 2;
-						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl, baseval));
+						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, baseval));
 						
 						a += 2;
-						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl, diffval));
+						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, diffval));
 
 						a += 2;
 						
 					} else {
 						a += 2;
-						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl, baseval));
+						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, baseval));
 
 						a += 2;
 
 						a += 5;
 
 						a += 2;
-						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl, diffval));
+						CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, diffval));
 					}
 
 					a += 2;
@@ -4228,20 +4228,20 @@ gen_method: {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstart(mcodeptr - mcodebase);
 #endif
-					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
+					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl_t, baseval), REG_ITMP1);
 					if (d != REG_ITMP3) {
-						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
-						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
+						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl_t, baseval), REG_ITMP3);
+						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl_t, diffval), REG_ITMP2);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 						codegen_threadcritstop(mcodeptr - mcodebase);
 #endif
 						i386_alu_reg_reg(I386_SUB, REG_ITMP3, REG_ITMP1);
 
 					} else {
-						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP2);
+						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl_t, baseval), REG_ITMP2);
 						i386_alu_reg_reg(I386_SUB, REG_ITMP2, REG_ITMP1);
 						i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
-						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
+						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl_t, diffval), REG_ITMP2);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 						codegen_threadcritstop(mcodeptr - mcodebase);
 #endif
@@ -4640,7 +4640,7 @@ gen_method: {
 /*get the fillInStackTrace Method ID. I simulate a native call here, because I do not want to mess around with the
 java stack at this point*/
 			i386_mov_membase_reg(REG_ITMP1_XPTR, OFFSET(java_objectheader, vftbl), REG_ITMP3);
-			i386_mov_membase_reg(REG_ITMP3, OFFSET(vftbl,class), REG_ITMP1);
+			i386_mov_membase_reg(REG_ITMP3, OFFSET(vftbl_t,class), REG_ITMP1);
 			i386_push_imm(utf_fillInStackTrace_desc);
 			i386_push_imm(utf_fillInStackTrace_name);
 			i386_push_reg(REG_ITMP1);

@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1273 2004-07-04 11:12:11Z stefan $
+   $Id: typecheck.c 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -1659,7 +1659,7 @@ methodinfo *typecheck(methodinfo *m)
                           
                       case ICMD_MULTIANEWARRAY:
 						  {
-							  vftbl *arrayvftbl;
+							  vftbl_t *arrayvftbl;
 							  arraydescriptor *desc;
 							  
 							  /* check the array lengths on the stack */
@@ -1675,7 +1675,7 @@ methodinfo *typecheck(methodinfo *m)
 							  }
 							  
 							  /* check array descriptor */
-							  arrayvftbl = (vftbl*) iptr[0].val.a;
+							  arrayvftbl = (vftbl_t*) iptr[0].val.a;
 							  if (!arrayvftbl)
 								  panic("MULTIANEWARRAY with unlinked class");
 							  if ((desc = arrayvftbl->arraydesc) == NULL)
@@ -1717,11 +1717,11 @@ methodinfo *typecheck(methodinfo *m)
 						  TYPECHECK_COUNT(stat_ins_builtin);
                           if (ISBUILTIN(BUILTIN_newarray))
                           {
-							  vftbl *vft;
+							  vftbl_t *vft;
 							  TYPECHECK_INT(curstack->prev);
                               if (iptr[-1].opc != ICMD_ACONST)
                                   panic("illegal instruction: builtin_newarray without classinfo");
-							  vft = (vftbl *)iptr[-1].val.a;
+							  vft = (vftbl_t *)iptr[-1].val.a;
 							  if (!vft)
 								  panic("ANEWARRAY with unlinked class");
 							  if (!vft->arraydesc)
@@ -1730,22 +1730,22 @@ methodinfo *typecheck(methodinfo *m)
                           }
                           else if (ISBUILTIN(BUILTIN_arrayinstanceof))
                           {
-							  vftbl *vft;
+							  vftbl_t *vft;
 							  TYPECHECK_ADR(curstack->prev);
                               if (iptr[-1].opc != ICMD_ACONST)
                                   panic("illegal instruction: builtin_arrayinstanceof without classinfo");
-							  vft = (vftbl *)iptr[-1].val.a;
+							  vft = (vftbl_t *)iptr[-1].val.a;
 							  if (!vft)
 								  panic("INSTANCEOF with unlinked class");
 							  if (!vft->arraydesc)
 								  panic("internal error: builtin_arrayinstanceof with non-array class");
 						  }
                           else if (ISBUILTIN(BUILTIN_checkarraycast)) {
-							  vftbl *vft;
+							  vftbl_t *vft;
 							  TYPECHECK_ADR(curstack->prev);
                               if (iptr[-1].opc != ICMD_ACONST)
                                   panic("illegal instruction: BUILTIN_checkarraycast without classinfo");
-							  vft = (vftbl *)iptr[-1].val.a;
+							  vft = (vftbl_t *)iptr[-1].val.a;
 							  if (!vft)
 								  panic("CHECKCAST with unlinked class");
 							  if (!vft->arraydesc)

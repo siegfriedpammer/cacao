@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1239 2004-06-30 20:06:24Z twisti $
+   $Id: native.h 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -232,7 +232,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 /* dispose a javastring */
 void literalstring_free(java_objectheader*);
 
-void copy_vftbl(vftbl **dest, vftbl *src);
+void copy_vftbl(vftbl_t **dest, vftbl_t *src);
 
 utf *create_methodsig(java_objectarray* types, char *retType);
 classinfo *get_type(char **utf_ptr,char *desc_end, bool skip);

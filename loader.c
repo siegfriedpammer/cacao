@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1237 2004-06-30 19:54:59Z twisti $
+   $Id: loader.c 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -113,7 +113,7 @@ classinfo *class_java_io_Serializable;
 classinfo *pseudo_class_Arraystub = NULL;
 classinfo *pseudo_class_Null = NULL;
 classinfo *pseudo_class_New = NULL;
-vftbl *pseudo_class_Arraystub_vftbl = NULL;
+vftbl_t *pseudo_class_Arraystub_vftbl = NULL;
 
 utf *array_packagename = NULL;
 
@@ -2430,7 +2430,7 @@ static void class_addinterface(classinfo *c, classinfo *ic)
 {
 	s4     j, m;
 	s4     i     = ic->index;
-	vftbl *vftbl = c->vftbl;
+	vftbl_t *vftbl = c->vftbl;
 
 	if (i >= vftbl->interfacetablelength)
 		panic ("Inernal error: interfacetable overflow");
@@ -2584,7 +2584,7 @@ static arraydescriptor *class_link_array(classinfo *c)
 	classinfo *comp = NULL;
 	s4 namelen = c->name->blength;
 	arraydescriptor *desc;
-	vftbl *compvftbl;
+	vftbl_t *compvftbl;
 
 	/* Check the component type */
 	switch (c->name->text[1]) {
@@ -2780,7 +2780,7 @@ static classinfo *class_link_intern(classinfo *c)
 	s4 interfacetablelength;      /* interface table length                   */
 	classinfo *super = c->super;  /* super class                              */
 	classinfo *ic, *c2;           /* intermediate class variables             */
-	vftbl *v;                     /* vftbl of current class                   */
+	vftbl_t *v;                   /* vftbl of current class                   */
 	s4 i;                         /* interface/method/field counter           */
 	arraydescriptor *arraydesc = NULL;  /* descriptor for array classes       */
 
@@ -2919,7 +2919,7 @@ static classinfo *class_link_intern(classinfo *c)
 #ifdef STATISTICS
 	if (opt_stat)
 		count_vftbl_len +=
-			sizeof(vftbl) + (sizeof(methodptr) * (vftbllength - 1));
+			sizeof(vftbl_t) + (sizeof(methodptr) * (vftbllength - 1));
 #endif
 
 	/* compute interfacetable length */
@@ -2937,10 +2937,10 @@ static classinfo *class_link_intern(classinfo *c)
 
 	/* allocate virtual function table */
 
-	v = (vftbl*) mem_alloc(sizeof(vftbl) + sizeof(methodptr) *
+	v = (vftbl_t*) mem_alloc(sizeof(vftbl_t) + sizeof(methodptr) *
 						   (vftbllength - 1) + sizeof(methodptr*) *
 						   (interfacetablelength - (interfacetablelength > 0)));
-	v = (vftbl*) (((methodptr*) v) + (interfacetablelength - 1) *
+	v = (vftbl_t*) (((methodptr*) v) + (interfacetablelength - 1) *
 				  (interfacetablelength > 1));
 	c->header.vftbl = c->vftbl = v;
 /*  	utf_display_classname(c->name);printf(", c->header.vftbl=%p\n", c->header.vftbl); */
@@ -3096,7 +3096,7 @@ static void class_freecpool(classinfo *c)
 void class_free(classinfo *c)
 {
 	s4 i;
-	vftbl *v;
+	vftbl_t *v;
 		
 	class_freecpool(c);
 
@@ -3124,10 +3124,10 @@ void class_free(classinfo *c)
 		}
 		MFREE(v->interfacevftbllength, s4, v->interfacetablelength);
 
-		i = sizeof(vftbl) + sizeof(methodptr) * (v->vftbllength - 1) +
+		i = sizeof(vftbl_t) + sizeof(methodptr) * (v->vftbllength - 1) +
 		    sizeof(methodptr*) * (v->interfacetablelength -
 		                         (v->interfacetablelength > 0));
-		v = (vftbl*) (((methodptr*) v) - (v->interfacetablelength - 1) *
+		v = (vftbl_t*) (((methodptr*) v) - (v->interfacetablelength - 1) *
 	                                     (v->interfacetablelength > 1));
 		mem_free(v, i);
 	}

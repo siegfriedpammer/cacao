@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1230 2004-06-30 19:41:23Z twisti $
+   $Id: global.h 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -47,6 +47,7 @@
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 #include <pthread.h>
+#include <semaphore.h>
 #endif
 
 #define STATISTICS          /* if enabled collects program statistics         */
@@ -187,7 +188,7 @@ typedef struct utf utf;
 typedef struct literalstring literalstring;
 typedef struct java_objectheader java_objectheader; 
 typedef struct classinfo classinfo; 
-typedef struct vftbl vftbl;
+typedef struct _vftbl vftbl_t;
 typedef u1* methodptr;
 typedef struct fieldinfo  fieldinfo; 
 typedef struct exceptiontable exceptiontable;
@@ -379,9 +380,9 @@ typedef struct {            /* NameAndType (Field or Method)                  */
 */
 
 struct java_objectheader {              /* header for all objects             */
-	vftbl *vftbl;                       /* pointer to virtual function table  */
+	vftbl_t *vftbl;                     /* pointer to virtual function table  */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	long monitorBits;
+	void *monitorPtr;
 #endif
 };
 
@@ -483,7 +484,7 @@ typedef struct primitivetypeinfo {
 	char      *name;                     /* name of primitive class           */
 	char      *arrayname;                /* name of primitive array class     */
 	classinfo *arrayclass;               /* primitive array class             */
-	vftbl     *arrayvftbl;               /* vftbl of primitive array class    */
+	vftbl_t     *arrayvftbl;             /* vftbl of primitive array class    */
 } primitivetypeinfo;
 
 
@@ -683,7 +684,7 @@ struct classinfo {                /* class structure                          */
 									 allocation size on the heap              */
 #endif
 
-	vftbl      *vftbl;            /* pointer to virtual function table        */
+	vftbl_t      *vftbl;          /* pointer to virtual function table        */
 
 	methodinfo *finalizer;        /* finalizer method                         */
 
@@ -761,7 +762,7 @@ struct classinfo {                /* class structure                          */
 
 *******************************************************************************/
 
-struct vftbl {
+struct _vftbl {
 	methodptr   *interfacetable[1];    /* interface table (access via macro)  */
 
 	classinfo   *class;                /* class, the vtbl belongs to          */
@@ -793,8 +794,8 @@ struct vftbl {
 *******************************************************************************/
 
 struct arraydescriptor {
-	vftbl *componentvftbl;   /* vftbl of the component type, NULL for primit. */
-	vftbl *elementvftbl;     /* vftbl of the element type, NULL for primitive */
+	vftbl_t *componentvftbl; /* vftbl of the component type, NULL for primit. */
+	vftbl_t *elementvftbl;   /* vftbl of the element type, NULL for primitive */
 	short  arraytype;        /* ARRAYTYPE_* constant                          */
 	short  dimension;        /* dimension of the array (always >= 1)          */
     s4     dataoffset;       /* offset of the array data from object pointer  */

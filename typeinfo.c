@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 1191 2004-06-19 12:46:00Z twisti $
+   $Id: typeinfo.c 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -753,7 +753,7 @@ typedescriptors_init_from_method_args(typedescriptor *td,
 void
 typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 {
-    vftbl *comp = NULL;
+    vftbl_t *comp = NULL;
 
     if (TYPEINFO_IS_NULLTYPE(*srcarray)) {
         TYPEINFO_INIT_NULLTYPE(*dst);

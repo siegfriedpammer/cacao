@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1235 2004-06-30 19:52:18Z twisti $
+   $Id: parseRT.c 1296 2004-07-10 17:02:15Z stefan $
 
 Changes:
 opcode put into functions
@@ -359,8 +359,8 @@ bool xtaPassParams (methodinfo *SmCalled, methodinfo *SmCalls, methSetNode *last
 
 		/* for each SmCalls class */
 		for (c=c1; c != NULL; c = c->nextClass) {
-			vftbl *p_cl_vt = p->classType->vftbl; 
-			vftbl *c_cl_vt = c->classType->vftbl; 
+			vftbl_t *p_cl_vt = p->classType->vftbl; 
+			vftbl_t *c_cl_vt = c->classType->vftbl; 
 
 			/* if SmCalls class is in the Params Class range */
 			if (  (p_cl_vt->baseval <=  c_cl_vt->baseval)
@@ -432,8 +432,8 @@ bool xtaPassReturnType(methodinfo *SmCalled, methodinfo *SmCalls) {
 		cs1 =  SmCalled->xta->XTAclassSet->head;
 	for (cs =cs1; cs != NULL; cs = cs->nextClass) {
 		classinfo *c = cs->classType;
-		vftbl *r_cl_vt = SmCalled->returnclass->vftbl; 
-		vftbl *c_cl_vt = c->vftbl; 
+		vftbl_t *r_cl_vt = SmCalled->returnclass->vftbl; 
+		vftbl_t *c_cl_vt = c->vftbl; 
 
 		/* if class is a subtype of the return type, then add to SmCalls class set (ie.interscection)*/
 		if (  (r_cl_vt->baseval <=  r_cl_vt->baseval)
@@ -1044,8 +1044,8 @@ void xtaPassFldPUT(fldSetNode *fN)
 	/* Sx = intersection of type+subtypes(field x)   */
 	/*   and Sm (where putstatic code is)            */
 	for (c=c1; c != NULL; c=c->nextClass) {
-		vftbl *f_cl_vt = fi->xta->fldClassType->vftbl;
-		vftbl *c_cl_vt =  c->   classType->vftbl;
+		vftbl_t *f_cl_vt = fi->xta->fldClassType->vftbl;
+		vftbl_t *c_cl_vt =  c->   classType->vftbl;
 		if (XTAfld >=2 ) {
 			printf("\tXTA class = ");fflush(stdout);
 			utf_display(c->classType->name);

@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1231 2004-06-30 19:42:17Z twisti $
+   $Id: parse.c 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -888,7 +888,7 @@ methodinfo *parse(methodinfo *m)
 			m->isleafmethod = false;
 			i = code_get_u2(p + 1);
 			{
-				vftbl *arrayvftbl;
+				vftbl_t *arrayvftbl;
 				s4 v = code_get_u1(p + 3);
 
 				

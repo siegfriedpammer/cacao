@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1283 2004-07-07 15:55:24Z twisti $
+   $Id: stack.c 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -2700,9 +2700,9 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_MULTIANEWARRAY:
 		{
-			vftbl *vft;
+			vftbl_t *vft;
 			printf(" %d ",iptr->op1);
-			vft = (vftbl *)iptr->val.a;
+			vft = (vftbl_t *)iptr->val.a;
 			if (vft)
 				utf_fprint(stdout,vft->class->name);
 			else

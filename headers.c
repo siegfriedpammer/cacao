@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 1271 2004-07-03 10:35:42Z stefan $
+   $Id: headers.c 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -169,7 +169,7 @@ void use_class_as_object() {}
 void asm_builtin_monitorenter(java_objectheader *o) {}
 void asm_builtin_monitorexit(java_objectheader *o) {}
 
-s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl *target) {return 0;}
+s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl_t *target) {return 0;}
 
 #if defined(__MIPS__)
 void atomic_swap() {}
@@ -179,7 +179,7 @@ void compare_and_swap() {}
 
 #if defined(__I386__)
 s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class) { return 0; }
-void asm_builtin_newarray(s4 size, vftbl *arrayvftbl) {}
+void asm_builtin_newarray(s4 size, vftbl_t *arrayvftbl) {}
 #endif
 
 void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o) {}

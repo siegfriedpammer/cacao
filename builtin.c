@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1271 2004-07-03 10:35:42Z stefan $
+   $Id: builtin.c 1296 2004-07-10 17:02:15Z stefan $
 
 */
 
@@ -123,7 +123,7 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 	return res;
 }
 
-s4 builtin_isanysubclass_vftbl(vftbl *sub,vftbl *super)
+s4 builtin_isanysubclass_vftbl(vftbl_t *sub,vftbl_t *super)
 {
 	s4 res;
 	int base;
@@ -240,7 +240,7 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,arraydescriptor *t
 			
 *****************************************************************************/
 
-s4 builtin_checkarraycast(java_objectheader *o, vftbl *target)
+s4 builtin_checkarraycast(java_objectheader *o, vftbl_t *target)
 {
 	arraydescriptor *desc;
 	
@@ -251,7 +251,7 @@ s4 builtin_checkarraycast(java_objectheader *o, vftbl *target)
 }
 
 
-s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl *target)
+s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl_t *target)
 {
 	if (!obj) return 1;
 	return builtin_checkarraycast(obj, target);
@@ -303,8 +303,8 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 {
 	arraydescriptor *desc;
 	arraydescriptor *valuedesc;
-	vftbl *componentvftbl;
-	vftbl *valuevftbl;
+	vftbl_t *componentvftbl;
+	vftbl_t *valuevftbl;
     int dim_m1;
 	int base;
 	castinfo classvalues;
@@ -359,8 +359,8 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 {
 	arraydescriptor *desc;
-	vftbl *elementvftbl;
-	vftbl *valuevftbl;
+	vftbl_t *elementvftbl;
+	vftbl_t *valuevftbl;
 	s4 res;
 	int base;
 	castinfo classvalues;
@@ -402,8 +402,8 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
  * one-dimensional array of a class type */
 s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 {
-	vftbl *elementvftbl;
-	vftbl *valuevftbl;
+	vftbl_t *elementvftbl;
+	vftbl_t *valuevftbl;
 	s4 res;
 	castinfo classvalues;
 	
@@ -497,7 +497,7 @@ java_objectheader *builtin_new(classinfo *c)
 
 *****************************************************************************/
 
-java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl)
+java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl)
 {
 	java_arrayheader *a;
 	arraydescriptor *desc;
@@ -699,12 +699,12 @@ java_booleanarray *builtin_newarray_boolean(s4 size)
 
 ******************************************************************************/
 
-java_arrayheader *builtin_nmultianewarray(int n, vftbl *arrayvftbl, long *dims)
+java_arrayheader *builtin_nmultianewarray(int n, vftbl_t *arrayvftbl, long *dims)
 /*  java_arrayheader *builtin_nmultianewarray(int n, classinfo *arrayclass, long *dims) */
 {
 	s4 size, i;
 	java_arrayheader *a;
-	vftbl *componentvftbl;
+	vftbl_t *componentvftbl;
 
 /*  	utf_display(arrayclass->name); */
 
