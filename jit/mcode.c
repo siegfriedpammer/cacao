@@ -52,6 +52,7 @@ static branchref *xboundrefs;       /* list of bound check branches           */
 static branchref *xcheckarefs;      /* list of array size check branches      */
 static branchref *xnullrefs;        /* list of null check branches            */
 static branchref *xcastrefs;        /* list of cast check branches            */
+static branchref *xdivrefs;         /* list of divide by zero branches        */
 
 static void mcode_init();           /* allocates code and data area           */
 static void mcode_close();          /* releases temporary storage             */
@@ -75,6 +76,7 @@ static void mcode_addreference(basicblock *target, void *branchptr);
 static void mcode_addxboundrefs(void *branchptr);
 static void mcode_addxnullrefs(void *branchptr);
 static void mcode_addxcastrefs(void *branchptr);
+static void mcode_addxdivrefs(void *branchptr);
 
 static void dseg_display(s4 *s4ptr);
 
@@ -100,6 +102,7 @@ static void mcode_init()
 	xboundrefs = NULL;
 	xnullrefs = NULL;
 	xcastrefs = NULL;
+	xdivrefs = NULL;
 }
 
 
@@ -314,6 +317,18 @@ static void mcode_addxcastrefs(void *branchptr)
 }
 
 
+static void mcode_addxdivrefs(void *branchptr)
+{
+	s4 branchpos = (u1*) branchptr - mcodebase;
+
+	branchref *br = DNEW(branchref);
+
+	br->branchpos = branchpos;
+	br->next = xdivrefs;
+	xdivrefs = br;
+}
+
+
 static void mcode_finish(int mcodelen)
 {
 	jumpref *jr;
@@ -344,7 +359,7 @@ static void mcode_finish(int mcodelen)
 	/* data segment references resolving */
 	dr = datareferences;
 	while (dr != NULL) {
-  	    *((s4 *) (epoint + dr->tablepos - 4)) += (s4) epoint;
+  	    *((void **) (epoint + dr->tablepos - 4)) = epoint;
 	    dr = dr->next;
 	}
 }
