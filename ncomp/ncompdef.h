@@ -156,6 +156,7 @@ static int jcommandsize[256] = {
 #define ICMD_ICONST            3        /* op1 = 0, val.i = constant          */
         1,
 #define JAVA_ICONST_1          4
+#define ICMD_IREM0X10001       4
         1,
 #define JAVA_ICONST_2          5
         1,
@@ -164,6 +165,7 @@ static int jcommandsize[256] = {
 #define JAVA_ICONST_4          7
         1,
 #define JAVA_ICONST_5          8
+#define ICMD_LREM0X10001       8
         1,
 #define JAVA_LCONST_0          9
 #define ICMD_LCONST            9        /* op1 = 0, val.l = constant          */
@@ -238,6 +240,7 @@ static int jcommandsize[256] = {
 #define ICMD_IUSHRCONST       34
         1,
 #define JAVA_FLOAD_1          35
+#define ICMD_IREMPOW2         35
         1,
 #define JAVA_FLOAD_2          36
 #define ICMD_LADDCONST        36
@@ -267,6 +270,7 @@ static int jcommandsize[256] = {
 #define ICMD_LUSHRCONST       44
         1,
 #define JAVA_ALOAD_3          45
+#define ICMD_LREMPOW2         45
         1,
 #define JAVA_IALOAD           46
 #define ICMD_IALOAD           46
@@ -860,11 +864,11 @@ static char *icmd_names[256] = {
 	"ACONST       ", /*               1 */
 	"NULLCHECKPOP ", /* ICONST_M1     2 */
 	"ICONST       ", /*               3 */
-	"UNDEF__4     ", /* ICONST_1      4 */
+	"IREM0X10001  ", /* ICONST_1      4 */
 	"UNDEF__5     ", /* ICONST_2      5 */
 	"UNDEF__6     ", /* ICONST_3      6 */
 	"UNDEF__7     ", /* ICONST_4      7 */
-	"UNDEF__8     ", /* ICONST_5      8 */
+	"LREM0X10001  ", /* ICONST_5      8 */
 	"LCONST       ", /*               9 */
 	"LCMPCONST    ", /* LCONST_1     10 */
 	"FCONST       ", /*              11 */
@@ -891,7 +895,7 @@ static char *icmd_names[256] = {
 	"ISHLCONST    ", /* LLOAD_2      32 */
 	"ISHRCONST    ", /* LLOAD_3      33 */
 	"IUSHRCONST   ", /* FLOAD_0      34 */
-	"UNDEF_35     ", /* FLOAD_1      35 */
+	"IREMPOW2     ", /* FLOAD_1      35 */
 	"LADDCONST    ", /* FLOAD_2      36 */
 	"LSUBCONST    ", /* FLOAD_3      37 */
 	"LMULCONST    ", /* DLOAD_0      38 */
@@ -901,7 +905,7 @@ static char *icmd_names[256] = {
 	"LSHLCONST    ", /* ALOAD_0      42 */
 	"LSHRCONST    ", /* ALOAD_1      43 */
 	"LUSHRCONST   ", /* ALOAD_2      44 */
-	"UNDEF_45     ", /* ALOAD_3      45 */
+	"LREMPOW2     ", /* ALOAD_3      45 */
 	"IALOAD       ", /*              46 */
 	"LALOAD       ", /*              47 */
 	"FALOAD       ", /*              48 */

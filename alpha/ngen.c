@@ -207,7 +207,7 @@ void catch_NullPointerException(int sig, int code, void *sigctx)
 	signal(sig, (void*) catch_NullPointerException);
 	sigemptyset(&nsig);
 	sigaddset(&nsig, sig);
-	sigprocmask(SIG_UNBLOCK, &nsig, 0);
+	sigprocmask(SIG_UNBLOCK, &nsig, NULL);
 	asm_signal_exception(proto_java_lang_NullPointerException, sigctx);
 }
 
@@ -243,6 +243,7 @@ ieee_set_fp_control(ieee_get_fp_control()
 #endif
 		}
 }
+
 
 /*************************** function gen_mcode ********************************
 
@@ -989,10 +990,68 @@ static void gen_mcode()
 			if ((iptr->val.i >= 0) && (iptr->val.i <= 255)) {
 				M_AND(s1, iptr->val.i, d, 1);
 				}
+			else if (iptr->val.i == 0xffff) {
+				M_ZAPNOT(s1, 0x03, d, 1);
+				}
+			else if (iptr->val.i == 0xffffff) {
+				M_ZAPNOT(s1, 0x07, d, 1);
+				}
 			else {
 				ICONST(REG_ITMP2, iptr->val.i);
 				M_AND(s1, REG_ITMP2, d, 0);
 				}
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+		case ICMD_IREMPOW2:
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			if ((iptr->val.i >= 0) && (iptr->val.i <= 255)) {
+				M_AND(s1, iptr->val.i, d, 1);
+				M_BGEZ(s1, 3);
+				M_ISUB(REG_ZERO, s1, d, 0);
+				M_AND(d, iptr->val.i, d, 1);
+				}
+			else if (iptr->val.i == 0xffff) {
+				M_ZAPNOT(s1, 0x03, d, 1);
+				M_BGEZ(s1, 3);
+				M_ISUB(REG_ZERO, s1, d, 0);
+				M_ZAPNOT(d, 0x03, d, 1);
+				}
+			else if (iptr->val.i == 0xffffff) {
+				M_ZAPNOT(s1, 0x07, d, 1);
+				M_BGEZ(s1, 3);
+				M_ISUB(REG_ZERO, s1, d, 0);
+				M_ZAPNOT(d, 0x07, d, 1);
+				}
+			else {
+				ICONST(REG_ITMP2, iptr->val.i);
+				M_AND(s1, REG_ITMP2, d, 0);
+				M_BGEZ(s1, 3);
+				M_ISUB(REG_ZERO, s1, d, 0);
+				M_AND(d, REG_ITMP2, d, 0);
+				}
+			M_ISUB(REG_ZERO, d, d, 0);
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+		case ICMD_IREM0X10001:
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+            M_ZAPNOT(s1, 0x03, REG_ITMP2, 1);
+			M_SRA(s1, 16, d, 1);
+			M_CMPLT(REG_ITMP2, d, REG_ITMP1, 0);
+			M_ISUB(REG_ITMP2, d, d, 0);
+			M_IADD(d, REG_ITMP1, d, 0);
+			M_BGEZ(s1, 10);
+			M_ISUB(REG_ZERO, s1, REG_ITMP1, 0);
+            M_ZAPNOT(REG_ITMP1, 0x03, REG_ITMP2, 1);
+			M_SRA(REG_ITMP1, 16, d, 1);
+			M_CMPLT(REG_ITMP2, d, REG_ITMP1, 0);
+			M_ISUB(REG_ITMP2, d, d, 0);
+			M_IADD(d, REG_ITMP1, d, 0);
+			M_ISUB(REG_ZERO, d, d, 0);
+			M_SLL(s1, 33, REG_ITMP2, 1);
+			M_CMPEQ(REG_ITMP2, REG_ZERO, REG_ITMP2, 0);
+			M_ISUB(d, REG_ITMP2, d, 0);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 		case ICMD_LANDCONST:
@@ -1001,10 +1060,108 @@ static void gen_mcode()
 			if ((iptr->val.l >= 0) && (iptr->val.l <= 255)) {
 				M_AND(s1, iptr->val.l, d, 1);
 				}
+			else if (iptr->val.l == 0xffffL) {
+				M_ZAPNOT(s1, 0x03, d, 1);
+				}
+			else if (iptr->val.l == 0xffffffL) {
+				M_ZAPNOT(s1, 0x07, d, 1);
+				}
+			else if (iptr->val.l == 0xffffffffL) {
+				M_ZAPNOT(s1, 0x0f, d, 1);
+				}
+			else if (iptr->val.l == 0xffffffffffL) {
+				M_ZAPNOT(s1, 0x1f, d, 1);
+				}
+			else if (iptr->val.l == 0xffffffffffffL) {
+				M_ZAPNOT(s1, 0x3f, d, 1);
+				}
+			else if (iptr->val.l == 0xffffffffffffffL) {
+				M_ZAPNOT(s1, 0x7f, d, 1);
+				}
 			else {
 				LCONST(REG_ITMP2, iptr->val.l);
 				M_AND(s1, REG_ITMP2, d, 0);
 				}
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+		case ICMD_LREMPOW2:
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			if ((iptr->val.l >= 0) && (iptr->val.l <= 255)) {
+				M_AND(s1, iptr->val.l, d, 1);
+				M_BGEZ(s1, 3);
+				M_LSUB(REG_ZERO, s1, d, 0);
+				M_AND(d, iptr->val.l, d, 1);
+				}
+			else if (iptr->val.l == 0xffffL) {
+				M_ZAPNOT(s1, 0x03, d, 1);
+				M_BGEZ(s1, 3);
+				M_LSUB(REG_ZERO, s1, d, 0);
+				M_ZAPNOT(d, 0x03, d, 1);
+				}
+			else if (iptr->val.l == 0xffffffL) {
+				M_ZAPNOT(s1, 0x07, d, 1);
+				M_BGEZ(s1, 3);
+				M_LSUB(REG_ZERO, s1, d, 0);
+				M_ZAPNOT(d, 0x07, d, 1);
+				}
+			else if (iptr->val.l == 0xffffffffL) {
+				M_ZAPNOT(s1, 0x0f, d, 1);
+				M_BGEZ(s1, 3);
+				M_LSUB(REG_ZERO, s1, d, 0);
+				M_ZAPNOT(d, 0x0f, d, 1);
+				}
+			else if (iptr->val.l == 0xffffffffffL) {
+ 				M_ZAPNOT(s1, 0x1f, d, 1);
+				M_BGEZ(s1, 3);
+				M_LSUB(REG_ZERO, s1, d, 0);
+				M_ZAPNOT(d, 0x1f, d, 1);
+				}
+			else if (iptr->val.l == 0xffffffffffffL) {
+				M_ZAPNOT(s1, 0x3f, d, 1);
+				M_BGEZ(s1, 3);
+				M_LSUB(REG_ZERO, s1, d, 0);
+				M_ZAPNOT(d, 0x3f, d, 1);
+				}
+			else if (iptr->val.l == 0xffffffffffffffL) {
+				M_ZAPNOT(s1, 0x7f, d, 1);
+				M_BGEZ(s1, 3);
+				M_LSUB(REG_ZERO, s1, d, 0);
+				M_ZAPNOT(d, 0x7f, d, 1);
+				}
+			else {
+				LCONST(REG_ITMP2, iptr->val.l);
+				M_AND(s1, REG_ITMP2, d, 0);
+				M_BGEZ(s1, 3);
+				M_LSUB(REG_ZERO, s1, d, 0);
+				M_AND(d, REG_ITMP2, d, 0);
+				}
+			M_LSUB(REG_ZERO, d, d, 0);
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+		case ICMD_LREM0X10001:
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			M_ZAPNOT(s1, 0x03, REG_ITMP2, 1);
+			M_SRA(s1, 16, d, 1);
+			M_CMPLT(REG_ITMP2, d, REG_ITMP1, 0);
+			M_LSUB(REG_ITMP2, d, d, 0);
+			M_LADD(d, REG_ITMP1, d, 0);
+			M_LDA(REG_ITMP2, REG_ZERO, -1);
+			M_SRL(REG_ITMP2, 33, REG_ITMP2, 1);
+			M_CMPULT(s1, REG_ITMP2, REG_ITMP2, 0);
+			M_BNEZ(REG_ITMP2, 11);
+			M_LDA(d, REG_ZERO, -257);
+			M_ZAPNOT(d, 0xcd, d, 1);
+			M_LSUB(REG_ZERO, s1, REG_ITMP2, 0);
+			M_CMOVGE(s1, s1, REG_ITMP2, 0);
+			M_UMULH(REG_ITMP2, d, REG_ITMP2, 0);
+			M_SRL(REG_ITMP2, 16, REG_ITMP2, 1);
+			M_LSUB(REG_ZERO, REG_ITMP2, d, 0);
+			M_CMOVGE(s1, REG_ITMP2, d, 0);
+			M_SLL(d, 16, REG_ITMP2, 1);
+			M_LADD(d, REG_ITMP2, d, 0);
+			M_LSUB(s1, d, d, 0);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -2482,6 +2639,8 @@ makeactualcall:
 		src = src->prev;
 		}
 	} /* for basic block */
+
+	bptr -> mpc = (int)((u1*) mcodeptr - mcodebase);
 
 	{
 	s4 *xcodeptr = NULL;

@@ -1,3 +1,4 @@
+/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
 /****************************** ncomp/nstack.c *********************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
@@ -252,6 +253,48 @@ icmd_iconst_tail:
 									case ICMD_IMUL:
 										iptr[0].opc = ICMD_IMULCONST;
 										goto icmd_iconst_tail;
+									case ICMD_IREM:
+										if (iptr[0].val.i == 0x10001) {
+											iptr[0].opc = ICMD_IREM0X10001;
+											goto icmd_iconst_tail;
+											}
+										if ((iptr[0].val.i == 0x00000002) ||
+										    (iptr[0].val.i == 0x00000004) ||
+										    (iptr[0].val.i == 0x00000008) ||
+										    (iptr[0].val.i == 0x00000010) ||
+										    (iptr[0].val.i == 0x00000020) ||
+										    (iptr[0].val.i == 0x00000040) ||
+										    (iptr[0].val.i == 0x00000080) ||
+										    (iptr[0].val.i == 0x00000100) ||
+										    (iptr[0].val.i == 0x00000200) ||
+										    (iptr[0].val.i == 0x00000400) ||
+										    (iptr[0].val.i == 0x00000800) ||
+										    (iptr[0].val.i == 0x00001000) ||
+										    (iptr[0].val.i == 0x00002000) ||
+										    (iptr[0].val.i == 0x00004000) ||
+										    (iptr[0].val.i == 0x00008000) ||
+										    (iptr[0].val.i == 0x00010000) ||
+										    (iptr[0].val.i == 0x00020000) ||
+										    (iptr[0].val.i == 0x00040000) ||
+										    (iptr[0].val.i == 0x00080000) ||
+										    (iptr[0].val.i == 0x00100000) ||
+										    (iptr[0].val.i == 0x00200000) ||
+										    (iptr[0].val.i == 0x00400000) ||
+										    (iptr[0].val.i == 0x00800000) ||
+										    (iptr[0].val.i == 0x01000000) ||
+										    (iptr[0].val.i == 0x02000000) ||
+										    (iptr[0].val.i == 0x04000000) ||
+										    (iptr[0].val.i == 0x08000000) ||
+										    (iptr[0].val.i == 0x10000000) ||
+										    (iptr[0].val.i == 0x20000000) ||
+										    (iptr[0].val.i == 0x40000000) ||
+										    (iptr[0].val.i == 0x80000000)) {
+											iptr[0].opc = ICMD_IREMPOW2;
+											iptr[0].val.i -= 1;
+											goto icmd_iconst_tail;
+											}
+										CONST(TYPE_INT);
+										break;
 									case ICMD_IAND:
 										iptr[0].opc = ICMD_IANDCONST;
 										goto icmd_iconst_tail;
@@ -319,6 +362,48 @@ icmd_lconst_tail:
 									case ICMD_LMUL:
 										iptr[0].opc = ICMD_LMULCONST;
 										goto icmd_lconst_tail;
+									case ICMD_LREM:
+										if (iptr[0].val.l == 0x10001) {
+											iptr[0].opc = ICMD_LREM0X10001;
+											goto icmd_lconst_tail;
+											}
+										if ((iptr[0].val.l == 0x00000002) ||
+										    (iptr[0].val.l == 0x00000004) ||
+										    (iptr[0].val.l == 0x00000008) ||
+										    (iptr[0].val.l == 0x00000010) ||
+										    (iptr[0].val.l == 0x00000020) ||
+										    (iptr[0].val.l == 0x00000040) ||
+										    (iptr[0].val.l == 0x00000080) ||
+										    (iptr[0].val.l == 0x00000100) ||
+										    (iptr[0].val.l == 0x00000200) ||
+										    (iptr[0].val.l == 0x00000400) ||
+										    (iptr[0].val.l == 0x00000800) ||
+										    (iptr[0].val.l == 0x00001000) ||
+										    (iptr[0].val.l == 0x00002000) ||
+										    (iptr[0].val.l == 0x00004000) ||
+										    (iptr[0].val.l == 0x00008000) ||
+										    (iptr[0].val.l == 0x00010000) ||
+										    (iptr[0].val.l == 0x00020000) ||
+										    (iptr[0].val.l == 0x00040000) ||
+										    (iptr[0].val.l == 0x00080000) ||
+										    (iptr[0].val.l == 0x00100000) ||
+										    (iptr[0].val.l == 0x00200000) ||
+										    (iptr[0].val.l == 0x00400000) ||
+										    (iptr[0].val.l == 0x00800000) ||
+										    (iptr[0].val.l == 0x01000000) ||
+										    (iptr[0].val.l == 0x02000000) ||
+										    (iptr[0].val.l == 0x04000000) ||
+										    (iptr[0].val.l == 0x08000000) ||
+										    (iptr[0].val.l == 0x10000000) ||
+										    (iptr[0].val.l == 0x20000000) ||
+										    (iptr[0].val.l == 0x40000000) ||
+										    (iptr[0].val.l == 0x80000000)) {
+											iptr[0].opc = ICMD_LREMPOW2;
+											iptr[0].val.l -= 1;
+											goto icmd_lconst_tail;
+											}
+										CONST(TYPE_LNG);
+										break;
 									case ICMD_LAND:
 										iptr[0].opc = ICMD_LANDCONST;
 										goto icmd_lconst_tail;
@@ -737,11 +822,28 @@ icmd_lconst_lcmp_tail:
 
 						/* pop 2 push 1 */
 						
+						case ICMD_IREM:
+							if (!(SUPPORT_DIVISION)) {
+								iptr[0].opc = ICMD_BUILTIN2;
+								iptr[0].op1 = TYPE_INT;
+								iptr[0].val.a = (functionptr) new_builtin_irem;
+								isleafmethod = false;
+								goto builtin2;
+								}
+
+						case ICMD_LREM:
+							if (!(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)) {
+								iptr[0].opc = ICMD_BUILTIN2;
+								iptr[0].op1 = TYPE_LNG;
+								iptr[0].val.a = (functionptr) new_builtin_lrem;
+								isleafmethod = false;
+								goto builtin2;
+								}
+
 						case ICMD_IADD:
 						case ICMD_ISUB:
 						case ICMD_IMUL:
 						case ICMD_IDIV:
-						case ICMD_IREM:
 
 						case ICMD_ISHL:
 						case ICMD_ISHR:
@@ -757,7 +859,6 @@ icmd_lconst_lcmp_tail:
 						case ICMD_LSUB:
 						case ICMD_LMUL:
 						case ICMD_LDIV:
-						case ICMD_LREM:
 
 						case ICMD_LOR:
 						case ICMD_LAND:
@@ -989,6 +1090,7 @@ icmd_lcmp_if_tail:
 								}
 							OP1_0ANY;
 						case ICMD_BUILTIN2:
+builtin2:
 							if (! (curstack->flags & SAVEDVAR)) {
 								curstack->varkind = ARGVAR;
 								curstack->varnum = 1;
@@ -1302,6 +1404,15 @@ static void show_icmd_method()
 			}
 		}
 	printf("\n");
+
+	if (showdisassemble) {
+		s4ptr = (s4 *) (method->mcode + dseglen);
+		for (i = 0; i < block[0].mpc; i += 4, s4ptr++) {
+			disasscmd (*s4ptr, i); 
+			}
+		printf("\n");
+		}
+
 	for (b = 0; b < block_count; b++) {
 		deadcode = block[b].flags <= BBREACHED;
 		printf("[");
@@ -1324,6 +1435,8 @@ static void show_icmd_method()
 				case ICMD_IADDCONST:
 				case ICMD_ISUBCONST:
 				case ICMD_IMULCONST:
+				case ICMD_IREMPOW2:
+				case ICMD_IREM0X10001:
 				case ICMD_IANDCONST:
 				case ICMD_IORCONST:
 				case ICMD_IXORCONST:
@@ -1338,6 +1451,7 @@ static void show_icmd_method()
 				case ICMD_LADDCONST:
 				case ICMD_LSUBCONST:
 				case ICMD_LMULCONST:
+				case ICMD_LREMPOW2:
 				case ICMD_LANDCONST:
 				case ICMD_LORCONST:
 				case ICMD_LXORCONST:
@@ -1491,6 +1605,16 @@ static void show_icmd_method()
 						s4ptr += 2;
 						}
 					break;
+				}
+			printf("\n");
+			}
+
+		if (showdisassemble) {
+			printf("\n");
+			i = block[b].mpc;
+			s4ptr = (s4 *) (method->mcode + dseglen + i);
+			for (; i < block[b + 1].mpc; i += 4, s4ptr++) {
+				disasscmd (*s4ptr, i); 
 				}
 			printf("\n");
 			}

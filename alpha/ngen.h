@@ -283,6 +283,7 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_MSKLH(a,b,c,const)    M_OP3 (0x12,0x62, a,b,c,const)
 #define M_MSKQH(a,b,c,const)    M_OP3 (0x12,0x72, a,b,c,const)
 
+#define M_UMULH(a,b,c,const)    M_OP3 (0x13,0x30, a,b,c,const)  /* 64 umulh   */
 
 /****** macros for unused commands (see an Alpha-manual for description) ******/ 
 

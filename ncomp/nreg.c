@@ -865,6 +865,8 @@ static void allocate_scratch_registers()
 					case ICMD_IADDCONST:
 					case ICMD_ISUBCONST:
 					case ICMD_IMULCONST:
+					case ICMD_IREMPOW2:
+					case ICMD_IREM0X10001:
 					case ICMD_IANDCONST:
 					case ICMD_IORCONST:
 					case ICMD_IXORCONST:
@@ -875,6 +877,8 @@ static void allocate_scratch_registers()
 					case ICMD_LADDCONST:
 					case ICMD_LSUBCONST:
 					case ICMD_LMULCONST:
+					case ICMD_LREMPOW2:
+					case ICMD_LREM0X10001:
 					case ICMD_LANDCONST:
 					case ICMD_LORCONST:
 					case ICMD_LXORCONST:

@@ -775,12 +775,7 @@ static void parse()
 				break;
 
 			case JAVA_IREM:
-				if (SUPPORT_DIVISION) {
-					OP(opcode);
-					}
-				else {
-					BUILTIN2((functionptr) new_builtin_irem, TYPE_INT);
-					}
+				OP(opcode);
 				break;
 
 			case JAVA_LDIV:
@@ -793,12 +788,7 @@ static void parse()
 				break;
 
 			case JAVA_LREM:
-				if (SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV) {
-					OP(opcode);
-					}
-				else {
-					BUILTIN2((functionptr) new_builtin_lrem, TYPE_LONG);
-					}
+				OP(opcode);
 				break;
 
 			case JAVA_FREM:
