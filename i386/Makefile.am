@@ -1,5 +1,5 @@
 EXTRA_DIST = asmpart.S disass.c ngen.c \
-	     defines.h native-math.h ngen.h sigcontext.h \
+	     defines.h native-math.h ngen.h \
 	     types.h threads.h dis-stuff.h dis-asm.h bfd.h
 
 noinst_LIBRARIES = libdisass.a
