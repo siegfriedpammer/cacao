@@ -1,3 +1,5 @@
+## src/Makefile.am
+##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
 ## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
@@ -26,15 +28,21 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1999 2005-03-05 17:01:20Z twisti $
+## $Id: Makefile.am 2035 2005-03-18 12:45:13Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-# keep this order!!!
+if WITH_EXTERNAL_CLASSPATH
+CLASSPATH = lib
+else
+CLASSPATH = classpath
+endif
+
+# Keep this order!!!
 
 SUBDIRS = \
 	boehm-gc \
-	classpath \
+	$(CLASSPATH) \
 	mm \
 	toolbox \
 	vm \

@@ -241,14 +241,14 @@ green | native | posix | pthreads)
 		CFLAGS="$CFLAGS -D_REENTRANT"
 
 		dnl tell boehm to support threads as well
-		ac_configure_args="$ac_configure_args --enable-boehm-threads=posix"
+		CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-boehm-threads=posix"
 		AM_CONDITIONAL([NATIVE_THREADS], [true])
 
 	else
 		AC_MSG_RESULT(yes, green)
 
 		dnl no threads for boehm
-		ac_configure_args="$ac_configure_args --disable-boehm-threads"
+		CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-boehm-threads"
 		AM_CONDITIONAL([NATIVE_THREADS], [false])
 	fi
     ;;
@@ -336,26 +336,46 @@ if test x"$enable_gtk_peer" = "xyes"; then
 	AC_MSG_RESULT(yes)
 	AC_DEFINE([USE_GTK], 1, [use gtk])
 	AM_CONDITIONAL([USE_GTK_PEER], [true])
-
 else
 	AC_MSG_RESULT(no)
-	ac_configure_args="$ac_configure_args --disable-gtk-peer"
 	AM_CONDITIONAL([USE_GTK_PEER], [false])
+	CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-gtk-peer"
 fi
 
 
-if test "x1" == "x$STATIC_CLASSPATH"; then
+if test "x$STATIC_CLASSPATH" = "x1"; then
         AC_DEFINE([STATIC_CLASSPATH], 1, [use classpath statically linked])
 	AM_CONDITIONAL([STATIC_CLASSPATH], [true])
-
+	CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-static --disable-shared --disable-load-library"
 else
 	AM_CONDITIONAL([STATIC_CLASSPATH], [false])
+	CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-static --enable-shared --enable-load-library"
+fi
+
+
+dnl should we use an external classpath installation
+AC_ARG_WITH([external-classpath], [AS_HELP_STRING(--with-external-classpath=<dir>,installation directory of external GNU classpath [[default=no]])])
+
+AC_MSG_CHECKING(whether to use an external GNU classpath)
+if test x"$with_external_classpath" != "x"; then
+	if test x"$with_external_classpath" = "xyes"; then
+		AC_MSG_ERROR(please specify the installation prefix)
+	fi
+	AC_MSG_RESULT($with_external_classpath)
+	AC_DEFINE([WITH_EXTERNAL_CLASSPATH], 1, [external classpath])
+	AM_CONDITIONAL([WITH_EXTERNAL_CLASSPATH], [true])
+	EXTERNAL_CLASSPATH_PREFIX="$with_external_classpath"
+	AC_DEFINE_UNQUOTED([EXTERNAL_CLASSPATH_PREFIX], "${EXTERNAL_CLASSPATH_PREFIX}", [external classpath directory])
+	AC_SUBST(EXTERNAL_CLASSPATH_PREFIX)
+else
+	AC_MSG_RESULT(no)
+	AM_CONDITIONAL([WITH_EXTERNAL_CLASSPATH], [false])
 fi
 
 
 dnl set some essential classpath options, even if their classpath default is
 dnl suitable for us
-ac_configure_args="$ac_configure_args --libdir=${CACAO_INSTALL_PREFIX}/jre/lib/${ARCH_DIR} --enable-jni --disable-cni --disable-regen-headers --enable-static --enable-shared --enable-load-library"
+ac_configure_args="$ac_configure_args --libdir=${CACAO_INSTALL_PREFIX}/jre/lib/${ARCH_DIR} --enable-jni --disable-cni --disable-regen-headers ${CONFIGURE_ARGS}"
 
 
 dnl now configure boehm gc and gnu classpath
@@ -371,6 +391,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/Makefile]
 		[src/cacao/Makefile]
 		[src/cacaoh/Makefile]
+		[src/lib/Makefile]
 		[src/mm/Makefile]
 		[src/native/Makefile]
 		[src/native/include/Makefile]
