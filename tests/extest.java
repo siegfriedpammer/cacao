@@ -1,183 +1,271 @@
 public class extest {
-    public static void main(String[] argv) { 
-	p("---------- normal exceptions --------------------");
+    public static void main(String[] argv) {
+        boolean catched = false;
+
+	pln("---------- normal exceptions --------------------");
 
    	try {
-            System.out.print("throw new Exception():          ");
-    	    sub();
-            p("FAILED");
+            p("throw new Exception():");
+    	    throw new Exception();
     	} catch (Exception e) {
-      	    p("PASSED");
+            catched = true;
+      	    pln("OK");
+    	}
+
+        /* check if catch block was executed */
+        if (!catched) {
+            pln("FAILED");
+        }
+
+   	try {
+            p("throw new Exception() (from subroutines):");
+    	    sub();
+            pln("FAILED");
+    	} catch (Exception e) {
+      	    pln("OK");
     	}
 
         try {
-            System.out.print("NullPointerException:           ");
+            p("NullPointerException:");
             int[] ia = null;
             int i = ia.length;
-            p("FAILED");
+            pln("FAILED");
         } catch (NullPointerException e) {
-  	    p("PASSED");
+  	    pln("OK");
   	}
 
   	try {
-            System.out.print("NullPointerException (native):  ");
+            p("NullPointerException (native):");
             System.arraycopy(null, 1, null, 1, 1);
-            p("FAILED");
+            pln("FAILED");
     	} catch (Exception e) {
-  	    p("PASSED");
+  	    pln("OK");
   	}
 
-	p();
+	pln();
 
 
-	p("---------- test soft inline exceptions ----------");
-	p("/* throw and catch inline exceptions twice to check the inline jump code */");
+	pln("---------- test soft inline exceptions ----------");
+	pln("/* thrown twice to check the inline jump code */");
 
         try {
-            System.out.print("ArrayIndexOutOfBoundsException: ");
+            p("ArrayIndexOutOfBoundsException:");
             int[] ia = new int[1];
             ia[0xcafebabe] = 1;
-            p("FAILED");
+            pln("FAILED");
         } catch (ArrayIndexOutOfBoundsException e) {
 	    String msg = e.getMessage();
 
 	    if (msg != null && msg.compareTo("Array index out of range: -889275714") != 0) {
-		p("FAILED: wrong index");
+		pln("FAILED: wrong index");
 
 	    } else {
-		p("PASSED");
+		pln("OK");
 	    }
   	}
 
         try {
-            System.out.print("ArrayIndexOutOfBoundsException: ");
+            p("ArrayIndexOutOfBoundsException:");
             int[] ia = new int[1];
             ia[0xcafebabe] = 1;
-            p("FAILED");
+            pln("FAILED");
         } catch (ArrayIndexOutOfBoundsException e) {
 	    String msg = e.getMessage();
 
 	    if (msg != null && msg.compareTo("Array index out of range: -889275714") != 0) {
-		p("FAILED: wrong index");
+		pln("FAILED: wrong index");
 
 	    } else {
-		p("PASSED");
+		pln("OK");
 	    }
   	}
 
 
         try {
-            System.out.print("NegativeArraySizeException:     ");
+            p("NegativeArraySizeException:");
             int[] ia = new int[-1];
-            p("FAILED");
+            pln("FAILED");
         } catch (NegativeArraySizeException e) {
-  	    p("PASSED");
+  	    pln("OK");
   	}
 
         try {
-            System.out.print("NegativeArraySizeException:     ");
+            p("NegativeArraySizeException:");
             int[] ia = new int[-1];
-            p("FAILED");
+            pln("FAILED");
         } catch (NegativeArraySizeException e) {
-  	    p("PASSED");
+  	    pln("OK");
   	}
 
         
         try {
-            System.out.print("ClassCastException:             ");
+            p("ClassCastException:");
+            Object o = new Object();
+            Integer i = (Integer) o;
+            pln("FAILED");
+        } catch (ClassCastException e) {
+  	    pln("OK");
+  	}
+
+        try {
+            p("ClassCastException:");
             Object o = new Object();
             Integer i = null;
             i = (Integer) o;
-            p("FAILED");
+            pln("FAILED");
         } catch (ClassCastException e) {
-  	    p("PASSED");
-  	}
-
-        try {
-            System.out.print("ClassCastException:             ");
-            Object o = new Object();
-            Integer i = null;
-            i = (Integer) o;
-            p("FAILED");
-        } catch (ClassCastException e) {
-  	    p("PASSED");
+  	    pln("OK");
   	}
 
 
         try {
-            System.out.print("OutOfMemoryError:               ");
+            p("OutOfMemoryError:");
 	    /* 100 MB should be enough */
 	    byte[] ba = new byte[100 * 1024 * 1024];
-            p("FAILED");
+            pln("FAILED");
         } catch (OutOfMemoryError e) {
-  	    p("PASSED");
+  	    pln("OK");
   	}
 
         try {
-            System.out.print("OutOfMemoryError:               ");
+            p("OutOfMemoryError:");
 	    /* 100 MB should be enough */
 	    byte[] ba = new byte[100 * 1024 * 1024];
-            p("FAILED");
+            pln("FAILED");
         } catch (OutOfMemoryError e) {
-  	    p("PASSED");
+  	    pln("OK");
   	}
         
-	p();
-
-
-	p("---------- some asmpart exceptions --------------");
 
         try {
-            System.out.print("ArithmeticException (idiv):     ");
+            p("NullPointerException (only w/ -softnull):");
+            int[] ia = null;
+            int i = ia.length;
+            pln("FAILED");
+        } catch (NullPointerException e) {
+  	    pln("OK");
+  	}
+
+        try {
+            p("NullPointerException (only w/ -softnull):");
+            int[] ia = null;
+            int i = ia.length;
+            pln("FAILED");
+        } catch (NullPointerException e) {
+  	    pln("OK");
+  	}
+
+	pln();
+
+
+	pln("---------- some asmpart exceptions --------------");
+
+        try {
+            p("ExceptionInInitializerError (clinit):");
+            extest_clinit.i = 1;
+            pln("FAILED");
+        } catch (ExceptionInInitializerError e) {
+            if (e.getCause().getClass() != NullPointerException.class) {
+                pln("FAILED");
+
+            } else {
+                pln("OK");
+            }
+        }
+
+        try {
+            p("ArithmeticException (idiv):");
             int i = 1, j = 0, k = i / j;
-            p("FAILED");
+            pln("FAILED");
         } catch (ArithmeticException e) {
-  	    p("PASSED");
+  	    pln("OK");
   	}
 
         try {
-            System.out.print("ArithmeticException (ldiv):     ");
+            p("ArithmeticException (ldiv):");
             long i = 1, j = 0, k = i / j;
-            p("FAILED");
+            pln("FAILED");
         } catch (ArithmeticException e) {
-  	    p("PASSED");
+  	    pln("OK");
   	}
 
         try {
-            System.out.print("ArithmeticException (irem):     ");
+            p("ArithmeticException (irem):");
             int i = 1, j = 0, k = i % j;
-            p("FAILED");
+            pln("FAILED");
         } catch (ArithmeticException e) {
-  	    p("PASSED");
+  	    pln("OK");
   	}
 
         try {
-            System.out.print("ArithmeticException (lrem):     ");
+            p("ArithmeticException (lrem):");
             long i = 1, j = 0, k = i % j;
-            p("FAILED");
+            pln("FAILED");
         } catch (ArithmeticException e) {
-  	    p("PASSED");
+  	    pln("OK");
   	}
 
         try {
-            System.out.print("NullPointerException:           ");
-            Object o = new Object();
+            p("NullPointerException (aastore):");
 	    Object[] oa = null;
-	    oa[0] = o;
-            p("FAILED");
-        } catch (ArithmeticException e) {
-  	    p("PASSED");
+	    oa[0] = new Object();
+            pln("FAILED");
+        } catch (NullPointerException e) {
+  	    pln("OK");
   	}
 
-	p();
+        try {
+            p("ArrayIndexOutOfBoundsException (aastore):");
+	    Object[] oa = new Object[1];
+	    oa[1] = new Object();
+            pln("FAILED");
+        } catch (ArrayIndexOutOfBoundsException e) {
+  	    pln("OK");
+  	}
+
+        try {
+            p("ArrayStoreException (aastore):");
+	    Integer[] ia = new Integer[1];
+            Object[] oa = (Object[]) ia;
+	    oa[0] = new Object();
+            pln("FAILED");
+        } catch (ArrayStoreException e) {
+  	    pln("OK");
+  	}
+
+        try {
+            p("ClassCastException (checkarraycast):");
+            Object[] oa = new Object[1];
+	    Integer[] ia = (Integer[]) oa;
+            pln("FAILED");
+        } catch (ClassCastException e) {
+  	    pln("OK");
+  	}
+
+	pln();
 
 
-	p("---------- no passed beyond this point ----------");
+	pln("---------- exception related things -------------");
 
-        p("NullPointerException (without catch): ");
+        try {
+            p("load/link an exception class in asmpart:");
+            throw new Exception();
+        } catch (UnknownError e) {
+            /* this exception class MUST NOT be loaded before!!!
+               otherwise this test in useless */
+        } catch (Exception e) {
+  	    pln("OK");
+  	}
+
+        pln();
+
+
+	pln("---------- no OK beyond this point --------------");
+
+        pln("NullPointerException (without catch):");
         String s = null;
         int i = s.length();
-        p("FAILED");
+        pln("FAILED");
     }
 
     public synchronized static void sub() throws Exception {
@@ -196,11 +284,18 @@ public class extest {
 	throw new Exception();
     }
 
-    public static void p() {
+    public static void p(String s) {
+	System.out.print(s);
+        for (int i = s.length(); i < 42; i++) {
+            System.out.print(" ");
+        }
+    }
+
+    public static void pln() {
 	System.out.println();
     }
 
-    public static void p(String s) {
+    public static void pln(String s) {
 	System.out.println(s);
     }
 }
