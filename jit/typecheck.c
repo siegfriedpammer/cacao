@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 868 2004-01-10 20:12:10Z edwin $
+   $Id: typecheck.c 869 2004-01-10 21:30:06Z edwin $
 
 */
 
@@ -42,15 +42,6 @@
 #include "types.h"
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
-
-#define TOUCHED_YES    0x01
-#define TOUCHED_NO     0x02
-#define TOUCHED_MAYBE  (TOUCHED_YES | TOUCHED_NO)
-
-#define REACH_STD      0  /* reached by branch or fallthrough */
-#define REACH_JSR      1  /* reached by JSR */
-#define REACH_RET      2  /* reached by RET */ /* XXX ? */
-#define REACH_THROW    3  /* reached by THROW (exception handler) */
 
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */
@@ -110,45 +101,6 @@ bool typecheckverbose = false;
 
 static
 void
-typeinfo_print_locals(FILE *file,u1 *vtype,typeinfo *vinfo,u1 *touched,int num)
-{
-    int i;
-
-    for (i=0; i<num; ++i) {
-        if (touched)
-            fprintf(file," %d%s=",i,
-                    (touched[i]==TOUCHED_YES) ? "*"
-                    : ((touched[i]==TOUCHED_NO) ? "" : "~"));
-        else
-            fprintf(file," %d=",i);
-        typeinfo_print_type(file,vtype[i],vinfo+i);
-    }
-}
-
-static
-void
-typeinfo_print_stack(FILE *file,stackptr stack)
-{
-    while (stack) {
-        typeinfo_print_type(file,stack->type,&stack->typeinfo);
-        stack = stack->prev;
-        if (stack) fprintf(file," ");
-    }
-}
-
-static
-void
-typeinfo_print_block(FILE *file,stackptr instack,
-                     int vnum,u1 *vtype,typeinfo *vinfo,u1 *touched)
-{
-    fprintf(file,"Stack: ");
-    typeinfo_print_stack(file,instack);
-    fprintf(file," Locals:");
-    typeinfo_print_locals(file,vtype,vinfo,touched,vnum);
-}
-
-static
-void
 typestack_print(FILE *file,stackptr stack)
 {
     while (stack) {
@@ -167,30 +119,6 @@ typestate_print(FILE *file,stackptr instack,typevector *localset,int size)
     fprintf(file," Locals:");
     typevectorset_print(file,localset,size);
 }
-
-
-#if 0
-static
-void
-typeinfo_print_blocks(FILE *file,int vnum,u1 *vtype,typeinfo *vinfo)
-{
-    int bi;
-    /*    int j;*/
-
-    for (bi=0; bi<block_count; ++bi) {
-        fprintf(file,"%04d: (%3d) ",bi,block[bi].flags);
-        typeinfo_print_block(file,block[bi].instack,
-                             vnum,vtype+vnum*bi,vinfo+vnum*bi,NULL);
-        fprintf(file,"\n");
-
-/*         for (j=0; j<block[bi].icount; ++j) { */
-/*             fprintf(file,"\t%s\n",icmd_names[block[bi].iinstr[j].opc]); */
-/*         } */
-
-        show_icmd_block(block+bi);
-    }
-}
-#endif
 
 #endif
 
@@ -260,7 +188,6 @@ typestack_put_retaddr(stackptr dst,void *retaddr,typevector *loc)
 	if (dst->type != TYPE_ADDRESS)
 		panic("Internal error: Storing returnAddress in non-address slot");
 #endif
-
 	
 	TYPEINFO_INIT_RETURNADDRESS(dst->typeinfo,NULL);
 	for (;loc; loc=loc->alt) {
@@ -271,6 +198,7 @@ typestack_put_retaddr(stackptr dst,void *retaddr,typevector *loc)
 	}
 }
 
+/* XXX */
 static bool
 typestack_canmerge(stackptr a,stackptr b)
 {
@@ -365,7 +293,6 @@ typestack_separable_from(stackptr a,int ka,stackptr b,int kb)
 {
 	typeinfo_retaddr_set *seta;
 	typeinfo_retaddr_set *setb;
-	int i;
 
 	for (; a; a = a->prev, b = b->prev) {
 #ifdef TYPECHECK_DEBUG
@@ -397,26 +324,18 @@ typestack_separable_from(stackptr a,int ka,stackptr b,int kb)
 static bool
 typestate_merge(stackptr deststack,typevector *destloc,
 				stackptr ystack,typevector *yloc,
-				/*				int retindex,void *retaddr, */
 				int locsize)
 {
 	typevector *dvec,*yvec;
 	int kd,ky;
 	bool changed = false;
 	
-#ifdef TYPECHECK_DEBUG
-	/* Do some sanity checks */
-	/*
-	  if (retindex < -1 || retindex >= locsize || (retindex >= 0 && !retaddr))
-	  panic("Internal error: typestate_merge: invalid arguments");
-	*/
-#endif
-
 	LOG("merge:");
 	LOGSTR("dstack: "); DOLOG(typestack_print(get_logfile(),deststack)); LOGNL;
 	LOGSTR("ystack: "); DOLOG(typestack_print(get_logfile(),ystack)); LOGNL;
 	LOGSTR("dloc  : "); DOLOG(typevectorset_print(get_logfile(),destloc,locsize)); LOGNL;
 	LOGSTR("yloc  : "); DOLOG(typevectorset_print(get_logfile(),yloc,locsize)); LOGNL;
+	LOGFLUSH;
 
 	/* Check if the stack types of deststack and ystack match */
 
@@ -431,19 +350,6 @@ typestate_merge(stackptr deststack,typevector *destloc,
 
 	for (yvec=yloc; yvec; yvec=yvec->alt) {
 		ky = yvec->k;
-
-		/* If retindex >= 0 we select only those states (ystack,yvec)
-		 * with returnAddress retaddr in variable no. retindex. */
-
-		/*
-		  if (retindex >= 0) {
-		  if (!TYPEDESC_IS_RETURNADDRESS(yvec->td[retindex]))
-		  panic("Illegal instruction: RET on non-returnAddress");
-		  if (TYPEINFO_RETURNADDRESS(yvec->td[retindex].info)
-		  != retaddr)
-		  continue;
-		  }
-		*/
 
 		/* Check if the typestates (deststack,destloc) will be
 		 * separable when (ystack,yvec) is added. */
@@ -494,6 +400,7 @@ typestate_merge(stackptr deststack,typevector *destloc,
 	LOG("result:");
 	LOGSTR("dstack: "); DOLOG(typestack_print(get_logfile(),deststack)); LOGNL;
 	LOGSTR("dloc  : "); DOLOG(typevectorset_print(get_logfile(),destloc,locsize)); LOGNL;
+	LOGFLUSH;
 	
 	return changed;
 }
@@ -508,15 +415,33 @@ typestate_reach(void *localbuf,
 				stackptr ystack,typevector *yloc,
 				int locsize)
 {
-	typevector *yvec;
 	typevector *destloc;
 	int destidx;
-	bool repeat = false;
 	bool changed = false;
+
+	LOG1("reaching block L%03d",destblock->debug_nr);
 	
 	destidx = destblock - block;
 	destloc = MGET_TYPEVECTOR(localbuf,destidx,locsize);
 
+	/* When branching backwards we have to check for uninitialized objects */
+	
+	if (destblock <= current) {
+		stackptr sp;
+		int i;
+		
+        LOG("BACKWARDS!");
+        for (sp = ystack; sp; sp=sp->prev)
+            if (sp->type == TYPE_ADR &&
+                TYPEINFO_IS_NEWOBJECT(sp->typeinfo))
+                panic("Branching backwards with uninitialized object on stack");
+
+        for (i=0; i<locsize; ++i)
+            if (yloc->td[i].type == TYPE_ADR &&
+                TYPEINFO_IS_NEWOBJECT(yloc->td[i].info))
+                panic("Branching backwards with uninitialized object in local variable");
+    }
+	
 	if (destblock->flags == BBTYPECHECK_UNDEF) {
 		/* The destblock has never been reached before */
 
@@ -538,9 +463,9 @@ typestate_reach(void *localbuf,
 	if (changed) {
 		LOG("changed!");
 		destblock->flags = BBTYPECHECK_REACHED;
-		if (destblock <= current) {repeat = true; LOG("REPEAT!");}
+		if (destblock <= current) {LOG("REPEAT!"); return true;}
 	}
-	return repeat;
+	return false;
 }
 
 /* Globals used:
@@ -678,35 +603,9 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass,
 /* INTERNAL DATA STRUCTURES                                                 */
 /****************************************************************************/
 
-typedef struct jsr_record jsr_record;
-
-/*
- * For each basic block we store the chain of JSR instructions which
- * were used to reach the block (usually zero or one). For more
- * details on verifying JSR and RET instructions see the Java VM
- * Specification.
- *
- * CAUTION: The fields starting with sbr_ are only valid for the
- * jsr_record of the first block of the subroutine.
- */
-struct jsr_record {
-    basicblock  *target;      /* target of the JSR instruction (first block of subroutine) */
-    jsr_record  *next;        /* for chaining in nested try ... finally */ /* XXX make it sbr_next? */
-    u1          *sbr_touched; /* specifies which variables the subroutine touches */
-    u1          *sbr_vtype;   /* Types of local variables after RET */
-    typeinfo    *sbr_vinfo;   /* Types of local variables after RET */
-	instruction *sbr_ret;     /* RET instruction of the subroutine */
-    u1           touched[1];  /* touched flags for local variables */
-};
-
 /****************************************************************************/
 /* MACROS USED INTERNALLY IN typecheck()                                    */
 /****************************************************************************/
-
-#define TOUCH_VARIABLE(num)										\
-	do {if (jsrchain) touched[num] = TOUCHED_YES;} while (0)
-#define TOUCH_TWOWORD(num)										\
-	do {TOUCH_VARIABLE(num);TOUCH_VARIABLE((num)+1);} while (0)
 
 #define INDEX_ONEWORD(num)										\
 	do { if((num)<0 || (num)>=validlocals)						\
@@ -750,8 +649,10 @@ struct jsr_record {
 
 #define ISBUILTIN(v)   (iptr->val.a == (functionptr)(v))
 
-#define TYPECHECK_STACK(sp,tp)											\
-	do { if ((sp)->type != (tp))										\
+/* Macros for basic typechecks which were not done in stack.c */
+
+#define TYPECHECK_STACK(sp,tp)								\
+	do { if ((sp)->type != (tp))							\
 			panic("Wrong data type on stack"); } while(0)
 
 #define TYPECHECK_ADR(sp)  TYPECHECK_STACK(sp,TYPE_ADR)
@@ -828,36 +729,6 @@ struct jsr_record {
         };                                                              \
     } } while (0)
 
-/* TYPECHECK_MERGEJSR:
- *
- * Input:
- * Ouput:
- *     tbptr......target block
- *     changed....set to true if any typeinfo has changed
- *     numlocals..number of local variables
- *     touched....current touched flags of local variables
- * Used:
- *     macro_i, jsrtemp, jsrtemp2
- */
-#define TYPECHECK_MERGEJSR                                              \
-    do {                                                                \
-        LOG("TYPECHECK_MERGEJSR");                                      \
-    jsrtemp = jsrbuffer[tbptr-block];                                   \
-    jsrtemp2 = jsrchain;                                                \
-    while (jsrtemp || jsrtemp2) {                                       \
-        if (!jsrtemp || !jsrtemp2)                                      \
-            panic("Merging JSR subroutines of different depth");        \
-        if (jsrtemp->target != jsrtemp2->target)                        \
-            panic("Merging different JSR subroutines");                 \
-        jsrtemp = jsrtemp->next;                                        \
-        jsrtemp2 = jsrtemp2->next;                                      \
-    }                                                                   \
-    jsrtemp = jsrbuffer[tbptr-block];                                   \
-    if (jsrtemp)                                                        \
-        for (macro_i=0; macro_i<numlocals; ++macro_i) {                 \
-            jsrtemp->touched[i] |= touched[i];                          \
-    } } while (0)
-
 /* TYPECHECK_COPYSTACK: copy the typeinfos of the current stack to
  *     the input stack of the target block.
  * Input:
@@ -910,95 +781,11 @@ struct jsr_record {
     if (dststack) panic("Stack depth mismatch");                        \
     } while(0)
 
-
-/* TYPECHECK_CHECK_JSR_CHAIN: checks if the target block is reached by
- *     the same JSR targets on all control paths.
- *
- * Input:
- *     tbptr......target block
- *     jsrchain...current JSR target chain
- *     jsrbuffer..JSR target chain for each basic block
- * Output:
- *     panic if the JSR target chains don't match
- * Used:
- *     jsrtemp, jsrtemp2
- */
-#define TYPECHECK_CHECK_JSR_CHAIN                                       \
-    do {                                                                \
-    jsrtemp = jsrbuffer[tbptr-block];                                   \
-    if (!jsrtemp) panic("non-subroutine called by JSR");                \
-    if (jsrtemp->target != tbptr)                                       \
-        panic("Merging different JSR subroutines");                     \
-    jsrtemp = jsrtemp->next;                                            \
-    jsrtemp2 = jsrchain;                                                \
-    while (jsrtemp || jsrtemp2) {                                       \
-        if (!jsrtemp || !jsrtemp2)                                      \
-            panic("Merging JSR subroutines of different depth");        \
-        if (jsrtemp->target != jsrtemp2->target)                        \
-            panic("Merging different JSR subroutines");                 \
-        jsrtemp = jsrtemp->next;                                        \
-        jsrtemp2 = jsrtemp2->next;                                      \
-    } } while (0)
-
-/* TYPECHECK_ADD_JSR: add a JSR target to the current JSR target chain
- *     and store the resulting chain in the target block.
- *
- * Input:
- *     jsrchain...current JSR target chain
- *     tbptr.....the basic block targeted by the JSR
- *     numlocals..number of local variables
- *     jsrbuffer..JSR target chain for each basic block
- * Used:
- *     jsrtemp
- */
-#define TYPECHECK_ADD_JSR																\
-    do {																				\
-    LOG1("adding JSR to block %04d",(tbptr)-block);										\
-    jsrtemp = jsrchain;																	\
-    while (jsrtemp) {																	\
-	    if (jsrtemp->target == tbptr)													\
-		    panic("recursive JSR call");												\
-        jsrtemp = jsrtemp->next;														\
-    }																					\
-    jsrtemp = (jsr_record *) dump_alloc(sizeof(jsr_record)+(numlocals-1)*sizeof(u1));	\
-    jsrtemp->target = (tbptr);															\
-    jsrtemp->next = jsrchain;															\
-    jsrtemp->sbr_touched = NULL;														\
-    memset(&jsrtemp->touched,TOUCHED_NO,sizeof(u1)*numlocals);							\
-    jsrbuffer[tbptr-block] = jsrtemp;													\
-    } while (0)
-
-/* TYPECHECK_COPYJSR: copy the current JSR chain to the target block.
- *
- * Input:
- *     chain......current JSR target chain
- *     tbptr.....the basic block targeted by the JSR
- *     numlocals..number of local variables
- *     jsrbuffer..JSR target chain for each basic block
- *     touched....current touched flags of local variables
- * Used:
- *     jsrtemp
- */
-#define TYPECHECK_COPYJSR(chain)                                        \
-    do {                                                                \
-        LOG("TYPECHECK_COPYJSR");                                       \
-        if (chain) {                                                    \
-            jsrtemp = (jsr_record *) dump_alloc(sizeof(jsr_record)+(numlocals-1)*sizeof(u1)); \
-            jsrtemp->target = (chain)->target;                          \
-            jsrtemp->next = (chain)->next;                              \
-            jsrtemp->sbr_touched = NULL;                                \
-            memcpy(&jsrtemp->touched,touched,sizeof(u1)*numlocals);     \
-            jsrbuffer[tbptr-block] = jsrtemp;                           \
-        }                                                               \
-        else                                                            \
-            jsrbuffer[tbptr-block] = NULL;                              \
-    } while (0)
-
 /* TYPECHECK_BRANCH_BACKWARDS: executed when control flow moves
  *     backwards. Checks if there are uninitialized objects on the
  *     stack or in local variables.
  * Input:
- *     dst........current output stack pointer (not needed for REACH_THROW)
+ *     dst........current output stack pointer
  *     vtype......current local variable types
  *     vinfo......current local variable typeinfos
  * Used:
@@ -1027,25 +814,16 @@ struct jsr_record {
  * Input:
  *     bptr.......current block
  *     tbptr......target block
- *     dst........current output stack pointer (not needed for REACH_THROW)
+ *     dst........current output stack pointer
  *     numlocals..number of local variables
- *     vtype......current local variable types
- *     vinfo......current local variable typeinfos
- *     jsrchain...current JSR target chain
- *     jsrbuffer..JSR target chain for each basic block
- *     way........in which way the block is reached (REACH_ constant)
- *     touched....current touched flags of local variables
  * Output:
  *     repeat.....changed to true if a block before the current
  *                block has changed
  * Used:
  *     ttype, tinfo, srcstack, dststack, changed, macro_i
  */
-#define TYPECHECK_REACH(way)                                            \
+#define TYPECHECK_REACH                                                 \
     do {                                                                \
-    LOG2("reaching block %04d (%d)",tbptr-block,way);                   \
-    if (tbptr <= bptr)                                                  \
-        TYPECHECK_BRANCH_BACKWARDS;                                     \
     repeat |= typestate_reach(localbuf,bptr,tbptr,dst,                  \
 							  localset,numlocals);                      \
     LOG("done.");                                                       \
@@ -1092,29 +870,23 @@ typecheck()
     instruction *iptr;               /* pointer to current instruction */
     basicblock *bptr;                /* pointer to current basic block */
     basicblock *tbptr;                   /* temporary for target block */
+	
     int numlocals;                        /* number of local variables */
 	int validlocals;         /* number of valid local variable indices */
-
 	void *localbuf;       /* local variable types for each block start */
 	typevector *localset;        /* typevector set for local variables */
 	typevector *lset;                             /* temporary pointer */
 	typedescriptor *td;                           /* temporary pointer */
 
     typeinfo tempinfo;                                    /* temporary */
-
 	typedescriptor returntype;        /* return type of current method */
-	
     u1 *ptype;                     /* parameter types of called method */
     typeinfo *pinfo;           /* parameter typeinfos of called method */
     int rtype;                         /* return type of called method */
     typeinfo rinfo;       /* typeinfo for return type of called method */
+	
     stackptr dst;               /* output stack of current instruction */
     basicblock **tptr;    /* pointer into target list of switch instr. */
-    jsr_record **jsrbuffer;   /* JSR target chain for each basic block */
-    jsr_record *jsrchain;               /* JSR chain for current block */
-    jsr_record *jsrtemp,*jsrtemp2;              /* temporary variables */
-    jsr_record *subroutine;    /* jsr_record of the current subroutine */
-    u1 *touched;                  /* touched flags for local variables */
     xtable **handlers;                    /* active exception handlers */
     classinfo *cls;                                       /* temporary */
     bool maythrow;               /* true if this instruction may throw */
@@ -1136,10 +908,13 @@ typecheck()
     LOGimpSTR("    (class ");
     LOGimpSTRu(method->class->name);
     LOGimpSTR(")\n");
+	LOGFLUSH;
 
     name_init = utf_new_char("<init>");
     initmethod = (method->name == name_init);
 
+	/* Allocate buffer for method arguments */
+	
     ptype = DMNEW(u1,MAXPARAMS);
     pinfo = DMNEW(typeinfo,MAXPARAMS);
     
@@ -1185,13 +960,6 @@ typecheck()
 
     LOG("Variable buffer allocated.\n");
 
-    /* allocate the buffer for storing JSR target chains */
-    jsrbuffer = DMNEW(jsr_record*,block_count);
-    memset(jsrbuffer,0,block_count * sizeof(jsr_record*));
-    jsrchain = NULL;
-    
-    LOG("jsrbuffer initialized.\n");
-
     /* allocate the buffer of active exception handlers */
     handlers = DMNEW(xtable*,method->exceptiontablelength + 1);
 
@@ -1234,6 +1002,8 @@ typecheck()
         if (!cls) cls = class_java_lang_Throwable;
         LOGSTR1("handler %i: ",i); LOGSTRu(cls->name); LOGNL;
         TYPEINFO_INIT_CLASSINFO(extable[i].handler->instack->typeinfo,cls);
+
+		/* XXX What about unreached exception handlers? */
     }
 
     LOG("Exception handler stacks set.\n");
@@ -1284,41 +1054,14 @@ typecheck()
 							&& TYPEINFO_IS_NEWOBJECT(localset->td[i].info))
 							panic("Uninitialized object in local variable inside try block");
 
-                /* init JSR target chain */
-                if ((jsrchain = jsrbuffer[b_index]) != NULL) {
-#ifdef TYPECHECK_VERBOSE
-                    if (typecheckverbose) {
-                        LOGSTR("jsr chain:");
-                        jsrtemp = jsrchain;
-                        while (jsrtemp) {
-                            LOGSTR1(" L%03d",jsrtemp->target->debug_nr);
-                            jsrtemp = jsrtemp->next;
-                        }
-                        LOGNL;
-                        LOGFLUSH;
-                    }
-#endif
-
-                    subroutine = jsrbuffer[jsrchain->target - block];
-                    memcpy(touched,jsrchain->touched,sizeof(u1)*numlocals);
-                }
-                else
-                    subroutine = NULL;
-#ifdef TYPECHECK_VERBOSE
-                if (typecheckverbose) {
-                    if (subroutine) {LOGSTR1("subroutine L%03d\n",subroutine->target->debug_nr);LOGFLUSH;}
-                    typestate_print(get_logfile(),curstack,localset,numlocals);
-                    LOGNL; LOGFLUSH;
-                }
-#endif
+				DOLOG(typestate_print(get_logfile(),curstack,localset,numlocals));
+				LOGNL; LOGFLUSH;
 
                 /* loop over the instructions */
                 len = bptr->icount;
                 iptr = bptr->iinstr;
                 while (--len >= 0)  {
-                    DOLOG(show_icmd(iptr,false));
-                    LOGNL;
-                    LOGFLUSH;
+                    DOLOG(show_icmd(iptr,false)); LOGNL; LOGFLUSH;
                         
                     opcode = iptr->opc;
                     dst = iptr->dst;
@@ -1413,11 +1156,12 @@ typecheck()
                           /* STORING ADDRESS TO VARIABLE          */
 
                       case ICMD_ASTORE:
+						  INDEX_ONEWORD(iptr->op1);
+
                           if (handlers[0] &&
                               TYPEINFO_IS_NEWOBJECT(curstack->typeinfo))
                               panic("Storing uninitialized object in local variable inside try block");
 
-						  INDEX_ONEWORD(iptr->op1);
 						  if (TYPESTACK_IS_RETURNADDRESS(curstack))
 							  typevectorset_store_retaddr(localset,iptr->op1,&(curstack->typeinfo));
 						  else
@@ -1701,7 +1445,7 @@ typecheck()
                           tbptr = (basicblock *) iptr->target;
 
                           /* propagate stack and variables to the target block */
-                          TYPECHECK_REACH(REACH_STD);
+                          TYPECHECK_REACH;
                           /* XXX */
                           break;
 
@@ -1729,7 +1473,7 @@ typecheck()
                           while (--i >= 0) {
                               tbptr = *tptr++;
                               LOG2("target %d is block %04d",(tptr-(basicblock **)iptr->target)-1,tbptr-block);
-                              TYPECHECK_REACH(REACH_STD);
+                              TYPECHECK_REACH;
                           }
                           LOG("switch done");
                           superblockend = true;
@@ -1791,51 +1535,12 @@ typecheck()
                           dst = (stackptr) iptr->val.a;
                           
                           tbptr = (basicblock *) iptr->target;
-						  repeat |= typestate_jsr(localbuf,bptr,tbptr,dst,localset,numlocals);
-#if 0
-                          TYPEINFO_INIT_RETURNADDRESS(dst->typeinfo,tbptr);
+						  if (bptr+1 == last_block)
+							  panic("Illegal instruction: JSR at end of bytecode");
+						  typestack_put_retaddr(dst,bptr+1,localset);
+						  repeat |= typestate_reach(localbuf,bptr,tbptr,dst,
+													localset,numlocals);
 
-                          LOG("reaching block...");
-                          
-                          /* add the target to the JSR target chain and */
-                          /* propagate stack and variables to the target block */
-                          TYPECHECK_REACH(REACH_JSR);
-
-                          /* set dst to the stack after the subroutine execution */
-                          /* XXX We assume (as in stack.c) that the
-                           * subroutine returns the stack as it was
-                           * before the JSR instruction. Is this
-                           * correct?
-                           */
-                          dst = iptr->dst;
-
-                          /* Find the jsr_record of the called subroutine */
-                          jsrtemp = jsrbuffer[tbptr - block];
-
-                          /* Check if we already calculated (at least
-                           * for one RET) which variables the
-                           * subroutine touches.
-                           */
-                          if (jsrtemp->sbr_touched) {
-                              /* Calculate the local variables after the subroutine call */
-                              for (i=0; i<numlocals; ++i)
-                                  if (jsrtemp->sbr_touched[i] != TOUCHED_NO) {
-                                      TOUCH_VARIABLE(i);
-                                      if ((vtype[i] = jsrtemp->sbr_vtype[i]) == TYPE_ADR)
-                                          TYPEINFO_CLONE(jsrtemp->sbr_vinfo[i],vinfo[i]);
-                                  }
-
-                              /* continue after the JSR call */
-                              superblockend = false;
-                          }
-                          else {
-                              /* We cannot proceed until the subroutine has been typechecked. */
-                              /* XXX actually we would not have to check this block again */
-                              bptr->flags = BBTYPECHECK_REACHED;
-                              repeat = true;
-                              superblockend = true;
-                          }
-#endif
                           /* XXX may throw? I don't think so. */
 						  superblockend = true;
                           break;
@@ -1849,69 +1554,6 @@ typecheck()
 						  repeat |= typestate_ret(localbuf,bptr,curstack,
 												  localset,iptr->op1,numlocals);
 
-#if 0
-                          /* check if we are inside a subroutine */
-                          if (!subroutine)
-                              panic("RET outside of subroutine");
-
-						  /* check if the right returnAddress is used (XXX is this too strict?) */
-						  if ((basicblock*)TYPEINFO_RETURNADDRESS(vinfo[iptr->op1])
-							  != subroutine->target)
-							  panic("RET uses returnAddress of another subroutine");
-
-                          /* determine which variables are touched by this subroutine */
-                          /* and their types */
-                          if (subroutine->sbr_touched) {
-							  /* We have reached a RET in this subroutine before. */
-							  
-							  /* Check if there is more than one RET instruction
-							   * returning from this subroutine. */
-							  if (subroutine->sbr_ret != iptr)
-								  panic("JSR subroutine has more than one RET instruction");
-
-							  /* Merge the array of touched locals and their types */
-                              for (i=0; i<numlocals; ++i)
-                                  subroutine->sbr_touched[i] |= touched[i];
-                              ttype = subroutine->sbr_vtype;
-                              tinfo = subroutine->sbr_vinfo;
-                              TYPECHECK_MERGEVARS;
-							  /* XXX check if subroutine changed types? */
-                          }
-                          else {
-							  /* This is the first time we reach a RET in this subroutine */
-							  subroutine->sbr_ret = iptr;
-                              subroutine->sbr_touched = DMNEW(u1,numlocals);
-                              memcpy(subroutine->sbr_touched,touched,sizeof(u1)*numlocals);
-                              subroutine->sbr_vtype = DMNEW(u1,numlocals);
-                              memcpy(subroutine->sbr_vtype,vtype,sizeof(u1)*numlocals);
-                              subroutine->sbr_vinfo = DMNEW(typeinfo,numlocals);
-                              for (i=0; i<numlocals; ++i)
-                                  if (vtype[i] == TYPE_ADR)
-                                      TYPEINFO_CLONE(vinfo[i],subroutine->sbr_vinfo[i]);
-                          }
-
-                          LOGSTR("subroutine touches:");
-                          DOLOG(typeinfo_print_locals(get_logfile(),subroutine->sbr_vtype,subroutine->sbr_vinfo,
-                                                      subroutine->sbr_touched,numlocals));
-                          LOGNL; LOGFLUSH;
-
-                          /* XXX reach blocks after JSR statements */
-                          for (i=0; i<block_count; ++i) {
-                              tbptr = block + i;
-                              LOG1("block L%03d",tbptr->debug_nr);
-                              if (tbptr->iinstr[tbptr->icount - 1].opc != ICMD_JSR)
-                                  continue;
-                              LOG("ends with JSR");
-                              if ((basicblock*) tbptr->iinstr[tbptr->icount - 1].target != subroutine->target)
-                                  continue;
-                              tbptr++;
-
-                              LOG1("RET reaches block L%03d",tbptr->debug_nr);
-
-                              /*TYPECHECK_REACH(REACH_RET);*/
-                          }
-#endif
-                          
                           superblockend = true;
                           break;
 							  
@@ -2416,11 +2058,6 @@ typecheck()
                         }
                     }
 
-                    /*
-                      DOLOG(typeinfo_print_block(get_logfile(),curstack,numlocals,vtype,vinfo,(jsrchain) ? touched : NULL));
-                      LOGNL; LOGFLUSH;
-                    */
-                    
                     iptr++;
                 } /* while instructions */
 
@@ -2440,7 +2077,7 @@ typecheck()
                             panic("Control flow falls off the last block");
 #endif
                     }
-                    TYPECHECK_REACH(REACH_STD);
+                    TYPECHECK_REACH;
                 }
                 
             } /* if block has to be checked */
