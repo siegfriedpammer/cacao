@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClassLoader.c 2152 2005-03-30 19:28:40Z twisti $
+   $Id: VMClassLoader.c 2173 2005-03-31 19:29:04Z twisti $
 
 */
 
@@ -51,6 +51,8 @@
 #include "vm/exceptions.h"
 #include "vm/builtin.h"
 #include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
@@ -63,35 +65,80 @@
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *this, java_lang_String *name, java_bytearray *buf, s4 off, s4 len, java_security_ProtectionDomain *pd)
 {
-	classinfo *c;
-	char *tmp;
+	classinfo   *c;
+	classinfo   *r;
+	classbuffer *cb;
 
-	if (off < 0 || len < 0 || off + len > buf->header.size) {
+	if ((off < 0) || (len < 0) || ((off + len) > buf->header.size)) {
 		*exceptionptr =
 			new_exception(string_java_lang_IndexOutOfBoundsException);
 		return NULL;
 	}
 
-	/* convert class name to char string */
+	/* convert '.' to '/' in java string */
 
-	tmp = javastring_tochar((java_objectheader *) name);
+	c = class_new(javastring_toutf(name, true));
 
-	/* call JNI-function to load the class */
+#if defined(USE_THREADS)
+	/* enter a monitor on the class */
 
-	c = (*env)->DefineClass(env,
-							tmp,
-							(jobject) this,
-							(const jbyte *) &buf->data[off],
-							len);
+	builtin_monitorenter((java_objectheader *) c);
+#endif
 
-	/* release memory allocated by javastring_tochar */
+#if defined(STATISTICS)
+	/* measure time */
 
-	MFREE(tmp, char, strlen(tmp));
+	if (getloadingtime)
+		loadingtime_start();
+#endif
+
+	/* build a classbuffer with the given data */
+
+	cb = NEW(classbuffer);
+	cb->class = c;
+	cb->size = len;
+	cb->data = (u1 *) &buf->data[off];
+	cb->pos = cb->data - 1;
+
+	/* preset the defining classloader */
+
+	c->classloader = (java_objectheader *) this;
+
+	/* load the class from this buffer */
+
+	r = load_class_from_classbuffer(cb);
+
+	/* free memory */
+
+	FREE(cb, classbuffer);
+
+#if defined(STATISTICS)
+	/* measure time */
+
+	if (getloadingtime)
+		loadingtime_stop();
+#endif
+
+#if defined(USE_THREADS)
+	/* leave the monitor */
+
+	builtin_monitorexit((java_objectheader *) c);
+#endif
 
 	/* exception? return! */
 
-	if (!c)
+	if (!r) {
+		/* If return value is NULL, we had a problem and the class is not     */
+		/* loaded. */
+
+		c->loaded = false;
+
+		/* now free the allocated memory, otherwise we could ran into a DOS */
+
+		class_remove(c);
+
 		return NULL;
+	}
 
 	/* set ProtectionDomain */
 
@@ -185,35 +232,36 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 
 	/* load class */
 
-	if (!load_class_bootstrap(c)) {
-		classinfo *xclass;
-
-		xclass = (*exceptionptr)->vftbl->class;
-
-		/* if the exception is a NoClassDefFoundError, we replace it with a
-		   ClassNotFoundException, otherwise return the exception */
-
-		if (xclass == class_java_lang_NoClassDefFoundError) {
-			/* clear exceptionptr, because builtin_new checks for 
-			   ExceptionInInitializerError */
-			*exceptionptr = NULL;
-
-			*exceptionptr =
-				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
-		}
-
-		return NULL;
-	}
+	if (!load_class_bootstrap(c))
+		goto exception;
 
 	/* resolve class -- if requested */
 	/* XXX TWISTI: we do not support REAL (at runtime) lazy linking */
-/*  	if (resolve) */
+/*  	if (resolve) { */
 		if (!link_class(c))
-			return NULL;
+			goto exception;
 
-	use_class_as_object(c);
+		use_class_as_object(c);
+/*  	} */
 
 	return (java_lang_Class *) c;
+
+ exception:
+	c = (*exceptionptr)->vftbl->class;
+	
+	/* if the exception is a NoClassDefFoundError, we replace it with a
+	   ClassNotFoundException, otherwise return the exception */
+
+	if (c == class_java_lang_NoClassDefFoundError) {
+		/* clear exceptionptr, because builtin_new checks for 
+		   ExceptionInInitializerError */
+		*exceptionptr = NULL;
+
+		*exceptionptr =
+			new_exception_javastring(string_java_lang_ClassNotFoundException, name);
+	}
+
+	return NULL;
 }
 
 
