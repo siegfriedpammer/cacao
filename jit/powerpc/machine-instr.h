@@ -22,4 +22,3 @@ atomic_add(int *mem, int val)
 #define MEMORY_BARRIER() __asm__ __volatile__ ( "sync" : : : "memory" );
 
 #endif
-#endif
