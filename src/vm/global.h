@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 383 2003-07-08 21:01:26Z carolyn $
+	Last Change: $Id: global.h 390 2003-07-15 15:52:21Z carolyn $
 
 *******************************************************************************/
 
@@ -462,11 +462,15 @@ typedef struct methodinfo {         /* method structure                       */
 	u1        *entrypoint;          /* entry point in machine code            */
 
         s4        methodUsed; 		/* -1=marked (might be used) 0=not used 1=used CO-RT*/
-	s4	  numSubDefs;		/* # sub definitions that could be used   */
+	s4	  numSubDefs;		/* # sub definitions marked USED          */
 
 	s4          natCalls;     	/* number of methods  calls               */
 	
 //	methodinfo *natCalledMethods;   /* methods called table                   */
+        
+	s4          XTAclasscount;     /* number of classes in XTA class set       */
+	classinfo   *XTAclassSet;       /* XTA class set*/
+
 
 } methodinfo;
 

@@ -38,7 +38,6 @@ struct  nativeMethod  {
 
 static struct nativeCall {
         char *classname;
-//	classinfo* nclass;
         struct nativeMethod methods[MAXCALLS];
         int methCnt;
         int callCnt[MAXCALLS];

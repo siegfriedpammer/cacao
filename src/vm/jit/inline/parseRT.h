@@ -51,6 +51,22 @@ int RTmethodNotUsedCnt2= 0;
 int RTmethodUsedCnt = 0;
 int RTmethodMarkedCnt= 0;
 
+/* What might be inlined of the Used Methods */
+int RTmethodFinal  = 0;
+int RTmethodStatic = 0;
+int RTmethodFinalStatic = 0;
+int RTmethodNoSubs = 0;
+
+int RTmethodFinal100  = 0;
+int RTmethodStatic100 = 0;
+int RTmethodFinalStatic100 = 0;
+int RTmethodNoSubs100 = 0;
+
+#define MAXCODLEN 10
+
+int RTmethodNoSubsAbstract = 0;
+int RTmethod1Used  = 0;
+
 /*------------- RTAprint flags ------------------------------------------------------------------*/
 int pCallgraph  = 0;    /* 0 - dont print 1 - print at end from main                             */ 
                         /* 2 - print at end of RT parse call                                     */
@@ -151,7 +167,7 @@ if (class == NULL) {return;}
 	for (m=0; m < class->methodscount; m++) {
 	  meth = &class->methods[m];
 	  if (meth->methodUsed == USED) {
-	    if (pClassHeirStatsOnly == 0) {
+	    if (pClassHeirStatsOnly >= 2) {
 		printf("METHOD marked used in CLASS marked NOTUSED: "); 
 		utf_display(class->name);
 		printf(".");
@@ -165,26 +181,26 @@ if (class == NULL) {return;}
 	}
 
     if (class->classUsed != NOTUSED) {
-        if (pClassHeirStatsOnly == 0) {
+        if (pClassHeirStatsOnly >= 2) {
 	  printf("\nClass: "); 
           utf_display(class->name);    
 	  printf(" <%i> (depth=%i) ",class->classUsed,class->index);
 	  }
         if (class->classUsed == METH_USED_BY_SUB) {
-            if (pClassHeirStatsOnly == 0) {
+            if (pClassHeirStatsOnly >= 2) {
               printf("\tClass not instanciated - but methods resolved to this class' code\n");
 	      }
 	    RTclassHeirBySubCnt++;
 	    }	
         else {
           if (class->classUsed == MARKEDSUPER) {
-            if (pClassHeirStatsOnly == 0) {
+            if (pClassHeirStatsOnly >= 2) {
               printf("\tClass not instanciated - but used by super init\n");
 	      }
 	    RTclassHeirSuperCnt++;
             }		
            else {
-              if (pClassHeirStatsOnly == 0) {
+              if (pClassHeirStatsOnly >= 2) {
                 printf("\n");
 		}
 	      RTclassHeirUsedCnt++;
@@ -202,7 +218,31 @@ if (class == NULL) {return;}
 	    if (meth->methodUsed == JUSTMARKED) RTmethodMarkedCnt++;
 	    if (meth->methodUsed == USED) {
 		RTmethodUsedCnt++;
-                if (pClassHeirStatsOnly == 0) {
+    		if (  (meth->flags & ACC_FINAL ) && (!(meth->flags & ACC_STATIC)) ) { 
+			RTmethodFinal++;
+			if (meth->jcodelength < MAXCODLEN)  RTmethodFinal100++;
+			}
+
+    		if (  (meth->flags & ACC_STATIC) && (!(meth->flags & ACC_FINAL )) ) { 
+			RTmethodStatic++;
+			if (meth->jcodelength < MAXCODLEN)  RTmethodStatic100++;
+			}
+
+    		if (  (meth->flags & ACC_STATIC) && (meth->flags & ACC_FINAL ) ) { 
+			RTmethodFinalStatic++;
+			if (meth->jcodelength < MAXCODLEN)  RTmethodFinalStatic100++;
+			}
+
+		if ((! ((meth->flags & ACC_FINAL ) && (meth->flags & ACC_STATIC)) ) 
+		   && ((meth->class->sub == NULL)  && (!(meth->flags & ACC_ABSTRACT)) ))    {
+			RTmethodNoSubs++;
+			if (meth->jcodelength < MAXCODLEN)  RTmethodNoSubs100++;
+			}
+
+		if ((! ((meth->flags & ACC_FINAL ) && (meth->flags & ACC_STATIC)) ) 
+		   && ((meth->class->sub == NULL)  &&   (meth->flags & ACC_ABSTRACT)  ))    RTmethodNoSubsAbstract++;
+		     					
+		if (pClassHeirStatsOnly >= 2) {
 	          if (cnt == 0) {
 	             printf("Methods used:\n");
 	             }
@@ -214,7 +254,7 @@ if (class == NULL) {return;}
 		  }
 	       }
             }
-         if (pClassHeirStatsOnly == 0) {
+         if (pClassHeirStatsOnly >= 2) {
 	   if (cnt > 0) printf("> %i of %i methods used\n",cnt, class->methodscount);
 	   }
          }
@@ -222,10 +262,6 @@ if (class == NULL) {return;}
     for (subs = class->sub;subs != NULL;subs = subs->nextsub) {
 	printRTClassHeirarchy(subs);
         }
-if (pClassHeirStatsOnly == 0) {
-  printf("\n");
-  }
-
 }
 /*--------------------------------------------------------------*/
 
@@ -244,7 +280,7 @@ void printRThierarchyInfo(methodinfo *m) {
 
 
   /*-- --*/
-  if (pClassHeirStatsOnly == 0) {
+  if (pClassHeirStatsOnly >= 2) {
     printf("\nRT Class Heirarchy for ");
     printf("--- start of RT info --------------- after :\n");
     if (m != NULL) {
@@ -255,9 +291,10 @@ void printRThierarchyInfo(methodinfo *m) {
 	}
     }
   printRTClassHeirarchy(class_java_lang_Object);
-  if (pClassHeirStatsOnly == 0) {
+  if (pClassHeirStatsOnly >= 2) {
     printf("--- end  of RT info ---------------\n");
     }
+ if (pClassHeirStatsOnly >= 1) {
 
   /*--  statistic results --*/
   printf("\n  >>>>>>>>>>>>>>>>>>>>  Analysed Class Heirarchy Statistics:\n"); 
@@ -274,6 +311,12 @@ void printRThierarchyInfo(methodinfo *m) {
   printf(" Total           \t#%i \tclasses\t/ Total       \t#%i methods\n\n",
 	RTclassHeirNotUsedCnt + RTclassHeirUsedCnt + RTclassHeirBySubCnt + RTclassHeirSuperCnt,  
 	RTmethodNotUsedCnt    + RTmethodUsedCnt    + RTmethodMarkedCnt ); 
+
+  printf(" Inlining possible:  \tFINALs %i \tSTATICs %i \t FINAL & STATIC %i \t Class has No Subs %i \n",
+	RTmethodFinal, RTmethodStatic,RTmethodFinalStatic,  RTmethodNoSubs);
+  printf("    Code size < 100  \tFINALs %i \tSTATICs %i \t FINAL & STATIC %i \t Class has No Subs %i \n",
+	RTmethodFinal100, RTmethodStatic100,RTmethodFinalStatic100,  RTmethodNoSubs100);
+  }
 }
 
 /*--------------------------------------------------------------*/
@@ -838,63 +881,57 @@ if (pWhenMarked >= 4) {
 }
 
 /*-------------------------------------------------------------------------------*/
-void   findMarkNativeUsedMeth (classinfo *class, utf * c1, utf* m1, utf* d1) {
+void   findMarkNativeUsedMeth (utf * c1, utf* m1, utf* d1) {
 
+classinfo  *class;
 classinfo  *subs;
 classinfo  *ci;
 methodinfo *meth;
 int m;
 int ii;
 
-if (class == NULL) {return;}
+class = class_get(c1);
+if (class == NULL)  {
+	return;    /*Note: Since NativeCalls is for mult programs some may not be loaded - that's ok */
+	}
 
-ii = find_class_method_constant (class, c1, m1, d1);
-
-    /* Class Name */
-    if (c1 == class->name) {
-       	class->classUsed = USED; // MARK CLASS USED????
-	meth = class_findmethod (class, m1, d1);
-	if (meth == NULL) panic("Method used by Native NOTFOUND");
-
+if (class->classUsed == NOTUSED) {
+	class->classUsed = USED; // MARK CLASS USED????
 	/* add marked methods to callgraph */ 
 	for (ii=0; ii<class->methodscount; ii++) { 
 		if (class->methods[ii].methodUsed == JUSTMARKED) { 
 			addToCallgraph(&class->methods[ii]); 
 			}
 		}    
+	}
 
-	markSubs(class,meth);
-        }
-    for (subs = class->sub;subs != NULL;subs = subs->nextsub) {
-	findMarkNativeUsedMeth(subs, c1, m1, d1);
-        }
+meth = class_findmethod (class, m1, d1);
+if (meth == NULL) {
+	utf_display(class->name);printf(".");utf_display(m1);printf(" ");utf_display(d1);
+	panic("parseRT:  Method given is used by Native method call, but NOT FOUND");
+	}
+markSubs(class,meth);
 }
 
 /*-------------------------------------------------------------------------------*/
 
-void   findMarkNativeUsedClass (classinfo *class,   utf * c) {
-classinfo  *subs;
-methodinfo *meth;
-int ii,m,cnt;
+void   findMarkNativeUsedClass (utf * c) {
+classinfo  *class;
+int ii;
 
-if (class == NULL) {return;}
+class = class_get(c);
+if (class == NULL)  panic("parseRT: Class used by Native method called not loaded!!!");
+class->classUsed = USED;
 
-    /* Class Name */
-    if (c == class->name) {
-       class->classUsed = USED;
-	/* add marked methods to callgraph */
-	for (ii=0; ii<class->methodscount; ii++) {
-        	if (class->methods[ii].methodUsed == JUSTMARKED) {
-                	addToCallgraph(&class->methods[ii]);
-                	}
-        	}
-
-       return;
-       }
-
-    for (subs = class->sub;subs != NULL;subs = subs->nextsub) {
-	findMarkNativeUsedClass(subs, c);
+/* add marked methods to callgraph */
+for (ii=0; ii<class->methodscount; ii++) {
+  if (class->methods[ii].methodUsed == JUSTMARKED) {
+	if (class->methods[ii].methodUsed == JUSTMARKED) {
+               	addToCallgraph(&class->methods[ii]);
+               	}
         }
+  }
+
 }
 
 
@@ -903,22 +940,24 @@ if (class == NULL) {return;}
 void markNativeMethodsRT(utf *rt_class, utf* rt_method, utf* rt_descriptor) {
 int i,j,k;
 bool found = false;
+classinfo *called;
 
 nativecallcompdone = natcall2utf(nativecallcompdone); 
 
 for (i=0; i<NATIVECALLSSIZE; i++) {
   if (rt_class  == nativeCompCalls[i].classname) {
+    /* find native class.method invoked */
     for (j=0; (!(found) && (j<nativeCompCalls[i].methCnt)); j++) {
       if ( (rt_method     == nativeCompCalls[i].methods[j].methodname)
         && (rt_descriptor == nativeCompCalls[i].methods[j].descriptor)) {
 
         found=true;
 
+        /* mark methods and classes used by this native class.method */
         for (k=0; k < nativeCompCalls[i].callCnt[j]; k++) {
           if (nativeCompCalls[i].methods[j].methodCalls[k].methodname != NULL) {
             /* mark method used */
-
-	     findMarkNativeUsedMeth(class_java_lang_Object,
+	     findMarkNativeUsedMeth(
 			nativeCompCalls[i].methods[j].methodCalls[k].classname,
 			nativeCompCalls[i].methods[j].methodCalls[k].methodname,
 			nativeCompCalls[i].methods[j].methodCalls[k].descriptor); 
@@ -932,7 +971,7 @@ for (i=0; i<NATIVECALLSSIZE; i++) {
             }
           else {
             /* mark class used */
-	     findMarkNativeUsedClass(class_java_lang_Object, nativeCompCalls[i].methods[j].methodCalls[k].classname);
+	     findMarkNativeUsedClass( nativeCompCalls[i].methods[j].methodCalls[k].classname);
             } /* if-else k  */ 
 
           }  /* for k */ 

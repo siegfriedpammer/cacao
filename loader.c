@@ -928,6 +928,7 @@ static void method_load (methodinfo *m, classinfo *c)
 	m -> mcode = NULL;
 	m -> stubroutine = NULL;
         m -> methodUsed = 0;    
+	m -> XTAclasscount = 0; 
         m -> numSubDefs = 0;    
 	
 	if (! (m->flags & ACC_NATIVE) ) {

@@ -1013,7 +1013,7 @@ nativeCall* findNativeClassCalls(char *aclassname ) {
 int i;
 
 for (i=0;i<NATIVECALLSSIZE; i++) {
-   // convert table to utf later to speed up search - see native.c 
+   /* convert table to utf later to speed up search */ 
    if (strcmp(nativeCalls[i].classname, aclassname) == 0) 
 	return &nativeCalls[i];
    }

@@ -7,9 +7,7 @@
 /*------------------------------------*/
 
 {"java/lang/Object",
-//nn 	class_java_lang_Object,
 {{"clone" , "()Ljava/lang/Object;",
-// Requires manual list of dynamically loaded classes/methods
 	{
 	{"java/lang/CloneNotSupportedException" , "<init>",  "()V"}, /* c-fn new&init */
 	{"java/lang/CloneNotSupportedException" , "",  ""}, /*c-fn - why both method& class alone? */
@@ -22,12 +20,11 @@
 /*------------------------------------*/
 
 {"java/lang/Class",
-//nn	class_java_lang_Class  //--> not  extren defined
 {{"forName0" , "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;",
 	{
 	{"java/lang/ClassNotFoundException" , "<init>",  "()V"}, /* c-fn */
 	{"java/lang/ClassLoader" , "loadClass",  "(Ljava/lang/String;)Ljava/lang/Class;"}, /* c-fn */
-	{"sun/io/CharToByteISO8859_1" , "<init>",  "()V"},     // jctest
+	{"sun/io/CharToByteISO8859_1" , "<init>",  "()V"},     /* jctest */
 	{"java/lang/CloneNotSupportedException" , "",  ""},
 	{"java/lang/Class" , "",  ""},
 	},
@@ -51,7 +48,7 @@
 
 {"getFields0" , "(I)[Ljava/lang/reflect/Field;",
 	{
-	{"java/lang/reflect/Field" , "getField0",  "(Ljava/lang/String;I)Ljava/lang/reflect/Field;"},  //java/lang/Class
+	{"java/lang/reflect/Field" , "getField0",  "(Ljava/lang/String;I)Ljava/lang/reflect/Field;"},  /* java/lang/Class */
 	{"java/lang/reflect/Field" , "",  ""},
 	{"java/lang/String" , "",  ""},
 	},
@@ -85,7 +82,7 @@
 
 {"newInstance0" , "()Ljava/lang/Object;",
 	{
-	{"java/lang/InstantiationException" , "<init>",  "()V"},   // super class??
+	{"java/lang/InstantiationException" , "<init>",  "()V"},   /* super class?? */
 	{"sun/io/CharToByteISO8859_1" , "<init>",  "()V"},
 	{"sun/io/ByteToCharISO8859_1" , "<init>",  "()V"},  /* javac .. */
 	{"sun/net/www/protocol/file/Handler" , "<init>",  "()V"},  /* javac .. */
@@ -100,7 +97,6 @@
 /*------------------------------------*/
 
 {"java/lang/ClassLoader",
-//nn	class_java_lang_ClassLoader;   // in native.c not sure extern def'd
 {{"getCallerClassLoader" , "()Ljava/lang/ClassLoader;",
 	{
 	{"java/lang/ClassLoader" , "<init>",  "()V"},
@@ -114,18 +110,17 @@
 /*------------------------------------*/
 
 {"java/security/AccessController",
-//nn	class_java_security_AccessController;  // NOT yet defined at all
 {{"doPrivileged" , "(Ljava/security/PrivilegedAction;)Ljava/lang/Object;",
 	{
 	{"java/security/PrivilegedAction" , "run",  "()Ljava/lang/Object;"},    /* c-fn  super class type */
 	{"java/security/PrivilegedActionException" , "<init>",  "(Ljava/lang/Exception;)V"},	
 								/* c-fn check_forexception call */ 
-	{"sun/security/action/GetPropertyAction" , "run",  "()Ljava/lang/Object;"},  // cfg jctest
-	{"sun/misc/Launcher$1" , "run",  "()Ljava/lang/Object;"},		     // cfg jctest
-	{"sun/misc/Launcher$4" , "run",  "()Ljava/lang/Object;"},		     // cfg javac
-	{"java/util/ResourceBundle$1" , "run",  "()Ljava/lang/Object;"},	     // cfg javac
-	{"sun/misc/URLClassPath$2" ,    "run",  "()Ljava/lang/Object;"},	     // cfg javac
-	{"java/lang/ref/Reference$ReferenceHandler" , "run",  "()V"},	     // cfg javac
+	{"sun/security/action/GetPropertyAction" , "run",  "()Ljava/lang/Object;"},  /* cfg jctest */
+	{"sun/misc/Launcher$1" , "run",  "()Ljava/lang/Object;"},		     /* cfg jctest */
+	{"sun/misc/Launcher$4" , "run",  "()Ljava/lang/Object;"},		     /* cfg javac  */
+	{"java/util/ResourceBundle$1" , "run",  "()Ljava/lang/Object;"},	     /* cfg javac  */
+	{"sun/misc/URLClassPath$2" ,    "run",  "()Ljava/lang/Object;"},	     /* cfg javac  */
+	{"java/lang/ref/Reference$ReferenceHandler" , "run",  "()V"},	     /* cfg javac */
 	{"java/security/PrivilegedActionException" , "",  ""},  		/* c-fn check_forexception call */
 	},
 },
@@ -157,7 +152,6 @@
 /*------------------------------------*/
 
 {"java/lang/reflect/Field",
-//nn	class_java_lang_reflect_Field;   // not yet defined at all
 {{"get" , "(Ljava/lang/Object;)Ljava/lang/Object;",
 	{
 	{"java/lang/NoSuchFieldException" , "<init>",  "()V"},
@@ -334,7 +328,6 @@
 /*------------------------------------*/
 
 {"java/io/FileDescriptor",
-//nn	class_java_io_FileDescriptor;   // not yet defined at all
 {{"sync" , "()V",
 	{
 	{"java/io/SyncFailedException" , "<init>",  "()V"},
@@ -348,7 +341,6 @@
 /*------------------------------------*/
 
 {"java/io/FileInputStream",
-//nn	class_java_io_FileInputStream;   // not yet defined at all
 
 {{"available" , "()I",
 	{
@@ -398,7 +390,6 @@
 /*------------------------------------*/
 
 {"java/io/FileOutputStream",
-//nn	class_java_io_FileOutputStream;   // not yet defined at all
 
 {{"close" , "()V",
 	{
@@ -441,7 +432,6 @@
 /*------------------------------------*/
 
 {"java/io/FileSystem",
-//nn	class_java_io_FileSystem;   // not yet defined at all
 
 {{"getFileSystem" , "()Ljava/io/FileSystem;",
 	{
@@ -457,7 +447,6 @@
 /*------------------------------------*/
 
 {"java/io/ObjectInputStream",
-//nn	class_java_io_ObjectInputStream;   // not yet defined at all
 
 {{"allocateNewArray" , "(Ljava/lang/Class;I)Ljava/lang/Object;",
 	{
@@ -483,7 +472,6 @@
 /*------------------------------------*/
 
 {"java/io/RandomAccessFile",
-//nn	class_java_io_RandomAccessFile;   // not yet defined at all
 
 {{"close" , "()V",
 	{
@@ -561,7 +549,6 @@
 /*------------------------------------*/
 
 {"java/lang/SecurityManager",
-//nn	class_java_lang_SecurityManager;   // not yet defined at all
 
 {{"currentClassLoader0" , "()Ljava/lang/Class;",
 	{
@@ -576,7 +563,6 @@
 /*------------------------------------*/
 
 {"java/lang/System",
-//nn	class_java_lang_System;   // in native.c not sure if extern defined 
 
 {{"arraycopy" , "(Ljava/lang/Object;ILjava/lang/Object;II)V",
 	{
@@ -591,19 +577,16 @@
 
 {"initProperties" , "(Ljava/util/Properties;)Ljava/util/Properties;",
 	{
-	//{"java/util/Properties" , "put",  "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"},
-	{"java/util/HashTable" , "put",  "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"},
 	{"java/util/Properties" , "",  ""},
 	},
 },
 
 },
-2,  {6, 2 }
+2,  {6, 1 }
 },
 /*------------------------------------*/
 
 {"java/lang/Thread",
-//nn	class_java_lang_Thread;  // not yet defined anywhere
 {{"currentThread" , "()Ljava/lang/Thread;",
 	{
 	{"java/lang/ThreadGroup" , "<init>",  "()V"},
@@ -617,7 +600,6 @@
 /*------------------------------------*/
 
 {"java/util/zip/Adler32",
-//nn	class_java_util_zip_Adler32;  // not yet defined anywhere
 
 {},
 0,  {2 }
@@ -625,7 +607,6 @@
 /*------------------------------------*/
 
 {"java/lang/reflect/Array",
-//nn	class_java_lang_reflect_Array;  // not yet defined anywhere
 
 {{"get" , "(Ljava/lang/Object;I)Ljava/lang/Object;",
 	{
@@ -798,7 +779,6 @@
 /*------------------------------------*/
 
 {"java/net/InetAddressImpl",
-//nn 	javar_net_InetAddressImpl;  // not yet defined anywhere
 
 
 {{"getHostByAddr" , "(I)Ljava/lang/String;",
@@ -821,7 +801,6 @@
 /*------------------------------------*/
 
 {"java/lang/Math",
-//nn 	java_lang_Math;  // not yet defined anywhere 
 
 {{"log" , "(D)D",
 	{
@@ -843,7 +822,6 @@
 /*------------------------------------*/
 
 {"java/net/PlainDatagramSocketImpl",
-//nn	java_net_PlainDatagramSocketImpl; // not yet defined anywhere
 
 {{"bind" , "(ILjava/net/InetAddress;)V",
 	{
@@ -956,7 +934,6 @@
 /*------------------------------------*/
 
 {"java/net/PlainSocketImpl",
-//nn	 java_net_PlainSocketImpl;  // not yet defined anywhere
 
 {{"socketAccept" , "(Ljava/net/SocketImpl;)V",
 	{
@@ -1027,7 +1004,6 @@
 /*------------------------------------*/
 
 {"java/net/SocketInputStream",
-//nn	java_net_SocketInputStream;  // not yet defined anywhere
 
 {{"socketRead" , "([BII)I",
 	{
@@ -1042,7 +1018,6 @@
 /*------------------------------------*/
 
 {"java/net/SocketOutputStream",
-//nn 	java_net_SocketOutputStream;  // not yet used anywhere
 
 {{"socketWrite" , "([BII)V",
 	{
