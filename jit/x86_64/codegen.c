@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1494 2004-11-12 13:34:26Z twisti $
+   $Id: codegen.c 1526 2004-11-17 15:50:27Z twisti $
 
 */
 
@@ -47,6 +47,7 @@
 #include "jit/jit.h"
 #include "jit/reg.h"
 #include "jit/parse.h"
+#include "jit/x86_64/arch.h"
 #include "jit/x86_64/codegen.h"
 #include "jit/x86_64/emitfuncs.h"
 #include "jit/x86_64/types.h"

@@ -27,12 +27,13 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 1451 2004-11-05 14:14:15Z twisti $
+   $Id: emitfuncs.c 1526 2004-11-17 15:50:27Z twisti $
 
 */
 
 
 #include "jit/jit.h"
+#include "jit/x86_64/arch.h"
 #include "jit/x86_64/emitfuncs.h"
 #include "jit/x86_64/codegen.h"
 #include "jit/x86_64/types.h"
