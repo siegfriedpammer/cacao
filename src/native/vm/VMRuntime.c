@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1850 2005-01-04 12:00:15Z twisti $
+   $Id: VMRuntime.c 1863 2005-01-05 20:14:08Z motse $
 
 */
 
@@ -409,6 +409,10 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	char *java_home;
 	char *user;
 	char *home;
+	char *locale;
+	char *lang;
+	char *region;
+
 	struct utsname utsnamebuf;
 #if !defined(STATIC_CLASSPATH)
 	char *libpath;
@@ -513,10 +517,29 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	insert_property(m, p, "gnu.classpath.awt.gtk.portable.native.sync", "false");
 #endif
 
+
+	/* get locales */
+	locale = getenv("LANG");
+	if (locale != NULL) { /* gnu classpath is going to set en as language */
+		if (strlen(locale) <= 2) {
+			insert_property(m, p, "user.language", locale);
+		} else {
+			if ((locale[2]=='_')&&(strlen(locale)>=5)) {
+				lang = MNEW(char, 3);
+				strncpy(lang, (char*)&locale[0], 2);
+				lang[2]='\0';
+				region = MNEW(char, 3);
+				strncpy(region, (char*)&locale[3], 2);
+				region[2]='\0';
+				insert_property(m, p, "user.language", lang);
+				insert_property(m, p, "user.region", region);
+			}
+		}
+	}
+	
+	
 #if 0
 	/* how do we get them? */
-	{ "user.language", "en" },
-	{ "user.region", "US" },
 	{ "user.country", "US" },
 	{ "user.timezone", "Europe/Vienna" },
 
