@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.h 1761 2004-12-15 15:48:43Z twisti $
+   $Id: logging.h 1793 2004-12-21 10:14:35Z twisti $
 
 */
 
@@ -41,21 +41,21 @@
 
 #define MAXLOGTEXT 500
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 void log_init(char *fname);
 void log_text(char *txt);
 void log_plain(char *txt); /* same as log_text without "LOG: " and newline */
-void log_flush();          /* fflush logfile */
-void log_nl();             /* newline and fflush */
+void log_flush(void);      /* fflush logfile */
+void log_nl(void);         /* newline and fflush */
 
-void log_cputime();
+void log_cputime(void);
 
 void log_message_class(const char *msg, classinfo *c);
 void log_message_method(const char *msg, methodinfo *m);
 
 void dolog(char *txt, ...);
-void dolog_plain(char *txt, ...); /* same as dolog without "LOG: " and newline */
+void dolog_plain(char *txt, ...); /* same as dolog without "LOG: " and newline*/
 void error(char *txt, ...);
 
 /* XXX this is just a quick hack on darwin */
@@ -63,7 +63,7 @@ void error(char *txt, ...);
 void panic(char *txt);
 #endif
 
-FILE *get_logfile(); /* return the current logfile */
+FILE *get_logfile(void);                        /* return the current logfile */
 
 #endif /* _LOGGING_H */
 

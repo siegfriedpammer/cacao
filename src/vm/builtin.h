@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: builtin.h 1793 2004-12-21 10:14:35Z twisti $
 
 */
 
@@ -370,7 +370,7 @@ java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o);
 /* NOT AN OP */
 
 /* builtin_dummy just panics if it is executed. */
-s4 builtin_dummy();
+s4 builtin_dummy(void);
 /* NOT AN OP */
 
 /* conversion helper functions */
@@ -378,20 +378,20 @@ inline float intBitsToFloat(s4 i);
 inline float longBitsToDouble(s8 l);
 
 /* this is a wrapper for calls from asmpart */
-java_objectheader **builtin_asm_get_exceptionptrptr();
+java_objectheader **builtin_asm_get_exceptionptrptr(void);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-static inline java_objectheader **builtin_get_exceptionptrptr();
+static inline java_objectheader **builtin_get_exceptionptrptr(void);
 /* NOT AN OP */
-static inline methodinfo **builtin_get_threadrootmethod();
+static inline methodinfo **builtin_get_threadrootmethod(void);
 /* NOT AN OP */
 
-inline java_objectheader **builtin_get_exceptionptrptr()
+inline java_objectheader **builtin_get_exceptionptrptr(void)
 {
 	return &THREADINFO->_exceptionptr;
 }
 
-inline methodinfo **builtin_get_threadrootmethod()
+inline methodinfo **builtin_get_threadrootmethod(void)
 {
 	return &THREADINFO->_threadrootmethod;
 }
@@ -401,7 +401,7 @@ inline methodinfo **builtin_get_threadrootmethod()
 /* returns the root method of a thread. this is used in asmpart.S and delivers the abort condition
    for the stack unwinding for getClassContext and getClassLoader. For the main thread this is the main function.
    Otherwhise it is the thread's run method (at least that's how I see it) (jowenn) */
-methodinfo *builtin_asm_get_threadrootmethod();
+methodinfo *builtin_asm_get_threadrootmethod(void);
 
 /* returns the current top element of the stack frame info list (needed for unwinding across native functions) */
 /* on i386 this is a pointer to a structure 
@@ -412,7 +412,7 @@ methodinfo *builtin_asm_get_threadrootmethod();
 points here---->| previous element in list        		|
 		------------------------------------------------
 */
-void *builtin_asm_get_stackframeinfo();
+void *builtin_asm_get_stackframeinfo(void);
 stacktraceelement *builtin_stacktrace_copy(stacktraceelement **,stacktraceelement *begin, stacktraceelement *end);
 #endif /* _BUILTIN_H */
 

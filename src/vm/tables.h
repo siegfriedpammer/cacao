@@ -1,4 +1,4 @@
-/* tables.h - 
+/* vm/tables.h - 
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tables.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: tables.h 1793 2004-12-21 10:14:35Z twisti $
 
 */
 
@@ -35,7 +35,9 @@
 #define _TABLES_H
 
 #include <stdio.h>
-#include "global.h" /* for unicode. -- phil */
+
+#include "vm/global.h"
+
 
 #define CLASS(name)     (unicode_getclasslink(unicode_new_char(name)))
 
@@ -50,10 +52,10 @@ extern list unlinkedclasses;   /* this is only used for eager class loading   */
 
 
 /* creates hashtables for symboltables */
-void tables_init();
+void tables_init(void);
 
 /* free memory for hashtables */ 
-void tables_close();
+void tables_close(void);
 
 /* check if a UTF-8 string is valid */
 bool is_valid_utf(char *utf_ptr, char *end_pos);
@@ -84,7 +86,7 @@ utf *utf_new_char(char *text);
 utf *utf_new_char_classname(char *text);
 
 /* show utf-table */
-void utf_show();
+void utf_show(void);
 
 /* get next unicode character of a utf-string */
 u2 utf_nextu2(char **utf);
@@ -123,8 +125,8 @@ classinfo *class_get(utf *u);
 bool class_remove(classinfo *c);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-void tables_lock();
-void tables_unlock();
+void tables_lock(void);
+void tables_unlock(void);
 #endif
 
 #endif /* _TABLES_H */

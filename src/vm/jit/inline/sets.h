@@ -1,4 +1,4 @@
-/* jit/sets.h -
+/* vm/jit/sets.h -
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: sets.h 1793 2004-12-21 10:14:35Z twisti $
 
 */
 
@@ -96,7 +96,7 @@ struct fldSetNode {
 fldSetNode *inFldSet (fldSetNode *, fieldinfo *);
 fldSetNode *addFldRef(fldSetNode *, fieldinfo *);
 fldSet *add2FldSet(fldSet *, fieldinfo *, bool, bool);
-fldSet *createFldSet();
+fldSet *createFldSet(void);
 int printFldSet(fldSetNode *);
 int printFieldSet(fldSet *);
 
@@ -124,7 +124,7 @@ struct methSetNode {
 int inMethSet (methSetNode *, methodinfo *);
 methSetNode *addMethRef(methSetNode *, methodinfo *);
 methSet *add2MethSet(methSet    *, methodinfo *);
-methSet *createMethSet();
+methSet *createMethSet(void);
 int printMethSet   (methSetNode *);
 int printMethodSet (methSet *);
 
@@ -151,7 +151,7 @@ struct classSetNode {
 int inSet(classSetNode *, classinfo *);
 classSetNode *addElement(classSetNode *,  classinfo *);
 classSet *add2ClassSet(classSet *,  classinfo *);
-classSet *createClassSet();
+classSet *createClassSet(void);
 int inRange(classSetNode *, classinfo *);
 classSetNode *addClassCone(classSetNode *,  classinfo *);
 classSetNode *intersectSubtypesWithSet(classinfo *, classSetNode *); 

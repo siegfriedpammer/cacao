@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: boehm.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: boehm.h 1793 2004-12-21 10:14:35Z twisti $
 
 */
 
@@ -52,18 +52,19 @@ struct otherstackcall {
 /* function prototypes */
 
 void *heap_alloc_uncollectable(u4 bytelength);
-void runboehmfinalizer(void *o, void *p);
+void  runboehmfinalizer(void *o, void *p);
 void *heap_allocate (u4 bytelength, bool references, methodinfo *finalizer);
 void *heap_reallocate(void *p, u4 bytelength);
-void heap_free(void *p);
-void gc_init(u4 heapmaxsize, u4 heapstartsize);
-void gc_call();
-s8 gc_get_heap_size();
-s8 gc_get_free_bytes();
-s8 gc_get_max_heap_size();
-void gc_invoke_finalizers();
-void gc_finalize_all();
-void *gc_out_of_memory();
+void  heap_free(void *p);
+
+void  gc_init(u4 heapmaxsize, u4 heapstartsize);
+void  gc_call(void);
+s8    gc_get_heap_size(void);
+s8    gc_get_free_bytes(void);
+s8    gc_get_max_heap_size(void);
+void  gc_invoke_finalizers(void);
+void  gc_finalize_all(void);
+void *gc_out_of_memory(void);
 
 #endif /* _BOEHM_H */
 

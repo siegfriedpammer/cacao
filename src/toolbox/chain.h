@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: chain.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: chain.h 1793 2004-12-21 10:14:35Z twisti $
 
 */
 
@@ -50,8 +50,8 @@ typedef struct chain {	            /* structure for list */
 
 
 /* function prototypes */
-chain *chain_new();
-chain *chain_dnew();
+chain *chain_new(void);
+chain *chain_dnew(void);
 void chain_free(chain *c);
 
 void chain_addafter(chain *c, void *element);

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: loader.h 1793 2004-12-21 10:14:35Z twisti $
 */
 
 
@@ -44,15 +44,15 @@
 
 typedef struct classbuffer {
 	classinfo *class;                   /* pointer to classinfo structure     */
-	u1 *data;                           /* pointer to byte code               */
-	s4 size;                            /* size of the byte code              */
-	u1 *pos;                            /* current read position              */
+	u1        *data;                    /* pointer to byte code               */
+	s4         size;                    /* size of the byte code              */
+	u1         *pos;                    /* current read position              */
 } classbuffer;
 
 
 /* export variables */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 extern int blockInts;
 #endif
 
@@ -99,17 +99,17 @@ extern utf *array_packagename;
 
 /************************ prototypes ******************************************/
 
-/* initialize laoder, load important systemclasses */
-void loader_init();
+/* initialize loader, load important systemclasses */
+void loader_init(u1 *stackbottom);
 
 void suck_init(char *cpath);
-void create_all_classes();
+void create_all_classes(void);
 void suck_stop(classbuffer *cb);
 
 /* free resources */
-void loader_close();
+void loader_close(void);
 
-void loader_compute_subclasses();
+void loader_compute_subclasses(classinfo *c);
 
 /* retrieve constantpool element */
 voidptr class_getconstant(classinfo *class, u4 pos, u4 ctype);
@@ -190,8 +190,8 @@ void field_display(fieldinfo *f);
 void method_display(methodinfo *m);
 void method_display_w_class(methodinfo *m);
 
-utf* clinit_desc();
-utf* clinit_name();
+utf* clinit_desc(void);
+utf* clinit_name(void);
 
 
 /******************************** CLASSPATH handling *******************/

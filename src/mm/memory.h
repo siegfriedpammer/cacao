@@ -1,4 +1,4 @@
-/* toolbox/memory.h - macros for memory management
+/* mm/memory.h - macros for memory management
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: memory.h 1793 2004-12-21 10:14:35Z twisti $
 
 */
 
@@ -170,7 +170,7 @@ void *mem_realloc(void *src, s4 len1, s4 len2);
 
 void *dump_alloc(s4 size);
 void *dump_realloc(void *src, s4 len1, s4 len2);
-s4    dump_size();
+s4    dump_size(void);
 void  dump_release(s4 size);
 
 #endif /* _MEMORY_H */
