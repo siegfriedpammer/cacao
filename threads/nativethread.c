@@ -197,15 +197,15 @@ void cast_startworld()
 	unlock_stopworld();
 }
 
-static void sigsuspend_handler(struct sigcontext *ctx)
+static void sigsuspend_handler(ucontext_t *ctx)
 {
 	int sig;
 	sigset_t sigs;
 	void *critical;
 	
 #ifdef __I386__
-	if ((critical = thread_checkcritical((void*) ctx->eip)) != NULL)
-		ctx->eip = (long) critical;
+	if ((critical = thread_checkcritical((void*) ctx->uc_mcontext.gregs[REG_EIP])) != NULL)
+		ctx->uc_mcontext.gregs[REG_EIP] = (long) critical;
 #endif
 
 	sem_post(&suspend_ack);
@@ -216,7 +216,7 @@ static void sigsuspend_handler(struct sigcontext *ctx)
 	sigsuspend(&sigs);
 }
 
-int cacao_suspendhandler(struct sigcontext *ctx)
+int cacao_suspendhandler(ucontext_t *ctx)
 {
 	if (stopworldwhere != 2)
 		return 0;

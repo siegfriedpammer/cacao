@@ -75,9 +75,8 @@ sem_t GC_suspend_ack_sem;
 
 int cacao_suspendhandler(void *);
 
-void GC_suspend_handler(int sig)
+void GC_suspend_handler(int sig, siginfo_t *info, void *uctx)
 {
-	void **_p = (void *) &sig;
     int dummy;
     pthread_t my_thread = pthread_self();
     GC_thread me;
@@ -92,7 +91,7 @@ void GC_suspend_handler(int sig)
 
     if (sig != SIG_SUSPEND) ABORT("Bad signal in suspend_handler");
 
-	if (cacao_suspendhandler(++_p))
+	if (cacao_suspendhandler(uctx))
 		return;
 
 #if DEBUG_THREADS
@@ -418,7 +417,7 @@ void GC_stop_init() {
     if (sem_init(&GC_suspend_ack_sem, 0, 0) != 0)
         ABORT("sem_init failed");
 
-    act.sa_flags = SA_RESTART;
+    act.sa_flags = SA_RESTART | SA_SIGINFO;
     if (sigfillset(&act.sa_mask) != 0) {
     	ABORT("sigfillset() failed");
     }
@@ -466,7 +465,6 @@ int GC_signum2()
 {
     return SIG_THR_RESTART;
 }
-
 /* cacao END */
 
 #endif
