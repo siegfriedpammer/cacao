@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1203 2004-06-22 23:14:55Z twisti $
+   $Id: codegen.c 1249 2004-06-30 20:22:20Z twisti $
 
 */
 
@@ -99,9 +99,9 @@ int nregdescfloat[] = {
     If not already done, regoff and flags are set in the stack location.
 */        
 
-static int reg_of_var(stackptr v, int tempregnum)
+static int reg_of_var(methodinfo *m, stackptr v, int tempregnum)
 {
-	varinfo      *var;
+	varinfo *var;
 
 	switch (v->varkind) {
 	case TEMPVAR:
@@ -109,13 +109,13 @@ static int reg_of_var(stackptr v, int tempregnum)
 			return(v->regoff);
 		break;
 	case STACKVAR:
-		var = &(interfaces[v->varnum][v->type]);
+		var = &(m->registerdata->interfaces[v->varnum][v->type]);
 		v->regoff = var->regoff;
 		if (!(var->flags & INMEMORY))
 			return(var->regoff);
 		break;
 	case LOCALVAR:
-		var = &(locals[v->varnum][v->type]);
+		var = &(m->registerdata->locals[v->varnum][v->type]);
 		v->regoff = var->regoff;
 		if (!(var->flags & INMEMORY))
 			return(var->regoff);
@@ -123,17 +123,17 @@ static int reg_of_var(stackptr v, int tempregnum)
 	case ARGVAR:
 		v->regoff = v->varnum;
 		if (IS_FLT_DBL_TYPE(v->type)) {
-			if (v->varnum < fltreg_argnum) {
-				v->regoff = argfltregs[v->varnum];
-				return(argfltregs[v->varnum]);
+			if (v->varnum < m->registerdata->fltreg_argnum) {
+				v->regoff = m->registerdata->argfltregs[v->varnum];
+				return(m->registerdata->argfltregs[v->varnum]);
 			}
 		}
 		else
-			if (v->varnum < intreg_argnum) {
-				v->regoff = argintregs[v->varnum];
-				return(argintregs[v->varnum]);
+			if (v->varnum < m->registerdata->intreg_argnum) {
+				v->regoff = m->registerdata->argintregs[v->varnum];
+				return(m->registerdata->argintregs[v->varnum]);
 			}
-		v->regoff -= intreg_argnum;
+		v->regoff -= m->registerdata->intreg_argnum;
 		break;
 	}
 	v->flags |= INMEMORY;
@@ -297,26 +297,29 @@ void codegen(methodinfo *m)
 {
 	int  len, s1, s2, s3, d;
 	s4   a;
-	stackptr    src;
-	varinfo     *var;
-	basicblock  *bptr;
-	instruction *iptr;
-	u2 currentline=0;
-	int fpu_st_offset = 0;
+	stackptr      src;
+	varinfo      *var;
+	basicblock   *bptr;
+	instruction  *iptr;
+	registerdata *r;
+	u2 currentline = 0;
+	s4 fpu_st_offset = 0;
 
 	exceptiontable *ex;
 
 	{
-	int p, pa, t, l, r;
+	s4 i, p, pa, t, l;
+  	s4 savedregs_num = 0;
 
-  	savedregs_num = 0;
+	/* keep code size smaller */
+	r = m->registerdata;
 
 	/* space to save used callee saved registers */
 
-	savedregs_num += (savintregcnt - maxsavintreguse);
-	savedregs_num += (savfltregcnt - maxsavfltreguse);
+	savedregs_num += (r->savintregcnt - r->maxsavintreguse);
+	savedregs_num += (r->savfltregcnt - r->maxsavfltreguse);
 
-	parentargs_base = maxmemuse + savedregs_num;
+	parentargs_base = r->maxmemuse + savedregs_num;
 
 #if defined(USE_THREADS)           /* space to save argument of monitor_enter */
 
@@ -339,7 +342,7 @@ void codegen(methodinfo *m)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4((maxmemuse + 1) * 8);             /* IsSync         */
+		(void) dseg_adds4((r->maxmemuse + 1) * 8);          /* IsSync         */
 	else
 
 #endif
@@ -347,8 +350,8 @@ void codegen(methodinfo *m)
 	(void) dseg_adds4(0);                                   /* IsSync         */
 	                                       
 	(void) dseg_adds4(m->isleafmethod);                     /* IsLeaf         */
-	(void) dseg_adds4(savintregcnt - maxsavintreguse);      /* IntSave        */
-	(void) dseg_adds4(savfltregcnt - maxsavfltreguse);      /* FltSave        */
+	(void) dseg_adds4(r->savintregcnt - r->maxsavintreguse);/* IntSave        */
+	(void) dseg_adds4(r->savfltregcnt - r->maxsavfltreguse);/* FltSave        */
 
 	/* adds a reference for the length of the line number counter. We don't
 	   know the size yet, since we evaluate the information during code
@@ -384,11 +387,11 @@ void codegen(methodinfo *m)
 	/* save return address and used callee saved registers */
 
   	p = parentargs_base;
-	for (r = savintregcnt - 1; r >= maxsavintreguse; r--) {
- 		p--; i386_mov_reg_membase(savintregs[r], REG_SP, p * 8);
+	for (i = r->savintregcnt - 1; i >= r->maxsavintreguse; i--) {
+ 		p--; i386_mov_reg_membase(r->savintregs[i], REG_SP, p * 8);
 	}
-	for (r = savfltregcnt - 1; r >= maxsavfltreguse; r--) {
-		p--; i386_fld_reg(savfltregs[r]); i386_fstpl_membase(REG_SP, p * 8);
+	for (i = r->savfltregcnt - 1; i >= r->maxsavfltreguse; i--) {
+		p--; i386_fld_reg(r->savfltregs[i]); i386_fstpl_membase(REG_SP, p * 8);
 	}
 
 	/* save monitorenter argument */
@@ -397,11 +400,11 @@ void codegen(methodinfo *m)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		if (m->flags & ACC_STATIC) {
 			i386_mov_imm_reg((s4) m->class, REG_ITMP1);
-			i386_mov_reg_membase(REG_ITMP1, REG_SP, maxmemuse * 8);
+			i386_mov_reg_membase(REG_ITMP1, REG_SP, r->maxmemuse * 8);
 
 		} else {
 			i386_mov_membase_reg(REG_SP, parentargs_base * 8 + 4, REG_ITMP1);
-			i386_mov_reg_membase(REG_ITMP1, REG_SP, maxmemuse * 8);
+			i386_mov_reg_membase(REG_ITMP1, REG_SP, r->maxmemuse * 8);
 		}
 
 		/* call monitorenter function */
@@ -477,15 +480,14 @@ void codegen(methodinfo *m)
 
  	for (p = 0, l = 0; p < m->paramcount; p++) {
  		t = m->paramtypes[p];
- 		var = &(locals[l][t]);
+ 		var = &(r->locals[l][t]);
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++;
  		if (var->type < 0)
  			continue;
- 		r = var->regoff; 
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
- 			if (p < intreg_argnum) {                 /* register arguments    */
+ 			if (p < r->intreg_argnum) {              /* register arguments    */
 				panic("integer register argument");
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
 /*   					M_INTMOVE (argintregs[p], r); */
@@ -494,25 +496,25 @@ void codegen(methodinfo *m)
 /*   					M_LST (argintregs[p], REG_SP, 8 * r); */
  				}
 			} else {                                 /* stack arguments       */
- 				pa = p - intreg_argnum;
+ 				pa = p - r->intreg_argnum;
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */ 
- 					i386_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 4, r);            /* + 4 for return address */
+ 					i386_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 4, var->regoff);            /* + 4 for return address */
 				} else {                             /* stack arg -> spilled  */
 					if (!IS_2_WORD_TYPE(t)) {
 						i386_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 4, REG_ITMP1);    /* + 4 for return address */
-						i386_mov_reg_membase(REG_ITMP1, REG_SP, r * 8);
+						i386_mov_reg_membase(REG_ITMP1, REG_SP, var->regoff * 8);
 
 					} else {
 						i386_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 4, REG_ITMP1);    /* + 4 for return address */
-						i386_mov_reg_membase(REG_ITMP1, REG_SP, r * 8);
+						i386_mov_reg_membase(REG_ITMP1, REG_SP, var->regoff * 8);
 						i386_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 4 + 4, REG_ITMP1);    /* + 4 for return address */
-						i386_mov_reg_membase(REG_ITMP1, REG_SP, r * 8 + 4);
+						i386_mov_reg_membase(REG_ITMP1, REG_SP, var->regoff * 8 + 4);
 					}
 				}
 			}
 		
 		} else {                                     /* floating args         */   
- 			if (p < fltreg_argnum) {                 /* register arguments    */
+ 			if (p < r->fltreg_argnum) {              /* register arguments    */
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
 					panic("There are no float argument registers!");
 
@@ -521,18 +523,18 @@ void codegen(methodinfo *m)
  				}
 
  			} else {                                 /* stack arguments       */
- 				pa = p - fltreg_argnum;
+ 				pa = p - r->fltreg_argnum;
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
 					if (t == TYPE_FLT) {
 						i386_flds_membase(REG_SP, (parentargs_base + pa) * 8 + 4);
 						fpu_st_offset++;
-						i386_fstp_reg(r + fpu_st_offset);
+						i386_fstp_reg(var->regoff + fpu_st_offset);
 						fpu_st_offset--;
 
 					} else {
 						i386_fldl_membase(REG_SP, (parentargs_base + pa) * 8 + 4);
 						fpu_st_offset++;
-						i386_fstp_reg(r + fpu_st_offset);
+						i386_fstp_reg(var->regoff + fpu_st_offset);
 						fpu_st_offset--;
 					}
 
@@ -541,11 +543,11 @@ void codegen(methodinfo *m)
 /*   					i386_mov_reg_membase(REG_ITMP1, REG_SP, r * 8); */
 					if (t == TYPE_FLT) {
 						i386_flds_membase(REG_SP, (parentargs_base + pa) * 8 + 4);
-						i386_fstps_membase(REG_SP, r * 8);
+						i386_fstps_membase(REG_SP, var->regoff * 8);
 
 					} else {
 						i386_fldl_membase(REG_SP, (parentargs_base + pa) * 8 + 4);
-						i386_fstpl_membase(REG_SP, r * 8);
+						i386_fstpl_membase(REG_SP, var->regoff * 8);
 					}
 				}
 			}
@@ -581,12 +583,12 @@ void codegen(methodinfo *m)
   			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
 				if (!IS_2_WORD_TYPE(src->type)) {
 					if (bptr->type == BBTYPE_SBR) {
-						d = reg_of_var(src, REG_ITMP1);
+						d = reg_of_var(m, src, REG_ITMP1);
 						i386_pop_reg(d);
 						store_reg_to_var_int(src, d);
 
 					} else if (bptr->type == BBTYPE_EXH) {
-						d = reg_of_var(src, REG_ITMP1);
+						d = reg_of_var(m, src, REG_ITMP1);
 						M_INTMOVE(REG_ITMP1, d);
 						store_reg_to_var_int(src, d);
 					}
@@ -596,12 +598,12 @@ void codegen(methodinfo *m)
 				}
 
 			} else {
-				d = reg_of_var(src, REG_ITMP1);
+				d = reg_of_var(m, src, REG_ITMP1);
 				if ((src->varkind != STACKVAR)) {
 					s2 = src->type;
 					if (IS_FLT_DBL_TYPE(s2)) {
-						s1 = interfaces[len][s2].regoff;
-						if (!(interfaces[len][s2].flags & INMEMORY)) {
+						s1 = r->interfaces[len][s2].regoff;
+						if (!(r->interfaces[len][s2].flags & INMEMORY)) {
 							M_FLTMOVE(s1, d);
 
 						} else {
@@ -615,9 +617,9 @@ void codegen(methodinfo *m)
 						store_reg_to_var_flt(src, d);
 
 					} else {
-						s1 = interfaces[len][s2].regoff;
-						if (!IS_2_WORD_TYPE(interfaces[len][s2].type)) {
-							if (!(interfaces[len][s2].flags & INMEMORY)) {
+						s1 = r->interfaces[len][s2].regoff;
+						if (!IS_2_WORD_TYPE(r->interfaces[len][s2].type)) {
+							if (!(r->interfaces[len][s2].flags & INMEMORY)) {
 								M_INTMOVE(s1, d);
 
 							} else {
@@ -626,7 +628,7 @@ void codegen(methodinfo *m)
 							store_reg_to_var_int(src, d);
 
 						} else {
-							if (interfaces[len][s2].flags & INMEMORY) {
+							if (r->interfaces[len][s2].flags & INMEMORY) {
   								M_LNGMEMMOVE(s1, src->regoff);
 
 							} else {
@@ -673,7 +675,7 @@ void codegen(methodinfo *m)
 		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.i = constant                    */
 
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
 				i386_mov_imm_membase(iptr->val.i, REG_SP, iptr->dst->regoff * 8);
 
@@ -690,7 +692,7 @@ void codegen(methodinfo *m)
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.l = constant                    */
 
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
 				i386_mov_imm_membase(iptr->val.l, REG_SP, iptr->dst->regoff * 8);
 				i386_mov_imm_membase(iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 8 + 4);
@@ -703,7 +705,7 @@ void codegen(methodinfo *m)
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.f = constant                    */
 
-			d = reg_of_var(iptr->dst, REG_FTMP1);
+			d = reg_of_var(m, iptr->dst, REG_FTMP1);
 			if (iptr->val.f == 0.0) {
 				i386_fldz();
 				fpu_st_offset++;
@@ -736,7 +738,7 @@ void codegen(methodinfo *m)
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.d = constant                    */
 
-			d = reg_of_var(iptr->dst, REG_FTMP1);
+			d = reg_of_var(m, iptr->dst, REG_FTMP1);
 			if (iptr->val.d == 0.0) {
 				i386_fldz();
 				fpu_st_offset++;
@@ -769,7 +771,7 @@ void codegen(methodinfo *m)
 		case ICMD_ACONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.a = constant                    */
 
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
 				i386_mov_imm_membase((s4) iptr->val.a, REG_SP, iptr->dst->regoff * 8);
 
@@ -789,12 +791,12 @@ void codegen(methodinfo *m)
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
 		case ICMD_ALOAD:      /* op1 = local variable                         */
 
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 			if ((iptr->dst->varkind == LOCALVAR) &&
 			    (iptr->dst->varnum == iptr->op1)) {
 				break;
 			}
-			var = &(locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
+			var = &(r->locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
 			if (iptr->dst->flags & INMEMORY) {
 				if (var->flags & INMEMORY) {
 					i386_mov_membase_reg(REG_SP, var->regoff * 8, REG_ITMP1);
@@ -817,12 +819,12 @@ void codegen(methodinfo *m)
 		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 			if ((iptr->dst->varkind == LOCALVAR) &&
 			    (iptr->dst->varnum == iptr->op1)) {
 				break;
 			}
-			var = &(locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
+			var = &(r->locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
 			if (iptr->dst->flags & INMEMORY) {
 				if (var->flags & INMEMORY) {
 					M_LNGMEMMOVE(var->regoff, iptr->dst->regoff);
@@ -839,12 +841,12 @@ void codegen(methodinfo *m)
 		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			d = reg_of_var(iptr->dst, REG_FTMP1);
+			d = reg_of_var(m, iptr->dst, REG_FTMP1);
   			if ((iptr->dst->varkind == LOCALVAR) &&
   			    (iptr->dst->varnum == iptr->op1)) {
     				break;
   			}
-			var = &(locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
+			var = &(r->locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
 			if (var->flags & INMEMORY) {
 				i386_flds_membase(REG_SP, var->regoff * 8);
 				fpu_st_offset++;
@@ -858,12 +860,12 @@ void codegen(methodinfo *m)
 		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			d = reg_of_var(iptr->dst, REG_FTMP1);
+			d = reg_of_var(m, iptr->dst, REG_FTMP1);
   			if ((iptr->dst->varkind == LOCALVAR) &&
   			    (iptr->dst->varnum == iptr->op1)) {
     				break;
   			}
-			var = &(locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
+			var = &(r->locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
 			if (var->flags & INMEMORY) {
 				i386_fldl_membase(REG_SP, var->regoff * 8);
 				fpu_st_offset++;
@@ -881,7 +883,7 @@ void codegen(methodinfo *m)
 			    (src->varnum == iptr->op1)) {
 				break;
 			}
-			var = &(locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
+			var = &(r->locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
@@ -904,7 +906,7 @@ void codegen(methodinfo *m)
 			    (src->varnum == iptr->op1)) {
 				break;
 			}
-			var = &(locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
+			var = &(r->locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					M_LNGMEMMOVE(src->regoff, var->regoff);
@@ -925,7 +927,7 @@ void codegen(methodinfo *m)
 			    (src->varnum == iptr->op1)) {
 				break;
 			}
-			var = &(locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
+			var = &(r->locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
 				var_to_reg_flt(s1, src, REG_FTMP1);
 				i386_fstps_membase(REG_SP, var->regoff * 8);
@@ -945,7 +947,7 @@ void codegen(methodinfo *m)
 			    (src->varnum == iptr->op1)) {
 				break;
 			}
-			var = &(locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
+			var = &(r->locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
 				var_to_reg_flt(s1, src, REG_FTMP1);
 				i386_fstpl_membase(REG_SP, var->regoff * 8);
@@ -968,7 +970,7 @@ void codegen(methodinfo *m)
 			break;
 
 #define M_COPY(from,to) \
-	        d = reg_of_var(to, REG_ITMP1); \
+	        d = reg_of_var(m, to, REG_ITMP1); \
 			if ((from->regoff != to->regoff) || \
 			    ((from->flags ^ to->flags) & INMEMORY)) { \
 				if (IS_FLT_DBL_TYPE(from->type)) { \
@@ -1044,7 +1046,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_INEG:       /* ..., value  ==> ..., - value                 */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -1075,7 +1077,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -1098,7 +1100,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_mov_membase_reg(REG_SP, src->regoff * 8, EAX);
@@ -1117,7 +1119,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_L2I:        /* ..., value  ==> ..., value                   */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
@@ -1133,7 +1135,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_INT2BYTE:   /* ..., value  ==> ..., value                   */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
@@ -1163,7 +1165,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_INT2CHAR:   /* ..., value  ==> ..., value                   */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -1194,7 +1196,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_INT2SHORT:  /* ..., value  ==> ..., value                   */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
@@ -1225,21 +1227,21 @@ void codegen(methodinfo *m)
 
 		case ICMD_IADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ialu(I386_ADD, src, iptr);
 			break;
 
 		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.i = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			/* should we use a inc optimization for smaller code size? */
 			i386_emit_ialuconst(I386_ADD, src, iptr);
 			break;
 
 		case ICMD_LADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -1270,7 +1272,7 @@ void codegen(methodinfo *m)
 		case ICMD_LADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.l = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -1291,7 +1293,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_ISUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
@@ -1363,13 +1365,13 @@ void codegen(methodinfo *m)
 		case ICMD_ISUBCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.i = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ialuconst(I386_SUB, src, iptr);
 			break;
 
 		case ICMD_LSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
@@ -1393,7 +1395,7 @@ void codegen(methodinfo *m)
 		case ICMD_LSUBCONST:  /* ..., value  ==> ..., value - constant        */
 		                      /* val.l = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -1415,7 +1417,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_IMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
@@ -1466,7 +1468,7 @@ void codegen(methodinfo *m)
 		case ICMD_IMULCONST:  /* ..., value  ==> ..., value * constant        */
 		                      /* val.i = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_imul_imm_membase_reg(iptr->val.i, REG_SP, src->regoff * 8, REG_ITMP1);
@@ -1489,7 +1491,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_LMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, EAX);             /* mem -> EAX             */
@@ -1515,7 +1517,7 @@ void codegen(methodinfo *m)
 		case ICMD_LMULCONST:  /* ..., value  ==> ..., value * constant        */
 		                      /* val.l = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_mov_imm_reg(iptr->val.l, EAX);                                   /* imm -> EAX             */
@@ -1548,7 +1550,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			var_to_reg_int(s1, src, REG_ITMP2);
   			gen_div_check(src);
 	        if (src->prev->flags & INMEMORY) {
@@ -1576,7 +1578,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			var_to_reg_int(s1, src, REG_ITMP2);
   			gen_div_check(src);
 			if (src->prev->flags & INMEMORY) {
@@ -1608,7 +1610,7 @@ void codegen(methodinfo *m)
 
 			/* TODO: optimize for `/ 2' */
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 
 			M_INTMOVE(s1, d);
 			i386_test_reg_reg(d, d);
@@ -1624,7 +1626,7 @@ void codegen(methodinfo *m)
 		case ICMD_LDIVPOW2:   /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					a = 2;
@@ -1650,7 +1652,7 @@ void codegen(methodinfo *m)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_ITMP2);
+			d = reg_of_var(m, iptr->dst, REG_ITMP2);
 			if (s1 == d) {
 				M_INTMOVE(s1, REG_ITMP1);
 				s1 = REG_ITMP1;
@@ -1692,7 +1694,7 @@ void codegen(methodinfo *m)
 		case ICMD_LREMPOW2:   /* ..., value  ==> ..., value % constant        */
 		                      /* val.l = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					/* Intel algorithm -- does not work, because constant is wrong */
@@ -1768,46 +1770,46 @@ void codegen(methodinfo *m)
 
 		case ICMD_ISHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ishift(I386_SHL, src, iptr);
 			break;
 
 		case ICMD_ISHLCONST:  /* ..., value  ==> ..., value << constant       */
 		                      /* val.i = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ishiftconst(I386_SHL, src, iptr);
 			break;
 
 		case ICMD_ISHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ishift(I386_SAR, src, iptr);
 			break;
 
 		case ICMD_ISHRCONST:  /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ishiftconst(I386_SAR, src, iptr);
 			break;
 
 		case ICMD_IUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ishift(I386_SHR, src, iptr);
 			break;
 
 		case ICMD_IUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
 		                      /* val.i = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ishiftconst(I386_SHR, src, iptr);
 			break;
 
 		case ICMD_LSHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ){
 				if (src->prev->flags & INMEMORY) {
 /*  					if (src->prev->regoff == iptr->dst->regoff) { */
@@ -1854,7 +1856,7 @@ void codegen(methodinfo *m)
         case ICMD_LSHLCONST:  /* ..., value  ==> ..., value << constant       */
  			                  /* val.i = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ) {
 				i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
 				i386_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
@@ -1876,7 +1878,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_LSHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ){
 				if (src->prev->flags & INMEMORY) {
 /*  					if (src->prev->regoff == iptr->dst->regoff) { */
@@ -1927,7 +1929,7 @@ void codegen(methodinfo *m)
 		case ICMD_LSHRCONST:  /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ) {
 				i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
 				i386_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
@@ -1949,7 +1951,7 @@ void codegen(methodinfo *m)
 
 		case ICMD_LUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ){
 				if (src->prev->flags & INMEMORY) {
 /*  					if (src->prev->regoff == iptr->dst->regoff) { */
@@ -2000,7 +2002,7 @@ void codegen(methodinfo *m)
   		case ICMD_LUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
   		                      /* val.l = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ) {
 				i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
 				i386_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
@@ -2022,86 +2024,86 @@ void codegen(methodinfo *m)
 
 		case ICMD_IAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ialu(I386_AND, src, iptr);
 			break;
 
 		case ICMD_IANDCONST:  /* ..., value  ==> ..., value & constant        */
 		                      /* val.i = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ialuconst(I386_AND, src, iptr);
 			break;
 
 		case ICMD_LAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_lalu(I386_AND, src, iptr);
 			break;
 
 		case ICMD_LANDCONST:  /* ..., value  ==> ..., value & constant        */
 		                      /* val.l = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_laluconst(I386_AND, src, iptr);
 			break;
 
 		case ICMD_IOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ialu(I386_OR, src, iptr);
 			break;
 
 		case ICMD_IORCONST:   /* ..., value  ==> ..., value | constant        */
 		                      /* val.i = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ialuconst(I386_OR, src, iptr);
 			break;
 
 		case ICMD_LOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_lalu(I386_OR, src, iptr);
 			break;
 
 		case ICMD_LORCONST:   /* ..., value  ==> ..., value | constant        */
 		                      /* val.l = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_laluconst(I386_OR, src, iptr);
 			break;
 
 		case ICMD_IXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ialu(I386_XOR, src, iptr);
 			break;
 
 		case ICMD_IXORCONST:  /* ..., value  ==> ..., value ^ constant        */
 		                      /* val.i = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ialuconst(I386_XOR, src, iptr);
 			break;
 
 		case ICMD_LXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_lalu(I386_XOR, src, iptr);
 			break;
 
 		case ICMD_LXORCONST:  /* ..., value  ==> ..., value ^ constant        */
 		                      /* val.l = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_laluconst(I386_XOR, src, iptr);
 			break;
 
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
 		                      /* op1 = variable, val.i = constant             */
 
-			var = &(locals[iptr->op1][TYPE_INT]);
+			var = &(r->locals[iptr->op1][TYPE_INT]);
 			if (var->flags & INMEMORY) {
 				i386_alu_imm_membase(I386_ADD, iptr->val.i, REG_SP, var->regoff * 8);
 
@@ -2142,7 +2144,7 @@ void codegen(methodinfo *m)
 
 			FPU_SET_24BIT_MODE;
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			i386_fchs();
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -2151,7 +2153,7 @@ void codegen(methodinfo *m)
 
 			FPU_SET_53BIT_MODE;
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			i386_fchs();
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -2159,7 +2161,7 @@ void codegen(methodinfo *m)
 		case ICMD_FADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
 			FPU_SET_24BIT_MODE;
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			i386_faddp();
@@ -2170,7 +2172,7 @@ void codegen(methodinfo *m)
 		case ICMD_DADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
 			FPU_SET_53BIT_MODE;
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			i386_faddp();
@@ -2181,7 +2183,7 @@ void codegen(methodinfo *m)
 		case ICMD_FSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
 			FPU_SET_24BIT_MODE;
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			i386_fsubp();
@@ -2192,7 +2194,7 @@ void codegen(methodinfo *m)
 		case ICMD_DSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
 			FPU_SET_53BIT_MODE;
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			i386_fsubp();
@@ -2203,7 +2205,7 @@ void codegen(methodinfo *m)
 		case ICMD_FMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
 			FPU_SET_24BIT_MODE;
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			i386_fmulp();
@@ -2215,7 +2217,7 @@ void codegen(methodinfo *m)
 		case ICMD_DMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
 			FPU_SET_53BIT_MODE;
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 
 /*  			i386_fldt_mem(subnormal_bias1); */
@@ -2235,7 +2237,7 @@ void codegen(methodinfo *m)
 		case ICMD_FDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
 			FPU_SET_24BIT_MODE;
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			i386_fdivp();
@@ -2247,7 +2249,7 @@ void codegen(methodinfo *m)
 		case ICMD_DDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
 			FPU_SET_53BIT_MODE;
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 
 /*  			i386_fldt_mem(subnormal_bias1); */
@@ -2270,7 +2272,7 @@ void codegen(methodinfo *m)
 			/* exchanged to skip fxch */
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 /*  			i386_fxch(); */
 			i386_fprem();
 			i386_wait();
@@ -2289,7 +2291,7 @@ void codegen(methodinfo *m)
 			/* exchanged to skip fxch */
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 /*  			i386_fxch(); */
 			i386_fprem();
 			i386_wait();
@@ -2305,7 +2307,7 @@ void codegen(methodinfo *m)
 		case ICMD_I2F:       /* ..., value  ==> ..., (float) value            */
 		case ICMD_I2D:       /* ..., value  ==> ..., (double) value           */
 
-			d = reg_of_var(iptr->dst, REG_FTMP1);
+			d = reg_of_var(m, iptr->dst, REG_FTMP1);
 			if (src->flags & INMEMORY) {
 				i386_fildl_membase(REG_SP, src->regoff * 8);
 				fpu_st_offset++;
@@ -2324,7 +2326,7 @@ void codegen(methodinfo *m)
 		case ICMD_L2F:       /* ..., value  ==> ..., (float) value            */
 		case ICMD_L2D:       /* ..., value  ==> ..., (double) value           */
 
-			d = reg_of_var(iptr->dst, REG_FTMP1);
+			d = reg_of_var(m, iptr->dst, REG_FTMP1);
 			if (src->flags & INMEMORY) {
 				i386_fildll_membase(REG_SP, src->regoff * 8);
 				fpu_st_offset++;
@@ -2338,7 +2340,7 @@ void codegen(methodinfo *m)
 		case ICMD_F2I:       /* ..., value  ==> ..., (int) value              */
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 
 			a = dseg_adds4(0x0e7f);    /* Round to zero, 53-bit mode, exception masked */
 			i386_mov_imm_reg(0, REG_ITMP1);
@@ -2393,7 +2395,7 @@ void codegen(methodinfo *m)
 		case ICMD_D2I:       /* ..., value  ==> ..., (int) value              */
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 
 			a = dseg_adds4(0x0e7f);    /* Round to zero, 53-bit mode, exception masked */
 			i386_mov_imm_reg(0, REG_ITMP1);
@@ -2447,7 +2449,7 @@ void codegen(methodinfo *m)
 		case ICMD_F2L:       /* ..., value  ==> ..., (long) value             */
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 
 			a = dseg_adds4(0x0e7f);    /* Round to zero, 53-bit mode, exception masked */
 			i386_mov_imm_reg(0, REG_ITMP1);
@@ -2499,7 +2501,7 @@ void codegen(methodinfo *m)
 		case ICMD_D2L:       /* ..., value  ==> ..., (long) value             */
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 
 			a = dseg_adds4(0x0e7f);    /* Round to zero, 53-bit mode, exception masked */
 			i386_mov_imm_reg(0, REG_ITMP1);
@@ -2551,7 +2553,7 @@ void codegen(methodinfo *m)
 		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			/* nothing to do */
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -2559,7 +2561,7 @@ void codegen(methodinfo *m)
 		case ICMD_D2F:       /* ..., value  ==> ..., (float) value            */
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			/* nothing to do */
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -2570,7 +2572,7 @@ void codegen(methodinfo *m)
 			/* exchanged to skip fxch */
 			var_to_reg_flt(s2, src->prev, REG_FTMP1);
 			var_to_reg_flt(s1, src, REG_FTMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 /*    			i386_fxch(); */
 			i386_fucompp();
 			fpu_st_offset -= 2;
@@ -2594,7 +2596,7 @@ void codegen(methodinfo *m)
 			/* exchanged to skip fxch */
 			var_to_reg_flt(s2, src->prev, REG_FTMP1);
 			var_to_reg_flt(s1, src, REG_FTMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 /*    			i386_fxch(); */
 			i386_fucompp();
 			fpu_st_offset -= 2;
@@ -2618,7 +2620,7 @@ void codegen(methodinfo *m)
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 			gen_nullptr_check(s1);
 			i386_mov_membase_reg(s1, OFFSET(java_arrayheader, size), d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -2628,7 +2630,7 @@ void codegen(methodinfo *m)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2641,7 +2643,7 @@ void codegen(methodinfo *m)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
+			d = reg_of_var(m, iptr->dst, REG_ITMP3);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2659,7 +2661,7 @@ void codegen(methodinfo *m)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2672,7 +2674,7 @@ void codegen(methodinfo *m)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_FTMP1);
+			d = reg_of_var(m, iptr->dst, REG_FTMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2686,7 +2688,7 @@ void codegen(methodinfo *m)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
+			d = reg_of_var(m, iptr->dst, REG_FTMP3);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2700,7 +2702,7 @@ void codegen(methodinfo *m)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2713,7 +2715,7 @@ void codegen(methodinfo *m)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2726,7 +2728,7 @@ void codegen(methodinfo *m)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2804,18 +2806,7 @@ void codegen(methodinfo *m)
 			break;
 
 		case ICMD_CASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			var_to_reg_int(s3, src, REG_ITMP3);
-			i386_movw_reg_memindex(s3, OFFSET(java_chararray, data[0]), s1, s2, 1);
-			break;
-
-		case ICMD_SASTORE:    /* ..., arrayref, index, value  ==> ...         */
+		case ICMD_SASTORE:
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
@@ -2841,6 +2832,64 @@ void codegen(methodinfo *m)
 				s3 = REG_ITMP3;
 			}
 			i386_movb_reg_memindex(s3, OFFSET(java_bytearray, data[0]), s1, s2, 0);
+			break;
+
+		case ICMD_IASTORECONST: /* ..., arrayref, index  ==> ...              */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			i386_mov_imm_memindex(iptr->val.i, OFFSET(java_bytearray, data[0]), s1, s2, 2);
+			break;
+
+		case ICMD_LASTORECONST: /* ..., arrayref, index  ==> ...              */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+
+			i386_mov_imm_memindex((u4) (iptr->val.l & 0x00000000ffffffff), OFFSET(java_longarray, data[0]), s1, s2, 3);
+			i386_mov_imm_memindex((u4) (iptr->val.l >> 32), OFFSET(java_longarray, data[0]) + 4, s1, s2, 3);
+			break;
+
+		case ICMD_AASTORECONST: /* ..., arrayref, index  ==> ...              */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			i386_mov_imm_memindex(0, OFFSET(java_bytearray, data[0]), s1, s2, 2);
+			break;
+
+		case ICMD_BASTORECONST: /* ..., arrayref, index  ==> ...              */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			i386_movb_imm_memindex(iptr->val.i, OFFSET(java_bytearray, data[0]), s1, s2, 0);
+			break;
+
+		case ICMD_CASTORECONST: /* ..., arrayref, index  ==> ...              */
+		case ICMD_SASTORECONST:
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			i386_movw_imm_memindex(iptr->val.i, OFFSET(java_bytearray, data[0]), s1, s2, 1);
 			break;
 
 
@@ -2908,12 +2957,12 @@ void codegen(methodinfo *m)
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_ADR:
-				d = reg_of_var(iptr->dst, REG_ITMP1);
+				d = reg_of_var(m, iptr->dst, REG_ITMP1);
 				i386_mov_membase_reg(REG_ITMP2, 0, d);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
-				d = reg_of_var(iptr->dst, REG_NULL);
+				d = reg_of_var(m, iptr->dst, REG_NULL);
 				if (iptr->dst->flags & INMEMORY) {
 					i386_mov_membase_reg(REG_ITMP2, 0, REG_ITMP1);
 					i386_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
@@ -2924,13 +2973,13 @@ void codegen(methodinfo *m)
 				}
 				break;
 			case TYPE_FLT:
-				d = reg_of_var(iptr->dst, REG_FTMP1);
+				d = reg_of_var(m, iptr->dst, REG_FTMP1);
 				i386_flds_membase(REG_ITMP2, 0);
 				fpu_st_offset++;
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			case TYPE_DBL:				
-				d = reg_of_var(iptr->dst, REG_FTMP1);
+				d = reg_of_var(m, iptr->dst, REG_FTMP1);
 				i386_fldl_membase(REG_ITMP2, 0);
 				fpu_st_offset++;
 				store_reg_to_var_flt(iptr->dst, d);
@@ -2989,14 +3038,14 @@ void codegen(methodinfo *m)
 				case TYPE_INT:
 				case TYPE_ADR:
 					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(iptr->dst, REG_ITMP2);
+					d = reg_of_var(m, iptr->dst, REG_ITMP2);
 					gen_nullptr_check(s1);
 					i386_mov_membase_reg(s1, a, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 				case TYPE_LNG:
 					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(iptr->dst, REG_NULL);
+					d = reg_of_var(m, iptr->dst, REG_NULL);
 					gen_nullptr_check(s1);
 					i386_mov_membase_reg(s1, a, REG_ITMP2);
 					i386_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8);
@@ -3005,7 +3054,7 @@ void codegen(methodinfo *m)
 					break;
 				case TYPE_FLT:
 					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(iptr->dst, REG_FTMP1);
+					d = reg_of_var(m, iptr->dst, REG_FTMP1);
 					gen_nullptr_check(s1);
 					i386_flds_membase(s1, a);
 					fpu_st_offset++;
@@ -3013,7 +3062,7 @@ void codegen(methodinfo *m)
 					break;
 				case TYPE_DBL:				
 					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(iptr->dst, REG_FTMP1);
+					d = reg_of_var(m, iptr->dst, REG_FTMP1);
 					gen_nullptr_check(s1);
 					i386_fldl_membase(s1, a);
 					fpu_st_offset++;
@@ -3061,7 +3110,7 @@ void codegen(methodinfo *m)
 		case ICMD_RET:          /* ... ==> ...                                */
 		                        /* op1 = local variable                       */
 
-			var = &(locals[iptr->op1][TYPE_ADR]);
+			var = &(r->locals[iptr->op1][TYPE_ADR]);
 			var_to_reg_int(s1, var, REG_ITMP1);
 			i386_jmp_reg(s1);
 			break;
@@ -3538,42 +3587,42 @@ void codegen(methodinfo *m)
 		case ICMD_IFEQ_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ifcc_iconst(I386_CC_NE, src, iptr);
 			break;
 
 		case ICMD_IFNE_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ifcc_iconst(I386_CC_E, src, iptr);
 			break;
 
 		case ICMD_IFLT_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ifcc_iconst(I386_CC_GE, src, iptr);
 			break;
 
 		case ICMD_IFGE_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ifcc_iconst(I386_CC_L, src, iptr);
 			break;
 
 		case ICMD_IFGT_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ifcc_iconst(I386_CC_LE, src, iptr);
 			break;
 
 		case ICMD_IFLE_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
 
-			d = reg_of_var(iptr->dst, REG_NULL);
+			d = reg_of_var(m, iptr->dst, REG_NULL);
 			i386_emit_ifcc_iconst(I386_CC_G, src, iptr);
 			break;
 
@@ -3612,7 +3661,7 @@ void codegen(methodinfo *m)
 
 nowperformreturn:
 			{
-			int r, p;
+			s4 i, p;
 			
   			p = parentargs_base;
 			
@@ -3639,26 +3688,26 @@ nowperformreturn:
 
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP2);
+				i386_mov_membase_reg(REG_SP, 8 * r->maxmemuse, REG_ITMP2);
 
 				/* we need to save the proper return value */
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					i386_mov_reg_membase(REG_RESULT, REG_SP, maxmemuse * 8);
+					i386_mov_reg_membase(REG_RESULT, REG_SP, r->maxmemuse * 8);
 					break;
 
 				case ICMD_LRETURN:
-					i386_mov_reg_membase(REG_RESULT, REG_SP, maxmemuse * 8);
-					i386_mov_reg_membase(REG_RESULT2, REG_SP, maxmemuse * 8 + 4);
+					i386_mov_reg_membase(REG_RESULT, REG_SP, r->maxmemuse * 8);
+					i386_mov_reg_membase(REG_RESULT2, REG_SP, r->maxmemuse * 8 + 4);
 					break;
 
 				case ICMD_FRETURN:
-					i386_fsts_membase(REG_SP, maxmemuse * 8);
+					i386_fsts_membase(REG_SP, r->maxmemuse * 8);
 					break;
 
 				case ICMD_DRETURN:
-					i386_fstl_membase(REG_SP, maxmemuse * 8);
+					i386_fstl_membase(REG_SP, r->maxmemuse * 8);
 					break;
 				}
 
@@ -3672,38 +3721,38 @@ nowperformreturn:
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_RESULT);
+					i386_mov_membase_reg(REG_SP, r->maxmemuse * 8, REG_RESULT);
 					break;
 
 				case ICMD_LRETURN:
-					i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_RESULT);
-					i386_mov_membase_reg(REG_SP, maxmemuse * 8 + 4, REG_RESULT2);
+					i386_mov_membase_reg(REG_SP, r->maxmemuse * 8, REG_RESULT);
+					i386_mov_membase_reg(REG_SP, r->maxmemuse * 8 + 4, REG_RESULT2);
 					break;
 
 				case ICMD_FRETURN:
-					i386_flds_membase(REG_SP, maxmemuse * 8);
+					i386_flds_membase(REG_SP, r->maxmemuse * 8);
 					break;
 
 				case ICMD_DRETURN:
-					i386_fldl_membase(REG_SP, maxmemuse * 8);
+					i386_fldl_membase(REG_SP, r->maxmemuse * 8);
 					break;
 				}
 			}
 #endif
 
-			/* restore saved registers                                        */
-			for (r = savintregcnt - 1; r >= maxsavintreguse; r--) {
+			/* restore saved registers */
+			for (i = r->savintregcnt - 1; i >= r->maxsavintreguse; i--) {
 				p--;
-				i386_mov_membase_reg(REG_SP, p * 8, savintregs[r]);
+				i386_mov_membase_reg(REG_SP, p * 8, r->savintregs[i]);
 			}
-			for (r = savfltregcnt - 1; r >= maxsavfltreguse; r--) {
+			for (i = r->savfltregcnt - 1; i >= r->maxsavfltreguse; i--) {
   				p--;
 				i386_fldl_membase(REG_SP, p * 8);
 				fpu_st_offset++;
 				if (iptr->opc == ICMD_FRETURN || iptr->opc == ICMD_DRETURN) {
-					i386_fstp_reg(savfltregs[r] + fpu_st_offset + 1);
+					i386_fstp_reg(r->savfltregs[i] + fpu_st_offset + 1);
 				} else {
-					i386_fstp_reg(savfltregs[r] + fpu_st_offset);
+					i386_fstp_reg(r->savfltregs[i] + fpu_st_offset);
 				}
 				fpu_st_offset--;
 			}
@@ -3832,8 +3881,8 @@ nowperformreturn:
 			s3 = iptr->op1;
 
 gen_method: {
-			methodinfo   *m;
-			classinfo    *ci;
+			methodinfo *lm;
+			classinfo  *ci;
 
 			MCODECHECK((s3 << 1) + 64);
 
@@ -3845,7 +3894,7 @@ gen_method: {
 				}
 
 				if (IS_INT_LNG_TYPE(src->type)) {
-					if (s3 < intreg_argnum) {
+					if (s3 < r->intreg_argnum) {
 						panic("No integer argument registers available!");
 
 					} else {
@@ -3869,7 +3918,7 @@ gen_method: {
 					}
 
 				} else {
-					if (s3 < fltreg_argnum) {
+					if (s3 < r->fltreg_argnum) {
 						panic("No float argument registers available!");
 
 					} else {
@@ -3884,13 +3933,13 @@ gen_method: {
 				}
 			} /* end of for */
 
-			m = iptr->val.a;
+			lm = iptr->val.a;
 			switch (iptr->opc) {
 				case ICMD_BUILTIN3:
 				case ICMD_BUILTIN2:
 				case ICMD_BUILTIN1:
 
-					a = (u4) m;
+					a = (u4) lm;
 					d = iptr->op1;
 
 					i386_mov_imm_reg(a, REG_ITMP1);
@@ -3899,8 +3948,8 @@ gen_method: {
 
 				case ICMD_INVOKESTATIC:
 
-					a = (u4) m->stubroutine;
-					d = m->returntype;
+					a = (u4) lm->stubroutine;
+					d = lm->returntype;
 
 					i386_mov_imm_reg(a, REG_ITMP2);
 					i386_call_reg(REG_ITMP2);
@@ -3908,8 +3957,8 @@ gen_method: {
 
 				case ICMD_INVOKESPECIAL:
 
-					a = (u4) m->stubroutine;
-					d = m->returntype;
+					a = (u4) lm->stubroutine;
+					d = lm->returntype;
 
 					i386_mov_membase_reg(REG_SP, 0, REG_ITMP1);
 					gen_nullptr_check(REG_ITMP1);
@@ -3921,26 +3970,26 @@ gen_method: {
 
 				case ICMD_INVOKEVIRTUAL:
 
-					d = m->returntype;
+					d = lm->returntype;
 
 					i386_mov_membase_reg(REG_SP, 0, REG_ITMP1);
 					gen_nullptr_check(REG_ITMP1);
 					i386_mov_membase_reg(REG_ITMP1, OFFSET(java_objectheader, vftbl), REG_ITMP2);
-					i386_mov_membase32_reg(REG_ITMP2, OFFSET(vftbl, table[0]) + sizeof(methodptr) * m->vftblindex, REG_ITMP1);
+					i386_mov_membase32_reg(REG_ITMP2, OFFSET(vftbl, table[0]) + sizeof(methodptr) * lm->vftblindex, REG_ITMP1);
 
 					i386_call_reg(REG_ITMP1);
 					break;
 
 				case ICMD_INVOKEINTERFACE:
 
-					ci = m->class;
-					d = m->returntype;
+					ci = lm->class;
+					d = lm->returntype;
 
 					i386_mov_membase_reg(REG_SP, 0, REG_ITMP1);
 					gen_nullptr_check(REG_ITMP1);
 					i386_mov_membase_reg(REG_ITMP1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
 					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, interfacetable[0]) - sizeof(methodptr) * ci->index, REG_ITMP2);
-					i386_mov_membase32_reg(REG_ITMP2, sizeof(methodptr) * (m - ci->methods), REG_ITMP1);
+					i386_mov_membase32_reg(REG_ITMP2, sizeof(methodptr) * (lm - ci->methods), REG_ITMP1);
 
 					i386_call_reg(REG_ITMP1);
 					break;
@@ -3953,7 +4002,7 @@ gen_method: {
 			/* d contains return type */
 
 			if (d != TYPE_VOID) {
-				d = reg_of_var(iptr->dst, REG_NULL);
+				d = reg_of_var(m, iptr->dst, REG_NULL);
 
 				if (IS_INT_LNG_TYPE(iptr->dst->type)) {
 					if (IS_2_WORD_TYPE(iptr->dst->type)) {
@@ -4009,7 +4058,7 @@ gen_method: {
 			codegen_threadcritrestart(mcodeptr - mcodebase);
 #endif
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
+			d = reg_of_var(m, iptr->dst, REG_ITMP3);
 			if (s1 == d) {
 				M_INTMOVE(s1, REG_ITMP1);
 				s1 = REG_ITMP1;
@@ -4143,7 +4192,7 @@ gen_method: {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			codegen_threadcritrestart(mcodeptr - mcodebase);
 #endif
-			d = reg_of_var(iptr->dst, REG_ITMP3);
+			d = reg_of_var(m, iptr->dst, REG_ITMP3);
 			var_to_reg_int(s1, src, d);
 			if (iptr->op1) {                               /* class/interface */
 				if (super->flags & ACC_INTERFACE) {        /* interface       */
@@ -4306,11 +4355,11 @@ gen_method: {
 
 				if (src->varkind != ARGVAR) {
 					if (src->flags & INMEMORY) {
-						i386_mov_membase_reg(REG_SP, (src->regoff + intreg_argnum) * 8, REG_ITMP1);
-						i386_mov_reg_membase(REG_ITMP1, REG_SP, (s1 + intreg_argnum) * 8);
+						i386_mov_membase_reg(REG_SP, (src->regoff + INT_ARG_CNT) * 8, REG_ITMP1);
+						i386_mov_reg_membase(REG_ITMP1, REG_SP, (s1 + INT_ARG_CNT) * 8);
 
 					} else {
-						i386_mov_reg_membase(src->regoff, REG_SP, (s1 + intreg_argnum) * 8);
+						i386_mov_reg_membase(src->regoff, REG_SP, (s1 + INT_ARG_CNT) * 8);
 					}
 				}
 			}
@@ -4336,7 +4385,7 @@ gen_method: {
 			i386_call_reg(REG_ITMP1);
 			i386_alu_imm_reg(I386_ADD, 12 + iptr->op1 * 4, REG_SP);
 
-			s1 = reg_of_var(iptr->dst, REG_RESULT);
+			s1 = reg_of_var(m, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
 			store_reg_to_var_int(iptr->dst, s1);
 			break;
@@ -4358,8 +4407,8 @@ gen_method: {
 			s2 = src->type;
 			if (IS_FLT_DBL_TYPE(s2)) {
 				var_to_reg_flt(s1, src, REG_FTMP1);
-				if (!(interfaces[len][s2].flags & INMEMORY)) {
-					M_FLTMOVE(s1,interfaces[len][s2].regoff);
+				if (!(r->interfaces[len][s2].flags & INMEMORY)) {
+					M_FLTMOVE(s1, r->interfaces[len][s2].regoff);
 
 				} else {
 					panic("double store");
@@ -4368,17 +4417,17 @@ gen_method: {
 
 			} else {
 				var_to_reg_int(s1, src, REG_ITMP1);
-				if (!IS_2_WORD_TYPE(interfaces[len][s2].type)) {
-					if (!(interfaces[len][s2].flags & INMEMORY)) {
-						M_INTMOVE(s1, interfaces[len][s2].regoff);
+				if (!IS_2_WORD_TYPE(r->interfaces[len][s2].type)) {
+					if (!(r->interfaces[len][s2].flags & INMEMORY)) {
+						M_INTMOVE(s1, r->interfaces[len][s2].regoff);
 
 					} else {
-						i386_mov_reg_membase(s1, REG_SP, interfaces[len][s2].regoff * 8);
+						i386_mov_reg_membase(s1, REG_SP, r->interfaces[len][s2].regoff * 8);
 					}
 
 				} else {
-					if (interfaces[len][s2].flags & INMEMORY) {
-						M_LNGMEMMOVE(s1, interfaces[len][s2].regoff);
+					if (r->interfaces[len][s2].flags & INMEMORY) {
+						M_LNGMEMMOVE(s1, r->interfaces[len][s2].regoff);
 
 					} else {
 						panic("copy interface registers: longs have to be in memory (end)");
@@ -4854,7 +4903,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		stackframeoffset += 4;
 	}
 
-    reg_init();
+    reg_init(m);
     descriptor2types(m);                     /* set paramcount and paramtypes */
   
 /*DEBUG*/
