@@ -1,12 +1,18 @@
 /* 
  * cacao/mm/bitmap.h
- * $Id: bitmap2.h 34 1998-11-03 11:29:37Z phil $ 
+ * $Id: bitmap2.h 37 1998-11-04 12:39:19Z phil $ 
  */
 
 #ifndef __mm_bitmap_h_
 #define __mm_bitmap_h_
 
 #include "mm.h"
+
+#ifdef __GNUC__
+#define __inline__  inline
+#else
+#define __inline__
+#endif
 
 #if U8_AVAILABLE
 #   define BITBLOCK		u8
@@ -24,20 +30,20 @@ typedef struct {
 	void*           bitmap_memory;  /* internal: the real address */
 } bitmap_t;
 
-inline void 		bitmap_setbit(BITBLOCK* bitmap, void* addr);
-inline void 		bitmap_clearbit(BITBLOCK* bitmap, void* addr);
-inline bool 		bitmap_testbit(BITBLOCK* bitmap, void* addr);
+__inline__ void       bitmap_setbit(BITBLOCK* bitmap, void* addr);
+__inline__ void       bitmap_clearbit(BITBLOCK* bitmap, void* addr);
+__inline__ bool       bitmap_testbit(BITBLOCK* bitmap, void* addr);
 
-inline void 		bitmap_checking_setbit(bitmap_t* bitmap, void* addr);
-inline void 		bitmap_checking_clearbit(bitmap_t* bitmap, void* addr);
-inline bool 		bitmap_checking_testbit(bitmap_t* bitmap, void* addr);
+__inline__ void       bitmap_checking_setbit(bitmap_t* bitmap, void* addr);
+__inline__ void       bitmap_checking_clearbit(bitmap_t* bitmap, void* addr);
+__inline__ bool       bitmap_checking_testbit(bitmap_t* bitmap, void* addr);
 
-inline void			bitmap_clear(bitmap_t* bitmap);
-inline bitmap_t*	bitmap_allocate(void* zero_offset, OFFSET_T size);
-inline void 		bitmap_release(bitmap_t* bitmap);
+__inline__ void	      bitmap_clear(bitmap_t* bitmap);
+__inline__ bitmap_t*  bitmap_allocate(void* zero_offset, OFFSET_T size);
+__inline__ void       bitmap_release(bitmap_t* bitmap);
 
-inline void*		bitmap_find_next_setbit(bitmap_t* bitmap, void* addr);
-inline void* 		bitmap_find_next_combination_set_unset(bitmap_t* bitmap, bitmap_t* invertedmap, void* addr);
+__inline__ void*      bitmap_find_next_setbit(bitmap_t* bitmap, void* addr);
+__inline__ void*      bitmap_find_next_combination_set_unset(bitmap_t* bitmap, bitmap_t* invertedmap, void* addr);
 
 #endif
 
@@ -53,3 +59,7 @@ inline void* 		bitmap_find_next_combination_set_unset(bitmap_t* bitmap, bitmap_t
  * tab-width: 4
  * End:
  */
+
+
+
+

@@ -6,7 +6,7 @@
  *
  * Authors: Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
  *
- * $Id: bitmap2.c 34 1998-11-03 11:29:37Z phil $
+ * $Id: bitmap2.c 37 1998-11-04 12:39:19Z phil $
  */
 
 /*
@@ -45,7 +45,6 @@
 
 #include "bitmap2.h"
 
-
 #warning "bitmap2.c untested in 32-bit mode -- phil."
 
 /* FIXME: I haven't decided, whether to keep these macro definitions here or 
@@ -60,16 +59,16 @@
 
 /* Please note: All values are log2 */
 #if U8_AVAILABLE
-#    define POINTER_ALIGNMENT  			3  /* alignment of pointers onto the 
-											  heap == heapblocksize */
-#    define BITBLOCK_SIZE				3  /* bytes/BITBLOCK */
+#define POINTER_ALIGNMENT  			3  /* alignment of pointers onto the 
+										  heap == heapblocksize */
+#define BITBLOCK_SIZE				3  /* bytes/BITBLOCK */
 #else
-#    define POINTER_ALIGNMENT  			2
-#    define BITBLOCK_SIZE				2
+#define POINTER_ALIGNMENT  			2
+#define BITBLOCK_SIZE				2
 #endif
 
 #define HEAPBLOCK_SIZE				POINTER_ALIGNMENT
-#define BITS_PER_BYTE				3  /* actually quite self-explainatory */
+#define BITS_PER_BYTE				3  /* actually quite self-explanatory */
 #define HEAPBLOCKS_PER_BITBLOCK		(BITBLOCK_SIZE + BITS_PER_BYTE)
 
 #define ADDR_TO_BLOCK(addr)			((OFFSET_T)(addr) >> (HEAPBLOCKS_PER_BITBLOCK + POINTER_ALIGNMENT))
@@ -109,28 +108,28 @@
  */
 
 
-inline 
+__inline__
 void bitmap_setbit(BITBLOCK* bitmap, 
 				   void* addr)
 { 
 	SETBIT(bitmap, addr); 
 }
 
-inline 
+__inline__
 void bitmap_clearbit(BITBLOCK* bitmap, 
 					 void* addr)
 { 
 	CLEARBIT(bitmap, addr); 
 }
 
-inline 
+__inline__
 bool bitmap_testbit(BITBLOCK* bitmap, 
 					void* addr)
 { 
 	return TESTBIT(bitmap, addr); 
 }
 
-inline
+__inline__
 static
 void bitmap_boundscheck(bitmap_t* bitmap,
 						void*     addr)
@@ -144,7 +143,7 @@ void bitmap_boundscheck(bitmap_t* bitmap,
 	assert(addr < bitmap->bitmap_beyond_addr); /* a stricter way to check the upper bound */
 }
 
-inline
+__inline__
 void bitmap_checking_setbit(bitmap_t* bitmap,
 							void*	  addr)
 {
@@ -152,7 +151,7 @@ void bitmap_checking_setbit(bitmap_t* bitmap,
 	bitmap_setbit(bitmap->bitmap, addr);
 }
 
-inline
+__inline__
 void bitmap_checking_clearbit(bitmap_t* bitmap,
 							  void*	  addr)
 {
@@ -160,7 +159,7 @@ void bitmap_checking_clearbit(bitmap_t* bitmap,
 	bitmap_clearbit(bitmap->bitmap, addr);
 }
 
-inline
+__inline__
 bool bitmap_checking_testbit(bitmap_t* bitmap,
 							 void*	  addr)
 {
@@ -168,13 +167,13 @@ bool bitmap_checking_testbit(bitmap_t* bitmap,
 	return bitmap_testbit(bitmap->bitmap, addr);
 }
 
-inline 
+__inline__
 void bitmap_clear(bitmap_t* bitmap)	
 {
 	memset(bitmap->bitmap_memory, 0, bitmap->bytesize);
 }
 
-inline 
+__inline__
 bitmap_t* bitmap_allocate(void* 	zero_addr, 
 						  OFFSET_T	size)
 {
@@ -203,7 +202,7 @@ bitmap_t* bitmap_allocate(void* 	zero_addr,
 	return bitmap;
 }
 
-inline 
+__inline__
 void bitmap_release(bitmap_t* bitmap)
 {
 	if (bitmap) {
@@ -213,8 +212,9 @@ void bitmap_release(bitmap_t* bitmap)
 	}
 }
 
+
+__inline__
 static 
-inline 
 int offset_for_lowest(BITBLOCK i)
 {
 	/* Maintainer, don't despair! 
@@ -290,7 +290,7 @@ int offset_for_lowest(BITBLOCK i)
 #endif
 }
 
-inline
+__inline__
 void*
 bitmap_find_next_setbit(bitmap_t* bitmap, 
 						void*     addr)
@@ -318,7 +318,7 @@ bitmap_find_next_setbit(bitmap_t* bitmap,
 	return bitmap->bitmap_beyond_addr;
 }
 
-inline
+__inline__
 void*
 bitmap_find_next_combination_set_unset(bitmap_t* bitmap, 
 									   bitmap_t* invertedmap, 
