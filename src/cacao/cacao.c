@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2067 2005-03-23 11:55:16Z twisti $
+   $Id: cacao.c 2131 2005-03-29 22:34:19Z twisti $
 
 */
 
@@ -871,7 +871,12 @@ int main(int argc, char **argv)
 
 	utf8_init();
 	class_init_foo();
-	loader_init((u1 *) &dummy);
+
+	if (!loader_init((u1 *) &dummy))
+		throw_main_exception_exit();
+
+	if (!linker_init())
+		throw_main_exception_exit();
 
 	if (!native_init())
 		throw_main_exception_exit();
