@@ -1,4 +1,4 @@
-/* vm/jit/alpha/asmpart.S - Java-C interface functions for alpha
+/* src/vm/jit/alpha/asmpart.S - Java-C interface functions for alpha
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,8 +28,9 @@
             Reinhard Grafl
 
    Changes: Joseph Wenninger
+            Christian Thalinger
 
-   $Id: asmpart.S 2164 2005-03-30 20:18:51Z twisti $
+   $Id: asmpart.S 2203 2005-04-03 22:36:17Z twisti $
 
 */
 
@@ -1003,30 +1004,33 @@ ex_flt2:
 
 	0   mcode  ; machine code to patch back in
 
+   ATTENTION: We can not use REG_ITMP3 here to pass the machine code, since
+              itmp3 == gp!
+
 *******************************************************************************/
 		
-    .ent    asm_check_clinit
+	.ent    asm_check_clinit
 
 asm_check_clinit:
 	ldgp    gp,0(itmp2)           /* function is called via `jsr ra,itmp1'    */
 
 	subq	sp,8*8,sp
 
-	stq		ra,0*8(sp)            /* save return address                      */
+	stq     ra,0*8(sp)            /* save return address                      */
 	stq     pv,1*8(sp)            /* save pv of calling java function         */
-	stq		a0,2*8(sp)            /* save argument registers for leaf         */
-	stq		a1,3*8(sp)            /* functions and native stub                */
-	stq		a2,4*8(sp)
-	stq		a3,5*8(sp)
-	stq		a4,6*8(sp)
-	stq		a5,7*8(sp)
+	stq     a0,2*8(sp)            /* save argument registers for leaf         */
+	stq     a1,3*8(sp)            /* functions and native stub                */
+	stq     a2,4*8(sp)
+	stq     a3,5*8(sp)
+	stq     a4,6*8(sp)
+	stq     a5,7*8(sp)
 		
-	ldl		itmp2,offclassinit(itmp1)
-	bne		itmp2,L_is_initialized
+	ldl     itmp2,offclassinit(itmp1)
+	bne     itmp2,L_is_initialized
 	
-	mov		itmp1,a0              /* move class pointer to a0                 */
-	jsr		ra,class_init
-    ldgp    gp,0(ra)
+	mov     itmp1,a0              /* move class pointer to a0                 */
+	jsr     ra,initialize_class
+	ldgp    gp,0(ra)
 		
 	beq     v0,L_initializererror
 
@@ -1038,19 +1042,19 @@ L_is_initialized:
 
 	call_pal PAL_imb              /* synchronise instruction cache            */
 
-	ldq		ra,0*8(sp)            /* restore return address                   */
+	ldq     ra,0*8(sp)            /* restore return address                   */
 	ldq     pv,1*8(sp)            /* restore pv of calling java function      */
-	ldq		a0,2*8(sp)            /* restore argument registers               */
-	ldq		a1,3*8(sp)
-	ldq		a2,4*8(sp)
-	ldq		a3,5*8(sp)
-	ldq		a4,6*8(sp)
-	ldq		a5,7*8(sp)
+	ldq     a0,2*8(sp)            /* restore argument registers               */
+	ldq     a1,3*8(sp)
+	ldq     a2,4*8(sp)
+	ldq     a3,5*8(sp)
+	ldq     a4,6*8(sp)
+	ldq     a5,7*8(sp)
 
 	addq    sp,(8+1)*8,sp         /* remove stack frame (+1 for machine code) */
 
 	subq    ra,1*4,ra             /* go back 1 instruction                    */
-	jmp		zero,(ra)             /* jump to the new code                     */
+	jmp     zero,(ra)             /* jump to the new code                     */
 
 L_initializererror:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -1061,14 +1065,14 @@ L_initializererror:
 	ldq     xptr,0(v0)            /* get the exception pointer                */
 	stq     zero,0(v0)            /* clear the exception pointer              */
 
-	ldq		ra,0*8(sp)            /* restore return address                   */
+	ldq     ra,0*8(sp)            /* restore return address                   */
 	ldq     pv,1*8(sp)            /* restore pv of calling java function      */
-	ldq		a0,2*8(sp)            /* restore argument registers               */
-	ldq		a1,3*8(sp)
-	ldq		a2,4*8(sp)
-	ldq		a3,5*8(sp)
-	ldq		a4,6*8(sp)
-	ldq		a5,7*8(sp)
+	ldq     a0,2*8(sp)            /* restore argument registers               */
+	ldq     a1,3*8(sp)
+	ldq     a2,4*8(sp)
+	ldq     a3,5*8(sp)
+	ldq     a4,6*8(sp)
+	ldq     a5,7*8(sp)
 
 	addq    sp,(8+1)*8,sp         /* remove stack frame (+1 for machine code) */
 
