@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClassLoader.c 2173 2005-03-31 19:29:04Z twisti $
+   $Id: VMClassLoader.c 2188 2005-04-02 01:15:33Z edwin $
 
 */
 
@@ -72,6 +72,13 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	if ((off < 0) || (len < 0) || ((off + len) > buf->header.size)) {
 		*exceptionptr =
 			new_exception(string_java_lang_IndexOutOfBoundsException);
+		return NULL;
+	}
+
+	if (!name) {
+		/* XXX we have to support this case (name is read from classbuffer) */
+		log_text("defineClass(name == NULL,...) is not implemented, yet");
+		*exceptionptr = new_nullpointerexception();
 		return NULL;
 	}
 
