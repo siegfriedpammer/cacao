@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1774 2004-12-20 20:16:57Z jowenn $
+   $Id: typecheck.c 1779 2004-12-21 09:13:53Z twisti $
 
 */
 
@@ -530,8 +530,8 @@ typestate_reach(codegendata *cd, registerdata *rd,void *localbuf,
 				if (sp->type == TYPE_ADR &&
                 		TYPEINFO_IS_NEWOBJECT(sp->typeinfo)) {
 					show_icmd_method(cd->method,cd,rd);
-				printf("current: %ld, dest: %ld\n",current->debug_nr,destblock->debug_nr);
-				panic("Branching backwards with uninitialized object on stack");
+					printf("current: %d, dest: %d\n", current->debug_nr, destblock->debug_nr);
+					panic("Branching backwards with uninitialized object on stack");
             		}
 
 			for (i=0; i<locsize; ++i)
@@ -1016,7 +1016,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 						if (localset->td[i].type == TYPE_ADR
 							&& TYPEINFO_IS_NEWOBJECT(localset->td[i].info)) {
 								show_icmd_method(m, cd, rd);
-								printf("Uninitialized variale:%ld, block:%ld\n",i,bptr->debug_nr);
+								printf("Uninitialized variale: %d, block: %d\n", i, bptr->debug_nr);
 								panic("Uninitialized object in local variable inside try block");
 							}
 		}
