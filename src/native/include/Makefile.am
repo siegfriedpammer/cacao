@@ -26,7 +26,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 1780 2004-12-21 09:15:09Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,9 +38,13 @@ CLEANFILES = \
 	gnu_classpath_RawData.h \
 	\
 	gnu_java_awt_image_GdkPixbufDecoder.h \
+	gnu_java_awt_peer_gtk_GThreadMutex.h \
+	gnu_java_awt_peer_gtk_GThreadNativeMethodRunner.h \
 	gnu_java_awt_peer_gtk_GdkFontMetrics.h \
 	gnu_java_awt_peer_gtk_GdkGraphics.h \
+	gnu_java_awt_peer_gtk_GdkGraphicsEnvironment.h \
 	gnu_java_awt_peer_gtk_GdkPixbufDecoder.h \
+	gnu_java_awt_peer_gtk_GdkTextLayout.h \
 	gnu_java_awt_peer_gtk_GtkButtonPeer.h \
 	gnu_java_awt_peer_gtk_GtkCanvasPeer.h \
 	gnu_java_awt_peer_gtk_GtkCheckboxGroupPeer.h \
@@ -49,16 +53,23 @@ CLEANFILES = \
 	gnu_java_awt_peer_gtk_GtkChoicePeer.h \
 	gnu_java_awt_peer_gtk_GtkClipboard.h \
 	gnu_java_awt_peer_gtk_GtkComponentPeer.h \
+	gnu_java_awt_peer_gtk_GtkContainerPeer.h \
+	gnu_java_awt_peer_gtk_GtkDialogPeer.h \
+	gnu_java_awt_peer_gtk_GtkEmbeddedWindowPeer.h \
 	gnu_java_awt_peer_gtk_GtkFileDialogPeer.h \
 	gnu_java_awt_peer_gtk_GtkFramePeer.h \
+	gnu_java_awt_peer_gtk_GtkFontPeer.h \
 	gnu_java_awt_peer_gtk_GtkGenericPeer.h \
+	gnu_java_awt_peer_gtk_GtkImage.h \
 	gnu_java_awt_peer_gtk_GtkImagePainter.h \
 	gnu_java_awt_peer_gtk_GtkLabelPeer.h \
 	gnu_java_awt_peer_gtk_GtkListPeer.h \
 	gnu_java_awt_peer_gtk_GtkMainThread.h \
 	gnu_java_awt_peer_gtk_GtkMenuBarPeer.h \
+	gnu_java_awt_peer_gtk_GtkMenuComponentPeer.h \
 	gnu_java_awt_peer_gtk_GtkMenuItemPeer.h \
 	gnu_java_awt_peer_gtk_GtkMenuPeer.h \
+	gnu_java_awt_peer_gtk_GtkOffScreenImage.h \
 	gnu_java_awt_peer_gtk_GtkPanelPeer.h \
 	gnu_java_awt_peer_gtk_GtkPopupMenuPeer.h \
 	gnu_java_awt_peer_gtk_GtkScrollPanePeer.h \
@@ -78,6 +89,8 @@ CLEANFILES = \
 	gnu_java_nio_channels_FileChannelImpl.h \
 	gnu_java_security_x509_X509Certificate.h \
 	\
+	java_awt_Graphics.h \
+	java_awt_Window.h \
 	java_awt_peer_ComponentPeer.h \
 	java_awt_peer_MenuItemPeer.h \
 	java_awt_peer_MenuPeer.h \
