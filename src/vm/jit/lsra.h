@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 2027 2005-03-10 13:43:55Z twisti $
+   $Id: lsra.h 2030 2005-03-10 16:17:50Z christian $
 
 */
 
@@ -52,7 +52,7 @@
 #define min(a,b) ((a)<(b)?(a):(b))
 #define max(a,b) ((a)<(b)?(b):(a))
 
-#if defined(__I386__)
+#if defined(LSRA_EDX)
 struct tmp_reg {
 	int eax;
 	int ecx;
@@ -128,7 +128,7 @@ struct lsra_reg {
 };
 
 struct lsradata {
-#if defined(__I386__)
+#if defined(LSRA_EDX)
 	int edx_free;
 #endif
 	struct _list **succ;

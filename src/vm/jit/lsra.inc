@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 2027 2005-03-10 13:43:55Z twisti $
+   $Id: lsra.inc 2030 2005-03-10 16:17:50Z christian $
 
 */
 #include <stdio.h>
@@ -256,7 +256,7 @@ void lsra_get_backedges( methodinfo *m, lsradata *ls) {
 	for(i=0; i < m->basicblockcount; i++) {
 		if (ls->sorted[i] != -1)
 			for(s=ls->succ[ls->sorted[i]]; s != NULL; s=s->next) {
-				if (i < ls->sorted_rev[s->value]) {
+				if (i <= ls->sorted_rev[s->value]) {
 					n=DNEW(struct _backedge);
 					n->start = max(i, ls->sorted_rev[s->value]);
 					n->end = min(i, ls->sorted_rev[s->value]);
@@ -1344,8 +1344,8 @@ void lsra_calc_lifetime_length(methodinfo *m, lsradata *ls, codegendata *cd)
 				if (!( (lt->bb_first_def < ls->backedge[i]->end) ||
 					   (lt->bb_last_use > ls->backedge[i]->start) )) {
 					/* Live intervall intersects with a backedge */
-					if (lt->bb_first_def <= ls->backedge[i]->start)
-						lt->i_start = (m->basicblockcount - ls->backedge[i]->start) * ls->icount_max;
+/* 					if (lt->bb_first_def <= ls->backedge[i]->start) */
+/* 						lt->i_start = (m->basicblockcount - ls->backedge[i]->start) * ls->icount_max; */
 					if (lt->bb_last_use >= ls->backedge[i]->end)
 						lt->i_end = (m->basicblockcount - ls->backedge[i]->end) * ls->icount_max +  m->basicblocks[ls->sorted[ls->backedge[i]->end]].icount-1;
 				}
@@ -1591,7 +1591,7 @@ void _lsra_new_stack(lsradata *ls, stackptr s, int block, int instr, int store)
 		n->bb_first_def = ls->sorted_rev[block];
 		n->i_first_def = instr;
 
-#if defined(__I386__)
+#if defined(LSRA_EDX)
 		if (ls->edx_free != -1) {
 			if (n->bb_last_use == block) {
 				if (n->i_last_use <= ls->edx_free) {
@@ -1696,7 +1696,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 	stackptr    dst;
 	instruction *iptr;
 
-#if defined(__I386__)
+#if defined(LSRA_EDX)
 	ls->edx_free = -1;
 #endif
 
@@ -1732,7 +1732,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 		else
 			src=m->basicblocks[b_index].instack;
 
-#if defined(__I386__)
+#if defined(LSRA_EDX)
 		if (icmd_uses_tmp[opcode].edx)
 			ls->edx_free = -1;
 		else
@@ -2185,7 +2185,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 	}
 }
 
-#if defined(__I386__)
+#if defined(LSRA_EDX)
 
 #define NO   0
 #define YES 64
