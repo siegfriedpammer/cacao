@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 776 2003-12-14 13:38:14Z twisti $
+   $Id: codegen.h 778 2003-12-14 14:54:33Z stefan $
 
 */
 
@@ -287,6 +287,7 @@ void i386_inc_reg(s4 reg);
 void i386_inc_membase(s4 basereg, s4 disp);
 void i386_dec_reg(s4 reg);
 void i386_dec_membase(s4 basereg, s4 disp);
+void i386_dec_mem(s4 mem);
 void i386_cltd();
 void i386_imul_reg_reg(s4 reg, s4 dreg);
 void i386_imul_membase_reg(s4 basereg, s4 disp, s4 dreg);
@@ -316,10 +317,12 @@ void i386_neg_reg(s4 reg);
 void i386_neg_membase(s4 basereg, s4 disp);
 void i386_push_imm(s4 imm);
 void i386_pop_reg(s4 reg);
+void i386_push_reg(s4 reg);
 void i386_nop();
 void i386_lock();
 void i386_call_reg(s4 reg);
 void i386_call_imm(s4 imm);
+void i386_call_mem(s4 mem);
 
 
 /* floating point instructions */
