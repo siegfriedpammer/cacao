@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 947 2004-03-07 22:02:29Z twisti $
+   $Id: codegen.h 1281 2004-07-05 22:03:43Z twisti $
 
 */
 
@@ -35,7 +35,7 @@
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
-#include "jit.h"
+#include "jit/jit.h"
 
 
 /* see also file calling.doc for explanation of calling conventions           */
@@ -382,7 +382,7 @@
 
 void codegen_init();
 void init_exceptions();
-void codegen();
+void codegen(methodinfo *m);
 void codegen_close();
 void dseg_display(s4 *s4ptr);
 

@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1166 2004-06-12 13:34:06Z stefan $
+   $Id: asmpart.S 1281 2004-07-05 22:03:43Z twisti $
 
 */
 
@@ -196,7 +196,7 @@
 	.globl class_java_lang_Object
 
 
-/********************* function asm_calljavafunction ****************************
+/********************* function asm_calljavafunction ***************************
 *                                                                              *
 *   This function calls a Java-method (which possibly needs compilation)       *
 *   with up to 4 address parameters.                                           *
@@ -850,7 +850,6 @@ L_is_initialized:
 
 L_initializererror:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#error TODO TWISTI please check me for correctness
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
 	jal     builtin_asm_get_exceptionptrptr
