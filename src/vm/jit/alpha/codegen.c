@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 1683 2004-12-05 21:33:36Z jowenn $
+   $Id: codegen.c 1694 2004-12-06 12:30:59Z twisti $
 
 */
 
@@ -54,7 +54,7 @@
 #include "vm/jit/alpha/codegen.h"
 #include "vm/jit/alpha/types.h"
 #include "vm/jit/alpha/asmoffsets.h"
-#include "vm/jit/stacktrace.inc"
+
 
 /* *****************************************************************************
 
