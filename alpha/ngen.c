@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 319 2003-05-20 06:57:11Z stefan $
+	Last Change: $Id: ngen.c 425 2003-09-09 13:29:10Z stefan $
 
 *******************************************************************************/
 
@@ -3754,6 +3754,8 @@ void removecompilerstub (u1 *stub)
 #define NATIVESTUBSIZE 34
 #define NATIVESTUBOFFSET 8
 
+int runverbosenat = 0;
+
 u1 *createnativestub (functionptr f, methodinfo *m)
 {
 	int disp;
@@ -3781,7 +3783,8 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	M_LDA  (REG_SP, REG_SP, -8);        /* build up stackframe                */
 	M_AST  (REG_RA, REG_SP, 0);         /* store return address               */
 
-	if (runverbose) {
+#if 1
+	if (runverbosenat) {
 		M_ALD(REG_ITMP1, REG_PV, -6*8);
 		M_ALD(REG_PV, REG_PV, -5*8);
 
@@ -3789,6 +3792,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 		disp = -(int) (p - (s4*) cs)*4;
 		M_LDA(REG_PV, REG_RA, disp);
 	}
+#endif
 
 	reg_init();
 
@@ -3818,9 +3822,10 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 
 	M_ALD  (REG_ITMP1, REG_ITMP3, 0);   /* load exception into reg. itmp1     */
 	M_BNEZ (REG_ITMP1,
-			3 + (runverbose ? 6 : 0));  /* if no exception then return        */
+			3 + (runverbosenat ? 6 : 0));  /* if no exception then return        */
 
-	if (runverbose) {
+#if 1
+	if (runverbosenat) {
 		M_ALD(argintregs[0], REG_PV, -6*8);
 		M_MOV(REG_RESULT, argintregs[1]);
 		M_FMOV(REG_FRESULT, argfltregs[2]);
@@ -3828,6 +3833,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 		M_ALD(REG_PV, REG_PV, -7*8);
 		M_JSR(REG_RA, REG_PV);
 	}
+#endif
 
 	M_ALD  (REG_RA, REG_SP, 0);         /* load return address                */
 	M_LDA  (REG_SP, REG_SP, 8);         /* remove stackframe                  */
@@ -3836,7 +3842,8 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	
 	M_AST  (REG_ZERO, REG_ITMP3, 0);    /* store NULL into exceptionptr       */
 
-	if (runverbose) {
+#if 1
+	if (runverbosenat) {
 		M_LDA(REG_SP, REG_SP, -8);
 		M_AST(REG_ITMP1, REG_SP, 0);
 		M_MOV(REG_ITMP1, argintregs[0]);
@@ -3850,6 +3857,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 		M_ALD(REG_ITMP1, REG_SP, 0);
 		M_LDA(REG_SP, REG_SP, 8);
 	}
+#endif
 
 	M_ALD  (REG_RA, REG_SP, 0);         /* load return address                */
 	M_LDA  (REG_SP, REG_SP, 8);         /* remove stackframe                  */
