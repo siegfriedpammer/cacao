@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 2097 2005-03-27 18:59:15Z edwin $
+   $Id: utf8.c 2108 2005-03-29 16:45:35Z twisti $
 
 */
 
@@ -179,6 +179,7 @@ void utf8_init(void)
 		utf_new_char("(Ljava/lang/String;)Ljava/lang/Class;");
 
 	utf_java_lang_Throwable__void  = utf_new_char("(Ljava/lang/Throwable;)V");
+
 	array_packagename              = utf_new_char("\t<the array package>");
 }
 
@@ -752,7 +753,7 @@ void utf_sprint(char *buffer, utf *u)
 	u2 pos = 0;                         /* position in c-string               */
 
 	if (!u) {
-		memcpy(buffer, "NULL", 5);      /* 4 chars + terminating \0           */
+		strcpy(buffer, "NULL");
 		return;
 	}
 
@@ -782,7 +783,7 @@ void utf_sprint_classname(char *buffer, utf *u)
 	u2 pos = 0;                         /* position in c-string               */
 
 	if (!u) {
-		memcpy(buffer, "NULL", 5);      /* 4 chars + terminating \0           */
+		strcpy(buffer, "NULL");
 		return;
 	}
 
@@ -798,6 +799,18 @@ void utf_sprint_classname(char *buffer, utf *u)
 
 	/* terminate string */
 	buffer[pos] = '\0';
+}
+
+
+/* utf_strcat ******************************************************************
+	
+   Like libc strcat, but uses an utf8 string.
+
+*******************************************************************************/
+
+void utf_strcat(char *buffer, utf *u)
+{
+	utf_sprint(buffer + strlen(buffer), u);
 }
 
 
