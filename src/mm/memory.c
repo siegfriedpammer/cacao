@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1437 2004-11-05 09:51:07Z twisti $
+   $Id: memory.c 1489 2004-11-12 11:31:47Z twisti $
 
 */
 
@@ -82,7 +82,14 @@ void *mem_mmap(int size)
 		mmapcodeptr = mmap(NULL,
 						   (size_t) mmapcodesize,
 						   PROT_READ | PROT_WRITE | PROT_EXEC,
-						   MAP_PRIVATE | MAP_ANONYMOUS,
+						   MAP_PRIVATE |
+#if defined(HAVE_MAP_ANONYMOUS)
+						   MAP_ANONYMOUS,
+#elif defined(HAVE_MAP_ANON)
+						   MAP_ANON,
+#else
+						   0,
+#endif
 						   -1,
 						   (off_t) 0);
 
