@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1535 2004-11-18 10:39:18Z twisti $
+   $Id: main.c 1545 2004-11-18 12:22:20Z twisti $
 
 */
 
@@ -253,7 +253,7 @@ void exit_handler(void)
 
 	MFREE(classpath, u1, strlen(classpath));
 
-	if (verbose || getcompilingtime || opt_stat) {
+	if (opt_verbose || getcompilingtime || opt_stat) {
 		log_text("CACAO terminated");
 		if (opt_stat) {
 			print_stats();
@@ -370,11 +370,11 @@ int main(int argc, char **argv)
 			break;
 
 		case OPT_VERBOSE1:
-			verbose = true;
+			opt_verbose = true;
 			break;
 
 		case OPT_VERBOSE:
-			verbose = true;
+			opt_verbose = true;
 			loadverbose = true;
 			linkverbose = true;
 			initverbose = true;
@@ -574,7 +574,7 @@ int main(int argc, char **argv)
 	/**************************** Program start *****************************/
 
 	log_init(logfilename);
-	if (verbose)
+	if (opt_verbose)
 		log_text("CACAO started -------------------------------------------------------");
 
 	/* initialize the garbage collector */
@@ -853,7 +853,7 @@ void cacao_exit(s4 status)
 
 void cacao_shutdown(s4 status)
 {
-	if (verbose || getcompilingtime || opt_stat) {
+	if (opt_verbose || getcompilingtime || opt_stat) {
 		log_text("CACAO terminated by shutdown");
 		dolog("Exit status: %d\n", (s4) status);
 	}
