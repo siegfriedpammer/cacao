@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: jit.c 483 2003-10-14 17:08:38Z twisti $
+	Last Change: $Id: jit.c 488 2003-10-20 17:30:24Z twisti $
 
 *******************************************************************************/
 
@@ -190,21 +190,13 @@ static void* do_nothing_function()
 
 methodptr jit_compile(methodinfo *m)
 {
-	int  dumpsize, i, j, k;
+	int dumpsize;
 	long starttime = 0;
 	long stoptime  = 0;
-	basicblock *b;
-	instruction *ip;
-	stackptr sp;
-
-	basicblock *bptr;
-	stackptr sptr;
-	int cnt;
-
-
-	/* if method has been already compiled return immediately */
 
 	count_jit_calls++;
+
+	/* if method has been already compiled return immediately */
 
 	if (m->entrypoint)
 		return m->entrypoint;
@@ -297,16 +289,21 @@ methodptr jit_compile(methodinfo *m)
    
 	if (opt_loops) {
 		depthFirst();			
+
 #ifdef LOOP_DEBUG
 		resultPass1();   		
 		fflush(stdout);
 #endif 
+
 		analyseGraph();        	
+
 #ifdef LOOP_DEBUG
 		resultPass2(); 
 		fflush(stdout);
 #endif 
+
 		optimize_loops();
+
 #ifdef LOOP_DEBUG
 		/* resultPass3(); */
 #endif 
@@ -320,24 +317,32 @@ methodptr jit_compile(methodinfo *m)
 	printf("Allocating registers  ");
 	fflush(stdout);
 #endif 
+
 	interface_regalloc();
+
 #ifdef LOOP_DEBUG
 	printf(".");
 	fflush(stdout);
 #endif 
+
 	allocate_scratch_registers();
+
 #ifdef LOOP_DEBUG
 	printf(".");
 	fflush(stdout);	
 #endif 
+
 	local_regalloc();
+
 #ifdef LOOP_DEBUG
 	printf(". done\n");
 
 	printf("Generating MCode ... ");
 	fflush(stdout);
 #endif 
+
 	gen_mcode();
+
 #ifdef LOOP_DEBUG
 	printf("done\n");
 	fflush(stdout);
@@ -499,6 +504,7 @@ void jit_init ()
 	stackreq[JAVA_DUP2_X1] = 3;
 	stackreq[JAVA_DUP2_X2] = 4;
 	
+#ifdef USEBUILTINTABLE
 	for (i = 0; i < 256; i++) stdopdescriptors[i] = NULL;
 
 	for (i = 0; i < sizeof(stdopdescriptortable)/sizeof(stdopdescriptor); i++) {
@@ -510,6 +516,7 @@ void jit_init ()
 		stdopdescriptors[stdopdescriptortable[i].opcode] = 
 		   &(stdopdescriptortable[i]);
 		}
+#endif
 
 	init_exceptions();
 }
