@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 934 2004-03-05 23:20:53Z twisti $
+   $Id: native.h 949 2004-03-07 22:16:31Z twisti $
 
 */
 
@@ -136,11 +136,12 @@ char *javastring_tochar(java_objectheader *s);
 /* create new object on the heap and call the initializer */
 java_objectheader *native_new_and_init(classinfo *c);
 
-/* 
-   create new object on the heap and call the initializer 
-   mainly used for exceptions with a message
-*/
+/* create new object on the heap and call the initializer 
+   mainly used for exceptions with a message */
 java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s);
+/* create new object on the heap and call the initializer 
+   mainly used for exceptions with an index */
+java_objectheader *native_new_and_init_int(classinfo *c, s4 i);
 
 /* add property to system-property vector */
 void attach_property(char *name, char *value);
