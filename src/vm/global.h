@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1621 2004-11-30 13:06:55Z twisti $
+   $Id: global.h 1658 2004-12-03 15:28:15Z twisti $
 
 */
 
@@ -79,6 +79,11 @@ typedef int   bool;                     /* boolean data type                  */
 #include <pthread.h>
 #include <semaphore.h>
 #endif
+
+/* define path to rt.jar plus ending : ****************************************/
+
+#define RT_JAR_PATH    "/jre/lib/rt.jar:"
+
 
 #define STATISTICS          /* if enabled collects program statistics         */
 
