@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at            *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 417 2003-08-27 23:29:30Z twisti $         *
+*   Last Change: $Id: asmpart.S 420 2003-08-30 00:14:45Z twisti $         *
 *                                                                              *
 *******************************************************************************/
 
@@ -36,11 +36,6 @@
 	.globl asm_builtin_aastore
 	.globl asm_builtin_monitorenter
 	.globl asm_builtin_monitorexit
-	.globl asm_builtin_idiv
-	.globl asm_builtin_irem
-	.globl asm_builtin_ldiv
-	.globl asm_builtin_lrem
-	.globl asm_builtin_frem
 	.globl asm_builtin_arrayinstanceof
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
@@ -55,23 +50,9 @@
 	.globl builtin_monitorexit
 	.globl builtin_throw_exception
 	.globl builtin_trace_exception
-	.globl class_java_lang_Object
 	.globl findmethod
 
-/*********************** function has_no_x_instr_set ***************************
-*                                                                              *
-*   determines if the byte support instruction set (21164a and higher)         *
-*   is available.                                                              *
-*                                                                              *
-*   Use it on i386 architecture to init the fpu.                               *
-*                                                                              *
-*******************************************************************************/
-
-has_no_x_instr_set:
-		xor		%rax,%rax				/* result code 0 (not used for i386)  */
-		ret
-
-
+        
 /********************* function asm_calljavamethod *****************************
 *                                                                              *
 *   This function calls a Java-method (which possibly needs compilation)       *
@@ -109,22 +90,22 @@ has_no_x_instr_set:
 call_name:
 	.ascii  "calljavamethod\0\0"
 
-/*	.align  3 */
 	.align	8
-	.long   0                         /* catch type all                       */
-	.long   calljava_xhandler         /* handler pc                           */
-	.long   calljava_xhandler         /* end pc                               */
-	.long   asm_calljavamethod        /* start pc                             */
+	.quad   0                         /* catch type all                       */
+	.quad   calljava_xhandler         /* handler pc                           */
+	.quad   calljava_xhandler         /* end pc                               */
+	.quad   asm_calljavamethod        /* start pc                             */
 	.long   1                         /* extable size                         */
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
 	.long   0                         /* IsSync                               */
 	.long   8                         /* frame size                           */
-	.long   0                         /* method pointer (pointer to name)     */
+	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavamethod:
         sub     $8,%rsp               /* keep %rsp 16-byte aligned            */
+        mov     %rbp,(%rsp)
         
         mov     %rdi,%rax             /* move function pointer to %rax        */
                                       /* compilerstub uses this               */
@@ -141,13 +122,14 @@ calljava_jit:
 calljava_return:
 calljava_ret:
         xor     %rax,%rax
+        mov     (%rsp),%rbp
         add     $8,%rsp               /* keep %rsp 16-byte aligned            */
         ret
 
 calljava_xhandler:
-        push	%rax				  /* pass exception pointer               */
+        mov     %rax,%rdi			  /* pass exception pointer               */
         call    builtin_throw_exception
-        add     $8,%rsp
+        mov     (%rsp),%rbp
         add     $8,%rsp
         ret
 
@@ -169,22 +151,22 @@ calljava_xhandler:
 call_name2:
 	.ascii  "calljavafunction\0\0"
 
-/*	.align  3 */
 	.align	8
-	.long   0                         /* catch type all                       */
-	.long   calljava_xhandler2        /* handler pc                           */
-	.long   calljava_xhandler2        /* end pc                               */
-	.long   asm_calljavafunction      /* start pc                             */
+	.quad   0                         /* catch type all                       */
+	.quad   calljava_xhandler2        /* handler pc                           */
+	.quad   calljava_xhandler2        /* end pc                               */
+	.quad   asm_calljavafunction      /* start pc                             */
 	.long   1                         /* extable size                         */
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
 	.long   0                         /* IsSync                               */
 	.long   8                         /* frame size                           */
-	.long   0                         /* method pointer (pointer to name)     */
+	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
         sub     $8,%rsp               /* keep stack 16-byte aligned           */
+        mov     %rbp,(%rsp)
         mov     %rdi,%rax             /* move function pointer to %rax        */
                                       /* compilerstub uses this               */
 
@@ -199,13 +181,14 @@ asm_calljavafunction:
 calljava_jit2:
 calljava_return2:
 calljava_ret2:
+        mov     (%rsp),%rbp
         add     $8,%rsp               /* free stack space                     */
         ret
 
 calljava_xhandler2:
-        push    %rax				  /* pass exception pointer               */
+        mov     %rax,%rdi       	  /* pass exception pointer               */
         call    builtin_throw_exception
-        add     $8,%rsp
+        mov     (%rsp),%rbp
         add     $8,%rsp
         ret
 						

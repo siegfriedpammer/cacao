@@ -11,7 +11,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: ngen.h 417 2003-08-27 23:29:30Z twisti $
+    Last Change: $Id: ngen.h 420 2003-08-30 00:14:45Z twisti $
 
 *******************************************************************************/
 
@@ -59,7 +59,7 @@
 /* #define REG_END   -1        last entry in tables */
 
 int nregdescint[] = {
-    REG_RET, REG_ARG, REG_ARG, REG_SAV, REG_RES, REG_SAV, REG_ARG, REG_ARG,
+    REG_RET, REG_ARG, REG_ARG, REG_TMP, REG_RES, REG_SAV, REG_ARG, REG_ARG,
     REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
     REG_END
 };
@@ -1521,25 +1521,6 @@ static const unsigned char x86_64_cc_map[] = {
     } while (0)
 
 
-#define x86_64_movaps_reg_reg(reg,dreg) \
-    do { \
-        x86_64_emit_rex(0,(reg),0,(dreg)); \
-        *(mcodeptr++) = 0x0f; \
-        *(mcodeptr++) = 0x28; \
-        x86_64_emit_reg((reg),(dreg)); \
-    } while (0)
-
-
-#define x86_64_movapd_reg_reg(reg,dreg) \
-    do { \
-        *(mcodeptr++) = 0x66; \
-        x86_64_emit_rex(0,(reg),0,(dreg)); \
-        *(mcodeptr++) = 0x0f; \
-        *(mcodeptr++) = 0x28; \
-        x86_64_emit_reg((reg),(dreg)); \
-    } while (0)
-
-
 #define x86_64_movd_reg_freg(reg,freg) \
     do { \
         *(mcodeptr++) = 0x66; \
@@ -1792,20 +1773,20 @@ static const unsigned char x86_64_cc_map[] = {
 
 #define x86_64_xorps_reg_reg(reg,dreg) \
     do { \
-        x86_64_emit_rex(0,(reg),0,(dreg)); \
+        x86_64_emit_rex(0,(dreg),0,(reg)); \
         *(mcodeptr++) = 0x0f; \
         *(mcodeptr++) = 0x57; \
-        x86_64_emit_reg((reg),(dreg)); \
+        x86_64_emit_reg((dreg),(reg)); \
     } while (0)
 
 
 #define x86_64_xorpd_reg_reg(reg,dreg) \
     do { \
         *(mcodeptr++) = 0x66; \
-        x86_64_emit_rex(0,(reg),0,(dreg)); \
+        x86_64_emit_rex(0,(dreg),0,(reg)); \
         *(mcodeptr++) = 0x0f; \
         *(mcodeptr++) = 0x57; \
-        x86_64_emit_reg((reg),(dreg)); \
+        x86_64_emit_reg((dreg),(reg)); \
     } while (0)
 
 

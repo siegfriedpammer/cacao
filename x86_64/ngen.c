@@ -12,7 +12,7 @@
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 			 Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 417 2003-08-27 23:29:30Z twisti $
+	Last Change: $Id: ngen.c 420 2003-08-30 00:14:45Z twisti $
 
 *******************************************************************************/
 
@@ -220,7 +220,7 @@ void catch_NullPointerException(int sig)
 
 	instr = *((int*)(sigctx->rip));
 /*    	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f]; */
-
+	fprintf(stderr, "null\n");
 /*  	if (faultaddr == 0) { */
 		signal(sig, (void *) catch_NullPointerException);          /* reinstall handler */
 		sigemptyset(&nsig);
@@ -266,7 +266,6 @@ void init_exceptions(void)
 	/* install signal handlers we need to convert to exceptions */
 
 	if (!checknull) {
-
 #if defined(SIGSEGV)
 		signal(SIGSEGV, (void *) catch_NullPointerException);
 #endif
@@ -451,6 +450,19 @@ static void gen_mcode()
 		x86_64_movq_reg_membase(argfltregs[5], REG_SP, 12 * 8);
 		x86_64_movq_reg_membase(argfltregs[6], REG_SP, 13 * 8);
 		x86_64_movq_reg_membase(argfltregs[7], REG_SP, 14 * 8);
+
+		for (p = 0, l = 0; p < mparamcount; p++) {
+			t = mparamtypes[p];
+
+			if (IS_FLT_DBL_TYPE(t)) {
+				for (s1 = (mparamcount > intreg_argnum) ? intreg_argnum - 2 : mparamcount - 2; s1 >= p; s1--) {
+					x86_64_mov_reg_reg(argintregs[s1], argintregs[s1 + 1]);
+				}
+
+				x86_64_movd_freg_reg(argfltregs[l], argintregs[p]);
+				l++;
+			}
+		}
 
 		x86_64_mov_imm_reg(method, REG_ITMP2);
 		x86_64_mov_reg_membase(REG_ITMP2, REG_SP, 0 * 8);
@@ -1597,7 +1609,7 @@ static void gen_mcode()
 						x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
 						x86_64_imul_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
 					}
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff);
+					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					
 				} else {
 					if (x86_64_is_imm32(iptr->val.l)) {
@@ -1607,7 +1619,7 @@ static void gen_mcode()
 						x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
 						x86_64_imul_reg_reg(src->regoff, REG_ITMP1);
 					}
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff);
+					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 				}
 
 			} else {
@@ -1654,6 +1666,7 @@ static void gen_mcode()
 			x86_64_alul_imm_reg(X86_64_CMP, -1, REG_ITMP3);      /* 4 bytes */
 			x86_64_jcc(X86_64_CC_E, 1 + 3);                      /* 6 bytes */
 
+			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's and argument register */
   			x86_64_cltd();
 			x86_64_idivl_reg(REG_ITMP3);
 
@@ -1663,6 +1676,7 @@ static void gen_mcode()
 			} else {
 				M_INTMOVE(RAX, iptr->dst->regoff);
 			}
+			x86_64_mov_reg_reg(REG_ITMP2, RDX);    /* restore %rdx */
 			break;
 
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
@@ -1689,6 +1703,7 @@ static void gen_mcode()
 			x86_64_alul_imm_reg(X86_64_CMP, -1, REG_ITMP3);      /* 4 bytes */
 			x86_64_jcc(X86_64_CC_E, 1 + 3);                      /* 6 bytes */
 
+			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's and argument register */
   			x86_64_cltd();
 			x86_64_idivl_reg(REG_ITMP3);
 
@@ -1698,6 +1713,7 @@ static void gen_mcode()
 			} else {
 				M_INTMOVE(RDX, iptr->dst->regoff);
 			}
+			x86_64_mov_reg_reg(REG_ITMP2, RDX);    /* restore %rdx */
 			break;
 
 		case ICMD_IDIVPOW2:   /* ..., value  ==> ..., value >> constant       */
@@ -1777,6 +1793,7 @@ static void gen_mcode()
 			x86_64_alu_imm_reg(X86_64_CMP, -1, REG_ITMP3);          /* 4 bytes */
 			x86_64_jcc(X86_64_CC_E, 2 + 3);                         /* 6 bytes */
 
+			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's and argument register */
   			x86_64_cqto();
 			x86_64_idiv_reg(REG_ITMP3);
 
@@ -1786,6 +1803,7 @@ static void gen_mcode()
 			} else {
 				M_INTMOVE(RAX, iptr->dst->regoff);
 			}
+			x86_64_mov_reg_reg(REG_ITMP2, RDX);    /* restore %rdx */
 			break;
 
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
@@ -1813,6 +1831,7 @@ static void gen_mcode()
 			x86_64_alu_imm_reg(X86_64_CMP, -1, REG_ITMP3);          /* 4 bytes */
 			x86_64_jcc(X86_64_CC_E, 2 + 3);                         /* 6 bytes */
 
+			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's and argument register */
   			x86_64_cqto();
 			x86_64_idiv_reg(REG_ITMP3);
 
@@ -1822,6 +1841,7 @@ static void gen_mcode()
 			} else {
 				M_INTMOVE(RDX, iptr->dst->regoff);
 			}
+			x86_64_mov_reg_reg(REG_ITMP2, RDX);    /* restore %rdx */
 			break;
 
 		case ICMD_LDIVPOW2:   /* ..., value  ==> ..., value >> constant       */
@@ -1880,6 +1900,7 @@ static void gen_mcode()
 		case ICMD_ISHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
 
 			d = reg_of_var(iptr->dst, REG_ITMP2);
+			M_INTMOVE(RCX, REG_ITMP1);    /* save RCX */
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
@@ -1938,6 +1959,7 @@ static void gen_mcode()
 					x86_64_shiftl_reg(X86_64_SHL, iptr->dst->regoff);
 				}
 			}
+			M_INTMOVE(REG_ITMP1, RCX);    /* restore RCX */
 			break;
 
 		case ICMD_ISHLCONST:  /* ..., value  ==> ..., value << constant       */
@@ -1971,6 +1993,7 @@ static void gen_mcode()
 		case ICMD_ISHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
 
 			d = reg_of_var(iptr->dst, REG_ITMP2);
+			M_INTMOVE(RCX, REG_ITMP1);    /* save RCX */
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
@@ -2029,6 +2052,7 @@ static void gen_mcode()
 					x86_64_shiftl_reg(X86_64_SAR, iptr->dst->regoff);
 				}
 			}
+			M_INTMOVE(REG_ITMP1, RCX);    /* restore RCX */
 			break;
 
 		case ICMD_ISHRCONST:  /* ..., value  ==> ..., value >> constant       */
@@ -2062,6 +2086,7 @@ static void gen_mcode()
 		case ICMD_IUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
 
 			d = reg_of_var(iptr->dst, REG_ITMP2);
+			M_INTMOVE(RCX, REG_ITMP1);    /* save RCX */
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
@@ -2120,6 +2145,7 @@ static void gen_mcode()
 					x86_64_shiftl_reg(X86_64_SHR, iptr->dst->regoff);
 				}
 			}
+			M_INTMOVE(REG_ITMP1, RCX);    /* restore RCX */
 			break;
 
 		case ICMD_IUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
@@ -2153,6 +2179,7 @@ static void gen_mcode()
 		case ICMD_LSHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
 
 			d = reg_of_var(iptr->dst, REG_ITMP2);
+			M_INTMOVE(RCX, REG_ITMP1);    /* save RCX */
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
@@ -2211,6 +2238,7 @@ static void gen_mcode()
 					x86_64_shift_reg(X86_64_SHL, iptr->dst->regoff);
 				}
 			}
+			M_INTMOVE(REG_ITMP1, RCX);    /* restore RCX */
 			break;
 
         case ICMD_LSHLCONST:  /* ..., value  ==> ..., value << constant       */
@@ -2244,6 +2272,7 @@ static void gen_mcode()
 		case ICMD_LSHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
 
 			d = reg_of_var(iptr->dst, REG_ITMP2);
+			M_INTMOVE(RCX, REG_ITMP1);    /* save RCX */
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
@@ -2302,6 +2331,7 @@ static void gen_mcode()
 					x86_64_shift_reg(X86_64_SAR, iptr->dst->regoff);
 				}
 			}
+			M_INTMOVE(REG_ITMP1, RCX);    /* restore RCX */
 			break;
 
 		case ICMD_LSHRCONST:  /* ..., value  ==> ..., value >> constant       */
@@ -2335,6 +2365,7 @@ static void gen_mcode()
 		case ICMD_LUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
 
 			d = reg_of_var(iptr->dst, REG_ITMP2);
+			M_INTMOVE(RCX, REG_ITMP1);    /* save RCX */
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
@@ -2393,6 +2424,7 @@ static void gen_mcode()
 					x86_64_shift_reg(X86_64_SHR, iptr->dst->regoff);
 				}
 			}
+			M_INTMOVE(REG_ITMP1, RCX);    /* restore RCX */
 			break;
 
   		case ICMD_LUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
@@ -3083,9 +3115,11 @@ static void gen_mcode()
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			x86_64_movaps_reg_reg(s1, d);
-			x86_64_movss_membase_reg(REG_SP, 0, REG_FTMP2);
-			x86_64_xorps_reg_reg(REG_FTMP2, d);
+			/* TODO: this can also be moved with a movd */
+			M_FLTMOVE(s1, d);
+			x86_64_movl_imm_reg(0x80000000, REG_ITMP1);
+			x86_64_movd_reg_freg(REG_ITMP1, REG_FTMP1);
+			x86_64_xorps_reg_reg(REG_FTMP1, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
@@ -3093,9 +3127,11 @@ static void gen_mcode()
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			x86_64_movapd_reg_reg(s1, d);
-			x86_64_movsd_membase_reg(REG_SP, 0, REG_FTMP2);
-			x86_64_xorpd_reg_reg(REG_FTMP2, d);
+			/* TODO: this can also be moved with a movd */
+			M_FLTMOVE(s1, d);
+			x86_64_mov_imm_reg(0x8000000000000000, REG_ITMP1);
+			x86_64_movd_reg_freg(REG_ITMP1, REG_FTMP1);
+			x86_64_xorpd_reg_reg(REG_FTMP1, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
@@ -4643,10 +4679,6 @@ gen_method: {
 
 			/* copy arguments to registers or stack location                  */
 			for (; --s3 >= 0; src = src->prev) {
-/*  				if (src->varkind == ARGVAR) { */
-/*  					continue; */
-/*  				} */
-
 				IS_INT_LNG_TYPE(src->type) ? iarg++ : farg++;
 			}
 
@@ -4654,34 +4686,32 @@ gen_method: {
 			s3 = s2;
 
 			for (; --s3 >= 0; src = src->prev) {
+				IS_INT_LNG_TYPE(src->type) ? iarg-- : farg--;
 				if (src->varkind == ARGVAR) {
-					IS_INT_LNG_TYPE(src->type) ? iarg-- : farg--;
 					continue;
 				}
 
 				if (IS_INT_LNG_TYPE(src->type)) {
 					if (iarg < intreg_argnum) {
-						s1 = argintregs[iarg - 1];
+						s1 = argintregs[iarg];
 						var_to_reg_int(d, src, s1);
 						M_INTMOVE(d, s1);
 
 					} else {
 						var_to_reg_int(d, src, REG_ITMP1);
-						x86_64_mov_reg_membase(d, REG_SP, (iarg - intreg_argnum) * 8);
+						x86_64_mov_reg_membase(d, REG_SP, (iarg + 1 - intreg_argnum) * 8);
 					}
-					iarg--;
 
 				} else {
 					if (farg < fltreg_argnum) {
-						s1 = argfltregs[farg - 1];
+						s1 = argfltregs[farg];
 						var_to_reg_flt(d, src, s1);
 						M_FLTMOVE(d, s1);
 
 					} else {
 						var_to_reg_flt(d, src, REG_FTMP1);
-						x86_64_movq_reg_membase(d, REG_SP, (farg - fltreg_argnum) * 8);
+						x86_64_movq_reg_membase(d, REG_SP, (farg + 1 - fltreg_argnum) * 8);
 					}
-					farg--;
 				}
 			} /* end of for */
 
@@ -5329,9 +5359,11 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	reg_init();
 
-	x86_64_alu_imm_reg(X86_64_SUB, 8, REG_SP);    /* keep %rsp 16-byte aligned */
+	x86_64_alu_imm_reg(X86_64_SUB, 8, REG_SP);    /* keep stack 16-byte aligned */
 
 	if (runverbose) {
+		int p, l, s1;
+
 		x86_64_alu_imm_reg(X86_64_SUB, (6 + 8 + 1 + 1) * 8, REG_SP);
 
 		x86_64_mov_reg_membase(argintregs[0], REG_SP, 1 * 8);
@@ -5349,6 +5381,19 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_movq_reg_membase(argfltregs[5], REG_SP, 12 * 8);
 		x86_64_movq_reg_membase(argfltregs[6], REG_SP, 13 * 8);
 		x86_64_movq_reg_membase(argfltregs[7], REG_SP, 14 * 8);
+
+		descriptor2types(m);                     /* set paramcount and paramtypes */
+
+		for (p = 0, l = 0; p < m->paramcount; p++) {
+			if (IS_FLT_DBL_TYPE(m->paramtypes[p])) {
+				for (s1 = (m->paramcount > intreg_argnum) ? intreg_argnum - 2 : m->paramcount - 2; s1 >= p; s1--) {
+					x86_64_mov_reg_reg(argintregs[s1], argintregs[s1 + 1]);
+				}
+
+				x86_64_movd_freg_reg(argfltregs[l], argintregs[p]);
+				l++;
+			}
+		}
 
 		x86_64_mov_imm_reg(m, REG_ITMP2);
 		x86_64_mov_reg_membase(REG_ITMP2, REG_SP, 0 * 8);
@@ -5426,6 +5471,15 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	x86_64_mov_imm_reg(asm_handle_nat_exception, REG_ITMP3);
 	x86_64_jmp_reg(REG_ITMP3);
+
+#if 0
+	{
+		static int stubprinted;
+		if (!stubprinted)
+			printf("stubsize: %d/2\n", (int) (mcodeptr - (s4*) s));
+		stubprinted = 1;
+	}
+#endif
 
 #ifdef STATISTICS
 	count_nstub_len += NATIVESTUBSIZE;
