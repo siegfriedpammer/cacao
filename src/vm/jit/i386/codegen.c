@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 1804 2004-12-22 09:35:31Z twisti $
+   $Id: codegen.c 1857 2005-01-04 12:35:21Z twisti $
 
 */
 
@@ -43,6 +43,7 @@
 #endif
 
 #include "config.h"
+#include "cacao/cacao.h"
 #include "native/jni.h"
 #include "native/native.h"
 #include "vm/builtin.h"
