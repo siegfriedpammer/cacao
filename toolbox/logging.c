@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.c 1245 2004-06-30 20:15:25Z twisti $
+   $Id: logging.c 1273 2004-07-04 11:12:11Z stefan $
 
 */
 
@@ -40,6 +40,7 @@
 #include "global.h"
 #include "tables.h"
 #include "toolbox/logging.h"
+#include "statistics.h"
 
 
 /***************************************************************************

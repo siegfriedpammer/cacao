@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1203 2004-06-22 23:14:55Z twisti $
+   $Id: typecheck.c 1273 2004-07-04 11:12:11Z stefan $
 
 */
 
@@ -42,6 +42,7 @@
 #include "native.h"
 #include "types.h"
 #include "jit/jit.h"
+#include "jit/stack.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
