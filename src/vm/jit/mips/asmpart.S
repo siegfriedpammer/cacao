@@ -27,13 +27,14 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1652 2004-12-02 10:27:24Z twisti $
+   $Id: asmpart.S 1710 2004-12-06 15:37:58Z twisti $
 
 */
 
 
 #include "config.h"
 #include "vm/jit/mips/offsets.h"
+#include "vm/jit/mips/asmoffsets.h"
 
 
 #define zero    $0
@@ -132,22 +133,6 @@
 #define ala     dla
 #define asll    dsll
 #define ashift  3
-
-
-#define MethodPointer   -8
-#define FrameSize       -12
-#define IsSync          -16
-#define IsLeaf          -20
-#define IntSave         -24
-#define FltSave         -28
-#define ExTableSize     -32
-#define ExTableStart    -32
-
-#define ExEntrySize     -32
-#define ExStartPC       -8
-#define ExEndPC         -16
-#define ExHandlerPC     -24
-#define ExCatchType     -32
 
 
 	.text
