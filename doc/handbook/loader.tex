@@ -152,7 +152,7 @@ via the \texttt{suck\_*} functions. These functions are
 Loading \texttt{signed} values is done via the
 \texttt{suck\_s[1,2,4,8]} macros which cast the loaded bytes to
 \texttt{signed} values. All these functions take a
-\texttt{classbuffer}~(Figure \ref{classbuffer}) structure pointer as
+\texttt{classbuffer} (Figure \ref{classbuffer}) structure pointer as
 argument.
 
 \begin{figure}[h]
@@ -195,6 +195,10 @@ bytes to be read, specified by the \texttt{len} argument, a
 \texttt{java.lang.ClassFormatError} with the detail message
 \textit{Truncated class file}---as mentioned before---is thrown.
 
+The following subsections describe chronologically in greater detail
+the individual loading steps of a class or interface from it's binary
+representation.
+
 
 \subsection{Constant pool loading}
 
@@ -234,9 +238,11 @@ completely resolved in the first pass and need no further processing.
 
 \endgroup
 
-These are the temporary structures used to \textit{forward} the data
-from the first pass into the second:
+The temporary structures, shown in Figure
+\ref{constantpoolstructures}, are used to \textit{forward} the data
+from the first pass into the second.
 
+\begin{figure}[h]
 \begin{verbatim}
         /* CONSTANT_Class entries */
         typedef struct forward_class {
@@ -269,6 +275,9 @@ from the first pass into the second:
             u2 nameandtype_index;
         } forward_fieldmethint;
 \end{verbatim}
+\caption{temporary constant pool structures}
+\label{constantpoolstructures}
+\end{figure}
 
 The \texttt{classinfo} structure has two pointers to arrays which
 contain the class' constant pool infos, namely: \texttt{cptags} and
@@ -291,7 +300,7 @@ runtime structures are created. In further detail this includes for
  \begingroup
  \tolerance 10000
  \item \texttt{CONSTANT\_NameAndType}: create a
- \texttt{constant\_nameandtype}~(Figure \ref{constantnameandtype})
+ \texttt{constant\_nameandtype} (Figure \ref{constantnameandtype})
  structure, get the UTF8 name and description string of the field or
  method and store them into the \texttt{constant\_nameandtype}
  structure, store type \texttt{CONSTANT\_NameAndType} into
@@ -315,7 +324,7 @@ runtime structures are created. In further detail this includes for
  \tolerance 10000
  \item \texttt{CONSTANT\_Fieldref}, \texttt{CONSTANT\_Methodref} and
  \texttt{CONSTANT\_InterfaceMethodref}: create a
- \texttt{constant\_FMIref}~(Figure \ref{constantFMIref}) structure,
+ \texttt{constant\_FMIref} (Figure \ref{constantFMIref}) structure,
  get the referenced \texttt{constant\_nameandtype} structure which
  contains the name and descriptor resolved in a previous step and
  store the name and descriptor into the \texttt{constant\_FMIref}
@@ -352,13 +361,15 @@ function. This functions checks for type equality and then returns the
 requested \texttt{cpinfos} slot of the specified class.
 
 
-\subsection{Interface resolving}
+\subsection{Interface loading}
 
-The interface classes are resolved with \texttt{class\_getconstant}
-from the class' constant pool. After reading the number of interfaces,
-for every interface referenced a \texttt{u2} index number is read from
-the currently loading class or interface file, which is the index used
-to resolve the class from the constant pool.
+Interface loading is very simple and straightforward. After reading
+the number of interfaces, for every interface referenced, a
+\texttt{u2} constant pool index is read from the currently loading
+class or interface. This index is used to resolve the class via the
+\texttt{class\_getconstant} function from the class' constant
+pool. This means, interface \textit{loading} is more interface
+\textit{resolving} than loading.
 
 
 \subsection{Field loading}
@@ -380,10 +391,10 @@ option is turned on, the fields' \texttt{flags}, \texttt{name} and
 
 Each field can have some attributes. The number of attributes is read
 as \texttt{u2} value from the binary representation. If the field has
-the \texttt{ACC\_FINAL} flag set, the \texttt{ConstantValue} attribute
-is available. This is the only attribute processed by
-\texttt{field\_load} and can occur only once, otherwise a
-\texttt{java.lang.ClassFormatError} is thrown. The
+the \texttt{ACC\_FINAL} bit set in the flags, the
+\texttt{ConstantValue} attribute is available. This is the only
+attribute processed by \texttt{field\_load} and can occur only once,
+otherwise a \texttt{java.lang.ClassFormatError} is thrown. The
 \texttt{ConstantValue} entry in the constant pool contains the value
 for the \texttt{final} field. Depending on the fields' type, the
 proper constant pool entry is resolved and assigned.
@@ -407,24 +418,25 @@ resolved from the class constant pool via
 checks are carried out. These include \texttt{flags}, \texttt{name}
 and \texttt{descriptor} checks and argument count check.
 
-Now the method loading function has to distinguish between a
-\texttt{native} and a normal JAVA method. Depending on the
+The method loading function has to distinguish between a
+\texttt{native} and a ''normal'' JAVA method. Depending on the
 \texttt{ACC\_NATIVE} flags, a different stub is created.
 
-For a normal JAVA method, a \textit{compiler stub} is created. The
-purpose of this stub is to call the CACAO jit compiler to compile the
-JAVA method. A pointer to this compiler stub routine is used during
-code generation as method call if the method is not compiled
+For a JAVA method, a \textit{compiler stub} is created. The purpose of
+this stub is to call the CACAO jit compiler with a pointer to the byte
+code of the JAVA method as argument to compile the method into machine
+code. During code generation a pointer to this compiler stub routine
+is used as a temporary method call, if the method is not compiled
 yet. After the target method is compiled, the new entry point of the
 method is patched into the generated code and the compiler stub is
 needless, thus it is freed.
 
 If the method is a \texttt{native} method, the loader tries to find
-the native function. If the the function was found a \textit{native
-stub} is generated. This stub is responsible to manipulate the
-method's arguments to be suitable for the \texttt{native} method
-called. This includes inserting the \textit{JNI environment} pointer
-as first argument and, if the \texttt{native} method has the
+the native function. If the function was found, a \textit{native stub}
+is generated. This stub is responsible to manipulate the method's
+arguments to be suitable for the \texttt{native} method called. This
+includes inserting the \textit{JNI environment} pointer as first
+argument and, if the \texttt{native} method has the
 \texttt{ACC\_STATIC} flag set, inserting a pointer to the methods
 class as second argument. If the \texttt{native} method is
 \texttt{static}, the native stub also checks if the method's class is
@@ -432,10 +444,82 @@ already initialized. If the method's class is not initialized as the
 native stub is generated, a \texttt{asm\_check\_clinit} calling code
 is emitted.
 
-Each method can have some attributes.
+Each method can have some attributes. The method loading function
+processes two of them: \texttt{Code} and \texttt{Exceptions}. The
+\texttt{Code} attribute is the byte code of the JAVA method itself. If
+the method is either \texttt{native} or \texttt{abstract}, it must not
+have a \texttt{Code} attribute, otherwise it must have exactly one
+\texttt{Code} attribute. Additionally to the byte code, the
+\texttt{Code} attribute contains the exception table and attributes to
+\texttt{Code} attribute itself. One exception table entry contains
+the \texttt{start\_pc}, \texttt{end\_pc} and \texttt{handler\_pc} of
+the \texttt{try-catch} block, each read as \texttt{u2} value, plus a
+reference to the class of the \texttt{catch\_type}. Currently there
+are two attributes of the \texttt{Code} attribute defined in the JVM
+specification: \texttt{LineNumberTable} and
+\texttt{LocalVariableTable}. CACAO only processes the
+\texttt{LineNumberTable} attribute. A \texttt{LineNumberTable} entry
+contains the \texttt{start\_pc} and the \texttt{line\_number}. Any
+attributes which are not processed by the CACAO class loading system,
+are skipped via
+
+\begin{verbatim}
+        static bool skipattributebody(classbuffer *cb);
+\end{verbatim}
+
+which skips one attribute or
+
+\begin{verbatim}
+        static bool skipattributes(classbuffer *cb, u4 num);
+\end{verbatim}
+
+which skips a specified number \texttt{num} of attributes. If any
+problem occurs in the method loading function, a
+\texttt{java.lang.ClassFormatError} with a specific detail message is
+thrown.
 
 
-\section{Data structures}
+\subsection{Attribute loading}
+
+Attribute loading is done via the
+
+\begin{verbatim}
+        static bool attribute_load(classbuffer *cb, classinfo *c, u4 num);
+\end{verbatim}
+
+function. The currently loading class or interface can contain some
+additional attributes which have not already been loaded. The CACAO
+system class loader processes two of them: \texttt{InnerClasses} and
+\texttt{SourceFile}.
+
+The \texttt{InnerClass} attribute is a \textit{variable-length}
+attribute in the \texttt{attributes} table of the binary
+representation of the class or interface. A \texttt{InnerClass} entry
+contains the \texttt{inner\_class} constant pool index itself, the
+\texttt{outer\_class} index, the \texttt{name} index of the inner
+class' name and the inner class' flags bitmask. All these values are
+read in \texttt{u2} chunks. The constant pool indexes are used with
+the
+
+\begin{verbatim}
+        voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype);
+\end{verbatim}
+
+function call to resolve the classes or UTF8 strings.
+
+The other attribute, \texttt{SourceFile}, is just one \texttt{u2}
+constant pool index value to get the reference of the class'
+\texttt{SourceFile} name.
+
+Both attributes must occur only once. Other attributes than these two
+are skipped with the earlier mentioned \texttt{skipattributebody}
+function.
+
+After the attribute loading is done and no error occured, the
+\texttt{class\_load\_intern} function returns the \texttt{classinfo}
+pointer to signal that there was no problem. If \texttt{NULL} is
+returned, there was an exception.
+
 
 \section{Dynamic class loader}
 
