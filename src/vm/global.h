@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 871 2004-01-11 00:55:25Z edwin $
+   $Id: global.h 888 2004-01-19 12:16:11Z edwin $
 
 */
 
@@ -72,6 +72,7 @@
 /*
  * Macros for configuration of the typechecking code
  *
+ * TYPECHECK_STATISTICS activates gathering statistical information.
  * TYPEINFO_DEBUG activates debug checks and debug helpers in typeinfo.c
  * TYPECHECK_DEBUG activates debug checks in typecheck.c
  * TYPEINFO_DEBUG_TEST activates the typeinfo test at startup.
@@ -79,10 +80,11 @@
  * TYPECHECK_VERBOSE activates all debug messages
  */
 #ifdef CACAO_TYPECHECK
-#define TYPEINFO_DEBUG
-#define TYPECHECK_DEBUG
+/*#define TYPECHECK_STATISTICS*/
+/*#define TYPEINFO_DEBUG*/
+/*#define TYPECHECK_DEBUG*/
 /*#define TYPEINFO_DEBUG_TEST*/
-#define TYPECHECK_VERBOSE
+/*#define TYPECHECK_VERBOSE*/
 /*#define TYPECHECK_VERBOSE_IMPORTANT*/
 #if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
 #define TYPECHECK_VERBOSE_OPT
@@ -477,7 +479,7 @@ struct fieldinfo {	      /* field of a class                                 */
 
 	imm_union value;      /* storage for static values (class variables)      */
 
-	classinfo *class;     /* XXX needed by typechecker. Could be optimized    */
+	classinfo *class;     /* needed by typechecker. Could be optimized        */
 	                      /* away by using constant_FMIref instead of         */
 	                      /* fieldinfo throughout the compiler.               */
 	
@@ -743,7 +745,7 @@ struct arraydescriptor {
 	short  dimension;        /* dimension of the array (always >= 1)          */
     s4     dataoffset;       /* offset of the array data from object pointer  */
 	s4     componentsize;    /* size of a component in bytes                  */
-	short  elementtype;      /* ARRAYTYPE_* constant (XXX optimize away?)     */
+	short  elementtype;      /* ARRAYTYPE_* constant                          */
 };
 
 
@@ -762,6 +764,30 @@ extern classinfo *class_java_lang_OutOfMemoryError;
 extern classinfo *class_java_lang_ArithmeticException;
 extern classinfo *class_java_lang_ArrayStoreException;
 extern classinfo *class_java_lang_ThreadDeath;
+
+/* pseudo classes for the type checker ****************************************/
+
+/*
+ * pseudo_class_Arraystub
+ *     (extends Object implements Cloneable, java.io.Serializable)
+ *
+ *     If two arrays of incompatible component types are merged,
+ *     the resulting reference has no accessible components.
+ *     The result does, however, implement the interfaces Cloneable
+ *     and java.io.Serializable. This pseudo class is used internally
+ *     to represent such results. (They are *not* considered arrays!)
+ *
+ * pseudo_class_Null
+ *
+ *     This pseudo class is used internally to represent the
+ *     null type.
+ *
+ * pseudo_class_New
+ *
+ *     This pseudo class is used internally to represent the
+ *     the 'uninitialized object' type.
+ */
+
 extern classinfo *pseudo_class_Arraystub;
 extern classinfo *pseudo_class_Null;
 extern classinfo *pseudo_class_New;
