@@ -5,6 +5,7 @@ AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE([1.9.0])
+AM_MAINTAINER_MODE
 
 AM_CONFIG_HEADER([config.h])
 
@@ -217,9 +218,8 @@ green | native | posix | pthreads)
 
 		CFLAGS="$CFLAGS -D_REENTRANT"
 
-		dnl tell boehm to support threads as well and classpath to
-                dnl synchronize VM threads portably
-		ac_configure_args="$ac_configure_args --enable-boehm-threads=posix --enable-portable-native-sync"
+		dnl tell boehm to support threads as well
+		ac_configure_args="$ac_configure_args --enable-boehm-threads=posix"
 		AM_CONDITIONAL([NATIVE_THREADS], [true])
 
 	else
@@ -301,7 +301,7 @@ fi
 
 dnl set some essential classpath options, even if their classpath default is
 dnl suitable for us
-ac_configure_args="$ac_configure_args --enable-jni --disable-cni --disable-regen-headers --enable-static --enable-shared --enable-load-library"
+ac_configure_args="$ac_configure_args --libdir=${CACAO_INSTALL_PREFIX}/jre/lib/${ARCH_DIR} --enable-jni --disable-cni --disable-regen-headers --enable-static --enable-shared --enable-load-library"
 
 
 dnl now configure boehm gc and gnu classpath
