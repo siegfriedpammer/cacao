@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1856 2005-01-04 12:30:53Z twisti $
+   $Id: jni.c 1864 2005-01-05 20:18:58Z motse $
 
 */
 
@@ -3739,7 +3739,11 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 
 	argcount = get_parametercount(methodID);
 
-	if (obj && (!builtin_instanceof((java_objectheader *) obj, methodID->class))) {
+	/* the method is an instance method the obj has to be an instance of the 
+	   class the method belongs to. For static methods the obj parameter
+	   is ignored. */
+	if (!(methodID->flags & ACC_STATIC) && obj &&
+		(!builtin_instanceof((java_objectheader *) obj, methodID->class))) {
 		*exceptionptr = new_exception_message(string_java_lang_IllegalArgumentException,
 											  "Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
 		return 0;
