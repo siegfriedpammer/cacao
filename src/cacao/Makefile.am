@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1908 2005-02-10 09:54:39Z twisti $
+## $Id: Makefile.am 2001 2005-03-05 17:07:11Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -64,13 +64,6 @@ cacao_LDFLAGS = -ldl -Wl,--export-dynamic
 CLASSPATH_LIBS =
 endif
 
-if USE_GTK_PEER
-cacao_LDFLAGS += \
-	-lgtk-x11-2.0 -lgdk-x11-2.0 -latk-1.0 -lgdk_pixbuf-2.0 -lpangoxft-1.0 \
-	-lpangox-1.0 -lpango-1.0 -lgobject-2.0 -lgmodule-2.0 -lglib-2.0 \
-	-lgthread-2.0 -lart_lgpl_2
-endif
-
 noinst_LTLIBRARIES = libcacao.la
 
 libcacao_la_SOURCES =
@@ -96,10 +89,6 @@ cacao_LDADD = \
 	$(CLASSPATH_LIBS)
 
 cacao_DEPENDENCIES = $(cacao_LDADD)
-
-install-exec-hook:
-	$(mkinstalldirs) $(DESTDIR)$(prefix)/bin
-	$(LN_S) -f $(DESTDIR)$(bindir)/cacao $(DESTDIR)$(prefix)/bin
 
 
 ## Local variables:
