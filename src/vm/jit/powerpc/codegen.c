@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 602 2003-11-11 21:23:01Z twisti $
+   $Id: codegen.c 606 2003-11-12 00:27:10Z twisti $
 
 */
 
@@ -1395,7 +1395,7 @@ void codegen()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_OR( s1,s2, d);
+			M_OR(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -2228,18 +2228,166 @@ void codegen()
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
+
+            var_to_reg_int0(s1, src, REG_ITMP1, 0, 1);
+            var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
+			if (iptr->val.l == 0) {
+				M_OR(s1, s2, REG_ITMP3);
+				M_CMP(REG_ITMP3, REG_ZERO);
+
+  			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
+  				M_CMPI(s2, (u4) (iptr->val.l >> 32));
+				M_BNE(2);
+  				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
+
+  			} else {
+  				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
+  				M_CMP(s2, REG_ITMP3);
+				M_BNE(3);
+  				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
+				M_CMP(s1, REG_ITMP3)
+			}
+			M_BEQ(0);
+			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			break;
+			
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
+            var_to_reg_int0(s1, src, REG_ITMP1, 0, 1);
+            var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
+			if (iptr->val.l == 0) {
+				M_OR(s1, s2, REG_ITMP3);
+				M_CMP(REG_ITMP3, REG_ZERO);
+
+  			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
+  				M_CMPI(s2, (u4) (iptr->val.l >> 32));
+				M_BLT(0);
+				codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				M_BGT(2);
+  				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
+
+  			} else {
+  				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
+  				M_CMP(s2, REG_ITMP3);
+				M_BLT(0);
+				codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				M_BGT(3);
+  				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
+				M_CMP(s1, REG_ITMP3)
+			}
+			M_BLT(0);
+			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			break;
+			
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
+
+            var_to_reg_int0(s1, src, REG_ITMP1, 0, 1);
+            var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
+			if (iptr->val.l == 0) {
+				M_OR(s1, s2, REG_ITMP3);
+				M_CMP(REG_ITMP3, REG_ZERO);
+
+  			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
+  				M_CMPI(s2, (u4) (iptr->val.l >> 32));
+				M_BLT(0);
+				codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				M_BGT(2);
+  				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
+
+  			} else {
+  				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
+  				M_CMP(s2, REG_ITMP3);
+				M_BLT(0);
+				codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				M_BGT(3);
+  				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
+				M_CMP(s1, REG_ITMP3)
+			}
+			M_BLE(0);
+			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			break;
+			
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
+
+            var_to_reg_int0(s1, src, REG_ITMP1, 0, 1);
+            var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
+			if (iptr->val.l == 0) {
+				M_OR(s1, s2, REG_ITMP3);
+				M_CMP(REG_ITMP3, REG_ZERO);
+
+  			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
+  				M_CMPI(s2, (u4) (iptr->val.l >> 32));
+				M_BEQ(2);
+  				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
+
+  			} else {
+  				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
+  				M_CMP(s2, REG_ITMP3);
+				M_BEQ(3);
+  				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
+				M_CMP(s1, REG_ITMP3)
+			}
+			M_BNE(0);
+			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			break;
+			
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
+
+            var_to_reg_int0(s1, src, REG_ITMP1, 0, 1);
+            var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
+			if (iptr->val.l == 0) {
+				M_OR(s1, s2, REG_ITMP3);
+				M_CMP(REG_ITMP3, REG_ZERO);
+
+  			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
+  				M_CMPI(s2, (u4) (iptr->val.l >> 32));
+				M_BGT(0);
+				codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				M_BLT(2);
+  				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
+
+  			} else {
+  				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
+  				M_CMP(s2, REG_ITMP3);
+				M_BGT(0);
+				codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				M_BLT(3);
+  				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
+				M_CMP(s1, REG_ITMP3)
+			}
+			M_BGT(0);
+			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			break;
+			
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
-			nocode();
-			//CUT
+            var_to_reg_int0(s1, src, REG_ITMP1, 0, 1);
+            var_to_reg_int0(s2, src, REG_ITMP2, 1, 0);
+			if (iptr->val.l == 0) {
+				M_OR(s1, s2, REG_ITMP3);
+				M_CMP(REG_ITMP3, REG_ZERO);
+
+  			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
+  				M_CMPI(s2, (u4) (iptr->val.l >> 32));
+				M_BGT(0);
+				codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				M_BLT(2);
+  				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
+
+  			} else {
+  				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
+  				M_CMP(s2, REG_ITMP3);
+				M_BGT(0);
+				codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+				M_BLT(3);
+  				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
+				M_CMP(s1, REG_ITMP3)
+			}
+			M_BGE(0);
+			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
 			//CUT: alle _L
