@@ -28,8 +28,6 @@ static classinfo *class_java_lang_IllegalMonitorStateException;
 
 extern thread* currentThread;
 
-#if defined(USE_INTERNAL_THREADS)
-
 mutexHashEntry *mutexHashTable;
 int mutexHashTableSize;
 long mutexHashMask;
@@ -568,5 +566,3 @@ internal_broadcast_cond (iCv* cv)
 		cv->cvWaiters = 0;
     }
 }
-
-#endif

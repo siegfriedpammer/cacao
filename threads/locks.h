@@ -17,11 +17,8 @@
 #ifdef USE_THREADS
 
 #include "global.h"
-#include "defines.h"
 
 #define	WAITFOREVER	-1
-
-#if defined(USE_INTERNAL_THREADS)
 
 struct _thread;
 
@@ -133,8 +130,6 @@ void internal_broadcast_cond (iCv*);
 void internal_lock_mutex_for_object (java_objectheader *obj);
 void internal_unlock_mutex_for_object (java_objectheader *obj);
 void internal_broadcast_cond_for_object (java_objectheader *obj);
-
-#endif
 
 #endif /* USE_THREADS */
 

@@ -12,8 +12,6 @@
 
 #include "config.h"
 
-#include "defines.h"
-
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -23,11 +21,6 @@
 #include <unistd.h>
 
 #include "thread.h"
-
-/*
- * We only need this stuff is we are using the internal thread system.
- */
-#if defined(USE_INTERNAL_THREADS)
 
 #define	TH_READ		0
 #define	TH_WRITE	1
@@ -477,4 +470,3 @@ checkEvents(bool block)
 	}
     }
 }
-#endif
