@@ -29,7 +29,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.h 598 2003-11-09 20:12:22Z twisti $
+   $Id: codegen.h 962 2004-03-15 00:37:59Z twisti $
 
 */
 
@@ -47,6 +47,7 @@
 /* integer registers */
   
 #define REG_RESULT       3   /* to deliver method results                     */ 
+#define REG_RESULT2      4   /* to deliver long method results                */
 
 //#define REG_RA          26   /* return address                                */
 #define REG_PV          13   /* procedure vector, must be provided by caller  */
@@ -229,6 +230,7 @@
 #define M_LDATST(a,b,c) M_ADDICTST(b, c, a)
 #define M_CLR(a) M_IADD_IMM(0, 0, a)
 
+
 /* function gen_resolvebranch **************************************************
 
 	parameters: ip ... pointer to instruction after branch (void*)
@@ -240,10 +242,16 @@
 #define gen_resolvebranch(ip,so,to) \
 	*((s4*)(ip)-1)=(*((s4*)(ip)-1) & ~M_BRMASK) | (((s4)((to)-(so))+4)&((((*((s4*)(ip)-1)>>26)&63)==18)?M_BRAMASK:M_BRMASK))
 
-#define SOFTNULLPTRCHECK       /* soft null pointer check supported as option */
-
 
 /* function prototypes */
+
+void codegen_init();
+void init_exceptions();
+void codegen();
+void codegen_close();
+void dseg_display(s4 *s4ptr);
+void preregpass();
+
 void docacheflush(u1 *p, long bytelen);
 
 #endif /* _CODEGEN_H */
