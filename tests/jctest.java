@@ -306,20 +306,42 @@ public class jctest implements jcinterface {
 	// ****************** test type casts and array stores *********************		
 
 	public static void testcasts() {
-		Object    o   = new Object();
-		Object    oi  = new Integer(0);
-		Object[]  oa  = new Object [1];
-		Object[]  oia = new Integer[1];
-		Integer   i   = new Integer(0);
-		Integer[] ia;
+		Object     o   = new Object();
+		Object     oi  = new Integer(0);
+		Object[]   oa  = new Object [1];
+		Object[]   oia = new Integer[1];
+		Integer    i   = new Integer(0);
+		Integer[]  ia;
+		java.io.DataOutput dataout = null;
+		Object             od  = new java.io.DataOutputStream(
+		                             (java.io.DataOutputStream)dataout);
 
 		p ("------------------- test casts");
+
+		p("Integer is instanceof Object:  ", oi instanceof Object);
+		p("Integer is instanceof Integer: ", oi instanceof Integer);
+		p("Object is instanceof Integer:  ", o instanceof Integer);
 
 		try {
 			p ("type cast check: Integer = Object(Integer)");
 			i = (Integer) oi;
 			p ("type cast check: Integer = Object");
 			i = (Integer) o;
+			p ("error: class cast exception not thrown");
+			}	
+		catch (ClassCastException c) {
+			p ("exception: class cast");
+			}
+
+		p("DataOutputStream is instanceof DataOutput: ",
+		                                      od instanceof java.io.DataOutput);
+		p("Object is instanceof DataOutput: ", o instanceof java.io.DataOutput);
+
+		try {
+			p ("type cast check: DataOutput = Object(DataOutputStream)");
+			dataout = (java.io.DataOutput) od;
+			p ("type cast check: DataOutput = Object");
+			dataout = (java.io.DataOutput) o;
 			p ("error: class cast exception not thrown");
 			}	
 		catch (ClassCastException c) {

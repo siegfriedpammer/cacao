@@ -1,5 +1,5 @@
 # cacao/mm/Makefile
-# $Id: Makefile 26 1998-10-29 00:33:54Z phil $
+# $Id: Makefile 28 1998-10-30 14:51:47Z cacao $
 
 AR = ar
 COMBINE = $(AR) rcs mm.o
@@ -69,7 +69,7 @@ gc.o:  heap.h gc.c
 # Local variables:
 # mode: Makefile
 # indent-tabs-mode: t
-# tab-width: 8
+# tab-width: 4
 # End:
 #
 

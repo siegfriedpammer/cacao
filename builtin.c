@@ -35,6 +35,8 @@ builtin_descriptor builtin_desc[] = {
 	{(functionptr) builtin_instanceof,         "instanceof"},
 	{(functionptr) builtin_checkcast,          "checkcast"},
 	{(functionptr) new_builtin_checkcast,      "checkcast"},
+	{(functionptr) new_builtin_checkclasscast, "checkclasscast"},
+	{(functionptr) new_builtin_checkintercast, "checkintercast"},
 	{(functionptr) builtin_arrayinstanceof,    "arrayinstanceof"},
 	{(functionptr) builtin_checkarraycast,     "checkarraycast"},
 	{(functionptr) new_builtin_checkarraycast, "checkarraycast"},
@@ -126,18 +128,12 @@ builtin_descriptor builtin_desc[] = {
 static s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 {
 	if (super->flags & ACC_INTERFACE) {
-		u4 index = super->index;
-/*		if (sub->vftbl == NULL) return 0; */
+		s4 index = super->index;
 		if (index >= sub->vftbl->interfacetablelength) return 0;
 		return ( sub->vftbl->interfacevftbl[index] ) ? 1 : 0;
 		}
-	else {
-		while (sub) {
-			if (sub==super) return 1;
-			sub = sub->super;
-			}
-		return 0;
-		}
+	return (sub->vftbl->lowclassval >= super->vftbl->lowclassval) &
+	       (sub->vftbl->lowclassval <= super->vftbl->highclassval);
 }
 
 
@@ -194,6 +190,40 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 	return 0;
 }
 
+
+/***************** function: builtin_checkclasscast ****************************
+
+	Returns 1 (true) if the object "sub" is a subclass of the class "super",
+	otherwise returns 0 (false). If sub is NULL it also returns 1 (true).
+              
+*******************************************************************************/
+
+s4 builtin_checkclasscast(java_objectheader *sub, classinfo *super)
+{
+	if (!sub)
+		return 1;
+
+	return (sub->vftbl->lowclassval >= super->vftbl->lowclassval) &
+	       (sub->vftbl->lowclassval <= super->vftbl->highclassval);
+}
+
+
+/***************** function: builtin_checkintercast ****************************
+
+	Returns 1 (true) if the object "sub" is a subclass of the interface "super",
+	otherwise returns 0 (false). If "sub" is NULL it also returns 1 (true).
+              
+*******************************************************************************/
+
+s4 builtin_checkintercast(java_objectheader *sub, classinfo *super)
+{
+	if (!sub)
+		return 1;
+
+	return (sub->vftbl->interfacetablelength > super->index) &&
+	       (sub->vftbl->interfacevftbl[super->index] != NULL);
+	return 0;
+}
 
 
 /*********** interne Funktion: builtin_descriptorscompatible ******************

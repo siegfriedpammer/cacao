@@ -12,7 +12,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1998/10/29
+	Last Change: 1998/10/30
 
 *******************************************************************************/
 
@@ -223,7 +223,7 @@ typedef struct constant_arraydescriptor {
 
 
 
-/***************** Die Datenstrukturen fuer das Laufzeitsystem ***************/
+/***************** Die Datenstrukturen fuer das Laufzeitsystem ****************/
 
 
 	/********* Objekte **********
@@ -337,122 +337,120 @@ typedef struct java_arrayarray {
 
 
 
-/************** Strukturen f"ur Klassen, Felder & Methoden *****************/
+/******************** class, field and method structures **********************/
 
 
-    /*** Struktur: fieldinfo ***/
+/********************** structure: fieldinfo **********************************/
 
-typedef struct fieldinfo {   /* Struktur f"ur ein Feld einer Klasse */
-	s4       flags;              /* die ACC-Flags */
-	s4       type;               /* Grunddatentyp */
-	unicode *name;               /* Name des Felds */
-	unicode *descriptor;         /* Typedescriptor in JavaVM-Form */
+typedef struct fieldinfo {/* field of a class                                 */
+	s4       flags;       /* ACC flags                                        */
+	s4       type;        /* basic data type                                  */
+	unicode *name;        /* name of field                                    */
+	unicode *descriptor;  /* JavaVM descriptor string of field                */
 	
-	s4       offset;             /* Offset vom Anfang des Objektes */
-	/* (bei Instanzvariablen) */
+	s4       offset;      /* offset from start of object (instance variables) */
 
-	union {                      /* Speicher f"ur den Wert */
-		s4 i;                    /* (bei Klassenvariablen) */    
+	union {               /* storage for static values (class variables)      */
+		s4 i; 
 		s8 l;
 		float f;
 		double d;
 		void *a; 
 	} value;
-		
+
 } fieldinfo;
 
 
-/*** Struktur: exceptiontable ***/
+/********************** structure: exceptiontable *****************************/
 
-typedef struct exceptiontable {  /* Exceptionhandler-Eintrag in einer Methode */ 
-	s4         startpc;            /* Anfang des G"ultigkeitsbereichs */
-	s4         endpc;              /* Ende des Bereichs (exklusive) */
-	s4         handlerpc;          /* JavaVM-Position des Handlers */
-	classinfo *catchtype;          /* Typ der behandelten Exceptions (oder 
-									  NULL, wenn alle behandelt werden sollen) */
+typedef struct exceptiontable { /* exceptiontable entry in a method           */ 
+	s4         startpc;         /* start pc of guarded area (inclusive)       */
+	s4         endpc;           /* end pc of guarded area (exklusive)         */
+	s4         handlerpc;       /* pc of exception handler                    */
+	classinfo *catchtype;       /* catchtype of exception (NULL == catchall)  */
 } exceptiontable;
 
 
+/********************** structure: methodinfo *********************************/
 
-/*** Struktur: methodinfo ***/
+typedef struct methodinfo {         /* method structure                       */
+	s4	       flags;               /* ACC flags                              */
+	unicode   *name;                /* name of method                         */
+	unicode   *descriptor;          /* JavaVM descriptor string of method     */
+	s4         returntype;          /* only temporary valid, return type      */
+	s4         paramcount;          /* only temporary valid, parameter count  */
+	u1        *paramtypes;          /* only temporary valid, parameter types  */
+	classinfo *class;               /* class, the method belongs to           */
+	u4         vftblindex;          /* index of method in virtual function table
+	                                   (if it is a virtual method)            */
+	s4         maxstack;            /* maximum stack depth of method          */
+	s4         maxlocals;           /* maximum number of local variables      */
+	u4         jcodelength;         /* length of JavaVM code                  */
+	u1        *jcode;               /* pointer to JavaVM code                 */
 
-typedef struct methodinfo {  /* Struktur f"ur eine Methode einer Klasse */
-	s4	       flags;            /* die ACC-Flags */
-	unicode   *name;             /* Name der Methode */
-	unicode   *descriptor;       /* der JavaVM-Descriptorstring f"ur Methoden */
-	s4        returntype;        /* only temporary valid, return type */
-	s4        paramcount;        /* only temporary valid, number of parameters */
-	u1        *paramtypes;       /* only temporary valid, parameter types */
-	classinfo *class;            /* Die Klasse, der die Methode geh"ort */
-	u4         vftblindex;       /* Index dieser Methode f"ur die Virtual
-									Function Table (wenn es keine statische
-									Methode ist) */
+	s4         exceptiontablelength;/* exceptiontable length                  */
+	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
-	s4	 maxstack;                  /* maximale Stacktiefe des JavaVM-Codes */
-	s4   maxlocals;                 /* maximale Anzahl der JavaVM-Variablen */
-	u4   jcodelength;               /* L"ange des JavaVM-Codes */
-	u1  *jcode;                     /* und Zeiger auf den JavaVM-Code */
+	u1        *stubroutine;         /* stub for compiling or calling natives  */	
+	u4         mcodelength;         /* legth of generated machine code        */
+	u1        *mcode;               /* pointer to machine code                */
+	u1        *entrypoint;          /* entry point in machine code            */
 
-	s4   exceptiontablelength;      /* L"ange der Exceptintable */
-	exceptiontable *exceptiontable; /* Die Exceptiontable selber */
-
-	u1  *stubroutine;               /* STUB-Routine for compiling or calling 
-									   natives */	
-	u4   mcodelength;               /* L"ange des generierten Maschinencodes */
-	u1  *mcode;                     /* Zeiger auf den Maschinencode */
-	u1  *entrypoint;                /* Entrypoint to the Maschine-Code */	
 } methodinfo;
 
 
-/*** Struktur: classinfo ***/
+/********************** structure: classinfo **********************************/
 
-struct classinfo {           /* Datenstruktur f"ur eine Klasse */
-	java_objectheader header;     /* Weil auch Klassen als Objekte angesprochen 
-									 werden */
+struct classinfo {                /* class structure                          */
+	java_objectheader header;     /* classes are also objects                 */
 
-	s4 flags;                     /* Die ACC-Flags */
-	unicode *name;                /* Name der Klasse */ 
-	
-	s4       cpcount;             /* Anzahl der Eintr"age im Constant-Pool */
-	u1      *cptags;              /* Die TAGs f"ur den Constant-Pool */
-	voidptr *cpinfos;             /* Die Zeiger auf die Info-Strukturen */
-	
-	classinfo *super;             /* Zeiger auf die "ubergeordnete Klasse */
-	
-	s4          interfacescount;  /* Anzahl der Interfaces */
-	classinfo **interfaces;       /* Zeiger auf die Interfaces */
-	
-	s4          fieldscount;      /* Anzahl der Felder */
-	fieldinfo  *fields;           /* Die Tabelle der Felder */
-	
-	s4          methodscount;     /* Anzahl der Methoden */
-	methodinfo *methods;          /* Die Tabelle der Methoden */
-	
-	
-	listnode    listnode;         /* Verkettungsstruktur (f"ur Listen) */
+	s4          flags;            /* ACC flags                                */
+	unicode    *name;             /* class name                               */ 
 
-	bool        initialized;      /* true, wenn Klasse bereits Initialisiert */ 
-	bool        linked;           /* wird von `class_link` auf true gesetzt */
-	s4			index;            /* Hierarchietiefe  (bei normalen Klassen)  
-									 oder fortlaufende Nummer (bei Interfaces)*/ 
-	u4          instancesize;     /* Gr"osse eines Objektes dieser Klasse */
+	s4          cpcount;          /* number of entries in constant pool       */
+	u1         *cptags;           /* constant pool tags                       */
+	voidptr    *cpinfos;          /* pointer to constant pool info structures */
 
-	vftbl       *vftbl;
+	classinfo  *super;            /* super class pointer                      */
+	classinfo  *sub;              /* sub class pointer                        */
+	classinfo  *nextsub;          /* pointer to next class in sub class list  */
 
-	methodinfo* finalizer;        /* Finalizer-Methode f"ur die Klasse */
+	s4          interfacescount;  /* number of interfaces                     */
+	classinfo **interfaces;       /* pointer to interfaces                    */
+
+	s4          fieldscount;      /* number of fields                         */
+	fieldinfo  *fields;           /* field table                              */
+
+	s4          methodscount;     /* number of methods                        */
+	methodinfo *methods;          /* method table                             */
+
+	listnode    listnode;         /* linkage                                  */
+
+	bool        initialized;      /* true, if class already initialised       */ 
+	bool        linked;           /* true, if class already linked            */
+	s4			index;            /* hierarchy depth (classes) or index
+	                                 (interfaces)                             */ 
+	s4          instancesize;     /* size of an instance of this class        */
+
+	vftbl      *vftbl;            /* pointer to virtual function table        */
+
+	methodinfo *finalizer;        /* finalizer method                         */
 #ifdef JIT_MARKER_SUPPORT
-	methodinfo* marker; 
+	methodinfo *marker; 
 #endif
 };
 	
 
 struct vftbl {
-	classinfo  *class;            /* Class, the function table belongs to */
+	classinfo  *class;                /* Class, the function table belongs to */
 
-	s4          vftbllength;      /* L"aenge der Virtual Function Table */
+	s4          vftbllength;          /* virtual function table length        */
+	s4          interfacetablelength; /* interface table length               */   
 
-	s4          interfacetablelength;   /* L"ange der Interfacetable */   
-	u4         *interfacevftbllength;   /* -> siehe unten */   
+	s4          lowclassval;          /* low value for relative numbering     */   
+	s4          highclassval;         /* high value for relative numbering    */   
+
+	u4         *interfacevftbllength; /* see description below                */   
 	methodptr **interfacevftbl;
 	
 	methodptr   table[1];
@@ -500,7 +498,7 @@ struct vftbl {
 
 
 
-/************************* Referenzen auf die wichtigen Systemklassen ********************/
+/********************** references to some system classes  ********************/
 
 extern classinfo *class_java_lang_Object;
 extern classinfo *class_java_lang_String;
@@ -511,12 +509,12 @@ extern classinfo *class_java_lang_NegativeArraySizeException;
 extern classinfo *class_java_lang_OutOfMemoryError;
 extern classinfo *class_java_lang_ArithmeticException;
 extern classinfo *class_java_lang_ArrayStoreException;
-extern classinfo *class_java_lang_ThreadDeath;              /* schani */
+extern classinfo *class_java_lang_ThreadDeath;
  
 extern classinfo *class_array;
 
 
-/********************** Vorgefertigte Instanzen einiger Systemklassen ********************/
+/********************** instances of some system classes **********************/
 
 extern java_objectheader *proto_java_lang_ClassCastException;
 extern java_objectheader *proto_java_lang_NullPointerException;
@@ -525,17 +523,17 @@ extern java_objectheader *proto_java_lang_NegativeArraySizeException;
 extern java_objectheader *proto_java_lang_OutOfMemoryError;
 extern java_objectheader *proto_java_lang_ArithmeticException;
 extern java_objectheader *proto_java_lang_ArrayStoreException;
-extern java_objectheader *proto_java_lang_ThreadDeath;      /* schani */
+extern java_objectheader *proto_java_lang_ThreadDeath;
 
 
-/********************** flag variables *********************/
+/******************************* flag variables *******************************/
 
 extern bool compileall;
 extern bool runverbose;         
 extern bool verbose;         
                                 
 
-/********************** trace variables ********************/
+/******************************* trace variables ******************************/
 
 extern int count_class_infos;
 extern int count_const_pool_len;

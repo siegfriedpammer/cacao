@@ -710,8 +710,7 @@ static void parse()
 					BUILTIN2((functionptr) new_builtin_checkarraycast, TYPE_ADR);
 					}
 				else { /* object type cast-check */
-				 	LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
-					BUILTIN2((functionptr) new_builtin_checkcast, TYPE_ADR);
+				 	OP2A(opcode, 1, (class_getconstant(class, i, CONSTANT_Class)));
 					}
 				break;
 
@@ -724,8 +723,7 @@ static void parse()
 					BUILTIN2((functionptr) builtin_arrayinstanceof, TYPE_INT);
 					}
 				else { /* object type cast-check */
-				 	LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
-					BUILTIN2((functionptr) builtin_instanceof, TYPE_INT);
+				 	OP2A(opcode, 1, (class_getconstant(class, i, CONSTANT_Class)));
 					}
 				break;
 

@@ -56,6 +56,10 @@ void new_builtin_monitorexit (java_objectheader *o) {}
 
 s4 new_builtin_checkcast(java_objectheader *o, classinfo *c)
                         {return 0;}
+s4 new_builtin_checkclasscast(java_objectheader *o, classinfo *c)
+                        {return 0;}
+s4 new_builtin_checkintercast(java_objectheader *o, classinfo *c)
+                        {return 0;}
 s4 new_builtin_checkarraycast
 	(java_objectheader *o, constant_arraydescriptor *d)
 	{return 0;}

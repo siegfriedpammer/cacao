@@ -1,4 +1,4 @@
-/***************************** alpha/ngen.c ************************************
+/* alpha/ngen.c ****************************************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
@@ -17,7 +17,7 @@
 
 
 
-/*******************************************************************************
+/* *****************************************************************************
 
 Datatypes and Register Allocations:
 ----------------------------------- 
@@ -44,7 +44,7 @@ explained in detail in the documention file: calling.doc
 *******************************************************************************/
 
 
-/*********** additional functions and macros to generate code *****************/
+/* additional functions and macros to generate code ***************************/
 
 #define BlockPtrOfPC(pc)        block+block_index[pc]
 
@@ -245,7 +245,7 @@ ieee_set_fp_control(ieee_get_fp_control()
 }
 
 
-/*************************** function gen_mcode ********************************
+/* function gen_mcode **********************************************************
 
 	generates machine code
 
@@ -521,7 +521,7 @@ static void gen_mcode()
 			gen_nullptr_check(s1);
 			break;
 
-		/*********************** constant operations **************************/
+		/* constant operations ************************************************/
 
 		case ICMD_ICONST:
 			d = reg_of_var(iptr->dst, REG_ITMP1);
@@ -574,7 +574,7 @@ static void gen_mcode()
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-		/********************** load/store operations *************************/
+		/* load/store operations **********************************************/
 
 		case ICMD_ILOAD:
 		case ICMD_LLOAD:
@@ -640,7 +640,7 @@ static void gen_mcode()
 			break;
 
 
-		/******************* pop/dup/swap operations **************************/
+		/* pop/dup/swap operations ********************************************/
 
 		case ICMD_POP:
 		case ICMD_POP2:
@@ -697,7 +697,7 @@ static void gen_mcode()
 			break;
 
 
-		/********************* integer operations *****************************/
+		/* integer operations *************************************************/
 
 		case ICMD_INEG:
 			var_to_reg_int(s1, src, REG_ITMP1); 
@@ -1287,7 +1287,7 @@ static void gen_mcode()
 			break;
 
 
-		/*********************** floating operations **************************/
+		/* floating operations ************************************************/
 
 		case ICMD_FNEG:
 			var_to_reg_flt(s1, src, REG_FTMP1);
@@ -1595,7 +1595,7 @@ static void gen_mcode()
 			break;
 
 
-		/********************** memory operations *****************************/
+		/* memory operations **************************************************/
 
 #define gen_bound_check \
 			if (checkbounds) {\
@@ -1961,7 +1961,7 @@ static void gen_mcode()
 			break;
 
 
-		/********************** branch operations *****************************/
+		/* branch operations **************************************************/
 
 #define ALIGNCODENOP {if((int)((long)mcodeptr&7)){M_NOP;}}
 
@@ -2450,18 +2450,6 @@ static void gen_mcode()
 			break;
 
 
-/*   branch if the unsigned value of s1 is greater that s2 (note, that s2 has
-	 to be >= 0) */
-
-/*		case ICMD_IF_UCMPGE: 
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			M_CMPULE(s2, s1, REG_ITMP1, 0);
-			M_BNEZ(REG_ITMP1, 0);
-			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
-            break;
-*/
-
 		case ICMD_IRETURN:
 		case ICMD_LRETURN:
 		case ICMD_ARETURN:
@@ -2760,6 +2748,150 @@ makeactualcall:
 			}
 			break;
 
+
+		case ICMD_INSTANCEOF: /* ..., objectref ==> ..., intresult            */
+
+		                      /* op1:   0 == array, 1 == class                */
+		                      /* val.a: (classinfo*) superclass               */
+
+/*      superclass is an interface:
+ *
+ *      return (sub != NULL) &&
+ *             (sub->vftbl->interfacetablelength > super->index) &&
+ *             (sub->vftbl->interfacevftbl[super->index] != NULL);
+ *
+ *      superclass is a class:
+ *
+ *      return (sub != NULL) &&
+ *             ((sub->vftbl->lowclassval >= super->vftbl->lowclassval) &
+ *              (sub->vftbl->lowclassval <= super->vftbl->highclassval));
+ */
+
+			{
+			classinfo *c = (classinfo*) iptr->val.a;
+			
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			if (s1 == d) {
+				M_MOV(s1, REG_ITMP1);
+				s1 = REG_ITMP1;
+				}
+			M_CLR(d);
+			if (iptr->op1) {                               /* class/interface */
+				if (c->flags & ACC_INTERFACE) {            /* interface       */
+					M_BEQZ(s1, 7 + (c->index > 255));
+					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
+					if (c->index <= 255) {
+						M_CMPLE(REG_ITMP2, c->index, REG_ITMP2, 1);
+						M_BNEZ(REG_ITMP2, 3);
+						}
+					else {
+						M_ISUB(REG_ZERO, REG_ITMP2, REG_ITMP2, 0);
+						M_LDA(REG_ITMP2, REG_ITMP2, c->index);
+						M_BGEZ(REG_ITMP2, 3);
+						}
+					M_ALD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, interfacevftbl));
+					M_ALD(REG_ITMP1, REG_ITMP1, c->index * 8);
+					M_CMPULT(REG_ZERO, REG_ITMP1, d, 0);   /* REG_ITMP1 != 0  */
+					}
+				else {                                     /* class           */
+					s2 = c->vftbl->highclassval - c->vftbl->lowclassval;
+					M_BEQZ(s1, 4 + (c->vftbl->lowclassval > 255) + (s2 > 255));
+					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, lowclassval));
+					if (c->vftbl->lowclassval <= 255)
+						M_ISUB(REG_ITMP1, c->vftbl->lowclassval, REG_ITMP1, 1);
+					else {
+						M_LDA(REG_ITMP2, REG_ZERO, c->vftbl->lowclassval);
+						M_ISUB(REG_ITMP1, REG_ITMP2, REG_ITMP1, 0);
+						}
+					if (s2 <= 255)
+						M_CMPULE(REG_ITMP1, s2, d, 1);
+					else {
+						M_LDA(REG_ITMP2, REG_ZERO, s2);
+						M_CMPULE(REG_ITMP1, REG_ITMP2, d, 0);
+						}
+					}
+				}
+			else
+				panic ("internal error: no inlined array instanceof");
+			}
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+
+		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
+
+		                      /* op1:   0 == array, 1 == class                */
+		                      /* val.a: (classinfo*) superclass               */
+
+/*      superclass is an interface:
+ *
+ *      OK if ((sub == NULL) ||
+ *             (sub->vftbl->interfacetablelength > super->index) &&
+ *             (sub->vftbl->interfacevftbl[super->index] != NULL));
+ *
+ *      superclass is a class:
+ *
+ *      OK if ((sub == NULL) ||
+ *             ((sub->vftbl->lowclassval >= super->vftbl->lowclassval) &
+ *              (sub->vftbl->lowclassval <= super->vftbl->highclassval)));
+ */
+
+			{
+			classinfo *c = (classinfo*) iptr->val.a;
+			
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			var_to_reg_int(s1, src, d);
+			if (iptr->op1) {                               /* class/interface */
+				if (c->flags & ACC_INTERFACE) {            /* interface       */
+					M_BEQZ(s1, 7 + (c->index > 255));
+					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl, interfacetablelength));
+					if (c->index <= 255) {
+						M_CMPLE(REG_ITMP2, c->index, REG_ITMP2, 1);
+						M_BNEZ(REG_ITMP2, 0);
+						mcode_addxcastrefs(mcodeptr);
+						}
+					else {
+						M_ISUB(REG_ZERO, REG_ITMP2, REG_ITMP2, 0);
+						M_LDA(REG_ITMP2, REG_ITMP2, c->index);
+						M_BGEZ(REG_ITMP2, 0);
+						mcode_addxcastrefs(mcodeptr);
+						}
+					M_ALD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, interfacevftbl));
+					M_ALD(REG_ITMP2, REG_ITMP1, c->index * 8);
+					M_BEQZ(REG_ITMP2, 0);
+					mcode_addxcastrefs(mcodeptr);
+					}
+				else {                                     /* class           */
+					s2 = c->vftbl->highclassval - c->vftbl->lowclassval;
+					M_BEQZ(s1, 5 + (c->vftbl->lowclassval > 255) + (s2 > 255));
+					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, lowclassval));
+					if (c->vftbl->lowclassval <= 255)
+						M_ISUB(REG_ITMP1, c->vftbl->lowclassval, REG_ITMP1, 1);
+					else {
+						M_LDA(REG_ITMP2, REG_ZERO, c->vftbl->lowclassval);
+						M_ISUB(REG_ITMP1, REG_ITMP2, REG_ITMP1, 0);
+						}
+					if (s2 <= 255)
+						M_CMPULE(REG_ITMP1, s2, REG_ITMP2, 1);
+					else {
+						M_LDA(REG_ITMP2, REG_ZERO, s2);
+						M_CMPULE(REG_ITMP1, REG_ITMP2, REG_ITMP2, 0);
+						}
+					M_BEQZ(REG_ITMP2, 0);
+					mcode_addxcastrefs(mcodeptr);
+					}
+				}
+			else
+				panic ("internal error: no inlined array checkcast");
+			}
+			M_INTMOVE(s1, d);
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+
 		case ICMD_CHECKASIZE:
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_BLTZ(s1, 0);
@@ -2917,6 +3049,38 @@ makeactualcall:
 			}
 		}
 
+	xcodeptr = NULL;
+	
+	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
+		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+			gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
+				xcastrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - 4);
+			continue;
+			}
+
+		gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
+		                  xcastrefs->branchpos, (u1*) mcodeptr - mcodebase);
+
+		MCODECHECK(8);
+
+		M_LDA(REG_ITMP2_XPC, REG_PV, xcastrefs->branchpos);
+
+		if (xcodeptr != NULL) {
+			M_BR((xcodeptr-mcodeptr)-1);
+			}
+		else {
+			xcodeptr = mcodeptr;
+
+			a = dseg_addaddress(proto_java_lang_ClassCastException);
+			M_LLD(REG_ITMP1_XPTR, REG_PV, a);
+
+			a = dseg_addaddress(asm_handle_exception);
+			M_LLD(REG_ITMP3, REG_PV, a);
+
+			M_JMP(REG_ZERO, REG_ITMP3);
+			}
+		}
+
 
 #ifdef SOFTNULLPTRCHECK
 
@@ -2959,7 +3123,7 @@ makeactualcall:
 }
 
 
-/******** redefinition of code generation macros (compiling into array) *******/
+/* redefinition of code generation macros (compiling into array) **************/
 
 /* 
 These macros are newly defined to allow code generation into an array.
@@ -2990,7 +3154,7 @@ This makes sense only for the stub-generation-routines below.
 
 #if 0
 
-/************************ function createcompilerstub **************************
+/* function createcompilerstub *************************************************
 
 	creates a stub routine which calls the compiler
 	
@@ -3018,7 +3182,7 @@ u1 *createcompilerstub (methodinfo *m)
 }
 
 
-/************************* function removecompilerstub *************************
+/* function removecompilerstub *************************************************
 
      deletes a compilerstub from memory  (simply by freeing it)
 
@@ -3030,7 +3194,7 @@ void removecompilerstub (u1 *stub)
 }
 
 
-/************************ function: removenativestub ***************************
+/* function: removenativestub **************************************************
 
     removes a previously created native-stub from memory
     
@@ -3044,7 +3208,7 @@ void removenativestub (u1 *stub)
 #endif /* 0 */
 
 
-/********************* Funktion: ncreatenativestub *****************************
+/* function: ncreatenativestub *************************************************
 
 	creates a stub routine which calls a native method
 	

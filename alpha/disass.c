@@ -264,6 +264,8 @@ static void disasscmd (int c, int pos)
 		if (op == 0x11 && opfun == 0x20 && ra == rb && ~(c&0x1000)) {
 			if (ra == 31 && rc == 31)
 				printf ("NOP\n");
+			else if (ra == 31)
+				printf ("CLR     $%d\n", rc);
 			else
 				printf ("MOV     $%d,$%d\n", ra, rc);
 			return;

@@ -1927,4 +1927,13 @@ static void show_icmd_method()
 			printf("\n");
 			}
 	}
+	i = block[b].mpc;
+	s4ptr = (s4 *) (method->mcode + dseglen + i);
+	if (showdisassemble && (s4ptr < (s4 *) (method->mcode + method->mcodelength))) {
+		printf("\n");
+		for (; s4ptr < (s4 *) (method->mcode + method->mcodelength); i += 4, s4ptr++) {
+			disasscmd (*s4ptr, i); 
+			}
+		printf("\n");
+		}
 }

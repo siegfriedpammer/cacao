@@ -1,4 +1,4 @@
-/***************************** alpha/ngen.h ************************************
+/* alpha/ngen.h ****************************************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
@@ -14,7 +14,7 @@
 
 *******************************************************************************/
 
-/************************ Preallocated registers ******************************/
+/* preallocated registers *****************************************************/
 
 /* integer registers */
   
@@ -44,7 +44,7 @@
 
 #define REG_IFTMP       28   /* temporary integer and floating point register */
 
-/******************** register descripton - array *****************************/
+/* register descripton - array ************************************************/
 
 /* #define REG_RES   0         reserved register for OS or code generator */
 /* #define REG_RET   1         return value register */
@@ -80,7 +80,7 @@ int nregdescfloat[] = {
 /* for use of reserved registers, see comment above */
 
 
-/*** parameter allocation mode ***/
+/* parameter allocation mode */
 
 int nreg_parammode = PARAMMODE_NUMBERED;  
 
@@ -91,14 +91,14 @@ int nreg_parammode = PARAMMODE_NUMBERED;
    */
 
 
-/************************** stackframe-infos **********************************/
+/* stackframe-infos ***********************************************************/
 
 int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 /* -> see file 'calling.doc' */
 
 
-/******************** macros to create code ***********************************/
+/* macros to create code ******************************************************/
 
 /* 3-address-operations: M_OP3
       op ..... opcode
@@ -142,7 +142,7 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 	*(mcodeptr++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<16)|((disp)&0xffff) )
 
 
-/***** macros for all used commands (see an Alpha-manual for description) *****/ 
+/* macros for all used commands (see an Alpha-manual for description) *********/ 
 
 #define M_LDA(a,b,disp)         M_MEM (0x08,a,b,disp)           /* low const  */
 #define M_LDAH(a,b,disp)        M_MEM (0x09,a,b,disp)           /* high const */
@@ -150,10 +150,12 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_SLDU(a,b,disp)        M_MEM (0x0c,a,b,disp)           /* 16 load    */
 #define M_ILD(a,b,disp)         M_MEM (0x28,a,b,disp)           /* 32 load    */
 #define M_LLD(a,b,disp)         M_MEM (0x29,a,b,disp)           /* 64 load    */
+#define M_ALD(a,b,disp)         M_MEM (0x29,a,b,disp)           /* addr load  */
 #define M_BST(a,b,disp)         M_MEM (0x0e,a,b,disp)           /*  8 store   */
 #define M_SST(a,b,disp)         M_MEM (0x0d,a,b,disp)           /* 16 store   */
 #define M_IST(a,b,disp)         M_MEM (0x2c,a,b,disp)           /* 32 store   */
 #define M_LST(a,b,disp)         M_MEM (0x2d,a,b,disp)           /* 64 store   */
+#define M_AST(a,b,disp)         M_MEM (0x2d,a,b,disp)           /* addr store */
 
 #define M_BSEXT(b,c)            M_OP3 (0x1c,0x0,REG_ZERO,b,c,0) /*  8 signext */
 #define M_SSEXT(b,c)            M_OP3 (0x1c,0x1,REG_ZERO,b,c,0) /* 16 signext */
@@ -189,7 +191,9 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_OR(a,b,c,const)       M_OP3 (0x11,0x20, a,b,c,const)  /* c = a |  b */
 #define M_XOR(a,b,c,const)      M_OP3 (0x11,0x40, a,b,c,const)  /* c = a ^  b */
 
-#define M_NOP                   M_OR (31,31,31,0)
+#define M_MOV(a,c)              M_OR (a,a,c,0)                  /* c = a      */
+#define M_CLR(c)                M_OR (31,31,c,0)                /* c = 0      */
+#define M_NOP                   M_OR (31,31,31,0)               /* ;          */
 
 #define M_SLL(a,b,c,const)      M_OP3 (0x12,0x39, a,b,c,const)  /* c = a << b */
 #define M_SRA(a,b,c,const)      M_OP3 (0x12,0x3c, a,b,c,const)  /* c = a >> b */
@@ -243,7 +247,7 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 #define M_FBEQZ(fa,disp)        M_BRA (0x31,fa,disp)            /* br a == 0.0*/
 
-/****** macros for special commands (see an Alpha-manual for description) *****/ 
+/* macros for special commands (see an Alpha-manual for description) **********/ 
 
 #define M_TRAPB                 M_MEM (0x18,0,0,0x0000)        /* trap barrier*/
 
@@ -285,7 +289,7 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 #define M_UMULH(a,b,c,const)    M_OP3 (0x13,0x30, a,b,c,const)  /* 64 umulh   */
 
-/****** macros for unused commands (see an Alpha-manual for description) ******/ 
+/* macros for unused commands (see an Alpha-manual for description) ***********/ 
 
 #define M_ANDNOT(a,b,c,const)   M_OP3 (0x11,0x08, a,b,c,const) /* c = a &~ b  */
 #define M_ORNOT(a,b,c,const)    M_OP3 (0x11,0x28, a,b,c,const) /* c = a |~ b  */
@@ -312,7 +316,7 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_JMP_CO(a,b)           M_MEM (0x1a,a,b,0xc000)        /* call cosub  */
 
 
-/************************ function gen_resolvebranch ***************************
+/* function gen_resolvebranch **************************************************
 
 	backpatches a branch instruction; Alpha branch instructions are very
 	regular, so it is only necessary to overwrite some fixed bits in the

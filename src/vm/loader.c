@@ -695,6 +695,8 @@ classinfo *class_get (unicode *u)
 	c -> cptags = NULL;
 	c -> cpinfos = NULL;
 	c -> super = NULL;
+	c -> sub = NULL;
+	c -> nextsub = NULL;
 	c -> interfacescount = 0;
 	c -> interfaces = NULL;
 	c -> fieldscount = 0;
@@ -1818,8 +1820,7 @@ classinfo *loader_load (unicode *topname)
 	intsDisable();                           /* schani */
 
 	if (getloadingtime) starttime = getcputime();
-	
-	
+
 	top = class_get (topname);
 
 	while ( (c = list_first(&unloadedclasses)) ) {
@@ -1830,17 +1831,12 @@ classinfo *loader_load (unicode *topname)
 		class_link (c);
 		}
 
-	
-	synchronize_caches ();
-	
-
-
 	if (getloadingtime) {
 		stoptime = getcputime();
 		loadingtime += (stoptime-starttime);
 		}
-		
-	intsRestore();                      /* schani */
+
+	intsRestore();                          /* schani */
 
 	return top;
 }
@@ -1962,6 +1958,52 @@ void loader_initclasses ()
 			c = list_next (&linkedclasses, c);
 			}
 		}
+
+	intsRestore();                      /* schani */
+}
+
+static s4 classvalue = 0;
+
+static void loader_compute_class_values (classinfo *c)
+{
+	classinfo *subs;
+
+	c->vftbl->lowclassval = classvalue++;
+	subs = c->sub;
+	while (subs != NULL) {
+		loader_compute_class_values(subs);
+		subs = subs->nextsub;
+		}
+	c->vftbl->highclassval = classvalue++;
+/*
+	{
+	int i;
+	for (i = 0; i < c->index; i++)
+		printf(" ");
+	printf("%3d  %3d  ", (int) c->vftbl->lowclassval, (int) c->vftbl->highclassval);
+	unicode_display(c->name);
+	printf("\n");
+	}
+*/
+}
+
+
+void loader_compute_subclasses ()
+{
+	classinfo *c;
+	
+	intsDisable();                     /* schani */
+
+	c = list_first (&linkedclasses);
+	while (c) {
+		if (!(c->flags & ACC_INTERFACE) && (c->super != NULL)) {
+			c->nextsub = c->super->sub;
+			c->super->sub = c;
+			}
+		c = list_next (&linkedclasses, c);
+		}
+
+	loader_compute_class_values(class_java_lang_Object);
 
 	intsRestore();                      /* schani */
 }

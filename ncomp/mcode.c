@@ -50,6 +50,7 @@ static jumpref *jumpreferences;     /* list of jumptable target addresses     */
 static branchref *xboundrefs;       /* list of bound check branches           */
 static branchref *xcheckarefs;      /* list of array size check branches      */
 static branchref *xnullrefs;        /* list of null check branches            */
+static branchref *xcastrefs;        /* list of cast check branches            */
 
 static void mcode_init();           /* allocates code and data area           */
 static void mcode_close();          /* releases temporary storage             */
@@ -71,6 +72,7 @@ static void dseg_addtarget(basicblock *target);
 static void mcode_addreference(basicblock *target, void *branchptr);
 static void mcode_addxboundrefs(void *branchptr);
 static void mcode_addxnullrefs(void *branchptr);
+static void mcode_addxcastrefs(void *branchptr);
 
 static void dseg_display(s4 *s4ptr);
 
@@ -94,6 +96,7 @@ static void mcode_init()
 	jumpreferences = NULL;
 	xboundrefs = NULL;
 	xnullrefs = NULL;
+	xcastrefs = NULL;
 }
 
 
@@ -283,6 +286,18 @@ static void mcode_addxnullrefs(void *branchptr)
 	br->branchpos = branchpos;
 	br->next = xnullrefs;
 	xnullrefs = br;
+}
+
+
+static void mcode_addxcastrefs(void *branchptr)
+{
+	s4 branchpos = (u1*) branchptr - mcodebase;
+
+	branchref *br = DNEW(branchref);
+
+	br->branchpos = branchpos;
+	br->next = xcastrefs;
+	xcastrefs = br;
 }
 
 

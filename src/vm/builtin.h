@@ -26,6 +26,8 @@ extern builtin_descriptor builtin_desc[];
 s4 builtin_instanceof(java_objectheader *obj, classinfo *class);
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
 s4 new_builtin_checkcast(java_objectheader *obj, classinfo *class);
+s4 new_builtin_checkclasscast(java_objectheader *obj, classinfo *class);
+s4 new_builtin_checkintercast(java_objectheader *obj, classinfo *class);
 s4 builtin_arrayinstanceof
 	(java_objectheader *obj, constant_arraydescriptor *desc);
 s4 builtin_checkarraycast

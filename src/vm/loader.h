@@ -34,6 +34,7 @@ void loader_close ();
 
 classinfo *loader_load (unicode *topname);
 void loader_initclasses ();
+void loader_compute_subclasses ();
 
 classinfo *class_get (unicode *name);
 voidptr class_getconstant (classinfo *class, u4 pos, u4 ctype);

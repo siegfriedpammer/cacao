@@ -634,6 +634,8 @@ int main(int argc, char **argv)
 
 	topclass = loader_load ( unicode_new_char (cp) );
 
+	loader_compute_subclasses();
+
 	gc_init();
 
 #ifdef USE_THREADS

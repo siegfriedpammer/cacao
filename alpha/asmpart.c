@@ -95,6 +95,8 @@
 	.globl asm_handle_nat_exception
 	.globl asm_signal_exception
 	.globl new_builtin_checkcast
+	.globl new_builtin_checkclasscast
+	.globl new_builtin_checkintercast
 	.globl new_builtin_checkarraycast
 	.globl new_builtin_aastore
 	.globl new_builtin_monitorenter
@@ -935,7 +937,7 @@ new_builtin_checkcast:
 	lda     sp,-16(sp)                  # allocate stack space
 	stq     ra,0(sp)                    # save return address
 	stq     a0,8(sp)                    # save object pointer
-	jsr     ra,builtin_checkcast        # builtin_checkcast
+	jsr     ra,new_builtin_checkcast    # new_builtin_checkcast
 	ldgp    gp,0(ra)
 	beq     v0,nb_ccast_throw           # if (false) throw exception
 	ldq     ra,0(sp)                    # restore return address
@@ -950,6 +952,66 @@ nb_ccast_throw:
 	lda     xpc,-4(ra)                  # faulting address is return adress - 4
 	br      asm_handle_nat_exception
 	.end    new_builtin_checkcast
+
+
+/****************** function new_builtin_checkclasscast ************************
+*                                                                              *
+*   Does the cast check and eventually throws an exception                     *
+*                                                                              *
+*******************************************************************************/
+
+	.ent    new_builtin_checkclasscast
+new_builtin_checkclasscast:
+
+	ldgp    gp,0(pv)
+	lda     sp,-16(sp)                  # allocate stack space
+	stq     ra,0(sp)                    # save return address
+	stq     a0,8(sp)                    # save object pointer
+	jsr     ra,builtin_checkclasscast   # builtin_checkclasscast
+	ldgp    gp,0(ra)
+	beq     v0,nb_cclass_throw          # if (false) throw exception
+	ldq     ra,0(sp)                    # restore return address
+	ldq     v0,8(sp)                    # return object pointer
+	lda     sp,16(sp)                   # free stack space
+	jmp     zero,(ra)
+
+nb_cclass_throw:
+	ldq     xptr,proto_java_lang_ClassCastException
+	ldq     ra,0(sp)                    # restore return address
+	lda     sp,16(sp)                   # free stack space
+	lda     xpc,-4(ra)                  # faulting address is return adress - 4
+	br      asm_handle_nat_exception
+	.end    new_builtin_checkclasscast
+
+
+/****************** function new_builtin_checkintercast ************************
+*                                                                              *
+*   Does the cast check and eventually throws an exception                     *
+*                                                                              *
+*******************************************************************************/
+
+	.ent    new_builtin_checkintercast
+new_builtin_checkintercast:
+
+	ldgp    gp,0(pv)
+	lda     sp,-16(sp)                  # allocate stack space
+	stq     ra,0(sp)                    # save return address
+	stq     a0,8(sp)                    # save object pointer
+	jsr     ra,builtin_checkintercast   # builtin_checkintercast
+	ldgp    gp,0(ra)
+	beq     v0,nb_cinter_throw          # if (false) throw exception
+	ldq     ra,0(sp)                    # restore return address
+	ldq     v0,8(sp)                    # return object pointer
+	lda     sp,16(sp)                   # free stack space
+	jmp     zero,(ra)
+
+nb_cinter_throw:
+	ldq     xptr,proto_java_lang_ClassCastException
+	ldq     ra,0(sp)                    # restore return address
+	lda     sp,16(sp)                   # free stack space
+	lda     xpc,-4(ra)                  # faulting address is return adress - 4
+	br      asm_handle_nat_exception
+	.end    new_builtin_checkintercast
 
 
 /******************* function new_builtin_checkarraycast ***********************

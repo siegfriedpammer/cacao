@@ -137,6 +137,8 @@ void clear_thread_flags(void)
 #endif
 
 #endif
+fflush (stdout);
+fflush (stderr);
 }
 
 
