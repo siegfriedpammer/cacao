@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: VMThrowable.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: VMThrowable.c 1802 2004-12-21 20:35:54Z jowenn $
 
 */
 
@@ -183,9 +183,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 			}
 			size --;
 			el++;
-			if (size<1) {
+			/*if (size<1) {
 				log_text("Invalid stacktrace for VMThrowable.getStackTrace()");
-			}
+			}*/
 		}
 	}
 
