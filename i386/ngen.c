@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 385 2003-07-10 10:45:57Z twisti $
+	Last Change: $Id: ngen.c 431 2003-09-13 15:11:26Z twisti $
 
 *******************************************************************************/
 
@@ -458,13 +458,10 @@ static void gen_mcode()
 		/* p--; M_AST (REG_RA, REG_SP, 8*p); -- do we really need this on i386 */
 	}
 	for (r = savintregcnt - 1; r >= maxsavintreguse; r--) {
- 		p--;
-		i386_mov_reg_membase(savintregs[r], REG_SP, p * 8);
+ 		p--; i386_mov_reg_membase(savintregs[r], REG_SP, p * 8);
 	}
 	for (r = savfltregcnt - 1; r >= maxsavfltreguse; r--) {
-		p--;
-		i386_fld_reg(savfltregs[r]);
-		i386_fstpl_membase(REG_SP, p * 8);
+		p--; i386_fld_reg(savfltregs[r]); i386_fstpl_membase(REG_SP, p * 8);
 	}
 
 	/* save monitorenter argument */
@@ -3235,8 +3232,8 @@ static void gen_mcode()
 			fpu_st_offset -= 2;
 			i386_fnstsw();
 			i386_test_imm_reg(0x400, I386_EAX);    /* unordered treat as GT */
-			i386_jcc(I386_CC_E, 3);
-			i386_movb_imm_reg(0, I386_AH);
+			i386_jcc(I386_CC_E, 6);
+			i386_alu_imm_reg(I386_AND, 0x000000ff, I386_EAX);
  			i386_sahf();
   			i386_jcc(I386_CC_E, 6 + 1 + 5 + 1);
   			i386_jcc(I386_CC_B, 1 + 5);
@@ -4968,9 +4965,9 @@ gen_method: {
 					CALCOFFSETBYTES(OFFSET(vftbl, diffval));
 					
 					offset += 2;
-					offset += 2;
-
 					offset += 2;    /* xor */
+
+					offset += 2;
 
 					offset += 6;    /* jcc */
 					offset += 5;
@@ -4985,10 +4982,8 @@ gen_method: {
 					i386_alu_reg_reg(I386_SUB, REG_ITMP3, REG_ITMP1);
 					i386_alu_reg_reg(I386_XOR, d, d);
 					i386_alu_reg_reg(I386_CMP, REG_ITMP2, REG_ITMP1);
-/*  					i386_setcc_reg(I386_CC_BE, d); */
 					i386_jcc(I386_CC_A, 5);
 					i386_mov_imm_reg(1, d);
-					
 				}
 			}
 			else
@@ -5651,7 +5646,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	i386_mov_imm_reg(&exceptionptr, REG_ITMP3);
 	i386_mov_imm_membase(0, REG_ITMP3, 0);
 	i386_mov_membase_reg(REG_SP, 0, REG_ITMP2_XPC);
-	i386_alu_imm_reg(I386_SUB, REG_ITMP2_XPC, 2);
+	i386_alu_imm_reg(I386_SUB, 2, REG_ITMP2_XPC);
 
 	i386_mov_imm_reg(asm_handle_nat_exception, REG_ITMP3);
 	i386_jmp_reg(REG_ITMP3);
