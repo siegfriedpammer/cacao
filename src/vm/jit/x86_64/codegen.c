@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1581 2004-11-24 13:57:02Z twisti $
+   $Id: codegen.c 1607 2004-11-29 10:11:03Z twisti $
 
 */
 
@@ -72,8 +72,8 @@ static int nregdescint[] = {
 
 
 static int nregdescfloat[] = {
-	/*      REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, */
-	/*      REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, */
+/*      REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, */
+/*      REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, */
     REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
     REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
     REG_END
@@ -89,6 +89,7 @@ static int nregdescfloat[] = {
 
 #include "jit/codegen.inc"
 #include "jit/reg.inc"
+#include "jit/lsra.inc"
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -3745,6 +3746,8 @@ gen_method: {
 	{
 		clinitref   *cref;
 		codegendata *tmpcd;
+		u1           xmcode;
+		u4           mcode;
 
 		tmpcd = DNEW(codegendata);
 
@@ -3752,8 +3755,8 @@ gen_method: {
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long.                                  */
 			xcodeptr = cd->mcodebase + cref->branchpos;
-			cref->xmcode = *xcodeptr;
-			cref->mcode =  *((u4 *) (xcodeptr + 1));
+			xmcode = *xcodeptr;
+			mcode = *((u4 *) (xcodeptr + 1));
 
 			MCODECHECK(50);
 
@@ -3765,8 +3768,8 @@ gen_method: {
 			x86_64_mov_reg_reg(cd, REG_SP, REG_ITMP1);
 
 			/* Push machine code bytes to patch onto the stack.               */
-			x86_64_push_imm(cd, (u1) cref->xmcode);
-			x86_64_push_imm(cd, (u4) cref->mcode);
+			x86_64_push_imm(cd, (u1) xmcode);
+			x86_64_push_imm(cd, (u4) mcode);
 
 			x86_64_push_imm(cd, (u8) cref->class);
 
@@ -4087,6 +4090,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		u1          *xcodeptr;
 		clinitref   *cref;
 		codegendata *tmpcd;
+		u1           xmcode;
+		u4           mcode;
 
 		tmpcd = DNEW(codegendata);
 
@@ -4097,8 +4102,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long.                                  */
 			xcodeptr = cd->mcodebase + cref->branchpos;
-			cref->xmcode = *xcodeptr;
-			cref->mcode =  *((u4 *) (xcodeptr + 1));
+			xmcode = *xcodeptr;
+			mcode = *((u4 *) (xcodeptr + 1));
 
 			/* patch in `call rel32' to call the following code               */
 			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
@@ -4108,8 +4113,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			x86_64_mov_reg_reg(cd, REG_SP, REG_ITMP1);
 
 			/* Push machine code bytes to patch onto the stack.               */
-			x86_64_push_imm(cd, (u1) cref->xmcode);
-			x86_64_push_imm(cd, (u4) cref->mcode);
+			x86_64_push_imm(cd, (u1) xmcode);
+			x86_64_push_imm(cd, (u4) mcode);
 
 			x86_64_push_imm(cd, (u8) cref->class);
 
