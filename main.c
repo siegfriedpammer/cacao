@@ -424,7 +424,6 @@ int main(int argc, char **argv)
 	java_objectheader *exceptionptr;
 	void *dummy;
 	
-
    /********** interne (nur fuer main relevante Optionen) **************/
    
 	char logfilename[200] = "";
@@ -442,6 +441,8 @@ int main(int argc, char **argv)
 	stackbottom = &dummy;
 #endif
 
+
+	atexit(clear_thread_flags);
 
    /************ Infos aus der Environment lesen ************************/
 

@@ -94,6 +94,7 @@ typedef struct _thread
 } thread;
 
 void initThreads(u1 *stackbottom);
+void clear_thread_flags(void);
 void startThread(thread*);
 void resumeThread(thread*);
 void iresumeThread(thread*);
