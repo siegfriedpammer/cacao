@@ -45,26 +45,20 @@ void asm_call_jit_compiler () { }
 void asm_calljavamethod () { }
 void asm_dumpregistersandcall () { }
 
-s4 new_builtin_idiv (s4 a, s4 b) {return 0;}
-s4 new_builtin_irem (s4 a, s4 b) {return 0;}
-s8 new_builtin_ldiv (s8 a, s8 b) {return 0;}
-s8 new_builtin_lrem (s8 a, s8 b) {return 0;}
+s4 asm_builtin_idiv (s4 a, s4 b) {return 0;}
+s4 asm_builtin_irem (s4 a, s4 b) {return 0;}
+s8 asm_builtin_ldiv (s8 a, s8 b) {return 0;}
+s8 asm_builtin_lrem (s8 a, s8 b) {return 0;}
 
 
-void new_builtin_monitorenter (java_objectheader *o) {}
-void new_builtin_monitorexit (java_objectheader *o) {}
+void asm_builtin_monitorenter (java_objectheader *o) {}
+void asm_builtin_monitorexit (java_objectheader *o) {}
 
-s4 new_builtin_checkcast(java_objectheader *o, classinfo *c)
-                        {return 0;}
-s4 new_builtin_checkclasscast(java_objectheader *o, classinfo *c)
-                        {return 0;}
-s4 new_builtin_checkintercast(java_objectheader *o, classinfo *c)
-                        {return 0;}
-s4 new_builtin_checkarraycast
+s4 asm_builtin_checkarraycast
 	(java_objectheader *o, constant_arraydescriptor *d)
 	{return 0;}
 
-void new_builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o) {}
+void asm_builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o) {}
 
 u1 *createcompilerstub (methodinfo *m) {return NULL;}
 u1 *createnativestub (functionptr f, methodinfo *m) {return NULL;}
@@ -422,6 +416,19 @@ int main(int argc, char **argv)
 	log_init (NULL);
 	log_text ("Java - header-generator started");
 	
+	file = fopen("sysdep/offsets.h", "w");
+	if (file == NULL)
+		panic ("Can not open file 'sysdep/offsets.h' for write");
+	
+	fprintf (file, "/* This file is machine generated, don't edit it !*/\n\n"); 
+
+	fprintf (file, "#define offobjvftbl    %3d\n", (int) OFFSET(java_objectheader, vftbl));
+	fprintf (file, "#define offarraysize   %3d\n", (int) OFFSET(java_arrayheader, size));
+	fprintf (file, "#define offobjarrdata  %3d\n\n", (int) OFFSET(java_objectarray, data[0]));
+	fprintf (file, "#define offbaseval     %3d\n", (int) OFFSET(vftbl, baseval));
+	fprintf (file, "#define offdiffval     %3d\n", (int) OFFSET(vftbl, diffval));
+
+	fclose (file);
 	
 	suck_init (classpath);
 	

@@ -1,4 +1,3 @@
-/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
 /****************************** builtin.c **************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
@@ -34,13 +33,10 @@
 builtin_descriptor builtin_desc[] = {
 	{(functionptr) builtin_instanceof,         "instanceof"},
 	{(functionptr) builtin_checkcast,          "checkcast"},
-	{(functionptr) new_builtin_checkcast,      "checkcast"},
-	{(functionptr) new_builtin_checkclasscast, "checkclasscast"},
-	{(functionptr) new_builtin_checkintercast, "checkintercast"},
 	{(functionptr) builtin_arrayinstanceof,    "arrayinstanceof"},
 	{(functionptr) builtin_checkarraycast,     "checkarraycast"},
-	{(functionptr) new_builtin_checkarraycast, "checkarraycast"},
-	{(functionptr) new_builtin_aastore,        "aastore"},
+	{(functionptr) asm_builtin_checkarraycast, "checkarraycast"},
+	{(functionptr) asm_builtin_aastore,        "aastore"},
 	{(functionptr) builtin_new,                "new"},
 	{(functionptr) builtin_anewarray,          "anewarray"},
 	{(functionptr) builtin_newarray_array,     "newarray_array"},
@@ -55,20 +51,20 @@ builtin_descriptor builtin_desc[] = {
 	{(functionptr) builtin_displaymethodstart, "displaymethodstart"},
 	{(functionptr) builtin_displaymethodstop,  "displaymethodstop"},
 	{(functionptr) builtin_monitorenter,       "monitorenter"},
-	{(functionptr) new_builtin_monitorenter,   "monitorenter"},
+	{(functionptr) asm_builtin_monitorenter,   "monitorenter"},
 	{(functionptr) builtin_monitorexit,        "monitorexit"},
-	{(functionptr) new_builtin_monitorexit,    "monitorexit"},
+	{(functionptr) asm_builtin_monitorexit,    "monitorexit"},
 	{(functionptr) builtin_idiv,               "idiv"},
-	{(functionptr) new_builtin_idiv,           "idiv"},
+	{(functionptr) asm_builtin_idiv,           "idiv"},
 	{(functionptr) builtin_irem,               "irem"},
-	{(functionptr) new_builtin_irem,           "irem"},
+	{(functionptr) asm_builtin_irem,           "irem"},
 	{(functionptr) builtin_ladd,               "ladd"},
 	{(functionptr) builtin_lsub,               "lsub"},
 	{(functionptr) builtin_lmul,               "lmul"},
 	{(functionptr) builtin_ldiv,               "ldiv"},
-	{(functionptr) new_builtin_ldiv,           "ldiv"},
+	{(functionptr) asm_builtin_ldiv,           "ldiv"},
 	{(functionptr) builtin_lrem,               "lrem"},
-	{(functionptr) new_builtin_lrem,           "lrem"},
+	{(functionptr) asm_builtin_lrem,           "lrem"},
 	{(functionptr) builtin_lshl,               "lshl"},
 	{(functionptr) builtin_lshr,               "lshr"},
 	{(functionptr) builtin_lushr,              "lushr"},
@@ -127,13 +123,12 @@ builtin_descriptor builtin_desc[] = {
 
 static s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 {
-	if (super->flags & ACC_INTERFACE) {
-		s4 index = super->index;
-		if (index >= sub->vftbl->interfacetablelength) return 0;
-		return ( sub->vftbl->interfacevftbl[index] ) ? 1 : 0;
-		}
-	return (sub->vftbl->lowclassval >= super->vftbl->lowclassval) &
-	       (sub->vftbl->lowclassval <= super->vftbl->highclassval);
+	if (super->flags & ACC_INTERFACE)
+		return (sub->vftbl->interfacetablelength > super->index) &&
+		       (sub->vftbl->interfacetable[-super->index] != NULL);
+
+	return (unsigned) (sub->vftbl->baseval - super->vftbl->baseval) <=
+	       (unsigned) (super->vftbl->diffval);
 }
 
 
@@ -175,53 +170,19 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 	log_text ("builtin_checkcast called");
 #endif
 
-	if (!obj) return 1;
-	if ( builtin_isanysubclass (obj->vftbl->class, class) ) {
+	if (obj == NULL)
 		return 1;
-				}
+	if (builtin_isanysubclass (obj->vftbl->class, class))
+		return 1;
+
 #if DEBUG
-		printf ("#### checkcast failed ");
-		unicode_display (obj->vftbl->class->name);
-		printf (" -> ");
-		unicode_display (class->name);
-		printf ("\n");
+	printf ("#### checkcast failed ");
+	unicode_display (obj->vftbl->class->name);
+	printf (" -> ");
+	unicode_display (class->name);
+	printf ("\n");
 #endif
-		
-	return 0;
-}
 
-
-/***************** function: builtin_checkclasscast ****************************
-
-	Returns 1 (true) if the object "sub" is a subclass of the class "super",
-	otherwise returns 0 (false). If sub is NULL it also returns 1 (true).
-              
-*******************************************************************************/
-
-s4 builtin_checkclasscast(java_objectheader *sub, classinfo *super)
-{
-	if (!sub)
-		return 1;
-
-	return (sub->vftbl->lowclassval >= super->vftbl->lowclassval) &
-	       (sub->vftbl->lowclassval <= super->vftbl->highclassval);
-}
-
-
-/***************** function: builtin_checkintercast ****************************
-
-	Returns 1 (true) if the object "sub" is a subclass of the interface "super",
-	otherwise returns 0 (false). If "sub" is NULL it also returns 1 (true).
-              
-*******************************************************************************/
-
-s4 builtin_checkintercast(java_objectheader *sub, classinfo *super)
-{
-	if (!sub)
-		return 1;
-
-	return (sub->vftbl->interfacetablelength > super->index) &&
-	       (sub->vftbl->interfacevftbl[super->index] != NULL);
 	return 0;
 }
 
@@ -1649,3 +1610,16 @@ float builtin_d2f (double a)
 		}
 }
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

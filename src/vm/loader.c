@@ -1,5 +1,4 @@
-/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
-/****************************** loader.c ***************************************
+/* loader.c ********************************************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
@@ -29,18 +28,18 @@
 #include "threads/thread.h"                        /* schani */
 
 
-/*************************** globale Variablen *******************************/
+/* global variables ***********************************************************/
 
-extern bool newcompiler;     		
+extern bool newcompiler;        /* true if new compiler is used               */    		
 
-int count_class_infos = 0;
+int count_class_infos = 0;      /* variables for measurements                 */
 int count_const_pool_len = 0;
 int count_vftbl_len = 0;
 int count_all_methods = 0;
 int count_vmcode_len = 0;
 int count_extable_len = 0;
 
-bool loadverbose = false;        /* Switches f"ur mehr Debug-Meldungen */
+bool loadverbose = false;    /* switches for debug messages                   */
 bool linkverbose = false;
 bool initverbose = false;
 
@@ -50,17 +49,15 @@ bool getloadingtime = false;
 long int loadingtime = 0;
 
 
-static u4 interfaceindex;        /* fortlaufende Nummer f"ur Interfaces */ 
+static s4 interfaceindex;    /* sequential numbering of interfaces            */ 
 
-static list unloadedclasses;     /* Liste alle referenzierten, aber noch nicht 
-                                    geladenen Klassen */
-static list unlinkedclasses;     /* Liste aller geladenen, aber noch nicht
-                                    gelinkten Klassen */ 
-       list linkedclasses;       /* Liste aller fertig gelinkten Klassen */
+static list unloadedclasses; /* list of all referenced but not loaded classes */
+static list unlinkedclasses; /* list of all loaded but not linked classes     */
+       list linkedclasses;   /* list of all completely linked classes         */
 
 
 
-/***************** die Referenzen auf die wichtigen Systemklassen ************/
+/* important system classes ***************************************************/
 
 classinfo *class_java_lang_Object;
 classinfo *class_java_lang_String;
@@ -76,7 +73,7 @@ classinfo *class_java_lang_ThreadDeath;                 /* schani */
 classinfo *class_array;
 
 
-/************ einige vorgefertigte Instanzen wichtiger Systemklassen *********/
+/* instances of important system classes **************************************/
 
 java_objectheader *proto_java_lang_ClassCastException;
 java_objectheader *proto_java_lang_NullPointerException;
@@ -90,12 +87,12 @@ java_objectheader *proto_java_lang_ThreadDeath;         /* schani */
 
 
 
-/****************************************************************************/
-/******************* Einige Support-Funkionen *******************************/
-/****************************************************************************/
+/******************************************************************************/
+/******************* Einige Support-Funkionen *********************************/
+/******************************************************************************/
 
 
-/********** interne Funktion: printflags  (nur zu Debug-Zwecken) ************/
+/********** interne Funktion: printflags  (nur zu Debug-Zwecken) **************/
 
 static void printflags (u2 f)
 {
@@ -113,56 +110,53 @@ static void printflags (u2 f)
 }
 
 
-/************************* Funktion: skipattribute ****************************
+/************************* Funktion: skipattribute *****************************
 
 	"uberliest im ClassFile eine (1) 'attribute'-Struktur 
 
-******************************************************************************/
+*******************************************************************************/
 
 static void skipattribute ()
 {
-	u4 len;
-
 	suck_u2 ();
-	len = suck_u4 ();
-	skip_nbytes (len);	
+	skip_nbytes(suck_u4());	
 }
 
-/********************** Funktion: skipattributebody ***************************
+/********************** Funktion: skipattributebody ****************************
 
 	"uberliest im Classfile ein attribut, wobei die 16-bit - attribute_name - 
 	Referenz schon gelesen worden ist.
 	
-******************************************************************************/
+*******************************************************************************/
 
 static void skipattributebody ()
 {
-	u4 len = suck_u4 ();
-	skip_nbytes (len);
+	skip_nbytes(suck_u4());
 }
 
 
-/************************* Funktion: skipattributes ***************************
+/************************* Funktion: skipattributes ****************************
 
 	"uberliest im ClassFile eine gew"unschte Anzahl von attribute-Strukturen
 	
-******************************************************************************/
+*******************************************************************************/
 
 static void skipattributes (u4 num)
 {
 	u4 i;
-	for (i=0; i<num; i++) skipattribute();
+	for (i = 0; i < num; i++)
+		skipattribute();
 }
 
 
 
-/************************** Funktion: loadUtf8 ********************************
+/************************** Funktion: loadUtf8 *********************************
 
 	liest aus dem ClassFile einen Utf8-String (=komprimierter unicode-text) 
 	und legt daf"ur ein unicode-Symbol an. 
 	Return: Zeiger auf das Symbol 
 
-******************************************************************************/
+*******************************************************************************/
 
 #define MAXUNICODELEN 5000
 static u2 unicodebuffer[MAXUNICODELEN];
@@ -207,7 +201,7 @@ static unicode *loadUtf8 ()
 
 
 
-/******************** interne Funktion: checkfieldtype ***********************/
+/******************** interne Funktion: checkfieldtype ************************/
 
 static void checkfieldtype (u2 *text, u4 *count, u4 length)
 {
@@ -256,14 +250,14 @@ static void checkfieldtype (u2 *text, u4 *count, u4 length)
 }
 
 
-/******************* Funktion: checkfielddescriptor ***************************
+/******************* Funktion: checkfielddescriptor ****************************
 
 	"uberpr"uft, ob ein Field-Descriptor ein g"ultiges Format hat.
 	Wenn nicht, dann wird das System angehalten.
 	Au"serdem werden alle Klassen, die hier referenziert werden, 
 	in die Liste zu ladender Klassen eingetragen.
 	
-******************************************************************************/
+*******************************************************************************/
 
 void checkfielddescriptor (unicode *d)
 {
@@ -273,14 +267,14 @@ void checkfielddescriptor (unicode *d)
 }
 
 
-/******************* Funktion: checkmethoddescriptor **************************
+/******************* Funktion: checkmethoddescriptor ***************************
 
 	"uberpr"uft, ob ein Method-Descriptor ein g"ultiges Format hat.
 	Wenn nicht, dann wird das System angehalten.
 	Au"serdem werden alle Klassen, die hier referenziert werden, 
 	in die Liste zu ladender Klassen eingetragen.
 	
-******************************************************************************/
+*******************************************************************************/
 
 void checkmethoddescriptor (unicode *d)
 {
@@ -305,12 +299,12 @@ void checkmethoddescriptor (unicode *d)
 }
 
 
-/******************** Funktion: buildarraydescriptor ****************************
+/******************** Funktion: buildarraydescriptor ***************************
 
 	erzeugt zu einem namentlich als u2-String vorliegenden Arraytyp eine
 	entsprechende constant_arraydescriptor - Struktur 
 	
-********************************************************************************/
+*******************************************************************************/
 
 static constant_arraydescriptor * buildarraydescriptor(u2 *name, u4 namelen)
 {
@@ -349,7 +343,7 @@ static constant_arraydescriptor * buildarraydescriptor(u2 *name, u4 namelen)
 }
 
 
-/******************* Funktion: freearraydescriptor ****************************
+/******************* Funktion: freearraydescriptor *****************************
 
 	entfernt eine mit buildarraydescriptor erzeugte Struktur wieder 
 	aus dem Speicher
@@ -385,19 +379,19 @@ static void displayarraydescriptor (constant_arraydescriptor *d)
 
 
 
-/*****************************************************************************/
-/******************** Funktionen fuer Fields *********************************/
-/*****************************************************************************/
+/******************************************************************************/
+/******************** Funktionen fuer Fields **********************************/
+/******************************************************************************/
 
 
-/************************ Funktion: field_load ********************************
+/************************ Funktion: field_load *********************************
 
 	l"adt alle Informationen f"ur eine Feld einer Methode aus dem ClassFile,
 	und f"ullt mit diesen Infos eine schon existierende 'fieldinfo'-Struktur.
 	Bei 'static'-Fields wird auch noch ein Platz auf dem Datensegment
 	reserviert.
 
-******************************************************************************/
+*******************************************************************************/
 
 static void field_load (fieldinfo *f, classinfo *c)
 {
@@ -489,14 +483,14 @@ static void field_load (fieldinfo *f, classinfo *c)
 }
 
 
-/********************** Funktion: field_free *********************************/
+/********************** Funktion: field_free **********************************/
 
 static void field_free (fieldinfo *f)
 {
 }
 
 
-/************** Funktion: field_display (nur zu Debug-Zwecken) ***************/
+/************** Funktion: field_display (nur zu Debug-Zwecken) ****************/
 
 static void field_display (fieldinfo *f)
 {
@@ -512,12 +506,12 @@ static void field_display (fieldinfo *f)
 
 
 
-/*****************************************************************************/
-/************************* Funktionen f"ur Methods ***************************/ 
-/*****************************************************************************/
+/******************************************************************************/
+/************************* Funktionen f"ur Methods ****************************/ 
+/******************************************************************************/
 
 
-/*********************** Funktion: method_load ********************************
+/*********************** Funktion: method_load *********************************
 
 	l"adt die Infos f"ur eine Methode aus dem ClassFile und f"ullt damit 
 	eine schon existierende 'methodinfo'-Struktur aus.
@@ -525,7 +519,7 @@ static void field_display (fieldinfo *f)
 	Funktionszeiger eingetragen, bei JavaVM-Methoden einstweilen ein
 	Zeiger auf den Compiler 
 	
-******************************************************************************/
+*******************************************************************************/
 
 static void method_load (methodinfo *m, classinfo *c)
 {
@@ -612,12 +606,12 @@ static void method_load (methodinfo *m, classinfo *c)
 }
 
 
-/********************* Funktion: method_free **********************************
+/********************* Funktion: method_free ***********************************
 
 	gibt allen Speicher, der extra f"ur eine Methode angefordert wurde,
 	wieder frei
 
-******************************************************************************/
+*******************************************************************************/
 
 static void method_free (methodinfo *m)
 {
@@ -632,7 +626,7 @@ static void method_free (methodinfo *m)
 }
 
 
-/************** Funktion: method_display  (nur zu Debug-Zwecken) *************/
+/************** Funktion: method_display  (nur zu Debug-Zwecken) **************/
 
 void method_display (methodinfo *m)
 {
@@ -646,13 +640,13 @@ void method_display (methodinfo *m)
 }
 
 
-/******************** Funktion: method_canoverwrite ***************************
+/******************** Funktion: method_canoverwrite ****************************
 
 	"uberpr"ft, ob eine Methode mit einer anderen typ- und namensidentisch 
 	ist (also mit einer Methodendefinition eine andere "uberschrieben 
 	werden kann).
 	
-******************************************************************************/  
+*******************************************************************************/  
 
 static bool method_canoverwrite (methodinfo *m, methodinfo *old)
 {
@@ -665,18 +659,18 @@ static bool method_canoverwrite (methodinfo *m, methodinfo *old)
 
 
 
-/*****************************************************************************/
-/************************ Funktionen fuer Class ******************************/
-/*****************************************************************************/
+/******************************************************************************/
+/************************ Funktionen fuer Class *******************************/
+/******************************************************************************/
 
 
-/******************** Funktion: class_get *************************************
+/******************** Funktion: class_get **************************************
 
 	Sucht im System die Klasse mit dem gew"unschten Namen, oder erzeugt
 	eine neue 'classinfo'-Struktur (und h"angt sie in die Liste der zu
 	ladenen Klassen ein).
 
-******************************************************************************/
+*******************************************************************************/
 
 classinfo *class_get (unicode *u)
 {
@@ -706,6 +700,7 @@ classinfo *class_get (unicode *u)
 	c -> linked = false;
 	c -> index = 0;
 	c -> instancesize = 0;
+	c -> header.vftbl = NULL;
 	c -> vftbl = NULL;
 	c -> initialized = false;
 	
@@ -717,12 +712,12 @@ classinfo *class_get (unicode *u)
 
 
 
-/******************** Funktion: class_getconstant *****************************
+/******************** Funktion: class_getconstant ******************************
 
 	holt aus dem ConstantPool einer Klasse den Wert an der Stelle 'pos'.
 	Der Wert mu"s vom Typ 'ctype' sein, sonst wird das System angehalten.
 
-******************************************************************************/
+*******************************************************************************/
 
 voidptr class_getconstant (classinfo *c, u4 pos, u4 ctype) 
 {
@@ -738,12 +733,12 @@ voidptr class_getconstant (classinfo *c, u4 pos, u4 ctype)
 }
 
 
-/********************* Funktion: class_constanttype ***************************
+/********************* Funktion: class_constanttype ****************************
 
 	Findet heraus, welchen Typ ein Eintrag in den ConstantPool einer 
 	Klasse hat.
 	
-******************************************************************************/
+*******************************************************************************/
 
 u4 class_constanttype (classinfo *c, u4 pos)
 {
@@ -753,7 +748,7 @@ u4 class_constanttype (classinfo *c, u4 pos)
 }
 
 
-/******************** Funktion: class_loadcpool *******************************
+/******************** Funktion: class_loadcpool ********************************
 
 	l"adt den gesammten ConstantPool einer Klasse.
 	
@@ -761,7 +756,7 @@ u4 class_constanttype (classinfo *c, u4 pos)
 	Format gebracht (Klassenreferenzen werden aufgel"ost, ...)
 	F"ur eine genaue "Ubersicht "uber das kompakte Format siehe: 'global.h' 
 
-******************************************************************************/
+*******************************************************************************/
 
 static void class_loadcpool (classinfo *c)
 {
@@ -1050,7 +1045,7 @@ static void class_loadcpool (classinfo *c)
 }
 
 
-/********************** Funktion: class_load **********************************
+/********************** Funktion: class_load ***********************************
 
 	l"adt alle Infos f"ur eine ganze Klasse aus einem ClassFile. Die
 	'classinfo'-Struktur mu"s bereits angelegt worden sein.
@@ -1062,7 +1057,7 @@ static void class_loadcpool (classinfo *c)
 	Die gelesene Klasse wird dann aus der Liste 'unloadedclasses' ausgetragen
 	und in die Liste 'unlinkedclasses' eingh"angt.
 	
-******************************************************************************/
+*******************************************************************************/
 
 static void class_load (classinfo *c)
 {
@@ -1142,12 +1137,12 @@ static void class_load (classinfo *c)
 
 
 
-/************** interne Funktion: class_highestinterface **********************
+/************** interne Funktion: class_highestinterface ***********************
 
 	wird von der Funktion class_link ben"otigt, um festzustellen, wie gro"s
 	die Interfacetable einer Klasse sein mu"s.
 
-******************************************************************************/
+*******************************************************************************/
 
 static s4 class_highestinterface (classinfo *c) 
 {
@@ -1169,46 +1164,47 @@ static s4 class_highestinterface (classinfo *c)
 }
 
 
-/**************** Funktion: class_addinterface ********************************
+/* class_addinterface **********************************************************
 
 	wird von der Funktion class_link ben"otigt, um eine Virtual Function 
 	Table f"ur ein Interface (und alle weiteren von diesem Interface
 	implementierten Interfaces) in eine Klasse einzutragen.
 
-******************************************************************************/	
+*******************************************************************************/	
 
 static void class_addinterface (classinfo *c, classinfo *ic)
 {
-	u4 i = ic->index;
-	u4 j,m;
+	s4     j, m;
+	s4     i     = ic->index;
 	vftbl *vftbl = c->vftbl;
 	
-	if (i>=vftbl->interfacetablelength) panic ("Interfacetable-Overflow");
-	if (vftbl->interfacevftbl[i]) return;
+	if (i >= vftbl->interfacetablelength)
+		panic ("Inernal error: interfacetable overflow");
+	if (vftbl->interfacetable[-i])
+		return;
 
-	if (ic->methodscount==0) {  /* wenn interface keine Methoden hat, dann 
-	                               trotzdem eine Tabelle mit L"ange 1 anlegen,
-	                               wegen Subclass-Tests */
-		vftbl -> interfacevftbllength[i] = 1;
-		vftbl -> interfacevftbl[i] = MNEW(methodptr, 1);
-		vftbl -> interfacevftbl[i][0] = NULL;
+	if (ic->methodscount == 0) {  /* fake entry needed for subtype test */
+		vftbl->interfacevftbllength[i] = 1;
+		vftbl->interfacetable[-i] = MNEW(methodptr, 1);
+		vftbl->interfacetable[-i][0] = NULL;
 		}
 	else {
-		vftbl -> interfacevftbllength[i] = ic -> methodscount;
-		vftbl -> interfacevftbl[i] = MNEW(methodptr, ic -> methodscount); 
+		vftbl->interfacevftbllength[i] = ic->methodscount;
+		vftbl->interfacetable[-i] = MNEW(methodptr, ic->methodscount); 
 
 #ifdef STATISTICS
-	count_vftbl_len += sizeof(methodptr) * ic -> methodscount;
+	count_vftbl_len += sizeof(methodptr) *
+	                         (ic->methodscount + (ic->methodscount == 0));
 #endif
 
 		for (j=0; j<ic->methodscount; j++) {
 			classinfo *sc = c;
 			while (sc) {
-				for (m=0; m<sc->methodscount; m++) {
+				for (m = 0; m < sc->methodscount; m++) {
 					methodinfo *mi = &(sc->methods[m]);
-					if (method_canoverwrite (mi, &(ic->methods[j])) ) {
-						vftbl->interfacevftbl[i][j] = 
-						         vftbl->table[mi->vftblindex];
+					if (method_canoverwrite(mi, &(ic->methods[j]))) {
+						vftbl->interfacetable[-i][j] = 
+						                          vftbl->table[mi->vftblindex];
 						goto foundmethod;
 						}
 					}
@@ -1217,13 +1213,13 @@ static void class_addinterface (classinfo *c, classinfo *ic)
 			 foundmethod: ;
 			}
 		}
-		
-	for (j=0; j<ic->interfacescount; j++) 
+
+	for (j = 0; j < ic->interfacescount; j++) 
 		class_addinterface(c, ic->interfaces[j]);
 }
 
 
-/********************** Funktion: class_link **********************************
+/********************** Funktion: class_link ***********************************
 
 	versucht, eine Klasse in das System voll zu integrieren (linken). Dazu 
 	m"ussen sowol die Superklasse, als auch alle implementierten
@@ -1240,53 +1236,60 @@ static void class_addinterface (classinfo *c, classinfo *ic)
 	Achtung: Bei zyklischen Klassendefinitionen ger"at das Programm hier in
 	         eine Endlosschleife!!  (Da muss ich mir noch was einfallen lassen)
 
-******************************************************************************/
+*******************************************************************************/
 
 static void class_link (classinfo *c)
 {
-	u4 supervftbllength;          /* L"ange der VFTBL der Superklasse */
-	u4 vftbllength;               /* L"ange der VFTBL dieser Klasse */
-	classinfo *super = c->super;  
-	classinfo *ic,*c2;            /* Hilfsvariablen */
-	vftbl *v;
-	u4 i;                          
+	s4 supervftbllength;          /* vftbllegnth of super class               */
+	s4 vftbllength;               /* vftbllength of current class             */
+	s4 interfacetablelength;      /* interface table length                   */
+	classinfo *super = c->super;  /* super class                              */
+	classinfo *ic, *c2;           /* intermediate class variables             */
+	vftbl *v;                     /* vftbl of current class                   */
+	s4 i;                         /* interface/method/field counter           */                     
 
 
-		/* schauen, ob alle "ubergeordneten Klassen schon fertig sind, 
-		   und richtiges Initialisieren der lokalen Variablen */ 
+	/*  check if all superclasses are already linked, if not put c at end of
+	    unlinked list and return. Additionally initialize class fields.       */
 
-	for ( i=0; i<c->interfacescount; i++) {
+	/*  check interfaces */
+
+	for (i = 0; i < c->interfacescount; i++) {
 		ic = c->interfaces[i];
-		if ( !ic -> linked) {
-			list_remove (&unlinkedclasses,c );
-			list_addlast (&unlinkedclasses,c );
+		if (!ic->linked) {
+			list_remove(&unlinkedclasses, c);
+			list_addlast(&unlinkedclasses, c);
 			return;	
 			}
 		}
 	
-	if (! super) {
-		c -> index = 0;
-		c -> instancesize = sizeof (java_objectheader);
+	/*  check super class */
+
+	if (super == NULL) {          /* class java.long.Object */
+		c->index = 0;
+		c->instancesize = sizeof(java_objectheader);
 		
 		vftbllength = supervftbllength = 0;
 
-		c -> finalizer = NULL;
+		c->finalizer = NULL;
 		}
 	else {
-		if ( !super -> linked ) {
-			list_remove (&unlinkedclasses,c );
-			list_addlast (&unlinkedclasses,c );
+		if (!super->linked) {
+			list_remove(&unlinkedclasses, c);
+			list_addlast(&unlinkedclasses, c);
 			return;	
 			}
 
-		if ( c->flags & ACC_INTERFACE)     c -> index = interfaceindex++;
-		                        else       c -> index = super -> index + 1;
+		if (c->flags & ACC_INTERFACE)
+			c->index = interfaceindex++;
+		else
+			c->index = super->index + 1;
 		
-		c -> instancesize = super -> instancesize;
+		c->instancesize = super->instancesize;
 		
-		vftbllength = supervftbllength = super -> vftbl -> vftbllength;
+		vftbllength = supervftbllength = super->vftbl->vftbllength;
 		
-		c -> finalizer = super -> finalizer;
+		c->finalizer = super->finalizer;
 		}
 
 
@@ -1296,25 +1299,25 @@ static void class_link (classinfo *c)
 		dolog ();
 		}
 
-		/* Erstellen der Virtual Function Table */
+	/* compute vftbl length */
 
-	for (i=0; i < c->methodscount; i++) {
+	for (i = 0; i < c->methodscount; i++) {
 		methodinfo *m = &(c->methods[i]);
 			
-		if (! (m->flags & ACC_STATIC) ) {
+		if (!(m->flags & ACC_STATIC)) { /* is instance method */
 			classinfo *sc = super;
 			while (sc) {
 				int j;
-				for (j=0; j < sc->methodscount; j++) {
-					if ( method_canoverwrite (m, &(sc->methods[j])) ) {
-						m -> vftblindex = sc->methods[j].vftblindex;
+				for (j = 0; j < sc->methodscount; j++) {
+					if (method_canoverwrite(m, &(sc->methods[j]))) {
+						m->vftblindex = sc->methods[j].vftblindex;
 						goto foundvftblindex;
 						}
 					}
 				sc = sc->super;
 				}
-			m -> vftblindex = (vftbllength++);
-		  foundvftblindex: ;
+			m->vftblindex = (vftbllength++);
+foundvftblindex: ;
 			}
 		}	
 	
@@ -1322,106 +1325,114 @@ static void class_link (classinfo *c)
 	count_vftbl_len += sizeof(vftbl) + sizeof(methodptr)*(vftbllength-1);
 #endif
 
-	c -> vftbl = v = (vftbl*) 
-	     mem_alloc (sizeof(vftbl) + sizeof(methodptr)*(vftbllength-1));
-	v -> class = c;
-	v -> vftbllength = vftbllength;
-	v -> interfacetablelength = 0;
-	
-	for (i=0; i < supervftbllength; i++) 
-	   v -> table[i] = super -> vftbl -> table[i];
-	
-	for (i=0; i < c->methodscount; i++) {
-		methodinfo *m = &(c->methods[i]);
-		if ( ! (m->flags & ACC_STATIC) ) {
-			v -> table[m->vftblindex] = m -> stubroutine;
-			}
-		}
+	/* compute interfacetable length */
 
-
-		/* Berechnen der Instanzengr"o"se und der Offsets der einzelnen 
-		   Felder */
-	
-	for (i=0; i < c->fieldscount; i++) {
-		u4 dsize;
-		fieldinfo *f = &(c -> fields[i]);
-		
-		if ( ! (f->flags & ACC_STATIC) ) {
-			dsize = desc_typesize (f->descriptor);
-			c -> instancesize = ALIGN ( c->instancesize, dsize);
-			f -> offset = c -> instancesize;
-			c -> instancesize += dsize;
-			}
-
-		}
-
-	
-		/* Berechnen der Virtual Function Tables f"ur alle Interfaces */
-	
+	interfacetablelength = 0;
 	c2 = c;
 	while (c2) {
-		for (i=0; i<c2->interfacescount; i++) {
+		for (i = 0; i < c2->interfacescount; i++) {
 			s4 h = class_highestinterface (c2->interfaces[i]) + 1;
-			if ( h > v->interfacetablelength) v->interfacetablelength = h;
+			if (h > interfacetablelength)
+				interfacetablelength = h;
 			}
 		c2 = c2->super;
 		}
-	v -> interfacevftbllength = MNEW (u4, v->interfacetablelength);
-	v -> interfacevftbl = MNEW (methodptr *, v->interfacetablelength); 
+
+	/* allocate virtual function table */
+
+	v = (vftbl*) mem_alloc(sizeof(vftbl) + sizeof(methodptr) *
+	            (vftbllength - 1) + sizeof(methodptr*) *
+	            (interfacetablelength - (interfacetablelength > 0)));
+	v = (vftbl*) (((methodptr*) v) + (interfacetablelength - 1) *
+	                                 (interfacetablelength > 1));
+	c->header.vftbl = c->vftbl = v;
+	v->class = c;
+	v->vftbllength = vftbllength;
+	v->interfacetablelength = interfacetablelength;
+
+	/* copy virtual function table of super class */
+
+	for (i = 0; i < supervftbllength; i++) 
+	   v->table[i] = super->vftbl->table[i];
+	
+	/* add method stubs into virtual function table */
+
+	for (i = 0; i < c->methodscount; i++) {
+		methodinfo *m = &(c->methods[i]);
+		if (!(m->flags & ACC_STATIC)) {
+			v->table[m->vftblindex] = m->stubroutine;
+			}
+		}
+
+	/* compute instance size and offset of each field */
+	
+	for (i = 0; i < c->fieldscount; i++) {
+		s4 dsize;
+		fieldinfo *f = &(c->fields[i]);
+		
+		if (!(f->flags & ACC_STATIC) ) {
+			dsize = desc_typesize (f->descriptor);
+			c->instancesize = ALIGN (c->instancesize, dsize);
+			f->offset = c->instancesize;
+			c->instancesize += dsize;
+			}
+		}
+
+	/* initialize interfacetable and interfacevftbllength */
+	
+	v->interfacevftbllength = MNEW (s4, interfacetablelength);
 
 #ifdef STATISTICS
-	count_vftbl_len += (4 + sizeof(methodptr*)) * v->interfacetablelength;
+	count_vftbl_len += (4 + sizeof(s4)) * v->interfacetablelength;
 #endif
 
-	for (i=0; i < v->interfacetablelength; i++) {
-		v -> interfacevftbllength[i] = 0;
-		v -> interfacevftbl[i] = NULL;
+	for (i = 0; i < interfacetablelength; i++) {
+		v->interfacevftbllength[i] = 0;
+		v->interfacetable[-i] = NULL;
 		}
 	
-	c2 = c;
-	while (c2) {
-		for (i=0; i<c2->interfacescount; i++) {
+	/* add interfaces */
+	
+	for (c2 = c; c2 != NULL; c2 = c2->super)
+		for (i = 0; i < c2->interfacescount; i++) {
 			class_addinterface (c, c2->interfaces[i]);
 			}
-		c2 = c2->super;
-		}
-		
 
+	/* add finalizer method (not for java.lang.Object) */
 
-		/* Die finalizer-Methode suchen und eintragen (wenn vorhanden), 
-		   aber nur bei Objekten ausser java.lang.Object */
-
-	if (super) {
+	if (super != NULL) {
 		methodinfo *fi;
-		static unicode *finame=NULL,*fidesc=NULL;
-		
-		if (!finame) finame = unicode_new_char ("finalize");
-		if (!fidesc) fidesc = unicode_new_char ("()V");
+		static unicode *finame = NULL;
+		static unicode *fidesc = NULL;
+
+		if (finame == NULL)
+			finame = unicode_new_char("finalize");
+		if (fidesc == NULL)
+			fidesc = unicode_new_char("()V");
 
 		fi = class_findmethod (c, finame, fidesc);
-		if (fi) {
-			if (! (fi->flags & ACC_STATIC) ) {
-				c -> finalizer = fi;
+		if (fi != NULL) {
+			if (!(fi->flags & ACC_STATIC)) {
+				c->finalizer = fi;
 				}
 			}
-	}
-	
-	
-		/* Abschlie"sende Aktionen */
-	
-	c -> linked = true;	
+		}
+
+	/* final tasks */
+
+	c->linked = true;	
 
 	list_remove (&unlinkedclasses, c);
 	list_addlast (&linkedclasses, c);
 }
 
 
-/******************* Funktion: class_freepool *********************************
+/******************* Funktion: class_freepool **********************************
 
 	Gibt alle Resourcen, die der ConstantPool einer Klasse ben"otigt,
 	wieder frei.
 
-******************************************************************************/
+*******************************************************************************/
 
 static void class_freecpool (classinfo *c)
 {
@@ -1467,15 +1478,15 @@ static void class_freecpool (classinfo *c)
 }
 
 
-/*********************** Funktion: class_free *********************************
+/*********************** Funktion: class_free **********************************
 
 	Gibt alle Resourcen, die eine ganze Klasse ben"otigt, frei
 
-******************************************************************************/
+*******************************************************************************/
 
 static void class_free (classinfo *c)
 {
-	u4 i;
+	s4 i;
 	vftbl *v;
 		
 	unicode_unlinkclass (c->name);
@@ -1484,38 +1495,44 @@ static void class_free (classinfo *c)
 
 	MFREE (c->interfaces, classinfo*, c->interfacescount);
 
-	for (i=0; i < c->fieldscount; i++) field_free ( &(c->fields[i]) );
+	for (i = 0; i < c->fieldscount; i++)
+		field_free(&(c->fields[i]));
 	MFREE (c->fields, fieldinfo, c->fieldscount);
 	
-	for (i=0; i < c->methodscount; i++) method_free ( &(c->methods[i]) );
+	for (i = 0; i < c->methodscount; i++)
+		method_free(&(c->methods[i]));
 	MFREE (c->methods, methodinfo, c->methodscount);
 
-	if ( (v = c->vftbl) ) {
-		for (i=0; i<v->interfacetablelength; i++) {
-			MFREE (v->interfacevftbl[i], methodptr, v->interfacevftbllength[i]);
+	if ((v = c->vftbl) != NULL) {
+		for (i = 0; i < v->interfacetablelength; i++) {
+			MFREE (v->interfacetable[-i], methodptr, v->interfacevftbllength[i]);
 			}
-		MFREE (v->interfacevftbllength, u4, v->interfacetablelength);
-		MFREE (v->interfacevftbl, methodptr*, v->interfacetablelength);
+		MFREE (v->interfacevftbllength, s4, v->interfacetablelength);
 
-		mem_free (v, sizeof(vftbl) + sizeof(methodptr) * (v->vftbllength - 1));
+		i = sizeof(vftbl) + sizeof(methodptr) * (v->vftbllength - 1) +
+		    sizeof(methodptr*) * (v->interfacetablelength -
+		                         (v->interfacetablelength > 0));
+		v = (vftbl*) (((methodptr*) v) - (v->interfacetablelength - 1) *
+	                                     (v->interfacetablelength > 1));
+		mem_free (v, i);
 		}
 		
 	FREE (c, classinfo);
 }
 
 
-/************************* Funktion: class_findfield *************************
+/************************* Funktion: class_findfield ***************************
 	
 	sucht in einer 'classinfo'-Struktur nach einem Feld mit gew"unschtem
 	Namen und Typ.
 
-*****************************************************************************/
+*******************************************************************************/
 
 fieldinfo *class_findfield (classinfo *c, unicode *name, unicode *desc)
 {
-	u4 i;
-	for (i=0; i < c->fieldscount; i++) {
-		if ( (c->fields[i].name == name)  &&  (c->fields[i].descriptor == desc) )
+	s4 i;
+	for (i = 0; i < c->fieldscount; i++) {
+		if ((c->fields[i].name == name) && (c->fields[i].descriptor == desc))
 			return &(c->fields[i]);
 		}
 	panic ("Can not find field given in CONSTANT_Fieldref");
@@ -1523,34 +1540,31 @@ fieldinfo *class_findfield (classinfo *c, unicode *name, unicode *desc)
 }
 
 
-/************************* Funktion: class_findmethod *************************
+/************************* Funktion: class_findmethod **************************
 	
 	sucht in einer 'classinfo'-Struktur nach einer Methode mit gew"unschtem
 	Namen und Typ.
 	Wenn als Typ NULL angegeben wird, dann ist der Typ egal.
 
-*****************************************************************************/
+*******************************************************************************/
 
 methodinfo *class_findmethod (classinfo *c, unicode *name, unicode *desc)
 {
-	u4 i;
-	for (i=0; i < c->methodscount; i++) {
-		if (     (c->methods[i].name == name)  
-			  && (    (desc == NULL) 
-			      ||  (c->methods[i].descriptor == desc) 
-			     )  
-		   )
+	s4 i;
+	for (i = 0; i < c->methodscount; i++) {
+		if ((c->methods[i].name == name) && ((desc == NULL) ||
+		                                   (c->methods[i].descriptor == desc)))
 			return &(c->methods[i]);
 		}
 	return NULL;
 }
 
 
-/************************* Funktion: class_resolvemethod *************************
+/************************* Funktion: class_resolvemethod ***********************
 	
 	sucht eine Klasse und alle Superklassen ab, um eine Methode zu finden.
 
-*****************************************************************************/
+*******************************************************************************/
 
 
 methodinfo *class_resolvemethod (classinfo *c, unicode *name, unicode *desc)
@@ -1565,11 +1579,11 @@ methodinfo *class_resolvemethod (classinfo *c, unicode *name, unicode *desc)
 	
 
 
-/************************* Funktion: class_issubclass ************************
+/************************* Funktion: class_issubclass **************************
 
 	"uberpr"uft, ob eine Klasse von einer anderen Klasse abgeleitet ist.		
 	
-*****************************************************************************/
+*******************************************************************************/
 
 bool class_issubclass (classinfo *sub, classinfo *super)
 {
@@ -1582,14 +1596,14 @@ bool class_issubclass (classinfo *sub, classinfo *super)
 
 
 
-/****************** Initialisierungsfunktion f"ur eine Klasse ****************
+/****************** Initialisierungsfunktion f"ur eine Klasse ******************
 
 	In Java kann jede Klasse ein statische Initialisierungsfunktion haben.
 	Diese Funktion mu"s aufgerufen werden, BEVOR irgendwelche Methoden der
 	Klasse aufgerufen werden, oder auf statische Variablen zugegriffen
 	wird.
 
-******************************************************************************/
+*******************************************************************************/
 
 #ifdef USE_THREADS
 extern int blockInts;
@@ -1660,7 +1674,7 @@ void class_init (classinfo *c)
 
 
 
-/********* Funktion: class_showconstantpool   (nur f"ur Debug-Zwecke) ********/
+/********* Funktion: class_showconstantpool   (nur f"ur Debug-Zwecke) *********/
 
 void class_showconstantpool (classinfo *c) 
 {
@@ -1752,11 +1766,11 @@ void class_showconstantpool (classinfo *c)
 
 
 
-/********** Funktion: class_showmethods   (nur f"ur Debug-Zwecke) ************/
+/********** Funktion: class_showmethods   (nur f"ur Debug-Zwecke) *************/
 
 void class_showmethods (classinfo *c)
 {
-	u4 i;
+	s4 i;
 	
 	printf ("--------- Fields and Methods ----------------\n");
 	printf ("Flags: ");	printflags (c->flags);	printf ("\n");
@@ -1798,18 +1812,18 @@ void class_showmethods (classinfo *c)
 
 
 
-/*****************************************************************************/
-/******************* Funktionen fuer den Class-loader generell ***************/
-/*****************************************************************************/
+/******************************************************************************/
+/******************* Funktionen fuer den Class-loader generell ****************/
+/******************************************************************************/
 
 
-/********************* Funktion: loader_load **********************************
+/********************* Funktion: loader_load ***********************************
 
 	l"adt und linkt die ge"unschte Klasse und alle davon 
 	referenzierten Klassen und Interfaces
 	Return: Einen Zeiger auf diese Klasse
 
-******************************************************************************/
+*******************************************************************************/
 
 classinfo *loader_load (unicode *topname)
 {
@@ -1842,11 +1856,11 @@ classinfo *loader_load (unicode *topname)
 }
 
 
-/******************* interne Funktion: loader_createarrayclass ****************
+/******************* interne Funktion: loader_createarrayclass *****************
 
 	Erzeugt (und linkt) eine Klasse f"ur die Arrays.
 	
-******************************************************************************/
+*******************************************************************************/
 
 static classinfo *loader_createarrayclass ()
 {
@@ -1863,12 +1877,12 @@ static classinfo *loader_createarrayclass ()
 
 
 
-/********************** Funktion: loader_init *********************************
+/********************** Funktion: loader_init **********************************
 
 	Initialisiert alle Listen und l"adt alle Klassen, die vom System
 	und vom Compiler direkt ben"otigt werden.
 
-******************************************************************************/
+*******************************************************************************/
  
 void loader_init ()
 {
@@ -1943,7 +1957,7 @@ void loader_init ()
 
 	initialisiert alle geladenen aber noch nicht initialisierten Klassen
 
-******************************************************************************/
+*******************************************************************************/
 
 void loader_initclasses ()
 {
@@ -1968,19 +1982,19 @@ static void loader_compute_class_values (classinfo *c)
 {
 	classinfo *subs;
 
-	c->vftbl->lowclassval = classvalue++;
+	c->vftbl->baseval = ++classvalue;
 	subs = c->sub;
 	while (subs != NULL) {
 		loader_compute_class_values(subs);
 		subs = subs->nextsub;
 		}
-	c->vftbl->highclassval = classvalue++;
+	c->vftbl->diffval = classvalue - c->vftbl->baseval;
 /*
 	{
 	int i;
 	for (i = 0; i < c->index; i++)
 		printf(" ");
-	printf("%3d  %3d  ", (int) c->vftbl->lowclassval, (int) c->vftbl->highclassval);
+	printf("%3d  %3d  ", (int) c->vftbl->baseval, c->vftbl->diffval);
 	unicode_display(c->name);
 	printf("\n");
 	}
@@ -2010,11 +2024,11 @@ void loader_compute_subclasses ()
 
 
 
-/******************** Funktion: loader_close **********************************
+/******************** Funktion: loader_close ***********************************
 
 	gibt alle Resourcen wieder frei
 	
-******************************************************************************/
+*******************************************************************************/
 
 void loader_close ()
 {
@@ -2034,3 +2048,16 @@ void loader_close ()
 		}
 }
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

@@ -9,7 +9,7 @@
 # Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 #          Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 #
-# Last Change: 1998/09/27
+# Last Change: 1998/10/30
 #
 #
 # ATTENTION: This version of the makefile only works with gmake.
@@ -42,7 +42,7 @@ THREAD_OBJ =
 THREAD_CFLAGS =
 endif
 
-#CC = gcc
+#CC = cc
 #CFLAGS = -g -mieee -Wall $(THREAD_CFLAGS)
 #CFLAGS = -mieee -O3 -Wall $(THREAD_CFLAGS)
 
@@ -94,7 +94,7 @@ endif
 mm/mm.o: mm/*.[ch] mm/Makefile
 	cd mm; make mm.o "USE_THREADS=$(USE_THREADS)" "CFLAGS=$(CFLAGS)" "CC=$(CC)"
 
-asmpart.o: sysdep/asmpart.c
+asmpart.o: sysdep/asmpart.c sysdep/offsets.h
 	rm -f asmpart.s
 	$(CC) -E sysdep/asmpart.c > asmpart.s
 	$(CC) -c -o asmpart.o asmpart.s
@@ -156,7 +156,7 @@ config-sparc:
 
 ##################### generation of NATIVE - header files ######################
 
-nativetypes.hh nativetable.hh : cacaoh
+sysdep/offsets.h nativetypes.hh nativetable.hh : cacaoh
 	./cacaoh java.lang.Object \
        java.lang.String \
        java.lang.Class \

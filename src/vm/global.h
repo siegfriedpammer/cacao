@@ -1,4 +1,4 @@
-/****************************** global.h ***************************************
+/* global.h ********************************************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
@@ -7,10 +7,10 @@
 	Contains global definitions which are used in the whole program, includes
 	some files and contains global used macros.
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	Changes: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
-	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
-			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
+	Authors: Reinhard Grafl              EMAIL: cacao@complang.tuwien.ac.at
+	         Andreas  Krall   (andi)     EMAIL: cacao@complang.tuwien.ac.at
+	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
+			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
 	Last Change: 1998/10/30
 
@@ -25,7 +25,7 @@
    marker functions on and off. */
 #undef JIT_MARKER_SUPPORT                  /* phil   */
 
-/***************************** standard includes ******************************/
+/* standard includes **********************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,17 +38,16 @@
 #include "toolbox/loging.h"
 
 
-/**************************** system dependent types **************************/
+/* system dependent types *****************************************************/
 
 #include "sysdep/types.h"
 
 
-/**************************** additional data types ***************************/
+/* additional data types ******************************************************/
 
 typedef void *voidptr;          /* generic pointer */
 
-
-typedef u1    bool;             /* boolean data type */
+typedef int   bool;             /* boolean data type */
 
 #define true  1
 #define false 0
@@ -59,43 +58,42 @@ typedef void (*functionptr) (); /* generic function pointer */
 #define MAX_ALIGN 8             /* most generic alignment for JavaVM values   */
 
 
-/**************************** shutdown function *******************************/
+/* shutdown function **********************************************************/
 
 void cacao_shutdown(s4 status);
 
 
-/**************************** basic data types ********************************/
+/* basic data types ***********************************************************/
 
 #define TYPE_INT      0         /* the JavaVM types must numbered in the      */
 #define TYPE_LONG     1         /* same order as the ICMD_Ixxx to ICMD_Axxx   */
 #define TYPE_FLOAT    2         /* instructions (LOAD and STORE)              */
 #define TYPE_DOUBLE   3         /* integer, long, float, double, address      */
-#define TYPE_ADDRESS  4         /* all other types can be numbered arbitrarily*/
+#define TYPE_ADDRESS  4         /* all other types can be numbered arbitrarly */
 
 #define TYPE_VOID    10
 
 
-/**************************** Java class file constants ***********************/
+/* Java class file constants **************************************************/
 
 #define MAGIC         0xcafebabe
 #define MINOR_VERSION 3
 #define MAJOR_VERSION 45
 
-#define CONSTANT_Class                7
-#define CONSTANT_Fieldref             9
-#define CONSTANT_Methodref           10
-#define CONSTANT_InterfaceMethodref  11
-#define CONSTANT_String               8
-#define CONSTANT_Integer              3
-#define CONSTANT_Float                4
-#define CONSTANT_Long                 5
-#define CONSTANT_Double               6
-#define CONSTANT_NameAndType         12
-#define CONSTANT_Utf8                 1
+#define CONSTANT_Class                 7
+#define CONSTANT_Fieldref              9
+#define CONSTANT_Methodref            10
+#define CONSTANT_InterfaceMethodref   11
+#define CONSTANT_String                8
+#define CONSTANT_Integer               3
+#define CONSTANT_Float                 4
+#define CONSTANT_Long                  5
+#define CONSTANT_Double                6
+#define CONSTANT_NameAndType          12
+#define CONSTANT_Utf8                  1
 
-#define CONSTANT_Arraydescriptor     13
-#define CONSTANT_UNUSED               0
-
+#define CONSTANT_Arraydescriptor      13
+#define CONSTANT_UNUSED                0
 
 #define ACC_PUBLIC                0x0001
 #define ACC_PRIVATE               0x0002
@@ -110,67 +108,90 @@ void cacao_shutdown(s4 status);
 #define ACC_ABSTRACT              0x0400
 
 
-
-/**************************** resolve typedef-cycles **************************/
+/* resolve typedef cycles *****************************************************/
 
 typedef struct unicode unicode;
+typedef struct java_objectheader java_objectheader; 
 typedef struct classinfo classinfo; 
 typedef struct vftbl vftbl;
 typedef u1* methodptr;
 
 
-/********************** data structures of UNICODE symbol *********************/
+/* constant pool entries *******************************************************
+
+	All constant pool entries need a data structure which contain the entrys
+	value. In some cases this structure exist already, in the remaining cases
+	this structure must be generated:
+
+		kind                      structure                     generated?
+	----------------------------------------------------------------------
+    CONSTANT_Class               classinfo                           no
+    CONSTANT_Fieldref            constant_FMIref                    yes
+    CONSTANT_Methodref           constant_FMIref                    yes
+    CONSTANT_InterfaceMethodref  constant_FMIref                    yes
+    CONSTANT_String              unicode                             no
+    CONSTANT_Integer             constant_integer                   yes
+    CONSTANT_Float               constant_float                     yes
+    CONSTANT_Long                constant_long                      yes
+    CONSTANT_Double              constant_double                    yes
+    CONSTANT_NameAndType         constant_nameandtype               yes
+    CONSTANT_Utf8                unicode                             no
+    CONSTANT_Arraydescriptor     constant_arraydescriptor           yes
+    CONSTANT_UNUSED              -
+
+*******************************************************************************/
+
+/* data structures of Unicode symbol *******************************************
+
+	All Unicode symbols are stored in one global (hash) table, every symbol
+	exists only once. Equal symbols have identical pointers.
+*/
 
 struct unicode {
-	unicode   *hashlink; /* externe Verkettung f"ur die unicode-Hashtabelle */
-	u4         key;      /* Hash-Schl"ussel (h"angt nur vom Text ab) */
-	int        length;   /* L"ange des Textes */           
-	u2        *text;     /* Zeiger auf den Text (jeder Buchstabe 16 Bit) */
-	classinfo *class;    /* gegebenenfalls Referenz auf die Klasse dieses 
-							Namens (oder NULL, wenn es keine solche gibt)  */
-	struct java_objectheader *string;
-	/* gegebenenfalls Referenz auf einen konstanten
-	   String mit dem entsprechenden Wert */ 
+	unicode   *hashlink;        /* link for external hash chain               */
+	u4         key;             /* hash key (computed from text)              */
+	int        length;          /* text length                                */           
+	u2        *text;            /* pointer to text (each character is 16 Bit) */
+	classinfo *class;           /* class pointer if it exists, otherwise NULL */
+	java_objectheader *string;  /* string pointer if it exists, otherwise NULL*/ 
 };
 
-/* Alle Unicode-Symbole werden in einer einzigen globalen Tabelle 
-	   (Hashtabelle) verwaltet, jedes Symbol wird nur einmal angelegt.
-	   -> Speicherersparnis, und "Uberpr"ufung auf Gleichheit durch einfachen
-	   Zeigervergleich */
 
+/* data structures of remaining constant pool entries *************************/
 
-/************ data structures of remaining constant pool entries **************/
-
-
-typedef struct {
-	classinfo *class;
-	unicode   *name;
-	unicode   *descriptor;
+typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
+	classinfo *class;       /* class containing this field/method/interface   */
+	unicode   *name;        /* field/method/interface name                    */
+	unicode   *descriptor;  /* field/method/interface type descriptor string  */
 } constant_FMIref;
 
-
-typedef struct {
+typedef struct {            /* Integer                                        */
 	s4 value;
 } constant_integer;
 	
-typedef struct {
+typedef struct {            /* Float                                          */
 	float value;
 } constant_float;
 
-typedef struct {
+typedef struct {            /* Long                                           */
 	s8 value;
 } constant_long;
 	
-typedef struct {
+typedef struct {            /* Double                                         */
 	double value;
 } constant_double;
 
-
-typedef struct {
-	unicode *name;
-	unicode *descriptor;
+typedef struct {            /* NameAndType (Field or Method)                  */
+	unicode *name;          /* field/method name                              */
+	unicode *descriptor;    /* field/method type descriptor string            */
 } constant_nameandtype;
 
+/*  arraydescriptor describes array types. Basic array types contain their
+	type in the arraytype field, objectclass contains a class pointer for
+	arrays of objects (arraytype == ARRAYTYPE_OBJECT), elementdescriptor
+	contains a pointer to an arraydescriptor which describes the element
+	types in the case of arrays of arrays (arraytype == ARRAYTYPE_ARRAY).
+*/
 
 typedef struct constant_arraydescriptor {
 	int arraytype;
@@ -178,75 +199,28 @@ typedef struct constant_arraydescriptor {
 	struct constant_arraydescriptor *elementdescriptor;
 } constant_arraydescriptor;
 
-/* Mit einem Arraydescriptor kann ein Array-Typ dargestellt werden.
-	   Bei normalen Arrays (z.B. Array von Bytes,...) gen"ugt dazu,
-       dass das Feld arraytype die entsprechende Kennzahl enth"alt
-       (z.B. ARRAYTYPE_BYTE).
-       Bei Arrays von Objekten (arraytype=ARRAYTYPE_OBJECT) muss das 
-       Feld objectclass auf die Klassenstruktur der m"oglichen
-       Element-Objekte zeigen.
-       Bei Arrays von Arrays (arraytype=ARRAYTYPE_ARRAY) muss das
-       Feld elementdescriptor auf eine weiter arraydescriptor-Struktur
-       zeigen, die die Element-Typen beschreibt.
-	*/
+
+/* data structures of the runtime system **************************************/
+
+/* objects *********************************************************************
+
+	All objects (and arrays) which resides on the heap need the following
+	header at the beginning of the data structure.
+*/
+
+struct java_objectheader {              /* header for all objects             */
+	vftbl *vftbl;                       /* pointer to virtual function table  */
+};
 
 
 
-/********* Anmerkungen zum Constant-Pool:
+/* arrays **********************************************************************
 
-	Die Typen der Eintr"age in den Constant-Pool werden durch die oben
-	definierten CONSTANT_.. Werte angegeben.
-	Bei allen Typen muss zus"atzlich noch eine Datenstruktur hinzugef"ugt
-	werden, die den wirklichen Wert angibt.
-	Bei manchen Typen reicht es, einen Verweis auf eine schon bereits
-	existierende Struktur (z.B. unicode-Texte) einzutragen, bei anderen
-	muss diese Struktur erst extra erzeugt werden.
-	Ich habe folgende Datenstrukturen f"ur diese Typen verwendet:
-	
-		Typ                      Struktur                    extra erzeugt?
-	----------------------------------------------------------------------
-    CONSTANT_Class               classinfo                         nein
-    CONSTANT_Fieldref            constant_FMIref                     ja
-    CONSTANT_Methodref           constant_FMIref                     ja
-    CONSTANT_InterfaceMethodref  constant_FMIref                     ja
-    CONSTANT_String              unicode                           nein
-    CONSTANT_Integer             constant_integer                    ja
-    CONSTANT_Float               constant_float                      ja
-    CONSTANT_Long                constant_long                       ja
-    CONSTANT_Double              constant_double                     ja
-    CONSTANT_NameAndType         constant_nameandtype                ja
-    CONSTANT_Utf8                unicode                           nein
-    CONSTANT_Arraydescriptor     constant_arraydescriptor            ja
-    CONSTANT_UNUSED              -
-
-*******************************/
-
-
-
-/***************** Die Datenstrukturen fuer das Laufzeitsystem ****************/
-
-
-	/********* Objekte **********
-
-	Alle Objekte (und Arrays), die am Heap gespeichert werden, m"ussen eine	
-	folgende spezielle Datenstruktur ganz vorne stehen haben: 
-
-	*/
-
-typedef struct java_objectheader {    /* Der Header f"ur alle Objekte */
-	vftbl *vftbl;                     /* Zeiger auf die Function Table */
-} java_objectheader;
-
-
-
-/********* Arrays ***********
-	
-	Alle Arrays in Java sind auch gleichzeitig Objekte (d.h. sie haben auch
-	den obligatorischen Object-Header und darin einen Verweis auf eine Klasse)
-	Es gibt aber (der Einfachheit halber) nur eine einzige Klasse f"ur alle
-	m"oglichen Typen von Arrays, deshalb wird der tats"achliche Typ in einem
-	Feld im Array-Objekt selbst gespeichert.
-	Die Typen sind: */
+	All arrays are objects (they need the object header with a pointer to a
+	vvftbl (array class table). There is only one class for all arrays. The
+	type of an array is stored directly in the array object. Following types
+	are defined:
+*/
 
 #define ARRAYTYPE_INT      0
 #define ARRAYTYPE_LONG     1
@@ -259,18 +233,15 @@ typedef struct java_objectheader {    /* Der Header f"ur alle Objekte */
 #define ARRAYTYPE_OBJECT   8
 #define ARRAYTYPE_ARRAY    9
 
-
-/** Der Header f"ur ein Java-Array **/
-
-typedef struct java_arrayheader {  /* Der Arrayheader f"ur alle Arrays */
-	java_objectheader objheader;       /* Der Object-Header */
-	s4 size;                           /* Gr"osse des Arrays */
-	s4 arraytype;                      /* Typ der Elemente */
+typedef struct java_arrayheader {       /* header for all arrays              */
+	java_objectheader objheader;        /* object header                      */
+	s4 size;                            /* array size                         */
+	s4 arraytype;                       /* array type from previous list      */
 } java_arrayheader;
 
 
 
-/** Die Unterschiedlichen Strukturen f"ur alle Typen von Arrays **/
+/* structs for all kinds of arrays ********************************************/
 
 typedef struct java_chararray {
 	java_arrayheader header;
@@ -287,10 +258,8 @@ typedef struct java_doublearray {
 	double data[1];
 } java_doublearray;
 
-
-/* achtung: die beiden Stukturen booleanarray und bytearray m"ussen 
-      identisches memory-layout haben, weil mit den selben Funktionen 
-      darauf zugegriffen wird */
+/*  booleanarray and bytearray need identical memory layout (access methods
+    use the same machine code */
 
 typedef struct java_booleanarray {
 	java_arrayheader header;
@@ -317,10 +286,8 @@ typedef struct java_longarray {
 	s8 data[1];
 } java_longarray;
 
-
-/* ACHTUNG: die beiden folgenden Strukturen m"ussen unbedingt gleiches
-	   Memory-Layout haben, weil mit ein und der selben Funktion auf die
-	   data-Eintr"age beider Typen zugegriffen wird !!!! */
+/*  objectarray and arrayarray need identical memory layout (access methods
+    use the same machine code */
 
 typedef struct java_objectarray {
 	java_arrayheader header;
@@ -335,12 +302,9 @@ typedef struct java_arrayarray {
 } java_arrayarray;
 
 
+/* field, method and class structures *****************************************/
 
-
-/******************** class, field and method structures **********************/
-
-
-/********************** structure: fieldinfo **********************************/
+/* fieldinfo ******************************************************************/
 
 typedef struct fieldinfo {/* field of a class                                 */
 	s4       flags;       /* ACC flags                                        */
@@ -361,7 +325,7 @@ typedef struct fieldinfo {/* field of a class                                 */
 } fieldinfo;
 
 
-/********************** structure: exceptiontable *****************************/
+/* exceptiontable *************************************************************/
 
 typedef struct exceptiontable { /* exceptiontable entry in a method           */ 
 	s4         startpc;         /* start pc of guarded area (inclusive)       */
@@ -371,7 +335,7 @@ typedef struct exceptiontable { /* exceptiontable entry in a method           */
 } exceptiontable;
 
 
-/********************** structure: methodinfo *********************************/
+/* methodinfo *****************************************************************/
 
 typedef struct methodinfo {         /* method structure                       */
 	s4	       flags;               /* ACC flags                              */
@@ -381,25 +345,25 @@ typedef struct methodinfo {         /* method structure                       */
 	s4         paramcount;          /* only temporary valid, parameter count  */
 	u1        *paramtypes;          /* only temporary valid, parameter types  */
 	classinfo *class;               /* class, the method belongs to           */
-	u4         vftblindex;          /* index of method in virtual function table
+	s4         vftblindex;          /* index of method in virtual function table
 	                                   (if it is a virtual method)            */
 	s4         maxstack;            /* maximum stack depth of method          */
 	s4         maxlocals;           /* maximum number of local variables      */
-	u4         jcodelength;         /* length of JavaVM code                  */
+	s4         jcodelength;         /* length of JavaVM code                  */
 	u1        *jcode;               /* pointer to JavaVM code                 */
 
 	s4         exceptiontablelength;/* exceptiontable length                  */
 	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
 	u1        *stubroutine;         /* stub for compiling or calling natives  */	
-	u4         mcodelength;         /* legth of generated machine code        */
+	s4         mcodelength;         /* legth of generated machine code        */
 	u1        *mcode;               /* pointer to machine code                */
 	u1        *entrypoint;          /* entry point in machine code            */
 
 } methodinfo;
 
 
-/********************** structure: classinfo **********************************/
+/* classinfo ******************************************************************/
 
 struct classinfo {                /* class structure                          */
 	java_objectheader header;     /* classes are also objects                 */
@@ -439,66 +403,84 @@ struct classinfo {                /* class structure                          */
 	methodinfo *marker; 
 #endif
 };
+
+
+/* virtual function table ******************************************************
+
+	The vtbl has a bidirectional layout with open ends at both sides.
+	interfacetablelength gives the number of entries of the interface table at
+	the start of the vftbl. The vftbl pointer points to &interfacetable[0].
+	vftbllength gives the number of entries of table at the end of the vftbl.
+
+	runtime type check (checkcast):
+
+	Different methods are used for runtime type check depending on the
+	argument of checkcast/instanceof.
 	
+	A check against a class is implemented via relative numbering on the class
+	hierachy tree. The tree is numbered in a depth first traversal setting
+	the base field and the diff field. The diff field gets the result of
+	(high - base) so that a range check can be implemented by an unsigned
+	compare. A sub type test is done by checking the inclusion of base of
+	the sub class in the range of the superclass.
+
+	A check against an interface is implemented via the interfacevftbl. If the
+	interfacevftbl contains a nonnull value a class is a subclass of this
+	interface.
+
+	interfacetable:
+
+	Like standard virtual methods interface methods are called using
+	virtual function tables. All interfaces are numbered sequentially
+	(starting with zero). For each class there exist an interface table
+	of virtual function tables for each implemented interface. The length
+	of the interface table is determined by the highest number of an
+	implemented interface.
+
+	The following example assumes a class which implements interface 0 and 3:
+
+	interfacetablelength = 4
+
+                  | ...       |            +----------+
+	              +-----------+            | method 2 |---> method z
+	              | class     |            | method 1 |---> method y
+	              +-----------+            | method 0 |---> method x
+	              | ivftbl  0 |----------> +----------+
+	vftblptr ---> +-----------+
+                  | ivftbl -1 |--> NULL    +----------+
+                  | ivftbl -2 |--> NULL    | method 1 |---> method x
+                  | ivftbl -3 |-----+      | method 0 |---> method a
+                  +-----------+     +----> +----------+
+     
+                              +---------------+
+	                          | length 3 = 2  |
+	                          | length 2 = 0  |
+	                          | length 1 = 0  |
+	                          | length 0 = 3  |
+	interfacevftbllength ---> +---------------+
+
+*******************************************************************************/
 
 struct vftbl {
-	classinfo  *class;                /* Class, the function table belongs to */
+	methodptr   *interfacetable[1];    /* interface table (access via macro)  */
 
-	s4          vftbllength;          /* virtual function table length        */
-	s4          interfacetablelength; /* interface table length               */   
+	classinfo   *class;                /* class, the vtbl belongs to          */
 
-	s4          lowclassval;          /* low value for relative numbering     */   
-	s4          highclassval;         /* high value for relative numbering    */   
+	s4           vftbllength;          /* virtual function table length       */
+	s4           interfacetablelength; /* interface table length              */
 
-	u4         *interfacevftbllength; /* see description below                */   
-	methodptr **interfacevftbl;
+	s4           baseval;              /* base for runtime type check         */
+	s4           diffval;              /* high - base for runtime type check  */
+
+	s4          *interfacevftbllength; /* length of interface vftbls          */
 	
-	methodptr   table[1];
+	methodptr    table[1];             /* class vftbl                         */
 };
 
-/*********** Anmerkungen zur Interfacetable: 
-
-	"Ahnlich wie die 'normalen' virtuellen Methoden k"onnen auch die
-	Interface-Methoden mit Hilfe einer Art Virtual Function Table 
-	aufgerufen werden.
-	Dazu werden alle Interfaces im System fortlaufend nummeriert (beginnend
-	bei 0), und f"ur jede Klasse wird eine ganze Tabelle von 
-	Virtual Function Tables erzeugt, n"amlich zu jedem Interface, das die
-	Klasse implementiert, eine.
-
-	z.B. Nehmen wir an, eine Klasse implementiert zwei Interfaces (die durch
-	die Nummerierung die Indizes 0 und 3 bekommen haben)
-
-	Das sieht dann ungef"ahr so aus:
-		                --------------           ------------- 
-	interfacevftbl ---> | Eintrag 0  |---------> | Methode 0 |---> Methode X 
-                        | Eintrag 1  |--> NULL   | Methode 1 |---> Methode Y
-                        | Eintrag 2  |--> NULL   | Methode 2 |---> Methode Z
-                        | Eintrag 3  |-----+     ------------- 
-                        --------------     |
-                                           +---> -------------
-                                                 | Methode 0 |---> Methode X
-                                                 | Methode 1 |---> Methode A
-                                                 -------------
-                              ---------------
-	interfacevftlblength ---> | Wert 0 = 3  |
-	                          | Wert 1 = 0  |
-	                          | Wert 2 = 0  |
-	                          | Wert 3 = 2  |
-	                          ---------------
-
-	Der Aufruf einer Interface-Methode geht dann so vor sich:
-	Zur Compilezeit steht der Index (i) des Interfaces und die Stelle (s), wo
-	in der entsprechenden Untertabelle die Methode eingetragen ist, schon fest.
-	Also muss zur Laufzeit nur mehr der n-te Eintrag aus der Interfacetable 
-	gelesen werden, von dieser Tabelle aus wird der s-te Eintrag geholt,
-	und diese Methode wird angesprungen.
-
-****************/
+#define VFTBLINTERFACETABLE(v,i)       (v)->interfacetable[-i]
 
 
-
-/********************** references to some system classes  ********************/
+/* references to some system classes ******************************************/
 
 extern classinfo *class_java_lang_Object;
 extern classinfo *class_java_lang_String;
@@ -514,7 +496,7 @@ extern classinfo *class_java_lang_ThreadDeath;
 extern classinfo *class_array;
 
 
-/********************** instances of some system classes **********************/
+/* instances of some system classes *******************************************/
 
 extern java_objectheader *proto_java_lang_ClassCastException;
 extern java_objectheader *proto_java_lang_NullPointerException;
@@ -526,14 +508,14 @@ extern java_objectheader *proto_java_lang_ArrayStoreException;
 extern java_objectheader *proto_java_lang_ThreadDeath;
 
 
-/******************************* flag variables *******************************/
+/* flag variables *************************************************************/
 
 extern bool compileall;
 extern bool runverbose;         
 extern bool verbose;         
                                 
 
-/******************************* trace variables ******************************/
+/* statistic variables ********************************************************/
 
 extern int count_class_infos;
 extern int count_const_pool_len;

@@ -25,14 +25,11 @@ extern builtin_descriptor builtin_desc[];
 
 s4 builtin_instanceof(java_objectheader *obj, classinfo *class);
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
-s4 new_builtin_checkcast(java_objectheader *obj, classinfo *class);
-s4 new_builtin_checkclasscast(java_objectheader *obj, classinfo *class);
-s4 new_builtin_checkintercast(java_objectheader *obj, classinfo *class);
 s4 builtin_arrayinstanceof
 	(java_objectheader *obj, constant_arraydescriptor *desc);
 s4 builtin_checkarraycast
 	(java_objectheader *obj, constant_arraydescriptor *desc);
-s4 new_builtin_checkarraycast
+s4 asm_builtin_checkarraycast
 	(java_objectheader *obj, constant_arraydescriptor *desc);
 
 java_objectheader *builtin_throw_exception (java_objectheader *exception);
@@ -60,7 +57,7 @@ java_arrayheader *builtin_nmultianewarray (int size,
 
 s4 builtin_canstore (java_objectarray *a, java_objectheader *o);
 s4 builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o);
-void new_builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o);
+void asm_builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o);
 
 void builtin_trace_args(long a0, long a1, long a2, long a3, long a4, long a5, methodinfo *method);
 void builtin_displaymethodstart(methodinfo *method);
@@ -69,22 +66,22 @@ void builtin_displaymethodstop(methodinfo *method, long l, double d);
 void builtin_displaymethodexception(methodinfo *method);
 
 void builtin_monitorenter (java_objectheader *o);
-void new_builtin_monitorenter (java_objectheader *o);
+void asm_builtin_monitorenter (java_objectheader *o);
 void builtin_monitorexit (java_objectheader *o);
-void new_builtin_monitorexit (java_objectheader *o);
+void asm_builtin_monitorexit (java_objectheader *o);
 
 s4 builtin_idiv (s4 a, s4 b); 
-s4 new_builtin_idiv (s4 a, s4 b); 
+s4 asm_builtin_idiv (s4 a, s4 b); 
 s4 builtin_irem (s4 a, s4 b);
-s4 new_builtin_irem (s4 a, s4 b);
+s4 asm_builtin_irem (s4 a, s4 b);
 
 s8 builtin_ladd (s8 a, s8 b);
 s8 builtin_lsub (s8 a, s8 b);
 s8 builtin_lmul (s8 a, s8 b);
 s8 builtin_ldiv (s8 a, s8 b);
-s8 new_builtin_ldiv (s8 a, s8 b);
+s8 asm_builtin_ldiv (s8 a, s8 b);
 s8 builtin_lrem (s8 a, s8 b);
-s8 new_builtin_lrem (s8 a, s8 b);
+s8 asm_builtin_lrem (s8 a, s8 b);
 s8 builtin_lshl (s8 a, s4 b);
 s8 builtin_lshr (s8 a, s4 b);
 s8 builtin_lushr (s8 a, s4 b);
