@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1254 2004-06-30 20:38:42Z twisti $
+# $Id: Makefile.am 1350 2004-07-22 22:38:12Z twisti $
 
 
 INCLUDES = -I$(top_srcdir)
@@ -16,7 +16,6 @@ EXTRA_DIST = \
 	emitfuncs.c \
 	emitfuncs.h \
 	machine-instr.h \
-	native-math.h \
 	types.h
 
 noinst_LIBRARIES = libarch.a
