@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1060 2004-05-16 13:44:31Z twisti $
+   $Id: asmpart.S 1072 2004-05-19 17:20:12Z stefan $
 
 */
 
@@ -146,6 +146,8 @@
 	.globl asm_getcallingmethod
 	.globl asm_builtin_trace
 	.globl asm_builtin_exittrace
+	.globl asm_criticalsections
+	.globl asm_getclassvalues_atomic
 
 /*************************** imported functions *******************************/
 
@@ -579,9 +581,10 @@ L_class_load_ra:
 
 L_class_loaded:
 	ldl     itmp3,offclasslinked(a1)
+	subq    sp,8*8,sp             /* allocate stack                           */
+	stq     a1,7*8(sp)
 	bne     itmp3,L_class_linked
 
-	subq    sp,8*8,sp             /* allocate stack                           */
 	stq     t0,0*8(sp)            /* save used register                       */
 	stq     t1,1*8(sp)
 	stq     t3,2*8(sp)
@@ -589,7 +592,6 @@ L_class_loaded:
 	stq     xpc,4*8(sp)
 	stq     pv,5*8(sp)
 	stq     ra,6*8(sp)
-	stq     a1,7*8(sp)
 
 	mov     a1,a0
 
@@ -605,17 +607,20 @@ L_class_link_ra:
 	ldq     xpc,4*8(sp)
 	ldq     pv,5*8(sp)
 	ldq     ra,6*8(sp)
-	ldq     a1,7*8(sp)
-	addq    sp,8*8,sp             /* deallocate stack                         */
 
 L_class_linked:
+_crit_restart1:
+	ldq     a1,7*8(sp)
+_crit_begin1:
 	ldq     a0,offobjvftbl(xptr)  /* a0 = vftblptr(xptr)                      */
 	ldq     a1,offclassvftbl(a1)  /* a1 = vftblptr(catchtype) class (not obj) */
 	ldl     a0,offbaseval(a0)     /* a0 = baseval(xptr)                       */
 	ldl     v0,offbaseval(a1)     /* a2 = baseval(catchtype)                  */
 	ldl     a1,offdiffval(a1)     /* a1 = diffval(catchtype)                  */
+_crit_end1:
 	subl    a0,v0,a0              /* a0 = baseval(xptr) - baseval(catchtype)  */
 	cmpule  a0,a1,v0              /* v0 = xptr is instanceof catchtype        */
+	addq    sp,8*8,sp             /* deallocate stack                         */
 	beq     v0,ex_table_cont      /* if (false) continue                      */
 
 ex_handle_it:
@@ -1217,7 +1222,35 @@ asm_switchstackandcall:
 
 	.end	asm_switchstackandcall
 
-		
+	.ent    asm_getclassvalues_atomic
+
+asm_getclassvalues_atomic:
+_crit_restart2:
+_crit_begin2:
+	ldq t0,offbaseval(a0)
+	ldq t1,offdiffval(a0)
+	ldq t2,offbaseval(a1)
+_crit_end2:
+	stq t0,offcast_super_baseval(a2)
+	stq t1,offcast_super_diffval(a2)
+	stq t2,offcast_sub_baseval(a2)
+	jmp zero,(ra)
+
+	.end    asm_getclassvalues_atomic
+
+    .data
+
+asm_criticalsections:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+    .quad _crit_begin1
+    .quad _crit_end1
+    .quad _crit_restart1
+    .quad _crit_begin2
+    .quad _crit_end2
+    .quad _crit_restart2
+#endif
+    .long 0
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1039 2004-04-26 16:50:00Z twisti $
+   $Id: asmpart.S 1072 2004-05-19 17:20:12Z stefan $
 
 */
 
@@ -99,7 +99,8 @@
 	.globl Java_java_lang_VMSecurityManager_currentClassLoader    
 	.globl asm_builtin_new
 	.globl asm_get_stackTrace
-
+	.globl asm_criticalsections
+	.globl asm_getclassvalues_atomic
 
 /*************************** imported functions *******************************/
 
@@ -112,10 +113,6 @@
 	.globl builtin_asm_createclasscontextarray
 	.globl builtin_asm_getclassloader
 	.globl callgetexceptionptrptr
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	.globl cast_lock
-	.globl cast_unlock
-#endif
 
 
 /********************* function asm_calljavafunction ***************************
@@ -476,26 +473,23 @@ L_class_loaded:
 L_class_linked:
 #endif
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		push    %eax                        /* save not callee saved regs     */
-		push    %ecx
-		call    cast_lock
-		pop     %ecx
-		pop     %eax
+		push    %ebx
+
+_crit_restart1:
+		mov     0(%esp),%ebx
 #endif
 		
+_crit_begin1:
 		mov     offobjvftbl(%eax),%esi		/* %esi = vftblptr(xptr)          */
 		mov     offclassvftbl(%ebx),%ebx    /* %ebx = vftblptr(catchtype) class (not obj) */
 		mov     offbaseval(%esi),%esi		/* %esi = baseval(xptr)           */
 		mov     offbaseval(%ebx),%edx		/* %edx = baseval(catchtype)      */
 		mov     offdiffval(%ebx),%ebx		/* %ebx = diffval(catchtype)      */
+_crit_end1:
 		sub     %edx,%esi					/* %esi = baseval(xptr) - baseval(catchtype) */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		push    %eax                        /* save not callee saved regs     */
-		push    %ecx
-		call    cast_unlock
-		pop     %ecx
-		pop     %eax
+		add     $4,%esp
 #endif
         
 		cmp     %ebx,%esi					/* xptr is instanceof catchtype   */
@@ -1380,6 +1374,36 @@ get_stackTrace_leave:
 	pop %edi
 	pop %ebp
 	ret
+
+asm_getclassvalues_atomic:
+_crit_restart2:
+	mov 4(%esp),%ecx        /* super */
+	mov 8(%esp),%edx        /* sub */
+_crit_begin2:
+	mov offbaseval(%ecx),%eax
+	mov offdiffval(%ecx),%ecx
+	mov offbaseval(%edx),%edx
+_crit_end2:
+	push %ebx
+	mov 16(%esp),%ebx      /* out */
+	mov %eax,offcast_super_baseval(%ebx)
+	mov %ecx,offcast_super_diffval(%ebx)
+	mov %edx,offcast_sub_baseval(%ebx)
+	pop %ebx
+	ret
+
+	.data
+
+asm_criticalsections:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	.long _crit_begin1
+	.long _crit_end1
+	.long _crit_restart1
+	.long _crit_begin2
+	.long _crit_end2
+	.long _crit_restart2
+#endif
+	.long 0
 
 /*
  * These are local overrides for various environment variables in Emacs.

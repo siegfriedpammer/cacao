@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: builtin.c 1072 2004-05-19 17:20:12Z stefan $
 
 */
 
@@ -80,6 +80,7 @@ THREADSPECIFIC void *_thread_nativestackframeinfo=NULL;
 s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 { 
 	s4 res;
+	castinfo classvalues;
 
 	/*classinfo *tmp;*/
 	if (super->flags & ACC_INTERFACE)
@@ -114,40 +115,29 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 			sub->vftbl->baseval, super->vftbl->baseval, (unsigned)(sub->vftbl->baseval - super->vftbl->baseval),
 			super->vftbl->diffval); */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	cast_lock();
-#endif
+	asm_getclassvalues_atomic(super->vftbl, sub->vftbl, &classvalues);
 
-	res = (unsigned) (sub->vftbl->baseval - super->vftbl->baseval) <=
-		(unsigned) (super->vftbl->diffval);
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	cast_unlock();
-#endif
+	res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval) <=
+		(unsigned) classvalues.super_diffval;
 
 	return res;
 }
 
 s4 builtin_isanysubclass_vftbl(vftbl *sub,vftbl *super)
 {
-	int base;
 	s4 res;
+	int base;
+	castinfo classvalues;
 	
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	cast_lock();
-#endif
+	asm_getclassvalues_atomic(super, sub, &classvalues);
 
-	if ((base = super->baseval) <= 0)
+	if ((base = classvalues.super_baseval) <= 0)
 		/* super is an interface */
 		res = (sub->interfacetablelength > -base) &&
 			(sub->interfacetable[base] != NULL);
 	else
-	    res = (unsigned) (sub->baseval - base)
-			<= (unsigned) (super->diffval);
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	cast_unlock();
-#endif
+	    res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
+			<= (unsigned) classvalues.super_diffval;
 
 	return res;
 }
@@ -310,6 +300,7 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 	vftbl *valuevftbl;
     int dim_m1;
 	int base;
+	castinfo classvalues;
 	
 	if (!o) return 1;
 
@@ -333,21 +324,15 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 		if (valuevftbl == componentvftbl)
 			return 1;
 
-		if ((base = componentvftbl->baseval) <= 0)
+		asm_getclassvalues_atomic(componentvftbl, valuevftbl, &classvalues);
+
+		if ((base = classvalues.super_baseval) <= 0)
 			/* an array of interface references */
 			return (valuevftbl->interfacetablelength > -base &&
 					valuevftbl->interfacetable[base] != NULL);
 		
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		cast_lock();
-#endif
-
-		res = (unsigned)(valuevftbl->baseval - base)
-			<= (unsigned)(componentvftbl->diffval);
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		cast_unlock();
-#endif
+		res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
+			<= (unsigned) classvalues.super_diffval;
 
 		return res;
     }
@@ -369,8 +354,9 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 	arraydescriptor *desc;
 	vftbl *elementvftbl;
 	vftbl *valuevftbl;
-	int base;
 	s4 res;
+	int base;
+	castinfo classvalues;
 	
 	if (!o) return 1;
 
@@ -391,21 +377,15 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	if ((base = elementvftbl->baseval) <= 0)
+	asm_getclassvalues_atomic(elementvftbl, valuevftbl, &classvalues);
+
+	if ((base = classvalues.super_baseval) <= 0)
 		/* an array of interface references */
 		return (valuevftbl->interfacetablelength > -base &&
 				valuevftbl->interfacetable[base] != NULL);
-	
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	cast_lock();
-#endif
 
-	res = (unsigned)(valuevftbl->baseval - base)
-		<= (unsigned)(elementvftbl->diffval);
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	cast_unlock();
-#endif
+	res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
+		<= (unsigned) classvalues.super_diffval;
 
 	return res;
 }
@@ -418,6 +398,7 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 	vftbl *elementvftbl;
 	vftbl *valuevftbl;
 	s4 res;
+	castinfo classvalues;
 	
 	if (!o) return 1;
 
@@ -438,16 +419,10 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	cast_lock();
-#endif
+	asm_getclassvalues_atomic(elementvftbl, valuevftbl, &classvalues);
 
-	res = (unsigned)(valuevftbl->baseval - elementvftbl->baseval)
-		<= (unsigned)(elementvftbl->diffval);
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	cast_unlock();
-#endif
+	res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
+		<= (unsigned) classvalues.super_diffval;
 
 	return res;
 }

@@ -92,6 +92,7 @@ extern __thread threadobject *threadobj;
 
 #include "builtin.h"
 
+/* This must not be changed, it is used in asm_criticalsections */
 typedef struct {
 	u1 *mcodebegin, *mcodeend, *mcoderestart;
 } threadcritnode;

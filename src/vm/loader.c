@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: loader.c 1072 2004-05-19 17:20:12Z stefan $
 
 */
 
@@ -3947,10 +3947,6 @@ void loader_compute_subclasses(classinfo *c)
 
 	classvalue = 0;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	cast_lock();
-#endif
-
 	/* this is the java.lang.Object special case */
 	if (!class_java_lang_Object) {
 		loader_compute_class_values(c);
@@ -3958,10 +3954,6 @@ void loader_compute_subclasses(classinfo *c)
 	} else {
 		loader_compute_class_values(class_java_lang_Object);
 	}
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	cast_unlock();
-#endif
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	intsRestore();

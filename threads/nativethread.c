@@ -133,6 +133,14 @@ u1 *thread_checkcritical(u1 *mcodeptr)
 	return (n && mcodeptr < n->mcodeend && mcodeptr > n->mcodebegin) ? n->mcoderestart : NULL;
 }
 
+static void thread_addstaticcritical()
+{
+	threadcritnode *n = &asm_criticalsections;
+
+	while (n->mcodebegin)
+		thread_registercritical(n++);
+}
+
 static pthread_mutex_t threadlistlock = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
 
 static pthread_mutex_t stopworldlock = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
@@ -249,6 +257,7 @@ initThreadsEarly()
 	setthreadobject(mainthreadobj);
 
     criticaltree = avl_create(criticalcompare, NULL, NULL);
+	thread_addstaticcritical();
 	sem_init(&suspend_ack, 0, 0);
 }
 

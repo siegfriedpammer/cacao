@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 1063 2004-05-16 13:48:43Z twisti $
+   $Id: asmpart.h 1072 2004-05-19 17:20:12Z stefan $
 
 */
 
@@ -39,6 +39,7 @@
 
 #include "global.h"
 #include "jni.h"
+#include "threads/thread.h"
 
 /* 
    determines if the byte support instruction set (21164a and higher)
@@ -94,7 +95,10 @@ void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void 
 void asm_builtin_trace();
 void asm_builtin_exittrace();
 
-int asm_xadd(int *, int);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+extern threadcritnode *asm_criticalsections;
+#endif
+void asm_getclassvalues_atomic(vftbl *super, vftbl *sub, castinfo *out);
 
 #endif /* _ASMPART_H */
 
