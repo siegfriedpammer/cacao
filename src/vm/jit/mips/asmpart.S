@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 855 2004-01-06 16:18:42Z twisti $
+   $Id: asmpart.S 860 2004-01-06 18:49:09Z twisti $
 
 */
 
@@ -154,8 +154,10 @@
 /********************* exported functions and variables ***********************/
 
 	.globl synchronize_caches
-	.globl asm_calljavafunction_asm
-	.globl asm_calljavafunction2_asm
+	.globl asm_calljavafunction
+	.globl asm_calljavafunction2
+	.globl asm_calljavafunction2long
+	.globl asm_calljavafunction2double
 	.globl asm_call_jit_compiler
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
@@ -200,8 +202,6 @@ synchronize_caches:
 	.end    synchronize_caches
 
 
-#if 1
-
 /********************* function asm_calljavafunction ****************************
 *                                                                              *
 *   This function calls a Java-method (which possibly needs compilation)       *
@@ -221,19 +221,31 @@ synchronize_caches:
 *                                                                              *
 *******************************************************************************/
 
-	.ent    asm_calljavafunction_asm
+	.ent    asm_calljavafunction
 
 call_name:
+	.ascii  "calljavafunction\0\0"
 
 	.align  3
-asm_calljavafunction_asm:
+	.quad   0                         /* catch type all                       */
+	.quad   calljava_xhandler         /* handler pc                           */
+	.quad   calljava_xhandler         /* end pc                               */
+	.quad   asm_calljavafunction      /* start pc                             */
+	.long   1                         /* extable size                         */
+	.long   0                         /* fltsave                              */
+	.long   0                         /* intsave                              */
+	.long   0                         /* isleaf                               */
+	.long   0                         /* IsSync                               */
+	.long   80                        /* frame size                           */
+	.quad   0                         /* method pointer (pointer to name)     */
+
+asm_calljavafunction:
 	aaddiu  sp,sp,-10*8               /* allocate stack space                 */
 	sd      ra,0(sp)                  /* save return address                  */
 
 	.set    noreorder
 	bal     call_java_pc
 	sd      pv,3*8(sp)                /* procedure vector                     */
-                                      /* +4 instructions                      */
 call_java_pc:
 	aaddiu  pv,ra,-4*4
 
@@ -268,7 +280,6 @@ call_java_pc:
 #else
 	nop
 #endif
-                                      /* 1 + 8 + 4 + 3 + 5 = 21 instructions  */
 
 calljava_return:
 	ld      ra,0(sp)                  /* restore return address               */
@@ -282,7 +293,6 @@ calljava_return:
 	ldc1    fss5,9*8(sp)
 	j       ra                        /* return                               */
 	aaddiu  sp,sp,10*8                /* free stack space                     */
-                                      /* +10 instructions                      */
 
 	.set    reorder
 	
@@ -290,25 +300,37 @@ calljava_xhandler:
 	move    a0,itmp1                  
 	jal     builtin_throw_exception
 	b       calljava_return
-                                      /* +3 instructions                      */
-                                      /* = 38 instructions                    */
 
-	.end    asm_calljavafunction_asm
+	.end    asm_calljavafunction
 
 
-	.ent    asm_calljavafunction2_asm
+	.ent    asm_calljavafunction2
 
 call_name2:
+	.ascii  "calljavafunction2\0\0"
 
 	.align  3
-asm_calljavafunction2_asm:
+	.quad   0                         /* catch type all                       */
+	.quad   calljava_xhandler2        /* handler pc                           */
+	.quad   calljava_xhandler2        /* end pc                               */
+	.quad   asm_calljavafunction2     /* start pc                             */
+	.long   1                         /* extable size                         */
+	.long   0                         /* fltsave                              */
+	.long   1                         /* intsave                              */
+	.long   0                         /* isleaf                               */
+	.long   0                         /* IsSync                               */
+	.long   96                        /* frame size                           */
+	.quad   0                         /* method pointer (pointer to name)     */
+
+asm_calljavafunction2:
+asm_calljavafunction2double:
+asm_calljavafunction2long:
 	aaddiu  sp,sp,-12*8               /* allocate stack space (only 11 needed)*/
 	sd      ra,0(sp)                  /* save return address                  */
 
 	.set    noreorder
 	bal     call_java_pc2
 	sd      pv,1*8(sp)                /* procedure vector                     */
-                                      /* +4 instructions                      */
 call_java_pc2:
 	aaddiu  pv,ra,-4*4
 	sd      s7,3*8(sp)
@@ -324,48 +346,46 @@ call_java_pc2:
 	sd      a0,4*8(sp)                /* save method pointer for compiler     */
 	move    t0,a3
 	move    s7,a1
-                                      /* +11 instructions                     */
 
 	blez    s7,calljava_argsloaded
 	ald     a0,offjniitem(t0)
 	ldc1    fa0,offjniitem(t0)
 	daddi   s7,s7,-1
-	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+	blez    s7,calljava_argsloaded
 
 	ald     a1,offjniitem+sizejniblock*1(t0)
 	ldc1    fa1,offjniitem+sizejniblock*1(t0)
 	daddi   s7,s7,-1
-	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+	blez    s7,calljava_argsloaded
 
 	ald     a2,offjniitem+sizejniblock*2(t0)
 	ldc1    fa2,offjniitem+sizejniblock*2(t0)
 	daddi   s7,s7,-1
-	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+	blez    s7,calljava_argsloaded
 
 	ald     a3,offjniitem+sizejniblock*3(t0)
 	ldc1    fa3,offjniitem+sizejniblock*3(t0)
 	daddi   s7,s7,-1
-	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+	blez    s7,calljava_argsloaded
 
 	ald     a4,offjniitem+sizejniblock*4(t0)
 	ldc1    fa4,offjniitem+sizejniblock*4(t0)
 	daddi   s7,s7,-1
-	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+	blez    s7,calljava_argsloaded
 
 	ald     a5,offjniitem+sizejniblock*5(t0)
 	ldc1    fa5,offjniitem+sizejniblock*5(t0)
 	daddi   s7,s7,-1
-	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+	blez    s7,calljava_argsloaded
 
 	ald     a6,offjniitem+sizejniblock*6(t0)
 	ldc1    fa6,offjniitem+sizejniblock*6(t0)
 	daddi   s7,s7,-1
-	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+	blez    s7,calljava_argsloaded
 
 	ald     a7,offjniitem+sizejniblock*7(t0)
 	ldc1    fa7,offjniitem+sizejniblock*7(t0)
 	daddi   s7,s7,-1
-                                      /* 5 + 4*6 + 3 + 7 = 39 instructions    */
 		
 calljava_argsloaded:
     move    t4,sp
@@ -374,7 +394,6 @@ calljava_argsloaded:
 	sll     t2,t1,3
 	daddu   sp,sp,t2
 	daddu   t2,t2,t4
-                                      /* +6 instructions                      */
 
 calljava_copyloop:
     ald     t3,offjniitem+sizejniblock*8(t0)
@@ -383,7 +402,6 @@ calljava_copyloop:
 	ala     t0,sizejniblock(t0)
 	ala     t2,8(t2)
 	bnez    t1,calljava_copyloop
-                                      /* +6 instructions                      */
 
 calljava_nocopy:
 	ala     itmp1,32(t4)              /* pass pointer to methodptr via itmp1  */
@@ -398,7 +416,6 @@ calljava_nocopy:
 	jalr    pv                        /* call JIT compiler                    */
 	nop
 	aaddiu  pv,ra,-76*4               /* recompute procedure vector           */
-                                      /* +8 instructions                      */
 
 calljava_return2:
 	ld      ra,0(sp)                  /* restore return address               */
@@ -413,7 +430,6 @@ calljava_return2:
 	ldc1    fss5,10*8(sp)
 	j       ra                        /* return                               */
 	aaddiu  sp,sp,12*8                /* free stack space                     */
-                                      /* +11 instructions                     */
 
 	.set    reorder
 	
@@ -421,14 +437,10 @@ calljava_xhandler2:
     sll     s7,s7,3
 	aaddu   sp,s7,sp
 	move    a0,itmp1                  
-	jal     builtin_throw_exception   /* + 1 delay slot                       */
-	b       calljava_return2          /* + 1 delay slot                       */
-                                      /* 5 + 2 = 7 instructions               */
-                                      /* = 92 instructions                    */
+	jal     builtin_throw_exception
+	b       calljava_return2
 
-	.end    asm_calljavafunction2_asm
-
-#endif
+	.end    asm_calljavafunction2
 
 
 /****************** function asm_call_jit_compiler *****************************

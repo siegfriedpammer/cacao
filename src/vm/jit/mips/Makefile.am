@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 617 2003-11-13 09:20:03Z stefan $
+# $Id: Makefile.am 860 2004-01-06 18:49:09Z twisti $
 
 
 INCLUDES = -I$(top_srcdir)/jit
@@ -18,12 +18,9 @@ noinst_LIBRARIES = libarch.a
 
 libarch_a_SOURCES = asmpart.S codegen.c disass.c
 
-#%.o: %.S
-#	$(COMPILE) -c $<
-
 %.o: %.S
 	$(CC) -E asmpart.S > asmpart.s
-	$(COMPILE) -c asmpart.s
+	$(AS) -64 -KPIC -O -o asmpart.o asmpart.s
 
 ## Local variables:
 ## mode: Makefile

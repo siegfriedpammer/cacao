@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 856 2004-01-06 16:21:51Z twisti $
+   $Id: codegen.h 860 2004-01-06 18:49:09Z twisti $
 
 */
 
@@ -388,7 +388,6 @@ void codegen();
 void codegen_close();
 void dseg_display(s4 *s4ptr);
 
-void createcalljava();
 void docacheflush(u1 *p, long bytelen);
 
 #endif /* _CODEGEN_H */
