@@ -24,15 +24,15 @@
 
 VERSION_MAJOR = 0
 VERSION_MINOR = 30
-VERSION_POSTFIX = 
+VERSION_POSTFIX = p1
 
 VERSION_STRING=$(VERSION_MAJOR).$(VERSION_MINOR)$(VERSION_POSTFIX)
 
 ##################### generation of the excutable ##############################
 
 # Enabling/disabling thread support
-USE_THREADS = YES
-#USE_THREADS = NO
+# USE_THREADS = YES
+USE_THREADS = NO
 
 ifeq ($(USE_THREADS),YES)
 THREAD_OBJ = threads/threads.a
@@ -48,8 +48,8 @@ endif
 #LFLAGS = -lm
 
 CC = cc
-#CFLAGS = -g3 -ieee $(THREAD_CFLAGS)
-CFLAGS = -O3 -ieee $(THREAD_CFLAGS)
+CFLAGS = -g3 -ieee $(THREAD_CFLAGS)
+#CFLAGS = -O3 -ieee $(THREAD_CFLAGS)
 LFLAGS = -lm
 
 # IRIX 6.5 MIPSPro 7.2.1
@@ -117,6 +117,7 @@ clean:
 	cd toolbox; $(MAKE) clean
 	cd threads; $(MAKE) clean
 	cd mm; $(MAKE) clean
+
 tar:
 	rm -f cacao.tgz cacao.tar
 	tar -cvf cacao.tar Makefile */Makefile README COPYRIGHT tst/*.java \
@@ -129,8 +130,8 @@ tar:
 
 dist:
 	rm -rf cacao-$(VERSION_STRING).tar.gz cacao-$(VERSION_STRING);
+#	  tar -cf cacao-$(VERSION_STRING).tar -T FILES;
 	( mkdir cacao-$(VERSION_STRING); \
-#	  tar -cf cacao-$(VERSION_STRING).tar -T FILES; \
 	  tar -cvf cacao-$(VERSION_STRING).tar Makefile */Makefile README COPYRIGHT \
 	    tst/*.java doc/*.doc html/*.html *.[ch] comp/*.[ch] ncomp/*.[ch] \
 	    alpha/*.doc alpha/*.[ch] nat/*.[ch] toolbox/*.[ch] threads/*.[ch]; \
@@ -194,5 +195,3 @@ sysdep/offsets.h nativetypes.hh nativetable.hh : cacaoh
 \
        java.util.Properties \
        java.util.Date
-       
-       
