@@ -10,6 +10,7 @@
 #include "callargs.h"
 #include "threads/thread.h"
 #include "threads/locks.h"
+#include "threads.h"
 
 #include "lifespan.h"
 #include "mm.h"
@@ -958,7 +959,7 @@ gc_call (void)
 		}
 	else
 		asm_switchstackandcall(CONTEXT(mainThread).usedStackTop, gc_run,
-							   (void**)&(CONTEXT(currentThread).usedStackTop));
+							   (void**)&(CONTEXT(currentThread).usedStackTop),NULL);
 	intsRestore();
 #else
 	gc_run();

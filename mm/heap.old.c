@@ -710,7 +710,7 @@ gc_call (void)
 	}
 	else
 		asm_switchstackandcall(CONTEXT(mainThread).usedStackTop, heap_docollect,
-							   (void**)&(CONTEXT(currentThread).usedStackTop));
+							   (void**)&(CONTEXT(currentThread).usedStackTop),NULL);
 	intsRestore();
 #else
 	heap_docollect();
