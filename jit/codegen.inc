@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: codegen.inc 1116 2004-06-02 10:34:31Z twisti $
 
 */
 
@@ -172,6 +172,7 @@ void codegen_init()
 	jumpreferences = NULL;
 	datareferences = NULL;
 	xboundrefs = NULL;
+	xcheckarefs = NULL;
 	xnullrefs = NULL;
 	xcastrefs = NULL;
 	xdivrefs = NULL;
