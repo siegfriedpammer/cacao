@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: main.h 1032 2004-04-26 16:09:10Z twisti $
+   $Id: main.h 1094 2004-05-27 15:52:27Z twisti $
 
 */
 
@@ -87,7 +87,9 @@ extern s8 compilingtime;
 
 extern int has_ext_instr_set;
 
-extern bool statistics;
+extern bool opt_stat;
+
+extern bool opt_eager;
 
 extern char *mainstring;    /* class.method with main method */
 

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: cacao.c 1094 2004-05-27 15:52:27Z twisti $
 
 */
 
@@ -113,9 +113,11 @@ s8 compilingtime = 0;          /* accumulated compile time                   */
 
 int has_ext_instr_set = 0;     /* has instruction set extensions */
 
-bool statistics = false;
+bool opt_stat = false;
 
 bool opt_verify = true;        /* true if classfiles should be verified      */
+
+bool opt_eager = false;
 
 char *mainstring;
 static classinfo *mainclass;
@@ -163,44 +165,47 @@ void **stackbottom = 0;
 #define OPT_NOVERIFY    30
 #define OPT_LIBERALUTF  31
 #define OPT_VERBOSEEXCEPTION 32
+#define OPT_EAGER            33
+
 
 struct {char *name; bool arg; int value;} opts[] = {
-	{"classpath",   true,   OPT_CLASSPATH},
-	{"D",           true,   OPT_D},
-	{"ms",          true,   OPT_MS},
-	{"mx",          true,   OPT_MX},
-	{"noasyncgc",   false,  OPT_IGNORE},
-	{"noverify",    false,  OPT_NOVERIFY},
-	{"liberalutf",  false,  OPT_LIBERALUTF},
-	{"oss",         true,   OPT_IGNORE},
-	{"ss",          true,   OPT_IGNORE},
-	{"v",           false,  OPT_VERBOSE1},
-	{"verbose",     false,  OPT_VERBOSE},
-	{"verbosegc",   false,  OPT_VERBOSEGC},
-	{"verbosecall", false,  OPT_VERBOSECALL},
-	{"verboseexception", false, OPT_VERBOSEEXCEPTION},
+	{"classpath",        true,   OPT_CLASSPATH},
+	{"D",                true,   OPT_D},
+	{"ms",               true,   OPT_MS},
+	{"mx",               true,   OPT_MX},
+	{"noasyncgc",        false,  OPT_IGNORE},
+	{"noverify",         false,  OPT_NOVERIFY},
+	{"liberalutf",       false,  OPT_LIBERALUTF},
+	{"oss",              true,   OPT_IGNORE},
+	{"ss",               true,   OPT_IGNORE},
+	{"v",                false,  OPT_VERBOSE1},
+	{"verbose",          false,  OPT_VERBOSE},
+	{"verbosegc",        false,  OPT_VERBOSEGC},
+	{"verbosecall",      false,  OPT_VERBOSECALL},
+	{"verboseexception", false,  OPT_VERBOSEEXCEPTION},
 #ifdef TYPECHECK_VERBOSE
-	{"verbosetc",   false,  OPT_VERBOSETC},
+	{"verbosetc",        false,  OPT_VERBOSETC},
 #endif
 #if defined(__ALPHA__)
-	{"noieee",      false,  OPT_NOIEEE},
+	{"noieee",           false,  OPT_NOIEEE},
 #endif
-	{"softnull",    false,  OPT_SOFTNULL},
-	{"time",        false,  OPT_TIME},
-	{"stat",        false,  OPT_STAT},
-	{"log",         true,   OPT_LOG},
-	{"c",           true,   OPT_CHECK},
-	{"l",           false,  OPT_LOAD},
-	{"m",           true,   OPT_METHOD},
-	{"sig",         true,   OPT_SIGNATURE},
-	{"s",           true,   OPT_SHOW},
-	{"all",         false,  OPT_ALL},
-	{"oloop",       false,  OPT_OLOOP},
-	{"i",		    true,   OPT_INLINING},
-	{"rt",          false,  OPT_RT},
-	{"xta",         false,  OPT_XTA},
-	{"vta",         false,  OPT_VTA},
-	{NULL,  false, 0}
+	{"softnull",         false,  OPT_SOFTNULL},
+	{"time",             false,  OPT_TIME},
+	{"stat",             false,  OPT_STAT},
+	{"log",              true,   OPT_LOG},
+	{"c",                true,   OPT_CHECK},
+	{"l",                false,  OPT_LOAD},
+    { "eager",            false,  OPT_EAGER },
+	{"m",                true,   OPT_METHOD},
+	{"sig",              true,   OPT_SIGNATURE},
+	{"s",                true,   OPT_SHOW},
+	{"all",              false,  OPT_ALL},
+	{"oloop",            false,  OPT_OLOOP},
+	{"i",		         true,   OPT_INLINING},
+	{"rt",               false,  OPT_RT},
+	{"xta",              false,  OPT_XTA},
+	{"vta",              false,  OPT_VTA},
+	{NULL,               false,  0}
 };
 
 static int opt_ind = 1;
@@ -286,6 +291,7 @@ static void print_usage()
 	printf("                  s(ync) ....... don't check for synchronization\n");
 	printf("          -oloop ............... optimize array accesses in loops\n"); 
 	printf("          -l ................... don't start the class after loading\n");
+	printf("          -eager                 perform eager class loading and linking\n");
 	printf("          -all ................. compile all methods, no execution\n");
 	printf("          -m ................... compile only a specific method\n");
 	printf("          -sig ................. specify signature for a specific method\n");
@@ -558,9 +564,9 @@ void exit_handler(void)
 	loader_close();
 	tables_close(literalstring_free);
 
-	if (verbose || getcompilingtime || statistics) {
+	if (verbose || getcompilingtime || opt_stat) {
 		log_text("CACAO terminated");
-		if (statistics) {
+		if (opt_stat) {
 			print_stats();
 #ifdef TYPECHECK_STATISTICS
 			typecheck_print_statistics(get_logfile());
@@ -587,8 +593,8 @@ int main(int argc, char **argv)
 	/********** interne (nur fuer main relevante Optionen) **************/
    
 	char logfilename[200] = "";
-	u4 heapmaxsize = 64000000;
-	u4 heapstartsize = 200000;
+	u4 heapmaxsize = 64 * 1024 * 1024;
+	u4 heapstartsize = 200 * 1024;
 	char *cp;
 	char classpath[500] = ".";
 	bool startit = true;
@@ -599,8 +605,10 @@ int main(int argc, char **argv)
 	stackbottom = &dummy;
 #endif
 	
-	if (0 != atexit(exit_handler))
-		panic("unable to register exit_handler");
+	if (0 != atexit(exit_handler)) 
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "unable to register exit_handler");
+
 
 	/************ Collect info from the environment ************************/
 
@@ -707,7 +715,7 @@ int main(int argc, char **argv)
 			break;
 					
 		case OPT_STAT:
-			statistics = true;
+			opt_stat = true;
 			break;
 					
 		case OPT_LOG:
@@ -733,6 +741,10 @@ int main(int argc, char **argv)
 		case OPT_LOAD:
 			startit = false;
 			makeinitializations = false;
+			break;
+
+		case OPT_EAGER:
+			opt_eager = true;
 			break;
 
 		case OPT_METHOD:
@@ -854,8 +866,6 @@ int main(int argc, char **argv)
 	tables_init();
 	suck_init(classpath);
 
-	jit_init();
-
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
   	initThreadsEarly();
 #endif
@@ -863,6 +873,8 @@ int main(int argc, char **argv)
 	loader_init((u1 *) &dummy);
 
 	native_loadclasses();
+
+	jit_init();
 
 #if defined(USE_THREADS)
   	initThreads((u1*) &dummy);
@@ -877,25 +889,22 @@ int main(int argc, char **argv)
 
 		/* create, load and link the main class */
 		mainclass = class_new(utf_new_char(mainstring));
-		class_load(mainclass);
 
-		if (*exceptionptr)
+		if (!class_load(mainclass))
 			throw_exception_exit();
 
-		class_link(mainclass);
-
-		if (*exceptionptr)
+		if (!class_link(mainclass))
 			throw_exception_exit();
 
 		mainmethod = class_resolveclassmethod(mainclass,
 											  utf_new_char("main"), 
 											  utf_new_char("([Ljava/lang/String;)V"),
 											  mainclass,
-											  true);
+											  false);
 
 		/* problems with main method? */
-		if (*exceptionptr)
-			throw_exception_exit();
+/*  		if (*exceptionptr) */
+/*  			throw_exception_exit(); */
 
 		/* there is no main method or it isn't static */
 		if (!mainmethod || !(mainmethod->flags & ACC_STATIC)) {
@@ -1036,9 +1045,9 @@ void cacao_shutdown(s4 status)
 {
 	/**** RTAprint ***/
 
-	if (verbose || getcompilingtime || statistics) {
+	if (verbose || getcompilingtime || opt_stat) {
 		log_text ("CACAO terminated by shutdown");
-		if (statistics)
+		if (opt_stat)
 			print_stats();
 		if (getcompilingtime)
 			print_times();
