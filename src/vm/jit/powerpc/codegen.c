@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1808 2004-12-22 10:48:27Z twisti $
+   $Id: codegen.c 1860 2005-01-04 16:39:54Z twisti $
 
 */
 
@@ -35,6 +35,7 @@
 #include <signal.h>
 
 #include "config.h"
+#include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/global.h"
