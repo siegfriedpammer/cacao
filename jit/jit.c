@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: jit.c 689 2003-12-05 18:03:47Z stefan $
+   $Id: jit.c 696 2003-12-06 20:10:05Z edwin $
 
 */
 
@@ -194,6 +194,8 @@ stackelement *stack;            /* points to intermediate code instructions   */
 bool isleafmethod;              /* true if a method doesn't call subroutines  */
 
 basicblock *last_block;         /* points to the end of the BB list           */
+
+bool regs_ok;                   /* true if registers have been allocated      */
 
 /* list of all classes used by the compiled method which have to be           */
 /* initialised (if not already done) before execution of this method          */
@@ -1343,7 +1345,8 @@ methodptr jit_compile(methodinfo *m)
 	count_methods++;
 
 	intsDisable();      /* disable interrupts */
-	
+
+	regs_ok = false;
 
 	/* mark start of dump memory area */
 
@@ -1427,6 +1430,10 @@ methodptr jit_compile(methodinfo *m)
 	parse();
 	analyse_stack();
    
+#ifdef CACAO_TYPECHECK
+	typecheck();
+#endif
+	
 	if (opt_loops) {
 		depthFirst();
 		analyseGraph();
@@ -1438,6 +1445,7 @@ methodptr jit_compile(methodinfo *m)
 #endif
 
 	regalloc();
+	regs_ok = true;
 	codegen();
 
 	/* intermediate and assembly code listings ********************************/

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 687 2003-12-04 22:29:54Z edwin $
+# $Id: Makefile.am 696 2003-12-06 20:10:05Z edwin $
 
 @SET_MAKE@
 
@@ -44,7 +44,8 @@ cacao_SOURCES = \
 	tables.c \
 	tables.h \
 	unzip.c \
-	typeinfo.c
+	typeinfo.c \
+	typeinfo.h
 
 cacao_LDADD = \
 	jit/libjit.a \

@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 689 2003-12-05 18:03:47Z stefan $
+   $Id: builtin.c 696 2003-12-06 20:10:05Z edwin $
 
 */
 
@@ -314,20 +314,20 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,arraydescriptor *t
 			
 *****************************************************************************/
 
-s4 builtin_checkarraycast(java_objectheader *o,arraydescriptor *target)
+s4 builtin_checkarraycast(java_objectheader *o,vftbl *target)
 {
 	arraydescriptor *desc;
 	
 	if (!o) return 1;
 	if ((desc = o->vftbl->arraydesc) == NULL) return 0;
 
-	return builtin_descriptorscompatible(desc,target);
+	return builtin_descriptorscompatible(desc,target->arraydesc);
 }
 
-s4 builtin_arrayinstanceof(java_objectheader *obj,arraydescriptor *desc)
+s4 builtin_arrayinstanceof(java_objectheader *obj,vftbl *target)
 {
 	if (!obj) return 1;
-	return builtin_checkarraycast (obj, desc);
+	return builtin_checkarraycast (obj, target);
 }
 
 /************************** exception functions *******************************

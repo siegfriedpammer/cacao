@@ -1,21 +1,37 @@
-/********************************* typeinfo.h **********************************
+/* typeinfo.h - type system used by the type checker
 
-	Copyright (c) 2003 ? XXX
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	defininitions for the compiler's type system
-	
-	Authors: Edwin Steiner
-                  
-	Last Change:
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-*******************************************************************************/
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Edwin Steiner
+
+   $Id: typeinfo.h 696 2003-12-06 20:10:05Z edwin $
+
+*/
 
 #ifndef __typeinfo_h_
 #define __typeinfo_h_
-
-/* #define DEBUG_TYPES */ /* XXX */
 
 #include "global.h"
 
@@ -40,12 +56,6 @@ typedef struct typeinfo_mergedlist typeinfo_mergedlist;
  *     The result does, however, implement the interfaces Cloneable
  *     and java.io.Serializable. This pseudo class is used internally
  *     to represent such results. (They are *not* considered arrays!)
- *
- * pseudo_class_Array                          XXX delete?
- *     (extends pseudo_class_Arraystub)
- *
- *     This pseudo class is used internally as the class of all arrays
- *     to distinguish them from arbitrary Objects.
  *
  * pseudo_class_Null
  *
@@ -139,6 +149,8 @@ struct typeinfo_mergedlist {
 /* MACROS                                                                   */
 /****************************************************************************/
 
+/* XXX wrap macro blocks in do { } while(0) */
+
 /* NOTE: These macros take typeinfo *structs* not pointers as arguments.
  *       You have to dereference any pointers.
  */
@@ -146,24 +158,16 @@ struct typeinfo_mergedlist {
 /* internally used macros ***************************************************/
 
 /* internal, don't use this explicitly! */
-/* XXX change to GC? */
 #define TYPEINFO_ALLOCMERGED(mergedlist,count)                  \
             {(mergedlist) = (typeinfo_mergedlist*)dump_alloc(   \
                 sizeof(typeinfo_mergedlist)                     \
                 + ((count)-1)*sizeof(classinfo*));}
 
 /* internal, don't use this explicitly! */
-/* XXX change to GC? */
-#if 0
-#define TYPEINFO_FREEMERGED(mergedlist)                         \
-            {mem_free((mergedlist),sizeof(typeinfo_mergedlist)  \
-                + ((mergedlist)->count - 1)*sizeof(classinfo*));}
-#endif
 #define TYPEINFO_FREEMERGED(mergedlist)
 
 /* internal, don't use this explicitly! */
-#define TYPEINFO_FREEMERGED_IF_ANY(mergedlist)                  \
-            {if (mergedlist) TYPEINFO_FREEMERGED(mergedlist);}
+#define TYPEINFO_FREEMERGED_IF_ANY(mergedlist)
 
 /* macros for type queries **************************************************/
 
@@ -205,6 +209,18 @@ struct typeinfo_mergedlist {
             ( TYPEINFO_IS_ARRAY(info)                           \
               && TYPEINFO_IS_ARRAY_OF_REFS_NOCHECK(info) )
 
+/* queries allowing null types **********************************************/
+
+#define TYPEINFO_MAYBE_ARRAY(info)                              \
+    (TYPEINFO_IS_ARRAY(info) || TYPEINFO_IS_NULLTYPE(info))
+
+#define TYPEINFO_MAYBE_PRIMITIVE_ARRAY(info,at)                 \
+    (TYPEINFO_IS_PRIMITIVE_ARRAY(info,at) || TYPEINFO_IS_NULLTYPE(info))
+
+#define TYPEINFO_MAYBE_ARRAY_OF_REFS(info)                      \
+    (TYPEINFO_IS_ARRAY_OF_REFS(info) || TYPEINFO_IS_NULLTYPE(info))
+
+
 /* macros for initializing typeinfo structures ******************************/
 
 #define TYPEINFO_INIT_PRIMITIVE(info)                           \
@@ -224,35 +240,17 @@ struct typeinfo_mergedlist {
 #define TYPEINFO_INIT_NULLTYPE(info)                            \
             TYPEINFO_INIT_CLASSINFO(info,pseudo_class_Null)
 
-/* XXX delete */
-#if 0
-#define TYPEINFO_INIT_ARRAY(info,dim,elmtype,elmcinfo)        \
-            {(info).typeclass = pseudo_class_Array;             \
-             (info).elementclass = (elmcinfo);                  \
-             (info).merged = NULL;                              \
-             (info).dimension = (dim);                          \
-             (info).elementtype = (elmtype);}
-#endif
-
-/* XXX delete? */
-#define TYPEINFO_INIT_ARRAY(info,cls)                                   \
-            {(info).typeclass = cls;                                    \
-             if (cls->vftbl->arraydesc->elementvftbl)                   \
-                 (info).elementclass = cls->vftbl->arraydesc->elementvftbl->class; \
-             else                                                       \
-                 (info).elementclass = NULL;                            \
-             (info).merged = NULL;                                      \
-             (info).dimension = cls->vftbl->arraydesc->dimension;       \
-             (info).elementtype = cls->vftbl->arraydesc->elementtype;}
+#define TYPEINFO_INIT_PRIMITIVE_ARRAY(info,arraytype)                   \
+    TYPEINFO_INIT_CLASSINFO(info,primitivetype_table[arraytype].arrayclass);
 
 #define TYPEINFO_INIT_CLASSINFO(info,cls)                               \
-        {if (((info).typeclass = cls)->vftbl->arraydesc) {              \
-                if (cls->vftbl->arraydesc->elementvftbl)                \
-                    (info).elementclass = cls->vftbl->arraydesc->elementvftbl->class; \
+        {if (((info).typeclass = (cls))->vftbl->arraydesc) {              \
+                if ((cls)->vftbl->arraydesc->elementvftbl)                \
+                    (info).elementclass = (cls)->vftbl->arraydesc->elementvftbl->class; \
                 else                                                    \
                     (info).elementclass = NULL;                         \
-                (info).dimension = cls->vftbl->arraydesc->dimension;    \
-                (info).elementtype = cls->vftbl->arraydesc->elementtype;\
+                (info).dimension = (cls)->vftbl->arraydesc->dimension;    \
+                (info).elementtype = (cls)->vftbl->arraydesc->elementtype;\
             }                                                           \
             else {                                                      \
                 (info).elementclass = NULL;                             \
@@ -260,10 +258,6 @@ struct typeinfo_mergedlist {
                 (info).elementtype = 0;                                 \
             }                                                           \
             (info).merged = NULL;}
-
-/* XXX */
-#define TYPEINFO_INC_DIMENSION(info)                            \
-             (info).dimension++
 
 #define TYPEINFO_INIT_FROM_FIELDINFO(info,fi)                   \
             typeinfo_init_from_descriptor(&(info),              \
@@ -284,36 +278,13 @@ struct typeinfo_mergedlist {
 #define TYPEINFO_PUT_NON_ARRAY_CLASSINFO(info,cinfo)            \
             {(info).typeclass = (cinfo);}
 
-/* XXX delete */
-#if 0
-#define TYPEINFO_PUT_ARRAY(info,dim,elmtype)                    \
-            {(info).typeclass = pseudo_class_Array;             \
-             (info).dimension = (dim);                          \
-             (info).elementtype = (elmtype);}
-#endif
-
-/* XXX delete? */
-#define TYPEINFO_PUT_ARRAY(info,cls)                                    \
-            {(info).typeclass = cls;                                    \
-             if (cls->vftbl->arraydesc->elementvftbl)                \
-                 (info).elementclass = cls->vftbl->arraydesc->elementvftbl->class; \
-             (info).dimension = cls->vftbl->arraydesc->dimension;       \
-             (info).elementtype = cls->vftbl->arraydesc->elementtype;}
-
 #define TYPEINFO_PUT_CLASSINFO(info,cls)                                \
-        {if (((info).typeclass = cls)->vftbl->arraydesc) {              \
-                if (cls->vftbl->arraydesc->elementvftbl)                \
-                    (info).elementclass = cls->vftbl->arraydesc->elementvftbl->class; \
-                (info).dimension = cls->vftbl->arraydesc->dimension;    \
-                (info).elementtype = cls->vftbl->arraydesc->elementtype; \
+        {if (((info).typeclass = (cls))->vftbl->arraydesc) {              \
+                if ((cls)->vftbl->arraydesc->elementvftbl)                \
+                    (info).elementclass = (cls)->vftbl->arraydesc->elementvftbl->class; \
+                (info).dimension = (cls)->vftbl->arraydesc->dimension;    \
+                (info).elementtype = (cls)->vftbl->arraydesc->elementtype; \
             }}
-
-/* XXX delete */
-#if 0
-#define TYPEINFO_PUT_OBJECT_ARRAY(info,dim,elmcinfo)            \
-            {TYPEINFO_PUT_ARRAY(info,dim,ARRAYTYPE_OBJECT);     \
-             (info).elementclass = (elmcinfo);}
-#endif
 
 /* srcarray must be an array (not checked) */
 #define TYPEINFO_PUT_COMPONENT(srcarray,dst)                    \
@@ -366,7 +337,7 @@ bool typeinfo_merge(typeinfo *dest,typeinfo* y);
 
 /* debugging helpers ********************************************************/
 
-#ifdef DEBUG_TYPES
+#ifdef TYPEINFO_DEBUG
 
 void typeinfo_test();
 void typeinfo_init_from_fielddescriptor(typeinfo *info,char *desc);
@@ -374,6 +345,6 @@ void typeinfo_print(FILE *file,typeinfo *info,int indent);
 void typeinfo_print_short(FILE *file,typeinfo *info);
 void typeinfo_print_type(FILE *file,int type,typeinfo *info);
 
-#endif // DEBUG_TYPES
+#endif // TYPEINFO_DEBUG
 
 #endif

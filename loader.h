@@ -1,4 +1,4 @@
-/* loader.c - class loader header
+/* loader.h - class loader header
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 669 2003-11-23 14:04:20Z edwin $
+   $Id: loader.h 696 2003-12-06 20:10:05Z edwin $
 */
 
 
@@ -106,6 +106,18 @@ classinfo *class_primitive_from_sig(char sig);
 #define CLASSLOAD_SKIP  0
 #define CLASSLOAD_NEW   1
 #define CLASSLOAD_LOAD  2
+
+#if 0
+#define CLASSLOAD_NEW       0x0000 /* default */
+#define CLASSLOAD_LOAD      0x0001
+#define CLASSLOAD_SKIP      0x0002
+#define CLASSLOAD_PANIC     0x0000 /* default */
+#define CLASSLOAD_NOPANIC   0x0010
+#define CLASSLOAD_PRIMITIVE 0x0000 /* default */
+#define CLASSLOAD_VOID      0x0000 /* default */
+#define CLASSLOAD_NOVOID    0x0020
+#endif
+
 classinfo *class_from_descriptor(char *utf_ptr,char *end_ptr,char **next,int mode);
 
 /* (used by class_new, don't use directly) */

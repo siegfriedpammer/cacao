@@ -26,7 +26,9 @@
 
    Authors: Andreas Krall
 
-   $Id: stack.c 665 2003-11-21 18:36:43Z jowenn $
+   Changes: Edwin Steiner
+
+   $Id: stack.c 696 2003-12-06 20:10:05Z edwin $
 
 */
 
@@ -1478,6 +1480,12 @@ void analyse_stack()
 
 						iptr[0].target = (void *) tbptr;
 
+						/* XXX This is a dirty hack. The typechecker
+						 * needs it because the OP1_0ANY below
+						 * overwrites iptr->dst.
+						 */
+						iptr->val.a = (void*) iptr->dst;
+
 						tbptr->type=BBTYPE_SBR;
 						MARKREACHED(tbptr, copy);
 						OP1_0ANY;
@@ -1734,7 +1742,7 @@ void analyse_stack()
 }
 
 
-static void print_stack(stackptr s)
+void icmd_print_stack(stackptr s)
 {
 	int i, j;
 	stackptr t;
@@ -1751,15 +1759,17 @@ static void print_stack(stackptr s)
 		printf("    ");
 	while (s) {
 		j--;
+		/* XXX remove */ /* printf("(%d)",s->flags); fflush(stdout); */
 		if (s->flags & SAVEDVAR)
 			switch (s->varkind) {
 			case TEMPVAR:
 				if (s->flags & INMEMORY)
-					printf(" M%02d", s->regoff);
+					printf((regs_ok) ? " M%02d" : " M??", s->regoff);
 				else if ((s->type == TYPE_FLT) || (s->type == TYPE_DBL))
-					printf(" F%02d", s->regoff);
-				else
-					printf(" %3s", regs[s->regoff]);
+					printf((regs_ok) ? " F%02d" : " F??", s->regoff);
+				else {
+					if (regs_ok) printf(" %3s",regs[s->regoff]); else printf(" ???");
+				}
 				break;
 			case STACKVAR:
 				printf(" I%02d", s->varnum);
@@ -1777,11 +1787,12 @@ static void print_stack(stackptr s)
 			switch (s->varkind) {
 			case TEMPVAR:
 				if (s->flags & INMEMORY)
-					printf(" m%02d", s->regoff);
+					printf((regs_ok) ? " m%02d" : " m??", s->regoff);
 				else if ((s->type == TYPE_FLT) || (s->type == TYPE_DBL))
-					printf(" f%02d", s->regoff);
-				else
-					printf(" %3s", regs[s->regoff]);
+					printf((regs_ok) ? " f%02d" : " f??", s->regoff);
+				else {
+					if (regs_ok) printf(" %3s",regs[s->regoff]); else printf(" ???");
+				}
 				break;
 			case STACKVAR:
 				printf(" i%02d", s->varnum);
@@ -1851,7 +1862,7 @@ static void print_reg(stackptr s) {
 #endif
 
 
-static char *builtin_name(functionptr bptr)
+char *icmd_builtin_name(functionptr bptr)
 {
 	builtin_descriptor *bdesc = builtin_desc;
 	while ((bdesc->bptr != NULL) && (bdesc->bptr != bptr))
@@ -1902,11 +1913,12 @@ void show_icmd_method()
 			if (locals[i][j].type >= 0) {
 				printf("   (%s) ", jit_type[j]);
 				if (locals[i][j].flags & INMEMORY)
-					printf("m%2d", locals[i][j].regoff);
+					printf((regs_ok) ? "m%2d" : "m??", locals[i][j].regoff);
 				else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-					printf("f%02d", locals[i][j].regoff);
-				else
-					printf("%3s", regs[locals[i][j].regoff]);
+					printf((regs_ok) ? "f%02d" : "f??", locals[i][j].regoff);
+				else {
+					if (regs_ok) printf("%3s",regs[locals[i][j].regoff]); else printf("???");
+				}
 			}
 		printf("\n");
 	}
@@ -1923,19 +1935,21 @@ void show_icmd_method()
 					printf("   (%s) ", jit_type[j]);
 					if (interfaces[i][j].flags & SAVEDVAR) {
 						if (interfaces[i][j].flags & INMEMORY)
-							printf("M%2d", interfaces[i][j].regoff);
+							printf((regs_ok) ? "M%2d" : "M??", interfaces[i][j].regoff);
 						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-							printf("F%02d", interfaces[i][j].regoff);
-						else
-							printf("%3s", regs[interfaces[i][j].regoff]);
+							printf((regs_ok) ? "F%02d" : "F??", interfaces[i][j].regoff);
+						else {
+							if (regs_ok) printf("%3s",regs[interfaces[i][j].regoff]); else printf("???");
+						}
 					}
 					else {
 						if (interfaces[i][j].flags & INMEMORY)
-							printf("m%2d", interfaces[i][j].regoff);
+							printf((regs_ok) ? "m%2d" : "m??", interfaces[i][j].regoff);
 						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-							printf("f%02d", interfaces[i][j].regoff);
-						else
-							printf("%3s", regs[interfaces[i][j].regoff]);
+							printf((regs_ok) ? "f%02d" : "f??", interfaces[i][j].regoff);
+						else {
+							if (regs_ok) printf("%3s",regs[interfaces[i][j].regoff]); else printf("???");
+						}
 					}
 				}
 			printf("\n");
@@ -1966,27 +1980,99 @@ void show_icmd_method()
 
 	
 	for (bptr = block; bptr != NULL; bptr = bptr->next) {
+		show_icmd_block(bptr);
+	}
+}
+
+void
+show_icmd_block(basicblock *bptr)
+{
+	int i, j;
+	int deadcode;
+	s4  *s4ptr;
+	instruction *iptr;
+
 		if (bptr->flags != BBDELETED) {
 			deadcode = bptr->flags <= BBREACHED;
 			printf("[");
 			if (deadcode)
-				for (j = maxstack; j > 0; j--)
+				for (j = method->maxstack; j > 0; j--)
 					printf(" ?  ");
 			else
-				print_stack(bptr->instack);
-			printf("] L%03d(%d - %d):\n", bptr->debug_nr, bptr->icount, bptr->pre_count);
+				icmd_print_stack(bptr->instack);
+			printf("] L%03d(%d - %d) flags=%d:\n", bptr->debug_nr, bptr->icount, bptr->pre_count,bptr->flags);
 			iptr = bptr->iinstr;
 
 			for (i=0; i < bptr->icount; i++, iptr++) {
 				printf("[");
 				if (deadcode) {
-					for (j = maxstack; j > 0; j--)
+					for (j = method->maxstack; j > 0; j--)
 						printf(" ?  ");
 				}
 				else
-					print_stack(iptr->dst);
-				printf("]     %4d  %s", i, icmd_names[iptr->opc]);
-				switch ((int) iptr->opc) {
+					icmd_print_stack(iptr->dst);
+				printf("]     %4d  ", i);
+				/* XXX remove */ /*fflush(stdout);*/
+				show_icmd(iptr,deadcode);
+				printf("\n");
+			}
+
+			if (showdisassemble && (!deadcode)) {
+#if defined(__I386__) || defined(__X86_64__)
+				u1 *u1ptr;
+				int a;
+
+				printf("\n");
+				i = bptr->mpc;
+				u1ptr = method->mcode + dseglen + i;
+
+				if (bptr->next != NULL) {
+					for (; i < bptr->next->mpc; i++, u1ptr++) {
+						a = disassinstr(u1ptr, i);
+						i += a;
+						u1ptr += a;
+					}
+					printf("\n");
+
+				} else {
+					for (; u1ptr < (u1 *) (method->mcode + method->mcodelength); i++, u1ptr++) {
+						a = disassinstr(u1ptr, i); 
+						i += a;
+						u1ptr += a;
+					}
+					printf("\n");
+				}
+#else
+				printf("\n");
+				i = bptr->mpc;
+				s4ptr = (s4 *) (method->mcode + dseglen + i);
+
+				if (bptr->next != NULL) {
+					for (; i < bptr->next->mpc; i += 4, s4ptr++) {
+						disassinstr(*s4ptr, i); 
+				    }
+					printf("\n");
+			    }
+				else {
+					for (; s4ptr < (s4 *) (method->mcode + method->mcodelength); i += 4, s4ptr++) {
+						disassinstr(*s4ptr, i); 
+				    }
+					printf("\n");
+			    }
+#endif
+		    }
+		}
+}
+
+void
+show_icmd(instruction *iptr,bool deadcode)
+{
+	int j;
+	s4  *s4ptr;
+	void **tptr;
+	
+	printf("%s",icmd_names[iptr->opc]);
+	switch ((int) iptr->opc) {
 				case ICMD_IADDCONST:
 				case ICMD_ISUBCONST:
 				case ICMD_IMULCONST:
@@ -2137,7 +2223,7 @@ void show_icmd_method()
 				case ICMD_BUILTIN3:
 				case ICMD_BUILTIN2:
 				case ICMD_BUILTIN1:
-					printf(" %s", builtin_name((functionptr) iptr->val.a));
+					printf(" %s", icmd_builtin_name((functionptr) iptr->val.a));
 					break;
 				case ICMD_INVOKEVIRTUAL:
 				case ICMD_INVOKESPECIAL:
@@ -2156,7 +2242,10 @@ void show_icmd_method()
 				case ICMD_IFGE:
 				case ICMD_IFGT:
 				case ICMD_IFLE:
-					printf("(%d) L%03d", iptr->val.i, ((basicblock *) iptr->target)->debug_nr);
+					if (deadcode)
+						printf("(%d) op1=%d", iptr->val.i, iptr->op1);
+					else
+						printf("(%d) L%03d", iptr->val.i, ((basicblock *) iptr->target)->debug_nr);
 					break;
 				case ICMD_IF_LEQ:
 				case ICMD_IF_LNE:
@@ -2164,7 +2253,10 @@ void show_icmd_method()
 				case ICMD_IF_LGE:
 				case ICMD_IF_LGT:
 				case ICMD_IF_LLE:
-					printf("(%lld) L%03d", iptr->val.l, ((basicblock *) iptr->target)->debug_nr);
+					if (deadcode)
+						printf("(%lld) op1=%d", iptr->val.l, iptr->op1);
+					else
+						printf("(%lld) L%03d", iptr->val.l, ((basicblock *) iptr->target)->debug_nr);
 					break;
 				case ICMD_JSR:
 				case ICMD_GOTO:
@@ -2184,93 +2276,64 @@ void show_icmd_method()
 				case ICMD_IF_LCMPLE:
 				case ICMD_IF_ACMPEQ:
 				case ICMD_IF_ACMPNE:
-					printf(" L%03d", ((basicblock *) iptr->target)->debug_nr);
+					if (deadcode)
+						printf(" op1=%d", iptr->op1);
+					else
+						printf(" L%03d", ((basicblock *) iptr->target)->debug_nr);
 					break;
 				case ICMD_TABLESWITCH:
 
 					s4ptr = iptr->val.a;
-					tptr = (void **) iptr->target;
 
-					printf(" L%03d;", ((basicblock *) *tptr)->debug_nr); 
-					/* default */
+					if (deadcode) {
+						printf(" %d;", *s4ptr);
+					}
+					else {
+						tptr = (void **) iptr->target;
+						printf(" L%03d;", ((basicblock *) *tptr)->debug_nr); 
+						tptr++;
+					}
 
-					s4ptr++;
-					tptr++;
-
+					s4ptr++;         /* skip default */
 					j = *s4ptr++;                               /* low     */
 					j = *s4ptr++ - j;                           /* high    */
 					while (j >= 0) {
-						printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
-						tptr++;
+						if (deadcode)
+							printf(" %d", *s4ptr++);
+						else {
+							printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
+							tptr++;
+						}
 						j--;
 					}
 					break;
 				case ICMD_LOOKUPSWITCH:
 					s4ptr = iptr->val.a;
-					tptr = (void **) iptr->target;
 
-					printf(" L%03d", ((basicblock *) *tptr)->debug_nr); 
-					s4ptr++;                                         /* default */
-					j = *s4ptr;                                      /* count   */
-					tptr++;
-
-					while (--j >= 0) {
+					if (deadcode) {
+						printf(" %d;", *s4ptr);
+					}
+					else {
+						tptr = (void **) iptr->target;
 						printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
 						tptr++;
 					}
+					s4ptr++;                                         /* default */
+					j = *s4ptr++;                                    /* count   */
+
+					while (--j >= 0) {
+						if (deadcode) {
+							s4ptr++; /* skip value */
+							printf(" %d",*s4ptr++);
+						}
+						else {
+							printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
+							tptr++;
+						}
+					}
 					break;
-				}
-				printf("\n");
-			}
-
-			if (showdisassemble && (!deadcode)) {
-#if defined(__I386__) || defined(__X86_64__)
-				u1 *u1ptr;
-				int a;
-
-				printf("\n");
-				i = bptr->mpc;
-				u1ptr = method->mcode + dseglen + i;
-
-				if (bptr->next != NULL) {
-					for (; i < bptr->next->mpc; i++, u1ptr++) {
-						a = disassinstr(u1ptr, i);
-						i += a;
-						u1ptr += a;
-					}
-					printf("\n");
-
-				} else {
-					for (; u1ptr < (u1 *) (method->mcode + method->mcodelength); i++, u1ptr++) {
-						a = disassinstr(u1ptr, i); 
-						i += a;
-						u1ptr += a;
-					}
-					printf("\n");
-				}
-#else
-				printf("\n");
-				i = bptr->mpc;
-				s4ptr = (s4 *) (method->mcode + dseglen + i);
-
-				if (bptr->next != NULL) {
-					for (; i < bptr->next->mpc; i += 4, s4ptr++) {
-						disassinstr(*s4ptr, i); 
-				    }
-					printf("\n");
-			    }
-				else {
-					for (; s4ptr < (s4 *) (method->mcode + method->mcodelength); i += 4, s4ptr++) {
-						disassinstr(*s4ptr, i); 
-				    }
-					printf("\n");
-			    }
-#endif
-		    }
-		}
 	}
 }
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

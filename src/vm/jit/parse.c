@@ -27,8 +27,9 @@
    Author: Andreas Krall
 
    Changes: Carolyn Oates
+            Edwin Steiner
 
-   $Id: parse.c 689 2003-12-05 18:03:47Z stefan $
+   $Id: parse.c 696 2003-12-06 20:10:05Z edwin $
 
 */
 
@@ -1240,7 +1241,7 @@ void parse()
  					classinfo *cls = (classinfo*)class_getconstant(class, i, CONSTANT_Class);
  					if (cls->vftbl->arraydesc) {
  						/* array type cast-check */
- 						LOADCONST_A(cls->vftbl->arraydesc);
+ 						LOADCONST_A(cls->vftbl);
  						s_count++;
  						BUILTIN2((functionptr) asm_builtin_checkarraycast, TYPE_ADR);
   					}
@@ -1263,7 +1264,7 @@ void parse()
  					classinfo *cls = (classinfo*)class_getconstant(class, i, CONSTANT_Class);
  					if (cls->vftbl->arraydesc) {
  						/* array type cast-check */
- 						LOADCONST_A(cls->vftbl->arraydesc);
+ 						LOADCONST_A(cls->vftbl);
  						s_count++;
   #if defined(__I386__)
  						BUILTIN2((functionptr) asm_builtin_arrayinstanceof, TYPE_INT);

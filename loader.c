@@ -28,8 +28,9 @@
    Changes: Andreas Krall
             Roman Obermaiser
             Mark Probst
+			Edwin Steiner
 
-   $Id: loader.c 693 2003-12-05 19:00:58Z jowenn $
+   $Id: loader.c 696 2003-12-06 20:10:05Z edwin $
 
 */
 
@@ -888,6 +889,7 @@ static void method_load (methodinfo *m, classinfo *c)
 	m -> flags = suck_u2 ();
 	m -> name =  class_getconstant (c, suck_u2(), CONSTANT_Utf8);
 	m -> descriptor = class_getconstant (c, suck_u2(), CONSTANT_Utf8);
+	checkmethoddescriptor(m->descriptor);
 	
 	m -> jcode = NULL;
 	m -> exceptiontable = NULL;
@@ -1599,6 +1601,8 @@ class_new_array(classinfo *c)
 	methodinfo *clone;
 	int namelen;
 
+	/* XXX remove */ /* dolog("class_new_array: %s",c->name->text); */
+
 	/* Array classes are not loaded from classfiles. */
 	list_remove (&unloadedclasses, c);
 
@@ -1626,12 +1630,12 @@ class_new_array(classinfo *c)
 	c->super = class_java_lang_Object;
 
     c->interfacescount = 2;
-    c->interfaces = MNEW(classinfo*,2);
+    c->interfaces = MNEW(classinfo*,2); /* XXX use GC? */
     c->interfaces[0] = class_java_lang_Cloneable;
     c->interfaces[1] = class_java_io_Serializable;
 
 	c->methodscount = 1;
-	c->methods = MNEW (methodinfo, c->methodscount);
+	c->methods = MNEW (methodinfo, c->methodscount); /* XXX use GC? */
 
 	clone = c->methods;
 	memset(clone,0,sizeof(methodinfo));
@@ -2881,7 +2885,7 @@ classinfo *class_from_descriptor(char *utf_ptr,char *end_ptr,char **next,int mod
 	char *start = utf_ptr;
 	bool error = false;
 	utf *name;
-	
+
 	SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr,end_ptr,error);
 	if (error) return NULL;
 	if (next) *next = utf_ptr;

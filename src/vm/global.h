@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 687 2003-12-04 22:29:54Z edwin $
+   $Id: global.h 696 2003-12-06 20:10:05Z edwin $
 
 */
 
@@ -53,6 +53,29 @@
  * of determining the sizes of objects on the heap.
  */
 #define SIZE_FROM_CLASSINFO
+
+/*
+ * CACAO_TYPECHECK activates typechecking (part of bytecode verification)
+ */
+#define CACAO_TYPECHECK
+
+/*
+ * Macros for configuration of the typechecking code
+ *
+ * TYPEINFO_DEBUG activates debug checks and debug helpers in typeinfo.c
+ * TYPECHECK_DEBUG activates debug checks in typecheck.c
+ * TYPEINFO_DEBUG_TEST activates the typeinfo test at startup.
+ * TYPECHECK_VERBOSE_IMPORTANT activates important debug messages
+ * TYPECHECK_VERBOSE activates all debug messages
+ */
+#define TYPEINFO_DEBUG
+#define TYPECHECK_DEBUG
+/*#define TYPEINFO_DEBUG_TEST*/
+#define TYPECHECK_VERBOSE
+/*#define TYPECHECK_VERBOSE_IMPORTANT*/
+#if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
+#define TYPECHECK_VERBOSE_OPT
+#endif
 
 /* standard includes **********************************************************/
 
@@ -749,6 +772,9 @@ extern bool verbose;
 extern bool opt_rt;             /* Rapid Type Analysis for better inlining CO-RT*/
 extern bool opt_xta;            /* X Type Analysis for better inlining    CO-XTA*/
 extern bool opt_vta;            /* Variable Type Analysis for better inlining    CO-VTA*/
+#ifdef TYPECHECK_VERBOSE_OPT
+extern bool typecheckverbose;
+#endif
 
 //extern int pClassHeir;
 //extern int pCallgraph;

@@ -1,16 +1,34 @@
-/********************************* typeinfo.c *********************************
+/* typeinfo.c - type system used by the type checker
 
-	Copyright (c) 2003 ? XXX
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	functions for the compiler's type system
-	
-	Authors: Edwin Steiner
-                  
-	Last Change:
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-*******************************************************************************/
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Edwin Steiner
+
+   $Id: typeinfo.c 696 2003-12-06 20:10:05Z edwin $
+
+*/
 
 #include "typeinfo.h"
 #include "tables.h"
@@ -133,7 +151,7 @@ typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
     cls = value->typeclass;
 
     /* DEBUG CHECK: dest must not have a merged list. */
-#ifdef DEBUG_TYPES
+#ifdef TYPEINFO_DEBUG
     if (dest->merged)
         panic("Internal error: typeinfo_is_assignable on merged destination.");
 #endif
@@ -220,35 +238,6 @@ typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
 /* INITIALIZATION FUNCTIONS                                           */
 /* The following functions fill in uninitialized typeinfo structures. */
 /**********************************************************************/
-
-/* XXX delete */
-#if 0
-void
-typeinfo_init_from_arraydescriptor(typeinfo *info,
-                                   constant_arraydescriptor *desc)
-{
-    int dim = 1;
-    
-    /* Arrays are instances of the pseudo class Array. */
-    info->typeclass = pseudo_class_Array; /* XXX */
-    info->merged = NULL;
-
-    /* Handle multidimensional arrays */
-    while (desc->arraytype == ARRAYTYPE_ARRAY) {
-        dim++;
-        desc = desc->elementdescriptor;
-    }
-
-    info->dimension = dim;
-
-    if ((info->elementtype = desc->arraytype) == ARRAYTYPE_OBJECT) {
-        info->elementclass = desc->objectclass;
-    }
-    else {
-        info->elementclass = NULL;
-    }
-}
-#endif
 
 void
 typeinfo_init_from_descriptor(typeinfo *info,char *utf_ptr,char *end_ptr)
@@ -374,7 +363,7 @@ typeinfo_init_from_method_args(utf *desc,u1 *typebuf,typeinfo *infobuf,
         cls = class_from_descriptor(utf_ptr,end_pos,&utf_ptr,CLASSLOAD_NEW);
         if (!cls)
             panic("Invalid method descriptor.");
-        
+
         switch (c) {
           case 'B':
           case 'C':
@@ -403,6 +392,8 @@ typeinfo_init_from_method_args(utf *desc,u1 *typebuf,typeinfo *infobuf,
               if (twoword) {
                   if (++args > buflen)
                       panic("Buffer too small for method arguments.");
+                  if (typebuf)
+                      *typebuf++ = TYPE_VOID;
                   TYPEINFO_INIT_PRIMITIVE(*infobuf);
                   infobuf++;
               }
@@ -418,7 +409,6 @@ typeinfo_init_from_method_args(utf *desc,u1 *typebuf,typeinfo *infobuf,
                   *typebuf++ = TYPE_ADDRESS;
               
               TYPEINFO_INIT_CLASSINFO(*infobuf,cls);
-              /* XXX remove */ /* utf_display(cls->name); */
               infobuf++;
               break;
 	   
@@ -485,6 +475,11 @@ void
 typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 {
     vftbl *comp = NULL;
+
+    if (TYPEINFO_IS_NULLTYPE(*srcarray)) {
+        TYPEINFO_INIT_NULLTYPE(*dst);
+        return;
+    }
     
     /* XXX find component class */
     if (!TYPEINFO_IS_ARRAY(*srcarray))
@@ -522,7 +517,7 @@ typeinfo_clone(typeinfo *src,typeinfo *dest)
     int count;
     classinfo **srclist,**destlist;
 
-#ifdef DEBUG_TYPES
+#ifdef TYPEINFO_DEBUG
     if (src == dest)
         panic("Internal error: typeinfo_clone with src==dest");
 #endif
@@ -561,7 +556,7 @@ typeinfo_free(typeinfo *info)
 static
 void
 typeinfo_merge_error(char *str,typeinfo *x,typeinfo *y) {
-#ifdef DEBUG_TYPES
+#ifdef TYPEINFO_DEBUG
     fprintf(stderr,"Error in typeinfo_merge: %s\n",str);
     fprintf(stderr,"Typeinfo x:\n");
     typeinfo_print(stderr,x,1);
@@ -581,7 +576,7 @@ typeinfo_merge_two(typeinfo *dest,classinfo *clsx,classinfo *clsy)
     TYPEINFO_ALLOCMERGED(dest->merged,2);
     dest->merged->count = 2;
 
-#ifdef DEBUG_TYPES
+#ifdef TYPEINFO_DEBUG
     if (clsx == clsy)
         panic("Internal error: typeinfo_merge_two called with clsx==clsy.");
 #endif
@@ -693,7 +688,7 @@ typeinfo_merge_mergedlists(typeinfo *dest,typeinfo_mergedlist *x,
 
     /* {The new mergedlist will have count entries.} */
 
-    if (y->count == count) {
+    if ((x->count != count) && (y->count == count)) {
         temp = x; x = y; y = temp;
     }
     /* {If one of x,y is already the result it is x.} */
@@ -770,7 +765,7 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 
     /* XXX remove */
     /*
-#ifdef DEBUG_TYPES
+#ifdef TYPEINFO_DEBUG
     typeinfo dbgx,dbgy;
     printf("typeinfo_merge_nonarrays:\n");
     TYPEINFO_INIT_CLASSINFO(dbgx,clsx);
@@ -875,8 +870,6 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 
     /* {common == nearest common anchestor of clsx and clsy.} */
 
-    /* XXX remove */ /* printf("common: "); utf_display(common->name); printf("\n"); */
-
     /* If clsx==common and x is a whole class (not a merge of subclasses)
      * then the result of the merge is clsx.
      */
@@ -916,17 +909,21 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
 
     /* XXX remove */
     /*
-#ifdef DEBUG_TYPES
+#ifdef TYPEINFO_DEBUG
     typeinfo_print(stdout,dest,4);
     typeinfo_print(stdout,y,4);
 #endif
     */ 
 
-    /* This function cannot be used to merge primitive types. */
+    /* Merging two returnAddress types is ok. */
+    if (!dest->typeclass && !y->typeclass)
+        return false;
+    
+    /* Primitive types cannot be merged with reference types */
     if (!dest->typeclass || !y->typeclass)
         typeinfo_merge_error("Trying to merge primitive types.",dest,y);
 
-#ifdef DEBUG_TYPES
+#ifdef TYPEINFO_DEBUG
     if (dest == y)
         panic("Internal error: typeinfo_merge with dest==y");
     
@@ -1069,7 +1066,7 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
 /* DEBUGGING HELPERS                                                  */
 /**********************************************************************/
 
-#ifdef DEBUG_TYPES
+#ifdef TYPEINFO_DEBUG
 
 #include "tables.h"
 #include "loader.h"
@@ -1144,6 +1141,7 @@ static void
 typeinfo_testmerge(typeinfo *a,typeinfo *b,typeinfo *result,int *failed)
 {
     typeinfo dest;
+    bool changed,changed_should_be;
 
     TYPEINFO_CLONE(*a,dest);
     
@@ -1153,12 +1151,19 @@ typeinfo_testmerge(typeinfo *a,typeinfo *b,typeinfo *result,int *failed)
     typeinfo_print_short(stdout,b);
     printf("\n");
 
-    typeinfo_merge(&dest,b);
+    changed = (typeinfo_merge(&dest,b)) ? 1 : 0;
+    changed_should_be = (!typeinfo_equal(&dest,a)) ? 1 : 0;
+
+    printf("          %s\n",(changed) ? "changed" : "=");
 
     if (typeinfo_equal(&dest,result)) {
         printf("OK        ");
         typeinfo_print_short(stdout,&dest);
         printf("\n");
+        if (changed != changed_should_be) {
+            printf("WRONG RETURN VALUE!\n");
+            (*failed)++;
+        }
     }
     else {
         printf("RESULT    ");
@@ -1190,7 +1195,7 @@ typeinfo_testrun(char *filename)
     char bufa[TYPEINFO_TEST_BUFLEN];
     char bufb[TYPEINFO_TEST_BUFLEN];
     char bufc[TYPEINFO_TEST_BUFLEN];
-    typeinfo a,b,c,a2,b2;
+    typeinfo a,b,c;
     int maxdim;
     int failed = 0;
     FILE *file = fopen(filename,"rt");
@@ -1345,32 +1350,6 @@ typeinfo_print_short(FILE *file,typeinfo *info)
     
     utf_fprint(file,info->typeclass->name);
 
-    /* XXX remove */
-#if 0
-    if (TYPEINFO_IS_ARRAY(*info)) {
-        fprintf(file,"[%d]",info->dimension);
-        switch (info->elementtype) {
-            case ARRAYTYPE_INT     : fprintf(file,"int"); break;
-            case ARRAYTYPE_LONG    : fprintf(file,"long"); break;
-            case ARRAYTYPE_FLOAT   : fprintf(file,"float"); break;
-            case ARRAYTYPE_DOUBLE  : fprintf(file,"double"); break;
-            case ARRAYTYPE_BYTE    : fprintf(file,"byte"); break;
-            case ARRAYTYPE_CHAR    : fprintf(file,"char"); break;
-            case ARRAYTYPE_SHORT   : fprintf(file,"short"); break;
-            case ARRAYTYPE_BOOLEAN : fprintf(file,"boolean"); break;
-
-            case ARRAYTYPE_OBJECT:
-                fprintf(file,"object(");
-                utf_fprint(file,info->elementclass->name);
-                fprintf(file,")");
-                break;
-                
-            default:
-                fprintf(file,"INVALID ARRAYTYPE!");
-        }
-    }
-#endif
-    
     if (info->merged) {
         fprintf(file,"{");
         for (i=0; i<info->merged->count; ++i) {
@@ -1394,9 +1373,7 @@ typeinfo_print_type(FILE *file,int type,typeinfo *info)
           if (TYPEINFO_IS_PRIMITIVE(*info))
               fprintf(file,"R"); /* returnAddress */
           else {
-              fprintf(file,"L");
               typeinfo_print_short(file,info);
-              fprintf(file,";");
           }
           break;
           
@@ -1405,4 +1382,4 @@ typeinfo_print_type(FILE *file,int type,typeinfo *info)
     }
 }
 
-#endif // DEBUG_TYPES
+#endif // TYPEINFO_DEBUG

@@ -30,12 +30,12 @@ s4 builtin_isanysubclass_vftbl (vftbl *sub, vftbl *super);
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
 s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class);
 
-s4 builtin_arrayinstanceof(java_objectheader *obj, arraydescriptor *desc);
+s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl *target);
 #ifdef __I386__
 s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class); /* XXX ? */
 #endif
-s4 builtin_checkarraycast(java_objectheader *obj, arraydescriptor *desc);
-s4 asm_builtin_checkarraycast(java_objectheader *obj, arraydescriptor *desc);
+s4 builtin_checkarraycast(java_objectheader *obj, vftbl *target);
+s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl *target);
 
 java_objectheader *builtin_throw_exception (java_objectheader *exception);
 java_objectheader *builtin_trace_exception (java_objectheader *exceptionptr,

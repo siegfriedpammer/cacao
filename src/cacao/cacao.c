@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 689 2003-12-05 18:03:47Z stefan $
+   $Id: cacao.c 696 2003-12-06 20:10:05Z edwin $
 
 */
 
@@ -108,7 +108,8 @@ void **stackbottom = 0;
 #define OPT_INLINING	25
 #define OPT_RT          26
 #define OPT_XTA         27 
-#define OPT_VTA         28 
+#define OPT_VTA         28
+#define OPT_VERBOSETC   29
 
 
 struct {char *name; bool arg; int value;} opts[] = {
@@ -124,6 +125,9 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{"verbose",     false,  OPT_VERBOSE},
 	{"verbosegc",   false,  OPT_VERBOSEGC},
 	{"verbosecall", false,  OPT_VERBOSECALL},
+#ifdef TYPECHECK_VERBOSE
+	{"verbosetc",   false,  OPT_VERBOSETC},
+#endif
 #if defined(__ALPHA__)
 	{"noieee",      false,  OPT_NOIEEE},
 #endif
@@ -213,6 +217,9 @@ static void print_usage()
 	printf("          -verbose ............. write more information\n");
 	printf("          -verbosegc ........... write message for each GC\n");
 	printf("          -verbosecall ......... write message for each call\n");
+#ifdef TYPECHECK_VERBOSE
+	printf("          -verbosetc ........... write debug messages while typechecking\n");
+#endif
 #if defined(__ALPHA__)
 	printf("          -noieee .............. don't use ieee compliant arithmetic\n");
 #endif
@@ -609,6 +616,12 @@ int main(int argc, char **argv)
 		case OPT_VERBOSEGC:
 			collectverbose = true;
 			break;
+
+#ifdef TYPECHECK_VERBOSE
+		case OPT_VERBOSETC:
+			typecheckverbose = true;
+			break;
+#endif
 				
 		case OPT_VERBOSECALL:
 			runverbose = true;
@@ -835,8 +848,9 @@ int main(int argc, char **argv)
 			a->data[i - opt_ind] = javastring_new(utf_new_char(argv[i]));
 		}
 
-#ifdef DEBUG_TYPES
-		typeinfo_test(); /* XXX remove debug */
+#ifdef TYPEINFO_DEBUG_TEST
+		/* test the typeinfo system */
+		typeinfo_test();
 #endif
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 	

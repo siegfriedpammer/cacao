@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 662 2003-11-21 18:06:25Z jowenn $
+# $Id: Makefile.am 696 2003-12-06 20:10:05Z edwin $
 
 
 SUBDIRS = . loop @ARCH_DIR@
@@ -20,7 +20,8 @@ EXTRA_DIST = \
 	sets.h \
 	parseRT.c \
 	parseRTprint.h \
-	parseRTstats.c
+	parseRTstats.c \
+	typecheck.c
 
 noinst_HEADERS = \
 	parse.h \
@@ -32,7 +33,7 @@ noinst_HEADERS = \
 
 noinst_LIBRARIES = libjit.a
 
-libjit_a_SOURCES = jit.c parse.c stack.c inline.c sets.c parseRT.c parseRTstats.c
+libjit_a_SOURCES = jit.c parse.c stack.c inline.c sets.c parseRT.c parseRTstats.c typecheck.c
 
 all-local:
 	$(MAKE) $(AM_MAKEFLAGS) -C .. jit/@ARCH_DIR@/offsets.h

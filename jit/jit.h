@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 665 2003-11-21 18:36:43Z jowenn $
+   $Id: jit.h 696 2003-12-06 20:10:05Z edwin $
 
 */
 
@@ -39,6 +39,7 @@
 
 #include "toolbox/chain.h"
 #include "global.h"
+#include "typeinfo.h"
 
 /**************************** resolve typedef-cycles **************************/
 
@@ -59,6 +60,7 @@ typedef varinfo *varinfoptr;
 
 /* slot types */
 
+/* XXX use TYPE_ADDRESS, ...? */
 #define TYPE_INT   0            /* the stack slot types must numbered in the  */
 #define TYPE_LNG   1            /* same order as the ICMD_Ixxx to ICMD_Axxx   */
 #define TYPE_FLT   2            /* instructions (LOAD and STORE)              */
@@ -88,6 +90,9 @@ typedef varinfo *varinfoptr;
 struct stackelement {
 	stackptr prev;              /* pointer to next element towards bottom     */
 	int type;                   /* slot type of stack element                 */
+#ifdef CACAO_TYPECHECK
+	typeinfo typeinfo;          /* info on reference types                    */
+#endif
 	int flags;                  /* flags (SAVED, INMEMORY)                    */
 	int varkind;                /* kind of variable or register               */
 	int varnum;                 /* number of variable                         */
@@ -124,6 +129,8 @@ struct instruction {
 #define BBUNDEF    -1
 #define BBREACHED  0
 #define BBFINISHED 1
+#define BBTYPECHECK_UNDEF    2
+#define BBTYPECHECK_REACHED  3
 
 #define BBTYPE_STD 0            /* standard basic block type                  */
 #define BBTYPE_EXH 1            /* exception handler basic block type         */
@@ -948,6 +955,9 @@ extern bool isleafmethod;       /* true if a method doesn't call subroutines  */
 
 extern basicblock *last_block;  /* points to the end of the BB list           */
 
+extern bool regs_ok;            /* true if registers have been allocated      */
+
+
 /* list of all classes used by the compiled method which have to be           */
 /* initialised (if not already done) before execution of this method          */
 extern chain *uninitializedclasses;
@@ -967,6 +977,13 @@ u1 *createnativestub(functionptr f, methodinfo *m);
 
 void removecompilerstub(u1 *stub);
 void removenativestub(u1 *stub);
+
+/* debug helpers (in stack.c) */
+
+void icmd_print_stack(stackptr s);
+void show_icmd_block(basicblock *bptr);
+void show_icmd(instruction *iptr,bool deadcode);
+void show_icmd_method();
 
 #endif /* _JIT_H */
 
