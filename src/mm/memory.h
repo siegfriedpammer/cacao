@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.h 1569 2004-11-23 16:02:46Z twisti $
+   $Id: memory.h 1637 2004-12-01 10:33:25Z twisti $
 
 */
 
@@ -111,7 +111,7 @@ struct dumpblock {
 
 /* dumpinfo ********************************************************************
 
-   TODO
+   DOCUMENT ME!
 
 *******************************************************************************/
 
@@ -126,49 +126,50 @@ struct dumpinfo {
 
 /* Uncollectable memory which can contain references */
 
-#define GCNEW(type,num)       heap_alloc_uncollectable(sizeof(type) * (num))
-#define GCFREE(ptr)           heap_free(ptr)
+#define GCNEW(type,num)       ((type *) heap_alloc_uncollectable(sizeof(type) * (num)))
+#define GCFREE(ptr)           heap_free((ptr))
 
 #define ALIGN(pos,size)       ((((pos) + (size) - 1) / (size)) * (size))
 #define PADDING(pos,size)     (ALIGN((pos),(size)) - (pos))
 #define OFFSET(s,el)          ((int) ((size_t) & (((s*) 0)->el)))
 
 
-#define NEW(type)             ((type*) mem_alloc(sizeof(type)))
-#define FREE(ptr,type)        mem_free(ptr, sizeof(type))
+#define NEW(type)             ((type *) mem_alloc(sizeof(type)))
+#define FREE(ptr,type)        mem_free((ptr), sizeof(type))
 
-#define MNEW(type,num)        ((type*) mem_alloc(sizeof(type) * (num)))
-#define MFREE(ptr,type,num)   mem_free(ptr, sizeof(type) * (num))
-#define MREALLOC(ptr,type,num1,num2) mem_realloc(ptr, sizeof(type) * (num1), \
-                                                      sizeof(type) * (num2))
+#define MNEW(type,num)        ((type *) mem_alloc(sizeof(type) * (num)))
+#define MFREE(ptr,type,num)   mem_free((ptr), sizeof(type) * (num))
+#define MREALLOC(ptr,type,num1,num2) mem_realloc((ptr), sizeof(type) * (num1), \
+                                                        sizeof(type) * (num2))
 
-#define DNEW(type)            ((type*) dump_alloc(sizeof(type)))
-#define DMNEW(type,num)       ((type*) dump_alloc(sizeof(type) * (num)))
-#define DMREALLOC(ptr,type,num1,num2)  dump_realloc(ptr, sizeof(type) * (num1),\
-                                                         sizeof(type) * (num2))
+#define DNEW(type)            ((type *) dump_alloc(sizeof(type)))
+#define DMNEW(type,num)       ((type *) dump_alloc(sizeof(type) * (num)))
+#define DMREALLOC(ptr,type,num1,num2) dump_realloc((ptr), sizeof(type) * (num1), \
+                                                          sizeof(type) * (num2))
 
-#define MCOPY(dest,src,type,num)  memcpy(dest,src, sizeof(type)* (num))
+#define MCOPY(dest,src,type,num) memcpy((dest), (src), sizeof(type) * (num))
+#define MSET(ptr,byte,type,num) memset((ptr), (byte), sizeof(type) * (num))
 
 #if defined(USE_CODEMMAP)
-#define CNEW(type,num)        ((type*) mem_mmap( sizeof(type) * (num)))
-#define CFREE(ptr,num)
+#define CNEW(type,num)        ((type *) mem_mmap(sizeof(type) * (num)))
+#define CFREE(ptr,num)        /* nothing */
 #else
-#define CNEW(type,num)        ((type*) mem_alloc(sizeof(type) * (num)))
-#define CFREE(ptr,num)        mem_free(ptr, num)
+#define CNEW(type,num)        ((type *) mem_alloc(sizeof(type) * (num)))
+#define CFREE(ptr,num)        mem_free((ptr), (num))
 #endif
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 void *mem_mmap(s4 size);
 void *mem_alloc(s4 size);
-void mem_free(void *m, s4 size);
+void  mem_free(void *m, s4 size);
 void *mem_realloc(void *src, s4 len1, s4 len2);
 
 void *dump_alloc(s4 size);
 void *dump_realloc(void *src, s4 len1, s4 len2);
-s4 dump_size();
-void dump_release(s4 size);
+s4    dump_size();
+void  dump_release(s4 size);
 
 #endif /* _MEMORY_H */
 
