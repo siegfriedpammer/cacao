@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1510 2004-11-17 11:33:44Z twisti $
+   $Id: typecheck.c 1550 2004-11-19 14:26:31Z twisti $
 
 */
 
@@ -518,7 +518,9 @@ typestate_reach(codegendata *cd, registerdata *rd,void *localbuf,
 	if (destblock <= current) {
 		stackptr sp;
 		int i;
+#if defined(__GNUC__)
 #warning FIXME FOR INLINING
+#endif
 		if (!useinlining) {
 			TYPECHECK_COUNT(stat_backwards);
         		LOG("BACKWARDS!");
