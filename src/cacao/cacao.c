@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1529 2004-11-17 17:19:14Z twisti $
+   $Id: cacao.c 1535 2004-11-18 10:39:18Z twisti $
 
 */
 
@@ -552,6 +552,19 @@ int main(int argc, char **argv)
 	if (opt_ind >= argc)
    		usage();
 
+#if 0
+	{
+		char *gnucp = "/home/twisti/src/cacao/cacaodev/classpath/lib/:";
+		cp = classpath;
+
+		classpath = MNEW(char, strlen(cp) + strlen(classpath) + 1);
+		strcpy(classpath, gnucp);
+		strcat(classpath, cp);
+
+		MFREE(cp, char, strlen(cp));
+	}
+#endif
+
    	mainstring = argv[opt_ind++];
    	for (i = strlen(mainstring) - 1; i >= 0; i--) {     /* Transform dots into slashes */
  	 	if (mainstring[i] == '.') mainstring[i] = '/';  /* in the class name */
@@ -587,8 +600,6 @@ int main(int argc, char **argv)
 
 	loader_init((u1 *) &dummy);
 
-	jit_init();
-
 	/* initialize exceptions used in the system */
 	if (!init_system_exceptions())
 		throw_main_exception_exit();
@@ -618,8 +629,11 @@ int main(int argc, char **argv)
 
 	if (startit) {
 		methodinfo *mainmethod;
-		java_objectarray *a;
-                s4 result=0; 
+		java_objectarray *a; 
+		s4 status;
+
+		/* set return value to OK */
+		status = 0;
 
 		/* create, load and link the main class */
 		mainclass = class_new(utf_new_char(mainstring));
@@ -668,9 +682,9 @@ int main(int argc, char **argv)
 
 		/* exception occurred? */
 		if (*exceptionptr) {
-                        result=1;
 			throw_main_exception();
-                }
+			status = 1;
+		}
 
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
@@ -682,7 +696,7 @@ int main(int argc, char **argv)
 
 		/* now exit the JavaVM */
 
-		cacao_exit(result);
+		cacao_exit(status);
 	}
 
 	/************* If requested, compile all methods ********************/
@@ -789,7 +803,7 @@ void cacao_exit(s4 status)
 
 	/* class should already be loaded, but who knows... */
 
-	c = class_new(utf_new_char("java/lang/Runtime"));
+	c = class_new(utf_new_char("java/lang/System"));
 
 	if (!class_load(c))
 		throw_main_exception_exit();
@@ -797,29 +811,7 @@ void cacao_exit(s4 status)
 	if (!class_link(c))
 		throw_main_exception_exit();
 
-	/* first call Runtime.getRuntime()Ljava.lang.Runtime; */
-
-	m = class_resolveclassmethod(c,
-								 utf_new_char("getRuntime"),
-								 utf_new_char("()Ljava/lang/Runtime;"),
-								 class_java_lang_Object,
-								 true);
-
-	if (!m)
-		throw_main_exception_exit();
-
-	rt = (java_lang_Runtime *) asm_calljavafunction(m,
-													(void *) 0,
-													NULL,
-													NULL,
-													NULL);
-
-	/* exception occurred? */
-
-	if (*exceptionptr)
-		throw_main_exception_exit();
-
-	/* then call Runtime.exit(I)V */
+	/* call System.exit(I)V */
 
 	m = class_resolveclassmethod(c,
 								 utf_new_char("exit"),
@@ -830,12 +822,25 @@ void cacao_exit(s4 status)
 	if (!m)
 		throw_main_exception_exit();
 
-	asm_calljavafunction(m, rt, (void *) status, NULL, NULL);
+	/* call the exit function with passed exit status */
+
+	asm_calljavafunction(m,
+						 rt,
+#if POINTERSIZE == 8
+						 (void *) (s8) status,
+#else
+						 (void *) status,
+#endif
+						 NULL,
+						 NULL);
 
 	/* this should never happen */
 
+	if (*exceptionptr)
+		throw_exception_exit();
+
 	throw_cacao_exception_exit(string_java_lang_InternalError,
-							   "Problems with Runtime.exit(I)V");
+							   "System.exit(I)V returned without exception");
 }
 
 
