@@ -51,7 +51,6 @@ fldSet *add2FldSet(fldSet *sf,  fieldinfo *f, bool wput, bool rget)
  {
  fldSetNode *s1;
  fldSetNode *s;
- fldSetNode *i;
  
  if (sf == NULL) {
 	sf = createFldSet();
@@ -248,11 +247,10 @@ classSet *createClassSet( )
  }
 
 /*------------------------------------------------------------*/
-/* Returns:
-/*	-1  c is a subclass   of an existing set element
-/*	 0  c class type cone does not overlap any set element
-/*	 1  c is a superclass of an existing set element
-*/
+/* Returns:                                                   */
+/*    -1  c is a subclass   of an existing set element        */
+/*     0  c class type cone does not overlap any set element  */
+/*     1  c is a superclass of an existing set element        */
 
 int inRange (classSetNode *s, classinfo *c)
  {

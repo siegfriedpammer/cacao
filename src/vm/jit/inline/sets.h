@@ -86,9 +86,9 @@ classSet     *  createClassSet();
 int             inRange (classSetNode *, classinfo *);
 classSetNode *	addClassCone(classSetNode *,  classinfo *);
 classSetNode *   intersectSubtypesWithSet(classinfo *, classSetNode *); 
+int             sizeOfSet(classSetNode *s);
 int 		setSize(classSetNode *);
 int 		printSet(classSetNode *);
 int 		printClassSet(classSet *);
 
 #endif
-

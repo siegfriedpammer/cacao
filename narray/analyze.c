@@ -354,7 +354,7 @@ void analyze_nested()
 {
 	/* i/count/tmp are counters                                               */
 	/* toOverwrite is used while loop hierarchie is built (see below)         */
-	int i, count, header, toOverwrite, tmp, len;
+	int i, header, toOverwrite, tmp, len;
 
 	/* first/last are used during topological sort to build ordered loop list */
 	struct LoopContainer *first, *last, *start, *t, *temp;
@@ -603,7 +603,7 @@ int analyze_for_array_access(int node)
 {
 	basicblock bp;
 	instruction *ip;
-	int ic, i, j, access;
+	int ic, i, access;
 	struct depthElement *d;
 	struct Trace *t;
 
@@ -690,10 +690,8 @@ int analyze_for_array_access(int node)
 			case ICMD_ASTORE:
 				c_var_modified[ip->op1] = 1;
 				break;
-
-			default:
-				}
 			}
+		}
 
 		d = c_dTable[node];
 		while (d != NULL) {					/* check all successors of block	*/
@@ -763,8 +761,8 @@ int quick_scan(int node)
 */
 int analyze_or_exceptions(int head, struct LoopContainer *lc)
 {
-	struct depthElement *d, *tmp, *tmp2;
-	int i, j, k, value, flag, count;
+	struct depthElement *d;
+	int i, k, value, flag, count;
 	struct LoopElement *le;
 
 	d = c_dTable[head];
@@ -1312,7 +1310,6 @@ void add_new_constraint(int type, int arrayRef, int varRef, int constant)
 */
 int insert_static(int arrayRef, struct Trace *index, struct Changes *varChanges, int special)
 {
-	struct Constraint *tc;
 	struct LoopVar *lv;
 	int varRef;
 	int high, low;
@@ -1450,7 +1447,10 @@ int insert_static(int arrayRef, struct Trace *index, struct Changes *varChanges,
 		c_stat_no_opt++;			
 #endif
 		return OPT_NONE;
-		}
+	}
+
+	/* keep compiler happy */
+	return 0;
 }
 
 
@@ -1679,9 +1679,8 @@ stackptr copy_stack_from(stackptr source) {
 		LOAD_ARRAYLENGTH(c_rightside->var); \
 		break; \
 	default: \
-		printf("C_ERROR: illegal trace on rightside of loop-header\n"); \
-		exit; \
-		} \
+		panic("C_ERROR: illegal trace on rightside of loop-header"); \
+	} \
 }
 
 /*	Patch jumps in original loop and in copied loop, add gotos in copied loop.
@@ -1778,7 +1777,7 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 
 			case ICMD_LOOKUPSWITCH:
 				{
-					s4 i, l, val, *s4ptr;
+					s4 i, l, *s4ptr;
 					void **tptr;
 
 					tptr = (void **) inst->target;
@@ -1794,9 +1793,8 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 						}
 				}
 				break;
-
-				}
 			}
+		}
 
 		/* if node is part of loop and has fall through to original start, that */
 		/* must be redirected. Unfortunately the instructions have to be copied */
@@ -1922,7 +1920,7 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 
 			case ICMD_LOOKUPSWITCH:
 				{
-					s4 i, l, val, *s4ptr;
+					s4 i, l, *s4ptr;
 
 					void **copy_ptr, **base_ptr;
 					void **tptr;
@@ -2055,9 +2053,7 @@ void node_into_parent_loops(struct LoopContainer *lc, basicblock *to_insert)
 void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *original_head, basicblock *new_head)
 {
 	instruction *ip;
-	s4 *s4ptr;
-	void **tptr;
-	int high, low, count, i;
+	int i;
 
 	/* If node is not part of exception handler or has been visited, exit	    */
 	if (!(bptr->lflags & HANDLER_PART) || (bptr->lflags & HANDLER_VISITED))
@@ -2170,7 +2166,7 @@ void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origi
 
 		case ICMD_LOOKUPSWITCH:
 			{
-				s4 i, l, val, *s4ptr;
+				s4 i, l, *s4ptr;
 
 				void **tptr;
 				void **copy_ptr, **base_ptr;
@@ -2226,7 +2222,7 @@ void copy_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origin
 	instruction *ip;
 	s4 *s4ptr;
 	void **tptr;
-	int high, low, count, cnt;
+	int high, low, count;
 	struct LoopElement *le;
 	basicblock *new;
 
@@ -2502,9 +2498,8 @@ void update_external_exceptions(struct LoopContainer *lc, int loop_head)
 */
 void create_static_checks(struct LoopContainer *lc)
 {
-	int i, j, stackdepth, cnt;
-	struct Changes **c;
-	struct Constraint *tc1, *tc2;
+	int i, stackdepth, cnt;
+	struct Constraint *tc1;
 	struct LoopElement *le;	
 
 	/* loop_head points to the newly inserted loop_head, original_start to      */
@@ -2514,7 +2509,7 @@ void create_static_checks(struct LoopContainer *lc)
 
 	/* tos and newstack are needed by the macros, that insert instructions into */
 	/* the new loop head                                                        */
-	stackptr newstack, tos, sptr;
+	stackptr newstack, tos;
 	xtable *ex;
 
 #ifdef STATISTICS
@@ -2794,7 +2789,6 @@ void create_static_checks(struct LoopContainer *lc)
 	/* functions perform this task.                                             */
 	update_internal_exceptions(lc, loop_head, original_start);
 	update_external_exceptions(lc->parent, lc->loop_head);
-	 
 }
 
 
@@ -3004,9 +2998,9 @@ void remove_boundchecks(int node, int from, struct Changes **change, int special
 {
 	basicblock bp;
 	instruction *ip;
-	int i, j, count, ignore, degrade_checks, opt_level;
+	int i, count, ignore, degrade_checks, opt_level;
 	struct depthElement *d;
-	struct Changes **t1, **t2, **tmp, *t;
+	struct Changes **t1, **tmp, *t;
 	struct Trace *t_array, *t_index;
 
 	/* printf("remove_bc called: %d - %d - %d\n", node, from, special);			*/
@@ -3330,8 +3324,6 @@ void optimize_single_loop(struct LoopContainer *lc)
 	int i, head, node;
 	struct Changes **changes;
 
-	struct LoopVar *lv;
-
 	if ((changes = (struct Changes **) malloc(maxlocals * sizeof(struct Changes *))) == NULL)
 		c_mem_error();
 
@@ -3393,6 +3385,8 @@ void optimize_single_loop(struct LoopContainer *lc)
 	if (analyze_for_array_access(head) > 0) {/* loop contains array access		*/
 
 #ifdef LOOP_DEBUG
+		struct LoopVar *lv;
+
 		printf("analyze for array access finished and found\n");	
 		fflush(stdout);
 		lv = c_loopvars;

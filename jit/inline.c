@@ -218,7 +218,8 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 	int p;
 	int nextp;
 	int opcode;
-	int i, lastlabel = 0;
+	int i;
+/*  	int lastlabel = 0; */
 	bool iswide = false, oldiswide;
 	bool *readonly = NULL;
 	int  *label_index = NULL;
@@ -418,7 +419,6 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 						}
 				}
 				break;
-			default: 
 			}
 		}  
 		

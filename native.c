@@ -94,7 +94,7 @@ java_objectheader* exceptionptr = NULL;
 
 /************* use classinfo structure as java.lang.Class object **************/
 
-static void use_class_as_object (classinfo *c) 
+void use_class_as_object (classinfo *c) 
 {
 	vftbl *vt = class_java_lang_Class -> vftbl;
 	vftbl *newtbl;
@@ -364,7 +364,6 @@ void init_systemclassloader()
 void systemclassloader_addlibname(java_objectheader *o)
 {
         methodinfo *m;
-	java_objectheader *LibraryNameVector;
 	jfieldID id;
 
 	m = class_resolvemethod (
@@ -399,6 +398,10 @@ void native_setclasspath (char *path)
 
 void throw_classnotfoundexception()
 {
+    if (!class_java_lang_ClassNotFoundException) {
+        panic("java.lang.ClassNotFoundException not found. Maybe wrong classpath?");
+    }
+
 	/* throws a ClassNotFoundException */
 	exceptionptr = native_new_and_init (class_java_lang_ClassNotFoundException);
 }
@@ -423,7 +426,7 @@ functionptr native_findfunction (utf *cname, utf *mname,
 	struct nativecompref *n;
         /* for warning message if no function is found */
 	char *buffer;	         	
-	int buffer_len, pos;
+	int buffer_len;
 
 	isstatic = isstatic ? true : false;
 
@@ -907,7 +910,6 @@ java_objectheader *literalstring_new (utf *u)
     char *utf_ptr = u->text;         /* pointer to current unicode character in utf string */
     u4 utflength  = utf_strlen(u);   /* length of utf-string if uncompressed */
     java_chararray *a;               /* u2-array constructed from utf string */
-    java_objectheader *js;
     u4 i;
     
     /* allocate memory */ 
@@ -998,14 +1000,15 @@ printf("---------------------\n");fflush(stdout);
 /*--------------------------------------------------------*/
 classMeth findNativeMethodCalls(utf *c, utf *m, utf *d ) 
 {
-int i=0;
-int j=0;
-int cnt = 0;
-classMeth mc;
-mc.i_class = i;
-mc.j_method = j;
-mc.methCnt = cnt;
+    int i = 0;
+    int j = 0;
+    int cnt = 0;
+    classMeth mc;
+    mc.i_class = i;
+    mc.j_method = j;
+    mc.methCnt = cnt;
 
+    return mc;
 }
 
 /*--------------------------------------------------------*/

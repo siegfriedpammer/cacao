@@ -39,7 +39,6 @@ static fd_set readsPending;
 static fd_set writesPending;
 static thread* readQ[FD_SETSIZE];
 static thread* writeQ[FD_SETSIZE];
-static struct timeval tm = { 0, 0 };
 
 void blockOnFile(int, int);
 void waitOnEvents(void);
@@ -60,7 +59,9 @@ threadedFileDescriptor(int fd)
 {
 #if !defined(BLOCKING_CALLS)
     int r;
+#if defined(HAVE_IOCTL) && defined(FIOASYNC)
     int on = 1;
+#endif
     int pid;
 
     /* Make non-blocking */
@@ -149,9 +150,6 @@ int
 threadedSocket(int af, int type, int proto)
 {
     int fd;
-    int r;
-    int on = 1;
-    int pid;
 
     fd = socket(af, type, proto);
     return (threadedFileDescriptor(fd));
@@ -164,9 +162,6 @@ int
 threadedOpen(char* path, int flags, int mode)
 {
     int fd;
-    int r;
-    int on = 1;
-    int pid;
 
     fd = open(path, flags, mode);
     return (threadedFileDescriptor(fd));
@@ -200,7 +195,6 @@ int
 threadedAccept(int fd, struct sockaddr* addr, int* len)
 {
     int r;
-    int on = 1;
 
     for (;;)
     {

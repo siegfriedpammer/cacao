@@ -246,11 +246,11 @@ int *c_nestedLoops;				/* store for each node the header node of the	*/
 int *c_hierarchie;              /* store a loop hierarchie                      */
 int *c_toVisit;					/* set for each node that is part of the loop	*/
 
-int *c_current_loop;			/* for each node:
+int *c_current_loop;			/* for each node:                               */
 								/* store 0:	node is not part of loop			*/
 								/* store 1:	node is loop header					*/
 								/* store 2:	node is in loop but not part of any	*/
-								/*			nested loop
+								/*			nested loop                         */
 								/* store 3:	node is part of nested loop			*/
 
 int c_current_head;				/* store number of node that is header of loop	*/

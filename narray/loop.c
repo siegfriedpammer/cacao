@@ -251,7 +251,7 @@ void analyseGraph()
 */
 void resultPass2()
 {
-  int i, j;
+  int i;
   struct LoopContainer *lc = c_allLoops;
   struct LoopElement *le;
   
@@ -259,9 +259,9 @@ void resultPass2()
   
   printf("Loops:\n\n");
   
-  j=0;
+  i = 0;
   while (lc != NULL) {
-	  printf("Loop [%d]: ", ++j);
+	  printf("Loop [%d]: ", ++i);
 
   	  le = lc->nodes;
 	  while (le != NULL) {

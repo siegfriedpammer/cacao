@@ -77,8 +77,10 @@ static thread* startDaemon(void* func, char* nm, int stackSize);
 void
 allocThreadStack (thread *tid, int size)
 {
-    int pageSize = getpagesize(),
-		result;
+    int pageSize = getpagesize();
+#ifndef USE_BOEHM
+    int result;
+#endif
     unsigned long pageBegin;
 
 	assert(stack_to_be_freed == 0);
@@ -111,8 +113,10 @@ freeThreadStack (thread *tid)
 {
     if (!(CONTEXT(tid).flags & THREAD_FLAGS_NOSTACKALLOC))
     {
-		int pageSize = getpagesize(),
-			result;
+		int pageSize = getpagesize();
+#ifndef USE_BOEHM
+        int result;
+#endif
 		unsigned long pageBegin;
 
 		pageBegin = (unsigned long)(CONTEXT(tid).stackMem) + pageSize - 1;
@@ -141,7 +145,6 @@ initThreads(u1 *stackbottom)
 {
 	thread *the_main_thread;
     int i;
-	methodinfo *m;
 	char mainname[] = "main";
 	int len = strlen(mainname);
 
@@ -164,7 +167,9 @@ initThreads(u1 *stackbottom)
     CONTEXT(the_main_thread).free = false;
 
 #if 0
+    {
 	/* stefan */
+	methodinfo *m;
 	m = class_findmethod(
 			class_java_lang_String,
 			utf_new_char ("toCharArray"),
@@ -172,6 +177,7 @@ initThreads(u1 *stackbottom)
 			);
 printf("DEADCODE LIVES ?????????\n");fflush(stdout);
 	the_main_thread->name = asm_calljavafunction (m, javastring_new(utf_new_char("main")), 0, 0, 0);
+    }
 #endif
 	the_main_thread->name = builtin_newarray_char(len);
 	{   u2 *d = the_main_thread->name->data;
@@ -320,6 +326,7 @@ static void
 firstStartThread(void)
 {
     methodinfo *method;
+	java_objectheader *local_exceptionptr = NULL;
 
     DBG( printf("firstStartThread %p\n", currentThread); );
 
@@ -340,7 +347,13 @@ firstStartThread(void)
 							  utf_new_char("run"), utf_new_char("()V"));
 	if (method == 0)
 		panic("Cannot find method \'void run ()\'");
-	asm_calljavamethod(method, currentThread, NULL, NULL, NULL);
+
+	local_exceptionptr = asm_calljavamethod(method, currentThread, NULL, NULL, NULL);
+
+    if (local_exceptionptr) {
+        utf_display(local_exceptionptr->vftbl->class->name);
+        printf("\n");
+    }
 
 	killThread(0);
 	assert("Thread returned from killThread" == 0);

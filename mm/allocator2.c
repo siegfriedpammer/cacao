@@ -6,7 +6,7 @@
  *
  * Authors: Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
  *
- * $Id: allocator2.c 118 1999-01-20 14:58:16Z andi $
+ * $Id: allocator2.c 487 2003-10-20 17:23:21Z twisti $
  */
 
 #include "allocator.h"
@@ -259,7 +259,7 @@ allocator_init()
 {
 #if 0
 	fprintf(stderr, 
-			"allocator_init: $Id: allocator2.c 118 1999-01-20 14:58:16Z andi $\n\n");
+			"allocator_init: $Id: allocator2.c 487 2003-10-20 17:23:21Z twisti $\n\n");
 	
 	fprintf(stderr, "\t%d bit addresses\n", ADDRESS);
 	fprintf(stderr, "\t%d bit alignment\n", ALIGN);
@@ -483,7 +483,7 @@ allocator_dump()
 			printf("large bin %d:\n", i);
 
 		while (chunk) {
-			printf("\t%d bytes @ 0x%lx\n", chunk->size, chunk);
+			printf("\t%ld bytes @ %p\n", chunk->size, chunk);
 			chunk = chunk->next;
 			++count;
 		}

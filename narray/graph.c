@@ -44,8 +44,7 @@ void LoopContainerInit(struct LoopContainer *lc, int i)
 */	        							
 void depthFirst()
 {
-	int i, j; 
-	struct depthElement *hp;
+	int i;
 
 /*	allocate memory and init gobal variables needed by function dF(int, int)	*/
   
@@ -238,7 +237,6 @@ void dF_Exception(int from, int blockIndex)
 	s4 *s4ptr;
 	int high, low, count;
 	struct depthElement *hp;
-	struct LoopContainer *tmp; 
 
 	if (c_exceptionVisit[blockIndex] < 0)	/* has block been visited, return	*/
 		c_exceptionVisit[blockIndex] = 1;

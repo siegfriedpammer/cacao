@@ -11,12 +11,13 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: boehm.c 439 2003-09-15 08:25:35Z stefan $
+	Last Change: $Id: boehm.c 487 2003-10-20 17:23:21Z twisti $
 
 *******************************************************************************/
 
 #include "global.h"
 #include "threads/thread.h"
+#include "asmpart.h"
 
 #include "gc.h"
 
@@ -128,6 +129,12 @@ void gc_init()
 
 void gc_call()
 {
+  	if (collectverbose) {
+		sprintf(logtext, "Garbage Collection:  previous/now = %d / %d ",
+				0, 0);
+		dolog();
+  	}
+
 	GC_gcollect();
 }
 
