@@ -11,7 +11,7 @@
              Michael Gschwind    EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: types.h 624 2003-11-13 14:06:52Z twisti $
+    Last Change: $Id: types.h 1428 2004-11-01 12:23:20Z twisti $
 
 *******************************************************************************/
 
@@ -35,8 +35,11 @@
 #define SUPPORT_LONG_ICVT   1
 #define SUPPORT_LONG_FCVT   1
 
+#define SUPPORT_CONST_ASTORE     1      /* do we support const astores        */
+#define SUPPORT_ONLY_ZERO_ASTORE 0      /* on risc machines we can only store */
+                                        /* REG_ZERO                           */
+
 #define CONDITIONAL_LOADCONST
-#define NO_DIV_OPT
 #define CONSECUTIVE_INTARGS
 #define CONSECUTIVE_FLOATARGS
 
