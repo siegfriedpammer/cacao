@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 816 2003-12-31 13:52:30Z edwin $
+   $Id: loader.c 818 2003-12-31 14:05:12Z edwin $
 
 */
 
@@ -1127,7 +1127,8 @@ static bool method_canoverwrite (methodinfo *m, methodinfo *old)
 
 voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype)
 {
-	/* invalid position in constantpool */	
+	/* invalid position in constantpool */
+	/* (pos == 0 is caught by type comparison) */
 	if (pos >= c->cpcount)
 		panic("Attempt to access constant outside range");
 
@@ -1215,12 +1216,15 @@ static void class_loadcpool(classinfo *c)
 	forward_nameandtype *forward_nameandtypes = NULL;
 	forward_fieldmethint *forward_fieldmethints = NULL;
 
-	/* number of entries in the constant_pool table  */
+	/* number of entries in the constant_pool table plus one */
 	u4 cpcount       = c -> cpcount = suck_u2();
 	/* allocate memory */
 	u1 *cptags       = c -> cptags  = MNEW (u1, cpcount);
 	voidptr *cpinfos = c -> cpinfos = MNEW (voidptr, cpcount);
 
+	if (!cpcount)
+		panic("Invalid constant_pool_count (0)");
+	
 #ifdef STATISTICS
 	count_const_pool_len += (sizeof(voidptr) + 1) * cpcount;
 #endif
