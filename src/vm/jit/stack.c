@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 786 2003-12-15 17:05:59Z edwin $
+   $Id: stack.c 787 2003-12-15 18:20:31Z edwin $
 
 */
 
@@ -2420,7 +2420,7 @@ void show_icmd(instruction *iptr,bool deadcode)
 		break;
 
 	case ICMD_TABLESWITCH:
-
+		s4ptr = (s4*)iptr->val.a;
 
 		if (deadcode || !iptr->target) {
 			printf(" %d;", *s4ptr);
@@ -2446,14 +2446,14 @@ void show_icmd(instruction *iptr,bool deadcode)
 		break;
 
 	case ICMD_LOOKUPSWITCH:
-		s4ptr = iptr->val.a;
+		s4ptr = (s4*)iptr->val.a;
 
 		if (deadcode || !iptr->target) {
 			printf(" %d;", *s4ptr);
 		}
 		else {
 			tptr = (void **) iptr->target;
-			printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
+			printf(" L%03d;", ((basicblock *) *tptr)->debug_nr);
 			tptr++;
 		}
 		s4ptr++;                                         /* default */
