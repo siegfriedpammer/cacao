@@ -25,7 +25,7 @@ alpha* )
 mips* )
 	SYSDEP_DIR="mips"
 	ASMPART="asmpart.s"
-        CFLAGS="-64 -g -DMAP_ANONYMOUS=0 -woff 1048,1110,1164,1515 -D__MIPS__"
+        CFLAGS="-64 -g -DMAP_ANONYMOUS=0 -woff 1110,1164,1515 -D__MIPS__"
 	LIBS="-lelfutil"
 	COMPILER_OBJECTS=""
 	AC_DEFINE(TRACE_ARGS_NUM, 8)
