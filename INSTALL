@@ -4,17 +4,14 @@ CACAO specific installation instructions
 * CLASSPATH, classfiles & other Java weirdness
 ----------------------------------------------
 
-Make sure, you have classfiles, which work with cacao. A version of
+Make sure you have classfiles which work with cacao. A version of
 these can be found at
 ftp://www.complang.tuwien.ac.at/pub/java/cacao/classes.zip.gz
 
 After the installation of these set the environment variable CLASSPATH
-to the directories where your class libraries are stored. The
-environment variable JAVA_HOME (due to a bug this variable is called
-JAVAHOME in versions less than 0.4) to the java home
-directory. E. g. if you unzipped classes.zip in the directory
-/usr/local/lib/java/classes set the environment variable to
-/usr/local/lib/java/classes and JAVA_HOME to /usr/local/lib/java.
+to the directories where your class libraries are stored. E. g. if you
+unzipped classes.zip in the directory /usr/local/lib/java/classes set
+the CLASSPATH environment variable to /usr/local/lib/java/classes.
 
 * configuring & compiling CACAO
 -------------------------------

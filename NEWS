@@ -8,6 +8,12 @@ all the changes in the code.
 * Version 0.40 (released)
 =========================
 
+** Boehm garbage collector supported
+------------------------------------
+
+The --enable-gc2 options was replaced by --with-gc. Choose boehm for the
+Boehm garbage collector. Also see README.boehm.
+
 ** mips port
 ------------
 

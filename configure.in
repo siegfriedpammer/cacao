@@ -142,7 +142,7 @@ boehm )
 	AC_MSG_RESULT(Boehm garbage collector)
 	GC_OBJ="mm/libboehm.a libgc.a"
 	if test ! -e libgc.a; then
-		AC_MSG_ERROR(libgc.a not found)
+		AC_MSG_ERROR([libgc.a not found, see README.boehm])
 	fi
 	AC_DEFINE(USE_BOEHM)
 	BOEHM_LIB=libboehm.a
