@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2237 2005-04-06 12:12:40Z twisti $
+   $Id: codegen.c 2248 2005-04-06 16:06:26Z twisti $
 
 */
 
@@ -3113,10 +3113,6 @@ gen_method: {
 			case ICMD_BUILTIN1:
 				a = (ptrint) lm;
 				d = iptr->op1;
-
-				if (a == (ptrint) BUILTIN_new)
-					a = (ptrint) asm_builtin_new;
-
 
 				x86_64_mov_imm_reg(cd, a, REG_ITMP1);
 				x86_64_call_reg(cd, REG_ITMP1);
