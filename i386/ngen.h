@@ -66,21 +66,11 @@ int nregdescint[] = {
 int nregdescfloat[] = {
   /* rounding problems with callee saved registers */
 /*      REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_RES, REG_RES, */
-    REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES,
+/*      REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, */
+    REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
     REG_END };
 
 /* for use of reserved registers, see comment above */
-
-
-/* parameter allocation mode */
-
-int nreg_parammode = PARAMMODE_NUMBERED;  
-
-   /* parameter-registers will be allocated by assigning the
-      1. parameter:   int/float-reg 16
-      2. parameter:   int/float-reg 17  
-      3. parameter:   int/float-reg 18 ....
-   */
 
 
 /* stackframe-infos ***********************************************************/
@@ -88,6 +78,15 @@ int nreg_parammode = PARAMMODE_NUMBERED;
 int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 /* -> see file 'calling.doc' */
+
+
+static u1 fpu_in_24bit_mode = 0;
+
+static u2 fpu_ctrlwrd_24bit = 0x007f;    /* Round to nearest, 24-bit mode, exceptions masked */
+static u2 fpu_ctrlwrd_53bit = 0x027f;    /* Round to nearest, 53-bit mode, exceptions masked */
+
+static u4 subnormal_bias1[3] = { 0x00000000, 0x80000000, 0x03ff };    /* 2^(-15360) */
+static u4 subnormal_bias2[3] = { 0x00000000, 0x80000000, 0x7bff };    /* 2^(+15360) */
 
 
 /* macros to create code ******************************************************/
@@ -1046,6 +1045,13 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_fldt_mem(mem) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdb; \
+        i386_emit_mem(5,(mem)); \
+    } while (0)
+
+
 #define i386_flds_membase(basereg,disp) \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xd9; \
@@ -1485,6 +1491,13 @@ static const unsigned char i386_jcc_map[] = {
         *(((u1 *) mcodeptr)++) = (u1) 0x9b; \
         *(((u1 *) mcodeptr)++) = (u1) 0xdb; \
         *(((u1 *) mcodeptr)++) = (u1) 0xe3; \
+    } while (0)
+
+
+#define i386_fldcw_mem(mem) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xd9; \
+        i386_emit_mem(5,(mem)); \
     } while (0)
 
 
