@@ -11,7 +11,7 @@
              Michael Gschwind    EMAIL: cacao@complang.tuwien.ac.at
              Christan Thalinger  EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: types.h 388 2003-07-10 16:49:05Z twisti $
+    Last Change: $Id: types.h 389 2003-07-10 21:08:11Z twisti $
 
 *******************************************************************************/
 
@@ -49,8 +49,8 @@ typedef signed int              s4;
 typedef unsigned int            u4;
 
 #if U8_AVAILABLE
-typedef signed long int         s8;
-typedef unsigned long int       u8;
+typedef signed long long int    s8;
+typedef unsigned long long int  u8;
 #else
 typedef struct {u4 low, high;}  u8;
 #define s8 u8

@@ -11,7 +11,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: ngen.h 388 2003-07-10 16:49:05Z twisti $
+    Last Change: $Id: ngen.h 389 2003-07-10 21:08:11Z twisti $
 
 *******************************************************************************/
 
@@ -42,6 +42,7 @@
 /* floating point registers */
 
 #define REG_FRESULT     0    /* to deliver floating point method results      */
+
 #define REG_FTMP1       6    /* temporary floating point register             */
 #define REG_FTMP2       7    /* temporary floating point register             */
 #define REG_FTMP3       7    /* temporary floating point register             */
@@ -59,16 +60,17 @@
 
 int nregdescint[] = {
     REG_RET, REG_RES, REG_RES, REG_SAV, REG_RES, REG_SAV, REG_TMP, REG_TMP,
-    REG_END };
+    REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+    REG_END
+};
 
 /* for use of reserved registers, see comment above */
 
 int nregdescfloat[] = {
-  /* rounding problems with callee saved registers */
-/*      REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_RES, REG_RES, */
-/*      REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, */
     REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
-    REG_END };
+    REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+    REG_END
+};
 
 /* for use of reserved registers, see comment above */
 
@@ -246,11 +248,17 @@ static const unsigned char x86_64_jcc_map[] = {
 
 
 #define x86_64_emit_rex(size,reg,rm) \
-    *(mcodeptr++) = (0x40 | (((size) & 0x01) << 3) | ((((reg) >> 3) & 0x01) << 2) | (((rm) >> 3) & 0x01));
+    if ((size) == 1 || ((size) == 0 && (reg) > 7)) { \
+        *(mcodeptr++) = (0x40 | (((size) & 0x01) << 3) | ((((reg) >> 3) & 0x01) << 2) | (((rm) >> 3) & 0x01)); \
+    }
 
 
 #define x86_64_is_imm8(imm) \
-    (((int)(imm) >= -128 && (int)(imm) <= 127))
+    (((long)(imm) >= -128 && (long)(imm) <= 127))
+
+
+#define x86_64_is_imm32(imm) \
+    (((long)(imm) >= (-2147483647-1) && (long)(imm) <= 2147483647))
 
 
 #define x86_64_emit_imm8(imm) \
@@ -371,8 +379,16 @@ static const unsigned char x86_64_jcc_map[] = {
 #define x86_64_mov_imm_reg(imm,reg) \
     do { \
         x86_64_emit_rex(1,(reg),0); \
-        *(mcodeptr++) = (u1) 0xb8 + ((reg) & 0x0f); \
+        *(mcodeptr++) = (u1) 0xb8 + ((reg) & 0x07); \
         x86_64_emit_imm64((imm)); \
+    } while (0)
+
+
+#define x86_64_movl_imm_reg(imm,reg) \
+    do { \
+        x86_64_emit_rex(0,(reg),0); \
+        *(mcodeptr++) = (u1) 0xb8 + ((reg) & 0x07); \
+        x86_64_emit_imm32((imm)); \
     } while (0)
 
 
@@ -391,23 +407,17 @@ static const unsigned char x86_64_jcc_map[] = {
     } while (0)
 
 
-#define x86_64_mov_reg_mem(reg,mem) \
-    do { \
-        *(mcodeptr++) = (u1) 0x89; \
-        x86_64_emit_mem((reg),(mem)); \
-    } while (0)
-
-
-#define x86_64_mov_mem_reg(mem,reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0x8b; \
-        x86_64_emit_mem((reg),(mem)); \
-    } while (0)
-
-
 #define x86_64_mov_membase_reg(basereg,disp,reg) \
     do { \
         x86_64_emit_rex(1,(basereg),(reg)); \
+        *(mcodeptr++) = (u1) 0x8b; \
+        x86_64_emit_membase((basereg),(disp),(reg)); \
+    } while (0)
+
+
+#define x86_64_movl_membase_reg(basereg,disp,reg) \
+    do { \
+        x86_64_emit_rex(0,(basereg),(reg)); \
         *(mcodeptr++) = (u1) 0x8b; \
         x86_64_emit_membase((basereg),(disp),(reg)); \
     } while (0)
@@ -419,6 +429,7 @@ static const unsigned char x86_64_jcc_map[] = {
  */
 #define x86_64_mov_membase32_reg(basereg,disp,reg) \
     do { \
+        x86_64_emit_rex(1,(basereg),(reg)); \
         *(mcodeptr++) = (u1) 0x8b; \
         x86_64_address_byte(2, (reg), (basereg)); \
         x86_64_emit_imm32((disp)); \
@@ -442,6 +453,14 @@ static const unsigned char x86_64_jcc_map[] = {
 #define x86_64_mov_reg_membase(reg,basereg,disp) \
     do { \
         x86_64_emit_rex(1,(basereg),(reg)); \
+        *(mcodeptr++) = (u1) 0x89; \
+        x86_64_emit_membase((basereg),(disp),(reg)); \
+    } while (0)
+
+
+#define x86_64_movl_reg_membase(reg,basereg,disp) \
+    do { \
+        x86_64_emit_rex(0,(basereg),(reg)); \
         *(mcodeptr++) = (u1) 0x89; \
         x86_64_emit_membase((basereg),(disp),(reg)); \
     } while (0)
@@ -508,6 +527,16 @@ static const unsigned char x86_64_jcc_map[] = {
 
 #define x86_64_mov_imm_membase(imm,basereg,disp) \
     do { \
+        x86_64_emit_rex(1,(basereg),0); \
+        *(mcodeptr++) = (u1) 0xc7; \
+        x86_64_emit_membase((basereg),(disp),0); \
+        x86_64_emit_imm32((imm)); \
+    } while (0)
+
+
+#define x86_64_movl_imm_membase(imm,basereg,disp) \
+    do { \
+        x86_64_emit_rex(0,(basereg),0); \
         *(mcodeptr++) = (u1) 0xc7; \
         x86_64_emit_membase((basereg),(disp),0); \
         x86_64_emit_imm32((imm)); \
@@ -522,27 +551,50 @@ static const unsigned char x86_64_jcc_map[] = {
     } while (0)
 
 
-#define x86_64_mov_double_low_membase(imm,basereg,disp) \
+#define x86_64_movsbq_reg_reg(reg,dreg) \
     do { \
-        *(mcodeptr++) = (u1) 0xc7; \
-        x86_64_emit_membase((basereg),(disp),0); \
-        x86_64_emit_double64_low((imm)); \
+        x86_64_emit_rex(1,(dreg),(reg)); \
+        *(mcodeptr++) = (u1) 0x0f; \
+        *(mcodeptr++) = (u1) 0xbe; \
+        /* XXX: why do reg and dreg have to be exchanged */ \
+        x86_64_emit_reg((dreg),(reg)); \
     } while (0)
 
 
-#define x86_64_mov_double_high_membase(imm,basereg,disp) \
+#define x86_64_movsbq_membase_reg(basereg,disp,dreg) \
     do { \
-        *(mcodeptr++) = (u1) 0xc7; \
-        x86_64_emit_membase((basereg),(disp),0); \
-        x86_64_emit_double64_high((imm)); \
+        x86_64_emit_rex(1,(basereg),(dreg)); \
+        *(mcodeptr++) = (u1) 0x0f; \
+        *(mcodeptr++) = (u1) 0xbe; \
+        x86_64_emit_membase((basereg),(disp),(dreg)); \
     } while (0)
 
 
 #define x86_64_movsbl_reg_reg(reg,dreg) \
     do { \
+        x86_64_emit_rex(0,(reg),(dreg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xbe; \
         x86_64_emit_reg((reg),(dreg)); \
+    } while (0)
+
+
+#define x86_64_movswq_reg_reg(reg,dreg) \
+    do { \
+        x86_64_emit_rex(1,(dreg),(reg)); \
+        *(mcodeptr++) = (u1) 0x0f; \
+        *(mcodeptr++) = (u1) 0xbf; \
+        /* XXX: why do reg and dreg have to be exchanged */ \
+        x86_64_emit_reg((dreg),(reg)); \
+    } while (0)
+
+
+#define x86_64_movswq_membase_reg(basereg,disp,dreg) \
+    do { \
+        x86_64_emit_rex(1,(basereg),(dreg)); \
+        *(mcodeptr++) = (u1) 0x0f; \
+        *(mcodeptr++) = (u1) 0xbf; \
+        x86_64_emit_membase((basereg),(disp),(dreg)); \
     } while (0)
 
 
@@ -551,6 +603,23 @@ static const unsigned char x86_64_jcc_map[] = {
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xbf; \
         x86_64_emit_reg((reg),(dreg)); \
+    } while (0)
+
+
+#define x86_64_movslq_reg_reg(reg,dreg) \
+    do { \
+        x86_64_emit_rex(1,(dreg),(reg)); \
+        *(mcodeptr++) = (u1) 0x63; \
+        /* XXX: why do reg and dreg have to be exchanged */ \
+        x86_64_emit_reg((dreg),(reg)); \
+    } while (0)
+
+
+#define x86_64_movslq_membase_reg(basereg,disp,dreg) \
+    do { \
+        x86_64_emit_rex(1,(basereg),(dreg)); \
+        *(mcodeptr++) = (u1) 0x63; \
+        x86_64_emit_membase((basereg),(disp),(dreg)); \
     } while (0)
 
 
@@ -563,8 +632,28 @@ static const unsigned char x86_64_jcc_map[] = {
     } while (0)
 
 
+#define x86_64_movzwq_reg_reg(reg,dreg) \
+    do { \
+        x86_64_emit_rex(1,(dreg),(reg)); \
+        *(mcodeptr++) = (u1) 0x0f; \
+        *(mcodeptr++) = (u1) 0xb7; \
+        /* XXX: why do reg and dreg have to be exchanged */ \
+        x86_64_emit_reg((dreg),(reg)); \
+    } while (0)
+
+
+#define x86_64_movzwq_membase_reg(basereg,disp,dreg) \
+    do { \
+        x86_64_emit_rex(1,(basereg),(dreg)); \
+        *(mcodeptr++) = (u1) 0x0f; \
+        *(mcodeptr++) = (u1) 0xb7; \
+        x86_64_emit_membase((basereg),(disp),(dreg)); \
+    } while (0)
+
+
 #define x86_64_movzwl_reg_reg(reg,dreg) \
     do { \
+        x86_64_emit_rex(0,(dreg),(reg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xb7; \
         /* XXX: why do reg and dreg have to be exchanged */ \
@@ -616,8 +705,25 @@ static const unsigned char x86_64_jcc_map[] = {
     } while (0)
 
 
+#define x86_64_alul_reg_reg(opc,reg,dreg) \
+    do { \
+        x86_64_emit_rex(0,(reg),(dreg)); \
+        *(mcodeptr++) = (((u1) (opc)) << 3) + 1; \
+        x86_64_emit_reg((reg),(dreg)); \
+    } while (0)
+
+
 #define x86_64_alu_reg_membase(opc,reg,basereg,disp) \
     do { \
+        x86_64_emit_rex(1,(basereg),(reg)); \
+        *(mcodeptr++) = (((u1) (opc)) << 3) + 1; \
+        x86_64_emit_membase((basereg),(disp),(reg)); \
+    } while (0)
+
+
+#define x86_64_alul_reg_membase(opc,reg,basereg,disp) \
+    do { \
+        x86_64_emit_rex(0,(basereg),(reg)); \
         *(mcodeptr++) = (((u1) (opc)) << 3) + 1; \
         x86_64_emit_membase((basereg),(disp),(reg)); \
     } while (0)
@@ -625,6 +731,15 @@ static const unsigned char x86_64_jcc_map[] = {
 
 #define x86_64_alu_membase_reg(opc,basereg,disp,reg) \
     do { \
+        x86_64_emit_rex(1,(basereg),(reg)); \
+        *(mcodeptr++) = (((u1) (opc)) << 3) + 3; \
+        x86_64_emit_membase((basereg),(disp),(reg)); \
+    } while (0)
+
+
+#define x86_64_alul_membase_reg(opc,basereg,disp,reg) \
+    do { \
+        x86_64_emit_rex(0,(basereg),(reg)); \
         *(mcodeptr++) = (((u1) (opc)) << 3) + 3; \
         x86_64_emit_membase((basereg),(disp),(reg)); \
     } while (0)
@@ -646,13 +761,47 @@ static const unsigned char x86_64_jcc_map[] = {
     } while (0)
 
 
+#define x86_64_alul_imm_reg(opc,imm,dreg) \
+    do { \
+        if (x86_64_is_imm8(imm)) { \
+            x86_64_emit_rex(0,0,(dreg)); \
+            *(mcodeptr++) = (u1) 0x83; \
+            x86_64_emit_reg((opc),(dreg)); \
+            x86_64_emit_imm8((imm)); \
+        } else { \
+            x86_64_emit_rex(0,0,(dreg)); \
+            *(mcodeptr++) = (u1) 0x81; \
+            x86_64_emit_reg((opc),(dreg)); \
+            x86_64_emit_imm32((imm)); \
+        } \
+    } while (0)
+
+
 #define x86_64_alu_imm_membase(opc,imm,basereg,disp) \
     do { \
         if (x86_64_is_imm8(imm)) { \
+            x86_64_emit_rex(1,(basereg),0); \
             *(mcodeptr++) = (u1) 0x83; \
             x86_64_emit_membase((basereg),(disp),(opc)); \
             x86_64_emit_imm8((imm)); \
         } else { \
+            x86_64_emit_rex(1,(basereg),0); \
+            *(mcodeptr++) = (u1) 0x81; \
+            x86_64_emit_membase((basereg),(disp),(opc)); \
+            x86_64_emit_imm32((imm)); \
+        } \
+    } while (0)
+
+
+#define x86_64_alul_imm_membase(opc,imm,basereg,disp) \
+    do { \
+        if (x86_64_is_imm8(imm)) { \
+            x86_64_emit_rex(0,(basereg),0); \
+            *(mcodeptr++) = (u1) 0x83; \
+            x86_64_emit_membase((basereg),(disp),(opc)); \
+            x86_64_emit_imm8((imm)); \
+        } else { \
+            x86_64_emit_rex(0,(basereg),0); \
             *(mcodeptr++) = (u1) 0x81; \
             x86_64_emit_membase((basereg),(disp),(opc)); \
             x86_64_emit_imm32((imm)); \
@@ -663,6 +812,14 @@ static const unsigned char x86_64_jcc_map[] = {
 #define x86_64_test_reg_reg(reg,dreg) \
     do { \
         x86_64_emit_rex(1,(reg),(dreg)); \
+        *(mcodeptr++) = (u1) 0x85; \
+        x86_64_emit_reg((reg),(dreg)); \
+    } while (0)
+
+
+#define x86_64_testl_reg_reg(reg,dreg) \
+    do { \
+        x86_64_emit_rex(0,(reg),(dreg)); \
         *(mcodeptr++) = (u1) 0x85; \
         x86_64_emit_reg((reg),(dreg)); \
     } while (0)
@@ -698,22 +855,52 @@ static const unsigned char x86_64_jcc_map[] = {
  * inc, dec operations
  */
 #define x86_64_inc_reg(reg) \
+    x86_64_emit_rex(1,(reg),0); \
+    *(mcodeptr++) = (u1) 0x40 + ((reg) & 0x07);
+
+
+#define x86_64_incl_reg(reg) \
+    x86_64_emit_rex(0,(reg),0); \
     *(mcodeptr++) = (u1) 0x40 + ((reg) & 0x07);
 
 
 #define x86_64_inc_membase(basereg,disp) \
     do { \
+        x86_64_emit_rex(1,(basereg),0); \
+        *(mcodeptr++) = (u1) 0xff; \
+        x86_64_emit_membase((basereg),(disp),0); \
+    } while (0)
+
+
+#define x86_64_incl_membase(basereg,disp) \
+    do { \
+        x86_64_emit_rex(0,(basereg),0); \
         *(mcodeptr++) = (u1) 0xff; \
         x86_64_emit_membase((basereg),(disp),0); \
     } while (0)
 
 
 #define x86_64_dec_reg(reg) \
+    x86_64_emit_rex(1,(reg),0); \
+    *(mcodeptr++) = (u1) 0x48 + ((reg) & 0x07);
+
+        
+#define x86_64_decl_reg(reg) \
+    x86_64_emit_rex(0,(reg),0); \
     *(mcodeptr++) = (u1) 0x48 + ((reg) & 0x07);
 
         
 #define x86_64_dec_membase(basereg,disp) \
     do { \
+        x86_64_emit_rex(1,(basereg),0); \
+        *(mcodeptr++) = (u1) 0xff; \
+        x86_64_emit_membase((basereg),(disp),1); \
+    } while (0)
+
+
+#define x86_64_decl_membase(basereg,disp) \
+    do { \
+        x86_64_emit_rex(0,(basereg),0); \
         *(mcodeptr++) = (u1) 0xff; \
         x86_64_emit_membase((basereg),(disp),1); \
     } while (0)
@@ -740,8 +927,27 @@ static const unsigned char x86_64_jcc_map[] = {
     } while (0)
 
 
+#define x86_64_imull_reg_reg(reg,dreg) \
+    do { \
+        x86_64_emit_rex(0,(reg),(dreg)); \
+        *(mcodeptr++) = (u1) 0x0f; \
+        *(mcodeptr++) = (u1) 0xaf; \
+        x86_64_emit_reg((dreg),(reg)); \
+    } while (0)
+
+
 #define x86_64_imul_membase_reg(basereg,disp,dreg) \
     do { \
+        x86_64_emit_rex(1,(basereg),(dreg)); \
+        *(mcodeptr++) = (u1) 0x0f; \
+        *(mcodeptr++) = (u1) 0xaf; \
+        x86_64_emit_membase((basereg),(disp),(dreg)); \
+    } while (0)
+
+
+#define x86_64_imull_membase_reg(basereg,disp,dreg) \
+    do { \
+        x86_64_emit_rex(0,(basereg),(dreg)); \
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xaf; \
         x86_64_emit_membase((basereg),(disp),(dreg)); \
@@ -751,10 +957,12 @@ static const unsigned char x86_64_jcc_map[] = {
 #define x86_64_imul_imm_reg(imm,dreg) \
     do { \
         if (x86_64_is_imm8((imm))) { \
+            x86_64_emit_rex(1,0,(dreg)); \
             *(mcodeptr++) = (u1) 0x6b; \
             x86_64_emit_reg(0,(dreg)); \
             x86_64_emit_imm8((imm)); \
         } else { \
+            x86_64_emit_rex(1,0,(dreg)); \
             *(mcodeptr++) = (u1) 0x69; \
             x86_64_emit_reg(0,(dreg)); \
             x86_64_emit_imm32((imm)); \
@@ -765,10 +973,28 @@ static const unsigned char x86_64_jcc_map[] = {
 #define x86_64_imul_imm_reg_reg(imm,reg,dreg) \
     do { \
         if (x86_64_is_imm8((imm))) { \
+            x86_64_emit_rex(1,(reg),(dreg)); \
             *(mcodeptr++) = (u1) 0x6b; \
             x86_64_emit_reg((dreg),(reg)); \
             x86_64_emit_imm8((imm)); \
         } else { \
+            x86_64_emit_rex(1,(reg),(dreg)); \
+            *(mcodeptr++) = (u1) 0x69; \
+            x86_64_emit_reg((dreg),(reg)); \
+            x86_64_emit_imm32((imm)); \
+        } \
+    } while (0)
+
+
+#define x86_64_imull_imm_reg_reg(imm,reg,dreg) \
+    do { \
+        if (x86_64_is_imm8((imm))) { \
+            x86_64_emit_rex(0,(reg),(dreg)); \
+            *(mcodeptr++) = (u1) 0x6b; \
+            x86_64_emit_reg((dreg),(reg)); \
+            x86_64_emit_imm8((imm)); \
+        } else { \
+            x86_64_emit_rex(0,(reg),(dreg)); \
             *(mcodeptr++) = (u1) 0x69; \
             x86_64_emit_reg((dreg),(reg)); \
             x86_64_emit_imm32((imm)); \
@@ -779,10 +1005,12 @@ static const unsigned char x86_64_jcc_map[] = {
 #define x86_64_imul_imm_membase_reg(imm,basereg,disp,dreg) \
     do { \
         if (x86_64_is_imm8((imm))) { \
+            x86_64_emit_rex(1,(basereg),(dreg)); \
             *(mcodeptr++) = (u1) 0x6b; \
             x86_64_emit_membase((basereg),(disp),(dreg)); \
             x86_64_emit_imm8((imm)); \
         } else { \
+            x86_64_emit_rex(1,(basereg),(dreg)); \
             *(mcodeptr++) = (u1) 0x69; \
             x86_64_emit_membase((basereg),(disp),(dreg)); \
             x86_64_emit_imm32((imm)); \
@@ -790,17 +1018,19 @@ static const unsigned char x86_64_jcc_map[] = {
     } while (0)
 
 
-#define x86_64_mul_reg(reg) \
+#define x86_64_imull_imm_membase_reg(imm,basereg,disp,dreg) \
     do { \
-        *(mcodeptr++) = (u1) 0xf7; \
-        x86_64_emit_reg(4,(reg)); \
-    } while (0)
-
-
-#define x86_64_mul_membase(basereg,disp) \
-    do { \
-        *(mcodeptr++) = (u1) 0xf7; \
-        x86_64_emit_membase((basereg),(disp),4); \
+        if (x86_64_is_imm8((imm))) { \
+            x86_64_emit_rex(0,(basereg),(dreg)); \
+            *(mcodeptr++) = (u1) 0x6b; \
+            x86_64_emit_membase((basereg),(disp),(dreg)); \
+            x86_64_emit_imm8((imm)); \
+        } else { \
+            x86_64_emit_rex(0,(basereg),(dreg)); \
+            *(mcodeptr++) = (u1) 0x69; \
+            x86_64_emit_membase((basereg),(disp),(dreg)); \
+            x86_64_emit_imm32((imm)); \
+        } \
     } while (0)
 
 
@@ -812,10 +1042,11 @@ static const unsigned char x86_64_jcc_map[] = {
     } while (0)
 
 
-#define x86_64_idiv_membase(basereg,disp) \
+#define x86_64_idivl_reg(reg) \
     do { \
+        x86_64_emit_rex(0,(reg),0); \
         *(mcodeptr++) = (u1) 0xf7; \
-        x86_64_emit_membase((basereg),(disp),7); \
+        x86_64_emit_reg(7,(reg)); \
     } while (0)
 
 
@@ -834,6 +1065,15 @@ static const unsigned char x86_64_jcc_map[] = {
  */
 #define x86_64_shift_reg(opc,reg) \
     do { \
+        x86_64_emit_rex(1,(reg),0); \
+        *(mcodeptr++) = (u1) 0xd3; \
+        x86_64_emit_reg((opc),(reg)); \
+    } while (0)
+
+
+#define x86_64_shiftl_reg(opc,reg) \
+    do { \
+        x86_64_emit_rex(0,(reg),0); \
         *(mcodeptr++) = (u1) 0xd3; \
         x86_64_emit_reg((opc),(reg)); \
     } while (0)
@@ -841,6 +1081,15 @@ static const unsigned char x86_64_jcc_map[] = {
 
 #define x86_64_shift_membase(opc,basereg,disp) \
     do { \
+        x86_64_emit_rex(1,(basereg),0); \
+        *(mcodeptr++) = (u1) 0xd3; \
+        x86_64_emit_membase((basereg),(disp),(opc)); \
+    } while (0)
+
+
+#define x86_64_shiftl_membase(opc,basereg,disp) \
+    do { \
+        x86_64_emit_rex(0,(basereg),0); \
         *(mcodeptr++) = (u1) 0xd3; \
         x86_64_emit_membase((basereg),(disp),(opc)); \
     } while (0)
@@ -849,9 +1098,26 @@ static const unsigned char x86_64_jcc_map[] = {
 #define x86_64_shift_imm_reg(opc,imm,dreg) \
     do { \
         if ((imm) == 1) { \
+            x86_64_emit_rex(1,0,(dreg)); \
             *(mcodeptr++) = (u1) 0xd1; \
             x86_64_emit_reg((opc),(dreg)); \
         } else { \
+            x86_64_emit_rex(1,0,(dreg)); \
+            *(mcodeptr++) = (u1) 0xc1; \
+            x86_64_emit_reg((opc),(dreg)); \
+            x86_64_emit_imm8((imm)); \
+        } \
+    } while (0)
+
+
+#define x86_64_shiftl_imm_reg(opc,imm,dreg) \
+    do { \
+        if ((imm) == 1) { \
+            x86_64_emit_rex(0,0,(dreg)); \
+            *(mcodeptr++) = (u1) 0xd1; \
+            x86_64_emit_reg((opc),(dreg)); \
+        } else { \
+            x86_64_emit_rex(0,0,(dreg)); \
             *(mcodeptr++) = (u1) 0xc1; \
             x86_64_emit_reg((opc),(dreg)); \
             x86_64_emit_imm8((imm)); \
@@ -862,9 +1128,26 @@ static const unsigned char x86_64_jcc_map[] = {
 #define x86_64_shift_imm_membase(opc,imm,basereg,disp) \
     do { \
         if ((imm) == 1) { \
+            x86_64_emit_rex(1,(basereg),0); \
             *(mcodeptr++) = (u1) 0xd1; \
             x86_64_emit_membase((basereg),(disp),(opc)); \
         } else { \
+            x86_64_emit_rex(1,(basereg),0); \
+            *(mcodeptr++) = (u1) 0xc1; \
+            x86_64_emit_membase((basereg),(disp),(opc)); \
+            x86_64_emit_imm8((imm)); \
+        } \
+    } while (0)
+
+
+#define x86_64_shiftl_imm_membase(opc,imm,basereg,disp) \
+    do { \
+        if ((imm) == 1) { \
+            x86_64_emit_rex(0,(basereg),0); \
+            *(mcodeptr++) = (u1) 0xd1; \
+            x86_64_emit_membase((basereg),(disp),(opc)); \
+        } else { \
+            x86_64_emit_rex(0,(basereg),0); \
             *(mcodeptr++) = (u1) 0xc1; \
             x86_64_emit_membase((basereg),(disp),(opc)); \
             x86_64_emit_imm8((imm)); \
@@ -971,20 +1254,31 @@ static const unsigned char x86_64_jcc_map[] = {
 
 #define x86_64_neg_reg(reg) \
     do { \
+        x86_64_emit_rex(1,(reg),0); \
         *(mcodeptr++) = (u1) 0xf7; \
         x86_64_emit_reg(3,(reg)); \
     } while (0)
 
 
-#define x86_64_neg_mem(mem) \
+#define x86_64_negl_reg(reg) \
     do { \
+        x86_64_emit_rex(0,(reg),0); \
         *(mcodeptr++) = (u1) 0xf7; \
-        x86_64_emit_mem(3,(mem)); \
+        x86_64_emit_reg(3,(reg)); \
     } while (0)
 
 
 #define x86_64_neg_membase(basereg,disp) \
     do { \
+        x86_64_emit_rex(1,(basereg),0); \
+        *(mcodeptr++) = (u1) 0xf7; \
+        x86_64_emit_membase((basereg),(disp),3); \
+    } while (0)
+
+
+#define x86_64_negl_membase(basereg,disp) \
+    do { \
+        x86_64_emit_rex(0,(basereg),0); \
         *(mcodeptr++) = (u1) 0xf7; \
         x86_64_emit_membase((basereg),(disp),3); \
     } while (0)

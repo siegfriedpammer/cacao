@@ -12,7 +12,7 @@
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 			 Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 388 2003-07-10 16:49:05Z twisti $
+	Last Change: $Id: ngen.c 389 2003-07-10 21:08:11Z twisti $
 
 *******************************************************************************/
 
@@ -137,27 +137,6 @@
         } else { \
             x86_64_fld_reg((v)->regoff + fpu_st_offset); \
             fpu_st_offset++; \
-            regnr = (v)->regoff; \
-        } \
-    }
-
-#define NEW_var_to_reg_flt(regnr,v,tempnr) \
-    if ((v)->type == TYPE_FLT) { \
-       if ((v)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            x86_64_flds_membase(REG_SP, (v)->regoff * 8); \
-            fpu_st_offset++; \
-            regnr = tempnr; \
-        } else { \
-            regnr = (v)->regoff; \
-        } \
-    } else { \
-        if ((v)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            x86_64_fldl_membase(REG_SP, (v)->regoff * 8); \
-            fpu_st_offset++; \
-            regnr = tempnr; \
-        } else { \
             regnr = (v)->regoff; \
         } \
     }
@@ -748,10 +727,10 @@ static void gen_mcode()
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
-				x86_64_mov_imm_membase(iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+				x86_64_movl_imm_membase(iptr->val.i, REG_SP, iptr->dst->regoff * 8);
 
 			} else {
-				x86_64_mov_imm_reg(iptr->val.i, d);
+				x86_64_movl_imm_reg(iptr->val.i, d);
 			}
 			break;
 
@@ -833,19 +812,16 @@ static void gen_mcode()
 		                      /* op1 = 0, val.a = constant                    */
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY) {
-				x86_64_mov_imm_membase(iptr->val.a, REG_SP, iptr->dst->regoff * 8);
-
-			} else {
-				x86_64_mov_imm_reg(iptr->val.a, d);
-			}
+			x86_64_mov_imm_reg(iptr->val.a, d);
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 
 		/* load/store operations **********************************************/
 
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_ALOAD:      /* op1 = local variable                         */
+		case ICMD_LLOAD:      /* op1 = local variable                         */
+	    case ICMD_ALOAD:
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			if ((iptr->dst->varkind == LOCALVAR) &&
@@ -869,28 +845,6 @@ static void gen_mcode()
 				} else {
 					M_INTMOVE(var->regoff, iptr->dst->regoff);
 				}
-			}
-			break;
-
-		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
-		                      /* op1 = local variable                         */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if ((iptr->dst->varkind == LOCALVAR) &&
-			    (iptr->dst->varnum == iptr->op1)) {
-				break;
-			}
-			var = &(locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
-			if (iptr->dst->flags & INMEMORY) {
-				if (var->flags & INMEMORY) {
-					M_LNGMEMMOVE(var->regoff, iptr->dst->regoff);
-
-				} else {
-					panic("LLOAD: longs have to be in memory");
-				}
-
-			} else {
-				panic("LLOAD: longs have to be in memory");
 			}
 			break;
 
@@ -933,7 +887,8 @@ static void gen_mcode()
 			break;
 
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
-		case ICMD_ASTORE:     /* op1 = local variable                         */
+		case ICMD_LSTORE:     /* op1 = local variable                         */
+		case ICMD_ASTORE:
 
 			if ((src->varkind == LOCALVAR) &&
 			    (src->varnum == iptr->op1)) {
@@ -952,27 +907,6 @@ static void gen_mcode()
 			} else {
 				var_to_reg_int(s1, src, var->regoff);
 				M_INTMOVE(s1, var->regoff);
-			}
-			break;
-
-		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
-		                      /* op1 = local variable                         */
-
-			if ((src->varkind == LOCALVAR) &&
-			    (src->varnum == iptr->op1)) {
-				break;
-			}
-			var = &(locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
-			if (var->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-					M_LNGMEMMOVE(src->regoff, var->regoff);
-
-				} else {
-					panic("LSTORE: longs have to be in memory");
-				}
-
-			} else {
-				panic("LSTORE: longs have to be in memory");
 			}
 			break;
 
@@ -1106,6 +1040,37 @@ static void gen_mcode()
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
+						x86_64_negl_membase(REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_negl_reg(REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+
+				} else {
+					x86_64_movl_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_negl_membase(REG_SP, iptr->dst->regoff * 8);
+				}
+
+			} else {
+				if (src->flags & INMEMORY) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_negl_reg(iptr->dst->regoff);
+
+				} else {
+					M_INTMOVE(src->regoff, iptr->dst->regoff);
+					x86_64_negl_reg(iptr->dst->regoff);
+				}
+			}
+			break;
+
+		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
+
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			if (iptr->dst->flags & INMEMORY) {
+				if (src->flags & INMEMORY) {
+					if (src->regoff == iptr->dst->regoff) {
 						x86_64_neg_membase(REG_SP, iptr->dst->regoff * 8);
 
 					} else {
@@ -1131,153 +1096,60 @@ static void gen_mcode()
 			}
 			break;
 
-		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
-
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_neg_membase(REG_SP, iptr->dst->regoff * 8);
-						x86_64_alu_imm_membase(X86_64_ADC, 0, REG_SP, iptr->dst->regoff * 8 + 4);
-						x86_64_neg_membase(REG_SP, iptr->dst->regoff * 8 + 4);
-
-					} else {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-						x86_64_neg_reg(REG_ITMP1);
-						x86_64_alu_imm_reg(X86_64_ADC, 0, REG_ITMP2);
-						x86_64_neg_reg(REG_ITMP2);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-					}
-				}
-			}
-			break;
-
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-					x86_64_cltd();
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-					x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
+			if (src->flags & INMEMORY) {
+				x86_64_movslq_membase_reg(REG_SP, src->regoff * 8, d);
 
-				} else {
-					M_INTMOVE(src->regoff, REG_ITMP1);
-					x86_64_cltd();
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-					x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-				}
+			} else {
+				x86_64_movslq_reg_reg(src->regoff, d);
 			}
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_L2I:        /* ..., value  ==> ..., value                   */
 
+			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-				}
-
-			} else {
-				if (src->flags & INMEMORY) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
-				}
-			}
+			M_INTMOVE(s1, d);
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_INT2BYTE:   /* ..., value  ==> ..., value                   */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-					x86_64_shift_imm_reg(X86_64_SHL, 24, REG_ITMP1);
-					x86_64_shift_imm_reg(X86_64_SAR, 24, REG_ITMP1);
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-
-				} else {
-					x86_64_mov_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_shift_imm_membase(X86_64_SHL, 24, REG_SP, iptr->dst->regoff * 8);
-					x86_64_shift_imm_membase(X86_64_SAR, 24, REG_SP, iptr->dst->regoff * 8);
-				}
+			if (src->flags & INMEMORY) {
+				x86_64_movsbq_membase_reg(REG_SP, src->regoff * 8, d);
 
 			} else {
-				if (src->flags & INMEMORY) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
-					x86_64_shift_imm_reg(X86_64_SHL, 24, iptr->dst->regoff);
-					x86_64_shift_imm_reg(X86_64_SAR, 24, iptr->dst->regoff);
-
-				} else {
-					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					x86_64_shift_imm_reg(X86_64_SHL, 24, iptr->dst->regoff);
-					x86_64_shift_imm_reg(X86_64_SAR, 24, iptr->dst->regoff);
-				}
+				x86_64_movsbq_reg_reg(src->regoff, d);
 			}
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_INT2CHAR:   /* ..., value  ==> ..., value                   */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_imm_membase(X86_64_AND, 0x0000ffff, REG_SP, iptr->dst->regoff * 8);
-
-					} else {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alu_imm_reg(X86_64_AND, 0x0000ffff, REG_ITMP1);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-					}
-
-				} else {
-					x86_64_mov_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_alu_imm_membase(X86_64_AND, 0x0000ffff, REG_SP, iptr->dst->regoff * 8);
-				}
+			if (src->flags & INMEMORY) {
+				x86_64_movzwq_membase_reg(REG_SP, src->regoff * 8, d);
 
 			} else {
-				if (src->flags & INMEMORY) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
-					x86_64_alu_imm_reg(X86_64_AND, 0x0000ffff, iptr->dst->regoff);
-
-				} else {
-					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					x86_64_alu_imm_reg(X86_64_AND, 0x0000ffff, iptr->dst->regoff);
-				}
+				x86_64_movzwq_reg_reg(src->regoff, d);
 			}
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_INT2SHORT:  /* ..., value  ==> ..., value                   */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-					x86_64_shift_imm_reg(X86_64_SHL, 16, REG_ITMP1);
-					x86_64_shift_imm_reg(X86_64_SAR, 16, REG_ITMP1);
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-
-				} else {
-					x86_64_mov_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_shift_imm_membase(X86_64_SHL, 16, REG_SP, iptr->dst->regoff * 8);
-					x86_64_shift_imm_membase(X86_64_SAR, 16, REG_SP, iptr->dst->regoff * 8);
-				}
+			if (src->flags & INMEMORY) {
+				x86_64_movswq_membase_reg(REG_SP, src->regoff * 8, d);
 
 			} else {
-				if (src->flags & INMEMORY) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
-					x86_64_shift_imm_reg(X86_64_SHL, 16, iptr->dst->regoff);
-					x86_64_shift_imm_reg(X86_64_SAR, 16, iptr->dst->regoff);
-
-				} else {
-					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					x86_64_shift_imm_reg(X86_64_SHL, 16, iptr->dst->regoff);
-					x86_64_shift_imm_reg(X86_64_SAR, 16, iptr->dst->regoff);
-				}
+				x86_64_movswq_reg_reg(src->regoff, d);
 			}
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 
@@ -1287,64 +1159,64 @@ static void gen_mcode()
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->regoff == iptr->dst->regoff) {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_alu_reg_membase(X86_64_ADD, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_membase(X86_64_ADD, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 
 					} else if (src->prev->regoff == iptr->dst->regoff) {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alu_reg_membase(X86_64_ADD, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_membase(X86_64_ADD, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 
 					} else {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_alu_membase_reg(X86_64_ADD, REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_alul_membase_reg(X86_64_ADD, REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					}
 
 				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
 					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_reg_membase(X86_64_ADD, src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+						x86_64_alul_reg_membase(X86_64_ADD, src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
 
 					} else {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alu_reg_reg(X86_64_ADD, src->prev->regoff, REG_ITMP1);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_reg(X86_64_ADD, src->prev->regoff, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					}
 
 				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
-						x86_64_alu_reg_membase(X86_64_ADD, src->regoff, REG_SP, iptr->dst->regoff * 8);
+						x86_64_alul_reg_membase(X86_64_ADD, src->regoff, REG_SP, iptr->dst->regoff * 8);
 						
 					} else {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_alu_reg_reg(X86_64_ADD, src->regoff, REG_ITMP1);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_reg(X86_64_ADD, src->regoff, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					}
 
 				} else {
-					x86_64_mov_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_alu_reg_membase(X86_64_ADD, src->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_movl_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_alul_reg_membase(X86_64_ADD, src->regoff, REG_SP, iptr->dst->regoff * 8);
 				}
 
 			} else {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
-					x86_64_alu_membase_reg(X86_64_ADD, REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_alul_membase_reg(X86_64_ADD, REG_SP, src->regoff * 8, iptr->dst->regoff);
 
 				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
 					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
-					x86_64_alu_membase_reg(X86_64_ADD, REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_alul_membase_reg(X86_64_ADD, REG_SP, src->regoff * 8, iptr->dst->regoff);
 
 				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					x86_64_alu_membase_reg(X86_64_ADD, REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_alul_membase_reg(X86_64_ADD, REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
 
 				} else {
 					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_reg_reg(X86_64_ADD, src->prev->regoff, iptr->dst->regoff);
+						x86_64_alul_reg_reg(X86_64_ADD, src->prev->regoff, iptr->dst->regoff);
 
 					} else {
 						M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
-						x86_64_alu_reg_reg(X86_64_ADD, src->regoff, iptr->dst->regoff);
+						x86_64_alul_reg_reg(X86_64_ADD, src->regoff, iptr->dst->regoff);
 					}
 				}
 			}
@@ -1360,45 +1232,45 @@ static void gen_mcode()
 					 * do not use inc optimization, because it's slower (???)
 					 */
 					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_imm_membase(X86_64_ADD, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+						x86_64_alul_imm_membase(X86_64_ADD, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
 
 					} else {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
 
 						if (iptr->val.i == 1) {
-							x86_64_inc_reg(REG_ITMP1);
+							x86_64_incl_reg(REG_ITMP1);
 
 						} else {
-							x86_64_alu_imm_reg(X86_64_ADD, iptr->val.i, REG_ITMP1);
+							x86_64_alul_imm_reg(X86_64_ADD, iptr->val.i, REG_ITMP1);
 						}
 
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					}
 
 				} else {
-					x86_64_mov_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_alu_imm_membase(X86_64_ADD, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+					x86_64_movl_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_alul_imm_membase(X86_64_ADD, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
 				}
 
 			} else {
 				if (src->flags & INMEMORY) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
 
 					if (iptr->val.i == 1) {
-						x86_64_inc_reg(iptr->dst->regoff);
+						x86_64_incl_reg(iptr->dst->regoff);
 
 					} else {
-						x86_64_alu_imm_reg(X86_64_ADD, iptr->val.i, iptr->dst->regoff);
+						x86_64_alul_imm_reg(X86_64_ADD, iptr->val.i, iptr->dst->regoff);
 					}
 
 				} else {
 					M_INTMOVE(src->regoff, iptr->dst->regoff);
 
 					if (iptr->val.i == 1) {
-						x86_64_inc_reg(iptr->dst->regoff);
+						x86_64_incl_reg(iptr->dst->regoff);
 
 					} else {
-						x86_64_alu_imm_reg(X86_64_ADD, iptr->val.i, iptr->dst->regoff);
+						x86_64_alul_imm_reg(X86_64_ADD, iptr->val.i, iptr->dst->regoff);
 					}
 				}
 			}
@@ -1480,13 +1352,60 @@ static void gen_mcode()
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_imm_membase(X86_64_ADD, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
+						if (x86_64_is_imm32(iptr->val.l)) {
+							x86_64_alu_imm_membase(X86_64_ADD, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
+
+						} else {
+							x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+							x86_64_alu_reg_membase(X86_64_ADD, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						}
 
 					} else {
 						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alu_imm_reg(X86_64_ADD, iptr->val.l, REG_ITMP1);
+
+						if (iptr->val.l == 1) {
+							x86_64_inc_reg(REG_ITMP1);
+
+						} else if (x86_64_is_imm32(iptr->val.l)) {
+							x86_64_alu_imm_reg(X86_64_ADD, iptr->val.l, REG_ITMP1);
+
+						} else {
+							x86_64_mov_imm_reg(iptr->val.l, REG_ITMP2);
+							x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP2, REG_ITMP1);
+						}
+
 						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					}
+
+				} else {
+					if (x86_64_is_imm32(iptr->val.l)) {
+						x86_64_mov_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
+						x86_64_alu_imm_membase(X86_64_ADD, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+						x86_64_alu_reg_reg(X86_64_ADD, src->regoff, REG_ITMP1);
+						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+				}
+
+			} else {
+				if (src->flags & INMEMORY) {
+					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+
+				} else {
+					M_INTMOVE(src->regoff, iptr->dst->regoff);
+				}
+
+				if (iptr->val.l == 1) {
+					x86_64_inc_reg(iptr->dst->regoff);
+					
+				} else if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_reg(X86_64_ADD, iptr->val.l, iptr->dst->regoff);
+
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, iptr->dst->regoff);
 				}
 			}
 			break;
@@ -1497,66 +1416,66 @@ static void gen_mcode()
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alu_reg_membase(X86_64_SUB, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_membase(X86_64_SUB, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 
 					} else {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_alu_membase_reg(X86_64_SUB, REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_alul_membase_reg(X86_64_SUB, REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					}
 
 				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
 					M_INTMOVE(src->prev->regoff, REG_ITMP1);
-					x86_64_alu_membase_reg(X86_64_SUB, REG_SP, src->regoff * 8, REG_ITMP1);
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					x86_64_alul_membase_reg(X86_64_SUB, REG_SP, src->regoff * 8, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 
 				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
-						x86_64_alu_reg_membase(X86_64_SUB, src->regoff, REG_SP, iptr->dst->regoff * 8);
+						x86_64_alul_reg_membase(X86_64_SUB, src->regoff, REG_SP, iptr->dst->regoff * 8);
 
 					} else {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_alu_reg_reg(X86_64_SUB, src->regoff, REG_ITMP1);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_reg(X86_64_SUB, src->regoff, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					}
 
 				} else {
-					x86_64_mov_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_alu_reg_membase(X86_64_SUB, src->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_movl_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_alul_reg_membase(X86_64_SUB, src->regoff, REG_SP, iptr->dst->regoff * 8);
 				}
 
 			} else {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, d);
-					x86_64_alu_membase_reg(X86_64_SUB, REG_SP, src->regoff * 8, d);
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, d);
+					x86_64_alul_membase_reg(X86_64_SUB, REG_SP, src->regoff * 8, d);
 
 				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
 					M_INTMOVE(src->prev->regoff, d);
-					x86_64_alu_membase_reg(X86_64_SUB, REG_SP, src->regoff * 8, d);
+					x86_64_alul_membase_reg(X86_64_SUB, REG_SP, src->regoff * 8, d);
 
 				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					/* workaround for reg alloc */
 					if (src->regoff == iptr->dst->regoff) {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_alu_reg_reg(X86_64_SUB, src->regoff, REG_ITMP1);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_reg(X86_64_SUB, src->regoff, REG_ITMP1);
 						M_INTMOVE(REG_ITMP1, d);
 
 					} else {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, d);
-						x86_64_alu_reg_reg(X86_64_SUB, src->regoff, d);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, d);
+						x86_64_alul_reg_reg(X86_64_SUB, src->regoff, d);
 					}
 
 				} else {
 					/* workaround for reg alloc */
 					if (src->regoff == iptr->dst->regoff) {
 						M_INTMOVE(src->prev->regoff, REG_ITMP1);
-						x86_64_alu_reg_reg(X86_64_SUB, src->regoff, REG_ITMP1);
+						x86_64_alul_reg_reg(X86_64_SUB, src->regoff, REG_ITMP1);
 						M_INTMOVE(REG_ITMP1, d);
 
 					} else {
 						M_INTMOVE(src->prev->regoff, d);
-						x86_64_alu_reg_reg(X86_64_SUB, src->regoff, d);
+						x86_64_alul_reg_reg(X86_64_SUB, src->regoff, d);
 					}
 				}
 			}
@@ -1569,27 +1488,27 @@ static void gen_mcode()
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_imm_membase(X86_64_SUB, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+						x86_64_alul_imm_membase(X86_64_SUB, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
 
 					} else {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alu_imm_reg(X86_64_SUB, iptr->val.i, REG_ITMP1);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_alul_imm_reg(X86_64_SUB, iptr->val.i, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					}
 
 				} else {
-					x86_64_mov_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_alu_imm_membase(X86_64_SUB, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+					x86_64_movl_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_alul_imm_membase(X86_64_SUB, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
 				}
 
 			} else {
 				if (src->flags & INMEMORY) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
-					x86_64_alu_imm_reg(X86_64_SUB, iptr->val.i, iptr->dst->regoff);
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_alul_imm_reg(X86_64_SUB, iptr->val.i, iptr->dst->regoff);
 
 				} else {
 					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					x86_64_alu_imm_reg(X86_64_SUB, iptr->val.i, iptr->dst->regoff);
+					x86_64_alul_imm_reg(X86_64_SUB, iptr->val.i, iptr->dst->regoff);
 				}
 			}
 			break;
@@ -1672,18 +1591,60 @@ static void gen_mcode()
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_imm_membase(X86_64_SUB, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
-						x86_64_alu_imm_membase(X86_64_SBB, iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 8 + 4);
+						if (x86_64_is_imm32(iptr->val.l)) {
+							x86_64_alu_imm_membase(X86_64_SUB, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
+
+						} else {
+							x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+							x86_64_alu_reg_membase(X86_64_SUB, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						}
 
 					} else {
-						/* TODO: could be size optimized with lea -- see gcc output */
 						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_imm_reg(X86_64_SUB, iptr->val.l, REG_ITMP1);
-						x86_64_alu_imm_reg(X86_64_SBB, iptr->val.l >> 32, REG_ITMP2);
+
+						if (iptr->val.l == 1) {
+							x86_64_inc_reg(REG_ITMP1);
+
+						} else if (x86_64_is_imm32(iptr->val.l)) {
+							x86_64_alu_imm_reg(X86_64_SUB, iptr->val.l, REG_ITMP1);
+
+						} else {
+							x86_64_mov_imm_reg(iptr->val.l, REG_ITMP2);
+							x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP2, REG_ITMP1);
+						}
+
 						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
 					}
+
+				} else {
+					if (x86_64_is_imm32(iptr->val.l)) {
+						x86_64_mov_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
+						x86_64_alu_imm_membase(X86_64_SUB, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+						x86_64_alu_reg_reg(X86_64_SUB, src->regoff, REG_ITMP1);
+						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+				}
+
+			} else {
+				if (src->flags & INMEMORY) {
+					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+
+				} else {
+					M_INTMOVE(src->regoff, iptr->dst->regoff);
+				}
+
+				if (iptr->val.l == 1) {
+					x86_64_inc_reg(iptr->dst->regoff);
+					
+				} else if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_reg(X86_64_SUB, iptr->val.l, iptr->dst->regoff);
+
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP1, iptr->dst->regoff);
 				}
 			}
 			break;
@@ -1693,46 +1654,46 @@ static void gen_mcode()
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-					x86_64_imul_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+					x86_64_imull_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 
 				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-					x86_64_imul_reg_reg(src->prev->regoff, REG_ITMP1);
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+					x86_64_imull_reg_reg(src->prev->regoff, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 
 				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-					x86_64_imul_reg_reg(src->regoff, REG_ITMP1);
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+					x86_64_imull_reg_reg(src->regoff, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 
 				} else {
-					x86_64_mov_reg_reg(src->prev->regoff, REG_ITMP1);
-					x86_64_imul_reg_reg(src->regoff, REG_ITMP1);
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					M_INTMOVE(src->prev->regoff, REG_ITMP1);
+					x86_64_imull_reg_reg(src->regoff, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 				}
 
 			} else {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
-					x86_64_imul_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_imull_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
 
 				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
 					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
-					x86_64_imul_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_imull_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
 
 				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					x86_64_imul_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_imull_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
 
 				} else {
 					if (src->regoff == iptr->dst->regoff) {
-						x86_64_imul_reg_reg(src->prev->regoff, iptr->dst->regoff);
+						x86_64_imull_reg_reg(src->prev->regoff, iptr->dst->regoff);
 
 					} else {
 						M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
-						x86_64_imul_reg_reg(src->regoff, iptr->dst->regoff);
+						x86_64_imull_reg_reg(src->regoff, iptr->dst->regoff);
 					}
 				}
 			}
@@ -1744,20 +1705,20 @@ static void gen_mcode()
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
-					x86_64_imul_imm_membase_reg(iptr->val.i, REG_SP, src->regoff * 8, REG_ITMP1);
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					x86_64_imull_imm_membase_reg(iptr->val.i, REG_SP, src->regoff * 8, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 
 				} else {
-					x86_64_imul_imm_reg_reg(iptr->val.i, src->regoff, REG_ITMP1);
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					x86_64_imull_imm_reg_reg(iptr->val.i, src->regoff, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 				}
 
 			} else {
 				if (src->flags & INMEMORY) {
-					x86_64_imul_imm_membase_reg(iptr->val.i, REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_imull_imm_membase_reg(iptr->val.i, REG_SP, src->regoff * 8, iptr->dst->regoff);
 
 				} else {
-					x86_64_imul_imm_reg_reg(iptr->val.i, src->regoff, iptr->dst->regoff);
+					x86_64_imull_imm_reg_reg(iptr->val.i, src->regoff, iptr->dst->regoff);
 				}
 			}
 			break;
@@ -1815,22 +1776,35 @@ static void gen_mcode()
 		case ICMD_LMULCONST:  /* ..., value  ==> ..., value * constant        */
 		                      /* val.l = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
-					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);                              /* imm -> EAX             */
-					x86_64_mul_membase(REG_SP, src->regoff * 8);                            /* mem * EAX -> EDX:EAX   */
-					/* TODO: optimize move EAX -> REG_ITMP3 */
-					x86_64_mov_imm_reg(iptr->val.l >> 32, REG_ITMP3);                       /* imm -> ITMP3           */
-					x86_64_imul_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);            /* mem * ITMP3 -> ITMP3   */
+					if (x86_64_is_imm32(iptr->val.l)) {
+						x86_64_imul_imm_membase_reg(iptr->val.l, REG_SP, src->regoff * 8, REG_ITMP1);
 
-					x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP3, REG_ITMP2);                      /* ITMP3 + EDX -> EDX     */
-					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP3);                             /* imm -> ITMP3           */
-					x86_64_imul_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP3);        /* mem * ITMP3 -> ITMP3   */
+					} else {
+						x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+						x86_64_imul_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+					}
+					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff);
+					
+				} else {
+					if (x86_64_is_imm32(iptr->val.l)) {
+						x86_64_imul_imm_reg_reg(iptr->val.l, src->regoff, REG_ITMP1);
 
-					x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP3, REG_ITMP2);                      /* ITMP3 + EDX -> EDX     */
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-					x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
+					} else {
+						x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+						x86_64_imul_reg_reg(src->regoff, REG_ITMP1);
+					}
+					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff);
+				}
+
+			} else {
+				if (src->flags & INMEMORY) {
+					x86_64_imul_imm_membase_reg(iptr->val.l, REG_SP, src->regoff * 8, iptr->dst->regoff);
+
+				} else {
+					x86_64_imul_imm_reg_reg(iptr->val.l, src->regoff, iptr->dst->regoff);
 				}
 			}
 			break;
@@ -1851,29 +1825,29 @@ static void gen_mcode()
 			d = reg_of_var(iptr->dst, REG_ITMP3);
   			gen_div_check(src);
 	        if (src->prev->flags & INMEMORY) {
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+				x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
 
 			} else {
 				M_INTMOVE(src->prev->regoff, REG_ITMP1);
 			}
 			
 			if (src->flags & INMEMORY) {
-				x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+				x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
 
 			} else {
 				M_INTMOVE(src->regoff, REG_ITMP3);
 			}
 
-			x86_64_alu_imm_reg(X86_64_CMP, 0x80000000, REG_ITMP1);    /* check as described in jvm spec */
+			x86_64_alul_imm_reg(X86_64_CMP, 0x80000000, REG_ITMP1);    /* check as described in jvm spec */
 			x86_64_jcc(X86_64_CC_NE, 3 + 6);
-			x86_64_alu_imm_reg(X86_64_CMP, -1, REG_ITMP3);
+			x86_64_alul_imm_reg(X86_64_CMP, -1, REG_ITMP3);
 			x86_64_jcc(X86_64_CC_E, 1 + 2);
 
   			x86_64_cltd();
-			x86_64_idiv_reg(REG_ITMP3);
+			x86_64_idivl_reg(REG_ITMP3);
 
 			if (iptr->dst->flags & INMEMORY) {
-				x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+				x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 
 			} else {
 				M_INTMOVE(REG_ITMP1, iptr->dst->regoff);
@@ -1885,30 +1859,30 @@ static void gen_mcode()
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			gen_div_check(src);
 			if (src->prev->flags & INMEMORY) {
-				x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+				x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
 
 			} else {
 				M_INTMOVE(src->prev->regoff, REG_ITMP1);
 			}
 			
 			if (src->flags & INMEMORY) {
-				x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+				x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
 
 			} else {
 				M_INTMOVE(src->regoff, REG_ITMP3);
 			}
 
-			x86_64_alu_imm_reg(X86_64_CMP, 0x80000000, REG_ITMP1);    /* check as described in jvm spec */
+			x86_64_alul_imm_reg(X86_64_CMP, 0x80000000, REG_ITMP1);    /* check as described in jvm spec */
 			x86_64_jcc(X86_64_CC_NE, 2 + 3 + 6);
-			x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP2);
-			x86_64_alu_imm_reg(X86_64_CMP, -1, REG_ITMP3);
+			x86_64_alul_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP2);
+			x86_64_alul_imm_reg(X86_64_CMP, -1, REG_ITMP3);
 			x86_64_jcc(X86_64_CC_E, 1 + 2);
 
   			x86_64_cltd();
-			x86_64_idiv_reg(REG_ITMP3);
+			x86_64_idivl_reg(REG_ITMP3);
 
 			if (iptr->dst->flags & INMEMORY) {
-				x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8);
+				x86_64_movl_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8);
 
 			} else {
 				M_INTMOVE(REG_ITMP2, iptr->dst->regoff);
@@ -1920,20 +1894,52 @@ static void gen_mcode()
 
 			/* TODO: optimize for `/ 2' */
 			{
-			int offset = 0;
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+				int offset = 0;
+				var_to_reg_int(s1, src, REG_ITMP1);
+				d = reg_of_var(iptr->dst, REG_ITMP1);
 
-			M_INTMOVE(s1, d);
-			x86_64_test_reg_reg(d, d);
-			offset += 2;
-			CALCIMMEDIATEBYTES((1 << iptr->val.i) - 1);
-			x86_64_jcc(X86_64_CC_NS, offset);
-			x86_64_alu_imm_reg(X86_64_ADD, (1 << iptr->val.i) - 1, d);
+				M_INTMOVE(s1, d);
+				x86_64_testl_reg_reg(d, d);
+				offset += 2;
+				CALCIMMEDIATEBYTES((1 << iptr->val.i) - 1);
+				x86_64_jcc(X86_64_CC_NS, offset);
+				x86_64_alul_imm_reg(X86_64_ADD, (1 << iptr->val.i) - 1, d);
 				
-			x86_64_shift_imm_reg(X86_64_SAR, iptr->val.i, d);
-			store_reg_to_var_int(iptr->dst, d);
+				x86_64_shiftl_imm_reg(X86_64_SAR, iptr->val.i, d);
+				store_reg_to_var_int(iptr->dst, d);
 			}
+			break;
+
+		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant        */
+		                      /* val.i = constant                             */
+
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			if (s1 == d) {
+				M_INTMOVE(s1, REG_ITMP1);
+				s1 = REG_ITMP1;
+			} 
+
+			{
+				int offset = 0;
+
+				offset += 2;
+				offset += 2;
+				offset += 2;
+				CALCIMMEDIATEBYTES(iptr->val.i);
+				offset += 2;
+
+				/* TODO: optimize */
+				M_INTMOVE(s1, d);
+				x86_64_alul_imm_reg(X86_64_AND, iptr->val.i, d);
+				x86_64_testl_reg_reg(s1, s1);
+				x86_64_jcc(X86_64_CC_GE, offset);
+				M_INTMOVE(s1, d);
+				x86_64_negl_reg(d);
+				x86_64_alul_imm_reg(X86_64_AND, iptr->val.i, d);
+				x86_64_negl_reg(d);
+			}
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
@@ -2009,30 +2015,330 @@ static void gen_mcode()
 		case ICMD_LDIVPOW2:   /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
 
+			/* TODO: optimize for `/ 2' */
+			{
+			int offset = 0;
+			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP1);
+
+			M_INTMOVE(s1, d);
+			x86_64_test_reg_reg(d, d);
+			offset += 3;
+			CALCIMMEDIATEBYTES((1 << iptr->val.i) - 1);
+			x86_64_jcc(X86_64_CC_NS, offset);
+			x86_64_alu_imm_reg(X86_64_ADD, (1 << iptr->val.i) - 1, d);
+				
+			x86_64_shift_imm_reg(X86_64_SAR, iptr->val.i, d);
+			store_reg_to_var_int(iptr->dst, d);
+			}
+			break;
+
+		case ICMD_LREMPOW2:   /* ..., value  ==> ..., value % constant        */
+		                      /* val.l = constant                             */
+
+			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
+			if (s1 == d) {
+				M_INTMOVE(s1, REG_ITMP1);
+				s1 = REG_ITMP1;
+			} 
+
+			{
+				int offset = 0;
+
+				offset += 2;
+				offset += 2;
+				offset += 2;
+				CALCIMMEDIATEBYTES(iptr->val.i);
+				offset += 2;
+
+				/* TODO: optimize */
+				M_INTMOVE(s1, d);
+				x86_64_alu_imm_reg(X86_64_AND, iptr->val.i, d);
+				x86_64_test_reg_reg(s1, s1);
+				x86_64_jcc(X86_64_CC_GE, offset);
+				M_INTMOVE(s1, d);
+				x86_64_neg_reg(d);
+				x86_64_alu_imm_reg(X86_64_AND, iptr->val.i, d);
+				x86_64_neg_reg(d);
+			}
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+
+		case ICMD_ISHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
+
+			d = reg_of_var(iptr->dst, REG_ITMP2);
 			if (iptr->dst->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-					int offset = 0;
-					offset += 2;
-					CALCIMMEDIATEBYTES((1 << iptr->val.i) - 1);
-					offset += 3;
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
+				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					if (src->prev->regoff == iptr->dst->regoff) {
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+						x86_64_shiftl_membase(X86_64_SHL, REG_SP, iptr->dst->regoff * 8);
 
-					x86_64_test_reg_reg(REG_ITMP2, REG_ITMP2);
-					x86_64_jcc(X86_64_CC_NS, offset);
-					x86_64_alu_imm_reg(X86_64_ADD, (1 << iptr->val.i) - 1, REG_ITMP1);
-					x86_64_alu_imm_reg(X86_64_ADC, 0, REG_ITMP2);
-					x86_64_shrd_imm_reg_reg(iptr->val.i, REG_ITMP2, REG_ITMP1);
-					x86_64_shift_imm_reg(X86_64_SAR, iptr->val.i, REG_ITMP2);
+					} else {
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_shiftl_reg(X86_64_SHL, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
 
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-					x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
+				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+					x86_64_movl_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_shiftl_membase(X86_64_SHL, REG_SP, iptr->dst->regoff * 8);
+
+				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					if (src->prev->regoff == iptr->dst->regoff) {
+						M_INTMOVE(src->regoff, REG_ITMP3);
+						x86_64_shiftl_membase(X86_64_SHL, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						M_INTMOVE(src->regoff, REG_ITMP3);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_shiftl_reg(X86_64_SHL, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+
+				} else {
+					M_INTMOVE(src->regoff, REG_ITMP3);
+					x86_64_movl_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_shiftl_membase(X86_64_SHL, REG_SP, iptr->dst->regoff * 8);
+				}
+
+			} else {
+				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_shiftl_reg(X86_64_SHL, iptr->dst->regoff);
+
+				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
+					x86_64_shiftl_reg(X86_64_SHL, iptr->dst->regoff);
+
+				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					M_INTMOVE(src->regoff, REG_ITMP3);
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_shiftl_reg(X86_64_SHL, iptr->dst->regoff);
+
+				} else {
+					M_INTMOVE(src->regoff, REG_ITMP3);
+					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
+					x86_64_shiftl_reg(X86_64_SHL, iptr->dst->regoff);
 				}
 			}
 			break;
 
-		case ICMD_ISHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
+		case ICMD_ISHLCONST:  /* ..., value  ==> ..., value << constant       */
+		                      /* val.i = constant                             */
+
+			d = reg_of_var(iptr->dst, REG_ITMP1);
+			if ((src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
+				if (src->regoff == iptr->dst->regoff) {
+					x86_64_shiftl_imm_membase(X86_64_SHL, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+
+				} else {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+					x86_64_shiftl_imm_reg(X86_64_SHL, iptr->val.i, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+				}
+
+			} else if ((src->flags & INMEMORY) && !(iptr->dst->flags & INMEMORY)) {
+				x86_64_movl_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+				x86_64_shiftl_imm_reg(X86_64_SHL, iptr->val.i, iptr->dst->regoff);
+				
+			} else if (!(src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
+				x86_64_movl_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
+				x86_64_shiftl_imm_membase(X86_64_SHL, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+
+			} else {
+				M_INTMOVE(src->regoff, iptr->dst->regoff);
+				x86_64_shiftl_imm_reg(X86_64_SHL, iptr->val.i, iptr->dst->regoff);
+			}
+			break;
+
+		case ICMD_ISHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
+
+			d = reg_of_var(iptr->dst, REG_ITMP2);
+			if (iptr->dst->flags & INMEMORY) {
+				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					if (src->prev->regoff == iptr->dst->regoff) {
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+						x86_64_shiftl_membase(X86_64_SAR, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_shiftl_reg(X86_64_SAR, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+
+				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+					x86_64_movl_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_shiftl_membase(X86_64_SAR, REG_SP, iptr->dst->regoff * 8);
+
+				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					if (src->prev->regoff == iptr->dst->regoff) {
+						M_INTMOVE(src->regoff, REG_ITMP3);
+						x86_64_shiftl_membase(X86_64_SAR, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						M_INTMOVE(src->regoff, REG_ITMP3);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_shiftl_reg(X86_64_SAR, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+
+				} else {
+					M_INTMOVE(src->regoff, REG_ITMP3);
+					x86_64_movl_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_shiftl_membase(X86_64_SAR, REG_SP, iptr->dst->regoff * 8);
+				}
+
+			} else {
+				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_shiftl_reg(X86_64_SAR, iptr->dst->regoff);
+
+				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
+					x86_64_shiftl_reg(X86_64_SAR, iptr->dst->regoff);
+
+				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					M_INTMOVE(src->regoff, REG_ITMP3);
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_shiftl_reg(X86_64_SAR, iptr->dst->regoff);
+
+				} else {
+					M_INTMOVE(src->regoff, REG_ITMP3);
+					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
+					x86_64_shiftl_reg(X86_64_SAR, iptr->dst->regoff);
+				}
+			}
+			break;
+
+		case ICMD_ISHRCONST:  /* ..., value  ==> ..., value >> constant       */
+		                      /* val.i = constant                             */
+
+			d = reg_of_var(iptr->dst, REG_ITMP1);
+			if ((src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
+				if (src->regoff == iptr->dst->regoff) {
+					x86_64_shiftl_imm_membase(X86_64_SAR, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+
+				} else {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+					x86_64_shiftl_imm_reg(X86_64_SAR, iptr->val.i, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+				}
+
+			} else if ((src->flags & INMEMORY) && !(iptr->dst->flags & INMEMORY)) {
+				x86_64_movl_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+				x86_64_shiftl_imm_reg(X86_64_SAR, iptr->val.i, iptr->dst->regoff);
+				
+			} else if (!(src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
+				x86_64_movl_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
+				x86_64_shiftl_imm_membase(X86_64_SAR, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+
+			} else {
+				M_INTMOVE(src->regoff, iptr->dst->regoff);
+				x86_64_shiftl_imm_reg(X86_64_SAR, iptr->val.i, iptr->dst->regoff);
+			}
+			break;
+
+		case ICMD_IUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
+
+			d = reg_of_var(iptr->dst, REG_ITMP2);
+			if (iptr->dst->flags & INMEMORY) {
+				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					if (src->prev->regoff == iptr->dst->regoff) {
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+						x86_64_shiftl_membase(X86_64_SHR, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_shiftl_reg(X86_64_SHR, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+
+				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+					x86_64_movl_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_shiftl_membase(X86_64_SHR, REG_SP, iptr->dst->regoff * 8);
+
+				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					if (src->prev->regoff == iptr->dst->regoff) {
+						M_INTMOVE(src->regoff, REG_ITMP3);
+						x86_64_shiftl_membase(X86_64_SHR, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						M_INTMOVE(src->regoff, REG_ITMP3);
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_shiftl_reg(X86_64_SHR, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+
+				} else {
+					M_INTMOVE(src->regoff, REG_ITMP3);
+					x86_64_movl_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_shiftl_membase(X86_64_SHR, REG_SP, iptr->dst->regoff * 8);
+				}
+
+			} else {
+				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_shiftl_reg(X86_64_SHR, iptr->dst->regoff);
+
+				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
+					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
+					x86_64_shiftl_reg(X86_64_SHR, iptr->dst->regoff);
+
+				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					M_INTMOVE(src->regoff, REG_ITMP3);
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_shiftl_reg(X86_64_SHR, iptr->dst->regoff);
+
+				} else {
+					M_INTMOVE(src->regoff, REG_ITMP3);
+					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
+					x86_64_shiftl_reg(X86_64_SHR, iptr->dst->regoff);
+				}
+			}
+			break;
+
+		case ICMD_IUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
+		                      /* val.i = constant                             */
+
+			d = reg_of_var(iptr->dst, REG_ITMP1);
+			if ((src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
+				if (src->regoff == iptr->dst->regoff) {
+					x86_64_shiftl_imm_membase(X86_64_SHR, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+
+				} else {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+					x86_64_shiftl_imm_reg(X86_64_SHR, iptr->val.i, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+				}
+
+			} else if ((src->flags & INMEMORY) && !(iptr->dst->flags & INMEMORY)) {
+				x86_64_movl_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+				x86_64_shiftl_imm_reg(X86_64_SHR, iptr->val.i, iptr->dst->regoff);
+				
+			} else if (!(src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
+				x86_64_movl_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
+				x86_64_shiftl_imm_membase(X86_64_SHR, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+
+			} else {
+				M_INTMOVE(src->regoff, iptr->dst->regoff);
+				x86_64_shiftl_imm_reg(X86_64_SHR, iptr->val.i, iptr->dst->regoff);
+			}
+			break;
+
+		case ICMD_LSHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
 
 			d = reg_of_var(iptr->dst, REG_ITMP2);
 			if (iptr->dst->flags & INMEMORY) {
@@ -2095,8 +2401,8 @@ static void gen_mcode()
 			}
 			break;
 
-		case ICMD_ISHLCONST:  /* ..., value  ==> ..., value << constant       */
-		                      /* val.i = constant                             */
+        case ICMD_LSHLCONST:  /* ..., value  ==> ..., value << constant       */
+ 			                  /* val.i = constant                             */
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			if ((src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
@@ -2123,7 +2429,7 @@ static void gen_mcode()
 			}
 			break;
 
-		case ICMD_ISHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
+		case ICMD_LSHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
 
 			d = reg_of_var(iptr->dst, REG_ITMP2);
 			if (iptr->dst->flags & INMEMORY) {
@@ -2186,7 +2492,7 @@ static void gen_mcode()
 			}
 			break;
 
-		case ICMD_ISHRCONST:  /* ..., value  ==> ..., value >> constant       */
+		case ICMD_LSHRCONST:  /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
@@ -2214,7 +2520,7 @@ static void gen_mcode()
 			}
 			break;
 
-		case ICMD_IUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
+		case ICMD_LUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
 
 			d = reg_of_var(iptr->dst, REG_ITMP2);
 			if (iptr->dst->flags & INMEMORY) {
@@ -2277,8 +2583,8 @@ static void gen_mcode()
 			}
 			break;
 
-		case ICMD_IUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
-		                      /* val.i = constant                             */
+  		case ICMD_LUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
+  		                      /* val.l = constant                             */
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			if ((src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
@@ -2305,224 +2611,100 @@ static void gen_mcode()
 			}
 			break;
 
-		case ICMD_LSHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY ){
-				if (src->prev->flags & INMEMORY) {
-/*  					if (src->prev->regoff == iptr->dst->regoff) { */
-/*  						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1); */
-
-/*  						if (src->flags & INMEMORY) { */
-/*  							x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3); */
-/*  						} else { */
-/*  							M_INTMOVE(src->regoff, REG_ITMP3); */
-/*  						} */
-
-/*  						x86_64_test_imm_reg(32, REG_ITMP3); */
-/*  						x86_64_jcc(X86_64_CC_E, 2 + 2); */
-/*  						x86_64_mov_reg_reg(REG_ITMP1, REG_ITMP2); */
-/*  						x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP1, REG_ITMP1); */
-						
-/*  						x86_64_shld_reg_membase(REG_ITMP1, REG_SP, src->prev->regoff * 8 + 4); */
-/*  						x86_64_shift_membase(X86_64_SHL, REG_SP, iptr->dst->regoff * 8); */
-
-/*  					} else { */
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2);
-						
-						if (src->flags & INMEMORY) {
-							x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
-						} else {
-							M_INTMOVE(src->regoff, REG_ITMP3);
-						}
-						
-						x86_64_test_imm_reg(32, REG_ITMP3);
-						x86_64_jcc(X86_64_CC_E, 2 + 2);
-						x86_64_mov_reg_reg(REG_ITMP1, REG_ITMP2);
-						x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP1, REG_ITMP1);
-						
-						x86_64_shld_reg_reg(REG_ITMP1, REG_ITMP2);
-						x86_64_shift_reg(X86_64_SHL, REG_ITMP1);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-/*  					} */
-				}
-			}
-			break;
-
-        case ICMD_LSHLCONST:  /* ..., value  ==> ..., value << constant       */
- 			                  /* val.i = constant                             */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY ) {
-				x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-				x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-
-				if (iptr->val.i & 0x20) {
-					x86_64_mov_reg_reg(REG_ITMP1, REG_ITMP2);
-					x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP1, REG_ITMP1);
-					x86_64_shld_imm_reg_reg(iptr->val.i & 0x3f, REG_ITMP1, REG_ITMP2);
-
-				} else {
-					x86_64_shld_imm_reg_reg(iptr->val.i & 0x3f, REG_ITMP1, REG_ITMP2);
-					x86_64_shift_imm_reg(X86_64_SHL, iptr->val.i & 0x3f, REG_ITMP1);
-				}
-
-				x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-				x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-			}
-			break;
-
-		case ICMD_LSHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY ){
-				if (src->prev->flags & INMEMORY) {
-/*  					if (src->prev->regoff == iptr->dst->regoff) { */
-/*  						/* TODO: optimize */
-/*  						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1); */
-/*  						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2); */
-
-/*  						if (src->flags & INMEMORY) { */
-/*  							x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3); */
-/*  						} else { */
-/*  							M_INTMOVE(src->regoff, REG_ITMP3); */
-/*  						} */
-
-/*  						x86_64_test_imm_reg(32, REG_ITMP3); */
-/*  						x86_64_jcc(X86_64_CC_E, 2 + 3); */
-/*  						x86_64_mov_reg_reg(REG_ITMP2, REG_ITMP1); */
-/*  						x86_64_shift_imm_reg(X86_64_SAR, 31, REG_ITMP2); */
-						
-/*  						x86_64_shrd_reg_reg(REG_ITMP2, REG_ITMP1); */
-/*  						x86_64_shift_reg(X86_64_SAR, REG_ITMP2); */
-/*  						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8); */
-/*  						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4); */
-
-/*  					} else { */
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2);
-
-						if (src->flags & INMEMORY) {
-							x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
-						} else {
-							M_INTMOVE(src->regoff, REG_ITMP3);
-						}
-
-						x86_64_test_imm_reg(32, REG_ITMP3);
-						x86_64_jcc(X86_64_CC_E, 2 + 3);
-						x86_64_mov_reg_reg(REG_ITMP2, REG_ITMP1);
-						x86_64_shift_imm_reg(X86_64_SAR, 31, REG_ITMP2);
-						
-						x86_64_shrd_reg_reg(REG_ITMP2, REG_ITMP1);
-						x86_64_shift_reg(X86_64_SAR, REG_ITMP2);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-/*  					} */
-				}
-			}
-			break;
-
-		case ICMD_LSHRCONST:  /* ..., value  ==> ..., value >> constant       */
-		                      /* val.i = constant                             */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY ) {
-				x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-				x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-
-				if (iptr->val.i & 0x20) {
-					x86_64_mov_reg_reg(REG_ITMP2, REG_ITMP1);
-					x86_64_shift_imm_reg(X86_64_SAR, 31, REG_ITMP2);
-					x86_64_shrd_imm_reg_reg(iptr->val.i & 0x3f, REG_ITMP2, REG_ITMP1);
-
-				} else {
-					x86_64_shrd_imm_reg_reg(iptr->val.i & 0x3f, REG_ITMP2, REG_ITMP1);
-					x86_64_shift_imm_reg(X86_64_SAR, iptr->val.i & 0x3f, REG_ITMP2);
-				}
-
-				x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-				x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-			}
-			break;
-
-		case ICMD_LUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY ){
-				if (src->prev->flags & INMEMORY) {
-/*  					if (src->prev->regoff == iptr->dst->regoff) { */
-/*  						/* TODO: optimize */
-/*  						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1); */
-/*  						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2); */
-
-/*  						if (src->flags & INMEMORY) { */
-/*  							x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3); */
-/*  						} else { */
-/*  							M_INTMOVE(src->regoff, REG_ITMP3); */
-/*  						} */
-
-/*  						x86_64_test_imm_reg(32, REG_ITMP3); */
-/*  						x86_64_jcc(X86_64_CC_E, 2 + 2); */
-/*  						x86_64_mov_reg_reg(REG_ITMP2, REG_ITMP1); */
-/*  						x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP2); */
-						
-/*  						x86_64_shrd_reg_reg(REG_ITMP2, REG_ITMP1); */
-/*  						x86_64_shift_reg(X86_64_SHR, REG_ITMP2); */
-/*  						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8); */
-/*  						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4); */
-
-/*  					} else { */
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2);
-
-						if (src->flags & INMEMORY) {
-							x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP3);
-						} else {
-							M_INTMOVE(src->regoff, REG_ITMP3);
-						}
-
-						x86_64_test_imm_reg(32, REG_ITMP3);
-						x86_64_jcc(X86_64_CC_E, 2 + 2);
-						x86_64_mov_reg_reg(REG_ITMP2, REG_ITMP1);
-						x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP2);
-						
-						x86_64_shrd_reg_reg(REG_ITMP2, REG_ITMP1);
-						x86_64_shift_reg(X86_64_SHR, REG_ITMP2);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-/*  					} */
-				}
-			}
-			break;
-
-  		case ICMD_LUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
-  		                      /* val.l = constant                             */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY ) {
-				x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-				x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-
-				if (iptr->val.i & 0x20) {
-					x86_64_mov_reg_reg(REG_ITMP2, REG_ITMP1);
-					x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP2);
-					x86_64_shrd_imm_reg_reg(iptr->val.i & 0x3f, REG_ITMP2, REG_ITMP1);
-
-				} else {
-					x86_64_shrd_imm_reg_reg(iptr->val.i & 0x3f, REG_ITMP2, REG_ITMP1);
-					x86_64_shift_imm_reg(X86_64_SHR, iptr->val.i & 0x3f, REG_ITMP2);
-				}
-
-				x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-				x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-			}
-  			break;
-
 		case ICMD_IAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
+			if (iptr->dst->flags & INMEMORY) {
+				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					if (src->regoff == iptr->dst->regoff) {
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_membase(X86_64_AND, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+
+					} else if (src->prev->regoff == iptr->dst->regoff) {
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_membase(X86_64_AND, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_alul_membase_reg(X86_64_AND, REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+
+				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+					x86_64_alul_reg_reg(X86_64_AND, src->prev->regoff, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+
+				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+					x86_64_alul_reg_reg(X86_64_AND, src->regoff, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+
+				} else {
+					x86_64_movl_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_alul_reg_membase(X86_64_AND, src->regoff, REG_SP, iptr->dst->regoff * 8);
+				}
+
+			} else {
+				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_alul_membase_reg(X86_64_AND, REG_SP, src->regoff * 8, iptr->dst->regoff);
+
+				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
+					x86_64_alul_membase_reg(X86_64_AND, REG_SP, src->regoff * 8, iptr->dst->regoff);
+
+				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					M_INTMOVE(src->regoff, iptr->dst->regoff);
+					x86_64_alul_membase_reg(X86_64_AND, REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+
+				} else {
+					if (src->regoff == iptr->dst->regoff) {
+						x86_64_alul_reg_reg(X86_64_AND, src->prev->regoff, iptr->dst->regoff);
+
+					} else {
+						M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
+						x86_64_alul_reg_reg(X86_64_AND, src->regoff, iptr->dst->regoff);
+					}
+				}
+			}
+			break;
+
+		case ICMD_IANDCONST:  /* ..., value  ==> ..., value & constant        */
+		                      /* val.i = constant                             */
+
+			d = reg_of_var(iptr->dst, REG_ITMP1);
+			if (iptr->dst->flags & INMEMORY) {
+				if (src->flags & INMEMORY) {
+					if (src->regoff == iptr->dst->regoff) {
+						x86_64_alul_imm_membase(X86_64_AND, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_alul_imm_reg(X86_64_AND, iptr->val.i, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+
+				} else {
+					x86_64_movl_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_alul_imm_membase(X86_64_AND, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+				}
+
+			} else {
+				if (src->flags & INMEMORY) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_alul_imm_reg(X86_64_AND, iptr->val.i, iptr->dst->regoff);
+
+				} else {
+					M_INTMOVE(src->regoff, iptr->dst->regoff);
+					x86_64_alul_imm_reg(X86_64_AND, iptr->val.i, iptr->dst->regoff);
+				}
+			}
+			break;
+
+		case ICMD_LAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
+
+			d = reg_of_var(iptr->dst, REG_ITMP3);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -2579,215 +2761,156 @@ static void gen_mcode()
 			}
 			break;
 
-		case ICMD_IANDCONST:  /* ..., value  ==> ..., value & constant        */
-		                      /* val.i = constant                             */
+		case ICMD_LANDCONST:  /* ..., value  ==> ..., value & constant        */
+		                      /* val.l = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_imm_membase(X86_64_AND, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+						if (x86_64_is_imm32(iptr->val.l)) {
+							x86_64_alu_imm_membase(X86_64_AND, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
+
+						} else {
+							x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+							x86_64_alu_reg_membase(X86_64_AND, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						}
 
 					} else {
 						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alu_imm_reg(X86_64_AND, iptr->val.i, REG_ITMP1);
+
+						if (x86_64_is_imm32(iptr->val.l)) {
+							x86_64_alu_imm_reg(X86_64_AND, iptr->val.l, REG_ITMP1);
+
+						} else {
+							x86_64_mov_imm_reg(iptr->val.l, REG_ITMP2);
+							x86_64_alu_reg_reg(X86_64_AND, REG_ITMP2, REG_ITMP1);
+						}
 						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					}
 
 				} else {
 					x86_64_mov_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_alu_imm_membase(X86_64_AND, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+
+					if (x86_64_is_imm32(iptr->val.l)) {
+						x86_64_alu_imm_membase(X86_64_AND, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+						x86_64_alu_reg_membase(X86_64_AND, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
 				}
 
 			} else {
 				if (src->flags & INMEMORY) {
 					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
-					x86_64_alu_imm_reg(X86_64_AND, iptr->val.i, iptr->dst->regoff);
 
 				} else {
 					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					x86_64_alu_imm_reg(X86_64_AND, iptr->val.i, iptr->dst->regoff);
 				}
-			}
-			break;
 
-		case ICMD_LAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_reg(X86_64_AND, iptr->val.l, iptr->dst->regoff);
 
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY) {
-				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_reg_membase(X86_64_AND, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_alu_reg_membase(X86_64_AND, REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-
-					} else if (src->prev->regoff == iptr->dst->regoff) {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_reg_membase(X86_64_AND, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_alu_reg_membase(X86_64_AND, REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-
-					} else {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_membase_reg(X86_64_AND, REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alu_membase_reg(X86_64_AND, REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-					}
-				}
-			}
-			break;
-
-		case ICMD_LANDCONST:  /* ..., value  ==> ..., value & constant        */
-		                      /* val.l = constant                             */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_imm_membase(X86_64_AND, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
-						x86_64_alu_imm_membase(X86_64_AND, iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 8 + 4);
-
-					} else {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_imm_reg(X86_64_AND, iptr->val.l, REG_ITMP1);
-						x86_64_alu_imm_reg(X86_64_AND, iptr->val.l >> 32, REG_ITMP2);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-					}
-				}
-			}
-			break;
-
-		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant        */
-		                      /* val.i = constant                             */
-
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (s1 == d) {
-				M_INTMOVE(s1, REG_ITMP1);
-				s1 = REG_ITMP1;
-			} 
-
-			{
-			int offset = 0;
-
-			offset += 2;
-			offset += 2;
-			offset += 2;
-			CALCIMMEDIATEBYTES(iptr->val.i);
-			offset += 2;
-
-			/* TODO: optimize */
-			M_INTMOVE(s1, d);
-			x86_64_alu_imm_reg(X86_64_AND, iptr->val.i, d);
-			x86_64_test_reg_reg(s1, s1);
-			x86_64_jcc(X86_64_CC_GE, offset);
- 			x86_64_mov_reg_reg(s1, d);
-  			x86_64_neg_reg(d);
-  			x86_64_alu_imm_reg(X86_64_AND, iptr->val.i, d);
-			x86_64_neg_reg(d);
-			}
-
-/*  			M_INTMOVE(s1, REG_ITMP1); */
-/*  			x86_64_cltd(); */
-/*  			x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP1); */
-/*  			x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP2, REG_ITMP1); */
-/*  			x86_64_alu_reg_reg(X86_64_AND, iptr->val.i, REG_ITMP1); */
-/*  			x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP1); */
-/*  			x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP2, REG_ITMP1); */
-/*  			M_INTMOVE(REG_ITMP1, d); */
-
-/*  			x86_64_alu_reg_reg(X86_64_XOR, d, d); */
-/*  			x86_64_mov_imm_reg(iptr->val.i, REG_ITMP3); */
-/*  			x86_64_shrd_reg_reg(s1, d); */
-/*  			x86_64_shift_imm_reg(X86_64_SHR, 32 - iptr->val.i, d); */
-
-			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_LREMPOW2:   /* ..., value  ==> ..., value % constant        */
-		                      /* val.l = constant                             */
-
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (iptr->dst->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-  					int offset = 0;
-					/* Intel algorithm -- does not work, because constant is wrong */
-/*  					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1); */
-/*  					x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP3); */
-
-/*  					M_INTMOVE(REG_ITMP1, REG_ITMP2); */
-/*  					x86_64_test_reg_reg(REG_ITMP3, REG_ITMP3); */
-/*  					x86_64_jcc(X86_64_CC_NS, offset); */
-/*  					x86_64_alu_imm_reg(X86_64_ADD, (1 << iptr->val.l) - 1, REG_ITMP2); */
-/*  					x86_64_alu_imm_reg(X86_64_ADC, 0, REG_ITMP3); */
-					
-/*  					x86_64_shrd_imm_reg_reg(iptr->val.l, REG_ITMP3, REG_ITMP2); */
-/*  					x86_64_shift_imm_reg(X86_64_SAR, iptr->val.l, REG_ITMP3); */
-/*  					x86_64_shld_imm_reg_reg(iptr->val.l, REG_ITMP2, REG_ITMP3); */
-
-/*  					x86_64_shift_imm_reg(X86_64_SHL, iptr->val.l, REG_ITMP2); */
-
-/*  					x86_64_alu_reg_reg(X86_64_SUB, REG_ITMP2, REG_ITMP1); */
-/*  					x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2); */
-/*  					x86_64_alu_reg_reg(X86_64_SBB, REG_ITMP3, REG_ITMP2); */
-
-/*  					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8); */
-/*  					x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4); */
-
-					/* Alpha algorithm */
-					offset += 3;
-					CALCOFFSETBYTES(src->regoff * 8);
-					offset += 3;
-					CALCOFFSETBYTES(src->regoff * 8 + 4);
-
-					offset += 2;
-					offset += 3;
-					offset += 2;
-
-					/* TODO: hmm, don't know if this is always correct */
-					offset += 2;
-					CALCIMMEDIATEBYTES(iptr->val.l & 0x00000000ffffffff);
-					offset += 2;
-					CALCIMMEDIATEBYTES(iptr->val.l >> 32);
-
-					offset += 2;
-					offset += 3;
-					offset += 2;
-
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-					
-					x86_64_alu_imm_reg(X86_64_AND, iptr->val.l, REG_ITMP1);
-					x86_64_alu_imm_reg(X86_64_AND, iptr->val.l >> 32, REG_ITMP2);
-					x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8 + 4);
-					x86_64_jcc(X86_64_CC_GE, offset);
-
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-					
-					x86_64_neg_reg(REG_ITMP1);
-					x86_64_alu_imm_reg(X86_64_ADC, 0, REG_ITMP2);
-					x86_64_neg_reg(REG_ITMP2);
-					
-					x86_64_alu_imm_reg(X86_64_AND, iptr->val.l, REG_ITMP1);
-					x86_64_alu_imm_reg(X86_64_AND, iptr->val.l >> 32, REG_ITMP2);
-					
-					x86_64_neg_reg(REG_ITMP1);
-					x86_64_alu_imm_reg(X86_64_ADC, 0, REG_ITMP2);
-					x86_64_neg_reg(REG_ITMP2);
-
-					x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-					x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_reg(X86_64_AND, REG_ITMP1, iptr->dst->regoff);
 				}
 			}
 			break;
 
 		case ICMD_IOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
+
+			d = reg_of_var(iptr->dst, REG_ITMP1);
+			if (iptr->dst->flags & INMEMORY) {
+				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					if (src->regoff == iptr->dst->regoff) {
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_membase(X86_64_OR, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+
+					} else if (src->prev->regoff == iptr->dst->regoff) {
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_membase(X86_64_OR, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_alul_membase_reg(X86_64_OR, REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+
+				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+					x86_64_alul_reg_reg(X86_64_OR, src->prev->regoff, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+
+				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+					x86_64_alul_reg_reg(X86_64_OR, src->regoff, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+
+				} else {
+					x86_64_movl_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_alul_reg_membase(X86_64_OR, src->regoff, REG_SP, iptr->dst->regoff * 8);
+				}
+
+			} else {
+				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_alul_membase_reg(X86_64_OR, REG_SP, src->regoff * 8, iptr->dst->regoff);
+
+				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
+					x86_64_alul_membase_reg(X86_64_OR, REG_SP, src->regoff * 8, iptr->dst->regoff);
+
+				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					M_INTMOVE(src->regoff, iptr->dst->regoff);
+					x86_64_alul_membase_reg(X86_64_OR, REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+
+				} else {
+					if (src->regoff == iptr->dst->regoff) {
+						x86_64_alul_reg_reg(X86_64_OR, src->prev->regoff, iptr->dst->regoff);
+
+					} else {
+						M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
+						x86_64_alul_reg_reg(X86_64_OR, src->regoff, iptr->dst->regoff);
+					}
+				}
+			}
+			break;
+
+		case ICMD_IORCONST:   /* ..., value  ==> ..., value | constant        */
+		                      /* val.i = constant                             */
+
+			d = reg_of_var(iptr->dst, REG_ITMP1);
+			if (iptr->dst->flags & INMEMORY) {
+				if (src->flags & INMEMORY) {
+					if (src->regoff == iptr->dst->regoff) {
+						x86_64_alul_imm_membase(X86_64_OR, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_alul_imm_reg(X86_64_OR, iptr->val.i, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+
+				} else {
+					x86_64_movl_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_alul_imm_membase(X86_64_OR, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+				}
+
+			} else {
+				if (src->flags & INMEMORY) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_alul_imm_reg(X86_64_OR, iptr->val.i, iptr->dst->regoff);
+
+				} else {
+					M_INTMOVE(src->regoff, iptr->dst->regoff);
+					x86_64_alul_imm_reg(X86_64_OR, iptr->val.i, iptr->dst->regoff);
+				}
+			}
+			break;
+
+		case ICMD_LOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
@@ -2846,90 +2969,156 @@ static void gen_mcode()
 			}
 			break;
 
-		case ICMD_IORCONST:   /* ..., value  ==> ..., value | constant        */
+		case ICMD_LORCONST:   /* ..., value  ==> ..., value | constant        */
+		                      /* val.l = constant                             */
+
+			d = reg_of_var(iptr->dst, REG_ITMP3);
+			if (iptr->dst->flags & INMEMORY) {
+				if (src->flags & INMEMORY) {
+					if (src->regoff == iptr->dst->regoff) {
+						if (x86_64_is_imm32(iptr->val.l)) {
+							x86_64_alu_imm_membase(X86_64_OR, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
+
+						} else {
+							x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+							x86_64_alu_reg_membase(X86_64_OR, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						}
+
+					} else {
+						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+
+						if (x86_64_is_imm32(iptr->val.l)) {
+							x86_64_alu_imm_reg(X86_64_OR, iptr->val.l, REG_ITMP1);
+
+						} else {
+							x86_64_mov_imm_reg(iptr->val.l, REG_ITMP2);
+							x86_64_alu_reg_reg(X86_64_OR, REG_ITMP2, REG_ITMP1);
+						}
+						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+
+				} else {
+					x86_64_mov_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
+
+					if (x86_64_is_imm32(iptr->val.l)) {
+						x86_64_alu_imm_membase(X86_64_OR, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+						x86_64_alu_reg_membase(X86_64_OR, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+				}
+
+			} else {
+				if (src->flags & INMEMORY) {
+					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+
+				} else {
+					M_INTMOVE(src->regoff, iptr->dst->regoff);
+				}
+
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_reg(X86_64_OR, iptr->val.l, iptr->dst->regoff);
+
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_reg(X86_64_OR, REG_ITMP1, iptr->dst->regoff);
+				}
+			}
+			break;
+
+		case ICMD_IXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
+
+			d = reg_of_var(iptr->dst, REG_ITMP1);
+			if (iptr->dst->flags & INMEMORY) {
+				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					if (src->regoff == iptr->dst->regoff) {
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_membase(X86_64_XOR, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+
+					} else if (src->prev->regoff == iptr->dst->regoff) {
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_alul_reg_membase(X86_64_XOR, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						x86_64_alul_membase_reg(X86_64_XOR, REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
+
+				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+					x86_64_alul_reg_reg(X86_64_XOR, src->prev->regoff, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+
+				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+					x86_64_alul_reg_reg(X86_64_XOR, src->regoff, REG_ITMP1);
+					x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+
+				} else {
+					x86_64_movl_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_alul_reg_membase(X86_64_XOR, src->regoff, REG_SP, iptr->dst->regoff * 8);
+				}
+
+			} else {
+				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					x86_64_alul_membase_reg(X86_64_XOR, REG_SP, src->regoff * 8, iptr->dst->regoff);
+
+				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
+					x86_64_alul_membase_reg(X86_64_XOR, REG_SP, src->regoff * 8, iptr->dst->regoff);
+
+				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+					M_INTMOVE(src->regoff, iptr->dst->regoff);
+					x86_64_alul_membase_reg(X86_64_XOR, REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+
+				} else {
+					if (src->regoff == iptr->dst->regoff) {
+						x86_64_alul_reg_reg(X86_64_XOR, src->prev->regoff, iptr->dst->regoff);
+
+					} else {
+						M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
+						x86_64_alul_reg_reg(X86_64_XOR, src->regoff, iptr->dst->regoff);
+					}
+				}
+			}
+			break;
+
+		case ICMD_IXORCONST:  /* ..., value  ==> ..., value ^ constant        */
 		                      /* val.i = constant                             */
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_imm_membase(X86_64_OR, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+						x86_64_alul_imm_membase(X86_64_XOR, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
 
 					} else {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alu_imm_reg(X86_64_OR, iptr->val.i, REG_ITMP1);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_alul_imm_reg(X86_64_XOR, iptr->val.i, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					}
 
 				} else {
-					x86_64_mov_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_alu_imm_membase(X86_64_OR, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+					x86_64_movl_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_alul_imm_membase(X86_64_XOR, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
 				}
 
 			} else {
 				if (src->flags & INMEMORY) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
-					x86_64_alu_imm_reg(X86_64_OR, iptr->val.i, iptr->dst->regoff);
+					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_alul_imm_reg(X86_64_XOR, iptr->val.i, iptr->dst->regoff);
 
 				} else {
 					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					x86_64_alu_imm_reg(X86_64_OR, iptr->val.i, iptr->dst->regoff);
+					x86_64_alul_imm_reg(X86_64_XOR, iptr->val.i, iptr->dst->regoff);
 				}
 			}
 			break;
 
-		case ICMD_LOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY) {
-				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_reg_membase(X86_64_OR, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_alu_reg_membase(X86_64_OR, REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-
-					} else if (src->prev->regoff == iptr->dst->regoff) {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_reg_membase(X86_64_OR, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_alu_reg_membase(X86_64_OR, REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-
-					} else {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_membase_reg(X86_64_OR, REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alu_membase_reg(X86_64_OR, REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-					}
-				}
-			}
-			break;
-
-		case ICMD_LORCONST:   /* ..., value  ==> ..., value | constant        */
-		                      /* val.l = constant                             */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_imm_membase(X86_64_OR, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
-						x86_64_alu_imm_membase(X86_64_OR, iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 8 + 4);
-
-					} else {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_imm_reg(X86_64_OR, iptr->val.l, REG_ITMP1);
-						x86_64_alu_imm_reg(X86_64_OR, iptr->val.l >> 32, REG_ITMP2);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-					}
-				}
-			}
-			break;
-
-		case ICMD_IXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
+		case ICMD_LXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
@@ -2988,94 +3177,64 @@ static void gen_mcode()
 			}
 			break;
 
-		case ICMD_IXORCONST:  /* ..., value  ==> ..., value ^ constant        */
-		                      /* val.i = constant                             */
+		case ICMD_LXORCONST:  /* ..., value  ==> ..., value ^ constant        */
+		                      /* val.l = constant                             */
 
-			d = reg_of_var(iptr->dst, REG_ITMP1);
+			d = reg_of_var(iptr->dst, REG_ITMP3);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_imm_membase(X86_64_XOR, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+						if (x86_64_is_imm32(iptr->val.l)) {
+							x86_64_alu_imm_membase(X86_64_XOR, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
+
+						} else {
+							x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+							x86_64_alu_reg_membase(X86_64_XOR, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						}
 
 					} else {
 						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alu_imm_reg(X86_64_XOR, iptr->val.i, REG_ITMP1);
+
+						if (x86_64_is_imm32(iptr->val.l)) {
+							x86_64_alu_imm_reg(X86_64_XOR, iptr->val.l, REG_ITMP1);
+
+						} else {
+							x86_64_mov_imm_reg(iptr->val.l, REG_ITMP2);
+							x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP2, REG_ITMP1);
+						}
 						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					}
 
 				} else {
 					x86_64_mov_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_alu_imm_membase(X86_64_XOR, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+
+					if (x86_64_is_imm32(iptr->val.l)) {
+						x86_64_alu_imm_membase(X86_64_XOR, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
+
+					} else {
+						x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+						x86_64_alu_reg_membase(X86_64_XOR, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					}
 				}
 
 			} else {
 				if (src->flags & INMEMORY) {
 					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
-					x86_64_alu_imm_reg(X86_64_XOR, iptr->val.i, iptr->dst->regoff);
 
 				} else {
 					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					x86_64_alu_imm_reg(X86_64_XOR, iptr->val.i, iptr->dst->regoff);
+				}
+
+				if (x86_64_is_imm32(iptr->val.l)) {
+					x86_64_alu_imm_reg(X86_64_XOR, iptr->val.l, iptr->dst->regoff);
+
+				} else {
+					x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					x86_64_alu_reg_reg(X86_64_XOR, REG_ITMP1, iptr->dst->regoff);
 				}
 			}
 			break;
 
-		case ICMD_LXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY) {
-				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_reg_membase(X86_64_XOR, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_alu_reg_membase(X86_64_XOR, REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-
-					} else if (src->prev->regoff == iptr->dst->regoff) {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_reg_membase(X86_64_XOR, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_alu_reg_membase(X86_64_XOR, REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-
-					} else {
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_membase_reg(X86_64_XOR, REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alu_membase_reg(X86_64_XOR, REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-					}
-				}
-			}
-			break;
-
-		case ICMD_LXORCONST:  /* ..., value  ==> ..., value ^ constant        */
-		                      /* val.l = constant                             */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alu_imm_membase(X86_64_XOR, iptr->val.l, REG_SP, iptr->dst->regoff * 8);
-						x86_64_alu_imm_membase(X86_64_XOR, iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 8 + 4);
-
-					} else {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-						x86_64_alu_imm_reg(X86_64_XOR, iptr->val.l, REG_ITMP1);
-						x86_64_alu_imm_reg(X86_64_XOR, iptr->val.l >> 32, REG_ITMP2);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-						x86_64_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8 + 4);
-					}
-				}
-			}
-			break;
-
-
-		case ICMD_LCMP:       /* ..., val1, val2  ==> ..., val1 cmp val2      */
-
-			panic("ICMD_LCMP");
-			break;
 
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
 		                      /* op1 = variable, val.i = constant             */
