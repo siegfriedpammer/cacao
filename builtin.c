@@ -4,13 +4,14 @@
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	Enthaelt die C-Funktionen fuer alle JavaVM-Befehle, die sich nicht direkt
-	auf Maschinencode "ubersetzen lassen. Im Code f"ur die Methoden steht
-	dann ein Funktionsaufruf (nat"urlich mit den Aufrufskonventionen von C).
+	Contains C functions for JavaVM Instructions that cannot be translated
+	to machine language directly. Consequently, the generated machine code
+	for these instructions contains function calls instead of machine
+	instructions, using the C calling convention.
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	         Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
-	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
+	Authors: Reinhard Grafl		 EMAIL: cacao@complang.tuwien.ac.at
+			 Andreas  Krall		 EMAIL: cacao@complang.tuwien.ac.at
+			 Mark Probst		 EMAIL: cacao@complang.tuwien.ac.at
 
 	Last Change: 1996/12/03
 
@@ -26,110 +27,109 @@
 #include "tables.h"
 
 #include "threads/thread.h"
-#include "threads/locks.h"              /* schani */
+#include "threads/locks.h"				/* schani */
 
 #include "native-math.h"
 
 builtin_descriptor builtin_desc[] = {
-	{(functionptr) builtin_instanceof,         "instanceof"},
-	{(functionptr) builtin_checkcast,          "checkcast"},
-    {(functionptr) asm_builtin_checkcast,      "checkcast"},
-	{(functionptr) builtin_arrayinstanceof,    "arrayinstanceof"},
-	{(functionptr) builtin_checkarraycast,     "checkarraycast"},
+	{(functionptr) builtin_instanceof,		   "instanceof"},
+	{(functionptr) builtin_checkcast,		   "checkcast"},
+	{(functionptr) asm_builtin_checkcast,	   "checkcast"},
+	{(functionptr) builtin_arrayinstanceof,	   "arrayinstanceof"},
+	{(functionptr) builtin_checkarraycast,	   "checkarraycast"},
 	{(functionptr) asm_builtin_checkarraycast, "checkarraycast"},
-	{(functionptr) asm_builtin_aastore,        "aastore"},
-	{(functionptr) builtin_new,                "new"},
-	{(functionptr) builtin_anewarray,          "anewarray"},
-	{(functionptr) builtin_newarray_array,     "newarray_array"},
+	{(functionptr) asm_builtin_aastore,		   "aastore"},
+	{(functionptr) builtin_new,				   "new"},
+	{(functionptr) builtin_anewarray,		   "anewarray"},
+	{(functionptr) builtin_newarray_array,	   "newarray_array"},
 	{(functionptr) builtin_newarray_boolean,   "newarray_boolean"},
-	{(functionptr) builtin_newarray_char,      "newarray_char"},
-	{(functionptr) builtin_newarray_float,     "newarray_float"},
-	{(functionptr) builtin_newarray_double,    "newarray_double"},
-	{(functionptr) builtin_newarray_byte,      "newarray_byte"},
-	{(functionptr) builtin_newarray_short,     "newarray_short"},
-	{(functionptr) builtin_newarray_int,       "newarray_int"},
-	{(functionptr) builtin_newarray_long,      "newarray_long"},
+	{(functionptr) builtin_newarray_char,	   "newarray_char"},
+	{(functionptr) builtin_newarray_float,	   "newarray_float"},
+	{(functionptr) builtin_newarray_double,	   "newarray_double"},
+	{(functionptr) builtin_newarray_byte,	   "newarray_byte"},
+	{(functionptr) builtin_newarray_short,	   "newarray_short"},
+	{(functionptr) builtin_newarray_int,	   "newarray_int"},
+	{(functionptr) builtin_newarray_long,	   "newarray_long"},
 	{(functionptr) builtin_displaymethodstart, "displaymethodstart"},
 	{(functionptr) builtin_displaymethodstop,  "displaymethodstop"},
-	{(functionptr) builtin_monitorenter,       "monitorenter"},
+	{(functionptr) builtin_monitorenter,	   "monitorenter"},
 	{(functionptr) asm_builtin_monitorenter,   "monitorenter"},
-	{(functionptr) builtin_monitorexit,        "monitorexit"},
-	{(functionptr) asm_builtin_monitorexit,    "monitorexit"},
-	{(functionptr) builtin_idiv,               "idiv"},
-	{(functionptr) asm_builtin_idiv,           "idiv"},
-	{(functionptr) builtin_irem,               "irem"},
-	{(functionptr) asm_builtin_irem,           "irem"},
-	{(functionptr) builtin_ladd,               "ladd"},
-	{(functionptr) builtin_lsub,               "lsub"},
-	{(functionptr) builtin_lmul,               "lmul"},
-	{(functionptr) builtin_ldiv,               "ldiv"},
-	{(functionptr) asm_builtin_ldiv,           "ldiv"},
-	{(functionptr) builtin_lrem,               "lrem"},
-	{(functionptr) asm_builtin_lrem,           "lrem"},
-	{(functionptr) builtin_lshl,               "lshl"},
-	{(functionptr) builtin_lshr,               "lshr"},
-	{(functionptr) builtin_lushr,              "lushr"},
-	{(functionptr) builtin_land,               "land"},
-	{(functionptr) builtin_lor,                "lor"},
-	{(functionptr) builtin_lxor,               "lxor"},
-	{(functionptr) builtin_lneg,               "lneg"},
-	{(functionptr) builtin_lcmp,               "lcmp"},
-	{(functionptr) builtin_fadd,               "fadd"},
-	{(functionptr) builtin_fsub,               "fsub"},
-	{(functionptr) builtin_fmul,               "fmul"},
-	{(functionptr) builtin_fdiv,               "fdiv"},
-	{(functionptr) builtin_frem,               "frem"},
-	{(functionptr) builtin_fneg,               "fneg"},
-	{(functionptr) builtin_fcmpl,              "fcmpl"},
-	{(functionptr) builtin_fcmpg,              "fcmpg"},
-	{(functionptr) builtin_dadd,               "dadd"},
-	{(functionptr) builtin_dsub,               "dsub"},
-	{(functionptr) builtin_dmul,               "dmul"},
-	{(functionptr) builtin_ddiv,               "ddiv"},
-	{(functionptr) builtin_drem,               "drem"},
-	{(functionptr) builtin_dneg,               "dneg"},
-	{(functionptr) builtin_dcmpl,              "dcmpl"},
-	{(functionptr) builtin_dcmpg,              "dcmpg"},
-	{(functionptr) builtin_i2l,                "i2l"},
-	{(functionptr) builtin_i2f,                "i2f"},
-	{(functionptr) builtin_i2d,                "i2d"},
-	{(functionptr) builtin_l2i,                "l2i"},
-	{(functionptr) builtin_l2f,                "l2f"},
-	{(functionptr) builtin_l2d,                "l2d"},
-	{(functionptr) builtin_f2i,                "f2i"},
-	{(functionptr) builtin_f2l,                "f2l"},
-	{(functionptr) builtin_f2d,                "f2d"},
-	{(functionptr) builtin_d2i,                "d2i"},
-	{(functionptr) builtin_d2l,                "d2l"},
-	{(functionptr) builtin_d2f,                "d2f"},
-	{(functionptr) NULL,                       "unknown"}
+	{(functionptr) builtin_monitorexit,		   "monitorexit"},
+	{(functionptr) asm_builtin_monitorexit,	   "monitorexit"},
+	{(functionptr) builtin_idiv,			   "idiv"},
+	{(functionptr) asm_builtin_idiv,		   "idiv"},
+	{(functionptr) builtin_irem,			   "irem"},
+	{(functionptr) asm_builtin_irem,		   "irem"},
+	{(functionptr) builtin_ladd,			   "ladd"},
+	{(functionptr) builtin_lsub,			   "lsub"},
+	{(functionptr) builtin_lmul,			   "lmul"},
+	{(functionptr) builtin_ldiv,			   "ldiv"},
+	{(functionptr) asm_builtin_ldiv,		   "ldiv"},
+	{(functionptr) builtin_lrem,			   "lrem"},
+	{(functionptr) asm_builtin_lrem,		   "lrem"},
+	{(functionptr) builtin_lshl,			   "lshl"},
+	{(functionptr) builtin_lshr,			   "lshr"},
+	{(functionptr) builtin_lushr,			   "lushr"},
+	{(functionptr) builtin_land,			   "land"},
+	{(functionptr) builtin_lor,				   "lor"},
+	{(functionptr) builtin_lxor,			   "lxor"},
+	{(functionptr) builtin_lneg,			   "lneg"},
+	{(functionptr) builtin_lcmp,			   "lcmp"},
+	{(functionptr) builtin_fadd,			   "fadd"},
+	{(functionptr) builtin_fsub,			   "fsub"},
+	{(functionptr) builtin_fmul,			   "fmul"},
+	{(functionptr) builtin_fdiv,			   "fdiv"},
+	{(functionptr) builtin_frem,			   "frem"},
+	{(functionptr) builtin_fneg,			   "fneg"},
+	{(functionptr) builtin_fcmpl,			   "fcmpl"},
+	{(functionptr) builtin_fcmpg,			   "fcmpg"},
+	{(functionptr) builtin_dadd,			   "dadd"},
+	{(functionptr) builtin_dsub,			   "dsub"},
+	{(functionptr) builtin_dmul,			   "dmul"},
+	{(functionptr) builtin_ddiv,			   "ddiv"},
+	{(functionptr) builtin_drem,			   "drem"},
+	{(functionptr) builtin_dneg,			   "dneg"},
+	{(functionptr) builtin_dcmpl,			   "dcmpl"},
+	{(functionptr) builtin_dcmpg,			   "dcmpg"},
+	{(functionptr) builtin_i2l,				   "i2l"},
+	{(functionptr) builtin_i2f,				   "i2f"},
+	{(functionptr) builtin_i2d,				   "i2d"},
+	{(functionptr) builtin_l2i,				   "l2i"},
+	{(functionptr) builtin_l2f,				   "l2f"},
+	{(functionptr) builtin_l2d,				   "l2d"},
+	{(functionptr) builtin_f2i,				   "f2i"},
+	{(functionptr) builtin_f2l,				   "f2l"},
+	{(functionptr) builtin_f2d,				   "f2d"},
+	{(functionptr) builtin_d2i,				   "d2i"},
+	{(functionptr) builtin_d2l,				   "d2l"},
+	{(functionptr) builtin_d2f,				   "d2f"},
+	{(functionptr) NULL,					   "unknown"}
 	};
 
 
 /*****************************************************************************
-                                TYPCHECKS
+								TYPE CHECKS
 *****************************************************************************/
 
 
 
-/*************** interne Funktion: builtin_isanysubclass *********************
+/*************** internal function: builtin_isanysubclass *********************
 
-	"uberpr"uft, ob eine Klasse eine Unterklasse einer anderen Klasse ist.
-	Dabei gelten auch Interfaces, die eine Klasse implementiert, als
-	deren Oberklassen. 
-	R"uckgabewert:  1 ... es trifft zu
-	                0 ... es trifft nicht zu
-	                
-*****************************************************************************/	                
+	Checks a subclass relation between two classes. Implemented interfaces
+	are interpreted as super classes.
+	Return value:  1 ... sub is subclass of super
+				   0 ... otherwise
+					
+*****************************************************************************/					
 
 s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 { 
 	if (super->flags & ACC_INTERFACE)
 		return (sub->vftbl->interfacetablelength > super->index) &&
-		       (sub->vftbl->interfacetable[-super->index] != NULL);
+			   (sub->vftbl->interfacetable[-super->index] != NULL);
 
 	/*
-    while (sub != 0)
+	while (sub != 0)
 		if (sub == super)
 			return 1;
 		else
@@ -139,18 +139,18 @@ s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 	*/
 
 	return (unsigned) (sub->vftbl->baseval - super->vftbl->baseval) <=
-	       (unsigned) (super->vftbl->diffval);
+		   (unsigned) (super->vftbl->diffval);
 }
 
 
-/****************** Funktion: builtin_instanceof *****************************
+/****************** function: builtin_instanceof *****************************
 
-	"Uberpr"uft, ob ein Objekt eine Instanz einer Klasse (oder einer davon
-	abgeleiteten Klasse) ist, oder ob die Klasse des Objekts ein Interface 
-	implementiert.
-	Return:   1, wenn ja
-	          0, wenn nicht, oder wenn Objekt ein NULL-Zeiger
-	         
+	Checks if an object is an instance of some given class (or subclass of
+	that class). If class is an interface, checks if the interface is
+	implemented.
+	Return value:  1 ... obj is an instance of class or implements the interface
+				   0 ... otherwise or if obj == NULL
+			 
 *****************************************************************************/
 
 s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
@@ -165,14 +165,11 @@ s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
 
 
 
-/**************** Funktion: builtin_checkcast *******************************
+/**************** function: builtin_checkcast *******************************
 
-	"Uberpr"uft, ob ein Objekt eine Instanz einer Klasse (oder einer davon
-	abgeleiteten Klasse ist).
-	Unterschied zu builtin_instanceof: Ein NULL-Zeiger ist immer richtig
-	Return:   1, wenn ja, oder wenn Objekt ein NULL-Zeiger 
-              0, wenn nicht
-              
+	The same as builtin_instanceof except that 1 is returned when
+	obj == NULL
+			  
 ****************************************************************************/
 
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
@@ -198,14 +195,12 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 }
 
 
-/*********** interne Funktion: builtin_descriptorscompatible ******************
+/*********** internal function: builtin_descriptorscompatible ******************
 
-	"uberpr"uft, ob zwei Array-Typdescriptoren compartible sind, d.h.,
-	ob ein Array vom Typ 'desc' gefahrlos einer Variblen vom Typ 'target'
-	zugewiesen werden kann.
-	Return: 1, wenn ja
-	        0, wenn nicht
-	        
+	Checks if two array type descriptors are assignment compatible
+	Return value:  1 ... target = desc is possible
+				   0 ... otherwise
+			
 ******************************************************************************/
 
 static s4 builtin_descriptorscompatible
@@ -225,23 +220,20 @@ static s4 builtin_descriptorscompatible
 
 
 
-/******************** Funktion: builtin_checkarraycast ***********************
+/******************** function: builtin_checkarraycast ***********************
 
-	"uberpr"uft, ob ein gegebenes Objekt tats"achlich von einem 
-	Untertyp des geforderten Arraytyps ist.
-	Dazu muss das Objekt auf jeden Fall ein Array sein. 
-	Bei einfachen Arrays (int,short,double,etc.) muss der Typ genau 
-	"ubereinstimmen.
-	Bei Arrays von Objekten muss der Elementtyp des tats"achlichen Arrays
-	ein Untertyp (oder der selbe Typ) vom geforderten Elementtyp sein.
-	Bei Arrays vom Arrays (die eventuell wieder Arrays von Arrays
-	sein k"onnen) m"ussen die untersten Elementtypen in der entsprechenden
-	Unterklassenrelation stehen.
-
-	Return: 1, wenn Cast in Ordung ist
-			0, wenn es nicht geht
+	Checks if an object is really a subtype of the requested array type.
+	The object has to be an array to begin with. For simple arrays (int, short,
+	double, etc.) the types have to match exactly.
+	For arrays of objects, the type of elements in the array has to be a
+	subtype (or the same type) of the requested element type. For arrays of
+	arrays (which in turn can again be arrays of arrays), the types at the
+	lowest level have to satisfy the corresponding sub class relation.
 	
-	Achtung: ein Cast mit einem NULL-Zeiger geht immer gut.
+	Return value:  1 ... cast is possible
+				   0 ... otherwise
+	
+	ATTENTION: a cast with a NULL pointer is always possible.
 			
 *****************************************************************************/
 
@@ -310,17 +302,16 @@ java_objectheader *builtin_throw_exception (java_objectheader *local_exceptionpt
 		utf_sprint(logtext + strlen(logtext), local_exceptionptr->vftbl->class->name);
 		dolog();
 		}
-   	exceptionptr = local_exceptionptr;
+	exceptionptr = local_exceptionptr;
 	return local_exceptionptr;
 }
 
 
-/******************* Funktion: builtin_canstore *******************************
+/******************* function: builtin_canstore *******************************
 
-	"uberpr"uft, ob ein Objekt in einem Array gespeichert werden 
-	darf.
-	Return: 1, wenn es geht
-			0, wenn nicht
+	Checks, if an object can be stored in an array.
+	Return value:  1 ... possible
+				   0 ... otherwise
 
 ******************************************************************************/
 
@@ -339,7 +330,7 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 
 	case ARRAYTYPE_ARRAY:
 		if ( ! builtin_checkarraycast 
-		         (o, ((java_arrayarray*)a)->elementdescriptor) ) {
+				 (o, ((java_arrayarray*)a)->elementdescriptor) ) {
 			return 0;
 			}
 		return 1;
@@ -354,16 +345,16 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 
 
 /*****************************************************************************
-                          ARRAYOPERATIONEN
+						  ARRAY OPERATIONS
 *****************************************************************************/
 
 
 
 /******************** Funktion: builtin_new **********************************
 
-	Legt ein neues Objekt einer Klasse am Heap an.
-	Return: Der Zeiger auf das Objekt, oder NULL, wenn kein Speicher
-			mehr frei ist.
+	Creates a new instance of class c on the heap.
+	Return value:  pointer to the object or NULL if no memory is
+				   available
 			
 *****************************************************************************/
 
@@ -392,15 +383,14 @@ java_objectheader *builtin_new (classinfo *c)
 
 
 
-/******************** Funktion: builtin_anewarray ****************************
+/******************** function: builtin_anewarray ****************************
 
-	Legt ein Array von Zeigern auf Objekte am Heap an.
-	Parameter: 
-		size ......... Anzahl der Elemente
-		elementtype .. ein Zeiger auf die classinfo-Struktur des Typs
-		               der Elemente
-
-	Return: Zeiger auf das Array, oder NULL (wenn kein Speicher frei)
+	Creates an array of pointers to objects on the heap.
+	Parameters:
+		size ......... number of elements
+	elementtype .. pointer to the classinfo structure for the element type
+	
+	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
 
@@ -417,7 +407,7 @@ void* __builtin_newarray(s4 base_size,
 	a = heap_allocate ( alignedsize, true, NULL );
 #else	
 	a = heap_allocate ( sizeof(java_objectarray) + (size-1) * elementsize, 
-	                    references, 
+						references, 
 						NULL);
 #endif
 	if (!a) return NULL;
@@ -455,21 +445,22 @@ java_objectarray *builtin_anewarray (s4 size, classinfo *elementtype)
 
 
 
-/******************** Funktion: builtin_newarray_array ***********************
+/******************** function: builtin_newarray_array ***********************
 
-	Legt ein Array von Zeigern auf Arrays am Heap an.
-	Paramter: size ......... Anzahl der Elemente
-	          elementdesc .. Zeiger auf die Arraybeschreibungs-Struktur f"ur
-	                         die Element-Arrays.
-
-	Return: Zeiger auf das Array, oder NULL
+	Creates an array of pointers to arrays on the heap.
+	Parameters:
+		size ......... number of elements
+	elementdesc .. pointer to the array description structure for the
+				   element arrays
+	
+	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
 
 java_arrayarray *builtin_newarray_array 
-        (s4 size, constant_arraydescriptor *elementdesc)
+		(s4 size, constant_arraydescriptor *elementdesc)
 {
-	java_arrayarray *a;	
+	java_arrayarray *a; 
 	a = (java_arrayarray*)__builtin_newarray(sizeof(java_arrayarray),
 											 size, 
 											 true, 
@@ -482,12 +473,12 @@ java_arrayarray *builtin_newarray_array
 }
 
 
-/******************** Funktion: builtin_newarray_boolean ************************
+/******************** function: builtin_newarray_boolean ************************
 
-	Legt ein Array von Bytes am Heap an, das allerdings als Boolean-Array 
-	gekennzeichnet wird (wichtig bei Casts!)
-
-	Return: Zeiger auf das Array, oder NULL 
+	Creates an array of bytes on the heap. The array is designated as an array
+	of booleans (important for casts)
+	
+	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
 
@@ -502,10 +493,11 @@ java_booleanarray *builtin_newarray_boolean (s4 size)
 	return a;
 }
 
-/******************** Funktion: builtin_newarray_char ************************
+/******************** function: builtin_newarray_char ************************
 
-	Legt ein Array von 16-bit-Integers am Heap an.
-	Return: Zeiger auf das Array, oder NULL 
+	Creates an array of characters on the heap.
+
+	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
 
@@ -521,16 +513,17 @@ java_chararray *builtin_newarray_char (s4 size)
 }
 
 
-/******************** Funktion: builtin_newarray_float ***********************
+/******************** function: builtin_newarray_float ***********************
 
-	Legt ein Array von 32-bit-IEEE-float am Heap an.
-	Return: Zeiger auf das Array, oder NULL 
+	Creates an array of 32 bit IEEE floats on the heap.
+
+	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
 
 java_floatarray *builtin_newarray_float (s4 size)
 {
-	java_floatarray *a;	
+	java_floatarray *a; 
 	a = (java_floatarray*)__builtin_newarray(sizeof(java_floatarray),
 											 size, 
 											 false, 
@@ -540,10 +533,11 @@ java_floatarray *builtin_newarray_float (s4 size)
 }
 
 
-/******************** Funktion: builtin_newarray_double ***********************
+/******************** function: builtin_newarray_double ***********************
 
-	Legt ein Array von 64-bit-IEEE-float am Heap an.
-	Return: Zeiger auf das Array, oder NULL 
+	Creates an array of 64 bit IEEE floats on the heap.
+
+	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
 
@@ -561,10 +555,11 @@ java_doublearray *builtin_newarray_double (s4 size)
 
 
 
-/******************** Funktion: builtin_newarray_byte ***********************
+/******************** function: builtin_newarray_byte ***********************
 
-	Legt ein Array von 8-bit-Integers am Heap an.
-	Return: Zeiger auf das Array, oder NULL 
+	Creates an array of 8 bit Integers on the heap.
+
+	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
 
@@ -580,16 +575,17 @@ java_bytearray *builtin_newarray_byte (s4 size)
 }
 
 
-/******************** Funktion: builtin_newarray_short ***********************
+/******************** function: builtin_newarray_short ***********************
 
-	Legt ein Array von 16-bit-Integers am Heap an.
-	Return: Zeiger auf das Array, oder NULL 
+	Creates an array of 16 bit Integers on the heap.
+
+	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
 
 java_shortarray *builtin_newarray_short (s4 size)
 {
-	java_shortarray *a;	
+	java_shortarray *a; 
 	a = (java_shortarray*)__builtin_newarray(sizeof(java_shortarray),
 											   size, 
 											   false, 
@@ -601,8 +597,9 @@ java_shortarray *builtin_newarray_short (s4 size)
 
 /******************** Funktion: builtin_newarray_int ***********************
 
-	Legt ein Array von 32-bit-Integers am Heap an.
-	Return: Zeiger auf das Array, oder NULL 
+	Creates an array of 32 bit Integers on the heap.
+
+	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
 
@@ -620,8 +617,9 @@ java_intarray *builtin_newarray_int (s4 size)
 
 /******************** Funktion: builtin_newarray_long ***********************
 
-	Legt ein Array von 64-bit-Integers am Heap an.
-	Return: Zeiger auf das Array, oder NULL 
+	Creates an array of 64 bit Integers on the heap.
+
+	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
 
@@ -638,22 +636,20 @@ java_longarray *builtin_newarray_long (s4 size)
 
 
 
-/***************** Funktion: builtin_multianewarray ***************************
+/***************** function: builtin_multianewarray ***************************
 
-	Legt ein mehrdimensionales Array am Heap an.
-	Die Gr"ossen der einzelnen Dimensionen werden in einem Integerarray
-	"ubergeben. Der Typ es zu erzeugenden Arrays wird als 
-	Referenz auf eine constant_arraydescriptor - Struktur "ubergeben.
+	Creates a multi-dimensional array on the heap. The dimensions are passed in
+	an array of Integers. The type for the array is passed as a reference to a
+	constant_arraydescriptor structure.
 
-	Return: Ein Zeiger auf das Array, oder NULL, wenn kein Speicher mehr
-	        vorhanden ist.
+	Return value:  pointer to the array or NULL if no memory is available
 
 ******************************************************************************/
 
-	/* Hilfsfunktion */
+	/* Helper functions */
 
 static java_arrayheader *multianewarray_part (java_intarray *dims, int thisdim,
-                       constant_arraydescriptor *desc)
+					   constant_arraydescriptor *desc)
 {
 	u4 size,i;
 	java_arrayarray *a;
@@ -661,22 +657,22 @@ static java_arrayheader *multianewarray_part (java_intarray *dims, int thisdim,
 	size = dims -> data[thisdim];
 	
 	if (thisdim == (dims->header.size-1)) {
-		/* letzte Dimension schon erreicht */
+		/* last dimension reached */
 		
 		switch (desc -> arraytype) {
-		case ARRAYTYPE_BOOLEAN:  
+		case ARRAYTYPE_BOOLEAN:	 
 			return (java_arrayheader*) builtin_newarray_boolean (size); 
 		case ARRAYTYPE_CHAR:  
 			return (java_arrayheader*) builtin_newarray_char (size); 
 		case ARRAYTYPE_FLOAT:  
 			return (java_arrayheader*) builtin_newarray_float (size); 
-		case ARRAYTYPE_DOUBLE:  
+		case ARRAYTYPE_DOUBLE:	
 			return (java_arrayheader*) builtin_newarray_double (size); 
 		case ARRAYTYPE_BYTE:  
 			return (java_arrayheader*) builtin_newarray_byte (size); 
 		case ARRAYTYPE_SHORT:  
 			return (java_arrayheader*) builtin_newarray_short (size); 
-		case ARRAYTYPE_INT:  
+		case ARRAYTYPE_INT:	 
 			return (java_arrayheader*) builtin_newarray_int (size); 
 		case ARRAYTYPE_LONG:  
 			return (java_arrayheader*) builtin_newarray_long (size); 
@@ -690,7 +686,7 @@ static java_arrayheader *multianewarray_part (java_intarray *dims, int thisdim,
 		}
 		}
 
-	/* wenn letzte Dimension noch nicht erreicht wurde */
+	/* if the last dimension has not been reached yet */
 
 	if (desc->arraytype != ARRAYTYPE_ARRAY) 
 		panic ("multianewarray with too many dimensions");
@@ -711,14 +707,14 @@ static java_arrayheader *multianewarray_part (java_intarray *dims, int thisdim,
 
 
 java_arrayheader *builtin_multianewarray (java_intarray *dims,
-                      constant_arraydescriptor *desc)
+					  constant_arraydescriptor *desc)
 {
 	return multianewarray_part (dims, 0, desc);
 }
 
 
 static java_arrayheader *nmultianewarray_part (int n, long *dims, int thisdim,
-                       constant_arraydescriptor *desc)
+					   constant_arraydescriptor *desc)
 {
 	int size, i;
 	java_arrayarray *a;
@@ -726,37 +722,37 @@ static java_arrayheader *nmultianewarray_part (int n, long *dims, int thisdim,
 	size = (int) dims[thisdim];
 	
 	if (thisdim == (n - 1)) {
-		/* letzte Dimension schon erreicht */
+		/* last dimension reached */
 		
 		switch (desc -> arraytype) {
-		case ARRAYTYPE_BOOLEAN:  
+		case ARRAYTYPE_BOOLEAN:	 
 			return (java_arrayheader*) builtin_newarray_boolean(size); 
 		case ARRAYTYPE_CHAR:  
 			return (java_arrayheader*) builtin_newarray_char(size); 
 		case ARRAYTYPE_FLOAT:  
 			return (java_arrayheader*) builtin_newarray_float(size); 
-		case ARRAYTYPE_DOUBLE:  
+		case ARRAYTYPE_DOUBLE:	
 			return (java_arrayheader*) builtin_newarray_double(size); 
 		case ARRAYTYPE_BYTE:  
 			return (java_arrayheader*) builtin_newarray_byte(size); 
 		case ARRAYTYPE_SHORT:  
 			return (java_arrayheader*) builtin_newarray_short(size); 
-		case ARRAYTYPE_INT:  
+		case ARRAYTYPE_INT:	 
 			return (java_arrayheader*) builtin_newarray_int(size); 
 		case ARRAYTYPE_LONG:  
 			return (java_arrayheader*) builtin_newarray_long(size); 
 		case ARRAYTYPE_OBJECT:
 			return (java_arrayheader*) builtin_anewarray(size,
-			                           desc->objectclass);
+									   desc->objectclass);
 		case ARRAYTYPE_ARRAY:
 			return (java_arrayheader*) builtin_newarray_array(size,
-			                           desc->elementdescriptor);
+									   desc->elementdescriptor);
 		
 		default: panic ("Invalid arraytype in multianewarray");
 		}
 		}
 
-	/* wenn letzte Dimension noch nicht erreicht wurde */
+	/* if the last dimension has not been reached yet */
 
 	if (desc->arraytype != ARRAYTYPE_ARRAY) 
 		panic ("multianewarray with too many dimensions");
@@ -777,7 +773,7 @@ static java_arrayheader *nmultianewarray_part (int n, long *dims, int thisdim,
 
 
 java_arrayheader *builtin_nmultianewarray (int size,
-                      constant_arraydescriptor *desc, long *dims)
+					  constant_arraydescriptor *desc, long *dims)
 {
 	(void) builtin_newarray_int(size); /* for compatibility with -old */
 	return nmultianewarray_part (size, dims, 0, desc);
@@ -786,16 +782,14 @@ java_arrayheader *builtin_nmultianewarray (int size,
 
 
 
-/************************* Funktion: builtin_aastore *************************
+/************************* function: builtin_aastore *************************
 
-	speichert eine Referenz auf ein Objekt in einem Object-Array oder
-	in einem Array-Array.
-	Dabei wird allerdings vorher "uberpr"uft, ob diese Operation 
-	zul"assig ist.
+	Stores a reference to an object into an object array or into an array
+	array. Before any action is performed, the validity of the operation is
+	checked.
 
-	Return: 1, wenn alles OK ist
-	        0, wenn dieses Objekt nicht in dieses Array gespeichert werden
-	           darf
+	Return value:  1 ... ok
+				   0 ... this object cannot be stored into this array
 
 *****************************************************************************/
 
@@ -814,19 +808,18 @@ s4 builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o)
 
 
 /*****************************************************************************
-                      METHODEN-PROTOKOLLIERUNG
+					  METHOD LOGGING
 
-	Verschiedene Funktionen, mit denen eine Meldung ausgegeben werden
-	kann, wann immer Methoden aufgerufen oder beendet werden.
-	(f"ur Debug-Zwecke)
-
+	Various functions for printing a message at method entry or exit (for
+	debugging)
+	
 *****************************************************************************/
 
 
 u4 methodindent=0;
 
 java_objectheader *builtin_trace_exception (java_objectheader *exceptionptr,
-                   methodinfo *method, int *pos, int noindent) {
+				   methodinfo *method, int *pos, int noindent) {
 
 	if (!noindent)
 		methodindent--;
@@ -853,9 +846,9 @@ java_objectheader *builtin_trace_exception (java_objectheader *exceptionptr,
 
 
 void builtin_trace_args(long a0, long a1, long a2, long a3, long a4, long a5,
-                        methodinfo *method)
+						methodinfo *method)
 {
-	sprintf (logtext, "                                             ");
+	sprintf (logtext, "												");
 	sprintf (logtext+methodindent, "called: ");
 	utf_sprint (logtext+strlen(logtext), method->class->name);
 	sprintf (logtext+strlen(logtext), ".");
@@ -865,18 +858,18 @@ void builtin_trace_args(long a0, long a1, long a2, long a3, long a4, long a5,
 	switch (method->paramcount) {
 		case 6:
 			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx",
-	    	                                   a0,  a1,  a2,  a3,  a4,  a5);
+											   a0,	a1,	 a2,  a3,  a4,	a5);
 			break;
 		case 5:
 			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx",
-	    	                                   a0,  a1,  a2,  a3,  a4);
+											   a0,	a1,	 a2,  a3,  a4);
 			break;
 		case 4:
 			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx",
-	    	                                   a0,  a1,  a2,  a3);
+											   a0,	a1,	 a2,  a3);
 			break;
 		case 3:
-			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx", a0,  a1,  a2);
+			sprintf(logtext+strlen(logtext), "%lx, %lx, %lx", a0,  a1,	a2);
 			break;
 		case 2:
 			sprintf(logtext+strlen(logtext), "%lx, %lx", a0,  a1);
@@ -893,7 +886,7 @@ void builtin_trace_args(long a0, long a1, long a2, long a3, long a4, long a5,
 
 void builtin_displaymethodstart(methodinfo *method)
 {
-	sprintf (logtext, "                                             ");
+	sprintf (logtext, "												");
 	sprintf (logtext+methodindent, "called: ");
 	utf_sprint (logtext+strlen(logtext), method->class->name);
 	sprintf (logtext+strlen(logtext), ".");
@@ -906,7 +899,7 @@ void builtin_displaymethodstart(methodinfo *method)
 void builtin_displaymethodstop(methodinfo *method, long l, double d)
 {
 	methodindent--;
-	sprintf (logtext, "                                             ");
+	sprintf (logtext, "												");
 	sprintf (logtext+methodindent, "finished: ");
 	utf_sprint (logtext+strlen(logtext), method->class->name);
 	sprintf (logtext+strlen(logtext), ".");
@@ -928,7 +921,7 @@ void builtin_displaymethodstop(methodinfo *method, long l, double d)
 
 void builtin_displaymethodexception(methodinfo *method)
 {
-	sprintf (logtext, "                                             ");
+	sprintf (logtext, "												");
 	sprintf (logtext+methodindent, "exception abort: ");
 	utf_sprint (logtext+strlen(logtext), method->class->name);
 	sprintf (logtext+strlen(logtext), ".");
@@ -939,7 +932,7 @@ void builtin_displaymethodexception(methodinfo *method)
 
 
 /****************************************************************************
-             SYNCHRONIZATION FUNCTIONS
+			 SYNCHRONIZATION FUNCTIONS
 *****************************************************************************/
 
 /*
@@ -949,16 +942,16 @@ void builtin_displaymethodexception(methodinfo *method)
 void
 internal_lock_mutex_for_object (java_objectheader *object)
 {
-    mutexHashEntry *entry;
-    int hashValue;
+	mutexHashEntry *entry;
+	int hashValue;
 
-    assert(object != 0);
+	assert(object != 0);
 
-    hashValue = MUTEX_HASH_VALUE(object);
-    entry = &mutexHashTable[hashValue];
+	hashValue = MUTEX_HASH_VALUE(object);
+	entry = &mutexHashTable[hashValue];
 
-    if (entry->object != 0)
-    {
+	if (entry->object != 0)
+	{
 		if (entry->mutex.count == 0 && entry->conditionCount == 0)
 		{
 			entry->object = 0;
@@ -968,11 +961,11 @@ internal_lock_mutex_for_object (java_objectheader *object)
 		}
 	else
 	{
-	    while (entry->next != 0 && entry->object != object)
+		while (entry->next != 0 && entry->object != object)
 		entry = entry->next;
 
-	    if (entry->object != object)
-	    {
+		if (entry->object != object)
+		{
 			entry->next = firstFreeOverflowEntry;
 			firstFreeOverflowEntry = firstFreeOverflowEntry->next;
 
@@ -980,20 +973,20 @@ internal_lock_mutex_for_object (java_objectheader *object)
 			entry->object = 0;
 			entry->next = 0;
 			assert(entry->conditionCount == 0);
-	    }
+		}
 	}
-    }
-    else
-    {
+	}
+	else
+	{
 		entry->mutex.holder = 0;
 		entry->mutex.count = 0;
 		entry->mutex.muxWaiters = 0;
-    }
+	}
 
-    if (entry->object == 0)
-        entry->object = object;
-    
-    internal_lock_mutex(&entry->mutex);
+	if (entry->object == 0)
+		entry->object = object;
+	
+	internal_lock_mutex(&entry->mutex);
 }
 #endif
 
@@ -1005,16 +998,16 @@ internal_lock_mutex_for_object (java_objectheader *object)
 void
 internal_unlock_mutex_for_object (java_objectheader *object)
 {
-    int hashValue;
-    mutexHashEntry *entry;
+	int hashValue;
+	mutexHashEntry *entry;
 
-    hashValue = MUTEX_HASH_VALUE(object);
-    entry = &mutexHashTable[hashValue];
+	hashValue = MUTEX_HASH_VALUE(object);
+	entry = &mutexHashTable[hashValue];
 
-    if (entry->object == object)
+	if (entry->object == object)
 		internal_unlock_mutex(&entry->mutex);
-    else
-    {
+	else
+	{
 		while (entry->next != 0 && entry->next->object != object)
 			entry = entry->next;
 
@@ -1030,7 +1023,7 @@ internal_unlock_mutex_for_object (java_objectheader *object)
 			unlinked->next = firstFreeOverflowEntry;
 			firstFreeOverflowEntry = unlinked;
 		}
-    }
+	}
 }
 #endif
 
@@ -1038,17 +1031,17 @@ void
 builtin_monitorenter (java_objectheader *o)
 {
 #ifdef USE_THREADS
-    int hashValue;
+	int hashValue;
 
 	assert(blockInts == 0);
 
-    ++blockInts;
+	++blockInts;
 
-    hashValue = MUTEX_HASH_VALUE(o);
-    if (mutexHashTable[hashValue].object == o
+	hashValue = MUTEX_HASH_VALUE(o);
+	if (mutexHashTable[hashValue].object == o
 		&& mutexHashTable[hashValue].mutex.holder == currentThread)
 		++mutexHashTable[hashValue].mutex.count;
-    else
+	else
 		internal_lock_mutex_for_object(o);
 
 	--blockInts;
@@ -1060,22 +1053,22 @@ builtin_monitorenter (java_objectheader *o)
 void builtin_monitorexit (java_objectheader *o)
 {
 #ifdef USE_THREADS
-    int hashValue;
+	int hashValue;
 
 	assert(blockInts == 0);
 
-    ++blockInts;
+	++blockInts;
 
-    hashValue = MUTEX_HASH_VALUE(o);
-    if (mutexHashTable[hashValue].object == o)
-    {
+	hashValue = MUTEX_HASH_VALUE(o);
+	if (mutexHashTable[hashValue].object == o)
+	{
 		if (mutexHashTable[hashValue].mutex.count == 1
 			&& mutexHashTable[hashValue].mutex.muxWaiters != 0)
 			internal_unlock_mutex_for_object(o);
 		else
 			--mutexHashTable[hashValue].mutex.count;
-    }
-    else
+	}
+	else
 		internal_unlock_mutex_for_object(o);
 
 	--blockInts;
@@ -1086,16 +1079,15 @@ void builtin_monitorexit (java_objectheader *o)
 
 
 /*****************************************************************************
-                      DIVERSE HILFSFUNKTIONEN
+			  MISCELLANEOUS HELPER FUNCTIONS
 *****************************************************************************/
 
 
 
-/*********** Funktionen f"ur die Integerdivision *****************************
+/*********** Functions for integer divisions *****************************
  
-	Auf manchen Systemen (z.B. DEC ALPHA) wird durch die CPU keine Integer-
-	division unterst"utzt.
-	Daf"ur gibt es dann diese Hilfsfunktionen
+	On some systems (eg. DEC ALPHA), integer division is not supported by the
+	CPU. These helper functions implement the missing functionality.
 
 ******************************************************************************/
 
@@ -1103,10 +1095,10 @@ s4 builtin_idiv (s4 a, s4 b) { return a/b; }
 s4 builtin_irem (s4 a, s4 b) { return a%b; }
 
 
-/************** Funktionen f"ur Long-Arithmetik *******************************
+/************** Functions for long arithmetics *******************************
 
-	Auf Systemen, auf denen die CPU keine 64-Bit-Integers unterst"utzt,
-	werden diese Funktionen gebraucht
+	On systems where 64 bit Integers are not supported by the CPU, these
+	functions are needed.
 
 ******************************************************************************/
 
@@ -1234,7 +1226,7 @@ s4 builtin_lcmp (s8 a, s8 b)
 
 
 
-/*********** Funktionen f"ur die Floating-Point-Operationen ******************/
+/*********** Functions for floating point operations *************************/
 
 float builtin_fadd (float a, float b)
 {
@@ -1266,13 +1258,13 @@ float builtin_fmul (float a, float b)
 		if (finitef(b)) return a*b;
 		else {
 			if (a==0) return FLT_NAN;
-			     else return copysignf(b, copysignf(1.0, b)*a);
+				 else return copysignf(b, copysignf(1.0, b)*a);
 			}
 		}
 	else {
 		if (finitef(b)) {
 			if (b==0) return FLT_NAN;
-			     else return copysignf(a, copysignf(1.0, a)*b);
+				 else return copysignf(a, copysignf(1.0, a)*b);
 			}
 		else {
 			return copysignf(a, copysignf(1.0, a)*copysignf(1.0, b));
@@ -1335,7 +1327,7 @@ float builtin_fneg (float a)
 	if (isnanf(a)) return a;
 	else {
 		if (finitef(a)) return -a;
-		           else return copysignf(a,-copysignf(1.0, a));
+				   else return copysignf(a,-copysignf(1.0, a));
 		}
 }
 
@@ -1344,7 +1336,7 @@ s4 builtin_fcmpl (float a, float b)
 	if (isnanf(a)) return -1;
 	if (isnanf(b)) return -1;
 	if (!finitef(a) || !finitef(b)) {
-		a = finitef(a) ? 0 : copysignf(1.0,  a);
+		a = finitef(a) ? 0 : copysignf(1.0,	 a);
 		b = finitef(b) ? 0 : copysignf(1.0, b);
 		}
 	if (a>b) return 1;
@@ -1367,7 +1359,7 @@ s4 builtin_fcmpg (float a, float b)
 
 
 
-/*********** Funktionen f"ur doppelt genaue Fliesskommazahlen ***************/
+/************************* Functions for doubles ****************************/
 
 double builtin_dadd (double a, double b)
 {
@@ -1399,13 +1391,13 @@ double builtin_dmul (double a, double b)
 		if (finite(b)) return a*b;
 		else {
 			if (a==0) return DBL_NAN;
-			     else return copysign(b, copysign(1.0, b)*a);
+				 else return copysign(b, copysign(1.0, b)*a);
 			}
 		}
 	else {
 		if (finite(b)) {
 			if (b==0) return DBL_NAN;
-			     else return copysign(a, copysign(1.0, a)*b);
+				 else return copysign(a, copysign(1.0, a)*b);
 			}
 		else {
 			return copysign(a, copysign(1.0, a)*copysign(1.0, b));
@@ -1453,7 +1445,7 @@ double builtin_dneg (double a)
 	if (isnan(a)) return a;
 	else {
 		if (finite(a)) return -a;
-		          else return copysign(a,-copysign(1.0, a));
+				  else return copysign(a,-copysign(1.0, a));
 		}
 }
 
@@ -1484,7 +1476,7 @@ s4 builtin_dcmpg (double a, double b)
 }
 
 
-/*********************** Umwandlungsoperationen ****************************/
+/*********************** Conversion operations ****************************/
 
 s8 builtin_i2l (s4 i)
 {
@@ -1589,7 +1581,7 @@ double builtin_f2d (float a)
 	if (finitef(a)) return (double) a;
 	else {
 		if (isnanf(a)) return DBL_NAN;
-		else           return copysign(DBL_POSINF, (double) copysignf(1.0, a) );
+		else		   return copysign(DBL_POSINF, (double) copysignf(1.0, a) );
 		}
 }
 
@@ -1639,7 +1631,7 @@ float builtin_d2f (double a)
 	if (finite(a)) return (float) a;
 	else {
 		if (isnan(a)) return FLT_NAN;
-		else          return copysignf (FLT_POSINF, (float) copysign(1.0, a));
+		else		  return copysignf (FLT_POSINF, (float) copysign(1.0, a));
 		}
 }
 
