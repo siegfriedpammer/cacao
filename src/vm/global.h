@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 1844 2005-01-04 11:21:18Z twisti $
+   $Id: global.h 1880 2005-01-21 12:08:08Z carolyn $
 
 */
 
@@ -902,6 +902,26 @@ void cast_lock();
 void cast_unlock();
 void compiler_lock();
 void compiler_unlock();
+#endif
+
+
+/**** Methods: called directly by cacao, which defines the callpath ***/
+#define MAINCLASS mainstring
+#define MAINMETH "main"
+#define MAINDESC "([Ljava/lang/String;)V"
+
+#define EXITCLASS "java/lang/System"
+#define EXITMETH  "exit"
+#define EXITDESC  "(I)V"
+
+#if defined(USE_THREADS)
+ #define THREADCLASS "java/lang/Thread"
+ #define THREADMETH  "<init>"
+ #define THREADDESC  "(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"
+
+ #define THREADGROUPCLASS "java/lang/ThreadGroup"
+ #define THREADGROUPMETH  "addThread"
+ #define THREADGROUPDESC  "(Ljava/lang/Thread;)V"
 #endif
 
 #endif /* _GLOBAL_H */

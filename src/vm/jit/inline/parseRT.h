@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.h 1744 2004-12-09 10:17:12Z carolyn $
+   $Id: parseRT.h 1880 2005-01-21 12:08:08Z carolyn $
 
 */
 
@@ -45,26 +45,6 @@ typedef struct {
 
 
 extern int RT_jit_parse(methodinfo *m);
-
-/**** Methods: called directly by cacao ***/
-#define MAINCLASS mainstring
-#define MAINMETH "main"
-#define MAINDESC "([Ljava/lang/String;)V"
-
-#define EXITCLASS "java/lang/System"
-#define EXITMETH  "exit"
-#define EXITDESC  "(I)V"
-
-#if defined(USE_THREADS)
- #define THREADCLASS "java/lang/Thread"
- #define THREADMETH  "<init>"
- #define THREADDESC  "(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"
-
- #define THREADGROUPCLASS "java/lang/ThreadGroup"
- #define THREADGROUPMETH  "addThread"
- #define THREADGROUPDESC  "(Ljava/lang/Thread;)V"
-#endif
-
 
 #endif /* _PARSERT_H */
 
