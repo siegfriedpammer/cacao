@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1082 2004-05-26 15:04:54Z jowenn $
+   $Id: asmpart.S 1100 2004-05-27 16:27:04Z twisti $
 
 */
 
@@ -115,7 +115,7 @@
 	.globl builtin_throw_exception
 	.globl builtin_trace_exception
 	.globl class_java_lang_Object
-	.globl findmethod
+	.globl codegen_findmethod
 	.globl builtin_asm_createclasscontextarray
 	.globl builtin_asm_getclassloader
 	.globl callgetexceptionptrptr
@@ -432,7 +432,7 @@ asm_handle_exception_loop:
 		push    %eax						/* save exception pointer         */
 		push    %ecx                        /* save exception pc              */
 
-		call    findmethod                  /* get the data segment ptr       */
+	call    codegen_findmethod          /* get the data segment ptr           */
 		mov     %eax,%edx
 		        
 		mov     -4(%ebp),%eax
@@ -1133,7 +1133,7 @@ getClassContext_begin:	/*start the real work*/
 	pop %eax*/
 
 	push %edx /*esp+0*/ /*return adress out of native stub*/
-	call findmethod	/*find calling java method, this one is still to be skipped (==SecurityManager.getClassContext (or .currentClassLoader)*/
+	call codegen_findmethod	/*find calling java method, this one is still to be skipped (==SecurityManager.getClassContext (or .currentClassLoader)*/
 
 /*DEBUGGING*/
 /*	push %eax
@@ -1165,7 +1165,7 @@ getClassContext_next:
 	movl (%eax),%eax
 	movl %eax,(%esp) /*return adress*/
 
-	call findmethod
+	call codegen_findmethod
 
 	cmp $1,32(%esp)
 	mov 8(%esp),%ebx
@@ -1292,12 +1292,12 @@ asm_throw_and_handle_hardware_arithmetic_exception:
 	add $4,%ecx
 	mov %ecx,(%eax)
 	
-	mov string_java_lang_NullPointerException,%eax
-	mov %eax,4(%esp)
-        mov string_java_lang_ArithmeticException_message,%eax
+	mov string_java_lang_ArithmeticException,%eax
 	mov %eax,(%esp)
+	mov string_java_lang_ArithmeticException_message,%eax
+	mov %eax,4(%esp)
 
-        call new_exception_message
+	call new_exception_message
 
 	push %eax
 	mov 12(%esp),%eax
@@ -1381,7 +1381,7 @@ asm_get_stackTrace:
 
 	pushl (%edi)
 asm_get_stackTraceLoop:
-	call findmethod
+	call codegen_findmethod
 	mov %eax,%esi
 	add $4,%esp
 	pushl $1 /*no indent*/
