@@ -1,26 +1,15 @@
-* README
-========
+README
+======
 
 CACAO is a 64-bit (32-bit versions are planned) Java virtual machine
 for Alphas and Mips processors.
-
-The current sources of CACAO version 0.40 are a snapshot during
-development.  They will change in the near future and are badly
-documented. This version is not intended for public distribution. 
-It is made available only for educational and research purposes.
 
 You will find the licensing condition in the file COPYING.
 
 For installation instruction, please refer to INSTALL.
 
 New versions, updates and general information can be retrieved from
-http://www.complang.tuwien.ac.at/java/cacao
-
-In case of questions questions or to report a bug, send mail to
-cacao@complang.tuwien.ac.at; in case of very, very urgent questions
-please contact Andreas Krall (andi@complang.tuwien.ac.at) directly.
-
+http://www.cacaojvm.org/.
 
 Enjoy the ride,
 -- the cacao team.
-
