@@ -31,9 +31,10 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 692 2003-12-05 18:17:43Z stefan $
+   $Id: native.c 708 2003-12-07 17:31:28Z twisti $
 
 */
+
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -54,6 +55,7 @@
 #include "tables.h"
 #include "loader.h"
 #include "toolbox/loging.h"
+#include "toolbox/memory.h"
 #include "threads/thread.h"
 #include "threads/threadio.h"
 #include "threads/locks.h"
@@ -122,45 +124,49 @@ java_objectheader* exceptionptr = NULL;
 
 void use_class_as_object(classinfo *c) 
 {
-	vftbl *vt, *newtbl;
+	vftbl *vt;
+	vftbl *newtbl;
 
-	/*log_text("use_class_as_object");*/
-        if (!class_java_lang_Class)
-                class_java_lang_Class =
-                        class_new ( utf_new_char ("java/lang/Class") );
-        vt = class_java_lang_Class->vftbl;
-        if (!c->classvftbl) {
-                c->classvftbl = true;
+	if (!class_java_lang_Class)
+		class_java_lang_Class = class_new(utf_new_char ("java/lang/Class"));
 
-/*                copy_vftbl(&newtbl, vt);
-                newtbl->class = c->header.vftbl->class;
-                newtbl->baseval = c->header.vftbl->baseval;
-                newtbl->diffval = c->header.vftbl->diffval;
-                c->header.vftbl = newtbl;*/
+	vt = class_java_lang_Class->vftbl;
+
+
+	if (!c->classvftbl) {
+		c->classvftbl = true;
+
+		/*                copy_vftbl(&newtbl, vt);
+						  newtbl->class = c->header.vftbl->class;
+						  newtbl->baseval = c->header.vftbl->baseval;
+						  newtbl->diffval = c->header.vftbl->diffval;
+						  c->header.vftbl = newtbl;*/
 		
-		c->header.vftbl=class_java_lang_Class->vftbl;
+		c->header.vftbl = class_java_lang_Class->vftbl;
         
 		if (!class_java_lang_VMClass) {
 			class_java_lang_VMClass =
-        	                        loader_load ( utf_new_char("java/lang/VMClass"));
-	                method_vmclass_init = 
-					class_findmethod(class_java_lang_VMClass,utf_new_char("<init>"),
-						utf_new_char("(Lgnu/classpath/RawData;)V"));
-	                if (method_vmclass_init==0) {
+				loader_load(utf_new_char("java/lang/VMClass"));
+
+			method_vmclass_init =
+				class_findmethod(class_java_lang_VMClass,
+								 utf_new_char("<init>"),
+								 utf_new_char("(Lgnu/classpath/RawData;)V"));
+
+			if (method_vmclass_init == 0) {
 				class_showmethods(class_java_lang_VMClass);
-                	        panic("Needed class initializer for VMClass could not be found");
-	                }
-        	}
-	        {     
-   	        	java_objectheader *vmo = builtin_new (class_java_lang_VMClass);
+				panic("Needed class initializer for VMClass could not be found");
+			}
+		}
+		{     
+			java_objectheader *vmo = builtin_new(class_java_lang_VMClass);
 
 			if (!vmo) panic("Error while creating instance of java/lang/VMClass");
-                	asm_calljavamethod (method_vmclass_init, vmo, c, NULL, NULL);
-	                c->vmClass=(java_lang_VMClass*)vmo;
+			asm_calljavamethod(method_vmclass_init, vmo, c, NULL, NULL);
+			c->vmClass = (java_lang_VMClass *) vmo;
 			/*log_text("VMCLASS has been attached");*/
-        	}
-        }
-	
+		}
+	}
 }
 
 
