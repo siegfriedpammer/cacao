@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 669 2003-11-23 14:04:20Z edwin $
+   $Id: global.h 670 2003-11-23 14:36:26Z edwin $
 
 */
 
@@ -808,8 +808,6 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
                       if ((utf_ptr)[-1] != ';')                                          \
                           (errorflag) = true; }}
 
-
-extern classinfo *class_array;
 
 #endif
 
