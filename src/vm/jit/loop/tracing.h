@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: tracing.h 1141 2004-06-05 23:19:24Z twisti $
+   $Id: tracing.h 1454 2004-11-05 14:19:32Z twisti $
 
 */
 
@@ -34,7 +34,12 @@
 #ifndef _TRACING_H
 #define _TRACING_H
 
+
 #include "jit/jit.h"
+
+
+typedef struct Trace Trace;
+
 
 /*	
    This struct is needed to record the source of operands of intermediate code
@@ -53,14 +58,14 @@ struct Trace {
 };
 
 
-
 /* function protoypes */
-struct Trace* create_trace(int type, int var, int constant, int nr);
-struct Trace* add(struct Trace* a, struct Trace* b);
-struct Trace* negate(struct Trace* a);
-struct Trace* sub(struct Trace* a, struct Trace* b);
-struct Trace* array_length(struct Trace* a);
-struct Trace* tracing(struct basicblock *block, int index, int temp);
+
+Trace* create_trace(int type, int var, int constant, int nr);
+Trace* add(Trace* a, Trace* b);
+Trace* negate(Trace* a);
+Trace* sub(Trace* a, Trace* b);
+Trace* array_length(Trace* a);
+Trace* tracing(basicblock *block, int index, int temp);
 
 #endif /* _TRACING_H */
 

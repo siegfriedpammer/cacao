@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: graph.h 1203 2004-06-22 23:14:55Z twisti $
+   $Id: graph.h 1454 2004-11-05 14:19:32Z twisti $
 
 */
 
@@ -36,12 +36,26 @@
 
 #include "loop.h"
 
-void LoopContainerInit(methodinfo *m, struct LoopContainer *lc, int i);
-void depthFirst(methodinfo *m);
-void dF(methodinfo *m, int from, int blockIndex);
-void dF_Exception(methodinfo *m, int from, int blockIndex);
 
-void resultPass1();
+void LoopContainerInit(methodinfo *m, struct LoopContainer *lc, int i);
+void depthFirst(methodinfo *m, loopdata *ld);
+void dF(methodinfo *m, loopdata *ld, int from, int blockIndex);
+void dF_Exception(methodinfo *m, loopdata *ld, int from, int blockIndex);
+
+void resultPass1(methodinfo *);
 
 #endif /* _GRAPH_H */
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

@@ -31,7 +31,7 @@
    instruction. For more details see function tracing(basicblock, int,
    int) below.
 
-   $Id: tracing.c 1274 2004-07-05 17:24:40Z twisti $
+   $Id: tracing.c 1454 2004-11-05 14:19:32Z twisti $
 
 */
 
@@ -72,12 +72,11 @@ void printTraceResult(struct Trace *p)
     
 /*	A function that creates a new trace structure and initializes its values
 */
-struct Trace* create_trace(int type, int var, int constant, int nr)
+Trace* create_trace(int type, int var, int constant, int nr)
 {
-	struct Trace *t;
-/*  	if ((t = (struct Trace *) malloc(sizeof(struct Trace))) == NULL) */
-/*  		c_mem_error(); */
-	t = DNEW(struct Trace);
+	Trace *t;
+
+	t = DNEW(Trace);
 
 	t->type = type;
 
@@ -95,7 +94,7 @@ struct Trace* create_trace(int type, int var, int constant, int nr)
 	backward scan over the instructions, it trys to identify the source of the
 	arguments of this add function. The following function performs this task.
 */
-struct Trace* add(struct Trace* a, struct Trace* b)
+Trace* add(Trace* a, Trace* b)
 {
 	switch (a->type) {			/* check the first argument of add. when it		*/
 	case TRACE_UNKNOWN:			/* is unknown or array-address, return unknown	*/
@@ -143,7 +142,7 @@ struct Trace* add(struct Trace* a, struct Trace* b)
 	backward scan over the instructions, it trys to identify the source of the
 	argument of this neg function. The following function performs this task.
 */
-struct Trace* negate(struct Trace* a)
+Trace* negate(Trace* a)
 {
 	switch (a->type) {				/* check argument type						*/
 	case TRACE_IVAR:				/* when it is variable/array length value	*/
@@ -170,9 +169,9 @@ struct Trace* negate(struct Trace* a)
 	this sub function. The following function performs this task, by applaying the
 	negate function on the second argument and then adds the values.
 */
-struct Trace* sub(struct Trace* a, struct Trace* b)
+Trace* sub(Trace* a, Trace* b)
 {
-	struct Trace *c = negate(b);
+	Trace *c = negate(b);
 	return add(a, c);
 }
 
@@ -182,7 +181,7 @@ struct Trace* sub(struct Trace* a, struct Trace* b)
 	the argument ofthis array length function. The following function performs 
 	this task.
 */
-struct Trace* array_length(struct Trace* a)
+Trace* array_length(Trace* a)
 {
 	if (a->type == TRACE_AVAR)	/* if argument is an array ref., mark the type	*/
 		a->type = TRACE_ALENGTH;	/* as array length of this array reference	*/
@@ -193,21 +192,26 @@ struct Trace* array_length(struct Trace* a)
 }
 
 
-/*	This function is used to identify the types of operands of an intermediate 
-	code instruction.It is needed by functions, that analyze array accesses. If 
-	something is stored into or loaded from an array, we have to find out, which 
-	array really has been accessed. When a compare instruction is encountered at
-	a loop header, the type of its operands have to be detected to construct
-	dynamic bounds for some variables in the loop. This function returns a struct
-	Trace (see loop.h for more details about this structure). block is the basic
-	block to be examined, index holds the offset of the examined instruction in
-	this block. The arguments are retrieved by using the stack structure, the 
-	compilation process sets up. During the backwards scan of the code, it is 
-	possible, that other instructions temporaray put or get values from the stack
-	and hide the value, we are interested in below them. The value temp counts
-	the number of values on the stack, the are located beyond the target value.
-*/
-struct Trace* tracing(basicblock *block, int index, int temp)
+/* tracing *********************************************************************
+
+   This function is used to identify the types of operands of an intermediate
+   code instruction. It is needed by functions, that analyze array accesses. If
+   something is stored into or loaded from an array, we have to find out,
+   which array really has been accessed. When a compare instruction is
+   encountered at a loop header, the type of its operands have to be detected
+   to construct dynamic bounds for some variables in the loop. This function
+   returns a struct Trace (see loop.h for more details about this structure).
+   block is the basic block to be examined, index holds the offset of the
+   examined instruction in this block. The arguments are retrieved by using
+   the stack structure, the compilation process sets up. During the backwards
+   scan of the code, it is possible, that other instructions temporary put or
+   get values from the stack and hide the value, we are interested in below
+   them. The value temp counts the number of values on the stack, the are
+   located beyond the target value.
+
+*******************************************************************************/
+
+Trace* tracing(basicblock *block, int index, int temp)
 {
 	int args, retval;
 	instruction *ip;

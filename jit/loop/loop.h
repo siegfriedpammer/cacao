@@ -26,7 +26,7 @@
 
    Authors: Christopher Kruegel
 
-   $Id: loop.h 1203 2004-06-22 23:14:55Z twisti $
+   $Id: loop.h 1454 2004-11-05 14:19:32Z twisti $
 
 */
 
@@ -35,6 +35,8 @@
 #define _LOOP_H
 
 #include "global.h"
+#include "jit/jit.h"
+
 
 /*	Different types for struct Trace										*/
 #define TRACE_UNKNOWN 0			/* unknown									*/
@@ -90,6 +92,10 @@
 #define HANDLER_VISITED 0x4     /* flag to prevent loop if copying catch blocks */
 
 
+typedef struct LoopElement LoopElement;
+typedef struct LoopContainer LoopContainer;
+typedef struct loopdata loopdata;
+
 
 /*	This struct records information about interesting vars (vars that are modified
 	or used as an array index in loops.
@@ -142,12 +148,12 @@ struct depthElement {
 };
 
 
-/*	Used to build a list of all basicblock, the loop consists of				
-*/
+/*	Used to build a list of all basicblock, the loop consists of              */
+
 struct LoopElement {
-	int node;
-	struct basicblock	*block;			
-	struct LoopElement *next;
+	s4           node;
+	basicblock  *block;
+	LoopElement *next;
 };
 
 
@@ -155,94 +161,159 @@ struct LoopElement {
    This structure stores informations about a single loop
 */
 struct LoopContainer {
-	int toOpt;							/* does this loop need optimization		*/
-	struct LoopElement *nodes;          /* list of BBs this loop consists of    */
-	int loop_head;                      
-	int in_degree;                      /* needed to topological sort loops to  */
-	                                    /* get the order of optimizing them     */
-	struct LoopContainer *next;			/* list pointer							*/
-	struct LoopContainer *parent;		/* points to parent loop, if this BB    */
-										/* is head of a loop					*/
-	struct LoopContainer *tree_right;   /* used for tree hierarchie of loops    */
-	struct LoopContainer *tree_down;
-	exceptiontable *exceptions;         /* list of exception in that loop       */
+	s4              toOpt;              /* does this loop need optimization   */
+	LoopElement    *nodes;              /* list of BBs this loop consists of  */
+	s4              loop_head;
+	s4              in_degree;          /* needed to topological sort loops to*/
+	                                    /* get the order of optimizing them   */
+	LoopContainer  *next;               /* list pointer                       */
+	LoopContainer  *parent;             /* points to parent loop, if this BB  */
+										/* is head of a loop                  */
+	LoopContainer  *tree_right;         /* used for tree hierarchie of loops  */
+	LoopContainer  *tree_down;
+	exceptiontable *exceptions;         /* list of exception in that loop     */
 };
 
 
-/* global variables */
-extern int c_debug_nr;
-extern int *c_defnum;
-extern int *c_parent;
-extern int *c_reverse;
-extern int c_globalCount;
-extern int *c_numPre;
-extern int **c_pre;
-extern int c_last_jump;
-extern struct basicblock *c_last_target;
-extern struct depthElement **c_dTable;
-extern struct depthElement **c_exceptionGraph;
-extern struct LoopContainer *c_allLoops;
-extern struct LoopContainer *c_loop_root;
-extern int *c_exceptionVisit;
+struct loopdata {
+	/* modified by graph.c															*/
+
+	int *c_defnum;					/* array that stores a number for each node	when*/
+	    							/* control flow graph is traveres depth first	*/
+	int *c_parent;					/* for each node that array stores its parent	*/
+	int *c_reverse;					/* for each def number that array stores the	*/
+    								/* corresponding node							*/
+	int c_globalCount;				/* counter for def numbering					*/
+	int *c_numPre;					/* array that stores for each node its number	*/
+    								/* predecessors									*/
+	int **c_pre;					/* array of array that stores predecessors		*/
+	int c_last_jump;				/* stores the source node of the last jsr instr	*/
+	struct basicblock *c_last_target;      /* stores the source BB of the last jsr instr	*/
+
+	struct depthElement **c_dTable;	/* adjacency list for control flow graph		*/
+	struct depthElement **c_exceptionGraph;	/* adjacency list for exception graph	*/
+
+	struct LoopContainer *c_allLoops;		/* list of all loops					*/
+	struct LoopContainer *c_loop_root;		/* root of loop hierarchie tree			*/
+
+	int *c_exceptionVisit;			/* array that stores a flag for each node part	*/
+	    							/* of the exception graph						*/
+
+	/* modified by loop.c															*/
+
+	int *c_semi_dom;				/* store for each node its semi dominator		*/
+	int *c_idom;					/* store for each node its dominator			*/
+	int *c_same_dom;				/* temp array to hold nodes with same dominator	*/
+	int *c_ancestor;				/* store for each node its ancestor with lowest	*/
+    								/* semi dominator								*/
+	int *c_numBucket;				
+	int **c_bucket;
+	
+	int *c_contains;				/* store for each node whether it's part of loop*/
+	int *c_stack;					/* a simple stack as array						*/
+	int c_stackPointer;				/* stackpointer									*/
 
 
-/* global loop variables */
-extern int *c_semi_dom;
-extern int *c_idom;
-extern int *c_same_dom;
-extern int *c_ancestor;
-extern int *c_numBucket;				
-extern int **c_bucket;
-extern int *c_contains;
-extern int *c_stack;
-extern int c_stackPointer;
+	/* modified by analyze.c														*/
+
+	struct LoopContainer *root;     /* the root pointer for the hierarchie tree of  */
+                                    /* all loops in that procedure                  */
+
+	int c_needed_instr;				/* number of instructions that have to be		*/
+	    							/* inserted before loop header to make sure		*/
+		    						/* array optimization is legal					*/
+	int c_rs_needed_instr;			/* number of instructions needed to load the	*/
+    								/* value ofthe right side of the loop condition	*/
+	int *c_nestedLoops;				/* store for each node the header node of the	*/
+    								/* loop this node belongs to, -1 for none		*/
+	int *c_hierarchie;              /* store a loop hierarchie                      */
+	int *c_toVisit;					/* set for each node that is part of the loop	*/
+
+	int *c_current_loop;			/* for each node:                               */
+    	 							/* store 0:	node is not part of loop			*/
+    								/* store 1:	node is loop header					*/
+    								/* store 2:	node is in loop but not part of any	*/
+    								/*			nested loop                         */
+    								/* store 3:	node is part of nested loop			*/
+
+	int c_current_head;				/* store number of node that is header of loop	*/
+	int *c_var_modified;			/* store for each local variable whether its	*/
+    								/* value is changed in the loop					*/
+
+	struct Trace *c_rightside;		/* right side of loop condition					*/
+	struct Constraint **c_constraints;
+    								/* array that stores for each variable a list	*/
+    								/* static tests (constraints) that have to be	*/
+    								/* performed before loop entry					*/
+    								/* IMPORTANT: c_constraints[maxlocals] stores	*/
+    								/*			  the tests for constants and the	*/
+    								/*			  right side of loop condition		*/
+	
+	struct LoopVar *c_loopvars;		/* a list of all intersting variables of the	*/
+    								/* current loop (variables that are modified or	*/
+    								/* used as array index							*/
+
+	struct basicblock *c_first_block_copied; /* pointer to the first block, that is copied */
+                                    /* during loop duplication                    */
+
+	struct basicblock *c_last_block_copied;  /* last block, that is copied during loop     */
+                                    /* duplication                                */
+
+	int *c_null_check;              /* array to store for local vars, whether they  */
+                                    /* need to be checked against the null reference*/
+                                    /* in the loop head                             */
+
+	bool c_needs_redirection;       /* if a loop header is inserted as first block  */
+                                    /* into the global BB list, this is set to true */
+                                 
+	struct basicblock *c_newstart;         /* if a loop header is inserted as first block  */
+                                    /* into the gloal BB list, this pointer is the  */
+                                    /* new start                                    */
+	int c_old_xtablelength;         /* used to store the original tablelength       */
+
+	/* set debug mode																*/
+#define C_DEBUG
 
 
-/* global analyze variables	*/
-extern struct LoopContainer *root;
-extern int c_needed_instr;
-extern int c_rs_needed_instr;
-extern int *c_nestedLoops;
-extern int *c_hierarchie;
-extern int *c_toVisit;
-extern int *c_current_loop;
-extern int c_current_head;
-extern int *c_var_modified;
-extern struct Trace *c_rightside;
-extern struct Constraint **c_constraints;
-extern struct LoopVar *c_loopvars;
-extern struct basicblock *c_first_block_copied;
-extern struct basicblock *c_last_block_copied;
-extern int *c_null_check;
-extern bool c_needs_redirection;
-extern struct basicblock *c_newstart;
-extern int c_old_xtablelength;
-
-
-/* global statistic variables */
+	/* declare statistic variables													*/
 #ifdef STATISTICS
 
-extern int c_stat_num_loops;
-extern int c_stat_array_accesses;
-extern int c_stat_full_opt;
-extern int c_stat_no_opt;
-extern int c_stat_lower_opt;
-extern int c_stat_upper_opt;
-extern int c_stat_or;
-extern int c_stat_exception;
-extern int c_stat_sum_accesses;
-extern int c_stat_sum_full;
-extern int c_stat_sum_no;
-extern int c_stat_sum_lower;
-extern int c_stat_sum_upper;
-extern int c_stat_sum_or;
-extern int c_stat_sum_exception;
+	int c_stat_num_loops;			/* number of loops								*/
+
+	/* statistics per loop															*/
+	int c_stat_array_accesses;		/* number of array accesses						*/
+
+	int c_stat_full_opt;			/* number of fully optimized accesses			*/
+	int c_stat_no_opt;				/* number of not optimized accesses				*/
+	int c_stat_lower_opt;			/* number of accesses where check against zero	*/
+    								/* is removed									*/
+	int c_stat_upper_opt;			/* number of accesses where check against array	*/
+    								/* lengh is removed								*/
+	int c_stat_or;					/* set if optimization is cancelled because of	*/
+    								/* or in loop condition							*/
+	int c_stat_exception;			/* set if optimization is cancelled because of	*/
+    								/* index var modified in catch block			*/
+
+	/* statistics per procedure														*/
+	int c_stat_sum_accesses;		/* number of array accesses						*/
+
+	int c_stat_sum_full;			/* number of fully optimized accesses			*/
+	int c_stat_sum_no;				/* number of not optimized accesses				*/
+	int c_stat_sum_lower;			/* number of accesses where check against zero	*/
+    								/* is removed									*/
+	int c_stat_sum_upper;			/* number of accesses where check against array	*/
+    								/* lengh is removed								*/
+	int c_stat_sum_or;				/* set if optimization is cancelled because of	*/
+    								/* or in loop condition							*/
+	int c_stat_sum_exception;		/* set if optimization is cancelled because of	*/
 
 #endif
+};
 
 
 /* function prototypes */
-void analyseGraph(methodinfo *m);
+
+void analyseGraph(methodinfo *m, loopdata *ld);
 void c_mem_error();
 
 #endif /* _LOOP_H */
@@ -260,4 +331,3 @@ void c_mem_error();
  * tab-width: 4
  * End:
  */
-

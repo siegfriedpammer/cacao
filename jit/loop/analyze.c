@@ -32,7 +32,7 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 1203 2004-06-22 23:14:55Z twisti $
+   $Id: analyze.c 1454 2004-11-05 14:19:32Z twisti $
 
 */
 
@@ -110,33 +110,33 @@ show_varinfo(struct LoopVar *lv)
 	printf("Dynamic\t\t%d/%d\n", lv->dynamic_l, lv->dynamic_u);
 }
 
-void show_right_side()
+void show_right_side(methodinfo *m)
 {
 	int i;
 	printf("\n   *** Head ***   \nType:\t");
-	show_trace(c_rightside);
+	show_trace(m->loopdata->c_rightside);
 
 	printf("\n   *** Nested Loops: ***\n");
 	for (i=0; i<m->basicblockcount; ++i) 
-		printf("%d\t", c_nestedLoops[i]);
+		printf("%d\t", m->loopdata->c_nestedLoops[i]);
 	printf("\n");
 
 	printf("\n   *** Hierarchie: ***\n");	
 	for (i=0; i<m->basicblockcount; ++i) 
-		printf("%d\t", c_hierarchie[i]);
+		printf("%d\t", m->loopdata->c_hierarchie[i]);
 	printf("\n");
 	
 
 	printf("\n   *** Current Loop ***\n");
 	for (i=0; i<m->basicblockcount; ++i)
-	    printf("%d\t", c_current_loop[i]);
+	    printf("%d\t", m->loopdata->c_current_loop[i]);
 	printf("\n");
 }
 
-void resultPass3()
+void resultPass3(methodinfo *m)
 {
 	int i;
-	struct LoopContainer *lc = c_allLoops;
+	struct LoopContainer *lc = m->loopdata->c_allLoops;
   
 	printf("\n\n****** PASS 3 ******\n\n");
   
@@ -154,10 +154,10 @@ void resultPass3()
 
 	printf("\nNested Loops:\n");
 	for (i=0; i<m->basicblockcount; ++i)
-	    printf("%d ", c_nestedLoops[i]);
+	    printf("%d ", m->loopdata->c_nestedLoops[i]);
 	printf("\n");
 	for (i=0; i<m->basicblockcount; ++i) 
-		printf("%d ", c_hierarchie[i]);
+		printf("%d ", m->loopdata->c_hierarchie[i]);
 	printf("\n");
 	fflush(stdout);
 }
@@ -181,37 +181,37 @@ void show_tree(struct LoopContainer *lc, int tabs)
 
 #ifdef STATISTICS
 
-void show_loop_statistics()
+void show_loop_statistics(loopdata *ld)
 {
 	printf("\n\n****** LOOP STATISTICS ****** \n\n");
-	if (c_stat_or) 
+	if (ld->c_stat_or) 
 	    printf("Optimization cancelled by or\n");
-	else if (c_stat_exception)
+	else if (ld->c_stat_exception)
 	    printf("Optimization cancelled by exception\n");
 	else {
-		printf("Number of array accesses:\t%d\n", c_stat_array_accesses);
-		if (c_stat_array_accesses) {
-			printf("\nFully optimized:\t%d\n", c_stat_full_opt);
-			printf("Not optimized:\t\t%d\n", c_stat_no_opt);
-			printf("Upper optimized:\t%d\n", c_stat_upper_opt);
-			printf("Lower optimized:\t%d\n", c_stat_lower_opt);
+		printf("Number of array accesses:\t%d\n", ld->c_stat_array_accesses);
+		if (ld->c_stat_array_accesses) {
+			printf("\nFully optimized:\t%d\n", ld->c_stat_full_opt);
+			printf("Not optimized:\t\t%d\n", ld->c_stat_no_opt);
+			printf("Upper optimized:\t%d\n", ld->c_stat_upper_opt);
+			printf("Lower optimized:\t%d\n", ld->c_stat_lower_opt);
 			}
 		}
 }
 
-void show_procedure_statistics()
+void show_procedure_statistics(loopdata *ld)
 {
 	printf("\n\n****** PROCEDURE STATISTICS ****** \n\n");
-	printf("Number of loops:\t\t%d\n", c_stat_num_loops);
-	printf("Number of array accesses:\t%d\n", c_stat_sum_accesses);
-	if (c_stat_sum_accesses) {
-		printf("\nFully optimized:\t%d\n", c_stat_sum_full);
-		printf("Not optimized:\t\t%d\n", c_stat_sum_no);
-		printf("Upper optimized:\t%d\n", c_stat_sum_upper);
-		printf("Lower optimized:\t%d\n", c_stat_sum_lower);
+	printf("Number of loops:\t\t%d\n", ld->c_stat_num_loops);
+	printf("Number of array accesses:\t%d\n", ld->c_stat_sum_accesses);
+	if (ld->c_stat_sum_accesses) {
+		printf("\nFully optimized:\t%d\n", ld->c_stat_sum_full);
+		printf("Not optimized:\t\t%d\n", ld->c_stat_sum_no);
+		printf("Upper optimized:\t%d\n", ld->c_stat_sum_upper);
+		printf("Lower optimized:\t%d\n", ld->c_stat_sum_lower);
 		}
-	printf("Opt. cancelled by or:\t\t%d\n", c_stat_sum_or);
-	printf("Opt. cancelled by exception:\t%d\n", c_stat_sum_exception);
+	printf("Opt. cancelled by or:\t\t%d\n", ld->c_stat_sum_or);
+	printf("Opt. cancelled by exception:\t%d\n", ld->c_stat_sum_exception);
 }
 
 #endif
@@ -279,12 +279,12 @@ void analyze_merge(struct LoopContainer *l1, struct LoopContainer *l2)
 	finding algorith sometimes (eg. when loopbody ends with a if-else construct)
 	reports a single loop as two loops with the same header node.
 */
-void analyze_double_headers()
+void analyze_double_headers(loopdata *ld)
 {
 	int toCheck;
-	struct LoopContainer *t1, *t2, *t3;
+	LoopContainer *t1, *t2, *t3;
 
-	t1 = c_allLoops;
+	t1 = ld->c_allLoops;
 
 	while (t1 != NULL)	{			/* for all loops do							*/
 		toCheck = t1->loop_head;	/* get header node							*/
@@ -384,7 +384,8 @@ void insert_exception(methodinfo *m, struct LoopContainer *lc, exceptiontable *e
     Each loop, that is a nested loop, stores its direct surrounding loop as a 
     parent. Top level loops have no parents.
 */
-void analyze_nested(methodinfo *m)
+
+void analyze_nested(methodinfo *m, loopdata *ld)
 {
 	/* i/count/tmp are counters                                               */
 	/* toOverwrite is used while loop hierarchie is built (see below)         */
@@ -397,38 +398,38 @@ void analyze_nested(methodinfo *m)
 	struct LoopElement *le; 
 
 	/* init global structures                                                 */
-	c_nestedLoops = DMNEW(int, m->basicblockcount);
-	c_hierarchie = DMNEW(int, m->basicblockcount); 	
+	ld->c_nestedLoops = DMNEW(int, m->basicblockcount);
+	ld->c_hierarchie = DMNEW(int, m->basicblockcount); 	
 	for (i=0; i<m->basicblockcount; ++i) {
-		c_nestedLoops[i] = -1;
-		c_hierarchie[i] = -1;
+		ld->c_nestedLoops[i] = -1;
+		ld->c_hierarchie[i] = -1;
 	    }
 
 	/* if there are no optimizable loops -> return                            */
-	if (c_allLoops == NULL)
+	if (ld->c_allLoops == NULL)
 		return;
 
-	temp = c_allLoops;
+	temp = ld->c_allLoops;
 	while (temp != NULL) {              /* for all loops, do                  */
 		header = temp->loop_head;
 
 		/* toOverwrite is number of current parent loop (-1 if none)          */
-		toOverwrite = c_nestedLoops[header];	
+		toOverwrite = ld->c_nestedLoops[header];	
 
-		c_hierarchie[header] = toOverwrite;
+		ld->c_hierarchie[header] = toOverwrite;
 
 		if (toOverwrite == header)      /* check for loops with same header   */
 			printf("C_ERROR: Loops have same header\n");
 
 		le = temp->nodes;
 		while (le != NULL) {            /* for all loop nodes, do             */
-			tmp = c_nestedLoops[le->node];
+			tmp = ld->c_nestedLoops[le->node];
 
 		    /* if node is part of parent loop -> overwrite it with nested     */
 			if (tmp == toOverwrite)
-				c_nestedLoops[le->node] = header;
+				ld->c_nestedLoops[le->node] = header;
 			else {
-				c_hierarchie[tmp] = header;
+				ld->c_hierarchie[tmp] = header;
 #ifdef LOOP_DEBUG
 				/* printf("set head of %d to %d", tmp, header);               */
 #endif
@@ -441,19 +442,19 @@ void analyze_nested(methodinfo *m)
 		}
 
 	/* init root of hierarchie tree                                           */
-	root = DMNEW(struct LoopContainer, 1);
-	LoopContainerInit(m, root, -1);
+	ld->root = DMNEW(struct LoopContainer, 1);
+	LoopContainerInit(m, ld->root, -1);
 
     /* obtain parent pointer and build hierarchie tree                        */
-    start = c_allLoops;    
+    start = ld->c_allLoops;    
     while (start != NULL) {
 		
 		/* look for parent of loop pointed at by start                        */
-		first = c_allLoops;
+		first = ld->c_allLoops;
 		while (first != NULL) {
 
 			/* the parent of the loop, pointed at by start has been found     */
-			if (first->loop_head == c_hierarchie[start->loop_head]) {
+			if (first->loop_head == ld->c_hierarchie[start->loop_head]) {
 #ifdef LOOP_DEBUG
 				/* printf("set parent to pointer\n");                         */
 #endif
@@ -473,9 +474,9 @@ void analyze_nested(methodinfo *m)
 			/* printf("set parent to root\n");                                */
 #endif
  
-			start->parent = root;
-			start->tree_right = root->tree_down;
-			root->tree_down = start;		
+			start->parent = ld->root;
+			start->tree_right = ld->root->tree_down;
+			ld->root->tree_down = start;		
 		    }
 		/* if a parent exists, increase this nodes indegree                   */
 		else
@@ -487,18 +488,18 @@ void analyze_nested(methodinfo *m)
 	/* insert exceptions into tree                                            */
 #ifdef LOOP_DEBUG
 	printf("--- Showing tree ---\n");
-	show_tree(root, 0);
+	show_tree(ld->root, 0);
 	printf(" --- End ---\n");
 #endif
 	for (len = 0; len < m->exceptiontablelength; ++len) 
-		insert_exception(m, root, m->exceptiontable + len);
+		insert_exception(m, ld->root, m->exceptiontable + len);
 
 
 	/* determine sequence of loops for optimization by topological sort       */
 
 	/* init queue                                                             */
 	start = NULL;
-	temp = c_allLoops;
+	temp = ld->c_allLoops;
 	while (temp != NULL) {
 
 		/* a loops with indegree == 0 are pushed onto the stack               */
@@ -524,7 +525,7 @@ void analyze_nested(methodinfo *m)
 
 	/* pop each node from the stack and decrease its parents indegree by one  */
 	/* when the parents indegree reaches zero, push it onto the stack as well */
-	if ((last->parent != root) && (--last->parent->in_degree == 0)) {
+	if ((last->parent != ld->root) && (--last->parent->in_degree == 0)) {
 		last->parent->next = start;
 		start = last->parent;
 		}
@@ -535,14 +536,14 @@ void analyze_nested(methodinfo *m)
 		start = start->next;
 		last = last->next;
 		
-		if ((last->parent != root) && (--last->parent->in_degree == 0)) {
+		if ((last->parent != ld->root) && (--last->parent->in_degree == 0)) {
 			last->parent->next = start;
 			start = last->parent;
 			}
 		}
 
 	last->next = NULL;
-	c_allLoops = first;
+	ld->c_allLoops = first;
 
 #ifdef LOOP_DEBUG
 	printf("*** Hierarchie Results \n");
@@ -555,16 +556,18 @@ void analyze_nested(methodinfo *m)
 #endif 
 }
 
+
 /*	This function is used to add variables that occur as index variables in
 	array accesses (ARRAY_INDEX) or as variables, that change their value (VAR_MOD)
 	to the list of interesting vars (c_loopvars) for the current loop.
 */
-void add_to_vars(int var, int type, int direction)
+
+void add_to_vars(loopdata *ld, int var, int type, int direction)
 {
 	struct LoopVar *lv;	
 
 	/* printf("Added to vars %d %d %d\n", var, type, direction);              */
-	lv = c_loopvars;
+	lv = ld->c_loopvars;
 	while (lv != NULL) {            /* check if var has been previously added */
 		if (lv->value == var) {
 			if (type == ARRAY_INDEX)
@@ -622,9 +625,10 @@ void add_to_vars(int var, int type, int direction)
 	/* no dynamic bounds have been determined so far                          */
 	lv->dynamic_l = lv->dynamic_l_v = lv->dynamic_u = lv->dynamic_u_v = 0;
 
-	lv->next = c_loopvars;                  /* add var to list                */
-	c_loopvars = lv;
+	lv->next = ld->c_loopvars;                  /* add var to list                */
+	ld->c_loopvars = lv;
 }
+
 
 /*	This function checks, whether a given loop with header node contains array
 	accesses. If so, it returns 1, else it returns 0 and the loops needs no
@@ -633,7 +637,8 @@ void add_to_vars(int var, int type, int direction)
 	stored in c_loopvars. For all variables (integer), which values are changed, 
 	a flag in c_var_modified is set.
 */
-int analyze_for_array_access(methodinfo *m, int node)
+
+int analyze_for_array_access(methodinfo *m, loopdata *ld, int node)
 {
 	basicblock bp;
 	instruction *ip;
@@ -641,8 +646,8 @@ int analyze_for_array_access(methodinfo *m, int node)
 	struct depthElement *d;
 	struct Trace *t;
 
-	if (c_toVisit[node] > 0) {          /* node has not been visited yet      */
-		c_toVisit[node] = 0;
+	if (ld->c_toVisit[node] > 0) {          /* node has not been visited yet      */
+		ld->c_toVisit[node] = 0;
    
 		bp = m->basicblocks[node];               /* prepare an instruction scan        */
 		ip = bp.iinstr;
@@ -664,7 +669,7 @@ int analyze_for_array_access(methodinfo *m, int node)
 
 				if (t->type == TRACE_IVAR) {
 					/* if it is a variable, add it to list of index variables */
-					add_to_vars(t->var, ARRAY_INDEX, D_UNKNOWN);
+					add_to_vars(ld, t->var, ARRAY_INDEX, D_UNKNOWN);
 					access++;				
 				}
 				else if (t->type == TRACE_ICONST)
@@ -683,7 +688,7 @@ int analyze_for_array_access(methodinfo *m, int node)
 		
 				if (t->type == TRACE_IVAR) {
 					/* if it is a variable, add it to list of index variables */
-					add_to_vars(t->var, ARRAY_INDEX, D_UNKNOWN);
+					add_to_vars(ld, t->var, ARRAY_INDEX, D_UNKNOWN);
 					access++;
 					}
 				else if (t->type == TRACE_ICONST)
@@ -691,45 +696,45 @@ int analyze_for_array_access(methodinfo *m, int node)
 				break;
 
 			case ICMD_ISTORE:				/* integer store					*/
-				c_var_modified[ip->op1] = 1;
+				ld->c_var_modified[ip->op1] = 1;
 
 				/* try to find out, how it was modified							*/
 				t = tracing(&bp, i-1, 0);	
 				if (t->type == TRACE_IVAR) {
 					if ((t->constant > 0) && (t->var == ip->op1))
 						/* a constant was added	to the same var					*/
-						add_to_vars(t->var, VAR_MOD, D_UP);
+						add_to_vars(ld, t->var, VAR_MOD, D_UP);
 					else if (t->var == ip->op1)	
 						/* a constant was subtracted from the same var			*/
-						add_to_vars(t->var, VAR_MOD, D_DOWN);
+						add_to_vars(ld, t->var, VAR_MOD, D_DOWN);
 					else
-						add_to_vars(t->var, VAR_MOD, D_UNKNOWN);
+						add_to_vars(ld, t->var, VAR_MOD, D_UNKNOWN);
 					}
 				else
-					add_to_vars(ip->op1, VAR_MOD, D_UNKNOWN);
+					add_to_vars(ld, ip->op1, VAR_MOD, D_UNKNOWN);
 				break;
 
 			case ICMD_IINC:					/* simple add/sub of a constant		*/
-				c_var_modified[ip->op1] = 1;
+				ld->c_var_modified[ip->op1] = 1;
 		
 				if (ip->val.i > 0)
-					add_to_vars(ip->op1, VAR_MOD, D_UP);
+					add_to_vars(ld, ip->op1, VAR_MOD, D_UP);
 				else
-					add_to_vars(ip->op1, VAR_MOD, D_DOWN);
+					add_to_vars(ld, ip->op1, VAR_MOD, D_DOWN);
 				break;
 
 			case ICMD_LSTORE:
 			case ICMD_FSTORE:
 			case ICMD_DSTORE:
 			case ICMD_ASTORE:
-				c_var_modified[ip->op1] = 1;
+				ld->c_var_modified[ip->op1] = 1;
 				break;
 			}
 		}
 
-		d = c_dTable[node];
+		d = ld->c_dTable[node];
 		while (d != NULL) {					/* check all successors of block	*/
-			access += analyze_for_array_access(m, d->value);
+			access += analyze_for_array_access(m, ld, d->value);
 			d = d->next;
 			}
 
@@ -739,23 +744,25 @@ int analyze_for_array_access(methodinfo *m, int node)
 		return 0;
 }
 
+
 /*	This function scans the exception graph structure to find modifications of
 	array index variables of the current loop. If any modifications are found,
 	1 is returned, else 0.
 */
-int quick_scan(methodinfo *m, int node)
+
+int quick_scan(methodinfo *m, loopdata *ld, int node)
 {
 	basicblock bp;
 	instruction *ip;
 	int count, i;
 	struct LoopVar *lv;
 	struct depthElement *d;
-  
-	/*  printf("QS: %d - %d\n", node, c_exceptionVisit[node]);					*/
+ 
+	/*  printf("QS: %d - %d\n", node, ld->c_exceptionVisit[node]);					*/
    
 
-	if (c_exceptionVisit[node] > 0) {	/* node is part of exception graph		*/
-		c_exceptionVisit[node] = -1;
+	if (ld->c_exceptionVisit[node] > 0) {	/* node is part of exception graph		*/
+		ld->c_exceptionVisit[node] = -1;
 		
 		bp = m->basicblocks[node];				/* setup scan of all instructions		*/
 		ip = bp.iinstr;
@@ -766,7 +773,7 @@ int quick_scan(methodinfo *m, int node)
 			case ICMD_ISTORE:
 			case ICMD_IINC:				/* a variable is modified				*/
 	
-				lv = c_loopvars;		/* is it an array index var ?			*/
+				lv = ld->c_loopvars;		/* is it an array index var ?			*/
 				while (lv != NULL) {
 					if ((lv->index) && (lv->value == ip->op1))
 						return 1;		/* yes, so return 1						*/
@@ -776,9 +783,9 @@ int quick_scan(methodinfo *m, int node)
 				}
 			}
   
-	    d = c_exceptionGraph[node];		/* check all successor nodes			*/
+	    d = ld->c_exceptionGraph[node];		/* check all successor nodes			*/
 		while (d != NULL) {
-			if (quick_scan(m, d->value) > 0)
+			if (quick_scan(m, ld, d->value) > 0)
 				return 1;				/* if an access is found return 1		*/
 			d = d->next;
 			}
@@ -789,17 +796,19 @@ int quick_scan(methodinfo *m, int node)
 		return 0;
 }
 
+
 /*	This function returns 1, when the condition of the loop contains 
 	or statements or when an array index variable is modified in any
 	catch block within the loop.
 */
-int analyze_or_exceptions(methodinfo *m, int head, struct LoopContainer *lc)
+
+int analyze_or_exceptions(methodinfo *m, loopdata *ld, int head, struct LoopContainer *lc)
 {
 	struct depthElement *d;
 	int i, k, value, flag, count;
 	struct LoopElement *le;
 
-	d = c_dTable[head];
+	d = ld->c_dTable[head];
 	count = flag = 0;
 
 	/* analyze for or-statements												*/
@@ -828,7 +837,7 @@ int analyze_or_exceptions(methodinfo *m, int head, struct LoopContainer *lc)
 
 	if ((count > 1) && (flag == 0)){/* if all successors part of the loop, exit */
 #ifdef STATISTICS
-		c_stat_or++;
+		ld->c_stat_or++;
 #endif
 		return 0;
 		}
@@ -839,19 +848,19 @@ int analyze_or_exceptions(methodinfo *m, int head, struct LoopContainer *lc)
 	if (!m->exceptiontablelength)		/* when there are no exceptions, exit		*/
 		return 1;
 
-	if ((c_exceptionGraph = (struct depthElement **) malloc(sizeof(struct depthElement *) * m->basicblockcount)) == NULL)
+	if ((ld->c_exceptionGraph = (struct depthElement **) malloc(sizeof(struct depthElement *) * m->basicblockcount)) == NULL)
 		c_mem_error();
-	if ((c_exceptionVisit = (int *) malloc(sizeof(int) * m->basicblockcount)) == NULL)
+	if ((ld->c_exceptionVisit = (int *) malloc(sizeof(int) * m->basicblockcount)) == NULL)
 		c_mem_error();
 	
 	for (k=0; k<m->basicblockcount; ++k) {
-		c_exceptionVisit[k] = -1;
-		c_exceptionGraph[k] = NULL;
+		ld->c_exceptionVisit[k] = -1;
+		ld->c_exceptionGraph[k] = NULL;
 		}
 
 
 	/* for all nodes that start catch block check whether they are part of loop	*/
-	for (i = 0; i < c_old_xtablelength; i++) {	
+	for (i = 0; i < ld->c_old_xtablelength; i++) {	
 		value = m->basicblockindex[m->exceptiontable[i].startpc];
    
 		le = lc->nodes;
@@ -865,12 +874,12 @@ int analyze_or_exceptions(methodinfo *m, int head, struct LoopContainer *lc)
 
 				/* build a graph structure, that contains all nodes that are	*/
 				/* part of the catc block										*/
-				dF_Exception(m, -1, m->basicblockindex[m->exceptiontable[i].handlerpc]);
+				dF_Exception(m, ld, -1, m->basicblockindex[m->exceptiontable[i].handlerpc]);
 
 				/* if array index variables are modified there, return 0		*/
-				if (quick_scan(m, m->basicblockindex[m->exceptiontable[i].handlerpc]) > 0) {
+				if (quick_scan(m, ld, m->basicblockindex[m->exceptiontable[i].handlerpc]) > 0) {
 #ifdef STATISTICS
-					c_stat_exception++;
+					ld->c_stat_exception++;
 #endif
 					/* printf("C_INFO: loopVar modified in exception\n");		*/
 					return 0;
@@ -887,25 +896,29 @@ int analyze_or_exceptions(methodinfo *m, int head, struct LoopContainer *lc)
 	return 1;
 }
 
+
 /*	This function sets a flag in c_var_modified for all variables that have
 	been found as part of an assigment in the loop.
 */
-void scan_global_list()
+
+void scan_global_list(loopdata *ld)
 {
 	struct LoopVar *lv;
-	lv = c_loopvars;
+	lv = ld->c_loopvars;
 
 	while (lv != NULL) {
 		if (lv->modified)
-			c_var_modified[lv->value] = 1;
+			ld->c_var_modified[lv->value] = 1;
 		lv = lv->next;
 		}
 }
 
+
 /*	This function analyses the condition in the loop header and trys to find
 	out, whether some dynamic guarantees can be set up.
 */
-void init_constraints(methodinfo *m, int head)
+
+void init_constraints(methodinfo *m, loopdata *ld, int head)
 {
 	basicblock bp;
 	instruction *ip;
@@ -953,7 +966,7 @@ void init_constraints(methodinfo *m, int head)
 	l_mod = r_mod = 0;
 
 	if (left->type == TRACE_IVAR) {	/* is a loop variable on left side ?		*/
-		lv_left = c_loopvars;
+		lv_left = ld->c_loopvars;
 		while (lv_left != NULL) {
 			if (lv_left->value == left->var) {
 				l_mod = lv_left->modified;	/* yes, but has it been modified ?	*/	 
@@ -964,7 +977,7 @@ void init_constraints(methodinfo *m, int head)
 		}
 
 	if (right->type == TRACE_IVAR){	/* is a loop variable on right side ?		*/
-		lv_right = c_loopvars;
+		lv_right = ld->c_loopvars;
 		while (lv_right != NULL) {
 			if (lv_right->value == right->var) {
 				r_mod = lv_right->modified;	/* yes, but has it been modified ?	*/
@@ -975,7 +988,7 @@ void init_constraints(methodinfo *m, int head)
 		}
 
 	if ((l_mod - r_mod) == 0) {		/* both 1 or both 0 -> no dynamic contraints*/
-		c_rightside = NULL;			/* possible									*/
+		ld->c_rightside = NULL;			/* possible									*/
 		return;
 		}
 
@@ -991,7 +1004,7 @@ void init_constraints(methodinfo *m, int head)
 
 	/* make sure that right side's value does not change during loop execution	*/ 
 	if (right->type == TRACE_UNKNOWN) {
-		c_rightside = NULL;
+		ld->c_rightside = NULL;
 		return;
 		}
 
@@ -1086,22 +1099,23 @@ void init_constraints(methodinfo *m, int head)
 		printf("C_ERROR: debugging error 0x01\n");
 		}
 
-	c_rightside = right;
+	ld->c_rightside = right;
 
-	switch (c_rightside->type) {
+	switch (ld->c_rightside->type) {
 	case TRACE_ICONST:
-		c_rs_needed_instr = 1;
+		ld->c_rs_needed_instr = 1;
 		break;
 	case TRACE_ALENGTH:
-		c_rs_needed_instr = 2;
+		ld->c_rs_needed_instr = 2;
 		break;
 	case TRACE_IVAR:
-		c_rs_needed_instr = 3;
+		ld->c_rs_needed_instr = 3;
 		break;
 	default:
 		printf("C_ERROR: wrong right-side type\n");
 		}
 }
+
 
 /*	This function is needed to add and record new static tests (before loop
 	entry) of variables to make guaratees for index variables. type states
@@ -1109,14 +1123,15 @@ void init_constraints(methodinfo *m, int head)
 	against, varRef is the variable, that is testes and constant is the
 	constant value, that is tested.
 */
-void add_new_constraint(methodinfo *m, int type, int arrayRef, int varRef, int constant)
+
+void add_new_constraint(methodinfo *m, loopdata *ld, int type, int arrayRef, int varRef, int constant)
 {
 	struct Constraint *tc;
 
 	switch (type) {
 	case TEST_ZERO:					/* a variable is tested against a const		*/
 
-		tc = c_constraints[varRef];	/* does a test already exist for this var ?	*/
+		tc = ld->c_constraints[varRef];	/* does a test already exist for this var ?	*/
 		while (tc != NULL) {
 			if (tc->type == TEST_ZERO) {
 				if (constant < tc->constant)
@@ -1132,15 +1147,15 @@ void add_new_constraint(methodinfo *m, int type, int arrayRef, int varRef, int c
 		tc->type     = TEST_ZERO;
 		tc->varRef   = varRef;
 		tc->constant = constant;
-		tc->next     = c_constraints[varRef];
-		c_constraints[varRef] = tc;
-		c_needed_instr += 3;
+		tc->next     = ld->c_constraints[varRef];
+		ld->c_constraints[varRef] = tc;
+		ld->c_needed_instr += 3;
 
 		break;
 
 	case TEST_ALENGTH:				/* variable is tested against array length	*/
 
-		tc = c_constraints[varRef];	/* does a test already exist for this var ?	*/
+		tc = ld->c_constraints[varRef];	/* does a test already exist for this var ?	*/
 		while (tc != NULL) {
 			if ((tc->type == TEST_ALENGTH) && (tc->arrayRef == arrayRef)) {
 				if (constant > tc->constant)
@@ -1157,14 +1172,14 @@ void add_new_constraint(methodinfo *m, int type, int arrayRef, int varRef, int c
 		tc->arrayRef = arrayRef;
 		tc->varRef   = varRef;
 		tc->constant = constant;
-		tc->next     = c_constraints[varRef];
-		c_constraints[varRef] = tc;
-		c_needed_instr += 6;
+		tc->next     = ld->c_constraints[varRef];
+		ld->c_constraints[varRef] = tc;
+		ld->c_needed_instr += 6;
 
 		/* if arrayRef is not already tested against null, insert that test     */
-		if (!(c_null_check[arrayRef])) {
-			c_null_check[arrayRef] = 1;
-			c_needed_instr +=2;
+		if (!(ld->c_null_check[arrayRef])) {
+			ld->c_null_check[arrayRef] = 1;
+			ld->c_needed_instr +=2;
 		    }
 			
 		break;
@@ -1176,7 +1191,7 @@ void add_new_constraint(methodinfo *m, int type, int arrayRef, int varRef, int c
 	case TEST_CONST_ALENGTH:		/* a const is tested against array length	*/
 
 		/* does a test already exist for this array								*/
-		tc = c_constraints[m->maxlocals];
+		tc = ld->c_constraints[m->maxlocals];
 		while (tc != NULL) {
 			if ((tc->type == TEST_CONST_ALENGTH) && (tc->arrayRef == arrayRef)) {
 				if (constant > tc->constant)
@@ -1192,14 +1207,14 @@ void add_new_constraint(methodinfo *m, int type, int arrayRef, int varRef, int c
 		tc->type	 = TEST_CONST_ALENGTH;
 		tc->arrayRef = arrayRef;
 		tc->constant = constant;
-		tc->next     = c_constraints[m->maxlocals];
-		c_constraints[m->maxlocals] = tc;
-		c_needed_instr += 4;
+		tc->next     = ld->c_constraints[m->maxlocals];
+		ld->c_constraints[m->maxlocals] = tc;
+		ld->c_needed_instr += 4;
 
 		/* if arrayRef is not already tested against null, insert that test     */
-		if (!(c_null_check[arrayRef])) {
-			c_null_check[arrayRef] = 1;
-			c_needed_instr +=2;
+		if (!(ld->c_null_check[arrayRef])) {
+			ld->c_null_check[arrayRef] = 1;
+			ld->c_needed_instr +=2;
 		    }
 
 		break;
@@ -1207,7 +1222,7 @@ void add_new_constraint(methodinfo *m, int type, int arrayRef, int varRef, int c
 	case TEST_UNMOD_ZERO:			/* test unmodified var against constant		*/
 
 		/* search if test already exists										*/
-		tc = c_constraints[varRef];
+		tc = ld->c_constraints[varRef];
 		while (tc != NULL) {
 			if (tc->type == TEST_UNMOD_ZERO) {
 				if (constant < tc->constant)
@@ -1223,16 +1238,16 @@ void add_new_constraint(methodinfo *m, int type, int arrayRef, int varRef, int c
 		tc->type	 = TEST_UNMOD_ZERO;
 		tc->varRef   = varRef;
 		tc->constant = constant;
-		tc->next     = c_constraints[varRef];
-		c_constraints[varRef] = tc;
-		c_needed_instr += 3;
+		tc->next     = ld->c_constraints[varRef];
+		ld->c_constraints[varRef] = tc;
+		ld->c_needed_instr += 3;
 
 		break;
 	
 	case TEST_UNMOD_ALENGTH:		/* test unmodified var against array length	*/
 
 		/* search if test alreay exists											*/
-		tc = c_constraints[varRef];
+		tc = ld->c_constraints[varRef];
 		while (tc != NULL) {
 			if ((tc->type == TEST_UNMOD_ALENGTH) && (tc->arrayRef == arrayRef)) {
 				if (constant > tc->constant)
@@ -1249,14 +1264,14 @@ void add_new_constraint(methodinfo *m, int type, int arrayRef, int varRef, int c
 		tc->varRef   = varRef;
 		tc->arrayRef = arrayRef;
 		tc->constant = constant;
-		tc->next     = c_constraints[varRef];
-		c_constraints[varRef] = tc;
-		c_needed_instr += 6;
+		tc->next     = ld->c_constraints[varRef];
+		ld->c_constraints[varRef] = tc;
+		ld->c_needed_instr += 6;
 
 		/* if arrayRef is not already tested against null, insert that test     */
-		if (!(c_null_check[arrayRef])) {
-			c_null_check[arrayRef] = 1;
-			c_needed_instr +=2;
+		if (!(ld->c_null_check[arrayRef])) {
+			ld->c_null_check[arrayRef] = 1;
+			ld->c_needed_instr +=2;
 		    }
 
 		break;
@@ -1266,7 +1281,7 @@ void add_new_constraint(methodinfo *m, int type, int arrayRef, int varRef, int c
 									/* checks									*/
 		/*!! varRef -> maxlocals */
 		/* search if test already exists										*/
-		tc = c_constraints[m->maxlocals];
+		tc = ld->c_constraints[m->maxlocals];
 		while (tc != NULL) {
 			if (tc->type == TEST_RS_ZERO) {
 				if (constant < tc->constant)
@@ -1281,15 +1296,15 @@ void add_new_constraint(methodinfo *m, int type, int arrayRef, int varRef, int c
 			c_mem_error();
 		tc->type     = TEST_RS_ZERO;
 		tc->constant = constant;
-		tc->next     = c_constraints[m->maxlocals];
-		c_constraints[m->maxlocals] = tc;
-		c_needed_instr += (2 + c_rs_needed_instr);
+		tc->next     = ld->c_constraints[m->maxlocals];
+		ld->c_constraints[m->maxlocals] = tc;
+		ld->c_needed_instr += (2 + ld->c_rs_needed_instr);
 
 		/* if arrayRef on right side is not already tested against null,        */
 		/* insert that test                                                     */
-		if ((c_rightside->type == TRACE_ALENGTH) && (!(c_null_check[c_rightside->var]))) {
-			c_null_check[c_rightside->var] = 1;
-			c_needed_instr +=2;
+		if ((ld->c_rightside->type == TRACE_ALENGTH) && (!(ld->c_null_check[ld->c_rightside->var]))) {
+			ld->c_null_check[ld->c_rightside->var] = 1;
+			ld->c_needed_instr +=2;
 		    }
 
 		break;
@@ -1299,7 +1314,7 @@ void add_new_constraint(methodinfo *m, int type, int arrayRef, int varRef, int c
 									/* checks									*/
 		/*!! varRef -> maxlocals */
 		/* search if test already exists										*/
-		tc = c_constraints[m->maxlocals];
+		tc = ld->c_constraints[m->maxlocals];
 		while (tc != NULL)
 		{
 			if ((tc->type == TEST_RS_ALENGTH) && (tc->arrayRef == arrayRef))
@@ -1317,32 +1332,34 @@ void add_new_constraint(methodinfo *m, int type, int arrayRef, int varRef, int c
 		tc->type	 = TEST_RS_ALENGTH;
 		tc->arrayRef = arrayRef;
 		tc->constant = constant;
-		tc->next     = c_constraints[m->maxlocals];
-		c_constraints[m->maxlocals] = tc;
-		c_needed_instr += (3 + c_rs_needed_instr);
+		tc->next     = ld->c_constraints[m->maxlocals];
+		ld->c_constraints[m->maxlocals] = tc;
+		ld->c_needed_instr += (3 + ld->c_rs_needed_instr);
 
 		/* if arrayRef is not already tested against null, insert that test     */
-		if (!(c_null_check[arrayRef])) {
-			c_null_check[arrayRef] = 1;
-			c_needed_instr +=2;
+		if (!(ld->c_null_check[arrayRef])) {
+			ld->c_null_check[arrayRef] = 1;
+			ld->c_needed_instr +=2;
 		    }
 
 		/* if arrayRef on right side is not already tested against null,        */
 		/* insert that test                                                     */
-		if ((c_rightside->type == TRACE_ALENGTH) && (!(c_null_check[c_rightside->var]))) {
-			c_null_check[c_rightside->var] = 1;
-			c_needed_instr +=2;
+		if ((ld->c_rightside->type == TRACE_ALENGTH) && (!(ld->c_null_check[ld->c_rightside->var]))) {
+			ld->c_null_check[ld->c_rightside->var] = 1;
+			ld->c_needed_instr +=2;
 		    }
 		break;
 
 	}
 }
 
+
 /*	This functions adds new static (before loop enry) tests of variables to the
 	program to be able to guarantee certain values for index variables in array
 	access (to safely remove bound checks).
 */
-int insert_static(methodinfo *m, int arrayRef, struct Trace *index, struct Changes *varChanges, int special)
+
+int insert_static(methodinfo *m, loopdata *ld, int arrayRef, struct Trace *index, struct Changes *varChanges, int special)
 {
 	struct LoopVar *lv;
 	int varRef;
@@ -1363,7 +1380,7 @@ int insert_static(methodinfo *m, int arrayRef, struct Trace *index, struct Chang
 	case TRACE_IVAR:					/* it is a variable						*/
 		if (index->neg < 0) {			/* if it's a negated var, return		*/
 #ifdef STATISTICS
-			c_stat_no_opt++;			
+			ld->c_stat_no_opt++;			
 #endif
 			return OPT_NONE;
 			}
@@ -1371,9 +1388,9 @@ int insert_static(methodinfo *m, int arrayRef, struct Trace *index, struct Chang
 		varRef = index->var;
 		high = low = 0;
 
-		if (c_var_modified[varRef])	{	/* volatile var							*/
+		if (ld->c_var_modified[varRef])	{	/* volatile var							*/
 			
-			lv = c_loopvars;			/* get reference to loop variable		*/
+			lv = ld->c_loopvars;			/* get reference to loop variable		*/
 
 			while ((lv != NULL) && (lv->value != varRef))
 				lv = lv->next;
@@ -1388,16 +1405,16 @@ int insert_static(methodinfo *m, int arrayRef, struct Trace *index, struct Chang
 				/* the var is never decremented, so we add a static test againt	*/
 				/* constant														*/
 				if (varChanges->lower_bound > varChanges->upper_bound)
-					add_new_constraint(m, TEST_ZERO, arrayRef, varRef, index->constant);
+					add_new_constraint(m, ld, TEST_ZERO, arrayRef, varRef, index->constant);
 				else
-					add_new_constraint(m, TEST_ZERO, arrayRef, varRef, varChanges->lower_bound+index->constant);
+					add_new_constraint(m, ld, TEST_ZERO, arrayRef, varRef, varChanges->lower_bound+index->constant);
 				low = 1;
 				}
 			else if ((lv->dynamic_l_v) && (!special)) {
 				/* the variable is decremented, but it is checked against a		*/
 				/* bound in the loop condition									*/
 				if (varChanges->lower_bound <= varChanges->upper_bound) {
-					add_new_constraint(m, TEST_RS_ZERO, arrayRef, varRef, varChanges->lower_bound+index->constant+lv->dynamic_l);
+					add_new_constraint(m, ld, TEST_RS_ZERO, arrayRef, varRef, varChanges->lower_bound+index->constant+lv->dynamic_l);
 					low = 1;
 					}
 				}
@@ -1406,23 +1423,23 @@ int insert_static(methodinfo *m, int arrayRef, struct Trace *index, struct Chang
 				/* the var is never incremented, so we add a static test againt	*/
 				/* constant														*/
 				if (varChanges->lower_bound > varChanges->upper_bound)
-					add_new_constraint(m, TEST_ALENGTH, arrayRef, varRef, index->constant);
+					add_new_constraint(m, ld, TEST_ALENGTH, arrayRef, varRef, index->constant);
 				else
-					add_new_constraint(m, TEST_ALENGTH, arrayRef, varRef, varChanges->upper_bound+index->constant);
+					add_new_constraint(m, ld, TEST_ALENGTH, arrayRef, varRef, varChanges->upper_bound+index->constant);
 				high = 1;
 				}
 			else if ((lv->dynamic_u_v) &&  (!special)) {
 				/* the variable is decremented, but it is checked against a		*/
 				/* bound in the loop condition									*/
 				if (varChanges->lower_bound <= varChanges->upper_bound) {
-					add_new_constraint(m, TEST_RS_ALENGTH, arrayRef, varRef, varChanges->upper_bound+index->constant+lv->dynamic_u);
+					add_new_constraint(m, ld, TEST_RS_ALENGTH, arrayRef, varRef, varChanges->upper_bound+index->constant+lv->dynamic_u);
 					high = 1;
 					}
 				}
 			}
 		else {							/* the var is never modified at all		*/
-			add_new_constraint(m, TEST_UNMOD_ZERO, arrayRef, index->var, index->constant);
-			add_new_constraint(m, TEST_UNMOD_ALENGTH, arrayRef, index->var, index->constant);
+			add_new_constraint(m, ld, TEST_UNMOD_ZERO, arrayRef, index->var, index->constant);
+			add_new_constraint(m, ld, TEST_UNMOD_ALENGTH, arrayRef, index->var, index->constant);
 			low = high = 1;
 			}
 		
@@ -1431,28 +1448,28 @@ int insert_static(methodinfo *m, int arrayRef, struct Trace *index, struct Chang
 		if ((high > 0) && (low > 0)) {
 			/* printf("fully optimzed\n");										*/
 #ifdef STATISTICS
-			c_stat_full_opt++;			
+			ld->c_stat_full_opt++;			
 #endif
 			return OPT_FULL;
 			}
 		else if (high > 0) {
 			/* printf("upper optimzed\n");										*/
 #ifdef STATISTICS
-			c_stat_upper_opt++;			
+			ld->c_stat_upper_opt++;			
 #endif
 			return OPT_UPPER;
 			}
 		else if (low > 0) {
 			/* printf("lower optimzed\n");										*/
 #ifdef STATISTICS
-			c_stat_lower_opt++;			
+			ld->c_stat_lower_opt++;			
 #endif
 			return OPT_LOWER;
 			}
 		else {
 			/* printf("not optimzed\n");										*/
 #ifdef STATISTICS
-			c_stat_no_opt++;			
+			ld->c_stat_no_opt++;			
 #endif
 			return OPT_NONE;
 			}
@@ -1461,14 +1478,14 @@ int insert_static(methodinfo *m, int arrayRef, struct Trace *index, struct Chang
 	case TRACE_ICONST:			/* if it is a constant, optimization is easy	*/
 		if (index->constant < 0) {
 #ifdef STATISTICS
-			c_stat_no_opt++;			
+			ld->c_stat_no_opt++;			
 #endif
 			return OPT_NONE;	/* negative index -> bad						*/
 			}
 		else {
-			add_new_constraint(m, TEST_CONST_ALENGTH, arrayRef, 0, index->constant);
+			add_new_constraint(m, ld, TEST_CONST_ALENGTH, arrayRef, 0, index->constant);
 #ifdef STATISTICS
-			c_stat_full_opt++;			
+			ld->c_stat_full_opt++;			
 #endif
 			return OPT_FULL;	/* else just test constant against array length	*/
 			}
@@ -1478,7 +1495,7 @@ int insert_static(methodinfo *m, int arrayRef, struct Trace *index, struct Chang
 	case TRACE_UNKNOWN: 
 	case TRACE_AVAR:    
 #ifdef STATISTICS
-		c_stat_no_opt++;			
+		ld->c_stat_no_opt++;			
 #endif
 		return OPT_NONE;
 	}
@@ -1674,10 +1691,10 @@ stackptr copy_stack_from(stackptr source) {
 /* fisrt, the reference must be loaded, then a null-pointer check is inserted   */
 /* if not already done earlier. Finally an arraylength instruction is added     */
 #define LOAD_ARRAYLENGTH(a) { \
-    if (c_null_check[a]) { \
+    if (ld->c_null_check[a]) { \
 		LOAD_ADDR(a); \
 		GOTO_NOOPT_IF_NULL; \
-		c_null_check[a] = 0; \
+		ld->c_null_check[a] = 0; \
 	    }  \
 	LOAD_ADDR(a); \
     inst->opc = ICMD_ARRAYLENGTH; \
@@ -1700,17 +1717,17 @@ stackptr copy_stack_from(stackptr source) {
 /* Depending of the type of the right side, the apropriate instructions are     */
 /* created.                                                                     */
 #define LOAD_RIGHT_SIDE { \
-	switch (c_rightside->type) { \
+	switch (ld->c_rightside->type) { \
 	case TRACE_ICONST: \
-		LOAD_CONST(c_rightside->constant); \
+		LOAD_CONST(ld->c_rightside->constant); \
 		break; \
 	case TRACE_IVAR: \
-		LOAD_VAR(c_rightside->var); \
-		LOAD_CONST(c_rightside->constant); \
+		LOAD_VAR(ld->c_rightside->var); \
+		LOAD_CONST(ld->c_rightside->constant); \
 		ADD; \
 		break; \
 	case TRACE_ALENGTH: \
-		LOAD_ARRAYLENGTH(c_rightside->var); \
+		LOAD_ARRAYLENGTH(ld->c_rightside->var); \
 		break; \
 	default: \
 		panic("C_ERROR: illegal trace on rightside of loop-header"); \
@@ -2001,10 +2018,12 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 		}
 }
 
+
 /*	Add the new header node of a loop that has been duplicated to all parent 
     loops in nesting hierarchie.
 */
-void header_into_parent_loops(struct LoopContainer *lc, basicblock *to_insert, basicblock *replace, basicblock *after)
+
+void header_into_parent_loops(loopdata *ld, struct LoopContainer *lc, basicblock *to_insert, basicblock *replace, basicblock *after)
 {
 	/* we have to insert the node to_insert before the node after and replace   */
 	/* the pointer of to_insert by the node replace                             */
@@ -2012,7 +2031,7 @@ void header_into_parent_loops(struct LoopContainer *lc, basicblock *to_insert, b
 	struct LoopElement *le, *t;
 
 	/* if the top of the tree is reached, then return                           */
-	if ((lc == NULL) || (lc == root))
+	if ((lc == NULL) || (lc == ld->root))
 		return;
 
 	/* create new node, that should be inserted                                 */
@@ -2046,22 +2065,24 @@ void header_into_parent_loops(struct LoopContainer *lc, basicblock *to_insert, b
 	    }
 
 	/* go up one hierarchie level                                               */
-	header_into_parent_loops(lc->parent, to_insert, replace, after);
+	header_into_parent_loops(ld, lc->parent, to_insert, replace, after);
 }
+
 
 /*	Add a new node (not header) of a duplicated loop to all parent loops in 
     nesting hierarchie
 */
-void node_into_parent_loops(struct LoopContainer *lc, basicblock *to_insert)
+
+void node_into_parent_loops(loopdata *ld, struct LoopContainer *lc, basicblock *to_insert)
 {
 	struct LoopElement *le, *t;
 
 	/* if the top of the tree is reached, then return                           */
-	if ((lc == NULL) || (lc == root))
+	if ((lc == NULL) || (lc == ld->root))
 		return;
 
 	/* create new node, that should be inserted                                 */
-	t = DMNEW(struct LoopElement, 1);
+	t = DNEW(LoopElement);
 	t->block = to_insert;
 	t->node = -1;
 
@@ -2075,7 +2096,7 @@ void node_into_parent_loops(struct LoopContainer *lc, basicblock *to_insert)
 	le->next = t;
 
 	/* go up one hierarchie level                                               */
-	node_into_parent_loops(NULL, to_insert);
+	node_into_parent_loops(ld, NULL, to_insert);
 }
 
 
@@ -2084,6 +2105,7 @@ void node_into_parent_loops(struct LoopContainer *lc, basicblock *to_insert)
    to redirect internal jumps inside the exception handler to the newly
    created (copied) nodes.
 */
+
 void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *original_head, basicblock *new_head)
 {
 	instruction *ip;
@@ -2247,11 +2269,15 @@ void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origi
 }
 
 
-/* This function copys the exception handler and redirects all jumps from the
+/* copy_handler ****************************************************************
+
+   This function copys the exception handler and redirects all jumps from the
    original head to the new head in the original exception handler. All
    redirection in the copied exception handler is done in patch_handler(...).
-*/
-void copy_handler(methodinfo *m, struct LoopContainer *lc, basicblock *bptr, basicblock *original_head, basicblock *new_head)
+
+*******************************************************************************/
+
+void copy_handler(methodinfo *m, loopdata *ld, struct LoopContainer *lc, basicblock *bptr, basicblock *original_head, basicblock *new_head)
 {
 	instruction *ip;
 	s4 *s4ptr;
@@ -2260,11 +2286,11 @@ void copy_handler(methodinfo *m, struct LoopContainer *lc, basicblock *bptr, bas
 	struct LoopElement *le;
 	basicblock *new, *temp;
 
-	/* If this node has already been copied, return                             */
+	/* If this node has already been copied, return                           */
 	if (bptr->lflags & HANDLER_PART)
 		return;
 
-	/* The exception handler exists, when control flow enters loop again        */
+	/* The exception handler exists, when control flow enters loop again      */
 
 	if (bptr->lflags & LOOP_PART)
 		return;
@@ -2275,24 +2301,24 @@ void copy_handler(methodinfo *m, struct LoopContainer *lc, basicblock *bptr, bas
             }
 	    }
 
-	/* mark block as part of handler                                            */
+	/* mark block as part of handler                                          */
 	bptr->lflags |= HANDLER_PART;
 
-	/* copy node                                                                */
+	/* copy node                                                              */
 	new = DMNEW(basicblock, 1);    
 	memcpy(new, bptr, sizeof(basicblock));
-	new->debug_nr = c_debug_nr++;
+	new->debug_nr = m->c_debug_nr++;
 
-	c_last_block_copied = new;
+	ld->c_last_block_copied = new;
 
-	/* copy instructions and allow one more slot for possible GOTO              */
+	/* copy instructions and allow one more slot for possible GOTO            */
 	new->iinstr = DMNEW(instruction, bptr->icount + 1);
-	memcpy(new->iinstr, bptr->iinstr, bptr->icount*sizeof(instruction));
+	memcpy(new->iinstr, bptr->iinstr, bptr->icount * sizeof(instruction));
 
-	/* update original block                                                    */
+	/* update original block                                                  */
 	bptr->copied_to = new;
 
-	/* append block to global list of basic blocks                              */
+	/* append block to global list of basic blocks                            */
 	temp = m->basicblocks;
 
 	while (temp->next)
@@ -2304,129 +2330,128 @@ void copy_handler(methodinfo *m, struct LoopContainer *lc, basicblock *bptr, bas
 
 	/* find next block to copy, depending on last instruction of BB             */
 	if (bptr->icount == 0) {
-		copy_handler(m, lc, bptr->next, original_head, new_head);
+		copy_handler(m, ld, lc, bptr->next, original_head, new_head);
 		return;
-	    }
+	}
 
 	ip = bptr->iinstr + (bptr->icount - 1);
 	
-		switch (ip->opc) {
-		case ICMD_RETURN:
-		case ICMD_IRETURN:
-		case ICMD_LRETURN:
-		case ICMD_FRETURN:
-		case ICMD_DRETURN:
-		case ICMD_ARETURN:
-		case ICMD_ATHROW:
-			break;                                 
+	switch (ip->opc) {
+	case ICMD_RETURN:
+	case ICMD_IRETURN:
+	case ICMD_LRETURN:
+	case ICMD_FRETURN:
+	case ICMD_DRETURN:
+	case ICMD_ARETURN:
+	case ICMD_ATHROW:
+		break;                                 
 		
-		case ICMD_IFEQ:
-		case ICMD_IFNE:
-		case ICMD_IFLT:
-		case ICMD_IFGE:
-		case ICMD_IFGT:
-		case ICMD_IFLE:
+	case ICMD_IFEQ:
+	case ICMD_IFNE:
+	case ICMD_IFLT:
+	case ICMD_IFGE:
+	case ICMD_IFGT:
+	case ICMD_IFLE:
 			
-		case ICMD_IF_LCMPEQ:
-		case ICMD_IF_LCMPLT:
-		case ICMD_IF_LCMPLE:
-		case ICMD_IF_LCMPNE:
-		case ICMD_IF_LCMPGT:
-		case ICMD_IF_LCMPGE:
+	case ICMD_IF_LCMPEQ:
+	case ICMD_IF_LCMPLT:
+	case ICMD_IF_LCMPLE:
+	case ICMD_IF_LCMPNE:
+	case ICMD_IF_LCMPGT:
+	case ICMD_IF_LCMPGE:
 			
-		case ICMD_IF_LEQ:
-		case ICMD_IF_LNE:
-		case ICMD_IF_LLT:
-		case ICMD_IF_LGE:
-		case ICMD_IF_LGT:
-		case ICMD_IF_LLE:
+	case ICMD_IF_LEQ:
+	case ICMD_IF_LNE:
+	case ICMD_IF_LLT:
+	case ICMD_IF_LGE:
+	case ICMD_IF_LGT:
+	case ICMD_IF_LLE:
 			
-		case ICMD_IFNULL:
-		case ICMD_IFNONNULL:
+	case ICMD_IFNULL:
+	case ICMD_IFNONNULL:
 			
-		case ICMD_IF_ICMPEQ:
-		case ICMD_IF_ICMPNE:
-		case ICMD_IF_ICMPLT:
-		case ICMD_IF_ICMPGE:
-		case ICMD_IF_ICMPGT:
-		case ICMD_IF_ICMPLE:
-		case ICMD_IF_ACMPEQ:
-		case ICMD_IF_ACMPNE:
-			copy_handler(m, lc, bptr->next, original_head, new_head);
-			/* fall through */
+	case ICMD_IF_ICMPEQ:
+	case ICMD_IF_ICMPNE:
+	case ICMD_IF_ICMPLT:
+	case ICMD_IF_ICMPGE:
+	case ICMD_IF_ICMPGT:
+	case ICMD_IF_ICMPLE:
+	case ICMD_IF_ACMPEQ:
+	case ICMD_IF_ACMPNE:
+		copy_handler(m, ld, lc, bptr->next, original_head, new_head);
+		/* fall through */
 	  
-		case ICMD_GOTO:
+	case ICMD_GOTO:
 
-			/* redirect jump from original_head to new_head                    */
-			if ((basicblock *) ip->target == original_head)
-				ip->target = (void *) new_head;
+		/* redirect jump from original_head to new_head                    */
+		if ((basicblock *) ip->target == original_head)
+			ip->target = (void *) new_head;
 				
-			copy_handler(m, lc, (basicblock *) (ip->target), original_head, new_head);
+		copy_handler(m, ld, lc, (basicblock *) (ip->target), original_head, new_head);
 			
-			break;
+		break;
 	  
-		case ICMD_TABLESWITCH:
-			s4ptr = ip->val.a;
-			tptr = (void **) ip->target;
+	case ICMD_TABLESWITCH:
+		s4ptr = ip->val.a;
+		tptr = (void **) ip->target;
 			
-			/* default branch */
+		/* default branch */
+		if (((basicblock *) *tptr) == original_head)
+			tptr[0] = (void *) new_head;
+			
+		copy_handler(m, ld, lc, (basicblock *) *tptr, original_head, new_head);
+			
+		s4ptr++;
+		low = *s4ptr;
+		s4ptr++;
+		high = *s4ptr;
+			
+		count = (high-low+1);
+			
+		while (--count >= 0) {
+			tptr++;
+			/* redirect jump from original_head to new_head                 */
 			if (((basicblock *) *tptr) == original_head)
 				tptr[0] = (void *) new_head;
-			
-			copy_handler(m, lc, (basicblock *) *tptr, original_head, new_head);
-			
-			s4ptr++;
-			low = *s4ptr;
-			s4ptr++;
-			high = *s4ptr;
-			
-			count = (high-low+1);
-			
-			while (--count >= 0) {
-				tptr++;
-				/* redirect jump from original_head to new_head                 */
-				if (((basicblock *) *tptr) == original_head)
-					tptr[0] = (void *) new_head;
-				copy_handler(m, lc, (basicblock *) *tptr, original_head, new_head);
- 		        }
-			break;
+			copy_handler(m, ld, lc, (basicblock *) *tptr, original_head, new_head);
+		}
+		break;
 
-		case ICMD_LOOKUPSWITCH:
-			s4ptr = ip->val.a;
-			tptr = (void **) ip->target;
+	case ICMD_LOOKUPSWITCH:
+		s4ptr = ip->val.a;
+		tptr = (void **) ip->target;
 			
-			/* default branch */
+		/* default branch */
+		if (((basicblock *) *tptr) == original_head)
+			tptr[0] = (void *) new_head;
+			
+		copy_handler(m, ld, lc, (basicblock *) *tptr, original_head, new_head);
+			
+		++s4ptr;
+		count = *s4ptr;
+			
+		while (--count >= 0) {
+			++tptr;
+			/* redirect jump from original_head to new_head                 */
 			if (((basicblock *) *tptr) == original_head)
 				tptr[0] = (void *) new_head;
-			
-			copy_handler(m, lc, (basicblock *) *tptr, original_head, new_head);
-			
-			++s4ptr;
-			count = *s4ptr;
-			
-			while (--count >= 0) {
-				++tptr;
-				/* redirect jump from original_head to new_head                 */
-				if (((basicblock *) *tptr) == original_head)
-					tptr[0] = (void *) new_head;
-				copy_handler(m, lc, (basicblock *) *tptr, original_head, new_head);
-		        }  
-			break;
+			copy_handler(m, ld, lc, (basicblock *) *tptr, original_head, new_head);
+		}  
+		break;
 
-		case ICMD_JSR:
-			c_last_target = bptr;
-			copy_handler(m, lc, (basicblock *) (ip->target), original_head, new_head);         
-			break;
+	case ICMD_JSR:
+		ld->c_last_target = bptr;
+		copy_handler(m, ld, lc, (basicblock *) (ip->target), original_head, new_head);         
+		break;
 			
-		case ICMD_RET:
-			copy_handler(m, lc, c_last_target->next, original_head, new_head);
-			break;
+	case ICMD_RET:
+		copy_handler(m, ld, lc, ld->c_last_target->next, original_head, new_head);
+		break;
 			
-		default:
-			copy_handler(m, lc, bptr->next, original_head, new_head);
-			break;	
-		    } 
-	    
+	default:
+		copy_handler(m, ld, lc, bptr->next, original_head, new_head);
+		break;	
+	} 
 }           
 
 
@@ -2434,7 +2459,8 @@ void copy_handler(methodinfo *m, struct LoopContainer *lc, basicblock *bptr, bas
    have to be duplicated as well. The following function together with the
    two helper functions copy_handler and patch_handler perform this task.
 */
-void update_internal_exceptions(methodinfo *m, struct LoopContainer *lc, basicblock *original_head, basicblock *new_head)
+
+void update_internal_exceptions(methodinfo *m, loopdata *ld, struct LoopContainer *lc, basicblock *original_head, basicblock *new_head)
 {
 	exceptiontable *ex, *new;
 	struct LoopContainer *l;
@@ -2446,7 +2472,7 @@ void update_internal_exceptions(methodinfo *m, struct LoopContainer *lc, basicbl
 	/* Call update_internal for all nested (=child) loops                       */
 	l = lc->tree_down;
 	while (l != NULL) {
-		update_internal_exceptions(m, l, original_head, new_head);
+		update_internal_exceptions(m, ld, l, original_head, new_head);
 		l = l->tree_right;
 	    }
 
@@ -2455,7 +2481,7 @@ void update_internal_exceptions(methodinfo *m, struct LoopContainer *lc, basicbl
 	while (ex != NULL) {
 		
 		/* Copy the exception and patch the jumps                               */
-		copy_handler(m, lc, ex->handler, original_head, new_head);
+		copy_handler(m, ld, lc, ex->handler, original_head, new_head);
 		patch_handler(lc, ex->handler, original_head, new_head);		
 
 		/* Insert a new exception into the global exception table               */
@@ -2480,12 +2506,14 @@ void update_internal_exceptions(methodinfo *m, struct LoopContainer *lc, basicbl
 
 }
 
+
 /* If a loop is duplicated, all exceptions that contain this loop have to be
    extended to the copied nodes as well. The following function checks for
    all exceptions of all parent loops, whether they contain the loop pointed to
    by lc. If so, the exceptions are extended to contain all newly created nodes.
 */
-void update_external_exceptions(methodinfo *m, struct LoopContainer *lc, int loop_head)
+
+void update_external_exceptions(methodinfo *m, loopdata *ld, struct LoopContainer *lc, int loop_head)
 {
 	exceptiontable *ex, *new;
 
@@ -2515,8 +2543,8 @@ void update_external_exceptions(methodinfo *m, struct LoopContainer *lc, int loo
 			ex->down = new;
 
 			/* Set new start and end point of this exception                    */
-			new->start = c_first_block_copied;
-			new->end = c_last_block_copied;
+			new->start = ld->c_first_block_copied;
+			new->end = ld->c_last_block_copied;
 
 			ex = new->next;
 	        }
@@ -2526,15 +2554,15 @@ void update_external_exceptions(methodinfo *m, struct LoopContainer *lc, int loo
 	    }
 
 	/* Call update_external for parent node                                     */
-	update_external_exceptions(m, lc->parent, loop_head);
+	update_external_exceptions(m, ld, lc->parent, loop_head);
 }
 	
-
 
 /*	This function is needed to insert the static checks, stored in c_constraints
 	into the intermediate code.
 */
-void create_static_checks(methodinfo *m, struct LoopContainer *lc)
+
+void create_static_checks(methodinfo *m, loopdata *ld, struct LoopContainer *lc)
 {
 	int i, stackdepth, cnt;
 	struct Constraint *tc1;
@@ -2551,11 +2579,11 @@ void create_static_checks(methodinfo *m, struct LoopContainer *lc)
 	exceptiontable *ex;
 
 #ifdef STATISTICS
-	/* show_loop_statistics(); */ 
+	/* show_loop_statistics(l); */ 
 #endif
 
-	loop_head = &m->basicblocks[c_current_head];
-	c_first_block_copied = c_last_block_copied = NULL;
+	loop_head = &m->basicblocks[ld->c_current_head];
+	ld->c_first_block_copied = ld->c_last_block_copied = NULL;
 
 	/* the loop nodes are copied                                                */
 	le = lc->nodes;
@@ -2563,12 +2591,12 @@ void create_static_checks(methodinfo *m, struct LoopContainer *lc)
 	{
 		bptr = DMNEW(basicblock, 1);    
 		memcpy(bptr, le->block, sizeof(basicblock));
-		bptr->debug_nr = c_debug_nr++;
+		bptr->debug_nr = m->c_debug_nr++;
 
 		/* determine beginning of copied loop to extend exception handler, that */
 		/* protect this loop                                                    */
-		if (c_first_block_copied == NULL)
-			c_first_block_copied = bptr;
+		if (ld->c_first_block_copied == NULL)
+			ld->c_first_block_copied = bptr;
 
 		/* copy instructions and add one more slot for possible GOTO            */
 		bptr->iinstr = DMNEW(instruction, bptr->icount + 1);
@@ -2586,18 +2614,18 @@ void create_static_checks(methodinfo *m, struct LoopContainer *lc)
 		temp->next = bptr;
 		bptr->next = NULL;
 
-		node_into_parent_loops(lc->parent, bptr);
+		node_into_parent_loops(ld, lc->parent, bptr);
 		le = le->next;
 	}
 
-	c_last_block_copied = bptr;
+	ld->c_last_block_copied = bptr;
 
 	/* create an additional basicblock for dynamic checks                       */
 	original_start = bptr = DMNEW(basicblock, 1);    
 
 	/* copy current loop header to new basic block                              */
 	memcpy(bptr, loop_head, sizeof(basicblock));
-    bptr->debug_nr = c_debug_nr++;
+    bptr->debug_nr = m->c_debug_nr++;
 
 	/* insert the new basic block and move header before first loop node        */
 	le = lc->nodes;
@@ -2639,14 +2667,14 @@ void create_static_checks(methodinfo *m, struct LoopContainer *lc)
 		/* if first loop block is first BB of global list, insert loop_head at  */
 		/* beginning of global BB list                                          */
 		if (temp == le->block) {
-			if (c_newstart == NULL) {
-				c_needs_redirection = true;
-				c_newstart = loop_head;
+			if (ld->c_newstart == NULL) {
+				ld->c_needs_redirection = true;
+				ld->c_newstart = loop_head;
 				loop_head->next = m->basicblocks;
 		 	    }
 			else {
-				loop_head->next = c_newstart;
-				c_newstart = loop_head;
+				loop_head->next = ld->c_newstart;
+				ld->c_newstart = loop_head;
 			    }
 		    }
 		else {
@@ -2707,14 +2735,14 @@ void create_static_checks(methodinfo *m, struct LoopContainer *lc)
 	
 
 	/* insert new header node into nodelists of all enclosing loops             */
-	header_into_parent_loops(lc, loop_head, original_start, le->block);
+	header_into_parent_loops(ld, lc, loop_head, original_start, le->block);
 
 	/* prepare instruction array to insert checks                               */
-	inst = loop_head->iinstr = DMNEW(instruction, c_needed_instr + 2); 
-	loop_head->icount = c_needed_instr + 1;
+	inst = loop_head->iinstr = DMNEW(instruction, ld->c_needed_instr + 2); 
+	loop_head->icount = ld->c_needed_instr + 1;
 
 	/* init instruction array                                                   */
-	for (cnt=0; cnt<c_needed_instr + 1; ++cnt) {
+	for (cnt=0; cnt<ld->c_needed_instr + 1; ++cnt) {
 		inst[0].opc = ICMD_NOP;
 		inst[0].dst = NULL;
 	    }
@@ -2731,7 +2759,7 @@ void create_static_checks(methodinfo *m, struct LoopContainer *lc)
 	/* step through all inserted checks and create instructions for them        */
 	for (i=0; i<m->maxlocals+1; ++i)
 	{
-		tc1 = c_constraints[i];
+		tc1 = ld->c_constraints[i];
 		while (tc1 != NULL)
 		{
 			switch (tc1->type)
@@ -2814,7 +2842,7 @@ void create_static_checks(methodinfo *m, struct LoopContainer *lc)
 			
 			tc1 = tc1->next;
 		}
-		c_constraints[i] = NULL;
+		ld->c_constraints[i] = NULL;
 	}
    
 	/* if all tests succeed, jump to optimized loop header                      */
@@ -2829,8 +2857,8 @@ void create_static_checks(methodinfo *m, struct LoopContainer *lc)
 
 	/* if exceptions have to be correct due to loop duplication these two       */
 	/* functions perform this task.                                             */
-	update_internal_exceptions(m, lc, loop_head, original_start);
-	update_external_exceptions(m, lc->parent, lc->loop_head);
+	update_internal_exceptions(m, ld, lc, loop_head, original_start);
+	update_external_exceptions(m, ld, lc->parent, lc->loop_head);
 }
 
 
@@ -3030,13 +3058,15 @@ struct Changes* backtrack_var(methodinfo *m, int node, int from, int to, int var
 	return tmp;
 }
 
+
 /*	This function performs the main task of bound check removal. It removes
 	all bound-checks in node. change is a pointer to an array of struct Changes
 	that reflect for all local variables, how their values have changed from
 	the start of the loop. The special flag is needed to deal with the header
 	node.
 */
-void remove_boundchecks(methodinfo *m, int node, int from, struct Changes **change, int special)
+
+void remove_boundchecks(methodinfo *m, loopdata *ld, int node, int from, struct Changes **change, int special)
 {
 	basicblock bp;
 	instruction *ip;
@@ -3050,14 +3080,14 @@ void remove_boundchecks(methodinfo *m, int node, int from, struct Changes **chan
 	/* a flag, that is set, when previous optimzations have to be taken back	*/
 	degrade_checks = 0;			
 
-	if (c_current_loop[node] > 0) {		/* this node is part of the loop		*/
-		if (c_current_loop[node] > 1) {	/* it is not the header node			*/
+	if (ld->c_current_loop[node] > 0) {		/* this node is part of the loop		*/
+		if (ld->c_current_loop[node] > 1) {	/* it is not the header node			*/
 
 			/* get variable changes, already recorded for this node				*/
-			t1 = c_dTable[node]->changes;
+			t1 = ld->c_dTable[node]->changes;
 			
 			if (t1 != NULL)	{			/* it is not the first visit			*/
-				if ((c_nestedLoops[node] != c_current_head) && (c_nestedLoops[node] == c_nestedLoops[from])) {
+				if ((ld->c_nestedLoops[node] != ld->c_current_head) && (ld->c_nestedLoops[node] == ld->c_nestedLoops[from])) {
 				/* we are looping in a nested loop, so made optimizations		*/
 				/* need to be reconsidered										*/
 					degrade_checks = 1;
@@ -3075,11 +3105,11 @@ void remove_boundchecks(methodinfo *m, int node, int from, struct Changes **chan
 				}
 			else {						/* first visit							*/
 				/* printf("first visit - constraints cloned\n");				*/
-				c_dTable[node]->changes = constraints_clone(m, change);
+				ld->c_dTable[node]->changes = constraints_clone(m, change);
 				}
 
 			/* tmp now holds a copy of the updated variable changes				*/
-			tmp = constraints_clone(m, c_dTable[node]->changes);	
+			tmp = constraints_clone(m, ld->c_dTable[node]->changes);	
 			}
 		else if (special) {				/* header and need special traetment	*/
 			/* printf("special treatment called\n");							*/
@@ -3133,14 +3163,14 @@ void remove_boundchecks(methodinfo *m, int node, int from, struct Changes **chan
 
 #ifdef STATISTICS
 				if (ip->op1 == OPT_UNCHECKED) {		/* found new access			*/
-				   c_stat_array_accesses++;
+				   ld->c_stat_array_accesses++;
 				   ip->op1 = OPT_NONE;
-				   c_stat_no_opt++;
+				   ld->c_stat_no_opt++;
 				   }
 #endif
 
 				/* can only optimize known arrays that do not change			*/
-				if ((t_array->type != TRACE_AVAR) || (c_var_modified[t_array->var])) 
+				if ((t_array->type != TRACE_AVAR) || (ld->c_var_modified[t_array->var])) 
 					break;
 				
 				switch (t_index->type) {	/* now we look at the index			*/
@@ -3151,44 +3181,44 @@ void remove_boundchecks(methodinfo *m, int node, int from, struct Changes **chan
 					case OPT_UNCHECKED:
 						break;
 					case OPT_NONE:
-						c_stat_no_opt--;
+						ld->c_stat_no_opt--;
 						break;
 					case OPT_FULL:
-						c_stat_full_opt--;
+						ld->c_stat_full_opt--;
 						break;
 					case OPT_UPPER:
-						c_stat_upper_opt--;
+						ld->c_stat_upper_opt--;
 						break;
 					case OPT_LOWER:
-						c_stat_lower_opt--;
+						ld->c_stat_lower_opt--;
 						break;
 						}
 #endif
 					if (degrade_checks)		/* replace existing optimization	*/
-						ip->op1 = insert_static(m, t_array->var, t_index, NULL, special);
+						ip->op1 = insert_static(m, ld, t_array->var, t_index, NULL, special);
 					else {
 						/* Check current optimization and try to improve it	by	*/
 						/* inserting new checks									*/
 						switch (ip->op1) {	
 						case OPT_UNCHECKED:
-							ip->op1 = insert_static(m, t_array->var, t_index, NULL, special);
+							ip->op1 = insert_static(m, ld, t_array->var, t_index, NULL, special);
 							break;
 						case OPT_NONE:		
-							ip->op1 = insert_static(m, t_array->var, t_index, NULL, special);
+							ip->op1 = insert_static(m, ld, t_array->var, t_index, NULL, special);
 							break;
 						case OPT_UPPER:		
-							opt_level = insert_static(m, t_array->var, t_index, NULL, special);
+							opt_level = insert_static(m, ld, t_array->var, t_index, NULL, special);
 							if ((opt_level == OPT_FULL) || (opt_level == OPT_LOWER))
 								ip->op1 = OPT_FULL;
 							break;
 						case OPT_LOWER:	
-							opt_level = insert_static(m, t_array->var, t_index, NULL, special);
+							opt_level = insert_static(m, ld, t_array->var, t_index, NULL, special);
 							if ((opt_level == OPT_FULL) || (opt_level == OPT_UPPER))
 								ip->op1 = OPT_FULL;
 							break;
 						case OPT_FULL:
 #ifdef STATISTICS
-							c_stat_full_opt++;
+							ld->c_stat_full_opt++;
 #endif
 							break;
 							}
@@ -3207,44 +3237,44 @@ void remove_boundchecks(methodinfo *m, int node, int from, struct Changes **chan
 					case OPT_UNCHECKED:
 						break;
 					case OPT_NONE:
-						c_stat_no_opt--;
+						ld->c_stat_no_opt--;
 						break;
 					case OPT_FULL:
-						c_stat_full_opt--;
+						ld->c_stat_full_opt--;
 						break;
 					case OPT_UPPER:
-						c_stat_upper_opt--;
+						ld->c_stat_upper_opt--;
 						break;
 					case OPT_LOWER:
-						c_stat_lower_opt--;
+						ld->c_stat_lower_opt--;
 						break;
 						}
 #endif
 					if (degrade_checks)
-						ip->op1 = insert_static(m, t_array->var, t_index, t, special);
+						ip->op1 = insert_static(m, ld, t_array->var, t_index, t, special);
 					else {
 						/* Check current optimization and try to improve it	by	*/
 						/* insert new check. t reflects var changes for index	*/
 						switch (ip->op1) {
 						case OPT_UNCHECKED:
-							ip->op1 = insert_static(m, t_array->var, t_index, t, special);
+							ip->op1 = insert_static(m, ld, t_array->var, t_index, t, special);
 							break;
 						case OPT_NONE:
-							ip->op1 = insert_static(m, t_array->var, t_index, t, special);
+							ip->op1 = insert_static(m, ld, t_array->var, t_index, t, special);
 							break;
 						case OPT_UPPER:
-							opt_level = insert_static(m, t_array->var, t_index, t, special);
+							opt_level = insert_static(m, ld, t_array->var, t_index, t, special);
 							if ((opt_level == OPT_FULL) || (opt_level == OPT_LOWER))
 								ip->op1 = OPT_FULL;
 							break;
 						case OPT_LOWER:	
-							opt_level = insert_static(m, t_array->var, t_index, t, special);
+							opt_level = insert_static(m, ld, t_array->var, t_index, t, special);
 							if ((opt_level == OPT_FULL) || (opt_level == OPT_UPPER))
 								ip->op1 = OPT_FULL;
 							break;
 						case OPT_FULL:
 #ifdef STATISTICS
-							c_stat_full_opt++;
+							ld->c_stat_full_opt++;
 #endif
 							break;
 							}
@@ -3311,27 +3341,31 @@ void remove_boundchecks(methodinfo *m, int node, int from, struct Changes **chan
 			}		/* for	  */
 		
 		if (!special) {				/* we are not interested in only the header	*/
-			d = c_dTable[node];
+			d = ld->c_dTable[node];
 			while (d != NULL) {		/* check all sucessors of current node		*/
-				remove_boundchecks(m, d->value, node, tmp, special);	
+				remove_boundchecks(m, ld, d->value, node, tmp, special);	
 				d = d->next;
 				}
 			}
 	    }	/* if */
 }
 
+
 /*	This function calls the bound-check removal function for the header node
 	with a special flag. It is important to notice, that no dynamic 
 	constraint hold in the header node (because the comparison is done at
 	block end).
 */
-void remove_header_boundchecks(methodinfo *m, int node, struct Changes **changes)
+
+void remove_header_boundchecks(methodinfo *m, loopdata *ld, int node, struct Changes **changes)
 {
-	remove_boundchecks(m, node, -1, changes, BOUNDCHECK_SPECIAL);
+	remove_boundchecks(m, ld, node, -1, changes, BOUNDCHECK_SPECIAL);
 }
+
 
 /*	Marks all basicblocks that are part of the loop
 */
+
 void mark_loop_nodes(struct LoopContainer *lc)
 {
 	struct LoopElement *le = lc->nodes;
@@ -3342,16 +3376,17 @@ void mark_loop_nodes(struct LoopContainer *lc)
 		}
 }
 
+
 /*	Clears mark for all basicblocks that are part of the loop
 */
-void unmark_loop_nodes(struct LoopContainer *lc)
+void unmark_loop_nodes(LoopContainer *lc)
 {
-	struct LoopElement *le = lc->nodes;
+	LoopElement *le = lc->nodes;
 
 	while (le != NULL) {
 		le->block->lflags = 0;
 		le = le->next;
-		}
+	}
 }
 
 
@@ -3359,7 +3394,7 @@ void unmark_loop_nodes(struct LoopContainer *lc)
 	identify array accesses suitable for optimization (bound check removal). The
 	intermediate code is then modified to reflect these optimizations.
 */
-void optimize_single_loop(methodinfo *m, struct LoopContainer *lc)
+void optimize_single_loop(methodinfo *m, loopdata *ld, LoopContainer *lc)
 {
 	struct LoopElement *le;
 	struct depthElement *d;
@@ -3369,12 +3404,12 @@ void optimize_single_loop(methodinfo *m, struct LoopContainer *lc)
 	if ((changes = (struct Changes **) malloc(m->maxlocals * sizeof(struct Changes *))) == NULL)
 		c_mem_error();
 
-    head = c_current_head = lc->loop_head;
-	c_needed_instr = c_rs_needed_instr = 0;
+    head = ld->c_current_head = lc->loop_head;
+	ld->c_needed_instr = ld->c_rs_needed_instr = 0;
 
 	/* init array for null ptr checks */
 	for (i=0; i<m->maxlocals; ++i) 
-		c_null_check[i] = 0;
+		ld->c_null_check[i] = 0;
 
 
 	/* don't optimize root node (it is the main procedure, not a loop)			*/
@@ -3382,24 +3417,24 @@ void optimize_single_loop(methodinfo *m, struct LoopContainer *lc)
 		return;
 
 	/* setup variables with initial values										*/
-	c_loopvars = NULL;
+	ld->c_loopvars = NULL;
 	for (i=0; i < m->basicblockcount; ++i) {
-		c_toVisit[i] = 0;
-		c_current_loop[i] = -1;
-		if ((d = c_dTable[i]) != NULL)
+		ld->c_toVisit[i] = 0;
+		ld->c_current_loop[i] = -1;
+		if ((d = ld->c_dTable[i]) != NULL)
 			d->changes = NULL;
 		}
 
 	for (i=0; i < m->maxlocals; ++i) {
-		c_var_modified[i] = 0;
+		ld->c_var_modified[i] = 0;
 		if (changes[i] != NULL) {
 			changes[i] = NULL;
 			}
 		}
 
 	for (i=0; i < (m->maxlocals+1); ++i) {
-		if (c_constraints[i] != NULL) {
-		    c_constraints[i] = NULL;
+		if (ld->c_constraints[i] != NULL) {
+		    ld->c_constraints[i] = NULL;
 			}
 		}
 
@@ -3408,13 +3443,13 @@ void optimize_single_loop(methodinfo *m, struct LoopContainer *lc)
 		node = le->node;
 
 		if (node == head)
-			c_current_loop[node] = 1;   /* the header node gets 1               */
-		else if (c_nestedLoops[node] == head)
-			c_current_loop[node] = 2;	/* top level nodes get 2				*/
+			ld->c_current_loop[node] = 1;   /* the header node gets 1               */
+		else if (ld->c_nestedLoops[node] == head)
+			ld->c_current_loop[node] = 2;	/* top level nodes get 2				*/
 		else
-			c_current_loop[node] = 3;	/* nodes, part of nested loop get 3		*/
+			ld->c_current_loop[node] = 3;	/* nodes, part of nested loop get 3		*/
 		
-		c_toVisit[node] = 1;
+		ld->c_toVisit[node] = 1;
 		le = le->next;
 		}
 
@@ -3424,14 +3459,14 @@ void optimize_single_loop(methodinfo *m, struct LoopContainer *lc)
 	fflush(stdout);
 #endif
 
-	if (analyze_for_array_access(m, head) > 0) {/* loop contains array access		*/
+	if (analyze_for_array_access(m, ld, head) > 0) {/* loop contains array access		*/
 
 #ifdef LOOP_DEBUG
 		struct LoopVar *lv;
 
 		printf("analyze for array access finished and found\n");	
 		fflush(stdout);
-		lv = c_loopvars;
+		lv = ld->c_loopvars;
 		while (lv != NULL) {
 			if (lv->modified)
 				printf("Var --> %d\n", lv->value);
@@ -3441,7 +3476,7 @@ void optimize_single_loop(methodinfo *m, struct LoopContainer *lc)
 
 		/* for performance reasons the list of all interesting loop vars is		*/
 		/* scaned and for all modified vars a flag in c_var_modified is set		*/
-		scan_global_list();					
+		scan_global_list(ld);					
 
 #ifdef LOOP_DEBUG
 		printf("global list scanned\n");
@@ -3451,28 +3486,28 @@ void optimize_single_loop(methodinfo *m, struct LoopContainer *lc)
 		/* if the loop header contains or-conditions or an index variable		*/
 		/* is modified in the catch-block within the loop, a conservative		*/
 		/* approach is taken and optimizations are cancelled					*/
-		if (analyze_or_exceptions(m, head, lc) > 0) {
+		if (analyze_or_exceptions(m, ld, head, lc) > 0) {
 
 #ifdef LOOP_DEBUG
 			printf("Analyzed for or/exception - no problems \n");            
 			fflush(stdout);
 #endif
 
-			init_constraints(m, head);	/* analyze dynamic bounds in header			*/
+			init_constraints(m, ld, head);	/* analyze dynamic bounds in header			*/
 
 #ifdef LOOP_DEBUG			
 			show_right_side();
 #endif    											
 
-			if (c_rightside == NULL)
+			if (ld->c_rightside == NULL)
 				return;
 
 			/* single pass bound check removal - for all successors, do			*/
-			remove_header_boundchecks(m, head, changes);
+			remove_header_boundchecks(m, ld, head, changes);
 
-			d = c_dTable[head];
+			d = ld->c_dTable[head];
 			while (d != NULL) {
-				remove_boundchecks(m, d->value, -1, changes, BOUNDCHECK_REGULAR);
+				remove_boundchecks(m, ld, d->value, -1, changes, BOUNDCHECK_REGULAR);
    				d = d->next;
 				}
 	    
@@ -3488,7 +3523,7 @@ void optimize_single_loop(methodinfo *m, struct LoopContainer *lc)
 			fflush(stdout);
 #endif
 
-			create_static_checks(m, lc);	/* create checks	  					*/
+			create_static_checks(m, ld, lc);	/* create checks	  					*/
 
 #ifdef LOOP_DEBUG
 			printf("END: create static checks\n");
@@ -3501,32 +3536,33 @@ void optimize_single_loop(methodinfo *m, struct LoopContainer *lc)
 		printf("No array accesses found\n");									*/
 
 #ifdef STATISTICS
-	c_stat_num_loops++;		/* increase number of loops							*/	
+	ld->c_stat_num_loops++;		/* increase number of loops							*/	
 
-	c_stat_sum_accesses += c_stat_array_accesses;
-	c_stat_sum_full += c_stat_full_opt;
-	c_stat_sum_no += c_stat_no_opt;
-	c_stat_sum_lower += c_stat_lower_opt;
-	c_stat_sum_upper += c_stat_upper_opt;
-	c_stat_sum_or += c_stat_or;
-	c_stat_sum_exception += c_stat_exception;
+	ld->c_stat_sum_accesses += ld->c_stat_array_accesses;
+	ld->c_stat_sum_full += ld->c_stat_full_opt;
+	ld->c_stat_sum_no += ld->c_stat_no_opt;
+	ld->c_stat_sum_lower += ld->c_stat_lower_opt;
+	ld->c_stat_sum_upper += ld->c_stat_upper_opt;
+	ld->c_stat_sum_or += ld->c_stat_or;
+	ld->c_stat_sum_exception += ld->c_stat_exception;
 
-	c_stat_array_accesses = 0;		
-	c_stat_full_opt = 0;
-	c_stat_no_opt = 0;
-	c_stat_lower_opt = 0;
-	c_stat_upper_opt = 0;	
-	c_stat_or = c_stat_exception = 0;
+	ld->c_stat_array_accesses = 0;		
+	ld->c_stat_full_opt = 0;
+	ld->c_stat_no_opt = 0;
+	ld->c_stat_lower_opt = 0;
+	ld->c_stat_upper_opt = 0;	
+	ld->c_stat_or = ld->c_stat_exception = 0;
 #endif
 	
 }
 
+
 /*	This function preforms necessary setup work, before the recursive function
 	optimize_single loop can be called.
 */
-void optimize_loops(methodinfo *m)
+void optimize_loops(methodinfo *m, loopdata *ld)
 {
-	struct LoopContainer *lc = c_allLoops;
+	LoopContainer *lc = ld->c_allLoops;
 
 	/* first, merge loops with same header node - all loops with the same		*/
 	/* header node are optimizied in one pass, because they all depend on the	*/
@@ -3537,7 +3573,7 @@ void optimize_loops(methodinfo *m)
 	fflush(stdout);
 #endif
 
-	analyze_double_headers();
+	analyze_double_headers(ld);
 
 	/* create array with loop nesting levels - nested loops cause problems,		*/
 	/* especially, when they modify index variables used in surrounding	loops	*/
@@ -3548,7 +3584,7 @@ void optimize_loops(methodinfo *m)
 	fflush(stdout);
 #endif
 
-	analyze_nested(m);
+	analyze_nested(m, ld);
 
 #ifdef LOOP_DEBUG
 	printf("analyze nested done\n");
@@ -3556,34 +3592,34 @@ void optimize_loops(methodinfo *m)
 #endif
 
 	/* create array with entries for current loop								*/
-	c_current_loop = DMNEW(int, m->basicblockcount);	
-	c_toVisit = DMNEW(int, m->basicblockcount);
-	c_var_modified = DMNEW(int, m->maxlocals);
-	c_null_check = DMNEW(int, m->maxlocals);
+	ld->c_current_loop = DMNEW(int, m->basicblockcount);	
+	ld->c_toVisit = DMNEW(int, m->basicblockcount);
+	ld->c_var_modified = DMNEW(int, m->maxlocals);
+	ld->c_null_check = DMNEW(int, m->maxlocals);
 
-	if ((c_constraints = (struct Constraint **) malloc((m->maxlocals+1) * sizeof(struct Constraint *))) == NULL)
+	if ((ld->c_constraints = (struct Constraint **) malloc((m->maxlocals+1) * sizeof(struct Constraint *))) == NULL)
 		c_mem_error();
 
 #ifdef STATISTICS
-	c_stat_num_loops = 0;		/* set statistic vars to zero					*/
-	c_stat_array_accesses = c_stat_sum_accesses = 0;		
-	c_stat_full_opt = c_stat_sum_full = 0;
-	c_stat_no_opt = c_stat_sum_no = 0;
-	c_stat_lower_opt = c_stat_sum_lower = 0;
-	c_stat_upper_opt = c_stat_sum_upper = 0;
-	c_stat_or = c_stat_sum_or = 0;
-	c_stat_exception = c_stat_sum_exception = 0;
+	ld->c_stat_num_loops = 0;		/* set statistic vars to zero					*/
+	ld->c_stat_array_accesses = ld->c_stat_sum_accesses = 0;		
+	ld->c_stat_full_opt = ld->c_stat_sum_full = 0;
+	ld->c_stat_no_opt = ld->c_stat_sum_no = 0;
+	ld->c_stat_lower_opt = ld->c_stat_sum_lower = 0;
+	ld->c_stat_upper_opt = ld->c_stat_sum_upper = 0;
+	ld->c_stat_or = ld->c_stat_sum_or = 0;
+	ld->c_stat_exception = ld->c_stat_sum_exception = 0;
 #endif
  
 	/* init vars needed by all loops                                            */
-	c_needs_redirection = false;
-	c_newstart = NULL;
-	c_old_xtablelength = m->exceptiontablelength;
+	ld->c_needs_redirection = false;
+	ld->c_newstart = NULL;
+	ld->c_old_xtablelength = m->exceptiontablelength;
 
 	/* loops have been topologically sorted                                     */
-	lc = c_allLoops;
+	lc = ld->c_allLoops;
 	while (lc != NULL) {
-		optimize_single_loop(m, lc);
+		optimize_single_loop(m, ld, lc);
 
 #ifdef LOOP_DEBUG
 		printf(" *** Optimized loop *** \n");
@@ -3598,8 +3634,8 @@ void optimize_loops(methodinfo *m)
 #endif
 
 	/* if global BB list start is modified, set block to new start              */
-	if (c_needs_redirection == true)
-		m->basicblocks = c_newstart;
+	if (ld->c_needs_redirection == true)
+		m->basicblocks = ld->c_newstart;
 
 }
 

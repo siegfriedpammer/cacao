@@ -30,7 +30,7 @@
    algorithm that uses dominator trees (found eg. in modern compiler
    implementation by a.w. appel)
 
-   $Id: loop.c 1203 2004-06-22 23:14:55Z twisti $
+   $Id: loop.c 1454 2004-11-05 14:19:32Z twisti $
 
 */
 
@@ -45,167 +45,30 @@
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
-/* GLOBAL VARS																*/
-
-int c_debug_nr;                 /* a counter to number all BB with an unique    */
-                                /* value                                        */
-
-/* modified by graph.c															*/
-
-int *c_defnum;					/* array that stores a number for each node	when*/
-								/* control flow graph is traveres depth first	*/
-int *c_parent;					/* for each node that array stores its parent	*/
-int *c_reverse;					/* for each def number that array stores the	*/
-								/* corresponding node							*/
-int c_globalCount;				/* counter for def numbering					*/
-int *c_numPre;					/* array that stores for each node its number	*/
-								/* predecessors									*/
-int **c_pre;					/* array of array that stores predecessors		*/
-int c_last_jump;				/* stores the source node of the last jsr instr	*/
-struct basicblock *c_last_target;      /* stores the source BB of the last jsr instr	*/
-
-struct depthElement **c_dTable;	/* adjacency list for control flow graph		*/
-struct depthElement **c_exceptionGraph;	/* adjacency list for exception graph	*/
-
-struct LoopContainer *c_allLoops;		/* list of all loops					*/
-struct LoopContainer *c_loop_root;		/* root of loop hierarchie tree			*/
-
-int *c_exceptionVisit;			/* array that stores a flag for each node part	*/
-								/* of the exception graph						*/
-
-/* modified by loop.c															*/
-
-int *c_semi_dom;				/* store for each node its semi dominator		*/
-int *c_idom;					/* store for each node its dominator			*/
-int *c_same_dom;				/* temp array to hold nodes with same dominator	*/
-int *c_ancestor;				/* store for each node its ancestor with lowest	*/
-								/* semi dominator								*/
-int *c_numBucket;				
-int **c_bucket;
-
-int *c_contains;				/* store for each node whether it's part of loop*/
-int *c_stack;					/* a simple stack as array						*/
-int c_stackPointer;				/* stackpointer									*/
-
-
-/* modified by analyze.c														*/
-
-struct LoopContainer *root;     /* the root pointer for the hierarchie tree of  */
-                                /* all loops in that procedure                  */
-
-int c_needed_instr;				/* number of instructions that have to be		*/
-								/* inserted before loop header to make sure		*/
-								/* array optimization is legal					*/
-int c_rs_needed_instr;			/* number of instructions needed to load the	*/
-								/* value ofthe right side of the loop condition	*/
-int *c_nestedLoops;				/* store for each node the header node of the	*/
-								/* loop this node belongs to, -1 for none		*/
-int *c_hierarchie;              /* store a loop hierarchie                      */
-int *c_toVisit;					/* set for each node that is part of the loop	*/
-
-int *c_current_loop;			/* for each node:                               */
-								/* store 0:	node is not part of loop			*/
-								/* store 1:	node is loop header					*/
-								/* store 2:	node is in loop but not part of any	*/
-								/*			nested loop                         */
-								/* store 3:	node is part of nested loop			*/
-
-int c_current_head;				/* store number of node that is header of loop	*/
-int *c_var_modified;			/* store for each local variable whether its	*/
-								/* value is changed in the loop					*/
-
-struct Trace *c_rightside;		/* right side of loop condition					*/
-struct Constraint **c_constraints;
-								/* array that stores for each variable a list	*/
-								/* static tests (constraints) that have to be	*/
-								/* performed before loop entry					*/
-								/* IMPORTANT: c_constraints[maxlocals] stores	*/
-								/*			  the tests for constants and the	*/
-								/*			  right side of loop condition		*/
-	
-struct LoopVar *c_loopvars;		/* a list of all intersting variables of the	*/
-								/* current loop (variables that are modified or	*/
-								/* used as array index							*/
-
-struct basicblock *c_first_block_copied; /* pointer to the first block, that is copied */
-                                  /* during loop duplication                    */
-
-struct basicblock *c_last_block_copied;  /* last block, that is copied during loop     */
-                                  /* duplication                                */
-
-int *c_null_check;              /* array to store for local vars, whether they  */
-                                /* need to be checked against the null reference*/
-                                /* in the loop head                             */
-
-bool c_needs_redirection;       /* if a loop header is inserted as first block  */
-                                /* into the global BB list, this is set to true */
-                                 
-struct basicblock *c_newstart;         /* if a loop header is inserted as first block  */
-                                /* into the gloal BB list, this pointer is the  */
-                                /* new start                                    */
-int c_old_xtablelength;         /* used to store the original tablelength       */
-
-/* set debug mode																*/
-#define C_DEBUG
-
-
-/* declare statistic variables													*/
-#ifdef STATISTICS
-
-int c_stat_num_loops;			/* number of loops								*/
-
-/* statistics per loop															*/
-int c_stat_array_accesses;		/* number of array accesses						*/
-
-int c_stat_full_opt;			/* number of fully optimized accesses			*/
-int c_stat_no_opt;				/* number of not optimized accesses				*/
-int c_stat_lower_opt;			/* number of accesses where check against zero	*/
-								/* is removed									*/
-int c_stat_upper_opt;			/* number of accesses where check against array	*/
-								/* lengh is removed								*/
-int c_stat_or;					/* set if optimization is cancelled because of	*/
-								/* or in loop condition							*/
-int c_stat_exception;			/* set if optimization is cancelled because of	*/
-								/* index var modified in catch block			*/
-
-/* statistics per procedure														*/
-int c_stat_sum_accesses;		/* number of array accesses						*/
-
-int c_stat_sum_full;			/* number of fully optimized accesses			*/
-int c_stat_sum_no;				/* number of not optimized accesses				*/
-int c_stat_sum_lower;			/* number of accesses where check against zero	*/
-								/* is removed									*/
-int c_stat_sum_upper;			/* number of accesses where check against array	*/
-								/* lengh is removed								*/
-int c_stat_sum_or;				/* set if optimization is cancelled because of	*/
-								/* or in loop condition							*/
-int c_stat_sum_exception;		/* set if optimization is cancelled because of	*/
-
-#endif
 
 
 /*	
    This function allocates and initializes variables, that are used by the
    loop detection algorithm
 */
-void setup(methodinfo *m)
+void setup(methodinfo *m, loopdata *ld)
 {
 	int i;
 
-	c_semi_dom = DMNEW(int, m->basicblockcount);
-	c_idom = DMNEW(int, m->basicblockcount);
-	c_same_dom = DMNEW(int, m->basicblockcount);
-	c_numBucket = DMNEW(int, m->basicblockcount);
-	c_ancestor = DMNEW(int, m->basicblockcount);
-	c_contains = DMNEW(int, m->basicblockcount);
-	c_stack = DMNEW(int, m->basicblockcount);
-	c_bucket = DMNEW(int*, m->basicblockcount);
+	ld->c_semi_dom = DMNEW(int, m->basicblockcount);
+	ld->c_idom = DMNEW(int, m->basicblockcount);
+	ld->c_same_dom = DMNEW(int, m->basicblockcount);
+	ld->c_numBucket = DMNEW(int, m->basicblockcount);
+	ld->c_ancestor = DMNEW(int, m->basicblockcount);
+	ld->c_contains = DMNEW(int, m->basicblockcount);
+	ld->c_stack = DMNEW(int, m->basicblockcount);
+	ld->c_bucket = DMNEW(int*, m->basicblockcount);
   
 	for (i = 0; i < m->basicblockcount; ++i) {
-		c_numBucket[i] = 0;
-		c_stack[i] = c_ancestor[i] = c_semi_dom[i] = c_same_dom[i] = c_idom[i] = -1;
+		ld->c_numBucket[i] = 0;
+		ld->c_stack[i] = ld->c_ancestor[i] = ld->c_semi_dom[i] = ld->c_same_dom[i] = ld->c_idom[i] = -1;
 	  
-		c_bucket[i] = DMNEW(int, m->basicblockcount);
+		ld->c_bucket[i] = DMNEW(int, m->basicblockcount);
 	}
 }
 
@@ -214,15 +77,16 @@ void setup(methodinfo *m)
 	ancestor of the node v in the control graph, which semi-dominator has the  
 	lowest def-num.
 */
-int findLowAnc(int v)
+
+int findLowAnc(loopdata *ld, int v)
 {
 	int u = v;			/* u is the node which has the current lowest semi-dom	*/
   
-	while (c_ancestor[v] != -1) {	/* as long as v has an ancestor, continue	*/
-		if (c_defnum[c_semi_dom[v]] < c_defnum[c_semi_dom[u]])	
+	while (ld->c_ancestor[v] != -1) {	/* as long as v has an ancestor, continue	*/
+		if (ld->c_defnum[ld->c_semi_dom[v]] < ld->c_defnum[ld->c_semi_dom[u]])	
 									/* if v's semi-dom is smaller				*/
 			u = v;					/* it gets the new current node u			*/
-		v = c_ancestor[v];			/* climb one step up in the tree			*/
+		v = ld->c_ancestor[v];			/* climb one step up in the tree			*/
 		}
 	return u;			/* return node with the lowest semi-dominator def-num	*/
 }
@@ -233,58 +97,59 @@ int findLowAnc(int v)
 	dominators in c_bucket and eventually determines the single dominator in a 
 	final pass.
 */
-void dominators()
+
+void dominators(loopdata *ld)
 {
 	int i, j, semi, s, n, v, actual, p, y;
   
-	for (n=(c_globalCount-1); n>0; --n) {	/* for all nodes (except last), do	*/
-		actual = c_reverse[n];
-		semi = p = c_parent[actual];		
+	for (n=(ld->c_globalCount-1); n>0; --n) {	/* for all nodes (except last), do	*/
+		actual = ld->c_reverse[n];
+		semi = p = ld->c_parent[actual];		
 	
 		/* for all predecessors of current node, do								*/
-		for (i=0; i<c_numPre[actual]; ++i) {
-			v = c_pre[actual][i];
+		for (i=0; i<ld->c_numPre[actual]; ++i) {
+			v = ld->c_pre[actual][i];
       
-			if (c_defnum[v] <= c_defnum[actual])
+			if (ld->c_defnum[v] <= ld->c_defnum[actual])
 				s = v;			/* if predecessor has lower def-num	than node	*/
 								/* it becomes candidate for semi dominator		*/
 			else
-				s = c_semi_dom[findLowAnc(v)];
+				s = ld->c_semi_dom[findLowAnc(ld, v)];
 								/* else the semi-dominator of it's ancestor		*/
 								/* with lowest def-num becomes candidate		*/
 			
-			if (c_defnum[s] < c_defnum[semi])
+			if (ld->c_defnum[s] < ld->c_defnum[semi])
 				semi = s;		/* if the def-num of the new candidate is lower */
 								/* than old one, it gets new semi dominator		*/
 			}
     
 		/* write semi dominator -> according to	SEMIDOMINATOR THEOREM			*/
-		c_semi_dom[actual] = semi;				
-		c_ancestor[actual] = p;					
+		ld->c_semi_dom[actual] = semi;				
+		ld->c_ancestor[actual] = p;					
     
-		c_bucket[semi][c_numBucket[semi]] = actual;
-		c_numBucket[semi]++;	/* defer calculation of dominator to final pass */
+		ld->c_bucket[semi][ld->c_numBucket[semi]] = actual;
+		ld->c_numBucket[semi]++;	/* defer calculation of dominator to final pass */
       
 
 		/* first clause of DOMINATOR THEOREM, try to find dominator now			*/
-		for (j=0; j<c_numBucket[p]; ++j) {
-			v = c_bucket[p][j];
-			y = findLowAnc(v);
+		for (j=0; j<ld->c_numBucket[p]; ++j) {
+			v = ld->c_bucket[p][j];
+			y = findLowAnc(ld, v);
       
-			if (c_semi_dom[y] == c_semi_dom[v])	
-				c_idom[v] = p;			/* if y's dominator is already known	*/
+			if (ld->c_semi_dom[y] == ld->c_semi_dom[v])	
+				ld->c_idom[v] = p;			/* if y's dominator is already known	*/
 										/* found it and write to c_idom			*/
 			else
-				c_same_dom[v] = y;		/* wait till final pass					*/
+				ld->c_same_dom[v] = y;		/* wait till final pass					*/
 			}
 		
-		c_numBucket[p] = 0;
+		ld->c_numBucket[p] = 0;
 		}
   
 	/* final pass to get missing dominators ->second clause of DOMINATOR THEORM	*/
-	for (j=1; j<(c_globalCount-1); ++j) {		
-		if (c_same_dom[c_reverse[j]] != -1)	
-			c_idom[c_reverse[j]] = c_idom[c_same_dom[c_reverse[j]]];
+	for (j=1; j<(ld->c_globalCount-1); ++j) {		
+		if (ld->c_same_dom[ld->c_reverse[j]] != -1)	
+			ld->c_idom[ld->c_reverse[j]] = ld->c_idom[ld->c_same_dom[ld->c_reverse[j]]];
 		}
 }
 
@@ -294,20 +159,21 @@ void dominators()
    connection between two nodes in the control flow graph is possibly part
    of a loop (is a backEdge).
 */
-int isBackEdge(int from, int to)
+
+int isBackEdge(loopdata *ld, int from, int to)
 {
-	int tmp = c_idom[to];	/* speed optimization: if the to-node is dominated	*/
+	int tmp = ld->c_idom[to];	/* speed optimization: if the to-node is dominated	*/
 	while (tmp != -1) {		/* by the from node as it is most of the time, 		*/
 		if (tmp == from)	/* there is no backEdge								*/
 			return 0;
-		tmp = c_idom[tmp];
+		tmp = ld->c_idom[tmp];
 		}
 
-	tmp = c_idom[from];		/* if from-node doesn't dominate to-node, we have	*/
+	tmp = ld->c_idom[from];		/* if from-node doesn't dominate to-node, we have	*/
 	while (tmp != -1) {		/* to climb all the way up from the from-node to	*/
 		if (tmp == to)		/* the top to check, whether it is dominated by to	*/
 			return 1;		/* if so, return a backedge							*/
-		tmp = c_idom[tmp];
+		tmp = ld->c_idom[tmp];
 		}
 
 	return 0;				/* else, there is no backedge						*/
@@ -318,17 +184,18 @@ int isBackEdge(int from, int to)
    These stack functions are helper functions for createLoop(int, int)  
    to manage the set of nodes in the current loop.
 */
-void push(methodinfo *m, int i, struct LoopContainer *lc)
+
+void push(methodinfo *m, loopdata *ld, int i, struct LoopContainer *lc)
 {
 	struct LoopElement *le = lc->nodes, *t;
 
-	if (!c_contains[i])	{
+	if (!ld->c_contains[i])	{
 		t = DMNEW(struct LoopElement, 1);
 		
 		t->node = i;
 		t->block = &m->basicblocks[i];
 
-		c_contains[i] = 1;
+		ld->c_contains[i] = 1;
 
 		if (i < le->node)
 		{
@@ -344,20 +211,20 @@ void push(methodinfo *m, int i, struct LoopContainer *lc)
 			le->next = t;
 		}
 
-		c_stack[c_stackPointer++] = i;
+		ld->c_stack[ld->c_stackPointer++] = i;
 	}
 }
 
 
-int pop()
+int pop(loopdata *ld)
 {
-	return (c_stack[--c_stackPointer]);
+	return (ld->c_stack[--ld->c_stackPointer]);
 }
 
 
-int isFull()
+int isFull(loopdata *ld)
 {
-	return (c_stackPointer);
+	return (ld->c_stackPointer);
 }
 
 
@@ -366,7 +233,8 @@ int isFull()
    the loop with a known header node and a member node of the loop (and a 
    back edge between these two nodes).
 */
-void createLoop(methodinfo *m, int header, int member)
+
+void createLoop(methodinfo *m, loopdata *ld, int header, int member)
 {
 	int i, nextMember;
 
@@ -374,41 +242,42 @@ void createLoop(methodinfo *m, int header, int member)
 	LoopContainerInit(m, currentLoop, header);		/* set up loop structure		*/
 	
 	for (i=0; i<m->basicblockcount; ++i)
-		c_contains[i] = 0;
-	c_contains[header] = 1;
+		ld->c_contains[i] = 0;
+	ld->c_contains[header] = 1;
 
-	c_stackPointer = 0;				/* init stack with first node of the loop	*/
-	push(m, member, currentLoop);
+	ld->c_stackPointer = 0;				/* init stack with first node of the loop	*/
+	push(m, ld, member, currentLoop);
 
-	while (isFull()) {				/* while there are still unvisited nodes	*/
-		nextMember = pop();
+	while (isFull(ld)) {				/* while there are still unvisited nodes	*/
+		nextMember = pop(ld);
 		
 		/* push all predecessors, while they are not equal to loop header		*/
-		for (i=0; i<c_numPre[nextMember]; ++i)			
-			push(m, c_pre[nextMember][i], currentLoop);		
+		for (i=0; i<ld->c_numPre[nextMember]; ++i)			
+			push(m, ld, ld->c_pre[nextMember][i], currentLoop);		
 		}
 
-	currentLoop->next = c_allLoops;
-	c_allLoops = currentLoop;
+	currentLoop->next = ld->c_allLoops;
+	ld->c_allLoops = currentLoop;
 }
 
 
 /*	After all dominators have been calculated, the loops can be detected and
 	 added to the global list c_allLoops.
 */
-void detectLoops(methodinfo *m)
+
+void detectLoops(methodinfo *m, loopdata *ld)
 {
 	int i;
 	struct depthElement *h;
-	
+
 	/* for all edges in the control flow graph do								*/
 	for (i=0; i<m->basicblockcount; ++i) {			
-		h = c_dTable[i];
+		h = ld->c_dTable[i];
 
 		while (h != NULL) {
 			/* if it's a backedge, than add a new loop to list					*/
-			if (isBackEdge(i, h->value))	 
-				createLoop(m, h->value, i);
+			if (isBackEdge(ld, i, h->value))	 
+				createLoop(m, ld, h->value, i);
 			h = h->next;
 			}
 		}
@@ -419,21 +288,23 @@ void detectLoops(methodinfo *m)
    This function is called by higher level routines to perform the loop 
    detection and set up the c_allLoops list.
 */
-void analyseGraph(methodinfo *m)
+
+void analyseGraph(methodinfo *m, loopdata *ld)
 {
-  setup(m);
-  dominators();
-  detectLoops(m);
+  setup(m, ld);
+  dominators(ld);
+  detectLoops(m, ld);
 }
 
 
 /*
    Test function -> will be removed in final release
 */
-void resultPass2()
+
+void resultPass2(loopdata *ld)
 {
   int i;
-  struct LoopContainer *lc = c_allLoops;
+  struct LoopContainer *lc = ld->c_allLoops;
   struct LoopElement *le;
   
   printf("\n\n****** PASS 2 ******\n\n");
