@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1774 2004-12-20 20:16:57Z jowenn $
+   $Id: jni.c 1784 2004-12-21 09:51:19Z twisti $
 
 */
 
@@ -1158,23 +1158,27 @@ jobject ToReflectedMethod(JNIEnv* env, jclass cls, jmethodID methodID, jboolean 
 }
 
 
-/**************** returns the method ID for an instance method ********************/
+/* GetMethodID *****************************************************************
+
+   returns the method ID for an instance method
+
+*******************************************************************************/
 
 jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char *name, const char *sig)
 {
 	jmethodID m;
 
- 	m = class_resolvemethod (
-		clazz, 
-		utf_new_char ((char*) name), 
-		utf_new_char ((char*) sig)
-    	);
+ 	m = class_resolvemethod(clazz, 
+							utf_new_char((char *) name), 
+							utf_new_char((char *) sig));
 
-	if (!m) *exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-	else if (m->flags & ACC_STATIC)   {
-		m=0;
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
+	if (!m || (m->flags & ACC_STATIC)) {
+		*exceptionptr =
+			new_exception_message(string_java_lang_NoSuchMethodError, name);
+
+		return NULL;
 	}
+
 	return m;
 }
 
@@ -1448,8 +1452,6 @@ jdouble CallDoubleMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *
 void CallVoidMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 {
 	va_list vaargs;
-
-/*      log_text("JNI-Call: CallVoidMethod");*/
 
 	va_start(vaargs,methodID);
 	(void) callIntegerMethod(obj, get_virtual(obj, methodID), 'V', vaargs);
@@ -1947,10 +1949,11 @@ jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name, const c
 							utf_new_char((char *) name),
 							utf_new_char((char *) sig));
 
-	if (!m) *exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-	else if (!(m->flags & ACC_STATIC))   {
-		m=0;
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
+	if (!m || !(m->flags & ACC_STATIC)) {
+		*exceptionptr =
+			new_exception_message(string_java_lang_NoSuchMethodError, name);
+
+		return NULL;
 	}
 
 	return m;
@@ -2235,8 +2238,6 @@ jdouble CallStaticDoubleMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, j
 void CallStaticVoidMethod(JNIEnv *env, jclass cls, jmethodID methodID, ...)
 {
 	va_list vaargs;
-
-/*      log_text("JNI-Call: CallStaticVoidMethod");*/
 
 	va_start(vaargs, methodID);
 	(void) callIntegerMethod(0, methodID, 'V', vaargs);
