@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: arch.h 1560 2004-11-23 15:49:55Z twisti $
+   $Id: arch.h 1592 2004-11-25 15:14:06Z twisti $
 
 */
 
@@ -119,7 +119,7 @@
 /*  #define CONSECUTIVE_INTARGS */
 /*  #define CONSECUTIVE_FLOATARGS */
 
-#endif /* _CODEGEN_H */
+#endif /* _ARCH_H */
 
 
 /*
