@@ -726,16 +726,15 @@ static void displayarraydescriptor (constant_arraydescriptor *d)
 
 
 /******************************************************************************/
-/******************** Functionen fuer Fields **********************************/
+/**************************  Functions for fields  ****************************/
 /******************************************************************************/
 
 
 /************************ Function: field_load *********************************
 
-	l"adt alle Informationen f"ur eine Feld einer Methode aus dem ClassFile,
-	und f"ullt mit diesen Infos eine schon existierende 'fieldinfo'-Struktur.
-	Bei 'static'-Fields wird auch noch ein Platz auf dem Datensegment
-	reserviert.
+	Load everything about a class field from the class file and fill a
+	'fieldinfo' structure. For static fields, space in the data segment is
+	allocated.
 
 *******************************************************************************/
 
@@ -843,7 +842,7 @@ static void field_free (fieldinfo *f)
 }
 
 
-/************** Function: field_display (nur zu Debug-Zwecken) ****************/
+/**************** Function: field_display (debugging only) ********************/
 
 static void field_display (fieldinfo *f)
 {
