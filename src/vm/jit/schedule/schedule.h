@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: schedule.h 1985 2005-03-04 17:09:13Z twisti $
+   $Id: schedule.h 2025 2005-03-10 12:20:49Z twisti $
 
 */
 
@@ -45,11 +45,23 @@
 typedef struct scheduledata scheduledata;
 typedef struct minstruction minstruction;
 typedef struct nodelink nodelink;
+typedef struct opcycles opcycles;
 
 
 /* machine instruction flags **************************************************/
 
 #define SCHEDULE_LEADER    0x01
+#define SCHEDULE_SINK      0x02
+#define SCHEDULE_BRANCH    0x04
+
+
+#define M_SCHEDULE_SET_EXCEPTION_POINT    /*  if (cd->exceptiontablelength > 0) { schedule_do_schedule(sd); schedule_reset(sd, rd); } */
+
+
+struct opcycles {
+	s1 firstcycle;
+	s1 lastcycle;
+};
 
 
 /* scheduledata ****************************************************************
@@ -61,15 +73,17 @@ typedef struct nodelink nodelink;
 struct scheduledata {
 	minstruction  *mi;                  /* machine instruction array          */
 	s4             micount;             /* number of machine instructions     */
-	nodelink      *leaders;             /* list containing sink nodes         */
+	nodelink      *leaders;             /* list containing leader nodes       */
 
-	s4            *intregs_define_dep;
-	s4            *fltregs_define_dep;
-    s4            *memory_define_dep;
+	nodelink     **intregs_define_dep;
+	nodelink     **fltregs_define_dep;
+    nodelink      *memory_define_dep;
 
 	nodelink     **intregs_use_dep;
 	nodelink     **fltregs_use_dep;
-	nodelink     **memory_use_dep;
+	nodelink      *memory_use_dep;
+
+	FILE *file;
 };
 
 
@@ -83,8 +97,11 @@ struct scheduledata {
 struct minstruction {
 	u4             instr[2];            /* machine instruction word           */
 	u1             flags;
-	u1             startcycle;          /* start pipeline cycle               */
-	u1             endcycle;            /* end pipeline cycle                 */
+#if 1
+	s1             startcycle;          /* start pipeline cycle               */
+	s1             endcycle;            /* end pipeline cycle                 */
+#endif
+	opcycles       op[4];
 	s4             priority;            /* priority of this instruction node  */
 	nodelink      *deps;                /* operand dependencies               */
 	minstruction  *next;                /* link to next machine instruction   */
@@ -97,8 +114,12 @@ struct minstruction {
 
 *******************************************************************************/
 
+/* TODO rename to edgenode */
 struct nodelink {
 	s4        minode;                   /* pointer to machine instruction     */
+	s1        opnum;                    /* dependency operand number          */
+	s1        opnum2;
+	s1        latency;
 	nodelink *next;                     /* link to next node                  */
 };
 
@@ -106,15 +127,15 @@ struct nodelink {
 /* function prototypes ********************************************************/
 
 scheduledata *schedule_init(registerdata *rd);
-void schedule_setup(scheduledata *sd, registerdata *rd);
+void schedule_reset(scheduledata *sd, registerdata *rd);
+void schedule_close(scheduledata *sd);
 
 void schedule_calc_priority(minstruction *mi);
 
-void schedule_add_define_dep(scheduledata *sd, s4 *define_dep, nodelink **use_dep);
-void schedule_add_use_dep(scheduledata *sd, s4 *define_dep, nodelink **use_dep);
-
-void schedule_add_memory_define_dep(scheduledata *sd);
-void schedule_add_memory_use_dep(scheduledata *sd);
+/*  void schedule_add_define_dep(scheduledata *sd, s1 operand, s4 *define_dep, nodelink **use_dep); */
+/*  void schedule_add_use_dep(scheduledata *sd, s1 operand, s4 *define_dep, nodelink **use_dep); */
+void schedule_add_define_dep(scheduledata *sd, s1 opnum, nodelink **define_dep, nodelink **use_dep);
+void schedule_add_use_dep(scheduledata *sd, s1 opnum, nodelink **define_dep, nodelink **use_dep);
 
 void schedule_do_schedule(scheduledata *sd);
 
