@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 562 2003-11-03 00:34:34Z twisti $
+   $Id: tables.c 584 2003-11-09 19:15:25Z twisti $
 
 */
 
@@ -53,8 +53,6 @@
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
 
-
-bool runverbose = false;
 
 /* statistics */
 int count_utf_len = 0;         /* size of utf hash                  */
