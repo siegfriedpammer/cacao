@@ -27,7 +27,7 @@
 
    Authors:
 
-   $Id: acconfig.h 664 2003-11-21 18:24:01Z jowenn $
+   $Id: acconfig.h 832 2004-01-04 15:46:08Z stefan $
 
 */
 
@@ -44,6 +44,8 @@
 #undef USE_THREADS
 #undef EXTERNAL_OVERFLOW
 #undef DONT_FREE_FIRST
+
+#undef HAVE___THREAD
 
 /* Make automake happy */
 #undef PACKAGE
