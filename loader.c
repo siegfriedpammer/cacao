@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 862 2004-01-06 23:42:01Z stefan $
+   $Id: loader.c 864 2004-01-07 18:51:16Z edwin $
 
 */
 
@@ -94,6 +94,7 @@ static utf *utf_vmclassloader;      /* java/lang/VMClassLoader */
 static utf *utf_vmclass;            /* java/lang/VMClassLoader */
 static utf *utf_initialize;
 static utf *utf_initializedesc;
+static utf *utf_java_lang_Object;   /* java/lang/Object        */
 
 
 
@@ -132,8 +133,6 @@ static classinfo *class_java_lang_OutOfMemoryError;
 static classinfo *class_java_lang_ArithmeticException;
 static classinfo *class_java_lang_ArrayStoreException;
 static classinfo *class_java_lang_ThreadDeath;
-
-static methodinfo method_clone_array;
 
 static int loader_inited = 0;
 
@@ -521,9 +520,10 @@ void suck_stop()
 
 	if (classdata_left > 0) {
 		/* surplus */        	
-		dolog("There are %d access bytes at end of classfile",
+		dolog("There are %d extra bytes at end of classfile",
 				classdata_left);
-		/* XXX panic? */
+		/* The JVM spec disallows extra bytes. */
+		panic("Extra bytes at end of classfile");
 	}
 
 	/* free memory */
@@ -657,6 +657,9 @@ static void attribute_load(u4 num, classinfo *c)
 
 		if (aname == utf_innerclasses) {
 			/* innerclasses attribute */
+
+			if (c->innerclass != NULL)
+				panic("Class has more than one InnerClasses attribute");
 				
 			/* skip attribute length */						
 			suck_u4(); 
@@ -856,10 +859,13 @@ void print_arraydescriptor(FILE *file, arraydescriptor *desc)
 
 *******************************************************************************/
 
+#define field_load_NOVALUE  0xffffffff /* must be bigger than any u2 value! */
+
 static void field_load(fieldinfo *f, classinfo *c)
 {
 	u4 attrnum,i;
 	u4 jtype;
+	u4 pindex = field_load_NOVALUE;                               /* constantvalue_index */
 
 	f->flags = suck_u2();                                           /* ACC flags         */
 	f->name = class_getconstant(c, suck_u2(), CONSTANT_Utf8);       /* name of field     */
@@ -899,7 +905,6 @@ static void field_load(fieldinfo *f, classinfo *c)
 	/* read attributes */
 	attrnum = suck_u2();
 	for (i = 0; i < attrnum; i++) {
-		u4 pindex;
 		utf *aname;
 
 		aname = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
@@ -910,9 +915,14 @@ static void field_load(fieldinfo *f, classinfo *c)
 
 		} else {
 			/* constant value attribute */
+
+			if (pindex != field_load_NOVALUE)
+				panic("Field has more than one ConstantValue attribute");
 			
-			/* skip attribute length */
-			suck_u4();
+			/* check attribute length */
+			if (suck_u4() != 2)
+				panic("ConstantValue attribute has invalid length");
+			
 			/* index of value in constantpool */		
 			pindex = suck_u2();
 		
@@ -1078,9 +1088,12 @@ static void method_load(methodinfo *m, classinfo *c)
 
 		} else {
 			u4 codelen;
-			if (m->jcode)
-				panic("Two code-attributes for one method!");
+			if ((m->flags & (ACC_ABSTRACT | ACC_NATIVE)) != 0)
+				panic("Code attribute for native or abstract method");
 			
+			if (m->jcode)
+				panic("Method has more than one Code attribute");
+
 			suck_u4();
 			m->maxstack = suck_u2();
 			m->maxlocals = suck_u2();
@@ -1120,6 +1133,9 @@ static void method_load(methodinfo *m, classinfo *c)
 			skipattributes(suck_u2());
 		}
 	}
+
+	if (!m->jcode && (m->flags & (ACC_ABSTRACT | ACC_NATIVE)) == 0)
+		panic("Method missing Code attribute");
 }
 
 
@@ -1639,14 +1655,26 @@ static int class_load(classinfo *c)
 	}
 
 	/* this class */
-	suck_u2();       /* XXX check it? */
+	i = suck_u2();
+	if (class_getconstant(c, i, CONSTANT_Class) != c)
+		panic("Invalid this_class in class file");
 	
 	/* retrieve superclass */
 	if ((i = suck_u2())) {
 		c->super = class_getconstant(c, i, CONSTANT_Class);
 
+		/* Interfaces must have j.l.O as super class. */
+		if ((c->flags & ACC_INTERFACE) != 0
+			&& c->super->name != utf_java_lang_Object)
+		{
+			panic("Interface with super class other than java.lang.Object");
+		}
 	} else {
 		c->super = NULL;
+
+		/* This is only allowed for java.lang.Object. */
+		if (c->name != utf_java_lang_Object)
+			panic("Class (not java.lang.Object) without super class");
 	}
 			 
 	/* retrieve interfaces */
@@ -3417,6 +3445,7 @@ void loader_init(u1 *stackbottom)
 	utf_initializedesc  = utf_new_char("(I)V");
 
 	utf_vmclass         = utf_new_char("java/lang/VMClass");
+	utf_java_lang_Object= utf_new_char("java/lang/Object");
 
 	/* create some important classes */
 	/* These classes have to be created now because the classinfo
