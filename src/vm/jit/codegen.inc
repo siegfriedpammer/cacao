@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1259 2004-06-30 21:35:45Z twisti $
+   $Id: codegen.inc 1265 2004-07-01 20:36:38Z twisti $
 
 */
 
@@ -123,7 +123,6 @@ static s4 dseg_adddouble(double value); /* adds an double to data area        */
 
 static void dseg_addtarget(basicblock *target);
 static void dseg_adddata(u1 *ptr);
-static void codegen_addreference(basicblock *target, void *branchptr);
 static void codegen_addxboundrefs(void *branchptr, s4 reg);
 static void codegen_addxnullrefs(void *branchptr);
 static void codegen_addxcastrefs(void *branchptr);
@@ -390,7 +389,15 @@ static void dseg_addlinenumber(u2 linenumber,u1 *ptr) {
 	linenumberreferences=lr;
 }
 
+
+/* we need this function externally on i386 and x86_64, but keep the call fast
+   on alpha... */
+
+#if defined(__I386__) || defined(__X86_64__)
+void codegen_addreference(basicblock *target, void *branchptr)
+#else
 static void codegen_addreference(basicblock *target, void *branchptr)
+#endif
 {
 	s4 branchpos = (u1*) branchptr - mcodebase;
 
