@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1360 2004-07-28 10:49:04Z twisti $
+   $Id: jit.c 1407 2004-08-17 12:42:34Z twisti $
 
 */
 
@@ -1336,8 +1336,6 @@ methodptr jit_compile(methodinfo *m)
 	static bool jitrunning;
 	methodptr r;
 	s4 dumpsize;
-	s8 starttime = 0;
-	s8 stoptime  = 0;
 
 	if (opt_stat)
 		count_jit_calls++;
@@ -1357,19 +1355,6 @@ methodptr jit_compile(methodinfo *m)
 	if (opt_stat)
 		count_methods++;
 
-	/* initialize the static function's class */
-
-  	if (m->flags & ACC_STATIC && !m->class->initialized) {
-		if (initverbose)
-			log_message_class("Initialize class ", m->class);
-
-		if (!class_init(m->class)) {
-			builtin_monitorexit((java_objectheader *) m );
-
-			return NULL;
-		}
-	}
-
 	if (jitrunning) {
 		printf("JITRUNNING!!! new method=");
 		utf_display_classname(m->class->name);printf(".");utf_display(m->name);
@@ -1387,7 +1372,7 @@ methodptr jit_compile(methodinfo *m)
 	/* measure time */
 
 	if (getcompilingtime)
-		starttime = getcputime();
+		compilingtime_start();
 
 	/* now call internal compile function */
 
@@ -1412,10 +1397,8 @@ methodptr jit_compile(methodinfo *m)
 
 	/* measure time */
 
-	if (getcompilingtime) {
-		stoptime = getcputime();
-		compilingtime += (stoptime - starttime);
-	}
+	if (getcompilingtime)
+		compilingtime_stop();
 
 	jitrunning = false;
 
@@ -1445,7 +1428,6 @@ static methodptr jit_compile_intern(methodinfo *m)
 	if (compileverbose)
 		log_message_method("Compiling: ", m);
 
-#if 0
 	/* initialize the static function's class */
 
   	if (m->flags & ACC_STATIC && !m->class->initialized) {
@@ -1455,7 +1437,6 @@ static methodptr jit_compile_intern(methodinfo *m)
 		if (!class_init(m->class))
 			return NULL;
 	}
-#endif
 
 	/* initialisation of variables and subsystems */
 
