@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: headers.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: headers.h 1912 2005-02-10 09:57:21Z twisti $
 
 */
 
@@ -34,12 +34,22 @@
 #define _HEADERS_H
 
 
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+#  include "threads/green/locks.h"
+# endif
+#endif
+
 #include "toolbox/chain.h"
 #include "vm/global.h"
 
 
 /* export variables */
 
+extern THREADSPECIFIC java_objectheader *_exceptionptr;
 extern chain *nativemethod_chain;
 extern chain *nativeclass_chain;
 extern FILE *file;
