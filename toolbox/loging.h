@@ -1,22 +1,47 @@
-/************************* toolbox/loging.h ************************************
+/* toolbox/loging.h - contains loging functions
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   Institut f. Computersprachen, TU Wien
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser, M. Probst,
+   S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich,
+   J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	Provides logging functions
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-	Last Change: $Id: loging.h 455 2003-09-15 18:48:46Z stefan $
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-*******************************************************************************/
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Reinhard Grafl
+
+   $Id: loging.h 684 2003-12-02 16:50:17Z twisti $
+
+*/
+
+
+#ifndef _LOGGING_H
+#define _LOGGING_H
 
 #define PANICIF(when,txt)  if(when)panic(txt)
-#define panic cacaopanic
 
 #define MAXLOGTEXT 500
 extern char logtext[MAXLOGTEXT];
+
+
+/* function prototypes */
 
 void log_init(char *fname);
 void log_text(char *txt);
@@ -29,25 +54,18 @@ void panic(char *txt);
 
 long int getcputime();
 
+#endif /* _LOGGING_H */
+
 
 /*
-
--------------------------- interface description -------------------------
-
-log_init .... initialize the log file system 
-               fname ....... filename for the protocol file
-               keepfile .... 1 to keep old file (don't overwrite)
-               echostdout .. 1 for output to stdout additionally
-               
-log_text .... print a text to log file
-log_cputime . print used cpu time
-dolog ....... print contents of logtext to log file
-error ....... print contents of logtext to log file, stop the system
-panic ....... print a text to log file
-
-logtext ..... this global character array needs to be filled before using the
-			  functions 'log' or 'error'
-
-getcputimew . returns the number of microseconds used by the program
-
-*/
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

@@ -1,42 +1,67 @@
-/************************** toolbox/list.h *************************************
+/* toolbox/list.h - 
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   Institut f. Computersprachen, TU Wien
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser, M. Probst,
+   S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich,
+   J. Wenninger
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-	Management of doubly linked lists
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-	Last Change: 1996/10/03
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-*******************************************************************************/
+   Contact: cacao@complang.tuwien.ac.at
 
-#ifndef LIST_H
-#define LIST_H
+   Authors: Reinhard Grafl
+
+   $Id: list.h 684 2003-12-02 16:50:17Z twisti $
+
+*/
+
+
+#ifndef _LIST_H
+#define _LIST_H
 
 typedef struct listnode {           /* structure for list element */
-	struct listnode *next,*prev;
-	} listnode;
+	struct listnode *next;
+	struct listnode *prev;
+} listnode;
+
 
 typedef struct list {               /* structure for list head */
-	listnode *first,*last;
+	listnode *first;
+	listnode *last;
 	int nodeoffset;
-	} list;
+} list;
 
 
-void list_init (list *l, int nodeoffset);
+/* function prototypes */
 
-void list_addlast (list *l, void *element);
-void list_addfirst (list *l, void *element);
+void list_init(list *l, int nodeoffset);
 
-void list_remove (list *l, void *element);
+void list_addlast(list *l, void *element);
+void list_addfirst(list *l, void *element);
+
+void list_remove(list *l, void *element);
  
-void *list_first (list *l);
-void *list_last (list *l);
+void *list_first(list *l);
+void *list_last(list *l);
 
-void *list_next (list *l, void *element);
-void *list_prev (list *l, void *element);
+void *list_next(list *l, void *element);
+void *list_prev(list *l, void *element);
 
 
 /*
@@ -97,4 +122,18 @@ distinct list).
 
 */
 
-#endif
+#endif /* _LIST_H */
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
