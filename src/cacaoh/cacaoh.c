@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: cacaoh.c 1788 2004-12-21 10:08:06Z twisti $
 
 */
 
@@ -117,6 +117,7 @@ int main(int argc, char **argv)
 	char *cp;
 	classinfo *c;
 	char *opt_directory;
+	void *dummy;
 
 	/********** internal (only used by main) *****************************/
    
@@ -189,7 +190,7 @@ int main(int argc, char **argv)
 	initLocks();
 #endif
 
-	loader_init();
+	loader_init((u1 *) &dummy);
 
 
 	/*********************** Load JAVA classes  **************************/
@@ -221,7 +222,7 @@ int main(int argc, char **argv)
 	/************************ Release all resources **********************/
 
 	loader_close();
-	tables_close(literalstring_free);
+	tables_close();
 
 	if (opt_verbose) {
 		log_text("Java - header-generator stopped");

@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: headers.c 1788 2004-12-21 10:08:06Z twisti $
 
 */
 
@@ -39,12 +39,15 @@
 #include <string.h>
 #include <ctype.h>
 
-#if defined(__DARWIN__)
-# include <signal.h>
-#endif
-#include <ucontext.h>
-
 #include "config.h"
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+# if defined(__DARWIN__)
+#  include <signal.h>
+# endif
+# include <ucontext.h>
+#endif
+
 #include "mm/boehm.h"
 #include "mm/memory.h"
 #include "native/include/java_lang_String.h"
@@ -80,10 +83,10 @@ java_objectheader *literalstring_new(utf *u) { return NULL; }
 
 
 void literalstring_free(java_objectheader *o) {}
-void stringtable_update() { }
-void synchronize_caches() { }
-void asm_call_jit_compiler() { }
-void asm_calljavafunction() { }
+void stringtable_update(void) {}
+void synchronize_caches(void) {}
+void asm_call_jit_compiler(void) {}
+void asm_calljavafunction(void) {}
 s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class) { return 0; }
 
 s4 asm_builtin_idiv(s4 a, s4 b) {return 0;}
@@ -96,7 +99,7 @@ s8 asm_builtin_f2l(float a) { return 0; }
 s4 asm_builtin_d2i(double a) { return 0; }
 s8 asm_builtin_d2l(double a) { return 0; }
 
-void use_class_as_object() {}
+void use_class_as_object(void) {}
 void asm_builtin_monitorenter(java_objectheader *o) {}
 void *asm_builtin_monitorexit(java_objectheader *o) { return NULL; }
 
@@ -130,17 +133,17 @@ void removenativestub(u1 *stub) {}
 
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop) {}
 u1* asm_initialize_thread_stack(void *func, u1 *stack) { return NULL; }
-void thread_restartcriticalsection(ucontext_t *uc) {}
-void asm_switchstackandcall() {}
+void asm_switchstackandcall(void) {}
 void asm_handle_builtin_exception(classinfo *c) {}
-void asm_getclassvalues_atomic() {}
+void asm_getclassvalues_atomic(void) {}
 
 #if defined(__DARWIN__)
-int cacao_catch_Handler() {}
+int cacao_catch_Handler(void) {}
 #endif
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 threadcritnode asm_criticalsections;
+void thread_restartcriticalsection(ucontext_t *uc) {}
 #endif
 
 
