@@ -1,16 +1,16 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 323 2003-05-24 09:02:02Z stefan $
+# $Id: Makefile.am 470 2003-10-04 18:35:15Z stefan $
 
 @SET_MAKE@
 
 MAINTAINERCLEANFILES = Makefile.in configure
 ALLSUBDIRS = toolbox mm jit comp nat threads tst doc narray jvmtst
 SUBDIRS = $(ALLSUBDIRS) @SYSDEP_DIR@
-DIST_SUBDIRS = $(ALLSUBDIRS) alpha mips i386 powerpc
+DIST_SUBDIRS = $(ALLSUBDIRS) alpha mips i386 powerpc x86_64
 
 EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html \
-				jni.c
+				jni.c natcalls.h nativecalls.h
 
 CLEANFILES = @SYSDEP_DIR@/asmpart.o \
              @SYSDEP_DIR@/offsets.h \
