@@ -859,7 +859,9 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 #endif
 						methodinfo *method)
 {
-	sprintf (logtext, "												");
+	int i;
+	for (i=0; i<methodindent; i++)
+		logtext[i] = '\t';
 	sprintf (logtext+methodindent, "called: ");
 	utf_sprint (logtext+strlen(logtext), method->class->name);
 	sprintf (logtext+strlen(logtext), ".");
@@ -920,8 +922,10 @@ void builtin_displaymethodstart(methodinfo *method)
 
 void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
 {
+	int i;
+	for (i=0; i<methodindent; i++)
+		logtext[i] = '\t';
 	methodindent--;
-	sprintf (logtext, "												");
 	sprintf (logtext+methodindent, "finished: ");
 	utf_sprint (logtext+strlen(logtext), method->class->name);
 	sprintf (logtext+strlen(logtext), ".");
@@ -945,7 +949,9 @@ void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
 
 void builtin_displaymethodexception(methodinfo *method)
 {
-	sprintf (logtext, "												");
+	int i;
+	for (i=0; i<methodindent; i++)
+		logtext[i] = '\t';
 	sprintf (logtext+methodindent, "exception abort: ");
 	utf_sprint (logtext+strlen(logtext), method->class->name);
 	sprintf (logtext+strlen(logtext), ".");
