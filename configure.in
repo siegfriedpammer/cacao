@@ -51,6 +51,12 @@ x86_64 )
 	CFLAGS="-D__X86_64__"
 	;;
 
+xdspcore )
+	ARCH_DIR="xdspcore"
+	STATIC_CLASSPATH="1"
+	CFLAGS="-D__XDSPCORE__"
+	USE_SCHEDULER="1"
+	;;
 * )
 	AC_MSG_ERROR($host_cpu systems are not supported at this time)
         ;;
@@ -76,18 +82,20 @@ case "$host_os" in
 esac
 
 
+dnl define and substitute some architecture specific variables
+AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [Architecture directory])
+AC_SUBST(ARCH_DIR)
+AC_SUBST(USE_SCHEDULER)
+
+
 dnl define install prefix
 if test "x$prefix" = xNONE; then
 	CACAO_INSTALL_PREFIX=$ac_default_prefix
 else
 	CACAO_INSTALL_PREFIX=$prefix
 fi
-AC_DEFINE_UNQUOTED([CACAO_INSTALL_PREFIX], "$CACAO_INSTALL_PREFIX", [Installation prefix])
+AC_DEFINE_UNQUOTED([CACAO_INSTALL_PREFIX], "${CACAO_INSTALL_PREFIX}", [Installation prefix])
 AC_SUBST(CACAO_INSTALL_PREFIX)
-
-
-AC_DEFINE_UNQUOTED([ARCH_DIR], "$ARCH_DIR", [Architecture directory])
-AC_SUBST(ARCH_DIR)
 
 
 AC_ARG_ENABLE([dynamicclasspath], [AS_HELP_STRING(--disable-dynamicclasspath, link classpath native code static even on platforms supporting dynamic loading)], [use_dynamicclasspath=$enableval], [use_dynamicclasspath=yes])
@@ -269,6 +277,7 @@ else
   ac_cv_gcc___thread=no
 fi
 
+
 dnl check if linear scan register allocator(lsra) should be used
 AC_ARG_ENABLE([lsra], [AS_HELP_STRING(--enable-lsra,enable linear scan register allocator [[default=yes]])])
 
@@ -279,6 +288,29 @@ else
 	AC_MSG_RESULT(yes)
 	AC_DEFINE([LSRA], 1, [use lsra])
 fi
+
+
+dnl check for instruction scheduler
+AC_ARG_ENABLE([scheduler], [AS_HELP_STRING(--enable-scheduler,enable instruction scheduler [[default=no]])])
+
+AC_MSG_CHECKING(whether instruction scheduler should be supported)
+if test x"${USE_SCHEDULER}" = "x1" -o x"$enable_scheduler" = "xyes"; then
+	case "${ARCH_DIR}" in
+		xdspcore )
+			;;
+		* )
+			AC_MSG_ERROR(instruction scheduler is not available for ${ARCH_DIR} code generator)
+			;;
+	esac
+
+	AC_MSG_RESULT(yes)
+	AC_DEFINE([USE_SCHEDULER], 1, [use scheduler])
+	AM_CONDITIONAL([USE_SCHEDULER], [true])
+else
+	AC_MSG_RESULT(no)
+	AM_CONDITIONAL([USE_SCHEDULER], [false])
+fi
+
 
 dnl check if zlib should be used
 AC_ARG_ENABLE([zlib], [AS_HELP_STRING(--enable-zlib,enable zip archive class storage (needs zlib) [[default=yes]])])
@@ -296,11 +328,9 @@ else
 fi
 
 
-dnl check arguments
+dnl enable gtk peer
 AC_ARG_ENABLE([gtk-peer], [AS_HELP_STRING(--enable-gtk-peer,compile GTK native peers [[default=no]])])
 
-
-dnl enable gtk peer
 AC_MSG_CHECKING(whether to use gtk awt peers)
 if test x"$enable_gtk_peer" = "xyes"; then
 	AC_MSG_RESULT(yes)
