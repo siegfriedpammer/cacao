@@ -42,6 +42,7 @@
              (void*)((long)heap_top + HEURISTIC_PARAM)	 
 #endif
 
+	 /*
 //#define PSEUDO_GENERATIONAL
 //#define COLLECT_LIFESPAN
 //#define NEW_COLLECT_LIFESPAN
@@ -50,9 +51,12 @@
 
 //#define GC_COLLECT_STATISTICS
 //#define FINALIZER_COUNTING
+*/
 
 #undef STRUCTURES_ON_HEAP
+	 /*
 //#define STRUCTURES_ON_HEAP
+*/
 
 #define false 0
 #define true 1

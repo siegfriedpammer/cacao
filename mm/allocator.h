@@ -1,6 +1,6 @@
 /*
  * cacao/mm/allocator.h
- * $Id: allocator.h 115 1999-01-20 01:52:45Z phil $
+ * $Id: allocator.h 118 1999-01-20 14:58:16Z andi $
  */
 
 #ifndef __allocator_h_
@@ -24,7 +24,7 @@
 #define MSB_TO_LSB_SEARCH	NO
 
 #define ADDRESS	64
-//#define ADDRESS 32
+/* #define ADDRESS 32 */
 
 #if ADDRESS == 64
 #  define SIZE	unsigned long long
@@ -34,7 +34,7 @@
 
 #undef ALIGN
 #define ALIGN	3	/* 64bit alignment */
-//#define ALIGN	2	/* 32bit allignment */
+/* #define ALIGN	2	/ * 32bit allignment * / */
 
 #define EXACT_TOP_BIT  8    /* usually somewhere in the range [8..10]
 							   the largest exact chunk is 1 << EXACT_TOP_BIT bytes large &

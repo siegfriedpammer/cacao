@@ -12,14 +12,15 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 115 1999-01-20 01:52:45Z phil $
+	Last Change: $Id: global.h 118 1999-01-20 14:58:16Z andi $
 
 *******************************************************************************/
 
 #ifndef __global_h_
 #define __global_h_
 
-#define OLD_COMPILER        /* if enabled makes old compiler available        */
+#include "config.h"
+
 #define NEW_GC              /* if enabled, includes the new gc. -- phil.      */
 
 #define STATISTICS          /* if enabled collects program statistics         */

@@ -6,7 +6,7 @@
  *
  * Authors: Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
  *
- * $Id: allocator2.c 106 1998-12-11 02:03:33Z phil $
+ * $Id: allocator2.c 118 1999-01-20 14:58:16Z andi $
  */
 
 #include "allocator.h"
@@ -167,7 +167,7 @@ find_highest(SIZE bits){
 #	endif
 #endif
 
-};
+}
 
 static 
 void 
@@ -259,7 +259,7 @@ allocator_init()
 {
 #if 0
 	fprintf(stderr, 
-			"allocator_init: $Id: allocator2.c 106 1998-12-11 02:03:33Z phil $\n\n");
+			"allocator_init: $Id: allocator2.c 118 1999-01-20 14:58:16Z andi $\n\n");
 	
 	fprintf(stderr, "\t%d bit addresses\n", ADDRESS);
 	fprintf(stderr, "\t%d bit alignment\n", ALIGN);

@@ -15,3 +15,5 @@
 
 /* sysdep */
 #undef SYSDEP_DIR
+
+#undef OLD_COMPILER

@@ -14,17 +14,27 @@ dnl system type
 case "$host_cpu" in
 alpha* )
 	SYSDEP_DIR="alpha" 
-	CFLAGS="-ieee -O2 -g3" ;;
+	CFLAGS="-ieee -O2 -g3"
+	COMPILER_SOURCES="compiler.h compiler.c" 
+	COMPILER_OBJECTS="compiler.o"
+	AC_DEFINE(OLD_COMPILER)
+	;;
 
 mips* )
 	SYSDEP_DIR="mips" 
-        CFLAGS="-g -DMAP_ANONYMOUS=0 -woff 1048,1110,1164,1515"
-	LIBS="-lelfutil" ;;
+        CFLAGS="-64 -g -DMAP_ANONYMOUS=0 -woff 1048,1110,1164,1515"
+	LIBS="-lelfutil" 
+	COMPILER_SOURCES=""
+	COMPILER_OBJECTS=""
+	;;
 
 sparc* | powerpc* | ppc* | * )
 	AC_MSG_ERROR($host-cpu systems are not supported at this time) ;;
 
 esac
+
+AC_SUBST(COMPILER_SOURCES)
+AC_SUBST(COMPILER_OBJECTS)
 
 AC_DEFINE_UNQUOTED(SYSDEP_DIR, "$SYSDEP_DIR")
 AC_SUBST(SYSDEP_DIR)

@@ -38,8 +38,14 @@
 #undef EXTERNAL_OVERFLOW
 #undef DONT_FREE_FIRST
 
+/* Make automake happy */
+#undef PACKAGE
+#undef VERSION
+
 /* sysdep */
 #undef SYSDEP_DIR
+
+#undef OLD_COMPILER
 
 /* Define if you have the getcwd function.  */
 #undef HAVE_GETCWD
@@ -85,10 +91,3 @@
 
 /* Define if you have the m library (-lm).  */
 #undef HAVE_LIBM
-
-/* Name of package */
-#undef PACKAGE
-
-/* Version number of package */
-#undef VERSION
-

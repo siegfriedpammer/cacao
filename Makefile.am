@@ -1,9 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 117 1999-01-20 02:13:50Z phil $
+# $Id: Makefile.am 118 1999-01-20 14:58:16Z andi $
 
 MAINTAINERCLEANFILES = Makefile.in configure
-SUBDIRS = toolbox mm alpha jit nat comp threads mips
+SUBDIRS = toolbox mm alpha jit comp nat threads mips
 
 EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html \
 			 doc/cacao.1
@@ -18,15 +18,14 @@ bin_PROGRAMS = cacao
 noinst_PROGRAMS = cacaoh
 man_MANS = doc/cacao.1
 
-INCLUDES=-I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@
+INCLUDES=-I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@ -I$(top_srcdir)
 
 cacao_SOURCES = \
 	asmpart.h \
 	builtin.c \
 	builtin.h \
 	callargs.h \
-	compiler.c \
-	compiler.h \
+	@COMPILER_SOURCES@ \
 	global.h \
 	jit.c \
 	jit.h \
@@ -38,14 +37,18 @@ cacao_SOURCES = \
 	tables.c \
 	tables.h
 
+EXTRA_cacao_SOURCES = compiler.c compiler.h
+
 cacao_LDADD = \
 	@SYSDEP_DIR@/asmpart.o \
+	@COMPILER_OBJECTS@ \
 	toolbox/libtoolbox.a \
 	@GC_OBJ@ \
     @THREAD_OBJ@
 
 cacao_DEPENDENCIES = \
 	@SYSDEP_DIR@/asmpart.o \
+	@COMPILER_OBJECTS@ \
 	toolbox/libtoolbox.a \
 	@GC_OBJ@ \
 	@THREAD_OBJ@
@@ -87,6 +90,11 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 			> @SYSDEP_DIR@/asmpart.s
 	@CC@ $(INCLUDES) -c -o @SYSDEP_DIR@/asmpart.o @SYSDEP_DIR@/asmpart.s
 	rm -f asmpart.s
+
+compiler.o: builtin.h compiler.h global.h loader.h tables.h native.h \
+            asmpart.h compiler.c comp/*.c \
+            @SYSDEP_DIR@/gen.c @SYSDEP_DIR@/disass.c
+	@CC@ $(CFLAGS) $(INCLUDES) -c compiler.c
 
 
 ## Local variables:
