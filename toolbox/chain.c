@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: chain.c 684 2003-12-02 16:50:17Z twisti $
+   $Id: chain.c 1141 2004-06-05 23:19:24Z twisti $
 
 */
 
@@ -37,8 +37,8 @@
 #include <assert.h>
 
 #include "global.h"
-#include "memory.h"
-#include "chain.h"
+#include "toolbox/memory.h"
+#include "toolbox/chain.h"
 
 
 chain *chain_new()

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: memory.c 1141 2004-06-05 23:19:24Z twisti $
 
 */
 
@@ -39,8 +39,8 @@
 #include <unistd.h>
 
 #include "global.h"
-#include "logging.h"
-#include "memory.h"
+#include "toolbox/logging.h"
+#include "toolbox/memory.h"
 
 
 /********* general types, variables and auxiliary functions *********/

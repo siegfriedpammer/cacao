@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: tracing.h 665 2003-11-21 18:36:43Z jowenn $
+   $Id: tracing.h 1141 2004-06-05 23:19:24Z twisti $
 
 */
 
@@ -34,7 +34,7 @@
 #ifndef _TRACING_H
 #define _TRACING_H
 
-#include "jit.h"
+#include "jit/jit.h"
 
 /*	
    This struct is needed to record the source of operands of intermediate code

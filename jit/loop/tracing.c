@@ -31,14 +31,14 @@
    instruction. For more details see function tracing(basicblock, int,
    int) below.
 
-   $Id: tracing.c 576 2003-11-09 17:31:38Z twisti $
+   $Id: tracing.c 1141 2004-06-05 23:19:24Z twisti $
 
 */
 
 
 #include <stdio.h>
-#include "tracing.h"
-#include "loop.h"
+#include "jit/loop/tracing.h"
+#include "jit/loop/loop.h"
 #include "toolbox/memory.h"
 
 

@@ -1,8 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 618 2003-11-13 09:39:28Z stefan $
+# $Id: Makefile.am 1141 2004-06-05 23:19:24Z twisti $
 
-INCLUDES = -I$(top_srcdir)/jit/@ARCH_DIR@ -I$(top_srcdir)/jit
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit/@ARCH_DIR@
 
 EXTRA_DIST = \
 	graph.c \

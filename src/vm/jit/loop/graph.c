@@ -31,15 +31,15 @@
    Contains the functions which build a list, that represents the
    control flow graph of the procedure, that is being analyzed.
 
-   $Id: graph.c 576 2003-11-09 17:31:38Z twisti $
+   $Id: graph.c 1141 2004-06-05 23:19:24Z twisti $
 
 */
 
 
 #include <stdio.h>
-#include "graph.h"
-#include "loop.h"
-#include "jit.h"
+#include "jit/jit.h"
+#include "jit/loop/graph.h"
+#include "jit/loop/loop.h"
 #include "toolbox/memory.h"
 
 

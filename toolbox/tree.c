@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tree.c 684 2003-12-02 16:50:17Z twisti $
+   $Id: tree.c 1141 2004-06-05 23:19:24Z twisti $
 
 */
 
@@ -36,8 +36,8 @@
 #include <assert.h>
 
 #include "global.h"
-#include "memory.h"
-#include "tree.h"
+#include "toolbox/memory.h"
+#include "toolbox/tree.h"
 
 
 tree *tree_new(treeelementcomperator comperator)

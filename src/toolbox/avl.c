@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "avl.h"
+#include "toolbox/avl.h"
 
 /* Creates and returns a new table
    with comparison function |compare| using parameter |param|
