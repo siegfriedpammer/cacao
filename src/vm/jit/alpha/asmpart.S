@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 2142 2005-03-30 12:53:56Z twisti $
+   $Id: asmpart.S 2164 2005-03-30 20:18:51Z twisti $
 
 */
 
@@ -109,6 +109,7 @@
 	.globl has_no_x_instr_set
 
 	.globl asm_calljavafunction
+	.globl asm_calljavafunction_int
 
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2int
@@ -199,6 +200,7 @@ call_name:
 	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
+asm_calljavafunction_int:
 	ldgp    gp,0(pv)
 	lda     sp,-32(sp)                /* allocate stack space                 */
 	stq     gp,24(sp)                 /* save global pointer                  */
@@ -804,7 +806,7 @@ ex_table_loop:
 	br      ra,L_class_load_ra    /* set ra for gp loading                    */
 L_class_load_ra:
 	ldgp    gp,0(ra)              /* load gp                                  */
-	jsr     ra,class_load         /* class_load(exceptionclass)               */
+	jsr     ra,load_class_bootstrap
 
 	ldq     t0,0*8(sp)            /* restore used register                    */
 	ldq     t1,1*8(sp)
@@ -835,7 +837,7 @@ L_class_loaded:
 	br      ra,L_class_link_ra    /* set ra for gp loading                    */
 L_class_link_ra:
 	ldgp    gp,0(ra)              /* load gp                                  */
-	jsr     ra,class_link         /* class_load(exceptionclass)               */
+	jsr     ra,link_class
 
 	ldq     t0,0*8(sp)            /* restore used register                    */
 	ldq     t1,1*8(sp)
