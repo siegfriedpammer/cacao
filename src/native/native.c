@@ -1,4 +1,4 @@
-/* native/native.c - table of native functions
+/* src/native/native.c - table of native functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,10 +28,9 @@
             Roman Obermaisser
             Andreas Krall
 
-   The .hh files created with the header file generator are all
-   included here as are the C functions implementing these methods.
+   Changes: Christian Thalinger
 
-   $Id: native.c 2010 2005-03-07 09:50:57Z twisti $
+   $Id: native.c 2138 2005-03-30 10:23:47Z twisti $
 
 */
 
@@ -78,195 +77,6 @@
 #include "nativetable.inc"
 
 
-/** Create a new ProtectionDomain object for a classpath_info structure. 
-	This object will be used for every java.lang.class object who represents a 
-	class which has been loaded from the location this classpath_info structure 
-	points to. **/
-static inline void create_ProtectionDomain(struct classpath_info *cpi) {
-	jmethodID mid;
-	jobject obj;
-
-	jobject cs;
-	jobject pc;
-	jobject url;
-
-	classinfo *c;  
-	classinfo *classpc;
-
-	/* create a new java.io.File object */ 
-	c = class_new(utf_new_char_classname("java/io/File"));
-	
-	if (!class_load(c) || !class_link(c)) {
-		log_text("unable to find java.io.File");
-		throw_main_exception_exit();
-	}
-
-	mid = class_resolvemethod(c, utf_new_char("<init>"), utf_new_char("(Ljava/lang/String;)V"));
-
-	if (mid == NULL) {
-		log_text("unable to find constructor in java.io.File");
-		cacao_exit(1);
-	}
-
-	obj = builtin_new (c);
-   	asm_calljavafunction(mid,obj,javastring_new(utf_new_char(cpi->path)),NULL,NULL);
-
-	if (*exceptionptr != NULL) {
-		utf_display((*exceptionptr)->vftbl->class->name);
-		printf ("\n");
-		fflush (stdout);	
-		cacao_exit(1);
-	}
-
-	/* get URL of CodeSource from java.io.File object */ 
-	mid = class_resolvemethod(c, utf_new_char("toURL"), utf_new_char("()Ljava/net/URL;"));
-
-	if (mid == NULL) {
-		log_text("unable to find toURL in java.io.File");
-		cacao_exit(1);
-	}
-
-	url = asm_calljavafunction(mid,obj,url,NULL,NULL);
-
-	if (*exceptionptr != NULL) {
-		utf_display((*exceptionptr)->vftbl->class->name);
-		printf ("\n");
-		fflush (stdout);	
-		cacao_exit(1);
-	}
-
-	/* create a new java.security.CodeSource object */ 
-	c = class_new(utf_new_char_classname("java/security/CodeSource"));
-	
-	if (!class_load(c) || !class_link(c)) {
-		log_text("unable to find java.security.CodeSource");
-		throw_main_exception_exit();
-	}
-	
-	mid = class_resolvemethod(c, 
-							  utf_new_char("<init>"), 
-							  utf_new_char("(Ljava/net/URL;[Ljava/security/cert/Certificate;)V"));
-
-	if (mid == NULL) {
-		log_text("unable to find constructor in java.security.CodeSource");
-		cacao_exit(1);
-	}
-
-	cs = builtin_new (c);
-   	asm_calljavafunction(mid,cs,url,NULL,NULL);
-
-	if (*exceptionptr != NULL) {
-		utf_display((*exceptionptr)->vftbl->class->name);
-		printf ("\n");
-		fflush (stdout);	
-		cacao_exit(1);
-	}
-
-	/* create a new java.security.PermissionCollection object */ 
-
-
-	classpc = class_new(utf_new_char_classname("java/security/PermissionCollection"));
-	
-	if (!class_load(c) || !class_link(c)) {
-		log_text("unable to find java.security.PermissionCollection");
-		throw_main_exception_exit();
-	}
-
-	mid = class_resolvemethod(classpc, utf_new_char("<init>"), 
-							  utf_new_char("()V"));
-
-	if (mid == NULL) {
-		log_text("unable to find constructor in java.security.PermissionCollection");
-		cacao_exit(1);
-	}
-
-	pc = builtin_new (classpc);
-   	asm_calljavafunction(mid,pc,NULL,NULL,NULL);
-
-	if (*exceptionptr != NULL) {
-		utf_display((*exceptionptr)->vftbl->class->name);
-		printf ("\n");
-		fflush (stdout);	
-		cacao_exit(1);
-	}
-
-    /* add AllPermission - todo: this should not be the default behaviour */
-	c = class_new(utf_new_char_classname("java/security/AllPermission"));
-	
-	if (!class_load(c) || !class_link(c)) {
-		log_text("unable to find java.security.AllPermission");
-		throw_main_exception_exit();
-	}
-
-	mid = class_resolvemethod(c, 
-							  utf_new_char("<init>"), 
-							  utf_new_char("()V"));
-
-	if (mid == NULL) {
-		log_text("unable to find constructor in java.security.AllPermission");
-		cacao_exit(1);
-	}
-
-
-	obj = builtin_new (c);
-   	asm_calljavafunction(mid,obj,NULL,NULL,NULL);
-
-	if (*exceptionptr != NULL) {
-		utf_display((*exceptionptr)->vftbl->class->name);
-		printf ("\n");
-		fflush (stdout);	
-		cacao_exit(1);
-	}
-
-
-	mid = class_resolvemethod(classpc, 
-							  utf_new_char("add"), 
-							  utf_new_char("(Ljava/security/Permission;)V"));
-
-	if (mid == NULL) {
-		log_text("unable to find add in java.security.PermissionCollection");
-		cacao_exit(1);
-	}
-
-   	asm_calljavafunction(mid,pc,obj,NULL,NULL);
-	if (*exceptionptr != NULL) {
-		utf_display((*exceptionptr)->vftbl->class->name);
-		printf ("\n");
-		fflush (stdout);	
-		cacao_exit(1);
-	}
-
-	/* create a new java.security.ProtectionDomain object */ 
-	c = class_new(utf_new_char_classname("java/security/ProtectionDomain"));
-	
-	if (!class_load(c) || !class_link(c)) {
-		log_text("unable to find java.security.ProtectionDomain");
-		throw_main_exception_exit();
-	}
-
-	mid = class_resolvemethod(c, 
-							  utf_new_char("<init>"), 
-							  utf_new_char("(Ljava/security/CodeSource;Ljava/security/PermissionCollection;)V"));
-
-	if (mid == NULL) {
-		log_text("unable to find constructor in java.security.ProtectionDomain");
-		cacao_exit(1);
-	}
-	
-	obj = builtin_new (c);
-   	asm_calljavafunction(mid,obj,cs,pc,NULL);
-
-	if (*exceptionptr != NULL) {
-		utf_display((*exceptionptr)->vftbl->class->name);
-		printf ("\n");
-		fflush (stdout);	
-		cacao_exit(1);
-	}
-
-	cpi->pd = (struct java_security_ProtectionDomain*) obj;
-}
-
-
 /************* use classinfo structure as java.lang.Class object **************/
 
 void use_class_as_object(classinfo *c) 
@@ -274,30 +84,20 @@ void use_class_as_object(classinfo *c)
 	if (!c->classvftbl) {
 		/* is the class loaded */
 		if (!c->loaded)
-			if (!class_load(c))
-	                        panic("Class could not be loaded in use_class_as_object");
+/*  			if (!class_load(c)) */
+/*  				throw_exception_exit(); */
+			panic("use_class_as_object: class_load should not happen");
+
 		/* is the class linked */
 		if (!c->linked)
 			if (!class_link(c))
-				panic("Class could not be linked in use_class_as_object");
+				throw_exception_exit();
 
 		/*if (class_java_lang_Class ==0) panic("java/lang/Class not loaded in use_class_as_object");
 		if (class_java_lang_Class->vftbl ==0) panic ("vftbl == 0 in use_class_as_object");*/
 		c->header.vftbl = class_java_lang_Class->vftbl;
 		c->classvftbl = true;
-
-
-		/* set a real, java object ProtectionDomain and CodeSource.
-		   Only one ProtectionDomain-object per classpath_info is needed.*/
-		if (c->pd != NULL) { 
-            /* only set ProtectionDomain for non primitive type classes*/
-			if (((struct classpath_info*)c->pd)->pd == NULL) 
-				create_ProtectionDomain((struct classpath_info *)c->pd);
-		
-			c->pd = ((struct classpath_info*)c->pd)->pd;
-		}
   	}
-	     
 }
 
 
