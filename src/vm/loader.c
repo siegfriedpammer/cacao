@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: loader.c 2189 2005-04-02 02:05:59Z edwin $
 
 */
 
@@ -870,7 +870,7 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 
 		switch (t) {
 		case CONSTANT_Class:
-			nfc = NEW(forward_class);
+			nfc = DNEW(forward_class);
 
 			nfc->next = forward_classes;
 			forward_classes = nfc;
@@ -886,7 +886,7 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 			break;
 			
 		case CONSTANT_String:
-			nfs = NEW(forward_string);
+			nfs = DNEW(forward_string);
 				
 			nfs->next = forward_strings;
 			forward_strings = nfs;
@@ -903,7 +903,7 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 			break;
 
 		case CONSTANT_NameAndType:
-			nfn = NEW(forward_nameandtype);
+			nfn = DNEW(forward_nameandtype);
 				
 			nfn->next = forward_nameandtypes;
 			forward_nameandtypes = nfn;
@@ -926,7 +926,7 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 		case CONSTANT_Fieldref:
 		case CONSTANT_Methodref:
 		case CONSTANT_InterfaceMethodref:
-			nff = NEW(forward_fieldmethint);
+			nff = DNEW(forward_fieldmethint);
 			
 			nff->next = forward_fieldmethints;
 			forward_fieldmethints = nff;
@@ -1087,8 +1087,11 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 		utf *name =
 			class_getconstant(c, forward_classes->name_index, CONSTANT_Utf8);
 
-		if (opt_verify && !is_valid_name_utf(name))
-			panic("Class reference with invalid name");
+		if (opt_verify && !is_valid_name_utf(name)) {
+			*exceptionptr = 
+				new_classformaterror(c, "Class reference with invalid name");
+			return false;
+		}
 
 		cptags[forward_classes->thisindex] = CONSTANT_Class;
 		/* retrieve class from class-table */
@@ -1111,7 +1114,6 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 
 		nfc = forward_classes;
 		forward_classes = forward_classes->next;
-		FREE(nfc, forward_class);
 	}
 
 	while (forward_strings) {
@@ -1124,7 +1126,6 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 		
 		nfs = forward_strings;
 		forward_strings = forward_strings->next;
-		FREE(nfs, forward_string);
 	}
 
 	while (forward_nameandtypes) {
@@ -1169,7 +1170,6 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 
 		nfn = forward_nameandtypes;
 		forward_nameandtypes = forward_nameandtypes->next;
-		FREE(nfn, forward_nameandtype);
 	}
 
 	while (forward_fieldmethints) {
@@ -1185,9 +1185,7 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 								forward_fieldmethints->nameandtype_index,
 								CONSTANT_NameAndType);
 
-		fmi->class = class_getconstant(c,
-									   forward_fieldmethints->class_index,
-									   CONSTANT_Class);
+		fmi->classref = (constant_classref*) (size_t) forward_fieldmethints->class_index;
 		fmi->name = nat->name;
 		fmi->descriptor = nat->descriptor;
 
@@ -1196,7 +1194,6 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 	
 		nff = forward_fieldmethints;
 		forward_fieldmethints = forward_fieldmethints->next;
-		FREE(nff, forward_fieldmethint);
 	}
 
 	/* everything was ok */
@@ -2172,6 +2169,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* parse the loaded descriptors */
 	for (i=0; i<c->cpcount; ++i) {
 		constant_FMIref *fmi;
+		int index;
 		
 		switch (c->cptags[i]) {
 			case CONSTANT_Class:
@@ -2183,7 +2181,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 					descriptor_pool_parse_field_descriptor(descpool,fmi->descriptor);
 				if (!fmi->parseddesc.fd)
 					goto return_exception;
-				fmi->classref = descriptor_pool_lookup_classref(descpool,fmi->class->name);
+				index = (int) (size_t) fmi->classref;
+				fmi->classref = descriptor_pool_lookup_classref(descpool,((classinfo *)class_getconstant(c,index,CONSTANT_Class))->name);
 				break;
 			case CONSTANT_Methodref:
 			case CONSTANT_InterfaceMethodref:
@@ -2192,7 +2191,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 					descriptor_pool_parse_method_descriptor(descpool,fmi->descriptor);
 				if (!fmi->parseddesc.md)
 					goto return_exception;
-				fmi->classref = descriptor_pool_lookup_classref(descpool,fmi->class->name);
+				index = (int) (size_t) fmi->classref;
+				fmi->classref = descriptor_pool_lookup_classref(descpool,((classinfo *)class_getconstant(c,index,CONSTANT_Class))->name);
 				break;
 		}
 	}
@@ -3092,7 +3092,7 @@ void class_showconstanti(classinfo *c, int ii)
 		displayFMIi:
 			{
 				constant_FMIref *fmi = e;
-				utf_display(fmi->class->name);
+				utf_display(fmi->classref->name);
 				printf(".");
 				utf_display(fmi->name);
 				printf(" ");
@@ -3173,7 +3173,7 @@ void class_showconstantpool (classinfo *c)
 			displayFMI:
 				{
 					constant_FMIref *fmi = e;
-					utf_display ( fmi->class->name );
+					utf_display ( fmi->classref->name );
 					printf (".");
 					utf_display ( fmi->name);
 					printf (" ");

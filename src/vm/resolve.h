@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 2182 2005-04-01 20:56:33Z edwin $
+   $Id: resolve.h 2189 2005-04-02 02:05:59Z edwin $
 
 */
 
@@ -139,6 +139,41 @@ resolve_class(classinfo *referer,methodinfo *refmethod,
 			  utf *classname,
 			  resolve_mode_t mode,
 			  classinfo **result);
+
+/* resolve_classref ************************************************************
+ 
+   Resolve a symbolic class reference
+  
+   IN:
+       refmethod........the method from which resolution was triggered
+                        (may be NULL if not applicable)
+       ref..............class reference
+       mode.............mode of resolution:
+                            resolveLazy...only resolve if it does not
+                                          require loading classes
+                            resolveEager..load classes if necessary
+	   link.............if true, guarantee that the returned class, if any,
+	                    has been linked
+  
+   OUT:
+       *result..........set to result of resolution, or to NULL if
+                        the reference has not been resolved
+                        In the case of an exception, *result is
+                        guaranteed to be set to NULL.
+  
+   RETURN VALUE:
+       true.............everything ok 
+                        (*result may still be NULL for resolveLazy)
+       false............an exception has been thrown
+   
+*******************************************************************************/
+
+bool
+resolve_classref(methodinfo *refmethod,
+				 constant_classref *ref,
+				 resolve_mode_t mode,
+			     bool link,
+				 classinfo **result);
 
 /* resolve_classref_or_classinfo ***********************************************
  

@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 2184 2005-04-01 21:19:05Z edwin $
+   $Id: inline.c 2189 2005-04-02 02:05:59Z edwin $
 
 */
 
@@ -66,6 +66,7 @@ Method to be inlined must:
 #include "vm/loader.h"
 #include "vm/tables.h"
 #include "vm/options.h"
+#include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
@@ -387,7 +388,7 @@ u2 whycannot = 0;
 if ((inline_env->cummethods < INLINING_MAXMETHODS) && 
    /*** (!(imi->flags & ACC_ABSTRACT)) && /** Problem from INVOKE STATIC **/
     (!(imi->flags & ACC_NATIVE)) &&
-    (inlineoutsiders || (m->class == imr->class)) &&
+    (inlineoutsiders || (m->class->name == imr->classref->name)) &&
     (imi->jcodelength < INLINING_MAXCODESIZE) &&
     (imi->jcodelength > 0) && 	     /* FIXME: eliminate empty methods? also abstract??*/
     (((!inlinevirtuals)  ||
@@ -433,7 +434,7 @@ if  (imi->flags & ACC_ABSTRACT) return can;
 							METHINFOj(imi)
 							}
 
-  if  (!(inlineoutsiders) && (m->class != imr->class)) {
+  if  (!(inlineoutsiders) && (m->class->name != imr->classref->name)) {
 	/*** if ((!mult) && (whycannot > 0)) mult = true;  *** First time not needed ***/
 #if defined(STATISTICS)
 	count_in_outsiders++;
@@ -488,7 +489,7 @@ if  (imi->flags & ACC_ABSTRACT) return can;
 		}	
 	}	
 
-  if  (inlineoutsiders && (m->class != imr->class)) {
+  if  (inlineoutsiders && (m->class->name != imr->classref->name)) {
 	whycannot = whycannot | IN_OUTSIDERS; /* outsider */ 
 #if defined(STATISTICS)
 	count_in_outsiders++;
@@ -715,6 +716,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 				{
 					constant_FMIref *imr;
 					methodinfo *imi;
+					classinfo *imrclass;
 
                                         methodinfo *mout;
                                         bool uniqueVirt= false;
@@ -722,9 +724,11 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 
 					if (opcode ==JAVA_INVOKEINTERFACE) {
 					    imr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
-					    LAZYLOADING(imr->class)
+						if (!resolve_classref(m,imr->classref,resolveEager,true,&imrclass))
+							panic("Could not resolve class reference");
+					    LAZYLOADING(imrclass)
                                             imi = class_resolveinterfacemethod(
-						imr->class,
+						imrclass,
                                                 imr->name,
                                                 imr->descriptor,
                                                 m->class,
@@ -734,9 +738,11 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 					   }
 					else {
 					   imr = class_getconstant(m->class, i, CONSTANT_Methodref);
-					   LAZYLOADING(imr->class)
+						if (!resolve_classref(m,imr->classref,resolveEager,true,&imrclass))
+							panic("Could not resolve class reference");
+					   LAZYLOADING(imrclass)
 					   imi = class_resolveclassmethod(
-						imr->class,
+						imrclass,
 						imr->name,
 						imr->descriptor,
 						m->class,

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: references.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: references.h 2189 2005-04-02 02:05:59Z edwin $
 
 */
 
@@ -90,7 +90,6 @@ typedef union parseddesc {
 /* constant_FMIref ************************************************************/
 
 typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
-	classinfo *class;       /* class containing this field/method/intfmeth.   */ /* XXX remove */
 	constant_classref *classref;  /* class containing this field/meth./intfm. */
 	utf       *name;        /* field/method/interfacemethod name              */
 	utf       *descriptor;  /* field/method/intfmeth. type descriptor string  */

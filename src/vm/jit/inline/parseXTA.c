@@ -39,7 +39,7 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: parseXTA.c 2189 2005-04-02 02:05:59Z edwin $
 
 */
 
@@ -125,6 +125,7 @@ Results: (currently) with -stat see # methods marked used
 #include "vm/class.h"
 #include "vm/linker.h"
 #include "vm/loader.h"
+#include "vm/resolve.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/tables.h"
@@ -1178,11 +1179,14 @@ if ((XTA_DEBUGr)||(XTA_DEBUGopcodes)) printf("\n");
 			{
 				constant_FMIref *fr;
 				fieldinfo *fi;
+				classinfo *frclass;
 
 				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
-				LAZYLOADING(fr->class)
+				if (!resolve_classref(m,fr->classref,resolveEager,true,&frclass))
+					panic("Could not resolve class reference");
+				LAZYLOADING(frclass)
 
-				fi = class_resolvefield(fr->class,
+				fi = class_resolvefield(frclass,
 							fr->name,
 							fr->descriptor,
 							m->class,
@@ -1210,11 +1214,14 @@ printf(" PUTSTATIC:");fflush(stdout); utf_display(fi->class->name);printf(".");f
 			{
 				constant_FMIref *fr;
 				fieldinfo *fi;
+				classinfo *frclass;
 
 				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
-				LAZYLOADING(fr->class)
+				if (!resolve_classref(m,fr->classref,resolveEager,true,&frclass))
+					panic("Could not resolve class reference");
+				LAZYLOADING(frclass)
 
-				fi = class_resolvefield(fr->class,
+				fi = class_resolvefield(frclass,
 							fr->name,
 							fr->descriptor,
 							m->class,
@@ -1245,10 +1252,13 @@ printf(" GETSTATIC:");fflush(stdout); utf_display(fi->class->name);printf(".");f
 				{
 				constant_FMIref *mr;
 				methodinfo *mi;
+				classinfo *mrclass;
 
 				mr = class_getconstant(m->class, i, CONSTANT_Methodref);
-				LAZYLOADING(mr->class) 
-				mi = class_resolveclassmethod(	mr->class,
+				if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass))
+					panic("Could not resolve class reference");
+				LAZYLOADING(mrclass) 
+				mi = class_resolveclassmethod(	mrclass,
 												mr->name,
 												mr->descriptor,
 												m->class,
@@ -1338,7 +1348,7 @@ printf(" GETSTATIC:");fflush(stdout); utf_display(fi->class->name);printf(".");f
       there is a real error in classpath and in normal parse an exception
       will be thrown. Following debug print can verify this
 else  from if (mi) {
-CLASSNAME1(mr->class,"CouldNOT Resolve method:",,XTA_DEBUGr);printf(".");fflush(stdout);
+CLASSNAME1(mrclass,"CouldNOT Resolve method:",,XTA_DEBUGr);printf(".");fflush(stdout);
 utf_display(mr->name); printf(" "); fflush(stdout);
 utf_display(mr->descriptor); printf("\n");fflush(stdout);
 ***/
@@ -1350,11 +1360,14 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 			{
 				constant_FMIref *mr;
                                 methodinfo *mi;
+								classinfo *mrclass;
 
 			       	mr = m->class->cpinfos[i];
                                 /*mr = class_getconstant(m->class, i, CONSTANT_Methodref)*/
-			       	LAZYLOADING(mr->class) 
-				mi = class_resolveclassmethod(mr->class,
+					if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass))
+						panic("Could not resolve class reference");
+			       	LAZYLOADING(mrclass) 
+				mi = class_resolveclassmethod(mrclass,
                                                 mr->name,
                                                 mr->descriptor,
               					m->class,
@@ -1391,7 +1404,7 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 				       }
 				   } 
 				else {
-CLASSNAME1(mr->class,"CouldNOT Resolve virt meth:",XTA_DEBUGr);printf(".");fflush(stdout);
+CLASSNAME1(mrclass,"CouldNOT Resolve virt meth:",XTA_DEBUGr);printf(".");fflush(stdout);
 utf_display(mr->name); printf(" "); fflush(stdout);
 utf_display(mr->descriptor); printf("\n");fflush(stdout);
 				   }
@@ -1403,11 +1416,14 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
                         {
                                 constant_FMIref *mr;
                                 methodinfo *mi;
+								classinfo *mrclass;
 
                                 mr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
-                                LAZYLOADING(mr->class)
+								if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass))
+									panic("Could not resolve class reference");
+                                LAZYLOADING(mrclass)
 
-                                mi = class_resolveinterfacemethod(mr->class,
+                                mi = class_resolveinterfacemethod(mrclass,
                                                           mr->name,
                                                           mr->descriptor,
                                                           m->class,

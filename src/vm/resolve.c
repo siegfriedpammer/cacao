@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: resolve.c 2189 2005-04-02 02:05:59Z edwin $
 
 */
 
@@ -166,6 +166,16 @@ resolve_class(classinfo *referer,methodinfo *refmethod,
 #endif
 	*result = cls;
 	return true;
+}
+
+bool
+resolve_classref(methodinfo *refmethod,
+				 constant_classref *ref,
+				 resolve_mode_t mode,
+			     bool link,
+				 classinfo **result)
+{
+	return resolve_classref_or_classinfo(refmethod,CLASSREF_OR_CLASSINFO(ref),mode,link,result);
 }
 
 bool

@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1953 2005-02-17 13:42:23Z christian $
+   $Id: codegen.inc 2189 2005-04-02 02:05:59Z edwin $
 
 */
 
@@ -1088,6 +1088,7 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
         /*log_text("resolved");*/
       } else { 
          /* we failed to find the native function within the execution image (app + loaded libraries) -> will cause an exit*/
+		 dolog("\nnative function not found: %s",overloadedNative);
          MFREE(overloadedNative,char,overloadedNativeLen);
          log_text("It was not possible to find the native function implementation. Not even in overloading case");
       }

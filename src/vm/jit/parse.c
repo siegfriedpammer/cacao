@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 2185 2005-04-01 21:24:49Z edwin $
+   $Id: parse.c 2189 2005-04-02 02:05:59Z edwin $
 
 */
 
@@ -47,6 +47,7 @@
 #include "vm/global.h"
 #include "vm/linker.h"
 #include "vm/loader.h"
+#include "vm/resolve.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
@@ -961,16 +962,13 @@ SHOWOPCODE(DEBUG4)
 			{
 				constant_FMIref *fr;
 				fieldinfo *fi;
+				classinfo *frclass;
 
 				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
-
-				if (!load_class_from_classloader(fr->class, m->class->classloader))
+				if (!resolve_classref(inline_env->method,fr->classref,resolveEager,true,&frclass))
 					return NULL;
 
-				if (!link_class(fr->class))
-					return NULL;
-
-				fi = class_resolvefield(fr->class,
+				fi = class_resolvefield(frclass,
 										fr->name,
 										fr->descriptor,
 										inline_env->method->class,
@@ -992,16 +990,13 @@ SHOWOPCODE(DEBUG4)
 			{
 				constant_FMIref *fr;
 				fieldinfo *fi;
+				classinfo *frclass;
 
 				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
-
-				if (!load_class_from_classloader(fr->class, m->class->classloader))
+				if (!resolve_classref(inline_env->method,fr->classref,resolveEager,true,&frclass))
 					return NULL;
 
-				if (!link_class(fr->class))
-					return NULL;
-
-				fi = class_resolvefield(fr->class,
+				fi = class_resolvefield(frclass,
 										fr->name,
 										fr->descriptor,
 										inline_env->method->class,
@@ -1022,18 +1017,15 @@ SHOWOPCODE(DEBUG4)
 			{
 				constant_FMIref *mr;
 				methodinfo *mi;
+				classinfo *mrclass;
 				
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
-
-				if (!load_class_from_classloader(mr->class, m->class->classloader))
+				if (!resolve_classref(inline_env->method,mr->classref,resolveEager,true,&mrclass))
 					return NULL;
 
-				if (!link_class(mr->class))
-					return NULL;
-
-				mi = class_resolveclassmethod(mr->class,
+				mi = class_resolveclassmethod(mrclass,
 											  mr->name,
 											  mr->descriptor,
 											  inline_env->method->class,
@@ -1064,18 +1056,15 @@ if (DEBUG4==true) {
 			{
 				constant_FMIref *mr;
 				methodinfo *mi;
+				classinfo *mrclass;
 
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
-
-				if (!load_class_from_classloader(mr->class, m->class->classloader))
+				if (!resolve_classref(inline_env->method,mr->classref,resolveEager,true,&mrclass))
 					return NULL;
 
-				if (!link_class(mr->class))
-					return NULL;
-
-				mi = class_resolveclassmethod(mr->class,
+				mi = class_resolveclassmethod(mrclass,
 											  mr->name,
 											  mr->descriptor,
 											  inline_env->method->class,
@@ -1105,18 +1094,15 @@ if (DEBUG4==true) {
 			{
 				constant_FMIref *mr;
 				methodinfo *mi;
+				classinfo *mrclass;
 				
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_InterfaceMethodref);
-
-				if (!load_class_from_classloader(mr->class, m->class->classloader))
+				if (!resolve_classref(inline_env->method,mr->classref,resolveEager,true,&mrclass))
 					return NULL;
 
-				if (!link_class(mr->class))
-					return NULL;
-
-				mi = class_resolveinterfacemethod(mr->class,
+				mi = class_resolveinterfacemethod(mrclass,
 												  mr->name,
 												  mr->descriptor,
 												  inline_env->method->class,
