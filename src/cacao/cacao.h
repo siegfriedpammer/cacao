@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: cacao.h 1094 2004-05-27 15:52:27Z twisti $
+   $Id: cacao.h 1149 2004-06-06 13:28:36Z twisti $
 
 */
 
@@ -92,6 +92,12 @@ extern bool opt_stat;
 extern bool opt_eager;
 
 extern char *mainstring;    /* class.method with main method */
+
+
+/* function prototypes */
+
+void cacao_exit(s4 status);
+void cacao_shutdown(s4 status);
 
 #endif /* _MAIN_H */
 
