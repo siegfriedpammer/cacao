@@ -538,7 +538,6 @@ public class jctest implements jcinterface {
 		catch (ArrayIndexOutOfBoundsException c) {
 			p ("exception_7: out of bounds: "+(-3));
 			}
-		System.out.println("starting 8. loop");
 
 		for (i=-2; i<102; i++) { 
 			try {
