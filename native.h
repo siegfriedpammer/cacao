@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 862 2004-01-06 23:42:01Z stefan $
+   $Id: native.h 912 2004-02-05 21:20:33Z twisti $
 
 */
 
@@ -152,7 +152,8 @@ s4 class_findfield_index_approx(classinfo *c, utf *name);
 java_objectheader *literalstring_new(utf *u);
 
 /* creates a new javastring with the text of the u2-array */
-java_objectheader *literalstring_u2(java_chararray *a, u4 length, bool copymode);
+java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
+									bool copymode);
 
 /* dispose a javastring */
 void literalstring_free(java_objectheader*);

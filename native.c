@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 862 2004-01-06 23:42:01Z stefan $
+   $Id: native.c 912 2004-02-05 21:20:33Z twisti $
 
 */
 
@@ -254,6 +254,18 @@ void throw_linkageerror_message(utf* classname)
 	/* throws a LinkageError with message */
 	*exceptionptr = native_new_and_init_string(class_java_lang_LinkageError,
 											  javastring_new(classname));
+}
+
+
+void throw_exception_message(char *classname, char *message)
+{
+	classinfo *c = class_new(utf_new_char(classname));
+
+	if (!c->linked)
+		panic("...");
+
+	*exceptionptr = native_new_and_init_string(c,
+											   javastring_new_char(message));
 }
 
 
@@ -645,24 +657,28 @@ java_lang_String *javastring_new_char (char *text)
 
 static char stringbuffer[MAXSTRINGSIZE];
 
-char *javastring_tochar (java_objectheader *so) 
+char *javastring_tochar(java_objectheader *so) 
 {
-	java_lang_String *s = (java_lang_String*) so;
+	java_lang_String *s = (java_lang_String *) so;
 	java_chararray *a;
 	s4 i;
 	
-	log_text("javastring_tochar");
-	
 	if (!s)
 		return "";
+
 	a = s->value;
+
 	if (!a)
 		return "";
+
 	if (s->count > MAXSTRINGSIZE)
 		return "";
+
 	for (i = 0; i < s->count; i++)
-		stringbuffer[i] = a->data[s->offset+i];
+		stringbuffer[i] = a->data[s->offset + i];
+
 	stringbuffer[i] = '\0';
+
 	return stringbuffer;
 }
 
@@ -943,8 +959,10 @@ utf *utf_new_u2(u2 *unicode_pos, u4 unicode_length, bool isclassname)
 utf *javastring_toutf(java_lang_String *string, bool isclassname)
 {
 	java_lang_String *str = (java_lang_String *) string;
-/*	printf("javastring_toutf offset: %d, len %d\n",str->offset, str->count);
-	fflush(stdout);*/
+
+/*  	printf("javastring_toutf offset: %d, len %d\n",str->offset, str->count); */
+/*  	fflush(stdout); */
+
 	return utf_new_u2(str->value->data + str->offset, str->count, isclassname);
 }
 
@@ -959,7 +977,8 @@ utf *javastring_toutf(java_lang_String *string, bool isclassname)
 
 *******************************************************************************/
 
-java_objectheader *literalstring_u2 (java_chararray *a, u4 length, bool copymode )
+java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
+									bool copymode)
 {
     literalstring *s;                /* hashtable element */
     java_lang_String *js;            /* u2-array wrapped in javastring */
@@ -968,63 +987,70 @@ java_objectheader *literalstring_u2 (java_chararray *a, u4 length, bool copymode
     u4 slot;  
     u2 i;
 
-#if JOWENN_DEBUG1
-    printf("literalstring_u2: length: %d\n",length);    
-    log_text("literalstring_u2");
+//#define DEBUG_LITERALSTRING_U2
+#ifdef DEBUG_LITERALSTRING_U2
+    printf("literalstring_u2: length=%d, offset=%d\n", length, offset);
+	fflush(stdout);
 #endif
     
     /* find location in hashtable */
-    key  = unicode_hashkey (a->data, length);
-    slot = key & (string_hash.size-1);
+    key  = unicode_hashkey(a->data + offset, length);
+    slot = key & (string_hash.size - 1);
     s    = string_hash.ptr[slot];
 
     while (s) {
-	
-      js = (java_lang_String *) s->string;
-	
-      if (js->count == length) {
-      	/* compare text */
-	for (i=0; i<length; i++) 
-	  if (js->value->data[i] != a->data[i]) goto nomatch;
-					
-	/* string already in hashtable, free memory */
-	if (!copymode)
-		lit_mem_free(a, sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10);
+		js = (java_lang_String *) s->string;
 
-#ifdef JOWENN_DEBUG1
-	log_text("literalstring_u2: foundentry");
-	utf_display(javastring_toutf(js,0));
+		if (length == js->count) {
+			/* compare text */
+			for (i = 0; i < length; i++) {
+				if (a->data[offset + i] != js->value->data[i])
+					goto nomatch;
+			}
+
+			/* string already in hashtable, free memory */
+			if (!copymode)
+				lit_mem_free(a, sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10);
+
+#ifdef DEBUG_LITERALSTRING_U2
+			printf("literalstring_u2: foundentry at %p\n", js);
+			utf_display(javastring_toutf(js, 0));
+			printf("\n\n");
+			fflush(stdout);
 #endif
-	return (java_objectheader *) js;
-      }
+			return (java_objectheader *) js;
+		}
 
-      nomatch:
-      /* follow link in external hash chain */
-      s = s->hashlink;
+	nomatch:
+		/* follow link in external hash chain */
+		s = s->hashlink;
     }
 
     if (copymode) {
-      /* create copy of u2-array for new javastring */
-      u4 arraysize = sizeof(java_chararray) + sizeof(u2)*(length-1)+10;
-      stringdata = lit_mem_alloc ( arraysize );	
-      memcpy(stringdata, a, arraysize );	
-    }  
-    else
-      stringdata = a;
+		/* create copy of u2-array for new javastring */
+		u4 arraysize = sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10;
+		stringdata = lit_mem_alloc(arraysize);
+/*    		memcpy(stringdata, a, arraysize); */
+  		memcpy(&(stringdata->header), &(a->header), sizeof(java_arrayheader));
+  		memcpy(&(stringdata->data), &(a->data) + offset, sizeof(u2) * (length - 1) + 10);
+
+    } else {
+		stringdata = a;
+	}
 
     /* location in hashtable found, complete arrayheader */
-    stringdata -> header.objheader.vftbl = primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
-    stringdata -> header.size = length;	
+    stringdata->header.objheader.vftbl = primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
+    stringdata->header.size = length;
 
     /* create new javastring */
-    js = LNEW (java_lang_String);
-    js -> header.vftbl = class_java_lang_String -> vftbl;
-    js -> value  = stringdata;
-    js -> offset = 0;
-    js -> count  = length;
+    js = LNEW(java_lang_String);
+    js->header.vftbl = class_java_lang_String->vftbl;
+    js->value  = stringdata;
+    js->offset = 0;
+    js->count  = length;
 
     /* create new literalstring */
-    s = NEW (literalstring);
+    s = NEW(literalstring);
     s->hashlink = string_hash.ptr[slot];
     s->string   = (java_objectheader *) js;
     string_hash.ptr[slot] = s;
@@ -1033,46 +1059,49 @@ java_objectheader *literalstring_u2 (java_chararray *a, u4 length, bool copymode
     string_hash.entries++;
 
     /* reorganization of hashtable */       
-    if ( string_hash.entries > (string_hash.size*2)) {
-
-      /* reorganization of hashtable, average length of 
+    if (string_hash.entries > (string_hash.size * 2)) {
+		/* reorganization of hashtable, average length of 
          the external chains is approx. 2                */  
 
-      u4 i;
-      literalstring *s;     
-      hashtable newhash; /* the new hashtable */
+		u4 i;
+		literalstring *s;     
+		hashtable newhash; /* the new hashtable */
       
-      /* create new hashtable, double the size */
-      init_hashtable(&newhash, string_hash.size*2);
-      newhash.entries=string_hash.entries;
+		/* create new hashtable, double the size */
+		init_hashtable(&newhash, string_hash.size * 2);
+		newhash.entries = string_hash.entries;
       
-      /* transfer elements to new hashtable */
-      for (i=0; i<string_hash.size; i++) {
-	s = string_hash.ptr[i];
-	while (s) {
-	  literalstring *nexts = s -> hashlink;	 
-	  js   = (java_lang_String*) s->string;
-	  slot = (unicode_hashkey(js->value->data,js->count)) & (newhash.size-1);
+		/* transfer elements to new hashtable */
+		for (i = 0; i < string_hash.size; i++) {
+			s = string_hash.ptr[i];
+			while (s) {
+				literalstring *nexts = s->hashlink;
+				js   = (java_lang_String *) s->string;
+				slot = unicode_hashkey(js->value->data, js->count) & (newhash.size - 1);
 	  
-	  s->hashlink = newhash.ptr[slot];
-	  newhash.ptr[slot] = s;
+				s->hashlink = newhash.ptr[slot];
+				newhash.ptr[slot] = s;
 	
-	  /* follow link in external hash chain */  
-	  s = nexts;
-	}
-      }
+				/* follow link in external hash chain */  
+				s = nexts;
+			}
+		}
 	
-      /* dispose old table */	
-      MFREE (string_hash.ptr, void*, string_hash.size);
-      string_hash = newhash;
+		/* dispose old table */	
+		MFREE(string_hash.ptr, void*, string_hash.size);
+		string_hash = newhash;
     }
-#ifdef JOWENN_DEBUG1
-	log_text("literalstring_u2: newly created");
-/*	utf_display(javastring_toutf(js,0));*/
+
+#ifdef DEBUG_LITERALSTRING_U2
+	printf("literalstring_u2: newly created at %p\n", js);
+	utf_display(javastring_toutf(js, 0));
+	printf("\n\n");
+	fflush(stdout);
 #endif
 			
     return (java_objectheader *) js;
 }
+
 
 /******************** Function: literalstring_new *****************************
 
@@ -1081,7 +1110,7 @@ java_objectheader *literalstring_u2 (java_chararray *a, u4 length, bool copymode
 
 *******************************************************************************/
 
-java_objectheader *literalstring_new (utf *u)
+java_objectheader *literalstring_new(utf *u)
 {
     char *utf_ptr = u->text;         /* pointer to current unicode character in utf string */
     u4 utflength  = utf_strlen(u);   /* length of utf-string if uncompressed */
@@ -1092,11 +1121,13 @@ java_objectheader *literalstring_new (utf *u)
     /*if (utflength==0) while (1) sleep(60);*/
 /*    log_text("------------------");    */
     /* allocate memory */ 
-    a = lit_mem_alloc (sizeof(java_chararray) + sizeof(u2)*(utflength-1)+10 );	
-    /* convert utf-string to u2-array */
-    for (i=0; i<utflength; i++) a->data[i] = utf_nextu2(&utf_ptr);	
+    a = lit_mem_alloc(sizeof(java_chararray) + sizeof(u2) * (utflength - 1) + 10);
 
-    return literalstring_u2(a, utflength, false);
+    /* convert utf-string to u2-array */
+    for (i = 0; i < utflength; i++)
+		a->data[i] = utf_nextu2(&utf_ptr);
+
+    return literalstring_u2(a, utflength, 0, false);
 }
 
 
@@ -1106,20 +1137,19 @@ java_objectheader *literalstring_new (utf *u)
 
 ******************************************************************************/
 
-void literalstring_free (java_objectheader* sobj)
+void literalstring_free(java_objectheader* sobj)
 {
-	java_lang_String *s = (java_lang_String*) sobj;
+	java_lang_String *s = (java_lang_String *) sobj;
 	java_chararray *a = s->value;
 
 	log_text("literalstring_free called");
 	
 	/* dispose memory of java.lang.String object */
-	LFREE (s, java_lang_String);
+	LFREE(s, java_lang_String);
+
 	/* dispose memory of java-characterarray */
-	LFREE (a, sizeof(java_chararray) + sizeof(u2)*(a->header.size-1)); /* +10 ?? */
+	LFREE(a, sizeof(java_chararray) + sizeof(u2) * (a->header.size - 1)); /* +10 ?? */
 }
-
-
 
 
 void copy_vftbl(vftbl **dest, vftbl *src)
