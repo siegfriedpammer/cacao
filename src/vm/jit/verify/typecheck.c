@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1795 2004-12-21 15:15:26Z jowenn $
+   $Id: typecheck.c 2045 2005-03-20 14:29:12Z edwin $
 
 */
 
@@ -762,6 +762,12 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 /* MISC MACROS                                                              */
 /****************************************************************************/
 
+#define INSTRUCTION_PUTCONST_TYPE(iptr) \
+	((iptr)[1].op1)
+
+#define INSTRUCTION_PUTCONST_FIELDINFO(iptr) \
+	((fieldinfo *)((iptr)[1].val.a))
+
 #define COPYTYPE(source,dest)   \
 	{if ((source)->type == TYPE_ADR)								\
 			TYPEINFO_COPY((source)->typeinfo,(dest)->typeinfo);}
@@ -835,6 +841,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 	typevector *localset;        /* typevector set for local variables */
 	typevector *lset;                             /* temporary pointer */
 	typedescriptor *td;                           /* temporary pointer */
+	typeinfo tempti;                             /* temporary typeinfo */
 
 	stackptr savedstackbuf = NULL;      /* buffer for saving the stack */
 	stackptr savedstack = NULL;      /* saved instack of current block */
@@ -1000,7 +1007,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 
                 /* init stack at the start of this block */
                 curstack = bptr->instack;
-					
+
                 /* determine the active exception handlers for this block */
                 /* XXX could use a faster algorithm with sorted lists or
                  * something? */
@@ -1103,15 +1110,6 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           break;
 
                           /****************************************/
-
-
-
-
-
-
-
-
-
                           /* PRIMITIVE VARIABLE ACCESS            */
 
                       case ICMD_ILOAD: CHECK_ONEWORD(iptr->op1,TYPE_INT); break;
@@ -1181,62 +1179,115 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           /* FIELD ACCESS                         */
 
                       case ICMD_PUTFIELD:
+                      case ICMD_PUTFIELDCONST:
 						  TYPECHECK_COUNT(stat_ins_field);
-                          if (!TYPEINFO_IS_REFERENCE(curstack->prev->typeinfo))
-                              panic("illegal instruction: PUTFIELD on non-reference");
-                          if (TYPEINFO_IS_ARRAY(curstack->prev->typeinfo))
-                              panic("illegal instruction: PUTFIELD on array");
-
-                          /* check if the value is assignable to the field */
 						  {
-							  fieldinfo *fi = (fieldinfo*) iptr[0].val.a;
+							  fieldinfo *fi;
+							  int type;
+							  typeinfo *temptip;
+							  stackelement *invocant;
 
-							  if (TYPEINFO_IS_NEWOBJECT(curstack->prev->typeinfo)) {
+							  /* determine the invocant of this instruction */
+							  /* and type and typeinfo of the value to be set */
+							  if (opcode == ICMD_PUTFIELDCONST) {
+								  fi = INSTRUCTION_PUTCONST_FIELDINFO(iptr);
+								  invocant = curstack;
+								  type = INSTRUCTION_PUTCONST_TYPE(iptr);
+								  if (type == TYPE_ADR) {
+									  temptip = &tempti;
+									  if (!iptr[0].op1)
+										  TYPEINFO_INIT_NULLTYPE(tempti);
+									  else
+									      TYPEINFO_INIT_CLASSINFO(tempti,class_java_lang_String);
+								  }
+							  }
+							  else {
+								  /* ICMD_PUTFIELD */
+								  fi = (fieldinfo*) iptr[0].val.a;
+								  invocant = curstack->prev;
+								  type = curstack->type;
+								  if (type == TYPE_ADR)
+									  temptip = &(curstack->typeinfo);
+							  }
+
+							  /* check the type of the invocant */
+							  if (!TYPEINFO_IS_REFERENCE(invocant->typeinfo))
+								  panic("illegal instruction: PUTFIELD(CONST) on non-reference");
+							  if (TYPEINFO_IS_ARRAY(invocant->typeinfo))
+								  panic("illegal instruction: PUTFIELD(CONST) on array");
+
+							  /* check if the field is accessible */
+							  if (TYPEINFO_IS_NEWOBJECT(invocant->typeinfo)) {
 								  if (initmethod
-									  && !TYPEINFO_NEWOBJECT_INSTRUCTION(curstack->prev->typeinfo))
+									  && !TYPEINFO_NEWOBJECT_INSTRUCTION(invocant->typeinfo))
 								  {
 									  /* uninitialized "this" instance */
 									  if (fi->class != m->class || (fi->flags & ACC_STATIC) != 0)
 										  panic("Setting unaccessible field in uninitialized object");
 								  }
 								  else {
-									  panic("PUTFIELD on uninitialized object");
+									  panic("PUTFIELD(CONST) on uninitialized object");
 								  }
 							  }
 							  else {
 								  if (!is_accessible(fi->flags,fi->class,fi->class, myclass,
-													 &(curstack->prev->typeinfo)))
-									  panic("PUTFIELD: field is not accessible");
+													 &(invocant->typeinfo)))
+									  panic("PUTFIELD(CONST): field is not accessible");
 							  }
 
-							  if (curstack->type != fi->type)
-								  panic("PUTFIELD type mismatch");
-							  if (fi->type == TYPE_ADR) {
+							  /* check if the value is assignable to the field */
+							  if (type != fi->type)
+								  panic("PUTFIELD(CONST) type mismatch");
+							  if (type == TYPE_ADR) {
 								  TYPEINFO_INIT_FROM_FIELDINFO(rinfo,fi);
-								  if (!typeinfo_is_assignable(&(curstack->typeinfo),
+								  if (!typeinfo_is_assignable(temptip,
 															  &rinfo))
-									  panic("PUTFIELD reference type not assignable");
+									  panic("PUTFIELD(CONST) reference type not assignable");
 							  }
 						  }
                           maythrow = true;
                           break;
 
                       case ICMD_PUTSTATIC:
+					  case ICMD_PUTSTATICCONST:
 						  TYPECHECK_COUNT(stat_ins_field);
-                          /* check if the value is assignable to the field */
 						  {
-							  fieldinfo *fi = (fieldinfo*) iptr[0].val.a;
+							  fieldinfo *fi;
+							  int type;
+							  typeinfo *temptip;
 
+							  /* determine type and typeinfo of the value to be set */
+							  if (opcode == ICMD_PUTSTATICCONST) {
+								  fi = INSTRUCTION_PUTCONST_FIELDINFO(iptr);
+								  type = INSTRUCTION_PUTCONST_TYPE(iptr);
+								  if (type == TYPE_ADR) {
+									  temptip = &tempti;
+									  if (!iptr[0].op1)
+										  TYPEINFO_INIT_NULLTYPE(tempti);
+									  else
+									      TYPEINFO_INIT_CLASSINFO(tempti,class_java_lang_String);
+								  }
+							  }
+							  else {
+								  /* ICMD_PUTSTATIC */
+								  fi = (fieldinfo*) iptr[0].val.a;
+								  type = curstack->type;
+								  if (type == TYPE_ADR)
+									  temptip = &(curstack->typeinfo);
+							  }
+							  
+							  /* check if the field is accessible */
 							  if (!is_accessible(fi->flags,fi->class,fi->class,myclass,NULL))
-								  panic("PUTSTATIC: field is not accessible");
+								  panic("PUTSTATIC(CONST): field is not accessible");
 
-							  if (curstack->type != fi->type)
-								  panic("PUTSTATIC type mismatch");
-							  if (fi->type == TYPE_ADR) {
+							  /* check if the value is assignable to the field */
+							  if (type != fi->type)
+								  panic("PUTSTATIC(CONST) type mismatch");
+							  if (type == TYPE_ADR) {
 								  TYPEINFO_INIT_FROM_FIELDINFO(rinfo,fi);
-								  if (!typeinfo_is_assignable(&(curstack->typeinfo),
+								  if (!typeinfo_is_assignable(temptip,
 															  &rinfo))
-									  panic("PUTSTATIC reference type not assignable");
+									  panic("PUTSTATIC(CONST) reference type not assignable");
 							  }
 						  }
                           maythrow = true;
