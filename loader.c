@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 991 2004-03-29 11:22:34Z stefan $
+   $Id: loader.c 999 2004-03-30 22:34:40Z twisti $
 
 */
 
@@ -126,18 +126,6 @@ classinfo *pseudo_class_Null = NULL;
 classinfo *pseudo_class_New = NULL;
 vftbl *pseudo_class_Arraystub_vftbl = NULL;
 
-/* stefan */
-/* These are made static so they cannot be used for throwing in native */
-/* functions.                                                          */
-static classinfo *class_java_lang_ClassCastException;
-static classinfo *class_java_lang_NullPointerException;
-static classinfo *class_java_lang_ArrayIndexOutOfBoundsException;
-static classinfo *class_java_lang_NegativeArraySizeException;
-static classinfo *class_java_lang_OutOfMemoryError;
-static classinfo *class_java_lang_ArithmeticException;
-static classinfo *class_java_lang_ArrayStoreException;
-static classinfo *class_java_lang_ThreadDeath;
-
 utf *array_packagename = NULL;
 
 static int loader_inited = 0;
@@ -176,14 +164,8 @@ primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
 
 /* instances of important system classes **************************************/
 
-java_objectheader *proto_java_lang_ClassCastException;
 java_objectheader *proto_java_lang_NullPointerException;
-java_objectheader *proto_java_lang_ArrayIndexOutOfBoundsException;
-java_objectheader *proto_java_lang_NegativeArraySizeException;
-java_objectheader *proto_java_lang_OutOfMemoryError;
-java_objectheader *proto_java_lang_ArithmeticException;
-java_objectheader *proto_java_lang_ArrayStoreException;
-java_objectheader *proto_java_lang_ThreadDeath;
+
 
 /************* functions for reading classdata *********************************
 
@@ -1740,7 +1722,8 @@ static int class_load(classinfo *c)
 	/* load classdata, throw exception on error */
 
 	if (!suck_start(c->name)) {
-		throw_noclassdeffounderror_message(c->name);
+		*exceptionptr = new_exception_utfmessage(string_java_lang_NoClassDefFoundError,
+												 c->name);
 		return false;
 	}
 	
@@ -3548,8 +3531,10 @@ classinfo *loader_load(utf *topname)
 				if (linkverbose)
 					dolog("Cannot resolve linking dependencies");
 				top = NULL;
+
 				if (!*exceptionptr)
-					throw_linkageerror_message(c->name);
+					*exceptionptr = new_exception_utfmessage(string_java_lang_LinkageError,
+															 c->name);
 				break;
 			}
 
@@ -3576,14 +3561,19 @@ classinfo *loader_load(utf *topname)
 	   undloadclasses or unlinkedclasses list during this class. */
 	if (top) {
 		if (!top->loaded) {
-			if (linkverbose) dolog("Failed to load class (former call)");
-			throw_noclassdeffounderror_message(top->name);
+			if (linkverbose)
+				dolog("Failed to load class (former call)");
+			
+			new_exception_utfmessage(string_java_lang_NoClassDefFoundError,
+									 top->name);
 			top = NULL;
 			
 		} else if (!top->linked) {
 			if (linkverbose)
 				dolog("Failed to link class (former call)");
-			throw_linkageerror_message(top->name);
+
+			new_exception_utfmessage(string_java_lang_LinkageError,
+									 top->name);
 			top = NULL;
 		}
 	}
@@ -3843,79 +3833,6 @@ int type_from_descriptor(classinfo **cls, char *utf_ptr, char *end_ptr,
 }
 
 
-
-/*************** function: create_system_exception_classes *******************************
-
-	create system exception classes needed by default 
-
-********************************************************************************/
-
-static void create_system_exception_classes()
-{
-	if (verbose)
-		log_text("loader_init:  create_system_exception_classs: loader_load: java/lang/ClassCastException");
-
-	loader_load_sysclass(&class_java_lang_ClassCastException,
-						 utf_new_char("java/lang/ClassCastException"));
-	loader_load_sysclass(&class_java_lang_NullPointerException,
-						 utf_new_char("java/lang/NullPointerException"));
-	loader_load_sysclass(&class_java_lang_ArrayIndexOutOfBoundsException,
-						 utf_new_char("java/lang/ArrayIndexOutOfBoundsException"));
-	loader_load_sysclass(&class_java_lang_NegativeArraySizeException,
-						 utf_new_char("java/lang/NegativeArraySizeException"));
-	loader_load_sysclass(&class_java_lang_OutOfMemoryError,
-						 utf_new_char("java/lang/OutOfMemoryError"));
-	loader_load_sysclass(&class_java_lang_ArrayStoreException,
-						 utf_new_char("java/lang/ArrayStoreException"));
-	loader_load_sysclass(&class_java_lang_ArithmeticException,
-						 utf_new_char("java/lang/ArithmeticException"));
-	loader_load_sysclass(&class_java_lang_ThreadDeath,
-						 utf_new_char("java/lang/ThreadDeath"));
-}
-
-
-/*************** function: create_system_exception_classes *******************************
-
-	create system exception proto classes needed by default 
-
-********************************************************************************/
-
-static void create_system_exception_proto_classes()
-{
-
-	if (verbose) log_text("loader_init: creating global proto_java_lang_ClassCastException");
-	proto_java_lang_ClassCastException =
-		builtin_new(class_java_lang_ClassCastException);
-
-	if (verbose) log_text("loader_init: proto_java_lang_ClassCastException has been initialized");
-
-	proto_java_lang_NullPointerException =
-		builtin_new(class_java_lang_NullPointerException);
-	if (verbose) log_text("loader_init: proto_java_lang_NullPointerException has been initialized");
-
-	proto_java_lang_ArrayIndexOutOfBoundsException =
-		builtin_new(class_java_lang_ArrayIndexOutOfBoundsException);
-
-	proto_java_lang_NegativeArraySizeException =
-		builtin_new(class_java_lang_NegativeArraySizeException);
-
-	proto_java_lang_OutOfMemoryError =
-		builtin_new(class_java_lang_OutOfMemoryError);
-
-	proto_java_lang_ArithmeticException =
-		builtin_new(class_java_lang_ArithmeticException);
-
-	proto_java_lang_ArrayStoreException =
-		builtin_new(class_java_lang_ArrayStoreException);
-
-	proto_java_lang_ThreadDeath =
-		builtin_new(class_java_lang_ThreadDeath);
-
-
-}
-
-
-
 /*************** function: create_pseudo_classes *******************************
 
 	create pseudo classes used by the typechecker
@@ -3980,8 +3897,8 @@ void loader_init(u1 *stackbottom)
 	/* create utf-symbols for pointer comparison of frequently used strings */
 	utf_innerclasses    = utf_new_char("InnerClasses");
 	utf_constantvalue   = utf_new_char("ConstantValue");
-	utf_code	        = utf_new_char("Code");
-	utf_exceptions	        = utf_new_char("Exceptions");
+	utf_code             = utf_new_char("Code");
+	utf_exceptions	    = utf_new_char("Exceptions");
 	utf_linenumbertable	= utf_new_char("LineNumberTable");
 	utf_sourcefile		= utf_new_char("SourceFile");
 	utf_finalize	    = utf_new_char("finalize");
@@ -4017,8 +3934,6 @@ void loader_init(u1 *stackbottom)
 	loader_load_sysclass(&class_java_lang_Throwable,
 						 utf_new_char("java/lang/Throwable"));
 
-        create_system_exception_classes();
-
 	/* create classes representing primitive types */
 	create_primitive_classes();
 
@@ -4032,7 +3947,6 @@ void loader_init(u1 *stackbottom)
 	if (stackbottom!=0)
 		initLocks();
 #endif
-        create_system_exception_proto_classes();
 
 	loader_inited = 1;
 }
