@@ -1,0 +1,339 @@
+---------------------------- tests NaNs and Infs -------------------
+   0.    ------------------- print NaNs and Infs
+   1.    NaNQ float:  NaN
+   2.    +INF float:  Infinity
+   3.    -INF float:  -Infinity
+   4.    NaNQ double: NaN
+   5.    +INF double: Infinity
+   6.    -INF double: -Infinity
+   7.    ------------------- test zero division
+   8.    0 / 0 = NaNQ float:  NaN
+   9.    + / 0 = +INF float:  Infinity
+  10.    - / 0 = -INF float:  -Infinity
+  11.    0 / 0 = NaNQ double: NaN
+  12.    + / 0 = +INF double: Infinity
+  13.    - / 0 = -INF double: -Infinity
+  14.    ------------------- test conversions
+  15.    convert NaNQ (NaN,NaN) to int:    0
+  16.    convert NaNQ (NaN,NaN) to int:    0
+  17.    convert NaNQ (NaN,NaN) to long:   0
+  18.    convert NaNQ (NaN,NaN) to long:   0
+  19.    convert +INF (Infinity,Infinity) to int:    2147483647
+  20.    convert +INF (Infinity,Infinity) to int:    2147483647
+  21.    convert +INF (Infinity,Infinity) to long:   9223372036854775807
+  22.    convert +INF (Infinity,Infinity) to long:   9223372036854775807
+  23.    convert -INF (-Infinity,-Infinity) to int:    -2147483648
+  24.    convert -INF (-Infinity,-Infinity) to int:    -2147483648
+  25.    convert -INF (-Infinity,-Infinity) to long:   -9223372036854775808
+  26.    convert -INF (-Infinity,-Infinity) to long:   -9223372036854775808
+  27.    convert  MAX (3.4028235E38,1.7976931348623157E308) to int:    2147483647
+  28.    convert  MAX (3.4028235E38,1.7976931348623157E308) to int:    2147483647
+  29.    convert  MAX (3.4028235E38,1.7976931348623157E308) to long:   9223372036854775807
+  30.    convert  MAX (3.4028235E38,1.7976931348623157E308) to long:   9223372036854775807
+  31.    convert  MIN (1.4E-45,4.9E-324) to int:    0
+  32.    convert  MIN (1.4E-45,4.9E-324) to int:    0
+  33.    convert  MIN (1.4E-45,4.9E-324) to long:   0
+  34.    convert  MIN (1.4E-45,4.9E-324) to long:   0
+  35.    convert MAXINT-1 (2.14748365E9,2.147483646E9) to int:    2147483647
+  36.    convert MAXINT-1 (2.14748365E9,2.147483646E9) to int:    2147483646
+  37.    convert MAXINT-1 (2.14748365E9,2.147483646E9) to long:   2147483648
+  38.    convert MAXINT-1 (2.14748365E9,2.147483646E9) to long:   2147483646
+  39.    convert MAXINT+0 (2.14748365E9,2.147483647E9) to int:    2147483647
+  40.    convert MAXINT+0 (2.14748365E9,2.147483647E9) to int:    2147483647
+  41.    convert MAXINT+0 (2.14748365E9,2.147483647E9) to long:   2147483648
+  42.    convert MAXINT+0 (2.14748365E9,2.147483647E9) to long:   2147483647
+  43.    convert MAXINT+1 (2.14748365E9,2.147483648E9) to int:    2147483647
+  44.    convert MAXINT+1 (2.14748365E9,2.147483648E9) to int:    2147483647
+  45.    convert MAXINT+1 (2.14748365E9,2.147483648E9) to long:   2147483648
+  46.    convert MAXINT+1 (2.14748365E9,2.147483648E9) to long:   2147483648
+  47.    convert -MAXINT+1 (-2.14748365E9,-2.147483647E9) to int:    -2147483648
+  48.    convert -MAXINT+1 (-2.14748365E9,-2.147483647E9) to int:    -2147483647
+  49.    convert -MAXINT+1 (-2.14748365E9,-2.147483647E9) to long:   -2147483648
+  50.    convert -MAXINT+1 (-2.14748365E9,-2.147483647E9) to long:   -2147483647
+  51.    convert -MAXINT+0 (-2.14748365E9,-2.147483648E9) to int:    -2147483648
+  52.    convert -MAXINT+0 (-2.14748365E9,-2.147483648E9) to int:    -2147483648
+  53.    convert -MAXINT+0 (-2.14748365E9,-2.147483648E9) to long:   -2147483648
+  54.    convert -MAXINT+0 (-2.14748365E9,-2.147483648E9) to long:   -2147483648
+  55.    convert -MAXINT-1 (-2.14748365E9,-2.147483649E9) to int:    -2147483648
+  56.    convert -MAXINT-1 (-2.14748365E9,-2.147483649E9) to int:    -2147483648
+  57.    convert -MAXINT-1 (-2.14748365E9,-2.147483649E9) to long:   -2147483648
+  58.    convert -MAXINT-1 (-2.14748365E9,-2.147483649E9) to long:   -2147483649
+  59.    convert MAXLNG-1 (9.223372E18,9.223372036854776E18) to int:    2147483647
+  60.    convert MAXLNG-1 (9.223372E18,9.223372036854776E18) to int:    2147483647
+  61.    convert MAXLNG-1 (9.223372E18,9.223372036854776E18) to long:   9223372036854775807
+  62.    convert MAXLNG-1 (9.223372E18,9.223372036854776E18) to long:   9223372036854775807
+  63.    convert MAXLNG+0 (9.223372E18,9.223372036854776E18) to int:    2147483647
+  64.    convert MAXLNG+0 (9.223372E18,9.223372036854776E18) to int:    2147483647
+  65.    convert MAXLNG+0 (9.223372E18,9.223372036854776E18) to long:   9223372036854775807
+  66.    convert MAXLNG+0 (9.223372E18,9.223372036854776E18) to long:   9223372036854775807
+  67.    convert MAXLNG+1 (9.223372E18,9.223372036854776E18) to int:    2147483647
+  68.    convert MAXLNG+1 (9.223372E18,9.223372036854776E18) to int:    2147483647
+  69.    convert MAXLNG+1 (9.223372E18,9.223372036854776E18) to long:   9223372036854775807
+  70.    convert MAXLNG+1 (9.223372E18,9.223372036854776E18) to long:   9223372036854775807
+  71.    convert -MAXLNG+1 (-9.223372E18,-9.223372036854776E18) to int:    -2147483648
+  72.    convert -MAXLNG+1 (-9.223372E18,-9.223372036854776E18) to int:    -2147483648
+  73.    convert -MAXLNG+1 (-9.223372E18,-9.223372036854776E18) to long:   -9223372036854775808
+  74.    convert -MAXLNG+1 (-9.223372E18,-9.223372036854776E18) to long:   -9223372036854775808
+  75.    convert -MAXLNG+0 (-9.223372E18,-9.223372036854776E18) to int:    -2147483648
+  76.    convert -MAXLNG+0 (-9.223372E18,-9.223372036854776E18) to int:    -2147483648
+  77.    convert -MAXLNG+0 (-9.223372E18,-9.223372036854776E18) to long:   -9223372036854775808
+  78.    convert -MAXLNG+0 (-9.223372E18,-9.223372036854776E18) to long:   -9223372036854775808
+  79.    convert -MAXLNG-1 (-9.223372E18,-9.223372036854776E18) to int:    -2147483648
+  80.    convert -MAXLNG-1 (-9.223372E18,-9.223372036854776E18) to int:    -2147483648
+  81.    convert -MAXLNG-1 (-9.223372E18,-9.223372036854776E18) to long:   -9223372036854775808
+  82.    convert -MAXLNG-1 (-9.223372E18,-9.223372036854776E18) to long:   -9223372036854775808
+  83.    ------------------- test NaNQ op value
+  84.    NaNQ + 5.0 = float:  NaN
+  85.    NaNQ - 5.0 = float:  NaN
+  86.    NaNQ * 5.0 = float:  NaN
+  87.    NaNQ / 5.0 = float:  NaN
+  88.    NaNQ % 5.0 = float:  NaN
+  89.    NaNQ + 5.0 = double: NaN
+  90.    NaNQ - 5.0 = double: NaN
+  91.    NaNQ * 5.0 = double: NaN
+  92.    NaNQ / 5.0 = double: NaN
+  93.    NaNQ % 5.0 = double: NaN
+  94.     (NaNQ == 5.0) = false
+  95.     (NaNQ != 5.0) = true
+  96.     (NaNQ <  5.0) = false
+  97.     (NaNQ <= 5.0) = false
+  98.     (NaNQ >  5.0) = false
+  99.     (NaNQ >= 5.0) = false
+ 100.    !(NaNQ == 5.0) = true
+ 101.    !(NaNQ != 5.0) = false
+ 102.    !(NaNQ <  5.0) = true
+ 103.    !(NaNQ <= 5.0) = true
+ 104.    !(NaNQ >  5.0) = true
+ 105.    !(NaNQ >= 5.0) = true
+ 106.     (NaNQ == 5.0) = false
+ 107.     (NaNQ != 5.0) = true
+ 108.     (NaNQ <  5.0) = false
+ 109.     (NaNQ <= 5.0) = false
+ 110.     (NaNQ >  5.0) = false
+ 111.     (NaNQ >= 5.0) = false
+ 112.    !(NaNQ == 5.0) = true
+ 113.    !(NaNQ != 5.0) = false
+ 114.    !(NaNQ <  5.0) = true
+ 115.    !(NaNQ <= 5.0) = true
+ 116.    !(NaNQ >  5.0) = true
+ 117.    !(NaNQ >= 5.0) = true
+ 118.    ------------------- test value op NaNQ
+ 119.    5.0 + NaNQ = float:  NaN
+ 120.    5.0 - NaNQ = float:  NaN
+ 121.    5.0 * NaNQ = float:  NaN
+ 122.    5.0 / NaNQ = float:  NaN
+ 123.    5.0 % NaNQ = float:  NaN
+ 124.    5.0 + NaNQ = double: NaN
+ 125.    5.0 - NaNQ = double: NaN
+ 126.    5.0 * NaNQ = double: NaN
+ 127.    5.0 / NaNQ = double: NaN
+ 128.    5.0 % NaNQ = double: NaN
+ 129.     (5.0 == NaNQ) = false
+ 130.     (5.0 != NaNQ) = true
+ 131.     (5.0 <  NaNQ) = false
+ 132.     (5.0 <= NaNQ) = false
+ 133.     (5.0 >  NaNQ) = false
+ 134.     (5.0 >= NaNQ) = false
+ 135.    !(5.0 == NaNQ) = true
+ 136.    !(5.0 != NaNQ) = false
+ 137.    !(5.0 <  NaNQ) = true
+ 138.    !(5.0 <= NaNQ) = true
+ 139.    !(5.0 >  NaNQ) = true
+ 140.    !(5.0 >= NaNQ) = true
+ 141.     (5.0 == NaNQ) = false
+ 142.     (5.0 != NaNQ) = true
+ 143.     (5.0 <  NaNQ) = false
+ 144.     (5.0 <= NaNQ) = false
+ 145.     (5.0 >  NaNQ) = false
+ 146.     (5.0 >= NaNQ) = false
+ 147.    !(5.0 == NaNQ) = true
+ 148.    !(5.0 != NaNQ) = false
+ 149.    !(5.0 <  NaNQ) = true
+ 150.    !(5.0 <= NaNQ) = true
+ 151.    !(5.0 >  NaNQ) = true
+ 152.    !(5.0 >= NaNQ) = true
+ 153.    ------------------- test +INF op value
+ 154.    +INF + 5.0 = float:  Infinity
+ 155.    +INF - 5.0 = float:  Infinity
+ 156.    +INF * 5.0 = float:  Infinity
+ 157.    +INF / 5.0 = float:  Infinity
+ 158.    +INF % 5.0 = float:  NaN
+ 159.    +INF + 5.0 = double: Infinity
+ 160.    +INF - 5.0 = double: Infinity
+ 161.    +INF * 5.0 = double: Infinity
+ 162.    +INF / 5.0 = double: Infinity
+ 163.    +INF % 5.0 = double: NaN
+ 164.     (+INF == 5.0) = false
+ 165.     (+INF != 5.0) = true
+ 166.     (+INF <  5.0) = false
+ 167.     (+INF <= 5.0) = false
+ 168.     (+INF >  5.0) = true
+ 169.     (+INF >= 5.0) = true
+ 170.    !(+INF == 5.0) = true
+ 171.    !(+INF != 5.0) = false
+ 172.    !(+INF <  5.0) = true
+ 173.    !(+INF <= 5.0) = true
+ 174.    !(+INF >  5.0) = false
+ 175.    !(+INF >= 5.0) = false
+ 176.     (+INF == 5.0) = false
+ 177.     (+INF != 5.0) = true
+ 178.     (+INF <  5.0) = false
+ 179.     (+INF <= 5.0) = false
+ 180.     (+INF >  5.0) = true
+ 181.     (+INF >= 5.0) = true
+ 182.    !(+INF == 5.0) = true
+ 183.    !(+INF != 5.0) = false
+ 184.    !(+INF <  5.0) = true
+ 185.    !(+INF <= 5.0) = true
+ 186.    !(+INF >  5.0) = false
+ 187.    !(+INF >= 5.0) = false
+ 188.    ------------------- test +INF op value
+ 189.    5.0 + +INF = float:  Infinity
+ 190.    5.0 - +INF = float:  -Infinity
+ 191.    5.0 * +INF = float:  Infinity
+ 192.    5.0 / +INF = float:  0.0
+ 193.    5.0 % +INF = float:  5.0
+ 194.    5.0 + +INF = double: Infinity
+ 195.    5.0 - +INF = double: -Infinity
+ 196.    5.0 * +INF = double: Infinity
+ 197.    5.0 / +INF = double: 0.0
+ 198.    5.0 % +INF = double: 5.0
+ 199.     (5.0 == +INF) = false
+ 200.     (5.0 != +INF) = true
+ 201.     (5.0 <  +INF) = true
+ 202.     (5.0 <= +INF) = true
+ 203.     (5.0 >  +INF) = false
+ 204.     (5.0 >= +INF) = false
+ 205.    !(5.0 == +INF) = true
+ 206.    !(5.0 != +INF) = false
+ 207.    !(5.0 <  +INF) = false
+ 208.    !(5.0 <= +INF) = false
+ 209.    !(5.0 >  +INF) = true
+ 210.    !(5.0 >= +INF) = true
+ 211.     (5.0 == +INF) = false
+ 212.     (5.0 != +INF) = true
+ 213.     (5.0 <  +INF) = true
+ 214.     (5.0 <= +INF) = true
+ 215.     (5.0 >  +INF) = false
+ 216.     (5.0 >= +INF) = false
+ 217.    !(5.0 == +INF) = true
+ 218.    !(5.0 != +INF) = false
+ 219.    !(5.0 <  +INF) = false
+ 220.    !(5.0 <= +INF) = false
+ 221.    !(5.0 >  +INF) = true
+ 222.    !(5.0 >= +INF) = true
+ 223.    ------------------- test -INF op value
+ 224.    -INF + 5.0 = float:  -Infinity
+ 225.    -INF - 5.0 = float:  -Infinity
+ 226.    -INF * 5.0 = float:  -Infinity
+ 227.    -INF / 5.0 = float:  -Infinity
+ 228.    -INF % 5.0 = float:  NaN
+ 229.    -INF + 5.0 = double: -Infinity
+ 230.    -INF - 5.0 = double: -Infinity
+ 231.    -INF * 5.0 = double: -Infinity
+ 232.    -INF / 5.0 = double: -Infinity
+ 233.    -INF % 5.0 = double: NaN
+ 234.     (-INF == 5.0) = false
+ 235.     (-INF != 5.0) = true
+ 236.     (-INF <  5.0) = true
+ 237.     (-INF <= 5.0) = true
+ 238.     (-INF >  5.0) = false
+ 239.     (-INF >= 5.0) = false
+ 240.    !(-INF == 5.0) = true
+ 241.    !(-INF != 5.0) = false
+ 242.    !(-INF <  5.0) = false
+ 243.    !(-INF <= 5.0) = false
+ 244.    !(-INF >  5.0) = true
+ 245.    !(-INF >= 5.0) = true
+ 246.     (-INF == 5.0) = false
+ 247.     (-INF != 5.0) = true
+ 248.     (-INF <  5.0) = true
+ 249.     (-INF <= 5.0) = true
+ 250.     (-INF >  5.0) = false
+ 251.     (-INF >= 5.0) = false
+ 252.    !(-INF == 5.0) = true
+ 253.    !(-INF != 5.0) = false
+ 254.    !(-INF <  5.0) = false
+ 255.    !(-INF <= 5.0) = false
+ 256.    !(-INF >  5.0) = true
+ 257.    !(-INF >= 5.0) = true
+ 258.    ------------------- test -INF op value
+ 259.    5.0 + -INF = float:  -Infinity
+ 260.    5.0 - -INF = float:  Infinity
+ 261.    5.0 * -INF = float:  -Infinity
+ 262.    5.0 / -INF = float:  -0.0
+ 263.    5.0 % -INF = float:  5.0
+ 264.    5.0 + -INF = double: -Infinity
+ 265.    5.0 - -INF = double: Infinity
+ 266.    5.0 * -INF = double: -Infinity
+ 267.    5.0 / -INF = double: -0.0
+ 268.    5.0 % -INF = double: 5.0
+ 269.     (5.0 == -INF) = false
+ 270.     (5.0 != -INF) = true
+ 271.     (5.0 <  -INF) = false
+ 272.     (5.0 <= -INF) = false
+ 273.     (5.0 >  -INF) = true
+ 274.     (5.0 >= -INF) = true
+ 275.    !(5.0 == -INF) = true
+ 276.    !(5.0 != -INF) = false
+ 277.    !(5.0 <  -INF) = true
+ 278.    !(5.0 <= -INF) = true
+ 279.    !(5.0 >  -INF) = false
+ 280.    !(5.0 >= -INF) = false
+ 281.     (5.0 == -INF) = false
+ 282.     (5.0 != -INF) = true
+ 283.     (5.0 <  -INF) = false
+ 284.     (5.0 <= -INF) = false
+ 285.     (5.0 >  -INF) = true
+ 286.     (5.0 >= -INF) = true
+ 287.    !(5.0 == -INF) = true
+ 288.    !(5.0 != -INF) = false
+ 289.    !(5.0 <  -INF) = true
+ 290.    !(5.0 <= -INF) = true
+ 291.    !(5.0 >  -INF) = false
+ 292.    !(5.0 >= -INF) = false
+ 293.    ------------------- test MAX op value
+ 294.    MAX + 5.0 = float:  3.4028235E38
+ 295.    MAX - 5.0 = float:  3.4028235E38
+ 296.    MAX * 5.0 = float:  Infinity
+ 297.    MAX / 5.0 = float:  6.805647E37
+ 298.    MAX % 5.0 = float:  0.0
+ 299.    MAX + 5.0 = double: 1.7976931348623157E308
+ 300.    MAX - 5.0 = double: 1.7976931348623157E308
+ 301.    MAX * 5.0 = double: Infinity
+ 302.    MAX / 5.0 = double: 3.5953862697246315E307
+ 303.    MAX % 5.0 = double: 3.0
+ 304.    ------------------- test value op MAX
+ 305.    5.0 + MAX = float:  3.4028235E38
+ 306.    5.0 - MAX = float:  -3.4028235E38
+ 307.    5.0 * MAX = float:  Infinity
+ 308.    5.0 / MAX = float:  1.4693681E-38
+ 309.    5.0 % MAX = float:  5.0
+ 310.    5.0 + MAX = double: 1.7976931348623157E308
+ 311.    5.0 - MAX = double: -1.7976931348623157E308
+ 312.    5.0 * MAX = double: Infinity
+ 313.    5.0 / MAX = double: 2.781342323134002E-308
+ 314.    5.0 % MAX = double: 5.0
+ 315.    ------------------- test MIN op value
+ 316.    MIN + 5.0 = float:  5.0
+ 317.    MIN - 5.0 = float:  -5.0
+ 318.    MIN * 5.0 = float:  7.0E-45
+ 319.    MIN / 5.0 = float:  0.0
+ 320.    MIN % 5.0 = float:  1.4E-45
+ 321.    MIN + 5.0 = double: 5.0
+ 322.    MIN - 5.0 = double: -5.0
+ 323.    MIN * 5.0 = double: 2.5E-323
+ 324.    MIN / 5.0 = double: 0.0
+ 325.    MIN % 5.0 = double: 4.9E-324
+ 326.    ------------------- test value op MIN
+ 327.    5.0 + MIN = float:  5.0
+ 328.    5.0 - MIN = float:  5.0
+ 329.    5.0 * MIN = float:  7.0E-45
+ 330.    5.0 / MIN = float:  Infinity
+ 331.    5.0 % MIN = float:  0.0
+ 332.    5.0 + MIN = double: 5.0
+ 333.    5.0 - MIN = double: 5.0
+ 334.    5.0 * MIN = double: 2.5E-323
+ 335.    5.0 / MIN = double: Infinity
+ 336.    5.0 % MIN = double: 0.0
+ 337.    

@@ -1,4 +1,4 @@
-EXTRA_DIST = check.diff compress.diff compress.output db.diff db.output javac.diff javac.output mpegaudio.diff mpegaudio.output raytrace.diff raytrace.output jess.output jack.output
+EXTRA_DIST = check.diff compress.diff compress.output db.diff db.output javac.diff javac.output mpegaudio.diff mpegaudio.output raytrace.diff raytrace.output
 
 checkjvm: compress db javac mpegaudio raytrace 
 

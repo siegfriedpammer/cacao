@@ -193,4 +193,5 @@ AC_OUTPUT(Makefile \
           comp/Makefile \
 	  narray/Makefile \
 	  tst/Makefile \
+	  tst/kaffe/Makefile \
 	  jvmtst/Makefile )

@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: main.c 468 2003-10-04 17:15:31Z carolyn $
+	Last Change: $Id: main.c 474 2003-10-04 18:55:10Z stefan $
 
 *******************************************************************************/
 
@@ -828,15 +828,12 @@ int main(int argc, char **argv)
 			utf_display (local_exceptionptr->vftbl->class->name);
 			printf ("\n");
 		}
-                                        /*RTAprint*/ if ((pCallgraph >= 1) && (opt_rt)) {
-                                        /*RTAprint*/    printCallgraph (); }
 
                                         /*RTprint*/ if ((pClassHeir >= 1) && (opt_rt)) {
                                         /*RTprint*/     printf("Last RTA Info -");
                                         /*RTprint*/     printRThierarchyInfo(mainmethod); 
 					/*RTprint*/  	}
 					/*RTprint*/  	printObjectClassHeirarchy1( );
-
 
 #ifdef USE_THREADS
 		killThread(currentThread);
