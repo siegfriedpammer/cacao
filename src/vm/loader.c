@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 784 2003-12-15 16:13:57Z twisti $
+   $Id: loader.c 811 2003-12-30 22:20:43Z twisti $
 
 */
 
@@ -72,7 +72,8 @@ int count_extable_len = 0;
 int count_class_loads = 0;
 int count_class_inits = 0;
 
-static s4 interfaceindex;       /* sequential numbering of interfaces         */ 
+static s4 interfaceindex;       /* sequential numbering of interfaces         */
+static s4 classvalue;
 
 list unloadedclasses;       /* list of all referenced but not loaded classes  */
 list unlinkedclasses;       /* list of all loaded but not linked classes      */
@@ -152,15 +153,17 @@ static int loader_inited = 0;
  * by the ARRAYTYPE_ constants (expcept ARRAYTYPE_OBJECT).
  */
 primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = { 
-  		{ NULL, NULL, "java/lang/Integer",   'I', "int"     , "[I", NULL, NULL },
-  		{ NULL, NULL, "java/lang/Long",      'J', "long"    , "[J", NULL, NULL },
-		{ NULL, NULL, "java/lang/Float",     'F', "float"   , "[F", NULL, NULL },
-		{ NULL, NULL, "java/lang/Double",    'D', "double"  , "[D", NULL, NULL },
-  		{ NULL, NULL, "java/lang/Byte",	     'B', "byte"    , "[B", NULL, NULL },
-  		{ NULL, NULL, "java/lang/Character", 'C', "char"    , "[C", NULL, NULL },
-  		{ NULL, NULL, "java/lang/Short",     'S', "short"   , "[S", NULL, NULL },
-  		{ NULL, NULL, "java/lang/Boolean",   'Z', "boolean" , "[Z", NULL, NULL },
-  		{ NULL, NULL, "java/lang/Void",	     'V', "void"    , NULL, NULL, NULL }};
+	{ NULL, NULL, "java/lang/Integer",   'I', "int"     , "[I", NULL, NULL },
+	{ NULL, NULL, "java/lang/Long",      'J', "long"    , "[J", NULL, NULL },
+	{ NULL, NULL, "java/lang/Float",     'F', "float"   , "[F", NULL, NULL },
+	{ NULL, NULL, "java/lang/Double",    'D', "double"  , "[D", NULL, NULL },
+	{ NULL, NULL, "java/lang/Byte",	     'B', "byte"    , "[B", NULL, NULL },
+	{ NULL, NULL, "java/lang/Character", 'C', "char"    , "[C", NULL, NULL },
+	{ NULL, NULL, "java/lang/Short",     'S', "short"   , "[S", NULL, NULL },
+	{ NULL, NULL, "java/lang/Boolean",   'Z', "boolean" , "[Z", NULL, NULL },
+	{ NULL, NULL, "java/lang/Void",	     'V', "void"    , NULL, NULL, NULL }
+};
+
 
 /* instances of important system classes **************************************/
 
@@ -464,8 +467,6 @@ void suck_stop()
 /******************* Some support functions ***********************************/
 /******************************************************************************/
 
-
-
 void fprintflags (FILE *fp, u2 f)
 {
    if ( f & ACC_PUBLIC )       fprintf (fp," PUBLIC");
@@ -481,8 +482,10 @@ void fprintflags (FILE *fp, u2 f)
    if ( f & ACC_ABSTRACT )     fprintf (fp," ABSTRACT");
 }
 
+
 /********** internal function: printflags  (only for debugging) ***************/
-void printflags (u2 f)
+
+void printflags(u2 f)
 {
    if ( f & ACC_PUBLIC )       printf (" PUBLIC");
    if ( f & ACC_PRIVATE )      printf (" PRIVATE");
@@ -504,13 +507,14 @@ void printflags (u2 f)
 
 *******************************************************************************/
 
-static void skipattribute ()
+static void skipattribute()
 {
 	u4 len;
 	suck_u2 ();
 	len = suck_u4();
 	skip_nbytes(len);	
 }
+
 
 /********************** Function: skipattributebody ****************************
 
@@ -519,12 +523,13 @@ static void skipattribute ()
 	
 *******************************************************************************/
 
-static void skipattributebody ()
+static void skipattributebody()
 {
 	u4 len;
 	len = suck_u4();
 	skip_nbytes(len);
 }
+
 
 /************************* Function: skipattributes ****************************
 
@@ -532,12 +537,13 @@ static void skipattributebody ()
 	
 *******************************************************************************/
 
-static void skipattributes (u4 num)
+static void skipattributes(u4 num)
 {
 	u4 i;
 	for (i = 0; i < num; i++)
 		skipattribute();
 }
+
 
 /******************** function: innerclass_getconstant ************************
 
@@ -545,11 +551,11 @@ static void skipattributes (u4 num)
 	
 *******************************************************************************/
 
-voidptr innerclass_getconstant (classinfo *c, u4 pos, u4 ctype) 
+voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype) 
 {
 	/* invalid position in constantpool */
-	if (pos >= c->cpcount) 
-		panic ("Attempt to access constant outside range");
+	if (pos >= c->cpcount)
+		panic("Attempt to access constant outside range");
 
 	/* constantpool entry of type 0 */	
 	if (!c->cptags[pos])
@@ -557,12 +563,13 @@ voidptr innerclass_getconstant (classinfo *c, u4 pos, u4 ctype)
 
 	/* check type of constantpool entry */
 	if (c->cptags[pos] != ctype) {
-		error ("Type mismatch on constant: %d requested, %d here (innerclass_getconstant)",
-		 (int) ctype, (int) c->cptags[pos] );
-		}
+		error("Type mismatch on constant: %d requested, %d here (innerclass_getconstant)",
+			  (int) ctype, (int) c->cptags[pos] );
+	}
 		
 	return c->cpinfos[pos];
 }
+
 
 /************************ function: attribute_load ****************************
 
@@ -570,15 +577,15 @@ voidptr innerclass_getconstant (classinfo *c, u4 pos, u4 ctype)
 	
 *******************************************************************************/
 
-static void attribute_load (u4 num, classinfo *c)
+static void attribute_load(u4 num, classinfo *c)
 {
-	u4 i,j;
+	u4 i, j;
 
 	for (i = 0; i < num; i++) {
-		/* retrieve attribute name */	
-		utf *aname = class_getconstant (c, suck_u2(), CONSTANT_Utf8);
+		/* retrieve attribute name */
+		utf *aname = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
 
-		if ( aname == utf_innerclasses)  {			
+		if (aname == utf_innerclasses) {
 			/* innerclasses attribute */
 				
 			/* skip attribute length */						
@@ -586,10 +593,9 @@ static void attribute_load (u4 num, classinfo *c)
 			/* number of records */
 			c->innerclasscount = suck_u2();
 			/* allocate memory for innerclass structure */
-			c->innerclass = MNEW (innerclassinfo, c->innerclasscount);
+			c->innerclass = MNEW(innerclassinfo, c->innerclasscount);
 
-			for (j=0;j<c->innerclasscount;j++) {
-				
+			for (j = 0; j < c->innerclasscount; j++) {
 				/*  The innerclass structure contains a class with an encoded name, 
 				    its defining scope, its simple name  and a bitmask of the access flags. 
 				    If an inner class is not a member, its outer_class is NULL, 
@@ -600,14 +606,16 @@ static void attribute_load (u4 num, classinfo *c)
 				info->inner_class = innerclass_getconstant(c, suck_u2(), CONSTANT_Class); /* CONSTANT_Class_info index */
 				info->outer_class = innerclass_getconstant(c, suck_u2(), CONSTANT_Class); /* CONSTANT_Class_info index */
 				info->name  = innerclass_getconstant(c, suck_u2(), CONSTANT_Utf8);        /* CONSTANT_Utf8_info index  */
-				info->flags = suck_u2 ();					          /* access_flags bitmask      */
+				info->flags = suck_u2();					          /* access_flags bitmask      */
 			}
+
 		} else {
 			/* unknown attribute */
-			skipattributebody ();
+			skipattributebody();
 		}
 	}
 }
+
 
 /******************* function: checkfielddescriptor ****************************
 
@@ -778,46 +786,45 @@ void print_arraydescriptor(FILE *file, arraydescriptor *desc)
 
 *******************************************************************************/
 
-static void field_load (fieldinfo *f, classinfo *c)
+static void field_load(fieldinfo *f, classinfo *c)
 {
 	u4 attrnum,i;
 	u4 jtype;
 
-	f -> flags = suck_u2 ();                                           /* ACC flags 		  */
-	f -> name = class_getconstant (c, suck_u2(), CONSTANT_Utf8);       /* name of field               */
-	f -> descriptor = class_getconstant (c, suck_u2(), CONSTANT_Utf8); /* JavaVM descriptor           */
-	f -> type = jtype = desc_to_type (f->descriptor);		   /* data type                   */
-	f -> offset = 0;						   /* offset from start of object */
-	f -> class = c;
+	f->flags = suck_u2();                                           /* ACC flags         */
+	f->name = class_getconstant(c, suck_u2(), CONSTANT_Utf8);       /* name of field     */
+	f->descriptor = class_getconstant(c, suck_u2(), CONSTANT_Utf8); /* JavaVM descriptor */
+	f->type = jtype = desc_to_type(f->descriptor);		            /* data type         */
+	f->offset = 0;						                  /* offset from start of object */
+	f->class = c;
 	f->xta = NULL;
 	
 	switch (f->type) {
 	case TYPE_INT:        f->value.i = 0; break;
 	case TYPE_FLOAT:      f->value.f = 0.0; break;
 	case TYPE_DOUBLE:     f->value.d = 0.0; break;
-	case TYPE_ADDRESS:    f->value.a = NULL; 			      
-	                      break;
+	case TYPE_ADDRESS:    f->value.a = NULL; break;
 	case TYPE_LONG:
 #if U8_AVAILABLE
 		f->value.l = 0; break;
 #else
 		f->value.l.low = 0; f->value.l.high = 0; break;
-#endif 
+#endif
 	}
 
 	/* read attributes */
 	attrnum = suck_u2();
-	for (i=0; i<attrnum; i++) {
+	for (i = 0; i < attrnum; i++) {
 		u4 pindex;
 		utf *aname;
 
-		aname = class_getconstant (c, suck_u2(), CONSTANT_Utf8);
+		aname = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
 		
-		if ( aname != utf_constantvalue ) {
+		if (aname != utf_constantvalue) {
 			/* unknown attribute */
-			skipattributebody ();
-			}
-		else {
+			skipattributebody();
+
+		} else {
 			/* constant value attribute */
 			
 			/* skip attribute length */
@@ -827,51 +834,46 @@ static void field_load (fieldinfo *f, classinfo *c)
 		
 			/* initialize field with value from constantpool */		
 			switch (jtype) {
-				case TYPE_INT: {
-					constant_integer *ci = 
-					   	class_getconstant(c, pindex, CONSTANT_Integer);
-					f->value.i = ci -> value;
-					}
-					break;
+			case TYPE_INT: {
+				constant_integer *ci = 
+					class_getconstant(c, pindex, CONSTANT_Integer);
+				f->value.i = ci->value;
+			}
+			break;
 					
-				case TYPE_LONG: {
-					constant_long *cl = 
-					   class_getconstant(c, pindex, CONSTANT_Long);
-	
-					f->value.l = cl -> value;
-					}
-					break;
+			case TYPE_LONG: {
+				constant_long *cl = 
+					class_getconstant(c, pindex, CONSTANT_Long);
+				f->value.l = cl->value;
+			}
+			break;
 
-				case TYPE_FLOAT: {
-					constant_float *cf = 
-					    class_getconstant(c, pindex, CONSTANT_Float);
-	
-					f->value.f = cf->value;
-					}
-					break;
+			case TYPE_FLOAT: {
+				constant_float *cf = 
+					class_getconstant(c, pindex, CONSTANT_Float);
+				f->value.f = cf->value;
+			}
+			break;
 											
-				case TYPE_DOUBLE: {
-					constant_double *cd = 
-					    class_getconstant(c, pindex, CONSTANT_Double);
-	
-					f->value.d = cd->value;
-					}
-					break;
+			case TYPE_DOUBLE: {
+				constant_double *cd = 
+					class_getconstant(c, pindex, CONSTANT_Double);
+				f->value.d = cd->value;
+			}
+			break;
 						
-				case TYPE_ADDRESS: { 
-					utf *u = class_getconstant(c, pindex, CONSTANT_String);
-					/* create javastring from compressed utf8-string */					
-					f->value.a = literalstring_new(u);
-					}
-					break;
+			case TYPE_ADDRESS: { 
+				utf *u = class_getconstant(c, pindex, CONSTANT_String);
+				/* create javastring from compressed utf8-string */					
+				f->value.a = literalstring_new(u);
+			}
+			break;
 	
-				default: 
-					log_text ("Invalid Constant - Type");
-
-				}
-
+			default: 
+				log_text ("Invalid Constant - Type");
 			}
 		}
+	}
 }
 
 
@@ -1781,36 +1783,52 @@ static arraydescriptor *class_link_array(classinfo *c)
 			desc->dimension = 1;
 			desc->elementtype = ARRAYTYPE_OBJECT;
 		}
-	}
-	else {
+
+	} else {
 		/* c is an array of a primitive type */
 		switch (c->name->text[1]) {
-		  case 'Z': desc->arraytype = ARRAYTYPE_BOOLEAN;
-		            desc->dataoffset = OFFSET(java_booleanarray,data);
-			        desc->componentsize = sizeof(u1); break;
-		  case 'B': desc->arraytype = ARRAYTYPE_BYTE;
-		            desc->dataoffset = OFFSET(java_bytearray,data);
-			        desc->componentsize = sizeof(u1); break;
-		  case 'C': desc->arraytype = ARRAYTYPE_CHAR;
-		            desc->dataoffset = OFFSET(java_chararray,data);
-			        desc->componentsize = sizeof(u2); break;
-		  case 'D': desc->arraytype = ARRAYTYPE_DOUBLE;
-		            desc->dataoffset = OFFSET(java_doublearray,data);
-			        desc->componentsize = sizeof(double); break;
-		  case 'F': desc->arraytype = ARRAYTYPE_FLOAT;
-		            desc->dataoffset = OFFSET(java_floatarray,data);
-			        desc->componentsize = sizeof(float); break;
-		  case 'I': desc->arraytype = ARRAYTYPE_INT;
-		            desc->dataoffset = OFFSET(java_intarray,data);
-			        desc->componentsize = sizeof(s4); break;
-		  case 'J': desc->arraytype = ARRAYTYPE_LONG;
-		            desc->dataoffset = OFFSET(java_longarray,data);
-			        desc->componentsize = sizeof(s8); break;
-		  case 'S': desc->arraytype = ARRAYTYPE_SHORT;
-		            desc->dataoffset = OFFSET(java_shortarray,data);
-			        desc->componentsize = sizeof(s2); break;
-		  default:
-			  panic("Invalid array class name");
+		case 'Z': desc->arraytype = ARRAYTYPE_BOOLEAN;
+			desc->dataoffset = OFFSET(java_booleanarray,data);
+			desc->componentsize = sizeof(u1);
+			break;
+
+		case 'B': desc->arraytype = ARRAYTYPE_BYTE;
+			desc->dataoffset = OFFSET(java_bytearray,data);
+			desc->componentsize = sizeof(u1);
+			break;
+
+		case 'C': desc->arraytype = ARRAYTYPE_CHAR;
+			desc->dataoffset = OFFSET(java_chararray,data);
+			desc->componentsize = sizeof(u2);
+			break;
+
+		case 'D': desc->arraytype = ARRAYTYPE_DOUBLE;
+			desc->dataoffset = OFFSET(java_doublearray,data);
+			desc->componentsize = sizeof(double);
+			break;
+
+		case 'F': desc->arraytype = ARRAYTYPE_FLOAT;
+			desc->dataoffset = OFFSET(java_floatarray,data);
+			desc->componentsize = sizeof(float);
+			break;
+
+		case 'I': desc->arraytype = ARRAYTYPE_INT;
+			desc->dataoffset = OFFSET(java_intarray,data);
+			desc->componentsize = sizeof(s4);
+			break;
+
+		case 'J': desc->arraytype = ARRAYTYPE_LONG;
+			desc->dataoffset = OFFSET(java_longarray,data);
+			desc->componentsize = sizeof(s8);
+			break;
+
+		case 'S': desc->arraytype = ARRAYTYPE_SHORT;
+			desc->dataoffset = OFFSET(java_shortarray,data);
+			desc->componentsize = sizeof(s2);
+			break;
+
+		default:
+			panic("Invalid array class name");
 		}
 		
 		desc->componentvftbl = NULL;
@@ -1870,7 +1888,7 @@ void class_link(classinfo *c)
 	if (super == NULL) {          /* class java.long.Object */
 		c->index = 0;
         c->classUsed = USED;     /* Object class is always used CO-RT*/
-		c -> impldBy = NULL;
+		c->impldBy = NULL;
 		c->instancesize = sizeof(java_objectheader);
 		
 		vftbllength = supervftbllength = 0;
@@ -2453,7 +2471,7 @@ void class_init(classinfo *c)
 #endif
 
 	if (c->super)
-		class_init (c->super);
+		class_init(c->super);
 	for (i = 0; i < c->interfacescount; i++)
 		class_init(c->interfaces[i]);  /* real */
 
@@ -2485,6 +2503,7 @@ void class_init(classinfo *c)
 	blockInts = 0;
 #endif
 
+	/* now call the initializer */
 	asm_calljavafunction(m, NULL, NULL, NULL, NULL);
 
 #ifdef USE_THREADS
@@ -2819,7 +2838,7 @@ classinfo *loader_load(utf *topname)
 	s8 starttime = 0;
 	s8 stoptime = 0;
 	classinfo *notlinkable;
-	
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	pthread_mutex_lock(&compiler_mutex);
 #endif
@@ -2918,6 +2937,7 @@ classinfo *loader_load(utf *topname)
 	return top; 
 }
 
+
 /****************** Function: loader_load_sysclass ****************************
 
 	Loads and links the class desired class and each class and interface
@@ -2930,12 +2950,12 @@ classinfo *loader_load(utf *topname)
 
 *******************************************************************************/
 
-classinfo *loader_load_sysclass(classinfo **top,utf *topname)
+classinfo *loader_load_sysclass(classinfo **top, utf *topname)
 {
 	classinfo *cls;
 
 	if ((cls = loader_load(topname)) == NULL) {
-		log_plain("Could not important system class: ");
+		log_plain("Could not load important system class: ");
 		log_plain_utf(topname);
 		log_nl();
 		panic("Could not load important system class");
@@ -2945,6 +2965,7 @@ classinfo *loader_load_sysclass(classinfo **top,utf *topname)
 
 	return cls;
 }
+
 
 /**************** function: create_primitive_classes ***************************
 
@@ -3195,12 +3216,12 @@ static void create_pseudo_classes()
 
     /* pseudo class representing new uninitialized objects */
     
-    pseudo_class_New = class_new( utf_new_char("$NEW$") );
-    list_remove(&unloadedclasses,pseudo_class_New);
+    pseudo_class_New = class_new(utf_new_char("$NEW$"));
+    list_remove(&unloadedclasses, pseudo_class_New);
 
     pseudo_class_New->super = class_java_lang_Object;
 
-    list_addlast(&unlinkedclasses,pseudo_class_New);
+    list_addlast(&unlinkedclasses, pseudo_class_New);
     class_link(pseudo_class_New);	
 }
 
@@ -3212,15 +3233,15 @@ static void create_pseudo_classes()
 
 *******************************************************************************/
  
-void loader_init(u1 * stackbottom)
+void loader_init(u1 *stackbottom)
 {
 	interfaceindex = 0;
 	
 	log_text("Entering loader_init");
 	
-	list_init (&unloadedclasses, OFFSET(classinfo, listnode) );
-	list_init (&unlinkedclasses, OFFSET(classinfo, listnode) );
-	list_init (&linkedclasses, OFFSET(classinfo, listnode) );
+	list_init(&unloadedclasses, OFFSET(classinfo, listnode));
+	list_init(&unlinkedclasses, OFFSET(classinfo, listnode));
+	list_init(&linkedclasses, OFFSET(classinfo, listnode));
 
 	/* create utf-symbols for pointer comparison of frequently used strings */
 	utf_innerclasses    = utf_new_char("InnerClasses");
@@ -3325,6 +3346,8 @@ void loader_init(u1 * stackbottom)
 
 *******************************************************************************/
 
+#if 0
+/* XXX TWISTI: i think we do not need this */
 void loader_initclasses ()
 {
 	classinfo *c;
@@ -3336,12 +3359,12 @@ void loader_initclasses ()
 	intsDisable();                     /* schani */
 
 	if (makeinitializations) {
-		c = list_first (&linkedclasses);
+		c = list_first(&linkedclasses);
 		while (c) {
-			class_init (c);
-			c = list_next (&linkedclasses, c);
-			}
+			class_init(c);
+			c = list_next(&linkedclasses, c);
 		}
+	}
 
 	intsRestore();                      /* schani */
 	
@@ -3349,8 +3372,8 @@ void loader_initclasses ()
 	pthread_mutex_unlock(&compiler_mutex);
 #endif
 }
+#endif
 
-static s4 classvalue;
 
 static void loader_compute_class_values(classinfo *c)
 {
@@ -3390,16 +3413,16 @@ void loader_compute_subclasses()
 			c->nextsub = 0;
 			c->sub = 0;
 		}
-		c = list_next (&linkedclasses, c);
+		c = list_next(&linkedclasses, c);
 	}
 
-	c = list_first (&linkedclasses);
+	c = list_first(&linkedclasses);
 	while (c) {
 		if (!(c->flags & ACC_INTERFACE) && (c->super != NULL)) {
 			c->nextsub = c->super->sub;
 			c->super->sub = c;
 		}
-		c = list_next (&linkedclasses, c);
+		c = list_next(&linkedclasses, c);
 	}
 
 	classvalue = 0;
