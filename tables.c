@@ -299,7 +299,7 @@ static u4 utf_hashkey (char *text, u4 length)
 
 u4 unicode_hashkey (u2 *text, u2 len)
 {
-	utf_hashkey((char*) text, len);
+	return utf_hashkey((char*) text, len);
 }
 
 /************************ function: utf_new **********************************
