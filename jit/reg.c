@@ -282,6 +282,12 @@ static void interface_regalloc ()
 						fltalloc = t;
 						}
 					else {
+#ifdef __I386__
+						if (IS_2_WORD_TYPE(t)) {
+							v->flags = INMEMORY;
+							v->regoff = maxmemuse++;
+						} else {
+#endif
 						if (intalloc >= 0) {
 							v->flags |= interfaces[s][intalloc].flags & INMEMORY;
 							v->regoff = interfaces[s][intalloc].regoff;
@@ -298,6 +304,9 @@ static void interface_regalloc ()
 							v->flags |= INMEMORY;
 							v->regoff = ifmemuse++;
 							}
+#ifdef __I386__
+						}
+#endif
 						intalloc = t;
 						}
 					}
@@ -318,6 +327,12 @@ static void interface_regalloc ()
 						fltalloc = t;
 						}
 					else {
+#ifdef __I386__
+						if (IS_2_WORD_TYPE(t)) {
+							v->flags = INMEMORY;
+							v->regoff = maxmemuse++;
+						} else {
+#endif
 						if (intalloc >= 0) {
 							v->flags |= interfaces[s][intalloc].flags & INMEMORY;
 							v->regoff = interfaces[s][intalloc].regoff;
@@ -330,6 +345,9 @@ static void interface_regalloc ()
 							v->flags |= INMEMORY;
 							v->regoff = ifmemuse++;
 							}
+#ifdef __I386__
+						}
+#endif
 						intalloc = t;
 						}
 					}
@@ -394,6 +412,12 @@ static void local_regalloc ()
 						fltalloc = t;
 						}
 					else {
+#ifdef __I386__
+						if (IS_2_WORD_TYPE(t)) {
+							v->flags = INMEMORY;
+							v->regoff = maxmemuse++;
+						} else {
+#endif
 						if (intalloc >= 0) {
 							v->flags = locals[s][intalloc].flags;
 							v->regoff = locals[s][intalloc].regoff;
@@ -417,6 +441,9 @@ static void local_regalloc ()
 							v->flags = INMEMORY;
 							v->regoff = maxmemuse++;
 							}
+#ifdef __I386__
+						}
+#endif
 						intalloc = t;
 						}
 					}
@@ -456,6 +483,12 @@ static void local_regalloc ()
 					fltalloc = t;
 					}
 				else {
+#ifdef __I386__
+					if (IS_2_WORD_TYPE(t)) {
+						v->flags = INMEMORY;
+						v->regoff = maxmemuse++;
+					} else {
+#endif
 					if (intalloc >= 0) {
 						v->flags = locals[s][intalloc].flags;
 						v->regoff = locals[s][intalloc].regoff;
@@ -469,6 +502,9 @@ static void local_regalloc ()
 						v->flags = INMEMORY;
 						v->regoff = maxmemuse++;
 						}
+#ifdef __I386__
+					}
+#endif
 					intalloc = t;
 					}
 				}
@@ -513,6 +549,9 @@ if (s->flags & SAVEDVAR) {
 			}
 		}
 	else {
+#ifdef __I386__
+        if (!IS_2_WORD_TYPE(s->type)) {
+#endif
 		if (freesavinttop > 0) {
 			freesavinttop--;
 			s->regoff = freesavintregs[freesavinttop];
@@ -525,6 +564,9 @@ if (s->flags & SAVEDVAR) {
 			s->regoff = savintregs[savintreguse];
 			return;
 			}
+#ifdef __I386__
+	    }
+#endif
 		}
 	}
 else {
@@ -543,6 +585,9 @@ else {
 			}
 		}
 	else {
+#ifdef __I386__
+        if (!IS_2_WORD_TYPE(s->type)) {
+#endif
 		if (freetmpinttop > 0) {
 			freetmpinttop--;
 			s->regoff = freetmpintregs[freetmpinttop];
@@ -555,6 +600,9 @@ else {
 			s->regoff = tmpintregs[tmpintreguse];
 			return;
 			}
+#ifdef __I386__
+	    }
+#endif
 		}
 	}
 if (freememtop > 0) {
@@ -597,7 +645,7 @@ static void allocate_scratch_registers()
 	stackptr    src, dst;
 	instruction *iptr = instr;
 	basicblock  *bptr;
-	
+
 	/* b_count = block_count; */
 
 	bptr = block;
@@ -968,51 +1016,6 @@ static void allocate_scratch_registers()
 					case ICMD_INVOKESTATIC:
 					case ICMD_INVOKEINTERFACE:
 						{
-#ifdef __I386__
-						int tmpregoff = 0;
-						stackptr tmpsrc;
-						i = iptr->op1;
-						tmpsrc = src;
-						while (--i >= 0) {
-							if (tmpsrc->varkind == ARGVAR) {
-								switch (tmpsrc->type) {
-								case TYPE_INT:
-								case TYPE_ADR:
-									tmpregoff++;
-									break;
-
-								case TYPE_LNG:
-									tmpregoff += 2;
-									break;
-								}
-							}
-							tmpsrc = tmpsrc->prev;
-						}
-									
-						i = iptr->op1;
-						while (--i >= 0) {
-							if (src->varkind == ARGVAR) {
-								switch (src->type) {
-								case TYPE_INT:
-								case TYPE_ADR:
-									tmpregoff--;
-									break;
-									
-								case TYPE_LNG:
-									tmpregoff -= 2;
-									break;
-								}
-							}
-
-							reg_free_temp(src);
-							src->regoff = tmpregoff;
-							printf("jit/reg.c: regoff=%d\n", src->regoff);
-							src = src->prev;
-							}
-						if (((methodinfo*)iptr->val.a)->returntype != TYPE_VOID)
-							reg_new_temp(dst);
-						break;
-#else
 						i = iptr->op1;
 						while (--i >= 0) {
 							reg_free_temp(src);
@@ -1021,7 +1024,6 @@ static void allocate_scratch_registers()
 						if (((methodinfo*)iptr->val.a)->returntype != TYPE_VOID)
 							reg_new_temp(dst);
 						break;
-#endif
 						}
 
 					case ICMD_BUILTIN3:
