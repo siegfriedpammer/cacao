@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 712 2003-12-07 20:39:09Z twisti $
+   $Id: codegen.h 928 2004-02-26 00:18:36Z twisti $
 
 */
 
@@ -477,7 +477,14 @@ void x86_64_xorpd_membase_reg(s8 basereg, s8 disp, s8 dreg);
 #define gen_resolvebranch(ip,so,to) \
     *((s4*) ((ip) - 4)) = (s4) ((to) - (so));
 
-#define SOFTNULLPTRCHECK       /* soft null pointer check supportet as option */
+
+/* function prototypes */
+
+void codegen_init();
+void init_exceptions();
+void codegen();
+void codegen_close();
+void dseg_display(s4 *s4ptr);
 
 #endif /* _CODEGEN_H */
 
