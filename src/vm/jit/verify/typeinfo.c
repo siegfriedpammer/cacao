@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 1795 2004-12-21 15:15:26Z jowenn $
+   $Id: typeinfo.c 1927 2005-02-10 10:50:55Z twisti $
 
 */
 
@@ -35,6 +35,7 @@
 
 #include "mm/memory.h"
 #include "toolbox/logging.h"
+#include "vm/class.h"
 #include "vm/loader.h"
 #include "vm/tables.h"
 #include "vm/jit/jit.h"

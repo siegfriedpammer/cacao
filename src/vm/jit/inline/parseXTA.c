@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.c 1881 2005-01-21 13:46:51Z carolyn $
+   $Id: parseXTA.c 1927 2005-02-10 10:50:55Z twisti $
 
 */
 
@@ -64,10 +64,11 @@ Results: (currently) with -stat see # methods marked used
 #include "cacao/cacao.h"
 #include "mm/memory.h"   
 #include "toolbox/list.h"
-#include "vm/tables.h"
-#include "vm/statistics.h"
+#include "vm/class.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/statistics.h"
+#include "vm/tables.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/inline/parseXTA.h"

@@ -26,17 +26,18 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 1744 2004-12-09 10:17:12Z carolyn $
+   $Id: parseRTstats.c 1927 2005-02-10 10:50:55Z twisti $
 
 */
 
 #include <stdio.h>
 
 #include "toolbox/list.h"
-#include "vm/options.h"
-#include "vm/tables.h"
-#include "vm/statistics.h"
+#include "vm/class.h"
 #include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
+#include "vm/tables.h"
 #include "vm/jit/inline/parseRT.h"
 #include "vm/jit/inline/parseRTstats.h"
 #include "vm/jit/inline/parseRTprint.h"
