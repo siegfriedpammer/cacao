@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loging.c 730 2003-12-11 21:23:31Z edwin $
+   $Id: loging.c 750 2003-12-13 22:17:44Z twisti $
 
 */
 
@@ -134,12 +134,14 @@ FILE *get_logfile()
 	return (logfile) ? logfile : stdout;
 }
 
+
 /****************** Function: log_flush *********************************/
 
 void log_flush()
 {
 	fflush(get_logfile());
 }
+
 
 /********************* Function: log_nl *********************************/
 
@@ -149,21 +151,22 @@ void log_nl()
 	fflush(get_logfile());
 }
 
+
 /********************* Function: log_cputime ****************************/
 
 void log_cputime()
 {
-   long int t;
-   int sec, usec;
-   char logtext[MAXLOGTEXT];
+	s8 t;
+	int sec, usec;
+	char logtext[MAXLOGTEXT];
 
-   t = getcputime();
-   sec = t / 1000000;
-   usec = t % 1000000;
+	t = getcputime();
+	sec = t / 1000000;
+	usec = t % 1000000;
 
-   sprintf(logtext, "Total CPU usage: %d seconds and %d milliseconds",
-		   sec, usec / 1000);
-   log_text(logtext);
+	sprintf(logtext, "Total CPU usage: %d seconds and %d milliseconds",
+			sec, usec / 1000);
+	log_text(logtext);
 }
 
 
@@ -209,7 +212,7 @@ void panic(char *txt)
 	
 ****************************************************************************/
 
-long int getcputime()
+s8 getcputime()
 {
 	struct rusage ru;
 	int sec, usec;
@@ -217,6 +220,7 @@ long int getcputime()
 	getrusage(RUSAGE_SELF, &ru);
 	sec = ru.ru_utime.tv_sec + ru.ru_stime.tv_sec;
 	usec = ru.ru_utime.tv_usec + ru.ru_stime.tv_usec;
+
 	return sec * 1000000 + usec;
 }
 
