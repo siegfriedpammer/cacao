@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1544 2004-11-18 12:21:44Z twisti $
+   $Id: loader.h 1553 2004-11-19 15:47:13Z carolyn $
 */
 
 
@@ -179,6 +179,7 @@ void class_free(classinfo *c);
 void field_display(fieldinfo *f);
 
 void method_display(methodinfo *m);
+void method_display_w_class(methodinfo *m);
 
 utf* clinit_desc();
 utf* clinit_name();

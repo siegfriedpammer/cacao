@@ -2,4 +2,4 @@ gnu/java/nio/channels/FileChannelImpl <init> (II)V
 java/lang/reflect/Constructor <init> ()V
 gnu/java/io/decode/Decoder8859_1 <init> (Ljava/io/InputStream;)V
 gnu/java/io/encode/Encoder8859_1 <init> (Ljava/io/OutputStream;)V
-java/lang/Object clone ()Ljava/lang/Object;
+gnu/java/net/protocol/file/Handler <init> ()V

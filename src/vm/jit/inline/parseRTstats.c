@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 1494 2004-11-12 13:34:26Z twisti $
+   $Id: parseRTstats.c 1553 2004-11-19 15:47:13Z carolyn $
 
 */
 #include <stdio.h>
@@ -41,7 +41,7 @@
 int pClassHeirStatsOnly = 2;
 int pClassHeir = 2;
 
-/*--- Statistics ----------------------------------------------------------*/
+/*--- Statistics ---------------------------------------------------------*/
 
 int unRTclassHeirCnt=0;
 int unRTmethodCnt = 0;
@@ -102,9 +102,7 @@ void printCallgraph (list *rtaWorkList)
 	 rt_meth = rta->method;
 
          printf("  (%i): ",i++); 
-         utf_display(rt_meth->class->name);
-         printf(":");
-         method_display(rt_meth);
+         method_display_w_class(rt_meth);
  	}
 
  printf("\n\n");
@@ -117,7 +115,8 @@ int subdefd(methodinfo *meth) {
     classinfo *subs;
     methodinfo *submeth;
 
-	printf("subdefd for:");utf_display(meth->class->name);printf(".");method_display(meth); fflush(stdout);
+	printf("subdefd for:");
+	method_display_w_class(meth);
 
     if (  (meth->flags & ACC_STATIC) && (meth->flags & ACC_FINAL ) )  
     	printf("\n\n\nPossible Poly call for FINAL or STATIC\n\n\n");
@@ -127,7 +126,7 @@ int subdefd(methodinfo *meth) {
 	}
     if (meth->flags & ACC_ABSTRACT ) ; /*printf("AB\n"); fflush(stdout); */
 
-	printf("sub exist for:");utf_display(meth->class->name);printf(".");method_display(meth);
+	printf("sub exist for:");method_display_w_class(meth);
 
     for (subs = meth->class->sub;subs != NULL;subs = subs->nextsub) {
 		submeth = class_findmethod_approx(subs, meth->name, meth->descriptor); 
@@ -148,7 +147,45 @@ int subdefd(methodinfo *meth) {
 }
 
 /*--------------------------------------------------------------*/
+#define CLASSINFO(cls,txt)  { \
+  printf(txt); fflush(stdout); \
+    printf(" <c%i>(depth=%i) ",cls->classUsed,cls->index); \
+    printf("\tbase/diff =%3d/%3d\t", \
+				   cls->vftbl->baseval, \
+				   cls->vftbl->diffval); \
+  utf_display(cls->name); printf("\n"); fflush(stdout); } 
+
 /*--------------------------------------------------------------*/
+
+void printRTClassHeirarchy2(classinfo  *class) {
+classinfo  *s;
+  methodinfo *meth;
+  int m;
+
+  if (class == NULL) {return;}
+  CLASSINFO(class,"CLASS: ");
+  for (s = class->super; s != NULL; s = s->super) {
+    CLASSINFO(s,"SUPER:: ");
+    }
+
+  printf("METHODs: "); fflush(stdout);
+
+  for (m=0; m < class->methodscount; m++) {
+    meth = &class->methods[m];
+    printf("(%i) ",m);
+    METHINFOx(meth);
+    }
+  printf("---------------------------\n");fflush(stdout);
+
+    if (class->sub != NULL) printf("SUBS:\n:");
+    else printf("NO SUBS\n");
+    fflush(stdout);
+
+    for (s = class->sub; s != NULL; s = s->nextsub) {
+		printRTClassHeirarchy2(s);
+		printf("---------------------------\n");fflush(stdout);
+	}
+}
 
 void printRTClassHeirarchy(classinfo  *class) {
   
@@ -167,15 +204,17 @@ void printRTClassHeirarchy(classinfo  *class) {
 			if (meth->methodUsed == USED) {
 				if (pClassHeirStatsOnly >= 2) {
 					printf("\nMETHOD marked used in CLASS marked NOTUSED: \n\t"); 
-					utf_display(class->name);
-					printf(".");
-					method_display(meth);
+					method_display_w_class(meth);
 					printf("<%i>\n\t",meth->methodUsed);
 					fflush(stdout);
 					printf("\nMETHOD marked used in CLASS marked NOTUSED\n\n\n\n"); 
 				}
+			}	
+			else {
+				printf(" UNUSED METHOD "); fflush(stdout);
+				method_display_w_class(meth);
 			}
-		}
+		}	
 	}
 
     if (class->classUsed != NOTUSED) {
@@ -247,8 +286,7 @@ void printRTClassHeirarchy(classinfo  *class) {
 					if (meth->flags & ACC_ABSTRACT ) {
 						if (pClassHeirStatsOnly >= 2) {
 							printf("STATS: abstract_method=");
-							utf_display(meth->class->name);printf(".");
-							method_display(meth);
+							method_display_w_class(meth);
 						}
 					}
 					else 	{
@@ -270,9 +308,7 @@ void printRTClassHeirarchy(classinfo  *class) {
 					}
 					cnt++;
 					printf("\t");
-					utf_display(meth->class->name); 
-					printf(".");
-					method_display(meth);
+					method_display_w_class(meth);
 					printf("\t\t");
 					if (meth->monoPoly != MONO) printf("\t\tRedefs used/total<%i/%i>\n", meth->subRedefsUsed, meth->subRedefs);
 				}
@@ -363,7 +399,7 @@ void printRTInterfaceClasses() {
 					RTmethodInterfaceMethodUsedCnt++;
 					if (pClassHeirStatsOnly >= 2) {
 						printf("\t\t"); 
-						utf_display(ici->name);printf(".");method_display(imi);fflush(stdout);
+						method_display_w_class(imi);
 					}
 					if (impldBycnt == 1) {
 						classinfo  *cii;
@@ -434,23 +470,20 @@ void printRThierarchyInfo(methodinfo *m) {
 
 printf("RT Heirarchy:------------\n"); fflush(stdout);
 	/*-- --*/
-	if (pClassHeirStatsOnly >= 2) {
 		printf("\nRT Class Hierarchy for ");
-		printf("--- start of RT info --------------- after :\n");
 		if (m != NULL) {
-			utf_display(m->class->name); 
-			printf(".");
-			method_display(m);
+			method_display_w_class(m);
 			printf("\n");
-		}
-    }
-	printRTClassHeirarchy(class_java_lang_Object);
-	/* printRTClassHeirarchy(m->class); */
-	if (pClassHeirStatsOnly >= 2) {
-		fflush(stdout);
-		printf("--- end  of RT info ---------------\n");
-    }
-	if (pClassHeirStatsOnly >= 1) {
+			}
+		else {	
+		     printf(" called with NULL method\n"); 
+		     return;
+		     }
+	/**printRTClassHeirarchy(class_java_lang_Object); **/
+	printRTClassHeirarchy(m->class);
+	printf("--- end  of RT info ---------------\n");
+
+	if (pClassHeirStatsOnly >= 10) {
 		/*--  statistic results --*/
 		if (opt_rt)
 		printRTInterfaceClasses();

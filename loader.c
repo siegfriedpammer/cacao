@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1547 2004-11-18 13:01:41Z twisti $
+   $Id: loader.c 1553 2004-11-19 15:47:13Z carolyn $
 
 */
 
@@ -1606,6 +1606,24 @@ void method_display(methodinfo *m)
 	printf(" "); 
 	utf_display(m->descriptor);
 	printf("\n");
+}
+
+/************** Function: method_display_w_class  (debugging only) **************/
+
+void method_display_w_class(methodinfo *m)
+{
+        printflags(m->class->flags);
+        printf(" "); fflush(stdout);
+        utf_display(m->class->name);
+        printf(".");fflush(stdout);
+
+        printf("   ");
+        printflags(m->flags);
+        printf(" "); fflush(stdout);
+        utf_display(m->name);
+        printf(" "); fflush(stdout);
+        utf_display(m->descriptor);
+        printf("\n"); fflush(stdout);
 }
 
 /************** Function: method_display_flags_last  (debugging only) **************/

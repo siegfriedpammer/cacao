@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.h 1546 2004-11-18 12:25:04Z twisti $
+   $Id: options.h 1553 2004-11-19 15:47:13Z carolyn $
 
 */
 
@@ -83,7 +83,8 @@ extern bool showdisassemble;
 extern bool showddatasegment;
 extern bool showintermediate;
 
-#define INAFTERMAIN T
+/*#undef INAFTERMAIN  /*use to inline system methods before main is called*/
+#define INAFTERMAIN T /*use to turn off inlining before main called */
 extern bool useinliningm;
 extern bool useinlining;
 extern bool inlinevirtuals;
