@@ -863,25 +863,28 @@ void gc_mark_stack (void)
 #ifdef USE_THREADS 
     thread *aThread;
 	
-	if (currentThread == NULL || currentThread == mainThread) {
+	if (1) {
 		void **top_of_stack = &dummy;
-		
-		if (top_of_stack > stackbottom)
-			markreferences(stackbottom, top_of_stack);
-		else
-			markreferences(top_of_stack, stackbottom);
-	}
-	else {
+
 		for (aThread = liveThreads; aThread != 0;
 			 aThread = CONTEXT(aThread).nextlive) {
 			gc_mark_object_at((void*)aThread);
+			if (aThread == mainThread)
+				continue;
 			if (CONTEXT(aThread).usedStackTop > CONTEXT(aThread).stackEnd)
 				markreferences((void**)CONTEXT(aThread).stackEnd,
 							   (void**)CONTEXT(aThread).usedStackTop);
 			else 	
 				markreferences((void**)CONTEXT(aThread).usedStackTop,
 							   (void**)CONTEXT(aThread).stackEnd);
-	    }
+		}
+		
+		/* Mark main thread now [stefan] */
+		/* (we are running on it) */
+		if (top_of_stack > stackbottom)
+			markreferences(stackbottom, top_of_stack);
+		else
+			markreferences(top_of_stack, stackbottom);
 
 		markreferences((void**)&threadQhead[0],
 					   (void**)&threadQhead[MAX_THREAD_PRIO]);
