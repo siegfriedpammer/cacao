@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 1529 2004-11-17 17:19:14Z twisti $
+   $Id: headers.c 1570 2004-11-23 16:04:33Z twisti $
 
 */
 
@@ -38,6 +38,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <ucontext.h>
+
 #include "config.h"
 #include "global.h"
 #include "tables.h"
@@ -124,7 +126,7 @@ void removenativestub(u1 *stub) {}
 
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop) {}
 u1* asm_initialize_thread_stack(void *func, u1 *stack) { return NULL; }
-void thread_restartcriticalsection() {}
+void thread_restartcriticalsection(ucontext_t *uc) {}
 void asm_switchstackandcall() {}
 void asm_handle_builtin_exception(classinfo *c) {}
 void asm_getclassvalues_atomic() {}
