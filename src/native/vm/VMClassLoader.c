@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClassLoader.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: VMClassLoader.c 1773 2004-12-19 17:39:01Z jowenn $
 
 */
 
@@ -54,7 +54,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 {
 	classinfo *c;
 
-	log_text("Java_java_lang_VMClassLoader_defineClass called");
+	/*log_text("Java_java_lang_VMClassLoader_defineClass called");*/
 
 	if (off < 0 || len < 0 || off + len > buf->header.size) {
 		*exceptionptr =

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1756 2004-12-13 10:09:35Z twisti $
+## $Id: Makefile.am 1773 2004-12-19 17:39:01Z jowenn $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -47,6 +47,9 @@ all:
 	$(CACAOC) testarguments.java
 	$(CACAOH) testarguments
 	$(CC) -shared $(INCLUDES) $(CFLAGS) testarguments.c -o libtestarguments.so -fPIC
+	$(CACAOC) testgetobjectclass0.java
+	$(CACAOH) testgetobjectclass0
+	$(CC) -shared $(INCLUDES) $(CFLAGS) testgetobjectclass0.c -o libtestgetobjectclass0.so -fPIC
 
 
 ## Local variables:

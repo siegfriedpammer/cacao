@@ -139,3 +139,23 @@ Description: Check ARCH-CHANGES.
 Assigned   : ALL
 Status     : OPEN
 Comments   :
+
+Description: classloader namespacing and unloading of native libraries (btw: jdk 1.2+ instead of jdk 1.1 compliant behaviour)
+Assigned   : jowenn
+Status     : OPEN
+Comments   :
+
+Description: Fix exception stacktraces containing Alpha-leaf methods
+Assigned   : jowenn
+Status     : OPEN
+Comments   :
+
+Description: solve the problem that jython calles methods with double parameters wrongly in cacao
+Assigned   : jowenn
+Status     : OPEN
+Comments   :
+
+Description: Implement JavaVM interface and releated functions to make cacao embeddable
+Assigned   : jowenn, all
+Status     : OPEN
+Comments   :

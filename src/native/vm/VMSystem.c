@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSystem.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: VMSystem.c 1773 2004-12-19 17:39:01Z jowenn $
 
 */
 
@@ -73,7 +73,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 		return; 
 	}
 
-	if ((len < 0) || (sp < 0) || (sp + len > s->size) || (dp < 0) || (dp + len > d->size)) {
+	if ((len < 0) || (sp < 0) || (sp + len > s->size) || (dp < 0) || (dp + len > d->size) || (dp+len<0)) {
 		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 		return; 
 	}
