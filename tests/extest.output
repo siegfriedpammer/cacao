@@ -1,0 +1,6 @@
+THROWS: passed.
+NATIVE: passed
+NULL: passed.
+ARITHMETIC: passed.
+NULL (without catch): 
+Exception in thread "main" java/lang/NullPointerException
