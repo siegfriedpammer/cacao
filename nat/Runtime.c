@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Runtime.c 1433 2004-11-04 16:40:43Z motse $
+   $Id: Runtime.c 1449 2004-11-05 14:08:48Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
+#include "exceptions.h"
 #include "main.h"
 #include "jni.h"
 #include "builtin.h"
@@ -49,11 +50,11 @@
 #include "mm/boehm.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
-#include "java_io_File.h"
-#include "java_lang_String.h"
-#include "java_lang_Process.h"
-#include "java_util_Properties.h"    /* needed for java_lang_Runtime.h */
-#include "java_lang_VMRuntime.h"
+#include "nat/java_io_File.h"
+#include "nat/java_lang_String.h"
+#include "nat/java_lang_Process.h"
+#include "nat/java_util_Properties.h"    /* needed for java_lang_Runtime.h */
+#include "nat/java_lang_VMRuntime.h"
 
 #include "config.h"
 #ifndef STATIC_CLASSPATH
@@ -63,12 +64,69 @@
 #undef JOWENN_DEBUG
 
 /* should we run all finalizers on exit? */
-static s4 finalizeOnExit = false;
+static bool finalizeOnExit = false;
 
 #define MAXPROPS 100
-static bool shouldFinalizersBeRunOnExit=false;
+#if 0
+static int activeprops = 29;
+
+
+/* insert all properties as defined in VMRuntime.java */
+
+static char *proplist[MAXPROPS][2] = {
+	{ "java.version", VERSION },
+	{ "java.vendor", "CACAO Team" },
+	{ "java.vendor.url", "http://www.complang.tuwien.ac.at/java/cacao/" },
+	{ "java.home", NULL },
+	{ "java.vm.specification.version", "1.0" },
+
+	{ "java.vm.specification.vendor", "Sun Microsystems Inc." },
+	{ "java.vm.specification.name", "Java Virtual Machine Specification" },
+	{ "java.vm.version", VERSION },
+	{ "java.vm.vendor", "CACAO Team" },
+	{ "java.vm.name", "CACAO" },
+
+	{ "java.specification.version", "1.4" },
+	{ "java.specification.vendor", "Sun Microsystems Inc." },
+	{ "java.specification.name", "Java Platform API Specification" },
+	{ "java.class.version", "48.0" },
+	{ "java.class.path", NULL },
+
+	{ "java.library.path" , NULL },
+	{ "java.io.tmpdir", "/tmp"},
+	{ "java.compiler", "cacao.jit" },
+	{ "java.ext.dirs", NULL },
+	{ "os.name", NULL },
+
+	{ "os.arch", NULL },
+	{ "os.version", NULL },
+	{ "file.separator", "/" },
+	{ "java.library.path", NULL},
+	{ "java.class.version", "45.3" },
+
+	{ "java.version", PACKAGE":"VERSION },
+	{ "java.vendor", "CACAO Team" },
+	{ "java.vendor.url", "http://www.complang.tuwien.ac.at/java/cacao/" },
+	{ "java.vm.name", "CACAO"}, 
+	{ "java.tmpdir", "/tmp/"},
+
+	{ "java.io.tmpdir", "/tmp/"},
+	{ "path.separator", ":" },
+	{ "line.separator", "\n" },
+	{ "user.name", NULL },
+	{ "user.home", NULL },
+
+	{ "user.dir",  NULL },
+	{ "user.language", "en" },
+	{ "user.region", "US" },
+	{ "user.country", "US" },
+	{ "user.timezone", "Europe/Vienna" },
+
+	/* XXX do we need this one? */
+	{ "java.protocol.handler.pkgs", "gnu.java.net.protocol"}
+};
+#endif
 static int activeprops = 20;  
-   
 static char *proplist[MAXPROPS][2] = {
 	{ "java.class.path", NULL },
 	{ "java.home", NULL },
@@ -97,11 +155,15 @@ static char *proplist[MAXPROPS][2] = {
 
 void attach_property(char *name, char *value)
 {
-        if (activeprops >= MAXPROPS) panic("Too many properties defined");
-        proplist[activeprops][0] = name;
-        proplist[activeprops][1] = value;
-        activeprops++;
+	if (activeprops >= MAXPROPS)
+		panic("Too many properties defined");
+
+	proplist[activeprops][0] = name;
+	proplist[activeprops][1] = value;
+	activeprops++;
 }
+
+
 /*
  * Class:     java_lang_VMRuntime
  * Method:    execInternal
@@ -167,13 +229,14 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalization(JNIEnv *env, jcl
  * Method:    runFinalizersOnExit
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizersOnExit(JNIEnv *env, jclass clazz, s4 par1)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizersOnExit(JNIEnv *env, jclass clazz, s4 value)
 {
 #ifdef __GNUC__
 #warning threading
 #endif
-	shouldFinalizersBeRunOnExit=par1;
+	finalizeOnExit = value;
 }
+
 
 /*
  * Class:     java/lang/Runtime
@@ -182,12 +245,14 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizersOnExit(JNIEnv *env,
  */
 JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizationForExit(JNIEnv *env, jclass clazz)
 {
-	if (shouldFinalizersBeRunOnExit) {
-		gc_call();
+/*  	if (finalizeOnExit) { */
+/*  		gc_call(); */
 	//	gc_finalize_all();
-	}
-	log_text("Java_java_lang_VMRuntime_runFinalizationForExit called");
-
+/*  	} */
+/*  	log_text("Java_java_lang_VMRuntime_runFinalizationForExit called"); */
+	//gc_finalize_all();
+	//gc_invoke_finalizers();
+	//gc_call();
 }
 
 
@@ -251,7 +316,6 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
 JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *par1)
 {
 	int retVal=0;
-
 
 	char *buffer;
 	int buffer_len;
@@ -341,6 +405,26 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	char buffer[BUFFERSIZE];
 	struct utsname utsnamebuf;
 
+#if 0
+	proplist[14][1] = classpath;
+	//proplist[1][1] = getenv("JAVA_HOME");
+
+	/* get properties from system */
+	uname(&utsnamebuf);
+	proplist[19][1] = utsnamebuf.sysname;
+	proplist[20][1] = utsnamebuf.machine;
+	proplist[21][1] = utsnamebuf.release;
+
+	proplist[25][1] = getenv("USER");
+	proplist[26][1] = getenv("HOME");
+	proplist[27][1] = getcwd(buffer, BUFFERSIZE);
+
+#if defined(STATIC_CLASSPATH)
+	proplist[23][1] = ".";
+#else
+	proplist[23][1] = getenv("LD_LIBRARY_PATH");
+#endif
+#endif
 	proplist[0][1] = classpath;
 	proplist[1][1] = getenv("JAVA_HOME");
 	proplist[2][1] = getenv("HOME");
@@ -365,28 +449,25 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	}
 
 	/* search for method to add properties */
-	m = class_resolvemethod(p->header.vftbl->class,
-							utf_new_char("put"),
-							utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;")
-							);
+	m = class_resolveclassmethod(p->header.vftbl->class,
+								 utf_new_char("put"),
+								 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+								 clazz,
+								 true);
 
-	if (!m) {
-		*exceptionptr = new_exception_message(string_java_lang_NoSuchMethodError,
-											  "java.lang.Properties.put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;)");
+	if (!m)
 		return;
-	}
 
 	/* add the properties */
 	for (i = 0; i < activeprops; i++) {
-
-		if (proplist[i][1] == NULL) proplist[i][1] = "";
+		if (proplist[i][1] == NULL)
+			proplist[i][1] = "null";
 
 		asm_calljavafunction(m,
 							 p,
 							 javastring_new_char(proplist[i][0]),
 							 javastring_new_char(proplist[i][1]),
-							 NULL
-							 );
+							 NULL);
 	}
 
 	return;
