@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1499 2004-11-12 15:52:35Z twisti $
+   $Id: memory.c 1532 2004-11-18 10:30:43Z twisti $
 
 */
 
@@ -73,7 +73,7 @@ static dumpinfo nothreads_dumpinfo;
 #endif
 
 
-void *mem_mmap(int size)
+void *mem_mmap(s4 size)
 {
 	void *m;
 
@@ -113,7 +113,7 @@ void *mem_mmap(int size)
 }
 
 
-static void *checked_alloc(int size)
+static void *checked_alloc(s4 size)
 {
 	/* always allocate memory zeroed out */
 	void *m = calloc(size, 1);
@@ -126,7 +126,7 @@ static void *checked_alloc(int size)
 }
 
 
-void *mem_alloc(int size)
+void *mem_alloc(s4 size)
 {
 	if (size == 0)
 		return NULL;
@@ -142,7 +142,7 @@ void *mem_alloc(int size)
 }
 
 
-void *mem_realloc(void *src, int len1, int len2)
+void *mem_realloc(void *src, s4 len1, s4 len2)
 {
 	void *dst;
 
@@ -164,7 +164,7 @@ void *mem_realloc(void *src, int len1, int len2)
 }
 
 
-void mem_free(void *m, int size)
+void mem_free(void *m, s4 size)
 {
 	if (!m) {
 		if (size == 0)
@@ -179,7 +179,7 @@ void mem_free(void *m, int size)
 }
 
 
-void *dump_alloc(int size)
+void *dump_alloc(s4 size)
 {
 	void *m;
 	dumpinfo *di;
@@ -252,7 +252,7 @@ void *dump_alloc(int size)
 }   
 
 
-void *dump_realloc(void *src, int len1, int len2)
+void *dump_realloc(void *src, s4 len1, s4 len2)
 {
 	void *dst = dump_alloc(len2);
 
@@ -262,7 +262,7 @@ void *dump_realloc(void *src, int len1, int len2)
 }
 
 
-void dump_release(int size)
+void dump_release(s4 size)
 {
 	dumpinfo *di;
 
@@ -309,7 +309,7 @@ void dump_release(int size)
 }
 
 
-long dump_size()
+s4 dump_size()
 {
 	dumpinfo *di;
 

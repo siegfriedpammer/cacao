@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.h 1519 2004-11-17 11:55:24Z twisti $
+   $Id: memory.h 1532 2004-11-18 10:30:43Z twisti $
 
 */
 
@@ -158,15 +158,15 @@ struct dumpinfo {
 
 /* function prototypes */
 
-void *mem_mmap(int size);
-void *mem_alloc(int size);
-void mem_free(void *m, int size);
-void *mem_realloc(void *src, int len1, int len2);
+void *mem_mmap(s4 size);
+void *mem_alloc(s4 size);
+void mem_free(void *m, s4 size);
+void *mem_realloc(void *src, s4 len1, s4 len2);
 
-void *dump_alloc(int size);
-void *dump_realloc(void *src, int len1, int len2);
-long dump_size();
-void dump_release(int size);
+void *dump_alloc(s4 size);
+void *dump_realloc(void *src, s4 len1, s4 len2);
+s4 dump_size();
+void dump_release(s4 size);
 
 #endif /* _MEMORY_H */
 
