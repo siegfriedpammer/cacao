@@ -1,4 +1,4 @@
-/* vm/access.h - checking access rights
+/* src/vm/access.h - checking access rights
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,14 +28,16 @@
 
    Changes:
 
-   $Id: access.h 2096 2005-03-27 18:57:00Z edwin $
+   $Id: access.h 2111 2005-03-29 21:28:24Z twisti $
 
 */
 
 #ifndef _ACCESS_H
 #define _ACCESS_H
 
-#include "vm/global.h"
+#include "types.h"
+#include "vm/class.h"
+
 
 /* macros *********************************************************************/
 

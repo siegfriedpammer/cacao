@@ -28,13 +28,16 @@
 
    Changes:
 
-   $Id: descriptor.c 2094 2005-03-27 15:17:46Z edwin $
+   $Id: descriptor.c 2111 2005-03-29 21:28:24Z twisti $
 
 */
 
 #include <assert.h>
+
 #include "vm/descriptor.h"
 #include "vm/exceptions.h"
+#include "vm/resolve.h"
+
 
 /* constants (private to descriptor.c) ****************************************/
 

@@ -1,4 +1,4 @@
-/* vm/classcache.h - loaded class cache and loading constraints
+/* src/vm/classcache.h - loaded class cache and loading constraints
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,15 +28,19 @@
 
    Changes:
 
-   $Id: classcache.h 2076 2005-03-25 12:34:09Z edwin $
+   $Id: classcache.h 2111 2005-03-29 21:28:24Z twisti $
 
 */
+
 
 #ifndef _CLASSCACHE_H
 #define _CLASSCACHE_H
 
 #include <stdio.h>  /* for FILE */
-#include "vm/global.h"
+
+#include "vm/class.h"
+#include "vm/utf8.h"
+
 
 /* forward declarations *******************************************************/
 
