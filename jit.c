@@ -44,6 +44,12 @@ bool showddatasegment = false;
 bool showintermediate = false;
 int  optimizelevel = 0;
 
+bool useinlining = false;
+bool inlinevirtuals = false;
+bool inlineexceptions = false;
+bool inlineparamopt = false;
+bool inlineoutsiders = false;
+
 bool checkbounds = true;
 bool checknull = true;
 bool checkfloats = true;
@@ -291,6 +297,8 @@ methodptr jit_compile(methodinfo *m)
 	/* call the compiler passes ***********************************************/
 	
 	reg_init();
+
+	if (useinlining) inlining_init();
 
 	local_init();
 

@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 403 2003-08-03 21:04:13Z twisti $
+	Last Change: $Id: parse.c 467 2003-09-26 01:55:25Z didi $
                      include Rapid Type Analysis parse - 5/2003 - carolyn
 
 
@@ -39,6 +39,12 @@ static u1       *rt_jcode;      /* pointer to start of JavaVM-code            */
 #define code_get_s4(p)  ((s4)((((u4)jcode[p])<<24)+(((u4)jcode[p+1])<<16)\
                            +(((u4)jcode[p+2])<<8)+jcode[p+3]))
 
+
+
+//INLINING
+#include "inline.c"
+//#define debug_writebranch printf("op: %s i: %d label_index[i]: %d\n",icmd_names[opcode], i, label_index[i]);
+#define debug_writebranch
 
 /* functionc compiler_addinitclass *********************************************
 
@@ -261,11 +267,49 @@ static void allocate_literals()
 
 #define block_insert(i)    {if(!(block_index[i]&1))\
                                {b_count++;block_index[i] |= 1;}}
-#define bound_check(i)     {if((i< 0) || (i>=jcodelength)) \
+#define bound_check(i)     {if((i< 0) || (i>=cumjcodelength)) \
                                panic("branch target out of code-boundary");}
-#define bound_check1(i)    {if((i< 0) || (i>jcodelength)) \
+#define bound_check1(i)    {if((i< 0) || (i>cumjcodelength)) \
                                panic("branch target out of code-boundary");}
+// FIXME really use cumjcodelength for the bound_checkers ?
 
+static xtable* fillextable (xtable* extable, exceptiontable *raw_extable, int exceptiontablelength, int *label_index, int *block_count)
+{
+	int b_count, i, p;
+	
+	if (exceptiontablelength == 0) 
+		return extable;
+	
+	b_count = *block_count;
+	for (i = 0; i < exceptiontablelength; i++) {
+								 
+   		p = raw_extable[i].startpc;
+		if (label_index != NULL) p = label_index[p];
+		extable[i].startpc = p;
+		bound_check(p);
+		block_insert(p);
+		
+		p = raw_extable[i].endpc;
+		if (label_index != NULL) p = label_index[p];
+		extable[i].endpc = p;
+		bound_check1(p);
+		if (p < cumjcodelength)
+			block_insert(p);
+
+		p = raw_extable[i].handlerpc;
+		if (label_index != NULL) p = label_index[p];
+		extable[i].handlerpc = p;
+		bound_check(p);
+		block_insert(p);
+
+		extable[i].catchtype  = raw_extable[i].catchtype;
+
+		extable[i].next = NULL;
+		extable[i].down = &extable[i+1];
+		}
+	*block_count = b_count;
+	return &extable[i];  /* return the next free xtable* */
+}
 
 static void parse()
 {
@@ -279,7 +323,34 @@ static void parse()
 	bool blockend = false;      /* true if basic block end has been reached   */
 	bool iswide = false;        /* true if last instruction was a wide        */
 	instruction *iptr;          /* current pointer into instruction array     */
-        static int xta1 = 0;
+	int gp;                     /* global java instruction counter            */
+				    /* inlining info for current method           */
+	inlining_methodinfo *inlinfo = inlining_rootinfo, *tmpinlinf; 
+	int nextgp = -1;            /* start of next method to be inlined         */
+	int *label_index = NULL;    /* label redirection table                    */
+	int firstlocal = 0;         /* first local variable of method             */
+	xtable* nextex;             /* points next free entry in extable          */
+
+	bool useinltmp;
+
+	static int xta1 = 0;
+//INLINING
+	if (useinlining)
+		{
+			label_index = inlinfo->label_index;
+			maxstack = cummaxstack;
+			exceptiontablelength=cumextablelength;
+		}
+	
+	useinltmp = useinlining; //FIXME remove this after debugging
+    //useinlining = false; 	 // and merge the if-statements
+	
+	if (!useinlining) {
+	  cumjcodelength = jcodelength;
+	} else {
+	  tmpinlinf = (inlining_methodinfo*) list_first(inlinfo->inlinedmethods);
+	  if (tmpinlinf != NULL) nextgp = tmpinlinf->startgp;
+	}
 
                 /*RTAprint*/ if  ((opt_rt) && ((pOpcodes == 2) || (pOpcodes == 3)) )
                 /*RTAprint*/    {printf("PARSE method name =");
@@ -313,19 +384,19 @@ static void parse()
 	
 	/* 1 additional for end ipc and 3 for loop unrolling */
 	
-	block_index = DMNEW(int, jcodelength + 4);
+	block_index = DMNEW(int, cumjcodelength + 4);
 
 	/* 1 additional for TRACEBUILTIN and 4 for MONITORENTER/EXIT */
 	/* additional MONITOREXITS are reached by branches which are 3 bytes */
 	
-	iptr = instr = DMNEW(instruction, jcodelength + 5); 
+	iptr = instr = DMNEW(instruction, cumjcodelength + 5); 
 	
 	/* initialize block_index table (unrolled four times) */
 
 	{
 	int *ip;
 	
-	for (i = 0, ip = block_index; i <= jcodelength; i += 4, ip += 4) {
+	for (i = 0, ip = block_index; i <= cumjcodelength; i += 4, ip += 4) {
 		ip[0] = 0;
 		ip[1] = 0;
 		ip[2] = 0;
@@ -336,16 +407,18 @@ static void parse()
 	/* compute branch targets of exception table */
 
 	extable = DMNEW(xtable, exceptiontablelength + 1);
-
-	for (i = 0; i < exceptiontablelength; i++) {
+	/*
+	for (i = 0; i < method->exceptiontablelength; i++) {
 
    		p = extable[i].startpc = raw_extable[i].startpc;
+		if (useinlining) p = label_index[p];
 		bound_check(p);
 		block_insert(p);
 
 		p = extable[i].endpc = raw_extable[i].endpc;
+		if (useinlining) p = label_index[p];
 		bound_check1(p);
-		if (p < jcodelength)
+		if (p < cumjcodelength)
 			block_insert(p);
 
 		p = extable[i].handlerpc = raw_extable[i].handlerpc;
@@ -357,11 +430,9 @@ static void parse()
 		extable[i].next = NULL;
 		extable[i].down = &extable[i+1];
 		}
+	*/
 
-	if (exceptiontablelength > 0)
-		extable[exceptiontablelength-1].down = NULL;
-	else
-		extable = NULL;
+	nextex = fillextable(extable, raw_extable, method->exceptiontablelength, label_index, &b_count);
 
 	s_count = 1 + exceptiontablelength; /* initialize stack element counter   */
 
@@ -373,20 +444,65 @@ static void parse()
 
 	/* scan all java instructions */
 
-	for (p = 0; p < jcodelength; p = nextp) {
+	for (p = 0, gp = 0; p < jcodelength; gp += (nextp - p), p = nextp) {
+	  
+	  // DEBUG	  printf("p:%d gp:%d ",p,gp);
 
-		opcode = code_get_u1 (p);           /* fetch op code                  */
+//INLINING
+	  if ((useinlining) && (gp == nextgp)) {
+		  u1 *tptr;
+		  bool *readonly = NULL;
+		  bool firstreadonly = true;
 
-                                /*RTAprint*/ if  ((opt_rt) && ((pOpcodes == 2) || (pOpcodes == 3)) )
-                                /*RTAprint*/    {printf("Parse<%i> p=%i<%i<   opcode=<%i> %s\n",
-                                /*RTAprint*/            pOpcodes, p,jcodelength,opcode,opcode_names[opcode]);}
+		  opcode = code_get_u1 (p);
+		  nextp = p += jcommandsize[opcode];
+		  tmpinlinf = list_first(inlinfo->inlinedmethods);
+		  firstlocal = tmpinlinf->firstlocal;
+		  label_index = tmpinlinf->label_index;
+		  readonly = tmpinlinf->readonly;
+		  for (i=0, tptr=tmpinlinf->method->paramtypes + tmpinlinf->method->paramcount - 1 ; i<tmpinlinf->method->paramcount; i++, tptr--)
+			  {
+				  int op;
 
-		block_index[p] |= (ipc << 1);       /* store intermediate count       */
+				  if ( (i==0) && inlineparamopt) {
+					  OP1(ICMD_CLEAR_ARGREN, firstlocal);
+				  }
 
-		if (blockend) {
-			block_insert(p);                /* start new block                */
-			blockend = false;
-			}
+				  if ( !inlineparamopt || !readonly[i] )
+					  op = ICMD_ISTORE;
+				  else op = ICMD_READONLY_ARG;   
+
+				  op += *tptr;
+				  OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i);
+
+				  // block_index[gp] |= (ipc << 1);  //FIXME: necessary ?
+			  }
+		  inlining_save_compiler_variables();
+		  inlining_set_compiler_variables(tmpinlinf);
+		  if (inlinfo->inlinedmethods == NULL) gp = -1;
+		  else {
+			  tmpinlinf = list_first(inlinfo->inlinedmethods);
+			  nextgp = (tmpinlinf != NULL) ? tmpinlinf->startgp : -1;
+		  }
+		  if (method->exceptiontablelength > 0) 
+			  nextex = fillextable(nextex, method->exceptiontable, method->exceptiontablelength, label_index, &b_count);
+		  continue;
+	  }
+	  
+	  opcode = code_get_u1 (p);           /* fetch op code                  */
+	  
+	  
+	  /*RTAprint*/ if  ((opt_rt) && ((pOpcodes == 2) || (pOpcodes == 3)) )
+	  /*RTAprint*/    {printf("Parse<%i> p=%i<%i<   opcode=<%i> %s\n",
+	  /*RTAprint*/            pOpcodes, p,rt_jcodelength,opcode,icmd_names[opcode]);}
+
+	  
+	  block_index[gp] |= (ipc << 1);       /* store intermediate count       */
+
+	  if (blockend) {
+		  block_insert(gp);                /* start new block                */
+		  blockend = false;
+	  }
 
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
 		s_count += stackreq[opcode];      	/* compute stack element count    */
@@ -487,42 +603,42 @@ static void parse()
 					nextp = p+3;
 					iswide = false;
 					}
-				OP1(opcode, i);
+				OP1(opcode, i + firstlocal);
 				break;
 
 			case JAVA_ILOAD_0:
 			case JAVA_ILOAD_1:
 			case JAVA_ILOAD_2:
 			case JAVA_ILOAD_3:
-				OP1(ICMD_ILOAD, opcode - JAVA_ILOAD_0);
+				OP1(ICMD_ILOAD, opcode - JAVA_ILOAD_0 + firstlocal);
 				break;
 
 			case JAVA_LLOAD_0:
 			case JAVA_LLOAD_1:
 			case JAVA_LLOAD_2:
 			case JAVA_LLOAD_3:
-				OP1(ICMD_LLOAD, opcode - JAVA_LLOAD_0);
+				OP1(ICMD_LLOAD, opcode - JAVA_LLOAD_0 + firstlocal);
 				break;
 
 			case JAVA_FLOAD_0:
 			case JAVA_FLOAD_1:
 			case JAVA_FLOAD_2:
 			case JAVA_FLOAD_3:
-				OP1(ICMD_FLOAD, opcode - JAVA_FLOAD_0);
+				OP1(ICMD_FLOAD, opcode - JAVA_FLOAD_0 + firstlocal);
 				break;
 
 			case JAVA_DLOAD_0:
 			case JAVA_DLOAD_1:
 			case JAVA_DLOAD_2:
 			case JAVA_DLOAD_3:
-				OP1(ICMD_DLOAD, opcode - JAVA_DLOAD_0);
+				OP1(ICMD_DLOAD, opcode - JAVA_DLOAD_0 + firstlocal);
 				break;
 
 			case JAVA_ALOAD_0:
 			case JAVA_ALOAD_1:
 			case JAVA_ALOAD_2:
 			case JAVA_ALOAD_3:
-				OP1(ICMD_ALOAD, opcode - JAVA_ALOAD_0);
+				OP1(ICMD_ALOAD, opcode - JAVA_ALOAD_0 + firstlocal);
 				break;
 
 			/* storing stack values into local variables */
@@ -539,42 +655,42 @@ static void parse()
 					iswide=false;
 					nextp = p+3;
 					}
-				OP1(opcode, i);
+				OP1(opcode, i + firstlocal);
 				break;
 
 			case JAVA_ISTORE_0:
 			case JAVA_ISTORE_1:
 			case JAVA_ISTORE_2:
 			case JAVA_ISTORE_3:
-				OP1(ICMD_ISTORE, opcode - JAVA_ISTORE_0);
+				OP1(ICMD_ISTORE, opcode - JAVA_ISTORE_0 + firstlocal);
 				break;
 
 			case JAVA_LSTORE_0:
 			case JAVA_LSTORE_1:
 			case JAVA_LSTORE_2:
 			case JAVA_LSTORE_3:
-				OP1(ICMD_LSTORE, opcode - JAVA_LSTORE_0);
+				OP1(ICMD_LSTORE, opcode - JAVA_LSTORE_0 + firstlocal);
 				break;
 
 			case JAVA_FSTORE_0:
 			case JAVA_FSTORE_1:
 			case JAVA_FSTORE_2:
 			case JAVA_FSTORE_3:
-				OP1(ICMD_FSTORE, opcode - JAVA_FSTORE_0);
+				OP1(ICMD_FSTORE, opcode - JAVA_FSTORE_0 + firstlocal);
 				break;
 
 			case JAVA_DSTORE_0:
 			case JAVA_DSTORE_1:
 			case JAVA_DSTORE_2:
 			case JAVA_DSTORE_3:
-				OP1(ICMD_DSTORE, opcode - JAVA_DSTORE_0);
+				OP1(ICMD_DSTORE, opcode - JAVA_DSTORE_0 + firstlocal);
 				break;
 
 			case JAVA_ASTORE_0:
 			case JAVA_ASTORE_1:
 			case JAVA_ASTORE_2:
 			case JAVA_ASTORE_3:
-				OP1(ICMD_ASTORE, opcode - JAVA_ASTORE_0);
+				OP1(ICMD_ASTORE, opcode - JAVA_ASTORE_0 + firstlocal);
 				break;
 
 			case JAVA_IINC:
@@ -591,7 +707,7 @@ static void parse()
 					iswide = false;
 					nextp = p+5;
 					}
-				OP2I(opcode, i, v);
+				OP2I(opcode, i + firstlocal, v);
 				}
 				break;
 
@@ -690,6 +806,10 @@ static void parse()
 			case JAVA_GOTO:
 			case JAVA_JSR:
 				i = p + code_get_s2(p+1);
+				if (useinlining) { 
+				  debug_writebranch
+				  i = label_index[i];
+				}
 				bound_check(i);
 				block_insert(i);
 				blockend = true;
@@ -698,6 +818,10 @@ static void parse()
 			case JAVA_GOTO_W:
 			case JAVA_JSR_W:
 				i = p + code_get_s4(p+1);
+				if (useinlining) { 
+				  debug_writebranch
+				  i = label_index[i];
+				}
 				bound_check(i);
 				block_insert(i);
 				blockend = true;
@@ -713,7 +837,14 @@ static void parse()
 					iswide = false;
 					}
 				blockend = true;
-				OP1(opcode, i);
+				
+				/*
+				if (isinlinedmethod) {
+				  OP1(ICMD_GOTO, inlinfo->stopgp);
+				  break;
+				  }*/
+
+				OP1(opcode, i + firstlocal);
 				break;
 
 			case JAVA_IRETURN:
@@ -722,6 +853,18 @@ static void parse()
 			case JAVA_DRETURN:
 			case JAVA_ARETURN:
 			case JAVA_RETURN:
+
+
+				if (isinlinedmethod) {
+					/*					if (p==jcodelength-1) { //return is at end of inlined method
+						OP(ICMD_NOP);
+						break;
+						}*/
+					blockend = true;
+					OP1(ICMD_GOTO, inlinfo->stopgp);
+					break;
+				}
+
 				blockend = true;
 				OP(opcode);
 				break;
@@ -737,15 +880,26 @@ static void parse()
 			case JAVA_LOOKUPSWITCH:
 				{
 				s4 num, j;
+				s4 *tablep;
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
-				OP2A(opcode, 0, jcode + nextp);
+				if (!useinlining) {
+					tablep = (s4*)(jcode + nextp);
+				}
+				else {
+					num = code_get_u4(nextp + 4);
+					tablep = DMNEW(s4, num * 2 + 2);
+				}
+
+				OP2A(opcode, 0, tablep);
 
 				/* default target */
 
 				j =  p + code_get_s4(nextp);
-				*((s4*)(jcode + nextp)) = j;     /* restore for little endian */
+				if (useinlining) j = label_index[j];
+				*tablep = j;     /* restore for little endian */
+				tablep++;
 				nextp += 4;
 				bound_check(j);
 				block_insert(j);
@@ -753,7 +907,8 @@ static void parse()
 				/* number of pairs */
 
 				num = code_get_u4(nextp);
-				*((s4*)(jcode + nextp)) = num;
+				*tablep = num;
+				tablep++;
 				nextp += 4;
 
 				for (i = 0; i < num; i++) {
@@ -761,13 +916,16 @@ static void parse()
 					/* value */
 
 					j = code_get_s4(nextp);
-					*((s4*)(jcode + nextp)) = j; /* restore for little endian */
+					*tablep = j; /* restore for little endian */
+					tablep++;
 					nextp += 4;
 
 					/* target */
 
 					j = p + code_get_s4(nextp);
-					*((s4*)(jcode + nextp)) = j; /* restore for little endian */
+					if (useinlining) j = label_index[j];
+					*tablep = j; /* restore for little endian */
+					tablep++;
 					nextp += 4;
 					bound_check(j);
 					block_insert(j);
@@ -780,15 +938,26 @@ static void parse()
 			case JAVA_TABLESWITCH:
 				{
 				s4 num, j;
+				s4 *tablep;
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
-				OP2A(opcode, 0, jcode + nextp);
+				if (!useinlining) {
+					tablep = (s4*)(jcode + nextp);
+				}
+				else {
+					num = code_get_u4(nextp + 8) - code_get_u4(nextp + 4);
+					tablep = DMNEW(s4, num + 1 + 3);
+				}
+
+				OP2A(opcode, 0, tablep);
 
 				/* default target */
 
 				j = p + code_get_s4(nextp);
-				*((s4*)(jcode + nextp)) = j;     /* restore for little endian */
+				if (useinlining) j = label_index[j];
+				*tablep = j;     /* restore for little endian */
+				tablep++;
 				nextp += 4;
 				bound_check(j);
 				block_insert(j);
@@ -796,20 +965,24 @@ static void parse()
 				/* lower bound */
 
 				j = code_get_s4(nextp);
-				*((s4*)(jcode + nextp)) = j;     /* restore for little endian */
+				*tablep = j;     /* restore for little endian */
+				tablep++;
 				nextp += 4;
 
 				/* upper bound */
 
 				num = code_get_s4(nextp);
-				*((s4*)(jcode + nextp)) = num;   /* restore for little endian */
+				*tablep = num;   /* restore for little endian */
+				tablep++;
 				nextp += 4;
 
 				num -= j;
 
 				for (i = 0; i <= num; i++) {
 					j = p + code_get_s4(nextp);
-					*((s4*)(jcode + nextp)) = j; /* restore for little endian */
+					if (useinlining) j = label_index[j];
+					*tablep = j; /* restore for little endian */
+					tablep++;
 					nextp += 4;
 					bound_check(j);
 					block_insert(j);
@@ -853,7 +1026,7 @@ static void parse()
 			/* method invocation *****/
 
 			case JAVA_INVOKESTATIC:
-				i = code_get_u2(p + 1);
+			        i = code_get_u2(p + 1);
 				{
 				constant_FMIref *mr;
 				methodinfo *mi;
@@ -868,6 +1041,7 @@ static void parse()
 				if (! (mi->flags & ACC_STATIC))
 					panic ("Static/Nonstatic mismatch calling static method");
 				descriptor2types(mi);
+
 				isleafmethod=false;
 				OP2A(opcode, mi->paramcount, mi);
 				}
@@ -1132,11 +1306,27 @@ static void parse()
 			default:
 				OP(opcode);
 				break;
-
-			} /* end switch */
+				
+		    } /* end switch */
+		
+		/* INLINING */
+		  
+		if ((isinlinedmethod) && (p==jcodelength-1)) { //end of an inlined method
+		  //		  printf("setting gp from %d to %d\n",gp, inlinfo->stopgp);
+		  gp = inlinfo->stopgp; 
+		  inlining_restore_compiler_variables();
+		  list_remove(inlinfo->inlinedmethods, list_first(inlinfo->inlinedmethods));
+		  if (inlinfo->inlinedmethods == NULL) nextgp = -1;
+		  else {
+			  tmpinlinf = list_first(inlinfo->inlinedmethods);
+			  nextgp = (tmpinlinf != NULL) ? tmpinlinf->startgp : -1;
+		  }
+		  //		  printf("nextpgp: %d\n", nextgp);
+		  label_index=inlinfo->label_index;
+		  firstlocal = inlinfo->firstlocal;
+		}
 
 		} /* end for */
-
 	if (p != jcodelength)
 		panic("Command-sequence crosses code-boundary");
 
@@ -1185,7 +1375,7 @@ static void parse()
 	/* allocate blocks */
 
 
-	for (p = 0; p < jcodelength; p++)
+	for (p = 0; p < cumjcodelength; p++)
 		
 		if (block_index[p] & 1) {
 			bptr->iinstr = instr + (block_index[p] >> 1);
@@ -1226,7 +1416,10 @@ static void parse()
 
 	last_block = bptr;
 
-
+	if (exceptiontablelength > 0)
+		extable[exceptiontablelength-1].down = NULL;
+	else
+		extable = NULL;
 
 	for (i = 0; i < exceptiontablelength; ++i) {
 		p = extable[i].startpc;
@@ -1239,6 +1432,9 @@ static void parse()
 		extable[i].handler = block + block_index[p];
 	    }
 	}
+	
+	if (useinlining) inlining_cleanup();
+	useinlining = useinltmp;
 }
 
 #include "parseRT.h"

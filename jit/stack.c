@@ -186,6 +186,12 @@ static void analyse_stack()
 	basicblock *bptr, *tbptr;
 	s4 *s4ptr;
 	void* *tptr;
+	xtable *ex;
+
+	//	int *argren = DMNEW(int, maxlocals); 
+	int *argren = (int *)alloca(maxlocals * sizeof(int)); /* table for argument renaming */
+	for (i = 0; i < maxlocals; i++)
+		argren[i]=i;
 	
 	arguments_num = 0;
 	new = stack;
@@ -774,7 +780,8 @@ icmd_lconst_lcmp_tail:
 						case ICMD_ALOAD:
 							COUNT(count_load_instruction);
 							i = opcode-ICMD_ILOAD;
-							locals[iptr->op1][i].type = i;
+							iptr->op1 = argren[iptr->op1];
+							locals[ iptr->op1 ][i].type = i;
 							LOAD(i, LOCALVAR, iptr->op1);
 							break;
 
@@ -831,7 +838,9 @@ icmd_lconst_lcmp_tail:
 						case ICMD_FSTORE:
 						case ICMD_DSTORE:
 						case ICMD_ASTORE:
-							i = opcode-ICMD_ISTORE;
+icmd_store:
+
+					        i = opcode-ICMD_ISTORE;
 							locals[iptr->op1][i].type = i;
 #ifdef STATISTICS
 							count_pcmd_store++;
@@ -1550,7 +1559,30 @@ builtin1:
 							OP0_1(TYPE_ADR);
 							break;
 
-						default:
+					    case ICMD_CLEAR_ARGREN:
+							for (i = iptr->op1; i<maxlocals; i++) 
+								argren[i] = i;
+							iptr->opc = opcode = ICMD_NOP;
+							SETDST;
+							break;
+						
+					    case ICMD_READONLY_ARG:
+					    case ICMD_READONLY_ARG+1:
+					    case ICMD_READONLY_ARG+2:
+					    case ICMD_READONLY_ARG+3:
+					    case ICMD_READONLY_ARG+4:
+
+							if (curstack->varkind == LOCALVAR) {
+								i = curstack->varnum;
+								argren[iptr->op1] = i;
+								iptr->op1 = i;
+							}
+							opcode = iptr->opc = opcode - ICMD_READONLY_ARG + ICMD_ISTORE;
+							goto icmd_store;
+
+							break;
+
+					    default:
 							printf("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
 							panic("Missing ICMD code during stack analysis");
 						} /* switch */

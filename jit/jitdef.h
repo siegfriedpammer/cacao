@@ -773,7 +773,9 @@ static int jcommandsize[256] = {
 #define ICMD_BUILTIN3         253       /* internal opcode */
 #define ICMD_BUILTIN2         254       /* internal opcode */
 #define ICMD_BUILTIN1         255       /* internal opcode */
-
+#define ICMD_READONLY_ARG     1024      /* used for inlining, opcodes 1024-1028 are used */
+#define ICMD_CLEAR_ARGREN     1029      /* indicates the start of a new inlined method 
+					   argument renaming must be reset */
 
 /******************* description of JavaVM instructions ***********************/
 

@@ -25,6 +25,13 @@ extern bool showddatasegment;   /* generate data segment listing              */
 extern bool showintermediate;   /* generate intermediate code listing         */
 extern int  optimizelevel;      /* optimzation level  (0 = no optimization)   */
 
+extern bool useinlining;	/* use method inlining			      */
+extern bool inlinevirtuals; /* inline unique virtual methods */
+extern bool inlineexceptions; /* inline methods, that contain excptions */
+extern bool inlineparamopt; /* optimize parameter passing to inlined methods */
+extern bool inlineoutsiders; /* inline methods, that are not member of the invoker's class */
+
+
 extern bool checkbounds;        /* check array bounds                         */
 extern bool opt_loops;          /* optimize array accesses in loops           */
 extern bool checknull;          /* check null pointers                        */

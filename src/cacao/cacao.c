@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: cacao.c 386 2003-07-10 11:43:50Z twisti $
+	Last Change: $Id: cacao.c 467 2003-09-26 01:55:25Z didi $
 
 *******************************************************************************/
 
@@ -89,8 +89,10 @@ void **stackbottom = 0;
 #define OPT_GC2         23
 #endif
 #define OPT_OLOOP       24
-#define OPT_RT          25
-#define OPT_XTA         26 
+#define OPT_INLINING	25
+#define OPT_RT          26
+#define OPT_XTA         27 
+
 
 struct {char *name; bool arg; int value;} opts[] = {
 	{"classpath",   true,   OPT_CLASSPATH},
@@ -124,8 +126,9 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{"gc2",         false,  OPT_GC2},
 #endif
 	{"oloop",       false,  OPT_OLOOP},
-        {"rt",          false,  OPT_RT},
-        {"xta",         false,  OPT_XTA},
+	{"i",		    true,  OPT_INLINING},
+	{"rt",          false,  OPT_RT},
+	{"xta",         false,  OPT_XTA},
 	{NULL,  false, 0}
 };
 
@@ -224,6 +227,11 @@ static void print_usage()
 	printf ("                 s(tack) ....... show stack for every javaVM-command\n");
 #endif
 	printf ("                 u(tf) ......... show the utf - hash\n");
+	printf ("          -i     n ............. activate inlining\n");
+	printf ("                 v ............. inline virtual methods\n");
+	printf ("                 e ............. inline methods with exceptions\n");
+	printf ("                 p ............. optimize argument renaming\n");
+	printf ("                 o ............. inline methods of foreign classes\n");
         printf ("          -rt .................. use rapid type analysis\n");
         printf ("          -xta ................. use xta\n");
 }   
@@ -694,6 +702,22 @@ int main(int argc, char **argv)
 		case OPT_OLOOP:
 			opt_loops = true;
 			break;
+
+	
+		case OPT_INLINING:
+			for (j=0; j<strlen(opt_arg); j++) {		
+				switch (opt_arg[j]) {
+				case 'n':  useinlining = true; break;
+				case 'v':  inlinevirtuals = true; break;
+				case 'e':  inlineexceptions = true; break;
+				case 'p':  inlineparamopt = true; break;
+				case 'o':  inlineoutsiders = true; break;
+				default:   print_usage();
+					exit(10);
+				}
+			}
+			break;
+
 
                case OPT_RT:
                         opt_rt = true;
