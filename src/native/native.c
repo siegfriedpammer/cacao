@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1852 2005-01-04 12:02:24Z twisti $
+   $Id: native.c 1875 2005-01-21 09:37:33Z twisti $
 
 */
 
@@ -576,7 +576,9 @@ java_objectheader *native_new_and_init(classinfo *c)
 	if (!c)
 		return *exceptionptr;
 
-	o = builtin_new(c);                 /* create object                      */
+	/* create object */
+
+	o = builtin_new(c);
 	
 	if (!o)
 		return NULL;
@@ -585,15 +587,10 @@ java_objectheader *native_new_and_init(classinfo *c)
 
 	m = class_findmethod(c, utf_new_char("<init>"), utf_new_char("()V"));
 	                      	                      
-	if (!m) {                           /* initializer not found              */
-		if (opt_verbose) {
-			char logtext[MAXLOGTEXT];
-			sprintf(logtext, "Warning: class has no instance-initializer: ");
-			utf_sprint_classname(logtext + strlen(logtext), c->name);
-			log_text(logtext);
-		}
+	/* initializer not found */
+
+	if (!m)
 		return o;
-	}
 
 	/* call initializer */
 
@@ -611,26 +608,25 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 	if (!c)
 		return *exceptionptr;
 
-	o = builtin_new(c);          /* create object          */
+	/* create object */
+
+	o = builtin_new(c);
 
 	if (!o)
 		return NULL;
 
 	/* find initializer */
 
-	m = class_findmethod(c,
-						 utf_new_char("<init>"),
-						 utf_new_char("(Ljava/lang/String;)V"));
-	                      	                      
-	if (!m) {                                       /* initializer not found  */
-		if (opt_verbose) {
-			char logtext[MAXLOGTEXT];
-			sprintf(logtext, "Warning: class has no instance-initializer: ");
-			utf_sprint_classname(logtext + strlen(logtext), c->name);
-			log_text(logtext);
-		}
-		return o;
-	}
+	m = class_resolveclassmethod(c,
+								 utf_new_char("<init>"),
+								 utf_new_char("(Ljava/lang/String;)V"),
+								 NULL,
+								 true);
+
+	/* initializer not found */
+
+	if (!m)
+		return NULL;
 
 	/* call initializer */
 
@@ -648,33 +644,28 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 	if (!c)
 		return *exceptionptr;
 
-	o = builtin_new(c);          /* create object          */
+	/* create object */
+
+	o = builtin_new(c);
 	
-	if (!o) return NULL;
+	if (!o)
+		return NULL;
 
 	/* find initializer */
 
-	m = class_findmethod(c,
-						 utf_new_char("<init>"),
-						 utf_new_char("(I)V"));
-	                      	                      
-	if (!m) {                                       /* initializer not found  */
-		if (opt_verbose) {
-			char logtext[MAXLOGTEXT];
-			sprintf(logtext, "Warning: class has no instance-initializer: ");
-			utf_sprint_classname(logtext + strlen(logtext), c->name);
-			log_text(logtext);
-		}
-		return o;
-	}
+	m = class_resolveclassmethod(c,
+								 utf_new_char("<init>"),
+								 utf_new_char("(I)V"),
+								 NULL,
+								 true);
+
+	/* initializer not found  */	                      	                      
+	if (!m)
+		return NULL;
 
 	/* call initializer */
 
-#if defined(__I386__) || defined(__POWERPC__)
-	asm_calljavafunction(m, o, (void *) i, NULL, NULL);
-#else
-	asm_calljavafunction(m, o, (void *) (s8) i, NULL, NULL);
-#endif
+	asm_calljavafunction(m, o, (void *) (ptrint) i, NULL, NULL);
 
 	return o;
 }
@@ -688,9 +679,12 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 	if (!c)
 		return *exceptionptr;
 
-	o = builtin_new(c);          /* create object          */
+	/* create object */
+
+	o = builtin_new(c);
 	
-	if (!o) return NULL;
+	if (!o)
+		return NULL;
 
 	/* find initializer */
 
@@ -698,15 +692,10 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 						 utf_new_char("<init>"),
 						 utf_new_char("(Ljava/lang/Throwable;)V"));
 	                      	                      
-	if (!m) {                                       /* initializer not found  */
-		if (opt_verbose) {
-			char logtext[MAXLOGTEXT];
-			sprintf(logtext, "Warning: class has no instance-initializer: ");
-			utf_sprint_classname(logtext + strlen(logtext), c->name);
-			log_text(logtext);
-		}
-		return o;
-	}
+	/* initializer not found */
+
+	if (!m)
+		return NULL;
 
 	/* call initializer */
 
