@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loging.c 689 2003-12-05 18:03:47Z stefan $
+   $Id: loging.c 700 2003-12-07 15:54:28Z edwin $
 
 */
 
@@ -61,8 +61,7 @@ void log_init(char *fname)
 
 /*********************** Function: dolog ************************************
 
-Writes the contents of logtext to both the protocol file (if opened) and to
-stdout.
+Writes logtext to the protocol file (if opened) or to stdout.
 
 **************************************************************************/
 
@@ -86,11 +85,45 @@ void dolog(char *txt, ...)
 }
 
 
+/******************** Function: dolog_plain *******************************
+
+Writes logtext to the protocol file (if opened) or to stdout.
+
+**************************************************************************/
+
+void dolog_plain(char *txt, ...)
+{
+	char logtext[MAXLOGTEXT];
+	va_list ap;
+
+	va_start(ap, txt);
+	vsprintf(logtext, txt, ap);
+	va_end(ap);
+
+	if (logfile) {
+		fprintf(logfile, "%s",logtext);
+		fflush(logfile);
+
+	} else {
+		fprintf(stdout,"%s",logtext);
+		fflush(stdout);
+	}
+}
+
+
 /********************* Function: log_text ********************************/
 
 void log_text(char *text)
 {
 	dolog("%s", text);
+}
+
+
+/******************** Function: log_plain *******************************/
+
+void log_plain(char *text)
+{
+	dolog_plain("%s", text);
 }
 
 

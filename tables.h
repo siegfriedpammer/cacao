@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tables.h 687 2003-12-04 22:29:54Z edwin $
+   $Id: tables.h 700 2003-12-07 15:54:28Z edwin $
 
 */
 
@@ -59,6 +59,10 @@ void tables_close(stringdeleter del);
 void utf_sprint(char *buffer, utf *u);
 void utf_fprint(FILE *file, utf *u);
 void utf_display(utf *u);
+
+/* write utf symbol to logfile/stdout */
+void log_utf(utf *u);
+void log_plain_utf(utf *u);
 
 /* create new utf-symbol */
 utf *utf_new(char *text, u2 length);

@@ -27,8 +27,8 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
 
         
 /*	log_text("Java_java_lang_reflect_Constructor_constructNative called");
-        utf_display(((struct classinfo*)clazz)->name);*/
-        printf("\n");
+        log_plain_utf(((struct classinfo*)clazz)->name);*/
+        log_plain("\n");
 
         /* find initializer */
 
@@ -69,8 +69,8 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
                         sprintf(logtext, "Warning: class has no instance-initializer of specified type: ");
                         utf_sprint(logtext + strlen(logtext), ((struct classinfo*)clazz)->name);
                         dolog(logtext);
-			utf_display( create_methodsig(this->parameterTypes,"V"));
-			printf("\n");
+			log_plain_utf( create_methodsig(this->parameterTypes,"V"));
+			log_plain("\n");
 			class_showconstantpool(clazz);
                         }
 #warning throw an exception here, although this should never happen
@@ -94,7 +94,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
 			log_text("Not supported number of arguments in Java_java_lang_reflect_Constructor");
 	}
 #endif
-		/*utf_display(m->descriptor);
+		/*log_plain_utf(m->descriptor);
 		log_text("calling constructor");*/
 		(void) jni_method_invokeNativeHelper(env, m ,o, parameters); 
 

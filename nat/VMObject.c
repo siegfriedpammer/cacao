@@ -18,7 +18,7 @@
 JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_VMObject_clone ( JNIEnv *env ,  jclass clazz, struct java_lang_Cloneable* this)
 {
 /*	log_text("Java_java_lang_VMObject_clone called");
-	utf_display(((java_objectheader*)this)->vftbl->class->name);
+	log_utf(((java_objectheader*)this)->vftbl->class->name);
 	log_text("starting cloning");     */
     classinfo *c;
     java_lang_Object *new;

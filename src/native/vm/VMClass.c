@@ -116,8 +116,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 
     
    log_text("Java_java_lang_VMClass_getDeclaredConstructors");
-    utf_display(c->name);
-    printf("\n");
+    log_plain_utf(c->name);
+    log_plain("\n");
 /*    class_showmethods(c);
     class_showmethods(loader_load(utf_new_char("java/lang/Class")));*/
 

@@ -1,11 +1,7 @@
 TESTS_ENVIRONMENT = $(SHELL) TestScript
 
-ALWAYS_TESTS = \
-## Simple health check
-	HelloWorldApp.class.save \
-## Now test the compiler
+ALWAYS_TESTS = HelloWorldApp.class.save \
 	HelloWorldApp.java \
-## Test ints, longs, floats and doubles
 	TestIntLong.java \
 	TestFloatDouble.java \
 	DoubleCvt.java \
@@ -17,20 +13,15 @@ ALWAYS_TESTS = \
 	LongNeg.java \
 	FPUStack.java \
 	divtest.java \
-## Test strings
 	Str.java \
 	Str2.java \
 	InternHog.java \
-## Test exceptions
 	IndexTest.java \
 	StackDump.java \
-## Test threads
 	tname.java \
 	ttest.java \
-##	ThreadInterrupt.java
 	ThreadState.java \
 	UncaughtException.java \
-## Misc tests
 	ReflectInterfaces.java \
 	InnerTest.java \
 	SerialUID.java \
@@ -79,11 +70,8 @@ ALWAYS_TESTS = \
 	ReaderReadVoidTest.java \
 	PipeTest.java \
 	GetField.java \
-## simple test for Method.invoke
 	ReflectInvoke.java \
-## simple test for InvocationTargetExceptions
 	InvTarExcTest.java \
-## tests for ClassLoader
 	SystemLoaderTest.java \
 	CLTest.java \
 	CLTestConc.java \
@@ -112,15 +100,11 @@ ALWAYS_TESTS = \
 	HashtableTest1.java \
 	ReflectMultiArray.java \
 	ExecTest.java \
-## Test various ways of stopping threads
 	ThreadStop.java \
 	DeadThread.java \
 	tthrd1.java \
-## Test interrupting I/O
-## This is kind of tricky, and Sun doesn't support it.
 	SoInterrupt.java \
 	sysdepCallMethod.java \
-## This one is skipped unless you --enable-debug.
 	TestNative.java
 
 XFAIL_TESTS =
