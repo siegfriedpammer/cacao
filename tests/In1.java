@@ -3,7 +3,7 @@
 public class In1 {
 public static void main(String[] s) {
  In1 I = new In1();
- long max=1000000000;
+ long max=10;//00000000;
  int i;
  int x0=0; int x1=0;
  int y0=0; int y1=0;

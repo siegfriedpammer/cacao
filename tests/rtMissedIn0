@@ -1,13 +1,5 @@
-java/util/Hashtable clone ()Ljava/lang/Object;
-java/lang/Object clone ()Ljava/lang/Object;
-java/util/Collections$SynchronizedCollection iterator ()Ljava/util/Iterator;
-java/util/Collections$SynchronizedIterator hasNext ()Z
-java/util/Collections$SynchronizedIterator next ()Ljava/lang/Object;
-java/util/AbstractMap$BasicMapEntry getKey ()Ljava/lang/Object;
-java/util/AbstractMap$BasicMapEntry getValue ()Ljava/lang/Object;
 gnu/java/nio/channels/FileChannelImpl <init> (II)V
-java/nio/channels/spi/AbstractInterruptibleChannel isOpen ()Z
 java/lang/reflect/Constructor <init> ()V
 gnu/java/io/decode/Decoder8859_1 <init> (Ljava/io/InputStream;)V
 gnu/java/io/encode/Encoder8859_1 <init> (Ljava/io/OutputStream;)V
-gnu/java/security/action/GetPropertyAction run ()Ljava/lang/Object;
+java/lang/Object clone ()Ljava/lang/Object;

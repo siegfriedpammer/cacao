@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1494 2004-11-12 13:34:26Z twisti $
+   $Id: loader.c 1508 2004-11-15 08:34:10Z carolyn $
 
 */
 
@@ -50,7 +50,6 @@
 #include "builtin.h"
 #include "jit/jit.h"
 #include "asmpart.h"
-#include "options.h"
 #include "statistics.h"
 #include "toolbox/memory.h"
 #include "toolbox/logging.h"

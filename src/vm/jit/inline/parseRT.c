@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1494 2004-11-12 13:34:26Z twisti $
+   $Id: parseRT.c 1508 2004-11-15 08:34:10Z carolyn $
 
 Changes:
 opcode put into functions
@@ -80,13 +80,23 @@ static list *rtaWorkList;
 FILE *rtMissed;   /* Methods missed during RTA parse of Main  */
  
 #define LAZYLOADING(class) { \
-        if (!class_load(class)) \
+	if (!class->loaded) \
+            if (!class_load(class)) \
                 return 0; \
-        if (!class_link(class)) \
+	if (!class->linked) \
+            if (!class_link(class)) \
                 return 0; }
 
+bool DEBUGinf = false;
 bool DEBUGr = false;
 bool DEBUGopcodes = false;
+
+#define METHINFOx(mm) \
+    { \
+	printf("<c%i/m%i/p%i>\t", \
+		mm->class->classUsed,mm->methodUsed, mm->monoPoly); \
+	utf_display(mm->class->name); printf("."); fflush(stdout); \
+  	method_display(mm); fflush(stdout); }
 
 #define METHINFO(mm) \
 if (DEBUGr == true) { \
@@ -95,13 +105,17 @@ if (DEBUGr == true) { \
 	utf_display(mm->class->name); printf("."); fflush(stdout); \
   	method_display(mm); fflush(stdout); }
 
+#define METHINFOxt(mm,TXT) \
+		 { \
+                printf(TXT); \
+		METHINFOx(mm) \
+		}
+
 #define METHINFOt(mm,TXT) \
 if (DEBUGr == true) { \
                 printf(TXT); \
-		printf("<c%i/m%i/p%i>\t", \
-		mm->class->classUsed,mm->methodUsed, mm->monoPoly); \
-  		utf_display(mm->class->name); printf("."); fflush(stdout); \
-  		method_display(mm); fflush(stdout); }
+		METHINFO(mm) \
+		}
 
 #define CLASSNAME1(cls,TXT) \
 if (DEBUGr == true) {printf(TXT); \
@@ -157,6 +171,59 @@ else {
 }
 
 /**************************************************************************/
+void rtaMarkSubs(classinfo *class, methodinfo *topmethod); 
+
+/*------------------------------------------------------------------------*/
+void rtaAddUsedInterfaceMethods(classinfo *ci) {
+	int jj,mm;
+
+	/* add used interfaces methods to callgraph */
+	for (jj=0; jj < ci -> interfacescount; jj++) {
+		classinfo *ici = ci -> interfaces [jj];
+	
+		if (DEBUGinf) { 
+			printf("BInterface used: ");fflush(stdout); 
+			utf_display(ici->name);
+			printf("<%i>\t",ici -> classUsed ); fflush(stdout); 
+			if (ici -> classUsed == NOTUSED) printf("\t classUsed=NOTUSED\n" );
+			if (ici -> classUsed == USED) printf("\t classUsed=USED\n");
+			if (ici -> classUsed == PARTUSED) printf("\t classUsed=PARTUSED\n");
+			fflush(stdout);
+		}
+		/* add class to interfaces list of classes that implement it */
+		ici -> impldBy =  addElement(ici -> impldBy,  ci);
+
+		/* if interface class is used */
+        if (ici -> classUsed != NOTUSED) {
+
+			/* for each interface method implementation that has already been used */
+			for (mm=0; mm< ici->methodscount; mm++) {
+				methodinfo *imi = &(ici->methods[mm]);
+				if (DEBUGinf) { 
+					if  (imi->methodUsed != USED) {
+						if (imi->methodUsed == NOTUSED) printf("Interface Method notused: "); 
+						if (imi->methodUsed == MARKED) printf("Interface Method marked: "); 
+						utf_display(ici->name);printf(".");method_display(imi);fflush(stdout);
+					}
+				} 
+				if  (imi->methodUsed == USED) {
+					if (DEBUGinf) { 
+						printf("Interface Method used: "); utf_display(ici->name);printf(".");method_display(imi);fflush(stdout);
+
+						/* Mark this method used in the (used) implementing class and its subclasses */
+						printf("rMAY ADD methods that was used by an interface\n");
+					}
+					if ((utf_new_char("<clinit>") != imi->name) &&
+					    (utf_new_char("<init>") != imi->name))
+					    rtaMarkSubs(ci,imi);
+				}
+			}
+		}
+	}
+
+}
+
+/**************************************************************************/
 /* Add Marked methods for input class ci                                  */
 /* Add methods with the same name and descriptor as implemented interfaces*/
 /*   with the same method name                                            */
@@ -180,6 +247,7 @@ for (ii=0; ii<ci->methodscount; ii++) {
 			if (ici -> classUsed != NOTUSED) {
 				for (mm=0; mm< ici->methodscount; mm++) {
 					methodinfo *imi = &(ici->methods[mm]);
+					METHINFOt(imi,"NEW IMPD INTERFACE:")
 				      /*if interface method=method is used*/
 					if  (  	   (imi->methodUsed == USED)
 			   &&	 ( (imi->name == mi->name) 
@@ -235,6 +303,7 @@ void addClassInit(classinfo *ci, bool clinits, bool finalizes, bool addmark)
 
   if (addmark) {
     rtaAddMarkedMethods(ci);
+    rtaAddUsedInterfaceMethods(ci);
     }
 
 }
@@ -263,8 +332,13 @@ methodinfo *submeth;
 
 /* See if method defined in class heirarchy */
 submeth = class_resolvemethod(class, name, descriptor); 
-if (submeth == NULL)
+METHINFOt(submeth,"rtaMarkMethod submeth:");
+if (submeth == NULL) {
+	utf_display(class->name); printf(".");
+	METHINFOx(topmethod);
+	printf("parse RT: Method not found in class hierarchy");fflush(stdout);
 	panic("parse RT: Method not found in class hierarchy");
+	}
 if (submeth->methodUsed == USED) return;
   
 #undef CTA 
@@ -367,11 +441,22 @@ void rtaMarkInterfaceSubs(methodinfo *mi) {
 
 	subs =  mi->class->impldBy; 
             /*RTAPRINT08invokeInterface1*/
+		   if (DEBUGinf) {
+			METHINFO(mi)
+                        printf("Implemented By classes :\n");fflush(stdout);
+                        if (subs == NULL) printf("\tNOT IMPLEMENTED !!!\n");
+                        fflush(stdout);
+			}
 	while (subs != NULL) { 			
 		classinfo * isubs = subs->classType;
 	   /*RTAPRINT09invokeInterface2*/
+		   if (DEBUGinf) {
+		       printf("\t");utf_display(isubs->name);fflush(stdout);
+			printf(" <%i>\n",isubs->classUsed);fflush(stdout);
+			}
 		/* Mark method (mark/used) in classes that implement the method */
-		if (isubs->classUsed != NOTUSED) {
+		/*if (isubs->classUsed != NOTUSED) */ 
+			{
 			methodinfo *submeth;
 						
 			submeth = class_findmethod(isubs,mi->name, mi->descriptor); 
@@ -493,7 +578,7 @@ if (DEBUGr) printf("\n");
 				if (!fi)
 					return 0; /* was NULL */
 
-				CLASSNAME(fi->class,"\tPUTSTATIC: ");
+				CLASSNAME(fi->class,"\tPUT/GETSTATIC: ");
 				if (!fi->class->initialized) {
 					m->isleafmethod = false;
 					}	
@@ -521,17 +606,24 @@ if (DEBUGr) printf("\n");
 
 				if (mi) 
 				   {
+				   METHINFOt(mi,"INVOKESTAT/SPEC:: ")
   				   mi->monoPoly = MONO;
 			   	   if ((opcode == JAVA_INVOKESTATIC)	   
 				     || (mi->flags & ACC_STATIC)  
 				     || (mi->flags & ACC_PRIVATE)  
 				     || (mi->flags & ACC_FINAL) )  
 			             {
-				     if (mi->class->classUsed == NOTUSED){
-					addClassInit(	mi->class,
-							true,true,false);
-				     	if (mi->class->classUsed == NOTUSED){
-				     	    mi->class->classUsed = PARTUSED;						} 
+				     if (mi->class->classUsed == PARTUSED){
+					   addClassInit(mi->class,
+					  		true,true,true);
+					}
+				     else {
+				        if (mi->class->classUsed == NOTUSED){
+					   addClassInit(mi->class,
+					  		true,true,false);
+				     	   if (mi->class->classUsed == NOTUSED){
+				     	       mi->class->classUsed = PARTUSED;						   } 
+					   }
 					}
 				     if (mi->class->classUsed == NOTUSED) {
     					METHINFOt(mi,"WAS / WARUM 1")
@@ -548,18 +640,20 @@ if (DEBUGr) printf("\n");
 				     /* Handle special <init> calls */
 					
 				     /* for now same as rest */
-				     if (mi->class->classUsed == NOTUSED){
+				     if (mi->class->classUsed != USED){
 				       /* RTA special case:
 				          call of super's <init> then
 				          methods of super class not all used */
 				       if (utf_new_char("<init>")==mi->name) {
 					    if (m->class->super == mi->class) {
+						METHINFOt(mi,"SUPER INIT:");
 						/* super init */
 					     	addClassInit(mi->class,
-						        true,true,false);
+						        true,true,true);
 						if (mi->class->classUsed == NOTUSED) mi->class->classUsed = PARTUSED;
 						}
 					    else {
+						METHINFOt(mi,"NORMAL INIT:");
 					        addClassInit(mi->class,
 							true,true,true);
 					        }
@@ -582,7 +676,7 @@ if (DEBUGr) printf("\n");
 					  panic("WAS /WARUM 2 ????");
 					  }
 					addToRtaWorkList(mi,
-                                                    "addTo INVOKESPECIAL ");
+                                                    "addTo INVOKESPECIAL INIT ");
 				        } 
 				     } 
 				   } 
@@ -681,6 +775,7 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 						/* ci->classUsed=USED; */
 			/* add marked methods */
 			CLASSNAME(ci,"NEW : do nothing");
+			addClassInit(ci, true, true, true);   
 			}
                         break;
 
@@ -789,12 +884,10 @@ methodinfo *initializeRTAworklist(methodinfo *m) {
 	fclose(rtMissedIn);
 
 	/*----- rtMissedIn pgm specific */
-printf("filenameIn=%s|mainstring=%s\n",filenameIn,mainstring); fflush(stdout);
         strcat(filenameIn, (const char *)mainstring);  
-printf("filenameIn=%s|\n",filenameIn); fflush(stdout);
         if ( (rtMissedIn = fopen(filenameIn, "r")) == NULL) {
-			/* if (verbose) */
-		    {printf("NNo rtMissedIn=%s file\n",filenameIn);fflush(stdout);} 
+		/*if (verbose)*/ 
+		    {printf("No rtMissedIn=%s file\n",filenameIn);fflush(stdout);} 
 		return rm;
 		}
 	while (getline(line,256,rtMissedIn)) {
@@ -854,7 +947,7 @@ int RT_jit_parse(methodinfo *m)
 	else {
 	    if (rt_method->flags & ACC_NATIVE  )
 	        {
-	        METHINFOt(rt_method,"TO BE NATIVE RTA PARSED :")
+	       METHINFOt(rt_method,"TO BE NATIVE RTA PARSED :");
 		/* parseRTpseudo(rt_method); */
 	        }   
 	    else {
