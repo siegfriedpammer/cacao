@@ -27,7 +27,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 622 2003-11-13 13:57:18Z twisti $
+   $Id: sets.c 655 2003-11-20 14:52:00Z carolyn $
 
 */
 
@@ -347,6 +347,7 @@ classSetNode *addClassCone(classSetNode *s,  classinfo *c)
 
 
 /*------------------------------------------------------------*/
+/* intersect the subtypes of class t with class set s         */
 classSetNode * intersectSubtypesWithSet(classinfo *t, classSetNode *s) {
 	classSetNode *s1 = NULL;
 	classSetNode *c;

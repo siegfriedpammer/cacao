@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 601 2003-11-11 19:03:30Z carolyn $
+   $Id: main.c 655 2003-11-20 14:52:00Z carolyn $
 
 */
 
@@ -733,7 +733,7 @@ int main(int argc, char **argv)
 			break;
 
 		case OPT_XTA:
-			/***opt_xta = true; not yet **/
+			opt_xta = true; /**not yet **/
 			break;
 
 		case OPT_VTA:

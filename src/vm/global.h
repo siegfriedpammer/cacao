@@ -30,7 +30,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: global.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: global.h 655 2003-11-20 14:52:00Z carolyn $
 
 */
 
@@ -689,17 +689,12 @@ extern bool opt_rt;             /* Rapid Type Analysis for better inlining CO-RT
 extern bool opt_xta;            /* X Type Analysis for better inlining    CO-XTA*/
 extern bool opt_vta;            /* Variable Type Analysis for better inlining    CO-VTA*/
 
-extern int pClassHeir;
-extern int pCallgraph;
-extern int pOpcodes;
-extern int pStats;
+//extern int pClassHeir;
+//extern int pCallgraph;
+//extern int pOpcodes;
+//extern int pStats;
 
-extern void RT_jit_parse(methodinfo *m);
-extern void printCallgraph ();
-extern void printRThierarchyInfo(methodinfo *m);
-extern void printObjectClassHeirarchy();
-
-extern void XTA_jit_parse(methodinfo *m);
+//extern void RT_jit_parse(methodinfo *m);
 
 /* statistic variables ********************************************************/
 

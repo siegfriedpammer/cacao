@@ -26,15 +26,13 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 620 2003-11-13 13:50:10Z twisti $
+   $Id: parseRTstats.c 655 2003-11-20 14:52:00Z carolyn $
 
 */
 
 
 #include "parseRT.h"
-#include "loader.h"
-#include "tables.h"
-#include "toolbox/loging.h"
+#include "parseRTstats.h"
 
 
 /*--- Statistics ----------------------------------------------------------*/
@@ -80,28 +78,12 @@ int RTmethodAbstract = 0;
 int subRedefsCnt =0;
 int subRedefsCntUsed =0;
 
-/*------------- RTAprint flags ------------------------------------------------------------------*/
-int pCallgraph  = 0;    /* 0 - dont print 1 - print at end from main                             */ 
-			/* 2 - print at end of RT parse call                                     */
-			/* 3- print after each method RT parse                                   */
-int pClassHeir  = 1;    /* 0 - dont print 1 - print at end from main                             */
-			/* 2 - print at end of RT parse call  3-print after each method RT parse */
-int pClassHeirStatsOnly = 1;  /* usually 2 Print only the statistical summary info for class heirarchy     */
-
-int pOpcodes    = 0;    /* 0 - don't print 1- print in parse RT 2- print in parse                */
-			/* 3 - print in both                                                     */
-int pWhenMarked = 0;    /* 0 - don't print 1 - print when added to callgraph + when native parsed*/
-			/* 2 - print when marked+methods called                                  */
-			/* 3 - print when class/method looked at                                 */
-int pStats = 0;         /* 0 - don't print; 1= analysis only; 2= whole unanalysed class heirarchy*/
-
-/*-----------------------------------------------------------------------------------------------*/
 /*-----------------------------------------------------------------------------------------------*/
 void printXTACallgraph()
 { 
 	int i;
 
-	if (XTAdebug >= 1) {
+//	if (XTAdebug >= 1) {
 		printf("----- XTA Callgraph Worklist:<%i>\n",methXTAlast);
 		for (i=0;i<=methXTAlast;i++) {
 			printf("  (%i): ",i);
@@ -110,8 +92,9 @@ void printXTACallgraph()
 			method_display(XTAcallgraph[i]);
 		}
 
+		printf("----- end of XTA Callgraph Worklist:<%i>\n",methXTAlast);
 		printf("\n\n");
-	}
+//	}
 }
 
 /*-----------------------------------------------------------------------------------------------*/
@@ -131,7 +114,7 @@ void printCallgraph ()
  printf("\n\n");
 }
 /*--------------------------------------------------------------*/
-void printObjectClassHeirarchy1() {
+void printObjectClassHeirarchyAll() {
 	if (pStats >= 1) {
         unRTclassHeirCnt=0;
         unRTmethodCnt = 0;
@@ -345,10 +328,15 @@ void printRTClassHeirarchy(classinfo  *class) {
 					printf("\t\t");
 					if (meth->monoPoly != MONO) printf("\t\tRedefs used/total<%i/%i>\t", meth->subRedefsUsed, meth->subRedefs);
 					if ( (XTAOPTbypass3) || (opt_xta)) {
-						if (meth->xta->XTAclassSet == NULL)
+						if (meth->xta == NULL) {
 							printf("class set never created\n");
-						else
-							printSet(meth->xta->XTAclassSet->head);
+							}
+						else 	{
+							if (meth->xta->XTAclassSet == NULL)
+								printf("class set never created\n");
+							else
+								printSet(meth->xta->XTAclassSet->head);
+							}
 					}
 				}
 			}
@@ -506,13 +494,16 @@ void printRThierarchyInfo(methodinfo *m) {
 			printf("\n");
 		}
     }
+printf("BEFORE printRT Class Heir\n");
 	printRTClassHeirarchy(class_java_lang_Object);
+printf("AFTER  printRT Class Heir\n");
 	if (pClassHeirStatsOnly >= 2) {
 		fflush(stdout);
 		printf("--- end  of RT info ---------------\n");
     }
 	if (pClassHeirStatsOnly >= 1) {
 		/*--  statistic results --*/
+		if (opt_rt)
 		printRTInterfaceClasses();
 	
 		printf("\n  >>>>>>>>>>>>>>>>>>>>  Analysed Class Hierarchy Statistics:\n"); 

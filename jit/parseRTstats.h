@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.h 562 2003-11-03 00:34:34Z twisti $
+   $Id: parseRTstats.h 655 2003-11-20 14:52:00Z carolyn $
 
 */
 
@@ -34,14 +34,15 @@
 #ifndef _PARSERTSTATS_H
 #define _PARSERTSTATS_H
 
-extern int unRTclassHeirCnt;
-extern int unRTmethodCnt;
-extern int pWhenMarked;
-
-
 /* function prototypes */
-void printObjectClassHeirarchy1();
+void printXTACallgraph ();
+void printCallgraph ();
 
+void printObjectClassHeirarchyAll();
+void printObjectClassHeirarchy();
+
+void printRThierarchyInfo(methodinfo *);
+ 
 #endif /* _PARSERTSTATS_H */
 
 

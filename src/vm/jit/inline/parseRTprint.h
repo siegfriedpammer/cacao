@@ -12,7 +12,7 @@
 
 #define XTAPRINTcallgraph1  if(pWhenMarked>=1) \
         {printf("\n XTA Added to Call Graph #%i:",  \
-        methRTlast); \
+        methXTAlast); \
 	printf("\t <used flags c/m> <%i/%i> %i\t",  \
 	  submeth->class->classUsed, \
 	  submeth->methodUsed, \
@@ -72,10 +72,10 @@
         utf_display(name); printf("\n");}
 
 #define RTAPRINT01method if ((pOpcodes == 1) || (pOpcodes == 3)) \
-        {printf("*********************************\n"); \
-        printf("PARSE RT method name = <%i/%i>",rt_method->class->classUsed,rt_method->methodUsed); \
-        utf_display(rt_method->class->name);printf("."); \
-        utf_display(rt_method->name);printf("\n\n"); \
+        {printf("*********************************\n"); fflush(stdout); \
+        printf("PARSE RT method name = <%i/%i>",rt_method->class->classUsed,rt_method->methodUsed); fflush(stdout);\
+        utf_display(rt_method->class->name);printf(".");fflush(stdout); \
+        utf_display(rt_method->name);printf("\n\n"); fflush(stdout);\
         method_display(rt_method); printf(">\n\n");fflush(stdout);}
 
 #define RTAPRINT02opcode if ((pOpcodes == 1) || (pOpcodes == 3)) \
@@ -161,9 +161,8 @@
 	method_display(mi); \
         fflush(stdout); }
 
-#define RTAPRINT07invoke_spec_virt2  if (pWhenMarked >= 1) { \
-        printf("Calling MarkSubs from SPECIAL/VIRTUAL :"); \
-        utf_display(mi->class->name);printf(".V."); \
+#define RTAPRINT07invoke_spec_virt2 if ((pOpcodes == 1) ||(pOpcodes == 3)  || (pWhenMarked >= 1)) { \
+        utf_display(mi->class->name);printf("."); \
 	method_display(mi); }
 
 #define RTAPRINT08AinvokeInterface0 if (pWhenMarked >= 2) { \
@@ -182,7 +181,7 @@
 	printf("Implemented By classes :\n");  \
                 fflush(stdout); \
 	if (subs == NULL) printf(" \tNOT IMPLEMENTED !!!\n"); \
-		printf("ZZZZZ\n");fflush(stdout); \
+		fflush(stdout); \
 	}
 
 #define RTAPRINT09invokeInterface2  if (pWhenMarked >= 3) { \
@@ -247,9 +246,5 @@
 
 #define RTAPRINT16stats1 if (pStats == 2) { \
 	printf("OBJECT SUBS ARE_THERE 1\n"); \
-	unRTclassHeirCnt=0; \
-	unRTmethodCnt = 0; \
 		printObjectClassHeirarchy(class_java_lang_Object); \
-	printf("\n END of unanalysed Class Heirarchy: #%i classes /  #%i methods\n\n", \
-		unRTclassHeirCnt,unRTmethodCnt); \
 	}

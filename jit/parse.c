@@ -28,7 +28,7 @@
 
    Changes: Carolyn Oates
 
-   $Id: parse.c 619 2003-11-13 13:49:23Z twisti $
+   $Id: parse.c 655 2003-11-20 14:52:00Z carolyn $
 
 */
 
@@ -37,6 +37,7 @@
 #include "parse.h"
 #include "global.h"
 #include "jit.h"
+#include "parseRT.h"
 #include "inline.h"
 #include "loop/loop.h"
 #include "types.h"
