@@ -1,4 +1,4 @@
-/* toolbox/list.c - 
+/* src/toolbox/list.c - double linked list
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,13 +26,14 @@
 
    Authors: Reinhard Grafl
 
-   $Id: list.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: list.c 2016 2005-03-09 11:15:04Z twisti $
 
 */
 
 
 #include <stdlib.h>
 
+#include "config.h"
 #include "toolbox/list.h"
 
 

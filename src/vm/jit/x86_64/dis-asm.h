@@ -34,6 +34,7 @@ extern "C" {
 #include <stdio.h>
 #include "bfd.h"
 
+#include "config.h"
 #include "types.h"
 #include "ansidecl.h"
 
