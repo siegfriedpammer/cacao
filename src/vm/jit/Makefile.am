@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1145 2004-06-05 23:57:56Z twisti $
+# $Id: Makefile.am 1251 2004-06-30 20:24:06Z twisti $
 
 
 SUBDIRS = . loop @ARCH_DIR@
@@ -35,8 +35,6 @@ noinst_LIBRARIES = libjit.a
 
 libjit_a_SOURCES = jit.c parse.c stack.c inline.c sets.c parseRT.c parseRTstats.c typecheck.c
 
-all-local:
-	$(MAKE) $(AM_MAKEFLAGS) -C .. jit/@ARCH_DIR@/offsets.h
 
 ## Local variables:
 ## mode: Makefile
