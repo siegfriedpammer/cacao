@@ -1,9 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 120 1999-01-20 15:41:38Z andi $
+# $Id: Makefile.am 122 1999-01-28 11:55:57Z phil $
 
 MAINTAINERCLEANFILES = Makefile.in configure
-SUBDIRS = toolbox mm alpha jit comp nat threads mips
+SUBDIRS = toolbox mm alpha jit comp nat threads mips tst
 
 EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html \
 			 doc/cacao.1

@@ -141,4 +141,5 @@ AC_OUTPUT(Makefile \
           alpha/Makefile \
           mips/Makefile \
           nat/Makefile \
-          comp/Makefile )
+          comp/Makefile \
+	  tst/Makefile )
