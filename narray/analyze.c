@@ -560,7 +560,9 @@ void add_to_vars(int var, int type, int direction)
 	/* variable is not found in list -> add variable to list					*/
 	lv = DNEW(struct LoopVar);
 
+	lv->modified = lv->index = 0;
 	lv->value = var;
+
 	if (type == ARRAY_INDEX) {
 		lv->index = 1;
 		lv->static_u = lv->static_l = 1;    /* arrayindex -> var not modified */
@@ -582,10 +584,6 @@ void add_to_vars(int var, int type, int direction)
 			break;
 			}
 		}
-	
-	/* !! strange 
-	   lv->modified = 0; 
-	   */
 
 	/* no dynamic bounds have been determined so far                          */
 	lv->dynamic_l = lv->dynamic_l_v = lv->dynamic_u = lv->dynamic_u_v = 0;
@@ -3332,6 +3330,8 @@ void optimize_single_loop(struct LoopContainer *lc)
 	int i, head, node;
 	struct Changes **changes;
 
+	struct LoopVar *lv;
+
 	if ((changes = (struct Changes **) malloc(maxlocals * sizeof(struct Changes *))) == NULL)
 		c_mem_error();
 
@@ -3395,6 +3395,12 @@ void optimize_single_loop(struct LoopContainer *lc)
 #ifdef LOOP_DEBUG
 		printf("analyze for array access finished and found\n");	
 		fflush(stdout);
+		lv = c_loopvars;
+		while (lv != NULL) {
+			if (lv->modified)
+				printf("Var --> %d\n", lv->value);
+			lv = lv->next;
+		}
 #endif
 
 		/* for performance reasons the list of all interesting loop vars is		*/
@@ -3413,11 +3419,14 @@ void optimize_single_loop(struct LoopContainer *lc)
 
 #ifdef LOOP_DEBUG
 			printf("Analyzed for or/exception - no problems \n");            
-			fflsuh(stdout);
+			fflush(stdout);
 #endif
 
 			init_constraints(head);	/* analyze dynamic bounds in header			*/
-			/* show_right_side();    											*/
+
+#ifdef LOOP_DEBUG			
+			show_right_side();
+#endif    											
 
 			if (c_rightside == NULL)
 				return;
@@ -3433,7 +3442,7 @@ void optimize_single_loop(struct LoopContainer *lc)
 	    
 #ifdef LOOP_DEBUG
 			printf("Array-bound checks finished\n");							
-			fflsuh(stdout);
+			fflush(stdout);
 #endif
 
 			mark_loop_nodes(lc);
