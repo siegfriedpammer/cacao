@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: parse.c 2236 2005-04-06 12:11:32Z twisti $
 
 */
 
@@ -438,7 +438,7 @@ SHOWOPCODE(DEBUG4)
 		pushconstantitem:
 
 			if (i >= inline_env->method->class->cpcount) 
-				panic ("Attempt to access constant outside range");
+				error("Attempt to access constant outside range: %d >= %d", i, inline_env->method->class->cpcount);
 
 			switch (inline_env->method->class->cptags[i]) {
 			case CONSTANT_Integer:
@@ -1047,6 +1047,70 @@ if (DEBUG4==true) {
 			break;
 
 		case JAVA_INVOKESPECIAL:
+			i = code_get_u2(p + 1,inline_env->method);
+			{
+				constant_FMIref *mr;
+				methodinfo *mi;
+				unresolved_method *um;
+
+				inline_env->method->isleafmethod = false;
+
+				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
+#if defined(__X86_64__)
+				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount + 1, mr, currentline);
+
+				um = create_unresolved_method(inline_env->method->class,
+											  inline_env->method,
+											  iptr,
+											  NULL);
+
+				if (!um)
+					return NULL;
+
+				/* store the unresolved_method* */
+
+				iptr->target = um;
+
+				/* only with -noverify, otherwise the typechecker does this */
+
+				if (!opt_verify) {
+					if (!resolve_method(um, resolveLazy, &mi))
+						return NULL;
+
+					iptr->val.a = mi;
+				}
+				PINC;
+#else
+				if (!resolve_classref(inline_env->method,mr->classref,resolveEager,true,&mrclass))
+					return NULL;
+
+				mi = class_resolveclassmethod(mrclass,
+											  mr->name,
+											  mr->descriptor,
+											  inline_env->method->class,
+											  true);
+
+				if (!mi)
+					return NULL;
+
+if (DEBUG4==true) { 
+	method_display_w_class(mi); 
+	printf("\tINVOKE SPEC/VIRT\n");
+        fflush(stdout);}
+
+				if (mi->flags & ACC_STATIC) {
+					*exceptionptr =
+						new_exception(string_java_lang_IncompatibleClassChangeError);
+					return NULL;
+				}
+
+				method_descriptor2types(mi);
+				OP2A(opcode, mi->paramcount, mi, currentline);
+#endif
+			}
+			break;
+
+/*  		case JAVA_INVOKESPECIAL: */
 		case JAVA_INVOKEVIRTUAL:
 			i = code_get_u2(p + 1,inline_env->method);
 			{
@@ -1126,6 +1190,11 @@ if (DEBUG4==true) {
 		case JAVA_NEW:
 			{
 				constant_classref *cr;
+#if defined(__X86_64__)
+				i = code_get_u2(p + 1, inline_env->method);
+				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+				LOADCONST_A_BUILTIN(cr);
+#else
 				classinfo *cls;
 				
 				i = code_get_u2(p + 1,inline_env->method);
@@ -1133,6 +1202,7 @@ if (DEBUG4==true) {
 				if (!resolve_classref(inline_env->method,cr,resolveEager,true,&cls))
 					return NULL;
 				LOADCONST_A_BUILTIN(cls);
+#endif
 				s_count++;
 				BUILTIN1(BUILTIN_new, TYPE_ADR, currentline);
 				OP(ICMD_CHECKEXCEPTION);

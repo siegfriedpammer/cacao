@@ -29,13 +29,15 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2219 2005-04-05 15:42:57Z christian $
+   $Id: reg.inc 2236 2005-04-06 12:11:32Z twisti $
 
 */
 
 
 #include "arch.h"
 #include "mm/memory.h"
+#include "vm/method.h"
+#include "vm/resolve.h"
 #include "vm/jit/reg.h"
 
 
@@ -1444,8 +1446,22 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 
 					/* pop many push any */
 					
-				case ICMD_INVOKEVIRTUAL:
 				case ICMD_INVOKESPECIAL:
+					i = iptr->op1;
+					while (--i >= 0) {
+						reg_free_temp(rd, src);
+						src = src->prev;
+					}
+#if defined(__X86_64__)
+					if (((unresolved_method *) iptr->target)->methodref->parseddesc.md->returntype.type != TYPE_VOID)
+#else
+					if (((methodinfo *) iptr->val.a)->returntype != TYPE_VOID)
+#endif
+						reg_new_temp(rd, dst);
+					break;
+
+				case ICMD_INVOKEVIRTUAL:
+/*  				case ICMD_INVOKESPECIAL: */
 				case ICMD_INVOKESTATIC:
 				case ICMD_INVOKEINTERFACE:
 					i = iptr->op1;
