@@ -5,4 +5,5 @@ public class extest_clinit {
     }
 
     public static int i;
+    public static native void sub();
 }
