@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: codegen.c 1453 2004-11-05 14:18:13Z twisti $
 
 */
 
@@ -43,6 +43,7 @@
 #include "main.h"
 #include "builtin.h"
 #include "asmpart.h"
+#include "exceptions.h"
 #include "jni.h"
 #include "loader.h"
 #include "tables.h"
@@ -4402,12 +4403,11 @@ gen_method: {
 
 			PREPARE_NATIVE_STACKINFO;
 
-			i386_alu_imm_reg(cd, I386_SUB, 2 * 4, REG_SP);
-			i386_mov_imm_membase(cd, (s4) string_java_lang_ArrayIndexOutOfBoundsException, REG_SP, 0 * 4);
-			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, 1 * 4);
-			i386_mov_imm_reg(cd, (s4) new_exception_int, REG_ITMP1);
+			i386_alu_imm_reg(cd, I386_SUB, 1 * 4, REG_SP);
+			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, 0 * 4);
+			i386_mov_imm_reg(cd, (u4) new_arrayindexoutofboundsexception, REG_ITMP1);
 			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
-			i386_alu_imm_reg(cd, I386_ADD, 2 * 4, REG_SP);
+			i386_alu_imm_reg(cd, I386_ADD, 1 * 4, REG_SP);
 
 			REMOVE_NATIVE_STACKINFO;
 
@@ -4451,12 +4451,8 @@ gen_method: {
 
 			PREPARE_NATIVE_STACKINFO;
 
-			i386_alu_imm_reg(cd, I386_SUB, 1 * 4, REG_SP);
-			i386_mov_imm_membase(cd, (s4) string_java_lang_NegativeArraySizeException, REG_SP, 0 * 4);
-			i386_mov_imm_reg(cd, (s4) new_exception, REG_ITMP1);
+			i386_mov_imm_reg(cd, (u4) new_negativearraysizeexception, REG_ITMP1);
 			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
-			i386_alu_imm_reg(cd, I386_ADD, 1 * 4, REG_SP);
-
 
 			REMOVE_NATIVE_STACKINFO;
 
@@ -4498,21 +4494,16 @@ gen_method: {
 
 			i386_push_reg(cd, REG_ITMP2_XPC);
 
-
 			PREPARE_NATIVE_STACKINFO;
 
-			i386_alu_imm_reg(cd, I386_SUB, 1 * 4, REG_SP);
-			i386_mov_imm_membase(cd, (s4) string_java_lang_ClassCastException, REG_SP, 0 * 4);
-			i386_mov_imm_reg(cd, (s4) new_exception, REG_ITMP1);
+			i386_mov_imm_reg(cd, (u4) new_classcastexception, REG_ITMP1);
 			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
-			i386_alu_imm_reg(cd, I386_ADD, 1 * 4, REG_SP);
-
 
 			REMOVE_NATIVE_STACKINFO;
 
 			i386_pop_reg(cd, REG_ITMP2_XPC);
 
-			i386_mov_imm_reg(cd, (s4) asm_handle_exception, REG_ITMP3);
+			i386_mov_imm_reg(cd, (u4) asm_handle_exception, REG_ITMP3);
 			i386_jmp_reg(cd, REG_ITMP3);
 		}
 	}
@@ -4550,12 +4541,8 @@ gen_method: {
 
 			PREPARE_NATIVE_STACKINFO;
 
-			i386_alu_imm_reg(cd, I386_SUB, 2 * 4, REG_SP);
-			i386_mov_imm_membase(cd, (s4) string_java_lang_ArithmeticException, REG_SP, 0 * 4);
-			i386_mov_imm_membase(cd, (s4) string_java_lang_ArithmeticException_message, REG_SP, 1 * 4);
-			i386_mov_imm_reg(cd, (s4) new_exception_message, REG_ITMP1);
+			i386_mov_imm_reg(cd, (u4) new_arithmeticexception, REG_ITMP1);
 			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
-			i386_alu_imm_reg(cd, I386_ADD, 2 * 4, REG_SP);
 
 			REMOVE_NATIVE_STACKINFO;
 
@@ -4704,12 +4691,8 @@ java stack at this point*/
 			i386_mov_reg_membase(cd, REG_SP,REG_RESULT,0); /* store pointer to new stack frame information */
 #endif				
 
-			/* create exception*/
-			i386_alu_imm_reg(cd, I386_SUB, 1 * 4, REG_SP);
-			i386_mov_imm_membase(cd, (s4) string_java_lang_NullPointerException, REG_SP, 0 * 4);
-			i386_mov_imm_reg(cd, (s4) new_exception, REG_ITMP1);
-			i386_call_reg(cd, REG_ITMP1);    /* return value is REG_ITMP1_XPTR */
-			i386_alu_imm_reg(cd, I386_ADD, 1 * 4, REG_SP);
+			i386_mov_imm_reg(cd, (u4) new_nullpointerexception, REG_ITMP1);
+			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
 
 			REMOVE_NATIVE_STACKINFO;
 
