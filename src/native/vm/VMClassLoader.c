@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClassLoader.c 2058 2005-03-23 10:59:05Z twisti $
+   $Id: VMClassLoader.c 2066 2005-03-23 11:46:35Z twisti $
 
 */
 
@@ -254,7 +254,10 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 	if (!m)
 		return NULL;
 
-	for (cpi = classpath_entries; cpi != NULL; cpi = cpi->next, path = NULL) {
+	for (cpi = classpath_entries; cpi != NULL; cpi = cpi->next) {
+		/* clear path pointer */
+  		path = NULL;
+
 #if defined(USE_ZLIB)
 		if (cpi->type == CLASSPATH_ARCHIVE) {
 
