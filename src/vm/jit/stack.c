@@ -1798,15 +1798,16 @@ static void show_icmd_method()
 	printf("\n");
 
 	if (showdisassemble) {
-#ifdef __I386__
-		extern s4 *codestatic;
+#if defined(__I386__) || defined(__X86_64__)
+		extern u1 *codestatic;
 		extern int pstatic;
+		u1 *u1ptr;
 
-		s4ptr = (s4 *) (method->mcode + dseglen);
-		for (i = 0; i < block[0].mpc; i++, ((s4) s4ptr)++) {
-			disassinstr((s4) s4ptr, i);
+		u1ptr = method->mcode + dseglen;
+		for (i = 0; i < block[0].mpc; i++, u1ptr++) {
+			disassinstr(u1ptr, i);
 			i = pstatic;
-			s4ptr = codestatic;
+			u1ptr = codestatic;
 		}
 		printf("\n");
 #else
@@ -1875,7 +1876,7 @@ static void show_icmd_method()
 				case ICMD_LORCONST:
 				case ICMD_LXORCONST:
 				case ICMD_LCONST:
-#ifdef __I386__
+#if defined(__I386__)
 					printf(" %lld", iptr->val.l);
 #else
 					printf(" %ld", iptr->val.l);
@@ -2076,27 +2077,28 @@ static void show_icmd_method()
 			}
 
 		if (showdisassemble && (!deadcode)) {
-#ifdef __I386__
-			extern s4 *codestatic;
+#if defined(__I386__) || defined(__X86_64__)
+			extern u1 *codestatic;
 			extern int pstatic;
+			u1 *u1ptr;
 
 			printf("\n");
 			i = bptr->mpc;
-			s4ptr = (s4 *) (method->mcode + dseglen + i);
+			u1ptr = method->mcode + dseglen + i;
 
 			if (bptr->next != NULL) {
-				for (; i < bptr->next->mpc; i++, ((s4) s4ptr)++) {
-					disassinstr((s4) s4ptr, i); 
+				for (; i < bptr->next->mpc; i++, u1ptr++) {
+					disassinstr(u1ptr, i);
 					i = pstatic;
-					s4ptr = codestatic;
+					u1ptr = codestatic;
 				}
 				printf("\n");
 
 			} else {
-				for (; s4ptr < (s4 *) (method->mcode + method->mcodelength); i++, ((s4) s4ptr)++) {
-					disassinstr((s4) s4ptr, i); 
+				for (; u1ptr < (u1 *) (method->mcode + method->mcodelength); i++, u1ptr++) {
+					disassinstr(u1ptr, i); 
 					i = pstatic;
-					s4ptr = codestatic;
+					u1ptr = codestatic;
 				}
 				printf("\n");
 			}
