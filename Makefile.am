@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 125 1999-01-28 19:50:01Z phil $
+# $Id: Makefile.am 128 1999-03-03 15:54:06Z phil $
 
 MAINTAINERCLEANFILES = Makefile.in configure
 SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc
@@ -35,7 +35,9 @@ cacao_SOURCES = \
 	tables.c \
 	tables.h
 
-EXTRA_cacao_SOURCES = compiler.c compiler.h
+EXTRA_cacao_SOURCES = \
+	compiler.c \
+	compiler.h 
 
 cacao_LDADD = \
 	@SYSDEP_DIR@/asmpart.o \
@@ -95,6 +97,12 @@ compiler.o: builtin.h compiler.h global.h loader.h tables.h native.h \
             @SYSDEP_DIR@/gen.c @SYSDEP_DIR@/disass.c
 	@CC@ $(CFLAGS) $(INCLUDES) -c compiler.c
 
+jit.o: jit.c \
+	jit/mcode.c \
+	jit/parse.c \
+	jit/reg.c \
+	jit/stack.c \
+	jit/jitdef.h
 
 ## Local variables:
 ## mode: Makefile

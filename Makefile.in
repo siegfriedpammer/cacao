@@ -10,7 +10,7 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-# $Id: Makefile.in 125 1999-01-28 19:50:01Z phil $
+# $Id: Makefile.in 128 1999-03-03 15:54:06Z phil $
 
 
 SHELL = @SHELL@
@@ -89,7 +89,8 @@ INCLUDES = -I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SY
 cacao_SOURCES =  	asmpart.h 	builtin.c 	builtin.h 	callargs.h 	@COMPILER_SOURCES@ 	global.h 	jit.c 	jit.h 	loader.c 	loader.h 	main.c 	native.c 	native.h 	tables.c 	tables.h
 
 
-EXTRA_cacao_SOURCES = compiler.c compiler.h
+EXTRA_cacao_SOURCES =  	compiler.c 	compiler.h 
+
 
 cacao_LDADD =  	@SYSDEP_DIR@/asmpart.o 	@COMPILER_OBJECTS@ 	toolbox/libtoolbox.a 	@GC_OBJ@     @THREAD_OBJ@
 
@@ -516,6 +517,13 @@ compiler.o: builtin.h compiler.h global.h loader.h tables.h native.h \
             asmpart.h compiler.c comp/*.c \
             @SYSDEP_DIR@/gen.c @SYSDEP_DIR@/disass.c
 	@CC@ $(CFLAGS) $(INCLUDES) -c compiler.c
+
+jit.o: jit.c \
+	jit/mcode.c \
+	jit/parse.c \
+	jit/reg.c \
+	jit/stack.c \
+	jit/jitdef.h
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
