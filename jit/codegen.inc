@@ -48,12 +48,14 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1215 2004-06-29 12:24:21Z twisti $
+   $Id: codegen.inc 1246 2004-06-30 20:18:10Z twisti $
 
 */
 
 
 #include <string.h>
+#include "options.h"
+#include "statistics.h"
 #include "toolbox/memory.h"
 #include "toolbox/logging.h"
 #include "toolbox/avl.h"
@@ -565,16 +567,20 @@ static void codegen_finish(methodinfo *m, int mcodelen)
 {
 	jumpref *jr;
 	u1 *epoint;
+	s4 extralen = 0;
+	s4 alignedlen;
 
-	int extralen = 0;
-	int alignedlen;
-
+/*  	printf("codegen_finish\n"); */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	extralen += sizeof(threadcritnode) * threadcritcount;
 #endif
 
-	count_code_len += mcodelen;
-	count_data_len += dseglen;
+#if defined(STATISTICS)
+	if (opt_stat) {
+		count_code_len += mcodelen;
+		count_data_len += dseglen;
+	}
+#endif
 
 	dseglen = ALIGN(dseglen, MAX_ALIGN);
 	alignedlen = ALIGN(mcodelen, MAX_ALIGN) + dseglen;
