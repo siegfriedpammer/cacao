@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1236 2004-06-30 19:53:03Z twisti $
+   $Id: builtin.c 1271 2004-07-03 10:35:42Z stefan $
 
 */
 
@@ -1139,6 +1139,18 @@ void builtin_monitorenter(java_objectheader *o)
 	monitorEnter((threadobject *) THREADOBJECT, o);
 #endif
 #endif
+}
+
+/*
+ * Locks the class object - needed for static synchronized methods.
+ * The use_class_as_object call is needed in order to circumvent a
+ * possible deadlock with builtin_monitorenter called by another
+ * thread calling use_class_as_object.
+ */
+void builtin_staticmonitorenter(classinfo *c)
+{
+	use_class_as_object(c);
+	builtin_monitorenter(&c->header);
 }
 
 

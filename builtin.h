@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1067 2004-05-18 10:25:51Z stefan $
+   $Id: builtin.h 1271 2004-07-03 10:35:42Z stefan $
 
 */
 
@@ -240,6 +240,8 @@ void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f);
 /* NOT AN OP */
 
 void builtin_monitorenter(java_objectheader *o);
+/* NOT AN OP */
+void builtin_staticmonitorenter(classinfo *c);
 /* NOT AN OP */
 void asm_builtin_monitorenter(java_objectheader *o);
 #define BUILTIN_monitorenter (functionptr) asm_builtin_monitorenter

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1156 2004-06-11 11:34:49Z stefan $
+   $Id: codegen.c 1271 2004-07-03 10:35:42Z stefan $
 
 */
 
@@ -741,7 +741,9 @@ void codegen()
 
 #ifdef USE_THREADS
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-		p = dseg_addaddress ((void*) (builtin_monitorenter));
+		s4 func_enter = (method->flags & ACC_STATIC) ?
+			(s4) builtin_staticmonitorenter : (s4) builtin_monitorenter;
+		p = dseg_addaddress ((void*) func_enter);
 		M_ALD(REG_ITMP3, REG_PV, p);
 		M_MTCTR(REG_ITMP3);
 		M_ALD(argintregs[0], REG_SP, 4 * maxmemuse);

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1266 2004-07-01 20:38:16Z twisti $
+   $Id: codegen.c 1271 2004-07-03 10:35:42Z stefan $
 
 */
 
@@ -482,8 +482,10 @@ void codegen()
 
 #if defined(USE_THREADS)
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+		s8 func_enter = (method->flags & ACC_STATIC) ?
+			(s8) builtin_staticmonitorenter : (s8) builtin_monitorenter;
 		x86_64_mov_membase_reg(REG_SP, maxmemuse * 8, argintregs[0]);
-		x86_64_mov_imm_reg((s8) builtin_monitorenter, REG_ITMP1);
+		x86_64_mov_imm_reg(func_enter, REG_ITMP1);
 		x86_64_call_reg(REG_ITMP1);
 	}			
 #endif

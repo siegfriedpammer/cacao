@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1166 2004-06-12 13:34:06Z stefan $
+   $Id: codegen.c 1271 2004-07-03 10:35:42Z stefan $
 
 */
 
@@ -666,7 +666,9 @@ void codegen()
 #if defined(USE_THREADS)
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 		s4 disp;
-		p = dseg_addaddress((void *) (builtin_monitorenter));
+		s8 func_enter = (method->flags & ACC_STATIC) ?
+			(s8) builtin_staticmonitorenter : (s8) builtin_monitorenter;
+		p = dseg_addaddress((void *) func_enter);
 		M_ALD(REG_ITMP3, REG_PV, p);
 		M_JSR(REG_RA, REG_ITMP3);
 		M_ALD(argintregs[0], REG_SP, maxmemuse * 8);
