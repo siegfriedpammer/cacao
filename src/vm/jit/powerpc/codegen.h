@@ -29,7 +29,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.h 962 2004-03-15 00:37:59Z twisti $
+   $Id: codegen.h 1310 2004-07-13 16:22:38Z stefan $
 
 */
 
@@ -37,7 +37,7 @@
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
-#include "jit.h"
+#include "jit/jit.h"
 
 
 /* see also file calling.doc for explanation of calling conventions           */
@@ -247,7 +247,7 @@
 
 void codegen_init();
 void init_exceptions();
-void codegen();
+void codegen(methodinfo *);
 void codegen_close();
 void dseg_display(s4 *s4ptr);
 void preregpass();
