@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 811 2003-12-30 22:20:43Z twisti $
+   $Id: loader.c 816 2003-12-31 13:52:30Z edwin $
 
 */
 
@@ -799,6 +799,20 @@ static void field_load(fieldinfo *f, classinfo *c)
 	f->class = c;
 	f->xta = NULL;
 	
+	/* check flag consistency */
+	if (opt_verify) {
+		i = (f->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
+		if (i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED)
+			panic("Field has invalid access flags");
+		if ((f->flags & (ACC_FINAL | ACC_VOLATILE)) == (ACC_FINAL | ACC_VOLATILE))
+			panic("Field is declared final and volatile");
+		if ((c->flags & ACC_INTERFACE) != 0) {
+			if ((f->flags & (ACC_STATIC | ACC_PUBLIC | ACC_FINAL))
+				!= (ACC_STATIC | ACC_PUBLIC | ACC_FINAL))
+				panic("Interface field is not declared static final public");
+		}
+	}
+		
 	switch (f->type) {
 	case TYPE_INT:        f->value.i = 0; break;
 	case TYPE_FLOAT:      f->value.f = 0.0; break;
@@ -916,6 +930,8 @@ void field_display(fieldinfo *f)
 static void method_load(methodinfo *m, classinfo *c)
 {
 	u4 attrnum, i, e;
+	static utf* name_init = NULL;
+	static utf* name_clinit = NULL;
 	
 #ifdef STATISTICS
 	count_all_methods++;
@@ -926,8 +942,37 @@ static void method_load(methodinfo *m, classinfo *c)
 	m->flags = suck_u2();
 	m->name = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
 	m->descriptor = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
-	checkmethoddescriptor(m->descriptor);
-	
+	checkmethoddescriptor(m->descriptor);	
+
+	/* check flag consistency */
+	if (opt_verify) {
+		if (!name_init) {
+			name_init = utf_new_char("<init>");
+			name_clinit = utf_new_char("<clinit>");
+		}
+		/* XXX could check if <clinit> is STATIC */
+		if (m->name != name_clinit) {
+			i = (m->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
+			if (i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED)
+				panic("Method has invalid access flags");
+			if ((m->flags & ACC_ABSTRACT) != 0) {
+				if ((m->flags & (ACC_FINAL | ACC_NATIVE | ACC_PRIVATE | ACC_STATIC
+								 | ACC_STRICT | ACC_SYNCHRONIZED)) != 0)
+					panic("Abstract method has invalid flags set");
+			}
+			if ((c->flags & ACC_INTERFACE) != 0) {
+				if ((m->flags & (ACC_ABSTRACT | ACC_PUBLIC))
+					!= (ACC_ABSTRACT | ACC_PUBLIC))
+					panic("Interface method is not declared abstract and public");
+			}
+			if (m->name == name_init) {
+				if ((m->flags & (ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED
+								 | ACC_NATIVE | ACC_ABSTRACT)) != 0)
+					panic("Instance initialization method has invalid flags set");
+			}
+		}
+	}
+		
 	m->jcode = NULL;
 	m->exceptiontable = NULL;
 	m->entrypoint = NULL;
@@ -1301,6 +1346,8 @@ static void class_loadcpool(classinfo *c)
 				cptags [idx] = CONSTANT_Long;
 				cpinfos [idx] = cl;
 				idx += 2;
+				if (idx > cpcount)
+					panic("Long constant exceeds constant pool");
 				break;
 				}
 			
@@ -1315,6 +1362,8 @@ static void class_loadcpool(classinfo *c)
 				cptags [idx] = CONSTANT_Double;
 				cpinfos [idx] = cd;
 				idx += 2;
+				if (idx > cpcount)
+					panic("Double constant exceeds constant pool");
 				break;
 				}
 				
@@ -1325,7 +1374,8 @@ static void class_loadcpool(classinfo *c)
 				cptags [idx]  = CONSTANT_Utf8;
 				/* validate the string */
 				ASSERT_LEFT(length);
-				if (!is_valid_utf(classbuf_pos+1, classbuf_pos+1+length))
+				if (opt_verify &&
+					!is_valid_utf(classbuf_pos+1, classbuf_pos+1+length))
 					panic("Invalid UTF-8 string"); 
 				/* insert utf-string into the utf-symboltable */
 				cpinfos [idx] = utf_new(classbuf_pos+1, length);
@@ -1506,8 +1556,16 @@ static int class_load(classinfo *c)
 	c->flags = suck_u2(); 
 	/*if (!(c->flags & ACC_PUBLIC)) { log_text("CLASS NOT PUBLIC"); } JOWENN*/
 
+	/* check ACC flags consistency */
+	if ((c->flags & ACC_INTERFACE) != 0) {
+		if ((c->flags & ACC_ABSTRACT) == 0)
+			panic("Interface class not declared abstract");
+		if ((c->flags & (ACC_FINAL | ACC_SUPER)) != 0)
+			panic("Interface class has invalid flags");
+	}
+
 	/* this class */
-	suck_u2();       
+	suck_u2();       /* XXX check it? */
 	
 	/* retrieve superclass */
 	if ((i = suck_u2())) {
@@ -1770,11 +1828,13 @@ static arraydescriptor *class_link_array(classinfo *c)
 		
 		compvftbl = comp->vftbl;
 		if (!compvftbl)
-			panic("Component class has no vftbl.");
+			panic("Component class has no vftbl");
 		desc->componentvftbl = compvftbl;
 		
 		if (compvftbl->arraydesc) {
 			desc->elementvftbl = compvftbl->arraydesc->elementvftbl;
+			if (compvftbl->arraydesc->dimension >= 255)
+				panic("Creating array of dimension >255");
 			desc->dimension = compvftbl->arraydesc->dimension + 1;
 			desc->elementtype = compvftbl->arraydesc->elementtype;
 		}
@@ -1903,12 +1963,17 @@ void class_link(classinfo *c)
 		}
 
 		/* handle array classes */
+		/* The component class must have been linked already. */
 		if (c->name->text[0] == '[')
 			if ((arraydesc = class_link_array(c)) == NULL) {
 				list_remove(&unlinkedclasses, c);
 				list_addlast(&unlinkedclasses, c);
 				return;	
 			}
+
+		/* Don't allow extending final classes */
+		if ((super->flags & ACC_FINAL) != 0)
+			panic("Trying to extend final class");
 		
 		if (c->flags & ACC_INTERFACE)
 			c->index = interfaceindex++;
@@ -1941,6 +2006,8 @@ void class_link(classinfo *c)
 				int j;
 				for (j = 0; j < sc->methodscount; j++) {
 					if (method_canoverwrite(m, &(sc->methods[j]))) {
+						if ((sc->methods[j].flags & ACC_FINAL) != 0)
+							panic("Trying to overwrite final method");
 						m->vftblindex = sc->methods[j].vftblindex;
 						goto foundvftblindex;
 					}
