@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: schedule.h 1965 2005-02-24 19:52:00Z twisti $
+   $Id: schedule.h 1966 2005-02-24 23:39:12Z twisti $
 
 */
 
@@ -43,7 +43,7 @@
 
 typedef struct scheduledata scheduledata;
 typedef struct minstruction minstruction;
-typedef struct sinknode sinknode;
+typedef struct linknode linknode;
 
 
 /* scheduledata ****************************************************************
@@ -98,7 +98,6 @@ scheduledata *schedule_setup(registerdata *rd);
 void schedule_calc_priority(minstruction *mi);
 void schedule_do_schedule(minstruction *mi);
 minstruction *schedule_prepend_minstruction(minstruction *mi);
-minstruction *schedule_append_minstruction(minstruction *mi);
 
 #endif /* _SCHEDULE_H */
 
