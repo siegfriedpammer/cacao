@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 2124 2005-03-29 22:18:30Z twisti $
+   $Id: jit.h 2135 2005-03-30 09:55:26Z twisti $
 
 */
 
@@ -814,11 +814,6 @@ extern int jcommandsize[256];
 
 /******************* description of JavaVM instructions ***********************/
 
-#if defined(USEBUILTINTABLE)
-
-builtin_descriptor *find_builtin(int opcode);
-
-#endif /* USEBUILTINTABLE */
 
 
 /***************************** register types *********************************/

@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2040 2005-03-20 13:39:51Z twisti $
+   $Id: jit.c 2135 2005-03-30 09:55:26Z twisti $
 
 */
 
@@ -44,8 +44,10 @@
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/method.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/tables.h"
@@ -1168,196 +1170,6 @@ char *opcode_names[256] = {
 };
 
 
-#if defined(USEBUILTINTABLE)
-
-#if 0
-stdopdescriptor builtintable[] = {
-	{ ICMD_LCMP,   TYPE_LONG, TYPE_LONG, TYPE_INT, ICMD_BUILTIN2,
-	  (functionptr) builtin_lcmp , SUPPORT_LONG && SUPPORT_LONG_CMP, false },
-	{ ICMD_LAND,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_land , SUPPORT_LONG && SUPPORT_LONG_LOGICAL, false },
-	{ ICMD_LOR,    TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_lor , SUPPORT_LONG && SUPPORT_LONG_LOGICAL, false },
-	{ ICMD_LXOR,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_lxor , SUPPORT_LONG && SUPPORT_LONG_LOGICAL, false },
-	{ ICMD_LSHL,   TYPE_LONG, TYPE_INT,  TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_lshl , SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
-	{ ICMD_LSHR,   TYPE_LONG, TYPE_INT,  TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_lshr, SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
-	{ ICMD_LUSHR,  TYPE_LONG, TYPE_INT,  TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_lushr, SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
-	{ ICMD_LADD,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_ladd , SUPPORT_LONG && SUPPORT_LONG_ADD, false },
-	{ ICMD_LSUB,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_lsub , SUPPORT_LONG && SUPPORT_LONG_ADD, false },
-	{ ICMD_LNEG,   TYPE_LONG, TYPE_VOID, TYPE_LONG, ICMD_BUILTIN1, 
-	  (functionptr) builtin_lneg, SUPPORT_LONG && SUPPORT_LONG_ADD, true },
-	{ ICMD_LMUL,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
-	  (functionptr) builtin_lmul , SUPPORT_LONG && SUPPORT_LONG_MUL, false },
-	{ ICMD_I2F,    TYPE_INT, TYPE_VOID, TYPE_FLOAT, ICMD_BUILTIN1,
-	  (functionptr) builtin_i2f, SUPPORT_FLOAT && SUPPORT_IFCVT, true },
-	{ ICMD_I2D,    TYPE_INT, TYPE_VOID, TYPE_DOUBLE, ICMD_BUILTIN1, 
-	  (functionptr) builtin_i2d, SUPPORT_DOUBLE && SUPPORT_IFCVT, true },
-	{ ICMD_L2F,    TYPE_LONG, TYPE_VOID, TYPE_FLOAT, ICMD_BUILTIN1,
-	  (functionptr) builtin_l2f, SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_LONG_FCVT, true },
-	{ ICMD_L2D,    TYPE_LONG, TYPE_VOID, TYPE_DOUBLE, ICMD_BUILTIN1, 
-	  (functionptr) builtin_l2d, SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_LONG_FCVT, true },
-	{ ICMD_F2L,    TYPE_FLOAT, TYPE_VOID, TYPE_LONG, ICMD_BUILTIN1,
-	  (functionptr) builtin_f2l, SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_LONG_ICVT, true },
-	{ ICMD_D2L,    TYPE_DOUBLE, TYPE_VOID, TYPE_LONG, ICMD_BUILTIN1,
-	  (functionptr) builtin_d2l, SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_LONG_ICVT, true },
-	{ ICMD_F2I,    TYPE_FLOAT, TYPE_VOID, TYPE_INT, ICMD_BUILTIN1,
-	  (functionptr) builtin_f2i, SUPPORT_FLOAT && SUPPORT_FICVT, true },
-	{ ICMD_D2I,    TYPE_DOUBLE, TYPE_VOID, TYPE_INT, ICMD_BUILTIN1,
-	  (functionptr) builtin_d2i, SUPPORT_DOUBLE && SUPPORT_FICVT, true },
-  	{ 255, 0, 0, 0, 0, NULL, true, false },
-};
-
-#endif
-
-static int builtintablelen;
-
-#endif /* USEBUILTINTABLE */
-
-
-
-#define EXTABLEN
-/*	\
-        { \
-                printf("PARSE method name ="); \
-                utf_display(m->class->name); \
-                printf("."); \
-                method_display(m); \
-		printf("	exceptiontablelength %d\n",m->exceptiontablelength);	\
-                fflush(stdout); \
-        }
-*/
-
-/*****************************************************************************
-						 TABLE OF BUILTIN FUNCTIONS
-
-    This table lists the builtin functions which are used inside
-    BUILTIN* opcodes.
-
-    The first part of the table (up to the 255-marker) lists the
-    opcodes which are automatically replaced in stack.c.
-
-    The second part lists the builtin functions which are "manually"
-    used for BUILTIN* opcodes in parse.c and stack.c.
-
-*****************************************************************************/
-
-builtin_descriptor builtin_desc[] = {
-#if defined(USEBUILTINTABLE)
-	{ICMD_LCMP , BUILTIN_lcmp ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID ,TYPE_INT   ,
-	             SUPPORT_LONG && SUPPORT_LONG_CMP,false,"lcmp"},
-	
-	{ICMD_LAND , BUILTIN_land ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_LOGICAL,false,"land"},
-	{ICMD_LOR  , BUILTIN_lor  ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_LOGICAL,false,"lor"},
-	{ICMD_LXOR , BUILTIN_lxor ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_LOGICAL,false,"lxor"},
-	
-	{ICMD_LSHL , BUILTIN_lshl ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_INT   ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_SHIFT,false,"lshl"},
-	{ICMD_LSHR , BUILTIN_lshr ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_INT   ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_SHIFT,false,"lshr"},
-	{ICMD_LUSHR, BUILTIN_lushr,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_INT   ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_SHIFT,false,"lushr"},
-	
-	{ICMD_LADD , BUILTIN_ladd ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_ADD,false,"ladd"},
-	{ICMD_LSUB , BUILTIN_lsub ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_ADD,false,"lsub"},
-	{ICMD_LNEG , BUILTIN_lneg ,ICMD_BUILTIN1,TYPE_LONG  ,TYPE_VOID  ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_ADD,false,"lneg"},
-	{ICMD_LMUL , BUILTIN_lmul ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_LONG && SUPPORT_LONG_MUL,false,"lmul"},
-	
-	{ICMD_I2F  , BUILTIN_i2f  ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID ,TYPE_FLOAT ,
-	             SUPPORT_FLOAT && SUPPORT_IFCVT,true ,"i2f"},
-	{ICMD_I2D  , BUILTIN_i2d  ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID ,TYPE_DOUBLE,
-	             SUPPORT_DOUBLE && SUPPORT_IFCVT,true ,"i2d"},
-	{ICMD_L2F  , BUILTIN_l2f  ,ICMD_BUILTIN1,TYPE_LONG  ,TYPE_VOID  ,TYPE_VOID ,TYPE_FLOAT ,
-	             SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_LONG_FCVT,true ,"l2f"},
-	{ICMD_L2D  , BUILTIN_l2d  ,ICMD_BUILTIN1,TYPE_LONG  ,TYPE_VOID  ,TYPE_VOID ,TYPE_DOUBLE,
-	             SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_LONG_FCVT,true ,"l2d"},
-	{ICMD_F2L  , BUILTIN_f2l  ,ICMD_BUILTIN1,TYPE_FLOAT ,TYPE_VOID  ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_LONG_ICVT,true ,"f2l"},
-	{ICMD_D2L  , BUILTIN_d2l  ,ICMD_BUILTIN1,TYPE_DOUBLE,TYPE_VOID  ,TYPE_VOID ,TYPE_LONG  ,
-	             SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_LONG_ICVT,true ,"d2l"},
-	{ICMD_F2I  , BUILTIN_f2i  ,ICMD_BUILTIN1,TYPE_FLOAT ,TYPE_VOID  ,TYPE_VOID ,TYPE_INT   ,
-	             SUPPORT_FLOAT && SUPPORT_FICVT,true ,"f2i"},
-	{ICMD_D2I  , BUILTIN_d2i  ,ICMD_BUILTIN1,TYPE_DOUBLE,TYPE_VOID  ,TYPE_VOID ,TYPE_INT   ,
-	             SUPPORT_DOUBLE && SUPPORT_FICVT,true ,"d2i"},
-
-	{ ICMD_FADD , BUILTIN_fadd  , ICMD_BUILTIN2, TYPE_FLT, TYPE_FLT  , TYPE_VOID , TYPE_FLT, SUPPORT_FLOAT, true, "fadd"  },
-	{ ICMD_FSUB , BUILTIN_fsub  , ICMD_BUILTIN2, TYPE_FLT, TYPE_FLT  , TYPE_VOID , TYPE_FLT, SUPPORT_FLOAT, true, "fsub"  },
-	{ ICMD_FMUL , BUILTIN_fmul  , ICMD_BUILTIN2, TYPE_FLT, TYPE_FLT  , TYPE_VOID , TYPE_FLT, SUPPORT_FLOAT, true, "fmul"  },
-	{ ICMD_FDIV , BUILTIN_fdiv  , ICMD_BUILTIN2, TYPE_FLT, TYPE_FLT  , TYPE_VOID , TYPE_FLT, SUPPORT_FLOAT, true, "fdiv"  },
-	{ ICMD_FNEG , BUILTIN_fneg  , ICMD_BUILTIN1, TYPE_FLT, TYPE_VOID , TYPE_VOID , TYPE_FLT, SUPPORT_FLOAT, true, "fneg"  },
-	{ ICMD_FCMPL, BUILTIN_fcmpl , ICMD_BUILTIN2, TYPE_FLT, TYPE_FLT  , TYPE_VOID , TYPE_INT, SUPPORT_FLOAT, true, "fcmpl" },
-	{ ICMD_FCMPG, BUILTIN_fcmpg , ICMD_BUILTIN2, TYPE_FLT, TYPE_FLT  , TYPE_VOID , TYPE_INT, SUPPORT_FLOAT, true, "fcmpg" },
-
-	{ ICMD_DADD , BUILTIN_dadd  , ICMD_BUILTIN2, TYPE_DBL, TYPE_DBL  , TYPE_VOID , TYPE_DBL, SUPPORT_DOUBLE, true, "dadd"  },
-	{ ICMD_DSUB , BUILTIN_dsub  , ICMD_BUILTIN2, TYPE_DBL, TYPE_DBL  , TYPE_VOID , TYPE_DBL, SUPPORT_DOUBLE, true, "dsub"  },
-	{ ICMD_DMUL , BUILTIN_dmul  , ICMD_BUILTIN2, TYPE_DBL, TYPE_DBL  , TYPE_VOID , TYPE_DBL, SUPPORT_DOUBLE, true, "dmul"  },
-	{ ICMD_DDIV , BUILTIN_ddiv  , ICMD_BUILTIN2, TYPE_DBL, TYPE_DBL  , TYPE_VOID , TYPE_DBL, SUPPORT_DOUBLE, true, "ddiv"  },
-	{ ICMD_DNEG , BUILTIN_dneg  , ICMD_BUILTIN1, TYPE_DBL, TYPE_VOID , TYPE_VOID , TYPE_DBL, SUPPORT_DOUBLE, true, "dneg"  },
-	{ ICMD_DCMPL, BUILTIN_dcmpl , ICMD_BUILTIN2, TYPE_DBL, TYPE_DBL  , TYPE_VOID , TYPE_INT, SUPPORT_DOUBLE, true, "dcmpl" },
-	{ ICMD_DCMPG, BUILTIN_dcmpg , ICMD_BUILTIN2, TYPE_DBL, TYPE_DBL  , TYPE_VOID , TYPE_INT, SUPPORT_DOUBLE, true, "dcmpg" },
-
-	{ ICMD_F2D,  BUILTIN_f2d  , ICMD_BUILTIN1, TYPE_FLT, TYPE_VOID , TYPE_VOID , TYPE_DBL, SUPPORT_FLOAT && SUPPORT_DOUBLE, true, "f2d" },
-	{ ICMD_D2F,  BUILTIN_d2f  , ICMD_BUILTIN1, TYPE_DBL, TYPE_VOID , TYPE_VOID , TYPE_FLT, SUPPORT_FLOAT && SUPPORT_DOUBLE, true, "d2f" },
-#endif
-
-	/* this record marks the end of the automatically replaced opcodes */
-	{255,NULL,0,0,0,0,0,0,0,"<INVALID>"},
-
-	/* the following functions are not replaced automatically */
-	
-#if defined(__ALPHA__)
-	{255, BUILTIN_f2l  ,ICMD_BUILTIN1,TYPE_FLOAT ,TYPE_VOID  ,TYPE_VOID ,TYPE_LONG  ,0,0,"f2l"},
-	{255, BUILTIN_d2l  ,ICMD_BUILTIN1,TYPE_DOUBLE,TYPE_VOID  ,TYPE_VOID ,TYPE_LONG  ,0,0,"d2l"},
-	{255, BUILTIN_f2i  ,ICMD_BUILTIN1,TYPE_FLOAT ,TYPE_VOID  ,TYPE_VOID ,TYPE_INT   ,0,0,"f2i"},
-	{255, BUILTIN_d2i  ,ICMD_BUILTIN1,TYPE_DOUBLE,TYPE_VOID  ,TYPE_VOID ,TYPE_INT   ,0,0,"d2i"},
-#endif
-
-	{255,BUILTIN_instanceof      ,ICMD_BUILTIN2,TYPE_ADR   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_INT   ,0,0,"instanceof"},
-	{255,BUILTIN_arrayinstanceof ,ICMD_BUILTIN2,TYPE_ADR   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_INT   ,0,0,"arrayinstanceof"},
-	{255,BUILTIN_checkarraycast  ,ICMD_BUILTIN2,TYPE_ADR   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,0,0,"checkarraycast"},
-	{255,BUILTIN_aastore         ,ICMD_BUILTIN3,TYPE_ADR   ,TYPE_INT   ,TYPE_ADR   ,TYPE_VOID  ,0,0,"aastore"},
-	{255,BUILTIN_new             ,ICMD_BUILTIN1,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"new"},
-	{255,BUILTIN_newarray        ,ICMD_BUILTIN2,TYPE_INT   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray"},
-	{255,BUILTIN_newarray_boolean,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_boolean"},
-	{255,BUILTIN_newarray_char   ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_char"},
-	{255,BUILTIN_newarray_float  ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_float"},
-	{255,BUILTIN_newarray_double ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_double"},
-	{255,BUILTIN_newarray_byte   ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_byte"},
-	{255,BUILTIN_newarray_short  ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_short"},
-	{255,BUILTIN_newarray_int    ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_int"},
-	{255,BUILTIN_newarray_long   ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_long"},
-#if defined(USE_THREADS)
-	{255,BUILTIN_monitorenter    ,ICMD_BUILTIN1,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_VOID  ,0,0,"monitorenter"},
-	{255,BUILTIN_monitorexit     ,ICMD_BUILTIN1,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_VOID  ,0,0,"monitorexit"},
-#endif
-#if !SUPPORT_DIVISION
-	{255,BUILTIN_idiv            ,ICMD_BUILTIN2,TYPE_INT   ,TYPE_INT   ,TYPE_VOID  ,TYPE_INT   ,0,0,"idiv"},
-	{255,BUILTIN_irem            ,ICMD_BUILTIN2,TYPE_INT   ,TYPE_INT   ,TYPE_VOID  ,TYPE_INT   ,0,0,"irem"},
-#endif
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
-	{255,BUILTIN_ldiv            ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID  ,TYPE_LONG  ,0,0,"ldiv"},
-	{255,BUILTIN_lrem            ,ICMD_BUILTIN2,TYPE_LONG  ,TYPE_LONG  ,TYPE_VOID  ,TYPE_LONG  ,0,0,"lrem"},
-#endif
-	{255,BUILTIN_frem            ,ICMD_BUILTIN2,TYPE_FLOAT ,TYPE_FLOAT ,TYPE_VOID  ,TYPE_FLOAT ,0,0,"frem"},
-	{255,BUILTIN_drem            ,ICMD_BUILTIN2,TYPE_DOUBLE,TYPE_DOUBLE,TYPE_VOID  ,TYPE_DOUBLE,0,0,"drem"},
-
-	/* this record marks the end of the list */
-	{  0,NULL,0,0,0,0,0,0,0,"<END>"}
-};
-
-
 /* include compiler subsystems ************************************************/
 
 /* dummy function, used when there is no JavaVM code available                */
@@ -1640,7 +1452,7 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 		}
 	}
  	else
-#endif
+#endif /* LSRA */
 	{
 #ifdef STATISTICS
 		if (opt_stat)
@@ -1705,61 +1517,11 @@ void compile_all_class_methods(classinfo *c)
 
 /* functions for compiler initialisation and finalisation *********************/
 
-#ifdef USEBUILTINTABLE
-
-static int stdopcompare(const void *a, const void *b)
-{
-	builtin_descriptor *o1 = (builtin_descriptor *) a;
-	builtin_descriptor *o2 = (builtin_descriptor *) b;
-	if (!o1->supported && o2->supported)
-		return -1;
-	if (o1->supported && !o2->supported)
-		return 1;
-	return (o1->opcode < o2->opcode) ? -1 : (o1->opcode > o2->opcode);
-}
-
-static inline void sort_builtintable()
-{
-	int len;
-
-	len = 0;
-	while (builtin_desc[len].opcode != 255) len++;
-	qsort(builtin_desc, len, sizeof(builtin_descriptor), stdopcompare);
-
-	for (--len; len>=0 && builtin_desc[len].supported; len--);
-	builtintablelen = ++len;
-}
-
-
-builtin_descriptor *find_builtin(int icmd)
-{
-	builtin_descriptor *first = builtin_desc;
-	builtin_descriptor *last = builtin_desc + builtintablelen;
-	int len = last - first;
-	int half;
-	builtin_descriptor *middle;
-
-	while (len > 0) {
-		half = len / 2;
-		middle = first + half;
-		if (middle->opcode < icmd) {
-			first = middle + 1;
-			len -= half + 1;
-		} else
-			len = half;
-	}
-	return first != last ? first : NULL;
-}
-
-#endif
-
-
-
-void jit_init()
+void jit_init(void)
 {
 	s4 i;
 
-#ifdef USEBUILTINTABLE
+#if defined(USEBUILTINTABLE)
 	sort_builtintable();
 #endif
 
