@@ -280,13 +280,18 @@ The class' constant pool is loaded via
 \end{verbatim}
 
 from the \texttt{constant\_pool} table in the binary representation of
-the class of interface. The constant pool needs to be parsed in two
-passes. In the first pass the information loaded is saved in temporary
-structures, which are further processed in the second pass, when the
-complete constant pool has been traversed. Only when the whole
-constant pool entries have been loaded, any constant pool entry can be
-completely resolved, but this resolving can only be done in a specific
-order:
+the class of interface. The \texttt{classinfo} structure has two
+pointers to arrays which contain the class' constant pool infos,
+namely: \texttt{cptags} and \texttt{cpinfos}. \texttt{cptags} contains
+the type of the constant pool entry. \texttt{cpinfos} contains a
+pointer to the constant pool entry itself.
+
+The constant pool needs to be parsed in two passes. In the first pass
+the information loaded is saved in temporary structures, which are
+further processed in the second pass, when the complete constant pool
+has been traversed. Only when all constant pool entries have been
+processed, every constant pool entry can be completely resolved, but
+this resolving can only be done in a specific order:
 
 \begin{enumerate}
  \item \texttt{CONSTANT\_Class}
@@ -295,23 +300,14 @@ order:
 
  \item \texttt{CONSTANT\_NameAndType}
 
- \item \texttt{CONSTANT\_Fieldref}, \texttt{CONSTANT\_Methodref} and
- \texttt{CONSTANT\_InterfaceMethodref} --- these are combined into one
- structure
+ \item \texttt{CONSTANT\_Fieldref} \\ \texttt{CONSTANT\_Methodref} \\
+ \texttt{CONSTANT\_InterfaceMethodref} --- these entries are combined
+ into one structure
 \end{enumerate}
 
-\begingroup
-\tolerance 10000
-The remaining constant pool types \texttt{CONSTANT\_Integer},
-\texttt{CONSTANT\_Float}, \texttt{CONSTANT\_Long},
-\texttt{CONSTANT\_Double} and \texttt{CONSTANT\_Utf8} can be
-completely resolved in the first pass and need no further processing.
-
-\endgroup
-
-The temporary structures, shown in
-figure~\ref{constantpoolstructures}, are used to \textit{forward} the
-data from the first pass into the second.
+The temporary structures which are used to \textit{forward} the data
+from the first pass into the second, are shown in
+figure~\ref{constantpoolstructures}.
 
 \begin{figure}[h]
 \begin{verbatim}
@@ -350,36 +346,297 @@ data from the first pass into the second.
 \label{constantpoolstructures}
 \end{figure}
 
-The \texttt{classinfo} structure has two pointers to arrays which
-contain the class' constant pool infos, namely: \texttt{cptags} and
-\texttt{cpinfos}. \texttt{cptags} contains the type of the constant
-pool entry. \texttt{cpinfos} contains a pointer to the constant pool
-entry itself. In the second pass the references are resolved and the
-runtime structures are created. In further detail this includes for
+The following list describes how the constant pool entries, which need
+two passes, are processed in the first pass.
 
 \begin{itemize}
- \item \texttt{CONSTANT\_Class}: get the UTF8 name string of the
- class, store type \texttt{CONSTANT\_Class} in \texttt{cptags}, create
- a class in the class hashtable with the UTF8 name and store the
- pointer to the new class in \texttt{cpinfos}
 
- \item \texttt{CONSTANT\_String}: get the UTF8 string of the
- referenced string, store type \texttt{CONSTANT\_String} in
- \texttt{cptags} and store the UTF8 string pointer into
- \texttt{cpinfos}
+ \item \texttt{CONSTANT\_Class}
 
- \begingroup
- \tolerance 10000
- \item \texttt{CONSTANT\_NameAndType}: create a
- \texttt{constant\_nameandtype} (see
- figure~\ref{constantnameandtype}) structure, get the UTF8 name and
- description string of the field or method and store them into the
- \texttt{constant\_nameandtype} structure, store type
- \texttt{CONSTANT\_NameAndType} into \texttt{cptags} and store a
- pointer to the \texttt{constant\_nameandtype} structure into
- \texttt{cpinfos}
+ \begin{itemize}
+  \item create a new \texttt{forward\_class} structure
 
- \endgroup
+  \item add the \texttt{forward\_class} structure to the
+  \texttt{forward\_classes} list
+
+  \item store the current constant pool index into the
+  \texttt{thisindex} field
+
+  \item read the index of the class' name via \texttt{suck\_u2} and
+  store it into the \texttt{name\_index} field
+
+  \item increase the constant pool index by one
+ \end{itemize}
+
+ \item \texttt{CONSTANT\_String}
+
+ \begin{itemize}
+  \item create a new \texttt{forward\_string} structure
+
+  \item add the \texttt{forward\_string} structure to the \texttt{forward\_strings} list
+
+  \item store the current constant pool index into the \texttt{thisindex} field
+
+  \item read the index of the UTF8 string via \texttt{suck\_u2} and store it into the \texttt{name\_index} field
+
+  \item increase the constant pool index by one
+ \end{itemize}
+
+ \item \texttt{CONSTANT\_NameAndType}
+
+ \begin{itemize}
+  \item create a new \texttt{forward\_nameandtype} structure
+
+  \item add the \texttt{forward\_nameandtype} structure to the
+  \texttt{forward\_nameandtypes} list
+
+  \item store the current constant pool index into the
+  \texttt{thisindex} field
+
+  \item read the index of the UTF8 string containing the name via
+  \texttt{suck\_u2} and store it into the \texttt{name\_index} field
+
+  \item read the index of the UTF8 string containing the field or
+  method descriptor via \texttt{suck\_u2} and store it into the
+  \texttt{sig\_index} field
+
+  \item increase the constant pool index by one
+ \end{itemize}
+
+ \item \texttt{CONSTANT\_Fieldref} \\ \texttt{CONSTANT\_Methodref} \\
+ \texttt{CONSTANT\_InterfaceMethodref}
+
+ \begin{itemize}
+  \item create a new \texttt{forward\_fieldmethint} structure
+
+  \item add the \texttt{forward\_fieldmethint} structure to the
+  \texttt{forward\_fieldmethints} list
+
+  \item store the current constant pool index into the
+  \texttt{thisindex} field
+
+  \item store the current constant pool type into the \texttt{tag}
+  field
+
+  \item read the constant pool index of the \texttt{CONSTANT\_Class}
+  entry that contains the declaration of the field or method via
+  \texttt{suck\_u2} and store it into the \texttt{class\_index} field
+
+  \item read the constant pool index of the
+  \texttt{CONSTANT\_NameAndType} entry that contains the name and
+  descriptor of the field or method and store it into the
+  \texttt{nameandtype\_index} field
+
+  \item increase the constant pool index by one
+
+ \end{itemize}
+
+\end{itemize}
+
+The remaining constant pool types can be completely resolved in the
+first pass and need no further processing. These types, including the
+actions taken in the first pass, are as follows:
+
+\begin{itemize}
+
+ \item \texttt{CONSTANT\_Integer}
+
+ \begin{itemize}
+
+  \item create a new \texttt{constant\_integer} structure (see
+  figure~\ref{constantintegerstructure})
+
+  \item read a 4 byte \texttt{signed integer} value via
+  \texttt{suck\_s4} from the binary representation
+
+  \item store the value into the \texttt{value} field of the
+  \texttt{constant\_integer} structure
+
+  \item store the type \texttt{CONSTANT\_Integer} into \texttt{cptags}
+  and the pointer to the \texttt{constant\_integer} structure into
+  \texttt{cpinfos} at the appropriate index
+
+  \item increase the constant pool index by one
+
+ \end{itemize}
+
+\begin{figure}[h]
+\begin{verbatim}
+        typedef struct {            /* Integer                                    */
+            s4 value;
+        } constant_integer;
+\end{verbatim}
+\caption{\texttt{constant\_integer} structure}
+\label{constantintegerstructure}
+\end{figure}
+
+ \item \texttt{CONSTANT\_Float}
+
+ \begin{itemize}
+
+  \item create a new \texttt{constant\_float} structure (see
+  figure~\ref{constantfloatstructure})
+
+  \item read a 4 byte \texttt{float} value via \texttt{suck\_float}
+  from the binary representation
+
+  \item store the value into the \texttt{value} field of the
+  \texttt{constant\_float} structure
+
+  \item store the type \texttt{CONSTANT\_Float} into \texttt{cptags}
+  and the pointer to the \texttt{constant\_float} structure into
+  \texttt{cpinfos} at the appropriate index
+
+  \item increase the constant pool index by one
+
+ \end{itemize}
+
+\begin{figure}[h]
+\begin{verbatim}
+        typedef struct {            /* Float                                      */
+            float value;
+        } constant_float;
+\end{verbatim}
+\caption{\texttt{constant\_float} structure}
+\label{constantfloatstructure}
+\end{figure}
+
+ \item \texttt{CONSTANT\_Long}
+
+ \begin{itemize}
+
+  \item create a new \texttt{constant\_long} structure (see
+  figure~\ref{constantlongstructure})
+
+  \item read a 8 byte \texttt{signed long} value via \texttt{suck\_s8}
+  from the binary representation
+
+  \item store the value into the \texttt{value} field of the
+  \texttt{constant\_long} structure
+
+  \item store the type \texttt{CONSTANT\_Long} into \texttt{cptags}
+  and the pointer to the \texttt{constant\_long} structure into
+  \texttt{cpinfos} at the appropriate index
+
+  \item increase the constant pool index by two
+
+ \end{itemize}
+
+\begin{figure}[h]
+\begin{verbatim}
+        typedef struct {            /* Long                                       */
+            s8 value;
+        } constant_long;
+\end{verbatim}
+\caption{\texttt{constant\_long} structure}
+\label{constantlongstructure}
+\end{figure}
+
+ \item \texttt{CONSTANT\_Double}
+
+ \begin{itemize}
+
+  \item create a new \texttt{constant\_double} structure (see
+  figure~\ref{constantdoublestructure})
+
+  \item read a 8 byte \texttt{double} value via \texttt{suck\_double}
+  from the binary representation
+
+  \item store the value into the \texttt{value} field of the
+  \texttt{constant\_double} structure
+
+  \item store the type \texttt{CONSTANT\_Double} into \texttt{cptags}
+  and the pointer to the \texttt{constant\_double} structure into
+  \texttt{cpinfos} at the appropriate index
+
+  \item increase the constant pool index by two
+
+ \end{itemize}
+
+\begin{figure}[h]
+\begin{verbatim}
+        typedef struct {            /* Double                                     */
+            double value;
+        } constant_double;
+\end{verbatim}
+\caption{\texttt{constant\_double} structure}
+\label{constantdoublestructure}
+\end{figure}
+
+ \item \texttt{CONSTANT\_Utf8}
+
+ \begin{itemize}
+
+  \item read the length of the UTF8 string via \texttt{suck\_u2}
+
+  \item store the type \texttt{CONSTANT\_Utf8} into \texttt{cptags} at
+  the appropriate index
+
+  \item create a new UTF8 string in the runtime environment of the
+  Java Virtual Machine via \texttt{utf\_new\_intern}
+
+  \item store the pointer of the newly created UTF8 string into
+  \texttt{cpinfos} at the appropriate index
+
+  \item skip \texttt{length} bytes in the binary representation of the
+  class or interface via \texttt{skip\_nbytes}
+
+  \item increase the constant pool index by one
+
+ \end{itemize}
+
+\end{itemize}
+
+In the second pass, the references are resolved and the runtime
+structures are created. In further detail this includes for
+
+\begin{itemize}
+
+ \item \texttt{CONSTANT\_Class}
+
+  \begin{itemize}
+
+   \item resolve the UTF8 name string from the class' constant pool
+
+   \item store the type \texttt{CONSTANT\_Class} in \texttt{cptags} at
+   the appropriate index
+
+   \item create a class in the class hashtable with the UTF8 name
+
+   \item store the pointer to the new class in \texttt{cpinfos} at the
+   appropriate index
+
+  \end{itemize}
+
+ \item \texttt{CONSTANT\_String}
+
+  \begin{itemize}
+
+   \item resolve the UTF8 string of the referenced string from the
+   class' constant pool
+
+   \item store type \texttt{CONSTANT\_String} in \texttt{cptags} and
+   store the UTF8 string pointer into \texttt{cpinfos} at the
+   appropriate index
+
+  \end{itemize}
+
+ \item \texttt{CONSTANT\_NameAndType}
+
+  \begin{itemize}
+
+   \item create a new \texttt{constant\_nameandtype} structure (see
+   figure~\ref{constantnameandtype})
+
+   \item resolve the UTF8 name and description string of the field or
+   method and store them into the \texttt{constant\_nameandtype}
+   structure
+
+   \item store type \texttt{CONSTANT\_NameAndType} into
+  \texttt{cptags} and store a pointer to the
+  \texttt{constant\_nameandtype} structure into \texttt{cpinfos}
+
+  \end{itemize}
 
 \begin{figure}[h]
 \begin{verbatim}
@@ -392,21 +649,29 @@ runtime structures are created. In further detail this includes for
 \label{constantnameandtype}
 \end{figure}
 
- \begingroup
- \tolerance 10000
- \item \texttt{CONSTANT\_Fieldref}, \texttt{CONSTANT\_Methodref} and
- \texttt{CONSTANT\_InterfaceMethodref}: create a
- \texttt{constant\_FMIref} (see figure~\ref{constantFMIref})
- structure, get the referenced \texttt{constant\_nameandtype}
- structure which contains the name and descriptor resolved in a
- previous step and store the name and descriptor into the
- \texttt{constant\_FMIref} structure, get the pointer of the
- referenced class, which was created in a previous step, and store the
- pointer of the class into the \texttt{constant\_FMIref} structure,
- store the type of the current constant pool entry in \texttt{cptags}
- and store a pointer to \texttt{constant\_FMIref} in \texttt{cpinfos}
+ \item \texttt{CONSTANT\_Fieldref} \\
+       \texttt{CONSTANT\_Methodref} \\
+       \texttt{CONSTANT\_InterfaceMethodref}
 
- \endgroup
+  \begin{itemize}
+
+   \item create a new \texttt{constant\_FMIref} structure (see
+   figure~\ref{constantFMIref})
+
+   \item resolve the referenced \texttt{constant\_nameandtype}
+   structure which contains the name and descriptor resolved in a
+   previous step and store the name and descriptor into the
+   \texttt{constant\_FMIref} structure
+
+   \item resolve the pointer of the referenced class which was created
+   in a previous step and store the pointer of the class into the
+   \texttt{constant\_FMIref} structure
+
+   \item store the type of the current constant pool entry in
+   \texttt{cptags} and store the pointer to \texttt{constant\_FMIref}
+   in \texttt{cpinfos} at the appropriate index
+
+  \end{itemize}
 
 \begin{figure}[h]
 \begin{verbatim}
@@ -702,7 +967,7 @@ pointer to signal that there was no problem. If \texttt{NULL} is
 returned, there was an exception.
 
 
-\section{Dynamic class loader}
+%\section{Dynamic class loader}
 
 
 \section{Eager - lazy class loading}
@@ -757,8 +1022,8 @@ linked and the \texttt{class\_new} functions returns.
 \subsection{Lazy class loading}
 \label{sectionlazyclassloading}
 
-With \textit{eager class loading}, usually it takes much more time for
-a Java Virtual Machine to start a program as with \textit{lazy class
+Usually it takes much more time for a Java Virtual Machine to start a
+program with \textit{eager class loading} as with \textit{lazy class
 loading}. With \textit{eager class loading}, a typical
 \texttt{HelloWorld} program needs 513 class loads with the current GNU
 classpath CACAO is using. When using \textit{lazy class loading},
@@ -976,9 +1241,10 @@ class' and every superclass' interfaces, the function
 is called. This function computes the highest interface \texttt{index}
 of the passed interface and returns the value. This is done by
 recursively calling \texttt{class\_highestinterface} with each
-interface from the passed interface. The highest \texttt{index} value
-found is the \textit{interface table length} of the currently linking
-class or interface.
+interface from the \texttt{interfaces} array of the passed interface
+as argument. The highest \texttt{index} value found is the
+\textit{interface table length} of the currently linking class or
+interface.
 
 Now that the linker has completely computed the size of the
 \textit{virtual function table}, the memory can be allocated, casted
