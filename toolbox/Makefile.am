@@ -1,10 +1,12 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 662 2003-11-21 18:06:25Z jowenn $
+# $Id: Makefile.am 882 2004-01-14 12:37:05Z stefan $
 
 noinst_LIBRARIES = libtoolbox.a
 
 libtoolbox_a_SOURCES = \
+	avl.c \
+	avl.h \
 	memory.c \
 	memory.h \
 	loging.c \
