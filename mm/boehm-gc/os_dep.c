@@ -2027,7 +2027,7 @@ GC_bool GC_dirty_maintained = FALSE;
 /* written.								*/
 
 /* Initialize virtual dirty bit implementation.			*/
-void GC_dirty_init()
+void GC_dirty_init(int gc_external)
 {
 #   ifdef PRINTSTATS
       GC_printf0("Initializing DEFAULT_VDB...\n");
@@ -2593,7 +2593,7 @@ GC_bool is_ptrfree;
 }
 
 #if !defined(DARWIN)
-void GC_dirty_init()
+void GC_dirty_init(int gc_external)
 {
 #   if defined(SUNOS5SIGS) || defined(IRIX5) || defined(LINUX) || \
        defined(OSF1) || defined(HURD)
@@ -3009,7 +3009,7 @@ page_hash_table pht1, pht2;
 
 int GC_proc_fd;
 
-void GC_dirty_init()
+void GC_dirty_init(int gc_external)
 {
     int fd;
     char buf[30];
@@ -3217,7 +3217,7 @@ PCR_VD_DB  GC_grungy_bits[NPAGES];
 ptr_t GC_vd_base;	/* Address corresponding to GC_grungy_bits[0]	*/
 			/* HBLKSIZE aligned.				*/
 
-void GC_dirty_init()
+void GC_dirty_init(int gc_external)
 {
     GC_dirty_maintained = TRUE;
     /* For the time being, we assume the heap generally grows up */
@@ -3535,13 +3535,14 @@ static void GC_darwin_sigbus(int num,siginfo_t *sip,void *context) {
 }
 #endif /* BROKEN_EXCEPTION_HANDLING */
 
-void GC_dirty_init() {
+void GC_dirty_init(int gc_external) {
     kern_return_t r;
     mach_port_t me;
     pthread_t thread;
     pthread_attr_t attr;
     exception_mask_t mask;
     
+	if (!gc_external) {
 #   ifdef PRINTSTATS
         GC_printf0("Inititalizing mach/darwin mprotect virtual dirty bit "
             "implementation\n");
@@ -3555,6 +3556,8 @@ void GC_dirty_init() {
         GC_err_printf0("Page size not multiple of HBLKSIZE\n");
         ABORT("Page size not multiple of HBLKSIZE");
     }
+
+	} else {
     
     GC_task_self = me = mach_task_self();
     
@@ -3620,6 +3623,7 @@ void GC_dirty_init() {
         }
     }
     #endif /* BROKEN_EXCEPTION_HANDLING  */
+	}
 }
  
 /* The source code for Apple's GDB was used as a reference for the exception

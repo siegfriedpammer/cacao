@@ -1758,7 +1758,7 @@ void GC_remove_protection GC_PROTO((struct hblk *h, word nblocks,
 			/* that it's not write protected by the virtual	    */
 			/* dirty bit implementation.			    */
 			
-void GC_dirty_init GC_PROTO((void));
+void GC_dirty_init GC_PROTO((int gc_external));
   
 /* Slow/general mark bit manipulation: */
 GC_API GC_bool GC_is_marked GC_PROTO((ptr_t p));

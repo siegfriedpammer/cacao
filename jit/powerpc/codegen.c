@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1138 2004-06-05 20:39:49Z twisti $
+   $Id: codegen.c 1156 2004-06-11 11:34:49Z stefan $
 
 */
 
@@ -267,6 +267,7 @@ static int reg_of_var(stackptr v, int tempregnum)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 void thread_restartcriticalsection(void *u)
 {
+	/* XXX set pc to restart address */
 }
 #endif
 
@@ -282,6 +283,9 @@ int cacao_catch_Handler(mach_port_t thread)
 	mach_msg_type_number_t thread_state_count = PPC_THREAD_STATE_COUNT;
 	ppc_thread_state_t thread_state;
 	kern_return_t r;
+	
+	if (checknull)
+		return 0;
 
 	r = thread_get_state(thread, flavor,
 		(natural_t*)&thread_state, &thread_state_count);
@@ -299,6 +303,7 @@ int cacao_catch_Handler(mach_port_t thread)
 
 		regs[REG_ITMP2_XPC] = crashpc;
 		regs[REG_ITMP1_XPTR] = (u4) xptr;
+		thread_state.srr0 = (u4) asm_handle_exception;
 
 		r = thread_set_state(thread, flavor,
 			(natural_t*)&thread_state, thread_state_count);
@@ -314,6 +319,7 @@ int cacao_catch_Handler(mach_port_t thread)
 
 void init_exceptions(void)
 {
+	GC_dirty_init(1);
 }
 
 void adjust_argvars(stackptr s, int d, int *fa, int *ia)
