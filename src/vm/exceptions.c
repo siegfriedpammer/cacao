@@ -1,4 +1,4 @@
-/* vm/exceptions.c - exception related functions
+/* src/vm/exceptions.c - exception related functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1935 2005-02-10 11:01:26Z twisti $
+   Changes:
+
+   $Id: exceptions.c 2147 2005-03-30 16:47:35Z twisti $
 
 */
 
@@ -184,29 +186,29 @@ bool exceptions_init(void)
 {
 	/* java/lang/Throwable */
 
-	if (!class_load(class_java_lang_Throwable) ||
-		!class_link(class_java_lang_Throwable))
+	if (!load_class_bootstrap(class_java_lang_Throwable) ||
+		!link_class(class_java_lang_Throwable))
 		return false;
 
 
 	/* java/lang/Exception */
 
-	if (!class_load(class_java_lang_Exception) ||
-		!class_link(class_java_lang_Exception))
+	if (!load_class_bootstrap(class_java_lang_Exception) ||
+		!link_class(class_java_lang_Exception))
 		return false;
 
 
 	/* java/lang/Error */
 
-	if (!class_load(class_java_lang_Error) ||
-		!class_link(class_java_lang_Error))
+	if (!load_class_bootstrap(class_java_lang_Error) ||
+		!link_class(class_java_lang_Error))
 		return false;
 
 
 	/* java/lang/OutOfMemoryError */
 
-	if (!class_load(class_java_lang_OutOfMemoryError) ||
-		!class_link(class_java_lang_OutOfMemoryError))
+	if (!load_class_bootstrap(class_java_lang_OutOfMemoryError) ||
+		!link_class(class_java_lang_OutOfMemoryError))
 		return false;
 
 	return true;
@@ -397,6 +399,25 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 	sprintf(msg + strlen(msg), ")");
 
 	return new_exception_message(string_java_lang_ClassFormatError, msg);
+}
+
+
+/* new_internalerror ***********************************************************
+
+   Generates a java.lang.InternalError for the VM.
+
+*******************************************************************************/
+
+java_objectheader *new_internalerror(const char *message, ...)
+{
+	char msg[MAXLOGTEXT];
+	va_list ap;
+
+	va_start(ap, message);
+	vsprintf(msg, message, ap);
+	va_end(ap);
+
+	return new_exception_message(string_java_lang_InternalError, msg);
 }
 
 

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 2110 2005-03-29 21:25:51Z twisti $
+   $Id: exceptions.h 2147 2005-03-30 16:47:35Z twisti $
 
 */
 
@@ -150,6 +150,7 @@ java_objectheader *new_exception_int(const char *classname, s4 i);
 /* functions to generate compiler exceptions */
 
 java_objectheader *new_classformaterror(classinfo *c, const char *message, ...);
+java_objectheader *new_internalerror(const char *message, ...);
 java_objectheader *new_verifyerror(methodinfo *m, const char *message);
 java_objectheader *new_unsupportedclassversionerror(classinfo *c,
 													const char *message, ...);
