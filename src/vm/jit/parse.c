@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 813 2003-12-31 00:21:52Z edwin $
+   $Id: parse.c 843 2004-01-05 00:50:24Z twisti $
 
 */
 
@@ -37,6 +37,7 @@
 #include <string.h>
 #include "parse.h"
 #include "global.h"
+#include "main.h"
 #include "jit.h"
 #include "parseRT.h"
 #include "inline.h"
@@ -64,54 +65,6 @@ u1  *rt_jcode;           /* pointer to start of JavaVM-code            */
 //#include "inline.c"
 /*#define debug_writebranch printf("op: %s i: %d label_index[i]: %d\n",icmd_names[opcode], i, label_index[i]);*/
 #define debug_writebranch
-
-
-
-/* functionc compiler_addinitclass *********************************************
-
-	add class into the list of classes to initialize
-
-*******************************************************************************/
-                                
-void compiler_addinitclass(classinfo *c)
-{
-	classinfo *cl;
-
-	if (c->initialized) return;
-	
-	cl = chain_first(uninitializedclasses);
-	if (cl == c)
-		return;
-	
-	if (cl == class)
-		cl = chain_next(uninitializedclasses);
-	for (;;) {
-		if (cl == c)
-			return;
-		if (cl == NULL) {
-			if (runverbose) {
-				char logtext[MAXLOGTEXT];
-				sprintf(logtext, "compiler_addinitclass: ");
-				utf_sprint(logtext+strlen(logtext), c->name);
-				log_text(logtext);
-			}
-			chain_addlast(uninitializedclasses, c);
-			return;
-		}
-		if (c < cl) {
-			if (runverbose) {
-				char logtext[MAXLOGTEXT];
-				sprintf(logtext, "compiler_addinitclass: ");
-				utf_sprint(logtext+strlen(logtext), c->name);
-				log_text(logtext);
-			}
-			chain_addbefore(uninitializedclasses, c);
-			return;
-		}
-		cl = chain_next(uninitializedclasses);
-	}
-}                       
-
 
 
 /* function descriptor2typesL ***************************************************
@@ -451,8 +404,8 @@ static xtable* fillextable(xtable* extable, exceptiontable *raw_extable, int exc
 		return extable;
 	
 	b_count = *block_count;
+
 	for (i = 0; i < exceptiontablelength; i++) {
-								 
    		p = raw_extable[i].startpc;
 		if (label_index != NULL) p = label_index[p];
 		extable[i].startpc = p;
@@ -477,8 +430,9 @@ static xtable* fillextable(xtable* extable, exceptiontable *raw_extable, int exc
 		extable[i].catchtype  = raw_extable[i].catchtype;
 
 		extable[i].next = NULL;
-		extable[i].down = &extable[i+1];
-		}
+		extable[i].down = &extable[i + 1];
+	}
+
 	*block_count = b_count;
 	return &extable[i];  /* return the next free xtable* */
 }
@@ -1204,9 +1158,8 @@ void parse()
 			{
 				constant_FMIref *fr;
 				fieldinfo *fi;
-				fr = class_getconstant (class, i, CONSTANT_Fieldref);
-				fi = class_findfield (fr->class, fr->name, fr->descriptor);
-				compiler_addinitclass (fr->class);
+				fr = class_getconstant(class, i, CONSTANT_Fieldref);
+				fi = class_findfield(fr->class, fr->name, fr->descriptor);
 				OP2A(opcode, fi->type, fi);
 			}
 			break;
