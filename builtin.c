@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1356 2004-07-28 10:05:07Z twisti $
+   $Id: builtin.c 1369 2004-08-01 21:53:32Z stefan $
 
 */
 
@@ -478,10 +478,13 @@ java_objectheader *builtin_new(classinfo *c)
 
 	if (!o)
 		return NULL;
-	
+
 	memset(o, 0, c->instancesize);
 
 	o->vftbl = c->vftbl;
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	initObjectLock(o);
+#endif
 
 	return o;
 }
@@ -538,6 +541,9 @@ java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl)
 	memset(a, 0, actualsize);
 
 	a->objheader.vftbl = arrayvftbl;
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	initObjectLock(&a->objheader);
+#endif
 	a->size = size;
 #ifdef SIZE_FROM_CLASSINFO
 	a->alignedsize = actualsize;
@@ -1157,7 +1163,7 @@ void builtin_staticmonitorenter(classinfo *c)
 }
 
 
-void builtin_monitorexit(java_objectheader *o)
+void *builtin_monitorexit(java_objectheader *o)
 {
 #if defined(USE_THREADS)
 #if !defined(NATIVE_THREADS)
@@ -1177,8 +1183,10 @@ void builtin_monitorexit(java_objectheader *o)
 		internal_unlock_mutex_for_object(o);
 
 	--blockInts;
+	return o;
 #else
 	monitorExit((threadobject *) THREADOBJECT, o);
+	return o;
 #endif
 #endif
 }
