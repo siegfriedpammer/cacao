@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 2049 2005-03-20 16:25:33Z twisti $
+   $Id: codegen.h 2070 2005-03-24 12:21:53Z twisti $
 
 */
 
@@ -124,6 +124,10 @@ typedef enum {
     if ((size) == 1 || (reg) > 7 || (index) > 7 || (rm) > 7) { \
         *(cd->mcodeptr++) = (0x40 | (((size) & 0x01) << 3) | ((((reg) >> 3) & 0x01) << 2) | ((((index) >> 3) & 0x01) << 1) | (((rm) >> 3) & 0x01)); \
     }
+
+
+#define x86_64_emit_byte_rex(reg,index,rm) \
+    *(cd->mcodeptr++) = (0x40 | ((((reg) >> 3) & 0x01) << 2) | ((((index) >> 3) & 0x01) << 1) | (((rm) >> 3) & 0x01));
 
 
 #define x86_64_emit_mem(r,disp) \

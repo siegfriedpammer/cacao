@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 2050 2005-03-20 16:26:07Z twisti $
+   $Id: emitfuncs.c 2070 2005-03-24 12:21:53Z twisti $
 
 */
 
@@ -707,7 +707,7 @@ void x86_64_movw_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 i
 
 
 void x86_64_movb_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale) {
-	x86_64_emit_rex(0,(reg),(indexreg),(basereg));
+	x86_64_emit_byte_rex((reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x88;
 	x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
 }
