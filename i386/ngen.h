@@ -61,20 +61,14 @@
 /* #define REG_END   -1        last entry in tables */
 
 int nregdescint[] = {
-    REG_RET, REG_RES, REG_RES, REG_TMP, REG_RES, REG_RES, REG_TMP, REG_RES,
+    REG_RET, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP,
     REG_END };
-
-#define INT_SAV_CNT      0   /* number of int callee saved registers          */
-#define INT_ARG_CNT      0   /* number of int argument registers              */
 
 /* for use of reserved registers, see comment above */
 
 int nregdescfloat[] = {
     REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
     REG_END };
-
-#define FLT_SAV_CNT      0   /* number of flt callee saved registers          */
-#define FLT_ARG_CNT      0   /* number of flt argument registers              */
 
 /* for use of reserved registers, see comment above */
 

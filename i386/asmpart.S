@@ -313,6 +313,10 @@ asm_call_jit_compiler:
 		pushl	%ebp
 		movl	%esp, %ebp
 
+		pushl	%ebx            /* save register                              */
+		pushl	%esi
+		pushl	%edi
+				
 		movl	4(%ebp),%edx	/* get return address                         */
 		movb	-1(%edx),%bl	/* get function code                          */
 		cmpb	$0xd2,%bl		/* called with `call *REG_ITMP2' (%edx)?      */
@@ -336,20 +340,10 @@ L_not_virtual_interface:        /* a call from asm_calljavamethod             */
 L_call_jit_compile:
 		pushl	%edx            /* save address for method pointer            */
 
-		pushl	%ebx
-		pushl	%ebp
-		pushl	%esi
-		pushl	%edi
-				
 		pushl	%eax			/* push methodpointer on stack                */
 		call	jit_compile
 		addl	$4,%esp
 
-		popl	%edi
-		popl	%esi
-		popl	%ebp
-		popl	%ebx
-		
 		popl	%edx            /* restore address for method pointer         */
 		testl	%edx,%edx		/* is address == 0 (asm_calljavamethod)       */
 		je		L_call_method
@@ -357,6 +351,10 @@ L_call_jit_compile:
 		movl	%eax,(%edx)		/* and now save the new pointer               */
 
 L_call_method:
+		popl	%edi            /* restore registers                          */
+		popl	%esi
+		popl	%ebx
+		
 		leave
 		jmp		*%eax			/* ...and now call the new method             */
 
