@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1895 2005-02-01 08:59:24Z twisti $
+   $Id: stack.c 1942 2005-02-15 13:08:35Z twisti $
 
 */
 
@@ -2132,7 +2132,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen);
 		for (i = 0; i < m->basicblocks[0].mpc;) {
-			a = disassinstr(u1ptr, i);
+			a = disassinstr(u1ptr);
 			i += a;
 			u1ptr += a;
 		}
@@ -2205,16 +2205,16 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 			u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen + i);
 
 			if (bptr->next != NULL) {
-				for (; i < bptr->next->mpc; i++, u1ptr++) {
-					a = disassinstr(u1ptr, i);
+				for (; i < bptr->next->mpc; ) {
+					a = disassinstr(u1ptr);
 					i += a;
 					u1ptr += a;
 				}
 				printf("\n");
 
 			} else {
-				for (; u1ptr < (u1 *) ((ptrint) m->mcode + m->mcodelength); i++, u1ptr++) {
-					a = disassinstr(u1ptr, i); 
+				for (; u1ptr < (u1 *) ((ptrint) m->mcode + m->mcodelength); ) {
+					a = disassinstr(u1ptr); 
 					i += a;
 					u1ptr += a;
 				}
