@@ -10,7 +10,7 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 459 2003-09-16 10:52:43Z stefan $
+	Last Change: $Id: ngen.c 461 2003-09-16 11:21:32Z stefan $
 
 *******************************************************************************/
 
@@ -925,7 +925,7 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_IADD(s1, REG_ZERO, d );
+			M_ISLL_IMM(s1, 0, d );
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
