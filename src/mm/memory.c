@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 730 2003-12-11 21:23:31Z edwin $
+   $Id: memory.c 799 2003-12-16 22:30:41Z edwin $
 
 */
 
@@ -51,6 +51,7 @@
 typedef struct dumplist {
 	struct dumplist *prev;
 	char *dumpmem;
+	int size;
 } dumplist;
 
 
@@ -380,27 +381,30 @@ long int mem_usage()
 void *dump_alloc(int length)
 {
 	void *m;
+	int blocksize = DUMPBLOCKSIZE;
 
 	if (length == 0) return NULL;
 	
 	length = ALIGN(length, ALIGNSIZE);
 
-	assert(length <= DUMPBLOCKSIZE);
+	if (length > DUMPBLOCKSIZE)
+		blocksize = length;
 	assert(length > 0);
 
 	if (dumpsize + length > dumpspace) {
 		dumplist *newdumpblock = checked_alloc(sizeof(dumplist));
 
 		newdumpblock->prev = topdumpblock;
+		newdumpblock->size = blocksize;
 		topdumpblock = newdumpblock;
 
-		newdumpblock->dumpmem = checked_alloc(DUMPBLOCKSIZE);
+		newdumpblock->dumpmem = checked_alloc(blocksize);
 
 		dumpsize = dumpspace;
-		dumpspace += DUMPBLOCKSIZE;		
+		dumpspace += blocksize;
 	}
 	
-	m = topdumpblock->dumpmem + DUMPBLOCKSIZE - (dumpspace - dumpsize);
+	m = topdumpblock->dumpmem + blocksize - (dumpspace - dumpsize);
 	dumpsize += length;
 	
 	if (dumpsize > maxdumpsize) {
@@ -431,11 +435,19 @@ void dump_release(long int size)
 
 	dumpsize = size;
 	
-	while (dumpspace > dumpsize + DUMPBLOCKSIZE) {
+	while (topdumpblock && (dumpspace - topdumpblock->size >= dumpsize)) {
 		dumplist *oldtop = topdumpblock;
+
+#ifdef TRACECALLARGS
+		/* Keep the first dumpblock if we don't free memory. Otherwise
+		 * a new dumpblock is allocated each time and we run out of
+		 * memory.
+		 */
+		if (!oldtop->prev) break;
+#endif
 		
+		dumpspace -= oldtop->size;
 		topdumpblock = oldtop->prev;
-		dumpspace -= DUMPBLOCKSIZE;
 		
 #ifdef TRACECALLARGS
 #else
