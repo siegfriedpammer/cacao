@@ -28,14 +28,10 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1064 2004-05-16 15:36:36Z twisti $
+   $Id: codegen.c 1126 2004-06-03 21:35:05Z twisti $
 
 */
 
-
-#define _POSIX_C_SOURCE 199506L
-#define _XOPEN_SOURCE
-#define _XOPEN_SOURCE_EXTENDED
 
 #include <stdio.h>
 #include <signal.h>
@@ -51,7 +47,6 @@
 #include "loader.h"
 #include "tables.h"
 #include "native.h"
-#include "methodtable.h"
 
 /* include independent code generation stuff */
 #include "codegen.inc"
@@ -116,6 +111,18 @@ int nregdescfloat[] = {
         x86_64_jcc(X86_64_CC_E, 0); \
  	    codegen_addxnullrefs(mcodeptr); \
 	}
+
+
+#define gen_div_check(v) \
+    if (checknull) { \
+        if ((v)->flags & INMEMORY) { \
+            x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8); \
+        } else { \
+            x86_64_test_reg_reg(src->regoff, src->regoff); \
+        } \
+        x86_64_jcc(X86_64_CC_E, 0); \
+        codegen_addxdivrefs(mcodeptr); \
+    }
 
 
 /* MCODECHECK(icnt) */
@@ -334,9 +341,9 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 	xptr = new_exception_message(string_java_lang_ArithmeticException,
 								 string_java_lang_ArithmeticException_message);
 
-	sigctx->rax = (s8) xptr;                             /* REG_ITMP1_XPTR    */
+	sigctx->rax = (u8) xptr;                             /* REG_ITMP1_XPTR    */
 	sigctx->r10 = sigctx->rip;                           /* REG_ITMP2_XPC     */
-	sigctx->rip = (s8) asm_handle_exception;
+	sigctx->rip = (u8) asm_handle_exception;
 
 	return;
 }
@@ -626,9 +633,9 @@ void codegen()
 	/* end of header generation */
 
 	/* walk through all basic blocks */
-	for (/* bbs = block_count, */ bptr = block; /* --bbs >= 0 */ bptr != NULL; bptr = bptr->next) {
+	for (bptr = block; bptr != NULL; bptr = bptr->next) {
 
-		bptr->mpc = (int)((u1*) mcodeptr - mcodebase);
+		bptr->mpc = (u4) ((u1 *) mcodeptr - mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
 
@@ -1448,6 +1455,7 @@ void codegen()
 			} else {
 				M_INTMOVE(src->regoff, REG_ITMP3);
 			}
+			gen_div_check(src);
 
 			x86_64_alul_imm_reg(X86_64_CMP, 0x80000000, RAX);    /* check as described in jvm spec */
 			x86_64_jcc(X86_64_CC_NE, 4 + 6);
@@ -1487,6 +1495,7 @@ void codegen()
 			} else {
 				M_INTMOVE(src->regoff, REG_ITMP3);
 			}
+			gen_div_check(src);
 
 			x86_64_alul_imm_reg(X86_64_CMP, 0x80000000, RAX);    /* check as described in jvm spec */
 			x86_64_jcc(X86_64_CC_NE, 2 + 4 + 6);
@@ -1557,6 +1566,7 @@ void codegen()
 			} else {
 				M_INTMOVE(src->regoff, REG_ITMP3);
 			}
+			gen_div_check(src);
 
 			x86_64_mov_imm_reg(0x8000000000000000LL, REG_ITMP2);    /* check as described in jvm spec */
 			x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP2, REG_ITMP1);
@@ -1597,6 +1607,7 @@ void codegen()
 			} else {
 				M_INTMOVE(src->regoff, REG_ITMP3);
 			}
+			gen_div_check(src);
 
 			x86_64_mov_imm_reg(0x8000000000000000LL, REG_ITMP2);    /* check as described in jvm spec */
 			x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP2, REG_ITMP1);
@@ -3449,11 +3460,11 @@ gen_method: {
 			codegen_addxcheckarefs(mcodeptr);
 			break;
 
-		case ICMD_CHECKOOM:    /* ... ==> ...                                 */
+		case ICMD_CHECKEXCEPTION:    /* ... ==> ...                           */
 
 			x86_64_test_reg_reg(REG_RESULT, REG_RESULT);
 			x86_64_jcc(X86_64_CC_E, 0);
-			codegen_addxoomrefs(mcodeptr);
+			codegen_addxexceptionrefs(mcodeptr);
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
@@ -3542,12 +3553,14 @@ gen_method: {
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(mcodebase + xboundrefs->branchpos, 
-				xboundrefs->branchpos, xcodeptr - mcodebase - (3 + 10 + 10 + 3));
+							  xboundrefs->branchpos,
+							  xcodeptr - mcodebase - (3 + 10 + 10 + 3));
 			continue;
 		}
 
 		gen_resolvebranch(mcodebase + xboundrefs->branchpos, 
-		                  xboundrefs->branchpos, mcodeptr - mcodebase);
+		                  xboundrefs->branchpos,
+						  mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -3586,12 +3599,14 @@ gen_method: {
 	for (; xcheckarefs != NULL; xcheckarefs = xcheckarefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(mcodebase + xcheckarefs->branchpos, 
-				xcheckarefs->branchpos, xcodeptr - mcodebase - (10 + 10 + 3));
+							  xcheckarefs->branchpos,
+							  xcodeptr - mcodebase - (10 + 10 + 3));
 			continue;
 		}
 
 		gen_resolvebranch(mcodebase + xcheckarefs->branchpos, 
-		                  xcheckarefs->branchpos, mcodeptr - mcodebase);
+		                  xcheckarefs->branchpos,
+						  mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -3626,12 +3641,14 @@ gen_method: {
 	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(mcodebase + xcastrefs->branchpos, 
-				xcastrefs->branchpos, xcodeptr - mcodebase - (10 + 10 + 3));
+							  xcastrefs->branchpos,
+							  xcodeptr - mcodebase - (10 + 10 + 3));
 			continue;
 		}
 
 		gen_resolvebranch(mcodebase + xcastrefs->branchpos, 
-		                  xcastrefs->branchpos, mcodeptr - mcodebase);
+		                  xcastrefs->branchpos,
+						  mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -3659,25 +3676,70 @@ gen_method: {
 		}
 	}
 
-	/* generate oom check stubs */
+	/* generate divide by zero check stubs */
 
 	xcodeptr = NULL;
 	
-	for (; xoomrefs != NULL; xoomrefs = xoomrefs->next) {
+	for (; xdivrefs != NULL; xdivrefs = xdivrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(mcodebase + xoomrefs->branchpos, 
-				xoomrefs->branchpos, xcodeptr - mcodebase - (10 + 10 + 3));
+			gen_resolvebranch(mcodebase + xdivrefs->branchpos, 
+							  xdivrefs->branchpos,
+							  xcodeptr - mcodebase - (10 + 10 + 3));
 			continue;
 		}
 
-		gen_resolvebranch(mcodebase + xoomrefs->branchpos, 
-		                  xoomrefs->branchpos, mcodeptr - mcodebase);
+		gen_resolvebranch(mcodebase + xdivrefs->branchpos, 
+		                  xdivrefs->branchpos,
+						  mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
 		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);                        /* 10 bytes */
 		dseg_adddata(mcodeptr);
-		x86_64_mov_imm_reg(xoomrefs->branchpos - 6, REG_ITMP1);     /* 10 bytes */
+		x86_64_mov_imm_reg(xdivrefs->branchpos - 6, REG_ITMP3);      /* 10 bytes */
+		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP3, REG_ITMP2_XPC);    /* 3 bytes  */
+
+		if (xcodeptr != NULL) {
+			x86_64_jmp_imm(xcodeptr - mcodeptr - 5);
+		
+		} else {
+			xcodeptr = mcodeptr;
+
+			x86_64_alu_imm_reg(X86_64_SUB, 2 * 8, REG_SP);
+			x86_64_mov_reg_membase(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			x86_64_mov_imm_reg((u8) string_java_lang_ArithmeticException, argintregs[0]);
+			x86_64_mov_imm_reg((u8) string_java_lang_ArithmeticException_message, argintregs[1]);
+			x86_64_mov_imm_reg((u8) new_exception, REG_ITMP3);
+			x86_64_call_reg(REG_ITMP3);
+			x86_64_mov_membase_reg(REG_SP, 0 * 8, REG_ITMP2_XPC);
+			x86_64_alu_imm_reg(X86_64_ADD, 2 * 8, REG_SP);
+
+			x86_64_mov_imm_reg((u8) asm_handle_exception, REG_ITMP3);
+			x86_64_jmp_reg(REG_ITMP3);
+		}
+	}
+
+	/* generate exception check stubs */
+
+	xcodeptr = NULL;
+	
+	for (; xexceptionrefs != NULL; xexceptionrefs = xexceptionrefs->next) {
+		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+			gen_resolvebranch(mcodebase + xexceptionrefs->branchpos, 
+							  xexceptionrefs->branchpos,
+							  xcodeptr - mcodebase - (10 + 10 + 3));
+			continue;
+		}
+
+		gen_resolvebranch(mcodebase + xexceptionrefs->branchpos, 
+		                  xexceptionrefs->branchpos,
+						  mcodeptr - mcodebase);
+
+		MCODECHECK(8);
+
+		x86_64_mov_imm_reg(0, REG_ITMP2_XPC);                        /* 10 bytes */
+		dseg_adddata(mcodeptr);
+		x86_64_mov_imm_reg(xexceptionrefs->branchpos - 6, REG_ITMP1);     /* 10 bytes */
 		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
@@ -3712,12 +3774,14 @@ gen_method: {
 	for (; xnullrefs != NULL; xnullrefs = xnullrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(mcodebase + xnullrefs->branchpos, 
-				xnullrefs->branchpos, xcodeptr - mcodebase - (10 + 10 + 3));
+							  xnullrefs->branchpos,
+							  xcodeptr - mcodebase - (10 + 10 + 3));
 			continue;
 		}
 
 		gen_resolvebranch(mcodebase + xnullrefs->branchpos, 
-		                  xnullrefs->branchpos, mcodeptr - mcodebase);
+		                  xnullrefs->branchpos,
+						  mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
