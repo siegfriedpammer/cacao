@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1406 2004-08-17 10:03:55Z twisti $
+   $Id: main.c 1412 2004-08-17 19:33:16Z twisti $
 
 */
 
@@ -890,16 +890,9 @@ void cacao_exit(s4 status)
 
 void cacao_shutdown(s4 status)
 {
-	/**** RTAprint ***/
-
 	if (verbose || getcompilingtime || opt_stat) {
 		log_text("CACAO terminated by shutdown");
-		if (opt_stat)
-			print_stats();
-		if (getcompilingtime)
-			print_times();
-		mem_usagelog(0);
-		dolog("Exit status: %d\n", (int) status);
+		dolog("Exit status: %d\n", (s4) status);
 	}
 
 	exit(status);
