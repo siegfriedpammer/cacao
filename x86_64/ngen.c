@@ -12,7 +12,7 @@
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 			 Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 465 2003-09-17 23:14:48Z twisti $
+	Last Change: $Id: ngen.c 482 2003-10-13 22:21:45Z twisti $
 
 *******************************************************************************/
 
@@ -21,7 +21,6 @@
 
 /* additional functions and macros to generate code ***************************/
 
-/* #define BlockPtrOfPC(pc)        block+block_index[pc] */
 #define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
 
 
@@ -906,30 +905,32 @@ static void gen_mcode()
 		case ICMD_INEG:       /* ..., value  ==> ..., - value                 */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
+			s1 = src->regoff;
+			d = iptr->dst->regoff;
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_negl_membase(REG_SP, iptr->dst->regoff * 8);
+					if (s1 == d) {
+						x86_64_negl_membase(REG_SP, d * 8);
 
 					} else {
-						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_movl_membase_reg(REG_SP, s1 * 8, REG_ITMP1);
 						x86_64_negl_reg(REG_ITMP1);
-						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, d * 8);
 					}
 
 				} else {
-					x86_64_movl_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_negl_membase(REG_SP, iptr->dst->regoff * 8);
+					x86_64_movl_reg_membase(s1, REG_SP, d * 8);
+					x86_64_negl_membase(REG_SP, d * 8);
 				}
 
 			} else {
 				if (src->flags & INMEMORY) {
-					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
-					x86_64_negl_reg(iptr->dst->regoff);
+					x86_64_movl_membase_reg(REG_SP, s1 * 8, d);
+					x86_64_negl_reg(d);
 
 				} else {
-					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					x86_64_negl_reg(iptr->dst->regoff);
+					M_INTMOVE(s1, d);
+					x86_64_negl_reg(d);
 				}
 			}
 			break;
@@ -937,30 +938,32 @@ static void gen_mcode()
 		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
+			s1 = src->regoff;
+			d = iptr->dst->regoff;
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_neg_membase(REG_SP, iptr->dst->regoff * 8);
+					if (s1 == d) {
+						x86_64_neg_membase(REG_SP, d * 8);
 
 					} else {
-						x86_64_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_mov_membase_reg(REG_SP, s1 * 8, REG_ITMP1);
 						x86_64_neg_reg(REG_ITMP1);
-						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_mov_reg_membase(REG_ITMP1, REG_SP, d * 8);
 					}
 
 				} else {
-					x86_64_mov_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_neg_membase(REG_SP, iptr->dst->regoff * 8);
+					x86_64_mov_reg_membase(s1, REG_SP, d * 8);
+					x86_64_neg_membase(REG_SP, d * 8);
 				}
 
 			} else {
 				if (src->flags & INMEMORY) {
-					x86_64_mov_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
-					x86_64_neg_reg(iptr->dst->regoff);
+					x86_64_mov_membase_reg(REG_SP, s1 * 8, d);
+					x86_64_neg_reg(d);
 
 				} else {
-					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					x86_64_neg_reg(iptr->dst->regoff);
+					M_INTMOVE(s1, d);
+					x86_64_neg_reg(d);
 				}
 			}
 			break;
@@ -968,11 +971,12 @@ static void gen_mcode()
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
+			s1 = src->regoff;
 			if (src->flags & INMEMORY) {
-				x86_64_movslq_membase_reg(REG_SP, src->regoff * 8, d);
+				x86_64_movslq_membase_reg(REG_SP, s1 * 8, d);
 
 			} else {
-				x86_64_movslq_reg_reg(src->regoff, d);
+				x86_64_movslq_reg_reg(s1, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -988,11 +992,12 @@ static void gen_mcode()
 		case ICMD_INT2BYTE:   /* ..., value  ==> ..., value                   */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
+			s1 = src->regoff;
 			if (src->flags & INMEMORY) {
-				x86_64_movsbq_membase_reg(REG_SP, src->regoff * 8, d);
+				x86_64_movsbq_membase_reg(REG_SP, s1 * 8, d);
 
 			} else {
-				x86_64_movsbq_reg_reg(src->regoff, d);
+				x86_64_movsbq_reg_reg(s1, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1000,11 +1005,12 @@ static void gen_mcode()
 		case ICMD_INT2CHAR:   /* ..., value  ==> ..., value                   */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
+			s1 = src->regoff;
 			if (src->flags & INMEMORY) {
-				x86_64_movzwq_membase_reg(REG_SP, src->regoff * 8, d);
+				x86_64_movzwq_membase_reg(REG_SP, s1 * 8, d);
 
 			} else {
-				x86_64_movzwq_reg_reg(src->regoff, d);
+				x86_64_movzwq_reg_reg(s1, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1012,11 +1018,12 @@ static void gen_mcode()
 		case ICMD_INT2SHORT:  /* ..., value  ==> ..., value                   */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
+			s1 = src->regoff;
 			if (src->flags & INMEMORY) {
-				x86_64_movswq_membase_reg(REG_SP, src->regoff * 8, d);
+				x86_64_movswq_membase_reg(REG_SP, s1 * 8, d);
 
 			} else {
-				x86_64_movswq_reg_reg(src->regoff, d);
+				x86_64_movswq_reg_reg(s1, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1024,68 +1031,71 @@ static void gen_mcode()
 
 		case ICMD_IADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
+			s1 = src->prev->regoff;
+			s2 = src->regoff;
 			d = reg_of_var(iptr->dst, REG_ITMP3);
+			d = iptr->dst->regoff;
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_alul_reg_membase(X86_64_ADD, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					if (s2 == d) {
+						x86_64_movl_membase_reg(REG_SP, s1 * 8, REG_ITMP1);
+						x86_64_alul_reg_membase(X86_64_ADD, REG_ITMP1, REG_SP, d * 8);
 
-					} else if (src->prev->regoff == iptr->dst->regoff) {
-						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alul_reg_membase(X86_64_ADD, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+					} else if (s1 == d) {
+						x86_64_movl_membase_reg(REG_SP, s2 * 8, REG_ITMP1);
+						x86_64_alul_reg_membase(X86_64_ADD, REG_ITMP1, REG_SP, d * 8);
 
 					} else {
-						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_alul_membase_reg(X86_64_ADD, REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, s1 * 8, REG_ITMP1);
+						x86_64_alul_membase_reg(X86_64_ADD, REG_SP, s2 * 8, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, d * 8);
 					}
 
 				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alul_reg_membase(X86_64_ADD, src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
+					if (s2 == d) {
+						x86_64_alul_reg_membase(X86_64_ADD, s1, REG_SP, d * 8);
 
 					} else {
-						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-						x86_64_alul_reg_reg(X86_64_ADD, src->prev->regoff, REG_ITMP1);
-						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, s2 * 8, REG_ITMP1);
+						x86_64_alul_reg_reg(X86_64_ADD, s1, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, d * 8);
 					}
 
 				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					if (src->prev->regoff == iptr->dst->regoff) {
-						x86_64_alul_reg_membase(X86_64_ADD, src->regoff, REG_SP, iptr->dst->regoff * 8);
+					if (s1 == d) {
+						x86_64_alul_reg_membase(X86_64_ADD, s2, REG_SP, d * 8);
 						
 					} else {
-						x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
-						x86_64_alul_reg_reg(X86_64_ADD, src->regoff, REG_ITMP1);
-						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_membase_reg(REG_SP, s1 * 8, REG_ITMP1);
+						x86_64_alul_reg_reg(X86_64_ADD, s2, REG_ITMP1);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, d * 8);
 					}
 
 				} else {
-					x86_64_movl_reg_membase(src->prev->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_alul_reg_membase(X86_64_ADD, src->regoff, REG_SP, iptr->dst->regoff * 8);
+					x86_64_movl_reg_membase(s1, REG_SP, d * 8);
+					x86_64_alul_reg_membase(X86_64_ADD, s2, REG_SP, d * 8);
 				}
 
 			} else {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					x86_64_movl_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
-					x86_64_alul_membase_reg(X86_64_ADD, REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_movl_membase_reg(REG_SP, s1 * 8, d);
+					x86_64_alul_membase_reg(X86_64_ADD, REG_SP, s2 * 8, d);
 
 				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
-					x86_64_alul_membase_reg(X86_64_ADD, REG_SP, src->regoff * 8, iptr->dst->regoff);
+					M_INTMOVE(s1, d);
+					x86_64_alul_membase_reg(X86_64_ADD, REG_SP, s2 * 8, d);
 
 				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					x86_64_alul_membase_reg(X86_64_ADD, REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
+					M_INTMOVE(s2, d);
+					x86_64_alul_membase_reg(X86_64_ADD, REG_SP, s1 * 8, d);
 
 				} else {
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alul_reg_reg(X86_64_ADD, src->prev->regoff, iptr->dst->regoff);
+					if (s2 == d) {
+						x86_64_alul_reg_reg(X86_64_ADD, s1, d);
 
 					} else {
-						M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
-						x86_64_alul_reg_reg(X86_64_ADD, src->regoff, iptr->dst->regoff);
+						M_INTMOVE(s1, d);
+						x86_64_alul_reg_reg(X86_64_ADD, s2, d);
 					}
 				}
 			}
@@ -1094,17 +1104,19 @@ static void gen_mcode()
 		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.i = constant                             */
 
+			s1 = src->regoff;
 			d = reg_of_var(iptr->dst, REG_ITMP3);
+			d = iptr->dst->regoff;
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					/*
 					 * do not use inc optimization, because it's slower (???)
 					 */
-					if (src->regoff == iptr->dst->regoff) {
-						x86_64_alul_imm_membase(X86_64_ADD, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+					if (s1 == d) {
+						x86_64_alul_imm_membase(X86_64_ADD, iptr->val.i, REG_SP, d * 8);
 
 					} else {
-						x86_64_movl_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+						x86_64_movl_membase_reg(REG_SP, s1 * 8, REG_ITMP1);
 
 						if (iptr->val.i == 1) {
 							x86_64_incl_reg(REG_ITMP1);
@@ -1113,27 +1125,27 @@ static void gen_mcode()
 							x86_64_alul_imm_reg(X86_64_ADD, iptr->val.i, REG_ITMP1);
 						}
 
-						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
+						x86_64_movl_reg_membase(REG_ITMP1, REG_SP, d * 8);
 					}
 
 				} else {
-					x86_64_movl_reg_membase(src->regoff, REG_SP, iptr->dst->regoff * 8);
-					x86_64_alul_imm_membase(X86_64_ADD, iptr->val.i, REG_SP, iptr->dst->regoff * 8);
+					x86_64_movl_reg_membase(s1, REG_SP, d * 8);
+					x86_64_alul_imm_membase(X86_64_ADD, iptr->val.i, REG_SP, d * 8);
 				}
 
 			} else {
 				if (src->flags & INMEMORY) {
-					x86_64_movl_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+					x86_64_movl_membase_reg(REG_SP, s1 * 8, d);
 
 				} else {
-					M_INTMOVE(src->regoff, iptr->dst->regoff);
+					M_INTMOVE(s1, d);
 				}
 					
 				if (iptr->val.i == 1) {
-					x86_64_incl_reg(iptr->dst->regoff);
+					x86_64_incl_reg(d);
 					
 				} else {
-					x86_64_alul_imm_reg(X86_64_ADD, iptr->val.i, iptr->dst->regoff);
+					x86_64_alul_imm_reg(X86_64_ADD, iptr->val.i, d);
 				}
 			}
 			break;
@@ -1758,7 +1770,7 @@ static void gen_mcode()
 			x86_64_alul_imm_reg(X86_64_CMP, -1, REG_ITMP3);      /* 4 bytes */
 			x86_64_jcc(X86_64_CC_E, 3 + 1 + 3);                  /* 6 bytes */
 
-			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's and argument register */
+			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's an argument register */
   			x86_64_cltd();
 			x86_64_idivl_reg(REG_ITMP3);
 
@@ -1829,7 +1841,7 @@ static void gen_mcode()
 			x86_64_alu_imm_reg(X86_64_CMP, -1, REG_ITMP3);          /* 4 bytes */
 			x86_64_jcc(X86_64_CC_E, 3 + 2 + 3);                     /* 6 bytes */
 
-			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's and argument register */
+			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's an argument register */
   			x86_64_cqto();
 			x86_64_idiv_reg(REG_ITMP3);
 
@@ -1871,7 +1883,7 @@ static void gen_mcode()
 			x86_64_alu_imm_reg(X86_64_CMP, -1, REG_ITMP3);          /* 4 bytes */
 			x86_64_jcc(X86_64_CC_E, 3 + 2 + 3);                     /* 6 bytes */
 
-			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's and argument register */
+			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's an argument register */
   			x86_64_cqto();
 			x86_64_idiv_reg(REG_ITMP3);
 
@@ -3200,26 +3212,27 @@ static void gen_mcode()
 		                      /* op1 = variable, val.i = constant             */
 
 			var = &(locals[iptr->op1][TYPE_INT]);
+			d = var->regoff;
 			if (var->flags & INMEMORY) {
 				if (iptr->val.i == 1) {
-					x86_64_incl_membase(REG_SP, var->regoff * 8);
+					x86_64_incl_membase(REG_SP, d * 8);
  
 				} else if (iptr->val.i == -1) {
-					x86_64_decl_membase(REG_SP, var->regoff * 8);
+					x86_64_decl_membase(REG_SP, d * 8);
 
 				} else {
-					x86_64_alul_imm_membase(X86_64_ADD, iptr->val.i, REG_SP, var->regoff * 8);
+					x86_64_alul_imm_membase(X86_64_ADD, iptr->val.i, REG_SP, d * 8);
 				}
 
 			} else {
 				if (iptr->val.i == 1) {
-					x86_64_incl_reg(var->regoff);
+					x86_64_incl_reg(d);
  
 				} else if (iptr->val.i == -1) {
-					x86_64_decl_reg(var->regoff);
+					x86_64_decl_reg(d);
 
 				} else {
-					x86_64_alul_imm_reg(X86_64_ADD, iptr->val.i, var->regoff);
+					x86_64_alul_imm_reg(X86_64_ADD, iptr->val.i, d);
 				}
 			}
 			break;
@@ -4826,9 +4839,20 @@ gen_method: {
 			src = tmpsrc;
 			s3 = s2;
 
+			s2 = (iarg > intreg_argnum) ? iarg - intreg_argnum : 0 + (farg > fltreg_argnum) ? farg - fltreg_argnum : 0;
+
 			for (; --s3 >= 0; src = src->prev) {
 				IS_INT_LNG_TYPE(src->type) ? iarg-- : farg--;
 				if (src->varkind == ARGVAR) {
+					if (IS_INT_LNG_TYPE(src->type)) {
+						if (iarg >= intreg_argnum) {
+							s2--;
+						}
+					} else {
+						if (farg >= fltreg_argnum) {
+							s2--;
+						}
+					}
 					continue;
 				}
 
@@ -4840,7 +4864,8 @@ gen_method: {
 
 					} else {
 						var_to_reg_int(d, src, REG_ITMP1);
-						x86_64_mov_reg_membase(d, REG_SP, (s3 - intreg_argnum) * 8);
+						s2--;
+						x86_64_mov_reg_membase(d, REG_SP, s2 * 8);
 					}
 
 				} else {
@@ -4851,7 +4876,8 @@ gen_method: {
 
 					} else {
 						var_to_reg_flt(d, src, REG_FTMP1);
-						x86_64_movq_reg_membase(d, REG_SP, (s3 - fltreg_argnum) * 8);
+						s2--;
+						x86_64_movq_reg_membase(d, REG_SP, s2 * 8);
 					}
 				}
 			} /* end of for */
