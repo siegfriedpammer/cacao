@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1319 2004-07-16 13:45:50Z twisti $
+   $Id: codegen.h 1353 2004-07-26 22:31:24Z twisti $
 
 */
 
@@ -174,7 +174,7 @@ typedef enum {
 /* modrm and stuff */
 
 #define x86_64_address_byte(mod,reg,rm) \
-    *(mcodeptr++) = ((((mod) & 0x03) << 6) | (((reg) & 0x07) << 3) | ((rm) & 0x07));
+    *(cd->mcodeptr++) = ((((mod) & 0x03) << 6) | (((reg) & 0x07) << 3) | ((rm) & 0x07));
 
 
 #define x86_64_emit_reg(reg,rm) \
@@ -183,7 +183,7 @@ typedef enum {
 
 #define x86_64_emit_rex(size,reg,index,rm) \
     if ((size) == 1 || (reg) > 7 || (index) > 7 || (rm) > 7) { \
-        *(mcodeptr++) = (0x40 | (((size) & 0x01) << 3) | ((((reg) >> 3) & 0x01) << 2) | ((((index) >> 3) & 0x01) << 1) | (((rm) >> 3) & 0x01)); \
+        *(cd->mcodeptr++) = (0x40 | (((size) & 0x01) << 3) | ((((reg) >> 3) & 0x01) << 2) | ((((index) >> 3) & 0x01) << 1) | (((rm) >> 3) & 0x01)); \
     }
 
 
@@ -265,15 +265,15 @@ typedef enum {
 
 
 #define x86_64_emit_imm8(imm) \
-    *(mcodeptr++) = (u1) ((imm) & 0xff);
+    *(cd->mcodeptr++) = (u1) ((imm) & 0xff);
 
 
 #define x86_64_emit_imm16(imm) \
     do { \
         x86_64_imm_buf imb; \
         imb.i = (s4) (imm); \
-        *(mcodeptr++) = imb.b[0]; \
-        *(mcodeptr++) = imb.b[1]; \
+        *(cd->mcodeptr++) = imb.b[0]; \
+        *(cd->mcodeptr++) = imb.b[1]; \
     } while (0)
 
 
@@ -281,10 +281,10 @@ typedef enum {
     do { \
         x86_64_imm_buf imb; \
         imb.i = (s4) (imm); \
-        *(mcodeptr++) = imb.b[0]; \
-        *(mcodeptr++) = imb.b[1]; \
-        *(mcodeptr++) = imb.b[2]; \
-        *(mcodeptr++) = imb.b[3]; \
+        *(cd->mcodeptr++) = imb.b[0]; \
+        *(cd->mcodeptr++) = imb.b[1]; \
+        *(cd->mcodeptr++) = imb.b[2]; \
+        *(cd->mcodeptr++) = imb.b[3]; \
     } while (0)
 
 
@@ -292,14 +292,14 @@ typedef enum {
     do { \
         x86_64_imm_buf imb; \
         imb.l = (s8) (imm); \
-        *(mcodeptr++) = imb.b[0]; \
-        *(mcodeptr++) = imb.b[1]; \
-        *(mcodeptr++) = imb.b[2]; \
-        *(mcodeptr++) = imb.b[3]; \
-        *(mcodeptr++) = imb.b[4]; \
-        *(mcodeptr++) = imb.b[5]; \
-        *(mcodeptr++) = imb.b[6]; \
-        *(mcodeptr++) = imb.b[7]; \
+        *(cd->mcodeptr++) = imb.b[0]; \
+        *(cd->mcodeptr++) = imb.b[1]; \
+        *(cd->mcodeptr++) = imb.b[2]; \
+        *(cd->mcodeptr++) = imb.b[3]; \
+        *(cd->mcodeptr++) = imb.b[4]; \
+        *(cd->mcodeptr++) = imb.b[5]; \
+        *(cd->mcodeptr++) = imb.b[6]; \
+        *(cd->mcodeptr++) = imb.b[7]; \
     } while (0)
 
 
@@ -330,37 +330,37 @@ typedef enum {
 
 #define gen_nullptr_check(objreg) \
 	if (checknull) { \
-        x86_64_test_reg_reg((objreg), (objreg)); \
-        x86_64_jcc(X86_64_CC_E, 0); \
- 	    codegen_addxnullrefs(mcodeptr); \
+        x86_64_test_reg_reg(cd, (objreg), (objreg)); \
+        x86_64_jcc(cd, X86_64_CC_E, 0); \
+ 	    codegen_addxnullrefs(m, cd->mcodeptr); \
 	}
 
 
 #define gen_bound_check \
     if (checkbounds) { \
-        x86_64_alul_membase_reg(X86_64_CMP, s1, OFFSET(java_arrayheader, size), s2); \
-        x86_64_jcc(X86_64_CC_AE, 0); \
-        codegen_addxboundrefs(mcodeptr, s2); \
+        x86_64_alul_membase_reg(cd, X86_64_CMP, s1, OFFSET(java_arrayheader, size), s2); \
+        x86_64_jcc(cd, X86_64_CC_AE, 0); \
+        codegen_addxboundrefs(m, cd->mcodeptr, s2); \
     }
 
 
 #define gen_div_check(v) \
     if (checknull) { \
         if ((v)->flags & INMEMORY) { \
-            x86_64_alu_imm_membase(X86_64_CMP, 0, REG_SP, src->regoff * 8); \
+            x86_64_alu_imm_membase(cd, X86_64_CMP, 0, REG_SP, src->regoff * 8); \
         } else { \
-            x86_64_test_reg_reg(src->regoff, src->regoff); \
+            x86_64_test_reg_reg(cd, src->regoff, src->regoff); \
         } \
-        x86_64_jcc(X86_64_CC_E, 0); \
-        codegen_addxdivrefs(mcodeptr); \
+        x86_64_jcc(cd, X86_64_CC_E, 0); \
+        codegen_addxdivrefs(m, cd->mcodeptr); \
     }
 
 
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if ((mcodeptr + (icnt)) > (u1 *) mcodeend) \
-        mcodeptr = (u1 *) codegen_increase((u1 *) mcodeptr)
+	if ((cd->mcodeptr + (icnt)) > (u1 *) cd->mcodeend) \
+        cd->mcodeptr = (u1 *) codegen_increase(m, cd->mcodeptr)
 
 /* M_INTMOVE:
     generates an integer-move from register a to b.
@@ -369,7 +369,7 @@ typedef enum {
 
 #define M_INTMOVE(reg,dreg) \
     if ((reg) != (dreg)) { \
-        x86_64_mov_reg_reg((reg),(dreg)); \
+        x86_64_mov_reg_reg(cd, (reg),(dreg)); \
     }
 
 
@@ -380,7 +380,7 @@ typedef enum {
 
 #define M_FLTMOVE(reg,dreg) \
     if ((reg) != (dreg)) { \
-        x86_64_movq_reg_reg((reg),(dreg)); \
+        x86_64_movq_reg_reg(cd, (reg),(dreg)); \
     }
 
 
@@ -403,9 +403,9 @@ typedef enum {
     if ((v)->flags & INMEMORY) { \
         COUNT_SPILLS; \
         if ((v)->type == TYPE_INT) { \
-            x86_64_movl_membase_reg(REG_SP, (v)->regoff * 8, tempnr); \
+            x86_64_movl_membase_reg(cd, REG_SP, (v)->regoff * 8, tempnr); \
         } else { \
-            x86_64_mov_membase_reg(REG_SP, (v)->regoff * 8, tempnr); \
+            x86_64_mov_membase_reg(cd, REG_SP, (v)->regoff * 8, tempnr); \
         } \
         regnr = tempnr; \
     } else { \
@@ -418,9 +418,9 @@ typedef enum {
     if ((v)->flags & INMEMORY) { \
         COUNT_SPILLS; \
         if ((v)->type == TYPE_FLT) { \
-            x86_64_movlps_membase_reg(REG_SP, (v)->regoff * 8, tempnr); \
+            x86_64_movlps_membase_reg(cd, REG_SP, (v)->regoff * 8, tempnr); \
         } else { \
-            x86_64_movlpd_membase_reg(REG_SP, (v)->regoff * 8, tempnr); \
+            x86_64_movlpd_membase_reg(cd, REG_SP, (v)->regoff * 8, tempnr); \
         } \
 /*        x86_64_movq_membase_reg(REG_SP, (v)->regoff * 8, tempnr);*/ \
         regnr = tempnr; \
@@ -443,14 +443,14 @@ typedef enum {
 #define store_reg_to_var_int(sptr, tempregnum) \
     if ((sptr)->flags & INMEMORY) { \
         COUNT_SPILLS; \
-        x86_64_mov_reg_membase(tempregnum, REG_SP, (sptr)->regoff * 8); \
+        x86_64_mov_reg_membase(cd, tempregnum, REG_SP, (sptr)->regoff * 8); \
     }
 
 
 #define store_reg_to_var_flt(sptr, tempregnum) \
     if ((sptr)->flags & INMEMORY) { \
          COUNT_SPILLS; \
-         x86_64_movq_reg_membase(tempregnum, REG_SP, (sptr)->regoff * 8); \
+         x86_64_movq_reg_membase(cd, tempregnum, REG_SP, (sptr)->regoff * 8); \
     }
 
 
@@ -470,6 +470,10 @@ typedef enum {
 	}
 
 
+/*  #define ALIGNCODENOP {if((int)((long)mcodeptr&7)){M_NOP;}} */
+#define ALIGNCODENOP do {} while (0)
+
+
 /* function gen_resolvebranch **************************************************
 
     backpatches a branch instruction
@@ -485,14 +489,6 @@ typedef enum {
 
 
 /* function prototypes */
-
-void codegen_init();
-void init_exceptions();
-void codegen();
-void codegen_close();
-void dseg_display(s4 *s4ptr);
-
-void codegen_addreference(basicblock *target, void *branchptr);
 
 #endif /* _CODEGEN_H */
 
