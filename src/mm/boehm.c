@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 1334 2004-07-21 15:50:28Z twisti $
+   $Id: boehm.c 1374 2004-08-01 21:58:42Z stefan $
 
 */
 
@@ -51,7 +51,11 @@
 static bool in_gc_out_of_memory = false;    /* is GC out of memory?           */
 
 
-static void *stackcall_twoargs(struct otherstackcall *p)
+static void
+#ifdef __GNUC__
+	__attribute__ ((unused))
+#endif
+*stackcall_twoargs(struct otherstackcall *p)
 {
 	return (*p->p2)(p->p, p->l);
 }
@@ -163,12 +167,15 @@ void heap_free(void *p)
 	MAINTHREADCALL(result, stackcall_free, p, 0);
 }
 
+static void gc_ignore_warnings(char *msg, GC_word arg)
+{
+}
 
 void gc_init(u4 heapmaxsize, u4 heapstartsize)
 {
 	size_t heapcurrentsize;
 
-	GC_init();
+	GC_INIT();
 
 	/* set the maximal heap size */
 	GC_set_max_heap_size(heapmaxsize);
@@ -181,6 +188,9 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 	/* define OOM function */
 	GC_oom_fn = gc_out_of_memory;
+
+	/* suppress warnings */
+	GC_set_warn_proc(gc_ignore_warnings);
 }
 
 
