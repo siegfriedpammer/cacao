@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1590 2004-11-25 13:24:49Z christian $
+   $Id: codegen.c 1595 2004-11-25 15:49:48Z twisti $
 
 */
 
@@ -165,12 +165,13 @@ void catch_NullPointerException(int sig, int code, sigctx_struct *sigctx)
 	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f];
 
 	if (faultaddr == 0) {
-		signal(sig, (void*) catch_NullPointerException); /* reinstall handler */
+		/* reinstall handler */
+		signal(sig, (functionptr) catch_NullPointerException);
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
 
-		xptr = new_exception(string_java_lang_NullPointerException);
+		xptr = new_nullpointerexception();
 
 		sigctx->sc_regs[REG_ITMP1_XPTR] = (u8) xptr;
 		sigctx->sc_regs[REG_ITMP2_XPC] = sigctx->sc_pc;
@@ -217,11 +218,11 @@ ieee_set_fp_control(ieee_get_fp_control()
 
 	if (!checknull) {
 #if defined(SIGSEGV)
-		signal(SIGSEGV, (void*) catch_NullPointerException);
+		signal(SIGSEGV, (functionptr) catch_NullPointerException);
 #endif
 
 #if defined(SIGBUS)
-		signal(SIGBUS, (void*) catch_NullPointerException);
+		signal(SIGBUS, (functionptr) catch_NullPointerException);
 #endif
 	}
 }
@@ -2117,26 +2118,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
 
-			/* if class isn't yet initialized, do it */
+			/* If the static fields' class is not yet initialized, we do it   */
+			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				/* call helper function which patches this code */
-				a = dseg_addaddress(cd, ((fieldinfo *) iptr->val.a)->class);
-				M_ALD(REG_ITMP1, REG_PV, a);
-				a = dseg_addaddress(cd, asm_check_clinit);
-				M_ALD(REG_PV, REG_PV, a);
-				M_JSR(REG_RA, REG_PV);
+				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr->val.a)->class);
 
-				/* recompute pv */
-				s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
-				if (s1 <= 32768) {
-					M_LDA(REG_PV, REG_RA, -s1);
+				/* This is just for debugging purposes. Is very difficult to  */
+				/* read patched code. Here we patch the following 2 nop's     */
+				/* so that the real code keeps untouched.                     */
+				if (showdisassemble) {
 					M_NOP;
-
-				} else {
-					s4 ml = -s1, mh = 0;
-					while (ml < -32768) { ml += 65536; mh--; }
-					M_LDA(REG_PV, REG_RA, ml);
-					M_LDAH(REG_PV, REG_PV, mh);
 				}
   			}
 			
@@ -2172,24 +2163,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			/* if class isn't yet initialized, do it */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				/* call helper function which patches this code */
-				a = dseg_addaddress(cd, ((fieldinfo *) iptr->val.a)->class);
-				M_ALD(REG_ITMP1, REG_PV, a);
-				a = dseg_addaddress(cd, asm_check_clinit);
-				M_ALD(REG_PV, REG_PV, a);
-				M_JSR(REG_RA, REG_PV);
+				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr->val.a)->class);
 
-				/* recompute pv */
-				s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
-				if (s1 <= 32768) {
-					M_LDA(REG_PV, REG_RA, -s1);
+				/* This is just for debugging purposes. Is very difficult to  */
+				/* read patched code. Here we patch the following 2 nop's     */
+				/* so that the real code keeps untouched.                     */
+				if (showdisassemble) {
 					M_NOP;
-
-				} else {
-					s4 ml = -s1, mh = 0;
-					while (ml < -32768) { ml += 65536; mh--; }
-					M_LDA(REG_PV, REG_RA, ml);
-					M_LDAH(REG_PV, REG_PV, mh);
 				}
   			}
 			
@@ -3817,6 +3797,47 @@ gen_method: {
 			M_JMP(REG_ZERO, REG_ITMP3);
 		}
 	}
+
+	/* generate put/getstatic stub call code */
+
+	{
+		clinitref   *cref;
+		u4           mcode;
+		s4          *tmpmcodeptr;
+
+		for (cref = cd->clinitrefs; cref != NULL; cref = cref->next) {
+			/* Get machine code which is patched back in later. The call is   */
+			/* 1 instruction word long.                                       */
+			xcodeptr = cd->mcodebase + cref->branchpos;
+			mcode = *xcodeptr;
+
+			/* patch in the call to call the following code (done at compile  */
+			/* time)                                                          */
+
+			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
+			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
+
+			M_BSR(REG_RA, tmpmcodeptr - (xcodeptr + 1));
+
+			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
+
+			MCODECHECK(6);
+
+			/* move class pointer into REG_ITMP2                              */
+			a = dseg_addaddress(cd, cref->class);
+			M_ALD(REG_ITMP1, REG_PV, a);
+
+			/* move machine code onto stack                                   */
+			a = dseg_adds4(cd, mcode);
+			M_ILD(REG_ITMP3, REG_PV, a);
+			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
+			M_IST(REG_ITMP3, REG_SP, 0);
+
+			a = dseg_addaddress(cd, asm_check_clinit);
+			M_ALD(REG_ITMP2, REG_PV, a);
+			M_JMP(REG_ZERO, REG_ITMP2);
+		}
+	}
 	}
 
 	codegen_finish(m, cd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
@@ -3871,17 +3892,17 @@ void removecompilerstub(u1 *stub)
 *******************************************************************************/
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#define NATIVESTUBSTACK          2
-#define NATIVESTUBTHREADEXTRA    6
+#define NATIVESTUB_STACK           2
+#define NATIVESTUB_THREAD_EXTRA    6
 #else
-#define NATIVESTUBSTACK          1
-#define NATIVESTUBTHREADEXTRA    1
+#define NATIVESTUB_STACK           1
+#define NATIVESTUB_THREAD_EXTRA    1
 #endif
 
-#define NATIVESTUBSIZE           (44 + NATIVESTUBTHREADEXTRA - 1)
-#define NATIVESTATICSIZE         5
-#define NATIVEVERBOSESIZE        (39 + 13)
-#define NATIVESTUBOFFSET         9
+#define NATIVESTUB_SIZE            (44 + NATIVESTUB_THREAD_EXTRA - 1)
+#define NATIVESTUB_STATIC_SIZE     4
+#define NATIVESTUB_VERBOSE_SIZE    (39 + 13)
+#define NATIVESTUB_OFFSET          10
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
@@ -3891,16 +3912,18 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	s4 stackframesize = 0;              /* size of stackframe if needed       */
 	s4 disp;
 	s4 stubsize;
-	s4 dumpsize;
+	codegendata  *cd;
 	registerdata *rd;
 	t_inlining_globals *id;
+	s4 dumpsize;
 
 	/* mark start of dump memory area */
 
 	dumpsize = dump_size();
 
 	/* setup registers before using it */
-	
+
+	cd = DNEW(codegendata);
 	rd = DNEW(registerdata);
 	id = DNEW(t_inlining_globals);
 
@@ -3909,32 +3932,38 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	descriptor2types(m);                /* set paramcount and paramtypes      */
 
-	stubsize = NATIVESTUBSIZE;          /* calculate nativestub size          */
+	stubsize = NATIVESTUB_SIZE;         /* calculate nativestub size          */
+
 	if ((m->flags & ACC_STATIC) && !m->class->initialized)
-		stubsize += NATIVESTATICSIZE;
+		stubsize += NATIVESTUB_STATIC_SIZE;
 
 	if (runverbose)
-		stubsize += NATIVEVERBOSESIZE;
+		stubsize += NATIVESTUB_VERBOSE_SIZE;
 
 	s = CNEW(u8, stubsize);             /* memory to hold the stub            */
-	cs = s + NATIVESTUBOFFSET;
-	mcodeptr = (s4 *) (cs);             /* code generation pointer            */
+	cs = s + NATIVESTUB_OFFSET;
+	mcodeptr = (s4 *) cs;               /* code generation pointer            */
 
-	*(cs-1) = (u8) f;                   /* address of native method           */
+	/* set some required varibles which are normally set by codegen_setup     */
+	cd->mcodebase = mcodeptr;
+	cd->clinitrefs = NULL;
+
+	*(cs-1)  = (u8) f;                  /* address of native method           */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	*(cs-2) = (u8) &builtin_get_exceptionptrptr;
+	*(cs-2)  = (u8) &builtin_get_exceptionptrptr;
 #else
-	*(cs-2) = (u8) (&_exceptionptr);    /* address of exceptionptr            */
+	*(cs-2)  = (u8) (&_exceptionptr);   /* address of exceptionptr            */
 #endif
-	*(cs-3) = (u8) asm_handle_nat_exception; /* addr of asm exception handler */
-	*(cs-4) = (u8) (&env);              /* addr of jni_environement           */
-	*(cs-5) = (u8) builtin_trace_args;
-	*(cs-6) = (u8) m;
-	*(cs-7) = (u8) builtin_displaymethodstop;
-	*(cs-8) = (u8) m->class;
-	*(cs-9) = (u8) asm_check_clinit;
+	*(cs-3)  = (u8) asm_handle_nat_exception; /* addr of asm exception handler*/
+	*(cs-4)  = (u8) (&env);             /* addr of jni_environement           */
+	*(cs-5)  = (u8) builtin_trace_args;
+	*(cs-6)  = (u8) m;
+	*(cs-7)  = (u8) builtin_displaymethodstop;
+	*(cs-8)  = (u8) m->class;
+	*(cs-9)  = (u8) asm_check_clinit;
+	*(cs-10) = (u8) NULL;               /* filled with machine code           */
 
-	M_LDA(REG_SP, REG_SP, -NATIVESTUBSTACK * 8);      /* build up stackframe  */
+	M_LDA(REG_SP, REG_SP, -NATIVESTUB_STACK * 8);     /* build up stackframe  */
 	M_AST(REG_RA, REG_SP, 0 * 8);       /* store return address               */
 
 	/* if function is static, check for initialized */
@@ -3942,13 +3971,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	if (m->flags & ACC_STATIC) {
 	/* if class isn't yet initialized, do it */
 		if (!m->class->initialized) {
-			/* call helper function which patches this code */
-			M_ALD(REG_ITMP1, REG_PV, -8 * 8);     /* class                    */
-			M_ALD(REG_PV, REG_PV, -9 * 8);        /* asm_check_clinit         */
-			M_JSR(REG_RA, REG_PV);
-			disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
-			M_LDA(REG_PV, REG_RA, disp);
-			M_NOP;                  /* this is essential for code patching    */
+			codegen_addclinitref(cd, mcodeptr, m->class);
 		}
 	}
 
@@ -4130,31 +4153,70 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_BNEZ(REG_ITMP1, 3);               /* if no exception then return        */
 
 	M_ALD(REG_RA, REG_SP, 0 * 8);       /* load return address                */
-	M_LDA(REG_SP, REG_SP, NATIVESTUBSTACK * 8); /* remove stackframe          */
+	M_LDA(REG_SP, REG_SP, NATIVESTUB_STACK * 8); /* remove stackframe         */
 	M_RET(REG_ZERO, REG_RA);            /* return to caller                   */
 
 	M_AST(REG_ZERO, REG_ITMP3, 0);      /* store NULL into exceptionptr       */
 
 	M_ALD(REG_RA, REG_SP, 0 * 8);       /* load return address                */
-	M_LDA(REG_SP, REG_SP, NATIVESTUBSTACK * 8); /* remove stackframe          */
+	M_LDA(REG_SP, REG_SP, NATIVESTUB_STACK * 8); /* remove stackframe         */
 	M_LDA(REG_ITMP2, REG_RA, -4);       /* move fault address into reg. itmp2 */
 	M_ALD(REG_ITMP3, REG_PV, -3 * 8);   /* load asm exception handler address */
 	M_JMP(REG_ZERO, REG_ITMP3);         /* jump to asm exception handler      */
 	
+	/* generate put/getstatic stub call code */
+
+	{
+		s4          *xcodeptr;
+		clinitref   *cref;
+		s4          *tmpmcodeptr;
+
+		/* there can only be one clinit ref entry                             */
+		cref = cd->clinitrefs;
+
+		if (cref) {
+			/* Get machine code which is patched back in later. The call is   */
+			/* 2 instruction words long.                                      */
+			xcodeptr = cd->mcodebase + cref->branchpos;
+			*(cs-10) = (u4) *xcodeptr;
+
+			/* patch in the call to call the following code (done at compile  */
+			/* time)                                                          */
+
+			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
+			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
+
+			M_BSR(REG_RA, tmpmcodeptr - (xcodeptr + 1));
+
+			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
+
+			/* move class pointer into REG_ITMP2                              */
+			M_ALD(REG_ITMP1, REG_PV, -8 * 8);     /* class                    */
+
+			/* move machine code into REG_ITMP3                               */
+			M_ILD(REG_ITMP3, REG_PV, -10 * 8);    /* machine code             */
+			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
+			M_IST(REG_ITMP3, REG_SP, 0);
+
+			M_ALD(REG_ITMP2, REG_PV, -9 * 8);     /* asm_check_clinit         */
+			M_JMP(REG_ZERO, REG_ITMP2);
+		}
+	}
+
 #if 0
 	dolog_plain("stubsize: %d (for %d params)\n", (int) (mcodeptr - (s4*) s), m->paramcount);
 #endif
 
 #if defined(STATISTICS)
 	if (opt_stat)
-		count_nstub_len += NATIVESTUBSIZE * 8;
+		count_nstub_len += NATIVESTUB_SIZE * 8;
 #endif
 
 	/* release dump area */
 
 	dump_release(dumpsize);
 
-	return (u1 *) (s + NATIVESTUBOFFSET);
+	return (u1 *) (s + NATIVESTUB_OFFSET);
 }
 
 

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.h 1586 2004-11-24 14:27:03Z twisti $
+   $Id: codegen.h 1595 2004-11-25 15:49:48Z twisti $
 
 */
 
@@ -233,7 +233,7 @@
 	*(mcodeptr++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<16)|((disp)&0xffff) )
 
 
-/* macros for all used commands (see an Alpha-manual for description) *********/ 
+/* macros for all used commands (see an Alpha-manual for description) *********/
 
 #define M_LDA(a,b,disp)         M_MEM (0x08,a,b,disp)           /* low const  */
 #define M_LDAH(a,b,disp)        M_MEM (0x09,a,b,disp)           /* high const */

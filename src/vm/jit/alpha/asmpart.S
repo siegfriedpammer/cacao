@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1392 2004-08-03 16:46:41Z stefan $
+   $Id: asmpart.S 1595 2004-11-25 15:49:48Z twisti $
 
 */
 
@@ -112,7 +112,7 @@
 #define fzero   $f31
 
 
-#define PAL_imb 134
+#define PAL_imb 0x86
 
 	.text
 	.set    noat
@@ -423,8 +423,6 @@ noregchange:
 	jsr     ra,jit_compile        /* jit compiler                             */
 	ldgp    gp,0(ra)
 
-	call_pal PAL_imb              /* synchronise instruction cache            */
-
 	ldq     a0,0*8(sp)            /* load argument registers                  */
 	ldq     a1,1*8(sp)
 	ldq     a2,2*8(sp)
@@ -447,6 +445,8 @@ noregchange:
 
 	addq    t8,$28,t8             /* compute update address via method pointer*/
 	stq     v0,0(t8)              /* save new method address there            */
+
+	call_pal PAL_imb              /* synchronise instruction cache            */
 
 	mov     v0,pv                 /* load method address into pv              */
 
@@ -747,54 +747,69 @@ ex_flt2:
 	.end    asm_handle_nat_exception
 
 
-/********************* asm_check_clinit ****************************************
-*                                                                              *
-*   Does null check and calls monitorenter or throws an exception              *
-*                                                                              *
+/* asm_check_clinit ************************************************************
+
+   DOCUMENT ME!!!
+
+   Arguments:
+
+	itmp1: pointer to class
+
+   Stack layout:
+
+	0   mcode  ; machine code to patch back in
+
 *******************************************************************************/
 		
     .ent    asm_check_clinit
 
 asm_check_clinit:
-	ldgp	gp,0(pv)
+	ldgp    gp,0(itmp2)           /* function is called via `jsr ra,itmp1'    */
 
 	ldl		itmp2,offclassinit(itmp1)
 	bne		itmp2,L_is_initialized
 	
-	subq	sp,7*8,sp
-	stq		ra,0*8(sp)
-	stq		a0,1*8(sp)            /* save argument registers for leaf         */
-	stq		a1,2*8(sp)            /* functions and native stub                */
-	stq		a2,3*8(sp)
-	stq		a3,4*8(sp)
-	stq		a4,5*8(sp)
-	stq		a5,6*8(sp)
+	subq	sp,9*8,sp
+
+	stq		ra,0*8(sp)            /* save return address                      */
+	stq     pv,1*8(sp)            /* save pv of calling java function         */
+	stq		a0,2*8(sp)            /* save argument registers for leaf         */
+	stq		a1,3*8(sp)            /* functions and native stub                */
+	stq		a2,4*8(sp)
+	stq		a3,5*8(sp)
+	stq		a4,6*8(sp)
+	stq		a5,7*8(sp)
 		
-	mov		itmp1,a0
+	mov		itmp1,a0              /* move class pointer to a0                 */
 	jsr		ra,class_init
+    ldgp    gp,0(ra)
 		
-	ldgp	gp,0(ra)
-	ldq		ra,0*8(sp)
-	ldq		a0,1*8(sp)            /* restore argument registers               */
-	ldq		a1,2*8(sp)
-	ldq		a2,3*8(sp)
-	ldq		a3,4*8(sp)
-	ldq		a4,5*8(sp)
-	ldq		a5,6*8(sp)
-	addq	sp,7*8,sp
+	ldq		ra,0*8(sp)            /* restore return address                   */
+	ldq     pv,1*8(sp)            /* restore pv of calling java function      */
+	ldq		a0,2*8(sp)            /* restore argument registers               */
+	ldq		a1,3*8(sp)
+	ldq		a2,4*8(sp)
+	ldq		a3,5*8(sp)
+	ldq		a4,6*8(sp)
+	ldq		a5,7*8(sp)
+
+	addq	sp,9*8,sp
 
 	beq     v0,L_initializererror
 
 L_is_initialized:
-	mov     ra,itmp1              /* now patch the calling code               */
-	subq    itmp1,(3*4),itmp1     /* go back 3 instructions                   */
-	ldah    itmp2,-15392(zero)    /* br -- 0xc3e0 == -15392                   */
-	lda     itmp2,4(itmp2)        /* jump over 4 instructions                 */
-	stl     itmp2,0(itmp1)        /* store the new branch: br +4              */
+	subq    ra,1*4,ra             /* go back 1 instructions                   */
+	ldl     itmp1,0(sp)           /* load machine code from stack             */
+	addq    sp,1*8,sp             /* remove stack frame                       */
+	stl     itmp1,0(ra)           /* store the machine code                   */
 
-	jmp		zero,(ra)
+	call_pal PAL_imb              /* synchronise instruction cache            */
+
+	jmp		zero,(ra)             /* jump to the new code                     */
 
 L_initializererror:
+	addq    sp,1*8,sp             /* remove stack frame                       */
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	subq    sp,1*8,sp
 	stq     ra,0*8(sp)
