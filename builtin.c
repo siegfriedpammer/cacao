@@ -934,9 +934,13 @@ void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
 	utf_sprint (logtext+strlen(logtext), method->descriptor);
 	switch (method->returntype) {
 		case TYPE_INT:
-		case TYPE_LONG:
-		case TYPE_ADDRESS:
 			sprintf (logtext+strlen(logtext), "->%ld", l);
+			break;
+		case TYPE_LONG:
+			sprintf (logtext+strlen(logtext), "->%lld", l);
+			break;
+		case TYPE_ADDRESS:
+			sprintf (logtext+strlen(logtext), "->%p", l);
 			break;
 		case TYPE_FLOAT:
 			sprintf (logtext+strlen(logtext), "->%g", f);
@@ -1633,7 +1637,7 @@ s4 builtin_d2i (double a)
 	d = copysign(1.0, a);
 	if (d > 0)
 		return 2147483647;
-	return (-2147483648);
+	return (-2147483647-1);
 }
 
 
