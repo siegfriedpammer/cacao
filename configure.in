@@ -146,6 +146,8 @@ enable_threads=${enable_threads:-native}
 case "$enable_threads" in
 no | none | single)
 	AC_MSG_RESULT(no)
+	dnl no threads for boehm
+	ac_configure_args="$ac_configure_args --disable-boehm-threads"
 	;;
 green | native | posix | pthreads)
 	AC_DEFINE([USE_THREADS], 1, [use threads])
