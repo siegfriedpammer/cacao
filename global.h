@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 527 2003-10-23 17:46:34Z carolyn $
+	Last Change: $Id: global.h 548 2003-11-01 19:46:25Z twisti $
 
 *******************************************************************************/
 
@@ -26,13 +26,9 @@
 #define STATISTICS          /* if enabled collects program statistics         */
 
 /* 
- * JIT_MARKER_SUPPORT is the define used to toggle Just-in-time generated
- * marker functions on and off.
- *
  * SIZE_FROM_CLASSINFO toggles between the bitmap_based and the new method 
  * of determining the sizes of objects on the heap.
  */
-#undef JIT_MARKER_SUPPORT        /* phil */
 #define SIZE_FROM_CLASSINFO
 
 /* standard includes **********************************************************/
@@ -464,8 +460,8 @@ typedef struct xtainfo {
 
 /* methodinfo *****************************************************************/
 
-struct methodinfo {        		/* method structure                       */
-	s4	       flags;           /* ACC flags                              */
+struct methodinfo {                 /* method structure                       */
+	s4	       flags;               /* ACC flags                              */
 	utf       *name;                /* name of method                         */
 	utf       *descriptor;          /* JavaVM descriptor string of method     */
 	s4         returntype;          /* only temporary valid, return type      */
@@ -494,12 +490,11 @@ struct methodinfo {        		/* method structure                       */
 	/*rtainfo   rta;*/
 	xtainfo    *xta;
 
-        s4        methodUsed; 		/* marked (might be used later) /not used /used */
-        s4        monoPoly; 		/* call is mono or poly or unknown        */ /*RT stats */
+	s4        methodUsed; 		/* marked (might be used later) /not used /used */
+	s4        monoPoly; 		/* call is mono or poly or unknown        */ /*RT stats */
         /* should # method def'd and used be kept after static parse (will it be used?) */
 	s4	  subRedefs;
 	s4	  subRedefsUsed;
-	
 };
 
 
@@ -553,9 +548,6 @@ struct classinfo {                /* class structure                          */
 	vftbl      *vftbl;            /* pointer to virtual function table        */
 
 	methodinfo *finalizer;        /* finalizer method                         */
-#ifdef JIT_MARKER_SUPPORT
-	methodinfo *marker; 
-#endif
 
     u2             innerclasscount;   /* number of inner classes              */
     innerclassinfo *innerclass;
