@@ -27,7 +27,7 @@
 
    Authores: Christian Thalinger
 
-   $Id: methodtable.c 559 2003-11-02 23:20:06Z twisti $
+   $Id: methodtable.c 714 2003-12-07 20:41:24Z twisti $
 
 */
 
@@ -95,6 +95,12 @@ u1 *findmethod(u1 *pos)
 	
     printf("can't find method with rip=%p\n", pos);
     exit(-1);
+}
+
+
+void asmprintf(long x)
+{
+	printf("%lx\n", x);
 }
 
 
