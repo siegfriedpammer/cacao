@@ -31,13 +31,15 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 815 2003-12-31 13:22:44Z edwin $
+   $Id: global.h 850 2004-01-05 23:58:39Z stefan $
 
 */
 
 
 #ifndef _GLOBAL_H
 #define _GLOBAL_H
+
+#define _GNU_SOURCE
 
 #include "config.h"
 #include "types.h"
@@ -46,9 +48,6 @@
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 #include <pthread.h>
 #endif
-
-
-#define _GNU_SOURCE
 
 #define STATISTICS          /* if enabled collects program statistics         */
 
@@ -872,6 +871,7 @@ extern int cast_counter;
 
 void cast_lock();
 void cast_lock2();
+void cast_unlock();
 #endif
 
 #endif /* _GLOBAL_H */
