@@ -10,15 +10,16 @@ atomic_swap (volatile long *mem, long val)
   return val;
 }
 
-static inline long int
+static inline char
 __attribute__ ((unused))
 compare_and_swap (volatile long int *p, long int oldval, long int newval)
 {
-  long int ret;
+  char ret;
+  long int readval;
 
-  __asm__ __volatile__ ("lock; cmpxchgl %2, %1"
-                        : "=a" (ret), "=m" (*p)
-                        : "r" (newval), "m" (*p), "0" (oldval));
+  __asm__ __volatile__ ("lock; cmpxchgl %3, %1; sete %0"
+                        : "=q" (ret), "=m" (*p), "=a" (readval)
+                        : "r" (newval), "m" (*p), "2" (oldval));
   return ret;
 }
 
