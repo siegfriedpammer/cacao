@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 697 2003-12-07 12:45:27Z edwin $
+   $Id: typecheck.c 698 2003-12-07 13:42:47Z edwin $
 
 */
 
@@ -498,7 +498,8 @@ typecheck()
     stackptr srcstack;         /* source stack for copying and merging */
     stackptr dststack;         /* target stack for copying and merging */
     int opcode;                                      /* current opcode */
-    int macro_i, len, i;                         /* temporary counters */
+    int macro_i, i;                              /* temporary counters */
+    int len;                        /* for counting instructions, etc. */
     bool superblockend;        /* true if no fallthrough to next block */
     bool repeat;            /* if true, blocks are iterated over again */
     bool changed;                                    /* used in macros */
@@ -1229,12 +1230,42 @@ typecheck()
                               /* XXX check access rights */
                               
                               methodinfo *mi = (methodinfo*) iptr->val.a;
+
+                              /* XXX for INVOKESPECIAL: check if the invokation is done at all */
+
+                              /* fetch parameter types and return type */
                               /* XXX might use dst->typeinfo directly if non void */
-                              typeinfo_init_from_method_args(mi->descriptor,ptype,pinfo,MAXPARAMS,false,
+                              i = 0;
+                              if (opcode != ICMD_INVOKESTATIC) {
+                                  ptype[0] = TYPE_ADR;
+                                  TYPEINFO_INIT_CLASSINFO(pinfo[0],mi->class);
+                                  i++;
+                              }
+                              typeinfo_init_from_method_args(mi->descriptor,ptype+i,pinfo+i,
+                                                             MAXPARAMS-i,false,
                                                              &rtype,&rinfo);
 
-                              /* XXX compare rtype and dst->type? */
+                              /* check parameter types */
+                              srcstack = curstack;
+                              i = mi->paramcount; /* number of parameters including 'this'*/
+                              while (--i >= 0) {
+                                  LOG1("param %d",i);
+                                  if (srcstack->type != ptype[i])
+                                      panic("Parameter type mismatch in method invocation");
+                                  if (srcstack->type == TYPE_ADR) {
+                                      LOGINFO(&(srcstack->typeinfo));
+                                      LOGINFO(pinfo + i);
+                                      if (!typeinfo_is_assignable(&(srcstack->typeinfo),pinfo+i))
+                                          panic("Parameter reference type mismatch in method invocation");
+                                  }
+                                  LOG("ok");
+
+                                  srcstack = srcstack->prev;
+                              }
+
                               if (rtype != TYPE_VOID) {
+                                  if (rtype != dst->type)
+                                      panic("Return type mismatch in method invocation");
                                   TYPEINFO_COPY(rinfo,dst->typeinfo);
                               }
                           }

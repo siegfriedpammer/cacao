@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 697 2003-12-07 12:45:27Z edwin $
+   $Id: typeinfo.c 698 2003-12-07 13:42:47Z edwin $
 
 */
 
@@ -160,13 +160,13 @@ typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
     if (!cls && !dest->typeclass)
         return true;
 
-    /* the null type can be assigned to any type */
-    if (TYPEINFO_IS_NULLTYPE(*value))
-        return true;
-
     /* primitive and reference types are not assignment compatible. */
     if (!cls || !dest->typeclass)
         return false;
+
+    /* the null type can be assigned to any type */
+    if (TYPEINFO_IS_NULLTYPE(*value))
+        return true;
 
     if (dest->typeclass->flags & ACC_INTERFACE) {
         /* We are assigning to an interface type. */
