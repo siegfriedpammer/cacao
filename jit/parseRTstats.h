@@ -6,8 +6,10 @@
 #define _PARSERTSTATS_H
 
 /* function prototypes */
-void printCallgraph ();
- 
+void printCallgraph (list *rtaWorkList); /* print RTA worklist of methods */
+void printRThierarchyInfo(methodinfo *m); 
+
+
 #endif /* _PARSERTSTATS_H */
 
 

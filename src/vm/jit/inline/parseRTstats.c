@@ -26,15 +26,464 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 1416 2004-10-19 12:07:18Z carolyn $
+   $Id: parseRTstats.c 1469 2004-11-08 21:08:13Z carolyn $
 
 */
+#include <stdio.h>
+#include "toolbox/list.h"
+#include "options.h"
+#include "tables.h"
+#include "statistics.h"
+#include "loader.h"
+#include "parseRT.h"
+#include "parseRTstats.h"
 
-/*-- new RTA analysis routines will go here */
+int pClassHeirStatsOnly = 2;
+int pClassHeir = 2;
+
+/*--- Statistics ----------------------------------------------------------*/
+
+int unRTclassHeirCnt=0;
+int unRTmethodCnt = 0;
+
+/*-----*/
+int RTclassHeirNotUsedCnt=0; 
+int RTclassHeirUsedCnt=0;    
+int RTclassHeirPartUsedCnt=0;
+int RTclassHeirSuperCnt=0;
+
+int RTmethodNotUsedCnt = 0;
+int RTmethodNotUsedCnt1= 0;
+int RTmethodNotUsedCnt2= 0;
+int RTmethodUsedCnt = 0;
+int RTmethodMarkedCnt= 0;
+
+/* What might be inlined of the Used Methods */
+int RTmethodFinal  = 0;
+int RTmethodStatic = 0;
+int RTmethodFinalStatic = 0;
+int RTmethodNoSubs = 0;
+
+int RTmethodMono; 
+int RTmethodPossiblePoly;
+int RTmethodPolyReallyMono;
+int RTmethodPoly;
+
+int RTmethodFinal100  = 0;
+int RTmethodStatic100 = 0;
+int RTmethodFinalStatic100 = 0;
+int RTmethodNoSubs100 = 0;
+
+#define MAXCODLEN 10
+
+int RTmethodNoSubsAbstract = 0;
+int RTmethod1Used  = 0;
+
+int RTmethodAbstract = 0;
+
+int subRedefsCnt =0;
+int subRedefsCntUsed =0;
+
+
+
 /*--------------------------------------------------------------*/
-void printCallgraph ()
+void printCallgraph (list *rtaWorkList)
 { 
+    int i = 1;
+    rtaNode    *rta;
+    methodinfo *rt_meth;  
+
+ printf("-*-*-*-*- RTA Callgraph Worklist:<%i>\n",count_methods_marked_used);
+
+   for (rta =list_first(rtaWorkList);
+         rta != NULL;
+         rta =list_next(rtaWorkList,rta))
+	{
+	 rt_meth = rta->method;
+
+         printf("  (%i): ",i++); 
+         utf_display(rt_meth->class->name);
+         printf(":");
+         method_display(rt_meth);
+ 	}
+
+ printf("\n\n");
+
 }
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+int subdefd(methodinfo *meth) {
+    classinfo *subs;
+    methodinfo *submeth;
+
+	printf("subdefd for:");utf_display(meth->class->name);printf(".");method_display(meth); fflush(stdout);
+
+    if (  (meth->flags & ACC_STATIC) && (meth->flags & ACC_FINAL ) )  
+    	printf("\n\n\nPossible Poly call for FINAL or STATIC\n\n\n");
+
+    if ((meth->class->sub == NULL)  && (!(meth->flags & ACC_ABSTRACT )) ) { 
+		return 0;
+	}
+    if (meth->flags & ACC_ABSTRACT ) ; /*printf("AB\n"); fflush(stdout); */
+
+	printf("sub exist for:");utf_display(meth->class->name);printf(".");method_display(meth);
+
+    for (subs = meth->class->sub;subs != NULL;subs = subs->nextsub) {
+		submeth = class_findmethod_approx(subs, meth->name, meth->descriptor); 
+		if (submeth != NULL) {
+			subRedefsCnt++;
+			if (submeth->methodUsed == USED) {
+				subRedefsCntUsed++;
+				/*return 1;*/
+			}
+			else {
+				if (subdefd(submeth) > 0)
+					; /*return 1;*/
+			}
+		}
+	}
+    if (subRedefsCntUsed > 0) return 1;
+    return 0;
+}
+
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+
+void printRTClassHeirarchy(classinfo  *class) {
+  
+	classinfo  *subs;
+	methodinfo *meth;
+	int m,cnt;
+
+	if (class == NULL) {return;}
+    /* Class Name */
+    if (class->classUsed == NOTUSED) {
+		RTclassHeirNotUsedCnt++;
+		RTmethodNotUsedCnt = RTmethodNotUsedCnt + class->methodscount;
+		RTmethodNotUsedCnt1 = RTmethodNotUsedCnt1 + class->methodscount;
+		for (m=0; m < class->methodscount; m++) {
+			meth = &class->methods[m];
+			if (meth->methodUsed == USED) {
+				if (pClassHeirStatsOnly >= 2) {
+					printf("\nMETHOD marked used in CLASS marked NOTUSED: \n\t"); 
+					utf_display(class->name);
+					printf(".");
+					method_display(meth);
+					printf("<%i>\n\t",meth->methodUsed);
+					fflush(stdout);
+					printf("\nMETHOD marked used in CLASS marked NOTUSED\n\n\n\n"); 
+				}
+			}
+		}
+	}
+
+    if (class->classUsed != NOTUSED) {
+        if (pClassHeirStatsOnly >= 2) {
+			printf("\nClass: "); 
+			utf_display(class->name);    
+			printf(" <%i> (depth=%i) ",class->classUsed,class->index);
+
+			printf("\tbase/diff =%3d/%3d\n",
+				   class->vftbl->baseval,
+				   class->vftbl->diffval);
+		}
+
+        if (class->classUsed == PARTUSED) {
+            if (pClassHeirStatsOnly >= 2) {
+				printf("\tClass not instanciated - but  methods/fields resolved to this class' code (static,inits,fields,super)\n");
+			}
+			RTclassHeirPartUsedCnt++;
+	    }	
+        else {
+			if (pClassHeirStatsOnly >= 2) {
+                printf("\n");
+			}
+			RTclassHeirUsedCnt++;
+		}
+
+
+		/* Print methods used */
+		cnt=0;
+        for (m=0; m < class->methodscount; m++) {
+
+            meth = &class->methods[m];
+		
+			if (meth->methodUsed == NOTUSED)	RTmethodNotUsedCnt2++; 
+			if (meth->methodUsed == MARKED)   RTmethodMarkedCnt++;
+			if (meth->methodUsed == USED) {
+				RTmethodUsedCnt++;
+				if (  (meth->flags & ACC_FINAL ) && (!(meth->flags & ACC_STATIC)) ) { 
+					RTmethodFinal++;
+					if (meth->jcodelength < MAXCODLEN)  RTmethodFinal100++;
+				}
+
+				if (  (meth->flags & ACC_STATIC) && (!(meth->flags & ACC_FINAL )) ) { 
+					RTmethodStatic++;
+					if (meth->jcodelength < MAXCODLEN)  RTmethodStatic100++;
+				}
+
+				if (  (meth->flags & ACC_STATIC) && (meth->flags & ACC_FINAL ) ) { 
+					RTmethodFinalStatic++;
+					if (meth->jcodelength < MAXCODLEN)  RTmethodFinalStatic100++;
+				}
+
+				if ((! ((meth->flags & ACC_FINAL ) && (meth->flags & ACC_STATIC)) ) 
+					&& ((meth->class->sub == NULL)  && (!(meth->flags & ACC_ABSTRACT)) ))    {
+					RTmethodNoSubs++;
+					if (meth->jcodelength < MAXCODLEN)  RTmethodNoSubs100++;
+				}
+
+				if ((! ((meth->flags & ACC_FINAL ) && (meth->flags & ACC_STATIC)) ) 
+					&& ((meth->class->sub == NULL)  &&   (meth->flags & ACC_ABSTRACT)  ))    RTmethodNoSubsAbstract++;
+
+				if (meth->flags & ACC_ABSTRACT) RTmethodAbstract++;
+		     					
+				if (meth->monoPoly == MONO) RTmethodMono++;
+				if (meth->monoPoly == POLY) {
+					RTmethodPossiblePoly++;
+					subRedefsCnt = 0;
+					subRedefsCntUsed = 0;
+					if (meth->flags & ACC_ABSTRACT ) {
+						if (pClassHeirStatsOnly >= 2) {
+							printf("STATS: abstract_method=");
+							utf_display(meth->class->name);printf(".");
+							method_display(meth);
+						}
+					}
+					else 	{
+						if (subdefd(meth) == 0) {
+							meth->monoPoly = MONO1;
+							RTmethodPolyReallyMono++;
+						}			
+						else	{
+							RTmethodPoly++;
+							meth->subRedefs = subRedefsCnt;
+							meth->subRedefsUsed = subRedefsCntUsed;
+						}
+					}
+				}
+
+				if (pClassHeirStatsOnly >= 2) {
+					if (cnt == 0) {
+						printf("bMethods used:\n");
+					}
+					cnt++;
+					printf("\t");
+					utf_display(meth->class->name); 
+					printf(".");
+					method_display(meth);
+					printf("\t\t");
+					if (meth->monoPoly != MONO) printf("\t\tRedefs used/total<%i/%i>\n", meth->subRedefsUsed, meth->subRedefs);
+				}
+			}
+		}
+		if (pClassHeirStatsOnly >= 2) {
+			if (cnt > 0) {
+				if (class->classUsed == PARTUSED)
+				  printf("> %i of %i methods (part)used\n",cnt, class->methodscount);
+				if (class->classUsed == USED)
+				  printf("> %i of %i methods used\n",cnt, class->methodscount);
+				}
+		}
+	}
+
+    for (subs = class->sub; subs != NULL; subs = subs->nextsub) {
+		printRTClassHeirarchy(subs);
+	}
+}
+/*--------------------------------------------------------------*/
+void printRTInterfaceClasses() {
+	int mm;
+	classinfo *ci = class_java_lang_Object;
+	classSetNode *subs;
+
+	int RTmethodInterfaceClassImplementedCnt 	= 0;
+	int RTmethodInterfaceClassUsedCnt 		= 0;
+
+	int RTmethodInterfaceMethodTotalCnt 		= 0;
+	int RTmethodInterfaceMethodNotUsedCnt 	= 0;
+	int RTmethodInterfaceMethodUsedCnt 		= 0;
+
+	int RTmethodClassesImpldByTotalCnt 		= 0;
+
+	int RTmethodInterfaceMonoCnt			= 0;
+	int RTmethodInterfacePolyReallyMonoCnt=0;  /* look at every method that implments and see if its poly or mono1*/
+
+	int RTmethodNoSubsAbstractCnt = 0;
+
+	for (subs = ci->impldBy; subs != NULL; subs = subs->nextClass) {
+        classinfo * ici = subs->classType;
+		classinfo * isubs = subs->classType;
+		classSetNode * inBy;
+		int impldBycnt;
+
+		if (isubs->sub == NULL) RTmethodNoSubsAbstractCnt++;
+		if (pClassHeir >= 2) {
+			printf("Interface class: ");fflush(stdout);
+       		utf_display(ici->name); printf("\t#Methods=%i",ici->methodscount);
+		}
+		RTmethodInterfaceClassImplementedCnt++;
+		if (ici -> classUsed == USED)  	  {RTmethodInterfaceClassUsedCnt++;}
+		if (pClassHeir >= 2) {
+			printf("\n\t\t\tImplemented by classes:\n");
+		}
+		impldBycnt = 0;
+		/* get the total impldBy classes Used */
+		for (inBy = ici->impldBy; inBy != NULL; inBy = inBy->nextClass) {
+			impldBycnt++;
+			RTmethodClassesImpldByTotalCnt++;
+			if (pClassHeir >= 2) {
+				printf("\t\t\t");utf_display(inBy->classType->name);
+				printf("\n");
+			}
+			if (inBy->classType->classUsed == NOTUSED) 
+				printf("\n\n\nprintRTInterfaceClasses: class in the implemented list without being used!!!??\n\n\n");
+			fflush(stdout);
+		}
+		if (pClassHeir >= 2) {
+			printf("\t\t\tImpld by: %i\n",impldBycnt);
+		}
+		if (impldBycnt== 1) RTmethodInterfaceMonoCnt++;
+
+        /* if interface class is used */
+        if (ici -> classUsed != NOTUSED) {
+			if (pClassHeir >= 2) {
+	        	printf("    cMethods used:\n");
+			}
+
+			/* for each interface method implementation that has been used */
+			for (mm=0; mm< ici->methodscount; mm++) {
+				methodinfo *imi = &(ici->methods[mm]);
+				RTmethodInterfaceMethodTotalCnt++;
+				if  (imi->methodUsed != USED) {
+					RTmethodInterfaceMethodNotUsedCnt++;
+				}
+				if  (imi->methodUsed == USED) {
+					RTmethodInterfaceMethodUsedCnt++;
+					if (pClassHeirStatsOnly >= 2) {
+						printf("\t\t"); 
+						utf_display(ici->name);printf(".");method_display(imi);fflush(stdout);
+					}
+					if (impldBycnt == 1) {
+						classinfo  *cii;
+						methodinfo *mii;
+
+						/* if only 1 implementing class then possibly really mono call */
+				        inBy = ici->impldBy;
+						cii = inBy->classType;
+						
+						mii = class_fetchmethod(cii, imi->name, imi->descriptor); 
+						if (mii == NULL) {
+							/* assume its resolved up the heirarchy and just 1 possiblity so MONO1 */
+							imi->monoPoly = MONO1;
+							RTmethodInterfacePolyReallyMonoCnt++;
+						}
+						else	{
+							/**if (imi->monoPoly != POLY) 
+								printf("\n\n\ninterface monopoly not POLY\n\n\n");
+							**/
+							if (mii->monoPoly != POLY) {
+								imi->monoPoly = MONO1;
+								RTmethodInterfacePolyReallyMonoCnt++;
+							}
+							else	{
+								imi->monoPoly = POLY;
+							}
+						}
+					}
+				}
+			}
+			if (pClassHeir >= 2) {
+				printf("\n");
+			}
+		}
+	}
+	if (pClassHeirStatsOnly >= 1) {
+		printf("\n\n  >>>>>>>>>>>>>>>>>>>>  Interface Statistics Summary: \n");
+		printf("Classes:  Total:   %i \tUSED:      %i \tIMPLD BY:   \t%i \tJUST 1 IMPLD BY:  %i \tNOSUB:     %i \n",
+			   RTmethodInterfaceClassImplementedCnt,
+			   RTmethodInterfaceClassUsedCnt,RTmethodClassesImpldByTotalCnt, RTmethodInterfaceMonoCnt,
+			   RTmethodNoSubsAbstractCnt);
+		printf("Methods:  Total:   %i \tNOTUSED:   %i  \tUSED:      \t%i \tPoly that resolves to Mono  %i \n",
+			   RTmethodInterfaceMethodTotalCnt,
+			   RTmethodInterfaceMethodNotUsedCnt,RTmethodInterfaceMethodUsedCnt, RTmethodInterfacePolyReallyMonoCnt);
+	}
+}
+
+/*--------------------------------------------------------------*/
+
+
+
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+
+void printRThierarchyInfo(methodinfo *m) {
+
+	/*-- init for statistics --*/
+	RTclassHeirNotUsedCnt=0; 
+	RTclassHeirUsedCnt=0;    
+	RTclassHeirPartUsedCnt=0;   
+	RTclassHeirSuperCnt=0;   
+	RTmethodNotUsedCnt = 0; 
+	RTmethodNotUsedCnt1 = 0; 
+	RTmethodNotUsedCnt2 = 0;  
+	RTmethodUsedCnt = 0;   
+	RTmethodMarkedCnt= 0;  
+
+
+printf("RT Heirarchy:------------\n"); fflush(stdout);
+	/*-- --*/
+	if (pClassHeirStatsOnly >= 2) {
+		printf("\nRT Class Hierarchy for ");
+		printf("--- start of RT info --------------- after :\n");
+		if (m != NULL) {
+			utf_display(m->class->name); 
+			printf(".");
+			method_display(m);
+			printf("\n");
+		}
+    }
+	printRTClassHeirarchy(class_java_lang_Object);
+	//printRTClassHeirarchy(m->class);
+	if (pClassHeirStatsOnly >= 2) {
+		fflush(stdout);
+		printf("--- end  of RT info ---------------\n");
+    }
+	if (pClassHeirStatsOnly >= 1) {
+		/*--  statistic results --*/
+		if (opt_rt)
+		printRTInterfaceClasses();
+	
+		printf("\n  >>>>>>>>>>>>>>>>>>>>  Analysed Class Hierarchy Statistics:\n"); 
+		printf(" Used            \t%i \tclasses\t/ Used       \t%i methods \t of USED: %i%% \t  of ALL: %i%% \n",
+			   RTclassHeirUsedCnt,RTmethodUsedCnt,
+			   ((100*RTmethodUsedCnt)/(RTmethodUsedCnt + RTmethodNotUsedCnt2)) ,
+			   ((100*RTmethodUsedCnt)/ (RTmethodNotUsedCnt    + RTmethodUsedCnt    + RTmethodMarkedCnt)) );
+		printf(" Part Used       \t%i \tclasses\t/\n",RTclassHeirPartUsedCnt); 
+		printf(" Not Used        \t%i \tclasses\t/\n\n",RTclassHeirNotUsedCnt); 
+		printf("                 \t    \t       \t/ Just Marked \t%i methods\n\n",RTmethodMarkedCnt); 
+		printf(" In Not Used     \t    \tclasses\t/ Not Used    \t%i methods\n",RTmethodNotUsedCnt1); 
+		printf(" In Used         \t    \tclasses\t/ Not Used    \t%i methods\n",RTmethodNotUsedCnt2);
+		printf(" Total           \t%i \tclasses\t/ Total       \t%i methods\n\n",
+			   RTclassHeirNotUsedCnt + RTclassHeirUsedCnt + RTclassHeirPartUsedCnt,  
+			   RTmethodNotUsedCnt1 + RTmethodNotUsedCnt2    + RTmethodUsedCnt    + RTmethodMarkedCnt ); 
+
+		printf(" Mono vs. Polymorphic calls:\n");
+		printf(" Mono calls     \t%i   \tPoly that resolves to Mono \t%i \tPoly calls     \t%i\n\n",
+			   RTmethodMono, RTmethodPolyReallyMono, RTmethodPoly);
+
+		printf(" No Subs: Total=\t%i   \tAbstract No Subs=           \t%i \tAbstract methods used =\t%i\n",
+			   RTmethodNoSubs, RTmethodNoSubsAbstract, RTmethodAbstract);
+
+		printf(" Inlining possible:  \tFINALs %i \tSTATICs %i \t FINAL & STATIC %i \t Class has No Subs %i \n",
+			   RTmethodFinal, RTmethodStatic,RTmethodFinalStatic,  RTmethodNoSubs);
+		printf("    Code size < 100  \tFINALs %i \tSTATICs %i \t FINAL & STATIC %i \t Class has No Subs %i \n",
+			   RTmethodFinal100, RTmethodStatic100,RTmethodFinalStatic100,  RTmethodNoSubs100);
+	}
+}
+
+
 /*--------------------------------------------------------------*/
 
 /*

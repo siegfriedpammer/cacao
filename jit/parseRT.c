@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1419 2004-10-21 09:59:33Z carolyn $
+   $Id: parseRT.c 1469 2004-11-08 21:08:13Z carolyn $
 
 Changes:
 opcode put into functions
@@ -73,6 +73,7 @@ TODO: end analysis if mono- or polymorphic call (in parseRTstats)
 #include "toolbox/list.h"
 #include "toolbox/memory.h"   
 #include "parseRT.h"
+#include "parseRTstats.h"
 
 static bool firstCall= true;
 static list *rtaWorkList;
@@ -89,14 +90,16 @@ bool DEBUGopcodes = false;
 
 #define METHINFO(mm) \
 if (DEBUGr == true) { \
-	printf("<c%i/m%i>\t",mm->class->classUsed,mm->methodUsed); \
+	printf("<c%i/m%i/p%i>\t", \
+		mm->class->classUsed,mm->methodUsed, mm->monoPoly); \
 	utf_display(mm->class->name); printf("."); fflush(stdout); \
   	method_display(mm); fflush(stdout); }
 
 #define METHINFOt(mm,TXT) \
 if (DEBUGr == true) { \
                 printf(TXT); \
-		printf("<c%i/m%i>\t",mm->class->classUsed,mm->methodUsed); \
+		printf("<c%i/m%i/p%i>\t", \
+		mm->class->classUsed,mm->methodUsed, mm->monoPoly); \
   		utf_display(mm->class->name); printf("."); fflush(stdout); \
   		method_display(mm); fflush(stdout); }
 
@@ -129,10 +132,18 @@ if (meth->methodUsed == USED) return;
 if (!(meth->flags & ACC_ABSTRACT))  {
     count_methods_marked_used++;
     METHINFOt(meth,info)
+	if (meth->class->super != NULL) {
+		CLASSNAME(meth->class->super,"\tsuper=")
+		}
+	else {
+		if (DEBUGr) printf("\tsuper=NULL\n");}
+	fflush(stdout);
     meth ->methodUsed = USED;
     rta = NEW(rtaNode);
     rta->method = meth ;
     list_addlast(rtaWorkList,rta);
+if (meth->class->classUsed == NOTUSED) 
+	panic("\nADDED method in class not used at all!\n");
     }
 /***
 else {
@@ -197,6 +208,7 @@ void addClassInit(classinfo *ci, bool clinits, bool finalizes, bool addmark)
     if (mi) { 
 	if (ci->classUsed != USED)
 	    ci->classUsed = PARTUSED;
+	mi->monoPoly = MONO;
         addToRtaWorkList(mi,"addTo CLINIT added:");
       }     
     }        
@@ -214,12 +226,13 @@ void addClassInit(classinfo *ci, bool clinits, bool finalizes, bool addmark)
     if (mi) { 
 	if (ci->classUsed != USED)
 	    ci->classUsed = PARTUSED;
+	mi->monoPoly = MONO;
         addToRtaWorkList(mi,"addTo FINALIZE added:");
       }     
     }        
 
   if (addmark) {
-    /* rtaAddMarkedMethods(ci); */
+    rtaAddMarkedMethods(ci);
     }
 
 }
@@ -258,6 +271,7 @@ if (submeth->methodUsed == USED) return;
   /*   very inexact, too many extra methods */
   addClassInit(	submeth->class,
 		true,true,true);
+  submeth->monoPoly = POLY;
   addToRtaWorkList(submeth,
 		   "addTo RTA VIRT CONE:");
   return;
@@ -270,6 +284,7 @@ if (submeth->methodUsed == USED) return;
 		/* method defined in this class -> */
 		/* Class IS  marked USED           */ 
 		/*    -> mark method as USED       */
+  		submeth->monoPoly = POLY;
   		addToRtaWorkList(submeth,
 	   		"addTo VIRT CONE 1:");
 		}
@@ -279,6 +294,7 @@ if (submeth->methodUsed == USED) return;
 		/* -> if Method NOTUSED mark method as  MARKED */
 		METHINFOt(submeth,
 	 		"\tmarked VIRT CONE 2:");
+		submeth->monoPoly = POLY;
 		submeth->methodUsed = MARKED;
 		/* Note: if class NOTUSED and subclass is used handled  */
 		/*       by subsequent calls to rtaMarkMethods for cone */
@@ -291,6 +307,7 @@ if (submeth->methodUsed == USED) return;
 	if (submeth->class->classUsed == NOTUSED) {
 		submeth->class->classUsed = PARTUSED;
 		if (class->classUsed != USED) {
+			submeth->monoPoly = POLY;
 			submeth->methodUsed = MARKED;
 			METHINFOt(submeth,"JUST MARKED :");
 			}
@@ -298,6 +315,7 @@ if (submeth->methodUsed == USED) return;
         /* add method to rta work list if conditions met */
 	//if ( (submeth->class->classUsed == USED) ||
 	if (class->classUsed == USED) {
+  		submeth->monoPoly = POLY;
   		addToRtaWorkList(submeth,
 	  			"addTo VIRT CONE 3:");
 		}
@@ -501,6 +519,7 @@ if (DEBUGr) printf("\n");
 
 				if (mi) 
 				   {
+  				   mi->monoPoly = MONO;
 			   	   if ((opcode == JAVA_INVOKESTATIC)	   
 				     || (mi->flags & ACC_STATIC)  
 				     || (mi->flags & ACC_PRIVATE)  
@@ -509,6 +528,12 @@ if (DEBUGr) printf("\n");
 				     if (mi->class->classUsed == NOTUSED){
 					addClassInit(	mi->class,
 							true,true,false);
+				     	if (mi->class->classUsed == NOTUSED){
+				     	    mi->class->classUsed = PARTUSED;						} 
+					}
+				     if (mi->class->classUsed == NOTUSED) {
+    					METHINFOt(mi,"WAS / WARUM 1")
+					panic("WAS /WARUM 1 ????");
 					}
 			   	     if (opcode == JAVA_INVOKESTATIC)	   
 	    		               addToRtaWorkList(mi,
@@ -519,29 +544,45 @@ if (DEBUGr) printf("\n");
 				     } 
 				   else {
 				     /* Handle special <init> calls */
-				     /* RTA special case:
-				      call of super's <init> then
-				      methods of super class not all used */
 					
 				     /* for now same as rest */
 				     if (mi->class->classUsed == NOTUSED){
-				       if (utf_new_char("<init>")==mi->name)
-					  addClassInit(	mi->class,
+				       /* RTA special case:
+				          call of super's <init> then
+				          methods of super class not all used */
+				       if (utf_new_char("<init>")==mi->name) {
+					    if (m->class->super == mi->class) {
+						/* super init */
+					     	addClassInit(mi->class,
+						        true,true,false);
+						if (mi->class->classUsed == NOTUSED) mi->class->classUsed = PARTUSED;
+						}
+					    else {
+					        addClassInit(mi->class,
 							true,true,true);
+					        }
+					 } 
 				       if (utf_new_char("<clinit>")==mi->name)
 					  addClassInit(	mi->class,
 							true,true,false);
+
 				       if (!((utf_new_char("<init>")==mi->name))
-				       ||   (utf_new_char("<clinit>")==mi->name))
+				       ||   (utf_new_char("<clinit>")==mi->name)) {
 					  METHINFOt(mi,"SPECIAL not init:")
 					  addClassInit(	mi->class,
 							true,true,true);
+					  } 
+				       } 
 					   
-				       }
-
-	    		             addToRtaWorkList(mi,
-				    	 	    "addTo INVOKESPECIALi ");
-				     }
+				     if (utf_new_char("<init>")==mi->name) {
+				       if (mi->class->classUsed == NOTUSED) {
+    					  METHINFOt(mi,"WAS / WARUM 2")
+					  panic("WAS /WARUM 2 ????");
+					  }
+					addToRtaWorkList(mi,
+                                                    "addTo INVOKESPECIAL ");
+				        } 
+				     } 
 				   } 
 /***  assume if method can't be resolved won't actually be called or
       there is a real error in classpath and in normal parse an exception
@@ -582,6 +623,7 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 				       addClassInit(mi->class,
 				   		    true,true,true);
 				       }
+  				      mi->monoPoly = MONO;
 	    		              addToRtaWorkList(mi,
 				  	            "addTo INVOKEVIRTUAL ");
 				      } 
@@ -650,7 +692,11 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 		 	     class_getconstant(m->class, i, CONSTANT_Class);
                         LAZYLOADING(cls)
                        	CLASSNAMEop(cls);
-                        }
+                        if (cls->classUsed == NOTUSED){
+                        	addClassInit(cls,
+                                             true,true,true);
+                                }
+			}
                         break;
 
 		default:
@@ -684,9 +730,11 @@ else
               c, \
               false); \
         if (callmeth->class->classUsed != USED) {  \
+	      c->classUsed = PARTUSED; \
  	      addClassInit(callmeth->class, \
  			   true,true,true);\
 	      } \
+	callmeth->monoPoly = POLY; \
 	addToRtaWorkList(callmeth,txt);
 
 
@@ -696,7 +744,7 @@ else
 	and 
       rtMissedIn list (missed becaused called from NATIVE &/or dynamic calls
 --*/
-int initializeRTAworklist(methodinfo *m) {
+methodinfo *initializeRTAworklist(methodinfo *m) {
   	classinfo  *c;
         methodinfo* callmeth;
 	char systxt[]    = "System     Call :";
@@ -706,6 +754,8 @@ int initializeRTAworklist(methodinfo *m) {
 	char line[256];
 	char* class, *meth, *desc;
 	char filename[256] = "rtMissed";
+	methodinfo *rm =NULL;  /* return methodinfo ptr to main method */
+
 
         /* Create RTA call work list */
 	rtaWorkList = NEW(list);
@@ -717,6 +767,7 @@ int initializeRTAworklist(methodinfo *m) {
 
 	/* Add system called methods */
  	SYSADD(mainstring, "main","([Ljava/lang/String;)V",systxt)
+	rm = callmeth;  
  	SYSADD("java/lang/Runtime","getRuntime","()Ljava/lang/Runtime;",systxt)
  	SYSADD("java/lang/Runtime","exit","(I)V",systxt)
 
@@ -724,7 +775,7 @@ int initializeRTAworklist(methodinfo *m) {
         if ( (rtMissedIn = fopen("rtMissedIn0", "r")) == NULL) {
 		//if (verbose) 
 		    {printf("No rtMissedIn0 file\n");fflush(stdout);} 
-		return 0;
+		return  rm;
 		}
 	while (getline(line,256,rtMissedIn)) {
 	    class = strtok(line, " \n");
@@ -739,7 +790,7 @@ int initializeRTAworklist(methodinfo *m) {
         if ( (rtMissedIn = fopen(filename, "r")) == NULL) {
 		//if (verbose) 
 		    {printf("No rtMissedIn=%s file\n",filename);fflush(stdout);} 
-		return 0;
+		return rm;
 		}
 	while (getline(line,256,rtMissedIn)) {
 	    class = strtok(line, " \n");
@@ -748,8 +799,9 @@ int initializeRTAworklist(methodinfo *m) {
  		SYSADD(class,meth,desc,missedtxt)
 		}
 	fclose(rtMissedIn);
-	return 0;
+	return rm;
 }
+
 /*- end initializeRTAworklist-------- */
 
 
@@ -759,6 +811,7 @@ int RT_jit_parse(methodinfo *m)
 {
   methodinfo *rt_method;
   rtaNode    *rta;
+  methodinfo *mainmeth;
 
   /* Should only be called once */
   if (firstCall) {
@@ -768,7 +821,7 @@ int RT_jit_parse(methodinfo *m)
   	if (verbose) 
       	    log_text("RTA static analysis started.\n");
 
-	initializeRTAworklist(m);
+	mainmeth = initializeRTAworklist(m);
 
     if ( (rtMissed = fopen("rtMissed", "w")) == NULL) {
         printf("CACAO - rtMissed file: cant open file to write\n");
@@ -802,6 +855,13 @@ int RT_jit_parse(methodinfo *m)
             }            	
     	}	
     fclose(rtMissed);
+    if (verbose) {
+        if (opt_stat) {
+          printRThierarchyInfo(m); 
+	  }
+      printCallgraph(rtaWorkList); 
+      }
+
     if (verbose) {
       log_text("RTA static analysis done.\n");
       }
