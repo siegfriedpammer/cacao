@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: schedule.h 1970 2005-03-01 17:17:05Z twisti $
+   $Id: schedule.h 1972 2005-03-02 10:56:49Z twisti $
 
 */
 
@@ -53,15 +53,17 @@ typedef struct nodelink nodelink;
 *******************************************************************************/
 
 struct scheduledata {
-	minstruction *mi;                   /* machine instruction array          */
-	s4            micount;              /* number of machine instructions     */
-	nodelink     *leaders;              /* list containing sink nodes         */
-	nodelink     *intregs_read_dep;
-	nodelink     *intregs_write_dep;
-	nodelink     *fltregs_read_dep;
-	nodelink     *fltregs_write_dep;
-	nodelink     *memory_read_dep;
-    nodelink     *memory_write_dep;
+	minstruction  *mi;                  /* machine instruction array          */
+	s4             micount;             /* number of machine instructions     */
+	nodelink      *leaders;             /* list containing sink nodes         */
+
+	minstruction **intregs_define_dep;
+	minstruction **fltregs_define_dep;
+    minstruction **memory_define_dep;
+
+	nodelink     **intregs_use_dep;
+	nodelink     **fltregs_use_dep;
+	nodelink     **memory_use_dep;
 };
 
 
@@ -73,11 +75,12 @@ struct scheduledata {
 *******************************************************************************/
 
 struct minstruction {
-	u4            instr;                /* machine instruction word           */
-	u1            latency;              /* instruction latency                */
-	s4            priority;             /* priority of this instruction node  */
-	nodelink     *opdep[3];             /* operand dependencies               */
-	minstruction *next;                 /* link to next machine instruction   */
+	u4             instr;               /* machine instruction word           */
+	u1             latency;             /* instruction latency                */
+	s4             priority;            /* priority of this instruction node  */
+	bool           leader;
+	nodelink      *deps;                /* operand dependencies               */
+	minstruction  *next;                /* link to next machine instruction   */
 };
 
 
@@ -88,18 +91,26 @@ struct minstruction {
 *******************************************************************************/
 
 struct nodelink {
-	s4        mnode;                    /* postition in minstruction array    */
-	nodelink *next;                     /* link to next node                  */
+	minstruction *mi;                   /* pointer to machine instruction     */
+	nodelink     *next;                 /* link to next node                  */
 };
 
 
 /* function prototypes ********************************************************/
 
-scheduledata *schedule_setup(registerdata *rd);
+scheduledata *schedule_init(registerdata *rd);
 void schedule_calc_priority(minstruction *mi);
-void schedule_add_dep(nodelink **reg, s4 mnode);
+
+void schedule_add_int_define_dep(scheduledata *sd, s4 reg);
+void schedule_add_flt_define_dep(scheduledata *sd, s4 reg);
+
+void schedule_add_int_use_dep(scheduledata *sd, s4 reg);
+void schedule_add_flt_use_dep(scheduledata *sd, s4 reg);
+
+void schedule_add_memory_define_dep(scheduledata *sd);
+void schedule_add_memory_use_dep(scheduledata *sd);
+
 void schedule_do_schedule(scheduledata *sd);
-minstruction *schedule_prepend_minstruction(minstruction *mi);
 
 #endif /* _SCHEDULE_H */
 

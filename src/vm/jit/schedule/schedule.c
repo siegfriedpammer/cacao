@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: schedule.c 1970 2005-03-01 17:17:05Z twisti $
+   $Id: schedule.c 1972 2005-03-02 10:56:49Z twisti $
 
 */
 
@@ -52,46 +52,24 @@ scheduledata *schedule_init(registerdata *rd)
 
 	sd->micount = 0;
 
-	sd->intregs_read_dep = DMNEW(nodelink*, rd->intregsnum);
-	sd->intregs_write_dep = DMNEW(nodelink*, rd->intregsnum);
+	sd->intregs_define_dep = DMNEW(minstruction*, rd->intregsnum);
+	sd->fltregs_define_dep = DMNEW(minstruction*, rd->fltregsnum);
 
-	sd->fltregs_read_dep = DMNEW(nodelink*, rd->fltregsnum);
-	sd->fltregs_write_dep = DMNEW(nodelink*, rd->fltregsnum);
-
-	/* XXX: memory is currently only one cell */
-/*  	sd->memory_write_dep; */
+	sd->intregs_use_dep = DMNEW(nodelink*, rd->intregsnum);
+	sd->fltregs_use_dep = DMNEW(nodelink*, rd->fltregsnum);
 
 	/* clear all pointers */
 
-	MSET(sd->intregs_read_dep, 0, nodelink*, rd->intregsnum);
-	MSET(sd->intregs_write_dep, 0, nodelink*, rd->intregsnum);
+	MSET(sd->intregs_define_dep, 0, minstruction*, rd->intregsnum);
+	MSET(sd->fltregs_define_dep, 0, minstruction*, rd->fltregsnum);
 
-	MSET(sd->fltregs_read_dep, 0, nodelink*, rd->fltregsnum);
-	MSET(sd->fltregs_write_dep, 0, nodelink*, rd->fltregsnum);
+	MSET(sd->intregs_use_dep, 0, nodelink*, rd->intregsnum);
+	MSET(sd->fltregs_use_dep, 0, nodelink*, rd->fltregsnum);
 
-  	sd->memory_write_dep = NULL;
+  	sd->memory_define_dep = NULL;
+  	sd->memory_use_dep = NULL;
 
 	return sd;
-}
-
-
-minstruction *schedule_prepend_minstruction(minstruction *mi)
-{
-	minstruction *tmpmi;
-
-	/* add new instruction in front of the list */
-
-	tmpmi = DNEW(minstruction);
-
-	tmpmi->latency = 0;
-	tmpmi->priority = 0;
-	tmpmi->opdep[0] = NULL;
-	tmpmi->opdep[1] = NULL;
-	tmpmi->opdep[2] = NULL;
-
-	tmpmi->next = mi;                   /* link to next instruction           */
-
-	return tmpmi;
 }
 
 
@@ -113,24 +91,185 @@ void schedule_calc_priority(minstruction *mi)
 	pathpriority = 0;
 
 	for (i = 0; i < 3; i++) {
-		if (mi->opdep[i]) {
+/*  		if (mi->opdep[i]) { */
 /*  			if (mi->opdep[i]->priority > pathpriority) */
 /*  				pathpriority = mi->opdep[i]->priority; */
-		}
+/*  		} */
 	}
 
 	mi->priority = pathpriority + mi->latency + 1;
 }
 
 
-void schedule_add_dep(nodelink **reg, s4 mnode)
+void schedule_add_int_define_dep(scheduledata *sd, s4 reg)
 {
-	nodelink *nl;
+	minstruction *mi;
+	minstruction *defmi;
+	minstruction *usemi;
+	nodelink     *usenl;
+	nodelink     *nl;
+
+	/* get current machine instruction */
+
+	mi = &sd->mi[sd->micount - 1];
+
+	/* get current use dependency nodes, if non-null use them... */
+
+	if ((usenl = sd->intregs_use_dep[reg])) {
+		/* add a dependency link node to all use dependency nodes */
+
+		while (usenl) {
+			usemi = usenl->mi;
+
+			/* don't add to the current machine instruction */
+
+			if (usemi != mi) {
+				nl = DNEW(nodelink);
+				nl->mi = mi;
+				nl->next = usemi->deps;
+				usemi->deps = nl;
+			}
+
+			usenl = usenl->next;
+		}
+
+	} else {
+		/* ...otherwise use last define dependency, if non-null */
+
+		if ((defmi = sd->intregs_define_dep[reg])) {
+			nl = DNEW(nodelink);
+			nl->mi = mi;
+			nl->next = defmi->deps;
+			defmi->deps = nl;
+		}
+	}
+
+	/* set current instruction as new define dependency and clear use         */
+	/* depedencies                                                            */
+
+	sd->intregs_define_dep[reg] = mi;
+	sd->intregs_use_dep[reg] = NULL;
+}
+
+
+void schedule_add_int_use_dep(scheduledata *sd, s4 reg)
+{
+	minstruction *mi;
+	minstruction *defmi;
+	nodelink     *nl;
+
+	/* get current machine instruction */
+
+	mi = &sd->mi[sd->micount - 1];
+
+	/* get current define dependency instruction */
+
+	if ((defmi = sd->intregs_define_dep[reg])) {
+		/* add node to dependency list of current define node */
+
+		nl = DNEW(nodelink);
+		nl->mi = mi;
+		nl->next = defmi->deps;
+		defmi->deps = nl;
+	}
+
+	/* add node to list of current use nodes */
 
 	nl = DNEW(nodelink);
-	nl->mnode = mnode;
-	nl->next = *reg;
-	*reg = nl;
+	nl->mi = mi;
+	nl->next = sd->intregs_use_dep[reg];
+	sd->intregs_use_dep[reg] = nl;
+}
+
+
+void schedule_add_flt_define_dep(scheduledata *sd, s4 reg)
+{
+	minstruction *mi;
+	minstruction *defmi;
+	minstruction *usemi;
+	nodelink     *usenl;
+	nodelink     *nl;
+
+	/* get current machine instruction */
+
+	mi = &sd->mi[sd->micount - 1];
+
+	/* get current use dependency nodes, if non-null use them... */
+
+	if ((usenl = sd->fltregs_use_dep[reg])) {
+		/* add a dependency link node to all use dependency nodes */
+
+		while (usenl) {
+			usemi = usenl->mi;
+
+			/* don't add to the current machine instruction */
+
+			if (usemi != mi) {
+				nl = DNEW(nodelink);
+				nl->mi = mi;
+				nl->next = usemi->deps;
+				usemi->deps = nl;
+			}
+
+			usenl = usenl->next;
+		}
+
+	} else {
+		/* ...otherwise use last define dependency, if non-null */
+
+		if ((defmi = sd->fltregs_define_dep[reg])) {
+			nl = DNEW(nodelink);
+			nl->mi = mi;
+			nl->next = defmi->deps;
+			defmi->deps = nl;
+		}
+	}
+
+	/* set current instruction as new define dependency and clear use         */
+	/* depedencies                                                            */
+
+	sd->fltregs_define_dep[reg] = mi;
+	sd->fltregs_use_dep[reg] = NULL;
+}
+
+
+void schedule_add_flt_use_dep(scheduledata *sd, s4 reg)
+{
+	minstruction *mi;
+	minstruction *defmi;
+	nodelink     *nl;
+
+	/* get current machine instruction */
+
+	mi = &sd->mi[sd->micount - 1];
+
+	/* get current define dependency instruction */
+
+	if ((defmi = sd->fltregs_define_dep[reg])) {
+		/* add node to dependency list of current define node */
+
+		nl = DNEW(nodelink);
+		nl->mi = mi;
+		nl->next = defmi->deps;
+		defmi->deps = nl;
+	}
+
+	/* add node to list of current use nodes */
+
+	nl = DNEW(nodelink);
+	nl->mi = mi;
+	nl->next = sd->fltregs_use_dep[reg];
+	sd->fltregs_use_dep[reg] = nl;
+}
+
+
+void schedule_add_memory_define_dep(scheduledata *sd)
+{
+}
+
+
+void schedule_add_memory_use_dep(scheduledata *sd)
+{
 }
 
 
@@ -143,7 +282,9 @@ void schedule_add_dep(nodelink **reg, s4 mnode)
 void schedule_do_schedule(scheduledata *sd)
 {
 	minstruction *mi;
+	nodelink     *nl;
 	s4            i;
+	s4            j;
 
 	printf("bb start ---\n");
 
@@ -153,7 +294,16 @@ void schedule_do_schedule(scheduledata *sd)
 /*  		disassinstr(&tmpmi->instr); */
 		printf("%05x", mi->instr);
 
-		printf("   --> %d, %d:   op1=%p, op2=%p, op3=%p\n", mi->latency, mi->priority, mi->opdep[0], mi->opdep[1], mi->opdep[2]);
+		printf("   --> #%d, %d, %d:   ", i, mi->leader, mi->latency, mi->priority);
+
+		printf(" deps= ");
+		nl = mi->deps;
+		while (nl) {
+			printf("%p ", nl->mi);
+			nl = nl->next;
+		}
+
+		printf("\n");
 	}
 	printf("bb end ---\n\n");
 }
