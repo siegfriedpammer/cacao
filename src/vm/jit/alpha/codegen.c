@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1054 2004-05-05 21:08:55Z stefan $
+   $Id: codegen.c 1061 2004-05-16 13:45:15Z twisti $
 
 */
 
@@ -38,9 +38,9 @@
 #include "types.h"
 #include "main.h"
 #include "codegen.h"
-#include "jit.h"
-#include "parse.h"
-#include "reg.h"
+#include "jit/jit.h"
+#include "jit/parse.h"
+#include "jit/reg.h"
 #include "builtin.h"
 #include "asmpart.h"
 #include "jni.h"
@@ -320,6 +320,7 @@ void catch_NullPointerException(int sig, int code, sigctx_struct *sigctx)
 	sigset_t nsig;
 	int      instr;
 	long     faultaddr;
+	java_objectheader *xptr;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
@@ -332,15 +333,11 @@ void catch_NullPointerException(int sig, int code, sigctx_struct *sigctx)
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
 
-		if (!proto_java_lang_NullPointerException) {
-			proto_java_lang_NullPointerException =
-				new_exception(string_java_lang_NullPointerException);
-		}
+		xptr = new_exception(string_java_lang_NullPointerException);
 
-		sigctx->sc_regs[REG_ITMP1_XPTR] =
-		                            (long) proto_java_lang_NullPointerException;
+		sigctx->sc_regs[REG_ITMP1_XPTR] = (u8) xptr;
 		sigctx->sc_regs[REG_ITMP2_XPC] = sigctx->sc_pc;
-		sigctx->sc_pc = (long) asm_handle_exception;
+		sigctx->sc_pc = (u8) asm_handle_exception;
 		return;
 
 	} else {
@@ -3594,6 +3591,12 @@ makeactualcall:
 			codegen_addxcheckarefs(mcodeptr);
 			break;
 
+		case ICMD_CHECKOOM:    /* ... ==> ...                                 */
+
+			M_BEQZ(REG_RESULT, 0);
+			codegen_addxoomrefs(mcodeptr);
+			break;
+
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
 		                      /* op1 = dimension, val.a = array descriptor    */
 
@@ -3859,6 +3862,68 @@ makeactualcall:
 		}
 	}
 
+	/* generate oom check stubs */
+
+	xcodeptr = NULL;
+
+	for (; xoomrefs != NULL; xoomrefs = xoomrefs->next) {
+		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+			gen_resolvebranch((u1*) mcodebase + xoomrefs->branchpos,
+							  xoomrefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - 4);
+			continue;
+		}
+
+		gen_resolvebranch((u1*) mcodebase + xoomrefs->branchpos, 
+		                  xoomrefs->branchpos, (u1*) mcodeptr - mcodebase);
+
+		MCODECHECK(8);
+
+		M_LDA(REG_ITMP2_XPC, REG_PV, xoomrefs->branchpos - 4);
+
+		if (xcodeptr != NULL) {
+			M_BR(xcodeptr - mcodeptr - 1);
+
+		} else {
+			xcodeptr = mcodeptr;
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
+			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+			a = dseg_addaddress(&builtin_get_exceptionptrptr);
+			M_ALD(REG_PV, REG_PV, a);
+			M_JSR(REG_RA, REG_PV);
+
+			/* recompute pv */
+			s1 = (s4) ((u1 *) mcodeptr - mcodebase);
+			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
+			else {
+				s4 ml = -s1, mh = 0;
+				while (ml < -32768) { ml += 65536; mh--; }
+				M_LDA(REG_PV, REG_RA, ml);
+				M_LDAH(REG_PV, REG_PV, mh);
+			}
+
+			M_ALD(REG_ITMP1_XPTR, REG_RESULT, 0);
+			M_AST(REG_ZERO, REG_RESULT, 0);
+
+			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
+#else
+			a = dseg_addaddress(&_exceptionptr);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_ALD(REG_ITMP1_XPTR, REG_ITMP3, 0);
+			M_AST(REG_ZERO, REG_ITMP3, 0);
+#endif
+
+			a = dseg_addaddress(asm_handle_exception);
+			M_ALD(REG_ITMP3, REG_PV, a);
+
+			M_JMP(REG_ZERO, REG_ITMP3);
+		}
+	}
+
 	/* generate null pointer check stubs */
 
 	xcodeptr = NULL;
@@ -3967,16 +4032,17 @@ void removecompilerstub(u1 *stub)
 *******************************************************************************/
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#define NATIVESTUBSTACK     2
-#define NATIVESTUBTHREADEXTRA 5
+#define NATIVESTUBSTACK          2
+#define NATIVESTUBTHREADEXTRA    5
 #else
-#define NATIVESTUBSTACK     1
-#define NATIVESTUBTHREADEXTRA 0
+#define NATIVESTUBSTACK          1
+#define NATIVESTUBTHREADEXTRA    0
 #endif
 
-#define NATIVESTUBSIZE      (44 + NATIVESTUBTHREADEXTRA)
-#define NATIVEVERBOSESIZE   (39 + 13)
-#define NATIVESTUBOFFSET    8
+#define NATIVESTUBSIZE           (44 + NATIVESTUBTHREADEXTRA)
+#define NATIVESTATICSIZE         5
+#define NATIVEVERBOSESIZE        (39 + 13)
+#define NATIVESTUBOFFSET         9
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
@@ -3990,7 +4056,13 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	reg_init();
 	descriptor2types(m);                /* set paramcount and paramtypes      */
 
-	stubsize = runverbose ? NATIVESTUBSIZE + NATIVEVERBOSESIZE : NATIVESTUBSIZE;
+	stubsize = NATIVESTUBSIZE;          /* calculate nativestub size          */
+	if ((m->flags & ACC_STATIC) && !m->class->initialized)
+		stubsize += NATIVESTATICSIZE;
+
+	if (runverbose)
+		stubsize += NATIVEVERBOSESIZE;
+
 	s = CNEW(u8, stubsize);             /* memory to hold the stub            */
 	cs = s + NATIVESTUBOFFSET;
 	mcodeptr = (s4 *) (cs);             /* code generation pointer            */
@@ -4007,9 +4079,25 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	*(cs-6) = (u8) m;
 	*(cs-7) = (u8) builtin_displaymethodstop;
 	*(cs-8) = (u8) m->class;
+	*(cs-9) = (u8) asm_check_clinit;
 
 	M_LDA(REG_SP, REG_SP, -NATIVESTUBSTACK * 8);      /* build up stackframe  */
 	M_AST(REG_RA, REG_SP, 0 * 8);       /* store return address               */
+
+	/* if function is static, check for initialized */
+
+	if (m->flags & ACC_STATIC) {
+	/* if class isn't yet initialized, do it */
+		if (!m->class->initialized) {
+			/* call helper function which patches this code */
+			M_ALD(REG_ITMP1, REG_PV, -8 * 8);     /* class                    */
+			M_ALD(REG_PV, REG_PV, -9 * 8);        /* asm_check_clinit         */
+			M_JSR(REG_RA, REG_PV);
+			disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
+			M_LDA(REG_PV, REG_RA, disp);
+			M_NOP;                  /* this is essential for code patching    */
+		}
+	}
 
 	/* max. 39 instructions */
 	if (runverbose) {
