@@ -24,6 +24,7 @@ extern bool makeinitializations; /* Initialize classes automatically */
 extern bool getloadingtime;
 extern long int loadingtime;     /* CPU time for class loading */
 
+extern list unlinkedclasses;     /* List containing all unlinked classes */
 extern list linkedclasses;       /* List containing all linked classes */
 
 
@@ -80,5 +81,8 @@ classinfo *create_array_class(utf *u);
 /* create the arraydescriptor for the arraytype specified by the utf-string */
 constant_arraydescriptor * buildarraydescriptor(char *utf, u4 namelen);
 
+extern void class_link (classinfo *c);
 
+void field_display (fieldinfo *f);
 
+void method_display(methodinfo *m);

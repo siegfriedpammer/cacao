@@ -107,12 +107,12 @@ static classinfo *class_java_lang_ThreadDeath;
  ******************************************************************************/
  
 primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = { 
-		{ NULL, NULL, "java/lang/Double",    'D', "double"  },
-		{ NULL, NULL, "java/lang/Float",     'F', "float"   },
-  		{ NULL, NULL, "java/lang/Character", 'C', "char"    },
   		{ NULL, NULL, "java/lang/Integer",   'I', "int"     },
   		{ NULL, NULL, "java/lang/Long",      'J', "long"    },
+		{ NULL, NULL, "java/lang/Float",     'F', "float"   },
+		{ NULL, NULL, "java/lang/Double",    'D', "double"  },
   		{ NULL, NULL, "java/lang/Byte",	     'B', "byte"    },
+  		{ NULL, NULL, "java/lang/Character", 'C', "char"    },
   		{ NULL, NULL, "java/lang/Short",     'S', "short"   },
   		{ NULL, NULL, "java/lang/Boolean",   'Z', "boolean" },
   		{ NULL, NULL, "java/lang/Void",	     'V', "void"    }};
@@ -1636,7 +1636,7 @@ static void class_addinterface (classinfo *c, classinfo *ic)
 
 *******************************************************************************/
 
-static void class_link (classinfo *c)
+void class_link (classinfo *c)
 {
 	s4 supervftbllength;          /* vftbllegnth of super class               */
 	s4 vftbllength;               /* vftbllength of current class             */
@@ -1665,7 +1665,7 @@ static void class_link (classinfo *c)
 
 	if (super == NULL) {          /* class java.long.Object */
 		c->index = 0;
-                c->classUsed = USED;     /* Object class is always used CO-RT*/
+        c->classUsed = USED;     /* Object class is always used CO-RT*/
 		c -> impldBy = NULL;
 		c->instancesize = sizeof(java_objectheader);
 		
@@ -2225,8 +2225,6 @@ int find_class_method_constant (classinfo *c, utf * c1, utf* m1, utf* d1)
 						}
 				    }
 					break;
-				
-				default: 
 				}
 				
 			}
@@ -2588,7 +2586,7 @@ void loader_init ()
 
 	/* create class for arrays */
 	class_array = class_new ( utf_new_char ("The_Array_Class") );
-        class_array -> classUsed = NOTUSED; /* not used initially CO-RT */
+    class_array -> classUsed = NOTUSED; /* not used initially CO-RT */
 	class_array -> impldBy = NULL;
 
  	list_remove (&unloadedclasses, class_array);
@@ -2596,7 +2594,7 @@ void loader_init ()
 	/* create class for strings, load it after class Object was loaded */
 	string_class = utf_new_char ("java/lang/String");
 	class_java_lang_String = class_new(string_class);
-        class_java_lang_String -> classUsed = NOTUSED; /* not used initially CO-RT */
+    class_java_lang_String -> classUsed = NOTUSED; /* not used initially CO-RT */
 	class_java_lang_String -> impldBy = NULL;
 
  	list_remove (&unloadedclasses, class_java_lang_String);
@@ -2711,8 +2709,7 @@ static void loader_compute_class_values (classinfo *c)
 		subs = subs->nextsub;
 		}
 	c->vftbl->diffval = classvalue - c->vftbl->baseval;
-
-/*
+	/*
 	{
 	int i;
 	for (i = 0; i < c->index; i++)
@@ -2721,7 +2718,7 @@ static void loader_compute_class_values (classinfo *c)
 	utf_display(c->name);
 	printf("\n");
 	}
-*/
+	*/
 }
 
 

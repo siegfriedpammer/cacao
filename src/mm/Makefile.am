@@ -1,12 +1,6 @@
 EXTRA_LIBRARIES = libboehm.a
-noinst_LIBRARIES = libmm_new.a libmm_old.a @BOEHM_LIB@
+noinst_LIBRARIES = @BOEHM_LIB@
 
-libmm_new_a_SOURCES = allocator2.c allocator.h \
-		      bitmap2.c bitmap2.h \
-		      heap2.c \
-		      lifespan.c lifespan.h \
-		      mm.h
-libmm_old_a_SOURCES = heap.old.c
 libboehm_a_SOURCES = boehm.c
 
 INCLUDES=-I$(top_srcdir) -I$(top_srcdir)/@SYSDEP_DIR@

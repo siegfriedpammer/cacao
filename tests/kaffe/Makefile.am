@@ -27,7 +27,7 @@ ALWAYS_TESTS = \
 ## Test threads
 	tname.java \
 	ttest.java \
-	ThreadInterrupt.java \
+##	ThreadInterrupt.java
 	ThreadState.java \
 	UncaughtException.java \
 ## Misc tests

@@ -91,19 +91,18 @@ bool rtaSubUsed(classinfo *class, methodinfo *meth) {
 
 
 /*--------------------------------------------------------------*/
-/* Mark the method with same name /descriptor in topmethod
-/* in class
-/*
-/* Class not marked USED and method defined in this class -> 
-/*    -> if Method NOTUSED mark method as MARKED 
-/* Class marked USED and method defined in this class ->
-/*    -> mark method as USED
-
-/* Class USED, but method not defined in this class ->
-/*    -> search up the heirarchy and mark method where defined
-/*       if class where method is defined is not USED ->
-/*	 -> mark class with defined method as PARTUSED 
-
+/* Mark the method with same name /descriptor in topmethod      */
+/* in class                                                     */
+/*                                                              */
+/* Class not marked USED and method defined in this class ->    */
+/*    -> if Method NOTUSED mark method as MARKED                */
+/* Class marked USED and method defined in this class ->        */
+/*    -> mark method as USED                                    */
+/*                                                              */
+/* Class USED, but method not defined in this class ->          */
+/*    -> search up the heirarchy and mark method where defined  */
+/*       if class where method is defined is not USED ->        */
+/*	 -> mark class with defined method as PARTUSED          */
 /*--------------------------------------------------------------*/
 
 void rtaMarkMethod(classinfo *class, methodinfo *topmethod) {
@@ -123,8 +122,8 @@ void rtaMarkMethod(classinfo *class, methodinfo *topmethod) {
     	if (submeth->class->classUsed != USED) { 
 		if (submeth->methodUsed == NOTUSED) { 
 
-		/* Class NOT marked USED and method defined in this class -> 
-		/*    -> if Method NOTUSED mark method as  MARKED  */
+                /* Class NOT marked USED and method defined in this class -> */
+		/*    -> if Method NOTUSED mark method as  MARKED            */
 				if (pWhenMarked >= 1) {
 					printf("MARKED class.method\t"); 
 					utf_display(submeth->class->name);printf(".");method_display(submeth);
@@ -139,7 +138,7 @@ void rtaMarkMethod(classinfo *class, methodinfo *topmethod) {
 				}
     		} }
     	else 	{
-		/* Class IS  marked USED and method defined in this class ->
+                /* Class IS  marked USED and method defined in this class -> */
 		/*    -> mark method as USED  */
 		ADDTOCALLGRAPH(submeth) 
 		}
@@ -161,9 +160,9 @@ void rtaMarkMethod(classinfo *class, methodinfo *topmethod) {
 } 
 
 /*-------------------------------------------------------------------------------*/
-/* Mark the method with the same name and descriptor as topmethod
-/*   and any subclass where the method is defined and/or class is used
-/*
+/* Mark the method with the same name and descriptor as topmethod                */
+/*   and any subclass where the method is defined and/or class is used           */
+/*                                                                               */
 /*-------------------------------------------------------------------------------*/
 void rtaMarkSubs(classinfo *class, methodinfo *topmethod) {
 		RTAPRINTmarkSubs1
@@ -182,10 +181,10 @@ return;
 }
 
 /*-------------------------------------------------------------------------------*/
-/* Add Marked methods for input class ci 
-/* Add methods with the same name and descriptor as implemented interfaces
-/*   with the same method name
-/*
+/* Add Marked methods for input class ci                                         */
+/* Add methods with the same name and descriptor as implemented interfaces       */
+/*   with the same method name                                                   */
+/*                                                                               */
 /*-------------------------------------------------------------------------------*/
 void addMarkedMethods(classinfo *ci) {
 int ii,jj,mm;
@@ -222,7 +221,7 @@ for (ii=0; ii<ci->methodscount; ii++) {
 	}
 }    
 /*-------------------------------------------------------------------------------*/
-/*  XTA Functions */
+/*  XTA Functions                                                                */
 /*-------------------------------------------------------------------------------*/
 bool xtaPassParams (methodinfo *SmCalled, methodinfo *SmCalls, methSetNode *lastptrInto) {
 

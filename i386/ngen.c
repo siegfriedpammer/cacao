@@ -10,8 +10,9 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
+			 Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 431 2003-09-13 15:11:26Z twisti $
+	Last Change: $Id: ngen.c 491 2003-10-20 17:56:03Z twisti $
 
 *******************************************************************************/
 
@@ -20,7 +21,6 @@
 
 /* additional functions and macros to generate code ***************************/
 
-/* #define BlockPtrOfPC(pc)        block+block_index[pc] */
 #define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
 
 
@@ -48,16 +48,12 @@
 
 /* gen_nullptr_check(objreg) */
 
-#ifdef SOFTNULLPTRCHECK
 #define gen_nullptr_check(objreg) \
 	if (checknull) { \
         i386_test_reg_reg((objreg), (objreg)); \
         i386_jcc(I386_CC_E, 0); \
  	    mcode_addxnullrefs(mcodeptr); \
 	}
-#else
-#define gen_nullptr_check(objreg)
-#endif
 
 
 /* MCODECHECK(icnt) */
@@ -78,7 +74,7 @@
     if a and b are the same float-register, no code will be generated
 */ 
 
-#define M_FLTMOVE(reg,dreg) if ((reg) != (dreg)){ M_OP3(0,0,0,0,0,0); }
+#define M_FLTMOVE(reg,dreg) panic("M_FLTMOVE");
 
 #define M_LNGMEMMOVE(reg,dreg) \
     do { \
@@ -261,7 +257,7 @@ void catch_NullPointerException(int sig)
 {
 	sigset_t nsig;
 	int      instr;
-	long     faultaddr;
+/*  	long     faultaddr; */
 
 	void **_p = (void **) &sig;
 	struct sigcontext *sigctx = (struct sigcontext *) ++_p;
@@ -300,14 +296,27 @@ void catch_ArithmeticException(int sig)
 	void **_p = (void **) &sig;
 	struct sigcontext *sigctx = (struct sigcontext *) ++_p;
 
-	/* Reset signal handler - necessary for SysV, does no harm for BSD */
+	classinfo *c;
+	java_objectheader *p;
+	methodinfo *m;
 
-	signal(sig, (void *) catch_ArithmeticException);           /* reinstall handler */
+	/* Reset signal handler - necessary for SysV, does no harm for BSD        */
+
+	signal(sig, (void *) catch_ArithmeticException);     /* reinstall handler */
 	sigemptyset(&nsig);
 	sigaddset(&nsig, sig);
-	sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
-	sigctx->eax = (long) proto_java_lang_ArithmeticException;  /* REG_ITMP1_XPTR    */
-	sigctx->edx = sigctx->eip;                                 /* REG_ITMP2_XPC     */
+	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
+
+	c = loader_load(utf_new_char("java/lang/ArithmeticException"));
+	p = builtin_new(c);
+	m = class_findmethod(c, 
+						 utf_new_char("<init>"), 
+						 utf_new_char("(Ljava/lang/String;)V"));
+
+	asm_calljavamethod(m, p, javastring_new_char("/ by zero"), NULL, NULL);
+
+	sigctx->eax = (long) p;                              /* REG_ITMP1_XPTR    */
+	sigctx->edx = sigctx->eip;                           /* REG_ITMP2_XPC     */
 	sigctx->eip = (long) asm_handle_exception;
 
 	return;
@@ -338,14 +347,15 @@ void init_exceptions(void)
 
 *******************************************************************************/
 
+u1          *mcodeptr;
+
 static void gen_mcode()
 {
-	int  len, s1, s2, s3, d, bbs;
+	int  len, s1, s2, s3, d/*, bbs*/;
 	s4   a;
-	u1          *mcodeptr;
 	stackptr    src;
 	varinfo     *var;
-	varinfo     *dst;
+/*  	varinfo     *dst; */
 	basicblock  *bptr;
 	instruction *iptr;
 
@@ -356,7 +366,6 @@ static void gen_mcode()
 	{
 	int p, pa, t, l, r;
 
-/*  	savedregs_num = (isleafmethod) ? 0 : 1;           /* space to save the RA */
   	savedregs_num = 0;
 
 	/* space to save used callee saved registers */
@@ -469,7 +478,7 @@ static void gen_mcode()
 #ifdef USE_THREADS
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 		if (method->flags & ACC_STATIC) {
-			i386_mov_imm_reg(class, REG_ITMP1);
+			i386_mov_imm_reg((s4) class, REG_ITMP1);
 			i386_mov_reg_membase(REG_ITMP1, REG_SP, maxmemuse * 8);
 
 		} else {
@@ -525,9 +534,9 @@ static void gen_mcode()
 			i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8 + 4);
 		}
 
-		i386_mov_imm_membase(method, REG_SP, TRACE_ARGS_NUM * 8);
+		i386_mov_imm_membase((s4) method, REG_SP, TRACE_ARGS_NUM * 8);
 
-  		i386_mov_imm_reg(builtin_trace_args, REG_ITMP1);
+  		i386_mov_imm_reg((s4) builtin_trace_args, REG_ITMP1);
 /*  		i386_mov_imm_reg(asm_builtin_trace, REG_ITMP1); */
 		i386_call_reg(REG_ITMP1);
 
@@ -620,7 +629,7 @@ static void gen_mcode()
 		i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP1);
 		i386_alu_imm_reg(I386_SUB, 4, REG_SP);
 		i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-		i386_mov_imm_reg(builtin_monitorenter, REG_ITMP2);
+		i386_mov_imm_reg((s4) builtin_monitorenter, REG_ITMP2);
 		i386_call_reg(REG_ITMP2);
 		i386_alu_imm_reg(I386_ADD, 4, REG_SP);
 	}			
@@ -835,10 +844,10 @@ static void gen_mcode()
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
-				i386_mov_imm_membase(iptr->val.a, REG_SP, iptr->dst->regoff * 8);
+				i386_mov_imm_membase((s4) iptr->val.a, REG_SP, iptr->dst->regoff * 8);
 
 			} else {
-				i386_mov_imm_reg(iptr->val.a, d);
+				i386_mov_imm_reg((s4) iptr->val.a, d);
 			}
 			break;
 
@@ -1776,7 +1785,7 @@ static void gen_mcode()
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_div_check(src);
+  			gen_div_check(src);
 			if (src->prev->flags & INMEMORY) {
 				i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, I386_EAX);
 
@@ -2203,7 +2212,7 @@ static void gen_mcode()
 			if (iptr->dst->flags & INMEMORY ){
 				if (src->prev->flags & INMEMORY) {
 /*  					if (src->prev->regoff == iptr->dst->regoff) { */
-/*  						/* TODO: optimize */
+  						/* TODO: optimize */
 /*  						i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1); */
 /*  						i386_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2); */
 
@@ -2276,7 +2285,7 @@ static void gen_mcode()
 			if (iptr->dst->flags & INMEMORY ){
 				if (src->prev->flags & INMEMORY) {
 /*  					if (src->prev->regoff == iptr->dst->regoff) { */
-/*  						/* TODO: optimize */
+  						/* TODO: optimize */
 /*  						i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1); */
 /*  						i386_mov_membase_reg(REG_SP, src->prev->regoff * 8 + 4, REG_ITMP2); */
 
@@ -3681,7 +3690,7 @@ static void gen_mcode()
 			i386_call_imm(0);                    /* passing exception pointer */
 			i386_pop_reg(REG_ITMP2_XPC);
 
-  			i386_mov_imm_reg(asm_handle_exception, REG_ITMP3);
+  			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
   			i386_jmp_reg(REG_ITMP3);
 			ALIGNCODENOP;
 			break;
@@ -4458,7 +4467,7 @@ static void gen_mcode()
 				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
 				i386_alu_imm_reg(I386_SUB, 4, REG_SP);
 				i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-				i386_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
+				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
 				i386_call_reg(REG_ITMP1);
 				i386_alu_imm_reg(I386_ADD, 4, REG_SP);
 			}
@@ -4474,7 +4483,7 @@ static void gen_mcode()
 				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
 				i386_alu_imm_reg(I386_SUB, 4, REG_SP);
 				i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-				i386_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
+				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
 				i386_call_reg(REG_ITMP1);
 				i386_alu_imm_reg(I386_ADD, 4, REG_SP);
 			}
@@ -4495,7 +4504,7 @@ static void gen_mcode()
 				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
 				i386_alu_imm_reg(I386_SUB, 4, REG_SP);
 				i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-				i386_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
+				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
 				i386_call_reg(REG_ITMP1);
 				i386_alu_imm_reg(I386_ADD, 4, REG_SP);
 			}
@@ -4512,7 +4521,7 @@ static void gen_mcode()
 				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
 				i386_alu_imm_reg(I386_SUB, 4, REG_SP);
 				i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-				i386_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
+				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
 				i386_call_reg(REG_ITMP1);
 				i386_alu_imm_reg(I386_ADD, 4, REG_SP);
 			}
@@ -4529,7 +4538,7 @@ static void gen_mcode()
 				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
 				i386_alu_imm_reg(I386_SUB, 4, REG_SP);
 				i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-				i386_mov_imm_reg(builtin_monitorexit, REG_ITMP1);
+				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
 				i386_call_reg(REG_ITMP1);
 				i386_alu_imm_reg(I386_ADD, 4, REG_SP);
 			}
@@ -4572,7 +4581,7 @@ nowperformreturn:
 			if (runverbose) {
 				i386_alu_imm_reg(I386_SUB, 4 + 8 + 8 + 4, REG_SP);
 
-				i386_mov_imm_membase(method, REG_SP, 0);
+				i386_mov_imm_membase((s4) method, REG_SP, 0);
 
 				i386_mov_reg_membase(REG_RESULT, REG_SP, 4);
 				i386_mov_reg_membase(REG_RESULT2, REG_SP, 4 + 4);
@@ -4580,7 +4589,7 @@ nowperformreturn:
 				i386_fstl_membase(REG_SP, 4 + 8);
 				i386_fsts_membase(REG_SP, 4 + 8 + 8);
 
-  				i386_mov_imm_reg(builtin_displaymethodstop, REG_ITMP1);
+  				i386_mov_imm_reg((s4) builtin_displaymethodstop, REG_ITMP1);
 /*  				i386_mov_imm_reg(asm_builtin_exittrace, REG_ITMP1); */
 				i386_call_reg(REG_ITMP1);
 
@@ -4770,9 +4779,6 @@ gen_method: {
 					a = (s4) m;
 					d = iptr->op1;
 
-/*  					i386_mov_imm_reg(0, REG_ITMP3);    /* we need the data segment address in asmpart */
-/*  					dseg_adddata(mcodeptr); */
-
 					i386_mov_imm_reg(a, REG_ITMP1);
 					i386_call_reg(REG_ITMP1);
 					break;
@@ -4904,7 +4910,7 @@ gen_method: {
 					CALCOFFSETBYTES(OFFSET(vftbl, interfacetablelength));
 					
 					offset += 2;
-					CALCOFFSETBYTES(-super->index);
+					CALCOFFSETBYTES(super->index);
 					
 					offset += 3;
 					offset += 6;
@@ -4975,7 +4981,7 @@ gen_method: {
 					i386_jcc(I386_CC_E, offset);
 
 					i386_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					i386_mov_imm_reg((void *) super->vftbl, REG_ITMP2);
+					i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
 					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
 					i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
 					i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
@@ -5028,7 +5034,7 @@ gen_method: {
 					CALCOFFSETBYTES(OFFSET(vftbl, interfacetablelength));
 
 					offset += 2;
-					CALCOFFSETBYTES(-super->index);
+					CALCOFFSETBYTES(super->index);
 
 					offset += 3;
 					offset += 6;
@@ -5095,7 +5101,7 @@ gen_method: {
 					i386_jcc(I386_CC_E, offset);
 
 					i386_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
-					i386_mov_imm_reg((void *) super->vftbl, REG_ITMP2);
+					i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
 					i386_mov_membase_reg(REG_ITMP1, OFFSET(vftbl, baseval), REG_ITMP1);
 					if (d != REG_ITMP3) {
 						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP3);
@@ -5105,7 +5111,7 @@ gen_method: {
 					} else {
 						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, baseval), REG_ITMP2);
 						i386_alu_reg_reg(I386_SUB, REG_ITMP2, REG_ITMP1);
-						i386_mov_imm_reg((void *) super->vftbl, REG_ITMP2);
+						i386_mov_imm_reg((s4) super->vftbl, REG_ITMP2);
 						i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, diffval), REG_ITMP2);
 					}
 					i386_alu_reg_reg(I386_CMP, REG_ITMP2, REG_ITMP1);
@@ -5180,13 +5186,13 @@ gen_method: {
 
 			/* a1 = arraydescriptor */
 
-			i386_mov_imm_membase(iptr->val.a, REG_SP, 4);
+			i386_mov_imm_membase((s4) iptr->val.a, REG_SP, 4);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
 			i386_mov_reg_membase(REG_ITMP1, REG_SP, 8);
 
-			i386_mov_imm_reg((void*) (builtin_nmultianewarray), REG_ITMP1);
+			i386_mov_imm_reg((s4) (builtin_nmultianewarray), REG_ITMP1);
 			i386_call_reg(REG_ITMP1);
 			i386_alu_imm_reg(I386_ADD, 12 + iptr->op1 * 4, REG_SP);
 
@@ -5275,17 +5281,14 @@ gen_method: {
 		i386_alu_reg_reg(I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
 
 		if (xcodeptr != NULL) {
-			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
+			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 5);
 
 		} else {
 			xcodeptr = mcodeptr;
 
-			i386_mov_imm_reg(0, REG_ITMP3);    /* mov data segment pointer into reg */
-			dseg_adddata(mcodeptr);
-
-			i386_mov_imm_reg(proto_java_lang_ArrayIndexOutOfBoundsException, REG_ITMP1_XPTR);
-			i386_push_imm(asm_handle_exception);
-			i386_ret();
+			i386_mov_imm_reg((s4) proto_java_lang_ArrayIndexOutOfBoundsException, REG_ITMP1_XPTR);
+			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
+			i386_jmp_reg(REG_ITMP3);
 		}
 	}
 
@@ -5310,17 +5313,14 @@ gen_method: {
 		i386_alu_reg_reg(I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
 
 		if (xcodeptr != NULL) {
-			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
+			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 5);
 
 		} else {
 			xcodeptr = mcodeptr;
 
-			i386_mov_imm_reg(0, REG_ITMP3);    /* mov data segment pointer into reg */
-			dseg_adddata(mcodeptr);
-
-			i386_mov_imm_reg(proto_java_lang_NegativeArraySizeException, REG_ITMP1_XPTR);
-			i386_push_imm(asm_handle_exception);
-			i386_ret();
+			i386_mov_imm_reg((s4) proto_java_lang_NegativeArraySizeException, REG_ITMP1_XPTR);
+			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
+			i386_jmp_reg(REG_ITMP3);
 		}
 	}
 
@@ -5345,17 +5345,14 @@ gen_method: {
 		i386_alu_reg_reg(I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
 
 		if (xcodeptr != NULL) {
-			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
+			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 5);
 		
 		} else {
 			xcodeptr = mcodeptr;
 
-			i386_mov_imm_reg(0, REG_ITMP3);    /* mov data segment pointer into reg */
-			dseg_adddata(mcodeptr);
-
-			i386_mov_imm_reg(proto_java_lang_ClassCastException, REG_ITMP1_XPTR);
-			i386_push_imm(asm_handle_exception);
-			i386_ret();
+			i386_mov_imm_reg((s4) proto_java_lang_ClassCastException, REG_ITMP1_XPTR);
+			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
+			i386_jmp_reg(REG_ITMP3);
 		}
 	}
 
@@ -5380,7 +5377,7 @@ gen_method: {
 		i386_alu_reg_reg(I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
 
 		if (xcodeptr != NULL) {
-			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
+			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 5);
 		
 		} else {
 			xcodeptr = mcodeptr;
@@ -5388,13 +5385,12 @@ gen_method: {
 			i386_mov_imm_reg(0, REG_ITMP3);    /* mov data segment pointer into reg */
 			dseg_adddata(mcodeptr);
 
-			i386_mov_imm_reg(proto_java_lang_ArithmeticException, REG_ITMP1_XPTR);
-			i386_push_imm(asm_handle_exception);
+			i386_mov_imm_reg((s4) proto_java_lang_ArithmeticException, REG_ITMP1_XPTR);
+			i386_push_imm((s4) asm_handle_exception);
 			i386_ret();
 		}
 	}
 
-#ifdef SOFTNULLPTRCHECK
 	/* generate null pointer check stubs */
 	xcodeptr = NULL;
 	
@@ -5416,21 +5412,17 @@ gen_method: {
 		i386_alu_reg_reg(I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
 
 		if (xcodeptr != NULL) {
-			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
+			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 5);
 		
 		} else {
 			xcodeptr = mcodeptr;
 
-			i386_mov_imm_reg(0, REG_ITMP3);    /* move data segment pointer into reg */
-			dseg_adddata(mcodeptr);
-
-			i386_mov_imm_reg(proto_java_lang_NullPointerException, REG_ITMP1_XPTR);
-			i386_push_imm(asm_handle_exception);
-			i386_ret();
+			i386_mov_imm_reg((s4) proto_java_lang_NullPointerException, REG_ITMP1_XPTR);
+			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
+			i386_jmp_reg(REG_ITMP3);
 		}
 	}
 
-#endif
 	}
 
 	mcode_finish((int)((u1*) mcodeptr - mcodebase));
@@ -5448,11 +5440,11 @@ gen_method: {
 u1 *createcompilerstub(methodinfo *m)
 {
 	u1 *s = CNEW(u1, COMPSTUBSIZE);     /* memory to hold the stub            */
-	u1 *mcodeptr = s;                   /* code generation pointer            */
+	mcodeptr = s;                       /* code generation pointer            */
 
 	                                    /* code for the stub                  */
-	i386_mov_imm_reg(m, REG_ITMP1);     /* pass method pointer to compiler    */
-	i386_mov_imm_reg(asm_call_jit_compiler, REG_ITMP2);    /* load address    */
+	i386_mov_imm_reg((s4) m, REG_ITMP1);/* pass method pointer to compiler    */
+	i386_mov_imm_reg((s4) asm_call_jit_compiler, REG_ITMP2);  /* load address */
 	i386_jmp_reg(REG_ITMP2);            /* jump to compiler                   */
 
 #ifdef STATISTICS
@@ -5485,7 +5477,6 @@ void removecompilerstub(u1 *stub)
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
 	u1 *s = CNEW(u1, NATIVESTUBSIZE);   /* memory to hold the stub            */
-	u1 *mcodeptr = s;                   /* make macros work                   */
 
 	u1 *tptr;
 	int i;
@@ -5493,6 +5484,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	int stackframeoffset = 4;
 
 	int p, t;
+
+	mcodeptr = s;                   /* make macros work                   */
 
 	reg_init();
 
@@ -5540,9 +5533,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8 + 4);
 		}
 
-		i386_mov_imm_membase(m, REG_SP, TRACE_ARGS_NUM * 8);
+		i386_mov_imm_membase((s4) m, REG_SP, TRACE_ARGS_NUM * 8);
 
-		i386_mov_imm_reg(asm_builtin_trace, REG_ITMP1);
+		i386_mov_imm_reg((s4) asm_builtin_trace, REG_ITMP1);
 		i386_call_reg(REG_ITMP1);
 
 		i386_alu_imm_reg(I386_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
@@ -5610,15 +5603,15 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		}
 	}
 
- 	i386_mov_imm_membase(&env, REG_SP, 0);
-	i386_mov_imm_reg(f, REG_ITMP1);
+ 	i386_mov_imm_membase((s4) &env, REG_SP, 0);
+	i386_mov_imm_reg((s4) f, REG_ITMP1);
 	i386_call_reg(REG_ITMP1);
 	i386_alu_imm_reg(I386_ADD, stackframesize, REG_SP);
 
 	if (runverbose) {
 		i386_alu_imm_reg(I386_SUB, 4 + 8 + 8 + 4, REG_SP);
 		
-		i386_mov_imm_membase(m, REG_SP, 0);
+		i386_mov_imm_membase((s4) m, REG_SP, 0);
 		
 		i386_mov_reg_membase(REG_RESULT, REG_SP, 4);
 		i386_mov_reg_membase(REG_RESULT2, REG_SP, 4 + 4);
@@ -5626,7 +5619,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		i386_fstl_membase(REG_SP, 4 + 8);
 		i386_fsts_membase(REG_SP, 4 + 8 + 8);
 		
-		i386_mov_imm_reg(asm_builtin_exittrace, REG_ITMP1);
+		i386_mov_imm_reg((s4) asm_builtin_exittrace, REG_ITMP1);
 		i386_call_reg(REG_ITMP1);
 		
 		i386_mov_membase_reg(REG_SP, 4, REG_RESULT);
@@ -5635,7 +5628,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		i386_alu_imm_reg(I386_ADD, 4 + 8 + 8 + 4, REG_SP);
 	}
 
-	i386_mov_imm_reg(&exceptionptr, REG_ITMP3);
+	i386_mov_imm_reg((s4) &exceptionptr, REG_ITMP3);
 	i386_mov_membase_reg(REG_ITMP3, 0, REG_ITMP3);
 	i386_test_reg_reg(REG_ITMP3, REG_ITMP3);
 	i386_jcc(I386_CC_NE, 1);
@@ -5643,12 +5636,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	i386_ret();
 
 	i386_mov_reg_reg(REG_ITMP3, REG_ITMP1_XPTR);
-	i386_mov_imm_reg(&exceptionptr, REG_ITMP3);
+	i386_mov_imm_reg((s4) &exceptionptr, REG_ITMP3);
 	i386_mov_imm_membase(0, REG_ITMP3, 0);
 	i386_mov_membase_reg(REG_SP, 0, REG_ITMP2_XPC);
 	i386_alu_imm_reg(I386_SUB, 2, REG_ITMP2_XPC);
 
-	i386_mov_imm_reg(asm_handle_nat_exception, REG_ITMP3);
+	i386_mov_imm_reg((s4) asm_handle_nat_exception, REG_ITMP3);
 	i386_jmp_reg(REG_ITMP3);
 
 #ifdef STATISTICS
@@ -5669,6 +5662,830 @@ void removenativestub(u1 *stub)
 	CFREE(stub, NATIVESTUBSIZE);
 }
 
+
+
+/*
+ * mov ops
+ */
+void i386_mov_reg_reg(s4 reg, s4 dreg) {
+	*(mcodeptr++) = (u1) 0x89;
+	i386_emit_reg((reg),(dreg));
+}
+
+
+void i386_mov_imm_reg(s4 imm, s4 reg) {
+	*(mcodeptr++) = (u1) 0xb8 + ((reg) & 0x07);
+	i386_emit_imm32((imm));
+}
+
+
+void i386_movb_imm_reg(s4 imm, s4 reg) {
+	*(mcodeptr++) = (u1) 0xc6;
+	i386_emit_reg(0,(reg));
+	i386_emit_imm8((imm));
+}
+
+
+void i386_mov_membase_reg(s4 basereg, s4 disp, s4 reg) {
+	*(mcodeptr++) = (u1) 0x8b;
+	i386_emit_membase((basereg),(disp),(reg));
+}
+
+
+/*
+ * this one is for INVOKEVIRTUAL/INVOKEINTERFACE to have a
+ * constant membase immediate length of 32bit
+ */
+void i386_mov_membase32_reg(s4 basereg, s4 disp, s4 reg) {
+	*(mcodeptr++) = (u1) 0x8b;
+	i386_address_byte(2, (reg), (basereg));
+	i386_emit_imm32((disp));
+}
+
+
+void i386_mov_reg_membase(s4 reg, s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0x89;
+	i386_emit_membase((basereg),(disp),(reg));
+}
+
+
+void i386_mov_memindex_reg(s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg) {
+	*(mcodeptr++) = (u1) 0x8b;
+	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+}
+
+
+void i386_mov_reg_memindex(s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale) {
+	*(mcodeptr++) = (u1) 0x89;
+	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+}
+
+
+void i386_movw_reg_memindex(s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale) {
+	*(mcodeptr++) = (u1) 0x66;
+	*(mcodeptr++) = (u1) 0x89;
+	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+}
+
+
+void i386_movb_reg_memindex(s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale) {
+	*(mcodeptr++) = (u1) 0x88;
+	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+}
+
+
+void i386_mov_imm_membase(s4 imm, s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xc7;
+	i386_emit_membase((basereg),(disp),0);
+	i386_emit_imm32((imm));
+}
+
+
+void i386_movsbl_memindex_reg(s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) 0xbe;
+	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+}
+
+
+void i386_movswl_memindex_reg(s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) 0xbf;
+	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+}
+
+
+void i386_movzwl_memindex_reg(s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) 0xb7;
+	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+}
+
+
+
+/*
+ * alu operations
+ */
+void i386_alu_reg_reg(s4 opc, s4 reg, s4 dreg) {
+	*(mcodeptr++) = (((u1) (opc)) << 3) + 1;
+	i386_emit_reg((reg),(dreg));
+}
+
+
+void i386_alu_reg_membase(s4 opc, s4 reg, s4 basereg, s4 disp) {
+	*(mcodeptr++) = (((u1) (opc)) << 3) + 1;
+	i386_emit_membase((basereg),(disp),(reg));
+}
+
+
+void i386_alu_membase_reg(s4 opc, s4 basereg, s4 disp, s4 reg) {
+	*(mcodeptr++) = (((u1) (opc)) << 3) + 3;
+	i386_emit_membase((basereg),(disp),(reg));
+}
+
+
+void i386_alu_imm_reg(s4 opc, s4 imm, s4 dreg) {
+	if (i386_is_imm8(imm)) { 
+		*(mcodeptr++) = (u1) 0x83;
+		i386_emit_reg((opc),(dreg));
+		i386_emit_imm8((imm));
+	} else { 
+		*(mcodeptr++) = (u1) 0x81;
+		i386_emit_reg((opc),(dreg));
+		i386_emit_imm32((imm));
+	} 
+}
+
+
+void i386_alu_imm_membase(s4 opc, s4 imm, s4 basereg, s4 disp) {
+	if (i386_is_imm8(imm)) { 
+		*(mcodeptr++) = (u1) 0x83;
+		i386_emit_membase((basereg),(disp),(opc));
+		i386_emit_imm8((imm));
+	} else { 
+		*(mcodeptr++) = (u1) 0x81;
+		i386_emit_membase((basereg),(disp),(opc));
+		i386_emit_imm32((imm));
+	} 
+}
+
+
+void i386_test_reg_reg(s4 reg, s4 dreg) {
+	*(mcodeptr++) = (u1) 0x85;
+	i386_emit_reg((reg),(dreg));
+}
+
+
+void i386_test_imm_reg(s4 imm, s4 reg) {
+	*(mcodeptr++) = (u1) 0xf7;
+	i386_emit_reg(0,(reg));
+	i386_emit_imm32((imm));
+}
+
+
+
+/*
+ * inc, dec operations
+ */
+void i386_inc_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0x40 + ((reg) & 0x07);
+}
+
+
+void i386_inc_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xff;
+	i386_emit_membase((basereg),(disp),0);
+}
+
+
+void i386_dec_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0x48 + ((reg) & 0x07);
+}
+
+        
+void i386_dec_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xff;
+	i386_emit_membase((basereg),(disp),1);
+}
+
+
+
+void i386_cltd() {
+	*(mcodeptr++) = (u1) 0x99;
+}
+
+
+
+void i386_imul_reg_reg(s4 reg, s4 dreg) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) 0xaf;
+	i386_emit_reg((dreg),(reg));
+}
+
+
+void i386_imul_membase_reg(s4 basereg, s4 disp, s4 dreg) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) 0xaf;
+	i386_emit_membase((basereg),(disp),(dreg));
+}
+
+
+void i386_imul_imm_reg(s4 imm, s4 dreg) {
+	if (i386_is_imm8((imm))) { 
+		*(mcodeptr++) = (u1) 0x6b;
+		i386_emit_reg(0,(dreg));
+		i386_emit_imm8((imm));
+	} else { 
+		*(mcodeptr++) = (u1) 0x69;
+		i386_emit_reg(0,(dreg));
+		i386_emit_imm32((imm));
+	} 
+}
+
+
+void i386_imul_imm_reg_reg(s4 imm, s4 reg, s4 dreg) {
+	if (i386_is_imm8((imm))) { 
+		*(mcodeptr++) = (u1) 0x6b;
+		i386_emit_reg((dreg),(reg));
+		i386_emit_imm8((imm));
+	} else { 
+		*(mcodeptr++) = (u1) 0x69;
+		i386_emit_reg((dreg),(reg));
+		i386_emit_imm32((imm));
+	} 
+}
+
+
+void i386_imul_imm_membase_reg(s4 imm, s4 basereg, s4 disp, s4 dreg) {
+	if (i386_is_imm8((imm))) { 
+		*(mcodeptr++) = (u1) 0x6b;
+		i386_emit_membase((basereg),(disp),(dreg));
+		i386_emit_imm8((imm));
+	} else { 
+		*(mcodeptr++) = (u1) 0x69;
+		i386_emit_membase((basereg),(disp),(dreg));
+		i386_emit_imm32((imm));
+	} 
+}
+
+
+void i386_mul_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xf7;
+	i386_emit_membase((basereg),(disp),4);
+}
+
+
+void i386_idiv_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xf7;
+	i386_emit_reg(7,(reg));
+}
+
+
+
+void i386_ret() {
+	*(mcodeptr++) = (u1) 0xc3;
+}
+
+
+
+/*
+ * shift ops
+ */
+void i386_shift_reg(s4 opc, s4 reg) {
+	*(mcodeptr++) = (u1) 0xd3;
+	i386_emit_reg((opc),(reg));
+}
+
+
+void i386_shift_membase(s4 opc, s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xd3;
+	i386_emit_membase((basereg),(disp),(opc));
+}
+
+
+void i386_shift_imm_reg(s4 opc, s4 imm, s4 dreg) {
+	if ((imm) == 1) { 
+		*(mcodeptr++) = (u1) 0xd1;
+		i386_emit_reg((opc),(dreg));
+	} else { 
+		*(mcodeptr++) = (u1) 0xc1;
+		i386_emit_reg((opc),(dreg));
+		i386_emit_imm8((imm));
+	} 
+}
+
+
+void i386_shift_imm_membase(s4 opc, s4 imm, s4 basereg, s4 disp) {
+	if ((imm) == 1) { 
+		*(mcodeptr++) = (u1) 0xd1;
+		i386_emit_membase((basereg),(disp),(opc));
+	} else { 
+		*(mcodeptr++) = (u1) 0xc1;
+		i386_emit_membase((basereg),(disp),(opc));
+		i386_emit_imm8((imm));
+	} 
+}
+
+
+void i386_shld_reg_reg(s4 reg, s4 dreg) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) 0xa5;
+	i386_emit_reg((reg),(dreg));
+}
+
+
+void i386_shld_imm_reg_reg(s4 imm, s4 reg, s4 dreg) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) 0xa4;
+	i386_emit_reg((reg),(dreg));
+	i386_emit_imm8((imm));
+}
+
+
+void i386_shld_reg_membase(s4 reg, s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) 0xa5;
+	i386_emit_membase((basereg),(disp),(reg));
+}
+
+
+void i386_shrd_reg_reg(s4 reg, s4 dreg) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) 0xad;
+	i386_emit_reg((reg),(dreg));
+}
+
+
+void i386_shrd_imm_reg_reg(s4 imm, s4 reg, s4 dreg) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) 0xac;
+	i386_emit_reg((reg),(dreg));
+	i386_emit_imm8((imm));
+}
+
+
+void i386_shrd_reg_membase(s4 reg, s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) 0xad;
+	i386_emit_membase((basereg),(disp),(reg));
+}
+
+
+
+/*
+ * jump operations
+ */
+void i386_jmp_imm(s4 imm) {
+	*(mcodeptr++) = (u1) 0xe9;
+	i386_emit_imm32((imm));
+}
+
+
+void i386_jmp_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xff;
+	i386_emit_reg(4,(reg));
+}
+
+
+void i386_jcc(s4 opc, s4 imm) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) (0x80 + i386_jcc_map[(opc)]);
+	i386_emit_imm32((imm));
+}
+
+
+
+/*
+ * conditional set operations
+ */
+void i386_setcc_reg(s4 opc, s4 reg) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) (0x90 + i386_jcc_map[(opc)]);
+	i386_emit_reg(0,(reg));
+}
+
+
+void i386_setcc_membase(s4 opc, s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0x0f;
+	*(mcodeptr++) = (u1) (0x90 + i386_jcc_map[(opc)]);
+	i386_emit_membase((basereg),(disp),0);
+}
+
+
+
+void i386_neg_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xf7;
+	i386_emit_reg(3,(reg));
+}
+
+
+void i386_neg_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xf7;
+	i386_emit_membase((basereg),(disp),3);
+}
+
+
+
+void i386_push_imm(s4 imm) {
+	*(mcodeptr++) = (u1) 0x68;
+	i386_emit_imm32((imm));
+}
+
+
+void i386_pop_reg(s4 reg) {
+    *(mcodeptr++) = (u1) 0x58 + (0x07 & (reg));
+}
+
+
+void i386_nop() {
+    *(mcodeptr++) = (u1) 0x90;
+}
+
+
+/*
+ * call instructions
+ */
+void i386_call_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xff;
+	i386_emit_reg(2,(reg));
+}
+
+
+void i386_call_imm(s4 imm) {
+	*(mcodeptr++) = (u1) 0xe8;
+	i386_emit_imm32((imm));
+}
+
+
+
+/*
+ * floating point instructions
+ */
+void i386_fld1() {
+	*(mcodeptr++) = (u1) 0xd9;
+	*(mcodeptr++) = (u1) 0xe8;
+}
+
+
+void i386_fldz() {
+	*(mcodeptr++) = (u1) 0xd9;
+	*(mcodeptr++) = (u1) 0xee;
+}
+
+
+void i386_fld_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xd9;
+	*(mcodeptr++) = (u1) 0xc0 + (0x07 & (reg));
+}
+
+
+void i386_flds_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xd9;
+	i386_emit_membase((basereg),(disp),0);
+}
+
+
+void i386_fldl_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdd;
+	i386_emit_membase((basereg),(disp),0);
+}
+
+
+void i386_fldt_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdb;
+	i386_emit_membase((basereg),(disp),5);
+}
+
+
+void i386_flds_memindex(s4 disp, s4 basereg, s4 indexreg, s4 scale) {
+	*(mcodeptr++) = (u1) 0xd9;
+	i386_emit_memindex(0,(disp),(basereg),(indexreg),(scale));
+}
+
+
+void i386_fldl_memindex(s4 disp, s4 basereg, s4 indexreg, s4 scale) {
+	*(mcodeptr++) = (u1) 0xdd;
+	i386_emit_memindex(0,(disp),(basereg),(indexreg),(scale));
+}
+
+
+
+
+void i386_fildl_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdb;
+	i386_emit_membase((basereg),(disp),0);
+}
+
+
+void i386_fildll_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdf;
+	i386_emit_membase((basereg),(disp),5);
+}
+
+
+
+
+void i386_fst_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xdd;
+	*(mcodeptr++) = (u1) 0xd0 + (0x07 & (reg));
+}
+
+
+void i386_fsts_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xd9;
+	i386_emit_membase((basereg),(disp),2);
+}
+
+
+void i386_fstl_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdd;
+	i386_emit_membase((basereg),(disp),2);
+}
+
+
+void i386_fsts_memindex(s4 disp, s4 basereg, s4 indexreg, s4 scale) {
+	*(mcodeptr++) = (u1) 0xd9;
+	i386_emit_memindex(2,(disp),(basereg),(indexreg),(scale));
+}
+
+
+void i386_fstl_memindex(s4 disp, s4 basereg, s4 indexreg, s4 scale) {
+	*(mcodeptr++) = (u1) 0xdd;
+	i386_emit_memindex(2,(disp),(basereg),(indexreg),(scale));
+}
+
+
+void i386_fstp_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xdd;
+	*(mcodeptr++) = (u1) 0xd8 + (0x07 & (reg));
+}
+
+
+void i386_fstps_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xd9;
+	i386_emit_membase((basereg),(disp),3);
+}
+
+
+void i386_fstpl_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdd;
+	i386_emit_membase((basereg),(disp),3);
+}
+
+
+void i386_fstpt_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdb;
+	i386_emit_membase((basereg),(disp),7);
+}
+
+
+void i386_fstps_memindex(s4 disp, s4 basereg, s4 indexreg, s4 scale) {
+	*(mcodeptr++) = (u1) 0xd9;
+	i386_emit_memindex(3,(disp),(basereg),(indexreg),(scale));
+}
+
+
+void i386_fstpl_memindex(s4 disp, s4 basereg, s4 indexreg, s4 scale) {
+	*(mcodeptr++) = (u1) 0xdd;
+	i386_emit_memindex(3,(disp),(basereg),(indexreg),(scale));
+}
+
+
+void i386_fistl_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdb;
+	i386_emit_membase((basereg),(disp),2);
+}
+
+
+void i386_fistpl_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdb;
+	i386_emit_membase((basereg),(disp),3);
+}
+
+
+void i386_fistpll_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdf;
+	i386_emit_membase((basereg),(disp),7);
+}
+
+
+void i386_fchs() {
+	*(mcodeptr++) = (u1) 0xd9;
+	*(mcodeptr++) = (u1) 0xe0;
+}
+
+
+void i386_faddp() {
+	*(mcodeptr++) = (u1) 0xde;
+	*(mcodeptr++) = (u1) 0xc1;
+}
+
+
+void i386_fadd_reg_st(s4 reg) {
+	*(mcodeptr++) = (u1) 0xd8;
+	*(mcodeptr++) = (u1) 0xc0 + (0x0f & (reg));
+}
+
+
+void i386_fadd_st_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xdc;
+	*(mcodeptr++) = (u1) 0xc0 + (0x0f & (reg));
+}
+
+
+void i386_faddp_st_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xde;
+	*(mcodeptr++) = (u1) 0xc0 + (0x0f & (reg));
+}
+
+
+void i386_fadds_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xd8;
+	i386_emit_membase((basereg),(disp),0);
+}
+
+
+void i386_faddl_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdc;
+	i386_emit_membase((basereg),(disp),0);
+}
+
+
+void i386_fsub_reg_st(s4 reg) {
+	*(mcodeptr++) = (u1) 0xd8;
+	*(mcodeptr++) = (u1) 0xe0 + (0x07 & (reg));
+}
+
+
+void i386_fsub_st_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xdc;
+	*(mcodeptr++) = (u1) 0xe8 + (0x07 & (reg));
+}
+
+
+void i386_fsubp_st_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xde;
+	*(mcodeptr++) = (u1) 0xe8 + (0x07 & (reg));
+}
+
+
+void i386_fsubp() {
+	*(mcodeptr++) = (u1) 0xde;
+	*(mcodeptr++) = (u1) 0xe9;
+}
+
+
+void i386_fsubs_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xd8;
+	i386_emit_membase((basereg),(disp),4);
+}
+
+
+void i386_fsubl_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdc;
+	i386_emit_membase((basereg),(disp),4);
+}
+
+
+void i386_fmul_reg_st(s4 reg) {
+	*(mcodeptr++) = (u1) 0xd8;
+	*(mcodeptr++) = (u1) 0xc8 + (0x07 & (reg));
+}
+
+
+void i386_fmul_st_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xdc;
+	*(mcodeptr++) = (u1) 0xc8 + (0x07 & (reg));
+}
+
+
+void i386_fmulp() {
+	*(mcodeptr++) = (u1) 0xde;
+	*(mcodeptr++) = (u1) 0xc9;
+}
+
+
+void i386_fmulp_st_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xde;
+	*(mcodeptr++) = (u1) 0xc8 + (0x07 & (reg));
+}
+
+
+void i386_fmuls_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xd8;
+	i386_emit_membase((basereg),(disp),1);
+}
+
+
+void i386_fmull_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xdc;
+	i386_emit_membase((basereg),(disp),1);
+}
+
+
+void i386_fdiv_reg_st(s4 reg) {
+	*(mcodeptr++) = (u1) 0xd8;
+	*(mcodeptr++) = (u1) 0xf0 + (0x07 & (reg));
+}
+
+
+void i386_fdiv_st_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xdc;
+	*(mcodeptr++) = (u1) 0xf8 + (0x07 & (reg));
+}
+
+
+void i386_fdivp() {
+	*(mcodeptr++) = (u1) 0xde;
+	*(mcodeptr++) = (u1) 0xf9;
+}
+
+
+void i386_fdivp_st_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xde;
+	*(mcodeptr++) = (u1) 0xf8 + (0x07 & (reg));
+}
+
+
+void i386_fxch() {
+	*(mcodeptr++) = (u1) 0xd9;
+	*(mcodeptr++) = (u1) 0xc9;
+}
+
+
+void i386_fxch_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xd9;
+	*(mcodeptr++) = (u1) 0xc8 + (0x07 & (reg));
+}
+
+
+void i386_fprem() {
+	*(mcodeptr++) = (u1) 0xd9;
+	*(mcodeptr++) = (u1) 0xf8;
+}
+
+
+void i386_fprem1() {
+	*(mcodeptr++) = (u1) 0xd9;
+	*(mcodeptr++) = (u1) 0xf5;
+}
+
+
+void i386_fucom() {
+	*(mcodeptr++) = (u1) 0xdd;
+	*(mcodeptr++) = (u1) 0xe1;
+}
+
+
+void i386_fucom_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xdd;
+	*(mcodeptr++) = (u1) 0xe0 + (0x07 & (reg));
+}
+
+
+void i386_fucomp_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xdd;
+	*(mcodeptr++) = (u1) 0xe8 + (0x07 & (reg));
+}
+
+
+void i386_fucompp() {
+	*(mcodeptr++) = (u1) 0xda;
+	*(mcodeptr++) = (u1) 0xe9;
+}
+
+
+void i386_fnstsw() {
+	*(mcodeptr++) = (u1) 0xdf;
+	*(mcodeptr++) = (u1) 0xe0;
+}
+
+
+void i386_sahf() {
+    *(mcodeptr++) = (u1) 0x9e;
+}
+
+
+void i386_finit() {
+	*(mcodeptr++) = (u1) 0x9b;
+	*(mcodeptr++) = (u1) 0xdb;
+	*(mcodeptr++) = (u1) 0xe3;
+}
+
+
+void i386_fldcw_mem(s4 mem) {
+	*(mcodeptr++) = (u1) 0xd9;
+	i386_emit_mem(5,(mem));
+}
+
+
+void i386_fldcw_membase(s4 basereg, s4 disp) {
+	*(mcodeptr++) = (u1) 0xd9;
+	i386_emit_membase((basereg),(disp),5);
+}
+
+
+void i386_wait() {
+    *(mcodeptr++) = (u1) 0x9b;
+}
+
+
+void i386_ffree_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0xdd;
+	*(mcodeptr++) = (u1) 0xc0 + (0x07 & (reg));
+}
+
+
+void i386_fdecstp() {
+	*(mcodeptr++) = (u1) 0xd9;
+	*(mcodeptr++) = (u1) 0xf6;
+}
+
+
+void i386_fincstp() {
+	*(mcodeptr++) = (u1) 0xd9;
+	*(mcodeptr++) = (u1) 0xf7;
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

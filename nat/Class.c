@@ -62,13 +62,12 @@ utf *create_methodsig(java_objectarray* types)
 
 			/* compare text */
 			while (utf_pos<utf_end(c->name))
-		   		if (*utf_pos++ != *primitive++) goto nomatch;
+                            if (*utf_pos++ == *primitive++) {
 
-			/* primitive type found */
-			*pos++ = primitivetype_table[j].typesig;
-			goto next_type;
-
-		nomatch:
+                                /* primitive type found */
+                                *pos++ = primitivetype_table[j].typesig;
+                                goto next_type;
+                            }
 		}
 
 		/* no primitive type and no arrayclass, so must be object */

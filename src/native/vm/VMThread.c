@@ -147,12 +147,12 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_sleep (JNIEnv *env, s8 millis)
  */
 JNIEXPORT void JNICALL Java_java_lang_Thread_start ( JNIEnv *env ,  struct java_lang_Thread* this)
 {
-  if (runverbose) 
-    log_text ("java_lang_Thread_start called");
+    if (runverbose) 
+        log_text ("java_lang_Thread_start called");
 
-  #ifdef USE_THREADS
-	startThread((thread*)this);
-  #endif
+#ifdef USE_THREADS
+    startThread((thread*)this);
+#endif
 }
 
 /*
@@ -162,11 +162,10 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_start ( JNIEnv *env ,  struct java_
  */
 JNIEXPORT void JNICALL Java_java_lang_Thread_stop0 ( JNIEnv *env ,  struct java_lang_Thread* this, struct java_lang_Object* par1)
 {
-  if (runverbose)
-    log_text ("java_lang_Thread_stop0 called");
+    if (runverbose)
+        log_text ("java_lang_Thread_stop0 called");
 
-
-  #ifdef USE_THREADS
+#ifdef USE_THREADS
 	if (currentThread == (thread*)this)
 	{
 	    log_text("killing");
@@ -181,7 +180,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_stop0 ( JNIEnv *env ,  struct java_
 	        CONTEXT((thread*)this).flags |= THREAD_FLAGS_KILLED;
 	        resumeThread((thread*)this);
 	}
-   #endif
+#endif
 }
 
 /*

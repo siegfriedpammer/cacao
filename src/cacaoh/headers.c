@@ -15,7 +15,7 @@
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 	         Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: headers.c 483 2003-10-14 17:08:38Z twisti $
+	Last Change: $Id: headers.c 491 2003-10-20 17:56:03Z twisti $
 
 *******************************************************************************/
 
@@ -55,7 +55,6 @@ s4 asm_builtin_idiv (s4 a, s4 b) {return 0;}
 s4 asm_builtin_irem (s4 a, s4 b) {return 0;}
 s8 asm_builtin_ldiv (s8 a, s8 b) {return 0;}
 s8 asm_builtin_lrem (s8 a, s8 b) {return 0;}
-float asm_builtin_frem (float a, float b) {}
 
 
 void asm_builtin_monitorenter (java_objectheader *o) {}
@@ -63,7 +62,7 @@ void asm_builtin_monitorexit (java_objectheader *o) {}
 
 s4 asm_builtin_checkarraycast(java_objectheader *o, constant_arraydescriptor *d) {return 0;}
 
-#ifdef __I386__
+#if defined(__I386__)
 s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class) { return 0; }
 void asm_builtin_anewarray (s4 size, classinfo *elementtype) {}
 void asm_builtin_newarray_array (s4 size, constant_arraydescriptor *elementdesc) {}
@@ -229,7 +228,7 @@ static void printfields (classinfo *c)
 			utf_fprint (file, f->name);
 
 			/* rename multiple fieldnames */
-			if (ident_count = searchidentchain_utf(f->name))
+			if ((ident_count = searchidentchain_utf(f->name)))
 				fprintf(file,"%d",ident_count - 1);		
 			chain_addlast(ident_chain,f->name);	
 
@@ -266,7 +265,7 @@ static void printmethod (methodinfo *m)
 	printID (m->class->name);           
 
 	/* rename overloaded method */
-	if (ident_count = searchidentchain_utf(m->name))
+	if ((ident_count = searchidentchain_utf(m->name)))
 		fprintf(file,"%d",ident_count - 1);		
 	chain_addlast(ident_chain,m->name);	
 

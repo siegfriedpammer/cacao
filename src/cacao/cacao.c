@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: cacao.c 484 2003-10-14 18:42:30Z twisti $
+	Last Change: $Id: cacao.c 491 2003-10-20 17:56:03Z twisti $
 
 *******************************************************************************/
 
@@ -752,7 +752,7 @@ int main(int argc, char **argv)
 		for (i=opt_ind; i<argc; i++) {
 			a->data[i-opt_ind] = javastring_new (utf_new_char (argv[i]) );
 		}
-		local_exceptionptr = asm_calljavamethod (mainmethod, a, NULL,NULL,NULL );
+		local_exceptionptr = asm_calljavamethod (mainmethod, a, NULL, NULL, NULL );
 	
 		if (local_exceptionptr) {
 			printf ("#### Program has thrown: ");

@@ -1,10 +1,10 @@
-/*  
-/* Defines of debug / trace /info  prints 
-/*     to make the actual code more readable
 /*
-/* COtest prints are just debug
-/* RTAprint prints are trace /info prints
-*/
+ * Defines of debug / trace /info  prints 
+ *     to make the actual code more readable
+ *
+ * COtest prints are just debug
+ * RTAprint prints are trace /info prints
+ */
 
 
 

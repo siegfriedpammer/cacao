@@ -790,7 +790,7 @@ typedef struct {
 	bool isfloat;
 } stdopdescriptor;
 
-#ifdef USEBUILTINTABLE
+#if defined(USEBUILTINTABLE)
 static stdopdescriptor builtintable[] = {
 	{ ICMD_LCMP,   TYPE_LONG, TYPE_LONG, TYPE_INT, ICMD_BUILTIN2,
 	       (functionptr) builtin_lcmp , SUPPORT_LONG && SUPPORT_LONG_CMP, false },
@@ -835,7 +835,6 @@ static stdopdescriptor builtintable[] = {
 	{ ICMD_D2I,    TYPE_DOUBLE, TYPE_VOID, TYPE_INT, ICMD_BUILTIN1,
 	       (functionptr) builtin_d2i, SUPPORT_DOUBLE && SUPPORT_FICVT, true },
 };
-#endif
 
 typedef struct {
 	u1 opcode;
@@ -947,6 +946,7 @@ static stdopdescriptorold stdopdescriptortable[] = {
 	       (functionptr) builtin_d2f, SUPPORT_DOUBLE && SUPPORT_FLOAT, true },
 	
 };
+#endif
 
 static char *icmd_names[256] = {
 	"NOP          ", /*               0 */

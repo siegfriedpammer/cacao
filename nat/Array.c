@@ -68,7 +68,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Array_get ( JN
 			        }
       case ARRAYTYPE_LONG     : {
 				   java_longarray *b = (java_longarray *) array;
-				   return create_primitive_object(class_java_lang_Long, (void*) b->data[index],"(J)V");
+				   return create_primitive_object(class_java_lang_Long, (void*) (long) b->data[index],"(J)V");
 				}
       case ARRAYTYPE_FLOAT    : {
 				   java_floatarray *b = (java_floatarray *) array;

@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger                                               *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 401 2003-08-03 20:58:19Z twisti $        *
+*   Last Change: $Id: asmpart.S 491 2003-10-20 17:56:03Z twisti $        *
 *                                                                              *
 *******************************************************************************/
 
@@ -36,11 +36,8 @@
 	.globl asm_builtin_aastore
 	.globl asm_builtin_monitorenter
 	.globl asm_builtin_monitorexit
-	.globl asm_builtin_idiv
-	.globl asm_builtin_irem
 	.globl asm_builtin_ldiv
 	.globl asm_builtin_lrem
-	.globl asm_builtin_frem
 	.globl asm_builtin_arrayinstanceof
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
@@ -340,6 +337,9 @@ L_call_method:
 *******************************************************************************/
 
 asm_dumpregistersandcall:
+        xor     %eax,%eax
+        mov     %eax,(%eax)
+        
 		push	%ebx
 		push	%ebp
 		push	%esi
@@ -599,30 +599,6 @@ nb_monitorexit:
 		jmp		asm_handle_exception
 
 
-/************************ function asm_builtin_idiv ****************************
-*                                                                              *
-*   Does null check and calls idiv or throws an exception                      *
-*                                                                              *
-*******************************************************************************/
-
-asm_builtin_idiv:
-		cmpl	$0,12(%esp)             /* if (null) throw exception */
-		je		nb_idiv
-
-		movl	4(%esp),%eax            /* 4 (return) = 4 */
-		cltd
-		idivl	12(%esp)
-
-		ret
-
-nb_idiv:
-		popl	%edx					/* delete return address */
-		subl	$2,%edx					/* faulting address is return adress - 2 */
-		
-		movl	proto_java_lang_ArithmeticException,%eax
-		jmp		asm_handle_exception
-		
-
 /************************ function asm_builtin_ldiv ****************************
 *                                                                              *
 *   Does null check and calls ldiv or throws an exception                      *
@@ -644,31 +620,6 @@ nb_ldiv:
 		movl	proto_java_lang_ArithmeticException,%eax
 		jmp		asm_handle_exception
 				
-
-/************************ function asm_builtin_irem ****************************
-*                                                                              *
-*   Does null check and calls irem or throws an exception                      *
-*                                                                              *
-*******************************************************************************/
-
-asm_builtin_irem:
-		cmpl	$0,12(%esp)             /* if (null) throw exception */
-		je		nb_irem
-
-		movl	4(%esp),%eax            /* 4 (return) = 4 */
-		cltd
-		idivl	12(%esp)
-		
-		movl	%edx,%eax
-		ret
-
-nb_irem:
-		popl	%edx					/* delete return address */
-		subl	$2,%edx					/* faulting address is return adress - 2 */
-		
-		movl	proto_java_lang_ArithmeticException,%eax
-		jmp		asm_handle_exception
-
 
 /************************ function asm_builtin_lrem ****************************
 *                                                                              *

@@ -459,7 +459,7 @@ void printRThierarchyInfo(methodinfo *m) {
 
   /*-- --*/
   if (pClassHeirStatsOnly >= 2) {
-    printf("\nRT Class Heirarchy for ");
+    printf("\nRT Class Hierarchy for ");
     printf("--- start of RT info --------------- after :\n");
     if (m != NULL) {
   	utf_display(m->class->name); 
@@ -477,7 +477,7 @@ void printRThierarchyInfo(methodinfo *m) {
   /*--  statistic results --*/
   printRTInterfaceClasses();
 	
-  printf("\n  >>>>>>>>>>>>>>>>>>>>  Analysed Class Heirarchy Statistics:\n"); 
+  printf("\n  >>>>>>>>>>>>>>>>>>>>  Analysed Class Hierarchy Statistics:\n"); 
   printf(" Used            \t%i \tclasses\t/ Used       \t%i methods \t of USED: %i%% \t  of ALL: %i%% \n",
 		RTclassHeirUsedCnt,RTmethodUsedCnt,
 		((100*RTmethodUsedCnt)/(RTmethodUsedCnt + RTmethodNotUsedCnt2)) ,
@@ -491,7 +491,7 @@ void printRThierarchyInfo(methodinfo *m) {
 	RTclassHeirNotUsedCnt + RTclassHeirUsedCnt + RTclassHeirPartUsedCnt,  
 	RTmethodNotUsedCnt1 + RTmethodNotUsedCnt2    + RTmethodUsedCnt    + RTmethodMarkedCnt ); 
 
-  printf(" Mono vs. Polymorhpic calls:\n");
+  printf(" Mono vs. Polymorphic calls:\n");
   printf(" Mono calls     \t%i   \tPoly that resolves to Mono \t%i \tPoly calls     \t%i\n\n",
 	   RTmethodMono, RTmethodPolyReallyMono, RTmethodPoly);
 
