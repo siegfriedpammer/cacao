@@ -27,17 +27,20 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.c 1086 2004-05-26 21:22:05Z twisti $
+   $Id: logging.c 1107 2004-05-28 12:18:44Z twisti $
 
 */
 
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
 #include "global.h"
+#include "tables.h"
 #include "toolbox/logging.h"
 
 
