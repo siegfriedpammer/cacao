@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 762 2003-12-13 22:42:03Z twisti $
+   $Id: reg.inc 1038 2004-04-26 16:41:30Z twisti $
 
 */
 
@@ -321,7 +321,7 @@ void reg_close()
 void regalloc()
 {
 #if defined(__I386__)
-	/* remove %edx from tmpintregs */
+	/* remove %ecx and/or %edx from tmpintregs */
 	int origtmpintregcnt = tmpintregcnt;
 	if (method_uses_ecx) tmpintregcnt--;
 	if (method_uses_edx) tmpintregcnt--;
@@ -727,9 +727,7 @@ static void reg_init_temp()
 	tmpfltreguse = iftmpfltregcnt;
 	savfltreguse = ifsavfltregcnt;
 
-	/*
-	 * all argument registers are available
-	 */
+	/* all argument registers are available */
 	argintreguse = intreg_argnum;
 	argfltreguse = fltreg_argnum;
 }
@@ -742,8 +740,8 @@ static void reg_new_temp_func(stackptr s)
 {
 	int regsneeded = 0;
 
-	/* Try to allocate a saved register if there is no temporary one available.   */
-	/* This is what happens during the second run.                                */
+	/* Try to allocate a saved register if there is no temporary one          */
+    /* available. This is what happens during the second run.                 */
   	int tryagain = (s->flags & SAVEDVAR) ? 1 : 2;
 
 #ifdef USETWOREGS
@@ -926,6 +924,7 @@ static void allocate_scratch_registers()
 				case ICMD_NOP:
 				case ICMD_ELSE_ICONST:
 				case ICMD_CHECKASIZE:
+				case ICMD_CHECKOOM:
 				case ICMD_IINC:
 				case ICMD_JSR:
 				case ICMD_RET:

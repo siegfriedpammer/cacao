@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: parse.h 1038 2004-04-26 16:41:30Z twisti $
 
 */
 
@@ -35,6 +35,94 @@
 #define _PARSE_H
 
 #include "global.h"
+
+
+/* intermediate code generating macros */
+
+#define PINC           iptr++;ipc++
+#define LOADCONST_I(v) iptr->opc=ICMD_ICONST;/*iptr->op1=0*/;iptr->val.i=(v);iptr->line=currentline;iptr->clazz=class;PINC
+#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);iptr->line=currentline;iptr->clazz=class;PINC
+#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);iptr->line=currentline;iptr->clazz=class;PINC
+#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);iptr->line=currentline;iptr->clazz=class;PINC
+#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;/*iptr->op1=0*/;iptr->val.a=(v);iptr->line=currentline;iptr->clazz=class;PINC
+
+/* ACONST instructions generated as arguments for builtin functions
+ * have op1 set to non-zero. This is used for stack overflow checking
+ * in stack.c. */
+#define LOADCONST_A_BUILTIN(v) \
+                       iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);iptr->line=currentline;iptr->clazz=class;PINC
+
+#define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;iptr->line=currentline;iptr->clazz=class;PINC
+#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;iptr->line=currentline;iptr->clazz=class;PINC
+#define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);iptr->line=currentline;iptr->clazz=class;PINC
+
+#define OP2A(o,o1,v,l) \
+    iptr->opc = (o); \
+    iptr->op1 = (o1); \
+    iptr->val.a = (v); \
+    iptr->line = l; \
+    iptr->clazz = class; \
+    PINC
+
+#define BUILTIN1(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN1;iptr->op1=t;\
+                       iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
+#define BUILTIN2(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN2;iptr->op1=t;\
+                       iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
+#define BUILTIN3(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
+                       iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
+
+/* We have to check local variables indices here because they are
+ * used in stack.c to index the locals array. */
+
+#define INDEX_ONEWORD(num)										\
+	do { if((num)<0 || (num)>=maxlocals)						\
+			panic("Invalid local variable index"); } while (0)
+#define INDEX_TWOWORD(num)										\
+	do { if((num)<0 || ((num)+1)>=maxlocals)					\
+			panic("Invalid local variable index"); } while (0)
+
+#define OP1LOAD(o,o1)							\
+	do {if (o == ICMD_LLOAD || o == ICMD_DLOAD)	\
+			INDEX_TWOWORD(o1);					\
+		else									\
+			INDEX_ONEWORD(o1);					\
+		OP1(o,o1);} while(0)
+
+#define OP1STORE(o,o1)								\
+	do {if (o == ICMD_LSTORE || o == ICMD_DSTORE)	\
+			INDEX_TWOWORD(o1);						\
+		else										\
+			INDEX_ONEWORD(o1);						\
+		OP1(o,o1);} while(0)
+
+/* block generating and checking macros */
+
+#define block_insert(i) \
+    do { \
+        if (!(block_index[(i)] & 1)) { \
+            b_count++; \
+            block_index[(i)] |= 1; \
+        } \
+    } while (0)
+
+
+/* FIXME really use cumjcodelength for the bound_checkers ? */
+
+#define bound_check(i) \
+    do { \
+        if (i < 0 || i >= cumjcodelength) { \
+            panic("branch target out of code-boundary"); \
+        } \
+    } while (0)
+
+/* bound_check1 is used for the inclusive ends of exception handler ranges */
+#define bound_check1(i) \
+    do { \
+        if (i < 0 || i > cumjcodelength) { \
+            panic("branch target out of code-boundary"); \
+        } \
+    } while (0)
+
 
 /* macros for byte code fetching ***********************************************
 

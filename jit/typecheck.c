@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 974 2004-03-25 17:31:13Z jowenn $
+   $Id: typecheck.c 1038 2004-04-26 16:41:30Z twisti $
 
 */
 
@@ -35,6 +35,7 @@
 #ifdef CACAO_TYPECHECK
 
 #include <string.h>
+#include "main.h"
 #include "jit.h"
 #include "builtin.h"
 #include "tables.h"
@@ -821,6 +822,16 @@ typecheck()
 	bool jsrencountered = false;         /* true if we there was a JSR */
 
     classinfo *myclass;
+
+	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Typechecking: ");
+		utf_sprint_classname(logtext + strlen(logtext), method->class->name);
+		sprintf(logtext + strlen(logtext), ".");
+		utf_sprint(logtext + strlen(logtext), method->name);
+		utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
+		log_text(logtext);
+	}
 
 #ifdef TYPECHECK_STATISTICS
 	int count_iterations = 0;
@@ -2092,6 +2103,16 @@ typecheck()
 	}
 		
     LOGimp("exiting typecheck");
+
+	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Typechecking done: ");
+		utf_sprint_classname(logtext + strlen(logtext), method->class->name);
+		sprintf(logtext + strlen(logtext), ".");
+		utf_sprint(logtext + strlen(logtext), method->name);
+		utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
+		log_text(logtext);
+	}
 }
 
 #undef COPYTYPE

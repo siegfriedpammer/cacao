@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1018 2004-04-10 13:26:20Z twisti $
+   $Id: stack.c 1038 2004-04-26 16:41:30Z twisti $
 
 */
 
@@ -323,10 +323,10 @@ void analyse_stack()
 	if (compileverbose) {
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Analysing: ");
-		utf_sprint(logtext+strlen(logtext), method->class->name);
-		strcpy(logtext+strlen(logtext), ".");
-		utf_sprint(logtext+strlen(logtext), method->name);
-		utf_sprint(logtext+strlen(logtext), method->descriptor);
+		utf_sprint_classname(logtext + strlen(logtext), method->class->name);
+		sprintf(logtext + strlen(logtext), ".");
+		utf_sprint(logtext + strlen(logtext), method->name);
+		utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
 		log_text(logtext);
 	}
 
@@ -506,6 +506,7 @@ void analyse_stack()
 
 					case ICMD_NOP:
 					case ICMD_CHECKASIZE:
+					case ICMD_CHECKOOM:
 
 					case ICMD_IFEQ_ICONST:
 					case ICMD_IFNE_ICONST:
@@ -2115,6 +2116,16 @@ void analyse_stack()
 	else
 		count_method_bb_distribution[8]++;
 #endif
+
+	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Analysing done: ");
+		utf_sprint_classname(logtext + strlen(logtext), method->class->name);
+		sprintf(logtext + strlen(logtext), ".");
+		utf_sprint(logtext + strlen(logtext), method->name);
+		utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
+		log_text(logtext);
+	}
 }
 
 

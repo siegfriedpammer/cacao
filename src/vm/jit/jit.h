@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 974 2004-03-25 17:31:13Z jowenn $
+   $Id: jit.h 1038 2004-04-26 16:41:30Z twisti $
 
 */
 
@@ -806,6 +806,7 @@ extern int jcommandsize[256];
 
 #define JAVA_BREAKPOINT       202
 
+#define ICMD_CHECKOOM         203       /* check for out of memory error      */
 
 #define ICMD_BUILTIN3         253       /* internal opcode */
 #define ICMD_BUILTIN2         254       /* internal opcode */
@@ -898,6 +899,7 @@ extern int *count_store_depth;
 
 extern classinfo  *class;       /* class the compiled method belongs to       */
 extern methodinfo *method;      /* pointer to method info of compiled method  */
+extern utf        *descriptor;  /* type descriptor of compiled method         */
 extern int         mparamcount; /* number of parameters (incl. this)          */
 extern u1         *mparamtypes; /* types of all parameters (TYPE_INT, ...)    */
 	
@@ -905,8 +907,8 @@ extern int maxstack;            /* maximal JavaVM stack size                  */
 extern int maxlocals;           /* maximal number of local JavaVM variables   */
 extern int jcodelength;         /* length of JavaVM-codes                     */
 extern u1 *jcode;               /* pointer to start of JavaVM-code            */
-extern lineinfo *jlinenumbers;         /* line information array                     */
-extern u2 jlinenumbercount;            /* number of entries in the linenumber array  */
+extern lineinfo *jlinenumbers;  /* line information array                     */
+extern u2 jlinenumbercount;     /* number of entries in the linenumber array  */
 extern int exceptiontablelength;/* length of exception table                  */
 extern xtable *extable;         /* pointer to start of exception table        */
 extern exceptiontable *raw_extable;

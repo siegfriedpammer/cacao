@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1018 2004-04-10 13:26:20Z twisti $
+   $Id: jit.c 1038 2004-04-26 16:41:30Z twisti $
 
 */
 
@@ -144,7 +144,7 @@ int *count_store_depth = count_store_depth_init;
 
 classinfo  *class;              /* class the compiled method belongs to       */
 methodinfo *method;             /* pointer to method info of compiled method  */
-static utf *descriptor;         /* type descriptor of compiled method         */
+utf        *descriptor;         /* type descriptor of compiled method         */
 int         mparamcount;        /* number of parameters (incl. this)          */
 u1         *mparamtypes;        /* types of all parameters (TYPE_INT, ...)    */
 static int mreturntype;         /* return type of method                      */
@@ -153,8 +153,8 @@ int maxstack;                   /* maximal JavaVM stack size                  */
 int maxlocals;                  /* maximal number of local JavaVM variables   */
 int jcodelength;                /* length of JavaVM-codes                     */
 u1 *jcode;                      /* pointer to start of JavaVM-code            */
-lineinfo *jlinenumbers;		/* line information array		      */
-u2 jlinenumbercount;		/* number of entries in the linenumber array  */
+lineinfo *jlinenumbers;         /* line information array                     */
+u2 jlinenumbercount;            /* number of entries in the linenumber array  */
 int exceptiontablelength;       /* length of exception table                  */
 xtable *extable;                /* pointer to start of exception table        */
 exceptiontable *raw_extable;
@@ -791,8 +791,10 @@ int jcommandsize[256] = {
 	5,
 #define JAVA_BREAKPOINT       202
 	1,
+#define ICMD_CHECKOOM         203
+	1, /* unused */
 
-	    1,1,1,1,1,1,1,1,            /* unused */
+	      1,1,1,1,1,1,1,            /* unused */
 	1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
@@ -1005,8 +1007,9 @@ char *icmd_names[256] = {
 	"UNDEF200     ", /* GOTO_W      200 */
 	"UNDEF201     ", /* JSR_W       201 */
 	"UNDEF202     ", /* BREAKPOINT  202 */
+	"CHECKOOM     ", /* UNDEF204    203 */
 
-	                      "UNDEF203","UNDEF204","UNDEF205",
+	                                 "UNDEF204","UNDEF205",
 	"UNDEF206","UNDEF207","UNDEF208","UNDEF209","UNDEF210",
 	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
 	"UNDEF216","UNDEF217","UNDEF218","UNDEF219","UNDEF220",
@@ -1228,8 +1231,9 @@ char *opcode_names[256] = {
 	"GOTO_W       ", /* GOTO_W      200 */
 	"JSR_W        ", /* JSR_W       201 */
 	"BREAKPOINT   ", /* BREAKPOINT  202 */
+	"CHECKOOM     ", /* UNDEF203    203 */
 
-	                      "UNDEF203","UNDEF204","UNDEF205",
+	                                 "UNDEF204","UNDEF205",
 	"UNDEF206","UNDEF207","UNDEF208","UNDEF209","UNDEF210",
 	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
 	"UNDEF216","UNDEF217","UNDEF218","UNDEF219","UNDEF220",
@@ -1444,15 +1448,6 @@ methodptr jit_compile(methodinfo *m)
 	s8 starttime = 0;
 	s8 stoptime  = 0;
 
-	count_jit_calls++;
-
-	/* if method has been already compiled return immediately */
-
-	if (m->entrypoint)
-		return m->entrypoint;
-
-	count_methods++;
-
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	compiler_lock();
 #endif
@@ -1460,6 +1455,24 @@ methodptr jit_compile(methodinfo *m)
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	intsDisable();      /* disable interrupts */
 #endif
+
+	count_jit_calls++;
+
+	/* if method has been already compiled return immediately */
+
+	if (m->entrypoint) {
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+		intsRestore();                             /* enable interrupts again */
+#endif
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+		compiler_unlock();
+#endif
+
+		return m->entrypoint;
+	}
+
+	count_methods++;
 
 	/* mark start of dump memory area */
 
@@ -1475,10 +1488,10 @@ methodptr jit_compile(methodinfo *m)
 	if (!m->jcode) {
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "No code given for: ");
-		utf_sprint_classname(logtext+strlen(logtext), m->class->name);
-		strcpy(logtext+strlen(logtext), ".");
-		utf_sprint(logtext+strlen(logtext), m->name);
-		utf_sprint_classname(logtext+strlen(logtext), m->descriptor);
+		utf_sprint_classname(logtext + strlen(logtext), m->class->name);
+		strcpy(logtext + strlen(logtext), ".");
+		utf_sprint(logtext + strlen(logtext), m->name);
+		utf_sprint_classname(logtext + strlen(logtext), m->descriptor);
 		log_text(logtext);
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 		intsRestore();                             /* enable interrupts again */
@@ -1495,26 +1508,38 @@ methodptr jit_compile(methodinfo *m)
 	if (compileverbose) {
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Compiling: ");
-		utf_sprint_classname(logtext+strlen(logtext), m->class->name);
-		strcpy(logtext+strlen(logtext), ".");
-		utf_sprint(logtext+strlen(logtext), m->name);
-		utf_sprint_classname(logtext+strlen(logtext), m->descriptor);
+		utf_sprint_classname(logtext + strlen(logtext), m->class->name);
+		sprintf(logtext + strlen(logtext), ".");
+		utf_sprint(logtext + strlen(logtext), m->name);
+		utf_sprint_classname(logtext + strlen(logtext), m->descriptor);
 		log_text(logtext);
 	}
+
+	if (!m->class->loaded)
+		class_load(m->class);
+
+	if (!m->class->linked)
+		class_link(m->class);
 
 	/* initialize the static function's class */
   	if (m->flags & ACC_STATIC && !m->class->initialized) {
 		if (initverbose) {
 			char logtext[MAXLOGTEXT];
 			sprintf(logtext, "Initialize class ");
-			utf_sprint(logtext + strlen(logtext), m->class->name);
+			utf_sprint_classname(logtext + strlen(logtext), m->class->name);
 			log_text(logtext);
 		}
 		class_init(m->class);
 	}
 
-	if (jitrunning)
+	if (jitrunning) {
+		printf("m=");
+		utf_display_classname(m->class->name);printf(".");utf_display(m->name);
+		printf(", method=");
+		utf_display_classname(method->class->name);printf(".");utf_display(method->name);
+		printf("\n");
 		panic("Compiler lock recursion");
+	}
 	jitrunning = true;
 
 	/* initialisation of variables and subsystems */
@@ -1549,8 +1574,14 @@ methodptr jit_compile(methodinfo *m)
 
 #if defined(__I386__)
 	/* we try to use these registers as scratch registers */
-	method_uses_ecx = false;
-	method_uses_edx = false;
+    if (m->exceptiontablelength > 0) {
+		method_uses_ecx = true;
+		method_uses_edx = true;
+
+	} else {
+		method_uses_ecx = false;
+		method_uses_edx = false;
+	}
 #endif
 
 	/* call the compiler passes ***********************************************/
@@ -1612,6 +1643,16 @@ methodptr jit_compile(methodinfo *m)
 		compilingtime += (stoptime - starttime);
 	}
 
+	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Running: ");
+		utf_sprint_classname(logtext + strlen(logtext), m->class->name);
+		sprintf(logtext + strlen(logtext), ".");
+		utf_sprint(logtext + strlen(logtext), m->name);
+		utf_sprint_classname(logtext + strlen(logtext), m->descriptor);
+		log_text(logtext);
+	}
+
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	intsRestore();    /* enable interrupts again */
 #endif
@@ -1622,7 +1663,6 @@ methodptr jit_compile(methodinfo *m)
 
 	/* return pointer to the methods entry point */
 
-	LOG_STEP("Done compiling");
 	return m->entrypoint;
 } 
 

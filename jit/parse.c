@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1009 2004-03-31 22:44:07Z edwin $
+   $Id: parse.c 1038 2004-04-26 16:41:30Z twisti $
 
 */
 
@@ -326,86 +326,6 @@ void descriptor2types(methodinfo *m)
 
 *******************************************************************************/
 
-/* intermediate code generating macros */
-
-#define PINC           iptr++;ipc++
-#define LOADCONST_I(v) iptr->opc=ICMD_ICONST;/*iptr->op1=0*/;iptr->val.i=(v);iptr->line=currentline;iptr->clazz=class;PINC
-#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);iptr->line=currentline;iptr->clazz=class;PINC
-#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);iptr->line=currentline;iptr->clazz=class;PINC
-#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);iptr->line=currentline;iptr->clazz=class;PINC
-#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;/*iptr->op1=0*/;iptr->val.a=(v);iptr->line=currentline;iptr->clazz=class;PINC
-
-/* ACONST instructions generated as arguments for builtin functions
- * have op1 set to non-zero. This is used for stack overflow checking
- * in stack.c. */
-#define LOADCONST_A_BUILTIN(v) \
-                       iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);iptr->line=currentline;iptr->clazz=class;PINC
-
-#define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;iptr->line=currentline;iptr->clazz=class;PINC
-#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;iptr->line=currentline;iptr->clazz=class;PINC
-#define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);iptr->line=currentline;iptr->clazz=class;PINC
-#define OP2A(o,o1,v,l)   iptr->opc=(o);iptr->op1=(o1);iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
-#define BUILTIN1(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN1;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
-#define BUILTIN2(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN2;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
-#define BUILTIN3(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->clazz=class;PINC
-
-/* We have to check local variables indices here because they are
- * used in stack.c to index the locals array. */
-
-#define INDEX_ONEWORD(num)										\
-	do { if((num)<0 || (num)>=maxlocals)						\
-			panic("Invalid local variable index"); } while (0)
-#define INDEX_TWOWORD(num)										\
-	do { if((num)<0 || ((num)+1)>=maxlocals)					\
-			panic("Invalid local variable index"); } while (0)
-
-#define OP1LOAD(o,o1)							\
-	do {if (o == ICMD_LLOAD || o == ICMD_DLOAD)	\
-			INDEX_TWOWORD(o1);					\
-		else									\
-			INDEX_ONEWORD(o1);					\
-		OP1(o,o1);} while(0)
-
-#define OP1STORE(o,o1)								\
-	do {if (o == ICMD_LSTORE || o == ICMD_DSTORE)	\
-			INDEX_TWOWORD(o1);						\
-		else										\
-			INDEX_ONEWORD(o1);						\
-		OP1(o,o1);} while(0)
-
-/* block generating and checking macros */
-
-#define block_insert(i) \
-    do { \
-        if (!(block_index[(i)] & 1)) { \
-            b_count++; \
-            block_index[(i)] |= 1; \
-        } \
-    } while (0)
-
-
-/* FIXME really use cumjcodelength for the bound_checkers ? */
-
-#define bound_check(i) \
-    do { \
-        if (i < 0 || i >= cumjcodelength) { \
-            panic("branch target out of code-boundary"); \
-        } \
-    } while (0)
-
-/* bound_check1 is used for the inclusive ends of exception handler ranges */
-#define bound_check1(i) \
-    do { \
-        if (i < 0 || i > cumjcodelength) { \
-            panic("branch target out of code-boundary"); \
-        } \
-    } while (0)
-
-
-
 static xtable* fillextable(xtable* extable, exceptiontable *raw_extable, int exceptiontablelength, int *label_index, int *block_count)
 {
 	int b_count, i, p;
@@ -438,6 +358,20 @@ static xtable* fillextable(xtable* extable, exceptiontable *raw_extable, int exc
 		block_insert(p);
 
 		extable[i].catchtype  = raw_extable[i].catchtype;
+
+#if 0
+		if (extable[i].catchtype) {
+			utf_display_classname(extable[i].catchtype->name);
+			printf("\n");
+		/* is this catch class loaded */
+		if (!extable[i].catchtype->loaded)
+			class_load(extable[i].catchtype);
+
+		/* is this catch class linked */
+		if (!extable[i].catchtype->linked)
+			class_link(extable[i].catchtype);
+		}
+#endif
 
 		extable[i].next = NULL;
 		extable[i].down = &extable[i + 1];
@@ -480,10 +414,10 @@ void parse()
 	if (compileverbose) {
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Parsing: ");
-		utf_sprint(logtext+strlen(logtext), method->class->name);
+		utf_sprint_classname(logtext+strlen(logtext), method->class->name);
 		strcpy(logtext+strlen(logtext), ".");
 		utf_sprint(logtext+strlen(logtext), method->name);
-		utf_sprint(logtext+strlen(logtext), method->descriptor);
+		utf_sprint_classname(logtext+strlen(logtext), method->descriptor);
 		log_text(logtext);
 	}
 
@@ -940,28 +874,51 @@ void parse()
 				break;
 			default: panic("Invalid array-type to create");
 			}
+			OP2I(ICMD_CHECKOOM, 0, 0);
 			break;
 
 		case JAVA_ANEWARRAY:
 			OP2I(ICMD_CHECKASIZE, 0, 0);
 			i = code_get_u2(p + 1);
 			{
- 					classinfo *component = (classinfo*)class_getconstant(class, i, CONSTANT_Class);
- 				 	LOADCONST_A_BUILTIN(class_array_of(component)->vftbl);
+				classinfo *component =
+					(classinfo *) class_getconstant(class, i, CONSTANT_Class);
 
+				class_load(component);
+				class_link(component);
+
+  				LOADCONST_A_BUILTIN(class_array_of(component)->vftbl);
+/*  				LOADCONST_A_BUILTIN(component); */
 				s_count++;
-
 				BUILTIN2(BUILTIN_newarray, TYPE_ADR,currentline);
 			}
+			OP2I(ICMD_CHECKOOM, 0, 0);
 			break;
 
 		case JAVA_MULTIANEWARRAY:
-			isleafmethod=false;
+			isleafmethod = false;
 			i = code_get_u2(p + 1);
 			{
-				int v = code_get_u1(p + 3);
- 				vftbl *arrayvftbl = ((classinfo*)class_getconstant (class, i, CONSTANT_Class))->vftbl;
- 				OP2A(opcode, v, arrayvftbl,currentline);			
+				s4 v = code_get_u1(p + 3);
+
+				
+/*   				vftbl *arrayvftbl = */
+/*  					((classinfo *) class_getconstant(class, i, CONSTANT_Class))->vftbl; */
+/*   				OP2A(opcode, v, arrayvftbl,currentline); */
+
+				
+ 				classinfo *component =
+					(classinfo *) class_getconstant(class, i, CONSTANT_Class);
+
+				class_load(component);
+				class_link(component);
+
+ 				vftbl *arrayvftbl = component->vftbl;
+ 				OP2A(opcode, v, arrayvftbl,currentline);
+
+/*   				classinfo *arrayclass = */
+/*  					(classinfo *) class_getconstant(class, i, CONSTANT_Class); */
+/*   				OP2A(opcode, v, arrayclass, currentline); */
 			}
 			break;
 
@@ -1202,7 +1159,12 @@ void parse()
 			{
 				constant_FMIref *fr;
 				fieldinfo *fi;
+
 				fr = class_getconstant(class, i, CONSTANT_Fieldref);
+
+				class_load(fr->class);
+				class_link(fr->class);
+
 				fi = class_resolvefield(fr->class, fr->name, fr->descriptor, class, true);
 				if (!fi)
 					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
@@ -1219,7 +1181,12 @@ void parse()
 			{
 				constant_FMIref *fr;
 				fieldinfo *fi;
+
 				fr = class_getconstant (class, i, CONSTANT_Fieldref);
+
+				class_load(fr->class);
+				class_link(fr->class);
+
 				fi = class_resolvefield(fr->class, fr->name, fr->descriptor, class, true);
 				if (!fi)
 					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
@@ -1236,8 +1203,12 @@ void parse()
 				constant_FMIref *mr;
 				methodinfo *mi;
 				
-				mr = class_getconstant (class, i, CONSTANT_Methodref);
-				mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, class, true);
+				mr = class_getconstant(class, i, CONSTANT_Methodref);
+
+				class_load(mr->class);
+				class_link(mr->class);
+
+				mi = class_resolveclassmethod(mr->class, mr->name, mr->descriptor, class, true);
 				if (!mi)
 					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 				/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
@@ -1261,10 +1232,15 @@ void parse()
 				constant_FMIref *mr;
 				methodinfo *mi;
 
-				mr = class_getconstant (class, i, CONSTANT_Methodref);
-				mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, class, true);
+				mr = class_getconstant(class, i, CONSTANT_Methodref);
+
+				class_load(mr->class);
+				class_link(mr->class);
+
+				mi = class_resolveclassmethod(mr->class, mr->name, mr->descriptor, class, true);
 				if (!mi)
-					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
+					panic("Exception thrown while parsing bytecode");
+
 				/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
 					/*RTAprint*/    {printf(" method name =");
 					method_display(mi);
@@ -1286,8 +1262,12 @@ void parse()
 				constant_FMIref *mr;
 				methodinfo *mi;
 				
-				mr = class_getconstant (class, i, CONSTANT_InterfaceMethodref);
-				mi = class_resolveinterfacemethod (mr->class, mr->name, mr->descriptor, class, true);
+				mr = class_getconstant(class, i, CONSTANT_InterfaceMethodref);
+
+				class_load(mr->class);
+				class_link(mr->class);
+
+				mi = class_resolveinterfacemethod(mr->class, mr->name, mr->descriptor, class, true);
 				if (!mi)
 					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 				if (mi->flags & ACC_STATIC)
@@ -1306,12 +1286,23 @@ void parse()
 			LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
 			s_count++;
 			BUILTIN1(BUILTIN_new, TYPE_ADR,currentline);
+			OP2I(ICMD_CHECKOOM, 0, 0);
 			break;
 
 		case JAVA_CHECKCAST:
 			i = code_get_u2(p+1);
  				{
- 					classinfo *cls = (classinfo*)class_getconstant(class, i, CONSTANT_Class);
+ 					classinfo *cls =
+						(classinfo *) class_getconstant(class, i, CONSTANT_Class);
+
+					/* is the class loaded */
+					if (!cls->loaded)
+						class_load(cls);
+
+					/* is the class linked */
+					if (!cls->linked)
+						class_link(cls);
+
  					if (cls->vftbl->arraydesc) {
  						/* array type cast-check */
  						LOADCONST_A_BUILTIN(cls->vftbl);
@@ -1334,7 +1325,17 @@ void parse()
 			i = code_get_u2(p+1);
 
  				{
- 					classinfo *cls = (classinfo*)class_getconstant(class, i, CONSTANT_Class);
+ 					classinfo *cls =
+						(classinfo *) class_getconstant(class, i, CONSTANT_Class);
+
+					/* is the class loaded */
+					if (!cls->loaded)
+						class_load(cls);
+
+					/* is the class linked */
+					if (!cls->linked)
+						class_link(cls);
+
  					if (cls->vftbl->arraydesc) {
  						/* array type cast-check */
  						LOADCONST_A_BUILTIN(cls->vftbl);
@@ -1457,7 +1458,7 @@ void parse()
 			panic("Illegal opcode Breakpoint encountered");
 			break;
 
-		  case 186: /* unused opcode */
+		case 186: /* unused opcode */
 		case 203:
 		case 204:
 		case 205:
@@ -1548,7 +1549,7 @@ void parse()
 		panic("Command-sequence crosses code-boundary");
 
 	if (!blockend)
-		panic("Code does not end with branch/return/athrow - stmt");	
+		panic("Code does not end with branch/return/athrow - stmt");
 
 	/* adjust block count if target 0 is not first intermediate instruction   */
 
@@ -1651,6 +1652,16 @@ void parse()
 	
 	if (useinlining) inlining_cleanup();
 	useinlining = useinltmp;
+
+	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Parsing done: ");
+		utf_sprint_classname(logtext + strlen(logtext), method->class->name);
+		strcpy(logtext + strlen(logtext), ".");
+		utf_sprint(logtext + strlen(logtext), method->name);
+		utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
+		log_text(logtext);
+	}
 }
 
 
