@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 727 2003-12-11 10:52:40Z edwin $
+   $Id: tables.c 753 2003-12-13 22:22:09Z twisti $
 
 */
 
@@ -47,6 +47,7 @@
 #include "types.h"
 #include "global.h"
 #include "tables.h"
+#include "loader.h"
 #include "asmpart.h"
 #include "threads/thread.h"
 #include "threads/locks.h"
@@ -153,27 +154,31 @@ void tables_close (stringdeleter del)
 	MFREE (class_hash.ptr,  void*, class_hash.size);
 }
 
+
 /********************* function: utf_display *********************************
 
 	write utf symbol to stdout (debugging purposes)
 
 ******************************************************************************/
 
-void utf_display (utf *u)
+void utf_display(utf *u)
 {
     char *endpos  = utf_end(u);  /* points behind utf string       */
     char *utf_ptr = u->text;     /* current position in utf text   */
-	if (u==NULL) return;
-    while (utf_ptr<endpos) {
 
+	if (u == NULL)
+		return;
+
+    while (utf_ptr < endpos) {
 		/* read next unicode character */                
-		u2 c = utf_nextu2(&utf_ptr);				
-		if (c>=32 && c<=127) printf ("%c",c);
-		else printf ("?");
+		u2 c = utf_nextu2(&utf_ptr);
+		if (c >= 32 && c <= 127) printf("%c", c);
+		else printf("?");
 	}
 
-	fflush (stdout);
+	fflush(stdout);
 }
+
 
 /************************* function: log_utf *********************************
 
@@ -813,34 +818,34 @@ classinfo *class_new(utf *u)
 	count_class_infos += sizeof(classinfo);
 #endif
 
-	c = GCNEW (classinfo,1); /*JOWENN: NEW*/
-	c -> vmClass = 0;
-	c -> flags = 0;
-	c -> name = u;
-	c -> cpcount = 0;
-	c -> cptags = NULL;
-	c -> cpinfos = NULL;
-	c -> super = NULL;
-	c -> sub = NULL;
-	c -> nextsub = NULL;
-	c -> interfacescount = 0;
-	c -> interfaces = NULL;
-	c -> fieldscount = 0;
-	c -> fields = NULL;
-	c -> methodscount = 0;
-	c -> methods = NULL;
-	c -> linked = false;
-	c -> loaded = false;
-	c -> index = 0;
-	c -> instancesize = 0;
-	c -> header.vftbl = NULL;
-	c -> innerclasscount = 0;
-	c -> innerclass = NULL;
-	c -> vftbl = NULL;
-	c -> initialized = false;
-	c -> classvftbl = false;
-    c -> classUsed = 0;
-    c -> impldBy = NULL;
+	c = GCNEW(classinfo, 1); /*JOWENN: NEW*/
+	c->vmClass = 0;
+	c->flags = 0;
+	c->name = u;
+	c->cpcount = 0;
+	c->cptags = NULL;
+	c->cpinfos = NULL;
+	c->super = NULL;
+	c->sub = NULL;
+	c->nextsub = NULL;
+	c->interfacescount = 0;
+	c->interfaces = NULL;
+	c->fieldscount = 0;
+	c->fields = NULL;
+	c->methodscount = 0;
+	c->methods = NULL;
+	c->linked = false;
+	c->loaded = false;
+	c->index = 0;
+	c->instancesize = 0;
+	c->header.vftbl = NULL;
+	c->innerclasscount = 0;
+	c->innerclass = NULL;
+	c->vftbl = NULL;
+	c->initialized = false;
+	c->classvftbl = false;
+    c->classUsed = 0;
+    c->impldBy = NULL;
 	
 	/* prepare loading of the class */
 	list_addlast(&unloadedclasses, c);
@@ -862,7 +867,7 @@ classinfo *class_new(utf *u)
 		hashtable newhash;  /* the new hashtable */
 
 		/* create new hashtable, double the size */
-		init_hashtable(&newhash, class_hash.size*2);
+		init_hashtable(&newhash, class_hash.size * 2);
 		newhash.entries = class_hash.entries;
 
 		/* transfer elements to new hashtable */
