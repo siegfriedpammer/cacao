@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2194 2005-04-03 16:13:27Z twisti $
+   $Id: asmpart.h 2230 2005-04-06 10:28:04Z twisti $
 
 */
 
@@ -45,6 +45,7 @@
 # endif
 #endif
 
+#include "vm/resolve.h"
 #include "vm/jit/stacktrace.h"
 
 
@@ -138,6 +139,14 @@ void asm_remove_native_stackinfo();
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);
 u1*  asm_initialize_thread_stack(void *func, u1 *stack);
 #endif
+
+/* code patching functions (in asmpart.S) */
+void asm_builtin_new(unresolved_class *uc);
+void asm_invokespecial(void);
+
+/* code patching helper functions (in asmpart.c) */
+classinfo *asm_builtin_new_helper(constant_classref *ref, functionptr pv);
+u1 *asm_invokespecial_helper(unresolved_method *um);
 
 #endif /* _ASMPART_H */
 
