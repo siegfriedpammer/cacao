@@ -4,11 +4,11 @@
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	Stellt Funktionen f"urs Logging zur Verf"ugung
+	Provides logging functions
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: loging.h 66 1998-11-11 21:15:48Z phil $
+	Last Change: $Id: loging.h 188 2002-12-16 21:03:29Z stefan $
 
 *******************************************************************************/
 
@@ -31,23 +31,22 @@ long int getcputime();
 
 /*
 
--------------------------- Schnittstellenbeschreibung -------------------------
+-------------------------- interface description -------------------------
 
-log_init .... Initialisiert das Logfile-System 
-               fname ....... Dateiname f"ur die Protokollierungsdatei
-               keepfile .... 1, wenn die alte Datei nicht gel"oscht werden soll
-               echostdout .. 1, wenn auch auf stdout ausgegeben werden soll
+log_init .... initialize the log file system 
+               fname ....... filename for the protocol file
+               keepfile .... 1 to keep old file (don't overwrite)
+               echostdout .. 1 for output to stdout additionally
                
-log_text .... Gibt einen Text auf das Logfile aus
-log_cputime . Gibt eine Information "uber die verbrauchte CPU-Zeit aus
-dolog ....... Gibt den Inhalt von logtext aus
-error ....... Gibt den Inhalt von logtext aus, und stoppt das System
-panic ....... Gibt eine Text auf das Logfile aus
+log_text .... print a text to log file
+log_cputime . print used cpu time
+dolog ....... print contents of logtext to log file
+error ....... print contents of logtext to log file, stop the system
+panic ....... print a text to log file
 
-logtext ..... dieses globale Array mu"s vor Benutzung der Funktionen 'log' 
-              oder 'error' mit dem auszugebenen Text bef"ullt werden.
+logtext ..... this global character array needs to be filled before using the
+			  functions 'log' or 'error'
 
-getcputimew . gibt die vom Programm verbrauchte CPU-Zeit in
-              Mikrosekunden zur"uck
+getcputimew . returns the number of microseconds used by the program
 
 */
