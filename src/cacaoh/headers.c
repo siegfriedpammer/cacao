@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 997 2004-03-30 21:49:28Z twisti $
+   $Id: headers.c 1004 2004-03-30 23:00:14Z twisti $
 
 */
 
@@ -594,7 +594,8 @@ int main(int argc, char **argv)
    
 	char classpath[500] = "";
 	char offsets_filename[1024] = ""; /* phil */
-	u4 heapsize = 100000;
+	u4 heapmaxsize = 500000;
+	u4 heapstartsize = 100000;
 
 	/*********** options so only headers are generated *******************/
    
@@ -658,7 +659,7 @@ int main(int argc, char **argv)
 	tables_init();
 
 	/* initialize the gc heap */
-	heap_init(heapsize, heapsize);
+	heap_init(heapmaxsize, heapstartsize);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initThreadsEarly();
