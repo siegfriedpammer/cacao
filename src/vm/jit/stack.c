@@ -28,21 +28,21 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: stack.c 1180 2004-06-17 17:17:09Z twisti $
 
 */
 
 
 #include <stdio.h>
 #include <string.h>
-#include "stack.h"
 #include "global.h"
 #include "main.h"
 #include "native.h"
-#include "jit.h"
 #include "builtin.h"
 #include "disass.h"
-#include "reg.h"
+#include "jit/jit.h"
+#include "jit/stack.h"
+#include "jit/reg.h"
 #include "tables.h"
 #include "types.h"
 #include "toolbox/logging.h"

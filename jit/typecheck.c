@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1090 2004-05-27 15:43:11Z twisti $
+   $Id: typecheck.c 1180 2004-06-17 17:17:09Z twisti $
 
 */
 
@@ -36,12 +36,12 @@
 
 #include <string.h>
 #include "main.h"
-#include "jit.h"
 #include "builtin.h"
 #include "tables.h"
 #include "loader.h"
 #include "native.h"
 #include "types.h"
+#include "jit/jit.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
@@ -243,7 +243,7 @@ typestack_copy(stackptr dst,stackptr y,typevector *selected)
 	int k;
 	
 	for (;dst; dst=dst->prev, y=y->prev) {
-		if (!y) panic("Stack depth mismatch");
+		if (!y) panic("Stack depth mismatch 1");
 		if (dst->type != y->type)
 			panic("Stack type mismatch");
 		LOG3("copy %p -> %p (type %d)",y,dst,dst->type);
@@ -273,7 +273,7 @@ typestack_copy(stackptr dst,stackptr y,typevector *selected)
 			}
 		}
 	}
-	if (y) panic("Stack depth mismatch");
+	if (y) panic("Stack depth mismatch 2");
 }
 
 static void
@@ -307,7 +307,8 @@ typestack_merge(stackptr dst,stackptr y)
 {
 	bool changed = false;
 	for (; dst; dst = dst->prev, y=y->prev) {
-		if (!y) panic("Stack depth mismatch");
+		if (!y)
+			panic("Stack depth mismatch 3");
 		if (dst->type != y->type) panic("Stack type mismatch");
 		if (dst->type == TYPE_ADDRESS) {
 			if (TYPEINFO_IS_PRIMITIVE(dst->typeinfo)) {
@@ -323,7 +324,7 @@ typestack_merge(stackptr dst,stackptr y)
 			}
 		}
 	}
-	if (y) panic("Stack depth mismatch");
+	if (y) panic("Stack depth mismatch 4");
 	return changed;
 }
 

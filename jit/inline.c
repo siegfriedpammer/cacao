@@ -26,17 +26,17 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: inline.c 1180 2004-06-17 17:17:09Z twisti $
 
 */
 
 
 #include <stdio.h>
 #include <string.h>
-#include "inline.h"
 #include "main.h"
-#include "jit.h"
-#include "parse.h"
+#include "jit/inline.h"
+#include "jit/jit.h"
+#include "jit/parse.h"
 #include "loader.h"
 #include "tables.h"
 #include "toolbox/logging.h"
