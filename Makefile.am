@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 885 2004-01-16 07:25:13Z jowenn $
+# $Id: Makefile.am 896 2004-01-20 23:19:14Z stefan $
 
 @SET_MAKE@
 
@@ -51,10 +51,10 @@ cacao_LDADD = \
 	jit/libjit.a \
 	jit/loop/libloop.a \
 	jit/@ARCH_DIR@/libarch.a \
-	toolbox/libtoolbox.a \
 	nat/libnat.a \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@ \
+	toolbox/libtoolbox.a \
 	gnuclasspathnat/native/jni/java-io/.libs/libjavaio.a \
 	gnuclasspathnat/native/jni/java-nio/.libs/libjavanio.a \
 	gnuclasspathnat/native/jni/java-net/.libs/libjavanet.a \
@@ -69,10 +69,10 @@ cacao_DEPENDENCIES = \
 	jit/libjit.a \
 	jit/loop/libloop.a \
 	jit/@ARCH_DIR@/libarch.a \
-	toolbox/libtoolbox.a \
 	nat/libnat.a \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@ \
+	toolbox/libtoolbox.a \
 	gnuclasspathnat/native/jni/java-io/.libs/libjavaio.a \
 	gnuclasspathnat/native/jni/java-nio/.libs/libjavanio.a \
 	gnuclasspathnat/native/jni/java-net/.libs/libjavanet.a \
@@ -90,14 +90,14 @@ cacaoh_SOURCES = \
 	unzip.c
 
 cacaoh_LDADD = \
-	toolbox/libtoolbox.a \
 	$(BOEHM_LIBS) \
-	@THREAD_OBJ@  @ZIP_LIBS@
+	@THREAD_OBJ@  @ZIP_LIBS@ \
+	toolbox/libtoolbox.a
 
 cacaoh_DEPENDENCIES = \
-	toolbox/libtoolbox.a \
 	$(BOEHM_LIBS) \
-	@THREAD_OBJ@
+	@THREAD_OBJ@ \
+	toolbox/libtoolbox.a
 
 
 nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makefile
