@@ -799,7 +799,8 @@ void heap_close ()
 	MFREE (startbits, bitfieldtype, heapsize/BITFIELDBITS);
 	MFREE (markbits, bitfieldtype, heapsize/BITFIELDBITS);
 	MFREE (referencebits, bitfieldtype, heapsize/BITFIELDBITS);
-	chain_free (allglobalreferences);
+	if (allglobalreferences != NULL)
+		chain_free (allglobalreferences);
 }
 
 
