@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: disass.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: disass.c 1062 2004-05-16 13:47:03Z twisti $
 
 */
 
@@ -289,13 +289,14 @@ char *regs[] = {
 
 *******************************************************************************/
 
-void disassinstr(int c, int pos)
+void disassinstr(s4 *code, int pos)
 {
 	int op;                     /* 6 bit op code                              */
 	int opfun;                  /* 7 bit function code                        */
 	int ra, rb, rc;             /* 6 bit register specifiers                  */
 	int lit;                    /* 8 bit unsigned literal                     */
 	int i;                      /* loop counter                               */
+	s4 c = *code;
 
 	op    = (c >> 26) & 0x3f;   /* 6 bit op code                              */
 	opfun = (c >> 5)  & 0x7f;   /* 7 bit function code                        */
@@ -304,7 +305,7 @@ void disassinstr(int c, int pos)
 	rc    = (c >> 0)  & 0x1f;   /* 6 bit destination register specifiers      */
 	lit   = (c >> 13) & 0xff;   /* 8 bit unsigned literal                     */
 
-	printf ("%6x: %8x  ", pos, c);
+	printf("0x%016lx:   %08x    ", (u8) code, c);
 	
 	switch (ops[op].itype) {
 		case ITYPE_JMP:
@@ -351,19 +352,18 @@ void disassinstr(int c, int pos)
 			break;
 			}
 
-		case ITYPE_FMEM: {
+		case ITYPE_FMEM:
 			printf ("%s $f%d,%d(%s)\n", ops[op].name, ra, (c << 16) >> 16, regs[rb]); 
 			break;
-			}
 
 		case ITYPE_BRA:             /* 21 bit signed branch offset */
 			if (op == 0x30 && ra == 31)
-				printf("br      0x%x\n", pos + 4 + ((c << 11) >> 9));
+				printf("br      0x%016lx\n", (u8) code + 4 + ((c << 11) >> 9));
 			else if (op == 0x34 && ra == 26)
-				printf("brs     0x%x\n", pos + 4 + ((c << 11) >> 9));
+				printf("brs     0x%016lx\n", (u8) code + 4 + ((c << 11) >> 9));
 			else
-				printf("%s %s,0x%x\n",
-				       ops[op].name, regs[ra], pos + 4 + ((c << 11) >> 9));
+				printf("%s %s,0x%016lx\n",
+				       ops[op].name, regs[ra], (u8) code + 4 + ((c << 11) >> 9));
 			break;
 			
 		case ITYPE_FOP: {
@@ -424,13 +424,13 @@ void disassinstr(int c, int pos)
 
 *******************************************************************************/
 
-void disassemble(int *code, int len)
+void disassemble(s4 *code, int len)
 {
 	int p;
 
-	printf ("  --- disassembler listing ---\n");	
+	printf ("  --- disassembler listing ---\n");
 	for (p = 0; p < len; p += 4, code++)
-		disassinstr(*code, p); 
+		disassinstr(code, p);
 }
 
 

@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: disass.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: disass.h 1062 2004-05-16 13:47:03Z twisti $
 
 */
 
@@ -42,8 +42,8 @@ extern char *regs[];
 
 
 /* function prototypes */
-void disassinstr(int c, int pos);
-void disassemble(int *code, int len);
+void disassinstr(s4 *code, int pos);
+void disassemble(s4 *code, int len);
 
 #endif
 
