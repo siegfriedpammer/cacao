@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 1749 2004-12-10 13:53:36Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -44,6 +44,7 @@ noinst_HEADERS = \
 noinst_LTLIBRARIES = libarch.la
 
 libarch_la_SOURCES = \
+	ansidecl.h \
 	asmoffsets.h \
 	asmpart.S \
 	bfd.h \
