@@ -1,4 +1,4 @@
-/* jit/x86_64/disass.c - wrapper functions for GNU binutils disassembler
+/* vm/jit/x86_64/disass.c - wrapper functions for GNU binutils disassembler
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -30,14 +30,17 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 559 2003-11-02 23:20:06Z twisti $
+   $Id: disass.c 1669 2004-12-03 16:40:14Z twisti $
 
 */
 
 
 #include <stdarg.h>
-#include <string.h>
-#include "dis-asm.h"
+
+#include "mm/memory.h"
+#include "vm/jit/x86_64/dis-asm.h"
+#include "vm/jit/x86_64/types.h"
+
 
 u1 *codestatic = 0;
 int pstatic = 0;
@@ -82,7 +85,7 @@ int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, s
 		*myaddr = *((u1 *) memaddr);
 
 	} else {
-		memcpy(myaddr, (void *) memaddr, length);
+		MCOPY(myaddr, (void *) memaddr, u1, length);
 	}
 
 	return 0;
