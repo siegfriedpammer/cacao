@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1203 2004-06-22 23:14:55Z twisti $
+   $Id: inline.c 1205 2004-06-25 06:18:44Z carolyn $
 
 */
 
@@ -384,6 +384,13 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 					methodinfo *imi;
 
 					imr = class_getconstant(m->class, i, CONSTANT_Methodref);
+
+					if (!class_load(imr->class))
+						return NULL;
+
+					if (!class_link(imr->class))
+						return NULL;
+
 					imi = class_resolveclassmethod(imr->class,
 												   imr->name,
 												   imr->descriptor,
