@@ -28,11 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1703 2004-12-06 14:32:15Z twisti $
+## $Id: Makefile.am 1717 2004-12-06 17:12:57Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src
+
+CLEANFILES = offsets.h
 
 noinst_HEADERS = \
 	arch.h \
@@ -43,6 +45,7 @@ noinst_LTLIBRARIES = libarch.la
 
 libarch_la_SOURCES = \
 	ansidecl.h \
+	asmoffsets.h \
 	asmpart.S \
 	bfd.h \
 	codegen.c \
@@ -56,7 +59,7 @@ libarch_la_SOURCES = \
 	i386-dis.c \
 	symcat.h
 
-asmpart.o: asmpart.S $(top_srcdir)/config.h offsets.h
+asmpart.S: $(top_srcdir)/config.h offsets.h
 
 .S.lo:
 	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
