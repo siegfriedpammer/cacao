@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 922 2004-02-24 13:26:24Z edwin $
+   $Id: typeinfo.c 1035 2004-04-26 16:26:35Z twisti $
 
 */
 
@@ -451,6 +451,13 @@ typeinfo_is_assignable_to_classinfo(typeinfo *value,classinfo *dest)
     if (!cls || !dest)
         return false;
 
+	/* maybe we need to load and link the class */
+	if (!cls->loaded)
+		class_load(cls);
+
+	if (!cls->linked)
+		class_link(cls);
+
 #ifdef TYPEINFO_DEBUG
     if (!dest->linked)
         panic("Internal error: typeinfo_is_assignable_to_classinfo: unlinked class.");
@@ -553,12 +560,19 @@ typeinfo_init_from_descriptor(typeinfo *info,char *utf_ptr,char *end_ptr)
 								| CLASSLOAD_NOVOID
 								| CLASSLOAD_CHECKEND);
 
-	if (cls)
+	if (cls) {
+		if (!cls->loaded)
+			class_load(cls);
+
+		if (!cls->linked)
+			class_link(cls);
+
 		/* a class, interface or array descriptor */
 		TYPEINFO_INIT_CLASSINFO(*info,cls);
-	else
+	} else {
 		/* a primitive type */
 		TYPEINFO_INIT_PRIMITIVE(*info);
+	}
 }
 
 int
@@ -610,9 +624,16 @@ typeinfo_init_from_method_args(utf *desc,u1 *typebuf,typeinfo *infobuf,
 										  | CLASSLOAD_NULLPRIMITIVE
 										  | CLASSLOAD_NOVOID);
 		
-		if (cls)
-			TYPEINFO_INIT_CLASSINFO(*infobuf,cls);
-		else {
+		if (cls) {
+			if (!cls->loaded)
+				class_load(cls);
+
+			if (!cls->linked)
+				class_link(cls);
+
+			TYPEINFO_INIT_CLASSINFO(*infobuf, cls);
+
+		} else {
 			TYPEINFO_INIT_PRIMITIVE(*infobuf);
 		}
 		infobuf++;
@@ -633,11 +654,20 @@ typeinfo_init_from_method_args(utf *desc,u1 *typebuf,typeinfo *infobuf,
 										   CLASSLOAD_NULLPRIMITIVE
 										   | CLASSLOAD_NEW
 										   | CLASSLOAD_CHECKEND);
+
 		if (returntypeinfo) {
-			if (cls)
-				TYPEINFO_INIT_CLASSINFO(*returntypeinfo,cls);
-			else
+			if (cls) {
+				if (!cls->loaded)
+					class_load(cls);
+
+				if (!cls->linked)
+					class_link(cls);
+
+				TYPEINFO_INIT_CLASSINFO(*returntypeinfo, cls);
+
+			} else {
 				TYPEINFO_INIT_PRIMITIVE(*returntypeinfo);
+			}
 		}
 	}
 }
@@ -666,9 +696,16 @@ typedescriptors_init_from_method_args(typedescriptor *td,
 										| CLASSLOAD_NULLPRIMITIVE
 										| CLASSLOAD_NOVOID);
 		
-		if (cls)
-			TYPEINFO_INIT_CLASSINFO(td->info,cls);
-		else {
+		if (cls) {
+			if (!cls->loaded)
+				class_load(cls);
+
+			if (!cls->linked)
+				class_link(cls);
+
+			TYPEINFO_INIT_CLASSINFO(td->info, cls);
+			
+		} else {
 			TYPEINFO_INIT_PRIMITIVE(td->info);
 		}
 		td++;
@@ -689,10 +726,18 @@ typedescriptors_init_from_method_args(typedescriptor *td,
 												CLASSLOAD_NULLPRIMITIVE
 												| CLASSLOAD_NEW
 												| CLASSLOAD_CHECKEND);
-		if (cls)
+		if (cls) {
+			if (!cls->loaded)
+				class_load(cls);
+
+			if (!cls->linked)
+				class_link(cls);
+
 			TYPEINFO_INIT_CLASSINFO(returntype->info,cls);
-		else
+
+		} else {
 			TYPEINFO_INIT_PRIMITIVE(returntype->info);
+		}
 	}
 	return args;
 }
