@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 698 2003-12-07 13:42:47Z edwin $
+   $Id: typecheck.c 699 2003-12-07 14:45:12Z edwin $
 
 */
 
@@ -46,9 +46,10 @@
 #define TOUCHED_NO     0x02
 #define TOUCHED_MAYBE  (TOUCHED_YES | TOUCHED_NO)
 
-#define REACH_STD      0
-#define REACH_JSR      1
-#define REACH_RET      2
+#define REACH_STD      0  /* reached by branch or fallthrough */
+#define REACH_JSR      1  /* reached by JSR */
+#define REACH_RET      2  /* reached by RET */ /* XXX ? */
+#define REACH_THROW    3  /* reached by THROW (exception handler) */
 
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */
@@ -89,6 +90,7 @@ bool typecheckverbose = false;
 #define LOGSTR1(str,a)
 #define LOGSTR2(str,a,b)
 #define LOGSTR3(str,a,b,c)
+#define LOGSTRu(utf)
 #endif
 
 #ifdef TYPECHECK_VERBOSE_IMPORTANT
@@ -226,11 +228,12 @@ struct jsr_record {
  *     macro_i
  */
 #define TYPECHECK_COPYVARS                                      \
+    do {                                                        \
     LOG("TYPECHECK_COPYVARS");                                  \
     for (macro_i=0; macro_i<maxlocals; ++macro_i) {             \
         if ((ttype[macro_i] = vtype[macro_i]) == TYPE_ADR)      \
             TYPEINFO_CLONE(vinfo[macro_i],tinfo[macro_i]);      \
-    }
+    } } while(0)
 
 /* TYPECHECK_MERGEVARS: merge the local variables of the target block
  *     with the current local variables.
@@ -246,6 +249,7 @@ struct jsr_record {
  *     macro_i
  */
 #define TYPECHECK_MERGEVARS                                             \
+    do {                                                                \
     LOG("TYPECHECK_MERGEVARS");                                         \
     for (macro_i=0; macro_i<maxlocals; ++macro_i) {                     \
         if ((ttype[macro_i] != TYPE_VOID) && (vtype[macro_i] != ttype[macro_i])) { \
@@ -269,7 +273,7 @@ struct jsr_record {
                 LOGIF(changed,"vars have changed");                     \
             }                                                           \
         };                                                              \
-    }
+    } } while (0)
 
 /* TYPECHECK_MERGEJSR:
  *
@@ -308,6 +312,7 @@ struct jsr_record {
  *     dststack...input stack of target block
  */
 #define TYPECHECK_COPYSTACK                                             \
+    do {                                                                \
     LOG("TYPECHECK_COPYSTACK");                                         \
     while (srcstack) {                                                  \
         LOG1("copy %d",srcstack->type);                                 \
@@ -320,7 +325,8 @@ struct jsr_record {
         dststack = dststack->prev;                                      \
         srcstack = srcstack->prev;                                      \
     }                                                                   \
-    if (dststack) panic("Stack depth mismatch");
+    if (dststack) panic("Stack depth mismatch");                        \
+    } while (0)
 
 /* TYPECHECK_MERGESTACK: merge the input stack of the target block
  *     with the current stack.
@@ -331,6 +337,7 @@ struct jsr_record {
  *     changed....set to true if any typeinfo has changed
  */
 #define TYPECHECK_MERGESTACK                                            \
+    do {                                                                \
     LOG("TYPECHECK_MERGESTACK");                                        \
     while (srcstack) {                                                  \
         if (!dststack) panic("Stack depth mismatch");                   \
@@ -347,7 +354,8 @@ struct jsr_record {
         dststack = dststack->prev;                                      \
         srcstack = srcstack->prev;                                      \
     }                                                                   \
-    if (dststack) panic("Stack depth mismatch");
+    if (dststack) panic("Stack depth mismatch");                        \
+    } while(0)
 
 
 /* TYPECHECK_CHECK_JSR_CHAIN: checks if the target block is reached by
@@ -433,7 +441,7 @@ struct jsr_record {
  * Input:
  *     bptr.......current block
  *     tbptr......target block
- *     dst........current output stack pointer
+ *     dst........current output stack pointer (not needed for REACH_THROW)
  *     vtype......current local variable types
  *     vinfo......current local variable typeinfos
  *     jsrchain...current JSR target chain
@@ -447,7 +455,8 @@ struct jsr_record {
  *     ttype, tinfo, srcstack, dststack, changed, macro_i
  */
 #define TYPECHECK_REACH(way)                                            \
-    LOG1("reaching block %04d",tbptr-block);                            \
+    do {                                                                \
+    LOG2("reaching block %04d (%d)",tbptr-block,way);                   \
     srcstack = dst;                                                     \
     dststack = tbptr->instack;                                          \
     ttype = vartype + maxlocals*(tbptr-block);                          \
@@ -462,7 +471,7 @@ struct jsr_record {
             TYPECHECK_COPYJSR(jsrchain);                                \
             TYPECHECK_COPYVARS;                                         \
         }                                                               \
-        TYPECHECK_COPYSTACK;                                            \
+        if (way != REACH_THROW) TYPECHECK_COPYSTACK;                    \
         changed = true;                                                 \
     } else {                                                            \
         /* This block has been reached before */                        \
@@ -471,17 +480,16 @@ struct jsr_record {
             TYPECHECK_CHECK_JSR_CHAIN;                                  \
         else                                                            \
             TYPECHECK_MERGEJSR;                                         \
-        LOGIF(changed,"changed jsr");                                   \
         TYPECHECK_MERGEVARS;                                            \
-        LOGIF(changed,"changed vars");                                  \
-        TYPECHECK_MERGESTACK;                                           \
-        LOGIF(changed,"changed stack");                                 \
+        if (way != REACH_THROW) TYPECHECK_MERGESTACK;                   \
     }                                                                   \
     if (changed) {                                                      \
         LOG("REACHED!");                                                \
         tbptr->flags = BBTYPECHECK_REACHED;                             \
         if (tbptr <= bptr) {repeat = true; LOG("MUST REPEAT!");}        \
-    } LOG("done.");
+    }                                                                   \
+    LOG("done.");                                                       \
+    } while (0)
 
 /****************************************************************************/
 /* typecheck()                                                              */
@@ -1533,11 +1541,9 @@ typecheck()
                         i = 0;
                         while (handlers[i]) {
                             tbptr = handlers[i]->handler;
-                            dst = tbptr->instack;
-                            TYPECHECK_REACH(REACH_STD); /* XXX jsr chain? */
+                            TYPECHECK_REACH(REACH_THROW); /* XXX jsr chain? */
                             i++;
                         }
-                        dst = curstack; /* restore dst */
                     }
                     
                     iptr++;
