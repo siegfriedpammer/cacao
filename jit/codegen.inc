@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1116 2004-06-02 10:34:31Z twisti $
+   $Id: codegen.inc 1121 2004-06-03 20:40:39Z twisti $
 
 */
 
@@ -179,7 +179,21 @@ void codegen_init()
 	xexceptionrefs = NULL;
 
 #if defined(__I386__) || defined(__X86_64__)
-	methodtree = avl_create(methodtree_comparator, NULL, NULL);
+	if (!methodtree) {
+		methodtree_element *mte;
+
+		methodtree = avl_create(methodtree_comparator, NULL, NULL);
+
+		mte = NEW(methodtree_element);
+		mte->startpc = asm_calljavafunction;
+		mte->endpc = asm_calljavafunction2;
+		avl_insert(methodtree, mte);
+
+		mte = NEW(methodtree_element);
+		mte->startpc = asm_calljavafunction2;
+		mte->endpc = asm_call_jit_compiler;
+		avl_insert(methodtree, mte);
+	}
 #endif
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -520,9 +534,6 @@ void *codegen_findmethod1(void *pc)
 
 void *codegen_findmethod(void *pc)
 {
-#if 1
-	return findmethod(pc);
-#else
 	methodtree_element *mtepc;
 	methodtree_element *mte;
 
@@ -533,14 +544,10 @@ void *codegen_findmethod(void *pc)
 
 	FREE(mtepc, methodtree_element);
 
-/*  	if (!mte) */
-/*  		throw_cacao_exception_exit(string_java_lang_InternalError, "cannot find function"); */
-
-	fprintf(stderr, "mte=%p\n", mte);
-	fprintf(stderr, "startpc=%p, endpc=%p\n", mte->startpc, mte->endpc);
+	if (!mte)
+		throw_cacao_exception_exit(string_java_lang_InternalError, "cannot find function");
 
 	return mte->startpc;
-#endif
 }
 #endif
 
@@ -604,20 +611,16 @@ static void codegen_finish(int mcodelen)
 #if defined(__I386__) || defined(__X86_64__)
 	{
 		dataref *dr;
-#if 1
+
 		/* add method into methodtree to find the entrypoint */
-		addmethod(method->entrypoint, method->entrypoint + mcodelen);
-#else
 		methodtree_element *mte;
-		methodtree_element *p;
 
 		mte = NEW(methodtree_element);
 		mte->startpc = method->entrypoint;
 		mte->endpc = method->entrypoint + mcodelen;
 
-		p = avl_insert(methodtree, mte);
-        printf("p=%p\n", p);
-#endif
+		if (avl_insert(methodtree, mte))
+			panic("duplicate entry");
 
 		/* data segment references resolving */
 		dr = datareferences;
