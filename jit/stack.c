@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 797 2003-12-16 22:29:21Z edwin $
+   $Id: stack.c 803 2003-12-17 14:11:00Z edwin $
 
 */
 
@@ -69,8 +69,8 @@ extern int dseglen;
 /*--------------------------------------------------*/
 
 #define TYPEPANIC  {show_icmd_method();panic("Stack type mismatch");}
-#define UNDERFLOW  {show_icmd_method();panic("Stack underflow");}
-#define OVERFLOW   {show_icmd_method();panic("Stack overflow");}
+#define UNDERFLOW  {show_icmd_method();panic("Operand stack underflow");}
+#define OVERFLOW   {show_icmd_method();panic("Operand stack overflow");}
 
 /*--------------------------------------------------*/
 /* STACK UNDERFLOW/OVERFLOW CHECKS                  */
@@ -97,17 +97,23 @@ extern int dseglen;
 	} while(0)
 
 /*--------------------------------------------------*/
-/* STACK MANIPULATION                               */
+/* ALLOCATING STACK SLOTS                           */
 /*--------------------------------------------------*/
-
-/* resetting to an empty operand stack */
-#define STACKRESET {curstack=0;stackdepth=0;}
 
 #define NEWSTACK(s,v,n) {new->prev=curstack;new->type=s;new->flags=0;	\
                         new->varkind=v;new->varnum=n;curstack=new;new++;}
 #define NEWSTACKn(s,n)  NEWSTACK(s,UNDEFVAR,n)
 #define NEWSTACK0(s)    NEWSTACK(s,UNDEFVAR,0)
+
+/* allocate the input stack for an exception handler */
 #define NEWXSTACK   {NEWSTACK(TYPE_ADR,STACKVAR,0);curstack=0;}
+
+/*--------------------------------------------------*/
+/* STACK MANIPULATION                               */
+/*--------------------------------------------------*/
+
+/* resetting to an empty operand stack */
+#define STACKRESET {curstack=0;stackdepth=0;}
 
 /* set the output stack of the current instruction */
 #define SETDST      {iptr->dst=curstack;}
@@ -120,7 +126,10 @@ extern int dseglen;
                      curstack=curstack->prev;}
 #define COPY(s,d)   {(d)->flags=0;(d)->type=(s)->type;\
                      (d)->varkind=(s)->varkind;(d)->varnum=(s)->varnum;}
-/******************************/
+
+/*--------------------------------------------------*/
+/* STACK OPERATIONS MODELING                        */
+/*--------------------------------------------------*/
 
 /* The following macros are used to model the stack manipulations of
  * different kinds of instructions.
