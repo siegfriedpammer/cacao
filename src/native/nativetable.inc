@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: nativetable.inc 2011 2005-03-07 10:15:44Z twisti $
+   $Id: nativetable.inc 2165 2005-03-30 20:20:25Z twisti $
 
 */
 
@@ -216,7 +216,7 @@ static nativeref nativetable[] = {
 	},
 	{ "java/lang/VMClassLoader",
 	  "defineClass",
-	  "(Ljava/lang/ClassLoader;Ljava/lang/String;[BII)Ljava/lang/Class;",
+	  "(Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;",
 	  true,
 	  (functionptr) Java_java_lang_VMClassLoader_defineClass
 	},
@@ -231,6 +231,12 @@ static nativeref nativetable[] = {
 	  "(Ljava/lang/String;Z)Ljava/lang/Class;",
 	  true,
 	  (functionptr) Java_java_lang_VMClassLoader_loadClass
+	},
+	{ "java/lang/VMClassLoader",
+	  "nativeGetResources",
+	  "(Ljava/lang/String;)Ljava/util/Vector;",
+	  true,
+ 	  (functionptr) Java_java_lang_VMClassLoader_nativeGetResources
 	},
 	{ "java/lang/VMClassLoader",
 	  "getPrimitiveClass",
