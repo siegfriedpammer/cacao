@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 2103 2005-03-28 22:12:23Z christian $
+   $Id: emitfuncs.c 2167 2005-03-31 09:52:47Z christian $
 
 */
 
@@ -325,8 +325,8 @@ void x86_64_emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 		M_INTMOVE(REG_ITMP1, RCX);    /* restore RCX */
 
 	} else {
+		d_old = d;
 		if (d == RCX) {
-			d_old = d;
 			d = REG_ITMP3;
 		}
 					
@@ -374,7 +374,6 @@ void x86_64_emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 	s4 d = iptr->dst->regoff;
 	s4 d_old;
 	
-	d_old = -1;
 	M_INTMOVE(RCX, REG_ITMP1);    /* save RCX */
 	if (iptr->dst->flags & INMEMORY) {
 		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -414,8 +413,8 @@ void x86_64_emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 		M_INTMOVE(REG_ITMP1, RCX);    /* restore RCX */
 
 	} else {
+		d_old=d;
 		if (d == RCX) {
-			d_old = d;
 			d = REG_ITMP3;
 		}
 
