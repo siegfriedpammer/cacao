@@ -28,7 +28,7 @@
 
    Changes: Carolyn Oates
 
-   $Id: parse.c 562 2003-11-03 00:34:34Z twisti $
+   $Id: parse.c 619 2003-11-13 13:49:23Z twisti $
 
 */
 
@@ -53,7 +53,7 @@
 classinfo  *rt_class;    /* class the compiled method belongs to       */
 methodinfo *rt_method;   /* pointer to method info of compiled method  */
 utf *rt_descriptor;      /* type descriptor of compiled method         */
-int rt_jcodelength;      /*length of JavaVM-codes                      */
+int rt_jcodelength;      /* length of JavaVM-codes                     */
 u1  *rt_jcode;           /* pointer to start of JavaVM-code            */
 
 
@@ -575,7 +575,7 @@ void parse()
 
 #ifdef USE_THREADS
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-		isleafmethod=false;
+		isleafmethod = false;
 	}			
 #endif
 
@@ -590,22 +590,26 @@ void parse()
 			u1 *tptr;
 			bool *readonly = NULL;
 
-			opcode = code_get_u1 (p);
+			opcode = code_get_u1(p);
 			nextp = p += jcommandsize[opcode];
 			tmpinlinf = list_first(inlinfo->inlinedmethods);
 			firstlocal = tmpinlinf->firstlocal;
 			label_index = tmpinlinf->label_index;
 			readonly = tmpinlinf->readonly;
-			for (i=0, tptr=tmpinlinf->method->paramtypes + tmpinlinf->method->paramcount - 1 ; i<tmpinlinf->method->paramcount; i++, tptr--) {
+
+			for (i = 0, tptr = tmpinlinf->method->paramtypes + tmpinlinf->method->paramcount - 1; i < tmpinlinf->method->paramcount; i++, tptr--) {
 				int op;
 
-				if ( (i==0) && inlineparamopt) {
+				if ((i == 0) && inlineparamopt) {
 					OP1(ICMD_CLEAR_ARGREN, firstlocal);
 				}
 
-				if ( !inlineparamopt || !readonly[i] )
+				if (!inlineparamopt || !readonly[i]) {
 					op = ICMD_ISTORE;
-				else op = ICMD_READONLY_ARG;   
+
+				} else {
+					op = ICMD_READONLY_ARG;
+				}
 
 				op += *tptr;
 				OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i);
@@ -733,11 +737,11 @@ void parse()
 		case JAVA_FLOAD:
 		case JAVA_DLOAD:
 		case JAVA_ALOAD:
-			if (!iswide)
-				i = code_get_u1(p+1);
-			else {
-				i = code_get_u2(p+1);
-				nextp = p+3;
+			if (!iswide) {
+				i = code_get_u1(p + 1);
+			} else {
+				i = code_get_u2(p + 1);
+				nextp = p + 3;
 				iswide = false;
 			}
 			OP1(opcode, i + firstlocal);
@@ -785,12 +789,12 @@ void parse()
 		case JAVA_FSTORE:
 		case JAVA_DSTORE:
 		case JAVA_ASTORE:
-			if (!iswide)
-				i = code_get_u1(p+1);
-			else {
-				i = code_get_u2(p+1);
-				iswide=false;
-				nextp = p+3;
+			if (!iswide) {
+				i = code_get_u1(p + 1);
+			} else {
+				i = code_get_u2(p + 1);
+				iswide = false;
+				nextp = p + 3;
 			}
 			OP1(opcode, i + firstlocal);
 			break;
@@ -861,28 +865,28 @@ void parse()
 			OP2I(ICMD_CHECKASIZE, 0, 0);
 			switch (code_get_s1(p + 1)) {
 			case 4:
-				BUILTIN1((functionptr)builtin_newarray_boolean, TYPE_ADR);
+				BUILTIN1((functionptr) builtin_newarray_boolean, TYPE_ADR);
 				break;
 			case 5:
-				BUILTIN1((functionptr)builtin_newarray_char, TYPE_ADR);
+				BUILTIN1((functionptr) builtin_newarray_char, TYPE_ADR);
 				break;
 			case 6:
-				BUILTIN1((functionptr)builtin_newarray_float, TYPE_ADR);
+				BUILTIN1((functionptr) builtin_newarray_float, TYPE_ADR);
 				break;
 			case 7:
-				BUILTIN1((functionptr)builtin_newarray_double, TYPE_ADR);
+				BUILTIN1((functionptr) builtin_newarray_double, TYPE_ADR);
 				break;
 			case 8:
-				BUILTIN1((functionptr)builtin_newarray_byte, TYPE_ADR);
+				BUILTIN1((functionptr) builtin_newarray_byte, TYPE_ADR);
 				break;
 			case 9:
-				BUILTIN1((functionptr)builtin_newarray_short, TYPE_ADR);
+				BUILTIN1((functionptr) builtin_newarray_short, TYPE_ADR);
 				break;
 			case 10:
-				BUILTIN1((functionptr)builtin_newarray_int, TYPE_ADR);
+				BUILTIN1((functionptr) builtin_newarray_int, TYPE_ADR);
 				break;
 			case 11:
-				BUILTIN1((functionptr)builtin_newarray_long, TYPE_ADR);
+				BUILTIN1((functionptr) builtin_newarray_long, TYPE_ADR);
 				break;
 			default: panic("Invalid array-type to create");
 			}
@@ -890,7 +894,7 @@ void parse()
 
 		case JAVA_ANEWARRAY:
 			OP2I(ICMD_CHECKASIZE, 0, 0);
-			i = code_get_u2(p+1);
+			i = code_get_u2(p + 1);
 			/* array or class type ? */
 			if (class_constanttype (class, i) == CONSTANT_Arraydescriptor) {
 				s_count++;
@@ -942,10 +946,10 @@ void parse()
 		case JAVA_IF_ACMPNE:
 		case JAVA_GOTO:
 		case JAVA_JSR:
-			i = p + code_get_s2(p+1);
+			i = p + code_get_s2(p + 1);
 			if (useinlining) { 
-				debug_writebranch
-					i = label_index[i];
+				debug_writebranch;
+				i = label_index[i];
 			}
 			bound_check(i);
 			block_insert(i);
@@ -954,10 +958,10 @@ void parse()
 			break;
 		case JAVA_GOTO_W:
 		case JAVA_JSR_W:
-			i = p + code_get_s4(p+1);
+			i = p + code_get_s4(p + 1);
 			if (useinlining) { 
-				debug_writebranch
-					i = label_index[i];
+				debug_writebranch;
+				i = label_index[i];
 			}
 			bound_check(i);
 			block_insert(i);
@@ -966,11 +970,11 @@ void parse()
 			break;
 
 		case JAVA_RET:
-			if (!iswide)
-				i = code_get_u1(p+1);
-			else {
-				i = code_get_u2(p+1);
-				nextp = p+3;
+			if (!iswide) {
+				i = code_get_u1(p + 1);
+			} else {
+				i = code_get_u2(p + 1);
+				nextp = p + 3;
 				iswide = false;
 			}
 			blockend = true;
@@ -990,8 +994,6 @@ void parse()
 		case JAVA_DRETURN:
 		case JAVA_ARETURN:
 		case JAVA_RETURN:
-
-
 			if (isinlinedmethod) {
 				/*  					if (p==jcodelength-1) {*/ /* return is at end of inlined method */
 				/*  						OP(ICMD_NOP); */
@@ -1023,8 +1025,8 @@ void parse()
 				nextp = ALIGN((p + 1), 4);
 				if (!useinlining) {
 					tablep = (s4*)(jcode + nextp);
-				}
-				else {
+
+				} else {
 					num = code_get_u4(nextp + 4);
 					tablep = DMNEW(s4, num * 2 + 2);
 				}
@@ -1034,7 +1036,8 @@ void parse()
 				/* default target */
 
 				j =  p + code_get_s4(nextp);
-				if (useinlining) j = label_index[j];
+				if (useinlining) 
+					j = label_index[j];
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
@@ -1049,7 +1052,6 @@ void parse()
 				nextp += 4;
 
 				for (i = 0; i < num; i++) {
-
 					/* value */
 
 					j = code_get_s4(nextp);
@@ -1060,7 +1062,8 @@ void parse()
 					/* target */
 
 					j = p + code_get_s4(nextp);
-					if (useinlining) j = label_index[j];
+					if (useinlining)
+						j = label_index[j];
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
@@ -1081,8 +1084,8 @@ void parse()
 				nextp = ALIGN((p + 1), 4);
 				if (!useinlining) {
 					tablep = (s4*)(jcode + nextp);
-				}
-				else {
+
+				} else {
 					num = code_get_u4(nextp + 8) - code_get_u4(nextp + 4);
 					tablep = DMNEW(s4, num + 1 + 3);
 				}
@@ -1092,7 +1095,8 @@ void parse()
 				/* default target */
 
 				j = p + code_get_s4(nextp);
-				if (useinlining) j = label_index[j];
+				if (useinlining)
+					j = label_index[j];
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
@@ -1117,7 +1121,8 @@ void parse()
 
 				for (i = 0; i <= num; i++) {
 					j = p + code_get_s4(nextp);
-					if (useinlining) j = label_index[j];
+					if (useinlining)
+						j = label_index[j];
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
@@ -1147,6 +1152,7 @@ void parse()
 				OP2A(opcode, fi->type, fi);
 			}
 			break;
+
 		case JAVA_PUTFIELD:
 		case JAVA_GETFIELD:
 			i = code_get_u2(p + 1);
@@ -1175,7 +1181,7 @@ void parse()
 					/*RTAprint*/    utf_display(mi->class->name); printf(".");
 					/*RTAprint*/    utf_display(mi->name);printf("\tINVOKE STATIC\n");
 					/*RTAprint*/    fflush(stdout);}
-				if (! (mi->flags & ACC_STATIC))
+				if (!(mi->flags & ACC_STATIC))
 					panic ("Static/Nonstatic mismatch calling static method");
 				descriptor2types(mi);
 
@@ -1451,8 +1457,9 @@ void parse()
 			gp = inlinfo->stopgp; 
 			inlining_restore_compiler_variables();
 			list_remove(inlinfo->inlinedmethods, list_first(inlinfo->inlinedmethods));
-			if (inlinfo->inlinedmethods == NULL) nextgp = -1;
-			else {
+			if (inlinfo->inlinedmethods == NULL) {
+				nextgp = -1;
+			} else {
 				tmpinlinf = list_first(inlinfo->inlinedmethods);
 				nextgp = (tmpinlinf != NULL) ? tmpinlinf->startgp : -1;
 			}

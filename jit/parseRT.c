@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 601 2003-11-11 19:03:30Z carolyn $
+   $Id: parseRT.c 619 2003-11-13 13:49:23Z twisti $
 
 */
 
@@ -50,8 +50,8 @@ methodinfo **callgraph;
 
  
 int methXTA = 0;            
-int methXTAlast = -1;;      
-int methXTAmax=MAXCALLGRAPH;        
+int methXTAlast = -1;
+int methXTAmax = MAXCALLGRAPH;        
 methodinfo **XTAcallgraph;
 /*methodinfo *XTAcallgraph[MAXCALLGRAPH];*/
 
@@ -242,38 +242,48 @@ void addMarkedMethods(classinfo *ci) {
 /*  XTA Functions                                                                */
 /*-------------------------------------------------------------------------------*/
 
-xtainfo * xtainfoInit (methodinfo *m) {
+xtainfo *xtainfoInit(methodinfo *m)
+{
+	if (m->xta != NULL)
+		return m->xta;
 
-	if (m->xta != NULL) return m->xta;
+	if (m->xta != NULL)
+		return m->xta;
+
 	m ->xta = (xtainfo *) NEW(xtainfo); 
 	m ->xta-> XTAmethodUsed = NOTUSED;
 	m ->xta-> XTAclassSet   = NULL;
 	/* PartClassSet */
-	m ->xta-> paramClassSet = NULL;
-	m ->xta-> calls         = NULL;
-	m ->xta-> calledBy      = NULL;
+	m->xta->paramClassSet = NULL;
+	m->xta->calls         = NULL;
+	m->xta->calledBy      = NULL;
 
-	m ->xta-> marked       = NULL;
-	/*m ->xta-> markedBy     = NULL */
-	m ->xta-> fldsUsed     = NULL;
-	/*m ->xta-> interfaceCalls    = NULL*/
-	m ->xta-> chgdSinceLastParse = false;
+	m->xta->marked        = NULL;
+	/*m ->xta->markedBy     = NULL */
+	m->xta->fldsUsed      = NULL;
+	/*m ->xta->interfaceCalls    = NULL*/
+	m->xta->chgdSinceLastParse = false;
 	return m->xta;
 }
 
-xtafldinfo * xtafldinfoInit (fieldinfo *f) {
 
-	if (f->xta != NULL) return f->xta;
-	/*f ->xta = (xtafldinfo *)malloc(sizeof(xtafldinfo *)); */
-	f ->xta = (xtafldinfo *)NEW(xtafldinfo); 
-	f -> xta-> fieldChecked = false;   /*XTA*/
-	f -> xta-> fldClassType = NULL;    /*XTA*/
-	f -> xta-> XTAclassSet = NULL;     /*XTA*/
+xtafldinfo * xtafldinfoInit (fieldinfo *f)
+{
+	if (f->xta != NULL)
+		return f->xta;
+
+	f->xta = NEW(xtafldinfo);
+
+	f->xta->fieldChecked = false;   /*XTA*/
+	f->xta->fldClassType = NULL;    /*XTA*/
+	f->xta->XTAclassSet = NULL;     /*XTA*/
+
 	return f->xta;
-
 }
-bool xtaPassParams (methodinfo *SmCalled, methodinfo *SmCalls, methSetNode *lastptrInto) {
 
+
+bool xtaPassParams (methodinfo *SmCalled, methodinfo *SmCalls, methSetNode *lastptrInto)
+{
 	classSetNode *p;
 	classSetNode *c;
 	classSetNode *c1;
