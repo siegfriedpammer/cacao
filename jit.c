@@ -272,7 +272,7 @@ methodptr jit_compile(methodinfo *m)
 #ifdef STATISTICS
 	count_tryblocks += exceptiontablelength;
 	count_javacodesize += jcodelength + 18;
-	count_javaexcsize += exceptiontablelength * 8;
+	count_javaexcsize += exceptiontablelength * POINTERSIZE;
 #endif
 
 	/* initialise parameter type descriptor */
