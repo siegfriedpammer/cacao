@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1741 2004-12-08 16:38:48Z twisti $
+## $Id: Makefile.am 1868 2005-01-12 13:18:17Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -55,6 +55,7 @@ libnativevm_la_SOURCES = \
 	VMSecurityManager.c \
 	VMString.c \
 	VMSystem.c \
+	VMSystemProperties.c \
 	VMThread.c \
 	VMThrowable.c
 
