@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 1368 2004-08-01 21:50:08Z stefan $
+   $Id: headers.c 1492 2004-11-12 13:26:03Z twisti $
 
 */
 
@@ -92,7 +92,7 @@ s8 asm_builtin_d2l(double a) { return 0; }
 
 void use_class_as_object() {}
 void asm_builtin_monitorenter(java_objectheader *o) {}
-void *asm_builtin_monitorexit(java_objectheader *o) {}
+void *asm_builtin_monitorexit(java_objectheader *o) { return NULL; }
 
 s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl_t *target) {return 0;}
 
@@ -337,7 +337,6 @@ void printmethod(methodinfo *m)
 {
 	char *utf_ptr;
 	u2 paramnum = 1;
-	u2 ident_count;
 
 	/* search for return-type in descriptor */	
 	utf_ptr = m->descriptor->text;
