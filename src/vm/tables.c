@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1087 2004-05-26 21:27:03Z twisti $
+   $Id: tables.c 1185 2004-06-19 12:23:13Z twisti $
 
 */
 
@@ -66,6 +66,9 @@ int count_utf_new_found  = 0;  /* calls of utf_new with fast return */
 hashtable utf_hash;     /* hashtable for utf8-symbols */
 hashtable string_hash;  /* hashtable for javastrings  */
 hashtable class_hash;   /* hashtable for classes      */
+
+list unlinkedclasses;   /* this is only used for eager class loading          */
+
 
 /******************************************************************************
  *********************** hashtable functions **********************************
@@ -109,12 +112,14 @@ void tables_init()
 	init_hashtable(&utf_hash,    UTF_HASHSTART);  /* hashtable for utf8-symbols */
 	init_hashtable(&string_hash, HASHSTART);      /* hashtable for javastrings */
 	init_hashtable(&class_hash,  HASHSTART);      /* hashtable for classes */ 
-	
-#ifdef STATISTICS
+
+/*  	if (opt_eager) */
+/*  		list_init(&unlinkedclasses, OFFSET(classinfo, listnode)); */
+
+#if defined(STATISTICS)
 	if (opt_stat)
 		count_utf_len += sizeof(utf*) * utf_hash.size;
 #endif
-
 }
 
 
@@ -124,7 +129,7 @@ void tables_init()
 	
 *****************************************************************************/
 
-void tables_close(stringdeleter del)
+void tables_close()
 {
 	utf *u = NULL;
 	literalstring *s;
@@ -148,7 +153,7 @@ void tables_close(stringdeleter del)
 		while (u) {
 			/* process elements in external hash chain */
 			literalstring *nexts = s->hashlink;
-			del(s->string);
+			literalstring_free(s->string);
 			FREE(s, literalstring);
 			s = nexts;
 		}	
@@ -483,7 +488,7 @@ u4 unicode_hashkey(u2 *text, u2 len)
 
 ******************************************************************************/
 
-utf *utf_new_int(char *text, u2 length)
+utf *utf_new_intern(char *text, u2 length)
 {
 	u4 key;            /* hashkey computed from utf-text */
 	u4 slot;           /* slot in hashtable */
@@ -592,7 +597,7 @@ utf *utf_new(char *text, u2 length)
     tables_lock();
 #endif
 
-    r = utf_new_int(text, length);
+    r = utf_new_intern(text, length);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
     tables_unlock();
@@ -815,7 +820,7 @@ u2 utf_nextu2(char **utf_ptr)
     switch ((ch1 = utf[0]) >> 4) {
 	default: /* 1 byte */
 		(*utf_ptr)++;
-		return ch1;
+		return (u2) ch1;
 	case 0xC: 
 	case 0xD: /* 2 bytes */
 		if (((ch2 = utf[1]) & 0xC0) == 0x80) {
@@ -959,7 +964,7 @@ is_valid_name_utf(utf *u)
 
 *******************************************************************************/
 
-classinfo *class_new_int(utf *classname)
+classinfo *class_new_intern(utf *classname)
 {
 	classinfo *c;     /* hashtable element */
 	u4 key;           /* hashkey computed from classname */
@@ -986,7 +991,7 @@ classinfo *class_new_int(utf *classname)
 
 	/* location in hashtable found, create new classinfo structure */
 
-#ifdef STATISTICS
+#if defined(STATISTICS)
 	if (opt_stat)
 		count_class_infos += sizeof(classinfo);
 #endif
@@ -1025,6 +1030,7 @@ classinfo *class_new_int(utf *classname)
 	c->innerclass = NULL;
 	c->vftbl = NULL;
 	c->initialized = false;
+	c->initializing = false;
 	c->classvftbl = false;
     c->classUsed = 0;
     c->impldBy = NULL;
@@ -1090,17 +1096,6 @@ classinfo *class_new_int(utf *classname)
 		}
 	}
 
-	/* we support eager class loading and linking on demand */
-
-	if (opt_eager) {
-		/* all super classes are loaded implicitly */
-/*  		if (!c->loaded) */
-/*  			class_load(c); */
-
-/*  		if (!c->linked) */
-/*  			class_link(c); */
-	}
-
 	return c;
 }
 
@@ -1113,16 +1108,53 @@ classinfo *class_new(utf *classname)
     tables_lock();
 #endif
 
-    c = class_new_int(classname);
+    c = class_new_intern(classname);
 
 	/* we support eager class loading and linking on demand */
 
 	if (opt_eager) {
-		if (!c->loaded)
-			class_load(c);
+		classinfo *tc;
 
-		if (!c->linked)
-			class_link(c);
+		list_init(&unlinkedclasses, OFFSET(classinfo, listnode));
+
+		if (!c->loaded) {
+			if (!class_load(c)) {
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+				tables_unlock();
+#endif
+				return NULL;
+			}
+		}
+
+		/* link all referenced classes */
+
+		while ((tc = list_first(&unlinkedclasses))) {
+	printf("tc=%p next=%p prev=%p ", tc, tc->listnode.next, tc->listnode.prev);
+	utf_display(tc->name);
+	printf("\n");
+	fflush(stdout);
+
+			/* skip super class */
+			if (tc != c) {
+				if (!class_link(tc)) {
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					tables_unlock();
+#endif
+					return NULL;
+				}
+			}
+
+			list_remove(&unlinkedclasses, tc);
+		}
+
+		if (!c->linked) {
+			if (!class_link(c)) {
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+				tables_unlock();
+#endif
+				return NULL;
+			}
+		}
 	}
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -1140,24 +1172,24 @@ classinfo *class_new(utf *classname)
 
 *******************************************************************************/
 
-classinfo *class_get(utf *u)
+classinfo *class_get(utf *classname)
 {
 	classinfo *c;  /* hashtable element */ 
 	u4 key;        /* hashkey computed from classname */   
 	u4 slot;       /* slot in hashtable */
 	u2 i;  
 
-	key  = utf_hashkey (u->text, u->blength);
+	key  = utf_hashkey(classname->text, classname->blength);
 	slot = key & (class_hash.size-1);
 	c    = class_hash.ptr[slot];
 
 	/* search external hash-chain */
 	while (c) {
-		if (c->name->blength == u->blength) {
-			
+		if (c->name->blength == classname->blength) {
 			/* compare classnames */
-			for (i=0; i<u->blength; i++) 
-				if (u->text[i] != c->name->text[i]) goto nomatch;
+			for (i = 0; i < classname->blength; i++) 
+				if (classname->text[i] != c->name->text[i])
+					goto nomatch;
 
 			/* class found in hashtable */				
 			return c;
@@ -1169,6 +1201,59 @@ classinfo *class_get(utf *u)
 
 	/* class not found */
 	return NULL;
+}
+
+
+/* class_remove ****************************************************************
+
+   removes the class entry wth the specified name in the classes hashtable,
+   furthermore the class' resources are freed
+   if there is no such class false is returned
+
+*******************************************************************************/
+
+bool class_remove(classinfo *c)
+{
+	classinfo *tc;  /* hashtable element */
+	classinfo *pc;
+	u4 key;         /* hashkey computed from classname */   
+	u4 slot;        /* slot in hashtable */
+	u2 i;  
+
+	key  = utf_hashkey(c->name->text, c->name->blength);
+	slot = key & (class_hash.size - 1);
+	tc   = class_hash.ptr[slot];
+	pc   = NULL;
+
+	/* search external hash-chain */
+	while (tc) {
+		if (tc->name->blength == c->name->blength) {
+			
+			/* compare classnames */
+			for (i = 0; i < c->name->blength; i++)
+				if (tc->name->text[i] != c->name->text[i])
+					goto nomatch;
+
+			/* class found in hashtable */
+			if (!pc) {
+				class_hash.ptr[slot] = tc->hashlink;
+
+			} else {
+				pc->hashlink = tc->hashlink;
+			}
+
+			class_free(tc);
+
+			return true;
+		}
+			
+	nomatch:
+		pc = tc;
+		tc = tc->hashlink;
+	}
+
+	/* class not found */
+	return false;
 }
 
 
