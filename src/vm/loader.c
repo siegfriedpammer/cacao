@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 740 2003-12-13 19:57:12Z stefan $
+   $Id: loader.c 744 2003-12-13 20:53:53Z stefan $
 
 */
 
@@ -2809,6 +2809,9 @@ classinfo *loader_load (utf *topname)
 	long int starttime=0,stoptime=0;
 	classinfo *notlinkable;
 	
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	pthread_mutex_lock(&compiler_mutex);
+#endif
 
 	/* avoid recursive calls */
 	if (loader_load_running)
@@ -2885,6 +2888,10 @@ classinfo *loader_load (utf *topname)
 	}
 
 	intsRestore();                          /* schani */
+	
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	pthread_mutex_unlock(&compiler_mutex);
+#endif
 
 	/* XXX DEBUG */ if (linkverbose && !top) dolog("returning NULL from loader_load");
 	
@@ -3313,6 +3320,10 @@ void loader_initclasses ()
 {
 	classinfo *c;
 	
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	pthread_mutex_lock(&compiler_mutex);
+#endif
+
 	intsDisable();                     /* schani */
 
 	if (makeinitializations) {
@@ -3324,6 +3335,10 @@ void loader_initclasses ()
 		}
 
 	intsRestore();                      /* schani */
+	
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	pthread_mutex_unlock(&compiler_mutex);
+#endif
 }
 
 static s4 classvalue;
@@ -3379,7 +3394,13 @@ void loader_compute_subclasses ()
 		c = list_next (&linkedclasses, c);
 		}
 	classvalue = 0;
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	cast_lock();
+#endif
 	loader_compute_class_values(class_java_lang_Object);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	cast_unlock();
+#endif
 
 	intsRestore();                      /* schani */
 }
