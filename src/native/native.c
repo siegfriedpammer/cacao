@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1021 2004-04-21 13:09:20Z stefan $
+   $Id: native.c 1033 2004-04-26 16:18:56Z twisti $
 
 */
 
@@ -47,6 +47,7 @@
 
 #include "config.h"
 #include "global.h"
+#include "main.h"
 #include "jni.h"
 #include "native.h"
 #include "nativetypes.hh"
@@ -85,7 +86,6 @@ char *classpath;
 
 classinfo *class_java_lang_Class;
 classinfo *class_java_lang_VMClass;
-/* static classinfo *class_java_lang_Cloneable=0; */ /* now in global.h */
 classinfo *class_java_lang_System;
 classinfo *class_java_lang_ClassLoader;
 classinfo *class_gnu_java_lang_SystemClassLoader;
@@ -129,6 +129,9 @@ char *string_java_lang_CloneNotSupportedException =
 char *string_java_lang_IllegalArgumentException =
     "java/lang/IllegalArgumentException";
 
+char *string_java_lang_IllegalMonitorStateException =
+    "java/lang/IllegalMonitorStateException";
+
 char *string_java_lang_NegativeArraySizeException =
     "java/lang/NegativeArraySizeException";
 
@@ -143,6 +146,9 @@ char *string_java_lang_NullPointerException =
 
 
 /* specify some error strings for code generation */
+
+char *string_java_lang_ClassCircularityError =
+    "java/lang/ClassCircularityError";
 
 char *string_java_lang_ClassFormatError =
     "java/lang/ClassFormatError";
@@ -175,14 +181,11 @@ java_objectheader* _exceptionptr = NULL;
 
 void use_class_as_object(classinfo *c) 
 {
-	vftbl *vt;
+/*  	vftbl *vt; */
 /*  	vftbl *newtbl; */
+	java_objectheader *vmo;
 
-	if (!class_java_lang_Class)
-		class_java_lang_Class = class_new(utf_new_char ("java/lang/Class"));
-
-	vt = class_java_lang_Class->vftbl;
-
+/*  	vt = class_java_lang_Class->vftbl; */
 
 	if (!c->classvftbl) {
 		c->classvftbl = true;
@@ -195,29 +198,25 @@ void use_class_as_object(classinfo *c)
 		
 		c->header.vftbl = class_java_lang_Class->vftbl;
         
-		if (!class_java_lang_VMClass) {
-			loader_load_sysclass(&class_java_lang_VMClass,
-								 utf_new_char("java/lang/VMClass"));
+		method_vmclass_init =
+			class_findmethod(class_java_lang_VMClass,
+							 utf_new_char("<init>"),
+							 utf_new_char("(Lgnu/classpath/RawData;)V"));
 
-			method_vmclass_init =
-				class_findmethod(class_java_lang_VMClass,
-								 utf_new_char("<init>"),
-								 utf_new_char("(Lgnu/classpath/RawData;)V"));
-
-			if (method_vmclass_init == 0) {
-				class_showmethods(class_java_lang_VMClass);
-				panic("Needed class initializer for VMClass could not be found");
-			}
-		}
-		{     
-			java_objectheader *vmo = builtin_new(class_java_lang_VMClass);
-
-			if (!vmo) panic("Error while creating instance of java/lang/VMClass");
-			asm_calljavafunction(method_vmclass_init, vmo, c, NULL, NULL);
-			c->vmClass = (java_lang_VMClass *) vmo;
-			/*log_text("VMCLASS has been attached");*/
+		if (method_vmclass_init == 0) {
+			class_showmethods(class_java_lang_VMClass);
+			panic("Needed class initializer for VMClass could not be found");
 		}
 	}
+	     
+	vmo = builtin_new(class_java_lang_VMClass);
+
+	if (!vmo)
+		panic("Error while creating instance of java/lang/VMClass");
+
+	asm_calljavafunction(method_vmclass_init, vmo, c, NULL, NULL);
+
+	c->vmClass = (java_lang_VMClass *) vmo;
 }
 
 
@@ -280,24 +279,50 @@ static bool nativecompdone = false;
 
 void throw_exception_exit()
 {
-	java_lang_String *message;
+	java_objectheader *xptr;
+	classinfo *c;
+	methodinfo *pss;
 
 	if (*exceptionptr) {
+		xptr = *exceptionptr;
+
+		/* clear exception, because we are calling jit code again */
+		*exceptionptr = NULL;
+
 		printf("Exception in thread \"main\" ");
-		utf_display_classname((*exceptionptr)->vftbl->class->name);
-
-		/* do we have a detail message? */
-		message = ((java_lang_Throwable *) *exceptionptr)->detailMessage;
-
-		if (message) {
-			printf(": ");
-			utf_display(javastring_toutf(message, false));
-		}
-		printf("\n");
 		fflush(stdout);
 
-		/* clear exception, whatever... */
-		*exceptionptr = NULL;
+		c = xptr->vftbl->class;
+
+/*  		ts = class_resolveclassmethod(c, */
+/*  									  utf_new_char("toString"), */
+/*  									  utf_new_char("()Ljava/lang/String;"), */
+/*  									  class_java_lang_Object, */
+/*  									  false); */
+
+/*  		if (!ts) { */
+/*  			panic("internal error"); */
+/*  		} */
+
+/*  		tostring = asm_calljavafunction(ts, xptr, NULL, NULL, NULL); */
+
+/*  		utf_display(javastring_toutf(tostring, false)); */
+
+		pss = class_resolveclassmethod(c,
+									   utf_new_char("printStackTrace"),
+									   utf_new_char("()V"),
+									   class_java_lang_Object,
+									   false);
+
+		/* print the stacktrace */
+		if (pss) {
+			asm_calljavafunction(pss, xptr, NULL, NULL, NULL);
+
+		} else {
+			panic("printStackTrace not found!");
+		}
+
+		fflush(stdout);
 
 		/* good bye! */
 		exit(1);
@@ -309,11 +334,6 @@ java_objectheader *new_exception(char *classname)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	if (!c->linked) {
-		printf("Exception class %s not linked! You probably have not set your CLASSPATH properly.\n", classname);
-		exit(1);
-	}
-
 	return native_new_and_init(c);
 }
 
@@ -321,23 +341,21 @@ java_objectheader *new_exception_message(char *classname, char *message)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	if (!c->linked) {
-		printf("Exception class %s not linked! You probably have not set your CLASSPATH properly.\n", classname);
-		exit(1);
-	}
-
 	return native_new_and_init_string(c, javastring_new_char(message));
+}
+
+
+java_objectheader *new_exception_throwable(char *classname, java_lang_Throwable *throwable)
+{
+	classinfo *c = class_new(utf_new_char(classname));
+
+	return native_new_and_init_throwable(c, throwable);
 }
 
 
 java_objectheader *new_exception_utfmessage(char *classname, utf *message)
 {
 	classinfo *c = class_new(utf_new_char(classname));
-
-	if (!c->linked) {
-		printf("Exception class %s not linked! You probably have not set your CLASSPATH properly.\n", classname);
-		exit(1);
-	}
 
 	return native_new_and_init_string(c, javastring_new(message));
 }
@@ -347,11 +365,6 @@ java_objectheader *new_exception_javastring(char *classname, java_lang_String *m
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	if (!c->linked) {
-		printf("Exception class %s not linked! You probably have not set your CLASSPATH properly.\n", classname);
-		exit(1);
-	}
-
 	return native_new_and_init_string(c, message);
 }
 
@@ -359,11 +372,6 @@ java_objectheader *new_exception_javastring(char *classname, java_lang_String *m
 java_objectheader *new_exception_int(char *classname, s4 i)
 {
 	classinfo *c = class_new(utf_new_char(classname));
-
-	if (!c->linked) {
-		printf("Exception class %s not linked! You probably have not set your CLASSPATH properly.\n", classname);
-		exit(1);
-	}
 
 	return native_new_and_init_int(c, i);
 }
@@ -377,76 +385,69 @@ java_objectheader *new_exception_int(char *classname, s4 i)
 
 void native_loadclasses()
 {
-	static int classesLoaded=0; /*temporary hack JoWenn*/
-	if (classesLoaded) return;
+	static int classesLoaded = 0; /*temporary hack JoWenn*/
+
+	if (classesLoaded)
+		return;
+
 	classesLoaded = 1;
 
-	/*class_java_lang_System =*/
-	(void) class_new(utf_new_char("java/lang/VMClass"));/*JoWenn*/
-	(void) class_new(utf_new_char("java/lang/Class"));/*JoWenn*/
+	class_java_lang_Cloneable =
+		class_new(utf_new_char("java/lang/Cloneable"));
+	class_load(class_java_lang_Cloneable);
+	class_link(class_java_lang_Cloneable);
 
-	/* class_new adds the class to the list of classes to be loaded */
-	if (!class_java_lang_Cloneable)
-		class_java_lang_Cloneable = 
-			class_new(utf_new_char("java/lang/Cloneable"));
+	class_java_lang_Class =
+		class_new(utf_new_char("java/lang/Class"));
+	class_load(class_java_lang_Class);
+	class_link(class_java_lang_Class);
 
-	if (!class_java_lang_Class)
-		class_java_lang_Class =
-			class_new(utf_new_char("java/lang/Class"));
+	class_java_lang_VMClass =
+		class_new(utf_new_char("java/lang/VMClass"));
+	class_load(class_java_lang_VMClass);
+	class_link(class_java_lang_VMClass);
 
 	class_java_lang_ClassLoader =
-	        class_new(utf_new_char("java/lang/ClassLoader"));	
+		class_new(utf_new_char("java/lang/ClassLoader"));
+	class_load(class_java_lang_ClassLoader);
+	class_link(class_java_lang_ClassLoader);
 
 	/* load classes for wrapping primitive types */
-	class_java_lang_Double    = class_new(utf_new_char("java/lang/Double"));
-	class_init(class_java_lang_Double);
+	class_java_lang_Double = class_new(utf_new_char("java/lang/Double"));
+	class_load(class_java_lang_Double);
+	class_link(class_java_lang_Double);
 
-	class_java_lang_Float     = class_new(utf_new_char("java/lang/Float"));
+	class_java_lang_Float =	class_new(utf_new_char("java/lang/Float"));
+	class_load(class_java_lang_Float);
+	class_link(class_java_lang_Float);
+
 	class_java_lang_Character =	class_new(utf_new_char("java/lang/Character"));
-	class_java_lang_Integer   = class_new(utf_new_char("java/lang/Integer"));
-	class_java_lang_Long      = class_new(utf_new_char("java/lang/Long"));
-	class_java_lang_Byte      = class_new(utf_new_char("java/lang/Byte"));
-	class_java_lang_Short     = class_new(utf_new_char("java/lang/Short"));
-	class_java_lang_Boolean   = class_new(utf_new_char("java/lang/Boolean"));
-	class_java_lang_Void      = class_new(utf_new_char("java/lang/Void"));
+	class_load(class_java_lang_Character);
+	class_link(class_java_lang_Character);
 
-	classesLoaded = 1;
-}
+	class_java_lang_Integer = class_new(utf_new_char("java/lang/Integer"));
+	class_load(class_java_lang_Integer);
+	class_link(class_java_lang_Integer);
 
+	class_java_lang_Long = class_new(utf_new_char("java/lang/Long"));
+	class_load(class_java_lang_Long);
+	class_link(class_java_lang_Long);
 
-/*************** adds a class to the vector of loaded classes ****************/
+	class_java_lang_Byte = class_new(utf_new_char("java/lang/Byte"));
+	class_load(class_java_lang_Byte);
+	class_link(class_java_lang_Byte);
 
-void systemclassloader_addclass(classinfo *c)
-{
-	methodinfo *m;
+	class_java_lang_Short = class_new(utf_new_char("java/lang/Short"));
+	class_load(class_java_lang_Short);
+	class_link(class_java_lang_Short);
 
-	/* find method addClass of java.lang.ClassLoader */
-	m = class_resolvemethod(class_java_lang_ClassLoader,
-							utf_new_char("addClass"),
-							utf_new_char("(Ljava/lang/Class;)")
-							);
-	
-	if (!m)
-		panic("warning: cannot initialize classloader");
+	class_java_lang_Boolean = class_new(utf_new_char("java/lang/Boolean"));
+	class_load(class_java_lang_Boolean);
+	class_link(class_java_lang_Boolean);
 
-	/* prepare class to be passed as argument */
-	use_class_as_object (c);
-
-	/* call 'addClass' */
-	asm_calljavafunction(m,
-						 (java_objectheader*) SystemClassLoader, 
-						 (java_objectheader*) c,
-						 NULL,  
-						 NULL
-						 );
-}
-
-
-/*************** adds a library to the vector of loaded libraries *************/
-
-void systemclassloader_addlibrary(java_objectheader *o)
-{
-	log_text("systemclassloader_addlibrary");
+	class_java_lang_Void = class_new(utf_new_char("java/lang/Void"));
+	class_load(class_java_lang_Void);
+	class_link(class_java_lang_Void);
 }
 
 
@@ -470,34 +471,6 @@ void init_systemclassloader()
 		SystemClassLoader->initialized = true;
 	}
 	log_text("leaving system class loader");
-}
-
-
-/********************* add loaded library name  *******************************/
-
-void systemclassloader_addlibname(java_objectheader *o)
-{
-	methodinfo *m;
-	jfieldID id;
-
-	m = class_resolvemethod(loader_load_sysclass(NULL, utf_new_char("java/util/Vector")),
-							utf_new_char("addElement"),
-							utf_new_char("(Ljava/lang/Object;)V"));
-
-	if (!m) panic("cannot initialize classloader");
-
-	id = envTable.GetStaticFieldID(&env,
-								   class_java_lang_ClassLoader,
-								   "loadedLibraryNames",
-								   "Ljava/util/Vector;");
-
-	if (!id) panic("can not access ClassLoader");
-
-  	asm_calljavafunction(m,
-						 envTable.GetStaticObjectField(&env, class_java_lang_ClassLoader, id),
-						 o,
-						 NULL,  
-						 NULL);
 }
 
 
@@ -617,7 +590,7 @@ functionptr native_findfunction(utf *cname, utf *mname,
 
 	MFREE(buffer, char, buffer_len);
 
-	exit(1);
+/*  	exit(1); */
 
 	/* keep compiler happy */
 	return NULL;
@@ -633,7 +606,6 @@ functionptr native_findfunction(utf *cname, utf *mname,
 
 *******************************************************************************/
 
-/*  java_objectheader *javastring_new(utf *u) */
 java_lang_String *javastring_new(utf *u)
 {
 	char *utf_ptr = u->text;        /* current utf character in utf string    */
@@ -642,13 +614,11 @@ java_lang_String *javastring_new(utf *u)
 	java_chararray *a;
 	s4 i;
 	
-/*	log_text("javastring_new");*/
-	
-	s = (java_lang_String*) builtin_new(class_java_lang_String);
+	s = (java_lang_String *) builtin_new(class_java_lang_String);
 	a = builtin_newarray_char(utflength);
 
 	/* javastring or character-array could not be created */
-	if ((!a) || (!s))
+	if (!a || !s)
 		return NULL;
 
 	/* decompress utf-string */
@@ -660,7 +630,6 @@ java_lang_String *javastring_new(utf *u)
 	s->offset = 0;
 	s->count  = utflength;
 
-/*  	return (java_objectheader*) s; */
 	return s;
 }
 
@@ -681,12 +650,11 @@ java_lang_String *javastring_new_char(char *text)
 	java_lang_String *s;   /* result-string */
 	java_chararray *a;
 	
-	/*log_text("javastring_new_char");*/
 	s = (java_lang_String *) builtin_new(class_java_lang_String);
 	a = builtin_newarray_char(len);
 
 	/* javastring or character-array could not be created */
-	if ((!a) || (!s))
+	if (!a || !s)
 		return NULL;
 
 	/* copy text */
@@ -698,7 +666,6 @@ java_lang_String *javastring_new_char(char *text)
 	s->offset = 0;
 	s->count  = len;
 
-/*  	return (java_objectheader*) s; */
 	return s;
 }
 
@@ -794,29 +761,25 @@ java_objectheader *native_new_and_init(classinfo *c)
 	methodinfo *m;
 	java_objectheader *o;
 
-	/* if c==NULL it is probebly because loader_load failed */
-	if (!c) return *exceptionptr;
+	if (!c)
+		return *exceptionptr;
 
-	o = builtin_new(c);          /* create object          */
+	o = builtin_new(c);                 /* create object                      */
 	
-        /*
-	printf("native_new_and_init ");
-	utf_display(c->name);
-	printf("\n");
-        */
-	if (!o) return NULL;
-	/* printf("o!=NULL\n"); */
+	if (!o)
+		return NULL;
+
 	/* find initializer */
 
 	m = class_findmethod(c,
 						 utf_new_char("<init>"),
 						 utf_new_char("()V"));
 	                      	                      
-	if (!m) {                                       /* initializer not found  */
+	if (!m) {                           /* initializer not found              */
 		if (verbose) {
 			char logtext[MAXLOGTEXT];
 			sprintf(logtext, "Warning: class has no instance-initializer: ");
-			utf_sprint(logtext + strlen(logtext), c->name);
+			utf_sprint_classname(logtext + strlen(logtext), c->name);
 			log_text(logtext);
 		}
 		return o;
@@ -835,12 +798,13 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 	methodinfo *m;
 	java_objectheader *o;
 
-	/* if c==NULL it is probebly because loader_load failed */
-	if (!c) return *exceptionptr;
+	if (!c)
+		return *exceptionptr;
 
 	o = builtin_new(c);          /* create object          */
-	
-	if (!o) return NULL;
+
+	if (!o)
+		return NULL;
 
 	/* find initializer */
 
@@ -852,7 +816,7 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 		if (verbose) {
 			char logtext[MAXLOGTEXT];
 			sprintf(logtext, "Warning: class has no instance-initializer: ");
-			utf_sprint(logtext + strlen(logtext), c->name);
+			utf_sprint_classname(logtext + strlen(logtext), c->name);
 			log_text(logtext);
 		}
 		return o;
@@ -871,8 +835,8 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 	methodinfo *m;
 	java_objectheader *o;
 
-	/* if c == NULL it is probebly because loader_load failed */
-	if (!c) return *exceptionptr;
+	if (!c)
+		return *exceptionptr;
 
 	o = builtin_new(c);          /* create object          */
 	
@@ -888,7 +852,7 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 		if (verbose) {
 			char logtext[MAXLOGTEXT];
 			sprintf(logtext, "Warning: class has no instance-initializer: ");
-			utf_sprint(logtext + strlen(logtext), c->name);
+			utf_sprint_classname(logtext + strlen(logtext), c->name);
 			log_text(logtext);
 		}
 		return o;
@@ -897,6 +861,42 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 	/* call initializer */
 
 	asm_calljavafunction(m, o, (void *) i, NULL, NULL);
+
+	return o;
+}
+
+
+java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t)
+{
+	methodinfo *m;
+	java_objectheader *o;
+
+	if (!c)
+		return *exceptionptr;
+
+	o = builtin_new(c);          /* create object          */
+	
+	if (!o) return NULL;
+
+	/* find initializer */
+
+	m = class_findmethod(c,
+						 utf_new_char("<init>"),
+						 utf_new_char("(Ljava/lang/Throwable;)V"));
+	                      	                      
+	if (!m) {                                       /* initializer not found  */
+		if (verbose) {
+			char logtext[MAXLOGTEXT];
+			sprintf(logtext, "Warning: class has no instance-initializer: ");
+			utf_sprint_classname(logtext + strlen(logtext), c->name);
+			log_text(logtext);
+		}
+		return o;
+	}
+
+	/* call initializer */
+
+	asm_calljavafunction(m, o, t, NULL, NULL);
 
 	return o;
 }
@@ -932,7 +932,7 @@ void stringtable_update ()
 
 				if (!js->header.vftbl) 
 					/* vftbl of javastring is NULL */ 
-					js->header.vftbl = class_java_lang_String -> vftbl;
+					js->header.vftbl = class_java_lang_String->vftbl;
 
 				if (!a->header.objheader.vftbl) 
 					/* vftbl of character-array is NULL */ 
@@ -1144,7 +1144,9 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
     /* create new javastring */
     js = LNEW(java_lang_String);
-    js->header.vftbl = class_java_lang_String->vftbl;
+	/* TWISTI */
+/*      js->header.vftbl = class_java_lang_String->vftbl; */
+    js->header.vftbl = class_load(class_new(utf_new_char("java/lang/String")))->vftbl;
     js->value  = stringdata;
     js->offset = 0;
     js->count  = length;
@@ -1216,10 +1218,7 @@ java_objectheader *literalstring_new(utf *u)
     u4 utflength  = utf_strlen(u);   /* length of utf-string if uncompressed */
     java_chararray *a;               /* u2-array constructed from utf string */
     u4 i;
-/*    log_text("literalstring_new"); */
-/*    utf_display(u);*/
-    /*if (utflength==0) while (1) sleep(60);*/
-/*    log_text("------------------");    */
+
     /* allocate memory */ 
     a = lit_mem_alloc(sizeof(java_chararray) + sizeof(u2) * (utflength - 1) + 10);
 
@@ -1242,8 +1241,6 @@ void literalstring_free(java_objectheader* sobj)
 	java_lang_String *s = (java_lang_String *) sobj;
 	java_chararray *a = s->value;
 
-	log_text("literalstring_free called");
-	
 	/* dispose memory of java.lang.String object */
 	LFREE(s, java_lang_String);
 
@@ -1317,7 +1314,6 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 			}
 
 	    } else {	   	
-			int dummy;
 			/* check for primitive types */
 			for (j = 0; j < PRIMITIVETYPE_COUNT; j++) {
 				char *utf_pos	= utf_ptr - 1;
@@ -1333,8 +1329,7 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 				goto next_type;
 
 			nomatch:
-				/* GCC 3.4 needs this */
-				dummy;
+				;
 			}
 
 			/* no primitive type and no arrayclass, so must be object */
@@ -1348,8 +1343,7 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 			*pos++ = ';';
 
 		next_type:
-			/* GCC 3.4 needs this */
-			dummy;
+			;
 		}  
     }	    
 

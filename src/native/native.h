@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1001 2004-03-30 22:44:28Z twisti $
+   $Id: native.h 1033 2004-04-26 16:18:56Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include "jni.h"
 #include "nat/java_lang_String.h"
 #include "nat/java_lang_ClassLoader.h"
+#include "nat/java_lang_Throwable.h"
 
 
 /* searchpath for classfiles */
@@ -45,7 +46,6 @@ extern char *classpath;
 
 extern classinfo *class_java_lang_Class;
 extern classinfo *class_java_lang_VMClass;
-/* extern classinfo *class_java_lang_Cloneable=0; */ /* now in global.h */
 extern classinfo *class_java_lang_System;
 extern classinfo *class_java_lang_ClassLoader;
 extern classinfo *class_java_lang_Double;
@@ -69,6 +69,7 @@ extern char *string_java_lang_ClassCastException;
 extern char *string_java_lang_ClassNotFoundException;
 extern char *string_java_lang_CloneNotSupportedException;
 extern char *string_java_lang_IllegalArgumentException;
+extern char *string_java_lang_IllegalMonitorStateException;
 extern char *string_java_lang_NegativeArraySizeException;
 extern char *string_java_lang_NoSuchFieldException;
 extern char *string_java_lang_NoSuchMethodException;
@@ -77,6 +78,7 @@ extern char *string_java_lang_NullPointerException;
 
 /* specify some error strings for code generation */
 
+extern char *string_java_lang_ClassCircularityError;
 extern char *string_java_lang_ClassFormatError;
 extern char *string_java_lang_LinkageError;
 extern char *string_java_lang_NoClassDefFoundError;
@@ -86,7 +88,7 @@ extern char *string_java_lang_OutOfMemoryError;
 
 
 /* the system classloader object */
-extern struct java_lang_ClassLoader *SystemClassLoader;
+extern java_lang_ClassLoader *SystemClassLoader;
 
 /* for raising exceptions from native methods */
 /* extern java_objectheader* exceptionptr; */
@@ -100,6 +102,7 @@ void throw_exception_exit();
 /* initialize new exceptions */
 java_objectheader *new_exception(char *classname);
 java_objectheader *new_exception_message(char *classname, char *message);
+java_objectheader *new_exception_throwable(char *classname, java_lang_Throwable *cause);
 java_objectheader *new_exception_utfmessage(char *classname, utf *message);
 java_objectheader *new_exception_javastring(char *classname, java_lang_String *message);
 java_objectheader *new_exception_int(char *classname, s4 i);
@@ -133,9 +136,14 @@ java_objectheader *native_new_and_init(classinfo *c);
 /* create new object on the heap and call the initializer 
    mainly used for exceptions with a message */
 java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s);
+
 /* create new object on the heap and call the initializer 
    mainly used for exceptions with an index */
 java_objectheader *native_new_and_init_int(classinfo *c, s4 i);
+
+/* create new object on the heap and call the initializer 
+   mainly used for exceptions with cause */
+java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t);
 
 /* add property to system-property vector */
 void attach_property(char *name, char *value);
@@ -169,9 +177,6 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
 /* dispose a javastring */
 void literalstring_free(java_objectheader*);
-
-void systemclassloader_addlibname(java_objectheader *o);
-void systemclassloader_addlibrary(java_objectheader *o);
 
 void copy_vftbl(vftbl **dest, vftbl *src);
 
