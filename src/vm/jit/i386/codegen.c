@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 1797 2004-12-21 16:50:02Z twisti $
+   $Id: codegen.c 1804 2004-12-22 09:35:31Z twisti $
 
 */
 
@@ -103,10 +103,6 @@ void codegen_stubcalled() {
 	log_text("Stub has been called");
 }
 
-void codegen_general_stubcalled() {
-	log_text("general exception stub  has been called");
-}
-
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 void thread_restartcriticalsection(ucontext_t *uc)
@@ -130,7 +126,6 @@ void thread_restartcriticalsection(ucontext_t *uc)
 void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 {
 	sigset_t nsig;
-/*  	long     faultaddr; */
 
 #ifdef __FreeBSD__
 	ucontext_t *_uc = (ucontext_t *) _p;
@@ -143,14 +138,7 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
-/*  	instr = *((int*)(sigctx->eip)); */
-/*    	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f]; */
-
-/*  	fprintf(stderr, "null=%d %p addr=%p\n", sig, sigctx, sigctx->eip);*/
-
-/*  	if (faultaddr == 0) { */
-/*  		signal(sig, (void *) catch_NullPointerException); */
-	act.sa_sigaction = (functionptr) catch_NullPointerException;
+	act.sa_sigaction = catch_NullPointerException;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(sig, &act, NULL);                          /* reinstall handler */
 
@@ -167,13 +155,8 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 	sigctx->eax = (u4) string_java_lang_NullPointerException;
 	sigctx->eip = (u4) asm_throw_and_handle_exception;
 #endif
-	return;
 
-/*  	} else { */
-/*  		faultaddr += (long) ((instr << 16) >> 16); */
-/*  		fprintf(stderr, "faulting address: 0x%08x\n", faultaddr); */
-/*  		panic("Stack overflow"); */
-/*  	} */
+	return;
 }
 
 
@@ -182,9 +165,6 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 {
 	sigset_t nsig;
-
-/*  	void **_p = (void **) &sig; */
-/*  	struct sigcontext *sigctx = (struct sigcontext *) ++_p; */
 
 #ifdef __FreeBSD__
 	ucontext_t *_uc = (ucontext_t *) _p;
@@ -198,8 +178,7 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD        */
 
-/*  	signal(sig, (void *) catch_ArithmeticException); */
-	act.sa_sigaction = (functionptr) catch_ArithmeticException;
+	act.sa_sigaction = catch_ArithmeticException;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(sig, &act, NULL);                          /* reinstall handler */
 
@@ -227,22 +206,19 @@ void init_exceptions(void)
 
 	if (!checknull) {
 #if defined(SIGSEGV)
-/*  		signal(SIGSEGV, (void *) catch_NullPointerException); */
-		act.sa_sigaction = (functionptr) catch_NullPointerException;
+		act.sa_sigaction = catch_NullPointerException;
 		act.sa_flags = SA_SIGINFO;
 		sigaction(SIGSEGV, &act, NULL);
 #endif
 
 #if defined(SIGBUS)
-/*  		signal(SIGBUS, (void *) catch_NullPointerException); */
-		act.sa_sigaction = (functionptr) catch_NullPointerException;
+		act.sa_sigaction = catch_NullPointerException;
 		act.sa_flags = SA_SIGINFO;
 		sigaction(SIGBUS, &act, NULL);
 #endif
 	}
 
-/*  	signal(SIGFPE, (void *) catch_ArithmeticException); */
-	act.sa_sigaction = (functionptr) catch_ArithmeticException;
+	act.sa_sigaction = catch_ArithmeticException;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGFPE, &act, NULL);
 }
@@ -653,6 +629,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
 
 		switch (iptr->opc) {
+		case ICMD_INLINE_START:
+		case ICMD_INLINE_END:
+			break;
+
 		case ICMD_NOP:        /* ...  ==> ...                                 */
 			break;
 
@@ -4345,56 +4325,61 @@ gen_method: {
 				codegen_addxcheckarefs(cd, cd->mcodeptr);
 
 				/* 
-				 * copy sizes to new stack location, be cause native function
+				 * copy sizes to new stack location, because native function
 				 * builtin_nmultianewarray access them as (int *)
 				 */
-				i386_mov_membase_reg(cd, REG_SP, src->regoff * 8, REG_ITMP1);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, -(iptr->op1 - s1) * 4);
+				/*i386_mov_membase_reg(cd, REG_SP, src->regoff * 8, REG_ITMP1);*/
+				/*i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, -(iptr->op1 - s1) * 4);*/
 
-				/* copy sizes to stack (argument numbers >= INT_ARG_CNT)      */
+				/* copy SAVEDVAR sizes to stack */
 
 				if (src->varkind != ARGVAR) {
 					if (src->flags & INMEMORY) {
-						i386_mov_membase_reg(cd, REG_SP, (src->regoff + INT_ARG_CNT) * 8, REG_ITMP1);
-						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, (s1 + INT_ARG_CNT) * 8);
+						i386_mov_membase_reg(cd, REG_SP, src->regoff * 8, REG_ITMP1);
+						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, s1 * 8);
 
 					} else {
-						i386_mov_reg_membase(cd, src->regoff, REG_SP, (s1 + INT_ARG_CNT) * 8);
+						i386_mov_reg_membase(cd, src->regoff, REG_SP, s1 * 8);
 					}
 				}
 			}
-			i386_alu_imm_reg(cd, I386_SUB, iptr->op1 * 4, REG_SP);
 
-			/* a0 = dimension count */
+			/* now copy the (long *) sizes to (int *), skip the first one */
+
+			for (s1 = 1; s1 < iptr->op1; s1++) {
+				i386_mov_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP1);
+				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, s1 * 4);
+			}
 
 			/* save stack pointer */
 			M_INTMOVE(REG_SP, REG_ITMP1);
 
-			i386_alu_imm_reg(cd, I386_SUB, 12, REG_SP);
+			i386_alu_imm_reg(cd, I386_SUB, 3 * 4, REG_SP);
+
+			/* a0 = dimension count */
+
 			i386_mov_imm_membase(cd, iptr->op1, REG_SP, 0);
 
 			/* a1 = arraydescriptor */
 
-			i386_mov_imm_membase(cd, (s4) iptr->val.a, REG_SP, 4);
+			i386_mov_imm_membase(cd, (u4) iptr->val.a, REG_SP, 4);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, 8);
 
-			i386_mov_imm_reg(cd, (s4) (builtin_nmultianewarray), REG_ITMP1);
+			i386_mov_imm_reg(cd, (u4) (builtin_nmultianewarray), REG_ITMP1);
 			i386_call_reg(cd, REG_ITMP1);
-			i386_alu_imm_reg(cd, I386_ADD, 12 + iptr->op1 * 4, REG_SP);
+			i386_alu_imm_reg(cd, I386_ADD, 3 * 4, REG_SP);
 
 			s1 = reg_of_var(rd, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
 			store_reg_to_var_int(iptr->dst, s1);
 			break;
 
-		case ICMD_INLINE_START:
-		case ICMD_INLINE_END:
-			break;
 		default:
-			error ("Unknown pseudo command: %d", iptr->opc);
+			throw_cacao_exception_exit(string_java_lang_InternalError,
+									   "Unknown ICMD %d", iptr->opc);
 	} /* switch */
 		
 	} /* for instruction */
@@ -4702,10 +4687,6 @@ gen_method: {
 			i386_push_imm(cd,0);
 			i386_mov_imm_reg(cd,(s4)asm_prepare_native_stackinfo,REG_ITMP3);
 			i386_call_reg(cd,REG_ITMP3);
-
-
-			i386_mov_imm_reg(cd, (s4) codegen_general_stubcalled, REG_ITMP1);
-			i386_call_reg(cd, REG_ITMP1);                
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			i386_mov_imm_reg(cd, (s4) &builtin_get_exceptionptrptr, REG_ITMP1);
