@@ -76,7 +76,7 @@ static void disassinstr(int c, int pos)
 		dis_initialized = 1;
 	}
 
-	printf("%6x:   ", pos);
+	printf("%08x:   ", code);
 	mylen = 0;
 	seqlen = print_insn_i386((bfd_vma) code, &info);
 	{
@@ -86,7 +86,7 @@ static void disassinstr(int c, int pos)
 		for (; i < 8; i++)
 			printf("   ");
 	}
-	codestatic = (u1 *) code - 1;
+	codestatic = (s4 *) ((u1 *) code - 1);
 	pstatic = pos + seqlen - 1;
 	printf("%s\n", mylinebuf);
 }

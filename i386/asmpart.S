@@ -70,9 +70,7 @@
 
 has_no_x_instr_set:
 
-/*	.long   0x47e03c20                /* amask   1,v0                         */
-		xorl	%eax, %eax
-/*	jmp     zero,(ra)                 /* return                               */
+		xor		%eax,%eax
 		ret
 
 
@@ -80,8 +78,6 @@ has_no_x_instr_set:
 
 synchronize_caches:
 
-/*	call_pal PAL_imb                  /* synchronise instruction cache        */
-/*	jmp     zero,(ra)                 /* return                               */
 		ret
 
 
@@ -104,13 +100,13 @@ synchronize_caches:
 *                                                                              *
 *******************************************************************************/
 
-#define    	MethodPointer   -8
-#define    	FrameSize       -12
-#define     IsSync          -16
-#define     IsLeaf          -20
-#define     IntSave         -24
-#define     FltSave         -28
-#define     ExTableSize     -32
+#define    	MethodPointer   -4
+#define    	FrameSize       -8
+#define     IsSync          -12
+#define     IsLeaf          -16
+#define     IntSave         -20
+#define     FltSave         -24
+#define     ExTableSize     -28
 #define     ExTableStart    -32
 
 #define     ExEntrySize     -32
@@ -141,6 +137,8 @@ asm_calljavamethod:
 		pushl	%ebp                  /* allocate stack space                 */
 		movl	%esp, %ebp
 
+		finit                         /* intitialize the fpu                  */
+		
 		subl	$32,%esp              /* pass the remaining parameters        */
 		xorl	%edx,%edx
 
@@ -162,11 +160,8 @@ asm_calljavamethod:
 
 		movl	8(%ebp),%eax          /* move function pointer to %eax        */
 
-/*		pushl	%ebp                  /* save %ebp, cause it's a tmp reg      */
-		
-		call	asm_call_jit_compiler /* call JIT compiler                    */
-		
-/*		popl	%ebp                  /* restore %ebp, changed in java code   */
+		lea		asm_call_jit_compiler,%ecx
+		call	*%ecx                 /* call JIT compiler                    */
 		
 calljava_jit:
 /*	lda     pv,-64(ra)                /* asm_calljavamethod-calljava_jit !!!!!*/
@@ -258,12 +253,9 @@ asm_calljavafunction:
 
 		movl	8(%ebp),%eax          /* move function pointer to %eax        */
 
-/*		pushl	%ebp                  /* save %ebp, cause it's a tmp reg      */
-		
-		call	asm_call_jit_compiler /* call JIT compiler                    */
-		
-/*		popl	%ebp                  /* restore %ebp, changed in java code   */
-		
+		lea		asm_call_jit_compiler,%ecx 
+		call	*%ecx                 /* call JIT compiler                    */
+	
 calljava_jit2:
 /*	lda     pv,-64(ra)                /* asm_calljavamethod-calljava_jit !!!!!*/
 
@@ -321,20 +313,52 @@ asm_call_jit_compiler:
 		pushl	%ebp
 		movl	%esp, %ebp
 
-		pushl	%eax			/* push methodpointer on stack */
+		movl	4(%ebp),%edx	/* get return address                         */
+		movb	-1(%edx),%bl	/* get function code                          */
+		cmpb	$0xd2,%bl		/* called with `call *REG_ITMP2' (%edx)?      */
+		jne		L_not_static_special
+
+		subl	$6,%edx			/* calculate address of immediate             */
+		jmp		L_call_jit_compile
+		
+L_not_static_special:
+		cmpb	$0xd0,%bl		/* called with `call *REG_ITMP1' (%eax)       */
+		jne		L_not_virtual_interface
+		
+		subl	$6,%edx         /* calculate address of offset                */
+		movl	(%edx),%edx     /* get offset                                 */
+		addl	%ecx,%edx       /* add base address to get method address     */
+		jmp		L_call_jit_compile
+
+L_not_virtual_interface:        /* a call from asm_calljavamethod             */
+		xorl	%edx,%edx
+		
+L_call_jit_compile:
+		pushl	%edx            /* save address for method pointer            */
+
+		pushl	%ebx
+		pushl	%ebp
+		pushl	%esi
+		pushl	%edi
+				
+		pushl	%eax			/* push methodpointer on stack                */
 		call	jit_compile
 		addl	$4,%esp
 
-		movl	4(%ebp),%edx	/* get return address */
-		movb	-1(%edx),%bl	/* get function code */
-		cmpb	$0xd2,%bl		/* called with `call *REG_ITMP2' (%edx)? */
-		jne		L01
+		popl	%edi
+		popl	%esi
+		popl	%ebp
+		popl	%ebx
+		
+		popl	%edx            /* restore address for method pointer         */
+		testl	%edx,%edx		/* is address == 0 (asm_calljavamethod)       */
+		je		L_call_method
+		
+		movl	%eax,(%edx)		/* and now save the new pointer               */
 
-		subl	$6,%edx			/* calculate address of immediate */
-		movl	%eax,(%edx)		/* and now save the new pointer */
-
-L01:	leave
-		jmp		*%eax			/* ...and now call the new method */
+L_call_method:
+		leave
+		jmp		*%eax			/* ...and now call the new method             */
 
 
 
@@ -352,6 +376,9 @@ L01:	leave
 *******************************************************************************/
 
 asm_dumpregistersandcall:
+	xor		%eax,%eax
+	movl	$0,(%eax)
+
 	pushl	%ebp				/* build stack frame */
 	movl	%esp,%ebp
 		
@@ -375,9 +402,13 @@ asm_dumpregistersandcall:
 *******************************************************************************/
 
 asm_handle_nat_exception:
+	xor		%eax,%eax
+	movl	$0,(%eax)
+	ret
+
 asm_handle_exception:
-	xorl		%eax,%eax
-	movl		$0,(%eax)
+	xor		%eax,%eax
+	movl	$0,(%eax)
 	ret
 
 

@@ -61,7 +61,7 @@
 /* #define REG_END   -1        last entry in tables */
 
 int nregdescint[] = {
-    REG_RET, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+    REG_RET, REG_RES, REG_RES, REG_TMP, REG_RES, REG_RES, REG_TMP, REG_RES,
     REG_END };
 
 #define INT_SAV_CNT      0   /* number of int callee saved registers          */
@@ -231,6 +231,15 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_emit_imm16(imm) \
+    do { \
+        i386_imm_buf imb; \
+        imb.i = (int) (imm); \
+        *(((u1 *) mcodeptr)++) = imb.b[0]; \
+        *(((u1 *) mcodeptr)++) = imb.b[1]; \
+    } while (0)
+
+
 #define i386_emit_imm32(imm) \
     do { \
         i386_imm_buf imb; \
@@ -292,7 +301,6 @@ static const unsigned char i386_jcc_map[] = {
         } \
     } while (0)
 
-
 #define i386_emit_memindex(reg,disp,basereg,indexreg,scale) \
     do { \
         if ((basereg) == -1) { \
@@ -311,7 +319,7 @@ static const unsigned char i386_jcc_map[] = {
         \
         } else { \
             i386_address_byte(2, (reg), 4); \
-            i386_address_byte((scale), (indexreg), 5); \
+            i386_address_byte((scale), (indexreg), (basereg)); \
             i386_emit_imm32((disp)); \
         }    \
      } while (0)
@@ -360,6 +368,18 @@ static const unsigned char i386_jcc_map[] = {
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0x8b; \
         i386_emit_membase((basereg),(disp),(reg)); \
+    } while (0)
+
+
+/*
+ * this one is for INVOKEVIRTUAL/INVOKEINTERFACE to have a
+ * constant membase immediate length of 32bit
+ */
+#define i386_mov_membase32_reg(basereg,disp,reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x8b; \
+        i386_address_byte(2, (reg), (basereg)); \
+        i386_emit_imm32((disp)); \
     } while (0)
 
 
@@ -565,6 +585,15 @@ static const unsigned char i386_jcc_map[] = {
         *(((u1 *) mcodeptr)++) = (u1) 0xf7; \
         i386_emit_reg(0,(reg)); \
         i386_emit_imm32((imm)); \
+    } while (0)
+
+
+#define i386_testw_imm_reg(imm,reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x66; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xf7; \
+        i386_emit_reg(0,(reg)); \
+        i386_emit_imm16((imm)); \
     } while (0)
 
 
@@ -1471,7 +1500,7 @@ static const unsigned char i386_jcc_map[] = {
 
 #define gen_resolvebranch(ip,so,to) \
     do { \
-        *(((s4 *) (ip)) - 1) = ((s4) ((to) - (so))); \
+        *((s4 *) (((u1 *) (ip)) - 4)) = ((s4) ((to) - (so))); \
     } while (0)
 
 #define SOFTNULLPTRCHECK       /* soft null pointer check supportet as option */
