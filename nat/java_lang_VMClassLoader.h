@@ -28,6 +28,14 @@ JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jc
 
 /*
  * Class:     java/lang/VMClassLoader
+ * Method:    loadClass
+ * Signature: (Ljava/lang/String;Z)Ljava/lang/Class;
+ */
+JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv *env, jclass clazz, struct java_lang_String* par1, s4 par2);
+
+
+/*
+ * Class:     java/lang/VMClassLoader
  * Method:    getPrimitiveClass
  * Signature: (Ljava/lang/String;)Ljava/lang/Class;
  */
