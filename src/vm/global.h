@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 1880 2005-01-21 12:08:08Z carolyn $
+   $Id: global.h 1931 2005-02-10 10:55:47Z twisti $
 
 */
 
@@ -44,21 +44,6 @@
 #include "types.h"
 
 
-/* resolve typedef cycles *****************************************************/
-
-typedef struct utf utf;
-typedef struct literalstring literalstring;
-typedef struct java_objectheader java_objectheader; 
-typedef struct classinfo classinfo; 
-typedef struct _vftbl vftbl_t;
-typedef u1* methodptr;
-typedef struct fieldinfo  fieldinfo; 
-typedef struct exceptiontable exceptiontable;
-typedef struct methodinfo methodinfo; 
-typedef struct lineinfo lineinfo; 
-typedef struct arraydescriptor arraydescriptor;
-
-
 /* additional data types ******************************************************/
 
 typedef void *voidptr;                  /* generic pointer                    */
@@ -68,6 +53,24 @@ typedef int   bool;                     /* boolean data type                  */
 
 #define true  1
 #define false 0
+
+
+/* include some data structures ***********************************************/
+
+#include "vm/utf8.h"
+
+
+/* resolve typedef cycles *****************************************************/
+
+typedef struct java_objectheader java_objectheader; 
+typedef struct classinfo classinfo; 
+typedef struct _vftbl vftbl_t;
+typedef u1* methodptr;
+typedef struct fieldinfo  fieldinfo; 
+typedef struct exceptiontable exceptiontable;
+typedef struct methodinfo methodinfo; 
+typedef struct lineinfo lineinfo; 
+typedef struct arraydescriptor arraydescriptor;
 
 
 /* additional includes ********************************************************/
@@ -126,6 +129,13 @@ typedef int   bool;                     /* boolean data type                  */
 #endif
 
 
+/* if we have threads disabled this one is not defined ************************/
+
+#if !defined(USE_THREADS)
+#define THREADSPECIFIC
+#endif
+
+
 /* immediate data union */
 
 typedef union {
@@ -172,9 +182,9 @@ typedef union {
 
 /* Java class file constants **************************************************/
 
-#define MAGIC         0xcafebabe
-#define MINOR_VERSION 0
-#define MAJOR_VERSION 48
+#define MAGIC             0xCAFEBABE
+#define MAJOR_VERSION     48
+#define MINOR_VERSION     0
 
 #define CONSTANT_Class                 7
 #define CONSTANT_Fieldref              9
@@ -227,74 +237,6 @@ typedef union {
     CONSTANT_UNUSED              -
 
 *******************************************************************************/
-
-/* data structures for hashtables ********************************************
-
-
-	All utf-symbols, javastrings and classes are stored in global hashtables,
-	so every symbol exists only once. Equal symbols have identical pointers.
-	The functions for adding hashtable elements search the table for the 
-	element with the specified name/text and return it on success. Otherwise a 
-	new hashtable element is created.
-
-    The hashtables use external linking for handling collisions. The hashtable 
-	structure contains a pointer <ptr> to the array of hashtable slots. The 
-	number of hashtable slots and therefore the size of this array is specified 
-	by the element <size> of hashtable structure. <entries> contains the number
-	of all hashtable elements stored in the table, including those in the 
-	external chains.
-	The hashtable element structures (utf, literalstring, classinfo) contain
-	both a pointer to the next hashtable element as a link for the external hash 
-	chain and the key of the element. The key is computed from the text of
-	the string or the classname by using up to 8 characters.
-	
-	If the number of entries in the hashtable exceeds twice the size of the 
-	hashtableslot-array it is supposed that the average length of the 
-	external chains has reached a value beyond 2. Therefore the functions for
-	adding hashtable elements (utf_new, class_new, literalstring_new) double
-	the hashtableslot-array. In this restructuring process all elements have
-	to be inserted into the new hashtable and new external chains must be built.
-
-
-example for the layout of a hashtable:
-
-hashtable.ptr-->  +-------------------+
-                  |                   |
-                           ...
-                  |                   |
-                  +-------------------+   +-------------------+   +-------------------+
-                  | hashtable element |-->| hashtable element |-->| hashtable element |-->NULL
-                  +-------------------+   +-------------------+   +-------------------+
-                  | hashtable element |
-                  +-------------------+   +-------------------+   
-                  | hashtable element |-->| hashtable element |-->NULL
-                  +-------------------+   +-------------------+   
-                  | hashtable element |-->NULL
-                  +-------------------+
-                  |                   |
-                           ...
-                  |                   |
-                  +-------------------+
-
-*/
-
-
-/* data structure for utf8 symbols ********************************************/
-
-struct utf {
-	utf        *hashlink;       /* link for external hash chain               */
-	int         blength;        /* text length in bytes                       */           
-	char       *text;           /* pointer to text                            */
-};
-
-
-/* data structure of internal javastrings stored in global hashtable **********/
-
-struct literalstring {
-	literalstring     *hashlink;     /* link for external hash chain          */
-	java_objectheader *string;  
-};
-
 
 /* data structure for storing information needed for a stacktrace across native functions*/
 
@@ -353,15 +295,6 @@ struct jni_callblock {
 typedef struct jni_callblock jni_callblock;
 
 
-/* data structure for accessing hashtables ************************************/
-
-typedef struct {            
-	u4 size;
-	u4 entries;        /* number of entries in the table */
-	void **ptr;        /* pointer to hashtable */
-} hashtable;
-
-
 /* data structures of remaining constant pool entries *************************/
 
 typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
@@ -408,7 +341,7 @@ typedef struct {            /* NameAndType (Field or Method)                  */
 struct java_objectheader {              /* header for all objects             */
 	vftbl_t *vftbl;                     /* pointer to virtual function table  */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	void *monitorPtr;
+	void    *monitorPtr;
 #endif
 };
 
