@@ -64,7 +64,11 @@ case "$host_os" in
 esac
 
 dnl define install prefix
-CFLAGS="$CFLAGS -DINSTALL_PREFIX=\"\\\"$prefix\\\"\""
+if test "x$prefix" = xNONE; then
+	CFLAGS="$CFLAGS -DINSTALL_PREFIX=\"\\\"$ac_default_prefix\\\"\""
+else
+	CFLAGS="$CFLAGS -DINSTALL_PREFIX=\"\\\"$prefix\\\"\""
+fi
 
 
 AC_DEFINE_UNQUOTED([ARCH_DIR], "$ARCH_DIR", [Architecture directory])
@@ -88,6 +92,8 @@ dnl Checks for programs.
 AC_PROG_CC
 AM_PROG_AS
 AC_PROG_RANLIB
+AC_DISABLE_SHARED
+AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 
 dnl Checks for header files.

@@ -26,7 +26,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1676 2004-12-03 16:52:15Z twisti $
+## $Id: Makefile.am 1699 2004-12-06 12:44:24Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -37,9 +37,10 @@ noinst_HEADERS = \
 	machine-instr.h \
 	types.h
 
-noinst_LIBRARIES = libarch.a
+noinst_LTLIBRARIES = libarch.la
 
-libarch_a_SOURCES = \
+libarch_la_SOURCES = \
+	asmoffsets.h \
 	asmpart.S \
 	codegen.c \
 	codegen.h \
@@ -47,7 +48,9 @@ libarch_a_SOURCES = \
 	disass.h
 
 asmpart.o: asmpart.S $(top_srcdir)/config.h offsets.h
-	$(COMPILE) -c $<
+
+.S.lo:
+	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
 
 offsets.h: $(top_srcdir)/config.h $(top_srcdir)/src/vm/global.h $(top_srcdir)/src/threads/native/threads.h
 	$(top_srcdir)/src/vm/jit/tools/genoffsets > offsets.h

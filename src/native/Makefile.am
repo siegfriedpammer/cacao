@@ -1,4 +1,4 @@
-## native/Makefile.am
+## src/native/Makefile.am
 ##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1676 2004-12-03 16:52:15Z twisti $
+## $Id: Makefile.am 1699 2004-12-06 12:44:24Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -39,14 +39,17 @@ SUBDIRS = tools include vm
 # include NO_REGEN_CLASSES, CLASSES and AWT_CLASSES
 include $(srcdir)/classes.am
 
-noinst_LIBRARIES = libnative.a
+noinst_LTLIBRARIES = libnative.la
 
-libnative_a_SOURCES = \
+libnative_la_SOURCES = \
 	jni.c \
 	jni.h \
 	native.c \
 	native.h \
 	nativecalls.inc
+
+libnative_la_LIBADD = \
+	vm/libnativevm.la
 
 native.c: nativetable.inc nativecalls.inc
 

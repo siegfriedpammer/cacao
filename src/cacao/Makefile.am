@@ -1,4 +1,4 @@
-## cacao/Makefile.am
+## src/cacao/Makefile.am
 ##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1676 2004-12-03 16:52:15Z twisti $
+## $Id: Makefile.am 1699 2004-12-06 12:44:24Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,9 +36,9 @@ INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
 if USE_THREADS
 if NATIVE_THREADS
-THREAD_LIB = $(top_srcdir)/src/threads/native/libthreads.a
+THREAD_LIB = $(top_srcdir)/src/threads/native/libthreads.la
 else
-THREAD_LIB = $(top_srcdir)/src/threads/green/libthreads.a
+THREAD_LIB = $(top_srcdir)/src/threads/green/libthreads.la
 endif
 else
 THREAD_LIB =
@@ -79,35 +79,17 @@ cacao_SOURCES = \
 	cacao.c \
 	cacao.h
 
+# This order is crucial. Don't change it!
 cacao_LDADD = \
-	$(top_srcdir)/src/mm/libmm.a \
+	$(top_srcdir)/src/mm/libmm.la \
 	$(THREAD_LIB) \
-	$(top_srcdir)/src/vm/libvm.a \
-	$(top_srcdir)/src/vm/jit/libjit.a \
-	$(top_srcdir)/src/vm/jit/inline/libinline.a \
-	$(top_srcdir)/src/vm/jit/loop/libloop.a \
-	$(top_srcdir)/src/vm/jit/verify/libverify.a \
-	$(top_srcdir)/src/vm/jit/@ARCH_DIR@/libarch.a \
-	$(top_srcdir)/src/native/libnative.a \
-	$(top_srcdir)/src/native/vm/libnativevm.a \
-	$(top_srcdir)/src/toolbox/libtoolbox.a \
-	$(top_srcdir)/src/boehm-gc/.libs/libgc.a \
+	$(top_srcdir)/src/native/libnative.la \
+	$(top_srcdir)/src/toolbox/libtoolbox.la \
+	$(top_srcdir)/src/vm/libvm.la \
+	$(top_srcdir)/src/boehm-gc/libgc.la \
 	$(CLASSPATH_LIBS)
 
-cacao_DEPENDENCIES = \
-	$(top_srcdir)/src/mm/libmm.a \
-	$(THREAD_LIB) \
-	$(top_srcdir)/src/vm/libvm.a \
-	$(top_srcdir)/src/vm/jit/libjit.a \
-	$(top_srcdir)/src/vm/jit/inline/libinline.a \
-	$(top_srcdir)/src/vm/jit/loop/libloop.a \
-	$(top_srcdir)/src/vm/jit/verify/libverify.a \
-	$(top_srcdir)/src/vm/jit/@ARCH_DIR@/libarch.a \
-	$(top_srcdir)/src/native/libnative.a \
-	$(top_srcdir)/src/native/vm/libnativevm.a \
-	$(top_srcdir)/src/toolbox/libtoolbox.a \
-	$(top_srcdir)/src/boehm-gc/.libs/libgc.a \
-	$(CLASSPATH_LIBS)
+cacao_DEPENDENCIES = $(cacao_LDADD)
 
 
 ## Local variables:

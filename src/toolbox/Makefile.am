@@ -1,3 +1,5 @@
+## src/toolbox/Makefile.am
+##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
 ## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
@@ -26,15 +28,15 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1676 2004-12-03 16:52:15Z twisti $
+## $Id: Makefile.am 1699 2004-12-06 12:44:24Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
-noinst_LIBRARIES = libtoolbox.a
+noinst_LTLIBRARIES = libtoolbox.la
 
-libtoolbox_a_SOURCES = \
+libtoolbox_la_SOURCES = \
 	avl.c \
 	avl.h \
 	logging.c \

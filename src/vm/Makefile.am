@@ -1,3 +1,5 @@
+## src/vm/Makefile.am
+##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
 ## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
@@ -26,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1676 2004-12-03 16:52:15Z twisti $
+## $Id: Makefile.am 1699 2004-12-06 12:44:24Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -42,9 +44,9 @@ endif
 
 noinst_HEADERS = global.h
 
-noinst_LIBRARIES = libvm.a
+noinst_LTLIBRARIES = libvmcore.la libvm.la
 
-libvm_a_SOURCES = \
+libvmcore_la_SOURCES = \
 	builtin.c \
 	builtin.h \
 	exceptions.c \
@@ -58,6 +60,12 @@ libvm_a_SOURCES = \
 	tables.c \
 	tables.h \
 	$(ZLIB_OBJ)
+
+libvm_la_SOURCES =
+
+libvm_la_LIBADD = \
+	libvmcore.la \
+	jit/libjit.la
 
 
 ## Local variables:
