@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 840 2004-01-05 00:42:13Z twisti $
+   $Id: jit.c 842 2004-01-05 00:48:22Z twisti $
 
 */
 
@@ -1525,13 +1525,6 @@ methodptr jit_compile(methodinfo *m)
 	mparamcount = m->paramcount;
 	mparamtypes = m->paramtypes;
 
-#if 0
-	/* initialize class list with class the compiled method belongs to */
-
-  	uninitializedclasses = chain_new();
-  	compiler_addinitclass(m->class);
-#endif
-
 #if defined(__I386__)
 	method_uses_ecx = true;
 	method_uses_edx = false;
@@ -1595,23 +1588,6 @@ methodptr jit_compile(methodinfo *m)
 		stoptime = getcputime();
 		compilingtime += (stoptime - starttime);
 	}
-
-	/* initialize all used classes */
-	/* because of reentrant code global variables are not allowed here        */
-
-#if 0
-	LOG_STEP("Initializing");
-	{
-		chain *ul = uninitializedclasses;   /* list of uninitialized classes      */ 
-		classinfo *c;                       /* single class                       */
-
-		while ((c = chain_first(ul)) != NULL) {
-			chain_remove(ul);
-			class_init(c);                  /* may again call the compiler        */
-		}
-		chain_free(ul);
-	}
-#endif
 
 	intsRestore();    /* enable interrupts again */
 
