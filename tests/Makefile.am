@@ -13,11 +13,11 @@ check_DATA = checkall
 checkall: x.tst jctest.tst TestArrayClasses.tst BasicToStrings.tst fp.tst fptest.tst GCBench.tstrun
 
 %.tst:
-	../cacao -log /dev/null sun.tools.javac.Main $*.java
-	../cacao -log /dev/null $* >$*.thisoutput
+	../cacao -classpath . -log /dev/null sun.tools.javac.Main $*.java
+	../cacao -classpath . -log /dev/null $* >$*.thisoutput
 	diff --brief $*.output $*.thisoutput
 	rm -f $*.thisoutput
 
 %.tstrun:
-	../cacao -log /dev/null sun.tools.javac.Main $*.java
-	../cacao -log /dev/null $*
+	../cacao -classpath . -log /dev/null sun.tools.javac.Main $*.java
+	../cacao -classpath . -log /dev/null $*
