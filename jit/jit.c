@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1474 2004-11-11 10:09:10Z carolyn $
+   $Id: jit.c 1478 2004-11-11 11:16:30Z twisti $
 
 */
 
@@ -1590,7 +1590,7 @@ static methodptr jit_compile_intern(methodinfo *m, codegendata *cd,
 	}
    
 #ifdef SPECIALMEMUSE
-	preregpass(m);
+	preregpass(m, rd);
 #endif
 
 	if (compileverbose)
