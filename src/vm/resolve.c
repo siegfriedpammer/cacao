@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2224 2005-04-05 20:36:07Z edwin $
+   $Id: resolve.c 2225 2005-04-05 20:51:01Z edwin $
 
 */
 
@@ -653,7 +653,6 @@ resolve_method(unresolved_method *ref,
 	}
 	if (!mi)
 		return false; /* exception */ /* XXX set exceptionptr? */
-	method_descriptor2types(mi);
 
 	/* { the method reference has been resolved } */
 	declarer = mi->class;
@@ -688,12 +687,11 @@ resolve_method(unresolved_method *ref,
 	}
 
 	/* check subtype constraints for TYPE_ADR parameters */
-	RESOLVE_ASSERT((mi->paramcount-instancecount) == ref->methodref->parseddesc.md->paramcount);
-	paramtypes = ref->methodref->parseddesc.md->paramtypes;
+	RESOLVE_ASSERT(mi->parseddesc->paramcount == ref->methodref->parseddesc.md->paramcount);
+	paramtypes = mi->parseddesc->paramtypes;
 	
-	for (i=0; i<(mi->paramcount-instancecount); ++i) {
-		if (mi->paramtypes[instancecount + i] == TYPE_ADR) {
-			RESOLVE_ASSERT(paramtypes[i].type == TYPE_ADR);
+	for (i=0; i<mi->parseddesc->paramcount; ++i) {
+		if (paramtypes[i].type == TYPE_ADR) {
 			if (ref->paramconstraints) {
 				if (!resolve_and_check_subtype_set(referer,ref->referermethod,
 							ref->paramconstraints + i,
@@ -733,9 +731,9 @@ resolve_method(unresolved_method *ref,
 	}
 
 	/* impose loading constraints on parameters (including instance) */
-	paramtypes = ref->methodref->parseddesc.md->paramtypes - instancecount;
-	for (i=0; i<mi->paramcount; ++i) {
-		if (mi->paramtypes[i] == TYPE_ADR) {
+	paramtypes = mi->parseddesc->paramtypes - instancecount;
+	for (i=0; i<mi->parseddesc->paramcount + instancecount; ++i) {
+		if (i<instancecount || paramtypes[i].type == TYPE_ADR) {
 			utf *name;
 			
 			if (i < instancecount)
