@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1094 2004-05-27 15:52:27Z twisti $
+   $Id: main.c 1150 2004-06-06 13:29:25Z twisti $
 
 */
 
@@ -48,7 +48,7 @@
 #include "global.h"
 #include "tables.h"
 #include "loader.h"
-#include "jit.h"
+#include "jit/jit.h"
 #include "asmpart.h"
 #include "builtin.h"
 #include "native.h"
@@ -56,7 +56,10 @@
 #include "threads/thread.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
-#include "parseRTstats.h"
+#include "jit/parseRTstats.h"
+#include "nat/java_io_File.h"            /* required by java_lang_Runtime.h   */
+#include "nat/java_util_Properties.h"    /* required by java_lang_Runtime.h   */
+#include "nat/java_lang_Runtime.h"
 #include "nat/java_lang_Throwable.h"
 
 #ifdef TYPEINFO_DEBUG_TEST
@@ -853,10 +856,10 @@ int main(int argc, char **argv)
 
 
 	/**************************** Program start *****************************/
+
 	log_init(logfilename);
-	if (verbose) {
+	if (verbose)
 		log_text("CACAO started -------------------------------------------------------");
-	}
 
 	/* initialize the garbage collector */
 	gc_init(heapmaxsize, heapstartsize);
@@ -940,10 +943,12 @@ int main(int argc, char **argv)
 		joinAllThreads();
 #else
   		killThread(currentThread);
-		fprintf(stderr, "still here\n");
 #endif
 #endif
-		exit(0);
+
+		/* now exit the JavaVM */
+
+		cacao_exit(0);
 	}
 
 	/************* If requested, compile all methods ********************/
@@ -1029,9 +1034,76 @@ int main(int argc, char **argv)
 		jit_compile(m);
 	}
 
-	exit(0);
+	cacao_shutdown(0);
+
+	/* keep compiler happy */
+
+	return 0;
 }
 
+
+/* cacao_exit ******************************************************************
+
+   Calls java.lang.Runtime.exit(I)V to exit the JavaVM correctly.
+
+*******************************************************************************/
+
+void cacao_exit(s4 status)
+{
+	classinfo *c;
+	methodinfo *m;
+	java_lang_Runtime *rt;
+
+	/* class should already be loaded, but who knows... */
+
+	c = class_new(utf_new_char("java/lang/Runtime"));
+
+	if (!class_load(c))
+		throw_exception_exit();
+
+	if (!class_link(c))
+		throw_exception_exit();
+
+	/* first call Runtime.getRuntime()Ljava.lang.Runtime; */
+
+	m = class_resolveclassmethod(c,
+								 utf_new_char("getRuntime"),
+								 utf_new_char("()Ljava/lang/Runtime;"),
+								 class_java_lang_Object,
+								 true);
+
+	if (!m)
+		throw_exception_exit();
+
+	rt = (java_lang_Runtime *) asm_calljavafunction(m,
+													(void *) 0,
+													NULL,
+													NULL,
+													NULL);
+
+	/* exception occurred? */
+
+	if (*exceptionptr)
+		throw_exception_exit();
+
+	/* then call Runtime.exit(I)V */
+
+	m = class_resolveclassmethod(c,
+								 utf_new_char("exit"),
+								 utf_new_char("(I)V"),
+								 class_java_lang_Object,
+								 true);
+	
+	if (!m)
+		throw_exception_exit();
+
+	asm_calljavafunction(m, rt, (void *) 0, NULL, NULL);
+
+	/* this should never happen */
+
+	throw_cacao_exception_exit(string_java_lang_InternalError,
+							   "Problems with Runtime.exit(I)V");
+}
 
 
 /*************************** Shutdown function *********************************
@@ -1046,7 +1118,7 @@ void cacao_shutdown(s4 status)
 	/**** RTAprint ***/
 
 	if (verbose || getcompilingtime || opt_stat) {
-		log_text ("CACAO terminated by shutdown");
+		log_text("CACAO terminated by shutdown");
 		if (opt_stat)
 			print_stats();
 		if (getcompilingtime)
