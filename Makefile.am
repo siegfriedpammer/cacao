@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 180 2002-12-14 21:53:55Z stefan $
+# $Id: Makefile.am 192 2002-12-21 12:06:01Z stefan $
 
 MAINTAINERCLEANFILES = Makefile.in configure
 SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc narray jvmtst
@@ -141,6 +141,9 @@ jit.o: jit.c \
 	narray/analyze.c \
 	narray/tracing.c \
 	narray/loop.h
+	
+checkjvm:
+	$(MAKE) -C jvmtst $@
 
 ## Local variables:
 ## mode: Makefile
