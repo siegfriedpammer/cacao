@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 980 2004-03-25 23:47:49Z twisti $
+   $Id: stack.c 1018 2004-04-10 13:26:20Z twisti $
 
 */
 
@@ -653,6 +653,9 @@ void analyse_stack()
 									(iptr[0].val.i == 0x80000000)) {
 									iptr[0].opc = ICMD_IREMPOW2;
 									iptr[0].val.i -= 1;
+#if defined(__I386__)
+									method_uses_ecx = true;
+#endif
 									goto icmd_iconst_tail;
 								}
 								PUSHCONST(TYPE_INT);
@@ -678,12 +681,21 @@ void analyse_stack()
 #if SUPPORT_LONG_SHIFT
 							case ICMD_LSHL:
 								iptr[0].opc = ICMD_LSHLCONST;
+#if defined(__I386__)
+								method_uses_ecx = true;
+#endif
 								goto icmd_lconst_tail;
 							case ICMD_LSHR:
 								iptr[0].opc = ICMD_LSHRCONST;
+#if defined(__I386__)
+								method_uses_ecx = true;
+#endif
 								goto icmd_lconst_tail;
 							case ICMD_LUSHR:
 								iptr[0].opc = ICMD_LUSHRCONST;
+#if defined(__I386__)
+								method_uses_ecx = true;
+#endif
 								goto icmd_lconst_tail;
 #endif
 							case ICMD_IF_ICMPEQ:
@@ -743,6 +755,7 @@ void analyse_stack()
 							case ICMD_LMUL:
 								iptr[0].opc = ICMD_LMULCONST;
 #if defined(__I386__)
+								method_uses_ecx = true;
 								method_uses_edx = true;
 #endif
 								goto icmd_lconst_tail;
@@ -816,6 +829,9 @@ void analyse_stack()
 									break;
 								}
 								iptr[0].opc = ICMD_LDIVPOW2;
+#if defined(__I386__)
+								method_uses_ecx = true;
+#endif
 								goto icmd_lconst_tail;
 							case ICMD_LREM:
 #if !defined(NO_DIV_OPT)
@@ -857,6 +873,9 @@ void analyse_stack()
 									(iptr[0].val.l == 0x80000000)) {
 									iptr[0].opc = ICMD_LREMPOW2;
 									iptr[0].val.l -= 1;
+#if defined(__I386__)
+									method_uses_ecx = true;
+#endif
 									goto icmd_lconst_tail;
 								}
 								PUSHCONST(TYPE_LNG);
@@ -879,6 +898,9 @@ void analyse_stack()
 									switch (iptr[2].opc) {
 									case ICMD_IFEQ:
 										iptr[0].opc = ICMD_IF_LEQ;
+#if defined(__I386__)
+										method_uses_ecx = true;
+#endif
 									icmd_lconst_lcmp_tail:
 										iptr[0].op1 = iptr[2].op1;
 										bptr->icount -= 2;
@@ -896,6 +918,9 @@ void analyse_stack()
 										break;
 									case ICMD_IFNE:
 										iptr[0].opc = ICMD_IF_LNE;
+#if defined(__I386__)
+										method_uses_ecx = true;
+#endif
 										goto icmd_lconst_lcmp_tail;
 									case ICMD_IFLT:
 										iptr[0].opc = ICMD_IF_LLT;
@@ -955,6 +980,7 @@ void analyse_stack()
 
 					case ICMD_LALOAD:
 #if defined(__I386__)
+						method_uses_ecx = true;
 						method_uses_edx = true;
 #endif
 					case ICMD_IALOAD:
@@ -965,6 +991,9 @@ void analyse_stack()
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
 						OP2IAT_1(opcode-ICMD_IALOAD);
+#if defined(__I386__)
+						method_uses_ecx = true;
+#endif
 						break;
 
 					case ICMD_BALOAD:
@@ -974,6 +1003,9 @@ void analyse_stack()
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
 						OP2IAT_1(TYPE_INT);
+#if defined(__I386__)
+						method_uses_ecx = true;
+#endif
 						break;
 
 						/* pop 0 push 0 iinc */
@@ -1049,6 +1081,7 @@ void analyse_stack()
 					case ICMD_AASTORE:
 					case ICMD_LASTORE:
 #if defined(__I386__)
+						method_uses_ecx = true;
 						method_uses_edx = true;
 #endif
 					case ICMD_FASTORE:
@@ -1067,6 +1100,7 @@ void analyse_stack()
 						COUNT(count_pcmd_mem);
 						OP3TIA_0(TYPE_INT);
 #if defined(__I386__)
+						method_uses_ecx = true;
 						method_uses_edx = true;
 #endif
 						break;
@@ -1105,6 +1139,9 @@ void analyse_stack()
 					case ICMD_PUTSTATIC:
 						COUNT(count_pcmd_mem);
 						OP1_0(iptr->op1);
+#if defined(__I386__)
+						method_uses_ecx = true;
+#endif
 						break;
 
 						/* pop 1 push 0 branch */
@@ -1232,6 +1269,9 @@ void analyse_stack()
 						}
 						SETDST;
 						superblockend = true;
+#if defined(__I386__)
+						method_uses_ecx = true;
+#endif
 						break;
 							
 						/* pop 1 push 0 table branch */
@@ -1304,6 +1344,9 @@ void analyse_stack()
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						OPTT2_0(iptr->op1,TYPE_ADR);
+#if defined(__I386__)
+						method_uses_ecx = true;
+#endif
 						break;
 
 					case ICMD_POP2:
@@ -1519,6 +1562,7 @@ void analyse_stack()
 						goto builtin2;
 #endif
 #if defined(__I386__)
+						method_uses_ecx = true;
 						method_uses_edx = true;
 #endif
 
@@ -1558,6 +1602,7 @@ void analyse_stack()
 
 					case ICMD_LMUL:
 #if defined(__I386__)
+						method_uses_ecx = true;
 						method_uses_edx = true;
 #endif
 					case ICMD_LADD:
@@ -1606,6 +1651,9 @@ void analyse_stack()
 							switch (iptr[1].opc) {
 							case ICMD_IFEQ:
 								iptr[0].opc = ICMD_IF_LCMPEQ;
+#if defined(__I386__)
+								method_uses_ecx = true;
+#endif
 							icmd_lcmp_if_tail:
 								iptr[0].op1 = iptr[1].op1;
 								len--;
@@ -1621,6 +1669,9 @@ void analyse_stack()
 								break;
 							case ICMD_IFNE:
 								iptr[0].opc = ICMD_IF_LCMPNE;
+#if defined(__I386__)
+								method_uses_ecx = true;
+#endif
 								goto icmd_lcmp_if_tail;
 							case ICMD_IFLT:
 								iptr[0].opc = ICMD_IF_LCMPLT;
@@ -1736,12 +1787,14 @@ void analyse_stack()
 					case ICMD_CHECKCAST:
 						OP1_1(TYPE_ADR, TYPE_ADR);
 #if defined(__I386__)
+						method_uses_ecx = true;
 						method_uses_edx = true;
 #endif
 						break;
 
 					case ICMD_INSTANCEOF:
 #if defined(__I386__)
+						method_uses_ecx = true;
 						method_uses_edx = true;
 #endif
 					case ICMD_ARRAYLENGTH:
@@ -1757,6 +1810,9 @@ void analyse_stack()
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						OP1_1(TYPE_ADR, iptr->op1);
+#if defined(__I386__)
+						method_uses_ecx = true;
+#endif
 						break;
 
 						/* pop 0 push 1 */
@@ -1764,6 +1820,9 @@ void analyse_stack()
 					case ICMD_GETSTATIC:
 						COUNT(count_pcmd_mem);
 						OP0_1(iptr->op1);
+#if defined(__I386__)
+						method_uses_ecx = true;
+#endif
 						break;
 
 					case ICMD_NEW:
@@ -1798,6 +1857,9 @@ void analyse_stack()
 					case ICMD_INVOKEINTERFACE:
 					case ICMD_INVOKESTATIC:
 						COUNT(count_pcmd_met);
+#if defined(__I386__)
+						method_uses_ecx = true;
+#endif
 						{
 							methodinfo *m = iptr->val.a;
 							if (m->flags & ACC_STATIC)
@@ -2201,7 +2263,6 @@ static char *jit_type[] = {
 void show_icmd_method()
 {
 	int i, j;
-	s4  *s4ptr; /* used */
 	basicblock *bptr;
 	xtable *ex;
 
@@ -2209,7 +2270,6 @@ void show_icmd_method()
 	utf_fprint(stdout, class->name);
 	printf(".");
 	utf_fprint(stdout, method->name);
-	printf(" ");
 	utf_fprint(stdout, method->descriptor);
 	printf ("\n\nMax locals: %d\n", (int) maxlocals);
 	printf ("Max stack:  %d\n", (int) maxstack);
@@ -2287,6 +2347,8 @@ void show_icmd_method()
 		}
 		printf("\n");
 #else
+		s4 *s4ptr;
+
 		s4ptr = (s4 *) (method->mcode + dseglen);
 		for (i = 0; i < block[0].mpc; i += 4, s4ptr++) {
 			disassinstr(s4ptr, i); 
@@ -2294,7 +2356,6 @@ void show_icmd_method()
 		printf("\n");
 #endif
 	}
-
 	
 	for (bptr = block; bptr != NULL; bptr = bptr->next) {
 		show_icmd_block(bptr);
@@ -2306,7 +2367,6 @@ void show_icmd_block(basicblock *bptr)
 {
 	int i, j;
 	int deadcode;
-	s4  *s4ptr; /* used */
 	instruction *iptr;
 
 	if (bptr->flags != BBDELETED) {
@@ -2360,6 +2420,8 @@ void show_icmd_block(basicblock *bptr)
 				printf("\n");
 			}
 #else
+			s4 *s4ptr;
+
 			printf("\n");
 			i = bptr->mpc;
 			s4ptr = (s4 *) (method->mcode + dseglen + i);
@@ -2386,7 +2448,7 @@ void show_icmd(instruction *iptr,bool deadcode)
 {
 	int j;
 	s4  *s4ptr;
-	void **tptr;
+	void **tptr = NULL;
 	
 	printf("%s", icmd_names[iptr->opc]);
 

@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 991 2004-03-29 11:22:34Z stefan $
+   $Id: jit.c 1018 2004-04-10 13:26:20Z twisti $
 
 */
 
@@ -1475,10 +1475,10 @@ methodptr jit_compile(methodinfo *m)
 	if (!m->jcode) {
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "No code given for: ");
-		utf_sprint(logtext+strlen(logtext), m->class->name);
+		utf_sprint_classname(logtext+strlen(logtext), m->class->name);
 		strcpy(logtext+strlen(logtext), ".");
 		utf_sprint(logtext+strlen(logtext), m->name);
-		utf_sprint(logtext+strlen(logtext), m->descriptor);
+		utf_sprint_classname(logtext+strlen(logtext), m->descriptor);
 		log_text(logtext);
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 		intsRestore();                             /* enable interrupts again */
@@ -1495,10 +1495,10 @@ methodptr jit_compile(methodinfo *m)
 	if (compileverbose) {
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Compiling: ");
-		utf_sprint(logtext+strlen(logtext), m->class->name);
+		utf_sprint_classname(logtext+strlen(logtext), m->class->name);
 		strcpy(logtext+strlen(logtext), ".");
 		utf_sprint(logtext+strlen(logtext), m->name);
-		utf_sprint(logtext+strlen(logtext), m->descriptor);
+		utf_sprint_classname(logtext+strlen(logtext), m->descriptor);
 		log_text(logtext);
 	}
 
@@ -1548,7 +1548,8 @@ methodptr jit_compile(methodinfo *m)
 	mparamtypes = m->paramtypes;
 
 #if defined(__I386__)
-	method_uses_ecx = true;
+	/* we try to use these registers as scratch registers */
+	method_uses_ecx = false;
 	method_uses_edx = false;
 #endif
 
