@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1141 2004-06-05 23:19:24Z twisti $
+   $Id: memory.c 1153 2004-06-09 15:50:23Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 #include <unistd.h>
 
 #include "global.h"
+#include "native.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
@@ -55,6 +56,8 @@ typedef struct dumplist {
 } dumplist;
 
 
+static int mmapcodesize = 0;
+static void *mmapcodeptr = NULL;
 
 long int memoryusage = 0;
 
@@ -65,247 +68,76 @@ dumplist *topdumpblock = NULL;
 long int maxmemusage = 0;
 long int maxdumpsize = 0;
 
-#define TRACECALLARGS
-
-#ifdef TRACECALLARGS
-static char *nomallocmem = NULL;
-static char *nomalloctop;
-static char *nomallocptr;
-
-
-static void *lit_checked_alloc (int length)
-{
-	void *m;
-
-	if (!nomallocmem) {
-		nomallocmem = malloc(16777216); 
-		nomalloctop = nomallocmem + 16777216;
-		nomallocptr = nomallocmem;
-	}
-
-	nomallocptr = (void*) ALIGN((long) nomallocptr, ALIGNSIZE);
-	
-	m = nomallocptr;
-	nomallocptr += length;
-	if (nomallocptr > nomalloctop)
-		panic("Out of memory");
-
-	return m;
-}
-
-#else
 
 static void *lit_checked_alloc(int length)
 {
 	void *m = malloc(length);
-	if (!m) panic ("Out of memory");
+
+	if (!m)
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Out of memory");
+
+	/* not setting to zero causes cacao to segfault (String.hashCode() is
+	   completely wrong) */
+	memset(m, 0, length);
+
 	return m;
 }
-
-#endif
 
 
 static void *checked_alloc(int length)
 {
 	void *m = malloc(length);
-	if (!m) panic("Out of memory");
+
+	if (!m)
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Out of memory");
+
 	return m;
 }
-
-
-static int mmapcodesize = 0;
-static void *mmapcodeptr = NULL;
 
 
 void *mem_mmap(int length)
 {
 	void *retptr;
 
-	length = (ALIGN(length,ALIGNSIZE));
+	length = ALIGN(length, ALIGNSIZE);
+
 	if (length > mmapcodesize) {
 		mmapcodesize = 0x10000;
+
 		if (length > mmapcodesize)
 			mmapcodesize = length;
-		mmapcodesize = (ALIGN(mmapcodesize, getpagesize()));
-		mmapcodeptr = mmap (NULL, (size_t) mmapcodesize,
+
+		mmapcodesize = ALIGN(mmapcodesize, getpagesize());
+		mmapcodeptr = mmap (NULL,
+							(size_t) mmapcodesize,
 							PROT_READ | PROT_WRITE | PROT_EXEC,
-							MAP_PRIVATE | MAP_ANONYMOUS, -1, (off_t) 0);
-		if (mmapcodeptr == (void*) -1)
-			panic ("Out of memory");
+							MAP_PRIVATE | MAP_ANONYMOUS,
+							-1,
+							(off_t) 0);
+
+		if (mmapcodeptr == MAP_FAILED)
+			throw_cacao_exception_exit(string_java_lang_InternalError,
+									   "Out of memory");
 	}
+
 	retptr = mmapcodeptr;
-	mmapcodeptr = (void*) ((char*) mmapcodeptr + length);
+	mmapcodeptr = (void *) ((char *) mmapcodeptr + length);
 	mmapcodesize -= length;
+
 	return retptr;
 }
 
 
-#ifdef DEBUG
-
-/************ Memory manager, safe version **************/
-
-
-typedef struct memblock {
-	struct memblock *prev, *next;
-	int length;
-} memblock;
-
-#define BLOCKOFFSET    (ALIGN(sizeof(memblock),ALIGNSIZE))
-
-struct memblock *firstmemblock;
-
-
-
 void *mem_alloc(int length)
 {
-	memblock *mb;
-
-	if (length == 0) return NULL;
-	mb = checked_alloc(length + BLOCKOFFSET);
-
-	mb->prev = NULL;
-	mb->next = firstmemblock;	
-	mb->length = length;
-
-	if (firstmemblock) firstmemblock->prev = mb;
-	firstmemblock = mb;
+	if (length == 0)
+		return NULL;
 
 	memoryusage += length;
 	if (memoryusage > maxmemusage)
 		maxmemusage = memoryusage;
-
-	return ((char*) mb) + BLOCKOFFSET;
-}
-
-
-void *lit_mem_alloc(int length)
-{
-	memblock *mb;
-
-	if (length == 0) return NULL;
-	mb = lit_checked_alloc(length + BLOCKOFFSET);
-
-	mb->prev = NULL;
-	mb->next = firstmemblock;	
-	mb->length = length;
-
-	if (firstmemblock) firstmemblock -> prev = mb;
-	firstmemblock = mb;
-
-	memoryusage += length;
-	if (memoryusage > maxmemusage) maxmemusage = memoryusage;
-
-	return ((char*) mb) + BLOCKOFFSET;
-}
-
-
-void mem_free(void *m, int length)
-{
-	memblock *mb;
-	if (!m) {
-		if (length == 0) return;
-		panic("returned memoryblock with address NULL, length != 0");
-	}
-
-	mb = (memblock*) (((char*) m) - BLOCKOFFSET);
-	
-	if (mb->length != length) {
-		sprintf(logtext, 
-				"Memory block of size %d has been return as size %d",
-				mb->length, length);
-		error();
-	}
-		
-	if (mb->prev) mb->prev->next = mb->next;
-	else firstmemblock = mb->next;
-	if (mb->next) mb->next->prev = mb->prev;
-
-	free (mb);
-
-	memoryusage -= length;
-}
-
-
-void lit_mem_free(void *m, int length)
-{
-	memblock *mb;
-	if (!m) {
-		if (length==0) return;
-		panic("returned memoryblock with address NULL, length != 0");
-	}
-
-	mb = (memblock*) (((char*) m) - BLOCKOFFSET);
-	
-	if (mb->length != length) {
-		sprintf(logtext, 
-				"Memory block of size %d has been return as size %d",
-				mb->length, length);
-		error();
-	}
-		
-	if (mb->prev) mb->prev->next = mb->next;
-	else firstmemblock = mb->next;
-	if (mb->next) mb->next->prev = mb->prev;
-
-#ifdef TRACECALLARGS
-#else
-	free(mb);
-#endif
-
-	memoryusage -= length;
-}
-
-
-void *mem_realloc(void *m1, int len1, int len2)
-{
-	void *m2;
-	
-	m2 = mem_alloc(len2);
-	memcpy(m2, m1, len1);
-	mem_free(m1, len1);
-
-	return m2;
-}
-
-
-
-
-static void mem_characterlog(unsigned char *m, int len)
-{
-#	define LINESIZE 16
-	int z, i;
-	char logtext[MAXLOGTEXT];
-	
-	for (z = 0; z < len; z += LINESIZE) {
-		sprintf(logtext, "   ");
-			
-		for (i = z; i < (z + LINESIZE) && i < len; i++) {
-			sprintf(logtext + strlen(logtext), "%2x ", m[i]);
-		}
-		for (; i < (z + LINESIZE); i++) {
-			sprintf(logtext + strlen(logtext), "   ");
-		}
-					
-		sprintf(logtext + strlen(logtext),"   ");
-		for (i = z; i < (z + LINESIZE) && i < len; i++) {
-			sprintf(logtext+strlen(logtext),
-					"%c", (m[i] >= ' ' && m[i] <= 127) ? m[i] : '.');
-		}
-			
-		log_text(logtext);
-	}
-}
-
-#else
-/******* Memory manager, fast version ******/
-
-
-void *mem_alloc(int length)
-{
-	if (length == 0) return NULL;
-
-	memoryusage += length;
-	if (memoryusage > maxmemusage) maxmemusage = memoryusage;
 	
 	return checked_alloc(length);
 }
@@ -313,10 +145,12 @@ void *mem_alloc(int length)
 
 void *lit_mem_alloc(int length)
 {
-	if (length == 0) return NULL;
+	if (length == 0)
+		return NULL;
 
 	memoryusage += length;
-	if (memoryusage > maxmemusage) maxmemusage = memoryusage;
+	if (memoryusage > maxmemusage)
+		maxmemusage = memoryusage;
 	
 	return lit_checked_alloc(length);
 }
@@ -325,7 +159,8 @@ void *lit_mem_alloc(int length)
 void mem_free(void *m, int length)
 {
 	if (!m) {
-		if (length == 0) return;
+		if (length == 0)
+			return;
 		panic("returned memoryblock with address NULL, length != 0");
 	}
 
@@ -338,37 +173,37 @@ void mem_free(void *m, int length)
 void lit_mem_free(void *m, int length)
 {
 	if (!m) {
-		if (length == 0) return;
+		if (length == 0)
+			return;
 		panic("returned memoryblock with address NULL, length != 0");
 	}
 
 	memoryusage -= length;
 
-#ifdef TRACECALLARGS
-#else
 	free(m);
-#endif
 }
 
 
-void *mem_realloc (void *m1, int len1, int len2)
+void *mem_realloc(void *m1, int len1, int len2)
 {
 	void *m2;
 
 	if (!m1) {
-		if (len1!=0) 
-			panic ("reallocating memoryblock with address NULL, length != 0");
+		if (len1 != 0)
+			panic("reallocating memoryblock with address NULL, length != 0");
 	}
 		
 	memoryusage = (memoryusage - len1) + len2;
 
-	m2 = realloc (m1, len2);
-	if (!m2) panic ("Out of memory");
+	m2 = realloc(m1, len2);
+
+	if (!m2)
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Out of memory");
+
 	return m2;
 }
 
-
-#endif
 
 /******* common memory manager parts ******/
 
@@ -418,7 +253,9 @@ void *dump_alloc(int length)
 void *dump_realloc(void *ptr, int len1, int len2)
 {
 	void *p2 = dump_alloc(len2);
-	memcpy(p2, ptr, len1);	
+
+	memcpy(p2, ptr, len1);
+
 	return p2;
 }
 
@@ -431,6 +268,7 @@ long int dump_size()
 
 void dump_release(long int size)
 {
+	return;
 	assert(size >= 0 && size <= dumpsize);
 
 	dumpsize = size;
@@ -449,44 +287,25 @@ void dump_release(long int size)
 		dumpspace -= oldtop->size;
 		topdumpblock = oldtop->prev;
 		
-#ifdef TRACECALLARGS
-#else
 		free(oldtop->dumpmem);
 		free(oldtop);
-#endif
 	}		
 }
 
 
 void mem_usagelog (int givewarnings)
 {
-	if ((memoryusage!=0) && givewarnings) {
-		dolog ("Allocated memory not returned: %d",
-				 (int)memoryusage);
-
-#ifdef DEBUG
-		{ 
-			memblock *mb = firstmemblock;
-			while (mb) {
-				dolog ("   Memory block size: %d", 
-						 (int)(mb->length) );
-				mem_characterlog ( ((unsigned char*)mb) + BLOCKOFFSET, mb->length);
-				mb = mb->next;
-			}
-		}
-#endif
-			
+	if ((memoryusage != 0) && givewarnings) {
+		dolog("Allocated memory not returned: %d", (s4) memoryusage);
 	}
 
-	if ((dumpsize!=0) && givewarnings) {
-		dolog ("Dump memory not returned: %d",(int)dumpsize);
+	if ((dumpsize != 0) && givewarnings) {
+		dolog("Dump memory not returned: %d", (s4) dumpsize);
 	}
-
 
 	dolog("Random/Dump - memory usage: %dK/%dK", 
-			(int)((maxmemusage+1023)/1024), 
-			(int)((maxdumpsize+1023)/1024) );
-	
+		  (s4) ((maxmemusage + 1023) / 1024),
+		  (s4) ((maxdumpsize + 1023) / 1024));
 }
 
 
