@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1426 2004-11-01 12:21:59Z twisti $
+   $Id: jni.c 1464 2004-11-06 22:55:46Z motse $
 
 */
 
@@ -563,7 +563,7 @@ jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
 	}
 #endif
 
-	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
+	blk = MNEW(jni_callblock, /*4 */argcount+2);
 
 	fill_callblock(obj, methodID->descriptor, blk, args, 'O');
 	/*      printf("parameter: obj: %p",blk[0].item); */
@@ -624,7 +624,7 @@ jint callIntegerMethod(jobject obj, jmethodID methodID, char retType, va_list ar
 	}
 #endif
 
-	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
+	blk = MNEW(jni_callblock, /*4 */ argcount+2);
 
 	fill_callblock(obj, methodID->descriptor, blk, args, retType);
 
@@ -682,7 +682,7 @@ jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 	}
 #endif
 
-	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
+	blk = MNEW(jni_callblock,/* 4 */argcount+2);
 
 	fill_callblock(obj, methodID->descriptor, blk, args, 'J');
 
@@ -723,7 +723,7 @@ jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,char retTy
 	}
 #endif
 
-	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
+	blk = MNEW(jni_callblock, /*4 */ argcount+2);
 
 	fill_callblock(obj, methodID->descriptor, blk, args, retType);
 
@@ -3481,7 +3481,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 
 	if ((methodID->flags & ACC_STATIC) && (obj)) obj = 0;
 
-	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
+	blk = MNEW(jni_callblock, /*4 */argcount+2);
 
 	retT = fill_callblock_objA(obj, methodID->descriptor, blk, params);
 
@@ -3632,11 +3632,11 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 
 	default:
 		/* if this happens the acception has already been set by fill_callblock_objA*/
-		MFREE(blk, jni_callblock, 4 /*argcount+2*/);
+		MFREE(blk, jni_callblock, /*4 */ argcount+2);
 		return (jobject *) 0;
 	}
 
-	MFREE(blk, jni_callblock, 4 /*argcount+2*/);
+	MFREE(blk, jni_callblock, /* 4 */ argcount+2);
 
 	if (*exceptionptr) {
 		java_objectheader *exceptionToWrap = *exceptionptr;

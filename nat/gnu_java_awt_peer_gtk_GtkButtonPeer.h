@@ -17,9 +17,9 @@ typedef struct gnu_java_awt_peer_gtk_GtkButtonPeer {
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkButtonPeer
  * Method:    create
- * Signature: ()V
+ * Signature: (Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkButtonPeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkButtonPeer* this);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkButtonPeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkButtonPeer* this, struct java_lang_String* par1);
 
 
 /*

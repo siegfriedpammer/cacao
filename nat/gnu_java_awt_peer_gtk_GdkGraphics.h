@@ -21,9 +21,9 @@ typedef struct gnu_java_awt_peer_gtk_GdkGraphics {
 /*
  * Class:     gnu/java/awt/peer/gtk/GdkGraphics
  * Method:    initState
- * Signature: (Lgnu/java/awt/peer/gtk/GtkComponentPeer;)[I
+ * Signature: (Lgnu/java/awt/peer/gtk/GtkComponentPeer;)V
  */
-JNIEXPORT java_intarray* JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics_initState__Lgnu_java_awt_peer_gtk_GtkComponentPeer_2(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkGraphics* this, struct gnu_java_awt_peer_gtk_GtkComponentPeer* par1);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics_initState__Lgnu_java_awt_peer_gtk_GtkComponentPeer_2(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkGraphics* this, struct gnu_java_awt_peer_gtk_GtkComponentPeer* par1);
 
 
 /*
@@ -72,6 +72,14 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics_dispose(JNIEnv *en
  * Signature: (Ljava/awt/Graphics;IIII)V
  */
 JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics_copyPixmap(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkGraphics* this, struct java_awt_Graphics* par1, s4 par2, s4 par3, s4 par4, s4 par5);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GdkGraphics
+ * Method:    copyAndScalePixmap
+ * Signature: (Ljava/awt/Graphics;ZZIIIIIIII)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GdkGraphics_copyAndScalePixmap(JNIEnv *env, struct gnu_java_awt_peer_gtk_GdkGraphics* this, struct java_awt_Graphics* par1, s4 par2, s4 par3, s4 par4, s4 par5, s4 par6, s4 par7, s4 par8, s4 par9, s4 par10, s4 par11);
 
 
 /*

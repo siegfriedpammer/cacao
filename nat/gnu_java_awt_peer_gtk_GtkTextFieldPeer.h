@@ -24,6 +24,22 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextFieldPeer_create(JNIEnv
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkTextFieldPeer
+ * Method:    gtkWidgetSetBackground
+ * Signature: (III)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextFieldPeer_gtkWidgetSetBackground(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextFieldPeer* this, s4 par1, s4 par2, s4 par3);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkTextFieldPeer
+ * Method:    gtkWidgetSetForeground
+ * Signature: (III)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkTextFieldPeer_gtkWidgetSetForeground(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkTextFieldPeer* this, s4 par1, s4 par2, s4 par3);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkTextFieldPeer
  * Method:    gtkEntryGetBorderWidth
  * Signature: ()I
  */

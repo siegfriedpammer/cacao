@@ -58,5 +58,21 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFramePeer_moveLayout(JNIEnv
  */
 JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFramePeer_gtkLayoutSetVisible(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFramePeer* this, s4 par1);
 
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkFramePeer
+ * Method:    nativeSetIconImageFromDecoder
+ * Signature: (Lgnu/java/awt/peer/gtk/GdkPixbufDecoder;)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFramePeer_nativeSetIconImageFromDecoder(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFramePeer* this, struct gnu_java_awt_peer_gtk_GdkPixbufDecoder* par1);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkFramePeer
+ * Method:    nativeSetIconImageFromData
+ * Signature: ([III)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkFramePeer_nativeSetIconImageFromData(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkFramePeer* this, java_intarray* par1, s4 par2, s4 par3);
+
 #endif
 

@@ -19,6 +19,30 @@ typedef struct gnu_java_awt_peer_gtk_GtkWindowPeer {
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkWindowPeer
+ * Method:    gtkWindowSetTitle
+ * Signature: (Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkWindowPeer_gtkWindowSetTitle(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkWindowPeer* this, struct java_lang_String* par1);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkWindowPeer
+ * Method:    gtkWindowSetResizable
+ * Signature: (Z)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkWindowPeer_gtkWindowSetResizable(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkWindowPeer* this, s4 par1);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkWindowPeer
+ * Method:    gtkWindowSetModal
+ * Signature: (Z)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkWindowPeer_gtkWindowSetModal(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkWindowPeer* this, s4 par1);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkWindowPeer
  * Method:    create
  * Signature: (IZIILgnu/java/awt/peer/gtk/GtkWindowPeer;[I)V
  */

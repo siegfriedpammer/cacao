@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1444 2004-11-05 13:54:52Z twisti $
+   $Id: native.c 1464 2004-11-06 22:55:46Z motse $
 
 */
 
@@ -130,9 +130,7 @@ void use_class_as_object(classinfo *c)
 /*************************** include native methods ***************************/ 
 
 #ifdef USE_GTK 
-#include "nat/GdkGraphics.c"
 #include "nat/GtkComponentPeer.c"
-#include "nat/GdkPixbufDecoder.c"
 #include "nat/GtkScrollPanePeer.c"
 #include "nat/GtkFileDialogPeer.c"
 #endif

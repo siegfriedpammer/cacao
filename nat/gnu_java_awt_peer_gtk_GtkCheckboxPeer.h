@@ -18,10 +18,10 @@ typedef struct gnu_java_awt_peer_gtk_GtkCheckboxPeer {
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkCheckboxPeer
- * Method:    nativeCreate
- * Signature: (Lgnu/java/awt/peer/gtk/GtkCheckboxGroupPeer;Z)V
+ * Method:    create
+ * Signature: (Lgnu/java/awt/peer/gtk/GtkCheckboxGroupPeer;)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkCheckboxPeer_nativeCreate(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkCheckboxPeer* this, struct gnu_java_awt_peer_gtk_GtkCheckboxGroupPeer* par1, s4 par2);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkCheckboxPeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkCheckboxPeer* this, struct gnu_java_awt_peer_gtk_GtkCheckboxGroupPeer* par1);
 
 
 /*
@@ -50,10 +50,18 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkCheckboxPeer_gtkSetFont(JNI
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkCheckboxPeer
- * Method:    gtkSetLabel
+ * Method:    gtkButtonSetLabel
  * Signature: (Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkCheckboxPeer_gtkSetLabel(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkCheckboxPeer* this, struct java_lang_String* par1);
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkCheckboxPeer_gtkButtonSetLabel(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkCheckboxPeer* this, struct java_lang_String* par1);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkCheckboxPeer
+ * Method:    gtkToggleButtonSetActive
+ * Signature: (Z)V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkCheckboxPeer_gtkToggleButtonSetActive(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkCheckboxPeer* this, s4 par1);
 
 #endif
 

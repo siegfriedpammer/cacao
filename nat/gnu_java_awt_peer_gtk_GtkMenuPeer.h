@@ -38,6 +38,14 @@ JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkMenuPeer_setupAccelGroup(JN
 
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkMenuPeer
+ * Method:    addTearOff
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkMenuPeer_addTearOff(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkMenuPeer* this);
+
+
+/*
+ * Class:     gnu/java/awt/peer/gtk/GtkMenuPeer
  * Method:    delItem
  * Signature: (I)V
  */
