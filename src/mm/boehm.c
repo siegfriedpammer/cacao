@@ -11,7 +11,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: boehm.c 350 2003-06-03 07:07:25Z stefan $
+	Last Change: $Id: boehm.c 439 2003-09-15 08:25:35Z stefan $
 
 *******************************************************************************/
 
@@ -109,6 +109,7 @@ void *heap_reallocate(void *p, u4 bytelength)
 
 void heap_init (u4 size, u4 startsize, void **stackbottom)
 {
+	GC_INIT();
 }
 
 void heap_close()
