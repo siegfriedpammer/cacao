@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 2079 2005-03-25 13:32:58Z edwin $
+   $Id: global.h 2089 2005-03-27 14:41:38Z edwin $
 
 */
 
@@ -106,29 +106,6 @@ typedef struct constant_classref constant_classref;
  * DUP2_X1,DUP_X2,DUP2_X2).
  */
 #define TYPECHECK_STACK_COMPCAT
-
-/*
- * Macros for configuration of the typechecking code
- *
- * TYPECHECK_STATISTICS activates gathering statistical information.
- * TYPEINFO_DEBUG activates debug checks and debug helpers in typeinfo.c
- * TYPECHECK_DEBUG activates debug checks in typecheck.c
- * TYPEINFO_DEBUG_TEST activates the typeinfo test at startup.
- * TYPECHECK_VERBOSE_IMPORTANT activates important debug messages
- * TYPECHECK_VERBOSE activates all debug messages
- */
-#ifdef CACAO_TYPECHECK
-/*#define TYPECHECK_STATISTICS
-#define TYPEINFO_DEBUG
-#define TYPECHECK_DEBUG
-#define TYPEINFO_DEBUG_TEST
-#define TYPECHECK_VERBOSE
-#define TYPECHECK_VERBOSE_IMPORTANT*/
-#if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
-#define TYPECHECK_VERBOSE_OPT
-#endif
-#endif
-
 
 /* if we have threads disabled this one is not defined ************************/
 
@@ -224,7 +201,7 @@ typedef union {
 
 		kind                      structure                     generated?
 	----------------------------------------------------------------------
-    CONSTANT_Class               classinfo                           no
+    CONSTANT_Class               classinfo                           no   XXX this will change
     CONSTANT_Fieldref            constant_FMIref                    yes
     CONSTANT_Methodref           constant_FMIref                    yes
     CONSTANT_InterfaceMethodref  constant_FMIref                    yes
@@ -305,7 +282,8 @@ struct typedesc {
 };
 
 struct methoddesc {
-	s4                 paramcount; /* number of parameters                    */
+	s2                 paramcount; /* number of parameters                    */
+	s2                 paramslots; /* like above but LONG,DOUBLE count twice  */
 	typedesc           returntype; /* parsed descriptor of the return type    */
 	typedesc           paramtypes[1]; /* parameter types, variable length!    */
 };
@@ -324,6 +302,12 @@ struct constant_classref {
 	utf       *name;              /* name of the class refered to             */
 };
 
+/* for classrefs not occurring within descriptors                             */
+typedef struct extra_classref {
+	struct extra_classref *next;
+	constant_classref      classref;
+} extra_classref;
+
 typedef union {
 	constant_classref *ref;       /* a symbolic class reference               */
 	classinfo         *cls;       /* an already loaded class                  */
@@ -334,6 +318,7 @@ typedef union {
 #define CLASSREF_PSEUDO_VFTBL ((vftbl_t *) 1)
 
 /* macro for testing if a classref_or_classinfo is a classref                 */
+/* `reforinfo` is only evaluated once                                         */
 #define IS_CLASSREF(reforinfo)  \
 	((reforinfo).ref->pseudo_vftbl == CLASSREF_PSEUDO_VFTBL)
 
@@ -344,7 +329,7 @@ typedef union {
 /* data structures of remaining constant pool entries *************************/
 
 typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
-	classinfo *class;       /* class containing this field/method/intfmeth.   */
+	classinfo *class;       /* class containing this field/method/intfmeth.   */ /* XXX remove */
 	constant_classref *classref;  /* class containing this field/meth./intfm. */
 	utf       *name;        /* field/method/interfacemethod name              */
 	utf       *descriptor;  /* field/method/intfmeth. type descriptor string  */
@@ -511,6 +496,7 @@ struct fieldinfo {	      /* field of a class                                 */
 	s4  type;             /* basic data type                                  */
 	utf *name;            /* name of field                                    */
 	utf *descriptor;      /* JavaVM descriptor string of field                */
+	typedesc *parseddesc; /* parsed descriptor                                */
 	
 	s4  offset;           /* offset from start of object (instance variables) */
 
@@ -577,6 +563,7 @@ struct methodinfo {                 /* method structure                       */
 	s4          flags;              /* ACC flags                              */
 	utf        *name;               /* name of method                         */
 	utf        *descriptor;         /* JavaVM descriptor string of method     */
+	methoddesc *parseddesc;         /* parsed descriptor                      */
 	s4          returntype;         /* only temporary valid, return type      */
 	classinfo  *returnclass;        /* pointer to classinfo for the rtn type  */ /*XTA*/ 
 	s4          paramcount;         /* only temporary valid, parameter count  */
@@ -670,6 +657,7 @@ struct classinfo {                /* class structure                          */
 
 	s4          classrefcount;    /* number of symbolic class references      */
 	constant_classref *classrefs; /* table of symbolic class references       */
+	extra_classref *extclassrefs; /* additional classrefs                     */
 	s4          parseddescsize;   /* size of the parsed descriptors block     */
 	u1         *parseddescs;      /* parsed descriptors                       */
 
@@ -720,10 +708,6 @@ struct classinfo {                /* class structure                          */
 	utf        *sourcefile;       /* classfile name containing this class     */
 	java_objectheader *classloader; /* NULL for bootstrap classloader         */
 };
-
-/* check if class is an array class. Only use for linked classes! */
-#define CLASS_IS_ARRAY(clsinfo)  ((clsinfo)->vftbl->arraydesc != NULL)
-
 
 /* virtual function table ******************************************************
 
