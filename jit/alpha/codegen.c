@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1066 2004-05-16 17:08:11Z stefan $
+   $Id: codegen.c 1133 2004-06-05 17:32:27Z twisti $
 
 */
 
@@ -408,16 +408,6 @@ void codegen()
 	instruction *iptr;
 	xtable *ex;
 
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Generating code: ");
-		utf_sprint_classname(logtext + strlen(logtext), class->name);
-		sprintf(logtext + strlen(logtext), ".");
-		utf_sprint(logtext + strlen(logtext), method->name);
-		utf_sprint_classname(logtext + strlen(logtext), descriptor);
-		log_text(logtext);
-	}
-
 	{
 	int p, pa, t, l, r;
 
@@ -430,7 +420,7 @@ void codegen()
 
 	parentargs_base = maxmemuse + savedregs_num;
 
-#ifdef USE_THREADS                 /* space to save argument of monitor_enter */
+#if defined(USE_THREADS)           /* space to save argument of monitor_enter */
 
 	if (checksync && (method->flags & ACC_SYNCHRONIZED))
 		parentargs_base++;
@@ -442,7 +432,7 @@ void codegen()
 	(void) dseg_addaddress(method);                         /* MethodPointer  */
 	(void) dseg_adds4(parentargs_base * 8);                 /* FrameSize      */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 
 	/* IsSync contains the offset relative to the stack pointer for the
 	   argument of monitor_exit used in the exception handler. Since the
@@ -470,42 +460,11 @@ void codegen()
 	/* create exception table */
 
 	for (ex = extable; ex != NULL; ex = ex->down) {
-
-#ifdef LOOP_DEBUG	
-		if (ex->start != NULL)
-			printf("adding start - %d - ", ex->start->debug_nr);
-		else {
-			printf("PANIC - start is NULL");
-			exit(-1);
-		}
-#endif
-
 		dseg_addtarget(ex->start);
-
-#ifdef LOOP_DEBUG			
-		if (ex->end != NULL)
-			printf("adding end - %d - ", ex->end->debug_nr);
-		else {
-			printf("PANIC - end is NULL");
-			exit(-1);
-		}
-#endif
-
    		dseg_addtarget(ex->end);
-
-#ifdef LOOP_DEBUG		
-		if (ex->handler != NULL)
-			printf("adding handler - %d\n", ex->handler->debug_nr);
-		else {
-			printf("PANIC - handler is NULL");
-			exit(-1);
-		}
-#endif
-
 		dseg_addtarget(ex->handler);
-	   
 		(void) dseg_addaddress(ex->catchtype);
-		}
+	}
 	
 	/* initialize mcode variables */
 	
@@ -530,17 +489,17 @@ void codegen()
 
 	/* save monitorenter argument */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 		if (method->flags & ACC_STATIC) {
-			p = dseg_addaddress (class);
+			p = dseg_addaddress(class);
 			M_ALD(REG_ITMP1, REG_PV, p);
-			M_AST(REG_ITMP1, REG_SP, 8 * maxmemuse);
-			} 
-		else {
-			M_AST (argintregs[0], REG_SP, 8 * maxmemuse);
-			}
-		}			
+			M_AST(REG_ITMP1, REG_SP, maxmemuse * 8);
+
+		} else {
+			M_AST (argintregs[0], REG_SP, maxmemuse * 8);
+		}
+	}			
 #endif
 
 	/* copy argument registers to stack and call trace function with pointer
@@ -658,16 +617,16 @@ void codegen()
 
 	/* call monitorenter function */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 		int disp;
-		p = dseg_addaddress ((void*) (builtin_monitorenter));
+		p = dseg_addaddress((void*) (builtin_monitorenter));
 		M_ALD(REG_PV, REG_PV, p);
-		M_ALD(argintregs[0], REG_SP, 8 * maxmemuse);
+		M_ALD(argintregs[0], REG_SP, maxmemuse * 8);
 		M_JSR(REG_RA, REG_PV);
 		disp = -(int)((u1*) mcodeptr - mcodebase);
 		M_LDA(REG_PV, REG_RA, disp);
-		}			
+	}			
 #endif
 	}
 
@@ -1971,15 +1930,6 @@ void codegen()
 
 		/* memory operations **************************************************/
 
-			/* #define gen_bound_check \
-			if (checkbounds) {\
-				M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
-				M_CMPULT(s2, REG_ITMP3, REG_ITMP3);\
-				M_BEQZ(REG_ITMP3, 0);\
-				codegen_addxboundrefs(mcodeptr);\
-				}
-			*/
-
 #define gen_bound_check \
     if (checkbounds) { \
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
@@ -3056,15 +3006,15 @@ void codegen()
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				int disp;
+				s4 disp;
 				a = dseg_addaddress((void *) (builtin_monitorexit));
 				M_ALD(REG_PV, REG_PV, a);
 				M_ALD(argintregs[0], REG_SP, maxmemuse * 8);
 				M_LST(REG_RESULT, REG_SP, maxmemuse * 8);
 				M_JSR(REG_RA, REG_PV);
-				disp = -(int) ((u1 *) mcodeptr - mcodebase);
+				disp = -(s4) ((u1 *) mcodeptr - mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
 				M_LLD(REG_RESULT, REG_SP, maxmemuse * 8);
 			}
@@ -3078,15 +3028,15 @@ void codegen()
 			var_to_reg_flt(s1, src, REG_FRESULT);
 			M_FLTMOVE(s1, REG_FRESULT);
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				int disp;
+				s4 disp;
 				a = dseg_addaddress((void *) (builtin_monitorexit));
 				M_ALD(REG_PV, REG_PV, a);
 				M_ALD(argintregs[0], REG_SP, maxmemuse * 8);
 				M_DST(REG_FRESULT, REG_SP, maxmemuse * 8);
 				M_JSR(REG_RA, REG_PV);
-				disp = -(int) ((u1 *) mcodeptr - mcodebase);
+				disp = -(s4) ((u1 *) mcodeptr - mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
 				M_DLD(REG_FRESULT, REG_SP, maxmemuse * 8);
 			}
@@ -3096,14 +3046,14 @@ void codegen()
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				int disp;
+				s4 disp;
 				a = dseg_addaddress((void *) (builtin_monitorexit));
 				M_ALD(REG_PV, REG_PV, a);
 				M_ALD(argintregs[0], REG_SP, maxmemuse * 8);
 				M_JSR(REG_RA, REG_PV);
-				disp = -(int) ((u1 *) mcodeptr - mcodebase);
+				disp = -(s4) ((u1 *) mcodeptr - mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
 			}
 #endif
@@ -3602,10 +3552,10 @@ makeactualcall:
 			codegen_addxcheckarefs(mcodeptr);
 			break;
 
-		case ICMD_CHECKOOM:    /* ... ==> ...                                 */
+		case ICMD_CHECKEXCEPTION:    /* ... ==> ...                           */
 
 			M_BEQZ(REG_RESULT, 0);
-			codegen_addxoomrefs(mcodeptr);
+			codegen_addxexceptionrefs(mcodeptr);
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
@@ -3707,18 +3657,13 @@ makeactualcall:
 	s4 *xcodeptr = NULL;
 	
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-				xboundrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (4 + 4));
-			continue;
-		}
-
-
 		gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-		                  xboundrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		                  xboundrefs->branchpos,
+						  (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
+		/* move index register into REG_ITMP1 */
 		M_MOV(xboundrefs->reg, REG_ITMP1);
 		M_LDA(REG_ITMP2_XPC, REG_PV, xboundrefs->branchpos - 4);
 
@@ -3768,12 +3713,14 @@ makeactualcall:
 	for (; xcheckarefs != NULL; xcheckarefs = xcheckarefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
-				xcheckarefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - 4);
+							  xcheckarefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - 4);
 			continue;
 		}
 
 		gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
-		                  xcheckarefs->branchpos, (u1*) mcodeptr - mcodebase);
+		                  xcheckarefs->branchpos,
+						  (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -3824,12 +3771,14 @@ makeactualcall:
 	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
-				xcastrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - 4);
+							  xcastrefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - 4);
 			continue;
 		}
 
 		gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
-		                  xcastrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		                  xcastrefs->branchpos,
+						  (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -3873,24 +3822,25 @@ makeactualcall:
 		}
 	}
 
-	/* generate oom check stubs */
+	/* generate exception check stubs */
 
 	xcodeptr = NULL;
 
-	for (; xoomrefs != NULL; xoomrefs = xoomrefs->next) {
+	for (; xexceptionrefs != NULL; xexceptionrefs = xexceptionrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xoomrefs->branchpos,
-							  xoomrefs->branchpos,
+			gen_resolvebranch((u1*) mcodebase + xexceptionrefs->branchpos,
+							  xexceptionrefs->branchpos,
 							  (u1*) xcodeptr - (u1*) mcodebase - 4);
 			continue;
 		}
 
-		gen_resolvebranch((u1*) mcodebase + xoomrefs->branchpos, 
-		                  xoomrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		gen_resolvebranch((u1*) mcodebase + xexceptionrefs->branchpos, 
+		                  xexceptionrefs->branchpos,
+						  (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, xoomrefs->branchpos - 4);
+		M_LDA(REG_ITMP2_XPC, REG_PV, xexceptionrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
 			M_BR(xcodeptr - mcodeptr - 1);
@@ -3942,12 +3892,14 @@ makeactualcall:
 	for (; xnullrefs != NULL; xnullrefs = xnullrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
-				xnullrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - 4);
+							  xnullrefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - 4);
 			continue;
 		}
 
 		gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
-		                  xnullrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		                  xnullrefs->branchpos,
+						  (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -3993,16 +3945,6 @@ makeactualcall:
 	}
 
 	codegen_finish((int)((u1*) mcodeptr - mcodebase));
-
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Generating code done: ");
-		utf_sprint_classname(logtext + strlen(logtext), class->name);
-		sprintf(logtext + strlen(logtext), ".");
-		utf_sprint(logtext + strlen(logtext), method->name);
-		utf_sprint_classname(logtext + strlen(logtext), descriptor);
-		log_text(logtext);
-	}
 }
 
 
