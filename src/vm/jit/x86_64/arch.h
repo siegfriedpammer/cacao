@@ -1,4 +1,4 @@
-/* jit/x86_64/arch.h - architecture defines for x86_64
+/* src/vm/jit/x86_64/arch.h - architecture defines for x86_64
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: arch.h 1960 2005-02-23 11:06:33Z twisti $
+   Changes:
+
+   $Id: arch.h 2039 2005-03-20 11:24:19Z twisti $
 
 */
 
@@ -111,40 +113,40 @@
 
 /* define architecture features ***********************************************/
 
-#define POINTERSIZE              8
-#define WORDS_BIGENDIAN          0
+#define POINTERSIZE                      8
+#define WORDS_BIGENDIAN                  0
 
-#define U8_AVAILABLE             1
+#define U8_AVAILABLE                     1
 
-#define USE_CODEMMAP             1
-
-#define SUPPORT_DIVISION         1
-#define SUPPORT_LONG             1
-#define SUPPORT_FLOAT            1
-#define SUPPORT_DOUBLE           1
-/* #define SUPPORT_FMOD             1 */
-/* #define SUPPORT_IFCVT            1 */
-/* #define SUPPORT_FICVT            1 */
-
-#define SUPPORT_LONG_ADD         1
-#define SUPPORT_LONG_CMP         1
-#define SUPPORT_LONG_LOG         1
-#define SUPPORT_LONG_SHIFT       1
-#define SUPPORT_LONG_MUL         1
-#define SUPPORT_LONG_DIV         1
-#define SUPPORT_LONG_ICVT        1
-#define SUPPORT_LONG_FCVT        1
-
-#define SUPPORT_MUL_CONST        1      /* mutiply with immediate             */
-#define SUPPORT_LOGICAL_CONST    1      /* AND, OR, XOR with immediates       */
-
-#define SUPPORT_CONST_ASTORE     1      /* do we support const astores        */
-#define SUPPORT_ONLY_ZERO_ASTORE 0      /* on risc machines we can only store */
-                                        /* REG_ZERO                           */
+#define USE_CODEMMAP                     1
 
 /* #define USEBUILTINTABLE */
 
-#define CONDITIONAL_LOADCONST
+#define SUPPORT_DIVISION                 1
+#define SUPPORT_LONG                     1
+#define SUPPORT_FLOAT                    1
+#define SUPPORT_DOUBLE                   1
+/* #define SUPPORT_FMOD                    1 */
+/* #define SUPPORT_IFCVT                   1 */
+/* #define SUPPORT_FICVT                   1 */
+
+#define SUPPORT_LONG_ADD                 1
+#define SUPPORT_LONG_CMP                 1
+#define SUPPORT_LONG_LOGICAL             1
+#define SUPPORT_LONG_SHIFT               1
+#define SUPPORT_LONG_MUL                 1
+#define SUPPORT_LONG_DIV                 1
+#define SUPPORT_LONG_ICVT                1
+#define SUPPORT_LONG_FCVT                1
+
+#define SUPPORT_CONST_LOGICAL            1  /* AND, OR, XOR with immediates   */
+#define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */
+
+#define SUPPORT_CONST_STORE              1  /* do we support const stores     */
+#define SUPPORT_CONST_STORE_ZERO_ONLY    0  /* on some risc machines we can   */
+                                            /* only store REG_ZERO            */
+
+#define CONDITIONAL_LOADCONST            1
 
 #define CONSECUTIVE_INTARGS
 #define CONSECUTIVE_FLOATARGS
