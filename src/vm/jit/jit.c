@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1274 2004-07-05 17:24:40Z twisti $
+   $Id: jit.c 1340 2004-07-21 16:05:51Z twisti $
 
 */
 
@@ -46,6 +46,7 @@
 #include "types.h"
 #include "options.h"
 #include "statistics.h"
+#include "jit/codegen.inc.h"
 #include "jit/inline.h"
 #include "jit/jit.h"
 #include "jit/parse.h"
@@ -707,8 +708,8 @@ char *icmd_names[256] = {
 	"UNDEF4       ", /* ICONST_1      4 */
 	"IDIVPOW2     ", /* ICONST_2      5 */
 	"LDIVPOW2     ", /* ICONST_3      6 */
-	"UNDEF__7     ", /* ICONST_4      7 */
-	"UNDEF5       ", /* ICONST_5      8 */
+	"UNDEF7       ", /* ICONST_4      7 */
+	"UNDEF8       ", /* ICONST_5      8 */
 	"LCONST       ", /*               9 */
 	"LCMPCONST    ", /* LCONST_1     10 */
 	"FCONST       ", /*              11 */
@@ -1314,10 +1315,6 @@ builtin_descriptor builtin_desc[] = {
 
 /* include compiler subsystems ************************************************/
 
-/* from codegen.inc */
-extern int dseglen;
-
-
 /* dummy function, used when there is no JavaVM code available                */
 
 static void* do_nothing_function()
@@ -1342,27 +1339,17 @@ methodptr jit_compile(methodinfo *m)
 	s8 starttime = 0;
 	s8 stoptime  = 0;
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-	compiler_lock();
-#else
-	intsDisable();      /* disable interrupts */
-#endif
-#endif
-
 	if (opt_stat)
 		count_jit_calls++;
+
+	/* enter a monitor on the method */
+
+	builtin_monitorenter((java_objectheader *) m);
 
 	/* if method has been already compiled return immediately */
 
 	if (m->entrypoint) {
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-		compiler_unlock();
-#else
-		intsRestore();                             /* enable interrupts again */
-#endif
-#endif
+		builtin_monitorexit((java_objectheader *) m );
 
 		return m->entrypoint;
 	}
@@ -1377,13 +1364,8 @@ methodptr jit_compile(methodinfo *m)
 			log_message_class("Initialize class ", m->class);
 
 		if (!class_init(m->class)) {
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-			compiler_unlock();
-#else
-			intsRestore();
-#endif
-#endif
+			builtin_monitorexit((java_objectheader *) m );
+
 			return NULL;
 		}
 	}
@@ -1423,7 +1405,6 @@ methodptr jit_compile(methodinfo *m)
 	m->instructions = NULL;
 	m->stack = NULL;
 	m->exceptiontable = NULL;
-	m->registerdata = NULL;
 
 	/* release dump area */
 
@@ -1438,13 +1419,9 @@ methodptr jit_compile(methodinfo *m)
 
 	jitrunning = false;
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-	compiler_unlock();
-#else
-	intsRestore();
-#endif
-#endif
+	/* leave the monitor */
+
+	builtin_monitorexit((java_objectheader *) m );
 
 	/* return pointer to the methods entry point */
 
@@ -1523,7 +1500,8 @@ static methodptr jit_compile_intern(methodinfo *m)
 
 	reg_setup(m);
 
-	codegen_init();
+	/* setup the codegendata memory */
+	codegen_setup(m);
 
 	if (compileverbose)
 		log_message_method("Parsing: ", m);
@@ -1590,10 +1568,8 @@ static methodptr jit_compile_intern(methodinfo *m)
 	/* now generate the machine code */
 	codegen(m);
 
-	if (compileverbose) {
+	if (compileverbose)
 		log_message_method("Generating code done: ", m);
-		log_message_method("Compiling done: ", m);
-	}
 
 	/* intermediate and assembly code listings */
 		
@@ -1601,20 +1577,35 @@ static methodptr jit_compile_intern(methodinfo *m)
 		show_icmd_method(m);
 
 	} else if (showdisassemble) {
-		disassemble((void *) (m->mcode + dseglen), m->mcodelength - dseglen);
+		disassemble((void *) (m->mcode + m->codegendata->dseglen),
+					m->mcodelength - m->codegendata->dseglen);
 	}
 
 	if (showddatasegment)
-		dseg_display((void *) (m->mcode));
+		dseg_display(m);
 
-	/* close register allocator */
+	/* free some memory */
+
 	reg_close(m);
+	codegen_close(m);
+
+	if (compileverbose)
+		log_message_method("Compiling done: ", m);
 
 	/* return pointer to the methods entry point */
 
 	return m->entrypoint;
 } 
 
+
+void compile_all_class_methods(classinfo *c)
+{
+	s4 i;
+
+	for (i = 0; i < c->methodscount; i++) {
+		(void) jit_compile(&(c->methods[i]));
+	}
+}
 
 
 /* functions for compiler initialisation and finalisation *********************/
@@ -1762,6 +1753,9 @@ void jit_init()
 	stackreq[JAVA_DUP2_X1] = 3;
 	stackreq[JAVA_DUP2_X2] = 4;
 
+	/* initialize the codegen stuff */
+	codegen_init();
+
 	init_exceptions();
 
 	/* initialize exceptions used in the system */
@@ -1770,11 +1764,8 @@ void jit_init()
 }
 
 
-
 void jit_close()
 {
-	codegen_close();
-/*  	reg_close(); */
 }
 
 
