@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMObject.c 1377 2004-08-01 22:01:00Z stefan $
+   $Id: VMObject.c 1517 2004-11-17 11:54:13Z twisti $
 
 */
 
@@ -45,8 +45,8 @@
 #include "threads/locks.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
-#include "java_lang_Cloneable.h"
-#include "java_lang_Object.h"
+#include "nat/java_lang_Cloneable.h"
+#include "nat/java_lang_Object.h"
 
 
 /*
