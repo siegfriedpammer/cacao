@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 843 2004-01-05 00:50:24Z twisti $
+   $Id: parse.c 863 2004-01-07 18:50:41Z edwin $
 
 */
 
@@ -1591,7 +1591,7 @@ void parse()
 			extable[i].start = block + block_index[p];
 
 			p = extable[i].endpc;
-			extable[i].end = block + block_index[p]; 
+			extable[i].end = (p == cumjcodelength) ? last_block : (block + block_index[p]);
 
 			p = extable[i].handlerpc;
 			extable[i].handler = block + block_index[p];
