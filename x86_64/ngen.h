@@ -11,7 +11,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: ngen.h 424 2003-09-07 16:09:37Z twisti $
+    Last Change: $Id: ngen.h 427 2003-09-12 15:08:38Z twisti $
 
 *******************************************************************************/
 
@@ -59,16 +59,20 @@
 /* #define REG_END   -1        last entry in tables */
 
 int nregdescint[] = {
-    REG_RET, REG_ARG, REG_ARG, REG_TMP, REG_RES, REG_SAV, REG_ARG, REG_ARG,
-    REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+      REG_RET, REG_ARG, REG_ARG, REG_TMP, REG_RES, REG_SAV, REG_ARG, REG_ARG,
+      REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+/*    REG_RET, REG_ARG, REG_ARG, REG_SAV, REG_RES, REG_SAV, REG_ARG, REG_ARG, */
+/*    REG_TMP, REG_TMP, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, */
     REG_END
 };
 
 /* for use of reserved registers, see comment above */
 
 int nregdescfloat[] = {
+/*      REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, */
+/*      REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, */
     REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
-    REG_RES, REG_RES, REG_TMP, REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+    REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
     REG_END
 };
 
@@ -120,46 +124,6 @@ typedef enum {
     RIP = 16,
     NREG
 } X86_64_Reg_No;
-
-typedef enum {
-    EAX = 0,
-    ECX = 1,
-    EDX = 2,
-    EBX = 3,
-    ESP = 4,
-    EBP = 5,
-    ESI = 6,
-    EDI = 7,
-    R8D = 8,
-    R9D = 9,
-    R10D = 10,
-    R11D = 11,
-    R12D = 12,
-    R13D = 13,
-    R14D = 14,
-    R15D = 15,
-    NREGD
-} X86_64_RegD_No;
-
-typedef enum {
-    AL = 0,
-    CL = 1,
-    DL = 2,
-    BL = 3,
-    SPL = 4,
-    BPL = 5,
-    SIL = 6,
-    DIL = 7,
-    R8B = 8,
-    R9B = 9,
-    R10B = 10,
-    R11B = 11,
-    R12B = 12,
-    R13B = 13,
-    R14B = 14,
-    R15B = 15,
-    NREGB
-} X86_64_RegB_No;
 
 typedef enum {
     XMM0 = 0,
@@ -452,21 +416,6 @@ static const unsigned char x86_64_cc_map[] = {
     } while (0)
 
 
-#define x86_64_movb_imm_reg(imm,reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xc6; \
-        x86_64_emit_reg(0,(reg)); \
-        x86_64_emit_imm8((imm)); \
-    } while (0)
-
-
-#define x86_64_mov_float_reg(imm,reg) \
-    do { \
-        *(mcodeptr++) = (u1) 0xb8 + ((reg) & 0x07); \
-        x86_64_emit_float32((imm)); \
-    } while (0)
-
-
 #define x86_64_mov_membase_reg(basereg,disp,reg) \
     do { \
         x86_64_emit_rex(1,(reg),0,(basereg)); \
@@ -668,15 +617,6 @@ static const unsigned char x86_64_cc_map[] = {
     } while (0)
 
 
-#define x86_64_movzbl_reg_reg(reg,dreg) \
-    do { \
-        *(mcodeptr++) = (u1) 0x0f; \
-        *(mcodeptr++) = (u1) 0xb6; \
-        /* XXX: why do reg and dreg have to be exchanged */ \
-        x86_64_emit_reg((dreg),(reg)); \
-    } while (0)
-
-
 #define x86_64_movzwq_reg_reg(reg,dreg) \
     do { \
         x86_64_emit_rex(1,(dreg),0,(reg)); \
@@ -693,16 +633,6 @@ static const unsigned char x86_64_cc_map[] = {
         *(mcodeptr++) = (u1) 0x0f; \
         *(mcodeptr++) = (u1) 0xb7; \
         x86_64_emit_membase((basereg),(disp),(dreg)); \
-    } while (0)
-
-
-#define x86_64_movzwl_reg_reg(reg,dreg) \
-    do { \
-        x86_64_emit_rex(0,(dreg),0,(reg)); \
-        *(mcodeptr++) = (u1) 0x0f; \
-        *(mcodeptr++) = (u1) 0xb7; \
-        /* XXX: why do reg and dreg have to be exchanged */ \
-        x86_64_emit_reg((dreg),(reg)); \
     } while (0)
 
 
@@ -1562,7 +1492,6 @@ static const unsigned char x86_64_cc_map[] = {
     } while (0)
 
 
-#if 0
 #define x86_64_movd_reg_membase(reg,basereg,disp) \
     do { \
         *(mcodeptr++) = 0x66; \
@@ -1586,6 +1515,16 @@ static const unsigned char x86_64_cc_map[] = {
 #define x86_64_movd_membase_reg(basereg,disp,dreg) \
     do { \
         *(mcodeptr++) = 0x66; \
+        x86_64_emit_rex(1,(dreg),0,(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x6e; \
+        x86_64_emit_membase((basereg),(disp),(dreg)); \
+    } while (0)
+
+
+#define x86_64_movdl_membase_reg(basereg,disp,dreg) \
+    do { \
+        *(mcodeptr++) = 0x66; \
         x86_64_emit_rex(0,(dreg),0,(basereg)); \
         *(mcodeptr++) = 0x0f; \
         *(mcodeptr++) = 0x6e; \
@@ -1601,7 +1540,7 @@ static const unsigned char x86_64_cc_map[] = {
         *(mcodeptr++) = 0x6e; \
         x86_64_emit_memindex((dreg),(disp),(basereg),(indexreg),(scale)); \
     } while (0)
-#endif
+
 
 #define x86_64_movq_reg_reg(reg,dreg) \
     do { \
@@ -1683,12 +1622,31 @@ static const unsigned char x86_64_cc_map[] = {
     } while (0)
 
 
+#define x86_64_movlps_membase_reg(basereg,disp,dreg) \
+    do { \
+        x86_64_emit_rex(0,(dreg),0,(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x12; \
+        x86_64_emit_membase((basereg),(disp),(dreg)); \
+    } while (0)
+
+
 #define x86_64_movsd_membase_reg(basereg,disp,dreg) \
     do { \
         *(mcodeptr++) = 0xf2; \
         x86_64_emit_rex(0,(dreg),0,(basereg)); \
         *(mcodeptr++) = 0x0f; \
         *(mcodeptr++) = 0x10; \
+        x86_64_emit_membase((basereg),(disp),(dreg)); \
+    } while (0)
+
+
+#define x86_64_movlpd_membase_reg(basereg,disp,dreg) \
+    do { \
+        *(mcodeptr++) = 0x66; \
+        x86_64_emit_rex(0,(dreg),0,(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x12; \
         x86_64_emit_membase((basereg),(disp),(dreg)); \
     } while (0)
 
@@ -1801,6 +1759,15 @@ static const unsigned char x86_64_cc_map[] = {
     } while (0)
 
 
+#define x86_64_xorps_membase_reg(basereg,disp,dreg) \
+    do { \
+        x86_64_emit_rex(0,(dreg),0,(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x57; \
+        x86_64_emit_membase((basereg),(disp),(dreg)); \
+    } while (0)
+
+
 #define x86_64_xorpd_reg_reg(reg,dreg) \
     do { \
         *(mcodeptr++) = 0x66; \
@@ -1808,6 +1775,16 @@ static const unsigned char x86_64_cc_map[] = {
         *(mcodeptr++) = 0x0f; \
         *(mcodeptr++) = 0x57; \
         x86_64_emit_reg((dreg),(reg)); \
+    } while (0)
+
+
+#define x86_64_xorpd_membase_reg(basereg,disp,dreg) \
+    do { \
+        *(mcodeptr++) = 0x66; \
+        x86_64_emit_rex(0,(dreg),0,(basereg)); \
+        *(mcodeptr++) = 0x0f; \
+        *(mcodeptr++) = 0x57; \
+        x86_64_emit_membase((basereg),(disp),(dreg)); \
     } while (0)
 
 

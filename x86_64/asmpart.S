@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at            *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 424 2003-09-07 16:09:37Z twisti $         *
+*   Last Change: $Id: asmpart.S 427 2003-09-12 15:08:38Z twisti $         *
 *                                                                              *
 *******************************************************************************/
 
@@ -248,7 +248,7 @@ L_not_virtual_interface:        /* a call from asm_calljavamethod             */
 L_call_jit_compile:
         mov     (%rsp),%rbx     /* restore register                           */
         
-        sub     $(16*8),%rsp    /* 8 + 48 + 64 */
+        sub     $(24*8),%rsp    /* 8 + 48 + 64 + 64                           */
         
   		mov     %r11,0*8(%rsp)  /* save address for method pointer            */
 
@@ -267,6 +267,15 @@ L_call_jit_compile:
         movq    %xmm5,12*8(%rsp)
         movq    %xmm6,13*8(%rsp)
         movq    %xmm7,14*8(%rsp)
+
+        movq    %xmm8,15*8(%rsp) /* we use them as callee saved registers      */
+        movq    %xmm9,16*8(%rsp)
+        movq    %xmm10,17*8(%rsp)
+        movq    %xmm11,18*8(%rsp)
+        movq    %xmm12,19*8(%rsp)
+        movq    %xmm13,20*8(%rsp)
+        movq    %xmm14,21*8(%rsp)
+        movq    %xmm15,22*8(%rsp)
 
         mov     %rax,%rdi       /* pass method pointer                        */
 		call	jit_compile
@@ -289,7 +298,16 @@ L_call_jit_compile:
         movq    13*8(%rsp),%xmm6
         movq    14*8(%rsp),%xmm7
 
-        add     $(16*8),%rsp
+        movq    15*8(%rsp),%xmm8
+        movq    16*8(%rsp),%xmm9
+        movq    17*8(%rsp),%xmm10
+        movq    18*8(%rsp),%xmm11
+        movq    19*8(%rsp),%xmm12
+        movq    20*8(%rsp),%xmm13
+        movq    21*8(%rsp),%xmm14
+        movq    22*8(%rsp),%xmm15
+
+        add     $(24*8),%rsp
         
 		test	%r11,%r11		/* is address == 0 (asm_calljavamethod)       */
 		je		L_call_method
@@ -511,21 +529,21 @@ noint:
         cmpl    $7,%edx
         je      flt7
 
-        movq    -64(%rax),%xmm0
+        movq    -64(%rax),%xmm8
 flt7:   
-        movq    -56(%rax),%xmm1
+        movq    -56(%rax),%xmm9
 flt6:   
-        movq    -48(%rax),%xmm2
+        movq    -48(%rax),%xmm10
 flt5:   
-        movq    -40(%rax),%xmm3
+        movq    -40(%rax),%xmm11
 flt4:   
-        movq    -32(%rax),%xmm4
+        movq    -32(%rax),%xmm12
 flt3:   
-        movq    -24(%rax),%xmm5
+        movq    -24(%rax),%xmm13
 flt2:   
-        movq    -16(%rax),%xmm6
+        movq    -16(%rax),%xmm14
 flt1:   
-        movq    -8(%rax),%xmm7
+        movq    -8(%rax),%xmm15
                 
 noflt:					
 		pop     %r10						/* the new xpc is return address  */
@@ -784,17 +802,26 @@ asm_switchstackandcall:
 *                                                                              *
 *   classinfo *asm_getcallingmethod ();         							   *
 *																			   *	
-*   goes back stack frames to get the calling method						   *	   
-*																			   *	
+*   goes back stack frames to get the calling method						   *
+*																			   *
 *				t2 .. sp												       *
 *				t3 .. ra												       *
 *				t4 .. pv												       *
 *                                                                              *
+*   Stack:                                                                     *
+*       java function                                                          *
+*       native stub                                                            *
+*       Java_java_lang_System_getCallerClass                                   *
+*                                                                              *
 *******************************************************************************/
 
 asm_getcallingmethod:
-        xor     %rax,%rax
-        mov     %rax,(%rax)
+        mov     %rbp,%rax               /* return address of native function  */
+        add     $(2*8),%rax             /* %rsp, return address               */
+        add     $(7*8),%rax             /* native stub stackframe             */
+        mov     (%rax),%rdi             /* return address to java function    */
+        call    findmethod
+        mov     MethodPointer(%rax),%rax
         ret
 
 
