@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 868 2004-01-10 20:12:10Z edwin $
+   $Id: builtin.c 890 2004-01-19 12:24:13Z edwin $
 
 */
 
@@ -59,103 +59,6 @@
 
 
 #undef DEBUG /*define DEBUG 1*/
-
-/* XXX delete? */
-#if 0
-builtin_descriptor builtin_desc[] = {
-	{(functionptr) builtin_instanceof,		   "instanceof"},
-	{(functionptr) builtin_checkcast,		   "checkcast"},
-	{(functionptr) asm_builtin_checkcast,	   "checkcast"},
-	{(functionptr) builtin_arrayinstanceof,	   "arrayinstanceof"},
-#if defined(__I386__)
-	{(functionptr) asm_builtin_arrayinstanceof,"arrayinstanceof"},
-#endif
-	{(functionptr) builtin_checkarraycast,	   "checkarraycast"},
-	{(functionptr) asm_builtin_checkarraycast, "checkarraycast"},
-	{(functionptr) asm_builtin_aastore,		   "aastore"},
-	{(functionptr) builtin_new,				   "new"},
-	{(functionptr) builtin_newarray,       "newarray"},
-	{(functionptr) builtin_anewarray,          "anewarray"},
-#if defined(__I386__)
-	/*
-	 * have 2 parameters (needs stack manipulation)
-	 */
-	{(functionptr) asm_builtin_newarray,       "newarray"},
-#endif
-	{(functionptr) builtin_newarray_boolean,   "newarray_boolean"},
-	{(functionptr) builtin_newarray_char,	   "newarray_char"},
-	{(functionptr) builtin_newarray_float,	   "newarray_float"},
-	{(functionptr) builtin_newarray_double,	   "newarray_double"},
-	{(functionptr) builtin_newarray_byte,	   "newarray_byte"},
-	{(functionptr) builtin_newarray_short,	   "newarray_short"},
-	{(functionptr) builtin_newarray_int,	   "newarray_int"},
-	{(functionptr) builtin_newarray_long,	   "newarray_long"},
-	{(functionptr) builtin_displaymethodstart, "displaymethodstart"},
-	{(functionptr) builtin_displaymethodstop,  "displaymethodstop"},
-	{(functionptr) builtin_monitorenter,	   "monitorenter"},
-	{(functionptr) asm_builtin_monitorenter,   "monitorenter"},
-	{(functionptr) builtin_monitorexit,		   "monitorexit"},
-	{(functionptr) asm_builtin_monitorexit,	   "monitorexit"},
-#if !SUPPORT_DIVISION
-	{(functionptr) builtin_idiv,			   "idiv"},
-	{(functionptr) asm_builtin_idiv,		   "idiv"},
-	{(functionptr) builtin_irem,			   "irem"},
-	{(functionptr) asm_builtin_irem,		   "irem"},
-#endif
-	{(functionptr) builtin_ladd,			   "ladd"},
-	{(functionptr) builtin_lsub,			   "lsub"},
-	{(functionptr) builtin_lmul,			   "lmul"},
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
-	{(functionptr) builtin_ldiv,			   "ldiv"},
-	{(functionptr) asm_builtin_ldiv,		   "ldiv"},
-	{(functionptr) builtin_lrem,			   "lrem"},
-	{(functionptr) asm_builtin_lrem,		   "lrem"},
-#endif
-	{(functionptr) builtin_lshl,			   "lshl"},
-	{(functionptr) builtin_lshr,			   "lshr"},
-	{(functionptr) builtin_lushr,			   "lushr"},
-	{(functionptr) builtin_land,			   "land"},
-	{(functionptr) builtin_lor,				   "lor"},
-	{(functionptr) builtin_lxor,			   "lxor"},
-	{(functionptr) builtin_lneg,			   "lneg"},
-	{(functionptr) builtin_lcmp,			   "lcmp"},
-	{(functionptr) builtin_fadd,			   "fadd"},
-	{(functionptr) builtin_fsub,			   "fsub"},
-	{(functionptr) builtin_fmul,			   "fmul"},
-	{(functionptr) builtin_fdiv,			   "fdiv"},
-	{(functionptr) builtin_frem,			   "frem"},
-	{(functionptr) builtin_fneg,			   "fneg"},
-	{(functionptr) builtin_fcmpl,			   "fcmpl"},
-	{(functionptr) builtin_fcmpg,			   "fcmpg"},
-	{(functionptr) builtin_dadd,			   "dadd"},
-	{(functionptr) builtin_dsub,			   "dsub"},
-	{(functionptr) builtin_dmul,			   "dmul"},
-	{(functionptr) builtin_ddiv,			   "ddiv"},
-	{(functionptr) builtin_drem,			   "drem"},
-	{(functionptr) builtin_dneg,			   "dneg"},
-	{(functionptr) builtin_dcmpl,			   "dcmpl"},
-	{(functionptr) builtin_dcmpg,			   "dcmpg"},
-	{(functionptr) builtin_i2l,				   "i2l"},
-	{(functionptr) builtin_i2f,				   "i2f"},
-	{(functionptr) builtin_i2d,				   "i2d"},
-	{(functionptr) builtin_l2i,				   "l2i"},
-	{(functionptr) builtin_l2f,				   "l2f"},
-	{(functionptr) builtin_l2d,				   "l2d"},
-	{(functionptr) builtin_f2i,				   "f2i"},
-	{(functionptr) builtin_f2l,				   "f2l"},
-	{(functionptr) builtin_f2d,				   "f2d"},
-	{(functionptr) builtin_d2i,				   "d2i"},
-	{(functionptr) builtin_d2l,				   "d2l"},
-#if defined(__I386__)
-	{(functionptr) asm_builtin_f2i,			   "f2i"},
-	{(functionptr) asm_builtin_f2l,			   "f2l"},
-	{(functionptr) asm_builtin_d2i,			   "d2i"},
-	{(functionptr) asm_builtin_d2l,			   "d2l"},
-#endif
-	{(functionptr) builtin_d2f,				   "d2f"},
-	{(functionptr) NULL,					   "unknown"}
-};
-#endif
 
 
 /*****************************************************************************
@@ -223,7 +126,6 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 	return res;
 }
 
-/* XXX inline this? */
 s4 builtin_isanysubclass_vftbl(vftbl *sub,vftbl *super)
 {
 	int base;
@@ -310,7 +212,6 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 			
 ******************************************************************************/
 
-/* XXX inline this? */
 static s4 builtin_descriptorscompatible(arraydescriptor *desc,arraydescriptor *target)
 {
 	if (desc==target) return 1;
@@ -525,7 +426,6 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 
 /* This is an optimized version where a is guaranteed to be a
  * one-dimensional array of a class type */
-/* XXX this could be inlined by the code generator */
 s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 {
 	vftbl *elementvftbl;
@@ -821,8 +721,10 @@ java_arrayheader *builtin_nmultianewarray (int n, vftbl *arrayvftbl, long *dims)
 
 	/* get the vftbl of the components to create */
 	componentvftbl = arrayvftbl->arraydesc->componentvftbl;
-	if (!componentvftbl) /* XXX the verifier could check this */
-		panic ("multianewarray with too many dimensions");
+
+	/* The verifier guarantees this. */
+	/* if (!componentvftbl) */
+	/*	panic ("multianewarray with too many dimensions"); */
 
 	/* create the component arrays */
 	for (i = 0; i < size; i++) {

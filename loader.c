@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 881 2004-01-13 19:57:08Z edwin $
+   $Id: loader.c 890 2004-01-19 12:24:13Z edwin $
 
 */
 
@@ -763,7 +763,7 @@ static int checkmethoddescriptor (utf *d)
 
     /* check arguments */
     while (utf_ptr != end_pos && *utf_ptr != ')') {
-		/* XXX we cannot count the this argument here because
+		/* We cannot count the this argument here because
 		 * we don't know if the method is static. */
 		if (*utf_ptr == 'J' || *utf_ptr == 'D')
 			argcount+=2;
@@ -790,7 +790,6 @@ static int checkmethoddescriptor (utf *d)
 
 	/* XXX use the following if -noverify */
 #if 0
-	/* XXX check length */
 	/* check arguments */
 	while ((c = *utf_ptr++) != ')') {
 		start = utf_ptr-1;
@@ -1070,7 +1069,6 @@ static void method_load(methodinfo *m, classinfo *c)
 			panic("Method has more than 255 arguments");
 
 		/* check flag consistency */
-		/* XXX could check if <clinit> is STATIC */
 		if (m->name != utf_clinit) {
 			i = (m->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
 			if (i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED)
@@ -1706,7 +1704,7 @@ static int class_load(classinfo *c)
 	/* check ACC flags consistency */
 	if ((c->flags & ACC_INTERFACE) != 0) {
 		if ((c->flags & ACC_ABSTRACT) == 0) {
-			/* XXX We work around this because interfaces in JDK 1.1 are
+			/* We work around this because interfaces in JDK 1.1 are
 			 * not declared abstract. */
 
 			c->flags |= ACC_ABSTRACT;
@@ -1974,7 +1972,7 @@ void class_new_array(classinfo *c)
 	methodinfo *clone;
 	int namelen;
 
-	/* XXX remove */ /* dolog("class_new_array: %s",c->name->text); */
+	/* DEBUG */ /* dolog("class_new_array: %s",c->name->text); */
 
 	/* Array classes are not loaded from classfiles. */
 	list_remove(&unloadedclasses, c);
@@ -2004,21 +2002,21 @@ void class_new_array(classinfo *c)
 	c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
 
     c->interfacescount = 2;
-    c->interfaces = MNEW(classinfo*,2); /* XXX use GC? */
+    c->interfaces = MNEW(classinfo*,2);
     c->interfaces[0] = class_java_lang_Cloneable;
     c->interfaces[1] = class_java_io_Serializable;
 
 	c->methodscount = 1;
-	c->methods = MNEW (methodinfo, c->methodscount); /* XXX use GC? */
+	c->methods = MNEW (methodinfo, c->methodscount);
 
 	clone = c->methods;
 	memset(clone, 0, sizeof(methodinfo));
-	clone->flags = ACC_PUBLIC; /* XXX protected? */
+	clone->flags = ACC_PUBLIC;
 	clone->name = utf_new_char("clone");
 	clone->descriptor = utf_new_char("()Ljava/lang/Object;");
 	clone->class = c;
 	clone->stubroutine = createnativestub((functionptr) &builtin_clone_array, clone);
-	clone->monoPoly = MONO; /* XXX should be poly? */
+	clone->monoPoly = MONO;
 
 	/* XXX: field: length? */
 
@@ -3223,7 +3221,7 @@ classinfo *loader_load(utf *topname)
 	if (linkverbose)
 		dolog("Linking...");
 
-	/* XXX added a hack to break infinite linking loops. A better
+	/* Added a hack to break infinite linking loops. A better
 	 * linking algorithm would be nice. -Edwin */
 	notlinkable = NULL;
 	while ((c = list_first(&unlinkedclasses))) {
@@ -3285,7 +3283,7 @@ classinfo *loader_load(utf *topname)
 	pthread_mutex_unlock(&compiler_mutex);
 #endif
 
-	/* XXX DEBUG */ if (linkverbose && !top) dolog("returning NULL from loader_load");
+	/* DEBUG */ /*if (linkverbose && !top) dolog("returning NULL from loader_load");*/
 	
 	return top; 
 }
@@ -3471,7 +3469,7 @@ classinfo *class_from_descriptor(char *utf_ptr, char *end_ptr,
 			  if (mode & CLASSLOAD_SKIP) return class_java_lang_Object;
 			  name = utf_new(start,utf_ptr-start);
 			  return (mode & CLASSLOAD_LOAD)
-				  ? loader_load(name) : class_new(name); /* XXX */
+				  ? loader_load(name) : class_new(name); /* XXX handle errors */
 		}
 	}
 

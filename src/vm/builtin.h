@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 879 2004-01-12 13:31:56Z twisti $
+   $Id: builtin.h 890 2004-01-19 12:24:13Z edwin $
 
 */
 
@@ -70,14 +70,6 @@
  * must be an entry in the builtin_desc table in jit/jit.c.
  */
  
-/* XXX delete */
-#if 0
-typedef struct builtin_descriptor {
-	functionptr bptr;
-	char        *name;
-	} builtin_descriptor;
-#endif
-
 typedef struct builtin_descriptor builtin_descriptor;
 
 /* There is a builtin_descriptor in builtin_desc for every builtin
@@ -232,12 +224,12 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5, s8 a6, s8 a7, 
 /* NOT AN OP */
 #endif
 #endif
-void builtin_displaymethodstart(methodinfo *method); /* XXX? */
+void builtin_displaymethodstart(methodinfo *method);
 /* NOT AN OP */
 void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f);
 /* NOT AN OP */
-/* void builtin_displaymethodstop(methodinfo *method); */ /* XXX? */
-void builtin_displaymethodexception(methodinfo *method); /* XXX? */
+/* void builtin_displaymethodstop(methodinfo *method); */
+void builtin_displaymethodexception(methodinfo *method);
 /* NOT AN OP */
 
 void builtin_monitorenter(java_objectheader *o);
@@ -289,36 +281,36 @@ s8 builtin_lneg(s8 a);
 s4 builtin_lcmp(s8 a, s8 b);
 #define BUILTIN_lcmp (functionptr) builtin_lcmp
 
-float builtin_fadd(float a, float b); /* XXX? */
+float builtin_fadd(float a, float b);
 /* NOT AN OP */
-float builtin_fsub(float a, float b); /* XXX? */
+float builtin_fsub(float a, float b);
 /* NOT AN OP */
-float builtin_fmul(float a, float b); /* XXX? */
+float builtin_fmul(float a, float b);
 /* NOT AN OP */
-float builtin_fdiv(float a, float b); /* XXX? */
+float builtin_fdiv(float a, float b);
 /* NOT AN OP */
-float builtin_fneg(float a);          /* XXX? */
+float builtin_fneg(float a);         
 /* NOT AN OP */
-s4 builtin_fcmpl(float a, float b);   /* XXX? */
+s4 builtin_fcmpl(float a, float b);  
 /* NOT AN OP */
-s4 builtin_fcmpg(float a, float b);   /* XXX? */
+s4 builtin_fcmpg(float a, float b);  
 /* NOT AN OP */
 float builtin_frem(float a, float b);
 #define BUILTIN_frem (functionptr) builtin_frem
 
-double builtin_dadd(double a, double b); /* XXX? */
+double builtin_dadd(double a, double b);
 /* NOT AN OP */
-double builtin_dsub(double a, double b); /* XXX? */
+double builtin_dsub(double a, double b);
 /* NOT AN OP */
-double builtin_dmul(double a, double b); /* XXX? */
+double builtin_dmul(double a, double b);
 /* NOT AN OP */
-double builtin_ddiv(double a, double b); /* XXX? */
+double builtin_ddiv(double a, double b);
 /* NOT AN OP */
-double builtin_dneg(double a);           /* XXX? */ 
+double builtin_dneg(double a);          
 /* NOT AN OP */
-s4 builtin_dcmpl(double a, double b);    /* XXX? */
+s4 builtin_dcmpl(double a, double b);   
 /* NOT AN OP */
-s4 builtin_dcmpg(double a, double b);    /* XXX? */
+s4 builtin_dcmpg(double a, double b);   
 /* NOT AN OP */
 double builtin_drem(double a, double b);
 #define BUILTIN_drem (functionptr) builtin_drem
@@ -345,7 +337,7 @@ s8       builtin_f2l(float a);
 s8       asm_builtin_f2l(float a);
 /* NOT AN OP */
 
-double   builtin_f2d(float a);     /* XXX? */
+double   builtin_f2d(float a);
 /* NOT AN OP */
 
 s4       builtin_d2i(double a);
@@ -357,7 +349,7 @@ s8       builtin_d2l(double a);
 s8       asm_builtin_d2l(double a);
 /* NOT AN OP */
 
-float    builtin_d2f(double a);    /* XXX? */
+float    builtin_d2f(double a);
 /* NOT AN OP */
 
 java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o);
