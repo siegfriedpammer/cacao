@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 2089 2005-03-27 14:41:38Z edwin $
+   $Id: global.h 2092 2005-03-27 15:15:50Z edwin $
 
 */
 
@@ -810,10 +810,6 @@ struct arraydescriptor {
 /* flag variables *************************************************************/
 
 extern bool cacao_initializing;
-
-#ifdef TYPECHECK_VERBOSE_OPT
-extern bool typecheckverbose;
-#endif
 
 /*extern int pClassHeir;*/
 /*extern int pCallgraph;*/
