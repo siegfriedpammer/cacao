@@ -87,7 +87,7 @@ void initThread(java_lang_Thread *);
 void joinAllThreads();
 
 bool aliveThread(java_lang_Thread *);
-void sleepThread (s8);
+void sleepThread(s8 millis, s4 nanos);
 void yieldThread();
 
 #if !defined(HAVE___THREAD)

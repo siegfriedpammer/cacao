@@ -420,7 +420,7 @@ void
 initThreads(u1 *stackbottom)
 {
 	classinfo *threadclass;
-        classinfo *threadgroupclass;
+	classinfo *threadgroupclass;
 	java_lang_Thread *mainthread;
 	threadobject *tempthread = mainthreadobj;
 
@@ -428,12 +428,16 @@ initThreads(u1 *stackbottom)
 	class_load(threadclass);
 	class_link(threadclass);
 
-	assert(threadclass);
+	if (!threadclass)
+		throw_exception_exit();
+
 	freeLockRecordPools(mainthreadobj->ee.lrpool);
 	threadclass->instancesize = sizeof(threadobject);
 
 	mainthreadobj = (threadobject *) builtin_new(threadclass);
-	assert(mainthreadobj);
+
+	if (!mainthreadobj)
+		throw_exception_exit();
 
 	FREE(tempthread, threadobject);
 	initThread(&mainthreadobj->o);
@@ -453,12 +457,11 @@ initThreads(u1 *stackbottom)
 
 	/* Allocate and init ThreadGroup */
 	threadgroupclass = class_new(utf_new_char("java/lang/ThreadGroup"));
-	class_load(threadgroupclass);
-	class_link(threadgroupclass);
-
 	mainthread->group =
 		(java_lang_ThreadGroup *) native_new_and_init(threadgroupclass);
-	assert(mainthread->group != 0);
+
+	if (!mainthread->group)
+		throw_exception_exit();
 
 	pthread_attr_init(&threadattr);
 	pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_DETACHED);
@@ -506,17 +509,19 @@ static void *threadstartup(void *t)
 	sem_post(psem);
 
 	/* Find the run()V method and call it */
-	method = class_findmethod(thread->o.header.vftbl->class,
-							  utf_new_char("run"), utf_new_char("()V"));
-	if (!method)
-		panic("Cannot find method \'void run ()\'");
+	method = class_resolveclassmethod(thread->o.header.vftbl->class,
+									  utf_new_char("run"),
+									  utf_new_char("()V"),
+									  thread->o.header.vftbl->class,
+									  true);
 
-	asm_calljavafunction(method, thread, NULL, NULL, NULL);
+	/* if method != NULL, we had not exception */
+	if (method) {
+		asm_calljavafunction(method, thread, NULL, NULL, NULL);
 
-    if (info->_exceptionptr) {
-        utf_display_classname((info->_exceptionptr)->vftbl->class->name);
-        printf("\n");
-    }
+	} else {
+		throw_exception();
+	}
 
 	freeLockRecordPools(thread->ee.lrpool);
 
@@ -572,11 +577,11 @@ bool aliveThread(java_lang_Thread *t)
 	return ((threadobject*) t)->info.tid != 0;
 }
 
-void sleepThread(s8 millis)
+void sleepThread(s8 millis, s4 nanos)
 {
 	struct timespec tv;
 	tv.tv_sec = millis / 1000;
-	tv.tv_nsec = millis % 1000 * 1000000;
+	tv.tv_nsec = millis % 1000 * 1000000 + nanos;
 	do { } while (nanosleep(&tv, &tv) == EINTR);
 }
 
@@ -835,6 +840,7 @@ void monitorExit(threadobject *t, java_objectheader *o)
 	long r = getMetaLock(t, o);
 	monitorLockRecord *ownerLR = lockRecord(r);
 	int state = lockState(r);
+
 	if (state == LOCKED && ownerLR->owner == t) {
 		assert(ownerLR->lockCount >= 1);
 		if (ownerLR->lockCount == 1) {
@@ -851,9 +857,14 @@ void monitorExit(threadobject *t, java_objectheader *o)
 			ownerLR->lockCount--;
 			releaseMetaLock(t, o, r);
 		}
+
 	} else {
 		releaseMetaLock(t, o, r);
-		panic("Illegal monitor exception");
+
+		/* throw an exception */
+
+		*exceptionptr =
+			new_exception(string_java_lang_IllegalMonitorStateException);
 	}
 }
 
@@ -882,6 +893,7 @@ void monitorWait(threadobject *t, java_objectheader *o, s8 millis)
 	long r = getMetaLock(t, o);
 	monitorLockRecord *ownerLR = lockRecord(r);
 	int state = lockState(r);
+
 	if (state == LOCKED && ownerLR->owner == t) {
 		pthread_mutex_lock(&t->ee.monitorLockMutex);
 		t->ee.isWaitingForNotify = true;
@@ -894,9 +906,14 @@ void monitorWait(threadobject *t, java_objectheader *o, s8 millis)
 		pthread_mutex_unlock(&t->ee.monitorLockMutex);
 		r = getMetaLock(t, o);
 		monitorEnterSlow(t, o, r);
+
 	} else {
 		releaseMetaLock(t, o, r);
-		panic("Illegal monitor exception");
+
+		/* throw an exception */
+
+		*exceptionptr =
+			new_exception(string_java_lang_IllegalMonitorStateException);
 	}
 }
 
@@ -905,6 +922,7 @@ static void notifyOneOrAll(threadobject *t, java_objectheader *o, bool one)
 	long r = getMetaLock(t, o);
 	monitorLockRecord *ownerLR = lockRecord(r);
 	int state = lockState(r);
+
 	if (state == LOCKED && ownerLR->owner == t) {
 		monitorLockRecord *q = ownerLR->queue;
 		while (q) {
@@ -916,9 +934,14 @@ static void notifyOneOrAll(threadobject *t, java_objectheader *o, bool one)
 			q = q->queue;
 		}
 		releaseMetaLock(t, o, r);
+
 	} else {
 		releaseMetaLock(t, o, r);
-		panic("Illegal monitor exception");
+
+		/* throw an exception */
+
+		*exceptionptr =
+			new_exception(string_java_lang_IllegalMonitorStateException);
 	}
 }
 
