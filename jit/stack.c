@@ -17,7 +17,7 @@
 #else
 #define COUNT(cnt)
 #endif
-
+ 
 #define STACKRESET {curstack=0;stackdepth=0;}
 
 #define TYPEPANIC  {show_icmd_method();panic("Stack type mismatch");}
@@ -164,7 +164,9 @@ static void analyse_stack()
 	int superblockend, repeat, deadcode;
 	instruction *iptr = instr;
 	basicblock *bptr, *tbptr;
-	s4  *s4ptr;
+	s4 *s4ptr;
+	void* *tptr;
+	xtable *ex;
 	
 	arguments_num = 0;
 	new = stack;
@@ -290,6 +292,7 @@ static void analyse_stack()
 				b_index = bptr - block;
 				while (--len >= 0)  {
 					opcode = iptr->opc;
+					iptr->target = NULL;
 					switch (opcode) {
 
 						/* pop 0 push 0 */
@@ -472,6 +475,9 @@ icmd_if_icmp_tail:
 										/* iptr[1].opc = ICMD_NOP; */
 										OP1_0(TYPE_INT);
 										tbptr = block + block_index[iptr->op1];
+
+										iptr[0].target = (void *) tbptr;
+
 										MARKREACHED(tbptr, copy);
 										COUNT(count_pcmd_bra);
 										break;
@@ -656,6 +662,9 @@ icmd_lconst_lcmp_tail:
 												iptr[2].opc = ICMD_NOP; */
 												OP1_0(TYPE_LNG);
 												tbptr = block + block_index[iptr->op1];
+
+												iptr[0].target = (void *) tbptr;
+
 												MARKREACHED(tbptr, copy);
 												COUNT(count_pcmd_bra);
 												COUNT(count_pcmd_op);
@@ -858,6 +867,9 @@ icmd_lconst_lcmp_tail:
 							COUNT(count_pcmd_bra);
 							OP1_0(TYPE_ADR);
 							tbptr = block + block_index[iptr->op1];
+
+							iptr[0].target = (void *) tbptr;
+
 							MARKREACHED(tbptr, copy);
 							break;
 
@@ -927,6 +939,9 @@ icmd_lconst_lcmp_tail:
 #endif
 							OP1_0(TYPE_INT);
 							tbptr = block + block_index[iptr->op1];
+
+							iptr[0].target = (void *) tbptr;
+
 							MARKREACHED(tbptr, copy);
 							break;
 
@@ -935,6 +950,9 @@ icmd_lconst_lcmp_tail:
 						case ICMD_GOTO:
 							COUNT(count_pcmd_bra);
 							tbptr = block + block_index[iptr->op1];
+
+							iptr[0].target = (void *) tbptr;
+
 							MARKREACHED(tbptr, copy);
 							SETDST;
 							superblockend = true;
@@ -950,8 +968,19 @@ icmd_lconst_lcmp_tail:
 							MARKREACHED(tbptr, copy);
 							i = *s4ptr++;                          /* low     */
 							i = *s4ptr++ - i + 1;                  /* high    */
+
+							tptr = DMNEW(void*, i+1);
+							iptr->target = (void *) tptr;
+
+							tptr[0] = (void *) tbptr;
+							tptr++;
+
 							while (--i >= 0) {
 								tbptr = block + block_index[*s4ptr++];
+
+								tptr[0] = (void *) tbptr;
+								tptr++;
+
 								MARKREACHED(tbptr, copy);
 								}
 							SETDST;
@@ -967,8 +996,19 @@ icmd_lconst_lcmp_tail:
 							tbptr = block + block_index[*s4ptr++]; /* default */
 							MARKREACHED(tbptr, copy);
 							i = *s4ptr++;                          /* count   */
+
+							tptr = DMNEW(void*, i+1);
+							iptr->target = (void *) tptr;
+
+							tptr[0] = (void *) tbptr;
+							tptr++;
+
 							while (--i >= 0) {
 								tbptr = block + block_index[s4ptr[1]];
+
+								tptr[0] = (void *) tbptr;
+								tptr++;
+								
 								MARKREACHED(tbptr, copy);
 								s4ptr += 2;
 								}
@@ -994,6 +1034,9 @@ icmd_lconst_lcmp_tail:
 							COUNT(count_pcmd_bra);
 							OP2_0(TYPE_INT);
 							tbptr = block + block_index[iptr->op1];
+							
+							iptr[0].target = (void *) tbptr;
+
 							MARKREACHED(tbptr, copy);
 							break;
 
@@ -1002,6 +1045,9 @@ icmd_lconst_lcmp_tail:
 							COUNT(count_pcmd_bra);
 							OP2_0(TYPE_ADR);
 							tbptr = block + block_index[iptr->op1];
+
+							iptr[0].target = (void *) tbptr;
+
 							MARKREACHED(tbptr, copy);
 							break;
 
@@ -1201,6 +1247,9 @@ icmd_lcmp_if_tail:
 										/* iptr[1].opc = ICMD_NOP; */
 										OP2_0(TYPE_LNG);
 										tbptr = block + block_index[iptr->op1];
+			
+										iptr[0].target = (void *) tbptr;
+
 										MARKREACHED(tbptr, copy);
 										COUNT(count_pcmd_bra);
 										break;
@@ -1342,6 +1391,9 @@ icmd_lcmp_if_tail:
 						case ICMD_JSR:
 							OP0_1(TYPE_ADR);
 							tbptr = block + block_index[iptr->op1];
+
+							iptr[0].target = (void *) tbptr;
+
 							tbptr->type=BBTYPE_SBR;
 							MARKREACHED(tbptr, copy);
 							OP1_0ANY;
@@ -1467,8 +1519,8 @@ builtin2:
 			else
 				count_block_stack[bptr->indepth]++;
 			len = bptr->icount;
-			if (len <= 10) 
-				count_block_size_distribution[len - 1]++;
+			if (len < 10) 
+				count_block_size_distribution[len]++;
 			else if (len <= 12)
 				count_block_size_distribution[10]++;
 			else if (len <= 14)
@@ -1658,11 +1710,14 @@ static char *jit_type[] = {
 
 static void show_icmd_method()
 {
-	int b, i, j, last;
+	int i, j, last;
 	int deadcode;
 	s4  *s4ptr;
 	instruction *iptr;
-	
+	basicblock *bptr;
+	void **tptr;
+	xtable *ex;
+
 	printf("\n");
 	unicode_fprint(stdout, class->name);
 	printf(".");
@@ -1672,11 +1727,11 @@ static void show_icmd_method()
 	printf ("\n\nMax locals: %d\n", (int) maxlocals);
 	printf ("Max stack:  %d\n", (int) maxstack);
 
-	printf ("Exceptions:\n");
-	for (i = 0; i < exceptiontablelength; i++) {
-		printf("    L%03d ... ", block_index[extable[i].startpc]);
-		printf("L%03d = ", block_index[extable[i].endpc]);
-		printf("L%03d\n", block_index[extable[i].handlerpc]);
+	printf ("Exceptions (Number: %d):\n", exceptiontablelength);
+	for (ex = extable; ex != NULL; ex = ex->down) {
+		printf("    L%03d ... ", ex->start->debug_nr );
+		printf("L%03d  = ", ex->end->debug_nr);
+		printf("L%03d\n", ex->handler->debug_nr);
 		}
 	
 	printf ("Local Table:\n");
@@ -1735,19 +1790,20 @@ static void show_icmd_method()
 		printf("\n");
 		}
 
-	for (b = 0; b < block_count; b++)
-		if (block[b].flags != BBDELETED) {
-		deadcode = block[b].flags <= BBREACHED;
+	
+	for (bptr = block; bptr != NULL; bptr = bptr->next)
+		if (bptr->flags != BBDELETED) {
+		deadcode = bptr->flags <= BBREACHED;
 		printf("[");
 		if (deadcode)
 			for (j = maxstack; j > 0; j--)
 				printf(" ?  ");
 		else
-			print_stack(block[b].instack);
-		printf("] L%03d(%d):\n", b, block[b].pre_count);
-		iptr = block[b].iinstr;
-		i = iptr - instr;
-		for (last = i + block[b].icount; i < last; i++, iptr++) {
+			print_stack(bptr->instack);
+		printf("] L%03d(%d - %d):\n", bptr->debug_nr, bptr->icount, bptr->pre_count);
+		iptr = bptr->iinstr;
+
+		for (i=0; i < bptr->icount; i++, iptr++) {
 			printf("[");
 			if (deadcode) {
 				for (j = maxstack; j > 0; j--)
@@ -1814,6 +1870,28 @@ static void show_icmd_method()
 				case ICMD_IINC:
 					printf(" %d + %d", iptr->op1, iptr->val.i);
 					break;
+
+			    case ICMD_IASTORE:
+			    case ICMD_SASTORE:
+			    case ICMD_BASTORE:
+			    case ICMD_CASTORE:
+			    case ICMD_LASTORE:
+			    case ICMD_DASTORE:
+			    case ICMD_FASTORE:
+			    case ICMD_AASTORE:
+
+			    case ICMD_IALOAD:
+			    case ICMD_SALOAD:
+			    case ICMD_BALOAD:
+			    case ICMD_CALOAD:
+			    case ICMD_LALOAD:
+			    case ICMD_DALOAD:
+			    case ICMD_FALOAD:
+			    case ICMD_AALOAD:
+					if (iptr->op1 != 0)
+						printf("(opt.)");
+					break;
+
 				case ICMD_RET:
 				case ICMD_ILOAD:
 				case ICMD_LLOAD:
@@ -1906,7 +1984,7 @@ static void show_icmd_method()
 				case ICMD_IF_LGE:
 				case ICMD_IF_LGT:
 				case ICMD_IF_LLE:
-					printf("(%d) L%03d", iptr->val.i, block_index[iptr->op1]);
+					printf("(%d) L%03d", iptr->val.i, ((basicblock *) iptr->target)->debug_nr);
 					break;
 				case ICMD_JSR:
 				case ICMD_GOTO:
@@ -1926,25 +2004,39 @@ static void show_icmd_method()
 				case ICMD_IF_LCMPLE:
 				case ICMD_IF_ACMPEQ:
 				case ICMD_IF_ACMPNE:
-					printf(" L%03d", block_index[iptr->op1]);
+					printf(" L%03d", ((basicblock *) iptr->target)->debug_nr);
 					break;
 				case ICMD_TABLESWITCH:
+
 					s4ptr = iptr->val.a;
-					printf(" L%03d;", block_index[*s4ptr++]); /* default */
+					tptr = (void **) iptr->target;
+
+					printf(" L%03d;", ((basicblock *) *tptr)->debug_nr); 
+					                                            /* default */
+
+					s4ptr++;
+					tptr++;
+
 					j = *s4ptr++;                               /* low     */
 					j = *s4ptr++ - j;                           /* high    */
 					while (j >= 0) {
-						printf(" L%03d", block_index[*s4ptr++]);
+						printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
+						tptr++;
 						j--;
 						}
 					break;
 				case ICMD_LOOKUPSWITCH:
 					s4ptr = iptr->val.a;
-					printf(" L%d", block_index[*s4ptr++]);   /* default */
-					j = *s4ptr++;                               /* count   */
+					tptr = (void **) iptr->target;
+
+					printf(" L%03d", ((basicblock *) *tptr)->debug_nr); 
+					s4ptr++;                                         /* default */
+					j = *s4ptr;                                      /* count   */
+					tptr++;
+
 					while (--j >= 0) {
-						printf(" L%03d", block_index[s4ptr[1]]);
-						s4ptr += 2;
+						printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
+						tptr++;
 						}
 					break;
 				}
@@ -1953,15 +2045,26 @@ static void show_icmd_method()
 
 		if (showdisassemble && (!deadcode)) {
 			printf("\n");
-			i = block[b].mpc;
+			i = bptr->mpc;
 			s4ptr = (s4 *) (method->mcode + dseglen + i);
-			for (; i < block[b + 1].mpc; i += 4, s4ptr++) {
-				disassinstr(*s4ptr, i); 
-				}
-			printf("\n");
-			}
+
+			if (bptr->next != NULL) {
+				for (; i < bptr->next->mpc; i += 4, s4ptr++) {
+					disassinstr(*s4ptr, i); 
+				    }
+				printf("\n");
+			    }
+			else {
+				for (; s4ptr < (s4 *) (method->mcode + method->mcodelength); i += 4, s4ptr++) {
+					disassinstr(*s4ptr, i); 
+				    }
+				printf("\n");
+			    }
+		    }
 	}
-	i = block[b].mpc;
+
+	/*
+	i = bptr->mpc;
 	s4ptr = (s4 *) (method->mcode + dseglen + i);
 	if (showdisassemble && (s4ptr < (s4 *) (method->mcode + method->mcodelength))) {
 		printf("\n");
@@ -1970,6 +2073,7 @@ static void show_icmd_method()
 			}
 		printf("\n");
 		}
+	*/
 }
 
 

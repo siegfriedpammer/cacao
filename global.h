@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 118 1999-01-20 14:58:16Z andi $
+	Last Change: $Id: global.h 132 1999-09-27 15:54:42Z chris $
 
 *******************************************************************************/
 
@@ -336,8 +336,26 @@ typedef struct fieldinfo {/* field of a class                                 */
 
 } fieldinfo;
 
+struct basicblock;
 
 /* exceptiontable *************************************************************/
+
+typedef struct xtable { /* exceptiontable entry in a method           */ 
+	s4         startpc;         /* start pc of guarded area (inclusive)       */
+	struct basicblock *start;
+
+	s4         endpc;           /* end pc of guarded area (exklusive)         */
+	struct basicblock *end;
+
+	s4         handlerpc;       /* pc of exception handler                    */
+	struct basicblock *handler;
+
+	classinfo *catchtype;       /* catchtype of exception (NULL == catchall)  */
+	struct xtable *next;        /* used to build a list of exception when     */
+	                            /* loops are copied */
+	struct xtable *down;        /* instead of the old array, a list is used   */
+} xtable;
+
 
 typedef struct exceptiontable { /* exceptiontable entry in a method           */ 
 	s4         startpc;         /* start pc of guarded area (inclusive)       */
@@ -365,7 +383,8 @@ typedef struct methodinfo {         /* method structure                       */
 	u1        *jcode;               /* pointer to JavaVM code                 */
 
 	s4         exceptiontablelength;/* exceptiontable length                  */
-	exceptiontable *exceptiontable; /* the exceptiontable                     */
+	exceptiontable *exceptiontable; 
+                                    /* the exceptiontable                     */
 
 	u1        *stubroutine;         /* stub for compiling or calling natives  */	
 	s4         mcodelength;         /* legth of generated machine code        */

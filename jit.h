@@ -26,6 +26,7 @@ extern bool showintermediate;   /* generate intermediate code listing         */
 extern int  optimizelevel;      /* optimzation level  (0 = no optimization)   */
 
 extern bool checkbounds;        /* check array bounds                         */
+extern bool opt_loops;          /* optimize array accesses in loops           */
 extern bool checknull;          /* check null pointers                        */
 extern bool checkfloats;        /* implement ieee compliant floats            */
 extern bool checksync;          /* do synchronization                         */

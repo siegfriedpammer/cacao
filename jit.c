@@ -27,8 +27,15 @@
 
 #include "threads/thread.h"
 
+/* include compiler data types ************************************************/ 
+
+#include "jit/jitdef.h"
+#include "narray/loop.h"
+
 
 /* global switches ************************************************************/
+int num_compiled_m = 0;
+int myCount;
 
 bool compileverbose = false;
 bool showstack = false;
@@ -41,6 +48,7 @@ bool checkbounds = true;
 bool checknull = true;
 bool checkfloats = true;
 bool checksync = true;
+bool opt_loops = false;
 
 bool getcompilingtime = false;
 long compilingtime = 0;
@@ -103,10 +111,6 @@ static int count_store_depth_init[11] = {0, 0, 0, 0, 0,  0, 0, 0, 0, 0,   0};
 int *count_store_depth = count_store_depth_init;
 
 
-/* include compiler data types ************************************************/ 
-
-#include "jit/jitdef.h"
-
 
 /* global compiler variables **************************************************/
 
@@ -124,7 +128,8 @@ static int maxlocals;           /* maximal number of local JavaVM variables   */
 static int jcodelength;         /* length of JavaVM-codes                     */
 static u1 *jcode;               /* pointer to start of JavaVM-code            */
 static int exceptiontablelength;/* length of exception table                  */
-static exceptiontable *extable; /* pointer to start of exception table        */
+static xtable *extable;         /* pointer to start of exception table        */
+static exceptiontable *raw_extable;
 
 static int block_count;         /* number of basic blocks                     */
 static basicblock *block;       /* points to basic block array                */
@@ -140,6 +145,8 @@ static stackelement *stack;     /* points to intermediate code instructions   */
 
 static bool isleafmethod;       /* true if a method doesn't call subroutines  */
 
+static basicblock *last_block;  /* points to the end of the BB list           */
+
 /* list of all classes used by the compiled method which have to be           */
 /* initialised (if not already done) before execution of this method          */
 
@@ -154,9 +161,11 @@ static chain *uninitializedclasses;
 #include "jit/parse.c"          /* parsing of JavaVM code                     */ 
 #include "jit/reg.c"            /* register allocation and support routines   */ 
 #include "jit/stack.c"          /* analysing the stack operations             */ 
-#include "ngen.c"        /* code generator                             */ 
-
-
+#include "sysdep/ngen.c"        /* code generator                             */ 
+#include "narray/graph.c"	/* array bound removal			      */
+#include "narray/loop.c"	/* array bound removal			      */
+#include "narray/tracing.c"	/* array bound removal			      */
+#include "narray/analyze.c"	/* array bound removal			      */
 
 
 /* dummy function, used when there is no JavaVM code available                */
@@ -181,9 +190,18 @@ methodptr compiler_compile (methodinfo *m); /* compile method with old compiler*
 
 methodptr jit_compile(methodinfo *m)
 {
-	int  dumpsize;
+	int  dumpsize, i, j, k;
 	long starttime = 0;
 	long stoptime  = 0;
+	basicblock *b;
+	instruction *ip;
+	stackptr sp;
+
+	basicblock *bptr;
+	stackptr sptr;
+	int cnt;
+
+
 
 #ifdef OLD_COMPILER
 	if (!newcompiler) {
@@ -249,7 +267,7 @@ methodptr jit_compile(methodinfo *m)
 	jcodelength = m->jcodelength;
 	jcode = m->jcode;
 	exceptiontablelength = m->exceptiontablelength;
-	extable = m->exceptiontable;
+	raw_extable = m->exceptiontable;
 
 #ifdef STATISTICS
 	count_tryblocks += exceptiontablelength;
@@ -273,22 +291,60 @@ methodptr jit_compile(methodinfo *m)
 	/* call the compiler passes ***********************************************/
 	
 	reg_init();
+
 	local_init();
+
 	mcode_init();
 
 	parse();
 
 	analyse_stack();
+   
+	if (opt_loops) {
+		depthFirst();			
+#ifdef LOOP_DEBUG
+		resultPass1();   		
+		fflush(stdout);
+#endif 
+		analyseGraph();        	
+#ifdef LOOP_DEBUG
+		resultPass2(); 
+		fflush(stdout);
+#endif 
+		optimize_loops();
+#ifdef LOOP_DEBUG
+		/* resultPass3(); */
+#endif 
+	}
+   
 
+#ifdef LOOP_DEBUG
+	printf("Allocating registers  ");
+	fflush(stdout);
+#endif 
 	interface_regalloc();
-
+#ifdef LOOP_DEBUG
+	printf(".");
+	fflush(stdout);
+#endif 
 	allocate_scratch_registers();
-	
+#ifdef LOOP_DEBUG
+	printf(".");
+	fflush(stdout);	
+#endif 
 	local_regalloc();
-	
-	gen_mcode();
+#ifdef LOOP_DEBUG
+	printf(". done\n");
 
-	
+	printf("Generating MCode ... ");
+	fflush(stdout);
+#endif 
+	gen_mcode();
+#ifdef LOOP_DEBUG
+	printf("done\n");
+	fflush(stdout);
+#endif 
+
 	/* intermediate and assembly code listings ********************************/
 		
 	if (showintermediate)
@@ -298,8 +354,6 @@ methodptr jit_compile(methodinfo *m)
 
 	if (showddatasegment)
 		dseg_display((void*) (m->mcode));
-
-
 
 	/* release dump area */
 
@@ -331,8 +385,7 @@ methodptr jit_compile(methodinfo *m)
 	/* return pointer to the methods entry point */
 	
 	return m -> entrypoint;
-}
-
+} 
 
 /* functions for compiler initialisation and finalisation *********************/
 

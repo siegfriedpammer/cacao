@@ -1,3 +1,4 @@
+# Generated automatically from Makefile.in by configure.
 # Makefile.in generated automatically by automake 1.3 from Makefile.am
 
 # Copyright (C) 1994, 1995, 1996, 1997, 1998 Free Software Foundation, Inc.
@@ -10,48 +11,47 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-# $Id: Makefile.in 132 1999-09-27 15:54:42Z chris $
+# $Id: Makefile 132 1999-09-27 15:54:42Z chris $
 
 
 SHELL = /bin/sh
 
-srcdir = @srcdir@
-top_srcdir = @top_srcdir@
-VPATH = @srcdir@
-prefix = @prefix@
-exec_prefix = @exec_prefix@
+srcdir = .
+top_srcdir = .
+prefix = /usr/local/cacao
+exec_prefix = ${prefix}
 
-bindir = @bindir@
-sbindir = @sbindir@
-libexecdir = @libexecdir@
-datadir = @datadir@
-sysconfdir = @sysconfdir@
-sharedstatedir = @sharedstatedir@
-localstatedir = @localstatedir@
-libdir = @libdir@
-infodir = @infodir@
-mandir = @mandir@
-includedir = @includedir@
+bindir = ${exec_prefix}/bin
+sbindir = ${exec_prefix}/sbin
+libexecdir = ${exec_prefix}/libexec
+datadir = ${prefix}/share
+sysconfdir = ${prefix}/etc
+sharedstatedir = ${prefix}/com
+localstatedir = ${prefix}/var
+libdir = ${exec_prefix}/lib
+infodir = ${prefix}/info
+mandir = ${prefix}/man
+includedir = ${prefix}/include
 oldincludedir = /usr/include
 
 DISTDIR =
 
-pkgdatadir = $(datadir)/@PACKAGE@
-pkglibdir = $(libdir)/@PACKAGE@
-pkgincludedir = $(includedir)/@PACKAGE@
+pkgdatadir = $(datadir)/cacao
+pkglibdir = $(libdir)/cacao
+pkgincludedir = $(includedir)/cacao
 
 top_builddir = .
 
-ACLOCAL = @ACLOCAL@
-AUTOCONF = @AUTOCONF@
-AUTOMAKE = @AUTOMAKE@
-AUTOHEADER = @AUTOHEADER@
+ACLOCAL = aclocal
+AUTOCONF = autoconf
+AUTOMAKE = automake
+AUTOHEADER = autoheader
 
-INSTALL = @INSTALL@
-INSTALL_PROGRAM = @INSTALL_PROGRAM@
-INSTALL_DATA = @INSTALL_DATA@
-INSTALL_SCRIPT = @INSTALL_SCRIPT@
-transform = @program_transform_name@
+INSTALL = /usr/bin/install -c
+INSTALL_PROGRAM = ${INSTALL}
+INSTALL_DATA = ${INSTALL} -m 644
+INSTALL_SCRIPT = ${INSTALL_PROGRAM}
+transform = s,x,x,
 
 NORMAL_INSTALL = :
 PRE_INSTALL = :
@@ -59,55 +59,42 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-host_alias = @host_alias@
-host_triplet = @host@
-CC = @CC@
-COMPILER_OBJECTS = @COMPILER_OBJECTS@
-COMPILER_SOURCES = @COMPILER_SOURCES@
-GC_OBJ = @GC_OBJ@
-LIBTHREAD = @LIBTHREAD@
-MAKEINFO = @MAKEINFO@
-PACKAGE = @PACKAGE@
-RANLIB = @RANLIB@
-SYSDEP_DIR = @SYSDEP_DIR@
-THREAD_OBJ = @THREAD_OBJ@
-VERSION = @VERSION@
+host_alias = alpha-unknown-linux
+host_triplet = alpha-unknown-linux-gnu
+CC = gcc
+COMPILER_OBJECTS = compiler.o
+COMPILER_SOURCES = compiler.h compiler.c
+GC_OBJ = mm/libmm_new.a
+LIBTHREAD = libthreads.a
+MAKEINFO = makeinfo
+PACKAGE = cacao
+RANLIB = ranlib
+SYSDEP_DIR = alpha
+THREAD_OBJ = threads/libthreads.a
+VERSION = 0.40
 
 MAINTAINERCLEANFILES = Makefile.in configure
 SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc narray
 
 EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html
 
-CLEANFILES = @SYSDEP_DIR@/asmpart.o \
-			 @SYSDEP_DIR@/asmpart.s \
-             @SYSDEP_DIR@/offsets.h \
+CLEANFILES = alpha/asmpart.o \
+			 alpha/asmpart.s \
+             alpha/offsets.h \
 	         nativetable.hh \
 	         nativetypes.hh
 
 bin_PROGRAMS = cacao
 noinst_PROGRAMS = cacaoh
-<<<<<<< Makefile.in
 
-INCLUDES=-I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@ -I$(top_srcdir)
-=======
-
-INCLUDES = -I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@ -I$(top_srcdir)
-
-cacao_SOURCES =  	asmpart.h 	builtin.c 	builtin.h 	callargs.h 	@COMPILER_SOURCES@ 	global.h 	jit.c 	jit.h 	loader.c 	loader.h 	main.c 	native.c 	native.h 	tables.c 	tables.h
-
-
-EXTRA_cacao_SOURCES =  	compiler.c 	compiler.h 
-
-
-cacao_LDADD =  	@SYSDEP_DIR@/asmpart.o 	@COMPILER_OBJECTS@ 	toolbox/libtoolbox.a 	@GC_OBJ@     @THREAD_OBJ@
->>>>>>> 3.10
+INCLUDES=-I/usr/include -I$(top_srcdir)/alpha -I$(top_srcdir)/jit -Ialpha -I$(top_srcdir)
 
 cacao_SOURCES = \
 	asmpart.h \
 	builtin.c \
 	builtin.h \
 	callargs.h \
-	@COMPILER_SOURCES@ \
+	compiler.h compiler.c \
 	global.h \
 	jit.c \
 	jit.h \
@@ -124,22 +111,22 @@ EXTRA_cacao_SOURCES = \
 	compiler.h 
 
 cacao_LDADD = \
-	@SYSDEP_DIR@/asmpart.o \
-	@COMPILER_OBJECTS@ \
+	alpha/asmpart.o \
+	compiler.o \
 	toolbox/libtoolbox.a \
-	@GC_OBJ@ \
-    @THREAD_OBJ@
+	mm/libmm_new.a \
+    threads/libthreads.a
 
 cacao_DEPENDENCIES = \
-	@SYSDEP_DIR@/asmpart.o \
-	@COMPILER_OBJECTS@ \
+	alpha/asmpart.o \
+	compiler.o \
 	toolbox/libtoolbox.a \
-	@GC_OBJ@ \
-	@THREAD_OBJ@
+	mm/libmm_new.a \
+	threads/libthreads.a
 
 cacaoh_SOURCES = headers.c tables.c loader.c builtin.c
-cacaoh_LDADD = toolbox/libtoolbox.a @GC_OBJ@ @THREAD_OBJ@
-cacaoh_DEPENDENCIES = toolbox/libtoolbox.a @GC_OBJ@ @THREAD_OBJ@
+cacaoh_LDADD = toolbox/libtoolbox.a mm/libmm_new.a threads/libthreads.a
+cacaoh_DEPENDENCIES = toolbox/libtoolbox.a mm/libmm_new.a threads/libthreads.a
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
@@ -147,15 +134,15 @@ CONFIG_CLEAN_FILES =
 PROGRAMS =  $(bin_PROGRAMS) $(noinst_PROGRAMS)
 
 
-DEFS = @DEFS@ -I. -I$(srcdir) -I.
-CPPFLAGS = @CPPFLAGS@
-LDFLAGS = @LDFLAGS@
-LIBS = @LIBS@
+DEFS = -DHAVE_CONFIG_H -I. -I$(srcdir) -I.
+CPPFLAGS = 
+LDFLAGS = 
+LIBS = -lm 
 cacao_OBJECTS =  builtin.o jit.o loader.o main.o native.o tables.o
 cacao_LDFLAGS = 
 cacaoh_OBJECTS =  headers.o tables.o loader.o builtin.o
 cacaoh_LDFLAGS = 
-CFLAGS = @CFLAGS@
+CFLAGS = -ieee -O2 -g3
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
 LINK = $(CC) $(CFLAGS) $(LDFLAGS) -o $@
 DIST_COMMON =  README AUTHORS COPYING ChangeLog INSTALL Makefile.am \
@@ -278,7 +265,7 @@ cacaoh: $(cacaoh_OBJECTS) $(cacaoh_DEPENDENCIES)
 #     (which will cause the Makefiles to be regenerated when you run `make');
 # (2) otherwise, pass the desired values on the `make' command line.
 
-@SET_MAKE@
+
 
 all-recursive install-data-recursive install-exec-recursive \
 installdirs-recursive install-recursive uninstall-recursive  \
@@ -513,9 +500,9 @@ clean-generic maintainer-clean-generic clean mostlyclean distclean \
 maintainer-clean
 
 
-native.c: nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh
+native.c: nativetypes.hh alpha/offsets.h nativetable.hh
 
-nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
+nativetypes.hh alpha/offsets.h nativetable.hh: cacaoh
 	./cacaoh \
 		java.lang.Object \
 		java.lang.String \
@@ -540,22 +527,21 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 		java.util.Properties \
 		java.util.Date
 
-@SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/asmpart.c @SYSDEP_DIR@/offsets.h
-	rm -f @SYSDEP_DIR@/asmpart.s
-	@CPP@ $(INCLUDES) $(top_srcdir)/@SYSDEP_DIR@/asmpart.c \
-			> @SYSDEP_DIR@/asmpart.s
-	@CC@ $(CFLAGS) $(INCLUDES) -c -o @SYSDEP_DIR@/asmpart.o \
-			@SYSDEP_DIR@/asmpart.s
+alpha/asmpart.o: $(top_srcdir)/alpha/asmpart.c alpha/offsets.h
+	rm -f alpha/asmpart.s
+	gcc -E $(INCLUDES) $(top_srcdir)/alpha/asmpart.c \
+			> alpha/asmpart.s
+	gcc $(CFLAGS) $(INCLUDES) -c -o alpha/asmpart.o \
+			alpha/asmpart.s
 	rm -f asmpart.s
 
 compiler.o: $(top_srcdir)/builtin.h $(top_srcdir)/compiler.h \
 		    $(top_srcdir)/global.h $(top_srcdir)/loader.h \
 	        $(top_srcdir)/tables.h $(top_srcdir)/native.h \
             $(top_srcdir)/asmpart.h $(top_srcdir)/compiler.c $(top_srcdir)/comp/*.c \
-            $(top_srcdir)/@SYSDEP_DIR@/gen.c $(top_srcdir)/@SYSDEP_DIR@/disass.c
-	@CC@ $(CFLAGS) -I. $(INCLUDES) -c $(top_srcdir)/compiler.c
+            $(top_srcdir)/alpha/gen.c $(top_srcdir)/alpha/disass.c
+	gcc $(CFLAGS) -I. $(INCLUDES) -c $(top_srcdir)/compiler.c
 
-<<<<<<< Makefile.in
 jit.o: jit.c \
 	jit/mcode.c \
 	jit/parse.c \
@@ -568,15 +554,6 @@ jit.o: jit.c \
 	narray/tracing.c \
 	narray/loop.h
 
-=======
-jit.o: jit.c \
-	jit/mcode.c \
-	jit/parse.c \
-	jit/reg.c \
-	jit/stack.c \
-	jit/jitdef.h
-
->>>>>>> 3.10
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -38,6 +38,10 @@
 #undef EXTERNAL_OVERFLOW
 #undef DONT_FREE_FIRST
 
+/* Make automake happy */
+#undef PACKAGE
+#undef VERSION
+
 /* sysdep */
 #undef SYSDEP_DIR
 
@@ -87,10 +91,3 @@
 
 /* Define if you have the m library (-lm).  */
 #undef HAVE_LIBM
-
-/* Name of package */
-#undef PACKAGE
-
-/* Version number of package */
-#undef VERSION
-

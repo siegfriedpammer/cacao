@@ -323,9 +323,9 @@ static void mcode_finish(int mcodelen)
 
 	jr = jumpreferences;
 	while (jr != NULL) {
-		*((void**) (epoint + jr->tablepos)) = epoint + jr->target->mpc;
-		jr = jr->next;
-		}
+	    *((void**) (epoint + jr->tablepos)) = epoint + jr->target->mpc;
+	    jr = jr->next;
+	    }
 }
 
 

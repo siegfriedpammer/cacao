@@ -432,7 +432,6 @@ public class jctest implements jcinterface {
 	// ************************ test array bounds ******************************		
 
 	public static void testarraybounds(byte[] ba, int i) {
-		
 			p ("testarraybounds: " + (i - 10));
 			ba[i-10] = 0;
 			p ("testarraybounds: " + (i - 5));
@@ -442,7 +441,7 @@ public class jctest implements jcinterface {
 			p ("testarraybounds: " + (i + 5));
 			ba[i+5]  = 0;
 			p ("testarraybounds: " + (i + 10));
-			ba[i+10] = 0;
+			ba[i+10] = 0; 
 		}
 
 
@@ -494,7 +493,7 @@ public class jctest implements jcinterface {
 			p ("error: exception not thrown");
 			}	
 		catch (ArrayIndexOutOfBoundsException c) {
-			p ("exception: out of bounds: "+(-1));
+			p ("exception_1: out of bounds: "+(-1));
 			}
 		try {
 			p ("array bound check: byte array load");
@@ -502,62 +501,67 @@ public class jctest implements jcinterface {
 			p ("error: exception not thrown");
 			}	
 		catch (ArrayIndexOutOfBoundsException c) {
-			p ("exception: out of bounds: "+(-1));
+			p ("exception_2: out of bounds: "+(-1));
 			}
 
 		try {
 			testarraybounds(ba, 5);
 			}	
 		catch (ArrayIndexOutOfBoundsException c) {
-			p ("exception: out of bounds: "+5);
+			p ("exception_3: out of bounds: "+5);
 			}
 		try {
 			testarraybounds(ba, 50);
 			}	
 		catch (ArrayIndexOutOfBoundsException c) {
-			p ("exception: out of bounds: "+50);
+			p ("exception_4: out of bounds: "+50);
 			}
 		try {
 			testarraybounds(ba, 100);
 			}	
 		catch (ArrayIndexOutOfBoundsException c) {
-			p ("exception: out of bounds: "+100);
+			p ("exception_5: out of bounds: "+100);
 			}
 
 		try {
 			ba[-4] = 0;
 			}	
 		catch (ArrayIndexOutOfBoundsException c) {
-			p ("exception: out of bounds: "+(-4));
+			p ("exception_6: out of bounds: "+(-4));
 			}
 		try {
 			ba[-3] = 0;
 			}	
 		catch (ArrayIndexOutOfBoundsException c) {
-			p ("exception: out of bounds: "+(-3));
+			p ("exception_7: out of bounds: "+(-3));
 			}
+		System.out.println("starting 8. loop");
+
 		for (i=-2; i<102; i++) { 
 			try {
 				ba[i] = (byte) (i-50);
 				}	
 			catch (ArrayIndexOutOfBoundsException c) {
-				p ("exception: out of bounds: "+i);
+				p ("exception_8: out of bounds: "+i);
 				}
 			}
+		
 		try {
 			ba[102] = 0;
 			}	
 		catch (ArrayIndexOutOfBoundsException c) {
-			p ("exception: out of bounds: "+102);
+			p ("exception_9: out of bounds: "+102);
 			}
 		try {
 			ba[103] = 0;
 			}	
 		catch (ArrayIndexOutOfBoundsException c) {
-			p ("exception: out of bounds: "+103);
+			p ("exception_10: out of bounds: "+103);
 			}
 		for (i=0; i<100; i++) p (ba[i]);		
 
+
+		
 
 		p ("-------- test short arrays");		
 
@@ -588,7 +592,7 @@ public class jctest implements jcinterface {
 			p ("error: exception not thrown");
 			}	
 		catch (ArrayIndexOutOfBoundsException c) {
-			p ("exception: out of bounds: "+(-1));
+			p ("exception_11: out of bounds: "+(-1));
 			}
 		try {
 			p ("array bound check: short array load");
@@ -596,11 +600,12 @@ public class jctest implements jcinterface {
 			p ("error: exception not thrown");
 			}	
 		catch (ArrayIndexOutOfBoundsException c) {
-			p ("exception: out of bounds: "+(-1));
+			p ("exception_12: out of bounds: "+(-1));
 			}
 
 		for (i=0; i<100; i++) sa[i] = (short) (i-50);
 		for (i=0; i<100; i++) p (sa[i]);
+		
 		
 
 		p ("-------- test int arrays");		
@@ -818,9 +823,8 @@ public class jctest implements jcinterface {
 					}
 				}
 			}
+		
 
-
-					
 		}
 
 

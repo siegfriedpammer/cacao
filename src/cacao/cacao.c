@@ -17,7 +17,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: cacao.c 123 1999-01-28 19:48:49Z phil $
+	Last Change: $Id: cacao.c 132 1999-09-27 15:54:42Z chris $
 
 *******************************************************************************/
 
@@ -89,6 +89,7 @@ void **stackbottom = 0;
 #define OPT_GC1         22
 #define OPT_GC2         23
 #endif
+#define OPT_OLOOP       24
 
 struct {char *name; bool arg; int value;} opts[] = {
 	{"classpath",   true,   OPT_CLASSPATH},
@@ -121,6 +122,7 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{"gc1",         false,  OPT_GC1},
 	{"gc2",         false,  OPT_GC2},
 #endif
+	{"oloop",       false,  OPT_OLOOP},
 	{NULL,  false, 0}
 };
 
@@ -198,6 +200,7 @@ static void print_usage()
 	printf ("          -log logfile ......... specify a name for the logfile\n");
 	printf ("          -c(heck)b(ounds) ..... don't check array bounds\n");
 	printf ("                  s(ync) ....... don't check for synchronization\n");
+	printf ("          -oloop ............... optimize array accesses in loops\n"); 
 	printf ("          -l ................... don't start the class after loading\n");
 	printf ("          -all ................. compile all methods, no execution\n");
 #ifdef OLD_COMPILER
@@ -675,6 +678,10 @@ int main(int argc, char **argv)
 			}
 			break;
 			
+		case OPT_OLOOP:
+			opt_loops = true;
+			break;
+
 		default:
 			print_usage();
 			exit(10);

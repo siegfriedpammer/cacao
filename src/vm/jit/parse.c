@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 115 1999-01-20 01:52:45Z phil $
+	Last Change: $Id: parse.c 132 1999-09-27 15:54:42Z chris $
 
 *******************************************************************************/
 
@@ -288,7 +288,7 @@ static void parse()
 	/* 1 additional for TRACEBUILTIN and 4 for MONITORENTER/EXIT */
 	/* additional MONITOREXITS are reached by branches which are 3 bytes */
 	
-	iptr = instr = DMNEW(instruction, jcodelength + 5);
+	iptr = instr = DMNEW(instruction, jcodelength + 5); 
 	
 	/* initialize block_index table (unrolled four times) */
 
@@ -305,18 +305,33 @@ static void parse()
 
 	/* compute branch targets of exception table */
 
+	extable = DMNEW(xtable, exceptiontablelength + 1);
+
 	for (i = 0; i < exceptiontablelength; i++) {
-		p = extable[i].startpc;
+
+   		p = extable[i].startpc = raw_extable[i].startpc;
 		bound_check(p);
 		block_insert(p);
-		p = extable[i].endpc;
+
+		p = extable[i].endpc = raw_extable[i].endpc;
 		bound_check1(p);
 		if (p < jcodelength)
 			block_insert(p);
-		p = extable[i].handlerpc;
+
+		p = extable[i].handlerpc = raw_extable[i].handlerpc;
 		bound_check(p);
 		block_insert(p);
+
+		extable[i].catchtype  = raw_extable[i].catchtype;
+
+		extable[i].next = NULL;
+		extable[i].down = &extable[i+1];
 		}
+
+	if (exceptiontablelength > 0)
+		extable[exceptiontablelength-1].down = NULL;
+	else
+		extable = NULL;
 
 	s_count = 1 + exceptiontablelength; /* initialize stack element counter   */
 
@@ -1066,6 +1081,7 @@ static void parse()
 	bptr = block = DMNEW(basicblock, b_count + 1);    /* one more for end ipc */
 
 	b_count = 0;
+	c_debug_nr = 0;
 	
 	/* additional block if target 0 is not first intermediate instruction     */
 
@@ -1076,37 +1092,69 @@ static void parse()
 		bptr->type = BBTYPE_STD;
 		bptr->branchrefs = NULL;
 		bptr->pre_count = 0;
+		bptr->debug_nr = c_debug_nr++;
 		bptr++;
 		b_count++;
+		(bptr - 1)->next = bptr;
+	
 		}
 
 	/* allocate blocks */
 
+
 	for (p = 0; p < jcodelength; p++)
+		
 		if (block_index[p] & 1) {
 			bptr->iinstr = instr + (block_index[p] >> 1);
+			bptr->debug_nr = c_debug_nr++;
 			if (b_count != 0)
 				(bptr - 1)->icount = bptr->iinstr - (bptr - 1)->iinstr;
 			bptr->mpc = -1;
 			bptr->flags = -1;
+			bptr->lflags = 0;
 			bptr->type = BBTYPE_STD;
 			bptr->branchrefs = NULL;
 			block_index[p] = b_count;
 			bptr->pre_count = 0;
 			bptr++;
 			b_count++;
+
+			(bptr - 1)->next = bptr;
 			}
 
 	/* allocate additional block at end */
 
+	
+	bptr->instack = bptr->outstack = NULL;
+	bptr->indepth = bptr->outdepth = 0;
 	bptr->iinstr = NULL;
 	(bptr - 1)->icount = (instr + instr_count) - (bptr - 1)->iinstr;
 	bptr->icount = 0;
 	bptr->mpc = -1;
 	bptr->flags = -1;
+	bptr->lflags = 0;
 	bptr->type = BBTYPE_STD;
 	bptr->branchrefs = NULL;
 	bptr->pre_count = 0;
+	bptr->debug_nr = c_debug_nr++;
+			
+	(bptr - 1)->next = bptr;
+	bptr->next = NULL;
+
+	last_block = bptr;
+
+
+
+	for (i = 0; i < exceptiontablelength; ++i) {
+		p = extable[i].startpc;
+		extable[i].start = block + block_index[p];
+
+		p = extable[i].endpc;
+		extable[i].end = block + block_index[p]; 
+
+		p = extable[i].handlerpc;
+		extable[i].handler = block + block_index[p];
+	    }
 	}
 }
 

@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 115 1999-01-20 01:52:45Z phil $
+	Last Change: $Id: ngen.c 132 1999-09-27 15:54:42Z chris $
 
 *******************************************************************************/
 
@@ -45,7 +45,9 @@ in the documention file: calling.doc
 
 /* additional functions and macros to generate code ***************************/
 
-#define BlockPtrOfPC(pc)        block+block_index[pc]
+/* #define BlockPtrOfPC(pc)        block+block_index[pc] */
+#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
+
 
 #ifdef STATISTICS
 #define COUNT_SPILLS count_spills++
@@ -326,6 +328,7 @@ static void gen_mcode()
 	varinfo     *var;
 	basicblock  *bptr;
 	instruction *iptr;
+	xtable *ex;
 
 	{
 	int p, pa, t, l, r;
@@ -373,14 +376,45 @@ static void gen_mcode()
 	(void) dseg_adds4(exceptiontablelength);                /* ExTableSize    */
 
 	/* create exception table */
-	
-	for (len = 0; len < exceptiontablelength; len++) {
-		dseg_addtarget(BlockPtrOfPC(extable[len].startpc));
-		dseg_addtarget(BlockPtrOfPC(extable[len].endpc));
-		dseg_addtarget(BlockPtrOfPC(extable[len].handlerpc));
-		(void) dseg_addaddress(extable[len].catchtype);
-		}
 
+	for (ex = extable; ex != NULL; ex = ex->down) {
+
+#ifdef LOOP_DEBUG	
+		if (ex->start != NULL)
+			printf("adding start - %d - ", ex->start->debug_nr);
+		else {
+			printf("PANIC - start is NULL");
+			exit(-1);
+		}
+#endif
+
+		dseg_addtarget(ex->start);
+
+#ifdef LOOP_DEBUG			
+		if (ex->end != NULL)
+			printf("adding end - %d - ", ex->end->debug_nr);
+		else {
+			printf("PANIC - end is NULL");
+			exit(-1);
+		}
+#endif
+
+   		dseg_addtarget(ex->end);
+
+#ifdef LOOP_DEBUG		
+		if (ex->handler != NULL)
+			printf("adding handler - %d\n", ex->handler->debug_nr);
+		else {
+			printf("PANIC - handler is NULL");
+			exit(-1);
+		}
+#endif
+
+		dseg_addtarget(ex->handler);
+	   
+		(void) dseg_addaddress(ex->catchtype);
+		}
+	
 	/* initialize mcode variables */
 	
 	mcodeptr = (s4*) mcodebase;
@@ -542,8 +576,8 @@ static void gen_mcode()
 	/* end of header generation */
 
 	/* walk through all basic blocks */
+	for (/* bbs = block_count, */ bptr = block; /* --bbs >= 0 */ bptr != NULL; bptr = bptr->next) {
 
-	for (bbs = block_count, bptr = block; --bbs >= 0; bptr++) {
 		bptr -> mpc = (int)((u1*) mcodeptr - mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
@@ -600,7 +634,7 @@ static void gen_mcode()
 			}
 
 		/* walk through all instructions */
-
+		
 		src = bptr->instack;
 		len = bptr->icount;
 		for (iptr = bptr->iinstr;
@@ -1848,13 +1882,22 @@ static void gen_mcode()
 
 		/* memory operations **************************************************/
 
-#define gen_bound_check \
+			/* #define gen_bound_check \
 			if (checkbounds) {\
 				M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
 				M_CMPULT(s2, REG_ITMP3, REG_ITMP3);\
 				M_BEQZ(REG_ITMP3, 0);\
 				mcode_addxboundrefs(mcodeptr);\
 				}
+			*/
+
+#define gen_bound_check \
+            if (checkbounds) { \
+				M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
+				M_CMPULT(s2, REG_ITMP3, REG_ITMP3);\
+				M_BEQZ(REG_ITMP3, 0);\
+				mcode_addxboundrefs(mcodeptr); \
+                }
 
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
 
@@ -1902,6 +1945,7 @@ static void gen_mcode()
 				gen_nullptr_check(s1);
 				gen_bound_check;
 				}
+		  
 			M_S4ADDQ(s2, s1, REG_ITMP1);
 			M_ILD(d, REG_ITMP1, OFFSET(java_intarray, data[0]));
 			store_reg_to_var_int(iptr->dst, d);
@@ -2044,6 +2088,7 @@ static void gen_mcode()
 				gen_nullptr_check(s1);
 				gen_bound_check;
 				}
+
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_S4ADDQ(s2, s1, REG_ITMP1);
 			M_IST   (s3, REG_ITMP1, OFFSET(java_intarray, data[0]));
@@ -2972,6 +3017,9 @@ nowperformreturn:
 		case ICMD_TABLESWITCH:  /* ..., index ==> ...                         */
 			{
 			s4 i, l, *s4ptr;
+			void **tptr;
+
+			tptr = (void **) iptr->target;
 
 			s4ptr = iptr->val.a;
 			l = s4ptr[1];                          /* low     */
@@ -2998,13 +3046,20 @@ nowperformreturn:
 				M_CMPULE(REG_ITMP1, REG_ITMP2, REG_ITMP2);
 				}
 			M_BEQZ(REG_ITMP2, 0);
-			mcode_addreference(BlockPtrOfPC(s4ptr[0]), mcodeptr);
+
+
+			/* mcode_addreference(BlockPtrOfPC(s4ptr[0]), mcodeptr); */
+			mcode_addreference((basicblock *) tptr[0], mcodeptr);
 
 			/* build jump table top down and use address of lowest entry */
 
-			s4ptr += 3 + i;
+			/* s4ptr += 3 + i; */
+			tptr += i;
+
 			while (--i >= 0) {
-				dseg_addtarget(BlockPtrOfPC(*--s4ptr));
+				/* dseg_addtarget(BlockPtrOfPC(*--s4ptr)); */
+				dseg_addtarget((basicblock *) tptr[0]); 
+				--tptr;
 				}
 			}
 
@@ -3020,6 +3075,9 @@ nowperformreturn:
 		case ICMD_LOOKUPSWITCH: /* ..., key ==> ...                           */
 			{
 			s4 i, l, val, *s4ptr;
+			void **tptr;
+
+			tptr = (void **) iptr->target;
 
 			s4ptr = iptr->val.a;
 			l = s4ptr[0];                          /* default  */
@@ -3029,6 +3087,8 @@ nowperformreturn:
 			var_to_reg_int(s1, src, REG_ITMP1);
 			while (--i >= 0) {
 				s4ptr += 2;
+				++tptr;
+
 				val = s4ptr[0];
 				if ((val >= 0) && (val <= 255)) {
 					M_CMPEQ_IMM(s1, val, REG_ITMP2);
@@ -3044,11 +3104,16 @@ nowperformreturn:
 					M_CMPEQ(s1, REG_ITMP2, REG_ITMP2);
 					}
 				M_BNEZ(REG_ITMP2, 0);
-				mcode_addreference(BlockPtrOfPC(s4ptr[1]), mcodeptr);
+				/* mcode_addreference(BlockPtrOfPC(s4ptr[1]), mcodeptr); */
+				mcode_addreference((basicblock *) tptr[0], mcodeptr); 
 				}
 
 			M_BR(0);
-			mcode_addreference(BlockPtrOfPC(l), mcodeptr);
+			/* mcode_addreference(BlockPtrOfPC(l), mcodeptr); */
+			
+			tptr = (void **) iptr->target;
+			mcode_addreference((basicblock *) tptr[0], mcodeptr);
+
 			ALIGNCODENOP;
 			break;
 			}
@@ -3377,7 +3442,7 @@ makeactualcall:
 				while (ml < -32768) {ml += 65536; mh--;}
 				M_LDA(REG_PV, REG_RA, ml);
 				M_LDAH(REG_PV, REG_PV, mh);
-				}
+			    }
 			s1 = reg_of_var(iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
 			store_reg_to_var_int(iptr->dst, s1);
@@ -3386,9 +3451,13 @@ makeactualcall:
 
 		default: sprintf (logtext, "Unknown pseudo command: %d", iptr->opc);
 		         error();
-	} /* switch */
-	} /* for instruction */
+	
+   
 
+	} /* switch */
+		
+	} /* for instruction */
+		
 	/* copy values to interface registers */
 
 	src = bptr->outstack;
@@ -3422,7 +3491,7 @@ makeactualcall:
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
-	bptr -> mpc = (int)((u1*) mcodeptr - mcodebase);
+	/* bptr -> mpc = (int)((u1*) mcodeptr - mcodebase); */
 
 	{
 	/* generate bound check stubs */
@@ -3435,6 +3504,7 @@ makeactualcall:
 				xboundrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - 4);
 			continue;
 			}
+
 
 		gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
 		                  xboundrefs->branchpos, (u1*) mcodeptr - mcodebase);

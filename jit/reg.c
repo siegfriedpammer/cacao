@@ -257,6 +257,7 @@ static void interface_regalloc ()
 		saved = (interfaces[s][TYPE_INT].flags | interfaces[s][TYPE_LNG].flags |
 		         interfaces[s][TYPE_FLT].flags | interfaces[s][TYPE_DBL].flags |
 		         interfaces[s][TYPE_ADR].flags) & SAVEDVAR;
+ 
 		for (t = TYPE_INT; t <= TYPE_ADR; t++) {
 			v = &interfaces[s][t];
 			if (v->type >= 0) {
@@ -335,11 +336,13 @@ static void interface_regalloc ()
 				} /* if (type >= 0) */
 			}     /* for t */
 		}         /* for s */
+
 	maxmemuse = ifmemuse;
 	maxtmpintreguse = iftmpintregcnt;
 	maxsavintreguse = ifsavintregcnt;
 	maxtmpfltreguse = iftmpfltregcnt;
 	maxsavfltreguse = ifsavfltregcnt;
+
 }
 
 
@@ -595,18 +598,22 @@ static void allocate_scratch_registers()
 	instruction *iptr = instr;
 	basicblock  *bptr;
 	
-	b_count = block_count;
+	/* b_count = block_count; */
+
 	bptr = block;
-	while (--b_count >= 0) {
+	while (bptr != NULL) {
+
 		if (bptr->flags >= BBREACHED) {
 			dst = bptr->instack;
 			reg_init_temp();
 			iptr = bptr->iinstr;
 			len = bptr->icount;
+  
 			while (--len >= 0)  {
 				src = dst;
 				dst = iptr->dst;
 				opcode = iptr->opc;
+
 				switch (opcode) {
 
 					/* pop 0 push 0 */
@@ -1000,7 +1007,7 @@ static void allocate_scratch_registers()
 				iptr++;
 				} /* while instructions */
 			} /* if */
-		bptr++;
+		bptr = bptr->next;
 	} /* while blocks */
 }
 
