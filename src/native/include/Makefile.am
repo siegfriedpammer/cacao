@@ -26,7 +26,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1872 2005-01-12 14:09:52Z twisti $
+## $Id: Makefile.am 1884 2005-01-24 16:58:55Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -201,16 +201,16 @@ noinst_DATA = headers-generated
 if USE_GTK_PEER
 noinst_DATA += awtheaders-generated
 
-awtheaders-generated: $(top_srcdir)/src/classpath/lib/bootstrap.zip $(top_srcdir)/config.h
+awtheaders-generated: $(top_srcdir)/src/classpath/lib/bootstrap.zip $(top_builddir)/config.h
 	CLASSPATH=$(top_srcdir)/src/classpath/lib/bootstrap.zip \
-	$(top_srcdir)/src/cacaoh/cacaoh -d . \
+	$(top_builddir)/src/cacaoh/cacaoh -d . \
 	$(AWT_CLASSES)
 	touch awtheaders-generated
 endif
 
-headers-generated: $(top_srcdir)/src/classpath/lib/bootstrap.zip $(top_srcdir)/config.h
+headers-generated: $(top_srcdir)/src/classpath/lib/bootstrap.zip $(top_builddir)/config.h
 	CLASSPATH=$(top_srcdir)/src/classpath/lib/bootstrap.zip \
-	$(top_srcdir)/src/cacaoh/cacaoh -d . \
+	$(top_builddir)/src/cacaoh/cacaoh -d . \
 	$(CLASSES)
 	touch headers-generated
 

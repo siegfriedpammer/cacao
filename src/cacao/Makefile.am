@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1742 2004-12-08 19:22:59Z twisti $
+## $Id: Makefile.am 1884 2005-01-24 16:58:55Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,9 +36,9 @@ INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
 if USE_THREADS
 if NATIVE_THREADS
-THREAD_LIB = $(top_srcdir)/src/threads/native/libthreads.la
+THREAD_LIB = $(top_builddir)/src/threads/native/libthreads.la
 else
-THREAD_LIB = $(top_srcdir)/src/threads/green/libthreads.la
+THREAD_LIB = $(top_builddir)/src/threads/green/libthreads.la
 endif
 else
 THREAD_LIB =
@@ -47,16 +47,16 @@ endif
 if STATIC_CLASSPATH
 cacao_LDFLAGS =
 CLASSPATH_LIBS = \
-	$(top_srcdir)/src/classpath/native/jni/java-io/.libs/libjavaio.a \
-	$(top_srcdir)/src/classpath/native/jni/java-nio/.libs/libjavanio.a \
-	$(top_srcdir)/src/classpath/native/jni/java-net/.libs/libjavanet.a \
-	$(top_srcdir)/src/classpath/native/jni/java-util/.libs/libjavautil.a \
-	$(top_srcdir)/src/classpath/native/jni/java-lang/.libs/libjavalang.a \
-	$(top_srcdir)/src/classpath/native/jni/java-lang/.libs/libjavalangreflect.a
+	$(top_builddir)/src/classpath/native/jni/java-io/.libs/libjavaio.a \
+	$(top_builddir)/src/classpath/native/jni/java-nio/.libs/libjavanio.a \
+	$(top_builddir)/src/classpath/native/jni/java-net/.libs/libjavanet.a \
+	$(top_builddir)/src/classpath/native/jni/java-util/.libs/libjavautil.a \
+	$(top_builddir)/src/classpath/native/jni/java-lang/.libs/libjavalang.a \
+	$(top_builddir)/src/classpath/native/jni/java-lang/.libs/libjavalangreflect.a
 
 if USE_GTK_PEER
 CLASSPATH_LIBS += \
-	$(top_srcdir)/src/classpath/native/jni/gtk-peer/.libs/libgtkpeer.a
+	$(top_builddir)/src/classpath/native/jni/gtk-peer/.libs/libgtkpeer.a
 endif
 
 else
@@ -81,12 +81,12 @@ cacao_SOURCES = \
 
 # This order is crucial. Don't change it!
 cacao_LDADD = \
-	$(top_srcdir)/src/mm/libmm.la \
-	$(top_srcdir)/src/native/libnative.la \
+	$(top_builddir)/src/mm/libmm.la \
 	$(THREAD_LIB) \
-	$(top_srcdir)/src/vm/libvm.la \
-	$(top_srcdir)/src/toolbox/libtoolbox.la \
-	$(top_srcdir)/src/boehm-gc/libgc.la \
+	$(top_builddir)/src/vm/libvm.la \
+	$(top_builddir)/src/native/libnative.la \
+	$(top_builddir)/src/toolbox/libtoolbox.la \
+	$(top_builddir)/src/boehm-gc/libgc.la \
 	$(CLASSPATH_LIBS)
 
 cacao_DEPENDENCIES = $(cacao_LDADD)

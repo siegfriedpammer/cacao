@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1840 2005-01-04 11:16:57Z twisti $
+## $Id: Makefile.am 1884 2005-01-24 16:58:55Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,9 +36,9 @@ INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
 if USE_THREADS
 if NATIVE_THREADS
-THREAD_LIB = $(top_srcdir)/src/threads/native/libthreads.la
+THREAD_LIB = $(top_builddir)/src/threads/native/libthreads.la
 else
-THREAD_LIB = $(top_srcdir)/src/threads/green/libthreads.la
+THREAD_LIB = $(top_builddir)/src/threads/green/libthreads.la
 endif
 else
 THREAD_LIB =
@@ -54,14 +54,15 @@ cacaoh_SOURCES = \
 
 # This order is crucial. Don't change it!
 cacaoh_LDADD = \
-	$(top_srcdir)/src/mm/libmm.la \
+	$(top_builddir)/src/mm/libmm.la \
 	$(THREAD_LIB) \
-	$(top_srcdir)/src/vm/libvmcore.la \
-	$(top_srcdir)/src/toolbox/libtoolbox.la \
-	$(top_srcdir)/src/boehm-gc/libgc.la \
-	$(top_srcdir)/src/classpath/native/jni/java-lang/.libs/libjavalang.a
+	$(top_builddir)/src/vm/libvmcore.la \
+	$(top_builddir)/src/toolbox/libtoolbox.la \
+	$(top_builddir)/src/boehm-gc/libgc.la \
+	$(top_builddir)/src/classpath/native/jni/java-lang/.libs/libjavalang.a
 
 cacaoh_DEPENDENCIES = $(cacaoh_LDADD)
+
 
 ## Local variables:
 ## mode: Makefile
