@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: codegen.c 558 2003-11-02 22:56:30Z twisti $
 
 */
 
@@ -95,8 +95,8 @@ in the documention file: calling.doc
 #ifdef SOFTNULLPTRCHECK
 #define gen_nullptr_check(objreg) \
 	if (checknull) {\
-	M_BEQZ((objreg), 0);\
-	mcode_addxnullrefs(mcodeptr);\
+	    M_BEQZ((objreg), 0);\
+	    codegen_addxnullrefs(mcodeptr);\
 	}
 #else
 #define gen_nullptr_check(objreg)
@@ -106,7 +106,7 @@ in the documention file: calling.doc
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if((mcodeptr+(icnt))>mcodeend)mcodeptr=mcode_increase((u1*)mcodeptr)
+	if((mcodeptr + (icnt)) > mcodeend) mcodeptr = codegen_increase((u1*) mcodeptr)
 
 /* M_INTMOVE:
      generates an integer-move from register a to b.
