@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1456 2004-11-05 14:33:14Z twisti $
+   $Id: typecheck.c 1483 2004-11-11 14:40:10Z twisti $
 
 */
 
@@ -998,7 +998,9 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                 /* init variable types at the start of this block */
 				COPY_TYPEVECTORSET(MGET_TYPEVECTOR(localbuf,b_index,numlocals),
 								   localset,numlocals);
+#if defined(__GNUC__)
 #warning FIXME FOR INLINING
+#endif
 		if(!useinlining) {
 				if (handlers[0])
 					for (i=0; i<numlocals; ++i)
