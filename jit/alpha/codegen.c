@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1133 2004-06-05 17:32:27Z twisti $
+   $Id: codegen.c 1146 2004-06-06 12:48:10Z twisti $
 
 */
 
@@ -38,7 +38,7 @@
 #include <signal.h>
 #include "types.h"
 #include "main.h"
-#include "codegen.h"
+#include "jit/alpha/codegen.h"
 #include "jit/jit.h"
 #include "jit/parse.h"
 #include "jit/reg.h"
@@ -51,8 +51,8 @@
 #include "main.h"
 
 /* include independent code generation stuff */
-#include "codegen.inc"
-#include "reg.inc"
+#include "jit/codegen.inc"
+#include "jit/reg.inc"
 
 
 /* *****************************************************************************

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.h 1054 2004-05-05 21:08:55Z stefan $
+   $Id: codegen.h 1146 2004-06-06 12:48:10Z twisti $
 
 */
 
@@ -38,7 +38,7 @@
 
 #include <ucontext.h>
 
-#include "jit.h"
+#include "jit/jit.h"
 
 
 /* see also file calling.doc for explanation of calling conventions           */
