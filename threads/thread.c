@@ -134,7 +134,7 @@ initThreads(u1 *stackbottom)
     /* Allocate a thread to be the main thread */
     liveThreads = the_main_thread = (thread*)builtin_new(loader_load(unicode_new_char("java/lang/Thread")));
     assert(the_main_thread != 0);
-	heap_addreference(&liveThreads);
+	heap_addreference((void **) &liveThreads);
     
     the_main_thread->PrivateInfo = 1;
     CONTEXT(the_main_thread).free = false;
