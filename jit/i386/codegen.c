@@ -28,14 +28,16 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1173 2004-06-16 14:56:18Z jowenn $
+   $Id: codegen.c 1181 2004-06-17 19:23:25Z twisti $
 
 */
 
+#define _GNU_SOURCE
 
 #include "global.h"
 #include <stdio.h>
 #include <signal.h>
+#include <sys/ucontext.h>
 #include "types.h"
 #include "main.h"
 #include "builtin.h"
@@ -316,7 +318,7 @@ void codegen()
 
 	parentargs_base = maxmemuse + savedregs_num;
 
-#ifdef USE_THREADS                 /* space to save argument of monitor_enter */
+#if defined(USE_THREADS)           /* space to save argument of monitor_enter */
 
 	if (checksync && (method->flags & ACC_SYNCHRONIZED))
 		parentargs_base++;
@@ -328,7 +330,7 @@ void codegen()
 	(void) dseg_addaddress(method);                         /* MethodPointer  */
 	(void) dseg_adds4(parentargs_base * 8);                 /* FrameSize      */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 
 	/* IsSync contains the offset relative to the stack pointer for the
 	   argument of monitor_exit used in the exception handler. Since the
@@ -347,11 +349,14 @@ void codegen()
 	(void) dseg_adds4(isleafmethod);                        /* IsLeaf         */
 	(void) dseg_adds4(savintregcnt - maxsavintreguse);      /* IntSave        */
 	(void) dseg_adds4(savfltregcnt - maxsavfltreguse);      /* FltSave        */
-	(void) dseg_addlinenumbertablesize();			/* adds a reference for the length of the line number counter
-								We don't know the size yet, since we evaluate the information
-								during code generation, to save one additional iteration over
-								the whole instructions. During code optimization the position
-								could have changed to the information gotten from the class file*/
+
+	/* adds a reference for the length of the line number counter. We don't
+	   know the size yet, since we evaluate the information during code
+	   generation, to save one additional iteration over the whole
+	   instructions. During code optimization the position could have changed
+	   to the information gotten from the class file */
+	(void) dseg_addlinenumbertablesize();
+
 	(void) dseg_adds4(exceptiontablelength);                /* ExTableSize    */
 	
 	/* create exception table */
@@ -388,7 +393,7 @@ void codegen()
 
 	/* save monitorenter argument */
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 		if (method->flags & ACC_STATIC) {
 			i386_mov_imm_reg((s4) class, REG_ITMP1);
@@ -398,6 +403,14 @@ void codegen()
 			i386_mov_membase_reg(REG_SP, parentargs_base * 8 + 4, REG_ITMP1);
 			i386_mov_reg_membase(REG_ITMP1, REG_SP, maxmemuse * 8);
 		}
+
+		/* call monitorenter function */
+
+		i386_alu_imm_reg(I386_SUB, 4, REG_SP);
+		i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
+		i386_mov_imm_reg((s4) builtin_monitorenter, REG_ITMP1);
+		i386_call_reg(REG_ITMP1);
+		i386_alu_imm_reg(I386_ADD, 4, REG_SP);
 	}			
 #endif
 
@@ -539,18 +552,6 @@ void codegen()
 		}
 	}  /* end for */
 
-	/* call monitorenter function */
-
-#ifdef USE_THREADS
-	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-		i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP1);
-		i386_alu_imm_reg(I386_SUB, 4, REG_SP);
-		i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-		i386_mov_imm_reg((s4) builtin_monitorenter, REG_ITMP1);
-		i386_call_reg(REG_ITMP1);
-		i386_alu_imm_reg(I386_ADD, 4, REG_SP);
-	}			
-#endif
 	}
 
 	/* end of header generation */
@@ -3583,21 +3584,6 @@ void codegen()
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 
-#if defined(USE_THREADS)
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP2);
-				i386_mov_reg_membase(REG_RESULT, REG_SP, maxmemuse * 8);
-
-				i386_alu_imm_reg(I386_SUB, 1 * 8, REG_SP);
-				i386_mov_reg_membase(REG_ITMP2, REG_SP, 0 * 8);
-				i386_mov_imm_reg((s4) asm_builtin_monitorexit, REG_ITMP1);
-				i386_call_reg(REG_ITMP1);
-				i386_alu_imm_reg(I386_ADD, 1 * 8, REG_SP);
-
-				i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_RESULT);
-			}
-#endif
-
 			goto nowperformreturn;
 
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
@@ -3610,61 +3596,19 @@ void codegen()
 				panic("LRETURN: longs have to be in memory");
 			}
 
-#if defined(USE_THREADS)
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP2);
-				i386_mov_reg_membase(REG_RESULT, REG_SP, maxmemuse * 8);
-				i386_mov_reg_membase(REG_RESULT2, REG_SP, maxmemuse * 8 + 4);
-
-				i386_alu_imm_reg(I386_SUB, 1 * 8, REG_SP);
-				i386_mov_reg_membase(REG_ITMP2, REG_SP, 0 * 8);
-				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
-				i386_call_reg(REG_ITMP1);
-				i386_alu_imm_reg(I386_ADD, 1 * 8, REG_SP);
-
-				i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_RESULT);
-				i386_mov_membase_reg(REG_SP, maxmemuse * 8 + 4, REG_RESULT2);
-			}
-#endif
-
 			goto nowperformreturn;
 
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:      /* ..., retvalue ==> ...                      */
 
 			var_to_reg_flt(s1, src, REG_FRESULT);
-			/* this may be an early return -- keep the offset correct for the remaining code */
+			/* this may be an early return -- keep the offset correct for the
+			   remaining code */
 			fpu_st_offset--;
-
-#ifdef USE_THREADS
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP2);
-				i386_fstl_membase(REG_SP, maxmemuse * 8);
-
-				i386_alu_imm_reg(I386_SUB, 1 * 8, REG_SP);
-				i386_mov_reg_membase(REG_ITMP2, REG_SP, 0 * 8);
-				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
-				i386_call_reg(REG_ITMP1);
-				i386_alu_imm_reg(I386_ADD, 1 * 8, REG_SP);
-
-				i386_fldl_membase(REG_SP, maxmemuse * 8);
-			}
-#endif
 
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
-
-#ifdef USE_THREADS
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
-				i386_alu_imm_reg(I386_SUB, 4, REG_SP);
-				i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
-				i386_call_reg(REG_ITMP1);
-				i386_alu_imm_reg(I386_ADD, 4, REG_SP);
-			}
-#endif
 
 nowperformreturn:
 			{
@@ -3672,6 +3616,81 @@ nowperformreturn:
 			
   			p = parentargs_base;
 			
+			/* call trace function */
+			if (runverbose) {
+				i386_alu_imm_reg(I386_SUB, 4 + 8 + 8 + 4, REG_SP);
+
+				i386_mov_imm_membase((s4) method, REG_SP, 0);
+
+				i386_mov_reg_membase(REG_RESULT, REG_SP, 4);
+				i386_mov_reg_membase(REG_RESULT2, REG_SP, 4 + 4);
+				
+				i386_fstl_membase(REG_SP, 4 + 8);
+				i386_fsts_membase(REG_SP, 4 + 8 + 8);
+
+  				i386_mov_imm_reg((s4) builtin_displaymethodstop, REG_ITMP1);
+				i386_call_reg(REG_ITMP1);
+
+				i386_mov_membase_reg(REG_SP, 4, REG_RESULT);
+				i386_mov_membase_reg(REG_SP, 4 + 4, REG_RESULT2);
+
+				i386_alu_imm_reg(I386_ADD, 4 + 8 + 8 + 4, REG_SP);
+			}
+
+#if defined(USE_THREADS)
+			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP2);
+
+				/* we need to save the proper return value */
+				switch (iptr->opc) {
+				case ICMD_IRETURN:
+				case ICMD_ARETURN:
+					i386_mov_reg_membase(REG_RESULT, REG_SP, maxmemuse * 8);
+					break;
+
+				case ICMD_LRETURN:
+					i386_mov_reg_membase(REG_RESULT, REG_SP, maxmemuse * 8);
+					i386_mov_reg_membase(REG_RESULT2, REG_SP, maxmemuse * 8 + 4);
+					break;
+
+				case ICMD_FRETURN:
+					i386_fsts_membase(REG_SP, maxmemuse * 8);
+					break;
+
+				case ICMD_DRETURN:
+					i386_fstl_membase(REG_SP, maxmemuse * 8);
+					break;
+				}
+
+				i386_alu_imm_reg(I386_SUB, 4, REG_SP);
+				i386_mov_reg_membase(REG_ITMP2, REG_SP, 0);
+				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
+				i386_call_reg(REG_ITMP1);
+				i386_alu_imm_reg(I386_ADD, 4, REG_SP);
+
+				/* and now restore the proper return value */
+				switch (iptr->opc) {
+				case ICMD_IRETURN:
+				case ICMD_ARETURN:
+					i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_RESULT);
+					break;
+
+				case ICMD_LRETURN:
+					i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_RESULT);
+					i386_mov_membase_reg(REG_SP, maxmemuse * 8 + 4, REG_RESULT2);
+					break;
+
+				case ICMD_FRETURN:
+					i386_flds_membase(REG_SP, maxmemuse * 8);
+					break;
+
+				case ICMD_DRETURN:
+					i386_fldl_membase(REG_SP, maxmemuse * 8);
+					break;
+				}
+			}
+#endif
+
 			/* restore saved registers                                        */
 			for (r = savintregcnt - 1; r >= maxsavintreguse; r--) {
 				p--;
@@ -3692,28 +3711,6 @@ nowperformreturn:
 			/* deallocate stack                                               */
 			if (parentargs_base) {
 				i386_alu_imm_reg(I386_ADD, parentargs_base * 8, REG_SP);
-			}
-
-			/* call trace function */
-			if (runverbose) {
-				i386_alu_imm_reg(I386_SUB, 4 + 8 + 8 + 4, REG_SP);
-
-				i386_mov_imm_membase((s4) method, REG_SP, 0);
-
-				i386_mov_reg_membase(REG_RESULT, REG_SP, 4);
-				i386_mov_reg_membase(REG_RESULT2, REG_SP, 4 + 4);
-				
-				i386_fstl_membase(REG_SP, 4 + 8);
-				i386_fsts_membase(REG_SP, 4 + 8 + 8);
-
-  				i386_mov_imm_reg((s4) builtin_displaymethodstop, REG_ITMP1);
-/*  				i386_mov_imm_reg(asm_builtin_exittrace, REG_ITMP1); */
-				i386_call_reg(REG_ITMP1);
-
-				i386_mov_membase_reg(REG_SP, 4, REG_RESULT);
-				i386_mov_membase_reg(REG_SP, 4 + 4, REG_RESULT2);
-
-				i386_alu_imm_reg(I386_ADD, 4 + 8 + 8 + 4, REG_SP);
 			}
 
 			i386_ret();
