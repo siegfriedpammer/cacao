@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 1534 2004-11-18 10:38:05Z twisti $
+   $Id: cacaoh.c 1543 2004-11-18 12:20:19Z twisti $
 
 */
 
@@ -108,7 +108,6 @@ int main(int argc, char **argv)
 	s4 i, a;
 	char *cp;
 	classinfo *c;
-	bool opt_verbose;
 	char *opt_directory;
 
 	/********** internal (only used by main) *****************************/
