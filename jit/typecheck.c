@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 917 2004-02-08 18:13:05Z edwin $
+   $Id: typecheck.c 918 2004-02-08 19:54:52Z edwin $
 
 */
 
@@ -793,6 +793,8 @@ typecheck()
 
 	typeinfo *savedtypes = NULL;       /* saved types of instack slots */
 	typeinfo *savedtypesbuf = NULL;   /* reusable buffer for the above */
+
+	stackelement excstack;           /* instack for exception handlers */
 													  
 	typedescriptor returntype;        /* return type of current method */
     u1 *ptype;                     /* parameter types of called method */
@@ -920,12 +922,10 @@ typecheck()
     LOG("Arguments set.\n");
 
     /* initialize the input stack of exception handlers */
-    for (i=0; i<method->exceptiontablelength; ++i) {
-        cls = extable[i].catchtype;
-        if (!cls) cls = class_java_lang_Throwable;
-        LOGSTR1("handler %i: ",i); LOGSTRu(cls->name); LOGNL;
-        TYPEINFO_INIT_CLASSINFO(extable[i].handler->instack->typeinfo,cls);
-    }
+	excstack.prev = NULL;
+	excstack.type = TYPE_ADR;
+	TYPEINFO_INIT_CLASSINFO(excstack.typeinfo,
+							class_java_lang_Throwable); /* changed later */
 
     LOG("Exception handler stacks set.\n");
 
@@ -1977,9 +1977,12 @@ typecheck()
                         i = 0;
                         while (handlers[i]) {
 							TYPECHECK_COUNT(stat_handlers_reached);
-                            tbptr = handlers[i]->handler;
-							repeat |= typestate_reach(localbuf,bptr,tbptr,
-													  tbptr->instack,localset,
+							cls = handlers[i]->catchtype;
+							excstack.typeinfo.typeclass = (cls) ? cls
+								: class_java_lang_Throwable;
+							repeat |= typestate_reach(localbuf,bptr,
+													  handlers[i]->handler,
+													  &excstack,localset,
 													  numlocals,
 													  jsrencountered);
                             i++;
