@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 1841 2005-01-04 11:18:50Z twisti $
+   $Id: asmpart.h 1879 2005-01-21 11:34:17Z stefan $
 
 */
 
@@ -107,6 +107,7 @@ void calljava_xhandler2();
 
 void asm_handle_exception();
 void asm_handle_nat_exception();
+void asm_handle_nullptr_exception();
 
 void asm_check_clinit();
 
