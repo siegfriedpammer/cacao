@@ -31,7 +31,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: types.h 665 2003-11-21 18:36:43Z jowenn $
+   $Id: types.h 1600 2004-11-29 09:55:35Z twisti $
 
 */
 
@@ -39,30 +39,10 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 
-#define POINTERSIZE         8
-#define WORDS_BIGENDIAN     1
+#include "jit/mips/arch.h"
 
-#define SUPPORT_DIVISION    0
-#define SUPPORT_LONG        1
-#define SUPPORT_FLOAT       1
-#define SUPPORT_DOUBLE      1
-#define SUPPORT_FMOD        1
-#define SUPPORT_FICVT       0
-#define SUPPORT_IFCVT       1
 
-#define SUPPORT_LONG_ADD    1
-#define SUPPORT_LONG_CMP    1
-#define SUPPORT_LONG_LOG    1
-#define SUPPORT_LONG_SHIFT  1
-#define SUPPORT_LONG_MUL    1
-#define SUPPORT_LONG_DIV    0
-#define SUPPORT_LONG_ICVT   0
-#define SUPPORT_LONG_FCVT   1
-
-#define USEBUILTINTABLE
-
-#define U8_AVAILABLE        1
-
+/* Define the sizes of the integer types used internally by cacao.            */
 
 typedef signed char             s1;
 typedef unsigned char           u1;
@@ -80,6 +60,11 @@ typedef unsigned long int       u8;
 typedef struct {u4 low, high;}  u8;
 #define s8 u8
 #endif
+
+
+/* Define the size of a function pointer used in function pointer casts.      */
+
+typedef u8                      ptrint;
 
 #endif /* _TYPES_H */
 
