@@ -1,4 +1,4 @@
-/* global.h - global definitions
+/* vm/global.h - global definitions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: global.h 1792 2004-12-21 10:13:27Z twisti $
 
 */
 
@@ -62,7 +62,7 @@ typedef struct arraydescriptor arraydescriptor;
 /* additional data types ******************************************************/
 
 typedef void *voidptr;                  /* generic pointer                    */
-typedef void (*functionptr) ();         /* generic function pointer           */
+typedef void (*functionptr) (void);     /* generic function pointer           */
 
 typedef int   bool;                     /* boolean data type                  */
 
@@ -75,11 +75,6 @@ typedef int   bool;                     /* boolean data type                  */
 #include "toolbox/list.h"
 #include "vm/jit/inline/sets.h"
 
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#include <pthread.h>
-#include <semaphore.h>
-#endif
 
 /* define path to rt.jar plus ending : ****************************************/
 
