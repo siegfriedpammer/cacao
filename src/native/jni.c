@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 1922 2005-02-10 10:42:30Z twisti $
+   $Id: jni.c 1969 2005-03-01 14:09:25Z motse $
 
 */
 
@@ -76,6 +76,10 @@
 /* XXX TWISTI hack: define it extern so they can be found in this file */
 extern const struct JNIInvokeInterface JNI_JavaVMTable;
 extern struct JNINativeInterface JNI_JNIEnvTable;
+
+/* pointers to VM and the environment needed by GetJavaVM and GetEnv */
+static JavaVM ptr_jvm = (JavaVM) &JNI_JavaVMTable;
+static void* ptr_env = (void*) &JNI_JNIEnvTable;
 
 
 #define PTR_TO_ITEM(ptr)   ((u8)(size_t)(ptr))
@@ -3138,10 +3142,7 @@ jint MonitorExit(JNIEnv *env, jobject obj)
 
 jint GetJavaVM(JNIEnv *env, JavaVM **vm)
 {
-	JavaVM tmp_vm;
-
-	tmp_vm = (JavaVM) &JNI_JavaVMTable;
-    *vm = &tmp_vm;
+    *vm = &ptr_jvm;
 
 	return 0;
 }
@@ -3375,7 +3376,7 @@ jint GetEnv(JavaVM *vm, void **env, jint version)
 	}
 	*/
 
-	*env = &JNI_JNIEnvTable;
+	*env = &ptr_env;
 
 	return JNI_OK;
 }
