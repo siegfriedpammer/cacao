@@ -15,7 +15,7 @@
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 	         Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: headers.c 242 2003-03-07 17:40:12Z stefan $
+	Last Change: $Id: headers.c 260 2003-03-23 14:59:26Z twisti $
 
 *******************************************************************************/
 
@@ -64,6 +64,9 @@ s4 asm_builtin_checkarraycast
 	(java_objectheader *o, constant_arraydescriptor *d)
 	{return 0;}
 
+#ifdef __I386__
+void asm_builtin_anewarray (s4 size, classinfo *elementtype) {}
+#endif
 void asm_builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o) {}
 
 u1 *createcompilerstub (methodinfo *m) {return NULL;}
