@@ -1,4 +1,4 @@
-/* vm/jit/stack.c - stack analysis
+/* src/vm/jit/stack.c - stack analysis
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,8 +27,9 @@
    Authors: Andreas Krall
 
    Changes: Edwin Steiner
+            Christian Thalinger
 
-   $Id: stack.c 2028 2005-03-10 13:45:28Z twisti $
+   $Id: stack.c 2038 2005-03-20 11:22:40Z twisti $
 
 */
 
@@ -306,11 +307,81 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_ISUB:
 								iptr[0].opc = ICMD_ISUBCONST;
 								goto icmd_iconst_tail;
-#if SUPPORT_MUL_CONST
+#if SUPPORT_CONST_MUL
 							case ICMD_IMUL:
 								iptr[0].opc = ICMD_IMULCONST;
 								goto icmd_iconst_tail;
-#endif /* SUPPORT_MUL_CONST */
+#else /* SUPPORT_CONST_MUL */
+							case ICMD_IMUL:
+								if (iptr[0].val.i == 0x00000002)
+									iptr[0].val.i = 1;
+								else if (iptr[0].val.i == 0x00000004)
+									iptr[0].val.i = 2;
+								else if (iptr[0].val.i == 0x00000008)
+									iptr[0].val.i = 3;
+								else if (iptr[0].val.i == 0x00000010)
+									iptr[0].val.i = 4;
+								else if (iptr[0].val.i == 0x00000020)
+									iptr[0].val.i = 5;
+								else if (iptr[0].val.i == 0x00000040)
+									iptr[0].val.i = 6;
+								else if (iptr[0].val.i == 0x00000080)
+									iptr[0].val.i = 7;
+								else if (iptr[0].val.i == 0x00000100)
+									iptr[0].val.i = 8;
+								else if (iptr[0].val.i == 0x00000200)
+									iptr[0].val.i = 9;
+								else if (iptr[0].val.i == 0x00000400)
+									iptr[0].val.i = 10;
+								else if (iptr[0].val.i == 0x00000800)
+									iptr[0].val.i = 11;
+								else if (iptr[0].val.i == 0x00001000)
+									iptr[0].val.i = 12;
+								else if (iptr[0].val.i == 0x00002000)
+									iptr[0].val.i = 13;
+								else if (iptr[0].val.i == 0x00004000)
+									iptr[0].val.i = 14;
+								else if (iptr[0].val.i == 0x00008000)
+									iptr[0].val.i = 15;
+								else if (iptr[0].val.i == 0x00010000)
+									iptr[0].val.i = 16;
+								else if (iptr[0].val.i == 0x00020000)
+									iptr[0].val.i = 17;
+								else if (iptr[0].val.i == 0x00040000)
+									iptr[0].val.i = 18;
+								else if (iptr[0].val.i == 0x00080000)
+									iptr[0].val.i = 19;
+								else if (iptr[0].val.i == 0x00100000)
+									iptr[0].val.i = 20;
+								else if (iptr[0].val.i == 0x00200000)
+									iptr[0].val.i = 21;
+								else if (iptr[0].val.i == 0x00400000)
+									iptr[0].val.i = 22;
+								else if (iptr[0].val.i == 0x00800000)
+									iptr[0].val.i = 23;
+								else if (iptr[0].val.i == 0x01000000)
+									iptr[0].val.i = 24;
+								else if (iptr[0].val.i == 0x02000000)
+									iptr[0].val.i = 25;
+								else if (iptr[0].val.i == 0x04000000)
+									iptr[0].val.i = 26;
+								else if (iptr[0].val.i == 0x08000000)
+									iptr[0].val.i = 27;
+								else if (iptr[0].val.i == 0x10000000)
+									iptr[0].val.i = 28;
+								else if (iptr[0].val.i == 0x20000000)
+									iptr[0].val.i = 29;
+								else if (iptr[0].val.i == 0x40000000)
+									iptr[0].val.i = 30;
+								else if (iptr[0].val.i == 0x80000000)
+									iptr[0].val.i = 31;
+								else {
+									PUSHCONST(TYPE_INT);
+									break;
+								}
+								iptr[0].opc = ICMD_IMULPOW2;
+								goto icmd_iconst_tail;
+#endif /* SUPPORT_CONST_MUL */
 							case ICMD_IDIV:
 								if (iptr[0].val.i == 0x00000002)
 									iptr[0].val.i = 1;
@@ -418,7 +489,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								}
 								PUSHCONST(TYPE_INT);
 								break;
-#if SUPPORT_LOGICAL_CONST
+#if SUPPORT_CONST_LOGICAL
 							case ICMD_IAND:
 								iptr[0].opc = ICMD_IANDCONST;
 								goto icmd_iconst_tail;
@@ -428,7 +499,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_IXOR:
 								iptr[0].opc = ICMD_IXORCONST;
 								goto icmd_iconst_tail;
-#endif /* SUPPORT_LOGICAL_CONST */
+#endif /* SUPPORT_CONST_LOGICAL */
 							case ICMD_ISHL:
 								iptr[0].opc = ICMD_ISHLCONST;
 								goto icmd_iconst_tail;
@@ -480,14 +551,16 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								iptr[0].opc = ICMD_IFGE;
 								goto icmd_if_icmp_tail;
 
-#if SUPPORT_CONST_ASTORE
+#if SUPPORT_CONST_STORE
 							case ICMD_IASTORE:
 							case ICMD_BASTORE:
 							case ICMD_CASTORE:
 							case ICMD_SASTORE:
-#if SUPPORT_ONLY_ZERO_ASTORE
+							case ICMD_PUTSTATIC:
+							case ICMD_PUTFIELD:
+#if SUPPORT_CONST_STORE_ZERO_ONLY
 								if (iptr[0].val.i == 0) {
-#endif /* SUPPORT_ONLY_ZERO_ASTORE */
+#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 									switch (iptr[1].opc) {
 									case ICMD_IASTORE:
 										iptr[0].opc = ICMD_IASTORECONST;
@@ -501,17 +574,23 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									case ICMD_SASTORE:
 										iptr[0].opc = ICMD_SASTORECONST;
 										break;
+									case ICMD_PUTSTATIC:
+										iptr[0].opc = ICMD_PUTSTATICCONST;
+										break;
+									case ICMD_PUTFIELD:
+										iptr[0].opc = ICMD_PUTFIELDCONST;
+										break;
 									}
 
 									iptr[1].opc = ICMD_NOP;
 									OPTT2_0(TYPE_INT, TYPE_ADR);
 									COUNT(count_pcmd_op);
-#if SUPPORT_ONLY_ZERO_ASTORE
+#if SUPPORT_CONST_STORE_ZERO_ONLY
 								} else
 									PUSHCONST(TYPE_INT);
-#endif /* SUPPORT_ONLY_ZERO_ASTORE */
+#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 								break;
-#endif /* SUPPORT_CONST_ASTORE */
+#endif /* SUPPORT_CONST_STORE */
 
 							default:
 								PUSHCONST(TYPE_INT);
@@ -537,11 +616,83 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								iptr[0].opc = ICMD_LSUBCONST;
 								goto icmd_lconst_tail;
 #endif /* SUPPORT_LONG_ADD */
-#if SUPPORT_LONG_MUL && SUPPORT_MUL_CONST
+#if SUPPORT_LONG_MUL && SUPPORT_CONST_MUL
 							case ICMD_LMUL:
 								iptr[0].opc = ICMD_LMULCONST;
 								goto icmd_lconst_tail;
-#endif /* SUPPORT_LONG_MUL && SUPPORT_MUL_CONST */
+#else /* SUPPORT_LONG_MUL && SUPPORT_CONST_MUL */
+# if SUPPORT_LONG_SHIFT
+							case ICMD_LMUL:
+								if (iptr[0].val.l == 0x00000002)
+									iptr[0].val.i = 1;
+								else if (iptr[0].val.l == 0x00000004)
+									iptr[0].val.i = 2;
+								else if (iptr[0].val.l == 0x00000008)
+									iptr[0].val.i = 3;
+								else if (iptr[0].val.l == 0x00000010)
+									iptr[0].val.i = 4;
+								else if (iptr[0].val.l == 0x00000020)
+									iptr[0].val.i = 5;
+								else if (iptr[0].val.l == 0x00000040)
+									iptr[0].val.i = 6;
+								else if (iptr[0].val.l == 0x00000080)
+									iptr[0].val.i = 7;
+								else if (iptr[0].val.l == 0x00000100)
+									iptr[0].val.i = 8;
+								else if (iptr[0].val.l == 0x00000200)
+									iptr[0].val.i = 9;
+								else if (iptr[0].val.l == 0x00000400)
+									iptr[0].val.i = 10;
+								else if (iptr[0].val.l == 0x00000800)
+									iptr[0].val.i = 11;
+								else if (iptr[0].val.l == 0x00001000)
+									iptr[0].val.i = 12;
+								else if (iptr[0].val.l == 0x00002000)
+									iptr[0].val.i = 13;
+								else if (iptr[0].val.l == 0x00004000)
+									iptr[0].val.i = 14;
+								else if (iptr[0].val.l == 0x00008000)
+									iptr[0].val.i = 15;
+								else if (iptr[0].val.l == 0x00010000)
+									iptr[0].val.i = 16;
+								else if (iptr[0].val.l == 0x00020000)
+									iptr[0].val.i = 17;
+								else if (iptr[0].val.l == 0x00040000)
+									iptr[0].val.i = 18;
+								else if (iptr[0].val.l == 0x00080000)
+									iptr[0].val.i = 19;
+								else if (iptr[0].val.l == 0x00100000)
+									iptr[0].val.i = 20;
+								else if (iptr[0].val.l == 0x00200000)
+									iptr[0].val.i = 21;
+								else if (iptr[0].val.l == 0x00400000)
+									iptr[0].val.i = 22;
+								else if (iptr[0].val.l == 0x00800000)
+									iptr[0].val.i = 23;
+								else if (iptr[0].val.l == 0x01000000)
+									iptr[0].val.i = 24;
+								else if (iptr[0].val.l == 0x02000000)
+									iptr[0].val.i = 25;
+								else if (iptr[0].val.l == 0x04000000)
+									iptr[0].val.i = 26;
+								else if (iptr[0].val.l == 0x08000000)
+									iptr[0].val.i = 27;
+								else if (iptr[0].val.l == 0x10000000)
+									iptr[0].val.i = 28;
+								else if (iptr[0].val.l == 0x20000000)
+									iptr[0].val.i = 29;
+								else if (iptr[0].val.l == 0x40000000)
+									iptr[0].val.i = 30;
+								else if (iptr[0].val.l == 0x80000000)
+									iptr[0].val.i = 31;
+								else {
+									PUSHCONST(TYPE_LNG);
+									break;
+								}
+								iptr[0].opc = ICMD_LMULPOW2;
+								goto icmd_lconst_tail;
+# endif /* SUPPORT_LONG_SHIFT */
+#endif /* SUPPORT_LONG_MUL && SUPPORT_CONST_MUL */
 #if SUPPORT_LONG_DIV
 							case ICMD_LDIV:
 								if (iptr[0].val.l == 0x00000002)
@@ -651,8 +802,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								PUSHCONST(TYPE_LNG);
 								break;
 #endif /* SUPPORT_LONG_DIV */
-#if SUPPORT_LONG_LOG
-#if SUPPORT_LOGICAL_CONST
+#if SUPPORT_LONG_LOGICAL && SUPPORT_CONST_LOGICAL
 
 							case ICMD_LAND:
 								iptr[0].opc = ICMD_LANDCONST;
@@ -663,8 +813,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_LXOR:
 								iptr[0].opc = ICMD_LXORCONST;
 								goto icmd_lconst_tail;
-#endif /* SUPPORT_LOGICAL_CONST */
-#endif /* SUPPORT_LONG_LOG */
+#endif /* SUPPORT_LONG_LOGICAL && SUPPORT_CONST_LOGICAL */
 #if !defined(NOLONG_CONDITIONAL)
 							case ICMD_LCMP:
 								if ((len > 1) && (iptr[2].val.i == 0)) {
@@ -710,21 +859,34 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								break;
 #endif /* !defined(NOLONG_CONDITIONAL) */
 
-#if SUPPORT_CONST_ASTORE
+#if SUPPORT_CONST_STORE
 							case ICMD_LASTORE:
-#if SUPPORT_ONLY_ZERO_ASTORE
+							case ICMD_PUTSTATIC:
+							case ICMD_PUTFIELD:
+#if SUPPORT_CONST_STORE_ZERO_ONLY
 								if (iptr[0].val.l == 0) {
-#endif /* SUPPORT_ONLY_ZERO_ASTORE */
-									iptr[0].opc = ICMD_LASTORECONST;
+#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+									switch (iptr[1].opc) {
+									case ICMD_LASTORE:
+										iptr[0].opc = ICMD_LASTORECONST;
+										break;
+									case ICMD_PUTSTATIC:
+										iptr[0].opc = ICMD_PUTSTATICCONST;
+										break;
+									case ICMD_PUTFIELD:
+										iptr[0].opc = ICMD_PUTFIELDCONST;
+										break;
+									}
+
 									iptr[1].opc = ICMD_NOP;
 									OPTT2_0(TYPE_INT, TYPE_ADR);
 									COUNT(count_pcmd_op);
-#if SUPPORT_ONLY_ZERO_ASTORE
+#if SUPPORT_CONST_STORE_ZERO_ONLY
 								} else
 									PUSHCONST(TYPE_LNG);
-#endif /* SUPPORT_ONLY_ZERO_ASTORE */
+#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 								break;
-#endif /* SUPPORT_CONST_ASTORE */
+#endif /* SUPPORT_CONST_STORE */
 
 							default:
 								PUSHCONST(TYPE_LNG);
@@ -746,21 +908,39 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 					case ICMD_ACONST:
 						COUNT(count_pcmd_load);
-#if SUPPORT_CONST_ASTORE
+#if SUPPORT_CONST_STORE
 						if (len > 0 && iptr->val.a == 0) {
-							if (iptr[1].opc == ICMD_BUILTIN3 &&
-								iptr[1].val.fp == BUILTIN_aastore) {
-								iptr[0].opc = ICMD_AASTORECONST;
+							switch (iptr[1].opc) {
+							case ICMD_BUILTIN3:
+								if (iptr[1].val.fp != BUILTIN_aastore) {
+									PUSHCONST(TYPE_ADR);
+									break;
+								}
+								/* fall through */
+							case ICMD_PUTSTATIC:
+							case ICMD_PUTFIELD:
+								switch (iptr[1].opc) {
+								case ICMD_BUILTIN3:
+									iptr[0].opc = ICMD_AASTORECONST;
+									break;
+								case ICMD_PUTSTATIC:
+									iptr[0].opc = ICMD_PUTSTATICCONST;
+									break;
+								case ICMD_PUTFIELD:
+									iptr[0].opc = ICMD_PUTFIELDCONST;
+									break;
+								}
+
 								iptr[1].opc = ICMD_NOP;
 								OPTT2_0(TYPE_INT, TYPE_ADR);
 								COUNT(count_pcmd_op);
+								break;
 
-							} else {
+							default:
 								PUSHCONST(TYPE_ADR);
 							}
-
 						} else
-#endif /* SUPPORT_CONST_ASTORE */
+#endif /* SUPPORT_CONST_STORE */
 							PUSHCONST(TYPE_ADR);
 						break;
 
@@ -1401,10 +1581,11 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_LMUL:
 					case ICMD_LADD:
 					case ICMD_LSUB:
-					case ICMD_LOR:
+#if SUPPORT_LONG_LOGICAL
 					case ICMD_LAND:
+					case ICMD_LOR:
 					case ICMD_LXOR:
-						/* DEBUG */ /*dolog("OP2_1(TYPE_LNG)"); */
+#endif /* SUPPORT_LONG_LOGICAL */
 						COUNT(count_pcmd_op);
 						OP2_1(TYPE_LNG);
 						break;
@@ -1654,20 +1835,16 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 										copy->varkind = ARGVAR;
 
 										if (IS_FLT_DBL_TYPE(copy->type)) {
-											if (--farg < FLT_ARG_CNT) {
+											if (--farg < FLT_ARG_CNT)
 												copy->varnum = farg;
-
-											} else {
+											else
 												copy->varnum = --stackargs + FLT_ARG_CNT;
-											}
 
 										} else {
-											if (--iarg < INT_ARG_CNT) {
+											if (--iarg < INT_ARG_CNT)
 												copy->varnum = iarg;
-
-											} else {
+											else
 												copy->varnum = --stackargs + INT_ARG_CNT;
-											}
 										}
 
 									} else {
@@ -1676,7 +1853,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									copy = copy->prev;
 								}
 							}
-#else
+#else /* defined(__X86_64__) */
 							copy = curstack;
 							while (--i >= 0) {
 								if (!(copy->flags & SAVEDVAR)) {
@@ -1685,16 +1862,15 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								}
 								copy = copy->prev;
 							}
-#endif
+#endif /* defined(__X86_64__) */
 							while (copy) {
 								copy->flags |= SAVEDVAR;
 								copy = copy->prev;
 							}
 							i = iptr->op1;
 							POPMANY(i);
-							if (lm->returntype != TYPE_VOID) {
+							if (lm->returntype != TYPE_VOID)
 								OP0_1(lm->returntype);
-							}
 							break;
 						}
 					case ICMD_INLINE_START:
@@ -2281,6 +2457,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IADDCONST:
 	case ICMD_ISUBCONST:
 	case ICMD_IMULCONST:
+	case ICMD_IMULPOW2:
 	case ICMD_IDIVPOW2:
 	case ICMD_IREMPOW2:
 	case ICMD_IANDCONST:
@@ -2310,6 +2487,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_LADDCONST:
 	case ICMD_LSUBCONST:
 	case ICMD_LMULCONST:
+	case ICMD_LMULPOW2:
 	case ICMD_LDIVPOW2:
 	case ICMD_LREMPOW2:
 	case ICMD_LANDCONST:
@@ -2317,7 +2495,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_LXORCONST:
 	case ICMD_LCONST:
 	case ICMD_LASTORECONST:
-#if defined(__I386__)
+#if defined(__I386__) && defined(__POWERPC__)
 		printf(" %lld", iptr->val.l);
 #else
 		printf(" %ld", iptr->val.l);
@@ -2348,6 +2526,43 @@ void show_icmd(instruction *iptr, bool deadcode)
 		utf_fprint(stdout, ((fieldinfo *) iptr->val.a)->name);
 		printf(" (type ");
 		utf_fprint(stdout, ((fieldinfo *) iptr->val.a)->descriptor);
+		printf(")");
+		break;
+
+	case ICMD_PUTSTATICCONST:
+	case ICMD_PUTFIELDCONST:
+		switch (iptr[1].opc) {
+		case TYPE_INT:
+			printf(" %d,", iptr->val.i);
+			break;
+		case TYPE_LNG:
+#if defined(__I386__) && defined(__POWERPC__)
+			printf(" %lld,", iptr->val.l);
+#else
+			printf(" %ld,", iptr->val.l);
+#endif
+			break;
+		case TYPE_ADR:
+#if defined(__I386__) && defined(__POWERPC__)
+			printf(" 0x%08x,", iptr->val.a);
+#else
+			printf(" 0x%016lx,", iptr->val.a);
+#endif
+			break;
+		case TYPE_FLT:
+			printf(" %g,", iptr->val.f);
+			break;
+		case TYPE_DBL:
+			printf(" %g,", iptr->val.d);
+			break;
+		}
+		if (iptr->opc == ICMD_PUTFIELDCONST)
+			printf(" %d,", ((fieldinfo *) iptr[1].val.a)->offset);
+		utf_fprint(stdout, ((fieldinfo *) iptr[1].val.a)->class->name);
+		printf(".");
+		utf_fprint(stdout, ((fieldinfo *) iptr[1].val.a)->name);
+		printf(" (type ");
+		utf_fprint(stdout, ((fieldinfo *) iptr[1].val.a)->descriptor);
 		printf(")");
 		break;
 

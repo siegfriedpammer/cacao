@@ -1,4 +1,4 @@
-/* jit/jit.h - code generation header
+/* src/vm/jit/jit.h - code generation header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 2029 2005-03-10 13:47:01Z twisti $
+   $Id: jit.h 2038 2005-03-20 11:22:40Z twisti $
 
 */
 
@@ -124,10 +124,10 @@ struct instruction {
  
 /*                    flags                                                   */
 
-#define BBDELETED  -2
-#define BBUNDEF    -1
-#define BBREACHED  0
-#define BBFINISHED 1
+#define BBDELETED     -2
+#define BBUNDEF       -1
+#define BBREACHED     0
+#define BBFINISHED    1
 #define BBTYPECHECK_UNDEF    2
 #define BBTYPECHECK_REACHED  3
 
@@ -781,6 +781,14 @@ extern int jcommandsize[256];
 #define ICMD_CASTORECONST     210
 
 #define ICMD_SASTORECONST     211
+
+#define ICMD_PUTSTATICCONST   212
+
+#define ICMD_PUTFIELDCONST    213
+
+#define ICMD_IMULPOW2         214
+
+#define ICMD_LMULPOW2         215
 
 #define ICMD_INLINE_START     251       /* before the first instruction of an inlined method */
 #define ICMD_INLINE_END       252       /* after the last instruction of an inlined method */

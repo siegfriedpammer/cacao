@@ -1,4 +1,4 @@
-/* vm/jit/reg.inc - register allocator
+/* src/vm/jit/reg.inc - register allocator
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,11 +29,12 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1962 2005-02-23 11:50:07Z twisti $
+   $Id: reg.inc 2038 2005-03-20 11:22:40Z twisti $
 
 */
 
 
+#include "arch.h"
 #include "mm/memory.h"
 #include "vm/jit/reg.h"
 
@@ -860,6 +861,7 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 				case ICMD_RET:
 				case ICMD_RETURN:
 				case ICMD_GOTO:
+				case ICMD_PUTSTATICCONST:
 				case ICMD_INLINE_START:
 				case ICMD_INLINE_END:
 					break;
@@ -935,6 +937,7 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 				case ICMD_ATHROW:
 
 				case ICMD_PUTSTATIC:
+				case ICMD_PUTFIELDCONST:
 
 					/* pop 1 push 0 branch */
 
@@ -1129,6 +1132,7 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 				case ICMD_IADDCONST:
 				case ICMD_ISUBCONST:
 				case ICMD_IMULCONST:
+				case ICMD_IMULPOW2:
 				case ICMD_IDIVPOW2:
 				case ICMD_IREMPOW2:
 				case ICMD_IANDCONST:
@@ -1141,6 +1145,7 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 				case ICMD_LADDCONST:
 				case ICMD_LSUBCONST:
 				case ICMD_LMULCONST:
+				case ICMD_LMULPOW2:
 				case ICMD_LDIVPOW2:
 				case ICMD_LREMPOW2:
 				case ICMD_LANDCONST:

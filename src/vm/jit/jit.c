@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2017 2005-03-09 11:37:33Z twisti $
+   $Id: jit.c 2038 2005-03-20 11:22:40Z twisti $
 
 */
 
@@ -696,9 +696,17 @@ int jcommandsize[256] = {
 	1,
 #define ICMD_SASTORECONST     211
 	1,
+#define ICMD_PUTSTATICCONST   212
+	1,
+#define ICMD_PUTFIELDCONST    213
+	1,
+#define ICMD_IMULPOW2         214
+	1,
+#define ICMD_LMULPOW2         215
+	1,
 
 	/* unused */
-	    1,1,1,1,1,1,1,1,
+	            1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
@@ -919,8 +927,11 @@ char *icmd_names[256] = {
 	"BASTORECONST   ", /*             209 */
 	"CASTORECONST   ", /*             210 */
 	"SASTORECONST   ", /*             211 */
+	"PUTSTATICCONST ", /*             212 */
+	"PUTFIELDCONST  ", /*             213 */
+	"IMULPOW2       ", /*             214 */
+	"LMULPOW2       ", /*             215 */
 
-	            "UNDEF212", "UNDEF213", "UNDEF214", "UNDEF215",
 	"UNDEF216", "UNDEF217", "UNDEF218", "UNDEF219", "UNDEF220",
 	"UNDEF221", "UNDEF222", "UNDEF223", "UNDEF224", "UNDEF225",
 	"UNDEF226", "UNDEF227", "UNDEF228", "UNDEF229", "UNDEF230",
