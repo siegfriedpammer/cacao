@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 618 2003-11-13 09:39:28Z stefan $
+# $Id: Makefile.am 1225 2004-06-30 19:26:19Z twisti $
 
 SUBDIRS = boehm-gc
 
@@ -10,7 +10,7 @@ noinst_HEADERS = boehm.h
 
 libboehm_a_SOURCES = boehm.c
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit -I$(top_srcdir)/jit/@ARCH_DIR@ -I./boehm-gc/include
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit/@ARCH_DIR@
 
 
 ## Local variables:
