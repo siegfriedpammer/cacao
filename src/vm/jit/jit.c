@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1807 2004-12-22 10:47:13Z twisti $
+   $Id: jit.c 1829 2004-12-29 13:24:01Z twisti $
 
 */
 
@@ -693,7 +693,7 @@ int jcommandsize[256] = {
 	1,
 
 	/* unused */
-	1,1,1,1,1,1,1,1,
+	    1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
@@ -702,463 +702,453 @@ int jcommandsize[256] = {
 
 
 char *icmd_names[256] = {
-	"NOP          ", /*               0 */
-	"ACONST       ", /*               1 */
-	"NULLCHECKPOP ", /* ICONST_M1     2 */
-	"ICONST       ", /*               3 */
-	"UNDEF4       ", /* ICONST_1      4 */
-	"IDIVPOW2     ", /* ICONST_2      5 */
-	"LDIVPOW2     ", /* ICONST_3      6 */
-	"UNDEF7       ", /* ICONST_4      7 */
-	"UNDEF8       ", /* ICONST_5      8 */
-	"LCONST       ", /*               9 */
-	"LCMPCONST    ", /* LCONST_1     10 */
-	"FCONST       ", /*              11 */
-	"UNDEF12      ", /* FCONST_1     12 */
-	"ELSE_ICONST  ", /* FCONST_2     13 */
-	"DCONST       ", /*              14 */
-	"IFEQ_ICONST  ", /* DCONST_1     15 */
-	"IFNE_ICONST  ", /* BIPUSH       16 */
-	"IFLT_ICONST  ", /* SIPUSH       17 */
-	"IFGE_ICONST  ", /* LDC1         18 */
-	"IFGT_ICONST  ", /* LDC2         19 */
-	"IFLE_ICONST  ", /* LDC2W        20 */
-	"ILOAD        ", /*              21 */
-	"LLOAD        ", /*              22 */
-	"FLOAD        ", /*              23 */
-	"DLOAD        ", /*              24 */
-	"ALOAD        ", /*              25 */
-	"IADDCONST    ", /* ILOAD_0      26 */
-	"ISUBCONST    ", /* ILOAD_1      27 */
-	"IMULCONST    ", /* ILOAD_2      28 */
-	"IANDCONST    ", /* ILOAD_3      29 */
-	"IORCONST     ", /* LLOAD_0      30 */
-	"IXORCONST    ", /* LLOAD_1      31 */
-	"ISHLCONST    ", /* LLOAD_2      32 */
-	"ISHRCONST    ", /* LLOAD_3      33 */
-	"IUSHRCONST   ", /* FLOAD_0      34 */
-	"IREMPOW2     ", /* FLOAD_1      35 */
-	"LADDCONST    ", /* FLOAD_2      36 */
-	"LSUBCONST    ", /* FLOAD_3      37 */
-	"LMULCONST    ", /* DLOAD_0      38 */
-	"LANDCONST    ", /* DLOAD_1      39 */
-	"LORCONST     ", /* DLOAD_2      40 */
-	"LXORCONST    ", /* DLOAD_3      41 */
-	"LSHLCONST    ", /* ALOAD_0      42 */
-	"LSHRCONST    ", /* ALOAD_1      43 */
-	"LUSHRCONST   ", /* ALOAD_2      44 */
-	"LREMPOW2     ", /* ALOAD_3      45 */
-	"IALOAD       ", /*              46 */
-	"LALOAD       ", /*              47 */
-	"FALOAD       ", /*              48 */
-	"DALOAD       ", /*              49 */
-	"AALOAD       ", /*              50 */
-	"BALOAD       ", /*              51 */
-	"CALOAD       ", /*              52 */
-	"SALOAD       ", /*              53 */
-	"ISTORE       ", /*              54 */
-	"LSTORE       ", /*              55 */
-	"FSTORE       ", /*              56 */
-	"DSTORE       ", /*              57 */
-	"ASTORE       ", /*              58 */
-	"IF_LEQ       ", /* ISTORE_0     59 */
-	"IF_LNE       ", /* ISTORE_1     60 */
-	"IF_LLT       ", /* ISTORE_2     61 */
-	"IF_LGE       ", /* ISTORE_3     62 */
-	"IF_LGT       ", /* LSTORE_0     63 */
-	"IF_LLE       ", /* LSTORE_1     64 */
-	"IF_LCMPEQ    ", /* LSTORE_2     65 */
-	"IF_LCMPNE    ", /* LSTORE_3     66 */
-	"IF_LCMPLT    ", /* FSTORE_0     67 */
-	"IF_LCMPGE    ", /* FSTORE_1     68 */
-	"IF_LCMPGT    ", /* FSTORE_2     69 */
-	"IF_LCMPLE    ", /* FSTORE_3     70 */
-	"UNDEF71      ", /* DSTORE_0     71 */
-	"UNDEF72      ", /* DSTORE_1     72 */
-	"UNDEF73      ", /* DSTORE_2     73 */
-	"UNDEF74      ", /* DSTORE_3     74 */
-	"UNDEF75      ", /* ASTORE_0     75 */
-	"UNDEF76      ", /* ASTORE_1     76 */
-	"UNDEF77      ", /* ASTORE_2     77 */
-	"UNDEF78      ", /* ASTORE_3     78 */
-	"IASTORE      ", /*              79 */
-	"LASTORE      ", /*              80 */
-	"FASTORE      ", /*              81 */
-	"DASTORE      ", /*              82 */
-	"AASTORE      ", /*              83 */
-	"BASTORE      ", /*              84 */
-	"CASTORE      ", /*              85 */
-	"SASTORE      ", /*              86 */
-	"POP          ", /*              87 */
-	"POP2         ", /*              88 */
-	"DUP          ", /*              89 */
-	"DUP_X1       ", /*              90 */
-	"DUP_X2       ", /*              91 */
-	"DUP2         ", /*              92 */
-	"DUP2_X1      ", /*              93 */
-	"DUP2_X2      ", /*              94 */
-	"SWAP         ", /*              95 */
-	"IADD         ", /*              96 */
-	"LADD         ", /*              97 */
-	"FADD         ", /*              98 */
-	"DADD         ", /*              99 */
-	"ISUB         ", /*             100 */
-	"LSUB         ", /*             101 */
-	"FSUB         ", /*             102 */
-	"DSUB         ", /*             103 */
-	"IMUL         ", /*             104 */
-	"LMUL         ", /*             105 */
-	"FMUL         ", /*             106 */
-	"DMUL         ", /*             107 */
-	"IDIV         ", /*             108 */
-	"LDIV         ", /*             109 */
-	"FDIV         ", /*             110 */
-	"DDIV         ", /*             111 */
-	"IREM         ", /*             112 */
-	"LREM         ", /*             113 */
-	"FREM         ", /*             114 */
-	"DREM         ", /*             115 */
-	"INEG         ", /*             116 */
-	"LNEG         ", /*             117 */
-	"FNEG         ", /*             118 */
-	"DNEG         ", /*             119 */
-	"ISHL         ", /*             120 */
-	"LSHL         ", /*             121 */
-	"ISHR         ", /*             122 */
-	"LSHR         ", /*             123 */
-	"IUSHR        ", /*             124 */
-	"LUSHR        ", /*             125 */
-	"IAND         ", /*             126 */
-	"LAND         ", /*             127 */
-	"IOR          ", /*             128 */
-	"LOR          ", /*             129 */
-	"IXOR         ", /*             130 */
-	"LXOR         ", /*             131 */
-	"IINC         ", /*             132 */
-	"I2L          ", /*             133 */
-	"I2F          ", /*             134 */
-	"I2D          ", /*             135 */
-	"L2I          ", /*             136 */
-	"L2F          ", /*             137 */
-	"L2D          ", /*             138 */
-	"F2I          ", /*             139 */
-	"F2L          ", /*             140 */
-	"F2D          ", /*             141 */
-	"D2I          ", /*             142 */
-	"D2L          ", /*             143 */
-	"D2F          ", /*             144 */
-	"INT2BYTE     ", /*             145 */
-	"INT2CHAR     ", /*             146 */
-	"INT2SHORT    ", /*             147 */
-	"LCMP         ", /*             148 */
-	"FCMPL        ", /*             149 */
-	"FCMPG        ", /*             150 */
-	"DCMPL        ", /*             151 */
-	"DCMPG        ", /*             152 */
-	"IFEQ         ", /*             153 */
-	"IFNE         ", /*             154 */
-	"IFLT         ", /*             155 */
-	"IFGE         ", /*             156 */
-	"IFGT         ", /*             157 */
-	"IFLE         ", /*             158 */
-	"IF_ICMPEQ    ", /*             159 */
-	"IF_ICMPNE    ", /*             160 */
-	"IF_ICMPLT    ", /*             161 */
-	"IF_ICMPGE    ", /*             162 */
-	"IF_ICMPGT    ", /*             163 */
-	"IF_ICMPLE    ", /*             164 */
-	"IF_ACMPEQ    ", /*             165 */
-	"IF_ACMPNE    ", /*             166 */
-	"GOTO         ", /*             167 */
-	"JSR          ", /*             168 */
-	"RET          ", /*             169 */
-	"TABLESWITCH  ", /*             170 */
-	"LOOKUPSWITCH ", /*             171 */
-	"IRETURN      ", /*             172 */
-	"LRETURN      ", /*             173 */
-	"FRETURN      ", /*             174 */
-	"DRETURN      ", /*             175 */
-	"ARETURN      ", /*             176 */
-	"RETURN       ", /*             177 */
-	"GETSTATIC    ", /*             178 */
-	"PUTSTATIC    ", /*             179 */
-	"GETFIELD     ", /*             180 */
-	"PUTFIELD     ", /*             181 */
-	"INVOKEVIRTUAL", /*             182 */
-	"INVOKESPECIAL", /*             183 */
-	"INVOKESTATIC ", /*             184 */
-	"INVOKEINTERFACE",/*            185 */
-	"CHECKASIZE   ", /* UNDEF186    186 */
-	"NEW          ", /*             187 */
-	"NEWARRAY     ", /*             188 */
-	"ANEWARRAY    ", /*             189 */
-	"ARRAYLENGTH  ", /*             190 */
-	"ATHROW       ", /*             191 */
-	"CHECKCAST    ", /*             192 */
-	"INSTANCEOF   ", /*             193 */
-	"MONITORENTER ", /*             194 */
-	"MONITOREXIT  ", /*             195 */
-	"UNDEF196     ", /* WIDE        196 */
-	"MULTIANEWARRAY",/*             197 */
-	"IFNULL       ", /*             198 */
-	"IFNONNULL    ", /*             199 */
-	"UNDEF200     ", /* GOTO_W      200 */
-	"UNDEF201     ", /* JSR_W       201 */
-	"UNDEF202     ", /* BREAKPOINT  202 */
-	"CHECKEXCEPTION", /* UNDEF203    203 */
-	"IASTORECONST ", /*             204 */
-	"LASTORECONST ", /*             205 */
-	"FASTORECONST ", /*             206 */
-	"DASTORECONST ", /*             207 */
-	"AASTORECONST ", /*             208 */
-	"BASTORECONST ", /*             209 */
-	"CASTORECONST ", /*             210 */
-	"SASTORECONST ", /*             211 */
-	"UNDEF","UNDEF","UNDEF","UNDEF",
-	"UNDEF216","UNDEF217","UNDEF218","UNDEF219","UNDEF220",
-	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
-	"UNDEF226","UNDEF227","UNDEF228","UNDEF229","UNDEF230",
-	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
-	"UNDEF236","UNDEF237","UNDEF238","UNDEF239","UNDEF240",
-	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
-	"UNDEF246","UNDEF247","UNDEF248","UNDEF249","UNDEF250",
+	"NOP            ", /*               0 */
+	"ACONST         ", /*               1 */
+	"NULLCHECKPOP   ", /* ICONST_M1     2 */
+	"ICONST         ", /*               3 */
+	"UNDEF4         ", /* ICONST_1      4 */
+	"IDIVPOW2       ", /* ICONST_2      5 */
+	"LDIVPOW2       ", /* ICONST_3      6 */
+	"UNDEF7         ", /* ICONST_4      7 */
+	"UNDEF8         ", /* ICONST_5      8 */
+	"LCONST         ", /*               9 */
+	"LCMPCONST      ", /* LCONST_1     10 */
+	"FCONST         ", /*              11 */
+	"UNDEF12        ", /* FCONST_1     12 */
+	"ELSE_ICONST    ", /* FCONST_2     13 */
+	"DCONST         ", /*              14 */
+	"IFEQ_ICONST    ", /* DCONST_1     15 */
+	"IFNE_ICONST    ", /* BIPUSH       16 */
+	"IFLT_ICONST    ", /* SIPUSH       17 */
+	"IFGE_ICONST    ", /* LDC1         18 */
+	"IFGT_ICONST    ", /* LDC2         19 */
+	"IFLE_ICONST    ", /* LDC2W        20 */
+	"ILOAD          ", /*              21 */
+	"LLOAD          ", /*              22 */
+	"FLOAD          ", /*              23 */
+	"DLOAD          ", /*              24 */
+	"ALOAD          ", /*              25 */
+	"IADDCONST      ", /* ILOAD_0      26 */
+	"ISUBCONST      ", /* ILOAD_1      27 */
+	"IMULCONST      ", /* ILOAD_2      28 */
+	"IANDCONST      ", /* ILOAD_3      29 */
+	"IORCONST       ", /* LLOAD_0      30 */
+	"IXORCONST      ", /* LLOAD_1      31 */
+	"ISHLCONST      ", /* LLOAD_2      32 */
+	"ISHRCONST      ", /* LLOAD_3      33 */
+	"IUSHRCONST     ", /* FLOAD_0      34 */
+	"IREMPOW2       ", /* FLOAD_1      35 */
+	"LADDCONST      ", /* FLOAD_2      36 */
+	"LSUBCONST      ", /* FLOAD_3      37 */
+	"LMULCONST      ", /* DLOAD_0      38 */
+	"LANDCONST      ", /* DLOAD_1      39 */
+	"LORCONST       ", /* DLOAD_2      40 */
+	"LXORCONST      ", /* DLOAD_3      41 */
+	"LSHLCONST      ", /* ALOAD_0      42 */
+	"LSHRCONST      ", /* ALOAD_1      43 */
+	"LUSHRCONST     ", /* ALOAD_2      44 */
+	"LREMPOW2       ", /* ALOAD_3      45 */
+	"IALOAD         ", /*              46 */
+	"LALOAD         ", /*              47 */
+	"FALOAD         ", /*              48 */
+	"DALOAD         ", /*              49 */
+	"AALOAD         ", /*              50 */
+	"BALOAD         ", /*              51 */
+	"CALOAD         ", /*              52 */
+	"SALOAD         ", /*              53 */
+	"ISTORE         ", /*              54 */
+	"LSTORE         ", /*              55 */
+	"FSTORE         ", /*              56 */
+	"DSTORE         ", /*              57 */
+	"ASTORE         ", /*              58 */
+	"IF_LEQ         ", /* ISTORE_0     59 */
+	"IF_LNE         ", /* ISTORE_1     60 */
+	"IF_LLT         ", /* ISTORE_2     61 */
+	"IF_LGE         ", /* ISTORE_3     62 */
+	"IF_LGT         ", /* LSTORE_0     63 */
+	"IF_LLE         ", /* LSTORE_1     64 */
+	"IF_LCMPEQ      ", /* LSTORE_2     65 */
+	"IF_LCMPNE      ", /* LSTORE_3     66 */
+	"IF_LCMPLT      ", /* FSTORE_0     67 */
+	"IF_LCMPGE      ", /* FSTORE_1     68 */
+	"IF_LCMPGT      ", /* FSTORE_2     69 */
+	"IF_LCMPLE      ", /* FSTORE_3     70 */
+	"UNDEF71        ", /* DSTORE_0     71 */
+	"UNDEF72        ", /* DSTORE_1     72 */
+	"UNDEF73        ", /* DSTORE_2     73 */
+	"UNDEF74        ", /* DSTORE_3     74 */
+	"UNDEF75        ", /* ASTORE_0     75 */
+	"UNDEF76        ", /* ASTORE_1     76 */
+	"UNDEF77        ", /* ASTORE_2     77 */
+	"UNDEF78        ", /* ASTORE_3     78 */
+	"IASTORE        ", /*              79 */
+	"LASTORE        ", /*              80 */
+	"FASTORE        ", /*              81 */
+	"DASTORE        ", /*              82 */
+	"AASTORE        ", /*              83 */
+	"BASTORE        ", /*              84 */
+	"CASTORE        ", /*              85 */
+	"SASTORE        ", /*              86 */
+	"POP            ", /*              87 */
+	"POP2           ", /*              88 */
+	"DUP            ", /*              89 */
+	"DUP_X1         ", /*              90 */
+	"DUP_X2         ", /*              91 */
+	"DUP2           ", /*              92 */
+	"DUP2_X1        ", /*              93 */
+	"DUP2_X2        ", /*              94 */
+	"SWAP           ", /*              95 */
+	"IADD           ", /*              96 */
+	"LADD           ", /*              97 */
+	"FADD           ", /*              98 */
+	"DADD           ", /*              99 */
+	"ISUB           ", /*             100 */
+	"LSUB           ", /*             101 */
+	"FSUB           ", /*             102 */
+	"DSUB           ", /*             103 */
+	"IMUL           ", /*             104 */
+	"LMUL           ", /*             105 */
+	"FMUL           ", /*             106 */
+	"DMUL           ", /*             107 */
+	"IDIV           ", /*             108 */
+	"LDIV           ", /*             109 */
+	"FDIV           ", /*             110 */
+	"DDIV           ", /*             111 */
+	"IREM           ", /*             112 */
+	"LREM           ", /*             113 */
+	"FREM           ", /*             114 */
+	"DREM           ", /*             115 */
+	"INEG           ", /*             116 */
+	"LNEG           ", /*             117 */
+	"FNEG           ", /*             118 */
+	"DNEG           ", /*             119 */
+	"ISHL           ", /*             120 */
+	"LSHL           ", /*             121 */
+	"ISHR           ", /*             122 */
+	"LSHR           ", /*             123 */
+	"IUSHR          ", /*             124 */
+	"LUSHR          ", /*             125 */
+	"IAND           ", /*             126 */
+	"LAND           ", /*             127 */
+	"IOR            ", /*             128 */
+	"LOR            ", /*             129 */
+	"IXOR           ", /*             130 */
+	"LXOR           ", /*             131 */
+	"IINC           ", /*             132 */
+	"I2L            ", /*             133 */
+	"I2F            ", /*             134 */
+	"I2D            ", /*             135 */
+	"L2I            ", /*             136 */
+	"L2F            ", /*             137 */
+	"L2D            ", /*             138 */
+	"F2I            ", /*             139 */
+	"F2L            ", /*             140 */
+	"F2D            ", /*             141 */
+	"D2I            ", /*             142 */
+	"D2L            ", /*             143 */
+	"D2F            ", /*             144 */
+	"INT2BYTE       ", /*             145 */
+	"INT2CHAR       ", /*             146 */
+	"INT2SHORT      ", /*             147 */
+	"LCMP           ", /*             148 */
+	"FCMPL          ", /*             149 */
+	"FCMPG          ", /*             150 */
+	"DCMPL          ", /*             151 */
+	"DCMPG          ", /*             152 */
+	"IFEQ           ", /*             153 */
+	"IFNE           ", /*             154 */
+	"IFLT           ", /*             155 */
+	"IFGE           ", /*             156 */
+	"IFGT           ", /*             157 */
+	"IFLE           ", /*             158 */
+	"IF_ICMPEQ      ", /*             159 */
+	"IF_ICMPNE      ", /*             160 */
+	"IF_ICMPLT      ", /*             161 */
+	"IF_ICMPGE      ", /*             162 */
+	"IF_ICMPGT      ", /*             163 */
+	"IF_ICMPLE      ", /*             164 */
+	"IF_ACMPEQ      ", /*             165 */
+	"IF_ACMPNE      ", /*             166 */
+	"GOTO           ", /*             167 */
+	"JSR            ", /*             168 */
+	"RET            ", /*             169 */
+	"TABLESWITCH    ", /*             170 */
+	"LOOKUPSWITCH   ", /*             171 */
+	"IRETURN        ", /*             172 */
+	"LRETURN        ", /*             173 */
+	"FRETURN        ", /*             174 */
+	"DRETURN        ", /*             175 */
+	"ARETURN        ", /*             176 */
+	"RETURN         ", /*             177 */
+	"GETSTATIC      ", /*             178 */
+	"PUTSTATIC      ", /*             179 */
+	"GETFIELD       ", /*             180 */
+	"PUTFIELD       ", /*             181 */
+	"INVOKEVIRTUAL  ", /*             182 */
+	"INVOKESPECIAL  ", /*             183 */
+	"INVOKESTATIC   ", /*             184 */
+	"INVOKEINTERFACE", /*             185 */
+	"CHECKASIZE     ", /* UNDEF186    186 */
+	"NEW            ", /*             187 */
+	"NEWARRAY       ", /*             188 */
+	"ANEWARRAY      ", /*             189 */
+	"ARRAYLENGTH    ", /*             190 */
+	"ATHROW         ", /*             191 */
+	"CHECKCAST      ", /*             192 */
+	"INSTANCEOF     ", /*             193 */
+	"MONITORENTER   ", /*             194 */
+	"MONITOREXIT    ", /*             195 */
+	"UNDEF196       ", /* WIDE        196 */
+	"MULTIANEWARRAY ", /*             197 */
+	"IFNULL         ", /*             198 */
+	"IFNONNULL      ", /*             199 */
+	"UNDEF200       ", /* GOTO_W      200 */
+	"UNDEF201       ", /* JSR_W       201 */
+	"UNDEF202       ", /* BREAKPOINT  202 */
+	"CHECKEXCEPTION ", /* UNDEF203    203 */
+	"IASTORECONST   ", /*             204 */
+	"LASTORECONST   ", /*             205 */
+	"FASTORECONST   ", /*             206 */
+	"DASTORECONST   ", /*             207 */
+	"AASTORECONST   ", /*             208 */
+	"BASTORECONST   ", /*             209 */
+	"CASTORECONST   ", /*             210 */
+	"SASTORECONST   ", /*             211 */
 
-	"INLINE_START", /*          251 */
-        "INLINE_END", /*            252"*/
+	            "UNDEF212", "UNDEF213", "UNDEF214", "UNDEF215",
+	"UNDEF216", "UNDEF217", "UNDEF218", "UNDEF219", "UNDEF220",
+	"UNDEF221", "UNDEF222", "UNDEF223", "UNDEF224", "UNDEF225",
+	"UNDEF226", "UNDEF227", "UNDEF228", "UNDEF229", "UNDEF230",
+	"UNDEF231", "UNDEF232", "UNDEF233", "UNDEF234", "UNDEF235",
+	"UNDEF236", "UNDEF237", "UNDEF238", "UNDEF239", "UNDEF240",
+	"UNDEF241", "UNDEF242", "UNDEF243", "UNDEF244", "UNDEF245",
+	"UNDEF246", "UNDEF247", "UNDEF248", "UNDEF249", "UNDEF250",
 
-	"BUILTIN3     ", /*             253 */
-	"BUILTIN2     ", /*             254 */
-	"BUILTIN1     "  /*             255 */
+	"INLINE_START   ", /*             251 */
+	"INLINE_END     ", /*             252 */
+
+	"BUILTIN3       ", /*             253 */
+	"BUILTIN2       ", /*             254 */
+	"BUILTIN1       "  /*             255 */
 };
 
 
 char *opcode_names[256] = {
-	"NOP          ", /*               0 */
-	"ACONST       ", /*               1 */
-	"ICONST_M1    ", /* ICONST_M1     2 */
-	"ICONST_0     ", /* ICONST_0      3 */
-	"ICONST_1     ", /* ICONST_1      4 */
-	"ICONST_2     ", /* ICONST_2      5 */
-	"ICONST_3     ", /* ICONST_3      6 */
-	"ICONST_4     ", /* ICONST_4      7 */
-	"ICONST_5     ", /* ICONST_5      8 */
-	"LCONST_0     ", /* LCONST_0      9 */
-	"LCONST_1     ", /* LCONST_1     10 */
-	"FCONST_0     ", /* FCONST_0     11 */
-	"FCONST_1     ", /* FCONST_1     12 */
-	"FCONST_2     ", /* FCONST_2     13 */
-	"DCONST_0     ", /* DCONST_0     14 */
-	"DCONST_1     ", /* DCONST_1     15 */
-	"BIPUSH       ", /* BIPUSH       16 */
-	"SIPUSH       ", /* SIPUSH       17 */
-	"LDC          ", /* LDC          18 */
-	"LDC_W        ", /* LDC_W        19 */
-	"LDC2_W       ", /* LDC2_W       20 */
-	"ILOAD        ", /*              21 */
-	"LLOAD        ", /*              22 */
-	"FLOAD        ", /*              23 */
-	"DLOAD        ", /*              24 */
-	"ALOAD        ", /*              25 */
-	"ILOAD_0      ", /* ILOAD_0      26 */
-	"ILOAD_1      ", /* ILOAD_1      27 */
-	"ILOAD_2      ", /* ILOAD_2      28 */
-	"ILOAD_3      ", /* ILOAD_3      29 */
-	"LLOAD_0      ", /* LLOAD_0      30 */
-	"LLOAD_1      ", /* LLOAD_1      31 */
-	"LLOAD_2      ", /* LLOAD_2      32 */
-	"LLOAD_3      ", /* LLOAD_3      33 */
-	"FLOAD_0      ", /* FLOAD_0      34 */
-	"FLOAD_1      ", /* FLOAD_1      35 */
-	"FLOAD_2      ", /* FLOAD_2      36 */
-	"FLOAD_3      ", /* FLOAD_3      37 */
-	"DLOAD_0      ", /* DLOAD_0      38 */
-	"DLOAD_1      ", /* DLOAD_1      39 */
-	"DLOAD_2      ", /* DLOAD_2      40 */ 
-	"DLOAD_3      ", /* DLOAD_3      41 */
-	"ALOAD_0      ", /* ALOAD_0      42 */
-	"ALOAD_1      ", /* ALOAD_1      43 */
-	"ALOAD_2      ", /* ALOAD_2      44 */
-	"ALOAD_3      ", /* ALOAD_3      45 */
-	"IALOAD       ", /*              46 */
-	"LALOAD       ", /*              47 */
-	"FALOAD       ", /*              48 */
-	"DALOAD       ", /*              49 */
-	"AALOAD       ", /*              50 */
-	"BALOAD       ", /*              51 */
-	"CALOAD       ", /*              52 */
-	"SALOAD       ", /*              53 */
-	"ISTORE       ", /*              54 */
-	"LSTORE       ", /*              55 */
-	"FSTORE       ", /*              56 */
-	"DSTORE       ", /*              57 */
-	"ASTORE       ", /*              58 */
-	"ISTORE_0     ", /* ISTORE_0     59 */
-	"ISTORE_1     ", /* ISTORE_1     60 */
-	"ISTORE_2     ", /* ISTORE_2     61 */
-	"ISTORE_3     ", /* ISTORE_3     62 */
-	"LSTORE_0     ", /* LSTORE_0     63 */
-	"LSTORE_1     ", /* LSTORE_1     64 */
-	"LSTORE_2     ", /* LSTORE_2     65 */
-	"LSTORE_3     ", /* LSTORE_3     66 */
-	"FSTORE_0     ", /* FSTORE_0     67 */
-	"FSTORE_1     ", /* FSTORE_1     68 */
-	"FSTORE_2     ", /* FSTORE_2     69 */
-	"FSTORE_3     ", /* FSTORE_3     70 */
-	"DSTORE_0     ", /* DSTORE_0     71 */
-	"DSTORE_1     ", /* DSTORE_1     72 */
-	"DSTORE_2     ", /* DSTORE_2     73 */
-	"DSTORE_3     ", /* DSTORE_3     74 */
-	"ASTORE_0     ", /* ASTORE_0     75 */
-	"ASTORE_1     ", /* ASTORE_1     76 */
-	"ASTORE_2     ", /* ASTORE_2     77 */
-	"ASTORE_3     ", /* ASTORE_3     78 */
-	"IASTORE      ", /*              79 */
-	"LASTORE      ", /*              80 */
-	"FASTORE      ", /*              81 */
-	"DASTORE      ", /*              82 */
-	"AASTORE      ", /*              83 */
-	"BASTORE      ", /*              84 */
-	"CASTORE      ", /*              85 */
-	"SASTORE      ", /*              86 */
-	"POP          ", /*              87 */
-	"POP2         ", /*              88 */
-	"DUP          ", /*              89 */
-	"DUP_X1       ", /*              90 */
-	"DUP_X2       ", /*              91 */
-	"DUP2         ", /*              92 */
-	"DUP2_X1      ", /*              93 */
-	"DUP2_X2      ", /*              94 */
-	"SWAP         ", /*              95 */
-	"IADD         ", /*              96 */
-	"LADD         ", /*              97 */
-	"FADD         ", /*              98 */
-	"DADD         ", /*              99 */
-	"ISUB         ", /*             100 */
-	"LSUB         ", /*             101 */
-	"FSUB         ", /*             102 */
-	"DSUB         ", /*             103 */
-	"IMUL         ", /*             104 */
-	"LMUL         ", /*             105 */
-	"FMUL         ", /*             106 */
-	"DMUL         ", /*             107 */
-	"IDIV         ", /*             108 */
-	"LDIV         ", /*             109 */
-	"FDIV         ", /*             110 */
-	"DDIV         ", /*             111 */
-	"IREM         ", /*             112 */
-	"LREM         ", /*             113 */
-	"FREM         ", /*             114 */
-	"DREM         ", /*             115 */
-	"INEG         ", /*             116 */
-	"LNEG         ", /*             117 */
-	"FNEG         ", /*             118 */
-	"DNEG         ", /*             119 */
-	"ISHL         ", /*             120 */
-	"LSHL         ", /*             121 */
-	"ISHR         ", /*             122 */
-	"LSHR         ", /*             123 */
-	"IUSHR        ", /*             124 */
-	"LUSHR        ", /*             125 */
-	"IAND         ", /*             126 */
-	"LAND         ", /*             127 */
-	"IOR          ", /*             128 */
-	"LOR          ", /*             129 */
-	"IXOR         ", /*             130 */
-	"LXOR         ", /*             131 */
-	"IINC         ", /*             132 */
-	"I2L          ", /*             133 */
-	"I2F          ", /*             134 */
-	"I2D          ", /*             135 */
-	"L2I          ", /*             136 */
-	"L2F          ", /*             137 */
-	"L2D          ", /*             138 */
-	"F2I          ", /*             139 */
-	"F2L          ", /*             140 */
-	"F2D          ", /*             141 */
-	"D2I          ", /*             142 */
-	"D2L          ", /*             143 */
-	"D2F          ", /*             144 */
-	"INT2BYTE     ", /*             145 */
-	"INT2CHAR     ", /*             146 */
-	"INT2SHORT    ", /*             147 */
-	"LCMP         ", /*             148 */
-	"FCMPL        ", /*             149 */
-	"FCMPG        ", /*             150 */
-	"DCMPL        ", /*             151 */
-	"DCMPG        ", /*             152 */
-	"IFEQ         ", /*             153 */
-	"IFNE         ", /*             154 */
-	"IFLT         ", /*             155 */
-	"IFGE         ", /*             156 */
-	"IFGT         ", /*             157 */
-	"IFLE         ", /*             158 */
-	"IF_ICMPEQ    ", /*             159 */
-	"IF_ICMPNE    ", /*             160 */
-	"IF_ICMPLT    ", /*             161 */
-	"IF_ICMPGE    ", /*             162 */
-	"IF_ICMPGT    ", /*             163 */
-	"IF_ICMPLE    ", /*             164 */
-	"IF_ACMPEQ    ", /*             165 */
-	"IF_ACMPNE    ", /*             166 */
-	"GOTO         ", /*             167 */
-	"JSR          ", /*             168 */
-	"RET          ", /*             169 */
-	"TABLESWITCH  ", /*             170 */
-	"LOOKUPSWITCH ", /*             171 */
-	"IRETURN      ", /*             172 */
-	"LRETURN      ", /*             173 */
-	"FRETURN      ", /*             174 */
-	"DRETURN      ", /*             175 */
-	"ARETURN      ", /*             176 */
-	"RETURN       ", /*             177 */
-	"GETSTATIC    ", /*             178 */
-	"PUTSTATIC    ", /*             179 */
-	"GETFIELD     ", /*             180 */
-	"PUTFIELD     ", /*             181 */
-	"INVOKEVIRTUAL", /*             182 */
-	"INVOKESPECIAL", /*             183 */
-	"INVOKESTATIC ", /*             184 */
-	"INVOKEINTERFACE",/*            185 */
-	"CHECKASIZE   ", /* UNDEF186    186 */
-	"NEW          ", /*             187 */
-	"NEWARRAY     ", /*             188 */
-	"ANEWARRAY    ", /*             189 */
-	"ARRAYLENGTH  ", /*             190 */
-	"ATHROW       ", /*             191 */
-	"CHECKCAST    ", /*             192 */
-	"INSTANCEOF   ", /*             193 */
-	"MONITORENTER ", /*             194 */
-	"MONITOREXIT  ", /*             195 */
-	"WIDE         ", /* WIDE        196 */
-	"MULTIANEWARRAY",/*             197 */
-	"IFNULL       ", /*             198 */
-	"IFNONNULL    ", /*             199 */
-	"GOTO_W       ", /* GOTO_W      200 */
-	"JSR_W        ", /* JSR_W       201 */
-	"BREAKPOINT   ", /* BREAKPOINT  202 */
-	"CHECKEXCEPTION", /* UNDEF203    203 */
-	"IASTORECONST ", /*             204 */
-	"LASTORECONST ", /*             205 */
-	"FASTORECONST ", /*             206 */
-	"DASTORECONST ", /*             207 */
-	"AASTORECONST ", /*             208 */
-	"BASTORECONST ", /*             209 */
-	"CASTORECONST ", /*             210 */
-	"SASTORECONST ", /*             211 */
-	"UNDEF","UNDEF","UNDEF","UNDEF",
-	"UNDEF216","UNDEF217","UNDEF218","UNDEF219","UNDEF220",
-	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
-	"UNDEF226","UNDEF227","UNDEF228","UNDEF229","UNDEF230",
-	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
-	"UNDEF236","UNDEF237","UNDEF238","UNDEF239","UNDEF240",
-	"UNDEF","UNDEF","UNDEF","UNDEF","UNDEF",
-	"UNDEF246","UNDEF247","UNDEF248","UNDEF249","UNDEF250",
+	"NOP            ", /*               0 */
+	"ACONST         ", /*               1 */
+	"ICONST_M1      ", /* ICONST_M1     2 */
+	"ICONST_0       ", /* ICONST_0      3 */
+	"ICONST_1       ", /* ICONST_1      4 */
+	"ICONST_2       ", /* ICONST_2      5 */
+	"ICONST_3       ", /* ICONST_3      6 */
+	"ICONST_4       ", /* ICONST_4      7 */
+	"ICONST_5       ", /* ICONST_5      8 */
+	"LCONST_0       ", /* LCONST_0      9 */
+	"LCONST_1       ", /* LCONST_1     10 */
+	"FCONST_0       ", /* FCONST_0     11 */
+	"FCONST_1       ", /* FCONST_1     12 */
+	"FCONST_2       ", /* FCONST_2     13 */
+	"DCONST_0       ", /* DCONST_0     14 */
+	"DCONST_1       ", /* DCONST_1     15 */
+	"BIPUSH         ", /* BIPUSH       16 */
+	"SIPUSH         ", /* SIPUSH       17 */
+	"LDC            ", /* LDC          18 */
+	"LDC_W          ", /* LDC_W        19 */
+	"LDC2_W         ", /* LDC2_W       20 */
+	"ILOAD          ", /*              21 */
+	"LLOAD          ", /*              22 */
+	"FLOAD          ", /*              23 */
+	"DLOAD          ", /*              24 */
+	"ALOAD          ", /*              25 */
+	"ILOAD_0        ", /* ILOAD_0      26 */
+	"ILOAD_1        ", /* ILOAD_1      27 */
+	"ILOAD_2        ", /* ILOAD_2      28 */
+	"ILOAD_3        ", /* ILOAD_3      29 */
+	"LLOAD_0        ", /* LLOAD_0      30 */
+	"LLOAD_1        ", /* LLOAD_1      31 */
+	"LLOAD_2        ", /* LLOAD_2      32 */
+	"LLOAD_3        ", /* LLOAD_3      33 */
+	"FLOAD_0        ", /* FLOAD_0      34 */
+	"FLOAD_1        ", /* FLOAD_1      35 */
+	"FLOAD_2        ", /* FLOAD_2      36 */
+	"FLOAD_3        ", /* FLOAD_3      37 */
+	"DLOAD_0        ", /* DLOAD_0      38 */
+	"DLOAD_1        ", /* DLOAD_1      39 */
+	"DLOAD_2        ", /* DLOAD_2      40 */ 
+	"DLOAD_3        ", /* DLOAD_3      41 */
+	"ALOAD_0        ", /* ALOAD_0      42 */
+	"ALOAD_1        ", /* ALOAD_1      43 */
+	"ALOAD_2        ", /* ALOAD_2      44 */
+	"ALOAD_3        ", /* ALOAD_3      45 */
+	"IALOAD         ", /*              46 */
+	"LALOAD         ", /*              47 */
+	"FALOAD         ", /*              48 */
+	"DALOAD         ", /*              49 */
+	"AALOAD         ", /*              50 */
+	"BALOAD         ", /*              51 */
+	"CALOAD         ", /*              52 */
+	"SALOAD         ", /*              53 */
+	"ISTORE         ", /*              54 */
+	"LSTORE         ", /*              55 */
+	"FSTORE         ", /*              56 */
+	"DSTORE         ", /*              57 */
+	"ASTORE         ", /*              58 */
+	"ISTORE_0       ", /* ISTORE_0     59 */
+	"ISTORE_1       ", /* ISTORE_1     60 */
+	"ISTORE_2       ", /* ISTORE_2     61 */
+	"ISTORE_3       ", /* ISTORE_3     62 */
+	"LSTORE_0       ", /* LSTORE_0     63 */
+	"LSTORE_1       ", /* LSTORE_1     64 */
+	"LSTORE_2       ", /* LSTORE_2     65 */
+	"LSTORE_3       ", /* LSTORE_3     66 */
+	"FSTORE_0       ", /* FSTORE_0     67 */
+	"FSTORE_1       ", /* FSTORE_1     68 */
+	"FSTORE_2       ", /* FSTORE_2     69 */
+	"FSTORE_3       ", /* FSTORE_3     70 */
+	"DSTORE_0       ", /* DSTORE_0     71 */
+	"DSTORE_1       ", /* DSTORE_1     72 */
+	"DSTORE_2       ", /* DSTORE_2     73 */
+	"DSTORE_3       ", /* DSTORE_3     74 */
+	"ASTORE_0       ", /* ASTORE_0     75 */
+	"ASTORE_1       ", /* ASTORE_1     76 */
+	"ASTORE_2       ", /* ASTORE_2     77 */
+	"ASTORE_3       ", /* ASTORE_3     78 */
+	"IASTORE        ", /*              79 */
+	"LASTORE        ", /*              80 */
+	"FASTORE        ", /*              81 */
+	"DASTORE        ", /*              82 */
+	"AASTORE        ", /*              83 */
+	"BASTORE        ", /*              84 */
+	"CASTORE        ", /*              85 */
+	"SASTORE        ", /*              86 */
+	"POP            ", /*              87 */
+	"POP2           ", /*              88 */
+	"DUP            ", /*              89 */
+	"DUP_X1         ", /*              90 */
+	"DUP_X2         ", /*              91 */
+	"DUP2           ", /*              92 */
+	"DUP2_X1        ", /*              93 */
+	"DUP2_X2        ", /*              94 */
+	"SWAP           ", /*              95 */
+	"IADD           ", /*              96 */
+	"LADD           ", /*              97 */
+	"FADD           ", /*              98 */
+	"DADD           ", /*              99 */
+	"ISUB           ", /*             100 */
+	"LSUB           ", /*             101 */
+	"FSUB           ", /*             102 */
+	"DSUB           ", /*             103 */
+	"IMUL           ", /*             104 */
+	"LMUL           ", /*             105 */
+	"FMUL           ", /*             106 */
+	"DMUL           ", /*             107 */
+	"IDIV           ", /*             108 */
+	"LDIV           ", /*             109 */
+	"FDIV           ", /*             110 */
+	"DDIV           ", /*             111 */
+	"IREM           ", /*             112 */
+	"LREM           ", /*             113 */
+	"FREM           ", /*             114 */
+	"DREM           ", /*             115 */
+	"INEG           ", /*             116 */
+	"LNEG           ", /*             117 */
+	"FNEG           ", /*             118 */
+	"DNEG           ", /*             119 */
+	"ISHL           ", /*             120 */
+	"LSHL           ", /*             121 */
+	"ISHR           ", /*             122 */
+	"LSHR           ", /*             123 */
+	"IUSHR          ", /*             124 */
+	"LUSHR          ", /*             125 */
+	"IAND           ", /*             126 */
+	"LAND           ", /*             127 */
+	"IOR            ", /*             128 */
+	"LOR            ", /*             129 */
+	"IXOR           ", /*             130 */
+	"LXOR           ", /*             131 */
+	"IINC           ", /*             132 */
+	"I2L            ", /*             133 */
+	"I2F            ", /*             134 */
+	"I2D            ", /*             135 */
+	"L2I            ", /*             136 */
+	"L2F            ", /*             137 */
+	"L2D            ", /*             138 */
+	"F2I            ", /*             139 */
+	"F2L            ", /*             140 */
+	"F2D            ", /*             141 */
+	"D2I            ", /*             142 */
+	"D2L            ", /*             143 */
+	"D2F            ", /*             144 */
+	"INT2BYTE       ", /*             145 */
+	"INT2CHAR       ", /*             146 */
+	"INT2SHORT      ", /*             147 */
+	"LCMP           ", /*             148 */
+	"FCMPL          ", /*             149 */
+	"FCMPG          ", /*             150 */
+	"DCMPL          ", /*             151 */
+	"DCMPG          ", /*             152 */
+	"IFEQ           ", /*             153 */
+	"IFNE           ", /*             154 */
+	"IFLT           ", /*             155 */
+	"IFGE           ", /*             156 */
+	"IFGT           ", /*             157 */
+	"IFLE           ", /*             158 */
+	"IF_ICMPEQ      ", /*             159 */
+	"IF_ICMPNE      ", /*             160 */
+	"IF_ICMPLT      ", /*             161 */
+	"IF_ICMPGE      ", /*             162 */
+	"IF_ICMPGT      ", /*             163 */
+	"IF_ICMPLE      ", /*             164 */
+	"IF_ACMPEQ      ", /*             165 */
+	"IF_ACMPNE      ", /*             166 */
+	"GOTO           ", /*             167 */
+	"JSR            ", /*             168 */
+	"RET            ", /*             169 */
+	"TABLESWITCH    ", /*             170 */
+	"LOOKUPSWITCH   ", /*             171 */
+	"IRETURN        ", /*             172 */
+	"LRETURN        ", /*             173 */
+	"FRETURN        ", /*             174 */
+	"DRETURN        ", /*             175 */
+	"ARETURN        ", /*             176 */
+	"RETURN         ", /*             177 */
+	"GETSTATIC      ", /*             178 */
+	"PUTSTATIC      ", /*             179 */
+	"GETFIELD       ", /*             180 */
+	"PUTFIELD       ", /*             181 */
+	"INVOKEVIRTUAL  ", /*             182 */
+	"INVOKESPECIAL  ", /*             183 */
+	"INVOKESTATIC   ", /*             184 */
+	"INVOKEINTERFACE", /*             185 */
+	"UNDEF186       ", /*             186 */
+	"NEW            ", /*             187 */
+	"NEWARRAY       ", /*             188 */
+	"ANEWARRAY      ", /*             189 */
+	"ARRAYLENGTH    ", /*             190 */
+	"ATHROW         ", /*             191 */
+	"CHECKCAST      ", /*             192 */
+	"INSTANCEOF     ", /*             193 */
+	"MONITORENTER   ", /*             194 */
+	"MONITOREXIT    ", /*             195 */
+	"WIDE           ", /* WIDE        196 */
+	"MULTIANEWARRAY ", /*             197 */
+	"IFNULL         ", /*             198 */
+	"IFNONNULL      ", /*             199 */
+	"GOTO_W         ", /* GOTO_W      200 */
+	"JSR_W          ", /* JSR_W       201 */
+	"BREAKPOINT     ", /* BREAKPOINT  202 */
 
-	"INLINE_START", /*              251 */
-        "INLINE_END",  /*               252 */
-	"BUILTIN3     ", /*             253 */
-	"BUILTIN2     ", /*             254 */
-	"BUILTIN1     "  /*             255 */
+	                        "UNDEF203", "UNDEF204", "UNDEF205",
+	"UNDEF206", "UNDEF207", "UNDEF208", "UNDEF209", "UNDEF210",
+	"UNDEF211", "UNDEF212", "UNDEF213", "UNDEF214", "UNDEF215",
+	"UNDEF216", "UNDEF217", "UNDEF218", "UNDEF219", "UNDEF220",
+	"UNDEF221", "UNDEF222", "UNDEF223", "UNDEF224", "UNDEF225",
+	"UNDEF226", "UNDEF227", "UNDEF228", "UNDEF229", "UNDEF230",
+	"UNDEF231", "UNDEF232", "UNDEF233", "UNDEF234", "UNDEF235",
+	"UNDEF236", "UNDEF237", "UNDEF238", "UNDEF239", "UNDEF240",
+	"UNDEF241", "UNDEF242", "UNDEF243", "UNDEF244", "UNDEF245",
+	"UNDEF246", "UNDEF247", "UNDEF248", "UNDEF249", "UNDEF250",
+	"UNDEF251", "UNDEF252", "UNDEF253", "UNDEF254", "UNDEF255"
 };
 
 
