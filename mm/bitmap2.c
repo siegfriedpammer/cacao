@@ -6,7 +6,7 @@
  *
  * Authors: Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
  *
- * $Id: bitmap2.c 37 1998-11-04 12:39:19Z phil $
+ * $Id: bitmap2.c 45 1998-11-09 13:35:51Z phil $
  */
 
 /*
@@ -35,6 +35,12 @@
  *    validity of the address to aid in debugging. They are named 
  *    bitmap_checking_{set|clear|test}bit and will cause an assertion to fail 
  *    if the addr argument is out of range.
+ */
+
+/* TODO:
+ *   Rewrite bitmap_find_next_setbit and bitmap_find_next_combination_set_unset 
+ *   to use more pointer arithmetic and less indexed accesses. --phil.
+ *   Reason: Most compilers are simply dumb, while some programmers are not!
  */
 
 #include <assert.h>  /* assert */
@@ -136,10 +142,9 @@ void bitmap_boundscheck(bitmap_t* bitmap,
 {
 	/* check the lower bound */
 	assert((void*)&bitmap->bitmap[ADDR_TO_BLOCK(addr)] >= bitmap->bitmap_memory);
+
 	/* check the upper bound */
-	assert(&bitmap->bitmap[
-						   ADDR_TO_BLOCK(addr)] 
-		   <= &bitmap->bitmap[bitmap->bitmap_top_block]);
+	assert(&bitmap->bitmap[ADDR_TO_BLOCK(addr)] <= &bitmap->bitmap[bitmap->bitmap_top_block]);
 	assert(addr < bitmap->bitmap_beyond_addr); /* a stricter way to check the upper bound */
 }
 
@@ -263,7 +268,7 @@ int offset_for_lowest(BITBLOCK i)
 	};
 
 #if U8_AVAILABLE
-	if (i & 0xffffffffffULL)
+	if (i & 0xffffffffULL)
 #endif
 		if (i & 0xffffUL)
 			if (i & 0xffUL) 
@@ -329,6 +334,9 @@ bitmap_find_next_combination_set_unset(bitmap_t* bitmap,
 	BITBLOCK  pattern;
 
 	bitmap_boundscheck(bitmap, addr);
+	bitmap_boundscheck(invertedmap, addr);
+
+	//		fprintf(stderr, "bitmap_find_next_combination_set_unset(0x%lx, 0x%lx. 0x%lx);\n", bitmap, invertedmap, addr);
 
 	/* 1. check the current block, starting from the bit indicated by addr */
 	pattern = (bitmap->bitmap[block] & ~invertedmap->bitmap[block]) >> offset;
@@ -337,10 +345,16 @@ bitmap_find_next_combination_set_unset(bitmap_t* bitmap,
 
 	/* 2. iteratively check block by block until the end of the bitmap */
 	while (block < bitmap->bitmap_top_block) {
-		pattern = bitmap->bitmap[++block] & ~invertedmap->bitmap[block];
+		++block;
+		pattern = bitmap->bitmap[block] & ~invertedmap->bitmap[block];
 
-		if (pattern)
+		if (pattern) {
+			//			fprintf(stderr, "\tbitmap->bitmap[block] = 0x%lx, ~invertedmap->bitmap[block] = 0x%lx\n",
+			//					bitmap->bitmap[block], ~invertedmap->bitmap[block]);
+			//			fprintf(stderr, "\tpattern = 0x%lx, BLOCK_TO_ADDR(block) = 0x%lx\n", pattern, BLOCK_TO_ADDR(block));
+
 			return (void*)(BLOCK_TO_ADDR(block) + offset_for_lowest(pattern));
+		}
 	}
 
 	/* 3. failed to find a combination... */

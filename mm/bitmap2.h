@@ -1,6 +1,6 @@
 /* 
  * cacao/mm/bitmap.h
- * $Id: bitmap2.h 37 1998-11-04 12:39:19Z phil $ 
+ * $Id: bitmap2.h 45 1998-11-09 13:35:51Z phil $ 
  */
 
 #ifndef __mm_bitmap_h_
@@ -8,8 +8,14 @@
 
 #include "mm.h"
 
+#ifndef CACAO_NO_INLINE
+#define __cacao_inline__  inline
+#else
+#define __cacao_inline__
+#endif
+
 #ifdef __GNUC__
-#define __inline__  inline
+#define __inline__  __cacao_inline__
 #else
 #define __inline__
 #endif
