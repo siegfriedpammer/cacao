@@ -195,8 +195,8 @@ static void print_usage()
 	printf ("          -time ................ measure the runtime\n");
 	printf ("          -stat ................ detailed compiler statistics\n");
 	printf ("          -log logfile ......... specify a name for the logfile\n");
-	printf ("          -c(heck) b(ounds...... don't check array bounds\n");
-	printf ("                   s(ync) ...... don't check for synchronization\n");
+	printf ("          -c(heck)b(ounds) ..... don't check array bounds\n");
+	printf ("                  s(ync) ....... don't check for synchronization\n");
 	printf ("          -l ................... don't start the class after loading\n");
 	printf ("          -all ................. compile all methods, no execution\n");
 #ifdef OLD_COMPILER
@@ -208,8 +208,7 @@ static void print_usage()
 #endif
 	printf ("          -m ................... compile only a specific method\n");
 	printf ("          -sig ................. specify signature for a specific method\n");
-	printf ("          -s(how)m(ethods) ..... show all methods&fields of a class\n");
-	printf ("                 a(ssembler) ... show disassembled listing\n");
+	printf ("          -s(how)a(ssembler) ... show disassembled listing\n");
 	printf ("                 c(onstants) ... show the constant pool\n");
 	printf ("                 d(atasegment).. show data segment listing\n");
 	printf ("                 i(ntermediate). show intermediate representation\n");
