@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 732 2003-12-12 17:23:15Z stefan $
+   $Id: jit.c 743 2003-12-13 20:47:11Z stefan $
 
 */
 
@@ -1445,6 +1445,10 @@ methodptr jit_compile(methodinfo *m)
 
 	count_methods++;
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	pthread_mutex_lock(&compiler_mutex);
+#endif
+
 	intsDisable();      /* disable interrupts */
 
 	regs_ok = false;
@@ -1601,6 +1605,10 @@ methodptr jit_compile(methodinfo *m)
 	}
 
 	intsRestore();    /* enable interrupts again */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	pthread_mutex_unlock(&compiler_mutex);
+#endif
 
 	/* return pointer to the methods entry point */
 	
