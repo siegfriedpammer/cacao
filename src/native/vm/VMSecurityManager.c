@@ -28,9 +28,10 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSecurityManager.c 1683 2004-12-05 21:33:36Z jowenn $
+   $Id: VMSecurityManager.c 1697 2004-12-06 12:33:42Z twisti $
 
 */
+
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -38,6 +39,8 @@
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
 #include "vm/tables.h"
+#include "vm/jit/stacktrace.h"
+
 
 /*
  * Class:     java/lang/SecurityManager
@@ -52,7 +55,7 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMSecurityManager_curren
 		return NULL;
 
 #if defined(__I386__) || defined(__ALPHA__)
-	return cacao_currentClassLoader();
+	return (java_lang_ClassLoader *) cacao_currentClassLoader();
 #else
 	return 0;
 #endif
@@ -90,7 +93,8 @@ java_objectarray* temporaryGetClassContextHelper(methodinfo *m) {
 	if (!(m->class)) log_text("method or block has no class");
 	else
 	utf_display(m->class->name);
-	printf("\n");  
+	printf("\n");
+	return NULL;
 #if 0
   log_text("temporaryGetClassContextHelper called");
   if (adr==0) log_text("NO REAL METHOD");
@@ -109,14 +113,16 @@ java_objectarray* temporaryGetClassContextHelper(methodinfo *m) {
 	printf("saveflt:%ld\n",(long)(*(adr-1)));
   }
   log_text("temporaryGetClassContextHelper leaving");
-  return (java_objectarray *) builtin_newarray(0, class_array_of(class_java_lang_Class)->vftbl);	
+  return (java_objectarray *) builtin_newarray(0, class_array_of(class_java_lang_Class)->vftbl);
 #endif
 }
+
 
 java_objectarray* temporaryGetClassContextHelper2() {
   log_text("temporaryGetClassContextHelper2 called");
   return (java_objectarray *) builtin_newarray(0, class_array_of(class_java_lang_Class)->vftbl);	
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
