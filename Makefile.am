@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 898 2004-01-21 19:36:48Z twisti $
+# $Id: Makefile.am 914 2004-02-05 21:44:29Z twisti $
 
 @SET_MAKE@
 
@@ -176,9 +176,10 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	java.util.Locale \
 	java.util.Hashtable \
 	java.beans.PropertyEditor \
+	java.security.AccessController \
+	java.security.ProtectionDomain \
 	java.security.cert.Certificate \
 	java.security.cert.X509Certificate \
-	java.security.AccessController \
 	javax.swing.Popup \
 	javax.swing.UIManager \
 	java.lang.VMClass \
@@ -194,6 +195,7 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	java.lang.VMClassLoader \
 	java.io.PrintStream \
 	java.lang.VMSystem \
+	java.lang.VMString \
 	java.util.Properties \
 	java.lang.Runtime \
 	java.lang.Throwable \
