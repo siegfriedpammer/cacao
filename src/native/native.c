@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: native.c 1113 2004-06-02 10:31:09Z twisti $
 
 */
 
@@ -1805,8 +1805,11 @@ return true;
 /*--------------------------------------------------------*/
 
 
-java_objectarray *builtin_asm_createclasscontextarray(classinfo **end,classinfo **start) {
+java_objectarray *builtin_asm_createclasscontextarray(classinfo **end,classinfo **start)
+{
+#if defined(__GNUC__)
 #warning platform dependend
+#endif
         java_objectarray *tmpArray;
         int i;
         classinfo **current;
@@ -1836,8 +1839,11 @@ java_objectarray *builtin_asm_createclasscontextarray(classinfo **end,classinfo 
 
 }
 
-java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end,classinfo **start) {
+java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end,classinfo **start)
+{
+#if defined(__GNUC__)
 #warning platform dependend
+#endif
         int i;
         classinfo **current;
 	classinfo *c;

@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: builtin.c 1113 2004-06-02 10:31:09Z twisti $
 
 */
 
@@ -1802,7 +1802,9 @@ inline void* builtin_asm_get_stackframeinfo()
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	return &THREADINFO->_stackframeinfo;
 #else
+#if defined(__GNUC__)
 #warning FIXME FOR OLD THREAD IMPL (jowenn)
+#endif
 		return &_thread_nativestackframeinfo; /* no threading, at least no native*/
 #endif
 }
@@ -1815,7 +1817,9 @@ stacktraceelement *builtin_stacktrace_copy(stacktraceelement **el,stacktraceelem
 	*el=MNEW(stacktraceelement,s+1); /*GC*/
 	memcpy(*el,begin,(end-begin)*sizeof(stacktraceelement));
 	(*el)[s].method=0;
+#if defined(__GNUC__)
 #warning change this if line numbers bigger than u2 are allowed, the currently supported class file format does no allow that
+#endif
 	(*el)[s].linenumber=-1; /* -1 can never be reched otherwise, since line numbers are only u2, so it is save to use that as flag */
 	return *el;
 }
