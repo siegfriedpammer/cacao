@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 828 2004-01-03 16:20:06Z stefan $
+   $Id: codegen.c 857 2004-01-06 16:32:59Z twisti $
 
 */
 
@@ -42,6 +42,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include "types.h"
+#include "main.h"
 #include "codegen.h"
 #include "jit.h"
 #include "reg.h"
@@ -2175,66 +2176,88 @@ void codegen()
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
 
-			a = dseg_addaddress (&(((fieldinfo *)(iptr->val.a))->value));
+			/* if class isn't yet initialized, do it */
+  			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
+				/* call helper function which patches this code */
+				a = dseg_addaddress(((fieldinfo *) iptr->val.a)->class);
+				M_ALD(REG_ITMP1, REG_PV, a);
+				a = dseg_addaddress(asm_check_clinit);
+				M_ALD(REG_ITMP3, REG_PV, a);
+				M_JSR(REG_RA, REG_ITMP3);
+				M_NOP;
+  			}
+
+			a = dseg_addaddress(&(((fieldinfo *) iptr->val.a)->value));
 			M_ALD(REG_ITMP1, REG_PV, a);
 			switch (iptr->op1) {
-				case TYPE_INT:
-					var_to_reg_int(s2, src, REG_ITMP2);
-					M_IST(s2, REG_ITMP1, 0);
-					break;
-				case TYPE_LNG:
-					var_to_reg_int(s2, src, REG_ITMP2);
-					M_LST(s2, REG_ITMP1, 0);
-					break;
-				case TYPE_ADR:
-					var_to_reg_int(s2, src, REG_ITMP2);
-					M_AST(s2, REG_ITMP1, 0);
-					break;
-				case TYPE_FLT:
-					var_to_reg_flt(s2, src, REG_FTMP2);
-					M_FST(s2, REG_ITMP1, 0);
-					break;
-				case TYPE_DBL:
-					var_to_reg_flt(s2, src, REG_FTMP2);
-					M_DST(s2, REG_ITMP1, 0);
-					break;
-				default: panic ("internal error");
-				}
+			case TYPE_INT:
+				var_to_reg_int(s2, src, REG_ITMP2);
+				M_IST(s2, REG_ITMP1, 0);
+				break;
+			case TYPE_LNG:
+				var_to_reg_int(s2, src, REG_ITMP2);
+				M_LST(s2, REG_ITMP1, 0);
+				break;
+			case TYPE_ADR:
+				var_to_reg_int(s2, src, REG_ITMP2);
+				M_AST(s2, REG_ITMP1, 0);
+				break;
+			case TYPE_FLT:
+				var_to_reg_flt(s2, src, REG_FTMP2);
+				M_FST(s2, REG_ITMP1, 0);
+				break;
+			case TYPE_DBL:
+				var_to_reg_flt(s2, src, REG_FTMP2);
+				M_DST(s2, REG_ITMP1, 0);
+				break;
+			default: panic ("internal error");
+			}
 			break;
 
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
 
-			a = dseg_addaddress (&(((fieldinfo *)(iptr->val.a))->value));
+			/* if class isn't yet initialized, do it */
+  			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
+				/* call helper function which patches this code */
+				a = dseg_addaddress(((fieldinfo *) iptr->val.a)->class);
+				M_ALD(REG_ITMP1, REG_PV, a);
+				a = dseg_addaddress(asm_check_clinit);
+				M_ALD(REG_ITMP3, REG_PV, a);
+				M_JSR(REG_RA, REG_ITMP3);
+				M_NOP;
+  			}
+
+			a = dseg_addaddress(&(((fieldinfo *) iptr->val.a)->value));
 			M_ALD(REG_ITMP1, REG_PV, a);
 			switch (iptr->op1) {
-				case TYPE_INT:
-					d = reg_of_var(iptr->dst, REG_ITMP3);
-					M_ILD(d, REG_ITMP1, 0);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_LNG:
-					d = reg_of_var(iptr->dst, REG_ITMP3);
-					M_LLD(d, REG_ITMP1, 0);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_ADR:
-					d = reg_of_var(iptr->dst, REG_ITMP3);
-					M_ALD(d, REG_ITMP1, 0);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_FLT:
-					d = reg_of_var(iptr->dst, REG_FTMP1);
-					M_FLD(d, REG_ITMP1, 0);
-					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				case TYPE_DBL:				
-					d = reg_of_var(iptr->dst, REG_FTMP1);
-					M_DLD(d, REG_ITMP1, 0);
-					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				default: panic ("internal error");
-				}
+			case TYPE_INT:
+				d = reg_of_var(iptr->dst, REG_ITMP3);
+				M_ILD(d, REG_ITMP1, 0);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_LNG:
+				d = reg_of_var(iptr->dst, REG_ITMP3);
+				M_LLD(d, REG_ITMP1, 0);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_ADR:
+				d = reg_of_var(iptr->dst, REG_ITMP3);
+				M_ALD(d, REG_ITMP1, 0);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_FLT:
+				d = reg_of_var(iptr->dst, REG_FTMP1);
+				M_FLD(d, REG_ITMP1, 0);
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			case TYPE_DBL:				
+				d = reg_of_var(iptr->dst, REG_FTMP1);
+				M_DLD(d, REG_ITMP1, 0);
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			default: panic ("internal error");
+			}
 			break;
 
 
@@ -3653,33 +3676,6 @@ afteractualcall:
 }
 
 
-/* redefinition of code generation macros (compiling into array) **************/
-
-/* 
-These macros are newly defined to allow code generation into an array.
-This is necessary, because the original M_.. macros generate code by
-calling 'codegen_adds4' that uses an additional data structure to
-receive the code.
-
-For a faster (but less flexible) version to generate code, these
-macros directly use the (s4* p) - pointer to put the code directly
-in a locally defined array.
-This makes sense only for the stub-generation-routines below.
-*/
-
-#undef M_ITYPE
-#define M_ITYPE(op, rs, rt, imm)\
-  *(p++) = (((op)<<26)|((rs)<<21)|((rt)<<16)|((imm)&0xffff))
-
-#undef M_JTYPE
-#define M_JTYPE(op, imm)\
-  *(p++) = (((op)<<26)|((off)&0x3ffffff))
-
-#undef M_RTYPE
-#define M_RTYPE(op, rs, rt, rd, sa, fu)\
-  *(p++) = (((op)<<26)|((rs)<<21)|((rt)<<16)|((rd)<<11)|((sa)<<6)|(fu))
-
-
 /* function createcompilerstub *************************************************
 
 	creates a stub routine which calls the compiler
@@ -3688,10 +3684,10 @@ This makes sense only for the stub-generation-routines below.
 
 #define COMPSTUBSIZE 4
 
-u1 *createcompilerstub (methodinfo *m)
+u1 *createcompilerstub(methodinfo *m)
 {
 	u8 *s = CNEW(u8, COMPSTUBSIZE);     /* memory to hold the stub            */
-	s4 *p = (s4*) s;                    /* code generation pointer            */
+	s4 *mcodeptr = (s4 *) s;            /* code generation pointer            */
 	
 	                                    /* code for the stub                  */
 	M_ALD(REG_PV, REG_PV, 24);          /* load pointer to the compiler       */
@@ -3700,16 +3696,16 @@ u1 *createcompilerstub (methodinfo *m)
 	                                       in itmp1 is used as method pointer */
 	M_NOP;
 
-	s[2] = (u8) m;                      /* literals to be adressed            */  
+	s[2] = (u8) m;                      /* literals to be adressed            */
 	s[3] = (u8) asm_call_jit_compiler;  /* jump directly via PV from above    */
 
-	(void) docacheflush((void*) s, (char*) p - (char*) s);
+	(void) docacheflush((void*) s, (char*) mcodeptr - (char*) s);
 
 #ifdef STATISTICS
 	count_cstub_len += COMPSTUBSIZE * 8;
 #endif
 
-	return (u1*) s;
+	return (u1 *) s;
 }
 
 
@@ -3719,10 +3715,11 @@ u1 *createcompilerstub (methodinfo *m)
 
 *******************************************************************************/
 
-void removecompilerstub (u1 *stub) 
+void removecompilerstub(u1 *stub)
 {
 	CFREE(stub, COMPSTUBSIZE * 8);
 }
+
 
 /* function: createnativestub **************************************************
 
@@ -3730,79 +3727,151 @@ void removecompilerstub (u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE 20
-#define NATIVESTUBOFFSET 4
+#define NATIVESTUBSIZE      60
+#define NATIVESTUBOFFSET    9
 
-u1 *createnativestub (functionptr f, methodinfo *m)
+u1 *createnativestub(functionptr f, methodinfo *m)
 {
 	u8 *s = CNEW(u8, NATIVESTUBSIZE);   /* memory to hold the stub            */
 	u8 *cs = s + NATIVESTUBOFFSET;
-	s4 *p = (s4*) (cs);                 /* code generation pointer            */
+	s4 *mcodeptr = (s4 *) (cs);         /* code generation pointer            */
 
 	*(cs-1) = (u8) f;                   /* address of native method           */
 	*(cs-2) = (u8) (&exceptionptr);     /* address of exceptionptr            */
-	*(cs-3) = (u8) (asm_handle_nat_exception);/* addr of asm exception handler*/
-	*(cs-4) = (u8) (&env);                /* addr of jni_environement         */
+	*(cs-3) = (u8) asm_handle_nat_exception;/* addr of asm exception handler  */
+	*(cs-4) = (u8) (&env);              /* addr of jni_environement           */
+ 	*(cs-5) = (u8) asm_builtin_trace;
+	*(cs-6) = (u8) m;
+ 	*(cs-7) = (u8) asm_builtin_exittrace;
+	*(cs-8) = (u8) m->class;
 
-	reg_init(m);
+	reg_init();
+	descriptor2types(m);                /* set paramcount and paramtypes      */
 
-	M_MOV  (argintregs[4], argintregs[5]);
-	M_DMFC1 (REG_ITMP1, argfltregs[4]);
+	M_LDA(REG_SP, REG_SP, -8);          /* build up stackframe                */
+	M_LST(REG_RA, REG_SP, 0);           /* store return address               */
 
-	M_MOV  (argintregs[3], argintregs[4]);
-	M_DMTC1 (REG_ITMP1, argfltregs[5]);
+	if (runverbose) {
+		M_ALD(REG_ITMP1, REG_PV, -6 * 8);
+		M_ALD(REG_ITMP3, REG_PV, -5 * 8);
+		M_JSR(REG_RA, REG_ITMP3);
+		M_NOP;
+	}
 
-	M_MOV  (argintregs[2], argintregs[3]);
-	M_DMFC1 (REG_ITMP1, argfltregs[3]);
+	if (m->flags & ACC_STATIC) {
+		M_MOV(argintregs[5], argintregs[7]);
 
-	M_MOV  (argintregs[1], argintregs[2]);
-	M_DMTC1 (REG_ITMP1, argfltregs[4]);
+		M_DMFC1(REG_ITMP1, argfltregs[5]);
+		M_DMTC1(REG_ITMP1, argfltregs[7]);
 
-	M_MOV  (argintregs[0], argintregs[1]);
-	M_DMFC1 (REG_ITMP1, argfltregs[2]);
+		M_MOV(argintregs[4], argintregs[6]);
 
-	M_ALD  (argintregs[0], REG_PV, -4*8); /* load adress of jni_environement  */
-	M_DMTC1 (REG_ITMP1, argfltregs[3]);
+		M_DMFC1(REG_ITMP1, argfltregs[4]);
+		M_DMTC1(REG_ITMP1, argfltregs[6]);
 
-	M_DMFC1 (REG_ITMP1, argfltregs[1]);
-	M_DMFC1 (REG_ITMP2, argfltregs[0]);
+		M_MOV(argintregs[3], argintregs[5]);
+		M_DMFC1(REG_ITMP1, argfltregs[3]);
 
-	M_DMTC1 (REG_ITMP1, argfltregs[2]);
-	M_DMTC1 (REG_ITMP2, argfltregs[1]);
+		M_MOV(argintregs[2], argintregs[4]);
+		M_DMTC1(REG_ITMP1, argfltregs[5]);
 
-	M_ALD  (REG_ITMP3, REG_PV, -1*8);   /* load adress of native method       */
-	M_LDA  (REG_SP, REG_SP, -8);        /* build up stackframe                */
+		M_MOV(argintregs[1], argintregs[3]);
+		M_DMFC1(REG_ITMP1, argfltregs[2]);
 
-	M_LST  (REG_RA, REG_SP, 0);         /* store return address               */
-	M_JSR  (REG_RA, REG_ITMP3);         /* call native method                 */
+		M_MOV(argintregs[0], argintregs[2]);
+		M_DMTC1(REG_ITMP1, argfltregs[4]);
 
+		M_DMFC1(REG_ITMP1, argfltregs[1]);
+		M_DMTC1(REG_ITMP1, argfltregs[3]);
+
+		M_DMFC1(REG_ITMP1, argfltregs[0]);
+		M_DMTC1(REG_ITMP1, argfltregs[2]);
+
+		M_ALD(argintregs[1], REG_PV, -8 * 8);
+
+	} else {
+		M_MOV(argintregs[6], argintregs[7]);
+
+		M_DMFC1(REG_ITMP1, argfltregs[6]);
+		M_DMTC1(REG_ITMP1, argfltregs[7]);
+
+		M_MOV(argintregs[5], argintregs[6]);
+
+		M_DMFC1(REG_ITMP1, argfltregs[5]);
+		M_DMTC1(REG_ITMP1, argfltregs[6]);
+
+		M_MOV(argintregs[4], argintregs[5]);
+		M_DMFC1(REG_ITMP1, argfltregs[4]);
+
+		M_MOV(argintregs[3], argintregs[4]);
+		M_DMTC1(REG_ITMP1, argfltregs[5]);
+
+		M_MOV(argintregs[2], argintregs[3]);
+		M_DMFC1(REG_ITMP1, argfltregs[3]);
+
+		M_MOV(argintregs[1], argintregs[2]);
+		M_DMTC1(REG_ITMP1, argfltregs[4]);
+
+		M_MOV(argintregs[0], argintregs[1]);
+		M_DMFC1(REG_ITMP1, argfltregs[2]);
+
+		M_DMTC1(REG_ITMP1, argfltregs[3]);
+
+		M_DMFC1(REG_ITMP1, argfltregs[1]);
+		M_DMFC1(REG_ITMP2, argfltregs[0]);
+
+		M_DMTC1(REG_ITMP1, argfltregs[2]);
+		M_DMTC1(REG_ITMP2, argfltregs[1]);
+	}
+
+	M_ALD(argintregs[0], REG_PV, -4 * 8); /* load adress of jni_environement  */
+	M_ALD(REG_ITMP3, REG_PV, -1 * 8);   /* load adress of native method       */
+	M_JSR(REG_RA, REG_ITMP3);           /* call native method                 */
 	M_NOP;                              /* delay slot                         */
-	M_ALD  (REG_ITMP3, REG_PV, -2*8);   /* get address of exceptionptr        */
 
-	M_LLD  (REG_RA, REG_SP, 0);         /* load return address                */
-	M_ALD  (REG_ITMP1, REG_ITMP3, 0);   /* load exception into reg. itmp1     */
+	if (runverbose) {
+		M_ALD(argintregs[0], REG_PV, -6 * 8);
+		M_MOV(REG_RESULT, argintregs[1]);
+		M_DMFC1(REG_ITMP1, REG_FRESULT);
+		M_DMTC1(REG_ITMP1, argfltregs[2]);
+		M_DMTC1(REG_ITMP1, argfltregs[3]);
+		M_ALD(REG_ITMP3, REG_PV, -7 * 8);/* asm_builtin_exittrace             */
+		M_JSR(REG_RA, REG_ITMP3);
+		M_NOP;
+	}
 
-	M_BNEZ (REG_ITMP1, 2);              /* if no exception then return        */
-	M_LDA  (REG_SP, REG_SP, 8);         /* remove stackframe, delay slot      */
+	M_ALD(REG_ITMP3, REG_PV, -2 * 8);   /* get address of exceptionptr        */
 
-	M_RET  (REG_RA);                    /* return to caller                   */
+	M_LLD(REG_RA, REG_SP, 0);           /* load return address                */
+	M_ALD(REG_ITMP1, REG_ITMP3, 0);     /* load exception into reg. itmp1     */
+
+	M_BNEZ(REG_ITMP1, 2);               /* if no exception then return        */
+	M_LDA(REG_SP, REG_SP, 8);           /* remove stackframe, delay slot      */
+
+	M_RET(REG_RA);                      /* return to caller                   */
 	M_NOP;                              /* delay slot                         */
 	
-	M_AST  (REG_ZERO, REG_ITMP3, 0);    /* store NULL into exceptionptr       */
-	M_ALD  (REG_ITMP3, REG_PV,-3*8);    /* load asm exception handler address */
+	M_AST(REG_ZERO, REG_ITMP3, 0);      /* store NULL into exceptionptr       */
+	M_ALD(REG_ITMP3, REG_PV, -3 * 8);   /* load asm exception handler address */
 
-	M_JMP  (REG_ITMP3);                 /* jump to asm exception handler      */
-	M_LDA  (REG_ITMP2, REG_RA, -4);     /* move fault address into reg. itmp2 */
+	M_JMP(REG_ITMP3);                   /* jump to asm exception handler      */
+	M_LDA(REG_ITMP2, REG_RA, -4);       /* move fault address into reg. itmp2 */
 	                                    /* delay slot                         */
 
-	(void) docacheflush((void*) cs, (char*) p - (char*) cs);
+	(void) docacheflush((void*) cs, (char*) mcodeptr - (char*) cs);
+
+#if 0
+	dolog_plain("stubsize: %d (for %d params)\n", 
+				(int) (mcodeptr - (s4*) s), m->paramcount);
+#endif
 
 #ifdef STATISTICS
 	count_nstub_len += NATIVESTUBSIZE * 8;
 #endif
 
-	return (u1*) (s + NATIVESTUBOFFSET);
+	return (u1 *) (s + NATIVESTUBOFFSET);
 }
+
 
 /* function: removenativestub **************************************************
 
@@ -3830,11 +3899,11 @@ void removenativestub (u1 *stub)
 #define REG_FSS4    29
 #define REG_FSS5    31
 
-#define CALL_JAVA_MEM_SIZE 61
-#define CALL_JAVA2_MEM_SIZE 61
-#define CALL_JAVA_ENTRY    20
-#define CALL_JAVA_XHANDLER 55
-#define CALL_JAVA2_XHANDLER 108
+#define CALL_JAVA_MEM_SIZE     60
+#define CALL_JAVA2_MEM_SIZE    112
+#define CALL_JAVA_ENTRY        20
+#define CALL_JAVA_XHANDLER     55
+#define CALL_JAVA2_XHANDLER    105
 
 static s4 calljavamem[CALL_JAVA_MEM_SIZE];
 static s4 calljava2mem[CALL_JAVA2_MEM_SIZE];
@@ -3894,23 +3963,23 @@ typedef jdouble (*asm_fptr2double)(methodinfo*, u4, u4, void*);
 typedef jlong (*asm_fptr2long)(methodinfo*, u4, u4, void*);
 
 
-java_objectheader *asm_calljavafunction (methodinfo *m, void *arg1, void *arg2,
-                                                      void *arg3, void *arg4)
+java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
+										void *arg3, void *arg4)
 {
 	return ((asm_fptr)(calljavamem + 20))(m, arg1, arg2, arg3, arg4);
 }
 
-java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size , void *callblock)
+java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size, void *callblock)
 {
 	return ((asm_fptr2)(calljava2mem + 20))(m, count, size, callblock);
 }
 
-jdouble asm_calljavafunction2double(methodinfo *m, u4 count, u4 size , void *callblock)
+jdouble asm_calljavafunction2double(methodinfo *m, u4 count, u4 size, void *callblock)
 {
 	return ((asm_fptr2double)(calljava2mem + 20))(m, count, size, callblock);
 }
 
-jlong asm_calljavafunction2long(methodinfo *m, u4 count, u4 size , void *callblock)
+jlong asm_calljavafunction2long(methodinfo *m, u4 count, u4 size, void *callblock)
 {
 	return ((asm_fptr2long)(calljava2mem + 20))(m, count, size, callblock);
 }
