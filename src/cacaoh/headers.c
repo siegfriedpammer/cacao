@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 1327 2004-07-21 14:05:43Z twisti $
+   $Id: headers.c 1357 2004-07-28 10:22:05Z twisti $
 
 */
 
@@ -49,6 +49,7 @@
 #include "toolbox/memory.h"
 #include "toolbox/logging.h"
 #include "nat/java_lang_String.h"
+#include "nat/java_lang_Throwable.h"
 
 
 /******* replace some external functions  *********/
