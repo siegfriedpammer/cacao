@@ -194,7 +194,32 @@ static int reg_of_var(stackptr v, int tempregnum)
 	}
 
 
-/* NullPointerException handlers and exception handling initialisation */
+/* NullPointerException handlers and exception handling initialisation        */
+
+typedef struct sigctx_struct {
+
+	long          sc_onstack;           /* sigstack state to restore          */
+	long          sc_mask;              /* signal mask to restore             */
+	long          sc_pc;                /* pc at time of signal               */
+	long          sc_ps;                /* psl to retore                      */
+	long          sc_regs[32];          /* processor regs 0 to 31             */
+	long          sc_ownedfp;           /* fp has been used                   */
+	long          sc_fpregs[32];        /* fp regs 0 to 31                    */
+	unsigned long sc_fpcr;              /* floating point control register    */
+	unsigned long sc_fp_control;        /* software fpcr                      */
+	                                    /* rest is unused                     */
+	unsigned long sc_reserved1, sc_reserved2;
+	unsigned long sc_ssize;
+	char          *sc_sbase;
+	unsigned long sc_traparg_a0;
+	unsigned long sc_traparg_a1;
+	unsigned long sc_traparg_a2;
+	unsigned long sc_fp_trap_pc;
+	unsigned long sc_fp_trigger_sum;
+	unsigned long sc_fp_trigger_inst;
+	unsigned long sc_retcode[2];
+} sigctx_struct;
+
 
 /* asm_signal_exception passes exception pointer and the signal context
 	structure (contains the saved registers) to the assembler handler which
@@ -206,17 +231,29 @@ void asm_signal_exception(void *xptr, void *sigctx);
 
 /* NullPointerException signal handler for hardware null pointer check */
 
-void catch_NullPointerException(int sig, int code, void *sigctx)
+void catch_NullPointerException(int sig, int code, sigctx_struct *sigctx)
 {
 	sigset_t nsig;
+	int      instr;
+	long     faultaddr;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
-	signal(sig, (void*) catch_NullPointerException);     /* reinstall handler */
-	sigemptyset(&nsig);
-	sigaddset(&nsig, sig);
-	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
-	asm_signal_exception(proto_java_lang_NullPointerException, sigctx);
+	instr = *((int*)(sigctx->sc_pc));
+	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f];
+
+	if (faultaddr == 0) {
+		signal(sig, (void*) catch_NullPointerException); /* reinstall handler */
+		sigemptyset(&nsig);
+		sigaddset(&nsig, sig);
+		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
+		asm_signal_exception(proto_java_lang_NullPointerException, sigctx);
+		}
+	else {
+		faultaddr += (long) ((instr << 16) >> 16);
+		fprintf(stderr, "faulting address: 0x%16lx\n", faultaddr);
+		panic("Stack overflow");
+		}
 }
 
 
@@ -565,7 +602,8 @@ static void gen_mcode()
 		case ICMD_NULLCHECKPOP: /* ..., objectref  ==> ...                    */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			gen_nullptr_check(s1);
+			M_BEQZ((s1), REG);
+			mcode_addxnullrefs(mcodeptr);
 			break;
 
 		/* constant operations ************************************************/
