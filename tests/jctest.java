@@ -836,19 +836,19 @@ public class jctest implements jcinterface {
 		p ("TESTCONST CALLED WITH ", i);
 		p ("                  AND ", l);
 		
-		if (!(i == (0))) p("not IF_ICMPEQ", (0));
-		if (!(i != (0))) p("not IF_ICMPNE", (0));
-		if (!(i <  (0))) p("not IF_ICMPLT", (0));
-		if (!(i <= (0))) p("not IF_ICMPLE", (0));
-		if (!(i >  (0))) p("not IF_ICMPGT", (0));
-		if (!(i >= (0))) p("not IF_ICMPGE", (0));
+		if (!(i == (0))) p("not IFEQ:   ", (0));
+		if (!(i != (0))) p("not IFNE:   ", (0));
+		if (!(i <  (0))) p("not IFLT:   ", (0));
+		if (!(i <= (0))) p("not IFLE:   ", (0));
+		if (!(i >  (0))) p("not IFGT:   ", (0));
+		if (!(i >= (0))) p("not IFGE:   ", (0));
 
-		if (!(l == (0))) p("not IF_LCMPEQ", (0));
-		if (!(l != (0))) p("not IF_LCMPNE", (0));
-		if (!(l <  (0))) p("not IF_LCMPLT", (0));
-		if (!(l <= (0))) p("not IF_LCMPLE", (0));
-		if (!(l >  (0))) p("not IF_LCMPGT", (0));
-		if (!(l >= (0))) p("not IF_LCMPGE", (0));
+		if (!(l == (0))) p("not IF_LEQ: ", (0));
+		if (!(l != (0))) p("not IF_LNE: ", (0));
+		if (!(l <  (0))) p("not IF_LLT: ", (0));
+		if (!(l <= (0))) p("not IF_LLE: ", (0));
+		if (!(l >  (0))) p("not IF_LGT: ", (0));
+		if (!(l >= (0))) p("not IF_LGE: ", (0));
 
 		p("IADDCONST:  ", i  +  (-1));
 		p("ISUBCONST:  ", i  -  (-1));
@@ -860,12 +860,12 @@ public class jctest implements jcinterface {
 		p("IORCONST:   ", i  |  (-1));
 		p("IXORCONST:  ", i  ^  (-1));
 
-		if (!(i == (-1))) p("not IF_ICMPEQ", (-1));
-		if (!(i != (-1))) p("not IF_ICMPNE", (-1));
-		if (!(i <  (-1))) p("not IF_ICMPLT", (-1));
-		if (!(i <= (-1))) p("not IF_ICMPLE", (-1));
-		if (!(i >  (-1))) p("not IF_ICMPGT", (-1));
-		if (!(i >= (-1))) p("not IF_ICMPGE", (-1));
+		if (!(i == (-1))) p("not IFEQ:   ", (-1));
+		if (!(i != (-1))) p("not IFNE:   ", (-1));
+		if (!(i <  (-1))) p("not IFLT:   ", (-1));
+		if (!(i <= (-1))) p("not IFLE:   ", (-1));
+		if (!(i >  (-1))) p("not IFGT:   ", (-1));
+		if (!(i >= (-1))) p("not IFGE:   ", (-1));
 
 		p("LADDCONST:  ", l  +  (-1));
 		p("LSUBCONST:  ", l  -  (-1));
@@ -877,12 +877,12 @@ public class jctest implements jcinterface {
 		p("LORCONST:   ", l  |  (-1));
 		p("LXORCONST:  ", l  ^  (-1));
 
-		if (!(l == (-1))) p("not IF_LCMPEQ", (-1));
-		if (!(l != (-1))) p("not IF_LCMPNE", (-1));
-		if (!(l <  (-1))) p("not IF_LCMPLT", (-1));
-		if (!(l <= (-1))) p("not IF_LCMPLE", (-1));
-		if (!(l >  (-1))) p("not IF_LCMPGT", (-1));
-		if (!(l >= (-1))) p("not IF_LCMPGE", (-1));
+		if (!(l == (-1))) p("not IF_LEQ: ", (-1));
+		if (!(l != (-1))) p("not IF_LNE: ", (-1));
+		if (!(l <  (-1))) p("not IF_LLT: ", (-1));
+		if (!(l <= (-1))) p("not IF_LLE: ", (-1));
+		if (!(l >  (-1))) p("not IF_LGT: ", (-1));
+		if (!(l >= (-1))) p("not IF_LGE: ", (-1));
 
 		p("IADDCONST:  ", i  +  (1));
 		p("ISUBCONST:  ", i  -  (1));
@@ -894,12 +894,12 @@ public class jctest implements jcinterface {
 		p("IORCONST:   ", i  |  (1));
 		p("IXORCONST:  ", i  ^  (1));
 
-		if (!(i == (1))) p("not IF_ICMPEQ", (1));
-		if (!(i != (1))) p("not IF_ICMPNE", (1));
-		if (!(i <  (1))) p("not IF_ICMPLT", (1));
-		if (!(i <= (1))) p("not IF_ICMPLE", (1));
-		if (!(i >  (1))) p("not IF_ICMPGT", (1));
-		if (!(i >= (1))) p("not IF_ICMPGE", (1));
+		if (!(i == (1))) p("not IFEQ:   ", (1));
+		if (!(i != (1))) p("not IFNE:   ", (1));
+		if (!(i <  (1))) p("not IFLT:   ", (1));
+		if (!(i <= (1))) p("not IFLE:   ", (1));
+		if (!(i >  (1))) p("not IFGT:   ", (1));
+		if (!(i >= (1))) p("not IFGE:   ", (1));
 
 		p("LADDCONST:  ", l  +  (1));
 		p("LSUBCONST:  ", l  -  (1));
@@ -911,12 +911,12 @@ public class jctest implements jcinterface {
 		p("LORCONST:   ", l  |  (1));
 		p("LXORCONST:  ", l  ^  (1));
 
-		if (!(l == (1))) p("not IF_LCMPEQ", (1));
-		if (!(l != (1))) p("not IF_LCMPNE", (1));
-		if (!(l <  (1))) p("not IF_LCMPLT", (1));
-		if (!(l <= (1))) p("not IF_LCMPLE", (1));
-		if (!(l >  (1))) p("not IF_LCMPGT", (1));
-		if (!(l >= (1))) p("not IF_LCMPGE", (1));
+		if (!(l == (1))) p("not IF_LEQ: ", (1));
+		if (!(l != (1))) p("not IF_LNE: ", (1));
+		if (!(l <  (1))) p("not IF_LLT: ", (1));
+		if (!(l <= (1))) p("not IF_LLE: ", (1));
+		if (!(l >  (1))) p("not IF_LGT: ", (1));
+		if (!(l >= (1))) p("not IF_LGE: ", (1));
 
 		p("IADDCONST:  ", i  +  (255));
 		p("ISUBCONST:  ", i  -  (255));
@@ -928,12 +928,12 @@ public class jctest implements jcinterface {
 		p("IORCONST:   ", i  |  (255));
 		p("IXORCONST:  ", i  ^  (255));
 
-		if (!(i == (255))) p("not IF_ICMPEQ", (255));
-		if (!(i != (255))) p("not IF_ICMPNE", (255));
-		if (!(i <  (255))) p("not IF_ICMPLT", (255));
-		if (!(i <= (255))) p("not IF_ICMPLE", (255));
-		if (!(i >  (255))) p("not IF_ICMPGT", (255));
-		if (!(i >= (255))) p("not IF_ICMPGE", (255));
+		if (!(i == (255))) p("not IFEQ:   ", (255));
+		if (!(i != (255))) p("not IFNE:   ", (255));
+		if (!(i <  (255))) p("not IFLT:   ", (255));
+		if (!(i <= (255))) p("not IFLE:   ", (255));
+		if (!(i >  (255))) p("not IFGT:   ", (255));
+		if (!(i >= (255))) p("not IFGE:   ", (255));
 
 		p("LADDCONST:  ", l  +  (255));
 		p("LSUBCONST:  ", l  -  (255));
@@ -945,12 +945,12 @@ public class jctest implements jcinterface {
 		p("LORCONST:   ", l  |  (255));
 		p("LXORCONST:  ", l  ^  (255));
 
-		if (!(l == (255))) p("not IF_LCMPEQ", (255));
-		if (!(l != (255))) p("not IF_LCMPNE", (255));
-		if (!(l <  (255))) p("not IF_LCMPLT", (255));
-		if (!(l <= (255))) p("not IF_LCMPLE", (255));
-		if (!(l >  (255))) p("not IF_LCMPGT", (255));
-		if (!(l >= (255))) p("not IF_LCMPGE", (255));
+		if (!(l == (255))) p("not IF_LEQ: ", (255));
+		if (!(l != (255))) p("not IF_LNE: ", (255));
+		if (!(l <  (255))) p("not IF_LLT: ", (255));
+		if (!(l <= (255))) p("not IF_LLE: ", (255));
+		if (!(l >  (255))) p("not IF_LGT: ", (255));
+		if (!(l >= (255))) p("not IF_LGE: ", (255));
 
 		p("IADDCONST:  ", i  +  (256));
 		p("ISUBCONST:  ", i  -  (256));
@@ -962,12 +962,12 @@ public class jctest implements jcinterface {
 		p("IORCONST:   ", i  |  (256));
 		p("IXORCONST:  ", i  ^  (256));
 
-		if (!(i == (256))) p("not IF_ICMPEQ", (256));
-		if (!(i != (256))) p("not IF_ICMPNE", (256));
-		if (!(i <  (256))) p("not IF_ICMPLT", (256));
-		if (!(i <= (256))) p("not IF_ICMPLE", (256));
-		if (!(i >  (256))) p("not IF_ICMPGT", (256));
-		if (!(i >= (256))) p("not IF_ICMPGE", (256));
+		if (!(i == (256))) p("not IFEQ:   ", (256));
+		if (!(i != (256))) p("not IFNE:   ", (256));
+		if (!(i <  (256))) p("not IFLT:   ", (256));
+		if (!(i <= (256))) p("not IFLE:   ", (256));
+		if (!(i >  (256))) p("not IFGT:   ", (256));
+		if (!(i >= (256))) p("not IFGE:   ", (256));
 
 		p("LADDCONST:  ", l  +  (256));
 		p("LSUBCONST:  ", l  -  (256));
@@ -979,12 +979,12 @@ public class jctest implements jcinterface {
 		p("LORCONST:   ", l  |  (256));
 		p("LXORCONST:  ", l  ^  (256));
 
-		if (!(l == (256))) p("not IF_LCMPEQ", (256));
-		if (!(l != (256))) p("not IF_LCMPNE", (256));
-		if (!(l <  (256))) p("not IF_LCMPLT", (256));
-		if (!(l <= (256))) p("not IF_LCMPLE", (256));
-		if (!(l >  (256))) p("not IF_LCMPGT", (256));
-		if (!(l >= (256))) p("not IF_LCMPGE", (256));
+		if (!(l == (256))) p("not IF_LEQ: ", (256));
+		if (!(l != (256))) p("not IF_LNE: ", (256));
+		if (!(l <  (256))) p("not IF_LLT: ", (256));
+		if (!(l <= (256))) p("not IF_LLE: ", (256));
+		if (!(l >  (256))) p("not IF_LGT: ", (256));
+		if (!(l >= (256))) p("not IF_LGE: ", (256));
 
 		p("IADDCONST:  ", i  +  (32767));
 		p("ISUBCONST:  ", i  -  (32767));
@@ -996,12 +996,12 @@ public class jctest implements jcinterface {
 		p("IORCONST:   ", i  |  (32767));
 		p("IXORCONST:  ", i  ^  (32767));
 
-		if (!(i == (32767))) p("not IF_ICMPEQ", (32767));
-		if (!(i != (32767))) p("not IF_ICMPNE", (32767));
-		if (!(i <  (32767))) p("not IF_ICMPLT", (32767));
-		if (!(i <= (32767))) p("not IF_ICMPLE", (32767));
-		if (!(i >  (32767))) p("not IF_ICMPGT", (32767));
-		if (!(i >= (32767))) p("not IF_ICMPGE", (32767));
+		if (!(i == (32767))) p("not IFEQ:   ", (32767));
+		if (!(i != (32767))) p("not IFNE:   ", (32767));
+		if (!(i <  (32767))) p("not IFLT:   ", (32767));
+		if (!(i <= (32767))) p("not IFLE:   ", (32767));
+		if (!(i >  (32767))) p("not IFGT:   ", (32767));
+		if (!(i >= (32767))) p("not IFGE:   ", (32767));
 
 		p("LADDCONST:  ", l  +  (32767));
 		p("LSUBCONST:  ", l  -  (32767));
@@ -1013,12 +1013,12 @@ public class jctest implements jcinterface {
 		p("LORCONST:   ", l  |  (32767));
 		p("LXORCONST:  ", l  ^  (32767));
 
-		if (!(l == (32767))) p("not IF_LCMPEQ", (32767));
-		if (!(l != (32767))) p("not IF_LCMPNE", (32767));
-		if (!(l <  (32767))) p("not IF_LCMPLT", (32767));
-		if (!(l <= (32767))) p("not IF_LCMPLE", (32767));
-		if (!(l >  (32767))) p("not IF_LCMPGT", (32767));
-		if (!(l >= (32767))) p("not IF_LCMPGE", (32767));
+		if (!(l == (32767))) p("not IF_LEQ: ", (32767));
+		if (!(l != (32767))) p("not IF_LNE: ", (32767));
+		if (!(l <  (32767))) p("not IF_LLT: ", (32767));
+		if (!(l <= (32767))) p("not IF_LLE: ", (32767));
+		if (!(l >  (32767))) p("not IF_LGT: ", (32767));
+		if (!(l >= (32767))) p("not IF_LGE: ", (32767));
 
 		p("IADDCONST:  ", i  +  (32768));
 		p("ISUBCONST:  ", i  -  (32768));
@@ -1030,12 +1030,12 @@ public class jctest implements jcinterface {
 		p("IORCONST:   ", i  |  (32768));
 		p("IXORCONST:  ", i  ^  (32768));
 
-		if (!(i == (32768))) p("not IF_ICMPEQ", (32768));
-		if (!(i != (32768))) p("not IF_ICMPNE", (32768));
-		if (!(i <  (32768))) p("not IF_ICMPLT", (32768));
-		if (!(i <= (32768))) p("not IF_ICMPLE", (32768));
-		if (!(i >  (32768))) p("not IF_ICMPGT", (32768));
-		if (!(i >= (32768))) p("not IF_ICMPGE", (32768));
+		if (!(i == (32768))) p("not IFEQ:   ", (32768));
+		if (!(i != (32768))) p("not IFNE:   ", (32768));
+		if (!(i <  (32768))) p("not IFLT:   ", (32768));
+		if (!(i <= (32768))) p("not IFLE:   ", (32768));
+		if (!(i >  (32768))) p("not IFGT:   ", (32768));
+		if (!(i >= (32768))) p("not IFGE:   ", (32768));
 
 		p("LADDCONST:  ", l  +  (32768));
 		p("LSUBCONST:  ", l  -  (32768));
@@ -1047,12 +1047,12 @@ public class jctest implements jcinterface {
 		p("LORCONST:   ", l  |  (32768));
 		p("LXORCONST:  ", l  ^  (32768));
 
-		if (!(l == (32768))) p("not IF_LCMPEQ", (32768));
-		if (!(l != (32768))) p("not IF_LCMPNE", (32768));
-		if (!(l <  (32768))) p("not IF_LCMPLT", (32768));
-		if (!(l <= (32768))) p("not IF_LCMPLE", (32768));
-		if (!(l >  (32768))) p("not IF_LCMPGT", (32768));
-		if (!(l >= (32768))) p("not IF_LCMPGE", (32768));
+		if (!(l == (32768))) p("not IF_LEQ: ", (32768));
+		if (!(l != (32768))) p("not IF_LNE: ", (32768));
+		if (!(l <  (32768))) p("not IF_LLT: ", (32768));
+		if (!(l <= (32768))) p("not IF_LLE: ", (32768));
+		if (!(l >  (32768))) p("not IF_LGT: ", (32768));
+		if (!(l >= (32768))) p("not IF_LGE: ", (32768));
 
 		p("IADDCONST:  ", i  +  (-32768));
 		p("ISUBCONST:  ", i  -  (-32768));
@@ -1064,12 +1064,12 @@ public class jctest implements jcinterface {
 		p("IORCONST:   ", i  |  (-32768));
 		p("IXORCONST:  ", i  ^  (-32768));
 
-		if (!(i == (-32768))) p("not IF_ICMPEQ", (-32768));
-		if (!(i != (-32768))) p("not IF_ICMPNE", (-32768));
-		if (!(i <  (-32768))) p("not IF_ICMPLT", (-32768));
-		if (!(i <= (-32768))) p("not IF_ICMPLE", (-32768));
-		if (!(i >  (-32768))) p("not IF_ICMPGT", (-32768));
-		if (!(i >= (-32768))) p("not IF_ICMPGE", (-32768));
+		if (!(i == (-32768))) p("not IFEQ:   ", (-32768));
+		if (!(i != (-32768))) p("not IFNE:   ", (-32768));
+		if (!(i <  (-32768))) p("not IFLT:   ", (-32768));
+		if (!(i <= (-32768))) p("not IFLE:   ", (-32768));
+		if (!(i >  (-32768))) p("not IFGT:   ", (-32768));
+		if (!(i >= (-32768))) p("not IFGE:   ", (-32768));
 
 		p("LADDCONST:  ", l  +  (-32768));
 		p("LSUBCONST:  ", l  -  (-32768));
@@ -1081,12 +1081,12 @@ public class jctest implements jcinterface {
 		p("LORCONST:   ", l  |  (-32768));
 		p("LXORCONST:  ", l  ^  (-32768));
 
-		if (!(l == (-32768))) p("not IF_LCMPEQ", (-32768));
-		if (!(l != (-32768))) p("not IF_LCMPNE", (-32768));
-		if (!(l <  (-32768))) p("not IF_LCMPLT", (-32768));
-		if (!(l <= (-32768))) p("not IF_LCMPLE", (-32768));
-		if (!(l >  (-32768))) p("not IF_LCMPGT", (-32768));
-		if (!(l >= (-32768))) p("not IF_LCMPGE", (-32768));
+		if (!(l == (-32768))) p("not IF_LEQ: ", (-32768));
+		if (!(l != (-32768))) p("not IF_LNE: ", (-32768));
+		if (!(l <  (-32768))) p("not IF_LLT: ", (-32768));
+		if (!(l <= (-32768))) p("not IF_LLE: ", (-32768));
+		if (!(l >  (-32768))) p("not IF_LGT: ", (-32768));
+		if (!(l >= (-32768))) p("not IF_LGE: ", (-32768));
 
 		p("IADDCONST:  ", i  +  (-32769));
 		p("ISUBCONST:  ", i  -  (-32769));
@@ -1098,12 +1098,12 @@ public class jctest implements jcinterface {
 		p("IORCONST:   ", i  |  (-32769));
 		p("IXORCONST:  ", i  ^  (-32769));
 
-		if (!(i == (-32769))) p("not IF_ICMPEQ", (-32769));
-		if (!(i != (-32769))) p("not IF_ICMPNE", (-32769));
-		if (!(i <  (-32769))) p("not IF_ICMPLT", (-32769));
-		if (!(i <= (-32769))) p("not IF_ICMPLE", (-32769));
-		if (!(i >  (-32769))) p("not IF_ICMPGT", (-32769));
-		if (!(i >= (-32769))) p("not IF_ICMPGE", (-32769));
+		if (!(i == (-32769))) p("not IFEQ:   ", (-32769));
+		if (!(i != (-32769))) p("not IFNE:   ", (-32769));
+		if (!(i <  (-32769))) p("not IFLT:   ", (-32769));
+		if (!(i <= (-32769))) p("not IFLE:   ", (-32769));
+		if (!(i >  (-32769))) p("not IFGT:   ", (-32769));
+		if (!(i >= (-32769))) p("not IFGE:   ", (-32769));
 
 		p("LADDCONST:  ", l  +  (-32769));
 		p("LSUBCONST:  ", l  -  (-32769));
@@ -1115,13 +1115,114 @@ public class jctest implements jcinterface {
 		p("LORCONST:   ", l  |  (-32769));
 		p("LXORCONST:  ", l  ^  (-32769));
 
-		if (!(l == (-32769))) p("not IF_LCMPEQ", (-32769));
-		if (!(l != (-32769))) p("not IF_LCMPNE", (-32769));
-		if (!(l <  (-32769))) p("not IF_LCMPLT", (-32769));
-		if (!(l <= (-32769))) p("not IF_LCMPLE", (-32769));
-		if (!(l >  (-32769))) p("not IF_LCMPGT", (-32769));
-		if (!(l >= (-32769))) p("not IF_LCMPGE", (-32769));
+		if (!(l == (-32769))) p("not IF_LEQ: ", (-32769));
+		if (!(l != (-32769))) p("not IF_LNE: ", (-32769));
+		if (!(l <  (-32769))) p("not IF_LLT: ", (-32769));
+		if (!(l <= (-32769))) p("not IF_LLE: ", (-32769));
+		if (!(l >  (-32769))) p("not IF_LGT: ", (-32769));
+		if (!(l >= (-32769))) p("not IF_LGE: ", (-32769));
 
+		p("IADDCONST:  ", i  +  (2147483647));
+		p("ISUBCONST:  ", i  -  (2147483647));
+		p("IMULCONST:  ", i  *  (2147483647));
+		p("ISHLCONST:  ", i <<  (2147483647));
+		p("ISHRCONST:  ", i >>  (2147483647));
+		p("IUSHRCONST: ", i >>> (2147483647));
+		p("IANDCONST:  ", i  &  (2147483647));
+		p("IORCONST:   ", i  |  (2147483647));
+		p("IXORCONST:  ", i  ^  (2147483647));
+
+		if (!(i == (2147483647))) p("not IFEQ:   ", (2147483647));
+		if (!(i != (2147483647))) p("not IFNE:   ", (2147483647));
+		if (!(i <  (2147483647))) p("not IFLT:   ", (2147483647));
+		if (!(i <= (2147483647))) p("not IFLE:   ", (2147483647));
+		if (!(i >  (2147483647))) p("not IFGT:   ", (2147483647));
+		if (!(i >= (2147483647))) p("not IFGE:   ", (2147483647));
+
+		p("LADDCONST:  ", l  +  (2147483647));
+		p("LSUBCONST:  ", l  -  (2147483647));
+		p("LMULCONST:  ", l  *  (2147483647));
+		p("LSHLCONST:  ", l <<  (2147483647));
+		p("LSHRCONST:  ", l >>  (2147483647));
+		p("LUSHRCONST: ", l >>> (2147483647));
+		p("LANDCONST:  ", l  &  (2147483647));
+		p("LORCONST:   ", l  |  (2147483647));
+		p("LXORCONST:  ", l  ^  (2147483647));
+
+		if (!(l == (2147483647))) p("not IF_LEQ: ", (2147483647));
+		if (!(l != (2147483647))) p("not IF_LNE: ", (2147483647));
+		if (!(l <  (2147483647))) p("not IF_LLT: ", (2147483647));
+		if (!(l <= (2147483647))) p("not IF_LLE: ", (2147483647));
+		if (!(l >  (2147483647))) p("not IF_LGT: ", (2147483647));
+		if (!(l >= (2147483647))) p("not IF_LGE: ", (2147483647));
+
+		p("LADDCONST:  ", l  +  (2147483648L));
+		p("LSUBCONST:  ", l  -  (2147483648L));
+		p("LMULCONST:  ", l  *  (2147483648L));
+		p("LSHLCONST:  ", l <<  (2147483648L));
+		p("LSHRCONST:  ", l >>  (2147483648L));
+		p("LUSHRCONST: ", l >>> (2147483648L));
+		p("LANDCONST:  ", l  &  (2147483648L));
+		p("LORCONST:   ", l  |  (2147483648L));
+		p("LXORCONST:  ", l  ^  (2147483648L));
+
+		if (!(l == (2147483648L))) p("not IF_LEQ: ", (2147483648L));
+		if (!(l != (2147483648L))) p("not IF_LNE: ", (2147483648L));
+		if (!(l <  (2147483648L))) p("not IF_LLT: ", (2147483648L));
+		if (!(l <= (2147483648L))) p("not IF_LLE: ", (2147483648L));
+		if (!(l >  (2147483648L))) p("not IF_LGT: ", (2147483648L));
+		if (!(l >= (2147483648L))) p("not IF_LGE: ", (2147483648L));
+
+		p("IADDCONST:  ", i  +  (-2147483648));
+		p("ISUBCONST:  ", i  -  (-2147483648));
+		p("IMULCONST:  ", i  *  (-2147483648));
+		p("ISHLCONST:  ", i <<  (-2147483648));
+		p("ISHRCONST:  ", i >>  (-2147483648));
+		p("IUSHRCONST: ", i >>> (-2147483648));
+		p("IANDCONST:  ", i  &  (-2147483648));
+		p("IORCONST:   ", i  |  (-2147483648));
+		p("IXORCONST:  ", i  ^  (-2147483648));
+
+		if (!(i == (-2147483648))) p("not IFEQ:   ", (-2147483648));
+		if (!(i != (-2147483648))) p("not IFNE:   ", (-2147483648));
+		if (!(i <  (-2147483648))) p("not IFLT:   ", (-2147483648));
+		if (!(i <= (-2147483648))) p("not IFLE:   ", (-2147483648));
+		if (!(i >  (-2147483648))) p("not IFGT:   ", (-2147483648));
+		if (!(i >= (-2147483648))) p("not IFGE:   ", (-2147483648));
+
+		p("LADDCONST:  ", l  +  (-2147483648));
+		p("LSUBCONST:  ", l  -  (-2147483648));
+		p("LMULCONST:  ", l  *  (-2147483648));
+		p("LSHLCONST:  ", l <<  (-2147483648));
+		p("LSHRCONST:  ", l >>  (-2147483648));
+		p("LUSHRCONST: ", l >>> (-2147483648));
+		p("LANDCONST:  ", l  &  (-2147483648));
+		p("LORCONST:   ", l  |  (-2147483648));
+		p("LXORCONST:  ", l  ^  (-2147483648));
+
+		if (!(l == (-2147483648))) p("not IF_LEQ: ", (-2147483648));
+		if (!(l != (-2147483648))) p("not IF_LNE: ", (-2147483648));
+		if (!(l <  (-2147483648))) p("not IF_LLT: ", (-2147483648));
+		if (!(l <= (-2147483648))) p("not IF_LLE: ", (-2147483648));
+		if (!(l >  (-2147483648))) p("not IF_LGT: ", (-2147483648));
+		if (!(l >= (-2147483648))) p("not IF_LGE: ", (-2147483648));
+
+		p("LADDCONST:  ", l  +  (-2147483649L));
+		p("LSUBCONST:  ", l  -  (-2147483649L));
+		p("LMULCONST:  ", l  *  (-2147483649L));
+		p("LSHLCONST:  ", l <<  (-2147483649L));
+		p("LSHRCONST:  ", l >>  (-2147483649L));
+		p("LUSHRCONST: ", l >>> (-2147483649L));
+		p("LANDCONST:  ", l  &  (-2147483649L));
+		p("LORCONST:   ", l  |  (-2147483649L));
+		p("LXORCONST:  ", l  ^  (-2147483649L));
+
+		if (!(l == (-2147483649L))) p("not IF_LEQ: ", (-2147483649L));
+		if (!(l != (-2147483649L))) p("not IF_LNE: ", (-2147483649L));
+		if (!(l <  (-2147483649L))) p("not IF_LLT: ", (-2147483649L));
+		if (!(l <= (-2147483649L))) p("not IF_LLE: ", (-2147483649L));
+		if (!(l >  (-2147483649L))) p("not IF_LGT: ", (-2147483649L));
+		if (!(l >= (-2147483649L))) p("not IF_LGE: ", (-2147483649L));
 	}
 
 	static public void testrem0x10001(int a) {
