@@ -1,8 +1,236 @@
 \chapter{Class Loader}
 
+
 \section{Introduction}
 
+A \textit{Java Virtual Machine} (JVM) dynamically loads, links and
+initializes classes and interfaces when they are needed. Loading a
+class or interface means locating the binary representation---the
+class files---and creating a class of interface structure from that
+binary representation. Linking takes a loaded class or interface and
+transfers it into the runtime state of the \textit{Java Virtual
+Machine} so that it can be executed. Initialization of a class or
+interface means executing the static class of interface initializer
+\texttt{<clinit>}.
+
+The following sections describe the process of loading, linking and
+initalizing a class or interface in the CACAO \textit{Java Virtual
+Machine} in greater detail. Further the used data structures and
+techniques used in CACAO and the interaction with the GNU classpath
+are described.
+
+
 \section{System class loader}
+
+The class loader of a \textit{Java Virtual Machine} (JVM) is
+responsible for loading all type of classes and interfaces into the
+runtime system of the JVM. Every JVM has a \textit{system class
+loader} which is implemented in \texttt{java.lang.ClassLoader} and
+this class interacts via native function calls with the JVM itself.
+
+The \textit{GNU classpath} implements the system class loader in
+\texttt{gnu.java.lang.SystemClassLoader} which extends
+\texttt{java.lang.ClassLoader} and interacts with the JVM. The
+\textit{bootstrap class loader} is implemented in
+\texttt{java.lang.ClassLoader} plus the JVM depended class
+\texttt{java.lang.VMClassLoader}. \texttt{java.lang.VMClassLoader} is
+the main class how the bootstrap class loader of the GNU classpath
+interacts with the JVM. The main functions of this class is
+
+\begin{verbatim}
+        static final native Class loadClass(String name, boolean resolve)
+          throws ClassNotFoundException;
+\end{verbatim}
+
+This is a native function implemented in the CACAO JVM, which is
+located in \texttt{nat/VMClassLoader.c} and calls the internal loader
+functions of CACAO. If the \texttt{name} argument is \texttt{NULL}, a
+new \texttt{java.lang.NullPointerException} is created and the
+function returns \texttt{NULL}.
+
+If the \texttt{name} is non-NULL a new UTF8 string of the class' name
+is created in the internal \textit{symbol table} via
+
+\begin{verbatim}
+        utf *javastring_toutf(java_lang_String *string, bool isclassname);
+\end{verbatim}
+
+This function converts a \texttt{java.lang.String} string into the
+internal used UTF8 string representation. \texttt{isclassname} tells
+the function to convert any \texttt{.} (dots) found in the class name
+into \texttt{/} (slashes), so the class loader can find the specified
+class.
+
+Then a new \texttt{classinfo} structure is created via the
+
+\begin{verbatim}
+        classinfo *class_new(utf *classname);
+\end{verbatim}
+
+function call. This function creates a unique representation of this
+class, identified by its name, in the JVM's internal \textit{class
+hashtable}. The newly created \texttt{classinfo} structure is
+initialized with correct values, like \texttt{loaded = false;},
+\texttt{linked = false;} and \texttt{initialized = false;}. This
+guarantees a definite state of a new class.
+
+The next step is to actually load the class requested. Thus the main
+loader function
+
+\begin{verbatim}
+        classinfo *class_load(classinfo *c);
+\end{verbatim}
+
+is called, which is a wrapper function to the real loader function
+
+\begin{verbatim}
+        classinfo *class_load_intern(classbuffer *cb);
+\end{verbatim}
+
+This wrapper function is required to ensure some requirements:
+
+\begin{itemize}
+ \item enter a monitor on the \texttt{classinfo} structure, so that
+ only one thread can load the same class at the same time
+
+ \item initialize the \texttt{classbuffer} structure with the actual
+ class file data
+
+ \item remove the \texttt{classinfo} structure from the internal table
+ if we got an exception during loading
+
+ \item free any allocated memory and leave the monitor
+\end{itemize}
+
+The \texttt{class\_load\_intern} functions preforms the actual loading
+of the binary representation of the class or interface. During loading
+some verifier checks are performed which can throw a
+\texttt{java.lang.ClassFormatError} or
+\texttt{java.lang.NoClassDefFoundError}. Some of these
+\texttt{java.lang.ClassFormatError} checks are
+
+\begin{itemize}
+ \item \textit{Truncated class file} --- unexpected end of class file
+ data
+
+ \item \textit{Bad magic number} --- class file does not contain the magic bytes
+ (0xCAFEBABE)
+
+ \item \textit{Unsupported major.minor version} --- the bytecode
+ version of the given class file is not supported by the JVM
+\end{itemize}
+
+After some loaded bytes, the class' constant pool is loaded via
+
+\begin{verbatim}
+        static bool class_loadcpool(classbuffer *cb, classinfo *c);
+\end{verbatim}
+
+from the \texttt{constant\_pool} table in the binary representation of
+the class of interface. The constant pool needs to be parsed in two
+passes. In the first pass the information loaded is saved in temporary
+structures, which are further processed in the second pass, when the
+complete constant pool has been traversed. Only when the whole
+constant pool entries have been loaded, any constant pool entry can be
+completely resolved, but this resolving can only be done in a specific
+order:
+
+\begin{enumerate}
+ \item \texttt{CONSTANT\_Class}
+
+ \item \texttt{CONSTANT\_String}
+
+ \item \texttt{CONSTANT\_NameAndType}
+
+ \item \texttt{CONSTANT\_Fieldref}, \texttt{CONSTANT\_Methodref} and
+ \texttt{CONSTANT\_InterfaceMethodref} --- these are combined into one
+ structure
+\end{enumerate}
+
+The remaining constant pool types \texttt{CONSTANT\_Integer},
+\texttt{CONSTANT\_Float}, \texttt{CONSTANT\_Long},
+\texttt{CONSTANT\_Double} and \texttt{CONSTANT\_Utf8} can be resolved
+in the first pass and need no further processing.
+
+These are the temporary structures used to \textit{forward} the data
+from the first pass into the second:
+
+\begin{verbatim}
+        /* CONSTANT_Class entries */
+        typedef struct forward_class {
+            struct forward_class *next;
+            u2 thisindex;
+            u2 name_index;
+        } forward_class;
+
+        /* CONSTANT_String */
+        typedef struct forward_string {
+            struct forward_string *next;
+            u2 thisindex;
+            u2 string_index;
+        } forward_string;
+
+        /* CONSTANT_NameAndType */
+        typedef struct forward_nameandtype {
+            struct forward_nameandtype *next;
+            u2 thisindex;
+            u2 name_index;
+            u2 sig_index;
+        } forward_nameandtype;
+
+        /* CONSTANT_Fieldref, CONSTANT_Methodref or CONSTANT_InterfaceMethodref */
+        typedef struct forward_fieldmethint {
+            struct forward_fieldmethint *next;
+            u2 thisindex;
+            u1 tag;
+            u2 class_index;
+            u2 nameandtype_index;
+        } forward_fieldmethint;
+\end{verbatim}
+
+The \texttt{classinfo} structure has two pointers to arrays which
+contain the class' constant pool infos, namely: \texttt{cptags} and
+\texttt{cpinfos}. \texttt{cptags} contains the type of the constant
+pool entry. \texttt{cpinfos} contains a pointer to the constant pool
+entry itself. In the second pass the references are resolved and the
+runtime structures are created. In further detail this includes for
+
+\begin{itemize}
+ \item \texttt{CONSTANT\_Class}: get the UTF8 name string of the
+ class, store type \texttt{CONSTANT\_Class} in \texttt{cptags}, create
+ a class in the class hashtable with the UTF8 name and store the
+ pointer to the new class in \texttt{cpinfos}
+
+ \item \texttt{CONSTANT\_String}: get the UTF8 string of the
+ referenced string, store type \texttt{CONSTANT\_String} in
+ \texttt{cptags} and store the UTF8 string pointer into
+ \texttt{cpinfos}
+
+ \item \texttt{CONSTANT\_NameAndType}: create a
+ \texttt{constant\_nameandtype} structure, get the UTF8 name and
+ description string of the field or method and store them into the
+ \texttt{constant\_nameandtype} structure, store type
+ \texttt{CONSTANT\_NameAndType} into \texttt{cptags} and store a
+ pointer to the \texttt{constant\_nameandtype} structure into
+ \texttt{cpinfos}
+
+ \item \texttt{CONSTANT\_Fieldref}, \texttt{CONSTANT\_Methodref} and
+ \texttt{CONSTANT\_InterfaceMethodref}: create a
+ \texttt{constant\_FMIref} structure, get the referenced
+ \texttt{constant\_nameandtype} structure which contains the name and
+ descriptor resolved in a previous step and store the name and
+ descriptor into the \texttt{constant\_FMIref} structure, get the
+ pointer of the referenced class, which was created in a previous
+ step, and store the pointer of the class into the
+ \texttt{constant\_FMIref} structure, store the type of the current
+ constant pool entry in \texttt{cptags} and store a pointer to
+ \texttt{constant\_FMIref} in \texttt{cpinfos}
+\end{itemize}
+
+After we have loaded the complete constant pool and after loading the
+class flags, we can resolve the class and super class of the currently
+loaded class or interface.
+
 
 \section{Data structures}
 
