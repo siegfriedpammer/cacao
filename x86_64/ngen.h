@@ -11,7 +11,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: ngen.h 420 2003-08-30 00:14:45Z twisti $
+    Last Change: $Id: ngen.h 423 2003-09-01 00:03:50Z twisti $
 
 *******************************************************************************/
 
@@ -68,8 +68,7 @@ int nregdescint[] = {
 
 int nregdescfloat[] = {
     REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
-/*      REG_RES, REG_RES, REG_TMP, REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV, */
-    REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+    REG_RES, REG_RES, REG_TMP, REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
     REG_END
 };
 
@@ -118,6 +117,7 @@ typedef enum {
     R13 = 13,
     R14 = 14,
     R15 = 15,
+    RIP = 16,
     NREG
 } X86_64_Reg_No;
 
@@ -290,9 +290,14 @@ static const unsigned char x86_64_cc_map[] = {
             } \
             break; \
         } \
-        \
         if ((disp) == 0 && (basereg) != RBP && (basereg) != R13) { \
             x86_64_address_byte(0,(dreg),(basereg)); \
+            break; \
+        } \
+        \
+        if ((basereg) == RIP) { \
+            x86_64_address_byte(0,(dreg),RBP); \
+            x86_64_emit_imm32((disp)); \
             break; \
         } \
         \

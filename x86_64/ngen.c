@@ -12,7 +12,7 @@
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 			 Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 420 2003-08-30 00:14:45Z twisti $
+	Last Change: $Id: ngen.c 423 2003-09-01 00:03:50Z twisti $
 
 *******************************************************************************/
 
@@ -661,7 +661,11 @@ static void gen_mcode()
 /*  				x86_64_movl_imm_reg(iptr->val.i, d); */
 /*  			} */
 			d = reg_of_var(iptr->dst, REG_ITMP1);
-			x86_64_movl_imm_reg(iptr->val.i, d);
+			if (iptr->val.i == 0) {
+				x86_64_alu_reg_reg(X86_64_XOR, d, d);
+			} else {
+				x86_64_movl_imm_reg(iptr->val.i, d);
+			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -669,7 +673,11 @@ static void gen_mcode()
 		                      /* op1 = 0, val.a = constant                    */
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
-			x86_64_mov_imm_reg(iptr->val.a, d);
+			if (iptr->val.a == 0) {
+				x86_64_alu_reg_reg(X86_64_XOR, d, d);
+			} else {
+				x86_64_mov_imm_reg(iptr->val.a, d);
+			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -677,7 +685,11 @@ static void gen_mcode()
 		                      /* op1 = 0, val.l = constant                    */
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
-			x86_64_mov_imm_reg(iptr->val.l, d);
+			if (iptr->val.l == 0) {
+				x86_64_alu_reg_reg(X86_64_XOR, d, d);
+			} else {
+				x86_64_mov_imm_reg(iptr->val.l, d);
+			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -3593,9 +3605,10 @@ static void gen_mcode()
 
 			a = dseg_addaddress(&(((fieldinfo *)(iptr->val.a))->value));
 			/* here it's slightly slower */
-  			x86_64_mov_imm_reg(0, REG_ITMP2);
-  			dseg_adddata(mcodeptr);
-  			x86_64_mov_membase_reg(REG_ITMP2, a, REG_ITMP3);
+/*    			x86_64_mov_imm_reg(0, REG_ITMP2); */
+/*    			dseg_adddata(mcodeptr); */
+/*    			x86_64_mov_membase_reg(REG_ITMP2, a, REG_ITMP3); */
+			x86_64_mov_membase_reg(RIP, -(((s8) mcodeptr + 4) - (s8) mcodebase) + a, REG_ITMP3);
 			switch (iptr->op1) {
 				case TYPE_INT:
 					var_to_reg_int(s2, src, REG_ITMP1);
@@ -3622,9 +3635,10 @@ static void gen_mcode()
 		                      /* op1 = type, val.a = field address            */
 
 			a = dseg_addaddress(&(((fieldinfo *)(iptr->val.a))->value));
-			x86_64_mov_imm_reg(0, REG_ITMP2);
-			dseg_adddata(mcodeptr);
-			x86_64_mov_membase_reg(REG_ITMP2, a, REG_ITMP3);
+/*  			x86_64_mov_imm_reg(0, REG_ITMP2); */
+/*  			dseg_adddata(mcodeptr); */
+/*  			x86_64_mov_membase_reg(REG_ITMP2, a, REG_ITMP3); */
+			x86_64_mov_membase_reg(RIP, -(((s8) mcodeptr + 4) - (s8) mcodebase) + a, REG_ITMP3);
 			switch (iptr->op1) {
 				case TYPE_INT:
 					d = reg_of_var(iptr->dst, REG_ITMP1);
@@ -4568,12 +4582,12 @@ nowperformreturn:
 				var_to_reg_int(s1, src, REG_ITMP1);
 				M_INTMOVE(s1, REG_ITMP1);
 				if (l != 0) {
-					x86_64_alu_imm_reg(X86_64_SUB, l, REG_ITMP1);
+					x86_64_alul_imm_reg(X86_64_SUB, l, REG_ITMP1);
 				}
 				i = i - l + 1;
 
                 /* range check */
-				x86_64_alu_imm_reg(X86_64_CMP, i - 1, REG_ITMP1);
+				x86_64_alul_imm_reg(X86_64_CMP, i - 1, REG_ITMP1);
 				x86_64_jcc(X86_64_CC_A, 0);
 
                 /* mcode_addreference(BlockPtrOfPC(s4ptr[0]), mcodeptr); */
@@ -4699,7 +4713,7 @@ gen_method: {
 
 					} else {
 						var_to_reg_int(d, src, REG_ITMP1);
-						x86_64_mov_reg_membase(d, REG_SP, (iarg + 1 - intreg_argnum) * 8);
+						x86_64_mov_reg_membase(d, REG_SP, (iarg - intreg_argnum) * 8);
 					}
 
 				} else {
@@ -4710,7 +4724,7 @@ gen_method: {
 
 					} else {
 						var_to_reg_flt(d, src, REG_FTMP1);
-						x86_64_movq_reg_membase(d, REG_SP, (farg + 1 - fltreg_argnum) * 8);
+						x86_64_movq_reg_membase(d, REG_SP, (farg - fltreg_argnum) * 8);
 					}
 				}
 			} /* end of for */
@@ -4833,7 +4847,7 @@ gen_method: {
 					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(s1, OFFSET(java_objectheader, vftbl));
 
-					offset += 2;    /* movl_membase_reg - only if REG_ITMP1 == RAX */
+					offset += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
 					CALCOFFSETBYTES(REG_ITMP1, OFFSET(vftbl, interfacetablelength));
 					
 					offset += 3;    /* sub */
@@ -4945,7 +4959,7 @@ gen_method: {
 					offset += 3;    /* mov_membase_reg */
 					CALCOFFSETBYTES(s1, OFFSET(java_objectheader, vftbl));
 
-					offset += 2;    /* movl_membase_reg - only if REG_ITMP1 == RAX */
+					offset += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
 					CALCOFFSETBYTES(REG_ITMP1, OFFSET(vftbl, interfacetablelength));
 
 					offset += 3;    /* sub */
@@ -5350,7 +5364,7 @@ void removecompilerstub(u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE 370
+#define NATIVESTUBSIZE 420
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
@@ -5359,7 +5373,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	reg_init();
 
-	x86_64_alu_imm_reg(X86_64_SUB, 8, REG_SP);    /* keep stack 16-byte aligned */
+	x86_64_alu_imm_reg(X86_64_SUB, 5 * 8, REG_SP);    /* keep stack 16-byte aligned */
 
 	if (runverbose) {
 		int p, l, s1;
@@ -5420,6 +5434,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_alu_imm_reg(X86_64_ADD, (6 + 8 + 1 + 1) * 8, REG_SP);
 	}
 
+	/* save callee saved float registers */
+	x86_64_movq_reg_membase(XMM15, REG_SP, 0 * 8);
+	x86_64_movq_reg_membase(XMM14, REG_SP, 1 * 8);
+	x86_64_movq_reg_membase(XMM13, REG_SP, 2 * 8);
+	x86_64_movq_reg_membase(XMM12, REG_SP, 3 * 8);
+
 	x86_64_mov_reg_reg(argintregs[4], argintregs[5]);
 	x86_64_mov_reg_reg(argintregs[3], argintregs[4]);
 	x86_64_mov_reg_reg(argintregs[2], argintregs[3]);
@@ -5430,6 +5450,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	x86_64_mov_imm_reg(f, REG_ITMP1);
 	x86_64_call_reg(REG_ITMP1);
+
+	/* restore callee saved registers */
+	x86_64_movq_membase_reg(REG_SP, 0 * 8, XMM15);
+	x86_64_movq_membase_reg(REG_SP, 1 * 8, XMM14);
+	x86_64_movq_membase_reg(REG_SP, 2 * 8, XMM13);
+	x86_64_movq_membase_reg(REG_SP, 3 * 8, XMM12);
 
 	if (runverbose) {
 		x86_64_alu_imm_reg(X86_64_SUB, 2 * 8, REG_SP);
@@ -5452,7 +5478,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_alu_imm_reg(X86_64_ADD, 2 * 8, REG_SP);
 	}
 
-	x86_64_alu_imm_reg(X86_64_ADD, 8, REG_SP);    /* keep stack 16-byte aligned */
+	x86_64_alu_imm_reg(X86_64_ADD, 5 * 8, REG_SP);    /* keep stack 16-byte aligned */
 
 	x86_64_mov_imm_reg(&exceptionptr, REG_ITMP3);
 	x86_64_mov_membase_reg(REG_ITMP3, 0, REG_ITMP3);
@@ -5476,7 +5502,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	{
 		static int stubprinted;
 		if (!stubprinted)
-			printf("stubsize: %d/2\n", (int) (mcodeptr - (s4*) s));
+			printf("stubsize: %d\n", ((long)mcodeptr - (long) s));
 		stubprinted = 1;
 	}
 #endif

@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at            *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 420 2003-08-30 00:14:45Z twisti $         *
+*   Last Change: $Id: asmpart.S 423 2003-09-01 00:03:50Z twisti $         *
 *                                                                              *
 *******************************************************************************/
 
@@ -22,7 +22,6 @@
 
 /********************* exported functions and variables ***********************/
 
-	.globl has_no_x_instr_set
 	.globl asm_calljavamethod
 	.globl asm_calljavafunction
 	.globl asm_call_jit_compiler
@@ -315,7 +314,7 @@ L_call_method:
 *   void asm_dumpregistersandcall (functionptr f);                             *
 *                                                                              *
 *******************************************************************************/
-
+#if 0
 asm_dumpregistersandcall:
         sub     $(7*8),%rsp             /* allocate stack space               */
 
@@ -349,7 +348,7 @@ asm_dumpregistersandcall:
         add     $(7*8),%rsp        
         ret
 
-
+#endif
 /********************* function asm_handle_exception ***************************
 *                                                                              *
 *   This function handles an exception. It does not use the usual calling      *
@@ -496,7 +495,38 @@ noint:
 		mov     FltSave(%r11),%edx			/* %edx = saved flt register count */
 		testl   %edx,%edx
 		je      noflt
-		
+
+        cmpl    $1,%edx
+        je      flt1
+        cmpl    $2,%edx
+        je      flt2
+        cmpl    $3,%edx
+        je      flt3
+        cmpl    $4,%edx
+        je      flt4
+        cmpl    $5,%edx
+        je      flt5
+        cmpl    $6,%edx
+        je      flt7
+        cmpl    $7,%edx
+        je      flt7
+
+        movq    -64(%rax),%xmm0
+flt7:   
+        movq    -56(%rax),%xmm1
+flt6:   
+        movq    -48(%rax),%xmm2
+flt5:   
+        movq    -40(%rax),%xmm3
+flt4:   
+        movq    -32(%rax),%xmm4
+flt3:   
+        movq    -24(%rax),%xmm5
+flt2:   
+        movq    -16(%rax),%xmm6
+flt1:   
+        movq    -8(%rax),%xmm7
+                
 noflt:					
 		pop     %r10						/* the new xpc is return address  */
 		sub     $2,%r10
