@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 862 2004-01-06 23:42:01Z stefan $
+   $Id: codegen.c 865 2004-01-07 19:09:47Z edwin $
 
 */
 
@@ -46,6 +46,7 @@
 #include "loader.h"
 #include "tables.h"
 #include "native.h"
+#include "main.h"
 
 /* include independent code generation stuff */
 #include "codegen.inc"
