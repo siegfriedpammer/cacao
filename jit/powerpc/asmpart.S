@@ -28,12 +28,12 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1137 2004-06-05 20:28:56Z twisti $
+   $Id: asmpart.S 1420 2004-10-27 16:05:14Z twisti $
 
 */
 
 #include "config.h"
-#include "offsets.h"
+#include "jit/powerpc/offsets.h"
 
 
 #define     MethodPointer   -8

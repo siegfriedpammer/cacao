@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: codegen.inc 1420 2004-10-27 16:05:14Z twisti $
 
 */
 
@@ -800,6 +800,7 @@ void dseg_display(methodinfo *m)
 }
 
 
+#if !defined(__POWERPC__)
 /* reg_of_var:
     This function determines a register, to which the result of an operation
     should go, when it is ultimatively intended to store the result in
@@ -849,6 +850,7 @@ static int reg_of_var(methodinfo *m, stackptr v, int tempregnum)
 	v->flags |= INMEMORY;
 	return tempregnum;
 }
+#endif
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)

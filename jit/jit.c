@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1416 2004-10-19 12:07:18Z carolyn $
+   $Id: jit.c 1420 2004-10-27 16:05:14Z twisti $
 
 */
 
@@ -1557,7 +1557,7 @@ t_inlining_globals *inline_env = NULL;
 	}
    
 #ifdef SPECIALMEMUSE
-	preregpass();
+	preregpass(m);
 #endif
 
 	if (compileverbose)

@@ -29,7 +29,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.h 1310 2004-07-13 16:22:38Z stefan $
+   $Id: codegen.h 1420 2004-10-27 16:05:14Z twisti $
 
 */
 
@@ -78,6 +78,156 @@
 
 //#define FLT_SAV_CNT     18   /* number of flt callee saved registers          */
 #define FLT_ARG_CNT     13   /* number of flt argument registers              */
+
+
+/* additional functions and macros to generate code ***************************/
+
+#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
+
+
+#ifdef STATISTICS
+#define COUNT_SPILLS count_spills++
+#else
+#define COUNT_SPILLS
+#endif
+
+
+/* gen_nullptr_check(objreg) */
+
+#define gen_nullptr_check(objreg) \
+    if (checknull) { \
+        M_TST((objreg)); \
+        M_BEQ(0); \
+        codegen_addxnullrefs(m, mcodeptr); \
+    }
+
+#define gen_bound_check \
+    if (checkbounds) { \
+        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
+        M_CMPU(s2, REG_ITMP3);\
+        M_BGE(0);\
+        codegen_addxboundrefs(m, mcodeptr, s2); \
+    }
+
+
+/* MCODECHECK(icnt) */
+
+#define MCODECHECK(icnt) \
+	if ((mcodeptr + (icnt)) > cd->mcodeend) \
+        mcodeptr = codegen_increase(m, (u1 *) mcodeptr)
+
+/* M_INTMOVE:
+     generates an integer-move from register a to b.
+     if a and b are the same int-register, no code will be generated.
+*/ 
+
+#define M_INTMOVE(a,b) if ((a) != (b)) { M_MOV(a, b); }
+
+#define M_TINTMOVE(t,a,b) \
+	if ((t) == TYPE_LNG) { \
+		if ((a) <= (b)) \
+            M_INTMOVE(r->secondregs[(a)], r->secondregs[(b)]); \
+		M_INTMOVE((a), (b)); \
+        if ((a) > (b)) \
+            M_INTMOVE(r->secondregs[(a)], r->secondregs[(b)]); \
+	} else { \
+		M_INTMOVE((a), (b)); \
+    }
+
+
+/* M_FLTMOVE:
+    generates a floating-point-move from register a to b.
+    if a and b are the same float-register, no code will be generated
+*/ 
+
+#define M_FLTMOVE(a,b) if((a)!=(b)){M_FMOV(a,b);}
+
+
+/* var_to_reg_xxx:
+    this function generates code to fetch data from a pseudo-register
+    into a real register. 
+    If the pseudo-register has actually been assigned to a real 
+    register, no code will be emitted, since following operations
+    can use this register directly.
+    
+    v: pseudoregister to be fetched from
+    tempregnum: temporary register to be used if v is actually spilled to ram
+
+    return: the register number, where the operand can be found after 
+            fetching (this wil be either tempregnum or the register
+            number allready given to v)
+*/
+
+#define var_to_reg_int0(regnr,v,tempnr,a,b) { \
+	if ((v)->flags & INMEMORY) { \
+		COUNT_SPILLS; \
+        if ((a)) M_ILD((tempnr), REG_SP, 4 * (v)->regoff); \
+		regnr = tempnr; \
+		if ((b) && IS_2_WORD_TYPE((v)->type)) \
+			M_ILD((a) ? r->secondregs[(tempnr)] : (tempnr), REG_SP, 4 * (v)->regoff + 4); \
+    } else \
+        regnr = (!(a) && (b)) ? r->secondregs[(v)->regoff] : (v)->regoff; \
+}
+#define var_to_reg_int(regnr,v,tempnr) var_to_reg_int0(regnr,v,tempnr,1,1)
+
+
+#define var_to_reg_flt(regnr,v,tempnr) { \
+	if ((v)->flags & INMEMORY) { \
+		COUNT_SPILLS; \
+		if ((v)->type==TYPE_DBL) \
+			M_DLD(tempnr,REG_SP,4*(v)->regoff); \
+		else \
+			M_FLD(tempnr,REG_SP,4*(v)->regoff); \
+		regnr=tempnr; \
+	} else regnr=(v)->regoff; \
+}
+
+
+/* store_reg_to_var_xxx:
+    This function generates the code to store the result of an operation
+    back into a spilled pseudo-variable.
+    If the pseudo-variable has not been spilled in the first place, this 
+    function will generate nothing.
+    
+    v ............ Pseudovariable
+    tempregnum ... Number of the temporary registers as returned by
+                   reg_of_var.
+*/	
+
+#define store_reg_to_var_int0(sptr, tempregnum, a, b) {       \
+	if ((sptr)->flags & INMEMORY) {                    \
+		COUNT_SPILLS;                                  \
+		if (a) M_IST(tempregnum, REG_SP, 4 * (sptr)->regoff); \
+		if ((b) && IS_2_WORD_TYPE((sptr)->type)) \
+			M_IST(r->secondregs[tempregnum], REG_SP, 4 * (sptr)->regoff + 4); \
+		}                                              \
+	}
+
+#define store_reg_to_var_int(sptr, tempregnum) \
+	store_reg_to_var_int0(sptr, tempregnum, 1, 1)
+
+#define store_reg_to_var_flt(sptr, tempregnum) {       \
+	if ((sptr)->flags & INMEMORY) {                    \
+		COUNT_SPILLS;                                  \
+		if ((sptr)->type==TYPE_DBL) \
+			M_DST(tempregnum, REG_SP, 4 * (sptr)->regoff); \
+		else \
+			M_FST(tempregnum, REG_SP, 4 * (sptr)->regoff); \
+		}                                              \
+	}
+
+
+#define ICONST(reg,c) \
+    if (((c) >= 0 && (c) <= 32767) || ((c) >= -32768 && (c) < 0)) {\
+        M_LDA((reg), REG_ZERO, (c)); \
+    } else { \
+        a = dseg_adds4(m, c); \
+        M_ILD((reg), REG_PV, a); \
+    }
+
+#define LCONST(reg,c) \
+    ICONST((reg), (s4) ((s8) (c) >> 32)); \
+    ICONST(r->secondregs[(reg)], (s4) ((s8) (c)));
 
 
 /* macros to create code ******************************************************/
@@ -245,13 +395,7 @@
 
 /* function prototypes */
 
-void codegen_init();
-void init_exceptions();
-void codegen(methodinfo *);
-void codegen_close();
-void dseg_display(s4 *s4ptr);
-void preregpass();
-
+void preregpass(methodinfo *m);
 void docacheflush(u1 *p, long bytelen);
 
 #endif /* _CODEGEN_H */
