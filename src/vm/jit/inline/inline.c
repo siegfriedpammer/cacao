@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1744 2004-12-09 10:17:12Z carolyn $
+   $Id: inline.c 1750 2004-12-10 23:21:03Z carolyn $
 
 */
 
@@ -44,12 +44,17 @@ Method to be inlined must:
 
 -in only STATIC, FINAL, PRIVATE methods can be inlined from method's class
 -ino (include outsiders) all STATIC, FINAL, PRIVATE methods can be inlined
+	note: PRIVATE is always only in the same class
 -inv include virtual methods which static analysis (currently only RTA)
      to only have 1 definition used (INVOKEVIRTUAL/INVOKEINTERFACE)
      Currently dynamic loading is handled by rerunning with info 
 	(see parseRT). Guards need to be added.
--inp  inline parameters (needs work) Parameters are analysed if they are
-	readonly but the information does not seem to be used.
+-inp  inline parameters - Parameters are analysed if they are
+	readonly, which is used during parsing to generate ICMD_CLEAR_ARGREN
+        and ICMD_CLEAR_ARGREN is in turn used during stack analysis to
+        replace the ISTORE with a NOP so the same local variable is used.
+	Parameters are pushed on the stack, same as normal method 
+	invocation when popped the local variable of calling program is used.
 -ine  JOWENN <- please add
 ---*/
 
@@ -132,8 +137,9 @@ void inlining_setup(methodinfo *m, t_inlining_globals *inline_env)
 
 /* define in options.h; Used in main.c, jit.c & inline.c */
 #ifdef INAFTERMAIN
-if ((utf_new_char("main") == m->name) && (useinliningm))
+if ((utf_new_char("main") == m->name) && (useinliningm)) {
   	useinlining = true;
+	}
 #endif
 
 if (useinlining)
@@ -332,7 +338,6 @@ bool is_unique_interface_method (methodinfo *mi, methodinfo **mout) {
 utf* name = mi->name;
 utf* desc = mi->descriptor;
 	
-
 	classSetNode *classImplNode;
 	int icnt = 0;
 
@@ -369,7 +374,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 	int p;
 	int nextp;
 	int opcode;
-	int i;
+	int i=0;
 	bool iswide = false, oldiswide;
 	bool *readonly = NULL;
 	int  *label_index = NULL;
@@ -379,15 +384,20 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 	  	printf ("\n------------------------------ ");fflush(stdout);
 	  	printf ("\nStart of inlining analysis of: ");fflush(stdout);
 		METHINFOj(m)
+		if (isnotrootlevel) printf(" isnotrootlevel=T ");
+		else printf(" isnotrootlevel=F ");
 		print_t_inlining_globals(inline_env); /* init ok */
 	#endif
+	#undef DEBUGi
 
 	/* if (level == 0) gp = 0; */
 
 	if (isnotrootlevel) {
-		newnode->readonly = readonly = DMNEW(bool, m->maxlocals); /* FIXME only paramcount entrys necessary */
-		for (i = 0; i < m->maxlocals; readonly[i++] = true);
-		isnotrootlevel = true;
+		newnode->readonly = readonly = DMNEW(bool, m->maxlocals); /* FIXME only paramcount entrys necessary - ok FIXED also turned on*/
+
+		/** for (i = 0; i < m->maxlocals; readonly[i++] = true); **/
+		for (i = 0; i < m->paramcount; readonly[i++] = true);
+		/***isnotrootlevel = true; This had turned -inp off **/
 
 	} else {
 		readonly = NULL;
@@ -540,6 +550,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 			case JAVA_INVOKEVIRTUAL:
 				if (!inlinevirtuals) 
 					break;
+			
 			case JAVA_INVOKESPECIAL:
 			case JAVA_INVOKESTATIC:
 				i = code_get_u2(p + 1,m);
@@ -644,10 +655,9 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 							utf_sprint(logtext + strlen(logtext), imi->name);
 							utf_sprint(logtext + strlen(logtext), imi->descriptor);
 							log_text(logtext);
-							
 							if ( (!(opcode == JAVA_INVOKEVIRTUAL)) &&
 							     (! ( (imi->flags & ACC_STATIC )
-                                     			     ||   (imi->flags & ACC_PRIVATE)
+                                     			     ||   ((imi->flags & ACC_PRIVATE) && (imi->class == inline_env->class))
                                      			     ||   (imi->flags & ACC_FINAL  ))) )
 							   {
 							   printf("DEBUG WARNING:PROBABLE INLINE PROBLEM flags not static, private or final for non-virtual inlined method\n"); fflush(stdout);

@@ -36,7 +36,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: cacao.c 1750 2004-12-10 23:21:03Z carolyn $
 
 */
 
@@ -845,6 +845,10 @@ void cacao_exit(s4 status)
 		throw_main_exception_exit();
 
 	/* call the exit function with passed exit status */
+
+	/* both inlinevirtual and outsiders not allowed on exit */
+	/*   not sure if permanant or temp restriction          */
+	if (inlinevirtuals) inlineoutsiders = false; 
 
 	asm_calljavafunction(m,
 #if POINTERSIZE == 8
