@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2195 2005-04-03 16:53:16Z edwin $
+   $Id: loader.h 2199 2005-04-03 21:42:44Z twisti $
 */
 
 
@@ -198,9 +198,6 @@ methodinfo *class_findmethod_approx(classinfo *c, utf *name, utf *desc);
 methodinfo *class_resolvemethod_approx(classinfo *c, utf *name, utf *dest);
 
 bool class_issubclass(classinfo *sub, classinfo *super);
-
-/* call initializer of class */
-classinfo *class_init(classinfo *c);
 
 /* debug purposes */
 void class_showmethods(classinfo *c);

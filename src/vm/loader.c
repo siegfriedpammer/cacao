@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: loader.c 2199 2005-04-03 21:42:44Z twisti $
 
 */
 
@@ -2037,7 +2037,7 @@ bool load_class_from_classloader(utf *name,java_objectheader *cl,classinfo **res
 
 *******************************************************************************/
 
-bool load_class_bootstrap(utf *name,classinfo **result)
+bool load_class_bootstrap(utf *name, classinfo **result)
 {
 	classbuffer *cb;
 	classinfo *c;
@@ -2047,12 +2047,12 @@ bool load_class_bootstrap(utf *name,classinfo **result)
 	LOADER_ASSERT(result);
 
 	/* lookup if this class has already been loaded */
-	*result = classcache_lookup(NULL,name);
+	*result = classcache_lookup(NULL, name);
 	if (*result)
 		return true;
 
 	/* check if this class has already been defined */
-	*result = classcache_lookup_defined(NULL,name);
+	*result = classcache_lookup_defined(NULL, name);
 	if (*result)
 		return true;
 
@@ -2063,12 +2063,12 @@ bool load_class_bootstrap(utf *name,classinfo **result)
 #endif
 
 	/* create the classinfo */
-	c = create_classinfo(name);
+	c = class_create_classinfo(name);
 	
 	/* handle array classes */
 	if (name->text[0] == '[') {
 		LOADER_INC();
-		load_newly_created_array(c,NULL);
+		load_newly_created_array(c, NULL);
 		LOADER_DEC();
 		LOADER_ASSERT(c->loaded);
 		*result = c;
@@ -2135,7 +2135,7 @@ bool load_class_bootstrap(utf *name,classinfo **result)
 	}
 
 	/* store this class in the loaded class cache */
-	if (r && !classcache_store(NULL,c)) {
+	if (r && !classcache_store(NULL, c)) {
 #if defined(USE_THREADS)
 		builtin_monitorexit((java_objectheader *) c);
 #endif
@@ -2252,7 +2252,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		goto return_exception;
 
 	c->flags = suck_u2(cb);
-	/*if (!(c->flags & ACC_PUBLIC)) { log_text("CLASS NOT PUBLIC"); } JOWENN*/
 
 	/* check ACC flags consistency */
 	if (c->flags & ACC_INTERFACE) {
@@ -2261,7 +2260,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			 * not declared abstract. */
 
 			c->flags |= ACC_ABSTRACT;
-			/* panic("Interface class not declared abstract"); */
 		}
 
 		if (c->flags & ACC_FINAL) {
@@ -2289,14 +2287,14 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	/* this class */
 	i = suck_u2(cb);
-	if (!(name = (utf*) class_getconstant(c, i, CONSTANT_Class)))
+	if (!(name = (utf *) class_getconstant(c, i, CONSTANT_Class)))
 		goto return_exception;
 
 	if (name != c->name) {
 		utf_sprint(msg, c->name);
-		sprintf(msg + strlen(msg), " (wrong name: ");
-		utf_sprint(msg + strlen(msg), name);
-		sprintf(msg + strlen(msg), ")");
+		strcat(msg, " (wrong name: ");
+		utf_strcat(msg, name);
+		strcat(msg, ")");
 
 		*exceptionptr =
 			new_exception_message(string_java_lang_NoClassDefFoundError, msg);
@@ -2307,7 +2305,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* retrieve superclass */
 	c->super.any = NULL;
 	if ((i = suck_u2(cb))) {
-		if (!(supername = (utf*) class_getconstant(c, i, CONSTANT_Class)))
+		if (!(supername = (utf *) class_getconstant(c, i, CONSTANT_Class)))
 			goto return_exception;
 
 		/* java.lang.Object may not have a super class. */
@@ -2352,7 +2350,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	c->interfaces = MNEW(classref_or_classinfo, c->interfacescount);
 	for (i = 0; i < c->interfacescount; i++) {
 		/* the classrefs are created later */
-		if (!(c->interfaces[i].any = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
+		if (!(c->interfaces[i].any = (utf *) class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
 			goto return_exception;
 	}
 
@@ -2396,81 +2394,85 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 #endif
 
 	/* put the classrefs in the constant pool */
-	for (i=0; i<c->cpcount; ++i) {
+	for (i = 0; i < c->cpcount; i++) {
 		if (c->cptags[i] == CONSTANT_Class) {
-			utf *name = (utf*) c->cpinfos[i];
-			c->cpinfos[i] = descriptor_pool_lookup_classref(descpool,name);
+			utf *name = (utf *) c->cpinfos[i];
+			c->cpinfos[i] = descriptor_pool_lookup_classref(descpool, name);
 		}
 	}
 
 	/* set the super class reference */
 	if (supername) {
-		c->super.ref = descriptor_pool_lookup_classref(descpool,supername);
+		c->super.ref = descriptor_pool_lookup_classref(descpool, supername);
 		if (!c->super.ref)
 			goto return_exception;
 	}
 
 	/* set the super interfaces references */
-	for (i=0; i<c->interfacescount; ++i) {
-		c->interfaces[i].ref = descriptor_pool_lookup_classref(descpool,(utf*)c->interfaces[i].any);
+	for (i = 0; i < c->interfacescount; i++) {
+		c->interfaces[i].ref = descriptor_pool_lookup_classref(descpool, (utf *) c->interfaces[i].any);
 		if (!c->interfaces[i].ref)
 			goto return_exception;
 	}
 
 	/* parse the loaded descriptors */
-	for (i=0; i<c->cpcount; ++i) {
+	for (i = 0; i < c->cpcount; i++) {
 		constant_FMIref *fmi;
 		int index;
 		
 		switch (c->cptags[i]) {
 			case CONSTANT_Fieldref:
-				fmi = (constant_FMIref *)c->cpinfos[i];
+				fmi = (constant_FMIref *) c->cpinfos[i];
 				fmi->parseddesc.fd = 
-					descriptor_pool_parse_field_descriptor(descpool,fmi->descriptor);
+					descriptor_pool_parse_field_descriptor(descpool, fmi->descriptor);
 				if (!fmi->parseddesc.fd)
 					goto return_exception;
 				index = (int) (size_t) fmi->classref;
-				fmi->classref = (constant_classref*)class_getconstant(c,index,CONSTANT_Class);
+				fmi->classref = (constant_classref *) class_getconstant(c, index, CONSTANT_Class);
 				if (!fmi->classref)
 					goto return_exception;
 				break;
 			case CONSTANT_Methodref:
 			case CONSTANT_InterfaceMethodref:
-				fmi = (constant_FMIref *)c->cpinfos[i];
+				fmi = (constant_FMIref *) c->cpinfos[i];
 				fmi->parseddesc.md = 
-					descriptor_pool_parse_method_descriptor(descpool,fmi->descriptor);
+					descriptor_pool_parse_method_descriptor(descpool, fmi->descriptor);
 				if (!fmi->parseddesc.md)
 					goto return_exception;
 				index = (int) (size_t) fmi->classref;
-				fmi->classref = (constant_classref*)class_getconstant(c,index,CONSTANT_Class);
+				fmi->classref = (constant_classref *) class_getconstant(c, index, CONSTANT_Class);
 				if (!fmi->classref)
 					goto return_exception;
 				break;
 		}
 	}
+
 	for (i = 0; i < c->fieldscount; i++) {
-		c->fields[i].parseddesc = descriptor_pool_parse_field_descriptor(descpool,c->fields[i].descriptor);
+		c->fields[i].parseddesc = descriptor_pool_parse_field_descriptor(descpool, c->fields[i].descriptor);
 		if (!c->fields[i].parseddesc)
 			goto return_exception;
 	}
+
 	for (i = 0; i < c->methodscount; i++) {
 		methodinfo *m = c->methods + i;
-		m->parseddesc = descriptor_pool_parse_method_descriptor(descpool,m->descriptor);
+		m->parseddesc = descriptor_pool_parse_method_descriptor(descpool, m->descriptor);
 		if (!m->parseddesc)
 			goto return_exception;
 
-		for (j=0; j<m->exceptiontablelength; ++j) {
+		for (j = 0; j < m->exceptiontablelength; j++) {
 			if (!m->exceptiontable[j].catchtype.any)
 				continue;
-			if ((m->exceptiontable[j].catchtype.ref = descriptor_pool_lookup_classref(descpool,
-						(utf*)m->exceptiontable[j].catchtype.any)) == NULL)
+			if ((m->exceptiontable[j].catchtype.ref =
+				 descriptor_pool_lookup_classref(descpool,
+						(utf *) m->exceptiontable[j].catchtype.any)) == NULL)
 				goto return_exception;
 		}
-		for (j=0; j<m->thrownexceptionscount; ++j) {
+
+		for (j = 0; j < m->thrownexceptionscount; j++) {
 			if (!m->thrownexceptions[j].any)
 				continue;
 			if ((m->thrownexceptions[j].ref = descriptor_pool_lookup_classref(descpool,
-						(utf*)m->thrownexceptions[j].any)) == NULL)
+						(utf *) m->thrownexceptions[j].any)) == NULL)
 				goto return_exception;
 		}
 	}
@@ -2621,7 +2623,7 @@ return_exception:
 
 
 
-/***************** Function: load_newly_created_array**** **********************
+/* load_newly_created_array ****************************************************
 
     Load a newly created array class.
 
@@ -3180,203 +3182,6 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 }
 
 
-/****************** Initialization function for classes ******************
-
-	In Java, every class can have a static initialization function. This
-	function has to be called BEFORE calling other methods or accessing static
-	variables.
-
-*******************************************************************************/
-
-static classinfo *class_init_intern(classinfo *c);
-
-classinfo *class_init(classinfo *c)
-{
-	classinfo *r;
-
-	if (!makeinitializations)
-		return c;
-
-#if defined(USE_THREADS)
-	/* enter a monitor on the class */
-
-	builtin_monitorenter((java_objectheader *) c);
-#endif
-
-	/* maybe the class is already initalized or the current thread, which can
-	   pass the monitor, is currently initalizing this class */
-
-	/* JOWENN: In future we need an additinal flag: initializationfailed,
-		since further access to the class should cause a NoClassDefFound,
-		if the static initializer failed once
-        */
-
-	if (c->initialized || c->initializing) {
-#if defined(USE_THREADS)
-		builtin_monitorexit((java_objectheader *) c);
-#endif
-
-		return c;
-	}
-
-	/* this initalizing run begins NOW */
-	c->initializing = true;
-
-	/* call the internal function */
-	r = class_init_intern(c);
-
-	/* if return value is not NULL everything was ok and the class is
-	   initialized */
-	if (r)
-		c->initialized = true;
-
-	/* this initalizing run is done */
-	c->initializing = false;
-
-#if defined(USE_THREADS)
-	/* leave the monitor */
-
-	builtin_monitorexit((java_objectheader *) c);
-#endif
-
-	return r;
-}
-
-
-/* this function MUST NOT be called directly, because of thread <clinit>
-   race conditions */
-
-static classinfo *class_init_intern(classinfo *c)
-{
-	methodinfo *m;
-	s4 i;
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	int b;
-#endif
-
-	LOADER_ASSERT(c);
-	LOADER_ASSERT(c->loaded);
-
-	/* maybe the class is not already linked */
-	if (!c->linked)
-		if (!link_class(c))
-			return NULL;
-
-#if defined(STATISTICS)
-	if (opt_stat)
-		count_class_inits++;
-#endif
-
-	/* initialize super class */
-
-	if (c->super.cls) {
-		if (!c->super.cls->initialized) {
-			if (initverbose) {
-				char logtext[MAXLOGTEXT];
-				sprintf(logtext, "Initialize super class ");
-				utf_sprint_classname(logtext + strlen(logtext), c->super.cls->name);
-				sprintf(logtext + strlen(logtext), " from ");
-				utf_sprint_classname(logtext + strlen(logtext), c->name);
-				log_text(logtext);
-			}
-
-			if (!class_init(c->super.cls))
-				return NULL;
-		}
-	}
-
-	/* initialize interface classes */
-
-	for (i = 0; i < c->interfacescount; i++) {
-		if (!c->interfaces[i].cls->initialized) {
-			if (initverbose) {
-				char logtext[MAXLOGTEXT];
-				sprintf(logtext, "Initialize interface class ");
-				utf_sprint_classname(logtext + strlen(logtext), c->interfaces[i].cls->name);
-				sprintf(logtext + strlen(logtext), " from ");
-				utf_sprint_classname(logtext + strlen(logtext), c->name);
-				log_text(logtext);
-			}
-			
-			if (!class_init(c->interfaces[i].cls))
-				return NULL;
-		}
-	}
-
-	m = class_findmethod(c, utf_clinit, utf_void__void);
-
-	if (!m) {
-		if (initverbose) {
-			char logtext[MAXLOGTEXT];
-			sprintf(logtext, "Class ");
-			utf_sprint_classname(logtext + strlen(logtext), c->name);
-			sprintf(logtext + strlen(logtext), " has no static class initializer");
-			log_text(logtext);
-		}
-
-		return c;
-	}
-
-	/* Sun's and IBM's JVM don't care about the static flag */
-/*  	if (!(m->flags & ACC_STATIC)) { */
-/*  		panic("Class initializer is not static!"); */
-
-	if (initverbose)
-		log_message_class("Starting static class initializer for class: ", c);
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	b = blockInts;
-	blockInts = 0;
-#endif
-
-	/* now call the initializer */
-	asm_calljavafunction(m, NULL, NULL, NULL, NULL);
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	assert(blockInts == 0);
-	blockInts = b;
-#endif
-
-	/* we have an exception or error */
-	if (*exceptionptr) {
-		/* class is NOT initialized */
-		c->initialized = false;
-
-		/* is this an exception, than wrap it */
-		LOADER_ASSERT(class_java_lang_Exception);
-		if (builtin_instanceof(*exceptionptr, class_java_lang_Exception)) {
-			java_objectheader *xptr;
-			java_objectheader *cause;
-
-			/* get the cause */
-			cause = *exceptionptr;
-
-			/* clear exception, because we are calling jit code again */
-			*exceptionptr = NULL;
-
-			/* wrap the exception */
-			xptr =
-				new_exception_throwable(string_java_lang_ExceptionInInitializerError,
-										(java_lang_Throwable *) cause);
-
-			/* XXX should we exit here? */
-			if (*exceptionptr)
-				throw_exception();
-
-			/* set new exception */
-			*exceptionptr = xptr;
-		}
-
-		return NULL;
-	}
-
-	if (initverbose)
-		log_message_class("Finished static class initializer for class: ", c);
-
-	return c;
-}
-
-
 void class_showconstanti(classinfo *c, int ii) 
 {
 	u4 i = ii;
@@ -3582,18 +3387,15 @@ void class_showmethods (classinfo *c)
 }
 
 
-/******************************************************************************/
-/******************* General functions for the class loader *******************/
-/******************************************************************************/
+/* loader_close ****************************************************************
 
-/******************** Function: loader_close ***********************************
-
-	Frees all resources
+   Frees all resources.
 	
 *******************************************************************************/
 
-void loader_close()
+void loader_close(void)
 {
+	/* empty */
 }
 
 
