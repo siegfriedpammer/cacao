@@ -11,7 +11,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: ngen.h 393 2003-07-29 08:49:20Z twisti $
+    Last Change: $Id: ngen.h 399 2003-08-01 10:46:28Z twisti $
 
 *******************************************************************************/
 
@@ -881,13 +881,17 @@ static const unsigned char x86_64_jcc_map[] = {
  * inc, dec operations
  */
 #define x86_64_inc_reg(reg) \
-    x86_64_emit_rex(1,(reg),0); \
-    *(mcodeptr++) = (u1) 0x40 + ((reg) & 0x07);
+    do { \
+        x86_64_emit_rex(1,(reg),0); \
+        *(mcodeptr++) = (u1) 0x40 + ((reg) & 0x07); \
+    } while (0)
 
 
 #define x86_64_incl_reg(reg) \
-    x86_64_emit_rex(0,(reg),0); \
-    *(mcodeptr++) = (u1) 0x40 + ((reg) & 0x07);
+    do { \
+        x86_64_emit_rex(0,(reg),0); \
+        *(mcodeptr++) = (u1) 0x40 + ((reg) & 0x07); \
+    } while (0)
 
 
 #define x86_64_inc_membase(basereg,disp) \
@@ -1337,12 +1341,17 @@ static const unsigned char x86_64_jcc_map[] = {
     *(mcodeptr++) = (u1) 0x90;
 
 
+#define x86_64_hlt() \
+    *(mcodeptr++) = 0xf4;
+
+
 
 /*
  * call instructions
  */
 #define x86_64_call_reg(reg) \
     do { \
+        x86_64_emit_rex(1,(reg),0); \
         *(mcodeptr++) = (u1) 0xff; \
         x86_64_emit_reg(2,(reg)); \
     } while (0)
@@ -1894,7 +1903,7 @@ static const unsigned char x86_64_jcc_map[] = {
 *******************************************************************************/
 
 #define gen_resolvebranch(ip,so,to) \
-    *((void **) ((ip) - 4)) = (void **) ((to) - (so));
+    *((s4*) ((ip) - 4)) = (s4) ((to) - (so));
 
 #define SOFTNULLPTRCHECK       /* soft null pointer check supportet as option */
 
