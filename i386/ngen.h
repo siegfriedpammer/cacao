@@ -1,19 +1,36 @@
-/* i386/ngen.h *****************************************************************
+/* i386/ngen.h - code generation macros and definitions for i386
 
-    Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-    See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-    Contains the machine dependent code generator definitions and macros for an
-    i386 processor.
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-    Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
-             Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-             Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-    Last Change: $Id: ngen.h 523 2003-10-22 21:13:08Z twisti $
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-*******************************************************************************/
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Andreas Krall
+            Christian Thalinger
+
+   $Id: ngen.h 551 2003-11-01 20:35:28Z twisti $
+
+*/
+
 
 #ifndef _NGEN_H
 #define _NGEN_H
@@ -34,6 +51,8 @@
 #define REG_ITMP1       I386_EAX /* temporary register                        */
 #define REG_ITMP2       I386_EDX /* temporary register and method pointer     */
 #define REG_ITMP3       I386_ECX /* temporary register                        */
+
+#define REG_NULL        -1       /* used for reg_of_var where d is not needed */
 
 #define REG_ITMP1_XPTR  I386_EAX /* exception pointer = temporary register 1  */
 #define REG_ITMP2_XPC   I386_EDX /* exception pc = temporary register 2       */
@@ -301,6 +320,17 @@ static const unsigned char i386_jcc_map[] = {
             i386_emit_imm32((disp)); \
         }    \
      } while (0)
+
+
+
+void i386_emit_ialu(s4 alu_op, stackptr src, instruction *iptr);
+void i386_emit_ialuconst(s4 alu_op, stackptr src, instruction *iptr);
+void i386_emit_lalu(s4 alu_op, stackptr src, instruction *iptr);
+void i386_emit_laluconst(s4 alu_op, stackptr src, instruction *iptr);
+void i386_emit_ishift(s4 shift_op, stackptr src, instruction *iptr);
+void i386_emit_ishiftconst(s4 shift_op, stackptr src, instruction *iptr);
+void i386_emit_ifcc_iconst(s4 if_op, stackptr src, instruction *iptr);
+
 
 
 #if 0
@@ -1556,8 +1586,6 @@ void i386_nop();
 void i386_call_reg(s4 reg);
 void i386_call_imm(s4 imm);
 
-#endif
-
 
 
 /*
@@ -1627,6 +1655,8 @@ void i386_wait();
 void i386_ffree_reg(s4 reg);
 void i386_fdecstp();
 void i386_fincstp();
+
+#endif
 
 
 
