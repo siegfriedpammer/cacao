@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 691 2003-12-05 18:17:22Z stefan $
+   $Id: codegen.c 794 2003-12-16 19:29:19Z edwin $
 
 */
 
@@ -3944,11 +3944,11 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 
 
 #if 1
-	printf("stub: ");
-	utf_display(m->class->name);
-	printf(".");
-	utf_display(m->name);
-	printf(" 0x%p\n", cs);
+	log_plain("stub: ");
+	log_plain_utf(m->class->name);
+	log_plain(".");
+	log_plain_utf(m->name);
+	dolog_plain(" 0x%p\n", cs);
 #endif
 
 	M_LDA  (REG_SP, REG_SP, -8);        /* build up stackframe                */
@@ -3967,7 +3967,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 
 	reg_init(m);
 
-	utf_display(m->descriptor);
+	log_plain_utf(m->descriptor);
 
 	paramCount=ngen_get_parametercount(m);
 
@@ -4112,7 +4112,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	{
 		static int stubprinted;
 		if (!stubprinted)
-			printf("stubsize: %d/2\n", (int) (p - (s4*) s));
+			dolog_plain("stubsize: %d/2\n", (int) (p - (s4*) s));
 		stubprinted = 1;
 	}
 #endif
