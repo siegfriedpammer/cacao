@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 610 2003-11-12 13:00:30Z twisti $
+   $Id: codegen.c 626 2003-11-13 14:30:08Z twisti $
 
 */
 
@@ -1435,15 +1435,29 @@ void codegen()
 
 			} else {
 				if (src->flags & INMEMORY) {
-					x86_64_imul_imm_membase_reg(iptr->val.l, REG_SP, src->regoff * 8, iptr->dst->regoff);
+					if (x86_64_is_imm32(iptr->val.l)) {
+						x86_64_imul_imm_membase_reg(iptr->val.l, REG_SP, src->regoff * 8, iptr->dst->regoff);
+
+					} else {
+						x86_64_mov_imm_reg(iptr->val.l, iptr->dst->regoff);
+						x86_64_imul_membase_reg(REG_SP, src->regoff * 8, iptr->dst->regoff);
+					}
 
 				} else {
+					/* should match in many cases */
 					if (iptr->val.l == 2) {
 						M_INTMOVE(src->regoff, iptr->dst->regoff);
 						x86_64_alul_reg_reg(X86_64_ADD, iptr->dst->regoff, iptr->dst->regoff);
 
 					} else {
-						x86_64_imul_imm_reg_reg(iptr->val.l, src->regoff, iptr->dst->regoff);    /* 4 cycles */
+						if (x86_64_is_imm32(iptr->val.l)) {
+							x86_64_imul_imm_reg_reg(iptr->val.l, src->regoff, iptr->dst->regoff);    /* 4 cycles */
+
+						} else {
+							x86_64_mov_imm_reg(iptr->val.l, REG_ITMP1);
+							M_INTMOVE(src->regoff, iptr->dst->regoff);
+							x86_64_imul_reg_reg(REG_ITMP1, iptr->dst->regoff);
+						}
 					}
 				}
 			}
