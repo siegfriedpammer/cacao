@@ -1799,8 +1799,8 @@ static void show_icmd_method()
 
 	if (showdisassemble) {
 #if defined(__I386__) || defined(__X86_64__)
-		extern u1 *codestatic;
-		extern int pstatic;
+/*  		extern u1 *codestatic; */
+/*  		extern int pstatic; */
 		u1 *u1ptr;
 
 		u1ptr = method->mcode + dseglen;
@@ -2011,13 +2011,15 @@ static void show_icmd_method()
 				case ICMD_IFGE:
 				case ICMD_IFGT:
 				case ICMD_IFLE:
+					printf("(%d) L%03d", iptr->val.i, ((basicblock *) iptr->target)->debug_nr);
+					break;
 				case ICMD_IF_LEQ:
 				case ICMD_IF_LNE:
 				case ICMD_IF_LLT:
 				case ICMD_IF_LGE:
 				case ICMD_IF_LGT:
 				case ICMD_IF_LLE:
-					printf("(%d) L%03d", iptr->val.i, ((basicblock *) iptr->target)->debug_nr);
+					printf("(%lld) L%03d", iptr->val.l, ((basicblock *) iptr->target)->debug_nr);
 					break;
 				case ICMD_JSR:
 				case ICMD_GOTO:
@@ -2078,8 +2080,8 @@ static void show_icmd_method()
 
 		if (showdisassemble && (!deadcode)) {
 #if defined(__I386__) || defined(__X86_64__)
-			extern u1 *codestatic;
-			extern int pstatic;
+/*  			extern u1 *codestatic; */
+/*  			extern int pstatic; */
 			u1 *u1ptr;
 
 			printf("\n");
