@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1146 2004-06-06 12:48:10Z twisti $
+   $Id: codegen.c 1161 2004-06-11 20:41:38Z stefan $
 
 */
 
@@ -4004,7 +4004,7 @@ void removecompilerstub(u1 *stub)
 
 #define NATIVESTUBSIZE           (44 + NATIVESTUBTHREADEXTRA)
 #define NATIVESTATICSIZE         5
-#define NATIVEVERBOSESIZE        (39 + 13)
+#define NATIVEVERBOSESIZE        (39 + 13 + NATIVESTUBTHREADEXTRA)
 #define NATIVESTUBOFFSET         9
 
 u1 *createnativestub(functionptr f, methodinfo *m)
