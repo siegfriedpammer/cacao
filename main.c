@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 936 2004-03-05 23:49:31Z twisti $
+   $Id: main.c 958 2004-03-14 21:02:49Z twisti $
 
 */
 
@@ -318,7 +318,7 @@ static void print_times()
 	s8 runtime = totaltime - loadingtime - compilingtime;
 	char logtext[MAXLOGTEXT];
 
-#if defined(__I386__)
+#if defined(__I386__) || defined(__POWERPC__)
 	sprintf(logtext, "Time for loading classes: %lld secs, %lld millis",
 #else
 	sprintf(logtext, "Time for loading classes: %ld secs, %ld millis",
@@ -326,7 +326,7 @@ static void print_times()
 			loadingtime / 1000000, (loadingtime % 1000000) / 1000);
 	log_text(logtext);
 
-#if defined(__I386__)
+#if defined(__I386__) || defined(__POWERPC__) 
 	sprintf(logtext, "Time for compiling code:  %lld secs, %lld millis",
 #else
 	sprintf(logtext, "Time for compiling code:  %ld secs, %ld millis",
@@ -334,7 +334,7 @@ static void print_times()
 			compilingtime / 1000000, (compilingtime % 1000000) / 1000);
 	log_text(logtext);
 
-#if defined(__I386__)
+#if defined(__I386__) || defined(__POWERPC__) 
 	sprintf(logtext, "Time for running program: %lld secs, %lld millis",
 #else
 	sprintf(logtext, "Time for running program: %ld secs, %ld millis",
@@ -342,7 +342,7 @@ static void print_times()
 			runtime / 1000000, (runtime % 1000000) / 1000);
 	log_text(logtext);
 
-#if defined(__I386__)
+#if defined(__I386__) || defined(__POWERPC__) 
 	sprintf(logtext, "Total time: %lld secs, %lld millis",
 #else
 	sprintf(logtext, "Total time: %ld secs, %ld millis",
