@@ -30,18 +30,19 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 2197 2005-04-03 21:39:07Z twisti $
+   $Id: initialize.c 2213 2005-04-04 13:05:15Z edwin $
 
 */
 
 
 #include <string.h>
 
-#include "config.h"
+#include "vm/global.h"
+#include "vm/initialize.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
+#include "vm/loader.h"
 #include "vm/exceptions.h"
-#include "vm/global.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"

@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.h 2198 2005-04-03 21:40:58Z twisti $
+   $Id: initialize.h 2213 2005-04-04 13:05:15Z edwin $
 
 */
 
@@ -38,8 +38,8 @@
 #ifndef _INITIALIZE_H
 #define _INITIALIZE_H
 
-#include "vm/class.h"
 #include "vm/global.h"
+#include "vm/references.h"
 
 
 /* function prototypes ********************************************************/
