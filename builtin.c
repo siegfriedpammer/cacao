@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1369 2004-08-01 21:53:32Z stefan $
+   $Id: builtin.c 1490 2004-11-12 13:24:14Z twisti $
 
 */
 
@@ -276,7 +276,7 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 
 			if (t->detailMessage) {
 				sprintf(logtext + strlen(logtext), ": %s",
-						javastring_tochar(t->detailMessage));
+						javastring_tochar((java_objectheader *) t->detailMessage));
 			}
 
 		} else {
