@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1762 2004-12-15 15:55:32Z twisti $
+   $Id: codegen.c 1808 2004-12-22 10:48:27Z twisti $
 
 */
 
@@ -103,6 +103,7 @@ void thread_restartcriticalsection(void *u)
 
 int cacao_catch_Handler(mach_port_t thread)
 {
+#if defined(USE_THREADS)
 	unsigned int *regs;
 	unsigned int crashpc;
 	s4 instr, reg;
@@ -144,6 +145,7 @@ int cacao_catch_Handler(mach_port_t thread)
 	}
 
 	throw_cacao_exception_exit(string_java_lang_InternalError, "Segmentation fault at %p", regs[reg]);
+#endif
 
 	return 0;
 }
@@ -2887,12 +2889,12 @@ makeactualcall:
 				M_BLT(0);
 				codegen_addxcheckarefs(cd, mcodeptr);
 
-				/* copy sizes to stack (argument numbers >= INT_ARG_CNT)      */
+				/* copy SAVEDVAR sizes to stack */
 
 				if (src->varkind != ARGVAR) {
-					M_IST(s2, REG_SP, 4 * (s1 + INT_ARG_CNT + 6));
-					}
+					M_IST(s2, REG_SP, (s1 + INT_ARG_CNT + 6) * 4);
 				}
+			}
 
 			/* a0 = dimension count */
 
@@ -2905,7 +2907,7 @@ makeactualcall:
 
 			/* a2 = pointer to dimensions = stack pointer */
 
-			M_LDA(rd->argintregs[2], REG_SP, (INT_ARG_CNT + 6)*4);
+			M_LDA(rd->argintregs[2], REG_SP, (INT_ARG_CNT + 6) * 4);
 
 			a = dseg_addaddress(cd, (void *) builtin_nmultianewarray);
 			M_ALD(REG_PV, REG_PV, a);
