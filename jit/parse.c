@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 868 2004-01-10 20:12:10Z edwin $
+   $Id: parse.c 878 2004-01-12 12:03:11Z twisti $
 
 */
 
@@ -1168,6 +1168,9 @@ void parse()
 				fr = class_getconstant(class, i, CONSTANT_Fieldref);
 				fi = class_findfield(fr->class, fr->name, fr->descriptor);
 				OP2A(opcode, fi->type, fi);
+				if (!fi->class->initialized) {
+					isleafmethod = false;
+				}
 			}
 			break;
 
