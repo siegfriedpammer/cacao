@@ -349,12 +349,15 @@ static void mcode_finish(int mcodelen)
 	method -> entrypoint = epoint = (u1*) (method->mcode + dseglen);
 
 	/* jump table resolving */
-
 	jr = jumpreferences;
 	while (jr != NULL) {
 	    *((void**) (epoint + jr->tablepos)) = epoint + jr->target->mpc;
 	    jr = jr->next;
 	    }
+
+#ifdef __I386__
+        /* add method into datastructure to find the entrypoint */
+	(void) addmethod(method->entrypoint, method->entrypoint + mcodelen);
 
 	/* data segment references resolving */
 	dr = datareferences;
@@ -362,6 +365,7 @@ static void mcode_finish(int mcodelen)
   	    *((void **) (epoint + dr->tablepos - 4)) = epoint;
 	    dr = dr->next;
 	}
+#endif
 }
 
 
