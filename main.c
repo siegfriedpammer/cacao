@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1474 2004-11-11 10:09:10Z carolyn $
+   $Id: main.c 1481 2004-11-11 14:37:23Z twisti $
 
 */
 
@@ -647,7 +647,8 @@ int main(int argc, char **argv)
 	jit_init();
 
 	/* initialize exceptions used in the system */
-	init_system_exceptions();
+	if (!init_system_exceptions())
+		throw_main_exception_exit();
 
 	native_loadclasses();
 
