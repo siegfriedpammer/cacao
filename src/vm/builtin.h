@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 2116 2005-03-29 21:50:12Z twisti $
+   $Id: builtin.h 2134 2005-03-30 09:54:28Z twisti $
 
 */
 
@@ -108,6 +108,12 @@ extern builtin_descriptor builtin_desc[];
 /**********************************************************************/
 /* GLOBAL VARIABLES                                                   */
 /**********************************************************************/
+
+#if defined(USEBUILTINTABLE)
+void sort_builtintable(void);
+builtin_descriptor *find_builtin(int opcode);
+#endif /* defined(USEBUILTINTABLE) */
+
 
 /**********************************************************************/
 /* BUILTIN FUNCTIONS                                                  */
