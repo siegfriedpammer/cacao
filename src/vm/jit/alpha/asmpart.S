@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 1947 2005-02-15 16:53:22Z twisti $
+   $Id: asmpart.S 2142 2005-03-30 12:53:56Z twisti $
 
 */
 
@@ -124,7 +124,6 @@
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 	.globl asm_check_clinit
-	.globl asm_builtin_checkcast	
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_aastore
 
@@ -140,8 +139,6 @@
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
-	.globl asm_builtin_trace
-	.globl asm_builtin_exittrace
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
 	.globl asm_prepare_native_stackinfo
