@@ -32,7 +32,7 @@
 			Edwin Steiner
             Joseph Wenninger
 
-   $Id: global.h 2008 2005-03-07 08:43:08Z christian $
+   $Id: global.h 2012 2005-03-07 10:46:43Z christian $
 
 */
 
@@ -42,8 +42,6 @@
 
 #include "config.h"
 #include "types.h"
-
-#define LSRA
 
 /* additional data types ******************************************************/
 
