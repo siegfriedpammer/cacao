@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at            *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 465 2003-09-17 23:14:48Z twisti $         *
+*   Last Change: $Id: asmpart.S 481 2003-10-13 22:18:40Z twisti $         *
 *                                                                              *
 *******************************************************************************/
 
@@ -547,7 +547,7 @@ flt1:
                 
 noflt:					
 		pop     %r10						/* the new xpc is return address  */
-		sub     $2,%r10
+		sub     $3,%r10                     /* subtract 3 bytes for call      */
 
         sub     $(2*8),%rsp
         mov     %rcx,0*8(%rsp)
