@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2093 2005-03-27 15:16:57Z edwin $
+   $Id: class.h 2105 2005-03-28 22:35:02Z twisti $
 
 */
 
@@ -36,8 +36,123 @@
 #ifndef _CLASS_H
 #define _CLASS_H
 
+/* forward typedefs ***********************************************************/
+
+typedef struct classinfo classinfo; 
+typedef struct innerclassinfo innerclassinfo;
+typedef struct extra_classref extra_classref;
+
+
+#include "config.h"
+#include "toolbox/list.h"
+#include "vm/field.h"
+#include "vm/global.h"
+#include "vm/linker.h"
 #include "vm/tables.h"
 #include "vm/utf8.h"
+#include "vm/jit/inline/sets.h"
+
+
+/* classinfo ******************************************************************/
+
+struct classinfo {                /* class structure                          */
+	java_objectheader header;     /* classes are also objects                 */
+	java_objectarray* signers;
+	struct java_security_ProtectionDomain* pd;
+	struct java_lang_VMClass* vmClass;
+	struct java_lang_reflect_Constructor* constructor;
+
+	s4 initializing_thread;       /* gnu classpath                            */
+	s4 erroneous_state;           /* gnu classpath                            */
+	struct gnu_classpath_RawData* vmData; /* gnu classpath                    */
+
+	s4          flags;            /* ACC flags                                */
+	utf        *name;             /* class name                               */
+
+	s4          cpcount;          /* number of entries in constant pool       */
+	u1         *cptags;           /* constant pool tags                       */
+	voidptr    *cpinfos;          /* pointer to constant pool info structures */
+
+	s4          classrefcount;    /* number of symbolic class references      */
+	constant_classref *classrefs; /* table of symbolic class references       */
+	extra_classref *extclassrefs; /* additional classrefs                     */
+	s4          parseddescsize;   /* size of the parsed descriptors block     */
+	u1         *parseddescs;      /* parsed descriptors                       */
+
+	classinfo  *super;            /* super class pointer                      */
+	classinfo  *sub;              /* sub class pointer                        */
+	classinfo  *nextsub;          /* pointer to next class in sub class list  */
+
+	s4          interfacescount;  /* number of interfaces                     */
+	classinfo **interfaces;       /* pointer to interfaces                    */
+
+	s4          fieldscount;      /* number of fields                         */
+	fieldinfo  *fields;           /* field table                              */
+
+	s4          methodscount;     /* number of methods                        */
+	methodinfo *methods;          /* method table                             */
+
+	listnode    listnode;         /* linkage                                  */
+
+	bool        initialized;      /* true, if class already initialized       */
+	bool        initializing;     /* flag for the compiler                    */
+	bool        loaded;           /* true, if class already loaded            */
+	bool        linked;           /* true, if class already linked            */
+	s4          index;            /* hierarchy depth (classes) or index       */
+	                              /* (interfaces)                             */
+	s4          instancesize;     /* size of an instance of this class        */
+
+	vftbl_t    *vftbl;            /* pointer to virtual function table        */
+
+	methodinfo *finalizer;        /* finalizer method                         */
+
+	u2          innerclasscount;  /* number of inner classes                  */
+	innerclassinfo *innerclass;
+
+	classinfo  *hashlink;         /* link for external hash chain             */
+	bool        classvftbl;       /* has its own copy of the Class vtbl       */
+
+	s4          classUsed;        /* 0= not used 1 = used   CO-RT             */
+
+	classSetNode *impldBy;        /* interface class implemented by class set */
+	                              /*   Object class 's impldBy is list of all */
+	                              /*   interface classes used (RT & XTA only  */
+	                              /*     normally no list of interfaces used) */
+	utf        *packagename;      /* full name of the package                 */
+	utf        *sourcefile;       /* classfile name containing this class     */
+	java_objectheader *classloader; /* NULL for bootstrap classloader         */
+};
+
+
+/* innerclassinfo *************************************************************/
+
+struct innerclassinfo {
+	classinfo *inner_class;       /* inner class pointer                      */
+	classinfo *outer_class;       /* outer class pointer                      */
+	utf       *name;              /* innerclass name                          */
+	s4         flags;             /* ACC flags                                */
+};
+
+
+/* constant_classref **********************************************************/
+
+struct constant_classref {
+	vftbl_t   *pseudo_vftbl;      /* for distinguishing it from classinfo     */
+	classinfo *referer;           /* class containing the reference           */
+	utf       *name;              /* name of the class refered to             */
+};
+
+
+/* extra_classref **************************************************************
+
+   for classrefs not occurring within descriptors
+
+*******************************************************************************/
+
+struct extra_classref {
+	extra_classref    *next;
+	constant_classref  classref;
+};
 
 
 /* global variables ***********************************************************/
@@ -86,6 +201,35 @@ extern classinfo *class_java_lang_Double;
 extern classinfo *class_java_util_Vector;
 
 
+/* pseudo classes for the type checker ****************************************/
+
+/*
+ * pseudo_class_Arraystub
+ *     (extends Object implements Cloneable, java.io.Serializable)
+ *
+ *     If two arrays of incompatible component types are merged,
+ *     the resulting reference has no accessible components.
+ *     The result does, however, implement the interfaces Cloneable
+ *     and java.io.Serializable. This pseudo class is used internally
+ *     to represent such results. (They are *not* considered arrays!)
+ *
+ * pseudo_class_Null
+ *
+ *     This pseudo class is used internally to represent the
+ *     null type.
+ *
+ * pseudo_class_New
+ *
+ *     This pseudo class is used internally to represent the
+ *     the 'uninitialized object' type.
+ */
+
+extern classinfo *pseudo_class_Arraystub;
+extern classinfo *pseudo_class_Null;
+extern classinfo *pseudo_class_New;
+extern vftbl_t *pseudo_class_Arraystub_vftbl;
+
+
 /* macros *********************************************************************/
 
 /* initialize a constant_classref with referer `ref` and name `classname` */
@@ -93,6 +237,7 @@ extern classinfo *class_java_util_Vector;
 			do { (c).pseudo_vftbl = CLASSREF_PSEUDO_VFTBL;      \
 				 (c).referer = (ref);                           \
 				 (c).name = (classname); } while (0)
+
 
 /* function prototypes ********************************************************/
 
@@ -109,6 +254,9 @@ classinfo *class_get(utf *u);
 
 /* remove class from classtable */
 bool class_remove(classinfo *c);
+
+/* frees all resources used by the class */
+void class_free(classinfo *);
 
 /* return an array class with the given component class */
 classinfo *class_array_of(classinfo *component);
