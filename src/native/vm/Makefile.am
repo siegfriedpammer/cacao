@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1699 2004-12-06 12:44:24Z twisti $
+## $Id: Makefile.am 1718 2004-12-06 18:00:40Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -53,7 +53,7 @@ libnativevm_la_SOURCES = \
 	VMThread.c \
 	VMThrowable.c
 
-all: libnativevm.a implementednatives.data
+all: implementednatives.data
 
 implementednatives.data: $(libnativevm_a_SOURCES)
 	echo "" > implementednatives.data
