@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2051 2005-03-20 16:26:57Z twisti $
+   $Id: asmpart.S 2085 2005-03-25 15:54:09Z twisti $
 
 */
 
@@ -81,6 +81,7 @@
 /********************* exported functions and variables ***********************/
 
 	.globl asm_calljavafunction
+	.globl asm_calljavafunction_int
 
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2int
@@ -145,6 +146,7 @@ call_name:
 	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
+asm_calljavafunction_int:
 	sub     $(3*8),%rsp               /* keep stack 16-byte aligned           */
 	mov     %rbp,0*8(%rsp)
 	mov     %rbx,1*8(%rsp)            /* %rbx is not a callee saved in cacao  */
@@ -802,48 +804,48 @@ noflt:
 
 asm_check_clinit:
 	mov     0(%rsp),itmp1
-	mov		offclassinit(itmp1),itmp1l  /* get initialized flag (int)         */
-	test	itmp1,itmp1
-	jnz		L_is_initialized
+	mov     offclassinit(itmp1),itmp1l  /* get initialized flag (int)         */
+	test    itmp1,itmp1
+	jnz     L_is_initialized
 
-	sub		$(15*8),%rsp                /* keep stack 16-byte aligned         */
+	sub     $(14*8),%rsp                /* keep stack 16-byte aligned         */
 
-	mov		a0,0*8(%rsp)                /* save argument registers            */
-	mov		a1,1*8(%rsp)
-	mov		a2,2*8(%rsp)
-	mov		a3,3*8(%rsp)
-	mov		a4,4*8(%rsp)
-	mov		a5,5*8(%rsp)
+	mov     a0,0*8(%rsp)                /* save argument registers            */
+	mov     a1,1*8(%rsp)
+	mov     a2,2*8(%rsp)
+	mov     a3,3*8(%rsp)
+	mov     a4,4*8(%rsp)
+	mov     a5,5*8(%rsp)
 
-	movq	fa0,6*8(%rsp)               /* maybe cacao does not use all 8     */
-	movq	fa1,7*8(%rsp)               /* argument register, but who knows   */
-	movq	fa2,8*8(%rsp)
-	movq	fa3,9*8(%rsp)
-	movq	fa4,10*8(%rsp)
-	movq	fa5,11*8(%rsp)
-	movq	fa6,12*8(%rsp)
-	movq	fa7,13*8(%rsp)
+	movq    fa0,6*8(%rsp)               /* maybe cacao does not use all 8     */
+	movq    fa1,7*8(%rsp)               /* argument register, but who knows   */
+	movq    fa2,8*8(%rsp)
+	movq    fa3,9*8(%rsp)
+	movq    fa4,10*8(%rsp)
+	movq    fa5,11*8(%rsp)
+	movq    fa6,12*8(%rsp)
+	movq    fa7,13*8(%rsp)
 
-	mov		15*8(%rsp),%rdi             /* pass classinfo pointer             */
-	call	class_init                  /* call class_init function           */
+	mov     14*8(%rsp),%rdi             /* pass classinfo pointer             */
+	call    class_init                  /* call class_init function           */
 	
-    mov     0*8(%rsp),a0                /* restore argument registers         */
-    mov     1*8(%rsp),a1
-    mov     2*8(%rsp),a2
-    mov     3*8(%rsp),a3
-    mov     4*8(%rsp),a4
-    mov     5*8(%rsp),a5
+	mov     0*8(%rsp),a0                /* restore argument registers         */
+	mov     1*8(%rsp),a1
+	mov     2*8(%rsp),a2
+	mov     3*8(%rsp),a3
+	mov     4*8(%rsp),a4
+	mov     5*8(%rsp),a5
 
-	movq	6*8(%rsp),fa0
-	movq	7*8(%rsp),fa1
-	movq	8*8(%rsp),fa2
-	movq	9*8(%rsp),fa3
-	movq	10*8(%rsp),fa4
-	movq	11*8(%rsp),fa5
-	movq	12*8(%rsp),fa6
-	movq	13*8(%rsp),fa7
+	movq    6*8(%rsp),fa0
+	movq    7*8(%rsp),fa1
+	movq    8*8(%rsp),fa2
+	movq    9*8(%rsp),fa3
+	movq    10*8(%rsp),fa4
+	movq    11*8(%rsp),fa5
+	movq    12*8(%rsp),fa6
+	movq    13*8(%rsp),fa7
 
-	add		$(15*8),%rsp                /* remove stack frame                 */
+	add     $(14*8),%rsp                /* remove stack frame                 */
 
 	test    v0,v0                       /* we had an exception                */
 	je      L_initializererror
