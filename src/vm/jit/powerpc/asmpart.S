@@ -1,4 +1,4 @@
-/* vm/jit/powerpc/asmpart.S - Java-C interface functions for powerpc
+/* src/vm/jit/powerpc/asmpart.S - Java-C interface functions for PowerPC
 		
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,8 +26,11 @@
 
    Authors: Andreas Krall
             Reinhard Grafl
+            Stefan Ring
 
-   $Id: asmpart.S 2007 2005-03-06 23:10:47Z stefan $
+   Changes: Christian Thalinger
+
+   $Id: asmpart.S 2176 2005-04-01 13:00:34Z twisti $
 
 */
 
@@ -60,6 +63,8 @@
 /* internal defines ***********************************************************/
 
 #define asm_calljavafunction                  _asm_calljavafunction
+#define asm_calljavafunction_int              _asm_calljavafunction_int
+
 #define asm_calljavafunction2                 _asm_calljavafunction2
 #define asm_calljavafunction2int              _asm_calljavafunction2int
 #define asm_calljavafunction2long             _asm_calljavafunction2long
@@ -109,8 +114,8 @@
 #define builtin_throw_exception               _builtin_throw_exception
 #define builtin_trace_exception               _builtin_trace_exception
 #define class_init                            _class_init
-#define class_link                            _class_link
-#define class_load                            _class_load
+#define link_class                            _link_class
+#define load_class_bootstrap                  _load_class_bootstrap
 #define jit_compile                           _jit_compile
 #define new_arithmeticexception               _new_arithmeticexception
 #define new_arrayindexoutofboundsexception    _new_arrayindexoutofboundsexception
@@ -126,6 +131,10 @@
 _exceptionptr:
 	.globl		__exceptionptr
 #endif
+
+#endif /* defined(__DARWIN__) */
+
+#if defined(__DARWIN__)
 
 #define fr0     f0
 #define fr1     f1
@@ -160,7 +169,7 @@ _exceptionptr:
 #define fr30    f30
 #define fr31    f31
 
-#endif /* __DARWIN__ */
+#endif /* defined(__DARWIN__) */
 
 
 	.text
@@ -168,6 +177,7 @@ _exceptionptr:
 	.align 2
 
 	.globl asm_calljavafunction
+	.globl asm_calljavafunction_int
 
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2int
@@ -234,6 +244,7 @@ _exceptionptr:
 	.long   0                         /* padding                              */
 
 asm_calljavafunction:
+asm_calljavafunction_int:
 	mflr    r0
 	stw     r31,-4(r1)
 /*	stw     r30,-8(r1)*/
@@ -672,7 +683,7 @@ ex_table_loop:
 	stw     r7,13*4(r1)
 
 	mr      r3,r7                 /* arg1 = exceptionclass                    */
-	bl      class_load
+	bl      load_class_bootstrap
 
 	lwz     r3,7*4(r1)
 	lwz     r4,8*4(r1)
@@ -701,7 +712,7 @@ L_class_loaded:
 	stw     xptr,12*4(r1)
 
 	mr      r3,r7                 /* arg1 = exceptionclass                    */
-	bl      class_link
+	bl      link_class
 
 	lwz     r3,7*4(r1)
 	lwz     r4,8*4(r1)
