@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 814 2003-12-31 01:41:15Z edwin $
+   $Id: stack.c 846 2004-01-05 10:40:42Z twisti $
 
 */
 
@@ -37,6 +37,7 @@
 #include <string.h>
 #include "stack.h"
 #include "global.h"
+#include "main.h"
 #include "jit.h"
 #include "builtin.h"
 #include "disass.h"
@@ -1778,9 +1779,9 @@ void analyse_stack()
 						 * needs it because the OP1_0ANY below
 						 * overwrites iptr->dst.
 						 */
-						iptr->val.a = (void*) iptr->dst;
+						iptr->val.a = (void *) iptr->dst;
 
-						tbptr->type=BBTYPE_SBR;
+						tbptr->type = BBTYPE_SBR;
 						CHECKOVERFLOW;
 						MARKREACHED(tbptr, copy);
 						OP1_0ANY;
@@ -2444,14 +2445,11 @@ void show_icmd(instruction *iptr,bool deadcode)
 	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
 		printf(" ");
-		utf_fprint(stdout,
-				   ((fieldinfo *) iptr->val.a)->class->name);
+		utf_fprint(stdout, ((fieldinfo *) iptr->val.a)->class->name);
 		printf(".");
-		utf_fprint(stdout,
-				   ((fieldinfo *) iptr->val.a)->name);
+		utf_fprint(stdout, ((fieldinfo *) iptr->val.a)->name);
 		printf(" (type ");
-		utf_fprint(stdout,
-				   ((fieldinfo *) iptr->val.a)->descriptor);
+		utf_fprint(stdout, ((fieldinfo *) iptr->val.a)->descriptor);
 		printf(")");
 		break;
 

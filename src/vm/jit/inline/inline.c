@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 730 2003-12-11 21:23:31Z edwin $
+   $Id: inline.c 846 2004-01-05 10:40:42Z twisti $
 
 */
 
@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "inline.h"
+#include "main.h"
 #include "jit.h"
 #include "parse.h"
 #include "loader.h"
