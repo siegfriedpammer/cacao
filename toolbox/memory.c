@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1568 2004-11-23 16:02:31Z twisti $
+   $Id: memory.c 1599 2004-11-28 17:11:50Z twisti $
 
 */
 
@@ -320,6 +320,9 @@ s4 dump_size()
 #else
 	di = &nothreads_dumpinfo;
 #endif
+
+	if (!di)
+		return 0;
 
 	return di->useddumpsize;
 }
