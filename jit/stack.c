@@ -452,7 +452,7 @@ icmd_iconst_tail:
 										iptr[0].opc = ICMD_IDIVPOW2;
 										goto icmd_iconst_tail;
 									case ICMD_IREM:
-#if !defined(__I386__) && !defined(NO_DIV_OPT)
+#if !defined(NO_DIV_OPT)
 										if (iptr[0].val.i == 0x10001) {
 											iptr[0].opc = ICMD_IREM0X10001;
 											goto icmd_iconst_tail;
@@ -651,7 +651,7 @@ icmd_lconst_tail:
 										iptr[0].opc = ICMD_LDIVPOW2;
 										goto icmd_lconst_tail;
 									case ICMD_LREM:
-#if !defined(__I386__) && !defined(NO_DIV_OPT)
+#if !defined(NO_DIV_OPT)
 										if (iptr[0].val.l == 0x10001) {
 											iptr[0].opc = ICMD_LREM0X10001;
 											goto icmd_lconst_tail;
@@ -1477,6 +1477,46 @@ icmd_lcmp_if_tail:
 							i = iptr->op1;
 							if (i > arguments_num)
 								arguments_num = i;
+#if defined(__X86_64__)
+							{
+								int iarg = 0;
+								int farg = 0;
+								int stackargs = 0;
+
+								copy = curstack;
+								while (--i >= 0) {
+									(IS_FLT_DBL_TYPE(copy->type)) ? farg++ : iarg++;
+									copy = copy->prev;
+								}
+
+								stackargs += (iarg < intreg_argnum) ? 0 : (iarg - intreg_argnum);
+								stackargs += (farg < fltreg_argnum) ? 0 : (farg - fltreg_argnum);
+
+								i = iptr->op1;
+								copy = curstack;
+								while (--i >= 0) {
+									if (!(copy->flags & SAVEDVAR)) {
+										copy->varkind = ARGVAR;
+										if (IS_FLT_DBL_TYPE(copy->type)) {
+											if (--farg < fltreg_argnum) {
+												copy->varnum = farg;
+											} else {
+												copy->varnum = --stackargs + intreg_argnum;
+											}
+										} else {
+											if (--iarg < intreg_argnum) {
+												copy->varnum = iarg;
+											} else {
+												copy->varnum = --stackargs + intreg_argnum;
+											}
+										}
+									} else {
+										(IS_FLT_DBL_TYPE(copy->type)) ? --farg : --iarg;
+									}
+									copy = copy->prev;
+								}
+							}
+#else
 							copy = curstack;
 							while (--i >= 0) {
 								if (! (copy->flags & SAVEDVAR)) {
@@ -1485,6 +1525,7 @@ icmd_lcmp_if_tail:
 									}
 								copy = copy->prev;
 								}
+#endif
 							while (copy) {
 								copy->flags |= SAVEDVAR;
 								copy = copy->prev;
@@ -1882,8 +1923,6 @@ static void show_icmd_method()
 
 	if (showdisassemble) {
 #if defined(__I386__) || defined(__X86_64__)
-/*  		extern u1 *codestatic; */
-/*  		extern int pstatic; */
 		u1 *u1ptr;
 
 		u1ptr = method->mcode + dseglen;
@@ -2163,8 +2202,6 @@ static void show_icmd_method()
 
 		if (showdisassemble && (!deadcode)) {
 #if defined(__I386__) || defined(__X86_64__)
-/*  			extern u1 *codestatic; */
-/*  			extern int pstatic; */
 			u1 *u1ptr;
 
 			printf("\n");
