@@ -11,15 +11,17 @@
  * Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
  */
 
-#ifndef _THREAD_H
-#define _THREAD_H
+
+#ifndef _THREADS_H
+#define _THREADS_H
 
 #include "config.h"
+#include "mm/memory.h"
+#include "vm/global.h"                                 /* for native includes */
+#include "native/include/java_lang_ClassLoader.h"
+#include "native/include/java_lang_String.h"
+#include "native/include/java_lang_Throwable.h"
 
-
-#ifdef USE_THREADS
-
-#include "global.h"
 
 #define	THREADCLASS         "java/lang/Thread"
 #define	THREADGROUPCLASS    "java/lang/ThreadGroup"
@@ -39,7 +41,6 @@
 #define THREAD_FLAGS_USER_SUSPEND       2  /* Flag explicit suspend() call */
 #define	THREAD_FLAGS_KILLED		4
 
-#if !defined(NATIVE_THREADS)
 
 #define MAXTHREADS              256          /* schani */
 
@@ -90,59 +91,49 @@ typedef struct _threadGroup {
 } threadGroup;
 
 
-
-/* This structure mirrors java.lang.VMThread.h */
-typedef struct vmthread {
-   java_objectheader header;
-   struct _thread* thread;
-   s4 running;
-   s4 status;
-   s4 priority;
-   void* restorePoint;
-   void* stackMem;
-   void* stackBase;
-   void* stackEnd;
-   void* usedStackTop;
-   s8 time;
-   java_objectheader *texceptionptr;
-   struct _thread* nextlive;
-   struct _thread* next;
-   s4 flags;
-} vmthread;
+typedef struct thread thread;
+typedef struct vmthread vmthread;
 
 /* This structure mirrors java.lang.Thread.h */
-typedef struct _thread {
-   java_objectheader header;
-   vmthread* vmThread;
-   threadGroup* group;
+
+struct thread {
+   java_objectheader      header;
+   vmthread              *vmThread;
+   threadGroup           *group;
    struct java_lang_Runnable* runnable;
-   struct java_lang_String* name;
-   s4 daemon;
-   s4 priority;
-   s8 stacksize;
-   struct java_lang_Throwable* stillborn;
-   struct java_lang_ClassLoader* contextClassLoader;
-} thread;
+   java_lang_String      *name;
+   s4                     daemon;
+   s4                     priority;
+   s8                     stacksize;
+   java_lang_Throwable   *stillborn;
+   java_lang_ClassLoader *contextClassLoader;
+};
 
-void initThreads (u1 *stackbottom);
-void clear_thread_flags (void);
-void startThread (thread*);
-void resumeThread (thread*);
-void iresumeThread (thread*);
-void suspendThread (thread*);
-void suspendOnQThread (thread*, thread**);
-void yieldThread (void);
-void killThread (thread*);
-void setPriorityThread (thread*, int);
 
-s8 currentTime (void);
-void sleepThread(s8 millis, s4 nanos);
-bool aliveThread (thread*);
-long framesThread (thread*);
+/* This structure mirrors java.lang.VMThread.h */
 
-void reschedule (void);
+struct vmthread {
+	java_objectheader  header;
+	thread            *thread;
+	s4                 running;
+	s4                 status;
+	s4                 priority;
+	void              *restorePoint;
+	void              *stackMem;
+	void              *stackBase;
+	void              *stackEnd;
+	void              *usedStackTop;
+	s8                 time;
+	java_objectheader *texceptionptr;
+	struct _thread    *nextlive;
+	struct _thread    *next;
+	s4                 flags;
 
-void checkEvents (bool block);
+#if 0
+	dumpinfo          *dumpinfo;        /* dump memory info structure         */
+#endif
+};
+
 
 extern int blockInts;
 extern bool needReschedule;
@@ -195,20 +186,40 @@ extern thread *threadQhead[MAX_THREAD_PRIO + 1];
     } while(0)
 
 
-/* function prototypes */
-void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);
-u1*  asm_initialize_thread_stack(void *func, u1 *stack);
+/* function prototypes ********************************************************/
 
-#else /* NATIVE_THREADS */
-#include "nativethread.h"
-#endif
+void initThreads (u1 *stackbottom);
+void clear_thread_flags (void);
+void startThread (thread*);
+void resumeThread (thread*);
+void iresumeThread (thread*);
+void suspendThread (thread*);
+void suspendOnQThread (thread*, thread**);
+void yieldThread (void);
+void killThread (thread*);
+void setPriorityThread (thread*, int);
 
-#else
+s8 currentTime (void);
+void sleepThread(s8 millis, s4 nanos);
+bool aliveThread (thread*);
+long framesThread (thread*);
 
-#define intsDisable()
-#define intsRestore()
+void reschedule (void);
 
-#endif /* USE_THREADS */
+void checkEvents (bool block);
 
-#endif /* _THREAD_H */
+#endif /* _THREADS_H */
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

@@ -11,10 +11,6 @@
  * Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
  */
 
-#include "global.h"
-
-#if !defined(NATIVE_THREADS)
-
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -27,18 +23,20 @@
 #include <errno.h>
 
 #include "config.h"
-#include "exceptions.h"
-#include "thread.h"
-#include "locks.h"
-#include "tables.h"
-#include "native.h"
-#include "loader.h"
-#include "builtin.h"
-#include "asmpart.h"
-#include "options.h"
-#include "toolbox/logging.h"
-#include "toolbox/memory.h"
+#include "mm/memory.h"
+#include "native/native.h"
+#include "threads/green/locks.h"
+#include "threads/green/threads.h"
 #include "toolbox/avl.h"
+#include "toolbox/logging.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
+
 
 static classinfo *class_java_lang_ThreadDeath;
 
@@ -96,7 +94,7 @@ java_objectheader *init_vmthread(void *thr)
                                                  utf_new_char("(Ljava/lang/Thread;)V"));
 
         if (!m) {                                       /* initializer not found  */
-                if (verbose) {
+                if (opt_verbose) {
                         char logtext[MAXLOGTEXT];
                         sprintf(logtext, "Warning: class has no instance-initializer: ");
                         utf_sprint_classname(logtext + strlen(logtext), c->name);
@@ -898,5 +896,16 @@ void cacao_suspendhandler(void *ctx)
 {
 }
 
-#endif
 
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

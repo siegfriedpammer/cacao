@@ -22,9 +22,8 @@
 #include <string.h>
 
 #include "config.h"
-#include "threads/thread.h"
+#include "threads/green/threads.h"
 
-#if !defined(NATIVE_THREADS)
 
 #define	TH_READ		0
 #define	TH_WRITE	1
@@ -478,4 +477,16 @@ checkEvents(bool block)
     }
 }
 
-#endif
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

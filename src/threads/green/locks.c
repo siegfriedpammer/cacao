@@ -12,23 +12,20 @@
  * Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
  */
 
-#include "config.h"
 
 #include <assert.h>
 #include <stdio.h>
 
-#include "thread.h"
-#include "locks.h"
-#include "builtin.h"
-#include "exceptions.h"
+#include "config.h"
+#include "mm/memory.h"
+#include "native/native.h"
+#include "threads/green/threads.h"
+#include "threads/green/locks.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
 
-#include "tables.h"
-#include "native.h"
-#include "loader.h"
-#include "toolbox/memory.h"
-
-
-#if !defined(NATIVE_THREADS)
 
 extern thread* currentThread;
 
@@ -566,4 +563,16 @@ internal_broadcast_cond (iCv* cv)
     }
 }
 
-#endif
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

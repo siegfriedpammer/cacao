@@ -14,9 +14,8 @@
 #ifndef __locks_h
 #define __locks_h
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+#include "vm/global.h"
 
-#include "global.h"
 
 #define	WAITFOREVER	-1
 
@@ -131,6 +130,18 @@ void internal_lock_mutex_for_object (java_objectheader *obj);
 void internal_unlock_mutex_for_object (java_objectheader *obj);
 void internal_broadcast_cond_for_object (java_objectheader *obj);
 
-#endif /* USE_THREADS */
-
 #endif /* __locks_h */
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
