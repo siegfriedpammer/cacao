@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 1296 2004-07-10 17:02:15Z stefan $
+   $Id: headers.c 1327 2004-07-21 14:05:43Z twisti $
 
 */
 
@@ -56,94 +56,18 @@
 functionptr native_findfunction(utf *cname, utf *mname, utf *desc, bool isstatic)
 { return NULL; }
 
-java_objectheader *javastring_new(utf *text)
-{ return NULL; }
+java_objectheader *javastring_new(utf *text) { return NULL; }
+java_objectheader *javastring_new_char(char *text) { return NULL; }
 
 char *javastring_tochar(java_objectheader *so) { return NULL; }
 utf *javastring_toutf(java_lang_String *string, bool isclassname)
 { return NULL; }
 
 
-/* some exception stuff */
-
-classinfo *class_java_lang_Exception;
-
-
-char *string_java_lang_IllegalMonitorStateException =
-    "java/lang/IllegalMonitorStateException";
-
-char *string_java_lang_NegativeArraySizeException =
-    "java/lang/NegativeArraySizeException";
-
-
-char *string_java_lang_AbstractMethodError =
-    "java/lang/AbstractMethodError";
-
-char *string_java_lang_ClassCircularityError =
-    "java/lang/ClassCircularityError";
-
-char *string_java_lang_ClassFormatError =
-    "java/lang/ClassFormatError";
-
-char *string_java_lang_ExceptionInInitializerError =
-    "java/lang/ExceptionInInitializerError";
-
-char *string_java_lang_IncompatibleClassChangeError =
-    "java/lang/IncompatibleClassChangeError";
-
-char *string_java_lang_InternalError =
-    "java/lang/InternalError";
-
-char *string_java_lang_LinkageError =
-    "java/lang/LinkageError";
-
-char *string_java_lang_NoClassDefFoundError =
-    "java/lang/NoClassDefFoundError";
-
-char *string_java_lang_NoSuchFieldError =
-    "java/lang/NoSuchFieldError";
-
-char *string_java_lang_NoSuchMethodError =
-	"java/lang/NoSuchMethodError";
-
-char *string_java_lang_OutOfMemoryError =
-    "java/lang/OutOfMemoryError";
-
-
-void throw_exception() {}
-void throw_exception_exit() {}
-
-void throw_cacao_exception_exit(char *exception, char *message)
-{
-	fprintf(stderr,
-			"Exception in thread \"main\" %s: %s\n", exception, message);
-	fflush(stderr);
-
-	/* good bye! */
-	exit(1);
-}
-
-
-void new_exception(char *classname)
-{
-	printf("Exception in thread \"main\" %s\n", classname);
-	exit(1);
-}
-
-void new_exception_message(char *classname, char *message)
-{
-	printf("Exception in thread \"main\" %s: %s\n", classname, message);
-	exit(1);
-}
-
-void new_exception_throwable(char *classname, java_objectheader *t) {}
-void new_exception_utfmessage(char *classname, utf *message)
-{
-	printf("Exception in thread \"main\" %s: ", classname);
-	utf_display(message);
-	printf("\n");
-	exit(1);
-}
+java_objectheader *native_new_and_init(classinfo *c) { return NULL; }
+java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s) { return NULL; }
+java_objectheader *native_new_and_init_int(classinfo *c, s4 i) { return NULL; }
+java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t) { return NULL; }
 
 java_objectheader *literalstring_new(utf *u) { return NULL; }  
 
@@ -205,8 +129,6 @@ int cacao_catch_Handler() {}
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 threadcritnode asm_criticalsections;
 #endif
-
-java_objectheader *native_new_and_init(void *p) { return NULL; }
 
 
 /************************ global variables **********************/
