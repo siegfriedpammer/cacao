@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 612 2003-11-12 13:14:38Z twisti $
+   $Id: builtin.c 613 2003-11-12 13:17:58Z twisti $
 
 */
 
@@ -739,9 +739,12 @@ java_intarray *builtin_newarray_int(s4 size)
 										   sizeof(s4), 
 										   ARRAYTYPE_INT,
 										   NULL);
+
+#if 0
 	if (a == NULL) {
 		asm_handle_builtin_exception(proto_java_lang_OutOfMemoryError);
 	}
+#endif
 
 	return a;
 }
