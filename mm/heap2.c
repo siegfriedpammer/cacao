@@ -798,7 +798,7 @@ void gc_mark_stack (void)
 	else {
 		for (aThread = liveThreads; aThread != 0;
 			 aThread = CONTEXT(aThread).nextlive) {
-			mark_object_at((void*)aThread);
+			gc_mark_object_at((void*)aThread);
 			if (aThread == currentThread) {
 				void **top_of_stack = &dummy;
 				
@@ -915,3 +915,4 @@ gc_call (void)
  * tab-width: 4
  * End:
  */
+
