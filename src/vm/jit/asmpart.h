@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 771 2003-12-13 23:11:08Z stefan $
+   $Id: asmpart.h 779 2003-12-14 18:11:35Z stefan $
 
 */
 
@@ -101,6 +101,8 @@ void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void 
 
 void asm_builtin_trace();
 void asm_builtin_exittrace();
+
+int asm_xadd(int *, int);
 
 #endif /* _ASMPART_H */
 

@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 730 2003-12-11 21:23:31Z edwin $
+   $Id: builtin.c 779 2003-12-14 18:11:35Z stefan $
 
 */
 
@@ -174,7 +174,7 @@ builtin_descriptor builtin_desc[] = {
 
 s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 { 
-	classinfo *tmp;
+	/*classinfo *tmp;*/
 	if (super->flags & ACC_INTERFACE)
 		return (sub->vftbl->interfacetablelength > super->index) &&
 			(sub->vftbl->interfacetable[-super->index] != NULL);
@@ -207,21 +207,43 @@ s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 			sub->vftbl->baseval, super->vftbl->baseval, (unsigned)(sub->vftbl->baseval - super->vftbl->baseval),
 			super->vftbl->diffval); */
 
-	return (unsigned) (sub->vftbl->baseval - super->vftbl->baseval) <=
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	cast_lock();
+#endif
+
+	s4 res = (unsigned) (sub->vftbl->baseval - super->vftbl->baseval) <=
 		(unsigned) (super->vftbl->diffval);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	cast_unlock();
+#endif
+
+	return res;
 }
 
 /* XXX inline this? */
 s4 builtin_isanysubclass_vftbl(vftbl *sub,vftbl *super)
 {
 	int base;
+	s4 res;
 	
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	cast_lock();
+#endif
+
 	if ((base = super->baseval) <= 0)
 		/* super is an interface */
-		return (sub->interfacetablelength > -base) &&
+		res = (sub->interfacetablelength > -base) &&
 			(sub->interfacetable[base] != NULL);
-	return (unsigned) (sub->baseval - base)
-		<= (unsigned) (super->diffval);
+	else
+	    res = (unsigned) (sub->baseval - base)
+			<= (unsigned) (super->diffval);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	cast_unlock();
+#endif
+
+	return res;
 }
 
 
@@ -400,6 +422,8 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 	valuevftbl = o->vftbl;
 
     if ((dim_m1 = desc->dimension - 1) == 0) {
+		s4 res;
+
 		/* {a is a one-dimensional array} */
 		/* {a is an array of references} */
 		
@@ -411,8 +435,18 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 			return (valuevftbl->interfacetablelength > -base &&
 					valuevftbl->interfacetable[base] != NULL);
 		
-		return (unsigned)(valuevftbl->baseval - base)
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+		cast_lock();
+#endif
+
+		res = (unsigned)(valuevftbl->baseval - base)
 			<= (unsigned)(componentvftbl->diffval);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+		cast_unlock();
+#endif
+
+		return res;
     }
     /* {a has dimension > 1} */
 	/* {componentvftbl->arraydesc != NULL} */
@@ -433,6 +467,7 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 	vftbl *elementvftbl;
 	vftbl *valuevftbl;
 	int base;
+	s4 res;
 	
 	if (!o) return 1;
 
@@ -458,8 +493,18 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 		return (valuevftbl->interfacetablelength > -base &&
 				valuevftbl->interfacetable[base] != NULL);
 	
-	return (unsigned)(valuevftbl->baseval - base)
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	cast_lock();
+#endif
+
+	res = (unsigned)(valuevftbl->baseval - base)
 		<= (unsigned)(elementvftbl->diffval);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	cast_unlock();
+#endif
+
+	return res;
 }
 
 
@@ -470,6 +515,7 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 {
 	vftbl *elementvftbl;
 	vftbl *valuevftbl;
+	s4 res;
 	
 	if (!o) return 1;
 
@@ -490,8 +536,18 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	return (unsigned)(valuevftbl->baseval - elementvftbl->baseval)
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	cast_lock();
+#endif
+
+	res = (unsigned)(valuevftbl->baseval - elementvftbl->baseval)
 		<= (unsigned)(elementvftbl->diffval);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	cast_unlock();
+#endif
+
+	return res;
 }
 
 

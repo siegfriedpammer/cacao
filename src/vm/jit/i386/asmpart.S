@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 771 2003-12-13 23:11:08Z stefan $
+   $Id: asmpart.S 779 2003-12-14 18:11:35Z stefan $
 
 */
 
@@ -1173,6 +1173,13 @@ asm_builtin_exittrace:
         popa
         ret
 
+asm_xadd:
+		mov 4(%esp),%ecx
+		mov 8(%esp),%eax
+		lock
+		xaddl %eax,0(%ecx)
+	    incl %eax
+		ret
 
 /*
  * These are local overrides for various environment variables in Emacs.
