@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2002 2005-03-05 17:10:18Z twisti $
+   $Id: headers.c 2140 2005-03-30 12:32:06Z twisti $
 
 */
 
@@ -54,11 +54,14 @@
 #include "native/include/java_lang_Throwable.h"
 #include "toolbox/chain.h"
 #include "toolbox/logging.h"
+#include "vm/class.h"
 #include "vm/global.h"
+#include "vm/method.h"
 #include "vm/tables.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/builtin.h"
+#include "vm/jit/asmpart.h"
 
 
 /******* replace some external functions  *********/
@@ -72,9 +75,11 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i) { return NULL; }
 java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t) { return NULL; }
 
 
-void synchronize_caches(void) {}
+java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
+										void *arg3, void *arg4) { return NULL; }
+
 void asm_call_jit_compiler(void) {}
-void asm_calljavafunction(void) {}
+
 s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class) { return 0; }
 
 s4 asm_builtin_idiv(s4 a, s4 b) { return 0; }
@@ -107,6 +112,8 @@ long compare_and_swap(long *p, long oldval, long newval)
 #endif
 
 
+java_objectheader *asm_builtin_new(classinfo *c) { return NULL; }
+
 #if defined(__I386__)
 s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class) {
 	return 0;
@@ -125,9 +132,11 @@ void removenativestub(u1 *stub) {}
 
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop) {}
 u1* asm_initialize_thread_stack(void *func, u1 *stack) { return NULL; }
-void asm_switchstackandcall(void) {}
+
+void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p) { return NULL; }
+
 void asm_handle_builtin_exception(classinfo *c) {}
-void asm_getclassvalues_atomic(void) {}
+void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out) {}
 
 #if defined(__DARWIN__)
 int cacao_catch_Handler(void) {}
