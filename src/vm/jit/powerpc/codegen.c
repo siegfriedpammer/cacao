@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 609 2003-11-12 01:18:53Z twisti $
+   $Id: codegen.c 691 2003-12-05 18:17:22Z stefan $
 
 */
 
@@ -2784,8 +2784,7 @@ gen_method: {
 
 				default:
 					d = 0;
-					sprintf (logtext, "Unkown ICMD-Command: %d", iptr->opc);
-					error ();
+					error ("Unkown ICMD-Command: %d", iptr->opc);
 				}
 
 makeactualcall:
@@ -3017,8 +3016,7 @@ makeactualcall:
 			break;
 
 
-		default: sprintf (logtext, "Unknown pseudo command: %d", iptr->opc);
-		         error();
+		default: error ("Unknown pseudo command: %d", iptr->opc);
 	
    
 

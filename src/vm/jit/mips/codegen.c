@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 645 2003-11-16 00:06:44Z stefan $
+   $Id: codegen.c 691 2003-12-05 18:17:22Z stefan $
 
 */
 
@@ -3197,8 +3197,7 @@ gen_method: {
 
 				default:
 					d = 0;
-					sprintf (logtext, "Unkown ICMD-Command: %d", iptr->opc);
-					error ();
+					error ("Unkown ICMD-Command: %d", iptr->opc);
 				}
 
 makeactualcall:
@@ -3456,8 +3455,7 @@ afteractualcall:
 			break;
 
 
-		default: sprintf (logtext, "Unknown pseudo command: %d", iptr->opc);
-		         error();
+		default: error ("Unknown pseudo command: %d", iptr->opc);
 	
    
 
