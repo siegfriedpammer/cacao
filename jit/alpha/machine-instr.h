@@ -13,7 +13,6 @@ atomic_add (volatile int *mem, int val)
     "addl   %1,%2,%1\n\t"
     "stl_c  %1,%0\n\t"
     "beq    %1,1b\n\t"
-    "mb\n\t"
     : "=m"(*mem), "=&r"(temp)
     : "r"(val), "m"(*mem));
 }
@@ -33,7 +32,6 @@ compare_and_swap (volatile long *p, long oldval, long newval)
     "stq_c  %2,%1\n\t"
     "beq    %2,1b\n\t"
     "2:\t"
-    "mb\n\t"
     : "=&r"(ret), "=m"(*p), "=&r"(temp)
     : "r"(oldval), "r"(newval), "m"(*p));
 
@@ -42,7 +40,7 @@ compare_and_swap (volatile long *p, long oldval, long newval)
 
 #define STORE_ORDER_BARRIER() __asm__ __volatile__ ("wmb" : : : "memory");
 #define MEMORY_BARRIER_BEFORE_ATOMIC() __asm__ __volatile__ ("mb" : : : "memory");
-#define MEMORY_BARRIER_AFTER_ATOMIC() __asm__ __volatile__ ("" : : : "memory");
+#define MEMORY_BARRIER_AFTER_ATOMIC() __asm__ __volatile__ ("rmb" : : : "memory");
 #define MEMORY_BARRIER() __asm__ __volatile__ ( \
 		"mb" : : : "memory" );
 
