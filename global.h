@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 741 2003-12-13 20:07:41Z stefan $
+   $Id: global.h 792 2003-12-16 18:49:52Z edwin $
 
 */
 
@@ -784,12 +784,12 @@ extern bool opt_vta;            /* Variable Type Analysis for better inlining   
 extern bool typecheckverbose;
 #endif
 
-//extern int pClassHeir;
-//extern int pCallgraph;
-//extern int pOpcodes;
-//extern int pStats;
+/*extern int pClassHeir;*/
+/*extern int pCallgraph;*/
+/*extern int pOpcodes;*/
+/*extern int pStats;*/
 
-//extern void RT_jit_parse(methodinfo *m);
+/*extern void RT_jit_parse(methodinfo *m);*/
 
 
 /* statistic variables ********************************************************/
