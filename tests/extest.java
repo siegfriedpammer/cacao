@@ -1,73 +1,96 @@
 public class extest {
-    public static void main(String[] argv) {
-    	try {
-            System.out.print("throw Exception: ");
+    public static void main(String[] argv) { 
+	System.out.println("---------- normal exceptions --------------------");
+
+   	try {
+            System.out.print("throw Exception:                ");
     	    sub();
-            System.out.println("failed.");
+            System.out.println("FAILED");
     	} catch (Exception e) {
-      	    System.out.println("passed.");
+      	    System.out.println("PASSED");
     	}
 
   	try {
-            System.out.print("native Exception: ");
+            System.out.print("native NullPointerException:    ");
             System.arraycopy(null, 1, null, 1, 1);
-            System.out.println("failed.");
+            System.out.println("FAILED");
     	} catch (Exception e) {
-  	    System.out.println("passed.");
+  	    System.out.println("PASSED");
   	}
 
         try {
-            System.out.print("NullPointerException: ");
+            System.out.print("NullPointerException:           ");
             int[] ia = null;
             int i = ia.length;
-            System.out.println("failed.");
+            System.out.println("FAILED");
         } catch (NullPointerException e) {
-  	    System.out.println("passed.");
+  	    System.out.println("PASSED");
   	}
 
         try {
-            System.out.print("ArithmeticException: ");
+            System.out.print("ArithmeticException:            ");
             int i = 1, j = 0, k = i / j;
-            System.out.println("failed.");
+            System.out.println("FAILED");
         } catch (ArithmeticException e) {
-  	    System.out.println("passed.");
+  	    System.out.println("PASSED");
   	}
+
+	System.out.println();
+	System.out.println("---------- test soft inline exceptions ----------");
 
         try {
             System.out.print("ArrayIndexOutOfBoundsException: ");
             int[] ia = new int[1];
-            ia[1] = 1;
-            System.out.println("failed.");
+            ia[0xcafebabe] = 1;
+            System.out.println("FAILED");
         } catch (ArrayIndexOutOfBoundsException e) {
-  	    System.out.println("passed.");
+	    String msg = e.getMessage();
+
+	    if (msg != null && msg.compareTo("Array index out of range: -889275714") != 0) {
+		System.out.println("FAILED: wrong index");
+
+	    } else {
+		System.out.println("PASSED");
+	    }
   	}
 
         try {
-            System.out.print("NegativeArraySizeException: ");
+            System.out.print("NegativeArraySizeException:     ");
             int[] ia = new int[-1];
-            System.out.println("failed.");
+            System.out.println("FAILED");
         } catch (NegativeArraySizeException e) {
-  	    System.out.println("passed.");
+  	    System.out.println("PASSED");
   	}
         
         try {
-            System.out.print("ClassCastException: ");
+            System.out.print("ClassCastException:             ");
             Object o = new Object();
             Integer i = null;
             i = (Integer) o;
-            System.out.println("failed.");
+            System.out.println("FAILED");
         } catch (ClassCastException e) {
-  	    System.out.println("passed.");
+  	    System.out.println("PASSED");
+  	}
+
+        try {
+            System.out.print("OutOfMemoryError:               ");
+	    /* 100 MB should be enough */
+	    byte[] ba = new byte[100 * 1024 * 1024];
+            System.out.println("FAILED");
+        } catch (OutOfMemoryError e) {
+  	    System.out.println("PASSED");
   	}
         
+	System.out.println();
+	System.out.println("---------- no passed beyond this point ----------");
+
         System.out.println("NullPointerException (without catch): ");
         String s = null;
         int i = s.length();
-        System.out.println("failed.");
+        System.out.println("FAILED");
     }
 
     public synchronized static void sub() throws Exception {
-        int a, b, c, d;
 	sub2();
     }
 
