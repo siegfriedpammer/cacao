@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 702 2003-12-07 17:20:56Z twisti $
+   $Id: global.h 717 2003-12-07 22:02:19Z twisti $
 
 */
 
@@ -88,6 +88,19 @@ typedef int   bool;             /* boolean data type */
 
 #define true  1
 #define false 0
+
+
+/* immediate data union */
+
+typedef union {
+    s4 i;
+    s8 l;
+    float f;
+    double d;
+    void *a;
+    u1 b[8];
+} imm_union;
+
 
 #define PRIMITIVETYPE_COUNT  9  /* number of primitive types */
 
@@ -283,7 +296,7 @@ typedef struct {
 
 /* data structures of remaining constant pool entries *************************/
 
-typedef struct {                /* Fieldref, Methodref and InterfaceMethodref     */
+typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
 	classinfo *class;       /* class containing this field/method/interface   */
 	utf       *name;        /* field/method/interface name                    */
 	utf       *descriptor;  /* field/method/interface type descriptor string  */
@@ -415,17 +428,18 @@ typedef struct java_objectarray {
 	java_objectheader *data[1];
 } java_objectarray;
 
+
 /* structure for primitive classes ********************************************/
 
 typedef struct primitivetypeinfo {
 	classinfo *class_wrap;               /* class for wrapping primitive type */
 	classinfo *class_primitive;          /* primitive class                   */
-	char *wrapname;                      /* name of class for wrapping        */
-	char typesig;                        /* one character type signature      */
-	char *name;                          /* name of primitive class           */
-	char *arrayname;                     /* name of primitive array class     */
+	char      *wrapname;                 /* name of class for wrapping        */
+	char      typesig;                   /* one character type signature      */
+	char      *name;                     /* name of primitive class           */
+	char      *arrayname;                /* name of primitive array class     */
 	classinfo *arrayclass;               /* primitive array class             */
-	vftbl *arrayvftbl;                   /* vftbl of primitive array class    */
+	vftbl     *arrayvftbl;               /* vftbl of primitive array class    */
 } primitivetypeinfo;
 
 
@@ -449,18 +463,13 @@ struct fieldinfo {	      /* field of a class                                 */
 	
 	s4  offset;           /* offset from start of object (instance variables) */
 
-	union {               /* storage for static values (class variables)      */
-		s4 i; 
-		s8 l;
-		float f;
-		double d;
-		void *a; 
-	} value;
+	imm_union value;      /* storage for static values (class variables)      */
 	
 	xtafldinfo *xta;
 };
 
 struct basicblock;
+
 
 /* exceptiontable *************************************************************/
 
