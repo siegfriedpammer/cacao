@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2214 2005-04-04 14:36:06Z twisti $
+   $Id: codegen.c 2237 2005-04-06 12:12:40Z twisti $
 
 */
 
@@ -2308,7 +2308,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* If the static fields' class is not yet initialized, we do it   */
 			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				codegen_addclinitref(cd, cd->mcodeptr, ((fieldinfo *) iptr->val.a)->class);
+				codegen_addpatchref(cd, cd->mcodeptr, asm_check_clinit, ((fieldinfo *) iptr->val.a)->class);
 
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 5 nop's     */
@@ -2352,7 +2352,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* If the static fields' class is not yet initialized, we do it   */
 			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr[1].val.a)->class->initialized) {
-				codegen_addclinitref(cd, cd->mcodeptr, ((fieldinfo *) iptr[1].val.a)->class);
+				codegen_addpatchref(cd, cd->mcodeptr, asm_check_clinit, ((fieldinfo *) iptr[1].val.a)->class);
 
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 5 nop's     */
@@ -2391,7 +2391,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* If the static fields' class is not yet initialized, we do it   */
 			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				codegen_addclinitref(cd, cd->mcodeptr, ((fieldinfo *) iptr->val.a)->class);
+				codegen_addpatchref(cd, cd->mcodeptr, asm_check_clinit, ((fieldinfo *) iptr->val.a)->class);
 
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 5 nop's     */
@@ -3111,15 +3111,19 @@ gen_method: {
 			case ICMD_BUILTIN3:
 			case ICMD_BUILTIN2:
 			case ICMD_BUILTIN1:
-				a = (s8) lm;
+				a = (ptrint) lm;
 				d = iptr->op1;
+
+				if (a == (ptrint) BUILTIN_new)
+					a = (ptrint) asm_builtin_new;
+
 
 				x86_64_mov_imm_reg(cd, a, REG_ITMP1);
 				x86_64_call_reg(cd, REG_ITMP1);
 				break;
 
 			case ICMD_INVOKESTATIC:
-				a = (s8) lm->stubroutine;
+				a = (ptrint) lm->stubroutine;
 				d = lm->returntype;
 
 				x86_64_mov_imm_reg(cd, a, REG_ITMP2);
@@ -3127,8 +3131,25 @@ gen_method: {
 				break;
 
 			case ICMD_INVOKESPECIAL:
-				a = (s8) lm->stubroutine;
-				d = lm->returntype;
+				/* methodinfo* is not resolved, call the assembler function */
+
+				if (!lm) {
+					unresolved_method *um = iptr->target;
+
+					codegen_addpatchref(cd, cd->mcodeptr, asm_invokespecial, um);
+
+/*  					if (showdisassemble) { */
+/*  						x86_64_nop(cd); x86_64_nop(cd); x86_64_nop(cd); */
+/*  						x86_64_nop(cd); x86_64_nop(cd); */
+/*  					} */
+
+					a = 0;
+					d = um->methodref->parseddesc.md->returntype.type;
+
+				} else {
+					a = (ptrint) lm->stubroutine;
+					d = lm->parseddesc->returntype.type;
+				}
 
 				gen_nullptr_check(rd->argintregs[0]);    /* first argument contains pointer */
 				x86_64_mov_membase_reg(cd, rd->argintregs[0], 0, REG_ITMP2); /* access memory for hardware nullptr */
@@ -3798,19 +3819,17 @@ gen_method: {
 	/* generate put/getstatic stub call code */
 
 	{
-		clinitref   *cref;
+		patchref    *pref;
 		codegendata *tmpcd;
-		u1           xmcode;
-		u4           mcode;
+		u8           mcode;
 
 		tmpcd = DNEW(codegendata);
 
-		for (cref = cd->clinitrefs; cref != NULL; cref = cref->next) {
+		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* Get machine code which is patched back in later. A             */
-			/* `call rel32' is 5 bytes long.                                  */
-			xcodeptr = cd->mcodebase + cref->branchpos;
-			xmcode = *xcodeptr;
-			mcode = *((u4 *) (xcodeptr + 1));
+			/* `call rel32' is 5 bytes long (but read 8 bytes).               */
+			xcodeptr = cd->mcodebase + pref->branchpos;
+			mcode = *((ptrint *) xcodeptr);
 
 			MCODECHECK(50);
 
@@ -3818,14 +3837,12 @@ gen_method: {
 			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
 			x86_64_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
 
-			/* Push machine code bytes to patch onto the stack.               */
-			x86_64_push_imm(cd, (u1) xmcode);
-			x86_64_push_imm(cd, (u4) mcode);
+			/* move classinfo pointer and machine code bytes into registers */
+			x86_64_mov_imm_reg(cd, (ptrint) pref->ref, REG_ITMP1);
+			x86_64_mov_imm_reg(cd, (ptrint) mcode, REG_ITMP2);
 
-			x86_64_push_imm(cd, (u8) cref->class);
-
-			x86_64_mov_imm_reg(cd, (u8) asm_check_clinit, REG_ITMP1);
-			x86_64_jmp_reg(cd, REG_ITMP1);
+			x86_64_mov_imm_reg(cd, (ptrint) pref->asmwrapper, REG_ITMP3);
+			x86_64_jmp_reg(cd, REG_ITMP3);
 		}
 	}
 	}
@@ -3948,12 +3965,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	/* set some required varibles which are normally set by codegen_setup */
 	cd->mcodebase = s;
 	cd->mcodeptr = s;
-	cd->clinitrefs = NULL;
+	cd->patchrefs = NULL;
 
 	/* if function is static, check for initialized */
 
 	if ((m->flags & ACC_STATIC) && !m->class->initialized) {
-		codegen_addclinitref(cd, cd->mcodeptr, m->class);
+		codegen_addpatchref(cd, cd->mcodeptr, asm_check_clinit, m->class);
 	}
 
 	if (runverbose) {
@@ -4223,39 +4240,35 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	x86_64_jmp_reg(cd, REG_ITMP3);
 
 
-	/* patch in a clinit call if required *************************************/
+	/* patch in a <clinit> call if required ***********************************/
 
 	{
 		u1          *xcodeptr;
-		clinitref   *cref;
+		patchref    *pref;
 		codegendata *tmpcd;
-		u1           xmcode;
-		u4           mcode;
+		u8           mcode;
 
 		tmpcd = DNEW(codegendata);
 
-		/* there can only be one clinit ref entry                             */
-		cref = cd->clinitrefs;
+		/* there can only be one patch ref entry                              */
+		pref = cd->patchrefs;
 
-		if (cref) {
+		if (pref) {
 			/* Get machine code which is patched back in later. A             */
-			/* `call rel32' is 5 bytes long.                                  */
-			xcodeptr = cd->mcodebase + cref->branchpos;
-			xmcode = *xcodeptr;
-			mcode = *((u4 *) (xcodeptr + 1));
+			/* `call rel32' is 5 bytes long (but read 8 bytes).               */
+			xcodeptr = cd->mcodebase + pref->branchpos;
+			mcode = *((ptrint *) xcodeptr);
 
 			/* patch in `call rel32' to call the following code               */
 			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
 			x86_64_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
 
-			/* Push machine code bytes to patch onto the stack.               */
-			x86_64_push_imm(cd, (u1) xmcode);
-			x86_64_push_imm(cd, (u4) mcode);
+			/* move classinfo pointer and machine code bytes into registers */
+			x86_64_mov_imm_reg(cd, (ptrint) pref->ref, REG_ITMP1);
+			x86_64_mov_imm_reg(cd, (ptrint) mcode, REG_ITMP2);
 
-			x86_64_push_imm(cd, (u8) cref->class);
-
-			x86_64_mov_imm_reg(cd, (u8) asm_check_clinit, REG_ITMP1);
-			x86_64_jmp_reg(cd, REG_ITMP1);
+			x86_64_mov_imm_reg(cd, (ptrint) pref->asmwrapper, REG_ITMP3);
+			x86_64_jmp_reg(cd, REG_ITMP3);
 		}
 	}
 
