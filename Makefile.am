@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 136 1999-11-09 11:33:46Z schani $
+# $Id: Makefile.am 168 2002-11-30 15:25:24Z stefan $
 
 MAINTAINERCLEANFILES = Makefile.in configure
 SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc narray
@@ -8,7 +8,6 @@ SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc narray
 EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html
 
 CLEANFILES = @SYSDEP_DIR@/asmpart.o \
-			 @SYSDEP_DIR@/asmpart.s \
              @SYSDEP_DIR@/offsets.h \
 	         nativetable.hh \
 	         nativetypes.hh
@@ -119,13 +118,8 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 		java.io.UnixFileSystem \
 		java.lang.ClassLoader_NativeLibrary
 
-@SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/asmpart.c @SYSDEP_DIR@/offsets.h
-	rm -f @SYSDEP_DIR@/asmpart.s
-	@CPP@ $(INCLUDES) $(top_srcdir)/@SYSDEP_DIR@/asmpart.c \
-			> @SYSDEP_DIR@/asmpart.s
-	@CC@ $(CFLAGS) $(INCLUDES) -c -o @SYSDEP_DIR@/asmpart.o \
-			@SYSDEP_DIR@/asmpart.s
-	rm -f asmpart.s
+@SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/asmpart.S @SYSDEP_DIR@/offsets.h
+	@CC@ $(INCLUDES) -c -g -o $@ $<
 
 compiler.o: $(top_srcdir)/builtin.h $(top_srcdir)/compiler.h \
 		    $(top_srcdir)/global.h $(top_srcdir)/loader.h \
