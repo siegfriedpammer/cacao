@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1319 2004-07-16 13:45:50Z twisti $
+   $Id: codegen.c 1349 2004-07-22 12:08:29Z twisti $
 
 */
 
@@ -220,13 +220,15 @@ void codegen(methodinfo *m)
 	instruction    *iptr;
 	exceptiontable *ex;
 	registerdata   *r;
+	codegendata    *cd;
+
+	/* keep code size smaller */
+	r = m->registerdata;
+	cd = m->codegendata;
 
 	{
 	s4 i, p, pa, t, l;
 	s4 savedregs_num;
-
-	/* keep code size smaller */
-	r = m->registerdata;
 
 	savedregs_num = (m->isleafmethod) ? 0 : 1;        /* space to save the RA */
 
@@ -252,10 +254,10 @@ void codegen(methodinfo *m)
 	/* create method header */
 
 #if POINTERSIZE == 4
-	(void) dseg_addaddress(m);                              /* Filler         */
+	(void) dseg_addaddress(m, m);                           /* Filler         */
 #endif
-	(void) dseg_addaddress(m);                              /* MethodPointer  */
-	(void) dseg_adds4(parentargs_base * 8);                 /* FrameSize      */
+	(void) dseg_addaddress(m, m);                           /* MethodPointer  */
+	(void) dseg_adds4(m, parentargs_base * 8);              /* FrameSize      */
 
 #if defined(USE_THREADS)
 
@@ -266,31 +268,31 @@ void codegen(methodinfo *m)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4((r->maxmemuse + 1) * 8);          /* IsSync         */
+		(void) dseg_adds4(m, (r->maxmemuse + 1) * 8);       /* IsSync         */
 	else
 
 #endif
 
-		(void) dseg_adds4(0);                               /* IsSync         */
+		(void) dseg_adds4(m, 0);                            /* IsSync         */
 	                                       
-	(void) dseg_adds4(m->isleafmethod);                     /* IsLeaf         */
-	(void) dseg_adds4(r->savintregcnt - r->maxsavintreguse);/* IntSave        */
-	(void) dseg_adds4(r->savfltregcnt - r->maxsavfltreguse);/* FltSave        */
-	(void) dseg_adds4(m->exceptiontablelength);             /* ExTableSize    */
+	(void) dseg_adds4(m, m->isleafmethod);                  /* IsLeaf         */
+	(void) dseg_adds4(m, r->savintregcnt - r->maxsavintreguse);/* IntSave     */
+	(void) dseg_adds4(m, r->savfltregcnt - r->maxsavfltreguse);/* FltSave     */
+	(void) dseg_adds4(m, m->exceptiontablelength);          /* ExTableSize    */
 
 	/* create exception table */
 
 	for (ex = m->exceptiontable; ex != NULL; ex = ex->down) {
-		dseg_addtarget(ex->start);
-   		dseg_addtarget(ex->end);
-		dseg_addtarget(ex->handler);
-		(void) dseg_addaddress(ex->catchtype);
+		dseg_addtarget(m, ex->start);
+   		dseg_addtarget(m, ex->end);
+		dseg_addtarget(m, ex->handler);
+		(void) dseg_addaddress(m, ex->catchtype);
 	}
 	
 	/* initialize mcode variables */
 	
-	mcodeptr = (s4 *) mcodebase;
-	mcodeend = (s4 *) (mcodebase + mcodesize);
+	mcodeptr = (s4 *) cd->mcodebase;
+	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 	MCODECHECK(128 + m->paramcount);
 
 	/* create stack frame (if necessary) */
@@ -317,7 +319,7 @@ void codegen(methodinfo *m)
 #if defined(USE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		if (m->flags & ACC_STATIC) {
-			p = dseg_addaddress(m->class);
+			p = dseg_addaddress(m, m->class);
 			M_ALD(REG_ITMP1, REG_PV, p);
 			M_AST(REG_ITMP1, REG_SP, r->maxmemuse * 8);
 
@@ -359,10 +361,10 @@ void codegen(methodinfo *m)
 			}
 		}
 
-		p = dseg_addaddress(m);
+		p = dseg_addaddress(m, m);
 		M_ALD(REG_ITMP1, REG_PV, p);
 		M_LST(REG_ITMP1, REG_SP, 0);
-		p = dseg_addaddress((void *) builtin_trace_args);
+		p = dseg_addaddress(m, (void *) builtin_trace_args);
 		M_ALD(REG_ITMP3, REG_PV, p);
 		M_JSR(REG_RA, REG_ITMP3);
 		M_NOP;
@@ -450,11 +452,11 @@ void codegen(methodinfo *m)
 		s4 disp;
 		s8 func_enter = (m->flags & ACC_STATIC) ?
 			(s8) builtin_staticmonitorenter : (s8) builtin_monitorenter;
-		p = dseg_addaddress((void *) func_enter);
+		p = dseg_addaddress(m, (void *) func_enter);
 		M_ALD(REG_ITMP3, REG_PV, p);
 		M_JSR(REG_RA, REG_ITMP3);
 		M_ALD(r->argintregs[0], REG_SP, r->maxmemuse * 8);
-		disp = -(s4) ((u1 *) mcodeptr - mcodebase);
+		disp = -(s4) ((u1 *) mcodeptr - cd->mcodebase);
 		M_LDA(REG_PV, REG_RA, disp);
 	}
 #endif
@@ -465,20 +467,19 @@ void codegen(methodinfo *m)
 	/* walk through all basic blocks */
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 
-		bptr->mpc = (s4) ((u1 *) mcodeptr - mcodebase);
+		bptr->mpc = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
 
-		/* branch resolving */
-
-		{
-		branchref *brefs;
-		for (brefs = bptr->branchrefs; brefs != NULL; brefs = brefs->next) {
-			gen_resolvebranch((u1*) mcodebase + brefs->branchpos, 
-			                  brefs->branchpos,
-							  bptr->mpc);
-		}
-		}
+			/* branch resolving */
+			{
+				branchref *bref;
+				for (bref = bptr->branchrefs; bref != NULL; bref = bref->next) {
+					gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
+									  bref->branchpos,
+									  bptr->mpc);
+				}
+			}
 
 		/* copy interface registers to their destination */
 
@@ -537,19 +538,11 @@ void codegen(methodinfo *m)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_BEQZ(s1, 0);
-			codegen_addxnullrefs(mcodeptr);
+			codegen_addxnullrefs(m, mcodeptr);
 			M_NOP;
 			break;
 
 		/* constant operations ************************************************/
-
-#define ICONST(r,c) if(((c)>=-32768)&&((c)<= 32767)){M_IADD_IMM(REG_ZERO,c,r);} \
-                    else if(((c)>=0)&&((c)<=0xffff)){M_OR_IMM(REG_ZERO,c,r);} \
-                    else{a=dseg_adds4(c);M_ILD(r,REG_PV,a);}
-
-#define LCONST(r,c) if(((c)>=-32768)&&((c)<= 32767)){M_LADD_IMM(REG_ZERO,c,r);} \
-                    else if(((c)>=0)&&((c)<=0xffff)){M_OR_IMM(REG_ZERO,c,r);} \
-                    else{a=dseg_adds8(c);M_LLD(r,REG_PV,a);}
 
 		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.i = constant                    */
@@ -571,7 +564,7 @@ void codegen(methodinfo *m)
 		                      /* op1 = 0, val.f = constant                    */
 
 			d = reg_of_var(m, iptr->dst, REG_FTMP1);
-			a = dseg_addfloat(iptr->val.f);
+			a = dseg_addfloat(m, iptr->val.f);
 			M_FLD(d, REG_PV, a);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -580,7 +573,7 @@ void codegen(methodinfo *m)
 		                      /* op1 = 0, val.d = constant                    */
 
 			d = reg_of_var(m, iptr->dst, REG_FTMP1);
-			a = dseg_adddouble(iptr->val.d);
+			a = dseg_adddouble(m, iptr->val.d);
 			M_DLD(d, REG_PV, a);
 			store_reg_to_var_flt (iptr->dst, d);
 			break;
@@ -590,12 +583,11 @@ void codegen(methodinfo *m)
 
 			d = reg_of_var(m, iptr->dst, REG_ITMP1);
 			if (iptr->val.a) {
-				a = dseg_addaddress(iptr->val.a);
+				a = dseg_addaddress(m, iptr->val.a);
 				M_ALD(d, REG_PV, a);
-				}
-			else {
+			} else {
 				M_INTMOVE(REG_ZERO, d);
-				}
+			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1627,15 +1619,6 @@ void codegen(methodinfo *m)
 
 		/* memory operations **************************************************/
 
-#define gen_bound_check \
-    if (checkbounds) { \
-        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size)); \
-        M_CMPULT(s2, REG_ITMP3, REG_ITMP3); \
-        M_BEQZ(REG_ITMP3, 0); \
-        codegen_addxboundrefs(mcodeptr, s2); \
-        M_NOP; \
-    }
-
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
@@ -1870,15 +1853,15 @@ void codegen(methodinfo *m)
 			/* if class isn't yet initialized, do it */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
 				/* call helper function which patches this code */
-				a = dseg_addaddress(((fieldinfo *) iptr->val.a)->class);
+				a = dseg_addaddress(m, ((fieldinfo *) iptr->val.a)->class);
 				M_ALD(REG_ITMP1, REG_PV, a);
-				a = dseg_addaddress(asm_check_clinit);
+				a = dseg_addaddress(m, asm_check_clinit);
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_NOP;
   			}
 
-			a = dseg_addaddress(&(((fieldinfo *) iptr->val.a)->value));
+			a = dseg_addaddress(m, &(((fieldinfo *) iptr->val.a)->value));
 			M_ALD(REG_ITMP1, REG_PV, a);
 			switch (iptr->op1) {
 			case TYPE_INT:
@@ -1911,15 +1894,15 @@ void codegen(methodinfo *m)
 			/* if class isn't yet initialized, do it */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
 				/* call helper function which patches this code */
-				a = dseg_addaddress(((fieldinfo *) iptr->val.a)->class);
+				a = dseg_addaddress(m, ((fieldinfo *) iptr->val.a)->class);
 				M_ALD(REG_ITMP1, REG_PV, a);
-				a = dseg_addaddress(asm_check_clinit);
+				a = dseg_addaddress(m, asm_check_clinit);
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_NOP;
   			}
 
-			a = dseg_addaddress(&(((fieldinfo *) iptr->val.a)->value));
+			a = dseg_addaddress(m, &(((fieldinfo *) iptr->val.a)->value));
 			M_ALD(REG_ITMP1, REG_PV, a);
 			switch (iptr->op1) {
 			case TYPE_INT:
@@ -2044,7 +2027,7 @@ void codegen(methodinfo *m)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
-			a = dseg_addaddress(asm_handle_exception);
+			a = dseg_addaddress(m, asm_handle_exception);
 			M_ALD(REG_ITMP2, REG_PV, a);
 			M_JSR(REG_ITMP2_XPC, REG_ITMP2);
 			M_NOP;
@@ -2056,7 +2039,7 @@ void codegen(methodinfo *m)
 		case ICMD_GOTO:         /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
 			M_BR(0);
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			ALIGNCODENOP;
 			break;
@@ -2064,8 +2047,8 @@ void codegen(methodinfo *m)
 		case ICMD_JSR:          /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
 
-			dseg_addtarget(BlockPtrOfPC(iptr->op1));
-			M_ALD(REG_ITMP1, REG_PV, -dseglen);
+			dseg_addtarget(m, BlockPtrOfPC(iptr->op1));
+			M_ALD(REG_ITMP1, REG_PV, -(cd->dseglen));
 			M_JSR(REG_ITMP1, REG_ITMP1);        /* REG_ITMP1 = return address */
 			M_NOP;
 			break;
@@ -2088,7 +2071,7 @@ void codegen(methodinfo *m)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_BEQZ(s1, 0);
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2097,7 +2080,7 @@ void codegen(methodinfo *m)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_BNEZ(s1, 0);
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2112,7 +2095,7 @@ void codegen(methodinfo *m)
 				ICONST(REG_ITMP2, iptr->val.i);
 				M_BEQ(s1, REG_ITMP2, 0);
 				}
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2133,7 +2116,7 @@ void codegen(methodinfo *m)
 					}
 				M_BNEZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2155,7 +2138,7 @@ void codegen(methodinfo *m)
 					M_BEQZ(REG_ITMP1, 0);
 					}
 				}
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2170,7 +2153,7 @@ void codegen(methodinfo *m)
 				ICONST(REG_ITMP2, iptr->val.i);
 				M_BNE(s1, REG_ITMP2, 0);
 				}
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2192,7 +2175,7 @@ void codegen(methodinfo *m)
 					M_BNEZ(REG_ITMP1, 0);
 					}
 				}
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2213,7 +2196,7 @@ void codegen(methodinfo *m)
 					}
 				M_BEQZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2228,7 +2211,7 @@ void codegen(methodinfo *m)
 				LCONST(REG_ITMP2, iptr->val.l);
 				M_BEQ(s1, REG_ITMP2, 0);
 				}
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2249,7 +2232,7 @@ void codegen(methodinfo *m)
 					}
 				M_BNEZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2271,7 +2254,7 @@ void codegen(methodinfo *m)
 					M_BEQZ(REG_ITMP1, 0);
 					}
 				}
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2286,7 +2269,7 @@ void codegen(methodinfo *m)
 				LCONST(REG_ITMP2, iptr->val.l);
 				M_BNE(s1, REG_ITMP2, 0);
 				}
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2308,7 +2291,7 @@ void codegen(methodinfo *m)
 					M_BNEZ(REG_ITMP1, 0);
 					}
 				}
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2329,7 +2312,7 @@ void codegen(methodinfo *m)
 					}
 				M_BEQZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2340,7 +2323,7 @@ void codegen(methodinfo *m)
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_BEQ(s1, s2, 0);
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2351,7 +2334,7 @@ void codegen(methodinfo *m)
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_BNE(s1, s2, 0);
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2362,7 +2345,7 @@ void codegen(methodinfo *m)
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_CMPLT(s1, s2, REG_ITMP1);
 			M_BNEZ(REG_ITMP1, 0);
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2373,7 +2356,7 @@ void codegen(methodinfo *m)
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_CMPGT(s1, s2, REG_ITMP1);
 			M_BNEZ(REG_ITMP1, 0);
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2384,7 +2367,7 @@ void codegen(methodinfo *m)
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_CMPGT(s1, s2, REG_ITMP1);
 			M_BEQZ(REG_ITMP1, 0);
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2395,7 +2378,7 @@ void codegen(methodinfo *m)
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_CMPLT(s1, s2, REG_ITMP1);
 			M_BEQZ(REG_ITMP1, 0);
-			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(m, BlockPtrOfPC(iptr->op1), mcodeptr);
 			M_NOP;
 			break;
 
@@ -2614,11 +2597,11 @@ void codegen(methodinfo *m)
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				s4 disp;
-				a = dseg_addaddress((void *) builtin_monitorexit);
+				a = dseg_addaddress(m, (void *) builtin_monitorexit);
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_ALD(r->argintregs[0], REG_SP, r->maxmemuse * 8); /* delay slot */
-				disp = -(s4) ((u1 *) mcodeptr - mcodebase);
+				disp = -(s4) ((u1 *) mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
 			}
 #endif
@@ -2632,11 +2615,11 @@ void codegen(methodinfo *m)
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				s4 disp;
-				a = dseg_addaddress((void *) builtin_monitorexit);
+				a = dseg_addaddress(m, (void *) builtin_monitorexit);
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_ALD(r->argintregs[0], REG_SP, r->maxmemuse * 8); /* delay slot */
-				disp = -(s4) ((u1 *) mcodeptr - mcodebase);
+				disp = -(s4) ((u1 *) mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
 			}
 #endif
@@ -2652,11 +2635,11 @@ void codegen(methodinfo *m)
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				s4 disp;
-				a = dseg_addaddress((void *) builtin_monitorexit);
+				a = dseg_addaddress(m, (void *) builtin_monitorexit);
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_ALD(r->argintregs[0], REG_SP, r->maxmemuse * 8); /* delay slot */
-				disp = -(s4) ((u1 *) mcodeptr - mcodebase);
+				disp = -(s4) ((u1 *) mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
 			}
 #endif
@@ -2689,12 +2672,12 @@ nowperformreturn:
 				M_LST(REG_RA, REG_SP, 0);
 				M_LST(REG_RESULT, REG_SP, 8);
 				M_DST(REG_FRESULT, REG_SP,16);
-				a = dseg_addaddress(m);
+				a = dseg_addaddress(m, m);
 				M_ALD(r->argintregs[0], REG_PV, a);
 				M_MOV(REG_RESULT, r->argintregs[1]);
 				M_FLTMOVE(REG_FRESULT, r->argfltregs[2]);
 				M_FMOV(REG_FRESULT, r->argfltregs[3]);
-				a = dseg_addaddress((void *) builtin_displaymethodstop);
+				a = dseg_addaddress(m, (void *) builtin_displaymethodstop);
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR (REG_RA, REG_ITMP3);
 				M_NOP;
@@ -2747,7 +2730,7 @@ nowperformreturn:
 
 			M_CMPULT_IMM(REG_ITMP1, i, REG_ITMP2);
 			M_BEQZ(REG_ITMP2, 0);
-			codegen_addreference((basicblock *) tptr[0], mcodeptr);
+			codegen_addreference(m, (basicblock *) tptr[0], mcodeptr);
 			M_ASLL_IMM(REG_ITMP1, POINTERSHIFT, REG_ITMP1);      /* delay slot*/
 
 			/* build jump table top down and use address of lowest entry */
@@ -2756,8 +2739,8 @@ nowperformreturn:
 			tptr += i;
 
 			while (--i >= 0) {
-				/* dseg_addtarget(BlockPtrOfPC(*--s4ptr)); */
-				dseg_addtarget((basicblock *) tptr[0]); 
+				/* dseg_addtarget(m, BlockPtrOfPC(*--s4ptr)); */
+				dseg_addtarget(m, (basicblock *) tptr[0]); 
 				--tptr;
 				}
 			}
@@ -2765,7 +2748,7 @@ nowperformreturn:
 			/* length of dataseg after last dseg_addtarget is used by load */
 
 			M_AADD(REG_ITMP1, REG_PV, REG_ITMP2);
-			M_ALD(REG_ITMP2, REG_ITMP2, -dseglen);
+			M_ALD(REG_ITMP2, REG_ITMP2, -(cd->dseglen));
 			M_JMP(REG_ITMP2);
 			M_NOP;
 			ALIGNCODENOP;
@@ -2792,13 +2775,13 @@ nowperformreturn:
 				val = s4ptr[0];
 				ICONST(REG_ITMP2, val);
 				M_BEQ(s1, REG_ITMP2, 0);
-				codegen_addreference((basicblock *) tptr[0], mcodeptr); 
+				codegen_addreference(m, (basicblock *) tptr[0], mcodeptr); 
 				M_NOP;
 				}
 
 			M_BR(0);
 			tptr = (void **) iptr->target;
-			codegen_addreference((basicblock *) tptr[0], mcodeptr);
+			codegen_addreference(m, (basicblock *) tptr[0], mcodeptr);
 			M_NOP;
 			ALIGNCODENOP;
 			break;
@@ -2873,7 +2856,7 @@ gen_method: {
 			case ICMD_BUILTIN3:
 			case ICMD_BUILTIN2:
 			case ICMD_BUILTIN1:
-				a = dseg_addaddress((void *) lm);
+				a = dseg_addaddress(m, (void *) lm);
 				d = iptr->op1;                                 /* return type */
 
 				M_ALD(REG_ITMP3, REG_PV, a);     /* built-in-function pointer */
@@ -2883,7 +2866,7 @@ gen_method: {
 
 			case ICMD_INVOKESTATIC:
 			case ICMD_INVOKESPECIAL:
-				a = dseg_addaddress(lm->stubroutine);
+				a = dseg_addaddress(m, lm->stubroutine);
 				d = lm->returntype;
 
 				M_ALD(REG_PV, REG_PV, a);             /* method pointer in pv */
@@ -2914,7 +2897,7 @@ gen_method: {
 
 afteractualcall:
 
-			s1 = (s4) ((u1 *) mcodeptr - mcodebase);
+			s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
 			else {
 				s4 ml = -s1, mh = 0;
@@ -2964,7 +2947,7 @@ afteractualcall:
 			classinfo *super = (classinfo*) iptr->val.a;
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-			codegen_threadcritrestart((u1*) mcodeptr - mcodebase);
+			codegen_threadcritrestart(m, (u1 *) mcodeptr - cd->mcodebase);
 #endif
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(m, iptr->dst, REG_ITMP3);
@@ -3001,16 +2984,16 @@ afteractualcall:
 					M_BEQZ(s1, 9);
 					M_NOP;
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-                    a = dseg_addaddress ((void*) super->vftbl);
+                    a = dseg_addaddress(m, (void *) super->vftbl);
                     M_ALD(REG_ITMP2, REG_PV, a);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					codegen_threadcritstart((u1*) mcodeptr - mcodebase);
+					codegen_threadcritstart(m, (u1 *) mcodeptr - cd->mcodebase);
 #endif
                     M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
                     M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
                     M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+					codegen_threadcritstop(m, (u1 *) mcodeptr - cd->mcodebase);
 #endif
                     M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
                     M_CMPULT(REG_ITMP2, REG_ITMP1, d);
@@ -3046,7 +3029,7 @@ afteractualcall:
 			classinfo *super = (classinfo*) iptr->val.a;
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-			codegen_threadcritrestart((u1*) mcodeptr - mcodebase);
+			codegen_threadcritrestart(m, (u1 *) mcodeptr - cd->mcodebase);
 #endif
 
 			d = reg_of_var(m, iptr->dst, REG_ITMP3);
@@ -3059,13 +3042,13 @@ afteractualcall:
 					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 					M_IADD_IMM(REG_ITMP2, - super->index, REG_ITMP2);
 					M_BLEZ(REG_ITMP2, 0);
-					codegen_addxcastrefs(mcodeptr);
+					codegen_addxcastrefs(m, mcodeptr);
 					M_NOP;
 					M_ALD(REG_ITMP2, REG_ITMP1,
 					      OFFSET(vftbl_t, interfacetable[0]) -
 					      super->index * sizeof(methodptr*));
 					M_BEQZ(REG_ITMP2, 0);
-					codegen_addxcastrefs(mcodeptr);
+					codegen_addxcastrefs(m, mcodeptr);
 					M_NOP;
 					}
 				else {                                     /* class           */
@@ -3089,17 +3072,17 @@ afteractualcall:
 					M_BEQZ(s1, 10 + (d == REG_ITMP3));
 					M_NOP;
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-                    a = dseg_addaddress ((void*) super->vftbl);
+                    a = dseg_addaddress(m, (void *) super->vftbl);
                     M_ALD(REG_ITMP2, REG_PV, a);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					codegen_threadcritstart((u1*) mcodeptr - mcodebase);
+					codegen_threadcritstart(m, (u1 *) mcodeptr - cd->mcodebase);
 #endif
                     M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 					if (d != REG_ITMP3) {
 						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-						codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+						codegen_threadcritstop(m, (u1 *) mcodeptr - cd->mcodebase);
 #endif
 						M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
 					} else {
@@ -3108,13 +3091,13 @@ afteractualcall:
 						M_ALD(REG_ITMP2, REG_PV, a);
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-						codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+						codegen_threadcritstop(m, (u1 *) mcodeptr - cd->mcodebase);
 #endif
 					}
                     M_CMPULT(REG_ITMP2, REG_ITMP1, REG_ITMP2);
 					M_BNEZ(REG_ITMP2, 0);
 
-					codegen_addxcastrefs(mcodeptr);
+					codegen_addxcastrefs(m, mcodeptr);
 					M_NOP;
 					}
 				}
@@ -3129,14 +3112,14 @@ afteractualcall:
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_BLTZ(s1, 0);
-			codegen_addxcheckarefs(mcodeptr);
+			codegen_addxcheckarefs(m, mcodeptr);
 			M_NOP;
 			break;
 
 		case ICMD_CHECKEXCEPTION:  /* ... ==> ...                             */
 
 			M_BEQZ(REG_RESULT, 0);
-			codegen_addxexceptionrefs(mcodeptr);
+			codegen_addxexceptionrefs(m, mcodeptr);
 			M_NOP;
 			break;
 
@@ -3150,15 +3133,15 @@ afteractualcall:
 			for (s1 = iptr->op1; --s1 >= 0; src = src->prev) {
 				var_to_reg_int(s2, src, REG_ITMP1);
 				M_BLTZ(s2, 0);
-				codegen_addxcheckarefs(mcodeptr);
+				codegen_addxcheckarefs(m, mcodeptr);
 				M_NOP;
 
 				/* copy sizes to stack (argument numbers >= INT_ARG_CNT)      */
 
 				if (src->varkind != ARGVAR) {
 					M_LST(s2, REG_SP, 8 * (s1 + INT_ARG_CNT));
-					}
 				}
+			}
 
 			/* a0 = dimension count */
 
@@ -3166,33 +3149,30 @@ afteractualcall:
 
 			/* a1 = arraydescriptor */
 
-			a = dseg_addaddress(iptr->val.a);
+			a = dseg_addaddress(m, iptr->val.a);
 			M_ALD(r->argintregs[1], REG_PV, a);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
 			M_INTMOVE(REG_SP, r->argintregs[2]);
 
-			a = dseg_addaddress((void*) builtin_nmultianewarray);
+			a = dseg_addaddress(m, (void*) builtin_nmultianewarray);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
-			s1 = (int)((u1*) mcodeptr - mcodebase);
+			s1 = (int)((u1*) mcodeptr - cd->mcodebase);
 			if (s1 <= 32768)
 				M_LDA (REG_PV, REG_RA, -s1);
 			else {
 				panic("To big");
-			    }
+			}
 			s1 = reg_of_var(m, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
 			store_reg_to_var_int(iptr->dst, s1);
 			break;
 
-
-		default: error ("Unknown pseudo command: %d", iptr->opc);
-	
-   
-
+		default:
+			error ("Unknown pseudo command: %d", iptr->opc);
 	} /* switch */
 		
 	} /* for instruction */
@@ -3230,22 +3210,21 @@ afteractualcall:
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
-	/* bptr -> mpc = (int)((u1*) mcodeptr - mcodebase); */
-
 	{
 	/* generate bound check stubs */
 
 	s4 *xcodeptr = NULL;
-	
-	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
-		gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-		                  xboundrefs->branchpos,
-						  (u1*) mcodeptr - mcodebase);
+	branchref *bref;
+
+	for (bref = cd->xboundrefs; bref != NULL; bref = bref->next) {
+		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
+		                  bref->branchpos,
+						  (u1 *) mcodeptr - cd->mcodebase);
 
 		MCODECHECK(8);
 
-		M_MOV(xboundrefs->reg, REG_ITMP1);
-		M_LADD_IMM(REG_PV, xboundrefs->branchpos - 4, REG_ITMP2_XPC);
+		M_MOV(bref->reg, REG_ITMP1);
+		M_LADD_IMM(REG_PV, bref->branchpos - 4, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
 			M_BR(xcodeptr - mcodeptr);
@@ -3257,11 +3236,11 @@ afteractualcall:
 			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
 			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			a = dseg_addaddress(string_java_lang_ArrayIndexOutOfBoundsException);
+			a = dseg_addaddress(m, string_java_lang_ArrayIndexOutOfBoundsException);
 			M_ALD(r->argintregs[0], REG_PV, a);
 			M_MOV(REG_ITMP1, r->argintregs[1]);
 
-			a = dseg_addaddress(new_exception_int);
+			a = dseg_addaddress(m, new_exception_int);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
@@ -3270,7 +3249,7 @@ afteractualcall:
 			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
 			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
 
-			a = dseg_addaddress(asm_handle_exception);
+			a = dseg_addaddress(m, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JMP(REG_ITMP3);
 			M_NOP;
@@ -3281,21 +3260,21 @@ afteractualcall:
 
 	xcodeptr = NULL;
 	
-	for (; xcheckarefs != NULL; xcheckarefs = xcheckarefs->next) {
+	for (bref = cd->xcheckarefs; bref != NULL; bref = bref->next) {
 		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
-							  xcheckarefs->branchpos,
-							  (u1*) xcodeptr - (u1*) mcodebase - 4);
+			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
+							  bref->branchpos,
+							  (u1 *) xcodeptr - cd->mcodebase - 4);
 			continue;
 		}
 
-		gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
-		                  xcheckarefs->branchpos,
-						  (u1*) mcodeptr - mcodebase);
+		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
+		                  bref->branchpos,
+						  (u1 *) mcodeptr - cd->mcodebase);
 
 		MCODECHECK(8);
 
-		M_LADD_IMM(REG_PV, xcheckarefs->branchpos - 4, REG_ITMP2_XPC);
+		M_LADD_IMM(REG_PV, bref->branchpos - 4, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
 			M_BR(xcodeptr - mcodeptr);
@@ -3307,10 +3286,10 @@ afteractualcall:
 			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
 			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			a = dseg_addaddress(string_java_lang_NegativeArraySizeException);
+			a = dseg_addaddress(m, string_java_lang_NegativeArraySizeException);
 			M_ALD(r->argintregs[0], REG_PV, a);
 
-			a = dseg_addaddress(new_exception);
+			a = dseg_addaddress(m, new_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
@@ -3319,7 +3298,7 @@ afteractualcall:
 			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
 			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
 
-			a = dseg_addaddress(asm_handle_exception);
+			a = dseg_addaddress(m, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JMP(REG_ITMP3);
 			M_NOP;
@@ -3330,21 +3309,21 @@ afteractualcall:
 
 	xcodeptr = NULL;
 	
-	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
+	for (bref = cd->xcastrefs; bref != NULL; bref = bref->next) {
 		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
-							  xcastrefs->branchpos,
-							  (u1*) xcodeptr - (u1*) mcodebase - 4);
+			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
+							  bref->branchpos,
+							  (u1 *) xcodeptr - cd->mcodebase - 4);
 			continue;
 		}
 
-		gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
-		                  xcastrefs->branchpos,
-						  (u1*) mcodeptr - mcodebase);
+		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
+		                  bref->branchpos,
+						  (u1 *) mcodeptr - cd->mcodebase);
 
 		MCODECHECK(8);
 
-		M_LADD_IMM(REG_PV, xcastrefs->branchpos - 4, REG_ITMP2_XPC);
+		M_LADD_IMM(REG_PV, bref->branchpos - 4, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
 			M_BR(xcodeptr - mcodeptr);
@@ -3356,10 +3335,10 @@ afteractualcall:
 			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
 			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			a = dseg_addaddress(string_java_lang_ClassCastException);
+			a = dseg_addaddress(m, string_java_lang_ClassCastException);
 			M_ALD(r->argintregs[0], REG_PV, a);
 
-			a = dseg_addaddress(new_exception);
+			a = dseg_addaddress(m, new_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
@@ -3368,7 +3347,7 @@ afteractualcall:
 			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
 			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
 
-			a = dseg_addaddress(asm_handle_exception);
+			a = dseg_addaddress(m, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JMP(REG_ITMP3);
 			M_NOP;
@@ -3379,21 +3358,21 @@ afteractualcall:
 
 	xcodeptr = NULL;
 
-	for (; xexceptionrefs != NULL; xexceptionrefs = xexceptionrefs->next) {
+	for (bref = cd->xexceptionrefs; bref != NULL; bref = bref->next) {
 		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xexceptionrefs->branchpos, 
-							  xexceptionrefs->branchpos,
-							  (u1*) xcodeptr - (u1*) mcodebase - 4);
+			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
+							  bref->branchpos,
+							  (u1 *) xcodeptr - cd->mcodebase - 4);
 			continue;
 		}
 
-		gen_resolvebranch((u1*) mcodebase + xexceptionrefs->branchpos, 
-		                  xexceptionrefs->branchpos,
-						  (u1*) mcodeptr - mcodebase);
+		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
+		                  bref->branchpos,
+						  (u1 *) mcodeptr - cd->mcodebase);
 
 		MCODECHECK(8);
 
-		M_LADD_IMM(REG_PV, xexceptionrefs->branchpos - 4, REG_ITMP2_XPC);
+		M_LADD_IMM(REG_PV, bref->branchpos - 4, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
 			M_BR(xcodeptr - mcodeptr);
@@ -3406,7 +3385,7 @@ afteractualcall:
 			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
 			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			a = dseg_addaddress(builtin_get_exceptionptrptr);
+			a = dseg_addaddress(m, builtin_get_exceptionptrptr);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
@@ -3415,13 +3394,13 @@ afteractualcall:
 			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
 			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
 #else
-			a = dseg_addaddress(&_exceptionptr);
+			a = dseg_addaddress(m, &_exceptionptr);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_ALD(REG_ITMP1_XPTR, REG_ITMP3, 0);
 			M_AST(REG_ZERO, REG_ITMP3, 0);
 #endif
 
-			a = dseg_addaddress(asm_handle_exception);
+			a = dseg_addaddress(m, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JMP(REG_ITMP3);
 			M_NOP;
@@ -3432,21 +3411,21 @@ afteractualcall:
 
 	xcodeptr = NULL;
 
-	for (; xnullrefs != NULL; xnullrefs = xnullrefs->next) {
+	for (bref = cd->xnullrefs; bref != NULL; bref = bref->next) {
 		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
-							  xnullrefs->branchpos,
-							  (u1*) xcodeptr - (u1*) mcodebase - 4);
+			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
+							  bref->branchpos,
+							  (u1 *) xcodeptr - cd->mcodebase - 4);
 			continue;
 		}
 
-		gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
-		                  xnullrefs->branchpos,
-						  (u1*) mcodeptr - mcodebase);
+		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
+		                  bref->branchpos,
+						  (u1 *) mcodeptr - cd->mcodebase);
 
 		MCODECHECK(8);
 
-		M_LADD_IMM(REG_PV, xnullrefs->branchpos - 4, REG_ITMP2_XPC);
+		M_LADD_IMM(REG_PV, bref->branchpos - 4, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
 			M_BR(xcodeptr - mcodeptr);
@@ -3458,10 +3437,10 @@ afteractualcall:
 			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
 			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			a = dseg_addaddress(string_java_lang_NullPointerException);
+			a = dseg_addaddress(m, string_java_lang_NullPointerException);
 			M_ALD(r->argintregs[0], REG_PV, a);
 
-			a = dseg_addaddress(new_exception);
+			a = dseg_addaddress(m, new_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
@@ -3470,7 +3449,7 @@ afteractualcall:
 			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
 			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
 
-			a = dseg_addaddress(asm_handle_exception);
+			a = dseg_addaddress(m, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JMP(REG_ITMP3);
 			M_NOP;
@@ -3478,9 +3457,9 @@ afteractualcall:
 	}
 	}
 
-	codegen_finish(m, (s4) ((u1 *) mcodeptr - mcodebase));
+	codegen_finish(m, (s4) ((u1 *) mcodeptr - cd->mcodebase));
 
-	docacheflush((void*) m->entrypoint, ((u1*) mcodeptr - mcodebase));
+	docacheflush((void*) m->entrypoint, ((u1*) mcodeptr - cd->mcodebase));
 }
 
 
