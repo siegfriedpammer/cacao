@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 768 2003-12-13 22:56:53Z twisti $
+   $Id: stack.c 786 2003-12-15 17:05:59Z edwin $
 
 */
 
@@ -1277,7 +1277,7 @@ void analyse_stack()
 								DUP_X2;
 							}
 						}
-						else
+						else {
 							REQUIRE_3;
 							if (IS_2_WORD_TYPE(curstack->prev->prev->type)) {
 								iptr->opc = ICMD_DUP2_X1;
@@ -1286,6 +1286,7 @@ void analyse_stack()
 							else {
 								DUP2_X2;
 							}
+						}
 						break;
 
 						/* pop 2 push 2 swap */
