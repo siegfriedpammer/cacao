@@ -22,8 +22,8 @@
 #define XTAPRINTcallgraph2  if(pWhenMarked>=1) { \
 	printf("\n XTA Added to Call Graph #%i:", \
 		methXTAlast); \
-	printf(" method name ="); \
-	utf_display(mi->class->name);printf("."); \
+	printf(" method name ="); fflush(stdout);\
+	utf_display(mi->class->name);printf(".");fflush(stdout); \
 	method_display(mi);fflush(stdout); \
 	}
 

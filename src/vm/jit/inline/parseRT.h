@@ -16,18 +16,18 @@ bool XTAOPTbypass3 = false;   /* print XTA classsets in stats */
 int  XTAdebug = 0; 
 int  XTAfld = 0; 
 
-int I;  	/* ASTORE /ALOAD index */
-
 int methRT = 0;            
 int methRTlast = -1;;      
 int methRTmax=MAXCALLGRAPH;        
-static methodinfo **callgraph; 
+static methodinfo **callgraph;
+/*methodinfo *callgraph[MAXCALLGRAPH];*/ 
 
  
 int methXTA = 0;            
 int methXTAlast = -1;;      
 int methXTAmax=MAXCALLGRAPH;        
-static methodinfo **XTAcallgraph;         
+static methodinfo **XTAcallgraph;
+/*methodinfo *XTAcallgraph[MAXCALLGRAPH];*/
 
 static bool nativecallcompdone=0 ;
 
@@ -216,6 +216,37 @@ for (ii=0; ii<ci->methodscount; ii++) {
 /*-------------------------------------------------------------------------------*/
 /*  XTA Functions                                                                */
 /*-------------------------------------------------------------------------------*/
+
+xtainfo * xtainfoInit (methodinfo *m) {
+
+if (m->xta != NULL) return m->xta;
+	m ->xta = (xtainfo *)malloc(sizeof(xtainfo));
+	m ->xta-> XTAmethodUsed = NOTUSED;
+	m ->xta-> XTAclassSet   = NULL;
+	/* PartClassSet */
+	m ->xta-> paramClassSet = NULL;
+	m ->xta-> calls         = NULL;
+	m ->xta-> calledBy      = NULL;
+
+	m ->xta-> marked       = NULL;
+	/*m ->xta-> markedBy     = NULL */
+	m ->xta-> fldsUsed     = NULL;
+	/*m ->xta-> interfaceCalls    = NULL*/
+	m ->xta-> chgdSinceLastParse = false;
+	return m->xta;
+}
+
+xtafldinfo * xtafldinfoInit (fieldinfo *f) {
+
+if (f->xta != NULL) return f->xta;
+
+	f ->xta = (xtafldinfo *)malloc(sizeof(xtafldinfo));
+	f -> xta-> fieldChecked = false;   /*XTA*/
+	f -> xta-> fldClassType = NULL;    /*XTA*/
+	f -> xta-> XTAclassSet = NULL;     /*XTA*/
+	return f->xta;
+
+}
 bool xtaPassParams (methodinfo *SmCalled, methodinfo *SmCalls, methSetNode *lastptrInto) {
 
 classSetNode *p;
@@ -377,12 +408,27 @@ return rc;
 /*-------------------------------------------------------------------------------*/
 void xtaAddCallEdges(methodinfo *mi, s4 monoPoly) {
 
+	if (mi->xta == NULL)
+		mi->xta = xtainfoInit(mi);
 	if (mi->xta->XTAmethodUsed  != USED) {  /* if static method not in callgraph */
 		XTAcallgraph[++methXTAlast] = mi;
 		mi->xta->XTAmethodUsed = USED;
-				XTAPRINTcallgraph2
+//				XTAPRINTcallgraph2
+
+if(pWhenMarked>=1) {  
+        printf("\n XTA Added to Call Graph #%i:", 
+                methXTAlast); 
+        printf(" method name ="); fflush(stdout);
+if (mi == NULL) panic ("Method ptr NULL!!!");
+if (mi->class == NULL) panic ("Method class ptr NULL!!!");
+if (mi->class->name == NULL) panic ("Method class name ptr NULL!!!");
+        utf_display(mi->class->name);fflush(stdout); printf(".");fflush(stdout); 
+        method_display(mi);fflush(stdout); 
+        }
+
 		}
 	/* add call edges */
+printf("AA1 "); fflush(stdout);
 	rt_method->xta->calls = add2MethSet(rt_method->xta->calls, mi);
 	rt_method->xta->calls->tail->monoPoly = monoPoly;
 	mi->xta->calledBy     = add2MethSet(mi->xta->calledBy,     rt_method); 
@@ -415,12 +461,16 @@ void xtaMarkMethod(classinfo *class, methodinfo *topmethod, classSetNode *subtyp
 {
   methodinfo *submeth;
 
-/****
   utf *name = topmethod -> name;
   utf *descriptor = topmethod -> descriptor;
-printf("xtaMarkMethod for:"); utf_display(class->name);fflush(stdout);
+/****
+printf("xtaMarkMethod for:"); utf_display(class->name);fflush(stdout); 
   method_display(topmethod);
+**/
+
   submeth = class_resolvemethod(class, name, descriptor);
+
+/***
 printf(" def: "); utf_display(submeth->class->name);fflush(stdout);
   method_display(submeth);
 ****/
@@ -428,6 +478,8 @@ printf(" def: "); utf_display(submeth->class->name);fflush(stdout);
   /* Basic checks */
   if (submeth == NULL)
         panic("parse XTA: Method not found in class hierarchy");
+  if (submeth->xta == NULL) 
+	submeth->xta = xtainfoInit(submeth);
 
   if (rt_method->xta->calls != NULL) {
 	if (inMethSet(rt_method->xta->calls->head,submeth)) return;
@@ -1037,6 +1089,8 @@ static void parseRT()
 				/*--- XTA ---*/
 				if   ((XTAOPTbypass) || (opt_xta))
 				{
+				if (fi->xta == NULL)
+					fi->xta = xtafldinfoInit(fi);
 				if (xtaAddFldClassTypeInfo(fi)) {  
 					rt_method->xta->fldsUsed = add2FldSet(rt_method->xta->fldsUsed, fi, true,false);
 					}
@@ -1062,6 +1116,8 @@ static void parseRT()
 				/*--- XTA ---*/
 				if  ((XTAOPTbypass) || (opt_xta) ) 
 				{
+				if (fi->xta == NULL)
+					fi->xta = xtafldinfoInit(fi);
 				if (xtaAddFldClassTypeInfo(fi)) {
 					rt_method->xta->fldsUsed = add2FldSet(rt_method->xta->fldsUsed, fi, false, true);
 					}
@@ -1399,7 +1455,7 @@ if (firstCall) {
 		fflush(rtMissed);
 		fclose(rtMissed);
 		}
-	callgraph = MNEW (methodinfo*, MAXCALLGRAPH);
+	callgraph = MNEW (methodinfo*, MAXCALLGRAPH);   /****/
    	if ((XTAOPTbypass) || (opt_xta)) {
 		printf("XTAXTA  CALLGRAPHS allocated\n");
 		XTAcallgraph = MNEW (methodinfo*, MAXCALLGRAPH);
@@ -1429,8 +1485,11 @@ else {
 		fflush(rtMissed);
 		fclose(rtMissed);
 		}
-	if (AfterMain) 
-		panic("Method missed by static analysis Main parse. See rtMissed file");
+	if (AfterMain) {
+		printf("#%i : ",methRT);
+		printf("Method missed by static analysis Main parse. See rtMissed file");
+	/***	panic ("Method missed by static analysis Main parse. See rtMissed file");**/
+		}
 	}
 
 	/* At moment start RTA before main when parsed                      */
@@ -1497,7 +1556,6 @@ void RT_jit_parse(methodinfo *m)
         callgraph[++methRTlast] = m;          /*-- RTA --*/
 	m->methodUsed = USED;
 			RTAPRINT11addedtoCallgraph 
-
 	/* <init> then like a new class so add marked methods to callgraph */
 	if (m->name == INIT)  {  /* need for <init>s parsed efore Main */
   	  classinfo *ci;
@@ -1514,6 +1572,9 @@ void RT_jit_parse(methodinfo *m)
 	/*-- XTA --*/
    	if ((XTAOPTbypass) || (opt_xta)) {
                 XTAcallgraph[++methXTAlast] = m;
+	        if (m->xta == NULL) {
+			m->xta = xtainfoInit(m);
+			}
                 m->xta->XTAmethodUsed = USED;
 			{methodinfo *mi = m;
 			XTAPRINTcallgraph2
@@ -1560,7 +1621,7 @@ void RT_jit_parse(methodinfo *m)
 		/*--- XTA round 2+ "parse" - use info structures only so not a real parse */
 		XTA_jit_parse2(m);
 		}
-
+/**** DO NOT free if RTA or XTA for now
 if (m->name == utf_MAIN) {
 	MFREE(callgraph,methodinfo*,MAXCALLGRAPH);
    	if ((XTAOPTbypass) || (opt_xta)) {
@@ -1568,6 +1629,7 @@ if (m->name == utf_MAIN) {
 		MFREE(XTAcallgraph,methodinfo*,MAXCALLGRAPH);
 		}
 	}
+****/
 
 return;
 }

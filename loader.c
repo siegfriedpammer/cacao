@@ -780,14 +780,7 @@ static void field_load (fieldinfo *f, classinfo *c)
 	f -> descriptor = class_getconstant (c, suck_u2(), CONSTANT_Utf8); /* JavaVM descriptor           */
 	f -> type = jtype = desc_to_type (f->descriptor);		   /* data type                   */
 	f -> offset = 0;						   /* offset from start of object */
-	if (opt_xta) { 
-		f ->xta = (xtafldinfo *)malloc(sizeof(xtafldinfo));
-		f -> xta-> fieldChecked = false;   /*XTA*/
-		f -> xta-> fldClassType = NULL;    /*XTA*/
-		f -> xta-> XTAclassSet = NULL;     /*XTA*/
-		}
-	else
-		f->xta = NULL;
+	f->xta = NULL;
 	
 	switch (f->type) {
 	case TYPE_INT:        f->value.i = 0; break;
@@ -934,24 +927,7 @@ static void method_load (methodinfo *m, classinfo *c)
 	m -> subRedefs = 0;
 	m -> subRedefsUsed = 0;
 
-	/* --- XTA --- */
-	if (opt_xta) { 
-		m ->xta = (xtainfo *)malloc(sizeof(xtainfo));
-		m ->xta-> XTAmethodUsed = NOTUSED;
-		m ->xta-> XTAclassSet  	= NULL; 
-		/* PartClassSet */
-		m ->xta-> paramClassSet	= NULL;
-		m ->xta-> calls        	= NULL;
-		m ->xta-> calledBy     	= NULL;
-
-		m ->xta-> marked       = NULL; 
-		/*m ->xta-> markedBy     = NULL */
-		m ->xta-> fldsUsed     = NULL;
-		/*m ->xta-> interfaceCalls    = NULL*/
-		m ->xta-> chgdSinceLastParse = false;
-	}	
-	else
-		m->xta = NULL;
+	m->xta = NULL;
 	
 	if (! (m->flags & ACC_NATIVE) ) {
 		m -> stubroutine = createcompilerstub (m);
