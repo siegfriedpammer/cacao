@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 963 2004-03-15 07:37:49Z jowenn $
+   $Id: loader.c 972 2004-03-24 22:48:01Z edwin $
 
 */
 
@@ -1751,9 +1751,11 @@ static int class_load(classinfo *c)
 	/* check version */
 	mi = suck_u2();
 	ma = suck_u2();
+#if 0
 	if (ma != MAJOR_VERSION && (ma != MAJOR_VERSION+1 || mi != 0)) {
 		error("File version %d.%d is not supported", (int) ma, (int) mi);
 	}
+#endif
 
 	class_loadcpool(c);
 	/*JOWENN*/
@@ -2598,6 +2600,74 @@ fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc)
 }
 
 
+/****************** Function: class_resolvefield_int ***************************
+
+    This is an internally used helper function. Do not use this directly.
+
+	Tries to resolve a field having the given name and type.
+    If the field cannot be resolved, NULL is returned.
+
+*******************************************************************************/
+
+static
+fieldinfo *class_resolvefield_int(classinfo *c, utf *name, utf *desc)
+{
+	s4 i;
+	fieldinfo *fi;
+
+	/* search for field in class c */
+	for (i = 0; i < c->fieldscount; i++) { 
+		if ((c->fields[i].name == name) && (c->fields[i].descriptor == desc)) 
+			return &(c->fields[i]);					   			
+    }
+
+	/* try superinterfaces recursively */
+	for (i=0; i<c->interfacescount; ++i) {
+		fi = class_resolvefield_int(c->interfaces[i],name,desc);
+		if (fi)
+			return fi;
+	}
+
+	/* try superclass */
+	if (c->super)
+		return class_resolvefield_int(c->super,name,desc);
+
+	/* not found */
+	return NULL;
+}
+
+
+/********************* Function: class_resolvefield ***************************
+	
+	Resolves a reference from REFERER to a field with NAME and DESC in class C.
+    If the field cannot be resolved this function panics.
+
+*******************************************************************************/
+
+fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
+							  classinfo *referer)
+{
+	fieldinfo *fi;
+
+	/* XXX resolve class c */
+	/* XXX check access from REFERER to C */
+	
+	fi = class_resolvefield_int(c,name,desc);
+
+	if (!fi) {
+		log_utf(c->name);
+		log_utf(name);
+		log_utf(desc);
+		panic("Cannot find field given in CONSTANT_Fieldref");
+		/* XXX should throw NoSuchFieldError */
+	}
+
+	/* XXX check access rights */
+
+	return fi;
+}
+
+
 /************************* Function: class_findmethod **************************
 	
 	Searches a 'classinfo' structure for a method having the given name and
@@ -2879,6 +2949,113 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *desc)
 	}
 
 	return NULL;
+}
+
+
+/****************** Function: class_resolveinterfacemethod_int ****************
+
+    Internally used helper function. Do not use this directly.
+
+*******************************************************************************/
+
+static
+methodinfo *class_resolveinterfacemethod_int(classinfo *c, utf *name, utf *desc)
+{
+	methodinfo *mi;
+	int i;
+	
+	mi = class_findmethod(c,name,desc);
+	if (mi)
+		return mi;
+
+	/* try the superinterfaces */
+	for (i=0; i<c->interfacescount; ++i) {
+		mi = class_resolveinterfacemethod_int(c->interfaces[i],name,desc);
+		if (mi)
+			return mi;
+	}
+	
+	return NULL;
+}
+
+/******************** Function: class_resolveinterfacemethod ******************
+
+    Resolves a reference from REFERER to a method with NAME and DESC in
+    interface C.
+
+*******************************************************************************/
+
+methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
+										 classinfo *referer)
+{
+	methodinfo *mi;
+
+	/* XXX resolve class c */
+	/* XXX check access from REFERER to C */
+	
+	if ((c->flags & ACC_INTERFACE) == 0)
+		return NULL; /* should throw IncompatibleClassChangeError */
+
+	mi = class_resolveinterfacemethod_int(c,name,desc);
+	if (mi)
+		goto found;
+
+	/* try class java.lang.Object */
+	mi = class_findmethod(class_java_lang_Object,name,desc);
+	if (mi)
+		goto found;
+
+	return NULL; /* should throw NoSuchMethodError */
+
+ found:
+	return mi;
+}
+
+/********************* Function: class_resolveclassmethod *********************
+	
+    Resolves a reference from REFERER to a method with NAME and DESC in
+    class C.
+
+*******************************************************************************/
+
+methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
+									 classinfo *referer)
+{
+	methodinfo *mi;
+	int i;
+	classinfo *cls;
+	
+	/* XXX resolve class c */
+	/* XXX check access from REFERER to C */
+	
+	if ((c->flags & ACC_INTERFACE) != 0)
+		return NULL; /* should throw IncompatibleClassChangeError */
+
+	/* try class c and its superclasses */
+	cls = c;
+	do {
+		mi = class_findmethod(cls,name,desc);
+		if (mi)
+			goto found;
+	} while ((cls = cls->super) != NULL); /* try the superclass */
+
+	/* try the superinterfaces */
+	for (i=0; i<c->interfacescount; ++i) {
+		mi = class_resolveinterfacemethod_int(c->interfaces[i],name,desc);
+		if (mi)
+			goto found;
+	}
+	
+	return NULL; /* should throw NoSuchMethodError */
+
+ found:
+	if ((mi->flags & ACC_ABSTRACT) != 0 &&
+		(c->flags & ACC_ABSTRACT) == 0)
+		return NULL; /* should throw AbstractMethodError */
+
+	/* XXX check access rights */
+
+	return mi;
 }
 
 
