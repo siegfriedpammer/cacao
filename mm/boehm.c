@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 1144 2004-06-05 23:53:56Z twisti $
+   $Id: boehm.c 1226 2004-06-30 19:26:39Z twisti $
 
 */
 
@@ -34,7 +34,7 @@
 #define GC_LINUX_THREADS
 #endif
 
-#include "main.h"
+#include "options.h"
 #include "boehm.h"
 #include "global.h"
 #include "native.h"
