@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1680 2004-12-04 12:02:08Z jowenn $
+   $Id: VMRuntime.c 1685 2004-12-05 22:57:53Z jowenn $
 
 */
 
@@ -446,7 +446,25 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 #if defined(STATIC_CLASSPATH)
 	insert_property(m, p, "java.library.path" , ".");
 #else
-	insert_property(m, p, "java.library.path" , getenv("LD_LIBRARY_PATH"));
+	{
+		char *libpath;
+		size_t libpathlen=0;
+		libpathlen=strlen(INSTALL_PREFIX"/lib/classpath")+1;
+		if (getenv("CACAO_LIB_OVERRIDE")) libpathlen=libpathlen+strlen(getenv("CACAO_LIB_OVERRIDE"))+1;
+		if (getenv("LD_LIBRARY_PATH")) libpathlen=libpathlen+strlen(getenv("LD_LIBRARY_PATH"))+1;
+		libpath=(char*)malloc(libpathlen);
+		libpath[0]=0;
+		if (getenv("CACAO_LIB_OVERRIDE")) {
+			strcat(libpath,getenv("CACAO_LIB_OVERRIDE"));
+			strcat(libpath,":");
+		}
+		strcat(libpath,INSTALL_PREFIX"/lib/classpath");
+		if (getenv("LD_LIBRARAY_PATH")) {
+			strcat(libpath,":");
+			strcat(libpath,getenv("LD_LIBRARY_PATH"));
+		}
+		insert_property(m, p, "java.library.path" , libpath);
+	}
 #endif
 	insert_property(m, p, "java.io.tmpdir", "/tmp");
 	insert_property(m, p, "java.compiler", "cacao.jit");

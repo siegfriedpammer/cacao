@@ -36,7 +36,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1657 2004-12-03 15:27:32Z twisti $
+   $Id: cacao.c 1685 2004-12-05 22:57:53Z jowenn $
 
 */
 
@@ -308,8 +308,8 @@ int main(int argc, char **argv)
 	/************ Collect info from the environment ************************/
 
 	/* set an initial, minimal classpath */
-	classpath = MNEW(char, 2);
-	strcpy(classpath, ".");
+	classpath = MNEW(char, strlen(INSTALL_PREFIX"/share/classpath/glibj.zip:.")+1);
+	strcpy(classpath,INSTALL_PREFIX"/share/classpath/glibj.zip:.");
 
 	/* get classpath environment */
 	cp = getenv("CLASSPATH");
