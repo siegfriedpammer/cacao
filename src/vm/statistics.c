@@ -1,4 +1,4 @@
-/* statistics.c - global varables for statistics
+/* vm/statistics.c - global varables for statistics
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,17 +26,18 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: statistics.c 1751 2004-12-13 08:27:03Z twisti $
 
 */
 
 
 #include <sys/time.h>
 #include <sys/resource.h>
-#include "global.h"
-#include "statistics.h"
+
 #include "toolbox/logging.h"
-#include "options.h"
+#include "vm/global.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
 
 
 /* global variables */

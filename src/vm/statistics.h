@@ -1,4 +1,4 @@
-/* statistics.h - exports global varables for statistics
+/* vm/statistics.h - exports global varables for statistics
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: statistics.h 1751 2004-12-13 08:27:03Z twisti $
 
 */
 
@@ -35,10 +35,10 @@
 #define _STATISTICS_H
 
 
-#include "global.h"
+#include "vm/global.h"
 
 
-/* global variables */
+/* global variables ***********************************************************/
 
 extern s4 memoryusage;
 extern s4 maxmemusage;
@@ -107,7 +107,7 @@ extern int *count_store_length;
 extern int *count_store_depth;
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 s8 getcputime();
 
