@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2021 2005-03-09 12:06:52Z twisti $
+## $Id: Makefile.am 2082 2005-03-25 14:05:04Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -70,6 +70,14 @@ libvmcore_la_SOURCES = \
 	tables.h \
 	utf8.c \
 	utf8.h \
+	descriptor.c \
+	descriptor.h \
+	access.c \
+	access.h \
+	classcache.c \
+	classcache.h \
+	resolve.c \
+	resolve.h \
 	$(ZLIB_OBJ)
 
 libvm_la_SOURCES =
