@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2022 2005-03-09 12:07:57Z twisti $
+   $Id: cacao.c 2067 2005-03-23 11:55:16Z twisti $
 
 */
 
@@ -107,7 +107,11 @@ void **stackbottom = 0;
 #define OPT_NOIEEE           10
 #define OPT_SOFTNULL         11
 #define OPT_TIME             12
+
+#if defined(STATISTICS)
 #define OPT_STAT             13
+#endif /* defined(STATISTICS) */
+
 #define OPT_LOG              14
 #define OPT_CHECK            15
 #define OPT_LOAD             16
@@ -123,7 +127,7 @@ void **stackbottom = 0;
 # define OPT_RT              26
 # define OPT_XTA             27 
 # define OPT_VTA             28
-#endif /* STATIC_ANALYSIS */
+#endif /* defined(STATIC_ANALYSIS) */
 
 #define OPT_VERBOSETC        29
 #define OPT_NOVERIFY         30
@@ -133,7 +137,7 @@ void **stackbottom = 0;
 
 #if defined(LSRA)
 # define OPT_LSRA            34
-#endif /* LSRA */
+#endif /* defined(LSRA) */
 
 #define OPT_JAR              35
 #define OPT_BOOTCLASSPATH    36
@@ -456,11 +460,23 @@ int main(int argc, char **argv)
 		strcpy(bootclasspath, cp);
 
 	} else {
+#if !defined(WITH_EXTERNAL_CLASSPATH)
 		cplen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH);
 
 		bootclasspath = MNEW(char, cplen + 1);
 		strcpy(bootclasspath, CACAO_INSTALL_PREFIX);
 		strcat(bootclasspath, CACAO_RT_JAR_PATH);
+#else
+		cplen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_VM_ZIP_PATH) +
+			strlen(EXTERNAL_CLASSPATH_PREFIX) + strlen(CLASSPATH_GLIBJ_ZIP_PATH);
+
+		bootclasspath = MNEW(char, cplen + 1 + 1);
+		strcpy(bootclasspath, CACAO_INSTALL_PREFIX);
+		strcat(bootclasspath, CACAO_VM_ZIP_PATH);
+		strcat(bootclasspath, ":");
+		strcat(bootclasspath, EXTERNAL_CLASSPATH_PREFIX);
+		strcat(bootclasspath, CLASSPATH_GLIBJ_ZIP_PATH);
+#endif
 	}
 
 
@@ -815,6 +831,10 @@ int main(int argc, char **argv)
 	/* Get the default initialization arguments and set the class path */
 
 	JNI_GetDefaultJavaVMInitArgs(&vm_args);
+
+	vm_args.minHeapSize = heapstartsize;
+	vm_args.maxHeapSize = heapmaxsize;
+
 	vm_args.classpath = classpath;
  
 	/* load and initialize a Java VM, return a JNI interface pointer in env */
@@ -828,10 +848,9 @@ int main(int argc, char **argv)
 
 	tables_init();
 
-	/* initialize the loader with bootclasspath and append classpath entries */
+	/* initialize the loader with bootclasspath */
 
 	suck_init(bootclasspath);
-	suck_init(classpath);
 
 	cacao_initializing = true;
 
@@ -908,8 +927,8 @@ int main(int argc, char **argv)
 		/* get `loadClass' method */
 
 		m = class_resolveclassmethod(cl->header.vftbl->class,
-									 utf_new_char("loadClass"),
-									 utf_new_char("(Ljava/lang/String;)Ljava/lang/Class;"),
+									 utf_loadClass,
+									 utf_java_lang_String__java_lang_Class,
 									 class_java_lang_Object,
 									 false);
 
