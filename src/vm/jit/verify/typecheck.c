@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 720 2003-12-08 14:44:40Z edwin $
+   $Id: typecheck.c 723 2003-12-08 19:51:32Z edwin $
 
 */
 
@@ -1379,6 +1379,7 @@ typecheck()
                                   srcstack = srcstack->prev;
                               }
 
+							  LOG("checking return type");
                               if (rtype != TYPE_VOID) {
                                   if (rtype != dst->type)
                                       panic("Return type mismatch in method invocation");
@@ -1386,6 +1387,7 @@ typecheck()
                               }
 
                               if (callinginit) {
+								  LOG("replacing uninitialized object");
                                   /* replace uninitialized object type on stack */
                                   srcstack = dst;
                                   while (srcstack) {

@@ -292,7 +292,7 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_java_lang_VMClass_getFiel
 	}
 
       desc = f->descriptor;
-      fieldtype = class_from_descriptor(desc->text,utf_end(desc),NULL,true);
+      fieldtype = class_from_descriptor(desc->text,utf_end(desc),NULL,CLASSLOAD_LOAD);
       if (!fieldtype) return NULL;
 	 
       /* initialize instance fields */

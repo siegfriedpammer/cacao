@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loging.h 710 2003-12-07 19:05:12Z twisti $
+   $Id: loging.h 723 2003-12-08 19:51:32Z edwin $
 
 */
 
@@ -47,6 +47,8 @@
 void log_init(char *fname);
 void log_text(char *txt);
 void log_plain(char *txt); /* same as log_text without "LOG: " and newline */
+void log_flush();          /* fflush logfile */
+void log_nl();             /* newline and fflush */
 
 void log_cputime();
 

@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 719 2003-12-08 14:26:05Z edwin $
+   $Id: typeinfo.c 723 2003-12-08 19:51:32Z edwin $
 
 */
 
@@ -254,102 +254,41 @@ typeinfo_init_from_descriptor(typeinfo *info,char *utf_ptr,char *end_ptr)
     char *end;
 
     /* XXX simplify */
-    cls = class_from_descriptor(utf_ptr,end_ptr,&end,CLASSLOAD_NEW);
+    cls = class_from_descriptor(utf_ptr,end_ptr,&end,
+								CLASSLOAD_NULLPRIMITIVE
+								| CLASSLOAD_NEW
+								| CLASSLOAD_NOVOID
+								| CLASSLOAD_CHECKEND);
 
-    if (!cls)
-        panic("Invalid descriptor.");
-
-    switch (*utf_ptr) {
-      case 'L':
-      case '[':
-          /* a class, interface or array descriptor */
-          TYPEINFO_INIT_CLASSINFO(*info,cls);
-          break;
-      default:
-          /* a primitive type */
-          TYPEINFO_INIT_PRIMITIVE(*info);
-    }
-
-    /* exceeding characters */        	
-    if (end!=end_ptr) panic ("descriptor has exceeding chars");
+	if (cls)
+		/* a class, interface or array descriptor */
+		TYPEINFO_INIT_CLASSINFO(*info,cls);
+	else
+		/* a primitive type */
+		TYPEINFO_INIT_PRIMITIVE(*info);
 }
 
-/* XXX delete or use SKIP_FIELDDESCRIPTOR_SAFE */
 int
 typeinfo_count_method_args(utf *d,bool twoword)
 {
     int args = 0;
     char *utf_ptr = d->text;
     char *end_pos = utf_end(d);
-    char c,ch;
+    char c;
 
     /* method descriptor must start with parenthesis */
     if (*utf_ptr++ != '(') panic ("Missing '(' in method descriptor");
 
+	
     /* check arguments */
-    while ((c = *utf_ptr++) != ')') {
-        switch (c) {
-          case 'B':
-          case 'C':
-          case 'I':
-          case 'S':
-          case 'Z':  
-          case 'F':  
-              /* primitive one-word type */
-              args++;
-              break;
-              
-          case 'J':  
-          case 'D':
-              /* primitive two-word type */
-              args++;
-              if (twoword) args++;
-              break;
-              
-          case 'L':
-              /* skip classname */
-              while ( *utf_ptr++ != ';' )
-                  if (utf_ptr>=end_pos) 
-                      panic ("Missing ';' in objecttype-descriptor");
-              
-              args++;
-              break;
-              
-          case '[' :
-              /* array type */ 
-              while ((ch = *utf_ptr++)=='[') 
-                  /* skip */ ;
-              
-              /* component type of array */
-              switch (ch) {
-                case 'B':
-                case 'C':
-                case 'I':
-                case 'S':
-                case 'Z':  
-                case 'J':  
-                case 'F':  
-                case 'D':
-                    /* primitive type */  
-                    break;
-                    
-                case 'L':
-                    /* skip classname */
-                    while ( *utf_ptr++ != ';' )
-                        if (utf_ptr>=end_pos) 
-                            panic ("Missing ';' in objecttype-descriptor");
-                    break;
-                    
-                default:   
-                    panic ("Ill formed methodtype-descriptor");
-              }
-              
-              args++;
-              break;
-              
-          default:   
-              panic ("Ill formed methodtype-descriptor");
-        }			
+    while ((c = *utf_ptr) != ')') {
+		class_from_descriptor(utf_ptr,end_pos,&utf_ptr,
+							  CLASSLOAD_SKIP | CLASSLOAD_NOVOID
+							  | CLASSLOAD_NULLPRIMITIVE);
+		args++;
+		if (twoword && (c == 'J' || c == 'D'))
+			/* primitive two-word type */
+			args++;
     }
 
     return args;
@@ -362,124 +301,52 @@ typeinfo_init_from_method_args(utf *desc,u1 *typebuf,typeinfo *infobuf,
 {
     char *utf_ptr = desc->text;     /* current position in utf text   */
     char *end_pos = utf_end(desc);  /* points behind utf string       */
-    char c;
     int args = 0;
     classinfo *cls;
 
     /* method descriptor must start with parenthesis */
-    if (*utf_ptr++ != '(') panic ("Missing '(' in method descriptor");
+    if (utf_ptr == end_pos || *utf_ptr++ != '(') panic ("Missing '(' in method descriptor");
 
     /* check arguments */
-    while ((c = *utf_ptr) != ')') {
-        /* XXX simplify */
-        cls = class_from_descriptor(utf_ptr,end_pos,&utf_ptr,CLASSLOAD_NEW);
-        if (!cls)
-            panic("Invalid method descriptor.");
+    while (utf_ptr != end_pos && *utf_ptr != ')') {
+		if (++args > buflen)
+			panic("Buffer too small for method arguments.");
+		
+        *typebuf++ = type_from_descriptor(&cls,utf_ptr,end_pos,&utf_ptr,
+										  CLASSLOAD_NEW
+										  | CLASSLOAD_NULLPRIMITIVE
+										  | CLASSLOAD_NOVOID);
+		
+		if (cls)
+			TYPEINFO_INIT_CLASSINFO(*infobuf,cls);
+		else {
+			TYPEINFO_INIT_PRIMITIVE(*infobuf);
+		}
+		infobuf++;
 
-        switch (c) {
-          case 'B':
-          case 'C':
-          case 'I':
-          case 'S':
-          case 'Z':  
-          case 'F':  
-              /* primitive one-word type */
-              if (++args > buflen)
-                  panic("Buffer too small for method arguments.");
-              if (typebuf)
-                  *typebuf++ = (c == 'F') ? TYPE_FLOAT : TYPE_INT; /* XXX TYPE_FLT? */
-              TYPEINFO_INIT_PRIMITIVE(*infobuf);
-              infobuf++;
-              break;
-              
-          case 'J':  
-          case 'D':
-              /* primitive two-word type */
-              if (++args > buflen)
-                  panic("Buffer too small for method arguments.");
-              if (typebuf)
-                  *typebuf++ = (c == 'J') ? TYPE_LONG : TYPE_DOUBLE; /* XXX TYPE_DBL? */
-              TYPEINFO_INIT_PRIMITIVE(*infobuf);
-              infobuf++;
-              if (twoword) {
-                  if (++args > buflen)
-                      panic("Buffer too small for method arguments.");
-                  if (typebuf)
-                      *typebuf++ = TYPE_VOID;
-                  TYPEINFO_INIT_PRIMITIVE(*infobuf);
-                  infobuf++;
-              }
-              break;
-              
-          case 'L':
-          case '[' :
-              /* reference type */
-              
-              if (++args > buflen)
-                  panic("Buffer too small for method arguments.");
-              if (typebuf)
-                  *typebuf++ = TYPE_ADDRESS;
-              
-              TYPEINFO_INIT_CLASSINFO(*infobuf,cls);
-              infobuf++;
-              break;
-	   
-          default:   
-              panic ("Ill formed methodtype-descriptor (type)");
-        }
+		if (twoword && (typebuf[-1] == TYPE_LONG || typebuf[-1] == TYPE_DOUBLE)) {
+			if (++args > buflen)
+				panic("Buffer too small for method arguments.");
+			*typebuf++ = TYPE_VOID;
+			TYPEINFO_INIT_PRIMITIVE(*infobuf);
+			infobuf++;
+		}
     }
     utf_ptr++; /* skip ')' */
 
     /* check returntype */
     if (returntype) {
-        switch (*utf_ptr) {
-          case 'B':
-          case 'C':
-          case 'I':
-          case 'S':
-          case 'Z':
-              *returntype = TYPE_INT;
-              goto primitive_tail;
-              
-          case 'J':
-              *returntype = TYPE_LONG;
-              goto primitive_tail;
-              
-          case 'F':  
-              *returntype = TYPE_FLOAT;
-              goto primitive_tail;
-              
-          case 'D':
-              *returntype = TYPE_DOUBLE;
-              goto primitive_tail;
-
-          case 'V':
-              *returntype = TYPE_VOID;
-      primitive_tail:
-              if ((utf_ptr+1) != end_pos)
-                  panic ("Method-descriptor has exceeding chars");
-              if (returntypeinfo) {
-                  TYPEINFO_INIT_PRIMITIVE(*returntypeinfo);
-              }
-              break;
-
-          case 'L':
-          case '[':
-              *returntype = TYPE_ADDRESS;
-              cls = class_from_descriptor(utf_ptr,end_pos,&utf_ptr,CLASSLOAD_NEW);
-              if (!cls)
-                  panic("Invalid return type");
-              if (utf_ptr != end_pos)
-                  panic ("Method-descriptor has exceeding chars");
-              if (returntypeinfo) {
-                  TYPEINFO_INIT_CLASSINFO(*returntypeinfo,cls);
-              }
-              break;
-
-          default:   
-              panic ("Ill formed methodtype-descriptor (returntype)");
-        }
-    }
+		*returntype = type_from_descriptor(&cls,utf_ptr,end_pos,&utf_ptr,
+										   CLASSLOAD_NULLPRIMITIVE
+										   | CLASSLOAD_NEW
+										   | CLASSLOAD_CHECKEND);
+		if (returntypeinfo) {
+			if (cls)
+				TYPEINFO_INIT_CLASSINFO(*returntypeinfo,cls);
+			else
+				TYPEINFO_INIT_PRIMITIVE(*returntypeinfo);
+		}
+	}
 }
 
 void

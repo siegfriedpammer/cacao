@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loging.c 701 2003-12-07 16:26:58Z edwin $
+   $Id: loging.c 723 2003-12-08 19:51:32Z edwin $
 
 */
 
@@ -134,6 +134,20 @@ FILE *get_logfile()
 	return (logfile) ? logfile : stdout;
 }
 
+/****************** Function: log_flush *********************************/
+
+void log_flush()
+{
+	fflush(get_logfile());
+}
+
+/********************* Function: log_nl *********************************/
+
+void log_nl()
+{
+	log_plain("\n");
+	fflush(get_logfile());
+}
 
 /********************* Function: log_cputime ****************************/
 

@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 719 2003-12-08 14:26:05Z edwin $
+   $Id: loader.c 723 2003-12-08 19:51:32Z edwin $
 
 */
 
@@ -606,6 +606,12 @@ static void attribute_load (u4 num, classinfo *c)
 
 static void checkfielddescriptor (char *utf_ptr, char *end_pos)
 {
+	class_from_descriptor(utf_ptr,end_pos,NULL,
+						  CLASSLOAD_NEW
+						  | CLASSLOAD_NULLPRIMITIVE
+						  | CLASSLOAD_NOVOID
+						  | CLASSLOAD_CHECKEND);
+#if 0
 	char *tstart;  /* pointer to start of classname */
 	char ch;
 	char *start = utf_ptr;
@@ -634,6 +640,7 @@ static void checkfielddescriptor (char *utf_ptr, char *end_pos)
 	
 	/* exceeding characters */        	
 	if (utf_ptr!=end_pos) panic ("descriptor has exceeding chars");
+#endif
 }
 
 
@@ -648,14 +655,27 @@ static void checkmethoddescriptor (utf *d)
 {
 	char *utf_ptr = d->text;     /* current position in utf text   */
 	char *end_pos = utf_end(d);  /* points behind utf string       */
-	char *tstart;                /* pointer to start of classname  */
-	char c,ch;
-	char *start;
 
 	/* method descriptor must start with parenthesis */
-	/* XXX check length */
-	if (*utf_ptr++ != '(') panic ("Missing '(' in method descriptor");
+	if (utf_ptr == end_pos || *utf_ptr++ != '(') panic ("Missing '(' in method descriptor");
 
+    /* check arguments */
+    while (utf_ptr != end_pos && *utf_ptr != ')') {
+		class_from_descriptor(utf_ptr,end_pos,&utf_ptr,
+							  CLASSLOAD_NEW
+							  | CLASSLOAD_NULLPRIMITIVE
+							  | CLASSLOAD_NOVOID);
+	}
+
+	if (utf_ptr == end_pos) panic("Missing return type in method descriptor");
+    utf_ptr++; /* skip ')' */
+
+	class_from_descriptor(utf_ptr,end_pos,NULL,
+						  CLASSLOAD_NEW
+						  | CLASSLOAD_NULLPRIMITIVE
+						  | CLASSLOAD_CHECKEND);
+	
+#if 0
 	/* XXX check length */
 	/* check arguments */
 	while ((c = *utf_ptr++) != ')') {
@@ -692,6 +712,7 @@ static void checkmethoddescriptor (utf *d)
 	else
 		/* treat as field-descriptor */
 		checkfielddescriptor (utf_ptr,end_pos);
+#endif
 }
 
 /***************** Function: print_arraydescriptor ****************************
@@ -1629,6 +1650,7 @@ class_new_array(classinfo *c)
 
 	/* Setup the array class */
 	c->super = class_java_lang_Object;
+	c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
 
     c->interfacescount = 2;
     c->interfaces = MNEW(classinfo*,2); /* XXX use GC? */
@@ -2871,38 +2893,136 @@ classinfo *class_primitive_from_sig(char sig)
     utf_ptr....first character of descriptor
     end_ptr....first character after the end of the string
     next.......if non-NULL, *next is set to the first character after
-               the descriptor
-    mode.......what to do if a class descriptor is parsed successfully:
+               the descriptor. (Undefined if an error occurs.)
+
+    mode.......a combination (binary or) of the following flags:
+
+               (Flags marked with * are the default settings.)
+
+               What to do if a reference type descriptor is parsed successfully:
+
                    CLASSLOAD_SKIP...skip it and return something != NULL
-                   CLASSLOAD_NEW....get classinfo * via class_new
+				 * CLASSLOAD_NEW....get classinfo * via class_new
                    CLASSLOAD_LOAD...get classinfo * via loader_load
 
-    If the descriptor is invalid the return value is NULL
+               How to handle primitive types:
+
+			     * CLASSLOAD_PRIMITIVE.......return primitive class (eg. "int")
+                   CLASSLOAD_NULLPRIMITIVE...return NULL for primitive types
+
+               How to handle "V" descriptors:
+
+			     * CLASSLOAD_VOID.....handle it like other primitive types
+                   CLASSLOAD_NOVOID...treat it as an error
+
+               How to deal with extra characters after the end of the
+               descriptor:
+
+			     * CLASSLOAD_NOCHECKEND...ignore (useful for parameter lists)
+                   CLASSLOAD_CHECKEND.....treat them as an error
+
+               How to deal with errors:
+
+			     * CLASSLOAD_PANIC....abort execution with an error message
+                   CLASSLOAD_NOPANIC..return NULL on error
 
 ********************************************************************************/
 
-classinfo *class_from_descriptor(char *utf_ptr,char *end_ptr,char **next,int mode)
+classinfo *
+class_from_descriptor(char *utf_ptr,char *end_ptr,char **next,int mode)
 {
 	char *start = utf_ptr;
 	bool error = false;
 	utf *name;
 
 	SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr,end_ptr,error);
-	if (error) return NULL;
-	if (next) *next = utf_ptr;
 
-	switch (*start) {
-	  case 'L':
-		  start++;
-		  utf_ptr--;
-		  /* fallthrough */
-	  case '[':
-		  if (mode == CLASSLOAD_SKIP) return class_java_lang_Object;
-		  name = utf_new(start,utf_ptr-start);
-		  return (mode == CLASSLOAD_LOAD) ? loader_load(name) : class_new(name);
-	  default:
-		  return class_primitive_from_sig(*start);
+	if (mode & CLASSLOAD_CHECKEND)
+		error |= (utf_ptr != end_ptr);
+	
+	if (!error) {
+		if (next) *next = utf_ptr;
+		
+		switch (*start) {
+		  case 'V':
+			  if (mode & CLASSLOAD_NOVOID)
+				  break;
+			  /* FALLTHROUGH! */
+		  case 'I':
+		  case 'J':
+		  case 'F':
+		  case 'D':
+		  case 'B':
+		  case 'C':
+		  case 'S':
+		  case 'Z':
+			  return (mode & CLASSLOAD_NULLPRIMITIVE)
+				  ? NULL
+				  : class_primitive_from_sig(*start);
+			  
+		  case 'L':
+			  start++;
+			  utf_ptr--;
+			  /* FALLTHROUGH! */
+		  case '[':
+			  if (mode & CLASSLOAD_SKIP) return class_java_lang_Object;
+			  name = utf_new(start,utf_ptr-start);
+			  return (mode & CLASSLOAD_LOAD)
+				  ? loader_load(name) : class_new(name);
+		}
 	}
+
+	/* An error occurred */
+	if (mode & CLASSLOAD_NOPANIC)
+		return NULL;
+
+	log_plain("Invalid descriptor at beginning of '");
+	log_plain_utf(utf_new(start,end_ptr-start));
+	log_plain("'");
+	log_nl();
+						  
+	panic("Invalid descriptor");
+}
+
+/******************* function: type_from_descriptor ****************************
+
+    return the basic type indicated by the given descriptor
+
+    This function parses a descriptor and returns its basic type as
+    TYPE_INT, TYPE_LONG, TYPE_FLOAT, TYPE_DOUBLE, TYPE_ADDRESS or TYPE_VOID.
+
+    cls...if non-NULL the referenced variable is set to the classinfo *
+          returned by class_from_descriptor.
+
+    For documentation of the arguments utf_ptr, end_ptr, next and mode
+    see class_from_descriptor. The only difference is that
+    type_from_descriptor always uses CLASSLOAD_PANIC.
+
+********************************************************************************/
+
+int
+type_from_descriptor(classinfo **cls,char *utf_ptr,char *end_ptr,char **next,int mode)
+{
+	classinfo *mycls;
+	if (!cls) cls = &mycls;
+	*cls = class_from_descriptor(utf_ptr,end_ptr,next,mode & (~CLASSLOAD_NOPANIC));
+	switch (*utf_ptr) {
+	  case 'B': 
+	  case 'C':
+	  case 'I':
+	  case 'S':  
+	  case 'Z':
+		  return TYPE_INT;
+	  case 'D':
+		  return TYPE_DOUBLE;
+	  case 'F':
+		  return TYPE_FLOAT;
+	  case 'J':
+		  return TYPE_LONG;
+	  case 'V':
+		  return TYPE_VOID;
+	}
+	return TYPE_ADDRESS;
 }
 
 /*************** function: create_pseudo_classes *******************************

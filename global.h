@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 722 2003-12-08 16:02:45Z edwin $
+   $Id: global.h 723 2003-12-08 19:51:32Z edwin $
 
 */
 
@@ -129,6 +129,7 @@ void cacao_shutdown(s4 status);
 
 /* basic data types ***********************************************************/
 
+/* CAUTION: jit/jit.h relies on these numerical values! */
 #define TYPE_INT      0         /* the JavaVM types must numbered in the      */
 #define TYPE_LONG     1         /* same order as the ICMD_Ixxx to ICMD_Axxx   */
 #define TYPE_FLOAT    2         /* instructions (LOAD and STORE)              */

@@ -657,7 +657,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType (
 /*	log_text("Java_java_lang_reflect_Field_getType");*/
 	utf *desc=(((struct classinfo*)this->declaringClass)->fields[this->slot]).descriptor;
 	if (!desc) return NULL;
-	return class_from_descriptor(desc->text,utf_end(desc),NULL,true);
+	return class_from_descriptor(desc->text,utf_end(desc),NULL,CLASSLOAD_LOAD);
 }
 
 

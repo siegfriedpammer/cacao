@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 696 2003-12-06 20:10:05Z edwin $
+   $Id: jit.h 723 2003-12-08 19:51:32Z edwin $
 
 */
 
@@ -60,12 +60,14 @@ typedef varinfo *varinfoptr;
 
 /* slot types */
 
-/* XXX use TYPE_ADDRESS, ...? */
-#define TYPE_INT   0            /* the stack slot types must numbered in the  */
-#define TYPE_LNG   1            /* same order as the ICMD_Ixxx to ICMD_Axxx   */
-#define TYPE_FLT   2            /* instructions (LOAD and STORE)              */
-#define TYPE_DBL   3            /* integer, long, float, double, address      */
-#define TYPE_ADR   4
+/* XXX unified these with longer names. Maybe someday use only
+ * one set of names? -Edwin
+ */
+/*#define TYPE_INT   0*/               /* the stack slot types must numbered in the  */
+#define TYPE_LNG   TYPE_LONG    /*1*/  /* same order as the ICMD_Ixxx to ICMD_Axxx   */
+#define TYPE_FLT   TYPE_FLOAT   /*2*/  /* instructions (LOAD and STORE)              */
+#define TYPE_DBL   TYPE_DOUBLE  /*3*/  /* integer, long, float, double, address      */
+#define TYPE_ADR   TYPE_ADDRESS /*4*/
 
 #define IS_INT_LNG_TYPE(a)      (!((a)&TYPE_FLT))
 #define IS_FLT_DBL_TYPE(a)      ((a)&TYPE_FLT)

@@ -173,6 +173,13 @@ public class TestArrayClasses extends TestBase {
     Foo[] fooa = new Foo[1];
     FooChild[] fooca = new FooChild[1];
 
+    Class[] ifs = String[].class.getInterfaces();
+    is(ifs.length,2,"String[] implements 2 interfaces");
+    ok(ifs[0] == java.lang.Cloneable.class || ifs[1] == java.lang.Cloneable.class,"String[] implements Cloneable");
+    ok(ifs[0] == java.io.Serializable.class || ifs[1] == java.io.Serializable.class,"String[] implements Serializable");
+
+    is(String[].class.getModifiers(),1041,"String[] is public final abstract");
+
     is(oa.getClass().getName(),"[Ljava.lang.Object;","classname ref");
     is(ia.getClass().getName(),"[I","classname primitive");
     is(ia.length,5,"arraylength primitive");
