@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1216 2004-06-29 13:31:58Z twisti $
+   $Id: headers.c 1220 2004-06-29 14:38:55Z twisti $
 
 */
 
@@ -88,11 +88,15 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc, bool isstatic
 java_objectheader *javastring_new(utf *text)
 { return NULL; }
 
+char *javastring_tochar(java_objectheader *so) { return NULL; }
 utf *javastring_toutf(java_lang_String *string, bool isclassname)
 { return NULL; }
 
 
 /* some exception stuff */
+
+classinfo *class_java_lang_Exception;
+
 
 char *string_java_lang_IllegalMonitorStateException =
     "java/lang/IllegalMonitorStateException";
