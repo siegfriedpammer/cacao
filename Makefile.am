@@ -1,12 +1,12 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1264 2004-07-01 14:21:05Z jowenn $
+# $Id: Makefile.am 1282 2004-07-05 22:15:51Z twisti $
 
 @SET_MAKE@
 
 MAINTAINERCLEANFILES = Makefile.in configure
-ALLSUBDIRS = mm toolbox threads jit nat tst doc jvmtst
-SUBDIRS = classpath $(ALLSUBDIRS)
+ALLSUBDIRS = mm toolbox threads jit nat tst doc jvmtst classpath
+SUBDIRS = $(ALLSUBDIRS)
 DIST_SUBDIRS = $(ALLSUBDIRS)
 
 EXTRA_DIST = \
@@ -18,10 +18,7 @@ EXTRA_DIST = \
 	nativecalls.h
 
 CLEANFILES = \
-	stamp-nat \
-	jit/@ARCH_DIR@/offsets.h \
-	nativetable.hh \
-	nativetypes.hh
+	nativetable.inc
 
 bin_PROGRAMS = cacao
 noinst_PROGRAMS = cacaoh gennativetable genoffsets
@@ -137,6 +134,8 @@ natheaders: cacaoh
 
 nativetable.inc: gennativetable
 	CLASSPATH=$(top_srcdir)/classpath/lib/glibj.zip $(top_srcdir)/gennativetable $(CLASSES) > nativetable.inc
+
+native.c: nativetable.inc
 
 CLASSES= \
 	java.lang.String \
