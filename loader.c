@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1182 2004-06-19 12:13:45Z twisti $
+   $Id: loader.c 1183 2004-06-19 12:20:06Z twisti $
 
 */
 
@@ -721,11 +721,13 @@ static bool attribute_load(classbuffer *cb, classinfo *c, u4 num)
 	u4 i, j;
 
 	for (i = 0; i < num; i++) {
+		utf *aname;
+
 		/* retrieve attribute name */
 		if (!check_classbuffer_size(cb, 2))
 			return false;
 
-		utf *aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
+		aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
 
 		if (aname == utf_innerclasses) {
 			/* innerclasses attribute */
@@ -765,7 +767,7 @@ static bool attribute_load(classbuffer *cb, classinfo *c, u4 num)
 				info->flags = suck_u2(cb);
 			}
 
-		} else if (aname==utf_sourcefile) {
+		} else if (aname == utf_sourcefile) {
 			if (!check_classbuffer_size(cb, 4 + 2))
 				return false;
 
@@ -1612,15 +1614,19 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 	forward_nameandtype *forward_nameandtypes = NULL;
 	forward_fieldmethint *forward_fieldmethints = NULL;
 
+	u4 cpcount;
+	u1 *cptags;
+	voidptr *cpinfos;
+
 	/* number of entries in the constant_pool table plus one */
 	if (!check_classbuffer_size(cb, 2))
 		return false;
 
-	u4 cpcount = c->cpcount = suck_u2(cb);
+	cpcount = c->cpcount = suck_u2(cb);
 
 	/* allocate memory */
-	u1 *cptags       = c->cptags  = MNEW(u1, cpcount);
-	voidptr *cpinfos = c->cpinfos = MNEW(voidptr, cpcount);
+	cptags  = c->cptags  = MNEW(u1, cpcount);
+	cpinfos = c->cpinfos = MNEW(voidptr, cpcount);
 
 	if (!cpcount)
 		panic("Invalid constant_pool_count (0)");
@@ -1643,11 +1649,13 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 		   
 	idx = 1;
 	while (idx < cpcount) {
+		u4 t;
+
 		/* get constant type */
 		if (!check_classbuffer_size(cb, 1))
 			return false;
 
-		u4 t = suck_u1(cb);
+		t = suck_u1(cb);
 
 		switch (t) {
 		case CONSTANT_Class: { 
@@ -1812,11 +1820,13 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 		}
 				
 		case CONSTANT_Utf8: { 
+			u4 length;
+
 			/* number of bytes in the bytes array (not string-length) */
 			if (!check_classbuffer_size(cb, 2))
 				return false;
 
-			u4 length = suck_u2(cb);
+			length = suck_u2(cb);
 			cptags[idx] = CONSTANT_Utf8;
 
 			/* validate the string */
