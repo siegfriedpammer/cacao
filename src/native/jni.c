@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2146 2005-03-30 16:44:24Z twisti $
+   $Id: jni.c 2150 2005-03-30 19:16:55Z twisti $
 
 */
 
@@ -807,9 +807,15 @@ jclass DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyte *b
 
 	r = load_class_from_classbuffer(cb);
 
-	/* if return value is NULL, we had a problem and the class is not loaded */
+	/* If loading was successful, set the classloader */
 
-	if (!r) {
+	if (r) {
+		r->classloader = loader;
+
+	} else {
+		/* If return value is NULL, we had a problem and the class is not     */
+		/* loaded. */
+
 		c->loaded = false;
 
 		/* now free the allocated memory, otherwise we could ran into a DOS */
@@ -1059,7 +1065,7 @@ void FatalError(JNIEnv *env, const char *msg)
 
 jint PushLocalFrame(JNIEnv* env, jint capacity)
 {
-	/* empty */
+	log_text("JNI-Call: PushLocalFrame: IMPLEMENT ME!");
 
 	return 0;
 }
