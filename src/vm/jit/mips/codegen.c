@@ -31,7 +31,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1806 2004-12-22 10:13:01Z twisti $
+   $Id: codegen.c 1859 2005-01-04 16:38:49Z twisti $
 
 */
 
@@ -41,6 +41,8 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+#include "config.h"
+#include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/jit/asmpart.h"
@@ -3929,10 +3931,14 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	(void) docacheflush((void*) cs, (char*) mcodeptr - (char*) cs);
 
-#if 0
-	dolog_plain("stubsize: %d (for %d params)\n", 
-				(int) (mcodeptr - (s4*) s), m->paramcount);
-#endif
+	/* Check if the stub size is big enough to hold the whole stub generated. */
+	/* If not, this can lead into unpredictable crashes, because of heap      */
+	/* corruption.                                                            */
+	if ((s4) ((ptrint) mcodeptr - (ptrint) s) > stubsize * sizeof(u8)) {
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Native stub size %d is to small for current stub size %d",
+								   stubsize, (s4) ((ptrint) mcodeptr - (ptrint) s));
+	}
 
 #if defined(STATISTICS)
 	if (opt_stat)
