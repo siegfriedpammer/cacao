@@ -74,7 +74,7 @@ has_no_x_instr_set:
 		fldcw	(%esp)
 		addl	$4,%esp
 		
-		xor		%eax,%eax				/* result code 0 (not used for i386   */
+		xor		%eax,%eax				/* result code 0 (not used for i386)  */
 		ret
 
 
@@ -709,30 +709,27 @@ asm_builtin_checkcast:
 *******************************************************************************/
 
 asm_builtin_checkarraycast:
-		pushl	%ecx					/* save data segment address          */
 		subl	$8,%esp					/* build stack frame (2 * 4 bytes)    */
 
-		movl	16(%esp),%eax           /* 8 (frame) + 4 (return) + 4 (data) = 16 */
-		movl	%eax,(%esp)				/* save object pointer                 */
+		movl	12(%esp),%eax           /* 8 (frame) + 4 (return)             */
+		movl	%eax,(%esp)				/* save object pointer                */
 
-		movl	24(%esp),%eax
+		movl	20(%esp),%eax
 		movl	%eax,4(%esp)
 
-		call	builtin_checkarraycast  /* builtin_checkarraycast              */
+		call	builtin_checkarraycast  /* builtin_checkarraycast             */
 	
-		test	%eax,%eax               /* if (false) throw exception          */
+		test	%eax,%eax               /* if (false) throw exception         */
 		je		nb_carray_throw
 
-		movl	16(%esp),%eax			/* return object pointer               */
+		movl	12(%esp),%eax			/* return object pointer              */
 		addl	$8,%esp
-		addl	$4,%esp
 		ret
 
 nb_carray_throw:
 		addl	$8,%esp
 		
-		popl	%ecx					/* restore data segment address */
-		popl	%edx					/* delete return address */
+		popl	%edx					/* delete return address              */
 		subl	$2,%edx					/* faulting address is return adress - 2 */
 		
 		movl	proto_java_lang_ClassCastException,%eax
@@ -788,15 +785,14 @@ asm_builtin_newarray_array:
 *******************************************************************************/
 
 asm_builtin_aastore:
-		pushl	%ecx					/* save data segment address          */
 		subl	$12,%esp				/* build stack frame (3 * 4 bytes)    */
 
-		movl	20(%esp),%eax           /* 12 (frame) + 4 (return) + 4 (data) */
+		movl	16(%esp),%eax           /* 12 (frame) + 4 (return)            */
 		test	%eax,%eax				/* if null pointer throw exception    */
 		je		nb_aastore_null
 
 		movl	offarraysize(%eax),%edx /* load size                          */
-		movl	28(%esp),%ecx			/* index                              */
+		movl	24(%esp),%ecx			/* index                              */
 		cmpl	%edx,%ecx				/* do bound check                     */
 		ja		nb_aastore_bound		/* if out of bounds throw exception   */
 
@@ -805,10 +801,10 @@ asm_builtin_aastore:
 		
 		movl	%ecx,8(%esp)			/* save store position                */
 		
-		movl	20(%esp),%eax           /* 12 (frame) + 4 (return) + 4 (data) */
+		movl	16(%esp),%eax           /* 12 (frame) + 4 (return)            */
 		movl	%eax,(%esp)
 
-		movl	36(%esp),%eax			/* object is second argument          */
+		movl	32(%esp),%eax			/* object is second argument          */
 		movl	%eax,4(%esp)
 		
 		call	builtin_canstore		/* builtin_canstore(arrayref,object)  */
@@ -816,17 +812,15 @@ asm_builtin_aastore:
 		test	%eax,%eax				/* if (false) throw exception         */
 		je		nb_aastore_throw
 
-		movl	36(%esp),%eax
+		movl	32(%esp),%eax
 		movl	8(%esp),%ecx
 		movl	%eax,offobjarrdata(%ecx)/* store objectptr in array           */
 		
 		addl	$12,%esp
-		addl	$4,%esp
 		ret
 
 nb_aastore_null:
 		addl	$12,%esp
-		popl	%ecx					/* restore data segment address */
 		popl	%edx					/* delete return address */
 		subl	$2,%edx					/* faulting address is return adress - 2 */
 		
@@ -835,7 +829,6 @@ nb_aastore_null:
 
 nb_aastore_bound:
 		addl	$12,%esp
-		popl	%ecx					/* restore data segment address */
 		popl	%edx					/* delete return address */
 		subl	$2,%edx					/* faulting address is return adress - 2 */
 		
@@ -844,7 +837,6 @@ nb_aastore_bound:
 		
 nb_aastore_throw:
 		addl	$12,%esp
-		popl	%ecx					/* restore data segment address */
 		popl	%edx					/* delete return address */
 		subl	$2,%edx					/* faulting address is return adress - 2 */
 		
