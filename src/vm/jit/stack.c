@@ -1157,29 +1157,11 @@ icmd_lconst_lcmp_tail:
 								goto builtin2;
 								}
 
-						case ICMD_LDIV:
-							if (!(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)) {
-								iptr[0].opc = ICMD_BUILTIN2;
-								iptr[0].op1 = TYPE_LNG;
-								iptr[0].val.a = (functionptr) asm_builtin_ldiv;
-								isleafmethod = false;
-								goto builtin2;
-								}
-
 						case ICMD_IREM:
 							if (!(SUPPORT_DIVISION)) {
 								iptr[0].opc = ICMD_BUILTIN2;
 								iptr[0].op1 = TYPE_INT;
 								iptr[0].val.a = (functionptr) asm_builtin_irem;
-								isleafmethod = false;
-								goto builtin2;
-								}
-
-						case ICMD_LREM:
-							if (!(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)) {
-								iptr[0].opc = ICMD_BUILTIN2;
-								iptr[0].op1 = TYPE_LNG;
-								iptr[0].val.a = (functionptr) asm_builtin_lrem;
 								isleafmethod = false;
 								goto builtin2;
 								}
@@ -1197,6 +1179,24 @@ icmd_lconst_lcmp_tail:
 							COUNT(count_pcmd_op);
 							OP2_1(TYPE_INT);
 							break;
+
+						case ICMD_LDIV:
+							if (!(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)) {
+								iptr[0].opc = ICMD_BUILTIN2;
+								iptr[0].op1 = TYPE_LNG;
+								iptr[0].val.a = (functionptr) asm_builtin_ldiv;
+								isleafmethod = false;
+								goto builtin2;
+								}
+
+						case ICMD_LREM:
+							if (!(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_MULDIV)) {
+								iptr[0].opc = ICMD_BUILTIN2;
+								iptr[0].op1 = TYPE_LNG;
+								iptr[0].val.a = (functionptr) asm_builtin_lrem;
+								isleafmethod = false;
+								goto builtin2;
+								}
 
 						case ICMD_LADD:
 						case ICMD_LSUB:
