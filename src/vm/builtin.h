@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1793 2004-12-21 10:14:35Z twisti $
+   $Id: builtin.h 1807 2004-12-22 10:47:13Z twisti $
 
 */
 
@@ -244,6 +244,7 @@ void builtin_displaymethodstart(methodinfo *m);
 void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f);
 /* NOT AN OP */
 
+#if defined(USE_THREADS)
 void builtin_monitorenter(java_objectheader *o);
 /* NOT AN OP */
 void builtin_staticmonitorenter(classinfo *c);
@@ -254,6 +255,7 @@ void *builtin_monitorexit(java_objectheader *o);
 /* NOT AN OP */
 void *asm_builtin_monitorexit(java_objectheader *o);
 #define BUILTIN_monitorexit (functionptr) asm_builtin_monitorexit
+#endif
 
 s4 builtin_idiv(s4 a, s4 b);
 /* NOT AN OP */

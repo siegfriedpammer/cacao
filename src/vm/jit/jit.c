@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1801 2004-12-21 20:19:19Z jowenn $
+   $Id: jit.c 1807 2004-12-22 10:47:13Z twisti $
 
 */
 
@@ -1313,8 +1313,10 @@ builtin_descriptor builtin_desc[] = {
 	{255,BUILTIN_newarray_short  ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_short"},
 	{255,BUILTIN_newarray_int    ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_int"},
 	{255,BUILTIN_newarray_long   ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_long"},
+#if defined(USE_THREADS)
 	{255,BUILTIN_monitorenter    ,ICMD_BUILTIN1,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_VOID  ,0,0,"monitorenter"},
 	{255,BUILTIN_monitorexit     ,ICMD_BUILTIN1,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_VOID  ,0,0,"monitorexit"},
+#endif
 #if !SUPPORT_DIVISION
 	{255,BUILTIN_idiv            ,ICMD_BUILTIN2,TYPE_INT   ,TYPE_INT   ,TYPE_VOID  ,TYPE_INT   ,0,0,"idiv"},
 	{255,BUILTIN_irem            ,ICMD_BUILTIN2,TYPE_INT   ,TYPE_INT   ,TYPE_VOID  ,TYPE_INT   ,0,0,"irem"},
@@ -1369,14 +1371,18 @@ functionptr jit_compile(methodinfo *m)
 	if (opt_stat)
 		count_jit_calls++;
 
+#if defined(USE_THREADS)
 	/* enter a monitor on the method */
 
 	builtin_monitorenter((java_objectheader *) m);
+#endif
 
 	/* if method has been already compiled return immediately */
 
 	if (m->entrypoint) {
+#if defined(USE_THREADS)
 		builtin_monitorexit((java_objectheader *) m);
+#endif
 
 		return m->entrypoint;
 	}
@@ -1473,9 +1479,11 @@ functionptr jit_compile(methodinfo *m)
         	useinlining = false;
 	#endif
 
+#if defined(USE_THREADS)
 	/* leave the monitor */
 
 	builtin_monitorexit((java_objectheader *) m );
+#endif
 
 	if (r) {
 		if (compileverbose)

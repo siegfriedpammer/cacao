@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1801 2004-12-21 20:19:19Z jowenn $
+   $Id: jni.c 1807 2004-12-22 10:47:13Z twisti $
 
 */
 
@@ -794,9 +794,11 @@ jclass DefineClass(JNIEnv* env, const char *name, jobject loader, const jbyte *b
 
 	c = class_new(utf_new_char_classname((char *) name));
 
+#if defined(USE_THREADS)
 	/* enter a monitor on the class */
 
 	builtin_monitorenter((java_objectheader *) c);
+#endif
 
 	/* measure time */
 	if (getloadingtime)
@@ -826,9 +828,11 @@ jclass DefineClass(JNIEnv* env, const char *name, jobject loader, const jbyte *b
 	if (getloadingtime)
 		loadingtime_stop();
 
+#if defined(USE_THREADS)
 	/* leave the monitor */
 
 	builtin_monitorexit((java_objectheader *) c);
+#endif
 
 	/* XXX link the class here? */
 /*  	if (class_link(c)) */
@@ -2991,16 +2995,22 @@ jint UnregisterNatives (JNIEnv* env, jclass clazz)
 
 /******************************* monitor operations ********************************/
 
-jint MonitorEnter (JNIEnv* env, jobject obj)
+jint MonitorEnter(JNIEnv* env, jobject obj)
 {
+#if defined(USE_THREADS)
     builtin_monitorenter(obj);
+#endif
+
     return 0;
 }
 
 
-jint MonitorExit (JNIEnv* env, jobject obj)
+jint MonitorExit(JNIEnv* env, jobject obj)
 {
+#if defined(USE_THREADS)
     builtin_monitorexit(obj);
+#endif
+
     return 0;
 }
 

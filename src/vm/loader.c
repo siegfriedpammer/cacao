@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1801 2004-12-21 20:19:19Z jowenn $
+   $Id: loader.c 1807 2004-12-22 10:47:13Z twisti $
 
 */
 
@@ -2122,13 +2122,17 @@ classinfo *class_load(classinfo *c)
 	classbuffer *cb;
 	classinfo *r;
 
+#if defined(USE_THREADS)
 	/* enter a monitor on the class */
 
 	builtin_monitorenter((java_objectheader *) c);
+#endif
 
 	/* maybe the class is already loaded */
 	if (c->loaded) {
+#if defined(USE_THREADS)
 		builtin_monitorexit((java_objectheader *) c);
+#endif
 
 		return c;
 	}
@@ -2153,7 +2157,9 @@ classinfo *class_load(classinfo *c)
 			new_exception_utfmessage(string_java_lang_NoClassDefFoundError,
 									 c->name);
 
+#if defined(USE_THREADS)
 		builtin_monitorexit((java_objectheader *) c);
+#endif
 
 		return NULL;
 	}
@@ -2180,9 +2186,11 @@ classinfo *class_load(classinfo *c)
 	if (getcompilingtime)
 		compilingtime_start();
 
+#if defined(USE_THREADS)
 	/* leave the monitor */
 
 	builtin_monitorexit((java_objectheader *) c);
+#endif
 
 	return r;
 }
@@ -2837,13 +2845,17 @@ classinfo *class_link(classinfo *c)
 {
 	classinfo *r;
 
+#if defined(USE_THREADS)
 	/* enter a monitor on the class */
 
 	builtin_monitorenter((java_objectheader *) c);
+#endif
 
 	/* maybe the class is already linked */
 	if (c->linked) {
+#if defined(USE_THREADS)
 		builtin_monitorexit((java_objectheader *) c);
+#endif
 
 		return c;
 	}
@@ -2871,9 +2883,11 @@ classinfo *class_link(classinfo *c)
 	if (getcompilingtime)
 		compilingtime_start();
 
+#if defined(USE_THREADS)
 	/* leave the monitor */
 
 	builtin_monitorexit((java_objectheader *) c);
+#endif
 
 	return r;
 }
@@ -3719,9 +3733,11 @@ classinfo *class_init(classinfo *c)
 	if (!makeinitializations)
 		return c;
 
+#if defined(USE_THREADS)
 	/* enter a monitor on the class */
 
 	builtin_monitorenter((java_objectheader *) c);
+#endif
 
 	/* maybe the class is already initalized or the current thread, which can
 	   pass the monitor, is currently initalizing this class */
@@ -3732,7 +3748,9 @@ classinfo *class_init(classinfo *c)
         */
 
 	if (c->initialized || c->initializing) {
+#if defined(USE_THREADS)
 		builtin_monitorexit((java_objectheader *) c);
+#endif
 
 		return c;
 	}
@@ -3751,9 +3769,11 @@ classinfo *class_init(classinfo *c)
 	/* this initalizing run is done */
 	c->initializing = false;
 
+#if defined(USE_THREADS)
 	/* leave the monitor */
 
 	builtin_monitorexit((java_objectheader *) c);
+#endif
 
 	return r;
 }

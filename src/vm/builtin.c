@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1774 2004-12-20 20:16:57Z jowenn $
+   $Id: builtin.c 1807 2004-12-22 10:47:13Z twisti $
 
 */
 
@@ -782,16 +782,16 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 			if (m->flags & ACC_NATIVE) {
 				printf(",NATIVE");
 #if POINTERSIZE == 8
-				printf(")(0x%016lx) at position %p\n", (s8) m->entrypoint, pos);
+				printf(")(0x%016lx) at position 0x%016lx\n", (ptrint) m->entrypoint, (ptrint) pos);
 #else
-				printf(")(0x%08lx) at position %p\n", (s4) m->entrypoint, pos);
+				printf(")(0x%08x) at position 0x%08x\n", (ptrint) m->entrypoint, (ptrint) pos);
 #endif
 
 			} else {
 #if POINTERSIZE == 8
-				printf(")(0x%016lx) at position %p (", (s8) m->entrypoint, pos);
+				printf(")(0x%016lx) at position 0x%016lx (", (ptrint) m->entrypoint, (ptrint) pos);
 #else
-				printf(")(0x%08lx) at position %p (", (s4) m->entrypoint, pos);
+				printf(")(0x%08x) at position 0x%08x (", (ptrint) m->entrypoint, (ptrint) pos);
 #endif
 				if (m->class->sourcefile == NULL) {
 					printf("<NO CLASSFILE INFORMATION>");
@@ -1038,12 +1038,12 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 			 SYNCHRONIZATION FUNCTIONS
 *****************************************************************************/
 
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 /*
  * Lock the mutex of an object.
  */
 void internal_lock_mutex_for_object(java_objectheader *object)
 {
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	mutexHashEntry *entry;
 	int hashValue;
 
@@ -1084,16 +1084,16 @@ void internal_lock_mutex_for_object(java_objectheader *object)
 		entry->object = object;
 	
 	internal_lock_mutex(&entry->mutex);
-#endif
 }
+#endif
 
 
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 /*
  * Unlocks the mutex of an object.
  */
 void internal_unlock_mutex_for_object (java_objectheader *object)
 {
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	int hashValue;
 	mutexHashEntry *entry;
 
@@ -1119,13 +1119,13 @@ void internal_unlock_mutex_for_object (java_objectheader *object)
 			firstFreeOverflowEntry = unlinked;
 		}
 	}
-#endif
 }
+#endif
 
 
+#if defined(USE_THREADS)
 void builtin_monitorenter(java_objectheader *o)
 {
-#if defined(USE_THREADS)
 #if !defined(NATIVE_THREADS)
 	int hashValue;
 
@@ -1142,10 +1142,11 @@ void builtin_monitorenter(java_objectheader *o)
 #else
 	monitorEnter((threadobject *) THREADOBJECT, o);
 #endif
+}
 #endif
 
-}
 
+#if defined(USE_THREADS)
 /*
  * Locks the class object - needed for static synchronized methods.
  * The use_class_as_object call is needed in order to circumvent a
@@ -1157,11 +1158,12 @@ void builtin_staticmonitorenter(classinfo *c)
 	use_class_as_object(c);
 	builtin_monitorenter(&c->header);
 }
+#endif
 
 
+#if defined(USE_THREADS)
 void *builtin_monitorexit(java_objectheader *o)
 {
-#if defined(USE_THREADS)
 #if !defined(NATIVE_THREADS)
 	int hashValue;
 
@@ -1184,8 +1186,8 @@ void *builtin_monitorexit(java_objectheader *o)
 	monitorExit((threadobject *) THREADOBJECT, o);
 	return o;
 #endif
-#endif
 }
+#endif
 
 
 /*****************************************************************************
