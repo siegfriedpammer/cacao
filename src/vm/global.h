@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 80 1998-11-18 22:06:30Z cacao $
+	Last Change: $Id: global.h 91 1998-11-25 11:47:42Z phil $
 
 *******************************************************************************/
 
@@ -32,7 +32,7 @@
  * of determining the sizes of objects on the heap.
  */
 #undef JIT_MARKER_SUPPORT        /* phil */
-#undef SIZE_FROM_CLASSINFO
+#define SIZE_FROM_CLASSINFO
 
 /* standard includes **********************************************************/
 
