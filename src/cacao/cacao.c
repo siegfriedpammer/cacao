@@ -37,13 +37,14 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1228 2004-06-30 19:32:11Z twisti $
+   $Id: cacao.c 1330 2004-07-21 15:39:00Z twisti $
 
 */
 
 
 #include <stdlib.h>
 #include <string.h>
+#include "exceptions.h"
 #include "main.h"
 #include "options.h"
 #include "global.h"
@@ -71,6 +72,7 @@
 
 bool cacao_initializing;
 
+char *classpath;                        /* contains classpath                 */
 char *mainstring;
 static classinfo *mainclass;
 
@@ -296,12 +298,10 @@ void exit_handler(void)
 
 	/************************ Free all resources *******************/
 
-	/*heap_close();*/               /* must be called before compiler_close and
-	                               loader_close because finalization occurs
-	                               here */
-
 	loader_close();
 	tables_close();
+
+	MFREE(classpath, u1, strlen(classpath));
 
 	if (verbose || getcompilingtime || opt_stat) {
 		log_text("CACAO terminated");
@@ -335,7 +335,6 @@ int main(int argc, char **argv)
 	u4 heapmaxsize = 64 * 1024 * 1024;
 	u4 heapstartsize = 200 * 1024;
 	char *cp;
-	char classpath[500] = ".";
 	bool startit = true;
 	char *specificmethodname = NULL;
 	char *specificsignature = NULL;
@@ -351,9 +350,18 @@ int main(int argc, char **argv)
 
 	/************ Collect info from the environment ************************/
 
+	classpath = MNEW(u1, 2);
+	strcpy(classpath, ".");
+
+	/* get classpath environment */
 	cp = getenv("CLASSPATH");
 	if (cp) {
-		strcpy(classpath, cp);
+		classpath = MREALLOC(classpath,
+							 u1,
+							 strlen(classpath),
+							 strlen(classpath) + 1 + strlen(cp) + 1);
+		strcat(classpath, ":");
+		strncat(classpath, cp, strlen(cp));
 	}
 
 	/***************** Interpret the command line *****************/
@@ -365,9 +373,13 @@ int main(int argc, char **argv)
 		switch (i) {
 		case OPT_IGNORE: break;
 			
-		case OPT_CLASSPATH:    
-			strcpy(classpath + strlen(classpath), ":");
-			strcpy(classpath + strlen(classpath), opt_arg);
+		case OPT_CLASSPATH:
+			classpath = MREALLOC(classpath,
+								 u1,
+								 strlen(classpath),
+								 strlen(classpath) + 1 + strlen(opt_arg) + 1);
+			strcat(classpath, ":");
+			strncat(classpath, opt_arg, strlen(opt_arg));
 			break;
 				
 		case OPT_D:
@@ -618,9 +630,9 @@ int main(int argc, char **argv)
 
 	loader_init((u1 *) &dummy);
 
-	native_loadclasses();
-
 	jit_init();
+
+	native_loadclasses();
 
 #if defined(USE_THREADS)
   	initThreads((u1*) &dummy);
