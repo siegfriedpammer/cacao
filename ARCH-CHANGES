@@ -3,7 +3,7 @@
     i386: done (asmpart.S:mostly 1.18, codegen.c:every change by me from 1.11-1.27)
     mips: (asmpart.S:1.13, codegen.c:1.20)
     powerpc: (asmpart.S:1.7, codegen.c:1.13)
-    x86_64: TODO
+    x86_64: (asmpart.S:1.8, codegen.c:1.17)
 
 - codegen.c: builtin_staticmonitorenter (stefan)
     alpha: done (1.26.2.1)
@@ -25,13 +25,13 @@
 - codegen.c, codegen.h: jit global variables removal (twisti)
     alpha: done (codegen.c:1.27, codegen.h:1.7)
     i386: done (codegen.c:1.37, codegen.h:1.12)
-    mips: TODO
+    mips: done (codegen.c:1.22, codegen.h:1.9)
     powerpc: TODO
     x86_64: TODO
 
 - codegen.c: ICMD_xASTORECONST (twisti)
     alpha: TODO
-    i386: done
+    i386: done (1.38)
     mips: TODO
     powerpc: TODO
     x86_64: TODO
@@ -48,4 +48,4 @@
     i386: done (1.41)
     mips: done (1.24)
     powerpc: TODO
-    x86_64: TODO
+    x86_64: done (1.17)
