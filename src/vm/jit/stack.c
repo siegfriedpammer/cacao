@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1632 2004-11-30 20:42:14Z carolyn $
+   $Id: stack.c 1642 2004-12-01 13:21:54Z christian $
 
 */
 
@@ -2161,7 +2161,9 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 		printf("\n");
 	}
 	printf("\n");
+#ifdef LSRA
 	if (!opt_lsra) {
+#endif
 	printf("Interface Table:\n");
 	for (i = 0; i < cd->maxstack; i++) {
 		if ((rd->interfaces[i][0].type >= 0) ||
@@ -2196,7 +2198,9 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 		}
 	}
 	printf("\n");
+#ifdef LSRA
   	}
+#endif
 	if (showdisassemble) {
 #if defined(__I386__) || defined(__X86_64__)
 		u1 *u1ptr;
