@@ -10,7 +10,7 @@
              Andreas Krall       EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: native-math.h 388 2003-07-10 16:49:05Z twisti $
+    Last Change: $Id: native-math.h 465 2003-09-17 23:14:48Z twisti $
 
 *******************************************************************************/
 
@@ -31,9 +31,6 @@ static u4 flt_neginf = 0xff800000;
 #define FLT_POSINF  (*((float*) (&flt_posinf)))
 #define FLT_NEGINF  (*((float*) (&flt_neginf)))
 
-#define FEXPMASK    0x7f800000
-#define FMANMASK    0x007fffff
-
 /* define infinity for double floating point numbers */
 
 static u8 dbl_nan    = 0x7ff8000000000000L;
@@ -43,11 +40,5 @@ static u8 dbl_neginf = 0xfff0000000000000L;
 #define DBL_NAN     (*((double*) (&dbl_nan)))
 #define DBL_POSINF  (*((double*) (&dbl_posinf)))
 #define DBL_NEGINF  (*((double*) (&dbl_neginf)))
-
-#define DEXPMASK    0x7ff0000000000000L
-#define DMANMASK    0x000fffff00000000L
-
-#define FISNAN(b)    (((b) & FEXPMASK) == FEXPMASK && ((b) & FMANMASK) != 0)
-#define DISNAN(b)    (((b) & DEXPMASK) == DEXPMASK && ((b) & DMANMASK) != 0)
 
 #endif

@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at            *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 427 2003-09-12 15:08:38Z twisti $         *
+*   Last Change: $Id: asmpart.S 465 2003-09-17 23:14:48Z twisti $         *
 *                                                                              *
 *******************************************************************************/
 
@@ -308,7 +308,7 @@ L_call_jit_compile:
         movq    22*8(%rsp),%xmm15
 
         add     $(24*8),%rsp
-        
+
 		test	%r11,%r11		/* is address == 0 (asm_calljavamethod)       */
 		je		L_call_method
 		
@@ -494,9 +494,9 @@ no_monitor_exit:
 		cmpl	$5,%edx
 		je		int5
         
-        mov     -48(%rax),%rbp
+        mov     -48(%rax),%rbx
 int5:   
-        mov     -40(%rax),%rbx
+        mov     -40(%rax),%rbp
 int4:   
         mov     -32(%rax),%r12
 int3:   

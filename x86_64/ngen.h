@@ -11,7 +11,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: ngen.h 427 2003-09-12 15:08:38Z twisti $
+    Last Change: $Id: ngen.h 465 2003-09-17 23:14:48Z twisti $
 
 *******************************************************************************/
 
@@ -43,9 +43,9 @@
 
 #define REG_FRESULT     XMM0     /* to deliver floating point method results  */
 
-#define REG_FTMP1       XMM0     /* temporary floating point register         */
-#define REG_FTMP2       XMM8     /* temporary floating point register         */
-#define REG_FTMP3       XMM9     /* temporary floating point register         */
+#define REG_FTMP1       XMM8     /* temporary floating point register         */
+#define REG_FTMP2       XMM9     /* temporary floating point register         */
+#define REG_FTMP3       XMM10    /* temporary floating point register         */
 
 /* register descripton - array ************************************************/
 
@@ -59,20 +59,16 @@
 /* #define REG_END   -1        last entry in tables */
 
 int nregdescint[] = {
-      REG_RET, REG_ARG, REG_ARG, REG_TMP, REG_RES, REG_SAV, REG_ARG, REG_ARG,
-      REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
-/*    REG_RET, REG_ARG, REG_ARG, REG_SAV, REG_RES, REG_SAV, REG_ARG, REG_ARG, */
-/*    REG_TMP, REG_TMP, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, */
+    REG_RET, REG_ARG, REG_ARG, REG_TMP, REG_RES, REG_SAV, REG_ARG, REG_ARG,
+    REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
     REG_END
 };
 
 /* for use of reserved registers, see comment above */
 
 int nregdescfloat[] = {
-/*      REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, */
-/*      REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, */
-    REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
-    REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+    REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+    REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
     REG_END
 };
 
@@ -82,8 +78,6 @@ int nregdescfloat[] = {
 /* stackframe-infos ***********************************************************/
 
 int parentargs_base; /* offset in stackframe for the parameter from the caller*/
-
-/* -> see file 'calling.doc' */
 
 
 /* macros to create code ******************************************************/
@@ -105,6 +99,7 @@ typedef union {
  * x86_64 register numbers
  */
 typedef enum {
+    RIP = -1,
     RAX = 0,
     RCX = 1,
     RDX = 2,
@@ -121,7 +116,6 @@ typedef enum {
     R13 = 13,
     R14 = 14,
     R15 = 15,
-    RIP = 16,
     NREG
 } X86_64_Reg_No;
 

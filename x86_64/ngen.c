@@ -12,7 +12,7 @@
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 			 Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 427 2003-09-12 15:08:38Z twisti $
+	Last Change: $Id: ngen.c 465 2003-09-17 23:14:48Z twisti $
 
 *******************************************************************************/
 
@@ -170,13 +170,13 @@ static int reg_of_var(stackptr v, int tempregnum)
 				if (v->varnum < fltreg_argnum) {
 					v->regoff = argfltregs[v->varnum];
 					return(argfltregs[v->varnum]);
-					}
 				}
-			else
+			} else {
 				if (v->varnum < intreg_argnum) {
 					v->regoff = argintregs[v->varnum];
 					return(argintregs[v->varnum]);
-					}
+				}
+			}
 			v->regoff -= intreg_argnum;
 			break;
 		}
@@ -212,14 +212,14 @@ static int reg_of_var(stackptr v, int tempregnum)
 
 /* NullPointerException signal handler for hardware null pointer check */
 
-void catch_NullPointerException(int sig)
+void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 {
 	sigset_t nsig;
 	int      instr;
 	long     faultaddr;
 
-	void **_p = (void **) &sig;
-	struct sigcontext *sigctx = (struct sigcontext *) ++_p;
+	struct ucontext *_uc = (struct ucontext *) _p;
+	struct sigcontext *sigctx = (struct sigcontext *) &_uc->uc_mcontext;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
@@ -236,8 +236,6 @@ void catch_NullPointerException(int sig)
 		sigctx->r10 = sigctx->rip;                                 /* REG_ITMP2_XPC     */
 		sigctx->rip = (long) asm_handle_exception;
 
-fprintf(stderr, "null: rax=%p, r10=%p, rip=%p\n", sigctx->rax, sigctx->r10, sigctx->rip);
-	
 		return;
 
 /*  	} else { */
@@ -247,14 +245,15 @@ fprintf(stderr, "null: rax=%p, r10=%p, rip=%p\n", sigctx->rax, sigctx->r10, sigc
 /*  	} */
 }
 
+
 /* ArithmeticException signal handler for hardware divide by zero check */
 
-void catch_ArithmeticException(int sig)
+void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 {
 	sigset_t nsig;
 
-	void **_p = (void **) &sig;
-	struct sigcontext *sigctx = (struct sigcontext *) ++_p;
+	struct ucontext *_uc = (struct ucontext *) _p;
+	struct sigcontext *sigctx = (struct sigcontext *) &_uc->uc_mcontext;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
@@ -268,6 +267,7 @@ void catch_ArithmeticException(int sig)
 
 	return;
 }
+
 
 void init_exceptions(void)
 {
@@ -454,10 +454,10 @@ static void gen_mcode()
 		x86_64_movq_reg_membase(argfltregs[1], REG_SP, 8 * 8);
 		x86_64_movq_reg_membase(argfltregs[2], REG_SP, 9 * 8);
 		x86_64_movq_reg_membase(argfltregs[3], REG_SP, 10 * 8);
-		x86_64_movq_reg_membase(argfltregs[4], REG_SP, 11 * 8);
-		x86_64_movq_reg_membase(argfltregs[5], REG_SP, 12 * 8);
-		x86_64_movq_reg_membase(argfltregs[6], REG_SP, 13 * 8);
-		x86_64_movq_reg_membase(argfltregs[7], REG_SP, 14 * 8);
+/*  		x86_64_movq_reg_membase(argfltregs[4], REG_SP, 11 * 8); */
+/*  		x86_64_movq_reg_membase(argfltregs[5], REG_SP, 12 * 8); */
+/*  		x86_64_movq_reg_membase(argfltregs[6], REG_SP, 13 * 8); */
+/*  		x86_64_movq_reg_membase(argfltregs[7], REG_SP, 14 * 8); */
 
 		for (p = 0, l = 0; p < mparamcount; p++) {
 			t = mparamtypes[p];
@@ -488,10 +488,10 @@ static void gen_mcode()
 		x86_64_movq_membase_reg(REG_SP, 8 * 8, argfltregs[1]);
 		x86_64_movq_membase_reg(REG_SP, 9 * 8, argfltregs[2]);
 		x86_64_movq_membase_reg(REG_SP, 10 * 8, argfltregs[3]);
-		x86_64_movq_membase_reg(REG_SP, 11 * 8, argfltregs[4]);
-		x86_64_movq_membase_reg(REG_SP, 12 * 8, argfltregs[5]);
-		x86_64_movq_membase_reg(REG_SP, 13 * 8, argfltregs[6]);
-		x86_64_movq_membase_reg(REG_SP, 14 * 8, argfltregs[7]);
+/*  		x86_64_movq_membase_reg(REG_SP, 11 * 8, argfltregs[4]); */
+/*  		x86_64_movq_membase_reg(REG_SP, 12 * 8, argfltregs[5]); */
+/*  		x86_64_movq_membase_reg(REG_SP, 13 * 8, argfltregs[6]); */
+/*  		x86_64_movq_membase_reg(REG_SP, 14 * 8, argfltregs[7]); */
 
 		x86_64_alu_imm_reg(X86_64_ADD, (6 + 8 + 1 + 1) * 8, REG_SP);
 	}
@@ -523,6 +523,9 @@ static void gen_mcode()
  				}
 			} else {                                 /* stack arguments       */
  				pa = s1 - intreg_argnum;
+				if (s2 >= fltreg_argnum) {
+					pa += s2 - fltreg_argnum;
+				}
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */ 
  					x86_64_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 8, r);    /* + 8 for return address */
 				} else {                             /* stack arg -> spilled  */
@@ -543,6 +546,9 @@ static void gen_mcode()
 
  			} else {                                 /* stack arguments       */
  				pa = s2 - fltreg_argnum;
+				if (s1 >= intreg_argnum) {
+					pa += s1 - intreg_argnum;
+				}
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
 					x86_64_movq_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 8, r);
 
@@ -1709,9 +1715,9 @@ static void gen_mcode()
 			x86_64_alul_imm_reg(X86_64_CMP, 0x80000000, RAX);    /* check as described in jvm spec */
 			x86_64_jcc(X86_64_CC_NE, 4 + 6);
 			x86_64_alul_imm_reg(X86_64_CMP, -1, REG_ITMP3);      /* 4 bytes */
-			x86_64_jcc(X86_64_CC_E, 1 + 3);                      /* 6 bytes */
+			x86_64_jcc(X86_64_CC_E, 3 + 1 + 3);                  /* 6 bytes */
 
-			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's and argument register */
+			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's an argument register */
   			x86_64_cltd();
 			x86_64_idivl_reg(REG_ITMP3);
 
@@ -1750,7 +1756,7 @@ static void gen_mcode()
 			x86_64_jcc(X86_64_CC_NE, 2 + 4 + 6);
 			x86_64_alul_reg_reg(X86_64_XOR, RDX, RDX);           /* 2 bytes */
 			x86_64_alul_imm_reg(X86_64_CMP, -1, REG_ITMP3);      /* 4 bytes */
-			x86_64_jcc(X86_64_CC_E, 1 + 3);                      /* 6 bytes */
+			x86_64_jcc(X86_64_CC_E, 3 + 1 + 3);                  /* 6 bytes */
 
 			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's and argument register */
   			x86_64_cltd();
@@ -1821,7 +1827,7 @@ static void gen_mcode()
 			x86_64_alu_reg_reg(X86_64_CMP, REG_ITMP2, REG_ITMP1);
 			x86_64_jcc(X86_64_CC_NE, 4 + 6);
 			x86_64_alu_imm_reg(X86_64_CMP, -1, REG_ITMP3);          /* 4 bytes */
-			x86_64_jcc(X86_64_CC_E, 2 + 3);                         /* 6 bytes */
+			x86_64_jcc(X86_64_CC_E, 3 + 2 + 3);                     /* 6 bytes */
 
 			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's and argument register */
   			x86_64_cqto();
@@ -1863,7 +1869,7 @@ static void gen_mcode()
 			x86_64_jcc(X86_64_CC_NE, 2 + 4 + 6);
 			x86_64_alul_reg_reg(X86_64_XOR, RDX, RDX);              /* 2 bytes */
 			x86_64_alu_imm_reg(X86_64_CMP, -1, REG_ITMP3);          /* 4 bytes */
-			x86_64_jcc(X86_64_CC_E, 2 + 3);                         /* 6 bytes */
+			x86_64_jcc(X86_64_CC_E, 3 + 2 + 3);                     /* 6 bytes */
 
 			x86_64_mov_reg_reg(RDX, REG_ITMP2);    /* save %rdx, cause it's and argument register */
   			x86_64_cqto();
@@ -3363,16 +3369,6 @@ static void gen_mcode()
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
-		case ICMD_FREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-
-			panic("FREM is not native yet");
-			break;
-
-		case ICMD_DREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-
-			panic("DREM is not native yet");
-			break;
-
 		case ICMD_I2F:       /* ..., value  ==> ..., (float) value            */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
@@ -3742,7 +3738,6 @@ static void gen_mcode()
 		                      /* op1 = type, val.a = field address            */
 
 			a = dseg_addaddress(&(((fieldinfo *)(iptr->val.a))->value));
-			/* here it's slightly slower */
 /*    			x86_64_mov_imm_reg(0, REG_ITMP2); */
 /*    			dseg_adddata(mcodeptr); */
 /*    			x86_64_mov_membase_reg(REG_ITMP2, a, REG_ITMP3); */
@@ -3807,28 +3802,25 @@ static void gen_mcode()
 		                      /* op1 = type, val.i = field offset             */
 
 			a = ((fieldinfo *)(iptr->val.a))->offset;
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			switch (iptr->op1) {
 				case TYPE_INT:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
 					var_to_reg_int(s2, src, REG_ITMP2);
 					gen_nullptr_check(s1);
 					x86_64_movl_reg_membase(s2, s1, a);
 					break;
 				case TYPE_LNG:
 				case TYPE_ADR:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
 					var_to_reg_int(s2, src, REG_ITMP2);
 					gen_nullptr_check(s1);
 					x86_64_mov_reg_membase(s2, s1, a);
 					break;
 				case TYPE_FLT:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
 					var_to_reg_flt(s2, src, REG_FTMP2);
 					gen_nullptr_check(s1);
 					x86_64_movss_reg_membase(s2, s1, a);
 					break;
 				case TYPE_DBL:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
 					var_to_reg_flt(s2, src, REG_FTMP2);
 					gen_nullptr_check(s1);
 					x86_64_movsd_reg_membase(s2, s1, a);
@@ -3841,9 +3833,9 @@ static void gen_mcode()
 		                      /* op1 = type, val.i = field offset             */
 
 			a = ((fieldinfo *)(iptr->val.a))->offset;
+			var_to_reg_int(s1, src, REG_ITMP1);
 			switch (iptr->op1) {
 				case TYPE_INT:
-					var_to_reg_int(s1, src, REG_ITMP1);
 					d = reg_of_var(iptr->dst, REG_ITMP3);
 					gen_nullptr_check(s1);
 					x86_64_movl_membase_reg(s1, a, d);
@@ -3851,21 +3843,18 @@ static void gen_mcode()
 					break;
 				case TYPE_LNG:
 				case TYPE_ADR:
-					var_to_reg_int(s1, src, REG_ITMP1);
 					d = reg_of_var(iptr->dst, REG_ITMP3);
 					gen_nullptr_check(s1);
 					x86_64_mov_membase_reg(s1, a, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 				case TYPE_FLT:
-					var_to_reg_int(s1, src, REG_ITMP1);
 					d = reg_of_var(iptr->dst, REG_FTMP1);
 					gen_nullptr_check(s1);
 					x86_64_movss_membase_reg(s1, a, d);
    					store_reg_to_var_flt(iptr->dst, d);
 					break;
 				case TYPE_DBL:				
-					var_to_reg_int(s1, src, REG_ITMP1);
 					d = reg_of_var(iptr->dst, REG_FTMP1);
 					gen_nullptr_check(s1);
 					x86_64_movsd_membase_reg(s1, a, d);
@@ -3887,7 +3876,7 @@ static void gen_mcode()
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
 
-			x86_64_call_imm(0);                    /* passing exception pointer */
+			x86_64_call_imm(0); /* passing exception pointer                  */
 			x86_64_pop_reg(REG_ITMP2_XPC);
 
   			x86_64_mov_imm_reg(asm_handle_exception, REG_ITMP3);
@@ -4851,7 +4840,7 @@ gen_method: {
 
 					} else {
 						var_to_reg_int(d, src, REG_ITMP1);
-						x86_64_mov_reg_membase(d, REG_SP, (iarg - intreg_argnum) * 8);
+						x86_64_mov_reg_membase(d, REG_SP, (s3 - intreg_argnum) * 8);
 					}
 
 				} else {
@@ -4862,7 +4851,7 @@ gen_method: {
 
 					} else {
 						var_to_reg_flt(d, src, REG_FTMP1);
-						x86_64_movq_reg_membase(d, REG_SP, (farg - fltreg_argnum) * 8);
+						x86_64_movq_reg_membase(d, REG_SP, (s3 - fltreg_argnum) * 8);
 					}
 				}
 			} /* end of for */
@@ -4989,7 +4978,7 @@ gen_method: {
 					CALCOFFSETBYTES(REG_ITMP1, OFFSET(vftbl, interfacetablelength));
 					
 					offset += 3;    /* sub */
-					CALCOFFSETBYTES(0, -super->index); /* XXX: -super->index??? */
+					CALCOFFSETBYTES(0, super->index);
 					
 					offset += 3;    /* test */
 
@@ -5101,7 +5090,7 @@ gen_method: {
 					CALCOFFSETBYTES(REG_ITMP1, OFFSET(vftbl, interfacetablelength));
 
 					offset += 3;    /* sub */
-					CALCOFFSETBYTES(0, -super->index); /* XXX: -super->index??? */
+					CALCOFFSETBYTES(0, super->index);
 
 					offset += 3;    /* test */
 					offset += 6;    /* jcc */
@@ -5196,7 +5185,7 @@ gen_method: {
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
-		                      /* op1 = dimension, val.a = array descriptor    */
+		                         /* op1 = dimension, val.a = array descriptor */
 
 			/* check for negative sizes and copy sizes to stack if necessary  */
 
@@ -5251,7 +5240,7 @@ gen_method: {
 			if (IS_FLT_DBL_TYPE(s2)) {
 				var_to_reg_flt(s1, src, REG_FTMP1);
 				if (!(interfaces[len][s2].flags & INMEMORY)) {
-					M_FLTMOVE(s1,interfaces[len][s2].regoff);
+					M_FLTMOVE(s1, interfaces[len][s2].regoff);
 
 				} else {
 					x86_64_movq_reg_membase(s1, REG_SP, 8 * interfaces[len][s2].regoff);
@@ -5281,13 +5270,13 @@ gen_method: {
 	
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-				xboundrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (10 + 10 + 3));
+			gen_resolvebranch(mcodebase + xboundrefs->branchpos, 
+				xboundrefs->branchpos, xcodeptr - mcodebase - (10 + 10 + 3));
 			continue;
 		}
 
-		gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-		                  xboundrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		gen_resolvebranch(mcodebase + xboundrefs->branchpos, 
+		                  xboundrefs->branchpos, mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -5297,7 +5286,7 @@ gen_method: {
 		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
+			x86_64_jmp_imm((xcodeptr - mcodeptr) - 4);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -5316,13 +5305,13 @@ gen_method: {
 	
 	for (; xcheckarefs != NULL; xcheckarefs = xcheckarefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
-				xcheckarefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (10 + 10 + 3));
+			gen_resolvebranch(mcodebase + xcheckarefs->branchpos, 
+				xcheckarefs->branchpos, xcodeptr - mcodebase - (10 + 10 + 3));
 			continue;
 		}
 
-		gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
-		                  xcheckarefs->branchpos, (u1*) mcodeptr - mcodebase);
+		gen_resolvebranch(mcodebase + xcheckarefs->branchpos, 
+		                  xcheckarefs->branchpos, mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -5332,7 +5321,7 @@ gen_method: {
 		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
+			x86_64_jmp_imm((xcodeptr - mcodeptr) - 4);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -5351,13 +5340,13 @@ gen_method: {
 	
 	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
-				xcastrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (10 + 10 + 3));
+			gen_resolvebranch(mcodebase + xcastrefs->branchpos, 
+				xcastrefs->branchpos, xcodeptr - mcodebase - (10 + 10 + 3));
 			continue;
 		}
 
-		gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
-		                  xcastrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		gen_resolvebranch(mcodebase + xcastrefs->branchpos, 
+		                  xcastrefs->branchpos, mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -5367,7 +5356,7 @@ gen_method: {
 		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
+			x86_64_jmp_imm((xcodeptr - mcodeptr) - 4);
 		
 		} else {
 			xcodeptr = mcodeptr;
@@ -5386,13 +5375,13 @@ gen_method: {
 	
 	for (; xdivrefs != NULL; xdivrefs = xdivrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xdivrefs->branchpos, 
-				xdivrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (10 + 10 + 3));
+			gen_resolvebranch(mcodebase + xdivrefs->branchpos, 
+				xdivrefs->branchpos, xcodeptr - mcodebase - (10 + 10 + 3));
 			continue;
 		}
 
-		gen_resolvebranch((u1*) mcodebase + xdivrefs->branchpos, 
-		                  xdivrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		gen_resolvebranch(mcodebase + xdivrefs->branchpos, 
+		                  xdivrefs->branchpos, mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -5402,7 +5391,7 @@ gen_method: {
 		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
+			x86_64_jmp_imm((xcodeptr - mcodeptr) - 4);
 		
 		} else {
 			xcodeptr = mcodeptr;
@@ -5422,13 +5411,13 @@ gen_method: {
 	
 	for (; xnullrefs != NULL; xnullrefs = xnullrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
-				xnullrefs->branchpos, (u1*) xcodeptr - (u1*) mcodebase - (10 + 10 + 3));
+			gen_resolvebranch(mcodebase + xnullrefs->branchpos, 
+				xnullrefs->branchpos, xcodeptr - mcodebase - (10 + 10 + 3));
 			continue;
 		}
 
-		gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
-		                  xnullrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		gen_resolvebranch(mcodebase + xnullrefs->branchpos, 
+		                  xnullrefs->branchpos, mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -5438,7 +5427,7 @@ gen_method: {
 		x86_64_alu_reg_reg(X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 3 bytes */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 4);
+			x86_64_jmp_imm((xcodeptr - mcodeptr) - 4);
 		
 		} else {
 			xcodeptr = mcodeptr;
@@ -5514,7 +5503,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	if (runverbose) {
 		int p, l, s1;
 
-		x86_64_alu_imm_reg(X86_64_SUB, (6 + 8 + 1 + 1) * 8, REG_SP);
+		x86_64_alu_imm_reg(X86_64_SUB, (6 + 8 + 1) * 8, REG_SP);
 
 		x86_64_mov_reg_membase(argintregs[0], REG_SP, 1 * 8);
 		x86_64_mov_reg_membase(argintregs[1], REG_SP, 2 * 8);
@@ -5527,10 +5516,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_movq_reg_membase(argfltregs[1], REG_SP, 8 * 8);
 		x86_64_movq_reg_membase(argfltregs[2], REG_SP, 9 * 8);
 		x86_64_movq_reg_membase(argfltregs[3], REG_SP, 10 * 8);
-		x86_64_movq_reg_membase(argfltregs[4], REG_SP, 11 * 8);
-		x86_64_movq_reg_membase(argfltregs[5], REG_SP, 12 * 8);
-		x86_64_movq_reg_membase(argfltregs[6], REG_SP, 13 * 8);
-		x86_64_movq_reg_membase(argfltregs[7], REG_SP, 14 * 8);
+/*  		x86_64_movq_reg_membase(argfltregs[4], REG_SP, 11 * 8); */
+/*  		x86_64_movq_reg_membase(argfltregs[5], REG_SP, 12 * 8); */
+/*  		x86_64_movq_reg_membase(argfltregs[6], REG_SP, 13 * 8); */
+/*  		x86_64_movq_reg_membase(argfltregs[7], REG_SP, 14 * 8); */
 
 		descriptor2types(m);                     /* set paramcount and paramtypes */
 
@@ -5562,12 +5551,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_movq_membase_reg(REG_SP, 8 * 8, argfltregs[1]);
 		x86_64_movq_membase_reg(REG_SP, 9 * 8, argfltregs[2]);
 		x86_64_movq_membase_reg(REG_SP, 10 * 8, argfltregs[3]);
-		x86_64_movq_membase_reg(REG_SP, 11 * 8, argfltregs[4]);
-		x86_64_movq_membase_reg(REG_SP, 12 * 8, argfltregs[5]);
-		x86_64_movq_membase_reg(REG_SP, 13 * 8, argfltregs[6]);
-		x86_64_movq_membase_reg(REG_SP, 14 * 8, argfltregs[7]);
+/*  		x86_64_movq_membase_reg(REG_SP, 11 * 8, argfltregs[4]); */
+/*  		x86_64_movq_membase_reg(REG_SP, 12 * 8, argfltregs[5]); */
+/*  		x86_64_movq_membase_reg(REG_SP, 13 * 8, argfltregs[6]); */
+/*  		x86_64_movq_membase_reg(REG_SP, 14 * 8, argfltregs[7]); */
 
-		x86_64_alu_imm_reg(X86_64_ADD, (6 + 8 + 1 + 1) * 8, REG_SP);
+		x86_64_alu_imm_reg(X86_64_ADD, (6 + 8 + 1) * 8, REG_SP);
 	}
 
 	x86_64_alu_imm_reg(X86_64_SUB, 7 * 8, REG_SP);    /* keep stack 16-byte aligned */
@@ -5602,7 +5591,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	x86_64_alu_imm_reg(X86_64_ADD, 7 * 8, REG_SP);    /* keep stack 16-byte aligned */
 
 	if (runverbose) {
-		x86_64_alu_imm_reg(X86_64_SUB, 2 * 8, REG_SP);
+		x86_64_alu_imm_reg(X86_64_SUB, 3 * 8, REG_SP);    /* keep stack 16-byte aligned */
 
 		x86_64_mov_reg_membase(REG_RESULT, REG_SP, 0 * 8);
 		x86_64_movq_reg_membase(REG_FRESULT, REG_SP, 1 * 8);
@@ -5619,7 +5608,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_mov_membase_reg(REG_SP, 0 * 8, REG_RESULT);
 		x86_64_movq_membase_reg(REG_SP, 1 * 8, REG_FRESULT);
 
-		x86_64_alu_imm_reg(X86_64_ADD, 2 * 8, REG_SP);
+		x86_64_alu_imm_reg(X86_64_ADD, 3 * 8, REG_SP);    /* keep stack 16-byte aligned */
 	}
 
 	x86_64_mov_imm_reg(&exceptionptr, REG_ITMP3);
