@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 999 2004-03-30 22:34:40Z twisti $
+   $Id: loader.c 1008 2004-03-31 20:13:14Z edwin $
 
 */
 
@@ -2623,12 +2623,14 @@ fieldinfo *class_resolvefield_int(classinfo *c, utf *name, utf *desc)
 /********************* Function: class_resolvefield ***************************
 	
 	Resolves a reference from REFERER to a field with NAME and DESC in class C.
-    If the field cannot be resolved this function panics.
+
+    If the field cannot be resolved the return value is NULL. If EXCEPT is
+    true *exceptionptr is set, too.
 
 *******************************************************************************/
 
 fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
-							  classinfo *referer)
+							  classinfo *referer, bool except)
 {
 	fieldinfo *fi;
 
@@ -2638,11 +2640,9 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
 	fi = class_resolvefield_int(c,name,desc);
 
 	if (!fi) {
-		log_utf(c->name);
-		log_utf(name);
-		log_utf(desc);
-		panic("Cannot find field given in CONSTANT_Fieldref");
-		/* XXX should throw NoSuchFieldError */
+		if (except)
+			*exceptionptr = new_exception("java/lang/NoSuchFieldError");
+		return NULL;
 	}
 
 	/* XXX check access rights */
@@ -2966,20 +2966,27 @@ methodinfo *class_resolveinterfacemethod_int(classinfo *c, utf *name, utf *desc)
     Resolves a reference from REFERER to a method with NAME and DESC in
     interface C.
 
+    If the method cannot be resolved the return value is NULL. If EXCEPT is
+    true *exceptionptr is set, too.
+
 *******************************************************************************/
 
 methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
-										 classinfo *referer)
+										 classinfo *referer, bool except)
 {
 	methodinfo *mi;
 
 	/* XXX resolve class c */
 	/* XXX check access from REFERER to C */
 	
-	if ((c->flags & ACC_INTERFACE) == 0)
-		return NULL; /* should throw IncompatibleClassChangeError */
+	if ((c->flags & ACC_INTERFACE) == 0) {
+		if (except)
+			*exceptionptr = new_exception("java/lang/IncompatibleClassChangeError");
+		return NULL;
+	}
 
 	mi = class_resolveinterfacemethod_int(c,name,desc);
+
 	if (mi)
 		goto found;
 
@@ -2988,7 +2995,9 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
 	if (mi)
 		goto found;
 
-	return NULL; /* should throw NoSuchMethodError */
+	if (except)
+		*exceptionptr = new_exception("java/lang/NoSuchMethodError");
+	return NULL;
 
  found:
 	return mi;
@@ -2999,10 +3008,13 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
     Resolves a reference from REFERER to a method with NAME and DESC in
     class C.
 
+    If the method cannot be resolved the return value is NULL. If EXCEPT is
+    true *exceptionptr is set, too.
+
 *******************************************************************************/
 
 methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
-									 classinfo *referer)
+									 classinfo *referer, bool except)
 {
 	methodinfo *mi;
 	int i;
@@ -3011,8 +3023,11 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 	/* XXX resolve class c */
 	/* XXX check access from REFERER to C */
 	
-	if ((c->flags & ACC_INTERFACE) != 0)
-		return NULL; /* should throw IncompatibleClassChangeError */
+	if ((c->flags & ACC_INTERFACE) != 0) {
+		if (except)
+			*exceptionptr = new_exception("java/lang/IncompatibleClassChangeError");
+		return NULL;
+	}
 
 	/* try class c and its superclasses */
 	cls = c;
@@ -3029,12 +3044,18 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 			goto found;
 	}
 	
-	return NULL; /* should throw NoSuchMethodError */
+	if (except)
+		*exceptionptr = new_exception("java/lang/NoSuchMethodError");
+	return NULL;
 
  found:
 	if ((mi->flags & ACC_ABSTRACT) != 0 &&
-		(c->flags & ACC_ABSTRACT) == 0)
-		return NULL; /* should throw AbstractMethodError */
+		(c->flags & ACC_ABSTRACT) == 0) 
+	{
+		if (except)
+			*exceptionptr = new_exception("java/lang/AbstractMethodError");
+		return NULL;
+	}
 
 	/* XXX check access rights */
 
