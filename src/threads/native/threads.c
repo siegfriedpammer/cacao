@@ -320,6 +320,7 @@ typedef struct {
 static void *threadstartup(void *t)
 {
 	startupinfo *startup = t;
+	t = NULL;
 	threadobject *thread = startup->thread;
 	sem_t *psem = startup->psem;
 	nativethread *info = &thread->info;
@@ -331,8 +332,8 @@ static void *threadstartup(void *t)
 	pthread_mutex_lock(&threadlistlock);
 	info->prev = mainthreadobj;
 	info->next = tnext = mainthreadobj->info.next;
-	mainthreadobj->info.next = t;
-	tnext->info.prev = t;
+	mainthreadobj->info.next = thread;
+	tnext->info.prev = thread;
 	pthread_mutex_unlock(&threadlistlock);
 
 	initThreadLocks(thread);
