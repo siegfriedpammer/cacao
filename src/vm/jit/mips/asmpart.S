@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2180 2005-04-01 13:31:31Z twisti $
+   $Id: asmpart.S 2205 2005-04-03 22:51:43Z twisti $
 
 */
 
@@ -807,7 +807,7 @@ asm_check_clinit:
 	bnez    itmp3,L_is_initialized
 	
 	move    a0,itmp1              /* move class pointer to a0                 */
-	jal     class_init
+	jal     initialize_class
 		
 	beqz    v0,L_initializererror
 
