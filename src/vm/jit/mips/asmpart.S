@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1368 2004-08-01 21:50:08Z stefan $
+   $Id: asmpart.S 1484 2004-11-11 14:40:48Z twisti $
 
 */
 
@@ -871,9 +871,10 @@ L_initializererror:
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
 	jal     builtin_asm_get_exceptionptrptr
-	move    xptr,v0
 	ld      ra,0*8(sp)
 	daddiu  sp,sp,1*8
+	ld      xptr,0(v0)            /* get the exception pointer                */
+	sd      zero,0(v0)            /* clear the exception pointer              */
 #else
 	la      itmp3,_exceptionptr
 	ld      xptr,0(itmp3)
@@ -930,8 +931,7 @@ asm_builtin_monitorexit:
 nb_monitorexit:
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
-	ald     a0,string_java_lang_NullPointerException
-	jal     new_exception
+	jal     new_nullpointerexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
 	daddiu  sp,sp,1*8
@@ -958,9 +958,7 @@ asm_builtin_idiv:
 nb_idiv:
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
-	ald     a0,string_java_lang_ArithmeticException
-	ald     a1,string_java_lang_ArithmeticException_message
-	jal     new_exception_message
+	jal     new_arithmeticexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
 	daddiu  sp,sp,1*8
@@ -987,9 +985,7 @@ asm_builtin_ldiv:
 nb_ldiv:
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
-	ald     a0,string_java_lang_ArithmeticException
-	ald     a1,string_java_lang_ArithmeticException_message
-	jal     new_exception_message
+	jal     new_arithmeticexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
 	daddiu  sp,sp,1*8
@@ -1016,9 +1012,7 @@ asm_builtin_irem:
 nb_irem:
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
-	ald     a0,string_java_lang_ArithmeticException
-	ald     a1,string_java_lang_ArithmeticException_message
-	jal     new_exception_message
+	jal     new_arithmeticexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
 	daddiu  sp,sp,1*8
@@ -1045,9 +1039,7 @@ asm_builtin_lrem:
 nb_lrem:
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
-	ald     a0,string_java_lang_ArithmeticException
-	ald     a1,string_java_lang_ArithmeticException_message
-	jal     new_exception_message
+	jal     new_arithmeticexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
 	daddiu  sp,sp,1*8
@@ -1078,8 +1070,7 @@ asm_builtin_checkarraycast:
 	j       ra                        /* return                               */
 
 nb_carray_throw:
-	ald     a0,string_java_lang_ClassCastException
-	jal     new_exception
+	jal     new_classcastexception
 	move    xptr,v0
 
 	ld      ra,0(sp)                  /* restore return address               */
@@ -1110,8 +1101,7 @@ asm_builtin_checkcast:
 	j       ra                        /* return                               */
 
 nb_ccast_throw:
-	ald     a0,string_java_lang_ClassCastException
-	jal     new_exception
+	jal     new_classcastexception
 	move    xptr,v0
 
 	ld      ra,0(sp)                  /* restore return address               */
@@ -1155,8 +1145,7 @@ asm_builtin_aastore:
 nb_aastore_null:
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
-	ald     a0,string_java_lang_NullPointerException
-	jal     new_exception
+	jal     new_nullpointerexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
 	daddiu  sp,sp,1*8
@@ -1167,8 +1156,8 @@ nb_aastore_null:
 nb_aastore_bound:
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
-	ald     a0,string_java_lang_ArrayIndexOutOfBoundsException
-	jal     new_exception_int         /* a1 already contains the index        */
+	move    a0,a1                     /* move index into a0                   */
+	jal     new_arrayindexoutofboundsexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
 	daddiu  sp,sp,1*8
@@ -1180,8 +1169,7 @@ nb_aastore_bound:
 nb_aastore_store:
 	daddiu  sp,sp,-1*8
 	sd      ra,0*8(sp)
-	ald     a0,string_java_lang_ArrayStoreException
-	jal     new_exception
+	jal     new_arraystoreexception
 	move    xptr,v0
 	ld      ra,0*8(sp)
 	daddiu  sp,sp,1*8
