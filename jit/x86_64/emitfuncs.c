@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 1353 2004-07-26 22:31:24Z twisti $
+   $Id: emitfuncs.c 1451 2004-11-05 14:14:15Z twisti $
 
 */
 
@@ -40,14 +40,11 @@
 
 /* code generation functions */
 
-void x86_64_emit_ialu(methodinfo *m, s4 alu_op, stackptr src, instruction *iptr)
+void x86_64_emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
 {
-	codegendata *cd;
 	s4 s1 = src->prev->regoff;
 	s4 s2 = src->regoff;
 	s4 d = iptr->dst->regoff;
-
-	cd = m->codegendata;
 
 	if (iptr->dst->flags & INMEMORY) {
 		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -116,15 +113,11 @@ void x86_64_emit_ialu(methodinfo *m, s4 alu_op, stackptr src, instruction *iptr)
 }
 
 
-
-void x86_64_emit_lalu(methodinfo *m, s4 alu_op, stackptr src, instruction *iptr)
+void x86_64_emit_lalu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
 {
-	codegendata *cd;
 	s4 s1 = src->prev->regoff;
 	s4 s2 = src->regoff;
 	s4 d = iptr->dst->regoff;
-
-	cd = m->codegendata;
 
 	if (iptr->dst->flags & INMEMORY) {
 		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -193,14 +186,10 @@ void x86_64_emit_lalu(methodinfo *m, s4 alu_op, stackptr src, instruction *iptr)
 }
 
 
-
-void x86_64_emit_ialuconst(methodinfo *m, s4 alu_op, stackptr src, instruction *iptr)
+void x86_64_emit_ialuconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
 {
-	codegendata *cd;
 	s4 s1 = src->regoff;
 	s4 d = iptr->dst->regoff;
-
-	cd = m->codegendata;
 
 	if (iptr->dst->flags & INMEMORY) {
 		if (src->flags & INMEMORY) {
@@ -231,14 +220,10 @@ void x86_64_emit_ialuconst(methodinfo *m, s4 alu_op, stackptr src, instruction *
 }
 
 
-
-void x86_64_emit_laluconst(methodinfo *m, s4 alu_op, stackptr src, instruction *iptr)
+void x86_64_emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
 {
-	codegendata *cd;
 	s4 s1 = src->regoff;
 	s4 d = iptr->dst->regoff;
-
-	cd = m->codegendata;
 
 	if (iptr->dst->flags & INMEMORY) {
 		if (src->flags & INMEMORY) {
@@ -295,15 +280,11 @@ void x86_64_emit_laluconst(methodinfo *m, s4 alu_op, stackptr src, instruction *
 }
 
 
-
-void x86_64_emit_ishift(methodinfo *m, s4 shift_op, stackptr src, instruction *iptr)
+void x86_64_emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 {
-	codegendata *cd;
 	s4 s1 = src->prev->regoff;
 	s4 s2 = src->regoff;
 	s4 d = iptr->dst->regoff;
-
-	cd = m->codegendata;
 
 	M_INTMOVE(RCX, REG_ITMP1);    /* save RCX */
 	if (iptr->dst->flags & INMEMORY) {
@@ -385,15 +366,11 @@ void x86_64_emit_ishift(methodinfo *m, s4 shift_op, stackptr src, instruction *i
 }
 
 
-
-void x86_64_emit_lshift(methodinfo *m, s4 shift_op, stackptr src, instruction *iptr)
+void x86_64_emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 {
-	codegendata *cd;
 	s4 s1 = src->prev->regoff;
 	s4 s2 = src->regoff;
 	s4 d = iptr->dst->regoff;
-
-	cd = m->codegendata;
 
 	M_INTMOVE(RCX, REG_ITMP1);    /* save RCX */
 	if (iptr->dst->flags & INMEMORY) {
@@ -474,14 +451,10 @@ void x86_64_emit_lshift(methodinfo *m, s4 shift_op, stackptr src, instruction *i
 }
 
 
-
-void x86_64_emit_ishiftconst(methodinfo *m, s4 shift_op, stackptr src, instruction *iptr)
+void x86_64_emit_ishiftconst(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 {
-	codegendata *cd;
 	s4 s1 = src->regoff;
 	s4 d = iptr->dst->regoff;
-
-	cd = m->codegendata;
 
 	if ((src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
 		if (s1 == d) {
@@ -508,14 +481,10 @@ void x86_64_emit_ishiftconst(methodinfo *m, s4 shift_op, stackptr src, instructi
 }
 
 
-
-void x86_64_emit_lshiftconst(methodinfo *m, s4 shift_op, stackptr src, instruction *iptr)
+void x86_64_emit_lshiftconst(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 {
-	codegendata *cd;
 	s4 s1 = src->regoff;
 	s4 d = iptr->dst->regoff;
-
-	cd = m->codegendata;
 
 	if ((src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
 		if (s1 == d) {
@@ -542,31 +511,27 @@ void x86_64_emit_lshiftconst(methodinfo *m, s4 shift_op, stackptr src, instructi
 }
 
 
-
-void x86_64_emit_ifcc(methodinfo *m, s4 if_op, stackptr src, instruction *iptr)
+void x86_64_emit_ifcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr)
 {
-	codegendata *cd;
-
-	cd = m->codegendata;
-
 	if (src->flags & INMEMORY) {
 		x86_64_alul_imm_membase(cd, X86_64_CMP, iptr->val.i, REG_SP, src->regoff * 8);
 
 	} else {
-		x86_64_alul_imm_reg(cd, X86_64_CMP, iptr->val.i, src->regoff);
+		if (iptr->val.i == 0) {
+			x86_64_testl_reg_reg(cd, src->regoff, src->regoff);
+
+		} else {
+			x86_64_alul_imm_reg(cd, X86_64_CMP, iptr->val.i, src->regoff);
+		}
 	}
 	x86_64_jcc(cd, if_op, 0);
-	codegen_addreference(m, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+	codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 }
 
 
-
-void x86_64_emit_if_lcc(methodinfo *m, s4 if_op, stackptr src, instruction *iptr)
+void x86_64_emit_if_lcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr)
 {
-	codegendata *cd;
 	s4 s1 = src->regoff;
-
-	cd = m->codegendata;
 
 	if (src->flags & INMEMORY) {
 		if (x86_64_is_imm32(iptr->val.l)) {
@@ -578,27 +543,28 @@ void x86_64_emit_if_lcc(methodinfo *m, s4 if_op, stackptr src, instruction *iptr
 		}
 
 	} else {
-		if (x86_64_is_imm32(iptr->val.l)) {
-			x86_64_alu_imm_reg(cd, X86_64_CMP, iptr->val.l, s1);
+		if (iptr->val.l == 0) {
+			x86_64_test_reg_reg(cd, s1, s1);
 
 		} else {
-			x86_64_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
-			x86_64_alu_reg_reg(cd, X86_64_CMP, REG_ITMP1, s1);
+			if (x86_64_is_imm32(iptr->val.l)) {
+				x86_64_alu_imm_reg(cd, X86_64_CMP, iptr->val.l, s1);
+
+			} else {
+				x86_64_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
+				x86_64_alu_reg_reg(cd, X86_64_CMP, REG_ITMP1, s1);
+			}
 		}
 	}
 	x86_64_jcc(cd, if_op, 0);
-	codegen_addreference(m, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+	codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 }
 
 
-
-void x86_64_emit_if_icmpcc(methodinfo *m, s4 if_op, stackptr src, instruction *iptr)
+void x86_64_emit_if_icmpcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr)
 {
-	codegendata *cd;
 	s4 s1 = src->prev->regoff;
 	s4 s2 = src->regoff;
-
-	cd = m->codegendata;
 
 	if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 		x86_64_movl_membase_reg(cd, REG_SP, s2 * 8, REG_ITMP1);
@@ -614,18 +580,14 @@ void x86_64_emit_if_icmpcc(methodinfo *m, s4 if_op, stackptr src, instruction *i
 		x86_64_alul_reg_reg(cd, X86_64_CMP, s2, s1);
 	}
 	x86_64_jcc(cd, if_op, 0);
-	codegen_addreference(m, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+	codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 }
 
 
-
-void x86_64_emit_if_lcmpcc(methodinfo *m, s4 if_op, stackptr src, instruction *iptr)
+void x86_64_emit_if_lcmpcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr)
 {
-	codegendata *cd;
 	s4 s1 = src->prev->regoff;
 	s4 s2 = src->regoff;
-
-	cd = m->codegendata;
 
 	if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 		x86_64_mov_membase_reg(cd, REG_SP, s2 * 8, REG_ITMP1);
@@ -641,7 +603,7 @@ void x86_64_emit_if_lcmpcc(methodinfo *m, s4 if_op, stackptr src, instruction *i
 		x86_64_alu_reg_reg(cd, X86_64_CMP, s2, s1);
 	}
 	x86_64_jcc(cd, if_op, 0);
-	codegen_addreference(m, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+	codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 }
 
 
@@ -857,6 +819,42 @@ void x86_64_movzwq_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexre
 	x86_64_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
 }
 
+
+void x86_64_mov_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+{
+	x86_64_emit_rex(1,0,(indexreg),(basereg));
+	*(cd->mcodeptr++) = 0xc7;
+	x86_64_emit_memindex(0,(disp),(basereg),(indexreg),(scale));
+	x86_64_emit_imm32((imm));
+}
+
+
+void x86_64_movl_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+{
+	x86_64_emit_rex(0,0,(indexreg),(basereg));
+	*(cd->mcodeptr++) = 0xc7;
+	x86_64_emit_memindex(0,(disp),(basereg),(indexreg),(scale));
+	x86_64_emit_imm32((imm));
+}
+
+
+void x86_64_movw_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+{
+	*(cd->mcodeptr++) = 0x66;
+	x86_64_emit_rex(0,0,(indexreg),(basereg));
+	*(cd->mcodeptr++) = 0xc7;
+	x86_64_emit_memindex(0,(disp),(basereg),(indexreg),(scale));
+	x86_64_emit_imm16((imm));
+}
+
+
+void x86_64_movb_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+{
+	x86_64_emit_rex(0,0,(indexreg),(basereg));
+	*(cd->mcodeptr++) = 0xc6;
+	x86_64_emit_memindex(0,(disp),(basereg),(indexreg),(scale));
+	x86_64_emit_imm8((imm));
+}
 
 
 /*

@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1353 2004-07-26 22:31:24Z twisti $
+   $Id: codegen.h 1451 2004-11-05 14:14:15Z twisti $
 
 */
 
@@ -35,6 +35,7 @@
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
+#include <sys/ucontext.h>
 #include "jit/jit.h"
 
 
@@ -332,7 +333,7 @@ typedef enum {
 	if (checknull) { \
         x86_64_test_reg_reg(cd, (objreg), (objreg)); \
         x86_64_jcc(cd, X86_64_CC_E, 0); \
- 	    codegen_addxnullrefs(m, cd->mcodeptr); \
+ 	    codegen_addxnullrefs(cd, cd->mcodeptr); \
 	}
 
 
@@ -340,7 +341,7 @@ typedef enum {
     if (checkbounds) { \
         x86_64_alul_membase_reg(cd, X86_64_CMP, s1, OFFSET(java_arrayheader, size), s2); \
         x86_64_jcc(cd, X86_64_CC_AE, 0); \
-        codegen_addxboundrefs(m, cd->mcodeptr, s2); \
+        codegen_addxboundrefs(cd, cd->mcodeptr, s2); \
     }
 
 
@@ -352,7 +353,7 @@ typedef enum {
             x86_64_test_reg_reg(cd, src->regoff, src->regoff); \
         } \
         x86_64_jcc(cd, X86_64_CC_E, 0); \
-        codegen_addxdivrefs(m, cd->mcodeptr); \
+        codegen_addxdivrefs(cd, cd->mcodeptr); \
     }
 
 
@@ -360,7 +361,7 @@ typedef enum {
 
 #define MCODECHECK(icnt) \
 	if ((cd->mcodeptr + (icnt)) > (u1 *) cd->mcodeend) \
-        cd->mcodeptr = (u1 *) codegen_increase(m, cd->mcodeptr)
+        cd->mcodeptr = (u1 *) codegen_increase(cd, cd->mcodeptr)
 
 /* M_INTMOVE:
     generates an integer-move from register a to b.
@@ -455,7 +456,7 @@ typedef enum {
 
 
 #define M_COPY(from,to) \
-    d = reg_of_var(m, to, REG_ITMP1); \
+    d = reg_of_var(rd, to, REG_ITMP1); \
 	if ((from->regoff != to->regoff) || \
 	    ((from->flags ^ to->flags) & INMEMORY)) { \
 		if (IS_FLT_DBL_TYPE(from->type)) { \
@@ -489,6 +490,8 @@ typedef enum {
 
 
 /* function prototypes */
+
+void thread_restartcriticalsection(ucontext_t *uc);
 
 #endif /* _CODEGEN_H */
 

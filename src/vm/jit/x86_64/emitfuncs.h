@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: emitfuncs.h 1353 2004-07-26 22:31:24Z twisti $
+   $Id: emitfuncs.h 1451 2004-11-05 14:14:15Z twisti $
 
 */
 
@@ -40,18 +40,18 @@
 
 /* code generation prototypes */
 
-void x86_64_emit_ialu(methodinfo *m, s4 alu_op, stackptr src, instruction *iptr);
-void x86_64_emit_lalu(methodinfo *m, s4 alu_op, stackptr src, instruction *iptr);
-void x86_64_emit_ialuconst(methodinfo *m, s4 alu_op, stackptr src, instruction *iptr);
-void x86_64_emit_laluconst(methodinfo *m, s4 alu_op, stackptr src, instruction *iptr);
-void x86_64_emit_ishift(methodinfo *m, s4 shift_op, stackptr src, instruction *iptr);
-void x86_64_emit_lshift(methodinfo *m, s4 shift_op, stackptr src, instruction *iptr);
-void x86_64_emit_ishiftconst(methodinfo *m, s4 shift_op, stackptr src, instruction *iptr);
-void x86_64_emit_lshiftconst(methodinfo *m, s4 shift_op, stackptr src, instruction *iptr);
-void x86_64_emit_ifcc(methodinfo *m, s4 if_op, stackptr src, instruction *iptr);
-void x86_64_emit_if_lcc(methodinfo *m, s4 if_op, stackptr src, instruction *iptr);
-void x86_64_emit_if_icmpcc(methodinfo *m, s4 if_op, stackptr src, instruction *iptr);
-void x86_64_emit_if_lcmpcc(methodinfo *m, s4 if_op, stackptr src, instruction *iptr);
+void x86_64_emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
+void x86_64_emit_lalu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
+void x86_64_emit_ialuconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
+void x86_64_emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
+void x86_64_emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
+void x86_64_emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
+void x86_64_emit_ishiftconst(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
+void x86_64_emit_lshiftconst(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
+void x86_64_emit_ifcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr);
+void x86_64_emit_if_lcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr);
+void x86_64_emit_if_icmpcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr);
+void x86_64_emit_if_lcmpcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr);
 
 
 /* integer instructions */
@@ -83,6 +83,10 @@ void x86_64_movzwq_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void x86_64_movswq_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);
 void x86_64_movsbq_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);
 void x86_64_movzwq_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);
+void x86_64_mov_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void x86_64_movl_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void x86_64_movw_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void x86_64_movb_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void x86_64_alu_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg);
 void x86_64_alul_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg);
 void x86_64_alu_reg_membase(codegendata *cd, s8 opc, s8 reg, s8 basereg, s8 disp);
