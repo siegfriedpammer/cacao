@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1016 2004-04-08 15:09:05Z stefan $
+   $Id: codegen.c 1020 2004-04-20 21:12:57Z stefan $
 
 */
 
@@ -4841,7 +4841,6 @@ void removecompilerstub(u1 *stub)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 static java_objectheader **(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr;
-static void (*callresetexceptionptr)() = builtin_reset_exceptionptr;
 #endif
 
 void i386_native_stub_debug(void **p) {
@@ -5089,7 +5088,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	i386_push_reg(REG_ITMP2);
-	i386_call_mem((s4) &callresetexceptionptr);
+	i386_call_mem((s4) &callgetexceptionptrptr);
+	i386_mov_imm_membase(0, REG_RESULT, 0);
 	i386_pop_reg(REG_ITMP1_XPTR);
 #else
 	i386_mov_reg_reg(REG_ITMP2, REG_ITMP1_XPTR);
