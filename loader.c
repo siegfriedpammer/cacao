@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 1131 2004-06-05 15:44:52Z twisti $
+   $Id: loader.c 1154 2004-06-09 16:28:00Z twisti $
 
 */
 
@@ -408,8 +408,10 @@ void suck_init(char *cpath)
 		else
 			start = end;
 	
-		if (filename)
-			MFREE(filename, char*, CLASSPATH_MAXFILENAME);
+		if (filename) {
+			MFREE(filename, char, CLASSPATH_MAXFILENAME);
+			filename = NULL;
+		}
 	}
 }
 
@@ -1251,8 +1253,7 @@ static methodinfo *method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 			suck_nbytes(m->jcode, cb, m->jcodelength);
 
 			m->exceptiontablelength = suck_u2(cb);
-			m->exceptiontable = 
-				MNEW(exceptiontable, m->exceptiontablelength);
+			m->exceptiontable = MNEW(exceptiontable, m->exceptiontablelength);
 
 #ifdef STATISTICS
 			if (opt_stat) {
@@ -1916,7 +1917,8 @@ classinfo *class_load_intern(classbuffer *cb)
 	mi = suck_u2(cb);
 	ma = suck_u2(cb);
 
-	if (ma != MAJOR_VERSION && (ma != MAJOR_VERSION + 1 || mi != 0)) {
+/*  	if (ma != MAJOR_VERSION && (ma != MAJOR_VERSION + 1 || mi != 0)) { */
+	if (!(ma < MAJOR_VERSION || (ma == MAJOR_VERSION && mi <= MINOR_VERSION))) {
 		utf_sprint_classname(msg, c->name);
 		sprintf(msg + strlen(msg), " (Unsupported major.minor version %d.%d)",
 				ma, mi);
@@ -1937,7 +1939,7 @@ classinfo *class_load_intern(classbuffer *cb)
 	c->impldBy = NULL;
 
 	/* ACC flags */
-	c->flags = suck_u2(cb); 
+	c->flags = suck_u2(cb);
 	/*if (!(c->flags & ACC_PUBLIC)) { log_text("CLASS NOT PUBLIC"); } JOWENN*/
 
 	/* check ACC flags consistency */
@@ -2035,8 +2037,7 @@ classinfo *class_load_intern(classbuffer *cb)
 	c->interfacescount = suck_u2(cb);
 	c->interfaces = MNEW(classinfo*, c->interfacescount);
 	for (i = 0; i < c->interfacescount; i++) {
-		c->interfaces[i] =
-			class_getconstant(c, suck_u2(cb), CONSTANT_Class);
+		c->interfaces[i] = class_getconstant(c, suck_u2(cb), CONSTANT_Class);
 	}
 
 	/* load fields */
