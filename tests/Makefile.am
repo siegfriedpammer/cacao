@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1820 2004-12-23 11:19:44Z twisti $
+## $Id: Makefile.am 1980 2005-03-04 15:20:34Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = jvm98 kaffe native
+SUBDIRS = kaffe native
 
 EXTRA_DIST = \
 	x.java x.output \
