@@ -139,6 +139,7 @@ boehm )
 		AC_MSG_ERROR(libgc.a not found)
 	fi
 	AC_DEFINE(USE_BOEHM)
+	BOEHM_LIB=libboehm.a
 	;;
 gc1 )
 	AC_MSG_RESULT(old garbage collector)
@@ -153,6 +154,7 @@ gc2 | "" )
 	;;
 esac
 AC_SUBST(GC_OBJ)
+AC_SUBST(BOEHM_LIB)
 
 AC_OUTPUT(Makefile \
 	  toolbox/Makefile \

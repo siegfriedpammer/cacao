@@ -1,4 +1,5 @@
-noinst_LIBRARIES = libmm_new.a libmm_old.a libboehm.a
+EXTRA_LIBRARIES = libboehm.a
+noinst_LIBRARIES = libmm_new.a libmm_old.a @BOEHM_LIB@
 
 libmm_new_a_SOURCES = allocator2.c allocator.h \
 		      bitmap2.c bitmap2.h \
