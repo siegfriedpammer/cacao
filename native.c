@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 676 2003-11-24 20:50:23Z twisti $
+   $Id: native.c 682 2003-12-01 15:33:30Z jowenn $
 
 */
 
@@ -86,6 +86,7 @@ classinfo *class_java_lang_CloneNotSupportedException;
 classinfo *class_java_lang_System;
 classinfo *class_java_lang_ClassLoader;
 classinfo *class_java_lang_ClassNotFoundException;
+classinfo *class_java_lang_LinkageError;
 classinfo *class_java_lang_InstantiationException;
 classinfo *class_java_lang_NoSuchMethodError;   
 classinfo *class_java_lang_NoSuchFieldError;
@@ -129,29 +130,36 @@ void use_class_as_object(classinfo *c)
         vftbl *newtbl;
         if (!c->classvftbl) {
                 c->classvftbl = true;
-                copy_vftbl(&newtbl, vt);
+
+/*                copy_vftbl(&newtbl, vt);
                 newtbl->class = c->header.vftbl->class;
                 newtbl->baseval = c->header.vftbl->baseval;
                 newtbl->diffval = c->header.vftbl->diffval;
-                c->header.vftbl = newtbl;
-        }
+                c->header.vftbl = newtbl;*/
+		
+		c->header.vftbl=class_java_lang_Class->vftbl;
         
-	if (!class_java_lang_VMClass) {
-		class_java_lang_VMClass =
-                                class_new ( utf_new_char("java/lang/VMClass"));
-                method_vmclass_init = 
-				class_findmethod(class_java_lang_VMClass,utf_new_char("<init>"),
-					utf_new_char("(Lgnu/classpath/RawData;)V"));
-                if (method_vmclass_init==0) {
-			class_showmethods(class_java_lang_VMClass);
-                        panic("Needed class initializer for VMClass could not be found");
-                }
+		if (!class_java_lang_VMClass) {
+			class_java_lang_VMClass =
+        	                        loader_load ( utf_new_char("java/lang/VMClass"));
+	                method_vmclass_init = 
+					class_findmethod(class_java_lang_VMClass,utf_new_char("<init>"),
+						utf_new_char("(Lgnu/classpath/RawData;)V"));
+	                if (method_vmclass_init==0) {
+				class_showmethods(class_java_lang_VMClass);
+                	        panic("Needed class initializer for VMClass could not be found");
+	                }
+        	}
+	        {     
+   	        	java_objectheader *vmo = builtin_new (class_java_lang_VMClass);
+
+			if (!vmo) panic("Error while creating instance of java/lang/VMClass");
+                	asm_calljavamethod (method_vmclass_init, vmo, c, NULL, NULL);
+	                c->vmClass=(java_lang_VMClass*)vmo;
+			/*log_text("VMCLASS has been attached");*/
+        	}
         }
-        {
-                java_objectheader *vmo = builtin_new (class_java_lang_VMClass);
-                asm_calljavamethod (method_vmclass_init, vmo, c, NULL, NULL);
-                c->vmClass=(java_lang_VMClass*)vmo;
-        }
+	
 }
 
 
@@ -248,6 +256,8 @@ void native_loadclasses()
 		class_new(utf_new_char("java/io/FileNotFoundException"));
 	class_java_lang_ClassNotFoundException =
 		class_new(utf_new_char("java/lang/ClassNotFoundException"));
+	class_java_lang_LinkageError =
+		class_new(utf_new_char("java/lang/LinkageError"));
 	class_java_lang_InstantiationException =
 		class_new(utf_new_char("java/lang/InstantiationException"));
 	class_java_lang_NoSuchMethodError =
@@ -301,14 +311,6 @@ void native_loadclasses()
 		class_new(utf_new_char("java/lang/Boolean"));
 	class_java_lang_Void =
 		class_new(utf_new_char("java/lang/Void"));
-
-	/* load to avoid dynamic classloading */
-/*JoWenn	class_new(utf_new_char("sun/net/www/protocol/file/Handler"));
-	class_new(utf_new_char("sun/net/www/protocol/jar/Handler"));	
-	class_new(utf_new_char("sun/io/CharToByteISO8859_1"));*/
-	
-	/* start classloader */
-/*JoWenn	loader_load(utf_new_char("sun/io/ByteToCharISO8859_1")); */
 
 	classesLoaded=1;
 	log_text("native_loadclasses finished");
@@ -428,6 +430,17 @@ void throw_classnotfoundexception2(utf* classname)
 
 	/* throws a ClassNotFoundException with message */
 	exceptionptr = native_new_and_init_string(class_java_lang_ClassNotFoundException,
+											  javastring_new(classname));
+}
+
+void throw_linkageerror2(utf* classname)
+{
+	if (!class_java_lang_LinkageError) {
+		panic("java.lang.LinkageError not found. Maybe wrong classpath?");
+	}
+
+	/* throws a ClassNotFoundException with message */
+	exceptionptr = native_new_and_init_string(class_java_lang_LinkageError,
 											  javastring_new(classname));
 }
 

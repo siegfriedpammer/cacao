@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _GNU_JAVA_AWT_PEER_GTK_GTKCLIPBOARD_H
+#define _GNU_JAVA_AWT_PEER_GTK_GTKCLIPBOARD_H
+
 /* Structure information for class: gnu/java/awt/peer/gtk/GtkClipboard */
 
 typedef struct gnu_java_awt_peer_gtk_GtkClipboard {
@@ -9,21 +12,29 @@ typedef struct gnu_java_awt_peer_gtk_GtkClipboard {
    struct java_lang_String* name;
 } gnu_java_awt_peer_gtk_GtkClipboard;
 
+
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkClipboard
  * Method:    initNativeState
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkClipboard_initNativeState (JNIEnv *env ,  struct gnu_java_awt_peer_gtk_GtkClipboard* this );
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkClipboard_initNativeState(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkClipboard* this);
+
+
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkClipboard
  * Method:    requestStringConversion
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkClipboard_requestStringConversion (JNIEnv *env , jclass clazz );
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkClipboard_requestStringConversion(JNIEnv *env, jclass clazz);
+
+
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkClipboard
  * Method:    selectionGet
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkClipboard_selectionGet (JNIEnv *env , jclass clazz );
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkClipboard_selectionGet(JNIEnv *env, jclass clazz);
+
+#endif
+

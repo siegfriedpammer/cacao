@@ -41,19 +41,19 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv 
         /* create utf string in which '.' is replaced by '/' */
         u = javastring_toutf(s, true);
         
-        if ( !(c = class_get(u)) ) {
-            log_text("forName: would need classloader");
-            /*utf_display(u);*/
-            
             c = loader_load(u);
             if (c == NULL) {
                 /* class was not loaded. raise exception */
-                exceptionptr = 
-                    native_new_and_init_string(class_java_lang_ClassNotFoundException, s);
-                return NULL;
-            }
-        }
+		if (! exceptionptr) {
+			if (runverbose)
+				log_text("Setting class not found exception");
+        	        exceptionptr = 
+                	    native_new_and_init_string(class_java_lang_ClassNotFoundException, s);
+		}
+	    return NULL;
 
+	}
+	/*log_text("Returning class");*/
 	use_class_as_object (c);
 	return (java_lang_Class*) c;
 }
@@ -115,10 +115,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 
 
     
-    log_text("Java_java_lang_VMClass_getDeclaredConstructors");
+   log_text("Java_java_lang_VMClass_getDeclaredConstructors");
     utf_display(c->name);
     printf("\n");
-    class_showmethods(c);
+/*    class_showmethods(c);
+    class_showmethods(loader_load(utf_new_char("java/lang/Class")));*/
 
 
     /* determine number of constructors */
@@ -127,7 +128,6 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 		(c->methods[i].name==utf_constr)) public_methods++;
 
     class_constructor = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Constructor"));
-
     if (!class_constructor) 
 	return NULL;
 
@@ -492,12 +492,52 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers ( JNIEnv *env ,  struct
  */
 JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getName ( JNIEnv *env ,  struct java_lang_VMClass* this)
 {
+    u4 dimCnt;
+    classinfo *c = (classinfo*) (this->vmData);
 
-	u4 i;
-	classinfo *c = (classinfo*) (this->vmData);
-	java_lang_String *s = (java_lang_String*) javastring_new(c->name);
+    char *utf__ptr  =  c->name->text;      /* current position in utf-text */
+    char **utf_ptr  =  &utf__ptr;
+    char *desc_end =  utf_end(c->name);   /* points behind utf string     */
+    java_lang_String *s;
+    char *str;
+    s4   len;
+    s4   i;
+    if (runverbose) log_text("Java_java_lang_VMClass_getName");
 
-	if (!s) return NULL;
+    dimCnt=0;
+    while ( *utf_ptr != desc_end ) {
+	if (utf_nextu2(utf_ptr)=='[') dimCnt++;
+   	else break;
+    }
+    utf__ptr=(*utf_ptr)-1;
+
+    len=0;
+    if (((*utf_ptr)+1)==desc_end) {
+	    for (i=0;i<PRIMITIVETYPE_COUNT;i++) {
+		if (primitivetype_table[i].typesig==(*utf__ptr)) {
+			len=dimCnt*2+strlen(primitivetype_table[i].name);
+			str=MNEW(char,len+1);
+			strcpy(str,primitivetype_table[i].name);
+			break;
+		}
+	    }
+    }
+    if (len==0) {
+	len=dimCnt+strlen(c->name->text);
+	str=MNEW(char,len+1);
+	strcpy(str,utf__ptr);	   
+    }	
+
+    dimCnt=len-2*dimCnt;
+    str[len]=0;
+    for (i=len-1;i>=dimCnt;i=i-2) {
+	str[i]=']';
+	str[i-1]='[';
+    }
+    s=(java_lang_String*)javastring_new(utf_new_char(str));
+    MFREE(str,char,len+1);
+
+    if (!s) return NULL;
 
 	/* return string where '/' is replaced by '.' */
 	for (i=0; i<s->value->header.size; i++) {

@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 664 2003-11-21 18:24:01Z jowenn $
+   $Id: tables.c 682 2003-12-01 15:33:30Z jowenn $
 
 */
 
@@ -720,7 +720,7 @@ classinfo *class_new(utf *u)
 	count_class_infos += sizeof(classinfo);
 #endif
 
-	c = NEW (classinfo);
+	c = GCNEW (classinfo,1); /*JOWENN: NEW*/
 	c -> vmClass = 0;
 	c -> flags = 0;
 	c -> name = u;
@@ -737,6 +737,7 @@ classinfo *class_new(utf *u)
 	c -> methodscount = 0;
 	c -> methods = NULL;
 	c -> linked = false;
+	c -> loaded = false;
 	c -> index = 0;
 	c -> instancesize = 0;
 	c -> header.vftbl = NULL;
@@ -815,6 +816,9 @@ classinfo *class_get(utf *u)
 	slot = key & (class_hash.size-1);
 	c    = class_hash.ptr[slot];
 
+/*
+	log_text("class_get: looking for class:");
+	utf_display(u); */
 	/* search external hash-chain */
 	while (c) {
 		if (c->name->blength == u->blength) {
@@ -822,7 +826,11 @@ classinfo *class_get(utf *u)
 			/* compare classnames */
 			for (i=0; i<u->blength; i++) 
 				if (u->text[i] != c->name->text[i]) goto nomatch;
-
+/*
+			log_text("class_get: class found");
+			utf_display(u);
+			log_text("");
+			utf_display(c->name); */
 			/* class found in hashtable */				
 			return c;
 		}

@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _GNU_JAVA_AWT_PEER_GTK_GTKCANVASPEER_H
+#define _GNU_JAVA_AWT_PEER_GTK_GTKCANVASPEER_H
+
 /* Structure information for class: gnu/java/awt/peer/gtk/GtkCanvasPeer */
 
 typedef struct gnu_java_awt_peer_gtk_GtkCanvasPeer {
@@ -10,9 +13,13 @@ typedef struct gnu_java_awt_peer_gtk_GtkCanvasPeer {
    struct java_awt_Insets* insets;
 } gnu_java_awt_peer_gtk_GtkCanvasPeer;
 
+
 /*
  * Class:     gnu/java/awt/peer/gtk/GtkCanvasPeer
  * Method:    create
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkCanvasPeer_create (JNIEnv *env ,  struct gnu_java_awt_peer_gtk_GtkCanvasPeer* this );
+JNIEXPORT void JNICALL Java_gnu_java_awt_peer_gtk_GtkCanvasPeer_create(JNIEnv *env, struct gnu_java_awt_peer_gtk_GtkCanvasPeer* this);
+
+#endif
+

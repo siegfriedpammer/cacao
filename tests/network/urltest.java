@@ -84,9 +84,13 @@ public class urltest {
 	{
 	    Object handler;
 
-	    for (int i = 0; i < classes.length; ++i)
-		Class.forName(classes[i]).newInstance();
-
+	    for (int i = 0; i < classes.length; ++i) {
+		try {
+			Class.forName(classes[i]).newInstance();
+		} catch (Exception e) {
+			System.out.println("Exception ("+e.toString()+") while trying to create an instance of: "+classes[i]);
+		}
+	    }
 	    URL url = new URL("http://www.schani.net/");
 
 	    System.out.println("url " + url.toString());

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 677 2003-11-24 20:55:42Z twisti $
+# $Id: Makefile.am 682 2003-12-01 15:33:30Z jowenn $
 
 @SET_MAKE@
 
@@ -59,7 +59,7 @@ cacao_LDADD = \
 	classpathbin/@ARCH_DIR@/native/jni/java-util/.libs/libjavautil.a \
 	classpathbin/@ARCH_DIR@/native/jni/java-lang/.libs/libjavalang.a \
 	classpathbin/@ARCH_DIR@/native/jni/java-lang/.libs/libjavalangreflect.a @AWT_OBJS@ @ZIP_LIBS@
-
+	
 
 cacao_DEPENDENCIES = \
 	jit/libjit.a \
@@ -136,7 +136,12 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	java.lang.reflect.Proxy \
 	java.lang.Double \
 	java.lang.Compiler \
+	java.lang.Byte \
+	java.lang.Character \
 	java.lang.Integer \
+	java.lang.Long \
+	java.lang.Short \
+	java.lang.Boolean \
 	java.lang.StackTraceElement \
 	java.lang.Float \
 	java.lang.Object \

@@ -60,8 +60,9 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
 
 
         m = &((classinfo*)clazz)->methods[this->slot];
-	if (!((m->name == utf_new_char("<init>")) && 
-                  (m->descriptor == create_methodsig(this->parameterTypes,"V"))))
+	if (!((m->name == utf_new_char("<init>"))))
+/* && 
+                  (m->descriptor == create_methodsig(this->parameterTypes,"V"))))*/
 	{
                 if (verbose) {
                         sprintf(logtext, "Warning: class has no instance-initializer of specified type: ");
@@ -77,7 +78,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
 
 /*	log_text("calling initializer");*/
         /* call initializer */
-
+#if 0
 	switch (this->parameterTypes->header.size) {
 		case 0: exceptionptr=asm_calljavamethod (m, o, NULL, NULL, NULL);
 			break;
@@ -91,6 +92,11 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
 		default:
 			log_text("Not supported number of arguments in Java_java_lang_reflect_Constructor");
 	}
+#endif
+		/*utf_display(m->descriptor);
+		log_text("calling constructor");*/
+		(void) jni_method_invokeNativeHelper(env, m ,o, parameters); 
+
         return o;
 }
 
@@ -100,7 +106,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
  * Signature: ()I
  */
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiers (JNIEnv *env ,  struct java_lang_reflect_Constructor* this ) {
-	log_text("Java_java_lang_reflect_Constructor_getModifiers called");
+/*	log_text("Java_java_lang_reflect_Constructor_getModifiers called");*/
         classinfo *c=(classinfo*)(this->clazz);
         if ((this->slot<0) || (this->slot>=c->methodscount))
                 panic("error illegal slot for method in class (getReturnType)");

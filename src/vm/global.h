@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 670 2003-11-23 14:36:26Z edwin $
+   $Id: global.h 682 2003-12-01 15:33:30Z jowenn $
 
 */
 
@@ -584,6 +584,7 @@ struct classinfo {                /* class structure                          */
 	listnode    listnode;         /* linkage                                  */
 
 	bool        initialized;      /* true, if class already initialised       */ 
+	bool        loaded;           /* true, if class already loaded            */
 	bool        linked;           /* true, if class already linked            */
 	s4	    index;            /* hierarchy depth (classes) or index
 	                                 (interfaces)                             */ 

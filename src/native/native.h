@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 676 2003-11-24 20:50:23Z twisti $
+   $Id: native.h 682 2003-12-01 15:33:30Z jowenn $
 
 */
 
@@ -124,7 +124,12 @@ void stringtable_update();
 /* throw classnotfoundexcetion */
 void throw_classnotfoundexception();
 
+/* throw classnotfoundexcetion with description*/
 void throw_classnotfoundexception2(utf* classname);
+
+/* throw linkageerror with description*/
+void throw_linkageerror2(utf* classname);
+
 
 /* make utf symbol from javastring */
 utf *javastring_toutf(struct java_lang_String *string, bool isclassname);

@@ -29,7 +29,7 @@
             Roman Obermaiser
             Mark Probst
 
-   $Id: loader.c 680 2003-11-24 23:12:29Z twisti $
+   $Id: loader.c 682 2003-12-01 15:33:30Z jowenn $
 
 */
 
@@ -1501,7 +1501,7 @@ static int class_load(classinfo *c)
 	   add to list of unlinked classes	          */
 	list_remove (&unloadedclasses, c);
 	list_addlast (&unlinkedclasses, c);
-
+	c->loaded=true;
 	return true;
 }
 
@@ -1653,6 +1653,8 @@ class_new_array(classinfo *c)
      * Array classes which are created after the other classes have been
      * loaded and linked are linked explicitely.
      */
+        c->loaded=true;
+     
 	if (loader_inited)
 		loader_load(c->name);
 }
@@ -2762,10 +2764,23 @@ classinfo *loader_load (utf *topname)
 		loadingtime += (stoptime-starttime);
 		}
 
-	intsRestore();                          /* schani */
 
 	loader_load_running--;
 	
+	/* check if a former loader_load call tried to load/link the class and failed.
+		This is needed because the class didn't appear in the undloadclasses or unlinkedclasses list during this class; */
+	if (top) {
+		if (!top->loaded) {
+			throw_classnotfoundexception2(top->name);
+			top=NULL;
+		} else if  (!top->linked) {
+			throw_linkageerror2(top->name);
+			top=NULL;
+		}
+	}
+
+	intsRestore();                          /* schani */
+
 	return top; 
 }
 
@@ -2786,9 +2801,10 @@ void create_primitive_classes()
 		classinfo *c = class_new ( utf_new_char(primitivetype_table[i].name) );
                 c -> classUsed = NOTUSED; /* not used initially CO-RT */		
 		c -> impldBy = NULL;
-
+		
 		/* prevent loader from loading primitive class */
 		list_remove (&unloadedclasses, c);
+		c->loaded=true;
 		/* add to unlinked classes */
 		list_addlast (&unlinkedclasses, c);		
 		c -> super = class_java_lang_Object;
@@ -2806,6 +2822,7 @@ void create_primitive_classes()
 		if (primitivetype_table[i].arrayname) {
 			c = class_new( utf_new_char(primitivetype_table[i].arrayname) );
 			primitivetype_table[i].arrayclass = c;
+			c->loaded=true;
 			if (!c->linked) class_link(c);
 			primitivetype_table[i].arrayvftbl = c->vftbl;
 		}

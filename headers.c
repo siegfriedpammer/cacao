@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 676 2003-11-24 20:50:23Z twisti $
+   $Id: headers.c 682 2003-12-01 15:33:30Z jowenn $
 
 */
 
@@ -59,11 +59,17 @@ void throw_classnotfoundexception()
 	panic("class not found----------"); 
 }
 /*  */
+
 void throw_classnotfoundexception2(utf* classname) 
 { 
 	sprintf (logtext, "Loading class: ");
         utf_sprint (logtext+strlen(logtext), classname);
 	panic("******class not found"); 
+}
+
+/* this is here to avoid link errors. We are not interested in linkagerrors in cacaoh right now*/
+void throw_linkageerror2(utf* classname) 
+{ 
 }
 
 java_objectheader *literalstring_new (utf *u)

@@ -2,6 +2,9 @@
 
 
 #include "jni.h"
+#include "loader.h"
+#include "global.h"
+#include "tables.h"
 #include "types.h"
 #include "builtin.h"
 #include "native.h"
@@ -72,10 +75,32 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
  * Method:    invokeNative
  * Signature: (Ljava/lang/Object;[Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;
  */
-JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative (JNIEnv *env ,  struct java_lang_reflect_Method* this , struct java_lang_Object* par1, java_objectarray* par2, struct java_lang_Class* par3, s4 par4)
+JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative (JNIEnv *env ,  
+		struct java_lang_reflect_Method* this , struct java_lang_Object* obj, 
+		java_objectarray* params, struct java_lang_Class* declaringClass, s4 slot)
 {
-	log_text("Java_java_lang_reflect_Method_invokeNative called");
+
+    struct methodinfo *mi;
+    classinfo *c=(classinfo*)(declaringClass);
+    if ((slot<0) || (slot>=c->methodscount)) {
+                panic("error illegal slot for method in class(getParameterTypes)");
+    }
+
+    mi=&(c->methods[this->slot]);
+    if ( ((mi->flags & ACC_STATIC) && (obj))
+	 || (!(mi->flags & ACC_STATIC) && (!obj)) ) {
+	 (*env)->ThrowNew(env,loader_load(utf_new_char("java/lang/NullPointerException")),
+		"Static mismatch in Java_java_lang_reflect_Method_invokeNative");
+	 return 0;
+    }
+
+    if (obj && (!builtin_instanceof((java_objectheader*)obj,c))) {
+	 (*env)->ThrowNew(env,loader_load(utf_new_char("java/lang/IllegalArgumentException")),
+		"Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
 	return 0;
+    }
+
+    return jni_method_invokeNativeHelper(env,mi,obj,params);
 }
 
 
