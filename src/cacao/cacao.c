@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: cacao.c 196 2003-01-21 12:03:06Z stefan $
+	Last Change: $Id: cacao.c 200 2003-01-21 12:37:13Z stefan $
 
 *******************************************************************************/
 
@@ -717,11 +717,11 @@ int main(int argc, char **argv)
 		
 	tables_init();
 	heap_init(heapsize, heapstartsize, &dummy);
-	loader_init();
 #ifdef OLD_COMPILER
 	compiler_init();
 #endif
 	jit_init();
+	loader_init();
 
 	native_loadclasses ();
 
