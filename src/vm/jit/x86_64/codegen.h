@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 2218 2005-04-05 15:26:35Z christian $
+   $Id: codegen.h 2223 2005-04-05 18:01:56Z christian $
 
 */
 
@@ -60,7 +60,7 @@
 			if (IS_FLT_DBL_TYPE(copy->type)) {							\
 				farg--;													\
 				if (!(copy->flags & SAVEDVAR)) {						\
-					copy->varnum = farg;								\
+					copy->varnum = i;								\
 					copy->varkind = ARGVAR;								\
 					if (farg < rd->fltreg_argnum) {						\
 						copy->flags = 0;								\
@@ -73,7 +73,7 @@
 			} else { /* int_arg */										\
 				iarg--;													\
 				if (!(copy->flags & SAVEDVAR)) {						\
-					copy->varnum = iarg;								\
+					copy->varnum = i;								\
 					copy->varkind = ARGVAR;								\
 					if (iarg < rd->intreg_argnum) {						\
 						copy->flags = 0;								\
