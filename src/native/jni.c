@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1464 2004-11-06 22:55:46Z motse $
+   $Id: jni.c 1470 2004-11-08 22:57:28Z motse $
 
 */
 
@@ -75,6 +75,7 @@ static utf* utf_double = 0;
 
 /* global reference table */
 static jobject *global_ref_table;
+static bool initrunning=false;
 
 /* jmethodID and jclass caching variables for NewGlobalRef and DeleteGlobalRef*/
 static jmethodID getmid = NULL;
@@ -3184,6 +3185,99 @@ jint AttachCurrentThreadAsDaemon(JavaVM *vm, void **par1, void *par2)
 	return 0;
 }
 
+/************* JNI Initialization ****************************************************/
+
+jobject jni_init1(JNIEnv* env, jobject lobj) {
+	while (initrunning) {yieldThread();} /* wait until init is done */
+	if (global_ref_table != NULL) {
+		/* wait until jni_init is done */
+		MonitorEnter(env, *global_ref_table) ;
+		MonitorExit(env, *global_ref_table);
+	} else {
+		jni_init();
+	}
+	return NewGlobalRef(env, lobj); 
+}
+void jni_init2(JNIEnv* env, jobject gref) {
+	log_text("DeleteGlobalref called before NewGlobalref");
+	while (initrunning) {yieldThread();} /* wait until init is done */
+	if (global_ref_table != NULL) {
+		/* wait until jni_init is done */
+		MonitorEnter(env, *global_ref_table) ;
+		MonitorExit(env, *global_ref_table);
+	} else {
+		jni_init();
+	}
+	DeleteGlobalRef(env, gref); 
+}
+
+void jni_init(){
+	jmethodID mid;
+
+	initrunning = true;
+	log_text("JNI-Init: initialize global_ref_table");
+	// initalize global reference table
+	ihmclass = FindClass(NULL, "java/util/IdentityHashMap");
+	
+	if (ihmclass == NULL) {
+		log_text("JNI-Init: unable to find java.util.IdentityHashMap");
+	}
+
+	mid = GetMethodID(NULL, ihmclass, "<init>","()V");
+	if (mid == NULL) {
+		log_text("JNI-Init: unable to find constructor in java.util.IdentityHashMap");
+	}
+	
+	global_ref_table = (jobject*)heap_allocate(sizeof(jobject),true,NULL);
+
+	*global_ref_table = NewObject(NULL,ihmclass,mid);
+
+	if (*global_ref_table == NULL) {
+		log_text("JNI-Init: unable to create new global_ref_table");
+	}
+
+	initrunning = false;
+
+	getmid = GetMethodID(NULL, ihmclass, "get","(Ljava/lang/Object;)Ljava/lang/Object;");
+	if (mid == NULL) {
+		log_text("JNI-Init: unable to find method \"get\" in java.util.IdentityHashMap");
+	}
+
+	getmid = GetMethodID(NULL ,ihmclass, "get","(Ljava/lang/Object;)Ljava/lang/Object;");
+	if (getmid == NULL) {
+		log_text("JNI-Init: unable to find method \"get\" in java.util.IdentityHashMap");
+	}
+
+	putmid = GetMethodID(NULL, ihmclass, "put","(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+	if (putmid == NULL) {
+		log_text("JNI-Init: unable to find method \"put\" in java.util.IdentityHashMap");
+	}
+
+	intclass = FindClass(NULL, "java/lang/Integer");
+	if (intclass == NULL) {
+		log_text("JNI-Init: unable to find java.lang.Integer");
+	}
+
+	newint = GetMethodID(NULL, intclass, "<init>","(I)V");
+	if (newint == NULL) {
+		log_text("JNI-Init: unable to find constructor in java.lang.Integer");
+	}
+
+	intvalue = GetMethodID(NULL, intclass, "intValue","()I");
+	if (intvalue == NULL) {
+		log_text("JNI-Init: unable to find method \"intValue\" in java.lang.Integer");
+	}
+
+	removemid = GetMethodID(NULL, ihmclass, "remove","(Ljava/lang/Object;)Ljava/lang/Object;");
+	if (removemid == NULL) {
+		log_text("JNI-DeleteGlobalRef: unable to find method \"remove\" in java.lang.Object");
+	}
+	
+	/* set NewGlobalRef, DeleteGlobalRef envTable entry to real implementation */
+	envTable.NewGlobalRef = &NewGlobalRef;
+	envTable.DeleteGlobalRef = &DeleteGlobalRef;
+}
+
 
 /********************************* JNI invocation table ******************************/
 
@@ -3225,8 +3319,8 @@ struct JNI_Table envTable = {
     &FatalError,
     &PushLocalFrame,
     &PopLocalFrame,
-    &NewGlobalRef,
-    &DeleteGlobalRef,
+	&jni_init1, /* &NewGlobalRef,    initialize Global_Ref_Table*/
+	&jni_init2, /* &DeleteGlobalRef,*/
     &DeleteLocalRef,
     &IsSameObject,
     &NewLocalRef,
@@ -3663,65 +3757,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	return (jobject *) retVal;
 }
 
-void jni_init() {
-	jmethodID mid;
 
-	log_text("JNI-Init: initialize global_ref_table");
-	// initalize global reference table
-	ihmclass = FindClass(NULL, "java/util/IdentityHashMap");
-	
-	if (ihmclass == NULL) {
-		log_text("JNI-Init: unable to find java.util.IdentityHashMap");
-	}
-
-	mid = GetMethodID(NULL, ihmclass, "<init>","()V");
-	if (mid == NULL) {
-		log_text("JNI-Init: unable to find constructor in java.util.IdentityHashMap");
-	}
-	
-	global_ref_table = (jobject*)heap_allocate(sizeof(jobject),true,NULL);
-
-	*global_ref_table = NewObject(NULL,ihmclass,mid);
-
-	if (*global_ref_table == NULL) {
-		log_text("JNI-Init: unable to create new global_ref_table");
-	}
-	
-	getmid = GetMethodID(NULL, ihmclass, "get","(Ljava/lang/Object;)Ljava/lang/Object;");
-	if (mid == NULL) {
-		log_text("JNI-Init: unable to find method \"get\" in java.util.IdentityHashMap");
-	}
-
-	getmid = GetMethodID(NULL ,ihmclass, "get","(Ljava/lang/Object;)Ljava/lang/Object;");
-	if (getmid == NULL) {
-		log_text("JNI-Init: unable to find method \"get\" in java.util.IdentityHashMap");
-	}
-
-	putmid = GetMethodID(NULL, ihmclass, "put","(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
-	if (putmid == NULL) {
-		log_text("JNI-Init: unable to find method \"put\" in java.util.IdentityHashMap");
-	}
-
-	intclass = FindClass(NULL, "java/lang/Integer");
-	if (intclass == NULL) {
-		log_text("JNI-Init: unable to find java.lang.Integer");
-	}
-
-	newint = GetMethodID(NULL, intclass, "<init>","(I)V");
-	if (newint == NULL) {
-		log_text("JNI-Init: unable to find constructor in java.lang.Integer");
-	}
-
-	intvalue = GetMethodID(NULL, intclass, "intValue","()I");
-	if (intvalue == NULL) {
-		log_text("JNI-Init: unable to find method \"intValue\" in java.lang.Integer");
-	}
-
-	removemid = GetMethodID(NULL, ihmclass, "remove","(Ljava/lang/Object;)Ljava/lang/Object;");
-	if (removemid == NULL) {
-		log_text("JNI-DeleteGlobalRef: unable to find method \"remove\" in java.lang.Object");
-	}
-}
 
 
 /*

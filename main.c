@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1465 2004-11-08 11:09:01Z twisti $
+   $Id: main.c 1470 2004-11-08 22:57:28Z motse $
 
 */
 
@@ -659,7 +659,7 @@ int main(int argc, char **argv)
 
 	
 	
-        jni_init();
+/*        jni_init(); */
 	cacao_initializing = false;
 
 	/************************* Start worker routines ********************/
