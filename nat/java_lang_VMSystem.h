@@ -65,5 +65,13 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_setErr(JNIEnv *env, jclass clazz,
  */
 JNIEXPORT s8 JNICALL Java_java_lang_VMSystem_currentTimeMillis(JNIEnv *env, jclass clazz);
 
+
+/*
+ * Class:     java/lang/VMSystem
+ * Method:    getenv
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMSystem_getenv(JNIEnv *env, jclass clazz, struct java_lang_String* par1);
+
 #endif
 

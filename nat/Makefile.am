@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1173 2004-06-16 14:56:18Z jowenn $
+# $Id: Makefile.am 1429 2004-11-02 08:58:26Z jowenn $
 
 
 INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit/@ARCH_DIR@
@@ -34,6 +34,15 @@ libnat_a_SOURCES = \
 	GtkLabelPeer.c \
 	GtkScrollPanePeer.c
 
+implementedNatives:
+	echo "">implementednatives.data
+	grep "JNICALL Java_" *.c | perl -p -i -e "s/.*JNICALL\s//" | perl -p -i -e"s/\(.*//"  | (\
+		while read line; do \
+			grep $$line *.h >/dev/null ; \
+			if test $$? == 0; then \
+				echo $$line >>implementednatives.data ;\
+			fi ;\
+		done )
 
 ## Local variables:
 ## mode: Makefile

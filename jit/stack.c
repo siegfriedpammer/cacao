@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: stack.c 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -94,8 +94,8 @@ methodinfo *analyse_stack(codegendata *codegendata)
 	s4 *argren;
 	methodinfo *m=codegendata->method;
 
-	argren = DMNEW(s4, m->maxlocals);   /* table for argument renaming        */
-	for (i = 0; i < m->maxlocals; i++)
+	argren = DMNEW(s4, m->codegendata->maxlocals);   /* table for argument renaming        */
+	for (i = 0; i < m->codegendata->maxlocals; i++)
 		argren[i] = i;
 	
 	m->registerdata->arguments_num = 0;
@@ -210,6 +210,7 @@ methodinfo *analyse_stack(codegendata *codegendata)
 				}
 				else if (bptr->indepth != stackdepth) {
 					show_icmd_method(m);
+					printf("Block: %ld, required depth:%ld, current depth:%ld\n",bptr->debug_nr,bptr->indepth,stackdepth);
 					panic("Stack depth mismatch");
 					
 				}
@@ -1849,7 +1850,7 @@ methodinfo *analyse_stack(codegendata *codegendata)
 						break;
 
 					case ICMD_CLEAR_ARGREN:
-						for (i = iptr->op1; i<m->maxlocals; i++) 
+						for (i = iptr->op1; i<m->codegendata->maxlocals; i++) 
 							argren[i] = i;
 						iptr->opc = opcode = ICMD_NOP;
 						SETDST;
@@ -1984,14 +1985,14 @@ void icmd_print_stack(methodinfo *m, stackptr s)
 	int i, j;
 	stackptr t;
 
-	i = m->maxstack;
+	i = m->codegendata->maxstack;
 	t = s;
 	
 	while (t) {
 		i--;
 		t = t->prev;
 	}
-	j = m->maxstack - i;
+	j = m->codegendata->maxstack - i;
 	while (--i >= 0)
 		printf("    ");
 	while (s) {
@@ -2128,8 +2129,8 @@ void show_icmd_method(methodinfo *m)
 	printf(".");
 	utf_fprint(stdout, m->name);
 	utf_fprint_classname(stdout, m->descriptor);
-	printf ("\n\nMax locals: %d\n", (int) m->maxlocals);
-	printf ("Max stack:  %d\n", (int) m->maxstack);
+	printf ("\n\nMax locals: %d\n", (int) m->codegendata->maxlocals);
+	printf ("Max stack:  %d\n", (int) m->codegendata->maxstack);
 
 	printf ("Line number table length: %d\n", m->linenumbercount);
 
@@ -2141,7 +2142,7 @@ void show_icmd_method(methodinfo *m)
 	}
 	
 	printf ("Local Table:\n");
-	for (i = 0; i < m->maxlocals; i++) {
+	for (i = 0; i < m->codegendata->maxlocals; i++) {
 		printf("   %3d: ", i);
 		for (j = TYPE_INT; j <= TYPE_ADR; j++)
 			if (m->registerdata->locals[i][j].type >= 0) {
@@ -2159,7 +2160,7 @@ void show_icmd_method(methodinfo *m)
 	printf("\n");
 
 	printf ("Interface Table:\n");
-	for (i = 0; i < m->maxstack; i++) {
+	for (i = 0; i < m->codegendata->maxstack; i++) {
 		if ((m->registerdata->interfaces[i][0].type >= 0) ||
 			(m->registerdata->interfaces[i][1].type >= 0) ||
 		    (m->registerdata->interfaces[i][2].type >= 0) ||
@@ -2232,7 +2233,7 @@ void show_icmd_block(methodinfo *m, basicblock *bptr)
 		deadcode = bptr->flags <= BBREACHED;
 		printf("[");
 		if (deadcode)
-			for (j = m->maxstack; j > 0; j--)
+			for (j = m->codegendata->maxstack; j > 0; j--)
 				printf(" ?  ");
 		else
 			icmd_print_stack(m, bptr->instack);
@@ -2242,7 +2243,7 @@ void show_icmd_block(methodinfo *m, basicblock *bptr)
 		for (i = 0; i < bptr->icount; i++, iptr++) {
 			printf("[");
 			if (deadcode) {
-				for (j = m->maxstack; j > 0; j--)
+				for (j = m->codegendata->maxstack; j > 0; j--)
 					printf(" ?  ");
 			}
 			else
@@ -2617,9 +2618,10 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 	}
 /*  	printf(" Line number: %d, method:",iptr->line); */
-/*  	utf_display(iptr->method->class->name); */
-/*  	printf("."); */
-/*  	utf_display(iptr->method->name); */
+        printf("\t\t");
+  	utf_display(iptr->method->class->name); 
+  	printf("."); 
+  	utf_display(iptr->method->name); 
 }
 
 

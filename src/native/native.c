@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1383 2004-08-02 07:27:00Z stefan $
+   $Id: native.c 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -143,6 +143,7 @@ void use_class_as_object(classinfo *c)
 #undef JOWENN_DEBUG
 #undef JOWENN_DEBUG1
 
+#ifdef STATIC_CLASSPATH
 #define NATIVETABLESIZE  (sizeof(nativetable)/sizeof(struct nativeref))
 
 /* table for fast string comparison */
@@ -150,7 +151,7 @@ static nativecompref nativecomptable[NATIVETABLESIZE];
 
 /* string comparsion table initialized */
 static bool nativecompdone = false;
-
+#endif
 
 /******************************************************************************/
 
@@ -269,6 +270,7 @@ void init_systemclassloader()
 functionptr native_findfunction(utf *cname, utf *mname, 
 								utf *desc, bool isstatic)
 {
+#ifdef STATIC_CLASSPATH
 	int i;
 	/* entry of table for fast string comparison */
 	struct nativecompref *n;
@@ -366,6 +368,10 @@ functionptr native_findfunction(utf *cname, utf *mname,
 
 	/* keep compiler happy */
 	return NULL;
+#else
+/* dynamic classpath */
+  return 0;
+#endif
 }
 
 

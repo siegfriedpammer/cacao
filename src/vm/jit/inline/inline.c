@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: inline.c 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -73,7 +73,7 @@ t_inlining_globals *inlining_init0(methodinfo *m,
         inlining_set_compiler_variables_fun(m, inline_env);
         inline_env->isinlinedmethod = 0;
 	inline_env->cumjcodelength = m->jcodelength; /* for not inlining */
-        inline_env->cummaxstack = 0;
+        inline_env->cummaxstack = m->maxstack; /*why has here been 0 ? */
         inline_env->cumextablelength = 0;
         inline_env->cumlocals = m->maxlocals;
         inline_env->cummethods = 0;//co not global or static-used only here?
@@ -113,9 +113,11 @@ if (DEBUGi==true) {
     m->maxlocals, inline_env->cumlocals,
     m->maxstack,  inline_env->cummaxstack); fflush(stdout);
   }
+#if 0
+/*This looks wrong*/
         m->maxlocals = inline_env->cumlocals;   //orig not used
         m->maxstack = inline_env->cummaxstack;  //orig global maxstack var!!
-
+#endif
 //panic("TEMP so can test just inline init\n");
         }
 return inline_env;

@@ -17,13 +17,5 @@ typedef struct gnu_java_nio_SelectorImpl {
    s4 unhandledWakeup;
 } gnu_java_nio_SelectorImpl;
 
-
-/*
- * Class:     gnu/java/nio/SelectorImpl
- * Method:    implSelect
- * Signature: ([I[I[IJ)I
- */
-JNIEXPORT s4 JNICALL Java_gnu_java_nio_SelectorImpl_implSelect(JNIEnv *env, jclass clazz, java_intarray* par1, java_intarray* par2, java_intarray* par3, s8 par4);
-
 #endif
 

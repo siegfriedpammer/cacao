@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1410 2004-08-17 13:01:24Z twisti $
+   $Id: exceptions.c 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -283,8 +283,9 @@ void throw_cacao_exception_exit(char *exception, char *message)
 	s4 len;
 
 	len = strlen(exception);
-	tmp = MNEW(char, len);
+	tmp = MNEW(char, len+1);
 	strncpy(tmp, exception, len);
+        tmp[len]='\0';
 
 	/* convert to classname */
 

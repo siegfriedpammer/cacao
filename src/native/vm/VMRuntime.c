@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1344 2004-07-21 17:12:53Z twisti $
+   $Id: VMRuntime.c 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -55,6 +55,10 @@
 #include "java_util_Properties.h"    /* needed for java_lang_Runtime.h */
 #include "java_lang_VMRuntime.h"
 
+#include "config.h"
+#ifndef STATIC_CLASSPATH
+#include <dlfcn.h>
+#endif
 
 #define JOWENN_DEBUG
 
@@ -63,7 +67,7 @@ static s4 finalizeOnExit = false;
 
 #define MAXPROPS 100
 static bool shouldFinalizersBeRunOnExit=false;
-static int activeprops = 19;  
+static int activeprops = 20;  
    
 static char *proplist[MAXPROPS][2] = {
 	{ "java.class.path", NULL },
@@ -75,6 +79,7 @@ static char *proplist[MAXPROPS][2] = {
 	{ "os.arch", NULL },
 	{ "os.name", NULL },
 	{ "os.version", NULL },
+        { "java.library.path",NULL},
                                          
 	{ "java.class.version", "45.3" },
 	{ "java.version", PACKAGE":"VERSION },
@@ -249,7 +254,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 	char *buffer;
 	int buffer_len;
 	utf *data;
-	
+	int retVal=0;
+
 	data = javastring_toutf(par1, 0);
 	
 	if (!data) {
@@ -261,16 +267,25 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 
 	  	
 	buffer = MNEW(char, buffer_len);
-
+#ifndef STATIC_CLASSPATH
+	/*here it could be interesting to store the references in a list eg for nicely cleaning up or for certain platforms*/
+        if (dlopen(data->text,RTLD_NOW | RTLD_GLOBAL)) {
+		log_text("LIBLOADED");
+                retVal=1;
+        }
+#else
+	retVal=1;
+#endif
 	strcpy(buffer, "Java_java_lang_VMRuntime_nativeLoad:");
 	utf_sprint(buffer + strlen((char *) data), data);
 	log_text(buffer);	
-
+        
+  
 	MFREE(buffer, char, buffer_len);
 #endif
 	log_text("Java_java_lang_VMRuntime_nativeLoad");
 
-	return 1;
+	return retVal;
 }
 
 
@@ -292,12 +307,12 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_nativeGetLibname(JN
 		return 0;;
 	}
 	
-	buffer_len = utf_strlen(data) + 6/*lib .so*/ +1 /*0*/;
+	buffer_len = utf_strlen(data) + 3 /*lib*/ /*6 lib .so */ +1 /*0*/;
 	buffer = MNEW(char, buffer_len);
 	sprintf(buffer,"lib");
 	utf_sprint(buffer+3,data);
-	strcat(buffer,".so");
-
+	/*strcat(buffer,".so");*/
+        log_text("nativeGetLibName:");
 	log_text(buffer);
 	
 	resultString=javastring_new_char(buffer);	
@@ -333,6 +348,8 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	proplist[5][1] = utsnamebuf.machine;
 	proplist[6][1] = utsnamebuf.sysname;
 	proplist[7][1] = utsnamebuf.release;
+
+	proplist[8][1]=getenv("LD_LIBRARY_PATH");
 
 	if (!p) {
 		*exceptionptr = new_exception(string_java_lang_NullPointerException);

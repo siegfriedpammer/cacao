@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1342 2004-07-21 16:10:17Z twisti $
+   $Id: reg.inc 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -204,16 +204,16 @@ void reg_init(methodinfo *m)
 }
 
 
-void reg_setup(methodinfo *m)
+void reg_setup(t_inlining_globals *e)
 {
 	s4 i;
 	varinfo5 *v;
+	methodinfo *m=e->method;
+	m->registerdata->freemem    = MNEW(s4, e->cummaxstack);
+	m->registerdata->locals     = MNEW(varinfo5, e->cumlocals);
+	m->registerdata->interfaces = MNEW(varinfo5, e->cummaxstack);
 
-	m->registerdata->freemem    = MNEW(s4, m->maxstack);
-	m->registerdata->locals     = MNEW(varinfo5, m->maxlocals);
-	m->registerdata->interfaces = MNEW(varinfo5, m->maxstack);
-
-	for (v = m->registerdata->locals, i = m->maxlocals; i > 0; v++, i--) {
+	for (v = m->registerdata->locals, i = e->cumlocals; i > 0; v++, i--) {
 		v[0][TYPE_INT].type = -1;
 		v[0][TYPE_LNG].type = -1;
 		v[0][TYPE_FLT].type = -1;
@@ -221,7 +221,7 @@ void reg_setup(methodinfo *m)
 		v[0][TYPE_ADR].type = -1;
 	}
 
-	for (v = m->registerdata->interfaces, i = m->maxstack; i > 0; v++, i--) {
+	for (v = m->registerdata->interfaces, i = e->cummaxstack; i > 0; v++, i--) {
 		v[0][TYPE_INT].type = -1;
 		v[0][TYPE_INT].flags = 0;
 		v[0][TYPE_LNG].type = -1;
@@ -267,9 +267,9 @@ void reg_close(methodinfo *m)
 	if (r->secondregs) MFREE(r->secondregs, s4, r->intregsnum);
 #endif
 
-	if (r->freemem) MFREE(r->freemem, s4, m->maxstack);
-	if (r->locals)  MFREE(r->locals, varinfo5, m->maxlocals);
-	if (r->interfaces) MFREE(r->interfaces, varinfo5, m->maxstack);
+	if (r->freemem) MFREE(r->freemem, s4, m->codegendata->maxstack);
+	if (r->locals)  MFREE(r->locals, varinfo5, m->codegendata->maxlocals);
+	if (r->interfaces) MFREE(r->interfaces, varinfo5, m->codegendata->maxstack);
 
 	FREE(m->registerdata, registerdata);
 	m->registerdata = NULL;
@@ -343,7 +343,7 @@ static void interface_regalloc(methodinfo *m)
 	r->iftmpfltregcnt = r->tmpfltregcnt;
 	r->ifsavfltregcnt = r->savfltregcnt;
 
-	for (s = 0; s < m->maxstack; s++) {
+	for (s = 0; s < m->codegendata->maxstack; s++) {
 		intalloc = -1; fltalloc = -1;
 		saved = (r->interfaces[s][TYPE_INT].flags |
 				 r->interfaces[s][TYPE_LNG].flags |
@@ -495,7 +495,7 @@ static void local_regalloc(methodinfo *m)
 
 		arg = 0, iargcnt = 0, fargcnt = 0;
 		doublewordarg = 0;
-		for (s = 0; s < m->maxlocals; s++) {
+		for (s = 0; s < m->codegendata->maxlocals; s++) {
 			intalloc = -1; fltalloc = -1;
 			for (tt = 0; tt <= 4; tt++) {
 				t = typeloop[tt];
@@ -624,7 +624,7 @@ static void local_regalloc(methodinfo *m)
 		return;
 	}
 
-	for (s = 0; s < m->maxlocals; s++) {
+	for (s = 0; s < m->codegendata->maxlocals; s++) {
 		intalloc = -1; fltalloc = -1;
 		for (tt=0; tt<=4; tt++) {
 			t = typeloop[tt];

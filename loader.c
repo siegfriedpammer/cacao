@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: loader.c 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -1342,8 +1342,11 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 			method_display(m);
 		}*/
 		functionptr f = native_findfunction(c->name, m->name, m->descriptor, 
-											(m->flags & ACC_STATIC) != 0);
-		if (f) {
+							(m->flags & ACC_STATIC) != 0);
+#ifdef STATIC_CLASSPATH
+		if (f) 
+#endif
+                {
 			m->stubroutine = createnativestub(f, m);
 		}
 	}

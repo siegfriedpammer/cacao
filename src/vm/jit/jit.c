@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1420 2004-10-27 16:05:14Z twisti $
+   $Id: jit.c 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -1501,7 +1501,7 @@ t_inlining_globals *inline_env = NULL;
 
 	EXTABLEN
 
-	reg_setup(m);
+	reg_setup(inline_env);
 
 	/* setup the codegendata memory */
 	codegen_setup(m,inline_env);

@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 1234 2004-06-30 19:49:37Z twisti $
+   $Id: reg.h 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -42,6 +42,8 @@
 
 typedef struct registerdata registerdata;
 typedef varinfo varinfo5[5];
+
+struct t_inlining_globals;
 
 
 struct registerdata {
@@ -117,7 +119,7 @@ struct registerdata {
 /* function prototypes */
 
 void reg_init(methodinfo *m);
-void reg_setup(methodinfo *m);
+void reg_setup(struct t_inlining_globals *e);
 void reg_close(methodinfo *m);
 void regalloc(methodinfo *m);
 

@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1421 2004-10-28 14:39:49Z stefan $
+   $Id: parse.c 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -566,7 +566,7 @@ if (opt_rt) {
 		if ((useinlining) && (gp == nextgp)) {
 			u1 *tptr;
 			bool *readonly = NULL;
-
+			int argBlockIdx=0;
 
 			opcode = code_get_u1(p,inline_env->method);
 			nextp = p += jcommandsize[opcode];
@@ -577,6 +577,13 @@ if (opt_rt) {
 			label_index = tmpinlinf->label_index;
 			readonly = tmpinlinf->readonly;
 
+			for (i=0,tptr=tmpinlinf->method->paramtypes;i<tmpinlinf->method->paramcount;i++,tptr++) {
+				if ( ((*tptr)==TYPE_LNG) ||
+				  ((*tptr)==TYPE_DBL) )
+					argBlockIdx+=2;
+				else
+					argBlockIdx++;
+			}
 			for (i = 0, tptr = tmpinlinf->method->paramtypes + tmpinlinf->method->paramcount - 1; i < tmpinlinf->method->paramcount; i++, tptr--) {
 				int op;
 
@@ -592,8 +599,15 @@ if (opt_rt) {
 				}
 
 				op += *tptr;
-				OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i);
+				if ( ((*tptr)==TYPE_LNG) ||
+				  ((*tptr)==TYPE_DBL) )
+					argBlockIdx-=2;
+				else
+					argBlockIdx--;
 
+				OP1(op, firstlocal + argBlockIdx);
+				//OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i);
+			//printf("inline argument load operation for local: %ld\n",firstlocal + tmpinlinf->method->paramcount - 1 - i);
 				/*m->basicblockindex[gp] |= (ipc << 1);*/  /*FIXME: necessary ? */
 			}
 if (DEBUG==true) {
@@ -1021,6 +1035,13 @@ SHOWOPCODE
 				/*  						OP(ICMD_NOP); */
 				/*  						break; */
 				/*  					} */
+				if (nextp>inline_env->method->jcodelength-1) {
+ 				   //OP1(ICMD_GOTO, inlinfo->stopgp);
+                                   //OP(ICMD_NOP);
+                                   //OP(ICMD_NOP);
+                                   blockend=true;
+                                   break;
+                                }//JJJJJJJ
 				blockend = true;
 				OP1(ICMD_GOTO, inlinfo->stopgp);
 				break;
@@ -1616,7 +1637,8 @@ if (DEBUG4==true)
 		
 		/* INLINING */
 		  
-		if (inline_env->isinlinedmethod && p == inline_env->method->jcodelength - 1) { /* end of an inlined method */
+//		if (inline_env->isinlinedmethod && p == inline_env->method->jcodelength - 1) { /* end of an inlined method */
+		if (inline_env->isinlinedmethod && (nextp >= inline_env->method->jcodelength) ) { /* end of an inlined method */
 			/*		  printf("setting gp from %d to %d\n",gp, inlinfo->stopgp); */
 			gp = inlinfo->stopgp; 
 			inlining_restore_compiler_variables();
@@ -1639,9 +1661,10 @@ DEBUGMETH(inline_env->method);
 	} /* end for */
 
 
-	if (p != m->jcodelength)
+	if (p != m->jcodelength) {
+		printf("p (%ld) != m->jcodelength (%ld)\n",p,m->jcodelength);
 		panic("Command-sequence crosses code-boundary");
-
+	}
 	if (!blockend) {
 		*exceptionptr = new_verifyerror(m, "Falling off the end of the code");
 		return NULL;

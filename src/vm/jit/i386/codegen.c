@@ -28,12 +28,13 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: codegen.c 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
 #define _GNU_SOURCE
 
+#include "config.h"
 #include "global.h"
 #include <stdio.h>
 #include <signal.h>
@@ -51,7 +52,6 @@
 #include "jit/reg.h"
 #include "jit/i386/codegen.h"
 #include "jit/i386/emitfuncs.h"
-
 /* include independent code generation stuff */
 #include "jit/codegen.inc"
 #include "jit/reg.inc"
@@ -4833,6 +4833,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
     int p, t;
 	codegendata *cd;
 
+    void**  callAddrPatchPos=0;
+    u1* jmpInstrPos=0;
+    void** jmpInstrPatchPos=0;
 	/* setup codegendata structure */
 	codegen_setup(m,0);
 
@@ -4994,6 +4997,41 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 /* CREATE DYNAMIC STACK INFO -- END*/
 
+/* RESOLVE NATIVE METHOD -- BEGIN*/
+#ifndef STATIC_CLASSPATH
+   if (f==0) {
+     log_text("Dynamic classpath: preparing for delayed native function resolving");
+     i386_jmp_imm(cd,0);
+     jmpInstrPos=cd->mcodeptr-4;
+     /*patchposition*/
+     i386_mov_imm_reg(cd,jmpInstrPos,REG_ITMP1);
+     i386_push_reg(cd,REG_ITMP1);
+     /*jmp offset*/
+     i386_mov_imm_reg(cd,0,REG_ITMP1);
+     jmpInstrPatchPos=cd->mcodeptr-4;
+     i386_push_reg(cd,REG_ITMP1);
+     /*position of call address to patch*/
+     i386_mov_imm_reg(cd,0,REG_ITMP1);
+     callAddrPatchPos=(cd->mcodeptr-4);
+     i386_push_reg(cd,REG_ITMP1);
+     /*method info structure*/
+     i386_mov_imm_reg(cd,(s4) m, REG_ITMP1);
+     i386_push_reg(cd,REG_ITMP1);
+     /*call resolve functions*/
+     i386_mov_imm_reg(cd, (s4)codegen_resolve_native,REG_ITMP1);
+     i386_call_reg(cd,REG_ITMP1);
+     /*cleanup*/
+     i386_pop_reg(cd,REG_ITMP1);
+     i386_pop_reg(cd,REG_ITMP1);
+     i386_pop_reg(cd,REG_ITMP1);
+     i386_pop_reg(cd,REG_ITMP1);
+     /*fix jmp offset replacement*/
+     (*jmpInstrPatchPos)=cd->mcodeptr-jmpInstrPos-4;
+   } else log_text("Dynamic classpath: immediate native function resolution possible");
+#endif
+/* RESOLVE NATIVE METHOD -- END*/
+
+
 
     tptr = m->paramtypes;
     for (i = 0; i < m->paramcount; i++) {
@@ -5029,7 +5067,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	i386_mov_imm_membase(cd, (s4) &env, REG_SP, 0);
 
     i386_mov_imm_reg(cd, (s4) f, REG_ITMP1);
+#ifndef STATIC_CLASSPATH
+    if (f==0)
+      (*callAddrPatchPos)=(cd->mcodeptr-4);
+#endif
     i386_call_reg(cd, REG_ITMP1);
+
 /*REMOVE DYNAMIC STACK INFO -BEGIN */
     i386_push_reg(cd, REG_RESULT2);
     i386_mov_membase_reg(cd, REG_SP,stackframesize-8,REG_ITMP2); /*old value*/

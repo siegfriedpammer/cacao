@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: codegen.inc.h 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: codegen.inc.h 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -104,6 +104,8 @@ struct codegendata {
 	threadcritnodetemp *threadcrit; /* List of critical code regions          */
 	threadcritnodetemp threadcritcurrent;
 	s4 threadcritcount;             /* Number of critical regions             */
+        int maxstack;
+        int maxlocals;
 };
 
 

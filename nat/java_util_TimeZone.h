@@ -10,13 +10,5 @@ typedef struct java_util_TimeZone {
    struct java_lang_String* ID;
 } java_util_TimeZone;
 
-
-/*
- * Class:     java/util/TimeZone
- * Method:    getDefaultTimeZoneId
- * Signature: ()Ljava/lang/String;
- */
-JNIEXPORT struct java_lang_String* JNICALL Java_java_util_TimeZone_getDefaultTimeZoneId(JNIEnv *env, jclass clazz);
-
 #endif
 

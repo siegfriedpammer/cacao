@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1420 2004-10-27 16:05:14Z twisti $
+   $Id: codegen.inc 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -63,7 +63,9 @@
 #include "toolbox/logging.h"
 #include "toolbox/avl.h"
 #include "threads/thread.h"
-
+#ifndef STATIC_CLASSPATH
+#include <dlfcn.h>
+#endif
 
 /* in this tree we store all method addresses */
 
@@ -156,7 +158,13 @@ void codegen_setup(methodinfo *m, t_inlining_globals * e)
 			cd->exceptiontablelength=m->exceptiontablelength;
 			cd->exceptiontable  = MNEW(exceptiontable, m->exceptiontablelength + 1);
 	}
-
+        if (e) {
+          cd->maxstack=e->cummaxstack;
+          cd->maxlocals=e->cumlocals;
+        } else {
+          cd->maxstack=m->maxstack;
+          cd->maxlocals=m->maxlocals;
+        }
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	cd->threadcritcurrent.next = NULL;
 	cd->threadcritcount = 0;
@@ -875,6 +883,156 @@ static void codegen_threadcritstop(methodinfo *m, int offset)
 	cd->threadcrit = DNEW(threadcritnodetemp);
 	*(cd->threadcrit) = cd->threadcritcurrent;
 	cd->threadcritcount++;
+}
+#endif
+
+#ifndef STATIC_CLASSPATH
+static size_t codegen_overloadPartLen(utf *desc) {
+        char *utf_ptr=desc->text;
+        u2 c;
+	size_t len=2;
+        while ((c=utf_nextu2(&utf_ptr))!=')') {
+                switch (c) {
+                        case 'I':
+                        case 'S':
+                        case 'B':
+                        case 'C':
+                        case 'Z':
+                        case 'J':
+                        case 'F':
+                        case 'D':
+				len ++;
+				break;
+                        case '[':
+                                len = len+2;
+                                break;
+                        case 'L':
+                                len++;
+                                while ( (c=utf_nextu2(&utf_ptr)) != ';')
+                                        len++;
+                                len=len+2;
+                                break;
+                        case '(':
+                                break;
+                        default: panic ("invalid method descriptor");
+                }
+        }
+	return len;
+
+}
+
+static void codegen_fillInOverloadPart(char *target,utf *desc) {
+        char *utf_ptr=desc->text;
+        u2 c;
+	char* insertpos=&target[strlen(target)];
+	*(insertpos++)='_';
+	*(insertpos++)='_';
+        while ((c=utf_nextu2(&utf_ptr))!=')') {
+                switch (c) {
+                        case 'I':
+                        case 'S':
+                        case 'B':
+                        case 'C':
+                        case 'Z':
+                        case 'J':
+                        case 'F':
+                        case 'D':
+                                *(insertpos++)=c;
+                                break;
+                        case '[':
+				*(insertpos++)='_';
+				*(insertpos++)='3';
+                                break;
+                        case 'L':
+				*(insertpos++)='L';
+                                while ( (c=utf_nextu2(&utf_ptr)) != ';')
+                                	if ( ((c>='a') && (c<='z'))  ||
+						((c>='A') && (c<='Z')) ||
+						((c>='0') && (c<='9')) )
+							*(insertpos++)=c;
+					else *(insertpos++)='_';
+				*(insertpos++)='_';
+				*(insertpos++)='2';
+                                break;
+                        case '(':
+                                break;
+                        default: panic ("invalid method descriptor");
+                }
+        }
+	*insertpos='\0';
+
+}
+
+static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmpTarget,void **jmpPatchTarget) {
+  char *nativeName;
+  size_t nativeLen;
+  size_t i;
+
+  builtin_monitorenter((java_objectheader*) m);
+  if ((*jmpPatchTarget)==jmpTarget) {
+    builtin_monitorexit((java_objectheader*) m);
+    return;
+  }
+  log_text("trying to resolve a native method");
+  utf_display(m->class->name);
+  utf_display(m->name);
+  
+  void *lib=dlopen(0,RTLD_NOW | RTLD_GLOBAL);
+  if (lib) {
+    int ok=0;
+    /*generate the name of the native function in the form Java_package1_package2...._classname_methodname*/
+    nativeLen=/*Java_*/5+strlen(m->class->name->text)+/*_*/1+strlen(m->name->text)+/*\0*/1;
+    nativeName=MNEW(char,nativeLen);
+    sprintf(nativeName,"Java_%s_%s",m->class->name->text,m->name->text);
+    for (i=0;i<nativeLen;i++) {
+      if (nativeName[i]=='/') nativeName[i]='_';
+    } 
+
+
+    void *sym=dlsym(lib,nativeName);
+    if (sym) {
+      ok=1;
+      log_text("resolved");
+      MFREE(nativeName,char,nativeLen);
+    } else {
+      size_t overloadedNativeLen=nativeLen+codegen_overloadPartLen(m->descriptor);
+      char *overloadedNative=MNEW(char,overloadedNativeLen);
+      sprintf(overloadedNative,"%s",nativeName);
+      MFREE(nativeName,char,nativeLen);
+      codegen_fillInOverloadPart(overloadedNative,m->descriptor);
+      log_text("symbol not found,trying harder (overloaded member ?)");
+      sym=dlsym(lib,overloadedNative);
+      if (sym) {
+        MFREE(overloadedNative,char,overloadedNativeLen);
+        ok=1;
+        log_text("resolved");
+      } else { 
+         MFREE(overloadedNative,char,overloadedNativeLen);
+         log_text("It was not possible to find the native function implementation. Not even in overloading case");
+      }
+   }
+    if (ok) {
+      (*insertionPoint)=sym;
+      (*jmpPatchTarget)=jmpTarget;
+      builtin_monitorexit((java_objectheader *) m );
+      return;
+    }
+
+  } else log_text("library not found");
+  
+
+  {
+    char *info;
+    size_t slen;
+    slen=2+strlen(m->class->name->text)+strlen(m->name->text)+strlen(m->descriptor->text);
+    info=(char*)MNEW(char,slen);
+    sprintf(info,"%s.%s%s",m->class->name->text,m->name->text,m->descriptor->text);
+    
+    builtin_monitorexit((java_objectheader *) m );
+    throw_cacao_exception_exit(string_java_lang_LinkageError,
+                                                       info);
+  }
+  
 }
 #endif
 

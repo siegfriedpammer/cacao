@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1333 2004-07-21 15:48:46Z twisti $
+# $Id: Makefile.am 1429 2004-11-02 08:58:26Z jowenn $
 
 @SET_MAKE@
 
@@ -59,12 +59,9 @@ cacao_LDADD = \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@ \
 	toolbox/libtoolbox.a \
-	classpath/native/jni/java-io/.libs/libjavaio.a \
-	classpath/native/jni/java-nio/.libs/libjavanio.a \
-	classpath/native/jni/java-net/.libs/libjavanet.a \
-	classpath/native/jni/java-util/.libs/libjavautil.a \
-	classpath/native/jni/java-lang/.libs/libjavalang.a \
-	classpath/native/jni/java-lang/.libs/libjavalangreflect.a \
+        classpath/native/fdlibm/.libs/libfdlibm.a \
+        @STATIC_CLASSPATH_LIBS@ \
+        @DYNAMIC_CLASSPATH_LIBS@ \
 	@AWT_OBJS@ \
 	@ZIP_LIBS@ \
 	@THREAD_LIB@
@@ -78,12 +75,7 @@ cacao_DEPENDENCIES = \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@ \
 	toolbox/libtoolbox.a \
-	classpath/native/jni/java-io/.libs/libjavaio.a \
-	classpath/native/jni/java-nio/.libs/libjavanio.a \
-	classpath/native/jni/java-net/.libs/libjavanet.a \
-	classpath/native/jni/java-util/.libs/libjavautil.a \
-	classpath/native/jni/java-lang/.libs/libjavalang.a \
-	classpath/native/jni/java-lang/.libs/libjavalangreflect.a \
+        @STATIC_CLASSPATH_LIBS@ \
 	nativetable.inc \
 	@AWT_OBJS@ \
 	@ZIP_LIBS@
@@ -136,7 +128,7 @@ gennativetable_LDADD = \
 natheaders: cacaoh
 	CLASSPATH=$(top_srcdir)/classpath/lib/bootstrap.zip ./cacaoh $(CLASSES)
 
-nativetable.inc: gennativetable
+nativetable.inc: gennativetable nat/implementednatives.data
 	CLASSPATH=$(top_srcdir)/classpath/lib/bootstrap.zip $(top_srcdir)/gennativetable $(CLASSES) > nativetable.inc
 
 native.c: nativetable.inc

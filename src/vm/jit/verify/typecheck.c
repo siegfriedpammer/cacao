@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: typecheck.c 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -678,23 +678,41 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 #define STORE_TWOWORD(num,type)										\
  	do {typevectorset_store_twoword(localset,num,type);} while(0)
 
+
+#define WORDCHECKFAULT \
+  	do { \
+		show_icmd_method(m); \
+		dolog("localset->td index: %ld\ninstruction belongs to:%s.%s, outermethod:%s.%s\n", \
+		iptr->op1,iptr->method->class->name->text, \
+			iptr->method->name->text,m->class->name->text,m->name->text); \
+		show_icmd(iptr++, false); \
+		show_icmd(iptr, false); \
+	} while (0)
+
+
 #define CHECK_ONEWORD(num,tp)											\
 	do {TYPECHECK_COUNT(stat_ins_primload);								\
 		if (jsrencountered) {											\
-			if (!typevectorset_checktype(localset,num,tp))				\
+			if (!typevectorset_checktype(localset,num,tp)) {				\
+				WORDCHECKFAULT;	\
 				panic("Variable type mismatch");						\
+			}	\
 		}																\
 		else {															\
-			if (localset->td[num].type != tp)							\
+			if (localset->td[num].type != tp) {							\
 				panic("Variable type mismatch");						\
+				WORDCHECKFAULT;	\
+			} \
 		}																\
 		} while(0)
 
 #define CHECK_TWOWORD(num,type)											\
 	do {TYPECHECK_COUNT(stat_ins_primload);								\
-		if (!typevectorset_checktype(localset,num,type))                \
-            panic("Variable type mismatch");	                        \
-		} while(0)
+		if (!typevectorset_checktype(localset,num,type)) {                \
+			WORDCHECKFAULT;	\
+            		panic("Variable type mismatch");	                        \
+		} \
+	} while(0)
 
 /****************************************************************************/
 /* MACROS FOR STACK TYPE CHECKING                                           */
@@ -826,7 +844,7 @@ methodinfo *typecheck(codegendata *codegendata)
 #ifdef TYPECHECK_STATISTICS
 	int count_iterations = 0;
 	TYPECHECK_COUNT(stat_typechecked);
-	TYPECHECK_COUNT_FREQ(stat_locals,m->maxlocals,STAT_LOCALS);
+	TYPECHECK_COUNT_FREQ(stat_locals,m->codegendata->maxlocals,STAT_LOCALS);
 	TYPECHECK_COUNT_FREQ(stat_blocks,m->basicblockcount/10,STAT_BLOCKS);
 #endif
 
@@ -882,7 +900,7 @@ methodinfo *typecheck(codegendata *codegendata)
     
     /* In <init> methods we use an extra local variable to signal if
      * the 'this' reference has been initialized. */
-    numlocals = m->maxlocals;
+    numlocals = m->codegendata->maxlocals;
 	validlocals = numlocals;
     if (initmethod) numlocals++;
 
@@ -1096,8 +1114,14 @@ methodinfo *typecheck(codegendata *codegendata)
 							  typevectorset_copymergedtype(localset,iptr->op1,&(dst->typeinfo));
 						  }
 						  else {
-							  if (!TYPEDESC_IS_REFERENCE(localset->td[iptr->op1]))
+							  if (!TYPEDESC_IS_REFERENCE(localset->td[iptr->op1])) {
+								  show_icmd_method(m);
+								  dolog("localset->td index: %ld\ninstruction belongs to:%s.%s, outermethod:%s.%s\n",
+									iptr->op1,iptr->method->class->name->text,
+									iptr->method->name->text,m->class->name->text,m->name->text);
+								  show_icmd(iptr, false);
 								  panic("illegal instruction: ALOAD loading non-reference");
+							  }
 							  TYPEINFO_COPY(localset->td[iptr->op1].info,dst->typeinfo);
 						  }
                           break;
@@ -1648,9 +1672,9 @@ methodinfo *typecheck(codegendata *codegendata)
 											  LOG("saving input stack types");
 											  if (!savedstackbuf) {
 												  LOG("allocating savedstack buffer");
-												  savedstackbuf = DMNEW(stackelement,m->maxstack);
+												  savedstackbuf = DMNEW(stackelement,m->codegendata->maxstack);
 												  savedstackbuf->prev = NULL;
-												  for (i=1; i<m->maxstack; ++i)
+												  for (i=1; i<m->codegendata->maxstack; ++i)
 													  savedstackbuf[i].prev = savedstackbuf+(i-1);
 											  }
 											  sp = savedstack = bptr->instack;

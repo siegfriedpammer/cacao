@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 1405 2004-08-17 09:25:01Z twisti $
+   $Id: gennativetable.c 1429 2004-11-02 08:58:26Z jowenn $
 
 */
 
@@ -160,8 +160,10 @@ int main(int argc, char **argv)
 	if (!file)
 		panic("Can not open file 'nativetable' to store native-link-table");
 
-	fprintf(file, "/* Table of native methods: nativetables.hh */\n");
+	fprintf(file, "/* Table of native methods: nativetables.inc */\n");
 	fprintf(file, "/* This file is machine generated, don't edit it !*/\n\n"); 
+
+        fprintf(file, "#include \"config.h\"\n");
 
 	c = chain_first(nativeclass_chain);
 	while (c) {
@@ -172,6 +174,7 @@ int main(int argc, char **argv)
 	chain_free(nativeclass_chain);
 
 	fprintf(file, "\n\n#include \"native.h\"\n\n");
+        fprintf(file, "#ifdef STATIC_CLASSPATH\n\n");
 	fprintf(file, "static nativeref nativetable[] = {\n");
 
 	m = chain_first(nativemethod_chain);
@@ -182,9 +185,28 @@ int main(int argc, char **argv)
 	chain_free(nativemethod_chain);
 
 	fprintf(file, "};\n");
-
+        fprintf(file,"\n#else\n");
+        fprintf(file, "/*ensure that symbols for functions implemented within cacao are used and exported to dlopen*/\n");
+        fprintf(file, "static functionptr dummynativetable[]={\n");
+	{
+		FILE *implData=fopen("nat/implementednatives.data","r");
+                if (!implData) {fclose(file); exit(3);}
+		while (!feof(implData)) {
+			char functionLine[1024];
+                        functionLine[0]='\0';
+			fgets(functionLine,1024,implData);
+                        if (strlen(functionLine)<2) continue;
+			if (functionLine[strlen(functionLine)-1]!='\n') { fclose(implData); fclose(file); exit(4);}
+                        functionLine[strlen(functionLine)-1]=',';
+			fprintf(file,"\t(functionptr) %s\n",functionLine);
+		}
+		fprintf(file,"\t(functionptr)0");
+                fclose(implData);
+	}
+        fprintf(file, "};\n");
+        fprintf(file,"\n#endif\n");
 	fclose(file);
-
+	
 	/* release all resources */
 
 	loader_close();
