@@ -180,6 +180,7 @@ no | none | single)
 	dnl no threads for boehm
 	ac_configure_args="$ac_configure_args --disable-boehm-threads"
 	AM_CONDITIONAL([USE_THREADS], [false])
+	AM_CONDITIONAL([NATIVE_THREADS], [false])
 	;;
 
 green | native | posix | pthreads)
@@ -241,13 +242,14 @@ AC_ARG_ENABLE([zlib], [AS_HELP_STRING(--enable-zlib,enable zip archive class sto
 AC_MSG_CHECKING(whether zip archives should be supported)
 if test x"$enable_zlib" = "xno"; then
 	AC_MSG_RESULT(no)
+	AM_CONDITIONAL([USE_ZLIB], [false])
 else
-	AC_DEFINE([USE_ZLIB], 1, [use zlib])
 	AC_MSG_RESULT(yes)
+	AC_DEFINE([USE_ZLIB], 1, [use zlib])
         AC_CHECK_HEADERS([zlib.h])
         AC_CHECK_LIB(z, main)
+	AM_CONDITIONAL([USE_ZLIB], [true])
 fi
-AM_CONDITIONAL([USE_ZLIB], [test x"$enable_zlib" != "xno"])
 
 
 dnl set some essential classpath options, even if their classpath default is
@@ -263,63 +265,13 @@ dnl enable gtk peer
 AC_MSG_CHECKING(whether to use gtk awt peers)
 if test x"$enable_gtk_peer" = "xyes"; then
 	AC_MSG_RESULT(yes)
-	CACAO_GTK=yes
-	AWTPEERS="java.awt.peer.ComponentPeer \
-		java.awt.Graphics\
-		java.awt.Window\
-		java.awt.peer.MenuPeer \
-		java.awt.peer.MenuItemPeer \
-		gnu.java.awt.peer.gtk.GdkPixbufDecoder \
-		gnu.java.awt.peer.gtk.GtkGenericPeer \
-		gnu.java.awt.peer.gtk.GtkMenuBarPeer \
-		gnu.java.awt.peer.gtk.GtkScrollPanePeer \
-		gnu.java.awt.peer.gtk.GtkMenuPeer \
-		gnu.java.awt.peer.gtk.GtkTextComponentPeer \
-		gnu.java.awt.peer.gtk.GtkComponentPeer \
-		gnu.java.awt.peer.gtk.GtkPopupMenuPeer \
-		gnu.java.awt.peer.gtk.GtkCheckboxPeer \
-		gnu.java.awt.peer.gtk.GtkCheckboxGroupPeer \
-		gnu.java.awt.peer.gtk.GtkMenuItemPeer \
-		gnu.java.awt.peer.gtk.GdkGraphics \
-		gnu.java.awt.peer.gtk.GtkToolkit \
-		gnu.java.awt.peer.gtk.GtkCanvasPeer \
-		gnu.java.awt.peer.gtk.GtkFramePeer \
-		gnu.java.awt.peer.gtk.GdkFontMetrics \
-		gnu.java.awt.peer.gtk.GtkScrollbarPeer \
-		gnu.java.awt.peer.gtk.GtkListPeer \
-		gnu.java.awt.peer.gtk.GtkLabelPeer \
-		gnu.java.awt.peer.gtk.GtkTextAreaPeer \
-		gnu.java.awt.peer.gtk.GtkFileDialogPeer \
-		gnu.java.awt.peer.gtk.GtkImagePainter \
-		gnu.java.awt.peer.gtk.GtkChoicePeer \
-		gnu.java.awt.peer.gtk.GtkPanelPeer \
-		gnu.java.awt.peer.gtk.GtkMainThread \
-		gnu.java.awt.peer.gtk.GtkButtonPeer \
-		gnu.java.awt.peer.gtk.GtkTextFieldPeer \
-		gnu.java.awt.peer.gtk.GtkCheckboxMenuItemPeer \
-		gnu.java.awt.peer.gtk.GtkClipboard \
-		gnu.java.awt.peer.gtk.GtkWindowPeer"
-		AWT_OBJS="classpath/native/jni/gtk-peer/.libs/libgtkpeer.a \
-			-lgtk-x11-2.0 -lgdk-x11-2.0 -latk-1.0 -lgdk_pixbuf-2.0 -lm -lpangoxft-1.0 \
-			-lpangox-1.0 -lpango-1.0 -lgobject-2.0 -lgmodule-2.0 -ldl -lglib-2.0 \
-			-lgthread-2.0 -lart_lgpl_2"
-		USEGTK="yes"
-		AC_SUBST(USEGTK)
-		AC_SUBST(AWTPEERS)
-		AC_SUBST(AWT_OBJS)
-		AC_DEFINE([USE_GTK], 1, [use gtk])
+	AC_DEFINE([USE_GTK], 1, [use gtk])
+	AM_CONDITIONAL([USE_GTK_PEER], [true])
 
 else
-	CACAO_GTK=no
-	AWT_OBJS=""
-	AWTPEERS=""
-	USEGTK="no"
-	AC_SUBST(USEGTK)
-	AC_SUBST(AWTPEERS)
-	AC_SUBST(AWT_OBJS)
 	AC_MSG_RESULT(no)
-
-        ac_configure_args="$ac_configure_args --disable-gtk-peer"
+	ac_configure_args="$ac_configure_args --disable-gtk-peer"
+	AM_CONDITIONAL([USE_GTK_PEER], [false])
 fi
 
 
@@ -335,7 +287,6 @@ fi
 dnl now configure boehm gc and gnu classpath
 dnl the export is not my favorite (is there another way?)
 export CFLAGS
-export CACAO_GTK
 AC_CONFIG_SUBDIRS(src/boehm-gc src/classpath)
 
 
