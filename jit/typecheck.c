@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 918 2004-02-08 19:54:52Z edwin $
+   $Id: typecheck.c 919 2004-02-08 20:24:57Z edwin $
 
 */
 
@@ -156,6 +156,7 @@ static int stat_ins_branch = 0;
 static int stat_ins_switch = 0;
 static int stat_ins_unchecked = 0;
 static int stat_handlers_reached = 0;
+static int stat_savedstack = 0;
 
 #define TYPECHECK_COUNT(cnt)  (cnt)++
 #define TYPECHECK_COUNTIF(cond,cnt)  do{if(cond) (cnt)++;} while(0)
@@ -182,6 +183,7 @@ void typecheck_print_statistics(FILE *file) {
 	fprintf(file,"merging changed    : %8d\n",stat_merging_changed);
 	fprintf(file,"backwards branches : %8d\n",stat_backwards);
 	fprintf(file,"handlers reached   : %8d\n",stat_handlers_reached);
+	fprintf(file,"saved stack (times): %8d\n",stat_savedstack);
 	fprintf(file,"instructions       : %8d\n",stat_ins);
 	fprintf(file,"    field access   : %8d\n",stat_ins_field);
 	fprintf(file,"    invocations    : %8d\n",stat_ins_invoke);
@@ -222,6 +224,12 @@ void typecheck_print_statistics(FILE *file) {
 
 #define RETURNADDRESSSET_SEEK(set,pos) \
             do {int i; for (i=pos;i--;) set=set->alt;} while(0)
+
+#define TYPESTACK_COPY(sp,copy)									\
+	        do {for(; sp; sp=sp->prev, copy=copy->prev) {		\
+					copy->type = sp->type;						\
+					TYPEINFO_COPY(sp->typeinfo,copy->typeinfo);	\
+				}} while (0)									\
 
 static void
 typestack_copy(stackptr dst,stackptr y,typevector *selected)
@@ -791,8 +799,8 @@ typecheck()
 	typevector *lset;                             /* temporary pointer */
 	typedescriptor *td;                           /* temporary pointer */
 
-	typeinfo *savedtypes = NULL;       /* saved types of instack slots */
-	typeinfo *savedtypesbuf = NULL;   /* reusable buffer for the above */
+	stackptr savedstackbuf = NULL;      /* buffer for saving the stack */
+	stackptr savedstack = NULL;      /* saved instack of current block */
 
 	stackelement excstack;           /* instack for exception handlers */
 													  
@@ -1580,18 +1588,21 @@ typecheck()
 										   * this basic block we must save the type(s)
 										   * we are going to replace.
 										   */
-										  if (srcstack <= bptr->instack && !savedtypes)
+										  if (srcstack <= bptr->instack && !savedstack)
 										  {
 											  stackptr sp;
-											  typeinfo *ti;
+											  stackptr copy;
 											  LOG("saving input stack types");
-											  if (!savedtypesbuf) {
-												  LOG("allocating savedtypes buffer");
-												  savedtypesbuf = DMNEW(typeinfo,maxstack);
+											  if (!savedstackbuf) {
+												  LOG("allocating savedstack buffer");
+												  savedstackbuf = DMNEW(stackelement,maxstack);
+												  savedstackbuf->prev = NULL;
+												  for (i=1; i<maxstack; ++i)
+													  savedstackbuf[i].prev = savedstackbuf+(i-1);
 											  }
-											  ti = savedtypes = savedtypesbuf;
-											  for (sp=bptr->instack; sp; sp=sp->prev, ti++)
-												  TYPEINFO_COPY(sp->typeinfo,*ti);
+											  sp = savedstack = bptr->instack;
+											  copy = bptr->instack = savedstackbuf + (bptr->indepth-1);
+											  TYPESTACK_COPY(sp,copy);
 										  }
 										  
                                           TYPEINFO_INIT_CLASSINFO(srcstack->typeinfo,initclass);
@@ -2015,15 +2026,14 @@ typecheck()
 				 * have been saved if an <init> call inside the block has
 				 * modified the instack types. (see INVOKESPECIAL) */
 				
-				if (savedtypes) {
-					typeinfo *ti = savedtypes;
-					stackptr sp;
-					LOG("restoring saved instack types");
-					for (sp=bptr->instack; sp; sp=sp->prev, ti++) {
-						if (sp->type == TYPE_ADR && TYPEINFO_IS_NEWOBJECT(*ti))
-							TYPEINFO_COPY(*ti,sp->typeinfo);
-					}
-					savedtypes = NULL;
+				if (savedstack) {
+					stackptr sp = bptr->instack;
+					stackptr copy = savedstack;
+					TYPECHECK_COUNT(stat_savedstack);
+					LOG("restoring saved instack");
+					TYPESTACK_COPY(sp,copy);
+					bptr->instack = savedstack;
+					savedstack = NULL;
 				}
                 
             } /* if block has to be checked */
