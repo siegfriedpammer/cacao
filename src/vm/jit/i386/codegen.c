@@ -28,31 +28,32 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1082 2004-05-26 15:04:54Z jowenn $
+   $Id: codegen.c 1102 2004-05-27 16:30:45Z twisti $
 
 */
+
 
 #include "global.h"
 #include <stdio.h>
 #include <signal.h>
 #include "types.h"
 #include "main.h"
-#include "parse.h"
-#include "codegen.h"
-#include "jit.h"
-#include "reg.h"
 #include "builtin.h"
 #include "asmpart.h"
 #include "jni.h"
 #include "loader.h"
 #include "tables.h"
 #include "native.h"
-#include "methodtable.h"
-#include "offsets.h"
+#include "jit/jit.h"
+#include "jit/parse.h"
+#include "jit/reg.h"
+#include "jit/i386/codegen.h"
+#include "jit/i386/methodtable.h"
+#include "jit/i386/offsets.h"
 
 /* include independent code generation stuff */
-#include "codegen.inc"
-#include "reg.inc"
+#include "jit/codegen.inc"
+#include "jit/reg.inc"
 
 
 /* register descripton - array ************************************************/
@@ -355,13 +356,14 @@ void thread_restartcriticalsection(ucontext_t *uc)
 
 /* NullPointerException signal handler for hardware null pointer check */
 
-void catch_NullPointerException(int sig)
+void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 {
 	sigset_t nsig;
 /*  	long     faultaddr; */
 
-	void **_p = (void **) &sig;
-	struct sigcontext *sigctx = (struct sigcontext *) ++_p;
+    struct ucontext *_uc = (struct ucontext *) _p;
+    struct sigcontext *sigctx = (struct sigcontext *) &_uc->uc_mcontext;
+	struct sigaction act;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
@@ -371,15 +373,18 @@ void catch_NullPointerException(int sig)
 /*  	fprintf(stderr, "null=%d %p addr=%p\n", sig, sigctx, sigctx->eip);*/
 
 /*  	if (faultaddr == 0) { */
-		signal(sig, (void *) catch_NullPointerException);    /* reinstall handler */
+/*  		signal(sig, (void *) catch_NullPointerException); */
+	act.sa_sigaction = (void *) catch_NullPointerException;
+	act.sa_flags = SA_SIGINFO;
+	sigaction(sig, &act, NULL);                          /* reinstall handler */
+
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
-		sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
+		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
 
-		sigctx->ecx = sigctx->eip;    /* REG_ITMP2_XPC     */
-		sigctx->eip = (s4) asm_throw_and_handle_hardware_nullpointer_exception;
+		sigctx->ecx = sigctx->eip;                       /* REG_ITMP2_XPC     */
+		sigctx->eip = (u4) asm_throw_and_handle_hardware_nullpointer_exception;
 		
-
 		return;
 
 /*  	} else { */
@@ -392,22 +397,29 @@ void catch_NullPointerException(int sig)
 
 /* ArithmeticException signal handler for hardware divide by zero check       */
 
-void catch_ArithmeticException(int sig)
+void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 {
 	sigset_t nsig;
 
-	void **_p = (void **) &sig;
-	struct sigcontext *sigctx = (struct sigcontext *) ++_p;
+/*  	void **_p = (void **) &sig; */
+/*  	struct sigcontext *sigctx = (struct sigcontext *) ++_p; */
+    struct ucontext *_uc = (struct ucontext *) _p;
+    struct sigcontext *sigctx = (struct sigcontext *) &_uc->uc_mcontext;
+	struct sigaction act;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD        */
 
-	signal(sig, (void *) catch_ArithmeticException);     /* reinstall handler */
+/*  	signal(sig, (void *) catch_ArithmeticException); */
+	act.sa_sigaction = (void *) catch_ArithmeticException;
+	act.sa_flags = SA_SIGINFO;
+	sigaction(sig, &act, NULL);                          /* reinstall handler */
+
 	sigemptyset(&nsig);
 	sigaddset(&nsig, sig);
 	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
 
 	sigctx->ecx = sigctx->eip;                           /* REG_ITMP2_XPC     */
-	sigctx->eip = (s4) asm_throw_and_handle_hardware_arithmetic_exception;
+	sigctx->eip = (u4) asm_throw_and_handle_hardware_arithmetic_exception;
 
 	return;
 }
@@ -415,19 +427,30 @@ void catch_ArithmeticException(int sig)
 
 void init_exceptions(void)
 {
+	struct sigaction act;
+
 	/* install signal handlers we need to convert to exceptions */
 
 	if (!checknull) {
 #if defined(SIGSEGV)
-		signal(SIGSEGV, (void *) catch_NullPointerException);
+/*  		signal(SIGSEGV, (void *) catch_NullPointerException); */
+		act.sa_sigaction = (void *) catch_NullPointerException;
+		act.sa_flags = SA_SIGINFO;
+		sigaction(SIGSEGV, &act, NULL);
 #endif
 
 #if defined(SIGBUS)
-		signal(SIGBUS, (void *) catch_NullPointerException);
+/*  		signal(SIGBUS, (void *) catch_NullPointerException); */
+		act.sa_sigaction = (void *) catch_NullPointerException;
+		act.sa_flags = SA_SIGINFO;
+		sigaction(SIGBUS, &act, NULL);
 #endif
 	}
 
-	signal(SIGFPE, (void *) catch_ArithmeticException);
+/*  	signal(SIGFPE, (void *) catch_ArithmeticException); */
+	act.sa_sigaction = (void *) catch_ArithmeticException;
+	act.sa_flags = SA_SIGINFO;
+	sigaction(SIGFPE, &act, NULL);
 }
 
 
@@ -452,16 +475,6 @@ void codegen()
 	int fpu_st_offset = 0;
 
 	xtable *ex;
-
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Generating code: ");
-		utf_sprint_classname(logtext + strlen(logtext), class->name);
-		sprintf(logtext + strlen(logtext), ".");
-		utf_sprint(logtext + strlen(logtext), method->name);
-		utf_sprint_classname(logtext + strlen(logtext), descriptor);
-		log_text(logtext);
-	}
 
 	{
 	int p, pa, t, l, r;
@@ -3749,7 +3762,7 @@ void codegen()
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 				i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP2);
 				i386_mov_reg_membase(REG_RESULT, REG_SP, maxmemuse * 8);
@@ -3776,7 +3789,7 @@ void codegen()
 				panic("LRETURN: longs have to be in memory");
 			}
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS)
 			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
 				i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP2);
 				i386_mov_reg_membase(REG_RESULT, REG_SP, maxmemuse * 8);
@@ -4465,11 +4478,11 @@ gen_method: {
 			codegen_addxcheckarefs(mcodeptr);
 			break;
 
-		case ICMD_CHECKOOM:  /* ... ==> ...                                   */
+		case ICMD_CHECKEXCEPTION:  /* ... ==> ...                             */
 
 			i386_test_reg_reg(REG_RESULT, REG_RESULT);
 			i386_jcc(I386_CC_E, 0);
-			codegen_addxoomrefs(mcodeptr);
+			codegen_addxexceptionrefs(mcodeptr);
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
@@ -4592,6 +4605,7 @@ gen_method: {
 	{
 
 	/* generate bound check stubs */
+
 	u1 *xcodeptr = NULL;
 	
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
@@ -4643,6 +4657,7 @@ gen_method: {
 	}
 
 	/* generate negative array size check stubs */
+
 	xcodeptr = NULL;
 	
 	for (; xcheckarefs != NULL; xcheckarefs = xcheckarefs->next) {
@@ -4690,6 +4705,7 @@ gen_method: {
 	}
 
 	/* generate cast check stubs */
+
 	xcodeptr = NULL;
 	
 	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
@@ -4732,6 +4748,7 @@ gen_method: {
 	}
 
 	/* generate divide by zero check stubs */
+
 	xcodeptr = NULL;
 	
 	for (; xdivrefs != NULL; xdivrefs = xdivrefs->next) {
@@ -4778,25 +4795,26 @@ gen_method: {
 		}
 	}
 
-	/* generate oom check stubs */
+	/* generate exception check stubs */
+
 	xcodeptr = NULL;
 	
-	for (; xoomrefs != NULL; xoomrefs = xoomrefs->next) {
+	for (; xexceptionrefs != NULL; xexceptionrefs = xexceptionrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xoomrefs->branchpos, 
-							  xoomrefs->branchpos,
+			gen_resolvebranch((u1*) mcodebase + xexceptionrefs->branchpos,
+							  xexceptionrefs->branchpos,
 							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
 			continue;
 		}
 
-		gen_resolvebranch((u1*) mcodebase + xoomrefs->branchpos, 
-		                  xoomrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		gen_resolvebranch((u1*) mcodebase + xexceptionrefs->branchpos, 
+		                  xexceptionrefs->branchpos, (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
 		i386_mov_imm_reg(0, REG_ITMP2_XPC);    /* 5 bytes */
 		dseg_adddata(mcodeptr);
-		i386_mov_imm_reg(xoomrefs->branchpos - 6, REG_ITMP1);    /* 5 bytes */
+		i386_mov_imm_reg(xexceptionrefs->branchpos - 6, REG_ITMP1);    /* 5 bytes */
 		i386_alu_reg_reg(I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
 
 		if (xcodeptr != NULL) {
@@ -4827,6 +4845,7 @@ gen_method: {
 	}
 
 	/* generate null pointer check stubs */
+
 	xcodeptr = NULL;
 	
 	for (; xnullrefs != NULL; xnullrefs = xnullrefs->next) {
@@ -4853,8 +4872,6 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 			
-/*  			i386_mov_imm_reg((s4) proto_java_lang_NullPointerException, REG_ITMP1_XPTR); */
-
 			i386_push_reg(REG_ITMP2_XPC);
 
 
@@ -4906,17 +4923,7 @@ gen_method: {
 	}
 	}
 	
-	codegen_finish((int)((u1*) mcodeptr - mcodebase));
-
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Generating code done: ");
-		utf_sprint_classname(logtext + strlen(logtext), class->name);
-		sprintf(logtext + strlen(logtext), ".");
-		utf_sprint(logtext + strlen(logtext), method->name);
-		utf_sprint_classname(logtext + strlen(logtext), descriptor);
-		log_text(logtext);
-	}
+	codegen_finish((u4) ((u1 *) mcodeptr - mcodebase));
 }
 
 
@@ -4934,14 +4941,15 @@ u1 *createcompilerstub(methodinfo *m)
     mcodeptr = s;                       /* code generation pointer            */
 
     /* code for the stub */
-    i386_mov_imm_reg((s4) m, REG_ITMP1);/* pass method pointer to compiler    */
+    i386_mov_imm_reg((u4) m, REG_ITMP1);/* pass method pointer to compiler    */
 
 	/* we use REG_ITMP3 cause ECX (REG_ITMP2) is used for patching            */
-    i386_mov_imm_reg((s4) asm_call_jit_compiler, REG_ITMP3);  /* load address */
+    i386_mov_imm_reg((u4) asm_call_jit_compiler, REG_ITMP3);  /* load address */
     i386_jmp_reg(REG_ITMP3);            /* jump to compiler                   */
 
 #ifdef STATISTICS
-    count_cstub_len += COMPSTUBSIZE;
+	if (opt_stat)
+		count_cstub_len += COMPSTUBSIZE;
 #endif
 
     return s;
@@ -4965,7 +4973,7 @@ void removecompilerstub(u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE 340
+#define NATIVESTUBSIZE 350
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 static java_objectheader **(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr;
@@ -5243,6 +5251,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	i386_mov_imm_reg((s4) asm_handle_nat_exception, REG_ITMP3);
 	i386_jmp_reg(REG_ITMP3);
+
+#if 0
+	dolog_plain("stubsize: %d (for %d params)\n", (s4) (mcodeptr - s), m->paramcount);
+#endif
 
 #ifdef STATISTICS
 	count_nstub_len += NATIVESTUBSIZE;
