@@ -30,7 +30,7 @@
 
    Changes: Stefan Ring
 
-   $Id: disass.c 568 2003-11-06 14:42:16Z twisti $
+   $Id: disass.c 978 2004-03-25 23:45:51Z twisti $
 
 */
 
@@ -102,7 +102,8 @@ void perror_memory(int status, bfd_vma memaddr, struct disassemble_info *info)
 
 void generic_print_address(bfd_vma addr, struct disassemble_info *info)
 {
-	myprintf(NULL, "0x%x", addr - (u4) info->application_data);
+/*  	myprintf(NULL, "0x%x", addr - (u4) info->application_data); */
+	myprintf(NULL, "0x08%x", addr);
 }
 
 
@@ -130,30 +131,30 @@ void sprintf_vma(char *buf, bfd_vma disp)
 }
 
 
-void disassinstr(int c, int pos)
+void disassinstr(s4 *code, s4 pos)
 {
 	disassemble_info info;
 
-	printf("%6x: %8x  ", pos, c);
+	printf("0x%08x:   %08x    ", (s4) code, *code);
 
 	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
-	info.application_data = (PTR) ((u4) &c - pos);
-	print_insn_big_powerpc((bfd_vma) &c, &info);
-	printf ("\n");
+/*     	info.application_data = (u4) code - pos; */
+	print_insn_big_powerpc((bfd_vma) code, &info);
+	printf("\n");
 }
 
 
-void disassemble(int *code, int len)
+void disassemble(s4 *code, s4 len)
 {
 	int p;
 	disassemble_info info;
 
 	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
-	info.application_data = code;
+/*    	info.application_data = code; */
 	printf ("  --- disassembler listing ---\n");
 	for (p = 0; p < len; p += 4, code++) {
-		myprintf(NULL, "%6x: %08x  ", p, *code);
-		print_insn_big_powerpc((bfd_vma) p, &info);
+		myprintf(NULL, "0x%08x:   %08x    ", (s4) code, *code);
+		print_insn_big_powerpc((bfd_vma) code, &info);
 		myprintf(NULL, "\n");
 	}
 }
