@@ -486,8 +486,10 @@ static void local_regalloc ()
 							v->regoff = argintregs[iargcnt];
 							iargcnt++;
 #else
-						else if (!doublewordarg && ((regtouse = arg) < mparamcount)
-#ifdef USETWOREGS
+						else if (!doublewordarg && (arg < mparamcount)
+#ifndef USETWOREGS
+						                        && ((regtouse = arg) < intreg_argnum)
+#else
 						                        && ((regtouse = s) < intreg_argnum - regsneeded)
 #endif
 								) {
