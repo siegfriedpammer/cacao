@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 824 2004-01-03 14:31:04Z twisti $
+   $Id: asmpart.S 828 2004-01-03 16:20:06Z stefan $
 
 */
 
@@ -156,6 +156,7 @@
 	.globl has_no_x_instr_set
 	.globl synchronize_caches
 	.globl asm_calljavafunction_asm
+	.globl asm_calljavafunction2_asm
 	.globl asm_call_jit_compiler
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
@@ -305,6 +306,126 @@ calljava_xhandler:
 	b       calljava_return
 
 	.end    asm_calljavafunction_asm
+
+
+	.ent    asm_calljavafunction2_asm
+
+call_name2:
+
+	.align  3
+asm_calljavafunction2_asm:
+
+	aaddiu  sp,sp,-12*8               /* allocate stack space                 */
+	                                  /* (only 11 needed)                     */
+	sd      ra,0(sp)                  /* save return address                  */
+
+	.set    noreorder
+	bal     call_java_pc2
+	sd      pv,8(sp)                  /* procedure vector                     */
+call_java_pc2:
+	aaddiu  pv,ra,-4*4
+	sd      s7,24(sp)
+
+	.set    reorder
+	
+	sdc1    fss0,5*8(sp)              /* save non JavaABI saved flt registers */
+	sdc1    fss1,6*8(sp)
+	sdc1    fss2,7*8(sp)
+	sdc1    fss3,8*8(sp)
+	sdc1    fss4,9*8(sp)
+	sdc1    fss5,10*8(sp)
+	sd      a0,32(sp)                 /* save method pointer for compiler     */
+	move    t0,a3
+	move    s7,a1
+
+	blez    s7,calljava_argsloaded
+	ald     a0,offjniitem(t0)
+	ldc1    fa0,offjniitem(t0)
+	ala     s7,-1(s7)
+	blez    s7,calljava_argsloaded
+	ald     a1,offjniitem+sizejniblock*1(t0)
+	ldc1    fa1,offjniitem+sizejniblock*1(t0)
+	ala     s7,-1(s7)
+	blez    s7,calljava_argsloaded
+	ald     a2,offjniitem+sizejniblock*2(t0)
+	ldc1    fa2,offjniitem+sizejniblock*2(t0)
+	ala     s7,-1(s7)
+	blez    s7,calljava_argsloaded
+	ald     a3,offjniitem+sizejniblock*3(t0)
+	ldc1    fa3,offjniitem+sizejniblock*3(t0)
+	ala     s7,-1(s7)
+	blez    s7,calljava_argsloaded
+	ald     a4,offjniitem+sizejniblock*4(t0)
+	ldc1    fa4,offjniitem+sizejniblock*4(t0)
+	ala     s7,-1(s7)
+	blez    s7,calljava_argsloaded
+	ald     a5,offjniitem+sizejniblock*5(t0)
+	ldc1    fa5,offjniitem+sizejniblock*5(t0)
+	ala     s7,-1(s7)
+	blez    s7,calljava_argsloaded
+	ald     a6,offjniitem+sizejniblock*6(t0)
+	ldc1    fa6,offjniitem+sizejniblock*6(t0)
+	ala     s7,-1(s7)
+	blez    s7,calljava_argsloaded
+	ald     a7,offjniitem+sizejniblock*7(t0)
+	ldc1    fa7,offjniitem+sizejniblock*7(t0)
+	ala     s7,-1(s7)
+calljava_argsloaded:
+    move    t4,sp
+	blez    s7,calljava_nocopy
+	subu    t1,zero,s7
+	sll     t2,t1,3
+	daddu   sp,sp,t2
+	daddu   t2,t2,t4
+
+calljava_copyloop:
+    ald     t3,offjniitem+sizejniblock*8(t0)
+	ast     t3,0(t2)
+	ala     t1,1(t1)
+	ala     t0,sizejniblock(t0)
+	ala     t2,8(t2)
+	bnez    t1,calljava_copyloop
+
+calljava_nocopy:
+	ala     itmp1,32(t4)              /* pass pointer to methodptr via itmp1  */
+
+	ala     mptr,asm_call_jit_compiler/* fake virtual function call (2 instr) */
+	ast     mptr,16(sp)               /* store function address               */
+	ala     mptr,8(t4)                /* set method pointer                   */
+
+	.set    noreorder
+	
+	ald     pv,8(mptr)                /* method call as in Java               */
+	jalr    pv                        /* call JIT compiler                    */
+	nop
+	aaddiu  pv,ra,-76*4               /* recompute procedure vector           */
+
+calljava_return2:
+
+	ld      ra,0(sp)                  /* restore return address               */
+	ld      pv,8(sp)                  /* restore procedure vector             */
+	ld      s7,16(sp)
+
+	ldc1    fss0,5*8(sp)              /* restore non JavaABI saved flt regs   */
+	ldc1    fss1,6*8(sp)
+	ldc1    fss2,7*8(sp)
+	ldc1    fss3,8*8(sp)
+	ldc1    fss4,9*8(sp)
+	ldc1    fss5,10*8(sp)
+	j       ra                        /* return                               */
+	aaddiu  sp,sp,12*8                /* free stack space                     */
+
+	.set    reorder
+	
+calljava_xhandler2:
+
+    sll     s7,s7,3
+	aaddu   sp,s7,sp
+	move    a0,itmp1                  
+	jal     builtin_throw_exception
+	b       calljava_return2
+
+	.end    asm_calljavafunction2_asm
 
 #endif
 

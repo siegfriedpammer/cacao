@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 759 2003-12-13 22:36:08Z stefan $
+   $Id: codegen.c 828 2004-01-03 16:20:06Z stefan $
 
 */
 
@@ -3831,28 +3831,29 @@ void removenativestub (u1 *stub)
 #define REG_FSS5    31
 
 #define CALL_JAVA_MEM_SIZE 61
+#define CALL_JAVA2_MEM_SIZE 61
 #define CALL_JAVA_ENTRY    20
 #define CALL_JAVA_XHANDLER 55
+#define CALL_JAVA2_XHANDLER 108
 
 static s4 calljavamem[CALL_JAVA_MEM_SIZE];
+static s4 calljava2mem[CALL_JAVA2_MEM_SIZE];
 
 void asm_calljavafunction_asm();
+void asm_calljavafunction2_asm();
 
 void createcalljava ()
 {
 	s4 *p;
 	
-#if POINTERSIZE==8
 	*((void**)(calljavamem + 4)) = NULL;
 	*((void**)(calljavamem + 6)) = (void*) (calljavamem + CALL_JAVA_XHANDLER);
 	*((void**)(calljavamem + 8)) = (void*) (calljavamem + CALL_JAVA_XHANDLER);
 	*((void**)(calljavamem +10)) = (void*) (calljavamem + CALL_JAVA_ENTRY);
-#else
-	*((void**)(calljavamem + 8)) = NULL;
-	*((void**)(calljavamem + 9)) = (void*) (calljavamem + CALL_JAVA_XHANDLER);
-	*((void**)(calljavamem +10)) = (void*) (calljavamem + CALL_JAVA_XHANDLER);
-	*((void**)(calljavamem +11)) = (void*) (calljavamem + CALL_JAVA_ENTRY);
-#endif
+	*((void**)(calljava2mem + 4)) = NULL;
+	*((void**)(calljava2mem + 6)) = (void*) (calljava2mem + CALL_JAVA2_XHANDLER);
+	*((void**)(calljava2mem + 8)) = (void*) (calljava2mem + CALL_JAVA2_XHANDLER);
+	*((void**)(calljava2mem +10)) = (void*) (calljava2mem + CALL_JAVA_ENTRY);
 	
 	calljavamem[12] = 1;                /* extable size                       */
 	calljavamem[13] = 0;                /* fltsave                            */
@@ -3863,17 +3864,34 @@ void createcalljava ()
 	calljavamem[18] = 0;                /* method pointer (NULL)              */
 	calljavamem[19] = 0;                /* method pointer (NULL)              */
 
-	p = calljavamem + CALL_JAVA_ENTRY;  /* code generation pointer            */
+	calljava2mem[12] = 1;                /* extable size                      */
+	calljava2mem[13] = 0;                /* fltsave                           */
+	calljava2mem[14] = 1;                /* intsave                           */
+	calljava2mem[15] = 0;                /* isleaf                            */
+	calljava2mem[16] = 0;                /* IsSync                            */
+	calljava2mem[17] = 88;               /* frame size                        */
+	calljava2mem[18] = 0;                /* method pointer (NULL)             */
+	calljava2mem[19] = 0;                /* method pointer (NULL)             */
 
+	p = calljavamem + CALL_JAVA_ENTRY;  /* code generation pointer            */
 	memcpy(p, asm_calljavafunction_asm,
 			(CALL_JAVA_MEM_SIZE - CALL_JAVA_ENTRY) * (int) sizeof(s4));
 
+	p = calljava2mem + CALL_JAVA_ENTRY;  /* code generation pointer           */
+	memcpy(p, asm_calljavafunction2_asm,
+			(CALL_JAVA2_MEM_SIZE - CALL_JAVA_ENTRY) * (int) sizeof(s4));
+
 	(void) docacheflush((void*)(calljavamem + CALL_JAVA_ENTRY),
 	       (CALL_JAVA_MEM_SIZE - CALL_JAVA_ENTRY) * (int) sizeof(s4));
+	(void) docacheflush((void*)(calljava2mem + CALL_JAVA_ENTRY),
+	       (CALL_JAVA2_MEM_SIZE - CALL_JAVA_ENTRY) * (int) sizeof(s4));
 }
 
 
 typedef java_objectheader* (*asm_fptr)(methodinfo*, void*, void*, void*, void*);
+typedef java_objectheader* (*asm_fptr2)(methodinfo*, u4, u4, void*);
+typedef jdouble (*asm_fptr2double)(methodinfo*, u4, u4, void*);
+typedef jlong (*asm_fptr2long)(methodinfo*, u4, u4, void*);
 
 
 java_objectheader *asm_calljavafunction (methodinfo *m, void *arg1, void *arg2,
@@ -3882,6 +3900,20 @@ java_objectheader *asm_calljavafunction (methodinfo *m, void *arg1, void *arg2,
 	return ((asm_fptr)(calljavamem + 20))(m, arg1, arg2, arg3, arg4);
 }
 
+java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size , void *callblock)
+{
+	return ((asm_fptr2)(calljava2mem + 20))(m, count, size, callblock);
+}
+
+jdouble asm_calljavafunction2double(methodinfo *m, u4 count, u4 size , void *callblock)
+{
+	return ((asm_fptr2double)(calljava2mem + 20))(m, count, size, callblock);
+}
+
+jlong asm_calljavafunction2long(methodinfo *m, u4 count, u4 size , void *callblock)
+{
+	return ((asm_fptr2long)(calljava2mem + 20))(m, count, size, callblock);
+}
 
 void docacheflush(u1 *p, long bytelen)
 {
