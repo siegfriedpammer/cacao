@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2175 2005-04-01 11:23:18Z twisti $
+   $Id: codegen.c 2179 2005-04-01 13:28:16Z twisti $
 
 */
 
@@ -3307,18 +3307,18 @@ gen_method: {
 		                      /* op1:   0 == array, 1 == class                */
 		                      /* val.a: (classinfo*) superclass               */
 
-/*          superclass is an interface:
- *
- *          OK if ((sub == NULL) ||
- *                 (sub->vftbl->interfacetablelength > super->index) &&
- *                 (sub->vftbl->interfacetable[-super->index] != NULL));
- *
- *          superclass is a class:
- *
- *          OK if ((sub == NULL) || (0
- *                 <= (sub->vftbl->baseval - super->vftbl->baseval) <=
- *                 super->vftbl->diffvall));
- */
+			/*  superclass is an interface:
+			 *	
+			 *  OK if ((sub == NULL) ||
+			 *         (sub->vftbl->interfacetablelength > super->index) &&
+			 *         (sub->vftbl->interfacetable[-super->index] != NULL));
+			 *	
+			 *  superclass is a class:
+			 *	
+			 *  OK if ((sub == NULL) || (0
+			 *         <= (sub->vftbl->baseval - super->vftbl->baseval) <=
+			 *         super->vftbl->diffval));
+			 */
 
 			{
 			classinfo *super = (classinfo *) iptr->val.a;
@@ -3373,12 +3373,21 @@ gen_method: {
 					a += 3;    /* movl_membase_reg - only if REG_ITMP2 == R10 */
 					CALCOFFSETBYTES(a, REG_ITMP2, OFFSET(vftbl_t, baseval));
 
-					a += 3;    /* movl_membase_reg - only if REG_ITMP3 == R11 */
-					CALCOFFSETBYTES(a, REG_ITMP3, OFFSET(vftbl_t, baseval));
-					a += 3;    /* sub */
-					a += 10;   /* mov_imm_reg */
-					a += 3;    /* movl_membase_reg - only if REG_ITMP3 == R11 */
-					CALCOFFSETBYTES(a, REG_ITMP3, OFFSET(vftbl_t, diffval));
+					if (s1 != REG_ITMP1) {
+						a += 3;    /* movl_membase_reg - only if REG_ITMP3 == R11 */
+						CALCOFFSETBYTES(a, REG_ITMP3, OFFSET(vftbl_t, baseval));
+						a += 3;    /* movl_membase_reg - only if REG_ITMP3 == R11 */
+						CALCOFFSETBYTES(a, REG_ITMP3, OFFSET(vftbl_t, diffval));
+						a += 3;    /* sub */
+
+					} else {
+						a += 3;    /* movl_membase_reg - only if REG_ITMP3 == R11 */
+						CALCOFFSETBYTES(a, REG_ITMP3, OFFSET(vftbl_t, baseval));
+						a += 3;    /* sub */
+						a += 10;   /* mov_imm_reg */
+						a += 3;    /* movl_membase_reg - only if REG_ITMP3 == R11 */
+						CALCOFFSETBYTES(a, REG_ITMP3, OFFSET(vftbl_t, diffval));
+					}
 
 					a += 3;    /* cmp */
 					a += 6;    /* jcc */
@@ -3388,13 +3397,23 @@ gen_method: {
 					x86_64_mov_membase_reg(cd, s1, OFFSET(java_objectheader, vftbl), REG_ITMP2);
 					x86_64_mov_imm_reg(cd, (ptrint) super->vftbl, REG_ITMP3);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-                    codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
+					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					x86_64_movl_membase_reg(cd, REG_ITMP2, OFFSET(vftbl_t, baseval), REG_ITMP2);
-					x86_64_movl_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, baseval), REG_ITMP3);
-					x86_64_alu_reg_reg(cd, X86_64_SUB, REG_ITMP3, REG_ITMP2);
-					x86_64_mov_imm_reg(cd, (ptrint) super->vftbl, REG_ITMP3);
-					x86_64_movl_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, diffval), REG_ITMP3);
+					if (s1 != REG_ITMP1) {
+						x86_64_movl_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, baseval), REG_ITMP1);
+						x86_64_movl_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, diffval), REG_ITMP3);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+						codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
+#endif
+						x86_64_alu_reg_reg(cd, X86_64_SUB, REG_ITMP1, REG_ITMP2);
+
+					} else {
+						x86_64_movl_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, baseval), REG_ITMP3);
+						x86_64_alu_reg_reg(cd, X86_64_SUB, REG_ITMP3, REG_ITMP2);
+						x86_64_mov_imm_reg(cd, (ptrint) super->vftbl, REG_ITMP3);
+						x86_64_movl_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, diffval), REG_ITMP3);
+					}
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
@@ -3409,6 +3428,11 @@ gen_method: {
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
+/*  			if (iptr->dst->flags & INMEMORY) { */
+/*  				x86_64_mov_reg_membase(cd, s1, REG_SP, iptr->dst->regoff * 8); */
+/*  			} else { */
+/*  				M_INTMOVE(s1, iptr->dst->regoff); */
+/*  			} */
 			break;
 
 		case ICMD_CHECKASIZE:  /* ..., size ==> ..., size                     */
