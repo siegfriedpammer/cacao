@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1807 2004-12-22 10:47:13Z twisti $
+   $Id: builtin.c 1847 2005-01-04 11:34:28Z twisti $
 
 */
 
@@ -88,29 +88,35 @@ THREADSPECIFIC void *_thread_nativestackframeinfo=NULL;
 					
 *****************************************************************************/					
 s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
-{ 
+{
 	s4 res;
 	castinfo classvalues;
 
-	/*classinfo *tmp;*/
+	if (sub == super)
+		return 1;
+
 	if (super->flags & ACC_INTERFACE)
 		return (sub->vftbl->interfacetablelength > super->index) &&
 			(sub->vftbl->interfacetable[-super->index] != NULL);
 
 	asm_getclassvalues_atomic(super->vftbl, sub->vftbl, &classvalues);
 
-	res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval) <=
-		(unsigned) classvalues.super_diffval;
+	res = (u4) (classvalues.sub_baseval - classvalues.super_baseval) <=
+		(u4) classvalues.super_diffval;
 
 	return res;
 }
 
-s4 builtin_isanysubclass_vftbl(vftbl_t *sub,vftbl_t *super)
+
+s4 builtin_isanysubclass_vftbl(vftbl_t *sub, vftbl_t *super)
 {
 	s4 res;
-	int base;
+	s4 base;
 	castinfo classvalues;
-	
+
+	if (sub == super)
+		return 1;
+
 	asm_getclassvalues_atomic(super, sub, &classvalues);
 
 	if ((base = classvalues.super_baseval) <= 0)
@@ -118,8 +124,8 @@ s4 builtin_isanysubclass_vftbl(vftbl_t *sub,vftbl_t *super)
 		res = (sub->interfacetablelength > -base) &&
 			(sub->interfacetable[base] != NULL);
 	else
-	    res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
-			<= (unsigned) classvalues.super_diffval;
+	    res = (u4) (classvalues.sub_baseval - classvalues.super_baseval)
+			<= (u4) classvalues.super_diffval;
 
 	return res;
 }
