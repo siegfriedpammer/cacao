@@ -13,15 +13,18 @@
 
 *******************************************************************************/
 
+#ifndef _NATIVE_MATH_H
+#define _NATIVE_MATH_H
+
 /* include machine-specific math.h */
 
 #include <math.h>
 
 /* define infinity for floating point numbers */
 
-u4 flt_nan    = 0xffffffff;
-u4 flt_posinf = 0x7f800000;
-u4 flt_neginf = 0xff800000;
+static u4 flt_nan    = 0xffffffff;
+static u4 flt_posinf = 0x7f800000;
+static u4 flt_neginf = 0xff800000;
 
 #define FLT_NAN    (*((float*) (&flt_nan)))
 #define FLT_POSINF (*((float*) (&flt_posinf)))
@@ -29,10 +32,12 @@ u4 flt_neginf = 0xff800000;
 
 /* define infinity for double floating point numbers */
 
-u8 dbl_nan    = 0xffffffffffffffffL ;
-u8 dbl_posinf = 0x7ff0000000000000L ;
-u8 dbl_neginf = 0xfff0000000000000L ;
+static u8 dbl_nan    = 0xffffffffffffffffL ;
+static u8 dbl_posinf = 0x7ff0000000000000L ;
+static u8 dbl_neginf = 0xfff0000000000000L ;
 
 #define DBL_NAN    (*((double*) (&dbl_nan)))
 #define DBL_POSINF (*((double*) (&dbl_posinf)))
 #define DBL_NEGINF (*((double*) (&dbl_neginf)))
+
+#endif
