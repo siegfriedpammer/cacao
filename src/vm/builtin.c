@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 991 2004-03-29 11:22:34Z stefan $
+   $Id: builtin.c 1000 2004-03-30 22:42:57Z twisti $
 
 */
 
@@ -277,26 +277,18 @@ java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr
 	if (verbose) {
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Builtin exception thrown: ");
-		if (local_exceptionptr)
+		if (local_exceptionptr) {
 			utf_sprint(logtext + strlen(logtext), local_exceptionptr->vftbl->class->name);
-		else {
-			sprintf(logtext+strlen(logtext),"%s","Error: <Nullpointer instead of exception>");
-			if (!proto_java_lang_ClassCastException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ClassCastException==0");
-			if (!proto_java_lang_NullPointerException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_NullPointerException==0");
-			if (!proto_java_lang_NullPointerException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_NullPointerException==0");
-			if (!proto_java_lang_ArrayIndexOutOfBoundsException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ArrayIndexOutOfBoundsException==0");
-			if (!proto_java_lang_NegativeArraySizeException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_NegativeArraySizeException==0");
-			if (!proto_java_lang_OutOfMemoryError) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_OutOfMemoryError==0");
-			if (!proto_java_lang_ArithmeticException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ArithmeticException==0");
-			if (!proto_java_lang_ArrayStoreException) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ArrayStoreException==0");
-			if (!proto_java_lang_ThreadDeath) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ThreadDeath==0");
-			if (!proto_java_lang_ThreadDeath) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ThreadDeath==0");
-			}
+
+		} else {
+			sprintf(logtext + strlen(logtext), "Error: <Nullpointer instead of exception>");
+		}
 		log_text(logtext);
 	}
 	*exceptionptr = local_exceptionptr;
 	return local_exceptionptr;
 }
+
 
 void builtin_reset_exceptionptr()
 {
@@ -539,27 +531,29 @@ java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl)
 	s4 componentsize = desc->componentsize;
 	s4 actualsize;
 
-	if (size<0) {
-		*exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/NegativeArraySizeException")));
+	if (size < 0) {
+		*exceptionptr = new_exception(string_java_lang_NegativeArraySizeException);
 		return NULL;
 	}
+
 #ifdef SIZE_FROM_CLASSINFO
 	actualsize = align_size(dataoffset + size * componentsize);
-#else
 	actualsize = dataoffset + size * componentsize;
 #endif
 
-	if (((u4)actualsize)<((u4)size)) { /* overflow */
-		*exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/OutOfMemoryError")));
+	if (((u4) actualsize) < ((u4) size)) { /* overflow */
+		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
 		return NULL;
 	}
+
 	a = heap_allocate(actualsize,
 					  (desc->arraytype == ARRAYTYPE_OBJECT),
 					  NULL);
 
-	if (!a) return NULL;
-	memset(a, 0, actualsize);
+	if (!a)
+		return NULL;
 
+	memset(a, 0, actualsize);
 
 	/*printf("builtin_newarray: Created an array of size : %d\n",size);*/
 
@@ -770,7 +764,8 @@ java_arrayheader *builtin_nmultianewarray (int n, vftbl *arrayvftbl, long *dims)
 u4 methodindent = 0;
 
 java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
-										   methodinfo *method, int *pos, 
+										   methodinfo *method,
+										   int *pos,
 										   int line,
 										   int noindent)
 {
@@ -787,19 +782,6 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 
 		} else {
 			printf("Some Throwable");
-/*
-			printf("Error: <Nullpointer instead of exception>");
-			if (!proto_java_lang_ClassCastException) printf("%s","proto_java_lang_ClassCastException==0");
-			if (!proto_java_lang_NullPointerException) printf("%s","proto_java_lang_NullPointerException==0");
-			if (!proto_java_lang_NullPointerException) printf("%s","proto_java_lang_NullPointerException==0");
-			if (!proto_java_lang_ArrayIndexOutOfBoundsException) printf("%s","proto_java_lang_ArrayIndexOutOfBoundsException==0");
-			if (!proto_java_lang_NegativeArraySizeException) printf("%s","proto_java_lang_NegativeArraySizeException==0");
-			if (!proto_java_lang_OutOfMemoryError) printf("%s","proto_java_lang_OutOfMemoryError==0");
-			if (!proto_java_lang_ArithmeticException) printf("%s","proto_java_lang_ArithmeticException==0");
-			if (!proto_java_lang_ArrayStoreException) printf("%s","proto_java_lang_ArrayStoreException==0");
-			if (!proto_java_lang_ThreadDeath) printf("%s","proto_java_lang_ThreadDeath==0");
-			if (!proto_java_lang_ThreadDeath) printf("%s","proto_java_lang_ThreadDeath==0");
-			*/
 		}
 		printf(" thrown in ");
 
@@ -1817,6 +1799,7 @@ java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o)
 	return (java_arrayheader *) Java_java_lang_VMObject_clone(0, 0, (java_lang_Cloneable *) o);
 }
 
+
 s4 builtin_dummy()
 {
 	panic("Internal error: builtin_dummy called (native function is missing)");
@@ -1824,19 +1807,20 @@ s4 builtin_dummy()
 }
 
 
-inline methodinfo *builtin_asm_get_threadrootmethod() {
-        return *threadrootmethod;
+inline methodinfo *builtin_asm_get_threadrootmethod()
+{
+	return *threadrootmethod;
 }
 
 
-inline void* 
-builtin_asm_get_stackframeinfo(){
+inline void* builtin_asm_get_stackframeinfo()
+{
 /*log_text("builtin_asm_get_stackframeinfo()");*/
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	return &THREADINFO->_stackframeinfo;
 #else
 #warning FIXME FOR OLD THREAD IMPL (jowenn)
-        return &_thread_nativestackframeinfo; /* no threading, at least no native*/
+		return &_thread_nativestackframeinfo; /* no threading, at least no native*/
 #endif
 }
 
