@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 727 2003-12-11 10:52:40Z edwin $
+   $Id: jit.h 760 2003-12-13 22:38:03Z twisti $
 
 */
 
@@ -109,15 +109,7 @@ struct instruction {
 	stackptr dst;               /* stack index of destination operand stack   */
 	u2  opc;                    /* opcode of intermediate code command        */
 	s4  op1;                    /* first operand, usually variable number     */
-
-	union {
-		s4 i;                   /* integer operand    */
-		s8 l;                   /* long operand       */
-		float f;                /* float operand      */
-		double d;               /* double operand     */
-		void *a;                /* address operand    */
-	} val;                  /* immediate constant */
-
+	imm_union val;              /* immediate constant                         */
 	void *target;				/* used for targets of branches and jumps	  */
 								/* and as address for list of targets for	  */
 								/* statements								  */
@@ -971,6 +963,12 @@ extern bool regs_ok;            /* true if registers have been allocated      */
 extern chain *uninitializedclasses;
 
 extern int stackreq[256];
+
+
+#if defined(__I386__)
+extern bool method_uses_ecx;
+extern bool method_uses_edx;
+#endif
 
 
 /* function prototypes */
