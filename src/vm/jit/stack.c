@@ -724,6 +724,11 @@ icmd_lconst_lcmp_tail:
 						case ICMD_AALOAD:
 							COUNT(count_check_null);
 							COUNT(count_check_bound);
+						case ICMD_OPT_IALOAD:
+						case ICMD_OPT_LALOAD:
+						case ICMD_OPT_FALOAD:
+						case ICMD_OPT_DALOAD:
+						case ICMD_OPT_AALOAD:
 							COUNT(count_pcmd_mem);
 							OP2IAT_1(opcode-ICMD_IALOAD);
 							break;
@@ -733,6 +738,9 @@ icmd_lconst_lcmp_tail:
 						case ICMD_SALOAD:
 							COUNT(count_check_null);
 							COUNT(count_check_bound);
+						case ICMD_OPT_BALOAD:
+						case ICMD_OPT_CALOAD:
+						case ICMD_OPT_SALOAD:
 							COUNT(count_pcmd_mem);
 							OP2IAT_1(TYPE_INT);
 							break;
@@ -810,6 +818,11 @@ icmd_lconst_lcmp_tail:
 						case ICMD_AASTORE:
 							COUNT(count_check_null);
 							COUNT(count_check_bound);
+						case ICMD_OPT_IASTORE:
+						case ICMD_OPT_LASTORE:
+						case ICMD_OPT_FASTORE:
+						case ICMD_OPT_DASTORE:
+						case ICMD_OPT_AASTORE:
 							COUNT(count_pcmd_mem);
 							OP3TIA_0(opcode-ICMD_IASTORE);
 							break;
@@ -819,6 +832,9 @@ icmd_lconst_lcmp_tail:
 							COUNT(count_check_null);
 							COUNT(count_check_bound);
 							COUNT(count_pcmd_mem);
+						case ICMD_OPT_BASTORE:
+						case ICMD_OPT_CASTORE:
+						case ICMD_OPT_SASTORE:
 							OP3TIA_0(TYPE_INT);
 							break;
 

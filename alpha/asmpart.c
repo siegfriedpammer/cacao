@@ -186,7 +186,7 @@ call_name:
 
 	.align  3
 	.quad   0                         /* catch type all                       */
-	.quad   calljava_xhandler         /* end pc                               */
+	.quad   calljava_xhandler         /* handler pc                           */
 	.quad   calljava_xhandler         /* end pc                               */
 	.quad   asm_calljavamethod        /* start pc                             */
 	.long   1                         /* extable size                         */
@@ -569,7 +569,7 @@ empty_table:
 ex_already_cleared:
 	ldl     t0,IsSync(pv)         /* t0 = SyncOffset                          */
 	beq     t0,no_monitor_exit    /* if zero no monitorexit                   */
-	addq    sp,t0,t0              /* add Offset to stackptr                   */
+	addq    sp,t0,t0              /* add stackptr to Offset                   */
 	ldq     a0,-8(t0)             /* load monitorexit pointer                 */
 
 	lda     sp,-7*8(sp)           /* allocate stack                           */
@@ -652,7 +652,7 @@ ex_flt2:
 	addq    t0,pv,pv              /* compute update address                   */
 	br      ex_stack_loop
 
-	.end    asm_handle_exception
+	.end    asm_handle_nat_exception
 
 
 /********************* function asm_builtin_monitorenter ***********************
@@ -694,7 +694,7 @@ nb_monitorexit:
 	ldq     xptr,proto_java_lang_NullPointerException
 	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
-	.end    asm_builtin_monitorenter
+	.end    asm_builtin_monitorexit
 
 
 /************************ function asm_builtin_idiv ****************************
@@ -938,7 +938,7 @@ asm_perform_threadswitch:
 	ldt     sf6, 104(sp)
 	ldt     sf7, 112(sp)
 	ldq     ra, 120(sp)
-	mov     ra, t12
+	mov     ra, pv
 	addq    sp, 128, sp
 	jmp	zero,(ra)
 	.end    asm_perform_threadswitch

@@ -635,6 +635,16 @@ static void allocate_scratch_registers()
 					case ICMD_BALOAD:
 					case ICMD_CALOAD:
 					case ICMD_SALOAD:
+
+					case ICMD_OPT_IALOAD:
+					case ICMD_OPT_LALOAD:
+					case ICMD_OPT_FALOAD:
+					case ICMD_OPT_DALOAD:
+					case ICMD_OPT_AALOAD:
+
+					case ICMD_OPT_BALOAD:
+					case ICMD_OPT_CALOAD:
+					case ICMD_OPT_SALOAD:
 						reg_free_temp(src);
 						reg_free_temp(src->prev);
 						reg_new_temp(dst);
@@ -651,6 +661,16 @@ static void allocate_scratch_registers()
 					case ICMD_BASTORE:
 					case ICMD_CASTORE:
 					case ICMD_SASTORE:
+
+					case ICMD_OPT_IASTORE:
+					case ICMD_OPT_LASTORE:
+					case ICMD_OPT_FASTORE:
+					case ICMD_OPT_DASTORE:
+					case ICMD_OPT_AASTORE:
+
+					case ICMD_OPT_BASTORE:
+					case ICMD_OPT_CASTORE:
+					case ICMD_OPT_SASTORE:
 						reg_free_temp(src);
 						reg_free_temp(src->prev);
 						reg_free_temp(src->prev->prev);
