@@ -1,19 +1,38 @@
-/* -*- mode: asm; tab-width: 4 -*- */
-/****************************** asmpart.S **************************************
-*                                                                              *
-*   It contains the Java-C interface functions for Alpha processors.           *
-*                                                                              *
-*   Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst              *
-*                                                                              *
-*   See file COPYRIGHT for information on usage and disclaimer of warranties   *
-*                                                                              *
-*   Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at            *
-*            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
-*                                                                              *
-*   Last Change: 2003/02/17                                                    *
-*                                                                              *
-*******************************************************************************/
+/* jit/alpha/asmpart.S - Java-C interface functions for alpha
 
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   Institut f. Computersprachen, TU Wien
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser, M. Probst,
+   S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich,
+   J. Wenninger
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Andreas Krall
+            Reinhard Grafl
+
+   $Id: asmpart.S 836 2004-01-05 00:00:25Z twisti $
+
+*/
+
+        
 #include "offsets.h"
 
 #define v0      $0
@@ -93,6 +112,7 @@
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
+	.globl asm_check_clinit
 	.globl asm_builtin_checkcast	
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_aastore
@@ -593,7 +613,8 @@ ex_stack_loop:
 	mov     xptr,a0
 	ldq     a1,MethodPointer(pv)
 	mov     xpc,a2
-	mov     t3,a3
+/*	mov     t3,a3 */
+	lda		a3,1(zero)
 	br      ra,ex_trace           /* set ra for gp loading                    */
 ex_trace:
 	ldgp    gp,0(ra)              /* load gp                                  */
@@ -756,6 +777,45 @@ ex_flt2:
 	.end    asm_handle_nat_exception
 
 
+/********************* asm_check_clinit ****************************************
+*                                                                              *
+*   Does null check and calls monitorenter or throws an exception              *
+*                                                                              *
+*******************************************************************************/
+		
+    .ent    asm_check_clinit
+asm_check_clinit:
+	ldgp	gp,0(pv)
+
+	ldl		itmp2,offclassinit(itmp1)
+	bne		itmp2,L_is_initialized
+	
+	subq	sp,7*8,sp
+	stq		ra,0*8(sp)
+	stq		a0,1*8(sp)            /* save argument registers for leaf funcs   */
+	stq		a1,2*8(sp)
+	stq		a2,3*8(sp)
+	stq		a3,4*8(sp)
+	stq		a4,5*8(sp)
+	stq		a5,6*8(sp)
+	mov		itmp1,a0
+	jsr		ra,class_init
+	ldgp	gp,0(ra)
+	ldq		ra,0*8(sp)
+	ldq		a0,1*8(sp)            /* restore argument registers               */
+	ldq		a1,2*8(sp)
+	ldq		a2,3*8(sp)
+	ldq		a3,4*8(sp)
+	ldq		a4,5*8(sp)
+	ldq		a5,6*8(sp)
+	addq	sp,7*8,sp
+	
+L_is_initialized:
+	jmp		zero,(ra)
+		
+	.end	asm_check_clinit
+
+		
 /********************* function asm_builtin_monitorenter ***********************
 *                                                                              *
 *   Does null check and calls monitorenter or throws an exception              *
@@ -882,11 +942,11 @@ nb_lrem:
 	.end    asm_builtin_lrem
 
 
- /*********************** function new_builtin_checkcast ************************
- *                                                                              *
- *   Does the cast check and eventually throws an exception                     *
- *                                                                              *
- *******************************************************************************/
+/*********************** function new_builtin_checkcast ************************
+*                                                                              *
+*   Does the cast check and eventually throws an exception                     *
+*                                                                              *
+*******************************************************************************/
 
     .ent    asm_builtin_checkcast
 asm_builtin_checkcast:
@@ -1172,12 +1232,6 @@ pv_ok2:
 	.end	asm_getcallingmethod
 
 
-
-
-
-
-
-
 /*********************** function asm_builtin_trace ****************************
 *                                                                              *
 *   Intended to be called from the native stub. Saves all argument registers   *
@@ -1249,3 +1303,17 @@ asm_builtin_exittrace:
 	jmp zero,(ra)
 
 	.end asm_builtin_exittrace
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: asm
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
