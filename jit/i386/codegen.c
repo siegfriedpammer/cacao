@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: codegen.c 588 2003-11-09 19:42:00Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include "types.h"
+#include "parse.h"
 #include "codegen.h"
 #include "jit.h"
 #include "reg.h"
@@ -50,6 +51,31 @@
 /* include independent code generation stuff */
 #include "codegen.inc"
 #include "reg.inc"
+
+
+/* register descripton - array ************************************************/
+
+/* #define REG_RES   0         reserved register for OS or code generator     */
+/* #define REG_RET   1         return value register                          */
+/* #define REG_EXC   2         exception value register (only old jit)        */
+/* #define REG_SAV   3         (callee) saved register                        */
+/* #define REG_TMP   4         scratch temporary register (caller saved)      */
+/* #define REG_ARG   5         argument register (caller saved)               */
+
+/* #define REG_END   -1        last entry in tables */
+
+int nregdescint[] = {
+    REG_RET, REG_RES, REG_RES, REG_SAV, REG_RES, REG_SAV, REG_TMP, REG_TMP,
+    REG_END };
+
+/* for use of reserved registers, see comment above */
+
+int nregdescfloat[] = {
+  /* rounding problems with callee saved registers */
+/*      REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_RES, REG_RES, */
+/*      REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, */
+    REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+    REG_END };
 
 
 /* additional functions and macros to generate code ***************************/
@@ -320,6 +346,7 @@ void catch_NullPointerException(int sig)
 /*  	} */
 }
 
+
 /* ArithmeticException signal handler for hardware divide by zero check */
 
 void catch_ArithmeticException(int sig)
@@ -355,6 +382,7 @@ void catch_ArithmeticException(int sig)
 	return;
 }
 
+
 void init_exceptions(void)
 {
 	/* install signal handlers we need to convert to exceptions */
@@ -380,7 +408,8 @@ void init_exceptions(void)
 
 *******************************************************************************/
 
-u1          *mcodeptr;
+/* global code generation pointer */
+u1 *mcodeptr;
 
 void codegen()
 {
@@ -4710,7 +4739,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
     mcodeptr = s;                       /* make macros work                   */
 
-    reg_init();
+    reg_init(m);
     
     descriptor2types(m);                     /* set paramcount and paramtypes */
 
@@ -5177,8 +5206,6 @@ void i386_emit_ifcc_iconst(s4 if_op, stackptr src, instruction *iptr)
 
 
 
-#if 1
-
 /*
  * mov ops
  */
@@ -5544,7 +5571,7 @@ void i386_jmp_reg(s4 reg) {
 
 void i386_jcc(s4 opc, s4 imm) {
 	*(mcodeptr++) = (u1) 0x0f;
-	*(mcodeptr++) = (u1) (0x80 + i386_jcc_map[(opc)]);
+	*(mcodeptr++) = (u1) (0x80 + (opc));
 	i386_emit_imm32((imm));
 }
 
@@ -5555,14 +5582,14 @@ void i386_jcc(s4 opc, s4 imm) {
  */
 void i386_setcc_reg(s4 opc, s4 reg) {
 	*(mcodeptr++) = (u1) 0x0f;
-	*(mcodeptr++) = (u1) (0x90 + i386_jcc_map[(opc)]);
+	*(mcodeptr++) = (u1) (0x90 + (opc));
 	i386_emit_reg(0,(reg));
 }
 
 
 void i386_setcc_membase(s4 opc, s4 basereg, s4 disp) {
 	*(mcodeptr++) = (u1) 0x0f;
-	*(mcodeptr++) = (u1) (0x90 + i386_jcc_map[(opc)]);
+	*(mcodeptr++) = (u1) (0x90 + (opc));
 	i386_emit_membase((basereg),(disp),0);
 }
 
@@ -6001,8 +6028,6 @@ void i386_fincstp() {
 	*(mcodeptr++) = (u1) 0xd9;
 	*(mcodeptr++) = (u1) 0xf7;
 }
-
-#endif
 
 
 /*
