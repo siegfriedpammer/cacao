@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 2185 2005-04-01 21:24:49Z edwin $
+   $Id: parse.h 2235 2005-04-06 12:05:06Z twisti $
 
 */
 
@@ -60,18 +60,26 @@
  * have op1 set to non-zero. This is used for stack overflow checking
  * in stack.c. */
 #define LOADCONST_A_BUILTIN(v) \
-                       iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
+    iptr->opc = ICMD_ACONST; \
+    iptr->op1 = 1; \
+    iptr->val.a = (v); \
+    iptr->line = currentline; \
+    iptr->method = inline_env->method; \
+    PINC
 
 #define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;iptr->line=currentline;iptr->method=inline_env->method;PINC
 #define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;iptr->line=currentline;iptr->method=inline_env->method;PINC
 #define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
 
-#define OP2A(o,o1,v,l) \
+#define OP2A_NOINC(o,o1,v,l) \
     iptr->opc = (o); \
     iptr->op1 = (o1); \
     iptr->val.a = (v); \
     iptr->line = (l); \
-    iptr->method = inline_env->method; \
+    iptr->method = inline_env->method
+
+#define OP2A(o,o1,v,l) \
+    OP2A_NOINC(o,o1,v,l); \
     PINC
 
 #define BUILTIN1(v,t,l) \
