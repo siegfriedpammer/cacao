@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1089 2004-05-27 15:41:37Z twisti $
+   $Id: native.c 1106 2004-05-28 10:25:55Z twisti $
 
 */
 
@@ -502,7 +502,7 @@ void throw_cacao_exception_exit(char *exception, char *message)
 	s4 len;
 
 	len = strlen(exception);
-	tmp = MNEW(char*, len);
+	tmp = MNEW(char, len);
 	strncpy(tmp, exception, len);
 
 	/* convert to classname */
@@ -513,7 +513,7 @@ void throw_cacao_exception_exit(char *exception, char *message)
 
 	fprintf(stderr, "Exception in thread \"main\" %s", tmp);
 
-	MFREE(tmp, char*, len);
+	MFREE(tmp, char, len);
 
 	if (strlen(message) > 0)
 		fprintf(stderr, ": %s", message);
@@ -1056,7 +1056,11 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 
 	/* call initializer */
 
+#if defined(__I386__) || defined(__POWERPC__)
 	asm_calljavafunction(m, o, (void *) i, NULL, NULL);
+#else
+	asm_calljavafunction(m, o, (void *) (s8) i, NULL, NULL);
+#endif
 
 	return o;
 }
