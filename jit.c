@@ -393,7 +393,9 @@ void jit_init ()
 {
 	int i;
 
+#if defined(__ALPHA__)
 	has_ext_instr_set = ! has_no_x_instr_set();
+#endif
 
 	for (i = 0; i < 256; i++)
 		stackreq[i] = 1;
