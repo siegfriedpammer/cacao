@@ -1,11 +1,11 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 221 2003-02-05 14:09:38Z stefan $
+# $Id: Makefile.am 237 2003-02-23 19:03:14Z twisti $
 
 @SET_MAKE@
 
 MAINTAINERCLEANFILES = Makefile.in configure
-SUBDIRS = toolbox mm alpha i386 jit comp nat threads mips tst doc narray jvmtst
+SUBDIRS = toolbox mm jit comp nat threads tst doc narray jvmtst @SYSDEP_DIR@
 
 EXTRA_DIST = html/cacaoinstall.html html/cacaoman.html html/index.html \
 				jni.c
@@ -36,7 +36,7 @@ cacao_SOURCES = \
 	native.h \
 	jni.h \
 	tables.c \
-	tables.h 
+	tables.h
 
 EXTRA_cacao_SOURCES = \
 	compiler.c \
@@ -47,7 +47,7 @@ cacao_LDADD = \
 	@COMPILER_OBJECTS@ \
 	toolbox/libtoolbox.a \
 	@GC_OBJ@ \
-    @THREAD_OBJ@
+	@THREAD_OBJ@
 
 cacao_DEPENDENCIES = \
 	@SYSDEP_DIR@/asmpart.o \
