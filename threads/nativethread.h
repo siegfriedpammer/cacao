@@ -97,6 +97,7 @@ typedef struct {
 } threadcritnode;
 
 void thread_registercritical(threadcritnode *);
+u1 *thread_checkcritical(u1*);
 
 extern volatile int stopworldwhere;
 

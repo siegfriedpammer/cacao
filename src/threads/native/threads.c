@@ -126,7 +126,7 @@ void thread_registercritical(threadcritnode *n)
 	avl_insert(criticaltree, n);
 }
 
-static u1 *thread_checkcritical(u1 *mcodeptr)
+u1 *thread_checkcritical(u1 *mcodeptr)
 {
 	const threadcritnode *n = findcritical(mcodeptr);
 	return (n && mcodeptr < n->mcodeend && mcodeptr > n->mcodebegin) ? n->mcoderestart : NULL;
@@ -203,10 +203,7 @@ static void sigsuspend_handler(ucontext_t *ctx)
 	sigset_t sigs;
 	void *critical;
 	
-#ifdef __I386__
-	if ((critical = thread_checkcritical((void*) ctx->uc_mcontext.gregs[REG_EIP])) != NULL)
-		ctx->uc_mcontext.gregs[REG_EIP] = (long) critical;
-#endif
+	thread_restartcriticalsection(ctx);
 
 	sem_post(&suspend_ack);
 
