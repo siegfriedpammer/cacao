@@ -2,7 +2,7 @@
 
 #include <sys/socket.h>
 #include <netinet/tcp.h>
-#include <asm/termios.h>		/* a little linux-centric maybe?? (should be in autoconf) */
+#include <ioctls.h>		/* a little linux-centric maybe?? (should be in autoconf) */
 
 /*
  * Class:     java/net/PlainSocketImpl
