@@ -717,6 +717,13 @@ _asm_builtin_idiv:
 0:
 	mr. r4,r4
 	beq nb_idiv
+	lis itmp3,0x8000
+	cmpw r3,itmp3
+	bne normal_idiv
+	cmpwi r4,-1
+	bne normal_idiv
+	blr
+normal_idiv:
 	divw r3,r3,r4
 	blr
 nb_idiv:
@@ -728,11 +735,20 @@ nb_idiv:
 .globl _asm_builtin_irem
 _asm_builtin_irem:
 0:
+	mr itmp2,r3
 	mr. r4,r4
 	beq nb_irem
-	divw itmp3,r3,r4
+	lis itmp3,0x8000
+	cmpw itmp2,itmp3
+	bne normal_irem
+	cmpwi r4,-1
+	bne normal_irem
+	li r3,0
+	beqlr
+normal_irem:
+	divw itmp3,itmp2,r4
 	mullw itmp3,itmp3,r4
-	subf r3,itmp3,r3
+	subf r3,itmp3,itmp2
 	blr
 nb_irem:
 	lwz xptr,lo16(proto_java_lang_ArithmeticException-0b)(pv)
