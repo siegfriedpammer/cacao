@@ -1,4 +1,4 @@
-/* vm/statistics.c - global varables for statistics
+/* src/vm/statistics.c - global varables for statistics
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 1971 2005-03-01 20:06:36Z carolyn $
+   $Id: statistics.c 2026 2005-03-10 13:31:37Z twisti $
 
 */
 
@@ -181,6 +181,15 @@ static int count_store_depth_init[11] = {
 	0
 };
 int *count_store_depth = count_store_depth_init;
+
+
+/* instruction scheduler statistics *******************************************/
+
+s4 count_schedule_basic_blocks = 0;
+s4 count_schedule_nodes = 0;
+s4 count_schedule_leaders = 0;
+s4 count_schedule_max_leaders = 0;
+s4 count_schedule_critical_path = 0;
 
 
 /* getcputime *********************************** ******************************
@@ -349,39 +358,39 @@ void print_stats()
 	log_text(logtext);
 	sprintf(logtext, "Number of Spills (read from memory): %d", count_spills_read);
 	log_text(logtext);
-	sprintf(logtext, "Number of Activ    Pseudocommands: %5d", count_pcmd_activ);
+	sprintf(logtext, "Number of Activ    Pseudocommands: %6d", count_pcmd_activ);
 	log_text(logtext);
-	sprintf(logtext, "Number of Drop     Pseudocommands: %5d", count_pcmd_drop);
+	sprintf(logtext, "Number of Drop     Pseudocommands: %6d", count_pcmd_drop);
 	log_text(logtext);
-	sprintf(logtext, "Number of Const    Pseudocommands: %5d (zero:%5d)", count_pcmd_load, count_pcmd_zero);
+	sprintf(logtext, "Number of Const    Pseudocommands: %6d (zero:%5d)", count_pcmd_load, count_pcmd_zero);
 	log_text(logtext);
-	sprintf(logtext, "Number of ConstAlu Pseudocommands: %5d (cmp: %5d, store:%5d)", count_pcmd_const_alu, count_pcmd_const_bra, count_pcmd_const_store);
+	sprintf(logtext, "Number of ConstAlu Pseudocommands: %6d (cmp: %5d, store:%5d)", count_pcmd_const_alu, count_pcmd_const_bra, count_pcmd_const_store);
 	log_text(logtext);
-	sprintf(logtext, "Number of Move     Pseudocommands: %5d", count_pcmd_move);
+	sprintf(logtext, "Number of Move     Pseudocommands: %6d", count_pcmd_move);
 	log_text(logtext);
-	sprintf(logtext, "Number of Load     Pseudocommands: %5d", count_load_instruction);
+	sprintf(logtext, "Number of Load     Pseudocommands: %6d", count_load_instruction);
 	log_text(logtext);
-	sprintf(logtext, "Number of Store    Pseudocommands: %5d (combined: %5d)", count_pcmd_store, count_pcmd_store - count_pcmd_store_comb);
+	sprintf(logtext, "Number of Store    Pseudocommands: %6d (combined: %5d)", count_pcmd_store, count_pcmd_store - count_pcmd_store_comb);
 	log_text(logtext);
-	sprintf(logtext, "Number of OP       Pseudocommands: %5d", count_pcmd_op);
+	sprintf(logtext, "Number of OP       Pseudocommands: %6d", count_pcmd_op);
 	log_text(logtext);
-	sprintf(logtext, "Number of DUP      Pseudocommands: %5d", count_dup_instruction);
+	sprintf(logtext, "Number of DUP      Pseudocommands: %6d", count_dup_instruction);
 	log_text(logtext);
-	sprintf(logtext, "Number of Mem      Pseudocommands: %5d", count_pcmd_mem);
+	sprintf(logtext, "Number of Mem      Pseudocommands: %6d", count_pcmd_mem);
 	log_text(logtext);
-	sprintf(logtext, "Number of Method   Pseudocommands: %5d", count_pcmd_met);
+	sprintf(logtext, "Number of Method   Pseudocommands: %6d", count_pcmd_met);
 	log_text(logtext);
-	sprintf(logtext, "Number of Branch   Pseudocommands: %5d (rets:%5d, Xrets: %5d)",
+	sprintf(logtext, "Number of Branch   Pseudocommands: %6d (rets:%5d, Xrets: %5d)",
 			count_pcmd_bra, count_pcmd_return, count_pcmd_returnx);
 	log_text(logtext);
-	sprintf(logtext, "Number of Table    Pseudocommands: %5d", count_pcmd_table);
+	sprintf(logtext, "Number of Table    Pseudocommands: %6d", count_pcmd_table);
 	log_text(logtext);
-	sprintf(logtext, "Number of Useful   Pseudocommands: %5d", count_pcmd_table +
+	sprintf(logtext, "Number of Useful   Pseudocommands: %6d", count_pcmd_table +
 			count_pcmd_bra + count_pcmd_load + count_pcmd_mem + count_pcmd_op);
 	log_text(logtext);
-	sprintf(logtext, "Number of Null Pointer Checks:     %5d", count_check_null);
+	sprintf(logtext, "Number of Null Pointer Checks:     %6d", count_check_null);
 	log_text(logtext);
-	sprintf(logtext, "Number of Array Bound Checks:      %5d", count_check_bound);
+	sprintf(logtext, "Number of Array Bound Checks:      %6d", count_check_bound);
 	log_text(logtext);
 	sprintf(logtext, "Number of Try-Blocks: %d", count_tryblocks);
 	log_text(logtext);
@@ -391,62 +400,61 @@ void print_stats()
 	log_text(logtext);
 	sprintf(logtext, "Distribution of stack sizes at block boundary");
 	log_text(logtext);
-	sprintf(logtext, "    0    1    2    3    4    5    6    7    8    9    >=10");
+	sprintf(logtext, "     0     1     2     3     4     5     6     7     8     9  >=10");
 	log_text(logtext);
-	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_block_stack[0],
+	sprintf(logtext, "%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d", count_block_stack[0],
 			count_block_stack[1], count_block_stack[2], count_block_stack[3], count_block_stack[4],
 			count_block_stack[5], count_block_stack[6], count_block_stack[7], count_block_stack[8],
 			count_block_stack[9], count_block_stack[10]);
 	log_text(logtext);
 	sprintf(logtext, "Distribution of store stack depth");
 	log_text(logtext);
-	sprintf(logtext, "    0    1    2    3    4    5    6    7    8    9    >=10");
+	sprintf(logtext, "     0     1     2     3     4     5     6     7     8     9  >=10");
 	log_text(logtext);
-	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_depth[0],
+	sprintf(logtext, "%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d", count_store_depth[0],
 			count_store_depth[1], count_store_depth[2], count_store_depth[3], count_store_depth[4],
 			count_store_depth[5], count_store_depth[6], count_store_depth[7], count_store_depth[8],
 			count_store_depth[9], count_store_depth[10]);
 	log_text(logtext);
 	sprintf(logtext, "Distribution of store creator chains first part");
 	log_text(logtext);
-	sprintf(logtext, "    0    1    2    3    4    5    6    7    8    9  ");
+	sprintf(logtext, "     0     1     2     3     4     5     6     7     8     9");
 	log_text(logtext);
-	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_length[0],
+	sprintf(logtext, "%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d", count_store_length[0],
 			count_store_length[1], count_store_length[2], count_store_length[3], count_store_length[4],
 			count_store_length[5], count_store_length[6], count_store_length[7], count_store_length[8],
 			count_store_length[9]);
 	log_text(logtext);
 	sprintf(logtext, "Distribution of store creator chains second part");
 	log_text(logtext);
-	sprintf(logtext, "   10   11   12   13   14   15   16   17   18   19  >=20");
+	sprintf(logtext, "    10    11    12    13    14    15    16    17    18    19  >=20");
 	log_text(logtext);
-	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_store_length[10],
+	sprintf(logtext, "%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d", count_store_length[10],
 			count_store_length[11], count_store_length[12], count_store_length[13], count_store_length[14],
 			count_store_length[15], count_store_length[16], count_store_length[17], count_store_length[18],
 			count_store_length[19], count_store_length[20]);
 	log_text(logtext);
 	sprintf(logtext, "Distribution of analysis iterations");
 	log_text(logtext);
-	sprintf(logtext, "    1    2    3    4    >=5");
+	sprintf(logtext, "     1     2     3     4   >=5");
 	log_text(logtext);
-	sprintf(logtext, "%5d%5d%5d%5d%5d", count_analyse_iterations[0], count_analyse_iterations[1],
+	sprintf(logtext, "%6d%6d%6d%6d%6d", count_analyse_iterations[0], count_analyse_iterations[1],
 			count_analyse_iterations[2], count_analyse_iterations[3], count_analyse_iterations[4]);
 	log_text(logtext);
 	sprintf(logtext, "Distribution of basic blocks per method");
 	log_text(logtext);
-	sprintf(logtext, " <= 5 <=10 <=15 <=20 <=30 <=40 <=50 <=75  >75");
+	sprintf(logtext, "   <=5  <=10  <=15  <=20  <=30  <=40  <=50  <=75   >75");
 	log_text(logtext);
-	sprintf(logtext, "%5d%5d%5d%5d%5d%5d%5d%5d%5d", count_method_bb_distribution[0],
+	sprintf(logtext, "%6d%6d%6d%6d%6d%6d%6d%6d%6d", count_method_bb_distribution[0],
 			count_method_bb_distribution[1], count_method_bb_distribution[2], count_method_bb_distribution[3],
 			count_method_bb_distribution[4], count_method_bb_distribution[5], count_method_bb_distribution[6],
 			count_method_bb_distribution[7], count_method_bb_distribution[8]);
 	log_text(logtext);
 	sprintf(logtext, "Distribution of basic block sizes");
 	log_text(logtext);
-	sprintf(logtext,
-			 "  0    1    2    3    4   5   6   7   8   9 <13 <15 <17 <19 <21 <26 <31 >30");
+	sprintf(logtext, "     0     1     2     3     4    5    6    7    8    9  <13  <15  <17  <19  <21  <26  <31  >30");
 	log_text(logtext);
-	sprintf(logtext, "%3d%5d%5d%5d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d",
+	sprintf(logtext, "%6d%6d%6d%6d%6d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
 			count_block_size_distribution[0], count_block_size_distribution[1], count_block_size_distribution[2],
 			count_block_size_distribution[3], count_block_size_distribution[4], count_block_size_distribution[5],
 			count_block_size_distribution[6], count_block_size_distribution[7], count_block_size_distribution[8],
@@ -479,13 +487,16 @@ void print_stats()
 	log_text(logtext);
 	sprintf(logtext, "Number of class inits:   %d", count_class_inits);
 	log_text(logtext);
-	sprintf(logtext, "Number of loaded Methods: %d\n\n", count_all_methods);
+	sprintf(logtext, "Number of loaded Methods: %d\n", count_all_methods);
 	log_text(logtext);
 
 	sprintf(logtext, "Calls of utf_new: %22d", count_utf_new);
 	log_text(logtext);
-	sprintf(logtext, "Calls of utf_new (element found): %6d\n\n", count_utf_new_found);
+	sprintf(logtext, "Calls of utf_new (element found): %6d\n", count_utf_new_found);
 	log_text(logtext);
+
+
+	/* LSRA statistics ********************************************************/
 
 	sprintf(logtext, "Methods allocated by LSRA:         %6d", count_methods_allocated_by_lsra);
 	log_text(logtext);
@@ -501,13 +512,13 @@ void print_stats()
 	log_text(logtext);
 	sprintf(logtext, "Memory moves at BB Boundaries:     %6d",count_mem_move_bb );
 	log_text(logtext);
-	sprintf(logtext, "Number of interface slots:         %6d\n\n",count_interface_size );
+	sprintf(logtext, "Number of interface slots:         %6d\n",count_interface_size );
 	log_text(logtext);
 	sprintf(logtext, "Number of Argument stack slots in register:  %6d",count_argument_reg_ss );
 	log_text(logtext);
-	sprintf(logtext, "Number of Argument stack slots in memory:    %6d\n\n",count_argument_mem_ss );
+	sprintf(logtext, "Number of Argument stack slots in memory:    %6d\n",count_argument_mem_ss );
 	log_text(logtext);
-	sprintf(logtext, "Number of Methods kept in registers:         %6d\n\n",count_method_in_register );
+	sprintf(logtext, "Number of Methods kept in registers:         %6d\n",count_method_in_register );
 	log_text(logtext);
 		
 	/****if (useinlining)  ***/
@@ -573,6 +584,22 @@ void print_stats()
 			}	
 #endif
 		}
+
+
+	 /* instruction scheduler statistics **************************************/
+
+	 sprintf(logtext, "Instruction scheduler statistics:");
+	 log_text(logtext);
+	 sprintf(logtext, "Number of basic blocks:       %7d", count_schedule_basic_blocks);
+	 log_text(logtext);
+	 sprintf(logtext, "Number of nodes:              %7d", count_schedule_nodes);
+	 log_text(logtext);
+	 sprintf(logtext, "Number of leaders nodes:      %7d", count_schedule_leaders);
+	 log_text(logtext);
+	 sprintf(logtext, "Number of max. leaders nodes: %7d", count_schedule_max_leaders);
+	 log_text(logtext);
+	 sprintf(logtext, "Length of critical path:      %7d\n", count_schedule_critical_path);
+	 log_text(logtext);
 }
 
 

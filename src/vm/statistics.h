@@ -1,4 +1,4 @@
-/* vm/statistics.h - exports global varables for statistics
+/* src/vm/statistics.h - exports global varables for statistics
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 1971 2005-03-01 20:06:36Z carolyn $
+   $Id: statistics.h 2026 2005-03-10 13:31:37Z twisti $
 
 */
 
@@ -155,8 +155,13 @@ extern int count_in_maxMethods;
 
 extern u2 count_in_not   [512];
 
+/* instruction scheduler statistics *******************************************/
 
-
+extern s4 count_schedule_basic_blocks;
+extern s4 count_schedule_nodes;
+extern s4 count_schedule_leaders;
+extern s4 count_schedule_max_leaders;
+extern s4 count_schedule_critical_path;
 
 
 /* function prototypes ********************************************************/
