@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: tables.h 1843 2005-01-04 11:21:02Z twisti $
+   $Id: tables.h 1930 2005-02-10 10:54:28Z twisti $
 
 */
 
@@ -39,6 +39,69 @@
 #include "vm/global.h"
 
 
+/* data structures for hashtables ********************************************
+
+
+   All utf-symbols, javastrings and classes are stored in global
+   hashtables, so every symbol exists only once. Equal symbols have
+   identical pointers.  The functions for adding hashtable elements
+   search the table for the element with the specified name/text and
+   return it on success. Otherwise a new hashtable element is created.
+
+   The hashtables use external linking for handling collisions. The
+   hashtable structure contains a pointer <ptr> to the array of
+   hashtable slots. The number of hashtable slots and therefore the
+   size of this array is specified by the element <size> of hashtable
+   structure. <entries> contains the number of all hashtable elements
+   stored in the table, including those in the external chains.  The
+   hashtable element structures (utf, literalstring, classinfo)
+   contain both a pointer to the next hashtable element as a link for
+   the external hash chain and the key of the element. The key is
+   computed from the text of the string or the classname by using up
+   to 8 characters.
+	
+   If the number of entries in the hashtable exceeds twice the size of
+   the hashtableslot-array it is supposed that the average length of
+   the external chains has reached a value beyond 2. Therefore the
+   functions for adding hashtable elements (utf_new, class_new,
+   literalstring_new) double the hashtableslot-array. In this
+   restructuring process all elements have to be inserted into the new
+   hashtable and new external chains must be built.
+
+   Example for the layout of a hashtable:
+
+hashtable.ptr-->+-------------------+
+                |                   |
+                         ...
+                |                   |
+                +-------------------+   +-------------------+   +-------------------+
+                | hashtable element |-->| hashtable element |-->| hashtable element |-->NULL
+                +-------------------+   +-------------------+   +-------------------+
+                | hashtable element |
+                +-------------------+   +-------------------+   
+                | hashtable element |-->| hashtable element |-->NULL
+                +-------------------+   +-------------------+   
+                | hashtable element |-->NULL
+                +-------------------+
+                |                   |
+                         ...
+                |                   |
+                +-------------------+
+
+*/
+
+
+/* data structure for accessing hashtables ************************************/
+
+typedef struct hashtable hashtable;
+
+struct hashtable {            
+	u4     size;
+	u4     entries;                     /* number of entries in the table     */
+	void **ptr;                         /* pointer to hashtable               */
+};
+
+
 #define CLASS(name)     (unicode_getclasslink(unicode_new_char(name)))
 
 /* to determine the end of utf strings */
@@ -46,9 +109,6 @@
 
 extern hashtable utf_hash;     /* hashtable for utf8-symbols */
 extern hashtable string_hash;  /* hashtable for javastrings  */
-extern hashtable class_hash;   /* hashtable for classes      */
-
-extern list unlinkedclasses;   /* this is only used for eager class loading   */
 
 
 /* creates hashtables for symboltables */
@@ -57,72 +117,14 @@ void tables_init(void);
 /* free memory for hashtables */ 
 void tables_close(void);
 
-/* check if a UTF-8 string is valid */
-bool is_valid_utf(char *utf_ptr, char *end_pos);
-
-/* check if a UTF-8 string may be used as a class/field/method name */
-bool is_valid_name(char *utf_ptr, char *end_pos);
-bool is_valid_name_utf(utf *u);
-
-/* write utf symbol to file/buffer */
-void utf_sprint(char *buffer, utf *u);
-void utf_sprint_classname(char *buffer, utf *u);
-void utf_fprint(FILE *file, utf *u);
-void utf_fprint_classname(FILE *file, utf *u);
-void utf_display(utf *u);
-void utf_display_classname(utf *u);
-
-/* write utf symbol to logfile/stdout */
-void log_utf(utf *u);
-void log_plain_utf(utf *u);
-
-/* create new utf-symbol */
-utf *utf_new(const char *text, u2 length);
-
-/* without locking (caller already holding lock*/
-utf *utf_new_intern(const char *text, u2 length);
-
-utf *utf_new_char(const char *text);
-utf *utf_new_char_classname(const char *text);
-
-/* show utf-table */
-void utf_show(void);
-
-/* get next unicode character of a utf-string */
-u2 utf_nextu2(char **utf);
-
-/* get number of unicode characters of a utf string */
-u4 utf_strlen(utf *u);
-
-/* search for class and create it if not found */
-classinfo *class_new(utf *u);
-
-/* without locking (caller already holding lock*/
-classinfo *class_new_intern(utf *u);
-
-/* return an array class with the given component class */
-classinfo *class_array_of(classinfo *component);
-
-/* return an array class with the given dimension and element class */
-classinfo *class_multiarray_of(int dim, classinfo *element);
-
 /* get javatype according to a typedescriptor */
 u2 desc_to_type(utf *descriptor);
 
 /* get length of a datatype */
 u2 desc_typesize(utf *descriptor);
 
-/* determine hashkey of a unicode-symbol */
-u4 unicode_hashkey(u2 *text, u2 length);
-
 /* create hashtable */
 void init_hashtable(hashtable *hash, u4 size);
-
-/* search for class in classtable */
-classinfo *class_get(utf *u);
-
-/* remove class from classtable */
-bool class_remove(classinfo *c);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 void tables_lock(void);
