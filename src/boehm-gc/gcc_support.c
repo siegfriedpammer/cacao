@@ -29,6 +29,8 @@ support C/C++ "one-past-the-object" pointer semantics.
 
 ****************************************************************************/
 
+#include "config.h"
+
 #include <stddef.h>
 #include "gc.h"
 

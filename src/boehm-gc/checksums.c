@@ -11,6 +11,9 @@
  * modified is included with the above copyright notice.
  */
 /* Boehm, March 29, 1995 12:51 pm PST */
+
+#include "config.h"
+
 # ifdef CHECKSUMS
 
 # include "private/gc_priv.h"

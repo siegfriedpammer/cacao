@@ -15,6 +15,7 @@
  *
  */
 
+#include "config.h"
 
 # include <stdio.h>
 # include "private/gc_pmark.h"

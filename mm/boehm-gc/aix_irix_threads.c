@@ -26,6 +26,8 @@
  * as a base instead.
  */
 
+#include "config.h"
+
 # if defined(GC_IRIX_THREADS) || defined(GC_AIX_THREADS)
 
 # include "private/gc_priv.h"

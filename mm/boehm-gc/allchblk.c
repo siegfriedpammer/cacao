@@ -14,6 +14,8 @@
  * modified is included with the above copyright notice.
  */
 
+#include "config.h"
+
 /* #define DEBUG */
 #include <stdio.h>
 #include "private/gc_priv.h"

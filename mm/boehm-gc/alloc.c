@@ -15,6 +15,7 @@
  *
  */
 
+#include "config.h"
 
 # include "private/gc_priv.h"
 

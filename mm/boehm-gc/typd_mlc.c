@@ -36,6 +36,8 @@
  * since they are not accessible through the current interface.
  */
 
+#include "config.h"
+
 #include "private/gc_pmark.h"
 #include "gc_typed.h"
 

@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include "private/pthread_support.h"
 
 # if defined(GC_DARWIN_THREADS)

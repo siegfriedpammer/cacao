@@ -12,6 +12,9 @@
  * modified is included with the above copyright notice.
  */
 /* Boehm, November 17, 1995 12:13 pm PST */
+
+#include "config.h"
+
 # include "private/gc_priv.h"
 # include <stdio.h>
 # include <setjmp.h>

@@ -44,6 +44,8 @@
  * + #  define GC_LOCK_TAKEN GC_allocate_lock
  */
 
+#include "config.h"
+
 /*#define DEBUG_THREADS 1*/
 /*#define GC_ASSERTIONS*/
 

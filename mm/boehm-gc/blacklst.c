@@ -12,6 +12,9 @@
  * modified is included with the above copyright notice.
  */
 /* Boehm, August 9, 1995 6:09 pm PDT */
+
+#include "config.h"
+
 # include "private/gc_priv.h"
 
 /*

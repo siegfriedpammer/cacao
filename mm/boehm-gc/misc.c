@@ -14,6 +14,7 @@
  */
 /* Boehm, July 31, 1995 5:02 pm PDT */
 
+#include "config.h"
 
 #include <stdio.h>
 #include <limits.h>

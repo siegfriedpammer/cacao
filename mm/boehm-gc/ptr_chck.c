@@ -16,6 +16,8 @@
  * preprocessor to validate C pointer arithmetic.
  */
 
+#include "config.h"
+
 #include "private/gc_pmark.h"
 
 #ifdef __STDC__

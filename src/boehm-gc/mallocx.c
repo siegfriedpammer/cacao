@@ -21,6 +21,8 @@
  * executables.  We should probably break this up further.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include "private/gc_priv.h"
 

@@ -14,6 +14,8 @@
  * modified is included with the above copyright notice.
  */
 
+#include "config.h"
+
 #include "private/dbg_mlc.h"
 
 void GC_default_print_heap_obj_proc();

@@ -1,3 +1,5 @@
+#include "config.h"
+
 #if defined(GC_WIN32_THREADS) 
 
 #include "private/gc_priv.h"

@@ -11,6 +11,8 @@
  * modified is included with the above copyright notice.
  */
 
+#include "config.h"
+
 #if defined(GC_LINUX_THREADS)
 
 #include "private/gc_priv.h" /* For GC_compare_and_exchange, GC_memory_barrier */

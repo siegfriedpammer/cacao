@@ -18,11 +18,6 @@
 #ifndef GC_LOCKS_H
 #define GC_LOCKS_H
 
-/* if we compile with -ansi, we have to use __inline */
-#ifndef inline
-#define inline __inline
-#endif
-
 /*
  * Mutual exclusion between allocator/collector routines.
  * Needed if there is more than one allocator thread.

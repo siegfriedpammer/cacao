@@ -15,6 +15,8 @@ unloading shared library.
  */
 /* Boehm, February 15, 1996 2:55 pm PST */
 
+#include "config.h"
+
 #include <Resources.h>
 #include <Memory.h>
 #include <LowMem.h>

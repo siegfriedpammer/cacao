@@ -14,6 +14,8 @@
  * modified is included with the above copyright notice.
  */
 
+#include "config.h"
+
 # include "private/gc_priv.h"
 
 # if defined(LINUX) && !defined(POWERPC)

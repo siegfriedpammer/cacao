@@ -26,6 +26,9 @@
  * None of this is safe with dlclose and incremental collection.
  * But then not much of anything is safe in the presence of dlclose.
  */
+
+#include "config.h"
+
 #if defined(__linux__) && !defined(_GNU_SOURCE)
     /* Can't test LINUX, since this must be define before other includes */
 #   define _GNU_SOURCE

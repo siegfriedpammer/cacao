@@ -21,6 +21,8 @@
  * Access speed is crucial.  We implement an index structure based on a 2
  * level tree.
  */
+
+#include "config.h"
  
 # include "private/gc_priv.h"
 

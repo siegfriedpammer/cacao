@@ -13,6 +13,7 @@
  */
 /* Boehm, May 19, 1994 2:04 pm PDT */
 
+#include "config.h"
 
 # ifdef PCR
 /*

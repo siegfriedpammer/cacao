@@ -11,6 +11,9 @@
  * provided the above notices are retained, and a notice that the code was
  * modified is included with the above copyright notice.
  */
+
+#include "config.h"
+
 # include <stdio.h>
 # include "private/gc_priv.h"
 

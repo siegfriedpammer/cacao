@@ -18,6 +18,7 @@
  */
 /* Boehm, May 19, 1994 2:09 pm PDT */
 
+#include "config.h"
 
 # include <stdio.h>
 # include "private/gc_priv.h"

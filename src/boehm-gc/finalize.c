@@ -13,6 +13,9 @@
  * modified is included with the above copyright notice.
  */
 /* Boehm, February 1, 1996 1:19 pm PST */
+
+#include "config.h"
+
 # define I_HIDE_POINTERS
 # include "private/gc_pmark.h"
 

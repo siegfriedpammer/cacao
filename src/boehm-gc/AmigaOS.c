@@ -7,6 +7,7 @@
 
 ******************************************************************/
 
+#include "config.h"
 
 #if !defined(GC_AMIGA_DEF) && !defined(GC_AMIGA_SB) && !defined(GC_AMIGA_DS) && !defined(GC_AMIGA_AM)
 # include "gc_priv.h"

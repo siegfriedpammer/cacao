@@ -18,6 +18,8 @@
  * and fast location of object start locations on machines (such as SPARC)
  * with slow division.
  */
+
+#include "config.h"
  
 # include "private/gc_priv.h"
 

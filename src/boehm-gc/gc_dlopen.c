@@ -23,6 +23,8 @@
  * library. -HB
  */
 
+#include "config.h"
+
 #include "private/gc_priv.h"
 
 # if (defined(GC_PTHREADS) && !defined(GC_DARWIN_THREADS)) \

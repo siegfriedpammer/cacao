@@ -14,6 +14,8 @@
  */
 /* Boehm, July 31, 1995 5:02 pm PDT */
 
+#include "config.h"
+
 #ifdef GC_GCJ_SUPPORT
 
 /*

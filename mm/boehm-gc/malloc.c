@@ -13,6 +13,8 @@
  * modified is included with the above copyright notice.
  */
 /* Boehm, February 7, 1996 4:32 pm PST */
+
+#include "config.h"
  
 #include <stdio.h>
 #include "private/gc_priv.h"
