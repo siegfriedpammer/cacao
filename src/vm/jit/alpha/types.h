@@ -29,7 +29,7 @@
             Andreas  Krall
             Michael Gschwind
 
-   $Id: types.h 665 2003-11-21 18:36:43Z jowenn $
+   $Id: types.h 1277 2004-07-05 17:28:19Z twisti $
 
 */
 
@@ -53,6 +53,10 @@
 #define SUPPORT_LONG_DIV    0
 #define SUPPORT_LONG_ICVT   1
 #define SUPPORT_LONG_FCVT   1
+
+#define SUPPORT_CONST_ASTORE     1      /* do we support const astores        */
+#define SUPPORT_ONLY_ZERO_ASTORE 1      /* on risc machines we can only store */
+                                        /* REG_ZERO                           */
 
 #define CONDITIONAL_LOADCONST
 
