@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 379 2003-07-02 20:18:02Z twisti $
+	Last Change: $Id: ngen.c 382 2003-07-08 12:12:19Z twisti $
 
 *******************************************************************************/
 
@@ -63,7 +63,7 @@
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if ((mcodeptr + (icnt)) > mcodeend) mcodeptr = mcode_increase((u1*) mcodeptr)
+	if ((mcodeptr + (icnt)) > (u1*) mcodeend) mcodeptr = (u1*) mcode_increase((u1*) mcodeptr)
 
 /* M_INTMOVE:
      generates an integer-move from register a to b.
@@ -342,7 +342,7 @@ static void gen_mcode()
 {
 	int  len, s1, s2, s3, d, bbs;
 	s4   a;
-	s4          *mcodeptr;
+	u1          *mcodeptr;
 	stackptr    src;
 	varinfo     *var;
 	varinfo     *dst;
@@ -441,7 +441,7 @@ static void gen_mcode()
 	
 	/* initialize mcode variables */
 	
-	mcodeptr = (s4*) mcodebase;
+	mcodeptr = (u1*) mcodebase;
 	mcodeend = (s4*) (mcodebase + mcodesize);
 	MCODECHECK(128 + mparamcount);
 
@@ -635,7 +635,7 @@ static void gen_mcode()
 	/* walk through all basic blocks */
 	for (/* bbs = block_count, */ bptr = block; /* --bbs >= 0 */ bptr != NULL; bptr = bptr->next) {
 
-		bptr -> mpc = (int)((u1*) mcodeptr - mcodebase);
+		bptr->mpc = (int)((u1*) mcodeptr - mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
 
@@ -809,7 +809,7 @@ static void gen_mcode()
 				fpu_st_offset++;
 
 				/* -0.0 */
-				if (iptr->val.l == 0x8000000000000000L) {
+				if (iptr->val.l == 0x8000000000000000LL) {
 					i386_fchs();
 				}
 
@@ -1039,11 +1039,24 @@ static void gen_mcode()
 					store_reg_to_var_flt(to, d); \
 				} else { \
                     if (!IS_2_WORD_TYPE(from->type)) { \
-  					    var_to_reg_int(s1, from, d); \
-  					    M_INTMOVE(s1, d); \
-					    store_reg_to_var_int(to, d); \
+/*i386_nop();*/ \
+                        if (to->flags & INMEMORY) { \
+                             if (from->flags & INMEMORY) { \
+                                 i386_mov_membase_reg(REG_SP, from->regoff * 8, REG_ITMP1); \
+                                 i386_mov_reg_membase(REG_ITMP1, REG_SP, to->regoff * 8); \
+                             } else { \
+                                 i386_mov_reg_membase(from->regoff, REG_SP, to->regoff * 8); \
+                             } \
+                        } else { \
+                             if (from->flags & INMEMORY) { \
+                                 i386_mov_membase_reg(REG_SP, from->regoff * 8, to->regoff); \
+                             } else { \
+                                 i386_mov_reg_reg(from->regoff, to->regoff); \
+                             } \
+                        } \
+/*i386_nop();*/ \
                     } else { \
-                        M_LNGMEMMOVE(from->regoff,to->regoff); \
+                        M_LNGMEMMOVE(from->regoff, to->regoff); \
                     } \
 				} \
 			}
@@ -3673,11 +3686,8 @@ static void gen_mcode()
 			i386_call_imm(0);                    /* passing exception pointer */
 			i386_pop_reg(REG_ITMP2_XPC);
 
-			i386_mov_imm_reg(0, REG_ITMP3);   /* we need data segment pointer */
-			dseg_adddata(mcodeptr);
-
-  			i386_push_imm(asm_handle_exception);
-  			i386_ret();
+  			i386_mov_imm_reg(asm_handle_exception, REG_ITMP3);
+  			i386_jmp_reg(REG_ITMP3);
 			ALIGNCODENOP;
 			break;
 
@@ -4603,9 +4613,8 @@ nowperformreturn:
 				i = s4ptr[2];                          /* high    */
 
 				var_to_reg_int(s1, src, REG_ITMP1);
-/*  				if (l == 0) { */
-					M_INTMOVE(s1, REG_ITMP1);
-				if (l <= 32768) {
+				M_INTMOVE(s1, REG_ITMP1);
+				if (l != 0) {
 					i386_alu_imm_reg(I386_SUB, l, REG_ITMP1);
 				}
 				i = i - l + 1;
@@ -5252,7 +5261,7 @@ gen_method: {
 	{
 
 	/* generate bound check stubs */
-	s4 *xcodeptr = NULL;
+	u1 *xcodeptr = NULL;
 	
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
@@ -5441,22 +5450,20 @@ gen_method: {
 	
 *******************************************************************************/
 
-#define COMPSTUBSIZE 3
+#define COMPSTUBSIZE 12
 
-u1 *createcompilerstub (methodinfo *m)
+u1 *createcompilerstub(methodinfo *m)
 {
-	u8 *s = CNEW (u8, COMPSTUBSIZE);    /* memory to hold the stub            */
-	s4 *p = (s4*) s;                    /* code generation pointer            */
+	u1 *s = CNEW(u1, COMPSTUBSIZE);     /* memory to hold the stub            */
+	u1 *mcodeptr = s;                   /* code generation pointer            */
 
-	s4 *mcodeptr = p;					/* make macros work                   */
-	
 	                                    /* code for the stub                  */
 	i386_mov_imm_reg(m, REG_ITMP1);     /* pass method pointer to compiler    */
 	i386_mov_imm_reg(asm_call_jit_compiler, REG_ITMP2);    /* load address    */
 	i386_jmp_reg(REG_ITMP2);            /* jump to compiler                   */
 
 #ifdef STATISTICS
-	count_cstub_len += COMPSTUBSIZE * 8;
+	count_cstub_len += COMPSTUBSIZE;
 #endif
 
 	return (u1*) s;
@@ -5469,9 +5476,9 @@ u1 *createcompilerstub (methodinfo *m)
 
 *******************************************************************************/
 
-void removecompilerstub (u1 *stub) 
+void removecompilerstub(u1 *stub) 
 {
-	CFREE (stub, COMPSTUBSIZE * 8);
+	CFREE(stub, COMPSTUBSIZE);
 }
 
 /* function: createnativestub **************************************************
@@ -5480,12 +5487,12 @@ void removecompilerstub (u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE 40
+#define NATIVESTUBSIZE 320
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
-	u8 *s = CNEW (u8, NATIVESTUBSIZE);  /* memory to hold the stub            */
-	s4 *mcodeptr = (s4*) s;				/* make macros work                   */
+	u1 *s = CNEW(u1, NATIVESTUBSIZE);   /* memory to hold the stub            */
+	u1 *mcodeptr = s;                   /* make macros work                   */
 
 	u1 *tptr;
 	int i;
@@ -5550,7 +5557,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	/*
 	 * mark the whole fpu stack as free for native functions
-	 * (only for zero saved registers)
+	 * (only for saved register count == 0)
 	 */
 	i386_ffree_reg(0);
 	i386_ffree_reg(1);
@@ -5652,7 +5659,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	i386_jmp_reg(REG_ITMP3);
 
 #ifdef STATISTICS
-	count_nstub_len += NATIVESTUBSIZE * 8;
+	count_nstub_len += NATIVESTUBSIZE;
 #endif
 
 	return (u1*) s;
@@ -5664,9 +5671,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
     
 *******************************************************************************/
 
-void removenativestub (u1 *stub)
+void removenativestub(u1 *stub)
 {
-	CFREE (stub, NATIVESTUBSIZE * 8);
+	CFREE(stub, NATIVESTUBSIZE);
 }
 
 
