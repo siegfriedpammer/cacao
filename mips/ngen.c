@@ -10,7 +10,7 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 232 2003-02-13 11:35:40Z stefan $
+	Last Change: $Id: ngen.c 234 2003-02-19 11:51:40Z stefan $
 
 *******************************************************************************/
 
@@ -3278,7 +3278,7 @@ afteractualcall:
 						M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
 					} else {
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, baseval));
-						M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
+						M_ISUB(REG_ITMP1, REG_ITMP2, REG_ITMP1); 
 						M_ALD(REG_ITMP2, REG_PV, a);
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
 					}
