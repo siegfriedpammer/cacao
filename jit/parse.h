@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 1082 2004-05-26 15:04:54Z jowenn $
+   $Id: parse.h 1092 2004-05-27 15:46:59Z twisti $
 
 */
 
@@ -148,10 +148,11 @@ extern u1  *rt_jcode;
 
 
 /* function prototypes */
+
 void compiler_addinitclass(classinfo *c);
 classSetNode * descriptor2typesL(methodinfo *m);
 void descriptor2types(methodinfo *m);
-void parse();
+methodinfo *parse(methodinfo *m);
 
 #endif /* _PARSE_H */
 

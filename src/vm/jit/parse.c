@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: parse.c 1092 2004-05-27 15:46:59Z twisti $
 
 */
 
@@ -263,24 +263,31 @@ void descriptor2types(methodinfo *m)
 		case 'C':
 		case 'I':
 		case 'S':
-		case 'Z':  *tptr++ = TYPE_INT;
+		case 'Z':
+			*tptr++ = TYPE_INT;
 			break;
-		case 'J':  *tptr++ = TYPE_LNG;
+		case 'J':
+			*tptr++ = TYPE_LNG;
 			break;
-		case 'F':  *tptr++ = TYPE_FLT;
+		case 'F':
+			*tptr++ = TYPE_FLT;
 			break;
-		case 'D':  *tptr++ = TYPE_DBL;
+		case 'D':
+			*tptr++ = TYPE_DBL;
 			break;
-		case 'L':  *tptr++ = TYPE_ADR;
+		case 'L':
+			*tptr++ = TYPE_ADR;
 			while (*utf_ptr++ != ';');
 			break;
-		case '[':  *tptr++ = TYPE_ADR;
+		case '[':
+			*tptr++ = TYPE_ADR;
 			while (c == '[')
 				c = *utf_ptr++;
 			if (c == 'L')
 				while (*utf_ptr++ != ';') /* skip */;
 			break;
-		default:   panic ("Ill formed methodtype-descriptor");
+		default:
+			panic("Ill formed methodtype-descriptor");
 		}
 	}
 
@@ -291,21 +298,27 @@ void descriptor2types(methodinfo *m)
 	case 'C':
 	case 'I':
 	case 'S':
-	case 'Z':  m->returntype = TYPE_INT;
+	case 'Z':
+		m->returntype = TYPE_INT;
 		break;
-	case 'J':  m->returntype = TYPE_LNG;
+	case 'J':
+		m->returntype = TYPE_LNG;
 		break;
-	case 'F':  m->returntype = TYPE_FLT;
+	case 'F':
+		m->returntype = TYPE_FLT;
 		break;
-	case 'D':  m->returntype = TYPE_DBL;
+	case 'D':
+		m->returntype = TYPE_DBL;
 		break;
 	case '[':
-	case 'L':  m->returntype = TYPE_ADR;
+	case 'L':
+		m->returntype = TYPE_ADR;
 		break;
-	case 'V':  m->returntype = TYPE_VOID;
+	case 'V':
+		m->returntype = TYPE_VOID;
 		break;
-
-	default:   panic ("Ill formed methodtype-descriptor");
+	default:
+		panic("Ill formed methodtype-descriptor");
 	}
 
 	m->paramcount = pcount;
@@ -358,21 +371,6 @@ static xtable* fillextable(xtable* extable, exceptiontable *raw_extable, int exc
 		block_insert(p);
 
 		extable[i].catchtype  = raw_extable[i].catchtype;
-
-#if 0
-		if (extable[i].catchtype) {
-			utf_display_classname(extable[i].catchtype->name);
-			printf("\n");
-		/* is this catch class loaded */
-		if (!extable[i].catchtype->loaded)
-			class_load(extable[i].catchtype);
-
-		/* is this catch class linked */
-		if (!extable[i].catchtype->linked)
-			class_link(extable[i].catchtype);
-		}
-#endif
-
 		extable[i].next = NULL;
 		extable[i].down = &extable[i + 1];
 	}
@@ -383,7 +381,7 @@ static xtable* fillextable(xtable* extable, exceptiontable *raw_extable, int exc
 
 
 
-void parse()
+methodinfo *parse(methodinfo *m)
 {
 	int  p;                     /* java instruction counter                   */
 	int  nextp;                 /* start of next java instruction             */
@@ -410,16 +408,6 @@ void parse()
 	u2 linepcchange=0;
 
 	bool useinltmp;
-
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Parsing: ");
-		utf_sprint_classname(logtext+strlen(logtext), method->class->name);
-		strcpy(logtext+strlen(logtext), ".");
-		utf_sprint(logtext+strlen(logtext), method->name);
-		utf_sprint_classname(logtext+strlen(logtext), method->descriptor);
-		log_text(logtext);
-	}
 
 	/* INLINING */
 	if (useinlining) {
@@ -660,24 +648,19 @@ void parse()
 
 			switch (class->cptags[i]) {
 			case CONSTANT_Integer:
-				LOADCONST_I(((constant_integer*)
-							 (class->cpinfos[i]))->value);
+				LOADCONST_I(((constant_integer *) (class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Long:
-				LOADCONST_L(((constant_long*)
-							 (class->cpinfos[i]))->value);
+				LOADCONST_L(((constant_long *) (class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Float:
-				LOADCONST_F(((constant_float*)
-							 (class->cpinfos[i]))->value);
+				LOADCONST_F(((constant_float *) (class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Double:
-				LOADCONST_D(((constant_double*)
-							 (class->cpinfos[i]))->value);
+				LOADCONST_D(((constant_double *) (class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_String:
-				LOADCONST_A(literalstring_new((utf*)
-											  (class->cpinfos[i])));
+				LOADCONST_A(literalstring_new((utf *) (class->cpinfos[i])));
 				break;
 			default: panic("Invalid constant type to push");
 			}
@@ -846,7 +829,7 @@ void parse()
 			/* managing arrays ************************************************/
 
 		case JAVA_NEWARRAY:
-			OP2I(ICMD_CHECKASIZE, 0, 0);
+			OP(ICMD_CHECKASIZE);
 			switch (code_get_s1(p + 1)) {
 			case 4:
 				BUILTIN1(BUILTIN_newarray_boolean, TYPE_ADR,currentline);
@@ -874,25 +857,28 @@ void parse()
 				break;
 			default: panic("Invalid array-type to create");
 			}
-			OP2I(ICMD_CHECKOOM, 0, 0);
+			OP(ICMD_CHECKEXCEPTION);
 			break;
 
 		case JAVA_ANEWARRAY:
-			OP2I(ICMD_CHECKASIZE, 0, 0);
+			OP(ICMD_CHECKASIZE);
 			i = code_get_u2(p + 1);
 			{
 				classinfo *component =
 					(classinfo *) class_getconstant(class, i, CONSTANT_Class);
 
-				class_load(component);
-				class_link(component);
+				if (!class_load(component))
+					return NULL;
+
+				if (!class_link(component))
+					return NULL;
 
   				LOADCONST_A_BUILTIN(class_array_of(component)->vftbl);
 /*  				LOADCONST_A_BUILTIN(component); */
 				s_count++;
-				BUILTIN2(BUILTIN_newarray, TYPE_ADR,currentline);
+				BUILTIN2(BUILTIN_newarray, TYPE_ADR, currentline);
 			}
-			OP2I(ICMD_CHECKOOM, 0, 0);
+			OP(ICMD_CHECKEXCEPTION);
 			break;
 
 		case JAVA_MULTIANEWARRAY:
@@ -911,11 +897,14 @@ void parse()
  				classinfo *component =
 					(classinfo *) class_getconstant(class, i, CONSTANT_Class);
 
-				class_load(component);
-				class_link(component);
+				if (!class_load(component))
+					return NULL;
+
+				if (!class_link(component))
+					return NULL;
 
  				arrayvftbl = component->vftbl;
- 				OP2A(opcode, v, arrayvftbl,currentline);
+ 				OP2A(opcode, v, arrayvftbl, currentline);
 
 /*   				classinfo *arrayclass = */
 /*  					(classinfo *) class_getconstant(class, i, CONSTANT_Class); */
@@ -1151,7 +1140,7 @@ void parse()
 			/* load and store of object fields *******************/
 
 		case JAVA_AASTORE:
-			BUILTIN3(BUILTIN_aastore, TYPE_VOID,currentline);
+			BUILTIN3(BUILTIN_aastore, TYPE_VOID, currentline);
 			break;
 
 		case JAVA_PUTSTATIC:
@@ -1163,13 +1152,22 @@ void parse()
 
 				fr = class_getconstant(class, i, CONSTANT_Fieldref);
 
-				class_load(fr->class);
-				class_link(fr->class);
+				if (!class_load(fr->class))
+					return NULL;
 
-				fi = class_resolvefield(fr->class, fr->name, fr->descriptor, class, true);
+				if (!class_link(fr->class))
+					return NULL;
+
+				fi = class_resolvefield(fr->class,
+										fr->name,
+										fr->descriptor,
+										class,
+										true);
+
 				if (!fi)
-					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
-				OP2A(opcode, fi->type, fi,currentline);
+					return NULL;
+
+				OP2A(opcode, fi->type, fi, currentline);
 				if (!fi->class->initialized) {
 					isleafmethod = false;
 				}
@@ -1183,15 +1181,24 @@ void parse()
 				constant_FMIref *fr;
 				fieldinfo *fi;
 
-				fr = class_getconstant (class, i, CONSTANT_Fieldref);
+				fr = class_getconstant(class, i, CONSTANT_Fieldref);
 
-				class_load(fr->class);
-				class_link(fr->class);
+				if (!class_load(fr->class))
+					return NULL;
 
-				fi = class_resolvefield(fr->class, fr->name, fr->descriptor, class, true);
+				if (!class_link(fr->class))
+					return NULL;
+
+				fi = class_resolvefield(fr->class,
+										fr->name,
+										fr->descriptor,
+										class,
+										true);
+
 				if (!fi)
-					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
-				OP2A(opcode, fi->type, fi,currentline);
+					return NULL;
+
+				OP2A(opcode, fi->type, fi, currentline);
 			}
 			break;
 
@@ -1204,25 +1211,39 @@ void parse()
 				constant_FMIref *mr;
 				methodinfo *mi;
 				
+				isleafmethod = false;
+
 				mr = class_getconstant(class, i, CONSTANT_Methodref);
 
-				class_load(mr->class);
-				class_link(mr->class);
+				if (!class_load(mr->class))
+					return NULL;
 
-				mi = class_resolveclassmethod(mr->class, mr->name, mr->descriptor, class, true);
+				if (!class_link(mr->class))
+					return NULL;
+
+				mi = class_resolveclassmethod(mr->class,
+											  mr->name,
+											  mr->descriptor,
+											  class,
+											  true);
+
 				if (!mi)
-					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
+					return NULL;
+
 				/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
 					/*RTAprint*/    {printf(" method name =");
 					/*RTAprint*/    utf_display(mi->class->name); printf(".");
 					/*RTAprint*/    utf_display(mi->name);printf("\tINVOKE STATIC\n");
 					/*RTAprint*/    fflush(stdout);}
-				if (!(mi->flags & ACC_STATIC))
-					panic ("Static/Nonstatic mismatch calling static method");
-				descriptor2types(mi);
 
-				isleafmethod=false;
-				OP2A(opcode, mi->paramcount, mi,currentline);
+				if (!(mi->flags & ACC_STATIC)) {
+					*exceptionptr =
+						new_exception(string_java_lang_IncompatibleClassChangeError);
+					return NULL;
+				}
+
+				descriptor2types(mi);
+				OP2A(opcode, mi->paramcount, mi, currentline);
 			}
 			break;
 
@@ -1233,14 +1254,24 @@ void parse()
 				constant_FMIref *mr;
 				methodinfo *mi;
 
+				isleafmethod = false;
+
 				mr = class_getconstant(class, i, CONSTANT_Methodref);
 
-				class_load(mr->class);
-				class_link(mr->class);
+				if (!class_load(mr->class))
+					return NULL;
 
-				mi = class_resolveclassmethod(mr->class, mr->name, mr->descriptor, class, true);
+				if (!class_link(mr->class))
+					return NULL;
+
+				mi = class_resolveclassmethod(mr->class,
+											  mr->name,
+											  mr->descriptor,
+											  class,
+											  true);
+
 				if (!mi)
-					panic("Exception thrown while parsing bytecode");
+					return NULL;
 
 				/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
 					/*RTAprint*/    {printf(" method name =");
@@ -1249,11 +1280,14 @@ void parse()
 					/*RTAprint*/    utf_display(mi->name);printf("\tINVOKE SPECIAL/VIRTUAL\n");
 					/*RTAprint*/    fflush(stdout);}
 
-				if (mi->flags & ACC_STATIC)
-					panic ("Static/Nonstatic mismatch calling static method");
+				if (mi->flags & ACC_STATIC) {
+					*exceptionptr =
+						new_exception(string_java_lang_IncompatibleClassChangeError);
+					return NULL;
+				}
+
 				descriptor2types(mi);
-				isleafmethod=false;
-				OP2A(opcode, mi->paramcount, mi,currentline);
+				OP2A(opcode, mi->paramcount, mi, currentline);
 			}
 			break;
 
@@ -1263,95 +1297,105 @@ void parse()
 				constant_FMIref *mr;
 				methodinfo *mi;
 				
+				isleafmethod = false;
+
 				mr = class_getconstant(class, i, CONSTANT_InterfaceMethodref);
 
-				class_load(mr->class);
-				class_link(mr->class);
+				if (!class_load(mr->class))
+					return NULL;
 
-				mi = class_resolveinterfacemethod(mr->class, mr->name, mr->descriptor, class, true);
+				if (!class_link(mr->class))
+					return NULL;
+
+				mi = class_resolveinterfacemethod(mr->class,
+												  mr->name,
+												  mr->descriptor,
+												  class,
+												  true);
 				if (!mi)
-					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
-				if (mi->flags & ACC_STATIC)
-					panic ("Static/Nonstatic mismatch calling static method");
+					return NULL;
+
+				if (mi->flags & ACC_STATIC) {
+					*exceptionptr =
+						new_exception(string_java_lang_IncompatibleClassChangeError);
+					return NULL;
+				}
+
 				descriptor2types(mi);
-				isleafmethod=false;
-				OP2A(opcode, mi->paramcount, mi,currentline);
+				OP2A(opcode, mi->paramcount, mi, currentline);
 			}
 			break;
 
 			/* miscellaneous object operations *******/
 
 		case JAVA_NEW:
-			i = code_get_u2 (p+1);
-
+			i = code_get_u2(p + 1);
 			LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
 			s_count++;
-			BUILTIN1(BUILTIN_new, TYPE_ADR,currentline);
-			OP2I(ICMD_CHECKOOM, 0, 0);
+			BUILTIN1(BUILTIN_new, TYPE_ADR, currentline);
+			OP(ICMD_CHECKEXCEPTION);
 			break;
 
 		case JAVA_CHECKCAST:
-			i = code_get_u2(p+1);
- 				{
- 					classinfo *cls =
-						(classinfo *) class_getconstant(class, i, CONSTANT_Class);
+			i = code_get_u2(p + 1);
+			{
+				classinfo *cls =
+					(classinfo *) class_getconstant(class, i, CONSTANT_Class);
 
-					/* is the class loaded */
-					if (!cls->loaded)
-						class_load(cls);
+				if (!cls->loaded)
+					if (!class_load(cls))
+						return NULL;
 
-					/* is the class linked */
-					if (!cls->linked)
-						class_link(cls);
+				if (!cls->linked)
+					if (!class_link(cls))
+						return NULL;
 
- 					if (cls->vftbl->arraydesc) {
- 						/* array type cast-check */
- 						LOADCONST_A_BUILTIN(cls->vftbl);
- 						s_count++;
- 						BUILTIN2(BUILTIN_checkarraycast, TYPE_ADR,currentline);
-  					}
- 					else { /* object type cast-check */
- 						/*
-+ 						  LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
-+ 						  s_count++;
-+ 						  BUILTIN2(BUILTIN_checkcast, TYPE_ADR,currentline);
-+ 						*/
- 						OP2A(opcode, 1, cls,currentline);
-  					}
- 				}
+				if (cls->vftbl->arraydesc) {
+					/* array type cast-check */
+					LOADCONST_A_BUILTIN(cls->vftbl);
+					s_count++;
+					BUILTIN2(BUILTIN_checkarraycast, TYPE_ADR,currentline);
 
+				} else { /* object type cast-check */
+					/*
+					  + 						  LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
+					  + 						  s_count++;
+					  + 						  BUILTIN2(BUILTIN_checkcast, TYPE_ADR,currentline);
+					  + 						*/
+					OP2A(opcode, 1, cls, currentline);
+				}
+			}
 			break;
 
 		case JAVA_INSTANCEOF:
-			i = code_get_u2(p+1);
+			i = code_get_u2(p + 1);
+			{
+				classinfo *cls =
+					(classinfo *) class_getconstant(class, i, CONSTANT_Class);
 
- 				{
- 					classinfo *cls =
-						(classinfo *) class_getconstant(class, i, CONSTANT_Class);
+				if (!cls->loaded)
+					if (!class_load(cls))
+						return NULL;
 
-					/* is the class loaded */
-					if (!cls->loaded)
-						class_load(cls);
+				if (!cls->linked)
+					if (!class_link(cls))
+						return NULL;
 
-					/* is the class linked */
-					if (!cls->linked)
-						class_link(cls);
-
- 					if (cls->vftbl->arraydesc) {
- 						/* array type cast-check */
- 						LOADCONST_A_BUILTIN(cls->vftbl);
- 						s_count++;
- 						BUILTIN2(BUILTIN_arrayinstanceof, TYPE_INT,currentline);
-  					}
- 					else { /* object type cast-check */
- 						/*
- 						  LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
- 						  s_count++;
- 						  BUILTIN2(BUILTIN_instanceof, TYPE_INT,currentline);
-+ 						*/
- 						OP2A(opcode, 1, cls,currentline);
-  					}
- 				}
+				if (cls->vftbl->arraydesc) {
+					/* array type cast-check */
+					LOADCONST_A_BUILTIN(cls->vftbl);
+					s_count++;
+					BUILTIN2(BUILTIN_arrayinstanceof, TYPE_INT, currentline);
+				}
+				else { /* object type cast-check */
+					/*
+					  LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
+					  s_count++;
+					  BUILTIN2(BUILTIN_instanceof, TYPE_INT,currentline);
+					  + 						*/
+					OP2A(opcode, 1, cls, currentline);
+				}
+			}
 			break;
 
 		case JAVA_MONITORENTER:
@@ -1459,9 +1503,7 @@ void parse()
 			panic("Illegal opcode Breakpoint encountered");
 			break;
 
-		case 186: /* unused opcode */
-		case 203:
-		case 204:
+		case 204: /* unused opcode */
 		case 205:
 		case 206:
 		case 207:
@@ -1654,15 +1696,9 @@ void parse()
 	if (useinlining) inlining_cleanup();
 	useinlining = useinltmp;
 
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Parsing done: ");
-		utf_sprint_classname(logtext + strlen(logtext), method->class->name);
-		strcpy(logtext + strlen(logtext), ".");
-		utf_sprint(logtext + strlen(logtext), method->name);
-		utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
-		log_text(logtext);
-	}
+	/* just return methodinfo* to signal everything was ok */
+
+	return m;
 }
 
 
