@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1082 2004-05-26 15:04:54Z jowenn $
+   $Id: builtin.c 1085 2004-05-26 18:52:37Z twisti $
 
 */
 
@@ -444,29 +444,21 @@ java_objectheader *builtin_new(classinfo *c)
 	java_objectheader *o;
 
 	/* is the class loaded */
-	if (!c->loaded) {
-		class_load(c);
-	}
+	if (!c->loaded)
+		if (!class_load(c))
+			return NULL;
 
 	/* is the class linked */
-	if (!c->linked) {
-		class_link(c);
-	}
+	if (!c->linked)
+		if (!class_link(c))
+			return NULL;
 
 	if (!c->initialized) {
-		if (initverbose) {
-			char logtext[MAXLOGTEXT];
-			sprintf(logtext, "Initialize class ");
-			utf_sprint_classname(logtext + strlen(logtext), c->name);
-			sprintf(logtext + strlen(logtext), " (from builtin_new)");
-			log_text(logtext);
-		}
-		(void) class_init(c);
+		if (initverbose)
+			log_message_class("Initialize class (from builtin_new): ", c);
 
-		/* we had an ExceptionInInitializerError */
-		if (*exceptionptr) {
+		if (!class_init(c))
 			return NULL;
-		}
 	}
 
 #ifdef SIZE_FROM_CLASSINFO
@@ -475,6 +467,7 @@ java_objectheader *builtin_new(classinfo *c)
 #else
 	o = heap_allocate(c->instancesize, true, c->finalizer);
 #endif
+
 	if (!o)
 		return NULL;
 	
@@ -484,6 +477,7 @@ java_objectheader *builtin_new(classinfo *c)
 
 	return o;
 }
+
 
 /********************** Function: builtin_newarray **************************
 
@@ -559,11 +553,13 @@ java_objectarray *builtin_anewarray(s4 size, classinfo *component)
 {
 	/* is class loaded */
 	if (!component->loaded)
-		class_load(component);
+		if (!class_load(component))
+			return NULL;
 
 	/* is class linked */
 	if (!component->linked)
-		class_link(component);
+		if (!class_link(component))
+			return NULL;
 
 	return (java_objectarray *) builtin_newarray(size, class_array_of(component)->vftbl);
 }
