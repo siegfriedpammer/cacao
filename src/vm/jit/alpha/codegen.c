@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: codegen.c 2178 2005-04-01 13:20:47Z twisti $
+   $Id: codegen.c 2184 2005-04-01 21:19:05Z edwin $
 
 */
 
@@ -3991,7 +3991,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	inlining_setup(m, id);
 	reg_setup(m, rd, id);
 
-	descriptor2types(m);                /* set paramcount and paramtypes      */
+	method_descriptor2types(m);                /* set paramcount and paramtypes      */
 
 	stubsize = NATIVESTUB_SIZE;         /* calculate nativestub size          */
 

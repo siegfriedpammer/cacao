@@ -39,7 +39,7 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.c 2107 2005-03-28 22:44:28Z twisti $
+   $Id: parseXTA.c 2184 2005-04-01 21:19:05Z edwin $
 
 */
 
@@ -1251,7 +1251,7 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 					   }
 				/* see INVOKESTATIC for explanation about */
 			        /*   case when Interface is not resolved  */
-                                /*descriptor2types(mi); 
+                                /*method_descriptor2types(mi); 
 				?? do need paramcnt? for XTA (or just XTA)*/
                         }
                         break;

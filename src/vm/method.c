@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 2181 2005-04-01 16:53:33Z edwin $
+   $Id: method.c 2184 2005-04-01 21:19:05Z edwin $
 
 */
 
@@ -93,6 +93,45 @@ bool method_canoverwrite(methodinfo *m, methodinfo *old)
 	return true;
 }
 
+/* method_descriptor2types *****************************************************
+
+   Fills in the following members of the given methodinfo:
+       returntype
+   	   paramcount
+       paramtypes	   
+
+   Note:
+       This function uses dump_alloc functions to allocate memory.
+
+*******************************************************************************/		
+
+void method_descriptor2types(methodinfo *m)
+{
+	u1 *types, *tptr;
+	int pcount, i;
+	methoddesc *md = m->parseddesc;
+	typedesc *paramtype;
+	
+	pcount = md->paramcount;
+	if ((m->flags & ACC_STATIC) == 0)
+		pcount++; /* count this pointer */
+	
+	types = DMNEW(u1,pcount);
+	tptr = types;
+	
+	if (!(m->flags & ACC_STATIC)) {
+		/* this pointer */
+		*tptr++ = TYPE_ADR;
+	}
+
+	paramtype = md->paramtypes;
+	for (i=0; i<md->paramcount; ++i,++paramtype)
+		*tptr++ = paramtype->type;
+
+	m->returntype = md->returntype.type;
+	m->paramcount = pcount;
+	m->paramtypes = types;
+}
 
 /************** Function: method_display  (debugging only) **************/
 

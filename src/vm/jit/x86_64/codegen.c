@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2179 2005-04-01 13:28:16Z twisti $
+   $Id: codegen.c 2184 2005-04-01 21:19:05Z edwin $
 
 */
 
@@ -3938,7 +3938,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	/* set paramcount and paramtypes      */
 
-	descriptor2types(m);
+	method_descriptor2types(m);
 
 	/* count integer and float arguments */
 

@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: method.h 2184 2005-04-01 21:19:05Z edwin $
 */
 
 
@@ -155,6 +155,8 @@ bool method_canoverwrite(methodinfo *m, methodinfo *old);
 
 void method_display(methodinfo *m);
 void method_display_w_class(methodinfo *m);
+
+void method_descriptor2types(methodinfo *m);
 
 #endif /* _METHOD_H */
 

@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2159 2005-03-30 20:07:27Z twisti $
+   $Id: jit.c 2184 2005-04-01 21:19:05Z edwin $
 
 */
 
@@ -1372,7 +1372,7 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 
 	/* initialise parameter type descriptor */
 
-	descriptor2types(m);
+	method_descriptor2types(m);
 
 	/* call the compiler passes ***********************************************/
 

@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 2107 2005-03-28 22:44:28Z twisti $
+   $Id: inline.c 2184 2005-04-01 21:19:05Z edwin $
 
 */
 
@@ -789,7 +789,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 
 					if (can_inline(inline_env, m, imi, imr, uniqueVirt, opcode)) {
 						inlining_methodinfo *tmp;
-						descriptor2types(imi);
+						method_descriptor2types(imi);
 
 						inline_env->cummethods++;
 

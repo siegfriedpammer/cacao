@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 2177 2005-04-01 13:10:52Z twisti $
+   $Id: codegen.c 2184 2005-04-01 21:19:05Z edwin $
 
 */
 
@@ -5030,7 +5030,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	inlining_setup(m, id);
 	reg_setup(m, rd, id);
 
-	descriptor2types(m);                /* set paramcount and paramtypes      */
+	method_descriptor2types(m);                /* set paramcount and paramtypes      */
 
 	require_clinit_call = (m->flags & ACC_STATIC) && !m->class->initialized;
 

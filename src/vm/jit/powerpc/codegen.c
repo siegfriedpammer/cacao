@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2015 2005-03-08 06:34:11Z christian $
+   $Id: codegen.c 2184 2005-04-01 21:19:05Z edwin $
 
 */
 
@@ -3329,7 +3329,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	inlining_setup(m, id);
 	reg_setup(m, rd, id);
 
-	descriptor2types(m);                /* set paramcount and paramtypes      */
+	method_descriptor2types(m);                /* set paramcount and paramtypes      */
 
 	s = CNEW(s4, NATIVESTUBSIZE);
 	cs = s + NATIVESTUBOFFSET;

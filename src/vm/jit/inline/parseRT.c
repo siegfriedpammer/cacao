@@ -27,7 +27,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 2107 2005-03-28 22:44:28Z twisti $
+   $Id: parseRT.c 2184 2005-04-01 21:19:05Z edwin $
 
 */
 
@@ -716,7 +716,7 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 					   }
 				/* see INVOKESTATIC for explanation about */
 			        /*   case when Interface is not resolved  */
-                                /*descriptor2types(mi); 
+                                /*method_descriptor2types(mi); 
 				?? do need paramcnt? for RTA (or just XTA)*/
                         }
                         break;

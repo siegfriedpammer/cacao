@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 2148 2005-03-30 16:49:40Z twisti $
+   $Id: parse.c 2184 2005-04-01 21:19:05Z edwin $
 
 */
 
@@ -234,100 +234,6 @@ classSetNode *descriptor2typesL(methodinfo *m)
 	}
 
 	return p;
-}
-
-
-
-/* function descriptor2types ***************************************************
-
-	decodes a already checked method descriptor. The parameter count, the
-	return type and the argument types are stored in the passed methodinfo.
-
-*******************************************************************************/		
-
-void descriptor2types(methodinfo *m)
-{
-	u1 *types, *tptr;
-	int pcount, c;
-	char *utf_ptr;
-	pcount = 0;
-	types = DMNEW(u1, m->descriptor->blength); 
-    	
-	tptr = types;
-	if (!(m->flags & ACC_STATIC)) {
-		*tptr++ = TYPE_ADR;
-		pcount++;
-	}
-
-	utf_ptr = m->descriptor->text + 1;
-   
-	while ((c = *utf_ptr++) != ')') {
-		pcount++;
-		switch (c) {
-		case 'B':
-		case 'C':
-		case 'I':
-		case 'S':
-		case 'Z':
-			*tptr++ = TYPE_INT;
-			break;
-		case 'J':
-			*tptr++ = TYPE_LNG;
-			break;
-		case 'F':
-			*tptr++ = TYPE_FLT;
-			break;
-		case 'D':
-			*tptr++ = TYPE_DBL;
-			break;
-		case 'L':
-			*tptr++ = TYPE_ADR;
-			while (*utf_ptr++ != ';');
-			break;
-		case '[':
-			*tptr++ = TYPE_ADR;
-			while (c == '[')
-				c = *utf_ptr++;
-			if (c == 'L')
-				while (*utf_ptr++ != ';') /* skip */;
-			break;
-		default:
-			panic("Ill formed methodtype-descriptor");
-		}
-	}
-
-	/* compute return type */
-
-	switch (*utf_ptr++) {
-	case 'B':
-	case 'C':
-	case 'I':
-	case 'S':
-	case 'Z':
-		m->returntype = TYPE_INT;
-		break;
-	case 'J':
-		m->returntype = TYPE_LNG;
-		break;
-	case 'F':
-		m->returntype = TYPE_FLT;
-		break;
-	case 'D':
-		m->returntype = TYPE_DBL;
-		break;
-	case '[':
-	case 'L':
-		m->returntype = TYPE_ADR;
-		break;
-	case 'V':
-		m->returntype = TYPE_VOID;
-		break;
-	default:
-		panic("Ill formed methodtype-descriptor");
-	}
-
-	m->paramcount = pcount;
-	m->paramtypes = types;
 }
 
 
@@ -1316,7 +1222,7 @@ if (DEBUG4==true) {
 					return NULL;
 				}
 
-				descriptor2types(mi);
+				method_descriptor2types(mi);
 				OP2A(opcode, mi->paramcount, mi, currentline);
 			}
 			break;
@@ -1358,7 +1264,7 @@ if (DEBUG4==true) {
 					return NULL;
 				}
 
-				descriptor2types(mi);
+				method_descriptor2types(mi);
 				OP2A(opcode, mi->paramcount, mi, currentline);
 			}
 			break;
@@ -1397,7 +1303,7 @@ if (DEBUG4==true) {
 	method_display_w_class(mi); 
 	printf("\tINVOKE INTERFACE\n");
         fflush(stdout);}
-				descriptor2types(mi);
+				method_descriptor2types(mi);
 				OP2A(opcode, mi->paramcount, mi, currentline);
 			}
 			break;
