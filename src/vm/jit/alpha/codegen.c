@@ -1,4 +1,4 @@
-/* vm/jit/alpha/codegen.c - machine code generator for alpha
+/* src/vm/jit/alpha/codegen.c - machine code generator for Alpha
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,8 +28,9 @@
             Reinhard Grafl
 
    Changes: Joseph Wenninger
+            Christian Thalinger
 
-   $Id: codegen.c 1946 2005-02-15 16:52:08Z twisti $
+   $Id: codegen.c 2072 2005-03-24 18:48:31Z twisti $
 
 */
 
@@ -2158,31 +2159,68 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
   			}
 			
-			a = dseg_addaddress(cd, &(((fieldinfo *)(iptr->val.a))->value));
+			a = dseg_addaddress(cd, &(((fieldinfo *) iptr->val.a)->value));
 			M_ALD(REG_ITMP1, REG_PV, a);
 			switch (iptr->op1) {
-				case TYPE_INT:
-					var_to_reg_int(s2, src, REG_ITMP2);
-					M_IST(s2, REG_ITMP1, 0);
-					break;
-				case TYPE_LNG:
-					var_to_reg_int(s2, src, REG_ITMP2);
-					M_LST(s2, REG_ITMP1, 0);
-					break;
-				case TYPE_ADR:
-					var_to_reg_int(s2, src, REG_ITMP2);
-					M_AST(s2, REG_ITMP1, 0);
-					break;
-				case TYPE_FLT:
-					var_to_reg_flt(s2, src, REG_FTMP2);
-					M_FST(s2, REG_ITMP1, 0);
-					break;
-				case TYPE_DBL:
-					var_to_reg_flt(s2, src, REG_FTMP2);
-					M_DST(s2, REG_ITMP1, 0);
-					break;
-				default: panic ("internal error");
-				}
+			case TYPE_INT:
+				var_to_reg_int(s2, src, REG_ITMP2);
+				M_IST(s2, REG_ITMP1, 0);
+				break;
+			case TYPE_LNG:
+				var_to_reg_int(s2, src, REG_ITMP2);
+				M_LST(s2, REG_ITMP1, 0);
+				break;
+			case TYPE_ADR:
+				var_to_reg_int(s2, src, REG_ITMP2);
+				M_AST(s2, REG_ITMP1, 0);
+				break;
+			case TYPE_FLT:
+				var_to_reg_flt(s2, src, REG_FTMP2);
+				M_FST(s2, REG_ITMP1, 0);
+				break;
+			case TYPE_DBL:
+				var_to_reg_flt(s2, src, REG_FTMP2);
+				M_DST(s2, REG_ITMP1, 0);
+				break;
+			}
+			break;
+
+		case ICMD_PUTSTATICCONST: /* ...  ==> ...                             */
+		                          /* val = value (in current instruction)     */
+		                          /* op1 = type, val.a = field address (in    */
+		                          /* following NOP)                           */
+
+			/* If the static fields' class is not yet initialized, we do it   */
+			/* now. The call code is generated later.                         */
+  			if (!((fieldinfo *) iptr[1].val.a)->class->initialized) {
+				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr[1].val.a)->class);
+
+				/* This is just for debugging purposes. Is very difficult to  */
+				/* read patched code. Here we patch the following 2 nop's     */
+				/* so that the real code keeps untouched.                     */
+				if (showdisassemble)
+					M_NOP;
+  			}
+			
+			a = dseg_addaddress(cd, &(((fieldinfo *) iptr[1].val.a)->value));
+			M_ALD(REG_ITMP1, REG_PV, a);
+			switch (iptr[1].op1) {
+			case TYPE_INT:
+				M_IST(REG_ZERO, REG_ITMP1, 0);
+				break;
+			case TYPE_LNG:
+				M_LST(REG_ZERO, REG_ITMP1, 0);
+				break;
+			case TYPE_ADR:
+				M_AST(REG_ZERO, REG_ITMP1, 0);
+				break;
+			case TYPE_FLT:
+				M_FST(REG_ZERO, REG_ITMP1, 0);
+				break;
+			case TYPE_DBL:
+				M_DST(REG_ZERO, REG_ITMP1, 0);
+				break;
+			}
 			break;
 
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
@@ -2195,125 +2233,132 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 2 nop's     */
 				/* so that the real code keeps untouched.                     */
-				if (showdisassemble) {
+				if (showdisassemble)
 					M_NOP;
-				}
   			}
 			
 			a = dseg_addaddress(cd, &(((fieldinfo *) iptr->val.a)->value));
 			M_ALD(REG_ITMP1, REG_PV, a);
 			switch (iptr->op1) {
-				case TYPE_INT:
-					d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-					M_ILD(d, REG_ITMP1, 0);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_LNG:
-					d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-					M_LLD(d, REG_ITMP1, 0);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_ADR:
-					d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-					M_ALD(d, REG_ITMP1, 0);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_FLT:
-					d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-					M_FLD(d, REG_ITMP1, 0);
-					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				case TYPE_DBL:				
-					d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-					M_DLD(d, REG_ITMP1, 0);
-					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				default: panic ("internal error");
-				}
+			case TYPE_INT:
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				M_ILD(d, REG_ITMP1, 0);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_LNG:
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				M_LLD(d, REG_ITMP1, 0);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_ADR:
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				M_ALD(d, REG_ITMP1, 0);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_FLT:
+				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				M_FLD(d, REG_ITMP1, 0);
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			case TYPE_DBL:				
+				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				M_DLD(d, REG_ITMP1, 0);
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			}
 			break;
 
 
-		case ICMD_PUTFIELD:   /* ..., value  ==> ...                          */
-		                      /* op1 = type, val.i = field offset             */
+		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
+		                      /* op1 = type, val.a = field address            */
 
 			a = ((fieldinfo *) iptr->val.a)->offset;
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			gen_nullptr_check(s1);
 			switch (iptr->op1) {
-				case TYPE_INT:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_int(s2, src, REG_ITMP2);
-					gen_nullptr_check(s1);
-					M_IST(s2, s1, a);
-					break;
-				case TYPE_LNG:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_int(s2, src, REG_ITMP2);
-					gen_nullptr_check(s1);
-					M_LST(s2, s1, a);
-					break;
-				case TYPE_ADR:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_int(s2, src, REG_ITMP2);
-					gen_nullptr_check(s1);
-					M_AST(s2, s1, a);
-					break;
-				case TYPE_FLT:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_flt(s2, src, REG_FTMP2);
-					gen_nullptr_check(s1);
-					M_FST(s2, s1, a);
-					break;
-				case TYPE_DBL:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_flt(s2, src, REG_FTMP2);
-					gen_nullptr_check(s1);
-					M_DST(s2, s1, a);
-					break;
-				default: panic ("internal error");
-				}
+			case TYPE_INT:
+				var_to_reg_int(s2, src, REG_ITMP2);
+				M_IST(s2, s1, a);
+				break;
+			case TYPE_LNG:
+				var_to_reg_int(s2, src, REG_ITMP2);
+				M_LST(s2, s1, a);
+				break;
+			case TYPE_ADR:
+				var_to_reg_int(s2, src, REG_ITMP2);
+				M_AST(s2, s1, a);
+				break;
+			case TYPE_FLT:
+				var_to_reg_flt(s2, src, REG_FTMP2);
+				M_FST(s2, s1, a);
+				break;
+			case TYPE_DBL:
+				var_to_reg_flt(s2, src, REG_FTMP2);
+				M_DST(s2, s1, a);
+				break;
+			}
+			break;
+
+		case ICMD_PUTFIELDCONST:  /* ..., objectref  ==> ...                  */
+		                          /* val = value (in current instruction)     */
+		                          /* op1 = type, val.a = field address (in    */
+		                          /* following NOP)                           */
+
+			a = ((fieldinfo *) iptr[1].val.a)->offset;
+			var_to_reg_int(s1, src, REG_ITMP1);
+			gen_nullptr_check(s1);
+			switch (iptr[1].op1) {
+			case TYPE_INT:
+				M_IST(REG_ZERO, s1, a);
+				break;
+			case TYPE_LNG:
+				M_LST(REG_ZERO, s1, a);
+				break;
+			case TYPE_ADR:
+				M_AST(REG_ZERO, s1, a);
+				break;
+			case TYPE_FLT:
+				M_FST(REG_ZERO, s1, a);
+				break;
+			case TYPE_DBL:
+				M_DST(REG_ZERO, s1, a);
+				break;
+			}
 			break;
 
 		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.i = field offset             */
 
 			a = ((fieldinfo *)(iptr->val.a))->offset;
+			var_to_reg_int(s1, src, REG_ITMP1);
+			gen_nullptr_check(s1);
 			switch (iptr->op1) {
-				case TYPE_INT:
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-					gen_nullptr_check(s1);
-					M_ILD(d, s1, a);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_LNG:
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-					gen_nullptr_check(s1);
-					M_LLD(d, s1, a);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_ADR:
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-					gen_nullptr_check(s1);
-					M_ALD(d, s1, a);
-					store_reg_to_var_int(iptr->dst, d);
-					break;
-				case TYPE_FLT:
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-					gen_nullptr_check(s1);
-					M_FLD(d, s1, a);
-					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				case TYPE_DBL:				
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-					gen_nullptr_check(s1);
-					M_DLD(d, s1, a);
-					store_reg_to_var_flt(iptr->dst, d);
-					break;
-				default: panic ("internal error");
-				}
+			case TYPE_INT:
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				M_ILD(d, s1, a);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_LNG:
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				M_LLD(d, s1, a);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_ADR:
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				M_ALD(d, s1, a);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_FLT:
+				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				M_FLD(d, s1, a);
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			case TYPE_DBL:				
+				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				M_DLD(d, s1, a);
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			}
 			break;
 
 
@@ -3185,10 +3230,18 @@ gen_method: {
 				break;
 
 			case ICMD_INVOKESTATIC:
+				a = dseg_addaddress(cd, lm->stubroutine);
+				d = lm->returntype;
+
+				M_ALD(REG_PV, REG_PV, a);            /* method pointer in r27 */
+				break;
+
 			case ICMD_INVOKESPECIAL:
 				a = dseg_addaddress(cd, lm->stubroutine);
 				d = lm->returntype;
 
+				gen_nullptr_check(rd->argintregs[0]);
+				M_ILD(REG_ITMP1, rd->argintregs[0], 0); /* hardware nullpointer */
 				M_ALD(REG_PV, REG_PV, a);            /* method pointer in r27 */
 				break;
 
