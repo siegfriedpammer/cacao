@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1132 2004-06-05 16:29:07Z twisti $
+   $Id: codegen.c 1139 2004-06-05 20:57:12Z twisti $
 
 */
 
@@ -2614,13 +2614,6 @@ void codegen()
 
 		/* memory operations **************************************************/
 
-#define gen_bound_check \
-    if (checkbounds) { \
-        i386_alu_membase_reg(I386_CMP, s1, OFFSET(java_arrayheader, size), s2); \
-        i386_jcc(I386_CC_AE, 0); \
-        codegen_addxboundrefs(mcodeptr, s2); \
-    }
-
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
@@ -4412,16 +4405,9 @@ gen_method: {
 	u1 *xcodeptr = NULL;
 	
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-							  xboundrefs->branchpos,
-							  (u1*) xcodeptr - (u1*) mcodebase - (2 + 5 + 5 + 2));
-			continue;
-		}
-
-
-		gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-		                  xboundrefs->branchpos, (u1*) mcodeptr - mcodebase);
+		gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos,
+		                  xboundrefs->branchpos,
+						  (u1*) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 

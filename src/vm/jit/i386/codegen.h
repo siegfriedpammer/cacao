@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1132 2004-06-05 16:29:07Z twisti $
+   $Id: codegen.h 1139 2004-06-05 20:57:12Z twisti $
 
 */
 
@@ -108,6 +108,13 @@
         i386_jcc(I386_CC_E, 0); \
  	    codegen_addxnullrefs(mcodeptr); \
 	}
+
+#define gen_bound_check \
+    if (checkbounds) { \
+        i386_alu_membase_reg(I386_CMP, s1, OFFSET(java_arrayheader, size), s2); \
+        i386_jcc(I386_CC_AE, 0); \
+        codegen_addxboundrefs(mcodeptr, s2); \
+    }
 
 
 /* MCODECHECK(icnt) */
