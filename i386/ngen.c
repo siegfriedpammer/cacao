@@ -11,12 +11,12 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 353 2003-06-04 22:09:33Z twisti $
+	Last Change: $Id: ngen.c 367 2003-06-13 14:00:24Z twisti $
 
 *******************************************************************************/
 
 #include "jitdef.h"   /* phil */
-#include "methods.c"
+#include "methodtable.c"
 
 /* additional functions and macros to generate code ***************************/
 
@@ -271,7 +271,7 @@ void catch_NullPointerException(int sig)
 	instr = *((int*)(sigctx->eip));
 /*    	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f]; */
 
-/*  	fprintf(stderr, "null=%d %lx addr=%lx data=%lx\n", sig, sigctx, sigctx->eip, findentry((u1 *) sigctx->eip)); */
+/*  	fprintf(stderr, "null=%d %p addr=%p\n", sig, sigctx, sigctx->eip); */
 
 /*  	if (faultaddr == 0) { */
 		signal(sig, (void *) catch_NullPointerException);          /* reinstall handler */
@@ -356,7 +356,6 @@ static void gen_mcode()
 	{
 	int p, pa, t, l, r;
 
-	/* TWISTI */
 /*  	savedregs_num = (isleafmethod) ? 0 : 1;           /* space to save the RA */
   	savedregs_num = 0;
 
