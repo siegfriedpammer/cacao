@@ -113,13 +113,11 @@ struct basicblock {
 	int          pre_count;     /* count of predecessor basic blocks          */
 	branchref   *branchrefs;    /* list of branches to be patched             */
 
-	basicblock	*next;			/* used to build a BB list (instead of array) */
-	int			 lflags;		/* used during loop copying, init with 0	  */
-	basicblock	*copied_to;		/* points to the copy of this basic block	  */
-								/* when loop nodes are copied				  */
-
-  int debug_nr;
-
+	basicblock  *next;          /* used to build a BB list (instead of array) */
+	int          lflags;        /* used during loop copying, init with 0	  */
+	basicblock  *copied_to;     /* points to the copy of this basic block	  */
+                                    /* when loop nodes are copied                 */
+        int debug_nr;
 	};
 
 
