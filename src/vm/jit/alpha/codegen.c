@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: codegen.c 2190 2005-04-02 10:07:44Z edwin $
+   $Id: codegen.c 2204 2005-04-03 22:48:21Z twisti $
 
 */
 
@@ -369,12 +369,12 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		M_AST(REG_RA, REG_SP, 1 * 8);
 
 		/* save integer argument registers */
-		for (p = 0; /* p < m->paramcount && */ p < INT_ARG_CNT; p++) {
+		for (p = 0; p < m->paramcount && p < INT_ARG_CNT; p++) {
 			M_LST(rd->argintregs[p], REG_SP,  (2 + p) * 8);
 		}
 
 		/* save and copy float arguments into integer registers */
-		for (p = 0; /* p < m->paramcount && */ p < FLT_ARG_CNT; p++) {
+		for (p = 0; p < m->paramcount && p < FLT_ARG_CNT; p++) {
 			t = m->paramtypes[p];
 
 			if (IS_FLT_DBL_TYPE(t)) {
@@ -402,11 +402,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		M_LDA(REG_PV, REG_RA, disp);
 		M_ALD(REG_RA, REG_SP, 1 * 8);
 
-		for (p = 0; /* p < mparamcount && */ p < INT_ARG_CNT; p++) {
+		for (p = 0; p < m->paramcount && p < INT_ARG_CNT; p++) {
 			M_LLD(rd->argintregs[p], REG_SP,  (2 + p) * 8);
 		}
 
-		for (p = 0; /* p < mparamcount && */ p < FLT_ARG_CNT; p++) {
+		for (p = 0; p < m->paramcount && p < FLT_ARG_CNT; p++) {
 			t = m->paramtypes[p];
 
 			if (IS_FLT_DBL_TYPE(t)) {
@@ -3866,7 +3866,7 @@ gen_method: {
 
 			MCODECHECK(6);
 
-			/* move class pointer into REG_ITMP2                              */
+			/* move class pointer into REG_ITMP1                              */
 			a = dseg_addaddress(cd, cref->class);
 			M_ALD(REG_ITMP1, REG_PV, a);
 
@@ -4284,7 +4284,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
 
-			/* move class pointer into REG_ITMP2                              */
+			/* move class pointer into REG_ITMP1                              */
 			M_ALD(REG_ITMP1, REG_PV, -8 * 8);     /* class                    */
 
 			/* move machine code into REG_ITMP3                               */
