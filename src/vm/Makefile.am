@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2181 2005-04-01 16:53:33Z edwin $
+## $Id: Makefile.am 2196 2005-04-03 21:37:44Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -67,6 +67,8 @@ libvmcore_la_SOURCES = \
 	exceptions.h \
 	field.c \
 	field.h \
+	initialize.c \
+	initialize.h \
 	linker.c \
 	linker.h \
 	loader.c \
