@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 897 2004-01-21 00:49:42Z stefan $
+   $Id: jit.c 909 2004-02-02 00:52:42Z twisti $
 
 */
 
@@ -1437,9 +1437,9 @@ static void* do_nothing_function()
 
 methodptr jit_compile(methodinfo *m)
 {
-	int dumpsize;
-	long starttime = 0;
-	long stoptime  = 0;
+	s4 dumpsize;
+	s8 starttime = 0;
+	s8 stoptime  = 0;
 
 	count_jit_calls++;
 
@@ -1497,8 +1497,8 @@ methodptr jit_compile(methodinfo *m)
 		log_text(logtext);
 	}
 
-	/* initialize the function's class */
-	if (!m->class->initialized) {
+	/* initialize the static function's class */
+  	if (m->flags & ACC_STATIC && !m->class->initialized) {
 		if (initverbose) {
 			char logtext[MAXLOGTEXT];
 			sprintf(logtext, "Initialize class ");
