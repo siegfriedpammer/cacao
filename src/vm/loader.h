@@ -26,12 +26,15 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 696 2003-12-06 20:10:05Z edwin $
+   $Id: loader.h 705 2003-12-07 17:26:52Z twisti $
 */
 
 
 #ifndef _LOADER_H
 #define _LOADER_H
+
+#include <stdio.h>
+
 
 /************************* program switches ***********************************/
 
@@ -45,6 +48,10 @@ extern long int loadingtime;     /* CPU time for class loading */
 
 extern list unlinkedclasses;     /* List containing all unlinked classes */
 extern list linkedclasses;       /* List containing all linked classes */
+
+#ifdef USE_THREADS
+extern int blockInts;
+#endif
 
 
 /************************ prototypes ******************************************/
@@ -71,6 +78,8 @@ voidptr class_getconstant(classinfo *class, u4 pos, u4 ctype);
 /* determine type of a constantpool element */
 u4 class_constanttype(classinfo *class, u4 pos);
 
+s4 class_findmethodIndex(classinfo *c, utf *name, utf *desc);
+
 /* search class for a field */
 fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc);
 
@@ -90,17 +99,18 @@ void class_init(classinfo *c);
 void class_showconstanti(classinfo *c, int ii);
 
 /* debug purposes */
-void class_showmethods (classinfo *c);
-void class_showconstantpool (classinfo *c);
-void print_arraydescriptor(FILE *file,arraydescriptor *desc);
+void class_showmethods(classinfo *c);
+void class_showconstantpool(classinfo *c);
+void print_arraydescriptor(FILE *file, arraydescriptor *desc);
 
 classinfo *loader_load(utf *topname);
 
 /* set buffer for reading classdata */
-void classload_buffer(u1 *buf,int len);
+void classload_buffer(u1 *buf, int len);
 
 /* return the primitive class inidicated by the given signature character */
 classinfo *class_primitive_from_sig(char sig);
+
 
 /* return the class indicated by the given descriptor */
 #define CLASSLOAD_SKIP  0
