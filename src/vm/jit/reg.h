@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 1203 2004-06-22 23:14:55Z twisti $
+   $Id: reg.h 1234 2004-06-30 19:49:37Z twisti $
 
 */
 
@@ -35,21 +35,90 @@
 #ifndef _REG_H
 #define _REG_H
 
-/* global variables */
 
-extern varinfo5 *locals;
-extern varinfo5 *interfaces;
+#include "types.h"
+#include "jit/jit.h"
 
-extern int intreg_argnum;
-extern int fltreg_argnum;
-extern int arguments_num;
+
+typedef struct registerdata registerdata;
+typedef varinfo varinfo5[5];
+
+
+struct registerdata {
+	varinfo5 *locals;
+	varinfo5 *interfaces;
+
+	int intregsnum;                 /* absolute number of integer registers   */
+	int floatregsnum;               /* absolute number of float registers     */
+
+	int intreg_ret;                 /* register to return integer values      */
+	int intreg_argnum;              /* number of integer argument registers   */
+
+	int floatreg_ret;               /* register for return float values       */
+	int fltreg_argnum;              /* number of float argument registers     */
+
+
+	int *argintregs;                /* scratch integer registers              */
+	int *tmpintregs;                /* scratch integer registers              */
+	int *savintregs;                /* saved integer registers                */
+	int *argfltregs;                /* scratch float registers                */
+	int *tmpfltregs;                /* scratch float registers                */
+	int *savfltregs;                /* saved float registers                  */
+	int *freeargintregs;            /* free argument integer registers        */
+	int *freetmpintregs;            /* free scratch integer registers         */
+	int *freesavintregs;            /* free saved integer registers           */
+	int *freeargfltregs;            /* free argument float registers          */
+	int *freetmpfltregs;            /* free scratch float registers           */
+	int *freesavfltregs;            /* free saved float registers             */
+
+#ifdef USETWOREGS
+	int *secondregs;                /* used for longs in 2 32 bit registers   */
+#endif
+
+	int *freemem;                   /* free scratch memory                    */
+	int memuse;                     /* used memory count                      */
+	int ifmemuse;                   /* interface used memory count            */
+	int maxmemuse;                  /* maximal used memory count (spills)     */
+	int freememtop;                 /* free memory count                      */
+
+	int tmpintregcnt;               /* scratch integer register count         */
+	int savintregcnt;               /* saved integer register count           */
+	int tmpfltregcnt;               /* scratch float register count           */
+	int savfltregcnt;               /* saved float register count             */
+
+	int iftmpintregcnt;             /* iface scratch integer register count   */
+	int ifsavintregcnt;             /* iface saved integer register count     */
+	int iftmpfltregcnt;             /* iface scratch float register count     */
+	int ifsavfltregcnt;             /* iface saved float register count       */
+
+	int argintreguse;               /* used argument integer register count   */
+	int tmpintreguse;               /* used scratch integer register count    */
+	int savintreguse;               /* used saved integer register count      */
+	int argfltreguse;               /* used argument float register count     */
+	int tmpfltreguse;               /* used scratch float register count      */
+	int savfltreguse;               /* used saved float register count        */
+
+	int maxargintreguse;            /* max used argument int register count   */
+	int maxtmpintreguse;            /* max used scratch int register count    */
+	int maxsavintreguse;            /* max used saved int register count      */
+	int maxargfltreguse;            /* max used argument float register count */
+	int maxtmpfltreguse;            /* max used scratch float register count  */
+	int maxsavfltreguse;            /* max used saved float register count    */
+
+	int freetmpinttop;              /* free scratch integer register count    */
+	int freesavinttop;              /* free saved integer register count      */
+	int freetmpflttop;              /* free scratch float register count      */
+	int freesavflttop;              /* free saved float register count        */
+
+	int arguments_num;              /* size of parameter field in the stackframe  */
+};
 
 
 /* function prototypes */
-void reg_init();
+
+void reg_init(methodinfo *m);
 void reg_setup(methodinfo *m);
-void reg_close();
-//void local_init();
+void reg_close(methodinfo *m);
 void regalloc(methodinfo *m);
 
 #endif /* _REG_H */
