@@ -39,7 +39,7 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.c 1967 2005-02-25 15:51:05Z carolyn $
+   $Id: parseXTA.c 2017 2005-03-09 11:37:33Z twisti $
 
 */
 
@@ -118,6 +118,7 @@ Results: (currently) with -stat see # methods marked used
 #include <stdio.h>
 #include <string.h>
 
+#include "config.h"
 #include "cacao/cacao.h"
 #include "mm/memory.h"   
 #include "toolbox/list.h"
@@ -171,7 +172,9 @@ xtainfo *xtainfoInit(methodinfo *m)
         if (m->xta != NULL)
                 return m->xta; /* already initialized */
 
+#if defined(STATISTICS)
     	count_methods_marked_used++;
+#endif
 
         m ->xta = (xtainfo *) NEW(xtainfo);
         m ->xta-> XTAmethodUsed = NOTUSED;
@@ -1528,7 +1531,9 @@ void XTAprintCallgraph (list *xtaWorkList, char * txt)
     methodinfo *xta_meth;
 
  printf("\n%s\n",txt);
+#if defined(STATISTICS)
  printf("-*-*-*-*- XTA Callgraph Worklist:<%i>\n",count_methods_marked_used);
+#endif
 
    for (xta =list_first(xtaWorkList);
          xta != NULL;

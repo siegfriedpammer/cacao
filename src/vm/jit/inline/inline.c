@@ -1,6 +1,4 @@
-/* jit/inline.c - code inliner
-
-globals moved to structure and passed as parameter
+/* src/vm/jit/inline/inline.c - code inliner
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +26,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1971 2005-03-01 20:06:36Z carolyn $
+   $Id: inline.c 2017 2005-03-09 11:37:33Z twisti $
 
 */
 
@@ -126,11 +124,14 @@ void inlining_init0(methodinfo *m, t_inlining_globals *inline_env)
 	inline_env->cummethods = 0; /* co not global or static-used only here? */
 	inline_env->inlining_stack = NULL;
 	inline_env->inlining_rootinfo = NULL;
+
+#if defined(STATISTICS)
 	if (in_stats1) {
 		int ii;
 		for (ii=0; ii<512; ii++) count_in_not[ii]=0;
 		in_stats1=false;
 		}
+#endif
 }
 
 
@@ -393,6 +394,7 @@ if ((inline_env->cummethods < INLINING_MAXMETHODS) &&
      ((opcode != JAVA_INVOKEVIRTUAL) ||
       (opcode != JAVA_INVOKEINTERFACE)) ) &&
     (inlineexceptions || (imi->exceptiontablelength == 0)))  {
+#if defined(STATISTICS)
 	count_in++;
     	if (inlinevirtuals) { 
         	if   (opcode == JAVA_INVOKEVIRTUAL) {
@@ -402,6 +404,7 @@ if ((inline_env->cummethods < INLINING_MAXMETHODS) &&
 			if (uniqueVirt)  count_in_uniqIntf++; 
 			}
 		}
+#endif
 	can = true;
 	
 	}
@@ -415,7 +418,9 @@ if (!can) {
 
 if  (imi->flags & ACC_NATIVE) return can; 
 if  (imi->flags & ACC_ABSTRACT) return can; 
+#if defined(STATISTICS)
   count_in_rejected++;
+#endif
 						if (opt_verbose) 
 							{char logtext[MAXLOGTEXT];
 							sprintf(logtext, "Rejected to inline: ");
@@ -429,12 +434,16 @@ if  (imi->flags & ACC_ABSTRACT) return can;
 
   if  (!(inlineoutsiders) && (m->class != imr->class)) {
 	/*** if ((!mult) && (whycannot > 0)) mult = true;  *** First time not needed ***/
+#if defined(STATISTICS)
 	count_in_outsiders++;
+#endif
 	whycannot = whycannot | IN_OUTSIDERS; /* outsider */ 
 	}
   if (inline_env->cummethods >= INLINING_MAXMETHODS) { 
 	if ((!mult) && (whycannot > 0)) mult = true; 
+#if defined(STATISTICS)
 	count_in_maxDepth++;
+#endif
 	whycannot = whycannot | IN_MAXDEPTH;  
 	}
   if  (imi->jcodelength >= INLINING_MAXCODESIZE) {
@@ -455,11 +464,15 @@ if  (imi->flags & ACC_ABSTRACT) return can;
       	if (uniqueVirt )   { 
       		/* so know why (and that) a unique virtual was rejected for another reason */ 
      		if (opcode == JAVA_INVOKEVIRTUAL) { 
+#if defined(STATISTICS)
 			count_in_uniqueVirt_not_inlined++;
+#endif
 			whycannot = whycannot | IN_UNIQUEVIRT;  
 			}
 	 	else 	{
+#if defined(STATISTICS)
 			count_in_uniqueInterface_not_inlined++;
+#endif
 			whycannot = whycannot | IN_UNIQUE_INTERFACE;  
 			}
 		}	
@@ -476,13 +489,19 @@ if  (imi->flags & ACC_ABSTRACT) return can;
 
   if  (inlineoutsiders && (m->class != imr->class)) {
 	whycannot = whycannot | IN_OUTSIDERS; /* outsider */ 
+#if defined(STATISTICS)
 	count_in_outsiders++;
+#endif
 	}
 
+#if defined(STATISTICS)
   if (mult)  
   	count_in_rejected_mult++;
+#endif
   if (whycannot > ((1<<IN_MAX)-1)) panic ("Inline Whynot is too large???\n");
+#if defined(STATISTICS)
   count_in_not[whycannot]++; 
+#endif
   }
 
 return false;
@@ -673,7 +692,12 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 		for (i = p; i < nextp; i++) label_index[i] = gp;
 
 		if (opt_stat) { 
-		  	if ((!isnotrootlevel) && !maxdepthHit) {maxdepthHit = true;  count_in_maxDepth++; } 
+		  	if ((!isnotrootlevel) && !maxdepthHit) {
+				maxdepthHit = true;
+#if defined(STATISTICS)
+				count_in_maxDepth++;
+#endif
+			}
 			}
 		if (isnotleaflevel) { 
 

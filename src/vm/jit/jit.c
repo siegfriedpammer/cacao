@@ -1,4 +1,4 @@
-/* vm/jit/jit.c - calls the code generation functions
+/* src/vm/jit/jit.c - calls the code generation functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,14 +28,16 @@
             Reinhard Grafl
 
    Changes: Edwin Steiner
+            Christian Thalinger
 
-   $Id: jit.c 1981 2005-03-04 15:49:41Z christian $
+   $Id: jit.c 2017 2005-03-09 11:37:33Z twisti $
 
 */
 
 
 #include <stdlib.h>
 
+#include "config.h"
 #include "codegen.h"
 #include "disass.h"
 #include "types.h"
@@ -1374,8 +1376,10 @@ functionptr jit_compile(methodinfo *m)
 	t_inlining_globals *id;
 	s4                  dumpsize;
 
+#if defined(STATISTICS)
 	if (opt_stat)
 		count_jit_calls++;
+#endif
 
 	/* this is the case if a native function is called by jni */
 
@@ -1398,8 +1402,10 @@ functionptr jit_compile(methodinfo *m)
 		return m->entrypoint;
 	}
 
+#if defined(STATISTICS)
 	if (opt_stat)
 		count_methods++;
+#endif
 
 	/* if there is no javacode, print error message and return empty method   */
 
@@ -1412,10 +1418,12 @@ functionptr jit_compile(methodinfo *m)
 		return m->entrypoint;    /* return empty method     */
 	}
 
+#if defined(STATISTICS)
 	/* measure time */
 
 	if (getcompilingtime)
 		compilingtime_start();
+#endif
 
 	/* mark start of dump memory area */
 
@@ -1469,10 +1477,12 @@ functionptr jit_compile(methodinfo *m)
 
 	dump_release(dumpsize);
 
+#if defined(STATISTICS)
 	/* measure time */
 
 	if (getcompilingtime)
 		compilingtime_stop();
+#endif
 
 	/* define in options.h; Used in main.c, jit.c & inline.c */
 #ifdef INAFTERMAIN

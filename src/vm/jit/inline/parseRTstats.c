@@ -1,4 +1,4 @@
-/* vm/jit/inline/parseRTstats.c -
+/* sr/cvm/jit/inline/parseRTstats.c -
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,12 +26,13 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 1927 2005-02-10 10:50:55Z twisti $
+   $Id: parseRTstats.c 2017 2005-03-09 11:37:33Z twisti $
 
 */
 
 #include <stdio.h>
 
+#include "config.h"
 #include "toolbox/list.h"
 #include "vm/class.h"
 #include "vm/loader.h"
@@ -98,7 +99,9 @@ void printCallgraph (list *rtaWorkList)
     rtaNode    *rta;
     methodinfo *rt_meth;  
 
+#if defined(STATISTICS)
  printf("-*-*-*-*- RTA Callgraph Worklist:<%i>\n",count_methods_marked_used);
+#endif
 
    for (rta =list_first(rtaWorkList);
          rta != NULL;

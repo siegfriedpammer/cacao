@@ -1,4 +1,5 @@
-/* jit/parseRT.c - parser and print functions for Rapid Type Analyis
+/* src/vm/jit/inline/parseRT.c - parser and print functions for Rapid Type
+                                 Analyis
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +27,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1967 2005-02-25 15:51:05Z carolyn $
+   $Id: parseRT.c 2017 2005-03-09 11:37:33Z twisti $
 
 */
 
@@ -61,6 +62,7 @@ Results: (currently) with -stat see # methods marked used
 #include <stdio.h>
 #include <string.h>
 
+#include "config.h"
 #include "cacao/cacao.h"
 #include "mm/memory.h"   
 #include "toolbox/list.h"
@@ -95,7 +97,9 @@ void addToRtaWorkList(methodinfo *meth, char *info) {
 if (meth->methodUsed == USED) return;
 
 if (!(meth->flags & ACC_ABSTRACT))  {
+#if defined(STATISTICS)
     count_methods_marked_used++;
+#endif
     METHINFOt(meth,info,RTA_DEBUGopcodes)
 	if (meth->class->super != NULL) {
 		CLASSNAME(meth->class->super,"\tsuper=",RTA_DEBUGr)
