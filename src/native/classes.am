@@ -138,7 +138,20 @@ AWT_CLASSES = \
 	gnu.java.awt.peer.gtk.GtkTextFieldPeer \
 	gnu.java.awt.peer.gtk.GtkCheckboxMenuItemPeer \
 	gnu.java.awt.peer.gtk.GtkClipboard \
-	gnu.java.awt.peer.gtk.GtkWindowPeer
+	gnu.java.awt.peer.gtk.GtkWindowPeer \
+	gnu.java.awt.peer.gtk.GtkMenuComponentPeer \
+	gnu.java.awt.peer.gtk.GtkImage \
+	gnu.java.awt.peer.gtk.GdkGraphicsEnvironment \
+	gnu.java.awt.peer.gtk.GdkTextLayout \
+	gnu.java.awt.peer.gtk.GThreadMutex \
+	gnu.java.awt.peer.gtk.GThreadNativeMethodRunner \
+	gnu.java.awt.peer.gtk.GtkContainerPeer \
+	gnu.java.awt.peer.gtk.GtkDialogPeer \
+	gnu.java.awt.peer.gtk.GtkEmbeddedWindowPeer \
+	gnu.java.awt.peer.gtk.GtkFontPeer \
+	gnu.java.awt.peer.gtk.GtkMenuComponentPeer \
+	gnu.java.awt.peer.gtk.GtkOffScreenImage 
+
 else
 AWT_CLASSES =
 endif
