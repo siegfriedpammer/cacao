@@ -222,7 +222,7 @@ heap_allocate (SIZE		  in_length,
 			   bool 	  references, 
 			   methodinfo *finalizer)
 {
-	SIZE	length = align_size(in_length + ((1 << 3) - 1)); 
+	SIZE	length = align_size(in_length + ((1 << ALIGN) - 1)); 
 	void*	free_chunk = NULL;
 
 #if VERBOSITY >= VERBOSITY_MISTRUST && 0
@@ -387,12 +387,52 @@ void gc_reclaim (void)
 	allocator_reset();
 
 	/* 2. reclaim unmarked objects */
+#if 0 && SIZE_FROM_CLASSINFO
+	free_start = bitmap_find_next_combination_set_unset(start_bitmap,
+														mark_bitmap,
+														free_end);
+	while (free_start < heap_top) {
+		if (!bitmap_testbit(start_bits, free_start) || 
+			bitmap_testbit(mark_bits, free_start)) {
+			fprintf(stderr, "gc_reclaim: inconsistent bit info for 0x%lx\n", free_start);
+		}
+
+		free_end = free_start;
+		while((free_end < heap_top) && 
+			  (!bitmap_testbit(mark_bits, free_end)) {
+			free_end += 
+		}
+
+
+
+bitmap_find_next_setbit(mark_bitmap, free_start + 8); /* FIXME: constant used */
+
+			//			fprintf(stderr, "%lx -- %lx\n", free_start, free_end);
+			
+			if (free_end < heap_top) {
+				allocator_free(free_start, free_end - free_start);
+
+				//				fprintf(stderr, "gc_reclaim: freed 0x%lx bytes at 0x%lx\n", free_end - free_start, free_start);
+
+#if !defined(JIT_MARKER_SUPPORT)
+				/* might make trouble with JIT-Marker support. The Marker for unused blocks 
+				   might be called, leading to a bad dereference. -- phil. */
+				bitmap_setbit(mark_bits, free_start);
+#endif
+			}
+		} else {
+			//			fprintf(stderr, "hmmm... found freeable area of 0 bytes at heaptop ?!\n");
+			free_end = heap_top;
+		}			
+	}
+#else
 	while (free_end < heap_top) {
 		free_start = bitmap_find_next_combination_set_unset(start_bitmap,
 															mark_bitmap,
 															free_end);
 
-		if (!bitmap_testbit(start_bits, free_start))
+		if (!bitmap_testbit(start_bits, free_start) || 
+			bitmap_testbit(mark_bits, free_start))
 			fprintf(stderr, "gc_reclaim: inconsistent bit info for 0x%lx\n", free_start);
 
 		if (free_start < heap_top) {
@@ -416,6 +456,7 @@ void gc_reclaim (void)
 			free_end = heap_top;
 		}			
 	}
+#endif
 
 	/* 3.1. swap mark & start bitmaps */
 	temp_bits = mark_bits;
@@ -457,6 +498,7 @@ inline
 void 
 gc_mark_object_at (void** addr)
 {
+#if 0
 	//	fprintf(stderr, "gc_mark_object_at: called for address 0x%lx\n", addr);
 
 	if (!((void*)addr >= heap_base && 
@@ -473,24 +515,47 @@ gc_mark_object_at (void** addr)
 			}
 		}
 	}
+#endif
 
-	/* 1. is the addr in the heap && the start of an object */
-	if ((void*)addr >= heap_base && 
+	/* 1. is the addr aligned, on the heap && the start of an object */
+	if (!((long)addr & ((1 << ALIGN) - 1)) &&
+		(void*)addr >= heap_base && 
 		(void*)addr < heap_top && 
 		bitmap_testbit(start_bits, (void*)addr) &&
 		!bitmap_testbit(mark_bits, (void*)addr)) {
-		bitmap_setbit(mark_bits, (void*)addr);
+		bitmap_setbit(mark_bits, (void*)addr); 
 
 		//		fprintf(stderr, "gc_mark_object_at: called for address 0x%lx: ", addr);
 		//		fprintf(stderr, "marking object.\n");
 
-#if JIT_MARKER_SUPPORT
+#ifdef JIT_MARKER_SUPPORT
 		/* 1.a. invoke the JIT-marker method */
    		asm_calljavamethod(addr->vftbl->class->marker, addr, NULL, NULL, NULL);
 #else
 		/* 1.b. mark the references contained */
 		if (bitmap_testbit(reference_bits, addr)) {
-			void** end = (void**)bitmap_find_next_setbit(start_bitmap, addr + 8); /* points just behind the object */
+			void** end;
+#ifdef SIZE_FROM_CLASSINFO
+			void** old_end;
+
+			if (((java_objectheader*)addr)->vftbl == class_array->vftbl) {
+				end = (void**)((long)addr + (long)((java_arrayheader*)addr)->alignedsize); 
+//				fprintf(stderr, "size found for array at 0x%lx: 0x%lx\n", addr, ((java_arrayheader*)addr)->alignedsize);
+			}
+			else {
+				end = (void**)((long)addr + (long)((java_objectheader*)addr)->vftbl->class->alignedsize);							   
+//				fprintf(stderr, "size found for 0x%lx: 0x%lx\n", addr, ((java_objectheader*)addr)->vftbl->class->alignedsize);
+			}
+
+			old_end = (void**)bitmap_find_next_setbit(start_bitmap, (void*)addr + 8);
+			if (end != old_end) {
+				fprintf(stderr, "inconsistent object length for object at 0x%lx:", addr);
+				fprintf(stderr, " old = 0x%lx ; new = 0x%lx\n", old_end, end);
+			}
+#else
+			end = (void**)bitmap_find_next_setbit(start_bitmap, addr + 8); /* points just behind the object */
+#endif
+
 			while (addr < end)
 				gc_mark_object_at(*(addr++));
 		}
@@ -587,6 +652,7 @@ void gc_run (void)
 	static int armageddon_is_near = 0;
 
 	if (armageddon_is_near) {
+		/* armageddon_is_here! */
 		fprintf(stderr, "Oops, seems like there's a slight problem here: gc_run() called while still running?!\n");
 		return;
 	}
