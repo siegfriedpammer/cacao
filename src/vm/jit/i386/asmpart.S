@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 2068 2005-03-23 19:26:30Z twisti $
+   $Id: asmpart.S 2145 2005-03-30 12:55:26Z twisti $
 
 */
 
@@ -67,11 +67,8 @@
 	.globl asm_handle_nat_exception
 	.globl asm_handle_exception
 	.globl asm_check_clinit
-	.globl asm_builtin_checkcast	
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_newarray
-	.globl asm_builtin_anewarray
-	.globl asm_builtin_newarray_array
 	.globl asm_builtin_aastore
 
 #if defined(USE_THREADS)
