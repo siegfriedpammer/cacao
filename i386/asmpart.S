@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger                                               *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 510 2003-10-22 20:21:50Z twisti $        *
+*   Last Change: $Id: asmpart.S 550 2003-11-01 20:34:14Z twisti $        *
 *                                                                              *
 *******************************************************************************/
 
@@ -38,6 +38,10 @@
 	.globl asm_builtin_monitorexit
 	.globl asm_builtin_ldiv
 	.globl asm_builtin_lrem
+    .globl asm_builtin_f2i
+    .globl asm_builtin_f2l
+    .globl asm_builtin_d2i
+    .globl asm_builtin_d2l
 	.globl asm_builtin_arrayinstanceof
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
@@ -260,9 +264,9 @@ calljava_xhandler2:
 *                                                                              *
 *   or                                                                         *
 *                                                                              *
-*   i386_mov_membase_reg(REG_SP, 0, REG_ITMP2)    ; invokevirtual/interface    *
-*   i386_mov_membase_reg(REG_ITMP2, OFFSET(, vftbl), REG_ITMP3)                *
-*   i386_mov_membase_reg(REG_ITMP3, OFFSET(vftbl, table[0]) + \                *
+*   i386_mov_membase_reg(REG_SP, 0, REG_ITMP1)    ; invokevirtual/interface    *
+*   i386_mov_membase_reg(REG_ITMP1, OFFSET(, vftbl), REG_ITMP2)                *
+*   i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, table[0]) + \                *
 *       sizeof(methodptr) * m->vftblindex, REG_ITMP1)                          *
 *   i386_call_reg(REG_ITMP1)                                                   *
 *                                                                              *
@@ -273,52 +277,48 @@ calljava_xhandler2:
 
 
 asm_call_jit_compiler:
-		pushl	%ebp
-		movl	%esp, %ebp
-
-		pushl	%ebx            /* save register                              */
-/*		pushl	%esi*/
-/*		pushl	%edi*/
+        push    %ecx
+		push	%ebx            /* save register                              */
+        push    %ebp
 				
-		movl	4(%ebp),%edx	/* get return address                         */
-		movb	-1(%edx),%bl	/* get function code                          */
-		cmpb	$0xd2,%bl		/* called with `call *REG_ITMP2' (%edx)?      */
+		mov     12(%esp),%ebp	/* get return address (2 push)                */
+		mov     -1(%ebp),%bl	/* get function code                          */
+		cmp     $0xd2,%bl		/* called with `call *REG_ITMP2' (%edx)?      */
 		jne		L_not_static_special
 
-		subl	$6,%edx			/* calculate address of immediate             */
+		sub     $6,%ebp			/* calculate address of immediate             */
 		jmp		L_call_jit_compile
 		
 L_not_static_special:
-		cmpb	$0xd0,%bl		/* called with `call *REG_ITMP1' (%eax)       */
+		cmp     $0xd0,%bl		/* called with `call *REG_ITMP1' (%eax)       */
 		jne		L_not_virtual_interface
 		
-		subl	$6,%edx         /* calculate address of offset                */
-		movl	(%edx),%edx     /* get offset                                 */
-		addl	%ecx,%edx       /* add base address to get method address     */
+		sub     $6,%ebp         /* calculate address of offset                */
+		mov     (%ebp),%ebp     /* get offset                                 */
+		add     %edx,%ebp       /* add base address to get method address     */
 		jmp		L_call_jit_compile
 
 L_not_virtual_interface:        /* a call from asm_calljavamethod             */
-		xorl	%edx,%edx
+		xor     %ebp,%ebp
 		
 L_call_jit_compile:
-		pushl	%edx            /* save address for method pointer            */
+		push    %ebp            /* save address for method pointer            */
 
-		pushl	%eax			/* push methodpointer on stack                */
-		call	jit_compile
-		addl	$4,%esp
+		push    %eax			/* push methodpointer on stack                */
+		call    jit_compile
+		add     $4,%esp
 
-		popl	%edx            /* restore address for method pointer         */
-		testl	%edx,%edx		/* is address == 0 (asm_calljavamethod)       */
+		pop     %ebp            /* restore address for method pointer         */
+		test	%ebp,%ebp		/* is address == 0 (asm_calljavamethod)       */
 		je		L_call_method
 		
-		movl	%eax,(%edx)		/* and now save the new pointer               */
+		mov     %eax,(%ebp)		/* and now save the new pointer               */
 
 L_call_method:
-/*		popl	%edi            /* restore registers                          */
-/*		popl	%esi*/
-		popl	%ebx
-		
-		leave
+        pop     %ebp
+		pop     %ebx            /* restore registers                          */
+        pop     %ecx
+        		
 		jmp		*%eax			/* ...and now call the new method             */
 
 
@@ -345,7 +345,7 @@ asm_dumpregistersandcall:
 		push	%esi
 		push	%edi
 				
-		movl	8(%ebp),%eax		/* load function pointer */
+		mov     8(%ebp),%eax		/* load function pointer */
 		call	*%eax				/* call function */
 
 		pop		%edi
@@ -354,7 +354,7 @@ asm_dumpregistersandcall:
 		pop		%ebx
 		
 		ret
-
+        
 
 /********************* function asm_handle_exception ***************************
 *                                                                              *
@@ -369,30 +369,30 @@ asm_dumpregistersandcall:
 *******************************************************************************/
 
 asm_handle_nat_exception:
-		addl	$4,%esp						/* clear return address of native stub */
+		add     $4,%esp						/* clear return address of native stub */
 		
 asm_handle_exception:
-		pushl   %eax
-		pushl	%edx						/* get the data segment ptr       */
-		call	findmethod
-		movl	%eax,%ecx
-		popl	%edx
-		popl	%eax
+		push    %eax
+		push    %edx						/* get the data segment ptr       */
+		call    findmethod
+		mov     %eax,%ecx
+		pop     %edx
+		pop     %eax
 
-		pushl	%ebp
-		movl	%esp,%ebp
+		push    %ebp
+		mov     %esp,%ebp
 
-		pushl	%eax						/* save exception pointer         */
+		push    %eax						/* save exception pointer         */
 /*		subl	$2,%edx */
-		pushl	%edx						/* save exception pc              */
-		pushl	%ecx						/* save data segment pointer      */
+		push    %edx						/* save exception pc              */
+		push    %ecx						/* save data segment pointer      */
         
-		pushl	%ebx
-		pushl	%esi
-		pushl	%edi
+		push    %ebx
+		push    %esi
+		push    %edi
 		
 ex_stack_loop:
-		subl	$16,%esp
+		sub     $16,%esp
 
 		movl	%eax,(%esp)					/* exception pointer */
 
@@ -643,6 +643,41 @@ nb_lrem:
 		jmp		asm_handle_exception
 		
 
+/************************ function asm_builtin_x2x *****************************
+*                                                                              *
+*   Wrapper functions for corner cases                                         *
+*                                                                              *
+*******************************************************************************/
+
+asm_builtin_f2i:
+        sub     $4,%esp
+        fsts    (%esp)
+        call    builtin_f2i
+        add     $4,%esp
+        ret		
+
+asm_builtin_d2i:
+        sub     $8,%esp
+        fstl    (%esp)
+        call    builtin_d2i
+        add     $8,%esp
+        ret		
+
+asm_builtin_f2l:
+        sub     $4,%esp
+        fsts    (%esp)
+        call    builtin_f2l
+        add     $4,%esp
+        ret		
+
+asm_builtin_d2l:
+        sub     $8,%esp
+        fstl    (%esp)
+        call    builtin_d2l
+        add     $8,%esp
+        ret		
+
+        
 /*********************** function new_builtin_checkcast ************************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
