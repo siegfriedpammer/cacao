@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1541 2004-11-18 12:17:56Z twisti $
+# $Id: Makefile.am 1548 2004-11-18 13:02:27Z twisti $
 
 @SET_MAKE@
 
@@ -147,6 +147,7 @@ natheaders: cacaoh
 nativetable.inc: gennativetable nat/implementednatives.data
 	CLASSPATH=$(top_srcdir)/classpath/lib/bootstrap.zip \
 	$(top_srcdir)/gennativetable \
+	$(NOGEN_CLASSES) \
 	$(CLASSES) \
 	> nativetable.inc
 
@@ -250,7 +251,7 @@ CLASSES= \
 	javax.swing.UIManager \
 	@AWTPEERS@
 
-XCLASSES = \
+NOGEN_CLASSES = \
 	java.lang.ClassLoader \
 	java.lang.Cloneable \
 	java.lang.Object \
