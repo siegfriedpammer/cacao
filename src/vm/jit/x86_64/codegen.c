@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1786 2004-12-21 09:56:58Z twisti $
+   $Id: codegen.c 1810 2004-12-22 11:07:18Z twisti $
 
 */
 
@@ -106,8 +106,6 @@ void thread_restartcriticalsection(ucontext_t *uc)
 void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 {
 	sigset_t nsig;
-	/*  	int      instr; */
-	/*  	long     faultaddr; */
 
 	struct ucontext *_uc = (struct ucontext *) _p;
 	struct sigcontext *sigctx = (struct sigcontext *) &_uc->uc_mcontext;
@@ -115,13 +113,8 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 	java_objectheader *xptr;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
-
 	
-/*	instr = *((int*)(sigctx->rip)); */
-/*    	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f]; */
-
-/*  	if (faultaddr == 0) { */
-	act.sa_sigaction = (functionptr) catch_NullPointerException; /* reinstall handler */
+	act.sa_sigaction = catch_NullPointerException;       /* reinstall handler */
 	act.sa_flags = SA_SIGINFO;
 	sigaction(sig, &act, NULL);
 	
@@ -136,12 +129,6 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 	sigctx->rip = (u8) asm_handle_exception;
 
 	return;
-
-/*  	} else { */
-/*  		faultaddr += (long) ((instr << 16) >> 16); */
-/*  		fprintf(stderr, "faulting address: 0x%08x\n", faultaddr); */
-/*  		panic("Stack overflow"); */
-/*  	} */
 }
 
 
@@ -158,7 +145,7 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
-	act.sa_sigaction = (functionptr) catch_ArithmeticException; /* reinstall handler */
+	act.sa_sigaction = catch_ArithmeticException;        /* reinstall handler */
 	act.sa_flags = SA_SIGINFO;
 	sigaction(sig, &act, NULL);
 
@@ -185,19 +172,19 @@ void init_exceptions(void)
 
 	if (!checknull) {
 #if defined(SIGSEGV)
-		act.sa_sigaction = (functionptr) catch_NullPointerException;
+		act.sa_sigaction = catch_NullPointerException;
 		act.sa_flags = SA_SIGINFO;
 		sigaction(SIGSEGV, &act, NULL);
 #endif
 
 #if defined(SIGBUS)
-		act.sa_sigaction = (functionptr) catch_NullPointerException;
+		act.sa_sigaction = catch_NullPointerException;
 		act.sa_flags = SA_SIGINFO;
 		sigaction(SIGBUS, &act, NULL);
 #endif
 	}
 
-	act.sa_sigaction = (functionptr) catch_ArithmeticException;
+	act.sa_sigaction = catch_ArithmeticException;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGFPE, &act, NULL);
 }

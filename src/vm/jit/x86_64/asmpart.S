@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1754 2004-12-13 08:41:33Z twisti $
+   $Id: asmpart.S 1810 2004-12-22 11:07:18Z twisti $
 
 */
 
@@ -81,11 +81,13 @@
 /********************* exported functions and variables ***********************/
 
 	.globl asm_calljavafunction
-	.globl calljava_xhandler
+
 	.globl asm_calljavafunction2
+	.globl asm_calljavafunction2int
 	.globl asm_calljavafunction2long
+	.globl asm_calljavafunction2float
 	.globl asm_calljavafunction2double
-	.globl calljava_xhandler2
+
 	.globl asm_call_jit_compiler
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
@@ -94,12 +96,17 @@
 	.globl asm_builtin_anewarray
 	.globl asm_builtin_newarray_array
 	.globl asm_builtin_aastore
+
+#if defined(USE_THREADS)
 	.globl asm_builtin_monitorenter
 	.globl asm_builtin_monitorexit
+#endif
+
 	.globl asm_builtin_f2i
 	.globl asm_builtin_f2l
 	.globl asm_builtin_d2i
 	.globl asm_builtin_d2l
+
 	.globl asm_builtin_arrayinstanceof
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
@@ -107,15 +114,6 @@
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
 		
-
-/*************************** imported functions *******************************/
-
-	.globl jit_compile
-	.globl builtin_monitorexit
-	.globl builtin_throw_exception
-	.globl builtin_trace_exception
-	.globl codegen_findmethod
-        
 
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
@@ -205,8 +203,10 @@ call_name2:
 	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction2:
-asm_calljavafunction2double:
+asm_calljavafunction2int:
 asm_calljavafunction2long:
+asm_calljavafunction2float:
+asm_calljavafunction2double:
 	sub     $(7*8),%rsp               /* keep stack 16-byte aligned           */
 	mov     %rbx,0*8(%rsp)            /* %rbx is not a callee saved in cacao  */
 	mov     %rbp,1*8(%rsp)
@@ -653,7 +653,8 @@ ex_already_cleared:
 		movl    IsSync(%r11),%eax			/* %rax = SyncOffset              */
 		test	%rax,%rax					/* if zero no monitorexit         */
 		je		no_monitor_exit
-		
+
+#if defined(USE_THREADS)		
 		add     %rsp,%rax
 		mov     -8(%rax),%rdi
 
@@ -668,7 +669,8 @@ ex_already_cleared:
         mov     1*8(%rsp),%r10
         mov     2*8(%rsp),%r11
         add     $(4*8),%rsp
-                
+#endif
+
 no_monitor_exit:
 		mov		FrameSize(%r11),%eax        /* %eax = frame size              */
 		add		%rax,%rsp                   /* unwind stack                   */
@@ -866,6 +868,7 @@ L_initializererror:
 *                                                                              *
 *******************************************************************************/
 
+#if defined(USE_THREADS)
 asm_builtin_monitorenter:
 	test    %rdi,%rdi
 	je      nb_monitorenter             /* if (null) throw exception          */
@@ -876,6 +879,7 @@ nb_monitorenter:
 	pop     %r10                        /* delete return address              */
 	sub     $3,%r10                     /* faulting address is ra - 3         */
 	jmp     asm_handle_exception
+#endif
 		
 
 /********************* function asm_builtin_monitorexit ************************
@@ -884,6 +888,7 @@ nb_monitorenter:
 *                                                                              *
 *******************************************************************************/
 
+#if defined(USE_THREADS)
 asm_builtin_monitorexit:
 	test    %rdi,%rdi
 	je      nb_monitorexit              /* if (null) throw exception          */
@@ -894,6 +899,7 @@ nb_monitorexit:
 	pop     %r10                        /* delete return address              */
 	sub     $3,%r10                     /* faulting address is ra - 3         */
 	jmp     asm_handle_exception
+#endif
 
 
 /********************* function asm_builtin_x2x ********************************
