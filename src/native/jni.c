@@ -1,10 +1,39 @@
-/********************************** jni.c *****************************************
+/* jni.c - implementation of the Java Native Interface functions
 
-	implementation of the Java Native Interface functions				  
-	which are used in the JNI function table					 
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-***********************************************************************************/
+   This file is part of CACAO.
 
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: ?
+
+   Changes: Joseph Wenninger
+
+   $Id: jni.c 709 2003-12-07 17:32:46Z twisti $
+
+*/
+
+
+#include <string.h>
 #include "jni.h"
 #include "global.h"
 #include "loader.h"
@@ -12,6 +41,8 @@
 #include "native.h"
 #include "builtin.h"
 #include "threads/thread.h"
+#include "toolbox/loging.h"
+#include "toolbox/memory.h"
 #include "nat/java_lang_Byte.h"
 #include "nat/java_lang_Character.h"
 #include "nat/java_lang_Short.h"
@@ -26,14 +57,15 @@
 #define JNI_VERSION       0x00010002
 
 
-static utf* utf_char=0;
-static utf* utf_bool=0;
-static utf* utf_byte=0;
-static utf* utf_short=0;
-static utf* utf_int=0;
-static utf* utf_long=0;
-static utf* utf_float=0;
-static utf* utf_double=0;
+static utf* utf_char = 0;
+static utf* utf_bool = 0;
+static utf* utf_byte  =0;
+static utf* utf_short = 0;
+static utf* utf_int = 0;
+static utf* utf_long = 0;
+static utf* utf_float = 0;
+static utf* utf_double = 0;
+
 
 /********************* accessing instance-fields **********************************/
 
@@ -466,36 +498,41 @@ jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
 	  printf("\n");
 	*/
 
-	if (methodID==0) {
+	if (methodID == 0) {
 		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError); 
 		return 0;
 	}
-        argcount=get_parametercount(methodID);
 
-	if (!( ((methodID->flags & ACC_STATIC) && (obj==0)) ||
-		((!(methodID->flags & ACC_STATIC)) && (obj!=0)) )) {
+	argcount = get_parametercount(methodID);
+
+	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
+		((!(methodID->flags & ACC_STATIC)) && (obj != 0)) )) {
 		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 		return 0;
 	}
 	
-	if (obj && (! builtin_instanceof(obj,methodID->class))) {
+	if (obj && !builtin_instanceof(obj, methodID->class)) {
 		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 		return 0;
 	}
 
-	if  (argcount>3) {
-		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+	if (argcount > 3) {
+		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
 
 	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
 
-	fill_callblock(obj,methodID->descriptor,blk,args,'O');
+	fill_callblock(obj, methodID->descriptor, blk, args, 'O');
 
 	/*      printf("parameter: obj: %p",blk[0].item); */
-	ret=asm_calljavafunction2(methodID,argcount+1,(argcount+1)*sizeof(jni_callblock),blk);
-	MFREE(blk,jni_callblock,argcount+1);
+	ret = asm_calljavafunction2(methodID,
+								argcount + 1,
+								(argcount + 1) * sizeof(jni_callblock),
+								blk);
+
+	MFREE(blk, jni_callblock, argcount + 1);
 	/*      printf("(CallObjectMethodV)-->%p\n",ret); */
 	return ret;
 }
@@ -528,20 +565,20 @@ jint callIntegerMethod(jobject obj, jmethodID methodID, char retType, va_list ar
         
 	argcount = get_parametercount(methodID);
 
-	if (!( ((methodID->flags & ACC_STATIC) && (obj==0)) ||
-		((!(methodID->flags & ACC_STATIC)) && (obj!=0)) )) {
+	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
+		((!(methodID->flags & ACC_STATIC)) && (obj != 0)) )) {
 		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 		return 0;
 	}
 
-	if (obj && (! builtin_instanceof(obj,methodID->class))) {
+	if (obj && !builtin_instanceof(obj, methodID->class)) {
 		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 		return 0;
 	}
 
 
-	if  (argcount>3) {
-		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+	if (argcount > 3) {
+		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
@@ -578,37 +615,42 @@ jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
         utf_display(obj->vftbl->class->name);
         printf("\n");
         */
-	if (methodID==0) {
+	if (methodID == 0) {
 		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError); 
 		return 0;
 	}
-	argcount=get_parametercount(methodID);
 
-	if (!( ((methodID->flags & ACC_STATIC) && (obj==0)) ||
+	argcount = get_parametercount(methodID);
+
+	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
 		   ((!(methodID->flags & ACC_STATIC)) && (obj!=0)) )) {
 		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 		return 0;
 	}
 
-	if (obj && (! builtin_instanceof(obj,methodID->class))) {
+	if (obj && !builtin_instanceof(obj,methodID->class)) {
 		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 		return 0;
 	}
 
 
-	if  (argcount>3) {
-		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+	if (argcount > 3) {
+		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
 
 	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
 
-	fill_callblock(obj,methodID->descriptor,blk,args,'L');
+	fill_callblock(obj, methodID->descriptor, blk, args, 'L');
 
 	/*      printf("parameter: obj: %p",blk[0].item); */
-	ret=asm_calljavafunction2long(methodID,argcount+1,(argcount+1)*sizeof(jni_callblock),blk);
-	MFREE(blk,jni_callblock,argcount+1);
+	ret = asm_calljavafunction2long(methodID,
+									argcount + 1,
+									(argcount + 1) * sizeof(jni_callblock),
+									blk);
+
+	MFREE(blk, jni_callblock, argcount + 1);
 	/*      printf("(CallObjectMethodV)-->%p\n",ret); */
 
 	return ret;
@@ -616,9 +658,9 @@ jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 
 
 /*core function for float class methods (float,double)*/
-jdouble callFloatMethod (jobject obj, jmethodID methodID, va_list args,char retType)
+jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,char retType)
 {
-	int argcount=get_parametercount(methodID);
+	int argcount = get_parametercount(methodID);
 	jni_callblock *blk;
 	jdouble ret;
 
@@ -630,19 +672,24 @@ jdouble callFloatMethod (jobject obj, jmethodID methodID, va_list args,char retT
         utf_display(obj->vftbl->class->name);
         printf("\n");
         */
-	if  (argcount>3) {
-		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+
+	if (argcount > 3) {
+		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
 
 	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
 
-	fill_callblock(obj,methodID->descriptor,blk,args,retType);
+	fill_callblock(obj, methodID->descriptor, blk, args, retType);
 
 	/*      printf("parameter: obj: %p",blk[0].item); */
-	ret=asm_calljavafunction2double(methodID,argcount+1,(argcount+1)*sizeof(jni_callblock),blk);
-	MFREE(blk,jni_callblock,argcount+1);
+	ret = asm_calljavafunction2double(methodID,
+									  argcount + 1,
+									  (argcount + 1) * sizeof(jni_callblock),
+									  blk);
+
+	MFREE(blk, jni_callblock, argcount + 1);
 	/*      printf("(CallObjectMethodV)-->%p\n",ret); */
 
 	return ret;
