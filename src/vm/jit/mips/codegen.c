@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1485 2004-11-11 14:41:42Z twisti $
+   $Id: codegen.c 1551 2004-11-19 14:38:04Z twisti $
 
 */
 
@@ -177,7 +177,7 @@ void init_exceptions(void)
 
 	sigemptyset(&unblockmask);
 	sa.sa_flags = 0;
-	sa.sa_sigaction = catch_NullPointerException;
+	sa.sa_sigaction = (functionptr) catch_NullPointerException;
 	sigemptyset(&sa.sa_mask);
 
 	if (!checknull) {
