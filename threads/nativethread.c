@@ -298,6 +298,9 @@ static void cast_darwinresume()
 		nativethread *info = &tobj->info;
 		if (info != infoself)
 		{
+			mach_port_t thread = info->mach_thread;
+			kern_return_t r;
+
 			r = thread_resume(thread);
 			if (r != KERN_SUCCESS)
 				panic("thread_resume failed");
