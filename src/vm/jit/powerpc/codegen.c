@@ -27,9 +27,12 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1878 2005-01-21 11:33:52Z stefan $
+   Changes: Christian Thalinger
+
+   $Id: codegen.c 1949 2005-02-16 14:46:52Z twisti $
 
 */
+
 
 #include <stdio.h>
 #include <signal.h>
@@ -2998,8 +3001,8 @@ makeactualcall:
 		} else {
 			xcodeptr = mcodeptr;
 
-			M_IADD_IMM(REG_SP, -1 * 8, REG_SP);
-			M_IST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_STWU(REG_SP, REG_SP, -(24 + 2 * 4));
+			M_IST(REG_ITMP2_XPC, REG_SP, 24 + 1 * 4);
 
 			M_MOV(REG_ITMP1, rd->argintregs[0]);
 
@@ -3009,8 +3012,8 @@ makeactualcall:
 			M_JSR;
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-			M_ILD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_IADD_IMM(REG_SP, 1 * 8, REG_SP);
+			M_ILD(REG_ITMP2_XPC, REG_SP, 24 + 1 * 4);
+			M_IADD_IMM(REG_SP, 24 + 2 * 4, REG_SP);
 
 			a = dseg_addaddress(cd, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
@@ -3046,8 +3049,8 @@ makeactualcall:
 		} else {
 			xcodeptr = mcodeptr;
 
-            M_IADD_IMM(REG_SP, -1 * 8, REG_SP);
-            M_IST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_STWU(REG_SP, REG_SP, -(24 + 1 * 4));
+			M_IST(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
 
             a = dseg_addaddress(cd, new_negativearraysizeexception);
             M_ALD(REG_ITMP2, REG_PV, a);
@@ -3055,8 +3058,8 @@ makeactualcall:
             M_JSR;
             M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-            M_ILD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-            M_IADD_IMM(REG_SP, 1 * 8, REG_SP);
+			M_ILD(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
+			M_IADD_IMM(REG_SP, 24 + 1 * 4, REG_SP);
 
 			a = dseg_addaddress(cd, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
@@ -3092,8 +3095,8 @@ makeactualcall:
 		} else {
 			xcodeptr = mcodeptr;
 
-            M_IADD_IMM(REG_SP, -1 * 8, REG_SP);
-            M_IST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_STWU(REG_SP, REG_SP, -(24 + 1 * 4));
+            M_IST(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
 
             a = dseg_addaddress(cd, new_classcastexception);
             M_ALD(REG_ITMP2, REG_PV, a);
@@ -3101,8 +3104,8 @@ makeactualcall:
             M_JSR;
             M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-            M_ILD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-            M_IADD_IMM(REG_SP, 1 * 8, REG_SP);
+			M_ILD(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
+			M_IADD_IMM(REG_SP, 24 + 1 * 4, REG_SP);
 
 			a = dseg_addaddress(cd, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
@@ -3138,9 +3141,8 @@ makeactualcall:
 		} else {
 			xcodeptr = mcodeptr;
 
-			/* XXX this cannot work - there is no link area */
-            M_IADD_IMM(REG_SP, -1 * 8, REG_SP);
-            M_IST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_STWU(REG_SP, REG_SP, -(24 + 1 * 4));
+			M_IST(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
             a = dseg_addaddress(cd, builtin_get_exceptionptrptr);
@@ -3161,8 +3163,8 @@ makeactualcall:
 			M_AST(REG_ITMP3, REG_ITMP2, 0);
 #endif
 
-            M_ILD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-            M_IADD_IMM(REG_SP, 1 * 8, REG_SP);
+            M_ILD(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
+            M_IADD_IMM(REG_SP, 24 + 1 * 4, REG_SP);
 
 			a = dseg_addaddress(cd, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
@@ -3197,8 +3199,8 @@ makeactualcall:
 		} else {
 			xcodeptr = mcodeptr;
 
-            M_IADD_IMM(REG_SP, -1 * 8, REG_SP);
-            M_IST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_STWU(REG_SP, REG_SP, -(24 + 1 * 4));
+			M_IST(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
 
             a = dseg_addaddress(cd, new_nullpointerexception);
             M_ALD(REG_ITMP2, REG_PV, a);
@@ -3206,8 +3208,8 @@ makeactualcall:
             M_JSR;
             M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-            M_ILD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-            M_IADD_IMM(REG_SP, 1 * 8, REG_SP);
+			M_ILD(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
+			M_IADD_IMM(REG_SP, 24 + 1 * 4, REG_SP);
 
 			a = dseg_addaddress(cd, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
