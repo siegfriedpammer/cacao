@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Method.c 1774 2004-12-20 20:16:57Z jowenn $
+   $Id: Method.c 1801 2004-12-21 20:19:19Z jowenn $
 
 */
 
@@ -136,7 +136,6 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 
 		if ((mi->flags & ACC_PUBLIC)==0) {
 			callingMethod=cacao_callingMethod();
-
 			if ((mi->flags & ACC_PRIVATE)!=0) {
 				if (c!=callingMethod->class) {
 					throwAccess=1;

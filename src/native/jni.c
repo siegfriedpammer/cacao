@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1784 2004-12-21 09:51:19Z twisti $
+   $Id: jni.c 1801 2004-12-21 20:19:19Z jowenn $
 
 */
 
@@ -1780,9 +1780,9 @@ jfieldID GetFieldID (JNIEnv *env, jclass clazz, const char *name, const char *si
 		  	    ); 
 	
 	if (!f) { 
-		utf_display(clazz->name);
+		/*utf_display(clazz->name);
 		log_text(name);
-		log_text(sig);
+		log_text(sig);*/
 		*exceptionptr =	new_exception(string_java_lang_NoSuchFieldError);  
 	}
 	return f;

@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 1735 2004-12-07 14:33:27Z twisti $
+   $Id: asmpart.S 1801 2004-12-21 20:19:19Z jowenn $
 
 */
 
@@ -379,16 +379,20 @@ L_refillinStacktrace:               /*a compilation error should cause a stacktr
                                     not complete. Compared to other runtimes it will
                                     not be correct either, since we report eg class
                                     not found errors too early, since we always
-                                    compile methods completely*/
+                                    compile methods completely. The native info
+                                    should be moved around the jit call to get
+                                    a more compliant trace for the "exception in
+                                    initializer" case*/
 	push %ecx		/* store fault adress */
 	push %eax		/* temporarily save exception pointer*/
+	push $0			/* internal function */
 	call builtin_asm_get_stackframeinfo
 	push %eax	/* save location of thread specific stack info head pointer */
 	mov (%eax),%ecx /* save old value of pointer*/
 	push %ecx
 	mov %esp,(%eax) /*store pointer to this structure*/
-	mov 8(%esp),%eax  /* get the exception pointer again*/
-	movl $0,8(%esp) /*mark this block as native*/
+	mov 12(%esp),%eax  /* get the exception pointer again*/
+	movl $0,12(%esp) /*java stack begins just above structure*/
 	push $0 /*used for the jni_callblock structure*/
 	push %eax /*save eax for later */
 	/* get fillInStackTrace method*/
@@ -413,7 +417,7 @@ L_refillinStacktrace:               /*a compilation error should cause a stacktr
 	mov 12(%esp),%eax
 	mov %ecx,(%eax)
 	mov (%esp),%eax
-	add $20,%esp
+	add $24,%esp
 	pop %ecx
 
 	

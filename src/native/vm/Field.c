@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Field.c 1778 2004-12-21 07:46:58Z jowenn $
+   $Id: Field.c 1801 2004-12-21 20:19:19Z jowenn $
 
 */
 
@@ -818,10 +818,10 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 	jfieldID fid;         /* the field to be written */
 	classinfo *c;
 
-	int st = (this->flag & ACC_STATIC); /* true if the field is static */
 
 	fid = class_findfield_approx((classinfo *) this->declaringClass,
 								 javastring_toutf(this->name, false));
+	int st = (fid->flags & ACC_STATIC); /* true if the field is static */
 	CHECKFIELDACCESS(this,fid,((classinfo *) this->declaringClass));
 
 	if (val && (st || obj)) {

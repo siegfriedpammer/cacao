@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: loader.c 1801 2004-12-21 20:19:19Z jowenn $
 
 */
 
@@ -3725,6 +3725,11 @@ classinfo *class_init(classinfo *c)
 
 	/* maybe the class is already initalized or the current thread, which can
 	   pass the monitor, is currently initalizing this class */
+
+	/* JOWENN: In future we need an additinal flag: initializationfailed,
+		since further access to the class should cause a NoClassDefFound,
+		if the static initializer failed once
+        */
 
 	if (c->initialized || c->initializing) {
 		builtin_monitorexit((java_objectheader *) c);

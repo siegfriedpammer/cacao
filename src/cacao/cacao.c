@@ -36,7 +36,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1750 2004-12-10 23:21:03Z carolyn $
+   $Id: cacao.c 1801 2004-12-21 20:19:19Z jowenn $
 
 */
 
@@ -59,7 +59,7 @@
 #include "vm/jit/jit.h"
 
 #ifdef TYPEINFO_DEBUG_TEST
-#include "typeinfo.h"
+#include "vm/jit/verify/typeinfo.h"
 #endif
 
 

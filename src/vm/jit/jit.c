@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1775 2004-12-20 21:04:08Z twisti $
+   $Id: jit.c 1801 2004-12-21 20:19:19Z jowenn $
 
 */
 
@@ -1359,6 +1359,12 @@ functionptr jit_compile(methodinfo *m)
 	registerdata *rd;
 	loopdata *ld;
 	t_inlining_globals *id;
+
+
+	if (m->flags & ACC_NATIVE) {
+		/*this is the case if a native function is called by using jni*/
+		return m->stubroutine;
+	}
 
 	if (opt_stat)
 		count_jit_calls++;
