@@ -62,7 +62,7 @@ JNIEXPORT void JNICALL Java_java_io_RandomAccessFile_open ( JNIEnv *env ,  struc
 	s4 fd;
 	char *fname = javastring_tochar ((java_objectheader*)name);
 	
-	if (writeable) fd = open (fname, O_RDWR, 0);
+	if (writeable) fd = open (fname, O_RDWR|O_CREAT|O_TRUNC, 0666);
 	else           fd = open (fname, O_RDONLY, 0);
 	if (fd==-1) goto fail;
 
