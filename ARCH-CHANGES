@@ -21,3 +21,10 @@
 
 - codegen.c: monitor changes (twisti) ???
     i386: done (1.36)
+
+- codegen.c, codegen.h: jit global variables removal (twisti)
+    alpha: TODO
+    i386: done (codegen.c:1.37, codegen.h:1.12)
+    mips: TODO
+    powerpc: TODO
+    x86_64: TODO
