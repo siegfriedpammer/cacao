@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: linker.h 2101 2005-03-28 21:59:45Z twisti $
+   $Id: linker.h 2119 2005-03-29 21:57:13Z twisti $
 */
 
 
@@ -38,6 +38,8 @@
 /* forward typedefs ***********************************************************/
 
 typedef struct _vftbl vftbl_t;
+typedef struct arraydescriptor arraydescriptor;
+typedef struct primitivetypeinfo primitivetypeinfo;
 
 
 #include "vm/class.h"
@@ -115,9 +117,50 @@ struct _vftbl {
 };
 
 
+/* arraydescriptor *************************************************************
+
+   For every array class an arraydescriptor is allocated which
+   describes the array class. The arraydescriptor is referenced from
+   the vftbl of the array class.
+
+*******************************************************************************/
+
+struct arraydescriptor {
+	vftbl_t *componentvftbl; /* vftbl of the component type, NULL for primit. */
+	vftbl_t *elementvftbl;   /* vftbl of the element type, NULL for primitive */
+	s2       arraytype;      /* ARRAYTYPE_* constant                          */
+	s2       dimension;      /* dimension of the array (always >= 1)          */
+	s4       dataoffset;     /* offset of the array data from object pointer  */
+	s4       componentsize;  /* size of a component in bytes                  */
+	s2       elementtype;    /* ARRAYTYPE_* constant                          */
+};
+
+
+/* primitivetypeinfo **********************************************************/
+
+struct primitivetypeinfo {
+	classinfo *class_wrap;               /* class for wrapping primitive type */
+	classinfo *class_primitive;          /* primitive class                   */
+	char      *wrapname;                 /* name of class for wrapping        */
+	char       typesig;                  /* one character type signature      */
+	char      *name;                     /* name of primitive class           */
+	char      *arrayname;                /* name of primitive array class     */
+	classinfo *arrayclass;               /* primitive array class             */
+	vftbl_t   *arrayvftbl;               /* vftbl of primitive array class    */
+};
+
+
+/* global variables ***********************************************************/
+
+/* This array can be indexed by the PRIMITIVETYPE_ and ARRAYTYPE_ constants   */
+/* (except ARRAYTYPE_OBJECT).                                                 */
+
+extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
+
+
 /* function prototypes ********************************************************/
 
-void linker_init(void);
+bool linker_init(void);
 classinfo *class_link(classinfo *c);
 
 #endif /* _LINKER_H */
