@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: typeinfo.c 2191 2005-04-02 13:54:54Z edwin $
 
 */
 
@@ -541,6 +541,9 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 	}
 
 	/* { we know that both c and dest are loaded classes } */
+
+	TYPEINFO_ASSERT(!IS_CLASSREF(c));
+	TYPEINFO_ASSERT(!IS_CLASSREF(dest));
 
 	cls = c.cls;
 	

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2190 2005-04-02 10:07:44Z edwin $
+   $Id: loader.c 2191 2005-04-02 13:54:54Z edwin $
 
 */
 
@@ -1095,23 +1095,8 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 		}
 
 		cptags[forward_classes->thisindex] = CONSTANT_Class;
-		/* retrieve class from class-table */
-		if (opt_eager) {
-			classinfo *tc;
-			tc = class_new_intern(name);
-
-			if (!load_class_from_classloader(tc, c->classloader))
-				return false;
-
-			/* link the class later, because we cannot link the class currently
-			   loading */
-			list_addfirst(&unlinkedclasses, tc);
-
-			cpinfos[forward_classes->thisindex] = tc;
-
-		} else {
-			cpinfos[forward_classes->thisindex] = class_new(name);
-		}
+		/* the classref is created later */
+		cpinfos[forward_classes->thisindex] = name;
 
 		nfc = forward_classes;
 		forward_classes = forward_classes->next;
@@ -1186,6 +1171,7 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 								forward_fieldmethints->nameandtype_index,
 								CONSTANT_NameAndType);
 
+		/* the classref is created later */
 		fmi->classref = (constant_classref*) (size_t) forward_fieldmethints->class_index;
 		fmi->name = nat->name;
 		fmi->descriptor = nat->descriptor;
@@ -1618,8 +1604,9 @@ static bool load_method(classbuffer *cb, methodinfo *m,descriptor_pool *descpool
 					m->exceptiontable[j].catchtype.any = NULL;
 
 				} else {
-					if (!(m->exceptiontable[j].catchtype.cls =
-						  class_getconstant(c, idx, CONSTANT_Class)))
+					/* the classref is created later */
+					if (!(m->exceptiontable[j].catchtype.any =
+						  (utf*)class_getconstant(c, idx, CONSTANT_Class)))
 						return false;
 				}
 			}
@@ -1691,8 +1678,9 @@ static bool load_method(classbuffer *cb, methodinfo *m,descriptor_pool *descpool
 			m->thrownexceptions = MNEW(classref_or_classinfo, m->thrownexceptionscount);
 
 			for (j = 0; j < m->thrownexceptionscount; j++) {
-				if (!((m->thrownexceptions)[j].cls =
-					  class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
+				/* the classref is created later */
+				if (!((m->thrownexceptions)[j].any =
+					  (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
 					return false;
 			}
 				
@@ -1974,11 +1962,38 @@ classinfo *load_class_bootstrap(classinfo *c)
 	
 *******************************************************************************/
 
+static bool
+XXX_TEMPORARY_resolve(classinfo *c,classref_or_classinfo *ref)
+{
+	if (!ref->any)
+		return true;
+
+	if (opt_eager) {
+		classinfo *tc;
+		tc = class_new_intern(ref->ref->name);
+
+		if (!load_class_from_classloader(tc, c->classloader))
+			return false;
+
+		/* link the class later, because we cannot link the class currently
+		   loading */
+		list_addfirst(&unlinkedclasses, tc);
+
+		ref->cls = tc;
+
+	} else {
+		ref->cls = class_new(ref->ref->name);
+	}
+	return true;
+}
+
 classinfo *load_class_from_classbuffer(classbuffer *cb)
 {
 	classinfo *c;
 	classinfo *tc;
-	u4 i;
+	utf *name;
+	utf *supername;
+	u4 i,j;
 	u4 ma, mi;
 	s4 dumpsize;
 	descriptor_pool *descpool;
@@ -2089,13 +2104,13 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	/* this class */
 	i = suck_u2(cb);
-	if (!(tc = class_getconstant(c, i, CONSTANT_Class)))
+	if (!(name = (utf*) class_getconstant(c, i, CONSTANT_Class)))
 		goto return_exception;
 
-	if (tc != c) {
+	if (name != c->name) {
 		utf_sprint(msg, c->name);
 		sprintf(msg + strlen(msg), " (wrong name: ");
-		utf_sprint(msg + strlen(msg), tc->name);
+		utf_sprint(msg + strlen(msg), name);
 		sprintf(msg + strlen(msg), ")");
 
 		*exceptionptr =
@@ -2105,8 +2120,9 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 	
 	/* retrieve superclass */
+	c->super.any = NULL;
 	if ((i = suck_u2(cb))) {
-		if (!(c->super.cls = class_getconstant(c, i, CONSTANT_Class)))
+		if (!(supername = (utf*) class_getconstant(c, i, CONSTANT_Class)))
 			goto return_exception;
 
 		/* java.lang.Object may not have a super class. */
@@ -2120,7 +2136,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 		/* Interfaces must have java.lang.Object as super class. */
 		if ((c->flags & ACC_INTERFACE) &&
-			c->super.cls->name != utf_java_lang_Object) {
+			supername != utf_java_lang_Object) {
 			*exceptionptr =
 				new_exception_message(string_java_lang_ClassFormatError,
 									  "Interfaces must have java.lang.Object as superclass");
@@ -2129,7 +2145,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		}
 
 	} else {
-		c->super.any = NULL;
+		supername = NULL;
 
 		/* This is only allowed for java.lang.Object. */
 		if (c->name != utf_java_lang_Object) {
@@ -2150,7 +2166,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	c->interfaces = MNEW(classref_or_classinfo, c->interfacescount);
 	for (i = 0; i < c->interfacescount; i++) {
-		if (!(c->interfaces[i].cls = class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
+		/* the classrefs are created later */
+		if (!(c->interfaces[i].any = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
 			goto return_exception;
 	}
 
@@ -2193,15 +2210,34 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 #endif
 
+	/* put the classrefs in the constant pool */
+	for (i=0; i<c->cpcount; ++i) {
+		if (c->cptags[i] == CONSTANT_Class) {
+			utf *name = (utf*) c->cpinfos[i];
+			c->cpinfos[i] = descriptor_pool_lookup_classref(descpool,name);
+		}
+	}
+
+	/* set the super class reference */
+	if (supername) {
+		c->super.ref = descriptor_pool_lookup_classref(descpool,supername);
+		if (!c->super.ref)
+			goto return_exception;
+	}
+
+	/* set the super interfaces references */
+	for (i=0; i<c->interfacescount; ++i) {
+		c->interfaces[i].ref = descriptor_pool_lookup_classref(descpool,(utf*)c->interfaces[i].any);
+		if (!c->interfaces[i].ref)
+			goto return_exception;
+	}
+
 	/* parse the loaded descriptors */
 	for (i=0; i<c->cpcount; ++i) {
 		constant_FMIref *fmi;
 		int index;
 		
 		switch (c->cptags[i]) {
-			case CONSTANT_Class:
-				/* XXX set classref */
-				break;
 			case CONSTANT_Fieldref:
 				fmi = (constant_FMIref *)c->cpinfos[i];
 				fmi->parseddesc.fd = 
@@ -2209,7 +2245,9 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 				if (!fmi->parseddesc.fd)
 					goto return_exception;
 				index = (int) (size_t) fmi->classref;
-				fmi->classref = descriptor_pool_lookup_classref(descpool,((classinfo *)class_getconstant(c,index,CONSTANT_Class))->name);
+				fmi->classref = (constant_classref*)class_getconstant(c,index,CONSTANT_Class);
+				if (!fmi->classref)
+					goto return_exception;
 				break;
 			case CONSTANT_Methodref:
 			case CONSTANT_InterfaceMethodref:
@@ -2219,7 +2257,9 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 				if (!fmi->parseddesc.md)
 					goto return_exception;
 				index = (int) (size_t) fmi->classref;
-				fmi->classref = descriptor_pool_lookup_classref(descpool,((classinfo *)class_getconstant(c,index,CONSTANT_Class))->name);
+				fmi->classref = (constant_classref*)class_getconstant(c,index,CONSTANT_Class);
+				if (!fmi->classref)
+					goto return_exception;
 				break;
 		}
 	}
@@ -2229,9 +2269,43 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			goto return_exception;
 	}
 	for (i = 0; i < c->methodscount; i++) {
-		c->methods[i].parseddesc = descriptor_pool_parse_method_descriptor(descpool,c->methods[i].descriptor);
-		if (!c->methods[i].parseddesc)
+		methodinfo *m = c->methods + i;
+		m->parseddesc = descriptor_pool_parse_method_descriptor(descpool,m->descriptor);
+		if (!m->parseddesc)
 			goto return_exception;
+
+		for (j=0; j<m->exceptiontablelength; ++j) {
+			if (!m->exceptiontable[j].catchtype.any)
+				continue;
+			if ((m->exceptiontable[j].catchtype.ref = descriptor_pool_lookup_classref(descpool,
+						(utf*)m->exceptiontable[j].catchtype.any)) == NULL)
+				goto return_exception;
+		}
+		for (j=0; j<m->thrownexceptionscount; ++j) {
+			if (!m->thrownexceptions[j].any)
+				continue;
+			if ((m->thrownexceptions[j].ref = descriptor_pool_lookup_classref(descpool,
+						(utf*)m->thrownexceptions[j].any)) == NULL)
+				goto return_exception;
+		}
+	}
+
+	/* resolve class references */
+	/* XXX this will be removed later */
+	for (i=0; i<c->cpcount; ++i) {
+		if (c->cptags[i] == CONSTANT_Class) {
+			XXX_TEMPORARY_resolve(c,(classref_or_classinfo*)(c->cpinfos + i));
+		}
+	}
+	XXX_TEMPORARY_resolve(c,&(c->super));
+	for (i=0; i<c->interfacescount; ++i)
+		XXX_TEMPORARY_resolve(c,c->interfaces + i);
+	for (i = 0; i < c->methodscount; i++) {
+		methodinfo *m = c->methods + i;
+		for (j=0; j<m->exceptiontablelength; ++j)
+			XXX_TEMPORARY_resolve(c,&(m->exceptiontable[j].catchtype));
+		for (j=0; j<m->thrownexceptionscount; ++j)
+			XXX_TEMPORARY_resolve(c,m->thrownexceptions + j);
 	}
 
 	/* Check if all fields and methods can be uniquely
