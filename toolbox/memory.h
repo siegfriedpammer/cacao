@@ -36,9 +36,9 @@ void *heap_alloc_uncollectable(u4 bytelen);
 #define MREALLOC(ptr,type,num1,num2) mem_realloc (ptr, sizeof(type) * (num1), \
                                                        sizeof(type) * (num2) )
 
-#define DNEW(type)            ((type*) mem_alloc ( sizeof(type) ))
-#define DMNEW(type,num)       ((type*) mem_alloc ( sizeof(type) * (num) ))
-#define DMREALLOC(ptr,type,num1,num2)  mem_realloc (ptr, sizeof(type)*(num1),\
+#define DNEW(type)            ((type*) dump_alloc ( sizeof(type) ))
+#define DMNEW(type,num)       ((type*) dump_alloc ( sizeof(type) * (num) ))
+#define DMREALLOC(ptr,type,num1,num2)  dump_realloc (ptr, sizeof(type)*(num1),\
                                                        sizeof(type) * (num2) )
 
 #define MCOPY(dest,src,type,num)  memcpy (dest,src, sizeof(type)* (num) )
