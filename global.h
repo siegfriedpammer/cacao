@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 494 2003-10-20 18:22:55Z twisti $
+	Last Change: $Id: global.h 527 2003-10-23 17:46:34Z carolyn $
 
 *******************************************************************************/
 
@@ -389,6 +389,11 @@ typedef struct primitivetypeinfo {
 
 /* field, method and class structures *****************************************/
 
+typedef	struct xtafldinfo {
+        	bool       fieldChecked; 		
+		classinfo *fldClassType;
+		classSet  *XTAclassSet;      /* field class type set                  */  
+		} xtafldinfo;
 /* fieldinfo ******************************************************************/
 
 struct fieldinfo {	      /* field of a class                                 */
@@ -407,14 +412,7 @@ struct fieldinfo {	      /* field of a class                                 */
 		void *a; 
 	} value;
 	
-	/*--- XTA ---*/	
-        bool       fieldChecked; 		
-	classinfo *fldClassType;
-	classSet  *XTAclassSet;      /* field class type set                  */  
-	s4	  lastRoundChgd;
-	/*--- VTA ---*/	
-        s4            VTAfieldUsed; 		/* -1=marked (might be used) 0=not used 1=used */ 
-	classSetNode *VTAclassSet;      /* field class type set                  */  
+	xtafldinfo *xta;
 
 } ;
 
@@ -448,9 +446,22 @@ typedef struct exceptiontable { /* exceptiontable entry in a method           */
 
 
 /* methodinfo  static info ****************************************************/
-/*typedef struct rtainfo {
+typedef struct xtainfo {
+        s4            	XTAmethodUsed; 	/* XTA if used in callgraph -    not used /used */
+	classSet 	*XTAclassSet;      /* method class type set                 */ 
+	/*classSet 	*PartClassSet */   /* method class type set                 */ 
 
-} rtainfo; */
+	classSetNode    *paramClassSet;	    /* cone set of methods parameters       */
+
+	methSet  	*calls;            /* methods this method calls   	    */ 
+	methSet  	*calledBy;         /* methods that call this method         */ 
+	methSet  	*marked;           /* methods that marked by this method    */ 
+	/*methSet         *markedBy*/
+	fldSet          *fldsUsed;         /* fields used by this method             */ 
+	/*methSetNode  *interfaceCalls*/   /* methods this method calls as interface */ 
+	bool	         chgdSinceLastParse; /* Changed since last parse ?          */
+} xtainfo; 
+
 /* methodinfo *****************************************************************/
 
 struct methodinfo {        		/* method structure                       */
@@ -481,7 +492,7 @@ struct methodinfo {        		/* method structure                       */
 	u1        *entrypoint;          /* entry point in machine code            */
 
 	/*rtainfo   rta;*/
-	/*xtainfo   xta;*/
+	xtainfo    *xta;
 
         s4        methodUsed; 		/* marked (might be used later) /not used /used */
         s4        monoPoly; 		/* call is mono or poly or unknown        */ /*RT stats */
@@ -489,28 +500,6 @@ struct methodinfo {        		/* method structure                       */
 	s4	  subRedefs;
 	s4	  subRedefsUsed;
 	
-	/* --- XTA --- */
-        s4            	XTAmethodUsed; 	/* XTA if used in callgraph -    not used /used */
-	classSet 	*XTAclassSet;      /* method class type set                 */ 
-	classSet 	*PartClassSet;     /* method class type set                 */ 
-
-	classSetNode    *paramClassSet;	    /* cone set of methods parameters       */
-
-	methSet  	*calls;            /* methods this method calls   	    */ 
-	methSet  	*calledBy;         /* methods that call this method         */ 
-	methSet  	*marked;           /* methods that marked by this method    */ 
-	methSet         *markedBy;
-	fldSet          *fldsUsed;         /* fields used by this method             */ 
-	bool	         chgdSinceLastParse; /* Changed since last parse ?          */
-
-	s4           lastRoundParsed;   /* Last round parsed 		 	  */ 
-	methSetNode  *interfaceCalls;   /* methods this method calls as interface */ 
-	
-	/* --- VTA --- */
-	classSetNode  *VTAclassSet;      /* method class type set                  */  
-	methSetNode   *VTAcalls;         /* methods this method calls 		  */ 
-	classSetNode **VTAlocalSets;    /*VTA*/
-	classSetNode **VTAstackType;	/*VTA*/	
 };
 
 

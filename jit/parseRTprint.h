@@ -40,7 +40,7 @@
 
 
 #define RTAPRINTmarkMethod1 if (pWhenMarked >= 2) { \
-        printf("<%i/%i> Just Marking Method - class: <index=%i>\n",   \
+        printf("<%i> Just Marking Method - class: <index=%i>\n",   \
 	submeth->methodUsed,  \
 	submeth->class->index); \
 	utf_display(submeth->class->name); \
@@ -62,8 +62,6 @@
 
 #define RTAPRINTmarkSubs1 if (pWhenMarked>=3) { \
   utf *name = topmethod -> name; \
-  utf *descriptor = topmethod -> descriptor; \
-  s4  flags = topmethod -> flags; \
 	printf("markMethod: "); utf_display(class->name); \
 	printf(".");utf_display(name); printf("\n");}
 
@@ -197,7 +195,7 @@
 
 #define RTAPRINT10newXTA  if (pWhenMarked >= 1) { \
 	utf_display(ci->name);printf(" XTA_NEW\n"); \
-	printSet(rt_method->XTAclassSet->head); \
+	printSet(rt_method->xta->XTAclassSet->head); \
 	}
 
 #define RTAPRINT11addedtoCallgraph  if (pWhenMarked >= 1){ \

@@ -305,10 +305,10 @@ if (class == NULL) {return;}
 			printf("\t\t");
 		  if (meth->monoPoly != MONO) printf("\t\tRedefs used/total<%i/%i>\t", meth->subRedefsUsed, meth->subRedefs);
 		     if ( (XTAOPTbypass3) || (opt_xta)) {
-			if (meth->XTAclassSet == NULL)
+			if (meth->xta->XTAclassSet == NULL)
 				printf("class set never created\n");
 			else
-		  		printSet(meth->XTAclassSet->head);
+		  		printSet(meth->xta->XTAclassSet->head);
 			}
 		  }
 	       }
@@ -324,7 +324,7 @@ if (class == NULL) {return;}
 }
 /*--------------------------------------------------------------*/
 void printRTInterfaceClasses() {
-  int ii,jj,mm;
+  int mm;
   classinfo *ci = class_java_lang_Object;
   classSetNode *subs;
 
@@ -345,7 +345,6 @@ void printRTInterfaceClasses() {
 for (subs = ci->impldBy; subs != NULL; subs = subs->nextClass) {
         classinfo * ici = subs->classType;
 	classinfo * isubs = subs->classType;
-	classinfo    * iBy;
 	classSetNode * inBy;
 	int impldBycnt;
 
@@ -398,7 +397,6 @@ for (subs = ci->impldBy; subs != NULL; subs = subs->nextClass) {
 				if (impldBycnt == 1) {
 					classinfo  *cii;
 					methodinfo *mii;
-					int i;
 
 					/* if only 1 implementing class then possibly really mono call */
 				        inBy = ici->impldBy;
