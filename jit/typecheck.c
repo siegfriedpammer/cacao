@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 798 2003-12-16 22:29:54Z edwin $
+   $Id: typecheck.c 807 2003-12-22 10:08:22Z edwin $
 
 */
 
@@ -527,6 +527,7 @@ struct jsr_record {
                 panic("Branching backwards with uninitialized object in local variable"); \
     } while(0)
 
+/* XXX convert this into a function */
 /* TYPECHECK_REACH: executed, when the target block (tbptr) can be reached
  *     from the current block (bptr). The types of local variables and
  *     stack slots are propagated to the target block.
