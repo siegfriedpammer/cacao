@@ -26,7 +26,7 @@
 
    Authors: ?
 
-   $Id: jni.c 669 2003-11-23 14:04:20Z edwin $
+   $Id: jni.c 673 2003-11-23 22:14:35Z jowenn $
 
 */
 
@@ -69,7 +69,7 @@ u4 get_parametercount(methodinfo *m)
 }
 
 
-
+/*XXX it could be considered if we should do typechecking here in the future */
 void fill_callblock(void *obj,utf *descr,jni_callblock blk[], va_list data, char ret) {
     char *utf__ptr  =  descr->text;      /* current position in utf-text */
     char **utf_ptr  =  &utf__ptr;
@@ -140,7 +140,7 @@ void fill_callblock(void *obj,utf *descr,jni_callblock blk[], va_list data, char
 	                    break;			
 	                 }
 	      case '[' : {
-			  /* XXX need arrayclass change? */
+			  /* XXX need arrayclass change? no.*/
 	                    /* arrayclass */
                		    char *start = *utf_ptr;
 	                    char ch;
@@ -394,6 +394,8 @@ fieldinfo *jclass_findfield (classinfo *c, utf *name, utf *desc)
 			return &(c->fields[i]);
 		}
 
+	if (c->super) return jclass_findfield(c->super,name,desc);
+
 	return NULL;
 }
 
@@ -428,10 +430,10 @@ jclass FindClass (JNIEnv* env, const char *name)
 {
 	classinfo *c;  
   
-	if (strcmp(name,"[B")==0) {
+/*	if (strcmp(name,"[B")==0) {
 		c = loader_load(utf_new_char("The_Array_Class"));
 	}
-	else
+	else*/
 		c = loader_load(utf_new_char_classname ((char *) name));
 
 	if (!c) exceptionptr = native_new_and_init(class_java_lang_ClassFormatError);
@@ -1324,13 +1326,20 @@ jfieldID GetFieldID (JNIEnv *env, jclass clazz, const char *name, const char *si
 {
 	jfieldID f;
 
+/*	log_text("========================= searching for:");
+	log_text(name);
+	log_text(sig);*/
 	f = jclass_findfield(clazz,
 			    utf_new_char ((char*) name), 
 			    utf_new_char ((char*) sig)
 		  	    ); 
 	
-	if (!f) exceptionptr =	native_new_and_init(class_java_lang_NoSuchFieldError);  
-
+	if (!f) { 
+/*		utf_display(clazz->name);
+		log_text(name);
+		log_text(sig);*/
+		exceptionptr =	native_new_and_init(class_java_lang_NoSuchFieldError);  
+	}
 	return f;
 }
 
@@ -1339,7 +1348,17 @@ jfieldID GetFieldID (JNIEnv *env, jclass clazz, const char *name, const char *si
 jfieldID getFieldID_critical(JNIEnv *env,jclass clazz,const char *name,const char *sig)
 {
     jfieldID id = GetFieldID(env,clazz,name,sig);     
-    if (!id) panic("setfield_critical failed"); 
+
+    if (!id) {
+       log_text("class:");
+       utf_display(clazz->name);
+       log_text("\nfield:");
+       log_text(name);
+       log_text("sig:");
+       log_text(sig);
+
+       panic("setfield_critical failed"); 
+    }
     return id;
 }
 
@@ -1926,6 +1945,9 @@ jstring NewString (JNIEnv *env, const jchar *buf, jsize len)
 	return (jstring) s;
 }
 
+
+static char emptyString[]="";
+
 /******************* returns the length of a Java string ***************************/
 
 jsize GetStringLength (JNIEnv *env, jstring str)
@@ -1964,14 +1986,22 @@ u2 *javastring_tou2 (jstring so)
 
 const jchar *GetStringChars (JNIEnv *env, jstring str, jboolean *isCopy)
 {	
-	return javastring_tou2(str);
+	jchar *jc=javastring_tou2(str);
+
+	if (jc)	{
+		if (isCopy) *isCopy=JNI_TRUE;
+		return jc;
+	}
+	if (isCopy) *isCopy=JNI_TRUE;
+	return emptyString;
 }
 
 /**************** native code no longer needs access to chars **********************/
 
 void ReleaseStringChars (JNIEnv *env, jstring str, const jchar *chars)
 {
-	MFREE(((jchar*) chars),jchar,((java_lang_String*) str)->count);
+	if (chars==emptyString) return;
+	MFREE(((jchar*) chars),jchar,((java_lang_String*) str)->count+1);
 }
 
 /************ create new java.lang.String object from utf8-characterarray **********/
@@ -1995,9 +2025,15 @@ jsize GetStringUTFLength (JNIEnv *env, jstring string)
 
 const char* GetStringUTFChars (JNIEnv *env, jstring string, jboolean *isCopy)
 {
+    utf *u;
     if (verbose) log_text("GetStringUTFChars:");
 
-    return javastring_toutf((java_lang_String*) string,false)->text;
+    u=javastring_toutf((java_lang_String*) string,false);
+    if (isCopy) *isCopy=JNI_FALSE;
+    if (u) {
+	return u->text;
+    }
+    return emptyString;
 	
 }
 
@@ -2005,6 +2041,8 @@ const char* GetStringUTFChars (JNIEnv *env, jstring string, jboolean *isCopy)
 
 void ReleaseStringUTFChars (JNIEnv *env, jstring str, const char* chars)
 {
+    /*we don't release utf chars right now, perhaps that should be done later. Since there is always one reference
+	the garbage collector will never get them*/
 	/*
     log_text("JNI-Call: ReleaseStringUTFChars");
     utf_display(utf_new_char(chars));

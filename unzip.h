@@ -49,6 +49,8 @@ extern "C" {
 #include "zlib.h"
 #endif
 
+#include "global.h"
+
 #if defined(STRICTUNZIP) || defined(STRICTZIPUNZIP)
 /* like the STRICT of WIN32, we define a pointer that cannot be converted
     from (void*) without cast */
@@ -78,6 +80,9 @@ typedef struct tm_unz_s
 	uInt tm_mon;            /* months since January - [0,11] */
 	uInt tm_year;           /* years - [1980..2044] */
 } tm_unz;
+
+
+int cacao_locate(unzFile file,utf* filename); /*JOWENN*/
 
 /* unz_global_info structure contain global data about the ZIPfile
    These data comes from the end of central dir */
@@ -267,6 +272,7 @@ extern int ZEXPORT unzGetLocalExtrafield OF((unzFile file,
   the return value is the number of bytes copied in buf, or (if <0) 
 	the error code
 */
+
 
 #ifdef __cplusplus
 }

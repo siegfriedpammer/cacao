@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 664 2003-11-21 18:24:01Z jowenn $
+   $Id: native.c 673 2003-11-23 22:14:35Z jowenn $
 
 */
 
@@ -121,6 +121,7 @@ java_objectheader* exceptionptr = NULL;
 
 void use_class_as_object(classinfo *c) 
 {
+	/*log_text("use_class_as_object");*/
         if (!class_java_lang_Class)
                 class_java_lang_Class =
                         class_new ( utf_new_char ("java/lang/Class") );
@@ -697,6 +698,20 @@ fieldinfo *class_findfield_approx (classinfo *c, utf *name)
 	return NULL;
 }
 
+s4 class_findfield_index_approx (classinfo *c, utf *name)
+{
+	s4 i;
+	for (i = 0; i < c->fieldscount; i++) {
+		/* compare field names */
+		if ((c->fields[i].name == name))
+			return i;
+		}
+
+	/* field was not found, raise exception */	
+	exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
+	return -1;
+}
+
 
 /********************** function: native_new_and_init *************************
 
@@ -834,7 +849,6 @@ utf *utf_new_u2(u2 *unicode_pos, u4 unicode_length, bool isclassname)
 	if (!buffer) {
 		printf("length: %d\n",buflength);
 		log_text("utf_new_u2:buffer==NULL");
-		return NULL;
 	}
 
     	left = buflength;

@@ -26,6 +26,9 @@
 #endif
 
 
+#include "global.h"
+#include "tables.h"
+
 #ifndef local
 #  define local static
 #endif
@@ -106,6 +109,14 @@ typedef struct
 } file_in_zip_read_info_s;
 
 
+/*JOWENN*/
+typedef struct cacao_entry
+{
+	struct cacao_entry *next;
+	utf *name;
+	uLong pos;
+} cacao_entry_s;
+
 /* unz_s contain internal information about the zipfile
 */
 typedef struct
@@ -124,8 +135,9 @@ typedef struct
 
 	unz_file_info cur_file_info; /* public info about the current file in zip*/
 	unz_file_info_internal cur_file_info_internal; /* private info about it*/
-    file_in_zip_read_info_s* pfile_in_zip_read; /* structure about the current
+        file_in_zip_read_info_s* pfile_in_zip_read; /* structure about the current
 	                                    file if we are decompressing it */
+	cacao_entry_s *cacao_dir_list;
 } unz_s;
 
 
@@ -402,7 +414,6 @@ extern unzFile ZEXPORT unzOpen (path)
 	/* size of the central directory */
 	if (unzlocal_getLong(fin,&us.size_central_dir)!=UNZ_OK)
 		err=UNZ_ERRNO;
-
 	/* offset of start of central directory with respect to the 
 	      starting disk number */
 	if (unzlocal_getLong(fin,&us.offset_central_dir)!=UNZ_OK)
@@ -431,6 +442,9 @@ extern unzFile ZEXPORT unzOpen (path)
 
 	s=(unz_s*)ALLOC(sizeof(unz_s));
 	*s=us;
+
+	cacao_create_directoryList(s);
+
 	unzGoToFirstFile((unzFile)s);	
 	return (unzFile)s;	
 }
@@ -714,6 +728,7 @@ extern int ZEXPORT unzGoToFirstFile (file)
 }
 
 
+
 /*
   Set the current file of the zipfile to the next file.
   return UNZ_OK if there is no problem
@@ -744,6 +759,57 @@ extern int ZEXPORT unzGoToNextFile (file)
 }
 
 
+void cacao_create_directoryList(unzFile file)
+{
+	unz_s* s=(unz_s*)file;
+	char *c;
+	int i;
+	unz_file_info tmp;
+	char filename[200];
+	if (unzGoToFirstFile(file)!=UNZ_OK) {
+		s->cacao_dir_list=0;
+		return;
+	}
+	i=0;
+	cacao_entry_s* ent=s->cacao_dir_list=(cacao_entry_s*)ALLOC(sizeof(cacao_entry_s));
+	ent->next=0;
+	ent->pos=s->pos_in_central_dir;
+
+	if (unzGetCurrentFileInfo (file,
+                                                  &tmp,
+                                                  filename, 200,
+                                                  0, 0,
+                                                  0,  0) !=UNZ_OK) {
+	
+		panic("Error in ZIP archive");
+	}
+
+
+
+	ent->name=utf_new_char(filename);
+	while (unzGoToNextFile(file)==UNZ_OK) {
+		i++;
+		ent->next=(cacao_entry_s*)ALLOC(sizeof(cacao_entry_s));
+		ent=ent->next;
+		ent->next=0;
+		ent->pos=s->pos_in_central_dir;
+
+		if (unzGetCurrentFileInfo (file,
+                                                  &tmp,
+                                                  filename, 200,
+                                                  0, 0,
+                                                  0,  0) !=UNZ_OK) {
+	
+			panic("Error in ZIP archive");
+		}
+		c=strstr(filename,".class");
+		if (c) *c='\0';
+		ent->name=utf_new_char(filename);
+	};
+	printf("Archive contains %d files\n",i);
+}
+
+
 /*
   Try locate the file szFileName in the zipfile.
   For the iCaseSensitivity signification, see unzipStringFileNameCompare
@@ -764,6 +830,8 @@ extern int ZEXPORT unzLocateFile (file, szFileName, iCaseSensitivity)
 	uLong num_fileSaved;
 	uLong pos_in_central_dirSaved;
 
+	printf("Starting lookup\n");
+	fflush(stdout);
 
 	if (file==NULL)
 		return UNZ_PARAMERROR;
@@ -787,8 +855,12 @@ extern int ZEXPORT unzLocateFile (file, szFileName, iCaseSensitivity)
 								szCurrentFileName,sizeof(szCurrentFileName)-1,
 								NULL,0,NULL,0);
 		if (unzStringFileNameCompare(szCurrentFileName,
-										szFileName,iCaseSensitivity)==0)
+										szFileName,iCaseSensitivity)==0) {
+		printf("class found in zip directory\n");
+		fflush(stdout);
+
 			return UNZ_OK;
+		}
 		err = unzGoToNextFile(file);
 	}
 
@@ -797,6 +869,21 @@ extern int ZEXPORT unzLocateFile (file, szFileName, iCaseSensitivity)
 	return err;
 }
 
+int cacao_locate(unzFile file,utf* filename) {
+	unz_s* s=(unz_s*)file;
+	cacao_entry_s *ent;
+	for (ent=s->cacao_dir_list;ent;ent=ent->next) {
+/*		printf("searching: ");utf_display(filename);
+		printf(" current: ");utf_display(ent->name);
+		printf("\n");*/
+		if (ent->name==filename) {
+			s->pos_in_central_dir=ent->pos;
+			return  unzlocal_GetCurrentFileInfoInternal(file,&s->cur_file_info,
+                                                                                           &s->cur_file_info_internal,
+                                                                                           NULL,0,NULL,0,NULL,0);
+		}
+	}
+}
 
 /*
   Read the local header of the current zipfile
@@ -982,6 +1069,7 @@ extern int ZEXPORT unzOpenCurrentFile (file)
 
 
 	s->pfile_in_zip_read = pfile_in_zip_read_info;
+
     return UNZ_OK;
 }
 

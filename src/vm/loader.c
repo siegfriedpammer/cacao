@@ -29,7 +29,7 @@
             Roman Obermaiser
             Mark Probst
 
-   $Id: loader.c 669 2003-11-23 14:04:20Z edwin $
+   $Id: loader.c 673 2003-11-23 22:14:35Z jowenn $
 
 */
 
@@ -103,6 +103,10 @@ static utf *utf_vmclass; /*java/lang/VMClassLoader*/
 static utf *utf_initialize;
 static utf *utf_initializedesc;
 
+
+static unzFile uf=0;
+
+
 utf* clinit_desc(){
 	return utf_fidesc;
 }
@@ -171,7 +175,6 @@ java_objectheader *proto_java_lang_OutOfMemoryError;
 java_objectheader *proto_java_lang_ArithmeticException;
 java_objectheader *proto_java_lang_ArrayStoreException;
 java_objectheader *proto_java_lang_ThreadDeath;
-
 
 /************* functions for reading classdata *********************************
 
@@ -337,10 +340,8 @@ bool suck_start (utf *classname) {
 		if (isZip) {
 #ifdef USE_ZLIB
 
-			unzFile uf;
-
 			filename[filenamelen++]='\0';
-			uf=unzOpen(filename);
+			if (uf==0) uf=unzOpen(filename);
 			if (uf!=0) {
 				utf_ptr = classname->text;
 				filenamelen=0;
@@ -352,8 +353,7 @@ bool suck_start (utf *classname) {
 					filename[filenamelen++] = c;	
 				}
 				strcpy (filename+filenamelen, ".class");
-				/*log_text(filename);*/
-				if (unzLocateFile(uf,filename,1 /*case sensitive*/)==UNZ_OK) {
+				if (cacao_locate(uf,classname)==UNZ_OK) {
 					unz_file_info file_info;
 					log_text("Class found in zip file");
 				        if (unzGetCurrentFileInfo(uf,&file_info,filename,

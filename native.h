@@ -73,6 +73,7 @@ void init_systemclassloader();
 
 /* search 'classinfo'-structure for a field with the specified name */
 fieldinfo *class_findfield_approx (classinfo *c, utf *name);
+s4 class_findfield_index__approx (classinfo *c, utf *name);
 
 /* creates a new javastring with the text of the utf-symbol */
 java_objectheader *literalstring_new (utf *u);
