@@ -420,7 +420,7 @@ void* __builtin_newarray(s4 base_size,
 	java_arrayheader *a;
 #ifdef SIZE_FROM_CLASSINFO
 	s4 alignedsize = align_size(base_size + (size-1) * elementsize);
-	a = heap_allocate ( alignedsize, true, NULL );
+	a = heap_allocate ( alignedsize, references, NULL );
 #else	
 	a = heap_allocate ( sizeof(java_objectarray) + (size-1) * elementsize, 
 						references, 
