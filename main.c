@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1504 2004-11-14 13:46:29Z jowenn $
+   $Id: main.c 1505 2004-11-14 14:15:58Z jowenn $
 
 */
 
@@ -675,7 +675,8 @@ int main(int argc, char **argv)
 
 	if (startit) {
 		methodinfo *mainmethod;
-		java_objectarray *a; 
+		java_objectarray *a;
+                s4 result=0; 
 
 		/* create, load and link the main class */
 		mainclass = class_new(utf_new_char(mainstring));
@@ -723,8 +724,10 @@ int main(int argc, char **argv)
 		asm_calljavafunction(mainmethod, a, NULL, NULL, NULL);
 
 		/* exception occurred? */
-		if (*exceptionptr)
-			throw_main_exception_exit();
+		if (*exceptionptr) {
+                        result=1;
+			throw_main_exception();
+                }
 
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
@@ -736,7 +739,7 @@ int main(int argc, char **argv)
 
 		/* now exit the JavaVM */
 
-		cacao_exit(0);
+		cacao_exit(result);
 	}
 
 	/************* If requested, compile all methods ********************/
@@ -884,7 +887,7 @@ void cacao_exit(s4 status)
 	if (!m)
 		throw_main_exception_exit();
 
-	asm_calljavafunction(m, rt, (void *) 0, NULL, NULL);
+	asm_calljavafunction(m, rt, (void *) status, NULL, NULL);
 
 	/* this should never happen */
 
