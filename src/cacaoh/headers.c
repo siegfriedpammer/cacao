@@ -1,4 +1,4 @@
-/* vm/headers.c - functions for header generation
+/* src/cacaoh/headers.c - functions for header generation
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 1911 2005-02-10 09:57:01Z twisti $
+   $Id: headers.c 2002 2005-03-05 17:10:18Z twisti $
 
 */
 
@@ -156,7 +156,7 @@ static u4 outputsize;
 static bool dopadding;
 
 
-static void printIDpart(int c) 
+static void printIDpart(int c)
 {
 	if ((c >= 'a' && c <= 'z')
 		|| (c >= 'A' && c <= 'Z')
@@ -188,6 +188,7 @@ static void addoutputsize (int len)
 	for (i = outputsize; i < newsize; i++) fprintf(file, "   u1 pad%d\n", (int) i);
 	outputsize = newsize;
 }
+
 
 static void printOverloadPart(utf *desc)
 {
@@ -533,33 +534,6 @@ void print_classname(classinfo *clazz)
 		}
 	}
 } 
-
-
-/*************** create table for locating native functions ****************/
-
-void printnativetableentry(methodinfo *m)
-{
-	fprintf(file, "   { \"");
-	print_classname(m->class);
-	fprintf(file, "\",\n     \"");
-	utf_fprint(file, m->name);
-	fprintf(file, "\",\n     \"");
-	utf_fprint(file, m->descriptor);
-	fprintf(file, "\",\n     ");
-
-	if ((m->flags & ACC_STATIC) != 0)
-		fprintf(file, "true");
-	else
-		fprintf(file, "false");
-
-	fprintf(file, ",\n     ");
-	fprintf(file, "(functionptr) Java_");
-	printID(m->class->name);
-	fprintf(file,"_");
-	printID(m->name);
-	if (m->nativelyoverloaded) printOverloadPart(m->descriptor);
-	fprintf(file,"\n   },\n");
-}
 
 
 /*

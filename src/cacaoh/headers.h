@@ -1,4 +1,4 @@
-/* cacaoh/headers.h - export functions for header generation
+/* src/cacaoh/headers.h - export functions for header generation
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: headers.h 1912 2005-02-10 09:57:21Z twisti $
+   $Id: headers.h 2002 2005-03-05 17:10:18Z twisti $
 
 */
 
@@ -47,20 +47,19 @@
 #include "vm/global.h"
 
 
-/* export variables */
+/* export variables ***********************************************************/
 
 extern THREADSPECIFIC java_objectheader *_exceptionptr;
 extern chain *nativemethod_chain;
 extern chain *nativeclass_chain;
 extern FILE *file;
 
-/* function prototypes */
+
+/* function prototypes ********************************************************/
 
 void literalstring_free(java_objectheader *o);
-
 void printmethod(methodinfo *m);
 void gen_header_filename(char *buffer, utf *u);
-void printnativetableentry(methodinfo *m);
 void headerfile_generate(classinfo *c, char *opt_directory);
 
 #endif /* _HEADERS_H */
