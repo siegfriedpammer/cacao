@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: arch.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: arch.h 1753 2004-12-13 08:40:16Z twisti $
 
 */
 
@@ -103,7 +103,7 @@
 #define INT_ARG_CNT      6   /* number of int argument registers              */
 #define INT_SAV_CNT      5   /* number of int callee saved registers          */
 
-#define FLT_ARG_CNT      4   /* number of flt argument registers              */
+#define FLT_ARG_CNT      8   /* number of flt argument registers              */
 #define FLT_SAV_CNT      0   /* number of flt callee saved registers          */
 
 #define TRACE_ARGS_NUM   6

@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1735 2004-12-07 14:33:27Z twisti $
+   $Id: reg.inc 1753 2004-12-13 08:40:16Z twisti $
 
 */
 
@@ -278,22 +278,16 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* allocate stack space for passing arguments to called methods */
 
-#ifndef SPECIALMEMUSE
-#if defined(__X86_64__)
-	/*
-	 * XXX: we have a problem here, but allocating a little more stack space
-	 *      is better than having a bug
-	 */
-	/*  	if (arguments_num > (intreg_argnum + fltreg_argnum)) */
-	/*  		ifmemuse = arguments_num - (intreg_argnum + fltreg_argnum); */
-	if (rd->arguments_num > rd->fltreg_argnum)
-		rd->ifmemuse = rd->arguments_num - rd->fltreg_argnum;
-#else
-	if (rd->arguments_num > rd->intreg_argnum)
-		rd->ifmemuse = rd->arguments_num - rd->intreg_argnum;
-#endif
-	else
+#if !defined(SPECIALMEMUSE)
+	/* For this to work properly the integer argument register count must be  */
+	/* less or equal the float argument register count (e.g. x86_64).         */
+	/* (arch.h: INT_ARG_CNT <= FLT_ARG_CNT)                                   */
+	if (rd->arguments_num > INT_ARG_CNT) {
+		rd->ifmemuse = rd->arguments_num - INT_ARG_CNT;
+
+	} else {
 		rd->ifmemuse = 0;
+	}
 #endif
 
 	rd->iftmpintregcnt = rd->tmpintregcnt;
