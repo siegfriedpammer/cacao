@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 851 2004-01-05 23:59:28Z stefan $
+   $Id: builtin.c 853 2004-01-06 15:36:25Z twisti $
 
 */
 
@@ -595,6 +595,13 @@ java_objectheader *builtin_new(classinfo *c)
 {
 	java_objectheader *o;
 
+	if (initverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Initialize class ");
+		utf_sprint(logtext + strlen(logtext), c->name);
+		sprintf(logtext + strlen(logtext), " (from builtin_new)");
+		log_text(logtext);
+	}
 	class_init(c);
 
 #ifdef SIZE_FROM_CLASSINFO
