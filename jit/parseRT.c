@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 657 2003-11-20 15:18:33Z carolyn $
+   $Id: parseRT.c 724 2003-12-09 18:56:11Z edwin $
 
 */
 
@@ -605,7 +605,7 @@ int addClassInit(classinfo *ci) {
 	if (m1 >= 0) { /* No <clinit>  available - ignore */  
 
 		/* Get clinit methodinfo ptr */
-		mi = class_findmethod (ci,ci->methods[m1].name , NULL); 
+		mi = class_fetchmethod (ci,ci->methods[m1].name , NULL); 
 
 		/*--- RTA ---*/
 		if ( mi->methodUsed != USED) {
@@ -623,7 +623,7 @@ int addClassInit(classinfo *ci) {
 	if (mf >= 0) {   
 
 		/* Get finalize methodinfo ptr */
-		mi = class_findmethod (ci,ci->methods[mf].name , NULL); 
+		mi = class_fetchmethod (ci,ci->methods[mf].name , NULL); 
 
 		/*--- RTA ---*/
 		if ( mi->methodUsed != USED) {
@@ -641,7 +641,7 @@ int addClassInit(classinfo *ci) {
 	add java/lang/initializeSystemClass to callgraph */
 	if (m2 >= 0) {
 		/* Get clinit methodinfo ptr */
-		mi = class_findmethod (ci,ci->methods[m2].name , NULL); 
+		mi = class_fetchmethod (ci,ci->methods[m2].name , NULL); 
 
 		/*--- RTA ---*/
 		if ( mi->methodUsed != USED) {
@@ -1328,7 +1328,7 @@ static void parseRT()
 				methodinfo *mi;
 
 				mr = class_getconstant (rt_class, i, CONSTANT_Methodref);
-				mi = class_findmethod (mr->class, mr->name, mr->descriptor);
+				mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
 				/*-- RTA --*/
 							RTAPRINT04invokestatic1
 				if (mi->class->classUsed == NOTUSED) {
@@ -1355,7 +1355,7 @@ static void parseRT()
 			classinfo  *ci;
 				
 			mr = class_getconstant (rt_class, i, CONSTANT_Methodref);
-			mi = class_findmethod (mr->class, mr->name, mr->descriptor);
+			mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
 			ci = mi->class;
 						RTAPRINT06invoke_spec_virt1
 			/*--- PRIVATE Method -----------------------------------------------------*/ 
@@ -1420,7 +1420,7 @@ static void parseRT()
 			methodinfo *mi;
 				
 			mr = class_getconstant (rt_class, i, CONSTANT_Methodref);
-			mi = class_findmethod (mr->class, mr->name, mr->descriptor);
+			mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
 
 			/*--- RTA ---*/
 					RTAPRINT07invoke_spec_virt2
@@ -1453,7 +1453,7 @@ static void parseRT()
 			methodinfo *mi;
 
 			mr = class_getconstant (rt_class, i, CONSTANT_InterfaceMethodref);
-			mi = class_findmethod (mr->class, mr->name, mr->descriptor);
+			mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
 			
 						/*RTAprint*/ if (pWhenMarked >= 1) {
 						/*RTAprint*/ printf("\t");fflush(stdout);

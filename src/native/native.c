@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 708 2003-12-07 17:31:28Z twisti $
+   $Id: native.c 724 2003-12-09 18:56:11Z edwin $
 
 */
 
@@ -145,8 +145,8 @@ void use_class_as_object(classinfo *c)
 		c->header.vftbl = class_java_lang_Class->vftbl;
         
 		if (!class_java_lang_VMClass) {
-			class_java_lang_VMClass =
-				loader_load(utf_new_char("java/lang/VMClass"));
+			loader_load_sysclass(&class_java_lang_VMClass,
+								 utf_new_char("java/lang/VMClass"));
 
 			method_vmclass_init =
 				class_findmethod(class_java_lang_VMClass,
@@ -283,10 +283,10 @@ void native_loadclasses()
 	class_java_security_PrivilegedActionException =
 		class_new(utf_new_char("java/security/PrivilegedActionException"));
 
- 	class_java_net_UnknownHostException = 
-		loader_load(utf_new_char("java/net/UnknownHostException"));
- 	class_java_net_SocketException = 
-		loader_load(utf_new_char("java/net/SocketException"));
+	loader_load_sysclass(&class_java_net_UnknownHostException,
+						 utf_new_char("java/net/UnknownHostException"));
+	loader_load_sysclass(&class_java_net_SocketException,
+						 utf_new_char("java/net/SocketException"));
 
 	class_java_lang_IllegalArgumentException =
 		class_new(utf_new_char("java/lang/IllegalArgumentException"));
@@ -388,7 +388,7 @@ void systemclassloader_addlibname(java_objectheader *o)
 	methodinfo *m;
 	jfieldID id;
 
-	m = class_resolvemethod(loader_load(utf_new_char ("java/util/Vector")),
+	m = class_resolvemethod(loader_load_sysclass(NULL,utf_new_char ("java/util/Vector")),
 							utf_new_char("addElement"),
 							utf_new_char("(Ljava/lang/Object;)V")
 							);
@@ -420,17 +420,22 @@ void native_setclasspath (char *path)
 
 void throw_classnotfoundexception()
 {
+	dolog("throw_classnotfoundexception");
     if (!class_java_lang_ClassNotFoundException) {
         panic("java.lang.ClassNotFoundException not found. Maybe wrong classpath?");
     }
 
 	/* throws a ClassNotFoundException */
 	exceptionptr = native_new_and_init(class_java_lang_ClassNotFoundException);
+	dolog("set exceptionptr");
 }
 
 
 void throw_classnotfoundexception2(utf* classname)
 {
+	dolog("throw_classnotfoundexception2");
+	log_plain("Class: "); log_plain_utf(classname); log_nl();
+	
 	if (!class_java_lang_ClassNotFoundException) {
 		panic("java.lang.ClassNotFoundException not found. Maybe wrong classpath?");
 	}
@@ -438,10 +443,14 @@ void throw_classnotfoundexception2(utf* classname)
 	/* throws a ClassNotFoundException with message */
 	exceptionptr = native_new_and_init_string(class_java_lang_ClassNotFoundException,
 											  javastring_new(classname));
+	dolog("set exceptionptr");
 }
 
 void throw_linkageerror2(utf* classname)
 {
+	dolog("throw_linkageerror2");
+	log_plain("Class: "); log_plain_utf(classname); log_nl();
+	
 	if (!class_java_lang_LinkageError) {
 		panic("java.lang.LinkageError not found. Maybe wrong classpath?");
 	}
@@ -449,6 +458,7 @@ void throw_linkageerror2(utf* classname)
 	/* throws a ClassNotFoundException with message */
 	exceptionptr = native_new_and_init_string(class_java_lang_LinkageError,
 											  javastring_new(classname));
+	dolog("set exceptionptr");
 }
 
 
@@ -723,8 +733,13 @@ s4 class_findfield_index_approx (classinfo *c, utf *name)
 java_objectheader *native_new_and_init(classinfo *c)
 {
 	methodinfo *m;
-	java_objectheader *o = builtin_new(c);          /* create object          */
+	java_objectheader *o;
 
+	/* if c==NULL it is probebly because loader_load failed */
+	if (!c) return exceptionptr;
+
+	o = builtin_new(c);          /* create object          */
+	
         /*
 	printf("native_new_and_init ");
 	utf_display(c->name);
@@ -757,8 +772,13 @@ java_objectheader *native_new_and_init(classinfo *c)
 java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 {
 	methodinfo *m;
-	java_objectheader *o = builtin_new(c);          /* create object          */
+	java_objectheader *o;
 
+	/* if c==NULL it is probebly because loader_load failed */
+	if (!c) return exceptionptr;
+
+	o = builtin_new(c);          /* create object          */
+	
 	if (!o) return NULL;
 
 	/* find initializer */

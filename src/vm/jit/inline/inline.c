@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 689 2003-12-05 18:03:47Z stefan $
+   $Id: inline.c 724 2003-12-09 18:56:11Z edwin $
 
 */
 
@@ -381,7 +381,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 					methodinfo *imi;
 
 					imr = class_getconstant(m->class, i, CONSTANT_Methodref);
-					imi = class_findmethod(imr->class, imr->name, imr->descriptor);
+					imi = class_fetchmethod(imr->class, imr->name, imr->descriptor);
 
 					if (opcode == JAVA_INVOKEVIRTUAL) {
 						if (!is_unique_method(imi->class, imi, imr->name, imr->descriptor))

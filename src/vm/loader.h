@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 723 2003-12-08 19:51:32Z edwin $
+   $Id: loader.h 724 2003-12-09 18:56:11Z edwin $
 */
 
 
@@ -85,6 +85,7 @@ fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc);
 
 /* search for a method with a specified name and descriptor */
 methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc);
+methodinfo *class_fetchmethod(classinfo *c, utf *name, utf *desc);
 methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 
 /* search for a method with specified name and arguments (returntype ignored) */
@@ -104,6 +105,7 @@ void class_showconstantpool(classinfo *c);
 void print_arraydescriptor(FILE *file, arraydescriptor *desc);
 
 classinfo *loader_load(utf *topname);
+classinfo *loader_load_sysclass(classinfo **top,utf *topname);
 
 /* set buffer for reading classdata */
 void classload_buffer(u1 *buf, int len);

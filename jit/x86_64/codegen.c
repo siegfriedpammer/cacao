@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 711 2003-12-07 20:38:26Z twisti $
+   $Id: codegen.c 724 2003-12-09 18:56:11Z edwin $
 
 */
 
@@ -327,9 +327,9 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 	sigaddset(&nsig, sig);
 	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
 
-	c = loader_load(utf_new_char("java/lang/ArithmeticException"));
+	c = loader_load_sysclass(NULL,utf_new_char("java/lang/ArithmeticException"));
 	p = builtin_new(c);
-	m = class_findmethod(c, 
+	m = class_fetchmethod(c, 
 						 utf_new_char("<init>"), 
 						 utf_new_char("(Ljava/lang/String;)V"));
 

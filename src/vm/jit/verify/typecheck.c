@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 723 2003-12-08 19:51:32Z edwin $
+   $Id: typecheck.c 724 2003-12-09 18:56:11Z edwin $
 
 */
 
@@ -199,18 +199,46 @@ struct jsr_record {
 /* MACROS USED INTERNALLY IN typecheck()                                    */
 /****************************************************************************/
 
-#define TOUCH_VARIABLE(num) do {if (jsrchain) touched[num] = TOUCHED_YES;} while (0)
-#define TOUCH_TWOWORD(num)  do {TOUCH_VARIABLE(num);TOUCH_VARIABLE((num)+1);} while (0)
+#define TOUCH_VARIABLE(num)										\
+	do {if (jsrchain) touched[num] = TOUCHED_YES;} while (0)
+#define TOUCH_TWOWORD(num)										\
+	do {TOUCH_VARIABLE(num);TOUCH_VARIABLE((num)+1);} while (0)
 
-/* XXX should check num in range? */
-/* XXX invalidate two word variables on store in second half! */
-#define STORE_TYPE(num,type)       do {vtype[(num)] = (type); TOUCH_VARIABLE(num);} while(0)
-#define STORE_INVALID(num)         STORE_TYPE((num),TYPE_VOID)
-#define STORE_PRIMITIVE(num,type)  STORE_TYPE((num),(type))
-#define STORE_TWOWORD(num,type)    {STORE_PRIMITIVE((num),(type));STORE_INVALID((num)+1);}
+#define INDEX_ONEWORD(num)										\
+	do { if((num)<0 || (num)>=validlocals)						\
+			panic("Invalid local variable index."); } while (0)
+#define INDEX_TWOWORD(num)										\
+	do { if((num)<0 || ((num)+1)>=validlocals)					\
+			panic("Invalid local variable index."); } while (0)
 
-#define CHECKVARTYPE(num,type)  \
-            {if (vtype[(num)] != (type)) panic("Variable type mismatch"); TOUCH_VARIABLE(num);}
+#define SET_VARIABLE(num,type)									\
+	do {vtype[num] = (type);									\
+		if ((num)>0 && IS_2_WORD_TYPE(vtype[(num)-1])) {		\
+			vtype[(num)-1] = TYPE_VOID;							\
+			TOUCH_VARIABLE((num)-1);							\
+		}														\
+		TOUCH_VARIABLE(num);} while(0)
+
+#define STORE_ONEWORD(num,type)									\
+ 	do {INDEX_ONEWORD(num);										\
+		SET_VARIABLE(num,type);} while(0)
+
+#define STORE_TWOWORD(num,type)									\
+ 	do {INDEX_TWOWORD(num);										\
+		SET_VARIABLE(num,type);									\
+		vtype[(num)+1] = TYPE_VOID;								\
+		TOUCH_VARIABLE((num)+1);} while(0)
+
+#define CHECK_ONEWORD(num,type)											\
+	do {INDEX_ONEWORD(num);												\
+		if (vtype[(num)] != (type)) panic("Variable type mismatch");	\
+		TOUCH_VARIABLE(num);} while(0)
+
+#define CHECK_TWOWORD(num,type)											\
+	do {INDEX_TWOWORD(num);												\
+		if (vtype[(num)] != (type)) panic("Variable type mismatch");	\
+		TOUCH_VARIABLE(num);											\
+		TOUCH_VARIABLE((num)+1);} while(0)
 
 /* XXX maybe it's faster to copy always */
 #define COPYTYPE(source,dest)   \
@@ -565,6 +593,7 @@ typecheck()
     basicblock *bptr;                /* pointer to current basic block */
     basicblock *tbptr;                   /* temporary for target block */
     int numlocals;                        /* number of local variables */
+	int validlocals;         /* number of valid local variable indices */
     u1 *vartype;            /* type of each local for each basic block */
     typeinfo *vartypeinfo;  /* type of each local for each basic block */
     u1 *vtype;           /* type of each local for current instruction */
@@ -605,7 +634,6 @@ typecheck()
     name_init = utf_new_char("<init>");
     initmethod = (method->name == name_init);
 
-    /* XXX allocate buffers for method arguments */
     ptype = DMNEW(u1,MAXPARAMS);
     pinfo = DMNEW(typeinfo,MAXPARAMS);
     
@@ -641,6 +669,7 @@ typecheck()
     /* In <init> methods we use an extra local variable to signal if
      * the 'this' reference has been initialized. */
     numlocals = maxlocals;
+	validlocals = numlocals;
     if (initmethod) numlocals++;
 
     /* allocate the buffers for local variables */
@@ -843,18 +872,11 @@ typecheck()
                           COPYTYPE(curstack->prev,dst);
                           break;
 
-                          /* XXX only add these cases in debug mode? */
-                      case ICMD_POP:
-                          break;
-							
-                      case ICMD_POP2:
-                          break;
-
                           /****************************************/
                           /* LOADING ADDRESS FROM VARIABLE        */
 
                       case ICMD_ALOAD:
-                          CHECKVARTYPE(iptr->op1,TYPE_ADR);
+                          CHECK_ONEWORD(iptr->op1,TYPE_ADR);
                           
                           /* loading a returnAddress is not allowed */
                           if (TYPEINFO_IS_PRIMITIVE(vinfo[iptr->op1]))
@@ -873,7 +895,7 @@ typecheck()
                               TYPEINFO_IS_NEWOBJECT(curstack->typeinfo))
                               panic("Storing uninitialized object in local variable inside try block");
                           
-                          STORE_TYPE(iptr->op1,TYPE_ADDRESS);
+                          STORE_ONEWORD(iptr->op1,TYPE_ADDRESS);
                           TYPEINFO_COPY(curstack->typeinfo,vinfo[iptr->op1]);
                           break;
                           
@@ -888,24 +910,6 @@ typecheck()
                           maythrow = true;
                           break;
 							  
-                          /****************************************/
-                          /* STORING ADDRESS TO ARRAY             */
-
-                      case ICMD_AASTORE:
-                          /* XXX also handled by builtin3 */
-                          /* XXX move this to unexpected instructions? */
-                          if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(curstack->prev->prev->typeinfo))
-                              panic("illegal instruction: AASTORE to non-reference array");
-
-                          /* XXX optimize */
-                          /*
-                            typeinfo_init_component(&curstack->prev->prev->typeinfo,&tempinfo);
-                            if (!typeinfo_is_assignable(&curstack->typeinfo,&tempinfo))
-                            panic("illegal instruction: AASTORE to incompatible type");
-                          */
-                          maythrow = true;
-                          break;
-
                           /****************************************/
                           /* FIELD ACCESS                         */
 
@@ -1063,7 +1067,7 @@ typecheck()
                           if (!TYPEINFO_IS_REFERENCE(curstack->typeinfo))
                               panic("Illegal instruction: INSTANCEOF on non-reference");
                           
-                          /* XXX may throw ? */
+                          /* XXX optimize statically? */
                           break;
                           
                       case ICMD_ACONST:
@@ -1149,8 +1153,6 @@ typecheck()
                           /****************************************/
                           /* RETURNS AND THROW                    */
 
-                          /* XXX returns may throw */
-
                       case ICMD_ATHROW:
                           TYPEINFO_INIT_CLASSINFO(tempinfo,class_java_lang_Throwable);
                           if (!typeinfo_is_assignable(&curstack->typeinfo,&tempinfo))
@@ -1166,40 +1168,30 @@ typecheck()
                           if (returntype != TYPE_ADDRESS
                               || !typeinfo_is_assignable(&curstack->typeinfo,&returntypeinfo))
                               panic("Return type mismatch");
-
-                          TYPECHECK_LEAVE;
-                          superblockend = true;
-                          break;
-
+						  goto return_tail;
+						  
                       case ICMD_IRETURN:
-                          if (returntype != TYPE_INT)
-                              panic("Return type mismatch");
-                          TYPECHECK_LEAVE;
-                          superblockend = true;
-                          break;                           
+                          if (returntype != TYPE_INT) panic("Return type mismatch");
+						  goto return_tail;
+						  
                       case ICMD_LRETURN:
-                          if (returntype != TYPE_LONG)
-                              panic("Return type mismatch");
-                          TYPECHECK_LEAVE;
-                          superblockend = true;
-                          break;
+                          if (returntype != TYPE_LONG) panic("Return type mismatch");
+						  goto return_tail;
+						  
                       case ICMD_FRETURN:
-                          if (returntype != TYPE_FLOAT)
-                              panic("Return type mismatch");
-                          TYPECHECK_LEAVE;
-                          superblockend = true;
-                          break;
+                          if (returntype != TYPE_FLOAT) panic("Return type mismatch");
+						  goto return_tail;
+						  
                       case ICMD_DRETURN:
-                          if (returntype != TYPE_DOUBLE)
-                              panic("Return type mismatch");
-                          TYPECHECK_LEAVE;
-                          superblockend = true;
-                          break;
+                          if (returntype != TYPE_DOUBLE) panic("Return type mismatch");
+						  goto return_tail;
+						  
                       case ICMD_RETURN:
-                          if (returntype != TYPE_VOID)
-                              panic("Return type mismatch");
+                          if (returntype != TYPE_VOID) panic("Return type mismatch");
+					  return_tail:
                           TYPECHECK_LEAVE;
                           superblockend = true;
+                          maythrow = true;
                           break;
                                                     
                           /****************************************/
@@ -1257,12 +1249,12 @@ typecheck()
                               repeat = true;
                               superblockend = true;
                           }
-                          /* XXX may throw? */
+                          /* XXX may throw? I don't think. */
                           break;
                           
                       case ICMD_RET:
                           /* check returnAddress variable */
-                          CHECKVARTYPE(iptr->op1,TYPE_ADR);
+                          CHECK_ONEWORD(iptr->op1,TYPE_ADR);
                           
                           if (!TYPEINFO_IS_PRIMITIVE(vinfo[iptr->op1]))
                               panic("illegal instruction: RET using non-returnAddress variable");
@@ -1324,6 +1316,7 @@ typecheck()
                       case ICMD_INVOKESTATIC:
                       case ICMD_INVOKEINTERFACE:
                           {
+							  /* XXX check if this opcode may invoke this method */
                               /* XXX check access rights */
                               
                               methodinfo *mi = (methodinfo*) iptr->val.a;
@@ -1415,7 +1408,7 @@ typecheck()
                                   if (initmethod && !ins) {
                                       /* set our marker variable to type int */
                                       LOG("setting <init> marker");
-                                      STORE_PRIMITIVE(numlocals-1,TYPE_INT);
+									  vtype[numlocals-1] = TYPE_INT;
                                   }
                               }
                           }
@@ -1442,7 +1435,6 @@ typecheck()
                           
                       case ICMD_BUILTIN3:
                           if (ISBUILTIN(asm_builtin_aastore)) {
-                              /* XXX also handled by ICMD_AASTORE */
                               if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(curstack->prev->prev->typeinfo))
                                   panic("illegal instruction: AASTORE to non-reference array");
 
@@ -1516,14 +1508,14 @@ typecheck()
                           /****************************************/
                           /* PRIMITIVE VARIABLE ACCESS            */
 
-                      case ICMD_ILOAD: CHECKVARTYPE(iptr->op1,TYPE_INT); break;
-                      case ICMD_LLOAD: CHECKVARTYPE(iptr->op1,TYPE_LONG); break;
-                      case ICMD_FLOAD: CHECKVARTYPE(iptr->op1,TYPE_FLOAT); break;
-                      case ICMD_DLOAD: CHECKVARTYPE(iptr->op1,TYPE_DOUBLE); break;
-                      case ICMD_IINC:  CHECKVARTYPE(iptr->op1,TYPE_INT); /*TOUCH_VARIABLE(iptr->op1);*/ break;
+                      case ICMD_ILOAD: CHECK_ONEWORD(iptr->op1,TYPE_INT); break;
+                      case ICMD_FLOAD: CHECK_ONEWORD(iptr->op1,TYPE_FLOAT); break;
+                      case ICMD_IINC:  CHECK_ONEWORD(iptr->op1,TYPE_INT); break;
+                      case ICMD_LLOAD: CHECK_TWOWORD(iptr->op1,TYPE_LONG); break;
+                      case ICMD_DLOAD: CHECK_TWOWORD(iptr->op1,TYPE_DOUBLE); break;
                           
-                      case ICMD_FSTORE: STORE_PRIMITIVE(iptr->op1,TYPE_FLOAT); break;
-                      case ICMD_ISTORE: STORE_PRIMITIVE(iptr->op1,TYPE_INT); break;                           
+                      case ICMD_FSTORE: STORE_ONEWORD(iptr->op1,TYPE_FLOAT); break;
+                      case ICMD_ISTORE: STORE_ONEWORD(iptr->op1,TYPE_INT); break;
                       case ICMD_LSTORE: STORE_TWOWORD(iptr->op1,TYPE_LONG); break;
                       case ICMD_DSTORE: STORE_TWOWORD(iptr->op1,TYPE_DOUBLE); break;
                           
@@ -1536,8 +1528,10 @@ typecheck()
                       case ICMD_ANEWARRAY:
                       case ICMD_MONITORENTER:
                       case ICMD_MONITOREXIT:
+                      case ICMD_AASTORE:
                           /* XXX only check this in debug mode? */
-                          LOGSTR2("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
+                          LOG2("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
+						  LOG("Should have been converted to builtin function call.");
                           panic("Internal error: unexpected instruction encountered");
                           break;
                                                      
@@ -1549,6 +1543,8 @@ typecheck()
                                                 /* XXX only add cases for them in debug mode? */
 
                       case ICMD_NOP:
+                      case ICMD_POP:
+                      case ICMD_POP2:
                       case ICMD_READONLY_ARG: /* XXX ? */
                       case ICMD_CLEAR_ARGREN: /* XXX ? */
                           break;
@@ -1726,13 +1722,18 @@ typecheck()
         LOGIF(repeat,"repeat=true");
     } while (repeat);
 
-    /* XXX reset BB... to BBFINISHED */
-    
-    /* XXX free vartype */
-    /* XXX free vartypeinfo */
-            /* XXX free buffers for method arguments. */
-
-    /* XXX add debug check if all non-dead blocks have been checked */
+#ifdef TYPECHECK_DEBUG
+	for (i=0; i<block_count; ++i) {
+		if (block[i].flags != BBDELETED
+			&& block[i].flags != BBUNDEF
+			&& block[i].flags != BBFINISHED)
+		{
+			LOG2("block L%03d has invalid flags after typecheck: %d",
+				 block[i].debug_nr,block[i].flags);
+			panic("Inalid block flags after typecheck");
+		}
+	}
+#endif
 
     LOGimp("exiting typecheck");
 }

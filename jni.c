@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 718 2003-12-08 13:03:43Z jowenn $
+   $Id: jni.c 724 2003-12-09 18:56:11Z edwin $
 
 */
 
@@ -3290,7 +3290,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 					s4 intVal;	
 					intVal=(s4)asm_calljavafunction2(methodID,
 						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load(utf_new_char("java/lang/Integer")));
+					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Integer")));
 					CallVoidMethod(env,retVal,
 						class_resolvemethod(retVal->vftbl->class,
 						utf_new_char("<init>"),utf_new_char("(I)V")),intVal);
@@ -3300,7 +3300,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 					s4 intVal;	
 					intVal=(s4)asm_calljavafunction2(methodID,
 						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load(utf_new_char("java/lang/Byte")));
+					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Byte")));
 					CallVoidMethod(env,retVal,
 						class_resolvemethod(retVal->vftbl->class,
 						utf_new_char("<init>"),utf_new_char("(B)V")),intVal);
@@ -3310,7 +3310,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 					s4 intVal;	
 					intVal=(s4)asm_calljavafunction2(methodID,
 						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load(utf_new_char("java/lang/Character")));
+					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Character")));
 					CallVoidMethod(env,retVal,
 						class_resolvemethod(retVal->vftbl->class,
 						utf_new_char("<init>"),utf_new_char("(C)V")),intVal);
@@ -3320,7 +3320,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 					s4 intVal;	
 					intVal=(s4)asm_calljavafunction2(methodID,
 						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load(utf_new_char("java/lang/Short")));
+					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Short")));
 					CallVoidMethod(env,retVal,
 						class_resolvemethod(retVal->vftbl->class,
 						utf_new_char("<init>"),utf_new_char("(S)V")),intVal);
@@ -3330,7 +3330,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 					s4 intVal;	
 					intVal=(s4)asm_calljavafunction2(methodID,
 						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load(utf_new_char("java/lang/Boolean")));
+					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Boolean")));
 					CallVoidMethod(env,retVal,
 						class_resolvemethod(retVal->vftbl->class,
 						utf_new_char("<init>"),utf_new_char("(Z)V")),intVal);
@@ -3340,7 +3340,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 					jlong intVal;	
 					intVal=asm_calljavafunction2long(methodID,
 						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load(utf_new_char("java/lang/Long")));
+					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Long")));
 					CallVoidMethod(env,retVal,
 						class_resolvemethod(retVal->vftbl->class,
 						utf_new_char("<init>"),utf_new_char("(J)V")),intVal);
@@ -3350,7 +3350,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 					jdouble floatVal;	
 					floatVal=asm_calljavafunction2double(methodID,
 						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load(utf_new_char("java/lang/Float")));
+					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Float")));
 					CallVoidMethod(env,retVal,
 						class_resolvemethod(retVal->vftbl->class,
 						utf_new_char("<init>"),utf_new_char("(F)V")),floatVal);
@@ -3360,7 +3360,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 					jdouble floatVal;	
 					floatVal=asm_calljavafunction2double(methodID,
 						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load(utf_new_char("java/lang/Double")));
+					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Double")));
 					CallVoidMethod(env,retVal,
 						class_resolvemethod(retVal->vftbl->class,
 						utf_new_char("<init>"),utf_new_char("(D)V")),floatVal);
@@ -3380,7 +3380,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 
 	if (exceptionptr) {
 		java_objectheader *exceptionToWrap=exceptionptr;
-		classinfo *ivtec=loader_load(utf_new_char("java/lang/reflect/InvocationTargetException"));
+		classinfo *ivtec=loader_load_sysclass(NULL,utf_new_char("java/lang/reflect/InvocationTargetException"));
 		java_objectheader* ivte=builtin_new(ivtec);
 		if (asm_calljavamethod(class_resolvemethod(ivtec,utf_new_char("<init>"),utf_new_char("(Ljava/lang/Throwable;)V")),
 			ivte,exceptionToWrap,0,0)!=NULL) panic("jni.c: error while creating InvocationTargetException wrapper");

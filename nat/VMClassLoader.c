@@ -39,7 +39,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimit
 
     if (u) {    	
       /* get primitive class */
-      c = loader_load(u);
+		c = loader_load_sysclass(NULL,u);
       use_class_as_object (c);
       return (java_lang_Class*) c;      
     }

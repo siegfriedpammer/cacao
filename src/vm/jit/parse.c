@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 696 2003-12-06 20:10:05Z edwin $
+   $Id: parse.c 724 2003-12-09 18:56:11Z edwin $
 
 */
 
@@ -485,6 +485,16 @@ void parse()
 
 	bool useinltmp;
 
+	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Parsing: ");
+		utf_sprint(logtext+strlen(logtext), method->class->name);
+		strcpy(logtext+strlen(logtext), ".");
+		utf_sprint(logtext+strlen(logtext), method->name);
+		utf_sprint(logtext+strlen(logtext), method->descriptor);
+		dolog(logtext);
+	}
+
 	/* INLINING */
 	if (useinlining) {
 		label_index = inlinfo->label_index;
@@ -531,6 +541,9 @@ void parse()
 	/* additional MONITOREXITS are reached by branches which are 3 bytes */
 	
 	iptr = instr = DMNEW(instruction, cumjcodelength + 5);
+
+	/* XXX zero fields in the instructions loop? */
+	memset(iptr,0,sizeof(instruction) * (cumjcodelength + 5));
 	
 	/* initialize block_index table (unrolled four times) */
 
@@ -587,7 +600,7 @@ void parse()
 
 	for (p = 0, gp = 0; p < jcodelength; gp += (nextp - p), p = nextp) {
 	  
-		/* DEBUG	  printf("p:%d gp:%d ",p,gp); */
+		/* DEBUG XXX */	  /*printf("p:%d gp:%d ",p,gp);*/
 
 		/*INLINING*/
 		if ((useinlining) && (gp == nextgp)) {
@@ -1170,7 +1183,7 @@ void parse()
 				methodinfo *mi;
 				
 				mr = class_getconstant (class, i, CONSTANT_Methodref);
-				mi = class_findmethod (mr->class, mr->name, mr->descriptor);
+				mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
 				/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
 					/*RTAprint*/    {printf(" method name =");
 					/*RTAprint*/    utf_display(mi->class->name); printf(".");
@@ -1191,9 +1204,9 @@ void parse()
 			{
 				constant_FMIref *mr;
 				methodinfo *mi;
-				
+
 				mr = class_getconstant (class, i, CONSTANT_Methodref);
-				mi = class_findmethod (mr->class, mr->name, mr->descriptor);
+				mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
 				/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
 					/*RTAprint*/    {printf(" method name =");
 					method_display(mi);
@@ -1216,7 +1229,7 @@ void parse()
 				methodinfo *mi;
 				
 				mr = class_getconstant (class, i, CONSTANT_InterfaceMethodref);
-				mi = class_findmethod (mr->class, mr->name, mr->descriptor);
+				mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
 				if (mi->flags & ACC_STATIC)
 					panic ("Static/Nonstatic mismatch calling static method");
 				descriptor2types(mi);
@@ -1442,7 +1455,7 @@ void parse()
 		case 254:
 		case 255:
 			printf("Illegal opcode %d at instr %d", opcode, ipc);
-			panic("encountered");
+			panic("Illegal opcode encountered");
 			break;
 
 		default:

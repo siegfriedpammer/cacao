@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 700 2003-12-07 15:54:28Z edwin $
+   $Id: tables.c 724 2003-12-09 18:56:11Z edwin $
 
 */
 
@@ -707,6 +707,72 @@ u2 utf_nextu2(char **utf_ptr)
     return unicode_char;
 }
 
+/********************* function: is_valid_utf ********************************
+
+    return true if the given string is a valid UTF-8 string
+
+    utf_ptr...points to first character
+    end_pos...points after last character
+
+******************************************************************************/
+
+static unsigned long min_codepoint[6] = {0,1L<<7,1L<<11,1L<<16,1L<<21,1L<<26};
+
+bool
+is_valid_utf(char *utf_ptr,char *end_pos)
+{
+	int bytes;
+	int len,i;
+	char c;
+	unsigned long v;
+
+	if (end_pos < utf_ptr) return false;
+	bytes = end_pos - utf_ptr;
+	while (bytes--) {
+		c = *utf_ptr++;
+		/*dolog("%c %02x",c,c);*/
+		if (!c) return false;                     /* 0x00 is not allowed */
+		if ((c & 0x80) == 0) continue;            /* ASCII */
+
+		if      ((c & 0xe0) == 0xc0) len = 1;     /* 110x xxxx */
+		else if ((c & 0xf0) == 0xe0) len = 2;     /* 1110 xxxx */
+		else if ((c & 0xf8) == 0xf0) len = 3;     /* 1111 0xxx */
+		else if ((c & 0xfc) == 0xf8) len = 4;     /* 1111 10xx */
+		else if ((c & 0xfe) == 0xfc) len = 5;     /* 1111 110x */
+		else return false;                        /* invalid leading byte */
+
+		if (len > 2) return false;                /* Java limitation */
+
+		v = (unsigned long)c & (0x3f >> len);
+		
+		if ((bytes -= len) < 0) return false;     /* missing bytes */
+
+		for (i = len; i--; ) {
+			c = *utf_ptr++;
+			/*dolog("    %c %02x",c,c);*/
+			if ((c & 0xc0) != 0x80)               /* 10xx xxxx */
+				return false;
+			v = (v<<6) | (c & 0x3f);
+		}
+
+		/*		dolog("v=%d",v);*/
+
+		if (v == 0) {
+			if (len != 1) return false;           /* Java special */
+		}
+		else {
+			if (v < min_codepoint[len]) return false; /* overlong UTF-8 */
+		}
+
+		/* surrogates in UTF-8 seem to be allowed in Java classfiles */
+		/* if (v >= 0xd800 && v <= 0xdfff) return false; */ /* surrogates */
+
+		/* even these seem to be allowed */
+		/* if (v == 0xfffe || v == 0xffff) return false; */ /* invalid codepoints */
+	}
+
+	return true;
+}
  
 /******************** Function: class_new **************************************
 

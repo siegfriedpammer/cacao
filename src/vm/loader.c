@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 723 2003-12-08 19:51:32Z edwin $
+   $Id: loader.c 724 2003-12-09 18:56:11Z edwin $
 
 */
 
@@ -192,17 +192,26 @@ static u1 *classbuffer    = NULL;   /* pointer to buffer with classfile-data  */
 static u1 *classbuf_pos;            /* current position in classfile buffer   */
 static int classbuffer_size;        /* size of classfile-data                 */
 
+#define ASSERT_LEFT(len) \
+	do {if (((classbuffer + classbuffer_size) - classbuf_pos - 1) < (len)) \
+			panic("Unexpected end of classfile"); } while(0)
+
 /* transfer block of classfile data into a buffer */
 
-#define suck_nbytes(buffer,len) memcpy(buffer,classbuf_pos+1,len); \
-                                classbuf_pos+=len;
+#define suck_nbytes(buffer,len)						\
+	do {ASSERT_LEFT(len);							\
+		memcpy(buffer,classbuf_pos+1,len);			\
+		classbuf_pos+=len;} while (0)
 
 /* skip block of classfile data */
 
-#define skip_nbytes(len) classbuf_pos+=len;
+#define skip_nbytes(len)						\
+	do {ASSERT_LEFT(len);						\
+		classbuf_pos+=len;} while(0)
 
 inline u1 suck_u1()
 {
+	ASSERT_LEFT(1);
 	return *++classbuf_pos;
 }
 inline u2 suck_u2()
@@ -404,6 +413,8 @@ bool suck_start(utf *classname)
 
 				/* determine size of classfile */
 
+				/* dolog("File: %s",filename); */
+
 				err = stat(filename, &buffer);
 
 				if (!err) {                                /* read classfile data */				
@@ -443,6 +454,7 @@ void suck_stop()
 		/* surplus */        	
 		dolog("There are %d access bytes at end of classfile",
 				classdata_left);
+		/* XXX panic? */
 	}
 
 	/* free memory */
@@ -498,8 +510,10 @@ void printflags (u2 f)
 
 static void skipattribute ()
 {
+	u4 len;
 	suck_u2 ();
-	skip_nbytes(suck_u4());	
+	len = suck_u4();
+	skip_nbytes(len);	
 }
 
 /********************** Function: skipattributebody ****************************
@@ -511,7 +525,9 @@ static void skipattribute ()
 
 static void skipattributebody ()
 {
-	skip_nbytes(suck_u4());
+	u4 len;
+	len = suck_u4();
+	skip_nbytes(len);
 }
 
 /************************* Function: skipattributes ****************************
@@ -1291,6 +1307,10 @@ static void class_loadcpool (classinfo *c)
 				/* number of bytes in the bytes array (not string-length) */
 				u4 length = suck_u2();
 				cptags [idx]  = CONSTANT_Utf8;
+				/* validate the string */
+				ASSERT_LEFT(length);
+				if (!is_valid_utf(classbuf_pos+1, classbuf_pos+1+length))
+					panic("Invalid UTF-8 string"); 
 				/* insert utf-string into the utf-symboltable */
 				cpinfos [idx] = utf_new(classbuf_pos+1, length);
 				/* skip bytes of the string */
@@ -1397,6 +1417,7 @@ static void class_loadcpool (classinfo *c)
 		                         break;
 		case CONSTANT_InterfaceMethodref: 
 		case CONSTANT_Methodref: /* check validity of descriptor */
+			/* XXX check special names (<init>) */
 					 checkmethoddescriptor (fmi->descriptor);
 		                         break;
 		}		
@@ -1681,7 +1702,7 @@ class_new_array(classinfo *c)
         c->loaded=true;
      
 	if (loader_inited)
-		loader_load(c->name);
+		loader_load(c->name); /* XXX handle errors */
 }
 
 /****************** Function: class_link_array *********************************
@@ -2176,7 +2197,7 @@ s4 class_findmethodIndex (classinfo *c, utf *name, utf *desc)
 		log_text(buffer);	
 
 		MFREE(buffer, char, buffer_len);
-		#endif	
+#endif	
 		
 		
 		if ((c->methods[i].name == name) && ((desc == NULL) ||
@@ -2241,7 +2262,7 @@ methodinfo *class_findmethod (classinfo *c, utf *name, utf *desc)
 		log_text(buffer);	
 
 		MFREE(buffer, char, buffer_len);
-		#endif	
+#endif	
 		
 		
 		if ((c->methods[i].name == name) && ((desc == NULL) ||
@@ -2261,9 +2282,24 @@ methodinfo *class_findmethod (classinfo *c, utf *name, utf *desc)
 }
 
 
+/*********************** Function: class_fetchmethod **************************
+	
+    like class_findmethod, but aborts with an error if the method is not found
 
+*******************************************************************************/
 
-
+methodinfo *class_fetchmethod(classinfo *c, utf *name, utf *desc)
+{
+	methodinfo *mi;
+	mi = class_findmethod(c,name,desc);
+	if (!mi) {
+		log_plain("Class: "); if (c) log_plain_utf(c->name); log_nl();
+		log_plain("Method: "); if (name) log_plain_utf(name); log_nl();
+		log_plain("Descriptor: "); if (desc) log_plain_utf(desc); log_nl();
+		panic("Method not found");
+	}
+	return mi;
+}
 
 /************************* Function: class_findmethod_approx ******************
 	
@@ -2761,6 +2797,8 @@ classinfo *loader_load (utf *topname)
 	classinfo *top;
 	classinfo *c;
 	long int starttime=0,stoptime=0;
+	classinfo *notlinkable;
+	
 
 	/* avoid recursive calls */
 	if (loader_load_running)
@@ -2777,15 +2815,38 @@ classinfo *loader_load (utf *topname)
 	/* load classes */
 	while ( (c = list_first(&unloadedclasses)) ) {
 		if (!class_load (c)) {
+			if (linkverbose) dolog("Failed to load class");
 			list_remove (&unloadedclasses, c);
 			top=NULL;
 		    }
         }
 
 	/* link classes */
+	if (linkverbose) dolog("Linking...");
+	/* XXX added a hack to break infinite linking loops. A better
+	 * linking algorithm would be nice. -Edwin */
+	notlinkable = NULL;
 	while ( (c = list_first(&unlinkedclasses)) ) {
 		class_link (c);
+		if (!c->linked) {
+			if (!notlinkable)
+				notlinkable = c;
+			else if (notlinkable == c) {
+				/* We tried to link this class for the second time and
+				 * no other classes were linked in between, so we are
+				 * caught in a loop.
+				 */
+				if (linkverbose) dolog("Cannot resolve linking dependencies");
+				top=NULL;
+				if (!exceptionptr)
+					throw_linkageerror2(c->name);
+				break;
+			}
 		}
+		else
+			notlinkable = NULL;
+		}
+	if (linkverbose) dolog("Linking done.");
 
 	if (loader_inited)
 		loader_compute_subclasses();
@@ -2803,9 +2864,11 @@ classinfo *loader_load (utf *topname)
 		This is needed because the class didn't appear in the undloadclasses or unlinkedclasses list during this class; */
 	if (top) {
 		if (!top->loaded) {
+			if (linkverbose) dolog("Failed to load class (former call)");
 			throw_classnotfoundexception2(top->name);
 			top=NULL;
 		} else if  (!top->linked) {
+			if (linkverbose) dolog("Failed to link class (former call)");
 			throw_linkageerror2(top->name);
 			top=NULL;
 		}
@@ -2813,9 +2876,38 @@ classinfo *loader_load (utf *topname)
 
 	intsRestore();                          /* schani */
 
+	/* XXX DEBUG */ if (linkverbose && !top) dolog("returning NULL from loader_load");
+	
 	return top; 
 }
 
+/****************** Function: loader_load_sysclass ****************************
+
+	Loads and links the class desired class and each class and interface
+	referenced by it.
+
+    The pointer to the classinfo is stored in *top if top != NULL.
+    The pointer is also returned.
+
+    If the class could not be loaded the function aborts with an error.
+
+*******************************************************************************/
+
+classinfo *loader_load_sysclass(classinfo **top,utf *topname)
+{
+	classinfo *cls;
+
+	if ((cls = loader_load(topname)) == NULL) {
+		log_plain("Could not important system class: ");
+		log_plain_utf(topname);
+		log_nl();
+		panic("Could not load important system class");
+	}
+
+	if (top) *top = cls;
+
+	return cls;
+}
 
 /**************** function: create_primitive_classes ***************************
 
@@ -2968,7 +3060,7 @@ class_from_descriptor(char *utf_ptr,char *end_ptr,char **next,int mode)
 			  if (mode & CLASSLOAD_SKIP) return class_java_lang_Object;
 			  name = utf_new(start,utf_ptr-start);
 			  return (mode & CLASSLOAD_LOAD)
-				  ? loader_load(name) : class_new(name);
+				  ? loader_load(name) : class_new(name); /* XXX */
 		}
 	}
 
@@ -3118,30 +3210,31 @@ void loader_init (u1 * stackbottom)
 
         log_text("loader_init: java/lang/Object");
         /* load the classes which were created above */
-        loader_load (class_java_lang_Object->name);
+        loader_load_sysclass (NULL,class_java_lang_Object->name);
 
         loader_inited=1; /*JOWENN*/
 
-        class_java_lang_Throwable =
-                loader_load( utf_new_char("java/lang/Throwable") );
+		loader_load_sysclass(&class_java_lang_Throwable,
+							 utf_new_char("java/lang/Throwable") );
 
         log_text("loader_init:  loader_load: java/lang/ClassCastException");
-        class_java_lang_ClassCastException =
-                loader_load ( utf_new_char ("java/lang/ClassCastException") );
-        class_java_lang_NullPointerException =
-                loader_load ( utf_new_char ("java/lang/NullPointerException") );
-        class_java_lang_ArrayIndexOutOfBoundsException = loader_load (
-             utf_new_char ("java/lang/ArrayIndexOutOfBoundsException") );
-        class_java_lang_NegativeArraySizeException = loader_load (
-             utf_new_char ("java/lang/NegativeArraySizeException") );
-        class_java_lang_OutOfMemoryError = loader_load (
-             utf_new_char ("java/lang/OutOfMemoryError") );
-        class_java_lang_ArrayStoreException =
-                loader_load ( utf_new_char ("java/lang/ArrayStoreException") );
-        class_java_lang_ArithmeticException =
-                loader_load ( utf_new_char ("java/lang/ArithmeticException") );
-        class_java_lang_ThreadDeath =                             /* schani */
-                loader_load ( utf_new_char ("java/lang/ThreadDeath") );
+		loader_load_sysclass(&class_java_lang_ClassCastException,
+							 utf_new_char ("java/lang/ClassCastException") );
+		loader_load_sysclass(&class_java_lang_NullPointerException,
+							 utf_new_char ("java/lang/NullPointerException") );
+		loader_load_sysclass(&class_java_lang_ArrayIndexOutOfBoundsException,
+							 utf_new_char ("java/lang/ArrayIndexOutOfBoundsException") );
+		loader_load_sysclass(&class_java_lang_NegativeArraySizeException,
+							 utf_new_char ("java/lang/NegativeArraySizeException") );
+		loader_load_sysclass(&class_java_lang_OutOfMemoryError,
+							 utf_new_char ("java/lang/OutOfMemoryError") );
+		loader_load_sysclass(&class_java_lang_ArrayStoreException,
+							 utf_new_char ("java/lang/ArrayStoreException") );
+		loader_load_sysclass(&class_java_lang_ArithmeticException,
+							 utf_new_char ("java/lang/ArithmeticException") );
+		loader_load_sysclass(&class_java_lang_ThreadDeath,
+							 utf_new_char ("java/lang/ThreadDeath") );/* schani */
+		
         /* create classes representing primitive types */
         create_primitive_classes();
 

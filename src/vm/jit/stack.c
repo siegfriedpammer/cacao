@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 719 2003-12-08 14:26:05Z edwin $
+   $Id: stack.c 724 2003-12-09 18:56:11Z edwin $
 
 */
 
@@ -59,8 +59,21 @@ extern int dseglen;
 #define STACKRESET {curstack=0;stackdepth=0;}
 
 #define TYPEPANIC  {show_icmd_method();panic("Stack type mismatch");}
+#define UNDERFLOW  {show_icmd_method();panic("Stack underflow");} /* XXX why isn't this caught in parse.c? */
 #define CURKIND    curstack->varkind
 #define CURTYPE    curstack->type
+
+#define REQUIRE_1 do{ if (!curstack) {UNDERFLOW;} } while(0)
+#define REQUIRE_2 do{ if (!curstack || !curstack->prev) {UNDERFLOW;} } while(0)
+#define REQUIRE_3 do{ if (!curstack || !curstack->prev || !curstack->prev->prev) {UNDERFLOW;} } while(0)
+#define REQUIRE_4 do{ if (!curstack || !curstack->prev || !curstack->prev->prev || !curstack->prev->prev->prev) {UNDERFLOW;} } while(0)
+
+#define REQUIRE(num)									\
+	do{ int macro_i = (num); stackptr st = curstack;	\
+		while(--macro_i>=0) {							\
+			if (!st) {UNDERFLOW;}						\
+			st = st->prev;								\
+		}} while(0)
 
 #define NEWSTACK(s,v,n) {new->prev=curstack;new->type=s;new->flags=0;\
                         new->varkind=v;new->varnum=n;curstack=new;new++;}
@@ -69,10 +82,12 @@ extern int dseglen;
 #define NEWXSTACK   {NEWSTACK(TYPE_ADR,STACKVAR,0);curstack=0;}
 
 #define SETDST      {iptr->dst=curstack;}
-#define POP(s)      {if(s!=curstack->type){TYPEPANIC;}\
+#define POP(s)      {REQUIRE_1;									\
+                     if(s!=curstack->type){TYPEPANIC;}										\
                      if(curstack->varkind==UNDEFVAR)curstack->varkind=TEMPVAR;\
                      curstack=curstack->prev;}
-#define POPANY      {if(curstack->varkind==UNDEFVAR)curstack->varkind=TEMPVAR;\
+#define POPANY      {REQUIRE_1;							\
+                     if(curstack->varkind==UNDEFVAR)curstack->varkind=TEMPVAR;	\
                      curstack=curstack->prev;}
 #define COPY(s,d)   {(d)->flags=0;(d)->type=(s)->type;\
                      (d)->varkind=(s)->varkind;(d)->varnum=(s)->varnum;}
@@ -97,27 +112,27 @@ extern int dseglen;
 #define OP3TIA_0(s) {POP(s);POP(TYPE_INT);POP(TYPE_ADR);SETDST;stackdepth-=3;}
 #define OP3_0(s)    {POP(s);POP(s);POP(s);SETDST;stackdepth-=3;}
 #define POPMANY(i)  {stackdepth-=i;while(--i>=0){POPANY;}SETDST;}
-#define DUP         {NEWSTACK(CURTYPE,CURKIND,curstack->varnum);SETDST;\
+#define DUP         {REQUIRE_1;NEWSTACK(CURTYPE,CURKIND,curstack->varnum);SETDST; \
                     stackdepth++;}
-#define SWAP        {COPY(curstack,new);POPANY;COPY(curstack,new+1);POPANY;\
+#define SWAP        {REQUIRE_1;COPY(curstack,new);POPANY;COPY(curstack,new+1);POPANY;\
                     new[0].prev=curstack;new[1].prev=new;\
                     curstack=new+1;new+=2;SETDST;}
-#define DUP_X1      {COPY(curstack,new);COPY(curstack,new+2);POPANY;\
+#define DUP_X1      {REQUIRE_2;COPY(curstack,new);COPY(curstack,new+2);POPANY;\
                     COPY(curstack,new+1);POPANY;new[0].prev=curstack;\
                     new[1].prev=new;new[2].prev=new+1;\
                     curstack=new+2;new+=3;SETDST;stackdepth++;}
-#define DUP2_X1     {COPY(curstack,new+1);COPY(curstack,new+4);POPANY;\
+#define DUP2_X1     {REQUIRE_3;COPY(curstack,new+1);COPY(curstack,new+4);POPANY;\
                     COPY(curstack,new);COPY(curstack,new+3);POPANY;\
                     COPY(curstack,new+2);POPANY;new[0].prev=curstack;\
                     new[1].prev=new;new[2].prev=new+1;\
                     new[3].prev=new+2;new[4].prev=new+3;\
                     curstack=new+4;new+=5;SETDST;stackdepth+=2;}
-#define DUP_X2      {COPY(curstack,new);COPY(curstack,new+3);POPANY;\
+#define DUP_X2      {REQUIRE_3;COPY(curstack,new);COPY(curstack,new+3);POPANY;\
                     COPY(curstack,new+2);POPANY;COPY(curstack,new+1);POPANY;\
                     new[0].prev=curstack;new[1].prev=new;\
                     new[2].prev=new+1;new[3].prev=new+2;\
                     curstack=new+3;new+=4;SETDST;stackdepth++;}
-#define DUP2_X2     {COPY(curstack,new+1);COPY(curstack,new+5);POPANY;\
+#define DUP2_X2     {REQUIRE_4;COPY(curstack,new+1);COPY(curstack,new+5);POPANY;\
                     COPY(curstack,new);COPY(curstack,new+4);POPANY;\
                     COPY(curstack,new+3);POPANY;COPY(curstack,new+2);POPANY;\
                     new[0].prev=curstack;new[1].prev=new;\
@@ -206,6 +221,16 @@ void analyse_stack()
 	basicblock *tbptr;
 	s4 *s4ptr;
 	void* *tptr;
+
+	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Analysing: ");
+		utf_sprint(logtext+strlen(logtext), method->class->name);
+		strcpy(logtext+strlen(logtext), ".");
+		utf_sprint(logtext+strlen(logtext), method->name);
+		utf_sprint(logtext+strlen(logtext), method->descriptor);
+		dolog(logtext);
+	}
 
 	int *argren = DMNEW(int, maxlocals); 
 	//int *argren = (int *)alloca(maxlocals * sizeof(int)); /* table for argument renaming */
@@ -337,6 +362,8 @@ void analyse_stack()
 				while (--len >= 0)  {
 					opcode = iptr->opc;
 					iptr->target = NULL;
+
+					/* DEBUG XXX */	/*  dolog("p:%04d op: %s",iptr-instr,icmd_names[opcode]); */
 
 #ifdef USEBUILTINTABLE
 					{
@@ -860,6 +887,7 @@ void analyse_stack()
 					case ICMD_DSTORE:
 					case ICMD_ASTORE:
 					icmd_store:
+						REQUIRE_1;
 
 					i = opcode - ICMD_ISTORE;
 					locals[iptr->op1][i].type = i;
@@ -1144,6 +1172,7 @@ void analyse_stack()
 						break;
 
 					case ICMD_POP2:
+						REQUIRE_1;
 						if (! IS_2_WORD_TYPE(curstack->type)) {
 							OP1_0ANY;                /* second pop */
 						}
@@ -1160,11 +1189,13 @@ void analyse_stack()
 						break;
 
 					case ICMD_DUP2:
+						REQUIRE_1;
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							iptr->opc = ICMD_DUP;
 							DUP;
 						}
 						else {
+							REQUIRE_2;
 							copy = curstack;
 							NEWSTACK(copy->prev->type, copy->prev->varkind,
 									 copy->prev->varnum);
@@ -1182,6 +1213,7 @@ void analyse_stack()
 						break;
 
 					case ICMD_DUP2_X1:
+						REQUIRE_1;
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							iptr->opc = ICMD_DUP_X1;
 							DUP_X1;
@@ -1194,6 +1226,7 @@ void analyse_stack()
 						/* pop 3 push 4 dup */
 						
 					case ICMD_DUP_X2:
+						REQUIRE_1;
 						if (IS_2_WORD_TYPE(curstack->prev->type)) {
 							iptr->opc = ICMD_DUP_X1;
 							DUP_X1;
@@ -1204,7 +1237,9 @@ void analyse_stack()
 						break;
 
 					case ICMD_DUP2_X2:
+						REQUIRE_1;
 						if (IS_2_WORD_TYPE(curstack->type)) {
+							REQUIRE_2;
 							if (IS_2_WORD_TYPE(curstack->prev->type)) {
 								iptr->opc = ICMD_DUP_X1;
 								DUP_X1;
@@ -1215,6 +1250,7 @@ void analyse_stack()
 							}
 						}
 						else
+							REQUIRE_3;
 							if (IS_2_WORD_TYPE(curstack->prev->prev->type)) {
 								iptr->opc = ICMD_DUP2_X1;
 								DUP2_X1;
@@ -1289,6 +1325,7 @@ void analyse_stack()
 					case ICMD_LOR:
 					case ICMD_LAND:
 					case ICMD_LXOR:
+						/* XXX DEBUG */ /*dolog("OP2_1(TYPE_LNG)"); */
 						COUNT(count_pcmd_op);
 						OP2_1(TYPE_LNG);
 						break;
@@ -1505,7 +1542,7 @@ void analyse_stack()
 							i = iptr->op1;
 							if (i > arguments_num)
 								arguments_num = i;
-							/* XXX verify that there are enough arguments on the stack */
+							REQUIRE(i);
 #if defined(__X86_64__)
 							{
 								int iarg = 0;
@@ -1568,6 +1605,8 @@ void analyse_stack()
 						}
 
 					case ICMD_BUILTIN3:
+						/* XXX DEBUG */ /*dolog("builtin3");*/
+						REQUIRE_3;
 						if (! (curstack->flags & SAVEDVAR)) {
 							curstack->varkind = ARGVAR;
 							curstack->varnum = 2;
@@ -1579,6 +1618,8 @@ void analyse_stack()
 
 					case ICMD_BUILTIN2:
 					builtin2:
+						REQUIRE_2;
+						/* XXX DEBUG */ /*dolog("builtin2");*/
 					if (!(curstack->flags & SAVEDVAR)) {
 						curstack->varkind = ARGVAR;
 						curstack->varnum = 1;
@@ -1590,6 +1631,8 @@ void analyse_stack()
 
 					case ICMD_BUILTIN1:
 					builtin1:
+						REQUIRE_1;
+						/* XXX DEBUG */ /*dolog("builtin1");*/
 					if (!(curstack->flags & SAVEDVAR)) {
 						curstack->varkind = ARGVAR;
 						curstack->varnum = 0;
@@ -1609,6 +1652,7 @@ void analyse_stack()
 
 					case ICMD_MULTIANEWARRAY:
 						i = iptr->op1;
+						REQUIRE(i);
 						if ((i + intreg_argnum) > arguments_num)
 							arguments_num = i + intreg_argnum;
 						copy = curstack;
@@ -1641,6 +1685,7 @@ void analyse_stack()
 					case ICMD_READONLY_ARG+3:
 					case ICMD_READONLY_ARG+4:
 
+						REQUIRE_1;
 						if (curstack->varkind == LOCALVAR) {
 							i = curstack->varnum;
 							argren[iptr->op1] = i;
@@ -1655,6 +1700,7 @@ void analyse_stack()
 						printf("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
 						panic("Missing ICMD code during stack analysis");
 					} /* switch */
+					/* XXX DEBUG */ /*dolog("iptr++");*/
 					iptr++;
 				} /* while instructions */
 				bptr->outstack = curstack;
@@ -2243,7 +2289,7 @@ show_icmd(instruction *iptr,bool deadcode)
 				case ICMD_IFGE:
 				case ICMD_IFGT:
 				case ICMD_IFLE:
-					if (deadcode)
+					if (deadcode || !iptr->target)
 						printf("(%d) op1=%d", iptr->val.i, iptr->op1);
 					else
 						printf("(%d) L%03d", iptr->val.i, ((basicblock *) iptr->target)->debug_nr);
@@ -2254,7 +2300,7 @@ show_icmd(instruction *iptr,bool deadcode)
 				case ICMD_IF_LGE:
 				case ICMD_IF_LGT:
 				case ICMD_IF_LLE:
-					if (deadcode)
+					if (deadcode || !iptr->target)
 						printf("(%lld) op1=%d", iptr->val.l, iptr->op1);
 					else
 						printf("(%lld) L%03d", iptr->val.l, ((basicblock *) iptr->target)->debug_nr);
@@ -2277,7 +2323,7 @@ show_icmd(instruction *iptr,bool deadcode)
 				case ICMD_IF_LCMPLE:
 				case ICMD_IF_ACMPEQ:
 				case ICMD_IF_ACMPNE:
-					if (deadcode)
+					if (deadcode || !iptr->target)
 						printf(" op1=%d", iptr->op1);
 					else
 						printf(" L%03d", ((basicblock *) iptr->target)->debug_nr);
@@ -2286,7 +2332,7 @@ show_icmd(instruction *iptr,bool deadcode)
 
 					s4ptr = iptr->val.a;
 
-					if (deadcode) {
+					if (deadcode || !iptr->target) {
 						printf(" %d;", *s4ptr);
 					}
 					else {
@@ -2299,7 +2345,7 @@ show_icmd(instruction *iptr,bool deadcode)
 					j = *s4ptr++;                               /* low     */
 					j = *s4ptr++ - j;                           /* high    */
 					while (j >= 0) {
-						if (deadcode)
+						if (deadcode || !*tptr)
 							printf(" %d", *s4ptr++);
 						else {
 							printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
@@ -2311,7 +2357,7 @@ show_icmd(instruction *iptr,bool deadcode)
 				case ICMD_LOOKUPSWITCH:
 					s4ptr = iptr->val.a;
 
-					if (deadcode) {
+					if (deadcode || !iptr->target) {
 						printf(" %d;", *s4ptr);
 					}
 					else {
@@ -2323,7 +2369,7 @@ show_icmd(instruction *iptr,bool deadcode)
 					j = *s4ptr++;                                    /* count   */
 
 					while (--j >= 0) {
-						if (deadcode) {
+						if (deadcode || !*tptr) {
 							s4ptr++; /* skip value */
 							printf(" %d",*s4ptr++);
 						}

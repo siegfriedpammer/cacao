@@ -133,7 +133,7 @@ initThreads(u1 *stackbottom)
 	}
 
     /* Allocate a thread to be the main thread */
-    liveThreads = the_main_thread = (thread*)builtin_new(loader_load(utf_new_char("java/lang/Thread")));
+    liveThreads = the_main_thread = (thread*)builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Thread")));
     assert(the_main_thread != 0);
 	/* heap_addreference((void **) &liveThreads); */
     
@@ -144,7 +144,7 @@ initThreads(u1 *stackbottom)
     {
 	/* stefan */
 	methodinfo *m;
-	m = class_findmethod(
+	m = class_fetchmethod(
 			class_java_lang_String,
 			utf_new_char ("toCharArray"),
 			utf_new_char ("()[C")
@@ -191,7 +191,8 @@ printf("DEADCODE LIVES ?????????\n");fflush(stdout);
 	talive++;
 
 	/* Load exception classes */
-	class_java_lang_ThreadDeath = loader_load(utf_new_char("java/lang/ThreadDeath"));
+    loader_load_sysclass(&class_java_lang_ThreadDeath,
+                         utf_new_char("java/lang/ThreadDeath"));
 
 	DBG( fprintf(stderr, "finishing initThreads\n"); );
 
@@ -261,7 +262,7 @@ startDaemon(void* func, char* nm, int stackSize)
 
     DBG( printf("startDaemon %s\n", nm); );
 
-	tid = (thread*)builtin_new(loader_load(utf_new_char("java/lang/Thread")));
+	tid = (thread*)builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Thread")));
 	assert(tid != 0);
 
 	for (i = 0; i < MAXTHREADS; ++i)
