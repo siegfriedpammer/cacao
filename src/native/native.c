@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1625 2004-11-30 15:12:42Z motse $
+   $Id: native.c 1645 2004-12-01 14:06:44Z twisti $
 
 */
 
@@ -77,6 +77,13 @@
 
 
 /* include table of native functions ******************************************/
+
+/* XXX quick hack? */
+#if defined(USE_GTK)
+#include "native/vm/GtkComponentPeer.c"
+#include "native/vm/GtkScrollPanePeer.c"
+#include "native/vm/GtkFileDialogPeer.c"
+#endif
 
 #include "nativetable.inc"
 
@@ -124,15 +131,6 @@ void use_class_as_object(classinfo *c)
   	}
 	     
 }
-
-
-/*************************** include native methods ***************************/ 
-
-#ifdef USE_GTK 
-#include "vm/GtkComponentPeer.c"
-#include "vm/GtkScrollPanePeer.c"
-#include "vm/GtkFileDialogPeer.c"
-#endif
 
 
 /************************** tables for methods ********************************/
