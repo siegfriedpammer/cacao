@@ -15,7 +15,7 @@
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 	         Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: headers.c 303 2003-05-14 13:14:46Z stefan $
+	Last Change: $Id: headers.c 364 2003-06-13 13:55:35Z twisti $
 
 *******************************************************************************/
 
@@ -61,11 +61,10 @@ float asm_builtin_frem (float a, float b) {}
 void asm_builtin_monitorenter (java_objectheader *o) {}
 void asm_builtin_monitorexit (java_objectheader *o) {}
 
-s4 asm_builtin_checkarraycast
-	(java_objectheader *o, constant_arraydescriptor *d)
-	{return 0;}
+s4 asm_builtin_checkarraycast(java_objectheader *o, constant_arraydescriptor *d) {return 0;}
 
 #ifdef __I386__
+s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class) { return 0; }
 void asm_builtin_anewarray (s4 size, classinfo *elementtype) {}
 void asm_builtin_newarray_array (s4 size, constant_arraydescriptor *elementdesc) {}
 #endif

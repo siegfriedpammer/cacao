@@ -28,12 +28,12 @@ s4 builtin_instanceof(java_objectheader *obj, classinfo *class);
 s4 builtin_isanysubclass (classinfo *sub, classinfo *super);
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
 s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class);
-s4 builtin_arrayinstanceof
-	(java_objectheader *obj, constant_arraydescriptor *desc);
-s4 builtin_checkarraycast
-	(java_objectheader *obj, constant_arraydescriptor *desc);
-s4 asm_builtin_checkarraycast
-	(java_objectheader *obj, constant_arraydescriptor *desc);
+s4 builtin_arrayinstanceof(java_objectheader *obj, constant_arraydescriptor *desc);
+#ifdef __I386__
+s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class);
+#endif
+s4 builtin_checkarraycast(java_objectheader *obj, constant_arraydescriptor *desc);
+s4 asm_builtin_checkarraycast(java_objectheader *obj, constant_arraydescriptor *desc);
 
 java_objectheader *builtin_throw_exception (java_objectheader *exception);
 java_objectheader *builtin_trace_exception (java_objectheader *exceptionptr,
