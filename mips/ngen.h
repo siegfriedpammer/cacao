@@ -30,8 +30,8 @@
 #define REG_RA          31   /* return address                                */
 #define REG_SP          29   /* stack pointer                                 */
 
-#define REG_PV          25   /* procedure vector, must be provided by caller  */
-#define REG_METHODPTR   24   /* pointer to the place from where the procedure */
+#define REG_PV          28   /* procedure vector, must be provided by caller  */
+#define REG_METHODPTR   25   /* pointer to the place from where the procedure */
                              /* vector has been fetched                       */
 #define REG_ITMP1_XPTR  1    /* exception pointer = temporary register 1      */
 #define REG_ITMP2_XPC   3    /* exception pc = temporary register 2           */
@@ -60,10 +60,10 @@ int nregdescint[] = {
 	REG_RES, REG_RES, REG_RET, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
 	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
-	REG_RES, REG_RES, REG_RES, REG_RES, REG_SAV, REG_RES, REG_SAV, REG_RES,
+	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_SAV, REG_RES,
 	REG_END };
 
-#define INT_SAV_CNT      10  /* number of int callee saved registers          */
+#define INT_SAV_CNT      9   /* number of int callee saved registers          */
 #define INT_ARG_CNT      8   /* number of int argument registers              */
 
 /* for use of reserved registers, see comment above */
@@ -113,13 +113,13 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 
 #define M_ITYPE(op, rs, rt, imm)\
-  *(mcodeptr++) = (((op)<<26)|((rs)<<21)|((rt)<<16)|((off)&0xffff))
+  *(mcodeptr++) = (((op)<<26)|((rs)<<21)|((rt)<<16)|((imm)&0xffff))
 
 #define M_JTYPE(op, imm)\
   *(mcodeptr++) = (((op)<<26)|((off)&0x3ffffff))
 
 #define M_RTYPE(op, rs, rt, rd, sa, fu)\
-  *(mcodeptr++) = (((op)<<26)|((rs)<<21)|((rt)<<16)|((rd)<<11)|((sa)<<6)|(fu)
+  *(mcodeptr++) = (((op)<<26)|((rs)<<21)|((rt)<<16)|((rd)<<11)|((sa)<<6)|(fu))
 
 #define M_FP2(fu, fmt, fs, fd)       M_RTYPE(0x11, fmt,  0, fs, fd, fu)
 #define M_FP3(fu, fmt, fs, ft, fd)   M_RTYPE(0x11, fmt, ft, fs, fd, fu)
@@ -148,20 +148,6 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_DLD(a,b,disp)         M_ITYPE(0x35,b,a,disp)          /* load dbl   */
 #define M_FST(a,b,disp)         M_ITYPE(0x39,b,a,disp)          /* store flt  */
 #define M_DST(a,b,disp)         M_ITYPE(0x3d,b,a,disp)          /* store dbl  */
-
-/*
- * Load Address pseudo instruction:
- * -n32 addressing mode -> 32 bit addrs, -64 addressing mode -> 64 bit addrs
- */
-#if POINTERSIZE==8
-#define POINTERSHIFT 3
-#define M_ALD(a,b,disp)         M_LLD(a,b,disp)
-#define M_AST(a,b,disp)         M_LST(a,b,disp)
-#else
-#define POINTERSHIFT 2
-#define M_ALD(a,b,disp)         M_ILD(a,b,disp)
-#define M_AST(a,b,disp)         M_IST(a,b,disp)
-#endif
 
 #define M_BEQ(a,b,disp)         M_ITYPE(0x04,a,b,disp)          /* br a == b  */
 #define M_BNE(a,b,disp)         M_ITYPE(0x05,a,b,disp)          /* br a != b  */
@@ -225,12 +211,12 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_MFLO(a)              	M_RTYPE(0,0,0,a,0,0x12)         /* quotient   */
 #define M_MFHI(a)              	M_RTYPE(0,0,0,a,0,0x10)         /* remainder  */
 
-#define M_IADD_IMM(a,b,c)       M_ITYPE(0x08,a,c,b)             /* 32 add     */
-#define M_LADD_IMM(a,b,c)       M_ITYPE(0x18,a,c,b)             /* 64 add     */
-#define M_ISUB_IMM(a,b,c)       M_ITYPE(0x08,a,c,-(b))          /* 32 sub     */
-#define M_LSUB_IMM(a,b,c)       M_ITYPE(0x18,a,c,-(b))          /* 64 sub     */
+#define M_IADD_IMM(a,b,c)       M_ITYPE(0x09,a,c,b)             /* 32 add     */
+#define M_LADD_IMM(a,b,c)       M_ITYPE(0x19,a,c,b)             /* 64 add     */
+#define M_ISUB_IMM(a,b,c)       M_ITYPE(0x09,a,c,-(b))          /* 32 sub     */
+#define M_LSUB_IMM(a,b,c)       M_ITYPE(0x19,a,c,-(b))          /* 64 sub     */
 
-#define M_LDA(a,b,disp)         M_LADD_IMM(b,disp,a)            /* a = b+disp */
+#define M_LUI(a,imm)            M_ITYPE(0x0f,0,a,imm)           /* a = imm<<16*/
 
 #define M_CMPLT(a,b,c)          M_RTYPE(0,a,b,c,0,0x2a)         /* c = a <  b */
 #define M_CMPGT(a,b,c)          M_RTYPE(0,b,a,c,0,0x2a)         /* c = a >  b */
@@ -249,9 +235,7 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_OR_IMM( a,b,c)        M_ITYPE(0x0d,a,c,b)             /* c = a |  b */
 #define M_XOR_IMM(a,b,c)        M_ITYPE(0x0e,a,c,b)             /* c = a ^  b */
 
-#define M_MOV(a,c)              M_OR(a,a,c)                     /* c = a      */
-#define M_CLR(c)                M_OR(0,0,c)                     /* c = 0      */
-#define M_NOP                   M_OR(0,0,0)                     /* ;          */
+#define M_CZEXT(a,c)            M_AND_IMM(a,0xffff,c)           /* c = zext(a)*/
 
 #define M_ISLL(a,b,c)           M_RTYPE(0,b,a,c,0,0x04)         /* c = a << b */
 #define M_ISRL(a,b,c)           M_RTYPE(0,b,a,c,0,0x06)         /* c = a >>>b */
@@ -260,12 +244,16 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_LSRL(a,b,c)           M_RTYPE(0,b,a,c,0,0x16)         /* c = a >>>b */
 #define M_LSRA(a,b,c)           M_RTYPE(0,b,a,c,0,0x17)         /* c = a >> b */
 
-#define M_ISLL_IMM(a,b,c)       M_RTYPE(0,0,a,c,b&1f,0x00)      /* c = a << b */
-#define M_ISRL_IMM(a,b,c)       M_RTYPE(0,0,a,c,b&1f,0x02)      /* c = a >>>b */
-#define M_ISRA_IMM(a,b,c)       M_RTYPE(0,0,a,c,b&1f,0x03)      /* c = a >> b */
-#define M_LSLL_IMM(a,b,c) M_RTYPE(0,0,a,c,b&1f,0x38+4*(b&x020)) /* c = a << b */
-#define M_LSRL_IMM(a,b,c) M_RTYPE(0,0,a,c,b&1f,0x3a+4*(b&x020)) /* c = a >>>b */
-#define M_LSRA_IMM(a,b,c) M_RTYPE(0,0,a,c,b&1f,0x3b+4*(b&x020)) /* c = a >> b */
+#define M_ISLL_IMM(a,b,c)       M_RTYPE(0,0,a,c,(b)&31,0x00)    /* c = a << b */
+#define M_ISRL_IMM(a,b,c)       M_RTYPE(0,0,a,c,(b)&31,0x02)    /* c = a >>>b */
+#define M_ISRA_IMM(a,b,c)       M_RTYPE(0,0,a,c,(b)&31,0x03)    /* c = a >> b */
+#define M_LSLL_IMM(a,b,c) M_RTYPE(0,0,a,c,(b)&31,0x38+4*((b)&32)) /*c = a << b*/
+#define M_LSRL_IMM(a,b,c) M_RTYPE(0,0,a,c,(b)&31,0x3a+4*((b)&32)) /*c = a >>>b*/
+#define M_LSRA_IMM(a,b,c) M_RTYPE(0,0,a,c,(b)&31,0x3b+4*((b)&32)) /*c = a >> b*/
+
+#define M_MOV(a,c)              M_OR(a,0,c)                     /* c = a      */
+#define M_CLR(c)                M_OR(0,0,c)                     /* c = 0      */
+#define M_NOP                   M_ISLL_IMM(0,0,0)               /* ;          */
 
 /* floating point macros use the form OPERATION(source, source, dest)         */
 
@@ -305,19 +293,19 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_FLOORFL(a,c)          M_FP2(0x0b,FMT_F,a,c)           /* flt truncl */
 #define M_FLOORDL(a,c)          M_FP2(0x0b,FMT_D,a,c)           /* dbl truncl */
 
-#define M_CVTDF(b,c)            M_FP2(0x20,FMT_D,a,c)           /* dbl2flt    */
-#define M_CVTIF(b,c)            M_FP2(0x20,FMT_I,a,c)           /* int2flt    */
-#define M_CVTLF(b,c)            M_FP2(0x20,FMT_L,a,c)           /* long2flt   */
-#define M_CVTFD(b,c)            M_FP2(0x21,FMT_F,a,c)           /* flt2dbl    */
-#define M_CVTID(b,c)            M_FP2(0x21,FMT_I,a,c)           /* int2dbl    */
-#define M_CVTLD(b,c)            M_FP2(0x21,FMT_L,a,c)           /* long2dbl   */
-#define M_CVTFI(b,c)            M_FP2(0x24,FMT_F,a,c)           /* flt2int    */
-#define M_CVTDI(b,c)            M_FP2(0x24,FMT_D,a,c)           /* dbl2int    */
-#define M_CVTFL(b,c)            M_FP2(0x25,FMT_F,a,c)           /* flt2long   */
-#define M_CVTDL(b,c)            M_FP2(0x25,FMT_D,a,c)           /* dbl2long   */
+#define M_CVTDF(a,c)            M_FP2(0x20,FMT_D,a,c)           /* dbl2flt    */
+#define M_CVTIF(a,c)            M_FP2(0x20,FMT_I,a,c)           /* int2flt    */
+#define M_CVTLF(a,c)            M_FP2(0x20,FMT_L,a,c)           /* long2flt   */
+#define M_CVTFD(a,c)            M_FP2(0x21,FMT_F,a,c)           /* flt2dbl    */
+#define M_CVTID(a,c)            M_FP2(0x21,FMT_I,a,c)           /* int2dbl    */
+#define M_CVTLD(a,c)            M_FP2(0x21,FMT_L,a,c)           /* long2dbl   */
+#define M_CVTFI(a,c)            M_FP2(0x24,FMT_F,a,c)           /* flt2int    */
+#define M_CVTDI(a,c)            M_FP2(0x24,FMT_D,a,c)           /* dbl2int    */
+#define M_CVTFL(a,c)            M_FP2(0x25,FMT_F,a,c)           /* flt2long   */
+#define M_CVTDL(a,c)            M_FP2(0x25,FMT_D,a,c)           /* dbl2long   */
 
-#define M_MOVDL(d,l)            M_FP3(0,1,l,d,0)                /* l = d      */
-#define M_MOVLD(l,d)            M_FP3(0,5,l,d,0)                /* d = l      */
+#define M_MOVDL(d,l)            M_FP3(0,1,d,l,0)                /* l = d      */
+#define M_MOVLD(l,d)            M_FP3(0,5,d,l,0)                /* d = l      */
 
 #define M_FCMPFF(a,b)           M_FP3(0x30,FMT_F,a,b,0)         /* c = a == b */
 #define M_FCMPFD(a,b)           M_FP3(0x30,FMT_D,a,b,0)         /* c = a == b */
@@ -340,6 +328,26 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_FBT(disp)             M_ITYPE(0x11,8,1,disp)          /* br true    */
 #define M_FBFL(disp)            M_ITYPE(0x11,8,2,disp)          /* br false   */
 #define M_FBTL(disp)            M_ITYPE(0x11,8,3,disp)          /* br true    */
+
+/*
+ * Load Address pseudo instruction:
+ * -n32 addressing mode -> 32 bit addrs, -64 addressing mode -> 64 bit addrs
+ */
+#if POINTERSIZE==8
+#define POINTERSHIFT 3
+#define M_ALD(a,b,disp)         M_LLD(a,b,disp)
+#define M_AST(a,b,disp)         M_LST(a,b,disp)
+#define M_AADD(a,b,c)           M_LADD(a,b,c)
+#define M_ASLL_IMM(a,b,c)       M_LSLL_IMM(a,b,c)
+#define M_LDA(a,b,disp)         M_LADD_IMM(b,disp,a)            /* a = b+disp */
+#else
+#define POINTERSHIFT 2
+#define M_ALD(a,b,disp)         M_ILD(a,b,disp)
+#define M_AST(a,b,disp)         M_IST(a,b,disp)
+#define M_AADD(a,b,c)           M_IADD(a,b,c)
+#define M_ASLL_IMM(a,b,c)       M_ISLL_IMM(a,b,c)
+#define M_LDA(a,b,disp)         M_IADD_IMM(b,disp,a)            /* a = b+disp */
+#endif
 
 /* macros for special commands (see an Alpha-manual for description) **********/ 
 

@@ -24,94 +24,95 @@
 #define ITYPE_JMP    1          /* jump instructions                          */
 #define ITYPE_IMM    2          /* immediate instructions                     */
 #define ITYPE_MEM    3          /* memory instructions                        */
-#define ITYPE_BRA    4          /* branch instructions                        */
-#define ITYPE_RIMM   5          /* special/branch instructions                */
-#define ITYPE_OP     6          /* integer instructions                       */
-#define ITYPE_TRAP   7          /* trap instructions                          */
-#define ITYPE_DIVMUL 8          /* integer divide/multiply instructions       */
-#define ITYPE_MTOJR  9          /* move to and jump register instructions     */
-#define ITYPE_MFROM 10          /* move from instructions                     */
-#define ITYPE_SYS   11          /* operating system instructions              */
-#define ITYPE_FOP   12          /* floating point instructions                */
-#define ITYPE_FOP2  13          /* 2 operand floating point instructions      */
-#define ITYPE_FCMP  14          /* floating point compare instructions        */
+#define ITYPE_FMEM   4          /* floating point memory instructions         */
+#define ITYPE_BRA    5          /* branch instructions                        */
+#define ITYPE_RIMM   6          /* special/branch instructions                */
+#define ITYPE_OP     7          /* integer instructions                       */
+#define ITYPE_TRAP   8          /* trap instructions                          */
+#define ITYPE_DIVMUL 9          /* integer divide/multiply instructions       */
+#define ITYPE_MTOJR 10          /* move to and jump register instructions     */
+#define ITYPE_MFROM 11          /* move from instructions                     */
+#define ITYPE_SYS   12          /* operating system instructions              */
+#define ITYPE_FOP   13          /* floating point instructions                */
+#define ITYPE_FOP2  14          /* 2 operand floating point instructions      */
+#define ITYPE_FCMP  15          /* floating point compare instructions        */
 
 
 /* instruction decode table for 6 bit op codes                                */
 
 static struct {char *name; int itype;} ops[] = {
 
-	/* 0x00 */  {"SPECIAL ",    ITYPE_OP},
-	/* 0x01 */  {"REGIMM  ",  ITYPE_RIMM},
-	/* 0x02 */  {"J       ",   ITYPE_JMP},
-	/* 0x03 */  {"JAL     ",   ITYPE_JMP},
-	/* 0x04 */  {"BEQ     ",   ITYPE_BRA},
-	/* 0x05 */  {"BNE     ",   ITYPE_BRA},
-	/* 0x06 */  {"BLEZ    ",   ITYPE_BRA},
-	/* 0x07 */  {"BGTZ    ",   ITYPE_BRA},
+	/* 0x00 */  {"special ",    ITYPE_OP},
+	/* 0x01 */  {"regimm  ",  ITYPE_RIMM},
+	/* 0x02 */  {"j       ",   ITYPE_JMP},
+	/* 0x03 */  {"jal     ",   ITYPE_JMP},
+	/* 0x04 */  {"beq     ",   ITYPE_BRA},
+	/* 0x05 */  {"bne     ",   ITYPE_BRA},
+	/* 0x06 */  {"blez    ",   ITYPE_BRA},
+	/* 0x07 */  {"bgtz    ",   ITYPE_BRA},
 
-	/* 0x08 */  {"ADDI    ",   ITYPE_IMM},
-	/* 0x09 */  {"ADDIU   ",   ITYPE_IMM},
-	/* 0x0a */  {"SLTI    ",   ITYPE_IMM},
-	/* 0x0b */  {"SLTIU   ",   ITYPE_IMM},
-	/* 0x0c */  {"ANDI    ",   ITYPE_IMM},
-	/* 0x0d */  {"ORI     ",   ITYPE_IMM},
-	/* 0x0e */  {"XORI    ",   ITYPE_IMM},
-	/* 0x0f */  {"LUI     ",   ITYPE_IMM},
+	/* 0x08 */  {"addi    ",   ITYPE_IMM},
+	/* 0x09 */  {"addiu   ",   ITYPE_IMM},
+	/* 0x0a */  {"slti    ",   ITYPE_IMM},
+	/* 0x0b */  {"sltiu   ",   ITYPE_IMM},
+	/* 0x0c */  {"andi    ",   ITYPE_IMM},
+	/* 0x0d */  {"ori     ",   ITYPE_IMM},
+	/* 0x0e */  {"xori    ",   ITYPE_IMM},
+	/* 0x0f */  {"lui     ",   ITYPE_IMM},
 
-	/* 0x10 */  {"COP0    ",    ITYPE_OP},
-	/* 0x11 */  {"COP1    ",   ITYPE_FOP},
-	/* 0x12 */  {"COP2    ",    ITYPE_OP},
+	/* 0x10 */  {"cop0    ",    ITYPE_OP},
+	/* 0x11 */  {"cop1    ",   ITYPE_FOP},
+	/* 0x12 */  {"cop2    ",    ITYPE_OP},
 	/* 0x13 */  {"",         ITYPE_UNDEF},
-	/* 0x14 */  {"BEQL    ",   ITYPE_BRA},
-	/* 0x15 */  {"BNEL    ",   ITYPE_BRA},
-	/* 0x16 */  {"BLEZL   ",   ITYPE_BRA},
-	/* 0x17 */  {"BGTZL   ",   ITYPE_BRA},
+	/* 0x14 */  {"beql    ",   ITYPE_BRA},
+	/* 0x15 */  {"bnel    ",   ITYPE_BRA},
+	/* 0x16 */  {"blezl   ",   ITYPE_BRA},
+	/* 0x17 */  {"bgtzl   ",   ITYPE_BRA},
 
-	/* 0x18 */  {"DADDI   ",   ITYPE_IMM},
-	/* 0x19 */  {"DADDIU  ",   ITYPE_IMM},
-	/* 0x1a */  {"LDL     ",   ITYPE_MEM},
-	/* 0x1b */  {"LDR     ",   ITYPE_MEM},
+	/* 0x18 */  {"daddi   ",   ITYPE_IMM},
+	/* 0x19 */  {"daddiu  ",   ITYPE_IMM},
+	/* 0x1a */  {"ldl     ",   ITYPE_MEM},
+	/* 0x1b */  {"ldr     ",   ITYPE_MEM},
 	/* 0x1c */  {"",         ITYPE_UNDEF},
 	/* 0x1d */  {"",         ITYPE_UNDEF},
 	/* 0x1e */  {"",         ITYPE_UNDEF},
 	/* 0x1f */  {"",         ITYPE_UNDEF},
 
-	/* 0x20 */  {"LB      ",   ITYPE_MEM},
-	/* 0x21 */  {"LH      ",   ITYPE_MEM},
-	/* 0x22 */  {"LWL     ",   ITYPE_MEM},
-	/* 0x23 */  {"LW      ",   ITYPE_MEM},
-	/* 0x24 */  {"LBU     ",   ITYPE_MEM},
-	/* 0x25 */  {"LHU     ",   ITYPE_MEM},
-	/* 0x26 */  {"LWR     ",   ITYPE_MEM},
-	/* 0x27 */  {"LWU     ",   ITYPE_MEM},
+	/* 0x20 */  {"lb      ",   ITYPE_MEM},
+	/* 0x21 */  {"lh      ",   ITYPE_MEM},
+	/* 0x22 */  {"lwl     ",   ITYPE_MEM},
+	/* 0x23 */  {"lw      ",   ITYPE_MEM},
+	/* 0x24 */  {"lbu     ",   ITYPE_MEM},
+	/* 0x25 */  {"lhu     ",   ITYPE_MEM},
+	/* 0x26 */  {"lwr     ",   ITYPE_MEM},
+	/* 0x27 */  {"lwu     ",   ITYPE_MEM},
 
-	/* 0x28 */  {"SB      ",   ITYPE_MEM},
-	/* 0x29 */  {"SH      ",   ITYPE_MEM},
-	/* 0x2a */  {"SWL     ",   ITYPE_MEM},
-	/* 0x2b */  {"SW      ",   ITYPE_MEM},
-	/* 0x2c */  {"SDL     ",   ITYPE_MEM},
-	/* 0x2d */  {"SDR     ",   ITYPE_MEM},
-	/* 0x2e */  {"SWR     ",   ITYPE_MEM},
-	/* 0x2f */  {"CACHE   ",   ITYPE_MEM},
+	/* 0x28 */  {"sb      ",   ITYPE_MEM},
+	/* 0x29 */  {"sh      ",   ITYPE_MEM},
+	/* 0x2a */  {"swl     ",   ITYPE_MEM},
+	/* 0x2b */  {"sw      ",   ITYPE_MEM},
+	/* 0x2c */  {"sdl     ",   ITYPE_MEM},
+	/* 0x2d */  {"sdr     ",   ITYPE_MEM},
+	/* 0x2e */  {"swr     ",   ITYPE_MEM},
+	/* 0x2f */  {"cache   ",   ITYPE_MEM},
 
-	/* 0x30 */  {"LL      ",   ITYPE_MEM},
-	/* 0x31 */  {"LWC1    ",   ITYPE_MEM},
-	/* 0x32 */  {"LWC2    ",   ITYPE_MEM},
+	/* 0x30 */  {"ll      ",   ITYPE_MEM},
+	/* 0x31 */  {"lwc1    ",  ITYPE_FMEM},
+	/* 0x32 */  {"lwc2    ",   ITYPE_MEM},
 	/* 0x33 */  {"",         ITYPE_UNDEF},
-	/* 0x34 */  {"LLD     ",   ITYPE_MEM},
-	/* 0x35 */  {"LDC1    ",   ITYPE_MEM},
-	/* 0x36 */  {"LDC2    ",   ITYPE_MEM},
-	/* 0x37 */  {"LD      ",   ITYPE_MEM},
+	/* 0x34 */  {"lld     ",   ITYPE_MEM},
+	/* 0x35 */  {"ldc1    ",  ITYPE_FMEM},
+	/* 0x36 */  {"ldc2    ",   ITYPE_MEM},
+	/* 0x37 */  {"ld      ",   ITYPE_MEM},
 
-	/* 0x38 */  {"SC      ",   ITYPE_MEM},
-	/* 0x39 */  {"SWC1    ",   ITYPE_MEM},
-	/* 0x3a */  {"SWC2    ",   ITYPE_MEM},
+	/* 0x38 */  {"sc      ",   ITYPE_MEM},
+	/* 0x39 */  {"swc1    ",  ITYPE_FMEM},
+	/* 0x3a */  {"swc2    ",   ITYPE_MEM},
 	/* 0x3b */  {"",         ITYPE_UNDEF},
-	/* 0x3c */  {"SLD     ",   ITYPE_MEM},
-	/* 0x3d */  {"SDC1    ",   ITYPE_MEM},
-	/* 0x3e */  {"SDC2    ",   ITYPE_MEM},
-	/* 0x3f */  {"SD      ",   ITYPE_MEM}
+	/* 0x3c */  {"sld     ",   ITYPE_MEM},
+	/* 0x3d */  {"sdc1    ",  ITYPE_FMEM},
+	/* 0x3e */  {"sdc2    ",   ITYPE_MEM},
+	/* 0x3f */  {"sd      ",   ITYPE_MEM}
 };
 
 
@@ -119,77 +120,77 @@ static struct {char *name; int itype;} ops[] = {
 
 static struct {char *name; int ftype;} regops[] = {
 
-	/* 0x00 */  {"SLL     ",   ITYPE_IMM},
+	/* 0x00 */  {"sll     ",   ITYPE_IMM},
 	/* 0x01 */  {""        , ITYPE_UNDEF},
-	/* 0x02 */  {"SRL     ",   ITYPE_IMM},
-	/* 0x03 */  {"SRA     ",   ITYPE_IMM},
-	/* 0x04 */  {"SLLV    ",    ITYPE_OP},
+	/* 0x02 */  {"srl     ",   ITYPE_IMM},
+	/* 0x03 */  {"sra     ",   ITYPE_IMM},
+	/* 0x04 */  {"sllv    ",    ITYPE_OP},
 	/* 0x05 */  {""        , ITYPE_UNDEF},
-	/* 0x06 */  {"SRLV    ",    ITYPE_OP},
-	/* 0x07 */  {"SRAV    ",    ITYPE_OP},
+	/* 0x06 */  {"srlv    ",    ITYPE_OP},
+	/* 0x07 */  {"srav    ",    ITYPE_OP},
 
-	/* 0x08 */  {"JR      ", ITYPE_MTOJR},
-	/* 0x09 */  {"JALR    ",   ITYPE_JMP},
+	/* 0x08 */  {"jr      ", ITYPE_MTOJR},
+	/* 0x09 */  {"jalr    ",   ITYPE_JMP},
 	/* 0x0a */  {""        , ITYPE_UNDEF},
 	/* 0x0b */  {""        , ITYPE_UNDEF},
-	/* 0x0c */  {"SYSCALL ",   ITYPE_SYS},
-	/* 0x0d */  {"BREAK   ",   ITYPE_SYS},
+	/* 0x0c */  {"syscall ",   ITYPE_SYS},
+	/* 0x0d */  {"break   ",   ITYPE_SYS},
 	/* 0x0e */  {""        , ITYPE_UNDEF},
-	/* 0x0f */  {"SYNC    ",   ITYPE_SYS},
+	/* 0x0f */  {"sync    ",   ITYPE_SYS},
 
-	/* 0x10 */  {"MFHI    ", ITYPE_MFROM},
-	/* 0x11 */  {"MTHI    ", ITYPE_MTOJR},
-	/* 0x12 */  {"MFLO    ", ITYPE_MFROM},
-	/* 0x13 */  {"MTLO    ", ITYPE_MTOJR},
-	/* 0x14 */  {"DSLLV   ",    ITYPE_OP},
+	/* 0x10 */  {"mfhi    ", ITYPE_MFROM},
+	/* 0x11 */  {"mthi    ", ITYPE_MTOJR},
+	/* 0x12 */  {"mflo    ", ITYPE_MFROM},
+	/* 0x13 */  {"mtlo    ", ITYPE_MTOJR},
+	/* 0x14 */  {"dsllv   ",    ITYPE_OP},
 	/* 0x15 */  {""        , ITYPE_UNDEF},
-	/* 0x16 */  {"DSLRV   ",    ITYPE_OP},
-	/* 0x17 */  {"DSRAV   ",    ITYPE_OP},
+	/* 0x16 */  {"dslrv   ",    ITYPE_OP},
+	/* 0x17 */  {"dsrav   ",    ITYPE_OP},
 
-	/* 0x18 */  {"MULT    ",ITYPE_DIVMUL},
-	/* 0x19 */  {"MULTU   ",ITYPE_DIVMUL},
-	/* 0x1a */  {"DIV     ",ITYPE_DIVMUL},
-	/* 0x1b */  {"DIVU    ",ITYPE_DIVMUL},
-	/* 0x1c */  {"DMULT   ",ITYPE_DIVMUL},
-	/* 0x1d */  {"DMULTU  ",ITYPE_DIVMUL},
-	/* 0x1e */  {"DDIV    ",ITYPE_DIVMUL},
-	/* 0x1f */  {"DDIVU   ",ITYPE_DIVMUL},
+	/* 0x18 */  {"mult    ",ITYPE_DIVMUL},
+	/* 0x19 */  {"multu   ",ITYPE_DIVMUL},
+	/* 0x1a */  {"div     ",ITYPE_DIVMUL},
+	/* 0x1b */  {"divu    ",ITYPE_DIVMUL},
+	/* 0x1c */  {"dmult   ",ITYPE_DIVMUL},
+	/* 0x1d */  {"dmultu  ",ITYPE_DIVMUL},
+	/* 0x1e */  {"ddiv    ",ITYPE_DIVMUL},
+	/* 0x1f */  {"ddivu   ",ITYPE_DIVMUL},
 
-	/* 0x20 */  {"ADD     ",    ITYPE_OP},
-	/* 0x21 */  {"ADDU    ",    ITYPE_OP},
-	/* 0x22 */  {"SUB     ",    ITYPE_OP},
-	/* 0x23 */  {"SUBU    ",    ITYPE_OP},
-	/* 0x24 */  {"AND     ",    ITYPE_OP},
-	/* 0x25 */  {"OR      ",    ITYPE_OP},
-	/* 0x26 */  {"XOR     ",    ITYPE_OP},
-	/* 0x27 */  {"NOR     ",    ITYPE_OP},
+	/* 0x20 */  {"add     ",    ITYPE_OP},
+	/* 0x21 */  {"addu    ",    ITYPE_OP},
+	/* 0x22 */  {"sub     ",    ITYPE_OP},
+	/* 0x23 */  {"subu    ",    ITYPE_OP},
+	/* 0x24 */  {"and     ",    ITYPE_OP},
+	/* 0x25 */  {"or      ",    ITYPE_OP},
+	/* 0x26 */  {"xor     ",    ITYPE_OP},
+	/* 0x27 */  {"nor     ",    ITYPE_OP},
 
 	/* 0x28 */  {""        , ITYPE_UNDEF},
 	/* 0x29 */  {""        , ITYPE_UNDEF},
-	/* 0x2a */  {"SLT     ",    ITYPE_OP},
-	/* 0x2b */  {"SLTU    ",    ITYPE_OP},
-	/* 0x2c */  {"DADD    ",    ITYPE_OP},
-	/* 0x2d */  {"DADDU   ",    ITYPE_OP},
-	/* 0x2e */  {"DSUB    ",    ITYPE_OP},
-	/* 0x2f */  {"DSUBU   ",    ITYPE_OP},
+	/* 0x2a */  {"slt     ",    ITYPE_OP},
+	/* 0x2b */  {"sltu    ",    ITYPE_OP},
+	/* 0x2c */  {"dadd    ",    ITYPE_OP},
+	/* 0x2d */  {"daddu   ",    ITYPE_OP},
+	/* 0x2e */  {"dsub    ",    ITYPE_OP},
+	/* 0x2f */  {"dsubu   ",    ITYPE_OP},
 
-	/* 0x30 */  {"TGE     ",  ITYPE_TRAP},
-	/* 0x31 */  {"TGEU    ",  ITYPE_TRAP},
-	/* 0x32 */  {"TLT     ",  ITYPE_TRAP},
-	/* 0x33 */  {"TLTU    ",  ITYPE_TRAP},
-	/* 0x34 */  {"TEQ     ",  ITYPE_TRAP},
+	/* 0x30 */  {"tge     ",  ITYPE_TRAP},
+	/* 0x31 */  {"tgeu    ",  ITYPE_TRAP},
+	/* 0x32 */  {"tlt     ",  ITYPE_TRAP},
+	/* 0x33 */  {"tltu    ",  ITYPE_TRAP},
+	/* 0x34 */  {"teq     ",  ITYPE_TRAP},
 	/* 0x35 */  {""        , ITYPE_UNDEF},
-	/* 0x36 */  {"TNE     ",  ITYPE_TRAP},
+	/* 0x36 */  {"tne     ",  ITYPE_TRAP},
 	/* 0x37 */  {""        , ITYPE_UNDEF},
 
-	/* 0x38 */  {"DSLL    ",   ITYPE_IMM},
+	/* 0x38 */  {"dsll    ",   ITYPE_IMM},
 	/* 0x39 */  {""        , ITYPE_UNDEF},
-	/* 0x3a */  {"DSLR    ",   ITYPE_IMM},
-	/* 0x3b */  {"DSRA    ",   ITYPE_IMM},
-	/* 0x3c */  {"DSLL32  ",   ITYPE_IMM},
+	/* 0x3a */  {"dslr    ",   ITYPE_IMM},
+	/* 0x3b */  {"dsra    ",   ITYPE_IMM},
+	/* 0x3c */  {"dsll32  ",   ITYPE_IMM},
 	/* 0x3d */  {""        , ITYPE_UNDEF},
-	/* 0x3e */  {"DSLR32  ",   ITYPE_IMM},
-	/* 0x3f */  {"DSRA32  ",   ITYPE_IMM}
+	/* 0x3e */  {"dslr32  ",   ITYPE_IMM},
+	/* 0x3f */  {"dsra32  ",   ITYPE_IMM}
 };
 
 
@@ -197,41 +198,41 @@ static struct {char *name; int ftype;} regops[] = {
 
 static struct {char *name; int ftype;} regimms[] = {
 
-	/* 0x00 */  {"BLTZ   ",   ITYPE_BRA},
-	/* 0x01 */  {"BGEZ   ",   ITYPE_BRA},
-	/* 0x02 */  {"BLTZL  ",   ITYPE_BRA},
-	/* 0x03 */  {"BGEZL  ",   ITYPE_BRA},
-	/* 0x04 */  {"",        ITYPE_UNDEF},
-	/* 0x05 */  {"",        ITYPE_UNDEF},
-	/* 0x06 */  {"",        ITYPE_UNDEF},
-	/* 0x07 */  {"",        ITYPE_UNDEF},
+	/* 0x00 */  {"bltz    ",   ITYPE_BRA},
+	/* 0x01 */  {"bgez    ",   ITYPE_BRA},
+	/* 0x02 */  {"bltzl   ",   ITYPE_BRA},
+	/* 0x03 */  {"bgezl   ",   ITYPE_BRA},
+	/* 0x04 */  {"",         ITYPE_UNDEF},
+	/* 0x05 */  {"",         ITYPE_UNDEF},
+	/* 0x06 */  {"",         ITYPE_UNDEF},
+	/* 0x07 */  {"",         ITYPE_UNDEF},
 
-	/* 0x08 */  {"TGEI   ",   ITYPE_IMM},
-	/* 0x09 */  {"DGEIU  ",   ITYPE_IMM},
-	/* 0x0a */  {"TLTI   ",   ITYPE_IMM},
-	/* 0x0b */  {"TLTIU  ",   ITYPE_IMM},
-	/* 0x0c */  {"TEQI   ",   ITYPE_IMM},
-	/* 0x0d */  {""       , ITYPE_UNDEF},
-	/* 0x0e */  {"TNEI   ",   ITYPE_IMM},
-	/* 0x0f */  {""       , ITYPE_UNDEF},
+	/* 0x08 */  {"tgei    ",   ITYPE_IMM},
+	/* 0x09 */  {"dgeiu   ",   ITYPE_IMM},
+	/* 0x0a */  {"tlti    ",   ITYPE_IMM},
+	/* 0x0b */  {"tltiu   ",   ITYPE_IMM},
+	/* 0x0c */  {"teqi    ",   ITYPE_IMM},
+	/* 0x0d */  {"",         ITYPE_UNDEF},
+	/* 0x0e */  {"tnei    ",   ITYPE_IMM},
+	/* 0x0f */  {"",         ITYPE_UNDEF},
 
-	/* 0x10 */  {"BLTZAL ",   ITYPE_BRA},
-	/* 0x11 */  {"BGEZAL ",   ITYPE_BRA},
-	/* 0x12 */  {"BLTZALL",   ITYPE_BRA},
-	/* 0x13 */  {"BGEZALL",   ITYPE_BRA},
-	/* 0x14 */  {"",        ITYPE_UNDEF},
-	/* 0x15 */  {"",        ITYPE_UNDEF},
-	/* 0x16 */  {"",        ITYPE_UNDEF},
-	/* 0x17 */  {"",        ITYPE_UNDEF},
+	/* 0x10 */  {"bltzal  ",   ITYPE_BRA},
+	/* 0x11 */  {"bgezal  ",   ITYPE_BRA},
+	/* 0x12 */  {"bltzall ",   ITYPE_BRA},
+	/* 0x13 */  {"bgezall ",   ITYPE_BRA},
+	/* 0x14 */  {"",         ITYPE_UNDEF},
+	/* 0x15 */  {"",         ITYPE_UNDEF},
+	/* 0x16 */  {"",         ITYPE_UNDEF},
+	/* 0x17 */  {"",         ITYPE_UNDEF},
 
-	/* 0x18 */  {"",        ITYPE_UNDEF},
-	/* 0x19 */  {"",        ITYPE_UNDEF},
-	/* 0x1a */  {"",        ITYPE_UNDEF},
-	/* 0x1b */  {"",        ITYPE_UNDEF},
-	/* 0x1c */  {"",        ITYPE_UNDEF},
-	/* 0x1d */  {"",        ITYPE_UNDEF},
-	/* 0x1e */  {"",        ITYPE_UNDEF},
-	/* 0x1f */  {"",        ITYPE_UNDEF}
+	/* 0x18 */  {"",         ITYPE_UNDEF},
+	/* 0x19 */  {"",         ITYPE_UNDEF},
+	/* 0x1a */  {"",         ITYPE_UNDEF},
+	/* 0x1b */  {"",         ITYPE_UNDEF},
+	/* 0x1c */  {"",         ITYPE_UNDEF},
+	/* 0x1d */  {"",         ITYPE_UNDEF},
+	/* 0x1e */  {"",         ITYPE_UNDEF},
+	/* 0x1f */  {"",         ITYPE_UNDEF}
 };
 
 
@@ -239,23 +240,23 @@ static struct {char *name; int ftype;} regimms[] = {
 
 static struct {char *name; char *fill; int ftype;} fops[] = {
 
-	/* 0x00 */  {"ADD", "   ",   ITYPE_FOP},
-	/* 0x01 */  {"SUB", "   ",   ITYPE_FOP},
-	/* 0x02 */  {"MUL", "   ",   ITYPE_FOP},
-	/* 0x03 */  {"DIV", "   ",   ITYPE_FOP},
-	/* 0x04 */  {"SQRT", "  ",   ITYPE_FOP},
-	/* 0x05 */  {"ABS", "   ",  ITYPE_FOP2},
-	/* 0x06 */  {"MOV", "   ",  ITYPE_FOP2},
-	/* 0x07 */  {"NEG", "   ",  ITYPE_FOP2},
+	/* 0x00 */  {"add", "   ",   ITYPE_FOP},
+	/* 0x01 */  {"sub", "   ",   ITYPE_FOP},
+	/* 0x02 */  {"mul", "   ",   ITYPE_FOP},
+	/* 0x03 */  {"div", "   ",   ITYPE_FOP},
+	/* 0x04 */  {"sqrt", "  ",   ITYPE_FOP},
+	/* 0x05 */  {"abs", "   ",  ITYPE_FOP2},
+	/* 0x06 */  {"mov", "   ",  ITYPE_FOP2},
+	/* 0x07 */  {"neg", "   ",  ITYPE_FOP2},
 
-	/* 0x08 */  {"ROUNDL", "",  ITYPE_FOP2},
-	/* 0x09 */  {"TRUNCL", "",  ITYPE_FOP2},
-	/* 0x0a */  {"CEILL", " ",  ITYPE_FOP2},
-	/* 0x0b */  {"FLOORL", "",  ITYPE_FOP2},
-	/* 0x0c */  {"ROUND", " ",  ITYPE_FOP2},
-	/* 0x0d */  {"TRUNC", " ",  ITYPE_FOP2},
-	/* 0x0e */  {"CEIL", "  ",  ITYPE_FOP2},
-	/* 0x0f */  {"FLOOR", " ",  ITYPE_FOP2},
+	/* 0x08 */  {"roundl", "",  ITYPE_FOP2},
+	/* 0x09 */  {"truncl", "",  ITYPE_FOP2},
+	/* 0x0a */  {"ceill", " ",  ITYPE_FOP2},
+	/* 0x0b */  {"floorl", "",  ITYPE_FOP2},
+	/* 0x0c */  {"round", " ",  ITYPE_FOP2},
+	/* 0x0d */  {"trunc", " ",  ITYPE_FOP2},
+	/* 0x0e */  {"ceil", "  ",  ITYPE_FOP2},
+	/* 0x0f */  {"floor", " ",  ITYPE_FOP2},
 
 	/* 0x10 */  {"",       "", ITYPE_UNDEF},
 	/* 0x11 */  {"",       "", ITYPE_UNDEF},
@@ -267,20 +268,20 @@ static struct {char *name; char *fill; int ftype;} fops[] = {
 	/* 0x17 */  {"",       "", ITYPE_UNDEF},
 
 	/* 0x18 */  {"",       "", ITYPE_UNDEF},
-	/* 0x19 */  {"RECIP", " ",  ITYPE_FOP2},
-	/* 0x1a */  {"RSQRT", " ",  ITYPE_FOP2},
+	/* 0x19 */  {"recip", " ",  ITYPE_FOP2},
+	/* 0x1a */  {"rsqrt", " ",  ITYPE_FOP2},
 	/* 0x1b */  {"",       "", ITYPE_UNDEF},
 	/* 0x1c */  {"",       "", ITYPE_UNDEF},
 	/* 0x1d */  {"",       "", ITYPE_UNDEF},
 	/* 0x1e */  {"",       "", ITYPE_UNDEF},
 	/* 0x1f */  {"",       "", ITYPE_UNDEF},
 
-	/* 0x20 */  {"CVTS", "  ",  ITYPE_FOP2},
-	/* 0x21 */  {"CVTD", "  ",  ITYPE_FOP2},
-	/* 0x22 */  {"CVTX", "  ",  ITYPE_FOP2},
-	/* 0x23 */  {"CVTQ", "  ",  ITYPE_FOP2},
-	/* 0x24 */  {"CVTW", "  ",  ITYPE_FOP2},
-	/* 0x25 */  {"CVTL", "  ",  ITYPE_FOP2},
+	/* 0x20 */  {"cvts", "  ",  ITYPE_FOP2},
+	/* 0x21 */  {"cvtd", "  ",  ITYPE_FOP2},
+	/* 0x22 */  {"cvtx", "  ",  ITYPE_FOP2},
+	/* 0x23 */  {"cvtq", "  ",  ITYPE_FOP2},
+	/* 0x24 */  {"cvtw", "  ",  ITYPE_FOP2},
+	/* 0x25 */  {"cvtl", "  ",  ITYPE_FOP2},
 	/* 0x26 */  {"",       "", ITYPE_UNDEF},
 	/* 0x27 */  {"",       "", ITYPE_UNDEF},
 
@@ -293,35 +294,35 @@ static struct {char *name; char *fill; int ftype;} fops[] = {
 	/* 0x2e */  {"",       "", ITYPE_UNDEF},
 	/* 0x2f */  {"",       "", ITYPE_UNDEF},
 
-	/* 0x30 */  {"C.F", "   ",  ITYPE_FCMP},
-	/* 0x31 */  {"C.UN", "  ",  ITYPE_FCMP},
-	/* 0x32 */  {"C.EQ", "  ",  ITYPE_FCMP},
-	/* 0x33 */  {"C.UEQ", " ",  ITYPE_FCMP},
-	/* 0x34 */  {"C.OLT", " ",  ITYPE_FCMP},
-	/* 0x35 */  {"C.ULT", " ",  ITYPE_FCMP},
-	/* 0x36 */  {"C.OLE", " ",  ITYPE_FCMP},
-	/* 0x37 */  {"C.ULE", " ",  ITYPE_FCMP},
+	/* 0x30 */  {"c.f", "   ",  ITYPE_FCMP},
+	/* 0x31 */  {"c.un", "  ",  ITYPE_FCMP},
+	/* 0x32 */  {"c.eq", "  ",  ITYPE_FCMP},
+	/* 0x33 */  {"c.ueq", " ",  ITYPE_FCMP},
+	/* 0x34 */  {"c.olt", " ",  ITYPE_FCMP},
+	/* 0x35 */  {"c.ult", " ",  ITYPE_FCMP},
+	/* 0x36 */  {"c.ole", " ",  ITYPE_FCMP},
+	/* 0x37 */  {"c.ule", " ",  ITYPE_FCMP},
 
-	/* 0x38 */  {"C.SF", "  ",  ITYPE_FCMP},
-	/* 0x39 */  {"C.NGLE", "",  ITYPE_FCMP},
-	/* 0x3a */  {"C.SEQ", " ",  ITYPE_FCMP},
-	/* 0x3b */  {"C.NGL", " ",  ITYPE_FCMP},
-	/* 0x3c */  {"C.LT", "  ",  ITYPE_FCMP},
-	/* 0x3d */  {"C.NGE", " ",  ITYPE_FCMP},
-	/* 0x3e */  {"C.LE", "  ",  ITYPE_FCMP},
-	/* 0x3f */  {"C.NGT", " ",  ITYPE_FCMP}
+	/* 0x38 */  {"c.sf", "  ",  ITYPE_FCMP},
+	/* 0x39 */  {"c.ngle", "",  ITYPE_FCMP},
+	/* 0x3a */  {"c.seq", " ",  ITYPE_FCMP},
+	/* 0x3b */  {"c.ngl", " ",  ITYPE_FCMP},
+	/* 0x3c */  {"c.lt", "  ",  ITYPE_FCMP},
+	/* 0x3d */  {"c.nge", " ",  ITYPE_FCMP},
+	/* 0x3e */  {"c.le", "  ",  ITYPE_FCMP},
+	/* 0x3f */  {"c.ngt", " ",  ITYPE_FCMP}
 };
 
 
 /* format decode table for 3 bit floating point format codes                  */
 
 static char *fmt[] = {
-	/* 0x00 */  ".S",
-	/* 0x01 */  ".D",
-	/* 0x02 */  ".X",
-	/* 0x03 */  ".Q",
-	/* 0x04 */  ".W",
-	/* 0x05 */  ".L",
+	/* 0x00 */  ".s",
+	/* 0x01 */  ".d",
+	/* 0x02 */  ".x",
+	/* 0x03 */  ".q",
+	/* 0x04 */  ".w",
+	/* 0x05 */  ".l",
 	/* 0x06 */  ".?",
 	/* 0x07 */  ".?"
 };
@@ -330,11 +331,97 @@ static char *fmt[] = {
 /* format decode table for 2 bit floating point branch codes                  */
 
 static char *fbra[] = {
-	/* 0x00 */  "BC1F    ",
-	/* 0x01 */  "BC1T    ",
-	/* 0x02 */  "BC1FL   ",
-	/* 0x03 */  "BC1TL   "
+	/* 0x00 */  "bc1f    ",
+	/* 0x01 */  "bc1t    ",
+	/* 0x02 */  "bc1fl   ",
+	/* 0x03 */  "bc1tl   "
 };
+
+
+/* instruction decode table for 32 integer registers                          */
+
+static char *regs[] = {
+
+	/* 0x00 */  "zero", /*  "$0", */
+	/* 0x01 */  "at",   /*  "$1", */
+	/* 0x02 */  "v0",   /*  "$2", */
+	/* 0x03 */  "v1",   /*  "$3", */
+	/* 0x04 */  "a0",   /*  "$4", */
+	/* 0x05 */  "a1",   /*  "$5", */
+	/* 0x06 */  "a2",   /*  "$6", */
+	/* 0x07 */  "a3",   /*  "$7", */
+
+	/* 0x08 */  "a4",   /*  "$8", */
+	/* 0x09 */  "a5",   /*  "$9", */
+	/* 0x0a */  "a6",   /* "$10", */
+	/* 0x0b */  "a7",   /* "$11", */
+	/* 0x0c */  "t0",   /* "$12", */
+	/* 0x0d */  "t1",   /* "$13", */
+	/* 0x0e */  "t2",   /* "$14", */
+	/* 0x0f */  "t3",   /* "$15", */
+
+	/* 0x10 */  "s0",   /* "$16", */
+	/* 0x11 */  "s1",   /* "$17", */
+	/* 0x12 */  "s2",   /* "$18", */
+	/* 0x13 */  "s3",   /* "$19", */
+	/* 0x14 */  "s4",   /* "$20", */
+	/* 0x15 */  "s5",   /* "$21", */
+	/* 0x16 */  "s6",   /* "$22", */
+	/* 0x17 */  "s7",   /* "$23", */
+
+	/* 0x18 */  "t8",   /* "$24", */
+	/* 0x19 */  "t9",   /* "$25", */
+	/* 0x1a */  "k0",   /* "$26", */
+	/* 0x1b */  "k1",   /* "$27", */
+	/* 0x1c */  "gp",   /* "$28", */
+	/* 0x1d */  "sp",   /* "$29", */
+	/* 0x1e */  "s8",   /* "$30", */
+	/* 0x1f */  "ra"    /* "$31"  */
+};
+
+
+/* instruction decode table for 32 floating point registers                   */
+
+#if 0
+static char *fregs[] = {
+
+	/* 0x00 */  "fv0",   /*  "$f0", */
+	/* 0x01 */  "ft16",  /*  "$f1", */
+	/* 0x02 */  "fv1",   /*  "$f2", */
+	/* 0x03 */  "ft17",  /*  "$f3", */
+	/* 0x04 */  "ft0",   /*  "$f4", */
+	/* 0x05 */  "ft1",   /*  "$f5", */
+	/* 0x06 */  "ft2",   /*  "$f6", */
+	/* 0x07 */  "ft3",   /*  "$f7", */
+
+	/* 0x08 */  "ft4",   /*  "$f8", */
+	/* 0x09 */  "ft5",   /*  "$f9", */
+	/* 0x0a */  "ft6",   /* "$f10", */
+	/* 0x0b */  "ft7",   /* "$f11", */
+	/* 0x0c */  "fa0",   /* "$f12", */
+	/* 0x0d */  "fa1",   /* "$f13", */
+	/* 0x0e */  "fa2",   /* "$f14", */
+	/* 0x0f */  "fa3",   /* "$f15", */
+
+	/* 0x10 */  "fa4",   /* "$f16", */
+	/* 0x11 */  "fa5",   /* "$f17", */
+	/* 0x12 */  "fa6",   /* "$f18", */
+	/* 0x13 */  "fa7",   /* "$f19", */
+	/* 0x14 */  "ft8",   /* "$f20", */
+	/* 0x15 */  "ft9",   /* "$f21", */
+	/* 0x16 */  "ft10",  /* "$f22", */
+	/* 0x17 */  "ft11",  /* "$f23", */
+
+	/* 0x18 */  "fs0",   /* "$f24", */
+	/* 0x19 */  "ft12",  /* "$f25", */
+	/* 0x1a */  "fs1",   /* "$f26", */
+	/* 0x1b */  "ft13",  /* "$f27", */
+	/* 0x1c */  "fs2",   /* "$f28", */
+	/* 0x1d */  "ft14",  /* "$f29", */
+	/* 0x1e */  "fs3",   /* "$f30", */
+	/* 0x1f */  "ft15"   /* "$f31"  */
+};
+#endif
 
 
 /* function disassinstr ********************************************************
@@ -360,74 +447,97 @@ static void disassinstr(int c, int pos)
 	rd    = (c >> 11) & 0x1f;   /* 5 bit destination register specifier       */
 	shift = (c >>  6) & 0x1f;   /* 5 bit unsigned shift amount                */
 
-	printf ("%6x: %#8x  ", pos, c);
+	printf ("%6x: 0x%08x  ", pos, c);
 	
 	switch (ops[op].itype) {
 		case ITYPE_JMP:                      /* 26 bit unsigned jump offset   */
-			printf ("%s %#7x\n", ops[op].name, (c & 0x3ffffff) << 2); 
+			printf ("%s %#09x\n", ops[op].name, (c & 0x3ffffff) << 2); 
 			break;
 
 		case ITYPE_IMM:                      /* 16 bit signed immediate value */
-			printf ("%s $%d,$%d,%d\n", ops[op].name, rt, rs, (c << 16) >> 16); 
+			printf ("%s %s,%s,%d\n", ops[op].name, regs[rt],
+			                         regs[rs], (c << 16) >> 16); 
 			break;
 
 		case ITYPE_MEM:                      /* 16 bit signed memory offset   */
-			printf ("%s $%d,%d($%d)\n", ops[op].name, rt, (c << 16) >> 16, rs); 
+			printf ("%s %s,%d(%s)\n", ops[op].name, regs[rt],
+			                          (c << 16) >> 16, regs[rs]); 
+			break;
+
+		case ITYPE_FMEM:                     /* 16 bit signed memory offset   */
+			printf ("%s $f%d,%d(%s)\n", ops[op].name, rt,
+			                            (c << 16) >> 16, regs[rs]); 
 			break;
 
 		case ITYPE_BRA:                      /* 16 bit signed branch offset   */
-			printf("%s $%d,$%d,%x\n", ops[op].name, rs, rt, 
+			if (op == 0x04 && rs == 0 && rt == 0) {
+				printf("b        0x%x\n", pos + 4 + ((c << 16) >> 14));	
+				break;
+				}	
+			printf("%s %s,%s,0x%x\n", ops[op].name, regs[rs], regs[rt], 
 			                          pos + 4 + ((c << 16) >> 14));
 			break;
 			
 		case ITYPE_RIMM:
 			if (regimms[rt].ftype == ITYPE_IMM)
-				printf("%s $%d,#%d\n", regimms[rt].name, rs, (c << 16) >> 16);
+				printf("%s %s,%d\n", regimms[rt].name, regs[rs],
+				       (c << 16) >> 16);
 			else if (regimms[rt].ftype == ITYPE_BRA)
-				printf("%s $%d,%x\n", regimms[rt].name, rs,
-				                                   pos + 4 + ((c << 16) >> 14));
+				printf("%s %s,%x\n", regimms[rt].name, regs[rs],
+				       pos + 4 + ((c << 16) >> 14));
 			else
-				printf("REGIMM %#2x,$%d,%d\n", rt, rs, (c << 16) >> 16);		
+				printf("regimm   %#04x,$%d,%d\n", rt, rs, (c << 16) >> 16);		
 			break;
 
 		case ITYPE_OP:
-			if (opfun == 0x25 && rs == rt) {
-				if (rs == 0 && rd == 0)
-					printf("NOP\n");
-				else if (rs == 0)
-					printf("CLR      $%d\n", rd);
+			if (c == 0) {
+				printf("nop\n");
+				return;
+				}
+			if (opfun == 0x25 && rt == 0) {
+				if (rs == 0)
+					printf("clr      %s\n", regs[rd]);
 				else
-					printf("MOV      $%d,$%d\n", rs, rd);
+					printf("move     %s,%s\n", regs[rd], regs[rs]);
 				return;
 				}
 			switch (regops[opfun].ftype) {
 				case ITYPE_OP:
-					printf("%s $%d,$%d,$%d\n", regops[opfun].name, rd, rs, rt);
+					printf("%s %s,%s,%s\n", regops[opfun].name, regs[rd],
+					       regs[rs], regs[rt]);
 					break;
 				case ITYPE_IMM:  /* immediate instruction */
-					printf("%s $%d,$%d,#%d\n",
-					       regops[opfun].name, rd, rt, shift);
+					printf("%s %s,%s,%d\n",
+					       regops[opfun].name, regs[rd], regs[rt], shift);
 					break;
 				case ITYPE_TRAP:
-					printf("%s $%d,$%d,#%d\n",
-					        regops[opfun].name, rs, rt, (c << 16) >> 22);
+					printf("%s %s,%s,%d\n", regops[opfun].name,
+					       regs[rs], regs[rt], (c << 16) >> 22);
 					break;
 				case ITYPE_DIVMUL: /* div/mul instruction */
-					printf("%s $%d,$%d\n", regops[opfun].name, rs, rt);
+					printf("%s %s,%s\n", regops[opfun].name, regs[rs], regs[rt]);
 					break;
 				case ITYPE_JMP:
-					printf("%s $%d,$%d\n", regops[opfun].name, rd, rs);
+					if (rd == 31) {
+						printf("%s %s\n", regops[opfun].name, regs[rs]);
+						break;
+						}
+					printf("%s %s,%s\n", regops[opfun].name, regs[rd], regs[rs]);
 					break;
 				case ITYPE_MTOJR:
-					printf("%s $%d\n", regops[opfun].name, rs);
+					if (opfun == 8 && rs == 31) {
+						printf("ret\n");
+						break;
+						}
+					printf("%s %s\n", regops[opfun].name, regs[rs]);
 					break;
 				case ITYPE_MFROM:
-					printf("%s $%d\n", regops[opfun].name, rd);
+					printf("%s %s\n", regops[opfun].name, regs[rd]);
 					break;
 				case ITYPE_SYS:
 					printf("%s\n", regops[opfun].name);
 				default:
-					printf("SPECIAL  (%#2x) $%d,$%d,$%d\n", opfun, rd, rs, rt);
+					printf("special  (%#04x) $%d,$%d,$%d\n", opfun, rd, rs, rt);
 				}		
 			break;
 		case ITYPE_FOP:
@@ -441,33 +551,30 @@ static void disassinstr(int c, int pos)
 				}
 
 			if (rs == 1) {              /* double move from                   */
-				printf("MFC1     $%d,$f%d\n", rt, fs);		
+				printf("dmfc1    %s,$f%d\n", regs[rt], fs);		
 				break;
 				}
 
 			if (rs == 5) {              /* double move to                     */
-				printf("MTC1     ,$%d,$f%d\n", rt, fs);		
+				printf("dmtc1    %s,$f%d\n", regs[rt], fs);		
 				break;
 				}
 
 			rs    = rs & 7;             /* truncate to 3 bit format specifier */
 
 			if (fops[opfun].ftype == ITYPE_FOP)
-				printf("%s%s%s $%d,$%d,$%d\n", fops[opfun].name, fmt[rs],
+				printf("%s%s%s $f%d,$f%d,$f%d\n", fops[opfun].name, fmt[rs],
 				                               fops[opfun].fill, fd, fs, ft);
 			else if (fops[opfun].ftype == ITYPE_FOP2)
-				printf("%s%s%s $%d,$%d\n", fops[opfun].name, fmt[rs],
+				printf("%s%s%s $f%d,$f%d\n", fops[opfun].name, fmt[rs],
 				                           fops[opfun].fill, fd, fs);
-			else if (fops[opfun].ftype == ITYPE_FOP2)
-				printf("%s%s%s $%d,$%d\n", fops[opfun].name, fmt[rs],
-				                           fops[opfun].fill, fs, ft);
 			else
-				printf("COP1     (%#2x) $%d,$%d,$%d\n", opfun, fd, fs, ft);		
+				printf("cop1     (%#04x) $f%d,$f%d,$f%d\n", opfun, fd, fs, ft);		
 
 			break;
 
 		default:
-			printf("UNDEF    %#2x(%#2x) $%d,$%d,$%d\n", op, opfun, rd, rs, rt);		
+			printf("undef    %#04x(%#04x) $%d,$%d,$%d\n", op, opfun, rd, rs, rt);		
 		}
 }
 
