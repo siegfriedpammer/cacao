@@ -93,7 +93,7 @@ extern __thread threadobject *threadobj;
 #include "builtin.h"
 
 typedef struct {
-	u1 *mcodebegin, *mcodeend;
+	u1 *mcodebegin, *mcodeend, *mcoderestart;
 } threadcritnode;
 
 void thread_registercritical(threadcritnode *);

@@ -129,7 +129,7 @@ void thread_registercritical(threadcritnode *n)
 static u1 *thread_checkcritical(u1 *mcodeptr)
 {
 	const threadcritnode *n = findcritical(mcodeptr);
-	return (n && mcodeptr < n->mcodeend) ? n->mcodebegin : NULL;
+	return (n && mcodeptr < n->mcodeend && mcodeptr > n->mcodebegin) ? n->mcoderestart : NULL;
 }
 
 static pthread_mutex_t threadlistlock = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
