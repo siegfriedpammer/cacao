@@ -28,12 +28,31 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 967 2004-03-18 14:29:03Z jowenn $
+   $Id: asmpart.S 1060 2004-05-16 13:44:31Z twisti $
 
 */
 
-        
+
+#include "config.h"        
 #include "offsets.h"
+
+
+#define    	MethodPointer   -8
+#define    	FrameSize       -12
+#define     IsSync          -16
+#define     IsLeaf          -20
+#define     IntSave         -24
+#define     FltSave         -28
+/* DEFINE LINE NUMBER STUFF HERE */
+#define     ExTableSize     -56
+#define     ExTableStart    -56
+
+#define     ExEntrySize     -32
+#define     ExStartPC       -8
+#define     ExEndPC         -16
+#define     ExHandlerPC     -24
+#define     ExCatchType     -32
+
 
 #define v0      $0
 
@@ -109,7 +128,6 @@
 	.globl asm_calljavafunction2double
 	.globl asm_calljavafunction2long
 	.globl asm_call_jit_compiler
-	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 	.globl asm_check_clinit
@@ -132,6 +150,7 @@
 /*************************** imported functions *******************************/
 
 	.globl jit_compile
+	.globl _exceptionptr
 	.globl builtin_monitorexit
 	.globl builtin_throw_exception
 	.globl builtin_trace_exception
@@ -153,33 +172,6 @@ has_no_x_instr_set:
 
 	.end    has_no_x_instr_set
 
-
-/********************* function synchronize_caches ****************************/
-
-	.ent    synchronize_caches
-
-synchronize_caches:
-	call_pal PAL_imb                  /* synchronise instruction cache        */
-	jmp     zero,(ra)                 /* return                               */
-
-	.end    synchronize_caches
-
-
-#define    	MethodPointer   -8
-#define    	FrameSize       -12
-#define     IsSync          -16
-#define     IsLeaf          -20
-#define     IntSave         -24
-#define     FltSave         -28
-/* DEFINE LINE NUMBER STUFF HERE */
-#define     ExTableSize     -56
-#define     ExTableStart    -56
-
-#define     ExEntrySize     -32
-#define     ExStartPC       -8
-#define     ExEndPC         -16
-#define     ExHandlerPC     -24
-#define     ExCatchType     -32
 
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
@@ -464,95 +456,6 @@ noregchange:
 	.end    asm_call_jit_compiler
 
 
-/****************** function asm_dumpregistersandcall **************************
-*                                                                              *
-*   This funtion saves all callee saved registers and calls the function       *
-*   which is passed as parameter.                                              *
-*                                                                              *
-*   This function is needed by the garbage collector, which needs to access    *
-*   all registers which are stored on the stack. Unused registers are          *
-*   cleared to avoid interferances with the GC.                                *
-*                                                                              *
-*   void asm_dumpregistersandcall (functionptr f);                             *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_dumpregistersandcall
-asm_dumpregistersandcall:
-	lda     sp,-16*8(sp)          /* allocate stack                           */
-	stq     ra,0(sp)              /* save return address                      */
-
-	stq     s0,1*8(sp)            /* save all callee saved registers          */
-	stq     s1,2*8(sp)            /* intialize the remaining registers        */
-	stq     s2,3*8(sp)
-	stq     s3,4*8(sp)
-	stq     s4,5*8(sp)
-	stq     s5,6*8(sp)
-	stq     s6,7*8(sp)
-	stt     $f2,8*8(sp)
-	stt     $f3,9*8(sp)
-	stt     $f4,10*8(sp)
-	stt     $f5,11*8(sp)
-	stt     $f6,12*8(sp)
-	stt     $f7,13*8(sp)
-	stt     $f8,14*8(sp)
-	stt     $f9,15*8(sp)
-
-	clr     v0                   /* intialize the remaining registers         */
-	clr     t0
-	clr     t1
-	clr     t2
-	clr     t3
-	clr     t4
-	clr     t5
-	clr     t6
-	clr     t7
-	clr     a1
-	clr     a2
-	clr     a3
-	clr     a4
-	clr     a5
-	clr     t8
-	clr     t9
-	clr     t10
-	clr     t11
-	clr     t12
-	clr     $28
-	clr     $29
-	cpys    $f31,$f31,$f0
-	cpys    $f31,$f31,$f1
-	cpys    $f31,$f31,$f10
-	cpys    $f31,$f31,$f11
-	cpys    $f31,$f31,$f12
-	cpys    $f31,$f31,$f13
-	cpys    $f31,$f31,$f14
-	cpys    $f31,$f31,$f15
-	cpys    $f31,$f31,$f16
-	cpys    $f31,$f31,$f17
-	cpys    $f31,$f31,$f18
-	cpys    $f31,$f31,$f19
-	cpys    $f31,$f31,$f20
-	cpys    $f31,$f31,$f21
-	cpys    $f31,$f31,$f22
-	cpys    $f31,$f31,$f23
-	cpys    $f31,$f31,$f24
-	cpys    $f31,$f31,$f25
-	cpys    $f31,$f31,$f26
-	cpys    $f31,$f31,$f27
-	cpys    $f31,$f31,$f28
-	cpys    $f31,$f31,$f29
-	cpys    $f31,$f31,$f30
-
-	mov     a0,pv                 /* load function pointer                    */
-	jmp     ra,(pv)               /* and call function                        */
-
-	ldq     ra,0(sp)              /* load return address                      */
-	lda     sp,16*8(sp)           /* deallocate stack                         */
-	jmp     zero,(ra)             /* return                                   */
-
-	.end    asm_dumpregistersandcall
-
-
 /********************* function asm_handle_exception ***************************
 *                                                                              *
 *   This function handles an exception. It does not use the usual calling      *
@@ -567,7 +470,6 @@ asm_dumpregistersandcall:
 
 	.ent    asm_handle_nat_exception
 asm_handle_nat_exception:
-
 	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
 	sll     t0,48,t0
 	sra     t0,48,t0              /* isolate offset                           */
@@ -583,7 +485,6 @@ asm_handle_nat_exception:
 
 	.aent    asm_handle_exception
 asm_handle_exception:
-
 	lda     sp,-18*8(sp)          /* allocate stack                           */
 	stq     t0,0*8(sp)            /* save possible used registers             */
 	stq     t1,1*8(sp)            /* also registers used by trace_exception   */
@@ -633,6 +534,7 @@ ex_trace:
 	
 	ldl     t0,ExTableSize(pv)    /* t0 = exception table size                */
 	beq     t0,empty_table        /* if empty table skip                      */
+
 	lda     t1,ExTableStart(pv)   /* t1 = start of exception table            */
 
 ex_table_loop:
@@ -645,8 +547,70 @@ ex_table_loop:
 	ldq     a1,ExCatchType(t1)    /* arg1 = exception catch type              */
 	beq     a1,ex_handle_it       /* NULL catches everything                  */
 
+	ldl     itmp3,offclassloaded(a1)
+	bne     itmp3,L_class_loaded
+
+	subq    sp,8*8,sp             /* allocate stack                           */
+	stq     t0,0*8(sp)            /* save used register                       */
+	stq     t1,1*8(sp)
+	stq     t3,2*8(sp)
+	stq     xptr,3*8(sp)
+	stq     xpc,4*8(sp)
+	stq     pv,5*8(sp)
+	stq     ra,6*8(sp)
+	stq     a1,7*8(sp)
+
+	mov     a1,a0
+
+	br      ra,L_class_load_ra    /* set ra for gp loading                    */
+L_class_load_ra:
+	ldgp    gp,0(ra)              /* load gp                                  */
+	jsr     ra,class_load         /* class_load(exceptionclass)               */
+
+	ldq     t0,0*8(sp)            /* restore used register                    */
+	ldq     t1,1*8(sp)
+	ldq     t3,2*8(sp)
+	ldq     xptr,3*8(sp)
+	ldq     xpc,4*8(sp)
+	ldq     pv,5*8(sp)
+	ldq     ra,6*8(sp)
+	ldq     a1,7*8(sp)
+	addq    sp,8*8,sp             /* deallocate stack                         */
+
+L_class_loaded:
+	ldl     itmp3,offclasslinked(a1)
+	bne     itmp3,L_class_linked
+
+	subq    sp,8*8,sp             /* allocate stack                           */
+	stq     t0,0*8(sp)            /* save used register                       */
+	stq     t1,1*8(sp)
+	stq     t3,2*8(sp)
+	stq     xptr,3*8(sp)
+	stq     xpc,4*8(sp)
+	stq     pv,5*8(sp)
+	stq     ra,6*8(sp)
+	stq     a1,7*8(sp)
+
+	mov     a1,a0
+
+	br      ra,L_class_link_ra    /* set ra for gp loading                    */
+L_class_link_ra:
+	ldgp    gp,0(ra)              /* load gp                                  */
+	jsr     ra,class_link         /* class_load(exceptionclass)               */
+
+	ldq     t0,0*8(sp)            /* restore used register                    */
+	ldq     t1,1*8(sp)
+	ldq     t3,2*8(sp)
+	ldq     xptr,3*8(sp)
+	ldq     xpc,4*8(sp)
+	ldq     pv,5*8(sp)
+	ldq     ra,6*8(sp)
+	ldq     a1,7*8(sp)
+	addq    sp,8*8,sp             /* deallocate stack                         */
+
+L_class_linked:
 	ldq     a0,offobjvftbl(xptr)  /* a0 = vftblptr(xptr)                      */
-	ldq     a1,offclassvftbl(a1)    /* a1 = vftblptr(catchtype) class (not obj) */
+	ldq     a1,offclassvftbl(a1)  /* a1 = vftblptr(catchtype) class (not obj) */
 	ldl     a0,offbaseval(a0)     /* a0 = baseval(xptr)                       */
 	ldl     v0,offbaseval(a1)     /* a2 = baseval(catchtype)                  */
 	ldl     a1,offdiffval(a1)     /* a1 = diffval(catchtype)                  */
@@ -655,7 +619,6 @@ ex_table_loop:
 	beq     v0,ex_table_cont      /* if (false) continue                      */
 
 ex_handle_it:
-
 	ldq     xpc,ExHandlerPC(t1)   /* xpc = exception handler pc               */
 
 	beq     t3,ex_jump            /* if (!(no stack unwinding) skip           */
@@ -788,6 +751,7 @@ ex_flt2:
 *******************************************************************************/
 		
     .ent    asm_check_clinit
+
 asm_check_clinit:
 	ldgp	gp,0(pv)
 
@@ -796,8 +760,8 @@ asm_check_clinit:
 	
 	subq	sp,7*8,sp
 	stq		ra,0*8(sp)
-	stq		a0,1*8(sp)            /* save argument registers for leaf funcs   */
-	stq		a1,2*8(sp)
+	stq		a0,1*8(sp)            /* save argument registers for leaf         */
+	stq		a1,2*8(sp)            /* functions and native stub                */
 	stq		a2,3*8(sp)
 	stq		a3,4*8(sp)
 	stq		a4,5*8(sp)
@@ -815,7 +779,9 @@ asm_check_clinit:
 	ldq		a4,5*8(sp)
 	ldq		a5,6*8(sp)
 	addq	sp,7*8,sp
-	
+
+	beq     v0,L_initializererror
+
 L_is_initialized:
 	mov     ra,itmp1              /* now patch the calling code               */
 	subq    itmp1,(3*4),itmp1     /* go back 3 instructions                   */
@@ -824,7 +790,25 @@ L_is_initialized:
 	stl     itmp2,0(itmp1)        /* store the new branch: br +4              */
 
 	jmp		zero,(ra)
-		
+
+L_initializererror:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	subq    sp,1*8,sp
+	stq     ra,0*8(sp)
+	jsr     ra,builtin_asm_get_exceptionptrptr
+	ldq     ra,0*8(sp)
+	addq    sp,1*8,sp
+	ldq     xptr,0(v0)            /* get the exception pointer                */
+	stq     zero,0(v0)            /* clear the exception pointer              */
+#else
+	lda     itmp3,_exceptionptr
+	ldq     xptr,0(itmp3)
+	stq     zero,0(itmp3)
+#endif
+
+	subq    ra,4,xpc
+	br      asm_handle_nat_exception
+
 	.end	asm_check_clinit
 
 		
@@ -1008,41 +992,6 @@ nb_lrem:
 	.end    asm_builtin_lrem
 
 
-/*********************** function new_builtin_checkcast ************************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
-*******************************************************************************/
-
-    .ent    asm_builtin_checkcast
-
-asm_builtin_checkcast:
-    ldgp    gp,0(pv)
-    lda     sp,-16(sp)                  # allocate stack space
-    stq     ra,0(sp)                    # save return address
-    stq     a0,8(sp)                    # save object pointer
-    jsr     ra,builtin_checkcast        # builtin_checkcast
-    ldgp    gp,0(ra)
-    beq     v0,nb_ccast_throw           # if (false) throw exception
-    ldq     ra,0(sp)                    # restore return address
-    ldq     v0,8(sp)                    # return object pointer
-    lda     sp,16(sp)                   # free stack space
-    jmp     zero,(ra)
-
-nb_ccast_throw:
-	ldq     a0,string_java_lang_ClassCastException
-	jsr     ra,new_exception
-	ldgp    gp,0(ra)
-	mov     v0,xptr
-
-    ldq     ra,0(sp)                    # restore return address
-    lda     sp,16(sp)                   # free stack space
-    lda     xpc,-4(ra)                  # faulting address is return adress - 4
-    br      asm_handle_nat_exception
-
-    .end    asm_builtin_checkcast
-
-		
 /******************* function asm_builtin_checkarraycast ***********************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
@@ -1269,68 +1218,6 @@ asm_switchstackandcall:
 	.end	asm_switchstackandcall
 
 		
-/********************* function asm_getcallingmethod ***************************
-*                                                                              *
-*   classinfo *asm_getcallingmethodclass ();								   *
-*																			   *
-*   goes back stack frames to get the calling method						   *
-*																			   *
-*				t2 .. sp												       *
-*				t3 .. ra												       *
-*				t4 .. pv												       *
-*                                                                              *
-*******************************************************************************/
-
-
-	.ent	asm_getcallingmethod
-
-asm_getcallingmethod:
-	ldq		t3,16(sp)             /* load return address of native function   */
-	addq    sp,24,t2			  /* skip frames of C-Function and nativestub */
-		
-    /* determine pv (t3) of java-function from ra */
-
-	ldl     t0,0(t3)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t0,48,t0
-	sra     t0,48,t0              /* isolate offset                           */
-	addq    t0,t3,t4              /* compute update address                   */
-	ldl     t0,4(t3)              /* load instruction LDAH PV,xxx(PV)         */
-	srl     t0,16,t0              /* isolate instruction code                 */
-	lda     t0,-0x177b(t0)        /* test for LDAH                            */
-	bne     t0,pv_ok1       
-	ldl     t0,0(t3)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t0,16,t0              /* compute high offset                      */
-	addl    t0,0,t0               /* sign extend high offset                  */
-	addq    t0,t4,t4              /* compute update address                   */
-
-pv_ok1:			
-	ldl     t0,FrameSize(t4)      /* t0 = frame size                          */
-	addq	t2,t0,t2			  /* skip frame of java function			  */
-	ldq		t3,-8(t2)			  /* load new ra                              */
-
-    /* determine pv (t3) of java-function from ra */
-
-	ldl     t0,0(t3)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t0,48,t0
-	sra     t0,48,t0              /* isolate offset                           */
-	addq    t0,t3,t4              /* compute update address                   */
-	ldl     t0,4(t3)              /* load instruction LDAH PV,xxx(PV)         */
-	srl     t0,16,t0              /* isolate instruction code                 */
-	lda     t0,-0x177b(t0)        /* test for LDAH                            */
-	bne     t0,pv_ok2
-	ldl     t0,0(t3)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t0,16,t0              /* compute high offset                      */
-	addl    t0,0,t0               /* sign extend high offset                  */
-	addq    t0,t4,t4              /* compute update address                   */
-
-pv_ok2:		
-	ldq     v0,MethodPointer(t4)  /*										  */
-										
-	jmp     zero,(ra)             /* return                                   */
-
-	.end	asm_getcallingmethod
-
-
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
