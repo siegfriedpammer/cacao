@@ -1,3 +1,4 @@
+
 /* loader.c ********************************************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
@@ -18,9 +19,8 @@
 
 #include "global.h"
 #include "loader.h"
-
-#include "tables.h"
 #include "native.h"
+#include "tables.h"
 #include "builtin.h"
 #include "jit.h"
 #ifdef OLD_COMPILER
@@ -29,7 +29,7 @@
 #include "asmpart.h"
 
 #include "threads/thread.h"                        /* schani */
-
+#include <sys/stat.h>
 
 /* global variables ***********************************************************/
 
@@ -48,17 +48,26 @@ bool initverbose = false;
 
 bool makeinitializations = true;
 
-bool getloadingtime = false;
+bool getloadingtime  = false;   /* to measure the runtime                     */
 long int loadingtime = 0;
-
 
 static s4 interfaceindex;    /* sequential numbering of interfaces            */ 
 
-static list unloadedclasses; /* list of all referenced but not loaded classes */
-static list unlinkedclasses; /* list of all loaded but not linked classes     */
-       list linkedclasses;   /* list of all completely linked classes         */
+list unloadedclasses; /* list of all referenced but not loaded classes */
+list unlinkedclasses; /* list of all loaded but not linked classes     */
+list linkedclasses;   /* list of all completely linked classes         */
 
 
+/* utf-symbols for pointer comparison of frequently used strings */
+
+static utf *utf_innerclasses; 		/* InnerClasses   		   */
+static utf *utf_constantvalue; 		/* ConstantValue 		   */
+static utf *utf_code;			    /* Code 			       */
+static utf *utf_finalize;		    /* finalize 			   */
+static utf *utf_fidesc;   		    /* ()V 				       */
+static utf *utf_clinit;  		    /* <clinit> 			   */
+static utf *utf_initsystemclass;	/* initializeSystemClass   */
+static utf *utf_systemclass;		/* java/lang/System 	   */
 
 /* important system classes ***************************************************/
 
@@ -72,9 +81,26 @@ classinfo *class_java_lang_OutOfMemoryError;
 classinfo *class_java_lang_ArithmeticException;
 classinfo *class_java_lang_ArrayStoreException;
 classinfo *class_java_lang_ThreadDeath;                 /* schani */
+classinfo *class_array = NULL;
 
-classinfo *class_array;
+/******************************************************************************
 
+   structure for primitive classes: contains the class for wrapping the 
+   primitive type, the primitive class, the name of the class for wrapping, 
+   the one character type signature and the name of the primitive class
+ 
+ ******************************************************************************/
+ 
+primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = { 
+		{ NULL, NULL, "java/lang/Double",    'D', "double"  },
+		{ NULL, NULL, "java/lang/Float",     'F', "float"   },
+  		{ NULL, NULL, "java/lang/Character", 'C', "char"    },
+  		{ NULL, NULL, "java/lang/Integer",   'I', "int"     },
+  		{ NULL, NULL, "java/lang/Long",      'J', "long"    },
+  		{ NULL, NULL, "java/lang/Byte",	     'B', "byte"    },
+  		{ NULL, NULL, "java/lang/Short",     'S', "short"   },
+  		{ NULL, NULL, "java/lang/Boolean",   'Z', "boolean" },
+  		{ NULL, NULL, "java/lang/Void",	     'V', "void"    }};
 
 /* instances of important system classes **************************************/
 
@@ -88,7 +114,209 @@ java_objectheader *proto_java_lang_ArrayStoreException;
 java_objectheader *proto_java_lang_ThreadDeath;         /* schani */
 
 
+/************* functions for reading classdata ********************************
 
+    getting classdata in blocks of variable size
+    (8,16,32,64-bit integer or float)
+
+*******************************************************************************/
+
+static char *classpath    = "";     /* searchpath for classfiles              */
+static u1 *classbuffer    = NULL;   /* pointer to buffer with classfile-data  */
+static u1 *classbuf_pos;            /* current position in classfile buffer   */
+static int classbuffer_size;        /* size of classfile-data                 */
+
+/* transfer block of classfile data into a buffer */
+#define suck_nbytes(buffer,len) memcpy(buffer,classbuf_pos+1,len);classbuf_pos+=len;
+
+/* skip block of classfile data */
+#define skip_nbytes(len) classbuf_pos += len;
+
+#define suck_u1() (*++classbuf_pos)
+#define suck_s8() (s8) suck_u8()
+#define suck_s2() (s2) suck_u2()
+#define suck_s4() (s4) suck_u4()
+#define suck_s1() (s1) suck_u1()
+#define suck_u2() (u2) ((suck_u1()<<8)+suck_u1())
+#define suck_u4() (u4) ((((u4)suck_u1())<<24)+(((u4)suck_u1())<<16)+(((u4)suck_u1())<<8)+((u4)suck_u1()))
+
+/* get u8 from classfile data */
+static u8 suck_u8 ()
+{
+#if U8_AVAILABLE
+	u8 lo,hi;
+	hi = suck_u4();
+	lo = suck_u4();
+	return (hi<<32) + lo;
+#else
+	u8 v;
+	v.high = suck_u4();
+	v.low = suck_u4();
+	return v;
+#endif
+}
+
+/* get float from classfile data */
+static float suck_float ()
+{
+	float f;
+
+#if !WORDS_BIGENDIAN 
+		u1 buffer[4];
+		u2 i;
+		for (i=0; i<4; i++) buffer[3-i] = suck_u1 ();
+		memcpy ( (u1*) (&f), buffer, 4);
+#else 
+		suck_nbytes ( (u1*) (&f), 4 );
+#endif
+
+	PANICIF (sizeof(float) != 4, "Incompatible float-format");
+	
+	return f;
+}
+
+/* get double from classfile data */
+static double suck_double ()
+{
+	double d;
+
+#if !WORDS_BIGENDIAN 
+		u1 buffer[8];
+		u2 i;	
+		for (i=0; i<8; i++) buffer[7-i] = suck_u1 ();
+		memcpy ( (u1*) (&d), buffer, 8);
+#else 
+		suck_nbytes ( (u1*) (&d), 8 );
+#endif
+
+	PANICIF (sizeof(double) != 8, "Incompatible double-format" );
+	
+	return d;
+}
+
+/************************** function: suck_init ******************************
+
+	called once at startup, sets the searchpath for the classfiles
+
+******************************************************************************/
+
+void suck_init (char *cpath)
+{
+	classpath   = cpath;
+	classbuffer = NULL;
+}
+
+
+/************************** function: suck_start ******************************
+
+	open file for the specified class and the read classfile data,
+	all directory of the searchpath are used to find the classfile
+	( <classname>.class)
+	
+******************************************************************************/
+
+
+bool suck_start (utf *classname)
+{
+#define MAXFILENAME 1000 	       /* maximum length of a filename */
+	
+	char filename[MAXFILENAME+10]; /* room for '.class' */	
+	char *pathpos;                 /* position in searchpath */
+	FILE *classfile;
+	u2 filenamelen;
+	u2 c;
+
+	if (classbuffer)               /* classbuffer already valid */
+		return true;
+
+	pathpos = classpath;
+	
+	while (*pathpos) {
+		/* pointer to the next utf8-character */
+		char *utf_ptr = classname->text; 
+
+		/* skip path separator */
+		while ( *pathpos == ':' ) pathpos++;
+ 
+ 		/* extract directory from searchpath */
+		filenamelen=0;
+		while ( (*pathpos) && (*pathpos!=':') ) {
+		    PANICIF (filenamelen >= MAXFILENAME, "Filename too long") ;
+			
+			filename[filenamelen++] = *(pathpos++);
+			}
+
+		filename[filenamelen++] = '/';  
+   
+   		/* add classname to filename */
+		while (utf_ptr<utf_end(classname)) {
+			PANICIF (filenamelen >= MAXFILENAME, "Filename too long");
+			
+			c = *utf_ptr++;
+			if (c=='/') c = '/';     
+			else {
+				if ( c<=' ' || c>'z') { 
+					/* invalid character */
+					c = '?'; 
+					}
+				}
+			
+			filename[filenamelen++] = c;	
+			}
+      
+		/* add suffix */
+		strcpy (filename+filenamelen, ".class");
+
+		classfile = fopen(filename, "r");
+		if (classfile) {
+			/* file exists */
+			struct stat buffer;
+			int err;
+	
+			/* determine size of classfile */
+			err = stat (filename, &buffer);
+
+			if (!err) {
+				/* read classfile data */				
+				classbuffer_size = buffer.st_size;				
+				classbuffer      = MNEW(u1,classbuffer_size);
+				classbuf_pos     = classbuffer-1;
+				fread(classbuffer, 1, classbuffer_size, classfile);
+				fclose(classfile);
+				return true;
+			}
+		}
+	}
+
+	sprintf (logtext,"Can not open class file '%s'", filename);
+	error();
+
+	return false;
+}
+
+
+/************************** function: suck_stop *******************************
+
+	free memory for buffer with classfile data
+	
+******************************************************************************/
+
+void suck_stop ()
+{
+	/* determine number of bytes of classdata not retrieved by suck-operations */
+	int classdata_left = (classbuffer+classbuffer_size)-classbuf_pos-1;
+
+        if (classdata_left>0) {        	
+        		/* surplus */        	
+			sprintf (logtext,"There are %d access bytes at end of classfile",
+		                 classdata_left);
+			dolog();
+	}
+
+	/* free memory */
+	MFREE(classbuffer,u1,classbuffer_size);
+	classbuffer = NULL;
+}
 
 /******************************************************************************/
 /******************* Einige Support-Funkionen *********************************/
@@ -137,7 +365,6 @@ static void skipattributebody ()
 	skip_nbytes(suck_u4());
 }
 
-
 /************************* Funktion: skipattributes ****************************
 
 	"uberliest im ClassFile eine gew"unschte Anzahl von attribute-Strukturen
@@ -151,169 +378,268 @@ static void skipattributes (u4 num)
 		skipattribute();
 }
 
+/******************** function: innerclass_getconstant ************************
 
-
-/************************** Funktion: loadUtf8 *********************************
-
-	liest aus dem ClassFile einen Utf8-String (=komprimierter unicode-text) 
-	und legt daf"ur ein unicode-Symbol an. 
-	Return: Zeiger auf das Symbol 
-
+    like class_getconstant, but if cptags is ZERO null is returned					 
+	
 *******************************************************************************/
 
-#define MAXUNICODELEN 5000
-static u2 unicodebuffer[MAXUNICODELEN];
-
-static unicode *loadUtf8 ()
+voidptr innerclass_getconstant (classinfo *c, u4 pos, u4 ctype) 
 {
-	u4 unicodelen;
-	u4 letter;
+	/* invalid position in constantpool */
+	if (pos >= c->cpcount) 
+		panic ("Attempt to access constant outside range");
 
-	u4 utflen;
-	u4 b1,b2,b3;
+	/* constantpool entry of type 0 */	
+	if (!c->cptags[pos])
+		return NULL;
 
-	unicodelen = 0;
-
-	utflen = suck_u2 ();
-	while (utflen > 0) {
-		b1 = suck_u1 ();
-		utflen --;
-		if (b1<0x80) letter = b1;
-		else {
-			b2 = suck_u1 ();
-			utflen --;
-			if (b1<0xe0) letter = ((b1 & 0x1f) << 6) | (b2 & 0x3f);
-			else {
-				b3 = suck_u1 ();
-				utflen --;
-				letter = ((b1 & 0x0f) << 12) | ((b2 & 0x3f) << 6) | (b3 & 0x3f);
-				}
-			}	
-	
-
-		if (unicodelen >= MAXUNICODELEN) {
-			panic ("String constant too long");
-			}
-		
-		unicodebuffer[unicodelen++] = letter;			
+	/* check type of constantpool entry */
+	if (c->cptags[pos] != ctype) {
+		sprintf (logtext, "Type mismatch on constant: %d requested, %d here",
+		 (int) ctype, (int) c->cptags[pos] );
+		error();
 		}
-
-	
-	return unicode_new_u2 (unicodebuffer, unicodelen);
+		
+	return c->cpinfos[pos];
 }
 
+/************************ function: attribute_load ****************************
 
+    read attributes from classfile
+	
+*******************************************************************************/
 
-/******************** interne Funktion: checkfieldtype ************************/
-
-static void checkfieldtype (u2 *text, u4 *count, u4 length)
+static void attribute_load (u4 num, classinfo *c)
 {
-	u4 l;
+	u4 i,j;
 
-	if (*count >= length) panic ("Type-descriptor exceeds unicode length");
+	for (i = 0; i < num; i++) {
+		/* retrieve attribute name */	
+		utf *aname = class_getconstant (c, suck_u2(), CONSTANT_Utf8);
+
+		if ( aname == utf_innerclasses)  {			
+			/* innerclasses attribute */
+				
+			/* skip attribute length */						
+			suck_u4(); 
+			/* number of records */
+			c->innerclasscount = suck_u2();
+			/* allocate memory for innerclass structure */
+			c->innerclass = MNEW (innerclassinfo, c->innerclasscount);
+
+			for (j=0;j<c->innerclasscount;j++) {
+				
+				/*  The innerclass structure contains a class with an encoded name, 
+				    its defining scope, its simple name  and a bitmask of the access flags. 
+				    If an inner class is not a member, its outer_class is NULL, 
+				    if a class is anonymous, its name is NULL.  			    */
+   								
+				innerclassinfo *info = c->innerclass + j;
+
+				info->inner_class = innerclass_getconstant(c, suck_u2(), CONSTANT_Class); /* CONSTANT_Class_info index */
+				info->outer_class = innerclass_getconstant(c, suck_u2(), CONSTANT_Class); /* CONSTANT_Class_info index */
+				info->name  = innerclass_getconstant(c, suck_u2(), CONSTANT_Utf8);        /* CONSTANT_Utf8_info index  */
+				info->flags = suck_u2 ();					          /* access_flags bitmask      */
+			}
+		} else {
+			/* unknown attribute */
+			skipattributebody ();
+		}
+	}
+}
+
+/******************* function: checkfielddescriptor ****************************
+
+	checks whether a field-descriptor is valid and aborts otherwise
+	all referenced classes are inserted into the list of unloaded classes
 	
-	l = text[(*count)++];
+*******************************************************************************/
+
+static void checkfielddescriptor (char *utf_ptr, char *end_pos)
+{
+	char *tstart;  /* pointer to start of classname */
+	char ch;
 	
-	switch (l) {
-		default: panic ("Invalid symbol in type descriptor");
-		         return;
+	switch (*utf_ptr++) {
+	case 'B':
+	case 'C':
+	case 'I':
+	case 'S':
+	case 'Z':  
+	case 'J':  
+	case 'F':  
+	case 'D':
+		/* primitive type */  
+		break;
+
+	case 'L':
+		/* save start of classname */
+		tstart = utf_ptr;  
+		
+		/* determine length of classname */
+		while ( *utf_ptr++ != ';' )
+			if (utf_ptr>=end_pos) 
+				panic ("Missing ';' in objecttype-descriptor");
+
+		/* cause loading of referenced class */			
+		class_new ( utf_new(tstart, utf_ptr-tstart-1) );
+		break;
+
+	case '[' : 
+		/* array type */
+		while ((ch = *utf_ptr++)=='[') 
+			/* skip */ ;
+
+		/* component type of array */
+		switch (ch) {
 		case 'B':
 		case 'C':
-		case 'D':
-		case 'F':
 		case 'I':
-		case 'J':
 		case 'S':
-		case 'Z': return;
-		
-		case '[': checkfieldtype (text, count, length);
-		          return;
-		          
-		case 'L': 
-			{
-			u4 tlen,tstart = *count;
+		case 'Z':  
+		case 'J':  
+		case 'F':  
+		case 'D':
+			/* primitive type */  
+			break;
 			
-			if (*count >= length) 
-			   panic ("Objecttype descriptor of length zero");
+		case 'L':
+			/* save start of classname */
+			tstart = utf_ptr;
 			
-			while ( text[*count] != ';' ) {
-				(*count)++;
-				if (*count >= length) 
-				   panic ("Missing ';' in objecttype-descriptor");
-				}
-			
-			tlen = (*count) - tstart;
-			(*count)++;
+			/* determine length of classname */
+			while ( *utf_ptr++ != ';' )
+				if (utf_ptr>=end_pos) 
+					panic ("Missing ';' in objecttype-descriptor");
 
-			if (tlen == 0) panic ("Objecttype descriptor with empty name");
-					
-			class_get ( unicode_new_u2 (text+tstart, tlen) );
-			}
-		}	
-}
+			/* cause loading of referenced class */			
+			class_new ( utf_new(tstart, utf_ptr-tstart-1) );
+			break;
 
-
-/******************* Funktion: checkfielddescriptor ****************************
-
-	"uberpr"uft, ob ein Field-Descriptor ein g"ultiges Format hat.
-	Wenn nicht, dann wird das System angehalten.
-	Au"serdem werden alle Klassen, die hier referenziert werden, 
-	in die Liste zu ladender Klassen eingetragen.
-	
-*******************************************************************************/
-
-void checkfielddescriptor (unicode *d)
-{
-	u4 count=0;
-	checkfieldtype (d->text, &count, d->length);
-	if (count != d->length) panic ("Invalid type-descritor encountered");
-}
-
-
-/******************* Funktion: checkmethoddescriptor ***************************
-
-	"uberpr"uft, ob ein Method-Descriptor ein g"ultiges Format hat.
-	Wenn nicht, dann wird das System angehalten.
-	Au"serdem werden alle Klassen, die hier referenziert werden, 
-	in die Liste zu ladender Klassen eingetragen.
-	
-*******************************************************************************/
-
-void checkmethoddescriptor (unicode *d)
-{
-	u2 *text=d->text;
-	u4 length=d->length;
-	u4 count=0;
-	
-	if (length<2) panic ("Method descriptor too short");
-	if (text[0] != '(') panic ("Missing '(' in method descriptor");
-	count=1;
-	
-	while (text[count] != ')') {
-		checkfieldtype (text,&count,length);
-		if ( count > length-2 ) panic ("Unexpected end of descriptor");
+		default:   
+			panic ("Ill formed methodtype-descriptor");
 		}
-		
-	count++;
-	if (text[count] == 'V') count++;
-	else                    checkfieldtype (text, &count,length);
-		
-	if (count != length) panic ("Method-descriptor has exceeding chars");
+		break;
+			
+	default:   
+		panic ("Ill formed methodtype-descriptor");
+	}			
+
+        /* exceeding characters */        	
+	if (utf_ptr!=end_pos) panic ("descriptor has exceeding chars");
+}
+
+
+/******************* function: checkmethoddescriptor ***************************
+
+    checks whether a method-descriptor is valid and aborts otherwise
+    all referenced classes are inserted into the list of unloaded classes	
+	
+*******************************************************************************/
+
+static void checkmethoddescriptor (utf *d)
+{
+	char *utf_ptr = d->text;     /* current position in utf text   */
+	char *end_pos = utf_end(d);  /* points behind utf string       */
+	char *tstart;                /* pointer to start of classname  */
+	char c,ch;
+
+	/* method descriptor must start with parenthesis */
+	if (*utf_ptr++ != '(') panic ("Missing '(' in method descriptor");
+
+	/* check arguments */
+	while ((c = *utf_ptr++) != ')') {
+		switch (c) {
+		case 'B':
+		case 'C':
+		case 'I':
+		case 'S':
+		case 'Z':  
+		case 'J':  
+		case 'F':  
+		case 'D':
+			/* primitive type */  
+			break;
+
+		case 'L':
+			/* save start of classname */ 
+			tstart = utf_ptr;
+			
+			/* determine length of classname */
+			while ( *utf_ptr++ != ';' )
+				if (utf_ptr>=end_pos) 
+					panic ("Missing ';' in objecttype-descriptor");
+			
+			/* cause loading of referenced class */
+			class_new ( utf_new(tstart, utf_ptr-tstart-1) );
+			break;
+	   
+		case '[' :
+			/* array type */ 
+			while ((ch = *utf_ptr++)=='[') 
+				/* skip */ ;
+
+			/* component type of array */
+			switch (ch) {
+			case 'B':
+			case 'C':
+			case 'I':
+			case 'S':
+			case 'Z':  
+			case 'J':  
+			case 'F':  
+			case 'D':
+				/* primitive type */  
+				break;
+
+			case 'L':
+				/* save start of classname */
+				tstart = utf_ptr;
+			
+				/* determine length of classname */	
+				while ( *utf_ptr++ != ';' )
+					if (utf_ptr>=end_pos) 
+						panic ("Missing ';' in objecttype-descriptor");
+
+				/* cause loading of referenced class */
+				class_new ( utf_new(tstart, utf_ptr-tstart-1) );
+				break;
+
+			default:   
+				panic ("Ill formed methodtype-descriptor");
+			} 
+			break;
+			
+		default:   
+			panic ("Ill formed methodtype-descriptor");
+		}			
+	}
+
+	/* check returntype */
+	if (*utf_ptr=='V') {
+		/* returntype void */
+		if ((utf_ptr+1) != end_pos) panic ("Method-descriptor has exceeding chars");
+	}
+	else
+		/* treat as field-descriptor */
+		checkfielddescriptor (utf_ptr,end_pos);
 }
 
 
 /******************** Funktion: buildarraydescriptor ***************************
 
-	erzeugt zu einem namentlich als u2-String vorliegenden Arraytyp eine
+	erzeugt zu einem namentlich als utf-String vorliegenden Arraytyp eine
 	entsprechende constant_arraydescriptor - Struktur 
 	
 *******************************************************************************/
 
-static constant_arraydescriptor * buildarraydescriptor(u2 *name, u4 namelen)
+constant_arraydescriptor * buildarraydescriptor(char *utf_ptr, u4 namelen)
 {
 	constant_arraydescriptor *d;
 	
-	if (name[0]!='[') panic ("Attempt to build arraydescriptor for non-array");
+	if (*utf_ptr++ != '[') panic ("Attempt to build arraydescriptor for non-array");
+
 	d = NEW (constant_arraydescriptor);
 	d -> objectclass = NULL;
 	d -> elementdescriptor = NULL;
@@ -322,7 +648,7 @@ static constant_arraydescriptor * buildarraydescriptor(u2 *name, u4 namelen)
 	count_const_pool_len += sizeof(constant_arraydescriptor);
 #endif
 
-	switch (name[1]) {
+	switch (*utf_ptr) {
 	case 'Z': d -> arraytype = ARRAYTYPE_BOOLEAN; break;
 	case 'B': d -> arraytype = ARRAYTYPE_BYTE; break;
 	case 'C': d -> arraytype = ARRAYTYPE_CHAR; break;
@@ -334,12 +660,12 @@ static constant_arraydescriptor * buildarraydescriptor(u2 *name, u4 namelen)
 
 	case '[':
 		d -> arraytype = ARRAYTYPE_ARRAY; 
-		d -> elementdescriptor = buildarraydescriptor (name+1, namelen-1);
+		d -> elementdescriptor = buildarraydescriptor (utf_ptr, namelen-1);
 		break;
 		
 	case 'L':
 		d -> arraytype = ARRAYTYPE_OBJECT;
-		d -> objectclass = class_get ( unicode_new_u2 (name+2, namelen-3) );
+		d -> objectclass = class_new ( utf_new(utf_ptr+1, namelen-3) );
 		break;
 	}
 	return d;
@@ -376,7 +702,7 @@ static void displayarraydescriptor (constant_arraydescriptor *d)
 	case ARRAYTYPE_LONG: printf ("long[]"); break;
 	case ARRAYTYPE_SHORT: printf ("short[]"); break;
 	case ARRAYTYPE_ARRAY: displayarraydescriptor(d->elementdescriptor); printf("[]"); break;
-	case ARRAYTYPE_OBJECT: unicode_display(d->objectclass->name); printf("[]"); break;
+	case ARRAYTYPE_OBJECT: utf_display(d->objectclass->name); printf("[]"); break;
 	}
 }
 
@@ -401,18 +727,18 @@ static void field_load (fieldinfo *f, classinfo *c)
 	u4 attrnum,i;
 	u4 jtype;
 
-	f -> flags = suck_u2 ();
-	f -> name = class_getconstant (c, suck_u2(), CONSTANT_Utf8);
-	f -> descriptor = class_getconstant (c, suck_u2(), CONSTANT_Utf8);
-	f -> type = jtype = desc_to_type (f->descriptor);
-	f -> offset = 0;
-
+	f -> flags = suck_u2 ();                                           /* ACC flags 		  */
+	f -> name = class_getconstant (c, suck_u2(), CONSTANT_Utf8);       /* name of field               */
+	f -> descriptor = class_getconstant (c, suck_u2(), CONSTANT_Utf8); /* JavaVM descriptor           */
+	f -> type = jtype = desc_to_type (f->descriptor);		   /* data type                   */
+	f -> offset = 0;						   /* offset from start of object */
+	
 	switch (f->type) {
 	case TYPE_INT:        f->value.i = 0; break;
 	case TYPE_FLOAT:      f->value.f = 0.0; break;
 	case TYPE_DOUBLE:     f->value.d = 0.0; break;
-	case TYPE_ADDRESS:    f->value.a = NULL; 
-	                      heap_addreference (&(f->value.a));
+	case TYPE_ADDRESS:    f->value.a = NULL; 			      
+	                      heap_addreference (&(f->value.a));           /* make global reference (GC)  */	
 	                      break;
 	case TYPE_LONG:
 #if U8_AVAILABLE
@@ -421,21 +747,28 @@ static void field_load (fieldinfo *f, classinfo *c)
 		f->value.l.low = 0; f->value.l.high = 0; break;
 #endif 
 	}
-	
+
+	/* read attributes */
 	attrnum = suck_u2();
 	for (i=0; i<attrnum; i++) {
 		u4 pindex;
-		unicode *aname;
+		utf *aname;
 
 		aname = class_getconstant (c, suck_u2(), CONSTANT_Utf8);
-
-		if ( aname != unicode_new_char ("ConstantValue") ) {
+		
+		if ( aname != utf_constantvalue ) {
+			/* unknown attribute */
 			skipattributebody ();
 			}
 		else {
+			/* constant value attribute */
+			
+			/* skip attribute length */
 			suck_u4();
+			/* index of value in constantpool */		
 			pindex = suck_u2();
-				
+		
+			/* initialize field with value from constantpool */		
 			switch (jtype) {
 				case TYPE_INT: {
 					constant_integer *ci = 
@@ -468,9 +801,9 @@ static void field_load (fieldinfo *f, classinfo *c)
 					}
 					break;
 						
-				case TYPE_ADDRESS: {
-					unicode *u = 
-						class_getconstant(c, pindex, CONSTANT_String);
+				case TYPE_ADDRESS: { 
+					utf *u = class_getconstant(c, pindex, CONSTANT_String);
+					/* create javastring from compressed utf8-string */					
 					f->value.a = literalstring_new(u);
 					}
 					break;
@@ -482,14 +815,14 @@ static void field_load (fieldinfo *f, classinfo *c)
 
 			}
 		}
-		
 }
 
 
-/********************** Funktion: field_free **********************************/
+/********************** function: field_free **********************************/
 
 static void field_free (fieldinfo *f)
 {
+	/* empty */
 }
 
 
@@ -500,13 +833,11 @@ static void field_display (fieldinfo *f)
 	printf ("   ");
 	printflags (f -> flags);
 	printf (" ");
-	unicode_display (f -> name);
+	utf_display (f -> name);
 	printf (" ");
-	unicode_display (f -> descriptor);	
+	utf_display (f -> descriptor);	
 	printf (" offset: %ld\n", (long int) (f -> offset) );
 }
-
-
 
 
 /******************************************************************************/
@@ -548,6 +879,7 @@ static void method_load (methodinfo *m, classinfo *c)
 		m -> stubroutine = createcompilerstub (m);
 		}
 	else {
+
 		functionptr f = native_findfunction 
 	 	       (c->name, m->name, m->descriptor, (m->flags & ACC_STATIC) != 0);
 		if (f) {
@@ -565,11 +897,11 @@ static void method_load (methodinfo *m, classinfo *c)
 	
 	attrnum = suck_u2();
 	for (i=0; i<attrnum; i++) {
-		unicode *aname;
+		utf *aname;
 
 		aname = class_getconstant (c, suck_u2(), CONSTANT_Utf8);
 
-		if ( aname != unicode_new_char("Code"))  {
+		if ( aname != utf_code)  {
 			skipattributebody ();
 			}
 		else {
@@ -609,9 +941,7 @@ static void method_load (methodinfo *m, classinfo *c)
 			
 		}
 
-
 }
-
 
 /********************* Funktion: method_free ***********************************
 
@@ -640,9 +970,9 @@ void method_display (methodinfo *m)
 	printf ("   ");
 	printflags (m -> flags);
 	printf (" ");
-	unicode_display (m -> name);
+	utf_display (m -> name);
 	printf (" "); 
-	unicode_display (m -> descriptor);
+	utf_display (m -> descriptor);
 	printf ("\n");
 }
 
@@ -671,65 +1001,20 @@ static bool method_canoverwrite (methodinfo *m, methodinfo *old)
 /******************************************************************************/
 
 
-/******************** Funktion: class_get **************************************
+/******************** function: class_getconstant ******************************
 
-	Sucht im System die Klasse mit dem gew"unschten Namen, oder erzeugt
-	eine neue 'classinfo'-Struktur (und h"angt sie in die Liste der zu
-	ladenen Klassen ein).
-
-*******************************************************************************/
-
-classinfo *class_get (unicode *u)
-{
-	classinfo *c;
-	
-	if (u->class) return u->class;
-	
-#ifdef STATISTICS
-	count_class_infos += sizeof(classinfo);
-#endif
-
-	c = NEW (classinfo);
-	c -> flags = 0;
-	c -> name = u;
-	c -> cpcount = 0;
-	c -> cptags = NULL;
-	c -> cpinfos = NULL;
-	c -> super = NULL;
-	c -> sub = NULL;
-	c -> nextsub = NULL;
-	c -> interfacescount = 0;
-	c -> interfaces = NULL;
-	c -> fieldscount = 0;
-	c -> fields = NULL;
-	c -> methodscount = 0;
-	c -> methods = NULL;
-	c -> linked = false;
-	c -> index = 0;
-	c -> instancesize = 0;
-	c -> header.vftbl = NULL;
-	c -> vftbl = NULL;
-	c -> initialized = false;
-	
-	unicode_setclasslink (u,c);
-	list_addlast (&unloadedclasses, c);
-		
-	return c;
-}
-
-
-
-/******************** Funktion: class_getconstant ******************************
-
-	holt aus dem ConstantPool einer Klasse den Wert an der Stelle 'pos'.
-	Der Wert mu"s vom Typ 'ctype' sein, sonst wird das System angehalten.
+	retrieves the value at position 'pos' of the constantpool of a class
+	if the type of the value is other than 'ctype' the system is stopped
 
 *******************************************************************************/
 
 voidptr class_getconstant (classinfo *c, u4 pos, u4 ctype) 
 {
+	/* invalid position in constantpool */	
 	if (pos >= c->cpcount) 
 		panic ("Attempt to access constant outside range");
+
+	/* check type of constantpool entry */
 	if (c->cptags[pos] != ctype) {
 		sprintf (logtext, "Type mismatch on constant: %d requested, %d here",
 		 (int) ctype, (int) c->cptags[pos] );
@@ -755,31 +1040,38 @@ u4 class_constanttype (classinfo *c, u4 pos)
 }
 
 
-/******************** Funktion: class_loadcpool ********************************
+/******************** function: class_loadcpool ********************************
 
-	l"adt den gesammten ConstantPool einer Klasse.
-	
-	Dabei werden die einzelnen Eintr"age in ein wesentlich einfachers 
-	Format gebracht (Klassenreferenzen werden aufgel"ost, ...)
-	F"ur eine genaue "Ubersicht "uber das kompakte Format siehe: 'global.h' 
+	loads the constantpool of a class, 
+	the entries are transformed into a simpler format 
+	by resolving references
+	(a detailed overview of the compact structures can be found in global.h)	
 
 *******************************************************************************/
 
 static void class_loadcpool (classinfo *c)
 {
 
-	typedef struct forward_class {      /* Diese Strukturen dienen dazu, */
-		struct forward_class *next;     /* die Infos, die beim ersten */
-		u2 thisindex;                   /* Durchgang durch den ConstantPool */
-		u2 name_index;                  /* gelesen werden, aufzunehmen. */
-	} forward_class;                    /* Erst nachdem der ganze Pool */ 
-                                        /* gelesen wurde, k"onnen alle */
-	typedef struct forward_string {	    /* Felder kompletiert werden */
-		struct forward_string *next;    /* (und das auch nur in der richtigen */
-		u2 thisindex;	                /* Reihenfolge) */
+	/* The following structures are used to save information which cannot be 
+	   processed during the first pass. After the complete constantpool has 
+	   been traversed the references can be resolved. 
+	   (only in specific order)						   */
+	
+	/* CONSTANT_Class_info entries */
+	typedef struct forward_class {      
+		struct forward_class *next; 
+		u2 thisindex;               
+		u2 name_index;              
+	} forward_class;                    
+                                        
+	/* CONSTANT_String */                                      
+	typedef struct forward_string {	
+		struct forward_string *next; 
+		u2 thisindex;	             
 		u2 string_index;
 	} forward_string;
 
+	/* CONSTANT_NameAndType */
 	typedef struct forward_nameandtype {
 		struct forward_nameandtype *next;
 		u2 thisindex;
@@ -787,6 +1079,7 @@ static void class_loadcpool (classinfo *c)
 		u2 sig_index;
 	} forward_nameandtype;
 
+	/* CONSTANT_Fieldref, CONSTANT_Methodref or CONSTANT_InterfaceMethodref */
 	typedef struct forward_fieldmethint {	
 		struct forward_fieldmethint *next;
 		u2 thisindex;
@@ -794,7 +1087,6 @@ static void class_loadcpool (classinfo *c)
 		u2 class_index;
 		u2 nameandtype_index;
 	} forward_fieldmethint;
-
 
 
 	u4 idx;
@@ -805,29 +1097,31 @@ static void class_loadcpool (classinfo *c)
 	forward_nameandtype *forward_nameandtypes = NULL;
 	forward_fieldmethint *forward_fieldmethints = NULL;
 
+	/* number of entries in the constant_pool table  */
 	u4 cpcount       = c -> cpcount = suck_u2();
+	/* allocate memory */
 	u1 *cptags       = c -> cptags  = MNEW (u1, cpcount);
-	voidptr *cpinfos = c -> cpinfos =  MNEW (voidptr, cpcount);
+	voidptr *cpinfos = c -> cpinfos = MNEW (voidptr, cpcount);
 
 #ifdef STATISTICS
 	count_const_pool_len += (sizeof(voidptr) + 1) * cpcount;
 #endif
-
 	
+	/* initialize constantpool */
 	for (idx=0; idx<cpcount; idx++) {
 		cptags[idx] = CONSTANT_UNUSED;
 		cpinfos[idx] = NULL;
 		}
 
 			
-		/******* Erster Durchgang *******/
-		/* Alle Eintr"age, die nicht unmittelbar aufgel"ost werden k"onnen, 
-		   werden einmal `auf Vorrat' in tempor"are Strukturen eingelesen,
-		   und dann am Ende nocheinmal durchgegangen */
-
+		/******* first pass *******/
+		/* entries which cannot be resolved now are written into 
+		   temporary structures and traversed again later        */
+		   
 	idx = 1;
 	while (idx < cpcount) {
-		u4 t = suck_u1 ();
+		/* get constant type */
+		u4 t = suck_u1 (); 
 		switch ( t ) {
 
 			case CONSTANT_Class: { 
@@ -837,7 +1131,8 @@ static void class_loadcpool (classinfo *c)
 				forward_classes = nfc;
 
 				nfc -> thisindex = idx;
-				nfc -> name_index = suck_u2 ();
+				/* reference to CONSTANT_NameAndType */
+				nfc -> name_index = suck_u2 (); 
 
 				idx++;
 				break;
@@ -845,18 +1140,21 @@ static void class_loadcpool (classinfo *c)
 			
 			case CONSTANT_Fieldref:
 			case CONSTANT_Methodref:
-			case CONSTANT_InterfaceMethodref: {
+			case CONSTANT_InterfaceMethodref: { 
 				forward_fieldmethint *nff = DNEW (forward_fieldmethint);
 				
 				nff -> next = forward_fieldmethints;
 				forward_fieldmethints = nff;
 
 				nff -> thisindex = idx;
+				/* constant type */
 				nff -> tag = t;
-				nff -> class_index = suck_u2 ();
+				/* class or interface type that contains the declaration of the field or method */
+				nff -> class_index = suck_u2 (); 
+				/* name and descriptor of the field or method */
 				nff -> nameandtype_index = suck_u2 ();
 
-				idx ++;						
+				idx ++;
 				break;
 				}
 				
@@ -867,6 +1165,7 @@ static void class_loadcpool (classinfo *c)
 				forward_strings = nfs;
 				
 				nfs -> thisindex = idx;
+				/* reference to CONSTANT_Utf8_info with string characters */
 				nfs -> string_index = suck_u2 ();
 				
 				idx ++;
@@ -880,7 +1179,9 @@ static void class_loadcpool (classinfo *c)
 				forward_nameandtypes = nfn;
 				
 				nfn -> thisindex = idx;
+				/* reference to CONSTANT_Utf8_info containing simple name */
 				nfn -> name_index = suck_u2 ();
+				/* reference to CONSTANT_Utf8_info containing field or method descriptor */
 				nfn -> sig_index = suck_u2 ();
 				
 				idx ++;
@@ -944,13 +1245,15 @@ static void class_loadcpool (classinfo *c)
 				break;
 				}
 				
-			case CONSTANT_Utf8: {
-				unicode *u;
+			case CONSTANT_Utf8: { 
 
-				u = loadUtf8 ();
-
-				cptags [idx] = CONSTANT_Utf8;
-				cpinfos [idx] = u;
+				/* number of bytes in the bytes array (not string-length) */
+				u4 length = suck_u2();
+				cptags [idx]  = CONSTANT_Utf8;
+				/* insert utf-string into the utf-symboltable */
+				cpinfos [idx] = utf_new(classbuf_pos+1, length);
+				/* skip bytes of the string */
+				skip_nbytes(length);
 				idx++;
 				break;
 				}
@@ -965,32 +1268,35 @@ static void class_loadcpool (classinfo *c)
 		
 
 
-	   /* Aufl"osen der noch unfertigen Eintr"age */
+	   /* resolve entries in temporary structures */
 
 	while (forward_classes) {
-		unicode *name =
+		utf *name =
 		  class_getconstant (c, forward_classes -> name_index, CONSTANT_Utf8);
 		
-		if ( (name->length>0) && (name->text[0]=='[') ) {
-			checkfielddescriptor (name); 
+		if ( (name->blength>0) && (name->text[0]=='[') ) {
+			/* check validity of descriptor */
+			checkfielddescriptor (name->text, utf_end(name)); 
 
 			cptags  [forward_classes -> thisindex] = CONSTANT_Arraydescriptor;
 			cpinfos [forward_classes -> thisindex] = 
-			   buildarraydescriptor(name->text, name->length);
+			   buildarraydescriptor(name->text, name->blength);
 
 			}
-		else {		
+		else {					
 			cptags  [forward_classes -> thisindex] = CONSTANT_Class;
-			cpinfos [forward_classes -> thisindex] = class_get (name);
+			/* retrieve class from class-table */
+			cpinfos [forward_classes -> thisindex] = class_new (name);
 			}
 		forward_classes = forward_classes -> next;
 		
 		}
 
 	while (forward_strings) {
-		unicode *text = 
+		utf *text = 
 		  class_getconstant (c, forward_strings -> string_index, CONSTANT_Utf8);
-			
+	
+		/* resolve utf-string */		
 		cptags   [forward_strings -> thisindex] = CONSTANT_String;
 		cpinfos  [forward_strings -> thisindex] = text;
 		
@@ -1004,6 +1310,7 @@ static void class_loadcpool (classinfo *c)
 		count_const_pool_len += sizeof(constant_nameandtype);
 #endif
 
+		/* resolve simple name and descriptor */
 		cn -> name = class_getconstant 
 		   (c, forward_nameandtypes -> name_index, CONSTANT_Utf8);
 		cn -> descriptor = class_getconstant
@@ -1023,7 +1330,7 @@ static void class_loadcpool (classinfo *c)
 #ifdef STATISTICS
 		count_const_pool_len += sizeof(constant_FMIref);
 #endif
-
+		/* resolve simple name and descriptor */
 		nat = class_getconstant
 			(c, forward_fieldmethints -> nameandtype_index, CONSTANT_NameAndType);
 
@@ -1036,10 +1343,12 @@ static void class_loadcpool (classinfo *c)
 		cpinfos [forward_fieldmethints -> thisindex] = fmi;
 	
 		switch (forward_fieldmethints -> tag) {
-		case CONSTANT_Fieldref:  checkfielddescriptor (fmi->descriptor);
+		case CONSTANT_Fieldref:  /* check validity of descriptor */
+					 checkfielddescriptor (fmi->descriptor->text,utf_end(fmi->descriptor));
 		                         break;
 		case CONSTANT_InterfaceMethodref: 
-		case CONSTANT_Methodref: checkmethoddescriptor (fmi->descriptor);
+		case CONSTANT_Methodref: /* check validity of descriptor */
+					 checkmethoddescriptor (fmi->descriptor);
 		                         break;
 		}		
 	
@@ -1066,22 +1375,27 @@ static void class_loadcpool (classinfo *c)
 	
 *******************************************************************************/
 
-static void class_load (classinfo *c)
+static int class_load (classinfo *c)
 {
 	u4 i;
 	u4 mi,ma;
 
-
-	if (loadverbose) {
+	/* output for debugging purposes */
+	if (loadverbose) {		
 		sprintf (logtext, "Loading class: ");
-		unicode_sprint (logtext+strlen(logtext), c->name );
+		utf_sprint (logtext+strlen(logtext), c->name );
 		dolog();
 		}
-
-
-	suck_start (c->name);
-
-	if (suck_u4() != MAGIC) panic("Can not find class-file signature");   
+	
+	/* load classdata, throw exception on error */
+	if (!suck_start (c->name)) {
+		throw_classnotfoundexception();		   
+		return false;
+	}
+	
+	/* check signature */		
+	if (suck_u4() != MAGIC) panic("Can not find class-file signature");   	
+	/* check version */
 	mi = suck_u2(); 
 	ma = suck_u2();
 	if (ma != MAJOR_VERSION) {
@@ -1097,9 +1411,12 @@ static void class_load (classinfo *c)
 
 	class_loadcpool (c);
 	
-	c -> flags = suck_u2 ();
-	suck_u2 ();       /* this */
+	/* ACC flags */
+	c -> flags = suck_u2 (); 
+	/* this class */
+	suck_u2 ();       
 	
+	/* retrieve superclass */
 	if ( (i = suck_u2 () ) ) {
 		c -> super = class_getconstant (c, i, CONSTANT_Class);
 		}
@@ -1107,6 +1424,7 @@ static void class_load (classinfo *c)
 		c -> super = NULL;
 		}
 			 
+	/* retrieve interfaces */
 	c -> interfacescount = suck_u2 ();
 	c -> interfaces = MNEW (classinfo*, c -> interfacescount);
 	for (i=0; i < c -> interfacescount; i++) {
@@ -1114,12 +1432,14 @@ static void class_load (classinfo *c)
 		      class_getconstant (c, suck_u2(), CONSTANT_Class);
 		}
 
+	/* load fields */
 	c -> fieldscount = suck_u2 ();
 	c -> fields = MNEW (fieldinfo, c -> fieldscount);
 	for (i=0; i < c -> fieldscount; i++) {
 		field_load (&(c->fields[i]), c);
 		}
 
+	/* load methods */
 	c -> methodscount = suck_u2 ();
 	c -> methods = MNEW (methodinfo, c -> methodscount);
 	for (i=0; i < c -> methodscount; i++) {
@@ -1132,14 +1452,18 @@ static void class_load (classinfo *c)
 	count_class_infos += sizeof(methodinfo) * c -> methodscount;
 #endif
 
+	/* load variable-length attribute structures */	
+	attribute_load (suck_u2(), c);
 
-	skipattributes ( suck_u2() );
-
-
+	/* free memory */
 	suck_stop ();
 
+	/* remove class from list of unloaded classes and 
+	   add to list of unlinked classes	          */
 	list_remove (&unloadedclasses, c);
 	list_addlast (&unlinkedclasses, c);
+
+	return true;
 }
 
 
@@ -1158,7 +1482,7 @@ static s4 class_highestinterface (classinfo *c)
 	
 	if ( ! (c->flags & ACC_INTERFACE) ) {
 	  	sprintf (logtext, "Interface-methods count requested for non-interface:  ");
-    	unicode_sprint (logtext+strlen(logtext), c->name);
+    	utf_sprint (logtext+strlen(logtext), c->name);
     	error();
     	}
     
@@ -1302,7 +1626,7 @@ static void class_link (classinfo *c)
 
 	if (linkverbose) {
 		sprintf (logtext, "Linking Class: ");
-		unicode_sprint (logtext+strlen(logtext), c->name );
+		utf_sprint (logtext+strlen(logtext), c->name );
 		dolog ();
 		}
 
@@ -1409,13 +1733,13 @@ foundvftblindex: ;
 
 	if (super != NULL) {
 		methodinfo *fi;
-		static unicode *finame = NULL;
-		static unicode *fidesc = NULL;
+		static utf *finame = NULL;
+		static utf *fidesc = NULL;
 
 		if (finame == NULL)
-			finame = unicode_new_char("finalize");
+			finame = utf_finalize;
 		if (fidesc == NULL)
-			fidesc = unicode_new_char("()V");
+			fidesc = utf_fidesc;
 
 		fi = class_findmethod (c, finame, fidesc);
 		if (fi != NULL) {
@@ -1496,8 +1820,6 @@ static void class_free (classinfo *c)
 	s4 i;
 	vftbl *v;
 		
-	unicode_unlinkclass (c->name);
-	
 	class_freecpool (c);
 
 	MFREE (c->interfaces, classinfo*, c->interfacescount);
@@ -1523,10 +1845,12 @@ static void class_free (classinfo *c)
 	                                     (v->interfacetablelength > 1));
 		mem_free (v, i);
 		}
-		
+
+	if (c->innerclasscount)
+		MFREE (c->innerclass, innerclassinfo, c->innerclasscount);
+
 	FREE (c, classinfo);
 }
-
 
 /************************* Funktion: class_findfield ***************************
 	
@@ -1535,13 +1859,16 @@ static void class_free (classinfo *c)
 
 *******************************************************************************/
 
-fieldinfo *class_findfield (classinfo *c, unicode *name, unicode *desc)
+
+fieldinfo *class_findfield (classinfo *c, utf *name, utf *desc)
 {
 	s4 i;
-	for (i = 0; i < c->fieldscount; i++) {
-		if ((c->fields[i].name == name) && (c->fields[i].descriptor == desc))
-			return &(c->fields[i]);
-		}
+
+	for (i = 0; i < c->fieldscount; i++) { 
+		if ((c->fields[i].name == name) && (c->fields[i].descriptor == desc)) 
+			return &(c->fields[i]);					   			
+    }
+
 	panic ("Can not find field given in CONSTANT_Fieldref");
 	return NULL;
 }
@@ -1555,13 +1882,78 @@ fieldinfo *class_findfield (classinfo *c, unicode *name, unicode *desc)
 
 *******************************************************************************/
 
-methodinfo *class_findmethod (classinfo *c, unicode *name, unicode *desc)
+methodinfo *class_findmethod (classinfo *c, utf *name, utf *desc)
 {
 	s4 i;
 	for (i = 0; i < c->methodscount; i++) {
 		if ((c->methods[i].name == name) && ((desc == NULL) ||
 		                                   (c->methods[i].descriptor == desc)))
 			return &(c->methods[i]);
+		}
+	return NULL;
+}
+
+/************************* Funktion: class_findmethod_approx ******************
+	
+	sucht in einer 'classinfo'-Struktur nach einer Methode mit gew"unschtem
+	Namen und Typ.
+	Wenn als Typ NULL angegeben wird, dann ist der Typ egal.
+	beim Vergleichen des Descriptors wird der R"uckgabewert nicht betrachtet
+
+*******************************************************************************/
+
+methodinfo *class_findmethod_approx (classinfo *c, utf *name, utf *desc)
+{
+	s4 i;
+
+	for (i = 0; i < c->methodscount; i++) 
+		if (c->methods[i].name == name) {
+			utf *meth_descr = c->methods[i].descriptor;
+			
+			if (desc == NULL) 
+				/* ignore type */
+				return &(c->methods[i]);
+
+			if (desc->blength <= meth_descr->blength) {
+					   /* current position in utf text   */
+					   char *desc_utf_ptr = desc->text;      
+					   char *meth_utf_ptr = meth_descr->text;					  
+					   /* points behind utf strings */
+					   char *desc_end = utf_end(desc);         
+					   char *meth_end = utf_end(meth_descr);   
+					   char ch;
+
+					   /* compare argument types */
+					   while (desc_utf_ptr<desc_end && meth_utf_ptr<meth_end) {
+
+						   if ((ch=*desc_utf_ptr++) != (*meth_utf_ptr++))
+							   break; /* no match */
+
+						   if (ch==')')
+							   return &(c->methods[i]);   /* all parameter types equal */
+					   }
+			}
+		}
+
+	return NULL;
+}
+
+/***************** Funktion: class_resolvemethod_approx ***********************
+	
+	sucht eine Klasse und alle Superklassen ab, um eine Methode zu finden.
+	(ohne Beachtung des R"uckgabewertes)
+
+*******************************************************************************/
+
+methodinfo *class_resolvemethod_approx (classinfo *c, utf *name, utf *desc)
+{
+	while (c) {
+		/* search for method (ignore returntype) */
+		methodinfo *m = class_findmethod_approx (c, name, desc);
+		/* method found */
+		if (m) return m;
+		/* search superclass */
+		c = c->super;
 		}
 	return NULL;
 }
@@ -1574,11 +1966,12 @@ methodinfo *class_findmethod (classinfo *c, unicode *name, unicode *desc)
 *******************************************************************************/
 
 
-methodinfo *class_resolvemethod (classinfo *c, unicode *name, unicode *desc)
+methodinfo *class_resolvemethod (classinfo *c, utf *name, utf *desc)
 {
 	while (c) {
 		methodinfo *m = class_findmethod (c, name, desc);
 		if (m) return m;
+		/* search superclass */
 		c = c->super;
 		}
 	return NULL;
@@ -1631,13 +2024,13 @@ void class_init (classinfo *c)
 	for (i=0; i < c->interfacescount; i++) class_init(c->interfaces[i]);
 
 	m = class_findmethod (c, 
-	                      unicode_new_char ("<clinit>"), 
-	                      unicode_new_char ("()V"));
+	                      utf_clinit, 
+	                      utf_fidesc);
 	if (!m) {
 		if (initverbose) {
 			sprintf (logtext, "Class ");
-			unicode_sprint (logtext+strlen(logtext), c->name);
-			sprintf (logtext+strlen(logtext), " has no initializer");	
+			utf_sprint (logtext+strlen(logtext), c->name);
+  			sprintf (logtext+strlen(logtext), " has no initializer");	
 			dolog ();
 			}
 		return;
@@ -1647,7 +2040,7 @@ void class_init (classinfo *c)
 	
 	if (initverbose) {
 		sprintf (logtext, "Starting initializer for class: ");
-		unicode_sprint (logtext+strlen(logtext), c->name);
+		utf_sprint (logtext+strlen(logtext), c->name);
 		dolog ();
 	}
 
@@ -1663,19 +2056,57 @@ void class_init (classinfo *c)
 	blockInts = b;
 #endif
 
-	if (exceptionptr) {	
-		printf ("#### Initializer has thrown: ");
-		unicode_display (exceptionptr->vftbl->class->name);
+ 	if (exceptionptr) {	
+		printf ("#### Initializer of ");
+		utf_display (c->name);
+		printf (" has thrown: ");
+		utf_display (exceptionptr->vftbl->class->name);
 		printf ("\n");
 		fflush (stdout);
 		}
 
 	if (initverbose) {
 		sprintf (logtext, "Finished initializer for class: ");
-		unicode_sprint (logtext+strlen(logtext), c->name);
+		utf_sprint (logtext+strlen(logtext), c->name);
 		dolog ();
 	}
 
+	if (c->name == utf_systemclass) {
+		/* class java.lang.System requires explicit initialization */
+		
+		if (initverbose)
+			printf ("#### Initializing class System");
+
+		/* find initializing method */	   
+		m = class_findmethod (c, 
+					utf_initsystemclass,
+					utf_fidesc);
+
+		if (!m) {
+			/* no method found */
+			log("initializeSystemClass failed");
+			return;
+		}
+
+		#ifdef USE_THREADS
+			b = blockInts;
+			blockInts = 0;
+		#endif
+
+		exceptionptr = asm_calljavamethod (m, NULL,NULL,NULL,NULL);
+
+		#ifdef USE_THREADS
+			assert(blockInts == 0);
+			blockInts = b;
+		#endif
+
+		if (exceptionptr) {			
+			printf ("#### initializeSystemClass has thrown: ");
+			utf_display (exceptionptr->vftbl->class->name);
+			printf ("\n");
+			fflush (stdout);		  
+		}
+	}
 }
 
 
@@ -1699,7 +2130,7 @@ void class_showconstantpool (classinfo *c)
 			switch (c -> cptags [i]) {
 				case CONSTANT_Class:
 					printf ("Classreference -> ");
-					unicode_display ( ((classinfo*)e) -> name );
+					utf_display ( ((classinfo*)e) -> name );
 					break;
 				
 				case CONSTANT_Fieldref:
@@ -1711,17 +2142,17 @@ void class_showconstantpool (classinfo *c)
 				  displayFMI:
 					{
 					constant_FMIref *fmi = e;
-					unicode_display ( fmi->class->name );
+					utf_display ( fmi->class->name );
 					printf (".");
-					unicode_display ( fmi->name);
+					utf_display ( fmi->name);
 					printf (" ");
-					unicode_display ( fmi->descriptor );
+					utf_display ( fmi->descriptor );
 				    }
 					break;
 
 				case CONSTANT_String:
 					printf ("String -> ");
-					unicode_display (e);
+					utf_display (e);
 					break;
 				case CONSTANT_Integer:
 					printf ("Integer -> %d", (int) ( ((constant_integer*)e) -> value) );
@@ -1746,14 +2177,14 @@ void class_showconstantpool (classinfo *c)
 				case CONSTANT_NameAndType:
 					{ constant_nameandtype *cnt = e;
 					  printf ("NameAndType: ");
-					  unicode_display (cnt->name);
+					  utf_display (cnt->name);
 					  printf (" ");
-					  unicode_display (cnt->descriptor);
+					  utf_display (cnt->descriptor);
 					}
 					break;
 				case CONSTANT_Utf8:
 					printf ("Utf8 -> ");
-					unicode_display (e);
+					utf_display (e);
 					break;
 				case CONSTANT_Arraydescriptor:	{
 					printf ("Arraydescriptor: ");
@@ -1782,16 +2213,16 @@ void class_showmethods (classinfo *c)
 	printf ("--------- Fields and Methods ----------------\n");
 	printf ("Flags: ");	printflags (c->flags);	printf ("\n");
 
-	printf ("This: "); unicode_display (c->name); printf ("\n");
+	printf ("This: "); utf_display (c->name); printf ("\n");
 	if (c->super) {
-		printf ("Super: "); unicode_display (c->super->name); printf ("\n");
+		printf ("Super: "); utf_display (c->super->name); printf ("\n");
 		}
 	printf ("Index: %d\n", c->index);
 	
 	printf ("interfaces:\n");	
 	for (i=0; i < c-> interfacescount; i++) {
 		printf ("   ");
-		unicode_display (c -> interfaces[i] -> name);
+		utf_display (c -> interfaces[i] -> name);
 		printf (" (%d)\n", c->interfaces[i] -> index);
 		}
 
@@ -1832,7 +2263,7 @@ void class_showmethods (classinfo *c)
 
 *******************************************************************************/
 
-classinfo *loader_load (unicode *topname)
+classinfo *loader_load (utf *topname)
 {
 	classinfo *top;
 	classinfo *c;
@@ -1842,16 +2273,22 @@ classinfo *loader_load (unicode *topname)
 
 	if (getloadingtime) starttime = getcputime();
 
-	top = class_get (topname);
+	top = class_new (topname);
 
+	/* load classes */
 	while ( (c = list_first(&unloadedclasses)) ) {
-		class_load (c);
-		}
+		if (!class_load (c)) {
+			list_remove (&unloadedclasses, c);
+			top=NULL;
+		    }
+        }
 
+	/* link classes */
 	while ( (c = list_first(&unlinkedclasses)) ) {
 		class_link (c);
 		}
 
+	/* measure time */
 	if (getloadingtime) {
 		stoptime = getcputime();
 		loadingtime += (stoptime-starttime);
@@ -1859,30 +2296,59 @@ classinfo *loader_load (unicode *topname)
 
 	intsRestore();                          /* schani */
 
-	return top;
+	return top; 
 }
 
 
-/******************* interne Funktion: loader_createarrayclass *****************
+/**************** function: create_primitive_classes ***************************
 
-	Erzeugt (und linkt) eine Klasse f"ur die Arrays.
-	
-*******************************************************************************/
+	create classes representing primitive types 
 
-static classinfo *loader_createarrayclass ()
-{
-	classinfo *c;
-	c = class_get ( unicode_new_char ("The_Array_Class") );
-	
+********************************************************************************/
+
+
+void create_primitive_classes()
+{  
+	int i;
+
+	for (i=0;i<PRIMITIVETYPE_COUNT;i++) {
+		/* create primitive class */
+		classinfo *c = class_new ( utf_new_char(primitivetype_table[i].name) );
+		
+		/* prevent loader from loading primitive class */
+		list_remove (&unloadedclasses, c);
+		/* add to unlinked classes */
+		list_addlast (&unlinkedclasses, c);		
+		c -> super = class_java_lang_Object;
+		class_link (c);
+
+		primitivetype_table[i].class_primitive = c;
+
+		/* create class for wrapping the primitive type */
+		primitivetype_table[i].class_wrap =
+	        	class_new( utf_new_char(primitivetype_table[i].wrapname) );
+	}
+}
+
+/***************** function: create_array_class ********************************
+
+	create class representing an array
+
+********************************************************************************/
+
+
+classinfo *create_array_class(utf *u)
+{  
+	classinfo *c = class_new (u);
+	/* prevent loader from loading the array class */
 	list_remove (&unloadedclasses, c);
+	/* add to unlinked classes */
 	list_addlast (&unlinkedclasses, c);
 	c -> super = class_java_lang_Object;
-	
-	class_link (c);
+	class_link(c);
+
 	return c;
 }
-
-
 
 /********************** Funktion: loader_init **********************************
 
@@ -1893,37 +2359,67 @@ static classinfo *loader_createarrayclass ()
  
 void loader_init ()
 {
+	utf *string_class;
 	interfaceindex = 0;
 	
 	list_init (&unloadedclasses, OFFSET(classinfo, listnode) );
 	list_init (&unlinkedclasses, OFFSET(classinfo, listnode) );
 	list_init (&linkedclasses, OFFSET(classinfo, listnode) );
 
+	/* create utf-symbols for pointer comparison of frequently used strings */
+	utf_innerclasses    = utf_new_char("InnerClasses");
+	utf_constantvalue   = utf_new_char("ConstantValue");
+	utf_code	        = utf_new_char("Code");
+	utf_finalize	    = utf_new_char("finalize");
+	utf_fidesc	        = utf_new_char("()V");
+	utf_clinit	        = utf_new_char("<clinit>");
+	utf_initsystemclass = utf_new_char("initializeSystemClass");
+	utf_systemclass     = utf_new_char("java/lang/System");
+
+	/* create class for arrays */
+	class_array = class_new ( utf_new_char ("The_Array_Class") );
+ 	list_remove (&unloadedclasses, class_array);
+
+	/* create class for strings, load it after class Object was loaded */
+	string_class = utf_new_char ("java/lang/String");
+	class_java_lang_String = class_new(string_class);
+ 	list_remove (&unloadedclasses, class_java_lang_String);
 
 	class_java_lang_Object = 
-		loader_load ( unicode_new_char ("java/lang/Object") );
+		loader_load ( utf_new_char ("java/lang/Object") );
+
+	list_addlast(&unloadedclasses, class_java_lang_String);
+
 	class_java_lang_String = 
-		loader_load ( unicode_new_char ("java/lang/String") );
+		loader_load ( string_class );
 	class_java_lang_ClassCastException = 
-		loader_load ( unicode_new_char ("java/lang/ClassCastException") );
+		loader_load ( utf_new_char ("java/lang/ClassCastException") );
 	class_java_lang_NullPointerException = 
-		loader_load ( unicode_new_char ("java/lang/NullPointerException") );
+		loader_load ( utf_new_char ("java/lang/NullPointerException") );
 	class_java_lang_ArrayIndexOutOfBoundsException = loader_load ( 
-	     unicode_new_char ("java/lang/ArrayIndexOutOfBoundsException") );
+	     utf_new_char ("java/lang/ArrayIndexOutOfBoundsException") );
 	class_java_lang_NegativeArraySizeException = loader_load ( 
-	     unicode_new_char ("java/lang/NegativeArraySizeException") );
+	     utf_new_char ("java/lang/NegativeArraySizeException") );
 	class_java_lang_OutOfMemoryError = loader_load ( 
-	     unicode_new_char ("java/lang/OutOfMemoryError") );
+	     utf_new_char ("java/lang/OutOfMemoryError") );
 	class_java_lang_ArrayStoreException =
-		loader_load ( unicode_new_char ("java/lang/ArrayStoreException") );
+		loader_load ( utf_new_char ("java/lang/ArrayStoreException") );
 	class_java_lang_ArithmeticException = 
-		loader_load ( unicode_new_char ("java/lang/ArithmeticException") );
+		loader_load ( utf_new_char ("java/lang/ArithmeticException") );
 	class_java_lang_ThreadDeath =                             /* schani */
-	        loader_load ( unicode_new_char ("java/lang/ThreadDeath") );
+	        loader_load ( utf_new_char ("java/lang/ThreadDeath") );
 
-	class_array = loader_createarrayclass ();
+	/* link class for arrays */
+	list_addlast (&unlinkedclasses, class_array);
+	class_array -> super = class_java_lang_Object;
+	class_link (class_array);
 
+	/* correct vftbl-entries (retarded loading of class java/lang/String) */
+	stringtable_update(); 
 
+	/* create classes representing primitive types */
+	create_primitive_classes();
+		
 	proto_java_lang_ClassCastException = 
 		builtin_new(class_java_lang_ClassCastException);
 	heap_addreference ( (void**) &proto_java_lang_ClassCastException);
@@ -2002,7 +2498,7 @@ static void loader_compute_class_values (classinfo *c)
 	for (i = 0; i < c->index; i++)
 		printf(" ");
 	printf("%3d  %3d  ", (int) c->vftbl->baseval, c->vftbl->diffval);
-	unicode_display(c->name);
+	utf_display(c->name);
 	printf("\n");
 	}
 */
@@ -2030,6 +2526,19 @@ void loader_compute_subclasses ()
 }
 
 
+
+/******************** function: classloader_buffer ***************************
+ 
+    set buffer for reading classdata
+
+******************************************************************************/
+
+void classload_buffer(u1 *buf,int len)
+{
+	classbuffer        =  buf;
+	classbuffer_size   =  len;
+	classbuf_pos       =  buf-1;
+}
 
 /******************** Funktion: loader_close ***********************************
 
@@ -2068,3 +2577,4 @@ void loader_close ()
  * tab-width: 4
  * End:
  */
+

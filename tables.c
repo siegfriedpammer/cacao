@@ -14,7 +14,7 @@
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 	         Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
-
+	         	
 	Last Change: 1998/03/24
 
 *******************************************************************************/
@@ -30,591 +30,482 @@
 #include "threads/thread.h"                  /* schani */
 #include "threads/locks.h"
 
-
 bool runverbose = false;
 
-int count_unicode_len = 0;
+/* statistics */
+int count_utf_len = 0;         /* size of utf hash                  */
+int count_utf_new = 0;         /* calls of utf_new                  */
+int count_utf_new_found  = 0;  /* calls of utf_new with fast return */
 
-
-/******************************************************************************
-************************* Der Dateien-Sauger **********************************
-*******************************************************************************
-
-	dient zum Behandeln von Java-ClassFiles ("offnen, schlie"sen, 
-	einlesen von 8-, 16-, 32-, 64-bit Integers und 32-, 64- bit Floats)
-
-******************************************************************************/
-
-static FILE *classfile = NULL;   /* File-handle der gerade gelesenen Datei */
-static char *classpath = "";     /* Suchpfad f"ur die ClassFiles */
-
-
-
-/************************** Funktion: suck_init ******************************
-
-	Wird zu Programmstart einmal aufgerufen und setzt den Suchpfad f"ur
-	Klassenfiles
-
-******************************************************************************/
-
-void suck_init (char *cpath)
-{
-	classfile = NULL;
-	classpath = cpath;
-}
-
-
-/************************** Funktion: suck_start ******************************
-
-	"Offnet die Datei f"ur die Klasse des gegebenen Namens zum Lesen.
-	Dabei werden alle im Suchpfad angegebenen Verzeichnisse durchsucht,
-	bis eine entsprechende Datei  ( <classname>.class) gefunden wird. 
-	
-******************************************************************************/
-
-bool suck_start (unicode *classname)
-{
-#define MAXFILENAME 1000 	   /* Maximale Langes des Dateinamens plus Pfad */
-
-	char filename[MAXFILENAME+10];   /* Platz fuer '.class' */
-	u2 filenamelen;
-	char *pathpos;
-	u2 i,c;
-
-
-	pathpos = classpath;
-
-	while (*pathpos) {
-		while ( *pathpos == ':' ) pathpos++;
- 
-		filenamelen=0;
-		while ( (*pathpos) && (*pathpos!=':') ) {
-		    PANICIF (filenamelen >= MAXFILENAME, "Filename too long") ;
-			
-			filename[filenamelen++] = *(pathpos++);
-			}
-
-		filename[filenamelen++] = '/';
-   
-		for (i=0; i < classname -> length; i++) {
-			PANICIF (filenamelen >= MAXFILENAME, "Filename too long");
-			
-			c = classname -> text [i];
-			if (c=='/') c = '/';     /* Slashes im Namen passen zu UNIX */
-			else {
-				if ( c<=' ' || c>'z') {
-					c = '?';
-					}
-				}
-			
-			filename[filenamelen++] = c;	
-			}
-      
-		strcpy (filename+filenamelen, ".class");
-
-		classfile = fopen(filename, "r");
-		if (classfile) {
-			return true;
-			}
-
-		
-		}
-		   
-	sprintf (logtext,"Can not open class file '%s'", filename);
-	error();
-	return false;
-}
-
-
-/************************** Funktion: suck_stop *******************************
-
-	Schlie"st die offene Datei wieder.
-	
-******************************************************************************/
-
-void suck_stop ()
-{
-	u4 rest=0;
-	u1 dummy;
-	
-	while ( fread (&dummy, 1,1, classfile) > 0) rest++;
-	if (rest) {
-		sprintf (logtext,"There are %d access bytes at end of classfile",
-		                 (int) rest);
-		dolog();
-		}
-			
-	fclose (classfile);
-	classfile = NULL;
-}
-      
-
-
-/************************** Lesefunktionen ***********************************
-
-	Lesen von der Datei in verschieden grossen Paketen
-	(8,16,32,64-bit Integer oder Float)
-
-*****************************************************************************/
-
-void suck_nbytes (u1 *buffer, u4 len)
-{
-	if ( fread (buffer, 1, len, classfile) != len) panic ("Unexpected EOF");
-}
-
-
-void skip_nbytes (u4 len)
-{
-	u4 i;
-	for (i=0; i<len; i++) suck_u1 ();
-}
-
-
-u1 suck_u1 ()
-{
-	u1 b;
-	if ( fread (&b, 1,1, classfile) != 1) panic ("Unexpected EOF");
-	return b;
-}
-
-s1 suck_s1 ()
-{
-	s1 b;
-	if ( fread (&b, 1,1, classfile) != 1) panic ("Unexpected EOF");
-	return b;
-}
-
-
-u2 suck_u2 ()
-{
-	u1 b[2];
-	if ( fread (b, 1,2, classfile) != 2) panic ("Unexpected EOF");
-	return (b[0]<<8) + b[1];
-}
-
-s2 suck_s2 ()
-{
-	return suck_u2 ();
-}
-
-
-u4 suck_u4 ()
-{
-	u1 b[4];
-	u4 v;
-	if ( fread (b, 1,4, classfile) != 4) panic ("Unexpected EOF");
-	v = ( ((u4)b[0]) <<24) + ( ((u4)b[1])<<16) + ( ((u4)b[2])<<8) + ((u4)b[3]);
-	return v;
-}
-
-s4 suck_s4 ()
-{
-	s4 v = suck_u4 ();
-	return v;
-}
-
-u8 suck_u8 ()
-{
-#if U8_AVAILABLE
-	u8 lo,hi;
-	hi = suck_u4();
-	lo = suck_u4();
-	return (hi<<32) + lo;
-#else
-	u8 v;
-	v.high = suck_u4();
-	v.low = suck_u4();
-	return v;
-#endif
-}
-
-s8 suck_s8 ()
-{
-	return suck_u8 ();
-}
-	
-
-float suck_float ()
-{
-	float f;
-
-#if !WORDS_BIGENDIAN 
-		u1 buffer[4];
-		u2 i;
-		for (i=0; i<4; i++) buffer[3-i] = suck_u1 ();
-		memcpy ( (u1*) (&f), buffer, 4);
-#else 
-		suck_nbytes ( (u1*) (&f), 4 );
-#endif
-
-	PANICIF (sizeof(float) != 4, "Incompatible float-format");
-	
-	return f;
-}
-
-
-double suck_double ()
-{
-	double d;
-
-#if !WORDS_BIGENDIAN 
-		u1 buffer[8];
-		u2 i;	
-		for (i=0; i<8; i++) buffer[7-i] = suck_u1 ();
-		memcpy ( (u1*) (&d), buffer, 8);
-#else 
-		suck_nbytes ( (u1*) (&d), 8 );
-#endif
-
-	PANICIF (sizeof(double) != 8, "Incompatible double-format" );
-	
-	return d;
-}
-
-
-
+hashtable utf_hash;     /* hashtable for utf8-symbols */
+hashtable string_hash;  /* hashtable for javastrings  */
+hashtable class_hash;   /* hashtable for classes      */
 
 /******************************************************************************
-******************** Der Unicode-Symbol-Verwalter *****************************
-*******************************************************************************
+ *********************** hashtable functions **********************************
+ ******************************************************************************/
 
-	legt eine Hashtabelle f"ur unicode-Symbole an und verwaltet
-	das Eintragen neuer Symbole
-	
-******************************************************************************/
+/* hashsize must be power of 2 */
 
-
-
-#define UNICODESTART  2187      /* Startgr"osse: moeglichst gross und prim */
-
-static u4 unicodeentries;       /* Anzahl der Eintr"age in der Tabelle */
-static u4 unicodehashsize;      /* Gr"osse der Tabelle */
-static unicode ** unicodehash;  /* Zeiger auf die Tabelle selbst */
+#define UTF_HASHSTART   16384   /* initial size of utf-hash */    
+#define HASHSTART        2048   /* initial size of javastring and class-hash */
 
 
-/*********************** Funktion: unicode_init ******************************
+/******************** function: init_hashtable ******************************
 
-	Initialisiert die unicode-Symboltabelle (muss zu Systemstart einmal
-	aufgerufen werden)
+    Initializes a hashtable structure and allocates memory.
+    The parameter size specifies the initial size of the hashtable.
 	
 *****************************************************************************/
 
-void unicode_init ()
+void init_hashtable(hashtable *hash, u4 size)
 {
 	u4 i;
+
+	hash->entries = 0;
+	hash->size    = size;
+	hash->ptr     = MNEW (void*, size);
+
+	/* clear table */
+	for (i=0; i<size; i++) hash->ptr[i] = NULL;
+}
+
+/*********************** function: tables_init  *****************************
+
+    creates hashtables for symboltables 
+	(called once at startup)			 
+	
+*****************************************************************************/
+
+void tables_init ()
+{
+	init_hashtable(&utf_hash,    UTF_HASHSTART);  /* hashtable for utf8-symbols */
+	init_hashtable(&string_hash, HASHSTART);      /* hashtable for javastrings */
+	init_hashtable(&class_hash,  HASHSTART);      /* hashtable for classes */ 
 	
 #ifdef STATISTICS
-	count_unicode_len += sizeof(unicode*) * unicodehashsize;
+	count_utf_len += sizeof(utf*) * utf_hash.size;
 #endif
 
-	unicodeentries = 0;
-	unicodehashsize = UNICODESTART;
-	unicodehash = MNEW (unicode*, unicodehashsize);
-	for (i=0; i<unicodehashsize; i++) unicodehash[i] = NULL;
 }
 
+/********************** function: tables_close ******************************
 
-/*********************** Funktion: unicode_close *****************************
-
-	Gibt allen Speicher der Symboltabellen frei.
-	Parameter: Ein Zeiger auf eine Funktion, die dazu n"otig ist, 
-	           Stringkonstanten (die mit 'unicode_setstringlink' 
-	           Unicode-Symbole gebunden wurden) wieder freizugeben
+        free memory for hashtables		      
 	
 *****************************************************************************/
 
-void unicode_close (stringdeleter del)
+void tables_close (stringdeleter del)
 {
-	unicode *u;
+	utf *u;	
+	literalstring *s;
 	u4 i;
 	
-	for (i=0; i<unicodehashsize; i++) {
-		u = unicodehash[i];
+	/* dispose utf symbols */
+	for (i=0; i<utf_hash.size; i++) {
+	u = utf_hash.ptr[i];
 		while (u) {
-			unicode *nextu = u->hashlink;
-
-			if (u->string) del (u->string);
-			
-			MFREE (u->text, u2, u->length);
-			FREE (u, unicode);
+			/* process elements in external hash chain */
+			utf *nextu = u->hashlink;
+			MFREE (u->text, u1, u->blength);
+			FREE (u, utf);
 			u = nextu;
 			}	
 		}
-	MFREE (unicodehash, unicode*, unicodehashsize);
+
+	/* dispose javastrings */
+	for (i=0; i<string_hash.size; i++) {
+		s = string_hash.ptr[i];
+		while (u) {
+			/* process elements in external hash chain */
+			literalstring *nexts = s->hashlink;
+			del(s->string);
+			FREE(s, literalstring);
+			s = nexts;
+			}	
+		}
+
+	/* dispose hashtable structures */
+	MFREE (utf_hash.ptr,    void*, utf_hash.size);
+	MFREE (string_hash.ptr, void*, string_hash.size);
+	MFREE (class_hash.ptr,  void*, class_hash.size);
 }
 
+/********************* function: utf_display *********************************
 
-/********************* Funktion: unicode_display ******************************
-	
-	Gibt ein unicode-Symbol auf stdout aus (zu Debugzwecken)
+	write utf symbol to stdout (debugging purposes)
 
 ******************************************************************************/
 
-void unicode_display (unicode *u)
+void utf_display (utf *u)
 {
-	u2 i,c;
-	for (i=0; i < u->length; i++) {
-		c = u->text[i];
+    char *endpos  = utf_end(u);  /* points behind utf string       */
+    char *utf_ptr = u->text;     /* current position in utf text   */
+
+    while (utf_ptr<endpos) {
+
+		/* read next unicode character */                
+		u2 c = utf_nextu2(&utf_ptr);				
 		if (c>=32 && c<=127) printf ("%c",c);
 		                else printf ("?");
-		}
+	}
+
 	fflush (stdout);
 }
 
-
-/********************* Funktion: unicode_sprint ******************************
+/************************ function: utf_sprint *******************************
 	
-	Schreibt ein unicode-Symbol in einen C-String
+    write utf symbol into c-string (debugging purposes)						 
 
 ******************************************************************************/ 
 
-void unicode_sprint (char *buffer, unicode *u)
+void utf_sprint (char *buffer, utf *u)
 {
-	u2 i;
-	for (i=0; i < u->length; i++) buffer[i] = u->text[i];
-	buffer[i] = '\0';
+    char *endpos  = utf_end(u);  /* points behind utf string       */
+    char *utf_ptr = u->text;     /* current position in utf text   */ 
+    u2 pos = 0;                  /* position in c-string           */
+
+    while (utf_ptr<endpos) 
+		/* copy next unicode character */       
+		buffer[pos++] = utf_nextu2(&utf_ptr);
+
+    /* terminate string */
+    buffer[pos] = '\0';
 }
 
 
-/********************* Funktion: unicode_fprint ******************************
+/********************* Funktion: utf_fprint **********************************
 	
-	Schreibt ein unicode-Symbol auf eine Datei aus
+    write utf symbol into file		
 
 ******************************************************************************/ 
 
-void unicode_fprint (FILE *file, unicode *u)
+void utf_fprint (FILE *file, utf *u)
 {
-	u2 i;
-	for (i=0; i < u->length; i++) putc (u->text[i], file);
+    char *endpos  = utf_end(u);  /* points behind utf string       */
+    char *utf_ptr = u->text;     /* current position in utf text   */ 
+
+    while (utf_ptr<endpos) 
+		/* write next unicode character */       
+		putc ( utf_nextu2(&utf_ptr), file );
 } 
 
 
-/****************** interne Funktion: u_hashkey ******************************/
+/****************** internal function: utf_hashkey ***************************
 
-static u4 u_hashkey (u2 *text, u2 length)
+	The hashkey is computed from the utf-text by using up to 8 characters.
+	For utf-symbols longer than 15 characters 3 characters are taken from
+	the beginning and the end, 2 characters are taken from the middle.
+
+******************************************************************************/ 
+
+#define nbs(val) ((u4) *(++text) << val) /* get next byte, left shift by val  */
+#define fbs(val) ((u4) *(  text) << val) /* get first byte, left shift by val */
+
+static u4 utf_hashkey (char *text, u4 length)
 {
-	u4 k = 0;
-	u2 i,sh=0;
-	
-	for (i=0; i<length; i++) {
-		k ^=  ( ((u4) (text[i])) << sh );
-		if (sh<16) sh++;
-		     else  sh=0;
-		}
-		
-	return k;
+	char *start_pos = text; /* pointer to utf text */
+	u4 a;
+
+	switch (length) {		
+	        
+	case 0: /* empty string */
+		return 0;
+
+	case 1: return fbs(0);
+	case 2: return fbs(0) ^ nbs(3);
+	case 3: return fbs(0) ^ nbs(3) ^ nbs(5);
+	case 4: return fbs(0) ^ nbs(2) ^ nbs(4) ^ nbs(6);
+	case 5: return fbs(0) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(6);
+	case 6: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(5) ^ nbs(6);
+	case 7: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6);
+	case 8: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7);
+
+	case 9: a = fbs(0) ^ nbs(1) ^ nbs(2);                
+                text++; 
+                return a ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7) ^ nbs(8);
+
+	case 10: a = fbs(0);
+                 text++;
+                 a^= nbs(2) ^ nbs(3) ^ nbs(4);
+                 text++;
+                 return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9);
+
+	case 11: a = fbs(0);
+                 text++;
+                 a^= nbs(2) ^ nbs(3) ^ nbs(4);
+                 text++;
+                 return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9) ^ nbs(10);
+
+	case 12: a = fbs(0);
+                 text+=2;
+                 a^= nbs(2) ^ nbs(3);
+                 text+=1;
+                 a^= nbs(5) ^ nbs(6) ^ nbs(7);
+                 text+=1;
+                 return a ^ nbs(9) ^ nbs(10);	   
+
+	case 13: a = fbs(0) ^ nbs(1);
+                 text+=1;	
+                 a^= nbs(3) ^ nbs(4);
+                 text+=2;	
+                 a^= nbs(7) ^ nbs(8);
+                 text+=2;
+                 return a ^ nbs(9) ^ nbs(10);
+
+	case 14: a = fbs(0);
+                 text+=2;	
+                 a^= nbs(3) ^ nbs(4);
+                 text+=2;	
+                 a^= nbs(7) ^ nbs(8);
+                 text+=2;
+                 return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
+
+	case 15: a = fbs(0);
+                 text+=2;	
+                 a^= nbs(3) ^ nbs(4);
+                 text+=2;	
+                 a^= nbs(7) ^ nbs(8);
+                 text+=2;
+                 return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
+
+	default:  /* 3 characters from beginning */
+                  a = fbs(0);
+                  text+=2;
+                  a^= nbs(3) ^ nbs(4);
+
+                  /* 2 characters from middle */
+                  text = start_pos + (length / 2);
+                  a^= fbs(5);
+                  text+=2;
+                  a^= nbs(6);	
+
+                  /* 3 characters from end */
+                  text = start_pos + length - 4;
+
+                  a^= fbs(7);
+                  text+=1;
+
+                  return a ^ nbs(10) ^ nbs(11);
+    }
 }
 
-/*************** interne Funktion: u_reorganizehash **************************/
 
-static void u_reorganizehash ()
+/*************************** function: utf_hashkey ***************************
+
+    compute the hashkey of a unicode string
+
+******************************************************************************/ 
+
+u4 unicode_hashkey (u2 *text, u2 len)
 {
-	u4 i;
-	unicode *u;
+	utf_hashkey((char*) text, len);
+}
 
-	u4 newhashsize = unicodehashsize*2;
-	unicode **newhash = MNEW (unicode*, newhashsize);
+/************************ function: utf_new **********************************
 
+	Creates a new utf-symbol, the text of the symbol is passed as a 
+	u1-array. The function searches the utf-hashtable for a utf-symbol 
+	with this text. On success the element returned, otherwise a new 
+	hashtable element is created.
+
+	If the number of entries in the hashtable exceeds twice the size of the
+	hashtable slots a reorganization of the hashtable is done and the utf 
+	symbols are copied to a new hashtable with doubled size.
+
+******************************************************************************/
+
+utf *utf_new (char *text, u2 length)
+{
+	u4 key;            /* hashkey computed from utf-text */
+	u4 slot;           /* slot in hashtable */
+	utf *u;            /* hashtable element */
+	u2 i;
+	
 #ifdef STATISTICS
-	count_unicode_len += sizeof(unicode*) * unicodehashsize;
+	count_utf_new++;
 #endif
 
-	for (i=0; i<newhashsize; i++) newhash[i] = NULL;
+	key  = utf_hashkey (text, length);
+	slot = key & (utf_hash.size-1);
+	u    = utf_hash.ptr[slot];
 
-	for (i=0; i<unicodehashsize; i++) {
-		u = unicodehash[i];
+	/* search external hash chain for utf-symbol */
+	while (u) {
+		if (u->blength == length) {
+
+			/* compare text of hashtable elements */
+			for (i=0; i<length; i++)
+				if (text[i] != u->text[i]) goto nomatch;
+			
+#ifdef STATISTICS
+			count_utf_new_found++;
+#endif
+			/* symbol found in hashtable */   				
+			return u;
+		}
+		nomatch:
+		u = u->hashlink; /* next element in external chain */
+	}
+
+#ifdef STATISTICS
+	count_utf_len += sizeof(utf) + length;
+#endif
+
+	/* location in hashtable found, create new utf element */
+	u = NEW (utf);
+	u->blength  = length;             /* length in bytes of utfstring */
+	u->hashlink = utf_hash.ptr[slot]; /* link in external hashchain   */		
+	u->text     = mem_alloc(length);  /* allocate memory for utf-text */
+	memcpy(u->text,text,length);      /* copy utf-text                */
+	utf_hash.ptr[slot] = u;           /* insert symbol into table     */ 
+
+	utf_hash.entries++;               /* update number of entries     */
+
+	if ( utf_hash.entries > (utf_hash.size*2)) { 
+
+        /* reorganization of hashtable, average length of 
+           the external chains is approx. 2                */  
+
+	  u4 i;
+	  utf *u;
+	  hashtable newhash; /* the new hashtable */
+
+	  /* create new hashtable, double the size */
+	  init_hashtable(&newhash, utf_hash.size*2);
+	  newhash.entries=utf_hash.entries;
+
+#ifdef STATISTICS
+	  count_utf_len += sizeof(utf*) * utf_hash.size;
+#endif
+
+	  /* transfer elements to new hashtable */
+	  for (i=0; i<utf_hash.size; i++) {
+		u = (utf*) utf_hash.ptr[i];
 		while (u) {
-			unicode *nextu = u -> hashlink;
-			u4 slot = (u->key) % newhashsize;
+			utf *nextu = u -> hashlink;
+			u4 slot = (utf_hashkey(u->text,u->blength)) & (newhash.size-1);
 						
-			u->hashlink = newhash[slot];
-			newhash[slot] = u;
+			u->hashlink = (utf*) newhash.ptr[slot];
+			newhash.ptr[slot] = u;
 
+			/* follow link in external hash chain */
 			u = nextu;
 			}
 		}
 	
-	MFREE (unicodehash, unicode*, unicodehashsize);
-	unicodehash = newhash;
-	unicodehashsize = newhashsize;
-}
-
-
-/****************** Funktion: unicode_new_u2 **********************************
-
-	Legt ein neues unicode-Symbol an. Der Text des Symbols wird dieser
-	Funktion als u2-Array "ubergeben
-
-******************************************************************************/
-
-unicode *unicode_new_u2 (u2 *text, u2 length)
-{
-	u4 key = u_hashkey (text, length);
-	u4 slot = key % unicodehashsize;
-	unicode *u = unicodehash[slot];
-	u2 i;
-
-	while (u) {
-		if (u->key == key) {
-			if (u->length == length) {
-				for (i=0; i<length; i++) {
-					if (text[i] != u->text[i]) goto nomatch;
-					}	
-					return u;
-				}
-			}
-		nomatch:
-		u = u->hashlink;
-		}
-
-#ifdef STATISTICS
-	count_unicode_len += sizeof(unicode) + 2 * length;
-#endif
-
-	u = NEW (unicode);
-	u->key = key;
-	u->length = length;
-	u->text = MNEW (u2, length);
-	u->class = NULL;
-	u->string = NULL;
-	u->hashlink = unicodehash[slot];
-	unicodehash[slot] = u;
-	for (i=0; i<length; i++) u->text[i] = text[i];
-
-	unicodeentries++;
-	
-	if ( unicodeentries > (unicodehashsize/2)) u_reorganizehash();
+	  /* dispose old table */
+	  MFREE (utf_hash.ptr, void*, utf_hash.size);
+	  utf_hash = newhash;
+	}
 	
 	return u;
 }
 
 
-/********************* Funktion: unicode_new_char *****************************
+/********************* function: utf_new_char ********************************
 
-	Legt ein neues unicode-Symbol an. Der Text des Symbols wird dieser
-	Funktion als C-String ( = char* ) "ubergeben
-
-******************************************************************************/
-
-unicode *unicode_new_char (char *text)
-{
-#define MAXNEWCHAR 500
-	u2 buffer[MAXNEWCHAR];
-	u2 length = 0;
-	u1 c;
-	
-	while ( (c = *text) != '\0' ) {
-		if (length>=MAXNEWCHAR) panic ("Text too long in unicode_new_char");
-		buffer[length++] = c;
-		text ++;
-		}
-	return unicode_new_u2 (buffer, length);
-}
-
-
-/********************** Funktion: unicode_setclasslink ************************
-
-	H"angt einen Verweis auf eine Klasse an ein unicode-Symbol an.
+    creates a new utf symbol, the text for this symbol is passed
+    as a c-string ( = char* )
 
 ******************************************************************************/
 
-void unicode_setclasslink (unicode *u, classinfo *class)
+utf *utf_new_char (char *text)
 {
-	PANICIF (u->class, "Attempt to attach class to already attached symbol");
-	u->class = class;
+	return utf_new(text, strlen(text));
 }
 
-/********************** Funktion: unicode_getclasslink ************************
+/************************** Funktion: utf_show ******************************
 
-	Sucht den Verweis von einem unicode-Symbol auf eine Klasse.
-	Wenn keine solche Klasse existiert, dann wird ein Fehler
-	ausgegeben.
+    writes the utf symbols in the utfhash to stdout and
+    displays the number of external hash chains grouped 
+    according to the chainlength
+    (debugging purposes)
 
-******************************************************************************/
-
-classinfo *unicode_getclasslink (unicode *u)
-{
-	PANICIF (!u->class, "Attempt to get unknown class-reference");
-	return u->class;
-}
-
-
-
-/********************* Funktion: unicode_unlinkclass *************************
-
-	Entfernt den Verweis auf eine Klasse wieder von einem Symbol
-	
-******************************************************************************/
-
-void unicode_unlinkclass (unicode *u)
-{
-	PANICIF (!u->class, "Attempt to unlink not yet linked symbol");
-	u -> class = NULL;
-}
-
-
-
-/******************* Funktion> unicode_setstringlink *********************
-
-	H"angt einen Verweis auf einen konstanten String an ein 
-	Unicode-Symbol
-	
-*************************************************************************/
-
-void unicode_setstringlink (unicode *u, java_objectheader *str)
-{
-	PANICIF (u->string, "Attempt to attach string to already attached symbol");
-	u->string = str;
-}
-
-
-/********************* Funktion: unicode_unlinkstring *************************
-
-	Entfernt den Verweis auf einen String wieder von einem Symbol
-	
-******************************************************************************/
-
-void unicode_unlinkstring (unicode *u)
-{
-	PANICIF (!u->class, "Attempt to unlink not yet linked symbol");
-	u -> string = NULL;
-}
-
-
-
-/*********************** Funktion: unicode_show ******************************
-
-	gibt eine Aufstellung aller Symbol im unicode-hash auf stdout aus.
-	(nur f"ur Debug-Zwecke)
-	
 *****************************************************************************/
 
-void unicode_show ()
+void utf_show ()
 {
-	unicode *u;
+
+#define CHAIN_LIMIT 20               /* limit for seperated enumeration */
+
+	u4 chain_count[CHAIN_LIMIT]; /* numbers of chains */
+	u4 max_chainlength = 0;      /* maximum length of the chains */
+	u4 sum_chainlength = 0;      /* sum of the chainlengths */
+	u4 beyond_limit = 0;         /* number of utf-symbols in chains with length>=CHAIN_LIMIT-1 */
 	u4 i;
 
-	printf ("UNICODE-HASH: %d slots for %d entries\n", 
-	         (int) unicodehashsize, (int) unicodeentries );
-	          
-	for (i=0; i<unicodehashsize; i++) {
-		u = unicodehash[i];
+	printf ("UTF-HASH:\n");
+
+	/* show element of utf-hashtable */
+	for (i=0; i<utf_hash.size; i++) {
+		utf *u = utf_hash.ptr[i];
 		if (u) {
 			printf ("SLOT %d: ", (int) i);
 			while (u) {
 				printf ("'");
-				unicode_display (u);
+				utf_display (u);
 				printf ("' ");
-				if (u->string) printf ("(string)  ");
 				u = u->hashlink;
 				}	
 			printf ("\n");
 			}
 		
 		}
+
+	printf ("UTF-HASH: %d slots for %d entries\n", 
+	         (int) utf_hash.size, (int) utf_hash.entries );
+
+
+	if (utf_hash.entries == 0)
+		return;
+
+	printf("chains:\n  chainlength    number of chains    %% of utfstrings\n");
+
+	for (i=0;i<CHAIN_LIMIT;i++)
+		chain_count[i]=0;
+
+	/* count numbers of hashchains according to their length */
+	for (i=0; i<utf_hash.size; i++) {
+		  
+		utf *u = (utf*) utf_hash.ptr[i];
+		u4 chain_length = 0;
+
+		/* determine chainlength */
+		while (u) {
+			u = u->hashlink;
+			chain_length++;
+			}
+
+		/* update sum of all chainlengths */
+		sum_chainlength+=chain_length;
+
+		/* determine the maximum length of the chains */
+		if (chain_length>max_chainlength)
+			max_chainlength = chain_length;
+
+		/* update number of utf-symbols in chains with length>=CHAIN_LIMIT-1 */
+		if (chain_length>=CHAIN_LIMIT) {
+			beyond_limit+=chain_length;
+			chain_length=CHAIN_LIMIT-1;
+		}
+
+		/* update number of hashchains of current length */
+		chain_count[chain_length]++;
+		}
+
+	/* display results */  
+	for (i=1;i<CHAIN_LIMIT-1;i++) 
+		printf("       %2d %17d %18.2f%%\n",i,chain_count[i],(((float) chain_count[i]*i*100)/utf_hash.entries));
+	  
+	printf("     >=%2d %17d %18.2f%%\n",CHAIN_LIMIT-1,chain_count[CHAIN_LIMIT-1],((float) beyond_limit*100)/utf_hash.entries);
+
+
+	printf("max. chainlength:%5d\n",max_chainlength);
+
+	/* avg. chainlength = sum of chainlengths / number of chains */
+	printf("avg. chainlength:%5.2f\n",(float) sum_chainlength / (utf_hash.size-chain_count[0]));
 }
-
-
 
 /******************************************************************************
 *********************** Diverse Support-Funktionen ****************************
@@ -622,17 +513,19 @@ void unicode_show ()
 
 
 /******************** Funktion: desc_to_type **********************************
-
-	Findet zu einem gegebenen Typdescriptor den entsprechenden 
-	Java-Grunddatentyp.
+   
+    Findet zu einem gegebenen Typdescriptor den entsprechenden 
+    Java-Grunddatentyp.
 	
 ******************************************************************************/
 
-u2 desc_to_type (unicode *descriptor)
+u2 desc_to_type (utf *descriptor)
 {
-	if (descriptor->length < 1) panic ("Type-Descriptor is empty string");
+	char *utf_ptr = descriptor->text;  /* current position in utf text */
+
+	if (descriptor->blength < 1) panic ("Type-Descriptor is empty string");
 	
-	switch (descriptor->text[0]) {
+	switch (*utf_ptr++) {
 	case 'B': 
 	case 'C':
 	case 'I':
@@ -646,7 +539,7 @@ u2 desc_to_type (unicode *descriptor)
 	}
 			
 	sprintf (logtext, "Invalid Type-Descriptor: "); 
-	unicode_sprint (logtext+strlen(logtext), descriptor);
+	utf_sprint (logtext+strlen(logtext), descriptor);
 	error (); 
 	return 0;
 }
@@ -659,7 +552,7 @@ u2 desc_to_type (unicode *descriptor)
 	
 ******************************************************************************/
 
-u2 desc_typesize (unicode *descriptor)
+u2 desc_typesize (utf *descriptor)
 {
 	switch (desc_to_type(descriptor)) {
 	case TYPE_INT:     return 4;
@@ -670,6 +563,252 @@ u2 desc_typesize (unicode *descriptor)
 	default:           return 0;
 	}
 }
+
+
+/********************** function: utf_nextu2 *********************************
+
+    read the next unicode character from the utf string and
+    increment the utf-string pointer accordingly
+
+******************************************************************************/
+
+u2 utf_nextu2(char **utf_ptr) 
+{
+    /* uncompressed unicode character */
+    u2 unicode_char;	
+    /* current position in utf text */	
+    unsigned char *utf = (unsigned char *) (*utf_ptr);  
+    /* bytes representing the unicode character */
+    unsigned char ch1, ch2, ch3;
+    /* number of bytes used to represent the unicode character */
+    int len;		
+	
+    switch ((ch1 = utf[0]) >> 4) {
+      default: /* 1 byte */
+               (*utf_ptr)++;
+               return ch1;
+       case 0xC: 
+       case 0xD: /* 2 bytes */
+                 if (((ch2 = utf[1]) & 0xC0) == 0x80) {
+                   unsigned char high = ch1 & 0x1F;
+                   unsigned char low  = ch2 & 0x3F;
+                   unicode_char = (high << 6) + low;
+                   len = 2;
+                 } 
+                 break;
+
+       case 0xE: /* 2 or 3 bytes */
+                 if (((ch2 = utf[1]) & 0xC0) == 0x80) {
+                    if (((ch3 = utf[2]) & 0xC0) == 0x80) {
+                       unsigned char low  = ch3 & 0x3f;
+                       unsigned char mid  = ch2 & 0x3f;
+                       unsigned char high = ch1 & 0x0f;
+                       unicode_char = (((high << 6) + mid) << 6) + low;
+                       len = 3;
+                    } else
+                       len = 2;					   
+	         }
+                 break;
+    }
+
+    /* update position in utf-text */
+    *utf_ptr = (char *) (utf + len);
+    return unicode_char;
+}
+ 
+/******************** Funktion: class_new **************************************
+
+    searches for the class with the specified name in the classes hashtable,
+    if there is no such class a new classinfo structure is created and inserted
+    into the list of classes to be loaded
+
+*******************************************************************************/
+
+classinfo *class_new (utf *u)
+{
+	classinfo *c;     /* hashtable element */ 
+	u4 key;           /* hashkey computed from classname */   
+	u4 slot;          /* slot in hashtable */
+	u2 i;
+
+	key  = utf_hashkey (u->text, u->blength);
+	slot = key & (class_hash.size-1);
+	c    = class_hash.ptr[slot];
+
+	/* search external hash chain for the class */
+	while (c) {
+		if (c->name->blength == u->blength) {
+			for (i=0; i<u->blength; i++) 
+				if (u->text[i] != c->name->text[i]) goto nomatch;
+						
+				/* class found in hashtable */									
+				return c;
+			}
+			
+		nomatch:
+		c = c->hashlink; /* next element in external chain */
+		}
+
+	/* location in hashtable found, create new classinfo structure */
+
+#ifdef STATISTICS
+	count_class_infos += sizeof(classinfo);
+#endif
+
+	c = NEW (classinfo);
+	c -> flags = 0;
+	c -> name = u;
+	c -> cpcount = 0;
+	c -> cptags = NULL;
+	c -> cpinfos = NULL;
+	c -> super = NULL;
+	c -> sub = NULL;
+	c -> nextsub = NULL;
+	c -> interfacescount = 0;
+	c -> interfaces = NULL;
+	c -> fieldscount = 0;
+	c -> fields = NULL;
+	c -> methodscount = 0;
+	c -> methods = NULL;
+	c -> linked = false;
+	c -> index = 0;
+	c -> instancesize = 0;
+	c -> header.vftbl = NULL;
+	c -> innerclasscount = 0;
+	c -> innerclass = NULL;
+	c -> vftbl = NULL;
+	c -> initialized = false;
+	
+	/* prepare loading of the class */
+	list_addlast (&unloadedclasses, c);
+
+	/* insert class into the hashtable */
+	c->hashlink = class_hash.ptr[slot];
+	class_hash.ptr[slot] = c;
+
+	/* update number of hashtable-entries */
+	class_hash.entries++;
+
+	if ( class_hash.entries > (class_hash.size*2)) {  
+
+          /* reorganization of hashtable, average length of 
+             the external chains is approx. 2                */  
+
+	  u4 i;
+	  classinfo *c;
+	  hashtable newhash;  /* the new hashtable */
+
+	  /* create new hashtable, double the size */
+	  init_hashtable(&newhash, class_hash.size*2);
+	  newhash.entries = class_hash.entries;
+
+	  /* transfer elements to new hashtable */
+	  for (i=0; i<class_hash.size; i++) {
+		c = (classinfo*) class_hash.ptr[i];
+		while (c) {
+			classinfo *nextc = c -> hashlink;
+			u4 slot = (utf_hashkey(c->name->text,c->name->blength)) & (newhash.size-1);
+						
+			c->hashlink = newhash.ptr[slot];
+			newhash.ptr[slot] = c;
+
+			c = nextc;
+			}
+		}
+	
+	  /* dispose old table */	
+	  MFREE (class_hash.ptr, void*, class_hash.size);
+	  class_hash = newhash;
+	}
+			
+	return c;
+}
+
+/******************** Funktion: class_get **************************************
+
+    searches for the class with the specified name in the classes hashtable
+    if there is no such class NULL is returned
+
+*******************************************************************************/
+
+classinfo *class_get (utf *u)
+{
+	classinfo *c;  /* hashtable element */ 
+	u4 key;        /* hashkey computed from classname */   
+	u4 slot;       /* slot in hashtable */
+	u2 i;  
+
+	key  = utf_hashkey (u->text, u->blength);
+	slot = key & (class_hash.size-1);
+	c    = class_hash.ptr[slot];
+
+	/* search external hash-chain */
+	while (c) {
+		if (c->name->blength == u->blength) {
+			
+			/* compare classnames */
+			for (i=0; i<u->blength; i++) 
+				if (u->text[i] != c->name->text[i]) goto nomatch;
+
+			/* class found in hashtable */				
+			return c;
+			}
+			
+		nomatch:
+		c = c->hashlink;
+		}
+
+	/* class not found */
+	return NULL;
+}
+
+
+/************************** function: utf_strlen ******************************
+
+    determine number of unicode characters in the utf string
+
+*******************************************************************************/
+
+u4 utf_strlen(utf *u) 
+{
+    char *endpos  = utf_end(u);  /* points behind utf string       */
+    char *utf_ptr = u->text;     /* current position in utf text   */
+    u4 len = 0;			 /* number of unicode characters   */
+
+    while (utf_ptr<endpos) {
+      len++;
+      /* next unicode character */
+      utf_nextu2(&utf_ptr);
+    }
+
+    if (utf_ptr!=endpos)
+    	/* string ended abruptly */
+	panic("illegal utf string"); 
+
+    return len;
+}
+
+
+
+
+
+
+
+ 
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -70,8 +70,6 @@ RANLIB = @RANLIB@
 SYSDEP_DIR = @SYSDEP_DIR@
 THREAD_OBJ = @THREAD_OBJ@
 VERSION = @VERSION@
-
-EXTRA_DIST = io.c lang.c util.c
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../config.h
 CONFIG_CLEAN_FILES = 

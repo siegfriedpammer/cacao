@@ -356,7 +356,7 @@ static void block_firstscann ()
 				i = code_get_u2(p + 1);
 			pushconstantitem:
 				if (class_constanttype(class, i) == CONSTANT_String) {
-					unicode *s;
+					utf *s;
 					s = class_getconstant(class, i, CONSTANT_String);
 					(void) literalstring_new(s);
 					}

@@ -33,6 +33,7 @@
 builtin_descriptor builtin_desc[] = {
 	{(functionptr) builtin_instanceof,         "instanceof"},
 	{(functionptr) builtin_checkcast,          "checkcast"},
+    {(functionptr) asm_builtin_checkcast,      "checkcast"},
 	{(functionptr) builtin_arrayinstanceof,    "arrayinstanceof"},
 	{(functionptr) builtin_checkarraycast,     "checkarraycast"},
 	{(functionptr) asm_builtin_checkarraycast, "checkarraycast"},
@@ -121,14 +122,24 @@ builtin_descriptor builtin_desc[] = {
 	                
 *****************************************************************************/	                
 
-static s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
-{
+s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
+{ 
 	if (super->flags & ACC_INTERFACE)
 		return (sub->vftbl->interfacetablelength > super->index) &&
 		       (sub->vftbl->interfacetable[-super->index] != NULL);
 
+    while (sub != 0)
+		if (sub == super)
+			return 1;
+		else
+			sub = sub->super;
+	
+	return 0;
+
+	/*
 	return (unsigned) (sub->vftbl->baseval - super->vftbl->baseval) <=
 	       (unsigned) (super->vftbl->diffval);
+	*/
 }
 
 
@@ -144,9 +155,9 @@ static s4 builtin_isanysubclass (classinfo *sub, classinfo *super)
 
 s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
 {
-#ifdef DEBUG
+	#ifdef DEBUG
 	log_text ("builtin_instanceof called");
-#endif
+	#endif
 	
 	if (!obj) return 0;
 	return builtin_isanysubclass (obj->vftbl->class, class);
@@ -166,22 +177,22 @@ s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
 
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 {
-#ifdef DEBUG
+	#ifdef DEBUG
 	log_text ("builtin_checkcast called");
-#endif
+	#endif
 
 	if (obj == NULL)
 		return 1;
 	if (builtin_isanysubclass (obj->vftbl->class, class))
 		return 1;
 
-#if DEBUG
+	#if DEBUG
 	printf ("#### checkcast failed ");
-	unicode_display (obj->vftbl->class->name);
+	utf_display (obj->vftbl->class->name);
 	printf (" -> ");
-	unicode_display (class->name);
+	utf_display (class->name);
 	printf ("\n");
-#endif
+	#endif
 
 	return 0;
 }
@@ -275,11 +286,12 @@ s4 builtin_arrayinstanceof
 
 ******************************************************************************/
 
-java_objectheader *builtin_throw_exception (java_objectheader *exceptionptr) {
-	unicode_display (exceptionptr->vftbl->class->name);
+java_objectheader *builtin_throw_exception (java_objectheader *local_exceptionptr) {
+   	exceptionptr = local_exceptionptr;
+	utf_display (local_exceptionptr->vftbl->class->name);
 	printf ("\n");
 	fflush (stdout);
-	return exceptionptr;
+	return local_exceptionptr;
 }
 
 
@@ -798,12 +810,12 @@ java_objectheader *builtin_trace_exception (java_objectheader *exceptionptr,
 		methodindent--;
 	if (verbose || runverbose) {
 		printf("Exception ");
-		unicode_display (exceptionptr->vftbl->class->name);
+		utf_display (exceptionptr->vftbl->class->name);
 		printf(" thrown in ");
 		if (method) {
-			unicode_display (method->class->name);
+			utf_display (method->class->name);
 			printf(".");
-			unicode_display (method->name);
+			utf_display (method->name);
 			if (method->flags & ACC_SYNCHRONIZED)
 				printf("(SYNC)");
 			else
@@ -823,10 +835,10 @@ void builtin_trace_args(long a0, long a1, long a2, long a3, long a4, long a5,
 {
 	sprintf (logtext, "                                             ");
 	sprintf (logtext+methodindent, "called: ");
-	unicode_sprint (logtext+strlen(logtext), method->class->name);
+	utf_sprint (logtext+strlen(logtext), method->class->name);
 	sprintf (logtext+strlen(logtext), ".");
-	unicode_sprint (logtext+strlen(logtext), method->name);
-	unicode_sprint (logtext+strlen(logtext), method->descriptor);
+	utf_sprint (logtext+strlen(logtext), method->name);
+	utf_sprint (logtext+strlen(logtext), method->descriptor);
 	sprintf (logtext+strlen(logtext), "(");
 	switch (method->paramcount) {
 		case 6:
@@ -861,10 +873,10 @@ void builtin_displaymethodstart(methodinfo *method)
 {
 	sprintf (logtext, "                                             ");
 	sprintf (logtext+methodindent, "called: ");
-	unicode_sprint (logtext+strlen(logtext), method->class->name);
+	utf_sprint (logtext+strlen(logtext), method->class->name);
 	sprintf (logtext+strlen(logtext), ".");
-	unicode_sprint (logtext+strlen(logtext), method->name);
-	unicode_sprint (logtext+strlen(logtext), method->descriptor);
+	utf_sprint (logtext+strlen(logtext), method->name);
+	utf_sprint (logtext+strlen(logtext), method->descriptor);
 	dolog ();
 	methodindent++;
 }
@@ -874,10 +886,10 @@ void builtin_displaymethodstop(methodinfo *method, long l, double d)
 	methodindent--;
 	sprintf (logtext, "                                             ");
 	sprintf (logtext+methodindent, "finished: ");
-	unicode_sprint (logtext+strlen(logtext), method->class->name);
+	utf_sprint (logtext+strlen(logtext), method->class->name);
 	sprintf (logtext+strlen(logtext), ".");
-	unicode_sprint (logtext+strlen(logtext), method->name);
-	unicode_sprint (logtext+strlen(logtext), method->descriptor);
+	utf_sprint (logtext+strlen(logtext), method->name);
+	utf_sprint (logtext+strlen(logtext), method->descriptor);
 	switch (method->returntype) {
 		case TYPE_INT:
 		case TYPE_LONG:
@@ -898,10 +910,10 @@ void builtin_displaymethodexception(methodinfo *method)
 {
 	sprintf (logtext, "                                             ");
 	sprintf (logtext+methodindent, "exception abort: ");
-	unicode_sprint (logtext+strlen(logtext), method->class->name);
+	utf_sprint (logtext+strlen(logtext), method->class->name);
 	sprintf (logtext+strlen(logtext), ".");
-	unicode_sprint (logtext+strlen(logtext), method->name);
-	unicode_sprint (logtext+strlen(logtext), method->descriptor);
+	utf_sprint (logtext+strlen(logtext), method->name);
+	utf_sprint (logtext+strlen(logtext), method->descriptor);
 	dolog ();
 }
 

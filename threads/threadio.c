@@ -209,7 +209,7 @@ threadedAccept(int fd, struct sockaddr* addr, int* len)
 #if defined(BLOCKING_CALLS)
 	blockOnFile(fd, TH_ACCEPT);
 #endif
-	r = accept(fd, addr, (size_t*)len);
+	r = accept(fd, addr, (int*)len);
 	if (r >= 0
 	    || !(errno == EINPROGRESS || errno == EALREADY
 		 || errno == EWOULDBLOCK))

@@ -39,7 +39,7 @@ void compiler_addinitclass (classinfo *c)
 		if (cl == NULL) {
 			if (runverbose) {
 				sprintf(logtext, "compiler_addinitclass: ");
-				unicode_sprint(logtext+strlen(logtext), c->name);
+				utf_sprint(logtext+strlen(logtext), c->name);
 				dolog();
 				}
 			chain_addlast(uninitializedclasses, c);
@@ -48,7 +48,7 @@ void compiler_addinitclass (classinfo *c)
 		if (c < cl) {
 			if (runverbose) {
 				sprintf(logtext, "compiler_addinitclass: ");
-				unicode_sprint(logtext+strlen(logtext), c->name);
+				utf_sprint(logtext+strlen(logtext), c->name);
 				dolog();
 				}
 			chain_addbefore(uninitializedclasses, c);
@@ -121,10 +121,10 @@ static s4 code_get_s4 (u4 pos)
 	
 ******************************************************************************/		
 
-static void descriptor2types (unicode *desc, bool isstatic,
+static void descriptor2types (utf *desc, bool isstatic,
                  s4 *paramnum, u1 **paramtypes, s4 *returntype)
 {
-	u2 *text = desc->text;
+	u1 *text = desc->text;
 	s4 pos;
 	u1 *types;
 	s4 tnum;

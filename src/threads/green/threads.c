@@ -137,14 +137,14 @@ initThreads(u1 *stackbottom)
 	}
 
     /* Allocate a thread to be the main thread */
-    liveThreads = the_main_thread = (thread*)builtin_new(loader_load(unicode_new_char("java/lang/Thread")));
+    liveThreads = the_main_thread = (thread*)builtin_new(loader_load(utf_new_char("java/lang/Thread")));
     assert(the_main_thread != 0);
 	/* heap_addreference((void **) &liveThreads); */
     
     the_main_thread->PrivateInfo = 1;
     CONTEXT(the_main_thread).free = false;
 
-    the_main_thread->name = javastring_new(unicode_new_char("main"));
+    the_main_thread->name = javastring_new(utf_new_char("main"));
     the_main_thread->priority = NORM_THREAD_PRIO;
     CONTEXT(the_main_thread).priority = (u1)the_main_thread->priority;
     CONTEXT(the_main_thread).exceptionptr = 0;
@@ -167,14 +167,14 @@ initThreads(u1 *stackbottom)
 	the_main_thread->target = 0;
 	the_main_thread->interruptRequested = 0;
 	the_main_thread->group =
-		(threadGroup*)builtin_new(loader_load(unicode_new_char("java/lang/ThreadGroup")));
+		(threadGroup*)builtin_new(loader_load(utf_new_char("java/lang/ThreadGroup")));
 	/* we should call the constructor */
 	assert(the_main_thread->group != 0);
 
 	talive++;
 
 	/* Load exception classes */
-	class_java_lang_ThreadDeath = loader_load(unicode_new_char("java/lang/ThreadDeath"));
+	class_java_lang_ThreadDeath = loader_load(utf_new_char("java/lang/ThreadDeath"));
 
 	DBG( fprintf(stderr, "finishing initThreads\n"); );
 
@@ -242,7 +242,7 @@ startDaemon(void* func, char* nm, int stackSize)
 
     DBG( printf("startDaemon %s\n", nm); );
 
-	tid = (thread*)builtin_new(loader_load(unicode_new_char("java/lang/Thread")));
+	tid = (thread*)builtin_new(loader_load(utf_new_char("java/lang/Thread")));
 	assert(tid != 0);
 
 	for (i = 0; i < MAXTHREADS; ++i)
@@ -292,7 +292,7 @@ firstStartThread(void)
 
 	/* Find the run()V method and call it */
 	method = class_findmethod(currentThread->header.vftbl->class,
-							  unicode_new_char("run"), unicode_new_char("()V"));
+							  utf_new_char("run"), utf_new_char("()V"));
 	if (method == 0)
 		panic("Cannot find method \'void run ()\'");
 	asm_calljavamethod(method, currentThread, NULL, NULL, NULL);
@@ -515,6 +515,7 @@ killThread(thread* tid)
 		/* If we only have daemons left, then everyone is dead. */
 		if (talive == tdaemon) {
 			/* atexit functions get called to clean things up */
+			intsRestore();
 			exit(0);
 		}
 

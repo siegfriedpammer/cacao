@@ -87,10 +87,12 @@
 	.globl has_no_x_instr_set
 	.globl synchronize_caches
 	.globl asm_calljavamethod
+	.globl asm_calljavafunction
 	.globl asm_call_jit_compiler
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
+	.globl asm_builtin_checkcast	
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_aastore
 	.globl asm_builtin_monitorenter
@@ -102,7 +104,7 @@
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
-
+	.globl asm_getcallingmethod
 
 /*************************** imported variables *******************************/
 
@@ -243,6 +245,86 @@ calljava_xhandler:
 	jmp     zero,(ra)
 	.end    asm_calljavamethod
 
+
+/********************* function asm_calljavafunction ***************************
+*                                                                              *
+*   This function calls a Java-method (which possibly needs compilation)       *
+*   with up to 4 address parameters.                                           *
+*                                                                              *
+*   This functions calls the JIT-compiler which eventually translates the      *
+*   method into machine code.                                                  *
+*                                                                              *
+*   C-prototype:                                                               *
+*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
+*         void *arg1, void *arg2, void *arg3, void *arg4);                     *
+*                                                                              *
+*******************************************************************************/
+
+	.ent    asm_calljavafunction
+
+call_name2:
+	.ascii  "calljavafunction\0\0"
+
+	.align  3
+	.quad   0                         /* catch type all                       */
+	.quad   calljava_xhandler2        /* handler pc                           */
+	.quad   calljava_xhandler2        /* end pc                               */
+	.quad   asm_calljavafunction      /* start pc                             */
+	.long   1                         /* extable size                         */
+	.long   0                         /* fltsave                              */
+	.long   0                         /* intsave                              */
+	.long   0                         /* isleaf                               */
+	.long   0                         /* IsSync                               */
+	.long   32                        /* frame size                           */
+	.quad   0                         /* method pointer (pointer to name)     */
+
+asm_calljavafunction:
+
+	ldgp    gp,0(pv)
+	lda     sp,-32(sp)                /* allocate stack space                 */
+	stq     gp,24(sp)                 /* save global pointer                  */
+	stq     ra,0(sp)                  /* save return address                  */
+
+	stq     a0,16(sp)                 /* save method pointer for compiler     */
+	lda     v0,16(sp)                 /* pass pointer to method pointer via v0*/
+
+	mov     a1,a0                     /* pass the remaining parameters        */
+	mov     a2,a1
+	mov     a3,a2
+	mov     a4,a3
+
+	lda     $28,asm_call_jit_compiler /* fake virtual function call (2 instr) */
+	stq     $28,8(sp)                 /* store function address               */
+	mov     sp,$28                    /* set method pointer                   */
+
+	ldq     pv,8($28)                 /* method call as in Java               */
+	jmp     ra,(pv)                   /* call JIT compiler                    */
+calljava_jit2:
+	lda     pv,-64(ra)                /* asm_calljavafunction-calljava_jit !!!!!*/
+
+calljava_return2:
+
+	ldq     ra,0(sp)                  /* restore return address               */
+	ldq     gp,24(sp)                 /* restore global pointer               */
+	lda     sp,32(sp)                 /* free stack space                     */
+
+/*	ldl     v0,newcompiler */         /* load newcompiler flag                */
+/*	subq    v0,1,v0        */         /* negate for clearing v0               */
+/*	beq     v0,calljava_ret*/         /* if newcompiler skip ex copying       */
+/*	mov     $1,v0 */                  /* pass exception to caller (C)         */
+calljava_ret2:
+	jmp     zero,(ra)
+
+calljava_xhandler2:
+
+	ldq     gp,24(sp)                 /* restore global pointer               */
+	mov     itmp1,a0
+	jsr     ra,builtin_throw_exception
+	ldq     ra,0(sp)                  /* restore return address               */
+	lda     sp,32(sp)                 /* free stack space                     */
+	jmp     zero,(ra)
+	.end    asm_calljavafunction
+						
 
 /****************** function asm_call_jit_compiler *****************************
 *                                                                              *
@@ -781,6 +863,36 @@ nb_lrem:
 	.end    asm_builtin_lrem
 
 
+ /*********************** function new_builtin_checkcast ************************
+ *                                                                              *
+ *   Does the cast check and eventually throws an exception                     *
+ *                                                                              *
+ *******************************************************************************/
+
+    .ent    asm_builtin_checkcast
+asm_builtin_checkcast:
+
+    ldgp    gp,0(pv)
+    lda     sp,-16(sp)                  # allocate stack space
+    stq     ra,0(sp)                    # save return address
+    stq     a0,8(sp)                    # save object pointer
+    jsr     ra,builtin_checkcast        # builtin_checkcast
+    ldgp    gp,0(ra)
+    beq     v0,nb_ccast_throw           # if (false) throw exception
+    ldq     ra,0(sp)                    # restore return address
+    ldq     v0,8(sp)                    # return object pointer
+    lda     sp,16(sp)                   # free stack space
+    jmp     zero,(ra)
+
+nb_ccast_throw:
+    ldq     xptr,proto_java_lang_ClassCastException
+    ldq     ra,0(sp)                    # restore return address
+    lda     sp,16(sp)                   # free stack space
+    lda     xpc,-4(ra)                  # faulting address is return adress - 4
+    br      asm_handle_nat_exception
+    .end    asm_builtin_checkcast
+
+		
 /******************* function asm_builtin_checkarraycast ***********************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
@@ -973,3 +1085,80 @@ asm_switchstackandcall:
 	jmp	zero,(ra)       /* return                                             */
 
 	.end	asm_switchstackandcall
+
+		
+/********************* function asm_getcallingmethod ***************************
+*                                                                              *
+*   classinfo *asm_getcallingmethodclass ();								   *
+*																			   *	
+*   goes back stack frames to get the calling method						   *	   
+*																			   *	
+*				t2 .. sp												       *
+*				t3 .. ra												       *
+*				t4 .. pv												       *
+*                                                                              *
+*******************************************************************************/
+
+
+	.ent	asm_getcallingmethod
+asm_getcallingmethod:
+
+	ldq		t3,16(sp)             /* load return address of native function   */				
+	addq    sp,24,t2			  /* skip frames of C-Function and nativestub */	
+		
+    /* determine pv (t3) of java-function from ra */
+
+	ldl     t0,0(t3)              /* load instruction LDA PV,xxx(RA)          */
+	sll     t0,48,t0
+	sra     t0,48,t0              /* isolate offset                           */
+	addq    t0,t3,t4              /* compute update address                   */
+	ldl     t0,4(t3)              /* load instruction LDAH PV,xxx(PV)         */
+	srl     t0,16,t0              /* isolate instruction code                 */
+	lda     t0,-0x177b(t0)        /* test for LDAH                            */
+	bne     t0,pv_ok1       
+	ldl     t0,0(t3)              /* load instruction LDA PV,xxx(RA)          */
+	sll     t0,16,t0              /* compute high offset                      */
+	addl    t0,0,t0               /* sign extend high offset                  */
+	addq    t0,t4,t4              /* compute update address                   */
+
+pv_ok1:			
+	ldl     t0,FrameSize(t4)      /* t0 = frame size                          */		
+	addq	t2,t0,t2			  /* skip frame of java function			  */
+	ldq		t3,-8(t2)			  /* load new ra                              */								
+
+    /* determine pv (t3) of java-function from ra */
+
+	ldl     t0,0(t3)              /* load instruction LDA PV,xxx(RA)          */
+	sll     t0,48,t0
+	sra     t0,48,t0              /* isolate offset                           */
+	addq    t0,t3,t4              /* compute update address                   */
+	ldl     t0,4(t3)              /* load instruction LDAH PV,xxx(PV)         */
+	srl     t0,16,t0              /* isolate instruction code                 */
+	lda     t0,-0x177b(t0)        /* test for LDAH                            */
+	bne     t0,pv_ok2
+	ldl     t0,0(t3)              /* load instruction LDA PV,xxx(RA)          */
+	sll     t0,16,t0              /* compute high offset                      */
+	addl    t0,0,t0               /* sign extend high offset                  */
+	addq    t0,t4,t4              /* compute update address                   */
+
+pv_ok2:		
+	ldq     v0,MethodPointer(t4)  /*										  */
+
+										
+	jmp	zero,(ra)				  /* return                                   */
+
+	.end	asm_getcallingmethod
+
+
+
+
+
+
+
+
+
+
+
+
+
+

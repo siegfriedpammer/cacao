@@ -337,7 +337,7 @@ static void parse (basicblock *b)
 						break;
 
 					case CONSTANT_String:
-						{ unicode *s;
+						{ utf *s;
 
 						s = class_getconstant (class, poolindex, CONSTANT_String);
 

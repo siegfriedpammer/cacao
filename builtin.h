@@ -22,9 +22,12 @@ typedef struct builtin_descriptor {
 	} builtin_descriptor;
 
 extern builtin_descriptor builtin_desc[];
+extern java_objectheader* exceptionptr;
 
 s4 builtin_instanceof(java_objectheader *obj, classinfo *class);
+s4 builtin_isanysubclass (classinfo *sub, classinfo *super);
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
+s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class);
 s4 builtin_arrayinstanceof
 	(java_objectheader *obj, constant_arraydescriptor *desc);
 s4 builtin_checkarraycast

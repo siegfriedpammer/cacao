@@ -1110,7 +1110,7 @@ icmd_lconst_lcmp_tail:
 						/* pop 3 push 4 dup */
 						
 						case ICMD_DUP_X2:
-							if (IS_2_WORD_TYPE(curstack[-1].type)) {
+							if (IS_2_WORD_TYPE(curstack->prev->type)) {
 								iptr->opc = ICMD_DUP_X1;
 								DUP_X1;
 								}
@@ -1121,7 +1121,7 @@ icmd_lconst_lcmp_tail:
 
 						case ICMD_DUP2_X2:
 							if (IS_2_WORD_TYPE(curstack->type)) {
-								if (IS_2_WORD_TYPE(curstack[-1].type)) {
+								if (IS_2_WORD_TYPE(curstack->prev->type)) {
 									iptr->opc = ICMD_DUP_X1;
 									DUP_X1;
 									}
@@ -1131,7 +1131,7 @@ icmd_lconst_lcmp_tail:
 									}
 								}
 							else
-								if (IS_2_WORD_TYPE(curstack[-2].type)) {
+								if (IS_2_WORD_TYPE(curstack->prev->prev->type)) {
 									iptr->opc = ICMD_DUP2_X1;
 									DUP2_X1;
 									}
@@ -1719,11 +1719,11 @@ static void show_icmd_method()
 	xtable *ex;
 
 	printf("\n");
-	unicode_fprint(stdout, class->name);
+	utf_fprint(stdout, class->name);
 	printf(".");
-	unicode_fprint(stdout, method->name);
+	utf_fprint(stdout, method->name);
 	printf(" ");
-	unicode_fprint(stdout, method->descriptor);
+	utf_fprint(stdout, method->descriptor);
 	printf ("\n\nMax locals: %d\n", (int) maxlocals);
 	printf ("Max stack:  %d\n", (int) maxstack);
 
@@ -1864,7 +1864,7 @@ static void show_icmd_method()
 				case ICMD_PUTSTATIC:
 				case ICMD_GETSTATIC:
 					printf(" ");
-					unicode_fprint(stdout,
+					utf_fprint(stdout,
 					                ((fieldinfo *) iptr->val.a)->name);
 					break;
 				case ICMD_IINC:
@@ -1907,7 +1907,7 @@ static void show_icmd_method()
 					break;
 				case ICMD_NEW:
 					printf(" ");
-					unicode_fprint(stdout,
+					utf_fprint(stdout,
 					               ((classinfo *) iptr->val.a)->name);
 					break;
 				case ICMD_NEWARRAY:
@@ -1941,7 +1941,7 @@ static void show_icmd_method()
 				case ICMD_ANEWARRAY:
 					if (iptr->op1) {
 						printf(" ");
-						unicode_fprint(stdout,
+						utf_fprint(stdout,
 						               ((classinfo *) iptr->val.a)->name);
 						}
 					break;
@@ -1953,7 +1953,7 @@ static void show_icmd_method()
 							printf(" (INTERFACE) ");
 						else
 							printf(" (CLASS,%3d) ", c->vftbl->diffval);
-						unicode_fprint(stdout, c->name);
+						utf_fprint(stdout, c->name);
 						}
 					break;
 				case ICMD_BUILTIN3:
@@ -1966,10 +1966,10 @@ static void show_icmd_method()
 				case ICMD_INVOKESTATIC:
 				case ICMD_INVOKEINTERFACE:
 					printf(" ");
-					unicode_fprint(stdout,
+					utf_fprint(stdout,
 					               ((methodinfo *) iptr->val.a)->class->name);
 					printf(".");
-					unicode_fprint(stdout,
+					utf_fprint(stdout,
 					               ((methodinfo *) iptr->val.a)->name);
 					break;
 				case ICMD_IFEQ:

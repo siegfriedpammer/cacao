@@ -101,7 +101,7 @@ initLocks (void)
 
 	/* Load exception classes */
 	class_java_lang_IllegalMonitorStateException =
-		loader_load(unicode_new_char("java/lang/IllegalMonitorStateException"));
+		loader_load(utf_new_char("java/lang/IllegalMonitorStateException"));
 }
 
 /*

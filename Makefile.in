@@ -10,7 +10,7 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-# $Id: Makefile.in 132 1999-09-27 15:54:42Z chris $
+# $Id: Makefile.in 135 1999-10-04 10:35:09Z roman $
 
 
 SHELL = /bin/sh
@@ -86,21 +86,8 @@ CLEANFILES = @SYSDEP_DIR@/asmpart.o \
 
 bin_PROGRAMS = cacao
 noinst_PROGRAMS = cacaoh
-<<<<<<< Makefile.in
 
 INCLUDES=-I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@ -I$(top_srcdir)
-=======
-
-INCLUDES = -I/usr/include -I$(top_srcdir)/@SYSDEP_DIR@ -I$(top_srcdir)/jit -I@SYSDEP_DIR@ -I$(top_srcdir)
-
-cacao_SOURCES =  	asmpart.h 	builtin.c 	builtin.h 	callargs.h 	@COMPILER_SOURCES@ 	global.h 	jit.c 	jit.h 	loader.c 	loader.h 	main.c 	native.c 	native.h 	tables.c 	tables.h
-
-
-EXTRA_cacao_SOURCES =  	compiler.c 	compiler.h 
-
-
-cacao_LDADD =  	@SYSDEP_DIR@/asmpart.o 	@COMPILER_OBJECTS@ 	toolbox/libtoolbox.a 	@GC_OBJ@     @THREAD_OBJ@
->>>>>>> 3.10
 
 cacao_SOURCES = \
 	asmpart.h \
@@ -519,26 +506,54 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 	./cacaoh \
 		java.lang.Object \
 		java.lang.String \
-		java.lang.Class \
 		java.lang.ClassLoader \
+		java.lang.Class \
 		java.lang.Compiler \
 		java.lang.Double \
 		java.lang.Float \
 		java.lang.Math \
+		java.lang.Package \
 		java.lang.Runtime \
 		java.lang.SecurityManager \
+		java.lang.Exception \
+		java.io.PrintStream \
+		java.io.InputStream \
 		java.lang.System \
 		java.lang.Thread \
 		java.lang.ThreadGroup \
 		java.lang.Throwable \
-		java.io.File \
+		java.lang.reflect.Array \
+		java.lang.reflect.Constructor \
+		java.lang.reflect.Field \
+		java.lang.reflect.Method \
+		java.lang.reflect.Modifier \
 		java.io.FileDescriptor \
 		java.io.FileInputStream \
 		java.io.FileOutputStream \
-		java.io.PrintStream \
+		java.io.FileSystem \
+		java.io.ObjectInputStream \
+		java.io.ObjectStreamClass \
 		java.io.RandomAccessFile \
+		java.util.ResourceBundle \
+		java.util.jar.JarFile \
+		java.util.zip.Adler32 \
+		java.util.zip.CRC32 \
+		java.util.zip.Deflater \
+		java.util.zip.Inflater \
+		java.util.zip.ZipEntry \
+		java.util.zip.ZipFile \
 		java.util.Properties \
-		java.util.Date
+		java.util.Date \
+		java.math.BigInteger \
+		java.net.InetAddress \
+		java.net.InetAddressImpl \
+		java.security.PrivilegedActionException \
+		java.security.PrivilegedAction \
+		java.security.PrivilegedExceptionAction \
+		java.security.AccessController \
+		java.io.File \
+		java.io.UnixFileSystem \
+		java.lang.ClassLoader_NativeLibrary
 
 @SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/asmpart.c @SYSDEP_DIR@/offsets.h
 	rm -f @SYSDEP_DIR@/asmpart.s
@@ -555,7 +570,6 @@ compiler.o: $(top_srcdir)/builtin.h $(top_srcdir)/compiler.h \
             $(top_srcdir)/@SYSDEP_DIR@/gen.c $(top_srcdir)/@SYSDEP_DIR@/disass.c
 	@CC@ $(CFLAGS) -I. $(INCLUDES) -c $(top_srcdir)/compiler.c
 
-<<<<<<< Makefile.in
 jit.o: jit.c \
 	jit/mcode.c \
 	jit/parse.c \
@@ -568,15 +582,6 @@ jit.o: jit.c \
 	narray/tracing.c \
 	narray/loop.h
 
-=======
-jit.o: jit.c \
-	jit/mcode.c \
-	jit/parse.c \
-	jit/reg.c \
-	jit/stack.c \
-	jit/jitdef.h
-
->>>>>>> 3.10
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

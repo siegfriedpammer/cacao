@@ -94,7 +94,7 @@ int count_nstub_len = 0;
 /******************* globale Variablen fuer den Compiler *********************/
 
 static methodinfo *method;      /* Zeiger auf die Methodenstruktur */
-static unicode   *descriptor;   /* Typbeschreibung der Methode */
+static utf       *descriptor;   /* Typbeschreibung der Methode */
 static classinfo *class;        /* Klasse, in der die Methode steht */
 	
 static s4 maxstack;             /* maximale Gr"osse des JavaVM-Stacks */
@@ -202,19 +202,19 @@ methodptr compiler_compile (methodinfo *m)
 	if (m->jcode) {
 		if (compileverbose) {
 			sprintf (logtext, "Compiling: ");
-			unicode_sprint (logtext+strlen(logtext), m->class->name);
+			utf_sprint (logtext+strlen(logtext), m->class->name);
 			strcpy (logtext+strlen(logtext), ".");
-			unicode_sprint (logtext+strlen(logtext), m->name);
-			unicode_sprint (logtext+strlen(logtext), m->descriptor);
+			utf_sprint (logtext+strlen(logtext), m->name);
+			utf_sprint (logtext+strlen(logtext), m->descriptor);
 			dolog ();
 			}
 		}
 	else {
 		sprintf (logtext, "No code given for: ");
-		unicode_sprint (logtext+strlen(logtext), m->class->name);
+		utf_sprint (logtext+strlen(logtext), m->class->name);
 		strcpy (logtext+strlen(logtext), ".");
-		unicode_sprint (logtext+strlen(logtext), m->name);
-		unicode_sprint (logtext+strlen(logtext), m->descriptor);
+		utf_sprint (logtext+strlen(logtext), m->name);
+		utf_sprint (logtext+strlen(logtext), m->descriptor);
 		dolog ();
 		intsRestore();           /* schani */
 		return (methodptr) do_nothing_function;
@@ -374,7 +374,7 @@ methodptr compiler_compile (methodinfo *m)
 		                                    /* globalen Variablen verwendet */
 		while ( (c = chain_first(u)) ) {    /* werden */
 			chain_remove (u);
-			
+
 			class_init (c);          	 	/* ruft unter Umst"anden wieder */
 		                              		/* den Compiler auf */
 			}

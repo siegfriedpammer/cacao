@@ -118,7 +118,7 @@ int *count_store_depth = count_store_depth_init;
 
 static classinfo  *class;       /* class the compiled method belongs to       */
 static methodinfo *method;      /* pointer to method info of compiled method  */
-static unicode    *descriptor;  /* type descriptor of compiled method         */
+static utf        *descriptor;  /* type descriptor of compiled method         */
 static int         mparamcount; /* number of parameters (incl. this)          */
 static u1         *mparamtypes; /* types of all parameters (TYPE_INT, ...)    */
 static int         mreturntype; /* return type of method                      */
@@ -161,7 +161,7 @@ static chain *uninitializedclasses;
 #include "jit/parse.c"          /* parsing of JavaVM code                     */ 
 #include "jit/reg.c"            /* register allocation and support routines   */ 
 #include "jit/stack.c"          /* analysing the stack operations             */ 
-#include "sysdep/ngen.c"        /* code generator                             */ 
+#include "ngen.c"        /* code generator                             */ 
 #include "narray/graph.c"	/* array bound removal			      */
 #include "narray/loop.c"	/* array bound removal			      */
 #include "narray/tracing.c"	/* array bound removal			      */
@@ -234,10 +234,10 @@ methodptr jit_compile(methodinfo *m)
 
 	if (! m->jcode) {
 		sprintf(logtext, "No code given for: ");
-		unicode_sprint(logtext+strlen(logtext), m->class->name);
+		utf_sprint(logtext+strlen(logtext), m->class->name);
 		strcpy(logtext+strlen(logtext), ".");
-		unicode_sprint(logtext+strlen(logtext), m->name);
-		unicode_sprint(logtext+strlen(logtext), m->descriptor);
+		utf_sprint(logtext+strlen(logtext), m->name);
+		utf_sprint(logtext+strlen(logtext), m->descriptor);
 		dolog();
 		intsRestore();                             /* enable interrupts again */
 		return (methodptr) do_nothing_function;    /* return empty method     */
@@ -247,10 +247,10 @@ methodptr jit_compile(methodinfo *m)
 
 	if (compileverbose) {
 		sprintf(logtext, "Compiling: ");
-		unicode_sprint(logtext+strlen(logtext), m->class->name);
+		utf_sprint(logtext+strlen(logtext), m->class->name);
 		strcpy(logtext+strlen(logtext), ".");
-		unicode_sprint(logtext+strlen(logtext), m->name);
-		unicode_sprint(logtext+strlen(logtext), m->descriptor);
+		utf_sprint(logtext+strlen(logtext), m->name);
+		utf_sprint(logtext+strlen(logtext), m->descriptor);
 		dolog ();
 		}
 

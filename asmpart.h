@@ -34,6 +34,15 @@ java_objectheader *asm_calljavamethod (methodinfo *m, void *arg1, void*arg2,
 	   with up to 4 parameters. This function calls a Java-method (which
 	   possibly needs compilation) with up to 4 parameters. */
 
+java_objectheader *asm_calljavafunction (methodinfo *m, void *arg1, void*arg2,
+                                         void*arg3, void*arg4);
+	/* This function calls a Java-method (which possibly needs compilation)
+	   with up to 4 parameters. This function calls a Java-method (which
+	   possibly needs compilation) with up to 4 parameters. 
+	   also supports a return value */
+
+methodinfo *asm_getcallingmethod ();
+        /* gets the class of the caller from the stack frame */
 
 void asm_dumpregistersandcall ( functionptr f);
 	/* This funtion saves all callee saved registers and calls the function
@@ -41,3 +50,7 @@ void asm_dumpregistersandcall ( functionptr f);
 	   This function is needed by the garbage collector, which needs to access
 	   all registers which are stored on the stack. Unused registers are
 	   cleared to avoid interferances with the GC. */
+
+
+
+

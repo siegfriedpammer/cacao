@@ -12,47 +12,59 @@
 
 #include "global.h" /* for unicode. -- phil */
 
-extern bool collectverbose;
-
-
 #define CLASS(name)     (unicode_getclasslink(unicode_new_char(name)))
 
+/* to determine the end of utf strings */
+#define utf_end(utf) ((char *) utf->text+utf->blength)
+
+/* switches for debug messages */
+extern bool collectverbose;
+extern list unloadedclasses;
+
+/* function for disposing javastrings */
 typedef void (*stringdeleter) ( java_objectheader *string );
+    
+/* creates hashtables for symboltables */
+void tables_init ();
 
+/* free memory for hashtables */ 
+void tables_close (stringdeleter del);
 
-void suck_init (char *classpath);
-bool suck_start (unicode *name);
-void suck_stop ();
-void suck_nbytes (u1 *buffer, u4 len);
-void skip_nbytes (u4 len);
-u1 suck_u1 ();
-s1 suck_s1 ();
-u2 suck_u2 ();
-s2 suck_s2 ();
-u4 suck_u4 ();
-s4 suck_s4 ();
-u8 suck_u8 ();
-s8 suck_s8 ();
-float suck_float ();
-double suck_double ();
+/* write utf symbol to file/buffer */
+void utf_sprint (char *buffer, utf *u);
+void utf_fprint (FILE *file, utf *u);
+void utf_display (utf *u);
 
+/* create new utf-symbol */
+utf *utf_new (char *text, u2 length);
+utf *utf_new_char (char *text);
 
-void unicode_init ();
-void unicode_close (stringdeleter del);
-void unicode_display (unicode *u);
-void unicode_sprint (char *buffer, unicode *u);
-void unicode_fprint (FILE *file, unicode *u);
-unicode *unicode_new_u2 (u2 *text, u2 length);
-unicode *unicode_new_char (char *text);
-void unicode_setclasslink (unicode *u, classinfo *class);
-classinfo *unicode_getclasslink (unicode *u);
-void unicode_unlinkclass (unicode *u);
-void unicode_setstringlink (unicode *u, java_objectheader *str);
-void unicode_unlinkstring (unicode *u);
-void unicode_show ();
+/* show utf-table */
+void utf_show ();
 
-u2 desc_to_type (unicode *descriptor);
-u2 desc_typesize (unicode *descriptor);
+/* get next unicode character of a utf-string */
+u2 utf_nextu2(char **utf);
+
+/* get number of unicode characters of a utf string */
+u4 utf_strlen(utf *u);
+
+/* search for class and create it if not found */
+classinfo *class_new (utf *u);
+
+/* get javatype according to a typedescriptor */
+u2 desc_to_type (utf *descriptor);
+
+/* get length of a datatype */
+u2 desc_typesize (utf *descriptor);
+
+/* determine hashkey of a unicode-symbol */
+u4 unicode_hashkey (u2 *text, u2 length);
+
+/* create hashtable */
+void init_hashtable(hashtable *hash, u4 size);
+
+/* search for class in classtable */
+classinfo *class_get (utf *u);
 
 
 void heap_init (u4 size, u4 startsize, void **stackbottom);
@@ -63,3 +75,8 @@ void heap_addreference (void **reflocation);
 void gc_init (void);
 void gc_thread (void);
 void gc_call (void);
+
+
+
+
+

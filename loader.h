@@ -13,6 +13,7 @@
 *******************************************************************************/
 
 
+
 /************************* program switches ***********************************/
 
 extern bool loadverbose;         /* Debug-Meldungen beim Laden ausgeben */
@@ -29,26 +30,54 @@ extern list linkedclasses;       /* Liste aller fertig gelinkten Klassen */
 
 /************************ prototypes ******************************************/
 
+/* initialize laoder, load important systemclasses */
 void loader_init ();
+
+/* free resources */
 void loader_close ();
 
-classinfo *loader_load (unicode *topname);
+/* load a class and all referenced classes */
+classinfo *loader_load (utf *topname);
+
+/* initializes all loaded classes */
 void loader_initclasses ();
+
 void loader_compute_subclasses ();
 
-classinfo *class_get (unicode *name);
+/* retrieve constantpool element */
 voidptr class_getconstant (classinfo *class, u4 pos, u4 ctype);
+
+/* determine type of a constantpool element */
 u4 class_constanttype (classinfo *class, u4 pos);
 
-fieldinfo *class_findfield (classinfo *c, unicode *name, unicode *desc);
-methodinfo *class_findmethod (classinfo *c, unicode *name, unicode *desc);
+/* search class for a field */
+fieldinfo *class_findfield (classinfo *c, utf *name, utf *desc);
 
-methodinfo *class_resolvemethod (classinfo *c, unicode *name, unicode *dest);
+/* search for a method with a specified name and descriptor */
+methodinfo *class_findmethod (classinfo *c, utf *name, utf *desc);
+methodinfo *class_resolvemethod (classinfo *c, utf *name, utf *dest);
+
+/* search for a method with specified name and arguments (returntype ignored) */
+methodinfo *class_findmethod_approx (classinfo *c, utf *name, utf *desc);
+methodinfo *class_resolvemethod_approx (classinfo *c, utf *name, utf *dest);
 
 bool class_issubclass (classinfo *sub, classinfo *super);
 
+/* call initializer of class */
 void class_init (classinfo *c);
 
+/* debug purposes */
 void class_showmethods (classinfo *c);
 void class_showconstantpool (classinfo *c);
+
+/* set buffer for reading classdata */
+void classload_buffer(u1 *buf,int len);
+
+/* create class representing specific arraytype */
+classinfo *create_array_class(utf *u);
+
+/* create the arraydescriptor for the arraytype specified by the utf-string */
+constant_arraydescriptor * buildarraydescriptor(char *utf, u4 namelen);
+
+
 

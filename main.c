@@ -17,7 +17,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: main.c 132 1999-09-27 15:54:42Z chris $
+	Last Change: $Id: main.c 135 1999-10-04 10:35:09Z roman $
 
 *******************************************************************************/
 
@@ -45,7 +45,7 @@ bool new_gc = false;
 
 static bool showmethods = false;
 static bool showconstantpool = false;
-static bool showunicode = false;
+static bool showutf = false;
 static classinfo *topclass;
 
 #ifndef USE_THREADS
@@ -220,7 +220,7 @@ static void print_usage()
 #ifdef OLD_COMPILER
 	printf ("                 s(tack) ....... show stack for every javaVM-command\n");
 #endif
-	printf ("                 u(nicode) ..... show the unicode - hash\n");
+	printf ("                 u(tf) ......... show the utf - hash\n");
 }   
 
 
@@ -381,7 +381,7 @@ static void print_stats()
 	sprintf (logtext, "Distribution of basic block sizes");
 	dolog();
 	sprintf (logtext,
-	"  1    2    3    4   5   6   7   8   9  10 <13 <15 <17 <19 <21 <26 <31 >30");
+	"  0    1    2    3    4   5   6   7   8   9 <13 <15 <17 <19 <21 <26 <31 >30");
 	dolog();
 	sprintf (logtext, "%3d%5d%5d%5d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d%4d",
 		count_block_size_distribution[0], count_block_size_distribution[1], count_block_size_distribution[2],
@@ -397,7 +397,7 @@ static void print_stats()
 	dolog();
 	sprintf (logtext, "Size of Class Infos (Kb):%10.3f", (float) (count_class_infos) / 1024);
 	dolog();
-	sprintf (logtext, "Size of Const Pool (Kb): %10.3f", (float) (count_const_pool_len + count_unicode_len) / 1024);
+	sprintf (logtext, "Size of Const Pool (Kb): %10.3f", (float) (count_const_pool_len + count_utf_len) / 1024);
 	dolog();
 	sprintf (logtext, "Size of Vftbl (Kb):      %10.3f", (float) count_vftbl_len / 1024);
 	dolog();
@@ -405,7 +405,7 @@ static void print_stats()
 	dolog();
 	sprintf (logtext, "Size of native stub (Kb):%10.3f", (float) count_nstub_len / 1024);
 	dolog();
-	sprintf (logtext, "Size of Unicode (Kb):    %10.3f", (float) count_unicode_len / 1024);
+	sprintf (logtext, "Size of Utf (Kb):        %10.3f", (float) count_utf_len / 1024);
 	dolog();
 	sprintf (logtext, "Size of VMCode (Kb):     %10.3f(%d)", (float) count_vmcode_len / 1024,
 	                                              count_vmcode_len - 18 * count_all_methods);
@@ -413,6 +413,11 @@ static void print_stats()
 	sprintf (logtext, "Size of ExTable (Kb):    %10.3f", (float) count_extable_len / 1024);
 	dolog();
 	sprintf (logtext, "Number of loaded Methods: %d\n\n", count_all_methods);
+	dolog();
+
+	sprintf (logtext, "Calls of utf_new: %22d", count_utf_new);
+	dolog();
+	sprintf (logtext, "Calls of utf_new (element found): %6d\n\n", count_utf_new_found);
 	dolog();
 }
 
@@ -457,7 +462,7 @@ void exit_handler(void)
 				
 	if (showmethods) class_showmethods (topclass);
 	if (showconstantpool)  class_showconstantpool (topclass);
-	if (showunicode)       unicode_show ();
+	if (showutf)           utf_show ();
 
 #ifdef USE_THREADS
 	clear_thread_flags();		/* restores standard file descriptor
@@ -474,7 +479,7 @@ void exit_handler(void)
 	compiler_close ();
 #endif
 	loader_close ();
-	unicode_close ( literalstring_free );
+	tables_close ( literalstring_free );
 
 	if (verbose || getcompilingtime || statistics) {
 		log_text ("CACAO terminated");
@@ -671,7 +676,7 @@ int main(int argc, char **argv)
 #ifdef OLD_COMPILER
 				case 's':  showstack=true; compileverbose=true; break;
 #endif
-				case 'u':  showunicode=true; break;
+				case 'u':  showutf=true; break;
 				default:   print_usage();
 					exit(10);
 				}
@@ -708,7 +713,7 @@ int main(int argc, char **argv)
 	suck_init (classpath);
 	native_setclasspath (classpath);
 		
-	unicode_init();
+	tables_init();
 	heap_init(heapsize, heapstartsize, &dummy);
 	loader_init();
 #ifdef OLD_COMPILER
@@ -726,7 +731,7 @@ int main(int argc, char **argv)
  	 	if (cp[i]=='.') cp[i]='/';        /* auf slashes umbauen */
 	}
 
-	topclass = loader_load ( unicode_new_char (cp) );
+	topclass = loader_load ( utf_new_char (cp) );
 
 	loader_compute_subclasses();
 
@@ -746,21 +751,21 @@ int main(int argc, char **argv)
 
 		mainmethod = class_findmethod (
 									   topclass,
-									   unicode_new_char ("main"), 
-									   unicode_new_char ("([Ljava/lang/String;)V")
+									   utf_new_char ("main"), 
+									   utf_new_char ("([Ljava/lang/String;)V")
 									   );
 		if (!mainmethod) panic ("Can not find method 'void main(String[])'");
 		if ((mainmethod->flags & ACC_STATIC) != ACC_STATIC) panic ("main is not static!");
 			
 		a = builtin_anewarray (argc - opt_ind, class_java_lang_String);
 		for (i=opt_ind; i<argc; i++) {
-			a->data[i-opt_ind] = javastring_new (unicode_new_char (argv[i]) );
+			a->data[i-opt_ind] = javastring_new (utf_new_char (argv[i]) );
 		}
 		exceptionptr = asm_calljavamethod (mainmethod, a, NULL,NULL,NULL );
 	
 		if (exceptionptr) {
 			printf ("#### Program has thrown: ");
-			unicode_display (exceptionptr->vftbl->class->name);
+			utf_display (exceptionptr->vftbl->class->name);
 			printf ("\n");
 		}
 
@@ -783,11 +788,11 @@ int main(int argc, char **argv)
 		methodinfo *m;
 		if (specificsignature)
 			m = class_findmethod(topclass, 
-								 unicode_new_char(specificmethodname),
-								 unicode_new_char(specificsignature));
+								 utf_new_char(specificmethodname),
+								 utf_new_char(specificsignature));
 		else
 			m = class_findmethod(topclass, 
-								 unicode_new_char(specificmethodname), NULL);
+								 utf_new_char(specificmethodname), NULL);
 		if (!m) panic ("Specific method not found");
 #ifdef OLD_COMPILER
 		if (newcompiler)

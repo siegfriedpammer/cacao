@@ -17,35 +17,39 @@
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 	         Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: headers.c 115 1999-01-20 01:52:45Z phil $
+	Last Change: $Id: headers.c 135 1999-10-04 10:35:09Z roman $
 
 *******************************************************************************/
 
 #include "config.h" /* phil */
-
 #include "global.h"
-
 #include "tables.h"
 #include "loader.h"
 
 
-/******* verschiedene externe Funktionen "faelschen" (=durch Dummys ersetzen), 
-  damit der Linker zufrieden ist *********/
+/******* replace some external functions  *********/
  
-functionptr native_findfunction 
-  (unicode *cname, unicode *mname, unicode *desc, bool isstatic)
+functionptr native_findfunction (utf *cname, utf *mname, utf *desc, bool isstatic)
 { return NULL; }
 
-java_objectheader *literalstring_new (unicode *text)
+java_objectheader *javastring_new (utf *text)         /* schani */
 { return NULL; }
 
-java_objectheader *javastring_new (unicode *text)         /* schani */
-{ return NULL; }
+void throw_classnotfoundexception() 
+{ 
+	panic("class not found"); 
+}
 
+java_objectheader *literalstring_new (utf *u)
+{ return NULL; }  
+
+void literalstring_free (java_objectheader *o) { }
+void stringtable_update () { }
 void synchronize_caches() { }
 void asm_call_jit_compiler () { }
 void asm_calljavamethod () { }
 void asm_dumpregistersandcall () { }
+s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class) { return 0; }
 
 s4 asm_builtin_idiv (s4 a, s4 b) {return 0;}
 s4 asm_builtin_irem (s4 a, s4 b) {return 0;}
@@ -75,14 +79,18 @@ void asm_switchstackandcall () { }
 
 java_objectheader *native_new_and_init (void *p) { return NULL; }
 
-/************************ globale Variablen **********************/
+/************************ global variables **********************/
 
 java_objectheader *exceptionptr;                       /* schani */
 int  newcompiler = true;
 bool verbose =  false;
 
-static chain *nativechain;
+static chain *nativemethod_chain;		               /* chain with native methods     */
+static chain *nativeclass_chain;		               /* chain with processed classes  */	
+static chain *ident_chain;        /* chain with method and field names in current class */
 static FILE *file = NULL;
+static u4 outputsize;
+static bool dopadding;
 
 static void printIDpart (int c) 
 {
@@ -95,17 +103,14 @@ static void printIDpart (int c)
 
 }
 
-static void printID (unicode *name)
+static void printID (utf *u)
 {
+	char *utf_ptr = u->text;
 	int i;
-	for (i=0; i<name->length; i++) {
-		printIDpart (name->text[i]);
-    	}
+
+	for (i=0; i<utf_strlen(u); i++) 
+		printIDpart (utf_nextu2(&utf_ptr));
 }
-
-
-u4 outputsize;
-bool dopadding;
 
 static void addoutputsize (int len)
 {
@@ -119,11 +124,11 @@ static void addoutputsize (int len)
 }
 
 
-static u2 *printtype (u2 *desc)
+static char *printtype (char *utf_ptr)
 {
 	u2 c;
 
-	switch (*(desc++)) {
+	switch (utf_nextu2(&utf_ptr)) {
 		case 'V': fprintf (file, "void");
 		          break;
 		case 'I':
@@ -144,7 +149,7 @@ static u2 *printtype (u2 *desc)
                   break;
 		case '[':
 			addoutputsize ( sizeof(java_arrayheader*) ); 
-			switch (*(desc++)) {
+			switch (utf_nextu2(&utf_ptr)) {
 				case 'I':  fprintf (file, "java_intarray*"); break;
 				case 'J':  fprintf (file, "java_longarray*"); break;
 				case 'Z':  fprintf (file, "java_booleanarray*"); break;
@@ -154,14 +159,14 @@ static u2 *printtype (u2 *desc)
 				case 'F':  fprintf (file, "java_floatarray*"); break;
 				case 'D':  fprintf (file, "java_doublearray*"); break;
 				
-				case '[':  fprintf (file, "java_arrayarray*");
-				           while ((*desc) == '[') desc++;
-				           if ((*desc)!='L') desc++;
-				           else while (*(desc++) != ';');
+				case '[':  fprintf (file, "java_arrayarray*");					       
+				           while ((c = utf_nextu2(&utf_ptr)) == '[') ;
+				           if (c=='L') 
+							   while (utf_nextu2(&utf_ptr) != ';');
                            break;
                            
 				case 'L':  fprintf (file, "java_objectarray*");
-				           while ( *(desc++) != ';');
+				           while ( utf_nextu2(&utf_ptr) != ';');
 				           break;
 				default: panic ("invalid type descriptor");
 				}
@@ -170,22 +175,38 @@ static u2 *printtype (u2 *desc)
 		case 'L': 
 			addoutputsize ( sizeof(java_objectheader*));
             fprintf (file, "struct ");
-            while ( (c = *(desc++)) != ';' ) printIDpart (c);   	 
+            while ( (c = utf_nextu2(&utf_ptr)) != ';' ) printIDpart (c);   	 
             fprintf (file, "*");
 			break;
 					
 		default:  panic ("Unknown type in field descriptor");
 	}
 	
-	return (desc);
+	return utf_ptr;
 }
 
+/******* determine the number of entries of a utf string in the ident chain *****/
 
+static int searchidentchain_utf(utf *ident) 
+{
+	utf *u = chain_first(ident_chain);     /* first element of list */
+	int count = 0;
+
+	while (u) {
+		if (u==ident) count++;         /* string found */
+		u = chain_next(ident_chain);   /* next element in list */ 
+	}
+
+	return count;
+}
+
+/**************** print structure for direct access to objects ******************/	
 
 static void printfields (classinfo *c)
 {
 	u4 i;
 	fieldinfo *f;
+	int ident_count;
 	
 	if (!c) {
 		addoutputsize ( sizeof(java_objectheader) );
@@ -202,106 +223,189 @@ static void printfields (classinfo *c)
 			fprintf (file,"   ");
 			printtype (f->descriptor->text);
 			fprintf (file, " ");
-			unicode_fprint (file, f->name);
+			utf_fprint (file, f->name);
+
+			/* rename multiple fieldnames */
+			if (ident_count = searchidentchain_utf(f->name))
+				fprintf(file,"%d",ident_count - 1);		
+			chain_addlast(ident_chain,f->name);	
+
 			fprintf (file, ";\n");
 			}
 		}
 }
 
-
-
-
-static void remembermethods (classinfo *c)
-{
-	u2 i;
-	methodinfo *m;
-
-	for (i=0; i<c->methodscount; i++) {
-		m = &(c->methods[i]);
-
-		if (m->flags & ACC_NATIVE) {
-			chain_addlast (nativechain, m);
-			}
-					
-		}
-}
-
-
-
+/***************** store prototype for native method in file ******************/
 
 static void printmethod (methodinfo *m)
 {
-	u2 *d;
+	char *utf_ptr;
 	u2 paramnum=1;
-	
-	d = m->descriptor->text;
-	while (*(d++) != ')');
-				
-	printtype (d);
-	fprintf (file," ");
-	printID (m->class->name);
+	u2 ident_count;
+
+	/* search for return-type in descriptor */	
+	utf_ptr = m->descriptor->text;
+	while (utf_nextu2(&utf_ptr) != ')');
+
+	/* create remarks */
+	fprintf (file,"/*\n * Class:     ");
+	utf_fprint (file, m->class->name);
+	fprintf (file,"\n * Method:    ");
+	utf_fprint (file, m->name);
+	fprintf (file,"\n * Signature: ");
+	utf_fprint (file, m->descriptor);
+	fprintf (file,"\n */\n");	
+
+	/* create prototype */ 			
+	fprintf (file,"JNIEXPORT ");				
+	printtype (utf_ptr);
+	fprintf (file," JNICALL Java_");
+	printID (m->class->name);           
+
+	/* rename overloaded method */
+	if (ident_count = searchidentchain_utf(m->name))
+		fprintf(file,"%d",ident_count - 1);		
+	chain_addlast(ident_chain,m->name);	
+
 	fprintf (file,"_");
 	printID (m->name);
-	fprintf (file," (");
-					
-	d = m->descriptor->text+1;
+	fprintf (file," (JNIEnv *env ");
+	
+	utf_ptr = m->descriptor->text+1;
 			
 	if (! (m->flags & ACC_STATIC) ) {
-		fprintf (file, "struct ");
+	
+		fprintf (file, ",  struct ");
 		printID (m->class->name);
-		fprintf (file, "* this");
-		if ((*d)!=')') fprintf (file, ", ");
-		}
+		fprintf (file, "* this ");
+
+	    };
+
+	if ((*utf_ptr)!=')') fprintf (file, ", "); 
 			
-	while ((*d)!=')') {
-		d = printtype (d);
+	while ((*utf_ptr)!=')') {
+		utf_ptr = printtype (utf_ptr);
 		fprintf (file, " par%d", paramnum++);
-		if ((*d)!=')') fprintf (file, ", ");
+		if ((*utf_ptr)!=')') fprintf (file, ", ");
 		}
 			
 	fprintf (file, ");\n");
 }
 
 
-static void headers_generate (classinfo *c)
+/****************** remove package-name in fully-qualified classname *********************/
+
+static void simple_classname(char *buffer, utf *u)
 {
-	fprintf (file, "/* Structure information for class: ");
-	unicode_fprint (file, c->name);
-	fprintf (file, " */\n\n");
+  u2 i, simplename_start;
 
-	fprintf (file, "typedef struct ");
-	printID (c->name);
-	fprintf (file, " {\n");
-	
-	outputsize=0;
-	dopadding=true;
-	printfields (c);
+  for (i=utf_strlen(u); i>0; i--) { 
 
-	fprintf (file, "} ");
-	printID (c->name);
-	fprintf (file, ";\n\n");
+	if (u->text[i] == '$') u->text[i] = '_'; else /* convert '$' to '_' */
+    if (u->text[i] == '/') {
+    	/* beginning of simple name */
+        simplename_start = i+1;
+		break;
+	}
+  }
 
-	remembermethods (c);
-	
+  for (i=simplename_start; i < utf_strlen(u); i++) 
+		  buffer[i-simplename_start] = u->text[i];
 
-	fprintf (file, "\n\n");
+  buffer[i-simplename_start] = '\0';                
 }
 
+/*********** create headerfile for classes and store native methods in chain ************/
 
+static void headerfile_generate (classinfo *c)
+{
+	char header_filename[1024] = "";
+	char classname[1024]; 
+	u2 i;
+	methodinfo *m;	      		
+		      
+	/* store class in chain */		      
+	chain_addlast (nativeclass_chain, c);								
+			    	
+	/* open headerfile for class */
+	simple_classname(classname,c->name);										    								
+
+	/* create chain for renaming fields */
+	ident_chain = chain_new ();
+	
+	sprintf(header_filename, "nat/%s.h", classname);
+   	file = fopen (header_filename, "w");
+   	if (!file) panic ("Can not open file to store header information");											
+   	fprintf (file, "/* This file is machine generated, don't edit it !*/\n\n"); 
+
+	/* create structure for direct access to objects */	
+	fprintf (file, "/* Structure information for class: ");
+	utf_fprint (file, c->name);
+	fprintf (file, " */\n\n");
+	fprintf (file, "typedef struct ");
+	printID (c->name);							
+	fprintf (file, " {\n");
+	outputsize=0;
+	dopadding=true;
+	printfields (c);							
+	fprintf (file, "} ");
+	printID (c->name);
+	fprintf (file, ";\n\n");  			    
+
+	/* create chain for renaming overloaded methods */
+	chain_free(ident_chain);    				 	
+	ident_chain = chain_new ();
+
+	/* create method-prototypes */
+		      		
+	for (i=0; i<c->methodscount; i++) {
+
+		m = &(c->methods[i]);
+
+		if (m->flags & ACC_NATIVE) {
+			chain_addlast (nativemethod_chain, m);	   
+		    	printmethod(m);		    		   		    
+		  	}		  					
+		}
+				
+
+	chain_free(ident_chain);    				 
+   	fclose(file);
+}
+
+/******** print classname, '$' used to seperate inner-class name ***********/
+
+void print_classname (classinfo *clazz)
+{
+	utf *u = clazz->name;
+    char *endpos  = u->text + u->blength;
+    char *utf_ptr = u->text; 
+	u2 c;
+
+    while (utf_ptr<endpos) {
+		if ((c=utf_nextu2(&utf_ptr)) == '_')
+			putc ('$',file);
+		else
+			putc (c,file);
+	}
+} 
+
+
+/*************** create table for locating native functions ****************/
 
 static void printnativetableentry (methodinfo *m)
 {
 	fprintf (file, "   { \"");
-	unicode_fprint (file, m->class->name);
+	print_classname(m->class);
 	fprintf (file, "\",\n     \"");
-	unicode_fprint (file, m->name);
+	utf_fprint (file, m->name);
 	fprintf (file, "\",\n     \"");
-	unicode_fprint (file, m->descriptor);
+	utf_fprint (file, m->descriptor);
 	fprintf (file, "\",\n     ");
 	if ( (m->flags & ACC_STATIC) !=0)  fprintf (file, "true");
 	                              else fprintf (file, "false");
 	fprintf (file, ",\n     ");
-	fprintf (file, "(functionptr) ");
+	fprintf (file, "(functionptr) Java_");
 	printID (m->class->name);
 	fprintf (file,"_");
 	printID (m->name);
@@ -309,35 +413,39 @@ static void printnativetableentry (methodinfo *m)
 }
 
 
+/***************************************************************************
 
+	create the nativetypes-headerfile which includes 
+	the headerfiles of the classes stored in the classes-chain 
 
-
-static void headers_start ()
-{
-	file = fopen ("nativetypes.hh", "w");
-	if (!file) panic ("Can not open file 'native.h' to store header information");
-	
-	fprintf (file, "/* Headerfile for native methods: nativetypes.hh */\n");
-	fprintf (file, "/* This file is machine generated, don't edit it !*/\n\n"); 
-
-	nativechain = chain_new ();
-}
-
+****************************************************************************/
 
 static void headers_finish ()
 {
 	methodinfo *m;
+	classinfo *c;
+	char classname[1024];
 	
-	fprintf (file, "\n/* Prototypes for native methods */\n\n");
+	file = fopen ("nativetypes.hh", "w");
+	if (!file) panic ("Can not open file 'native.h' to store header information");
 	
-	m = chain_first (nativechain);
-	while (m) {
-		dopadding=false;		
-		printmethod (m);
-		
-		m = chain_next (nativechain);
-		}
+	fprintf (file, "/* Headerfile for native methods: nativetypes.hh */\n");
+	fprintf (file, "/* This file is machine generated, don't edit it !*/\n\n"); 	
+	fprintf (file, "\n/* include native-Headerfiles */\n\n");
+			
+	c = chain_first (nativeclass_chain);
+	while (c) {
+	
+		dopadding=false;
+		simple_classname(classname,c->name);										    													
+		fprintf(file,"#include \"nat/%s.h\"\n",classname);		
+		c = chain_next (nativeclass_chain);		
+	}
 
+    fclose(file);
+	chain_free (nativeclass_chain);
+	
+	/* create table of native-methods */
 
 	file = fopen ("nativetable.hh", "w");
 	if (!file) panic ("Can not open file 'nativetable' to store native-link-table");
@@ -345,19 +453,15 @@ static void headers_finish ()
 	fprintf (file, "/* Table of native methods: nativetables.hh */\n");
 	fprintf (file, "/* This file is machine generated, don't edit it !*/\n\n"); 
 
-	while ( (m = chain_first (nativechain)) != NULL) {
-		chain_remove (nativechain);
-		
+	while ( (m = chain_first (nativemethod_chain)) != NULL) {
+		chain_remove (nativemethod_chain);		
 		printnativetableentry (m);
+	}
 		
-		}
-		
-	chain_free (nativechain);
+	chain_free (nativemethod_chain);
 	fclose (file);
+
 }
-
-
-
 
 
 /******************** interne Funktion: print_usage ************************
@@ -370,7 +474,6 @@ static void print_usage()
 {
 	printf ("USAGE: jch class [class..]\n");
 }   
-
 
 
 
@@ -417,7 +520,7 @@ int main(int argc, char **argv)
    /**************************** Programmstart *****************************/
 
 	log_init (NULL);
-	log_text ("Java - header-generator started");
+	log_text ("Java - header-generator started"); 
 	
 	sprintf(offsets_filename, "%s/offsets.h", SYSDEP_DIR); /* phil */
 	file = fopen(offsets_filename, "w");
@@ -435,39 +538,43 @@ int main(int argc, char **argv)
 	fprintf (file, "#define offdiffval     %3d\n", (int) OFFSET(vftbl, diffval));
 
 	fclose (file);
-	
+
 	suck_init (classpath);
-	
-	unicode_init ();
+   
+	tables_init ();
 	heap_init (heapsize, heapsize, &dummy);
 	loader_init ();
 
 
    /*********************** JAVA-Klassen laden  ***************************/
-   
-	headers_start ();
-
+   	
+	nativemethod_chain = chain_new ();
+	nativeclass_chain = chain_new ();
 	
 	for (a=1; a<argc; a++) {   
-   		cp = argv[a];
-   		for (i=strlen(cp)-1; i>=0; i--) {     /* Punkte im Klassennamen */
- 	  		if (cp[i]=='.') cp[i]='/';        /* auf slashes umbauen */
-  	 		}
+ 
+  		cp = argv[a];
 
-		topclass = loader_load ( unicode_new_char (cp) );
-		
-		headers_generate (topclass);
-		}
+		/* convert classname */
+   		for (i=strlen(cp)-1; i>=0; i--)    
+			switch (cp[i]) {
+ 	  		  case '.': cp[i]='/';
+				        break;
+			  case '_': cp[i]='$';    
+  	 		}
 	
+		topclass = loader_load ( utf_new_char (cp) );
+		
+        headerfile_generate (topclass);
+	}
 
 	headers_finish ();
-
 
    /************************ Freigeben aller Resourcen *******************/
 
 	loader_close ();
 	heap_close ();
-	unicode_close (NULL);
+	tables_close ( literalstring_free );
 	
 
    /* Endemeldung ausgeben und mit entsprechendem exit-Status terminieren */

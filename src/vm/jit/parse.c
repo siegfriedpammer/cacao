@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 132 1999-09-27 15:54:42Z chris $
+	Last Change: $Id: parse.c 135 1999-10-04 10:35:09Z roman $
 
 *******************************************************************************/
 
@@ -54,7 +54,7 @@ static void compiler_addinitclass (classinfo *c)
 		if (cl == NULL) {
 			if (runverbose) {
 				sprintf(logtext, "compiler_addinitclass: ");
-				unicode_sprint(logtext+strlen(logtext), c->name);
+				utf_sprint(logtext+strlen(logtext), c->name);
 				dolog();
 				}
 			chain_addlast(uninitializedclasses, c);
@@ -63,7 +63,7 @@ static void compiler_addinitclass (classinfo *c)
 		if (c < cl) {
 			if (runverbose) {
 				sprintf(logtext, "compiler_addinitclass: ");
-				unicode_sprint(logtext+strlen(logtext), c->name);
+				utf_sprint(logtext+strlen(logtext), c->name);
 				dolog();
 				}
 			chain_addbefore(uninitializedclasses, c);
@@ -85,20 +85,19 @@ static void descriptor2types (methodinfo *m)
 {
 	u1 *types, *tptr;
 	int pcount, c;
-	u2 *cptr;
-
+	char *utf_ptr;
 	pcount = 0;
-	types = DMNEW (u1, m->descriptor->length);
-	
+	types = DMNEW (u1, m->descriptor->blength); 
+    	
 	tptr = types;
 	if (!(m->flags & ACC_STATIC)) {
 		*tptr++ = TYPE_ADR;
 		pcount++;
 		}
 
-	cptr = m->descriptor->text;
-	cptr++;
-	while ((c = *cptr++) != ')') {
+	utf_ptr = m->descriptor->text + 1;
+   
+	while ((c = *utf_ptr++) != ')') {
 		pcount++;
 		switch (c) {
 			case 'B':
@@ -114,13 +113,13 @@ static void descriptor2types (methodinfo *m)
 			case 'D':  *tptr++ = TYPE_DBL;
 			           break;
 			case 'L':  *tptr++ = TYPE_ADR;
-			           while (*cptr++ != ';');
+			           while (*utf_ptr++ != ';');
 			           break;
 			case '[':  *tptr++ = TYPE_ADR;
 			           while (c == '[')
-			               c = *cptr++;
+			               c = *utf_ptr++;
 			           if (c == 'L')
-			               while (*cptr++ != ';') /* skip */;
+			               while (*utf_ptr++ != ';') /* skip */;
 			           break;
 			default:   panic ("Ill formed methodtype-descriptor");
 			}
@@ -128,7 +127,7 @@ static void descriptor2types (methodinfo *m)
 
 	/* compute return type */
 
-	switch (*cptr) {
+	switch (*utf_ptr++) {
 		case 'B':
 		case 'C':
 		case 'I':
@@ -170,7 +169,7 @@ static void allocate_literals()
 	int     p, nextp;
 	int     opcode, i;
 	s4      num;
-	unicode *s;
+	utf     *s;
 
 	for (p = 0; p < jcodelength; p = nextp) {
 
@@ -402,7 +401,7 @@ static void parse()
 						             (class->cpinfos[i]))->value);
 						break;
 					case CONSTANT_String:
-						LOADCONST_A(literalstring_new((unicode*)
+						LOADCONST_A(literalstring_new((utf*)
 						                              (class->cpinfos[i])));
 						break;
 					default: panic("Invalid constant type to push");

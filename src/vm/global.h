@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 132 1999-09-27 15:54:42Z chris $
+	Last Change: $Id: global.h 135 1999-10-04 10:35:09Z roman $
 
 *******************************************************************************/
 
@@ -60,6 +60,8 @@ typedef int   bool;             /* boolean data type */
 
 #define true  1
 #define false 0
+
+#define PRIMITIVETYPE_COUNT  9  /* number of primitive types */
 
 typedef void (*functionptr) (); /* generic function pointer */
 
@@ -119,7 +121,8 @@ void cacao_shutdown(s4 status);
 
 /* resolve typedef cycles *****************************************************/
 
-typedef struct unicode unicode;
+typedef struct utf utf;
+typedef struct literalstring literalstring;
 typedef struct java_objectheader java_objectheader; 
 typedef struct classinfo classinfo; 
 typedef struct vftbl vftbl;
@@ -150,28 +153,86 @@ typedef u1* methodptr;
 
 *******************************************************************************/
 
-/* data structures of Unicode symbol *******************************************
+/* data structures for hashtables ********************************************
 
-	All Unicode symbols are stored in one global (hash) table, every symbol
-	exists only once. Equal symbols have identical pointers.
+
+	All utf-symbols, javastrings and classes are stored in global hashtables,
+	so every symbol exists only once. Equal symbols have identical pointers.
+	The functions for adding hashtable elements search the table for the 
+	element with the specified name/text and return it on success. Otherwise a 
+	new hashtable element is created.
+
+    The hashtables use external linking for handling collisions. The hashtable 
+	structure contains a pointer <ptr> to the array of hashtable slots. The 
+	number of hashtable slots and therefore the size of this array is specified 
+	by the element <size> of hashtable structure. <entries> contains the number
+	of all hashtable elements stored in the table, including those in the 
+	external chains.
+	The hashtable element structures (utf, literalstring, classinfo) contain
+	both a pointer to the next hashtable element as a link for the external hash 
+	chain and the key of the element. The key is computed from the text of
+	the string or the classname by using up to 8 characters.
+	
+	If the number of entries in the hashtable exceeds twice the size of the 
+	hashtableslot-array it is supposed that the average length of the 
+	external chains has reached a value beyond 2. Therefore the functions for
+	adding hashtable elements (utf_new, class_new, literalstring_new) double
+	the hashtableslot-array. In this restructuring process all elements have
+	to be inserted into the new hashtable and new external chains must be built.
+
+
+example for the layout of a hashtable:
+
+hashtable.ptr-->  +-------------------+
+                  |                   |
+                           ...
+                  |                   |
+                  +-------------------+   +-------------------+   +-------------------+
+                  | hashtable element |-->| hashtable element |-->| hashtable element |-->NULL
+                  +-------------------+   +-------------------+   +-------------------+
+                  | hashtable element |
+                  +-------------------+   +-------------------+   
+                  | hashtable element |-->| hashtable element |-->NULL
+                  +-------------------+   +-------------------+   
+                  | hashtable element |-->NULL
+                  +-------------------+
+                  |                   |
+                           ...
+                  |                   |
+                  +-------------------+
+
 */
 
-struct unicode {
-	unicode   *hashlink;        /* link for external hash chain               */
-	u4         key;             /* hash key (computed from text)              */
-	int        length;          /* text length                                */           
-	u2        *text;            /* pointer to text (each character is 16 Bit) */
-	classinfo *class;           /* class pointer if it exists, otherwise NULL */
-	java_objectheader *string;  /* string pointer if it exists, otherwise NULL*/ 
+
+/* data structure for utf8 symbols ********************************************/
+
+struct utf {
+	utf        *hashlink;       /* link for external hash chain               */
+	int         blength;        /* text length in bytes                       */           
+	char       *text;           /* pointer to text                            */
 };
 
+/* data structure of internal javastrings stored in global hashtable **********/
+
+struct literalstring {
+	literalstring     *hashlink;     /* link for external hash chain          */
+	java_objectheader *string;  
+};
+
+/* data structure for accessing hashtables ************************************/
+
+typedef struct {            
+  u4 size;
+  u4 entries;        /* number of entries in the table */
+  void **ptr;        /* pointer to hashtable */
+} hashtable;
 
 /* data structures of remaining constant pool entries *************************/
 
-typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
+typedef struct {                /* Fieldref, Methodref and InterfaceMethodref     */
 	classinfo *class;       /* class containing this field/method/interface   */
-	unicode   *name;        /* field/method/interface name                    */
-	unicode   *descriptor;  /* field/method/interface type descriptor string  */
+	utf       *name;        /* field/method/interface name                    */
+	utf       *descriptor;  /* field/method/interface type descriptor string  */
 } constant_FMIref;
 
 typedef struct {            /* Integer                                        */
@@ -191,8 +252,8 @@ typedef struct {            /* Double                                         */
 } constant_double;
 
 typedef struct {            /* NameAndType (Field or Method)                  */
-	unicode *name;          /* field/method name                              */
-	unicode *descriptor;    /* field/method type descriptor string            */
+	utf *name;              /* field/method name                              */
+	utf *descriptor;        /* field/method type descriptor string            */
 } constant_nameandtype;
 
 /*  arraydescriptor describes array types. Basic array types contain their
@@ -314,6 +375,16 @@ typedef struct java_arrayarray {
 } java_arrayarray;
 
 
+/* structure for primitive classes ********************************************/
+
+typedef struct primitivetypeinfo {
+	classinfo *class_wrap;               /* class for wrapping primitive type */
+	classinfo *class_primitive;          /* primitive class                   */
+	char *wrapname;                      /* name of class for wrapping        */
+	char typesig;                        /* one character type signature      */
+	char *name;                          /* name of primitive class           */
+} primitivetypeinfo;
+
 /* field, method and class structures *****************************************/
 
 /* fieldinfo ******************************************************************/
@@ -321,8 +392,8 @@ typedef struct java_arrayarray {
 typedef struct fieldinfo {/* field of a class                                 */
 	s4       flags;       /* ACC flags                                        */
 	s4       type;        /* basic data type                                  */
-	unicode *name;        /* name of field                                    */
-	unicode *descriptor;  /* JavaVM descriptor string of field                */
+	utf *name;            /* name of field                                    */
+	utf *descriptor;      /* JavaVM descriptor string of field                */
 	
 	s4       offset;      /* offset from start of object (instance variables) */
 
@@ -369,8 +440,8 @@ typedef struct exceptiontable { /* exceptiontable entry in a method           */
 
 typedef struct methodinfo {         /* method structure                       */
 	s4	       flags;               /* ACC flags                              */
-	unicode   *name;                /* name of method                         */
-	unicode   *descriptor;          /* JavaVM descriptor string of method     */
+	utf       *name;                /* name of method                         */
+	utf       *descriptor;          /* JavaVM descriptor string of method     */
 	s4         returntype;          /* only temporary valid, return type      */
 	s4         paramcount;          /* only temporary valid, parameter count  */
 	u1        *paramtypes;          /* only temporary valid, parameter types  */
@@ -394,13 +465,22 @@ typedef struct methodinfo {         /* method structure                       */
 } methodinfo;
 
 
+/* innerclassinfo *************************************************************/
+
+typedef struct innerclassinfo {
+	classinfo *inner_class;       /* inner class pointer                      */
+	classinfo *outer_class;       /* outer class pointer                      */
+	utf *name;                    /* innerclass name                          */ 
+	s4 flags;                     /* ACC flags                                */
+} innerclassinfo;
+
 /* classinfo ******************************************************************/
 
 struct classinfo {                /* class structure                          */
 	java_objectheader header;     /* classes are also objects                 */
 
 	s4          flags;            /* ACC flags                                */
-	unicode    *name;             /* class name                               */ 
+	utf        *name;             /* class name                               */ 
 
 	s4          cpcount;          /* number of entries in constant pool       */
 	u1         *cptags;           /* constant pool tags                       */
@@ -437,6 +517,11 @@ struct classinfo {                /* class structure                          */
 #ifdef JIT_MARKER_SUPPORT
 	methodinfo *marker; 
 #endif
+
+    u2             innerclasscount;   /* number of inner classes              */
+    innerclassinfo *innerclass;
+
+    classinfo      *hashlink;         /* link for external hash chain         */
 };
 
 
@@ -527,9 +612,7 @@ extern classinfo *class_java_lang_OutOfMemoryError;
 extern classinfo *class_java_lang_ArithmeticException;
 extern classinfo *class_java_lang_ArrayStoreException;
 extern classinfo *class_java_lang_ThreadDeath;
- 
 extern classinfo *class_array;
-
 
 /* instances of some system classes *******************************************/
 
@@ -555,10 +638,16 @@ extern bool verbose;
 extern int count_class_infos;
 extern int count_const_pool_len;
 extern int count_vftbl_len;
-extern int count_unicode_len;
+extern int count_utf_len;
 extern int count_all_methods;
 extern int count_vmcode_len;
 extern int count_extable_len;
+extern int count_utf_new;
+extern int count_utf_new_found;
+
+/* table of primitive types ***************************************************/
+
+extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 
 #endif
 

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 131 1999-09-27 15:33:16Z chris $
+# $Id: Makefile.am 135 1999-10-04 10:35:09Z roman $
 
 MAINTAINERCLEANFILES = Makefile.in configure
 SUBDIRS = toolbox mm alpha jit comp nat threads mips tst doc narray
@@ -63,26 +63,54 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 	./cacaoh \
 		java.lang.Object \
 		java.lang.String \
-		java.lang.Class \
 		java.lang.ClassLoader \
+		java.lang.Class \
 		java.lang.Compiler \
 		java.lang.Double \
 		java.lang.Float \
 		java.lang.Math \
+		java.lang.Package \
 		java.lang.Runtime \
 		java.lang.SecurityManager \
+		java.lang.Exception \
+		java.io.PrintStream \
+		java.io.InputStream \
 		java.lang.System \
 		java.lang.Thread \
 		java.lang.ThreadGroup \
 		java.lang.Throwable \
-		java.io.File \
+		java.lang.reflect.Array \
+		java.lang.reflect.Constructor \
+		java.lang.reflect.Field \
+		java.lang.reflect.Method \
+		java.lang.reflect.Modifier \
 		java.io.FileDescriptor \
 		java.io.FileInputStream \
 		java.io.FileOutputStream \
-		java.io.PrintStream \
+		java.io.FileSystem \
+		java.io.ObjectInputStream \
+		java.io.ObjectStreamClass \
 		java.io.RandomAccessFile \
+		java.util.ResourceBundle \
+		java.util.jar.JarFile \
+		java.util.zip.Adler32 \
+		java.util.zip.CRC32 \
+		java.util.zip.Deflater \
+		java.util.zip.Inflater \
+		java.util.zip.ZipEntry \
+		java.util.zip.ZipFile \
 		java.util.Properties \
-		java.util.Date
+		java.util.Date \
+		java.math.BigInteger \
+		java.net.InetAddress \
+		java.net.InetAddressImpl \
+		java.security.PrivilegedActionException \
+		java.security.PrivilegedAction \
+		java.security.PrivilegedExceptionAction \
+		java.security.AccessController \
+		java.io.File \
+		java.io.UnixFileSystem \
+		java.lang.ClassLoader_NativeLibrary
 
 @SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/asmpart.c @SYSDEP_DIR@/offsets.h
 	rm -f @SYSDEP_DIR@/asmpart.s
