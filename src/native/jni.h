@@ -26,7 +26,7 @@
 
    Authors: ?
 
-   $Id: jni.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: jni.h 1854 2005-01-04 12:09:57Z twisti $
 
 */
 
@@ -34,19 +34,39 @@
 #ifndef _JNI_H
 #define _JNI_H
 
+#include <stdio.h>
 #include <stdarg.h>
 
 #include "types.h"
 #include "vm/global.h"
 
 
-#define JNI_VERSION       0x00010002
+/* JNI versions */
+
+#define JNI_VERSION_1_1    0x00010001
+#define JNI_VERSION_1_2    0x00010002
+#define JNI_VERSION_1_4    0x00010004
 
 #define JNIEXPORT
 #define JNICALL
 
 
+/* JNI-Boolean */
+
+#define JNI_FALSE 0
+#define JNI_TRUE  1
+
+
 /* JNI datatypes */
+
+#define jboolean        u1
+#define jbyte           s1
+#define jchar           u2
+#define jshort          s2
+#define jint            s4
+#define jlong           s8
+#define jfloat          float
+#define jdouble         double
 
 #define jobject         java_objectheader*
 #define jclass          struct classinfo*
@@ -63,32 +83,10 @@
 #define jfloatArray     java_floatarray*
 #define jobjectArray    java_objectarray*
 #define jstring         jobject
-#define jint            s4
-#define jchar           s2
-#define jboolean        u1
-#define jbyte           s1
-#define jshort          s2
-#define jlong           s8
-#define jfloat          float
-#define jdouble         double
+
 #define jsize           jint
 #define jfieldID        fieldinfo*
 #define jmethodID       methodinfo*	
-
-
-typedef struct _JavaVM* JavaVM;
-
-struct _JavaVM{
-   void *(*reserved0) ();
-   void *(*reserved1) ();
-   void *(*reserved2) ();
-   jint (*DestroyJavaVM) (JavaVM *);
-   jint (*AttachCurrentThread) (JavaVM *, void **, void *);
-   jint (*DetachCurrentThread) (JavaVM *);
-   jint (*GetEnv) (JavaVM *, void **, jint);
-   jint (*AttachCurrentThreadAsDaemon) (JavaVM *, void **, void *);
-
-};
 
 
 typedef union jvalue {
@@ -103,10 +101,90 @@ typedef union jvalue {
     jobject  l;
 } jvalue;
 
-/* JNI-Boolean */
 
-#define JNI_FALSE 0
-#define JNI_TRUE  1
+typedef struct JDK1_1InitArgs JDK1_1InitArgs;
+
+struct JDK1_1InitArgs {
+	/* The first two fields were reserved in JDK 1.1, and
+	   formally introduced in JDK 1.1.2. */
+	/* Java VM version */
+	jint version;
+
+	/* System properties. */
+	char **properties;
+
+	/* whether to check the Java source files are newer than
+	 * compiled class files. */
+	jint checkSource;
+
+	/* maximum native stack size of Java-created threads. */
+	jint nativeStackSize;
+
+	/* maximum Java stack size. */
+	jint javaStackSize;
+
+	/* initial heap size. */
+	jint minHeapSize;
+
+	/* maximum heap size. */
+	jint maxHeapSize;
+
+	/* controls whether Java byte code should be verified:
+	 * 0 -- none, 1 -- remotely loaded code, 2 -- all code. */ 
+	jint verifyMode;
+
+	/* the local directory path for class loading. */
+	const char *classpath;
+
+	/* a hook for a function that redirects all VM messages. */
+	jint (*vfprintf)(FILE *fp, const char *format,
+					 va_list args);
+
+	/* a VM exit hook. */
+	void (*exit)(jint code);
+
+	/* a VM abort hook. */
+	void (*abort)();
+
+	/* whether to enable class GC. */
+	jint enableClassGC;
+
+	/* whether GC messages will appear. */
+	jint enableVerboseGC;
+
+	/* whether asynchronous GC is allowed. */
+	jint disableAsyncGC;
+
+	/* Three reserved fields. */
+	jint reserved0;
+	jint reserved1;
+	jint reserved2;
+};
+
+
+typedef struct JDK1_1AttachArgs {
+	/*
+	 * JDK 1.1 does not need any arguments to attach a
+	 * native thread. The padding is here to satisfy the C
+	 * compiler which does not permit empty structures.
+	 */
+	void *__padding;
+} JDK1_1AttachArgs;
+
+
+typedef struct _JavaVM* JavaVM;
+
+struct _JavaVM {
+   void *(*reserved0) ();
+   void *(*reserved1) ();
+   void *(*reserved2) ();
+   jint (*DestroyJavaVM) (JavaVM *);
+   jint (*AttachCurrentThread) (JavaVM *, void **, void *);
+   jint (*DetachCurrentThread) (JavaVM *);
+   jint (*GetEnv) (JavaVM *, void **, jint);
+   jint (*AttachCurrentThreadAsDaemon) (JavaVM *, void **, void *);
+};
+
 
 /* native method name, signature and function pointer for use in RegisterNatives */
 
@@ -161,7 +239,7 @@ struct JNI_Table {
     jobject (*ToReflectedMethod) (JNIEnv*, jclass cls, jmethodID methodID, jboolean isStatic);
 
     jclass (*GetSuperclass) (JNIEnv*, jclass sub);
-    jboolean (*IsAssignableForm) (JNIEnv*, jclass sub, jclass sup);
+    jboolean (*IsAssignableFrom) (JNIEnv*, jclass sub, jclass sup);
 
     jobject (*ToReflectedField) (JNIEnv*, jclass cls, jfieldID fieldID, jboolean isStatic);
 
@@ -378,7 +456,7 @@ struct JNI_Table {
     const jchar *(*GetStringChars) (JNIEnv*, jstring str, jboolean *isCopy);
     void (*ReleaseStringChars) (JNIEnv*, jstring str, const jchar *chars);
 
-    jstring (*NewStringUTF) (JNIEnv*, const char *utf);
+    jstring (*NewStringUTF) (JNIEnv*, const char *bytes);
     jsize (*GetStringUTFLength) (JNIEnv*, jstring str);
     const char* (*GetStringUTFChars) (JNIEnv*, jstring str, jboolean *isCopy);
     void (*ReleaseStringUTFChars) (JNIEnv*, jstring str, const char* chars);
@@ -447,7 +525,10 @@ struct JNI_Table {
     jint (*MonitorExit) (JNIEnv*, jobject obj);
 
     /* JavaVM interface */
+
     jint (*GetJavaVM) (JNIEnv*, JavaVM **vm);
+
+	/* new JNI 1.2 functions */
 
     void (*GetStringRegion) (JNIEnv*, jstring str, jsize start, jsize len, jchar *buf);
     void (*GetStringUTFRegion) (JNIEnv*, jstring str, jsize start, jsize len, char *buf);
@@ -462,17 +543,20 @@ struct JNI_Table {
     void (*DeleteWeakGlobalRef) (JNIEnv*, jweak ref);
 
     jboolean (*ExceptionCheck) (JNIEnv*);
+
+	/* new JNI 1.4 functions */
+
+	jobject (*NewDirectByteBuffer) (JNIEnv *env, void* address, jlong capacity);
+	void* (*GetDirectBufferAddress) (JNIEnv *env, jobject buf);
+	jlong (*GetDirectBufferCapacity) (JNIEnv *env, jobject buf);
 };
 
 
-/* the active JNI function table */
+/* function prototypes ********************************************************/
 
-extern JNIEnv env;
-extern JavaVM javaVM;
-extern struct JNI_Table envTable;
-
-
-/* function prototypes */
+jint JNI_GetDefaultJavaVMInitArgs(void *vm_args);
+jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs);
+jint JNI_CreateJavaVM(JavaVM **p_vm, JNIEnv **p_env, void *vm_args);
 
 jfieldID getFieldID_critical(JNIEnv *env, jclass clazz, char *name, char *sig);
 
