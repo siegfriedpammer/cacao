@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1432 2004-11-03 12:14:50Z jowenn $
+   $Id: VMRuntime.c 1433 2004-11-04 16:40:43Z motse $
 
 */
 
@@ -252,7 +252,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 {
 	int retVal=0;
 
-#ifdef JOWENN_DEBUG	
+
 	char *buffer;
 	int buffer_len;
 	utf *data;
@@ -276,7 +276,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
         
   
 	MFREE(buffer, char, buffer_len);
-#endif	
+
 
 #ifndef STATIC_CLASSPATH
 	/*here it could be interesting to store the references in a list eg for nicely cleaning up or for certain platforms*/
