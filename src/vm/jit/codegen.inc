@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1067 2004-05-18 10:25:51Z stefan $
+   $Id: codegen.inc 1099 2004-05-27 16:06:14Z twisti $
 
 */
 
@@ -56,6 +56,7 @@
 #include <string.h>
 #include "toolbox/memory.h"
 #include "toolbox/logging.h"
+#include "toolbox/avl.h"
 #include "threads/thread.h"
 
 
@@ -85,7 +86,7 @@ static branchref *xcheckarefs;      /* list of array size check branches      */
 static branchref *xnullrefs;        /* list of null check branches            */
 static branchref *xcastrefs;        /* list of cast check branches            */
 static branchref *xdivrefs;         /* list of divide by zero branches        */
-static branchref *xoomrefs;         /* list of out of memory branches         */
+static branchref *xexceptionrefs;   /* list of exception branches             */
 static linenumberref *linenumberreferences; /*list of line numbers and the program counters of their first instruction*/
 static s4 linenumbertablesizepos;
 static s4 linenumbertablestartpos;
@@ -104,7 +105,11 @@ static void codegen_finish();       /* makes code and data area permanent and */
                                     /* updates branch references to code/data */
 
 static s4 dseg_adds4(s4 value);         /* adds an int to data area           */
+
+#if !defined(__I386__)
 static s4 dseg_adds8(s8 value);         /* adds an long to data area          */
+#endif
+
 static s4 dseg_addfloat (float value);  /* adds an float to data area         */
 static s4 dseg_adddouble(double value); /* adds an double to data area        */
 
@@ -121,16 +126,29 @@ static void codegen_addxboundrefs(void *branchptr, s4 reg);
 static void codegen_addxnullrefs(void *branchptr);
 static void codegen_addxcastrefs(void *branchptr);
 static void codegen_addxdivrefs(void *branchptr);
-static void codegen_addxoomrefs(void *branchptr);
+static void codegen_addxexceptionrefs(void *branchptr);
 static void codegen_threadcritrestart(int offset);
 static void codegen_threadcritstart(int offset);
 static void codegen_threadcritstop(int offset);
+
+#if defined(__I386__) || defined(__X86_64__)
+typedef struct _methodtree_element methodtree_element;
+
+struct _methodtree_element {
+	void *startpc;
+	void *endpc;
+};
+
+static struct avl_table *methodtree;
+static int methodtree_comparator(const void *pc, const void *element,
+								 void *param);
+#endif
 
 void dseg_display(s4 *s4ptr);
 
 
 
-/* codegen_init allocates and initialises code area, data area and references   */
+/* codegen_init allocates and initialises code area, data area and references */
 
 void codegen_init()
 {
@@ -147,17 +165,21 @@ void codegen_init()
 
 	dseglen = 0;
 
-	linenumberreferences=NULL;
-	linenumbertablesizepos=0;
-	linenumbertablestartpos=0;
-	linenumbertab=0;
+	linenumberreferences = NULL;
+	linenumbertablesizepos = 0;
+	linenumbertablestartpos = 0;
+	linenumbertab = 0;
 	jumpreferences = NULL;
 	datareferences = NULL;
 	xboundrefs = NULL;
 	xnullrefs = NULL;
 	xcastrefs = NULL;
 	xdivrefs = NULL;
-	xoomrefs = NULL;
+	xexceptionrefs = NULL;
+
+#if defined(__I386__) || defined(__X86_64__)
+	methodtree = avl_create(methodtree_comparator, NULL, NULL);
+#endif
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	threadcritcurrent.next = NULL;
@@ -167,7 +189,7 @@ void codegen_init()
 
 
 
-/* codegen_close releases temporary code and data area                          */
+/* codegen_close releases temporary code and data area                        */
 
 void codegen_close()
 {
@@ -184,7 +206,7 @@ void codegen_close()
 
 
 
-/* codegen_increase doubles code area                                           */
+/* codegen_increase doubles code area                                         */
 
 static s4 *codegen_increase(u1 *codeptr)
 {
@@ -236,13 +258,13 @@ static s4 dseg_adds4(s4 value)
 
 
 
+#if !defined(__I386__)
 static s4 dseg_adds8_increase(s8 value)
 {
 	dseg_increase();
 	*((s8 *) (dsegtop - dseglen)) = value;
 	return -dseglen;
 }
-
 
 
 static s4 dseg_adds8(s8 value)
@@ -256,7 +278,7 @@ static s4 dseg_adds8(s8 value)
 	*dataptr = value;
 	return -dseglen;
 }
-
+#endif
 
 
 static s4 dseg_addfloat_increase(float value)
@@ -417,16 +439,15 @@ static void codegen_addxcastrefs(void *branchptr)
 }
 
 
-
-static void codegen_addxoomrefs(void *branchptr)
+static void codegen_addxexceptionrefs(void *branchptr)
 {
 	s4 branchpos = (u1*) branchptr - mcodebase;
 
 	branchref *br = DNEW(branchref);
 
 	br->branchpos = branchpos;
-	br->next = xoomrefs;
-	xoomrefs = br;
+	br->next = xexceptionrefs;
+	xexceptionrefs = br;
 }
 
 
@@ -458,6 +479,55 @@ static void codegen_createlinenumbertable() {
 }
 
 
+#if defined(__I386__) || defined(__X86_64__)
+static int methodtree_comparator(const void *pc, const void *element,
+								 void *param)
+{
+	methodtree_element *mtepc;
+	methodtree_element *mte;
+
+	mtepc = (methodtree_element *) pc;
+	mte = (methodtree_element *) element;
+
+	if (mte->startpc <= mtepc->startpc && mtepc->startpc <= mte->endpc) {
+		return 0;
+
+	} else if (mtepc->startpc < mte->startpc) {
+		return -1;
+
+	} else {
+		return 1;
+	}
+}
+
+
+void *codegen_findmethod(void *pc)
+{
+#if 1
+	return findmethod(pc);
+#else
+	methodtree_element *mtepc;
+	methodtree_element *mte;
+
+	mtepc = NEW(methodtree_element);
+	mtepc->startpc = pc;
+
+	mte = avl_find(methodtree, mtepc);
+
+	FREE(mtepc, methodtree_element);
+
+/*  	if (!mte) */
+/*  		throw_cacao_exception_exit(string_java_lang_InternalError, "cannot find function"); */
+
+	fprintf(stderr, "mte=%p\n", mte);
+	fprintf(stderr, "startpc=%p, endpc=%p\n", mte->startpc, mte->endpc);
+
+	return mte->startpc;
+#endif
+}
+#endif
+
+
 static void codegen_finish(int mcodelen)
 {
 	jumpref *jr;
@@ -474,13 +544,13 @@ static void codegen_finish(int mcodelen)
 
 	dseglen = ALIGN(dseglen, MAX_ALIGN);
 
-	method -> mcodelength = mcodelen + dseglen;
-	method -> mcode = CNEW(u1, mcodelen + dseglen + extralen);
+	method->mcodelength = mcodelen + dseglen;
+	method->mcode = CNEW(u1, mcodelen + dseglen + extralen);
 
-	memcpy ( method->mcode, dsegtop - dseglen, dseglen);
-	memcpy ( method->mcode + dseglen, mcodebase, mcodelen);
+	memcpy(method->mcode, dsegtop - dseglen, dseglen);
+	memcpy(method->mcode + dseglen, mcodebase, mcodelen);
 
-	method -> entrypoint = epoint = (u1*) (method->mcode + dseglen);
+	method->entrypoint = epoint = (u1 *) (method->mcode + dseglen);
 
 	/* jump table resolving */
 	jr = jumpreferences;
@@ -517,9 +587,21 @@ static void codegen_finish(int mcodelen)
 #if defined(__I386__) || defined(__X86_64__)
 	{
 		dataref *dr;
-		/* add method into datastructure to find the entrypoint */
+#if 1
+		/* add method into methodtree to find the entrypoint */
 		addmethod(method->entrypoint, method->entrypoint + mcodelen);
-        
+#else
+		methodtree_element *mte;
+		methodtree_element *p;
+
+		mte = NEW(methodtree_element);
+		mte->startpc = method->entrypoint;
+		mte->endpc = method->entrypoint + mcodelen;
+
+		p = avl_insert(methodtree, mte);
+        printf("p=%p\n", p);
+#endif
+
 		/* data segment references resolving */
 		dr = datareferences;
 		while (dr != NULL) {
