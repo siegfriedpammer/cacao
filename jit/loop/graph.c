@@ -31,7 +31,7 @@
    Contains the functions which build a list, that represents the
    control flow graph of the procedure, that is being analyzed.
 
-   $Id: graph.c 1509 2004-11-17 07:23:45Z christian $
+   $Id: graph.c 1531 2004-11-17 20:45:56Z christian $
 
 */
 
@@ -327,8 +327,20 @@ void dF_Exception(methodinfo *m, loopdata *ld, int from, int blockIndex)
 		case ICMD_IF_ICMPGE:
 		case ICMD_IF_ICMPGT:
 		case ICMD_IF_ICMPLE:
+		case ICMD_IF_LEQ:
+		case ICMD_IF_LNE:
+		case ICMD_IF_LLT:
+		case ICMD_IF_LGE:
+		case ICMD_IF_LGT:
+		case ICMD_IF_LLE:
+		case ICMD_IF_LCMPEQ:
+		case ICMD_IF_LCMPNE:
+		case ICMD_IF_LCMPLT:
+		case ICMD_IF_LCMPGE:
+		case ICMD_IF_LCMPGT:
+		case ICMD_IF_LCMPLE:
 		case ICMD_IF_ACMPEQ:
-		case ICMD_IF_ACMPNE:
+		case ICMD_IF_ACMPNE:                    /* branch -> check next block	*/
 			dF_Exception(m, ld, blockIndex, blockIndex + 1);
 			/* fall throu */
 	  

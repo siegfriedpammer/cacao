@@ -32,7 +32,7 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 1454 2004-11-05 14:19:32Z twisti $
+   $Id: analyze.c 1531 2004-11-17 20:45:56Z christian $
 
 */
 
@@ -385,7 +385,7 @@ void insert_exception(methodinfo *m, struct LoopContainer *lc, exceptiontable *e
     parent. Top level loops have no parents.
 */
 
-void analyze_nested(methodinfo *m, loopdata *ld)
+void analyze_nested(methodinfo *m, codegendata *cd, loopdata *ld)
 {
 	/* i/count/tmp are counters                                               */
 	/* toOverwrite is used while loop hierarchie is built (see below)         */
@@ -491,8 +491,8 @@ void analyze_nested(methodinfo *m, loopdata *ld)
 	show_tree(ld->root, 0);
 	printf(" --- End ---\n");
 #endif
-	for (len = 0; len < m->exceptiontablelength; ++len) 
-		insert_exception(m, ld->root, m->exceptiontable + len);
+	for (len = 0; len < cd->exceptiontablelength; ++len) 
+		insert_exception(m, ld->root, cd->exceptiontable + len);
 
 
 	/* determine sequence of loops for optimization by topological sort       */
@@ -802,7 +802,7 @@ int quick_scan(methodinfo *m, loopdata *ld, int node)
 	catch block within the loop.
 */
 
-int analyze_or_exceptions(methodinfo *m, loopdata *ld, int head, struct LoopContainer *lc)
+int analyze_or_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, int head, struct LoopContainer *lc)
 {
 	struct depthElement *d;
 	int i, k, value, flag, count;
@@ -843,9 +843,9 @@ int analyze_or_exceptions(methodinfo *m, loopdata *ld, int head, struct LoopCont
 		}
 
 	/* check for exceptions */
-	/* printf("done\n*** Analyze for EXCEPTIONS(%d) . ", m->exceptiontablelength);	*/
+	/* printf("done\n*** Analyze for EXCEPTIONS(%d) . ", cd->exceptiontablelength);	*/
 
-	if (!m->exceptiontablelength)		/* when there are no exceptions, exit		*/
+	if (!cd->exceptiontablelength)		/* when there are no exceptions, exit		*/
 		return 1;
 
 	if ((ld->c_exceptionGraph = (struct depthElement **) malloc(sizeof(struct depthElement *) * m->basicblockcount)) == NULL)
@@ -861,7 +861,7 @@ int analyze_or_exceptions(methodinfo *m, loopdata *ld, int head, struct LoopCont
 
 	/* for all nodes that start catch block check whether they are part of loop	*/
 	for (i = 0; i < ld->c_old_xtablelength; i++) {	
-		value = m->basicblockindex[m->exceptiontable[i].startpc];
+		value = m->basicblockindex[cd->exceptiontable[i].startpc];
    
 		le = lc->nodes;
 		while (le != NULL) {
@@ -874,10 +874,10 @@ int analyze_or_exceptions(methodinfo *m, loopdata *ld, int head, struct LoopCont
 
 				/* build a graph structure, that contains all nodes that are	*/
 				/* part of the catc block										*/
-				dF_Exception(m, ld, -1, m->basicblockindex[m->exceptiontable[i].handlerpc]);
+				dF_Exception(m, ld, -1, m->basicblockindex[cd->exceptiontable[i].handlerpc]);
 
 				/* if array index variables are modified there, return 0		*/
-				if (quick_scan(m, ld, m->basicblockindex[m->exceptiontable[i].handlerpc]) > 0) {
+				if (quick_scan(m, ld, m->basicblockindex[cd->exceptiontable[i].handlerpc]) > 0) {
 #ifdef STATISTICS
 					ld->c_stat_exception++;
 #endif
@@ -1124,7 +1124,7 @@ void init_constraints(methodinfo *m, loopdata *ld, int head)
 	constant value, that is tested.
 */
 
-void add_new_constraint(methodinfo *m, loopdata *ld, int type, int arrayRef, int varRef, int constant)
+void add_new_constraint(methodinfo *m,  codegendata *cd, loopdata *ld, int type, int arrayRef, int varRef, int constant)
 {
 	struct Constraint *tc;
 
@@ -1191,7 +1191,7 @@ void add_new_constraint(methodinfo *m, loopdata *ld, int type, int arrayRef, int
 	case TEST_CONST_ALENGTH:		/* a const is tested against array length	*/
 
 		/* does a test already exist for this array								*/
-		tc = ld->c_constraints[m->maxlocals];
+		tc = ld->c_constraints[cd->maxlocals];
 		while (tc != NULL) {
 			if ((tc->type == TEST_CONST_ALENGTH) && (tc->arrayRef == arrayRef)) {
 				if (constant > tc->constant)
@@ -1207,8 +1207,8 @@ void add_new_constraint(methodinfo *m, loopdata *ld, int type, int arrayRef, int
 		tc->type	 = TEST_CONST_ALENGTH;
 		tc->arrayRef = arrayRef;
 		tc->constant = constant;
-		tc->next     = ld->c_constraints[m->maxlocals];
-		ld->c_constraints[m->maxlocals] = tc;
+		tc->next     = ld->c_constraints[cd->maxlocals];
+		ld->c_constraints[cd->maxlocals] = tc;
 		ld->c_needed_instr += 4;
 
 		/* if arrayRef is not already tested against null, insert that test     */
@@ -1281,7 +1281,7 @@ void add_new_constraint(methodinfo *m, loopdata *ld, int type, int arrayRef, int
 									/* checks									*/
 		/*!! varRef -> maxlocals */
 		/* search if test already exists										*/
-		tc = ld->c_constraints[m->maxlocals];
+		tc = ld->c_constraints[cd->maxlocals];
 		while (tc != NULL) {
 			if (tc->type == TEST_RS_ZERO) {
 				if (constant < tc->constant)
@@ -1296,8 +1296,8 @@ void add_new_constraint(methodinfo *m, loopdata *ld, int type, int arrayRef, int
 			c_mem_error();
 		tc->type     = TEST_RS_ZERO;
 		tc->constant = constant;
-		tc->next     = ld->c_constraints[m->maxlocals];
-		ld->c_constraints[m->maxlocals] = tc;
+		tc->next     = ld->c_constraints[cd->maxlocals];
+		ld->c_constraints[cd->maxlocals] = tc;
 		ld->c_needed_instr += (2 + ld->c_rs_needed_instr);
 
 		/* if arrayRef on right side is not already tested against null,        */
@@ -1314,7 +1314,7 @@ void add_new_constraint(methodinfo *m, loopdata *ld, int type, int arrayRef, int
 									/* checks									*/
 		/*!! varRef -> maxlocals */
 		/* search if test already exists										*/
-		tc = ld->c_constraints[m->maxlocals];
+		tc = ld->c_constraints[cd->maxlocals];
 		while (tc != NULL)
 		{
 			if ((tc->type == TEST_RS_ALENGTH) && (tc->arrayRef == arrayRef))
@@ -1332,8 +1332,8 @@ void add_new_constraint(methodinfo *m, loopdata *ld, int type, int arrayRef, int
 		tc->type	 = TEST_RS_ALENGTH;
 		tc->arrayRef = arrayRef;
 		tc->constant = constant;
-		tc->next     = ld->c_constraints[m->maxlocals];
-		ld->c_constraints[m->maxlocals] = tc;
+		tc->next     = ld->c_constraints[cd->maxlocals];
+		ld->c_constraints[cd->maxlocals] = tc;
 		ld->c_needed_instr += (3 + ld->c_rs_needed_instr);
 
 		/* if arrayRef is not already tested against null, insert that test     */
@@ -1359,7 +1359,7 @@ void add_new_constraint(methodinfo *m, loopdata *ld, int type, int arrayRef, int
 	access (to safely remove bound checks).
 */
 
-int insert_static(methodinfo *m, loopdata *ld, int arrayRef, struct Trace *index, struct Changes *varChanges, int special)
+int insert_static(methodinfo *m, codegendata *cd, loopdata *ld, int arrayRef, struct Trace *index, struct Changes *varChanges, int special)
 {
 	struct LoopVar *lv;
 	int varRef;
@@ -1405,16 +1405,16 @@ int insert_static(methodinfo *m, loopdata *ld, int arrayRef, struct Trace *index
 				/* the var is never decremented, so we add a static test againt	*/
 				/* constant														*/
 				if (varChanges->lower_bound > varChanges->upper_bound)
-					add_new_constraint(m, ld, TEST_ZERO, arrayRef, varRef, index->constant);
+					add_new_constraint(m, cd, ld, TEST_ZERO, arrayRef, varRef, index->constant);
 				else
-					add_new_constraint(m, ld, TEST_ZERO, arrayRef, varRef, varChanges->lower_bound+index->constant);
+					add_new_constraint(m, cd, ld, TEST_ZERO, arrayRef, varRef, varChanges->lower_bound+index->constant);
 				low = 1;
 				}
 			else if ((lv->dynamic_l_v) && (!special)) {
 				/* the variable is decremented, but it is checked against a		*/
 				/* bound in the loop condition									*/
 				if (varChanges->lower_bound <= varChanges->upper_bound) {
-					add_new_constraint(m, ld, TEST_RS_ZERO, arrayRef, varRef, varChanges->lower_bound+index->constant+lv->dynamic_l);
+					add_new_constraint(m, cd, ld, TEST_RS_ZERO, arrayRef, varRef, varChanges->lower_bound+index->constant+lv->dynamic_l);
 					low = 1;
 					}
 				}
@@ -1423,23 +1423,23 @@ int insert_static(methodinfo *m, loopdata *ld, int arrayRef, struct Trace *index
 				/* the var is never incremented, so we add a static test againt	*/
 				/* constant														*/
 				if (varChanges->lower_bound > varChanges->upper_bound)
-					add_new_constraint(m, ld, TEST_ALENGTH, arrayRef, varRef, index->constant);
+					add_new_constraint(m, cd, ld, TEST_ALENGTH, arrayRef, varRef, index->constant);
 				else
-					add_new_constraint(m, ld, TEST_ALENGTH, arrayRef, varRef, varChanges->upper_bound+index->constant);
+					add_new_constraint(m, cd, ld, TEST_ALENGTH, arrayRef, varRef, varChanges->upper_bound+index->constant);
 				high = 1;
 				}
 			else if ((lv->dynamic_u_v) &&  (!special)) {
 				/* the variable is decremented, but it is checked against a		*/
 				/* bound in the loop condition									*/
 				if (varChanges->lower_bound <= varChanges->upper_bound) {
-					add_new_constraint(m, ld, TEST_RS_ALENGTH, arrayRef, varRef, varChanges->upper_bound+index->constant+lv->dynamic_u);
+					add_new_constraint(m, cd, ld, TEST_RS_ALENGTH, arrayRef, varRef, varChanges->upper_bound+index->constant+lv->dynamic_u);
 					high = 1;
 					}
 				}
 			}
 		else {							/* the var is never modified at all		*/
-			add_new_constraint(m, ld, TEST_UNMOD_ZERO, arrayRef, index->var, index->constant);
-			add_new_constraint(m, ld, TEST_UNMOD_ALENGTH, arrayRef, index->var, index->constant);
+			add_new_constraint(m, cd, ld, TEST_UNMOD_ZERO, arrayRef, index->var, index->constant);
+			add_new_constraint(m, cd, ld, TEST_UNMOD_ALENGTH, arrayRef, index->var, index->constant);
 			low = high = 1;
 			}
 		
@@ -1483,7 +1483,7 @@ int insert_static(methodinfo *m, loopdata *ld, int arrayRef, struct Trace *index
 			return OPT_NONE;	/* negative index -> bad						*/
 			}
 		else {
-			add_new_constraint(m, ld, TEST_CONST_ALENGTH, arrayRef, 0, index->constant);
+			add_new_constraint(m, cd, ld, TEST_CONST_ALENGTH, arrayRef, 0, index->constant);
 #ifdef STATISTICS
 			ld->c_stat_full_opt++;			
 #endif
@@ -2460,7 +2460,7 @@ void copy_handler(methodinfo *m, loopdata *ld, struct LoopContainer *lc, basicbl
    two helper functions copy_handler and patch_handler perform this task.
 */
 
-void update_internal_exceptions(methodinfo *m, loopdata *ld, struct LoopContainer *lc, basicblock *original_head, basicblock *new_head)
+void update_internal_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, struct LoopContainer *lc, basicblock *original_head, basicblock *new_head)
 {
 	exceptiontable *ex, *new;
 	struct LoopContainer *l;
@@ -2472,7 +2472,7 @@ void update_internal_exceptions(methodinfo *m, loopdata *ld, struct LoopContaine
 	/* Call update_internal for all nested (=child) loops                       */
 	l = lc->tree_down;
 	while (l != NULL) {
-		update_internal_exceptions(m, ld, l, original_head, new_head);
+		update_internal_exceptions(m, cd, ld, l, original_head, new_head);
 		l = l->tree_right;
 	    }
 
@@ -2489,7 +2489,7 @@ void update_internal_exceptions(methodinfo *m, loopdata *ld, struct LoopContaine
 		memcpy(new, ex, sizeof(exceptiontable));
 
 		/* Increase number of exceptions                                        */
-		++m->exceptiontablelength;
+		++cd->exceptiontablelength;
 
 		ex->next = new;
 		ex->down = new;
@@ -2513,7 +2513,7 @@ void update_internal_exceptions(methodinfo *m, loopdata *ld, struct LoopContaine
    by lc. If so, the exceptions are extended to contain all newly created nodes.
 */
 
-void update_external_exceptions(methodinfo *m, loopdata *ld, struct LoopContainer *lc, int loop_head)
+void update_external_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, struct LoopContainer *lc, int loop_head)
 {
 	exceptiontable *ex, *new;
 
@@ -2537,7 +2537,7 @@ void update_external_exceptions(methodinfo *m, loopdata *ld, struct LoopContaine
 
 
 			/* Increase number of exceptions                                    */
-			++m->exceptiontablelength;
+			++cd->exceptiontablelength;
 
 			ex->next = new;
 			ex->down = new;
@@ -2554,7 +2554,7 @@ void update_external_exceptions(methodinfo *m, loopdata *ld, struct LoopContaine
 	    }
 
 	/* Call update_external for parent node                                     */
-	update_external_exceptions(m, ld, lc->parent, loop_head);
+	update_external_exceptions(m, cd, ld, lc->parent, loop_head);
 }
 	
 
@@ -2562,7 +2562,7 @@ void update_external_exceptions(methodinfo *m, loopdata *ld, struct LoopContaine
 	into the intermediate code.
 */
 
-void create_static_checks(methodinfo *m, loopdata *ld, struct LoopContainer *lc)
+void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct LoopContainer *lc)
 {
 	int i, stackdepth, cnt;
 	struct Constraint *tc1;
@@ -2714,7 +2714,7 @@ void create_static_checks(methodinfo *m, loopdata *ld, struct LoopContainer *lc)
 	    }
 
 	/* adjust exceptions                                                        */
-	ex = m->exceptiontable;
+	ex = cd->exceptiontable;
 	while (ex != NULL) {
 
 		/* if an exception covers whole loop and starts at first loop node, it  */
@@ -2757,7 +2757,7 @@ void create_static_checks(methodinfo *m, loopdata *ld, struct LoopContainer *lc)
 	stackdepth = loop_head->indepth;
 	
 	/* step through all inserted checks and create instructions for them        */
-	for (i=0; i<m->maxlocals+1; ++i)
+	for (i=0; i<cd->maxlocals+1; ++i)
 	{
 		tc1 = ld->c_constraints[i];
 		while (tc1 != NULL)
@@ -2857,8 +2857,8 @@ void create_static_checks(methodinfo *m, loopdata *ld, struct LoopContainer *lc)
 
 	/* if exceptions have to be correct due to loop duplication these two       */
 	/* functions perform this task.                                             */
-	update_internal_exceptions(m, ld, lc, loop_head, original_start);
-	update_external_exceptions(m, ld, lc->parent, lc->loop_head);
+	update_internal_exceptions(m, cd, ld, lc, loop_head, original_start);
+	update_external_exceptions(m, cd, ld, lc->parent, lc->loop_head);
 }
 
 
@@ -2870,7 +2870,7 @@ void create_static_checks(methodinfo *m, loopdata *ld, struct LoopContainer *lc)
 	represented by its lower bound being higher than the upper bound. The result 
 	of the union is stored in c1.
 */
-struct Changes ** constraints_unrestricted_merge(methodinfo *m, struct Changes **c1, struct Changes **c2)
+struct Changes ** constraints_unrestricted_merge(codegendata *cd, struct Changes **c1, struct Changes **c2)
 {
 	int i, changed;
 
@@ -2878,7 +2878,7 @@ struct Changes ** constraints_unrestricted_merge(methodinfo *m, struct Changes *
 		printf("C_ERROR: debugging error 0x03\n");
 
 	changed = 0;
-	for (i=0; i<m->maxlocals; ++i) {
+	for (i=0; i<cd->maxlocals; ++i) {
 		if (c1[i] == NULL) {
 			if (c2[i] != NULL) {		/* a change in c2 is updated in c1		*/
 				changed = 1;
@@ -2918,7 +2918,7 @@ struct Changes ** constraints_unrestricted_merge(methodinfo *m, struct Changes *
 	represented by its lower bound being higher than the upper bound. The result 
 	of the union is stored in c1.
 */
-struct Changes ** constraints_merge(methodinfo *m, struct Changes **c1, struct Changes **c2)
+struct Changes ** constraints_merge(codegendata *cd, struct Changes **c1, struct Changes **c2)
 {
 	int i, changed;
 
@@ -2927,7 +2927,7 @@ struct Changes ** constraints_merge(methodinfo *m, struct Changes **c1, struct C
 
 	changed = 0;
 
-	for (i=0; i<m->maxlocals; ++i) {
+	for (i=0; i<cd->maxlocals; ++i) {
 		if (c1[i] == NULL) {
 			if (c2[i] != NULL) {		/* update changes in c2 in c1			*/
 				if ((c1[i] = (struct Changes *) malloc (sizeof(struct Changes))) == NULL)
@@ -2965,15 +2965,15 @@ struct Changes ** constraints_merge(methodinfo *m, struct Changes **c1, struct C
 
 /*	This function simply copies an array of changes 
 */
-struct Changes** constraints_clone(methodinfo *m, struct Changes **c)
+struct Changes** constraints_clone(codegendata *cd, struct Changes **c)
 {
 	int i;
 	struct Changes **t;
        
-	if ((t = (struct Changes **) malloc(m->maxlocals * sizeof(struct Changes *))) == NULL)
+	if ((t = (struct Changes **) malloc(cd->maxlocals * sizeof(struct Changes *))) == NULL)
 		c_mem_error();
 
-	for (i=0; i<m->maxlocals; ++i) {		/* for all array elements (vars) do		*/
+	for (i=0; i<cd->maxlocals; ++i) {		/* for all array elements (vars) do		*/
 		if (c[i] == NULL)
 			t[i] = NULL;
 		else {
@@ -3066,7 +3066,7 @@ struct Changes* backtrack_var(methodinfo *m, int node, int from, int to, int var
 	node.
 */
 
-void remove_boundchecks(methodinfo *m, loopdata *ld, int node, int from, struct Changes **change, int special)
+void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, int from, struct Changes **change, int special)
 {
 	basicblock bp;
 	instruction *ip;
@@ -3091,13 +3091,13 @@ void remove_boundchecks(methodinfo *m, loopdata *ld, int node, int from, struct 
 				/* we are looping in a nested loop, so made optimizations		*/
 				/* need to be reconsidered										*/
 					degrade_checks = 1;
-					if (constraints_unrestricted_merge(m, t1, change) == NULL)	
+					if (constraints_unrestricted_merge(cd, t1, change) == NULL)	
 						return;			/* no changes since previous visit		*/
 						/* if there have been changes, they are updated by		*/
 						/* constraints_unrestricted_merge in t1					*/
 					}
 				else {
-					if (constraints_merge(m, t1, change) == NULL)
+					if (constraints_merge(cd, t1, change) == NULL)
 						return;			/* no changes since previous visit		*/
 						/* if there have been changes, they are updated by		*/
 						/* constraints_merge in t1								*/
@@ -3105,16 +3105,16 @@ void remove_boundchecks(methodinfo *m, loopdata *ld, int node, int from, struct 
 				}
 			else {						/* first visit							*/
 				/* printf("first visit - constraints cloned\n");				*/
-				ld->c_dTable[node]->changes = constraints_clone(m, change);
+				ld->c_dTable[node]->changes = constraints_clone(cd, change);
 				}
 
 			/* tmp now holds a copy of the updated variable changes				*/
-			tmp = constraints_clone(m, ld->c_dTable[node]->changes);	
+			tmp = constraints_clone(cd, ld->c_dTable[node]->changes);	
 			}
 		else if (special) {				/* header and need special traetment	*/
 			/* printf("special treatment called\n");							*/
 			/* tmp now holds a copy of the current new variable changes			*/
-			tmp = constraints_clone(m, change);
+			tmp = constraints_clone(cd, change);
 			}
 		else
 			return;
@@ -3195,24 +3195,24 @@ void remove_boundchecks(methodinfo *m, loopdata *ld, int node, int from, struct 
 						}
 #endif
 					if (degrade_checks)		/* replace existing optimization	*/
-						ip->op1 = insert_static(m, ld, t_array->var, t_index, NULL, special);
+						ip->op1 = insert_static(m, cd, ld, t_array->var, t_index, NULL, special);
 					else {
 						/* Check current optimization and try to improve it	by	*/
 						/* inserting new checks									*/
 						switch (ip->op1) {	
 						case OPT_UNCHECKED:
-							ip->op1 = insert_static(m, ld, t_array->var, t_index, NULL, special);
+							ip->op1 = insert_static(m, cd, ld, t_array->var, t_index, NULL, special);
 							break;
 						case OPT_NONE:		
-							ip->op1 = insert_static(m, ld, t_array->var, t_index, NULL, special);
+							ip->op1 = insert_static(m, cd, ld, t_array->var, t_index, NULL, special);
 							break;
 						case OPT_UPPER:		
-							opt_level = insert_static(m, ld, t_array->var, t_index, NULL, special);
+							opt_level = insert_static(m, cd, ld, t_array->var, t_index, NULL, special);
 							if ((opt_level == OPT_FULL) || (opt_level == OPT_LOWER))
 								ip->op1 = OPT_FULL;
 							break;
 						case OPT_LOWER:	
-							opt_level = insert_static(m, ld, t_array->var, t_index, NULL, special);
+							opt_level = insert_static(m, cd, ld, t_array->var, t_index, NULL, special);
 							if ((opt_level == OPT_FULL) || (opt_level == OPT_UPPER))
 								ip->op1 = OPT_FULL;
 							break;
@@ -3251,24 +3251,24 @@ void remove_boundchecks(methodinfo *m, loopdata *ld, int node, int from, struct 
 						}
 #endif
 					if (degrade_checks)
-						ip->op1 = insert_static(m, ld, t_array->var, t_index, t, special);
+						ip->op1 = insert_static(m, cd, ld, t_array->var, t_index, t, special);
 					else {
 						/* Check current optimization and try to improve it	by	*/
 						/* insert new check. t reflects var changes for index	*/
 						switch (ip->op1) {
 						case OPT_UNCHECKED:
-							ip->op1 = insert_static(m, ld, t_array->var, t_index, t, special);
+							ip->op1 = insert_static(m, cd, ld, t_array->var, t_index, t, special);
 							break;
 						case OPT_NONE:
-							ip->op1 = insert_static(m, ld, t_array->var, t_index, t, special);
+							ip->op1 = insert_static(m, cd, ld, t_array->var, t_index, t, special);
 							break;
 						case OPT_UPPER:
-							opt_level = insert_static(m, ld, t_array->var, t_index, t, special);
+							opt_level = insert_static(m, cd, ld, t_array->var, t_index, t, special);
 							if ((opt_level == OPT_FULL) || (opt_level == OPT_LOWER))
 								ip->op1 = OPT_FULL;
 							break;
 						case OPT_LOWER:	
-							opt_level = insert_static(m, ld, t_array->var, t_index, t, special);
+							opt_level = insert_static(m, cd, ld, t_array->var, t_index, t, special);
 							if ((opt_level == OPT_FULL) || (opt_level == OPT_UPPER))
 								ip->op1 = OPT_FULL;
 							break;
@@ -3343,7 +3343,7 @@ void remove_boundchecks(methodinfo *m, loopdata *ld, int node, int from, struct 
 		if (!special) {				/* we are not interested in only the header	*/
 			d = ld->c_dTable[node];
 			while (d != NULL) {		/* check all sucessors of current node		*/
-				remove_boundchecks(m, ld, d->value, node, tmp, special);	
+				remove_boundchecks(m, cd, ld, d->value, node, tmp, special);	
 				d = d->next;
 				}
 			}
@@ -3357,9 +3357,9 @@ void remove_boundchecks(methodinfo *m, loopdata *ld, int node, int from, struct 
 	block end).
 */
 
-void remove_header_boundchecks(methodinfo *m, loopdata *ld, int node, struct Changes **changes)
+void remove_header_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, struct Changes **changes)
 {
-	remove_boundchecks(m, ld, node, -1, changes, BOUNDCHECK_SPECIAL);
+	remove_boundchecks(m, cd, ld, node, -1, changes, BOUNDCHECK_SPECIAL);
 }
 
 
@@ -3394,21 +3394,21 @@ void unmark_loop_nodes(LoopContainer *lc)
 	identify array accesses suitable for optimization (bound check removal). The
 	intermediate code is then modified to reflect these optimizations.
 */
-void optimize_single_loop(methodinfo *m, loopdata *ld, LoopContainer *lc)
+void optimize_single_loop(methodinfo *m, codegendata *cd, loopdata *ld, LoopContainer *lc)
 {
 	struct LoopElement *le;
 	struct depthElement *d;
 	int i, head, node;
 	struct Changes **changes;
 
-	if ((changes = (struct Changes **) malloc(m->maxlocals * sizeof(struct Changes *))) == NULL)
+	if ((changes = (struct Changes **) malloc(cd->maxlocals * sizeof(struct Changes *))) == NULL)
 		c_mem_error();
 
     head = ld->c_current_head = lc->loop_head;
 	ld->c_needed_instr = ld->c_rs_needed_instr = 0;
 
 	/* init array for null ptr checks */
-	for (i=0; i<m->maxlocals; ++i) 
+	for (i=0; i<cd->maxlocals; ++i) 
 		ld->c_null_check[i] = 0;
 
 
@@ -3425,14 +3425,14 @@ void optimize_single_loop(methodinfo *m, loopdata *ld, LoopContainer *lc)
 			d->changes = NULL;
 		}
 
-	for (i=0; i < m->maxlocals; ++i) {
+	for (i=0; i < cd->maxlocals; ++i) {
 		ld->c_var_modified[i] = 0;
 		if (changes[i] != NULL) {
 			changes[i] = NULL;
 			}
 		}
 
-	for (i=0; i < (m->maxlocals+1); ++i) {
+	for (i=0; i < (cd->maxlocals+1); ++i) {
 		if (ld->c_constraints[i] != NULL) {
 		    ld->c_constraints[i] = NULL;
 			}
@@ -3486,7 +3486,7 @@ void optimize_single_loop(methodinfo *m, loopdata *ld, LoopContainer *lc)
 		/* if the loop header contains or-conditions or an index variable		*/
 		/* is modified in the catch-block within the loop, a conservative		*/
 		/* approach is taken and optimizations are cancelled					*/
-		if (analyze_or_exceptions(m, ld, head, lc) > 0) {
+		if (analyze_or_exceptions(m, cd, ld, head, lc) > 0) {
 
 #ifdef LOOP_DEBUG
 			printf("Analyzed for or/exception - no problems \n");            
@@ -3503,11 +3503,11 @@ void optimize_single_loop(methodinfo *m, loopdata *ld, LoopContainer *lc)
 				return;
 
 			/* single pass bound check removal - for all successors, do			*/
-			remove_header_boundchecks(m, ld, head, changes);
+			remove_header_boundchecks(m, cd, ld, head, changes);
 
 			d = ld->c_dTable[head];
 			while (d != NULL) {
-				remove_boundchecks(m, ld, d->value, -1, changes, BOUNDCHECK_REGULAR);
+				remove_boundchecks(m, cd, ld, d->value, -1, changes, BOUNDCHECK_REGULAR);
    				d = d->next;
 				}
 	    
@@ -3523,7 +3523,7 @@ void optimize_single_loop(methodinfo *m, loopdata *ld, LoopContainer *lc)
 			fflush(stdout);
 #endif
 
-			create_static_checks(m, ld, lc);	/* create checks	  					*/
+			create_static_checks(m, cd, ld, lc);	/* create checks	  					*/
 
 #ifdef LOOP_DEBUG
 			printf("END: create static checks\n");
@@ -3560,7 +3560,7 @@ void optimize_single_loop(methodinfo *m, loopdata *ld, LoopContainer *lc)
 /*	This function preforms necessary setup work, before the recursive function
 	optimize_single loop can be called.
 */
-void optimize_loops(methodinfo *m, loopdata *ld)
+void optimize_loops(methodinfo *m, codegendata *cd, loopdata *ld)
 {
 	LoopContainer *lc = ld->c_allLoops;
 
@@ -3584,7 +3584,7 @@ void optimize_loops(methodinfo *m, loopdata *ld)
 	fflush(stdout);
 #endif
 
-	analyze_nested(m, ld);
+	analyze_nested(m,cd, ld);
 
 #ifdef LOOP_DEBUG
 	printf("analyze nested done\n");
@@ -3594,10 +3594,10 @@ void optimize_loops(methodinfo *m, loopdata *ld)
 	/* create array with entries for current loop								*/
 	ld->c_current_loop = DMNEW(int, m->basicblockcount);	
 	ld->c_toVisit = DMNEW(int, m->basicblockcount);
-	ld->c_var_modified = DMNEW(int, m->maxlocals);
-	ld->c_null_check = DMNEW(int, m->maxlocals);
+	ld->c_var_modified = DMNEW(int, cd->maxlocals);
+	ld->c_null_check = DMNEW(int, cd->maxlocals);
 
-	if ((ld->c_constraints = (struct Constraint **) malloc((m->maxlocals+1) * sizeof(struct Constraint *))) == NULL)
+	if ((ld->c_constraints = (struct Constraint **) malloc((cd->maxlocals+1) * sizeof(struct Constraint *))) == NULL)
 		c_mem_error();
 
 #ifdef STATISTICS
@@ -3614,12 +3614,12 @@ void optimize_loops(methodinfo *m, loopdata *ld)
 	/* init vars needed by all loops                                            */
 	ld->c_needs_redirection = false;
 	ld->c_newstart = NULL;
-	ld->c_old_xtablelength = m->exceptiontablelength;
+	ld->c_old_xtablelength = cd->exceptiontablelength;
 
 	/* loops have been topologically sorted                                     */
 	lc = ld->c_allLoops;
 	while (lc != NULL) {
-		optimize_single_loop(m, ld, lc);
+		optimize_single_loop(m, cd, ld, lc);
 
 #ifdef LOOP_DEBUG
 		printf(" *** Optimized loop *** \n");

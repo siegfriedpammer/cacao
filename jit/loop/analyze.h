@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: analyze.h 1454 2004-11-05 14:19:32Z twisti $
+   $Id: analyze.h 1531 2004-11-17 20:45:56Z christian $
 
 */
 
@@ -38,7 +38,7 @@
 #include "jit/loop/loop.h"
 
 
-void optimize_loops(methodinfo *m, loopdata *ld);
+void optimize_loops(methodinfo *m, codegendata *cd, loopdata *ld);
 
 #endif /* _ANALYZE_H */
 
