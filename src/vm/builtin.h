@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1891 2005-01-28 20:24:47Z twisti $
+   $Id: builtin.h 1893 2005-01-31 17:06:41Z twisti $
 
 */
 
@@ -300,36 +300,36 @@ s4 builtin_lcmp(s8 a, s8 b);
 #define BUILTIN_lcmp (functionptr) builtin_lcmp
 
 float builtin_fadd(float a, float b);
-/* NOT AN OP */
+#define BUILTIN_fadd (functionptr) builtin_fadd
 float builtin_fsub(float a, float b);
-/* NOT AN OP */
+#define BUILTIN_fsub (functionptr) builtin_fsub
 float builtin_fmul(float a, float b);
-/* NOT AN OP */
+#define BUILTIN_fmul (functionptr) builtin_fmul
 float builtin_fdiv(float a, float b);
-/* NOT AN OP */
+#define BUILTIN_fdiv (functionptr) builtin_fdiv
 float builtin_fneg(float a);         
-/* NOT AN OP */
+#define BUILTIN_fneg (functionptr) builtin_fneg
 s4 builtin_fcmpl(float a, float b);  
-/* NOT AN OP */
+#define BUILTIN_fcmpl (functionptr) builtin_fcmpl
 s4 builtin_fcmpg(float a, float b);  
-/* NOT AN OP */
+#define BUILTIN_fcmpg (functionptr) builtin_fcmpg
 float builtin_frem(float a, float b);
 #define BUILTIN_frem (functionptr) builtin_frem
 
 double builtin_dadd(double a, double b);
-/* NOT AN OP */
+#define BUILTIN_dadd (functionptr) builtin_dadd
 double builtin_dsub(double a, double b);
-/* NOT AN OP */
+#define BUILTIN_dsub (functionptr) builtin_dsub
 double builtin_dmul(double a, double b);
-/* NOT AN OP */
+#define BUILTIN_dmul (functionptr) builtin_dmul
 double builtin_ddiv(double a, double b);
-/* NOT AN OP */
+#define BUILTIN_ddiv (functionptr) builtin_ddiv
 double builtin_dneg(double a);          
-/* NOT AN OP */
+#define BUILTIN_dneg (functionptr) builtin_dneg
 s4 builtin_dcmpl(double a, double b);   
-/* NOT AN OP */
+#define BUILTIN_dcmpl (functionptr) builtin_dcmpl
 s4 builtin_dcmpg(double a, double b);   
-/* NOT AN OP */
+#define BUILTIN_dcmpg (functionptr) builtin_dcmpg
 double builtin_drem(double a, double b);
 #define BUILTIN_drem (functionptr) builtin_drem
 
@@ -356,7 +356,7 @@ s8       asm_builtin_f2l(float a);
 /* NOT AN OP */
 
 double   builtin_f2d(float a);
-/* NOT AN OP */
+#define BUILTIN_f2d (functionptr) builtin_f2d
 
 s4       builtin_d2i(double a);
 #define BUILTIN_d2i (functionptr) builtin_d2i
@@ -368,7 +368,7 @@ s8       asm_builtin_d2l(double a);
 /* NOT AN OP */
 
 float    builtin_d2f(double a);
-/* NOT AN OP */
+#define BUILTIN_d2f (functionptr) builtin_d2f
 
 java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o);
 /* NOT AN OP */
