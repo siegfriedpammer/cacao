@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1699 2004-12-06 12:44:24Z twisti $
+## $Id: Makefile.am 1705 2004-12-06 15:26:02Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -90,6 +90,10 @@ cacao_LDADD = \
 	$(CLASSPATH_LIBS)
 
 cacao_DEPENDENCIES = $(cacao_LDADD)
+
+install-exec-hook:
+	$(mkinstalldirs) $(DESTDIR)$(prefix)/bin
+	$(LN_S) $(DESTDIR)$(bindir)/cacao $(DESTDIR)$(prefix)/bin
 
 
 ## Local variables:
