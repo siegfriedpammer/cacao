@@ -11,11 +11,12 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 295 2003-05-12 21:03:38Z twisti $
+	Last Change: $Id: ngen.c 353 2003-06-04 22:09:33Z twisti $
 
 *******************************************************************************/
 
 #include "jitdef.h"   /* phil */
+#include "methods.c"
 
 /* additional functions and macros to generate code ***************************/
 
@@ -265,30 +266,29 @@ void catch_NullPointerException(int sig)
 	void **_p = (void **) &sig;
 	struct sigcontext *sigctx = (struct sigcontext *) ++_p;
 
-	fprintf(stderr, "null=%d %x\n", sig, sigctx);
-
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
 	instr = *((int*)(sigctx->eip));
 /*    	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f]; */
-	faultaddr = 1;
 
-	if (faultaddr == 0) {
+/*  	fprintf(stderr, "null=%d %lx addr=%lx data=%lx\n", sig, sigctx, sigctx->eip, findentry((u1 *) sigctx->eip)); */
+
+/*  	if (faultaddr == 0) { */
 		signal(sig, (void *) catch_NullPointerException);          /* reinstall handler */
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
 		sigctx->eax = (long) proto_java_lang_NullPointerException; /* REG_ITMP1_XPTR    */
 		sigctx->edx = sigctx->eip;                                 /* REG_ITMP2_XPC     */
-		sigctx->eip = (long) asm_handle_nat_exception;
+		sigctx->eip = (long) asm_handle_exception;
 
 		return;
 
-	} else {
-		faultaddr += (long) ((instr << 16) >> 16);
-		fprintf(stderr, "faulting address: 0x%08x\n", faultaddr);
-		panic("Stack overflow");
-	}
+/*  	} else { */
+/*  		faultaddr += (long) ((instr << 16) >> 16); */
+/*  		fprintf(stderr, "faulting address: 0x%08x\n", faultaddr); */
+/*  		panic("Stack overflow"); */
+/*  	} */
 }
 
 /* ArithmeticException signal handler for hardware divide by zero check */
@@ -300,8 +300,6 @@ void catch_ArithmeticException(int sig)
 	void **_p = (void **) &sig;
 	struct sigcontext *sigctx = (struct sigcontext *) ++_p;
 
-	fprintf(stderr, "arith=%d %x\n", sig, sigctx);
-
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
 	signal(sig, (void *) catch_ArithmeticException);           /* reinstall handler */
@@ -310,7 +308,7 @@ void catch_ArithmeticException(int sig)
 	sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
 	sigctx->eax = (long) proto_java_lang_ArithmeticException;  /* REG_ITMP1_XPTR    */
 	sigctx->edx = sigctx->eip;                                 /* REG_ITMP2_XPC     */
-	sigctx->eip = (long) asm_handle_nat_exception;
+	sigctx->eip = (long) asm_handle_exception;
 
 	return;
 }
@@ -330,7 +328,7 @@ void init_exceptions(void)
 #endif
 	}
 
-/*    	signal(SIGFPE, (void *) catch_ArithmeticException); */
+	signal(SIGFPE, (void *) catch_ArithmeticException);
 }
 
 
@@ -360,7 +358,7 @@ static void gen_mcode()
 
 	/* TWISTI */
 /*  	savedregs_num = (isleafmethod) ? 0 : 1;           /* space to save the RA */
-  	savedregs_num = 1;
+  	savedregs_num = 0;
 
 	/* space to save used callee saved registers */
 
@@ -498,21 +496,17 @@ static void gen_mcode()
 				if (IS_2_WORD_TYPE(t)) {
 					i386_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
 					i386_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4 + 4, REG_ITMP2);
-					i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
-					i386_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
 
 				} else if (t == TYPE_ADR) {
 					i386_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
 					i386_alu_reg_reg(I386_XOR, REG_ITMP2, REG_ITMP2);
-					i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
-					i386_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
 
 				} else {
 					i386_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
 					i386_cltd();
-					i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
-					i386_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
 				}
+				i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
+				i386_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
 
 			} else {
 				if (t == TYPE_FLT) {
@@ -537,7 +531,8 @@ static void gen_mcode()
 
 		i386_mov_imm_membase(method, REG_SP, TRACE_ARGS_NUM * 8);
 
-		i386_mov_imm_reg(builtin_trace_args, REG_ITMP1);
+  		i386_mov_imm_reg(builtin_trace_args, REG_ITMP1);
+/*  		i386_mov_imm_reg(asm_builtin_trace, REG_ITMP1); */
 		i386_call_reg(REG_ITMP1);
 
 		i386_alu_imm_reg(I386_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
@@ -660,12 +655,18 @@ static void gen_mcode()
 		MCODECHECK(64+len);
 		while (src != NULL) {
 			len--;
-/*  			if ((len == 0) && (bptr->type != BBTYPE_STD)) { */
-			if ((len == 0) && (bptr->type == BBTYPE_SBR)) {
+  			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
 				if (!IS_2_WORD_TYPE(src->type)) {
-  					d = reg_of_var(src, REG_ITMP1);
-					i386_pop_reg(d);
-					store_reg_to_var_int(src, d);
+					if (bptr->type == BBTYPE_SBR) {
+						d = reg_of_var(src, REG_ITMP1);
+						i386_pop_reg(d);
+						store_reg_to_var_int(src, d);
+
+					} else if (bptr->type == BBTYPE_EXH) {
+						d = reg_of_var(src, REG_ITMP1);
+						M_INTMOVE(REG_ITMP1, d);
+						store_reg_to_var_int(src, d);
+					}
 
 				} else {
 					panic("copy interface registers: longs have to me in memory (begin 1)");
@@ -702,7 +703,7 @@ static void gen_mcode()
 							store_reg_to_var_int(src, d);
 
 						} else {
-							if (!(interfaces[len][s2].flags & INMEMORY)) {
+							if (interfaces[len][s2].flags & INMEMORY) {
 								M_LNGMEMMOVE(s1, d);
 
 							} else {
@@ -827,35 +828,7 @@ static void gen_mcode()
 		/* load/store operations **********************************************/
 
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
-                              /* op1 = local variable                         */
-
-			d = reg_of_var(iptr->dst, REG_ITMP1);
-			if ((iptr->dst->varkind == LOCALVAR) &&
-			    (iptr->dst->varnum == iptr->op1)) {
-				break;
-			}
-			var = &(locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
-			if (iptr->dst->flags & INMEMORY) {
-				if (var->flags & INMEMORY) {
-					i386_mov_membase_reg(REG_SP, var->regoff * 8, REG_ITMP1);
-					i386_mov_reg_membase(REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
-
-				} else {
-					i386_mov_reg_membase(var->regoff, REG_SP, iptr->dst->regoff * 8);
-				}
-
-			} else {
-				if (var->flags & INMEMORY) {
-					i386_mov_membase_reg(REG_SP, var->regoff * 8, iptr->dst->regoff);
-
-				} else {
-					M_INTMOVE(var->regoff, iptr->dst->regoff);
-				}
-			}
-			break;
-
-		case ICMD_ALOAD:      /* ...  ==> ..., content of local variable      */
-                              /* op1 = local variable                         */
+		case ICMD_ALOAD:      /* op1 = local variable                         */
 
 			d = reg_of_var(iptr->dst, REG_ITMP1);
 			if ((iptr->dst->varkind == LOCALVAR) &&
@@ -943,30 +916,7 @@ static void gen_mcode()
 			break;
 
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
-		                      /* op1 = local variable                         */
-
-			if ((src->varkind == LOCALVAR) &&
-			    (src->varnum == iptr->op1)) {
-				break;
-			}
-			var = &(locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
-			if (var->flags & INMEMORY) {
-				if (src->flags & INMEMORY) {
-					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-					i386_mov_reg_membase(REG_ITMP1, REG_SP, var->regoff * 8);
-					
-				} else {
-					i386_mov_reg_membase(src->regoff, REG_SP, var->regoff * 8);
-				}
-
-			} else {
-				var_to_reg_int(s1, src, var->regoff);
-				M_INTMOVE(s1, var->regoff);
-			}
-			break;
-
-		case ICMD_ASTORE:     /* ..., value  ==> ...                          */
-		                      /* op1 = local variable                         */
+		case ICMD_ASTORE:     /* op1 = local variable                         */
 
 			if ((src->varkind == LOCALVAR) &&
 			    (src->varnum == iptr->op1)) {
@@ -1064,7 +1014,7 @@ static void gen_mcode()
 			    ((from->flags ^ to->flags) & INMEMORY)) { \
 				if (IS_FLT_DBL_TYPE(from->type)) { \
 					var_to_reg_flt(s1, from, d); \
-					M_FLTMOVE(s1, d); \
+/*					M_FLTMOVE(s1, d);*/ \
 					store_reg_to_var_flt(to, d); \
 				} else { \
                     if (!IS_2_WORD_TYPE(from->type)) { \
@@ -1515,20 +1465,36 @@ static void gen_mcode()
 
 			} else {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
-					i386_alu_membase_reg(I386_SUB, REG_SP, src->regoff * 8, iptr->dst->regoff);
+					i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, d);
+					i386_alu_membase_reg(I386_SUB, REG_SP, src->regoff * 8, d);
 
 				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
-					i386_alu_membase_reg(I386_SUB, REG_SP, src->regoff * 8, iptr->dst->regoff);
+					M_INTMOVE(src->prev->regoff, d);
+					i386_alu_membase_reg(I386_SUB, REG_SP, src->regoff * 8, d);
 
 				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-					i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, iptr->dst->regoff);
-					i386_alu_reg_reg(I386_SUB, src->regoff, iptr->dst->regoff);
+					/* workaround for reg alloc */
+					if (src->regoff == iptr->dst->regoff) {
+						i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, REG_ITMP1);
+						i386_alu_reg_reg(I386_SUB, src->regoff, REG_ITMP1);
+						M_INTMOVE(REG_ITMP1, d);
+
+					} else {
+						i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, d);
+						i386_alu_reg_reg(I386_SUB, src->regoff, d);
+					}
 
 				} else {
-					M_INTMOVE(src->prev->regoff, iptr->dst->regoff);
-					i386_alu_reg_reg(I386_SUB, src->regoff, iptr->dst->regoff);
+					/* workaround for reg alloc */
+					if (src->regoff == iptr->dst->regoff) {
+						M_INTMOVE(src->prev->regoff, REG_ITMP1);
+						i386_alu_reg_reg(I386_SUB, src->regoff, REG_ITMP1);
+						M_INTMOVE(REG_ITMP1, d);
+
+					} else {
+						M_INTMOVE(src->prev->regoff, d);
+						i386_alu_reg_reg(I386_SUB, src->regoff, d);
+					}
 				}
 			}
 			break;
@@ -1734,7 +1700,7 @@ static void gen_mcode()
 			break;
 
 #define gen_div_check(v) \
-    do { \
+    if (checknull) { \
         if ((v)->flags & INMEMORY) { \
             i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8); \
         } else { \
@@ -1742,12 +1708,12 @@ static void gen_mcode()
         } \
         i386_jcc(I386_CC_E, 0); \
         mcode_addxdivrefs(mcodeptr); \
-    } while (0)
+    }
 
 		case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_div_check(src);
+  			gen_div_check(src);
 	        if (src->prev->flags & INMEMORY) {
 				i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, I386_EAX);
 
@@ -1775,7 +1741,7 @@ static void gen_mcode()
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-  			gen_div_check(src);
+			gen_div_check(src);
 			if (src->prev->flags & INMEMORY) {
 				i386_mov_membase_reg(REG_SP, src->prev->regoff * 8, I386_EAX);
 
@@ -2936,120 +2902,141 @@ static void gen_mcode()
 		case ICMD_DADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) {
-				if (iptr->dst->regoff == src->prev->regoff) {
-					NEW_var_to_reg_flt(s1, src->prev, REG_FTMP1);
+/*  			if (iptr->dst->flags & INMEMORY) { */
+/*  				if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
+/*  					var_to_reg_flt(s1, src->prev, REG_FTMP1); */
+/*  					NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
+/*  					i386_fadd_reg_st(s2 + fpu_st_offset); */
+/*  					store_reg_to_var_flt(iptr->dst, d); */
+
+/*  				} else { */
+/*  					var_to_reg_flt(s1, src->prev, REG_FTMP1); */
+/*  					var_to_reg_flt(s2, src, REG_FTMP2); */
+/*  					i386_faddp(); */
+/*  					fpu_st_offset--; */
+/*  					store_reg_to_var_flt(iptr->dst, d); */
+/*  				} */
+
+/*  			} else { */
+/*  				if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
+/*  					if (iptr->dst->regoff == src->prev->regoff) { */
+/*  						NEW_var_to_reg_flt(s1, src->prev, REG_FTMP1); */
+/*  						var_to_reg_flt(s2, src, REG_FTMP2); */
+/*  						i386_faddp_st_reg(s1 + fpu_st_offset); */
+/*  						fpu_st_offset--; */
+
+/*  					} else if (iptr->dst->regoff == src->regoff) { */
+/*  						var_to_reg_flt(s1, src->prev, REG_FTMP1); */
+/*  						NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
+/*  						i386_faddp_st_reg(s2 + fpu_st_offset); */
+/*  						fpu_st_offset--; */
+
+/*  					} else { */
+/*  						var_to_reg_flt(s1, src->prev, REG_FTMP1); */
+/*  						NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
+/*  						i386_fadd_reg_st(s2 + fpu_st_offset); */
+/*  						store_reg_to_var_flt(iptr->dst, d); */
+/*  					} */
+
+/*  				} else { */
+					var_to_reg_flt(s1, src->prev, REG_FTMP1);
 					var_to_reg_flt(s2, src, REG_FTMP2);
-					i386_faddp_st_reg(s1 + fpu_st_offset);
+					i386_faddp();
 					fpu_st_offset--;
-
-				} else if (iptr->dst->regoff == src->regoff) {
-					var_to_reg_flt(s1, src->prev, REG_FTMP1);
-					NEW_var_to_reg_flt(s2, src, REG_FTMP2);
-					i386_faddp_st_reg(s2 + fpu_st_offset);
-					fpu_st_offset--;
-
-				} else {
-					var_to_reg_flt(s1, src->prev, REG_FTMP1);
-					NEW_var_to_reg_flt(s2, src, REG_FTMP2);
-					i386_fadd_reg_st(s2 + fpu_st_offset);
-					store_reg_to_var_flt(iptr->dst, d);
-				}
-
-			} else {
-				var_to_reg_flt(s1, src->prev, REG_FTMP1);
-				var_to_reg_flt(s2, src, REG_FTMP2);
-				i386_faddp();
-				fpu_st_offset--;
-				store_reg_to_var_flt(iptr->dst, d);
-  			}
+  					store_reg_to_var_flt(iptr->dst, d);
+/*  				}					 */
+/*    			} */
 			break;
 
 		case ICMD_FSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 		case ICMD_DSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) {
-				if (iptr->dst->regoff == src->prev->regoff) {
-					NEW_var_to_reg_flt(s1, src->prev, REG_FTMP1);
-					var_to_reg_flt(s2, src, REG_FTMP2);
-					i386_fsubp_st_reg(s1 + fpu_st_offset);
-					fpu_st_offset--;
+/*  			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
+/*  				if (iptr->dst->regoff == src->prev->regoff) { */
+/*  					NEW_var_to_reg_flt(s1, src->prev, REG_FTMP1); */
+/*  					var_to_reg_flt(s2, src, REG_FTMP2); */
+/*  					i386_fsubp_st_reg(s1 + fpu_st_offset); */
+/*  					fpu_st_offset--; */
+/*  					store_reg_to_var_flt(iptr->dst, d); */
 
-				} else {
-					var_to_reg_flt(s1, src->prev, REG_FTMP1);
-					NEW_var_to_reg_flt(s2, src, REG_FTMP2);
-					i386_fsub_reg_st(s2 + fpu_st_offset);
-					store_reg_to_var_flt(iptr->dst, d);
-				}
+/*  				} else { */
+/*  					var_to_reg_flt(s1, src->prev, REG_FTMP1); */
+/*  					NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
+/*  					i386_fsub_reg_st(s2 + fpu_st_offset); */
+/*  					store_reg_to_var_flt(iptr->dst, d); */
+/*  				} */
 
-			} else {
+/*  			} else { */
 				var_to_reg_flt(s1, src->prev, REG_FTMP1);
 				var_to_reg_flt(s2, src, REG_FTMP2);
 				i386_fsubp();
 				fpu_st_offset--;
 				store_reg_to_var_flt(iptr->dst, d);
-			}
+/*  			} */
 			break;
 
 		case ICMD_FMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 		case ICMD_DMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) {
-				if (iptr->dst->regoff == src->prev->regoff) {
-					NEW_var_to_reg_flt(s1, src->prev, REG_FTMP1);
-					var_to_reg_flt(s2, src, REG_FTMP2);
-					i386_fmulp_st_reg(s1 + fpu_st_offset);
-					fpu_st_offset--;
+/*  			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
+/*  				if (iptr->dst->regoff == src->prev->regoff) { */
+/*  					NEW_var_to_reg_flt(s1, src->prev, REG_FTMP1); */
+/*  					var_to_reg_flt(s2, src, REG_FTMP2); */
+/*  					i386_fmulp_st_reg(s1 + fpu_st_offset); */
+/*  					fpu_st_offset--; */
+/*  					store_reg_to_var_flt(iptr->dst, d); */
 
-				} else if (iptr->dst->regoff == src->regoff) {
-					var_to_reg_flt(s1, src->prev, REG_FTMP1);
-					NEW_var_to_reg_flt(s2, src, REG_FTMP2);
-					i386_fmulp_st_reg(s2 + fpu_st_offset);
-					fpu_st_offset--;
+/*  				} else if (iptr->dst->regoff == src->regoff) { */
+/*  					var_to_reg_flt(s1, src->prev, REG_FTMP1); */
+/*  					NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
+/*  					i386_fmulp_st_reg(s2 + fpu_st_offset); */
+/*  					fpu_st_offset--; */
+/*  					store_reg_to_var_flt(iptr->dst, d); */
 
-				} else {
-					var_to_reg_flt(s1, src->prev, REG_FTMP1);
-					NEW_var_to_reg_flt(s2, src, REG_FTMP2);
-					i386_fmul_reg_st(s2 + fpu_st_offset);
-					store_reg_to_var_flt(iptr->dst, d);
-				}
+/*  				} else { */
+/*  					var_to_reg_flt(s1, src->prev, REG_FTMP1); */
+/*  					NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
+/*  					i386_fmul_reg_st(s2 + fpu_st_offset); */
+/*  					store_reg_to_var_flt(iptr->dst, d); */
+/*  				} */
 
-			} else {
+/*  			} else { */
 				var_to_reg_flt(s1, src->prev, REG_FTMP1);
 				var_to_reg_flt(s2, src, REG_FTMP2);
 				i386_fmulp();
 				fpu_st_offset--;
 				store_reg_to_var_flt(iptr->dst, d);
-			}
+/*  			} */
 			break;
 
 		case ICMD_FDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 		case ICMD_DDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) {
-				if (src->prev->regoff == iptr->dst->regoff) {
-					NEW_var_to_reg_flt(s1, src->prev, REG_FTMP1);
-					var_to_reg_flt(s2, src, REG_FTMP2);
-					i386_fdivp_st_reg(s1 + fpu_st_offset);
-					fpu_st_offset--;
+/*  			if (!(src->prev->flags & INMEMORY) && !(src->flags & INMEMORY)) { */
+/*  				if (src->prev->regoff == iptr->dst->regoff) { */
+/*  					NEW_var_to_reg_flt(s1, src->prev, REG_FTMP1); */
+/*  					var_to_reg_flt(s2, src, REG_FTMP2); */
+/*  					i386_fdivp_st_reg(s1 + fpu_st_offset); */
+/*  					fpu_st_offset--; */
+/*  					store_reg_to_var_flt(iptr->dst, d); */
 
-				} else {
-					var_to_reg_flt(s1, src->prev, REG_FTMP1);
-					NEW_var_to_reg_flt(s2, src, REG_FTMP2);
-					i386_fdiv_reg_st(s2 + fpu_st_offset);
-					store_reg_to_var_flt(iptr->dst, d);
-				}
+/*  				} else { */
+/*  					var_to_reg_flt(s1, src->prev, REG_FTMP1); */
+/*  					NEW_var_to_reg_flt(s2, src, REG_FTMP2); */
+/*  					i386_fdiv_reg_st(s2 + fpu_st_offset); */
+/*  					store_reg_to_var_flt(iptr->dst, d); */
+/*  				} */
 
-			} else {
+/*  			} else { */
 				var_to_reg_flt(s1, src->prev, REG_FTMP1);
 				var_to_reg_flt(s2, src, REG_FTMP2);
 				i386_fdivp();
 				fpu_st_offset--;
 				store_reg_to_var_flt(iptr->dst, d);
-			}
+/*  			} */
 			break;
 
 		case ICMD_FREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
@@ -3210,7 +3197,7 @@ static void gen_mcode()
 #define gen_bound_check \
             if (checkbounds) { \
                 i386_alu_membase_reg(I386_CMP, s1, OFFSET(java_arrayheader, size), s2); \
-                i386_jcc(I386_CC_A, 0); \
+                i386_jcc(I386_CC_AE, 0); \
 				mcode_addxboundrefs(mcodeptr); \
             }
 
@@ -3330,7 +3317,7 @@ static void gen_mcode()
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-   			i386_movzbl_memindex_reg(OFFSET(java_bytearray, data[0]), s1, s2, 0, d);
+   			i386_movsbl_memindex_reg(OFFSET(java_bytearray, data[0]), s1, s2, 0, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -3450,6 +3437,7 @@ static void gen_mcode()
   			i386_mov_membase_reg(REG_ITMP2, a, REG_ITMP3);
 			switch (iptr->op1) {
 				case TYPE_INT:
+				case TYPE_ADR:
 					var_to_reg_int(s2, src, REG_ITMP1);
 					i386_mov_reg_membase(s2, REG_ITMP3, 0);
 					break;
@@ -3462,10 +3450,6 @@ static void gen_mcode()
 					} else {
 						panic("PUTSTATIC: longs have to be in memory");
 					}
-					break;
-				case TYPE_ADR:
-					var_to_reg_int(s2, src, REG_ITMP1);
-					i386_mov_reg_membase(s2, REG_ITMP3, 0);
 					break;
 				case TYPE_FLT:
 					var_to_reg_flt(s2, src, REG_FTMP2);
@@ -3490,6 +3474,7 @@ static void gen_mcode()
 			i386_mov_membase_reg(REG_ITMP2, a, REG_ITMP3);
 			switch (iptr->op1) {
 				case TYPE_INT:
+				case TYPE_ADR:
 					d = reg_of_var(iptr->dst, REG_ITMP1);
 					i386_mov_membase_reg(REG_ITMP3, 0, d);
 					store_reg_to_var_int(iptr->dst, d);
@@ -3504,11 +3489,6 @@ static void gen_mcode()
 					} else {
 						panic("GETSTATIC: longs have to be in memory");
 					}
-					break;
-				case TYPE_ADR:
-					d = reg_of_var(iptr->dst, REG_ITMP1);
-					i386_mov_membase_reg(REG_ITMP3, 0, d);
-					store_reg_to_var_int(iptr->dst, d);
 					break;
 				case TYPE_FLT:
 					d = reg_of_var(iptr->dst, REG_ITMP1);
@@ -3532,6 +3512,7 @@ static void gen_mcode()
 			a = ((fieldinfo *)(iptr->val.a))->offset;
 			switch (iptr->op1) {
 				case TYPE_INT:
+				case TYPE_ADR:
 					var_to_reg_int(s1, src->prev, REG_ITMP1);
 					var_to_reg_int(s2, src, REG_ITMP2);
 					gen_nullptr_check(s1);
@@ -3548,12 +3529,6 @@ static void gen_mcode()
 					} else {
 						panic("PUTFIELD: longs have to be in memory");
 					}
-					break;
-				case TYPE_ADR:
-					var_to_reg_int(s1, src->prev, REG_ITMP1);
-					var_to_reg_int(s2, src, REG_ITMP2);
-					gen_nullptr_check(s1);
-					i386_mov_reg_membase(s2, s1, a);
 					break;
 				case TYPE_FLT:
 					var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -3579,6 +3554,7 @@ static void gen_mcode()
 			a = ((fieldinfo *)(iptr->val.a))->offset;
 			switch (iptr->op1) {
 				case TYPE_INT:
+				case TYPE_ADR:
 					var_to_reg_int(s1, src, REG_ITMP1);
 					d = reg_of_var(iptr->dst, REG_ITMP3);
 					gen_nullptr_check(s1);
@@ -3593,13 +3569,6 @@ static void gen_mcode()
 					i386_mov_membase_reg(s1, a + 4, REG_ITMP3);
 					i386_mov_reg_membase(REG_ITMP2, REG_SP, iptr->dst->regoff * 8);
 					i386_mov_reg_membase(REG_ITMP3, REG_SP, iptr->dst->regoff * 8 + 4);
-					break;
-				case TYPE_ADR:
-					var_to_reg_int(s1, src, REG_ITMP1);
-					d = reg_of_var(iptr->dst, REG_ITMP3);
-					gen_nullptr_check(s1);
-					i386_mov_membase_reg(s1, a, d);
-					store_reg_to_var_int(iptr->dst, d);
 					break;
 				case TYPE_FLT:
 					var_to_reg_int(s1, src, REG_ITMP1);
@@ -3676,8 +3645,7 @@ static void gen_mcode()
 				i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 			} else {
-				/* TODO: test */
-				i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+				i386_test_reg_reg(src->regoff, src->regoff);
 			}
 			i386_jcc(I386_CC_E, 0);
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
@@ -3690,8 +3658,7 @@ static void gen_mcode()
 				i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 			} else {
-				/* TODO: test */
-				i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+				i386_test_reg_reg(src->regoff, src->regoff);
 			}
 			i386_jcc(I386_CC_NE, 0);
 			mcode_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
@@ -4163,8 +4130,7 @@ static void gen_mcode()
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 
 				offset += 7;
@@ -4183,8 +4149,7 @@ static void gen_mcode()
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 
 				i386_jcc(I386_CC_NE, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
@@ -4208,8 +4173,7 @@ static void gen_mcode()
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 
 				offset += 7;
@@ -4228,8 +4192,7 @@ static void gen_mcode()
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 
 				i386_jcc(I386_CC_E, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
@@ -4253,8 +4216,7 @@ static void gen_mcode()
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 
 				offset += 7;
@@ -4273,8 +4235,7 @@ static void gen_mcode()
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 
 				i386_jcc(I386_CC_GE, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
@@ -4298,8 +4259,7 @@ static void gen_mcode()
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 
 				offset += 7;
@@ -4318,8 +4278,7 @@ static void gen_mcode()
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 
 				i386_jcc(I386_CC_L, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
@@ -4343,8 +4302,7 @@ static void gen_mcode()
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 
 				offset += 7;
@@ -4363,8 +4321,7 @@ static void gen_mcode()
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 
 				i386_jcc(I386_CC_LE, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
@@ -4389,8 +4346,7 @@ static void gen_mcode()
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 
 				offset += 7;
@@ -4409,8 +4365,7 @@ static void gen_mcode()
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 
 				i386_jcc(I386_CC_G, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
@@ -4544,23 +4499,24 @@ nowperformreturn:
 
 			/* call trace function */
 			if (runverbose) {
-				i386_alu_imm_reg(I386_SUB, 4 + 8 + 4 + 8, REG_SP);
+				i386_alu_imm_reg(I386_SUB, 4 + 8 + 8 + 4, REG_SP);
 
 				i386_mov_imm_membase(method, REG_SP, 0);
 
 				i386_mov_reg_membase(REG_RESULT, REG_SP, 4);
 				i386_mov_reg_membase(REG_RESULT2, REG_SP, 4 + 4);
 				
-				i386_fsts_membase(REG_SP, 4 + 8);
-				i386_fstl_membase(REG_SP, 4 + 8 + 4);
+				i386_fstl_membase(REG_SP, 4 + 8);
+				i386_fsts_membase(REG_SP, 4 + 8 + 8);
 
-				i386_mov_imm_reg(builtin_displaymethodstop, REG_ITMP1);
+  				i386_mov_imm_reg(builtin_displaymethodstop, REG_ITMP1);
+/*  				i386_mov_imm_reg(asm_builtin_exittrace, REG_ITMP1); */
 				i386_call_reg(REG_ITMP1);
 
 				i386_mov_membase_reg(REG_SP, 4, REG_RESULT);
 				i386_mov_membase_reg(REG_SP, 4 + 4, REG_RESULT2);
 
-				i386_alu_imm_reg(I386_ADD, 4 + 8 + 4 + 8, REG_SP);
+				i386_alu_imm_reg(I386_ADD, 4 + 8 + 8 + 4, REG_SP);
 			}
 
 			i386_ret();
@@ -4847,16 +4803,15 @@ gen_method: {
 			
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-/*  			if (s1 == d) { */
-/*  				M_MOV(s1, REG_ITMP1); */
-/*  				s1 = REG_ITMP1; */
-/*  			} */
+			if (s1 == d) {
+				M_INTMOVE(s1, REG_ITMP1);
+				s1 = REG_ITMP1;
+			}
 			i386_alu_reg_reg(I386_XOR, d, d);
 			if (iptr->op1) {                               /* class/interface */
 				if (super->flags & ACC_INTERFACE) {        /* interface       */
 					int offset = 0;
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, s1);
+					i386_test_reg_reg(s1, s1);
 
 					/* TODO: clean up this calculation */
 					offset += 2;
@@ -4909,8 +4864,7 @@ gen_method: {
 
 				} else {                                   /* class           */
 					int offset = 0;
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, s1);
+					i386_test_reg_reg(s1, s1);
 
 					/* TODO: clean up this calculation */
 					offset += 2;
@@ -4983,8 +4937,7 @@ gen_method: {
 			if (iptr->op1) {                               /* class/interface */
 				if (super->flags & ACC_INTERFACE) {        /* interface       */
 					int offset = 0;
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, s1);
+					i386_test_reg_reg(s1, s1);
 
 					/* TODO: clean up this calculation */
 					offset += 2;
@@ -5022,8 +4975,7 @@ gen_method: {
 
 				} else {                                     /* class           */
 					int offset = 0;
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, s1);
+					i386_test_reg_reg(s1, s1);
 
 					/* TODO: clean up this calculation */
 					offset += 2;
@@ -5093,8 +5045,7 @@ gen_method: {
 				i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 				
 			} else {
-				/* TODO: test */
-				i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+				i386_test_reg_reg(src->regoff, src->regoff);
 			}
 			i386_jcc(I386_CC_L, 0);
 			mcode_addxcheckarefs(mcodeptr);
@@ -5112,8 +5063,7 @@ gen_method: {
 					i386_alu_imm_membase(I386_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
-					/* TODO: test */
-					i386_alu_imm_reg(I386_CMP, 0, src->regoff);
+					i386_test_reg_reg(src->regoff, src->regoff);
 				}
 				i386_jcc(I386_CC_L, 0);
 				mcode_addxcheckarefs(mcodeptr);
@@ -5204,7 +5154,7 @@ gen_method: {
 					}
 
 				} else {
-					if (!(interfaces[len][s2].flags & INMEMORY)) {
+					if (interfaces[len][s2].flags & INMEMORY) {
 						M_LNGMEMMOVE(s1, interfaces[len][s2].regoff);
 
 					} else {
@@ -5390,7 +5340,7 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 
-			i386_mov_imm_reg(0, REG_ITMP3);    /* mov data segment pointer into reg */
+			i386_mov_imm_reg(0, REG_ITMP3);    /* move data segment pointer into reg */
 			dseg_adddata(mcodeptr);
 
 			i386_mov_imm_reg(proto_java_lang_NullPointerException, REG_ITMP1_XPTR);
@@ -5451,23 +5401,73 @@ void removecompilerstub (u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE 18
+#define NATIVESTUBSIZE 40
 
-u1 *createnativestub (functionptr f, methodinfo *m)
+u1 *createnativestub(functionptr f, methodinfo *m)
 {
 	u8 *s = CNEW (u8, NATIVESTUBSIZE);  /* memory to hold the stub            */
-	s4 *p = (s4*) s;                    /* code generation pointer            */
-
-	s4 *mcodeptr = p;					/* make macros work                   */
+	s4 *mcodeptr = (s4*) s;				/* make macros work                   */
 
 	u1 *tptr;
 	int i;
 	int stackframesize = 4;           /* initial 4 bytes is space for jni env */
 	int stackframeoffset = 4;
 
+	int p, t;
+
 	reg_init();
 
   	descriptor2types(m);                     /* set paramcount and paramtypes */
+
+	if (runverbose) {
+		i386_alu_imm_reg(I386_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
+
+		for (p = 0; p < m->paramcount; p++) {
+			t = m->paramtypes[p];
+			if (IS_INT_LNG_TYPE(t)) {
+				if (IS_2_WORD_TYPE(t)) {
+					i386_mov_membase_reg(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
+					i386_mov_membase_reg(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4 + 4, REG_ITMP2);
+
+				} else if (t == TYPE_ADR) {
+					i386_mov_membase_reg(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
+					i386_alu_reg_reg(I386_XOR, REG_ITMP2, REG_ITMP2);
+
+				} else {
+					i386_mov_membase_reg(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
+					i386_cltd();
+				}
+				i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
+				i386_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
+
+			} else {
+				if (t == TYPE_FLT) {
+					i386_flds_membase(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4);
+					i386_fstps_membase(REG_SP, p * 8);
+					i386_alu_reg_reg(I386_XOR, REG_ITMP2, REG_ITMP2);
+					i386_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
+
+				} else {
+					i386_fldl_membase(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4);
+					i386_fstpl_membase(REG_SP, p * 8);
+				}
+			}
+		}
+
+		
+		i386_alu_reg_reg(I386_XOR, REG_ITMP1, REG_ITMP1);
+		for (p = m->paramcount; p < TRACE_ARGS_NUM; p++) {
+			i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
+			i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8 + 4);
+		}
+
+		i386_mov_imm_membase(m, REG_SP, TRACE_ARGS_NUM * 8);
+
+		i386_mov_imm_reg(asm_builtin_trace, REG_ITMP1);
+		i386_call_reg(REG_ITMP1);
+
+		i386_alu_imm_reg(I386_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
+	}
 
 	/*
 	 * calculate stackframe size for native function
@@ -5522,13 +5522,42 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	i386_mov_imm_reg(f, REG_ITMP1);
 	i386_call_reg(REG_ITMP1);
 	i386_alu_imm_reg(I386_ADD, stackframesize, REG_SP);
+
+	if (runverbose) {
+		i386_alu_imm_reg(I386_SUB, 4 + 8 + 8 + 4, REG_SP);
+		
+		i386_mov_imm_membase(m, REG_SP, 0);
+		
+		i386_mov_reg_membase(REG_RESULT, REG_SP, 4);
+		i386_mov_reg_membase(REG_RESULT2, REG_SP, 4 + 4);
+		
+		i386_fstl_membase(REG_SP, 4 + 8);
+		i386_fsts_membase(REG_SP, 4 + 8 + 8);
+		
+		i386_mov_imm_reg(asm_builtin_exittrace, REG_ITMP1);
+		i386_call_reg(REG_ITMP1);
+		
+		i386_mov_membase_reg(REG_SP, 4, REG_RESULT);
+		i386_mov_membase_reg(REG_SP, 4 + 4, REG_RESULT2);
+		
+		i386_alu_imm_reg(I386_ADD, 4 + 8 + 8 + 4, REG_SP);
+	}
+
+	i386_mov_imm_reg(&exceptionptr, REG_ITMP3);
+	i386_mov_membase_reg(REG_ITMP3, 0, REG_ITMP3);
+	i386_test_reg_reg(REG_ITMP3, REG_ITMP3);
+	i386_jcc(I386_CC_NE, 1);
+
 	i386_ret();
 
-	/* TWISTI */	
-/*  	s[14] = (u8) f;                      /* address of native method          */
-/*  	s[15] = (u8) (&exceptionptr);        /* address of exceptionptr           */
-/*  	s[16] = (u8) (asm_handle_nat_exception); /* addr of asm exception handler */
-/*  	s[17] = (u8) (&env);                  /* addr of jni_environement         */
+	i386_mov_reg_reg(REG_ITMP3, REG_ITMP1_XPTR);
+	i386_mov_imm_reg(&exceptionptr, REG_ITMP3);
+	i386_mov_imm_membase(0, REG_ITMP3, 0);
+	i386_mov_membase_reg(REG_SP, 0, REG_ITMP2_XPC);
+	i386_alu_imm_reg(I386_SUB, REG_ITMP2_XPC, 2);
+
+	i386_mov_imm_reg(asm_handle_nat_exception, REG_ITMP3);
+	i386_jmp_reg(REG_ITMP3);
 
 #ifdef STATISTICS
 	count_nstub_len += NATIVESTUBSIZE * 8;

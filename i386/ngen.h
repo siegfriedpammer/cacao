@@ -26,10 +26,6 @@
 #define REG_RESULT      I386_EAX /* to deliver method results                 */
 #define REG_RESULT2     I386_EDX /* to deliver long method results            */
 
-#define REG_RA          26   /* return address                                */
-#define REG_PV          27   /* procedure vector, must be provided by caller  */
-#define REG_METHODPTR   28   /* pointer to the place from where the procedure */
-                             /* vector has been fetched                       */
 #define REG_ITMP1       I386_EAX /* temporary register                        */
 #define REG_ITMP2       I386_EDX /* temporary register and method pointer     */
 #define REG_ITMP3       I386_ECX /* temporary register                        */
@@ -38,16 +34,13 @@
 #define REG_ITMP2_XPC   I386_EDX /* exception pc = temporary register 2       */
 
 #define REG_SP          I386_ESP /* stack pointer                             */
-#define REG_ZERO        31   /* always zero                                   */
 
 /* floating point registers */
 
 #define REG_FRESULT     0    /* to deliver floating point method results      */
-#define REG_FTMP1       0    /* temporary floating point register             */
-#define REG_FTMP2       1    /* temporary floating point register             */
-#define REG_FTMP3       2    /* temporary floating point register             */
-
-#define REG_IFTMP       28   /* temporary integer and floating point register */
+#define REG_FTMP1       6    /* temporary floating point register             */
+#define REG_FTMP2       7    /* temporary floating point register             */
+#define REG_FTMP3       7    /* temporary floating point register             */
 
 /* register descripton - array ************************************************/
 
@@ -61,15 +54,14 @@
 /* #define REG_END   -1        last entry in tables */
 
 int nregdescint[] = {
-/*      REG_RET, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, */
-    REG_RET, REG_RES, REG_RES, REG_SAV, REG_RES, REG_SAV, REG_SAV, REG_TMP,
+    REG_RET, REG_RES, REG_RES, REG_SAV, REG_RES, REG_SAV, REG_TMP, REG_TMP,
     REG_END };
 
 /* for use of reserved registers, see comment above */
 
 int nregdescfloat[] = {
-/*      REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, */
-    REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_RES, REG_RES,
+/*      REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_RES, REG_RES, */
+    REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES,
     REG_END };
 
 /* for use of reserved registers, see comment above */
@@ -1047,6 +1039,13 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_fldt_membase(basereg,disp) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdb; \
+        i386_emit_membase((basereg),(disp),5); \
+    } while (0)
+
+
 #define i386_flds_memindex(disp,basereg,indexreg,scale) \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xd9; \
@@ -1169,6 +1168,13 @@ static const unsigned char i386_jcc_map[] = {
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xdd; \
         i386_emit_membase((basereg),(disp),3); \
+    } while (0)
+
+
+#define i386_fstpt_membase(basereg,disp) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdb; \
+        i386_emit_membase((basereg),(disp),7); \
     } while (0)
 
 
