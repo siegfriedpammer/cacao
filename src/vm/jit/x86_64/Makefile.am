@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1884 2005-01-24 16:58:55Z twisti $
+## $Id: Makefile.am 2207 2005-04-04 09:28:38Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -63,7 +63,7 @@ libarch_la_SOURCES = \
 
 $(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
 
-offsets.h: $(top_builddir)/src/vm/jit/tools/genoffsets $(top_builddir)/config.h $(top_srcdir)/src/vm/global.h $(top_srcdir)/src/threads/native/threads.h
+offsets.h: $(top_builddir)/src/vm/jit/tools/genoffsets $(top_builddir)/config.h
 	$(top_builddir)/src/vm/jit/tools/genoffsets > offsets.h
 
 
