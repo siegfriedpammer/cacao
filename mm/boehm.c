@@ -4,16 +4,14 @@
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	Contains main() and variables for the global options.
-	This module does the following tasks:
-	   - Interface to the Boehm GC
+	Contains the interface to the Boehm GC
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 	Changes: Andi Krall          EMAIL: cacao@complang.tuwien.ac.at
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: boehm.c 210 2003-02-03 13:05:24Z stefan $
+	Last Change: $Id: boehm.c 211 2003-02-03 13:06:27Z stefan $
 
 *******************************************************************************/
 
