@@ -923,7 +923,7 @@ static void parse()
 	/* additional block if target 0 is not first intermediate instruction     */
 
 	if (!block_index[0] || (block_index[0] > 1)) {
-		bptr->ipc = 0;
+		bptr->iinstr = instr;
 		bptr->mpc = -1;
 		bptr->flags = -1;
 		bptr->type = BBTYPE_STD;
@@ -937,7 +937,9 @@ static void parse()
 
 	for (p = 0; p < jcodelength; p++)
 		if (block_index[p] & 1) {
-			bptr->ipc = block_index[p] >> 1;
+			bptr->iinstr = instr + (block_index[p] >> 1);
+			if (b_count != 0)
+				(bptr - 1)->icount = bptr->iinstr - (bptr - 1)->iinstr;
 			bptr->mpc = -1;
 			bptr->flags = -1;
 			bptr->type = BBTYPE_STD;
@@ -950,7 +952,9 @@ static void parse()
 
 	/* allocate additional block at end */
 
-	bptr->ipc = instr_count;
+	bptr->iinstr = NULL;
+	(bptr - 1)->icount = (instr + instr_count) - (bptr - 1)->iinstr;
+	bptr->icount = 0;
 	bptr->mpc = -1;
 	bptr->flags = -1;
 	bptr->type = BBTYPE_STD;

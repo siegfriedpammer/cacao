@@ -7,10 +7,8 @@
 	defines all the constants and data structures of the compiler 
 	
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
-	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	         Michael Gschwind    EMAIL: cacao@complang.tuwien.ac.at
                   
-	Last Change: 1997/11/05
+	Last Change: 1998/11/03
 
 *******************************************************************************/
 
@@ -98,16 +96,17 @@ struct instruction {
 #define BBTYPE_SBR 2            /* subroutine basic block type                */
 
 struct basicblock { 
-	int flags;                  /* used during stack analysis, init with -1   */
-	int type;                   /* basic block type (std, xhandler, subroutine*/
-	int ipc;                    /* intermediate code pc at start of block     */
-	int mpc;                    /* machine code pc at start of block          */
-	stackptr instack;           /* stack at begin of basic block              */
-	stackptr outstack;          /* stack at end of basic block                */
-	int indepth;                /* stack depth at begin of basic block        */
-	int outdepth;               /* stack depth end of basic block             */
-	int pre_count;              /* count of predecessor basic blocks          */
-	branchref *branchrefs;      /* list of branches to be patched             */
+	int          flags;         /* used during stack analysis, init with -1   */
+	int          type;          /* basic block type (std, xhandler, subroutine*/
+	instruction *iinstr;        /* pointer to intermediate code instructions  */
+	int          icount;        /* number of intermediate code instructions   */
+	int          mpc;           /* machine code pc at start of block          */
+	stackptr     instack;       /* stack at begin of basic block              */
+	stackptr     outstack;      /* stack at end of basic block                */
+	int          indepth;       /* stack depth at begin of basic block        */
+	int          outdepth;      /* stack depth end of basic block             */
+	int          pre_count;     /* count of predecessor basic blocks          */
+	branchref   *branchrefs;    /* list of branches to be patched             */
 	};
 
 

@@ -503,10 +503,9 @@ static void gen_mcode()
 				}
 			src = src->prev;
 			}
-		s1  = bptr[0].ipc;
 		src = bptr->instack;
-		len = bptr[1].ipc - s1;
-		for (iptr = &instr[s1];
+		len = bptr->icount;
+		for (iptr = bptr->iinstr;
 		    len > 0;
 		    src = iptr->dst, len--, iptr++) {
 

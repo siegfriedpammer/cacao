@@ -587,9 +587,8 @@ static void allocate_scratch_registers()
 		if (bptr->flags >= BBREACHED) {
 			dst = bptr->instack;
 			reg_init_temp();
-			i = bptr[0].ipc;
-			len = bptr[1].ipc - i;
-			iptr = &instr[i];
+			iptr = bptr->iinstr;
+			len = bptr->icount;
 			while (--len >= 0)  {
 				src = dst;
 				dst = iptr->dst;
