@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1074 2004-05-20 07:15:54Z stefan $
+   $Id: asmpart.S 1077 2004-05-20 18:06:55Z twisti $
 
 */
 
@@ -824,6 +824,7 @@ L_initializererror:
 *******************************************************************************/
 
 	.ent    asm_builtin_monitorenter
+
 asm_builtin_monitorenter:
 	ldgp    gp,0(pv)
 	lda     pv,builtin_monitorenter
@@ -834,7 +835,7 @@ nb_monitorenter:
 	subq    sp,8,sp
     stq     ra,0(sp)
 	ldq     a0,string_java_lang_NullPointerException
-    jsr     ra,new_exception_message
+    jsr     ra,new_exception
     ldgp    gp,0(ra)
 	mov     v0,xptr
     ldq     ra,0(sp)
@@ -842,6 +843,7 @@ nb_monitorenter:
 	
 	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
+
 	.end    asm_builtin_monitorenter
 
 
@@ -852,6 +854,7 @@ nb_monitorenter:
 *******************************************************************************/
 
 	.ent    asm_builtin_monitorexit
+
 asm_builtin_monitorexit:
 	ldgp    gp,0(pv)
 	lda     pv,builtin_monitorexit
@@ -862,7 +865,7 @@ nb_monitorexit:
 	subq    sp,8,sp
     stq     ra,0(sp)
 	ldq     a0,string_java_lang_NullPointerException
-    jsr     ra,new_exception_message
+    jsr     ra,new_exception
     ldgp    gp,0(ra)
 	mov     v0,xptr
     ldq     ra,0(sp)
@@ -870,6 +873,7 @@ nb_monitorexit:
 	
 	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
+
 	.end    asm_builtin_monitorexit
 
 
