@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: parseRT.c 1744 2004-12-09 10:17:12Z carolyn $
 
 */
 
@@ -72,15 +72,19 @@ Results: (currently) with -stat see # methods marked used
 #include "vm/jit/parse.h"
 #include "vm/jit/inline/parseRT.h"
 #include "vm/jit/inline/parseRTstats.h"
+#include "vm/jit/inline/parseRTprint.h"
+
 
 
 static bool firstCall= true;
 static list *rtaWorkList;
 FILE *rtMissed;   /* Methods missed during RTA parse of Main  */
- 
+
 bool DEBUGinf = false;
 bool DEBUGr = false;
 bool DEBUGopcodes = false;
+ 
+
 
 /*********************************************************************/
 
@@ -443,7 +447,7 @@ if ((DEBUGr)||(DEBUGopcodes)) printf("\n");
 	for (p = 0; p < m->jcodelength; p = nextp) {
 
 		opcode = code_get_u1(p,m);            /* fetch op code  */
-		SHOWOPCODE
+		SHOWOPCODE(DEBUGopcodes)
 
 		nextp = p + jcommandsize[opcode];   /* compute next instrtart */
 		if (nextp > m->jcodelength)
@@ -812,11 +816,12 @@ methodinfo *initializeRTAworklist(methodinfo *m) {
 	/* Add first method to call list */
        	m->class->classUsed = USED; 
 	addToRtaWorkList(m,systxt);
-
 	/* Add system called methods */
- 	SYSADD(mainstring, "main","([Ljava/lang/String;)V",systxt)
+/*** 	SYSADD(mainstring, "main","([Ljava/lang/String;)V",systxt) ***/
+ 	SYSADD(MAINCLASS, MAINMETH, MAINDESC,systxt)
 	rm = callmeth;  
- 	SYSADD("java/lang/System","exit","(I)V",systxt)
+/*** 	SYSADD("java/lang/System","exit","(I)V",systxt) ***/
+ 	SYSADD(EXITCLASS, EXITMETH, EXITDESC, systxt)
 	/*----- rtMissedIn 0 */
         if ( (rtMissedIn = fopen("rtMissedIn0", "r")) == NULL) {
 		/*if (opt_verbose) */
@@ -854,6 +859,11 @@ methodinfo *missedRTAworklist()
 
 	methodinfo *rm =NULL;  /* return methodinfo ptr to main method */
 
+
+#if defined(USE_THREADS)
+	SYSADD(THREADCLASS, THREADMETH, THREADDESC, "systxt2")
+	SYSADD(THREADGROUPCLASS, THREADGROUPMETH, THREADGROUPDESC, "systxt2")
+#endif
 	/*----- rtMissedIn pgm specific */
         strcat(filenameIn, (const char *)mainstring);  
         if ( (rtMissedIn = fopen(filenameIn, "r")) == NULL) {
@@ -873,6 +883,7 @@ methodinfo *missedRTAworklist()
  	    SYSADD(class,meth,desc,missedtxt)
 	    }
 	fclose(rtMissedIn);
+
 	return rm;
 }
 

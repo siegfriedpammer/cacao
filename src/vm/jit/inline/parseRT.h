@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: parseRT.h 1744 2004-12-09 10:17:12Z carolyn $
 
 */
 
@@ -36,7 +36,7 @@
 #include "vm/global.h"
 
 
-extern FILE *rtMissed;   /* Methods missed during RTA parse of Main  */
+extern FILE *rtMissed;  /* Methods missed during RTA parse of Main  */
 
 typedef struct {
         listnode linkage;
@@ -46,49 +46,24 @@ typedef struct {
 
 extern int RT_jit_parse(methodinfo *m);
 
-#define METHINFOx(mm) \
-    { \
-	printf("<c%i/m%i/p%i>\t", \
-		mm->class->classUsed,mm->methodUsed, mm->monoPoly); \
-  	method_display_w_class(mm); }
+/**** Methods: called directly by cacao ***/
+#define MAINCLASS mainstring
+#define MAINMETH "main"
+#define MAINDESC "([Ljava/lang/String;)V"
 
-#define METHINFO(mm,flg) \
-if (flg) { \
-	printf("<c%i/m%i/p%i>\t", \
-		mm->class->classUsed,mm->methodUsed, mm->monoPoly); \
-  	method_display_w_class(mm); }
+#define EXITCLASS "java/lang/System"
+#define EXITMETH  "exit"
+#define EXITDESC  "(I)V"
 
-#define METHINFOtx(mm,TXT) \
-		 { \
-                printf(TXT); \
-		METHINFOx(mm) \
-		}
+#if defined(USE_THREADS)
+ #define THREADCLASS "java/lang/Thread"
+ #define THREADMETH  "<init>"
+ #define THREADDESC  "(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"
 
-#define METHINFOt(mm,TXT,flg) \
-if (flg) { \
-                printf(TXT); \
-		METHINFO(mm,flg) \
-		}
-
-#define CLASSNAME1(cls,TXT,flg) \
-if (flg) {printf(TXT); \
-	printf("<c%i>\t",cls->classUsed); \
-	utf_display(cls->name); fflush(stdout);}
-
-#define CLASSNAMEop(cls,flg) \
-if (flg) {printf("\t%s: ",opcode_names[opcode]);\
-	printf("<c%i>\t",cls->classUsed); \
-  	utf_display(cls->name); printf("\n");fflush(stdout);}
-
-#define CLASSNAME(cls,TXT,flg) \
-if (flg) { printf(TXT); \
-		printf("<c%i>\t",cls->classUsed); \
-  		utf_display(cls->name); printf("\n");fflush(stdout);} 
-
-#define SHOWOPCODE \
-if (DEBUGopcodes== true) {printf("Parse p=%i<%i<   opcode=<%i> %s\n", \
-	                   p, m->jcodelength,opcode,opcode_names[opcode]);}
-
+ #define THREADGROUPCLASS "java/lang/ThreadGroup"
+ #define THREADGROUPMETH  "addThread"
+ #define THREADGROUPDESC  "(Ljava/lang/Thread;)V"
+#endif
 
 
 #endif /* _PARSERT_H */

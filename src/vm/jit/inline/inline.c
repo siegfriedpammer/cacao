@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: inline.c 1744 2004-12-09 10:17:12Z carolyn $
 
 */
 
@@ -745,7 +745,7 @@ for (is=list_first(s);
 
 /* --------------------------------------------------------------------*/
 void print_inlining_methodinfo( inlining_methodinfo *r) {
-  int i;
+  int i=0;
   int cnt,cnt2;
   inlining_methodinfo *im;
   inlining_methodinfo *im2;
@@ -779,9 +779,9 @@ else {
     } 
   }
 
-
+/**printf("\tstartgp=%i; stopgp=%i; firstlocal=%i; label_index=%p;\n", **/
 printf("\tstartgp=%i; stopgp=%i; firstlocal=%i; label_index=%p;\n",
-          r->startgp, r->stopgp, r->firstlocal, r->label_index);
+          r->startgp, r->stopgp, r->firstlocal, (void *)r->label_index);
 printf ("label_index[0..%d]->", r->method->jcodelength);
 if (labellong) {
 for (i=0; i<r->method->jcodelength; i++) printf ("%d:%d ", i, r->label_index[i]); }

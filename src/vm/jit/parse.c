@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: parse.c 1744 2004-12-09 10:17:12Z carolyn $
 
 */
 
@@ -54,36 +54,16 @@
 #include "vm/jit/inline/parseRT.h"
 #include "vm/jit/inline/inline.h"
 #include "vm/jit/loop/loop.h"
+#include "vm/jit/inline/parseRTprint.h"
 
-
-#define METHINFO(mm) \
-        { \
-                printf("PARSE method name ="); \
-                utf_display(mm->class->name); \
-                printf("."); \
-                method_display(mm); \
-                fflush(stdout); \
-        }
-#define DEBUGMETH(mm) \
-if (DEBUG4 == true) \
-        { \
-                printf("PARSE method name ="); \
-                utf_display(mm->class->name); \
-                printf("."); \
-                method_display(mm); \
-                fflush(stdout); \
-        }
-
-#define SHOWOPCODE \
-if (DEBUG4 == true) {printf("Parse p=%i<%i<   opcode=<%i> %s\n", \
-                           p, m->jcodelength,opcode,opcode_names[opcode]);}
 bool DEBUG = false;
 bool DEBUG2 = false;
 bool DEBUG3 = false;
-bool DEBUG4 = false;  /*opcodes*/
+bool DEBUG4 = false;  /*opcodes for parse.c*/
+
 
 /*INLINING*/
-#define debug_writebranch if (DEBUG2==true) printf("op:: %s i: %d label_index[i]: %d label_index=0x%x\n",opcode_names[opcode], i, label_index[i], label_index);
+#define debug_writebranch if (DEBUG2==true) printf("op:: %s i: %d label_index[i]: %d label_index=0x%p\n",opcode_names[opcode], i, label_index[i], (void *)label_index);
 #define debug_writebranch1
 
 
@@ -365,14 +345,13 @@ static exceptiontable* fillextable(methodinfo *m,
 		int *label_index, int *block_count, 
 		t_inlining_globals *inline_env)
 {
-	int b_count, i, p, src, insertBlock;
+	int b_count, p, src, insertBlock;
 	
 	if (exceptiontablelength == 0) 
 		return extable;
 
-	
 	/*if (m->exceptiontablelength > 0) {
-	  DEBUGMETH(m);
+	  METHINFOx(m);
 	  printf("m->exceptiontablelength=%i\n",m->exceptiontablelength);
 	  panic("exceptiontablelength > 0");
 	  }*/
@@ -453,14 +432,12 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 	u2 skipBasicBlockChange;
 
-if (DEBUG4==true) {printf("\nPARSING: "); fflush(stdout);
-DEBUGMETH(m);
-}
+METHINFOt(m,"\nPARSING: ",DEBUG4);
 if (opt_rt) {
   if (m->methodUsed != USED) {
     if (opt_verbose) {
       printf(" rta missed: "); fflush(stdout);
-      METHINFO(m);
+      METHINFO(m,opt_verbose);
       }
     if ( (rtMissed = fopen("rtMissed", "a")) == NULL) {
       printf("CACAO - rtMissed file: cant open file to write append \n");
@@ -632,26 +609,13 @@ if (m->exceptiontablelength > 0)
 				/* printf("inline argument load operation for local: %ld\n",firstlocal + tmpinlinf->method->paramcount - 1 - i); */
 			}
 			skipBasicBlockChange=1;
-if (DEBUG==true) {
-printf("BEFORE SAVE: "); fflush(stdout);
-DEBUGMETH(inline_env->method);
-}
+METHINFOt(inline_env->method,"BEFORE SAVE: ",DEBUG);
 			inlining_save_compiler_variables();
-if (DEBUG==true) {
-printf("AFTER SAVE: "); fflush(stdout);
-DEBUGMETH(inline_env->method);
-}
+METHINFOt(inline_env->method,"AFTER SAVE: ",DEBUG);
 			inlining_set_compiler_variables(tmpinlinf);
-if (DEBUG==true) {
-printf("AFTER SET :: "); fflush(stdout);
-DEBUGMETH(inline_env->method);
-}
-			if (DEBUG) {
-				printf("\n.......Parsing (inlined): ");
-				DEBUGMETH(m);
-				DEBUGMETH(inline_env->method);
-			}
-
+METHINFOt(inline_env->method,"AFTER SET :: ",DEBUG);
+METHINFOt(m,"\n.......Parsing (inlined): ",DEBUG);
+METHINFO(inline_env->method,DEBUG);
 
                         OP1(ICMD_INLINE_START,tmpinlinf->level);
 
@@ -700,7 +664,7 @@ fflush(stdout);
 		if (nextp > inline_env->method->jcodelength)
 			panic("Unexpected end of bytecode");
 		s_count += stackreq[opcode];      	/* compute stack element count    */
-SHOWOPCODE
+SHOWOPCODE(DEBUG4)
 		switch (opcode) {
 		case JAVA_NOP:
 			break;
@@ -1095,7 +1059,7 @@ SHOWOPCODE
 			{
 				s4 num, j;
 				s4 *tablep;
-				s4 prevvalue;
+				s4 prevvalue=0;
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
@@ -1675,10 +1639,7 @@ if (DEBUG4==true) {
 			OP(ICMD_INLINE_END);
 /*label_index = inlinfo->label_index;*/
 
-if (DEBUG==true) {
-printf("AFTER RESTORE : "); fflush(stdout);
-DEBUGMETH(inline_env->method);
-}
+METHINFOt(inline_env->method,"AFTER RESTORE : ",DEBUG);
 			list_remove(inlinfo->inlinedmethods, list_first(inlinfo->inlinedmethods));
 			if (inlinfo->inlinedmethods == NULL) { /* JJJJ */
 				nextgp = -1;
@@ -1822,3 +1783,4 @@ DEBUGMETH(inline_env->method);
  * tab-width: 4
  * End:
  */
+
