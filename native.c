@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1497 2004-11-12 14:13:44Z twisti $
+   $Id: native.c 1512 2004-11-17 11:45:31Z twisti $
 
 */
 
@@ -942,15 +942,15 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 		list_addfirst(&unlinkedclasses, class_java_lang_String);
 	}
 
-    /* create new javastring */
-    js = NEW(java_lang_String);
+	/* create new javastring */
+	js = NEW(java_lang_String);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initObjectLock(&js->header);
 #endif
 	js->header.vftbl = class_java_lang_String->vftbl;
-    js->value  = stringdata;
-    js->offset = 0;
-    js->count  = length;
+	js->value  = stringdata;
+	js->offset = 0;
+	js->count  = length;
 
 #ifdef DEBUG_LITERALSTRING_U2
 	printf("literalstring_u2: newly created at %p\n", js);
@@ -959,19 +959,19 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 	fflush(stdout);
 #endif
 			
-    /* create new literalstring */
-    s = NEW(literalstring);
-    s->hashlink = string_hash.ptr[slot];
-    s->string   = (java_objectheader *) js;
-    string_hash.ptr[slot] = s;
+	/* create new literalstring */
+	s = NEW(literalstring);
+	s->hashlink = string_hash.ptr[slot];
+	s->string   = (java_objectheader *) js;
+	string_hash.ptr[slot] = s;
 
-    /* update number of hashtable entries */
-    string_hash.entries++;
+	/* update number of hashtable entries */
+	string_hash.entries++;
 
-    /* reorganization of hashtable */       
-    if (string_hash.entries > (string_hash.size * 2)) {
+	/* reorganization of hashtable */       
+	if (string_hash.entries > (string_hash.size * 2)) {
 		/* reorganization of hashtable, average length of 
-         the external chains is approx. 2                */  
+		   the external chains is approx. 2                */  
 
 		u4 i;
 		literalstring *s;
@@ -1000,9 +1000,9 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 		/* dispose old table */	
 		MFREE(string_hash.ptr, void*, string_hash.size);
 		string_hash = newhash;
-    }
+	}
 
-    return (java_objectheader *) js;
+	return (java_objectheader *) js;
 }
 
 
