@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 588 2003-11-09 19:42:00Z twisti $
+   $Id: codegen.c 621 2003-11-13 13:56:32Z twisti $
 
 */
 
@@ -3319,11 +3319,6 @@ void codegen()
 					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
 					i386_alu_membase_reg(I386_OR, REG_SP, src->regoff * 8 + 4, REG_ITMP1);
 
-				} else if (iptr->val.l > 0 && iptr->val.l <= 0x00000000ffffffff) {
-					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
-					i386_alu_imm_reg(I386_XOR, iptr->val.l, REG_ITMP1);
-					i386_alu_membase_reg(I386_OR, REG_SP, src->regoff * 8 + 4, REG_ITMP1);
-					
 				} else {
 					i386_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_ITMP2);
 					i386_alu_imm_reg(I386_XOR, iptr->val.l >> 32, REG_ITMP2);
@@ -3340,7 +3335,6 @@ void codegen()
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			/* TODO: optimize as in IF_LEQ */
 			if (src->flags & INMEMORY) {
 				i386_alu_imm_membase(I386_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 8 + 4);
 				i386_jcc(I386_CC_L, 0);
@@ -3361,7 +3355,6 @@ void codegen()
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			/* TODO: optimize as in IF_LEQ */
 			if (src->flags & INMEMORY) {
 				i386_alu_imm_membase(I386_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 8 + 4);
 				i386_jcc(I386_CC_L, 0);
@@ -3382,15 +3375,20 @@ void codegen()
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			/* TODO: optimize for val.l == 0 */
 			if (src->flags & INMEMORY) {
-				i386_mov_imm_reg(iptr->val.l, REG_ITMP1);
-				i386_mov_imm_reg(iptr->val.l >> 32, REG_ITMP2);
-				i386_alu_membase_reg(I386_XOR, REG_SP, src->regoff * 8, REG_ITMP1);
-				i386_alu_membase_reg(I386_XOR, REG_SP, src->regoff * 8 + 4, REG_ITMP2);
-				i386_alu_reg_reg(I386_OR, REG_ITMP2, REG_ITMP1);
-				i386_test_reg_reg(REG_ITMP1, REG_ITMP1);
-			}			
+				if (iptr->val.l == 0) {
+					i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_ITMP1);
+					i386_alu_membase_reg(I386_OR, REG_SP, src->regoff * 8 + 4, REG_ITMP1);
+
+				} else {
+					i386_mov_imm_reg(iptr->val.l, REG_ITMP1);
+					i386_alu_membase_reg(I386_XOR, REG_SP, src->regoff * 8, REG_ITMP1);
+					i386_mov_imm_reg(iptr->val.l >> 32, REG_ITMP2);
+					i386_alu_membase_reg(I386_XOR, REG_SP, src->regoff * 8 + 4, REG_ITMP2);
+					i386_alu_reg_reg(I386_OR, REG_ITMP2, REG_ITMP1);
+				}
+			}
+			i386_test_reg_reg(REG_ITMP1, REG_ITMP1);
 			i386_jcc(I386_CC_NE, 0);
 			codegen_addreference(BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
@@ -3398,7 +3396,6 @@ void codegen()
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			/* TODO: optimize as in IF_LEQ */
 			if (src->flags & INMEMORY) {
 				i386_alu_imm_membase(I386_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 8 + 4);
 				i386_jcc(I386_CC_G, 0);
@@ -3419,7 +3416,6 @@ void codegen()
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			/* TODO: optimize as in IF_LEQ */
 			if (src->flags & INMEMORY) {
 				i386_alu_imm_membase(I386_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 8 + 4);
 				i386_jcc(I386_CC_G, 0);
