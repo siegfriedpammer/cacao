@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1477 2004-11-11 10:47:04Z twisti $
+   $Id: codegen.c 1479 2004-11-11 11:16:46Z twisti $
 
 */
 
@@ -48,10 +48,6 @@
 #include "jit/parse.h"
 #include "jit/reg.h"
 #include "jit/powerpc/codegen.h"
-
-/* include independent code generation stuff */
-#include "jit/codegen.inc"
-#include "jit/reg.inc"
 
 
 /* register descripton - array ************************************************/
@@ -82,6 +78,17 @@ int nregdescfloat[] = {
 	REG_END };
 
 /* for use of reserved registers, see comment above */
+
+
+/*******************************************************************************
+
+    include independent code generation stuff -- include after register
+    descriptions to avoid extern definitions
+
+*******************************************************************************/
+
+#include "jit/codegen.inc"
+#include "jit/reg.inc"
 
 
 void asm_cacheflush(void *, long);
@@ -164,19 +171,16 @@ void adjust_argvars(stackptr s, int d, int *fa, int *ia)
 
 #define intmaxf(a,b) (((a)<(b)) ? (b) : (a))
 
-void preregpass(methodinfo *m)
+void preregpass(methodinfo *m, registerdata *rd)
 {
 	int paramsize;
 	stackptr    src;
 	basicblock  *bptr;
 	instruction *iptr;
 	int s3, len;
-	registerdata *r;
 
-	/* keep code size smaller */
-	r = m->registerdata;
+	rd->ifmemuse = 0;
 
-	r->ifmemuse = 0;
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 		len = bptr->icount;
 		for (iptr = bptr->iinstr, src = bptr->instack;
@@ -210,20 +214,20 @@ countparams:
 					for (; --s3 >= 0; src = src->prev) {
 						paramsize += IS_2_WORD_TYPE(src->type) ? 2 : 1;
 					}
-					r->ifmemuse = intmaxf(r->ifmemuse, paramsize);
+					rd->ifmemuse = intmaxf(rd->ifmemuse, paramsize);
 					break;
 
 				case ICMD_MULTIANEWARRAY:
 					s3 = iptr->op1;
-					paramsize = r->intreg_argnum + s3;
-					r->ifmemuse = intmaxf(r->ifmemuse, paramsize);
+					paramsize = rd->intreg_argnum + s3;
+					rd->ifmemuse = intmaxf(rd->ifmemuse, paramsize);
 					break;
 			}
 		}
 	}
 
-	r->ifmemuse += 6;
-	r->maxmemuse = r->ifmemuse;
+	rd->ifmemuse += 6;
+	rd->maxmemuse = rd->ifmemuse;
 }
 
 
@@ -2723,7 +2727,7 @@ makeactualcall:
 			classinfo *super = (classinfo*) iptr->val.a;
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-            codegen_threadcritrestart((u1*) mcodeptr - mcodebase);
+            codegen_threadcritrestart(cd, (u1*) mcodeptr - cd->mcodebase);
 #endif
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
@@ -2754,13 +2758,13 @@ makeactualcall:
 					a = dseg_addaddress(cd, (void*) super->vftbl);
 					M_ALD(REG_ITMP2, REG_PV, a);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					codegen_threadcritstart((u1*) mcodeptr - mcodebase);
+					codegen_threadcritstart(cd, (u1*) mcodeptr - cd->mcodebase);
 #endif
 					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+					codegen_threadcritstop(cd, (u1*) mcodeptr - cd->mcodebase);
 #endif
 					M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 					M_CMPU(REG_ITMP1, REG_ITMP2);
@@ -2797,7 +2801,7 @@ makeactualcall:
 			classinfo *super = (classinfo*) iptr->val.a;
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-			codegen_threadcritrestart(cd, (u1*) mcodeptr - mcodebase);
+			codegen_threadcritrestart(cd, (u1*) mcodeptr - cd->mcodebase);
 #endif
 			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 			var_to_reg_int(s1, src, d);
@@ -2821,7 +2825,7 @@ makeactualcall:
                     M_BEQ(8 + (s1 == REG_ITMP1));
                     M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					codegen_threadcritstart(cd, (u1*) mcodeptr - mcodebase);
+					codegen_threadcritstart(cd, (u1*) mcodeptr - cd->mcodebase);
 #endif
                     M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
                     a = dseg_addaddress(cd, (void*) super->vftbl);
@@ -2830,7 +2834,7 @@ makeactualcall:
                         M_ILD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, baseval));
                         M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-						codegen_threadcritstop(cd, (u1*) mcodeptr - mcodebase);
+						codegen_threadcritstop(cd, (u1*) mcodeptr - cd->mcodebase);
 #endif
                         M_ISUB(REG_ITMP3, REG_ITMP1, REG_ITMP3);
                         }
@@ -2840,7 +2844,7 @@ makeactualcall:
                         M_ALD(REG_ITMP2, REG_PV, a);
                         M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-						codegen_threadcritstop(cd, (u1*) mcodeptr - mcodebase);
+						codegen_threadcritstop(cd, (u1*) mcodeptr - cd->mcodebase);
 #endif
                         }
                     M_CMPU(REG_ITMP3, REG_ITMP2);
@@ -2975,7 +2979,7 @@ makeactualcall:
 	for (bref = cd->xboundrefs; bref != NULL; bref = bref->next) {
 		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
-						  (u1 *) cd->mcodeptr - cd->mcodebase);
+						  (u1 *) mcodeptr - cd->mcodebase);
 
 		MCODECHECK(8);
 

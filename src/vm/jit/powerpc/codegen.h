@@ -29,7 +29,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.h 1477 2004-11-11 10:47:04Z twisti $
+   $Id: codegen.h 1479 2004-11-11 11:16:46Z twisti $
 
 */
 
@@ -414,7 +414,7 @@
 
 /* function prototypes */
 
-void preregpass(methodinfo *m);
+void preregpass(methodinfo *m, registerdata *rd);
 void docacheflush(u1 *p, long bytelen);
 
 #endif /* _CODEGEN_H */
