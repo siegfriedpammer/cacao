@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 775 2003-12-14 12:57:05Z edwin $
+   $Id: tables.c 868 2004-01-10 20:12:10Z edwin $
 
 */
 
@@ -766,7 +766,8 @@ is_valid_utf(char *utf_ptr,char *end_pos)
 			if (len != 1) return false;           /* Java special */
 		}
 		else {
-			if (v < min_codepoint[len]) return false; /* overlong UTF-8 */
+			/* XXX Sun Java seems to allow overlong UTF-8 encodings */
+			/* if (v < min_codepoint[len]) return false; */ /* overlong UTF-8 */
 		}
 
 		/* surrogates in UTF-8 seem to be allowed in Java classfiles */

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 862 2004-01-06 23:42:01Z stefan $
+   $Id: builtin.h 868 2004-01-10 20:12:10Z edwin $
 
 */
 
@@ -372,6 +372,10 @@ float    builtin_d2f(double a);    /* XXX? */
 /* NOT AN OP */
 
 java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o);
+/* NOT AN OP */
+
+/* builtin_dummy just panics if it is executed. */
+s4 builtin_dummy();
 /* NOT AN OP */
 
 /* conversion helper functions */

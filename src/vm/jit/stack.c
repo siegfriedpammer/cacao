@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 846 2004-01-05 10:40:42Z twisti $
+   $Id: stack.c 868 2004-01-10 20:12:10Z edwin $
 
 */
 
@@ -85,14 +85,15 @@ extern int dseglen;
 #define REQUIRE_4     REQUIRE(4)
 
 /* overflow check */
-/* XXX we allow ACONST to exceed the maximum stack depth because it is
- * generated for builtin calls. Maybe we should check against maximum
- * stack depth only at block boundaries?
+/* XXX we allow ACONST instructions inserted as arguments to builtin
+ * functions to exceed the maximum stack depth.  Maybe we should check
+ * against maximum stack depth only at block boundaries?
  */
 #define CHECKOVERFLOW							\
 	do {										\
 		if (stackdepth > maxstack) {			\
-			if (iptr[0].opc != ICMD_ACONST)		\
+			if (iptr[0].opc != ICMD_ACONST		\
+                || iptr[0].op1 == 0)            \
 			{OVERFLOW;}							\
 		}										\
 	} while(0)
@@ -290,7 +291,7 @@ extern int dseglen;
  *   - check for matching stack depth at merging points
  *   - check for matching basic types[2] at merging points
  *   - check basic types for instruction input (except for BUILTIN*
- *         opcodes and MULTIANEWARRAY)
+ *         opcodes, INVOKE* opcodes and MULTIANEWARRAY)
  *
  * [1]) XXX Checking this after the instruction should be ok. parse.c
  * counts the number of required stack slots in such a way that it is
@@ -1782,6 +1783,9 @@ void analyse_stack()
 						iptr->val.a = (void *) iptr->dst;
 
 						tbptr->type = BBTYPE_SBR;
+
+						/* We need to check for overflow right here because
+						 * the pushed value is poped after MARKREACHED. */
 						CHECKOVERFLOW;
 						MARKREACHED(tbptr, copy);
 						OP1_0ANY;

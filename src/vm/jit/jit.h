@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 845 2004-01-05 10:38:06Z twisti $
+   $Id: jit.h 868 2004-01-10 20:12:10Z edwin $
 
 */
 
@@ -185,6 +185,11 @@ struct dataref {
 	dataref *next;              /* next element in dataref list               */
 };
 
+
+/********** op1 values for ACONST instructions ********************************/
+
+#define ACONST_LOAD     0  /* ACONST_NULL or LDC instruction                  */
+#define ACONST_BUILTIN  1  /* constant argument for a builtin function call   */
 
 /********** JavaVM operation codes (sorted) and instruction lengths ***********/
 

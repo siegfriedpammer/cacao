@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 733 2003-12-12 17:29:40Z stefan $
+   $Id: typeinfo.c 868 2004-01-10 20:12:10Z edwin $
 
 */
 
@@ -38,11 +38,363 @@
 #include "loader.h"
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
+#include "jit/jit.h" /* XXX move typeinfo.* into jit/ */
 
 
 #define CLASS_IMPLEMENTS_INTERFACE(cls,index)                   \
     ( ((index) < (cls)->vftbl->interfacetablelength)            \
       && (VFTBLINTERFACETABLE((cls)->vftbl,(index)) != NULL) )
+
+/**********************************************************************/
+/* TYPEVECTOR FUNCTIONS                                               */
+/**********************************************************************/
+
+typevector *
+typevectorset_copy(typevector *src,int k,int size)
+{
+	typevector *dst = DNEW_TYPEVECTOR(size);
+	
+	memcpy(dst,src,TYPEVECTOR_SIZE(size));
+	dst->k = k;
+	if (src->alt)
+		dst->alt = typevectorset_copy(src->alt,k+1,size);
+	return dst;
+}
+
+#if 0
+typevector *
+typevectorset_copy_select(typevector *src,
+						  int retindex,void *retaddr,int size)
+{
+	typevector *dst;
+	
+	for (;src; src=src->alt) {
+		if (TYPEINFO_RETURNADDRESS(src->td[retindex].info) != retaddr)
+			continue;
+
+		dst = DNEW_TYPEVECTOR(size);
+		memcpy(dst,src,TYPEVECTOR_SIZE(size));
+		if (src->alt)
+			dst->alt = typevectorset_copy_select(src->alt,retindex,retaddr,size);
+		return dst;
+	}
+
+	return NULL;
+}
+
+void
+typevectorset_copy_select_to(typevector *src,typevector *dst,
+							 int retindex,void *retaddr,int size)
+{
+	for (;src; src=src->alt) {
+		if (TYPEINFO_RETURNADDRESS(src->td[retindex].info) != retaddr)
+			continue;
+
+		memcpy(dst,src,TYPEVECTOR_SIZE(size));
+		if (src->alt)
+			dst->alt = typevectorset_copy_select(src->alt,retindex,retaddr,size);
+		return dst;
+	}
+
+	return NULL;
+}
+#endif
+
+bool
+typevectorset_checktype(typevector *vec,int index,int type)
+{
+	do {
+		if (vec->td[index].type != type)
+			return false;
+	} while ((vec = vec->alt) != NULL);
+	return true;
+}
+
+bool
+typevectorset_checkreference(typevector *vec,int index)
+{
+	do {
+		if (!TYPEDESC_IS_REFERENCE(vec->td[index]))
+			return false;
+	} while ((vec = vec->alt) != NULL);
+	return true;
+}
+
+bool
+typevectorset_checkretaddr(typevector *vec,int index)
+{
+	do {
+		if (!TYPEDESC_IS_RETURNADDRESS(vec->td[index]))
+			return false;
+	} while ((vec = vec->alt) != NULL);
+	return true;
+}
+
+int
+typevectorset_copymergedtype(typevector *vec,int index,typeinfo *dst)
+{
+	int type;
+	typedescriptor *td;
+
+	td = vec->td + index;
+	type = td->type;
+	TYPEINFO_COPY(td->info,*dst);
+	
+	if (vec->alt) {
+		int primitive;
+		
+		primitive = TYPEINFO_IS_PRIMITIVE(*dst) ? 1 : 0;
+		
+		while ((vec = vec->alt) != NULL) {
+			td = vec->td + index;
+			if (type != td->type)
+				return TYPE_VOID;
+
+			if (type == TYPE_ADDRESS) {
+				if ((TYPEINFO_IS_PRIMITIVE(td->info) ? 1 : 0) != primitive)
+					return TYPE_VOID;
+				typeinfo_merge(dst,&(td->info));
+			}
+		}
+	}
+	return type;
+}
+
+int
+typevectorset_mergedtype(typevector *vec,int index,typeinfo *temp,typeinfo **result)
+{
+	if (vec->alt) {
+		*result = temp;
+		return typevectorset_copymergedtype(vec,index,temp);
+	}
+
+	*result = &(vec->td[index].info);
+	return vec->td[index].type;
+}
+
+typeinfo *
+typevectorset_mergedtypeinfo(typevector *vec,int index,typeinfo *temp)
+{
+	typeinfo *result;
+	int type = typevectorset_mergedtype(vec,index,temp,&result);
+	return (type == TYPE_ADDRESS) ? result : NULL;
+}
+
+void
+typevectorset_store(typevector *vec,int index,int type,typeinfo *info)
+{
+	/* XXX check if a separator was overwritten */
+	do {
+		vec->td[index].type = type;
+		if (info)
+			TYPEINFO_COPY(*info,vec->td[index].info);
+		if (index > 0 && IS_2_WORD_TYPE(vec->td[index-1].type))
+			vec->td[index-1].type = TYPE_VOID;
+	} while ((vec = vec->alt) != NULL);
+}
+
+void
+typevectorset_store_retaddr(typevector *vec,int index,typeinfo *info)
+{
+	typeinfo_retaddr_set *adr;
+	
+	/* XXX check if a separator was overwritten */
+	adr = (typeinfo_retaddr_set*) TYPEINFO_RETURNADDRESS(*info);
+	do {
+		vec->td[index].type = TYPE_ADDRESS;
+		TYPEINFO_INIT_RETURNADDRESS(vec->td[index].info,adr->addr);
+		if (index > 0 && IS_2_WORD_TYPE(vec->td[index-1].type))
+			vec->td[index-1].type = TYPE_VOID;
+		adr = adr->alt;
+	} while ((vec = vec->alt) != NULL);
+}
+
+void
+typevectorset_store_twoword(typevector *vec,int index,int type)
+{
+	/* XXX check if a separator was overwritten */
+	do {
+		vec->td[index].type = type;
+		vec->td[index+1].type = TYPE_VOID;
+		if (index > 0 && IS_2_WORD_TYPE(vec->td[index-1].type))
+			vec->td[index-1].type = TYPE_VOID;
+	} while ((vec = vec->alt) != NULL);
+}
+
+void
+typevectorset_init_object(typevector *set,void *ins,classinfo *initclass,
+						  int size)
+{
+	int i;
+	
+	for (;set; set=set->alt) {
+		for (i=0; i<size; ++i) {
+			if (set->td[i].type == TYPE_ADR
+				&& TYPEINFO_IS_NEWOBJECT(set->td[i].info)
+				&& TYPEINFO_NEWOBJECT_INSTRUCTION(set->td[i].info) == ins)
+			{
+				TYPEINFO_INIT_CLASSINFO(set->td[i].info,initclass);
+			}
+		}
+	}
+}
+
+bool
+typevector_merge(typevector *dst,typevector *y,int size)
+{
+	bool changed = false;
+	
+	typedescriptor *a = dst->td;
+	typedescriptor *b = y->td;
+	while (size--) {
+		if (a->type != TYPE_VOID && a->type != b->type) {
+			a->type = TYPE_VOID;
+			changed = true;
+		}
+		else if (a->type == TYPE_ADDRESS) {
+			if (TYPEINFO_IS_PRIMITIVE(a->info)) {
+				/* 'a' is a returnAddress */
+				if (!TYPEINFO_IS_PRIMITIVE(b->info)
+					|| (TYPEINFO_RETURNADDRESS(a->info)
+						!= TYPEINFO_RETURNADDRESS(b->info)))
+				{
+					a->type = TYPE_VOID;
+					changed = true;
+				}
+			}
+			else {
+				/* 'a' is a reference */
+				if (TYPEINFO_IS_PRIMITIVE(b->info)) {
+					a->type = TYPE_VOID;
+					changed = true;
+				}
+				else {
+					changed |= typeinfo_merge(&(a->info),&(b->info));
+				}
+			}
+		}
+		a++;
+		b++;
+	}
+	return changed;
+}
+
+bool typevector_separable_from(typevector *a,typevector *b,int size)
+{
+	typedescriptor *tda = a->td;
+	typedescriptor *tdb = b->td;
+	for (;size--; tda++,tdb++) {
+		if (TYPEDESC_IS_RETURNADDRESS(*tda)
+			&& TYPEDESC_IS_RETURNADDRESS(*tdb)
+			&& TYPEINFO_RETURNADDRESS(tda->info)
+			   != TYPEINFO_RETURNADDRESS(tdb->info))
+			return true;
+	}
+	return false;
+}
+
+void
+typevectorset_add(typevector *dst,typevector *v,int size)
+{
+	while (dst->alt)
+		dst = dst->alt;
+	dst->alt = DNEW_TYPEVECTOR(size);
+	memcpy(dst->alt,v,TYPEVECTOR_SIZE(size));
+	dst->alt->alt = NULL;
+	dst->alt->k = dst->k + 1;
+}
+
+#if 0
+void
+typevectorset_union(typevector *dst,typevector *v,int size)
+{
+	while (dst->alt)
+		dst = dst->alt;
+	dst->alt = typevectorset_copy(v,size);
+}
+#endif
+
+typevector *
+typevectorset_select(typevector **set,int retindex,void *retaddr)
+{
+	typevector *selected;
+
+	if (!*set) return NULL;
+	
+	if (TYPEINFO_RETURNADDRESS((*set)->td[retindex].info) == retaddr) {
+		selected = *set;
+		*set = selected->alt;
+		selected->alt = typevectorset_select(set,retindex,retaddr);
+	}
+	else {
+		selected = typevectorset_select(&((*set)->alt),retindex,retaddr);
+	}
+	return selected;
+}
+
+/* XXX delete */
+#if 0
+bool
+typevectorset_separable(typevector *vec,int size)
+{
+	int i;
+	typevector *v;
+
+	for (i=0; i<size; ++i) {
+		v = vec;
+		do {
+			if (!TYPEDESC_IS_RETURNADDRESS(v->td[i]))
+				goto next_index;
+			
+			v = v->alt;
+			if (!v) return true;
+		} while (v);
+	next_index:
+	}
+	return false;
+}
+#endif
+
+bool
+typevectorset_separable_with(typevector *set,typevector *add,int size)
+{
+	int i;
+	typevector *v;
+	void *addr;
+	bool separable;
+
+	for (i=0; i<size; ++i) {
+		if (!TYPEDESC_IS_RETURNADDRESS(add->td[i]))
+			continue;
+		addr = TYPEINFO_RETURNADDRESS(add->td[i].info);
+		
+		v = set;
+		separable = false;
+		do {
+			if (!TYPEDESC_IS_RETURNADDRESS(v->td[i]))
+				goto next_index;
+			if (TYPEINFO_RETURNADDRESS(v->td[i].info) != addr)
+				separable = true;
+			v = v->alt;
+			if (!v && separable) return true;
+		} while (v);
+	next_index:
+	}
+	return false;
+}
+
+bool
+typevectorset_collapse(typevector *dst,int size)
+{
+	bool changed = false;
+	
+	while (dst->alt) {
+		typevector_merge(dst,dst->alt,size);
+		dst->alt = dst->alt->alt;
+		changed = true;
+	}
+	return changed;
+}
 
 /**********************************************************************/
 /* READ-ONLY FUNCTIONS                                                */
@@ -347,6 +699,61 @@ typeinfo_init_from_method_args(utf *desc,u1 *typebuf,typeinfo *infobuf,
 				TYPEINFO_INIT_PRIMITIVE(*returntypeinfo);
 		}
 	}
+}
+
+int
+typedescriptors_init_from_method_args(typedescriptor *td,
+									  utf *desc,
+									  int buflen,bool twoword,
+									  typedescriptor *returntype)
+{
+    char *utf_ptr = desc->text;     /* current position in utf text   */
+    char *end_pos = utf_end(desc);  /* points behind utf string       */
+    int args = 0;
+    classinfo *cls;
+
+    /* method descriptor must start with parenthesis */
+    if (utf_ptr == end_pos || *utf_ptr++ != '(') panic ("Missing '(' in method descriptor");
+
+    /* check arguments */
+    while (utf_ptr != end_pos && *utf_ptr != ')') {
+		if (++args > buflen)
+			panic("Buffer too small for method arguments.");
+		
+        td->type = type_from_descriptor(&cls,utf_ptr,end_pos,&utf_ptr,
+										CLASSLOAD_NEW
+										| CLASSLOAD_NULLPRIMITIVE
+										| CLASSLOAD_NOVOID);
+		
+		if (cls)
+			TYPEINFO_INIT_CLASSINFO(td->info,cls);
+		else {
+			TYPEINFO_INIT_PRIMITIVE(td->info);
+		}
+		td++;
+
+		if (twoword && (td[-1].type == TYPE_LONG || td[-1].type == TYPE_DOUBLE)) {
+			if (++args > buflen)
+				panic("Buffer too small for method arguments.");
+			td->type = TYPE_VOID;
+			TYPEINFO_INIT_PRIMITIVE(td->info);
+			td++;
+		}
+    }
+    utf_ptr++; /* skip ')' */
+
+    /* check returntype */
+    if (returntype) {
+		returntype->type = type_from_descriptor(&cls,utf_ptr,end_pos,&utf_ptr,
+												CLASSLOAD_NULLPRIMITIVE
+												| CLASSLOAD_NEW
+												| CLASSLOAD_CHECKEND);
+		if (cls)
+			TYPEINFO_INIT_CLASSINFO(returntype->info,cls);
+		else
+			TYPEINFO_INIT_PRIMITIVE(returntype->info);
+	}
+	return args;
 }
 
 void
@@ -796,10 +1203,16 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
         return false;
 
     /* Merging two returnAddress types is ok. */
-    if (!dest->typeclass && !y->typeclass)
+    if (!dest->typeclass && !y->typeclass) {
+#ifdef TYPEINFO_DEBUG
+		if (TYPEINFO_RETURNADDRESS(*dest) != TYPEINFO_RETURNADDRESS(*y))
+			panic("Internal error: typeinfo_merge merges different returnAddresses");
+#endif
         return false;
+	}
     
     /* Primitive types cannot be merged with reference types */
+	/* XXX only check this in debug mode? */
     if (!dest->typeclass || !y->typeclass)
         typeinfo_merge_error("Trying to merge primitive types.",dest,y);
 
@@ -1162,6 +1575,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
     int i;
     char ind[TYPEINFO_MAXINDENT + 1];
     instruction *ins;
+	basicblock *bptr;
 
     if (indent > TYPEINFO_MAXINDENT) indent = TYPEINFO_MAXINDENT;
     
@@ -1170,7 +1584,11 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
     ind[i] = (char) 0;
     
     if (TYPEINFO_IS_PRIMITIVE(*info)) {
-        fprintf(file,"%sprimitive\n",ind);
+		bptr = (basicblock*) TYPEINFO_RETURNADDRESS(*info);
+		if (bptr)
+			fprintf(file,"%sreturnAddress (L%03d)\n",ind,bptr->debug_nr);
+		else
+			fprintf(file,"%sprimitive\n",ind);
         return;
     }
     
@@ -1235,9 +1653,14 @@ typeinfo_print_short(FILE *file,typeinfo *info)
 {
     int i;
     instruction *ins;
+	basicblock *bptr;
 
     if (TYPEINFO_IS_PRIMITIVE(*info)) {
-        fprintf(file,"primitive");
+		bptr = (basicblock*) TYPEINFO_RETURNADDRESS(*info);
+		if (bptr)
+			fprintf(file,"ret(L%03d)",bptr->debug_nr);
+		else
+			fprintf(file,"primitive");
         return;
     }
     
@@ -1279,15 +1702,73 @@ typeinfo_print_type(FILE *file,int type,typeinfo *info)
       case TYPE_DOUBLE: fprintf(file,"D"); break;
       case TYPE_LONG:   fprintf(file,"J"); break;
       case TYPE_ADDRESS:
-          if (TYPEINFO_IS_PRIMITIVE(*info))
-              fprintf(file,"R"); /* returnAddress */
-          else {
-              typeinfo_print_short(file,info);
-          }
+		  typeinfo_print_short(file,info);
           break;
           
       default:
           fprintf(file,"!");
+    }
+}
+
+void
+typeinfo_print_stacktype(FILE *file,int type,typeinfo *info)
+{
+	if (type == TYPE_ADDRESS && TYPEINFO_IS_PRIMITIVE(*info)) {	
+		typeinfo_retaddr_set *set = (typeinfo_retaddr_set*)
+			TYPEINFO_RETURNADDRESS(*info);
+		fprintf(file,"ret(L%03d",((basicblock*)(set->addr))->debug_nr);
+		set = set->alt;
+		while (set) {
+			fprintf(file,"|L%03d",((basicblock*)(set->addr))->debug_nr);
+			set = set->alt;
+		}
+		fprintf(file,")");
+	}
+	else
+		typeinfo_print_type(file,type,info);
+}
+
+void
+typedescriptor_print(FILE *file,typedescriptor *td)
+{
+	typeinfo_print_type(file,td->type,&(td->info));
+}
+
+void
+typevector_print(FILE *file,typevector *vec,int size)
+{
+    int i;
+
+	fprintf(file,"[%d]",vec->k);
+    for (i=0; i<size; ++i) {
+		fprintf(file," %d=",i);
+        typedescriptor_print(file,vec->td + i);
+    }
+}
+
+void
+typevectorset_print(FILE *file,typevector *set,int size)
+{
+    int i;
+	typevector *vec;
+
+	fprintf(file,"[%d",set->k);
+	vec = set->alt;
+	while (vec) {
+		fprintf(file,"|%d",vec->k);
+		vec = vec->alt;
+	}
+	fprintf(file,"]");
+	
+    for (i=0; i<size; ++i) {
+		fprintf(file," %d=",i);
+        typedescriptor_print(file,set->td + i);
+		vec = set->alt;
+		while (vec) {
+			fprintf(file,"|");
+			typedescriptor_print(file,vec->td + i);
+			vec = vec->alt;
+		}
     }
 }
 

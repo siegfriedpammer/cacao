@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 862 2004-01-06 23:42:01Z stefan $
+   $Id: builtin.c 868 2004-01-10 20:12:10Z edwin $
 
 */
 
@@ -1831,6 +1831,12 @@ inline float longBitsToDouble(s8 l)
 java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o)
 {
 	return (java_arrayheader *) Java_java_lang_VMObject_clone(0, 0, (java_lang_Cloneable *) o);
+}
+
+s4 builtin_dummy()
+{
+	panic("Internal error: builtin_dummy called (native function is missing)");
+	return 0; /* for the compiler */
 }
 
 

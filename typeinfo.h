@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 795 2003-12-16 22:27:52Z edwin $
+   $Id: typeinfo.h 868 2004-01-10 20:12:10Z edwin $
 
 */
 
@@ -40,6 +40,9 @@
 
 typedef struct typeinfo typeinfo;
 typedef struct typeinfo_mergedlist typeinfo_mergedlist;
+typedef struct typedescriptor typedescriptor;
+typedef struct typevector typevector;
+typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
 
 /* global variables ***********************************************************/
 
@@ -134,25 +137,65 @@ typedef struct typeinfo_mergedlist typeinfo_mergedlist;
  *          access typeinfo structures!
  */
 struct typeinfo {
-        classinfo           *typeclass;
-        classinfo           *elementclass; /* valid if dimension>0 */
-        typeinfo_mergedlist *merged;
-        u1                   dimension;
-        u1                   elementtype;  /* valid if dimension>0 */
+	classinfo           *typeclass;
+	classinfo           *elementclass; /* valid if dimension>0 */ /* XXX various uses */
+	typeinfo_mergedlist *merged;
+	u1                   dimension;
+	u1                   elementtype;  /* valid if dimension>0 */
 };
 
 struct typeinfo_mergedlist {
-        s4         count;
-        classinfo *list[1]; /* variable length! */
+	s4         count;
+	classinfo *list[1];       /* variable length!                        */
+};
+
+struct typeinfo_retaddr_set {
+	typeinfo_retaddr_set *alt;  /* next alternative in set               */
+	void                 *addr; /* return address                        */
+};
+
+struct typedescriptor {
+	typeinfo        info;     /* valid if type == TYPE_ADR               */
+	u1              type;     /* basic type (TYPE_INT, ...)              */
+};
+
+/* typevectors are used to store the types of local variables */
+
+struct typevector {
+	typevector      *alt;     /* next alternative in typevector set */
+	int              k;       /* for lining up with the stack set   */
+	typedescriptor   td[1];   /* variable length!                   */
 };
 
 /****************************************************************************/
 /* MACROS                                                                   */
 /****************************************************************************/
 
-/* NOTE: These macros take typeinfo *structs* not pointers as arguments.
- *       You have to dereference any pointers.
+/* NOTE: The TYPEINFO macros take typeinfo *structs*, not pointers as
+ *       arguments.  You have to dereference any pointers.
  */
+
+/* typevectors **************************************************************/
+
+#define TYPEVECTOR_SIZE(size)						\
+    ((sizeof(typevector) - sizeof(typedescriptor))	\
+     + (size)*sizeof(typedescriptor))
+
+#define DNEW_TYPEVECTOR(size)						\
+    ((typevector*)dump_alloc(TYPEVECTOR_SIZE(size)))
+
+#define DMNEW_TYPEVECTOR(num,size)						\
+    ((void*)dump_alloc((num) * TYPEVECTOR_SIZE(size)))
+
+#define MGET_TYPEVECTOR(array,index,size) \
+    ((typevector*) (((u1*)(array)) + TYPEVECTOR_SIZE(size) * (index)))
+
+#define COPY_TYPEVECTORSET(src,dst,size)						\
+    do {memcpy(dst,src,TYPEVECTOR_SIZE(size));					\
+        dst->k = 0;                                             \
+        if ((src)->alt) {										\
+	        (dst)->alt = typevectorset_copy((src)->alt,1,size);	\
+        }} while(0)
 
 /* internally used macros ***************************************************/
 
@@ -181,6 +224,10 @@ struct typeinfo_mergedlist {
 
 #define TYPEINFO_IS_NEWOBJECT(info)                             \
             ((info).typeclass == pseudo_class_New)
+
+/* only use this if TYPEINFO_IS_PRIMITIVE returned true! */
+#define TYPEINFO_RETURNADDRESS(info)                            \
+            ((void *)(info).elementclass)
 
 /* only use this if TYPEINFO_IS_NEWOBJECT returned true! */
 #define TYPEINFO_NEWOBJECT_INSTRUCTION(info)                    \
@@ -215,6 +262,20 @@ struct typeinfo_mergedlist {
             ( TYPEINFO_IS_ARRAY(info)                           \
               && TYPEINFO_IS_ARRAY_OF_REFS_NOCHECK(info) )
 
+#define TYPE_IS_RETURNADDRESS(type,info)                        \
+            ( ((type)==TYPE_ADDRESS)                            \
+              && TYPEINFO_IS_PRIMITIVE(info) )
+
+#define TYPE_IS_REFERENCE(type,info)                            \
+            ( ((type)==TYPE_ADDRESS)                            \
+              && !TYPEINFO_IS_PRIMITIVE(info) )
+
+#define TYPEDESC_IS_RETURNADDRESS(td)                           \
+            TYPE_IS_RETURNADDRESS((td).type,(td).info)
+
+#define TYPEDESC_IS_REFERENCE(td)                               \
+            TYPE_IS_REFERENCE((td).type,(td).info)
+
 /* queries allowing the null type ********************************************/
 
 #define TYPEINFO_MAYBE_ARRAY(info)                              \
@@ -231,6 +292,13 @@ struct typeinfo_mergedlist {
 #define TYPEINFO_INIT_PRIMITIVE(info)                           \
          do {(info).typeclass = NULL;                           \
              (info).elementclass = NULL;                        \
+             (info).merged = NULL;                              \
+             (info).dimension = 0;                              \
+             (info).elementtype = 0;} while(0)
+
+#define TYPEINFO_INIT_RETURNADDRESS(info,adr)                   \
+         do {(info).typeclass = NULL;                           \
+             (info).elementclass = (classinfo*) (adr);          \
              (info).merged = NULL;                              \
              (info).dimension = 0;                              \
              (info).elementtype = 0;} while(0)
@@ -316,6 +384,39 @@ struct typeinfo_mergedlist {
 /* FUNCTIONS                                                                */
 /****************************************************************************/
 
+/* typevector functions *****************************************************/
+
+/* element read-only access */
+bool typevectorset_checktype(typevector *set,int index,int type);
+bool typevectorset_checkreference(typevector *set,int index);
+bool typevectorset_checkretaddr(typevector *set,int index);
+int typevectorset_copymergedtype(typevector *set,int index,typeinfo *dst);
+typeinfo *typevectorset_mergedtypeinfo(typevector *set,int index,typeinfo *temp);
+int typevectorset_mergedtype(typevector *set,int index,typeinfo *temp,typeinfo **result);
+
+/* element write access */
+void typevectorset_store(typevector *set,int index,int type,typeinfo *info);
+void typevectorset_store_retaddr(typevector *set,int index,typeinfo *info);
+void typevectorset_store_twoword(typevector *set,int index,int type);
+void typevectorset_init_object(typevector *set,void *ins,classinfo *initclass,int size);
+
+/* vector functions */
+bool typevector_separable_from(typevector *a,typevector *b,int size);
+bool typevector_merge(typevector *dst,typevector *y,int size);
+
+/* vector set functions */
+typevector *typevectorset_copy(typevector *src,int k,int size);
+/* typevector *typevectorset_copy_select(typevector *src,
+   int retindex,void *retaddr,int size);
+   void typevectorset_copy_select_to(typevector *src,typevector *dst,
+   int retindex,void *retaddr,int size); */
+/* bool typevectorset_separable(typevector *set,int size); */
+bool typevectorset_separable_with(typevector *set,typevector *add,int size);
+bool typevectorset_collapse(typevector *dst,int size);
+void typevectorset_add(typevector *dst,typevector *v,int size);
+/* void typevectorset_union(typevector *dst,typevector *v,int size); */
+typevector *typevectorset_select(typevector **set,int retindex,void *retaddr);
+
 /* inquiry functions (read-only) ********************************************/
 
 bool typeinfo_is_array(typeinfo *info);
@@ -335,6 +436,10 @@ void typeinfo_init_from_method_args(utf *desc,u1 *typebuf,
                                     typeinfo *infobuf,
                                     int buflen,bool twoword,
                                     int *returntype,typeinfo *returntypeinfo);
+int  typedescriptors_init_from_method_args(typedescriptor *td,
+										   utf *desc,
+										   int buflen,bool twoword,
+										   typedescriptor *returntype);
 
 void typeinfo_clone(typeinfo *src,typeinfo *dest);
 
@@ -355,6 +460,10 @@ void typeinfo_init_from_fielddescriptor(typeinfo *info,char *desc);
 void typeinfo_print(FILE *file,typeinfo *info,int indent);
 void typeinfo_print_short(FILE *file,typeinfo *info);
 void typeinfo_print_type(FILE *file,int type,typeinfo *info);
+void typeinfo_print_stacktype(FILE *file,int type,typeinfo *info);
+void typedescriptor_print(FILE *file,typedescriptor *td);
+void typevector_print(FILE *file,typevector *vec,int size);
+void typevectorset_print(FILE *file,typevector *set,int size);
 
 #endif /* TYPEINFO_DEBUG */
 

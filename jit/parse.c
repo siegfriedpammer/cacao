@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 863 2004-01-07 18:50:41Z edwin $
+   $Id: parse.c 868 2004-01-10 20:12:10Z edwin $
 
 */
 
@@ -334,6 +334,13 @@ void descriptor2types(methodinfo *m)
 #define LOADCONST_F(v) iptr->opc=ICMD_FCONST;iptr->op1=0;iptr->val.f=(v);PINC
 #define LOADCONST_D(v) iptr->opc=ICMD_DCONST;iptr->op1=0;iptr->val.d=(v);PINC
 #define LOADCONST_A(v) iptr->opc=ICMD_ACONST;iptr->op1=0;iptr->val.a=(v);PINC
+
+/* ACONST instructions generated as arguments for builtin functions
+ * have op1 set to non-zero. This is used for stack overflow checking
+ * in stack.c. */
+#define LOADCONST_A_BUILTIN(v) \
+                       iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);PINC
+
 #define OP(o)          iptr->opc=(o);iptr->op1=0;iptr->val.l=0;PINC
 #define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);iptr->val.l=(0);PINC
 #define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);PINC
@@ -903,7 +910,7 @@ void parse()
 			i = code_get_u2(p + 1);
 			{
  					classinfo *component = (classinfo*)class_getconstant(class, i, CONSTANT_Class);
- 				 	LOADCONST_A(class_array_of(component)->vftbl);
+ 				 	LOADCONST_A_BUILTIN(class_array_of(component)->vftbl);
 
 				s_count++;
 
@@ -1246,7 +1253,7 @@ void parse()
 		case JAVA_NEW:
 			i = code_get_u2 (p+1);
 
-			LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
+			LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
 			s_count++;
 			BUILTIN1(BUILTIN_new, TYPE_ADR);
 			break;
@@ -1260,13 +1267,13 @@ void parse()
  					classinfo *cls = (classinfo*)class_getconstant(class, i, CONSTANT_Class);
  					if (cls->vftbl->arraydesc) {
  						/* array type cast-check */
- 						LOADCONST_A(cls->vftbl);
+ 						LOADCONST_A_BUILTIN(cls->vftbl);
  						s_count++;
  						BUILTIN2(BUILTIN_checkarraycast, TYPE_ADR);
   					}
  					else { /* object type cast-check */
  						/*
-+ 						  LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
++ 						  LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
 + 						  s_count++;
 + 						  BUILTIN2(BUILTIN_checkcast, TYPE_ADR);
 + 						*/
@@ -1286,13 +1293,13 @@ void parse()
  					classinfo *cls = (classinfo*)class_getconstant(class, i, CONSTANT_Class);
  					if (cls->vftbl->arraydesc) {
  						/* array type cast-check */
- 						LOADCONST_A(cls->vftbl);
+ 						LOADCONST_A_BUILTIN(cls->vftbl);
  						s_count++;
  						BUILTIN2(BUILTIN_arrayinstanceof, TYPE_INT);
   					}
  					else { /* object type cast-check */
  						/*
- 						  LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
+ 						  LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
  						  s_count++;
  						  BUILTIN2(BUILTIN_instanceof, TYPE_INT);
 + 						*/

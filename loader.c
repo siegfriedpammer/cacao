@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 867 2004-01-07 22:05:04Z edwin $
+   $Id: loader.c 868 2004-01-10 20:12:10Z edwin $
 
 */
 
@@ -744,10 +744,13 @@ static void checkfielddescriptor (char *utf_ptr, char *end_pos)
 
     checks whether a method-descriptor is valid and aborts otherwise.
     All referenced classes are inserted into the list of unloaded classes.
+
+    The number of arguments is returned. A long or double argument is counted
+    as two arguments.
 	
 *******************************************************************************/
 
-static void checkmethoddescriptor (utf *d)
+static int checkmethoddescriptor (utf *d)
 {
 	char *utf_ptr = d->text;     /* current position in utf text   */
 	char *end_pos = utf_end(d);  /* points behind utf string       */
@@ -761,9 +764,9 @@ static void checkmethoddescriptor (utf *d)
 		/* XXX we cannot count the this argument here because
 		 * we don't know if the method is static. */
 		if (*utf_ptr == 'J' || *utf_ptr == 'D')
+			argcount+=2;
+		else
 			argcount++;
-		if (++argcount > 255)
-			panic("Invalid method descriptor: too many arguments");
 		class_from_descriptor(utf_ptr,end_pos,&utf_ptr,
 							  CLASSLOAD_NEW
 							  | CLASSLOAD_NULLPRIMITIVE
@@ -777,6 +780,11 @@ static void checkmethoddescriptor (utf *d)
 						  CLASSLOAD_NEW
 						  | CLASSLOAD_NULLPRIMITIVE
 						  | CLASSLOAD_CHECKEND);
+
+	if (argcount > 255)
+		panic("Invalid method descriptor: too many arguments");
+
+	return argcount;
 
 	/* XXX use the following if -noverify */
 #if 0
@@ -897,6 +905,8 @@ static void field_load(fieldinfo *f, classinfo *c)
 			if ((f->flags & (ACC_STATIC | ACC_PUBLIC | ACC_FINAL))
 				!= (ACC_STATIC | ACC_PUBLIC | ACC_FINAL))
 				panic("Interface field is not declared static final public");
+			if ((f->flags & ACC_TRANSIENT) != 0)
+				panic("Interface field declared transient");
 		}
 	}
 		
@@ -1021,6 +1031,7 @@ void field_display(fieldinfo *f)
 static void method_load(methodinfo *m, classinfo *c)
 {
 	u4 attrnum, i, e;
+	int argcount;
 	
 #ifdef STATISTICS
 	count_all_methods++;
@@ -1031,10 +1042,15 @@ static void method_load(methodinfo *m, classinfo *c)
 	m->flags = suck_u2();
 	m->name = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
 	m->descriptor = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
-	checkmethoddescriptor(m->descriptor);	
+	argcount = checkmethoddescriptor(m->descriptor);
+	if ((m->flags & ACC_STATIC) == 0)
+		argcount++; /* count the 'this' argument */
 
-	/* check flag consistency */
 	if (opt_verify) {
+		if (argcount > 255)
+			panic("Method has more than 255 arguments");
+
+		/* check flag consistency */
 		/* XXX could check if <clinit> is STATIC */
 		if (m->name != utf_clinit) {
 			i = (m->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
@@ -1102,6 +1118,9 @@ static void method_load(methodinfo *m, classinfo *c)
 			suck_u4();
 			m->maxstack = suck_u2();
 			m->maxlocals = suck_u2();
+			if (m->maxlocals < argcount)
+				panic("max_locals is smaller than the number of arguments");
+			
 			codelen = suck_u4();
 			if (codelen == 0)
 				panic("bytecode has zero length");
@@ -1471,7 +1490,10 @@ static void class_loadcpool(classinfo *c)
 				ASSERT_LEFT(length);
 				if (opt_verify &&
 					!is_valid_utf(classbuf_pos+1, classbuf_pos+1+length))
-					panic("Invalid UTF-8 string"); 
+				{
+					dolog("Invalid UTF-8 string (constant pool index %d)",idx);
+					panic("Invalid UTF-8 string");
+				}
 				/* insert utf-string into the utf-symboltable */
 				cpinfos [idx] = utf_new(classbuf_pos+1, length);
 				/* skip bytes of the string */
@@ -1653,11 +1675,18 @@ static int class_load(classinfo *c)
 
 	/* check ACC flags consistency */
 	if ((c->flags & ACC_INTERFACE) != 0) {
-		if ((c->flags & ACC_ABSTRACT) == 0)
-			panic("Interface class not declared abstract");
+		if ((c->flags & ACC_ABSTRACT) == 0) {
+			/* XXX We work around this because interfaces in JDK 1.1 are
+			 * not declared abstract. */
+
+			c->flags |= ACC_ABSTRACT;
+			/* panic("Interface class not declared abstract"); */
+		}
 		if ((c->flags & (ACC_FINAL | ACC_SUPER)) != 0)
 			panic("Interface class has invalid flags");
 	}
+	if ((c->flags & (ACC_ABSTRACT | ACC_FINAL)) == (ACC_ABSTRACT | ACC_FINAL))
+		panic("Class is declared both abstract and final");
 
 	/* this class */
 	i = suck_u2();
@@ -2052,8 +2081,13 @@ void class_link(classinfo *c)
 			list_addlast(&unlinkedclasses, c);
 			return;	
 		}
-		if ((ic->flags & ACC_INTERFACE) == 0)
+		if ((ic->flags & ACC_INTERFACE) == 0) {
+			dolog("Specified interface is not declared as interface:");
+			log_utf(ic->name);
+			dolog("in");
+			log_utf(c->name);
 			panic("Specified interface is not declared as interface");
+		}
 	}
 	
 	/*  check super class */
