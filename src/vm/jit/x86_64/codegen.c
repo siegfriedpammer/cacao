@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1304 2004-07-11 14:31:53Z stefan $
+   $Id: codegen.c 1319 2004-07-16 13:45:50Z twisti $
 
 */
 
@@ -213,6 +213,7 @@ void codegen(methodinfo *m)
 {
 	s4 len, s1, s2, s3, d;
 	s8 a;
+	s4 parentargs_base;
 	stackptr        src;
 	varinfo        *var;
 	basicblock     *bptr;
@@ -722,28 +723,24 @@ void codegen(methodinfo *m)
 		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
 			break;
 
-#define M_COPY(from,to) \
-	        d = reg_of_var(m, to, REG_ITMP1); \
-			if ((from->regoff != to->regoff) || \
-			    ((from->flags ^ to->flags) & INMEMORY)) { \
-				if (IS_FLT_DBL_TYPE(from->type)) { \
-					var_to_reg_flt(s1, from, d); \
-					M_FLTMOVE(s1, d); \
-					store_reg_to_var_flt(to, d); \
-				} else { \
-					var_to_reg_int(s1, from, d); \
-					M_INTMOVE(s1, d); \
-					store_reg_to_var_int(to, d); \
-				} \
-			}
-
 		case ICMD_DUP:        /* ..., a ==> ..., a, a                         */
 			M_COPY(src, iptr->dst);
 			break;
 
 		case ICMD_DUP_X1:     /* ..., a, b ==> ..., b, a, b                   */
 
-			M_COPY(src,       iptr->dst->prev->prev);
+			M_COPY(src,       iptr->dst);
+			M_COPY(src->prev, iptr->dst->prev);
+			M_COPY(iptr->dst, iptr->dst->prev->prev);
+			break;
+
+		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
+
+			M_COPY(src,             iptr->dst);
+			M_COPY(src->prev,       iptr->dst->prev);
+			M_COPY(src->prev->prev, iptr->dst->prev->prev);
+			M_COPY(iptr->dst,       iptr->dst->prev->prev->prev);
+			break;
 
 		case ICMD_DUP2:       /* ..., a, b ==> ..., a, b, a, b                */
 
@@ -753,14 +750,11 @@ void codegen(methodinfo *m)
 
 		case ICMD_DUP2_X1:    /* ..., a, b, c ==> ..., b, c, a, b, c          */
 
-			M_COPY(src->prev,       iptr->dst->prev->prev->prev);
-
-		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
-
 			M_COPY(src,             iptr->dst);
 			M_COPY(src->prev,       iptr->dst->prev);
 			M_COPY(src->prev->prev, iptr->dst->prev->prev);
-			M_COPY(src, iptr->dst->prev->prev->prev);
+			M_COPY(iptr->dst,       iptr->dst->prev->prev->prev);
+			M_COPY(iptr->dst->prev, iptr->dst->prev->prev->prev->prev);
 			break;
 
 		case ICMD_DUP2_X2:    /* ..., a, b, c, d ==> ..., c, d, a, b, c, d    */
@@ -769,13 +763,13 @@ void codegen(methodinfo *m)
 			M_COPY(src->prev,             iptr->dst->prev);
 			M_COPY(src->prev->prev,       iptr->dst->prev->prev);
 			M_COPY(src->prev->prev->prev, iptr->dst->prev->prev->prev);
-			M_COPY(src,       iptr->dst->prev->prev->prev->prev);
-			M_COPY(src->prev, iptr->dst->prev->prev->prev->prev->prev);
+			M_COPY(iptr->dst,             iptr->dst->prev->prev->prev->prev);
+			M_COPY(iptr->dst->prev,       iptr->dst->prev->prev->prev->prev->prev);
 			break;
 
 		case ICMD_SWAP:       /* ..., a, b ==> ..., b, a                      */
 
-			M_COPY(src, iptr->dst->prev);
+			M_COPY(src,       iptr->dst->prev);
 			M_COPY(src->prev, iptr->dst);
 			break;
 

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1298 2004-07-10 17:06:21Z stefan $
+   $Id: codegen.c 1319 2004-07-16 13:45:50Z twisti $
 
 */
 
@@ -109,122 +109,6 @@ int nregdescfloat[] = {
 	REG_END };
 
 /* for use of reserved registers, see comment above */
-
-
-/* parameter allocation mode */
-
-int nreg_parammode = PARAMMODE_NUMBERED;  
-
-   /* parameter-registers will be allocated by assigning the
-      1. parameter:   int/float-reg 16
-      2. parameter:   int/float-reg 17  
-      3. parameter:   int/float-reg 18 ....
-   */
-
-
-/* stackframe-infos ***********************************************************/
-
-int parentargs_base; /* offset in stackframe for the parameter from the caller*/
-
-/* -> see file 'calling.doc' */
-
-
-/* additional functions and macros to generate code ***************************/
-
-/* #define BlockPtrOfPC(pc)        block+block_index[pc] */
-#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
-
-
-#ifdef STATISTICS
-#define COUNT_SPILLS count_spills++
-#else
-#define COUNT_SPILLS
-#endif
-
-
-/* gen_nullptr_check(objreg) */
-
-#define gen_nullptr_check(objreg) \
-    if (checknull) { \
-        M_BEQZ((objreg), 0); \
-        codegen_addxnullrefs(mcodeptr); \
-    }
-
-
-/* MCODECHECK(icnt) */
-
-#define MCODECHECK(icnt) \
-	if((mcodeptr + (icnt)) > mcodeend) mcodeptr = codegen_increase((u1*) mcodeptr)
-
-/* M_INTMOVE:
-     generates an integer-move from register a to b.
-     if a and b are the same int-register, no code will be generated.
-*/ 
-
-#define M_INTMOVE(a,b) if (a != b) { M_MOV(a, b); }
-
-
-/* M_FLTMOVE:
-    generates a floating-point-move from register a to b.
-    if a and b are the same float-register, no code will be generated
-*/ 
-
-#define M_FLTMOVE(a,b) if (a != b) { M_FMOV(a, b); }
-
-
-/* var_to_reg_xxx:
-    this function generates code to fetch data from a pseudo-register
-    into a real register. 
-    If the pseudo-register has actually been assigned to a real 
-    register, no code will be emitted, since following operations
-    can use this register directly.
-    
-    v: pseudoregister to be fetched from
-    tempregnum: temporary register to be used if v is actually spilled to ram
-
-    return: the register number, where the operand can be found after 
-            fetching (this wil be either tempregnum or the register
-            number allready given to v)
-*/
-
-#define var_to_reg_int(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) \
-		{COUNT_SPILLS;M_LLD(tempnr,REG_SP,8*(v)->regoff);regnr=tempnr;} \
-	else regnr=(v)->regoff; \
-}
-
-
-#define var_to_reg_flt(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) \
-		{COUNT_SPILLS;M_DLD(tempnr,REG_SP,8*(v)->regoff);regnr=tempnr;} \
-	else regnr=(v)->regoff; \
-}
-
-
-/* store_reg_to_var_xxx:
-    This function generates the code to store the result of an operation
-    back into a spilled pseudo-variable.
-    If the pseudo-variable has not been spilled in the first place, this 
-    function will generate nothing.
-    
-    v ............ Pseudovariable
-    tempregnum ... Number of the temporary registers as returned by
-                   reg_of_var.
-*/	
-
-#define store_reg_to_var_int(sptr, tempregnum) {       \
-	if ((sptr)->flags & INMEMORY) {                    \
-		COUNT_SPILLS;                                  \
-		M_LST(tempregnum, REG_SP, 8 * (sptr)->regoff); \
-		}                                              \
-	}
-
-#define store_reg_to_var_flt(sptr, tempregnum) {       \
-	if ((sptr)->flags & INMEMORY) {                    \
-		COUNT_SPILLS;                                  \
-		M_DST(tempregnum, REG_SP, 8 * (sptr)->regoff); \
-		}                                              \
-	}
 
 
 /* NullPointerException handlers and exception handling initialisation        */
@@ -348,8 +232,9 @@ ieee_set_fp_control(ieee_get_fp_control()
 
 void codegen(methodinfo *m)
 {
-	s4   len, s1, s2, s3, d;
-	s4   a;
+	s4 len, s1, s2, s3, d;
+	s4 a;
+	s4 parentargs_base;
 	s4             *mcodeptr;
 	stackptr        src;
 	varinfo        *var;
@@ -809,29 +694,24 @@ void codegen(methodinfo *m)
 		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
 			break;
 
-#define M_COPY(from,to) \
-			d = reg_of_var(m, to, REG_IFTMP); \
-			if ((from->regoff != to->regoff) || \
-			    ((from->flags ^ to->flags) & INMEMORY)) { \
-				if (IS_FLT_DBL_TYPE(from->type)) { \
-					var_to_reg_flt(s1, from, d); \
-					M_FLTMOVE(s1,d); \
-					store_reg_to_var_flt(to, d); \
-					}\
-				else { \
-					var_to_reg_int(s1, from, d); \
-					M_INTMOVE(s1,d); \
-					store_reg_to_var_int(to, d); \
-					}\
-				}
-
 		case ICMD_DUP:        /* ..., a ==> ..., a, a                         */
 			M_COPY(src, iptr->dst);
 			break;
 
 		case ICMD_DUP_X1:     /* ..., a, b ==> ..., b, a, b                   */
 
-			M_COPY(src,       iptr->dst->prev->prev);
+			M_COPY(src,       iptr->dst);
+			M_COPY(src->prev, iptr->dst->prev);
+			M_COPY(iptr->dst, iptr->dst->prev->prev);
+			break;
+
+		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
+
+			M_COPY(src,             iptr->dst);
+			M_COPY(src->prev,       iptr->dst->prev);
+			M_COPY(src->prev->prev, iptr->dst->prev->prev);
+			M_COPY(iptr->dst,       iptr->dst->prev->prev->prev);
+			break;
 
 		case ICMD_DUP2:       /* ..., a, b ==> ..., a, b, a, b                */
 
@@ -841,14 +721,11 @@ void codegen(methodinfo *m)
 
 		case ICMD_DUP2_X1:    /* ..., a, b, c ==> ..., b, c, a, b, c          */
 
-			M_COPY(src->prev,       iptr->dst->prev->prev->prev);
-
-		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
-
 			M_COPY(src,             iptr->dst);
 			M_COPY(src->prev,       iptr->dst->prev);
 			M_COPY(src->prev->prev, iptr->dst->prev->prev);
-			M_COPY(src, iptr->dst->prev->prev->prev);
+			M_COPY(iptr->dst,       iptr->dst->prev->prev->prev);
+			M_COPY(iptr->dst->prev, iptr->dst->prev->prev->prev->prev);
 			break;
 
 		case ICMD_DUP2_X2:    /* ..., a, b, c, d ==> ..., c, d, a, b, c, d    */
@@ -857,13 +734,13 @@ void codegen(methodinfo *m)
 			M_COPY(src->prev,             iptr->dst->prev);
 			M_COPY(src->prev->prev,       iptr->dst->prev->prev);
 			M_COPY(src->prev->prev->prev, iptr->dst->prev->prev->prev);
-			M_COPY(src,       iptr->dst->prev->prev->prev->prev);
-			M_COPY(src->prev, iptr->dst->prev->prev->prev->prev->prev);
+			M_COPY(iptr->dst,             iptr->dst->prev->prev->prev->prev);
+			M_COPY(iptr->dst->prev,       iptr->dst->prev->prev->prev->prev->prev);
 			break;
 
 		case ICMD_SWAP:       /* ..., a, b ==> ..., b, a                      */
 
-			M_COPY(src, iptr->dst->prev);
+			M_COPY(src,       iptr->dst->prev);
 			M_COPY(src->prev, iptr->dst);
 			break;
 
@@ -3257,7 +3134,6 @@ nowperformreturn:
 
 gen_method: {
 			methodinfo *lm;
-			classinfo  *ci;
 
 			MCODECHECK((s3 << 1) + 64);
 
@@ -3292,56 +3168,46 @@ gen_method: {
 
 			lm = iptr->val.a;
 			switch (iptr->opc) {
-				case ICMD_BUILTIN3:
-				case ICMD_BUILTIN2:
-				case ICMD_BUILTIN1:
-					a = dseg_addaddress((void *) lm);
+			case ICMD_BUILTIN3:
+			case ICMD_BUILTIN2:
+			case ICMD_BUILTIN1:
+				a = dseg_addaddress((void *) lm);
+				d = iptr->op1;
 
-					M_ALD(REG_PV, REG_PV, a); /* Pointer to built-in-function */
-					d = iptr->op1;
-					goto makeactualcall;
+				M_ALD(REG_PV, REG_PV, a);     /* Pointer to built-in-function */
+				break;
 
-				case ICMD_INVOKESTATIC:
-				case ICMD_INVOKESPECIAL:
-					a = dseg_addaddress(lm->stubroutine);
+			case ICMD_INVOKESTATIC:
+			case ICMD_INVOKESPECIAL:
+				a = dseg_addaddress(lm->stubroutine);
+				d = lm->returntype;
 
-					M_ALD(REG_PV, REG_PV, a);        /* method pointer in r27 */
+				M_ALD(REG_PV, REG_PV, a);            /* method pointer in r27 */
+				break;
 
-					d = lm->returntype;
-					goto makeactualcall;
+			case ICMD_INVOKEVIRTUAL:
+				d = lm->returntype;
 
-				case ICMD_INVOKEVIRTUAL:
+				gen_nullptr_check(r->argintregs[0]);
+				M_ALD(REG_METHODPTR, r->argintregs[0],
+					  OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_PV, REG_METHODPTR, OFFSET(vftbl_t, table[0]) +
+					  sizeof(methodptr) * lm->vftblindex);
+				break;
 
-					gen_nullptr_check(r->argintregs[0]);
-					M_ALD(REG_METHODPTR, r->argintregs[0],
-						  OFFSET(java_objectheader, vftbl));
-					M_ALD(REG_PV, REG_METHODPTR, OFFSET(vftbl_t, table[0]) +
-						  sizeof(methodptr) * lm->vftblindex);
-
-					d = lm->returntype;
-					goto makeactualcall;
-
-				case ICMD_INVOKEINTERFACE:
-					ci = lm->class;
+			case ICMD_INVOKEINTERFACE:
+				d = lm->returntype;
 					
-					gen_nullptr_check(r->argintregs[0]);
-					M_ALD(REG_METHODPTR, r->argintregs[0],
-						  OFFSET(java_objectheader, vftbl));    
-					M_ALD(REG_METHODPTR, REG_METHODPTR,
-					      OFFSET(vftbl_t, interfacetable[0]) -
-					      sizeof(methodptr*) * ci->index);
-					M_ALD(REG_PV, REG_METHODPTR,
-						  sizeof(methodptr) * (lm - ci->methods));
-
-					d = lm->returntype;
-					goto makeactualcall;
-
-				default:
-					d = 0;
-					error ("Unkown ICMD-Command: %d", iptr->opc);
-				}
-
-makeactualcall:
+				gen_nullptr_check(r->argintregs[0]);
+				M_ALD(REG_METHODPTR, r->argintregs[0],
+					  OFFSET(java_objectheader, vftbl));    
+				M_ALD(REG_METHODPTR, REG_METHODPTR,
+					  OFFSET(vftbl_t, interfacetable[0]) -
+					  sizeof(methodptr*) * lm->class->index);
+				M_ALD(REG_PV, REG_METHODPTR,
+					  sizeof(methodptr) * (lm - lm->class->methods));
+				break;
+			}
 
 			M_JSR(REG_RA, REG_PV);
 

@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 1291 2004-07-09 13:20:56Z twisti $
+   $Id: codegen.h 1319 2004-07-16 13:45:50Z twisti $
 
 */
 
@@ -232,6 +232,22 @@
 		COUNT_SPILLS;                                  \
 		M_DST(tempregnum, REG_SP, 8 * (sptr)->regoff); \
 		}                                              \
+	}
+
+
+#define M_COPY(from,to) \
+	d = reg_of_var(m, to, REG_IFTMP); \
+	if ((from->regoff != to->regoff) || \
+	    ((from->flags ^ to->flags) & INMEMORY)) { \
+		if (IS_FLT_DBL_TYPE(from->type)) { \
+			var_to_reg_flt(s1, from, d); \
+			M_TFLTMOVE(from->type, s1, d); \
+			store_reg_to_var_flt(to, d); \
+		} else { \
+			var_to_reg_int(s1, from, d); \
+			M_INTMOVE(s1, d); \
+			store_reg_to_var_int(to, d); \
+		} \
 	}
 
 

@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1284 2004-07-07 15:56:17Z twisti $
+   $Id: codegen.h 1319 2004-07-16 13:45:50Z twisti $
 
 */
 
@@ -452,6 +452,22 @@ typedef enum {
          COUNT_SPILLS; \
          x86_64_movq_reg_membase(tempregnum, REG_SP, (sptr)->regoff * 8); \
     }
+
+
+#define M_COPY(from,to) \
+    d = reg_of_var(m, to, REG_ITMP1); \
+	if ((from->regoff != to->regoff) || \
+	    ((from->flags ^ to->flags) & INMEMORY)) { \
+		if (IS_FLT_DBL_TYPE(from->type)) { \
+			var_to_reg_flt(s1, from, d); \
+			M_FLTMOVE(s1, d); \
+			store_reg_to_var_flt(to, d); \
+		} else { \
+			var_to_reg_int(s1, from, d); \
+			M_INTMOVE(s1, d); \
+			store_reg_to_var_int(to, d); \
+		} \
+	}
 
 
 /* function gen_resolvebranch **************************************************

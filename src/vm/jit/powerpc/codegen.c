@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1309 2004-07-12 23:21:33Z stefan $
+   $Id: codegen.c 1319 2004-07-16 13:45:50Z twisti $
 
 */
 
@@ -81,13 +81,6 @@ int nregdescfloat[] = {
 	REG_END };
 
 /* for use of reserved registers, see comment above */
-
-
-/* stackframe-infos ***********************************************************/
-
-int parentargs_base; /* offset in stackframe for the parameter from the caller*/
-
-/* -> see file 'calling.doc' */
 
 
 /* additional functions and macros to generate code ***************************/
@@ -972,7 +965,18 @@ void codegen(methodinfo *m)
 
 		case ICMD_DUP_X1:     /* ..., a, b ==> ..., b, a, b                   */
 
-			M_COPY(src,       iptr->dst->prev->prev);
+			M_COPY(src,       iptr->dst);
+			M_COPY(src->prev, iptr->dst->prev);
+			M_COPY(iptr->dst, iptr->dst->prev->prev);
+			break;
+
+		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
+
+			M_COPY(src,             iptr->dst);
+			M_COPY(src->prev,       iptr->dst->prev);
+			M_COPY(src->prev->prev, iptr->dst->prev->prev);
+			M_COPY(iptr->dst,       iptr->dst->prev->prev->prev);
+			break;
 
 		case ICMD_DUP2:       /* ..., a, b ==> ..., a, b, a, b                */
 
@@ -982,14 +986,11 @@ void codegen(methodinfo *m)
 
 		case ICMD_DUP2_X1:    /* ..., a, b, c ==> ..., b, c, a, b, c          */
 
-			M_COPY(src->prev,       iptr->dst->prev->prev->prev);
-
-		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
-
 			M_COPY(src,             iptr->dst);
 			M_COPY(src->prev,       iptr->dst->prev);
 			M_COPY(src->prev->prev, iptr->dst->prev->prev);
-			M_COPY(src, iptr->dst->prev->prev->prev);
+			M_COPY(iptr->dst,       iptr->dst->prev->prev->prev);
+			M_COPY(iptr->dst->prev, iptr->dst->prev->prev->prev->prev);
 			break;
 
 		case ICMD_DUP2_X2:    /* ..., a, b, c, d ==> ..., c, d, a, b, c, d    */
@@ -998,13 +999,13 @@ void codegen(methodinfo *m)
 			M_COPY(src->prev,             iptr->dst->prev);
 			M_COPY(src->prev->prev,       iptr->dst->prev->prev);
 			M_COPY(src->prev->prev->prev, iptr->dst->prev->prev->prev);
-			M_COPY(src,       iptr->dst->prev->prev->prev->prev);
-			M_COPY(src->prev, iptr->dst->prev->prev->prev->prev->prev);
+			M_COPY(iptr->dst,             iptr->dst->prev->prev->prev->prev);
+			M_COPY(iptr->dst->prev,       iptr->dst->prev->prev->prev->prev->prev);
 			break;
 
 		case ICMD_SWAP:       /* ..., a, b ==> ..., b, a                      */
 
-			M_COPY(src, iptr->dst->prev);
+			M_COPY(src,       iptr->dst->prev);
 			M_COPY(src->prev, iptr->dst);
 			break;
 
