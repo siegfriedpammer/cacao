@@ -1,4 +1,4 @@
-/* headers.c - main for header generation (cacaoh)
+/* headers.c - functions for header generation
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,8 +28,9 @@
 
    Changes: Mark Probst
             Philipp Tomsich
+            Christian Thalinger
 
-   $Id: headers.c 1220 2004-06-29 14:38:55Z twisti $
+   $Id: headers.c 1244 2004-06-30 20:14:20Z twisti $
 
 */
 
@@ -41,43 +42,13 @@
 #include "global.h"
 #include "tables.h"
 #include "loader.h"
+#include "options.h"
 #include "builtin.h"
 #include "mm/boehm.h"
 #include "toolbox/chain.h"
 #include "toolbox/memory.h"
 #include "toolbox/logging.h"
 #include "nat/java_lang_String.h"
-
-
-/* replace command line options */
-
-bool verbose =  false;
-bool verboseexception =  false;
-bool compileall = false;
-bool runverbose = false;
-bool collectverbose = false;
-
-bool loadverbose = false;
-bool linkverbose = false;
-bool initverbose = false;
-
-bool opt_rt = false;            /* true if RTA parse should be used     RT-CO */
-bool opt_xta = false;           /* true if XTA parse should be used    XTA-CO */
-bool opt_vta = false;           /* true if VTA parse should be used    VTA-CO */
-bool opt_verify = true;        /* true if classfiles should be verified      */
-bool opt_liberalutf = false;   /* Don't check overlong UTF-8 sequences       */
-
-bool opt_stat = false;
-bool opt_eager = false;
-
-bool showmethods = false;
-bool showconstantpool = false;
-bool showutf = false;
-
-bool makeinitializations = true;
-
-bool getloadingtime = false;
-s8 loadingtime = 0;
 
 
 /******* replace some external functions  *********/
@@ -177,7 +148,7 @@ void new_exception_utfmessage(char *classname, utf *message)
 java_objectheader *literalstring_new(utf *u) { return NULL; }  
 
 
-void literalstring_free(java_objectheader *o) { }
+void literalstring_free(java_objectheader *o) {}
 void stringtable_update() { }
 void synchronize_caches() { }
 void asm_call_jit_compiler() { }
@@ -241,10 +212,10 @@ java_objectheader *native_new_and_init(void *p) { return NULL; }
 
 THREADSPECIFIC java_objectheader *_exceptionptr;
 
-static chain *nativemethod_chain;    /* chain with native methods     */
-static chain *nativeclass_chain;		               /* chain with processed classes  */	
-static chain *ident_chain;        /* chain with method and field names in current class */
-static FILE *file = NULL;
+chain *nativemethod_chain;              /* chain with native methods          */
+chain *nativeclass_chain;               /* chain with processed classes       */
+static chain *ident_chain; /* chain with method and field names in current class */
+FILE *file = NULL;
 static u4 outputsize;
 static bool dopadding;
 
@@ -432,7 +403,7 @@ static void printfields(classinfo *c)
 
 /***************** store prototype for native method in file ******************/
 
-static void printmethod(methodinfo *m)
+void printmethod(methodinfo *m)
 {
 	char *utf_ptr;
 	u2 paramnum = 1;
@@ -489,13 +460,17 @@ static void printmethod(methodinfo *m)
 
 /******* remove package-name in fully-qualified classname *********************/
 
-static void gen_header_filename(char *buffer, utf *u)
+void gen_header_filename(char *buffer, utf *u)
 {
-	int i;
+	s4 i;
   
-	for (i = 0;i < utf_strlen(u); i++) {
-		if ((u->text[i] == '/') || (u->text[i] == '$')) buffer[i] = '_';  /* convert '$' and '/' to '_' */
-		else buffer[i] = u->text[i];
+	for (i = 0; i < utf_strlen(u); i++) {
+		if ((u->text[i] == '/') || (u->text[i] == '$')) {
+			buffer[i] = '_';  /* convert '$' and '/' to '_' */
+
+		} else {
+			buffer[i] = u->text[i];
+		}
 	}
 	buffer[utf_strlen(u)] = '\0';
 }
@@ -503,7 +478,7 @@ static void gen_header_filename(char *buffer, utf *u)
 
 /* create headerfile for classes and store native methods in chain ************/
 
-static void headerfile_generate(classinfo *c)
+void headerfile_generate(classinfo *c)
 {
 	char header_filename[1024] = "";
 	char classname[1024]; 
@@ -620,7 +595,7 @@ void print_classname(classinfo *clazz)
 
 /*************** create table for locating native functions ****************/
 
-static void printnativetableentry(methodinfo *m)
+void printnativetableentry(methodinfo *m)
 {
 	fprintf(file, "   { \"");
 	print_classname(m->class);
@@ -642,210 +617,6 @@ static void printnativetableentry(methodinfo *m)
 	printID(m->name);
 	if (m->nativelyoverloaded) printOverloadPart(m->descriptor);
 	fprintf(file,"\n   },\n");
-}
-
-
-/***************************************************************************
-
-	create the nativetypes-headerfile which includes 
-	the headerfiles of the classes stored in the classes-chain 
-
-****************************************************************************/
-
-static void headers_finish()
-{
-	methodinfo *m;
-	classinfo *c;
-	char classname[1024];
-	
-	file = fopen("nativetypes.hh", "w");
-
-	if (!file)
-		panic("Can not open file 'native.h' to store header information");
-	
-	fprintf(file, "/* Headerfile for native methods: nativetypes.hh */\n");
-	fprintf(file, "/* This file is machine generated, don't edit it !*/\n\n"); 	
-	fprintf(file, "\n/* include native-Headerfiles */\n\n");
-			
-	c = chain_first(nativeclass_chain);
-	while (c) {
-		dopadding = false;
-		gen_header_filename(classname, c->name);										    													
-		fprintf(file, "#include \"nat/%s.h\"\n", classname);		
-		c = chain_next(nativeclass_chain);		
-	}
-
-    fclose(file);
-	chain_free(nativeclass_chain);
-	
-	/* create table of native-methods */
-
-	file = fopen("nativetable.hh", "w");
-
-	if (!file)
-		panic("Can not open file 'nativetable' to store native-link-table");
-
-	fprintf(file, "/* Table of native methods: nativetables.hh */\n");
-	fprintf(file, "/* This file is machine generated, don't edit it !*/\n\n"); 
-
-	while ((m = chain_first(nativemethod_chain)) != NULL) {
-		chain_remove(nativemethod_chain);		
-		printnativetableentry(m);
-	}
-		
-	chain_free(nativemethod_chain);
-	fclose(file);
-}
-
-
-/******************** internal function: print_usage ************************
-
-Prints usage information for the JAVA header generator to stdout.
-
-***************************************************************************/
-
-static void print_usage()
-{
-	printf("Usage: cacaoh class [class..]\n");
-}   
-
-
-
-/************************** Function: main *******************************
-
-   Main program.
-   
-**************************************************************************/
-
-int main(int argc, char **argv)
-{
-	s4 i,a;
-	char *cp;
-	classinfo *topclass;
-		
-
-	/********** internal (only used by main) *****************************/
-   
-	char classpath[500] = "";
-	char offsets_filename[1024] = ""; /* phil */
-	u4 heapmaxsize = 2 * 1024 * 1024;
-	u4 heapstartsize = 100 * 1024;
-
-	/*********** options so only headers are generated *******************/
-   
-	makeinitializations = false;
-   
-
-	/************ Collect some info from the environment *****************/
-
-	cp = getenv("CLASSPATH");
-	if (cp) {
-		strcpy(classpath + strlen(classpath), ":");
-		strcpy(classpath + strlen(classpath), cp);
-	}
-
-	if (argc < 2) {
-   		print_usage();
-   		exit(10);
-	}
-
-
-	/**************************** Program start **************************/
-
-	log_init(NULL);
-	log_text("Java - header-generator started"); 
-	
-	sprintf(offsets_filename, "jit/%s/offsets.h", ARCH_DIR);
-	file = fopen(offsets_filename, "w");
-	if (file == NULL) {
-		fprintf(stderr, "Can not open file '%s' for write", offsets_filename);
-		exit(-1);
-	}
-	
-	fprintf(file, "/* This file is machine generated, don't edit it !*/\n\n"); 
-
-	fprintf(file, "#define offobjvftbl    %3d\n", (int) OFFSET(java_objectheader, vftbl));
-	fprintf(file, "#define offarraysize   %3d\n", (int) OFFSET(java_arrayheader, size));
-	fprintf(file, "#define offobjarrdata  %3d\n\n", (int) OFFSET(java_objectarray, data[0]));
-	fprintf(file, "#define offbaseval     %3d\n", (int) OFFSET(vftbl, baseval));
-	fprintf(file, "#define offdiffval     %3d\n\n", (int) OFFSET(vftbl, diffval));
-	fprintf(file, "#define offclass     %3d\n\n", (int) OFFSET(vftbl, class));
-
-	fprintf(file, "#define offclassvftbl  %3d\n", (int) OFFSET(classinfo, vftbl));
-	fprintf(file, "#define offclassinit   %3d\n", (int) OFFSET(classinfo, initialized));
-	fprintf(file, "#define offclassloaded %3d\n", (int) OFFSET(classinfo, loaded));
-	fprintf(file, "#define offclasslinked %3d\n\n", (int) OFFSET(classinfo, linked));
-
-	fprintf(file, "#define offjniitemtype %3d\n", (int) OFFSET(jni_callblock, itemtype));
-	fprintf(file, "#define offjniitem     %3d\n", (int) OFFSET(jni_callblock, item));
-	fprintf(file, "#define sizejniblock   %3d\n\n", (int) sizeof(jni_callblock));
-
-	fprintf(file, "#define offclassmethodinfo   %3d\n\n", (int) OFFSET(methodinfo,class));
-
-	fprintf(file, "#define offmethodnative %3d\n", (int) OFFSET(native_stackframeinfo,method));
-/*	fprintf(file, "#define offreturnfromnative %3d\n", (int) OFFSET(native_stackframeinfo,returnFromNative));
-	fprintf(file, "#define offaddrreturnfromnative %3d\n", (int) OFFSET(native_stackframeinfo,addrReturnFromNative));
-	fprintf(file, "#define offprevnative %3d\n", (int) OFFSET(native_stackframeinfo,prev));
-	fprintf(file, "#define offnextnative %3d\n", (int) OFFSET(native_stackframeinfo,next));*/
-
-	fprintf(file, "\n");
-	fprintf(file, "#define offcast_super_baseval  %3d\n", (int) OFFSET(castinfo, super_baseval));
-	fprintf(file, "#define offcast_super_diffval  %3d\n", (int) OFFSET(castinfo, super_diffval));
-	fprintf(file, "#define offcast_sub_baseval    %3d\n", (int) OFFSET(castinfo, sub_baseval));
-
-	fclose(file);
-
-	/* initialize the garbage collector */
-	gc_init(heapmaxsize, heapstartsize);
-
-	suck_init(classpath);
-   
-	tables_init();
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initThreadsEarly();
-#endif
-	loader_init();
-
-
-	/*********************** Load JAVA classes  **************************/
-   	
-	nativemethod_chain = chain_new();
-	nativeclass_chain = chain_new();
-	
-	for (a = 1; a < argc; a++) {
-   		cp = argv[a];
-
-		/* convert classname */
-   		for (i = strlen(cp) - 1; i >= 0; i--) {
-			switch (cp[i]) {
-			case '.': cp[i]='/';
-				break;
-			case '_': cp[i]='$';    
-  	 		}
-		}
-	
-/*  		topclass = loader_load(utf_new_char(cp)); */
-		topclass = class_load(class_new(utf_new_char(cp)));
-		class_link(topclass);
-
-        headerfile_generate(topclass);
-	}
-
-	headers_finish();
-
-	/************************ Release all resources **********************/
-
-	loader_close();
-	tables_close(literalstring_free);
-
-	/* Print "finished" message */
-
-	log_text("Java - header-generator stopped");
-	log_cputime();
-	mem_usagelog(1);
-	
-	return 0;
 }
 
 
