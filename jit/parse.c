@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: parse.c 1432 2004-11-03 12:14:50Z jowenn $
 
 */
 
@@ -441,6 +441,8 @@ methodinfo *parse(methodinfo *m, t_inlining_globals *inline_env)
 	u2 linepcchange=0;
 	codegendata *cd=m->codegendata;
 
+	u2 skipBasicBlockChange;
+
 if (DEBUG==true) {printf("PARSING: "); fflush(stdout);
 DEBUGMETH(m);
 }
@@ -543,6 +545,7 @@ if (opt_rt) {
 		linepcchange = m->linenumbers[0].start_pc;
 	}
 
+	skipBasicBlockChange=0;
 	for (p = 0, gp = 0; p < inline_env->method->jcodelength; gp += (nextp - p), p = nextp) {
 	  
 		/* DEBUG */	 if (DEBUG==true) printf("----- p:%d gp:%d\n",p,gp);
@@ -568,6 +571,11 @@ if (opt_rt) {
 			bool *readonly = NULL;
 			int argBlockIdx=0;
 
+			block_insert(gp);               //JJJJJJJJJJ
+			blockend=false;
+			instructionstart[gp] = 1;
+			m->basicblockindex[gp] |= (ipc << 1);  /*FIXME: necessary ? */
+
 			opcode = code_get_u1(p,inline_env->method);
 			nextp = p += jcommandsize[opcode];
 			if (nextp > inline_env->method->jcodelength)
@@ -584,6 +592,7 @@ if (opt_rt) {
 				else
 					argBlockIdx++;
 			}
+
 			for (i = 0, tptr = tmpinlinf->method->paramtypes + tmpinlinf->method->paramcount - 1; i < tmpinlinf->method->paramcount; i++, tptr--) {
 				int op;
 
@@ -608,8 +617,8 @@ if (opt_rt) {
 				OP1(op, firstlocal + argBlockIdx);
 				//OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i);
 			//printf("inline argument load operation for local: %ld\n",firstlocal + tmpinlinf->method->paramcount - 1 - i);
-				/*m->basicblockindex[gp] |= (ipc << 1);*/  /*FIXME: necessary ? */
 			}
+			skipBasicBlockChange=1;
 if (DEBUG==true) {
 printf("BEFORE SAVE: "); fflush(stdout);
 DEBUGMETH(inline_env->method);
@@ -647,14 +656,16 @@ DEBUGMETH(inline_env->method);
 		opcode = code_get_u1(p,inline_env->method);            /* fetch op code  */
 	 if (DEBUG==true) 
 		{
-			printf("Parse p=%i<%i<   opcode=<%i> %s\n",
-			   p, inline_env->jcodelength, opcode, opcode_names[opcode]);
+			printf("Parse p=%i<%i<%i<   opcode=<%i> %s\n",
+			   p, gp, inline_env->jcodelength, opcode, opcode_names[opcode]);
 		}
 	  
 //printf("basicblockindex[gp=%i]=%i=%p ipc=%i=%p shifted ipc=%i=%p\n",
 //gp,m->basicblockindex[gp],m->basicblockindex[gp],ipc,ipc,(ipc<<1),(ipc<<1));
 //fflush(stdout);
-		m->basicblockindex[gp] |= (ipc << 1); /*store intermed cnt*/
+		if (!skipBasicBlockChange) {
+			m->basicblockindex[gp] |= (ipc << 1); /*store intermed cnt*/
+		} else skipBasicBlockChange=0;
 //printf("basicblockindex[gp=%i]=%i=%p \n",
 //gp,m->basicblockindex[gp],m->basicblockindex[gp]);
 //fflush(stdout);
@@ -663,6 +674,7 @@ DEBUGMETH(inline_env->method);
 //printf("B4 BEND\t"); fflush(stdout);
 			block_insert(gp);               /* start new block                */
 			blockend = false;
+			/*printf("blockend was set: new blockcount: %ld at:%ld\n",b_count,gp);*/
 		}
 
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
@@ -1186,14 +1198,17 @@ SHOWOPCODE
 
 				for (i = 0; i <= num; i++) {
 					j = p + code_get_s4(nextp,inline_env->method);
-					if (useinlining)
+					if (useinlining) {
+						/*printf("TABLESWITCH: j before mapping=%ld\n",j);*/
 						j = label_index[j];
+					}
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
 					bound_check(j);
 //printf("B10 TABLESWITCH2\t"); fflush(stdout);
 					block_insert(j);
+					/*printf("TABLESWITCH: block_insert(%ld)\n",j);*/
 				}
 
 				break;
@@ -1648,7 +1663,7 @@ printf("AFTER RESTORE : "); fflush(stdout);
 DEBUGMETH(inline_env->method);
 }
 			list_remove(inlinfo->inlinedmethods, list_first(inlinfo->inlinedmethods));
-			if (inlinfo->inlinedmethods == NULL) {
+			if (inlinfo->inlinedmethods == NULL) { //JJJJ
 				nextgp = -1;
 			} else {
 				tmpinlinf = list_first(inlinfo->inlinedmethods);
@@ -1658,6 +1673,7 @@ DEBUGMETH(inline_env->method);
 			label_index=inlinfo->label_index;
 			firstlocal = inlinfo->firstlocal;
 		}
+
 	} /* end for */
 
 
@@ -1714,8 +1730,10 @@ DEBUGMETH(inline_env->method);
 //		for (p = 0; p < m->jcodelength; p++) { 
 			if (m->basicblockindex[p] & 1) {
 				/* check if this block starts at the beginning of an instruction */
-				if (!instructionstart[p])
+				if (!instructionstart[p]) {
+					printf("Basic Block beginn: %ld\n",p);
 					panic("Branch into middle of instruction");
+				}
 				/* allocate the block */
 				bptr->iinstr = m->instructions + (m->basicblockindex[p] >> 1);
 				bptr->debug_nr = c_debug_nr++;

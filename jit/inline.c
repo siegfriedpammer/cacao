@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: inline.c 1432 2004-11-03 12:14:50Z jowenn $
 
 */
 
@@ -349,7 +349,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 
 		case JAVA_TABLESWITCH:
 			nextp = ALIGN((p + 1), 4) + 4;
-			nextp += (code_get_u4(nextp+4,m) - code_get_u4(nextp,m) + 1) * 4 + 4;
+			nextp += (code_get_u4(nextp+4,m) - code_get_u4(nextp,m) + 1) * 4 + 4 +4;
 			break;
 		}
 
@@ -452,13 +452,13 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 							break;
 					}
 
-					if (imi->flags & ACC_NATIVE) log_text("Native method,no inlining"); //DEBUG
+					/*if (imi->flags & ACC_NATIVE) log_text("Native method,no inlining");*/
 					if ((inline_env->cummethods < INLINING_MAXMETHODS) &&
 						(!(imi->flags & ACC_NATIVE)) &&  
 						(!inlineoutsiders || (m->class == imr->class)) && 
 						(imi->jcodelength < INLINING_MAXCODESIZE) && 
 						(imi->jcodelength > 0) && 
-						(!inlineexceptions || (imi->exceptiontablelength == 0))) { //FIXME: eliminate empty methods?
+						(inlineexceptions || (imi->exceptiontablelength == 0))) { //FIXME: eliminate empty methods?
 						inlining_methodinfo *tmp;
 						descriptor2types(imi);
 

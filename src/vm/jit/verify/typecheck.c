@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: typecheck.c 1432 2004-11-03 12:14:50Z jowenn $
 
 */
 
@@ -45,6 +45,7 @@
 #include "jit/stack.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
+#include "options.h"
 
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */
@@ -998,12 +999,17 @@ methodinfo *typecheck(codegendata *codegendata)
                 /* init variable types at the start of this block */
 				COPY_TYPEVECTORSET(MGET_TYPEVECTOR(localbuf,b_index,numlocals),
 								   localset,numlocals);
+#warning FIXME FOR INLINING
+		if(!useinlining) {
 				if (handlers[0])
 					for (i=0; i<numlocals; ++i)
 						if (localset->td[i].type == TYPE_ADR
-							&& TYPEINFO_IS_NEWOBJECT(localset->td[i].info))
-							panic("Uninitialized object in local variable inside try block");
-
+							&& TYPEINFO_IS_NEWOBJECT(localset->td[i].info)) {
+								show_icmd_method(m);
+								printf("Uninitialized variale:%ld, block:%ld\n",i,bptr->debug_nr);
+								panic("Uninitialized object in local variable inside try block");
+							}
+		}
 				DOLOG(typestate_print(get_logfile(),curstack,localset,numlocals));
 				LOGNL; LOGFLUSH;
 

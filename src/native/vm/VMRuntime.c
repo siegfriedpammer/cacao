@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1431 2004-11-02 15:22:57Z twisti $
+   $Id: VMRuntime.c 1432 2004-11-03 12:14:50Z jowenn $
 
 */
 
@@ -60,7 +60,7 @@
 #include <dlfcn.h>
 #endif
 
-#define JOWENN_DEBUG
+#undef JOWENN_DEBUG
 
 /* should we run all finalizers on exit? */
 static s4 finalizeOnExit = false;
@@ -250,11 +250,14 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *par1)
 {
+	int retVal=0;
+
 #ifdef JOWENN_DEBUG	
 	char *buffer;
 	int buffer_len;
 	utf *data;
-	int retVal=0;
+
+	log_text("Java_java_lang_VMRuntime_nativeLoad");
 
 	data = javastring_toutf(par1, 0);
 	
@@ -267,6 +270,14 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 
 	  	
 	buffer = MNEW(char, buffer_len);
+	strcpy(buffer, "Java_java_lang_VMRuntime_nativeLoad:");
+	utf_sprint(buffer + strlen((char *) data), data);
+	log_text(buffer);	
+        
+  
+	MFREE(buffer, char, buffer_len);
+#endif	
+
 #ifndef STATIC_CLASSPATH
 	/*here it could be interesting to store the references in a list eg for nicely cleaning up or for certain platforms*/
         if (dlopen(data->text,RTLD_NOW | RTLD_GLOBAL)) {
@@ -276,14 +287,6 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 #else
 	retVal=1;
 #endif
-	strcpy(buffer, "Java_java_lang_VMRuntime_nativeLoad:");
-	utf_sprint(buffer + strlen((char *) data), data);
-	log_text(buffer);	
-        
-  
-	MFREE(buffer, char, buffer_len);
-#endif
-	log_text("Java_java_lang_VMRuntime_nativeLoad");
 
 	return retVal;
 }
@@ -307,18 +310,19 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_nativeGetLibname(JN
 		return 0;;
 	}
 	
-	buffer_len = utf_strlen(data) + 3 /*lib*/ /*6 lib .so */ +1 /*0*/;
+	buffer_len = utf_strlen(data) + 6 /*lib .so */ +1 /*0*/;
 	buffer = MNEW(char, buffer_len);
 	sprintf(buffer,"lib");
 	utf_sprint(buffer+3,data);
-	/*strcat(buffer,".so");*/
+	strcat(buffer,".so");
+#ifdef JOWENN_DEBUG
         log_text("nativeGetLibName:");
 	log_text(buffer);
+#endif
 	
 	resultString=javastring_new_char(buffer);	
 
 	MFREE(buffer, char, buffer_len);
-
 	return resultString;
 }
 
