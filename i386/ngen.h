@@ -10,7 +10,7 @@
     Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: 1998/11/04
+    Last Change: $Id: ngen.h 385 2003-07-10 10:45:57Z twisti $
 
 *******************************************************************************/
 

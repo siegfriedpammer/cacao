@@ -1,15 +1,16 @@
-/* disass.c ********************************************************************
+/* i386/disass.c ***************************************************************
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+    Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+    See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	A very primitive disassembler for Alpha machine code for easy debugging.
+    Wrapper functions to call the disassembler from the GNU binutils.
 
-	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
-	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
+    Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
+             Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
+             Christian Thalinger
 
-	Last Change: 1998/11/18
+    Last Change: $Id: disass.c 385 2003-07-10 10:45:57Z twisti $
 
 *******************************************************************************/
 

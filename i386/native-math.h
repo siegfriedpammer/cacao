@@ -1,15 +1,16 @@
 /* i386/native-math.h **********************************************************
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+    Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+    See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	Contains the machine-specific floating point definitions.
+    Contains the machine-specific floating point definitions.
 
-	Authors: Michael Gschwind    EMAIL: cacao@complang.tuwien.ac.at
-	         Andreas Krall       EMAIL: cacao@complang.tuwien.ac.at
+    Authors: Michael Gschwind    EMAIL: cacao@complang.tuwien.ac.at
+             Andreas Krall       EMAIL: cacao@complang.tuwien.ac.at
+             Christian Thalinger
 
- 	$Id: native-math.h 380 2003-07-02 20:20:59Z twisti $
+    $Id: native-math.h 385 2003-07-10 10:45:57Z twisti $
 
 *******************************************************************************/
 

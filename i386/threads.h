@@ -1,15 +1,15 @@
-/****************************** threads.h **************************************
+/* i386/threads.h **************************************************************
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+    Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+    See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	System dependent part of thread header file.
+    System dependent part of thread header file.
 
-	Authors: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
-	         Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
+    Authors: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
+             Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1998/11/19
+    Last Change: $Id: threads.h 385 2003-07-10 10:45:57Z twisti $
 
 *******************************************************************************/
 

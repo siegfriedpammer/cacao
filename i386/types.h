@@ -1,16 +1,17 @@
 /* i386/types.h ****************************************************************
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+    Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+    See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	machine specific definitions for the i386 processor
+    Machine specific definitions for the i386 processor
 	
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	         Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
-	         Michael Gschwind    EMAIL: cacao@complang.tuwien.ac.at
+    Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
+             Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
+             Michael Gschwind    EMAIL: cacao@complang.tuwien.ac.at
+             Christan Thalinger
 
-	Last Change: 2002/09/25
+    Last Change: $Id: types.h 385 2003-07-10 10:45:57Z twisti $
 
 *******************************************************************************/
 

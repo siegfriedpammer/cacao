@@ -1,3 +1,19 @@
+/* i386/methodtable.c **********************************************************
+
+    Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+
+    See file COPYRIGHT for information on usage and disclaimer of warranties
+
+    Contains the codegenerator for an i386 processor.
+    This module generates i386 machine code for a sequence of
+    pseudo commands (ICMDs).
+
+    Authors: Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
+
+    Last Change: $Id: methodtable.c 385 2003-07-10 10:45:57Z twisti $
+
+*******************************************************************************/
+
 #include "methodtable.h"
 
 static mtentry *mtroot = NULL;

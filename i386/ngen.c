@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 382 2003-07-08 12:12:19Z twisti $
+	Last Change: $Id: ngen.c 385 2003-07-10 10:45:57Z twisti $
 
 *******************************************************************************/
 
@@ -1039,7 +1039,6 @@ static void gen_mcode()
 					store_reg_to_var_flt(to, d); \
 				} else { \
                     if (!IS_2_WORD_TYPE(from->type)) { \
-/*i386_nop();*/ \
                         if (to->flags & INMEMORY) { \
                              if (from->flags & INMEMORY) { \
                                  i386_mov_membase_reg(REG_SP, from->regoff * 8, REG_ITMP1); \
@@ -1054,7 +1053,6 @@ static void gen_mcode()
                                  i386_mov_reg_reg(from->regoff, to->regoff); \
                              } \
                         } \
-/*i386_nop();*/ \
                     } else { \
                         M_LNGMEMMOVE(from->regoff, to->regoff); \
                     } \

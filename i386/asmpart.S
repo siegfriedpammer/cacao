@@ -1,8 +1,7 @@
 /* -*- mode: asm; tab-width: 4 -*- */
 /****************************** asmpart.c **************************************
 *                                                                              *
-*   is an assembly language file, but called .c to fake the preprocessor.      *
-*   It contains the Java-C interface functions for Alpha processors.           *
+*   It contains the Java-C interface functions for i386 processors.            *
 *                                                                              *
 *   Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst              *
 *                                                                              *
@@ -10,8 +9,9 @@
 *                                                                              *
 *   Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
+*            Christian Thalinger                                               *
 *                                                                              *
-*   Last Change: 1998/11/01                                                    *
+*   Last Change: $Id: asmpart.S 385 2003-07-10 10:45:57Z twisti $                                                          *
 *                                                                              *
 *******************************************************************************/
 

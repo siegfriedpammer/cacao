@@ -1,14 +1,14 @@
-/* alpha/defines.h *************************************************************
+/* i386/defines.h **************************************************************
 
-	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+    Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
-	See file COPYRIGHT for information on usage and disclaimer of warranties
+    See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	system-dependent definitions
+    system-dependent definitions
 
-	Authors: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
+    Authors: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1997/09/11
+    Last Change: $Id: defines.h 385 2003-07-10 10:45:57Z twisti $
 
 *******************************************************************************/
 
