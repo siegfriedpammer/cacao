@@ -29,9 +29,8 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1415 2004-10-11 20:12:08Z jowenn $
+   $Id: parse.c 1419 2004-10-21 09:59:33Z carolyn $
 
-Extra print is due backing changes that removed globals and merged variables that should not be merged... They will be removed... do not delete yet.
 */
 
 
@@ -53,6 +52,14 @@ Extra print is due backing changes that removed globals and merged variables tha
 #include "toolbox/memory.h"
 #include "toolbox/logging.h"
 
+#define METHINFO(mm) \
+        { \
+                printf("PARSE method name ="); \
+                utf_display(mm->class->name); \
+                printf("."); \
+                method_display(mm); \
+                fflush(stdout); \
+        }
 #define DEBUGMETH(mm) \
 if (DEBUG == true) \
         { \
@@ -63,19 +70,13 @@ if (DEBUG == true) \
                 fflush(stdout); \
         }
 
+#define SHOWOPCODE \
+if (DEBUG4 == true) {printf("Parse p=%i<%i<   opcode=<%i> %s\n", \
+                           p, m->jcodelength,opcode,opcode_names[opcode]);}
 bool DEBUG = false;
 bool DEBUG2 = false;
 bool DEBUG3 = false;
-
-/* data about the currently parsed method */
-
-classinfo  *rt_class;    /* class the compiled method belongs to       */
-methodinfo *rt_method;   /* pointer to method info of compiled method  */
-utf *rt_descriptor;      /* type descriptor of compiled method         */
-int rt_jcodelength;      /* length of JavaVM-codes                     */
-u1  *rt_jcode;           /* pointer to start of JavaVM-code            */
-
-
+bool DEBUG4 = false;  /*opcodes*/
 
 /*INLINING*/
 #define debug_writebranch if (DEBUG2==true) printf("op:: %s i: %d label_index[i]: %d label_index=%p\n",opcode_names[opcode], i, label_index[i],label_index);
@@ -379,9 +380,10 @@ static exceptiontable* fillextable(methodinfo *m,
 		if (label_index != NULL) p = label_index[p];
 		extable[i].startpc = p;
 		bound_check(p);
-if (DEBUG3==true) {printf("B1 EEE1 \t"); fflush(stdout);}
 		block_insert(p);
 		
+/*** if (DEBUG==true){printf("---------------------block_inserted:b_count=%i m->basicblockindex[(p=%i)]=%i=%p\n",b_count,p,m->basicblockindex[(p)],m->basicblockindex[(p)]); 
+  fflush(stdout); } ***/   
 		p = raw_extable[i].endpc;
 		if (p <= raw_extable[i].startpc)
 			panic("Invalid exception handler range");
@@ -392,14 +394,12 @@ if (DEBUG3==true) {printf("B1 EEE1 \t"); fflush(stdout);}
 		extable[i].endpc = p;
 		bound_check1(p);
 		if (p < m->jcodelength) {
-if (DEBUG3==true) {printf("B2 EEE2 \t"); fflush(stdout);}
 			block_insert(p); }
 
 		p = raw_extable[i].handlerpc;
 		if (label_index != NULL) p = label_index[p];
 		extable[i].handlerpc = p;
 		bound_check(p);
-if (DEBUG3==true) {printf("B3 EEE3 \t"); fflush(stdout);}
 		block_insert(p);
 
 		extable[i].catchtype  = raw_extable[i].catchtype;
@@ -444,7 +444,28 @@ methodinfo *parse(methodinfo *m, t_inlining_globals *inline_env)
 if (DEBUG==true) {printf("PARSING: "); fflush(stdout);
 DEBUGMETH(m);
 }
+if (opt_rt) {
+  if (m->methodUsed != USED) {
+    if (verbose) {
+      printf(" rta missed: "); fflush(stdout);
+      METHINFO(m);
+      }
+    if ( (rtMissed = fopen("rtMissed", "a")) == NULL) {
+      printf("CACAO - rtMissed file: cant open file to write append \n");
+      }
+    else {
+      utf_fprint(rtMissed,m->class->name); 
+       fprintf(rtMissed," "); fflush(rtMissed);
+      utf_fprint(rtMissed,m->name);
+       fprintf(rtMissed," "); fflush(rtMissed);
+      utf_fprint(rtMissed,m->descriptor); 
+       fprintf(rtMissed,"\n"); fflush(rtMissed);
+      fclose(rtMissed);
+      }
+   } 
+}
 	/* INLINING */
+
 	if (useinlining) {
 		label_index = inlinfo->label_index;
 		m->maxstack = inline_env->cummaxstack;
@@ -459,15 +480,11 @@ DEBUGMETH(m);
         which has to be called before parse (or ???)
         will check if method being parsed was analysed here
 	****/ 
-	if (opt_rt) { 
-		/**RT_jit_parse(m);**/
-		printf("RTA requested, not available\n");
-		}
-	if (opt_xta) { 
+	if ((opt_xta) && (verbose)) { 
 		/**RT_jit_parse(m);**/
 		printf("XTA requested, not available\n");
 		}
-	if (opt_vta) 
+	if ((opt_vta) && (verbose))  
 		    printf("VTA requested, not yet implemented\n");
 
 	/* allocate instruction array and block index table */
@@ -511,6 +528,7 @@ DEBUGMETH(m);
 #ifdef USE_THREADS
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		m->isleafmethod = false;
+		inline_env->isleafmethod = false;
 	}			
 #endif
 
@@ -597,7 +615,6 @@ DEBUGMETH(inline_env->method);
 				DEBUGMETH(m);
 				DEBUGMETH(inline_env->method);
 			}
-////label_index = inlinfo->label_index;
 
 
 			if (inlinfo->inlinedmethods == NULL) {
@@ -617,7 +634,7 @@ DEBUGMETH(inline_env->method);
 	 if (DEBUG==true) 
 		{
 			printf("Parse p=%i<%i<   opcode=<%i> %s\n",
-			   p, rt_jcodelength, opcode, opcode_names[opcode]);
+			   p, inline_env->jcodelength, opcode, opcode_names[opcode]);
 		}
 	  
 //printf("basicblockindex[gp=%i]=%i=%p ipc=%i=%p shifted ipc=%i=%p\n",
@@ -638,7 +655,7 @@ DEBUGMETH(inline_env->method);
 		if (nextp > inline_env->method->jcodelength)
 			panic("Unexpected end of bytecode");
 		s_count += stackreq[opcode];      	/* compute stack element count    */
-
+SHOWOPCODE
 		switch (opcode) {
 		case JAVA_NOP:
 			break;
@@ -956,8 +973,6 @@ DEBUGMETH(inline_env->method);
 				i = label_index[i];
 			}
 			bound_check(i);
-if (DEBUG3==true) {
-printf("B5 IFs/GOTO\t"); fflush(stdout);}
 			block_insert(i);
 			blockend = true;
 			OP1(opcode, i);
@@ -1258,7 +1273,7 @@ printf("B5 IFs/GOTO\t"); fflush(stdout);}
 					return NULL;
 
 				/*RTAprint*/// if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
-if (DEBUG2==true) 
+if (DEBUG4==true) 
 					/*RTAprint*/    {printf(" method name =");
 					/*RTAprint*/    utf_display(mi->class->name); printf(".");
 					/*RTAprint*/    utf_display(mi->name);printf("\tINVOKE STATIC\n");
@@ -1302,7 +1317,7 @@ if (DEBUG2==true)
 					return NULL;
 
 				/*RTAprint*/ // if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
-if (DEBUG2==true)
+if (DEBUG4==true)
 					/*RTAprint*/    {printf(" method name =");
 					method_display(mi);
 					/*RTAprint*/    utf_display(mi->class->name); printf(".");
@@ -1622,8 +1637,6 @@ DEBUGMETH(inline_env->method);
 			firstlocal = inlinfo->firstlocal;
 		}
 	} /* end for */
-/*&&&&&&&&&&&&&&&&*/
-if (DEBUG==true) printf("&&&&&&&&&&&&&&&&\n");
 
 
 	if (p != m->jcodelength)

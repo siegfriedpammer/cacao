@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1416 2004-10-19 12:07:18Z carolyn $
+   $Id: parseRT.c 1419 2004-10-21 09:59:33Z carolyn $
 
 Changes:
 opcode put into functions
@@ -64,10 +64,10 @@ TODO: end analysis if mono- or polymorphic call (in parseRTstats)
 #include <string.h>
 #include "tables.h"
 
+#include "statistics.h"
 #include "loader.h"
 #include "main.h"
 #include "options.h"
-#include "statistics.h"
 #include "jit/jit.h"
 #include "jit/parse.h"
 #include "toolbox/list.h"
@@ -134,11 +134,13 @@ if (!(meth->flags & ACC_ABSTRACT))  {
     rta->method = meth ;
     list_addlast(rtaWorkList,rta);
     }
+/***
 else {
      printf("Method not added to work list!!!<%i> : ",
      meth->methodUsed); fflush(stdout);
      METHINFO(meth)
      }
+***/
 }
 
 /**************************************************************************/
@@ -576,7 +578,6 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 				   ||  (mi->flags & ACC_PRIVATE)  
 				   ||  (mi->flags & ACC_FINAL) )  
 			             {
-printf(" not virt "); fflush(stdout);
 				     if (mi->class->classUsed == NOTUSED){
 				       addClassInit(mi->class,
 				   		    true,true,true);
@@ -735,10 +736,9 @@ int initializeRTAworklist(methodinfo *m) {
 
 	/*----- rtMissedIn pgm specific */
         strcat(filename, (const char *)mainstring);  
-printf("filename=%s=\n",filename);fflush(stdout);
         if ( (rtMissedIn = fopen(filename, "r")) == NULL) {
 		//if (verbose) 
-		    {printf("No rtMissedIn file\n");fflush(stdout);} 
+		    {printf("No rtMissedIn=%s file\n",filename);fflush(stdout);} 
 		return 0;
 		}
 	while (getline(line,256,rtMissedIn)) {

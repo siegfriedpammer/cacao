@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 1414 2004-10-04 12:55:33Z carolyn $
+   $Id: parse.h 1419 2004-10-21 09:59:33Z carolyn $
 
 */
 
@@ -130,8 +130,6 @@
         if (!(m->basicblockindex[(i)] & 1)) { \
             b_count++; \
             m->basicblockindex[(i)] |= 1; \
- if (DEBUG==true){printf("---------------------block_inserted:b_count=%i m->basicblockindex[(i=%i)]=%i=%p\n",b_count,i,m->basicblockindex[(i)],m->basicblockindex[(i)]); \
-  fflush(stdout); }   \
         } \
     } while (0)
 
@@ -176,14 +174,6 @@
                         +(((u4)m->jcode[p + 2]) << 8) + m->jcode[p + 3])
 #define code_get_s4(p,m)  ((s4)((((u4)m->jcode[p]) << 24) + (((u4)m->jcode[p + 1]) << 16) \
                              +(((u4)m->jcode[p + 2]) << 8) + m->jcode[p + 3]))
-
-
-extern classinfo  *rt_class;
-extern methodinfo *rt_method;
-extern utf *rt_descriptor;
-extern int rt_jcodelength;
-extern u1  *rt_jcode;
-
 
 /* function prototypes */
 
