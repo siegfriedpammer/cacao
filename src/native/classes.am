@@ -1,4 +1,36 @@
-# This file is included by ./Makefile.am and ./include/Makefile.am
+## src/native/classes.am
+##
+## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+## Institut f. Computersprachen - TU Wien
+##
+## This file is part of CACAO.
+##
+## This program is free software; you can redistribute it and/or
+## modify it under the terms of the GNU General Public License as
+## published by the Free Software Foundation; either version 2, or (at
+## your option) any later version.
+##
+## This program is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+## 02111-1307, USA.
+##
+## Contact: cacao@complang.tuwien.ac.at
+##
+## Authors: Christian Thalinger
+##
+## Changes:
+##
+## $Id: classes.am 1781 2004-12-21 09:35:27Z twisti $
+
+## This file is included by ./Makefile.am and ./include/Makefile.am
 
 NO_REGEN_CLASSES = \
 	java.lang.ClassLoader \
@@ -104,55 +136,65 @@ CLASSES= \
 
 if USE_GTK_PEER
 AWT_CLASSES = \
-	java.awt.peer.ComponentPeer \
 	java.awt.Graphics\
 	java.awt.Window\
-	java.awt.peer.MenuPeer \
+	java.awt.peer.ComponentPeer \
 	java.awt.peer.MenuItemPeer \
-	gnu.java.awt.peer.gtk.GdkPixbufDecoder \
-	gnu.java.awt.peer.gtk.GtkGenericPeer \
-	gnu.java.awt.peer.gtk.GtkMenuBarPeer \
-	gnu.java.awt.peer.gtk.GtkScrollPanePeer \
-	gnu.java.awt.peer.gtk.GtkMenuPeer \
-	gnu.java.awt.peer.gtk.GtkTextComponentPeer \
-	gnu.java.awt.peer.gtk.GtkComponentPeer \
-	gnu.java.awt.peer.gtk.GtkPopupMenuPeer \
-	gnu.java.awt.peer.gtk.GtkCheckboxPeer \
-	gnu.java.awt.peer.gtk.GtkCheckboxGroupPeer \
-	gnu.java.awt.peer.gtk.GtkMenuItemPeer \
-	gnu.java.awt.peer.gtk.GdkGraphics \
-	gnu.java.awt.peer.gtk.GtkToolkit \
-	gnu.java.awt.peer.gtk.GtkCanvasPeer \
-	gnu.java.awt.peer.gtk.GtkFramePeer \
-	gnu.java.awt.peer.gtk.GdkFontMetrics \
-	gnu.java.awt.peer.gtk.GtkScrollbarPeer \
-	gnu.java.awt.peer.gtk.GtkListPeer \
-	gnu.java.awt.peer.gtk.GtkLabelPeer \
-	gnu.java.awt.peer.gtk.GtkTextAreaPeer \
-	gnu.java.awt.peer.gtk.GtkFileDialogPeer \
-	gnu.java.awt.peer.gtk.GtkImagePainter \
-	gnu.java.awt.peer.gtk.GtkChoicePeer \
-	gnu.java.awt.peer.gtk.GtkPanelPeer \
-	gnu.java.awt.peer.gtk.GtkMainThread \
-	gnu.java.awt.peer.gtk.GtkButtonPeer \
-	gnu.java.awt.peer.gtk.GtkTextFieldPeer \
-	gnu.java.awt.peer.gtk.GtkCheckboxMenuItemPeer \
-	gnu.java.awt.peer.gtk.GtkClipboard \
-	gnu.java.awt.peer.gtk.GtkWindowPeer \
-	gnu.java.awt.peer.gtk.GtkMenuComponentPeer \
-	gnu.java.awt.peer.gtk.GtkImage \
-	gnu.java.awt.peer.gtk.GdkGraphicsEnvironment \
-	gnu.java.awt.peer.gtk.GdkTextLayout \
+	java.awt.peer.MenuPeer \
+	\
 	gnu.java.awt.peer.gtk.GThreadMutex \
 	gnu.java.awt.peer.gtk.GThreadNativeMethodRunner \
+	gnu.java.awt.peer.gtk.GdkFontMetrics \
+	gnu.java.awt.peer.gtk.GdkFontPeer \
+	gnu.java.awt.peer.gtk.GdkGraphics \
+	gnu.java.awt.peer.gtk.GdkGraphicsEnvironment \
+	gnu.java.awt.peer.gtk.GdkPixbufDecoder \
+	gnu.java.awt.peer.gtk.GdkTextLayout \
+	gnu.java.awt.peer.gtk.GtkButtonPeer \
+	gnu.java.awt.peer.gtk.GtkCanvasPeer \
+	gnu.java.awt.peer.gtk.GtkCheckboxGroupPeer \
+	gnu.java.awt.peer.gtk.GtkCheckboxMenuItemPeer \
+	gnu.java.awt.peer.gtk.GtkCheckboxPeer \
+	gnu.java.awt.peer.gtk.GtkChoicePeer \
+	gnu.java.awt.peer.gtk.GtkClipboard \
+	gnu.java.awt.peer.gtk.GtkComponentPeer \
 	gnu.java.awt.peer.gtk.GtkContainerPeer \
 	gnu.java.awt.peer.gtk.GtkDialogPeer \
 	gnu.java.awt.peer.gtk.GtkEmbeddedWindowPeer \
-	gnu.java.awt.peer.gtk.GdkFontPeer \
-        gnu.java.awt.peer.gtk.GtkFontPeer \
+	gnu.java.awt.peer.gtk.GtkFileDialogPeer \
+	gnu.java.awt.peer.gtk.GtkFontPeer \
+	gnu.java.awt.peer.gtk.GtkFramePeer \
+	gnu.java.awt.peer.gtk.GtkGenericPeer \
+	gnu.java.awt.peer.gtk.GtkImage \
+	gnu.java.awt.peer.gtk.GtkImagePainter \
+	gnu.java.awt.peer.gtk.GtkLabelPeer \
+	gnu.java.awt.peer.gtk.GtkListPeer \
+	gnu.java.awt.peer.gtk.GtkMainThread \
+	gnu.java.awt.peer.gtk.GtkMenuBarPeer \
 	gnu.java.awt.peer.gtk.GtkMenuComponentPeer \
-	gnu.java.awt.peer.gtk.GtkOffScreenImage 
+	gnu.java.awt.peer.gtk.GtkMenuComponentPeer \
+	gnu.java.awt.peer.gtk.GtkMenuItemPeer \
+	gnu.java.awt.peer.gtk.GtkMenuPeer \
+	gnu.java.awt.peer.gtk.GtkOffScreenImage \
+	gnu.java.awt.peer.gtk.GtkPanelPeer \
+	gnu.java.awt.peer.gtk.GtkPopupMenuPeer \
+	gnu.java.awt.peer.gtk.GtkScrollPanePeer \
+	gnu.java.awt.peer.gtk.GtkScrollbarPeer \
+	gnu.java.awt.peer.gtk.GtkTextAreaPeer \
+	gnu.java.awt.peer.gtk.GtkTextComponentPeer \
+	gnu.java.awt.peer.gtk.GtkTextFieldPeer \
+	gnu.java.awt.peer.gtk.GtkToolkit \
+	gnu.java.awt.peer.gtk.GtkWindowPeer
 
 else
 AWT_CLASSES =
 endif
+
+
+## Local variables:
+## mode: Makefile
+## indent-tabs-mode: t
+## c-basic-offset: 4
+## tab-width: 8
+## compile-command: "automake --add-missing"
+## End:
