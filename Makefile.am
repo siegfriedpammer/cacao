@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 667 2003-11-21 19:05:06Z jowenn $
+# $Id: Makefile.am 677 2003-11-24 20:55:42Z twisti $
 
 @SET_MAKE@
 
@@ -13,13 +13,11 @@ EXTRA_DIST = \
 	html/cacaoinstall.html \
 	html/cacaoman.html \
 	html/index.html \
-	jni.c \
 	main.h \
 	natcalls.h \
 	nativecalls.h
 
 CLEANFILES = \
-	jit/@ARCH_DIR@/asmpart.o \
 	jit/@ARCH_DIR@/offsets.h \
 	nativetable.hh \
 	nativetypes.hh
@@ -41,6 +39,7 @@ cacao_SOURCES = \
 	main.c \
 	native.c \
 	native.h \
+	jni.c \
 	jni.h \
 	tables.c \
 	tables.h \
@@ -51,6 +50,7 @@ cacao_LDADD = \
 	jit/loop/libloop.a \
 	jit/@ARCH_DIR@/libarch.a \
 	toolbox/libtoolbox.a \
+	nat/libnat.a \
 	$(BOEHM_LIBS) \
 	@THREAD_OBJ@ \
 	classpathbin/@ARCH_DIR@/native/jni/java-io/.libs/libjavaio.a \
