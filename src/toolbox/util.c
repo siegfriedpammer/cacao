@@ -28,12 +28,13 @@
 
    Changes:
 
-   $Id: util.c 2127 2005-03-29 22:24:34Z twisti $
+   $Id: util.c 2194 2005-04-03 16:13:27Z twisti $
 
 */
 
 
 #include <errno.h>
+#include <stdarg.h>
 #include <unistd.h>
 
 #include "types.h"

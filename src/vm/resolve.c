@@ -28,12 +28,14 @@
 
    Changes:
 
-   $Id: resolve.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: resolve.c 2194 2005-04-03 16:13:27Z twisti $
 
 */
 
+
 #include <assert.h>
 
+#include "mm/memory.h"
 #include "vm/resolve.h"
 #include "vm/access.h"
 #include "vm/classcache.h"
@@ -44,6 +46,7 @@
 #include "vm/descriptor.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/verify/typeinfo.h"
+
 
 /******************************************************************************/
 /* DEBUG HELPERS                                                              */

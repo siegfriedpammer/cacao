@@ -1,4 +1,4 @@
-/* vm/descriptor.c - checking and parsing of field / method descriptors
+/* src/vm/descriptor.c - checking and parsing of field / method descriptors
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,12 +28,14 @@
 
    Changes:
 
-   $Id: descriptor.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: descriptor.c 2194 2005-04-03 16:13:27Z twisti $
 
 */
 
 #include <assert.h>
 
+#include "types.h"
+#include "mm/memory.h"
 #include "vm/descriptor.h"
 #include "vm/exceptions.h"
 #include "vm/resolve.h"

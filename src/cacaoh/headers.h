@@ -26,13 +26,12 @@
 
    Authors: Christian Thalinger
 
-   $Id: headers.h 2002 2005-03-05 17:10:18Z twisti $
+   $Id: headers.h 2194 2005-04-03 16:13:27Z twisti $
 
 */
 
 #ifndef _HEADERS_H
 #define _HEADERS_H
-
 
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
@@ -44,7 +43,10 @@
 #endif
 
 #include "toolbox/chain.h"
+#include "vm/class.h"
 #include "vm/global.h"
+#include "vm/method.h"
+#include "vm/utf8.h"
 
 
 /* export variables ***********************************************************/

@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: jni.c 2194 2005-04-03 16:13:27Z twisti $
 
 */
 
@@ -43,6 +43,7 @@
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
+#include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Byte.h"
 #include "native/include/java_lang_Character.h"
 #include "native/include/java_lang_Short.h"

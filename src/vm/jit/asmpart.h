@@ -1,4 +1,4 @@
-/* vm/jit/asmpart.h - prototypes for machine specfic functions
+/* src/vm/jit/asmpart.h - prototypes for machine specfic functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2141 2005-03-30 12:51:58Z twisti $
+   $Id: asmpart.h 2194 2005-04-03 16:13:27Z twisti $
 
 */
 
@@ -121,10 +121,7 @@ void asm_throw_and_handle_arrayindexoutofbounds_exception();
 #endif
 void asm_throw_and_handle_hardware_arithmetic_exception();
 
-java_objectarray* Java_java_lang_VMSecurityManager_getClassContext(JNIEnv *env, jclass clazz);
 stacktraceelement *asm_get_stackTrace();
-
-/*java_lang_ClassLoader* Java_java_lang_VMSecurityManager_currentClassLoader(JNIEnv *env, jclass clazz);*/
 
 void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p);
 
