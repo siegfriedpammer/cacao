@@ -1,4 +1,4 @@
-/* toolbox/logging.c - contains logging functions
+/* src/toolbox/logging.c - contains logging functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Reinhard Grafl
 
-   $Id: logging.c 2020 2005-03-09 12:01:42Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: logging.c 2133 2005-03-30 09:49:41Z twisti $
 
 */
 
@@ -49,7 +51,6 @@
 ***************************************************************************/
 
 FILE *logfile = NULL;
-
 
 
 void log_init(const char *fname)
@@ -183,7 +184,7 @@ void log_cputime(void)
 
    outputs log text like this:
 
-   LOG: Loading class: java.lang.Object
+   LOG: Loading class: java/lang/Object
 
 *******************************************************************************/
 
@@ -192,12 +193,12 @@ void log_message_class(const char *msg, classinfo *c)
 	char *buf;
 	s4    len;
 
-	len = strlen(msg) + utf_strlen(c->name) + 1;
+	len = strlen(msg) + utf_strlen(c->name) + strlen("0");
 
 	buf = MNEW(char, len);
 
-	sprintf(buf, msg);
-	utf_sprint_classname(buf + strlen(buf), c->name);
+	strcpy(buf, msg);
+	utf_strcat(buf, c->name);
 
 	log_text(buf);
 
@@ -209,7 +210,7 @@ void log_message_class(const char *msg, classinfo *c)
 
    outputs log text like this:
 
-   LOG: Compiling: java.lang.Object.clone()Ljava.lang.Object;
+   LOG: Compiling: java.lang.Object.clone()Ljava/lang/Object;
 
 *******************************************************************************/
 
@@ -218,16 +219,16 @@ void log_message_method(const char *msg, methodinfo *m)
 	char *buf;
 	s4    len;
 
-	len = strlen(msg) + utf_strlen(m->class->name) + 1 +
-		utf_strlen(m->name) + utf_strlen(m->descriptor) + 1;
+	len = strlen(msg) + utf_strlen(m->class->name) + strlen(".") +
+		utf_strlen(m->name) + utf_strlen(m->descriptor) + strlen("0");
 
 	buf = MNEW(char, len);
 
-	sprintf(buf, msg);
-	utf_sprint_classname(buf + strlen(buf), m->class->name);
-	strcpy(buf + strlen(buf), ".");
-	utf_sprint(buf + strlen(buf), m->name);
-	utf_sprint_classname(buf + strlen(buf), m->descriptor);
+	strcpy(buf, msg);
+	utf_strcat_classname(buf, m->class->name);
+	strcat(buf, ".");
+	utf_strcat(buf, m->name);
+	utf_strcat(buf, m->descriptor);
 
 	log_text(buf);
 
