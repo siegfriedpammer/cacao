@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1305 2004-07-11 15:08:19Z stefan $
+   $Id: asmpart.S 1450 2004-11-05 14:13:05Z twisti $
 
 */
 
@@ -698,8 +698,8 @@ asm_check_clinit:
 L_is_initialized:
 	mov     (%rsp),%rax                 /* get return address                 */
 	sub     $23,%rax                    /* asm_putstatic call code size       */
-	movb    $0xeb,(%rax)                /* jmp rel8                           */
-	movb    $21,1(%rax)                 /* 8-bit offset                       */
+	movw    $0x15eb,(%rax)              /* 0xeb = jmp rel8, 0x15 = 21 byte    */
+	                                    /* 8-bit offset                       */
 	ret
 
 L_initializererror:
@@ -732,9 +732,7 @@ asm_builtin_monitorenter:
 	jmp     builtin_monitorenter        /* else call builtin_monitorenter     */
 
 nb_monitorenter:
-	mov     string_java_lang_NullPointerException,%rdi
-	call    new_exception
-	
+	call    new_nullpointerexception
     pop     %r10                        /* delete return address              */
     sub     $3,%r10                     /* faulting address is return adress - 3 */
     jmp     asm_handle_exception
@@ -752,9 +750,7 @@ asm_builtin_monitorexit:
 	jmp     builtin_monitorexit         /* else call builtin_monitorenter     */
 
 nb_monitorexit:
-	mov     string_java_lang_NullPointerException,%rdi
-	call    new_exception
-	
+	call    new_nullpointerexception
     pop     %r10                        /* delete return address              */
     sub     $3,%r10                     /* faulting address is return adress - 3 */
     jmp     asm_handle_exception
@@ -941,23 +937,21 @@ asm_builtin_d2l:
 *******************************************************************************/
 
 asm_builtin_checkarraycast:
-        sub     $24,%rsp				/* keep stack 16-byte aligned         */
-        mov     %rdi,(%rsp)				/* save object pointer                */
-        call    builtin_checkarraycast  /* builtin_checkarraycast             */
-        test    %rax,%rax               /* if (false) throw exception         */
-        je      nb_carray_throw
-        mov     (%rsp),%rax             /* return object pointer              */
-        add     $24,%rsp                /* free stack space                   */
-        ret
+	sub     $24,%rsp                /* keep stack 16-byte aligned         */
+	mov     %rdi,(%rsp)             /* save object pointer                */
+	call    builtin_checkarraycast  /* builtin_checkarraycast             */
+	test    %rax,%rax               /* if (false) throw exception         */
+	je      nb_carray_throw
+	mov     (%rsp),%rax             /* return object pointer              */
+	add     $24,%rsp                /* free stack space                   */
+	ret
 
 nb_carray_throw:
-		mov     string_java_lang_ClassCastException,%rdi
-		call    new_exception
-		
-        add     $24,%rsp
-        pop     %r10					/* delete return address              */
-        sub     $3,%r10					/* faulting address is return adress - 3 */
-        jmp     asm_handle_exception
+	call    new_classcastexception
+	add     $24,%rsp
+	pop     %r10                    /* delete return address              */
+	sub     $3,%r10                 /* faulting address is return adress - 3 */
+	jmp     asm_handle_exception
 
 		
 /******************* function asm_builtin_aastore ******************************
@@ -994,29 +988,24 @@ asm_builtin_aastore:
         ret
 
 nb_aastore_null:
-		mov     string_java_lang_NullPointerException,%rdi
-		call    new_exception
-		
+		call    new_nullpointerexception
         add     $24,%rsp
-        pop     %r10					/* delete return address */
+        pop     %r10					/* delete return address              */
         sub     $3,%r10					/* faulting address is return adress - 3 */
         jmp     asm_handle_exception
 
 nb_aastore_bound:
-		mov     string_java_lang_ArrayIndexOutOfBoundsException,%rdi
-		call    new_exception_int       /* %rsi already contains the index    */
-		
+		mov     %rsi,%rdi               /* move index into a0                 */
+		call    new_arrayindexoutofboundsexception
         add     $24,%rsp
-        pop     %r10					/* delete return address */
+        pop     %r10					/* delete return address              */
         sub     $3,%r10					/* faulting address is return adress - 3 */
         jmp     asm_handle_exception
 		
 nb_aastore_throw:
-		mov     string_java_lang_ArrayStoreException,%rdi
-		call    new_exception
-		
+		call    new_arraystoreexception
         add     $24,%rsp
-        pop     %r10					/* delete return address */
+        pop     %r10					/* delete return address              */
         sub     $3,%r10					/* faulting address is return adress - 3 */
         jmp		asm_handle_exception
 
