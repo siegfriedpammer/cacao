@@ -7,7 +7,7 @@
 
 typedef struct gnu_java_nio_channels_FileChannelImpl {
    java_objectheader header;
-   s4 opened;
+   s4 closed;
    s4 fd;
    s4 mode;
 } gnu_java_nio_channels_FileChannelImpl;

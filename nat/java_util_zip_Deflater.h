@@ -9,7 +9,6 @@ typedef struct java_util_zip_Deflater {
    java_objectheader header;
    s4 level;
    s4 noHeader;
-   s4 strategy;
    s4 state;
    s4 totalOut;
    struct java_util_zip_DeflaterPending* pending;

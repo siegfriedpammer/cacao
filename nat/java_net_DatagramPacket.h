@@ -10,6 +10,7 @@ typedef struct java_net_DatagramPacket {
    java_bytearray* buffer;
    s4 offset;
    s4 length;
+   s4 maxlen;
    struct java_net_InetAddress* address;
    s4 port;
 } java_net_DatagramPacket;

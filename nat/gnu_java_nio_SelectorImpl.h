@@ -9,6 +9,7 @@ typedef struct gnu_java_nio_SelectorImpl {
    java_objectheader header;
    s4 closed;
    struct java_nio_channels_spi_SelectorProvider* provider;
+   struct java_util_HashSet* cancelledKeys;
    struct java_util_Set* keys;
    struct java_util_Set* selected;
    struct java_lang_Object* selectThreadMutex;
