@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 1774 2004-12-20 20:16:57Z jowenn $
+   $Id: stacktrace.c 1929 2005-02-10 10:52:26Z twisti $
 
 */
 
@@ -41,15 +41,13 @@
 #include "native/include/java_lang_ClassLoader.h"
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/tables.h"
 #include "vm/jit/codegen.inc.h"
 
 
 #undef JWDEBUG
 /*JoWenn: simplify collectors (trace doesn't contain internal methods)*/
-
-extern classinfo *class_java_lang_Class;
-extern classinfo *class_java_lang_SecurityManager;
 
 /* the line number is only u2, but to avoid alignment problems it is made the same size as a native
 	pointer. In the structures where this is used, values of -1 or -2 have a special meainging, so
@@ -325,12 +323,6 @@ void classContextCollector(void **target, stackTraceBuffer *buffer) {
 	start=buffer->start;
 	start++;
 	targetSize--;
-        if (!class_java_lang_Class)
-                class_java_lang_Class = class_new(utf_new_char("java/lang/Class"));
-
-        if (!class_java_lang_SecurityManager)
-                class_java_lang_SecurityManager =
-                        class_new(utf_new_char("java/lang/SecurityManager"));
 
         if (targetSize > 0) {
                 if ((start->method) && (start->method->class== class_java_lang_SecurityManager)) {
@@ -373,11 +365,6 @@ void classLoaderCollector(void **target, stackTraceBuffer *buffer) {
         size_t size;
 
         size = buffer->full;
-
-
-        if (!class_java_lang_SecurityManager)
-                class_java_lang_SecurityManager =
-                        class_new(utf_new_char("java/lang/SecurityManager"));
 
         if (size > 1) {
 		size--;
