@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 1735 2004-12-07 14:33:27Z twisti $
+   $Id: asmpart.S 1811 2004-12-22 12:21:38Z twisti $
 
 */
 
@@ -107,10 +107,15 @@
 /********************* exported functions and variables ***********************/
 
 	.globl has_no_x_instr_set
+
 	.globl asm_calljavafunction
+
 	.globl asm_calljavafunction2
-	.globl asm_calljavafunction2double
+	.globl asm_calljavafunction2int
 	.globl asm_calljavafunction2long
+	.globl asm_calljavafunction2float
+	.globl asm_calljavafunction2double
+
 	.globl asm_call_jit_compiler
 	.globl asm_throw_and_handle_exception
 	.globl asm_throw_and_handle_nat_exception
@@ -122,8 +127,12 @@
 	.globl asm_builtin_checkcast	
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_aastore
+
+#if defined(USE_THREADS)
 	.globl asm_builtin_monitorenter
 	.globl asm_builtin_monitorexit
+#endif
+
 	.globl asm_builtin_idiv
 	.globl asm_builtin_irem
 	.globl asm_builtin_ldiv
@@ -138,14 +147,6 @@
 	.globl asm_prepare_native_stackinfo
 	.globl asm_remove_native_stackinfo
 	.globl asm_refillin_and_handle_exception
-
-/*************************** imported functions *******************************/
-
-	.globl jit_compile
-	.globl builtin_monitorexit
-	.globl builtin_throw_exception
-	.globl builtin_trace_exception
-	.globl class_java_lang_Object
 
 
 /*********************** function has_no_x_instr_set ***************************
@@ -881,6 +882,8 @@ empty_table:
 ex_already_cleared:
 	ldl     t0,IsSync(pv)         /* t0 = SyncOffset                          */
 	beq     t0,no_monitor_exit    /* if zero no monitorexit                   */
+
+#if defined(USE_THREADS)
 	addq    sp,t0,t0              /* add stackptr to Offset                   */
 	ldq     a0,-8(t0)             /* load monitorexit pointer                 */
 
@@ -906,6 +909,7 @@ ex_mon_load:
 	ldq     pv,5*8(sp)
 	ldq     ra,6*8(sp)
 	lda     sp,7*8(sp)            /* deallocate stack                         */
+#endif
 
 no_monitor_exit:
 	ldl     t0,FrameSize(pv)      /* t0 = frame size                          */
@@ -1060,6 +1064,7 @@ L_initializererror:
 *                                                                              *
 *******************************************************************************/
 
+#if defined(USE_THREADS)
 	.ent    asm_builtin_monitorenter
 
 asm_builtin_monitorenter:
@@ -1084,7 +1089,9 @@ nb_monitorenter:
 	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
 #endif
+
 	.end    asm_builtin_monitorenter
+#endif
 
 
 /********************* function asm_builtin_monitorexit ************************
@@ -1093,6 +1100,7 @@ nb_monitorenter:
 *                                                                              *
 *******************************************************************************/
 
+#if defined(USE_THREADS)
 	.ent    asm_builtin_monitorexit
 
 asm_builtin_monitorexit:
@@ -1117,7 +1125,9 @@ nb_monitorexit:
 	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
 	br      asm_handle_nat_exception
 #endif
+
 	.end    asm_builtin_monitorexit
+#endif
 
 
 /************************ function asm_builtin_idiv ****************************
