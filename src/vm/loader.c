@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1890 2005-01-28 10:44:56Z motse $
+   $Id: loader.c 1896 2005-02-03 16:15:35Z motse $
 
 */
 
@@ -375,7 +375,9 @@ void suck_init(char *classpath)
 					cpi->next = NULL;
 					cpi->pd = NULL; /* ProtectionDomain not set yet */
 					cpi->path = filename;
+					cpi->lock = NULL; /* we'll be initialized  later */
 				}
+
 #else
 				throw_cacao_exception_exit(string_java_lang_InternalError,
 										   "zip/jar files not supported");
@@ -489,6 +491,8 @@ classbuffer *suck_start(classinfo *c)
 	for (cpi = classpath_entries; cpi != NULL && cb == NULL; cpi = cpi->next) {
 #if defined(USE_ZLIB)
 		if (cpi->type == CLASSPATH_ARCHIVE) {
+			if (cpi->lock != NULL) 
+ 				builtin_monitorenter(cpi->lock);
 			if (cacao_locate(cpi->uf, c->name) == UNZ_OK) {
 				unz_file_info file_info;
 
@@ -503,8 +507,8 @@ classbuffer *suck_start(classinfo *c)
 						/* we need this later in use_class_as_object to set a correct 
                             ProtectionDomain and CodeSource */
  						c->pd = (struct java_security_ProtectionDomain*) cpi; 
-						
-						len = unzReadCurrentFile(cpi->uf,cb->data, cb->size);
+
+						len = unzReadCurrentFile(cpi->uf, cb->data, cb->size);
 
 						if (len != cb->size) {
 							suck_stop(cb);
@@ -523,7 +527,8 @@ classbuffer *suck_start(classinfo *c)
 				}
 			}
 			unzCloseCurrentFile(cpi->uf);
-
+			if (cpi->lock != NULL) 
+				builtin_monitorexit(cpi->lock);
 		} else {
 #endif /* USE_ZLIB */
 			
@@ -4434,6 +4439,7 @@ static void create_pseudo_classes()
  
 void loader_init(u1 *stackbottom)
 {
+	classpath_info *cpi;
 	interfaceindex = 0;
 	
 	/* create utf-symbols for pointer comparison of frequently used strings */
@@ -4488,6 +4494,11 @@ void loader_init(u1 *stackbottom)
 	/* correct vftbl-entries (retarded loading of class java/lang/String) */
 	stringtable_update();
 
+   /* init cpi-locks */
+   	for (cpi = classpath_entries; cpi != NULL; cpi = cpi->next) {
+  		if (cpi->type == CLASSPATH_ARCHIVE) 
+		  cpi->lock = builtin_new(class_java_lang_Object);
+   	}
 #if defined(USE_THREADS)
 	if (stackbottom != 0)
 		initLocks();
