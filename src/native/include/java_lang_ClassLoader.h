@@ -7,8 +7,8 @@
 
 typedef struct java_lang_ClassLoader {
    java_objectheader header;
-   struct java_util_Map* loadedClasses;
-   struct java_util_Map* definedPackages;
+   struct java_util_HashMap* loadedClasses;
+   struct java_util_HashMap* definedPackages;
    struct java_lang_ClassLoader* parent;
    s4 initialized;
    s4 defaultAssertionStatus;
