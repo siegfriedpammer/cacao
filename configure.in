@@ -23,7 +23,7 @@ alpha* )
 mips* )
 	SYSDEP_DIR="mips" 
         CFLAGS="-64 -g -DMAP_ANONYMOUS=0 -woff 1048,1110,1164,1515"
-dnl	LIBS="-lelfutil" 
+	LIBS="-lelfutil" 
 	COMPILER_SOURCES=""
 	COMPILER_OBJECTS=""
 	;;
@@ -92,7 +92,7 @@ if test $ac_cv_func_mmap_fixed_mapped = yes; then
 		AC_DEFINE(HAVE_MAP_FAILED) 
 	fi
 
-	if test $ac_cv_map_failed = yes; then
+	if test $ac_cv_map_anonymous = yes; then
 		AC_DEFINE(HAVE_MAP_ANONYMOUS) 
 	fi
 fi

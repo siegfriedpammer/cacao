@@ -17,6 +17,9 @@
 
 #include <math.h>
 
+#define finitef finite
+#define copysignf copysign
+
 /* define infinity for floating point numbers */
 
 u4 flt_nan    = 0xffffffff;

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 118 1999-01-20 14:58:16Z andi $
+# $Id: Makefile.am 120 1999-01-20 15:41:38Z andi $
 
 MAINTAINERCLEANFILES = Makefile.in configure
 SUBDIRS = toolbox mm alpha jit comp nat threads mips
@@ -88,7 +88,8 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 	rm -f @SYSDEP_DIR@/asmpart.s
 	@CPP@ $(INCLUDES) $(top_srcdir)/@SYSDEP_DIR@/asmpart.c \
 			> @SYSDEP_DIR@/asmpart.s
-	@CC@ $(INCLUDES) -c -o @SYSDEP_DIR@/asmpart.o @SYSDEP_DIR@/asmpart.s
+	@CC@ $(CFLAGS) $(INCLUDES) -c -o @SYSDEP_DIR@/asmpart.o \
+			@SYSDEP_DIR@/asmpart.s
 	rm -f asmpart.s
 
 compiler.o: builtin.h compiler.h global.h loader.h tables.h native.h \
