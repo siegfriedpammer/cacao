@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: disass.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: disass.h 1955 2005-02-17 19:50:24Z twisti $
 
 */
 
@@ -44,7 +44,7 @@ extern char *regs[];
 /* function prototypes */
 void myprintf(PTR p, const char *fmt, ...);
 int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, struct disassemble_info *info);
-int disassinstr(u1 *code, int pos);
+int disassinstr(u1 *code);
 void disassemble(u1 *code, int len);
 
 #endif

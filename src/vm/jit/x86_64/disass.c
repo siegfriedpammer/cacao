@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: disass.c 1955 2005-02-17 19:50:24Z twisti $
 
 */
 
@@ -40,9 +40,6 @@
 #include "vm/jit/x86_64/dis-asm.h"
 #include "vm/jit/x86_64/types.h"
 
-
-u1 *codestatic = 0;
-int pstatic = 0;
 
 char mylinebuf[512];
 int mylen;
@@ -99,12 +96,12 @@ int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, s
 
 *******************************************************************************/
 
-int disassinstr(u1 *code, int pos)
+int disassinstr(u1 *code)
 {
 	static disassemble_info info;
 	static int dis_initialized;
-	int seqlen;
-	int i;
+	s4 seqlen;
+	s4 i;
 
 	if (!dis_initialized) {
 		INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
@@ -126,7 +123,7 @@ int disassinstr(u1 *code, int pos)
 
 	printf("   %s\n", mylinebuf);
 
-	return (seqlen - 1);
+	return seqlen;
 }
 
 
@@ -138,33 +135,20 @@ int disassinstr(u1 *code, int pos)
 
 *******************************************************************************/
 
-void disassemble(u1 *code, int len)
+void disassemble(u1 *code, s4 len)
 {
-	int p;
-	int seqlen;
-	int i;
+	s4 i;
+	s4 seqlen;
 	disassemble_info info;
 
 	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
 	info.mach = bfd_mach_x86_64;
 
 	printf("  --- disassembler listing ---\n");
-	for (p = 0; p < len;) {
-		printf("0x%016lx:   ", (s8) code);
-		mylen = 0;
-
-		seqlen = print_insn_i386((bfd_vma) code, &info);
-		p += seqlen;
-
-		for (i = 0; i < seqlen; i++) {
-			printf("%02x ", *(code++));
-		}
-
-		for (; i < 10; i++) {
-			printf("   ");
-		}
-
-		printf("   %s\n", mylinebuf);
+	for (i = 0; i < len; ) {
+		seqlen = disassinstr(code);
+		i += seqlen;
+		code += seqlen;
 	}
 }
 
