@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 998 2004-03-30 21:59:27Z twisti $
+   $Id: native.c 1021 2004-04-21 13:09:20Z stefan $
 
 */
 
@@ -1317,6 +1317,7 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 			}
 
 	    } else {	   	
+			int dummy;
 			/* check for primitive types */
 			for (j = 0; j < PRIMITIVETYPE_COUNT; j++) {
 				char *utf_pos	= utf_ptr - 1;
@@ -1332,6 +1333,8 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 				goto next_type;
 
 			nomatch:
+				/* GCC 3.4 needs this */
+				dummy;
 			}
 
 			/* no primitive type and no arrayclass, so must be object */
@@ -1345,6 +1348,8 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 			*pos++ = ';';
 
 		next_type:
+			/* GCC 3.4 needs this */
+			dummy;
 		}  
     }	    
 
