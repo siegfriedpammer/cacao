@@ -26,13 +26,15 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 696 2003-12-06 20:10:05Z edwin $
+   $Id: typeinfo.h 706 2003-12-07 17:28:29Z twisti $
 
 */
 
-#ifndef __typeinfo_h_
-#define __typeinfo_h_
 
+#ifndef _TYPEINFO_H
+#define _TYPEINFO_H
+
+#include <stdio.h>
 #include "global.h"
 
 /* resolve typedef cycles *****************************************************/
@@ -347,4 +349,18 @@ void typeinfo_print_type(FILE *file,int type,typeinfo *info);
 
 #endif // TYPEINFO_DEBUG
 
-#endif
+#endif /* _TYPEINFO_H */
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
