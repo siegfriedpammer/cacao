@@ -1,4 +1,4 @@
-/* vm/jit/parse.c - parser for JavaVM to intermediate code translation
+/* src/vm/jit/parse.c - parser for JavaVM to intermediate code translation
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,8 +29,9 @@
    Changes: Carolyn Oates
             Edwin Steiner
             Joseph Wenninger
+            Christian Thalinger
 
-   $Id: parse.c 2240 2005-04-06 13:04:28Z twisti $
+   $Id: parse.c 2244 2005-04-06 16:03:50Z twisti $
 
 */
 
@@ -52,6 +53,7 @@
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
+#include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/inline/parseRT.h"
@@ -1191,22 +1193,38 @@ if (DEBUG4==true) {
 		case JAVA_NEW:
 			{
 				constant_classref *cr;
+				classinfo         *cls;
+				
 #if defined(__X86_64__)
 				i = code_get_u2(p + 1, inline_env->method);
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
-				LOADCONST_A_BUILTIN(cr);
+
+				if (!resolve_classref(inline_env->method, cr ,resolveLazy, true, &cls))
+					return NULL;
+
+				/* <clinit> can throw an exception over native code */
+
+				if (cls && cls->initialized) {
+					LOADCONST_A_BUILTIN(cls);
+					BUILTIN1(BUILTIN_new, TYPE_ADR, currentline);
+
+				} else {
+					LOADCONST_A_BUILTIN(cr);
+					BUILTIN1(asm_builtin_new, TYPE_ADR, currentline);
+				}
+
+				s_count++;
+				OP(ICMD_CHECKEXCEPTION);
 #else
-				classinfo *cls;
-				
 				i = code_get_u2(p + 1,inline_env->method);
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 				if (!resolve_classref(inline_env->method,cr,resolveEager,true,&cls))
 					return NULL;
 				LOADCONST_A_BUILTIN(cls);
-#endif
 				s_count++;
 				BUILTIN1(BUILTIN_new, TYPE_ADR, currentline);
 				OP(ICMD_CHECKEXCEPTION);
+#endif
 			}
 			break;
 
