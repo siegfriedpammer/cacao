@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: types.h 1523 2004-11-17 15:48:29Z twisti $
+   $Id: types.h 1580 2004-11-24 13:56:44Z twisti $
 
 */
 
@@ -36,6 +36,8 @@
 
 #include "jit/x86_64/arch.h"
 
+
+/* define the sizes of the integer types used internally by cacao */
 
 typedef signed char             s1;
 typedef unsigned char           u1;
@@ -53,6 +55,11 @@ typedef unsigned long int       u8;
 typedef struct {u4 low, high;}  u8;
 #define s8 u8
 #endif
+
+
+/* define size of a function pointer used in function pointer casts */
+
+typedef u8                      ptrint;
 
 #endif /* _CACAO_TYPES_H */
 
