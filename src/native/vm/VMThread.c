@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 1389 2004-08-02 21:51:33Z stefan $
+   $Id: VMThread.c 1515 2004-11-17 11:53:23Z twisti $
 
 */
 
@@ -43,11 +43,11 @@
 #include "tables.h"
 #include "threads/thread.h"
 #include "toolbox/logging.h"
-#include "java_lang_ThreadGroup.h"
-#include "java_lang_Object.h"         /* needed for java_lang_Thread.h */
-#include "java_lang_Throwable.h"      /* needed for java_lang_Thread.h */
-#include "java_lang_VMThread.h"
-#include "java_lang_Thread.h"
+#include "nat/java_lang_ThreadGroup.h"
+#include "nat/java_lang_Object.h"       /* needed for java_lang_Thread.h      */
+#include "nat/java_lang_Throwable.h"    /* needed for java_lang_Thread.h      */
+#include "nat/java_lang_VMThread.h"
+#include "nat/java_lang_Thread.h"
 
 
 /*
@@ -129,9 +129,13 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_isAlive(JNIEnv *env, java_lang_VMTh
 	return aliveThread((thread *) this->thread);
 #else
 	/* This method is implemented in classpath. */
-	panic("aliveThread");
+	throw_cacao_exception_exit(string_java_lang_InternalError, "aliveThread");
 #endif
 #endif
+
+	/* keep compiler happy */
+
+	return 0;
 }
 
 
@@ -317,21 +321,22 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeInit(JNIEnv *env, java_lang
 #endif
 }
 
+
 /*
  * Class:     java/lang/VMThread
  * Method:    holdsLock
  * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass clazz, struct java_lang_Object* o)
+JNIEXPORT s4 JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass clazz, java_lang_Object* o)
 {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	return threadHoldsLock((threadobject*) THREADOBJECT, o);
+	return threadHoldsLock((threadobject*) THREADOBJECT,
+						   (java_objectheader *) o);
 #else
 	/* I don't know how to find out [stefan] */
 	return 0;
 #endif
 }
-
 
 
 /*
