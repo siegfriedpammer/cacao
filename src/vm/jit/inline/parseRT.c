@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: parseRT.c 1631 2004-11-30 20:03:19Z carolyn $
 
 */
 
@@ -816,7 +816,6 @@ methodinfo *initializeRTAworklist(methodinfo *m) {
 	/* Add system called methods */
  	SYSADD(mainstring, "main","([Ljava/lang/String;)V",systxt)
 	rm = callmeth;  
- 	SYSADD("java/lang/Runtime","getRuntime","()Ljava/lang/Runtime;",systxt)
  	SYSADD("java/lang/System","exit","(I)V",systxt)
 	/*----- rtMissedIn 0 */
         if ( (rtMissedIn = fopen("rtMissedIn0", "r")) == NULL) {
