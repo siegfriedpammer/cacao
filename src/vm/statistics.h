@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 1751 2004-12-13 08:27:03Z twisti $
+   $Id: statistics.h 1953 2005-02-17 13:42:23Z christian $
 
 */
 
@@ -61,9 +61,18 @@ extern int count_utf_len;               /* size of utf hash                   */
 extern int count_utf_new;
 extern int count_utf_new_found;
 
+extern int count_locals_conflicts;
+extern int count_locals_spilled;
+extern int count_locals_register;
+extern int count_ss_spilled;
+extern int count_ss_register;
+extern int count_methods_allocated_by_lsra;
+extern int count_mem_move_bb;
+
 extern int count_jit_calls;
 extern int count_methods;
 extern int count_spills;
+extern int count_spills_read;
 extern int count_pcmd_activ;
 extern int count_pcmd_drop;
 extern int count_pcmd_zero;

@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 1948 2005-02-15 20:01:57Z christian $
+   $Id: lsra.inc 1953 2005-02-17 13:42:23Z christian $
 
 */
 #include <stdio.h>
@@ -39,6 +39,7 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"
+#include "vm/statistics.h"
 
 /* #include "string.h" */
 
@@ -61,6 +62,11 @@ bool lsra(methodinfo *m, codegendata *cd, registerdata *rd, loopdata *ld, t_inli
 {
 
 	lsradata *ls;
+#if defined(STATISTICS)
+	int *locals_start,*locals_end;
+	struct lifetime *lt;
+	int i,j;
+#endif	
 
 #if defined(LSRA_DEBUG) || defined(LSRA_DUMP_LOOPDATA)|| defined(LSRA_TESTLT)
 	char name[1256], name1[1256];
@@ -87,7 +93,26 @@ bool lsra(methodinfo *m, codegendata *cd, registerdata *rd, loopdata *ld, t_inli
 	lsra_init(m, cd, id, ls);
 	if (!lsra_setup(m, cd, rd, ls, ld))
 		return false;
-	
+
+
+#if defined(STATISTICS)
+	/* find conflicts between locals for statistics */
+	if (opt_stat) {
+		locals_start = DMNEW(int, cd->maxlocals);
+		locals_end   = DMNEW(int, cd->maxlocals);
+
+		for (lt = ls->lifetimes; lt != NULL; lt=lt->next) {
+			if (lt->v_index >= 0) { /* -> local var */
+				locals_start[lt->v_index] = lt->i_start;
+				locals_end[lt->v_index]   = lt->i_end;
+			}
+		}
+		for (i=0; i < cd->maxlocals; i++)
+			for (j=i+1; j < cd->maxlocals; j++)
+				if ( !((locals_end[i] < locals_start[j]) || (locals_end[j]<locals_start[i])) )
+					count_locals_conflicts += 2;
+	 }
+#endif	
 
 	/* Run LSRA */
 	lsra_main(m, ls, rd, cd, ld);
@@ -112,6 +137,30 @@ void lsra_init(methodinfo *m, codegendata *cd, t_inlining_globals *id, lsradata 
 	ls->stackslots=NULL;
 }
 
+bool lsra_test(methodinfo *m, codegendata *cd)
+{
+	int i;
+	bool jsr;
+	instruction *ip;
+
+	/* in case of exceptionhandlers or subroutines return to regalloc */
+	if (cd->exceptiontablelength > 0)
+		return false;
+
+	jsr=false;
+	for (i=0; i< m->basicblockcount; i++) {
+		ip = m->basicblocks[i].iinstr + m->basicblocks[i].icount -1;/* set ip to last instruction	*/
+		if (ip->opc == ICMD_JSR) {
+			/* check Instack of sub */
+			printf("SBR Instackdepth: %3i\n",m->basicblocks[m->basicblockindex[ip->op1]].indepth);
+			jsr=true;
+		}
+	}
+
+/* 	if (jsr) return false; */
+	return (!jsr);
+}
+
 bool lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, loopdata *ld)
 {
 #ifdef LSRA_DEBUG
@@ -125,8 +174,6 @@ bool lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
 	bool drop;
 	struct depthElement *de;
 
-	instruction *ip;
-
 	int *stack;
 	int *visited;
 	int stack_top;
@@ -137,24 +184,8 @@ bool lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
 	struct LoopElement *le;
 #endif
 	
-	bool jsr;
-
 	/* in case of exceptionhandlers or subroutines return to regalloc */
-	if (cd->exceptiontablelength > 0)
-		return false;
-
-	jsr=false;
-	for (i=0; i< m->basicblockcount; i++) {
-		ip = m->basicblocks[i].iinstr + m->basicblocks[i].icount -1;/* set ip to last instruction	*/
-		if (ip->opc == ICMD_JSR) {
-			/* check Instack of sub */
-			printf("SBR Instackdepth: %3i\n",m->basicblocks[m->basicblockindex[ip->op1]].indepth);
-			jsr=true;
-/* 			return false; */
-		}
-	}
-
-	if (jsr) return false;
+	if (!lsra_test(m,cd)) return false;
 
 	/* Setup LSRA Data structures */
 	if (opt_loops) 
@@ -188,14 +219,6 @@ bool lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
 		printf("\n");
 	}
 #endif
-
-
-
-
-
-
-
-
 
 	/* BBDELETED Blöcke aus loopdata->c_dTable rausschmeissen! */
 	/* Exceptionhandler in loopdata->c_dTable hinzufügen       */
@@ -513,11 +536,11 @@ void lsra_clean_Graph( methodinfo *m, codegendata *cd, lsradata *ls, loopdata *l
 	int *bb_succ, *bb_visited, *ptr, index;
 	exceptiontable *ex;
 	struct depthElement **table;
-	bool back_edge;
-	int back_edge_nodes_found;
-	struct LoopContainer *lc;
-	struct LoopElement *le;
-	bool all_reached;
+/* 	bool back_edge; */
+/* 	int back_edge_nodes_found; */
+/* 	struct LoopContainer *lc; */
+/* 	struct LoopElement *le; */
+/* 	bool all_reached; */
 	bool *bb_reached;
 
 	table=ld->c_dTable;

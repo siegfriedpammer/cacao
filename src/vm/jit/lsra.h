@@ -27,7 +27,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 1944 2005-02-15 16:30:41Z christian $
+   $Id: lsra.h 1953 2005-02-17 13:42:23Z christian $
 
 */
 
@@ -141,6 +141,7 @@ typedef struct lsradata lsradata;
 
 /* function prototypes */
 bool lsra(methodinfo *, codegendata *, registerdata *, loopdata *, t_inlining_globals *);
+bool lsra_test(methodinfo *, codegendata *);
 void lsra_init(methodinfo *, codegendata *, t_inlining_globals *, lsradata *);
 bool lsra_setup(methodinfo *, codegendata *, registerdata *, lsradata *, loopdata *);
 void lsra_main(methodinfo *, lsradata *, registerdata *, codegendata *, loopdata *ld);

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 1751 2004-12-13 08:27:03Z twisti $
+   $Id: statistics.c 1953 2005-02-17 13:42:23Z christian $
 
 */
 
@@ -74,9 +74,18 @@ int count_utf_len = 0;                  /* size of utf hash                   */
 int count_utf_new = 0;                  /* calls of utf_new                   */
 int count_utf_new_found  = 0;           /* calls of utf_new with fast return  */
 
+int count_locals_conflicts = 0;         /* register allocator statistics */
+int count_locals_spilled = 0;
+int count_locals_register = 0;
+int count_ss_spilled = 0;
+int count_ss_register = 0;
+int count_methods_allocated_by_lsra = 0;
+int count_mem_move_bb = 0;
+
 int count_jit_calls = 0;
 int count_methods = 0;
 int count_spills = 0;
+int count_spills_read = 0;
 int count_pcmd_activ = 0;
 int count_pcmd_drop = 0;
 int count_pcmd_zero = 0;
@@ -312,7 +321,9 @@ void print_stats()
 	log_text(logtext);
 	sprintf(logtext, "Number of Machine-Instructions: %d", count_code_len >> 2);
 	log_text(logtext);
-	sprintf(logtext, "Number of Spills: %d", count_spills);
+	sprintf(logtext, "Number of Spills (write to memory): %d", count_spills);
+	log_text(logtext);
+	sprintf(logtext, "Number of Spills (read from memory): %d", count_spills_read);
 	log_text(logtext);
 	sprintf(logtext, "Number of Activ    Pseudocommands: %5d", count_pcmd_activ);
 	log_text(logtext);
@@ -450,6 +461,21 @@ void print_stats()
 	sprintf(logtext, "Calls of utf_new: %22d", count_utf_new);
 	log_text(logtext);
 	sprintf(logtext, "Calls of utf_new (element found): %6d\n\n", count_utf_new_found);
+	log_text(logtext);
+
+	sprintf(logtext, "Methods allocated by LSRA:         %6d", count_methods_allocated_by_lsra);
+	log_text(logtext);
+	sprintf(logtext, "Conflicts between local Variables: %6d", count_locals_conflicts);
+	log_text(logtext);
+	sprintf(logtext, "Local Variables held in Memory:    %6d", count_locals_spilled);
+	log_text(logtext);
+	sprintf(logtext, "Local Variables held in Registers: %6d", count_locals_register);
+	log_text(logtext);
+	sprintf(logtext, "Stackslots held in Memory:         %6d", count_ss_spilled);
+	log_text(logtext);
+	sprintf(logtext, "Stackslots held in Registers:      %6d",count_ss_register );
+	log_text(logtext);
+	sprintf(logtext, "Memory moves at BB Boundaries:     %6d\n\n",count_mem_move_bb );
 	log_text(logtext);
 }
 

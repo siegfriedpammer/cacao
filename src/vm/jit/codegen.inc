@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1951 2005-02-17 11:41:05Z twisti $
+   $Id: codegen.inc 1953 2005-02-17 13:42:23Z christian $
 
 */
 
@@ -905,7 +905,10 @@ static int reg_of_var(registerdata *rd, stackptr v, int tempregnum)
 		}
 		break;
 	}
-
+#ifdef STATISTICS
+	if (opt_stat)
+		count_spills_read++;
+#endif
 	v->flags |= INMEMORY;
 	return tempregnum;
 }
