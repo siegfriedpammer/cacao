@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: codegen.c 1805 2004-12-22 09:54:48Z twisti $
 
 */
 
@@ -170,7 +170,7 @@ void catch_NullPointerException(int sig, int code, sigctx_struct *sigctx)
 
 	if (faultaddr == 0) {
 		/* reinstall handler */
-		signal(sig, (functionptr) catch_NullPointerException);
+		signal(sig, catch_NullPointerException);
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
@@ -178,7 +178,7 @@ void catch_NullPointerException(int sig, int code, sigctx_struct *sigctx)
 		/*xptr = new_nullpointerexception();
 		sigctx->sc_regs[REG_ITMP1_XPTR] = (u8) xptr;*/
 
-		sigctx->sc_regs[REG_ITMP1_XPTR]=string_java_lang_NullPointerException;
+		sigctx->sc_regs[REG_ITMP1_XPTR] = (u8) string_java_lang_NullPointerException;
 		sigctx->sc_regs[REG_ITMP2_XPC] = sigctx->sc_pc;
 		/*sigctx->sc_pc = (u8) asm_handle_exception;*/
 		sigctx->sc_pc = (u8) asm_throw_and_handle_exception;
@@ -577,8 +577,12 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			currentline=iptr->line;
 		}
 
-	MCODECHECK(64);           /* an instruction usually needs < 64 words      */
-	switch (iptr->opc) {
+		MCODECHECK(64);       /* an instruction usually needs < 64 words      */
+		switch (iptr->opc) {
+
+		case ICMD_INLINE_START:
+		case ICMD_INLINE_END:
+			break;
 
 		case ICMD_NOP:        /* ...  ==> ...                                 */
 			break;
@@ -3437,10 +3441,10 @@ gen_method: {
 				M_BLTZ(s2, 0);
 				codegen_addxcheckarefs(cd, mcodeptr);
 
-				/* copy sizes to stack (argument numbers >= INT_ARG_CNT)      */
+				/* copy SAVEDVAR sizes to stack */
 
 				if (src->varkind != ARGVAR) {
-					M_LST(s2, REG_SP, 8 * (s1 + INT_ARG_CNT));
+					M_LST(s2, REG_SP, s1 * 8);
 				}
 			}
 
@@ -3474,14 +3478,9 @@ gen_method: {
 			store_reg_to_var_int(iptr->dst, s1);
 			break;
 
-                case ICMD_INLINE_START:
-                case ICMD_INLINE_END:
-                        break;
-
-		default: error ("Unknown pseudo command: %d", iptr->opc);
-	
-   
-
+		default:
+			throw_cacao_exception_exit(string_java_lang_InternalError,
+									   "Unknown ICMD %d", iptr->opc);
 	} /* switch */
 		
 	} /* for instruction */
