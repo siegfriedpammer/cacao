@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: options.h 1752 2004-12-13 08:28:10Z twisti $
 
 */
 
@@ -100,10 +100,7 @@ extern bool opt_loops;
 extern bool makeinitializations;
 
 extern bool getloadingtime;
-extern s8 loadingtime;
-
 extern bool getcompilingtime;
-extern s8 compilingtime;
 
 extern int has_ext_instr_set;
 
