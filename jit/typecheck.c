@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 730 2003-12-11 21:23:31Z edwin $
+   $Id: typecheck.c 780 2003-12-14 21:59:53Z edwin $
 
 */
 
@@ -716,7 +716,7 @@ typecheck()
     touched = DMNEW(u1,numlocals);
     vtype = vartype + numlocals * block_count;
     vinfo = vartypeinfo + numlocals * block_count;
-    memset(vartype,TYPE_VOID,numlocals * (block_count+1) * sizeof(typeinfo));
+    memset(vartype,TYPE_VOID,numlocals * (block_count+1) * sizeof(u1));
     memset(vartypeinfo,0,numlocals * (block_count+1) * sizeof(typeinfo));
 
     LOG("Variable buffer initialized.\n");
