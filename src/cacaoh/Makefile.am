@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1884 2005-01-24 16:58:55Z twisti $
+## $Id: Makefile.am 1909 2005-02-10 09:55:14Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -44,7 +44,18 @@ else
 THREAD_LIB =
 endif
 
+noinst_LTLIBRARIES = libcacaoh.la
+
+libcacaoh_la_SOURCES =
+
+libcacaoh_la_LIBADD = \
+	$(top_builddir)/src/mm/libmm.la \
+	$(THREAD_LIB) \
+	$(top_builddir)/src/toolbox/libtoolbox.la \
+	$(top_builddir)/src/vm/libvmcore.la
+
 bindir = $(prefix)/bin
+
 bin_PROGRAMS = cacaoh
 
 cacaoh_SOURCES = \
@@ -52,12 +63,8 @@ cacaoh_SOURCES = \
 	headers.c \
 	headers.h
 
-# This order is crucial. Don't change it!
 cacaoh_LDADD = \
-	$(top_builddir)/src/mm/libmm.la \
-	$(THREAD_LIB) \
-	$(top_builddir)/src/vm/libvmcore.la \
-	$(top_builddir)/src/toolbox/libtoolbox.la \
+	libcacaoh.la \
 	$(top_builddir)/src/boehm-gc/libgc.la \
 	$(top_builddir)/src/classpath/native/jni/java-lang/.libs/libjavalang.a
 
