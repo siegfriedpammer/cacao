@@ -10,7 +10,7 @@
              Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: disass.c 400 2003-08-01 10:50:34Z twisti $
+    Last Change: $Id: disass.c 412 2003-08-22 17:45:57Z twisti $
 
 *******************************************************************************/
 
@@ -79,6 +79,7 @@ static void disassinstr(u1 *code, int pos)
 	static disassemble_info info;
 	static int dis_initialized;
 	int seqlen;
+	int i;
 
 	if (!dis_initialized) {
 		INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
@@ -89,29 +90,17 @@ static void disassinstr(u1 *code, int pos)
 	printf("0x%016lx:   ", code);
 	mylen = 0;
 	seqlen = print_insn_i386((bfd_vma) code, &info);
-	{
-		int i;
-		if (seqlen > 8) {
-			for (i = 0; i < 8; i++) {
-				printf("%02x ", *(code++));
-			}
-			printf("   %s\n", mylinebuf);
-			printf("0x%016lx:   ", code);
-			for (; i < seqlen; i++) {
-				printf("%02x ", *(code++));
-			}
-			printf("\n");
 
-		} else {
-			for (i = 0; i < seqlen; i++) {
-				printf("%02x ", *(code++));
-			}
-			for (; i < 8; i++) {
-				printf("   ");
-			}
-			printf("   %s\n", mylinebuf);
-		}
+	for (i = 0; i < seqlen; i++) {
+		printf("%02x ", *(code++));
 	}
+	
+	for (; i < 10; i++) {
+		printf("   ");
+	}
+
+	printf("   %s\n", mylinebuf);
+
 	codestatic = code - 1;
 	pstatic = pos + seqlen - 1;
 }
@@ -128,15 +117,30 @@ static void disassinstr(u1 *code, int pos)
 static void disassemble(u1 *code, int len)
 {
 	int p;
+	int seqlen;
+	int i;
 	disassemble_info info;
 
 	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
 	info.mach = bfd_mach_x86_64;
 
 	printf("  --- disassembler listing ---\n");
-	for (p = 0; p < len; p++) {
-		code += print_insn_i386((bfd_vma) code, &info);
-		myprintf(NULL, "\n");
+	for (p = 0; p < len;) {
+		printf("0x%016lx:   ", code);
+		mylen = 0;
+
+		seqlen = print_insn_i386((bfd_vma) code, &info);
+		p += seqlen;
+
+		for (i = 0; i < seqlen; i++) {
+			printf("%02x ", *(code++));
+		}
+
+		for (; i < 10; i++) {
+			printf("   ");
+		}
+
+		printf("   %s\n", mylinebuf);
 	}
 }
 
