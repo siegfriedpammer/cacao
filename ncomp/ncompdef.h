@@ -88,6 +88,7 @@ struct instruction {
  
 /*                    flags                                                   */
 
+#define BBDELETED  -2
 #define BBUNDEF    -1
 #define BBREACHED  0
 #define BBFINISHED 1
@@ -105,6 +106,7 @@ struct basicblock {
 	stackptr outstack;          /* stack at end of basic block                */
 	int indepth;                /* stack depth at begin of basic block        */
 	int outdepth;               /* stack depth end of basic block             */
+	int pre_count;              /* count of predecessor basic blocks          */
 	branchref *branchrefs;      /* list of branches to be patched             */
 	};
 
@@ -159,8 +161,10 @@ static int jcommandsize[256] = {
 #define ICMD_IREM0X10001       4
         1,
 #define JAVA_ICONST_2          5
+#define ICMD_IDIVPOW2          5
         1,
 #define JAVA_ICONST_3          6
+#define ICMD_LDIVPOW2          6
         1,
 #define JAVA_ICONST_4          7
         1,
@@ -179,21 +183,28 @@ static int jcommandsize[256] = {
 #define JAVA_FCONST_1         12
         1,
 #define JAVA_FCONST_2         13
+#define ICMD_ELSE_ICONST      13
         1,
 #define JAVA_DCONST_0         14
 #define ICMD_DCONST           14        /* op1 = 0, val.a = constant          */
         1,
 #define JAVA_DCONST_1         15
+#define ICMD_IFEQ_ICONST      15
         1,
 #define JAVA_BIPUSH           16
+#define ICMD_IFNE_ICONST      16
         2,
 #define JAVA_SIPUSH           17
+#define ICMD_IFLT_ICONST      17
         3,
 #define JAVA_LDC1             18
+#define ICMD_IFGE_ICONST      18
         2,
 #define JAVA_LDC2             19
+#define ICMD_IFGT_ICONST      19
         3,
 #define JAVA_LDC2W            20
+#define ICMD_IFLE_ICONST      20
         3,
                                         /* order of LOAD instructions must be */
                                         /* equal to order of TYPE_XXX defines */
@@ -865,22 +876,22 @@ static char *icmd_names[256] = {
 	"NULLCHECKPOP ", /* ICONST_M1     2 */
 	"ICONST       ", /*               3 */
 	"IREM0X10001  ", /* ICONST_1      4 */
-	"UNDEF__5     ", /* ICONST_2      5 */
-	"UNDEF__6     ", /* ICONST_3      6 */
+	"IDIVPOW2     ", /* ICONST_2      5 */
+	"LDIVPOW2     ", /* ICONST_3      6 */
 	"UNDEF__7     ", /* ICONST_4      7 */
 	"LREM0X10001  ", /* ICONST_5      8 */
 	"LCONST       ", /*               9 */
 	"LCMPCONST    ", /* LCONST_1     10 */
 	"FCONST       ", /*              11 */
 	"UNDEF_12     ", /* FCONST_1     12 */
-	"UNDEF_13     ", /* FCONST_2     13 */
+	"ELSE_ICONST  ", /* FCONST_2     13 */
 	"DCONST       ", /*              14 */
-	"UNDEF_15     ", /* DCONST_1     15 */
-	"UNDEF_16     ", /* BIPUSH       16 */
-	"UNDEF_17     ", /* SIPUSH       17 */
-	"UNDEF_18     ", /* LDC1         18 */
-	"UNDEF_19     ", /* LDC2         19 */
-	"UNDEF_20     ", /* LDC2W        20 */
+	"IFEQ_ICONST  ", /* DCONST_1     15 */
+	"IFNE_ICONST  ", /* BIPUSH       16 */
+	"IFLT_ICONST  ", /* SIPUSH       17 */
+	"IFGE_ICONST  ", /* LDC1         18 */
+	"IFGT_ICONST  ", /* LDC2         19 */
+	"IFLE_ICONST  ", /* LDC2W        20 */
 	"ILOAD        ", /*              21 */
 	"LLOAD        ", /*              22 */
 	"FLOAD        ", /*              23 */
