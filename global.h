@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 737 2003-12-13 18:19:19Z stefan $
+   $Id: global.h 741 2003-12-13 20:07:41Z stefan $
 
 */
 
@@ -857,8 +857,13 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 
 /* Synchronization ************************************************************/
 
-extern pthread_mutex_t cast_mutex;
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 extern pthread_mutex_t compiler_mutex;
+extern int cast_counter;
+
+void cast_lock();
+void cast_lock2();
+#endif
 
 #endif /* _GLOBAL_H */
 
