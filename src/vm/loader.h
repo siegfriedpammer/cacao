@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1898 2005-02-07 17:21:30Z twisti $
+   $Id: loader.h 1936 2005-02-10 11:04:10Z twisti $
 */
 
 
@@ -81,15 +81,6 @@ extern int blockInts;
 #endif
 
 
-/* references to some system classes ******************************************/
-
-extern classinfo *class_java_lang_Object;
-extern classinfo *class_java_lang_String;
-extern classinfo *class_java_lang_Cloneable;
-extern classinfo *class_java_io_Serializable;
-extern utf *utf_fillInStackTrace_name;
-extern utf *utf_fillInStackTrace_desc;
-
 /* pseudo classes for the type checker ****************************************/
 
 /*
@@ -124,7 +115,7 @@ extern utf *array_packagename;
 /************************ prototypes ******************************************/
 
 /* initialize loader, load important systemclasses */
-void loader_init(u1 *stackbottom);
+bool loader_init(u1 *stackbottom);
 
 void suck_init(char *cpath);
 void create_all_classes(void);

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1898 2005-02-07 17:21:30Z twisti $
+   $Id: loader.c 1936 2005-02-10 11:04:10Z twisti $
 
 */
 
@@ -62,6 +62,7 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 
 #if defined(USE_ZLIB)
@@ -82,51 +83,7 @@ static s4 interfaceindex;       /* sequential numbering of interfaces         */
 static s4 classvalue;
 
 
-/* utf-symbols for pointer comparison of frequently used strings */
-
-static utf *utf_innerclasses; 		/* InnerClasses                           */
-static utf *utf_constantvalue; 		/* ConstantValue                          */
-static utf *utf_code;			    /* Code                                   */
-static utf *utf_exceptions;         /* Exceptions                             */
-static utf *utf_linenumbertable;    /* LineNumberTable                        */
-static utf *utf_sourcefile;         /* SourceFile                             */
-static utf *utf_finalize;		    /* finalize                               */
-static utf *utf_fidesc;   		    /* ()V changed                            */
-static utf *utf_init;  		        /* <init>                                 */
-static utf *utf_clinit;  		    /* <clinit>                               */
-static utf *utf_initsystemclass;	/* initializeSystemClass                  */
-static utf *utf_systemclass;		/* java/lang/System                       */
-static utf *utf_vmclassloader;      /* java/lang/VMClassLoader                */
-static utf *utf_vmclass;            /* java/lang/VMClassLoader                */
-static utf *utf_initialize;
-static utf *utf_initializedesc;
-static utf *utf_java_lang_Object;   /* java/lang/Object                       */
-
-utf *utf_fillInStackTrace_name;
-utf *utf_fillInStackTrace_desc;
-
-utf* clinit_desc(){
-	return utf_fidesc;
-}
-utf* clinit_name(){
-	return utf_clinit;
-}
-
-
-/* important system classes ***************************************************/
-
-classinfo *class_java_lang_Object;
-classinfo *class_java_lang_String;
-classinfo *class_java_lang_Cloneable;
-classinfo *class_java_io_Serializable;
-
-/* Pseudo classes for the typechecker */
-classinfo *pseudo_class_Arraystub = NULL;
-classinfo *pseudo_class_Null = NULL;
-classinfo *pseudo_class_New = NULL;
 vftbl_t *pseudo_class_Arraystub_vftbl = NULL;
-
-utf *array_packagename = NULL;
 
 
 /********************************************************************
@@ -779,7 +736,7 @@ static bool attribute_load(classbuffer *cb, classinfo *c, u4 num)
 		if (!(aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 			return false;
 
-		if (aname == utf_innerclasses) {
+		if (aname == utf_InnerClasses) {
 			/* innerclasses attribute */
 			if (c->innerclass) {
 				*exceptionptr =
@@ -820,7 +777,7 @@ static bool attribute_load(classbuffer *cb, classinfo *c, u4 num)
 				info->flags = suck_u2(cb);
 			}
 
-		} else if (aname == utf_sourcefile) {
+		} else if (aname == utf_SourceFile) {
 			if (!check_classbuffer_size(cb, 4 + 2))
 				return false;
 
@@ -1133,7 +1090,7 @@ static bool field_load(classbuffer *cb, classinfo *c, fieldinfo *f)
 		if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 			return false;
 
-		if (u == utf_constantvalue) {
+		if (u == utf_ConstantValue) {
 			if (!check_classbuffer_size(cb, 4 + 2))
 				return false;
 
@@ -1406,7 +1363,7 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 		if (!(aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 			return false;
 
-		if (aname == utf_code) {
+		if (aname == utf_Code) {
 			if (m->flags & (ACC_ABSTRACT | ACC_NATIVE)) {
 					*exceptionptr =
 						new_classformaterror(c,
@@ -1509,7 +1466,7 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 				if (!(caname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 					return false;
 
-				if (caname == utf_linenumbertable) {
+				if (caname == utf_LineNumberTable) {
 					u2 lncid;
 
 					if (!check_classbuffer_size(cb, 4 + 2))
@@ -1541,7 +1498,7 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 				}
 			}
 
-		} else if (aname == utf_exceptions) {
+		} else if (aname == utf_Exceptions) {
 			s4 j;
 
 			if (m->thrownexceptions) {
@@ -1580,8 +1537,6 @@ static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m)
 	}
 
 	/* everything was ok */
-	/*		utf_display(m->name);
-			printf("\nexceptiontablelength:%ld\n",m->exceptiontablelength);*/
 
 	return true;
 }
@@ -2048,11 +2003,20 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 
 		if (opt_verify) {
 			/* check name */
-			if (!is_valid_name_utf(cn->name))
-				panic("NameAndType with invalid name");
+			if (!is_valid_name_utf(cn->name)) {
+				*exceptionptr =
+					new_exception_utfmessage(string_java_lang_InternalError,
+											 cn->name);
+				return false;
+			}
+
 			/* disallow referencing <clinit> among others */
-			if (cn->name->text[0] == '<' && cn->name != utf_init)
-				panic("NameAndType with invalid special name");
+			if (cn->name->text[0] == '<' && cn->name != utf_init) {
+				*exceptionptr =
+					new_exception_utfmessage(string_java_lang_InternalError,
+											 cn->name);
+				return false;
+			}
 		}
 
 		cptags[forward_nameandtypes->thisindex] = CONSTANT_NameAndType;
@@ -3130,24 +3094,20 @@ static classinfo *class_link_intern(classinfo *c)
 	
 	/* add interfaces */
 	
-	for (tc = c; tc != NULL; tc = tc->super) {
-		for (i = 0; i < tc->interfacescount; i++) {
+	for (tc = c; tc != NULL; tc = tc->super)
+		for (i = 0; i < tc->interfacescount; i++)
 			class_addinterface(c, tc->interfaces[i]);
-		}
-	}
 
 	/* add finalizer method (not for java.lang.Object) */
 
 	if (super) {
 		methodinfo *fi;
 
-		fi = class_findmethod(c, utf_finalize, utf_fidesc);
+		fi = class_findmethod(c, utf_finalize, utf_void__void);
 
-		if (fi) {
-			if (!(fi->flags & ACC_STATIC)) {
+		if (fi)
+			if (!(fi->flags & ACC_STATIC))
 				c->finalizer = fi;
-			}
-		}
 	}
 
 	/* final tasks */
@@ -3846,7 +3806,7 @@ static classinfo *class_init_intern(classinfo *c)
 		}
 	}
 
-	m = class_findmethod(c, utf_clinit, utf_fidesc);
+	m = class_findmethod(c, utf_clinit, utf_void__void);
 
 	if (!m) {
 		if (initverbose) {
@@ -4408,7 +4368,6 @@ static void create_pseudo_classes()
 {
     /* pseudo class for Arraystubs (extends java.lang.Object) */
     
-    pseudo_class_Arraystub = class_new_intern(utf_new_char("$ARRAYSTUB$"));
 	pseudo_class_Arraystub->loaded = true;
     pseudo_class_Arraystub->super = class_java_lang_Object;
     pseudo_class_Arraystub->interfacescount = 2;
@@ -4422,18 +4381,15 @@ static void create_pseudo_classes()
 
     /* pseudo class representing the null type */
     
-	pseudo_class_Null = class_new_intern(utf_new_char("$NULL$"));
 	pseudo_class_Null->loaded = true;
     pseudo_class_Null->super = class_java_lang_Object;
 	class_link(pseudo_class_Null);	
 
     /* pseudo class representing new uninitialized objects */
     
-	pseudo_class_New = class_new_intern(utf_new_char("$NEW$"));
 	pseudo_class_New->loaded = true;
 	pseudo_class_New->linked = true;
 	pseudo_class_New->super = class_java_lang_Object;
-/*  	class_link(pseudo_class_New); */
 }
 
 
@@ -4444,34 +4400,14 @@ static void create_pseudo_classes()
 
 *******************************************************************************/
  
-void loader_init(u1 *stackbottom)
+bool loader_init(u1 *stackbottom)
 {
 	classpath_info *cpi;
+
+	/* reset interface index */
+
 	interfaceindex = 0;
 	
-	/* create utf-symbols for pointer comparison of frequently used strings */
-	utf_innerclasses    = utf_new_char("InnerClasses");
-	utf_constantvalue   = utf_new_char("ConstantValue");
-	utf_code            = utf_new_char("Code");
-	utf_exceptions	    = utf_new_char("Exceptions");
-	utf_linenumbertable = utf_new_char("LineNumberTable");
-	utf_sourcefile      = utf_new_char("SourceFile");
-	utf_finalize	    = utf_new_char("finalize");
-	utf_fidesc	        = utf_new_char("()V");
-	utf_init	        = utf_new_char("<init>");
-	utf_clinit	        = utf_new_char("<clinit>");
-	utf_initsystemclass = utf_new_char("initializeSystemClass");
-	utf_systemclass     = utf_new_char("java/lang/System");
-	utf_vmclassloader   = utf_new_char("java/lang/VMClassLoader");
-	utf_initialize      = utf_new_char("initialize");
-	utf_initializedesc  = utf_new_char("(I)V");
-	utf_vmclass         = utf_new_char("java/lang/VMClass");
-	utf_java_lang_Object= utf_new_char("java/lang/Object");
-	array_packagename   = utf_new_char("<the array package>");
-	utf_fillInStackTrace_name = utf_new_char("fillInStackTrace");
-	utf_fillInStackTrace_desc = utf_new_char("()Ljava/lang/Throwable;");
-
-
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	/* Initialize the monitor pointer for zip/jar file locking.               */
 
@@ -4484,22 +4420,21 @@ void loader_init(u1 *stackbottom)
 	/* Create some important classes. These classes have to be created now    */
 	/* because the classinfo pointers are used in the loading code.           */
 
-	class_java_lang_Object = class_new_intern(utf_java_lang_Object);
-	class_load(class_java_lang_Object);
-	class_link(class_java_lang_Object);
+	if (!class_load(class_java_lang_Object) ||
+		!class_link(class_java_lang_Object))
+		return false;
 
-	class_java_lang_String = class_new(utf_new_char("java/lang/String"));
-	class_load(class_java_lang_String);
-	class_link(class_java_lang_String);
+	if (!class_load(class_java_lang_String) ||
+		!class_link(class_java_lang_String))
+		return false;
 
-	class_java_lang_Cloneable = class_new(utf_new_char("java/lang/Cloneable"));
-	class_load(class_java_lang_Cloneable);
-	class_link(class_java_lang_Cloneable);
+	if (!class_load(class_java_lang_Cloneable) ||
+		!class_link(class_java_lang_Cloneable))
+		return false;
 
-	class_java_io_Serializable =
-		class_new(utf_new_char("java/io/Serializable"));
-	class_load(class_java_io_Serializable);
-	class_link(class_java_io_Serializable);
+	if (!class_load(class_java_io_Serializable) ||
+		!class_link(class_java_io_Serializable))
+		return false;
 
 	/* create classes representing primitive types */
 	create_primitive_classes();
@@ -4514,6 +4449,8 @@ void loader_init(u1 *stackbottom)
 	if (stackbottom != 0)
 		initLocks();
 #endif
+
+	return true;
 }
 
 
