@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1038 2004-04-26 16:41:30Z twisti $
+   $Id: reg.inc 1098 2004-05-27 16:01:29Z twisti $
 
 */
 
@@ -492,8 +492,10 @@ static void interface_regalloc()
 	} /* for s */
 
 	maxmemuse = ifmemuse;
+	maxargintreguse = -1;
 	maxtmpintreguse = iftmpintregcnt;
 	maxsavintreguse = ifsavintregcnt;
+	maxargfltreguse = -1;
 	maxtmpfltreguse = iftmpfltregcnt;
 	maxsavfltreguse = ifsavfltregcnt;
 }
@@ -924,7 +926,7 @@ static void allocate_scratch_registers()
 				case ICMD_NOP:
 				case ICMD_ELSE_ICONST:
 				case ICMD_CHECKASIZE:
-				case ICMD_CHECKOOM:
+				case ICMD_CHECKEXCEPTION:
 				case ICMD_IINC:
 				case ICMD_JSR:
 				case ICMD_RET:
