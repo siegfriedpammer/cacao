@@ -15,7 +15,7 @@
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 	         Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: headers.c 228 2003-02-12 16:24:36Z stefan $
+	Last Change: $Id: headers.c 242 2003-03-07 17:40:12Z stefan $
 
 *******************************************************************************/
 
@@ -477,7 +477,7 @@ static void print_usage()
 
 
 
-/************************** Funktion: main *******************************
+/************************** Function: main *******************************
 
    Main program.
    
