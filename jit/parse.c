@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 772 2003-12-14 12:24:02Z edwin $
+   $Id: parse.c 813 2003-12-31 00:21:52Z edwin $
 
 */
 
@@ -460,6 +460,8 @@ static xtable* fillextable(xtable* extable, exceptiontable *raw_extable, int exc
 		block_insert(p);
 		
 		p = raw_extable[i].endpc;
+		if (p <= raw_extable[i].startpc)
+			panic("Invalid exception handler range");
 		if (label_index != NULL) p = label_index[p];
 		extable[i].endpc = p;
 		bound_check1(p);
@@ -1057,6 +1059,7 @@ void parse()
 			{
 				s4 num, j;
 				s4 *tablep;
+				s4 prevvalue;
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
@@ -1100,6 +1103,12 @@ void parse()
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
+
+					/* check if the lookup table is sorted correctly */
+					
+					if (i && (j <= prevvalue))
+						panic("invalid LOOKUPSWITCH: table not sorted");
+					prevvalue = j;
 
 					/* target */
 
@@ -1161,7 +1170,9 @@ void parse()
 				tablep++;
 				nextp += 4;
 
-				num -= j;
+				num -= j;  /* difference of upper - lower */
+				if (num < 0)
+					panic("invalid TABLESWITCH: upper bound < lower bound");
 
 				if (nextp + 4*(num+1) > jcodelength)
 					panic("Unexpected end of bytecode");
