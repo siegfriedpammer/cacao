@@ -152,8 +152,9 @@ is called, which is a wrapper function to the real loader function
 This wrapper function is required to ensure some requirements:
 
 \begin{itemize}
- \item enter a monitor on the \texttt{classinfo} structure, so that
- only one thread can load the same class or interface at the same time
+ \item enter a monitor on the \texttt{classinfo} structure to make
+ sure that only one thread can load the same class or interface at the
+ same time
 
  \item check if the class or interface is \texttt{loaded}, if it is
  \texttt{true}, leave the monitor and return immediately
@@ -764,6 +765,7 @@ proper constant pool entry is resolved and assigned.
 
 
 \subsection{Method loading}
+\label{sectionmethodloading}
 
 As for the fields, the number of the class or interface methods is read from
 the binary representation as \texttt{u2} value. For each method the function

@@ -1,4 +1,6 @@
 \section{AMD64 (x86\_64) code generator}
+\label{sectionamd64codegenerator}
+
 
 \subsection{Introduction}
 
@@ -8,15 +10,16 @@ Devices~\cite{AMD}. The extraordinary success of the IA32 architecture
 and the upcoming memory address space problem on IA32 high-end
 servers, led to a special design decision by AMD. Unlike Intel, with
 it's completely new designed 64-bit architecture---IA64---AMD decided
-to extend the IA32 instruction set with new a 64-bit instruction mode.
+to extend the IA32 instruction set with a new 64-bit instruction mode.
 
 Due to the fact that the IA32 instructions have no fixed length, like
 this is the fact on RISC machines, it was easy for AMD to introduce a
-new \textit{prefix byte} called \texttt{REX}. The \textit{REX prefix}
-enables the 64-bit operation mode of the following instruction in the
-new \textit{64-bit mode} of the processor.
+new \textit{prefix byte} called \texttt{tablerexprefixbytefields}. The
+\textit{REX prefix} enables the 64-bit operation mode of the following
+instruction in the new \textit{64-bit mode} of the processor.
 
-A processor of the AMD64 architecture has two main operating modes:
+A processor which implements the AMD64 architecture has two main
+operating modes:
 
 \begin{itemize}
 \item Long Mode
@@ -55,7 +58,8 @@ the \textit{REX prefix}, AMD has the ability to increase the amount of
 accessible registers by 1 bit. This means in \textit{64-bit Mode} 16
 general-purpose registers are available. The value of a \textit{REX
 prefix} is in the range \texttt{40h} through \texttt{4Fh}, depending
-on the particular bits used (see table \ref{REX}).
+on the particular bits used (see table
+\ref{tablerexprefixbytefields}).
 
 \begin{table}
 \begin{center}
@@ -74,7 +78,7 @@ REX.B    & 0            & 1-bit (high) extension of the ModRM \textit{r/m} field
          &              & permitting access to 16 registers. \\ \hline
 \end{tabular}
 \caption{REX Prefix Byte Fields}
-\label{REX}
+\label{tablerexprefixbytefields}
 \end{center}
 \end{table}
 
@@ -127,7 +131,8 @@ byte. In CACAO we use a macro called
 \end{verbatim}
 
 to emit this byte. The names of the arguments are respective to their
-usage in the \textit{REX prefix} itself (see table \ref{REX}).
+usage in the \textit{REX prefix} itself (see table
+\ref{tablerexprefixbytefields}).
 
 The AMD64 architecture introduces also a new addressing method called
 \textit{RIP-relative addressing}. In 64-bit mode, addressing relative
@@ -353,11 +358,12 @@ register allocation algorithm for function calls during stack
 analysis and some changes in the code generator itself.
 
 
-\subsection{Register allocator}
+\subsection{Register allocation}
+\label{sectionamd64registerallocation}
 
 As mentioned in the introduction, the AMD64 architecture has 16
-general-purpose registers and 16 floating-point registers. One
-general-purpose register is reserved for the \textit{stack
+integer general-purpose registers and 16 floating-point registers. One
+integer general-purpose register is reserved for the \textit{stack
 pointer}---namely \texttt{\%rsp}---and thus cannot be used for
 arithmetic instructions. The register usage as used in CACAO is shown
 in table \ref{amd64registerusage}.
@@ -376,12 +382,12 @@ Register       & Usage                                         & Callee-saved \\
 \texttt{\%rdi} & 1$^{\rm st}$ argument register                & no           \\
 \texttt{\%r8}  & 5$^{\rm th}$ argument register                & no           \\
 \texttt{\%r9}  & 6$^{\rm th}$ argument register                & no           \\
-\texttt{\%r10}-\texttt{\%r11} & reserved for code generator    & no           \\
-\texttt{\%r12}-\texttt{\%r15} & callee-saved register          & yes          \\
+\texttt{\%r10} - \texttt{\%r11} & reserved for code generator  & no           \\
+\texttt{\%r12} - \texttt{\%r15} & callee-saved register        & yes          \\
 \texttt{\%xmm0} & 1$^{\rm st}$ argument register, return register & no        \\
-\texttt{\%xmm1}-\texttt{\%xmm7} & argument registers           & no           \\
-\texttt{\%xmm8}-\texttt{\%xmm10} & reserved for code generator & no           \\
-\texttt{\%xmm11}-\texttt{\%xmm15} & temporary registers        & no           \\
+\texttt{\%xmm1} - \texttt{\%xmm7} & argument registers         & no           \\
+\texttt{\%xmm8} - \texttt{\%xmm10} & reserved for code generator & no         \\
+\texttt{\%xmm11} - \texttt{\%xmm15} & temporary registers      & no           \\
 \end{tabular}
 \caption{AMD64 Register usage in CACAO}
 \label{amd64registerusage}
@@ -505,42 +511,3 @@ be catched in software when using CACAOs commandline switch
 \texttt{-softnull}. On the RISC ports only the \textit{null-pointer
 exception} is checked in software when using this switch, but on IA32
 and AMD64 both are checked, \texttt{SIGSEGV} and \texttt{SIGFPE}.
-
-
-\subsection{Related work}
-
-The AMD64 architecture is a reasonably young architecture, released in
-April 2003. At the writing of this document the only available 64-bit
-operating systems for AMD64 are GNU/Linux---from different
-distributors---, FreeBSD, NetBSD and OpenBSD. Microsoft Windows is not
-available yet, although it was announced to be released in the first
-half of 2004.
-
-The first available 64-bit JVM for the AMD64 architecture was GCC's
-GCJ---The GNU Compiler for the Java Programming
-Language~\cite{GCJ}. \texttt{gcj} itself is a portable, optimizing,
-ahead-of-time compiler for the JAVA Programming Language, which can
-compile:
-
-\begin{itemize}
-\item JAVA source code directly to native machine code
-\item JAVA source code to JAVA bytecode (class files)
-\item JAVA bytecode to native machine code
-\end{itemize}
-
-One part of the GCJ is \texttt{gij}, which is the JVM
-interpreter. Much of the porting effort for the \textit{GNU Compiler
-Collection} to the AMD64 architecture was done by people working at
-SUSE~\cite{SUSE}.
-
-Long time no AMD64 JIT was available, till Sun~\cite{Sun} released
-their AMD64 version of J2SE 1.4.2-rc1 for GNU/Linux by
-Blackdown~\cite{Blackdown} in December 2003. At this time our AMD64
-JIT was already working for months, but we were not able to release
-CACAO, because of the common status of CACAO to be a compliant
-JVM. The Sun JVM uses the HotSpot Server VM by default, the HotSpot
-Client VM is not available for AMD64 at this time.
-
-The Kaffe~\cite{Wilkinson:97} JVM has ported their interpreter to the
-AMD64 architecture for GNU/Linux, but they still have no plans to port
-their JIT.
