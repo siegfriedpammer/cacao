@@ -1,6 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 204 2003-01-23 22:50:44Z twisti $
+# $Id: Makefile.am 218 2003-02-04 12:47:51Z stefan $
+
+@SET_MAKE@
 
 MAINTAINERCLEANFILES = Makefile.in configure
 SUBDIRS = toolbox mm alpha i386 jit comp nat threads mips tst doc narray jvmtst
@@ -123,25 +125,6 @@ nativetypes.hh @SYSDEP_DIR@/offsets.h nativetable.hh: cacaoh
 @SYSDEP_DIR@/asmpart.o: $(top_srcdir)/@SYSDEP_DIR@/asmpart.S @SYSDEP_DIR@/offsets.h
 	@CC@ $(INCLUDES) -c -g -o $@ $<
 
-compiler.o: $(top_srcdir)/builtin.h $(top_srcdir)/compiler.h \
-		    $(top_srcdir)/global.h $(top_srcdir)/loader.h \
-	        $(top_srcdir)/tables.h $(top_srcdir)/native.h \
-            $(top_srcdir)/asmpart.h $(top_srcdir)/compiler.c $(top_srcdir)/comp/*.c \
-            $(top_srcdir)/@SYSDEP_DIR@/gen.c $(top_srcdir)/@SYSDEP_DIR@/disass.c
-#	@CC@ $(CFLAGS) -I. $(INCLUDES) -c $(top_srcdir)/compiler.c
-
-jit.o: jit.c \
-	jit/mcode.c \
-	jit/parse.c \
-	jit/reg.c \
-	jit/stack.c \
-	jit/jitdef.h \
-	narray/graph.c \
-	narray/loop.c \
-	narray/analyze.c \
-	narray/tracing.c \
-	narray/loop.h
-	
 checkjvm:
 	$(MAKE) -C jvmtst $@
 

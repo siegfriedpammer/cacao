@@ -1,4 +1,4 @@
-noinst_LIBRARIES = libmm_new.a libmm_old.a
+noinst_LIBRARIES = libmm_new.a libmm_old.a libboehm.a
 
 libmm_new_a_SOURCES = allocator2.c allocator.h \
 		      bitmap2.c bitmap2.h \
@@ -6,5 +6,6 @@ libmm_new_a_SOURCES = allocator2.c allocator.h \
 		      lifespan.c lifespan.h \
 		      mm.h
 libmm_old_a_SOURCES = heap.old.c
+libboehm_a_SOURCES = boehm.c
 
 INCLUDES=-I$(top_srcdir) -I$(top_srcdir)/@SYSDEP_DIR@

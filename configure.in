@@ -1,7 +1,7 @@
 dnl autoconf; autoheader; automake
 
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(compiler.c)
+AC_INIT(jit.c)
 AC_CANONICAL_HOST
 
 AM_INIT_AUTOMAKE(cacao, 0.40)
@@ -49,6 +49,7 @@ AC_SUBST(SYSDEP_DIR)
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_RANLIB
+AC_PROG_MAKE_SET
 
 dnl Checks for libraries.
 AC_CHECK_LIB(m, sin)
@@ -109,7 +110,7 @@ dnl Features
 
 dnl check arguments
 AC_ARG_ENABLE(threads, [  --enable-threads        enable threads support])
-AC_ARG_ENABLE(gc2, [  --enable-gc2            enable new garbage collector])
+AC_ARG_WITH(gc, [  --with-gc[=ARG]         use garbage collector [gc2,gc1,boehm]])
 
 dnl threads
 AC_MSG_CHECKING(whether to include threads support)
@@ -130,15 +131,28 @@ fi
 
 dnl garbage collector version
 AC_MSG_CHECKING(which garbage collector to use)
-if test x"$enable_gc2" = "xno"; then
+case "$with_gc" in
+boehm )
+	AC_MSG_RESULT(Boehm garbage collector)
+	GC_OBJ="mm/libboehm.a libgc.a"
+	if test ! -e libgc.a; then
+		AC_MSG_ERROR(libgc.a not found)
+	fi
+	AC_DEFINE(USE_BOEHM)
+	;;
+gc1 )
 	AC_MSG_RESULT(old garbage collector)
 	GC_OBJ="mm/libmm_old.a"
-else
+	;;
+gc2 | "" )
 	AC_MSG_RESULT(new garbage collector)
 	GC_OBJ="mm/libmm_new.a"
-fi
+	;;
+* )
+	AC_MSG_ERROR(Invalid GC)
+	;;
+esac
 AC_SUBST(GC_OBJ)
-
 
 AC_OUTPUT(Makefile \
 	  toolbox/Makefile \

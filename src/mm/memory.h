@@ -14,6 +14,8 @@
 
 #define CODEMMAP
 
+#include "types.h"
+
 #ifdef USE_BOEHM
 /* Uncollectable memory which can contain references */
 void *heap_alloc_uncollectable(u4 bytelen);
