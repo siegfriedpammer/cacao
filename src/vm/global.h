@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 991 2004-03-29 11:22:34Z stefan $
+   $Id: global.h 1028 2004-04-26 15:55:41Z twisti $
 
 */
 
@@ -517,7 +517,7 @@ struct basicblock;
 
 /* exceptiontable *************************************************************/
 
-typedef struct xtable { /* exceptiontable entry in a method           */ 
+typedef struct xtable {         /* exceptiontable entry in a method           */
 	s4         startpc;         /* start pc of guarded area (inclusive)       */
 	struct basicblock *start;
 
@@ -534,7 +534,7 @@ typedef struct xtable { /* exceptiontable entry in a method           */
 } xtable;
 
 
-typedef struct exceptiontable { /* exceptiontable entry in a method           */ 
+typedef struct exceptiontable { /* exceptiontable entry in a method           */
 	s4         startpc;         /* start pc of guarded area (inclusive)       */
 	s4         endpc;           /* end pc of guarded area (exklusive)         */
 	s4         handlerpc;       /* pc of exception handler                    */
@@ -589,11 +589,11 @@ struct methodinfo {                 /* method structure                       */
 	s4         exceptiontablelength;/* exceptiontable length                  */
 	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
-	u2	thrownexceptionscount; /*number of exceptions declared to be thrown by a method*/
-	classinfo **thrownexceptions;  /*array of classinfos of declared exceptions*/
+	u2        thrownexceptionscount;/*number of exceptions declared to be thrown by a method*/
+	classinfo **thrownexceptions;   /*array of classinfos of declared exceptions*/
 
-	u2	linenumbercount;	/*number of linenumber attributes*/
-	lineinfo *linenumbers;		/*array of lineinfo items (start_pc,line_number)*/
+	u2         linenumbercount;     /*number of linenumber attributes*/
+	lineinfo  *linenumbers;         /*array of lineinfo items (start_pc,line_number)*/
 
 	u1        *stubroutine;         /* stub for compiling or calling natives  */	
 	s4         mcodelength;         /* legth of generated machine code        */
@@ -630,10 +630,9 @@ struct classinfo {                /* class structure                          */
 	struct java_lang_VMClass* vmClass;
 	struct java_lang_reflect_Constructor* constructor;
 
-
-	s4 initializing_thread;       /* gnu classpath */
-	s4 erroneous_state;           /* gnu classpath */
-	struct gnu_classpath_RawData* vmData; /* gnu classpath */
+	s4 initializing_thread;       /* gnu classpath                            */
+	s4 erroneous_state;           /* gnu classpath                            */
+	struct gnu_classpath_RawData* vmData; /* gnu classpath                    */
 
 	s4          flags;            /* ACC flags                                */
 	utf        *name;             /* class name                               */
@@ -657,11 +656,11 @@ struct classinfo {                /* class structure                          */
 
 	listnode    listnode;         /* linkage                                  */
 
-	bool        initialized;      /* true, if class already initialised       */ 
+	bool        initialized;      /* true, if class already initialised       */
 	bool        loaded;           /* true, if class already loaded            */
 	bool        linked;           /* true, if class already linked            */
 	s4          index;            /* hierarchy depth (classes) or index
-	                                 (interfaces)                             */ 
+	                                 (interfaces)                             */
 	s4          instancesize;     /* size of an instance of this class        */
 #ifdef SIZE_FROM_CLASSINFO
 	s4          alignedsize;      /* size of an instance, aligned to the 
@@ -786,65 +785,6 @@ struct arraydescriptor {
 	s4     componentsize;    /* size of a component in bytes                  */
 	short  elementtype;      /* ARRAYTYPE_* constant                          */
 };
-
-
-/* references to some system classes ******************************************/
-
-extern classinfo *class_java_lang_Object;
-extern classinfo *class_java_lang_String;
-extern classinfo *class_java_lang_Throwable;
-extern classinfo *class_java_lang_Cloneable;
-extern classinfo *class_java_io_Serializable;
-extern classinfo *class_java_lang_ClassCastException;
-extern classinfo *class_java_lang_NullPointerException;
-extern classinfo *class_java_lang_ArrayIndexOutOfBoundsException;
-extern classinfo *class_java_lang_NegativeArraySizeException;
-extern classinfo *class_java_lang_OutOfMemoryError;
-extern classinfo *class_java_lang_ArithmeticException;
-extern classinfo *class_java_lang_ArrayStoreException;
-extern classinfo *class_java_lang_ThreadDeath;
-
-/* pseudo classes for the type checker ****************************************/
-
-/*
- * pseudo_class_Arraystub
- *     (extends Object implements Cloneable, java.io.Serializable)
- *
- *     If two arrays of incompatible component types are merged,
- *     the resulting reference has no accessible components.
- *     The result does, however, implement the interfaces Cloneable
- *     and java.io.Serializable. This pseudo class is used internally
- *     to represent such results. (They are *not* considered arrays!)
- *
- * pseudo_class_Null
- *
- *     This pseudo class is used internally to represent the
- *     null type.
- *
- * pseudo_class_New
- *
- *     This pseudo class is used internally to represent the
- *     the 'uninitialized object' type.
- */
-
-extern classinfo *pseudo_class_Arraystub;
-extern classinfo *pseudo_class_Null;
-extern classinfo *pseudo_class_New;
-extern vftbl *pseudo_class_Arraystub_vftbl;
-
-extern utf *array_packagename;
-
-
-/* instances of some system classes *******************************************/
-
-extern java_objectheader *proto_java_lang_ClassCastException;
-extern java_objectheader *proto_java_lang_NullPointerException;
-extern java_objectheader *proto_java_lang_ArrayIndexOutOfBoundsException;
-extern java_objectheader *proto_java_lang_NegativeArraySizeException;
-extern java_objectheader *proto_java_lang_OutOfMemoryError;
-extern java_objectheader *proto_java_lang_ArithmeticException;
-extern java_objectheader *proto_java_lang_ArrayStoreException;
-extern java_objectheader *proto_java_lang_ThreadDeath;
 
 
 /* flag variables *************************************************************/
