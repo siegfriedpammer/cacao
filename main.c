@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: main.c 491 2003-10-20 17:56:03Z twisti $
+	Last Change: $Id: main.c 552 2003-11-01 20:47:35Z twisti $
 
 *******************************************************************************/
 
@@ -63,7 +63,7 @@ void **stackbottom = 0;
 #define OPT_VERBOSE     7
 #define OPT_VERBOSEGC   8
 #define OPT_VERBOSECALL 9
-#define OPT_IEEE        10
+#define OPT_NOIEEE      10
 #define OPT_SOFTNULL    11
 #define OPT_TIME        12
 #define OPT_STAT        13
@@ -94,7 +94,7 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{"verbose",     false,  OPT_VERBOSE},
 	{"verbosegc",   false,  OPT_VERBOSEGC},
 	{"verbosecall", false,  OPT_VERBOSECALL},
-	{"ieee",        false,  OPT_IEEE},
+	{"noieee",      false,  OPT_NOIEEE},
 	{"softnull",    false,  OPT_SOFTNULL},
 	{"time",        false,  OPT_TIME},
 	{"stat",        false,  OPT_STAT},
@@ -180,7 +180,7 @@ static void print_usage()
 	printf ("          -verbose ............. write more information\n");
 	printf ("          -verbosegc ........... write message for each GC\n");
 	printf ("          -verbosecall ......... write message for each call\n");
-	printf ("          -ieee ................ use ieee compliant arithmetic\n");
+	printf ("          -noieee .............. don't use ieee compliant arithmetic\n");
 	printf ("          -softnull ............ use software nullpointer check\n");
 	printf ("          -time ................ measure the runtime\n");
 	printf ("          -stat ................ detailed compiler statistics\n");
@@ -510,7 +510,7 @@ int main(int argc, char **argv)
 	/***************** Interpret the command line *****************/
    
 	checknull = false;
-	checkfloats = false;
+	opt_noieee = false;
 
 	while ( (i = get_opt(argc,argv)) != OPT_DONE) {
 
@@ -572,8 +572,8 @@ int main(int argc, char **argv)
 			runverbose = true;
 			break;
 				
-		case OPT_IEEE:
-			checkfloats = true;
+		case OPT_NOIEEE:
+			opt_noieee = true;
 			break;
 
 		case OPT_SOFTNULL:

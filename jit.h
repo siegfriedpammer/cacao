@@ -35,7 +35,7 @@ extern bool inlineoutsiders; /* inline methods, that are not member of the invok
 extern bool checkbounds;        /* check array bounds                         */
 extern bool opt_loops;          /* optimize array accesses in loops           */
 extern bool checknull;          /* check null pointers                        */
-extern bool checkfloats;        /* implement ieee compliant floats            */
+extern bool opt_noieee;         /* don't implement ieee compliant floats      */
 extern bool checksync;          /* do synchronization                         */
 
 extern bool getcompilingtime;   /* compute compile time                       */

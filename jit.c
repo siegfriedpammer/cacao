@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: jit.c 528 2003-10-23 20:48:19Z stefan $
+	Last Change: $Id: jit.c 552 2003-11-01 20:47:35Z twisti $
 
 *******************************************************************************/
 
@@ -53,7 +53,7 @@ bool inlineoutsiders = false;
 
 bool checkbounds = true;
 bool checknull = true;
-bool checkfloats = true;
+bool opt_noieee = false;
 bool checksync = true;
 bool opt_loops = false;
 

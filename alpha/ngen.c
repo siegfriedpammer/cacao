@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 475 2003-10-04 18:59:36Z stefan $
+	Last Change: $Id: ngen.c 552 2003-11-01 20:47:35Z twisti $
 
 *******************************************************************************/
 
@@ -1577,12 +1577,12 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (checkfloats) {
-				M_FADDS(s1, s2, d);
-				M_TRAPB;
+			if (opt_noieee) {
+				M_FADD(s1, s2, d);
 				}
 			else {
-				M_FADD(s1, s2, d);
+				M_FADDS(s1, s2, d);
+				M_TRAPB;
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1592,12 +1592,12 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (checkfloats) {
-				M_DADDS(s1, s2, d);
-				M_TRAPB;
+			if (opt_noieee) {
+				M_DADD(s1, s2, d);
 				}
 			else {
-				M_DADD(s1, s2, d);
+				M_DADDS(s1, s2, d);
+				M_TRAPB;
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1607,12 +1607,12 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (checkfloats) {
-				M_FSUBS(s1, s2, d);
-				M_TRAPB;
+			if (opt_noieee) {
+				M_FSUB(s1, s2, d);
 				}
 			else {
-				M_FSUB(s1, s2, d);
+				M_FSUBS(s1, s2, d);
+				M_TRAPB;
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1622,12 +1622,12 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (checkfloats) {
-				M_DSUBS(s1, s2, d);
-				M_TRAPB;
+			if (opt_noieee) {
+				M_DSUB(s1, s2, d);
 				}
 			else {
-				M_DSUB(s1, s2, d);
+				M_DSUBS(s1, s2, d);
+				M_TRAPB;
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1637,12 +1637,12 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (checkfloats) {
-				M_FMULS(s1, s2, d);
-				M_TRAPB;
+			if (opt_noieee) {
+				M_FMUL(s1, s2, d);
 				}
 			else {
-				M_FMUL(s1, s2, d);
+				M_FMULS(s1, s2, d);
+				M_TRAPB;
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1652,12 +1652,12 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (checkfloats) {
-				M_DMULS(s1, s2, d);
-				M_TRAPB;
+			if (opt_noieee) {
+				M_DMUL(s1, s2, d);
 				}
 			else {
-				M_DMUL(s1, s2, d);
+				M_DMULS(s1, s2, d);
+				M_TRAPB;
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1667,12 +1667,12 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (checkfloats) {
-				M_FDIVS(s1, s2, d);
-				M_TRAPB;
+			if (opt_noieee) {
+				M_FDIV(s1, s2, d);
 				}
 			else {
-				M_FDIV(s1, s2, d);
+				M_FDIVS(s1, s2, d);
+				M_TRAPB;
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1682,12 +1682,12 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (checkfloats) {
-				M_DDIVS(s1, s2, d);
-				M_TRAPB;
+			if (opt_noieee) {
+				M_DDIV(s1, s2, d);
 				}
 			else {
-				M_DDIV(s1, s2, d);
+				M_DDIVS(s1, s2, d);
+				M_TRAPB;
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1697,7 +1697,14 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (checkfloats) {
+			if (opt_noieee) {
+				M_FDIV(s1,s2, REG_FTMP3);
+				M_CVTDL_C(REG_FTMP3, REG_FTMP3); /* round to integer */
+				M_CVTLF(REG_FTMP3, REG_FTMP3);
+				M_FMUL(REG_FTMP3, s2, REG_FTMP3);
+				M_FSUB(s1, REG_FTMP3, d);
+				}
+			else {
 				M_FDIVS(s1,s2, REG_FTMP3);
 				M_TRAPB;
 				M_CVTDL_CS(REG_FTMP3, REG_FTMP3); /* round to integer */
@@ -1708,13 +1715,6 @@ static void gen_mcode()
 				M_FSUBS(s1, REG_FTMP3, d);
 				M_TRAPB;
 				}
-			else {
-				M_FDIV(s1,s2, REG_FTMP3);
-				M_CVTDL_C(REG_FTMP3, REG_FTMP3); /* round to integer */
-				M_CVTLF(REG_FTMP3, REG_FTMP3);
-				M_FMUL(REG_FTMP3, s2, REG_FTMP3);
-				M_FSUB(s1, REG_FTMP3, d);
-				}
 			store_reg_to_var_flt(iptr->dst, d);
 		    break;
 
@@ -1723,7 +1723,14 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (checkfloats) {
+			if (opt_noieee) {
+				M_DDIV(s1,s2, REG_FTMP3);
+				M_CVTDL_C(REG_FTMP3, REG_FTMP3); /* round to integer */
+				M_CVTLD(REG_FTMP3, REG_FTMP3);
+				M_DMUL(REG_FTMP3, s2, REG_FTMP3);
+				M_DSUB(s1, REG_FTMP3, d);
+				}
+			else {
 				M_DDIVS(s1,s2, REG_FTMP3);
 				M_TRAPB;
 				M_CVTDL_CS(REG_FTMP3, REG_FTMP3); /* round to integer */
@@ -1733,13 +1740,6 @@ static void gen_mcode()
 				M_TRAPB;
 				M_DSUBS(s1, REG_FTMP3, d);
 				M_TRAPB;
-				}
-			else {
-				M_DDIV(s1,s2, REG_FTMP3);
-				M_CVTDL_C(REG_FTMP3, REG_FTMP3); /* round to integer */
-				M_CVTLD(REG_FTMP3, REG_FTMP3);
-				M_DMUL(REG_FTMP3, s2, REG_FTMP3);
-				M_DSUB(s1, REG_FTMP3, d);
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 		    break;
@@ -1771,15 +1771,15 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			a = dseg_adddouble(0.0);
-			if (checkfloats) {
+			if (opt_noieee) {
+				M_CVTDL_C(s1, REG_FTMP1);
+				M_CVTLI(REG_FTMP1, REG_FTMP2);
+				}
+			else {
 				M_CVTDL_CS(s1, REG_FTMP1);
 				M_TRAPB;
 				M_CVTLIS(REG_FTMP1, REG_FTMP2);
 				M_TRAPB;
-				}
-			else {
-				M_CVTDL_C(s1, REG_FTMP1);
-				M_CVTLI(REG_FTMP1, REG_FTMP2);
 				}
 			M_DST (REG_FTMP1, REG_PV, a);
 			M_ILD (d, REG_PV, a);
@@ -1791,12 +1791,12 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			a = dseg_adddouble(0.0);
-			if (checkfloats) {
-				M_CVTDL_CS(s1, REG_FTMP1);
-				M_TRAPB;
+			if (opt_noieee) {
+				M_CVTDL_C(s1, REG_FTMP1);
 				}
 			else {
-				M_CVTDL_C(s1, REG_FTMP1);
+				M_CVTDL_CS(s1, REG_FTMP1);
+				M_TRAPB;
 				}
 			M_DST (REG_FTMP1, REG_PV, a);
 			M_LLD (d, REG_PV, a);
@@ -1815,12 +1815,12 @@ static void gen_mcode()
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			if (checkfloats) {
-				M_CVTDFS(s1, d);
-				M_TRAPB;
+			if (opt_noieee) {
+				M_CVTDF(s1, d);
 				}
 			else {
-				M_CVTDF(s1, d);
+				M_CVTDFS(s1, d);
+				M_TRAPB;
 				}
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1830,7 +1830,16 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (checkfloats) {
+			if (opt_noieee) {
+				M_LSUB_IMM(REG_ZERO, 1, d);
+				M_FCMPEQ(s1, s2, REG_FTMP3);
+				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instructions */
+				M_CLR   (d);
+				M_FCMPLT(s2, s1, REG_FTMP3);
+				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
+				M_LADD_IMM(REG_ZERO, 1, d);
+				}
+			else {
 				M_LSUB_IMM(REG_ZERO, 1, d);
 				M_FCMPEQS(s1, s2, REG_FTMP3);
 				M_TRAPB;
@@ -1838,15 +1847,6 @@ static void gen_mcode()
 				M_CLR   (d);
 				M_FCMPLTS(s2, s1, REG_FTMP3);
 				M_TRAPB;
-				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
-				M_LADD_IMM(REG_ZERO, 1, d);
-				}
-			else {
-				M_LSUB_IMM(REG_ZERO, 1, d);
-				M_FCMPEQ(s1, s2, REG_FTMP3);
-				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instructions */
-				M_CLR   (d);
-				M_FCMPLT(s2, s1, REG_FTMP3);
 				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
 				M_LADD_IMM(REG_ZERO, 1, d);
 				}
@@ -1858,7 +1858,16 @@ static void gen_mcode()
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (checkfloats) {
+			if (opt_noieee) {
+				M_LADD_IMM(REG_ZERO, 1, d);
+				M_FCMPEQ(s1, s2, REG_FTMP3);
+				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
+				M_CLR   (d);
+				M_FCMPLT(s1, s2, REG_FTMP3);
+				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
+				M_LSUB_IMM(REG_ZERO, 1, d);
+				}
+			else {
 				M_LADD_IMM(REG_ZERO, 1, d);
 				M_FCMPEQS(s1, s2, REG_FTMP3);
 				M_TRAPB;
@@ -1866,15 +1875,6 @@ static void gen_mcode()
 				M_CLR   (d);
 				M_FCMPLTS(s1, s2, REG_FTMP3);
 				M_TRAPB;
-				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
-				M_LSUB_IMM(REG_ZERO, 1, d);
-				}
-			else {
-				M_LADD_IMM(REG_ZERO, 1, d);
-				M_FCMPEQ(s1, s2, REG_FTMP3);
-				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
-				M_CLR   (d);
-				M_FCMPLT(s1, s2, REG_FTMP3);
 				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
 				M_LSUB_IMM(REG_ZERO, 1, d);
 				}
