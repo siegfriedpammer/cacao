@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 763 2003-12-13 22:47:44Z twisti $
+   $Id: asmpart.S 771 2003-12-13 23:11:08Z stefan $
 
 */
 
@@ -60,7 +60,6 @@
 /********************* exported functions and variables ***********************/
 
 	.globl has_no_x_instr_set
-	.globl asm_calljavamethod
 	.globl asm_calljavafunction
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2long
@@ -124,98 +123,6 @@ has_no_x_instr_set:
 		addl	$4,%esp
 		
 		xor		%eax,%eax				/* result code 0 (not used for i386)  */
-		ret
-
-
-/********************* function asm_calljavamethod *****************************
-*                                                                              *
-*   This function calls a Java-method (which possibly needs compilation)       *
-*   with up to 4 parameters.                                                   *
-*                                                                              *
-*   This functions calls the JIT-compiler which eventually translates the      *
-*   method into machine code.                                                  *
-*                                                                              *
-*   An possibly throwed exception will be returned to the caller as function   *
-*   return value, so the java method cannot return a fucntion value (this      *
-*   function usually calls 'main' and '<clinit>' which do not return a         *
-*   function value).                                                           *
-*                                                                              *
-*   C-prototype:                                                               *
-*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
-*         void *arg1, void *arg2, void *arg3, void *arg4);                     *
-*                                                                              *
-*******************************************************************************/
-
-call_name:
-	.ascii  "calljavamethod\0\0"
-
-	.align	8
-	.long   0                         /* catch type all                       */
-	.long   calljava_xhandler         /* handler pc                           */
-	.long   calljava_xhandler         /* end pc                               */
-	.long   asm_calljavamethod        /* start pc                             */
-	.long   1                         /* extable size                         */
-	.long   0                         /* fltsave                              */
-	.long   0                         /* intsave                              */
-	.long   0                         /* isleaf                               */
-	.long   0                         /* IsSync                               */
-	.long   32                        /* frame size                           */
-	.long   0                         /* method pointer (pointer to name)     */
-
-asm_calljavamethod:
-		push	%ebp                  /* allocate stack space                 */
-		mov		%esp, %ebp
-
-        push    %ebx                  /* save registers                       */
-        push    %esi
-        push    %edi
-        
-		sub		$32,%esp              /* pass the remaining parameters        */
-		xor		%edx,%edx
-
-		mov		%edx,28(%esp)         /* convert parms to 8 byte              */
-		mov		24(%ebp),%eax
-		mov		%eax,24(%esp)
-		
-		mov		%edx,20(%esp)
-		mov		20(%ebp),%eax
-		mov		%eax,16(%esp)
-
-		mov		%edx,12(%esp)
-		mov		16(%ebp),%eax
-		mov		%eax,8(%esp)
-
-		mov		%edx,4(%esp)
-		mov		12(%ebp),%eax
-		mov		%eax,(%esp)
-
-		mov		8(%ebp),%eax          /* move function pointer to %eax        */
-
-		lea		asm_call_jit_compiler,%edx
-		call	*%edx                 /* call JIT compiler                    */
-		
-calljava_jit:
-calljava_return:
-calljava_ret:
-        add     $32,%esp
-        pop     %edi                  /* restore registers                    */
-        pop     %esi
-        pop     %ebx
-        
-		xor     %eax,%eax
-		leave					 	  /* free stack space                     */
-		ret
-
-calljava_xhandler:
-		push    %eax				  /* pass exception pointer               */
-		call    builtin_throw_exception
-		add     $4,%esp
-        
-		add     $32,%esp
-        pop     %edi
-        pop     %esi
-        pop     %ebx
-        leave
 		ret
 
 

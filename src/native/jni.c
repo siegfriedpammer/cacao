@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 746 2003-12-13 22:09:31Z twisti $
+   $Id: jni.c 771 2003-12-13 23:11:08Z stefan $
 
 */
 
@@ -989,7 +989,7 @@ jobject NewObject (JNIEnv* env, jclass clazz, jmethodID methodID, ...)
 		args[i]=va_arg(vaargs,void*);
 	}
 	va_end(vaargs);
-	exceptionptr=asm_calljavamethod(methodID,o,args[0],args[1],args[2]);
+	asm_calljavafunction(methodID,o,args[0],args[1],args[2]);
 
 	return o;
 }
@@ -3380,8 +3380,9 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 		java_objectheader *exceptionToWrap=exceptionptr;
 		classinfo *ivtec=loader_load_sysclass(NULL,utf_new_char("java/lang/reflect/InvocationTargetException"));
 		java_objectheader* ivte=builtin_new(ivtec);
-		if (asm_calljavamethod(class_resolvemethod(ivtec,utf_new_char("<init>"),utf_new_char("(Ljava/lang/Throwable;)V")),
-			ivte,exceptionToWrap,0,0)!=NULL) panic("jni.c: error while creating InvocationTargetException wrapper");
+		asm_calljavafunction(class_resolvemethod(ivtec,utf_new_char("<init>"),utf_new_char("(Ljava/lang/Throwable;)V")),
+			ivte,exceptionToWrap,0,0);
+		if (exceptionptr!=NULL) panic("jni.c: error while creating InvocationTargetException wrapper");
 		exceptionptr=ivte;
 	}
 	return retVal;	

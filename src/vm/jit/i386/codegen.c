@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 766 2003-12-13 22:52:32Z twisti $
+   $Id: codegen.c 771 2003-12-13 23:11:08Z stefan $
 
 */
 
@@ -376,7 +376,7 @@ void catch_ArithmeticException(int sig)
 						 utf_new_char("<init>"), 
 						 utf_new_char("(Ljava/lang/String;)V"));
 
-	asm_calljavamethod(m, p, javastring_new_char("/ by zero"), NULL, NULL);
+	asm_calljavafunction(m, p, javastring_new_char("/ by zero"), NULL, NULL);
 
 	sigctx->eax = (long) p;                              /* REG_ITMP1_XPTR    */
 	sigctx->ecx = sigctx->eip;                           /* REG_ITMP2_XPC     */

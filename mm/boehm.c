@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 738 2003-12-13 18:41:27Z stefan $
+   $Id: boehm.c 771 2003-12-13 23:11:08Z stefan $
 
 */
 
@@ -112,7 +112,7 @@ void *heap_alloc_uncollectable(u4 bytelength)
 void runboehmfinalizer(void *o, void *p)
 {
 	java_objectheader *ob = (java_objectheader *) o;
-	asm_calljavamethod(ob->vftbl->class->finalizer, ob, NULL, NULL, NULL);
+	asm_calljavafunction(ob->vftbl->class->finalizer, ob, NULL, NULL, NULL);
 }
 
 

@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 758 2003-12-13 22:30:00Z twisti $
+   $Id: loader.c 771 2003-12-13 23:11:08Z stefan $
 
 */
 
@@ -2436,7 +2436,6 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 void class_init(classinfo *c)
 {
 	methodinfo *m;
-	java_objectheader *exceptionptr;
 	s4 i;
 #ifdef USE_THREADS
 	int b;
@@ -2486,7 +2485,7 @@ void class_init(classinfo *c)
 	blockInts = 0;
 #endif
 
-	exceptionptr = asm_calljavamethod(m, NULL, NULL, NULL, NULL);
+	asm_calljavafunction(m, NULL, NULL, NULL, NULL);
 
 #ifdef USE_THREADS
 	assert(blockInts == 0);
@@ -2530,7 +2529,7 @@ void class_init(classinfo *c)
 		blockInts = 0;
 #endif
 
-		exceptionptr = asm_calljavamethod(m, NULL, NULL, NULL, NULL);
+		asm_calljavafunction(m, NULL, NULL, NULL, NULL);
 
 #ifdef USE_THREADS
 		assert(blockInts == 0);

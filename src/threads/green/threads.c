@@ -302,7 +302,6 @@ static void
 firstStartThread(void)
 {
     methodinfo *method;
-	java_objectheader *local_exceptionptr = NULL;
 
     DBG( printf("firstStartThread %p\n", currentThread); );
 
@@ -320,10 +319,10 @@ firstStartThread(void)
 	if (method == 0)
 		panic("Cannot find method \'void run ()\'");
 
-	local_exceptionptr = asm_calljavamethod(method, currentThread, NULL, NULL, NULL);
+	asm_calljavafunction(method, currentThread, NULL, NULL, NULL);
 
-    if (local_exceptionptr) {
-        utf_display(local_exceptionptr->vftbl->class->name);
+    if (exceptionptr) {
+        utf_display(exceptionptr->vftbl->class->name);
         printf("\n");
     }
 

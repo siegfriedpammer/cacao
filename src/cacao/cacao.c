@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 748 2003-12-13 22:13:59Z twisti $
+   $Id: cacao.c 771 2003-12-13 23:11:08Z stefan $
 
 */
 
@@ -863,7 +863,6 @@ int main(int argc, char **argv)
 	if (startit) {
 		methodinfo *mainmethod;
 		java_objectarray *a; 
-		java_objectheader *local_exceptionptr = 0;
 
 /*  		heap_addreference((void**) &a); */
 
@@ -890,11 +889,11 @@ int main(int argc, char **argv)
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 
 		/* here we go... */
-		local_exceptionptr = asm_calljavamethod(mainmethod, a, NULL, NULL, NULL);
+		asm_calljavafunction(mainmethod, a, NULL, NULL, NULL);
 	
-		if (local_exceptionptr) {
+		if (exceptionptr) {
 			printf("Exception in thread \"main\" ");
-			utf_display(local_exceptionptr->vftbl->class->name);
+			utf_display(exceptionptr->vftbl->class->name);
 
 			/* do we have a detail message? */
 			if (((java_lang_Throwable *) exceptionptr)->detailMessage) {

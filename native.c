@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 755 2003-12-13 22:25:24Z twisti $
+   $Id: native.c 771 2003-12-13 23:11:08Z stefan $
 
 */
 
@@ -163,7 +163,7 @@ void use_class_as_object(classinfo *c)
 			java_objectheader *vmo = builtin_new(class_java_lang_VMClass);
 
 			if (!vmo) panic("Error while creating instance of java/lang/VMClass");
-			asm_calljavamethod(method_vmclass_init, vmo, c, NULL, NULL);
+			asm_calljavafunction(method_vmclass_init, vmo, c, NULL, NULL);
 			c->vmClass = (java_lang_VMClass *) vmo;
 			/*log_text("VMCLASS has been attached");*/
 		}
@@ -372,7 +372,7 @@ void systemclassloader_addclass(classinfo *c)
 	use_class_as_object (c);
 
 	/* call 'addClass' */
-	asm_calljavamethod(m,
+	asm_calljavafunction(m,
 					   (java_objectheader*) SystemClassLoader, 
 					   (java_objectheader*) c,
 					   NULL,  
@@ -427,7 +427,7 @@ void systemclassloader_addlibname(java_objectheader *o)
 	id = envTable.GetStaticFieldID(&env,class_java_lang_ClassLoader,"loadedLibraryNames","Ljava/util/Vector;");
 	if (!id) panic("can not access ClassLoader");
 
-  	asm_calljavamethod(m,
+  	asm_calljavafunction(m,
 					   GetStaticObjectField(&env,class_java_lang_ClassLoader,id),
 					   o,
 					   NULL,  
@@ -752,7 +752,7 @@ java_objectheader *native_new_and_init(classinfo *c)
 
 	/* call initializer */
 
-	asm_calljavamethod(m, o, NULL, NULL, NULL);
+	asm_calljavafunction(m, o, NULL, NULL, NULL);
 
 	return o;
 }
@@ -788,7 +788,7 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 
 	/* call initializer */
 
-	asm_calljavamethod(m, o, s, NULL, NULL);
+	asm_calljavafunction(m, o, s, NULL, NULL);
 
 	return o;
 }

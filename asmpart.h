@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 664 2003-11-21 18:24:01Z jowenn $
+   $Id: asmpart.h 771 2003-12-13 23:11:08Z stefan $
 
 */
 
@@ -62,8 +62,6 @@ void asm_call_jit_compiler();
    with up to 4 parameters. This function calls a Java-method (which
    possibly needs compilation) with up to 4 parameters.
 */
-java_objectheader *asm_calljavamethod(methodinfo *m, void *arg1, void *arg2,
-                                      void *arg3, void *arg4);
 
 /* 
    This function calls a Java-method (which possibly needs compilation)

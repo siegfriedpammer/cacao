@@ -281,7 +281,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_insertSystemProperties (JNIEnv *en
 
             if (proplist[i][1] == NULL) proplist[i][1] = "";
 
-            asm_calljavamethod(m,
+            asm_calljavafunction(m,
                                p,
                                javastring_new_char(proplist[i][0]),
                                javastring_new_char(proplist[i][1]),
