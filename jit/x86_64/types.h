@@ -1,49 +1,40 @@
-/* x86_64/types.h **************************************************************
+/* jit/x86_64/types.h - cacao types for x86_64
 
-    Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
+   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
+   P. Tomsich, J. Wenninger
 
-    See file COPYRIGHT for information on usage and disclaimer of warranties
+   This file is part of CACAO.
 
-    Machine specific definitions for the x86_64 processor
-	
-    Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-             Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
-             Michael Gschwind    EMAIL: cacao@complang.tuwien.ac.at
-             Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-    Last Change: $Id: types.h 1428 2004-11-01 12:23:20Z twisti $
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-*******************************************************************************/
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Christian Thalinger
+
+   $Id: types.h 1523 2004-11-17 15:48:29Z twisti $
+
+*/
+
 
 #ifndef _CACAO_TYPES_H
 #define _CACAO_TYPES_H
 
-#define POINTERSIZE         8
-#define WORDS_BIGENDIAN     0
-
-#define SUPPORT_DIVISION    1
-#define SUPPORT_LONG        1
-#define SUPPORT_FLOAT       1
-#define SUPPORT_DOUBLE      1
-
-#define SUPPORT_LONG_ADD    1
-#define SUPPORT_LONG_CMP    1
-#define SUPPORT_LONG_LOG    1
-#define SUPPORT_LONG_SHIFT  1
-#define SUPPORT_LONG_MUL    1
-#define SUPPORT_LONG_DIV    1
-#define SUPPORT_LONG_ICVT   1
-#define SUPPORT_LONG_FCVT   1
-
-#define SUPPORT_CONST_ASTORE     1      /* do we support const astores        */
-#define SUPPORT_ONLY_ZERO_ASTORE 0      /* on risc machines we can only store */
-                                        /* REG_ZERO                           */
-
-#define CONDITIONAL_LOADCONST
-#define CONSECUTIVE_INTARGS
-#define CONSECUTIVE_FLOATARGS
-
-#define U8_AVAILABLE        1
+#include "jit/x86_64/arch.h"
 
 
 typedef signed char             s1;
@@ -63,4 +54,18 @@ typedef struct {u4 low, high;}  u8;
 #define s8 u8
 #endif
 
-#endif
+#endif /* _CACAO_TYPES_H */
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
