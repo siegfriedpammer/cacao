@@ -26,7 +26,7 @@
 
    Authors: ?
 
-   $Id: jni.h 664 2003-11-21 18:24:01Z jowenn $
+   $Id: jni.h 676 2003-11-24 20:50:23Z twisti $
 
 */
 
@@ -35,9 +35,15 @@
 #define _JNI_H
 
 #include <stdarg.h>
+#include "global.h"
+#include "types.h"
+
+
+#define JNI_VERSION       0x00010002
 
 #define JNIEXPORT
 #define JNICALL
+
 
 /* JNI datatypes */
 
@@ -67,6 +73,7 @@
 #define jsize         		      jint
 #define jfieldID 	        fieldinfo*
 #define jmethodID	       methodinfo*	
+
 
 typedef struct _JavaVM* JavaVM;
 
@@ -460,10 +467,41 @@ struct JNI_Table {
 /* the active JNI function table */
 
 extern JNIEnv env;
-
 extern JavaVM javaVM;
+extern struct JNI_Table envTable;
 
-#endif
+
+/* function prototypes */
+
+jfieldID getFieldID_critical(JNIEnv *env, jclass clazz, char *name, char *sig);
+
+jobject GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID);
+jboolean GetBooleanField(JNIEnv *env, jobject obj, jfieldID fieldID);
+jbyte GetByteField(JNIEnv *env, jobject obj, jfieldID fieldID);
+jchar GetCharField(JNIEnv *env, jobject obj, jfieldID fieldID);
+jshort GetShortField(JNIEnv *env, jobject obj, jfieldID fieldID);
+jint GetIntField(JNIEnv *env, jobject obj, jfieldID fieldID);
+jlong GetLongField(JNIEnv *env, jobject obj, jfieldID fieldID);
+jfloat GetFloatField(JNIEnv *env, jobject obj, jfieldID fieldID);
+jdouble GetDoubleField(JNIEnv *env, jobject obj, jfieldID fieldID);
+
+void SetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID, jobject val);
+void SetBooleanField(JNIEnv *env, jobject obj, jfieldID fieldID, jboolean val);
+void SetByteField(JNIEnv *env, jobject obj, jfieldID fieldID, jbyte val);
+void SetCharField(JNIEnv *env, jobject obj, jfieldID fieldID, jchar val);
+void SetShortField(JNIEnv *env, jobject obj, jfieldID fieldID, jshort val);
+void SetIntField(JNIEnv *env, jobject obj, jfieldID fieldID, jint val);
+void SetLongField(JNIEnv *env, jobject obj, jfieldID fieldID, jlong val);
+void SetFloatField(JNIEnv *env, jobject obj, jfieldID fieldID, jfloat val);
+void SetDoubleField(JNIEnv *env, jobject obj, jfieldID fieldID, jdouble val);
+
+
+#define setField(obj,typ,var,val) *((typ*) ((long int) obj + (long int) var->offset))=val;
+#define getField(obj,typ,var)     *((typ*) ((long int) obj + (long int) var->offset))
+#define setfield_critical(clazz,obj,name,sig,jdatatype,val) setField(obj,jdatatype,getFieldID_critical(env,clazz,name,sig),val);
+
+#endif /* _JNI_H */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

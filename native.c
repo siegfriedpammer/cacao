@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 673 2003-11-23 22:14:35Z jowenn $
+   $Id: native.c 676 2003-11-24 20:50:23Z twisti $
 
 */
 
@@ -43,10 +43,10 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <utime.h>
-#include <sys/utsname.h>
 
 #include "config.h"
 #include "global.h"
+#include "jni.h"
 #include "native.h"
 #include "nativetypes.hh"
 #include "builtin.h"
@@ -68,48 +68,48 @@
 #endif
 #include <sys/stat.h>
 
-#include "../threads/threadio.h"                    
+#include "threads/threadio.h"
 
 /* searchpath for classfiles */
-static char *classpath;
+char *classpath;
 
 /* for java-string to char conversion */
 #define MAXSTRINGSIZE 1000                          
 
 /******************** systemclasses required for native methods ***************/
 
-static classinfo *class_java_lang_Class;
-static classinfo *class_java_lang_VMClass;
-static methodinfo *method_vmclass_init;
+classinfo *class_java_lang_Class;
+classinfo *class_java_lang_VMClass;
+methodinfo *method_vmclass_init;
 /* static classinfo *class_java_lang_Cloneable=0; */ /* now in global.h */
-static classinfo *class_java_lang_CloneNotSupportedException;
-static classinfo *class_java_lang_System;
-static classinfo *class_java_lang_ClassLoader;
-static classinfo *class_java_lang_ClassNotFoundException;
-static classinfo *class_java_lang_InstantiationException;
-static classinfo *class_java_lang_NoSuchMethodError;   
-static classinfo *class_java_lang_NoSuchFieldError;
-static classinfo *class_java_lang_ClassFormatError;
-static classinfo *class_java_lang_IllegalArgumentException;
-static classinfo *class_java_lang_ArrayIndexOutOfBoundsException;
-static classinfo *class_java_lang_NoSuchFieldException;
-static classinfo *class_java_io_SyncFailedException;
-static classinfo *class_java_io_IOException;
-static classinfo *class_java_io_FileNotFoundException;
-static classinfo *class_java_io_UnixFileSystem;
-static classinfo *class_java_security_PrivilegedActionException;
-static classinfo *class_java_net_UnknownHostException;
-static classinfo *class_java_net_SocketException;
-static classinfo *class_java_lang_NoSuchMethodException;
-static classinfo *class_java_lang_Double;
-static classinfo *class_java_lang_Float;
-static classinfo *class_java_lang_Long;
-static classinfo *class_java_lang_Byte;
-static classinfo *class_java_lang_Short;
-static classinfo *class_java_lang_Boolean;
-static classinfo *class_java_lang_Void;
-static classinfo *class_java_lang_Character;
-static classinfo *class_java_lang_Integer;
+classinfo *class_java_lang_CloneNotSupportedException;
+classinfo *class_java_lang_System;
+classinfo *class_java_lang_ClassLoader;
+classinfo *class_java_lang_ClassNotFoundException;
+classinfo *class_java_lang_InstantiationException;
+classinfo *class_java_lang_NoSuchMethodError;   
+classinfo *class_java_lang_NoSuchFieldError;
+classinfo *class_java_lang_ClassFormatError;
+classinfo *class_java_lang_IllegalArgumentException;
+classinfo *class_java_lang_ArrayIndexOutOfBoundsException;
+classinfo *class_java_lang_NoSuchFieldException;
+classinfo *class_java_io_SyncFailedException;
+classinfo *class_java_io_IOException;
+classinfo *class_java_io_FileNotFoundException;
+classinfo *class_java_io_UnixFileSystem;
+classinfo *class_java_security_PrivilegedActionException;
+classinfo *class_java_net_UnknownHostException;
+classinfo *class_java_net_SocketException;
+classinfo *class_java_lang_NoSuchMethodException;
+classinfo *class_java_lang_Double;
+classinfo *class_java_lang_Float;
+classinfo *class_java_lang_Long;
+classinfo *class_java_lang_Byte;
+classinfo *class_java_lang_Short;
+classinfo *class_java_lang_Boolean;
+classinfo *class_java_lang_Void;
+classinfo *class_java_lang_Character;
+classinfo *class_java_lang_Integer;
 
 /* the system classloader object */
 struct java_lang_ClassLoader *SystemClassLoader = NULL;
@@ -154,26 +154,8 @@ void use_class_as_object(classinfo *c)
         }
 }
 
-/*********************** include Java Native Interface ************************/ 
-
-#include "jni.c"
 
 /*************************** include native methods ***************************/ 
-
-#include "nat/Runtime.c"
-#include "nat/Thread.c"
-#include "nat/VMClass.c"
-#include "nat/Method.c"
-#include "nat/VMSecurityManager.c"
-#include "nat/VMClassLoader.c"
-#include "nat/VMObject.c"
-#include "nat/Proxy.c"
-#include "nat/Field.c"
-#include "nat/VMSystem.c"
-#include "nat/Constructor.c"
-#include "nat/FileChannelImpl.c"
-#include "nat/VMObjectStreamClass.c"
-#include "nat/JOWENNTest1.c"
 
 #ifdef USE_GTK 
 #include "nat/GdkGraphics.c"
@@ -183,6 +165,8 @@ void use_class_as_object(classinfo *c)
 #include "nat/GtkFileDialogPeer.c"
 #include "nat/GtkLabelPeer.c"
 #endif
+
+
 /************************** tables for methods ********************************/
 
 #undef JOWENN_DEBUG
@@ -422,6 +406,7 @@ void native_setclasspath (char *path)
 	classpath = path;
 }
 
+
 /***************** function: throw_classnotfoundexception *********************/
 
 void throw_classnotfoundexception()
@@ -431,25 +416,19 @@ void throw_classnotfoundexception()
     }
 
 	/* throws a ClassNotFoundException */
-	exceptionptr = native_new_and_init (class_java_lang_ClassNotFoundException);
+	exceptionptr = native_new_and_init(class_java_lang_ClassNotFoundException);
 }
 
 
 void throw_classnotfoundexception2(utf* classname)
 {
-    	if (!class_java_lang_ClassNotFoundException) {
-        	panic("java.lang.ClassNotFoundException not found. Maybe wrong classpath?");
-    	}
+	if (!class_java_lang_ClassNotFoundException) {
+		panic("java.lang.ClassNotFoundException not found. Maybe wrong classpath?");
+	}
 
-	/* throws a ClassNotFoundException */
-	exceptionptr = native_new_and_init (class_java_lang_ClassNotFoundException);
-
-        /*
-        sprintf (logtext, "Loading class: ");
-        utf_sprint (logtext+strlen(logtext), classname);
-        dolog();
-        log_text("Class not found");
-        */
+	/* throws a ClassNotFoundException with message */
+	exceptionptr = native_new_and_init_string(class_java_lang_ClassNotFoundException,
+											  javastring_new(classname));
 }
 
 
@@ -684,17 +663,18 @@ char *javastring_tochar (java_objectheader *so)
 
 *******************************************************************************/
  
-fieldinfo *class_findfield_approx (classinfo *c, utf *name)
+fieldinfo *class_findfield_approx(classinfo *c, utf *name)
 {
 	s4 i;
 	for (i = 0; i < c->fieldscount; i++) {
 		/* compare field names */
 		if ((c->fields[i].name == name))
 			return &(c->fields[i]);
-		}
+	}
 
 	/* field was not found, raise exception */	
 	exceptionptr = native_new_and_init(class_java_lang_NoSuchFieldException);
+
 	return NULL;
 }
 
@@ -723,7 +703,7 @@ s4 class_findfield_index_approx (classinfo *c, utf *name)
 java_objectheader *native_new_and_init(classinfo *c)
 {
 	methodinfo *m;
-	java_objectheader *o = builtin_new(c);          /*          create object */
+	java_objectheader *o = builtin_new(c);          /* create object          */
 
         /*
 	printf("native_new_and_init ");
@@ -751,6 +731,37 @@ java_objectheader *native_new_and_init(classinfo *c)
 
 	return o;
 }
+
+
+java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
+{
+	methodinfo *m;
+	java_objectheader *o = builtin_new(c);          /* create object          */
+
+	if (!o) return NULL;
+
+	/* find initializer */
+
+	m = class_findmethod(c,
+						 utf_new_char("<init>"),
+						 utf_new_char("(Ljava/lang/String;)V"));
+	                      	                      
+	if (!m) {                                       /* initializer not found  */
+		if (verbose) {
+			sprintf(logtext, "Warning: class has no instance-initializer: ");
+			utf_sprint(logtext + strlen(logtext), c->name);
+			dolog();
+		}
+		return o;
+	}
+
+	/* call initializer */
+
+	asm_calljavamethod(m, o, s, NULL, NULL);
+
+	return o;
+}
+
 
 /******************** function: stringtable_update ****************************
 
@@ -1095,6 +1106,184 @@ void copy_vftbl(vftbl **dest, vftbl *src)
 	memcpy(&(*dest)->table, &src->table, src->vftbllength * sizeof(methodptr));
 #endif
 }
+
+
+/****************************************************************************************** 											   			
+
+	creates method signature (excluding return type) from array of 
+	class-objects representing the parameters of the method 
+
+*******************************************************************************************/
+
+
+utf *create_methodsig(java_objectarray* types, char *retType)
+{
+    char *buffer;       /* buffer for building the desciptor */
+    char *pos;          /* current position in buffer */
+    utf *result;        /* the method signature */
+    u4 buffer_size = 3; /* minimal size=3: room for parenthesis and returntype */
+    u4 i, j;
+ 
+    if (!types) return NULL;
+
+    /* determine required buffer-size */    
+    for (i=0;i<types->header.size;i++) {
+      classinfo *c = (classinfo *) types->data[i];
+      buffer_size  = buffer_size + c->name->blength+2;
+    }
+
+    if (retType) buffer_size+=strlen(retType);
+
+    /* allocate buffer */
+    buffer = MNEW(u1, buffer_size);
+    pos    = buffer;
+    
+    /* method-desciptor starts with parenthesis */
+    *pos++ = '(';
+
+    for (i=0;i<types->header.size;i++) {
+
+            char ch;	   
+            /* current argument */
+	    classinfo *c = (classinfo *) types->data[i];
+	    /* current position in utf-text */
+	    char *utf_ptr = c->name->text; 
+	    
+	    /* determine type of argument */
+	    if ( (ch = utf_nextu2(&utf_ptr)) == '[' ) {
+	
+	    	/* arrayclass */
+	        for ( utf_ptr--; utf_ptr<utf_end(c->name); utf_ptr++)
+		   *pos++ = *utf_ptr; /* copy text */
+
+	    } else
+	    {	   	
+	      	/* check for primitive types */
+		for (j=0; j<PRIMITIVETYPE_COUNT; j++) {
+
+			char *utf_pos	= utf_ptr-1;
+			char *primitive = primitivetype_table[j].wrapname;
+
+			/* compare text */
+			while (utf_pos<utf_end(c->name))
+		   		if (*utf_pos++ != *primitive++) goto nomatch;
+
+			/* primitive type found */
+			*pos++ = primitivetype_table[j].typesig;
+			goto next_type;
+
+		nomatch:
+		}
+
+		/* no primitive type and no arrayclass, so must be object */
+	      	*pos++ = 'L';
+	      	/* copy text */
+	        for ( utf_ptr--; utf_ptr<utf_end(c->name); utf_ptr++)
+		   	*pos++ = *utf_ptr;
+	      	*pos++ = ';';
+
+		next_type:
+	    }  
+    }	    
+
+    *pos++ = ')';
+
+    if (retType) {
+	for (i=0;i<strlen(retType);i++) {
+		*pos++=retType[i];
+	}
+    }
+    /* create utf-string */
+    result = utf_new(buffer,(pos-buffer));
+    MFREE(buffer, u1, buffer_size);
+
+    return result;
+}
+
+
+/******************************************************************************************
+
+	retrieve the next argument or returntype from a descriptor
+	and return the corresponding class 
+
+*******************************************************************************************/
+
+classinfo *get_type(char **utf_ptr,char *desc_end, bool skip)
+{
+    classinfo *c = class_from_descriptor(*utf_ptr,desc_end,utf_ptr,
+                                         (skip) ? CLASSLOAD_SKIP : CLASSLOAD_LOAD);
+    if (!c)
+	/* unknown type */
+	panic("illegal descriptor");
+
+    if (skip) return NULL;
+
+    use_class_as_object(c);
+    return c;
+}
+
+
+/******************************************************************************************
+
+	use the descriptor of a method to generate a java/lang/Class array
+	which contains the classes of the parametertypes of the method
+
+*******************************************************************************************/
+
+java_objectarray* get_parametertypes(methodinfo *m) 
+{
+    utf  *descr    =  m->descriptor;    /* method-descriptor */ 
+    char *utf_ptr  =  descr->text;      /* current position in utf-text */
+    char *desc_end =  utf_end(descr);   /* points behind utf string     */
+    java_objectarray* result;
+    int parametercount = 0;
+    int i;
+
+    /* skip '(' */
+    utf_nextu2(&utf_ptr);
+  
+    /* determine number of parameters */
+    while ( *utf_ptr != ')' ) {
+    	get_type(&utf_ptr,desc_end,true);
+	parametercount++;
+    }
+
+    /* create class-array */
+    result = builtin_anewarray(parametercount, class_java_lang_Class);
+
+    utf_ptr  =  descr->text;
+    utf_nextu2(&utf_ptr);
+
+    /* get returntype classes */
+    for (i = 0; i < parametercount; i++)
+	    result->data[i] = (java_objectheader *) get_type(&utf_ptr,desc_end, false);
+
+    return result;
+}
+
+
+/******************************************************************************************
+
+	get the returntype class of a method
+
+*******************************************************************************************/
+
+classinfo *get_returntype(methodinfo *m) 
+{
+	char *utf_ptr;   /* current position in utf-text */
+	char *desc_end;  /* points behind utf string     */
+        utf *desc = m->descriptor; /* method-descriptor  */
+
+	utf_ptr  = desc->text;
+	desc_end = utf_end(desc);
+
+	/* ignore parametertypes */
+        while ((utf_ptr<desc_end) && utf_nextu2(&utf_ptr)!=')')
+		/* skip */ ;
+
+	return get_type(&utf_ptr,desc_end, false);
+}
+
 
 /*****************************************************************************/
 /*****************************************************************************/

@@ -29,13 +29,14 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 667 2003-11-21 19:05:06Z jowenn $
+   $Id: headers.c 676 2003-11-24 20:50:23Z twisti $
 
 */
 
 
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "config.h"
 #include "global.h"
 #include "tables.h"
@@ -93,8 +94,7 @@ s4 asm_builtin_checkarraycast(java_objectheader *o,arraydescriptor *d) {return 0
 
 #if defined(__I386__)
 s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class) { return 0; }
-
-void asm_builtin_newarray (s4 size, vftbl *arrayvftbl) {}
+void asm_builtin_newarray(s4 size, vftbl *arrayvftbl) {}
 #endif
 
 void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o) {}
@@ -113,15 +113,16 @@ void asm_handle_builtin_exception(classinfo *c) {}
 
 java_objectheader *native_new_and_init(void *p) { return NULL; }
 
+
 /************************ global variables **********************/
 
-java_objectheader *exceptionptr;                       /* schani */
+java_objectheader *exceptionptr;
 
 bool verbose =  false;
 bool runverbose = false;
 bool collectverbose = false;
 
-static chain *nativemethod_chain;		               /* chain with native methods     */
+static chain *nativemethod_chain;    /* chain with native methods     */
 static chain *nativeclass_chain;		               /* chain with processed classes  */	
 static chain *ident_chain;        /* chain with method and field names in current class */
 static FILE *file = NULL;
@@ -163,7 +164,7 @@ static void addoutputsize (int len)
 }
 
 
-static char *printtype (char *utf_ptr)
+static char *printtype(char *utf_ptr)
 {
 	u2 c;
 
@@ -224,6 +225,7 @@ static char *printtype (char *utf_ptr)
 	return utf_ptr;
 }
 
+
 /******* determine the number of entries of a utf string in the ident chain *****/
 
 static int searchidentchain_utf(utf *ident) 
@@ -239,47 +241,49 @@ static int searchidentchain_utf(utf *ident)
 	return count;
 }
 
+
 /**************** print structure for direct access to objects ******************/	
 
-static void printfields (classinfo *c)
+static void printfields(classinfo *c)
 {
 	u4 i;
 	fieldinfo *f;
 	int ident_count;
 	
 	if (!c) {
-		addoutputsize ( sizeof(java_objectheader) );
-		fprintf (file, "   java_objectheader header;\n");
+		addoutputsize(sizeof(java_objectheader));
+		fprintf(file, "   java_objectheader header;\n");
 		return;
 	}
 		
-	printfields (c->super);
+	printfields(c->super);
 	
-	for (i=0; i<c->fieldscount; i++) {
+	for (i = 0; i < c->fieldscount; i++) {
 		f = &(c->fields[i]);
 		
-		if (! (f->flags & ACC_STATIC) ) {
-			fprintf (file,"   ");
-			printtype (f->descriptor->text);
-			fprintf (file, " ");
-			utf_fprint (file, f->name);
+		if (!(f->flags & ACC_STATIC)) {
+			fprintf(file, "   ");
+			printtype(f->descriptor->text);
+			fprintf(file, " ");
+			utf_fprint(file, f->name);
 
 			/* rename multiple fieldnames */
 			if ((ident_count = searchidentchain_utf(f->name)))
-				fprintf(file,"%d",ident_count - 1);		
-			chain_addlast(ident_chain,f->name);	
+				fprintf(file, "%d", ident_count - 1);
+			chain_addlast(ident_chain, f->name);	
 
-			fprintf (file, ";\n");
+			fprintf(file, ";\n");
 		}
 	}
 }
 
+
 /***************** store prototype for native method in file ******************/
 
-static void printmethod (methodinfo *m)
+static void printmethod(methodinfo *m)
 {
 	char *utf_ptr;
-	u2 paramnum=1;
+	u2 paramnum = 1;
 	u2 ident_count;
 
 	/* search for return-type in descriptor */	
@@ -287,52 +291,49 @@ static void printmethod (methodinfo *m)
 	while (utf_nextu2(&utf_ptr) != ')');
 
 	/* create remarks */
-	fprintf (file,"/*\n * Class:     ");
-	utf_fprint (file, m->class->name);
-	fprintf (file,"\n * Method:    ");
-	utf_fprint (file, m->name);
-	fprintf (file,"\n * Signature: ");
-	utf_fprint (file, m->descriptor);
-	fprintf (file,"\n */\n");	
+	fprintf(file, "\n/*\n * Class:     ");
+	utf_fprint(file, m->class->name);
+	fprintf(file, "\n * Method:    ");
+	utf_fprint(file, m->name);
+	fprintf(file, "\n * Signature: ");
+	utf_fprint(file, m->descriptor);
+	fprintf(file, "\n */\n");	
 
 	/* create prototype */ 			
-	fprintf (file,"JNIEXPORT ");				
-	printtype (utf_ptr);
-	fprintf (file," JNICALL Java_");
-	printID (m->class->name);           
+	fprintf(file, "JNIEXPORT ");				
+	printtype(utf_ptr);
+	fprintf(file, " JNICALL Java_");
+	printID(m->class->name);           
 
 	/* rename overloaded method */
 	if ((ident_count = searchidentchain_utf(m->name)))
-		fprintf(file,"%d",ident_count - 1);		
-	chain_addlast(ident_chain,m->name);	
+		fprintf(file, "%d", ident_count - 1);		
+	chain_addlast(ident_chain, m->name);	
 
-	fprintf (file,"_");
-	printID (m->name);
-	fprintf (file," (JNIEnv *env ");
+	fprintf(file, "_");
+	printID(m->name);
+	fprintf(file, "(JNIEnv *env");
 	
-	utf_ptr = m->descriptor->text+1;
+	utf_ptr = m->descriptor->text + 1;
 			
-	if (! (m->flags & ACC_STATIC) ) {
-	
-		fprintf (file, ",  struct ");
-		printID (m->class->name);
-		fprintf (file, "* this ");
+	if (!(m->flags & ACC_STATIC)) {
+		fprintf(file, ", struct ");
+		printID(m->class->name);
+		fprintf(file, "* this");
 
-	    } 
-	else
-	    {
-		fprintf (file, ", jclass clazz ");
-	    }
+	} else {
+		fprintf(file, ", jclass clazz");
+	}
 
-	if ((*utf_ptr)!=')') fprintf (file, ", "); 
+	if ((*utf_ptr) != ')') fprintf(file, ", ");
 			
-	while ((*utf_ptr)!=')') {
-		utf_ptr = printtype (utf_ptr);
-		fprintf (file, " par%d", paramnum++);
-		if ((*utf_ptr)!=')') fprintf (file, ", ");
+	while ((*utf_ptr) != ')') {
+		utf_ptr = printtype(utf_ptr);
+		fprintf(file, " par%d", paramnum++);
+		if ((*utf_ptr)!=')') fprintf(file, ", ");
 	}
 			
-	fprintf (file, ");\n");
+	fprintf(file, ");\n\n");
 }
 
 
@@ -340,72 +341,83 @@ static void printmethod (methodinfo *m)
 
 static void gen_header_filename(char *buffer, utf *u)
 {
-  int i, simplename_start;
-  int slash_cnt=0;
-
+	int i;
   
-  for (i=0;i<utf_strlen(u);i++) {
-  	if ((u->text[i] == '/') || (u->text[i] == '$')) buffer[i] = '_';  /* convert '$' and '/' to '_' */
-	else buffer[i]=u->text[i];
-  }
-  buffer[utf_strlen(u)]='\0';
+	for (i = 0;i < utf_strlen(u); i++) {
+		if ((u->text[i] == '/') || (u->text[i] == '$')) buffer[i] = '_';  /* convert '$' and '/' to '_' */
+		else buffer[i] = u->text[i];
+	}
+	buffer[utf_strlen(u)] = '\0';
 }
+
 
 /*********** create headerfile for classes and store native methods in chain ************/
 
-static void headerfile_generate (classinfo *c)
+static void headerfile_generate(classinfo *c)
 {
 	char header_filename[1024] = "";
 	char classname[1024]; 
+	char uclassname[1024];
 	u2 i;
 	methodinfo *m;	      		
 		      
 	/* store class in chain */		      
-	chain_addlast (nativeclass_chain, c);								
+	chain_addlast(nativeclass_chain, c);								
 			    	
 	/* open headerfile for class */
-	gen_header_filename(classname,c->name);										    								
+	gen_header_filename(classname, c->name);
 
 	/* create chain for renaming fields */
-	ident_chain = chain_new ();
+	ident_chain = chain_new();
 	
 	sprintf(header_filename, "nat/%s.h", classname);
-   	file = fopen (header_filename, "w");
-   	if (!file) panic ("Can not open file to store header information");											
-   	fprintf (file, "/* This file is machine generated, don't edit it !*/\n\n"); 
+   	file = fopen(header_filename, "w");
+   	if (!file) panic("Can not open file to store header information");
+
+   	fprintf(file, "/* This file is machine generated, don't edit it !*/\n\n");
+
+	/* convert to uppercase */
+	for (i = 0; classname[i]; i++) {
+		uclassname[i] = toupper(classname[i]);
+	}
+	uclassname[i] = '\0';
+
+	fprintf(file, "#ifndef _%s_H\n#define _%s_H\n\n", uclassname, uclassname);
 
 	/* create structure for direct access to objects */	
-	fprintf (file, "/* Structure information for class: ");
-	utf_fprint (file, c->name);
-	fprintf (file, " */\n\n");
-	fprintf (file, "typedef struct ");
-	printID (c->name);							
-	fprintf (file, " {\n");
-	outputsize=0;
-	dopadding=true;
-	printfields (c);							
-	fprintf (file, "} ");
-	printID (c->name);
-	fprintf (file, ";\n\n");  			    
+	fprintf(file, "/* Structure information for class: ");
+	utf_fprint(file, c->name);
+	fprintf(file, " */\n\n");
+	fprintf(file, "typedef struct ");
+	printID(c->name);							
+	fprintf(file, " {\n");
+	outputsize = 0;
+	dopadding = true;
+	printfields(c);
+	fprintf(file, "} ");
+	printID(c->name);
+	fprintf(file, ";\n\n");
 
 	/* create chain for renaming overloaded methods */
-	chain_free(ident_chain);    				 	
-	ident_chain = chain_new ();
+	chain_free(ident_chain);
+	ident_chain = chain_new();
 
 	/* create method-prototypes */
 		      		
-	for (i=0; i<c->methodscount; i++) {
+	for (i = 0; i < c->methodscount; i++) {
 
 		m = &(c->methods[i]);
 
 		if (m->flags & ACC_NATIVE) {
-			chain_addlast (nativemethod_chain, m);	   
-			printmethod(m);		    		   		    
-		}		  					
+			chain_addlast(nativemethod_chain, m);
+			printmethod(m);
+		}
 	}
-				
 
-	chain_free(ident_chain);    				 
+	chain_free(ident_chain);
+
+	fprintf(file, "#endif\n\n");
+
    	fclose(file);
 }
 
@@ -429,23 +441,27 @@ void print_classname (classinfo *clazz)
 
 /*************** create table for locating native functions ****************/
 
-static void printnativetableentry (methodinfo *m)
+static void printnativetableentry(methodinfo *m)
 {
-	fprintf (file, "   { \"");
+	fprintf(file, "   { \"");
 	print_classname(m->class);
-	fprintf (file, "\",\n     \"");
-	utf_fprint (file, m->name);
-	fprintf (file, "\",\n     \"");
-	utf_fprint (file, m->descriptor);
-	fprintf (file, "\",\n     ");
-	if ( (m->flags & ACC_STATIC) !=0)  fprintf (file, "true");
-	else fprintf (file, "false");
-	fprintf (file, ",\n     ");
-	fprintf (file, "(functionptr) Java_");
-	printID (m->class->name);
-	fprintf (file,"_");
-	printID (m->name);
-	fprintf (file,"\n   },\n");
+	fprintf(file, "\",\n     \"");
+	utf_fprint(file, m->name);
+	fprintf(file, "\",\n     \"");
+	utf_fprint(file, m->descriptor);
+	fprintf(file, "\",\n     ");
+
+	if ((m->flags & ACC_STATIC) != 0)
+		fprintf(file, "true");
+	else
+		fprintf(file, "false");
+
+	fprintf(file, ",\n     ");
+	fprintf(file, "(functionptr) Java_");
+	printID(m->class->name);
+	fprintf(file,"_");
+	printID(m->name);
+	fprintf(file,"\n   },\n");
 }
 
 
@@ -456,47 +472,49 @@ static void printnativetableentry (methodinfo *m)
 
 ****************************************************************************/
 
-static void headers_finish ()
+static void headers_finish()
 {
 	methodinfo *m;
 	classinfo *c;
 	char classname[1024];
 	
-	file = fopen ("nativetypes.hh", "w");
-	if (!file) panic ("Can not open file 'native.h' to store header information");
+	file = fopen("nativetypes.hh", "w");
+
+	if (!file)
+		panic("Can not open file 'native.h' to store header information");
 	
-	fprintf (file, "/* Headerfile for native methods: nativetypes.hh */\n");
-	fprintf (file, "/* This file is machine generated, don't edit it !*/\n\n"); 	
-	fprintf (file, "\n/* include native-Headerfiles */\n\n");
+	fprintf(file, "/* Headerfile for native methods: nativetypes.hh */\n");
+	fprintf(file, "/* This file is machine generated, don't edit it !*/\n\n"); 	
+	fprintf(file, "\n/* include native-Headerfiles */\n\n");
 			
-	c = chain_first (nativeclass_chain);
+	c = chain_first(nativeclass_chain);
 	while (c) {
-	
-		dopadding=false;
-		gen_header_filename(classname,c->name);										    													
-		fprintf(file,"#include \"nat/%s.h\"\n",classname);		
-		c = chain_next (nativeclass_chain);		
+		dopadding = false;
+		gen_header_filename(classname, c->name);										    													
+		fprintf(file, "#include \"nat/%s.h\"\n", classname);		
+		c = chain_next(nativeclass_chain);		
 	}
 
     fclose(file);
-	chain_free (nativeclass_chain);
+	chain_free(nativeclass_chain);
 	
 	/* create table of native-methods */
 
-	file = fopen ("nativetable.hh", "w");
-	if (!file) panic ("Can not open file 'nativetable' to store native-link-table");
+	file = fopen("nativetable.hh", "w");
 
-	fprintf (file, "/* Table of native methods: nativetables.hh */\n");
-	fprintf (file, "/* This file is machine generated, don't edit it !*/\n\n"); 
+	if (!file)
+		panic("Can not open file 'nativetable' to store native-link-table");
 
-	while ( (m = chain_first (nativemethod_chain)) != NULL) {
-		chain_remove (nativemethod_chain);		
-		printnativetableentry (m);
+	fprintf(file, "/* Table of native methods: nativetables.hh */\n");
+	fprintf(file, "/* This file is machine generated, don't edit it !*/\n\n"); 
+
+	while ((m = chain_first(nativemethod_chain)) != NULL) {
+		chain_remove(nativemethod_chain);		
+		printnativetableentry(m);
 	}
 		
-	chain_free (nativemethod_chain);
-	fclose (file);
-
+	chain_free(nativemethod_chain);
+	fclose(file);
 }
 
 
@@ -535,7 +553,7 @@ int main(int argc, char **argv)
 
 	/*********** options so only headers are generated *******************/
    
-	makeinitializations=false;
+	makeinitializations = false;
    
 
 	/************ Collect some info from the environment *****************/
@@ -566,19 +584,19 @@ int main(int argc, char **argv)
 	
 	fprintf(file, "/* This file is machine generated, don't edit it !*/\n\n"); 
 
-	fprintf (file, "#define offobjvftbl    %3d\n", (int) OFFSET(java_objectheader, vftbl));
-	fprintf (file, "#define offarraysize   %3d\n", (int) OFFSET(java_arrayheader, size));
-	fprintf (file, "#define offobjarrdata  %3d\n\n", (int) OFFSET(java_objectarray, data[0]));
-	fprintf (file, "#define offbaseval     %3d\n", (int) OFFSET(vftbl, baseval));
-	fprintf (file, "#define offdiffval     %3d\n\n", (int) OFFSET(vftbl, diffval));
+	fprintf(file, "#define offobjvftbl    %3d\n", (int) OFFSET(java_objectheader, vftbl));
+	fprintf(file, "#define offarraysize   %3d\n", (int) OFFSET(java_arrayheader, size));
+	fprintf(file, "#define offobjarrdata  %3d\n\n", (int) OFFSET(java_objectarray, data[0]));
+	fprintf(file, "#define offbaseval     %3d\n", (int) OFFSET(vftbl, baseval));
+	fprintf(file, "#define offdiffval     %3d\n\n", (int) OFFSET(vftbl, diffval));
 
-	fprintf (file, "#define offjniitemtype %3d\n", (int) OFFSET(jni_callblock, itemtype));
-	fprintf (file, "#define offjniitem     %3d\n", (int) OFFSET(jni_callblock, item));
-	fprintf (file, "#define sizejniblock   %3d\n\n", (int) sizeof(jni_callblock));
+	fprintf(file, "#define offjniitemtype %3d\n", (int) OFFSET(jni_callblock, itemtype));
+	fprintf(file, "#define offjniitem     %3d\n", (int) OFFSET(jni_callblock, item));
+	fprintf(file, "#define sizejniblock   %3d\n\n", (int) sizeof(jni_callblock));
 
-	fclose (file);
+	fclose(file);
 
-	suck_init (classpath);
+	suck_init(classpath);
    
 	tables_init();
 	heap_init(heapsize, heapsize, &dummy);
@@ -594,12 +612,13 @@ int main(int argc, char **argv)
    		cp = argv[a];
 
 		/* convert classname */
-   		for (i = strlen(cp) - 1; i >= 0; i--)    
+   		for (i = strlen(cp) - 1; i >= 0; i--) {
 			switch (cp[i]) {
 			case '.': cp[i]='/';
 				break;
 			case '_': cp[i]='$';    
   	 		}
+		}
 	
 		topclass = loader_load(utf_new_char(cp));
 		
@@ -630,7 +649,10 @@ void setVMClassField(classinfo *c)
 }
 
 
-void* Java_java_lang_VMObject_clone ( void *env ,  void  *clazz, void * this){return 0;}
+void *Java_java_lang_VMObject_clone(void *env, void *clazz, void * this) {
+	return 0;
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
