@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1296 2004-07-10 17:02:15Z stefan $
+   $Id: native.h 1331 2004-07-21 15:46:54Z twisti $
 
 */
 
@@ -84,53 +84,6 @@ extern classinfo *class_java_lang_Character;
 extern classinfo *class_java_lang_Integer;
 
 
-/* system exception classes required in cacao */
-
-extern classinfo *class_java_lang_Throwable;
-extern classinfo *class_java_lang_Exception;
-extern classinfo *class_java_lang_Error;
-
-
-/* exception/error super class */
-
-extern char *string_java_lang_Throwable;
-
-
-/* specify some exception strings for code generation */
-
-extern char *string_java_lang_ArithmeticException;
-extern char *string_java_lang_ArithmeticException_message;
-extern char *string_java_lang_ArrayIndexOutOfBoundsException;
-extern char *string_java_lang_ArrayStoreException;
-extern char *string_java_lang_ClassCastException;
-extern char *string_java_lang_ClassNotFoundException;
-extern char *string_java_lang_CloneNotSupportedException;
-extern char *string_java_lang_Exception;
-extern char *string_java_lang_IllegalArgumentException;
-extern char *string_java_lang_IllegalMonitorStateException;
-extern char *string_java_lang_NegativeArraySizeException;
-extern char *string_java_lang_NoSuchFieldException;
-extern char *string_java_lang_NoSuchMethodException;
-extern char *string_java_lang_NullPointerException;
-
-
-/* specify some error strings for code generation */
-
-extern char *string_java_lang_AbstractMethodError;
-extern char *string_java_lang_ClassCircularityError;
-extern char *string_java_lang_ClassFormatError;
-extern char *string_java_lang_Error;
-extern char *string_java_lang_ExceptionInInitializerError;
-extern char *string_java_lang_IncompatibleClassChangeError;
-extern char *string_java_lang_InternalError;
-extern char *string_java_lang_LinkageError;
-extern char *string_java_lang_NoClassDefFoundError;
-extern char *string_java_lang_NoSuchFieldError;
-extern char *string_java_lang_NoSuchMethodError;
-extern char *string_java_lang_OutOfMemoryError;
-extern char *string_java_lang_VerifyError;
-
-
 /* the system classloader object */
 extern java_lang_ClassLoader *SystemClassLoader;
 
@@ -139,27 +92,6 @@ extern java_lang_ClassLoader *SystemClassLoader;
 
 /* javastring-hashtable */
 extern hashtable string_hash; 
-
-/* load, link and compile exceptions used in the system */
-void init_system_exceptions();
-void compile_all_class_methods(classinfo *c);
-
-/* exception throwing functions */
-void throw_exception();
-void throw_exception_exit();
-
-void throw_main_exception();
-void throw_main_exception_exit();
-
-void throw_cacao_exception_exit(char *exception, char *message);
-
-/* initialize new exceptions */
-java_objectheader *new_exception(char *classname);
-java_objectheader *new_exception_message(char *classname, char *message);
-java_objectheader *new_exception_throwable(char *classname, java_lang_Throwable *cause);
-java_objectheader *new_exception_utfmessage(char *classname, utf *message);
-java_objectheader *new_exception_javastring(char *classname, java_lang_String *message);
-java_objectheader *new_exception_int(char *classname, s4 i);
 
 void use_class_as_object(classinfo *c);
 
