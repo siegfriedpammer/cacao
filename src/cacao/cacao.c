@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2201 2005-04-03 21:48:11Z twisti $
+   $Id: cacao.c 2210 2005-04-04 10:06:38Z twisti $
 
 */
 
@@ -1048,7 +1048,7 @@ int main(int argc, char **argv)
 		methodinfo *m;
 
 		/* create, load and link the main class */
-		if (!load_class_from_sysloader(utf_new_char(mainstring),&mainclass))
+		if (!load_class_bootstrap(utf_new_char(mainstring), &mainclass))
 			throw_main_exception_exit();
 
 		if (!link_class(mainclass))
