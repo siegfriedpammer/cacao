@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2137 2005-03-30 10:18:38Z twisti $
+   $Id: loader.c 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -61,6 +61,7 @@
 #include "vm/exceptions.h"
 #include "vm/builtin.h"
 #include "vm/global.h"
+#include "vm/linker.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
@@ -258,16 +259,16 @@ bool loader_init(u1 *stackbottom)
 
 	/* load some important classes */
 
-	if (!class_load(class_java_lang_Object))
+	if (!load_class_bootstrap(class_java_lang_Object))
 		return false;
 
-	if (!class_load(class_java_lang_String))
+	if (!load_class_bootstrap(class_java_lang_String))
 		return false;
 
-	if (!class_load(class_java_lang_Cloneable))
+	if (!load_class_bootstrap(class_java_lang_Cloneable))
 		return false;
 
-	if (!class_load(class_java_io_Serializable))
+	if (!load_class_bootstrap(class_java_io_Serializable))
 		return false;
 
 #if defined(USE_THREADS)
@@ -1211,7 +1212,7 @@ static bool load_constantpool(classbuffer *cb)
 			classinfo *tc;
 			tc = class_new_intern(name);
 
-			if (!class_load(tc))
+			if (!load_class_from_classloader(tc, c->classloader))
 				return false;
 
 			/* link the class later, because we cannot link the class currently
@@ -1649,21 +1650,6 @@ static bool load_method(classbuffer *cb, methodinfo *m)
 
 	m->xta = NULL;
 
-#if 0
-	if (!(m->flags & ACC_NATIVE)) {
-		m->stubroutine = createcompilerstub(m);
-
-	} else {
-		functionptr f = native_findfunction(c->name,
-												m->name, m->descriptor, 
-												(m->flags & ACC_STATIC));
-#if defined(STATIC_CLASSPATH)
-		if (f)
-#endif
-			m->stubroutine = createnativestub(f, m);
-	}
-#endif
-
 	if (!check_classbuffer_size(cb, 2))
 		return false;
 	
@@ -1986,60 +1972,50 @@ void print_arraydescriptor(FILE *file, arraydescriptor *desc)
 }
 
 
-/********************** Function: class_load ***********************************
-	
-	Loads everything interesting about a class from the class file. The
-	'classinfo' structure must have been allocated previously.
+/* load_class_from_classloader *************************************************
 
-	The super class and the interfaces implemented by this class need not be
-	loaded. The link is set later by the function 'class_link'.
-
-	The loaded class is removed from the list 'unloadedclasses' and added to
-	the list 'unlinkedclasses'.
+   XXX
 	
 *******************************************************************************/
 
-classinfo *class_load_intern(classbuffer *cb);
-
-/*  classinfo *load_class_from_classloader(java_objectheader *cl, classinfo *c) */
-classinfo *class_load_extern(classinfo *rc, classinfo *c)
+classinfo *load_class_from_classloader(classinfo *c, java_objectheader *cl)
 {
 	classinfo *r;
 
 	/* if other class loader than bootstrap, call it */
 
-	if (rc->classloader) {
+	if (cl) {
 		methodinfo *lc;
 
-/*  		printf("DefineClass: name="); */
-/*  		utf_display(c->name); */
-/*  		printf(" loader="); */
-/*  		utf_display(rc->classloader->vftbl->class->name); */
-/*  		printf("\n"); */
-
-		lc = class_resolveclassmethod(rc->classloader->vftbl->class,
-									 utf_loadClass,
-									 utf_java_lang_String__java_lang_Class,
-									 class_java_lang_Object,
-									 true);
+		lc = class_resolveclassmethod(cl->vftbl->class,
+									  utf_loadClass,
+									  utf_java_lang_String__java_lang_Class,
+									  class_java_lang_Object,
+									  true);
 
 		if (!lc)
 			return NULL;
 
 		r = (classinfo *) asm_calljavafunction(lc,
-											   rc->classloader,
+											   cl,
 											   javastring_new(c->name),
 											   NULL, NULL);
 
 		return r;
 
 	} else {
-		return class_load(c);
+		return load_class_bootstrap(c);
 	}
 }
 
 
-classinfo *class_load(classinfo *c)
+/* load_class_bootstrap ********************************************************
+	
+   XXX
+
+*******************************************************************************/
+
+classinfo *load_class_bootstrap(classinfo *c)
 {
 	classbuffer *cb;
 	classinfo *r;
@@ -2089,8 +2065,9 @@ classinfo *class_load(classinfo *c)
 		return NULL;
 	}
 	
-	/* call the internal function */
-	r = class_load_intern(cb);
+	/* load the class from the buffer */
+
+	r = load_class_from_classbuffer(cb);
 
 	/* if return value is NULL, we had a problem and the class is not loaded */
 	if (!r) {
@@ -2123,7 +2100,20 @@ classinfo *class_load(classinfo *c)
 }
 
 
-classinfo *class_load_intern(classbuffer *cb)
+/* load_class_from_classbuffer *************************************************
+	
+   Loads everything interesting about a class from the class file. The
+   'classinfo' structure must have been allocated previously.
+
+   The super class and the interfaces implemented by this class need
+   not be loaded. The link is set later by the function 'class_link'.
+
+   The loaded class is removed from the list 'unloadedclasses' and
+   added to the list 'unlinkedclasses'.
+	
+*******************************************************************************/
+
+classinfo *load_class_from_classbuffer(classbuffer *cb)
 {
 	classinfo *c;
 	classinfo *tc;
@@ -2473,7 +2463,7 @@ void class_new_array(classinfo *c)
 		if (opt_eager) {
 			comp = class_new_intern(utf_new_intern(c->name->text + 1,
 												   namelen - 1));
-			class_load(comp);
+			load_class_from_classloader(comp, c->classloader);
 			list_addfirst(&unlinkedclasses, comp);
 
 		} else {
@@ -2489,7 +2479,7 @@ void class_new_array(classinfo *c)
 		if (opt_eager) {
 			comp = class_new_intern(utf_new_intern(c->name->text + 2,
 												   namelen - 3));
-			class_load(comp);
+			load_class_from_classloader(comp, c->classloader);
 			list_addfirst(&unlinkedclasses, comp);
 
 		} else {
@@ -2508,29 +2498,29 @@ void class_new_array(classinfo *c)
 	if (opt_eager) {
 		classinfo *tc;
 
-		tc = class_new_intern(utf_new_char("java/lang/Cloneable"));
-		class_load(tc);
+		tc = class_java_lang_Cloneable;
+		load_class_bootstrap(tc);
 		list_addfirst(&unlinkedclasses, tc);
 		c->interfaces[0] = tc;
 
-		tc = class_new_intern(utf_new_char("java/io/Serializable"));
-		class_load(tc);
+		tc = class_java_io_Serializable;
+		load_class_bootstrap(tc);
 		list_addfirst(&unlinkedclasses, tc);
 		c->interfaces[1] = tc;
 
 	} else {
-		c->interfaces[0] = class_new(utf_new_char("java/lang/Cloneable"));
-		c->interfaces[1] = class_new(utf_new_char("java/io/Serializable"));
+		c->interfaces[0] = class_java_lang_Cloneable;
+		c->interfaces[1] = class_java_io_Serializable;
 	}
 
 	c->methodscount = 1;
 	c->methods = MNEW(methodinfo, c->methodscount);
 
 	clone = c->methods;
-	memset(clone, 0, sizeof(methodinfo));
+	MSET(clone, 0, methodinfo, 1);
 	clone->flags = ACC_PUBLIC;
 	clone->name = utf_new_char("clone");
-	clone->descriptor = utf_new_char("()Ljava/lang/Object;");
+	clone->descriptor = utf_void__java_lang_Object;
 	clone->class = c;
 	clone->stubroutine = createnativestub((functionptr) &builtin_clone_array, clone);
 	clone->monoPoly = MONO;
@@ -3026,12 +3016,12 @@ static classinfo *class_init_intern(classinfo *c)
 
 	/* maybe the class is not already loaded */
 	if (!c->loaded)
-		if (!class_load(c))
+		if (!load_class_bootstrap(c))
 			return NULL;
 
 	/* maybe the class is not already linked */
 	if (!c->linked)
-		if (!class_link(c))
+		if (!link_class(c))
 			return NULL;
 
 #if defined(STATISTICS)
@@ -3467,14 +3457,14 @@ classinfo *class_from_descriptor(char *utf_ptr, char *end_ptr,
 				  classinfo *tc;
 
 				  tc = class_new_intern(name);
-				  class_load(tc);
+				  load_class_from_classloader(tc, NULL);
 				  list_addfirst(&unlinkedclasses, tc);
 
 				  return tc;
 
 			  } else {
 				  return (mode & CLASSLOAD_LOAD)
-					  ? class_load(class_new(name)) : class_new(name); /* XXX handle errors */
+					  ? load_class_from_classloader(class_new(name), NULL) : class_new(name); /* XXX handle errors */
 			  }
 		}
 	}

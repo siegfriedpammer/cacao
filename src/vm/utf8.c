@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 2136 2005-03-30 10:03:03Z twisti $
+   $Id: utf8.c 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -102,6 +102,7 @@ utf *utf_int__void;                     /* (I)V                               */
 utf *utf_long__void;                    /* (J)V                               */
 utf *utf_float__void;                   /* (F)V                               */
 utf *utf_double__void;                  /* (D)V                               */
+utf *utf_void__java_lang_Object;        /* ()Ljava/lang/Object;               */
 utf *utf_void__java_lang_Throwable;     /* ()Ljava/lang/Throwable;            */
 utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
 utf *utf_java_lang_String__java_lang_Class;
@@ -172,6 +173,7 @@ void utf8_init(void)
 	utf_long__void                 = utf_new_char("(J)V");
 	utf_float__void                = utf_new_char("(F)V");
 	utf_double__void               = utf_new_char("(D)V");
+	utf_void__java_lang_Object     = utf_new_char("()Ljava/lang/Object;");
 	utf_void__java_lang_Throwable  = utf_new_char("()Ljava/lang/Throwable;");
 	utf_java_lang_String__void     = utf_new_char("(Ljava/lang/String;)V");
 

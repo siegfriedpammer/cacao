@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 2136 2005-03-30 10:03:03Z twisti $
+   $Id: utf8.h 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -111,6 +111,7 @@ extern utf *utf_int__void;
 extern utf *utf_long__void;
 extern utf *utf_float__void;
 extern utf *utf_double__void;
+extern utf *utf_void__java_lang_Object;
 extern utf *utf_void__java_lang_Throwable;
 extern utf *utf_java_lang_String__void;
 extern utf *utf_java_lang_String__java_lang_Class;

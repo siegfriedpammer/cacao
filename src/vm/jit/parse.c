@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 2132 2005-03-29 22:46:05Z twisti $
+   $Id: parse.c 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -924,10 +924,10 @@ SHOWOPCODE(DEBUG4)
 					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 #if 1
-				if (!class_load_extern(m->class, component))
+				if (!load_class_from_classloader(component, m->class->classloader))
 					return NULL;
 
-				if (!class_link(component))
+				if (!link_class(component))
 					return NULL;
 
   				LOADCONST_A_BUILTIN(class_array_of(component)->vftbl);
@@ -958,10 +958,10 @@ SHOWOPCODE(DEBUG4)
  				classinfo *component =
 					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!class_load_extern(m->class, component))
+				if (!load_class_from_classloader(component, m->class->classloader))
 					return NULL;
 
-				if (!class_link(component))
+				if (!link_class(component))
 					return NULL;
 
  				arrayvftbl = component->vftbl;
@@ -1121,8 +1121,10 @@ SHOWOPCODE(DEBUG4)
 
 					/* check if the lookup table is sorted correctly */
 					
-					if (i && (j <= prevvalue))
-						panic("invalid LOOKUPSWITCH: table not sorted");
+					if (i && (j <= prevvalue)) {
+						*exceptionptr = new_verifyerror(m, "Unsorted lookup switch");
+						return NULL;
+					}
 					prevvalue = j;
 
 					/* target */
@@ -1225,10 +1227,10 @@ SHOWOPCODE(DEBUG4)
 
 				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
 
-				if (!class_load_extern(m->class, fr->class))
+				if (!load_class_from_classloader(fr->class, m->class->classloader))
 					return NULL;
 
-				if (!class_link(fr->class))
+				if (!link_class(fr->class))
 					return NULL;
 
 				fi = class_resolvefield(fr->class,
@@ -1256,10 +1258,10 @@ SHOWOPCODE(DEBUG4)
 
 				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
 
-				if (!class_load_extern(m->class, fr->class))
+				if (!load_class_from_classloader(fr->class, m->class->classloader))
 					return NULL;
 
-				if (!class_link(fr->class))
+				if (!link_class(fr->class))
 					return NULL;
 
 				fi = class_resolvefield(fr->class,
@@ -1288,10 +1290,10 @@ SHOWOPCODE(DEBUG4)
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
 
-				if (!class_load_extern(m->class, mr->class))
+				if (!load_class_from_classloader(mr->class, m->class->classloader))
 					return NULL;
 
-				if (!class_link(mr->class))
+				if (!link_class(mr->class))
 					return NULL;
 
 				mi = class_resolveclassmethod(mr->class,
@@ -1330,10 +1332,10 @@ if (DEBUG4==true) {
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
 
-				if (!class_load_extern(m->class, mr->class))
+				if (!load_class_from_classloader(mr->class, m->class->classloader))
 					return NULL;
 
-				if (!class_link(mr->class))
+				if (!link_class(mr->class))
 					return NULL;
 
 				mi = class_resolveclassmethod(mr->class,
@@ -1371,10 +1373,10 @@ if (DEBUG4==true) {
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_InterfaceMethodref);
 
-				if (!class_load_extern(m->class, mr->class))
+				if (!load_class_from_classloader(mr->class, m->class->classloader))
 					return NULL;
 
-				if (!class_link(mr->class))
+				if (!link_class(mr->class))
 					return NULL;
 
 				mi = class_resolveinterfacemethod(mr->class,
@@ -1416,10 +1418,10 @@ if (DEBUG4==true) {
 				classinfo *cls =
 					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!class_load_extern(m->class, cls))
+				if (!load_class_from_classloader(cls, m->class->classloader))
 					return NULL;
 
-				if (!class_link(cls))
+				if (!link_class(cls))
 					return NULL;
 
 				if (cls->vftbl->arraydesc) {
@@ -1445,10 +1447,10 @@ if (DEBUG4==true) {
 				classinfo *cls =
 					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!class_load_extern(m->class, cls))
+				if (!load_class_from_classloader(cls, m->class->classloader))
 					return NULL;
 
-				if (!class_link(cls))
+				if (!link_class(cls))
 					return NULL;
 
 				if (cls->vftbl->arraydesc) {

@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: threads.c 1924 2005-02-10 10:43:57Z twisti $
+   $Id: threads.c 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -487,8 +487,8 @@ initThreads(u1 *stackbottom)
 	methodinfo *method;
 
 	threadclass = class_new(utf_new_char("java/lang/VMThread"));
-	class_load(threadclass);
-	class_link(threadclass);
+	load_class_bootstrap(threadclass);
+	link_class(threadclass);
 
 	if (!threadclass)
 		throw_exception_exit();

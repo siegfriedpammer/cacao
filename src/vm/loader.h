@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2137 2005-03-30 10:18:38Z twisti $
+   $Id: loader.h 2148 2005-03-30 16:49:40Z twisti $
 */
 
 
@@ -178,6 +178,12 @@ inline u4 suck_u4(classbuffer *cb);
 /* free resources */
 void loader_close(void);
 
+/* class loading functions */
+classinfo *load_class_from_classloader(classinfo *c, java_objectheader *cl);
+classinfo *load_class_bootstrap(classinfo *c);
+classinfo *load_class_from_classbuffer(classbuffer *cb);
+
+
 /* retrieve constantpool element */
 voidptr class_getconstant(classinfo *class, u4 pos, u4 ctype);
 
@@ -250,11 +256,6 @@ void class_new_array(classinfo *c);
         if (!class->linked) \
             if (!class_link(class)) \
                 return; }
-
-
-classinfo *class_load_extern(classinfo *rc, classinfo *c);
-classinfo *class_load(classinfo *c);
-classinfo *class_load_intern(classbuffer *cb);
 
 #endif /* _LOADER_H */
 

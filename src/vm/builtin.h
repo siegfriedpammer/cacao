@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 2134 2005-03-30 09:54:28Z twisti $
+   $Id: builtin.h 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -172,7 +172,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 /* NOT AN OP */
 
 java_objectheader *builtin_new(classinfo *c);
-#ifdef __I386__
+#if defined(__I386__)
 java_objectheader *asm_builtin_new(classinfo *c);
 #define BUILTIN_new (functionptr) asm_builtin_new
 #else

@@ -1,4 +1,4 @@
-/* vm/string.c - java.lang.String related functions
+/* src/vm/string.c - java.lang.String related functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 1926 2005-02-10 10:47:29Z twisti $
+   $Id: string.c 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -295,7 +295,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
 	/* if we use eager loading, we have to check loaded String class */
 	if (opt_eager) {
-		if (!class_load(class_java_lang_String))
+		if (!load_class_bootstrap(class_java_lang_String))
 			return NULL;
 
 		list_addfirst(&unlinkedclasses, class_java_lang_String);

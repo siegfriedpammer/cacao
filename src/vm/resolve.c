@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2102 2005-03-28 22:09:35Z twisti $
+   $Id: resolve.c 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -109,7 +109,7 @@ resolve_class(classinfo *referer,methodinfo *refmethod,
 #else
 		cls = class_new(classname);
 		if (!cls->loaded)
-			class_load(cls);
+			load_class_from_classloader(cls, referer->classloader);
 #endif
 	}
 
@@ -161,7 +161,7 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 		/* cls has already been resolved */
 		c = cls.cls;
 		if (!c->loaded)
-			if (!class_load(c))
+			if (!load_class_from_classloader(c, cls.ref->referer->classloader))
 				return false; /* exception */
 	}
 	RESOLVE_ASSERT(c || (mode == resolveLazy));

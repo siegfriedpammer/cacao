@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 2019 2005-03-09 11:56:20Z twisti $
+   $Id: cacaoh.c 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -241,9 +241,13 @@ int main(int argc, char **argv)
 
 	tables_init();
 	
-	/* initialize the loader with bootclasspath and append classpath entries */
+	/* initialize the loader with bootclasspath */
 
 	suck_init(bootclasspath);
+
+	/* Also add the normal classpath, so the bootstrap class loader can find  */
+	/* the files.                                                             */
+
 	suck_init(classpath);
    
 #if defined(USE_THREADS)
@@ -282,11 +286,11 @@ int main(int argc, char **argv)
 
 		/* exceptions are catched with new_exception call */
 
-		if (!class_load(c))
+		if (!load_class_bootstrap(c))
 			throw_cacao_exception_exit(string_java_lang_NoClassDefFoundError,
 									   cp);
 
-		if (!class_link(c))
+		if (!link_class(c))
 			throw_cacao_exception_exit(string_java_lang_LinkageError,
 									   cp);
 

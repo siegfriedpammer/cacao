@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2134 2005-03-30 09:54:28Z twisti $
+   $Id: builtin.c 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -46,6 +46,7 @@
 #include <math.h>
 
 #include "config.h"
+#include "arch.h"
 #include "types.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
@@ -679,12 +680,12 @@ java_objectheader *builtin_new(classinfo *c)
 
 	/* is the class loaded */
 	if (!c->loaded)
-		if (!class_load(c))
+		if (!load_class_bootstrap(c))
 			return NULL;
 
 	/* is the class linked */
 	if (!c->linked)
-		if (!class_link(c))
+		if (!link_class(c))
 			return NULL;
 
 	if (!c->initialized) {
@@ -782,12 +783,12 @@ java_objectarray *builtin_anewarray(s4 size, classinfo *component)
 {
 	/* is class loaded */
 	if (!component->loaded)
-		if (!class_load(component))
+		if (!load_class_bootstrap(component))
 			return NULL;
 
 	/* is class linked */
 	if (!component->linked)
-		if (!class_link(component))
+		if (!link_class(component))
 			return NULL;
 
 	return (java_objectarray *) builtin_newarray(size, class_array_of(component)->vftbl);

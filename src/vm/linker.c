@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2118 2005-03-29 21:56:01Z twisti $
+   $Id: linker.c 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -42,6 +42,7 @@
 #include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/exceptions.h"
+#include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/jit/codegen.inc.h"
@@ -103,16 +104,16 @@ bool linker_init(void)
 
 	/* link important system classes */
 
-	if (!class_link(class_java_lang_Object))
+	if (!link_class(class_java_lang_Object))
 		return false;
 
-	if (!class_link(class_java_lang_String))
+	if (!link_class(class_java_lang_String))
 		return false;
 
-	if (!class_link(class_java_lang_Cloneable))
+	if (!link_class(class_java_lang_Cloneable))
 		return false;
 
-	if (!class_link(class_java_io_Serializable))
+	if (!link_class(class_java_io_Serializable))
 		return false;
 
 	/* create pseudo classes used by the typechecker */
@@ -126,7 +127,7 @@ bool linker_init(void)
     pseudo_class_Arraystub->interfaces[0] = class_java_lang_Cloneable;
     pseudo_class_Arraystub->interfaces[1] = class_java_io_Serializable;
 
-    if (!class_link(pseudo_class_Arraystub))
+    if (!link_class(pseudo_class_Arraystub))
 		return false;
 
     /* pseudo class representing the null type */
@@ -134,7 +135,7 @@ bool linker_init(void)
 	pseudo_class_Null->loaded = true;
     pseudo_class_Null->super = class_java_lang_Object;
 
-	if (!class_link(pseudo_class_Null))
+	if (!link_class(pseudo_class_Null))
 		return false;
 
     /* pseudo class representing new uninitialized objects */
@@ -178,7 +179,7 @@ static bool link_primitivetype_table(void)
 		
 		/* prevent loader from loading primitive class */
 		c->loaded = true;
-		if (!class_link(c))
+		if (!link_class(c))
 			return false;
 
 		primitivetype_table[i].class_primitive = c;
@@ -195,7 +196,7 @@ static bool link_primitivetype_table(void)
 			primitivetype_table[i].arrayclass = c;
 			c->loaded = true;
 			if (!c->linked)
-				if (!class_link(c))
+				if (!link_class(c))
 					return false;
 			primitivetype_table[i].arrayvftbl = c->vftbl;
 		}
@@ -212,7 +213,7 @@ static bool link_primitivetype_table(void)
 
 *******************************************************************************/
 
-classinfo *class_link(classinfo *c)
+classinfo *link_class(classinfo *c)
 {
 	classinfo *r;
 
@@ -291,11 +292,10 @@ static classinfo *link_class_intern(classinfo *c)
 	if (c->linked)
 		return c;
 
-	/* maybe the class is not loaded */
+	/* the class must be loaded */
 	if (!c->loaded)
-/*  		if (!class_load(c)) */
-/*  			return NULL; */
-		panic("class_link_intern: class not loaded");
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Trying to link unloaded class");
 
 	if (linkverbose)
 		log_message_class("Linking class: ", c);
@@ -320,7 +320,7 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 
 		if (!tc->loaded)
-			if (!class_load_extern(c, tc))
+			if (!load_class_from_classloader(tc, c->classloader))
 				return NULL;
 
 		if (!(tc->flags & ACC_INTERFACE)) {
@@ -331,7 +331,7 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 
 		if (!tc->linked)
-			if (!class_link(tc))
+			if (!link_class(tc))
 				return NULL;
 	}
 	
@@ -359,7 +359,7 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 
 		if (!super->loaded)
-			if (!class_load_extern(c, super))
+			if (!load_class_from_classloader(super, c->classloader))
 				return NULL;
 
 		if (super->flags & ACC_INTERFACE) {
@@ -376,7 +376,7 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 		
 		if (!super->linked)
-			if (!class_link(super))
+			if (!link_class(super))
 				return NULL;
 
 		/* handle array classes */
@@ -676,10 +676,10 @@ static arraydescriptor *link_array(classinfo *c)
 	/* If the component type has not been linked, link it now */
 	if (comp && !comp->linked) {
 		if (!comp->loaded)
-			if (!class_load_extern(c, comp))
+			if (!load_class_from_classloader(comp, c->classloader))
 				return NULL;
 
-		if (!class_link(comp))
+		if (!link_class(comp))
 			return NULL;
 	}
 
@@ -917,7 +917,7 @@ static s4 class_highestinterface(classinfo *c)
 	s4 h2;
 	s4 i;
 	
-    /* check for ACC_INTERFACE bit already done in class_link_intern */
+    /* check for ACC_INTERFACE bit already done in link_class_intern */
 
     h = c->index;
 

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2131 2005-03-29 22:34:19Z twisti $
+   $Id: cacao.c 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -1035,11 +1035,11 @@ int main(int argc, char **argv)
 
 			while (c) {
 				if (!c->loaded)
-					if (!class_load(c))
+					if (!load_class_bootstrap(c))
 						throw_main_exception_exit();
 
 				if (!c->linked)
-					if (!class_link(c))
+					if (!link_class(c))
 						throw_main_exception_exit();
 
 				/* compile all class methods */
@@ -1064,10 +1064,10 @@ int main(int argc, char **argv)
 		/* create, load and link the main class */
 		mainclass = class_new(utf_new_char(mainstring));
 
-		if (!class_load(mainclass))
+		if (!load_class_bootstrap(mainclass))
 			throw_main_exception_exit();
 
-		if (!class_link(mainclass))
+		if (!link_class(mainclass))
 			throw_main_exception_exit();
 
 		if (specificsignature) {
@@ -1109,30 +1109,27 @@ int main(int argc, char **argv)
 
 /* cacao_exit ******************************************************************
 
-   Calls java.lang.Runtime.exit(I)V to exit the JavaVM correctly.
+   Calls java.lang.System.exit(I)V to exit the JavaVM correctly.
 
 *******************************************************************************/
 
 void cacao_exit(s4 status)
 {
-	classinfo *c;
 	methodinfo *m;
 
 	/* class should already be loaded, but who knows... */
 
-	c = class_new(utf_new_char("java/lang/System"));
-
-	if (!class_load(c))
+	if (!load_class_bootstrap(class_java_lang_System))
 		throw_main_exception_exit();
 
-	if (!class_link(c))
+	if (!link_class(class_java_lang_System))
 		throw_main_exception_exit();
 
-	/* call System.exit(I)V */
+	/* call java.lang.System.exit(I)V */
 
-	m = class_resolveclassmethod(c,
+	m = class_resolveclassmethod(class_java_lang_System,
 								 utf_new_char("exit"),
-								 utf_new_char("(I)V"),
+								 utf_int__void,
 								 class_java_lang_Object,
 								 true);
 	

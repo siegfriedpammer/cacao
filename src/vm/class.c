@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2122 2005-03-29 22:12:06Z twisti $
+   $Id: class.c 2148 2005-03-30 16:49:40Z twisti $
 
 */
 
@@ -198,7 +198,7 @@ classinfo *class_new(utf *classname)
 		list_init(&unlinkedclasses, OFFSET(classinfo, listnode));
 
 		if (!c->loaded) {
-			if (!class_load(c)) {
+			if (!load_class_bootstrap(c)) {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 				tables_unlock();
 #endif
@@ -213,7 +213,7 @@ classinfo *class_new(utf *classname)
 		while (tc) {
 			/* skip the current loaded/linked class */
 			if (tc != c) {
-				if (!class_link(tc)) {
+				if (!link_class(tc)) {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					tables_unlock();
 #endif
@@ -229,7 +229,7 @@ classinfo *class_new(utf *classname)
 		}
 
 		if (!c->linked) {
-			if (!class_link(c)) {
+			if (!link_class(c)) {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 				tables_unlock();
 #endif
@@ -623,13 +623,12 @@ classinfo *class_array_of(classinfo *component)
 
 	c = class_new(utf_new(namebuf, namelen));
 
-	/* load this class ;-) and link it */
+	/* load this class and link it */
 
-	if (!c->loaded)
-		c->loaded = true;
+	c->loaded = true;
 
 	if (!c->linked)
-		if (!class_link(c))
+		if (!link_class(c))
 			return NULL;
 
     return c;
