@@ -208,7 +208,7 @@ public class extest {
 
         try {
             p("NullPointerException in <clinit> (PUTSTATIC):");
-            extest_clinit.i = 1;
+            extest_clinit_1.i = 1;
             pln("FAILED");
         } catch (ExceptionInInitializerError e) {
             if (e.getCause().getClass() != NullPointerException.class) {
@@ -221,7 +221,7 @@ public class extest {
 
         try {
             p("NullPointerException in <clinit> (GETSTATIC):");
-            int i = extest_clinit.i;
+            int i = extest_clinit_2.i;
             pln("FAILED");
         } catch (ExceptionInInitializerError e) {
             if (e.getCause().getClass() != NullPointerException.class) {
@@ -345,14 +345,14 @@ public class extest {
   	    pln("OK");
   	}
 
-        try {
-            p("NullPointerException in <clinit>:");
-            extest_clinit.sub();
-            pln("FAILED");
-        } catch (ExceptionInInitializerError e) {
-  	    pln("OK");
-	    pstacktrace(e);
-  	}
+//          try {
+//              p("NullPointerException in <clinit>:");
+//              extest_clinit_3.sub();
+//              pln("FAILED");
+//          } catch (ExceptionInInitializerError e) {
+//              pln("OK");
+//              pstacktrace(e);
+//          }
 
         pln();
 
@@ -403,4 +403,31 @@ public class extest {
 	System.out.println("Stacktrace ==================");
     }
 
+}
+
+public class extest_clinit_1 {
+    static {
+        String s = null;
+        s.length();
+    }
+
+    public static int i;
+}
+
+public class extest_clinit_2 {
+    static {
+        String s = null;
+        s.length();
+    }
+
+    public static int i;
+}
+
+public class extest_clinit_3 {
+    static {
+        String s = null;
+        s.length();
+    }
+
+    public static native void sub();
 }

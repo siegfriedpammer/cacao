@@ -1,9 +1,42 @@
-throw Exception: passed.
-native Exception: passed.
-NullPointerException: passed.
-ArithmeticException: passed.
-ArrayIndexOutOfBoundsException: passed.
-NegativeArraySizeException: passed.
-ClassCastException: passed.
-NullPointerException (without catch): 
+---------- normal exceptions --------------------
+throw new Exception():                        OK
+throw new Exception() (from subroutines):     OK
+NullPointerException:                         OK
+
+---------- test soft inline exceptions ----------
+/* thrown twice to check the inline jump code */
+ArrayIndexOutOfBoundsException:               OK
+ArrayIndexOutOfBoundsException:               OK
+NegativeArraySizeException:                   OK
+NegativeArraySizeException:                   OK
+ClassCastException:                           OK
+ClassCastException:                           OK
+ArithmeticException (only w/ -softnull):      OK
+ArithmeticException (only w/ -softnull):      OK
+OutOfMemoryError:                             OK
+OutOfMemoryError:                             OK
+NullPointerException (only w/ -softnull):     OK
+NullPointerException (only w/ -softnull):     OK
+
+---------- some asmpart exceptions --------------
+NullPointerException in <clinit> (PUTSTATIC): OK
+NullPointerException in <clinit> (GETSTATIC): OK
+ArithmeticException (idiv):                   OK
+ArithmeticException (ldiv):                   OK
+ArithmeticException (irem):                   OK
+ArithmeticException (lrem):                   OK
+NullPointerException (aastore):               OK
+ArrayIndexOutOfBoundsException (aastore):     OK
+ArrayStoreException (aastore):                OK
+ClassCastException (checkarraycast):          OK
+
+---------- exception related things -------------
+load/link an exception class in asmpart:      OK
+
+---------- native stub exceptions ---------------
+NullPointerException (native):                OK
+
+---------- no OK beyond this point --------------
+NullPointerException (without catch):
 Exception in thread "main" java.lang.NullPointerException
+	at extest.main(extest.java:364)
