@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: codegen.inc.h 1456 2004-11-05 14:33:14Z twisti $
+   $Id: codegen.inc.h 1458 2004-11-05 15:33:49Z twisti $
 
 */
 
@@ -34,10 +34,21 @@
 #ifndef _CODEGEN_INC_H
 #define _CODEGEN_INC_H
 
+/* We typedef these structures before #includes to resolve circular           */
+/* dependencies.                                                              */
+
+typedef struct codegendata codegendata;
+typedef struct branchref branchref;
+typedef struct jumpref jumpref;
+typedef struct dataref dataref;
+typedef struct linenumberref linenumberref;
+typedef struct threadcritnodetemp threadcritnodetemp;
+
+
 #include "types.h"
 #include "global.h"
 #include "jit/inline.h"
-//#include "jit/reg.h"
+#include "jit/reg.h"
 
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
@@ -48,14 +59,6 @@
 #else
 #define dseg_addaddress(cd,value)    dseg_adds4((cd), (s4) (value))
 #endif
-
-
-typedef struct codegendata codegendata;
-typedef struct branchref branchref;
-typedef struct jumpref jumpref;
-typedef struct dataref dataref;
-typedef struct linenumberref linenumberref;
-typedef struct threadcritnodetemp threadcritnodetemp;
 
 
 /************************* critical sections  *********************************/
@@ -156,7 +159,7 @@ struct _methodtree_element {
 
 void codegen_init();
 void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *e);
-void codegen(methodinfo *m, codegendata *cd, struct registerdata *rd);
+void codegen(methodinfo *m, codegendata *cd, registerdata *rd);
 void codegen_free(methodinfo *m, codegendata *cd);
 void codegen_close();
 void codegen_insertmethod(void *startpc, void *endpc);
