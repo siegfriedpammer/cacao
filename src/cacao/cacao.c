@@ -36,7 +36,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1801 2004-12-21 20:19:19Z jowenn $
+   $Id: cacao.c 1824 2004-12-27 21:35:23Z motse $
 
 */
 
@@ -48,6 +48,7 @@
 #include "mm/boehm.h"
 #include "mm/memory.h"
 #include "native/native.h"
+#include "native/jni.h"
 #include "toolbox/logging.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -109,6 +110,7 @@ void **stackbottom = 0;
 #ifdef LSRA
 #define OPT_LSRA 34
 #endif
+#define OPT_JAR 35
 
 opt_struct opts[] = {
 	{"classpath",        true,   OPT_CLASSPATH},
@@ -155,6 +157,7 @@ opt_struct opts[] = {
 #ifdef LSRA
 	{"lsra", false, OPT_LSRA},
 #endif
+	{"jar", false, OPT_JAR},
 	{NULL,               false,  0}
 };
 
@@ -171,6 +174,7 @@ static void usage()
 	printf("Options:\n");
 	printf("          -cp path ............. specify a path to look for classes\n");
 	printf("          -classpath path ...... specify a path to look for classes\n");
+	printf("          -jar jarfile ......... execute a jar file\n");
 	printf("          -Dpropertyname=value . add an entry to the property list\n");
 	printf("          -Xmx maxmem[kK|mM] ... specify the size for the heap\n");
 	printf("          -Xms initmem[kK|mM] .. specify the initial size for the heap\n");
@@ -231,6 +235,80 @@ static void usage()
 #ifdef TYPECHECK_STATISTICS
 void typecheck_print_statistics(FILE *file);
 #endif
+
+
+
+/******************** getmainclassfromjar ************************
+
+gets the name of the main class form a jar's manifest file
+
+***************************************************************************/
+utf* getmainclassnamefromjar(mainstring){
+	jclass class;
+	jmethodID mid;
+	jobject obj;
+		
+	class = env->FindClass(NULL, "java/util/jar/JarFile");
+	if (class == NULL) {
+		log_text("unable to find java.util.jar.JarFile");
+		throw_main_exception_exit();
+	}
+	
+	mid = env->GetMethodID(NULL, class, "<init>","(Ljava/lang/String;)V");
+	if (mid == NULL) {
+		log_text("unable to find constructor in java.util.jar.JarFile");
+		cacao_exit(1);
+	}
+
+	/* open jarfile */
+	obj = env->NewObject(NULL,class,mid,(env->NewStringUTF(NULL,(char*)mainstring)));
+	if (env->ExceptionOccurred(NULL) != NULL) {
+		env->ExceptionDescribe(NULL);
+		cacao_exit(1);
+	}
+	
+	mid = env->GetMethodID(NULL, class, "getManifest","()Ljava/util/jar/Manifest;");
+	if (mid == NULL) {
+		log_text("unable to find getMainfest method");
+		cacao_exit(1);
+	}
+
+	/* get manifest object */
+	obj = env->CallObjectMethod(NULL,obj,mid);
+	if (env->ExceptionOccurred(NULL) != NULL) {
+		env->ExceptionDescribe(NULL);
+		cacao_exit(1);
+	}
+
+	mid = env->GetMethodID(NULL, (jclass)((java_objectheader*) obj)->vftbl->class, "getMainAttributes","()Ljava/util/jar/Attributes;");
+	if (mid == NULL) {
+		log_text("unable to find getMainAttributes method");
+		cacao_exit(1);
+	}
+
+	/* get Main Attributes */
+	obj = env->CallObjectMethod(NULL,obj,mid);
+	if (env->ExceptionOccurred(NULL) != NULL) {
+		env->ExceptionDescribe(NULL);
+		cacao_exit(1);
+	}
+
+
+	mid = env->GetMethodID(NULL, (jclass)((java_objectheader*) obj)->vftbl->class, "getValue","(Ljava/lang/String;)Ljava/lang/String;");
+	if (mid == NULL) {
+		log_text("unable to find getValue method");
+		cacao_exit(1);
+	}
+
+	/* get property Main-Class */
+	obj = env->CallObjectMethod(NULL,obj,mid,env->NewStringUTF(NULL,"Main-Class"));
+	if (env->ExceptionOccurred(NULL) != NULL) {
+		env->ExceptionDescribe(NULL);
+		cacao_exit(1);
+	}
+	
+	return javastring_toutf((java_lang_String*)obj,true);
+}
 
 
 /*
@@ -295,6 +373,7 @@ int main(int argc, char **argv)
 	bool startit = true;
 	char *specificmethodname = NULL;
 	char *specificsignature = NULL;
+	bool jar = false;
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	stackbottom = &dummy;
@@ -340,6 +419,11 @@ int main(int argc, char **argv)
 			strcpy(classpath, opt_arg);
 			break;
 				
+		case OPT_JAR:
+			jar = true;
+			break;
+			
+
 		case OPT_D:
 			{
 				int n;
@@ -589,10 +673,21 @@ int main(int argc, char **argv)
 	/* transform dots into slashes in the class name */
 
    	mainstring = argv[opt_ind++];
-   	for (i = strlen(mainstring) - 1; i >= 0; i--) {
- 	 	if (mainstring[i] == '.') mainstring[i] = '/';
+	if (!jar) { 
+        /* do not mangle jar filename */
+		for (i = strlen(mainstring) - 1; i >= 0; i--) {
+			if (mainstring[i] == '.') mainstring[i] = '/';
+		}
+	} else {
+		/* put jarfile in classpath */
+		cp = classpath;
+		classpath = MNEW(char, strlen(mainstring) + strlen(classpath) + 1);
+		strcpy(classpath, mainstring);
+		strcat(classpath, ":");
+		strcat(classpath, cp);
+		
+		MFREE(cp, char, strlen(cp));
 	}
-
 
 	/**************************** Program start *****************************/
 
@@ -658,8 +753,14 @@ int main(int argc, char **argv)
 		/* set return value to OK */
 		status = 0;
 
-		/* create, load and link the main class */
-		mainclass = class_new(utf_new_char(mainstring));
+		if (jar) {
+			/* open jar file with java.util.jar.JarFile */
+			mainclass = class_new(getmainclassnamefromjar(mainstring));
+		} else {
+			/* create, load and link the main class */
+			mainclass = class_new(utf_new_char(mainstring));
+		}
+
 
 		if (!class_load(mainclass))
 			throw_main_exception_exit();
