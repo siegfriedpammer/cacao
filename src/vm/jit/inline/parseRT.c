@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 911 2004-02-04 11:42:41Z carolyn $
+   $Id: parseRT.c 1009 2004-03-31 22:44:07Z edwin $
 
 Changes:
 opcode put into functions
@@ -1570,7 +1570,9 @@ static void parseRT()
 				methodinfo *mi;
 
 				mr = class_getconstant (rt_class, i, CONSTANT_Methodref);
-				mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
+				mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, class, true);
+				if (!mi)
+					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 				/*-- RTA --*/
 				invokestatic(mi);
 			}
@@ -1583,7 +1585,9 @@ static void parseRT()
 			methodinfo *mi;
 				
 			mr = class_getconstant (rt_class, i, CONSTANT_Methodref);
-			mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
+			mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, class, true);
+			if (!mi)
+				panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 						RTAPRINT06invoke_spec_virt1
 			/*--- PRIVATE Method -----------------------------------------------------*/ 
 			if (mi->name        != INIT) {     /* if method called is PRIVATE */ 
@@ -1607,7 +1611,9 @@ static void parseRT()
 			methodinfo *mi;
 				
 			mr = class_getconstant (rt_class, i, CONSTANT_Methodref);
-			mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
+			mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, class, true);
+			if (!mi)
+				panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 
 			invokevirtual(mi);
 			}
@@ -1620,8 +1626,10 @@ static void parseRT()
 			methodinfo *mi;
 
 			mr = class_getconstant (rt_class, i, CONSTANT_InterfaceMethodref);
-			mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
-		        invokeinterface(mi);
+			mi = class_resolveinterfacemethod (mr->class, mr->name, mr->descriptor, class, true);
+			if (!mi)
+				panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
+			invokeinterface(mi);
 			}
 			break;
 

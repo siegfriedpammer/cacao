@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 846 2004-01-05 10:40:42Z twisti $
+   $Id: inline.c 1009 2004-03-31 22:44:07Z edwin $
 
 */
 
@@ -382,7 +382,9 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 					methodinfo *imi;
 
 					imr = class_getconstant(m->class, i, CONSTANT_Methodref);
-					imi = class_fetchmethod(imr->class, imr->name, imr->descriptor);
+					imi = class_resolveclassmethod (imr->class, imr->name, imr->descriptor, class, true);
+					if (!imi)
+						panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 
 					if (opcode == JAVA_INVOKEVIRTUAL) {
 						if (!is_unique_method(imi->class, imi, imr->name, imr->descriptor))

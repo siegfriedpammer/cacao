@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 997 2004-03-30 21:49:28Z twisti $
+   $Id: main.c 1009 2004-03-31 22:44:07Z edwin $
 
 */
 
@@ -924,9 +924,11 @@ int main(int argc, char **argv)
 
 /*  		heap_addreference((void**) &a); */
 
-		mainmethod = class_findmethod(topclass,
+		mainmethod = class_resolveclassmethod(topclass,
 									  utf_new_char("main"), 
-									  utf_new_char("([Ljava/lang/String;)V")
+									  utf_new_char("([Ljava/lang/String;)V"),
+										topclass,
+										true
 									  );
 
 		/* there is no main method or it isn't static */

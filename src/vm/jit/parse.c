@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 991 2004-03-29 11:22:34Z stefan $
+   $Id: parse.c 1009 2004-03-31 22:44:07Z edwin $
 
 */
 
@@ -1203,7 +1203,9 @@ void parse()
 				constant_FMIref *fr;
 				fieldinfo *fi;
 				fr = class_getconstant(class, i, CONSTANT_Fieldref);
-				fi = class_findfield(fr->class, fr->name, fr->descriptor);
+				fi = class_resolvefield(fr->class, fr->name, fr->descriptor, class, true);
+				if (!fi)
+					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 				OP2A(opcode, fi->type, fi,currentline);
 				if (!fi->class->initialized) {
 					isleafmethod = false;
@@ -1218,7 +1220,9 @@ void parse()
 				constant_FMIref *fr;
 				fieldinfo *fi;
 				fr = class_getconstant (class, i, CONSTANT_Fieldref);
-				fi = class_findfield (fr->class, fr->name, fr->descriptor);
+				fi = class_resolvefield(fr->class, fr->name, fr->descriptor, class, true);
+				if (!fi)
+					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 				OP2A(opcode, fi->type, fi,currentline);
 			}
 			break;
@@ -1233,7 +1237,9 @@ void parse()
 				methodinfo *mi;
 				
 				mr = class_getconstant (class, i, CONSTANT_Methodref);
-				mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
+				mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, class, true);
+				if (!mi)
+					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 				/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
 					/*RTAprint*/    {printf(" method name =");
 					/*RTAprint*/    utf_display(mi->class->name); printf(".");
@@ -1256,7 +1262,9 @@ void parse()
 				methodinfo *mi;
 
 				mr = class_getconstant (class, i, CONSTANT_Methodref);
-				mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
+				mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, class, true);
+				if (!mi)
+					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 				/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
 					/*RTAprint*/    {printf(" method name =");
 					method_display(mi);
@@ -1279,7 +1287,9 @@ void parse()
 				methodinfo *mi;
 				
 				mr = class_getconstant (class, i, CONSTANT_InterfaceMethodref);
-				mi = class_fetchmethod (mr->class, mr->name, mr->descriptor);
+				mi = class_resolveinterfacemethod (mr->class, mr->name, mr->descriptor, class, true);
+				if (!mi)
+					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 				if (mi->flags & ACC_STATIC)
 					panic ("Static/Nonstatic mismatch calling static method");
 				descriptor2types(mi);
