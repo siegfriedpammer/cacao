@@ -1,9 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 991 2004-03-29 11:22:34Z stefan $
+# $Id: Makefile.am 1124 2004-06-03 20:47:05Z twisti $
 
 
-INCLUDES = -I$(top_srcdir)/jit
+INCLUDES = -I$(top_srcdir)
 
 EXTRA_DIST = \
 	asmpart.S \
@@ -14,17 +14,15 @@ EXTRA_DIST = \
 	disass.c \
 	disass.h \
 	machine-instr.h \
-	methodtable.c \
-	methodtable.h \
 	native-math.h \
 	types.h
 
 noinst_LIBRARIES = libarch.a
 
-libarch_a_SOURCES = asmpart.S codegen.c disass.c i386-dis.c dis-buf.c methodtable.c
+libarch_a_SOURCES = asmpart.S codegen.c disass.c i386-dis.c dis-buf.c
 
-%.o: %.S
-	$(COMPILE) -c $<
+asmpart.o: asmpart.S offsets.h
+	$(COMPILE) -c asmpart.S
 
 
 ## Local variables:
