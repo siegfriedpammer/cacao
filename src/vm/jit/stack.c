@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 805 2003-12-17 14:39:49Z edwin $
+   $Id: stack.c 814 2003-12-31 01:41:15Z edwin $
 
 */
 
@@ -1072,6 +1072,13 @@ void analyse_stack()
 						/* pop 1 push 0 */
 
 					case ICMD_POP:
+#ifdef TYPECHECK_STACK_COMPCAT
+						if (opt_verify) {
+							REQUIRE_1;
+							if (IS_2_WORD_TYPE(curstack->type))
+								panic("Illegal instruction: POP on category 2 type");
+						}
+#endif
 						OP1_0ANY;
 						break;
 
@@ -1300,6 +1307,14 @@ void analyse_stack()
 					case ICMD_POP2:
 						REQUIRE_1;
 						if (! IS_2_WORD_TYPE(curstack->type)) {
+							/* ..., cat1 */
+#ifdef TYPECHECK_STACK_COMPCAT
+							if (opt_verify) {
+								REQUIRE_2;
+								if (IS_2_WORD_TYPE(curstack->prev->type))
+									panic("Illegal instruction: POP2 on cat2, cat1 types");
+							}
+#endif
 							OP1_0ANY;                /* second pop */
 						}
 						else
@@ -1310,6 +1325,13 @@ void analyse_stack()
 						/* pop 0 push 1 dup */
 						
 					case ICMD_DUP:
+#ifdef TYPECHECK_STACK_COMPCAT
+						if (opt_verify) {
+							REQUIRE_1;
+							if (IS_2_WORD_TYPE(curstack->type))
+								panic("Illegal instruction: DUP on category 2 type");
+						}
+#endif
 						COUNT(count_dup_instruction);
 						DUP;
 						break;
@@ -1317,11 +1339,19 @@ void analyse_stack()
 					case ICMD_DUP2:
 						REQUIRE_1;
 						if (IS_2_WORD_TYPE(curstack->type)) {
+							/* ..., cat2 */
 							iptr->opc = ICMD_DUP;
 							DUP;
 						}
 						else {
 							REQUIRE_2;
+							/* ..., ????, cat1 */
+#ifdef TYPECHECK_STACK_COMPCAT
+							if (opt_verify) {
+								if (IS_2_WORD_TYPE(curstack->prev->type))
+									panic("Illegal instruction: DUP2 on cat2, cat1 types");
+							}
+#endif
 							copy = curstack;
 							NEWSTACK(copy->prev->type, copy->prev->varkind,
 									 copy->prev->varnum);
@@ -1335,16 +1365,40 @@ void analyse_stack()
 						/* pop 2 push 3 dup */
 						
 					case ICMD_DUP_X1:
+#ifdef TYPECHECK_STACK_COMPCAT
+						if (opt_verify) {
+							REQUIRE_2;
+							if (IS_2_WORD_TYPE(curstack->type) ||
+								IS_2_WORD_TYPE(curstack->prev->type))
+								panic("Illegal instruction: DUP_X1 on cat 2 type");
+						}
+#endif
 						DUP_X1;
 						break;
 
 					case ICMD_DUP2_X1:
 						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->type)) {
+							/* ..., ????, cat2 */
+#ifdef TYPECHECK_STACK_COMPCAT
+							if (opt_verify) {
+								if (IS_2_WORD_TYPE(curstack->prev->type))
+									panic("Illegal instruction: DUP2_X1 on cat2, cat2 types");
+							}
+#endif
 							iptr->opc = ICMD_DUP_X1;
 							DUP_X1;
 						}
 						else {
+							/* ..., ????, cat1 */
+#ifdef TYPECHECK_STACK_COMPCAT
+							if (opt_verify) {
+								REQUIRE_3;
+								if (IS_2_WORD_TYPE(curstack->prev->type)
+									|| IS_2_WORD_TYPE(curstack->prev->prev->type))
+									panic("Illegal instruction: DUP2_X1 on invalid types");
+							}
+#endif
 							DUP2_X1;
 						}
 						break;
@@ -1354,10 +1408,26 @@ void analyse_stack()
 					case ICMD_DUP_X2:
 						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->prev->type)) {
+							/* ..., cat2, ???? */
+#ifdef TYPECHECK_STACK_COMPCAT
+							if (opt_verify) {
+								if (IS_2_WORD_TYPE(curstack->type))
+									panic("Illegal instruction: DUP_X2 on cat2, cat2 types");
+							}
+#endif
 							iptr->opc = ICMD_DUP_X1;
 							DUP_X1;
 						}
 						else {
+							/* ..., cat1, ???? */
+#ifdef TYPECHECK_STACK_COMPCAT
+							if (opt_verify) {
+								REQUIRE_3;
+								if (IS_2_WORD_TYPE(curstack->type)
+									|| IS_2_WORD_TYPE(curstack->prev->prev->type))
+									panic("Illegal instruction: DUP_X2 on invalid types");
+							}
+#endif
 							DUP_X2;
 						}
 						break;
@@ -1365,22 +1435,49 @@ void analyse_stack()
 					case ICMD_DUP2_X2:
 						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->type)) {
+							/* ..., ????, cat2 */
 							if (IS_2_WORD_TYPE(curstack->prev->type)) {
+								/* ..., cat2, cat2 */
 								iptr->opc = ICMD_DUP_X1;
 								DUP_X1;
 							}
 							else {
+								/* ..., cat1, cat2 */
+#ifdef TYPECHECK_STACK_COMPCAT
+								if (opt_verify) {
+									REQUIRE_3;
+									if (IS_2_WORD_TYPE(curstack->prev->prev->type))
+										panic("Illegal instruction: DUP2_X2 on invalid types");
+								}
+#endif
 								iptr->opc = ICMD_DUP_X2;
 								DUP_X2;
 							}
 						}
 						else {
 							REQUIRE_3;
+							/* ..., ????, ????, cat1 */
 							if (IS_2_WORD_TYPE(curstack->prev->prev->type)) {
+								/* ..., cat2, ????, cat1 */
+#ifdef TYPECHECK_STACK_COMPCAT
+								if (opt_verify) {
+									if (IS_2_WORD_TYPE(curstack->prev->type))
+										panic("Illegal instruction: DUP2_X2 on invalid types");
+								}
+#endif
 								iptr->opc = ICMD_DUP2_X1;
 								DUP2_X1;
 							}
 							else {
+								/* ..., cat1, ????, cat1 */
+#ifdef TYPECHECK_STACK_COMPCAT
+								if (opt_verify) {
+									REQUIRE_4;
+									if (IS_2_WORD_TYPE(curstack->prev->type)
+										|| IS_2_WORD_TYPE(curstack->prev->prev->prev->type))
+										panic("Illegal instruction: DUP2_X2 on invalid types");
+								}
+#endif
 								DUP2_X2;
 							}
 						}
@@ -1389,6 +1486,14 @@ void analyse_stack()
 						/* pop 2 push 2 swap */
 						
 					case ICMD_SWAP:
+#ifdef TYPECHECK_STACK_COMPCAT
+						if (opt_verify) {
+							REQUIRE_2;
+							if (IS_2_WORD_TYPE(curstack->type)
+								|| IS_2_WORD_TYPE(curstack->prev->type))
+								panic("Illegal instruction: SWAP on category 2 type");
+						}
+#endif
 						SWAP;
 						break;
 
