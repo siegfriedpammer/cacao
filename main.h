@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: main.h 841 2004-01-05 00:43:03Z twisti $
+   $Id: main.h 895 2004-01-19 13:53:43Z edwin $
 
 */
 
@@ -51,6 +51,8 @@ extern bool initverbose;         /* Log class initialization */
 extern bool opt_rt;
 extern bool opt_xta;
 extern bool opt_vta;
+
+extern bool opt_liberalutf;      /* Don't check overlong UTF-8 sequences */
 
 extern bool showmethods;
 extern bool showconstantpool;

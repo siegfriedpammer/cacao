@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 889 2004-01-19 12:18:14Z edwin $
+   $Id: main.c 895 2004-01-19 13:53:43Z edwin $
 
 */
 
@@ -77,6 +77,8 @@ bool initverbose = false;
 bool opt_rt = false;           /* true if RTA parse should be used     RT-CO */
 bool opt_xta = false;          /* true if XTA parse should be used    XTA-CO */
 bool opt_vta = false;          /* true if VTA parse should be used    VTA-CO */
+
+bool opt_liberalutf = false;   /* Don't check overlong UTF-8 sequences       */
 
 bool showmethods = false;
 bool showconstantpool = false;
@@ -158,6 +160,7 @@ void **stackbottom = 0;
 #define OPT_VTA         28
 #define OPT_VERBOSETC   29
 #define OPT_NOVERIFY    30
+#define OPT_LIBERALUTF  31
 
 
 struct {char *name; bool arg; int value;} opts[] = {
@@ -167,6 +170,7 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{"mx",          true,   OPT_MX},
 	{"noasyncgc",   false,  OPT_IGNORE},
 	{"noverify",    false,  OPT_NOVERIFY},
+	{"liberalutf",  false,  OPT_LIBERALUTF},
 	{"oss",         true,   OPT_IGNORE},
 	{"ss",          true,   OPT_IGNORE},
 	{"v",           false,  OPT_VERBOSE1},
@@ -272,6 +276,7 @@ static void print_usage()
 	printf("          -noieee .............. don't use ieee compliant arithmetic\n");
 #endif
 	printf("          -noverify ............ don't verify classfiles\n");
+	printf("          -liberalutf........... don't warn about overlong UTF-8 sequences\n");
 	printf("          -softnull ............ use software nullpointer check\n");
 	printf("          -time ................ measure the runtime\n");
 	printf("          -stat ................ detailed compiler statistics\n");
@@ -704,6 +709,10 @@ int main(int argc, char **argv)
 
 		case OPT_NOVERIFY:
 			opt_verify = false;
+			break;
+
+		case OPT_LIBERALUTF:
+			opt_liberalutf = true;
 			break;
 
 		case OPT_SOFTNULL:

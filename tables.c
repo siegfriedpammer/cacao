@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 881 2004-01-13 19:57:08Z edwin $
+   $Id: tables.c 895 2004-01-19 13:53:43Z edwin $
 
 */
 
@@ -46,6 +46,7 @@
 #include <unistd.h>
 #include "types.h"
 #include "global.h"
+#include "main.h"
 #include "tables.h"
 #include "loader.h"
 #include "asmpart.h"
@@ -766,8 +767,13 @@ is_valid_utf(char *utf_ptr,char *end_pos)
 			if (len != 1) return false;           /* Java special */
 		}
 		else {
-			/* XXX Sun Java seems to allow overlong UTF-8 encodings */
-			/* if (v < min_codepoint[len]) return false; */ /* overlong UTF-8 */
+			/* Sun Java seems to allow overlong UTF-8 encodings */
+			
+			if (v < min_codepoint[len]) { /* overlong UTF-8 */
+				if (!opt_liberalutf)
+					fprintf(stderr,"WARNING: Overlong UTF-8 sequence found.\n");
+				/* XXX change this to panic? */
+			}
 		}
 
 		/* surrogates in UTF-8 seem to be allowed in Java classfiles */
