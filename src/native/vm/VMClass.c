@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 1344 2004-07-21 17:12:53Z twisti $
+   $Id: VMClass.c 1446 2004-11-05 13:58:25Z twisti $
 
 */
 
@@ -799,13 +799,13 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_loadArrayClass(JNIEnv 
 
 
 /*
- * Class:     java_lang_VMClass
+ * Class:     java/lang/VMClass
  * Method:    throwException
  * Signature: (Ljava/lang/Throwable;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass clazz, java_lang_Throwable *par1)
+JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass clazz, java_lang_Throwable *t)
 {
-	log_text("Won't implement VmClass.throwException. (Not needed according to spec) Is only needed to be bug compatible with the SUN VM. (according to gnuclasspath team)");
+	*exceptionptr = t;
 }
 
 
