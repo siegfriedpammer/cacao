@@ -333,11 +333,11 @@ void suck_stop () {
 }
 
 /******************************************************************************/
-/******************* Einige Support-Funkionen *********************************/
+/******************* Some support functions ***********************************/
 /******************************************************************************/
 
 
-/********** interne Funktion: printflags  (nur zu Debug-Zwecken) **************/
+/********** internal function: printflags  (only for debugging) ***************/
 
 static void printflags (u2 f)
 {
@@ -355,9 +355,9 @@ static void printflags (u2 f)
 }
 
 
-/************************* Funktion: skipattribute *****************************
+/************************* Function: skipattribute *****************************
 
-	"uberliest im ClassFile eine (1) 'attribute'-Struktur 
+	skips a (1) 'attribute' structure in the class file
 
 *******************************************************************************/
 
@@ -367,10 +367,10 @@ static void skipattribute ()
 	skip_nbytes(suck_u4());	
 }
 
-/********************** Funktion: skipattributebody ****************************
+/********************** Function: skipattributebody ****************************
 
-	"uberliest im Classfile ein attribut, wobei die 16-bit - attribute_name - 
-	Referenz schon gelesen worden ist.
+	skips an attribute after the 16 bit reference to attribute_name has already
+	been read
 	
 *******************************************************************************/
 
@@ -379,9 +379,9 @@ static void skipattributebody ()
 	skip_nbytes(suck_u4());
 }
 
-/************************* Funktion: skipattributes ****************************
+/************************* Function: skipattributes ****************************
 
-	"uberliest im ClassFile eine gew"unschte Anzahl von attribute-Strukturen
+	skips num attribute structures
 	
 *******************************************************************************/
 
@@ -641,10 +641,10 @@ static void checkmethoddescriptor (utf *d)
 }
 
 
-/******************** Funktion: buildarraydescriptor ***************************
+/******************** Function: buildarraydescriptor ***************************
 
-	erzeugt zu einem namentlich als utf-String vorliegenden Arraytyp eine
-	entsprechende constant_arraydescriptor - Struktur 
+	creates a constant_arraydescriptor structure for the array type named by an
+	utf string
 	
 *******************************************************************************/
 
@@ -686,10 +686,9 @@ constant_arraydescriptor * buildarraydescriptor(char *utf_ptr, u4 namelen)
 }
 
 
-/******************* Funktion: freearraydescriptor *****************************
+/******************* Function: freearraydescriptor *****************************
 
-	entfernt eine mit buildarraydescriptor erzeugte Struktur wieder 
-	aus dem Speicher
+	removes a structure created by buildarraydescriptor from memory
 	
 *******************************************************************************/
 
@@ -702,7 +701,7 @@ static void freearraydescriptor (constant_arraydescriptor *d)
 		}
 }
 
-/*********************** Funktion: displayarraydescriptor *********************/
+/*********************** Function: displayarraydescriptor *********************/
 
 static void displayarraydescriptor (constant_arraydescriptor *d)
 {
@@ -723,11 +722,11 @@ static void displayarraydescriptor (constant_arraydescriptor *d)
 
 
 /******************************************************************************/
-/******************** Funktionen fuer Fields **********************************/
+/******************** Functionen fuer Fields **********************************/
 /******************************************************************************/
 
 
-/************************ Funktion: field_load *********************************
+/************************ Function: field_load *********************************
 
 	l"adt alle Informationen f"ur eine Feld einer Methode aus dem ClassFile,
 	und f"ullt mit diesen Infos eine schon existierende 'fieldinfo'-Struktur.
@@ -840,7 +839,7 @@ static void field_free (fieldinfo *f)
 }
 
 
-/************** Funktion: field_display (nur zu Debug-Zwecken) ****************/
+/************** Function: field_display (nur zu Debug-Zwecken) ****************/
 
 static void field_display (fieldinfo *f)
 {
@@ -855,17 +854,16 @@ static void field_display (fieldinfo *f)
 
 
 /******************************************************************************/
-/************************* Funktionen f"ur Methods ****************************/ 
+/************************* Functions for methods ******************************/ 
 /******************************************************************************/
 
 
-/*********************** Funktion: method_load *********************************
+/*********************** Function: method_load *********************************
 
-	l"adt die Infos f"ur eine Methode aus dem ClassFile und f"ullt damit 
-	eine schon existierende 'methodinfo'-Struktur aus.
-	Bei allen native-Methoden wird au"serdem gleich der richtige 
-	Funktionszeiger eingetragen, bei JavaVM-Methoden einstweilen ein
-	Zeiger auf den Compiler 
+	Loads a method from the class file and fills an existing 'methodinfo'
+	structure. For native methods, the function pointer field is set to the
+	real function pointer, for JavaVM methods a pointer to the compiler is used
+	preliminarily.
 	
 *******************************************************************************/
 
@@ -957,10 +955,9 @@ static void method_load (methodinfo *m, classinfo *c)
 
 }
 
-/********************* Funktion: method_free ***********************************
+/********************* Function: method_free ***********************************
 
-	gibt allen Speicher, der extra f"ur eine Methode angefordert wurde,
-	wieder frei
+	frees all memory that was allocated for this method
 
 *******************************************************************************/
 
@@ -977,7 +974,7 @@ static void method_free (methodinfo *m)
 }
 
 
-/************** Funktion: method_display  (nur zu Debug-Zwecken) **************/
+/************** Function: method_display  (debugging only) **************/
 
 void method_display (methodinfo *m)
 {
@@ -991,11 +988,10 @@ void method_display (methodinfo *m)
 }
 
 
-/******************** Funktion: method_canoverwrite ****************************
+/******************** Function: method_canoverwrite ****************************
 
-	"uberpr"ft, ob eine Methode mit einer anderen typ- und namensidentisch 
-	ist (also mit einer Methodendefinition eine andere "uberschrieben 
-	werden kann).
+	Check if m and old are identical with respect to type and name. This means
+	that old can be overwritten with m.
 	
 *******************************************************************************/  
 
@@ -1011,7 +1007,7 @@ static bool method_canoverwrite (methodinfo *m, methodinfo *old)
 
 
 /******************************************************************************/
-/************************ Funktionen fuer Class *******************************/
+/************************ Functions for class *********************************/
 /******************************************************************************/
 
 
@@ -1039,10 +1035,9 @@ voidptr class_getconstant (classinfo *c, u4 pos, u4 ctype)
 }
 
 
-/********************* Funktion: class_constanttype ****************************
+/********************* Function: class_constanttype ****************************
 
-	Findet heraus, welchen Typ ein Eintrag in den ConstantPool einer 
-	Klasse hat.
+	Determines the type of a class entry in the ConstantPool
 	
 *******************************************************************************/
 
@@ -1375,17 +1370,16 @@ static void class_loadcpool (classinfo *c)
 }
 
 
-/********************** Funktion: class_load ***********************************
+/********************** Function: class_load ***********************************
+	
+	Loads everything interesting about a class from the class file. The
+	'classinfo' structure must have been allocated previously.
 
-	l"adt alle Infos f"ur eine ganze Klasse aus einem ClassFile. Die
-	'classinfo'-Struktur mu"s bereits angelegt worden sein.
-	
-	Die Superklasse und die Interfaces, die diese Klasse implementiert,
-	m"ussen zu diesem Zeitpunkt noch nicht geladen sein, die 
-	Verbindung dazu wird sp"ater in der Funktion 'class_link' hergestellt.
-	
-	Die gelesene Klasse wird dann aus der Liste 'unloadedclasses' ausgetragen
-	und in die Liste 'unlinkedclasses' eingh"angt.
+	The super class and the interfaces implemented by this class need not be
+	loaded. The link is set later by the function 'class_link'.
+
+	The loaded class is removed from the list 'unloadedclasses' and added to
+	the list 'unlinkedclasses'.
 	
 *******************************************************************************/
 
@@ -1486,10 +1480,10 @@ static int class_load (classinfo *c)
 
 
 
-/************** interne Funktion: class_highestinterface ***********************
+/************** internal Function: class_highestinterface ***********************
 
-	wird von der Funktion class_link ben"otigt, um festzustellen, wie gro"s
-	die Interfacetable einer Klasse sein mu"s.
+	Used by the function class_link to determine the amount of memory needed
+	for the interface table.
 
 *******************************************************************************/
 
@@ -1515,9 +1509,8 @@ static s4 class_highestinterface (classinfo *c)
 
 /* class_addinterface **********************************************************
 
-	wird von der Funktion class_link ben"otigt, um eine Virtual Function 
-	Table f"ur ein Interface (und alle weiteren von diesem Interface
-	implementierten Interfaces) in eine Klasse einzutragen.
+	Is needed by class_link for adding a VTBL to a class. All interfaces
+	implemented by ic are added as well.
 
 *******************************************************************************/	
 
@@ -1568,22 +1561,19 @@ static void class_addinterface (classinfo *c, classinfo *ic)
 }
 
 
-/********************** Funktion: class_link ***********************************
+/********************** Function: class_link ***********************************
 
-	versucht, eine Klasse in das System voll zu integrieren (linken). Dazu 
-	m"ussen sowol die Superklasse, als auch alle implementierten
-	Interfaces schon gelinkt sein.
-	Diese Funktion berechnet sowohl die L"ange (in Bytes) einer Instanz 
-	dieser Klasse, als auch die Virtual Function Tables f"ur normale
-	Methoden als auch Interface-Methoden.
+	Tries to link a class. The super class and every implemented interface must
+	already have been linked. The function calculates the length in bytes that
+	an instance of this class requires as well as the VTBL for methods and
+	interface methods.
 	
-	Wenn die Klasse erfolgreich gelinkt werden kann, dann wird sie aus
-	der Liste 'unlinkedclasses' ausgeh"angt, und in die Klasse 'linkedclasses'
-	eingetragen.
-	Wenn nicht, dann wird sie ans Ende der Liste 'unlinkedclasses' gestellt.
+	If the class can be linked, it is removed from the list 'unlinkedclasses'
+	and added to 'linkedclasses'. Otherwise, it is moved to the end of
+	'unlinkedclasses'.
 
-	Achtung: Bei zyklischen Klassendefinitionen ger"at das Programm hier in
-	         eine Endlosschleife!!  (Da muss ich mir noch was einfallen lassen)
+	Attention: If cyclical class definitions are encountered, the program gets
+	into an infinite loop (we'll have to work that out)
 
 *******************************************************************************/
 
@@ -1776,10 +1766,9 @@ foundvftblindex: ;
 }
 
 
-/******************* Funktion: class_freepool **********************************
+/******************* Function: class_freepool **********************************
 
-	Gibt alle Resourcen, die der ConstantPool einer Klasse ben"otigt,
-	wieder frei.
+	Frees all resources used by this classes Constant Pool.
 
 *******************************************************************************/
 
@@ -1827,9 +1816,9 @@ static void class_freecpool (classinfo *c)
 }
 
 
-/*********************** Funktion: class_free **********************************
+/*********************** Function: class_free **********************************
 
-	Gibt alle Resourcen, die eine ganze Klasse ben"otigt, frei
+	Frees all resources used by the class.
 
 *******************************************************************************/
 
@@ -1870,10 +1859,10 @@ static void class_free (classinfo *c)
 	FREE (c, classinfo);
 }
 
-/************************* Funktion: class_findfield ***************************
+/************************* Function: class_findfield ***************************
 	
-	sucht in einer 'classinfo'-Struktur nach einem Feld mit gew"unschtem
-	Namen und Typ.
+	Searches a 'classinfo' structure for a field having the given name and
+	type.
 
 *******************************************************************************/
 
@@ -1892,11 +1881,11 @@ fieldinfo *class_findfield (classinfo *c, utf *name, utf *desc)
 }
 
 
-/************************* Funktion: class_findmethod **************************
+/************************* Function: class_findmethod **************************
 	
-	sucht in einer 'classinfo'-Struktur nach einer Methode mit gew"unschtem
-	Namen und Typ.
-	Wenn als Typ NULL angegeben wird, dann ist der Typ egal.
+	Searches a 'classinfo' structure for a method having the given name and
+	type.
+	If type is NULL, it is ignored.
 
 *******************************************************************************/
 
@@ -1911,12 +1900,10 @@ methodinfo *class_findmethod (classinfo *c, utf *name, utf *desc)
 	return NULL;
 }
 
-/************************* Funktion: class_findmethod_approx ******************
+/************************* Function: class_findmethod_approx ******************
 	
-	sucht in einer 'classinfo'-Struktur nach einer Methode mit gew"unschtem
-	Namen und Typ.
-	Wenn als Typ NULL angegeben wird, dann ist der Typ egal.
-	beim Vergleichen des Descriptors wird der R"uckgabewert nicht betrachtet
+	like class_findmethod but ignores the return value when comparing the
+	descriptor.
 
 *******************************************************************************/
 
@@ -1956,10 +1943,10 @@ methodinfo *class_findmethod_approx (classinfo *c, utf *name, utf *desc)
 	return NULL;
 }
 
-/***************** Funktion: class_resolvemethod_approx ***********************
+/***************** Function: class_resolvemethod_approx ***********************
 	
-	sucht eine Klasse und alle Superklassen ab, um eine Methode zu finden.
-	(ohne Beachtung des R"uckgabewertes)
+	Searches a class and every super class for a method (without paying
+	attention to the return value)
 
 *******************************************************************************/
 
@@ -1977,9 +1964,9 @@ methodinfo *class_resolvemethod_approx (classinfo *c, utf *name, utf *desc)
 }
 
 
-/************************* Funktion: class_resolvemethod ***********************
+/************************* Function: class_resolvemethod ***********************
 	
-	sucht eine Klasse und alle Superklassen ab, um eine Methode zu finden.
+	Searches a class and every super class for a method.
 
 *******************************************************************************/
 
@@ -1997,9 +1984,9 @@ methodinfo *class_resolvemethod (classinfo *c, utf *name, utf *desc)
 	
 
 
-/************************* Funktion: class_issubclass **************************
+/************************* Function: class_issubclass **************************
 
-	"uberpr"uft, ob eine Klasse von einer anderen Klasse abgeleitet ist.		
+	Checks if sub is a descendant of super.
 	
 *******************************************************************************/
 
@@ -2014,12 +2001,11 @@ bool class_issubclass (classinfo *sub, classinfo *super)
 
 
 
-/****************** Initialisierungsfunktion f"ur eine Klasse ******************
+/****************** Initialization function for classes ******************
 
-	In Java kann jede Klasse ein statische Initialisierungsfunktion haben.
-	Diese Funktion mu"s aufgerufen werden, BEVOR irgendwelche Methoden der
-	Klasse aufgerufen werden, oder auf statische Variablen zugegriffen
-	wird.
+	In Java, every class can have a static initialization function. This
+	function has to be called BEFORE calling other methods or accessing static
+	variables.
 
 *******************************************************************************/
 
@@ -2137,7 +2123,7 @@ void class_init (classinfo *c)
 
 
 
-/********* Funktion: class_showconstantpool   (nur f"ur Debug-Zwecke) *********/
+/********* Function: class_showconstantpool   (debugging only) *********/
 
 void class_showconstantpool (classinfo *c) 
 {
@@ -2229,7 +2215,7 @@ void class_showconstantpool (classinfo *c)
 
 
 
-/********** Funktion: class_showmethods   (nur f"ur Debug-Zwecke) *************/
+/********** Function: class_showmethods   (debugging only) *************/
 
 void class_showmethods (classinfo *c)
 {
@@ -2276,16 +2262,16 @@ void class_showmethods (classinfo *c)
 
 
 /******************************************************************************/
-/******************* Funktionen fuer den Class-loader generell ****************/
+/******************* General functions for the class loader *******************/
 /******************************************************************************/
 
 static int loader_inited = 0;
 
-/********************* Funktion: loader_load ***********************************
+/********************* Function: loader_load ***********************************
 
-	l"adt und linkt die ge"unschte Klasse und alle davon 
-	referenzierten Klassen und Interfaces
-	Return: Einen Zeiger auf diese Klasse
+	Loads and links the class desired class and each class and interface
+	referenced by it.
+	Returns: a pointer to this class
 
 *******************************************************************************/
 
@@ -2380,10 +2366,10 @@ classinfo *create_array_class(utf *u)
 	return c;
 }
 
-/********************** Funktion: loader_init **********************************
+/********************** Function: loader_init **********************************
 
-	Initialisiert alle Listen und l"adt alle Klassen, die vom System
-	und vom Compiler direkt ben"otigt werden.
+	Initializes all lists and loads all classes required for the system or the
+	compiler.
 
 *******************************************************************************/
  
@@ -2488,9 +2474,9 @@ void loader_init ()
 
 
 
-/********************* Funktion: loader_initclasses ****************************
+/********************* Function: loader_initclasses ****************************
 
-	initialisiert alle geladenen aber noch nicht initialisierten Klassen
+	Initializes all loaded but uninitialized classes
 
 *******************************************************************************/
 
@@ -2583,9 +2569,9 @@ void classload_buffer(u1 *buf, int len)
 }
 
 
-/******************** Funktion: loader_close ***********************************
+/******************** Function: loader_close ***********************************
 
-	gibt alle Resourcen wieder frei
+	Frees all resources
 	
 *******************************************************************************/
 
