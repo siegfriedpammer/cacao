@@ -30,12 +30,10 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2135 2005-03-30 09:55:26Z twisti $
+   $Id: jit.c 2159 2005-03-30 20:07:27Z twisti $
 
 */
 
-
-#include <stdlib.h>
 
 #include "config.h"
 #include "codegen.h"
