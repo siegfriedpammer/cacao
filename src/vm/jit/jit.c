@@ -29,10 +29,12 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1892 2005-01-31 17:05:53Z twisti $
+   $Id: jit.c 1897 2005-02-07 16:59:00Z twisti $
 
 */
 
+
+#include <stdlib.h>
 
 #include "codegen.h"
 #include "disass.h"
