@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1934 2005-02-10 10:58:43Z twisti $
+   $Id: builtin.c 1958 2005-02-19 11:32:42Z carolyn $
 
 */
 
@@ -838,8 +838,11 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 	char logtext[MAXLOGTEXT];
 	for (i = 0; i < methodindent; i++)
 		logtext[i] = '\t';
+	if (methodindent == 0) 
+			sprintf(logtext + methodindent, "1st_call: ");
+	else
+		sprintf(logtext + methodindent, "called: ");
 
-	sprintf(logtext + methodindent, "called: ");
 	utf_sprint_classname(logtext + strlen(logtext), m->class->name);
 	sprintf(logtext + strlen(logtext), ".");
 	utf_sprint(logtext + strlen(logtext), m->name);
