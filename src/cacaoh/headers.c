@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: headers.c 2232 2005-04-06 10:32:13Z twisti $
 
 */
 
@@ -111,8 +111,6 @@ long compare_and_swap(long *p, long oldval, long newval)
 }
 #endif
 
-
-java_objectheader *asm_builtin_new(classinfo *c) { return NULL; }
 
 #if defined(__I386__)
 s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class) {
