@@ -34,13 +34,14 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 696 2003-12-06 20:10:05Z edwin $
+   $Id: builtin.c 716 2003-12-07 21:59:12Z twisti $
 
 */
 
 
 #include <assert.h>
 #include <string.h>
+#include <math.h>
 #include "main.h"
 #include "global.h"
 #include "builtin.h"
@@ -52,8 +53,9 @@
 #include "threads/locks.h"
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
+#include "nat/java_lang_Cloneable.h"
+#include "nat/java_lang_VMObject.h"
 
-#include "native-math.h"
 
 #undef DEBUG /*define DEBUG 1*/
 
@@ -297,6 +299,7 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,arraydescriptor *t
 	return builtin_isanysubclass_vftbl(pseudo_class_Arraystub_vftbl,target->elementvftbl);
 }
 
+
 /******************** function: builtin_checkarraycast ***********************
 
 	Checks if an object is really a subtype of the requested array type.
@@ -314,21 +317,23 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,arraydescriptor *t
 			
 *****************************************************************************/
 
-s4 builtin_checkarraycast(java_objectheader *o,vftbl *target)
+s4 builtin_checkarraycast(java_objectheader *o, vftbl *target)
 {
 	arraydescriptor *desc;
 	
 	if (!o) return 1;
 	if ((desc = o->vftbl->arraydesc) == NULL) return 0;
 
-	return builtin_descriptorscompatible(desc,target->arraydesc);
+	return builtin_descriptorscompatible(desc, target->arraydesc);
 }
 
-s4 builtin_arrayinstanceof(java_objectheader *obj,vftbl *target)
+
+s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl *target)
 {
 	if (!obj) return 1;
-	return builtin_checkarraycast (obj, target);
+	return builtin_checkarraycast(obj, target);
 }
+
 
 /************************** exception functions *******************************
 
@@ -417,6 +422,7 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 	return builtin_descriptorscompatible(valuedesc,componentvftbl->arraydesc);
 }
 
+
 /* This is an optimized version where a is guaranteed to be one-dimensional */
 s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 {
@@ -453,10 +459,11 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 		<= (unsigned)(elementvftbl->diffval);
 }
 
+
 /* This is an optimized version where a is guaranteed to be a
  * one-dimensional array of a class type */
 /* XXX this could be inlined by the code generator */
-s4 builtin_canstore_onedim_class (java_objectarray *a, java_objectheader *o)
+s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 {
 	vftbl *elementvftbl;
 	vftbl *valuevftbl;
@@ -528,7 +535,7 @@ java_objectheader *builtin_new(classinfo *c)
 
 *****************************************************************************/
 
-java_arrayheader *builtin_newarray(s4 size,vftbl *arrayvftbl)
+java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl)
 {
         java_arrayheader *a;
         arraydescriptor *desc = arrayvftbl->arraydesc;
@@ -545,10 +552,9 @@ java_arrayheader *builtin_newarray(s4 size,vftbl *arrayvftbl)
 #else
         actualsize = dataoffset + size * componentsize;
 #endif
-        a = (java_arrayheader *)
-                heap_allocate(actualsize,
-                                          (desc->arraytype == ARRAYTYPE_OBJECT),
-                                          NULL);
+        a = (java_arrayheader *) heap_allocate(actualsize,
+											   (desc->arraytype == ARRAYTYPE_OBJECT),
+											   NULL);
 
         if (!a) return NULL;
         memset(a,0,actualsize);
@@ -561,8 +567,10 @@ java_arrayheader *builtin_newarray(s4 size,vftbl *arrayvftbl)
 #ifdef SIZE_FROM_CLASSINFO
         a->alignedsize = actualsize;
 #endif
+
         return a;
 }
+
 
 /********************** Function: builtin_anewarray *************************
 
@@ -576,11 +584,11 @@ java_arrayheader *builtin_newarray(s4 size,vftbl *arrayvftbl)
 
 *****************************************************************************/
 
-java_objectarray *
-builtin_anewarray(s4 size,classinfo *component)
+java_objectarray *builtin_anewarray(s4 size, classinfo *component)
 {
-	return (java_objectarray*) builtin_newarray(size,class_array_of(component)->vftbl);
+	return (java_objectarray*) builtin_newarray(size, class_array_of(component)->vftbl);
 }
+
 
 /******************** Function: builtin_newarray_int ***********************
 
@@ -590,10 +598,11 @@ builtin_anewarray(s4 size,classinfo *component)
 
 *****************************************************************************/
 
-java_intarray *builtin_newarray_int (s4 size)
+java_intarray *builtin_newarray_int(s4 size)
 {
-	return (java_intarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_INT].arrayvftbl);
+	return (java_intarray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_INT].arrayvftbl);
 }
+
 
 /******************** Function: builtin_newarray_long ***********************
 
@@ -603,10 +612,11 @@ java_intarray *builtin_newarray_int (s4 size)
 
 *****************************************************************************/
 
-java_longarray *builtin_newarray_long (s4 size)
+java_longarray *builtin_newarray_long(s4 size)
 {
-	return (java_longarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_LONG].arrayvftbl);
+	return (java_longarray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_LONG].arrayvftbl);
 }
+
 
 /******************** function: builtin_newarray_float ***********************
 
@@ -616,10 +626,11 @@ java_longarray *builtin_newarray_long (s4 size)
 
 *****************************************************************************/
 
-java_floatarray *builtin_newarray_float (s4 size)
+java_floatarray *builtin_newarray_float(s4 size)
 {
-	return (java_floatarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_FLOAT].arrayvftbl);
+	return (java_floatarray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_FLOAT].arrayvftbl);
 }
+
 
 /******************** function: builtin_newarray_double ***********************
 
@@ -629,10 +640,11 @@ java_floatarray *builtin_newarray_float (s4 size)
 
 *****************************************************************************/
 
-java_doublearray *builtin_newarray_double (s4 size)
+java_doublearray *builtin_newarray_double(s4 size)
 {
-	return (java_doublearray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_DOUBLE].arrayvftbl);
+	return (java_doublearray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_DOUBLE].arrayvftbl);
 }
+
 
 /******************** function: builtin_newarray_byte ***********************
 
@@ -642,10 +654,11 @@ java_doublearray *builtin_newarray_double (s4 size)
 
 *****************************************************************************/
 
-java_bytearray *builtin_newarray_byte (s4 size)
+java_bytearray *builtin_newarray_byte(s4 size)
 {
-	return (java_bytearray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_BYTE].arrayvftbl);
+	return (java_bytearray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_BYTE].arrayvftbl);
 }
+
 
 /******************** function: builtin_newarray_char ************************
 
@@ -655,10 +668,11 @@ java_bytearray *builtin_newarray_byte (s4 size)
 
 *****************************************************************************/
 
-java_chararray *builtin_newarray_char (s4 size)
+java_chararray *builtin_newarray_char(s4 size)
 {
-	return (java_chararray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl);
+	return (java_chararray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl);
 }
+
 
 /******************** function: builtin_newarray_short ***********************
 
@@ -668,10 +682,11 @@ java_chararray *builtin_newarray_char (s4 size)
 
 *****************************************************************************/
 
-java_shortarray *builtin_newarray_short (s4 size)
+java_shortarray *builtin_newarray_short(s4 size)
 {
-	return (java_shortarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_SHORT].arrayvftbl);
+	return (java_shortarray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_SHORT].arrayvftbl);
 }
+
 
 /******************** function: builtin_newarray_boolean ************************
 
@@ -682,10 +697,11 @@ java_shortarray *builtin_newarray_short (s4 size)
 
 *****************************************************************************/
 
-java_booleanarray *builtin_newarray_boolean (s4 size)
+java_booleanarray *builtin_newarray_boolean(s4 size)
 {
-	return (java_booleanarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_BOOLEAN].arrayvftbl);
+	return (java_booleanarray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_BOOLEAN].arrayvftbl);
 }
+
 
 /**************** function: builtin_nmultianewarray ***************************
 
@@ -701,8 +717,9 @@ java_booleanarray *builtin_newarray_boolean (s4 size)
 
 ******************************************************************************/
 
-java_arrayheader *builtin_nmultianewarray (int n,
-										   vftbl *arrayvftbl, long *dims)
+	/* Helper functions */
+
+java_arrayheader *builtin_nmultianewarray (int n, vftbl *arrayvftbl, long *dims)
 {
 	int size, i;
 	java_arrayheader *a;
@@ -732,6 +749,7 @@ java_arrayheader *builtin_nmultianewarray (int n,
 	return a;
 }
 
+
 /*****************************************************************************
 					  METHOD LOGGING
 
@@ -747,7 +765,6 @@ java_objectheader *builtin_trace_exception(java_objectheader *exceptionptr,
 										   methodinfo *method, int *pos, 
 										   int noindent)
 {
-
 	if (!noindent)
 		methodindent--;
 	if (verbose || runverbose) {
@@ -795,7 +812,6 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 #endif
 						methodinfo *method)
 {
-
 	int i;
 	char logtext[MAXLOGTEXT];
 	for (i = 0; i < methodindent; i++)
@@ -997,10 +1013,9 @@ void builtin_displaymethodexception(methodinfo *method)
 /*
  * Lock the mutex of an object.
  */
-#ifdef USE_THREADS
-void
-internal_lock_mutex_for_object (java_objectheader *object)
+void internal_lock_mutex_for_object(java_objectheader *object)
 {
+#ifdef USE_THREADS
 	mutexHashEntry *entry;
 	int hashValue;
 
@@ -1041,17 +1056,16 @@ internal_lock_mutex_for_object (java_objectheader *object)
 		entry->object = object;
 	
 	internal_lock_mutex(&entry->mutex);
-}
 #endif
+}
 
 
 /*
  * Unlocks the mutex of an object.
  */
-#ifdef USE_THREADS
-void
-internal_unlock_mutex_for_object (java_objectheader *object)
+void internal_unlock_mutex_for_object (java_objectheader *object)
 {
+#ifdef USE_THREADS
 	int hashValue;
 	mutexHashEntry *entry;
 
@@ -1077,8 +1091,8 @@ internal_unlock_mutex_for_object (java_objectheader *object)
 			firstFreeOverflowEntry = unlinked;
 		}
 	}
-}
 #endif
+}
 
 
 void builtin_monitorenter(java_objectheader *o)
@@ -1283,8 +1297,8 @@ s4 builtin_lcmp(s8 a, s8 b)
 
 float builtin_fadd(float a, float b)
 {
-	if (isnanf(a)) return FLT_NAN;
-	if (isnanf(b)) return FLT_NAN;
+	if (isnanf(a)) return intBitsToFloat(FLT_NAN);
+	if (isnanf(b)) return intBitsToFloat(FLT_NAN);
 	if (finitef(a)) {
 		if (finitef(b))
 			return a + b;
@@ -1298,7 +1312,7 @@ float builtin_fadd(float a, float b)
 			if (copysignf(1.0, a) == copysignf(1.0, b))
 				return a;
 			else
-				return FLT_NAN;
+				return intBitsToFloat(FLT_NAN);
 		}
 	}
 }
@@ -1312,18 +1326,18 @@ float builtin_fsub(float a, float b)
 
 float builtin_fmul(float a, float b)
 {
-	if (isnanf(a)) return FLT_NAN;
-	if (isnanf(b)) return FLT_NAN;
+	if (isnanf(a)) return intBitsToFloat(FLT_NAN);
+	if (isnanf(b)) return intBitsToFloat(FLT_NAN);
 	if (finitef(a)) {
-		if (finitef(b)) return a*b;
+		if (finitef(b)) return a * b;
 		else {
-			if (a == 0) return FLT_NAN;
+			if (a == 0) return intBitsToFloat(FLT_NAN);
 			else return copysignf(b, copysignf(1.0, b)*a);
 		}
 	}
 	else {
 		if (finitef(b)) {
-			if (b == 0) return FLT_NAN;
+			if (b == 0) return intBitsToFloat(FLT_NAN);
 			else return copysignf(a, copysignf(1.0, a)*b);
 		}
 		else {
@@ -1340,12 +1354,12 @@ float builtin_fdiv(float a, float b)
 			return a / b;
 		else {
 			if (a > 0)
-				return FLT_POSINF;
+				return intBitsToFloat(FLT_POSINF);
 			else if (a < 0)
-				return FLT_NEGINF;
+				return intBitsToFloat(FLT_NEGINF);
 		}
 	}
-	return FLT_NAN;
+	return intBitsToFloat(FLT_NAN);
 }
 
 
@@ -1398,17 +1412,17 @@ s4 builtin_fcmpg(float a, float b)
 
 double builtin_dadd(double a, double b)
 {
-	if (isnan(a)) return DBL_NAN;
-	if (isnan(b)) return DBL_NAN;
+	if (isnan(a)) return longBitsToDouble(DBL_NAN);
+	if (isnan(b)) return longBitsToDouble(DBL_NAN);
 	if (finite(a)) {
-		if (finite(b)) return a+b;
+		if (finite(b)) return a + b;
 		else return b;
 	}
 	else {
 		if (finite(b)) return a;
 		else {
 			if (copysign(1.0, a)==copysign(1.0, b)) return a;
-			else return DBL_NAN;
+			else return longBitsToDouble(DBL_NAN);
 		}
 	}
 }
@@ -1422,18 +1436,18 @@ double builtin_dsub(double a, double b)
 
 double builtin_dmul(double a, double b)
 {
-	if (isnan(a)) return DBL_NAN;
-	if (isnan(b)) return DBL_NAN;
+	if (isnan(a)) return longBitsToDouble(DBL_NAN);
+	if (isnan(b)) return longBitsToDouble(DBL_NAN);
 	if (finite(a)) {
 		if (finite(b)) return a * b;
 		else {
-			if (a == 0) return DBL_NAN;
+			if (a == 0) return longBitsToDouble(DBL_NAN);
 			else return copysign(b, copysign(1.0, b) * a);
 		}
 	}
 	else {
 		if (finite(b)) {
-			if (b == 0) return DBL_NAN;
+			if (b == 0) return longBitsToDouble(DBL_NAN);
 			else return copysign(a, copysign(1.0, a) * b);
 		}
 		else {
@@ -1445,17 +1459,41 @@ double builtin_dmul(double a, double b)
 
 double builtin_ddiv(double a, double b)
 {
-	if (finite(a) && finite(b)) {
-		if (b != 0)
+	if (finite(a)) {
+		if (finite(b)) {
 			return a / b;
-		else {
-			if (a > 0)
-				return DBL_POSINF;
-			else if (a < 0)
-				return DBL_NEGINF;
+
+		} else {
+			if (isnan(b))
+				return longBitsToDouble(DBL_NAN);
+			else
+				return copysign(0.0, b);
 		}
+
+	} else {
+		if (finite(b)) {
+			if (a > 0)
+				return longBitsToDouble(DBL_POSINF);
+			else if (a < 0)
+				return longBitsToDouble(DBL_NEGINF);
+
+		} else
+			return longBitsToDouble(DBL_NAN);
 	}
-	return DBL_NAN;
+
+/*  	if (finite(a) && finite(b)) { */
+/*  		if (b != 0) */
+/*  			return a / b; */
+/*  		else { */
+/*  			if (a > 0) */
+/*  				return longBitsToDouble(DBL_POSINF); */
+/*  			else if (a < 0) */
+/*  				return longBitsToDouble(DBL_NEGINF); */
+/*  		} */
+/*  	} */
+
+	/* keep compiler happy */
+	return 0;
 }
 
 
@@ -1510,7 +1548,10 @@ s8 builtin_i2l(s4 i)
 #if U8_AVAILABLE
 	return i;
 #else
-	s8 v; v.high = 0; v.low=i; return v;
+	s8 v;
+	v.high = 0;
+	v.low = i;
+	return v;
 #endif
 }
 
@@ -1612,9 +1653,9 @@ double builtin_f2d(float a)
 	if (finitef(a)) return (double) a;
 	else {
 		if (isnanf(a))
-			return DBL_NAN;
+			return longBitsToDouble(DBL_NAN);
 		else
-			return copysign(DBL_POSINF, (double) copysignf(1.0, a) );
+			return copysign(longBitsToDouble(DBL_POSINF), (double) copysignf(1.0, a) );
 	}
 }
 
@@ -1665,15 +1706,38 @@ float builtin_d2f(double a)
 		return (float) a;
 	else {
 		if (isnan(a))
-			return FLT_NAN;
+			return intBitsToFloat(FLT_NAN);
 		else
-			return copysignf(FLT_POSINF, (float) copysign(1.0, a));
+			return copysignf(intBitsToFloat(FLT_POSINF), (float) copysign(1.0, a));
 	}
 }
 
 
-java_arrayheader *builtin_clone_array(void *env,java_arrayheader *o) {
-        return Java_java_lang_VMObject_clone ( 0 ,  0, o);
+/* used to convert FLT_xxx defines into float values */
+
+inline float intBitsToFloat(s4 i)
+{
+	imm_union imb;
+
+	imb.i = i;
+	return imb.f;
+}
+
+
+/* used to convert DBL_xxx defines into double values */
+
+inline float longBitsToDouble(s8 l)
+{
+	imm_union imb;
+
+	imb.l = l;
+	return imb.d;
+}
+
+
+java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o)
+{
+	return Java_java_lang_VMObject_clone(0, 0, o);
 }
 
 
