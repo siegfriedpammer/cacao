@@ -1,10 +1,9 @@
-/* jit/lsra.inc - linear scan register allocator
+/* srv/vm/jit/lsra.inc - linear scan register allocator
 
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004
-   Institut f. Computersprachen, TU Wien
-   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser, M. Probst,
-   S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich,
-   J. Wenninger, C. Ullrich
+   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -27,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 2024 2005-03-10 08:15:44Z christian $
+   $Id: lsra.inc 2027 2005-03-10 13:43:55Z twisti $
 
 */
 #include <stdio.h>
@@ -766,7 +765,7 @@ void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_r
 			switch (m->paramtypes[i]) {
 			case TYPE_INT:
 			case TYPE_ADR:
-#ifndef __i386__
+#if !defined(__I386__)
 			case TYPE_LNG: /* i386->longs stay in Memory */
 #endif
 				iarg++;
@@ -779,7 +778,7 @@ void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_r
 				}
 				break;
 			case TYPE_FLT:
-#ifndef __i386__
+#if !defined(__I386__)
 			case TYPE_DBL: /* i386->longs stay in Memory */
 #endif
 				farg++;
@@ -1592,7 +1591,7 @@ void _lsra_new_stack(lsradata *ls, stackptr s, int block, int instr, int store)
 		n->bb_first_def = ls->sorted_rev[block];
 		n->i_first_def = instr;
 
-#ifdef __i386__
+#if defined(__I386__)
 		if (ls->edx_free != -1) {
 			if (n->bb_last_use == block) {
 				if (n->i_last_use <= ls->edx_free) {
@@ -1697,7 +1696,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 	stackptr    dst;
 	instruction *iptr;
 
-#ifdef __I386__
+#if defined(__I386__)
 	ls->edx_free = -1;
 #endif
 
@@ -1733,7 +1732,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 		else
 			src=m->basicblocks[b_index].instack;
 
-#ifdef __I386__
+#if defined(__I386__)
 		if (icmd_uses_tmp[opcode].edx)
 			ls->edx_free = -1;
 		else
@@ -2186,7 +2185,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 	}
 }
 
-#ifdef __I386__
+#if defined(__I386__)
 
 #define NO   0
 #define YES 64

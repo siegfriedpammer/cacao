@@ -1,10 +1,9 @@
-/* jit/lsra.inc - linear scan register allocator header
+/* src/vm/jit/lsra.h - linear scan register allocator header
 
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004
-   Institut f. Computersprachen, TU Wien
-   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser, M. Probst,
-   S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich,
-   J. Wenninger, C. Ullrich
+   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -27,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 2024 2005-03-10 08:15:44Z christian $
+   $Id: lsra.h 2027 2005-03-10 13:43:55Z twisti $
 
 */
 
@@ -53,7 +52,7 @@
 #define min(a,b) ((a)<(b)?(a):(b))
 #define max(a,b) ((a)<(b)?(b):(a))
 
-#ifdef __I386__
+#if defined(__I386__)
 struct tmp_reg {
 	int eax;
 	int ecx;
@@ -129,7 +128,7 @@ struct lsra_reg {
 };
 
 struct lsradata {
-#ifdef __I386__
+#if defined(__I386__)
 	int edx_free;
 #endif
 	struct _list **succ;
