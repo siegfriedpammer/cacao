@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 484 2003-10-14 18:42:30Z twisti $
+	Last Change: $Id: global.h 494 2003-10-20 18:22:55Z twisti $
 
 *******************************************************************************/
 
@@ -20,6 +20,8 @@
 #define __global_h_
 
 #include "config.h"
+
+#define _GNU_SOURCE
 
 #define STATISTICS          /* if enabled collects program statistics         */
 
