@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1369 2004-08-01 21:53:32Z stefan $
+   $Id: builtin.h 1571 2004-11-23 16:05:04Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 #include "config.h"
 #include "toolbox/logging.h"
 #include "threads/thread.h"
+#include "arch.h"
 
 
 /* define infinity for floating point numbers */
