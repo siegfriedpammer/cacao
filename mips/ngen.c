@@ -10,7 +10,7 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 221 2003-02-05 14:09:38Z stefan $
+	Last Change: $Id: ngen.c 232 2003-02-13 11:35:40Z stefan $
 
 *******************************************************************************/
 
@@ -3178,6 +3178,7 @@ afteractualcall:
 					M_CMPULT(REG_ZERO, REG_ITMP1, d);      /* REG_ITMP1 != 0  */
 					}
 				else {                                     /* class           */
+					/*
 					s2 = super->vftbl->diffval;
 					M_BEQZ(s1, 5);
 					M_NOP;
@@ -3185,31 +3186,20 @@ afteractualcall:
 					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
 					M_IADD_IMM(REG_ITMP1, - super->vftbl->baseval, REG_ITMP1);
 					M_CMPULT_IMM(REG_ITMP1, s2 + 1, d);
-/*
-TODO (old alpha code - commented out)
-					s2 = super->vftbl->diffval;
-					M_BEQZ(s1, 4 + (s2 > 255));
+					*/
+
+					M_BEQZ(s1, 9);
+					M_NOP;
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
-					M_LDA(REG_ITMP1, REG_ITMP1, - super->vftbl->baseval);
-					if (s2 <= 255)
-						M_CMPULE_IMM(REG_ITMP1, s2, d);
-					else {
-						M_LDA(REG_ITMP2, REG_ZERO, s2);
-						M_CMPULE(REG_ITMP1, REG_ITMP2, d);
-						}
-(new alpha code)
-					M_BEQZ(s1, 7);
-					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					a = dseg_addaddress ((void*) super->vftbl);
-					M_ALD(REG_ITMP2, REG_PV, a);
-					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
-					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
-					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
-					M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
-					M_CMPULE(REG_ITMP1, REG_ITMP2, d);
-(end alpha code)
-*/
+                    a = dseg_addaddress ((void*) super->vftbl);
+                    M_ALD(REG_ITMP2, REG_PV, a);
+                    M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
+                    M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
+                    M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+                    M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
+                    M_CMPULT(REG_ITMP2, REG_ITMP1, d);
+					M_XOR_IMM(d, 1, d);
+
 					}
 				}
 			else
@@ -3260,6 +3250,7 @@ TODO (old alpha code - commented out)
 					}
 				else {                                     /* class           */
 
+					/*
 					s2 = super->vftbl->diffval;
 					M_BEQZ(s1, 6 + (s2 != 0));
 					M_NOP;
@@ -3273,6 +3264,27 @@ TODO (old alpha code - commented out)
 						M_CMPULT_IMM(REG_ITMP1, s2 + 1, REG_ITMP2);
 						M_BEQZ(REG_ITMP2, 0);
 						}
+					*/
+
+					M_BEQZ(s1, 10 + (d == REG_ITMP3));
+					M_NOP;
+					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+                    a = dseg_addaddress ((void*) super->vftbl);
+                    M_ALD(REG_ITMP2, REG_PV, a);
+                    M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
+					if (d != REG_ITMP3) {
+						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
+						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+						M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
+					} else {
+						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, baseval));
+						M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
+						M_ALD(REG_ITMP2, REG_PV, a);
+						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+					}
+                    M_CMPULT(REG_ITMP2, REG_ITMP1, REG_ITMP2);
+					M_BNEZ(REG_ITMP2, 0);
+
 					mcode_addxcastrefs(mcodeptr);
 					M_NOP;
 					}
