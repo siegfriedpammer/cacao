@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: list.c 1141 2004-06-05 23:19:24Z twisti $
+   $Id: list.c 1196 2004-06-20 19:45:55Z twisti $
 
 */
 
@@ -103,6 +103,9 @@ void list_remove(list *l, void *element)
 	} else {
 		l->first = n->next;
 	}
+
+	n->next = NULL;
+	n->prev = NULL;
 }
 
  
