@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1332 2004-07-21 15:48:08Z twisti $
+   $Id: exceptions.c 1370 2004-08-01 21:54:20Z stefan $
 
 */
 
@@ -94,6 +94,9 @@ char *string_java_lang_IllegalArgumentException =
 
 char *string_java_lang_IllegalMonitorStateException =
     "java/lang/IllegalMonitorStateException";
+
+char *string_java_lang_InterruptedException =
+    "java/lang/InterruptedException";
 
 char *string_java_lang_NegativeArraySizeException =
     "java/lang/NegativeArraySizeException";

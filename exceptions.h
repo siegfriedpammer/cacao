@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 1332 2004-07-21 15:48:08Z twisti $
+   $Id: exceptions.h 1370 2004-08-01 21:54:20Z stefan $
 
 */
 
@@ -65,6 +65,7 @@ extern char *string_java_lang_CloneNotSupportedException;
 extern char *string_java_lang_Exception;
 extern char *string_java_lang_IllegalArgumentException;
 extern char *string_java_lang_IllegalMonitorStateException;
+extern char *string_java_lang_InterruptedException;
 extern char *string_java_lang_NegativeArraySizeException;
 extern char *string_java_lang_NoSuchFieldException;
 extern char *string_java_lang_NoSuchMethodException;
