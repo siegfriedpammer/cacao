@@ -31,7 +31,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: types.h 1560 2004-11-23 15:49:55Z twisti $
+   $Id: types.h 1583 2004-11-24 14:11:36Z twisti $
 
 */
 
@@ -41,6 +41,8 @@
 
 #include "jit/i386/arch.h"
 
+
+/* Define the sizes of the integer types used internally by cacao. */
 
 typedef signed char             s1;
 typedef unsigned char           u1;
@@ -59,6 +61,10 @@ typedef struct {u4 low, high;}  u8;
 #define s8 u8
 #endif
 
+
+/* Define the size of a function pointer used in function pointer casts. */
+
+typedef u4                      ptrint;
 
 #endif /* _TYPES_H */
 
