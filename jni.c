@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 724 2003-12-09 18:56:11Z edwin $
+   $Id: jni.c 746 2003-12-13 22:09:31Z twisti $
 
 */
 
@@ -902,8 +902,6 @@ jobject PopLocalFrame(JNIEnv* env, jobject result)
     
 jobject NewGlobalRef(JNIEnv* env, jobject lobj)
 {
-	heap_addreference((void**) &lobj);
-
 	return lobj;
 }
 
