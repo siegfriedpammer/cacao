@@ -22,7 +22,8 @@ diff -u javac1/input/lib/spec/benchmarks/_202_jess/Main.java javac/input/lib/spe
 diff -Nu javac2/postoutput.sh javac/postoutput.sh
 --- javac2/postoutput.sh	Thu Jan  1 01:00:00 1970
 +++ javac/postoutput.sh	Mon Dec  2 09:53:53 2002
-@@ -0,0 +1,6 @@
+@@ -0,0 +1,7 @@
++unset LANG LC_ALL LC_COLLATE
 +rm -f *.class
 +../../cacao -ieee sun.tools.javac.Main -classpath classes.zip JavaLex.java
 +rm -fr sun
