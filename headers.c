@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1082 2004-05-26 15:04:54Z jowenn $
+   $Id: headers.c 1097 2004-05-27 15:58:34Z twisti $
 
 */
 
@@ -67,6 +67,9 @@ bool opt_vta = false;           /* true if VTA parse should be used    VTA-CO */
 bool opt_verify = true;        /* true if classfiles should be verified      */
 bool opt_liberalutf = false;   /* Don't check overlong UTF-8 sequences       */
 
+bool opt_stat = false;
+bool opt_eager = false;
+
 bool showmethods = false;
 bool showconstantpool = false;
 bool showutf = false;
@@ -91,29 +94,60 @@ utf *javastring_toutf(java_lang_String *string, bool isclassname)
 
 /* some exception stuff */
 
+char *string_java_lang_IllegalMonitorStateException =
+    "java/lang/IllegalMonitorStateException";
+
+char *string_java_lang_NegativeArraySizeException =
+    "java/lang/NegativeArraySizeException";
+
+
+char *string_java_lang_AbstractMethodError =
+    "java/lang/AbstractMethodError";
+
 char *string_java_lang_ClassCircularityError =
     "java/lang/ClassCircularityError";
 
 char *string_java_lang_ClassFormatError =
     "java/lang/ClassFormatError";
 
-char *string_java_lang_IllegalMonitorStateException =
-    "java/lang/IllegalMonitorStateException";
+char *string_java_lang_ExceptionInInitializerError =
+    "java/lang/ExceptionInInitializerError";
+
+char *string_java_lang_IncompatibleClassChangeError =
+    "java/lang/IncompatibleClassChangeError";
+
+char *string_java_lang_InternalError =
+    "java/lang/InternalError";
 
 char *string_java_lang_LinkageError =
     "java/lang/LinkageError";
 
-char *string_java_lang_NegativeArraySizeException =
-    "java/lang/NegativeArraySizeException";
-
 char *string_java_lang_NoClassDefFoundError =
     "java/lang/NoClassDefFoundError";
+
+char *string_java_lang_NoSuchFieldError =
+    "java/lang/NoSuchFieldError";
+
+char *string_java_lang_NoSuchMethodError =
+	"java/lang/NoSuchMethodError";
 
 char *string_java_lang_OutOfMemoryError =
     "java/lang/OutOfMemoryError";
 
 
 void throw_exception_exit() {}
+
+void throw_cacao_exception_exit(char *exception, char *message)
+{
+	fprintf(stderr,
+			"Exception in thread \"main\" %s: %s\n", exception, message);
+	fflush(stderr);
+
+	/* good bye! */
+	exit(1);
+}
+
+
 void new_exception(char *classname) {}
 void new_exception_message(char *classname, char *message) {}
 void new_exception_throwable(char *classname, java_objectheader *t) {}
