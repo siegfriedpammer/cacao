@@ -27,8 +27,9 @@
    Authors: Roman Obermaiser
 
    Changes: Joseph Wenninger
+            Christian Thalinger
 
-   $Id: VMRuntime.c 930 2004-03-02 21:18:23Z jowenn $
+   $Id: VMRuntime.c 982 2004-03-28 22:37:16Z twisti $
 
 */
 
@@ -122,9 +123,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal(JNIEnv *env, java_lan
  */
 JNIEXPORT s8 JNICALL Java_java_lang_Runtime_freeMemory(JNIEnv *env, java_lang_Runtime *this)
 {
-	log_text ("java_lang_Runtime_freeMemory called");
-
-	return builtin_i2l(0);
+	return gc_get_free_bytes();
 }
 
 
@@ -146,7 +145,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_gc(JNIEnv *env, java_lang_Runtime 
  */
 JNIEXPORT void JNICALL Java_java_lang_Runtime_runFinalization(JNIEnv *env, java_lang_Runtime *this)
 {
-	/* empty */
+	gc_finalize_all();
 }
 
 
@@ -168,9 +167,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_runFinalizersOnExitInternal(JNIEnv
  */
 JNIEXPORT s8 JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, java_lang_Runtime *this)
 {
-	log_text ("java_lang_Runtime_totalMemory called");
-
-	return builtin_i2l(0);
+	return gc_get_heap_size();
 }
 
 
@@ -181,7 +178,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, java_lang_R
  */
 JNIEXPORT void JNICALL Java_java_lang_Runtime_traceInstructions(JNIEnv *env, java_lang_Runtime *this, s4 par1)
 {
-	log_text("Java_java_lang_Runtime_traceInstructions called");
+	/* not supported */
 }
 
 
@@ -192,67 +189,9 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_traceInstructions(JNIEnv *env, jav
  */
 JNIEXPORT void JNICALL Java_java_lang_Runtime_traceMethodCalls(JNIEnv *env, java_lang_Runtime *this, s4 par1)
 {
-	log_text("Java_java_lang_Runtime_traceMethodCalls called");
+	/* not supported */
 }
 
-#define CPULINELEN 100
-
-#if defined(__ALPHA__)
-s4 getCPUCount() {
-	FILE *cpuinfo;
-	char line[CPULINELEN];
-	cpuinfo=fopen("/proc/cpuinfo","r");
-	if (!cpuinfo) {
-		if (verbose) log_text("/proc/cpuinfo not accessible, assuming 1 available processor");
-		return 1; /* we have at least one cpu ;) */
-	}
-	while (fgets(line,CPULINELEN,cpuinfo)!=EOF) {
-		if (strncmp("cpus detected",line,13)==0) {
-			s4 cpucnt=0;
-			char *p;
-			char *ep;
-			fclose(cpuinfo);
-			for (p=&line[strlen(line)-2];(*p>='0') && (*p<='9');p--);
-			cpucnt=strtol(p,&ep,10);
-			if (p==ep) return 1;
-			
-			if (verbose) log_text("returning value retrieved by parsing cpus detected line");
-			return cpucnt;
-		}
-	}
-	fclose (cpuinfo);
-	if (verbose) log_text("/proc/cpuinfo did not contain a cpus detected line, assuming 1 available processor");
-	return 1; /* we have at least one cpu ;) */
-}
-#endif
-
-#if (defined(__I386__) || defined(__X86_64__))
-s4 getCPUCount() {
-	FILE *cpuinfo;
-	char line[CPULINELEN];
-	int cnt=0;
-	cpuinfo=fopen("/proc/cpuinfo","r");
-	if (!cpuinfo) {
-		if (verbose) log_text("/proc/cpuinfo not accessible, assuming 1 available processor");
-		return 1; /* we have at least one cpu ;) */
-	}
-
-	while (fgets(line,CPULINELEN,cpuinfo)!=EOF) {
-		if (strncmp("processor",line,9)==0) {
-			cnt++;
-		}
-	}
-
-	fclose(cpuinfo);
-
-	if (cnt==0) {
-		if (verbose) log_text("/proc/cpuinfo did not contain processor, assuming 1 available processor");
-		return 1; /* we have at least one cpu ;) */
-	}
-
-	return cnt;
-}
-#endif
 
 /*
  * Class:     java_lang_Runtime
@@ -261,23 +200,14 @@ s4 getCPUCount() {
  */
 JNIEXPORT s4 JNICALL Java_java_lang_Runtime_availableProcessors(JNIEnv *env, java_lang_Runtime *this)
 {
-/*	log_text("Java_java_lang_Runtime_availableProcessors called, returning hardcoded 1"); */
-/* the classpath documentations says, that the number of available cpu's for the vm could vary. No idea how to really determine 
-that. Let's try to find out the total number of cpus in the system for now (jowenn) */
+#if defined(_SC_NPROC_ONLN)
+	return (s4) sysconf(_SC_NPROC_ONLN);
 
-/* If this gets more complex, it should be considered moving this into the jit/ subdirectory (jowenn)*/
-#if  (!defined(__LINUX__))
-        return 1;
+#elsif defined(_SC_NPROCESSORS_ONLN)
+	return (s4) sysconf(_SC_NPROCESSORS_ONLN);
+
 #else
-#if defined(__ALPHA__)
-        return getCPUCount();
-#else
-#if (defined(__I386__) || defined(__X86_64__))
-        return getCPUCount();
-#else
-        return 1;
-#endif
-#endif
+	return 1;
 #endif
 }
 
