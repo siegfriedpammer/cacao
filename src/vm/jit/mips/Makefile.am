@@ -1,4 +1,4 @@
-## vm/jit/mips/Makefile.am
+## src/vm/jit/mips/Makefile.am
 ##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1676 2004-12-03 16:52:15Z twisti $
+## $Id: Makefile.am 1712 2004-12-06 16:18:05Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -39,9 +39,10 @@ noinst_HEADERS = \
 	machine-instr.h \
 	types.h
 
-noinst_LIBRARIES = libarch.a
+noinst_LTLIBRARIES = libarch.la
 
-libarch_a_SOURCES = \
+libarch_la_SOURCES = \
+	asmoffsets.h \
 	asmpart.S \
 	codegen.c \
 	codegen.h \
@@ -49,8 +50,9 @@ libarch_a_SOURCES = \
 	disass.h
 
 asmpart.o: asmpart.S $(top_srcdir)/config.h offsets.h
-	$(COMPILE) -E asmpart.S > asmpart.s
-	$(AS) -64 -KPIC -O -o asmpart.o asmpart.s
+
+.S.lo:
+	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
 
 offsets.h: $(top_srcdir)/src/vm/jit/tools/genoffsets $(top_srcdir)/config.h $(top_srcdir)/src/vm/global.h $(top_srcdir)/src/threads/native/threads.h
 	$(top_srcdir)/src/vm/jit/tools/genoffsets > offsets.h
