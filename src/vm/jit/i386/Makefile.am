@@ -1,23 +1,22 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 557 2003-11-02 22:51:59Z twisti $
+# $Id: Makefile.am 590 2003-11-09 19:44:36Z twisti $
 
 
 INCLUDES = -I$(top_srcdir)/jit
 
 EXTRA_DIST = \
 	asmpart.S \
-	disass.c \
-	disass.h \
-	native-math.h \
+	bfd.h \
 	codegen.c \
 	codegen.h \
+	dis-asm.h \
+	disass.c \
+	disass.h \
 	methodtable.c \
 	methodtable.h \
-	types.h \
-	threads.h \
-	dis-asm.h \
-	bfd.h
+	native-math.h \
+	types.h
 
 noinst_LIBRARIES = libarch.a
 
