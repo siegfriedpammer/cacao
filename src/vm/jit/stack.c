@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2240 2005-04-06 13:04:28Z twisti $
+   $Id: stack.c 2245 2005-04-06 16:04:16Z twisti $
 
 */
 
@@ -2606,11 +2606,11 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
 		printf(" ");
-		utf_fprint(stdout, ((fieldinfo *) iptr->val.a)->class->name);
+		utf_display_classname(((fieldinfo *) iptr->val.a)->class->name);
 		printf(".");
-		utf_fprint(stdout, ((fieldinfo *) iptr->val.a)->name);
+		utf_display(((fieldinfo *) iptr->val.a)->name);
 		printf(" (type ");
-		utf_fprint(stdout, ((fieldinfo *) iptr->val.a)->descriptor);
+		utf_display(((fieldinfo *) iptr->val.a)->descriptor);
 		printf(")");
 		break;
 
@@ -2640,11 +2640,11 @@ void show_icmd(instruction *iptr, bool deadcode)
 		if (iptr->opc == ICMD_PUTFIELDCONST)
 			printf(" %d,", ((fieldinfo *) iptr[1].val.a)->offset);
 		printf(" ");
-		utf_fprint(stdout, ((fieldinfo *) iptr[1].val.a)->class->name);
+		utf_display_classname(((fieldinfo *) iptr[1].val.a)->class->name);
 		printf(".");
-		utf_fprint(stdout, ((fieldinfo *) iptr[1].val.a)->name);
+		utf_display(((fieldinfo *) iptr[1].val.a)->name);
 		printf(" (type ");
-		utf_fprint(stdout, ((fieldinfo *) iptr[1].val.a)->descriptor);
+		utf_display(((fieldinfo *) iptr[1].val.a)->descriptor);
 		printf(")");
 		break;
 
@@ -2689,8 +2689,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_NEW:
 		printf(" ");
-		utf_fprint(stdout,
-				   ((classinfo *) iptr->val.a)->name);
+		utf_display_classname(((classinfo *) iptr->val.a)->name);
 		break;
 
 	case ICMD_NEWARRAY:
@@ -2725,8 +2724,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_ANEWARRAY:
 		if (iptr->op1) {
 			printf(" ");
-			utf_fprint(stdout,
-					   ((classinfo *) iptr->val.a)->name);
+			utf_display_classname(((classinfo *) iptr->val.a)->name);
 		}
 		break;
 
@@ -2736,7 +2734,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 			printf(" %d ",iptr->op1);
 			vft = (vftbl_t *)iptr->val.a;
 			if (vft)
-				utf_fprint(stdout,vft->class->name);
+				utf_display_classname(vft->class->name);
 			else
 				printf("<null>");
 		}
@@ -2750,7 +2748,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 				printf(" (INTERFACE) ");
 			else
 				printf(" (CLASS,%3d) ", c->vftbl->diffval);
-			utf_fprint(stdout, c->name);
+			utf_display_classname(c->name);
 		}
 		break;
 
@@ -2769,18 +2767,16 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_INVOKESPECIAL:
 #if defined(__X86_64__)
 		printf(" ");
-		utf_fprint(stdout,
-				   ((unresolved_method *) iptr->target)->methodref->classref->name);
+		utf_display_classname(((unresolved_method *) iptr->target)->methodref->classref->name);
 		printf(".");
-		utf_fprint(stdout,
-				   ((unresolved_method *) iptr->target)->methodref->name);
+		utf_display(((unresolved_method *) iptr->target)->methodref->name);
+		utf_display(((unresolved_method *) iptr->target)->methodref->descriptor);
 #else
 		printf(" ");
-		utf_fprint(stdout,
-				   ((methodinfo *) iptr->val.a)->class->name);
+		utf_display_classname(((methodinfo *) iptr->val.a)->class->name);
 		printf(".");
-		utf_fprint(stdout,
-				   ((methodinfo *) iptr->val.a)->name);
+		utf_display(((methodinfo *) iptr->val.a)->name);
+		utf_display(((methodinfo *) iptr->val.a)->descriptor);
 #endif
 		break;
 
@@ -2789,11 +2785,10 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_INVOKESTATIC:
 	case ICMD_INVOKEINTERFACE:
 		printf(" ");
-		utf_fprint(stdout,
-				   ((methodinfo *) iptr->val.a)->class->name);
+		utf_display_classname(((methodinfo *) iptr->val.a)->class->name);
 		printf(".");
-		utf_fprint(stdout,
-				   ((methodinfo *) iptr->val.a)->name);
+		utf_display(((methodinfo *) iptr->val.a)->name);
+		utf_display(((methodinfo *) iptr->val.a)->descriptor);
 		break;
 
 	case ICMD_IFEQ:
