@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1082 2004-05-26 15:04:54Z jowenn $
+   $Id: stack.c 1095 2004-05-27 15:54:42Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include "stack.h"
 #include "global.h"
 #include "main.h"
+#include "native.h"
 #include "jit.h"
 #include "builtin.h"
 #include "disass.h"
@@ -70,33 +71,61 @@ extern int dseglen;
 /*--------------------------------------------------*/
 
 #define TYPEPANIC  {show_icmd_method();panic("Stack type mismatch");}
-#define UNDERFLOW  {show_icmd_method();panic("Operand stack underflow");}
-#define OVERFLOW   {show_icmd_method();panic("Operand stack overflow");}
+
 
 /*--------------------------------------------------*/
 /* STACK UNDERFLOW/OVERFLOW CHECKS                  */
 /*--------------------------------------------------*/
 
 /* underflow checks */
-#define REQUIRE(num)  do { if (stackdepth<(num)) {UNDERFLOW;} } while(0)
+
+#define REQUIRE(num) \
+    do { \
+        if (stackdepth < (num)) { \
+            sprintf(msg, "(class: "); \
+            utf_sprint(msg + strlen(msg), m->class->name); \
+            sprintf(msg + strlen(msg), ", method: "); \
+            utf_sprint(msg + strlen(msg), m->name); \
+            sprintf(msg + strlen(msg), ", signature: "); \
+            utf_sprint(msg + strlen(msg), m->descriptor); \
+            sprintf(msg + strlen(msg), ") Unable to pop operand off an empty stack"); \
+            *exceptionptr = \
+                new_exception_message(string_java_lang_VerifyError, msg); \
+            return NULL; \
+        } \
+    } while(0)
+
 #define REQUIRE_1     REQUIRE(1)
 #define REQUIRE_2     REQUIRE(2)
 #define REQUIRE_3     REQUIRE(3)
 #define REQUIRE_4     REQUIRE(4)
+
 
 /* overflow check */
 /* We allow ACONST instructions inserted as arguments to builtin
  * functions to exceed the maximum stack depth.  Maybe we should check
  * against maximum stack depth only at block boundaries?
  */
-#define CHECKOVERFLOW							\
-	do {										\
-		if (stackdepth > maxstack) {			\
-			if (iptr[0].opc != ICMD_ACONST		\
-                || iptr[0].op1 == 0)            \
-			{OVERFLOW;}							\
-		}										\
+
+#define CHECKOVERFLOW \
+	do { \
+		if (stackdepth > maxstack) { \
+			if (iptr[0].opc != ICMD_ACONST \
+                || iptr[0].op1 == 0) { \
+                sprintf(msg, "(class: "); \
+                utf_sprint_classname(msg + strlen(msg), m->class->name); \
+                sprintf(msg + strlen(msg), ", method: "); \
+                utf_sprint(msg + strlen(msg), m->name); \
+                sprintf(msg + strlen(msg), ", signature: "); \
+                utf_sprint(msg + strlen(msg), m->descriptor); \
+                sprintf(msg + strlen(msg), ") Stack size too large"); \
+                *exceptionptr = \
+                    new_exception_message(string_java_lang_VerifyError, msg); \
+                return NULL; \
+            } \
+		} \
 	} while(0)
+
 
 /*--------------------------------------------------*/
 /* ALLOCATING STACK SLOTS                           */
@@ -109,6 +138,7 @@ extern int dseglen;
 
 /* allocate the input stack for an exception handler */
 #define NEWXSTACK   {NEWSTACK(TYPE_ADR,STACKVAR,0);curstack=0;}
+
 
 /*--------------------------------------------------*/
 /* STACK MANIPULATION                               */
@@ -128,6 +158,7 @@ extern int dseglen;
                      curstack=curstack->prev;}
 #define COPY(s,d)   {(d)->flags=0;(d)->type=(s)->type;\
                      (d)->varkind=(s)->varkind;(d)->varnum=(s)->varnum;}
+
 
 /*--------------------------------------------------*/
 /* STACK OPERATIONS MODELING                        */
@@ -190,6 +221,7 @@ extern int dseglen;
                     new[4].prev=new+3;new[5].prev=new+4;\
                     curstack=new+5;new+=6;SETDST;stackdepth+=2;}
 
+
 /*--------------------------------------------------*/
 /* MACROS FOR HANDLING BASIC BLOCKS                 */
 /*--------------------------------------------------*/
@@ -229,30 +261,30 @@ extern int dseglen;
  * instruction of the block has been processed).
  */
 
-#define BBEND(s,i){\
-	i=stackdepth-1;\
-	copy=s;\
-	while(copy){\
-		if((copy->varkind==STACKVAR)&&(copy->varnum>i))\
-			copy->varkind=TEMPVAR;\
-		else {\
-			copy->varkind=STACKVAR;\
-			copy->varnum=i;\
-			}\
-		interfaces[i][copy->type].type = copy->type;\
-		interfaces[i][copy->type].flags |= copy->flags;\
-		i--;copy=copy->prev;\
-		}\
-	i=bptr->indepth-1;\
-	copy=bptr->instack;\
-	while(copy){\
-		interfaces[i][copy->type].type = copy->type;\
-		if(copy->varkind==STACKVAR){\
-			if (copy->flags & SAVEDVAR)\
-				interfaces[i][copy->type].flags |= SAVEDVAR;\
-			}\
-		i--;copy=copy->prev;\
-		}\
+#define BBEND(s,i){ \
+	i = stackdepth - 1; \
+	copy = s; \
+	while (copy) { \
+		if ((copy->varkind == STACKVAR) && (copy->varnum > i)) \
+			copy->varkind = TEMPVAR; \
+		else { \
+			copy->varkind = STACKVAR; \
+			copy->varnum = i;\
+		} \
+		interfaces[i][copy->type].type = copy->type; \
+		interfaces[i][copy->type].flags |= copy->flags; \
+		i--; copy = copy->prev; \
+	} \
+	i = bptr->indepth - 1; \
+	copy = bptr->instack; \
+	while (copy) { \
+		interfaces[i][copy->type].type = copy->type; \
+		if (copy->varkind == STACKVAR) { \
+			if (copy->flags & SAVEDVAR) \
+				interfaces[i][copy->type].flags |= SAVEDVAR; \
+		} \
+		i--; copy = copy->prev; \
+	} \
 }
 
 
@@ -303,7 +335,7 @@ extern int dseglen;
  * types are not discerned.
  */
 
-void analyse_stack()
+methodinfo *analyse_stack(methodinfo *m)
 {
 	int b_count;
 	int b_index;
@@ -319,16 +351,7 @@ void analyse_stack()
 	s4 *s4ptr;
 	void* *tptr;
 	int *argren;
-
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Analysing: ");
-		utf_sprint_classname(logtext + strlen(logtext), method->class->name);
-		sprintf(logtext + strlen(logtext), ".");
-		utf_sprint(logtext + strlen(logtext), method->name);
-		utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
-		log_text(logtext);
-	}
+	char msg[MAXLOGTEXT];               /* maybe we get an exception          */
 
 	argren = DMNEW(int, maxlocals);
 	/*int *argren = (int *)alloca(maxlocals * sizeof(int));*/ /* table for argument renaming */
@@ -461,7 +484,7 @@ void analyse_stack()
 					opcode = iptr->opc;
 					iptr->target = NULL;
 
-					/* DEBUG */	/*  dolog("p:%04d op: %s",iptr-instr,icmd_names[opcode]); */
+/*  					dolog("p: %04d op: %s stack: %p", iptr - instr, icmd_names[opcode], curstack); */
 
 #ifdef USEBUILTINTABLE
 					{
@@ -506,7 +529,7 @@ void analyse_stack()
 
 					case ICMD_NOP:
 					case ICMD_CHECKASIZE:
-					case ICMD_CHECKOOM:
+					case ICMD_CHECKEXCEPTION:
 
 					case ICMD_IFEQ_ICONST:
 					case ICMD_IFNE_ICONST:
@@ -2117,15 +2140,9 @@ void analyse_stack()
 		count_method_bb_distribution[8]++;
 #endif
 
-	if (compileverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Analysing done: ");
-		utf_sprint_classname(logtext + strlen(logtext), method->class->name);
-		sprintf(logtext + strlen(logtext), ".");
-		utf_sprint(logtext + strlen(logtext), method->name);
-		utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
-		log_text(logtext);
-	}
+	/* just return methodinfo* to signal everything was ok */
+
+	return m;
 }
 
 
@@ -2278,10 +2295,10 @@ void show_icmd_method()
 	xtable *ex;
 
 	printf("\n");
-	utf_fprint(stdout, class->name);
+	utf_fprint_classname(stdout, class->name);
 	printf(".");
 	utf_fprint(stdout, method->name);
-	utf_fprint(stdout, method->descriptor);
+	utf_fprint_classname(stdout, method->descriptor);
 	printf ("\n\nMax locals: %d\n", (int) maxlocals);
 	printf ("Max stack:  %d\n", (int) maxstack);
 

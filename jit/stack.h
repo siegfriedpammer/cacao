@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: stack.h 1095 2004-05-27 15:54:42Z twisti $
 
 */
 
@@ -34,8 +34,13 @@
 #ifndef _STACK_H
 #define _STACK_H
 
+
+#include "global.h"
+
+
 /* function prototypes */
-void analyse_stack();
+
+methodinfo *analyse_stack(methodinfo *m);
 void show_icmd_method();
 
 #endif /* _STACK_H */
