@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 899 2004-01-22 13:24:36Z twisti $
+   $Id: codegen.c 901 2004-01-22 19:06:00Z twisti $
 
 */
 
@@ -2306,8 +2306,11 @@ void codegen()
 
 				/* recompute pv */
 				s1 = (int) ((u1*) mcodeptr - mcodebase);
-				if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
-				else {
+				if (s1 <= 32768) {
+					M_LDA(REG_PV, REG_RA, -s1);
+					M_NOP;
+
+				} else {
 					s4 ml = -s1, mh = 0;
 					while (ml < -32768) { ml += 65536; mh--; }
 					M_LDA(REG_PV, REG_RA, ml);
@@ -2356,8 +2359,11 @@ void codegen()
 
 				/* recompute pv */
 				s1 = (int) ((u1*) mcodeptr - mcodebase);
-				if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
-				else {
+				if (s1 <= 32768) {
+					M_LDA(REG_PV, REG_RA, -s1);
+					M_NOP;
+
+				} else {
 					s4 ml = -s1, mh = 0;
 					while (ml < -32768) { ml += 65536; mh--; }
 					M_LDA(REG_PV, REG_RA, ml);
@@ -3865,7 +3871,7 @@ void removecompilerstub(u1 *stub)
 *******************************************************************************/
 
 #define NATIVESTUBSIZE      44
-#define NATIVEVERBOSESIZE   38 + 13
+#define NATIVEVERBOSESIZE   39 + 13
 #define NATIVESTUBOFFSET    8
 
 u1 *createnativestub(functionptr f, methodinfo *m)
@@ -3897,7 +3903,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_LDA(REG_SP, REG_SP, -8);          /* build up stackframe                */
 	M_AST(REG_RA, REG_SP, 0);           /* store return address               */
 
-	/* max. 38 instructions */
+	/* max. 39 instructions */
 	if (runverbose) {
 		int p;
 		int t;
@@ -3905,7 +3911,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		M_AST(REG_RA, REG_SP, 1 * 8);
 
 		/* save integer argument registers */
-		for (p = 0; p < mparamcount && p < INT_ARG_CNT; p++) {
+		for (p = 0; p < m->paramcount && p < INT_ARG_CNT; p++) {
 			M_LST(argintregs[p], REG_SP,  (2 + p) * 8);
 		}
 
@@ -3935,12 +3941,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		disp = -(int) (mcodeptr - (s4*) cs) * 4;
 		M_LDA(REG_PV, REG_RA, disp);
 
-		for (p = 0; p < mparamcount && p < INT_ARG_CNT; p++) {
-			M_LLD(argintregs[p], REG_SP,  (2 + p) * 8);
+		for (p = 0; p < m->paramcount && p < INT_ARG_CNT; p++) {
+			M_LLD(argintregs[p], REG_SP, (2 + p) * 8);
 		}
 
-		for (p = 0; p < mparamcount && p < FLT_ARG_CNT; p++) {
-			t = mparamtypes[p];
+		for (p = 0; p < m->paramcount && p < FLT_ARG_CNT; p++) {
+			t = m->paramtypes[p];
 
 			if (IS_FLT_DBL_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
@@ -3955,7 +3961,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			}
 		}
 
-		M_LDA (REG_SP, REG_SP, 14 * 8);
+		M_ALD(REG_RA, REG_SP, 1 * 8);
+		M_LDA(REG_SP, REG_SP, 14 * 8);
 	}
 
 	/* save argument registers on stack -- if we have to */

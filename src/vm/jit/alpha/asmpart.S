@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 899 2004-01-22 13:24:36Z twisti $
+   $Id: asmpart.S 901 2004-01-22 19:06:00Z twisti $
 
 */
 
@@ -196,13 +196,13 @@ synchronize_caches:
 
 	.ent    asm_calljavafunction
 
-call_name2:
+call_name:
 	.ascii  "calljavafunction\0\0"
 
 	.align  3
 	.quad   0                         /* catch type all                       */
-	.quad   calljava_xhandler2        /* handler pc                           */
-	.quad   calljava_xhandler2        /* end pc                               */
+	.quad   calljava_xhandler         /* handler pc                           */
+	.quad   calljava_xhandler         /* end pc                               */
 	.quad   asm_calljavafunction      /* start pc                             */
 	.long   1                         /* extable size                         */
 	.long   0                         /* fltsave                              */
@@ -213,7 +213,6 @@ call_name2:
 	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
-
 	ldgp    gp,0(pv)
 	lda     sp,-32(sp)                /* allocate stack space                 */
 	stq     gp,24(sp)                 /* save global pointer                  */
@@ -233,20 +232,18 @@ asm_calljavafunction:
 
 	ldq     pv,8($28)                 /* method call as in Java               */
 	jmp     ra,(pv)                   /* call JIT compiler                    */
-calljava_jit2:
+calljava_jit:
 	lda     pv,-64(ra)                /* asm_calljavafunction-calljava_jit !!!!!*/
 
-calljava_return2:
-
+calljava_return:
 	ldq     ra,0(sp)                  /* restore return address               */
 	ldq     gp,24(sp)                 /* restore global pointer               */
 	lda     sp,32(sp)                 /* free stack space                     */
 
-calljava_ret2:
+calljava_ret:
 	jmp     zero,(ra)
 
-calljava_xhandler2:
-
+calljava_xhandler:
 	ldq     gp,24(sp)                 /* restore global pointer               */
 	mov     itmp1,a0
 	jsr     ra,builtin_throw_exception
@@ -260,13 +257,13 @@ calljava_xhandler2:
 
 	.ent    asm_calljavafunction2
 
-call_name3:
+call_name2:
 	.ascii  "calljavafunction2\0\0"
 
 	.align  3
 	.quad   0                         /* catch type all                       */
-	.quad   calljava_xhandler3        /* handler pc                           */
-	.quad   calljava_xhandler3        /* end pc                               */
+	.quad   calljava_xhandler2        /* handler pc                           */
+	.quad   calljava_xhandler2        /* end pc                               */
 	.quad   asm_calljavafunction2     /* start pc                             */
 	.long   1                         /* extable size                         */
 	.long   0                         /* fltsave                              */
@@ -279,7 +276,6 @@ call_name3:
 asm_calljavafunction2:
 asm_calljavafunction2double:
 asm_calljavafunction2long:
-
 	ldgp    gp,0(pv)
 	lda     sp,-40(sp)                /* allocate stack space                 */
 	stq     ra,0(sp)                  /* save return address                  */
@@ -338,22 +334,20 @@ calljava_nocopy:
 
 	ldq     pv,8($28)                 /* method call as in Java               */
 	jmp     ra,(pv)                   /* call JIT compiler                    */
-calljava_jit3:
+calljava_jit2:
 	lda     pv,-200(ra)               /* asm_calljavafunction-calljava_jit !!!*/
 
 	s8addq  s6,sp,sp
-calljava_return3:
-
+calljava_return2:
 	ldq     ra,0(sp)                  /* restore return address               */
 	ldq     gp,8(sp)                  /* restore global pointer               */
 	ldq     s6,24(sp)
 	lda     sp,40(sp)                 /* free stack space                     */
 
-calljava_ret3:
+calljava_ret2:
 	jmp     zero,(ra)
 
-calljava_xhandler3:
-
+calljava_xhandler2:
 	s8addq  s6,sp,sp
 	ldq     gp,8(sp)                  /* restore global pointer               */
 	mov     itmp1,a0
@@ -798,8 +792,10 @@ asm_check_clinit:
 	stq		a3,4*8(sp)
 	stq		a4,5*8(sp)
 	stq		a5,6*8(sp)
+		
 	mov		itmp1,a0
 	jsr		ra,class_init
+		
 	ldgp	gp,0(ra)
 	ldq		ra,0*8(sp)
 	ldq		a0,1*8(sp)            /* restore argument registers               */
@@ -811,6 +807,12 @@ asm_check_clinit:
 	addq	sp,7*8,sp
 	
 L_is_initialized:
+	mov     ra,itmp1              /* now patch the calling code               */
+	subq    itmp1,(3*4),itmp1     /* go back 3 instructions                   */
+	ldah    itmp2,-15392(zero)    /* br -- 0xc3e0 == -15392                   */
+	lda     itmp2,4(itmp2)        /* jump over 4 instructions                 */
+	stl     itmp2,0(itmp1)        /* store the new branch: br +4              */
+
 	jmp		zero,(ra)
 		
 	.end	asm_check_clinit
