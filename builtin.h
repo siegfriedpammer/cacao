@@ -26,7 +26,9 @@
 
    Authors: Reinhard Grafl
 
-   $Id: builtin.h 727 2003-12-11 10:52:40Z edwin $
+   Changes: Edwin Steiner
+
+   $Id: builtin.h 728 2003-12-11 11:11:05Z edwin $
 
 */
 
@@ -47,6 +49,15 @@
 #define DBL_POSINF  0x7ff0000000000000LL
 #define DBL_NEGINF  0xfff0000000000000LL
 
+/**********************************************************************/
+/* BUILTIN FUNCTIONS TABLE                                            */
+/**********************************************************************/
+
+/* IMPORTANT:
+ * For each builtin function which is used in a BUILTIN* opcode there
+ * must be an entry in the builtin_desc table in jit/jit.c.
+ */
+ 
 /* XXX delete */
 #if 0
 typedef struct builtin_descriptor {
@@ -57,21 +68,30 @@ typedef struct builtin_descriptor {
 
 typedef struct builtin_descriptor builtin_descriptor;
 
+/* There is a builtin_descriptor in builtin_desc for every builtin
+ * function used in BUILTIN* opcodes.
+ */
 struct builtin_descriptor {
-	int         opcode;
-	functionptr builtin;
-	int         icmd;
-	u1          type_s1;
-	u1          type_s2;
-	u1          type_s3;
-	u1          type_d;
-	bool        supported;
-	bool        isfloat;
-	char        *name;
+	int         opcode;   /* opcode which is replaced by this builtin */
+	                      /* (255 means no automatic replacement,     */
+	                      /*    0 means end of list.)                 */
+	functionptr builtin;  /* the builtin function (specify BUILTIN_...*/
+	                      /* macro)                                   */
+	int         icmd;     /* the BUILTIN* opcode to use (# of args)   */
+	u1          type_s1;  /* type of 1st argument                     */
+	u1          type_s2;  /* type of 2nd argument, or TYPE_VOID       */
+	u1          type_s3;  /* type of 3rd argument, or TYPE_VOID       */
+	u1          type_d;   /* type of result (may be TYPE_VOID)        */
+	bool        supported;/* is <opcode> supported without builtin?   */
+	bool        isfloat;  /* is this a floating point operation?      */
+	char        *name;    /* display name of the builtin function     */
 };
 
 extern builtin_descriptor builtin_desc[];
-extern int builtintablelen;
+
+/**********************************************************************/
+/* GLOBAL VARIABLES                                                   */
+/**********************************************************************/
 
 extern java_objectheader* exceptionptr;
 
@@ -91,7 +111,7 @@ extern java_objectheader* exceptionptr;
  *
  * IMPORTANT:
  * For each builtin function which is used in a BUILTIN* opcode there
- * must be an entry in the builtin_desc table in builtin.c!
+ * must be an entry in the builtin_desc table in jit/jit.c.
  *
  * Below each prototype is either the BUILTIN_ macro definition or a
  * comment specifiying that this function is not used in BUILTIN*

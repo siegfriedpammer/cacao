@@ -27,7 +27,9 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: jit.c 727 2003-12-11 10:52:40Z edwin $
+   Changes: Edwin Steiner
+
+   $Id: jit.c 728 2003-12-11 11:11:05Z edwin $
 
 */
 
@@ -1306,7 +1308,8 @@ stdopdescriptor builtintable[] = {
 };
 
 #endif
-int builtintablelen; /* XXX make static again? */
+
+static int builtintablelen;
 
 #endif /* USEBUILTINTABLE */
 
@@ -1320,8 +1323,8 @@ int builtintablelen; /* XXX make static again? */
     The first part of the table (up to the 255-marker) lists the
     opcodes which are automatically replaced in stack.c.
 
-    The second part lists the builtin functions which are used for
-    BUILTIN* opcodes in parse.c and stack.c.
+    The second part lists the builtin functions which are "manually"
+    used for BUILTIN* opcodes in parse.c and stack.c.
 
 *****************************************************************************/
 
