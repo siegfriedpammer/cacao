@@ -15,9 +15,8 @@ ASMPART="asmpart.S"
 case "$host_cpu" in
 alpha* )
 	SYSDEP_DIR="alpha"
-	CFLAGS="-mieee -O2 -g3 -D__ALPHA__"
-	COMPILER_OBJECTS="compiler.o"
-	AC_DEFINE(OLD_COMPILER)
+	CFLAGS="-mieee -O0 -g3 -D__ALPHA__"
+	COMPILER_OBJECTS=""
 	AC_DEFINE(TRACE_ARGS_NUM, 6)
 	AC_DEFINE(USE_CODEMMAP)
 	;;
@@ -55,8 +54,8 @@ powerpc* | ppc* )
 	;;
 
 sparc* | * )
-	AC_MSG_ERROR($target systems are not supported at this time) ;;
-
+	AC_MSG_ERROR($target systems are not supported at this time)
+        ;;
 esac
 
 AC_SUBST(COMPILER_OBJECTS)
@@ -154,22 +153,22 @@ fi
 dnl garbage collector version
 AC_MSG_CHECKING(which garbage collector to use)
 case "$with_gc" in
-boehm )
+gc1 )
+	AC_MSG_RESULT(old garbage collector)
+	GC_OBJ="mm/libmm_old.a"
+	;;
+gc2 )
+	AC_MSG_RESULT(new garbage collector)
+	GC_OBJ="mm/libmm_new.a"
+	;;
+boehm | "" )
 	AC_MSG_RESULT(Boehm garbage collector)
 	GC_OBJ="mm/libboehm.a libgc.a"
 	if test ! -e libgc.a; then
 		AC_MSG_ERROR([libgc.a not found, see README.boehm])
 	fi
 	AC_DEFINE(USE_BOEHM)
-	BOEHM_LIB=libboehm.a
-	;;
-gc1 )
-	AC_MSG_RESULT(old garbage collector)
-	GC_OBJ="mm/libmm_old.a"
-	;;
-gc2 | "" )
-	AC_MSG_RESULT(new garbage collector)
-	GC_OBJ="mm/libmm_new.a"
+	BOEHM_LIB="libboehm.a"
 	;;
 * )
 	AC_MSG_ERROR(Invalid GC)
@@ -187,10 +186,9 @@ AC_OUTPUT(Makefile \
           mips/Makefile \
           i386/Makefile \
           x86_64/Makefile \
-		  powerpc/Makefile \
+          powerpc/Makefile \
           nat/Makefile \
           doc/Makefile \
-          comp/Makefile \
 	  narray/Makefile \
 	  tst/Makefile \
 	  tst/kaffe/Makefile \

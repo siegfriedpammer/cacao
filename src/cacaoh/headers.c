@@ -15,7 +15,7 @@
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 	         Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: headers.c 364 2003-06-13 13:55:35Z twisti $
+	Last Change: $Id: headers.c 483 2003-10-14 17:08:38Z twisti $
 
 *******************************************************************************/
 
@@ -86,7 +86,6 @@ java_objectheader *native_new_and_init (void *p) { return NULL; }
 /************************ global variables **********************/
 
 java_objectheader *exceptionptr;                       /* schani */
-int  newcompiler = true;
 bool verbose =  false;
 
 static chain *nativemethod_chain;		               /* chain with native methods     */

@@ -107,11 +107,6 @@
 	.globl asm_builtin_trace
 	.globl asm_builtin_exittrace
 
-/*************************** imported variables *******************************/
-
-	.globl newcompiler
-
-
 /*************************** imported functions *******************************/
 
 	.globl jit_compile
@@ -232,10 +227,8 @@ calljava_return:
 	ldq     ra,0(sp)                  /* restore return address               */
 	ldq     gp,24(sp)                 /* restore global pointer               */
 	lda     sp,32(sp)                 /* free stack space                     */
-	ldl     v0,newcompiler            /* load newcompiler flag                */
-	subq    v0,1,v0                   /* negate for clearing v0               */
-	beq     v0,calljava_ret           /* if newcompiler skip ex copying       */
-	mov     $1,v0                     /* pass exception to caller (C)         */
+    clr     v0
+
 calljava_ret:
 	jmp     zero,(ra)
 
@@ -315,10 +308,6 @@ calljava_return2:
 	ldq     gp,24(sp)                 /* restore global pointer               */
 	lda     sp,32(sp)                 /* free stack space                     */
 
-/*	ldl     v0,newcompiler */         /* load newcompiler flag                */
-/*	subq    v0,1,v0        */         /* negate for clearing v0               */
-/*	beq     v0,calljava_ret*/         /* if newcompiler skip ex copying       */
-/*	mov     $1,v0 */                  /* pass exception to caller (C)         */
 calljava_ret2:
 	jmp     zero,(ra)
 

@@ -1,11 +1,11 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 470 2003-10-04 18:35:15Z stefan $
+# $Id: Makefile.am 483 2003-10-14 17:08:38Z twisti $
 
 @SET_MAKE@
 
 MAINTAINERCLEANFILES = Makefile.in configure
-ALLSUBDIRS = toolbox mm jit comp nat threads tst doc narray jvmtst
+ALLSUBDIRS = toolbox mm jit nat threads tst doc narray jvmtst
 SUBDIRS = $(ALLSUBDIRS) @SYSDEP_DIR@
 DIST_SUBDIRS = $(ALLSUBDIRS) alpha mips i386 powerpc x86_64
 
@@ -38,10 +38,6 @@ cacao_SOURCES = \
 	jni.h \
 	tables.c \
 	tables.h
-
-EXTRA_cacao_SOURCES = \
-	compiler.c \
-	compiler.h 
 
 cacao_LDADD = \
 	@SYSDEP_DIR@/asmpart.o \

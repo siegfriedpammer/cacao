@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: cacao.c 475 2003-10-04 18:59:36Z stefan $
+	Last Change: $Id: cacao.c 483 2003-10-14 17:08:38Z twisti $
 
 *******************************************************************************/
 
@@ -25,9 +25,6 @@
 #include "tables.h"
 #include "loader.h"
 #include "jit.h"
-#ifdef OLD_COMPILER
-#include "compiler.h"
-#endif
 
 #include "asmpart.h"
 #include "builtin.h"
@@ -36,7 +33,6 @@
 #include "threads/thread.h"
 
 bool compileall = false;
-int  newcompiler = true;     		
 bool verbose =  false;
 #ifdef NEW_GC
 bool new_gc = false;
@@ -81,9 +77,6 @@ void **stackbottom = 0;
 #define OPT_SIGNATURE   18
 #define OPT_SHOW        19
 #define OPT_ALL         20
-#ifdef OLD_COMPILER
-#define OPT_OLD         21
-#endif
 #ifdef NEW_GC
 #define OPT_GC1         22
 #define OPT_GC2         23
@@ -119,9 +112,6 @@ struct {char *name; bool arg; int value;} opts[] = {
 	{"sig",         true,   OPT_SIGNATURE},
 	{"s",           true,   OPT_SHOW},
 	{"all",         false,  OPT_ALL},
-#ifdef OLD_COMPILER
-	{"old",         false,  OPT_OLD},
-#endif
 #ifdef NEW_GC
 	{"gc1",         false,  OPT_GC1},
 	{"gc2",         false,  OPT_GC2},
@@ -211,9 +201,6 @@ static void print_usage()
 	printf ("          -oloop ............... optimize array accesses in loops\n"); 
 	printf ("          -l ................... don't start the class after loading\n");
 	printf ("          -all ................. compile all methods, no execution\n");
-#ifdef OLD_COMPILER
-	printf ("          -old ................. use old JIT compiler\n");
-#endif
 #ifdef NEW_GC
 	printf ("          -gc1 ................. use the old garbage collector (default)\n");
 	printf ("          -gc2 ................. use the new garbage collector\n");
@@ -225,18 +212,15 @@ static void print_usage()
 	printf ("                 d(atasegment).. show data segment listing\n");
 	printf ("                 i(ntermediate). show intermediate representation\n");
 	printf ("                 m(ethods)...... show class fields and methods\n");
-#ifdef OLD_COMPILER
-	printf ("                 s(tack) ....... show stack for every javaVM-command\n");
-#endif
 	printf ("                 u(tf) ......... show the utf - hash\n");
 	printf ("          -i     n ............. activate inlining\n");
 	printf ("                 v ............. inline virtual methods\n");
 	printf ("                 e ............. inline methods with exceptions\n");
 	printf ("                 p ............. optimize argument renaming\n");
 	printf ("                 o ............. inline methods of foreign classes\n");
-        printf ("          -rt .................. use rapid type analysis\n");
-        printf ("          -xta ................. use x type analysis\n");
-        printf ("          -vta ................. use variable type analysis\n");
+	printf ("          -rt .................. use rapid type analysis\n");
+	printf ("          -xta ................. use x type analysis\n");
+	printf ("          -vta ................. use variable type analysis\n");
 }   
 
 
@@ -455,14 +439,7 @@ void class_compile_methods ()
 		for (i = 0; i < c -> methodscount; i++) {
 			m = &(c->methods[i]);
 			if (m->jcode) {
-#ifdef OLD_COMPILER
-				if (newcompiler)
-#endif
-					(void) jit_compile(m);
-#ifdef OLD_COMPILER
-				else
-					(void) compiler_compile(m);
-#endif
+				(void) jit_compile(m);
 				}
 			}
 		c = list_next (&linkedclasses, c);
@@ -495,9 +472,6 @@ void exit_handler(void)
 								   loader_close because finalization occurs
 								   here */
 
-#ifdef OLD_COMPILER
-	compiler_close ();
-#endif
 	loader_close ();
 	tables_close ( literalstring_free );
 
@@ -667,13 +641,6 @@ int main(int argc, char **argv)
 			makeinitializations = false;
 			break;
          		
-#ifdef OLD_COMPILER
-		case OPT_OLD:
-			newcompiler = false;     		
-			checknull = true;
-			break;
-#endif
-
 #ifdef NEW_GC
 		case OPT_GC2:
 			new_gc = true;
@@ -692,9 +659,6 @@ int main(int argc, char **argv)
 				case 'd':  showddatasegment=true; break;
 				case 'i':  showintermediate=true; compileverbose=true; break;
 				case 'm':  showmethods=true; break;
-#ifdef OLD_COMPILER
-				case 's':  showstack=true; compileverbose=true; break;
-#endif
 				case 'u':  showutf=true; break;
 				default:   print_usage();
 					exit(10);
@@ -762,9 +726,6 @@ int main(int argc, char **argv)
 		
 	tables_init();
 	heap_init(heapsize, heapstartsize, &dummy);
-#ifdef OLD_COMPILER
-	compiler_init();
-#endif
 	jit_init();
 	loader_init();
 
@@ -863,14 +824,7 @@ int main(int argc, char **argv)
 			m = class_findmethod(topclass, 
 								 utf_new_char(specificmethodname), NULL);
 		if (!m) panic ("Specific method not found");
-#ifdef OLD_COMPILER
-		if (newcompiler)
-#endif
 			(void) jit_compile(m);
-#ifdef OLD_COMPILER
-		else
-			(void) compiler_compile(m);
-#endif
 	}
 
 	exit(0);

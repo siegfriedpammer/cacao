@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1997/11/05
+	Last Change: $Id: jit.c 483 2003-10-14 17:08:38Z twisti $
 
 *******************************************************************************/
 
@@ -182,12 +182,6 @@ static void* do_nothing_function()
 }
 
 
-#ifdef OLD_COMPILER
-extern bool newcompiler;
-methodptr compiler_compile (methodinfo *m); /* compile method with old compiler*/
-#endif
-
-
 /* jit_compile *****************************************************************
 
 	jit_compile, new version of compiler, translates one method to machine code
@@ -207,13 +201,6 @@ methodptr jit_compile(methodinfo *m)
 	stackptr sptr;
 	int cnt;
 
-
-
-#ifdef OLD_COMPILER
-	if (!newcompiler) {
-		return compiler_compile(m);
-		}
-#endif
 
 	/* if method has been already compiled return immediately */
 

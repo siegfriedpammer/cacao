@@ -25,9 +25,6 @@
 #include "tables.h"
 #include "builtin.h"
 #include "jit.h"
-#ifdef OLD_COMPILER
-#include "compiler.h"
-#endif
 #include "asmpart.h"
 
 #ifdef USE_BOEHM
@@ -41,7 +38,6 @@
 
 /* global variables ***********************************************************/
 
-extern bool newcompiler;        /* true if new compiler is used               */    		
 bool opt_rt = false;            /* true if RTA parse should be used     RT-CO */
 bool opt_xta = false;           /* true if XTA parse should be used    XTA-CO */
 bool opt_vta = false;           /* true if VTA parse should be used    VTA-CO */
@@ -961,14 +957,7 @@ static void method_load (methodinfo *m, classinfo *c)
 		functionptr f = native_findfunction 
 	 	       (c->name, m->name, m->descriptor, (m->flags & ACC_STATIC) != 0);
 		if (f) {
-#ifdef OLD_COMPILER
-		if (newcompiler)
-#endif
 			m -> stubroutine = createnativestub (f, m);
-#ifdef OLD_COMPILER
-		else
-			m -> stubroutine = oldcreatenativestub (f, m);
-#endif
 			}
 		}
 	
@@ -2138,26 +2127,26 @@ void class_init (classinfo *c)
 	blockInts = 0;
 #endif
 
-	exceptionptr = asm_calljavamethod (m, NULL,NULL,NULL,NULL);
+	exceptionptr = asm_calljavamethod(m, NULL, NULL, NULL, NULL);
 
 #ifdef USE_THREADS
 	assert(blockInts == 0);
 	blockInts = b;
 #endif
 
- 	if (exceptionptr) {	
-		printf ("#### Initializer of ");
-		utf_display (c->name);
-		printf (" has thrown: ");
-		utf_display (exceptionptr->vftbl->class->name);
-		printf ("\n");
-		fflush (stdout);
-		}
+ 	if (exceptionptr) {
+		printf("#### Initializer of ");
+		utf_display(c->name);
+		printf(" has thrown: ");
+		utf_display(exceptionptr->vftbl->class->name);
+		printf("\n");
+		fflush(stdout);
+	}
 
 	if (initverbose) {
-		sprintf (logtext, "Finished initializer for class: ");
-		utf_sprint (logtext+strlen(logtext), c->name);
-		dolog ();
+		sprintf(logtext, "Finished initializer for class: ");
+		utf_sprint(logtext+strlen(logtext), c->name);
+		dolog();
 	}
 
 	if (c->name == utf_systemclass) {
