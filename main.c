@@ -33,7 +33,7 @@
 #include "builtin.h"
 #include "native.h"
 
-#include "threads/thread.h"            /* schani */
+#include "threads/thread.h"
 
 bool compileall = false;
 int  newcompiler = true;     		
@@ -41,6 +41,11 @@ bool verbose =  false;
 #ifdef NEW_GC
 bool new_gc = false;
 #endif
+
+static bool showmethods = false;
+static bool showconstantpool = false;
+static bool showunicode = false;
+static classinfo *topclass;
 
 #ifndef USE_THREADS
 void **stackbottom = 0;
@@ -445,8 +450,15 @@ void class_compile_methods ()
 
 void exit_handler(void)
 {
+	/********************* Debug-Tabellen ausgeben ************************/
+				
+	if (showmethods) class_showmethods (topclass);
+	if (showconstantpool)  class_showconstantpool (topclass);
+	if (showunicode)       unicode_show ();
+
 #ifdef USE_THREADS
-	clear_thread_flags();
+	clear_thread_flags();		/* restores standard file descriptor
+								   flags */
 #endif
 
 	/************************ Freigeben aller Resourcen *******************/
@@ -483,7 +495,6 @@ int main(int argc, char **argv)
 {
 	s4 i,j;
 	char *cp;
-	classinfo *topclass;
 	java_objectheader *exceptionptr;
 	void *dummy;
 	
@@ -493,9 +504,6 @@ int main(int argc, char **argv)
 	u4 heapsize = 16000000;
 	u4 heapstartsize = 200000;
 	char classpath[500] = ".:/usr/local/lib/java/classes";
-	bool showmethods = false;
-	bool showconstantpool = false;
-	bool showunicode = false;
 	bool startit = true;
 	char *specificmethodname = NULL;
 	char *specificsignature = NULL;
@@ -750,8 +758,8 @@ int main(int argc, char **argv)
 			printf ("\n");
 		}
 
-		/*		killThread(currentThread); */
-
+		killThread(currentThread);
+		fprintf(stderr, "still here\n");
 	}
 
 	/************* Auf Wunsch alle Methode "ubersetzen ********************/
@@ -782,12 +790,6 @@ int main(int argc, char **argv)
 			(void) compiler_compile(m);
 #endif
 	}
-
-	/********************* Debug-Tabellen ausgeben ************************/
-				
-	if (showmethods) class_showmethods (topclass);
-	if (showconstantpool)  class_showconstantpool (topclass);
-	if (showunicode)       unicode_show ();
 
 	exit(0);
 }

@@ -9,7 +9,7 @@
 # Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 #          Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 #
-# Last Change: $Id: Makefile 54 1998-11-10 12:12:02Z phil $
+# Last Change: $Id: Makefile 70 1998-11-16 16:49:18Z schani $
 #
 #
 # ATTENTION: This version of the makefile only works with gmake.
@@ -31,8 +31,8 @@ VERSION_STRING=$(VERSION_MAJOR).$(VERSION_MINOR)$(VERSION_POSTFIX)
 ##################### generation of the excutable ##############################
 
 # Enabling/disabling thread support
-# USE_THREADS = YES
-USE_THREADS = NO
+USE_THREADS = YES
+#USE_THREADS = NO
 
 ifeq ($(USE_THREADS),YES)
 THREAD_OBJ = threads/threads.a
@@ -48,7 +48,7 @@ endif
 #LFLAGS = -lm
 
 CC = cc
-CFLAGS = -g3 -ieee $(THREAD_CFLAGS)
+CFLAGS = -g -ieee $(THREAD_CFLAGS)
 #CFLAGS = -O3 -ieee $(THREAD_CFLAGS)
 LFLAGS = -lm
 

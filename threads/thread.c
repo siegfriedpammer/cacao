@@ -505,7 +505,7 @@ killThread(thread* tid)
 
 		/* If we only have daemons left, then everyone is dead. */
 		if (talive == tdaemon) {
-			/* Am I suppose to close things down nicely ?? */
+			/* atexit functions get called to clean things up */
 			exit(0);
 		}
 
