@@ -1,4 +1,4 @@
-/* vm/resolve.c - resolving classes/interfaces/fields/methods
+/* src/vm/resolve.c - resolving classes/interfaces/fields/methods
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,16 +28,17 @@
 
    Changes:
 
-   $Id: resolve.c 2086 2005-03-25 17:12:35Z edwin $
+   $Id: resolve.c 2102 2005-03-28 22:09:35Z twisti $
 
 */
 
 #include <assert.h>
+
 #include "vm/resolve.h"
 #include "vm/access.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
-#include "vm/loader.h"
+#include "vm/linker.h"
 #include "vm/classcache.h"
 #include "vm/descriptor.h"
 #include "vm/jit/jit.h"
