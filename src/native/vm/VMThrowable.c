@@ -26,9 +26,10 @@
 
    Authors: Joseph Wenninger
 
-   $Id: VMThrowable.c 1683 2004-12-05 21:33:36Z jowenn $
+   $Id: VMThrowable.c 1698 2004-12-06 12:34:02Z twisti $
 
 */
+
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -40,6 +41,7 @@
 #include "vm/loader.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/stacktrace.h"
 
 
 /*
