@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1420 2004-10-27 16:05:14Z twisti $
+   $Id: asmpart.S 1501 2004-11-12 16:36:13Z twisti $
 
 */
 
@@ -106,7 +106,9 @@
 	.globl _string_java_lang_ArithmeticException_message
 	.globl _string_java_lang_ClassCastException
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	.globl _builtin_asm_get_exceptionptrptr
+#endif
 #if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
 	.globl __exceptionptr
 #endif
@@ -115,10 +117,12 @@
 	.globl _class_load
 	.globl _class_link
 	.globl _class_init
-	.globl _new_exception
-	.globl _new_exception_message
-	.globl _new_exception_int
 
+	.globl _new_classcastexception
+	.globl _new_nullpointerexception
+	.globl _new_arrayindexoutofboundsexception
+	.globl _new_arraystoreexception
+	.globl _new_arithmeticexception
 
 jitcompile:
 	.long _jit_compile
@@ -149,28 +153,22 @@ builtincanstore:
 builtincheckarraycast:
 	.long _builtin_checkarraycast
 	
-new_exception:
-	.long _new_exception
-new_exception_message:
-	.long _new_exception_message
-new_exception_int:
-	.long _new_exception_int
+new_classcastexception:
+	.long _new_classcastexception
+new_nullpointerexception:
+	.long _new_nullpointerexception
+new_arrayindexoutofboundsexception:
+	.long _new_arrayindexoutofboundsexception
+new_arraystoreexception:
+	.long _new_arraystoreexception
+new_arithmeticexception:
+	.long _new_arithmeticexception
 
-string_java_lang_NullPointerException:
-	.long _string_java_lang_NullPointerException
-string_java_lang_ArrayIndexOutOfBoundsException:
-	.long _string_java_lang_ArrayIndexOutOfBoundsException
-string_java_lang_ArrayStoreException:
-	.long _string_java_lang_ArrayStoreException
-string_java_lang_ArithmeticException:
-	.long _string_java_lang_ArithmeticException
-string_java_lang_ArithmeticException_message:
-	.long _string_java_lang_ArithmeticException_message
-string_java_lang_ClassCastException:
-	.long _string_java_lang_ClassCastException
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 builtin_asm_get_exceptionptrptr:
 	.long _builtin_asm_get_exceptionptrptr
+#endif
 #if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
 _exceptionptr:
 	.long __exceptionptr
@@ -917,6 +915,7 @@ L_initializererror:
 #else
 	lwz     r3,lo16(_exceptionptr-0b)(pv)
 #endif
+
 	lwz     xptr,0(r3)            /* get the exception pointer                */
 	li      r0,0
 	stw     r0,0(r3)              /* clear the exception pointer              */
@@ -955,9 +954,7 @@ nb_carray_throw:
 	mflr    r0
 	stw     r0,8(r1)
 	addi    r1,r1,-(24+4)
-	lwz     r3,lo16(string_java_lang_ClassCastException-0b)(pv)
-	lwz     r3,0(r3)
-	lwz     itmp1,lo16(new_exception-0b)(pv)
+	lwz     itmp1,lo16(new_classcastexception-0b)(pv)
 	mtctr   itmp1
 	bctrl
 	mr      xptr,r3
@@ -1009,9 +1006,7 @@ nb_aastore_null:
 	mflr    r0
 	stw     r0,8(r1)
 	addi    r1,r1,-(24+4)
-	lwz     r3,lo16(string_java_lang_NullPointerException-0b)(pv)
-	lwz     r3,0(r3)
-	lwz     itmp1,lo16(new_exception-0b)(pv)
+	lwz     itmp1,lo16(new_nullpointerexception-0b)(pv)
 	mtctr   itmp1
 	bctrl
 	mr      xptr,r3
@@ -1026,11 +1021,10 @@ nb_aastore_bound:
 	mflr    r0
 	stw     r0,8(r1)
 	addi    r1,r1,-(24+2*4)
-	lwz     r3,lo16(string_java_lang_ArrayIndexOutOfBoundsException-0b)(pv)
-	lwz     r3,0(r3)
-	lwz     itmp1,lo16(new_exception_int-0b)(pv)
+	lwz     itmp1,lo16(new_arrayindexoutofboundsexception-0b)(pv)
 	mtctr   itmp1
-	bctrl                         /* r4 already contains the index            */
+	mr      r3,r4                 /* move index into a0                       */
+	bctrl
 	mr      xptr,r3
 	addi    r1,r1,(24+2*4)
 	lwz     r0,8(r1)
@@ -1042,9 +1036,7 @@ nb_aastore_store:
 	mflr    r0
 	stw     r0,8(r1)
 	addi    r1,r1,-(24+4)
-	lwz     r3,lo16(string_java_lang_ArrayStoreException-0b)(pv)
-	lwz     r3,0(r3)
-	lwz     itmp1,lo16(new_exception-0b)(pv)
+	lwz     itmp1,lo16(new_arraystoreexception-0b)(pv)
 	mtctr   itmp1
 	bctrl
 	mr      xptr,r3
@@ -1067,9 +1059,7 @@ nb_monitorenter:
 	mflr    r0
 	stw     r0,8(r1)
 	addi    r1,r1,-(24+4)
-	lwz     r3,lo16(string_java_lang_NullPointerException-0b)(pv)
-	lwz     r3,0(r3)
-	lwz     itmp1,lo16(new_exception-0b)(pv)
+	lwz     itmp1,lo16(new_nullpointerexception-0b)(pv)
 	mtctr   itmp1
 	bctrl
 	mr      xptr,r3
@@ -1095,9 +1085,7 @@ nb_monitorexit:
 	mflr    r0
 	stw     r0,8(r1)
 	addi    r1,r1,-(24+4)
-	lwz     r3,lo16(string_java_lang_NullPointerException-0b)(pv)
-	lwz     r3,0(r3)
-	lwz     itmp1,lo16(new_exception-0b)(pv)
+	lwz     itmp1,lo16(new_nullpointerexception-0b)(pv)
 	mtctr   itmp1
 	bctrl
 	mr      xptr,r3
@@ -1130,11 +1118,7 @@ nb_idiv:
 	mflr    r0
 	stw     r0,8(r1)
 	addi    r1,r1,-(24+2*4)
-	lwz     r3,lo16(string_java_lang_ArithmeticException-0b)(pv)
-	lwz     r3,0(r3)
-	lwz     r4,lo16(string_java_lang_ArithmeticException_message-0b)(pv)
-	lwz     r4,0(r4)
-	lwz     itmp1,lo16(new_exception_message-0b)(pv)
+	lwz     itmp1,lo16(new_arithmeticexception-0b)(pv)
 	mtctr   itmp1
 	bctrl
 	mr      xptr,r3
@@ -1168,11 +1152,7 @@ nb_irem:
 	mflr    r0
 	stw     r0,8(r1)
 	addi    r1,r1,-(24+2*4)
-	lwz     r3,lo16(string_java_lang_ArithmeticException-0b)(pv)
-	lwz     r3,0(r3)
-	lwz     r4,lo16(string_java_lang_ArithmeticException_message-0b)(pv)
-	lwz     r4,0(r4)
-	lwz     itmp1,lo16(new_exception_message-0b)(pv)
+	lwz     itmp1,lo16(new_arithmeticexception-0b)(pv)
 	mtctr   itmp1
 	bctrl
 	mr      xptr,r3
@@ -1195,11 +1175,7 @@ nb_ldiv:
 	mflr    r0
 	stw     r0,8(r1)
 	addi    r1,r1,-(24+2*4)
-	lwz     r3,lo16(string_java_lang_ArithmeticException-0b)(pv)
-	lwz     r3,0(r3)
-	lwz     r4,lo16(string_java_lang_ArithmeticException_message-0b)(pv)
-	lwz     r4,0(r4)
-	lwz     itmp1,lo16(new_exception_message-0b)(pv)
+	lwz     itmp1,lo16(new_arithmeticexception-0b)(pv)
 	mtctr   itmp1
 	bctrl
 	mr      xptr,r3
@@ -1222,11 +1198,7 @@ nb_lrem:
 	mflr    r0
 	stw     r0,8(r1)
 	addi    r1,r1,-(24+2*4)
-	lwz     r3,lo16(string_java_lang_ArithmeticException-0b)(pv)
-	lwz     r3,0(r3)
-	lwz     r4,lo16(string_java_lang_ArithmeticException_message-0b)(pv)
-	lwz     r4,0(r4)
-	lwz     itmp1,lo16(new_exception_message-0b)(pv)
+	lwz     itmp1,lo16(new_arithmeticexception-0b)(pv)
 	mtctr   itmp1
 	bctrl
 	mr      xptr,r3

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1479 2004-11-11 11:16:46Z twisti $
+   $Id: codegen.c 1501 2004-11-12 16:36:13Z twisti $
 
 */
 
@@ -93,7 +93,7 @@ int nregdescfloat[] = {
 
 void asm_cacheflush(void *, long);
 
-//#include <architecture/ppc/cframe.h>
+/* #include <architecture/ppc/cframe.h> */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 void thread_restartcriticalsection(void *u)
@@ -132,7 +132,7 @@ int cacao_catch_Handler(mach_port_t thread)
 	reg = (instr >> 16) & 31;
 
 	if (!regs[reg]) {
-		xptr = new_exception(string_java_lang_NullPointerException);
+		xptr = new_nullpointerexception();
 
 		regs[REG_ITMP2_XPC] = crashpc;
 		regs[REG_ITMP1_XPTR] = (u4) xptr;
@@ -146,7 +146,8 @@ int cacao_catch_Handler(mach_port_t thread)
 		return 1;
 	}
 
-	panic("segfault");
+	throw_cacao_exception_exit(string_java_lang_InternalError, "Segmentation fault at %p", regs[reg]);
+
 	return 0;
 }
 
@@ -2264,7 +2265,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
 			break;
 
-			//CUT: alle _L
+			/* CUT: alle _L */
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_LCMPEQ:    /* op1 = target JavaVM pc                     */
 		case ICMD_IF_ACMPEQ:
@@ -2981,7 +2982,7 @@ makeactualcall:
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(8);
+		MCODECHECK(14);
 
 		/* move index register into REG_ITMP1 */
 		M_MOV(bref->reg, REG_ITMP1);
@@ -2996,11 +2997,9 @@ makeactualcall:
 			M_IADD_IMM(REG_SP, -1 * 8, REG_SP);
 			M_IST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			a = dseg_addaddress(cd, string_java_lang_ArrayIndexOutOfBoundsException);
-			M_ALD(rd->argintregs[0], REG_PV, a);
-			M_MOV(REG_ITMP1, rd->argintregs[1]);
+			M_MOV(REG_ITMP1, rd->argintregs[0]);
 
-			a = dseg_addaddress(cd, new_exception_int);
+			a = dseg_addaddress(cd, new_arrayindexoutofboundsexception);
 			M_ALD(REG_ITMP2, REG_PV, a);
 			M_MTCTR(REG_ITMP2);
 			M_JSR;
@@ -3033,7 +3032,7 @@ makeactualcall:
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(8);
+		MCODECHECK(12);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3046,10 +3045,7 @@ makeactualcall:
             M_IADD_IMM(REG_SP, -1 * 8, REG_SP);
             M_IST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-            a = dseg_addaddress(cd, string_java_lang_NegativeArraySizeException);
-            M_ALD(rd->argintregs[0], REG_PV, a);
-
-            a = dseg_addaddress(cd, new_exception);
+            a = dseg_addaddress(cd, new_negativearraysizeexception);
             M_ALD(REG_ITMP2, REG_PV, a);
             M_MTCTR(REG_ITMP2);
             M_JSR;
@@ -3082,7 +3078,7 @@ makeactualcall:
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(8);
+		MCODECHECK(12);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3095,10 +3091,7 @@ makeactualcall:
             M_IADD_IMM(REG_SP, -1 * 8, REG_SP);
             M_IST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-            a = dseg_addaddress(cd, string_java_lang_ClassCastException);
-            M_ALD(rd->argintregs[0], REG_PV, a);
-
-            a = dseg_addaddress(cd, new_exception);
+            a = dseg_addaddress(cd, new_classcastexception);
             M_ALD(REG_ITMP2, REG_PV, a);
             M_MTCTR(REG_ITMP2);
             M_JSR;
@@ -3131,7 +3124,7 @@ makeactualcall:
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(8);
+		MCODECHECK(14);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3150,7 +3143,11 @@ makeactualcall:
             M_ALD(REG_ITMP2, REG_PV, a);
             M_MTCTR(REG_ITMP2);
             M_JSR;
-            M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+
+			/* get the exceptionptr from the ptrprt and clear it */
+            M_ALD(REG_ITMP1_XPTR, REG_RESULT, 0);
+			M_CLR(REG_ITMP3);
+			M_AST(REG_ITMP3, REG_RESULT, 0);
 #else
 			a = dseg_addaddress(cd, &_exceptionptr);
 			M_ALD(REG_ITMP2, REG_PV, a);
@@ -3186,7 +3183,7 @@ makeactualcall:
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(8);
+		MCODECHECK(12);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3199,10 +3196,7 @@ makeactualcall:
             M_IADD_IMM(REG_SP, -1 * 8, REG_SP);
             M_IST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-            a = dseg_addaddress(cd, string_java_lang_NullPointerException);
-            M_ALD(rd->argintregs[0], REG_PV, a);
-
-            a = dseg_addaddress(cd, new_exception);
+            a = dseg_addaddress(cd, new_nullpointerexception);
             M_ALD(REG_ITMP2, REG_PV, a);
             M_MTCTR(REG_ITMP2);
             M_JSR;
