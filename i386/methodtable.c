@@ -10,7 +10,7 @@
 
     Authors: Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: methodtable.c 491 2003-10-20 17:56:03Z twisti $
+    Last Change: $Id: methodtable.c 525 2003-10-22 21:14:23Z twisti $
 
 *******************************************************************************/
 
@@ -23,30 +23,30 @@ static mtentry *mtroot = NULL;
 void addmethod(u1 *start, u1 *end)
 {
   /* boehm makes problems with jvm98 db */
-/*  #ifdef USE_BOEHM */
-/*      mtentry *mte = GCNEW(mtentry, 1); */
-/*  #else */
+#if 0
+    mtentry *mte = GCNEW(mtentry, 1);
+#else
     mtentry *mte = NEW(mtentry);
-/*  #endif */
+#endif
 
 /*      fprintf(stderr, "start=%lx end=%lx\n", start, end); */
 
     if (mtroot == NULL) {
-/*  #ifdef USE_BOEHM */
-/*          mtentry *tmp = GCNEW(mtentry, 1); */
-/*  #else */
+#if 0
+        mtentry *tmp = GCNEW(mtentry, 1);
+#else
         mtentry *tmp = NEW(mtentry);
-/*  #endif */
+#endif
 	tmp->start = (u1 *) asm_calljavamethod;
 	tmp->end = (u1 *) asm_calljavafunction;    /* little hack, but should work */
 	tmp->next = mtroot;
 	mtroot = tmp;
 
-/*  #ifdef USE_BOEHM */
-/*          tmp = GCNEW(mtentry, 1); */
-/*  #else */
+#if 0
+        tmp = GCNEW(mtentry, 1);
+#else
         tmp = NEW(mtentry);
-/*  #endif */
+#endif
 	tmp->start = (u1 *) asm_calljavafunction;
 	tmp->end = (u1 *) asm_call_jit_compiler;    /* little hack, but should work */
 	tmp->next = mtroot;
