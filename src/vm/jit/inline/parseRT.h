@@ -958,6 +958,8 @@ static void parseRT()
                         case JAVA_LLOAD:
                         case JAVA_FLOAD:
                         case JAVA_DLOAD:
+
+                        case JAVA_ALOAD:
                                 if (iswide)
                                   {
                                   nextp = p+3;
@@ -965,140 +967,19 @@ static void parseRT()
                                   }
                                 break;
 
-                        case JAVA_ALOAD_0:
-			/* ---->>>> */ 	if (useFieldOpcodes == false)  break;  /* <<<<<<******* */
-			 printf("ALOAD0 %s i=%i\n", opcode_names[opcode],0);
-	               	 class_showconstanti(rt_class, 0); 
-                                break;
-
-                        case JAVA_ALOAD_1:
-			/* ---->>>> */ 	if (useFieldOpcodes == false)  break;  /* <<<<<<******* */
-			 printf("ALOAD1 %s i=%i\n", opcode_names[opcode],1);
-			 class_showconstanti(rt_class, 1); 
-                                break;
-
-                        case JAVA_ALOAD_2:
-			/* ---->>>> */ 	if (useFieldOpcodes == false)  break;  /* <<<<<<******* */
-			 printf("ALOAD2 %s i=%i\n", opcode_names[opcode],2);
-			 class_showconstanti(rt_class, 2); 
-                                break;
-
-                        case JAVA_ALOAD_3:
-			/* ---->>>> */ 	if (useFieldOpcodes == false)  break;  /* <<<<<<******* */
-			 printf("ALOAD3 %s i=%i\n", opcode_names[opcode],3);
-			 class_showconstanti(rt_class, 3); 
-                                break;
-
-                        case JAVA_ALOAD:
-				{
-                                constant_FMIref *mr;
-                                methodinfo *mi;
-
-                                if (!iswide)
-                                        i = rt_code_get_u1(p+1);
-                                else {
-                                        i = rt_code_get_u2(p+1);
-                                        nextp = p+3;
-                                        iswide = false;
-                                        }
-			/* ---->>>> */ 	if (useFieldOpcodes == false)  break;  /* <<<<<<******* */
-			 printf("ALOADs %s i=%i <%x>\n", opcode_names[opcode],i,rt_jcode[p+1]);
-			 class_showconstanti(rt_class, i); 
-				}
-                                break;
-
 			/* 54 -58 */
 		        case JAVA_ISTORE:
                         case JAVA_LSTORE:
                         case JAVA_FSTORE:
                         case JAVA_DSTORE:
+
+                        case JAVA_ASTORE:
                                 if (iswide)
                                   {
                                   iswide=false;
                                   nextp = p+3;
                                   }
                                break;
-
-
-                        case JAVA_ASTORE_0:
-			/* ---->>>> */ 	if (useFieldOpcodes == false)  break;  /* <<<<<<******* */
-					printf("ASTOREs %s i=%i\n", opcode_names[opcode],0);
-					class_showconstanti(rt_class,0);
-I=0;
-if (CONSTANT_Class == rt_class->cptags [I] ) {  
-	printf("ASTORE CONSTANT #%i_Class found =",I); 
-	utf_display(((classinfo*)rt_class->cpinfos [I])->name); 
-	printf("\n"); 
-	((classinfo*)rt_class->cpinfos [I])->classUsed = PARTUSED; 
-	}
-
-                                break;
-
-                        case JAVA_ASTORE_1:
-			/* ---->>>> */ 	if (useFieldOpcodes == false)  break;  /* <<<<<<******* */
-					printf("ASTOREs %s i=%i\n", opcode_names[opcode],1);
-					class_showconstanti(rt_class, 1);
-I=1;
-if (CONSTANT_Class == rt_class->cptags [I] ) {  
-	printf("ASTORE CONSTANT #%i_Class found =",I); 
-	utf_display(((classinfo*)rt_class->cpinfos [I])->name); 
-	printf("\n"); 
-	((classinfo*)rt_class->cpinfos [I])->classUsed = PARTUSED; 
-	}
-
-                                break;
-
-                        case JAVA_ASTORE_2:
-			/* ---->>>> */ 	if (useFieldOpcodes == false)  break;  /* <<<<<<******* */
-					printf("ASTOREs %s i=%i\n", opcode_names[opcode],2);
-					class_showconstanti(rt_class, 2);
-I=2;
-if (CONSTANT_Class == rt_class->cptags [I] ) {  
-	printf("ASTORE CONSTANT #%i_Class found =",I); 
-	utf_display(((classinfo*)rt_class->cpinfos [I])->name); 
-	printf("\n"); 
-	((classinfo*)rt_class->cpinfos [I])->classUsed = PARTUSED; 
-	}
-
-                                break;
-
-                        case JAVA_ASTORE_3:
-			/* ---->>>> */ 	if (useFieldOpcodes == false)  break;  /* <<<<<<******* */
-					printf("ASTOREs %s i=%i\n", opcode_names[opcode],3);
-					class_showconstanti(rt_class, 3);
-I=3;
-if (CONSTANT_Class == rt_class->cptags [I] ) {  
-	printf("ASTORE CONSTANT #%i_Class found =",I); 
-	utf_display(((classinfo*)rt_class->cpinfos [I])->name); 
-	printf("\n"); 
-	((classinfo*)rt_class->cpinfos [I])->classUsed = PARTUSED; 
-	}
-
-                                break;
-
-                        case JAVA_ASTORE:
-                                if (!iswide)
-                                        i = rt_code_get_u1(p+1);
-                                else {
-                                        i = rt_code_get_u2(p+1);
-                                        iswide=false;
-                                        nextp = p+3;
-                                        }
-
-			/* ---->>>> */ 	if (useFieldOpcodes == false)  break;  /* <<<<<<******* */
-					printf("ASTOREs %s i=%i <%x>\n", opcode_names[opcode],i,rt_jcode[p+1]);
-					class_showconstanti(rt_class, rt_jcode[p+1]);
-
-	/* old			if (CONSTANT_Class == rt_class->cptags [rt_jcode[p+1]] ) { */
-I=rt_jcode[p+1];
-if (CONSTANT_Class == rt_class->cptags [I] ) {  
-	printf("ASTORE CONSTANT #%i_Class found =",I); 
-	utf_display(((classinfo*)rt_class->cpinfos [I])->name); 
-	printf("\n"); 
-	((classinfo*)rt_class->cpinfos [I])->classUsed = PARTUSED; 
-	}
-
-                                break;
 
 			/* 132 */
 		 	case JAVA_IINC:
@@ -1147,51 +1028,6 @@ if (CONSTANT_Class == rt_class->cptags [I] ) {
                                 nextp = nextp + 16 + 4 * num;
                                 break;
                                 }
-
-/*-------------------------------*/
-
-                        /* managing arrays ************************************************/
-
-                        case JAVA_ANEWARRAY:
-			/* ---->>>> */ 	if (useArrayOpcodes == false)  break;  /* <<<<<<******* */
-                                i = rt_code_get_u2(p+1);
-                                {
-                                constant_FMIref *ar;
-                                voidptr e;
-				classinfo *c;
-                                /* array or class type ? */
-                                if (class_constanttype (rt_class, i) != CONSTANT_Arraydescriptor) {
-                                        e = class_getconstant(rt_class, i, CONSTANT_Class);
-					c = (classinfo *)e;
-					if (c->classUsed == NOTUSED)
-						c->classUsed = PARTUSED;
-/*COtest*/ printf("ANEWARRAY Mark class=");utf_display ( c-> name );printf("=>PARTUSED\n");
-                                        }
-                                }
-                                break;
-
-                        case JAVA_MULTIANEWARRAY:
-			/* ---->>>> */ 	if (useArrayOpcodes == false)  break;  /* <<<<<<******* */
-                                i = rt_code_get_u2(p+1);
-                                {
-                                constant_arraydescriptor *ar;
-				int t;
-                         arraydesc:       ar = class_getconstant(rt_class, i, CONSTANT_Arraydescriptor);
-				/*ar = rt_class-> cpinfos [i];  */
-				t = ar->arraytype;
-				while (ARRAYTYPE_ARRAY== t) {
-					ar = ar->elementdescriptor;
-					t = ar->arraytype;
-					}
-				if (ARRAYTYPE_OBJECT == t) {
-					printf("MULTINEWARRAY 1Marking class=");utf_display(ar->objectclass->name);printf("\n");
-					if (ar->objectclass->classUsed == NOTUSED) {
-     						ar->objectclass->classUsed == PARTUSED;
-						}
-  					}
-                                }
-                                break;
-
 
 /*-------------------------------*/
                         case JAVA_PUTSTATIC:
@@ -1459,134 +1295,6 @@ if (pWhenMarked >= 1) {
 				}
                                 }
                                 break;
-	/* ---- Reference Opcodes --------------------------------------------*/
-
-		      case JAVA_CHECKCAST:
-			/* ---->>>> */ 	if (useObjectrefOpcodes == false)  break;  /* <<<<<<******* */
-
-                                i = rt_code_get_u2(p+1);
-				{
-				classinfo *ci;
-
-                                /* array type cast-check */
-                                if (class_constanttype (rt_class, i) == CONSTANT_Arraydescriptor) {
-class_showconstanti(rt_class,i);
-goto arraydesc;   /* better to make a fn later ?? */
-panic("arraydescriptor in checkcast - panic so find it");
-					/***
-                                        LOADCONST_A(class_getconstant(rt_class, i, CONSTANT_Arraydescriptor));  
-                                        s_count++;	
-                                        BUILTIN2((functionptr) asm_builtin_checkarraycast, TYPE_ADR); 
-					****/
-                                        }
-                                else { /* object type cast-check */
-					ci = class_getconstant(rt_class, i, CONSTANT_Class);
-					ci->classUsed =PARTUSED;
-/*RTtest p1*/ if (pWhenMarked >= 2) {
-/*RTtest*/   printf("checkcast class=");utf_display(ci->name);printf(" marked PARTUSED\n");
-/*RTtest*/ }
-                                        /*****
-                                        LOADCONST_A(class_getconstant(irt_class, i, CONSTANT_Class));
-                                        s_count++;
-                                        BUILTIN2((functionptr) asm_builtin_checkcast, TYPE_ADR);
-                                        OP2A(opcode, 1, (class_getconstant(rt_class, i, CONSTANT_Class)));
-                                        ****/
-                                        }
-				}
-                                break;
-
-                        case JAVA_INSTANCEOF:
-			/* ---->>>> */ 	if (useObjectrefOpcodes == false)  break;  /* <<<<<<******* */
-                                i = rt_code_get_u2(p+1);
-				{
-				classinfo *ci;
-
-                                /* array type cast-check */
-                                if (class_constanttype (rt_class, i) == CONSTANT_Arraydescriptor) {
-class_showconstanti(rt_class,i);
-goto arraydesc;   /* better to make a fn later */
-panic("arraydescriptor in instanceof- panic so find it");
-					/***
-                                        LOADCONST_A(class_getconstant(rt_class, i, CONSTANT_Arraydescriptor));
-					***/
-                                        }
-                                else { /* object type cast-check */
-					ci = class_getconstant(rt_class, i, CONSTANT_Class);
-					ci->classUsed =PARTUSED;
-/*RTtest p1*/ if (pWhenMarked >= 2) {
-/*RTtest*/   printf("checkcast class=");utf_display(ci->name);printf(" marked PARTUSED\n");
-/*RTtest*/ }
-                                        }
-				}
-                                break;
-
-                        case JAVA_MONITORENTER:
-			/* ---->>>> */ 	if (useObjectrefOpcodes == false)  break;  /* <<<<<<******* */
-/* comes from stack - how put on stack???? */
-#ifdef USE_THREADS
-                                if (checksync) {
-#ifdef SOFTNULLPTRCHECK
-                                        if (checknull) {
-						/****
-                                                BUILTIN1((functionptr) asm_builtin_monitorenter, TYPE_VOID);
-						***/
-                                                }
-                                        else {
-						/****
-                                                BUILTIN1((functionptr) builtin_monitorenter, TYPE_VOID);
-                                                BUILTIN1((functionptr) asm_builtin_monitorenter, TYPE_VOID);
-						***/
-                                                }
-#else
-                                        /***
-					BUILTIN1((functionptr) builtin_monitorenter, TYPE_VOID);
-					***/
-#endif
-                                        }
-                                else
-#endif
-                                        {
-                                        /***
-                                        OP(ICMD_NULLCHECKPOP);
-					***/
-                                        }
-                                break;
-
-                        case JAVA_MONITOREXIT:
-			/* ---->>>> */ 	if (useObjectrefOpcodes == false)  break;  /* <<<<<<******* */
-/* comes from stack - how put on stack???? */
-#ifdef USE_THREADS
-                                if (checksync) {
-                                        /***
-                                        BUILTIN1((functionptr) builtin_monitorexit, TYPE_VOID);
-                                        ***/
-                                        }
-                                else
-#endif
-                                        {
-                                        /***
-                                        OP(ICMD_POP);
-                                        ***/
-                                        }
-                                break;
-
-                        case JAVA_ARETURN:
-			/* ---->>>> */ 	if (useOtherOpcodes == false)  break;  /* <<<<<<******* */
-/* set a variable with type from input and track  it to here */
-                                /***
-                                blockend = true;
-                                OP(opcode);
-                                ***/
-                                break;
-
-                        case JAVA_ATHROW:
-			/* ---->>>> */ 	if (useOtherOpcodes == false)  break;  /* <<<<<<******* */
-                                /***
-                                blockend = true;
-                                OP(opcode);
-                                ***/
-                                break;
-
 
                         default:
                                 break;
