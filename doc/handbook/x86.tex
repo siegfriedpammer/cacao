@@ -2,16 +2,32 @@
 
 Porting to the famous x86 platform was more effort than
 expected. CACAO was designed to run on RISC machines from ground up,
-so the code generation part hat to be adapted. The first approach was
-to replace the simple RISC macros with x86 code, but this turned out
-to be not successful. So new x86 code generation macros where written,
-with no respect to the old RISC macros. One big difference in writing
-the new code generation macros was, that the x86 architecture is not a
-\textit{load-store architecture} like the RISC machines, but the
-\textit{machine instructions} can handle both \textit{memory operands}
-and \textit{register operands}. This led to a much more complicated
-handling of the various ICMDs. The typical handling of an ICMD on RISC
-machines looks like this (on the example of the integer add ICMD):
+so the whole code generation part has to be adapted. The first
+approach was to replace the simple RISC macros with x86 code, but this
+turned out to be not successful. So new x86 code generation macros
+were written, with no respect to the old RISC macros.
+
+Some smaller problems occured since the x86 port was the first 32 bit
+target platform, like segmentation faults due to heap corruption,
+which turned out to be a simple \texttt{for} loop bug only hit on 32
+bit systems. Most of the CACAO system already was
+\textit{32-bit-ready}, namely an architecture dependent
+\texttt{types.h} with definitions of the used datatypes and some
+feature flags, which features the processor itself natively
+supports. Most noticeable change was the \texttt{s8} and \texttt{u8}
+datatype, changed from \texttt{long} to \texttt{long long} to support
+64 bit calculations.
+
+
+\subsection{Code generation}
+
+One big difference in writing the new code generation macros was, that
+the x86 architecture is not a \textit{load-store architecture} like
+the RISC machines, but the \textit{machine instructions} can handle
+both \textit{memory operands} and \textit{register operands}. This led
+to a much more complicated handling of the various ICMDs. The typical
+handling of an ICMD on RISC machines looks like this (on the example
+of the integer add ICMD):
 
 \begin{verbatim}
         case ICMD_IADD:
@@ -65,17 +81,6 @@ variable.
 To be backward compatible, mostly in respect of embedded systems, all
 generated code can be run on i386 systems.
 
-Some smaller problems occured since the x86 port was the first 32 bit
-target platform, like segmentation faults due to heap corruption,
-which turned out to be a simple \texttt{for} loop bug only hit on 32
-bit systems. Most of the CACAO system already was
-\textit{32-bit-ready}, namely an architecture dependent
-\texttt{types.h} with definitions of the used datatypes and some
-feature flags, which features the processor itself natively
-supports. Most noticeable change was the \texttt{s8} and \texttt{u8}
-datatype from \texttt{long} to \texttt{long long} to support 64 bit
-calculations.
-
 Another problem was the access to the functions data segment. Since
 RISC platforms like ALPHA and MIPS have a procedure pointer register,
 for the x86 platform there had to be implemented a special handling
@@ -99,6 +104,23 @@ The \texttt{dseg\_adddata()} call inserts the current postion of the
 code generation pointer into a datastructure which is later processed
 by \texttt{codegen\_finish()}, where the final address of the data
 segment is patched.
+
+
+\subsection{Constant handling}
+
+Unlike RISC machines the x86 architecture has \textit{immediate move}
+instructions which can handle the maximum bitsize of the
+registers. Thus we don't have to load big constants indirect from the
+data segment, which means a \textit{memory load} instruction, but we
+can move 32 bit constants \textit{inline} into their destination
+registers.
+
+\begin{verbatim}
+        i386_mov_imm_reg(0xcafebabe, REG_ITMP1);
+\end{verbatim}
+
+For constants bigger than 32 bits up to 64 bits, we split the move
+up into two immediate move instructions.
 
 
 \subsection{Calling conventions}
@@ -163,9 +185,9 @@ call into a new stack frame and we have a slightly bigger memory
 footprint.
 
 But calling a native function always means a stack manipulation,
-because you have to put the \textit{JNI environment}, and for
-\texttt{static} functions the \textit{class pointer}, in front of the
-function parameters. So this negligible.
+because you have to put the \textit{JNI environment}, and additionally
+for \texttt{static} functions the \textit{class pointer}, in front of
+the function parameters. So this negligible.
 
 For some \texttt{BUILTIN} functions there had to be written
 \texttt{asm\_} counterparts, which copy the 8 byte parameters in their
@@ -259,11 +281,18 @@ inline them, but the code size is too big and the latency is so high,
 that the function calls are negligible.
 
 The x86 processor has some machine instructions which are specifically
-designed for 64 bit operations like \texttt{cltd} --- Convert Signed
-Long to Signed Double Long, \texttt{adc} --- Integer Add With Carry or
-\texttt{sbb} --- Integer Subtraction With Borrow. So some of the 64
-bit calculations like \texttt{LADD} or \texttt{LSUB} can be exceuted
-in two instructions.
+designed for 64 bit operations. Some of them are
+
+\begin{itemize}
+ \item \texttt{cltd} --- Convert Signed Long to Signed Double Long
+ \item \texttt{adc} --- Integer Add With Carry
+ \item \texttt{sbb} --- Integer Subtraction With Borrow
+\end{itemize}
+
+Thus some of the 64 bit calculations like \texttt{LADD} or
+\texttt{LSUB} could be executed in two instructions, if both
+operand would reside in registers. But this does not apply to CACAO,
+yet.
 
 All of the \texttt{long} instructions operate on 64 bit, even if it is
 not necessary. The dependency information that would be needed to just
@@ -274,7 +303,7 @@ not generated by CACAO.
 \subsection{Floating point arithmetic}
 
 Since the i386, with it's i387 counterpart or the i486, the x86
-processor has an \textit{floating point unit} (FPU). This FPU is
+processor has a \textit{floating point unit} (FPU). This FPU is
 implemented as a stack with 8 elements (see table \ref{FPUStack}).
 
 \begin{table*}
@@ -489,3 +518,25 @@ x86 port, but the results were not completly IEEE 754 compliant. So
 the CACAO developer team decided to be on the safe side and to store
 all float variables in memory, until we have found a solution which is
 fast and 100\% compliant.
+
+
+\subsection{Exception handling}
+
+The exception handling for the x86 architecture is implemented as
+intended to be for CACAO. To handle the common and unexpected, but
+often checked, \texttt{NullPointerException} very fast, we use
+\textit{hardware null-pointer checking}. That means we install a
+signal handler for the \texttt{SIGSEGV} operating system signal and in
+the handler we forward the exception to CACAO's internal exception
+handling system. So if an instruction tries to access the memory at
+address \texttt{0x0}, a \texttt{SIGSEGV} signal is raised because the
+memory page is not read or writeable. After the signal is hit, we have
+to reinstall the handler, so we can catch further exceptions and this
+is done in the handler itself.
+
+The \texttt{SIGSEGV} handler is used on any architecture to which
+CACAO has been ported. Additionally we install a handler for the
+\texttt{SIGFPE} on the x86 architecture. With this handler we can
+catch \texttt{ArithmeticException}'s for integer \textit{/ by zero} in
+hardware and there is no need to write a helper function which checks
+the operands, as it has to be done for the ALPHA or MIPS port.
