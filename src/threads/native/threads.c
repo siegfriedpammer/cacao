@@ -593,6 +593,7 @@ static void *threadstartup(void *t)
 	sem_post(psem);
 
 	setPriority(info->tid, thread->o.thread->priority);
+	sched_yield();
 
 	/* Find the run()V method and call it */
 	method = class_resolveclassmethod(thread->o.header.vftbl->class,
