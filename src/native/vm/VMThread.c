@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 897 2004-01-21 00:49:42Z stefan $
+   $Id: VMThread.c 900 2004-01-22 13:25:36Z twisti $
 
 */
 
@@ -288,8 +288,6 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_interrupted(JNIEnv *env, jclass clazz
  */
 JNIEXPORT void JNICALL Java_java_lang_Thread_nativeInit(JNIEnv *env, java_lang_Thread *this, s8 par1)
 {
-	log_text("Thread_nativeInit");
-
 	if (*exceptionptr)
 		log_text("There has been an exception, strange...");
 
