@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 930 2004-03-02 21:18:23Z jowenn $
+   $Id: headers.c 960 2004-03-14 23:41:11Z twisti $
 
 */
 
@@ -46,6 +46,7 @@
 #include "toolbox/chain.h"
 #include "toolbox/memory.h"
 #include "toolbox/loging.h"
+#include "nat/java_lang_String.h"
 
 
 /* replace command line options */
@@ -83,6 +84,8 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc, bool isstatic
 java_objectheader *javastring_new(utf *text)
 { return NULL; }
 
+utf *javastring_toutf(java_lang_String *string, bool isclassname)
+{ return NULL; }
 
 void throw_noclassdeffounderror_message(utf* classname)
 { 
@@ -96,10 +99,11 @@ void throw_noclassdeffounderror_message(utf* classname)
 /* this is here to avoid link errors. 
    We are not interested in linkagerrors in cacaoh right now
 */
-void throw_linkageerror_message(utf* classname) 
-{ 
-}
+void throw_linkageerror_message(utf* classname) {}
 
+void throw_exception() {}
+void new_exception(char *classname) {}
+void new_exception_message(char *classname, char *message) {}
 
 java_objectheader *literalstring_new(utf *u) { return NULL; }  
 
