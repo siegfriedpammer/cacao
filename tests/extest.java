@@ -1,4 +1,4 @@
-public class ex {
+public class extest {
     public static void main(String[] argv) {
     	try {
             System.out.print("THROWS: ");
