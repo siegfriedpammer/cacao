@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Constructor.c 1227 2004-06-30 19:29:35Z twisti $
+   $Id: Constructor.c 1344 2004-07-21 17:12:53Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 #include <string.h>
 #include "jni.h"
 #include "builtin.h"
+#include "exceptions.h"
 #include "loader.h"
 #include "native.h"
 #include "tables.h"

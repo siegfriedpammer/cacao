@@ -28,13 +28,14 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSystem.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: VMSystem.c 1344 2004-07-21 17:12:53Z twisti $
 
 */
 
 
 #include <string.h>
 #include <time.h>
+#include "exceptions.h"
 #include "jni.h"
 #include "builtin.h"
 #include "native.h"

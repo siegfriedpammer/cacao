@@ -28,13 +28,14 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMObject.c 1227 2004-06-30 19:29:35Z twisti $
+   $Id: VMObject.c 1344 2004-07-21 17:12:53Z twisti $
 
 */
 
 
 #include <stdlib.h>
 #include <string.h>
+#include "exceptions.h"
 #include "jni.h"
 #include "builtin.h"
 #include "loader.h"

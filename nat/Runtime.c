@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Runtime.c 1300 2004-07-11 11:20:47Z stefan $
+   $Id: Runtime.c 1344 2004-07-21 17:12:53Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 #include "main.h"
 #include "jni.h"
 #include "builtin.h"
+#include "exceptions.h"
 #include "loader.h"
 #include "native.h"
 #include "tables.h"

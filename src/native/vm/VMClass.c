@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 1323 2004-07-18 21:42:11Z motse $
+   $Id: VMClass.c 1344 2004-07-21 17:12:53Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 #include <string.h>
 #include "jni.h"
 #include "types.h"
+#include "exceptions.h"
 #include "global.h"
 #include "builtin.h"
 #include "loader.h"

@@ -28,13 +28,14 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Field.c 1002 2004-03-30 22:49:03Z twisti $
+   $Id: Field.c 1344 2004-07-21 17:12:53Z twisti $
 
 */
 
 
 #include "jni.h"
 #include "builtin.h"
+#include "exceptions.h"
 #include "loader.h"
 #include "native.h"
 #include "tables.h"

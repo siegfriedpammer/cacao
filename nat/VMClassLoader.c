@@ -28,11 +28,12 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClassLoader.c 1314 2004-07-14 18:31:49Z twisti $
+   $Id: VMClassLoader.c 1344 2004-07-21 17:12:53Z twisti $
 
 */
 
 
+#include "exceptions.h"
 #include "jni.h"
 #include "loader.h"
 #include "native.h"
