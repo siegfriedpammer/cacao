@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: headers.c 1633 2004-12-01 09:45:33Z twisti $
 
 */
 
@@ -38,6 +38,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
+#if defined(__DARWIN__)
+# include <signal.h>
+#endif
 #include <ucontext.h>
 
 #include "config.h"
