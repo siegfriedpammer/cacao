@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 911 2004-02-04 11:42:41Z carolyn $
+   $Id: loader.c 915 2004-02-05 23:13:19Z edwin $
 
 */
 
@@ -1723,8 +1723,10 @@ static int class_load(classinfo *c)
 			c->flags |= ACC_ABSTRACT;
 			/* panic("Interface class not declared abstract"); */
 		}
-		if ((c->flags & (ACC_FINAL | ACC_SUPER)) != 0)
+		if ((c->flags & (ACC_FINAL)) != 0)
 			panic("Interface class has invalid flags");
+		if ((c->flags & (ACC_SUPER)) != 0)
+			c->flags &= ~ACC_SUPER; /* kjc seems to set this on interfaces */
 	}
 	if ((c->flags & (ACC_ABSTRACT | ACC_FINAL)) == (ACC_ABSTRACT | ACC_FINAL))
 		panic("Class is declared both abstract and final");
@@ -2282,8 +2284,13 @@ void class_link(classinfo *c)
 				int j;
 				for (j = 0; j < sc->methodscount; j++) {
 					if (method_canoverwrite(m, &(sc->methods[j]))) {
-						if ((sc->methods[j].flags & ACC_FINAL) != 0)
+						if ((sc->methods[j].flags & ACC_FINAL) != 0) {
+							log_utf(c->name);
+							log_utf(sc->name);
+							log_utf(sc->methods[j].name);
+							log_utf(sc->methods[j].descriptor);
 							panic("Trying to overwrite final method");
+						}
 						m->vftblindex = sc->methods[j].vftblindex;
 						goto foundvftblindex;
 					}
