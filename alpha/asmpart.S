@@ -1,7 +1,6 @@
 /* -*- mode: asm; tab-width: 4 -*- */
-/****************************** asmpart.c **************************************
+/****************************** asmpart.S **************************************
 *                                                                              *
-*   is an assembly language file, but called .c to fake the preprocessor.      *
 *   It contains the Java-C interface functions for Alpha processors.           *
 *                                                                              *
 *   Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst              *
@@ -201,10 +200,13 @@ call_name:
 
 asm_calljavamethod:
 
+	.frame $30,32,$26
+	.mask 0x4000000,-32
 	ldgp    gp,0(pv)
 	lda     sp,-32(sp)                /* allocate stack space                 */
 	stq     gp,24(sp)                 /* save global pointer                  */
 	stq     ra,0(sp)                  /* save return address                  */
+	.prologue 1
 
 	stq     a0,16(sp)                 /* save method pointer for compiler     */
 	lda     v0,16(sp)                 /* pass pointer to method pointer via v0*/
@@ -280,10 +282,13 @@ call_name2:
 
 asm_calljavafunction:
 
+	.frame $30,32,$26
+	.mask 0x4000000,-32
 	ldgp    gp,0(pv)
 	lda     sp,-32(sp)                /* allocate stack space                 */
 	stq     gp,24(sp)                 /* save global pointer                  */
 	stq     ra,0(sp)                  /* save return address                  */
+	.prologue 1
 
 	stq     a0,16(sp)                 /* save method pointer for compiler     */
 	lda     v0,16(sp)                 /* pass pointer to method pointer via v0*/
@@ -350,6 +355,7 @@ calljava_xhandler2:
 	.ent    asm_call_jit_compiler
 asm_call_jit_compiler:
 
+	.frame $30,0,$26
 	ldgp    gp,0(pv)
 	ldl     t8,-8(ra)             /* load instruction LDQ PV,xxx($yy)         */
 	srl     t8,16,t8              /* shift right register number $yy          */
