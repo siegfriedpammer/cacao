@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2227 2005-04-05 23:00:37Z edwin $
+   $Id: resolve.c 2241 2005-04-06 15:07:46Z edwin $
 
 */
 
@@ -856,8 +856,10 @@ create_unresolved_class(methodinfo *refmethod,
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_class\n");
 	fprintf(stderr,"    referer: ");utf_fprint(stderr,classref->referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint(stderr,refmethod->descriptor);fputc('\n',stderr);
+	if (refmethod) {
+		fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);
+		fprintf(stderr,"    rmdesc : ");utf_fprint(stderr,refmethod->descriptor);fputc('\n',stderr);
+	}
 	fprintf(stderr,"    name   : ");utf_fprint(stderr,classref->name);fputc('\n',stderr);
 #endif
 

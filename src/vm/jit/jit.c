@@ -30,11 +30,11 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2219 2005-04-05 15:42:57Z christian $
+   $Id: jit.c 2241 2005-04-06 15:07:46Z edwin $
 
 */
 
-
+#include <stdio.h>
 #include "config.h"
 #include "codegen.h"
 #include "disass.h"
@@ -43,6 +43,7 @@
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
+#include "vm/classcache.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
 #include "vm/loader.h"
@@ -1224,6 +1225,14 @@ functionptr jit_compile(methodinfo *m)
 		return m->entrypoint;
 	}
 
+	fprintf(stderr,"CLASSCACHE before compiling: ");
+	utf_fprint_classname(stderr,m->class->name);
+	fprintf(stderr,".");
+	utf_fprint(stderr,m->name);
+	descriptor_debug_print_methoddesc(stderr,m->parseddesc);
+	fprintf(stderr,"\n");
+	classcache_debug_dump(stderr);
+
 #if defined(STATISTICS)
 	if (opt_stat)
 		count_methods++;
@@ -1282,6 +1291,14 @@ functionptr jit_compile(methodinfo *m)
 
 	r = jit_compile_intern(m, cd, rd, ld, id);
 
+	fprintf(stderr,"CLASSCACHE after jit_compile_intern: ");
+	utf_fprint_classname(stderr,m->class->name);
+	fprintf(stderr,".");
+	utf_fprint(stderr,m->name);
+	descriptor_debug_print_methoddesc(stderr,m->parseddesc);
+	fprintf(stderr,"\n");
+	classcache_debug_dump(stderr);
+
 	/* free some memory */
 
 	reg_free(m, rd);
@@ -1298,6 +1315,14 @@ functionptr jit_compile(methodinfo *m)
 	/* release dump area */
 
 	dump_release(dumpsize);
+	
+	fprintf(stderr,"CLASSCACHE after compiling: ");
+	utf_fprint_classname(stderr,m->class->name);
+	fprintf(stderr,".");
+	utf_fprint(stderr,m->name);
+	descriptor_debug_print_methoddesc(stderr,m->parseddesc);
+	fprintf(stderr,"\n");
+	classcache_debug_dump(stderr);
 
 #if defined(STATISTICS)
 	/* measure time */
@@ -1401,6 +1426,14 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 		return NULL;
 	}
 
+	fprintf(stderr,"CLASSCACHE after stack analysis: ");
+	utf_fprint_classname(stderr,m->class->name);
+	fprintf(stderr,".");
+	utf_fprint(stderr,m->name);
+	descriptor_debug_print_methoddesc(stderr,m->parseddesc);
+	fprintf(stderr,"\n");
+	classcache_debug_dump(stderr);
+
 	if (compileverbose)
 		log_message_method("Analysing done: ", m);
 
@@ -1473,8 +1506,24 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 		log_message_method("Generating code: ", m);
 	}
 
+	fprintf(stderr,"CLASSCACHE before codegen: ");
+	utf_fprint_classname(stderr,m->class->name);
+	fprintf(stderr,".");
+	utf_fprint(stderr,m->name);
+	descriptor_debug_print_methoddesc(stderr,m->parseddesc);
+	fprintf(stderr,"\n");
+	classcache_debug_dump(stderr);
+
 	/* now generate the machine code */
 	codegen(m, cd, rd);
+
+	fprintf(stderr,"CLASSCACHE after codegen: ");
+	utf_fprint_classname(stderr,m->class->name);
+	fprintf(stderr,".");
+	utf_fprint(stderr,m->name);
+	descriptor_debug_print_methoddesc(stderr,m->parseddesc);
+	fprintf(stderr,"\n");
+	classcache_debug_dump(stderr);
 
 	if (compileverbose)
 		log_message_method("Generating code done: ", m);

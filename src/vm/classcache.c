@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: classcache.c 2241 2005-04-06 15:07:46Z edwin $
 
 */
 
@@ -729,9 +729,11 @@ classcache_add_constraint(classloader *a,classloader *b,utf *classname)
 		/* clsenB will be merged into clsenA */
 		clsenA->loaders = classcache_merge_loaders(clsenA->loaders,
 												   clsenB->loaders);
+		clsenB->loaders = NULL;
 		
 		clsenA->constraints = classcache_merge_loaders(clsenA->constraints,
 													   clsenB->constraints);
+		clsenB->constraints = NULL;
 
 		if (!clsenA->classobj)
 			clsenA->classobj = clsenB->classobj;
@@ -817,14 +819,19 @@ classcache_debug_dump(FILE *file)
 
 			/* iterate over all class entries */
 			for (clsen=c->classes; clsen; clsen=clsen->next) {
-				fprintf(file,"    %s\n",(clsen->classobj) ? "loaded" : "unresolved");
-				fprintf(file,"    loaders:");
-				for (lden=clsen->loaders; lden; lden=lden->next) {
-					fprintf(file," %p",(void *)lden->loader);
+				if (clsen->classobj) {
+					fprintf(file,"    loaded %p\n",(void*)clsen->classobj);
 				}
-				fprintf(file,"\n    constraints:");
+				else {
+					fprintf(file,"    unresolved\n");
+				}
+				fprintf(file,"        loaders:");
+				for (lden=clsen->loaders; lden; lden=lden->next) {
+					fprintf(file,"<%p> %p",(void *)lden,(void *)lden->loader);
+				}
+				fprintf(file,"\n        constraints:");
 				for (lden=clsen->constraints; lden; lden=lden->next) {
-					fprintf(file," %p",(void *)lden->loader);
+					fprintf(file,"<%p> %p",(void *)lden,(void *)lden->loader);
 				}
 				fprintf(file,"\n");
 			}
