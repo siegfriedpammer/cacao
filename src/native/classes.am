@@ -102,6 +102,7 @@ CLASSES= \
 	javax.swing.Popup \
 	javax.swing.UIManager
 
+if USE_GTK_PEER
 AWT_CLASSES = \
 	java.awt.peer.ComponentPeer \
 	java.awt.Graphics\
@@ -138,3 +139,6 @@ AWT_CLASSES = \
 	gnu.java.awt.peer.gtk.GtkCheckboxMenuItemPeer \
 	gnu.java.awt.peer.gtk.GtkClipboard \
 	gnu.java.awt.peer.gtk.GtkWindowPeer
+else
+AWT_CLASSES =
+endif

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1645 2004-12-01 14:06:44Z twisti $
+# $Id: Makefile.am 1647 2004-12-01 16:10:18Z twisti $
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
@@ -26,6 +26,7 @@ nativetable.inc: $(top_srcdir)/src/classpath/lib/bootstrap.zip $(top_srcdir)/con
 	$(top_srcdir)/src/native/tools/gennativetable \
 	$(NO_REGEN_CLASSES) \
 	$(CLASSES) \
+	$(AWT_CLASSES) \
 	> nativetable.inc
 
 
