@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 730 2003-12-11 21:23:31Z edwin $
+   $Id: cacao.c 748 2003-12-13 22:13:59Z twisti $
 
 */
 
@@ -58,16 +58,52 @@
 #include "toolbox/memory.h"
 #include "parseRTstats.h"
 #include "typeinfo.h" /* XXX remove debug */
+#include "nat/java_lang_Throwable.h"
 
-bool compileall = false;
+
+/* command line option */
+
 bool verbose =  false;
+bool compileall = false;
 bool runverbose = false;
 bool collectverbose = false;
 
+bool loadverbose = false;
+bool linkverbose = false;
+bool initverbose = false;
 
-static bool showmethods = false;
-static bool showconstantpool = false;
-static bool showutf = false;
+bool opt_rt = false;            /* true if RTA parse should be used     RT-CO */
+bool opt_xta = false;           /* true if XTA parse should be used    XTA-CO */
+bool opt_vta = false;           /* true if VTA parse should be used    VTA-CO */
+
+bool showmethods = false;
+bool showconstantpool = false;
+bool showutf = false;
+
+bool compileverbose =  false;
+bool showstack = false;
+bool showdisassemble = false; 
+bool showddatasegment = false; 
+bool showintermediate = false;
+
+bool useinlining = false;
+bool inlinevirtuals = false;
+bool inlineexceptions = false;
+bool inlineparamopt = false;
+bool inlineoutsiders = false;
+
+bool checkbounds = true;
+bool checknull = true;
+bool opt_noieee = false;
+bool checksync = true;
+bool opt_loops = false;
+
+bool makeinitializations = true;
+
+bool getloadingtime = false;   /* to measure the runtime                     */
+s8 loadingtime = 0;
+
+
 static classinfo *topclass;
 
 #ifndef USE_THREADS
@@ -260,20 +296,20 @@ static void print_usage()
 
 static void print_times()
 {
-	long int totaltime = getcputime();
-	long int runtime = totaltime - loadingtime - compilingtime;
+	s8 totaltime = getcputime();
+	s8 runtime = totaltime - loadingtime - compilingtime;
 	char logtext[MAXLOGTEXT];
 
-	sprintf(logtext, "Time for loading classes: %ld secs, %ld millis",
+	sprintf(logtext, "Time for loading classes: %lld secs, %lld millis",
 			loadingtime / 1000000, (loadingtime % 1000000) / 1000);
 	log_text(logtext);
-	sprintf(logtext, "Time for compiling code:  %ld secs, %ld millis",
+	sprintf(logtext, "Time for compiling code:  %lld secs, %lld millis",
 			compilingtime / 1000000, (compilingtime % 1000000) / 1000);
 	log_text(logtext);
-	sprintf(logtext, "Time for running program: %ld secs, %ld millis",
+	sprintf(logtext, "Time for running program: %lld secs, %lld millis",
 			runtime / 1000000, (runtime % 1000000) / 1000);
 	log_text(logtext);
-	sprintf(logtext, "Total time: %ld secs, %ld millis",
+	sprintf(logtext, "Total time: %lld secs, %lld millis",
 			totaltime / 1000000, (totaltime % 1000000) / 1000);
 	log_text(logtext);
 }
@@ -473,7 +509,7 @@ void class_compile_methods ()
 				(void) jit_compile(m);
 			}
 		}
-		c = list_next (&linkedclasses, c);
+		c = list_next(&linkedclasses, c);
 	}
 }
 
@@ -490,8 +526,8 @@ void exit_handler(void)
 	/********************* Print debug tables ************************/
 				
 	if (showmethods) class_showmethods(topclass);
-	if (showconstantpool)  class_showconstantpool(topclass);
-	if (showutf)           utf_show();
+	if (showconstantpool) class_showconstantpool(topclass);
+	if (showutf) utf_show();
 
 #ifdef USE_THREADS
 	clear_thread_flags();		/* restores standard file descriptor
@@ -508,7 +544,7 @@ void exit_handler(void)
 	tables_close(literalstring_free);
 
 	if (verbose || getcompilingtime || statistics) {
-		log_text ("CACAO terminated");
+		log_text("CACAO terminated");
 		if (statistics)
 			print_stats();
 		if (getcompilingtime)
@@ -516,7 +552,6 @@ void exit_handler(void)
 		mem_usagelog(1);
 	}
 }
-
 
 
 /************************** Function: main *******************************
@@ -527,9 +562,8 @@ void exit_handler(void)
 
 int main(int argc, char **argv)
 {
-	s4 i,j;
+	s4 i, j;
 	char *cp;
-	java_objectheader *local_exceptionptr = 0;
 	void *dummy;
 	
 	/********** interne (nur fuer main relevante Optionen) **************/
@@ -575,7 +609,7 @@ int main(int argc, char **argv)
 				int n;
 				int l = strlen(opt_arg);
 				for (n = 0; n < l; n++) {
-					if (opt_arg[n]=='=') {
+					if (opt_arg[n] == '=') {
 						opt_arg[n] = '\0';
 						attach_property(opt_arg, opt_arg + n + 1);
 						goto didit;
@@ -776,25 +810,20 @@ int main(int argc, char **argv)
 		log_text("CACAO started -------------------------------------------------------");
 	}
 
-	suck_init (classpath);
-	native_setclasspath (classpath);
+	suck_init(classpath);
+	native_setclasspath(classpath);
 		
 	tables_init();
 	heap_init(heapsize, heapstartsize, &dummy);
 
-	
-	
 	log_text("calling jit_init");
 	jit_init();
 
-
-
 	log_text("calling loader_init");
-
-	loader_init((u1*)&dummy);
+	loader_init((u1 *) &dummy);
 
 	log_text("calling native_loadclasses");
-	native_loadclasses ();
+	native_loadclasses();
 
 
 	/*********************** Load JAVA classes  ***************************/
@@ -807,23 +836,25 @@ int main(int argc, char **argv)
 	topclass = loader_load(utf_new_char(cp));
 
 	if (exceptionptr != 0) {
-		printf("#### Class loader has thrown: ");
+		printf("Exception in thread \"main\" ");
 		utf_display(exceptionptr->vftbl->class->name);
+		printf(": ");
+		utf_display(javastring_toutf(((java_lang_Throwable *) exceptionptr)->detailMessage, false));
 		printf("\n");
 
 		exceptionptr = 0;
 	}
 
 	if (topclass == 0) {
-		printf("#### Could not find top class - exiting\n");
+		/* should we print out something? we already have the exception */
 		exit(1);
 	}
 
+	/* initialize the garbage collector */
+	gc_init();
 
-
-	gc_init();	
 #ifdef USE_THREADS
-	initThreads((u1*) &dummy);                   /* schani */
+  	initThreads((u1*) &dummy);
 #endif
 
 
@@ -832,17 +863,21 @@ int main(int argc, char **argv)
 	if (startit) {
 		methodinfo *mainmethod;
 		java_objectarray *a; 
+		java_objectheader *local_exceptionptr = 0;
 
-		heap_addreference((void**) &a);
+/*  		heap_addreference((void**) &a); */
 
-		mainmethod = class_findmethod (
-									   topclass,
-									   utf_new_char ("main"), 
-									   utf_new_char ("([Ljava/lang/String;)V")
-									   );
-		if (!mainmethod) panic("Can not find method 'void main(String[])'");
-		if ((mainmethod->flags & ACC_STATIC) != ACC_STATIC) panic("main is not static!");
-			
+		mainmethod = class_findmethod(topclass,
+									  utf_new_char("main"), 
+									  utf_new_char("([Ljava/lang/String;)V")
+									  );
+
+		/* there is no main method or it isn't static */
+		if (!mainmethod || !(mainmethod->flags & ACC_STATIC)) {
+			printf("Exception in thread \"main\" java.lang.NoSuchMethodError: main\n");
+			exit(1);
+		}
+
 		a = builtin_anewarray(argc - opt_ind, class_java_lang_String);
 		for (i = opt_ind; i < argc; i++) {
 			a->data[i - opt_ind] = javastring_new(utf_new_char(argv[i]));
@@ -853,18 +888,24 @@ int main(int argc, char **argv)
 		typeinfo_test();
 #endif
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
-	
-		local_exceptionptr = asm_calljavamethod (mainmethod, a, NULL, NULL, NULL );
+
+		/* here we go... */
+		local_exceptionptr = asm_calljavamethod(mainmethod, a, NULL, NULL, NULL);
 	
 		if (local_exceptionptr) {
 			printf("Exception in thread \"main\" ");
 			utf_display(local_exceptionptr->vftbl->class->name);
+
+			/* do we have a detail message? */
+			if (((java_lang_Throwable *) exceptionptr)->detailMessage) {
+				printf(": ");
+				utf_display(javastring_toutf(((java_lang_Throwable *) exceptionptr)->detailMessage, false));
+			}
 			printf("\n");
 		}
-		/*---RTAprint---*/
 
 #ifdef USE_THREADS
-		killThread(currentThread);
+  		killThread(currentThread);
 #endif
 		fprintf(stderr, "still here\n");
 	}
@@ -880,15 +921,20 @@ int main(int argc, char **argv)
 
 	if (specificmethodname) {
 		methodinfo *m;
-		if (specificsignature)
+		if (specificsignature) {
 			m = class_findmethod(topclass, 
 								 utf_new_char(specificmethodname),
 								 utf_new_char(specificsignature));
-		else
+		} else {
 			m = class_findmethod(topclass, 
-								 utf_new_char(specificmethodname), NULL);
-		if (!m) panic ("Specific method not found");
-		(void) jit_compile(m);
+								 utf_new_char(specificmethodname),
+								 NULL);
+		}
+
+		if (!m)
+			panic("Specific method not found");
+		
+		jit_compile(m);
 	}
 
 	exit(0);
