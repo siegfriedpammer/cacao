@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1628 2004-11-30 19:14:41Z carolyn $
+   $Id: exceptions.c 1630 2004-11-30 19:33:41Z carolyn $
 
 */
 
@@ -460,6 +460,7 @@ java_objectheader *new_verifyerror(methodinfo *m, char *message)
 	char *msg;
 	s4 len;
 
+	useinlining = false; /* at least until sure inlining works with exceptions*/
 	len = 8 + utf_strlen(m->class->name) +
 		10 + utf_strlen(m->name) +
 		13 + utf_strlen(m->descriptor) +

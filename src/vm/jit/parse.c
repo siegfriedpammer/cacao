@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: parse.c 1630 2004-11-30 19:33:41Z carolyn $
 
 */
 
@@ -652,7 +652,7 @@ DEBUGMETH(inline_env->method);
 			}
 
 
-                        OP(ICMD_INLINE_START);
+                        OP1(ICMD_INLINE_START,tmpinlinf->level);
 
 			if (inlinfo->inlinedmethods == NULL) {
 				gp = -1;
