@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 2108 2005-03-29 16:45:35Z twisti $
+   $Id: utf8.c 2136 2005-03-30 10:03:03Z twisti $
 
 */
 
@@ -811,6 +811,18 @@ void utf_sprint_classname(char *buffer, utf *u)
 void utf_strcat(char *buffer, utf *u)
 {
 	utf_sprint(buffer + strlen(buffer), u);
+}
+
+
+/* utf_strcat_classname ********************************************************
+	
+   Like libc strcat, but uses an utf8 string.
+
+*******************************************************************************/
+
+void utf_strcat_classname(char *buffer, utf *u)
+{
+	utf_sprint_classname(buffer + strlen(buffer), u);
 }
 
 

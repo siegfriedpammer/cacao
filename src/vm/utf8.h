@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 2109 2005-03-29 16:46:00Z twisti $
+   $Id: utf8.h 2136 2005-03-30 10:03:03Z twisti $
 
 */
 
@@ -155,7 +155,9 @@ void utf_display_classname(utf *u);
 
 void utf_sprint(char *buffer, utf *u);
 void utf_sprint_classname(char *buffer, utf *u);
+
 void utf_strcat(char *buffer, utf *u);
+void utf_strcat_classname(char *buffer, utf *u);
 
 void utf_fprint(FILE *file, utf *u);
 void utf_fprint_classname(FILE *file, utf *u);
