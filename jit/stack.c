@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1275 2004-07-05 17:27:07Z twisti $
+   $Id: stack.c 1283 2004-07-07 15:55:24Z twisti $
 
 */
 
@@ -1953,9 +1953,9 @@ methodinfo *analyse_stack(methodinfo *m)
 							REQUIRE(i);
 #if defined(__X86_64__)
 							{
-								int iarg = 0;
-								int farg = 0;
-								int stackargs = 0;
+								s4 iarg = 0;
+								s4 farg = 0;
+								s4 stackargs = 0;
 
 								copy = curstack;
 								while (--i >= 0) {
@@ -1963,8 +1963,10 @@ methodinfo *analyse_stack(methodinfo *m)
 									copy = copy->prev;
 								}
 
-								stackargs += (iarg < intreg_argnum) ? 0 : (iarg - intreg_argnum);
-								stackargs += (farg < fltreg_argnum) ? 0 : (farg - fltreg_argnum);
+								stackargs += (iarg < m->registerdata->intreg_argnum) ?
+									0 : (iarg - m->registerdata->intreg_argnum);
+								stackargs += (farg < m->registerdata->fltreg_argnum) ?
+									0 : (farg - m->registerdata->fltreg_argnum);
 
 								i = iptr->op1;
 								copy = curstack;
@@ -1972,16 +1974,16 @@ methodinfo *analyse_stack(methodinfo *m)
 									if (!(copy->flags & SAVEDVAR)) {
 										copy->varkind = ARGVAR;
 										if (IS_FLT_DBL_TYPE(copy->type)) {
-											if (--farg < fltreg_argnum) {
+											if (--farg < m->registerdata->fltreg_argnum) {
 												copy->varnum = farg;
 											} else {
-												copy->varnum = --stackargs + intreg_argnum;
+												copy->varnum = --stackargs + m->registerdata->intreg_argnum;
 											}
 										} else {
-											if (--iarg < intreg_argnum) {
+											if (--iarg < m->registerdata->intreg_argnum) {
 												copy->varnum = iarg;
 											} else {
-												copy->varnum = --stackargs + intreg_argnum;
+												copy->varnum = --stackargs + m->registerdata->intreg_argnum;
 											}
 										}
 									} else {
@@ -2426,7 +2428,7 @@ void show_icmd_method(methodinfo *m)
 	if (showdisassemble) {
 #if defined(__I386__) || defined(__X86_64__)
 		u1 *u1ptr;
-		int a;
+		s4 a;
 
 		u1ptr = m->mcode + dseglen;
 		for (i = 0; i < m->basicblocks[0].mpc; i++, u1ptr++) {
@@ -2485,7 +2487,7 @@ void show_icmd_block(methodinfo *m, basicblock *bptr)
 		if (showdisassemble && (!deadcode)) {
 #if defined(__I386__) || defined(__X86_64__)
 			u1 *u1ptr;
-			int a;
+			s4 a;
 
 			printf("\n");
 			i = bptr->mpc;
