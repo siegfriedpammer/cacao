@@ -1,5 +1,8 @@
 EXTRA_DIST = check.diff compress.diff compress.output db.diff db.output javac.diff javac.output mpegaudio.diff mpegaudio.output raytrace.diff raytrace.output
 
+JAVA = ../../cacao
+JAVAC = $(JAVA) at.dms.kjc.Main
+
 checkjvm: compress db javac mpegaudio raytrace 
 
 check compress db javac mpegaudio raytrace: force
@@ -9,10 +12,10 @@ check compress db javac mpegaudio raytrace: force
 	(cd $@; \
 	 chmod 644 *; \
 	 chmod 755 input; \
-	 sh setup.sh || true; \
-	 ../../cacao -log /dev/null sun.tools.javac.Main -d . *.java && \
-	 ../../cacao -log /dev/null Main > $@.output; \
-	 sh postoutput.sh || true; \
+	 JAVA="$(JAVA)" JAVAC="$(JAVAC)" sh setup.sh || true; \
+	 $(JAVAC) -d . *.java && \
+	 $(JAVA) Main > $@.output; \
+	 JAVA="$(JAVA)" JAVAC="$(JAVAC)" sh postoutput.sh || true; \
 	)
 	diff --brief $@/$@.output $@.output
 	rm -rf $@
