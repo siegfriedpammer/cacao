@@ -27,8 +27,6 @@
 
 #if !defined(NATIVE_THREADS)
 
-static classinfo *class_java_lang_IllegalMonitorStateException;
-
 extern thread* currentThread;
 
 mutexHashEntry *mutexHashTable;
@@ -93,11 +91,8 @@ initLocks (void)
 		conditionHashTable[i].condition.cvWaiters = 0;
 		conditionHashTable[i].condition.mux = 0;
     }
-
-	/* Load exception classes */
-    loader_load_sysclass(&class_java_lang_IllegalMonitorStateException,
-                         utf_new_char("java/lang/IllegalMonitorStateException"));
 }
+
 
 /*
  * Reorders part of the condition hash table. Must be called after an entry has been deleted.
@@ -477,7 +472,7 @@ internal_wait_cond(iMux* mux, iCv* cv, s8 timeout)
     DBG( fprintf(stderr, "waiting on %p\n", cv); );
 
     if (mux->holder != currentThread) {
-		*exceptionptr = native_new_and_init(class_java_lang_IllegalMonitorStateException);
+		*exceptionptr = new_exception(string_java_lang_IllegalMonitorStateException);
     }
 
 	assert(blockInts > 0);
@@ -521,7 +516,7 @@ internal_signal_cond (iCv* cv)
     }
 
     if (cv->mux->holder != currentThread) {
-		*exceptionptr = native_new_and_init(class_java_lang_IllegalMonitorStateException);
+		*exceptionptr = new_exception(string_java_lang_IllegalMonitorStateException);
     }
 
 	assert(blockInts > 0);
@@ -553,7 +548,7 @@ internal_broadcast_cond (iCv* cv)
     }
 
     if (cv->mux->holder != currentThread) {
-		*exceptionptr = native_new_and_init(class_java_lang_IllegalMonitorStateException);
+		*exceptionptr = new_exception(string_java_lang_IllegalMonitorStateException);
     }
 
 	assert(blockInts > 0);

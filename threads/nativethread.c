@@ -262,15 +262,21 @@ void
 initThreads(u1 *stackbottom)
 {
 	classinfo *threadclass;
+        classinfo *threadgroupclass;
 	java_lang_Thread *mainthread;
 	threadobject *tempthread = mainthreadobj;
 
-	threadclass = loader_load_sysclass(NULL,utf_new_char("java/lang/Thread"));
+	threadclass = class_new(utf_new_char("java/lang/Thread"));
+	class_load(threadclass);
+	class_link(threadclass);
+
 	assert(threadclass);
 	freeLockRecordPools(mainthreadobj->ee.lrpool);
 	threadclass->instancesize = sizeof(threadobject);
-	mainthreadobj = (threadobject*) builtin_new(threadclass);
+
+	mainthreadobj = (threadobject *) builtin_new(threadclass);
 	assert(mainthreadobj);
+
 	FREE(tempthread, threadobject);
 	initThread(&mainthreadobj->o);
 
@@ -288,7 +294,12 @@ initThreads(u1 *stackbottom)
 	mainthread->name=javastring_new(utf_new_char("main"));
 
 	/* Allocate and init ThreadGroup */
-	mainthread->group = (java_lang_ThreadGroup*)native_new_and_init(loader_load(utf_new_char("java/lang/ThreadGroup")));
+	threadgroupclass = class_new(utf_new_char("java/lang/ThreadGroup"));
+	class_load(threadgroupclass);
+	class_link(threadgroupclass);
+
+	mainthread->group =
+		(java_lang_ThreadGroup *) native_new_and_init(threadgroupclass);
 	assert(mainthread->group != 0);
 
 	pthread_attr_init(&threadattr);
@@ -325,13 +336,13 @@ static void *threadstartup(void *t)
 	/* Find the run()V method and call it */
 	method = class_findmethod(thread->o.header.vftbl->class,
 							  utf_new_char("run"), utf_new_char("()V"));
-	if (method == 0)
+	if (!method)
 		panic("Cannot find method \'void run ()\'");
 
 	asm_calljavafunction(method, thread, NULL, NULL, NULL);
 
     if (info->_exceptionptr) {
-        utf_display((info->_exceptionptr)->vftbl->class->name);
+        utf_display_classname((info->_exceptionptr)->vftbl->class->name);
         printf("\n");
     }
 
@@ -747,3 +758,17 @@ void broadcast_cond_for_object(java_objectheader *o)
 }
 
 #endif
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

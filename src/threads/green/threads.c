@@ -137,7 +137,8 @@ initThreads(u1 *stackbottom)
 	}
 
     /* Allocate a thread to be the main thread */
-    liveThreads = the_main_thread = (thread*)builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Thread")));
+    liveThreads = the_main_thread = 
+        (thread *) builtin_new(class_new(utf_new_char("java/lang/Thread")));
     assert(the_main_thread != 0);
     
     the_main_thread->PrivateInfo = 1;
@@ -188,14 +189,17 @@ printf("DEADCODE LIVES ?????????\n");fflush(stdout);
 	/*the_main_thread->values = 0;*/
 
 	/* Allocate and init ThreadGroup */
-	the_main_thread->group = (threadGroup*)native_new_and_init(loader_load(utf_new_char("java/lang/ThreadGroup")));
+	the_main_thread->group =
+        (threadGroup *) native_new_and_init(class_load(class_new(utf_new_char("java/lang/ThreadGroup"))));
 	assert(the_main_thread->group != 0);
 
 	talive++;
 
 	/* Load exception classes */
-    loader_load_sysclass(&class_java_lang_ThreadDeath,
-                         utf_new_char("java/lang/ThreadDeath"));
+/*      loader_load_sysclass(&class_java_lang_ThreadDeath, */
+/*                           utf_new_char("java/lang/ThreadDeath")); */
+    class_java_lang_ThreadDeath =
+        class_load(class_new(utf_new_char("java/lang/ThreadDeath")));
 
 	DBG( fprintf(stderr, "finishing initThreads\n"); );
 
@@ -252,18 +256,18 @@ startThread (thread* tid)
 	iresumeThread(tid);
 }
 
+
 /*
  * Start a daemon thread.
  */
-static thread*
-startDaemon(void* func, char* nm, int stackSize)
+static thread *startDaemon(void* func, char* nm, int stackSize)
 {
     thread* tid;
     int i;
 
     DBG( printf("startDaemon %s\n", nm); );
 
-	tid = (thread*)builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Thread")));
+	tid = (thread *) builtin_new(class_new(utf_new_char("java/lang/Thread")));
 	assert(tid != 0);
 
 	for (i = 0; i < MAXTHREADS; ++i)
