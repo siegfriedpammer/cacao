@@ -8,7 +8,7 @@ EXTRA_DIST = x.java x.output \
 
 check_DATA = checkall
 
-checkall: x.tst jctest.tst fp.tst fptest.tst GCBench.tstrun
+checkall: x.tst jctest.tst fp.tst fptest.tst TestArrayClasses.tst GCBench.tstrun
 
 %.tst:
 	../cacao sun.tools.javac.Main $*.java

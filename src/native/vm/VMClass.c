@@ -242,37 +242,6 @@ JNIEXPORT struct java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassL
  * Method:    getModifiers
  * Signature: ()I
  */
-/* XXX delete */
-#if 0
-JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType (JNIEnv *env ,  struct java_lang_VMClass* this )
-{
-  classinfo *c = NULL; 
-
-  if ((classinfo*) (this->vmData) == class_array) {
-	java_arrayheader *a = (java_arrayheader*) (this->vmData);
-
-	/* determine componenttype */
-	switch (a->arraytype) {
-	   case ARRAYTYPE_BYTE:    c = class_java_lang_Byte; break;  
-           case ARRAYTYPE_BOOLEAN: c = class_java_lang_Boolean; break;   
-	   case ARRAYTYPE_CHAR:    c = class_java_lang_Character; break;   
- 	   case ARRAYTYPE_SHORT:   c = class_java_lang_Short; break;    
-	   case ARRAYTYPE_INT:     c = class_java_lang_Integer; break;   
-	   case ARRAYTYPE_LONG:    c = class_java_lang_Long; break;   
-	   case ARRAYTYPE_FLOAT:   c = class_java_lang_Float; break;   
-	   case ARRAYTYPE_DOUBLE:  c = class_java_lang_Double; break;   
-	   case ARRAYTYPE_OBJECT:  c = ((java_objectarray*) a) -> elementtype; break;
-	   case ARRAYTYPE_ARRAY:   c = (classinfo *) ((java_arrayarray*) a) -> data[0]; break;
-	   default: panic("illegal arraytype");
-	}		
-
-	/* set vftbl */
-	use_class_as_object (c);
-  }
-  
-  return (java_lang_Class*) c;
-}
-#endif
 JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType (JNIEnv *env ,  struct java_lang_VMClass* this )
 {
     classinfo *thisclass = (classinfo*) (this->vmData);
@@ -731,16 +700,6 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass (
  * Method:    isArray
  * Signature: ()Z
  */
-/* XXX delete */
-#if 0
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray ( JNIEnv *env ,  struct java_lang_VMClass* this)
-{
-        classinfo *c = (classinfo*) (this->vmData);
-
-	if (c == class_array || c->name->text[0] == '[')  return true;
-	return false;
-}
-#endif
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray ( JNIEnv *env ,  struct java_lang_VMClass* this)
 {
     classinfo *c = (classinfo*) (this->vmData);

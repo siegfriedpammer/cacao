@@ -57,8 +57,8 @@ void dolog()
 		fflush (logfile);
 		}
 	else {
-		printf ("LOG: %s\n",logtext);
-		fflush (stdout);
+		fprintf (stderr,"LOG: %s\n",logtext);
+		fflush (stderr);
 		}
 }
 

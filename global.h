@@ -29,8 +29,9 @@
 
    Changes: Mark Probst
             Philipp Tomsich
+			Edwin Steiner
 
-   $Id: global.h 664 2003-11-21 18:24:01Z jowenn $
+   $Id: global.h 669 2003-11-23 14:04:20Z edwin $
 
 */
 
@@ -306,24 +307,6 @@ typedef struct {            /* NameAndType (Field or Method)                  */
 } constant_nameandtype;
 
 
-/* 
-   arraydescriptor describes array types. Basic array types contain their
-   type in the arraytype field, objectclass contains a class pointer for
-   arrays of objects (arraytype == ARRAYTYPE_OBJECT), elementdescriptor
-   contains a pointer to an arraydescriptor which describes the element
-   types in the case of arrays of arrays (arraytype == ARRAYTYPE_ARRAY).
-*/
-
-/* XXX delete */
-#if 0
-typedef struct constant_arraydescriptor {
-	int arraytype;
-	classinfo *objectclass;
-	struct constant_arraydescriptor *elementdescriptor;
-} constant_arraydescriptor;
-#endif
-
-
 /* data structures of the runtime system **************************************/
 
 /* objects *********************************************************************
@@ -340,10 +323,10 @@ struct java_objectheader {              /* header for all objects             */
 
 /* arrays **********************************************************************
 
-	All arrays are objects (they need the object header with a pointer to a
-	vvftbl (array class table). There is only one class for all arrays. The    XXX change
-	type of an array is stored directly in the array object. Following types
-	are defined:
+	All arrays are objects (they need the object header with a pointer
+	to a vftbl (array class table). There is one class for each array
+	type. The array type is described by an arraydescriptor struct
+	which is referenced by the vftbl.
 */
 
 /* CAUTION: Don't change the numerical values! These constants (with
@@ -422,15 +405,6 @@ typedef struct java_objectarray {
 	java_arrayheader header;
 	java_objectheader *data[1];
 } java_objectarray;
-
-/* XXX delete */
-#if 0
-typedef struct java_arrayarray {
-	java_arrayheader header;
-	constant_arraydescriptor *elementdescriptor;
-	java_arrayheader *data[1];
-} java_arrayarray;
-#endif
 
 /* structure for primitive classes ********************************************/
 

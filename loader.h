@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 664 2003-11-21 18:24:01Z jowenn $
+   $Id: loader.h 669 2003-11-23 14:04:20Z edwin $
 */
 
 
@@ -107,9 +107,6 @@ classinfo *class_primitive_from_sig(char sig);
 #define CLASSLOAD_NEW   1
 #define CLASSLOAD_LOAD  2
 classinfo *class_from_descriptor(char *utf_ptr,char *end_ptr,char **next,int mode);
-
-/* create class representing specific arraytype */ /* XXX delete */
-classinfo *create_array_class(utf *u);
 
 /* (used by class_new, don't use directly) */
 void class_new_array(classinfo *c);

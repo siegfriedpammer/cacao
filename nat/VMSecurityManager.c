@@ -19,15 +19,6 @@ JNIEXPORT struct java_lang_ClassLoader* JNICALL Java_java_lang_VMSecurityManager
  * Method:    getClassContext
  * Signature: ()[Ljava/lang/Class;
  */
-/* XXX delete */
-#if 0
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMSecurityManager_getClassContext ( JNIEnv *env ,jclass clazz)
-{
-  log_text("Java_java_lang_VMSecurityManager_getClassContext  called");
-#warning return something more usefull here
-  return builtin_anewarray(0, class_java_lang_Class);
-}
-#endif
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMSecurityManager_getClassContext ( JNIEnv *env ,jclass clazz)
 {
   log_text("Java_java_lang_VMSecurityManager_getClassContext  called");

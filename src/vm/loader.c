@@ -29,7 +29,7 @@
             Roman Obermaiser
             Mark Probst
 
-   $Id: loader.c 664 2003-11-21 18:24:01Z jowenn $
+   $Id: loader.c 669 2003-11-23 14:04:20Z edwin $
 
 */
 
@@ -171,50 +171,6 @@ java_objectheader *proto_java_lang_OutOfMemoryError;
 java_objectheader *proto_java_lang_ArithmeticException;
 java_objectheader *proto_java_lang_ArrayStoreException;
 java_objectheader *proto_java_lang_ThreadDeath;
-
-/* XXX delete */
-#if 0
-void override_array_class(classinfo *c) {
-	int i;
-	classinfo *sup;
-	utf *u=utf_new_char("clone");
-	sup=c->super;
-	class_showmethods(c);
-
-	for (i=0;i<sup->methodscount;i++) {
-		if (sup->methods[i].name==u) {
-		        method_clone_array.class = c;
-        		method_clone_array. flags = ACC_PUBLIC;
-        		method_clone_array.name =  utf_new_char("clone");
-        		method_clone_array.descriptor = utf_new_char("()Ljava/lang/Object;");
-
-			method_clone_array.jcode = NULL;
-        		method_clone_array.exceptiontable = NULL;
-        		method_clone_array.entrypoint = NULL;
-	        	method_clone_array.mcode = NULL;
-        		method_clone_array.stubroutine = NULL;
-	        	method_clone_array.methodUsed = NOTUSED;
-        		method_clone_array.monoPoly = MONO;
-	        	method_clone_array.subRedefs = 0;
-	        	method_clone_array.subRedefsUsed = 0;
-			method_clone_array.flags=0;
-	        	method_clone_array.xta = NULL;
-                        method_clone_array.stubroutine = createnativestub (&builtin_clone_array, &method_clone_array);
-			c->vftbl->table[sup->methods[i].vftblindex]=method_clone_array.stubroutine;
-			log_text("Found !!!! :)))))))))))))))))))))))))))))))))))))))))))))))))");
-		}
-	
-
-	}
-}
-#endif
-
-
-
-
-
-
-
 
 
 /************* functions for reading classdata *********************************
@@ -442,12 +398,6 @@ bool suck_start (utf *classname) {
 			classfile = fopen(filename, "r");
 			if (classfile) {                                       /* file exists */
 
-				/* XXX remove */
-				/*
-				  sprintf(logtext,"Opening file: %s",filename);
-				  dolog();
-				*/
-			
 				/* determine size of classfile */
 
 				err = stat (filename, &buffer);
@@ -656,7 +606,7 @@ static void checkfielddescriptor (char *utf_ptr, char *end_pos)
 {
 	char *tstart;  /* pointer to start of classname */
 	char ch;
-	char *start = utf_ptr; /* XXX remove */
+	char *start = utf_ptr;
 
 	switch (*utf_ptr++) {
 	  case 'B':
@@ -698,7 +648,7 @@ static void checkmethoddescriptor (utf *d)
 	char *end_pos = utf_end(d);  /* points behind utf string       */
 	char *tstart;                /* pointer to start of classname  */
 	char c,ch;
-	char *start; /* XXX remove */
+	char *start;
 
 	/* method descriptor must start with parenthesis */
 	/* XXX check length */
@@ -707,7 +657,7 @@ static void checkmethoddescriptor (utf *d)
 	/* XXX check length */
 	/* check arguments */
 	while ((c = *utf_ptr++) != ')') {
-		start = utf_ptr-1; /* XXX remove */
+		start = utf_ptr-1;
 		
 		switch (c) {
 		case 'B':
@@ -741,99 +691,6 @@ static void checkmethoddescriptor (utf *d)
 		/* treat as field-descriptor */
 		checkfielddescriptor (utf_ptr,end_pos);
 }
-
-
-/******************** Function: buildarraydescriptor ***************************
-
-	creates a constant_arraydescriptor structure for the array type named by an
-	utf string
-	
-*******************************************************************************/
-
-/* XXX delete */
-#if 0
-constant_arraydescriptor * buildarraydescriptor(char *utf_ptr, u4 namelen)
-{
-	constant_arraydescriptor *d;
-
-	/* class_new( utf_new(utf_ptr,namelen) ); */ /* XXX remove */
-	
-	if (*utf_ptr++ != '[') panic ("Attempt to build arraydescriptor for non-array");
-
-	d = NEW (constant_arraydescriptor);
-	d -> objectclass = NULL;
-	d -> elementdescriptor = NULL;
-
-#ifdef STATISTICS
-	count_const_pool_len += sizeof(constant_arraydescriptor);
-#endif
-
-	switch (*utf_ptr) {
-	case 'Z': d -> arraytype = ARRAYTYPE_BOOLEAN; break;
-	case 'B': d -> arraytype = ARRAYTYPE_BYTE; break;
-	case 'C': d -> arraytype = ARRAYTYPE_CHAR; break;
-	case 'D': d -> arraytype = ARRAYTYPE_DOUBLE; break;
-	case 'F': d -> arraytype = ARRAYTYPE_FLOAT; break;
-	case 'I': d -> arraytype = ARRAYTYPE_INT; break;
-	case 'J': d -> arraytype = ARRAYTYPE_LONG; break;
-	case 'S': d -> arraytype = ARRAYTYPE_SHORT; break;
-
-	case '[':
-		d -> arraytype = ARRAYTYPE_ARRAY; 
-		d -> elementdescriptor = buildarraydescriptor (utf_ptr, namelen-1);
-		break;
-		
-	case 'L':
-		d -> arraytype = ARRAYTYPE_OBJECT;
-
-		d -> objectclass = class_new ( utf_new(utf_ptr+1, namelen-3) );
-                d -> objectclass  -> classUsed = NOTUSED; /* not used initially CO-RT */
-		d -> objectclass  -> impldBy = NULL;
-		break;
-	}
-	return d;
-}
-#endif
-
-
-/******************* Function: freearraydescriptor *****************************
-
-	removes a structure created by buildarraydescriptor from memory
-	
-*******************************************************************************/
-
-/* XXX delete */
-#if 0
-static void freearraydescriptor (constant_arraydescriptor *d)
-{
-	while (d) {
-		constant_arraydescriptor *n = d->elementdescriptor;
-		FREE (d, constant_arraydescriptor);
-		d = n;
-		}
-}
-#endif
-
-/*********************** Function: displayarraydescriptor *********************/
-
-/* XXX delete */
-#if 0
-static void displayarraydescriptor (constant_arraydescriptor *d)
-{
-	switch (d->arraytype) {
-	case ARRAYTYPE_BOOLEAN: printf ("boolean[]"); break;
-	case ARRAYTYPE_BYTE: printf ("byte[]"); break;
-	case ARRAYTYPE_CHAR: printf ("char[]"); break;
-	case ARRAYTYPE_DOUBLE: printf ("double[]"); break;
-	case ARRAYTYPE_FLOAT: printf ("float[]"); break;
-	case ARRAYTYPE_INT: printf ("int[]"); break;
-	case ARRAYTYPE_LONG: printf ("long[]"); break;
-	case ARRAYTYPE_SHORT: printf ("short[]"); break;
-	case ARRAYTYPE_ARRAY: displayarraydescriptor(d->elementdescriptor); printf("[]"); break;
-	case ARRAYTYPE_OBJECT: utf_display(d->objectclass->name); printf("[]"); break;
-	}
-}
-#endif
 
 /***************** Function: print_arraydescriptor ****************************
 
@@ -1554,9 +1411,6 @@ static int class_load (classinfo *c)
 	count_class_loads++;
 #endif
 
-	/* XXX remove */
-	/*	loadverbose = 1; */
-	
 	/* output for debugging purposes */
 	if (loadverbose) {		
 
@@ -1745,13 +1599,6 @@ class_new_array(classinfo *c)
 	methodinfo *clone;
 	int namelen;
 
-	/* XXX remove logging */
-	/*
-	sprintf(logtext,"new array class: ");
-	utf_sprint(logtext+strlen(logtext),c->name);
-	dolog();
-	*/
-	
 	/* Array classes are not loaded from classfiles. */
 	list_remove (&unloadedclasses, c);
 
@@ -1768,15 +1615,6 @@ class_new_array(classinfo *c)
 		  break;
 
 	  case 'L':
-		  /* XXX remove logging */
-		  /*
-		  sprintf(logtext,"Component class: ");
-		  utf_sprint(logtext+strlen(logtext),utf_new(c->name->text + 2,namelen - 3));
-		  dolog();
-		  if (class_get(utf_new(c->name->text + 2,namelen - 3)))
-			  log_text("Already created.");
-		  */
-		  
 		  /* c is an array of objects. */
 		  if (namelen < 4 || c->name->text[namelen-1] != ';')
 			  panic("Invalid array class name.");
@@ -1836,15 +1674,6 @@ class_link_array(classinfo *c)
 	arraydescriptor *desc;
 	vftbl *compvftbl;
 
-	/* XXX remove logging */
-
-	/*
-	  sprintf(logtext,"linking array class: ");
-	  utf_sprint(logtext+strlen(logtext),c->name);
-	  dolog();
-	*/
-	
-	
 	/* Check the component type */
 	switch (c->name->text[1]) {
 	  case '[':
@@ -1923,12 +1752,6 @@ class_link_array(classinfo *c)
 		desc->dimension = 1;
 	}
 
-	/* XXX remove logging */
-	/*
-	  print_arraydescriptor(stdout,desc); 
-	  printf("\n");
-	*/
-
 	return desc;
 }
 
@@ -1960,13 +1783,6 @@ void class_link(classinfo *c)
 	arraydescriptor *arraydesc = NULL;  /* descriptor for array classes       */
 
 
-	/* XXX remove log */
-	/*
-	  sprintf(logtext,"trying to link: ");
-	  utf_sprint(logtext+strlen(logtext),c->name);
-	  dolog();
-	*/
-	
 	/*  check if all superclasses are already linked, if not put c at end of
 	    unlinked list and return. Additionally initialize class fields.       */
 
@@ -3059,27 +2875,6 @@ classinfo *class_from_descriptor(char *utf_ptr,char *end_ptr,char **next,int mod
 		  return class_primitive_from_sig(*start);
 	}
 }
-
-/***************** function: create_array_class ********************************
-
-	create class representing an array
-
-********************************************************************************/
-
-/* XXX delete */
-#if 0
-classinfo *create_array_class(utf *u)
-{  
-	classinfo *c = class_new (u);
-	/* prevent loader from loading the array class */
-	list_remove (&unloadedclasses, c);
-	/* add to unlinked classes */
-	list_addlast (&unlinkedclasses, c);
-	c -> super = class_java_lang_Object;
-	class_link(c);
-	return c;
-}
-#endif
 
 /*************** function: create_pseudo_classes *******************************
 

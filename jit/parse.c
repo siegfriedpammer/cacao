@@ -28,7 +28,7 @@
 
    Changes: Carolyn Oates
 
-   $Id: parse.c 665 2003-11-21 18:36:43Z jowenn $
+   $Id: parse.c 669 2003-11-23 14:04:20Z edwin $
 
 */
 
@@ -650,9 +650,6 @@ void parse()
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
 		s_count += stackreq[opcode];      	/* compute stack element count    */
 
-		/* XXX remove log */
-		/*		log_text(opcode_names[opcode]); */
-		
 		switch (opcode) {
 		case JAVA_NOP:
 			break;

@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 664 2003-11-21 18:24:01Z jowenn $
+   $Id: builtin.c 669 2003-11-23 14:04:20Z edwin $
 
 */
 
@@ -235,16 +235,6 @@ s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
 {
 #ifdef DEBUG
 	log_text ("builtin_instanceof called");
-
-	/* XXX remove log */
-	/*
-	sprintf(logtext,"instanceof(");
-	utf_sprint(logtext+strlen(logtext),obj->vftbl->class->name);
-	sprintf(logtext+strlen(logtext),",");
-	utf_sprint(logtext+strlen(logtext),class);
-	sprintf(logtext+strlen(logtext),")");
-	dolog();
-	*/
 #endif	
 	if (!obj) return 0;
 	return builtin_isanysubclass (obj->vftbl->class, class);
@@ -266,16 +256,6 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 	log_text("builtin_checkcast called");
 #endif
 
-	/* XXX remove log */
-	/*
-	sprintf(logtext,"checkcast(");
-	utf_sprint(logtext+strlen(logtext),obj->vftbl->class->name);
-	sprintf(logtext+strlen(logtext),",");
-	utf_sprint(logtext+strlen(logtext),class);
-	sprintf(logtext+strlen(logtext),")");
-	dolog();
-	*/
-	
 	if (obj == NULL)
 		return 1;
 	if (builtin_isanysubclass(obj->vftbl->class, class))
@@ -300,24 +280,6 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 				   0 ... otherwise
 			
 ******************************************************************************/
-
-/* XXX delete */
-#if 0
-static s4 builtin_descriptorscompatible(constant_arraydescriptor *desc, constant_arraydescriptor *target)
-{
-	if (desc == target) return 1;
-	if (desc->arraytype != target->arraytype) return 0;
-
-	switch (target->arraytype) {
-	case ARRAYTYPE_OBJECT: 
-		return builtin_isanysubclass(desc->objectclass, target->objectclass);
-	case ARRAYTYPE_ARRAY:
-		return builtin_descriptorscompatible 
-			(desc->elementdescriptor, target->elementdescriptor);
-	default: return 1;
-	}
-}
-#endif
 
 /* XXX inline this? */
 static s4 builtin_descriptorscompatible(arraydescriptor *desc,arraydescriptor *target)
@@ -352,55 +314,6 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,arraydescriptor *t
 			
 *****************************************************************************/
 
-/* XXX delete */
-#if 0
-s4 builtin_checkarraycast(java_objectheader *o, constant_arraydescriptor *desc)
-{
-	java_arrayheader *a = (java_arrayheader*) o;
-
-	if (!o) return 1;
-	if (o->vftbl->class != class_array) {
-#ifdef DEBUG
-		printf("#### checkarraycast failed 1\n");
-#endif
-		return 0;
-	}
-		
-	if (a->arraytype != desc->arraytype) {
-#ifdef DEBUG
-		printf("#### checkarraycast failed 2\n");
-#endif
-		return 0;
-	}
-	
-	switch (a->arraytype) {
-	case ARRAYTYPE_OBJECT: {
-		java_objectarray *oa = (java_objectarray*) o;
-		int result = builtin_isanysubclass(oa->elementtype, desc->objectclass);
-
-#ifdef DEBUG
-		if (!result)
-			printf("#### checkarraycast failed 3\n");
-#endif
-		return result;
-	}
-	case ARRAYTYPE_ARRAY: {
-		java_arrayarray *aa = (java_arrayarray*) o;
-		int result = builtin_descriptorscompatible
-			(aa->elementdescriptor, desc->elementdescriptor);
-
-#ifdef DEBUG
-		if (!result)
-			printf("#### checkarraycast failed 4\n");
-#endif
-		return result;
-	}
-	default:   
-		return 1;
-	}
-}
-#endif
-
 s4 builtin_checkarraycast(java_objectheader *o,arraydescriptor *target)
 {
 	arraydescriptor *desc;
@@ -410,15 +323,6 @@ s4 builtin_checkarraycast(java_objectheader *o,arraydescriptor *target)
 
 	return builtin_descriptorscompatible(desc,target);
 }
-
-/* XXX delete */
-#if 0
-s4 builtin_arrayinstanceof(java_objectheader *obj, constant_arraydescriptor *desc)
-{
-	if (!obj) return 1;
-	return builtin_checkarraycast (obj, desc);
-}
-#endif
 
 s4 builtin_arrayinstanceof(java_objectheader *obj,arraydescriptor *desc)
 {
@@ -464,35 +368,6 @@ java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr
 
 ******************************************************************************/
 
-/* XXX delete */
-#if 0
-s4 builtin_canstore(java_objectarray *a, java_objectheader *o)
-{
-	if (!o) return 1;
-	
-	switch (a->header.arraytype) {
-	case ARRAYTYPE_OBJECT:
-		if (!builtin_checkcast(o, a->elementtype)) {
-			return 0;
-		}
-		return 1;
-		break;
-
-	case ARRAYTYPE_ARRAY:
-		if (!builtin_checkarraycast 
-			(o, ((java_arrayarray*)a)->elementdescriptor)) {
-			return 0;
-		}
-		return 1;
-		break;
-
-	default:
-		panic("builtin_canstore called with invalid arraytype");
-		return 0;
-	}
-}
-#endif
-
 s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 {
 	arraydescriptor *desc;
@@ -515,23 +390,12 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
     componentvftbl = desc->componentvftbl;
 	valuevftbl = o->vftbl;
 
-	/* XXX remove log */
-	/*
-	log_text("builtin_canstore");
-	print_arraydescriptor(stdout,desc);
-	utf_sprint(logtext,valuevftbl->class->name);
-	dolog();
-	*/
-
     if ((dim_m1 = desc->dimension - 1) == 0) {
 		/* {a is a one-dimensional array} */
 		/* {a is an array of references} */
 		
 		if (valuevftbl == componentvftbl)
 			return 1;
-
-		/* XXX remove log */
-		/* log_text("not same vftbl"); */
 
 		if ((base = componentvftbl->baseval) <= 0)
 			/* an array of interface references */
@@ -652,18 +516,19 @@ java_objectheader *builtin_new(classinfo *c)
 	return o;
 }
 
+/********************** Function: builtin_newarray **************************
 
+	Creates an array with the given vftbl on the heap.
 
+	Return value:  pointer to the array or NULL if no memory is available
+
+    CAUTION: The given vftbl must be the vftbl of the *array* class,
+    not of the element class.
+
+*****************************************************************************/
 
 java_arrayheader *builtin_newarray(s4 size,vftbl *arrayvftbl)
 {
-        /* XXX remove log */
-        /*
-        sprintf(logtext,"newarray size=%d class=",size);
-        utf_sprint(logtext+strlen(logtext),arrayvftbl->class->name);
-        dolog();
-        */
-
         java_arrayheader *a;
         arraydescriptor *desc = arrayvftbl->arraydesc;
         s4 dataoffset = desc->dataoffset;
@@ -690,148 +555,49 @@ java_arrayheader *builtin_newarray(s4 size,vftbl *arrayvftbl)
         return a;
 }
 
+/********************** Function: builtin_anewarray *************************
+
+	Creates an array of references to the given class type on the heap.
+
+	Return value:  pointer to the array or NULL if no memory is available
+
+    XXX This function does not do The Right Thing, because it uses a
+    classinfo pointer at runtime. builtin_newarray should be used
+    instead.
+
+*****************************************************************************/
+
 java_objectarray *
 builtin_anewarray(s4 size,classinfo *component)
 {
 	return (java_objectarray*) builtin_newarray(size,class_array_of(component)->vftbl);
 }
 
-/* XXX delete */
-#if 0
-java_objectarray *builtin_anewarray (s4 size, classinfo *elementtype)
-{
-	java_objectarray *a;	
-	a = (java_objectarray*)__builtin_newarray(sizeof(java_objectarray),
-											  size, 
-											  true, 
-											  sizeof(void*), 
-											  ARRAYTYPE_OBJECT,
-											  elementtype);
-	if (!a) return NULL;
+/******************** Function: builtin_newarray_int ***********************
 
-	a->elementtype = elementtype;
-	return a;
-}
-#endif
+	Creates an array of 32 bit Integers on the heap.
 
-/******************** function: builtin_newarray_array ***********************
-
-	Creates an array of pointers to arrays on the heap.
-	Parameters:
-		size ......... number of elements
-	elementdesc .. pointer to the array description structure for the
-				   element arrays
-	
 	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
-
-/* XXX delete */
-#if 0
-java_arrayarray *builtin_newarray_array 
-		(s4 size, constant_arraydescriptor *elementdesc)
-{
-	java_arrayarray *a; 
-	a = (java_arrayarray*)__builtin_newarray(sizeof(java_arrayarray),
-											 size, 
-											 true, 
-											 sizeof(void*), 
-											 ARRAYTYPE_ARRAY,
-											 elementdesc->objectclass);
-	if (!a) return NULL;
-
-	a->elementdescriptor = elementdesc;
-	return a;
-}
-#endif
-
-
-/******************** function: builtin_newarray_boolean ************************
-
-	Creates an array of bytes on the heap. The array is designated as an array
-	of booleans (important for casts)
-	
-	Return value:  pointer to the array or NULL if no memory is available
-
-*****************************************************************************/
-
-/* XXX delete */
-#if 0
-java_booleanarray *builtin_newarray_boolean (s4 size)
-{
-	java_booleanarray *a;	
-	a = (java_booleanarray*)__builtin_newarray(sizeof(java_booleanarray),
-											   size, 
-											   false, 
-											   sizeof(u1), 
-											   ARRAYTYPE_BOOLEAN,
-											   NULL);
-	return a;
-}
-#endif
 
 java_intarray *builtin_newarray_int (s4 size)
 {
 	return (java_intarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_INT].arrayvftbl);
 }
 
-java_longarray *builtin_newarray_long (s4 size)
-{
-	return (java_longarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_LONG].arrayvftbl);
-}
+/******************** Function: builtin_newarray_long ***********************
 
-java_floatarray *builtin_newarray_float (s4 size)
-{
-	return (java_floatarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_FLOAT].arrayvftbl);
-}
-
-java_doublearray *builtin_newarray_double (s4 size)
-{
-	return (java_doublearray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_DOUBLE].arrayvftbl);
-}
-
-java_bytearray *builtin_newarray_byte (s4 size)
-{
-	return (java_bytearray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_BYTE].arrayvftbl);
-}
-
-java_chararray *builtin_newarray_char (s4 size)
-{
-	return (java_chararray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl);
-}
-
-java_shortarray *builtin_newarray_short (s4 size)
-{
-	return (java_shortarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_SHORT].arrayvftbl);
-}
-
-java_booleanarray *builtin_newarray_boolean (s4 size)
-{
-	return (java_booleanarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_BOOLEAN].arrayvftbl);
-}
-
-/******************** function: builtin_newarray_char ************************
-
-	Creates an array of characters on the heap.
+	Creates an array of 64 bit Integers on the heap.
 
 	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
 
-/* XXX delete */
-#if 0
-java_chararray *builtin_newarray_char (s4 size)
+java_longarray *builtin_newarray_long (s4 size)
 {
-	java_chararray *a;	
-	a = (java_chararray*)__builtin_newarray(sizeof(java_chararray),
-											size, 
-											false, 
-											sizeof(u2), 
-											ARRAYTYPE_CHAR,
-											NULL);
-	return a;
+	return (java_longarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_LONG].arrayvftbl);
 }
-
 
 /******************** function: builtin_newarray_float ***********************
 
@@ -841,19 +607,10 @@ java_chararray *builtin_newarray_char (s4 size)
 
 *****************************************************************************/
 
-/* XXX delete */
 java_floatarray *builtin_newarray_float (s4 size)
 {
-	java_floatarray *a; 
-	a = (java_floatarray*)__builtin_newarray(sizeof(java_floatarray),
-											 size, 
-											 false, 
-											 sizeof(float), 
-											 ARRAYTYPE_FLOAT,
-											 NULL);
-	return a;
+	return (java_floatarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_FLOAT].arrayvftbl);
 }
-
 
 /******************** function: builtin_newarray_double ***********************
 
@@ -865,18 +622,8 @@ java_floatarray *builtin_newarray_float (s4 size)
 
 java_doublearray *builtin_newarray_double (s4 size)
 {
-	java_doublearray *a;	
-	a = (java_doublearray*)__builtin_newarray(sizeof(java_doublearray),
-											  size, 
-											  false, 
-											  sizeof(double), 
-											  ARRAYTYPE_DOUBLE,
-											  NULL);
-	return a;
+	return (java_doublearray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_DOUBLE].arrayvftbl);
 }
-
-
-
 
 /******************** function: builtin_newarray_byte ***********************
 
@@ -886,19 +633,23 @@ java_doublearray *builtin_newarray_double (s4 size)
 
 *****************************************************************************/
 
-/* XXX delete */
 java_bytearray *builtin_newarray_byte (s4 size)
 {
-	java_bytearray *a;	
-	a = (java_bytearray*)__builtin_newarray(sizeof(java_bytearray),
-											size, 
-											false, 
-											sizeof(u1), 
-											ARRAYTYPE_BYTE,
-											NULL);
-	return a;
+	return (java_bytearray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_BYTE].arrayvftbl);
 }
 
+/******************** function: builtin_newarray_char ************************
+
+	Creates an array of characters on the heap.
+
+	Return value:  pointer to the array or NULL if no memory is available
+
+*****************************************************************************/
+
+java_chararray *builtin_newarray_char (s4 size)
+{
+	return (java_chararray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl);
+}
 
 /******************** function: builtin_newarray_short ***********************
 
@@ -908,210 +659,24 @@ java_bytearray *builtin_newarray_byte (s4 size)
 
 *****************************************************************************/
 
-/* XXX delete */
-java_shortarray *builtin_newarray_short(s4 size)
+java_shortarray *builtin_newarray_short (s4 size)
 {
-	java_shortarray *a; 
-	a = (java_shortarray*)__builtin_newarray(sizeof(java_shortarray),
-											 size, 
-											 false, 
-											 sizeof(s2), 
-											 ARRAYTYPE_SHORT,
-											 NULL);
-	return a;
+	return (java_shortarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_SHORT].arrayvftbl);
 }
 
+/******************** function: builtin_newarray_boolean ************************
 
-/******************** Function: builtin_newarray_int ***********************
-
-	Creates an array of 32 bit Integers on the heap.
-
+	Creates an array of bytes on the heap. The array is designated as an array
+	of booleans (important for casts)
+	
 	Return value:  pointer to the array or NULL if no memory is available
 
 *****************************************************************************/
 
-<<<<<<< builtin.c
-/* XXX delete */
-java_intarray *builtin_newarray_int(s4 size)
+java_booleanarray *builtin_newarray_boolean (s4 size)
 {
-	java_intarray *a;	
-	a = (java_intarray*)__builtin_newarray(sizeof(java_intarray),
-										   size, 
-										   false, 
-										   sizeof(s4), 
-										   ARRAYTYPE_INT,
-										   NULL);
-
-#if 0
-	if (a == NULL) {
-		asm_handle_builtin_exception(proto_java_lang_OutOfMemoryError);
-	}
-#endif
-
-	return a;
+	return (java_booleanarray*) builtin_newarray(size,primitivetype_table[ARRAYTYPE_BOOLEAN].arrayvftbl);
 }
-
-
-/******************** Function: builtin_newarray_long ***********************
-
-	Creates an array of 64 bit Integers on the heap.
-
-	Return value:  pointer to the array or NULL if no memory is available
-
-*****************************************************************************/
-
-<<<<<<< builtin.c
-/* XXX delete */
-java_longarray *builtin_newarray_long(s4 size)
-{
-	java_longarray *a;	
-	a = (java_longarray*)__builtin_newarray(sizeof(java_longarray),
-											size, 
-											false, 
-											sizeof(s8), 
-											ARRAYTYPE_LONG,
-											NULL);
-	return a;
-}
-
-
-/* XXX delete */
-/***************** function: builtin_multianewarray ***************************
-
-	Creates a multi-dimensional array on the heap. The dimensions are passed in
-	an array of Integers. The type for the array is passed as a reference to a
-	constant_arraydescriptor structure.
-
-	Return value:  pointer to the array or NULL if no memory is available
-
-******************************************************************************/
-
-	/* Helper functions */
-
-/* XXX delete */
-static java_arrayheader *multianewarray_part(java_intarray *dims, int thisdim,
-											 constant_arraydescriptor *desc)
-{
-	u4 size,i;
-	java_arrayarray *a;
-
-	size = dims->data[thisdim];
-	
-	if (thisdim == (dims->header.size - 1)) {
-		/* last dimension reached */
-		
-		switch (desc -> arraytype) {
-		case ARRAYTYPE_BOOLEAN:	 
-			return (java_arrayheader*) builtin_newarray_boolean(size);
-		case ARRAYTYPE_CHAR:  
-			return (java_arrayheader*) builtin_newarray_char(size);
-		case ARRAYTYPE_FLOAT:  
-			return (java_arrayheader*) builtin_newarray_float(size);
-		case ARRAYTYPE_DOUBLE:	
-			return (java_arrayheader*) builtin_newarray_double(size);
-		case ARRAYTYPE_BYTE:  
-			return (java_arrayheader*) builtin_newarray_byte(size);
-		case ARRAYTYPE_SHORT:  
-			return (java_arrayheader*) builtin_newarray_short(size);
-		case ARRAYTYPE_INT:	 
-			return (java_arrayheader*) builtin_newarray_int(size);
-		case ARRAYTYPE_LONG:  
-			return (java_arrayheader*) builtin_newarray_long(size);
-		case ARRAYTYPE_OBJECT:
-			return (java_arrayheader*) builtin_anewarray(size, desc->objectclass);
-		
-		case ARRAYTYPE_ARRAY:
-			return (java_arrayheader*) builtin_newarray_array(size, desc->elementdescriptor);
-		
-		default: panic("Invalid arraytype in multianewarray");
-		}
-	}
-
-	/* if the last dimension has not been reached yet */
-
-	if (desc->arraytype != ARRAYTYPE_ARRAY) 
-		panic("multianewarray with too many dimensions");
-
-	a = builtin_newarray_array(size, desc->elementdescriptor);
-	if (!a) return NULL;
-	
-	for (i = 0; i < size; i++) {
-		java_arrayheader *ea = 
-			multianewarray_part(dims, thisdim + 1, desc->elementdescriptor);
-		if (!ea) return NULL;
-
-		a->data[i] = ea;
-	}
-		
-	return (java_arrayheader*) a;
-}
-
-/* XXX delete */
-java_arrayheader *builtin_multianewarray(java_intarray *dims,
-										 constant_arraydescriptor *desc)
-{
-	return multianewarray_part(dims, 0, desc);
-}
-
-
-static java_arrayheader *nmultianewarray_part(int n, long *dims, int thisdim,
-											  constant_arraydescriptor *desc)
-{
-	int size, i;
-	java_arrayarray *a;
-
-	size = (int) dims[thisdim];
-	
-	if (thisdim == (n - 1)) {
-		/* last dimension reached */
-		
-		switch (desc -> arraytype) {
-		case ARRAYTYPE_BOOLEAN:	 
-			return (java_arrayheader*) builtin_newarray_boolean(size); 
-		case ARRAYTYPE_CHAR:  
-			return (java_arrayheader*) builtin_newarray_char(size); 
-		case ARRAYTYPE_FLOAT:  
-			return (java_arrayheader*) builtin_newarray_float(size); 
-		case ARRAYTYPE_DOUBLE:	
-			return (java_arrayheader*) builtin_newarray_double(size); 
-		case ARRAYTYPE_BYTE:  
-			return (java_arrayheader*) builtin_newarray_byte(size); 
-		case ARRAYTYPE_SHORT:  
-			return (java_arrayheader*) builtin_newarray_short(size); 
-		case ARRAYTYPE_INT:	 
-			return (java_arrayheader*) builtin_newarray_int(size); 
-		case ARRAYTYPE_LONG:  
-			return (java_arrayheader*) builtin_newarray_long(size); 
-		case ARRAYTYPE_OBJECT:
-			return (java_arrayheader*) builtin_anewarray(size,
-														 desc->objectclass);
-		case ARRAYTYPE_ARRAY:
-			return (java_arrayheader*) builtin_newarray_array(size,
-															  desc->elementdescriptor);
-		
-		default: panic ("Invalid arraytype in multianewarray");
-		}
-	}
-
-	/* if the last dimension has not been reached yet */
-
-	if (desc->arraytype != ARRAYTYPE_ARRAY) 
-		panic ("multianewarray with too many dimensions");
-
-	a = builtin_newarray_array(size, desc->elementdescriptor);
-	if (!a) return NULL;
-	
-	for (i = 0; i < size; i++) {
-		java_arrayheader *ea = 
-			nmultianewarray_part(n, dims, thisdim + 1, desc->elementdescriptor);
-		if (!ea) return NULL;
-
-		a -> data[i] = ea;
-	}
-		
-	return (java_arrayheader*) a;
-}
-#endif
 
 /**************** function: builtin_nmultianewarray ***************************
 
@@ -1157,45 +722,6 @@ java_arrayheader *builtin_nmultianewarray (int n,
 
 	return a;
 }
-
-/* XXX delete */
-#if 0
-java_arrayheader *builtin_nmultianewarray (int size,
-										   constant_arraydescriptor *desc, long *dims)
-{
-	(void) builtin_newarray_int(size); /* for compatibility with -old */
-	return nmultianewarray_part (size, dims, 0, desc);
-}
-#endif
-
-
-
-/************************* function: builtin_aastore *************************
-
-	Stores a reference to an object into an object array or into an array
-	array. Before any action is performed, the validity of the operation is
-	checked.
-
-	Return value:  1 ... ok
-				   0 ... this object cannot be stored into this array
-
-*****************************************************************************/
-
-/* XXX delete */
-#if 0
-s4 builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o)
-{
-	if (builtin_canstore(a,o)) {
-		a->data[index] = o;
-		return 1;
-	}
-	return 0;
-}
-#endif
-
-
-
-
 
 /*****************************************************************************
 					  METHOD LOGGING

@@ -26,7 +26,7 @@
 
    Authors: ?
 
-   $Id: jni.c 664 2003-11-21 18:24:01Z jowenn $
+   $Id: jni.c 669 2003-11-23 14:04:20Z edwin $
 
 */
 
@@ -140,7 +140,7 @@ void fill_callblock(void *obj,utf *descr,jni_callblock blk[], va_list data, char
 	                    break;			
 	                 }
 	      case '[' : {
-			  /* XXX */
+			  /* XXX need arrayclass change? */
 	                    /* arrayclass */
                		    char *start = *utf_ptr;
 	                    char ch;
