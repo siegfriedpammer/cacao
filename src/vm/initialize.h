@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.h 2197 2005-04-03 21:39:07Z twisti $
+   $Id: initialize.h 2198 2005-04-03 21:40:58Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 
 /* function prototypes ********************************************************/
 
+/* call initializer of class */
 bool initialize_class(classinfo *c);
 
 #endif /* _INITIALIZE_H */
