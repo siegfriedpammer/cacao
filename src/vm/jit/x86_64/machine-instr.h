@@ -1,26 +1,31 @@
 #ifndef _MACHINE_INSTR_H
 #define _MACHINE_INSTR_H
 
+static inline void
+__attribute__ ((unused))
+atomic_add (volatile int *mem, int val)
+{
+  __asm__ __volatile__ ("lock; addl %1,%0"
+						: "=m" (*mem) 
+						: "ir" (val), "m" (*mem));
+}
+
 static inline long
 __attribute__ ((unused))
-atomic_swap (volatile long *mem, long val)
+compare_and_swap (volatile long *p, long oldval, long newval)
 {
-  __asm__ __volatile__ ("xchgq %2,%0"
-            : "=r" (val) : "0" (val), "m" (*mem));
-  return val;
-}
+  long ret;
 
-static inline char
-__attribute__ ((unused))
-compare_and_swap (volatile long int *p, long int oldval, long int newval)
-{
-  char ret;
-  long int readval;
-
-  __asm__ __volatile__ ("lock; cmpxchgq %3, %1; sete %0"
-                        : "=q" (ret), "=m" (*p), "=a" (readval)
-                        : "r" (newval), "m" (*p), "2" (oldval));
+  __asm__ __volatile__ ("lock; cmpxchgq %2, %1"
+                        : "=a" (ret), "=m" (*p)
+                        : "r" (newval), "m" (*p), "0" (oldval));
   return ret;
 }
+
+#define STORE_ORDER_BARRIER() __asm__ __volatile__ ("" : : : "memory");
+#define MEMORY_BARRIER_BEFORE_ATOMIC() __asm__ __volatile__ ("" : : : "memory");
+#define MEMORY_BARRIER_AFTER_ATOMIC() __asm__ __volatile__ ("" : : : "memory");
+#define MEMORY_BARRIER() __asm__ __volatile__ ( \
+		"mfence" : : : "memory" );
 
 #endif
