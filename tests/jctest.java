@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jctest.java 1659 2004-12-03 15:44:28Z twisti $
+   $Id: jctest.java 1769 2004-12-17 12:30:34Z twisti $
 
 */
 
@@ -741,6 +741,22 @@ public class jctest implements jcinterface {
         }	
         catch (NegativeArraySizeException c) {
             p ("exception: negative array size");
+        }
+
+        try {
+            p("savedvar size copy check: multi dimensional array");
+            Integer io = new Integer(10);
+            iaaa = new int[10][io.intValue()][10];
+            for (i = 0; i < 10; i++) {
+                for (int j = 0; j < 10; j++) {
+                    for (int k = 0; k < 10; k++) {
+                        iaaa[i][j][k] = 1;
+                    }
+                }
+            }
+            p("successfully created");
+        } catch (Exception e) {
+            p("error: exception thrown");
         }
 
         iaaa = new int[2][3][4];
