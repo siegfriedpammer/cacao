@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1118 2004-06-02 11:10:17Z twisti $
+   $Id: codegen.c 1136 2004-06-05 17:46:19Z twisti $
 
 */
 
@@ -3514,14 +3514,6 @@ afteractualcall:
 	s4 *xcodeptr = NULL;
 	
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
-							  xboundrefs->branchpos,
-							  (u1*) xcodeptr - (u1*) mcodebase - (4 + 4));
-			continue;
-		}
-
-
 		gen_resolvebranch((u1*) mcodebase + xboundrefs->branchpos, 
 		                  xboundrefs->branchpos,
 						  (u1*) mcodeptr - mcodebase);
