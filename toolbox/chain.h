@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: chain.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: chain.h 662 2003-11-21 18:06:25Z jowenn $
 
 */
 

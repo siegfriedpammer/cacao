@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 557 2003-11-02 22:51:59Z twisti $
+# $Id: Makefile.am 662 2003-11-21 18:06:25Z jowenn $
 
 noinst_LIBRARIES = libtoolbox.a
 

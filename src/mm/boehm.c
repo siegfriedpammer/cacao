@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 580 2003-11-09 19:07:39Z twisti $
+   $Id: boehm.c 662 2003-11-21 18:06:25Z jowenn $
 
 */
 

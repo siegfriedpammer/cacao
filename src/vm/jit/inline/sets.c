@@ -27,7 +27,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 655 2003-11-20 14:52:00Z carolyn $
+   $Id: sets.c 662 2003-11-21 18:06:25Z jowenn $
 
 */
 

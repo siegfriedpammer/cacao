@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 575 2003-11-09 17:26:53Z twisti $
+   $Id: memory.c 662 2003-11-21 18:06:25Z jowenn $
 
 */
 
