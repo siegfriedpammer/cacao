@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: VMThrowable.c 1448 2004-11-05 14:06:38Z twisti $
+   $Id: VMThrowable.c 1574 2004-11-23 16:07:11Z twisti $
 
 */
 
@@ -135,7 +135,7 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,
 		(jobject) javastring_new(source[pos].method->class->sourcefile));
 /*  		setfield_critical(c,element,"className",          "Ljava/lang/String;",  jobject,  */
 /*  		(jobject) javastring_new(source[pos].method->class->name)); */
-		setfield_critical(c,element,"className",          "Ljava/lang/String;",  jobject, 
+		setfield_critical(c,element,"declaringClass",      "Ljava/lang/String;",  jobject, 
 		(jobject) Java_java_lang_VMClass_getName(env, NULL, (java_lang_Class *) source[pos].method->class));
 		setfield_critical(c,element,"methodName",          "Ljava/lang/String;",  jobject, 
 		(jobject) javastring_new(source[pos].method->name));
