@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 2077 2005-03-25 12:35:05Z edwin $
+   $Id: resolve.h 2086 2005-03-25 17:12:35Z edwin $
 
 */
 
@@ -64,7 +64,7 @@ typedef enum {
 /* structs ********************************************************************/
 
 struct unresolved_subtype_set {
-	classref_or_classinfo *subtyperefs;     /* zero terminated list */
+	classref_or_classinfo *subtyperefs;     /* NULL terminated list */
 };
 
 /* XXX unify heads of unresolved_field and unresolved_method? */
@@ -314,6 +314,28 @@ unresolved_method *
 create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 						 instruction *iptr,
 						 stackelement *stack);
+
+/* unresolved_field_free *******************************************************
+ 
+   Free the memory used by an unresolved_field
+  
+   IN:
+       ref..............the unresolved_field
+
+*******************************************************************************/
+
+void unresolved_field_free(unresolved_field *ref);
+
+/* unresolved_method_free ******************************************************
+ 
+   Free the memory used by an unresolved_method
+  
+   IN:
+       ref..............the unresolved_method
+
+*******************************************************************************/
+
+void unresolved_method_free(unresolved_method *ref);
 
 /* unresolved_field_debug_dump *************************************************
  

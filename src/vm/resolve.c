@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2077 2005-03-25 12:35:05Z edwin $
+   $Id: resolve.c 2086 2005-03-25 17:12:35Z edwin $
 
 */
 
@@ -458,7 +458,6 @@ resolve_method(unresolved_method *ref,
 	classinfo *referer;
 	classinfo *container;
 	classinfo *declarer;
-	constant_classref *classref;
 	methodinfo *mi;
 	typedesc *paramtypes;
 	int instancecount;
@@ -923,6 +922,68 @@ create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 	}
 
 	return ref;
+}
+
+/******************************************************************************/
+/* FREEING MEMORY                                                             */
+/******************************************************************************/
+
+inline static void 
+unresolved_subtype_set_free_list(classref_or_classinfo *list)
+{
+	if (list) {
+		classref_or_classinfo *p = list;
+
+		/* this is silly. we *only* need to count the elements for MFREE */
+		while ((p++)->any)
+			;
+		MFREE(list,classref_or_classinfo,(p - list));
+	}
+}
+
+/* unresolved_field_free *******************************************************
+ 
+   Free the memory used by an unresolved_field
+  
+   IN:
+       ref..............the unresolved_field
+
+*******************************************************************************/
+
+void 
+unresolved_field_free(unresolved_field *ref)
+{
+	RESOLVE_ASSERT(ref);
+
+	unresolved_subtype_set_free_list(ref->instancetypes.subtyperefs);
+	unresolved_subtype_set_free_list(ref->valueconstraints.subtyperefs);
+	FREE(ref,unresolved_field);
+}
+
+/* unresolved_method_free ******************************************************
+ 
+   Free the memory used by an unresolved_method
+  
+   IN:
+       ref..............the unresolved_method
+
+*******************************************************************************/
+
+void 
+unresolved_method_free(unresolved_method *ref)
+{
+	RESOLVE_ASSERT(ref);
+
+	unresolved_subtype_set_free_list(ref->instancetypes.subtyperefs);
+	if (ref->paramconstraints) {
+		int i;
+		int count = ref->methodref->parseddesc.md->paramcount;
+
+		for (i=0; i<count; ++i)
+			unresolved_subtype_set_free_list(ref->paramconstraints[i].subtyperefs);
+		MFREE(ref->paramconstraints,unresolved_subtype_set,count);
+	}
+	FREE(ref,unresolved_method);
 }
 
 /******************************************************************************/
