@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1842 2005-01-04 11:19:46Z twisti $
+   $Id: codegen.c 1988 2005-03-05 15:55:51Z twisti $
 
 */
 
@@ -381,35 +381,34 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 #endif
 
-	/* copy argument registers to stack and call trace function with pointer
-	   to arguments on stack.
-	*/
+	/* Copy argument registers to stack and call trace function with pointer  */
+	/* to arguments on stack.                                                 */
+
 	if (runverbose) {
-		x86_64_alu_imm_reg(cd, X86_64_SUB, (6 + 8 + 1 + 1) * 8, REG_SP);
+		x86_64_alu_imm_reg(cd, X86_64_SUB, (INT_ARG_CNT + FLT_ARG_CNT + 1 + 1) * 8, REG_SP);
 
-		x86_64_mov_reg_membase(cd, rd->argintregs[0], REG_SP, 1 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[1], REG_SP, 2 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[2], REG_SP, 3 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[3], REG_SP, 4 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[4], REG_SP, 5 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[5], REG_SP, 6 * 8);
+		/* save integer argument registers */
 
-		x86_64_movq_reg_membase(cd, rd->argfltregs[0], REG_SP, 7 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[1], REG_SP, 8 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[2], REG_SP, 9 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[3], REG_SP, 10 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[4], REG_SP, 11 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[5], REG_SP, 12 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[6], REG_SP, 13 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[7], REG_SP, 14 * 8);
+		for (p = 0; p < INT_ARG_CNT; p++) {
+			x86_64_mov_reg_membase(cd, rd->argintregs[p], REG_SP, (1 + p) * 8);
+		}
+
+		/* save float argument registers */
+
+		for (p = 0; p < FLT_ARG_CNT; p++) {
+			x86_64_movq_reg_membase(cd, rd->argfltregs[p], REG_SP, (1 + INT_ARG_CNT + p) * 8);
+		}
 
 		/* show integer hex code for float arguments */
 
-		for (p = 0, l = 0; p < m->paramcount; p++) {
+		for (p = 0, l = 0; p < m->paramcount && p < INT_ARG_CNT; p++) {
 			t = m->paramtypes[p];
 
+			/* if the paramtype is a float, we have to right shift all        */
+			/* following integer registers                                    */
+
 			if (IS_FLT_DBL_TYPE(t)) {
-				for (s1 = (m->paramcount > INT_ARG_CNT) ? INT_ARG_CNT - 2 : m->paramcount - 2; s1 >= p; s1--) {
+				for (s1 = INT_ARG_CNT - 2; s1 >= p; s1--) {
 					x86_64_mov_reg_reg(cd, rd->argintregs[s1], rd->argintregs[s1 + 1]);
 				}
 
@@ -418,26 +417,22 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 		}
 
-		x86_64_mov_imm_reg(cd, (s8) m, REG_ITMP2);
+		x86_64_mov_imm_reg(cd, (u8) m, REG_ITMP2);
 		x86_64_mov_reg_membase(cd, REG_ITMP2, REG_SP, 0 * 8);
-		x86_64_mov_imm_reg(cd, (s8) builtin_trace_args, REG_ITMP1);
+		x86_64_mov_imm_reg(cd, (u8) builtin_trace_args, REG_ITMP1);
 		x86_64_call_reg(cd, REG_ITMP1);
 
-		x86_64_mov_membase_reg(cd, REG_SP, 1 * 8, rd->argintregs[0]);
-		x86_64_mov_membase_reg(cd, REG_SP, 2 * 8, rd->argintregs[1]);
-		x86_64_mov_membase_reg(cd, REG_SP, 3 * 8, rd->argintregs[2]);
-		x86_64_mov_membase_reg(cd, REG_SP, 4 * 8, rd->argintregs[3]);
-		x86_64_mov_membase_reg(cd, REG_SP, 5 * 8, rd->argintregs[4]);
-		x86_64_mov_membase_reg(cd, REG_SP, 6 * 8, rd->argintregs[5]);
+		/* restore integer argument registers */
 
-		x86_64_movq_membase_reg(cd, REG_SP, 7 * 8, rd->argfltregs[0]);
-		x86_64_movq_membase_reg(cd, REG_SP, 8 * 8, rd->argfltregs[1]);
-		x86_64_movq_membase_reg(cd, REG_SP, 9 * 8, rd->argfltregs[2]);
-		x86_64_movq_membase_reg(cd, REG_SP, 10 * 8, rd->argfltregs[3]);
-		x86_64_movq_membase_reg(cd, REG_SP, 11 * 8, rd->argfltregs[4]);
-		x86_64_movq_membase_reg(cd, REG_SP, 12 * 8, rd->argfltregs[5]);
-		x86_64_movq_membase_reg(cd, REG_SP, 13 * 8, rd->argfltregs[6]);
-		x86_64_movq_membase_reg(cd, REG_SP, 14 * 8, rd->argfltregs[7]);
+		for (p = 0; p < INT_ARG_CNT; p++) {
+			x86_64_mov_membase_reg(cd, REG_SP, (1 + p) * 8, rd->argintregs[p]);
+		}
+
+		/* restore float argument registers */
+
+		for (p = 0; p < FLT_ARG_CNT; p++) {
+			x86_64_movq_membase_reg(cd, REG_SP, (1 + INT_ARG_CNT + p) * 8, rd->argfltregs[p]);
+		}
 
 		x86_64_alu_imm_reg(cd, X86_64_ADD, (6 + 8 + 1 + 1) * 8, REG_SP);
 	}
@@ -518,6 +513,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
 			switch (iptr->opc) {
+			case ICMD_INLINE_START: /* internal ICMDs                         */
+			case ICMD_INLINE_END:
+				break;
 
 			case ICMD_NOP:    /* ...  ==> ...                                 */
 				break;
@@ -2452,7 +2450,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
   			x86_64_mov_imm_reg(cd, (s8) asm_handle_exception, REG_ITMP3);
   			x86_64_jmp_reg(cd, REG_ITMP3);
-			ALIGNCODENOP;
 			break;
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
@@ -2460,7 +2457,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			x86_64_jmp_imm(cd, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
-  			ALIGNCODENOP;
 			break;
 
 		case ICMD_JSR:          /* ... ==> ...                                */
@@ -2658,7 +2654,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			s3 = iptr->val.i;
 			if (iptr[1].opc == ICMD_ELSE_ICONST) {
 				if (s1 == d) {
 					M_INTMOVE(s1, REG_ITMP1);
@@ -2666,7 +2661,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 				x86_64_movl_imm_reg(cd, iptr[1].val.i, d);
 			}
-			x86_64_movl_imm_reg(cd, s3, REG_ITMP2);
+			x86_64_movl_imm_reg(cd, iptr->val.i, REG_ITMP2);
 			x86_64_testl_reg_reg(cd, s1, s1);
 			x86_64_cmovccl_reg_reg(cd, X86_64_CC_E, REG_ITMP2, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -2677,7 +2672,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			s3 = iptr->val.i;
 			if (iptr[1].opc == ICMD_ELSE_ICONST) {
 				if (s1 == d) {
 					M_INTMOVE(s1, REG_ITMP1);
@@ -2685,7 +2679,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 				x86_64_movl_imm_reg(cd, iptr[1].val.i, d);
 			}
-			x86_64_movl_imm_reg(cd, s3, REG_ITMP2);
+			x86_64_movl_imm_reg(cd, iptr->val.i, REG_ITMP2);
 			x86_64_testl_reg_reg(cd, s1, s1);
 			x86_64_cmovccl_reg_reg(cd, X86_64_CC_NE, REG_ITMP2, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -2696,7 +2690,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			s3 = iptr->val.i;
 			if (iptr[1].opc == ICMD_ELSE_ICONST) {
 				if (s1 == d) {
 					M_INTMOVE(s1, REG_ITMP1);
@@ -2704,7 +2697,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 				x86_64_movl_imm_reg(cd, iptr[1].val.i, d);
 			}
-			x86_64_movl_imm_reg(cd, s3, REG_ITMP2);
+			x86_64_movl_imm_reg(cd, iptr->val.i, REG_ITMP2);
 			x86_64_testl_reg_reg(cd, s1, s1);
 			x86_64_cmovccl_reg_reg(cd, X86_64_CC_L, REG_ITMP2, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -2715,7 +2708,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			s3 = iptr->val.i;
 			if (iptr[1].opc == ICMD_ELSE_ICONST) {
 				if (s1 == d) {
 					M_INTMOVE(s1, REG_ITMP1);
@@ -2723,7 +2715,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 				x86_64_movl_imm_reg(cd, iptr[1].val.i, d);
 			}
-			x86_64_movl_imm_reg(cd, s3, REG_ITMP2);
+			x86_64_movl_imm_reg(cd, iptr->val.i, REG_ITMP2);
 			x86_64_testl_reg_reg(cd, s1, s1);
 			x86_64_cmovccl_reg_reg(cd, X86_64_CC_GE, REG_ITMP2, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -2734,7 +2726,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			s3 = iptr->val.i;
 			if (iptr[1].opc == ICMD_ELSE_ICONST) {
 				if (s1 == d) {
 					M_INTMOVE(s1, REG_ITMP1);
@@ -2742,7 +2733,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 				x86_64_movl_imm_reg(cd, iptr[1].val.i, d);
 			}
-			x86_64_movl_imm_reg(cd, s3, REG_ITMP2);
+			x86_64_movl_imm_reg(cd, iptr->val.i, REG_ITMP2);
 			x86_64_testl_reg_reg(cd, s1, s1);
 			x86_64_cmovccl_reg_reg(cd, X86_64_CC_G, REG_ITMP2, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -2753,7 +2744,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			s3 = iptr->val.i;
 			if (iptr[1].opc == ICMD_ELSE_ICONST) {
 				if (s1 == d) {
 					M_INTMOVE(s1, REG_ITMP1);
@@ -2761,7 +2751,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 				x86_64_movl_imm_reg(cd, iptr[1].val.i, d);
 			}
-			x86_64_movl_imm_reg(cd, s3, REG_ITMP2);
+			x86_64_movl_imm_reg(cd, iptr->val.i, REG_ITMP2);
 			x86_64_testl_reg_reg(cd, s1, s1);
 			x86_64_cmovccl_reg_reg(cd, X86_64_CC_LE, REG_ITMP2, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -2800,12 +2790,12 @@ nowperformreturn:
 				x86_64_mov_reg_membase(cd, REG_RESULT, REG_SP, 0 * 8);
 				x86_64_movq_reg_membase(cd, REG_FRESULT, REG_SP, 1 * 8);
 
-  				x86_64_mov_imm_reg(cd, (s8) m, rd->argintregs[0]);
+  				x86_64_mov_imm_reg(cd, (u8) m, rd->argintregs[0]);
   				x86_64_mov_reg_reg(cd, REG_RESULT, rd->argintregs[1]);
 				M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
  				M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
 
-  				x86_64_mov_imm_reg(cd, (s8) builtin_displaymethodstop, REG_ITMP1);
+  				x86_64_mov_imm_reg(cd, (u8) builtin_displaymethodstop, REG_ITMP1);
 				x86_64_call_reg(cd, REG_ITMP1);
 
 				x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, REG_RESULT);
@@ -2863,7 +2853,6 @@ nowperformreturn:
 			}
 
 			x86_64_ret(cd);
- 			ALIGNCODENOP;
 			}
 			break;
 
@@ -2910,7 +2899,6 @@ nowperformreturn:
 				dseg_adddata(cd, cd->mcodeptr);
 				x86_64_mov_memindex_reg(cd, -(cd->dseglen), REG_ITMP2, REG_ITMP1, 3, REG_ITMP1);
 				x86_64_jmp_reg(cd, REG_ITMP1);
-				ALIGNCODENOP;
 			}
 			break;
 
@@ -2944,8 +2932,6 @@ nowperformreturn:
 			
 				tptr = (void **) iptr->target;
 				codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr);
-
-				ALIGNCODENOP;
 			}
 			break;
 
@@ -3913,27 +3899,24 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 		x86_64_alu_imm_reg(cd, X86_64_SUB, (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
 
-		x86_64_mov_reg_membase(cd, rd->argintregs[0], REG_SP, 1 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[1], REG_SP, 2 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[2], REG_SP, 3 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[3], REG_SP, 4 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[4], REG_SP, 5 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[5], REG_SP, 6 * 8);
+		/* save integer and float argument registers */
 
-		x86_64_movq_reg_membase(cd, rd->argfltregs[0], REG_SP, 7 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[1], REG_SP, 8 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[2], REG_SP, 9 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[3], REG_SP, 10 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[4], REG_SP, 11 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[5], REG_SP, 12 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[6], REG_SP, 13 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[7], REG_SP, 14 * 8);
+		for (i = 0; i < INT_ARG_CNT; i++) {
+			x86_64_mov_reg_membase(cd, rd->argintregs[i], REG_SP, (1 + i) * 8);
+		}
+
+		for (i = 0; i < FLT_ARG_CNT; i++) {
+			x86_64_movq_reg_membase(cd, rd->argfltregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
+		}
 
 		/* show integer hex code for float arguments */
 
-		for (i = 0, l = 0; i < m->paramcount; i++) {
+		for (i = 0, l = 0; i < m->paramcount && i < INT_ARG_CNT; i++) {
+			/* if the paramtype is a float, we have to right shift all        */
+			/* following integer registers                                    */
+
 			if (IS_FLT_DBL_TYPE(m->paramtypes[i])) {
-				for (s1 = (m->paramcount > INT_ARG_CNT) ? INT_ARG_CNT - 2 : m->paramcount - 2; s1 >= i; s1--) {
+				for (s1 = INT_ARG_CNT - 2; s1 >= i; s1--) {
 					x86_64_mov_reg_reg(cd, rd->argintregs[s1], rd->argintregs[s1 + 1]);
 				}
 
@@ -3947,21 +3930,15 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_mov_imm_reg(cd, (u8) builtin_trace_args, REG_ITMP1);
 		x86_64_call_reg(cd, REG_ITMP1);
 
-		x86_64_mov_membase_reg(cd, REG_SP, 1 * 8, rd->argintregs[0]);
-		x86_64_mov_membase_reg(cd, REG_SP, 2 * 8, rd->argintregs[1]);
-		x86_64_mov_membase_reg(cd, REG_SP, 3 * 8, rd->argintregs[2]);
-		x86_64_mov_membase_reg(cd, REG_SP, 4 * 8, rd->argintregs[3]);
-		x86_64_mov_membase_reg(cd, REG_SP, 5 * 8, rd->argintregs[4]);
-		x86_64_mov_membase_reg(cd, REG_SP, 6 * 8, rd->argintregs[5]);
+		/* restore integer and float argument registers */
 
-		x86_64_movq_membase_reg(cd, REG_SP, 7 * 8, rd->argfltregs[0]);
-		x86_64_movq_membase_reg(cd, REG_SP, 8 * 8, rd->argfltregs[1]);
-		x86_64_movq_membase_reg(cd, REG_SP, 9 * 8, rd->argfltregs[2]);
-		x86_64_movq_membase_reg(cd, REG_SP, 10 * 8, rd->argfltregs[3]);
-		x86_64_movq_membase_reg(cd, REG_SP, 11 * 8, rd->argfltregs[4]);
-		x86_64_movq_membase_reg(cd, REG_SP, 12 * 8, rd->argfltregs[5]);
-		x86_64_movq_membase_reg(cd, REG_SP, 13 * 8, rd->argfltregs[6]);
-		x86_64_movq_membase_reg(cd, REG_SP, 14 * 8, rd->argfltregs[7]);
+		for (i = 0; i < INT_ARG_CNT; i++) {
+			x86_64_mov_membase_reg(cd, REG_SP, (1 + i) * 8, rd->argintregs[i]);
+		}
+
+		for (i = 0; i < FLT_ARG_CNT; i++) {
+			x86_64_movq_membase_reg(cd, REG_SP, (1 + INT_ARG_CNT + i) * 8, rd->argfltregs[i]);
+		}
 
 		x86_64_alu_imm_reg(cd, X86_64_ADD, (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
 	}
