@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1173 2004-06-16 14:56:18Z jowenn $
+   $Id: native.c 1190 2004-06-19 12:44:12Z twisti $
 
 */
 
@@ -301,6 +301,7 @@ void init_system_exceptions()
 		class_new(utf_new_char(string_java_lang_Throwable));
 	class_load(class_java_lang_Throwable);
 	class_link(class_java_lang_Throwable);
+#if 0
 	compile_all_class_methods(class_java_lang_Throwable);
 
 	/* java/lang/VMThrowable */
@@ -386,6 +387,7 @@ void init_system_exceptions()
 	class_load(c);
 	class_link(c);
 	compile_all_class_methods(c);
+#endif
 }
 
 
@@ -399,7 +401,7 @@ void compile_all_class_methods(classinfo *c)
 }
 
 
-void throw_exception_exit()
+static void throw_exception_exit_intern(bool doexit)
 {
 	java_objectheader *xptr;
 	classinfo *c;
@@ -411,24 +413,7 @@ void throw_exception_exit()
 		/* clear exception, because we are calling jit code again */
 		*exceptionptr = NULL;
 
-		fprintf(stderr, "Exception in thread \"main\" ");
-		fflush(stderr);
-
 		c = xptr->vftbl->class;
-
-/*  		ts = class_resolveclassmethod(c, */
-/*  									  utf_new_char("toString"), */
-/*  									  utf_new_char("()Ljava/lang/String;"), */
-/*  									  class_java_lang_Object, */
-/*  									  false); */
-
-/*  		if (!ts) { */
-/*  			panic("internal error"); */
-/*  		} */
-
-/*  		tostring = asm_calljavafunction(ts, xptr, NULL, NULL, NULL); */
-
-/*  		utf_display(javastring_toutf(tostring, false)); */
 
 		pss = class_resolveclassmethod(c,
 									   utf_new_char("printStackTrace"),
@@ -455,8 +440,40 @@ void throw_exception_exit()
 		fflush(stderr);
 
 		/* good bye! */
-		exit(1);
+		if (doexit) {
+			exit(1);
+		}
 	}
+}
+
+
+void throw_exception()
+{
+	throw_exception_exit_intern(false);
+}
+
+
+void throw_exception_exit()
+{
+	throw_exception_exit_intern(true);
+}
+
+
+void throw_main_exception()
+{
+	fprintf(stderr, "Exception in thread \"main\" ");
+	fflush(stderr);
+
+	throw_exception_exit_intern(false);
+}
+
+
+void throw_main_exception_exit()
+{
+	fprintf(stderr, "Exception in thread \"main\" ");
+	fflush(stderr);
+
+	throw_exception_exit_intern(true);
 }
 
 
@@ -1170,12 +1187,6 @@ utf *utf_new_u2(u2 *unicode_pos, u4 unicode_length, bool isclassname)
 	buflength = u2_utflength(unicode_pos, unicode_length); 
 	buffer    = MNEW(char, buflength);
  
- 	/* memory allocation failed */
-	if (!buffer) {
-		printf("length: %d\n",buflength);
-		log_text("utf_new_u2:buffer==NULL");
-	}
-
 	left = buflength;
 	pos  = buffer;
 
@@ -1257,8 +1268,9 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
     literalstring *s;                /* hashtable element */
     java_lang_String *js;            /* u2-array wrapped in javastring */
     java_chararray *stringdata;      /* copy of u2-array */      
-    u4 key;   
-    u4 slot;  
+	classinfo *c;
+    u4 key;
+    u4 slot;
     u2 i;
 
 //#define DEBUG_LITERALSTRING_U2
@@ -1316,22 +1328,38 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
     stringdata->header.objheader.vftbl = primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
     stringdata->header.size = length;
 
+	/* if we use eager loading, we have to check loaded String class */
+	if (opt_eager) {
+		class_java_lang_String =
+			class_new_intern(utf_new_char("java/lang/String"));
+
+		if (!class_load(class_java_lang_String))
+			return NULL;
+
+		list_addfirst(&unlinkedclasses, class_java_lang_String);
+	}
+
     /* create new javastring */
     js = LNEW(java_lang_String);
-	/* TWISTI */
-/*      js->header.vftbl = class_java_lang_String->vftbl; */
-    js->header.vftbl = class_load(class_new(utf_new_char("java/lang/String")))->vftbl;
+	js->header.vftbl = class_java_lang_String->vftbl;
     js->value  = stringdata;
     js->offset = 0;
     js->count  = length;
 
+#ifdef DEBUG_LITERALSTRING_U2
+	printf("literalstring_u2: newly created at %p\n", js);
+	utf_display(javastring_toutf(js, 0));
+	printf("\n\n");
+	fflush(stdout);
+#endif
+			
     /* create new literalstring */
     s = NEW(literalstring);
     s->hashlink = string_hash.ptr[slot];
     s->string   = (java_objectheader *) js;
     string_hash.ptr[slot] = s;
 
-    /* update numbe of hashtable entries */
+    /* update number of hashtable entries */
     string_hash.entries++;
 
     /* reorganization of hashtable */       
@@ -1340,7 +1368,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
          the external chains is approx. 2                */  
 
 		u4 i;
-		literalstring *s;     
+		literalstring *s;
 		hashtable newhash; /* the new hashtable */
       
 		/* create new hashtable, double the size */
@@ -1368,13 +1396,6 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 		string_hash = newhash;
     }
 
-#ifdef DEBUG_LITERALSTRING_U2
-	printf("literalstring_u2: newly created at %p\n", js);
-	utf_display(javastring_toutf(js, 0));
-	printf("\n\n");
-	fflush(stdout);
-#endif
-			
     return (java_objectheader *) js;
 }
 
