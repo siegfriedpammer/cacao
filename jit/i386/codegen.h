@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1250 2004-06-30 20:23:09Z twisti $
+   $Id: codegen.h 1351 2004-07-22 22:39:05Z twisti $
 
 */
 
@@ -111,30 +111,46 @@
 
 #define gen_nullptr_check(objreg) \
 	if (checknull) { \
-        i386_test_reg_reg((objreg), (objreg)); \
-        i386_jcc(I386_CC_E, 0); \
- 	    codegen_addxnullrefs(mcodeptr); \
+        i386_test_reg_reg(cd, (objreg), (objreg)); \
+        i386_jcc(cd, I386_CC_E, 0); \
+ 	    codegen_addxnullrefs(m, cd->mcodeptr); \
 	}
 
 #define gen_bound_check \
     if (checkbounds) { \
-        i386_alu_membase_reg(I386_CMP, s1, OFFSET(java_arrayheader, size), s2); \
-        i386_jcc(I386_CC_AE, 0); \
-        codegen_addxboundrefs(mcodeptr, s2); \
+        i386_alu_membase_reg(cd, I386_CMP, s1, OFFSET(java_arrayheader, size), s2); \
+        i386_jcc(cd, I386_CC_AE, 0); \
+        codegen_addxboundrefs(m, cd->mcodeptr, s2); \
+    }
+
+#define gen_div_check(v) \
+    if (checknull) { \
+        if ((v)->flags & INMEMORY) { \
+            i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, src->regoff * 8); \
+        } else { \
+            i386_test_reg_reg(cd, src->regoff, src->regoff); \
+        } \
+        i386_jcc(cd, I386_CC_E, 0); \
+        codegen_addxdivrefs(m, cd->mcodeptr); \
     }
 
 
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if ((mcodeptr + (icnt)) > (u1*) mcodeend) mcodeptr = (u1*) codegen_increase((u1*) mcodeptr)
+	if ((cd->mcodeptr + (icnt)) > (u1 *) cd->mcodeend) \
+        cd->mcodeptr = (u1 *) codegen_increase(m, cd->mcodeptr)
+
 
 /* M_INTMOVE:
      generates an integer-move from register a to b.
      if a and b are the same int-register, no code will be generated.
 */ 
 
-#define M_INTMOVE(reg,dreg) if ((reg) != (dreg)) { i386_mov_reg_reg((reg),(dreg)); }
+#define M_INTMOVE(reg,dreg) \
+    if ((reg) != (dreg)) { \
+        i386_mov_reg_reg(cd, (reg),(dreg)); \
+    }
 
 
 /* M_FLTMOVE:
@@ -146,10 +162,10 @@
 
 #define M_LNGMEMMOVE(reg,dreg) \
     do { \
-        i386_mov_membase_reg(REG_SP, (reg) * 8, REG_ITMP1); \
-        i386_mov_reg_membase(REG_ITMP1, REG_SP, (dreg) * 8); \
-        i386_mov_membase_reg(REG_SP, (reg) * 8 + 4, REG_ITMP1); \
-        i386_mov_reg_membase(REG_ITMP1, REG_SP, (dreg) * 8 + 4); \
+        i386_mov_membase_reg(cd, REG_SP, (reg) * 8, REG_ITMP1); \
+        i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, (dreg) * 8); \
+        i386_mov_membase_reg(cd, REG_SP, (reg) * 8 + 4, REG_ITMP1); \
+        i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, (dreg) * 8 + 4); \
     } while (0)
 
 
@@ -171,7 +187,7 @@
 #define var_to_reg_int(regnr,v,tempnr) \
     if ((v)->flags & INMEMORY) { \
         COUNT_SPILLS; \
-        i386_mov_membase_reg(REG_SP, (v)->regoff * 8, tempnr); \
+        i386_mov_membase_reg(cd, REG_SP, (v)->regoff * 8, tempnr); \
         regnr = tempnr; \
     } else { \
         regnr = (v)->regoff; \
@@ -183,22 +199,22 @@
     if ((v)->type == TYPE_FLT) { \
         if ((v)->flags & INMEMORY) { \
             COUNT_SPILLS; \
-            i386_flds_membase(REG_SP, (v)->regoff * 8); \
+            i386_flds_membase(cd, REG_SP, (v)->regoff * 8); \
             fpu_st_offset++; \
             regnr = tempnr; \
         } else { \
-            i386_fld_reg((v)->regoff + fpu_st_offset); \
+            i386_fld_reg(cd, (v)->regoff + fpu_st_offset); \
             fpu_st_offset++; \
             regnr = (v)->regoff; \
         } \
     } else { \
         if ((v)->flags & INMEMORY) { \
             COUNT_SPILLS; \
-            i386_fldl_membase(REG_SP, (v)->regoff * 8); \
+            i386_fldl_membase(cd, REG_SP, (v)->regoff * 8); \
             fpu_st_offset++; \
             regnr = tempnr; \
         } else { \
-            i386_fld_reg((v)->regoff + fpu_st_offset); \
+            i386_fld_reg(cd, (v)->regoff + fpu_st_offset); \
             fpu_st_offset++; \
             regnr = (v)->regoff; \
         } \
@@ -208,7 +224,7 @@
     if ((v)->type == TYPE_FLT) { \
        if ((v)->flags & INMEMORY) { \
             COUNT_SPILLS; \
-            i386_flds_membase(REG_SP, (v)->regoff * 8); \
+            i386_flds_membase(cd, REG_SP, (v)->regoff * 8); \
             fpu_st_offset++; \
             regnr = tempnr; \
         } else { \
@@ -217,7 +233,7 @@
     } else { \
         if ((v)->flags & INMEMORY) { \
             COUNT_SPILLS; \
-            i386_fldl_membase(REG_SP, (v)->regoff * 8); \
+            i386_fldl_membase(cd, REG_SP, (v)->regoff * 8); \
             fpu_st_offset++; \
             regnr = tempnr; \
         } else { \
@@ -240,7 +256,7 @@
 #define store_reg_to_var_int(sptr, tempregnum) \
     if ((sptr)->flags & INMEMORY) { \
         COUNT_SPILLS; \
-        i386_mov_reg_membase(tempregnum, REG_SP, (sptr)->regoff * 8); \
+        i386_mov_reg_membase(cd, tempregnum, REG_SP, (sptr)->regoff * 8); \
     }
 
 
@@ -248,25 +264,55 @@
     if ((sptr)->type == TYPE_FLT) { \
         if ((sptr)->flags & INMEMORY) { \
              COUNT_SPILLS; \
-             i386_fstps_membase(REG_SP, (sptr)->regoff * 8); \
+             i386_fstps_membase(cd, REG_SP, (sptr)->regoff * 8); \
              fpu_st_offset--; \
         } else { \
 /*                  i386_fxch_reg((sptr)->regoff);*/ \
-             i386_fstp_reg((sptr)->regoff + fpu_st_offset); \
+             i386_fstp_reg(cd, (sptr)->regoff + fpu_st_offset); \
              fpu_st_offset--; \
         } \
     } else { \
         if ((sptr)->flags & INMEMORY) { \
             COUNT_SPILLS; \
-            i386_fstpl_membase(REG_SP, (sptr)->regoff * 8); \
+            i386_fstpl_membase(cd, REG_SP, (sptr)->regoff * 8); \
             fpu_st_offset--; \
         } else { \
 /*                  i386_fxch_reg((sptr)->regoff);*/ \
-            i386_fstp_reg((sptr)->regoff + fpu_st_offset); \
+            i386_fstp_reg(cd, (sptr)->regoff + fpu_st_offset); \
             fpu_st_offset--; \
         } \
     }
 
+
+#define M_COPY(from,to) \
+    d = reg_of_var(m, to, REG_ITMP1); \
+	if ((from->regoff != to->regoff) || \
+	    ((from->flags ^ to->flags) & INMEMORY)) { \
+		if (IS_FLT_DBL_TYPE(from->type)) { \
+			var_to_reg_flt(s1, from, d); \
+			/*M_FLTMOVE(s1, d);*/ \
+			store_reg_to_var_flt(to, d); \
+		} else { \
+            if (!IS_2_WORD_TYPE(from->type)) { \
+                if (to->flags & INMEMORY) { \
+                     if (from->flags & INMEMORY) { \
+                         i386_mov_membase_reg(cd, REG_SP, from->regoff * 8, REG_ITMP1); \
+                         i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, to->regoff * 8); \
+                     } else { \
+                         i386_mov_reg_membase(cd, from->regoff, REG_SP, to->regoff * 8); \
+                     } \
+                } else { \
+                     if (from->flags & INMEMORY) { \
+                         i386_mov_membase_reg(cd, REG_SP, from->regoff * 8, to->regoff); \
+                     } else { \
+                         i386_mov_reg_reg(cd, from->regoff, to->regoff); \
+                     } \
+                } \
+            } else { \
+                M_LNGMEMMOVE(from->regoff, to->regoff); \
+            } \
+		} \
+	}
 
 /* macros to create code ******************************************************/
 
@@ -331,8 +377,8 @@ typedef enum {
 
 /* modrm and stuff */
 
-#define i386_address_byte(mod, reg, rm) \
-    *(mcodeptr++) = ((((mod) & 0x03) << 6) | (((reg) & 0x07) << 3) | (((rm) & 0x07)));
+#define i386_address_byte(mod,reg,rm) \
+    *(cd->mcodeptr++) = ((((mod) & 0x03) << 6) | (((reg) & 0x07) << 3) | (((rm) & 0x07)));
 
 
 #define i386_emit_reg(reg,rm) \
@@ -344,15 +390,15 @@ typedef enum {
 
 
 #define i386_emit_imm8(imm) \
-    *(mcodeptr++) = (u1) ((imm) & 0xff);
+    *(cd->mcodeptr++) = (u1) ((imm) & 0xff);
 
 
 #define i386_emit_imm16(imm) \
     do { \
         imm_union imb; \
         imb.i = (int) (imm); \
-        *(mcodeptr++) = imb.b[0]; \
-        *(mcodeptr++) = imb.b[1]; \
+        *(cd->mcodeptr++) = imb.b[0]; \
+        *(cd->mcodeptr++) = imb.b[1]; \
     } while (0)
 
 
@@ -360,10 +406,10 @@ typedef enum {
     do { \
         imm_union imb; \
         imb.i = (int) (imm); \
-        *(mcodeptr++) = imb.b[0]; \
-        *(mcodeptr++) = imb.b[1]; \
-        *(mcodeptr++) = imb.b[2]; \
-        *(mcodeptr++) = imb.b[3]; \
+        *(cd->mcodeptr++) = imb.b[0]; \
+        *(cd->mcodeptr++) = imb.b[1]; \
+        *(cd->mcodeptr++) = imb.b[2]; \
+        *(cd->mcodeptr++) = imb.b[3]; \
     } while (0)
 
 
@@ -447,12 +493,6 @@ typedef enum {
 
 /* function prototypes */
 
-void codegen_init();
-void *codegen_findmethod(void *pc);
-void init_exceptions();
-void codegen(methodinfo *m);
-void codegen_close();
-void dseg_display(s4 *s4ptr);
 void thread_restartcriticalsection(ucontext_t*);
 
 #endif /* _CODEGEN_H */

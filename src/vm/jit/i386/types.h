@@ -31,7 +31,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: types.h 765 2003-12-13 22:49:18Z twisti $
+   $Id: types.h 1351 2004-07-22 22:39:05Z twisti $
 
 */
 
@@ -56,6 +56,10 @@
 #define SUPPORT_LONG_ICVT   1
 #define SUPPORT_LONG_FCVT   1
 
+#define SUPPORT_CONST_ASTORE     1      /* do we support const astores        */
+#define SUPPORT_ONLY_ZERO_ASTORE 0      /* on risc machines we can only store */
+                                        /* REG_ZERO                           */
+
 #define USEBUILTINTABLE
 
 #define SUPPORT_IFCVT       1
@@ -63,7 +67,6 @@
 #define SUPPORT_FMOD        1
 
 #define CONDITIONAL_LOADCONST
-#define NO_DIV_OPT
 
 #define U8_AVAILABLE        1
 
