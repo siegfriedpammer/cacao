@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1833 2004-12-29 14:18:38Z twisti $
+   $Id: jit.c 1881 2005-01-21 13:46:51Z carolyn $
 
 */
 
@@ -55,6 +55,7 @@
 #include "vm/jit/stack.h"
 #include "vm/jit/inline/inline.h"
 #include "vm/jit/inline/parseRT.h"
+#include "vm/jit/inline/parseXTA.h"
 #include "vm/jit/loop/analyze.h"
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"
@@ -1411,6 +1412,11 @@ functionptr jit_compile(methodinfo *m)
 	if (opt_rt)
 		RT_jit_parse(m); /* will be called just once */
 	                     /* return value ignored for now */
+	/* XTA static analysis must be called before inlining */
+	if (opt_xta)
+		XTA_jit_parse(m); /* will be called just once */
+	                      /* return value ignored for now */
+
 
 	/* must be called before reg_setup, because it can change maxlocals */
 	/* init reqd to initialize for parse even in no inlining */

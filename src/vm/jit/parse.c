@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 1744 2004-12-09 10:17:12Z carolyn $
+   $Id: parse.c 1881 2005-01-21 13:46:51Z carolyn $
 
 */
 
@@ -468,13 +468,13 @@ if (opt_rt) {
         which has to be called before reg_set
         which has to be called before parse (or ???)
         will check if method being parsed was analysed here
-	****/ 
 	if (opt_xta && opt_verbose) { 
-		/**RT_jit_parse(m);**/
+		**RT_jit_parse(m);**
 		printf("XTA requested, not available\n");
 		}
 	if (opt_vta && opt_verbose)  
 		    printf("VTA requested, not yet implemented\n");
+	****/ 
 
 	/* allocate instruction array and block index table */
 	

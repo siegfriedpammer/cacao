@@ -36,7 +36,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 1873 2005-01-21 09:24:12Z twisti $
+   $Id: cacao.c 1881 2005-01-21 13:46:51Z carolyn $
 
 */
 
@@ -115,6 +115,7 @@ void **stackbottom = 0;
 #define OPT_OLOOP            24
 #define OPT_INLINING	     25
 
+#define STATIC_ANALYSIS
 #if defined(STATIC_ANALYSIS)
 # define OPT_RT              26
 # define OPT_XTA             27 
@@ -712,14 +713,16 @@ int main(int argc, char **argv)
 
 #ifdef STATIC_ANALYSIS
 		case OPT_RT:
-			opt_rt = true;
+			opt_rt = true; /* default for inlining */
 			break;
 
 		case OPT_XTA:
-			opt_xta = false; /**not yet **/
+			opt_xta = true; /* in test currently */
 			break;
 
 		case OPT_VTA:
+			printf("\nVTA is not yet available\n");
+			opt_vta = false;
 			/***opt_vta = true; not yet **/
 			break;
 #endif
