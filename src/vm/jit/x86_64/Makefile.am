@@ -1,11 +1,48 @@
+## vm/jit/x86_64/Makefile.am
+##
+## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+## TU Wien
+##
+## This file is part of CACAO.
+##
+## This program is free software; you can redistribute it and/or
+## modify it under the terms of the GNU General Public License as
+## published by the Free Software Foundation; either version 2, or (at
+## your option) any later version.
+##
+## This program is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+## 02111-1307, USA.
+##
+## Contact: cacao@complang.tuwien.ac.at
+##
+## Authors: Christian Thalinger
+##
+## Changes:
+##
+## $Id: Makefile.am 1676 2004-12-03 16:52:15Z twisti $
+
 ## Process this file with automake to produce Makefile.in
-
-# $Id: Makefile.am 1621 2004-11-30 13:06:55Z twisti $
-
 
 INCLUDES = -I$(top_srcdir)/src
 
-EXTRA_DIST = \
+noinst_HEADERS = \
+	arch.h \
+	machine-instr.h \
+	types.h
+
+noinst_LIBRARIES = libarch.a
+
+libarch_a_SOURCES = \
+	ansidecl.h \
 	asmpart.S \
 	bfd.h \
 	codegen.c \
@@ -17,22 +54,12 @@ EXTRA_DIST = \
 	emitfuncs.c \
 	emitfuncs.h \
 	i386-dis.c \
-	types.h
-
-noinst_LIBRARIES = libarch.a
-
-libarch_a_SOURCES = \
-	asmpart.S \
-	codegen.c \
-	dis-buf.c \
-	disass.c \
-	emitfuncs.c \
-	i386-dis.c
+	symcat.h
 
 asmpart.o: asmpart.S $(top_srcdir)/config.h offsets.h
 	$(COMPILE) -c $<
 
-offsets.h: $(top_srcdir)/config.h $(top_srcdir)/src/vm/global.h $(top_srcdir)/src/threads/native/threads.h
+offsets.h: $(top_srcdir)/src/vm/jit/tools/genoffsets $(top_srcdir)/config.h $(top_srcdir)/src/vm/global.h $(top_srcdir)/src/threads/native/threads.h
 	$(top_srcdir)/src/vm/jit/tools/genoffsets > offsets.h
 
 

@@ -1,6 +1,34 @@
-## Process this file with automake to produce Makefile.in
+## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+## TU Wien
+##
+## This file is part of CACAO.
+##
+## This program is free software; you can redistribute it and/or
+## modify it under the terms of the GNU General Public License as
+## published by the Free Software Foundation; either version 2, or (at
+## your option) any later version.
+##
+## This program is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+## 02111-1307, USA.
+##
+## Contact: cacao@complang.tuwien.ac.at
+##
+## Authors: Christian Thalinger
+##
+## Changes:
+##
+## $Id: Makefile.am 1676 2004-12-03 16:52:15Z twisti $
 
-# $Id: Makefile.am 1645 2004-12-01 14:06:44Z twisti $
+## Process this file with automake to produce Makefile.in
 
 CLEANFILES = \
 	headers-generated \
@@ -141,6 +169,17 @@ CLEANFILES = \
 
 # include NO_REGEN_CLASSES, CLASSES and AWT_CLASSES
 include $(srcdir)/../classes.am
+
+noinst_HEADERS = \
+	java_lang_ClassLoader.h \
+	java_lang_Cloneable.h \
+	java_lang_Object.h \
+	java_lang_String.h \
+	java_lang_Thread.h \
+	java_lang_ThreadGroup.h \
+	java_lang_Throwable.h \
+	java_lang_VMObject.h \
+	java_lang_VMThread.h
 
 noinst_DATA = headers-generated
 

@@ -1,4 +1,4 @@
-## vm/jit/tools/Makefile.am
+## doc/handbook/Makefile.am
 ##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -32,11 +32,35 @@
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
+dist_noinst_DATA = \
+	alpha.tex \
+	cacao.tex \
+	inlining.tex \
+	intro.tex \
+	java.bib \
+	jit.tex \
+	library.tex \
+	loader.tex \
+	loopopt.tex \
+	mips.tex \
+	native.tex \
+	overview.tex \
+	powerpc.tex \
+	reflection.tex \
+	runtime.tex \
+	threads.tex \
+	verification.tex \
+	x86.tex \
+	x86_64.tex
 
-noinst_PROGRAMS = genoffsets
+handbook:
+	latex cacao
+	bibtex cacao
+	latex cacao
+	latex cacao
 
-genoffsets_SOURCES = genoffsets.c
+clean:
+	rm -f *.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.toc
 
 
 ## Local variables:
