@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1445 2004-11-05 13:55:33Z twisti $
+   $Id: tables.c 1482 2004-11-11 14:39:13Z twisti $
 
 */
 
@@ -169,15 +169,21 @@ void tables_close()
 
 	write utf symbol to stdout (debugging purposes)
 
-******************************************************************************/
+*******************************************************************************/
 
 void utf_display(utf *u)
 {
-    char *endpos  = utf_end(u);  /* points behind utf string       */
-    char *utf_ptr = u->text;     /* current position in utf text   */
+    char *endpos;                       /* points behind utf string           */
+    char *utf_ptr;                      /* current position in utf text       */
 
-	if (!u)
+	if (!u) {
+		printf("NULL");
+		fflush(stdout);
 		return;
+	}
+
+    endpos = utf_end(u);
+    utf_ptr = u->text;
 
     while (utf_ptr < endpos) {
 		/* read next unicode character */                
@@ -190,19 +196,25 @@ void utf_display(utf *u)
 }
 
 
-/********************* function: utf_display *********************************
+/* utf_display_classname *******************************************************
 
-	write utf symbol to stdout (debugging purposes)
+   write utf symbol to stdout (debugging purposes)
 
-******************************************************************************/
+*******************************************************************************/
 
 void utf_display_classname(utf *u)
 {
-    char *endpos  = utf_end(u);  /* points behind utf string       */
-    char *utf_ptr = u->text;     /* current position in utf text   */
+    char *endpos;                       /* points behind utf string           */
+    char *utf_ptr;                      /* current position in utf text       */
 
-	if (!u)
+	if (!u) {
+		printf("NULL");
+		fflush(stdout);
 		return;
+	}
+
+    endpos = utf_end(u);
+    utf_ptr = u->text;
 
     while (utf_ptr < endpos) {
 		/* read next unicode character */                
@@ -244,17 +256,25 @@ void log_plain_utf(utf *u)
 }
 
 
-/************************ function: utf_sprint *******************************
+/* utf_sprint ******************************************************************
 	
-    write utf symbol into c-string (debugging purposes)						 
+   write utf symbol into c-string (debugging purposes)
 
-******************************************************************************/
+*******************************************************************************/
 
 void utf_sprint(char *buffer, utf *u)
 {
-    char *endpos  = utf_end(u);  /* points behind utf string       */
-    char *utf_ptr = u->text;     /* current position in utf text   */ 
-    u2 pos = 0;                  /* position in c-string           */
+    char *endpos;                       /* points behind utf string           */
+    char *utf_ptr;                      /* current position in utf text       */
+    u2 pos = 0;                         /* position in c-string               */
+
+	if (!u) {
+		memcpy(buffer, "NULL", 5);      /* 4 chars + terminating \0           */
+		return;
+	}
+
+    endpos = utf_end(u);
+    utf_ptr = u->text;
 
     while (utf_ptr < endpos) 
 		/* copy next unicode character */       
@@ -265,17 +285,25 @@ void utf_sprint(char *buffer, utf *u)
 }
 
 
-/************************ function: utf_sprint_classname *********************
+/* utf_sprint_classname ********************************************************
 	
-    write utf symbol into c-string (debugging purposes)
+   write utf symbol into c-string (debugging purposes)
 
-******************************************************************************/ 
+*******************************************************************************/
 
 void utf_sprint_classname(char *buffer, utf *u)
 {
-    char *endpos  = utf_end(u);  /* points behind utf string       */
-    char *utf_ptr = u->text;     /* current position in utf text   */ 
-    u2 pos = 0;                  /* position in c-string           */
+    char *endpos;                       /* points behind utf string           */
+    char *utf_ptr;                      /* current position in utf text       */
+    u2 pos = 0;                         /* position in c-string               */
+
+	if (!u) {
+		memcpy(buffer, "NULL", 5);      /* 4 chars + terminating \0           */
+		return;
+	}
+
+    endpos = utf_end(u);
+    utf_ptr = u->text;
 
     while (utf_ptr < endpos) {
 		/* copy next unicode character */       
