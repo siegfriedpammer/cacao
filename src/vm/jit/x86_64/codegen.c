@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1755 2004-12-13 08:44:56Z twisti $
+   $Id: codegen.c 1757 2004-12-13 16:58:37Z twisti $
 
 */
 
@@ -3021,7 +3021,9 @@ gen_method: {
 				(farg > FLT_ARG_CNT) ? farg - FLT_ARG_CNT : 0;
 
 			for (; --s3 >= 0; src = src->prev) {
+				/* decrement the current argument type */
 				IS_INT_LNG_TYPE(src->type) ? iarg-- : farg--;
+
 				if (src->varkind == ARGVAR) {
 					if (IS_INT_LNG_TYPE(src->type)) {
 						if (iarg >= INT_ARG_CNT) {
@@ -3867,9 +3869,19 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	t_inlining_globals *id;
 	s4                  dumpsize;
 	s4                  stackframesize; /* size of stackframe if needed       */
+	u1                 *tptr;
+	s4                  iargs;          /* count of integer arguments         */
+	s4                  fargs;          /* count of float arguments           */
+	s4                  i;              /* counter                            */
+
 	void **callAddrPatchPos=0;
 	u1 *jmpInstrPos=0;
 	void **jmpInstrPatchPos=0;
+
+	/* initialize variables */
+
+	iargs = 0;
+	fargs = 0;
 
 	/* mark start of dump memory area */
 
@@ -3884,7 +3896,16 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	inlining_setup(m, id);
 	reg_setup(m, rd, id);
 
-    descriptor2types(m);                /* set paramcount and paramtypes      */
+	/* set paramcount and paramtypes      */
+
+	descriptor2types(m);
+
+	/* count integer and float arguments */
+
+	tptr = m->paramtypes;
+	for (i = 0; i < m->paramcount; i++) {
+		IS_INT_LNG_TYPE(*tptr++) ? iargs++ : fargs++;
+	}
 
 	s = CNEW(u1, NATIVESTUBSIZE);       /* memory to hold the stub            */
 
@@ -3900,7 +3921,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	}
 
 	if (runverbose) {
-		s4 p, l, s1;
+		s4 l, s1;
 
 		x86_64_alu_imm_reg(cd, X86_64_SUB, (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
 
@@ -3922,13 +3943,13 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 		/* show integer hex code for float arguments */
 
-		for (p = 0, l = 0; p < m->paramcount; p++) {
-			if (IS_FLT_DBL_TYPE(m->paramtypes[p])) {
-				for (s1 = (m->paramcount > INT_ARG_CNT) ? INT_ARG_CNT - 2 : m->paramcount - 2; s1 >= p; s1--) {
+		for (i = 0, l = 0; i < m->paramcount; i++) {
+			if (IS_FLT_DBL_TYPE(m->paramtypes[i])) {
+				for (s1 = (m->paramcount > INT_ARG_CNT) ? INT_ARG_CNT - 2 : m->paramcount - 2; s1 >= i; s1--) {
 					x86_64_mov_reg_reg(cd, rd->argintregs[s1], rd->argintregs[s1 + 1]);
 				}
 
-				x86_64_movd_freg_reg(cd, rd->argfltregs[l], rd->argintregs[p]);
+				x86_64_movd_freg_reg(cd, rd->argfltregs[l], rd->argintregs[i]);
 				l++;
 			}
 		}
@@ -4017,26 +4038,35 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	}
 #endif
 
-#if 0
-	x86_64_alu_imm_reg(cd, X86_64_SUB, 7 * 8, REG_SP);    /* keep stack 16-byte aligned */
-
-	/* save callee saved float registers */
-	x86_64_movq_reg_membase(cd, XMM15, REG_SP, 0 * 8);
-	x86_64_movq_reg_membase(cd, XMM14, REG_SP, 1 * 8);
-	x86_64_movq_reg_membase(cd, XMM13, REG_SP, 2 * 8);
-	x86_64_movq_reg_membase(cd, XMM12, REG_SP, 3 * 8);
-	x86_64_movq_reg_membase(cd, XMM11, REG_SP, 4 * 8);
-	x86_64_movq_reg_membase(cd, XMM10, REG_SP, 5 * 8);
-#endif
-
 	/* save argument registers on stack -- if we have to */
-	if (((m->flags & ACC_STATIC) && m->paramcount > (INT_ARG_CNT - 2)) || m->paramcount > (INT_ARG_CNT - 1)) {
-		s4 i;
+
+	if ((((m->flags & ACC_STATIC) && iargs > (INT_ARG_CNT - 2)) || iargs > (INT_ARG_CNT - 1)) ||
+		(fargs > FLT_ARG_CNT)) {
 		s4 paramshiftcnt;
 		s4 stackparamcnt;
 
-		paramshiftcnt = (m->flags & ACC_STATIC) ? 2 : 1;
-		stackparamcnt = (m->paramcount > INT_ARG_CNT) ? m->paramcount - INT_ARG_CNT : 0;
+		paramshiftcnt = 0;
+		stackparamcnt = 0;
+
+		/* do we need to shift integer argument register onto stack? */
+
+		if ((m->flags & ACC_STATIC) && iargs > (INT_ARG_CNT - 2)) {
+			/* do we need to shift 2 arguments? */
+			if (iargs > (INT_ARG_CNT - 1)) {
+				paramshiftcnt = 2;
+
+			} else {
+				paramshiftcnt = 1;
+			}
+
+		} else if (iargs > (INT_ARG_CNT - 1)) {
+			paramshiftcnt = 1;
+		}
+
+		/* calculate required stack space */
+
+		stackparamcnt += (iargs > INT_ARG_CNT) ? iargs - INT_ARG_CNT : 0;
+		stackparamcnt += (fargs > FLT_ARG_CNT) ? fargs - FLT_ARG_CNT : 0;
 
 		stackframesize = stackparamcnt + paramshiftcnt;
 
@@ -4046,41 +4076,47 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 		x86_64_alu_imm_reg(cd, X86_64_SUB, stackframesize * 8, REG_SP);
 
+		/* shift integer arguments if required */
+
+		if ((m->flags & ACC_STATIC) && iargs > (INT_ARG_CNT - 2)) {
+			/* do we need to shift 2 arguments? */
+			if (iargs > (INT_ARG_CNT - 1))
+				x86_64_mov_reg_membase(cd, rd->argintregs[5], REG_SP, 1 * 8);
+
+			x86_64_mov_reg_membase(cd, rd->argintregs[4], REG_SP, 0 * 8);
+
+		} else if (iargs > (INT_ARG_CNT - 1)) {
+			x86_64_mov_reg_membase(cd, rd->argintregs[5], REG_SP, 0 * 8);
+		}
+
 		/* copy stack arguments into new stack frame -- if any */
 		for (i = 0; i < stackparamcnt; i++) {
 			x86_64_mov_membase_reg(cd, REG_SP, (stackframesize + 1 + i) * 8, REG_ITMP1);
 			x86_64_mov_reg_membase(cd, REG_ITMP1, REG_SP, (paramshiftcnt + i) * 8);
 		}
 
-		if (m->flags & ACC_STATIC) {
-			x86_64_mov_reg_membase(cd, rd->argintregs[5], REG_SP, 1 * 8);
-			x86_64_mov_reg_membase(cd, rd->argintregs[4], REG_SP, 0 * 8);
-
-		} else {
-			x86_64_mov_reg_membase(cd, rd->argintregs[5], REG_SP, 0 * 8);
-		}
-
 	} else {
 		/* keep stack 16-byte aligned */
-		x86_64_alu_imm_reg(cd, X86_64_SUB, 8, REG_SP);
+		x86_64_alu_imm_reg(cd, X86_64_SUB, 1 * 8, REG_SP);
 		stackframesize = 1;
 	}
 
+	/* shift integer arguments for `env' and `class' arguments */
+
 	if (m->flags & ACC_STATIC) {
-		x86_64_mov_reg_reg(cd, rd->argintregs[3], rd->argintregs[5]);
-		x86_64_mov_reg_reg(cd, rd->argintregs[2], rd->argintregs[4]);
-		x86_64_mov_reg_reg(cd, rd->argintregs[1], rd->argintregs[3]);
-		x86_64_mov_reg_reg(cd, rd->argintregs[0], rd->argintregs[2]);
+		/* shift iargs count, if less than INT_ARG_CNT, or all */
+		for (i = (iargs < (INT_ARG_CNT - 2)) ? iargs : (INT_ARG_CNT - 2); i >= 0; i--) {
+			x86_64_mov_reg_reg(cd, rd->argintregs[i], rd->argintregs[i + 2]);
+		}
 
 		/* put class into second argument register */
 		x86_64_mov_imm_reg(cd, (u8) m->class, rd->argintregs[1]);
 
 	} else {
-		x86_64_mov_reg_reg(cd, rd->argintregs[4], rd->argintregs[5]);
-		x86_64_mov_reg_reg(cd, rd->argintregs[3], rd->argintregs[4]);
-		x86_64_mov_reg_reg(cd, rd->argintregs[2], rd->argintregs[3]);
-		x86_64_mov_reg_reg(cd, rd->argintregs[1], rd->argintregs[2]);
-		x86_64_mov_reg_reg(cd, rd->argintregs[0], rd->argintregs[1]);
+		/* shift iargs count, if less than INT_ARG_CNT, or all */
+		for (i = (iargs < (INT_ARG_CNT - 1)) ? iargs : (INT_ARG_CNT - 1); i >= 0; i--) {
+			x86_64_mov_reg_reg(cd, rd->argintregs[i], rd->argintregs[i + 1]);
+		}
 	}
 
 	/* put env into first argument register */
@@ -4119,17 +4155,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_alu_imm_reg(cd, X86_64_ADD, 3 * 8, REG_SP);    /* keep stack 16-byte aligned */
 	}
 
-#if 0
-	/* restore callee saved registers */
-	x86_64_movq_membase_reg(cd, REG_SP, 0 * 8, XMM15);
-	x86_64_movq_membase_reg(cd, REG_SP, 1 * 8, XMM14);
-	x86_64_movq_membase_reg(cd, REG_SP, 2 * 8, XMM13);
-	x86_64_movq_membase_reg(cd, REG_SP, 3 * 8, XMM12);
-	x86_64_movq_membase_reg(cd, REG_SP, 4 * 8, XMM11);
-	x86_64_movq_membase_reg(cd, REG_SP, 5 * 8, XMM10);
-
-	x86_64_alu_imm_reg(cd, X86_64_ADD, 7 * 8, REG_SP);    /* keep stack 16-byte aligned */
-#endif
+	/* check for exception */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	x86_64_push_reg(cd, REG_RESULT);
@@ -4146,6 +4172,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	x86_64_jcc(cd, X86_64_CC_NE, 1);
 
 	x86_64_ret(cd);
+
+	/* handle exception */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	x86_64_push_reg(cd, REG_ITMP3);
