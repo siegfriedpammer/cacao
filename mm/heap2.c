@@ -355,6 +355,19 @@ heap_add_address_to_address_list(address_list_node** list, void* address)
 
 inline
 static
+void 
+heap_add_address_to_address_list_unsorted(address_list_node** list, 
+										  void* address)
+{
+	address_list_node* new_node = malloc(sizeof(address_list_node));
+	new_node->address = address;
+	new_node->next = *list;
+	*list = new_node;
+}
+
+
+inline
+static
 void
 heap_add_finalizer_for_object_at(void* addr)
 {
