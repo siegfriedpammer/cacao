@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Field.c 1764 2004-12-15 16:21:20Z jowenn $
+   $Id: Field.c 1765 2004-12-15 17:25:04Z jowenn $
 
 */
 
@@ -253,11 +253,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang
 		return 0;
 	}
 	
-	if (!(fid->flags & ACC_PUBLIC)) {
+	/* if (!(fid->flags & ACC_PUBLIC)) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
 
-	}
+	}*/
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
@@ -315,11 +315,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang
 		return 0;
 	}
 	
-	if (!(fid->flags & ACC_PUBLIC)) {
+	/*if (!(fid->flags & ACC_PUBLIC)) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
 
-	}
+	}*/
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
@@ -377,11 +377,11 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 		return 0;
 	}
 	
-	if (!(fid->flags & ACC_PUBLIC)) {
+	/*if (!(fid->flags & ACC_PUBLIC)) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
 
-	}
+	}*/
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
@@ -448,11 +448,11 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 		return 0;
 	}
 	
-	if (!(fid->flags & ACC_PUBLIC)) {
+	/*if (!(fid->flags & ACC_PUBLIC)) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
 
-	}
+	}*/
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
@@ -518,11 +518,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang
 		return 0;
 	}
 	
-	if (!(fid->flags & ACC_PUBLIC)) {
+	/*if (!(fid->flags & ACC_PUBLIC)) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
 
-	}
+	} */
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
@@ -586,11 +586,11 @@ JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang
 		return 0;
 	}
 	
-	if (!(fid->flags & ACC_PUBLIC)) {
+	/*if (!(fid->flags & ACC_PUBLIC)) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
 
-	}
+	}*/
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
@@ -656,11 +656,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lan
 		return 0;
 	}
 	
-	if (!(fid->flags & ACC_PUBLIC)) {
+	/*if (!(fid->flags & ACC_PUBLIC)) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
 
-	}
+	}*/
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
