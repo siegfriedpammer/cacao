@@ -332,7 +332,6 @@ static void mcode_addxdivrefs(void *branchptr)
 static void mcode_finish(int mcodelen)
 {
 	jumpref *jr;
-	dataref *dr;
 	u1 *epoint;
 
 	count_code_len += mcodelen;
@@ -356,15 +355,18 @@ static void mcode_finish(int mcodelen)
 	    }
 
 #if defined(__I386__) || defined(__X86_64__)
-        /* add method into datastructure to find the entrypoint */
-	(void) addmethod(method->entrypoint, method->entrypoint + mcodelen);
-
-	/* data segment references resolving */
-	dr = datareferences;
-	while (dr != NULL) {
-  	    *((void**) ((long) epoint + (long) dr->pos - POINTERSIZE)) = epoint;
-	    dr = dr->next;
-	}
+        {
+            dataref *dr;
+            /* add method into datastructure to find the entrypoint */
+            (void) addmethod(method->entrypoint, method->entrypoint + mcodelen);
+        
+            /* data segment references resolving */
+            dr = datareferences;
+            while (dr != NULL) {
+                *((void**) ((long) epoint + (long) dr->pos - POINTERSIZE)) = epoint;
+                dr = dr->next;
+            }
+        }
 #endif
 }
 
