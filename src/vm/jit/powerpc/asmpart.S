@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2176 2005-04-01 13:00:34Z twisti $
+   $Id: asmpart.S 2206 2005-04-04 09:20:57Z twisti $
 
 */
 
@@ -113,7 +113,7 @@
 
 #define builtin_throw_exception               _builtin_throw_exception
 #define builtin_trace_exception               _builtin_trace_exception
-#define class_init                            _class_init
+#define initialize_class                      _initialize_class
 #define link_class                            _link_class
 #define load_class_bootstrap                  _load_class_bootstrap
 #define jit_compile                           _jit_compile
@@ -901,31 +901,31 @@ asm_check_clinit:
 	stw     r0,8(r1)
 	stwu    r1,-(26*8)(r1)        /* keep stack 16-bytes aligned              */
 
-    stw     r3,4*8(r1)            /* save argument registers                  */
-    stw     r4,5*8(r1)            /* preserve linkage area (24 bytes)         */
-    stw     r5,6*8(r1)            /* and 4 bytes (better 8) for 1 argument    */
-    stw     r6,7*8(r1)
-    stw     r7,8*8(r1)
-    stw     r8,9*8(r1)
-    stw     r9,10*8(r1)
+	stw     r3,4*8(r1)            /* save argument registers                  */
+	stw     r4,5*8(r1)            /* preserve linkage area (24 bytes)         */
+	stw     r5,6*8(r1)            /* and 4 bytes (better 8) for 1 argument    */
+	stw     r6,7*8(r1)
+	stw     r7,8*8(r1)
+	stw     r8,9*8(r1)
+	stw     r9,10*8(r1)
 	stw     r10,11*8(r1)
 
 	stfd    fr1,12*8(r1)
-    stfd    fr2,13*8(r1)
-    stfd    fr3,14*8(r1)
-    stfd    fr4,15*8(r1)
-    stfd    fr5,16*8(r1)
-    stfd    fr6,17*8(r1)
-    stfd    fr7,18*8(r1)
-    stfd    fr8,19*8(r1)
-    stfd    fr9,20*8(r1)
-    stfd    fr10,21*8(r1)
-    stfd    fr11,22*8(r1)
-    stfd    fr12,23*8(r1)
-    stfd    fr13,24*8(r1)
+	stfd    fr2,13*8(r1)
+	stfd    fr3,14*8(r1)
+	stfd    fr4,15*8(r1)
+	stfd    fr5,16*8(r1)
+	stfd    fr6,17*8(r1)
+	stfd    fr7,18*8(r1)
+	stfd    fr8,19*8(r1)
+	stfd    fr9,20*8(r1)
+	stfd    fr10,21*8(r1)
+	stfd    fr11,22*8(r1)
+	stfd    fr12,23*8(r1)
+	stfd    fr13,24*8(r1)
 		
 	mr      r3,itmp1
-	bl      class_init
+	bl      initialize_class
 	mr      itmp1,r3              /* save return value in temp register       */
 
 	lwz     r3,4*8(r1)
@@ -937,25 +937,25 @@ asm_check_clinit:
 	lwz     r9,10*8(r1)
 	lwz     r10,11*8(r1)
 
-    lfd     fr1,12*8(r1)
-    lfd     fr2,13*8(r1)
-    lfd     fr3,14*8(r1)
-    lfd   	fr4,15*8(r1)
-    lfd   	fr5,16*8(r1)
-    lfd   	fr6,17*8(r1)
-    lfd   	fr7,18*8(r1)
-    lfd   	fr8,19*8(r1)
-    lfd   	fr9,20*8(r1)
-    lfd   	fr10,21*8(r1)
-    lfd   	fr11,22*8(r1)
-    lfd   	fr12,23*8(r1)
-    lfd   	fr13,24*8(r1)
+	lfd     fr1,12*8(r1)
+	lfd     fr2,13*8(r1)
+	lfd     fr3,14*8(r1)
+	lfd     fr4,15*8(r1)
+	lfd     fr5,16*8(r1)
+	lfd     fr6,17*8(r1)
+	lfd     fr7,18*8(r1)
+	lfd     fr8,19*8(r1)
+	lfd     fr9,20*8(r1)
+	lfd     fr10,21*8(r1)
+	lfd     fr11,22*8(r1)
+	lfd     fr12,23*8(r1)
+	lfd     fr13,24*8(r1)
 		
 	lwz     r0,(26*8)+8(r1)
 	mtlr    r0
 	addi    r1,r1,(26*8)
 
-	mr.	    itmp1,itmp1           /* check for an exception                   */
+	mr.     itmp1,itmp1           /* check for an exception                   */
 	beq     L_initializererror
 
 L_is_initialized:
