@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: schedule.c 1961 2005-02-23 11:47:32Z twisti $
+   $Id: schedule.c 1963 2005-02-23 17:03:53Z twisti $
 
 */
 
@@ -83,7 +83,7 @@ minstruction *schedule_prepend_minstruction(minstruction *mi)
 	tmpmi->opdep[0] = NULL;
 	tmpmi->opdep[1] = NULL;
 	tmpmi->opdep[2] = NULL;
-	tmpmi->sinknode = true;
+	tmpmi->issinknode = true;           /* initially all nodes are sink nodes */
 
 	tmpmi->next = mi;                   /* link to next instruction           */
 
@@ -113,9 +113,9 @@ void schedule_calc_priority(minstruction *mi)
 			if (mi->opdep[i]->priority > pathpriority)
 				pathpriority = mi->opdep[i]->priority;
 
-			/* depedent node is non-sink node */
+			/* dependent node is non-sink node */
 
-			mi->opdep[i]->sinknode = false;
+			mi->opdep[i]->issinknode = false;
 		}
 	}
 
@@ -132,11 +132,50 @@ void schedule_calc_priority(minstruction *mi)
 void schedule_do_schedule(minstruction *mi)
 {
 	minstruction *rootmi;
-	s4 i;
+	sinknode     *rootsn;
+	sinknode     *sn;
+	s4            i;
+	s4            icount;               /* number of basic block instruction  */
+
+	/* initialize variables */
 
 	rootmi = mi;
+	rootsn = NULL;
+	icount = 0;
+
+	/* find all sink nodes */
+
+	while (mi) {
+		icount++;
+
+		/* if current node is a sink node, add it to the sink node list */
+
+		if (mi->issinknode) {
+			sn = DNEW(sinknode);
+			sn->mi = mi;
+			sn->next = rootsn;
+			rootsn = sn;
+		}
+
+		mi = mi->next;
+	}
+
+
+	/* walk through the instructions and do the actual scheduling */
+
+	for (i = 0; i < icount; i++) {
+		sn = rootsn;
+
+		/* first, find the highest priority path */
+
+		while (sn)
+			sn = sn->next;
+	}
+
 
 	printf("bb start ---\n");
+
+	mi = rootmi;
 
 	while (mi) {
 		printf("%p: ", mi);
@@ -144,13 +183,11 @@ void schedule_do_schedule(minstruction *mi)
 /*  		disassinstr(&tmpmi->instr); */
 		printf("%05x", mi->instr);
 
-		printf("   --> %d, %d, %d:   op1=%p, op2=%p, op3=%p\n", mi->sinknode, mi->latency, mi->priority, mi->opdep[0], mi->opdep[1], mi->opdep[2]);
+		printf("   --> %d, %d, %d:   op1=%p, op2=%p, op3=%p\n", mi->issinknode, mi->latency, mi->priority, mi->opdep[0], mi->opdep[1], mi->opdep[2]);
 
 		mi = mi->next;
 	}
 	printf("bb end ---\n\n");
-
-	
 }
 
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: schedule.h 1961 2005-02-23 11:47:32Z twisti $
+   $Id: schedule.h 1963 2005-02-23 17:03:53Z twisti $
 
 */
 
@@ -41,23 +41,9 @@
 #include "vm/jit/reg.h"
 
 
-/* minstruction ****************************************************************
-
-   This structure contains all information for one machine instruction
-   required to schedule it.
-
-*******************************************************************************/
-
+typedef struct scheduledata scheduledata;
 typedef struct minstruction minstruction;
-
-struct minstruction {
-	u4            instr;                /* machine instruction word           */
-	u1            latency;              /* instruction latency                */
-	s4            priority;             /* priority of this instruction node  */
-	minstruction *opdep[3];             /* operand dependencies               */
-	bool          sinknode;
-	minstruction *next;                 /* link to next machine instruction   */
-};
+typedef struct sinknode sinknode;
 
 
 /* scheduledata ****************************************************************
@@ -66,8 +52,6 @@ struct minstruction {
 
 *******************************************************************************/
 
-typedef struct scheduledata scheduledata;
-
 struct scheduledata {
 	minstruction **sink_nodes;          /* list containing sink nodes         */
 	minstruction **intregs_read_dep;
@@ -75,6 +59,35 @@ struct scheduledata {
 	minstruction **fltregs_read_dep;
 	minstruction **fltregs_write_dep;
 	minstruction *memory_write_dep;
+};
+
+
+/* minstruction ****************************************************************
+
+   This structure contains all information for one machine instruction
+   required to schedule it.
+
+*******************************************************************************/
+
+struct minstruction {
+	u4            instr;                /* machine instruction word           */
+	u1            latency;              /* instruction latency                */
+	s4            priority;             /* priority of this instruction node  */
+	minstruction *opdep[3];             /* operand dependencies               */
+	bool          issinknode;
+	minstruction *next;                 /* link to next machine instruction   */
+};
+
+
+/* sinknode ********************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+struct sinknode {
+	minstruction *mi;                   /* link to machine instruction        */
+	sinknode     *next;                 /* link to next sink node             */
 };
 
 
