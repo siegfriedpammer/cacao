@@ -29,13 +29,23 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 1506 2004-11-14 14:48:49Z jowenn $
+   $Id: jit.h 1593 2004-11-25 15:14:48Z twisti $
 
 */
 
 
 #ifndef _JIT_H
 #define _JIT_H
+
+/* We typedef these structures before #includes to resolve circular           */
+/* dependencies.                                                              */
+
+typedef struct stackelement stackelement;
+typedef stackelement *stackptr;
+typedef struct basicblock basicblock;
+typedef struct instruction instruction;
+typedef struct subroutineinfo subroutineinfo;
+
 
 #include "global.h"
 #include "builtin.h"
@@ -45,13 +55,6 @@
 
 
 /**************************** resolve typedef-cycles **************************/
-
-typedef struct stackelement stackelement;
-typedef stackelement *stackptr;
-typedef struct basicblock basicblock;
-typedef struct instruction instruction;
-typedef struct subroutineinfo subroutineinfo;
-
 
 /************************** stack element structure ***************************/
 
