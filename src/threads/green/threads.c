@@ -97,7 +97,16 @@ int cast_counter;
 #ifndef HAVE___THREAD
 pthread_key_t tkey_threadinfo;
 #endif
-#endif
+
+void cast_lock()
+{
+}
+
+void cast_unlock()
+{
+}
+
+#else // !defined(NATIVE_THREADS)
 
 static classinfo *class_java_lang_ThreadDeath;
 
@@ -842,10 +851,4 @@ reschedule(void)
     }
 }
 
-void cast_lock()
-{
-}
-
-void cast_unlock()
-{
-}
+#endif

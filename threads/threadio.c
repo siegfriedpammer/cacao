@@ -23,6 +23,7 @@
 #include "config.h"
 #include "thread.h"
 
+#if !defined(NATIVE_THREADS)
 
 #define	TH_READ		0
 #define	TH_WRITE	1
@@ -475,3 +476,5 @@ checkEvents(bool block)
 	}
     }
 }
+
+#endif

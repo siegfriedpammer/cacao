@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 895 2004-01-19 13:53:43Z edwin $
+   $Id: cacao.c 897 2004-01-21 00:49:42Z stefan $
 
 */
 
@@ -119,7 +119,7 @@ bool opt_verify = true;        /* true if classfiles should be verified      */
 
 static classinfo *topclass;
 
-#ifndef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 void **stackbottom = 0;
 #endif
 
@@ -567,7 +567,7 @@ void exit_handler(void)
 	if (showconstantpool) class_showconstantpool(topclass);
 	if (showutf) utf_show();
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	clear_thread_flags();		/* restores standard file descriptor
 	                               flags */
 #endif
@@ -618,7 +618,7 @@ int main(int argc, char **argv)
 	char *specificmethodname = NULL;
 	char *specificsignature = NULL;
 
-#ifndef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	stackbottom = &dummy;
 #endif
 	
@@ -903,7 +903,7 @@ int main(int argc, char **argv)
 	/* initialize the garbage collector */
 	gc_init();
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
   	initThreads((u1*) &dummy);
 #endif
 
@@ -954,7 +954,7 @@ int main(int argc, char **argv)
 			printf("\n");
 		}
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
   		killThread(currentThread);
 #endif
 		fprintf(stderr, "still here\n");

@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 892 2004-01-19 12:32:29Z edwin $
+   $Id: jit.c 897 2004-01-21 00:49:42Z stefan $
 
 */
 
@@ -1454,7 +1454,9 @@ methodptr jit_compile(methodinfo *m)
 	pthread_mutex_lock(&compiler_mutex);
 #endif
 
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	intsDisable();      /* disable interrupts */
+#endif
 
 	regs_ok = false;
 
@@ -1477,7 +1479,9 @@ methodptr jit_compile(methodinfo *m)
 		utf_sprint(logtext+strlen(logtext), m->name);
 		utf_sprint(logtext+strlen(logtext), m->descriptor);
 		log_text(logtext);
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 		intsRestore();                             /* enable interrupts again */
+#endif
 		return (methodptr) do_nothing_function;    /* return empty method     */
 	}
 
@@ -1595,7 +1599,9 @@ methodptr jit_compile(methodinfo *m)
 		compilingtime += (stoptime - starttime);
 	}
 
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	intsRestore();    /* enable interrupts again */
+#endif
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	pthread_mutex_unlock(&compiler_mutex);

@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 862 2004-01-06 23:42:01Z stefan $
+   $Id: boehm.c 897 2004-01-21 00:49:42Z stefan $
 
 */
 
@@ -84,7 +84,7 @@ static void *stackcall_free(void *p, u4 bytelength)
 }
 
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 #define MAINTHREADCALL(r,m,pp,ll) \
 	if (currentThread == NULL || currentThread == mainThread) { \
 		r = m(pp, ll); \

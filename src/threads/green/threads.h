@@ -49,6 +49,8 @@
 #define SDBG(s)                s
 #endif
 
+#if !defined(NATIVE_THREADS)
+
 struct _thread;
 
 typedef struct _ctx
@@ -175,7 +177,7 @@ typedef struct {
 	java_objectheader *_exceptionptr;
 } nativethread;
 
-#if defined(NATIVE_THREADS)
+#else // defined(NATIVE_THREADS)
 
 #if !defined(HAVE___THREAD)
 extern pthread_key_t tkey_threadinfo;

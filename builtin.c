@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 890 2004-01-19 12:24:13Z edwin $
+   $Id: builtin.c 897 2004-01-21 00:49:42Z stefan $
 
 */
 
@@ -1010,7 +1010,7 @@ void builtin_displaymethodexception(methodinfo *method)
  */
 void internal_lock_mutex_for_object(java_objectheader *object)
 {
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	mutexHashEntry *entry;
 	int hashValue;
 
@@ -1060,7 +1060,7 @@ void internal_lock_mutex_for_object(java_objectheader *object)
  */
 void internal_unlock_mutex_for_object (java_objectheader *object)
 {
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	int hashValue;
 	mutexHashEntry *entry;
 
@@ -1092,7 +1092,7 @@ void internal_unlock_mutex_for_object (java_objectheader *object)
 
 void builtin_monitorenter(java_objectheader *o)
 {
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	int hashValue;
 
 	assert(blockInts == 0);
@@ -1115,7 +1115,7 @@ void builtin_monitorenter(java_objectheader *o)
 
 void builtin_monitorexit (java_objectheader *o)
 {
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	int hashValue;
 
 	assert(blockInts == 0);

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 873 2004-01-11 20:59:29Z twisti $
+   $Id: VMThread.c 897 2004-01-21 00:49:42Z stefan $
 
 */
 
@@ -70,7 +70,7 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread(JNIEnv *
 	if (runverbose)
 		log_text("java_lang_Thread_currentThread called");
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	t = (java_lang_Thread *) currentThread;
   
 	if (!t->group) {
@@ -112,7 +112,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, java_lang_Thread
 	if (runverbose)
 		log_text("java_lang_Thread_isAlive called");
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	return aliveThread((thread *) this);
 #else
 	return 0;
@@ -154,7 +154,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeResume(JNIEnv *env, java_lang
 	if (runverbose)
 		log_text("java_lang_Thread_resume0 called");
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	resumeThread((thread *) this);
 #endif
 }
@@ -170,7 +170,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeSetPriority(JNIEnv *env, java
     if (runverbose) 
 		log_text("java_lang_Thread_setPriority0 called");
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	setPriorityThread((thread *) this, par1);
 #endif
 }
@@ -186,7 +186,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_sleep(JNIEnv *env, jclass clazz, s8
 	if (runverbose)
 		log_text("java_lang_Thread_sleep called");
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	sleepThread(millis);
 #endif
 }
@@ -202,7 +202,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_start(JNIEnv *env, java_lang_Thread
 	if (runverbose) 
 		log_text("java_lang_Thread_start called");
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	startThread((thread*)this);
 #endif
 }
@@ -219,7 +219,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeStop(JNIEnv *env, java_lang_T
 		log_text ("java_lang_Thread_stop0 called");
 
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	if (currentThread == (thread*)this) {
 		log_text("killing");
 		killThread(0);
@@ -246,7 +246,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeSuspend(JNIEnv *env, java_lan
 	if (runverbose)
 		log_text("java_lang_Thread_suspend0 called");
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	suspendThread((thread*)this);
 #endif
 }
@@ -262,7 +262,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_yield(JNIEnv *env, jclass clazz)
 	if (runverbose)
 		log_text("java_lang_Thread_yield called");
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	yieldThread();
 #endif
 }

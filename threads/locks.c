@@ -25,6 +25,8 @@
 #include "native.h"
 #include "loader.h"
 
+#if !defined(NATIVE_THREADS)
+
 static classinfo *class_java_lang_IllegalMonitorStateException;
 
 extern thread* currentThread;
@@ -567,3 +569,5 @@ internal_broadcast_cond (iCv* cv)
 		cv->cvWaiters = 0;
     }
 }
+
+#endif

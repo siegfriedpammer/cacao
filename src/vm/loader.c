@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 890 2004-01-19 12:24:13Z edwin $
+   $Id: loader.c 897 2004-01-21 00:49:42Z stefan $
 
 */
 
@@ -2785,7 +2785,7 @@ void class_init(classinfo *c)
 {
 	methodinfo *m;
 	s4 i;
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	int b;
 #endif
 
@@ -2849,7 +2849,7 @@ void class_init(classinfo *c)
 		log_text(logtext);
 	}
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	b = blockInts;
 	blockInts = 0;
 #endif
@@ -2857,7 +2857,7 @@ void class_init(classinfo *c)
 	/* now call the initializer */
 	asm_calljavafunction(m, NULL, NULL, NULL, NULL);
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	assert(blockInts == 0);
 	blockInts = b;
 #endif
@@ -2896,14 +2896,14 @@ void class_init(classinfo *c)
 			return;
 		}
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 		b = blockInts;
 		blockInts = 0;
 #endif
 
 		asm_calljavafunction(m, NULL, NULL, NULL, NULL);
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 		assert(blockInts == 0);
 		blockInts = b;
 #endif
@@ -3200,7 +3200,9 @@ classinfo *loader_load(utf *topname)
 
 	loader_load_running++;
 	
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	intsDisable();
+#endif
 
 	if (getloadingtime)
 		starttime = getcputime();
@@ -3277,7 +3279,9 @@ classinfo *loader_load(utf *topname)
 		}
 	}
 
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	intsRestore();
+#endif
 	
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	pthread_mutex_unlock(&compiler_mutex);
@@ -3656,7 +3660,7 @@ void loader_init(u1 *stackbottom)
 	/* correct vftbl-entries (retarded loading of class java/lang/String) */
 	stringtable_update();
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	if (stackbottom!=0)
 		initLocks();
 #endif
@@ -3758,7 +3762,9 @@ void loader_compute_subclasses()
 {
 	classinfo *c;
 	
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	intsDisable();                     /* schani */
+#endif
 
 	c = list_first(&linkedclasses);
 	while (c) {
@@ -3787,7 +3793,9 @@ void loader_compute_subclasses()
 	cast_unlock();
 #endif
 
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	intsRestore();                      /* schani */
+#endif
 }
 
 

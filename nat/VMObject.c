@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMObject.c 873 2004-01-11 20:59:29Z twisti $
+   $Id: VMObject.c 897 2004-01-21 00:49:42Z stefan $
 
 */
 
@@ -101,7 +101,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz,
 	if (runverbose)
 		log_text("java_lang_Object_notify called");
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	signal_cond_for_object(&this->header);
 #endif
 }
@@ -117,7 +117,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
 	if (runverbose)
 		log_text("java_lang_Object_notifyAll called");
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	broadcast_cond_for_object(&this->header);
 #endif
 }
@@ -133,7 +133,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, j
 	if (runverbose)
 		log_text("java_lang_Object_wait called");
 
-#ifdef USE_THREADS
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	wait_cond_for_object(&this->header, time);
 #endif
 }

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 862 2004-01-06 23:42:01Z stefan $
+   $Id: jni.c 897 2004-01-21 00:49:42Z stefan $
 
 */
 
@@ -212,7 +212,9 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
     u4 dummy;
     char c;
     char *cp;
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
     intsDisable();
+#endif
 	if (utf_char==0) {
 		utf_char=utf_new_char("java/lang/Character");
 		utf_bool=utf_new_char("java/lang/Boolean");
@@ -223,7 +225,9 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 		utf_float=utf_new_char("java/lang/Float");
 		utf_double=utf_new_char("java/lang/Double");
 	}
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
     intsRestore();
+#endif
 
 	/*
 	  log_text("fill_callblock");
