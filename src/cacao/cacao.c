@@ -4,20 +4,19 @@
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	Enthaelt die Funktion main() und die Variablen fuer die 
-	globalen Optionen.
-	Dieser Modul erledigt folgende Aufgaben:
-	   - Bearbeiten der command-line-options
-	   - Aufrufen aller Initialisierungsroutinen
-	   - Aufrufen des Classloaders
-	   - Starten der main - Methode
+	Contains main() and variables for the global options.
+	This module does the following tasks:
+	   - Command line option handling
+	   - Calling initialization routines
+	   - Calling the class loader
+	   - Running the main method
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 	Changes: Andi Krall          EMAIL: cacao@complang.tuwien.ac.at
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: cacao.c 145 1999-11-18 18:29:54Z schani $
+	Last Change: $Id: cacao.c 175 2002-12-04 13:33:31Z stefan $
 
 *******************************************************************************/
 
@@ -175,9 +174,9 @@ static int get_opt (int argc, char **argv)
 
 
 
-/******************** interne Funktion: print_usage ************************
+/******************** interne Function: print_usage ************************
 
-Gibt die richtige Aufrufsyntax des JavaVM-Compilers auf stdout aus.
+Prints the correct usage syntax to stdout.
 
 ***************************************************************************/
 
@@ -225,9 +224,9 @@ static void print_usage()
 
 
 
-/***************************** Funktion: print_times *********************
+/***************************** Function: print_times *********************
 
-	gibt eine Aufstellung der verwendeten CPU-Zeit aus
+	Prints a summary of CPU time usage.
 
 **************************************************************************/
 
@@ -255,7 +254,7 @@ static void print_times()
 
 
 
-/***************************** Funktion: print_stats *********************
+/***************************** Function: print_stats *********************
 
 	outputs detailed compiler statistics
 
@@ -426,7 +425,7 @@ static void print_stats()
 }
 
 
-/********** Funktion: class_compile_methods   (nur f"ur Debug-Zwecke) ********/
+/********** Function: class_compile_methods   (debugging only) ********/
 
 void class_compile_methods ()
 {
@@ -462,7 +461,7 @@ void class_compile_methods ()
 
 void exit_handler(void)
 {
-	/********************* Debug-Tabellen ausgeben ************************/
+	/********************* Print debug tables ************************/
 				
 	if (showmethods) class_showmethods (topclass);
 	if (showconstantpool)  class_showconstantpool (topclass);
@@ -473,7 +472,7 @@ void exit_handler(void)
 								   flags */
 #endif
 
-	/************************ Freigeben aller Resourcen *******************/
+	/************************ Free all resources *******************/
 
 	heap_close ();				/* must be called before compiler_close and
 								   loader_close because finalization occurs
@@ -495,10 +494,9 @@ void exit_handler(void)
 	}
 }
 
-/************************** Funktion: main *******************************
+/************************** Function: main *******************************
 
-   Das Hauptprogramm.
-   Wird vom System zu Programstart aufgerufen (eh klar).
+   The main program.
    
 **************************************************************************/
 
@@ -526,14 +524,14 @@ int main(int argc, char **argv)
 	if (0 != atexit(exit_handler))
 		panic("unable to register exit_handler");
 
-	/************ Infos aus der Environment lesen ************************/
+	/************ Collect info from the environment ************************/
 
 	cp = getenv ("CLASSPATH");
 	if (cp) {
 		strcpy (classpath, cp);
 	}
 
-	/***************** Interpretieren der Kommandozeile *****************/
+	/***************** Interpret the command line *****************/
    
 	checknull = false;
 	checkfloats = false;
@@ -669,7 +667,7 @@ int main(int argc, char **argv)
 			break;
 #endif
          		
-		case OPT_SHOW:       /* Anzeigeoptionen */
+		case OPT_SHOW:       /* Display options */
 			for (j=0; j<strlen(opt_arg); j++) {		
 				switch (opt_arg[j]) {
 				case 'a':  showdisassemble=true; compileverbose=true; break;
@@ -706,7 +704,7 @@ int main(int argc, char **argv)
 	}
 
 
-	/**************************** Programmstart *****************************/
+	/**************************** Program start *****************************/
 
 	log_init (logfilename);
 	if (verbose) {
@@ -728,11 +726,11 @@ int main(int argc, char **argv)
 	native_loadclasses ();
 
 
-	/*********************** JAVA-Klassen laden  ***************************/
+	/*********************** Load JAVA classes  ***************************/
    
    	cp = argv[opt_ind++];
-   	for (i=strlen(cp)-1; i>=0; i--) {     /* Punkte im Klassennamen */
- 	 	if (cp[i]=='.') cp[i]='/';        /* auf slashes umbauen */
+   	for (i=strlen(cp)-1; i>=0; i--) {     /* Transform dots into slashes */
+ 	 	if (cp[i]=='.') cp[i]='/';        /* in the class name */
 	}
 
 	topclass = loader_load ( utf_new_char (cp) );
@@ -758,7 +756,7 @@ int main(int argc, char **argv)
 	initThreads((u1*)&dummy);                   /* schani */
 #endif
 
-	/************************* Arbeitsroutinen starten ********************/
+	/************************* Start worker routines ********************/
 
 	if (startit) {
 		methodinfo *mainmethod;
@@ -792,14 +790,14 @@ int main(int argc, char **argv)
 		fprintf(stderr, "still here\n");
 	}
 
-	/************* Auf Wunsch alle Methode "ubersetzen ********************/
+	/************* If requested, compile all methods ********************/
 
 	if (compileall) {
 		class_compile_methods();
 	}
 
 
-	/******** Auf Wunsch eine spezielle Methode "ubersetzen ***************/
+	/******** If requested, compile a specific method ***************/
 
 	if (specificmethodname) {
 		methodinfo *m;
@@ -826,11 +824,10 @@ int main(int argc, char **argv)
 
 
 
-/************************************ SHUTDOWN-Funktion *********************************
+/************************************ Shutdown function *********************************
 
-	Terminiert das System augenblicklich, ohne den Speicher
-	explizit freizugeben (eigentlich nur f"ur abnorme 
-	Programmterminierung)
+	Terminates the system immediately without freeing memory explicitly (to be
+	used only for abnormal termination)
 	
 *****************************************************************************************/
 
