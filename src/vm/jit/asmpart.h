@@ -29,16 +29,13 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2065 2005-03-23 11:21:00Z twisti $
+   $Id: asmpart.h 2126 2005-03-29 22:21:46Z twisti $
 
 */
 
 
 #ifndef _ASMPART_H
 #define _ASMPART_H
-
-#include "native/jni.h"
-#include "vm/global.h"
 
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
@@ -47,6 +44,8 @@
 #  include "threads/green/threads.h"
 # endif
 #endif
+
+#include "vm/jit/stacktrace.h"
 
 
 typedef struct castinfo castinfo;
@@ -96,10 +95,10 @@ s4 asm_calljavafunction_int(methodinfo *m, void *arg1, void *arg2,
    also supports a return value
 */
 java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size, void *callblock);
-jint asm_calljavafunction2int(methodinfo *m, u4 count, u4 size, void *callblock);
-jlong asm_calljavafunction2long(methodinfo *m, u4 count, u4 size, void *callblock);
-jfloat asm_calljavafunction2float(methodinfo *m, u4 count, u4 size, void *callblock);
-jdouble asm_calljavafunction2double(methodinfo *m, u4 count, u4 size, void *callblock);
+s4 asm_calljavafunction2int(methodinfo *m, u4 count, u4 size, void *callblock);
+s8 asm_calljavafunction2long(methodinfo *m, u4 count, u4 size, void *callblock);
+float asm_calljavafunction2float(methodinfo *m, u4 count, u4 size, void *callblock);
+double asm_calljavafunction2double(methodinfo *m, u4 count, u4 size, void *callblock);
 
 /* We need these two labels in codegen.inc to add the asm_calljavafunction*'s
    into the methodtable */
