@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: schedule.c 1963 2005-02-23 17:03:53Z twisti $
+   $Id: schedule.c 1965 2005-02-24 19:52:00Z twisti $
 
 */
 
@@ -41,11 +41,14 @@
 #include "vm/jit/schedule/schedule.h"
 
 
-scheduledata *schedule_setup(registerdata *rd)
+scheduledata *schedule_init(registerdata *rd)
 {
 	scheduledata *sd;
 
 	sd = DNEW(scheduledata);
+
+	/* XXX quick hack: just use a fix number of instructions */
+	sd->mi = DMNEW(minstruction, 100);
 
 	sd->intregs_read_dep = DMNEW(minstruction*, rd->intregsnum);
 	sd->intregs_write_dep = DMNEW(minstruction*, rd->intregsnum);

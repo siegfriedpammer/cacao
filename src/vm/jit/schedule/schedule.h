@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: schedule.h 1964 2005-02-24 08:44:59Z twisti $
+   $Id: schedule.h 1965 2005-02-24 19:52:00Z twisti $
 
 */
 
@@ -53,13 +53,14 @@ typedef struct sinknode sinknode;
 *******************************************************************************/
 
 struct scheduledata {
-	minstruction **sink_nodes;          /* list containing sink nodes         */
-	minstruction **intregs_read_dep;
-	minstruction **intregs_write_dep;
-	minstruction **fltregs_read_dep;
-	minstruction **fltregs_write_dep;
-	minstruction *memory_read_dep;
-	minstruction *memory_write_dep;
+	minstruction *mi;                   /* machine instruction array          */
+	linknode     *leaders;              /* list containing sink nodes         */
+	linknode     *intregs_read_dep;
+	linknode     *intregs_write_dep;
+	linknode     *fltregs_read_dep;
+	linknode     *fltregs_write_dep;
+	linknode     *memory_read_dep;
+    linknode     *memory_write_dep;
 };
 
 
@@ -75,20 +76,19 @@ struct minstruction {
 	u1            latency;              /* instruction latency                */
 	s4            priority;             /* priority of this instruction node  */
 	minstruction *opdep[3];             /* operand dependencies               */
-	bool          issinknode;
 	minstruction *next;                 /* link to next machine instruction   */
 };
 
 
-/* sinknode ********************************************************************
+/* linknode ********************************************************************
 
    XXX
 
 *******************************************************************************/
 
-struct sinknode {
-	minstruction *mi;                   /* link to machine instruction        */
-	sinknode     *next;                 /* link to next sink node             */
+struct linknode {
+	s4         pos;                     /* postition in minstruction array    */
+	linknode *next;                     /* link to next node                  */
 };
 
 
