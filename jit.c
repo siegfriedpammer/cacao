@@ -37,7 +37,7 @@
 int num_compiled_m = 0;
 int myCount;
 
-bool compileverbose = false;
+bool compileverbose =  false;
 bool showstack = false;
 bool showdisassemble = false; 
 bool showddatasegment = false; 

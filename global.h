@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 285 2003-05-12 20:05:38Z carolyn $
+	Last Change: $Id: global.h 383 2003-07-08 21:01:26Z carolyn $
 
 *******************************************************************************/
 
@@ -67,7 +67,6 @@ typedef void (*functionptr) (); /* generic function pointer */
 
 
 #define MAX_ALIGN 8             /* most generic alignment for JavaVM values   */
-
 
 /* shutdown function **********************************************************/
 
@@ -462,7 +461,12 @@ typedef struct methodinfo {         /* method structure                       */
 	u1        *mcode;               /* pointer to machine code                */
 	u1        *entrypoint;          /* entry point in machine code            */
 
-        s4        methodUsed; /* -1=marked (might be used) 0=not used 1=used CO-RT*/
+        s4        methodUsed; 		/* -1=marked (might be used) 0=not used 1=used CO-RT*/
+	s4	  numSubDefs;		/* # sub definitions that could be used   */
+
+	s4          natCalls;     	/* number of methods  calls               */
+	
+//	methodinfo *natCalledMethods;   /* methods called table                   */
 
 } methodinfo;
 
@@ -505,7 +509,7 @@ struct classinfo {                /* class structure                          */
 
 	bool        initialized;      /* true, if class already initialised       */ 
 	bool        linked;           /* true, if class already linked            */
-	s4			index;            /* hierarchy depth (classes) or index
+	s4	    index;            /* hierarchy depth (classes) or index
 	                                 (interfaces)                             */ 
 	s4          instancesize;     /* size of an instance of this class        */
 #ifdef SIZE_FROM_CLASSINFO
@@ -527,6 +531,9 @@ struct classinfo {                /* class structure                          */
 	bool        classvftbl;       /* has its own copy of the Class vtbl       */
 
         s4          classUsed;        /* 0= not used 1 = used   CO-RT             */
+
+	classinfo  *impldBy;          /* implemented by class pointer             */
+	classinfo  *nextimpldBy;      /* ptr to next class in impldBy class list  */
 
 };
 
@@ -643,10 +650,12 @@ extern bool opt_xta;            /* X Type Analysis for better inlining    CO-XTA
 extern int pClassHeir;
 extern int pCallgraph;
 extern int pOpcodes;
+extern int pStats;
 
 extern void RT_jit_parse(methodinfo *m);
 extern void printCallgraph ();
 extern void printRThierarchyInfo(methodinfo *m);
+extern void printObjectClassHeirarchy();
 
 extern void XTA_jit_parse(methodinfo *m);
 

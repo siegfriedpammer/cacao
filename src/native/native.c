@@ -191,6 +191,20 @@ static struct nativecompref {
 static bool nativecompdone = false;
 
 
+/******************************************************************************/
+/******************************************************************************/
+#include "natcalls.h"
+
+/* string call comparison table initialized */
+
+/******************************************************************************/
+/******************************************************************************/
+
+/*--------------- native method calls & classes used -------------------------*/
+
+
+
+
 /*********************** function: native_loadclasses **************************
 
 	load classes required for native methods	
@@ -933,3 +947,123 @@ void copy_vftbl(vftbl **dest, vftbl *src)
 	memcpy(*dest, src, sizeof(vftbl) - sizeof(methodptr));
 	memcpy(&(*dest)->table, &src->table, src->vftbllength * sizeof(methodptr));
 }
+
+/*****************************************************************************/
+/*****************************************************************************/
+
+
+/*--------------------------------------------------------*/
+void printNativeCall(nativeCall nc) {
+  int i,j;
+
+  printf("\n%s's Native Methods call:\n",nc.classname); fflush(stdout);
+  for (i=0; i<nc.methCnt; i++) {  
+    printf("\tMethod=%s %s\n",nc.methods[i].methodname, nc.methods[i].descriptor);fflush(stdout);
+
+    for (j=0; j<nc.callCnt[i]; j++) {  
+      printf("\t\t<%i,%i>aCalled = %s %s %s\n",i,j,
+	nc.methods[i].methodCalls[j].classname, 
+	nc.methods[i].methodCalls[j].methodname, 
+	nc.methods[i].methodCalls[j].descriptor);fflush(stdout);
+      }
+    }
+printf("-+++++--------------------\n");fflush(stdout);
+}
+
+/*--------------------------------------------------------*/
+void printCompNativeCall(nativeCompCall nc) {
+  int i,j;
+printf("printCompNativeCall BEGIN\n");fflush(stdout);
+  printf("\n%s's Native Comp Methods call:\n",nc.classname->text);fflush(stdout);
+  utf_display(nc.classname); fflush(stdout);
+  
+  for (i=0; i<nc.methCnt; i++) {  
+    printf("\tMethod=%s %s\n",nc.methods[i].methodname->text,nc.methods[i].descriptor->text);fflush(stdout);
+    utf_display(nc.methods[i].methodname); fflush(stdout);
+    utf_display(nc.methods[i].descriptor);fflush(stdout);
+    printf("\n");fflush(stdout);
+
+    for (j=0; j<nc.callCnt[i]; j++) {  
+      printf("\t\t<%i,%i>bCalled = ",i,j);fflush(stdout);
+	utf_display(nc.methods[i].methodCalls[j].classname);fflush(stdout);
+	utf_display(nc.methods[i].methodCalls[j].methodname); fflush(stdout);
+	utf_display(nc.methods[i].methodCalls[j].descriptor);fflush(stdout);
+	printf("\n");fflush(stdout);
+      }
+    }
+printf("---------------------\n");fflush(stdout);
+}
+
+
+/*--------------------------------------------------------*/
+classMeth findNativeMethodCalls(utf *c, utf *m, utf *d ) 
+{
+int i=0;
+int j=0;
+int cnt = 0;
+classMeth mc;
+mc.i_class = i;
+mc.j_method = j;
+mc.methCnt = cnt;
+
+}
+
+/*--------------------------------------------------------*/
+nativeCall* findNativeClassCalls(char *aclassname ) {
+int i;
+
+for (i=0;i<NATIVECALLSSIZE; i++) {
+   // convert table to utf later to speed up search - see native.c 
+   if (strcmp(nativeCalls[i].classname, aclassname) == 0) 
+	return &nativeCalls[i];
+   }
+
+return NULL;
+}
+/*--------------------------------------------------------*/
+/*--------------------------------------------------------*/
+void utfNativeCall(nativeCall nc, nativeCompCall *ncc) {
+  int i,j;
+
+
+  ncc->classname = utf_new_char(nc.classname); 
+  ncc->methCnt = nc.methCnt;
+  
+  for (i=0; i<nc.methCnt; i++) {  
+    ncc->methods[i].methodname = utf_new_char(nc.methods[i].methodname);
+    ncc->methods[i].descriptor = utf_new_char(nc.methods[i].descriptor);
+    ncc->callCnt[i] = nc.callCnt[i];
+
+    for (j=0; j<nc.callCnt[i]; j++) {  
+
+	ncc->methods[i].methodCalls[j].classname  = utf_new_char(nc.methods[i].methodCalls[j].classname);
+
+        if (strcmp("", nc.methods[i].methodCalls[j].methodname) != 0) {
+          ncc->methods[i].methodCalls[j].methodname = utf_new_char(nc.methods[i].methodCalls[j].methodname);
+          ncc->methods[i].methodCalls[j].descriptor = utf_new_char(nc.methods[i].methodCalls[j].descriptor);
+          }
+        else {
+          ncc->methods[i].methodCalls[j].methodname = NULL;
+          ncc->methods[i].methodCalls[j].descriptor = NULL;
+          }
+      }
+    }
+}
+
+
+
+/*--------------------------------------------------------*/
+
+bool natcall2utf(bool natcallcompdone) {
+int i;
+
+if (natcallcompdone) 
+	return true;
+
+for (i=0;i<NATIVECALLSSIZE; i++) {
+   utfNativeCall  (nativeCalls[i], &nativeCompCalls[i]);  
+   }
+
+return true;
+}
+/*--------------------------------------------------------*/

@@ -170,6 +170,7 @@ initThreads(u1 *stackbottom)
 			utf_new_char ("toCharArray"),
 			utf_new_char ("()[C")
 			);
+printf("DEADCODE LIVES ?????????\n");fflush(stdout);
 	the_main_thread->name = asm_calljavafunction (m, javastring_new(utf_new_char("main")), 0, 0, 0);
 #endif
 	the_main_thread->name = builtin_newarray_char(len);

@@ -1,5 +1,5 @@
 class C extends A {
-int cx;
+static int cx = 1;
 void m1( ) {ax = 100; cx=1;
 }
 public static void main(String[] s) {
@@ -8,7 +8,7 @@ public static void main(String[] s) {
   a=b;
   b.m1();
   b.m2();
-
+  cx++;
 //  System.out.println("Hello World"));
 //  System.out.println("C: "+ ax +"; B: "+b.ax +"; A: "+a.ax);
  } 

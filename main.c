@@ -16,7 +16,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: main.c 285 2003-05-12 20:05:38Z carolyn $
+	Last Change: $Id: main.c 383 2003-07-08 21:01:26Z carolyn $
 
 *******************************************************************************/
 
@@ -802,7 +802,10 @@ int main(int argc, char **argv)
 
                                         /*RTprint*/ if ((pClassHeir >= 1) && (opt_rt)) {
                                         /*RTprint*/     printf("Last RTA Class Heirarchy -");
-                                        /*RTprint*/     printRThierarchyInfo(mainmethod); }
+                                        /*RTprint*/     printRThierarchyInfo(mainmethod); 
+					/*RTprint*/  	}
+					/*RTprint*/  	printObjectClassHeirarchy1( );
+
 
 #ifdef USE_THREADS
 		killThread(currentThread);

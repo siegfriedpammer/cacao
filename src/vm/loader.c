@@ -360,9 +360,24 @@ void suck_stop () {
 /******************************************************************************/
 
 
-/********** internal function: printflags  (only for debugging) ***************/
 
-static void printflags (u2 f)
+void fprintflags (FILE *fp, u2 f)
+{
+   if ( f & ACC_PUBLIC )       fprintf (fp," PUBLIC");
+   if ( f & ACC_PRIVATE )      fprintf (fp," PRIVATE");
+   if ( f & ACC_PROTECTED )    fprintf (fp," PROTECTED");
+   if ( f & ACC_STATIC )       fprintf (fp," STATIC");
+   if ( f & ACC_FINAL )        fprintf (fp," FINAL");
+   if ( f & ACC_SYNCHRONIZED ) fprintf (fp," SYNCHRONIZED");
+   if ( f & ACC_VOLATILE )     fprintf (fp," VOLATILE");
+   if ( f & ACC_TRANSIENT )    fprintf (fp," TRANSIENT");
+   if ( f & ACC_NATIVE )       fprintf (fp," NATIVE");
+   if ( f & ACC_INTERFACE )    fprintf (fp," INTERFACE");
+   if ( f & ACC_ABSTRACT )     fprintf (fp," ABSTRACT");
+}
+
+/********** internal function: printflags  (only for debugging) ***************/
+void printflags (u2 f)
 {
    if ( f & ACC_PUBLIC )       printf (" PUBLIC");
    if ( f & ACC_PRIVATE )      printf (" PRIVATE");
@@ -705,6 +720,8 @@ constant_arraydescriptor * buildarraydescriptor(char *utf_ptr, u4 namelen)
 
 		d -> objectclass = class_new ( utf_new(utf_ptr+1, namelen-3) );
                 d -> objectclass  -> classUsed = 0; /* not used initially CO-RT */
+		d -> objectclass  -> impldBy = NULL;
+		d -> objectclass  -> nextimpldBy = NULL;
 		break;
 	}
 	return d;
@@ -865,7 +882,7 @@ static void field_free (fieldinfo *f)
 
 /**************** Function: field_display (debugging only) ********************/
 
-static void field_display (fieldinfo *f)
+void field_display (fieldinfo *f)
 {
 	printf ("   ");
 	printflags (f -> flags);
@@ -910,7 +927,8 @@ static void method_load (methodinfo *m, classinfo *c)
 	m -> entrypoint = NULL;
 	m -> mcode = NULL;
 	m -> stubroutine = NULL;
-        m -> methodUsed = 0;    /* not used initially  CO-RT*/
+        m -> methodUsed = 0;    
+        m -> numSubDefs = 0;    
 	
 	if (! (m->flags & ACC_NATIVE) ) {
 		m -> stubroutine = createcompilerstub (m);
@@ -1036,7 +1054,7 @@ static bool method_canoverwrite (methodinfo *m, methodinfo *old)
 /******************************************************************************/
 
 
-/******************** function: class_getconstant ******************************
+/******************** function:: class_getconstant ******************************
 
 	retrieves the value at position 'pos' of the constantpool of a class
 	if the type of the value is other than 'ctype' the system is stopped
@@ -1419,6 +1437,7 @@ static int class_load (classinfo *c)
 
 	/* output for debugging purposes */
 	if (loadverbose) {		
+
 		sprintf (logtext, "Loading class: ");
 		utf_sprint (logtext+strlen(logtext), c->name );
 		dolog();
@@ -1445,6 +1464,8 @@ static int class_load (classinfo *c)
 	class_loadcpool (c);
 	
         c -> classUsed = 0; /* not used initially CO-RT */
+	c -> impldBy = NULL;
+	c -> nextimpldBy = NULL;
 
 	/* ACC flags */
 	c -> flags = suck_u2 (); 
@@ -1634,6 +1655,8 @@ static void class_link (classinfo *c)
 	if (super == NULL) {          /* class java.long.Object */
 		c->index = 0;
                 c->classUsed = 1;     /* Object class is always used CO-RT*/
+		c -> impldBy = NULL;
+		c -> nextimpldBy = NULL;
 		c->instancesize = sizeof(java_objectheader);
 		
 		vftbllength = supervftbllength = 0;
@@ -2053,6 +2076,7 @@ void class_init (classinfo *c)
 	s4 i;
 	int b;
 
+
 	if (!makeinitializations)
 		return;
  	if (c->initialized)
@@ -2066,7 +2090,7 @@ void class_init (classinfo *c)
   	if (c->super)
   		class_init (c->super);
 	for (i=0; i < c->interfacescount; i++)
-		class_init(c->interfaces[i]);
+		class_init(c->interfaces[i]);  // real
 
 	m = class_findmethod (c, utf_clinit, utf_fidesc);
 	if (!m) {
@@ -2156,7 +2180,131 @@ void class_init (classinfo *c)
 
 
 
-/********* Function: class_showconstantpool   (debugging only) *********/
+/********* Function: find_class_method_constant *********/
+int find_class_method_constant (classinfo *c, utf * c1, utf* m1, utf* d1)  
+
+{
+	u4 i;
+	voidptr e;
+
+	for (i=0; i<c->cpcount; i++) {
+		//printf ("#%d:  ", (int) i);
+		
+		e = c -> cpinfos [i];
+		if (e) {
+			
+			switch (c -> cptags [i]) {
+				case CONSTANT_Methodref:
+					{
+					constant_FMIref *fmi = e;
+					if (	   (fmi->class->name == c1)  
+						&& (fmi->name == m1)
+						&& (fmi->descriptor == d1)) {
+					
+						return i;
+						}
+					}
+					break;
+				case CONSTANT_InterfaceMethodref:
+					{
+					constant_FMIref *fmi = e;
+					if (	   (fmi->class->name == c1)  
+						&& (fmi->name == m1)
+						&& (fmi->descriptor == d1)) {
+
+						return i;
+						}
+				    }
+					break;
+				
+				default: 
+				}
+				
+			}
+
+		}
+return -1;
+}
+
+void class_showconstanti(classinfo *c, int ii) 
+{
+	u4 i = ii;
+	voidptr e;
+
+printf ("#%d:  ", (int) i);
+		
+e = c -> cpinfos [i];
+if (e) {
+			switch (c -> cptags [i]) {
+				case CONSTANT_Class:
+					printf ("Classreference -> ");
+					utf_display ( ((classinfo*)e) -> name );
+					break;
+				
+				case CONSTANT_Fieldref:
+					printf ("Fieldref -> "); goto displayFMIi;
+				case CONSTANT_Methodref:
+					printf ("Methodref -> "); goto displayFMIi;
+				case CONSTANT_InterfaceMethodref:
+					printf ("InterfaceMethod -> "); goto displayFMIi;
+				  displayFMIi:
+					{
+					constant_FMIref *fmi = e;
+					utf_display ( fmi->class->name );
+					printf (".");
+					utf_display ( fmi->name);
+					printf (" ");
+					utf_display ( fmi->descriptor );
+				    }
+					break;
+
+				case CONSTANT_String:
+					printf ("String -> ");
+					utf_display (e);
+					break;
+				case CONSTANT_Integer:
+					printf ("Integer -> %d", (int) ( ((constant_integer*)e) -> value) );
+					break;
+				case CONSTANT_Float:
+					printf ("Float -> %f", ((constant_float*)e) -> value);
+					break;
+				case CONSTANT_Double:
+					printf ("Double -> %f", ((constant_double*)e) -> value);
+					break;
+				case CONSTANT_Long:
+					{
+					u8 v = ((constant_long*)e) -> value;
+#if U8_AVAILABLE
+					printf ("Long -> %ld", (long int) v);
+#else
+					printf ("Long -> HI: %ld, LO: %ld\n", 
+					    (long int) v.high, (long int) v.low);
+#endif 
+					}
+					break;
+				case CONSTANT_NameAndType:
+					{ constant_nameandtype *cnt = e;
+					  printf ("NameAndType: ");
+					  utf_display (cnt->name);
+					  printf (" ");
+					  utf_display (cnt->descriptor);
+					}
+					break;
+				case CONSTANT_Utf8:
+					printf ("Utf8 -> ");
+					utf_display (e);
+					break;
+				case CONSTANT_Arraydescriptor:	{
+					printf ("Arraydescriptor: ");
+					displayarraydescriptor (e);
+					}
+					break;
+				default: 
+					panic ("Invalid type of ConstantPool-Entry");
+				}  }
+printf("\n");
+
+}
 
 void class_showconstantpool (classinfo *c) 
 {
@@ -2364,6 +2512,8 @@ void create_primitive_classes()
 		/* create primitive class */
 		classinfo *c = class_new ( utf_new_char(primitivetype_table[i].name) );
                 c -> classUsed = 0; /* not used initially CO-RT */		
+		c -> impldBy = NULL;
+		c -> nextimpldBy = NULL;
 
 		/* prevent loader from loading primitive class */
 		list_remove (&unloadedclasses, c);
@@ -2378,6 +2528,8 @@ void create_primitive_classes()
 		primitivetype_table[i].class_wrap =
 	        	class_new( utf_new_char(primitivetype_table[i].wrapname) );
                 primitivetype_table[i].class_wrap -> classUsed = 0; /* not used initially CO-RT */
+		primitivetype_table[i].class_wrap  -> impldBy = NULL;
+		primitivetype_table[i].class_wrap  -> nextimpldBy = NULL;
 	}
 }
 
@@ -2430,6 +2582,8 @@ void loader_init ()
 	/* create class for arrays */
 	class_array = class_new ( utf_new_char ("The_Array_Class") );
         class_array -> classUsed = 0; /* not used initially CO-RT */
+	class_array -> impldBy = NULL;
+	class_array -> nextimpldBy = NULL;
 
  	list_remove (&unloadedclasses, class_array);
 
@@ -2437,6 +2591,8 @@ void loader_init ()
 	string_class = utf_new_char ("java/lang/String");
 	class_java_lang_String = class_new(string_class);
         class_java_lang_String -> classUsed = 0; /* not used initially CO-RT */
+	class_java_lang_String -> impldBy = NULL;
+	class_java_lang_String -> nextimpldBy = NULL;
 
  	list_remove (&unloadedclasses, class_java_lang_String);
 
@@ -2585,7 +2741,6 @@ void loader_compute_subclasses ()
 			}
 		c = list_next (&linkedclasses, c);
 		}
-
 	classvalue = 0;
 	loader_compute_class_values(class_java_lang_Object);
 

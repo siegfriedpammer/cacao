@@ -1,5 +1,12 @@
 /* class: java/security/AccessController */
 
+int java_security_AccessController_calls(int classIndex, int callCnt)
+{
+
+//java/security/PrivilegedAction run ()Ljava/lang/Object;
+//java/security/PrivilegedActionException <init> ()V
+
+}
 
 /* wrap exception in PrivilegedActionException */
 
@@ -27,6 +34,7 @@ void check_for_exception(JNIEnv *env)
  * Method:    doPrivileged
  * Signature: (Ljava/security/PrivilegedAction;)Ljava/lang/Object;
  */
+
 JNIEXPORT struct java_lang_Object* JNICALL Java_java_security_AccessController_doPrivileged (JNIEnv *env , struct java_security_PrivilegedAction* action)
 {
 	methodinfo *m;    

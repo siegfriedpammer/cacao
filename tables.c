@@ -142,7 +142,7 @@ void utf_display (utf *u)
 {
     char *endpos  = utf_end(u);  /* points behind utf string       */
     char *utf_ptr = u->text;     /* current position in utf text   */
-
+	if (u==NULL) return;
     while (utf_ptr<endpos) {
 
 		/* read next unicode character */                
@@ -185,10 +185,14 @@ void utf_fprint (FILE *file, utf *u)
 {
     char *endpos  = utf_end(u);  /* points behind utf string       */
     char *utf_ptr = u->text;     /* current position in utf text   */ 
+    if (u==NULL) return;
+    while (utf_ptr<endpos) { 
+		/* read next unicode character */                
+		u2 c = utf_nextu2(&utf_ptr);				
 
-    while (utf_ptr<endpos) 
-		/* write next unicode character */       
-		putc ( utf_nextu2(&utf_ptr), file );
+		if (c>=32 && c<=127) fprintf (file,"%c",c);
+		                else fprintf (file,"?");
+		}
 } 
 
 

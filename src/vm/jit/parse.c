@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 372 2003-06-13 14:06:52Z twisti $
+	Last Change: $Id: parse.c 383 2003-07-08 21:01:26Z carolyn $
                      include Rapid Type Analysis parse - 5/2003 - carolyn
 
 
@@ -281,18 +281,23 @@ static void parse()
 	instruction *iptr;          /* current pointer into instruction array     */
         static int xta1 = 0;
 
+                /*RTAprint*/ if  ((opt_rt) && ((pOpcodes == 2) || (pOpcodes == 3)) )
+                /*RTAprint*/    {printf("PARSE method name =");
+                /*RTAprint*/    utf_display(method->class->name);printf(".");
+                /*RTAprint*/    method_display(method); printf(">\n\n");fflush(stdout);}
 	if (opt_rt) { 
             RT_jit_parse(method);
-                /*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
-                /*RTAprint*/    {printf("PARSE method name =");
-                /*RTAprint*/    utf_display(rt_method->class->name);printf(".");
-                /*RTAprint*/    utf_display(rt_method->name);printf("\n\n");
-                /*RTAprint*/    method_display(rt_method); printf(">\n\n");fflush(stdout);}
 	    }
         else {
 		if ((opt_xta) && (xta1 == 0)) { 
-			printf("XTA - not available yet\n"); 
-			xta1++;
+			/*printf("XTA - not available yet\n"); */
+			/*xta1++;  */
+           		 XTA_jit_parse(method);
+		                /*XTAprint*/ if (((pOpcodes == 1) || (pOpcodes == 3)) && opt_rt)
+                		/*XTAprint*/    {printf("XTA PARSE method name =");
+		                /*XTAprint*/    utf_display(rt_method->class->name);printf(".");
+		                /*XTAprint*/    method_display(rt_method); printf(">\n\n");fflush(stdout);}
+
 	    		}
 	
 	   }
@@ -374,7 +379,7 @@ static void parse()
 
                                 /*RTAprint*/ if  ((opt_rt) && ((pOpcodes == 2) || (pOpcodes == 3)) )
                                 /*RTAprint*/    {printf("Parse<%i> p=%i<%i<   opcode=<%i> %s\n",
-                                /*RTAprint*/            pOpcodes, p,rt_jcodelength,opcode,icmd_names[opcode]);}
+                                /*RTAprint*/            pOpcodes, p,jcodelength,opcode,opcode_names[opcode]);}
 
 		block_index[p] |= (ipc << 1);       /* store intermediate count       */
 
@@ -479,10 +484,12 @@ static void parse()
 					i = code_get_u1(p+1);
 				else {
 					i = code_get_u2(p+1);
+//printf("WIDE ");
 					nextp = p+3;
 					iswide = false;
 					}
 				OP1(opcode, i);
+// printf("I-ALOAD %s i=%i <%x>\n", opcode_names[opcode],i,jcode[p+1]);
 				break;
 
 			case JAVA_ILOAD_0:
@@ -531,9 +538,11 @@ static void parse()
 					i = code_get_u1(p+1);
 				else {
 					i = code_get_u2(p+1);
+//printf("WIDE ");
 					iswide=false;
 					nextp = p+3;
 					}
+//printf("I-ASTORE %s i=%i <%x>\n", opcode_names[opcode],i,jcode[p+1]);
 				OP1(opcode, i);
 				break;
 
@@ -878,6 +887,7 @@ static void parse()
 				mi = class_findmethod (mr->class, mr->name, mr->descriptor);
                 			/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
                                         /*RTAprint*/    {printf(" method name =");
+							method_display(mi);
                                         /*RTAprint*/    utf_display(mi->class->name); printf(".");
                                         /*RTAprint*/    utf_display(mi->name);printf("\tINVOKE SPECIAL/VIRTUAL\n");
                                         /*RTAprint*/    fflush(stdout);}
@@ -909,6 +919,7 @@ static void parse()
 
 			case JAVA_NEW:
 				i = code_get_u2 (p+1);
+
 				LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
 				s_count++;
 				BUILTIN1((functionptr) builtin_new, TYPE_ADR);
