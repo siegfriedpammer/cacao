@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 1370 2004-08-01 21:54:20Z stefan $
+   $Id: exceptions.h 1410 2004-08-17 13:01:24Z twisti $
 
 */
 
@@ -65,6 +65,7 @@ extern char *string_java_lang_CloneNotSupportedException;
 extern char *string_java_lang_Exception;
 extern char *string_java_lang_IllegalArgumentException;
 extern char *string_java_lang_IllegalMonitorStateException;
+extern char *string_java_lang_IndexOutOfBoundsException;
 extern char *string_java_lang_InterruptedException;
 extern char *string_java_lang_NegativeArraySizeException;
 extern char *string_java_lang_NoSuchFieldException;
@@ -86,15 +87,20 @@ extern char *string_java_lang_NoClassDefFoundError;
 extern char *string_java_lang_NoSuchFieldError;
 extern char *string_java_lang_NoSuchMethodError;
 extern char *string_java_lang_OutOfMemoryError;
+extern char *string_java_lang_UnsupportedClassVersionError;
 extern char *string_java_lang_VerifyError;
+extern char *string_java_lang_VirtualMachineError;
 
 
 /* function prototypes */
 
 /* load, link and compile exceptions used in the system */
+
 void init_system_exceptions();
 
+
 /* exception throwing functions */
+
 void throw_exception();
 void throw_exception_exit();
 
@@ -103,7 +109,9 @@ void throw_main_exception_exit();
 
 void throw_cacao_exception_exit(char *exception, char *message);
 
+
 /* initialize new exceptions */
+
 java_objectheader *new_exception(char *classname);
 java_objectheader *new_exception_message(char *classname, char *message);
 java_objectheader *new_exception_throwable(char *classname, java_lang_Throwable *cause);
@@ -111,8 +119,18 @@ java_objectheader *new_exception_utfmessage(char *classname, utf *message);
 java_objectheader *new_exception_javastring(char *classname, java_lang_String *message);
 java_objectheader *new_exception_int(char *classname, s4 i);
 
+
+/* functions to generate compiler exceptions */
+
 java_objectheader *new_classformaterror(classinfo *c, char *message, ...);
 java_objectheader *new_verifyerror(methodinfo *m, char *message);
+java_objectheader *new_unsupportedclassversionerror(classinfo *c, char *message, ...);
+
+java_objectheader *new_arithmeticexception();
+java_objectheader *new_arrayindexoutofboundsexception(s4 index);
+java_objectheader *new_classcastexception();
+java_objectheader *new_negativearraysizeexception();
+java_objectheader *new_nullpointerexception();
 
 #endif /* _EXCEPTIONS_H */
 

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1370 2004-08-01 21:54:20Z stefan $
+   $Id: exceptions.c 1410 2004-08-17 13:01:24Z twisti $
 
 */
 
@@ -95,6 +95,9 @@ char *string_java_lang_IllegalArgumentException =
 char *string_java_lang_IllegalMonitorStateException =
     "java/lang/IllegalMonitorStateException";
 
+char *string_java_lang_IndexOutOfBoundsException =
+    "java/lang/IndexOutOfBoundsException";
+
 char *string_java_lang_InterruptedException =
     "java/lang/InterruptedException";
 
@@ -148,6 +151,9 @@ char *string_java_lang_NoSuchMethodError =
 
 char *string_java_lang_OutOfMemoryError =
     "java/lang/OutOfMemoryError";
+
+char *string_java_lang_UnsupportedClassVersionError =
+    "java/lang/UnsupportedClassVersionError";
 
 char *string_java_lang_VerifyError =
     "java/lang/VerifyError";
@@ -301,6 +307,10 @@ void throw_cacao_exception_exit(char *exception, char *message)
 }
 
 
+#if 1
+#define CREATENEW_EXCEPTION(ex) \
+    return ex;
+#else
 #define CREATENEW_EXCEPTION(ex) \
 	java_objectheader *newEx; \
 	java_objectheader *oldexception=*exceptionptr;\
@@ -308,6 +318,7 @@ void throw_cacao_exception_exit(char *exception, char *message)
 	newEx=ex;\
 	*exceptionptr=oldexception;\
 	return newEx;
+#endif
 
 java_objectheader *new_exception(char *classname)
 {
@@ -350,7 +361,9 @@ java_objectheader *new_exception_javastring(char *classname, java_lang_String *m
 
 java_objectheader *new_exception_int(char *classname, s4 i)
 {
-	classinfo *c = class_new(utf_new_char(classname));
+	classinfo *c;
+
+	c = class_new(utf_new_char(classname));
 
 	CREATENEW_EXCEPTION(native_new_and_init_int(c, i));
 }
@@ -358,7 +371,7 @@ java_objectheader *new_exception_int(char *classname, s4 i)
 
 /* new_classformaterror ********************************************************
 
-   generates an java.lang.ClassFormatError for the classloader
+   generates a java.lang.ClassFormatError for the classloader
 
 *******************************************************************************/
 
@@ -380,9 +393,34 @@ java_objectheader *new_classformaterror(classinfo *c, char *message, ...)
 }
 
 
+/* new_unsupportedclassversionerror ********************************************
+
+   generates a java.lang.UnsupportedClassVersionError for the classloader
+
+*******************************************************************************/
+
+java_objectheader *new_unsupportedclassversionerror(classinfo *c, char *message, ...)
+{
+	char msg[MAXLOGTEXT];
+	va_list ap;
+
+	utf_sprint_classname(msg, c->name);
+	sprintf(msg + strlen(msg), " (");
+
+	va_start(ap, message);
+	vsprintf(msg + strlen(msg), message, ap);
+	va_end(ap);
+
+	sprintf(msg + strlen(msg), ")");
+
+	return new_exception_message(string_java_lang_UnsupportedClassVersionError,
+								 msg);
+}
+
+
 /* new_verifyerror *************************************************************
 
-   generates an java.lang.VerifyError for the jit compiler
+   generates a java.lang.VerifyError for the jit compiler
 
 *******************************************************************************/
 
@@ -412,6 +450,125 @@ java_objectheader *new_verifyerror(methodinfo *m, char *message)
 	MFREE(msg, u1, len);
 
 	return o;
+}
+
+
+/* new_arithmeticexception *****************************************************
+
+   generates a java.lang.ArithmeticException for the jit compiler
+
+*******************************************************************************/
+
+java_objectheader *new_arithmeticexception()
+{
+	java_objectheader *e;
+
+	e = new_exception_message(string_java_lang_ArithmeticException,
+							  string_java_lang_ArithmeticException_message);
+
+	if (!e)
+		return *exceptionptr;
+
+	return e;
+}
+
+
+/* new_arrayindexoutofboundsexception ******************************************
+
+   generates a java.lang.ArrayIndexOutOfBoundsException for the jit compiler
+
+*******************************************************************************/
+
+java_objectheader *new_arrayindexoutofboundsexception(s4 index)
+{
+	java_objectheader *e;
+	methodinfo *m;
+	java_lang_String *s;
+
+	/* convert the index into a String, like Sun does */
+
+	m = class_resolveclassmethod(class_java_lang_String,
+								 utf_new_char("valueOf"),
+								 utf_new_char("(I)Ljava/lang/String;"),
+								 class_java_lang_Object,
+								 true);
+
+	if (!m)
+		return *exceptionptr;
+
+	s = (java_lang_String *) asm_calljavafunction(m,
+												  (void *) index,
+												  NULL,
+												  NULL,
+												  NULL);
+
+	if (!s)
+		return *exceptionptr;
+
+	e = new_exception_javastring(string_java_lang_ArrayIndexOutOfBoundsException,
+								 s);
+
+	if (!e)
+		return *exceptionptr;
+
+	return e;
+}
+
+
+/* new_classcastexception ******************************************************
+
+   generates a java.lang.ClassCastException for the jit compiler
+
+*******************************************************************************/
+
+java_objectheader *new_classcastexception()
+{
+	java_objectheader *e;
+
+	e = new_exception(string_java_lang_ClassCastException);
+
+	if (!e)
+		return *exceptionptr;
+
+	return e;
+}
+
+
+/* new_negativearraysizeexception **********************************************
+
+   generates a java.lang.NegativeArraySizeException for the jit compiler
+
+*******************************************************************************/
+
+java_objectheader *new_negativearraysizeexception()
+{
+	java_objectheader *e;
+
+	e = new_exception(string_java_lang_NegativeArraySizeException);
+
+	if (!e)
+		return *exceptionptr;
+
+	return e;
+}
+
+
+/* new_nullpointerexception ****************************************************
+
+   generates a java.lang.NullPointerException for the jit compiler
+
+*******************************************************************************/
+
+java_objectheader *new_nullpointerexception()
+{
+	java_objectheader *e;
+
+	e = new_exception(string_java_lang_NullPointerException);
+
+	if (!e)
+		return *exceptionptr;
+
+	return e;
 }
 
 
