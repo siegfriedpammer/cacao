@@ -10,8 +10,8 @@ check compress db javac mpegaudio raytrace: force
 	 chmod 644 *; \
 	 chmod 755 input; \
 	 sh setup.sh || true; \
-	 ../../cacao sun.tools.javac.Main -d . *.java && \
-	 ../../cacao Main > $@.output; \
+	 ../../cacao -log /dev/null sun.tools.javac.Main -d . *.java && \
+	 ../../cacao -log /dev/null Main > $@.output; \
 	 sh postoutput.sh || true; \
 	)
 	diff --brief $@/$@.output $@.output

@@ -27,7 +27,7 @@ diff -Nu javac2/postoutput.sh javac/postoutput.sh
 +rm -f *.class
 +../../cacao -ieee sun.tools.javac.Main -classpath classes.zip JavaLex.java
 +rm -fr sun
-+../../cacao -ieee sun.tools.javap.JavaP -classpath .:lib -c `ls *.class|sed 's/\.class//g'` | sed 's/\#[0-9]*/#/g' >> javac.output
++../../cacao -ieee -log /dev/null sun.tools.javap.JavaP -classpath .:lib -c `ls *.class|sed 's/\.class//g'` | sed 's/\#[0-9]*/#/g' >> javac.output
 +../../cacao -ieee JavaLex sample.lex
 +cat sample.lex.java >> javac.output
 --- javac1/input/JavaLex.java	Wed Jun 17 19:59:04 1998
