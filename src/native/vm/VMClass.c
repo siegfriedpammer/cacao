@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 1774 2004-12-20 20:16:57Z jowenn $
+   $Id: VMClass.c 1849 2005-01-04 11:59:03Z twisti $
 
 */
 
@@ -725,14 +725,12 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass clazz, j
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass clazz, java_lang_Class *that, java_lang_Class *sup)
 {
-	/*	log_text("Java_java_lang_VMClass_isAssignableFrom");*/
-	
-	if (!sup) return 0;
-	if (!that) {
-		panic("sup->vmClass is NULL in VMClass.isAssignableFrom");
+	if (!sup) {
+		*exceptionptr = new_nullpointerexception();
 		return 0;
 	}
- 	return (*env)->IsAssignableForm(env, (jclass) sup, (jclass) that);
+
+ 	return (*env)->IsAssignableFrom(env, (jclass) sup, (jclass) that);
 }
 
 
@@ -743,8 +741,6 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz, java_lang_Class *that, java_lang_Object *obj)
 {
-/*  	classinfo *clazz = (classinfo *) that; */
-
 	return (*env)->IsInstanceOf(env, (jobject) obj, (jclass) that);
 }
 
