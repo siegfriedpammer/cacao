@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 1226 2004-06-30 19:26:39Z twisti $
+   $Id: boehm.c 1334 2004-07-21 15:50:28Z twisti $
 
 */
 
@@ -35,11 +35,14 @@
 #endif
 
 #include "options.h"
-#include "boehm.h"
-#include "global.h"
-#include "native.h"
 #include "asmpart.h"
+#include "boehm.h"
 #include "builtin.h"
+#include "exceptions.h"
+#include "global.h"
+#include "loader.h"
+#include "native.h"
+#include "tables.h"
 #include "threads/thread.h"
 #include "toolbox/logging.h"
 #include "boehm-gc/include/gc.h"
@@ -234,7 +237,7 @@ void *gc_out_of_memory()
 	if (in_gc_out_of_memory) {
 		/* this is all we can do... */
 		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "out of memory");
+								   "Out of memory");
 	}
 
 	in_gc_out_of_memory = true;
