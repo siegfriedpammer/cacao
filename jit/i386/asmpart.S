@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 965 2004-03-17 11:38:26Z twisti $
+   $Id: asmpart.S 968 2004-03-19 17:52:42Z jowenn $
 
 */
 
@@ -464,32 +464,12 @@ asm_handle_exception_loop:
 		push    %edi
 		
 ex_stack_loop:
-<<<<<<< asmpart.S
-	sub     $16,%esp
-	mov     %eax,(%esp)					/* exception pointer                  */
-	mov     MethodPointer(%edx),%eax	/* method pointer                     */
-	mov     %eax,4(%esp)
-	mov     %ecx,8(%esp)				/* exception pc                       */
-	movl    $1,12(%esp)					/* set no unwind flag                 */
-	call	builtin_trace_exception
-	add     $16,%esp
-
-	mov     -12(%ebp),%esi				/* %esi = data segment pointer        */
-	mov     ExTableSize(%esi),%ecx		/* %ecx = exception table size        */
-	test    %ecx,%ecx					/* if empty table skip                */
-	je      empty_table
-=======
 		sub     $20,%esp
 		mov     %eax,(%esp)					/* exception pointer              */
 		mov     MethodPointer(%edx),%eax	/* method pointer                 */
 		mov     %eax,4(%esp)
 		mov     %ecx,8(%esp)				/* exception pc                   */
->>>>>>> 1.13
 
-<<<<<<< asmpart.S
-	lea		ExTableStart(%esi),%edi		/* %edi = start of exception table    */
-	mov     -4(%ebp),%eax               /* get xptr                           */
-=======
 		movl	$0,12(%esp)		/* line number */
 
 		movl    $1,16(%esp)					/* set no unwind flag             */
@@ -502,7 +482,6 @@ ex_stack_loop:
 
 		lea		ExTableStart(%esi),%edi		/* %edi = start of exception table*/
 		mov     -4(%ebp),%eax               /* get xptr                       */
->>>>>>> 1.13
 		
 ex_table_loop:
 		mov     -8(%ebp),%edx				/* get xpc                        */
@@ -652,10 +631,28 @@ asm_check_clinit:
 		test	%ecx,%ecx
 		jnz		L_is_initialized
 
-		push	%eax                        /* pass classinfo pointer         */
+
+                sub             $16,%esp                                 /* build stack frame (4 * 4 bytes) */
+
+                mov             %eax,(%esp)
+
+		call	builtin_asm_get_stackframeinfo
+		movl	$0,12(%esp)
+		mov	%eax,8(%esp)
+		mov	(%eax),%ecx
+		mov	%ecx,4(%esp)
+		mov	%esp,%ecx
+		add	$4,%ecx
+		mov	%ecx,(%eax)
+
 		call	class_init                  /* call class_init function       */
-		add		$4,%esp
-				
+
+		mov	4(%esp),%ebx
+		mov	8(%esp),%ecx
+		mov	%ebx,(%ecx)
+
+                add             $16,%esp
+
 L_is_initialized:
 		mov		(%esp),%eax                 /* get return address             */
 		sub		$12,%eax                    /* asm_putstatic call code size   */
@@ -1227,6 +1224,11 @@ asm_builtin_new:
 /*		push %eax
 		call i386_native_stub_debug
 		pop %eax */
+		
+		movl 4(%esp),%eax
+		mov	offclassinit(%eax),%ecx     /* get initialized flag           */
+		test	%ecx,%ecx
+		jnz		L_builtin_new_noinit
 
                 sub             $16,%esp                                 /* build stack frame (4 * 4 bytes) */
 
@@ -1249,14 +1251,23 @@ asm_builtin_new:
 		mov	%ebx,(%ecx)
 
                 add             $16,%esp
-                ret
+
+		jmp L_builtin_new_patch
 
 
+L_builtin_new_noinit:
+		mov 4(%esp),%eax
+		push %eax
+		call builtin_new
+		add $4,%esp
+		/*jmp L_builtin_new_patch*/
 
-
-
-
-
+L_builtin_new_patch:
+/*add patching code here */
+		lea builtin_new,%edx
+		mov (%esp),%ecx
+		mov %edx,-6(%ecx)	/*patch calling instruction, t directly call builtin_new the next time*/
+		ret
 
 
 
