@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1153 2004-06-09 15:50:23Z twisti $
+   $Id: memory.c 1335 2004-07-21 15:57:10Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "exceptions.h"
 #include "global.h"
 #include "native.h"
 #include "toolbox/logging.h"
@@ -215,6 +216,9 @@ long int mem_usage()
 
 void *dump_alloc(int length)
 {
+#if 1
+	return checked_alloc(length);
+#else
 	void *m;
 	int blocksize = DUMPBLOCKSIZE;
 
@@ -247,6 +251,7 @@ void *dump_alloc(int length)
 	}
 		
 	return m;
+#endif
 }   
 
 
