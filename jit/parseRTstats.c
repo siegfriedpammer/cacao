@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 655 2003-11-20 14:52:00Z carolyn $
+   $Id: parseRTstats.c 657 2003-11-20 15:18:33Z carolyn $
 
 */
 
@@ -494,9 +494,7 @@ void printRThierarchyInfo(methodinfo *m) {
 			printf("\n");
 		}
     }
-printf("BEFORE printRT Class Heir\n");
 	printRTClassHeirarchy(class_java_lang_Object);
-printf("AFTER  printRT Class Heir\n");
 	if (pClassHeirStatsOnly >= 2) {
 		fflush(stdout);
 		printf("--- end  of RT info ---------------\n");

@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 655 2003-11-20 14:52:00Z carolyn $
+   $Id: parseRT.c 657 2003-11-20 15:18:33Z carolyn $
 
 */
 
@@ -1455,9 +1455,11 @@ static void parseRT()
 			mr = class_getconstant (rt_class, i, CONSTANT_InterfaceMethodref);
 			mi = class_findmethod (mr->class, mr->name, mr->descriptor);
 			
+						/*RTAprint*/ if (pWhenMarked >= 1) {
 						/*RTAprint*/ printf("\t");fflush(stdout);
 						/*RTAprint*/ utf_display(mr->class->name); printf(".");fflush(stdout);
 						/*RTAprint*/ method_display(mi); fflush(stdout); 
+						/*RTAprint*/ }
 
 			if (mi->flags & ACC_STATIC)
 				panic ("Static/Nonstatic mismatch calling static method");
@@ -1768,7 +1770,6 @@ void RT_jit_parse(methodinfo *m)
 		} /* if */
 
 	/*---- RTA call graph worklist -----***/
-					printf("USING RTA call graph>>>>>>>>>><<\n");
 	while (methRT <= methRTlast) {
 		rt_method      = callgraph[methRT];
 	    	rt_class       = rt_method->class;
@@ -1804,7 +1805,6 @@ void RT_jit_parse(methodinfo *m)
                                         /*RTAprint*/ if (pCallgraph >= 1) {
                                         /*RTAprint*/    printCallgraph ();}
                                         /*RTprint*/ if (pClassHeir >= 1) {
-                                        /*RTprint*/     printf("Last RTA Info -+-+-");
                                         /*RTprint*/     printRThierarchyInfo(m);
                                         /*RTprint*/     }
                                         /*RTprint*/     /**printObjectClassHeirarchyAll( );**/
