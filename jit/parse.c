@@ -8,7 +8,7 @@
 	
 	Author: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: parse.c 530 2003-10-23 21:18:38Z stefan $
+	Last Change: $Id: parse.c 553 2003-11-01 20:50:03Z twisti $
                      include Rapid Type Analysis parse - 5/2003 - carolyn
 
 
@@ -1281,39 +1281,47 @@ static void parse()
 				break;
 
 			case JAVA_F2I:
-				if (checkfloats) {
+#if defined(__ALPHA__)
+				if (!opt_noieee) {
 					BUILTIN1((functionptr) builtin_f2i, TYPE_INT);
-					}
-				else {
+				} else
+#endif
+				{
 					OP(opcode);
-					}
+				}
 				break;
 
 			case JAVA_F2L:
-				if (checkfloats) {
+#if defined(__ALPHA__)
+				if (!opt_noieee) {
 					BUILTIN1((functionptr) builtin_f2l, TYPE_LONG);
-					}
-				else {
+				} else 
+#endif
+				{
 					OP(opcode);
-					}
+				}
 				break;
 
 			case JAVA_D2I:
-				if (checkfloats) {
+#if defined(__ALPHA__)
+				if (!opt_noieee) {
 					BUILTIN1((functionptr) builtin_d2i, TYPE_INT);
-					}
-				else {
+				} else
+#endif
+				{
 					OP(opcode);
-					}
+				}
 				break;
 
 			case JAVA_D2L:
-				if (checkfloats) {
+#if defined(__ALPHA__)
+				if (!opt_noieee) {
 					BUILTIN1((functionptr) builtin_d2l, TYPE_LONG);
-					}
-				else {
+				} else
+#endif
+				{
 					OP(opcode);
-					}
+				}
 				break;
 
 			case JAVA_BREAKPOINT:
