@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1893 2005-01-31 17:06:41Z twisti $
+   $Id: builtin.h 1933 2005-02-10 10:57:42Z twisti $
 
 */
 
@@ -105,30 +105,6 @@ extern builtin_descriptor builtin_desc[];
 /**********************************************************************/
 /* GLOBAL VARIABLES                                                   */
 /**********************************************************************/
-
-#define THREADSPECIFIC
-#define exceptionptr (&_exceptionptr)
-#define threadrootmethod (&_threadrootmethod)
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#ifdef HAVE___THREAD
-
-#undef THREADSPECIFIC
-#define THREADSPECIFIC __thread
-
-#endif
-
-#undef exceptionptr
-#undef threadrootmethod
-#define exceptionptr builtin_get_exceptionptrptr()
-#define threadrootmethod  builtin_get_threadrootmethod()
-#endif
-
-#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
-extern java_objectheader *_exceptionptr;
-extern methodinfo* _threadrootmethod;
-#endif
-
 
 /**********************************************************************/
 /* BUILTIN FUNCTIONS                                                  */
