@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1361 2004-07-28 10:51:14Z twisti $
+   $Id: native.c 1383 2004-08-02 07:27:00Z stefan $
 
 */
 
@@ -926,6 +926,9 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
     /* create new javastring */
     js = LNEW(java_lang_String);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	initObjectLock(&js->header);
+#endif
 	js->header.vftbl = class_java_lang_String->vftbl;
     js->value  = stringdata;
     js->offset = 0;
