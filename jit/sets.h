@@ -27,7 +27,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.h 662 2003-11-21 18:06:25Z jowenn $
+   $Id: sets.h 665 2003-11-21 18:36:43Z jowenn $
 
 */
 

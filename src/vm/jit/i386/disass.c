@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 586 2003-11-09 19:38:07Z twisti $
+   $Id: disass.c 665 2003-11-21 18:36:43Z jowenn $
 
 */
 

@@ -31,7 +31,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: types.h 638 2003-11-14 23:51:34Z stefan $
+   $Id: types.h 665 2003-11-21 18:36:43Z jowenn $
 
 */
 

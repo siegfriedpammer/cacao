@@ -29,7 +29,7 @@
             Andreas  Krall
             Michael Gschwind
 
-   $Id: types.h 624 2003-11-13 14:06:52Z twisti $
+   $Id: types.h 665 2003-11-21 18:36:43Z jowenn $
 
 */
 

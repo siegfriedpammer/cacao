@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 662 2003-11-21 18:06:25Z jowenn $
+# $Id: Makefile.am 618 2003-11-13 09:39:28Z stefan $
 
 SUBDIRS = boehm-gc
 

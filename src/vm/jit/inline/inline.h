@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.h 578 2003-11-09 17:37:03Z twisti $
+   $Id: inline.h 665 2003-11-21 18:36:43Z jowenn $
 
 */
 

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: analyze.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: analyze.h 665 2003-11-21 18:36:43Z jowenn $
 
 */
 

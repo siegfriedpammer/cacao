@@ -1,0 +1,20 @@
+- asmpart.S, codegen.c: native thread changes (stefan)
+    alpha: (asmpart.S:1.16, codegen.c:1.20)
+    i386: done (asmpart.S:mostly 1.18, codegen.c:every change by me from 1.11-1.27)
+    mips: (asmpart.S:1.13, codegen.c:1.20)
+    powerpc: (asmpart.S:1.7, codegen.c:1.13)
+    x86_64: TODO
+
+- codegen.c: builtin_staticmonitorenter (stefan)
+    alpha: done (1.26.2.1)
+    i386: done (1.34.2.1)
+    mips: done (1.20.2.1)
+    powerpc: done (1.16.2.1)
+    x86_64: done (1.13.2.1)
+
+- asmpart.S, codegen.c: classpath 0.09 changes (jowenn)
+    alpha: TODO
+    i386: done (asmpart.S:1.25, codegen.c:1.35)
+    mips: TODO
+    powerpc: TODO
+    x86_64: TODO
