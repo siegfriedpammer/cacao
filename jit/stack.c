@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 803 2003-12-17 14:11:00Z edwin $
+   $Id: stack.c 804 2003-12-17 14:27:52Z edwin $
 
 */
 
@@ -136,6 +136,8 @@ extern int dseglen;
  *
  * These macros check the input stackdepth and they set the output
  * stackdepth and the output stack of the instruction (iptr->dst).
+ *
+ * These macros do *not* check for stack overflows!
  */
    
 #define PUSHCONST(s){NEWSTACKn(s,stackdepth);SETDST;stackdepth++;}
@@ -185,7 +187,10 @@ extern int dseglen;
                     new[2].prev=new+1;new[3].prev=new+2;\
                     new[4].prev=new+3;new[5].prev=new+4;\
                     curstack=new+5;new+=6;SETDST;stackdepth+=2;}
-/******************************/
+
+/*--------------------------------------------------*/
+/* MACROS FOR HANDLING BASIC BLOCKS                 */
+/*--------------------------------------------------*/
 
 /* COPYCURSTACK makes a copy of the current operand stack (curstack)
  * and returns it in the variable copy.
@@ -218,6 +223,9 @@ extern int dseglen;
 		copy=NULL;\
 }
 
+/* BBEND is called at the end of each basic block (after the last
+ * instruction of the block has been processed).
+ */
 
 #define BBEND(s,i){\
 	i=stackdepth-1;\
@@ -267,6 +275,31 @@ extern int dseglen;
 		}																\
 }
 
+
+/**********************************************************************/
+/* analyse_stack                                                      */
+/**********************************************************************/
+
+/* analyse_stack uses the intermediate code created by parse.c to
+ * build a model of the JVM operand stack for the current method.
+ *
+ * The following checks are performed:
+ *   - check for operand stack underflow (before each instruction)
+ *   - check for operand stack overflow (after[1] each instruction)
+ *   - check for matching stack depth at merging points
+ *   - check for matching basic types[2] at merging points
+ *   - check basic types for instruction input (except for BUILTIN*
+ *         opcodes)
+ *
+ * [1]) XXX Checking this after the instruction should be ok. parse.c
+ * counts the number of required stack slots in such a way that it is
+ * only vital that we don't exceed `maxstack` at basic block
+ * boundaries.
+ *
+ * [2]) 'basic types' means the distinction between INT, LONG, FLOAT,
+ * DOUBLE and ADDRESS types. Subtypes of INT and different ADDRESS
+ * types are not discerned.
+ */
 
 void analyse_stack()
 {
