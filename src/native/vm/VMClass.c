@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 1919 2005-02-10 10:08:53Z twisti $
+   $Id: VMClass.c 1990 2005-03-05 16:50:13Z twisti $
 
 */
 
@@ -40,15 +40,14 @@
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
-#include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_ClassLoader.h"
-#include "native/include/java_security_ProtectionDomain.h"
+#include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_reflect_Constructor.h"
 #include "native/include/java_lang_reflect_Field.h"
 #include "native/include/java_lang_reflect_Method.h"
-#include "native/include/java_lang_Throwable.h"        /* java_lang_VMClass.h */
-#include "native/include/java_lang_VMClass.h"
+#include "native/include/java_security_ProtectionDomain.h"
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
