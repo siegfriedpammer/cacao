@@ -29,6 +29,7 @@
             Andreas  Krall
 
    Changes: Christian Thalinger
+            Joseph Wenninger
 
    All functions assume the following code area / data area layout:
 
@@ -47,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1680 2004-12-04 12:02:08Z jowenn $
+   $Id: codegen.inc 1683 2004-12-05 21:33:36Z jowenn $
 
 */
 
@@ -550,7 +551,7 @@ static void codegen_addclinitref(codegendata *cd,
 
 static void codegen_createlinenumbertable(codegendata *cd)
 {
-#ifdef __I386__
+#if defined(__I386__) || defined(__ALPHA__)
 	linenumberref *lr;
 
 	for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
@@ -680,6 +681,46 @@ functionptr codegen_findmethod(functionptr pc)
 }
 #endif
 
+#if defined(__ALPHA__)
+/*perhaps in the end I'll have to go for the tree version on alpha too, since this is insecure for eg segfault signals in native code,
+since it will still return an adress of a datasegment, but which will not be a valid one of a java method. This version is faster though (jowenn)*/
+void *codegen_findmethod(void *returnAdress)
+ {
+        void *result;
+        s8 d;
+        void *dataseg;
+        d=*((s4*)returnAdress);
+        d=d<<48;
+        d=d>>48;
+        dataseg=returnAdress+d;
+        d=*(((s4*)returnAdress)+1);
+        d=d>>16;
+        d=d-0x177b;
+        if (d==0) {
+                d=*(((s4*)returnAdress)+1);
+                d=d<<16;
+                dataseg=dataseg+d;
+        }
+        return dataseg;
+#if 0
+        ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
+        sll     t0,48,t0
+        sra     t0,48,t0              /* isolate offset                           */
+        addq    t0,ra,pv              /* compute update address                   */
+        ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
+        srl     t0,16,t0              /* isolate instruction code                 */
+        lda     t0,-0x177b(t0)        /* test for LDAH                            */
+        bne     t0,ex_stack_loop
+        ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(RA)         */
+        sll     t0,16,t0              /* compute high offset                      */
+        addl    t0,0,t0               /* sign extend high offset                  */
+        addq    t0,pv,pv              /* compute update address                   */
+        br      ex_stack_loop
+#endif
+}
+
+#endif
+
 
 static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 {
@@ -720,7 +761,7 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 		jr = jr->next;
 	}
 
-#ifdef __I386__
+#if defined(__I386__) || defined(__ALPHA__)
 	/* line number table resolving */
 	{
 		linenumberref *lr;

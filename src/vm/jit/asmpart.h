@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 1680 2004-12-04 12:02:08Z jowenn $
+   $Id: asmpart.h 1683 2004-12-05 21:33:36Z jowenn $
 
 */
 
@@ -110,6 +110,11 @@ void asm_check_clinit();
 
 void asm_handle_builtin_exception(classinfo *);
 void asm_throw_and_handle_exception();
+#ifdef __ALPHA__
+void asm_throw_and_handle_nat_exception();
+void asm_refillin_and_handle_exception();
+void asm_throw_and_handle_arrayindexoutofbounds_exception();
+#endif
 void asm_throw_and_handle_hardware_arithmetic_exception();
 
 java_objectarray* Java_java_lang_VMSecurityManager_getClassContext(JNIEnv *env, jclass clazz);

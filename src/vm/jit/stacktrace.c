@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 1680 2004-12-04 12:02:08Z jowenn $
+   $Id: stacktrace.c 1683 2004-12-05 21:33:36Z jowenn $
 
 */
 
@@ -213,17 +213,33 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 						utf_display(currentMethod->name);*/
 						addEntry(&buffer,currentMethod,0);
 					}
+#ifdef __ALPHA__
+					if (info->savedpv!=0)
+						dataseg=info->savedpv;
+					else
+						dataseg=codegen_findmethod(returnAdress);
+#else
 					dataseg=codegen_findmethod(returnAdress);
+#endif
 					currentMethod=(*((methodinfo**)(dataseg+MethodPointer)));
 					if (info->beginOfJavaStackframe==0)
 						stackPtr=((char*)info)+sizeof(native_stackframeinfo);
 					else
+#ifdef __ALPHA__
+						stackPtr=(char*)(info->beginOfJavaStackframe);
+#else
 						stackPtr=(char*)(info->beginOfJavaStackframe)+sizeof(void*);
+#endif
 					info=info->oldThreadspecificHeadValue;
 				} else { /*method created by jit*/
 					u4 frameSize;
 					/*log_text("JIT");*/
-					if (currentMethod->isleafmethod) panic("How could that happen ??? A leaf method in the middle of a stacktrace ??");
+					if (currentMethod->isleafmethod) {
+#ifdef JWDEBUG
+						printf("class.method:%s.%s\n",currentMethod->class->name->text,currentMethod->name->text);
+#endif
+						panic("How could that happen ??? A leaf method in the middle of a stacktrace ??");
+					}
 					/*utf_display(currentMethod->class->name);
 					utf_display(currentMethod->name);*/
 					fillInStackTrace_method(&buffer,currentMethod,dataseg,returnAdress);

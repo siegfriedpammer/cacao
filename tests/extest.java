@@ -69,7 +69,7 @@ public class extest {
 
 	    if (msg == null || !msg.equals(String.valueOf(0xcafebabe))) {
 		pln("FAILED: wrong index: " + msg + ", should be: " + 0xcafebabe);
-
+		pstacktrace(e);
 	    } else {
 		pln("OK");
 	        pstacktrace(e);
@@ -86,7 +86,7 @@ public class extest {
 
 	    if (msg == null || !msg.equals(String.valueOf(0xbabecafe))) {
 		pln("FAILED: wrong index: " + msg + ", should be: " + 0xbabecafe);
-
+		pstacktrace(e);
 	    } else {
 		pln("OK");
 	        pstacktrace(e);
@@ -144,7 +144,7 @@ public class extest {
 
 	    if (msg == null || !msg.equals("/ by zero")) {
 		pln("FAILED: wrong message: " + msg + ", should be: / by zero");
-
+		pstacktrace(e);
 	    } else {
                 pln("OK");
                 pstacktrace(e);

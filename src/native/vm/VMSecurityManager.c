@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSecurityManager.c 1680 2004-12-04 12:02:08Z jowenn $
+   $Id: VMSecurityManager.c 1683 2004-12-05 21:33:36Z jowenn $
 
 */
 
@@ -51,7 +51,7 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMSecurityManager_curren
 	if (cacao_initializing)
 		return NULL;
 
-#ifdef __I386__
+#if defined(__I386__) || defined(__ALPHA__)
 	return cacao_currentClassLoader();
 #else
 	return 0;
@@ -71,7 +71,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMSecurityManager_getClassCon
 {
 	log_text("Java_java_lang_VMSecurityManager_getClassContext  called");
 	if (cacao_initializing) return 0;
-#ifdef __I386__
+#if defined(__I386__) || defined(__ALPHA__)
 	return cacao_createClassContextArray();
 #else
 	return 0;

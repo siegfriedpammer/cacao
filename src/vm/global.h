@@ -30,8 +30,9 @@
    Changes: Mark Probst
             Philipp Tomsich
 			Edwin Steiner
+            Joseph Wenninger
 
-   $Id: global.h 1680 2004-12-04 12:02:08Z jowenn $
+   $Id: global.h 1683 2004-12-05 21:33:36Z jowenn $
 
 */
 
@@ -303,6 +304,9 @@ struct native_stackframeinfo {
 	void *oldThreadspecificHeadValue;
 	void **addressOfThreadspecificHead;
 	methodinfo *method;
+#ifdef __ALPHA__
+	void *savedpv;
+#endif
 	void *beginOfJavaStackframe; /*only used if != 0*/
 	void *returnToFromNative;
 

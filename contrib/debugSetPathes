@@ -2,6 +2,6 @@ export LD_LIBRARY_PATH=$PWD/classpath/native/jni/java-lang/.libs:$PWD/classpath/
 $PWD/classpath/native/jni/java-util/.libs:$PWD/classpath/native/jni/java-awt/.libs:$PWD/classpath/native/jni/gtk-peer/.libs:\
 $PWD/classpath/native/jni/java-io/.libs:$PWD/classpath/native/jni/classpath/.libs:\
 $PWD/classpath/native/jni/java-net/.libs:$LD_LIBRARY_PATH
-export CLASSPATH=.:$PWD/classpath/lib/glibj.zip:$CLASSPATH
+export CLASSPATH=.:$PWD/classpath/lib/glibj.zip:$PWD/classpath/lib/rt.jar:$CLASSPATH
 export PATH=$PWD/cacao:$PATH
 

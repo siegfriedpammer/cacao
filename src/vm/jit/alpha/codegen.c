@@ -28,7 +28,9 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1641 2004-12-01 13:13:31Z christian $
+   Changes: Joseph Wenninger
+
+   $Id: codegen.c 1683 2004-12-05 21:33:36Z jowenn $
 
 */
 
@@ -36,6 +38,7 @@
 #include <stdio.h>
 #include <signal.h>
 
+#include "vm/jit/alpha/arch.h"
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/global.h"
@@ -49,9 +52,9 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/alpha/codegen.h"
-#include "vm/jit/alpha/arch.h"
 #include "vm/jit/alpha/types.h"
-
+#include "vm/jit/alpha/asmoffsets.h"
+#include "vm/jit/stacktrace.inc"
 
 /* *****************************************************************************
 
@@ -173,11 +176,13 @@ void catch_NullPointerException(int sig, int code, sigctx_struct *sigctx)
 		sigaddset(&nsig, sig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
 
-		xptr = new_nullpointerexception();
+		/*xptr = new_nullpointerexception();
+		sigctx->sc_regs[REG_ITMP1_XPTR] = (u8) xptr;*/
 
-		sigctx->sc_regs[REG_ITMP1_XPTR] = (u8) xptr;
+		sigctx->sc_regs[REG_ITMP1_XPTR]=string_java_lang_NullPointerException;
 		sigctx->sc_regs[REG_ITMP2_XPC] = sigctx->sc_pc;
-		sigctx->sc_pc = (u8) asm_handle_exception;
+		/*sigctx->sc_pc = (u8) asm_handle_exception;*/
+		sigctx->sc_pc = (u8) asm_throw_and_handle_exception;
 		return;
 
 	} else {
@@ -247,7 +252,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	basicblock     *bptr;
 	instruction    *iptr;
 	exceptiontable *ex;
-
+	u2 currentline=0;
 	{
 	s4 i, p, pa, t, l;
 	s4 savedregs_num;
@@ -567,6 +572,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		for (iptr = bptr->iinstr;
 		    len > 0;
 		    src = iptr->dst, len--, iptr++) {
+
+		if (iptr->line!=currentline) {
+			dseg_addlinenumber(cd,iptr->line,mcodeptr);
+			currentline=iptr->line;
+		}
 
 	MCODECHECK(64);           /* an instruction usually needs < 64 words      */
 	switch (iptr->opc) {
@@ -3513,6 +3523,8 @@ gen_method: {
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
+	codegen_createlinenumbertable(cd);
+
 	{
 	/* generate bound check stubs */
 
@@ -3536,36 +3548,20 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 
-			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
-			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+                        a = dseg_addaddress(cd, asm_throw_and_handle_arrayindexoutofbounds_exception);
+                        M_ALD(REG_PV, REG_PV, a);
 
-			a = dseg_addaddress(cd, string_java_lang_ArrayIndexOutOfBoundsException);
-			M_ALD(rd->argintregs[0], REG_PV, a);
-			M_MOV(REG_ITMP1, rd->argintregs[1]);
+                        M_JSR(REG_RA, REG_PV);
 
-			a = dseg_addaddress(cd, new_exception_int);
-			M_ALD(REG_PV, REG_PV, a);
-			M_JSR(REG_RA, REG_PV);
-
-			/* recompute pv */
-			s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
-			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
-			else {
-				s4 ml = -s1, mh = 0;
-				while (ml < -32768) { ml += 65536; mh--; }
-				M_LDA(REG_PV, REG_RA, ml);
-				M_LDAH(REG_PV, REG_PV, mh);
-			}
-
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
-
-			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
-
-			a = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, a);
-
-			M_JMP(REG_ZERO, REG_ITMP3);
+                        /* recompute pv */
+                        s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+                        if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
+                        else {
+                                s4 ml = -s1, mh = 0;
+                                while (ml < -32768) { ml += 65536; mh--; }
+                                M_LDA(REG_PV, REG_RA, ml);
+                                M_LDAH(REG_PV, REG_PV, mh);
+                        }
 		}
 	}
 
@@ -3595,16 +3591,15 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 
-			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
-			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
-
+			
 			a = dseg_addaddress(cd, string_java_lang_NegativeArraySizeException);
-			M_ALD(rd->argintregs[0], REG_PV, a);
+			M_ALD(REG_ITMP1_XPTR,REG_PV,a);
 
-			a = dseg_addaddress(cd, new_exception);
+			a = dseg_addaddress(cd, asm_throw_and_handle_nat_exception);
 			M_ALD(REG_PV, REG_PV, a);
-			M_JSR(REG_RA, REG_PV);
 
+			M_JSR(REG_RA, REG_PV);
+		
 			/* recompute pv */
 			s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
@@ -3615,15 +3610,7 @@ gen_method: {
 				M_LDAH(REG_PV, REG_PV, mh);
 			}
 
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
-
-			a = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, a);
-
-			M_JMP(REG_ZERO, REG_ITMP3);
 		}
 	}
 
@@ -3653,35 +3640,24 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 
-			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
-			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
-
 			a = dseg_addaddress(cd, string_java_lang_ClassCastException);
-			M_ALD(rd->argintregs[0], REG_PV, a);
+                        M_ALD(REG_ITMP1_XPTR,REG_PV,a);
 
-			a = dseg_addaddress(cd, new_exception);
-			M_ALD(REG_PV, REG_PV, a);
-			M_JSR(REG_RA, REG_PV);
+                        a = dseg_addaddress(cd, asm_throw_and_handle_nat_exception);
+                        M_ALD(REG_PV, REG_PV, a);
 
-			/* recompute pv */
-			s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
-			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
-			else {
-				s4 ml = -s1, mh = 0;
-				while (ml < -32768) { ml += 65536; mh--; }
-				M_LDA(REG_PV, REG_RA, ml);
-				M_LDAH(REG_PV, REG_PV, mh);
-			}
+                        M_JSR(REG_RA, REG_PV);
 
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+                        /* recompute pv */
+                        s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+                        if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
+                        else {
+                                s4 ml = -s1, mh = 0;
+                                while (ml < -32768) { ml += 65536; mh--; }
+                                M_LDA(REG_PV, REG_RA, ml);
+                                M_LDAH(REG_PV, REG_PV, mh);
+                        }
 
-			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
-
-			a = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, a);
-
-			M_JMP(REG_ZERO, REG_ITMP3);
 		}
 	}
 
@@ -3741,10 +3717,21 @@ gen_method: {
 			M_AST(REG_ZERO, REG_ITMP3, 0);
 #endif
 
-			a = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, a);
+			a = dseg_addaddress(cd, asm_refillin_and_handle_exception);
+			M_ALD(REG_PV, REG_PV, a);
 
-			M_JMP(REG_ZERO, REG_ITMP3);
+			M_JMP(REG_RA, REG_PV);
+		
+			/* recompute pv */
+			s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
+			else {
+				s4 ml = -s1, mh = 0;
+				while (ml < -32768) { ml += 65536; mh--; }
+				M_LDA(REG_PV, REG_RA, ml);
+				M_LDAH(REG_PV, REG_PV, mh);
+			}
+
 		}
 	}
 
@@ -3774,35 +3761,24 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 
-			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
-			M_LST(REG_ITMP2_XPC, REG_SP, 0 * 8);
-
 			a = dseg_addaddress(cd, string_java_lang_NullPointerException);
-			M_ALD(rd->argintregs[0], REG_PV, a);
+                        M_ALD(REG_ITMP1_XPTR,REG_PV,a);
 
-			a = dseg_addaddress(cd, new_exception);
-			M_ALD(REG_PV, REG_PV, a);
-			M_JSR(REG_RA, REG_PV);
+                        a = dseg_addaddress(cd, asm_throw_and_handle_nat_exception);
+                        M_ALD(REG_PV, REG_PV, a);
 
-			/* recompute pv */
-			s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
-			if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
-			else {
-				s4 ml = -s1, mh = 0;
-				while (ml < -32768) { ml += 65536; mh--; }
-				M_LDA(REG_PV, REG_RA, ml);
-				M_LDAH(REG_PV, REG_PV, mh);
-			}
+                        M_JSR(REG_RA, REG_PV);
 
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+                        /* recompute pv */
+                        s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+                        if (s1 <= 32768) M_LDA(REG_PV, REG_RA, -s1);
+                        else {
+                                s4 ml = -s1, mh = 0;
+                                while (ml < -32768) { ml += 65536; mh--; }
+                                M_LDA(REG_PV, REG_RA, ml);
+                                M_LDAH(REG_PV, REG_PV, mh);
+                        }
 
-			M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_LADD_IMM(REG_SP, 1 * 8, REG_SP);
-
-			a = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, a);
-
-			M_JMP(REG_ZERO, REG_ITMP3);
 		}
 	}
 
@@ -3899,6 +3875,23 @@ void removecompilerstub(u1 *stub)
 
 *******************************************************************************/
 
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#define NATIVESTUB_STACK          8/*ra,native result, oldThreadspecificHeadValue, addressOfThreadspecificHead, method, 0,0,ra*/
+#define NATIVESTUB_THREAD_EXTRA    (6 + 20) /*20 for additional frame creation*/
+#define NATIVESTUB_STACKTRACE_OFFSET   1
+#else
+#define NATIVESTUB_STACK          7/*ra,oldThreadspecificHeadValue, addressOfThreadspecificHead, method, 0,0,ra*/
+#define NATIVESTUB_THREAD_EXTRA    (1 + 20) /*20 for additional frame creation*/
+#define NATIVESTUB_STACKTRACE_OFFSET   0
+#endif
+
+#define NATIVESTUB_SIZE           (44 + NATIVESTUB_THREAD_EXTRA - 1)
+#define NATIVESTUB_STATIC_SIZE         5
+#define NATIVESTUB_VERBOSE_SIZE        (39 + 13)
+#define NATIVESTUB_OFFSET         11
+
+#if 0
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 #define NATIVESTUB_STACK           2
 #define NATIVESTUB_THREAD_EXTRA    6
@@ -3911,6 +3904,7 @@ void removecompilerstub(u1 *stub)
 #define NATIVESTUB_STATIC_SIZE     4
 #define NATIVESTUB_VERBOSE_SIZE    (39 + 13)
 #define NATIVESTUB_OFFSET          10
+#endif
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
@@ -3969,10 +3963,13 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	*(cs-7)  = (u8) builtin_displaymethodstop;
 	*(cs-8)  = (u8) m->class;
 	*(cs-9)  = (u8) asm_check_clinit;
-	*(cs-10) = (u8) NULL;               /* filled with machine code           */
+	*(cs-10) = (u8) &builtin_asm_get_stackframeinfo;
+	*(cs-11) = (u8) NULL;               /* filled with machine code           */
 
 	M_LDA(REG_SP, REG_SP, -NATIVESTUB_STACK * 8);     /* build up stackframe  */
 	M_AST(REG_RA, REG_SP, 0 * 8);       /* store return address               */
+
+	M_AST(REG_RA, REG_SP, (6+NATIVESTUB_STACKTRACE_OFFSET) * 8);       /* store return address  in stackinfo helper*/
 
 	/* if function is static, check for initialized */
 
@@ -3983,8 +3980,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		}
 	}
 
-	/* max. 39 instructions */
-	if (runverbose) {
+	/* max. 39 +9 instructions */
+	{
 		s4 p;
 		s4 t;
 		M_LDA(REG_SP, REG_SP, -((INT_ARG_CNT + FLT_ARG_CNT + 2) * 8));
@@ -4014,12 +4011,38 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			}
 		}
 
-		M_ALD(REG_ITMP1, REG_PV, -6 * 8);
-		M_AST(REG_ITMP1, REG_SP, 0 * 8);
-		M_ALD(REG_PV, REG_PV, -5 * 8);
-		M_JSR(REG_RA, REG_PV);
-		disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
-		M_LDA(REG_PV, REG_RA, disp);
+		if (runverbose) {
+			M_ALD(REG_ITMP1, REG_PV, -6 * 8);
+			M_AST(REG_ITMP1, REG_SP, 0 * 8);
+			M_ALD(REG_PV, REG_PV, -5 * 8);
+			M_JSR(REG_RA, REG_PV);
+			disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
+			M_LDA(REG_PV, REG_RA, disp);
+		}
+
+
+/*stack info */
+                M_ALD(REG_PV, REG_PV, -10 * 8);      /* builtin_asm_get_stackframeinfo        */
+                M_JSR(REG_RA, REG_PV);
+                disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
+                M_LDA(REG_PV, REG_RA, disp);
+
+#if 0
+                M_MOV(REG_RESULT,REG_ITMP3);
+                M_LST(REG_RESULT,REG_ITMP3,0);
+#endif
+                M_LST(REG_RESULT,REG_SP, ((INT_ARG_CNT + FLT_ARG_CNT + 2) * 8)+(2+NATIVESTUB_STACKTRACE_OFFSET)*8);/*save adress of pointer*/
+                M_LLD(REG_ITMP3,REG_RESULT,0); /* get pointer*/
+                M_LST(REG_ITMP3,REG_SP,(1+NATIVESTUB_STACKTRACE_OFFSET)*8+((INT_ARG_CNT + FLT_ARG_CNT + 2) * 8)); /*save old value*/
+                M_LDA(REG_ITMP3,REG_SP,(1+NATIVESTUB_STACKTRACE_OFFSET)*8+((INT_ARG_CNT + FLT_ARG_CNT + 2) * 8)); /*calculate new value*/
+                M_LLD(REG_ITMP2,REG_ITMP3,8);
+                M_LST(REG_ITMP3,REG_ITMP2,0); /*store new value*/
+                M_LLD(REG_ITMP2,REG_PV,-6*8);
+                M_LST(REG_ITMP2,REG_SP,(3+NATIVESTUB_STACKTRACE_OFFSET)*8+((INT_ARG_CNT + FLT_ARG_CNT + 2) * 8));
+                M_LST(REG_ZERO,REG_SP,(4+NATIVESTUB_STACKTRACE_OFFSET)*8+((INT_ARG_CNT + FLT_ARG_CNT + 2) * 8));
+                M_LST(REG_ZERO,REG_SP,(5+NATIVESTUB_STACKTRACE_OFFSET)*8+((INT_ARG_CNT + FLT_ARG_CNT + 2) * 8));
+/*stack info -end */
+
 
 		for (p = 0; p < m->paramcount && p < INT_ARG_CNT; p++) {
 			M_LLD(rd->argintregs[p], REG_SP, (2 + p) * 8);
@@ -4140,6 +4163,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		M_LDA(REG_SP, REG_SP, 2 * 8);
 	}
 
+        M_LLD(REG_ITMP3,REG_SP,(2+NATIVESTUB_STACKTRACE_OFFSET)*8); /*get address of stacktrace helper pointer*/
+        M_LLD(REG_ITMP1,REG_SP,(1+NATIVESTUB_STACKTRACE_OFFSET)*8); /*get old value*/
+        M_LST(REG_ITMP1,REG_ITMP3,0); /*set old value*/
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	if (IS_FLT_DBL_TYPE(m->returntype))
 		M_DST(REG_FRESULT, REG_SP, 1 * 8);
@@ -4186,7 +4213,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			/* Get machine code which is patched back in later. The call is   */
 			/* 1 instruction word long.                                       */
 			xcodeptr = (s4 *) (cd->mcodebase + cref->branchpos);
-			*(cs-10) = (u4) *xcodeptr;
+			*(cs-11) = (u4) *xcodeptr;
 
 			/* patch in the call to call the following code (done at compile  */
 			/* time)                                                          */
@@ -4202,7 +4229,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			M_ALD(REG_ITMP1, REG_PV, -8 * 8);     /* class                    */
 
 			/* move machine code into REG_ITMP3                               */
-			M_ILD(REG_ITMP3, REG_PV, -10 * 8);    /* machine code             */
+			M_ILD(REG_ITMP3, REG_PV, -11 * 8);    /* machine code             */
 			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
 			M_IST(REG_ITMP3, REG_SP, 0);
 

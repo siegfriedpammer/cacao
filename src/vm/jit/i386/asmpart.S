@@ -29,7 +29,9 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1680 2004-12-04 12:02:08Z jowenn $
+   Changes: Joseph Wenninger
+
+   $Id: asmpart.S 1683 2004-12-05 21:33:36Z jowenn $
 
 */
 

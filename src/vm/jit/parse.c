@@ -28,8 +28,9 @@
 
    Changes: Carolyn Oates
             Edwin Steiner
+            Joseph Wenninger
 
-   $Id: parse.c 1630 2004-11-30 19:33:41Z carolyn $
+   $Id: parse.c 1683 2004-12-05 21:33:36Z jowenn $
 
 */
 
