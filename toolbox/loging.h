@@ -27,13 +27,16 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loging.h 701 2003-12-07 16:26:58Z edwin $
+   $Id: loging.h 710 2003-12-07 19:05:12Z twisti $
 
 */
 
 
 #ifndef _LOGGING_H
 #define _LOGGING_H
+
+#include <stdio.h>
+
 
 #define PANICIF(when,txt)  if(when)panic(txt)
 
