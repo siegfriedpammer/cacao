@@ -33,7 +33,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 2037 2005-03-19 15:57:50Z twisti $
+   $Id: codegen.c 2053 2005-03-20 17:21:24Z twisti $
 
 */
 
@@ -1927,8 +1927,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				/* read patched code. Here we patch the following 2 nop's     */
 				/* so that the real code keeps untouched.                     */
 				if (showdisassemble) {
-					M_NOP;
-					M_NOP;
+					M_NOP; M_NOP;
 				}
   			}
 
@@ -1955,10 +1954,45 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				var_to_reg_flt(s2, src, REG_FTMP2);
 				M_DST(s2, REG_ITMP1, 0);
 				break;
-			default:
-				throw_cacao_exception_exit(string_java_lang_InternalError,
-										   "Unknown PUTSTATIC operand type %d",
-										   iptr->op1);
+			}
+			break;
+
+		case ICMD_PUTSTATICCONST: /* ...  ==> ...                             */
+		                          /* val = value (in current instruction)     */
+		                          /* op1 = type, val.a = field address (in    */
+		                          /* following NOP)                           */
+
+			/* If the static fields' class is not yet initialized, we do it   */
+			/* now. The call code is generated later.                         */
+  			if (!((fieldinfo *) iptr[1].val.a)->class->initialized) {
+				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr[1].val.a)->class);
+
+				/* This is just for debugging purposes. Is very difficult to  */
+				/* read patched code. Here we patch the following 2 nop's     */
+				/* so that the real code keeps untouched.                     */
+				if (showdisassemble) {
+					M_NOP; M_NOP;
+				}
+  			}
+
+			a = dseg_addaddress(cd, &(((fieldinfo *) iptr[1].val.a)->value));
+			M_ALD(REG_ITMP1, REG_PV, a);
+			switch (iptr->op1) {
+			case TYPE_INT:
+				M_IST(REG_ZERO, REG_ITMP1, 0);
+				break;
+			case TYPE_LNG:
+				M_LST(REG_ZERO, REG_ITMP1, 0);
+				break;
+			case TYPE_ADR:
+				M_AST(REG_ZERO, REG_ITMP1, 0);
+				break;
+			case TYPE_FLT:
+				M_FST(REG_ZERO, REG_ITMP1, 0);
+				break;
+			case TYPE_DBL:
+				M_DST(REG_ZERO, REG_ITMP1, 0);
+				break;
 			}
 			break;
 
@@ -1974,8 +2008,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				/* read patched code. Here we patch the following 2 nop's     */
 				/* so that the real code keeps untouched.                     */
 				if (showdisassemble) {
-					M_NOP;
-					M_NOP;
+					M_NOP; M_NOP;
 				}
   			}
 
@@ -2007,53 +2040,64 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				M_DLD(d, REG_ITMP1, 0);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
-			default:
-				throw_cacao_exception_exit(string_java_lang_InternalError,
-										   "Unknown GETSTATIC operand type %d",
-										   iptr->op1);
 			}
 			break;
 
 
-		case ICMD_PUTFIELD:   /* ..., value  ==> ...                          */
-		                      /* op1 = type, val.i = field offset             */
+		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
+		                      /* op1 = type, val.a = field address            */
 
-			a = ((fieldinfo *)(iptr->val.a))->offset;
+			a = ((fieldinfo *) iptr->val.a)->offset;
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			gen_nullptr_check(s1);
 			switch (iptr->op1) {
 			case TYPE_INT:
-				var_to_reg_int(s1, src->prev, REG_ITMP1);
 				var_to_reg_int(s2, src, REG_ITMP2);
-				gen_nullptr_check(s1);
 				M_IST(s2, s1, a);
 				break;
 			case TYPE_LNG:
-				var_to_reg_int(s1, src->prev, REG_ITMP1);
 				var_to_reg_int(s2, src, REG_ITMP2);
-				gen_nullptr_check(s1);
 				M_LST(s2, s1, a);
 				break;
 			case TYPE_ADR:
-				var_to_reg_int(s1, src->prev, REG_ITMP1);
 				var_to_reg_int(s2, src, REG_ITMP2);
-				gen_nullptr_check(s1);
 				M_AST(s2, s1, a);
 				break;
 			case TYPE_FLT:
-				var_to_reg_int(s1, src->prev, REG_ITMP1);
 				var_to_reg_flt(s2, src, REG_FTMP2);
-				gen_nullptr_check(s1);
 				M_FST(s2, s1, a);
 				break;
 			case TYPE_DBL:
-				var_to_reg_int(s1, src->prev, REG_ITMP1);
 				var_to_reg_flt(s2, src, REG_FTMP2);
-				gen_nullptr_check(s1);
 				M_DST(s2, s1, a);
 				break;
-			default:
-				throw_cacao_exception_exit(string_java_lang_InternalError,
-										   "Unknown PUTFIELD operand type %d",
-										   iptr->op1);
+			}
+			break;
+
+		case ICMD_PUTFIELDCONST:  /* ..., objectref  ==> ...                  */
+		                          /* val = value (in current instruction)     */
+		                          /* op1 = type, val.a = field address (in    */
+		                          /* following NOP)                           */
+
+			a = ((fieldinfo *) iptr[1].val.a)->offset;
+			var_to_reg_int(s1, src, REG_ITMP1);
+			gen_nullptr_check(s1);
+			switch (iptr->op1) {
+			case TYPE_INT:
+				M_IST(REG_ZERO, s1, a);
+				break;
+			case TYPE_LNG:
+				M_LST(REG_ZERO, s1, a);
+				break;
+			case TYPE_ADR:
+				M_AST(REG_ZERO, s1, a);
+				break;
+			case TYPE_FLT:
+				M_FST(REG_ZERO, s1, a);
+				break;
+			case TYPE_DBL:
+				M_DST(REG_ZERO, s1, a);
+				break;
 			}
 			break;
 
@@ -2061,46 +2105,34 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1 = type, val.i = field offset             */
 
 			a = ((fieldinfo *)(iptr->val.a))->offset;
+			var_to_reg_int(s1, src, REG_ITMP1);
+			gen_nullptr_check(s1);
 			switch (iptr->op1) {
 			case TYPE_INT:
-				var_to_reg_int(s1, src, REG_ITMP1);
 				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-				gen_nullptr_check(s1);
 				M_ILD(d, s1, a);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
-				var_to_reg_int(s1, src, REG_ITMP1);
 				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-				gen_nullptr_check(s1);
 				M_LLD(d, s1, a);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_ADR:
-				var_to_reg_int(s1, src, REG_ITMP1);
 				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-				gen_nullptr_check(s1);
 				M_ALD(d, s1, a);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_FLT:
-				var_to_reg_int(s1, src, REG_ITMP1);
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				gen_nullptr_check(s1);
 				M_FLD(d, s1, a);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			case TYPE_DBL:				
-				var_to_reg_int(s1, src, REG_ITMP1);
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				gen_nullptr_check(s1);
 				M_DLD(d, s1, a);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
-			default:
-				throw_cacao_exception_exit(string_java_lang_InternalError,
-										   "Unknown GETFIELD operand type %d",
-										   iptr->op1);
 			}
 			break;
 
