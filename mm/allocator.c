@@ -6,7 +6,7 @@
  *
  * Authors: Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
  *
- * $Id: allocator.c 60 1998-11-11 02:22:30Z phil $
+ * $Id: allocator.c 93 1998-11-25 11:49:36Z phil $
  */
 
 /* 
@@ -263,8 +263,9 @@ allocator_display_count()
 void 
 allocator_init()
 {
+#if 0
 	fprintf(stderr, 
-			"allocator_init: $Id: allocator.c 60 1998-11-11 02:22:30Z phil $\n\n");
+			"allocator_init: $Id: allocator.c 93 1998-11-25 11:49:36Z phil $\n\n");
 	
 	fprintf(stderr, "\t%d bit addresses\n", ADDRESS);
 	fprintf(stderr, "\t%d bit alignment\n", ALIGN);
@@ -280,6 +281,7 @@ allocator_init()
 			"\tusing %d bytes for exact bins, %d bytes for sorted bins\n\n",
 			(1 << EXACT) << ALIGN,
 			(LARGE << SUBBIT) << ALIGN);
+#endif
 	
 	init_table();		/* set up the highest-table */
 	allocator_reset();	/* clear the freelists & internal variables */

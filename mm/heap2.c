@@ -20,7 +20,7 @@
 #undef OFFSET
 
 #define GC_COLLECT_STATISTICS
-#define FINALIZER_COUNTING
+//#define FINALIZER_COUNTING
 
 #undef STRUCTURES_ON_HEAP
 //#define STRUCTURES_ON_HEAP
@@ -100,6 +100,10 @@ static unsigned long gc_finalizers_detected = 0;
 
 #endif
 
+#ifdef USE_THREADS
+static iMux  alloc_mutex;
+#endif
+
 /* --- implementation */
 
 void 
@@ -107,37 +111,13 @@ heap_init (SIZE size,
 		   SIZE startsize, /* when should we collect for the first time ? */
 		   void **in_stackbottom)
 {
-#if VERBOSITY == VERBOSITY_MESSAGE
-	fprintf(stderr, "The heap is verbose.\n");
-#elif VERBOSITY == VERBOSITY_DEBUG
-	fprintf(stderr, "The heap is in debug mode.\n");
-#elif VERBOSITY == VERBOSITY_MISTRUST
-	fprintf(stderr, "The heap is mistrusting us.\n");
-#elif VERBOSITY == VERBOSITY_TRACE
-	fprintf(stderr, "The heap is emitting trace information.\n");
-#elif VERBOSITY == VERBOSITY_PARANOIA
-	fprintf(stderr, "The heap is paranoid.\n");
-#elif VERBOSITY == VERBOSITY_LIFESPAN
-	fprintf(stderr, "The heap is collecting lifespan information.\n");
-#endif
-
 	/* 1. Initialise the freelists & reset the allocator's state */
 	allocator_init(); 
 
 	/* 2. Allocate at least (alignment!) size bytes of memory for the heap */
 	heap_size = align_size(size + ((1 << ALIGN) - 1));
 
-#if 1
-	/* For now, we'll try to map in the stack at a fixed address...
-	   ...this will change soon. -- phil. */
-	heap_base = (void*) mmap (MAP_ADDRESS, 
-							  ((size_t)heap_size + PAGESIZE_MINUS_ONE) & ~PAGESIZE_MINUS_ONE,
-							  PROT_READ | PROT_WRITE, 
-							  MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, 
-							  -1, 
-							  (off_t) 0);
-#else
-#if 0
+#ifdef DONT_MMAP
 	heap_base = malloc(heap_size);
 #else
 	heap_base = (void*) mmap (NULL, 
@@ -147,12 +127,10 @@ heap_init (SIZE size,
 							  -1, 
 							  (off_t) 0);
 #endif
-	fprintf(stderr, "heap @ 0x%lx\n", heap_base);
-#endif
 
 	if (heap_base == (void*)MAP_FAILED) {
 		/* unable to allocate the requested amount of memory */
-		fprintf(stderr, "The queen, mylord, is dead!\n");
+		fprintf(stderr, "heap2.c: The queen, mylord, is dead! (mmap failed)\n");
 		exit(-1);
 	}
 
@@ -177,7 +155,7 @@ heap_init (SIZE size,
 	/* 6. calculate a useful first collection limit */
 	/* This is extremly primitive at this point... 
 	   we should replace it with something more useful -- phil. */
-	heap_next_collection = (void*)((long)heap_base + (heap_size / 8));
+	heap_next_collection = (void*)((long)heap_base + (heap_size / 4));
 
 	/* 7. Init the global reference lists & finalizer addresses */
 	references = NULL;
@@ -186,6 +164,22 @@ heap_init (SIZE size,
 #ifdef STRUCTURES_ON_HEAP
 	heap_addreference(&references);
 	heap_addreference(&finalizers);
+#endif
+
+#ifdef USE_THREADS
+	/* 8. Init the mutexes for synchronization */
+	alloc_mutex.holder = 0;
+#endif
+}
+
+__inline__
+static
+void
+heap_call_finalizer_for_object_at(java_objectheader* object_addr)
+{
+	asm_calljavamethod(object_addr->vftbl->class->finalizer, object_addr, NULL, NULL, NULL);
+#ifdef FINALIZER_COUNTING
+	++gc_finalizers_executed;
 #endif
 }
 
@@ -198,16 +192,10 @@ heap_close (void)
 #if 1
 	while (curr) {
 		address_list_node* prev = curr;
+		java_objectheader* addr = (java_objectheader*)(curr->address);
 		
-		if (curr->address) {
-			if (bitmap_testbit(start_bits, curr->address)) {
-#ifdef FINALIZER_COUNTING
-				++gc_finalizers_executed;
-#endif
-				asm_calljavamethod(((java_objectheader*)(curr->address))->vftbl->class->finalizer, curr->address, NULL, NULL, NULL);
-
-			}
-		}
+		if (addr && bitmap_testbit(start_bits, addr))
+			heap_call_finalizer_for_object_at(addr);
 		
 		curr = curr->next;
 		free(prev);
@@ -223,12 +211,8 @@ heap_close (void)
 	if (heap_base)
 		munmap(heap_base, heap_size);
 
-#ifdef FINALIZER_COUNTING
-	sprintf(logtext, "%ld objects with a finalizer", gc_finalizers_detected);
-	dolog();
-
 #ifdef GC_COLLECT_STATISTICS
-	/* 4. output statical data */
+	/* 4. emit statistical data */
 	sprintf(logtext, "%ld bytes for %ld objects allocated.", 
 			gc_alloc_total, gc_alloc_count); 
 	dolog();
@@ -246,6 +230,10 @@ heap_close (void)
 	sprintf(logtext, "    %ld potential references not aligned.", gc_mark_not_aligned);
 	dolog();
 #endif
+
+#ifdef FINALIZER_COUNTING
+	sprintf(logtext, "%ld objects with a finalizer", gc_finalizers_detected);
+	dolog();
 
 	if (gc_finalizers_detected == gc_finalizers_executed)
 		sprintf(logtext, "    all finalizers executed.");
@@ -311,15 +299,13 @@ heap_allocate (SIZE		  in_length,
 	SIZE	length = align_size(in_length + ((1 << ALIGN) - 1)); 
 	void*	free_chunk = NULL;
 
-#if VERBOSITY >= VERBOSITY_MISTRUST && 0
+#if 0
 	/* check for misaligned in_length parameter */
 	if (length != in_length)
 		fprintf(stderr,
 				"heap2.c: heap_allocate was passed unaligned in_length parameter: %ld, \n         aligned to %ld. (mistrust)\n",
 				in_length, length);
 #endif
-
-	// fprintf(stderr, "heap_allocate: 0x%lx (%ld) requested, 0x%lx (%ld) aligned\n", in_length, in_length, length, length);
 
 #ifdef FINALIZER_COUNTING
 	if (finalizer)
@@ -332,8 +318,9 @@ heap_allocate (SIZE		  in_length,
 		gc_call();
 #endif
 
-	intsDisable();
-
+#ifdef USE_THREADS
+	lock_mutex(&alloc_mutex);
+#endif	
  retry:
 	/* 1. attempt to get a free block with size >= length from the freelists */
 	free_chunk = allocator_alloc(length);
@@ -363,34 +350,26 @@ heap_allocate (SIZE		  in_length,
 
  success:
 	/* 3.a. mark all necessary bits, store the finalizer & return the newly allocate block */
-#if 0
+
 	/* I don't mark the object-start anymore, as it always is at the beginning of a free-block,
 	   which already is marked (Note: The first free-block gets marked in heap_init). -- phil. */
   	bitmap_setbit(start_bits, free_chunk); /* mark the new object */
-#endif
+
+#if 1 /* FIXME: will become unecessary soon */
 	bitmap_setbit(start_bits, (void*)((long)free_chunk + (long)length)); /* mark the freespace behind the new object */
+#endif
+
 	if (references)
 		bitmap_setbit(reference_bits, free_chunk);
 	else 
 		bitmap_clearbit(reference_bits, free_chunk);
 
-#if 1
-	/* store a hint, that there's a finalizer */
+	/* store a hint, that there's a finalizer for this address */
 	if (finalizer)
 		heap_add_finalizer_for_object_at(free_chunk);
-#else
-#   warning "finalizers disabled."
-#endif
 
-#if VERBOSITY >= VERBOSITY_TRACE && 0
-	fprintf(stderr, "heap_allocate: returning free block of 0x%lx bytes at 0x%lx\n", length, free_chunk);
-#endif
-#if VERBOSITY >= VERBOSITY_PARANOIA && 0
-	fprintf(stderr, "heap_allocate: reporting heap state variables:\n");
-	fprintf(stderr, "\theap top              0x%lx\n", heap_top);
-	fprintf(stderr, "\theap size             0x%lx (%ld)\n", heap_size, heap_size);
-	fprintf(stderr, "\theap_limit            0x%lx\n", heap_limit);
-	fprintf(stderr, "\theap next collection  0x%lx\n", heap_next_collection);
+#if 0 /* lifespan */
+	fprintf(stderr, "alloc 0x%lx bytes @ 0x%lx\n", length, free_chunk);
 #endif
 
 #ifdef GC_COLLECT_STATISTICS
@@ -398,23 +377,11 @@ heap_allocate (SIZE		  in_length,
 	++gc_alloc_count;
 #endif
 
-	return free_chunk;
-	
  failure:
-	/* 3.b. failure to allocate enough memory... fail gracefully */
-#if VERBOSITY >= VERBOSITY_MESSAGE && 0
-	fprintf(stderr, 
-			"heap2.c: heap_allocate was unable to allocate 0x%lx bytes on the VM heap.\n",
-			length);
-#endif
-
-#if VERBOSITY >= VERBOSITY_TRACE
-	fprintf(stderr, "heap_allocate: returning NULL\n");
-#endif
-
-	return NULL;
-
-	intsRestore();
+#ifdef USE_THREADS
+	unlock_mutex(&alloc_mutex);
+#endif	
+	return free_chunk;
 }
 
 void 
@@ -437,22 +404,8 @@ void gc_finalize (void)
 	address_list_node*  curr = finalizers;
 	address_list_node*  prev;
 
-//	fprintf(stderr, "finalizing\n");
-
 #if 0
-	while (curr) {
-		if (!bitmap_testbit(mark_bits, curr->address)) {
-			/* I need a way to save derefs. Any suggestions? -- phil. */
-			asm_calljavamethod(((java_objectheader*)curr->address)->vftbl->class->finalizer, 
-							   curr->address, NULL, NULL, NULL);
-
-			prev->next = curr->next;			
-			free(curr);
-		} else {
-			prev = curr;
-			curr = curr->next;
-		}
-	}
+	/* FIXME: new code, please! */
 #else
 	while (curr) {
 		if (curr->address) {
@@ -470,8 +423,6 @@ void gc_finalize (void)
 		curr = curr->next;
 	}
 #endif
-
-//	fprintf(stderr, "done\n");
 }
 
 
@@ -488,74 +439,28 @@ void gc_reclaim (void)
 	allocator_reset();
 
 	/* 2. reclaim unmarked objects */
-#if 0 && SIZE_FROM_CLASSINFO
-	free_start = bitmap_find_next_combination_set_unset(start_bitmap,
-														mark_bitmap,
-														free_end);
-	while (free_start < heap_top) {
-		if (!bitmap_testbit(start_bits, free_start) || 
-			bitmap_testbit(mark_bits, free_start)) {
-			fprintf(stderr, "gc_reclaim: inconsistent bit info for 0x%lx\n", free_start);
-		}
-
-		free_end = free_start;
-		while((free_end < heap_top) && 
-			  (!bitmap_testbit(mark_bits, free_end)) {
-			free_end += 
-		}
-
-
-
-bitmap_find_next_setbit(mark_bitmap, free_start + 8); /* FIXME: constant used */
-
-			//			fprintf(stderr, "%lx -- %lx\n", free_start, free_end);
-			
-			if (free_end < heap_top) {
-				allocator_free(free_start, free_end - free_start);
-
-				//				fprintf(stderr, "gc_reclaim: freed 0x%lx bytes at 0x%lx\n", free_end - free_start, free_start);
-
-#if !defined(JIT_MARKER_SUPPORT)
-				/* might make trouble with JIT-Marker support. The Marker for unused blocks 
-				   might be called, leading to a bad dereference. -- phil. */
-				bitmap_setbit(mark_bits, free_start);
-#endif
-			}
-		} else {
-			//			fprintf(stderr, "hmmm... found freeable area of 0 bytes at heaptop ?!\n");
-			free_end = heap_top;
-		}			
-	}
+#if 0
+	/* FIXME: add new code, please! */
 #else
 	while (free_end < heap_top) {
 		free_start = bitmap_find_next_combination_set_unset(start_bitmap,
 															mark_bitmap,
 															free_end);
 
-		if (!bitmap_testbit(start_bits, free_start) || 
-			bitmap_testbit(mark_bits, free_start))
-			fprintf(stderr, "gc_reclaim: inconsistent bit info for 0x%lx\n", free_start);
-
 		if (free_start < heap_top) {
 			free_end   = bitmap_find_next_setbit(mark_bitmap, (void*)((long)free_start + 8)); /* FIXME: constant used */
 
-			//			fprintf(stderr, "%lx -- %lx\n", free_start, free_end);
-			
 			if (free_end < heap_top) {
 				allocator_free(free_start, (long)free_end - (long)free_start);
 
-				//				fprintf(stderr, "gc_reclaim: freed 0x%lx bytes at 0x%lx\n", free_end - free_start, free_start);
-
 #if !defined(JIT_MARKER_SUPPORT)
-				/* might make trouble with JIT-Marker support. The Marker for unused blocks 
+				/* would make trouble with JIT-Marker support. The Marker for unused blocks 
 				   might be called, leading to a bad dereference. -- phil. */
 				bitmap_setbit(mark_bits, free_start);
 #endif
 			}
-		} else {
-			//			fprintf(stderr, "hmmm... found freeable area of 0 bytes at heaptop ?!\n");
-			free_end = heap_top;
-		}			
+		} else
+			free_end = heap_top;	
 	}
 #endif
 
@@ -568,8 +473,10 @@ bitmap_find_next_setbit(mark_bitmap, free_start + 8); /* FIXME: constant used */
 	mark_bitmap = start_bitmap;
 	start_bitmap = temp_bitmap;
 
+#if 0 /* already heandled in allocate */
 	/* 3.2. mask reference bitmap */
-#warning "bitmap masking unimplemented --- references will not be cleared"
+	bitmap_mask_with_bitmap(reference_bitmap, start_bitmap);
+#endif
 
 	/* 3.3. update heap_top */
 	if (free_start < heap_top)
@@ -579,19 +486,9 @@ bitmap_find_next_setbit(mark_bitmap, free_start + 8); /* FIXME: constant used */
 		bitmap_setbit(start_bits, heap_top);
 
 	/* 4. adjust the collection threshold */
-	heap_next_collection = (void*)((long)heap_top + ((long)heap_limit - (long)heap_top) / 8);
+	heap_next_collection = (void*)((long)heap_top + ((long)heap_limit - (long)heap_top) / 4);
 	if (heap_next_collection > heap_limit)
 		heap_next_collection = heap_limit;
-
-#if VERBOSITY >= VERBOSITY_PARANOIA && 0
-	fprintf(stderr, "gc_reclaim: reporting heap state variables:\n");
-	fprintf(stderr, "\theap top              0x%lx\n", heap_top);
-	fprintf(stderr, "\theap size             0x%lx (%ld)\n", heap_size, heap_size);
-	fprintf(stderr, "\theap_limit            0x%lx\n", heap_limit);
-	fprintf(stderr, "\theap next collection  0x%lx\n", heap_next_collection);
-
-	allocator_dump();
-#endif
 }
 
 __inline__
@@ -627,6 +524,8 @@ gc_mark_object_at (void** addr)
 	 *    4. object ?
 	 *
 	 * The results after reordering:
+	 * >> LOG: 9301464 bytes for 196724 objects allocated.
+	 * >> LOG: 15 garbage collections performed.
 	 * >> LOG: 6568440 heapblocks visited, 469249 objects marked
 	 * >> LOG:     1064447 visits to objects already marked.
 	 * >> LOG:     350 potential references not aligned.
@@ -639,6 +538,8 @@ gc_mark_object_at (void** addr)
 	 *    3. object ?
 	 *    4. aligned ?
 	 * 
+	 * >> LOG: 9301464 bytes for 196724 objects allocated.
+	 * >> LOG: 15 garbage collections performed.
 	 * >> LOG: 6568440 heapblocks visited, 469249 objects marked
 	 * >> LOG:     5037366 out of heap.
 	 * >> LOG:     1064456 visits to objects already marked.
@@ -651,106 +552,71 @@ gc_mark_object_at (void** addr)
 	 */
 
 
-#ifdef GC_COLLECT_STATISTICS
+	/* 1.a. if addr doesn't point into the heap, return. */
 	if (!((void*)addr >= heap_base && (void*)addr < heap_top)) {
+#ifdef GC_COLLECT_STATISTICS
 		++gc_mark_not_inheap;
-		return;
-	}
-
-	if (bitmap_testbit(mark_bits, (void*)addr)) {
-		++gc_mark_already_marked;
-		return;
-	}
-
-	if (!bitmap_testbit(start_bits, (void*)addr)) {
-		++gc_mark_not_object;
-		return;
-	}
-
-	if ((long)addr & ((1 << ALIGN) - 1)) {
-		++gc_mark_not_aligned;
-		return;
-	}
-
 #endif
-
-#if 0
-	//	fprintf(stderr, "gc_mark_object_at: called for address 0x%lx\n", addr);
-
-	if ((long)addr & ((1 << ALIGN) - 1)) {
-		fprintf(stderr, "non aligned pointer\n");
 		return;
 	}
 
-	if (!((void*)addr >= heap_base && (void*)addr < heap_top)) {
-		fprintf(stderr, "not an address on the heap.\n");
-		return;
-	}
-
-	if (!bitmap_testbit(start_bits, (void*)addr)) {
-		fprintf(stderr, "not an object.\n");
-		return;
-	}
-
+	/* 1.b. if align(addr) has already been marked during this collection, return. */
 	if (bitmap_testbit(mark_bits, (void*)addr)) {
-		fprintf(stderr, "already marked.\n");
-		return;
-	}
-#endif
-
-	/* 1. is the addr aligned, on the heap && the start of an object */
-	if (!((long)addr & ((1 << ALIGN) - 1)) &&
-		(void*)addr >= heap_base && 
-		(void*)addr < heap_top && 
-		bitmap_testbit(start_bits, (void*)addr) &&
-		!bitmap_testbit(mark_bits, (void*)addr)) {
-		bitmap_setbit(mark_bits, (void*)addr); 
-
 #ifdef GC_COLLECT_STATISTICS
-		++gc_mark_objects_marked;
+		++gc_mark_already_marked;
 #endif
+		return;
+	}
 
-		//		fprintf(stderr, "gc_mark_object_at: called for address 0x%lx: ", addr);
-		//		fprintf(stderr, "marking object.\n");
+	/* 1.c. if align(addr) doesn't point to the start of an object, return. */
+	if (!bitmap_testbit(start_bits, (void*)addr)) {
+#ifdef GC_COLLECT_STATISTICS
+		++gc_mark_not_object;
+#endif
+		return;
+	}
+
+	/* 1.d. if addr is not properly aligned, return. */
+	if ((long)addr & ((1 << ALIGN) - 1)) {
+#ifdef GC_COLLECT_STATISTICS
+		++gc_mark_not_aligned;
+#endif
+		return;
+	}
+
+	/* 2. Mark the object at addr */
+	bitmap_setbit(mark_bits, (void*)addr); 
+#ifdef GC_COLLECT_STATISTICS
+	++gc_mark_objects_marked;
+#endif
 
 #ifdef JIT_MARKER_SUPPORT
-		/* 1.a. invoke the JIT-marker method */
-   		asm_calljavamethod(addr->vftbl->class->marker, addr, NULL, NULL, NULL);
+	asm_calljavamethod(addr->vftbl->class->marker, addr, NULL, NULL, NULL);
 #else
-		/* 1.b. mark the references contained */
-		if (bitmap_testbit(reference_bits, addr)) {
-			void** end;
+
+	/* 3. mark the references contained within the extents of the object at addr */
+	if (bitmap_testbit(reference_bits, addr)) {
+		/* 3.1. find the end of the object */
+		void** end;
+
 #ifdef SIZE_FROM_CLASSINFO
-			void** old_end;
-
-			if (((java_objectheader*)addr)->vftbl == class_array->vftbl) {
-				end = (void**)((long)addr + (long)((java_arrayheader*)addr)->alignedsize); 
-//				fprintf(stderr, "size found for array at 0x%lx: 0x%lx\n", addr, ((java_arrayheader*)addr)->alignedsize);
-			}
-			else {
-				end = (void**)((long)addr + (long)((java_objectheader*)addr)->vftbl->class->alignedsize);							   
-//				fprintf(stderr, "size found for 0x%lx: 0x%lx\n", addr, ((java_objectheader*)addr)->vftbl->class->alignedsize);
-			}
-
-			old_end = (void**)bitmap_find_next_setbit(start_bitmap, (void*)addr + 8);
-			if (end != old_end) {
-				fprintf(stderr, "inconsistent object length for object at 0x%lx:", addr);
-				fprintf(stderr, " old = 0x%lx ; new = 0x%lx\n", old_end, end);
-			}
+		if (((java_objectheader*)addr)->vftbl == class_array->vftbl)
+			end = (void**)((long)addr + (long)((java_arrayheader*)addr)->alignedsize);
+		else
+			end = (void**)((long)addr + (long)((java_objectheader*)addr)->vftbl->class->alignedsize);
 #else
-			end = (void**)bitmap_find_next_setbit(start_bitmap, addr + 8); /* points just behind the object */
+		end = (void**)bitmap_find_next_setbit(start_bitmap, addr + 1); /* points just behind the object */
 #endif
 
+		/* 3.2. mark the references within the object at addr */
 #ifdef GC_COLLECT_STATISTICS
 		gc_mark_heapblocks_visited += ((long)end - (long)addr) >> ALIGN;
 #endif
-
-			while (addr < end)
-				gc_mark_object_at(*(addr++));
-		}
+		while (addr < end)
+			gc_mark_object_at(*(addr++));
 #endif	
 	}
-
+	
 	return;
 }
 
@@ -760,8 +626,6 @@ static
 void gc_mark_references (void)
 {
 	address_list_node* curr = references;
-
-	//	fprintf(stderr, "gc_mark_references\n");
 
 	while (curr) {
 		gc_mark_object_at(*((void**)(curr->address)));
@@ -823,15 +687,10 @@ void gc_mark_stack (void)
 #else
     void **top_of_stack = &dummy;
 
-	//	fprintf(stderr, "gc_mark_stack\n");
-	
-    if (top_of_stack > stackbottom) {
-		//		fprintf(stderr, "stack growing upward\n");
+    if (top_of_stack > stackbottom)
         markreferences(stackbottom, top_of_stack);
-	} else {
-		//		fprintf(stderr, "stack growing downward\n");
+	else
         markreferences(top_of_stack, stackbottom);
-	}
 #endif
 }
 

@@ -6,7 +6,7 @@
  *
  * Authors: Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
  *
- * $Id: bitmap2.c 60 1998-11-11 02:22:30Z phil $
+ * $Id: bitmap2.c 93 1998-11-25 11:49:36Z phil $
  */
 
 /*
@@ -351,6 +351,21 @@ bitmap_find_next_combination_set_unset(bitmap_t* bitmap,
 
 	/* 3. failed to find a combination... */
 	return bitmap->bitmap_beyond_addr;
+}
+
+__inline__
+void
+bitmap_mask_with_bitmap(bitmap_t* bitmap,
+						bitmap_t* mask)
+{
+	BITBLOCK*       bits = (BITBLOCK*)bitmap->bitmap_memory;
+	BITBLOCK*       maskbits = (BITBLOCK*)mask->bitmap_memory;
+	BITBLOCK*       end = (void*)((unsigned long)bits + bitmap->bytesize);
+	
+	assert(bitmap->bytesize == mask->bytesize);
+
+	while (bits < end)
+		*(bits++) &= *(maskbits++);
 }
 
 /*

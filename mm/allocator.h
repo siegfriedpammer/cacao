@@ -1,6 +1,6 @@
 /*
  * cacao/mm/allocator.h
- * $Id: allocator.h 34 1998-11-03 11:29:37Z phil $
+ * $Id: allocator.h 93 1998-11-25 11:49:36Z phil $
  */
 
 #ifndef __allocator_h_
@@ -33,7 +33,7 @@
 #define ALIGN	3	/* 64bit alignment */
 //#define ALIGN	2	/* 32bit allignment */
 
-#define EXACT_TOP_BIT  8	/* usually somewhere in the range [8..10]
+#define EXACT_TOP_BIT  8    /* usually somewhere in the range [8..10]
 							   the largest exact chunk is 1 << EXACT_TOP_BIT bytes large &
 							   there'll be 1 << (EXACT_TOP_BIT - ALIGN) exact bins 
 							   

@@ -1,6 +1,6 @@
 /* 
  * cacao/mm/bitmap.h
- * $Id: bitmap2.h 61 1998-11-11 19:40:23Z phil $ 
+ * $Id: bitmap2.h 93 1998-11-25 11:49:36Z phil $ 
  */
 
 #ifndef __mm_bitmap_h_
@@ -39,6 +39,7 @@ __inline__ void       bitmap_release(bitmap_t* bitmap);
 __inline__ void*      bitmap_find_next_setbit(bitmap_t* bitmap, void* addr);
 __inline__ void*      bitmap_find_next_combination_set_unset(bitmap_t* bitmap, bitmap_t* invertedmap, void* addr);
 
+__inline__ void       bitmap_mask_with_bitmap(bitmap_t* bitmap, bitmap_t* mask);
 #endif
 
 /*

@@ -1,5 +1,5 @@
 # cacao/mm/Makefile
-# $Id: Makefile 62 1998-11-11 19:41:52Z phil $
+# $Id: Makefile 93 1998-11-25 11:49:36Z phil $
 
 AR = ar
 COMBINE = $(AR) rcs mm.o
@@ -9,8 +9,13 @@ mm.o: actualtarget Makefile
 clean:
 	rm -rf *.o *~
 
+disassemble:
+	objdump --disassemble --source heap2.o >heap2.s
+	objdump --disassemble --source allocator2.o >allocator2.s
+	objdump --disassemble --source bitmap2.o >bitmap2.s
+
 # choose gc1 for the old collector, gc2 for the new one
-actualtarget: gc1
+actualtarget: gc2
 
 
 
@@ -24,14 +29,14 @@ heap.old.o: heap.old.c ../tables.h ../global.h
 # Targets below this point are experimental and may not work reliably
 
 
-gc2: heap2.o allocator.o bitmap2.o
-	rm -f mm.o; $(COMBINE) heap2.o allocator.o bitmap2.o
+gc2: heap2.o allocator2.o bitmap2.o
+	rm -f mm.o; $(COMBINE) heap2.o allocator2.o bitmap2.o
 
 heap2.o: heap2.c allocator.h mm.h bitmap2.h
 
 bitmap2.o: bitmap2.c bitmap2.h allocator.h mm.h
 
-allocator.o: allocator.h allocator.c 
+allocator2.o: allocator.h allocator2.c 
 
 
 #
