@@ -1,4 +1,4 @@
-/* jit/inline.c - code inliner
+/* jit/inline.h - code inliner
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.h 1203 2004-06-22 23:14:55Z twisti $
+   $Id: inline.h 1414 2004-10-04 12:55:33Z carolyn $
 
 */
 
@@ -88,52 +88,65 @@ typedef struct {
 
     //local variables used in parse()  
 
-    int  i;                     /* temporary for different uses (counters)    */
-    int  p;                     /* java instruction counter                   */
-    int  nextp;                 /* start of next java instruction             */
-    int  opcode;                /* java opcode                                */
+    int  i;                     /* temporary for different uses (counters)*/
+    int  p;                     /* java instruction counter               */
+    int  nextp;                 /* start of next java instruction         */
+    int  opcode;                /* java opcode                            */
 
     inlining_methodinfo *inlinfo;
 
-    /*	list *patchlist; */
 } t_inlining_stacknode;
 
-
-/* extern variables */
-extern bool isinlinedmethod;
-extern int cumjcodelength;
-extern int cummaxstack;
-extern int cumextablelength;
-extern inlining_methodinfo *inlining_rootinfo;
-
+typedef struct t_inlining_globals {  // try in parse.h with struct not include
+        bool isinlinedmethod;
+        int cumjcodelength;   /* cumulative immediate intruction length */
+        int cummaxstack;
+        int cumextablelength;
+        int cumlocals;        /* was static */
+        int cummethods;       /* was static */
+        list *inlining_stack; /* was static */
+        inlining_methodinfo *inlining_rootinfo;
+        methodinfo *method;
+        classinfo *class;
+        int jcodelength;
+        u1 *jcode;
+} t_inlining_globals;
 
 /* function prototypes*/
-void inlining_init(methodinfo *m);
-void inlining_cleanup();
-void inlining_push_compiler_variables(methodinfo *m,
-									  int i, int p, int nextp, int opcode, 
-                                      inlining_methodinfo* inlinfo);
-void inlining_pop_compiler_variables(methodinfo *m,
-									 int *i, int *p, int *nextp, int *opcode, 
-                                     inlining_methodinfo** inlinfo); 
-void inlining_set_compiler_variables_fun(methodinfo *m);
+t_inlining_globals *inlining_init(methodinfo *m);
+void inlining_cleanup(t_inlining_globals *inline_env);
+void inlining_push_compiler_variables(
+				      int i, int p, int nextp, int opcode, 
+                                      inlining_methodinfo* inlinfo,
+				      t_inlining_globals *inline_env);
+void inlining_pop_compiler_variables(
+ 				    int *i, int *p, int *nextp, int *opcode,
+                                    inlining_methodinfo **inlinfo,
+				    t_inlining_globals *inline_env);
+void inlining_set_compiler_variables_fun(methodinfo *m, 
+					 t_inlining_globals *inline_env);
 classinfo *first_occurence(classinfo* class, utf* name, utf* desc);
 bool is_unique_rec(classinfo *class, methodinfo *m, utf* name, utf* desc);
 bool is_unique_method(classinfo *class, methodinfo *m, utf* name, utf* desc);
-inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp,
-                                             int firstlocal, int maxstackdepth);
+inlining_methodinfo *inlining_analyse_method(methodinfo *m, 
+					  int level, int gp,
+					  int firstlocal, int maxstackdepth,					      t_inlining_globals *inline_env);
 
+void print_t_inlining_globals (t_inlining_globals *g);
+void print_inlining_stack     ( list                *s);
+void print_inlining_methodinfo( inlining_methodinfo *r);
 
 #define inlining_save_compiler_variables() \
-    inlining_push_compiler_variables(m, i, p, nextp, opcode, inlinfo)
+    inlining_push_compiler_variables(i,p,nextp,opcode,inlinfo,inline_env)
 
 #define inlining_restore_compiler_variables() \
-    inlining_pop_compiler_variables(m, &i, &p, &nextp, &opcode, &inlinfo)
+    inlining_pop_compiler_variables(&i, &p, &nextp, &opcode, &inlinfo, \
+	inline_env)
 
 #define inlining_set_compiler_variables(i) \
     do { \
         p = nextp = 0; \
-        inlining_set_compiler_variables_fun(i->method); \
+        inlining_set_compiler_variables_fun(i->method, inline_env); \
         inlinfo = i; \
     } while (0)
 

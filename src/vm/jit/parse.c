@@ -29,8 +29,9 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1373 2004-08-01 21:56:36Z stefan $
+   $Id: parse.c 1414 2004-10-04 12:55:33Z carolyn $
 
+Extra print is due backing changes that removed globals and merged variables that should not be merged... They will be removed... do not delete yet.
 */
 
 
@@ -52,6 +53,19 @@
 #include "toolbox/memory.h"
 #include "toolbox/logging.h"
 
+#define DEBUGMETH(mm) \
+if (DEBUG == true) \
+        { \
+                printf("PARSE method name ="); \
+                utf_display(mm->class->name); \
+                printf("."); \
+                method_display(mm); \
+                fflush(stdout); \
+        }
+
+bool DEBUG = false;
+bool DEBUG2 = false;
+bool DEBUG3 = false;
 
 /* data about the currently parsed method */
 
@@ -64,9 +78,8 @@ u1  *rt_jcode;           /* pointer to start of JavaVM-code            */
 
 
 /*INLINING*/
-//#include "inline.c"
-/*#define debug_writebranch printf("op: %s i: %d label_index[i]: %d\n",icmd_names[opcode], i, label_index[i]);*/
-#define debug_writebranch
+#define debug_writebranch if (DEBUG2==true) printf("op:: %s i: %d label_index[i]: %d label_index=%p\n",opcode_names[opcode], i, label_index[i],label_index);
+#define debug_writebranch1
 
 
 /* function descriptor2typesL ***************************************************
@@ -341,13 +354,23 @@ void descriptor2types(methodinfo *m)
 
 *******************************************************************************/
 
-static exceptiontable* fillextable(methodinfo *m, exceptiontable* extable, exceptiontable *raw_extable, int exceptiontablelength, int *label_index, int *block_count)
+static exceptiontable* fillextable(methodinfo *m, 
+		exceptiontable* extable, exceptiontable *raw_extable, 
+                int exceptiontablelength, 
+		int *label_index, int *block_count, 
+		t_inlining_globals *inline_env)
 {
 	int b_count, i, p;
 	
 	if (exceptiontablelength == 0) 
 		return extable;
 	
+//if (m->exceptiontablelength > 0) {
+//   DEBUGMETH(m);
+//   printf("m->exceptiontablelength=%i\n",m->exceptiontablelength);
+//   panic("exceptiontablelength > 0");
+//   }
+
 	b_count = *block_count;
 
 	for (i = 0; i < exceptiontablelength; i++) {
@@ -355,6 +378,7 @@ static exceptiontable* fillextable(methodinfo *m, exceptiontable* extable, excep
 		if (label_index != NULL) p = label_index[p];
 		extable[i].startpc = p;
 		bound_check(p);
+if (DEBUG3==true) {printf("B1 EEE1 \t"); fflush(stdout);}
 		block_insert(p);
 		
 		p = raw_extable[i].endpc;
@@ -363,13 +387,15 @@ static exceptiontable* fillextable(methodinfo *m, exceptiontable* extable, excep
 		if (label_index != NULL) p = label_index[p];
 		extable[i].endpc = p;
 		bound_check1(p);
-		if (p < m->jcodelength)
-			block_insert(p);
+		if (p < m->jcodelength) {
+if (DEBUG3==true) {printf("B2 EEE2 \t"); fflush(stdout);}
+			block_insert(p); }
 
 		p = raw_extable[i].handlerpc;
 		if (label_index != NULL) p = label_index[p];
 		extable[i].handlerpc = p;
 		bound_check(p);
+if (DEBUG3==true) {printf("B3 EEE3 \t"); fflush(stdout);}
 		block_insert(p);
 
 		extable[i].catchtype  = raw_extable[i].catchtype;
@@ -383,120 +409,99 @@ static exceptiontable* fillextable(methodinfo *m, exceptiontable* extable, excep
 
 
 
-methodinfo *parse(methodinfo *m)
+methodinfo *parse(methodinfo *m, t_inlining_globals *inline_env) 
 {
-	int  p;                     /* java instruction counter                   */
-	int  nextp;                 /* start of next java instruction             */
-	int  opcode;                /* java opcode                                */
-	int  i;                     /* temporary for different uses (counters)    */
-	int  ipc = 0;               /* intermediate instruction counter           */
-	int  b_count = 0;           /* basic block counter                        */
-	int  s_count = 0;           /* stack element counter                      */
+	int  p;                     /* java instruction counter           */
+	int  nextp;                 /* start of next java instruction     */
+	int  opcode;                /* java opcode                        */
+	int  i;                     /* temporary for different uses (ctrs)*/
+	int  ipc = 0;               /* intermediate instruction counter   */
+	int  b_count = 0;           /* basic block counter                */
+	int  s_count = 0;           /* stack element counter              */
 	bool blockend = false;      /* true if basic block end has been reached   */
-	bool iswide = false;        /* true if last instruction was a wide        */
-	instruction *iptr;          /* current pointer into instruction array     */
-	int gp;                     /* global java instruction counter            */
-	                            /* inlining info for current method           */
-	inlining_methodinfo *inlinfo = inlining_rootinfo;
+	bool iswide = false;        /* true if last instruction was a wide*/
+	instruction *iptr;          /* current ptr into instruction array */
+	int gp;                     /* global java instruction counter    */
+	                            /* inlining info for current method   */
+
+	inlining_methodinfo *inlinfo = inline_env->inlining_rootinfo;
 	inlining_methodinfo *tmpinlinf;
-	int nextgp = -1;            /* start of next method to be inlined         */
-	int *label_index = NULL;    /* label redirection table                    */
-	int firstlocal = 0;         /* first local variable of method             */
-	exceptiontable* nextex;     /* points next free entry in extable          */
+	int nextgp = -1;            /* start of next method to be inlined */
+	int *label_index = NULL;    /* label redirection table            */
+	int firstlocal = 0;         /* first local variable of method     */
+	exceptiontable* nextex;     /* points next free entry in extable  */
 	u1 *instructionstart;       /* 1 for pcs which are valid instr. starts    */
 
 	u2 lineindex=0;
 	u2 currentline=0;
 	u2 linepcchange=0;
 
-	bool useinltmp;
 
+if (DEBUG==true) {printf("PARSING: "); fflush(stdout);
+DEBUGMETH(m);
+}
 	/* INLINING */
 	if (useinlining) {
 		label_index = inlinfo->label_index;
-		m->maxstack = cummaxstack;
-		m->exceptiontablelength = cumextablelength;
-	}
-	
-	useinltmp = useinlining; /* FIXME remove this after debugging */
-    /*useinlining = false;*/ 	 /* and merge the if-statements  */
-	
-	if (!useinlining) {
-/*  		cumjcodelength = m->jcodelength; */
-
-	} else {
-		tmpinlinf = (inlining_methodinfo*) list_first(inlinfo->inlinedmethods);
+		m->maxstack = inline_env->cummaxstack;
+		m->exceptiontablelength = inline_env->cumextablelength;
+		tmpinlinf = (inlining_methodinfo*) 
+				list_first(inlinfo->inlinedmethods);
 		if (tmpinlinf != NULL) nextgp = tmpinlinf->startgp;
 	}
 
-	if ((opt_rt || opt_xta || opt_vta) && (pOpcodes == 2 || pOpcodes == 3)) {
-		printf("PARSE method name =");
-		utf_display(m->class->name);
-		printf(".");
-		method_display(m);
-		printf(">\n\n");
-		fflush(stdout);
-	}
-
-	if (opt_rt || opt_xta) { 
-		RT_jit_parse(m);
-
-	} else {
-		if (opt_vta) 
-			printf("VTA requested, but not yet implemented\n");
-	}
-	 
+/**** static analysis has to be called before inlining
+        which has to be called before reg_set
+        which has to be called before parse (or ???)
+        will check if method being parsed was analysed here
+	****/ 
+	if (opt_rt) { 
+		/**RT_jit_parse(m);**/
+		printf("RTA requested, not available\n");
+		}
+	if (opt_xta) { 
+		/**RT_jit_parse(m);**/
+		printf("XTA requested, not available\n");
+		}
+	if (opt_vta) 
+		    printf("VTA requested, not yet implemented\n");
 
 	/* allocate instruction array and block index table */
 	
-	/* 1 additional for end ipc */
+	/* 1 additional for end ipc * # cum inline methods*/
 	
-	m->basicblockindex = DMNEW(s4, m->jcodelength + 1);
-	memset(m->basicblockindex, 0, sizeof(s4) * (m->jcodelength + 1));
+	m->basicblockindex = DMNEW(s4, inline_env->cumjcodelength + inline_env->cummethods);
+	memset(m->basicblockindex, 0, sizeof(s4) * (inline_env->cumjcodelength + inline_env->cummethods));
 
-	instructionstart = DMNEW(u1, m->jcodelength + 1);
-	memset(instructionstart, 0, sizeof(u1) * (m->jcodelength + 1));
+	instructionstart = DMNEW(u1, inline_env->cumjcodelength + inline_env->cummethods);
+	memset(instructionstart, 0, sizeof(u1) * (inline_env->cumjcodelength + inline_env->cummethods));
 
 	/* 1 additional for TRACEBUILTIN and 4 for MONITORENTER/EXIT */
 	/* additional MONITOREXITS are reached by branches which are 3 bytes */
 	
-	iptr = m->instructions = DMNEW(instruction, m->jcodelength + 5);
+	iptr = m->instructions = DMNEW(instruction, inline_env->cumjcodelength + 5);
 
 	/* Zero the intermediate instructions array so we don't have any
 	 * invalid pointers in it if we cannot finish analyse_stack(). */
 
-	memset(iptr, 0, sizeof(instruction) * (m->jcodelength + 5));
+	memset(iptr, 0, sizeof(instruction) * (inline_env->cumjcodelength + 5));
 	
 	/* compute branch targets of exception table */
+//if (m->exceptiontable == NULL) {
+//  printf("m->exceptiontable=NULL\n");fflush(stdout);
+//  }
+//else {
+//  printf("m->exceptiontable != NULL\n");fflush(stdout);
+//  }
+//printf("m->exceptiontablelength=%i, inline_env->method->exceptiontablelength=%i,inline_env->cumextablelength=%i\n",
+//m->exceptiontablelength, inline_env->method->exceptiontablelength,inline_env->cumextablelength);
 
-/*  	m->exceptiontable = DMNEW(exceptiontable, m->exceptiontablelength + 1); */
-	/*
-	  for (i = 0; i < method->m->exceptiontablelength; i++) {
+//if (m->exceptiontablelength > 0)
+//  	m->exceptiontable = DMNEW(exceptiontable, m->exceptiontablelength + 1); 
 
-	  p = m->exceptiontable[i].startpc = raw_extable[i].startpc;
-	  if (useinlining) p = label_index[p];
-	  bound_check(p);
-	  block_insert(p);
-
-	  p = m->exceptiontable[i].endpc = raw_extable[i].endpc;
-	  if (useinlining) p = label_index[p];
-	  bound_check1(p);
-	  if (p < cumjcodelength)
-	  block_insert(p);
-
-	  p = m->exceptiontable[i].handlerpc = raw_extable[i].handlerpc;
-	  bound_check(p);
-	  block_insert(p);
-
-	  m->exceptiontable[i].catchtype  = raw_extable[i].catchtype;
-
-	  m->exceptiontable[i].next = NULL;
-	  m->exceptiontable[i].down = &m->exceptiontable[i+1];
-	  }
-	*/
-
-	nextex = fillextable(m, m->exceptiontable, m->exceptiontable, m->exceptiontablelength, label_index, &b_count);
-
+	nextex = fillextable(m, 
+ 	  m->exceptiontable, m->exceptiontable, m->exceptiontablelength, 
+          label_index, &b_count, inline_env);
 	s_count = 1 + m->exceptiontablelength; /* initialize stack element counter   */
 
 #ifdef USE_THREADS
@@ -516,9 +521,9 @@ methodinfo *parse(methodinfo *m)
 		linepcchange = m->linenumbers[0].start_pc;
 	}
 
-	for (p = 0, gp = 0; p < m->jcodelength; gp += (nextp - p), p = nextp) {
+	for (p = 0, gp = 0; p < inline_env->method->jcodelength; gp += (nextp - p), p = nextp) {
 	  
-		/* DEBUG */	  /*printf("p:%d gp:%d ",p,gp);*/
+		/* DEBUG */	 if (DEBUG==true) printf("----- p:%d gp:%d\n",p,gp);
 
 		/* mark this position as a valid instruction start */
 		if (!iswide) {
@@ -541,9 +546,9 @@ methodinfo *parse(methodinfo *m)
 			bool *readonly = NULL;
 
 
-			opcode = code_get_u1(p);
+			opcode = code_get_u1(p,inline_env->method);
 			nextp = p += jcommandsize[opcode];
-			if (nextp > m->jcodelength)
+			if (nextp > inline_env->method->jcodelength)
 				panic("Unexpected end of bytecode");
 			tmpinlinf = list_first(inlinfo->inlinedmethods);
 			firstlocal = tmpinlinf->firstlocal;
@@ -569,18 +574,26 @@ methodinfo *parse(methodinfo *m)
 
 				/* m->basicblockindex[gp] |= (ipc << 1);*/  /*FIXME: necessary ? */
 			}
-
+if (DEBUG==true) {
+printf("BEFORE SAVE: "); fflush(stdout);
+DEBUGMETH(inline_env->method);
+}
 			inlining_save_compiler_variables();
+if (DEBUG==true) {
+printf("AFTER SAVE: "); fflush(stdout);
+DEBUGMETH(inline_env->method);
+}
 			inlining_set_compiler_variables(tmpinlinf);
-			if (compileverbose) {
-				char logtext[MAXLOGTEXT];
-				sprintf(logtext, "Parsing (inlined): ");
-				utf_sprint(logtext+strlen(logtext), m->class->name);
-				strcpy(logtext+strlen(logtext), ".");
-				utf_sprint(logtext+strlen(logtext), m->name);
-				utf_sprint(logtext+strlen(logtext), m->descriptor);
-				log_text(logtext);
+if (DEBUG==true) {
+printf("AFTER SET :: "); fflush(stdout);
+DEBUGMETH(inline_env->method);
+}
+			if (DEBUG) {
+				printf("\n.......Parsing (inlined): ");
+				DEBUGMETH(m);
+				DEBUGMETH(inline_env->method);
 			}
+////label_index = inlinfo->label_index;
 
 
 			if (inlinfo->inlinedmethods == NULL) {
@@ -589,28 +602,36 @@ methodinfo *parse(methodinfo *m)
 				tmpinlinf = list_first(inlinfo->inlinedmethods);
 				nextgp = (tmpinlinf != NULL) ? tmpinlinf->startgp : -1;
 			}
-			if (m->exceptiontablelength > 0) 
-				nextex = fillextable(m, nextex, m->exceptiontable, m->exceptiontablelength, label_index, &b_count);
+			if (inline_env->method->exceptiontablelength > 0) 
+			  nextex = fillextable(m, nextex, 
+			    inline_env->method->exceptiontable, inline_env->method->exceptiontablelength, 
+			    label_index, &b_count, inline_env);
 			continue;
 		}
 	  
-		opcode = code_get_u1(p);            /* fetch op code                  */
-
-	  
-		if (opt_rt && (pOpcodes == 2 || pOpcodes == 3)) {
-			printf("Parse<%i> p=%i<%i<   opcode=<%i> %s\n",
-				   pOpcodes, p, rt_jcodelength, opcode, icmd_names[opcode]);
+		opcode = code_get_u1(p,inline_env->method);            /* fetch op code  */
+	 if (DEBUG==true) 
+		{
+			printf("Parse p=%i<%i<   opcode=<%i> %s\n",
+			   p, rt_jcodelength, opcode, opcode_names[opcode]);
 		}
 	  
-		m->basicblockindex[gp] |= (ipc << 1);      /* store intermediate count       */
+//printf("basicblockindex[gp=%i]=%i=%p ipc=%i=%p shifted ipc=%i=%p\n",
+//gp,m->basicblockindex[gp],m->basicblockindex[gp],ipc,ipc,(ipc<<1),(ipc<<1));
+//fflush(stdout);
+		m->basicblockindex[gp] |= (ipc << 1); /*store intermed cnt*/
+//printf("basicblockindex[gp=%i]=%i=%p \n",
+//gp,m->basicblockindex[gp],m->basicblockindex[gp]);
+//fflush(stdout);
 
 		if (blockend) {
+//printf("B4 BEND\t"); fflush(stdout);
 			block_insert(gp);               /* start new block                */
 			blockend = false;
 		}
 
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
-		if (nextp > m->jcodelength)
+		if (nextp > inline_env->method->jcodelength)
 			panic("Unexpected end of bytecode");
 		s_count += stackreq[opcode];      	/* compute stack element count    */
 
@@ -621,40 +642,41 @@ methodinfo *parse(methodinfo *m)
 			/* pushing constants onto the stack p */
 
 		case JAVA_BIPUSH:
-			LOADCONST_I(code_get_s1(p+1));
+			LOADCONST_I(code_get_s1(p+1,inline_env->method));
 			break;
 
 		case JAVA_SIPUSH:
-			LOADCONST_I(code_get_s2(p+1));
+			LOADCONST_I(code_get_s2(p+1,inline_env->method));
 			break;
 
 		case JAVA_LDC1:
-			i = code_get_u1(p+1);
+			i = code_get_u1(p+1,inline_env->method);
+
 			goto pushconstantitem;
 		case JAVA_LDC2:
 		case JAVA_LDC2W:
-			i = code_get_u2(p + 1);
+			i = code_get_u2(p + 1,inline_env->method);
 
 		pushconstantitem:
 
-			if (i >= m->class->cpcount) 
+			if (i >= inline_env->method->class->cpcount) 
 				panic ("Attempt to access constant outside range");
 
-			switch (m->class->cptags[i]) {
+			switch (inline_env->method->class->cptags[i]) {
 			case CONSTANT_Integer:
-				LOADCONST_I(((constant_integer *) (m->class->cpinfos[i]))->value);
+				LOADCONST_I(((constant_integer *) (inline_env->method->class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Long:
-				LOADCONST_L(((constant_long *) (m->class->cpinfos[i]))->value);
+				LOADCONST_L(((constant_long *) (inline_env->method->class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Float:
-				LOADCONST_F(((constant_float *) (m->class->cpinfos[i]))->value);
+				LOADCONST_F(((constant_float *) (inline_env->method->class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Double:
-				LOADCONST_D(((constant_double *) (m->class->cpinfos[i]))->value);
+				LOADCONST_D(((constant_double *) (inline_env->method->class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_String:
-				LOADCONST_A(literalstring_new((utf *) (m->class->cpinfos[i])));
+				LOADCONST_A(literalstring_new((utf *) (inline_env->method->class->cpinfos[i])));
 				break;
 			default: panic("Invalid constant type to push");
 			}
@@ -698,9 +720,9 @@ methodinfo *parse(methodinfo *m)
 		case JAVA_DLOAD:
 		case JAVA_ALOAD:
 			if (!iswide) {
-				i = code_get_u1(p + 1);
+				i = code_get_u1(p + 1,inline_env->method);
 			} else {
-				i = code_get_u2(p + 1);
+				i = code_get_u2(p + 1,inline_env->method);
 				nextp = p + 3;
 				iswide = false;
 			}
@@ -750,9 +772,9 @@ methodinfo *parse(methodinfo *m)
 		case JAVA_DSTORE:
 		case JAVA_ASTORE:
 			if (!iswide) {
-				i = code_get_u1(p + 1);
+				i = code_get_u1(p + 1,inline_env->method);
 			} else {
-				i = code_get_u2(p + 1);
+				i = code_get_u2(p + 1,inline_env->method);
 				iswide = false;
 				nextp = p + 3;
 			}
@@ -799,12 +821,12 @@ methodinfo *parse(methodinfo *m)
 				int v;
 				
 				if (!iswide) {
-					i = code_get_u1(p + 1);
-					v = code_get_s1(p + 2);
+					i = code_get_u1(p + 1,inline_env->method);
+					v = code_get_s1(p + 2,inline_env->method);
 
 				} else {
-					i = code_get_u2(p + 1);
-					v = code_get_s2(p + 3);
+					i = code_get_u2(p + 1,inline_env->method);
+					v = code_get_s2(p + 3,inline_env->method);
 					iswide = false;
 					nextp = p + 5;
 				}
@@ -824,7 +846,7 @@ methodinfo *parse(methodinfo *m)
 
 		case JAVA_NEWARRAY:
 			OP(ICMD_CHECKASIZE);
-			switch (code_get_s1(p + 1)) {
+			switch (code_get_s1(p + 1,inline_env->method)) {
 			case 4:
 				BUILTIN1(BUILTIN_newarray_boolean, TYPE_ADR,currentline);
 				break;
@@ -856,10 +878,10 @@ methodinfo *parse(methodinfo *m)
 
 		case JAVA_ANEWARRAY:
 			OP(ICMD_CHECKASIZE);
-			i = code_get_u2(p + 1);
+			i = code_get_u2(p + 1,inline_env->method);
 			{
 				classinfo *component =
-					(classinfo *) class_getconstant(m->class, i, CONSTANT_Class);
+					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 				if (!class_load(component))
 					return NULL;
@@ -876,11 +898,11 @@ methodinfo *parse(methodinfo *m)
 			break;
 
 		case JAVA_MULTIANEWARRAY:
-			m->isleafmethod = false;
-			i = code_get_u2(p + 1);
+			inline_env->method->isleafmethod = false;
+			i = code_get_u2(p + 1,inline_env->method);
 			{
 				vftbl_t *arrayvftbl;
-				s4 v = code_get_u1(p + 3);
+				s4 v = code_get_u1(p + 3,inline_env->method);
 
 				
 /*   				vftbl *arrayvftbl = */
@@ -889,7 +911,7 @@ methodinfo *parse(methodinfo *m)
 
 				
  				classinfo *component =
-					(classinfo *) class_getconstant(m->class, i, CONSTANT_Class);
+					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 				if (!class_load(component))
 					return NULL;
@@ -924,24 +946,27 @@ methodinfo *parse(methodinfo *m)
 		case JAVA_IF_ACMPNE:
 		case JAVA_GOTO:
 		case JAVA_JSR:
-			i = p + code_get_s2(p + 1);
+			i = p + code_get_s2(p + 1,inline_env->method);
 			if (useinlining) { 
 				debug_writebranch;
 				i = label_index[i];
 			}
 			bound_check(i);
+if (DEBUG3==true) {
+printf("B5 IFs/GOTO\t"); fflush(stdout);}
 			block_insert(i);
 			blockend = true;
 			OP1(opcode, i);
 			break;
 		case JAVA_GOTO_W:
 		case JAVA_JSR_W:
-			i = p + code_get_s4(p + 1);
+			i = p + code_get_s4(p + 1,inline_env->method);
 			if (useinlining) { 
 				debug_writebranch;
 				i = label_index[i];
 			}
 			bound_check(i);
+//printf("B6 JSR_W\t"); fflush(stdout);
 			block_insert(i);
 			blockend = true;
 			OP1(opcode, i);
@@ -949,16 +974,16 @@ methodinfo *parse(methodinfo *m)
 
 		case JAVA_RET:
 			if (!iswide) {
-				i = code_get_u1(p + 1);
+				i = code_get_u1(p + 1,inline_env->method);
 			} else {
-				i = code_get_u2(p + 1);
+				i = code_get_u2(p + 1,inline_env->method);
 				nextp = p + 3;
 				iswide = false;
 			}
 			blockend = true;
 				
 			/*
-			  if (isinlinedmethod) {
+			  if (inline_env->isinlinedmethod) {
 			  OP1(ICMD_GOTO, inlinfo->stopgp);
 			  break;
 			  }*/
@@ -972,7 +997,7 @@ methodinfo *parse(methodinfo *m)
 		case JAVA_DRETURN:
 		case JAVA_ARETURN:
 		case JAVA_RETURN:
-			if (isinlinedmethod) {
+			if (inline_env->isinlinedmethod) {
 				/*  					if (p==m->jcodelength-1) {*/ /* return is at end of inlined method */
 				/*  						OP(ICMD_NOP); */
 				/*  						break; */
@@ -1002,13 +1027,13 @@ methodinfo *parse(methodinfo *m)
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
-				if (nextp + 8 > m->jcodelength)
+				if (nextp + 8 > inline_env->method->jcodelength)
 					panic("Unexpected end of bytecode");
 				if (!useinlining) {
-					tablep = (s4 *) (m->jcode + nextp);
+					tablep = (s4 *) (inline_env->method->jcode + nextp);
 
 				} else {
-					num = code_get_u4(nextp + 4);
+					num = code_get_u4(nextp + 4,inline_env->method);
 					tablep = DMNEW(s4, num * 2 + 2);
 				}
 
@@ -1016,29 +1041,30 @@ methodinfo *parse(methodinfo *m)
 
 				/* default target */
 
-				j =  p + code_get_s4(nextp);
+				j =  p + code_get_s4(nextp,inline_env->method);
 				if (useinlining) 
 					j = label_index[j];
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
 				bound_check(j);
+//printf("B7 LOOKUP1\t"); fflush(stdout);
 				block_insert(j);
 
 				/* number of pairs */
 
-				num = code_get_u4(nextp);
+				num = code_get_u4(nextp,inline_env->method);
 				*tablep = num;
 				tablep++;
 				nextp += 4;
 
-				if (nextp + 8*(num) > m->jcodelength)
+				if (nextp + 8*(num) > inline_env->method->jcodelength)
 					panic("Unexpected end of bytecode");
 
 				for (i = 0; i < num; i++) {
 					/* value */
 
-					j = code_get_s4(nextp);
+					j = code_get_s4(nextp,inline_env->method);
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
@@ -1051,13 +1077,14 @@ methodinfo *parse(methodinfo *m)
 
 					/* target */
 
-					j = p + code_get_s4(nextp);
+					j = p + code_get_s4(nextp,inline_env->method);
 					if (useinlining)
 						j = label_index[j];
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
 					bound_check(j);
+//printf("B8 LOOKUP2\t"); fflush(stdout);
 					block_insert(j);
 				}
 
@@ -1072,13 +1099,13 @@ methodinfo *parse(methodinfo *m)
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
-				if (nextp + 12 > m->jcodelength)
+				if (nextp + 12 > inline_env->method->jcodelength)
 					panic("Unexpected end of bytecode");
 				if (!useinlining) {
-					tablep = (s4 *) (m->jcode + nextp);
+					tablep = (s4 *) (inline_env->method->jcode + nextp);
 
 				} else {
-					num = code_get_u4(nextp + 8) - code_get_u4(nextp + 4);
+					num = code_get_u4(nextp + 8,inline_env->method) - code_get_u4(nextp + 4,inline_env->method);
 					tablep = DMNEW(s4, num + 1 + 3);
 				}
 
@@ -1086,25 +1113,26 @@ methodinfo *parse(methodinfo *m)
 
 				/* default target */
 
-				j = p + code_get_s4(nextp);
+				j = p + code_get_s4(nextp,inline_env->method);
 				if (useinlining)
 					j = label_index[j];
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
 				bound_check(j);
+//printf("B9 TABLESWITCH1\t"); fflush(stdout);
 				block_insert(j);
 
 				/* lower bound */
 
-				j = code_get_s4(nextp);
+				j = code_get_s4(nextp,inline_env->method);
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
 
 				/* upper bound */
 
-				num = code_get_s4(nextp);
+				num = code_get_s4(nextp,inline_env->method);
 				*tablep = num;   /* restore for little endian */
 				tablep++;
 				nextp += 4;
@@ -1113,17 +1141,18 @@ methodinfo *parse(methodinfo *m)
 				if (num < 0)
 					panic("invalid TABLESWITCH: upper bound < lower bound");
 
-				if (nextp + 4*(num+1) > m->jcodelength)
+				if (nextp + 4*(num+1) > inline_env->method->jcodelength)
 					panic("Unexpected end of bytecode");
 
 				for (i = 0; i <= num; i++) {
-					j = p + code_get_s4(nextp);
+					j = p + code_get_s4(nextp,inline_env->method);
 					if (useinlining)
 						j = label_index[j];
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
 					bound_check(j);
+//printf("B10 TABLESWITCH2\t"); fflush(stdout);
 					block_insert(j);
 				}
 
@@ -1139,12 +1168,12 @@ methodinfo *parse(methodinfo *m)
 
 		case JAVA_PUTSTATIC:
 		case JAVA_GETSTATIC:
-			i = code_get_u2(p + 1);
+			i = code_get_u2(p + 1,inline_env->method);
 			{
 				constant_FMIref *fr;
 				fieldinfo *fi;
 
-				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
+				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
 
 				if (!class_load(fr->class))
 					return NULL;
@@ -1155,7 +1184,7 @@ methodinfo *parse(methodinfo *m)
 				fi = class_resolvefield(fr->class,
 										fr->name,
 										fr->descriptor,
-										m->class,
+										inline_env->method->class,
 										true);
 
 				if (!fi)
@@ -1163,19 +1192,19 @@ methodinfo *parse(methodinfo *m)
 
 				OP2A(opcode, fi->type, fi, currentline);
 				if (!fi->class->initialized) {
-					m->isleafmethod = false;
+					inline_env->method->isleafmethod = false;
 				}
 			}
 			break;
 
 		case JAVA_PUTFIELD:
 		case JAVA_GETFIELD:
-			i = code_get_u2(p + 1);
+			i = code_get_u2(p + 1,inline_env->method);
 			{
 				constant_FMIref *fr;
 				fieldinfo *fi;
 
-				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
+				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
 
 				if (!class_load(fr->class))
 					return NULL;
@@ -1186,7 +1215,7 @@ methodinfo *parse(methodinfo *m)
 				fi = class_resolvefield(fr->class,
 										fr->name,
 										fr->descriptor,
-										m->class,
+										inline_env->method->class,
 										true);
 
 				if (!fi)
@@ -1200,14 +1229,14 @@ methodinfo *parse(methodinfo *m)
 			/* method invocation *****/
 
 		case JAVA_INVOKESTATIC:
-			i = code_get_u2(p + 1);
+			i = code_get_u2(p + 1,inline_env->method);
 			{
 				constant_FMIref *mr;
 				methodinfo *mi;
 				
-				m->isleafmethod = false;
+				inline_env->method->isleafmethod = false;
 
-				mr = class_getconstant(m->class, i, CONSTANT_Methodref);
+				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
 
 				if (!class_load(mr->class))
 					return NULL;
@@ -1218,13 +1247,14 @@ methodinfo *parse(methodinfo *m)
 				mi = class_resolveclassmethod(mr->class,
 											  mr->name,
 											  mr->descriptor,
-											  m->class,
+											  inline_env->method->class,
 											  true);
 
 				if (!mi)
 					return NULL;
 
-				/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
+				/*RTAprint*/// if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
+if (DEBUG2==true) 
 					/*RTAprint*/    {printf(" method name =");
 					/*RTAprint*/    utf_display(mi->class->name); printf(".");
 					/*RTAprint*/    utf_display(mi->name);printf("\tINVOKE STATIC\n");
@@ -1243,14 +1273,14 @@ methodinfo *parse(methodinfo *m)
 
 		case JAVA_INVOKESPECIAL:
 		case JAVA_INVOKEVIRTUAL:
-			i = code_get_u2(p + 1);
+			i = code_get_u2(p + 1,inline_env->method);
 			{
 				constant_FMIref *mr;
 				methodinfo *mi;
 
-				m->isleafmethod = false;
+				inline_env->method->isleafmethod = false;
 
-				mr = class_getconstant(m->class, i, CONSTANT_Methodref);
+				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
 
 				if (!class_load(mr->class))
 					return NULL;
@@ -1261,13 +1291,14 @@ methodinfo *parse(methodinfo *m)
 				mi = class_resolveclassmethod(mr->class,
 											  mr->name,
 											  mr->descriptor,
-											  m->class,
+											  inline_env->method->class,
 											  true);
 
 				if (!mi)
 					return NULL;
 
-				/*RTAprint*/ if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
+				/*RTAprint*/ // if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
+if (DEBUG2==true)
 					/*RTAprint*/    {printf(" method name =");
 					method_display(mi);
 					/*RTAprint*/    utf_display(mi->class->name); printf(".");
@@ -1286,14 +1317,14 @@ methodinfo *parse(methodinfo *m)
 			break;
 
 		case JAVA_INVOKEINTERFACE:
-			i = code_get_u2(p + 1);
+			i = code_get_u2(p + 1,inline_env->method);
 			{
 				constant_FMIref *mr;
 				methodinfo *mi;
 				
-				m->isleafmethod = false;
+				inline_env->method->isleafmethod = false;
 
-				mr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
+				mr = class_getconstant(inline_env->method->class, i, CONSTANT_InterfaceMethodref);
 
 				if (!class_load(mr->class))
 					return NULL;
@@ -1304,7 +1335,7 @@ methodinfo *parse(methodinfo *m)
 				mi = class_resolveinterfacemethod(mr->class,
 												  mr->name,
 												  mr->descriptor,
-												  m->class,
+												  inline_env->method->class,
 												  true);
 				if (!mi)
 					return NULL;
@@ -1323,18 +1354,18 @@ methodinfo *parse(methodinfo *m)
 			/* miscellaneous object operations *******/
 
 		case JAVA_NEW:
-			i = code_get_u2(p + 1);
-			LOADCONST_A_BUILTIN(class_getconstant(m->class, i, CONSTANT_Class));
+			i = code_get_u2(p + 1,inline_env->method);
+			LOADCONST_A_BUILTIN(class_getconstant(inline_env->method->class, i, CONSTANT_Class));
 			s_count++;
 			BUILTIN1(BUILTIN_new, TYPE_ADR, currentline);
 			OP(ICMD_CHECKEXCEPTION);
 			break;
 
 		case JAVA_CHECKCAST:
-			i = code_get_u2(p + 1);
+			i = code_get_u2(p + 1,inline_env->method);
 			{
 				classinfo *cls =
-					(classinfo *) class_getconstant(m->class, i, CONSTANT_Class);
+					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 				if (!cls->loaded)
 					if (!class_load(cls))
@@ -1362,10 +1393,10 @@ methodinfo *parse(methodinfo *m)
 			break;
 
 		case JAVA_INSTANCEOF:
-			i = code_get_u2(p + 1);
+			i = code_get_u2(p + 1,inline_env->method);
 			{
 				classinfo *cls =
-					(classinfo *) class_getconstant(m->class, i, CONSTANT_Class);
+					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 				if (!cls->loaded)
 					if (!class_load(cls))
@@ -1566,10 +1597,15 @@ methodinfo *parse(methodinfo *m)
 		
 		/* INLINING */
 		  
-		if (isinlinedmethod && p == m->jcodelength - 1) { /* end of an inlined method */
+		if (inline_env->isinlinedmethod && p == inline_env->method->jcodelength - 1) { /* end of an inlined method */
 			/*		  printf("setting gp from %d to %d\n",gp, inlinfo->stopgp); */
 			gp = inlinfo->stopgp; 
 			inlining_restore_compiler_variables();
+//label_index = inlinfo->label_index;
+if (DEBUG==true) {
+printf("AFTER RESTORE : "); fflush(stdout);
+DEBUGMETH(inline_env->method);
+}
 			list_remove(inlinfo->inlinedmethods, list_first(inlinfo->inlinedmethods));
 			if (inlinfo->inlinedmethods == NULL) {
 				nextgp = -1;
@@ -1582,6 +1618,9 @@ methodinfo *parse(methodinfo *m)
 			firstlocal = inlinfo->firstlocal;
 		}
 	} /* end for */
+/*&&&&&&&&&&&&&&&&*/
+if (DEBUG==true) printf("&&&&&&&&&&&&&&&&\n");
+
 
 	if (p != m->jcodelength)
 		panic("Command-sequence crosses code-boundary");
@@ -1631,8 +1670,8 @@ methodinfo *parse(methodinfo *m)
 
 		/* allocate blocks */
 
-/*  		for (p = 0; p < cumjcodelength; p++) { */
-		for (p = 0; p < m->jcodelength; p++) {
+/*  		for (p = 0; p < inline_env->cumjcodelength; p++) {  */
+		for (p = 0; p < m->jcodelength; p++) { 
 			if (m->basicblockindex[p] & 1) {
 				/* check if this block starts at the beginning of an instruction */
 				if (!instructionstart[p])
@@ -1691,8 +1730,7 @@ methodinfo *parse(methodinfo *m)
 	    }
 	}
 	
-	if (useinlining) inlining_cleanup();
-	useinlining = useinltmp;
+	if (useinlining) inlining_cleanup(inline_env);
 
 	/* just return methodinfo* to signal everything was ok */
 

@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 1337 2004-07-21 16:00:33Z twisti $
+   $Id: parse.h 1414 2004-10-04 12:55:33Z carolyn $
 
 */
 
@@ -35,6 +35,7 @@
 #define _PARSE_H
 
 #include "global.h"
+#include "inline.h"
 
 
 /* intermediate code generating macros */
@@ -46,45 +47,45 @@
     /*iptr->op1=0;*/ \
     iptr->val.i = (v); \
     iptr->line = currentline; \
-    iptr->method = m; \
+    iptr->method = inline_env->method; \
     PINC
 
-#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);iptr->line=currentline;iptr->method=m;PINC
-#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);iptr->line=currentline;iptr->method=m;PINC
-#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);iptr->line=currentline;iptr->method=m;PINC
-#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;/*iptr->op1=0*/;iptr->val.a=(v);iptr->line=currentline;iptr->method=m;PINC
+#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
+#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
+#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
+#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;/*iptr->op1=0*/;iptr->val.a=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
 
 /* ACONST instructions generated as arguments for builtin functions
  * have op1 set to non-zero. This is used for stack overflow checking
  * in stack.c. */
 #define LOADCONST_A_BUILTIN(v) \
-                       iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);iptr->line=currentline;iptr->method=m;PINC
+                       iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
 
-#define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;iptr->line=currentline;iptr->method=m;PINC
-#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;iptr->line=currentline;iptr->method=m;PINC
-#define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);iptr->line=currentline;iptr->method=m;PINC
+#define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;iptr->line=currentline;iptr->method=inline_env->method;PINC
+#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;iptr->line=currentline;iptr->method=inline_env->method;PINC
+#define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
 
 #define OP2A(o,o1,v,l) \
     iptr->opc = (o); \
     iptr->op1 = (o1); \
     iptr->val.a = (v); \
     iptr->line = l; \
-    iptr->method = m; \
+    iptr->method = inline_env->method; \
     PINC
 
 #define BUILTIN1(v,t,l) \
-    m->isleafmethod = false; \
+    inline_env->method->isleafmethod = false; \
     iptr->opc = ICMD_BUILTIN1; \
     iptr->val.a = (v); \
     iptr->op1 = (t); \
     iptr->line = (l); \
-    iptr->method = m; \
+    iptr->method = inline_env->method; \
     PINC
 
-#define BUILTIN2(v,t,l)  m->isleafmethod=false;iptr->opc=ICMD_BUILTIN2;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->method=m;PINC
-#define BUILTIN3(v,t,l)  m->isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->method=m;PINC
+#define BUILTIN2(v,t,l)  inline_env->method->isleafmethod=false;iptr->opc=ICMD_BUILTIN2;iptr->op1=t;\
+                       iptr->val.a=(v);iptr->line=l;iptr->method=inline_env->method;PINC
+#define BUILTIN3(v,t,l)  inline_env->method->isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
+                       iptr->val.a=(v);iptr->line=l;iptr->method=inline_env->method;PINC
 
 
 /* We have to check local variables indices here because they are
@@ -92,18 +93,18 @@
 
 #define INDEX_ONEWORD(num) \
     do { \
-        if ((num) < 0 || (num) >= m->maxlocals) { \
+        if ((num) < 0 || (num) >= inline_env->cumlocals) { \
             *exceptionptr = \
-                new_verifyerror(m, "Illegal local variable number"); \
+                new_verifyerror(inline_env->method, "Illegal local variable number"); \
             return NULL; \
         } \
     } while (0)
 
 #define INDEX_TWOWORD(num) \
     do { \
-        if ((num) < 0 || ((num) + 1) >= m->maxlocals) { \
+        if ((num) < 0 || ((num) + 1) >= inline_env->cumlocals) { \
             *exceptionptr = \
-                new_verifyerror(m, "Illegal local variable number"); \
+                new_verifyerror(inline_env->method, "Illegal local variable number"); \
             return NULL; \
         } \
     } while (0)
@@ -129,6 +130,8 @@
         if (!(m->basicblockindex[(i)] & 1)) { \
             b_count++; \
             m->basicblockindex[(i)] |= 1; \
+ if (DEBUG==true){printf("---------------------block_inserted:b_count=%i m->basicblockindex[(i=%i)]=%i=%p\n",b_count,i,m->basicblockindex[(i)],m->basicblockindex[(i)]); \
+  fflush(stdout); }   \
         } \
     } while (0)
 
@@ -137,10 +140,12 @@
 
 #define bound_check(i) \
     do { \
-/*        if (i < 0 || i >= cumjcodelength) { */\
-        if (i < 0 || i >= m->jcodelength) { \
+        if (i < 0 || i >= inline_env->cumjcodelength) { \
+ printf("bound_check i=%i >= %i=cum\n",i,inline_env->cumjcodelength); \
+ fflush(stdout); \
+       /*  if (i < 0 || i >= m->jcodelength) { */ \
             *exceptionptr = \
-                new_verifyerror(m, "Illegal target of jump or branch"); \
+                new_verifyerror(inline_env->method, "Illegal target of jump or branch"); \
             return NULL; \
         } \
     } while (0)
@@ -148,10 +153,10 @@
 /* bound_check1 is used for the inclusive ends of exception handler ranges */
 #define bound_check1(i) \
     do { \
-/*        if (i < 0 || i > cumjcodelength) { */\
-        if (i < 0 || i > m->jcodelength) { \
+        if (i < 0 || i > inline_env->cumjcodelength) { \
+/*        if (i < 0 || i > m->jcodelength) { */ \
             *exceptionptr = \
-                new_verifyerror(m, "Illegal target of jump or branch"); \
+                new_verifyerror(inline_env->method, "Illegal target of jump or branch"); \
             return NULL; \
         } \
     } while (0)
@@ -163,13 +168,13 @@
 
 *******************************************************************************/
 
-#define code_get_u1(p)  m->jcode[p]
-#define code_get_s1(p)  ((s1)m->jcode[p])
-#define code_get_u2(p)  ((((u2)m->jcode[p]) << 8) + m->jcode[p + 1])
-#define code_get_s2(p)  ((s2)((((u2)m->jcode[p]) << 8) + m->jcode[p + 1]))
-#define code_get_u4(p)  ((((u4)m->jcode[p]) << 24) + (((u4)m->jcode[p + 1]) << 16) \
+#define code_get_u1(p,m)  m->jcode[p]
+#define code_get_s1(p,m)  ((s1)m->jcode[p])
+#define code_get_u2(p,m)  ((((u2)m->jcode[p]) << 8) + m->jcode[p + 1])
+#define code_get_s2(p,m)  ((s2)((((u2)m->jcode[p]) << 8) + m->jcode[p + 1]))
+#define code_get_u4(p,m)  ((((u4)m->jcode[p]) << 24) + (((u4)m->jcode[p + 1]) << 16) \
                         +(((u4)m->jcode[p + 2]) << 8) + m->jcode[p + 3])
-#define code_get_s4(p)  ((s4)((((u4)m->jcode[p]) << 24) + (((u4)m->jcode[p + 1]) << 16) \
+#define code_get_s4(p,m)  ((s4)((((u4)m->jcode[p]) << 24) + (((u4)m->jcode[p + 1]) << 16) \
                              +(((u4)m->jcode[p + 2]) << 8) + m->jcode[p + 3]))
 
 
@@ -185,7 +190,7 @@ extern u1  *rt_jcode;
 void compiler_addinitclass(classinfo *c);
 classSetNode * descriptor2typesL(methodinfo *m);
 void descriptor2types(methodinfo *m);
-methodinfo *parse(methodinfo *m);
+methodinfo *parse(methodinfo *m,t_inlining_globals *inline_env);
 
 #endif /* _PARSE_H */
 

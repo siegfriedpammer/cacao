@@ -1,5 +1,7 @@
 /* jit/inline.c - code inliner
 
+globals moved to structure and passed as parameter
+
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
    M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
@@ -26,7 +28,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1236 2004-06-30 19:53:03Z twisti $
+   $Id: inline.c 1414 2004-10-04 12:55:33Z carolyn $
 
 */
 
@@ -43,49 +45,90 @@
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
+#define METHINFO(m) \
+  utf_display(m->class->name); printf("."); fflush(stdout); \
+  method_display(m); fflush(stdout); \
 
+#define IMETHINFO(m) \
+  utf_display(m->class->name); printf("."); fflush(stdout); \
+  method_display(m); fflush(stdout); \
+  printf("\tm->jcodelength=%i; ",m->jcodelength); fflush(stdout); \
+  printf("m->jcode=%p;\n",m->jcode); fflush(stdout); \
+  printf("\tm->maxlocals=%i; ",m->maxlocals); fflush(stdout); \
+  printf("m->maxstack=%i;\n",m->maxstack); fflush(stdout);
+
+bool DEBUGi = false;
 // checked functions and macros: LOADCONST code_get OP1 BUILTIN block_insert bound_check ALIGN
 
 // replace jcodelength loops with correct number after main for loop in parse()!
 
-static list *inlining_stack;
-//static list *inlining_patchlist;
-bool isinlinedmethod;
-int cumjcodelength;         /* cumulative immediate intruction length      */
-static int cumlocals;
-int cummaxstack;
-int cumextablelength;
-static int cummethods;
-inlining_methodinfo *inlining_rootinfo;
+/*-----------------------------------------------------------*/
+/* just initialize global structure for non-inlining         */
+/*-----------------------------------------------------------*/
 
-
-void inlining_init(methodinfo *m)
+t_inlining_globals *inlining_init0(methodinfo *m, 
+				   t_inlining_globals *inline_env)
 {
-	inlining_stack = NULL;
-	//	inlining_patchlist = NULL;
-	isinlinedmethod = 0;
-	cumjcodelength = 0;
-	cumlocals = 0;
-	cumextablelength = 0;
-	cummaxstack = 0;
-	cummethods = 0;
+ /* initialization for normal use in parse */
+        inlining_set_compiler_variables_fun(m, inline_env);
+        inline_env->isinlinedmethod = 0;
+	inline_env->cumjcodelength = m->jcodelength; /* for not inlining */
+        inline_env->cummaxstack = 0;
+        inline_env->cumextablelength = 0;
+        inline_env->cumlocals = m->maxlocals;
+        inline_env->cummethods = 0;//co not global or static-used only here?
+        inline_env->inlining_stack = NULL;
+        inline_env->inlining_rootinfo = NULL;
+return inline_env;
+}
+/*-----------------------------------------------------------*/
 
-	inlining_stack = NEW(list);
-	list_init(inlining_stack, OFFSET(t_inlining_stacknode, linkage));
-	
-	inlining_rootinfo = inlining_analyse_method(m, 0, 0, 0, 0);
-	m->maxlocals = cumlocals;
-	m->maxstack = cummaxstack;
+t_inlining_globals *inlining_init(methodinfo *m)
+{
+  	t_inlining_globals *inline_env = DNEW(t_inlining_globals);
+        inlining_init0(m,inline_env);
+if (useinlining)
+        {
+if (DEBUGi==true) {
+ 		printf("\n-------- Inlining init for: "); fflush(stdout);
+  		IMETHINFO(m)
+                }
+        inline_env->cumjcodelength = 0;
+        inline_env->inlining_stack = NEW(list);
+        list_init(inline_env->inlining_stack, 
+		  OFFSET(t_inlining_stacknode, linkage));
+        /*------ analyze ------*/
+if (DEBUGi==true) {print_t_inlining_globals(inline_env);}
+        inline_env->inlining_rootinfo 
+		= inlining_analyse_method(m, 0, 0, 0, 0, inline_env);
+if (DEBUGi==true) {print_t_inlining_globals(inline_env);}
+        /*---------------------*/
+	//if (inline_env->cummethods == 0) {
+  	//  inline_env = DNEW(t_inlining_globals);
+	//  inlining_init0(m,inline_env);
+	//  return inline_env;
+        //  }
+if (DEBUGi==true) {
+  printf("(l,s) (%i,%i) was (%i,%i)\n",
+    m->maxlocals, inline_env->cumlocals,
+    m->maxstack,  inline_env->cummaxstack); fflush(stdout);
+  }
+        m->maxlocals = inline_env->cumlocals;   //orig not used
+        m->maxstack = inline_env->cummaxstack;  //orig global maxstack var!!
+
+//panic("TEMP so can test just inline init\n");
+        }
+return inline_env;
 }
 
 
-void inlining_cleanup()
+void inlining_cleanup(t_inlining_globals *inline_env)
 {
-	FREE(inlining_stack, t_inlining_stacknode);
+	FREE(inline_env->inlining_stack, t_inlining_stacknode);
 }
 
 
-void inlining_push_compiler_variables(methodinfo *m, int i, int p, int nextp, int opcode, inlining_methodinfo *inlinfo) 
+void inlining_push_compiler_variables(int i, int p, int nextp, int opcode, inlining_methodinfo *inlinfo, t_inlining_globals *inline_env)
 {
 	t_inlining_stacknode *new = NEW(t_inlining_stacknode);
 
@@ -93,20 +136,23 @@ void inlining_push_compiler_variables(methodinfo *m, int i, int p, int nextp, in
 	new->p = p;
 	new->nextp = nextp;
 	new->opcode = opcode;
-	new->method = m;
-	//	new->patchlist = inlining_patchlist;
+	new->method = inline_env->method;
 	new->inlinfo = inlinfo;
 	
-	list_addfirst(inlining_stack, new);
-	isinlinedmethod++;
+	list_addfirst(inline_env->inlining_stack, new);
+	inline_env->isinlinedmethod++;
 }
 
 
-void inlining_pop_compiler_variables(methodinfo *m, int *i, int *p, int *nextp, int *opcode, inlining_methodinfo **inlinfo) 
+void inlining_pop_compiler_variables(
+                                    int *i, int *p, int *nextp, int *opcode,
+                                    inlining_methodinfo **inlinfo,
+                                    t_inlining_globals *inline_env)
 {
-	t_inlining_stacknode *tmp = (t_inlining_stacknode *) list_first(inlining_stack);
+	t_inlining_stacknode *tmp 
+	  = (t_inlining_stacknode *) list_first(inline_env->inlining_stack);
 
-	if (!isinlinedmethod) panic("Attempting to pop from inlining stack in toplevel method!\n");
+	if (!inline_env->isinlinedmethod) panic("Attempting to pop from inlining stack in toplevel method!\n");
 
 	*i = tmp->i;
 	*p = tmp->p;
@@ -114,38 +160,26 @@ void inlining_pop_compiler_variables(methodinfo *m, int *i, int *p, int *nextp, 
 	*opcode = tmp->opcode;
 	*inlinfo = tmp->inlinfo;
 
-	/* XXX TWISTI */
-/*  	method = tmp->method; */
-/*  	class = method->class; */
-/*  	jcodelength = method->jcodelength; */
-/*  	jcode = method->jcode; */
-	//	inlining_patchlist = tmp->patchlist;
+        inline_env->method = tmp->method; /*co*/
+        inline_env->class = inline_env->method->class; /*co*/
+        inline_env->jcodelength = inline_env->method->jcodelength; /*co*/
+        inline_env->jcode = inline_env->method->jcode; /*co*/
 
-	list_remove(inlining_stack, tmp);
-	FREE(tmp, t_inlining_stacknode);
-	isinlinedmethod--;
+        list_remove(inline_env->inlining_stack, tmp);
+        FREE(tmp, t_inlining_stacknode);
+        inline_env->isinlinedmethod--;
 }
 
 
-void inlining_set_compiler_variables_fun(methodinfo *m)
+void inlining_set_compiler_variables_fun(methodinfo *m,
+					 t_inlining_globals *inline_env)
 {
 	/* XXX TWISTI */
-/*  	method = m; */
-/*  	class = m->class; */
-/*  	jcodelength = m->jcodelength; */
-/*  	jcode = m->jcode; */
-	
-	//	inlining_patchlist = DNEW(list);
-	//	list_init(inlining_patchlist, OFFSET(t_patchlistnode, linkage));
+        inline_env->method = m; /*co*/
+        inline_env->class  = m->class; /*co*/
+        inline_env->jcode  = m->jcode; /*co*/
+        inline_env->jcodelength = m->jcodelength; /*co*/
 }
-
-
-/*void inlining_addpatch(instruction *iptr)  
-  {
-  t_patchlistnode *patch = DNEW(t_patchlistnode);
-  patch->iptr = iptr;
-  list_addlast(inlining_patchlist, patch);
-  }*/
 
 
 classinfo *first_occurence(classinfo* class, utf* name, utf* desc)
@@ -199,17 +233,18 @@ bool is_unique_method(classinfo *class, methodinfo *m, utf* name, utf* desc)
 	return is_unique_rec(class, m, name, desc);
 }
 
-
-inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, int firstlocal, int maxstackdepth)
+inlining_methodinfo *inlining_analyse_method(methodinfo *m, 
+					  int level, int gp, 
+					  int firstlocal, int maxstackdepth,
+					  t_inlining_globals *inline_env)
 {
 	inlining_methodinfo *newnode = DNEW(inlining_methodinfo);
-	u1 *jcode = m->jcode;
+	/*u1 *jcode = m->jcode;*/
 	int jcodelength = m->jcodelength;
 	int p;
 	int nextp;
 	int opcode;
 	int i;
-/*  	int lastlabel = 0; */
 	bool iswide = false, oldiswide;
 	bool *readonly = NULL;
 	int  *label_index = NULL;
@@ -234,7 +269,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 		readonly = NULL;
 	}
 	
-	label_index = DMNEW(int, jcodelength);
+	label_index = DMNEW(int, jcodelength+200);
 
 	newnode->inlinedmethods = DNEW(list);
 	list_init(newnode->inlinedmethods, OFFSET(inlining_methodinfo, linkage));
@@ -244,21 +279,21 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 	newnode->readonly = readonly;
 	newnode->label_index = label_index;
 	newnode->firstlocal = firstlocal;
-	cumjcodelength += jcodelength + m->paramcount + 1 + 5;
+	inline_env->cumjcodelength += jcodelength + m->paramcount + 1 + 5;
 
-	if ((firstlocal + m->maxlocals) > cumlocals) {
-		cumlocals = firstlocal + m->maxlocals;
+	if ((firstlocal + m->maxlocals) > inline_env->cumlocals) {
+		inline_env->cumlocals = firstlocal + m->maxlocals;
 	}
 
-	if ((maxstackdepth + m->maxstack) > cummaxstack) {
-		cummaxstack = maxstackdepth + m->maxstack;
+	if ((maxstackdepth + m->maxstack) > inline_env->cummaxstack) {
+		inline_env->cummaxstack = maxstackdepth + m->maxstack;
 	}
 
-	cumextablelength += m->exceptiontablelength;
+	inline_env->cumextablelength += m->exceptiontablelength;
    
 
 	for (p = 0; p < jcodelength; gp += (nextp - p), p = nextp) {
-		opcode = code_get_u1 (p);
+		opcode = code_get_u1 (p,m);
 		nextp = p + jcommandsize[opcode];
 		oldiswide = iswide;
 
@@ -298,12 +333,12 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 
 		case JAVA_LOOKUPSWITCH:
 			nextp = ALIGN((p + 1), 4) + 4;
-			nextp += code_get_u4(nextp) * 8 + 4;
+			nextp += code_get_u4(nextp,m) * 8 + 4;
 			break;
 
 		case JAVA_TABLESWITCH:
 			nextp = ALIGN((p + 1), 4) + 4;
-			nextp += (code_get_u4(nextp+4) - code_get_u4(nextp) + 1) * 4 + 4;
+			nextp += (code_get_u4(nextp+4,m) - code_get_u4(nextp,m) + 1) * 4 + 4;
 			break;
 		}
 
@@ -319,10 +354,10 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 			case JAVA_DSTORE:
 			case JAVA_ASTORE: 
 				if (!iswide) {
-					i = code_get_u1(p + 1);
+					i = code_get_u1(p + 1,m);
 
 				} else {
-					i = code_get_u2(p + 1);
+					i = code_get_u2(p + 1,m);
 				}
 				readonly[i] = false;
 				break;
@@ -357,10 +392,10 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 
 			case JAVA_IINC:
 				if (!iswide) {
-					i = code_get_u1(p + 1);
+					i = code_get_u1(p + 1,m);
 
 				} else {
-					i = code_get_u2(p + 1);
+					i = code_get_u2(p + 1,m);
 				}
 				readonly[i] = false;
 				break;
@@ -379,7 +414,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 				if (!inlinevirtuals)
 					break;
 			case JAVA_INVOKESTATIC:
-				i = code_get_u2(p + 1);
+				i = code_get_u2(p + 1,m);
 				{
 					constant_FMIref *imr;
 					methodinfo *imi;
@@ -406,7 +441,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 							break;
 					}
 
-					if ((cummethods < INLINING_MAXMETHODS) &&
+					if ((inline_env->cummethods < INLINING_MAXMETHODS) &&
 						(!(imi->flags & ACC_NATIVE)) &&  
 						(!inlineoutsiders || (m->class == imr->class)) && 
 						(imi->jcodelength < INLINING_MAXCODESIZE) && 
@@ -415,7 +450,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 						inlining_methodinfo *tmp;
 						descriptor2types(imi);
 
-						cummethods++;
+						inline_env->cummethods++;
 
 						if (verbose) {
 							char logtext[MAXLOGTEXT];
@@ -427,7 +462,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 							log_text(logtext);
 						}
 						
-						tmp = inlining_analyse_method(imi, level + 1, gp, firstlocal + m->maxlocals, maxstackdepth + m->maxstack);
+						tmp =inlining_analyse_method(imi, level + 1, gp, firstlocal + m->maxlocals, maxstackdepth + m->maxstack, inline_env);
 						list_addlast(newnode->inlinedmethods, tmp);
 						gp = tmp->stopgp;
 						p = nextp;
@@ -440,18 +475,134 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 	
 	newnode->stopgp = gp;
 
-	/*
-	sprintf (logtext, "Result of inlining analysis of: ");
-	utf_sprint (logtext+strlen(logtext), m->class->name);
-	strcpy (logtext+strlen(logtext), ".");
-	utf_sprint (logtext+strlen(logtext), m->name);
-	utf_sprint (logtext+strlen(logtext), m->descriptor);
-	dolog ();
-	sprintf (logtext, "label_index[0..%d]->", jcodelength);
-	for (i=0; i<jcodelength; i++) sprintf (logtext, "%d:%d ", i, label_index[i]);
-	sprintf(logtext,"stopgp : %d\n",newnode->stopgp); */
+        if (DEBUGi==true) {
+	  printf ("\nResult of inlining analysis of: ");
+	  IMETHINFO(m);
+	  printf("was called by:\n"); fflush(stdout);
+	  IMETHINFO(inline_env->method);
+	  printf ("label_index[0..%d]->", jcodelength);
+	  for (i=0;i<jcodelength; i++) printf ("%d:%d ", i, label_index[i]);
+	  printf("stopgp : %d\n",newnode->stopgp); 
+          }
 
     return newnode;
+}
+
+/* --------------------------------------------------------------------*/
+/*  print_ functions: check inline structures contain what is expected */
+/* --------------------------------------------------------------------*/
+void print_t_inlining_globals (t_inlining_globals *g) 
+{
+printf("\n------------\nt_inlining_globals struct for: \n\t");fflush(stdout); 
+METHINFO(g->method);
+printf("\tclass=");fflush(stdout);
+  utf_display(g->class->name);printf("\n");fflush(stdout);
+
+printf("\tjcodelength=%i; jcode=%p;\n",g->jcodelength, g->jcode);
+
+if (g->isinlinedmethod==true) {
+  printf("\tisinlinedmethod=true ");fflush(stdout);  
+  }
+else {
+  printf("\tisinlinedmethod=false");fflush(stdout);  
+  }
+
+printf("\tcumjcodelength=%i ,cummaxstack=%i ,cumextablelength=%i ",
+ g->cumjcodelength,    g->cummaxstack,  g->cumextablelength);fflush(stdout);
+printf("\tcumlocals=%i ,cummethods=%i \n",
+ g->cumlocals,    g->cummethods);fflush(stdout);  
+
+printf("s>s>s> ");fflush(stdout);
+print_inlining_stack     (g->inlining_stack);
+printf("i>i>i> "); fflush(stdout);
+print_inlining_methodinfo(g->inlining_rootinfo);
+printf("-------------------\n");fflush(stdout);
+}
+
+/* --------------------------------------------------------------------*/
+void print_inlining_stack     ( list                *s)
+{
+if (s==NULL) { 
+  printf("\n\tinlining_stack: NULL\n");
+  return;
+  }
+  
+  {/* print first  element to see if get into stack */
+  t_inlining_stacknode *is;
+  printf("\n\tinlining_stack: NOT NULL\n");
+
+  is=list_first(s); 
+  if (is==NULL) { 
+    printf("\n\tinlining_stack = init'd but EMPTY\n");
+    fflush(stdout);
+    return;
+    }
+  }
+
+  {
+  t_inlining_stacknode *is;
+  printf("\n\tinlining_stack: NOT NULL\n");
+
+
+  for (is=list_first(s); 
+       is!=NULL;
+       is=list_next(s,is)) {
+ 	 printf("\n\ti>--->inlining_stack entry: \n"); fflush(stdout);
+	 METHINFO(is->method);
+	 printf("i=%i, p=%i, nextp=%i, opcode=%i;\n",
+		is->i,is->p,is->nextp,is->opcode);fflush(stdout);
+	 print_inlining_methodinfo(is->inlinfo);
+    } /*end for */
+  } 
+
+}
+
+/* --------------------------------------------------------------------*/
+void print_inlining_methodinfo( inlining_methodinfo *r) {
+if (r==NULL) { 
+  printf("\n\tinlining_methodinfo: NULL\n");
+  return;
+  }
+
+if (r->method != NULL) {
+  utf_display(r->method->class->name); printf("."); fflush(stdout); \
+  method_display(r->method); fflush(stdout); \
+  }
+else {
+  printf("method is NULL!!!!!\n");fflush(stdout);
+  }
+
+printf("\n\tinlining_methodinfo for:"); fflush(stdout);
+if (r->readonly==NULL) {
+  printf("\treadonly==NULL ");fflush(stdout);  
+  }
+else {
+  int i;
+  printf("\treadonly=");fflush(stdout);  
+  for (i = 0; i < r->method->maxlocals; i++)  {
+    if (r->readonly[i] == true)
+      printf("[i]=T;");
+    else
+      printf("[i]=F;");
+    fflush(stdout);
+    } 
+  }
+
+
+printf("\tstartgp=%i; stopgp=%i; firstlocal=%i; label_index=%p;\n",
+          r->startgp, r->stopgp, r->firstlocal, r->label_index);
+{int i;
+printf ("label_index[0..%d]->", r->method->jcodelength);
+for (i=0; i<r->method->jcodelength; i++) printf ("%d:%d ", i, r->label_index[i]);
+}
+
+{
+inlining_methodinfo *im;
+for (im=list_first(r->inlinedmethods); 
+     im!=NULL;
+     im=list_next(r->inlinedmethods,im)) {
+  } 
+}
 }
 
 

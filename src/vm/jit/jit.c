@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1407 2004-08-17 12:42:34Z twisti $
+   $Id: jit.c 1414 2004-10-04 12:55:33Z carolyn $
 
 */
 
@@ -1360,7 +1360,6 @@ methodptr jit_compile(methodinfo *m)
 		utf_display_classname(m->class->name);printf(".");utf_display(m->name);
 		printf("\n");
 	}
-
 	/* now the jit is running */
 
 	jitrunning = true;
@@ -1414,6 +1413,7 @@ methodptr jit_compile(methodinfo *m)
 
 static methodptr jit_compile_intern(methodinfo *m)
 {
+t_inlining_globals *inline_env = NULL;
 	/* if there is no javacode, print error message and return empty method   */
 
 	if (!m->jcode) {
@@ -1476,8 +1476,8 @@ static methodptr jit_compile_intern(methodinfo *m)
 	reg_init(m);
 
 	/* must be called before reg_setup, because it can change maxlocals */
-	if (useinlining)
-		inlining_init(m);
+        /* init reqd to initialize for parse even in no inlining */
+	inline_env = inlining_init(m);
 
 	reg_setup(m);
 
@@ -1487,7 +1487,7 @@ static methodptr jit_compile_intern(methodinfo *m)
 	if (compileverbose)
 		log_message_method("Parsing: ", m);
 
-	if (!parse(m)) {
+	if (!parse(m, inline_env)) {
 		if (compileverbose)
 			log_message_method("Exception while parsing: ", m);
 
