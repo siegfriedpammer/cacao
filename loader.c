@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 866 2004-01-07 20:05:30Z edwin $
+   $Id: loader.c 867 2004-01-07 22:05:04Z edwin $
 
 */
 
@@ -87,6 +87,7 @@ static utf *utf_constantvalue; 		/* ConstantValue           */
 static utf *utf_code;			    /* Code                    */
 static utf *utf_finalize;		    /* finalize                */
 static utf *utf_fidesc;   		    /* ()V changed             */
+static utf *utf_init;  		        /* <init>                  */
 static utf *utf_clinit;  		    /* <clinit>                */
 static utf *utf_initsystemclass;	/* initializeSystemClass   */
 static utf *utf_systemclass;		/* java/lang/System        */
@@ -1020,8 +1021,6 @@ void field_display(fieldinfo *f)
 static void method_load(methodinfo *m, classinfo *c)
 {
 	u4 attrnum, i, e;
-	static utf* name_init = NULL;
-	static utf* name_clinit = NULL;
 	
 #ifdef STATISTICS
 	count_all_methods++;
@@ -1036,12 +1035,8 @@ static void method_load(methodinfo *m, classinfo *c)
 
 	/* check flag consistency */
 	if (opt_verify) {
-		if (!name_init) {
-			name_init = utf_new_char("<init>");
-			name_clinit = utf_new_char("<clinit>");
-		}
 		/* XXX could check if <clinit> is STATIC */
-		if (m->name != name_clinit) {
+		if (m->name != utf_clinit) {
 			i = (m->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
 			if (i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED)
 				panic("Method has invalid access flags");
@@ -1055,7 +1050,7 @@ static void method_load(methodinfo *m, classinfo *c)
 					!= (ACC_ABSTRACT | ACC_PUBLIC))
 					panic("Interface method is not declared abstract and public");
 			}
-			if (m->name == name_init) {
+			if (m->name == utf_init) {
 				if ((m->flags & (ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED
 								 | ACC_NATIVE | ACC_ABSTRACT)) != 0)
 					panic("Instance initialization method has invalid flags set");
@@ -3456,6 +3451,7 @@ void loader_init(u1 *stackbottom)
 	utf_code	        = utf_new_char("Code");
 	utf_finalize	    = utf_new_char("finalize");
 	utf_fidesc	        = utf_new_char("()V");
+	utf_init	        = utf_new_char("<init>");
 	utf_clinit	        = utf_new_char("<clinit>");
 	utf_initsystemclass = utf_new_char("initializeSystemClass");
 	utf_systemclass     = utf_new_char("java/lang/System");
