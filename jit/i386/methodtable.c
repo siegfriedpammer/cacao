@@ -27,7 +27,7 @@
 
    Authores: Christian Thalinger
 
-   $Id: methodtable.c 561 2003-11-02 23:39:06Z twisti $
+   $Id: methodtable.c 587 2003-11-09 19:41:04Z twisti $
 
 */
 
@@ -92,8 +92,9 @@ u1 *findmethod(u1 *pos)
 			mte = mte->next;
 		}
     }
-	
-    return NULL;
+
+    printf("can't find method with eip=%p\n", pos);
+    exit(-1);
 }
 
 
