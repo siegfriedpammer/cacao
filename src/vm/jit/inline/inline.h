@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.h 1506 2004-11-14 14:48:49Z jowenn $
+   $Id: inline.h 1557 2004-11-22 12:01:16Z carolyn $
 
 */
 
@@ -133,8 +133,8 @@ void inlining_pop_compiler_variables(
 void inlining_set_compiler_variables_fun(methodinfo *m, 
 					 t_inlining_globals *inline_env);
 classinfo *first_occurence(classinfo* class, utf* name, utf* desc);
-bool is_unique_rec(classinfo *class, methodinfo *m, utf* name, utf* desc);
-bool is_unique_method(classinfo *class, methodinfo *m, utf* name, utf* desc);
+bool is_unique_recOLD(classinfo *class, methodinfo *m, utf* name, utf* desc);
+bool is_unique_methodOLD(classinfo *class, methodinfo *m, utf* name, utf* desc);
 inlining_methodinfo *inlining_analyse_method(methodinfo *m, 
 					  int level, int gp,
 					  int firstlocal, int maxstackdepth,					      t_inlining_globals *inline_env);

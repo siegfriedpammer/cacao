@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.h 1553 2004-11-19 15:47:13Z carolyn $
+   $Id: parseRT.h 1557 2004-11-22 12:01:16Z carolyn $
 
 */
 
@@ -44,14 +44,6 @@ typedef struct {
 
 
 extern int RT_jit_parse(methodinfo *m);
-
-#define LAZYLOADING(class) { \
-        if (!class->loaded) \
-            if (!class_load(class)) \
-                return 0; \
-        if (!class->linked) \
-            if (!class_link(class)) \
-                return 0; }
 
 #define METHINFOx(mm) \
     { \

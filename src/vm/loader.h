@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1553 2004-11-19 15:47:13Z carolyn $
+   $Id: loader.h 1557 2004-11-22 12:01:16Z carolyn $
 */
 
 
@@ -170,6 +170,15 @@ int type_from_descriptor(classinfo **cls,char *utf_ptr,char *end_ptr,char **next
 
 /* (used by class_new, don't use directly) */
 void class_new_array(classinfo *c);
+
+#define LAZYLOADING(class) { \
+        if (!class->loaded) \
+            if (!class_load(class)) \
+                return 0; \
+        if (!class->linked) \
+            if (!class_link(class)) \
+                return 0; }
+
 
 classinfo *class_load(classinfo *c);
 classinfo *class_load_intern(classbuffer *cb);

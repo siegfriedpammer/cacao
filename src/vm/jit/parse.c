@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1546 2004-11-18 12:25:04Z twisti $
+   $Id: parse.c 1557 2004-11-22 12:01:16Z carolyn $
 
 */
 
@@ -61,7 +61,7 @@
                 fflush(stdout); \
         }
 #define DEBUGMETH(mm) \
-if (DEBUG == true) \
+if (DEBUG4 == true) \
         { \
                 printf("PARSE method name ="); \
                 utf_display(mm->class->name); \
@@ -449,7 +449,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 	u2 skipBasicBlockChange;
 
-if (DEBUG==true) {printf("PARSING: "); fflush(stdout);
+if (DEBUG4==true) {printf("\nPARSING: "); fflush(stdout);
 DEBUGMETH(m);
 }
 if (opt_rt) {
@@ -687,7 +687,6 @@ fflush(stdout);
 		*/
 
 		if (blockend) {
-			/* printf("B4 BEND\t"); fflush(stdout); */
 			block_insert(gp);               /* start new block                */
 			blockend = false;
 			/*printf("blockend was set: new blockcount: %ld at:%ld\n",b_count,gp);*/
@@ -1117,9 +1116,6 @@ SHOWOPCODE
 				tablep++;
 				nextp += 4;
 				bound_check(j);
-/*
-printf("B7 LOOKUP1\t"); fflush(stdout);
-*/
 				block_insert(j);
 
 				/* number of pairs */
@@ -1155,9 +1151,6 @@ printf("B7 LOOKUP1\t"); fflush(stdout);
 					tablep++;
 					nextp += 4;
 					bound_check(j);
-/*
-printf("B8 LOOKUP2\t"); fflush(stdout);
-*/
 					block_insert(j);
 				}
 
@@ -1193,9 +1186,6 @@ printf("B8 LOOKUP2\t"); fflush(stdout);
 				tablep++;
 				nextp += 4;
 				bound_check(j);
-/*
-printf("B9 TABLESWITCH1\t"); fflush(stdout);
-*/
 				block_insert(j);
 
 				/* lower bound */
@@ -1229,9 +1219,6 @@ printf("B9 TABLESWITCH1\t"); fflush(stdout);
 					tablep++;
 					nextp += 4;
 					bound_check(j);
-/*
-printf("B10 TABLESWITCH2\t"); fflush(stdout);
-*/
 					block_insert(j);
 					/*printf("TABLESWITCH: block_insert(%ld)\n",j);*/
 				}
@@ -1333,12 +1320,10 @@ printf("B10 TABLESWITCH2\t"); fflush(stdout);
 				if (!mi)
 					return NULL;
 
-				/*RTAprint*/ /* if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt) */
-if (DEBUG4==true) 
-					/*RTAprint*/    {printf(" method name =");
-					/*RTAprint*/    utf_display(mi->class->name); printf(".");
-					/*RTAprint*/    utf_display(mi->name);printf("\tINVOKE STATIC\n");
-					/*RTAprint*/    fflush(stdout);}
+if (DEBUG4==true) { 
+	method_display_w_class(mi); 
+	printf("\tINVOKE STATIC\n");
+        fflush(stdout);}
 
 				if (!(mi->flags & ACC_STATIC)) {
 					*exceptionptr =
@@ -1377,13 +1362,10 @@ if (DEBUG4==true)
 				if (!mi)
 					return NULL;
 
-				/*RTAprint*/ /* if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt) */
-if (DEBUG4==true)
-					/*RTAprint*/    {printf(" method name =");
-					method_display(mi);
-					/*RTAprint*/    utf_display(mi->class->name); printf(".");
-					/*RTAprint*/    utf_display(mi->name);printf("\tINVOKE SPECIAL/VIRTUAL\n");
-					/*RTAprint*/    fflush(stdout);}
+if (DEBUG4==true) { 
+	method_display_w_class(mi); 
+	printf("\tINVOKE SPEC/VIRT\n");
+        fflush(stdout);}
 
 				if (mi->flags & ACC_STATIC) {
 					*exceptionptr =
@@ -1426,6 +1408,10 @@ if (DEBUG4==true)
 					return NULL;
 				}
 
+if (DEBUG4==true) { 
+	method_display_w_class(mi); 
+	printf("\tINVOKE INTERFACE\n");
+        fflush(stdout);}
 				descriptor2types(mi);
 				OP2A(opcode, mi->paramcount, mi, currentline);
 			}

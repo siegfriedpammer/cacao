@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1553 2004-11-19 15:47:13Z carolyn $
+   $Id: parseRT.c 1557 2004-11-22 12:01:16Z carolyn $
 
 */
 
@@ -169,6 +169,7 @@ void rtaAddUsedInterfaceMethods(classinfo *ci) {
 
 }
 
+
 /**************************************************************************/
 /* Add Marked methods for input class ci                                  */
 /* Add methods with the same name and descriptor as implemented interfaces*/
@@ -208,7 +209,13 @@ for (ii=0; ii<ci->methodscount; ii++) {
 	}
 }    
 
+#define CLINITS_T   true
+#define FINALIZE_T  true
+#define ADDMARKED_T true
 
+#define CLINITS_F   false 
+#define FINALIZE_F  false 
+#define ADDMARKED_F false
 /*********************************************************************/
 void addClassInit(classinfo *ci, bool clinits, bool finalizes, bool addmark)
 {
@@ -249,8 +256,8 @@ void addClassInit(classinfo *ci, bool clinits, bool finalizes, bool addmark)
 
   if (addmark) {
     rtaAddMarkedMethods(ci);
-    rtaAddUsedInterfaceMethods(ci);
     }
+    rtaAddUsedInterfaceMethods(ci);
 
 }
 
@@ -292,7 +299,7 @@ if (submeth->methodUsed == USED) return;
   /* Class Type Analysis if class.method in virt cone marks it used */
   /*   very inexact, too many extra methods */
   addClassInit(	submeth->class,
-		true,true,true);
+		CLINITS_T,FINALIZE_T,ADDMARKED_T);
   submeth->monoPoly = POLY;
   addToRtaWorkList(submeth,
 		   "addTo RTA VIRT CONE:");
@@ -412,6 +419,11 @@ void rtaMarkInterfaceSubs(methodinfo *mi) {
 } 
 
 
+
+
+
+
+
 /*********************************************************************/
 
 int parseRT(methodinfo *m)
@@ -525,7 +537,7 @@ if ((DEBUGr)||(DEBUGopcodes)) printf("\n");
 					m->isleafmethod = false;
 					}	
 				addClassInit(	fi->class,
-						true,true,false);
+						CLINITS_T,FINALIZE_T,ADDMARKED_F);
 			}
 			break;
 
@@ -557,12 +569,12 @@ if ((DEBUGr)||(DEBUGopcodes)) printf("\n");
 			             {
 				     if (mi->class->classUsed == PARTUSED){
 					   addClassInit(mi->class,
-					  		true,true,true);
+					  		CLINITS_T,FINALIZE_T,ADDMARKED_T);
 					}
 				     else {
 				        if (mi->class->classUsed == NOTUSED){
 					   addClassInit(mi->class,
-					  		true,true,false);
+					  	CLINITS_T,FINALIZE_T,ADDMARKED_T);
 				     	   if (mi->class->classUsed == NOTUSED){
 				     	       mi->class->classUsed = PARTUSED;						   } 
 					   }
@@ -583,24 +595,26 @@ if ((DEBUGr)||(DEBUGopcodes)) printf("\n");
 				          call of super's <init> then
 				          methods of super class not all used */
 				       if (utf_new_char("<init>")==mi->name) {
-					    if (m->class->super == mi->class) {
+					    if ((m->class->super == mi->class) 
+					    &&  (m->descriptor == utf_new_char("()V")) ) 
+						{
 						METHINFOt(mi,"SUPER INIT:",DEBUGopcodes);
 						/* super init */
 					     	addClassInit(mi->class,
-						        true,true,true);
+						        CLINITS_T,FINALIZE_T,ADDMARKED_F);
 						if (mi->class->classUsed == NOTUSED) mi->class->classUsed = PARTUSED;
 						}
 					    else {
 						METHINFOt(mi,"NORMAL INIT:",DEBUGopcodes);
 					        addClassInit(mi->class,
-							true,true,true);
+							CLINITS_T,FINALIZE_T,ADDMARKED_T);
 					        }
 	    		               	    addToRtaWorkList(mi,
 				    	 	     "addTo INIT ");
 					 } 
 				       if (utf_new_char("<clinit>")==mi->name)
 					  addClassInit(	mi->class,
-							true,true,false);
+							CLINITS_T,FINALIZE_T,ADDMARKED_F);
 
 				       if (!((utf_new_char("<init>")==mi->name))
 				       ||   (utf_new_char("<clinit>")==mi->name)) {
@@ -653,7 +667,7 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 			             {
 				     if (mi->class->classUsed == NOTUSED){
 				       addClassInit(mi->class,
-				   		    true,true,true);
+				   		    CLINITS_T,FINALIZE_T,ADDMARKED_T);
 				       }
   				      mi->monoPoly = MONO;
 	    		              addToRtaWorkList(mi,
@@ -712,7 +726,7 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 			/***ci->classUsed=USED;  */
 			/* add marked methods */
 			CLASSNAME(ci,"NEW : do nothing",DEBUGr);
-			addClassInit(ci, true, true, true);   
+			addClassInit(ci, CLINITS_T, FINALIZE_T,ADDMARKED_T);   
 			}
                         break;
 
@@ -728,7 +742,7 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
                        	CLASSNAMEop(cls,DEBUGr);
                         if (cls->classUsed == NOTUSED){
                         	addClassInit(cls,
-                                             true,true,true);
+                                            CLINITS_T,FINALIZE_T,ADDMARKED_T);
                                 }
 			}
                         break;
@@ -766,7 +780,7 @@ else
         if (callmeth->class->classUsed != USED) {  \
 	      c->classUsed = PARTUSED; \
  	      addClassInit(callmeth->class, \
- 			   true,true,true);\
+ 			   CLINITS_T,FINALIZE_T,ADDMARKED_T);\
 	      } \
 	callmeth->monoPoly = POLY; \
 	addToRtaWorkList(callmeth,txt);

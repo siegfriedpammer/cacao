@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1546 2004-11-18 12:25:04Z twisti $
+   $Id: inline.c 1557 2004-11-22 12:01:16Z carolyn $
 
 */
 
@@ -44,10 +44,19 @@ globals moved to structure and passed as parameter
 #include "jit/parse.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
+#include "sets.h"
+
+#define INVIRTDEBUG 
+#undef  INVIRTDEBUG
+
+#define METHINFOx(mm) \
+    { \
+        printf("<c%i/m%i/p%i>\t", \
+                (mm)->class->classUsed,(mm)->methodUsed, (mm)->monoPoly); \
+        method_display_w_class(mm); }
 
 #define METHINFO(m) \
-  utf_display(m->class->name); printf("."); fflush(stdout); \
-  method_display(m); fflush(stdout); \
+  method_display_w_class(m); 
 
 #define IMETHINFO(m) \
   utf_display(m->class->name); printf("."); fflush(stdout); \
@@ -62,6 +71,9 @@ bool DEBUGi = false;
 
 /* replace jcodelength loops with correct number after main for loop in parse()! */
 
+#define CLASSINFO(cls) \
+        {       printf("<c%i>\t",cls->classUsed); \
+                utf_display(cls->name); printf("\n");fflush(stdout);}
 
 /*-----------------------------------------------------------*/
 /* just initialize global structure for non-inlining         */
@@ -74,7 +86,7 @@ void inlining_init0(methodinfo *m, t_inlining_globals *inline_env)
 	inline_env->isinlinedmethod = 0;
 	inline_env->cumjcodelength = m->jcodelength; /* for not inlining */
 
-	inline_env->cummaxstack = m->maxstack; /*why has here been 0 ? */
+	inline_env->cummaxstack = m->maxstack; 
 	inline_env->cumextablelength = 0;
 	inline_env->cumlocals = m->maxlocals;
 	inline_env->cummethods = 0; /* co not global or static-used only here? */
@@ -126,8 +138,8 @@ if (DEBUGi==true) {
   }
 #if 0
 /*This looks wrong*/
-        m->maxlocals = inline_env->cumlocals;   //orig not used
-        m->maxstack = inline_env->cummaxstack;  //orig global maxstack var!!
+        m->maxlocals = inline_env->cumlocals;   orig not used
+        m->maxstack = inline_env->cummaxstack;  orig global maxstack var!!
 #endif
         }
 }
@@ -194,129 +206,108 @@ void inlining_pop_compiler_variables(
 void inlining_set_compiler_variables_fun(methodinfo *m,
 					 t_inlining_globals *inline_env)
 {
-	/* XXX TWISTI */
-        inline_env->method = m; /*co*/
-        inline_env->class  = m->class; /*co*/
-        inline_env->jcode  = m->jcode; /*co*/
-        inline_env->jcodelength = m->jcodelength; /*co*/
+        inline_env->method = m; 
+        inline_env->class  = m->class; 
+        inline_env->jcode  = m->jcode; 
+        inline_env->jcodelength = m->jcodelength; 
 }
 
+/* is_unique_method2 - determines if m is a unique method by looking
+	in subclasses of class that define method m 
+	It counts as it goes. It also saves the method name if found.
 
-classinfo *first_occurence(classinfo* class, utf* name, utf* desc)
-{
-	classinfo *first = class;
-	
-	for (; class->super != NULL ; class = class->super) {
-		if (class_findmethod(class->super, name, desc) != NULL) {
-			first = class->super;
-		}			
-	}
-
-	return first;
-}
-
-
-bool is_unique_rec(classinfo *class, methodinfo *m, utf* name, utf* desc)
-{
-	methodinfo *tmp = class_findmethod(class, name, desc);
-	if ((tmp != NULL) && (tmp != m))
-		return false;
-
-	for (; class != NULL; class = class->nextsub) {
-		if ((class->sub != NULL) && !is_unique_rec(class->sub, m, name, desc)) {
-			return false; 
-		}
-	}
-	return true;
-}
-
-
-bool is_unique_method(classinfo *class, methodinfo *m, utf* name, utf* desc)
-{
-	classinfo *firstclass;
-	
-	/*	sprintf (logtext, "First occurence of: ");
-	utf_sprint (logtext+strlen(logtext), m->class->name);
-	strcpy (logtext+strlen(logtext), ".");
-	utf_sprint (logtext+strlen(logtext), m->name);
-	utf_sprint (logtext+strlen(logtext), m->descriptor);
-	dolog (); */
-	
-	firstclass = first_occurence(class, name, desc);
-	
-	/*	sprintf (logtext, "\nis in class:");
-	utf_sprint (logtext+strlen(logtext), firstclass->name);
-	dolog (); */
-
-	if (firstclass != class) return false;
-
-	return is_unique_rec(class, m, name, desc);
-}
-
-/* is_unique_method2 - returns count of # methods used up to 2
-                        since if 2 used then not unique.
-                        Chose not to make an extra fn call so
-                        can return boolean instead of cnt.
-                        It looks for subclasses with method def'd.
-
-                        This replaces is_unique_method which for
-                        reasons unknown looks up the class heirarchy
-                        not down at subclasses.
-
+ returns count of # methods used up to 2
+                        	(since if 2 used then not unique.)
+		       sets mout to method found 
+				(unique in class' heirarchy)
+                       It looks for subclasses with method def'd.
+ Input:
  * class - where looking for method
  * m     - original method ptr
- * name  - utf name of method
- * desc  - utf method descriptor
+ * mout  - unique method (output) 
+ Output: "cnt" of methods found up to max of 2 (then not unique)
 */
-int is_unique_method2(classinfo *class, methodinfo *m, utf* name, utf* desc)
+
+int is_unique_method2(classinfo *class, methodinfo *m, methodinfo **mout)
 {
+utf* name = m->name;
+utf* desc = m->descriptor;
+
 int cnt = 0;  /* number of times method found in USED classes in hierarchy*/
-classinfo *subs;
+classinfo *subs1; 	   
 
-if ((m->class == class) && (class->classUsed == USED))
-        cnt++;
+if ((m->class == class) && (class->classUsed == USED)) {
+	/* found method in current class, which is used */
+	if (*mout != m) {
+        	cnt++;
+  	 	*mout = m;
+		}
+	}
 
-if ( ((m->flags & ACC_FINAL) &&
-      (m->monoPoly != POLY))
-  ||  (class->sub == NULL))
-  return cnt;
+if ( ((m->flags & ACC_FINAL)  
+||    (class->sub == NULL))
+&& (class->classUsed == USED)) {
+  	/* if final search no further */
+	if (*mout != m) {
+        	cnt++;
+  	 	*mout = m;
+		}
+ 	 return cnt;
+	}
 
-for (subs = class->sub;subs != NULL;subs = subs->nextsub) {
+/* search for the method in its subclasses */
+for (subs1 = class->sub;subs1 != NULL;subs1 = subs1->nextsub) {
         methodinfo * sm;
-
+	classinfo *subs = subs1; 	   
         sm = class_resolveclassmethod(subs,name,desc,class,false);
         if (sm != NULL) {
-                cnt =+ is_unique_method2(subs,sm,name,desc);
+		if ((subs->classUsed == USED) && 
+		    (*mout != sm)) {
+  	 		*mout = sm;
+			cnt++;
+			}
+                cnt = cnt + is_unique_method2(subs, sm, mout);
+		/* Not unique if more than 1 def of method in class heir */
                 if (cnt > 1)
-                        return cnt;
+                        {return cnt;}
                 }
-        }
 
+        }
 return cnt;
 }
 
-methodinfo *get_unique_method2(classinfo *class, methodinfo *m, utf* name, utf* desc)
-{
-methodinfo * imi;
-classinfo *subs;
+/*-----------------------------------------------------------*/
 
-if ((m->class == class) && (class->classUsed == USED))
-        return m;
+bool is_unique_interface_method (methodinfo *mi, methodinfo **mout) {
 
-for (subs = class->sub;subs != NULL;subs = subs->nextsub) {
-        methodinfo * sm;
+utf* name = mi->name;
+utf* desc = mi->descriptor;
+	
 
-        sm = class_resolveclassmethod(subs,name,desc,class,false);
-        if (sm != NULL) {
-                imi = get_unique_method2(subs,sm,name,desc);
-                if (imi != NULL)
-                        return sm;
-                }
-        }
+	classSetNode *classImplNode;
+	int icnt = 0;
 
-return NULL;
-}
+	for (classImplNode  = mi->class->impldBy;
+	     classImplNode != NULL; 			
+	     classImplNode  = classImplNode->nextClass) {
 
+		classinfo * classImplements = classImplNode->classType;
+		methodinfo *submeth;
+
+		submeth = class_findmethod(classImplements,name, desc); 
+		if (submeth != NULL) {
+			icnt =+ is_unique_method2(
+				    classImplements,
+				    submeth,
+			  	    mout);
+			}	
+		if (icnt > 1) return false;
+		} /* end for*/
+if (icnt == 1) return true;
+else return false;
+} 
+
+/*-----------------------------------------------------------*/
 
 inlining_methodinfo *inlining_analyse_method(methodinfo *m, 
 					  int level, int gp, 
@@ -488,17 +479,18 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 		}
 
 		/*		for (i=lastlabel; i<=p; i++) label_index[i] = gp; 
-		//		printf("lastlabel=%d p=%d gp=%d\n",lastlabel, p, gp);
+				printf("lastlabel=%d p=%d gp=%d\n",lastlabel, p, gp);
 		lastlabel = p+1; */
 		for (i = p; i < nextp; i++) label_index[i] = gp;
 
 		if (isnotleaflevel) { 
 
 			switch (opcode) {
+
+			case JAVA_INVOKEINTERFACE:
 			case JAVA_INVOKEVIRTUAL:
 				if (!inlinevirtuals) 
 					break;
-			 /*log_text("\nINLINE INVOKEVIRTUAL :\t");*/
 			case JAVA_INVOKESPECIAL:
 			case JAVA_INVOKESTATIC:
 				i = code_get_u2(p + 1,m);
@@ -506,54 +498,88 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 					constant_FMIref *imr;
 					methodinfo *imi;
 
-                                        methodinfo *imi1;
+                                        methodinfo *mout;
                                         bool uniqueVirt= false;
-                                        int vcnt=0;
 
-					imr = class_getconstant(m->class, i, CONSTANT_Methodref);
 
-					if (!class_load(imr->class))
-						return NULL;
+					if (opcode ==JAVA_INVOKEINTERFACE) {
+					    imr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
+					    LAZYLOADING(imr->class)
+                                            imi = class_resolveinterfacemethod(
+						imr->class,
+                                                imr->name,
+                                                imr->descriptor,
+                                                m->class,
+                       				true);
+					    if (!imi)  /* extra for debug */
+						panic("ExceptionI thrown while parsing bytecode"); /* XXX should be passed on */
+					   }
+					else {
+					   imr = class_getconstant(m->class, i, CONSTANT_Methodref);
+					   LAZYLOADING(imr->class)
+					   imi = class_resolveclassmethod(
+						imr->class,
+						imr->name,
+						imr->descriptor,
+						m->class,
+						true);
+					    if (!imi) /* extra for debug */
+						panic("Exception0 thrown while parsing bytecode"); /* XXX should be passed on */
+					    }
 
-					if (!class_link(imr->class))
-						return NULL;
-
-					imi = class_resolveclassmethod(imr->class,
-												   imr->name,
-												   imr->descriptor,
-												   m->class,
-												   true);
-
-					if (!imi)
+					if (!imi) /* normal-but never get here now */ 
 						panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 
-					if ( (utf_new_char("<init>")   == imi->name) ||
-					     (utf_new_char("<clinit>") == imi->name)) break; 
-
+/** Inlining inits has problem currently **/
+					if (utf_new_char("<init>") == imi->name) break; 
+/****/					
 					if (opcode == JAVA_INVOKEVIRTUAL) {
-						vcnt = is_unique_method2(imi->class, imi, imr->name, imr->descriptor);
-                                                if (vcnt == 1) {
-
-                                                  imi1 = get_unique_method2(imi->class, imi, imr->name, imr->descriptor);
-                                                  if (imi1 != NULL) {
-                                                        imi = imi1;
-                                                        /*log_text("WAS unique virtual\t");*/
-                                                        /**/ uniqueVirt=true; /* comment out to permanently turn off inlining virtuals*/
+						mout = NULL;
+						/* unique virt meth? then */
+						/*  allow it to be inlined*/
+						if (is_unique_method2(
+							 imi->class,
+							 imi, 
+							 &mout) == 1) {
+                                                  if (mout != NULL) {
+                                                        imi = mout;
+                                                        uniqueVirt=true; 
+#ifdef INVIRTDEBUG
+							METHINFOx(imi);
+                                                        printf("WAS unique virtual(-iv)\n");fflush(stdout);
+#endif
                                                         }
-                                                   } /* end if vcnt */
+						  } /* end is unique */
+						} /* end INVOKEVIRTUAL */	
+					if (opcode == JAVA_INVOKEINTERFACE){
+						mout = NULL; 
+#ifdef INVIRTDEBUG
+						METHINFOx(imi);
+#endif
+						if (is_unique_interface_method (
+							 imi, 
+							 &mout)) {
+                                                     if (mout != NULL) {
+                                                        imi = mout;
+                                                        uniqueVirt=true;
+#ifdef INVIRTDEBUG
+							  METHINFOx(imi);
+                                                          printf("WAS unique interface(-iv)\n");fflush(stdout);
+#endif
+                                                        }
+							
+						     } 
+						} /* end INVOKEINTERFACE */	
 
-						if (!is_unique_method(imi->class, imi, imr->name, imr->descriptor))
-							break;
-                                                
-					}
-
-					/*if (imi->flags & ACC_NATIVE) log_text("Native method,no inlining");*/
 					if ((inline_env->cummethods < INLINING_MAXMETHODS) &&
 						(!(imi->flags & ACC_NATIVE)) &&  
 						(inlineoutsiders || (m->class == imr->class)) && 
 						(imi->jcodelength < INLINING_MAXCODESIZE) && 
 						(imi->jcodelength > 0) && 
-					       (((!inlinevirtuals)  || (uniqueVirt)) || (opcode != JAVA_INVOKEVIRTUAL)) &&
+					       (((!inlinevirtuals)  || 
+						 (uniqueVirt     ))   || 
+						((opcode != JAVA_INVOKEVIRTUAL) || 
+					 	 (opcode != JAVA_INVOKEINTERFACE)) ) &&
 						(inlineexceptions || (imi->exceptiontablelength == 0))) { /* FIXME: eliminate empty methods? */
 						inlining_methodinfo *tmp;
 						descriptor2types(imi);
@@ -575,7 +601,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
                                      			     ||   (imi->flags & ACC_FINAL  ))) )
 							   {
 							   printf("DEBUG WARNING:PROBABLE INLINE PROBLEM flags not static, private or final for non-virtual inlined method\n"); fflush(stdout);
-							   METHINFO(imi);
+							   METHINFOx(imi);
 							   log_text("PROBABLE INLINE PROBLEM flags not static, private or final for non-virtual inlined method\n See method info after DEBUG WARNING\n");
 							   }
 
@@ -613,7 +639,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 void print_t_inlining_globals (t_inlining_globals *g) 
 {
 printf("\n------------\nt_inlining_globals struct for: \n\t");fflush(stdout); 
-METHINFO(g->method);
+METHINFOx(g->method);
 printf("\tclass=");fflush(stdout);
   utf_display(g->class->name);printf("\n");fflush(stdout);
 
@@ -667,7 +693,7 @@ if (s==NULL) {
        is!=NULL;
        is=list_next(s,is)) {
  	 printf("\n\ti>--->inlining_stack entry: \n"); fflush(stdout);
-	 METHINFO(is->method);
+	 METHINFOx(is->method);
 	 printf("i=%i, p=%i, nextp=%i, opcode=%i;\n",
 		is->i,is->p,is->nextp,is->opcode);fflush(stdout);
 	 print_inlining_methodinfo(is->inlinfo);
