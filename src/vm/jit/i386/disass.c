@@ -1,4 +1,4 @@
-/* jit/i386/disass.c - wrapper functions for GNU binutils disassembler
+/* vm/jit/i386/disass.c - wrapper functions for GNU binutils disassembler
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: disass.c 1943 2005-02-15 13:14:26Z twisti $
 
 */
 
@@ -83,7 +83,7 @@ int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, s
 
 *******************************************************************************/
 
-int disassinstr(u1 *code, int pos)
+int disassinstr(u1 *code)
 {
 	static disassemble_info info;
 	static int dis_initialized;
@@ -110,7 +110,7 @@ int disassinstr(u1 *code, int pos)
 
 	printf("   %s\n", mylinebuf);
 
-	return (seqlen - 1);
+	return seqlen;
 }
 
 
@@ -123,34 +123,20 @@ int disassinstr(u1 *code, int pos)
 
 *******************************************************************************/
 
-void disassemble(u1 *code, int len)
+void disassemble(u1 *code, s4 len)
 {
-	int p;
-	int seqlen;
-	int i;
+	s4 i;
+	s4 seqlen;
 	disassemble_info info;
 
 	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
 	info.mach = bfd_mach_i386_i386;
 
 	printf("  --- disassembler listing ---\n");
-	for (p = 0; p < len;) {
-		printf("0x%08x:   ", (s4) code);
-		mylen = 0;
-
-		seqlen = print_insn_i386((bfd_vma) code, &info);
-		p += seqlen;
-		/*  		myprintf(NULL, "\n"); */
-
-		for (i = 0; i < seqlen; i++) {
-			printf("%02x ", *(code++));
-		}
-
-		for (; i < 8; i++) {
-			printf("   ");
-		}
-
-		printf("   %s\n", mylinebuf);
+	for (i = 0; i < len; ) {
+		seqlen = disassinstr(code);
+		i += seqlen;
+		code += seqlen;
 	}
 }
 
