@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 1865 2005-01-10 11:21:46Z twisti $
+   $Id: asmpart.S 1947 2005-02-15 16:53:22Z twisti $
 
 */
 
@@ -504,8 +504,8 @@ asm_refillin_and_handle_exception_cont:
 	jsr     ra,asm_prepare_native_stackinfo /* puts 2 additional quadwords on stack */
 	ldgp	gp,0(ra)
 
-	ldq	a2,utf_fillInStackTrace_desc
-	ldq	a1,utf_fillInStackTrace_name
+	ldq	a2,utf_void__java_lang_Throwable
+	ldq	a1,utf_fillInStackTrace
 	ldq	t0,6*8(sp)
 	ldq	t1,offobjvftbl(t0)	
 	ldq	a0,offclass(t1)
