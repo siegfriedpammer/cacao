@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 1954 2005-02-17 19:47:23Z christian $
+   $Id: reg.h 1962 2005-02-23 11:50:07Z twisti $
 
 */
 
@@ -63,12 +63,12 @@ struct registerdata {
 	varinfo5 *interfaces;
 
 	int intregsnum;                 /* absolute number of integer registers   */
-	int floatregsnum;               /* absolute number of float registers     */
+	int fltregsnum;                 /* absolute number of float registers     */
 
 	int intreg_ret;                 /* register to return integer values      */
 	int intreg_argnum;              /* number of integer argument registers   */
 
-	int floatreg_ret;               /* register for return float values       */
+	int fltreg_ret;                 /* register for return float values       */
 	int fltreg_argnum;              /* number of float argument registers     */
 
 

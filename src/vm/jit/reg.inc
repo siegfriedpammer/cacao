@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1954 2005-02-17 19:47:23Z christian $
+   $Id: reg.inc 1962 2005-02-23 11:50:07Z twisti $
 
 */
 
@@ -153,8 +153,8 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 	rd->tmpfltregcnt = 0;
 	rd->savfltregcnt = 0;
 
-	for (rd->floatregsnum = 0; nregdescfloat[rd->floatregsnum] != REG_END; rd->floatregsnum++) {
-		switch (nregdescfloat[rd->floatregsnum]) {
+	for (rd->fltregsnum = 0; nregdescfloat[rd->fltregsnum] != REG_END; rd->fltregsnum++) {
+		switch (nregdescfloat[rd->fltregsnum]) {
 		case REG_SAV:
 			rd->savfltregcnt++;
 			break;
@@ -179,10 +179,10 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 	rd->tmpfltreguse = 0;
 	rd->savfltreguse = 0;
 
-	for (i = 0; i < rd->floatregsnum; i++) {
+	for (i = 0; i < rd->fltregsnum; i++) {
 		switch (nregdescfloat[i]) {
 		case REG_RET:
-			rd->floatreg_ret = i; 
+			rd->fltreg_ret = i;
 			break;
 		case REG_SAV:
 			rd->savfltregs[rd->savfltreguse++] = i;
