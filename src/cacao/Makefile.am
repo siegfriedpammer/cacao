@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1644 2004-12-01 14:05:27Z twisti $
+# $Id: Makefile.am 1646 2004-12-01 16:02:23Z twisti $
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
@@ -17,6 +17,7 @@ endif
 
 
 if STATIC_CLASSPATH
+cacao_LDFLAGS =
 CLASSPATH_LIBS = \
 	$(top_srcdir)/src/classpath/native/jni/java-io/.libs/libjavaio.a \
 	$(top_srcdir)/src/classpath/native/jni/java-nio/.libs/libjavanio.a \
@@ -33,13 +34,14 @@ endif
 else
 cacao_LDFLAGS = -ldl -Wl,--export-dynamic
 CLASSPATH_LIBS =
+endif
+
 
 if USE_GTK_PEER
 cacao_LDFLAGS += \
 	-lgtk-x11-2.0 -lgdk-x11-2.0 -latk-1.0 -lgdk_pixbuf-2.0 -lpangoxft-1.0 \
 	-lpangox-1.0 -lpango-1.0 -lgobject-2.0 -lgmodule-2.0 -lglib-2.0 \
 	-lgthread-2.0 -lart_lgpl_2
-endif
 endif
 
 
