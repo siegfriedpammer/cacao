@@ -36,6 +36,9 @@ builtin_descriptor builtin_desc[] = {
 	{(functionptr) builtin_checkcast,		   "checkcast"},
 	{(functionptr) asm_builtin_checkcast,	   "checkcast"},
 	{(functionptr) builtin_arrayinstanceof,	   "arrayinstanceof"},
+#ifdef __I386__
+	{(functionptr) asm_builtin_arrayinstanceof,"arrayinstanceof"},
+#endif
 	{(functionptr) builtin_checkarraycast,	   "checkarraycast"},
 	{(functionptr) asm_builtin_checkarraycast, "checkarraycast"},
 	{(functionptr) asm_builtin_aastore,		   "aastore"},
@@ -210,8 +213,7 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 			
 ******************************************************************************/
 
-static s4 builtin_descriptorscompatible
-	(constant_arraydescriptor *desc, constant_arraydescriptor *target)
+static s4 builtin_descriptorscompatible(constant_arraydescriptor *desc, constant_arraydescriptor *target)
 {
 	if (desc==target) return 1;
 	if (desc->arraytype != target->arraytype) return 0;
@@ -291,8 +293,7 @@ s4 builtin_checkarraycast(java_objectheader *o, constant_arraydescriptor *desc)
 }
 
 
-s4 builtin_arrayinstanceof
-	(java_objectheader *obj, constant_arraydescriptor *desc)
+s4 builtin_arrayinstanceof(java_objectheader *obj, constant_arraydescriptor *desc)
 {
 	if (!obj) return 1;
 	return builtin_checkarraycast (obj, desc);
@@ -1623,8 +1624,8 @@ s4 builtin_d2i (double a)
 	if (finite(a)) {
 		if (a >= 2147483647)
 			return 2147483647;
-		if (a <= (-2147483648))
-			return (-2147483648);
+		if (a <= (-2147483647-1))
+			return (-2147483647-1);
 		return (s4) a;
 		}
 	if (isnan(a))
