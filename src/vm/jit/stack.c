@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2218 2005-04-05 15:26:35Z christian $
+   $Id: stack.c 2221 2005-04-05 15:54:29Z christian $
 
 */
 
@@ -97,10 +97,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 	void* *tptr;
 	s4 *argren;
 
-#ifdef INVOKE_NEW
 	s4 call_argcount;
 	s4 call_returntype;
-#endif
 
 #ifdef LSRA
 	m->maxlifetimes = 0;
@@ -1835,7 +1833,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						break;
 
 						/* pop many push any */
-#ifdef INVOKE_NEW
 				case ICMD_BUILTIN3:
 						call_argcount = 3;
 						call_returntype = iptr->op1;
@@ -1857,7 +1854,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						call_returntype = iptr->op1;
 						goto _callhandling;
 
-#endif
 					case ICMD_INVOKEVIRTUAL:
 					case ICMD_INVOKESPECIAL:
 					case ICMD_INVOKEINTERFACE:
@@ -1867,170 +1863,44 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							methodinfo *lm = iptr->val.a;
 							if (lm->flags & ACC_STATIC)
 								{COUNT(count_check_null);}
-#ifdef INVOKE_NEW
 							call_argcount = iptr->op1;
 							call_returntype = lm->returntype;
 
 						_callhandling:
 							i = call_argcount;
 
-#else
-							i = iptr->op1;
-#endif
-							
 							if (i > rd->arguments_num)
 								rd->arguments_num = i;
 							REQUIRE(i);
-#if defined(INVOKE_NEW)
-							/* Macro in codegen.h */
 
+							/* Macro in codegen.h */
 							SET_ARG_STACKSLOTS;
 
-#else
-#if defined(__X86_64__)
-							{
-								s4 iarg = 0;
-								s4 farg = 0;
-								s4 stackargs = 0;
-
-								/* count integer and float arguments */
-
-								copy = curstack;
-								while (--i >= 0) {
-									(IS_FLT_DBL_TYPE(copy->type)) ? farg++ : iarg++;
-									copy = copy->prev;
-								}
-
-								/* calculate stack space required */
-
-								stackargs += (iarg < INT_ARG_CNT) ?
-									0 : (iarg - INT_ARG_CNT);
-								stackargs += (farg < FLT_ARG_CNT) ?
-									0 : (farg - FLT_ARG_CNT);
-
-								i = iptr->op1;
-								copy = curstack;
-								while (--i >= 0) {
-									if (!(copy->flags & SAVEDVAR)) {
-										copy->varkind = ARGVAR;
-
-										if (IS_FLT_DBL_TYPE(copy->type)) {
-											if (--farg < FLT_ARG_CNT)
-												copy->varnum = farg;
-											else
-												copy->varnum = --stackargs + FLT_ARG_CNT;
-
-										} else {
-											if (--iarg < INT_ARG_CNT)
-												copy->varnum = iarg;
-											else
-												copy->varnum = --stackargs + INT_ARG_CNT;
-										}
-
-									} else {
-										(IS_FLT_DBL_TYPE(copy->type)) ? --farg : --iarg;
-									}
-									copy = copy->prev;
-								}
-							}
-#else /* defined(__X86_64__) */
-							copy = curstack;
-							while (--i >= 0) {
-								if (!(copy->flags & SAVEDVAR)) {
-									copy->varkind = ARGVAR;
-									copy->varnum = i;
-								}
-								copy = copy->prev;
-							}
-#endif /* defined(__X86_64__) */
-#endif /* defined(INVOKE_NEW) */
 							while (copy) {
 								copy->flags |= SAVEDVAR;
 								copy = copy->prev;
 							}
-#ifdef INVOKE_NEW
 							i = call_argcount;
-#else
-							i = iptr->op1;
-#endif
+
 							POPMANY(i);
-#ifdef INVOKE_NEW
 							if (call_returntype != TYPE_VOID)
 								OP0_1(call_returntype);
-#else
-							if (lm->returntype != TYPE_VOID)
-								OP0_1(lm->returntype);
-#endif
 							break;
 						}
 					case ICMD_INLINE_START:
 					case ICMD_INLINE_END:
 						SETDST;
 						break;
-#ifndef INVOKE_NEW
-					case ICMD_BUILTIN3:
-						/* DEBUG */ /*dolog("builtin3");*/
-						REQUIRE_3;
-						if (!(curstack->flags & SAVEDVAR)) {
-							curstack->varkind = ARGVAR;
-							curstack->varnum = 2;
-						}
-						if (3 > rd->arguments_num) {
-							rd->arguments_num = 3;
-						}
-						OP1_0ANY;
 
-					case ICMD_BUILTIN2:
-#if defined(USEBUILTINTABLE) || !SUPPORT_DIVISION
-					/* Just prevent a compiler warning... */
-					builtin2:
-#endif
-						REQUIRE_2;
-						/* DEBUG */ /*dolog("builtin2");*/
-					if (!(curstack->flags & SAVEDVAR)) {
-						curstack->varkind = ARGVAR;
-						curstack->varnum = 1;
-					}
-					if (2 > rd->arguments_num) {
-						rd->arguments_num = 2;
-					}
-					OP1_0ANY;
-
-					case ICMD_BUILTIN1:
-#if defined(USEBUILTINTABLE)
-					/* Just prevent a compiler warning... */
-					builtin1:
-#endif
-						REQUIRE_1;
-						/* DEBUG */ /*dolog("builtin1");*/
-					if (!(curstack->flags & SAVEDVAR)) {
-						curstack->varkind = ARGVAR;
-						curstack->varnum = 0;
-					}
-					if (1 > rd->arguments_num) {
-						rd->arguments_num = 1;
-					}
-					OP1_0ANY;
-					copy = curstack;
-					while (copy) {
-						copy->flags |= SAVEDVAR;
-						copy = copy->prev;
-					}
-					if (iptr->op1 != TYPE_VOID)
-						OP0_1(iptr->op1);
-					break;
-#endif /* ifndef INVOKE_NEW */
 					case ICMD_MULTIANEWARRAY:
 						i = iptr->op1;
 						REQUIRE(i);
-#ifdef INVOKE_NEW
 #ifdef SPECIALMEMUSE
 						if (rd->ifmemuse < (i + rd->intreg_argnum + 6))
 							rd->ifmemuse = i + rd->intreg_argnum + 6; 
 #else
 						if (rd->ifmemuse < i)
 							rd->ifmemuse = i; /* n integer args spilled on stack */
-#endif
 #endif
 						if ((i + INT_ARG_CNT) > rd->arguments_num)
 							rd->arguments_num = i + INT_ARG_CNT;
@@ -2040,13 +1910,11 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							if (!(copy->flags & SAVEDVAR)) {
 								copy->varkind = ARGVAR;
 								copy->varnum = i + INT_ARG_CNT;
-#ifdef INVOKE_NEW
 								copy->flags|=INMEMORY;
 #ifdef SPECIALMEMUSE
 								copy->regoff = i + rd->intreg_argnum + 6;
 #else
 								copy->regoff = i;
-#endif
 #endif
 							}
 							copy = copy->prev;
