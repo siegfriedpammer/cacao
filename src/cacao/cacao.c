@@ -17,7 +17,7 @@
 	         Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: cacao.c 88 1998-11-25 11:45:40Z phil $
+	Last Change: $Id: cacao.c 123 1999-01-28 19:48:49Z phil $
 
 *******************************************************************************/
 
@@ -203,7 +203,7 @@ static void print_usage()
 #ifdef OLD_COMPILER
 	printf ("          -old ................. use old JIT compiler\n");
 #endif
-#ifdef NEW_GC
+#if 0
 	printf ("          -gc1 ................. use the old garbage collector (default)\n");
 	printf ("          -gc2 ................. use the new garbage collector\n");
 #endif
