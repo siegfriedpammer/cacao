@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 933 2004-03-05 21:27:21Z jowenn $
+   $Id: native.c 934 2004-03-05 23:20:53Z twisti $
 
 */
 
@@ -117,6 +117,36 @@ classinfo *class_java_lang_Boolean;
 classinfo *class_java_lang_Void;
 classinfo *class_java_lang_Character;
 classinfo *class_java_lang_Integer;
+
+
+/* specify some exception strings for code generation */
+char *string_java_lang_NoClassDefFoundError =
+    "java/lang/NoClassDefFoundError";
+
+char *string_java_lang_LinkageError =
+    "java/lang/LinkageError";
+
+char *string_java_lang_ArrayIndexOutOfBoundsException =
+    "java/lang/ArrayIndexOutOfBoundsException";
+
+char *string_java_lang_NegativeArraySizeException =
+    "java/lang/NegativeArraySizeException";
+
+char *string_java_lang_ClassCastException =
+    "java/lang/ClassCastException";
+
+char *string_java_lang_ArithmeticException =
+    "java/lang/ArithmeticException";
+
+char *string_java_lang_ArithmeticException_message =
+    "/ by zero";
+
+char *string_java_lang_NullPointerException =
+    "java/lang/NullPointerException";
+
+char *string_java_lang_ArrayStoreException =
+    "java/lang/ArrayStoreException";
+
 
 /* the system classloader object */
 struct java_lang_ClassLoader *SystemClassLoader = NULL;
@@ -259,15 +289,36 @@ void throw_linkageerror_message(utf* classname)
 }
 
 
-void throw_exception_message(char *classname, char *message)
+java_objectheader *new_exception(char *classname)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
 	if (!c->linked)
-		panic("...");
+		panic("exception class not linked");
 
-	*exceptionptr = native_new_and_init_string(c,
-											   javastring_new_char(message));
+	return native_new_and_init(c);
+}
+
+
+java_objectheader *new_exception_message(char *classname, char *message)
+{
+	classinfo *c = class_new(utf_new_char(classname));
+
+	if (!c->linked)
+		panic("exception class not linked");
+
+	return native_new_and_init_string(c, javastring_new_char(message));
+}
+
+
+java_objectheader *new_exception_int(char *classname, s4 i)
+{
+	classinfo *c = class_new(utf_new_char(classname));
+
+	if (!c->linked)
+		panic("exception class not linked");
+
+	return native_new_and_init_int(c, i);
 }
 
 
@@ -409,7 +460,7 @@ void init_systemclassloader()
 		native_loadclasses();
 		log_text("Initializing new system class loader");
 		/* create object and call initializer */
-		SystemClassLoader = (java_lang_ClassLoader*) native_new_and_init(class_gnu_java_lang_SystemClassLoader);/*class_java_lang_ClassLoader);*/
+		SystemClassLoader = (java_lang_ClassLoader *) native_new_and_init(class_gnu_java_lang_SystemClassLoader);/*class_java_lang_ClassLoader);*/
 
 		/* systemclassloader has no parent */
 		SystemClassLoader->parent      = NULL;
@@ -426,7 +477,7 @@ void systemclassloader_addlibname(java_objectheader *o)
 	methodinfo *m;
 	jfieldID id;
 
-	m = class_resolvemethod(loader_load_sysclass(NULL, utf_new_char ("java/util/Vector")),
+	m = class_resolvemethod(loader_load_sysclass(NULL, utf_new_char("java/util/Vector")),
 							utf_new_char("addElement"),
 							utf_new_char("(Ljava/lang/Object;)V"));
 
@@ -620,8 +671,7 @@ java_lang_String *javastring_new(utf *u)
 
 *******************************************************************************/
 
-/*  java_objectheader *javastring_new_char (char *text) */
-java_lang_String *javastring_new_char (char *text)
+java_lang_String *javastring_new_char(char *text)
 {
 	s4 i;
 	s4 len = strlen(text); /* length of the string */
@@ -629,7 +679,7 @@ java_lang_String *javastring_new_char (char *text)
 	java_chararray *a;
 	
 	/*log_text("javastring_new_char");*/
-	s = (java_lang_String*) builtin_new(class_java_lang_String);
+	s = (java_lang_String *) builtin_new(class_java_lang_String);
 	a = builtin_newarray_char(len);
 
 	/* javastring or character-array could not be created */
@@ -751,7 +801,9 @@ java_objectheader *native_new_and_init(classinfo *c)
 	/* printf("o!=NULL\n"); */
 	/* find initializer */
 
-	m = class_findmethod(c, utf_new_char("<init>"), utf_new_char("()V"));
+	m = class_findmethod(c,
+						 utf_new_char("<init>"),
+						 utf_new_char("()V"));
 	                      	                      
 	if (!m) {                                       /* initializer not found  */
 		if (verbose) {
@@ -802,6 +854,42 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 	/* call initializer */
 
 	asm_calljavafunction(m, o, s, NULL, NULL);
+
+	return o;
+}
+
+
+java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
+{
+	methodinfo *m;
+	java_objectheader *o;
+
+	/* if c == NULL it is probebly because loader_load failed */
+	if (!c) return *exceptionptr;
+
+	o = builtin_new(c);          /* create object          */
+	
+	if (!o) return NULL;
+
+	/* find initializer */
+
+	m = class_findmethod(c,
+						 utf_new_char("<init>"),
+						 utf_new_char("(I)V"));
+	                      	                      
+	if (!m) {                                       /* initializer not found  */
+		if (verbose) {
+			char logtext[MAXLOGTEXT];
+			sprintf(logtext, "Warning: class has no instance-initializer: ");
+			utf_sprint(logtext + strlen(logtext), c->name);
+			log_text(logtext);
+		}
+		return o;
+	}
+
+	/* call initializer */
+
+	asm_calljavafunction(m, o, i, NULL, NULL);
 
 	return o;
 }

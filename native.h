@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 930 2004-03-02 21:18:23Z jowenn $
+   $Id: native.h 934 2004-03-05 23:20:53Z twisti $
 
 */
 
@@ -78,6 +78,17 @@ extern classinfo *class_java_lang_Void;
 extern classinfo *class_java_lang_Character;
 extern classinfo *class_java_lang_Integer;
 
+/* specify some exception strings for code generation */
+extern char *string_java_lang_NoClassDefFoundError;
+extern char *string_java_lang_LinkageError;
+extern char *string_java_lang_ArrayIndexOutOfBoundsException;
+extern char *string_java_lang_NegativeArraySizeException;
+extern char *string_java_lang_ClassCastException;
+extern char *string_java_lang_ArithmeticException;
+extern char *string_java_lang_ArithmeticException_message;
+extern char *string_java_lang_NullPointerException;
+extern char *string_java_lang_ArrayStoreException;
+
 /* the system classloader object */
 extern struct java_lang_ClassLoader *SystemClassLoader;
 
@@ -93,6 +104,11 @@ void throw_noclassdeffounderror_message(utf* classname);
 
 /* throw linkageerror with detail message */
 void throw_linkageerror_message(utf* classname);
+
+/* throw exception with detail message */
+java_objectheader *new_exception(char *classname);
+java_objectheader *new_exception_message(char *classname, char *message);
+java_objectheader *new_exception_int(char *classname, s4 i);
 
 void use_class_as_object(classinfo *c);
 
