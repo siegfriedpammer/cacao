@@ -27,11 +27,12 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: jit.c 591 2003-11-09 19:45:44Z twisti $
+   $Id: jit.c 603 2003-11-11 22:13:33Z twisti $
 
 */
 
 
+#include <stdlib.h>
 #include <string.h>
 #include "global.h"    /* we define _GNU_SOURCE there */
 #include "tables.h"
@@ -45,6 +46,7 @@
 #include "native.h"
 #include "asmpart.h"
 #include "codegen.h"
+#include "types.h"
 #include "threads/thread.h"
 #include "disass.h"
 #include "loop/loop.h"
@@ -1254,6 +1256,157 @@ char *opcode_names[256] = {
 	"BUILTIN2     ", /*             254 */
 	"BUILTIN1     "  /*             255 */
 };
+
+
+#if defined(USEBUILTINTABLE)
+
+stdopdescriptor builtintable[] = {
+	{ ICMD_LCMP,   TYPE_LONG, TYPE_LONG, TYPE_INT, ICMD_BUILTIN2,
+	  (functionptr) builtin_lcmp , SUPPORT_LONG && SUPPORT_LONG_CMP, false },
+	{ ICMD_LAND,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
+	  (functionptr) builtin_land , SUPPORT_LONG && SUPPORT_LONG_LOG, false },
+	{ ICMD_LOR,    TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
+	  (functionptr) builtin_lor , SUPPORT_LONG && SUPPORT_LONG_LOG, false },
+	{ ICMD_LXOR,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
+	  (functionptr) builtin_lxor , SUPPORT_LONG && SUPPORT_LONG_LOG, false },
+	{ ICMD_LSHL,   TYPE_LONG, TYPE_INT,  TYPE_LONG, ICMD_BUILTIN2,
+	  (functionptr) builtin_lshl , SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
+	{ ICMD_LSHR,   TYPE_LONG, TYPE_INT,  TYPE_LONG, ICMD_BUILTIN2,
+	  (functionptr) builtin_lshr, SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
+	{ ICMD_LUSHR,  TYPE_LONG, TYPE_INT,  TYPE_LONG, ICMD_BUILTIN2,
+	  (functionptr) builtin_lushr, SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
+	{ ICMD_LADD,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
+	  (functionptr) builtin_ladd , SUPPORT_LONG && SUPPORT_LONG_ADD, false },
+	{ ICMD_LSUB,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
+	  (functionptr) builtin_lsub , SUPPORT_LONG && SUPPORT_LONG_ADD, false },
+	{ ICMD_LNEG,   TYPE_LONG, TYPE_VOID, TYPE_LONG, ICMD_BUILTIN1, 
+	  (functionptr) builtin_lneg, SUPPORT_LONG && SUPPORT_LONG_ADD, true },
+	{ ICMD_LMUL,   TYPE_LONG, TYPE_LONG, TYPE_LONG, ICMD_BUILTIN2,
+	  (functionptr) builtin_lmul , SUPPORT_LONG && SUPPORT_LONG_MULDIV, false },
+	{ ICMD_FREM,   TYPE_FLOAT, TYPE_FLOAT, TYPE_FLOAT, ICMD_BUILTIN2,
+	  (functionptr) builtin_frem, SUPPORT_FLOAT && SUPPORT_FMOD, true },
+	{ ICMD_DREM,   TYPE_DOUBLE, TYPE_DOUBLE, TYPE_DOUBLE, ICMD_BUILTIN2,
+	  (functionptr) builtin_drem, SUPPORT_DOUBLE && SUPPORT_FMOD, true },
+	{ ICMD_I2F,    TYPE_INT, TYPE_VOID, TYPE_FLOAT, ICMD_BUILTIN1,
+	  (functionptr) builtin_i2f, SUPPORT_FLOAT && SUPPORT_IFCVT, true },
+	{ ICMD_I2D,    TYPE_INT, TYPE_VOID, TYPE_DOUBLE, ICMD_BUILTIN1, 
+	  (functionptr) builtin_i2d, SUPPORT_DOUBLE && SUPPORT_IFCVT, true },
+	{ ICMD_L2F,    TYPE_LONG, TYPE_VOID, TYPE_FLOAT, ICMD_BUILTIN1,
+	  (functionptr) builtin_l2f, SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_LONG_FCVT, true },
+	{ ICMD_L2D,    TYPE_LONG, TYPE_VOID, TYPE_DOUBLE, ICMD_BUILTIN1, 
+	  (functionptr) builtin_l2d, SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_LONG_FCVT, true },
+	{ ICMD_F2L,    TYPE_FLOAT, TYPE_VOID, TYPE_LONG, ICMD_BUILTIN1,
+	  (functionptr) builtin_f2l, SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_LONG_FCVT, true },
+	{ ICMD_D2L,    TYPE_DOUBLE, TYPE_VOID, TYPE_LONG, ICMD_BUILTIN1,
+	  (functionptr) builtin_d2l, SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_LONG_FCVT, true },
+	{ ICMD_F2I,    TYPE_FLOAT, TYPE_VOID, TYPE_INT, ICMD_BUILTIN1,
+	  (functionptr) builtin_f2i, SUPPORT_FLOAT && SUPPORT_FICVT, true },
+	{ ICMD_D2I,    TYPE_DOUBLE, TYPE_VOID, TYPE_INT, ICMD_BUILTIN1,
+	  (functionptr) builtin_d2i, SUPPORT_DOUBLE && SUPPORT_FICVT, true },
+	{ 0, 0, 0, 0, 0, NULL, false, false },
+};
+
+
+static stdopdescriptorold stdopdescriptortable[] = {
+	{ JAVA_IADD,   TYPE_INT, TYPE_INT, TYPE_INT, NULL, true, false },
+	{ JAVA_ISUB,   TYPE_INT, TYPE_INT, TYPE_INT, NULL, true, false },
+	{ JAVA_IMUL,   TYPE_INT, TYPE_INT, TYPE_INT, NULL, true, false },
+	{ JAVA_ISHL,   TYPE_INT, TYPE_INT, TYPE_INT, NULL, true, false },
+	{ JAVA_ISHR,   TYPE_INT, TYPE_INT, TYPE_INT, NULL, true, false },
+	{ JAVA_IUSHR,  TYPE_INT, TYPE_INT, TYPE_INT, NULL, true, false },
+	{ JAVA_IAND,   TYPE_INT, TYPE_INT, TYPE_INT, NULL, true, false },
+	{ JAVA_IOR,    TYPE_INT, TYPE_INT, TYPE_INT, NULL, true, false },
+	{ JAVA_IXOR,   TYPE_INT, TYPE_INT, TYPE_INT, NULL, true, false },
+	{ JAVA_INEG,   TYPE_INT, TYPE_VOID,TYPE_INT, NULL, true, false },
+
+	{ JAVA_LADD,   TYPE_LONG, TYPE_LONG, TYPE_LONG, 
+	  (functionptr) builtin_ladd , SUPPORT_LONG && SUPPORT_LONG_ADD, false },
+	{ JAVA_LSUB,   TYPE_LONG, TYPE_LONG, TYPE_LONG,
+	  (functionptr) builtin_lsub , SUPPORT_LONG && SUPPORT_LONG_ADD, false },
+	{ JAVA_LMUL,   TYPE_LONG, TYPE_LONG, TYPE_LONG,
+	  (functionptr) builtin_lmul , SUPPORT_LONG && SUPPORT_LONG_MULDIV, false },
+	{ JAVA_LSHL,   TYPE_LONG, TYPE_INT,  TYPE_LONG,
+	  (functionptr) builtin_lshl , SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
+	{ JAVA_LSHR,   TYPE_LONG, TYPE_INT,  TYPE_LONG,
+	  (functionptr) builtin_lshr, SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
+	{ JAVA_LUSHR,  TYPE_LONG, TYPE_INT,  TYPE_LONG,
+	  (functionptr) builtin_lushr, SUPPORT_LONG && SUPPORT_LONG_SHIFT, false },
+	{ JAVA_LAND,   TYPE_LONG, TYPE_LONG, TYPE_LONG,
+	  (functionptr) builtin_land, SUPPORT_LONG && SUPPORT_LONG_LOG, false },
+	{ JAVA_LOR,    TYPE_LONG, TYPE_LONG, TYPE_LONG,
+	  (functionptr) builtin_lor , SUPPORT_LONG && SUPPORT_LONG_LOG, false },
+	{ JAVA_LXOR,   TYPE_LONG, TYPE_LONG, TYPE_LONG,
+	  (functionptr) builtin_lxor, SUPPORT_LONG && SUPPORT_LONG_LOG, false },
+	{ JAVA_LNEG,   TYPE_LONG, TYPE_VOID, TYPE_LONG,
+	  (functionptr) builtin_lneg, SUPPORT_LONG && SUPPORT_LONG_ADD, false },
+	{ JAVA_LCMP,   TYPE_LONG, TYPE_LONG, TYPE_INT,
+	  (functionptr) builtin_lcmp, SUPPORT_LONG && SUPPORT_LONG_CMP, false },
+
+	{ JAVA_FADD,   TYPE_FLOAT, TYPE_FLOAT, TYPE_FLOAT, 
+	  (functionptr) builtin_fadd, SUPPORT_FLOAT, true },
+	{ JAVA_FSUB,   TYPE_FLOAT, TYPE_FLOAT, TYPE_FLOAT, 
+	  (functionptr) builtin_fsub, SUPPORT_FLOAT, true },
+	{ JAVA_FMUL,   TYPE_FLOAT, TYPE_FLOAT, TYPE_FLOAT, 
+	  (functionptr) builtin_fmul, SUPPORT_FLOAT, true },
+	{ JAVA_FDIV,   TYPE_FLOAT, TYPE_FLOAT, TYPE_FLOAT, 
+	  (functionptr) builtin_fdiv, SUPPORT_FLOAT, true },
+	{ JAVA_FREM,   TYPE_FLOAT, TYPE_FLOAT, TYPE_FLOAT, 
+	  (functionptr) builtin_frem, SUPPORT_FLOAT, true },
+	{ JAVA_FNEG,   TYPE_FLOAT, TYPE_VOID,  TYPE_FLOAT, 
+	  (functionptr) builtin_fneg, SUPPORT_FLOAT, true },
+	{ JAVA_FCMPL,  TYPE_FLOAT, TYPE_FLOAT, TYPE_INT,   
+	  (functionptr) builtin_fcmpl, SUPPORT_FLOAT, true },
+	{ JAVA_FCMPG,  TYPE_FLOAT, TYPE_FLOAT, TYPE_INT,   
+	  (functionptr) builtin_fcmpg, SUPPORT_FLOAT, true },
+
+	{ JAVA_DADD,   TYPE_DOUBLE, TYPE_DOUBLE, TYPE_DOUBLE, 
+	  (functionptr) builtin_dadd, SUPPORT_DOUBLE, true },
+	{ JAVA_DSUB,   TYPE_DOUBLE, TYPE_DOUBLE, TYPE_DOUBLE, 
+	  (functionptr) builtin_dsub, SUPPORT_DOUBLE, true },
+	{ JAVA_DMUL,   TYPE_DOUBLE, TYPE_DOUBLE, TYPE_DOUBLE, 
+	  (functionptr) builtin_dmul, SUPPORT_DOUBLE, true },
+	{ JAVA_DDIV,   TYPE_DOUBLE, TYPE_DOUBLE, TYPE_DOUBLE, 
+	  (functionptr) builtin_ddiv, SUPPORT_DOUBLE, true },
+	{ JAVA_DREM,   TYPE_DOUBLE, TYPE_DOUBLE, TYPE_DOUBLE, 
+	  (functionptr) builtin_drem, SUPPORT_DOUBLE, true },
+	{ JAVA_DNEG,   TYPE_DOUBLE, TYPE_VOID,  TYPE_DOUBLE, 
+	  (functionptr) builtin_dneg, SUPPORT_DOUBLE, true },
+	{ JAVA_DCMPL,  TYPE_DOUBLE, TYPE_DOUBLE, TYPE_INT, 
+	  (functionptr) builtin_dcmpl, SUPPORT_DOUBLE, true },
+	{ JAVA_DCMPG,  TYPE_DOUBLE, TYPE_DOUBLE, TYPE_INT, 
+	  (functionptr) builtin_dcmpg, SUPPORT_DOUBLE, true },
+
+	{ JAVA_INT2BYTE, TYPE_INT, TYPE_VOID, TYPE_INT, NULL, true,false },
+	{ JAVA_INT2CHAR, TYPE_INT, TYPE_VOID, TYPE_INT, NULL, true,false },
+	{ JAVA_INT2SHORT, TYPE_INT, TYPE_VOID, TYPE_INT, NULL, true,false },
+	{ JAVA_I2L,    TYPE_INT,  TYPE_VOID, TYPE_LONG,   
+	  (functionptr) builtin_i2l, SUPPORT_LONG && SUPPORT_LONG_ICVT, false },
+	{ JAVA_I2F,    TYPE_INT,  TYPE_VOID, TYPE_FLOAT,  
+	  (functionptr) builtin_i2f, SUPPORT_FLOAT, true },
+	{ JAVA_I2D,    TYPE_INT,  TYPE_VOID, TYPE_DOUBLE, 
+	  (functionptr) builtin_i2d, SUPPORT_DOUBLE, true },
+	{ JAVA_L2I,    TYPE_LONG, TYPE_VOID, TYPE_INT,    
+	  (functionptr) builtin_l2i, SUPPORT_LONG && SUPPORT_LONG_ICVT, false },
+	{ JAVA_L2F,    TYPE_LONG, TYPE_VOID, TYPE_FLOAT,  
+	  (functionptr) builtin_l2f, SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_LONG_FCVT, true },
+	{ JAVA_L2D,    TYPE_LONG, TYPE_VOID, TYPE_DOUBLE, 
+	  (functionptr) builtin_l2d, SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_LONG_FCVT, true },
+	{ JAVA_F2I,    TYPE_FLOAT, TYPE_VOID, TYPE_INT,   
+	  (functionptr) builtin_f2i, SUPPORT_FLOAT, true },
+	{ JAVA_F2L,    TYPE_FLOAT, TYPE_VOID, TYPE_LONG,   
+	  (functionptr) builtin_f2l, SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_LONG_FCVT, true },
+	{ JAVA_F2D,    TYPE_FLOAT, TYPE_VOID, TYPE_DOUBLE, 
+	  (functionptr) builtin_f2d, SUPPORT_FLOAT && SUPPORT_DOUBLE, true },
+	{ JAVA_D2I,    TYPE_DOUBLE, TYPE_VOID, TYPE_INT,   
+	  (functionptr) builtin_d2i, SUPPORT_DOUBLE, true },
+	{ JAVA_D2L,    TYPE_DOUBLE, TYPE_VOID, TYPE_LONG,   
+	  (functionptr) builtin_d2l, SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_LONG_FCVT, true },
+	{ JAVA_D2F,    TYPE_DOUBLE, TYPE_VOID, TYPE_FLOAT, 
+	  (functionptr) builtin_d2f, SUPPORT_DOUBLE && SUPPORT_FLOAT, true },
+	{ 0, 0, 0, 0, NULL, false, false },
+};
+
+#endif /* USEBUILTINTABLE */
 
 
 /* include compiler subsystems ************************************************/
