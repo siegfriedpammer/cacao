@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1506 2004-11-14 14:48:49Z jowenn $
+   $Id: builtin.c 1533 2004-11-18 10:37:24Z twisti $
 
 */
 
@@ -56,7 +56,6 @@
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
 #include "nat/java_lang_Cloneable.h"
-#include "nat/java_lang_VMObject.h"
 
 
 #undef DEBUG /*define DEBUG 1*/
@@ -791,25 +790,39 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 			utf_display_classname(m->class->name);
 			printf(".");
 			utf_display(m->name);
-			if (m->flags & ACC_SYNCHRONIZED)
+			if (m->flags & ACC_SYNCHRONIZED) {
 				printf("(SYNC");
-			else
+
+			} else{
 				printf("(NOSYNC");
+			}
+
 			if (m->flags & ACC_NATIVE) {
 				printf(",NATIVE");
-				printf(")(%p) at position %p\n", m->entrypoint, pos);
+#if POINTERSIZE == 8
+				printf(")(0x%016lx) at position %p\n", (s8) m->entrypoint, pos);
+#else
+				printf(")(0x%08lx) at position %p\n", (s4) m->entrypoint, pos);
+#endif
+
 			} else {
-				printf(")(%p) at position %p (", m->entrypoint, pos);
-				if (m->class->sourcefile==NULL)
+#if POINTERSIZE == 8
+				printf(")(0x%016lx) at position %p (", (s8) m->entrypoint, pos);
+#else
+				printf(")(0x%08lx) at position %p (", (s4) m->entrypoint, pos);
+#endif
+				if (m->class->sourcefile == NULL) {
 					printf("<NO CLASSFILE INFORMATION>");
-				else
+
+				} else {
 					utf_display(m->class->sourcefile);
+				}
 				printf(":%d)\n", line);
 			}
 
 		} else
 			printf("call_java_method\n");
-		fflush (stdout);
+		fflush(stdout);
 	}
 
 	return xptr;
