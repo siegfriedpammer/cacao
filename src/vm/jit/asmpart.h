@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 1879 2005-01-21 11:34:17Z stefan $
+   $Id: asmpart.h 2065 2005-03-23 11:21:00Z twisti $
 
 */
 
@@ -84,6 +84,10 @@ void asm_call_jit_compiler();
 */
 java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
                                         void *arg3, void *arg4);
+
+s4 asm_calljavafunction_int(methodinfo *m, void *arg1, void *arg2,
+							void *arg3, void *arg4);
+
 
 /* 
    This function calls a Java-method (which possibly needs compilation)
