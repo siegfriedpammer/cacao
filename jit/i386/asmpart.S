@@ -29,11 +29,12 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 986 2004-03-29 07:02:38Z stefan $
+   $Id: asmpart.S 1039 2004-04-26 16:50:00Z twisti $
 
 */
 
 
+#include "config.h"
 #include "offsets.h"
 
 /* data segment offsets */
@@ -65,14 +66,12 @@
 
 /********************* exported functions and variables ***********************/
 
-	.globl has_no_x_instr_set
 	.globl asm_calljavafunction
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2long
 	.globl asm_calljavafunction2double
 
 	.globl asm_call_jit_compiler
-	.globl asm_dumpregistersandcall
 	.globl asm_handle_builtin_exception
 	.globl asm_handle_nat_exception
 	.globl asm_handle_exception
@@ -112,6 +111,7 @@
 	.globl findmethod
 	.globl builtin_asm_createclasscontextarray
 	.globl builtin_asm_getclassloader
+	.globl callgetexceptionptrptr
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	.globl cast_lock
 	.globl cast_unlock
@@ -368,43 +368,6 @@ L_call_method:
 	jmp		*%eax               /* ...and now call the new method             */
 
 
-/****************** function asm_dumpregistersandcall **************************
-*                                                                              *
-*   This funtion saves all callee saved registers and calls the function       *
-*   which is passed as parameter.                                              *
-*                                                                              *
-*   This function is needed by the garbage collector, which needs to access    *
-*   all registers which are stored on the stack. Unused registers are          *
-*   cleared to avoid interferances with the GC.                                *
-*                                                                              *
-*   void asm_dumpregistersandcall (functionptr f);                             *
-*                                                                              *
-*******************************************************************************/
-
-asm_dumpregistersandcall:
-        xor     %eax,%eax
-        mov     %eax,(%eax)
-
-		push	%ebp
-        push    %ecx
-        push    %edx
-		push	%ebx
-		push	%esi
-		push	%edi
-				
-		mov     4(%ebp),%eax		/* load function pointer */
-		call	*%eax				/* call function */
-
-		pop		%edi
-		pop		%esi
-		pop		%ebx
-        pop     %edx
-		pop     %ecx
-		pop		%ebp
-        
-		ret
-        
-
 /********************* function asm_handle_exception ***************************
 *                                                                              *
 *   This function handles an exception. It does not use the usual calling      *
@@ -417,14 +380,6 @@ asm_dumpregistersandcall:
 *                                                                              *
 *******************************************************************************/
 
-asm_handle_builtin_exception:
-        add     $4,%esp						/* clear return address of this call */
-        mov     (%esp),%eax                 /* get exceptionptr               */
-        leave                               /* leave builtin function         */
-        mov     (%esp),%edx                 /* get exceptionpc                */
-        sub     $2,%edx                     /* size of builtin call           */
-        jmp     asm_handle_exception
-        
 asm_handle_nat_exception:
 		add     $4,%esp						/* clear return address of native stub */
 		
@@ -448,10 +403,6 @@ asm_handle_exception_loop:
 		push    %eax						/* save exception pointer         */
 		push    %ecx                        /* save exception pc              */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		call    cast_lock
-#endif
-		
 		call    findmethod                  /* get the data segment ptr       */
 		mov     %eax,%edx
 		        
@@ -469,9 +420,7 @@ ex_stack_loop:
 		mov     MethodPointer(%edx),%eax	/* method pointer                 */
 		mov     %eax,4(%esp)
 		mov     %ecx,8(%esp)				/* exception pc                   */
-
-		movl	$0,12(%esp)		/* line number */
-
+		movl	$0,12(%esp)                 /* line number                    */
 		movl    $1,16(%esp)					/* set no unwind flag             */
 		call	builtin_trace_exception
 		add     $20,%esp
@@ -496,12 +445,59 @@ ex_table_loop:
 		test    %ebx,%ebx					/* NULL catches everything        */
 		je      ex_handle_it
 
+#if 1
+	cmpl    $0,offclassloaded(%ebx)     /* check if class is loaded           */
+	jne     L_class_loaded
+
+	push    %eax                        /* save not callee saved regs         */
+	push    %ecx
+
+	push    %ebx                        /* exception class is argument        */
+	call    class_load
+	add     $4,%esp
+
+	pop     %ecx
+	pop     %eax
+
+L_class_loaded:
+	cmpl    $0,offclasslinked(%ebx)
+	jne     L_class_linked
+
+	push    %eax                        /* save not callee saved regs         */
+	push    %ecx
+
+	push    %ebx                        /* exception class is argument        */
+	call    class_link
+	add     $4,%esp
+
+	pop    %ecx
+	pop    %eax
+
+L_class_linked:
+#endif
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+		push    %eax                        /* save not callee saved regs     */
+		push    %ecx
+		call    cast_lock
+		pop     %ecx
+		pop     %eax
+#endif
+		
 		mov     offobjvftbl(%eax),%esi		/* %esi = vftblptr(xptr)          */
 		mov     offclassvftbl(%ebx),%ebx    /* %ebx = vftblptr(catchtype) class (not obj) */
 		mov     offbaseval(%esi),%esi		/* %esi = baseval(xptr)           */
 		mov     offbaseval(%ebx),%edx		/* %edx = baseval(catchtype)      */
 		mov     offdiffval(%ebx),%ebx		/* %ebx = diffval(catchtype)      */
 		sub     %edx,%esi					/* %esi = baseval(xptr) - baseval(catchtype) */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+		push    %eax                        /* save not callee saved regs     */
+		push    %ecx
+		call    cast_unlock
+		pop     %ecx
+		pop     %eax
+#endif
+        
 		cmp     %ebx,%esi					/* xptr is instanceof catchtype   */
 		ja      ex_table_cont
 		
@@ -514,10 +510,6 @@ ex_handle_it:
         add     $8,%esp                     /* suck %ecx, %edx                */
         pop     %eax                        /* restore xptr                   */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		call cast_unlock
-#endif
-        
 		leave
 		jmp		*%edx                       /* jump to exception handler      */
 
@@ -627,38 +619,56 @@ noflt:
 *******************************************************************************/
 
 asm_check_clinit:
-		mov		offclassinit(%eax),%ecx     /* get initialized flag           */
-		test	%ecx,%ecx
-		jnz		L_is_initialized
+	mov     offclassinit(%eax),%ecx     /* get initialized flag               */
+	test	%ecx,%ecx
+	jnz     L_is_initialized
 
+	sub     $16,%esp                    /* build stack frame (4 * 4 bytes)    */
+	mov     %eax,(%esp)
+	call    builtin_asm_get_stackframeinfo
 
-                sub             $16,%esp                                 /* build stack frame (4 * 4 bytes) */
+	movl    $0,12(%esp)
+    mov     %eax,8(%esp)
+	mov     (%eax),%ecx
+	mov     %ecx,4(%esp)
+	mov     %esp,%ecx
+	add     $4,%ecx
+	mov     %ecx,(%eax)
 
-                mov             %eax,(%esp)
+	call    class_init                  /* call class_init function           */
 
-		call	builtin_asm_get_stackframeinfo
-		movl	$0,12(%esp)
-		mov	%eax,8(%esp)
-		mov	(%eax),%ecx
-		mov	%ecx,4(%esp)
-		mov	%esp,%ecx
-		add	$4,%ecx
-		mov	%ecx,(%eax)
+	mov     4(%esp),%ebx
+	mov     8(%esp),%ecx
+	mov     %ebx,(%ecx)
 
-		call	class_init                  /* call class_init function       */
+	add     $16,%esp
 
-		mov	4(%esp),%ebx
-		mov	8(%esp),%ecx
-		mov	%ebx,(%ecx)
-
-                add             $16,%esp
+	test    %eax,%eax                   /* we had an exception                */
+	je      L_initializererror
 
 L_is_initialized:
-		mov		(%esp),%eax                 /* get return address             */
-		sub		$12,%eax                    /* asm_putstatic call code size   */
-		movb	$0xeb,(%eax)                /* jmp rel8                       */
-		movb	$10,1(%eax)                 /* 8-bit offset                   */
-		ret
+	mov     (%esp),%eax                 /* get return address                 */
+	sub     $12,%eax                    /* asm_putstatic call code size       */
+	movb    $0xeb,(%eax)                /* jmp rel8                           */
+	movb    $10,1(%eax)                 /* 8-bit offset                       */
+	ret
+
+L_initializererror:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	call    builtin_asm_get_exceptionptrptr
+	mov     %eax,%ecx
+	mov     (%ecx),%eax                 /* get the exception pointer          */
+	movl    $0,(%ecx)                   /* clear the exception pointer        */
+#else
+	lea     _exceptionptr,%ecx
+	mov     (%ecx),%eax                 /* get the exception pointer          */
+	movl    $0,(%ecx)                   /* clear the exception pointer        */
+#endif
+
+	pop     %ecx                        /* delete return address              */
+	sub     $2,%ecx                     /* faulting address is return adress - 2 */
+
+	jmp     asm_handle_exception
 
 
 /********************* function asm_builtin_monitorenter ***********************
@@ -668,18 +678,18 @@ L_is_initialized:
 *******************************************************************************/
 
 asm_builtin_monitorenter:
-		cmpl    $0,4(%esp)
-		je      nb_monitorenter         /* if (null) throw exception          */
-		jmp		builtin_monitorenter    /* else call builtin_monitorenter     */
+	cmpl    $0,4(%esp)
+	je      nb_monitorenter             /* if (null) throw exception          */
+	jmp		builtin_monitorenter        /* else call builtin_monitorenter     */
 
 nb_monitorenter:
-		push    string_java_lang_NullPointerException
-		call    new_exception
-		add     $(1*4),%esp
-		
-		pop     %ecx                    /* delete return address */
-		sub     $2,%ecx                 /* faulting address is return adress - 2 */
-		jmp     asm_handle_exception
+	push    string_java_lang_NullPointerException
+	call    new_exception
+	add     $(1*4),%esp
+	
+	pop     %ecx                        /* delete return address              */
+	sub     $2,%ecx                     /* faulting address is return adress - 2 */
+	jmp     asm_handle_exception
 		
 
 /********************* function asm_builtin_monitorexit ************************
@@ -689,26 +699,26 @@ nb_monitorenter:
 *******************************************************************************/
 
 asm_builtin_monitorexit:
-		mov     4(%esp),%eax
-        test    %eax,%eax
-		je      nb_monitorexit			/* if (null) throw exception          */
-        push    %ecx                    /* save registers which could be used */
-        push    %edx
-        push    %eax
-		call    builtin_monitorexit		/* else call builtin_monitorenter     */
-        add     $4,%esp
-        pop     %edx                    /* restore registers which could be used */
-        pop     %ecx
-        ret
+	mov     4(%esp),%eax
+    test    %eax,%eax
+	je      nb_monitorexit              /* if (null) throw exception          */
+    push    %ecx                        /* save registers which could be used */
+    push    %edx
+    push    %eax
+	call    builtin_monitorexit         /* else call builtin_monitorenter     */
+    add     $4,%esp
+    pop     %edx                        /* restore registers which could be used */
+    pop     %ecx
+    ret
 
 nb_monitorexit:
-		push    string_java_lang_NullPointerException
-		call    new_exception
-		add     $(1*4),%esp
-		
-		pop     %ecx                    /* delete return address              */
-		sub     $2,%ecx                 /* faulting address is return adress - 2 */
-		jmp     asm_handle_exception
+	push    string_java_lang_NullPointerException
+	call    new_exception
+	add     $(1*4),%esp
+	
+	pop     %ecx                    /* delete return address              */
+	sub     $2,%ecx                 /* faulting address is return adress - 2 */
+	jmp     asm_handle_exception
 
 
 /************************ function asm_builtin_ldiv ****************************
@@ -718,22 +728,22 @@ nb_monitorexit:
 *******************************************************************************/
 
 asm_builtin_ldiv:
-		mov     12(%esp),%eax
-		or      16(%esp),%eax
-		test    %eax,%eax               /* if (null) throw exception          */
-		je      nb_ldiv
+	mov     12(%esp),%eax
+	or      16(%esp),%eax
+	test    %eax,%eax                   /* if (null) throw exception          */
+	je      nb_ldiv
 
-		jmp     builtin_ldiv
+	jmp     builtin_ldiv
 
 nb_ldiv:
-		push    string_java_lang_ArithmeticException_message
-		push    string_java_lang_ArithmeticException
-		call    new_exception_message
-		add     $(2*4),%esp
-		
-		pop		%ecx					/* delete return address              */
-		sub		$2,%ecx					/* faulting address is return adress - 2 */
-		jmp		asm_handle_exception
+	push    string_java_lang_ArithmeticException_message
+	push    string_java_lang_ArithmeticException
+	call    new_exception_message
+	add     $(2*4),%esp
+	
+	pop     %ecx                        /* delete return address              */
+	sub     $2,%ecx                     /* faulting address is return adress - 2 */
+	jmp     asm_handle_exception
 				
 
 /************************ function asm_builtin_lrem ****************************
@@ -743,22 +753,22 @@ nb_ldiv:
 *******************************************************************************/
 
 asm_builtin_lrem:
-		mov     12(%esp),%eax
-		or      16(%esp),%eax
-		test    %eax,%eax               /* if (null) throw exception          */
-		je      nb_lrem
+	mov     12(%esp),%eax
+	or      16(%esp),%eax
+	test    %eax,%eax                   /* if (null) throw exception          */
+	je      nb_lrem
 
-		jmp     builtin_lrem
+	jmp     builtin_lrem
 
 nb_lrem:
-		push    string_java_lang_ArithmeticException_message
-		push    string_java_lang_ArithmeticException
-		call    new_exception_message
-		add     $(2*4),%esp
+	push    string_java_lang_ArithmeticException_message
+	push    string_java_lang_ArithmeticException
+	call    new_exception_message
+	add     $(2*4),%esp
 
-		pop		%ecx					/* delete return address              */
-		sub		$2,%ecx					/* faulting address is return adress - 2 */
-		jmp		asm_handle_exception
+	pop     %ecx                        /* delete return address              */
+	sub     $2,%ecx                     /* faulting address is return adress - 2 */
+	jmp     asm_handle_exception
 		
 
 /************************ function asm_builtin_x2x *****************************
@@ -768,34 +778,34 @@ nb_lrem:
 *******************************************************************************/
 
 asm_builtin_f2i:
-        sub     $4,%esp
-        fsts    (%esp)
-        call    builtin_f2i
-        add     $4,%esp
-        ret		
+	sub     $4,%esp
+	fsts    (%esp)
+	call    builtin_f2i
+	add     $4,%esp
+	ret
 
 asm_builtin_d2i:
-        sub     $8,%esp
-        fstl    (%esp)
-        call    builtin_d2i
-        add     $8,%esp
-        ret		
+	sub     $8,%esp
+	fstl    (%esp)
+	call    builtin_d2i
+	add     $8,%esp
+	ret
 
 asm_builtin_f2l:
-        sub     $4,%esp
-        fsts    (%esp)
-        call    builtin_f2l
-        add     $4,%esp
-        ret		
+	sub     $4,%esp
+	fsts    (%esp)
+	call    builtin_f2l
+	add     $4,%esp
+	ret
 
 asm_builtin_d2l:
-        sub     $8,%esp
-        fstl    (%esp)
-        call    builtin_d2l
-        add     $8,%esp
-        ret		
+	sub     $8,%esp
+	fstl    (%esp)
+	call    builtin_d2l
+	add     $8,%esp
+	ret
 
-        
+
 /******************* function asm_builtin_checkarraycast ***********************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
@@ -803,33 +813,33 @@ asm_builtin_d2l:
 *******************************************************************************/
 
 asm_builtin_checkarraycast:
-		sub		$8,%esp					/* build stack frame (2 * 4 bytes)    */
+	sub		$8,%esp                     /* build stack frame (2 * 4 bytes)    */
 
-		mov		12(%esp),%eax           /* 8 (frame) + 4 (return)             */
-		mov		%eax,(%esp)				/* save object pointer                */
+	mov		12(%esp),%eax               /* 8 (frame) + 4 (return)             */
+	mov		%eax,(%esp)                 /* save object pointer                */
 
-		mov		20(%esp),%eax
-		mov		%eax,4(%esp)
+	mov		20(%esp),%eax
+	mov		%eax,4(%esp)
 
-		call	builtin_checkarraycast  /* builtin_checkarraycast             */
-	
-		test	%eax,%eax               /* if (false) throw exception         */
-		je		nb_carray_throw
+	call	builtin_checkarraycast      /* builtin_checkarraycast             */
 
-		mov		12(%esp),%eax			/* return object pointer              */
-		add		$8,%esp
-		ret
+	test	%eax,%eax                   /* if (false) throw exception         */
+	je		nb_carray_throw
+
+	mov		12(%esp),%eax               /* return object pointer              */
+	add		$8,%esp
+	ret
 
 nb_carray_throw:
-		push    string_java_lang_ClassCastException
-		call    new_exception
-		add     $(1*4),%esp
-		
-		add		$8,%esp
-		
-		pop		%ecx					/* delete return address              */
-		sub		$2,%ecx					/* faulting address is return adress - 2 */
-		jmp		asm_handle_exception
+	push    string_java_lang_ClassCastException
+	call    new_exception
+	add     $(1*4),%esp
+	
+	add		$8,%esp
+	
+	pop		%ecx                        /* delete return address              */
+	sub		$2,%ecx                     /* faulting address is return adress - 2 */
+	jmp		asm_handle_exception
 
 		
 /******************* function asm_builtin_newarray *****************************
@@ -839,18 +849,18 @@ nb_carray_throw:
 *******************************************************************************/
 
 asm_builtin_newarray:
-		sub		$8,%esp					/* build stack frame (2 * 4 bytes) */
+	sub		$8,%esp                     /* build stack frame (2 * 4 bytes)    */
 
-		mov		12(%esp),%eax
-		mov		%eax,(%esp)
+	mov		12(%esp),%eax
+	mov		%eax,(%esp)
 
-		mov		20(%esp),%eax
-		mov		%eax,4(%esp)
+	mov		20(%esp),%eax
+	mov		%eax,4(%esp)
 
-		call	builtin_newarray
-	
-		add		$8,%esp
-		ret
+	call	builtin_newarray
+
+	add		$8,%esp
+	ret
 
 		
 /******************* function asm_builtin_aastore ******************************
@@ -860,70 +870,70 @@ asm_builtin_newarray:
 *******************************************************************************/
 
 asm_builtin_aastore:
-		sub     $12,%esp                /* build stack frame (3 * 4 bytes)    */
+	sub     $12,%esp                    /* build stack frame (3 * 4 bytes)    */
 
-		mov     16(%esp),%eax           /* 12 (frame) + 4 (return)            */
-		test    %eax,%eax               /* if null pointer throw exception    */
-		je      nb_aastore_null
+	mov     16(%esp),%eax               /* 12 (frame) + 4 (return)            */
+	test    %eax,%eax                   /* if null pointer throw exception    */
+	je      nb_aastore_null
 
-		mov     offarraysize(%eax),%edx /* load size                          */
-		mov     24(%esp),%ecx           /* index                              */
-		cmp     %edx,%ecx               /* do bound check                     */
-		jae     nb_aastore_bound        /* if out of bounds throw exception   */
+	mov     offarraysize(%eax),%edx /* load size                          */
+	mov     24(%esp),%ecx               /* index                              */
+	cmp     %edx,%ecx                   /* do bound check                     */
+	jae     nb_aastore_bound            /* if out of bounds throw exception   */
 
-		shl     $2,%ecx                 /* index * 4                          */
-		add     %eax,%ecx               /* add index * 4 to arrayref          */
-		   
-		mov     %ecx,8(%esp)            /* save store position                */
-		   
-		mov     16(%esp),%eax           /* 12 (frame) + 4 (return)            */
-		mov     %eax,(%esp)
-		   
-		mov     32(%esp),%eax           /* object is second argument          */
-		mov     %eax,4(%esp)
-		
-		call    builtin_canstore        /* builtin_canstore(arrayref,object)  */
+	shl     $2,%ecx                     /* index * 4                          */
+	add     %eax,%ecx                   /* add index * 4 to arrayref          */
+	   
+	mov     %ecx,8(%esp)                /* save store position                */
+	   
+	mov     16(%esp),%eax               /* 12 (frame) + 4 (return)            */
+	mov     %eax,(%esp)
+	   
+	mov     32(%esp),%eax               /* object is second argument          */
+	mov     %eax,4(%esp)
+	
+	call    builtin_canstore            /* builtin_canstore(arrayref,object)  */
 
-		test    %eax,%eax               /* if (false) throw exception         */
-		je      nb_aastore_store
+	test    %eax,%eax                   /* if (false) throw exception         */
+	je      nb_aastore_store
 
-		mov     32(%esp),%eax
-		mov     8(%esp),%ecx
-		mov     %eax,offobjarrdata(%ecx)/* store objectptr in array           */
-		
-		add     $12,%esp
-		ret
+	mov     32(%esp),%eax
+	mov     8(%esp),%ecx
+	mov     %eax,offobjarrdata(%ecx)    /* store objectptr in array           */
+	
+	add     $12,%esp
+	ret
 
 nb_aastore_null:
-		push    string_java_lang_NullPointerException
-		call    new_exception
-		add     $(1*4),%esp
-		
-		add     $12,%esp
-		pop     %ecx                    /* delete return address              */
-		sub     $2,%ecx                 /* faulting address is return adress - 2 */
-		jmp		asm_handle_exception
+	push    string_java_lang_NullPointerException
+	call    new_exception
+	add     $(1*4),%esp
+	
+	add     $12,%esp
+	pop     %ecx                        /* delete return address              */
+	sub     $2,%ecx                     /* faulting address is return adress - 2 */
+	jmp		asm_handle_exception
 
 nb_aastore_bound:
-		push    %ecx                    /* itmp2 contains array index         */
-		push    string_java_lang_ArrayIndexOutOfBoundsException
-		call    new_exception_int
-		add     $(2*4),%esp
+	push    %ecx                        /* itmp2 contains array index         */
+	push    string_java_lang_ArrayIndexOutOfBoundsException
+	call    new_exception_int
+	add     $(2*4),%esp
 
-		add     $12,%esp
-		pop     %ecx                    /* delete return address              */
-		sub     $2,%ecx                 /* faulting address is return adress - 2 */
-		jmp     asm_handle_exception
+	add     $12,%esp
+	pop     %ecx                        /* delete return address              */
+	sub     $2,%ecx                     /* faulting address is return adress - 2 */
+	jmp     asm_handle_exception
 		
 nb_aastore_store:
-		push    string_java_lang_ArrayStoreException
-		call    new_exception
-		add     $(1*4),%esp
-		
-		add     $12,%esp
-		pop     %ecx                    /* delete return address              */
-		sub     $2,%ecx                 /* faulting address is return adress - 2 */
-		jmp     asm_handle_exception
+	push    string_java_lang_ArrayStoreException
+	call    new_exception
+	add     $(1*4),%esp
+	
+	add     $12,%esp
+	pop     %ecx                        /* delete return address              */
+	sub     $2,%ecx                     /* faulting address is return adress - 2 */
+	jmp     asm_handle_exception
 
 		
 /******************* function asm_builtin_arrayinstanceof **********************
@@ -933,18 +943,18 @@ nb_aastore_store:
 *******************************************************************************/
 
 asm_builtin_arrayinstanceof:
-		sub		$8,%esp                 /* build stack frame (2 * 4 bytes)    */
+	sub		$8,%esp                     /* build stack frame (2 * 4 bytes)    */
 
-		mov     12(%esp),%eax
-		mov     %eax,(%esp)
+	mov     12(%esp),%eax
+	mov     %eax,(%esp)
 
-		mov     20(%esp),%eax
-		mov     %eax,4(%esp)
+	mov     20(%esp),%eax
+	mov     %eax,4(%esp)
 
-		call    builtin_arrayinstanceof
-	
-		add     $8,%esp
-		ret
+	call    builtin_arrayinstanceof
+
+	add     $8,%esp
+	ret
 
 		
 /******************* function asm_initialize_thread_stack **********************
@@ -983,40 +993,40 @@ asm_initialize_thread_stack:
 *******************************************************************************/
 
 asm_perform_threadswitch:
-		sub     $36,%esp
-		   
-		mov     %eax,0(%esp)
-		mov     %ecx,4(%esp)
-		mov     %edx,8(%esp)
-		mov     %ebx,12(%esp)
-		mov     %esp,16(%esp)
-		mov     %ebp,20(%esp)
-		mov     %esi,24(%esp)
-		mov     %edi,28(%esp)
-		   
-		mov     36(%esp),%eax           /* save current return address        */
-		mov     %eax,32(%esp)
-		   
-		mov     40(%esp),%eax           /* first argument **from              */
-		mov     %esp,0(%eax)
-		   
-		mov     48(%esp),%eax           /* third argument **stackTop          */
-		mov     %esp,0(%eax)
-		   
-		mov     44(%esp),%eax           /* second argument **to               */
-		mov     0(%eax),%esp            /* load new stack pointer             */
-		   
-		mov     0(%esp),%eax
-		mov     4(%esp),%ecx
-		mov     8(%esp),%edx
-		mov     12(%esp),%ebx
-		   						/* skip stack pointer */
-		mov     20(%esp),%ebp
-		mov     24(%esp),%esi
-		mov     28(%esp),%edi
-		   
-		add     $32,%esp                /* leave return address on stack      */
-		ret
+	sub     $36,%esp
+	   
+	mov     %eax,0(%esp)
+	mov     %ecx,4(%esp)
+	mov     %edx,8(%esp)
+	mov     %ebx,12(%esp)
+	mov     %esp,16(%esp)
+	mov     %ebp,20(%esp)
+	mov     %esi,24(%esp)
+	mov     %edi,28(%esp)
+	   
+	mov     36(%esp),%eax         /* save current return address              */
+	mov     %eax,32(%esp)
+	   
+	mov     40(%esp),%eax         /* first argument **from                    */
+	mov     %esp,0(%eax)
+	   
+	mov     48(%esp),%eax         /* third argument **stackTop                */
+	mov     %esp,0(%eax)
+	   
+	mov     44(%esp),%eax         /* second argument **to                     */
+	mov     0(%eax),%esp          /* load new stack pointer                   */
+	   
+	mov     0(%esp),%eax
+	mov     4(%esp),%ecx
+	mov     8(%esp),%edx
+	mov     12(%esp),%ebx
+	                              /* skip stack pointer                       */
+	mov     20(%esp),%ebp
+	mov     24(%esp),%esi
+	mov     28(%esp),%edi
+	   
+	add     $32,%esp              /* leave return address on stack            */
+	ret
 		
 
 /********************* function asm_switchstackandcall *************************
@@ -1033,31 +1043,31 @@ asm_perform_threadswitch:
 *******************************************************************************/
 
 asm_switchstackandcall:
-		movl	4(%esp),%edx			/* first argument *stack              */
-		subl	$8,%edx					/* allocate new stack                 */
+	mov     4(%esp),%edx          /* first argument *stack                    */
+	sub     $8,%edx               /* allocate new stack                       */
 
-		movl	(%esp),%eax				/* save return address on new stack   */
-		movl	%eax,(%edx)
+	mov     (%esp),%eax           /* save return address on new stack         */
+	mov     %eax,(%edx)
 
-		movl	%esp,4(%edx)			/* save old stack pointer on new stack*/
+	mov     %esp,4(%edx)          /* save old stack pointer on new stack      */
 
-		movl	12(%esp),%eax			/* third argument **stacktopsave      */
-		movl	%esp,(%eax)				/* save old stack pointer to variable */
+	mov     12(%esp),%eax         /* third argument **stacktopsave            */
+	mov     %esp,(%eax)           /* save old stack pointer to variable       */
 
-		movl	8(%esp),%eax			/* load function pointer              */
-		movl	16(%esp),%ecx			/* fourth argument *p                 */
-		
-		movl	%edx,%esp				/* switch to new stack                */
+	mov     8(%esp),%eax          /* load function pointer                    */
+	mov     16(%esp),%ecx         /* fourth argument *p                       */
+	
+	mov     %edx,%esp             /* switch to new stack                      */
 
-		subl	$4,%esp
-		movl	%ecx,0(%esp)			/* pass pointer                       */
-		call	*%eax					/* and call function                  */
-		addl	$4,%esp
+	sub     $4,%esp
+	mov     %ecx,0(%esp)          /* pass pointer                             */
+	call    *%eax                 /* and call function                        */
+	add     $4,%esp
 
-		movl	(%esp),%edx				/* load return address                */
-		movl	4(%esp),%esp			/* switch to old stack                */
-		movl	%edx,(%esp)
-		ret
+	mov     (%esp),%edx           /* load return address                      */
+	mov     4(%esp),%esp          /* switch to old stack                      */
+	mov     %edx,(%esp)
+	ret
 
 		
 Java_java_lang_VMSecurityManager_currentClassLoader:
