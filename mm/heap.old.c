@@ -454,7 +454,7 @@ static void markreferences (void **rstart, void **rend)
 
 ******************************************************************************/
 
-static void markstack ()                   /* schani */
+static void markstack ()
 {
 	void *dummy;
 
@@ -473,22 +473,12 @@ static void markstack ()                   /* schani */
 		for (aThread = liveThreads; aThread != 0;
 			 aThread = CONTEXT(aThread).nextlive) {
 			mark((heapblock*)aThread);
-			if (aThread == currentThread) {
-				void **top_of_stack = &dummy;
-				
-				if (top_of_stack > (void**)CONTEXT(aThread).stackEnd)
-					markreferences((void**)CONTEXT(aThread).stackEnd, top_of_stack);
-				else 	
-					markreferences(top_of_stack, (void**)CONTEXT(aThread).stackEnd);
-			}
-			else {
-				if (CONTEXT(aThread).usedStackTop > CONTEXT(aThread).stackEnd)
-					markreferences((void**)CONTEXT(aThread).stackEnd,
-								   (void**)CONTEXT(aThread).usedStackTop);
-				else 	
-					markreferences((void**)CONTEXT(aThread).usedStackTop,
-								   (void**)CONTEXT(aThread).stackEnd);
-			}
+			if (CONTEXT(aThread).usedStackTop > CONTEXT(aThread).stackEnd)
+				markreferences((void**)CONTEXT(aThread).stackEnd,
+							   (void**)CONTEXT(aThread).usedStackTop);
+			else 	
+				markreferences((void**)CONTEXT(aThread).usedStackTop,
+							   (void**)CONTEXT(aThread).stackEnd);
 	    }
 
 		markreferences((void**)&threadQhead[0],
@@ -709,13 +699,18 @@ void
 gc_call (void)
 {
 #ifdef USE_THREADS
+	u1 dummy;
+
 	assert(blockInts == 0);
 
 	intsDisable();
-	if (currentThread == NULL || currentThread == mainThread)
+	if (currentThread == NULL || currentThread == mainThread) {
+		CONTEXT(mainThread).usedStackTop = &dummy;
 		heap_docollect();
+	}
 	else
-		asm_switchstackandcall(CONTEXT(mainThread).usedStackTop, heap_docollect);
+		asm_switchstackandcall(CONTEXT(mainThread).usedStackTop, heap_docollect,
+							   (void**)&(CONTEXT(currentThread).usedStackTop));
 	intsRestore();
 #else
 	heap_docollect();

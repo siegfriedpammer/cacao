@@ -174,6 +174,8 @@ initThreads(u1 *stackbottom)
 
     mainThread = currentThread = the_main_thread;
 
+	heap_addreference((void**)&mainThread);
+
 	/* Add thread into runQ */
 	iresumeThread(mainThread);
 

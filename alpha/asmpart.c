@@ -946,11 +946,12 @@ perform_alpha_threadswitch:
 
 /********************* function asm_switchstackandcall *************************
 *                                                                              *
-*   void asm_switchstackandcall (void *stack, void *func);                     *
+*  void asm_switchstackandcall (void *stack, void *func, void **stacktopsave); *
 *                                                                              *
 *   Switches to a new stack, calls a function and switches back.               *
 *       a0      new stack pointer                                              *
 *       a1      function pointer                                               *
+*		a2		pointer to variable where stack top should be stored           *
 *                                                                              *
 *******************************************************************************/
 
@@ -958,12 +959,13 @@ perform_alpha_threadswitch:
 	.ent	asm_switchstackandcall
 asm_switchstackandcall:
 	lda	a0,-2*8(a0)		/* allocate new stack                                 */
-	stq	ra,0(a0)		/* save return address                                */
-	stq	sp,1*8(a0)		/* save old stack pointer                             */
+	stq	ra,0(a0)		/* save return address on new stack                   */
+	stq	sp,1*8(a0)		/* save old stack pointer on new stack                */
+	stq sp,0(a2)		/* save old stack pointer to variable                 */
 	mov	a0,sp			/* switch to new stack                                */
 	
 	mov	a1,pv			/* load function pointer                              */
-	jmp	ra,(pv)			/* and call funciton                                  */
+	jmp	ra,(pv)			/* and call function                                  */
 
 	ldq	ra,0(sp)		/* load return address                                */
 	ldq	sp,1*8(sp)		/* switch to old stack                                */

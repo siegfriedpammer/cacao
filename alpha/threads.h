@@ -25,7 +25,7 @@
 
 void perform_alpha_threadswitch (u1 **from, u1 **to, u1 **stackTop);
 u1* initialize_thread_stack (void *func, u1 *stack);
-void asm_switchstackandcall (void *stack, void *func);
+void asm_switchstackandcall (void *stack, void *func, void **stacktopsave);
 
 #define	THREADSTACKSIZE		(32 * 1024)
 
