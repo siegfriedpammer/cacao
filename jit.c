@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: jit.c 493 2003-10-20 18:22:24Z twisti $
+	Last Change: $Id: jit.c 528 2003-10-23 20:48:19Z stefan $
 
 *******************************************************************************/
 
@@ -505,20 +505,6 @@ void jit_init ()
 	stackreq[JAVA_DUP2_X1] = 3;
 	stackreq[JAVA_DUP2_X2] = 4;
 	
-#ifdef USEBUILTINTABLE
-	for (i = 0; i < 256; i++) stdopdescriptors[i] = NULL;
-
-	for (i = 0; i < sizeof(stdopdescriptortable)/sizeof(stdopdescriptor); i++) {
-		
-		if (stdopdescriptortable[i].isfloat && checkfloats) {
-			stdopdescriptortable[i].supported = false;
-			}
-
-		stdopdescriptors[stdopdescriptortable[i].opcode] = 
-		   &(stdopdescriptortable[i]);
-		}
-#endif
-
 	init_exceptions();
 }
 
