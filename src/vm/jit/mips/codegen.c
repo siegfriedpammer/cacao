@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 566 2003-11-03 19:06:50Z twisti $
+   $Id: codegen.c 597 2003-11-09 20:08:18Z twisti $
 
 */
 
@@ -81,6 +81,54 @@ The calling conventions and the layout of the stack is  explained in detail
 in the documention file: calling.doc
 
 *******************************************************************************/
+
+
+/* register descripton - array ************************************************/
+
+/* #define REG_RES   0         reserved register for OS or code generator     */
+/* #define REG_RET   1         return value register                          */
+/* #define REG_EXC   2         exception value register (only old jit)        */
+/* #define REG_SAV   3         (callee) saved register                        */
+/* #define REG_TMP   4         scratch temporary register (caller saved)      */
+/* #define REG_ARG   5         argument register (caller saved)               */
+
+/* #define REG_END   -1        last entry in tables */
+ 
+int nregdescint[] = {
+	REG_RES, REG_RES, REG_RET, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
+	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+	REG_END };
+
+/* for use of reserved registers, see comment above */
+	
+int nregdescfloat[] = {
+	REG_RET, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+	REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP,
+	REG_END };
+
+/* for use of reserved registers, see comment above */
+
+
+/* parameter allocation mode */
+
+int nreg_parammode = PARAMMODE_NUMBERED;  
+
+   /* parameter-registers will be allocated by assigning the
+      1. parameter:   int/float-reg a0
+      2. parameter:   int/float-reg a1  
+      3. parameter:   int/float-reg a2 ....
+   */
+
+
+/* stackframe-infos ***********************************************************/
+
+int parentargs_base; /* offset in stackframe for the parameter from the caller*/
+
+/* -> see file 'calling.doc' */
 
 
 /* additional functions and macros to generate code ***************************/
@@ -3642,7 +3690,7 @@ This makes sense only for the stub-generation-routines below.
 
 u1 *createcompilerstub (methodinfo *m)
 {
-	u8 *s = CNEW (u8, COMPSTUBSIZE);    /* memory to hold the stub            */
+	u8 *s = CNEW(u8, COMPSTUBSIZE);     /* memory to hold the stub            */
 	s4 *p = (s4*) s;                    /* code generation pointer            */
 	
 	                                    /* code for the stub                  */
@@ -3673,7 +3721,7 @@ u1 *createcompilerstub (methodinfo *m)
 
 void removecompilerstub (u1 *stub) 
 {
-	CFREE (stub, COMPSTUBSIZE * 8);
+	CFREE(stub, COMPSTUBSIZE * 8);
 }
 
 /* function: createnativestub **************************************************
@@ -3686,10 +3734,10 @@ void removecompilerstub (u1 *stub)
 
 u1 *createnativestub (functionptr f, methodinfo *m)
 {
-	u8 *s = CNEW (u8, NATIVESTUBSIZE);  /* memory to hold the stub            */
+	u8 *s = CNEW(u8, NATIVESTUBSIZE);   /* memory to hold the stub            */
 	s4 *p = (s4*) s;                    /* code generation pointer            */
 
-	reg_init();
+	reg_init(m);
 
 	M_MOV  (argintregs[4], argintregs[5]);
 	M_DMFC1 (REG_ITMP1, argfltregs[4]);
@@ -3762,7 +3810,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 
 void removenativestub (u1 *stub)
 {
-	CFREE (stub, NATIVESTUBSIZE * 8);
+	CFREE(stub, NATIVESTUBSIZE * 8);
 }
 
 

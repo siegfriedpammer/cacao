@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 566 2003-11-03 19:06:50Z twisti $
+   $Id: codegen.h 597 2003-11-09 20:08:18Z twisti $
 
 */
 
@@ -78,58 +78,12 @@
 
 #define REG_IFTMP       1    /* temporary integer and floating point register */
 
-/* register descripton - array ************************************************/
-
-/* #define REG_RES   0         reserved register for OS or code generator     */
-/* #define REG_RET   1         return value register                          */
-/* #define REG_EXC   2         exception value register (only old jit)        */
-/* #define REG_SAV   3         (callee) saved register                        */
-/* #define REG_TMP   4         scratch temporary register (caller saved)      */
-/* #define REG_ARG   5         argument register (caller saved)               */
-
-/* #define REG_END   -1        last entry in tables */
- 
-int nregdescint[] = {
-	REG_RES, REG_RES, REG_RET, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
-	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
-	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
-	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
-	REG_END };
 
 #define INT_SAV_CNT      8   /* number of int callee saved registers          */
 #define INT_ARG_CNT      8   /* number of int argument registers              */
 
-/* for use of reserved registers, see comment above */
-	
-int nregdescfloat[] = {
-	REG_RET, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
-	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
-	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
-	REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP,
-	REG_END };
-
 #define FLT_SAV_CNT      4   /* number of flt callee saved registers          */
 #define FLT_ARG_CNT      8   /* number of flt argument registers              */
-
-/* for use of reserved registers, see comment above */
-
-
-/* parameter allocation mode */
-
-int nreg_parammode = PARAMMODE_NUMBERED;  
-
-   /* parameter-registers will be allocated by assigning the
-      1. parameter:   int/float-reg a0
-      2. parameter:   int/float-reg a1  
-      3. parameter:   int/float-reg a2 ....
-   */
-
-
-/* stackframe-infos ***********************************************************/
-
-int parentargs_base; /* offset in stackframe for the parameter from the caller*/
-
-/* -> see file 'calling.doc' */
 
 
 /* macros to create code ******************************************************/
