@@ -87,15 +87,21 @@ allocThreadStack (thread *tid, int size)
 
 	assert(stack_to_be_freed == 0);
 
+#ifdef USE_BOEHM
+    CONTEXT(tid).stackMem = GCNEW(u1, size + 4 * pageSize);
+#else
     CONTEXT(tid).stackMem = malloc(size + 4 * pageSize);
+#endif
     assert(CONTEXT(tid).stackMem != 0);
     CONTEXT(tid).stackEnd = CONTEXT(tid).stackMem + size + 2 * pageSize;
     
     pageBegin = (unsigned long)(CONTEXT(tid).stackMem) + pageSize - 1;
     pageBegin = pageBegin - pageBegin % pageSize;
 
+#ifndef USE_BOEHM
     result = mprotect((void*)pageBegin, pageSize, PROT_NONE);
     assert(result == 0);
+#endif
 
     CONTEXT(tid).stackBase = (u1*)pageBegin + pageSize;
 }
@@ -116,9 +122,11 @@ freeThreadStack (thread *tid)
 		pageBegin = (unsigned long)(CONTEXT(tid).stackMem) + pageSize - 1;
 		pageBegin = pageBegin - pageBegin % pageSize;
 
+#ifndef USE_BOEHM
 		result = mprotect((void*)pageBegin, pageSize,
 						  PROT_READ | PROT_WRITE | PROT_EXEC);
 		assert(result == 0);
+#endif
 
 		assert(stack_to_be_freed == 0);
 
@@ -723,7 +731,9 @@ reschedule(void)
 
 					if (stack_to_be_freed != 0)
 					{
+#ifndef USE_BOEHM
 						free(stack_to_be_freed);
+#endif
 						stack_to_be_freed = 0;
 					}
 
