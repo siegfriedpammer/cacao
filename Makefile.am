@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1429 2004-11-02 08:58:26Z jowenn $
+# $Id: Makefile.am 1457 2004-11-05 15:05:14Z twisti $
 
 @SET_MAKE@
 
@@ -229,6 +229,7 @@ CLASSES= \
 	java.lang.VMRuntime \
 	java.lang.Throwable \
 	java.lang.VMThrowable \
+	java.util.VMTimeZone \
 	gnu.java.security.x509.X509Certificate  \
 	java.lang.JOWENNTest1 \
 	@AWTPEERS@
