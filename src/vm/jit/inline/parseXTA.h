@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.h 2106 2005-03-28 22:44:17Z twisti $
+   $Id: parseXTA.h 2160 2005-03-30 20:08:29Z twisti $
 
 */
 
@@ -41,6 +41,25 @@ typedef	struct xtafldinfo xtafldinfo;
 
 #include "vm/global.h"
 #include "vm/jit/inline/sets.h"
+
+
+#define LAZYLOADING(class) { \
+        if (!class->loaded) \
+            if (!load_class_bootstrap(class)) \
+                return 0; \
+        if (!class->linked) \
+            if (!link_class(class)) \
+                return 0; }
+
+
+
+#define LAZYLOADING1(class) { \
+        if (!class->loaded) \
+            if (!load_class_bootstrap(class)) \
+                return; \
+        if (!class->linked) \
+            if (!link_class(class)) \
+                return; }
 
 
 /* methodinfo static info *****************************************************/
