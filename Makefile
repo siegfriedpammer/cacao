@@ -9,7 +9,7 @@
 # Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 #          Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 #
-# Last Change: $Id: Makefile 50 1998-11-09 23:01:59Z phil $
+# Last Change: $Id: Makefile 54 1998-11-10 12:12:02Z phil $
 #
 #
 # ATTENTION: This version of the makefile only works with gmake.
@@ -137,6 +137,7 @@ alpha/*.[ch] \
 nat/*.[ch] \
 toolbox/*.[ch] \
 threads/*.[ch] \
+mm/*.[ch] \
 # sparc/*.[ch]
 
 tar:
