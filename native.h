@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1089 2004-05-27 15:41:37Z twisti $
+   $Id: native.h 1189 2004-06-19 12:42:54Z twisti $
 
 */
 
@@ -117,8 +117,12 @@ extern hashtable string_hash;
 void init_system_exceptions();
 void compile_all_class_methods(classinfo *c);
 
-/* throw an exception and exit */
+/* exception throwing functions */
+void throw_exception();
 void throw_exception_exit();
+
+void throw_main_exception();
+void throw_main_exception_exit();
 
 void throw_cacao_exception_exit(char *exception, char *message);
 
