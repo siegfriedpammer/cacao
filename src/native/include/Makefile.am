@@ -26,7 +26,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1884 2005-01-24 16:58:55Z twisti $
+## $Id: Makefile.am 1901 2005-02-08 14:56:14Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -66,7 +66,6 @@ CLEANFILES = \
 	gnu_java_awt_peer_gtk_GtkImagePainter.h \
 	gnu_java_awt_peer_gtk_GtkLabelPeer.h \
 	gnu_java_awt_peer_gtk_GtkListPeer.h \
-	gnu_java_awt_peer_gtk_GtkMainThread.h \
 	gnu_java_awt_peer_gtk_GtkMenuBarPeer.h \
 	gnu_java_awt_peer_gtk_GtkMenuComponentPeer.h \
 	gnu_java_awt_peer_gtk_GtkMenuItemPeer.h \
