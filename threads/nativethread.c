@@ -312,9 +312,16 @@ void initThread(java_lang_Thread *t)
 
 static void initThreadLocks(threadobject *);
 
+typedef struct {
+	threadobject *thread;
+	sem_t *psem;
+} startupinfo;
+
 static void *threadstartup(void *t)
 {
-	threadobject *thread = t;
+	startupinfo *startup = t;
+	threadobject *thread = startup->thread;
+	sem_t *psem = startup->psem;
 	nativethread *info = &thread->info;
 	threadobject *tnext;
 	methodinfo *method;
@@ -329,6 +336,9 @@ static void *threadstartup(void *t)
 	pthread_mutex_unlock(&threadlistlock);
 
 	initThreadLocks(thread);
+
+	startup = NULL;
+	sem_post(psem);
 
 	/* Find the run()V method and call it */
 	method = class_findmethod(thread->o.header.vftbl->class,
@@ -361,9 +371,20 @@ static void *threadstartup(void *t)
 void startThread(threadobject *t)
 {
 	nativethread *info = &t->info;
+	sem_t sem;
+	startupinfo startup;
+
+	startup.thread = t;
+	startup.psem = &sem;
+
+	sem_init(&sem, 0, 0);
 	
-	if (pthread_create(&info->tid, &threadattr, threadstartup, t))
+	if (pthread_create(&info->tid, &threadattr, threadstartup, &startup))
 		panic("pthread_create failed");
+
+	/* Wait here until thread has entered itself into the thread list */
+	sem_wait(&sem);
+	sem_destroy(&sem);
 }
 
 void joinAllThreads()
@@ -570,7 +591,7 @@ static long getMetaLockSlow(threadobject *t, long predBits)
 static void releaseMetaLock(threadobject *t, java_objectheader *o, long releaseBits)
 {
 	long busyBits = makeLockBits(t, BUSY);
-	long locked = compare_and_swap(&o->monitorBits, busyBits, releaseBits);
+	int locked = compare_and_swap(&o->monitorBits, busyBits, releaseBits) != 0;
 	
 	if (!locked)
 		releaseMetaLockSlow(t, releaseBits);
