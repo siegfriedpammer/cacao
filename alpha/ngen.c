@@ -1870,8 +1870,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_SAADDQ(s2, s1, REG_ITMP1);
 			M_ALD( d, REG_ITMP1, OFFSET(java_objectarray, data[0]));
 			store_reg_to_var_int(iptr->dst, d);
@@ -1882,8 +1884,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_S8ADDQ(s2, s1, REG_ITMP1);
 			M_LLD(d, REG_ITMP1, OFFSET(java_longarray, data[0]));
 			store_reg_to_var_int(iptr->dst, d);
@@ -1894,8 +1898,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_S4ADDQ(s2, s1, REG_ITMP1);
 			M_ILD(d, REG_ITMP1, OFFSET(java_intarray, data[0]));
 			store_reg_to_var_int(iptr->dst, d);
@@ -1906,8 +1912,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_S4ADDQ(s2, s1, REG_ITMP1);
 			M_FLD(d, REG_ITMP1, OFFSET(java_floatarray, data[0]));
 			store_reg_to_var_flt(iptr->dst, d);
@@ -1918,8 +1926,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_FTMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			M_S8ADDQ(s2, s1, REG_ITMP1);
 			M_DLD(d, REG_ITMP1, OFFSET(java_doublearray, data[0]));
 			store_reg_to_var_flt(iptr->dst, d);
@@ -1930,8 +1940,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
@@ -1952,8 +1964,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
@@ -1976,8 +1990,10 @@ static void gen_mcode()
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			if (has_ext_instr_set) {
 				M_LADD   (s2, s1, REG_ITMP1);
 				M_BLDU   (d, REG_ITMP1, OFFSET (java_shortarray, data[0]));
@@ -1998,8 +2014,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_SAADDQ(s2, s1, REG_ITMP1);
 			M_AST   (s3, REG_ITMP1, OFFSET(java_objectarray, data[0]));
@@ -2009,8 +2027,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_S8ADDQ(s2, s1, REG_ITMP1);
 			M_LST   (s3, REG_ITMP1, OFFSET(java_longarray, data[0]));
@@ -2020,8 +2040,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_S4ADDQ(s2, s1, REG_ITMP1);
 			M_IST   (s3, REG_ITMP1, OFFSET(java_intarray, data[0]));
@@ -2031,8 +2053,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_flt(s3, src, REG_FTMP3);
 			M_S4ADDQ(s2, s1, REG_ITMP1);
 			M_FST   (s3, REG_ITMP1, OFFSET(java_floatarray, data[0]));
@@ -2042,8 +2066,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_flt(s3, src, REG_FTMP3);
 			M_S8ADDQ(s2, s1, REG_ITMP1);
 			M_DST   (s3, REG_ITMP1, OFFSET(java_doublearray, data[0]));
@@ -2053,8 +2079,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
@@ -2077,8 +2105,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
@@ -2101,8 +2131,10 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			gen_nullptr_check(s1);
-			gen_bound_check;
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+				}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
@@ -2119,230 +2151,6 @@ static void gen_mcode()
 				}
 			break;
 
-
-		/* optimized memory operations ****************************************/
-
-		case ICMD_OPT_AALOAD:     /* ..., arrayref, index  ==> ..., value     */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_SAADDQ(s2, s1, REG_ITMP1);
-			M_ALD( d, REG_ITMP1, OFFSET(java_objectarray, data[0]));
-			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_OPT_LALOAD:     /* ..., arrayref, index  ==> ..., value     */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_S8ADDQ(s2, s1, REG_ITMP1);
-			M_LLD(d, REG_ITMP1, OFFSET(java_longarray, data[0]));
-			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_OPT_IALOAD:     /* ..., arrayref, index  ==> ..., value     */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			M_S4ADDQ(s2, s1, REG_ITMP1);
-			M_ILD(d, REG_ITMP1, OFFSET(java_intarray, data[0]));
-			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_OPT_FALOAD:     /* ..., arrayref, index  ==> ..., value     */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
-			M_S4ADDQ(s2, s1, REG_ITMP1);
-			M_FLD(d, REG_ITMP1, OFFSET(java_floatarray, data[0]));
-			store_reg_to_var_flt(iptr->dst, d);
-			break;
-
-		case ICMD_OPT_DALOAD:     /* ..., arrayref, index  ==> ..., value     */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_FTMP3);
-			M_S8ADDQ(s2, s1, REG_ITMP1);
-			M_DLD(d, REG_ITMP1, OFFSET(java_doublearray, data[0]));
-			store_reg_to_var_flt(iptr->dst, d);
-			break;
-
-		case ICMD_OPT_CALOAD:     /* ..., arrayref, index  ==> ..., value     */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (has_ext_instr_set) {
-				M_LADD(s2, s1, REG_ITMP1);
-				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_SLDU(d, REG_ITMP1, OFFSET(java_chararray, data[0]));
-				}
-			else {
-				M_LADD (s2, s1, REG_ITMP1);
-				M_LADD (s2, REG_ITMP1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_chararray, data[0]));
-				M_LDA  (REG_ITMP1, REG_ITMP1, OFFSET(java_chararray, data[0]));
-				M_EXTWL(REG_ITMP2, REG_ITMP1, d);
-				}
-			store_reg_to_var_int(iptr->dst, d);
-			break;			
-
-		case ICMD_OPT_SALOAD:     /* ..., arrayref, index  ==> ..., value     */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (has_ext_instr_set) {
-				M_LADD(s2, s1, REG_ITMP1);
-				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_SLDU( d, REG_ITMP1, OFFSET (java_shortarray, data[0]));
-				M_SSEXT(d, d);
-				}
-			else {
-				M_LADD(s2, s1, REG_ITMP1);
-				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_shortarray, data[0]));
-				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_shortarray, data[0])+2);
-				M_EXTQH(REG_ITMP2, REG_ITMP1, d);
-				M_SRA_IMM(d, 48, d);
-				}
-			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_OPT_BALOAD:     /* ..., arrayref, index  ==> ..., value     */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(iptr->dst, REG_ITMP3);
-			if (has_ext_instr_set) {
-				M_LADD   (s2, s1, REG_ITMP1);
-				M_BLDU   (d, REG_ITMP1, OFFSET (java_shortarray, data[0]));
-				M_BSEXT  (d, d);
-				}
-			else {
-				M_LADD(s2, s1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_bytearray, data[0]));
-				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_bytearray, data[0])+1);
-				M_EXTQH(REG_ITMP2, REG_ITMP1, d);
-				M_SRA_IMM(d, 56, d);
-				}
-			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-
-		case ICMD_OPT_AASTORE:    /* ..., arrayref, index, value  ==> ...     */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			var_to_reg_int(s3, src, REG_ITMP3);
-			M_SAADDQ(s2, s1, REG_ITMP1);
-			M_AST   (s3, REG_ITMP1, OFFSET(java_objectarray, data[0]));
-			break;
-
-		case ICMD_OPT_LASTORE:    /* ..., arrayref, index, value  ==> ...     */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			var_to_reg_int(s3, src, REG_ITMP3);
-			M_S8ADDQ(s2, s1, REG_ITMP1);
-			M_LST   (s3, REG_ITMP1, OFFSET(java_longarray, data[0]));
-			break;
-
-		case ICMD_OPT_IASTORE:    /* ..., arrayref, index, value  ==> ...     */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			var_to_reg_int(s3, src, REG_ITMP3);
-			M_S4ADDQ(s2, s1, REG_ITMP1);
-			M_IST   (s3, REG_ITMP1, OFFSET(java_intarray, data[0]));
-			break;
-
-		case ICMD_OPT_FASTORE:    /* ..., arrayref, index, value  ==> ...     */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			var_to_reg_flt(s3, src, REG_FTMP3);
-			M_S4ADDQ(s2, s1, REG_ITMP1);
-			M_FST   (s3, REG_ITMP1, OFFSET(java_floatarray, data[0]));
-			break;
-
-		case ICMD_OPT_DASTORE:    /* ..., arrayref, index, value  ==> ...     */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			var_to_reg_flt(s3, src, REG_FTMP3);
-			M_S8ADDQ(s2, s1, REG_ITMP1);
-			M_DST   (s3, REG_ITMP1, OFFSET(java_doublearray, data[0]));
-			break;
-
-		case ICMD_OPT_CASTORE:    /* ..., arrayref, index, value  ==> ...     */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			var_to_reg_int(s3, src, REG_ITMP3);
-			if (has_ext_instr_set) {
-				M_LADD(s2, s1, REG_ITMP1);
-				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_SST (s3, REG_ITMP1, OFFSET(java_chararray, data[0]));
-				}
-			else {
-				M_LADD (s2, s1, REG_ITMP1);
-				M_LADD (s2, REG_ITMP1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_chararray, data[0]));
-				M_LDA  (REG_ITMP1, REG_ITMP1, OFFSET(java_chararray, data[0]));
-				M_INSWL(s3, REG_ITMP1, REG_ITMP3);
-				M_MSKWL(REG_ITMP2, REG_ITMP1, REG_ITMP2);
-				M_OR   (REG_ITMP2, REG_ITMP3, REG_ITMP2);
-				M_LST_U(REG_ITMP2, REG_ITMP1, 0);
-				}
-			break;
-
-		case ICMD_OPT_SASTORE:    /* ..., arrayref, index, value  ==> ...     */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			var_to_reg_int(s3, src, REG_ITMP3);
-			if (has_ext_instr_set) {
-				M_LADD(s2, s1, REG_ITMP1);
-				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_SST (s3, REG_ITMP1, OFFSET(java_shortarray, data[0]));
-				}
-			else {
-				M_LADD (s2, s1, REG_ITMP1);
-				M_LADD (s2, REG_ITMP1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_shortarray, data[0]));
-				M_LDA  (REG_ITMP1, REG_ITMP1, OFFSET(java_shortarray, data[0]));
-				M_INSWL(s3, REG_ITMP1, REG_ITMP3);
-				M_MSKWL(REG_ITMP2, REG_ITMP1, REG_ITMP2);
-				M_OR   (REG_ITMP2, REG_ITMP3, REG_ITMP2);
-				M_LST_U(REG_ITMP2, REG_ITMP1, 0);
-				}
-			break;
-
-		case ICMD_OPT_BASTORE:    /* ..., arrayref, index, value  ==> ...     */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			var_to_reg_int(s3, src, REG_ITMP3);
-			if (has_ext_instr_set) {
-				M_LADD(s2, s1, REG_ITMP1);
-				M_BST (s3, REG_ITMP1, OFFSET(java_bytearray, data[0]));
-				}
-			else {
-				M_LADD (s2, s1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_bytearray, data[0]));
-				M_LDA  (REG_ITMP1, REG_ITMP1, OFFSET(java_bytearray, data[0]));
-				M_INSBL(s3, REG_ITMP1, REG_ITMP3);
-				M_MSKBL(REG_ITMP2, REG_ITMP1, REG_ITMP2);
-				M_OR   (REG_ITMP2, REG_ITMP3, REG_ITMP2);
-				M_LST_U(REG_ITMP2, REG_ITMP1, 0);
-				}
-			break;
 
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
@@ -2863,14 +2671,14 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			a = iptr->val.i;
+			s3 = iptr->val.i;
 			if (iptr[1].opc == ICMD_ELSE_ICONST) {
-				if ((a == 1) && (iptr[1].val.i == 0)) {
+				if ((s3 == 1) && (iptr[1].val.i == 0)) {
 					M_CMPEQ(s1, REG_ZERO, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 					}
-				if ((a == 0) && (iptr[1].val.i == 1)) {
+				if ((s3 == 0) && (iptr[1].val.i == 1)) {
 					M_CMPEQ(s1, REG_ZERO, d);
 					M_XOR_IMM(d, 1, d);
 					store_reg_to_var_int(iptr->dst, d);
@@ -2882,11 +2690,11 @@ static void gen_mcode()
 					}
 				ICONST(d, iptr[1].val.i);
 				}
-			if ((a >= 0) && (a <= 255)) {
-				M_CMOVEQ_IMM(s1, a, d);
+			if ((s3 >= 0) && (s3 <= 255)) {
+				M_CMOVEQ_IMM(s1, s3, d);
 				}
 			else {
-				ICONST(REG_ITMP2, a);
+				ICONST(REG_ITMP2, s3);
 				M_CMOVEQ(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
@@ -2897,14 +2705,14 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			a = iptr->val.i;
+			s3 = iptr->val.i;
 			if (iptr[1].opc == ICMD_ELSE_ICONST) {
-				if ((a == 0) && (iptr[1].val.i == 1)) {
+				if ((s3 == 0) && (iptr[1].val.i == 1)) {
 					M_CMPEQ(s1, REG_ZERO, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 					}
-				if ((a == 1) && (iptr[1].val.i == 0)) {
+				if ((s3 == 1) && (iptr[1].val.i == 0)) {
 					M_CMPEQ(s1, REG_ZERO, d);
 					M_XOR_IMM(d, 1, d);
 					store_reg_to_var_int(iptr->dst, d);
@@ -2916,11 +2724,11 @@ static void gen_mcode()
 					}
 				ICONST(d, iptr[1].val.i);
 				}
-			if ((a >= 0) && (a <= 255)) {
-				M_CMOVNE_IMM(s1, a, d);
+			if ((s3 >= 0) && (s3 <= 255)) {
+				M_CMOVNE_IMM(s1, s3, d);
 				}
 			else {
-				ICONST(REG_ITMP2, a);
+				ICONST(REG_ITMP2, s3);
 				M_CMOVNE(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
@@ -2931,14 +2739,14 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			a = iptr->val.i;
+			s3 = iptr->val.i;
 			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-				if ((a == 1) && (iptr[1].val.i == 0)) {
+				if ((s3 == 1) && (iptr[1].val.i == 0)) {
 					M_CMPLT(s1, REG_ZERO, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 					}
-				if ((a == 0) && (iptr[1].val.i == 1)) {
+				if ((s3 == 0) && (iptr[1].val.i == 1)) {
 					M_CMPLE(REG_ZERO, s1, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
@@ -2949,11 +2757,11 @@ static void gen_mcode()
 					}
 				ICONST(d, iptr[1].val.i);
 				}
-			if ((a >= 0) && (a <= 255)) {
-				M_CMOVLT_IMM(s1, a, d);
+			if ((s3 >= 0) && (s3 <= 255)) {
+				M_CMOVLT_IMM(s1, s3, d);
 				}
 			else {
-				ICONST(REG_ITMP2, a);
+				ICONST(REG_ITMP2, s3);
 				M_CMOVLT(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
@@ -2964,14 +2772,14 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			a = iptr->val.i;
+			s3 = iptr->val.i;
 			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-				if ((a == 1) && (iptr[1].val.i == 0)) {
+				if ((s3 == 1) && (iptr[1].val.i == 0)) {
 					M_CMPLE(REG_ZERO, s1, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 					}
-				if ((a == 0) && (iptr[1].val.i == 1)) {
+				if ((s3 == 0) && (iptr[1].val.i == 1)) {
 					M_CMPLT(s1, REG_ZERO, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
@@ -2982,11 +2790,11 @@ static void gen_mcode()
 					}
 				ICONST(d, iptr[1].val.i);
 				}
-			if ((a >= 0) && (a <= 255)) {
-				M_CMOVGE_IMM(s1, a, d);
+			if ((s3 >= 0) && (s3 <= 255)) {
+				M_CMOVGE_IMM(s1, s3, d);
 				}
 			else {
-				ICONST(REG_ITMP2, a);
+				ICONST(REG_ITMP2, s3);
 				M_CMOVGE(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
@@ -2997,14 +2805,14 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			a = iptr->val.i;
+			s3 = iptr->val.i;
 			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-				if ((a == 1) && (iptr[1].val.i == 0)) {
+				if ((s3 == 1) && (iptr[1].val.i == 0)) {
 					M_CMPLT(REG_ZERO, s1, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 					}
-				if ((a == 0) && (iptr[1].val.i == 1)) {
+				if ((s3 == 0) && (iptr[1].val.i == 1)) {
 					M_CMPLE(s1, REG_ZERO, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
@@ -3015,11 +2823,11 @@ static void gen_mcode()
 					}
 				ICONST(d, iptr[1].val.i);
 				}
-			if ((a >= 0) && (a <= 255)) {
-				M_CMOVGT_IMM(s1, a, d);
+			if ((s3 >= 0) && (s3 <= 255)) {
+				M_CMOVGT_IMM(s1, s3, d);
 				}
 			else {
-				ICONST(REG_ITMP2, a);
+				ICONST(REG_ITMP2, s3);
 				M_CMOVGT(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
@@ -3030,14 +2838,14 @@ static void gen_mcode()
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
-			a = iptr->val.i;
+			s3 = iptr->val.i;
 			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
-				if ((a == 1) && (iptr[1].val.i == 0)) {
+				if ((s3 == 1) && (iptr[1].val.i == 0)) {
 					M_CMPLE(s1, REG_ZERO, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
 					}
-				if ((a == 0) && (iptr[1].val.i == 1)) {
+				if ((s3 == 0) && (iptr[1].val.i == 1)) {
 					M_CMPLT(REG_ZERO, s1, d);
 					store_reg_to_var_int(iptr->dst, d);
 					break;
@@ -3048,11 +2856,11 @@ static void gen_mcode()
 					}
 				ICONST(d, iptr[1].val.i);
 				}
-			if ((a >= 0) && (a <= 255)) {
-				M_CMOVLE_IMM(s1, a, d);
+			if ((s3 >= 0) && (s3 <= 255)) {
+				M_CMOVLE_IMM(s1, s3, d);
 				}
 			else {
-				ICONST(REG_ITMP2, a);
+				ICONST(REG_ITMP2, s3);
 				M_CMOVLE(s1, REG_ITMP2, d);
 				}
 			store_reg_to_var_int(iptr->dst, d);
@@ -3633,7 +3441,7 @@ makeactualcall:
 
 		MCODECHECK(8);
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, xboundrefs->branchpos);
+		M_LDA(REG_ITMP2_XPC, REG_PV, xboundrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
 			M_BR((xcodeptr-mcodeptr)-1);
@@ -3667,7 +3475,7 @@ makeactualcall:
 
 		MCODECHECK(8);
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, xcheckarefs->branchpos);
+		M_LDA(REG_ITMP2_XPC, REG_PV, xcheckarefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
 			M_BR((xcodeptr-mcodeptr)-1);
@@ -3701,7 +3509,7 @@ makeactualcall:
 
 		MCODECHECK(8);
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, xcastrefs->branchpos);
+		M_LDA(REG_ITMP2_XPC, REG_PV, xcastrefs->branchpos - 4);
 
 		if (xcodeptr != NULL) {
 			M_BR((xcodeptr-mcodeptr)-1);
