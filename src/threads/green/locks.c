@@ -52,8 +52,7 @@ initLocks (void)
     int i;
 
     mutexHashTableSize = MUTEX_HASH_TABLE_SIZE;
-    mutexHashTable = (mutexHashEntry *) MNEW(mutexHashEntry*,
-                                             mutexHashTableSize);
+    mutexHashTable = MNEW(mutexHashEntry, mutexHashTableSize);
     mutexHashMask = (mutexHashTableSize - 1) << 3;
 
     for (i = 0; i < mutexHashTableSize; ++i)
@@ -67,8 +66,7 @@ initLocks (void)
     }
 
     mutexOverflowTableSize = MUTEX_OVERFLOW_TABLE_SIZE;
-    mutexOverflowTable = (mutexHashEntry *) MNEW(mutexHashEntry*,
-                                                 mutexOverflowTableSize);
+    mutexOverflowTable = MNEW(mutexHashEntry, mutexOverflowTableSize);
 
     firstFreeOverflowEntry = &mutexOverflowTable[0];
 
@@ -84,8 +82,7 @@ initLocks (void)
     mutexOverflowTable[i - 1].next = 0;
 
     conditionHashTableSize = CONDITION_HASH_TABLE_SIZE;
-    conditionHashTable = (conditionHashEntry *) MNEW(conditionHashEntry*,
-													 conditionHashTableSize);
+    conditionHashTable = MNEW(conditionHashEntry, conditionHashTableSize);
     conditionHashMask = (conditionHashTableSize - 1) << 3;
 
     for (i = 0; i < conditionHashTableSize; ++i)
