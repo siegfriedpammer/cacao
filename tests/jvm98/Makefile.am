@@ -2,7 +2,7 @@ EXTRA_DIST = check.diff compress.diff compress.output db.diff db.output javac.di
 
 checkjvm: compress db javac mpegaudio raytrace 
 
-compress db javac mpegaudio raytrace: force
+check compress db javac mpegaudio raytrace: force
 	rm -rf $@
 	cp -r ../jvm98/spec/benchmarks/_*_$@ $@
 	patch -p0 < $@.diff
@@ -10,11 +10,11 @@ compress db javac mpegaudio raytrace: force
 	 chmod 644 *; \
 	 chmod 755 input; \
 	 sh setup.sh || true; \
-	 ../../cacao  -ieee sun.tools.javac.Main -d . *.java  && \
-	 ../../cacao  -ieee Main > $@.output; \
+	 ../../cacao sun.tools.javac.Main -d . *.java && \
+	 ../../cacao Main > $@.output; \
 	 sh postoutput.sh || true; \
 	)
 	diff --brief $@/$@.output $@.output
 	rm -rf $@
-	
+
 force:
