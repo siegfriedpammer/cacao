@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 953 2004-03-11 23:02:26Z stefan $
+   $Id: boehm.c 984 2004-03-28 23:08:07Z twisti $
 
 */
 
@@ -129,6 +129,12 @@ void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
 		MAINTHREADCALL(result, stackcall_malloc_atomic, NULL, bytelength);
 	}
 
+	if (!result) {
+		log_text("java_lang_OutOfMemoryError");
+		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
+		return NULL;
+	}
+
 	if (finalizer)
 		GC_REGISTER_FINALIZER(result, runboehmfinalizer, 0, 0, 0);
 
@@ -166,6 +172,7 @@ void heap_close()
 
 void gc_init()
 {
+	GC_init();
 }
 
 
@@ -176,6 +183,24 @@ void gc_call()
 			  0, 0);
 
 	GC_gcollect();
+}
+
+
+s8 gc_get_heap_size()
+{
+	return GC_get_heap_size();
+}
+
+
+s8 gc_get_free_bytes()
+{
+	return GC_get_free_bytes();
+}
+
+
+void gc_finalize_all()
+{
+	GC_finalize_all();
 }
 
 

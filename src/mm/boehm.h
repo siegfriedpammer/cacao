@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: boehm.h 839 2004-01-05 00:27:21Z twisti $
+   $Id: boehm.h 984 2004-03-28 23:08:07Z twisti $
 
 */
 
@@ -57,6 +57,9 @@ void heap_init(u4 size, u4 startsize, void **stackbottom);
 void heap_close();
 void gc_init();
 void gc_call();
+s8 gc_get_heap_size();
+s8 gc_get_free_bytes();
+void gc_finalize_all();
 
 #endif /* _BOEHM_H */
 
