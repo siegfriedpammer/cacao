@@ -1997,6 +1997,10 @@ void header_into_parent_loops(struct LoopContainer *lc, basicblock *to_insert, b
 		le = le->next;
 	le->block = replace;
 
+	/* BUGFIX                                                                   */
+	if (after == to_insert)
+		after = replace;
+
 	/* now find the node after and insert the newly create node before "after"  */
 	le = lc->nodes;
 	if (le->block == after) {
@@ -3356,14 +3360,12 @@ void optimize_single_loop(struct LoopContainer *lc)
 		c_var_modified[i] = 0;
 		if (changes[i] != NULL) {
 			changes[i] = NULL;
-			printf("C_PANIC 1\n");
 			}
 		}
 
 	for (i=0; i < (maxlocals+1); ++i) {
 		if (c_constraints[i] != NULL) {
 		    c_constraints[i] = NULL;
-			printf("C_PANIC 2\n");
 			}
 		}
 
