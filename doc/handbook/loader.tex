@@ -892,11 +892,12 @@ linking function
 This function firstly checks if the passed \texttt{classinfo} is an
 \textit{array of arrays} or an \textit{array of objects}. In both
 cases the component type is created in the class hashtable via
-\texttt{class\_new} and then loaded and linked. If none is the case,
-the passed array is a \textit{primitive type array}. No matter of
-which type the array is, an \texttt{arraydescriptor} structure (Figure
+\texttt{class\_new} and then loaded and linked if not already
+done. If none is the case, the passed array is a \textit{primitive
+type array}. No matter of which type the array is, an
+\texttt{arraydescriptor} structure (Figure
 \ref{arraydescriptorstructure}) is allocated and filled with the
-appropriate values of the array type.
+appropriate values of the given array type.
 
 \begin{figure}[h]
 \begin{verbatim}
@@ -914,7 +915,187 @@ appropriate values of the array type.
 \label{arraydescriptorstructure}
 \end{figure}
 
+After the \texttt{class\_link\_array} function call, the temporary
+class \texttt{index} is calculated. For interfaces---classes with
+\texttt{ACC\_INTERFACE} flag bit set---the class' \texttt{index} is
+the global \texttt{interfaceindex} plus one. Any other classes get the
+\texttt{index} of the superclass plus one.
+
+Other \texttt{classinfo} fields are also set from the superclass like,
+\texttt{instancesize}, \texttt{vftbllength} and the \texttt{finalizer}
+function. All these values are temporary ones and can be overwritten
+at a later time.
+
+The next step in \texttt{class\_load\_intern} is to compute the
+\textit{virtual function table length}. For each method in
+\texttt{classinfo}'s \texttt{methods} field which has not the
+\texttt{ACC\_STATIC} flag bit set, thus is an instance method, the
+direct superclasses up to \texttt{java.lang.Object} are checked with
+
+\begin{verbatim}
+        static bool method_canoverwrite(methodinfo *m, methodinfo *old);
+\end{verbatim}
+
+if the current method can overwrite the superclass method, if there
+exists one. If the found superclass method has the
+\texttt{ACC\_PRIVATE} flag bit set, the current method's
+\textit{virtual function table index} is the current \textit{virtual
+function table length} plus one:
+
+\begin{verbatim}
+        m->vftblindex = (vftbllength++);
+\end{verbatim}
+
+If the current method has the \texttt{ACC\_FINAL} flag bit set, the
+CACAO class linker throws a \texttt{java.lang.VerifyError}. Otherwise
+the current method's \textit{virtual function table index} is the same
+as the index from the superclass method:
+
+\begin{verbatim}
+        m->vftblindex = tc->methods[j].vftblindex;
+\end{verbatim}
+
+After processing the \textit{virtual function table length}, the CACAO
+linker computes the \textit{interface table length}. For the current
+class' and every superclass' interfaces, the function
+
+\begin{verbatim}
+        static s4 class_highestinterface(classinfo *c);
+\end{verbatim}
+
+is called. This function computes the highest interface \texttt{index}
+of the passed interface and returns the value. This is done by
+recursively calling \texttt{class\_highestinterface} with each
+interface from the passed interface. The highest \texttt{index} value
+found is the \textit{interface table length} of the currently linking
+class or interface.
+
+Now that the linker has completely computed the size of the
+\textit{virtual function table}, the memory can be allocated, casted
+to an \texttt{vftbl} structure (Figure \ref{vftblstructure}) and
+filled with the previously calculated values.
+
+\begin{figure}
+\begin{verbatim}
+    struct vftbl {
+        methodptr   *interfacetable[1];    /* interface table (access via macro)  */
+
+        classinfo   *class;                /* class, the vtbl belongs to          */
+
+        arraydescriptor *arraydesc;        /* for array classes, otherwise NULL   */
+
+        s4           vftbllength;          /* virtual function table length       */
+        s4           interfacetablelength; /* interface table length              */
+
+        s4           baseval;              /* base for runtime type check         */
+                                           /* (-index for interfaces)             */
+        s4           diffval;              /* high - base for runtime type check  */
+
+        s4          *interfacevftbllength; /* length of interface vftbls          */
+	
+        methodptr    table[1];             /* class vftbl                         */
+    };
+\end{verbatim}
+\caption{\texttt{vftbl} structure}
+\label{vftblstructure}
+\end{figure}
+
+Some important values are
+
+\begin{verbatim}
+        c->header.vftbl = c->vftbl = v;
+        v->class = c;
+        v->vftbllength = vftbllength;
+        v->interfacetablelength = interfacetablelength;
+        v->arraydesc = arraydesc;
+\end{verbatim}
+
+If the currently linked class is an interface, the \texttt{baseval} of
+the interface's \textit{virtual function table} is set to
+\texttt{-(c->index)}. Then the \textit{virtual function table} of the
+direct superclass is copied into the \texttt{table} field of the
+current \textit{virtual function table} and for each
+non-\texttt{static} method in the current's class or interface
+\texttt{methods} field, the pointer to the \textit{stubroutine} of the
+method in stored in the \textit{virtual function table}.
+
+Now the fields of the currently linked class or interface are
+processed. The CACAO linker computes the instance size of the class or
+interface and the offset of each field inside. For each field in the
+\texttt{classinfo} field \texttt{fields} which is non-\texttt{static},
+the type-size is resolved via the \texttt{desc\_typesize} function
+call. Then a new \texttt{instancesize} is calculated with
+
+\begin{verbatim}
+        c->instancesize = ALIGN(c->instancesize, dsize);
+\end{verbatim}
+
+which does memory alignment suitable for the next field. This newly
+computed \texttt{instancesize} is the \texttt{offset} of the currently
+processed field. The type-size is then added to get the real
+\texttt{instancesize}.
+
+The next step of the CACAO linker is to initialize the \textit{virtual
+function table} fields \texttt{interfacevftbllength} and
+\texttt{interfacetable}. For \texttt{interfacevftbllength} an
+\texttt{s4} array of \texttt{interfacetablelength} elements is
+allocated. Each \texttt{interfacevftbllength} element is initialized
+with \texttt{0} and the elements in \texttt{interfacetable} with
+\texttt{NULL}. After the initialization is done, the interfaces of the
+currently linked class and all it's superclasses, up to
+\texttt{java.lang.Object}, are processed via the
+
+\begin{verbatim}
+        static void class_addinterface(classinfo *c, classinfo *ic);
+\end{verbatim}
+
+function call. This function adds the methods of the passed interface
+to the \textit{virtual function table} of the passed class or
+interface. If the method count of the passed interface is zero, the
+function adds a method fake entry, which is needed for subtype
+tests:
+
+\begin{verbatim}
+        v->interfacevftbllength[i] = 1;
+        v->interfacetable[-i] = MNEW(methodptr, 1);
+        v->interfacetable[-i][0] = NULL;
+\end{verbatim}
+
+\texttt{i} represents the \texttt{index} of the passed interface
+\texttt{ic}, \texttt{v} the \textit{virtual function table} of the
+passed class or interface \texttt{c}.
+
+If the method count is non-zero, an \texttt{methodptr} array of
+\texttt{ic->methodscount} elements is allocated and the method count
+value is stored in the particular position of the
+\texttt{interfacevftbllength} array:
+
+\begin{verbatim}
+        v->interfacevftbllength[i] = ic->methodscount;
+        v->interfacetable[-i] = MNEW(methodptr, ic->methodscount);
+\end{verbatim}
+
+For each method of the interface passed, the methods of the target
+class or interface passed and all superclass methods are checked if
+they can overwrite the interface method via
+\texttt{method\_canoverwrite}. If the function returns \texttt{true},
+the corresponding function is resolved from the
+\texttt{table} field of the \textit{virtual function table} and stored
+it the particular position of the \texttt{interfacetable}:
+
+\begin{verbatim}
+        v->interfacetable[-i][j] = v->table[mi->vftblindex];
+\end{verbatim}
+
+The \texttt{class\_addinterface} function is also called recursively
+for all interfaces the interface passed implements.
+
+After the interfaces were added and the currently linked class or
+interface is not \texttt{java.lang.Object}, the CACAO linker tries to
+find a function which name and descriptor matches
+\texttt{finalize()V}. If an appropriate function was found and the
+function is non-\texttt{static}, it is assigned to the
+\texttt{finalizer} field of the \texttt{classinfo} structure.
 
 
 \section{Initialization}
-
