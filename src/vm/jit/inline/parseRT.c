@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1469 2004-11-08 21:08:13Z carolyn $
+   $Id: parseRT.c 1473 2004-11-10 10:33:59Z carolyn $
 
 Changes:
 opcode put into functions
@@ -142,8 +142,10 @@ if (!(meth->flags & ACC_ABSTRACT))  {
     rta = NEW(rtaNode);
     rta->method = meth ;
     list_addlast(rtaWorkList,rta);
-if (meth->class->classUsed == NOTUSED) 
-	panic("\nADDED method in class not used at all!\n");
+if (meth->class->classUsed == NOTUSED) {
+	printf("\nADDED method in class not used at all!\n");
+	fflush(stdout);
+	}
     }
 /***
 else {
@@ -753,7 +755,8 @@ methodinfo *initializeRTAworklist(methodinfo *m) {
 	FILE *rtMissedIn; /* Methods missed during previous RTA parse */
 	char line[256];
 	char* class, *meth, *desc;
-	char filename[256] = "rtMissed";
+	/*char filename[256] = "rtMissed"*/
+	char filenameIn[256] = "rtIn/";
 	methodinfo *rm =NULL;  /* return methodinfo ptr to main method */
 
 
@@ -786,18 +789,25 @@ methodinfo *initializeRTAworklist(methodinfo *m) {
 	fclose(rtMissedIn);
 
 	/*----- rtMissedIn pgm specific */
-        strcat(filename, (const char *)mainstring);  
-        if ( (rtMissedIn = fopen(filename, "r")) == NULL) {
+printf("filenameIn=%s|mainstring=%s\n",filenameIn,mainstring); fflush(stdout);
+        strcat(filenameIn, (const char *)mainstring);  
+printf("filenameIn=%s|\n",filenameIn); fflush(stdout);
+        if ( (rtMissedIn = fopen(filenameIn, "r")) == NULL) {
 		//if (verbose) 
-		    {printf("No rtMissedIn=%s file\n",filename);fflush(stdout);} 
+		    {printf("NNo rtMissedIn=%s file\n",filenameIn);fflush(stdout);} 
 		return rm;
 		}
 	while (getline(line,256,rtMissedIn)) {
 	    class = strtok(line, " \n");
 	    meth  = strtok(NULL, " \n");
 	    desc  = strtok(NULL, " \n");
- 		SYSADD(class,meth,desc,missedtxt)
+	    if ((class == NULL) || (meth == NULL) || (desc == NULL)) { 
+		fprintf(stderr,"Error in rtMissedIn file for: %s.%s %s\n",class, meth, desc); 
+		fflush(stderr);
+		panic ("Error in rtMissedIn file for: class.meth, desc\n"); 
 		}
+ 	    SYSADD(class,meth,desc,missedtxt)
+	    }
 	fclose(rtMissedIn);
 	return rm;
 }

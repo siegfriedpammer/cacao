@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1470 2004-11-08 22:57:28Z motse $
+   $Id: main.c 1473 2004-11-10 10:33:59Z carolyn $
 
 */
 
@@ -263,6 +263,7 @@ static void print_usage()
 	printf("                 u(tf) ......... show the utf - hash\n");
 	printf("          -i     n ............. activate inlining\n");
 	printf("                 v ............. inline virtual methods\n");
+	printf("                                 uses/turns rt option on\n");
 	printf("                 e ............. inline methods with exceptions\n");
 	printf("                 p ............. optimize argument renaming\n");
 	printf("                 o ............. inline methods of foreign classes\n");
@@ -561,6 +562,7 @@ int main(int argc, char **argv)
 					break;
 				case 'v':
 					inlinevirtuals = true;
+					opt_rt = true;
 					break;
 				case 'e':
 					inlineexceptions = true;
