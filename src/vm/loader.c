@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1673 2004-12-03 16:43:53Z twisti $
+   $Id: loader.c 1729 2004-12-07 11:18:45Z twisti $
 
 */
 
@@ -461,7 +461,7 @@ classbuffer *suck_start(classinfo *c)
 	s4    filenamelen;
 	char *path;
 	FILE *classfile;
-	int  err;
+	bool found;
 	s4 len;
 	struct stat buffer;
 	classbuffer *cb;
@@ -488,6 +488,7 @@ classbuffer *suck_start(classinfo *c)
 
 	/* initialize return value */
 
+	found = false;
 	cb = NULL;
 
 	filenamelen = utf_strlen(c->name) + 7;  /* 7 = ".class\0" */
@@ -518,6 +519,9 @@ classbuffer *suck_start(classinfo *c)
 						if (len != cb->size) {
 							suck_stop(cb);
 							log_text("Error while unzipping");
+
+						} else {
+							found = true;
 						}
 
 					} else {
@@ -540,10 +544,7 @@ classbuffer *suck_start(classinfo *c)
 			classfile = fopen(path, "r");
 
 			if (classfile) {                                   /* file exists */
-				/* determine size of classfile */
-				err = stat(path, &buffer);
-
-				if (!err) {                            /* read classfile data */
+				if (!stat(path, &buffer)) {            /* read classfile data */
 					cb = NEW(classbuffer);
 					cb->class = c;
 					cb->size = buffer.st_size;
@@ -557,6 +558,9 @@ classbuffer *suck_start(classinfo *c)
 						suck_stop(cb);
 /*  						if (ferror(classfile)) { */
 /*  						} */
+
+					} else {
+						found = true;
 					}
 				}
 			}
@@ -568,7 +572,7 @@ classbuffer *suck_start(classinfo *c)
 	}
 
 	if (opt_verbose) {
-		if (err) 
+		if (!found)
 			dolog("Warning: Can not open class file '%s'", filename);
 	}
 
