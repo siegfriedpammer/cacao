@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 1296 2004-07-10 17:02:15Z stefan $
+   $Id: loader.h 1544 2004-11-18 12:21:44Z twisti $
 */
 
 
@@ -191,15 +191,16 @@ utf* clinit_name();
 
 typedef union classpath_info {
 	struct {
-		int type;
+		s4                    type;
 		union classpath_info *next;
-        	char *filename;
-		int pathlen; } filepath;
-#ifdef USE_ZLIB
+		char                 *path;
+		s4                    pathlen;
+	} filepath;
+#if defined(USE_ZLIB)
 	struct {
-		int type;
+		s4                    type;
 		union classpath_info *next;
-		unzFile uf;
+		unzFile               uf;
 	} archive;
 #endif	
 } classpath_info;

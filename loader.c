@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1508 2004-11-15 08:34:10Z carolyn $
+   $Id: loader.c 1544 2004-11-18 12:21:44Z twisti $
 
 */
 
@@ -122,7 +122,8 @@ utf *array_packagename = NULL;
    list of classpath entries (either filesystem directories or 
    ZIP/JAR archives
 ********************************************************************/
-static classpath_info *classpath_entries=0;
+
+static classpath_info *classpath_entries = NULL;
 
 
 /******************************************************************************
@@ -314,54 +315,49 @@ static double suck_double(classbuffer *cb)
 
 void suck_init(char *classpath)
 {
-	char *filename=0;
 	char *start;
 	char *end;
-	int isZip;
-	int filenamelen;
-	union classpath_info *tmp;
-	union classpath_info *insertAfter=0;
+	char *filename;
+	s4 filenamelen;
+	bool is_zip;
+	classpath_info *cpi;
+	classpath_info *lastcpi;
 
 	if (!classpath)
 		return;
 
-	if (classpath_entries)
-		panic("suck_init should be called only once");
-
 	for (start = classpath; (*start) != '\0';) {
+
+		/* search for ':' delimiter to get the end of the current entry */
 		for (end = start; ((*end) != '\0') && ((*end) != ':'); end++);
 
 		if (start != end) {
-			isZip = 0;
+			is_zip = false;
 			filenamelen = end - start;
 
 			if (filenamelen > 3) {
 				if (strncasecmp(end - 3, "zip", 3) == 0 ||
 					strncasecmp(end - 3, "jar", 3) == 0) {
-					isZip = 1;
+					is_zip = true;
 				}
 			}
 
-			if (filenamelen >= (CLASSPATH_MAXFILENAME - 1))
-				panic("path length >= MAXFILENAME in suck_init");
+			/* allocate memory for filename and fill it */
 
-			if (!filename)
-				filename = MNEW(char, CLASSPATH_MAXFILENAME);
-
+			filename = MNEW(char, filenamelen + 1);
 			strncpy(filename, start, filenamelen);
 			filename[filenamelen + 1] = '\0';
-			tmp = NULL;
+			cpi = NULL;
 
-			if (isZip) {
+			if (is_zip) {
 #if defined(USE_ZLIB)
 				unzFile uf = unzOpen(filename);
 
 				if (uf) {
-					tmp = (union classpath_info *) NEW(classpath_info);
-					tmp->archive.type = CLASSPATH_ARCHIVE;
-					tmp->archive.uf = uf;
-					tmp->archive.next = NULL;
-					filename = NULL;
+					cpi = (union classpath_info *) NEW(classpath_info);
+					cpi->archive.type = CLASSPATH_ARCHIVE;
+					cpi->archive.uf = uf;
+					cpi->archive.next = NULL;
 				}
 #else
 				throw_cacao_exception_exit(string_java_lang_InternalError,
@@ -369,40 +365,46 @@ void suck_init(char *classpath)
 #endif
 				
 			} else {
-				tmp = (union classpath_info *) NEW(classpath_info);
-				tmp->filepath.type = CLASSPATH_PATH;
-				tmp->filepath.next = 0;
+				cpi = (union classpath_info *) NEW(classpath_info);
+				cpi->filepath.type = CLASSPATH_PATH;
+				cpi->filepath.next = NULL;
 
+#if 0
 				if (filename[filenamelen - 1] != '/') {/*PERHAPS THIS SHOULD BE READ FROM A GLOBAL CONFIGURATION */
 					filename[filenamelen] = '/';
 					filename[filenamelen + 1] = '\0';
 					filenamelen++;
 				}
-			
-				tmp->filepath.filename = filename;
-				tmp->filepath.pathlen = filenamelen;				
-				filename = NULL;
+#endif
+				cpi->filepath.path = filename;
+				cpi->filepath.pathlen = filenamelen;
 			}
 
-			if (tmp) {
-				if (insertAfter) {
-					insertAfter->filepath.next = tmp;
+			/* free allocated memory */
+
+			MFREE(filename, char, filenamelen);
+
+			/* attach current classpath entry */
+
+			if (cpi) {
+				if (!classpath_entries) {
+					classpath_entries = cpi;
 
 				} else {
-					classpath_entries = tmp;
+					lastcpi->filepath.next = cpi;
 				}
-				insertAfter = tmp;
+
+				lastcpi = cpi;
 			}
 		}
 
-		if ((*end) == ':')
+		/* goto next classpath entry, skip ':' delimiter */
+
+		if ((*end) == ':') {
 			start = end + 1;
-		else
+
+		} else {
 			start = end;
-	
-		if (filename) {
-			MFREE(filename, char, CLASSPATH_MAXFILENAME);
-			filename = NULL;
 		}
 	}
 }
@@ -446,16 +448,19 @@ void create_all_classes()
 
 classbuffer *suck_start(classinfo *c)
 {
-	classpath_info *currPos;
-	char *utf_ptr;
-	char ch;
-	char filename[CLASSPATH_MAXFILENAME+10];  /* room for '.class'            */
-	int  filenamelen=0;
+	classpath_info *cpi;
+/*  	char *utf_ptr; */
+/*  	char ch; */
+	char *filename;
+	s4    filenamelen;
+	char *path;
 	FILE *classfile;
 	int  err;
+	s4 len;
 	struct stat buffer;
 	classbuffer *cb;
 
+#if 0
 	utf_ptr = c->name->text;
 
 	while (utf_ptr < utf_end(c->name)) {
@@ -473,50 +478,65 @@ classbuffer *suck_start(classinfo *c)
 			ch = '?';
 		filename[filenamelen++] = ch;
 	}
+#endif
 
-	strcpy(filename + filenamelen, ".class");
-	filenamelen += 6;
+	/* initialize return value */
 
-	for (currPos = classpath_entries; currPos != 0; currPos = currPos->filepath.next) {
+	cb = NULL;
+
+	filenamelen = utf_strlen(c->name) + 7;  /* 7 = ".class\0" */
+	filename = MNEW(char, filenamelen);
+
+	utf_sprint(filename, c->name);
+	strcat(filename, ".class");
+
+	/* walk through all classpath entries */
+
+	for (cpi = classpath_entries; !cb && cpi; cpi = cpi->filepath.next) {
 #if defined(USE_ZLIB)
-		if (currPos->filepath.type == CLASSPATH_ARCHIVE) {
-			if (cacao_locate(currPos->archive.uf, c->name) == UNZ_OK) {
+		if (cpi->filepath.type == CLASSPATH_ARCHIVE) {
+			if (cacao_locate(cpi->archive.uf, c->name) == UNZ_OK) {
 				unz_file_info file_info;
-				/*log_text("Class found in zip file");*/
-			        if (unzGetCurrentFileInfo(currPos->archive.uf, &file_info, filename,
-						sizeof(filename), NULL, 0, NULL, 0) == UNZ_OK) {
-					if (unzOpenCurrentFile(currPos->archive.uf) == UNZ_OK) {
+
+				if (unzGetCurrentFileInfo(cpi->archive.uf, &file_info, filename,
+										  sizeof(filename), NULL, 0, NULL, 0) == UNZ_OK) {
+					if (unzOpenCurrentFile(cpi->archive.uf) == UNZ_OK) {
 						cb = NEW(classbuffer);
 						cb->class = c;
 						cb->size = file_info.uncompressed_size;
 						cb->data = MNEW(u1, cb->size);
 						cb->pos = cb->data - 1;
-						/*printf("classfile size: %d\n",file_info.uncompressed_size);*/
-						if (unzReadCurrentFile(currPos->archive.uf, cb->data, cb->size) == cb->size) {
-							unzCloseCurrentFile(currPos->archive.uf);
-							return cb;
 
-						} else {
+						len = unzReadCurrentFile(cpi->archive.uf, cb->data, cb->size);
+
+						if (len != cb->size) {
 							MFREE(cb->data, u1, cb->size);
 							FREE(cb, classbuffer);
 							log_text("Error while unzipping");
 						}
-					} else log_text("Error while opening file in archive");
-				} else log_text("Error while retrieving fileinfo");
+
+					} else {
+						log_text("Error while opening file in archive");
+					}
+
+				} else {
+					log_text("Error while retrieving fileinfo");
+				}
 			}
-			unzCloseCurrentFile(currPos->archive.uf);
+			unzCloseCurrentFile(cpi->archive.uf);
 
 		} else {
-#endif
-			if ((currPos->filepath.pathlen + filenamelen) >= CLASSPATH_MAXFILENAME) continue;
-			strcpy(currPos->filepath.filename + currPos->filepath.pathlen, filename);
-			classfile = fopen(currPos->filepath.filename, "r");
-			if (classfile) {                                       /* file exists */
+#endif /* USE_ZLIB */
+			
+			path = MNEW(char, cpi->filepath.pathlen + filenamelen + 1);
+			strcpy(path, cpi->filepath.path);
+			strcat(path, filename);
 
+			classfile = fopen(path, "r");
+
+			if (classfile) {                                   /* file exists */
 				/* determine size of classfile */
-
-				/* dolog("File: %s",filename); */
-				err = stat(currPos->filepath.filename, &buffer);
+				err = stat(path, &buffer);
 
 				if (!err) {                            /* read classfile data */
 					cb = NEW(classbuffer);
@@ -524,22 +544,31 @@ classbuffer *suck_start(classinfo *c)
 					cb->size = buffer.st_size;
 					cb->data = MNEW(u1, cb->size);
 					cb->pos = cb->data - 1;
-					fread(cb->data, 1, cb->size, classfile);
-					fclose(classfile);
 
-					return cb;
+					/* read class data */
+					len = fread(cb->data, 1, cb->size, classfile);
+
+/*  					if (len != buffer.st_size) { */
+/*  						if (ferror(classfile)) { */
+/*  						} */
+/*  					} */
 				}
 			}
+
+			MFREE(path, char, cpi->filepath.pathlen + filenamelen + 1);
 #if defined(USE_ZLIB)
 		}
 #endif
 	}
 
-	if (verbose) {
-		dolog("Warning: Can not open class file '%s'", filename);
+	if (opt_verbose) {
+		if (err) 
+			dolog("Warning: Can not open class file '%s'", filename);
 	}
 
-	return NULL;
+	MFREE(filename, char, filenamelen);
+
+	return cb;
 }
 
 
