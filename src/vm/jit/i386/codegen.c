@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 689 2003-12-05 18:03:47Z stefan $
+   $Id: codegen.c 718 2003-12-08 13:03:43Z jowenn $
 
 */
 
@@ -4719,7 +4719,6 @@ void removecompilerstub(u1 *stub)
 *******************************************************************************/
 
 #define NATIVESTUBSIZE 320
-#define NATIVESTUBOFFSET 9
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
@@ -4731,19 +4730,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
     int stackframeoffset = 4;
 
     int p, t;
-    u8 *cs=((u8*)s)+NATIVESTUBOFFSET;
-    
-    *(cs-1) = (u8) f;                   /* address of native method           */
-    *(cs-2) = (u8) (&exceptionptr);     /* address of exceptionptr            */
-    *(cs-3) = (u8) asm_handle_nat_exception; /* addr of asm exception handler */
-    *(cs-4) = (u8) (&env);              /* addr of jni_environement           */
-    *(cs-5) = (u8) asm_builtin_trace;
-    *(cs-6) = (u8) m;
-    *(cs-7) = (u8) asm_builtin_exittrace;
-    *(cs-8) = (u8) builtin_trace_exception;
-    *(cs-9) = (u8) m->class;
 
-    mcodeptr = (u1*)cs;                       /* make macros work                   */
+    mcodeptr = (u1*)s;                       /* make macros work                   */
 
          if (m->flags & ACC_STATIC) {
                  stackframesize += 4;
@@ -4916,7 +4904,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	count_nstub_len += NATIVESTUBSIZE;
 #endif
 
-	return (u1*) cs;
+	return s;
 }
 
 /* function: removenativestub **************************************************
@@ -4927,7 +4915,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 void removenativestub(u1 *stub)
 {
-    CFREE(((u8*)stub)-NATIVESTUBOFFSET, NATIVESTUBSIZE);
+    CFREE(stub, NATIVESTUBSIZE);
 }
 
 

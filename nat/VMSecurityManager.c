@@ -27,7 +27,7 @@ JNIEXPORT struct java_lang_ClassLoader* JNICALL Java_java_lang_VMSecurityManager
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMSecurityManager_getClassContext ( JNIEnv *env ,jclass clazz)
 {
-  log_text("Java_java_lang_VMSecurityManager_getClassContext  called");
+  /*log_text("Java_java_lang_VMSecurityManager_getClassContext  called");*/
 #warning return something more usefull here
   /* XXX should use vftbl directly */
   return builtin_newarray(0,class_array_of(class_java_lang_Class)->vftbl);

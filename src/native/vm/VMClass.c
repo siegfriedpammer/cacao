@@ -118,9 +118,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 
 
     
-   log_text("Java_java_lang_VMClass_getDeclaredConstructors");
+   /*log_text("Java_java_lang_VMClass_getDeclaredConstructors");
     log_plain_utf(c->name);
-    log_plain("\n");
+    log_plain("\n");*/
 /*    class_showmethods(c);
     class_showmethods(loader_load(utf_new_char("java/lang/Class")));*/
 
@@ -162,7 +162,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
     	    setfield_critical(class_constructor,o,"parameterTypes", "[Ljava/lang/Class;", jobject, (jobject) get_parametertypes(m));
         }	     
     
-log_text("leaving Java_java_lang_VMClass_getDeclaredConstructors");
+/*log_text("leaving Java_java_lang_VMClass_getDeclaredConstructors");*/
 return array_constructor;
 
 
@@ -653,8 +653,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray ( JNIEnv *env ,  struct java
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom ( JNIEnv *env ,  struct java_lang_VMClass* this, struct java_lang_Class* sup)
 {
-#warning fixme
-	log_text("Java_java_lang_VMClass_isAssignableFrom");
+/*	log_text("Java_java_lang_VMClass_isAssignableFrom");*/
 	if (!this) return 0;
 	if (!sup) return 0;
 	if (!this->vmData) {

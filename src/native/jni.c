@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 709 2003-12-07 17:32:46Z twisti $
+   $Id: jni.c 718 2003-12-08 13:03:43Z jowenn $
 
 */
 
@@ -312,7 +312,7 @@ char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_object
 			  	break;
 
 		case 'I':
-				log_text("fill_callblock_objA: param 'I'");
+				/*log_text("fill_callblock_objA: param 'I'");*/
 				param=params->data[cnts];
 				if (param==0) {
 					exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
@@ -3378,8 +3378,14 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,j
 	}
 	MFREE(blk, jni_callblock, 4 /*argcount+2*/);
 
-	if (exceptionptr)
-		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/reflect/InvocationTargetException")));
+	if (exceptionptr) {
+		java_objectheader *exceptionToWrap=exceptionptr;
+		classinfo *ivtec=loader_load(utf_new_char("java/lang/reflect/InvocationTargetException"));
+		java_objectheader* ivte=builtin_new(ivtec);
+		if (asm_calljavamethod(class_resolvemethod(ivtec,utf_new_char("<init>"),utf_new_char("(Ljava/lang/Throwable;)V")),
+			ivte,exceptionToWrap,0,0)!=NULL) panic("jni.c: error while creating InvocationTargetException wrapper");
+		exceptionptr=ivte;
+	}
 	return retVal;	
 
 }

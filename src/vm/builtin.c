@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 716 2003-12-07 21:59:12Z twisti $
+   $Id: builtin.c 718 2003-12-08 13:03:43Z jowenn $
 
 */
 
@@ -552,10 +552,14 @@ java_arrayheader *builtin_newarray(s4 size, vftbl *arrayvftbl)
 #else
         actualsize = dataoffset + size * componentsize;
 #endif
+
+        if (((u4)actualsize)<((u4)size)) { /* overflow */
+		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/OutOfMemoryError")));
+		return NULL;
+	}
         a = (java_arrayheader *) heap_allocate(actualsize,
 											   (desc->arraytype == ARRAYTYPE_OBJECT),
 											   NULL);
-
         if (!a) return NULL;
         memset(a,0,actualsize);
 
