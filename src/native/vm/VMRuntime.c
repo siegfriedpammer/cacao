@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: VMRuntime.c 1147 2004-06-06 13:20:11Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
+#include "main.h"
 #include "jni.h"
 #include "builtin.h"
 #include "loader.h"
@@ -50,12 +51,14 @@
 #include "java_io_File.h"
 #include "java_lang_String.h"
 #include "java_lang_Process.h"
-#include "java_util_Properties.h"    /* needed for java_lang_Runtime.h */
+#include "java_util_Properties.h"    /* required by java_lang_Runtime.h */
 #include "java_lang_Runtime.h"
 
 
 #define JOWENN_DEBUG
 
+/* should we run all finalizers on exit? */
+static s4 finalizeOnExit = false;
 
 #define MAXPROPS 100
 static int activeprops = 19;  
@@ -112,6 +115,9 @@ JNIEXPORT java_lang_Process* JNICALL Java_java_lang_Runtime_execInternal(JNIEnv 
  */
 JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal(JNIEnv *env, java_lang_Runtime *this, s4 par1)
 {
+	if (finalizeOnExit)
+		gc_finalize_all();
+
 	cacao_shutdown(par1);
 }
 
@@ -145,7 +151,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_gc(JNIEnv *env, java_lang_Runtime 
  */
 JNIEXPORT void JNICALL Java_java_lang_Runtime_runFinalization(JNIEnv *env, java_lang_Runtime *this)
 {
-	gc_finalize_all();
+	gc_invoke_finalizers();
 }
 
 
@@ -156,7 +162,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_runFinalization(JNIEnv *env, java_
  */
 JNIEXPORT void JNICALL Java_java_lang_Runtime_runFinalizersOnExitInternal(JNIEnv *env, jclass clazz, s4 par1)
 {
-	log_text("Java_java_lang_Runtime_runFinalizersOnExit0 called");
+	finalizeOnExit = par1;
 }
 
 
