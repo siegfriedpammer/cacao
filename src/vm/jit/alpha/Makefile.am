@@ -1,3 +1,5 @@
+## src/vm/jit/alpha/Makefile.am
+##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
 ## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
@@ -26,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1699 2004-12-06 12:44:24Z twisti $
+## $Id: Makefile.am 1713 2004-12-06 16:23:16Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
