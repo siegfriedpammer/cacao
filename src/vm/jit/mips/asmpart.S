@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1814 2004-12-22 12:37:58Z twisti $
+   $Id: asmpart.S 1861 2005-01-04 16:40:12Z twisti $
 
 */
 
@@ -141,9 +141,13 @@
 /********************* exported functions and variables ***********************/
 
 	.globl asm_calljavafunction
+
 	.globl asm_calljavafunction2
+	.globl asm_calljavafunction2int
 	.globl asm_calljavafunction2long
+	.globl asm_calljavafunction2float
 	.globl asm_calljavafunction2double
+
 	.globl asm_call_jit_compiler
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
@@ -292,8 +296,10 @@ call_name2:
 	.dword  0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction2:
-asm_calljavafunction2double:
+asm_calljavafunction2int:
 asm_calljavafunction2long:
+asm_calljavafunction2float:
+asm_calljavafunction2double:
 	aaddiu  sp,sp,-12*8               /* allocate stack space (only 11 needed)*/
 	sd      ra,0(sp)                  /* save return address                  */
 

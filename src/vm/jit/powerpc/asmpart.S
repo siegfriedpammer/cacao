@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1809 2004-12-22 10:49:35Z twisti $
+   $Id: asmpart.S 1861 2005-01-04 16:40:12Z twisti $
 
 */
 
@@ -61,7 +61,9 @@
 
 #define asm_calljavafunction                  _asm_calljavafunction
 #define asm_calljavafunction2                 _asm_calljavafunction2
+#define asm_calljavafunction2int              _asm_calljavafunction2int
 #define asm_calljavafunction2long             _asm_calljavafunction2long
+#define asm_calljavafunction2float            _asm_calljavafunction2float
 #define asm_calljavafunction2double           _asm_calljavafunction2double
 
 #define asm_call_jit_compiler                 _asm_call_jit_compiler
@@ -165,8 +167,11 @@ _exceptionptr:
 	.align 2
 
 	.globl asm_calljavafunction
+
 	.globl asm_calljavafunction2
+	.globl asm_calljavafunction2int
 	.globl asm_calljavafunction2long
+	.globl asm_calljavafunction2float
 	.globl asm_calljavafunction2double
 
 	.globl asm_call_jit_compiler
@@ -333,7 +338,9 @@ calljava_xhandler:
 	.long   0                         /* padding                              */
 
 asm_calljavafunction2:
+asm_calljavafunction2int:
 asm_calljavafunction2long:
+asm_calljavafunction2float:
 asm_calljavafunction2double:
 	mflr    r0
 	stw     r31,-4(r1)
