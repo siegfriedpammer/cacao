@@ -28,18 +28,15 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1984 2005-03-04 16:30:45Z twisti $
+## $Id: Makefile.am 1996 2005-03-05 16:57:40Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_builddir)/src
 
-SUBDIRS = tools include vm
+SUBDIRS = include vm
 
-CLEANFILES = nativetable.inc
-
-# include NO_REGEN_CLASSES, CLASSES and AWT_CLASSES
-include $(srcdir)/classes.am
+CLEANFILES =
 
 noinst_LTLIBRARIES = libnative.la
 
@@ -48,25 +45,11 @@ libnative_la_SOURCES = \
 	jni.h \
 	native.c \
 	native.h \
-	nativecalls.inc
+	nativecalls.inc \
+	nativetable.inc
 
 libnative_la_LIBADD = \
 	vm/libnativevm.la
-
-$(srcdir)/native.c: nativetable.inc nativecalls.inc
-
-HEADERS_TOUCH_FILE = $(top_builddir)/src/native/include/headers-generated
-if USE_GTK_PEER
-AWT_HEADERS_TOUCH_FILE = $(top_builddir)/src/native/include/awtheaders-generated
-endif
-
-nativetable.inc: $(top_srcdir)/src/classpath/lib/bootstrap.zip $(top_builddir)/src/native/tools/gennativetable $(top_builddir)/config.h $(HEADERS_TOUCH_FILE) $(AWT_HEADERS_TOUCH_FILE) $(srcdir)/classes.am
-	CLASSPATH=$(top_builddir)/src/classpath/lib/ \
-	$(top_builddir)/src/native/tools/gennativetable \
-	$(NO_REGEN_CLASSES) \
-	$(CLASSES) \
-	$(AWT_CLASSES) \
-	> nativetable.inc
 
 
 ## Local variables:
