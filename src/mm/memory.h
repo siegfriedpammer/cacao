@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.h 1494 2004-11-12 13:34:26Z twisti $
+   $Id: memory.h 1519 2004-11-17 11:55:24Z twisti $
 
 */
 
@@ -123,8 +123,6 @@ struct dumpinfo {
 
 
 /* Uncollectable memory which can contain references */
-void *heap_alloc_uncollectable(u4 bytelen);
-void heap_free(void *);
 
 #define GCNEW(type,num)       heap_alloc_uncollectable(sizeof(type) * (num))
 #define GCFREE(ptr)           heap_free(ptr)
