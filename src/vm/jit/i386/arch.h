@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: arch.h 1887 2005-01-27 11:29:56Z twisti $
+   $Id: arch.h 1960 2005-02-23 11:06:33Z twisti $
 
 */
 
@@ -108,6 +108,7 @@
 #define SUPPORT_LONG_ICVT        1
 #define SUPPORT_LONG_FCVT        1
 
+#define SUPPORT_MUL_CONST        1      /* mutiply with immediate             */
 #define SUPPORT_LOGICAL_CONST    1      /* AND, OR, XOR with immediates       */
 
 #define SUPPORT_CONST_ASTORE     1      /* do we support const astores        */
