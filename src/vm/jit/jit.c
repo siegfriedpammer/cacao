@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: jit.c 696 2003-12-06 20:10:05Z edwin $
+   $Id: jit.c 725 2003-12-10 00:24:36Z edwin $
 
 */
 
@@ -1431,7 +1431,23 @@ methodptr jit_compile(methodinfo *m)
 	analyse_stack();
    
 #ifdef CACAO_TYPECHECK
+	/* print log message for compiled method */
+
+	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Typechecking: ");
+		utf_sprint(logtext+strlen(logtext), m->class->name);
+		strcpy(logtext+strlen(logtext), ".");
+		utf_sprint(logtext+strlen(logtext), m->name);
+		utf_sprint(logtext+strlen(logtext), m->descriptor);
+		dolog(logtext);
+	}
+
 	typecheck();
+	
+	if (compileverbose) {
+		dolog("Typechecking done.");
+	}
 #endif
 	
 	if (opt_loops) {

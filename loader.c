@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 724 2003-12-09 18:56:11Z edwin $
+   $Id: loader.c 725 2003-12-10 00:24:36Z edwin $
 
 */
 
@@ -1652,7 +1652,7 @@ class_new_array(classinfo *c)
 	/* Check array class name */
 	namelen = c->name->blength;
 	if (namelen < 2 || c->name->text[0] != '[')
-		panic("Invalid array class name.");
+		panic("Invalid array class name");
 
 	/* Check the component type */
 	switch (c->name->text[1]) {
@@ -1664,7 +1664,7 @@ class_new_array(classinfo *c)
 	  case 'L':
 		  /* c is an array of objects. */
 		  if (namelen < 4 || c->name->text[namelen-1] != ';')
-			  panic("Invalid array class name.");
+			  panic("Invalid array class name");
 		  comp = class_new(utf_new(c->name->text + 2,namelen - 3));
 		  break;
 	}

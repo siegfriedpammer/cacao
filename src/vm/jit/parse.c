@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 724 2003-12-09 18:56:11Z edwin $
+   $Id: parse.c 725 2003-12-10 00:24:36Z edwin $
 
 */
 
@@ -392,6 +392,26 @@ void descriptor2types(methodinfo *m)
 #define BUILTIN3(v,t)  isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
                        iptr->val.a=(v);PINC
 
+#define INDEX_ONEWORD(num)										\
+	do { if((num)<0 || (num)>=maxlocals)						\
+			panic("Invalid local variable index"); } while (0)
+#define INDEX_TWOWORD(num)										\
+	do { if((num)<0 || ((num)+1)>=maxlocals)					\
+			panic("Invalid local variable index"); } while (0)
+
+#define OP1LOAD(o,o1)							\
+	do {if (o == ICMD_LLOAD || o == ICMD_DLOAD)	\
+			INDEX_TWOWORD(o1);					\
+		else									\
+			INDEX_ONEWORD(o1);					\
+		OP1(o,o1);} while(0)
+
+#define OP1STORE(o,o1)								\
+	do {if (o == ICMD_LSTORE || o == ICMD_DSTORE)	\
+			INDEX_TWOWORD(o1);						\
+		else										\
+			INDEX_ONEWORD(o1);						\
+		OP1(o,o1);} while(0)
 
 /* block generating and checking macros */
 
@@ -609,6 +629,8 @@ void parse()
 
 			opcode = code_get_u1(p);
 			nextp = p += jcommandsize[opcode];
+			if (nextp > jcodelength)
+				panic("Unexpected end of bytecode");
 			tmpinlinf = list_first(inlinfo->inlinedmethods);
 			firstlocal = tmpinlinf->firstlocal;
 			label_index = tmpinlinf->label_index;
@@ -761,42 +783,42 @@ void parse()
 				nextp = p + 3;
 				iswide = false;
 			}
-			OP1(opcode, i + firstlocal);
+			OP1LOAD(opcode, i + firstlocal);
 			break;
 
 		case JAVA_ILOAD_0:
 		case JAVA_ILOAD_1:
 		case JAVA_ILOAD_2:
 		case JAVA_ILOAD_3:
-			OP1(ICMD_ILOAD, opcode - JAVA_ILOAD_0 + firstlocal);
+			OP1LOAD(ICMD_ILOAD, opcode - JAVA_ILOAD_0 + firstlocal);
 			break;
 
 		case JAVA_LLOAD_0:
 		case JAVA_LLOAD_1:
 		case JAVA_LLOAD_2:
 		case JAVA_LLOAD_3:
-			OP1(ICMD_LLOAD, opcode - JAVA_LLOAD_0 + firstlocal);
+			OP1LOAD(ICMD_LLOAD, opcode - JAVA_LLOAD_0 + firstlocal);
 			break;
 
 		case JAVA_FLOAD_0:
 		case JAVA_FLOAD_1:
 		case JAVA_FLOAD_2:
 		case JAVA_FLOAD_3:
-			OP1(ICMD_FLOAD, opcode - JAVA_FLOAD_0 + firstlocal);
+			OP1LOAD(ICMD_FLOAD, opcode - JAVA_FLOAD_0 + firstlocal);
 			break;
 
 		case JAVA_DLOAD_0:
 		case JAVA_DLOAD_1:
 		case JAVA_DLOAD_2:
 		case JAVA_DLOAD_3:
-			OP1(ICMD_DLOAD, opcode - JAVA_DLOAD_0 + firstlocal);
+			OP1LOAD(ICMD_DLOAD, opcode - JAVA_DLOAD_0 + firstlocal);
 			break;
 
 		case JAVA_ALOAD_0:
 		case JAVA_ALOAD_1:
 		case JAVA_ALOAD_2:
 		case JAVA_ALOAD_3:
-			OP1(ICMD_ALOAD, opcode - JAVA_ALOAD_0 + firstlocal);
+			OP1LOAD(ICMD_ALOAD, opcode - JAVA_ALOAD_0 + firstlocal);
 			break;
 
 			/* storing stack values into local variables */
@@ -813,42 +835,42 @@ void parse()
 				iswide = false;
 				nextp = p + 3;
 			}
-			OP1(opcode, i + firstlocal);
+			OP1STORE(opcode, i + firstlocal);
 			break;
 
 		case JAVA_ISTORE_0:
 		case JAVA_ISTORE_1:
 		case JAVA_ISTORE_2:
 		case JAVA_ISTORE_3:
-			OP1(ICMD_ISTORE, opcode - JAVA_ISTORE_0 + firstlocal);
+			OP1STORE(ICMD_ISTORE, opcode - JAVA_ISTORE_0 + firstlocal);
 			break;
 
 		case JAVA_LSTORE_0:
 		case JAVA_LSTORE_1:
 		case JAVA_LSTORE_2:
 		case JAVA_LSTORE_3:
-			OP1(ICMD_LSTORE, opcode - JAVA_LSTORE_0 + firstlocal);
+			OP1STORE(ICMD_LSTORE, opcode - JAVA_LSTORE_0 + firstlocal);
 			break;
 
 		case JAVA_FSTORE_0:
 		case JAVA_FSTORE_1:
 		case JAVA_FSTORE_2:
 		case JAVA_FSTORE_3:
-			OP1(ICMD_FSTORE, opcode - JAVA_FSTORE_0 + firstlocal);
+			OP1STORE(ICMD_FSTORE, opcode - JAVA_FSTORE_0 + firstlocal);
 			break;
 
 		case JAVA_DSTORE_0:
 		case JAVA_DSTORE_1:
 		case JAVA_DSTORE_2:
 		case JAVA_DSTORE_3:
-			OP1(ICMD_DSTORE, opcode - JAVA_DSTORE_0 + firstlocal);
+			OP1STORE(ICMD_DSTORE, opcode - JAVA_DSTORE_0 + firstlocal);
 			break;
 
 		case JAVA_ASTORE_0:
 		case JAVA_ASTORE_1:
 		case JAVA_ASTORE_2:
 		case JAVA_ASTORE_3:
-			OP1(ICMD_ASTORE, opcode - JAVA_ASTORE_0 + firstlocal);
+			OP1STORE(ICMD_ASTORE, opcode - JAVA_ASTORE_0 + firstlocal);
 			break;
 
 		case JAVA_IINC:
@@ -865,6 +887,7 @@ void parse()
 					iswide = false;
 					nextp = p + 5;
 				}
+				INDEX_ONEWORD(i + firstlocal);
 				OP2I(opcode, i + firstlocal, v);
 			}
 			break;
@@ -993,7 +1016,7 @@ void parse()
 			  break;
 			  }*/
 
-			OP1(opcode, i + firstlocal);
+			OP1LOAD(opcode, i + firstlocal);
 			break;
 
 		case JAVA_IRETURN:
@@ -1031,6 +1054,8 @@ void parse()
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
+				if (nextp + 8 > jcodelength)
+					panic("Unexpected end of bytecode");
 				if (!useinlining) {
 					tablep = (s4*)(jcode + nextp);
 
@@ -1058,6 +1083,9 @@ void parse()
 				*tablep = num;
 				tablep++;
 				nextp += 4;
+
+				if (nextp + 8*(num) > jcodelength)
+					panic("Unexpected end of bytecode");
 
 				for (i = 0; i < num; i++) {
 					/* value */
@@ -1090,6 +1118,8 @@ void parse()
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
+				if (nextp + 12 > jcodelength)
+					panic("Unexpected end of bytecode");
 				if (!useinlining) {
 					tablep = (s4*)(jcode + nextp);
 
@@ -1126,6 +1156,9 @@ void parse()
 				nextp += 4;
 
 				num -= j;
+
+				if (nextp + 4*(num+1) > jcodelength)
+					panic("Unexpected end of bytecode");
 
 				for (i = 0; i <= num; i++) {
 					j = p + code_get_s4(nextp);
@@ -1484,7 +1517,7 @@ void parse()
 	} /* end for */
 
 	if (p != jcodelength)
-		panic("Command-sequence crosses code-boundary");
+		panic("Command-sequence crosses code-boundary"); /* XXX change message */
 
 	if (!blockend)
 		panic("Code does not end with branch/return/athrow - stmt");	

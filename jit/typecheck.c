@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 724 2003-12-09 18:56:11Z edwin $
+   $Id: typecheck.c 725 2003-12-10 00:24:36Z edwin $
 
 */
 
@@ -206,10 +206,10 @@ struct jsr_record {
 
 #define INDEX_ONEWORD(num)										\
 	do { if((num)<0 || (num)>=validlocals)						\
-			panic("Invalid local variable index."); } while (0)
+			panic("Invalid local variable index"); } while (0)
 #define INDEX_TWOWORD(num)										\
 	do { if((num)<0 || ((num)+1)>=validlocals)					\
-			panic("Invalid local variable index."); } while (0)
+			panic("Invalid local variable index"); } while (0)
 
 #define SET_VARIABLE(num,type)									\
 	do {vtype[num] = (type);									\

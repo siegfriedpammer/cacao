@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 724 2003-12-09 18:56:11Z edwin $
+   $Id: stack.c 725 2003-12-10 00:24:36Z edwin $
 
 */
 
@@ -63,58 +63,54 @@ extern int dseglen;
 #define CURKIND    curstack->varkind
 #define CURTYPE    curstack->type
 
-#define REQUIRE_1 do{ if (!curstack) {UNDERFLOW;} } while(0)
-#define REQUIRE_2 do{ if (!curstack || !curstack->prev) {UNDERFLOW;} } while(0)
-#define REQUIRE_3 do{ if (!curstack || !curstack->prev || !curstack->prev->prev) {UNDERFLOW;} } while(0)
-#define REQUIRE_4 do{ if (!curstack || !curstack->prev || !curstack->prev->prev || !curstack->prev->prev->prev) {UNDERFLOW;} } while(0)
+#define REQUIRE(num)  do { if (stackdepth<(num)) {UNDERFLOW;} } while(0)
+#define REQUIRE_1     REQUIRE(1)
+#define REQUIRE_2     REQUIRE(2)
+#define REQUIRE_3     REQUIRE(3)
+#define REQUIRE_4     REQUIRE(4)
 
-#define REQUIRE(num)									\
-	do{ int macro_i = (num); stackptr st = curstack;	\
-		while(--macro_i>=0) {							\
-			if (!st) {UNDERFLOW;}						\
-			st = st->prev;								\
-		}} while(0)
-
-#define NEWSTACK(s,v,n) {new->prev=curstack;new->type=s;new->flags=0;\
+#define NEWSTACK(s,v,n) {new->prev=curstack;new->type=s;new->flags=0;	\
                         new->varkind=v;new->varnum=n;curstack=new;new++;}
 #define NEWSTACKn(s,n)  NEWSTACK(s,UNDEFVAR,n)
 #define NEWSTACK0(s)    NEWSTACK(s,UNDEFVAR,0)
 #define NEWXSTACK   {NEWSTACK(TYPE_ADR,STACKVAR,0);curstack=0;}
 
 #define SETDST      {iptr->dst=curstack;}
-#define POP(s)      {REQUIRE_1;									\
-                     if(s!=curstack->type){TYPEPANIC;}										\
+
+/* The following macros do NOT check stackdepth, set stackdepth and iptr->dst */
+#define POP(s)      {if(s!=curstack->type){TYPEPANIC;}										\
                      if(curstack->varkind==UNDEFVAR)curstack->varkind=TEMPVAR;\
                      curstack=curstack->prev;}
-#define POPANY      {REQUIRE_1;							\
-                     if(curstack->varkind==UNDEFVAR)curstack->varkind=TEMPVAR;	\
+#define POPANY      {if(curstack->varkind==UNDEFVAR)curstack->varkind=TEMPVAR;	\
                      curstack=curstack->prev;}
 #define COPY(s,d)   {(d)->flags=0;(d)->type=(s)->type;\
                      (d)->varkind=(s)->varkind;(d)->varnum=(s)->varnum;}
+/******************************/
 
+/* The following macros check stackdepth, set stackdepth and itpr->dst */
 #define PUSHCONST(s){NEWSTACKn(s,stackdepth);SETDST;stackdepth++;}
 #define LOAD(s,v,n) {NEWSTACK(s,v,n);SETDST;stackdepth++;}
-#define STORE(s)    {POP(s);SETDST;stackdepth--;}
-#define OP1_0(s)    {POP(s);SETDST;stackdepth--;}
-#define OP1_0ANY    {POPANY;SETDST;stackdepth--;}
+#define STORE(s)    {REQUIRE_1;POP(s);SETDST;stackdepth--;}
+#define OP1_0(s)    {REQUIRE_1;POP(s);SETDST;stackdepth--;}
+#define OP1_0ANY    {REQUIRE_1;POPANY;SETDST;stackdepth--;}
 #define OP0_1(s)    {NEWSTACKn(s,stackdepth);SETDST;stackdepth++;}
-#define OP1_1(s,d)  {POP(s);NEWSTACKn(d,stackdepth-1);SETDST;}
-#define OP2_0(s)    {POP(s);POP(s);SETDST;stackdepth-=2;}
-#define OPTT2_0(t,b){POP(t);POP(b);SETDST;stackdepth-=2;}
-#define OP2_1(s)    {POP(s);POP(s);NEWSTACKn(s,stackdepth-2);SETDST;stackdepth--;}
-#define OP2IAT_1(s) {POP(TYPE_INT);POP(TYPE_ADR);NEWSTACKn(s,stackdepth-2);\
+#define OP1_1(s,d)  {REQUIRE_1;POP(s);NEWSTACKn(d,stackdepth-1);SETDST;}
+#define OP2_0(s)    {REQUIRE_2;POP(s);POP(s);SETDST;stackdepth-=2;}
+#define OPTT2_0(t,b){REQUIRE_2;POP(t);POP(b);SETDST;stackdepth-=2;}
+#define OP2_1(s)    {REQUIRE_2;POP(s);POP(s);NEWSTACKn(s,stackdepth-2);SETDST;stackdepth--;}
+#define OP2IAT_1(s) {REQUIRE_2;POP(TYPE_INT);POP(TYPE_ADR);NEWSTACKn(s,stackdepth-2);\
                      SETDST;stackdepth--;}
-#define OP2IT_1(s)  {POP(TYPE_INT);POP(s);NEWSTACKn(s,stackdepth-2);\
+#define OP2IT_1(s)  {REQUIRE_2;POP(TYPE_INT);POP(s);NEWSTACKn(s,stackdepth-2);\
                      SETDST;stackdepth--;}
-#define OPTT2_1(s,d){POP(s);POP(s);NEWSTACKn(d,stackdepth-2);SETDST;stackdepth--;}
-#define OP2_2(s)    {POP(s);POP(s);NEWSTACKn(s,stackdepth-2);\
+#define OPTT2_1(s,d){REQUIRE_2;POP(s);POP(s);NEWSTACKn(d,stackdepth-2);SETDST;stackdepth--;}
+#define OP2_2(s)    {REQUIRE_2;POP(s);POP(s);NEWSTACKn(s,stackdepth-2);\
                      NEWSTACKn(s,stackdepth-1);SETDST;}
-#define OP3TIA_0(s) {POP(s);POP(TYPE_INT);POP(TYPE_ADR);SETDST;stackdepth-=3;}
-#define OP3_0(s)    {POP(s);POP(s);POP(s);SETDST;stackdepth-=3;}
-#define POPMANY(i)  {stackdepth-=i;while(--i>=0){POPANY;}SETDST;}
+#define OP3TIA_0(s) {REQUIRE_3;POP(s);POP(TYPE_INT);POP(TYPE_ADR);SETDST;stackdepth-=3;}
+#define OP3_0(s)    {REQUIRE_3;POP(s);POP(s);POP(s);SETDST;stackdepth-=3;}
+#define POPMANY(i)  {REQUIRE(i);stackdepth-=i;while(--i>=0){POPANY;}SETDST;}
 #define DUP         {REQUIRE_1;NEWSTACK(CURTYPE,CURKIND,curstack->varnum);SETDST; \
                     stackdepth++;}
-#define SWAP        {REQUIRE_1;COPY(curstack,new);POPANY;COPY(curstack,new+1);POPANY;\
+#define SWAP        {REQUIRE_2;COPY(curstack,new);POPANY;COPY(curstack,new+1);POPANY;\
                     new[0].prev=curstack;new[1].prev=new;\
                     curstack=new+1;new+=2;SETDST;}
 #define DUP_X1      {REQUIRE_2;COPY(curstack,new);COPY(curstack,new+2);POPANY;\
@@ -139,6 +135,7 @@ extern int dseglen;
                     new[2].prev=new+1;new[3].prev=new+2;\
                     new[4].prev=new+3;new[5].prev=new+4;\
                     curstack=new+5;new+=6;SETDST;stackdepth+=2;}
+/******************************/
 
 #define COPYCURSTACK(copy) {\
 	int d;\
@@ -1213,7 +1210,7 @@ void analyse_stack()
 						break;
 
 					case ICMD_DUP2_X1:
-						REQUIRE_1;
+						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							iptr->opc = ICMD_DUP_X1;
 							DUP_X1;
@@ -1226,7 +1223,7 @@ void analyse_stack()
 						/* pop 3 push 4 dup */
 						
 					case ICMD_DUP_X2:
-						REQUIRE_1;
+						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->prev->type)) {
 							iptr->opc = ICMD_DUP_X1;
 							DUP_X1;
@@ -1237,9 +1234,8 @@ void analyse_stack()
 						break;
 
 					case ICMD_DUP2_X2:
-						REQUIRE_1;
+						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->type)) {
-							REQUIRE_2;
 							if (IS_2_WORD_TYPE(curstack->prev->type)) {
 								iptr->opc = ICMD_DUP_X1;
 								DUP_X1;
