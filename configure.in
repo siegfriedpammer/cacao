@@ -10,8 +10,8 @@ AM_CONFIG_HEADER([config.h])
 
 AC_PREFIX_DEFAULT(/usr/local/cacao)
 
-dnl system type
 
+dnl system type
 case "$host_cpu" in
 alpha* )
 	ARCH_DIR="alpha"
@@ -30,11 +30,11 @@ mips* )
         STATIC_CLASSPATH="1"
 
 dnl for MIPSPro Compiler
-dnl	CFLAGS="-64 -O0 -g3 -OPT:Olimit=0 -woff 1110,1164,1515 -D__MIPS__ -D__MIPSEB__"
-	CFLAGS="-64 -O0 -g3 -D__MIPS__ -D__MIPSEB__"
+dnl	CFLAGS="-64 -OPT:Olimit=0 -woff 1110,1164,1515 -D__MIPS__ -D__MIPSEB__"
+	CFLAGS="-64  -D__MIPS__ -D__MIPSEB__"
 
 dnl for GCC
-dnl	CFLAGS="-O0 -mabi=64 -g3 -D__MIPS__ -D__MIPSEB__"
+dnl	CFLAGS="-mabi=64 -D__MIPS__ -D__MIPSEB__"
 dnl	LDFLAGS="-mabi=64"
 	;;
 
@@ -55,12 +55,17 @@ sparc* | * )
         ;;
 esac
 
+
+dnl set optimization and debugging for all architectures and systems
+CFLAGS="-O2 -g3 $CFLAGS"
+
+
 case "$host_os" in
 *linux* | *Linux* )
-        CFLAGS="-ansi -pedantic -Wall -Wno-long-long -O0 -g3 $CFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+        CFLAGS="-ansi -pedantic -Wall -Wno-long-long $CFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
 	;;
 *darwin* )
-        CFLAGS="-ansi -pedantic -Wall -Wno-long-long -O0 -g3 $CFLAGS -D__DARWIN__"
+        CFLAGS="-ansi -pedantic -Wall -Wno-long-long $CFLAGS -D__DARWIN__"
         ;;
 *irix* )
         CFLAGS="$CFLAGS -D__IRIX__"
@@ -68,6 +73,7 @@ case "$host_os" in
 * )
 	;;
 esac
+
 
 dnl define install prefix
 if test "x$prefix" = xNONE; then
@@ -79,6 +85,7 @@ fi
 
 AC_DEFINE_UNQUOTED([ARCH_DIR], "$ARCH_DIR", [Architecture directory])
 AC_SUBST(ARCH_DIR)
+
 
 AC_ARG_ENABLE([dynamicclasspath], [AS_HELP_STRING(--disable-dynamicclasspath, link classpath native code static even on platforms supporting dynamic loading)], [use_dynamicclasspath=$enableval], [use_dynamicclasspath=yes])
 dnl force static classpath linking ??
