@@ -26,7 +26,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1905 2005-02-09 11:24:06Z twisti $
+## $Id: Makefile.am 1917 2005-02-10 10:06:56Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -138,7 +138,6 @@ CLEANFILES = \
 	java_lang_VMDouble.h \
 	java_lang_VMFloat.h \
 	java_lang_VMRuntime.h \
-	java_lang_VMSecurityManager.h \
 	java_lang_VMString.h \
 	java_lang_VMSystem.h \
 	java_lang_VMThrowable.h \
