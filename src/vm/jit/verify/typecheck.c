@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 725 2003-12-10 00:24:36Z edwin $
+   $Id: typecheck.c 726 2003-12-10 15:41:07Z edwin $
 
 */
 
@@ -172,6 +172,20 @@ typeinfo_print_blocks(FILE *file,int vnum,u1 *vtype,typeinfo *vinfo)
 #endif
 
 /****************************************************************************/
+/* STATISTICS                                                               */
+/****************************************************************************/
+
+#ifdef TYPECHECK_DEBUG
+/*#define TYPECHECK_STATISTICS*/
+#endif
+
+#ifdef TYPECHECK_STATISTICS
+#define TYPECHECK_COUNT(cnt)  (cnt)++
+#else
+#define TYPECHECK_COUNT(cnt)
+#endif
+
+/****************************************************************************/
 /* INTERNAL DATA STRUCTURES                                                 */
 /****************************************************************************/
 
@@ -246,6 +260,16 @@ struct jsr_record {
                  TYPEINFO_COPY((source)->typeinfo,(dest)->typeinfo);}
 
 #define ISBUILTIN(v)   (iptr->val.a == (functionptr)(v))
+
+#define TYPECHECK_STACK(sp,tp)											\
+	do { if ((sp)->type != (tp))										\
+			panic("Wrong data type on stack"); } while(0)
+
+#define TYPECHECK_ADR(sp)  TYPECHECK_STACK(sp,TYPE_ADR)
+#define TYPECHECK_INT(sp)  TYPECHECK_STACK(sp,TYPE_INT)
+#define TYPECHECK_LNG(sp)  TYPECHECK_STACK(sp,TYPE_LNG)
+#define TYPECHECK_FLT(sp)  TYPECHECK_STACK(sp,TYPE_FLT)
+#define TYPECHECK_DBL(sp)  TYPECHECK_STACK(sp,TYPE_DBL)
 
 /* TYPECHECK_COPYVARS: copy the types and typeinfos of the current local
  *     variables to the local variables of the target block.
@@ -620,6 +644,10 @@ typecheck()
     utf *name_init;                                        /* "<init>" */
     bool initmethod;             /* true if this is an "<init>" method */
 
+#ifdef TYPECHECK_STATISTICS
+	int count_iterations = 0;
+#endif
+
     LOGSTR("\n==============================================================================\n");
     DOLOG(show_icmd_method());
     LOGSTR("\n==============================================================================\n");
@@ -730,6 +758,7 @@ typecheck()
 
     /* loop while there are still blocks to be checked */
     do {
+		TYPECHECK_COUNT(count_iterations);
 
         repeat = false;
         
@@ -889,8 +918,6 @@ typecheck()
                           /* STORING ADDRESS TO VARIABLE          */
 
                       case ICMD_ASTORE:
-                          /* TYPE_ADR has already been checked. */
-                          
                           if (handlers[0] &&
                               TYPEINFO_IS_NEWOBJECT(curstack->typeinfo))
                               panic("Storing uninitialized object in local variable inside try block");
@@ -1052,9 +1079,10 @@ typecheck()
                           /* OPERATIONS WITH UNCHECKED INPUT      */
 
                       case ICMD_CHECKCAST:
+						  TYPECHECK_ADR(curstack);
                           /* returnAddress is not allowed */
                           if (!TYPEINFO_IS_REFERENCE(curstack->typeinfo))
-                              panic("Illegal instruction: INSTANCEOF on non-reference");
+                              panic("Illegal instruction: CHECKCAST on non-reference");
 
                           /* XXX check if the cast can be done statically */
                           TYPEINFO_INIT_CLASSINFO(dst->typeinfo,(classinfo *)iptr[0].val.a);
@@ -1063,6 +1091,7 @@ typecheck()
                           break;
 
                       case ICMD_INSTANCEOF:
+						  TYPECHECK_ADR(curstack);
                           /* returnAddress is not allowed */
                           if (!TYPEINFO_IS_REFERENCE(curstack->typeinfo))
                               panic("Illegal instruction: INSTANCEOF on non-reference");
@@ -1435,6 +1464,9 @@ typecheck()
                           
                       case ICMD_BUILTIN3:
                           if (ISBUILTIN(asm_builtin_aastore)) {
+							  TYPECHECK_ADR(curstack);
+							  TYPECHECK_INT(curstack->prev);
+							  TYPECHECK_ADR(curstack->prev->prev);
                               if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(curstack->prev->prev->typeinfo))
                                   panic("illegal instruction: AASTORE to non-reference array");
 
@@ -1458,11 +1490,13 @@ typecheck()
 #endif
                               )
                           {
+							  TYPECHECK_INT(curstack->prev);
                               if (iptr[-1].opc != ICMD_ACONST)
                                   panic("illegal instruction: builtin_newarray without classinfo");
                               TYPEINFO_INIT_CLASSINFO(dst->typeinfo,((vftbl *)iptr[-1].val.a)->class);
                           }
                           else if (ISBUILTIN(asm_builtin_checkarraycast)) {
+							  TYPECHECK_ADR(curstack->prev);
                               if (iptr[-1].opc != ICMD_ACONST)
                                   panic("illegal instruction: asm_builtin_checkarraycast without classinfo");
                               TYPEINFO_INIT_CLASSINFO(dst->typeinfo,((vftbl *)iptr[-1].val.a)->class);
@@ -1477,28 +1511,37 @@ typecheck()
                                   panic("illegal instruction: builtin_new without classinfo");
                               TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,iptr);
                           }
+						  /* XXX unify the following cases */
                           else if (ISBUILTIN(builtin_newarray_boolean)) {
+							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_BOOLEAN);
                           }
                           else if (ISBUILTIN(builtin_newarray_char)) {
+							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_CHAR);
                           }
                           else if (ISBUILTIN(builtin_newarray_float)) {
+							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_FLOAT);
                           }
                           else if (ISBUILTIN(builtin_newarray_double)) {
+							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_DOUBLE);
                           }
                           else if (ISBUILTIN(builtin_newarray_byte)) {
+							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_BYTE);
                           }
                           else if (ISBUILTIN(builtin_newarray_short)) {
+							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_SHORT);
                           }
                           else if (ISBUILTIN(builtin_newarray_int)) {
+							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_INT);
                           }
                           else if (ISBUILTIN(builtin_newarray_long)) {
+							  TYPECHECK_INT(curstack);
                               TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_LONG);
                           }
                           /* XXX check for missed builtins in debug mode? */
@@ -1722,6 +1765,10 @@ typecheck()
         LOGIF(repeat,"repeat=true");
     } while (repeat);
 
+#ifdef TYPECHECK_STATISTICS
+	dolog("Typechecker did %4d iterations",count_iterations);
+#endif
+
 #ifdef TYPECHECK_DEBUG
 	for (i=0; i<block_count; ++i) {
 		if (block[i].flags != BBDELETED
@@ -1730,7 +1777,7 @@ typecheck()
 		{
 			LOG2("block L%03d has invalid flags after typecheck: %d",
 				 block[i].debug_nr,block[i].flags);
-			panic("Inalid block flags after typecheck");
+			panic("Invalid block flags after typecheck");
 		}
 	}
 #endif

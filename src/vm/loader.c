@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 725 2003-12-10 00:24:36Z edwin $
+   $Id: loader.c 726 2003-12-10 15:41:07Z edwin $
 
 */
 
@@ -964,12 +964,18 @@ static void method_load (methodinfo *m, classinfo *c)
 			skipattributebody ();
 			}
 		else {
+			u4 codelen;
 			if (m -> jcode) panic ("Two code-attributes for one method!");
 			
 			suck_u4();
 			m -> maxstack = suck_u2();
 			m -> maxlocals = suck_u2();
-			m -> jcodelength = suck_u4();
+			codelen = suck_u4();
+			if (codelen == 0)
+				panic("bytecode has zero length");
+			if (codelen > 65536)
+				panic("bytecode too long");
+			m -> jcodelength = codelen;
 			m -> jcode = MNEW (u1, m->jcodelength);
 			suck_nbytes (m->jcode, m->jcodelength);
 			m -> exceptiontablelength = suck_u2 ();

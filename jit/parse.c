@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 725 2003-12-10 00:24:36Z edwin $
+   $Id: parse.c 726 2003-12-10 15:41:07Z edwin $
 
 */
 
@@ -433,6 +433,7 @@ void descriptor2types(methodinfo *m)
         } \
     } while (0)
 
+/* bound_check1 is used for the inclusive ends of exception handler ranges */
 #define bound_check1(i) \
     do { \
         if (i < 0 || i > cumjcodelength) { \
@@ -502,6 +503,7 @@ void parse()
 	int *label_index = NULL;    /* label redirection table                    */
 	int firstlocal = 0;         /* first local variable of method             */
 	xtable* nextex;             /* points next free entry in extable          */
+	u1 *instructionstart;       /* 1 for pcs which are valid instr. starts    */
 
 	bool useinltmp;
 
@@ -556,6 +558,8 @@ void parse()
 	/* 1 additional for end ipc and 3 for loop unrolling */
 	
 	block_index = DMNEW(int, cumjcodelength + 4);
+	instructionstart = DMNEW(u1, cumjcodelength + 4);
+	memset(instructionstart,0,sizeof(u1) * (cumjcodelength + 4));
 
 	/* 1 additional for TRACEBUILTIN and 4 for MONITORENTER/EXIT */
 	/* additional MONITOREXITS are reached by branches which are 3 bytes */
@@ -622,6 +626,10 @@ void parse()
 	  
 		/* DEBUG XXX */	  /*printf("p:%d gp:%d ",p,gp);*/
 
+		/* mark this position as a valid instruction start */
+		if (!iswide)
+			instructionstart[p] = 1;
+
 		/*INLINING*/
 		if ((useinlining) && (gp == nextgp)) {
 			u1 *tptr;
@@ -686,6 +694,8 @@ void parse()
 		}
 
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
+		if (nextp > jcodelength)
+			panic("Unexpected end of bytecode");
 		s_count += stackreq[opcode];      	/* compute stack element count    */
 
 		switch (opcode) {
@@ -1496,6 +1506,10 @@ void parse()
 			break;
 				
 		} /* end switch */
+
+		/* If WIDE was used correctly, iswide should have been reset by now. */
+		if (iswide && opcode != JAVA_WIDE)
+			panic("Illegal instruction: WIDE before incompatible opcode");
 		
 		/* INLINING */
 		  
@@ -1564,6 +1578,10 @@ void parse()
 
 		for (p = 0; p < cumjcodelength; p++) {
 			if (block_index[p] & 1) {
+				/* check if this block starts at the beginning of an instruction */
+				if (!instructionstart[p])
+					panic("Branch into middle of instruction");
+				/* allocate the block */
 				bptr->iinstr = instr + (block_index[p] >> 1);
 				bptr->debug_nr = c_debug_nr++;
 				if (b_count != 0)
