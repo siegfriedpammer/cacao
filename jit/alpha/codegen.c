@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 558 2003-11-02 22:56:30Z twisti $
+   $Id: codegen.c 594 2003-11-09 19:54:50Z twisti $
 
 */
 
@@ -75,6 +75,54 @@ The calling conventions and the layout of the stack is  explained in detail
 in the documention file: calling.doc
 
 *******************************************************************************/
+
+
+/* register descripton - array ************************************************/
+
+/* #define REG_RES   0         reserved register for OS or code generator     */
+/* #define REG_RET   1         return value register                          */
+/* #define REG_EXC   2         exception value register (only old jit)        */
+/* #define REG_SAV   3         (callee) saved register                        */
+/* #define REG_TMP   4         scratch temporary register (caller saved)      */
+/* #define REG_ARG   5         argument register (caller saved)               */
+
+/* #define REG_END   -1        last entry in tables */
+ 
+int nregdescint[] = {
+	REG_RET, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
+	REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, 
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP,
+	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+	REG_END };
+
+/* for use of reserved registers, see comment above */
+	
+int nregdescfloat[] = {
+	REG_RET, REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+	REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP,
+	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES,
+	REG_END };
+
+/* for use of reserved registers, see comment above */
+
+
+/* parameter allocation mode */
+
+int nreg_parammode = PARAMMODE_NUMBERED;  
+
+   /* parameter-registers will be allocated by assigning the
+      1. parameter:   int/float-reg 16
+      2. parameter:   int/float-reg 17  
+      3. parameter:   int/float-reg 18 ....
+   */
+
+
+/* stackframe-infos ***********************************************************/
+
+int parentargs_base; /* offset in stackframe for the parameter from the caller*/
+
+/* -> see file 'calling.doc' */
 
 
 /* additional functions and macros to generate code ***************************/
@@ -3828,7 +3876,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	}
 #endif
 
-	reg_init();
+	reg_init(m);
 
 	M_MOV  (argintregs[4],argintregs[5]); 
 	M_FMOV (argfltregs[4],argfltregs[5]);
