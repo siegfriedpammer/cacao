@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1424 2004-10-30 11:15:23Z motse $
+   $Id: jni.c 1426 2004-11-01 12:21:59Z twisti $
 
 */
 
@@ -3072,46 +3072,61 @@ void DeleteWeakGlobalRef (JNIEnv* env, jweak ref)
 /** Creates a new global reference to the object referred to by the obj argument **/
     
 jobject NewGlobalRef(JNIEnv* env, jobject lobj)
-{	
-	MonitorEnter(env,*global_ref_table);
-	jobject refcount = CallObjectMethod(env, *global_ref_table, getmid, lobj);
-	jint val = (refcount == NULL) ? 0 : CallIntMethod(env,refcount,intvalue);
-	jobject newval = NewObject(env,intclass,newint,val+1);
+{
+	jobject refcount;
+	jint val;
+	jobject newval;
+
+	MonitorEnter(env, *global_ref_table);
+	
+	refcount = CallObjectMethod(env, *global_ref_table, getmid, lobj);
+	val = (refcount == NULL) ? 0 : CallIntMethod(env, refcount, intvalue);
+	newval = NewObject(env, intclass, newint, val + 1);
+
 	if (newval != NULL) {
-
 		CallObjectMethod(env, *global_ref_table, putmid, lobj, newval);
-
-		MonitorExit(env,*global_ref_table);
+		MonitorExit(env, *global_ref_table);
 		return lobj;
+
 	} else {
 		log_text("JNI-NewGlobalRef: unable to create new java.lang.Integer");
-		MonitorExit(env,*global_ref_table);
+		MonitorExit(env, *global_ref_table);
 		return NULL;
 	}
 }
 
 /*************  Deletes the global reference pointed to by globalRef **************/
 
-void DeleteGlobalRef (JNIEnv* env, jobject gref)
+void DeleteGlobalRef(JNIEnv* env, jobject gref)
 {
-	MonitorEnter(env,*global_ref_table);
-	jobject refcount = CallObjectMethod(env, *global_ref_table, getmid, gref);
+	jobject refcount;
+	jint val;
+
+	MonitorEnter(env, *global_ref_table);
+	refcount = CallObjectMethod(env, *global_ref_table, getmid, gref);
+
 	if (refcount == NULL) {
 		log_text("JNI-DeleteGlobalRef: unable to find global reference");
 		return;
 	}
-	jint val = CallIntMethod(env,refcount,intvalue);
+
+	val = CallIntMethod(env, refcount, intvalue);
 	val--;
+
 	if (val == 0) {
 		CallObjectMethod(env, *global_ref_table, removemid,refcount);
+
 	} else {
-		jobject newval = NewObject(env,intclass,newint,val);
+		jobject newval = NewObject(env, intclass, newint, val);
+
 		if (newval != NULL) {
 			CallObjectMethod(env,*global_ref_table, putmid,newval);
+
 		} else {
 			log_text("JNI-DeleteGlobalRef: unable to create new java.lang.Integer");
 		}
 	}
+
 	MonitorExit(env,*global_ref_table);
 }
 
