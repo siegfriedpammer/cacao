@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 2184 2005-04-01 21:19:05Z edwin $
+   $Id: method.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -41,6 +41,7 @@
 #include "mm/memory.h"
 #include "vm/method.h"
 #include "vm/class.h"
+#include "vm/loader.h"
 #include "vm/jit/codegen.inc.h"
 
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.c 2182 2005-04-01 20:56:33Z edwin $
+   $Id: resolve.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -226,6 +226,12 @@ resolve_class_from_typedesc(typedesc *d,bool link,classinfo **result)
 
 	*result = NULL;
 
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"resolve_class_from_typedesc(");
+	descriptor_debug_print_typedesc(stderr,d);
+	fprintf(stderr,",%i)\n",link);
+#endif
+
 	if (d->classref) {
 		/* a reference type */
 		if (!resolve_classref_or_classinfo(NULL,CLASSREF_OR_CLASSINFO(d->classref),
@@ -235,10 +241,18 @@ resolve_class_from_typedesc(typedesc *d,bool link,classinfo **result)
 	else {
 		/* a primitive type */
 		cls = primitivetype_table[d->decltype].class_primitive;
+		RESOLVE_ASSERT(cls->loaded);
 		if (!cls->linked)
 			if (!link_class(cls))
 				return false; /* exception */
 	}
+	RESOLVE_ASSERT(cls);
+	RESOLVE_ASSERT(cls->loaded);
+	RESOLVE_ASSERT(!link || cls->linked);
+
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"    result = ");utf_fprint(stderr,cls->name);fprintf(stderr,"\n");
+#endif
 
 	*result = cls;
 	return true;

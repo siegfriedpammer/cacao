@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 2017 2005-03-09 11:37:33Z twisti $
+   $Id: parseRTstats.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -172,7 +172,7 @@ classinfo  *s;
 
   if (class == NULL) {return;}
   CLASSINFO(class,"CLASS: ");
-  for (s = class->super; s != NULL; s = s->super) {
+  for (s = class->super.cls; s != NULL; s = s->super.cls) {
     CLASSINFO(s,"SUPER:: ");
     }
 

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2182 2005-04-01 20:56:33Z edwin $
+   $Id: loader.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -638,17 +638,7 @@ void fprintflags (FILE *fp, u2 f)
 
 void printflags(u2 f)
 {
-   if ( f & ACC_PUBLIC )       printf (" PUBLIC");
-   if ( f & ACC_PRIVATE )      printf (" PRIVATE");
-   if ( f & ACC_PROTECTED )    printf (" PROTECTED");
-   if ( f & ACC_STATIC )       printf (" STATIC");
-   if ( f & ACC_FINAL )        printf (" FINAL");
-   if ( f & ACC_SYNCHRONIZED ) printf (" SYNCHRONIZED");
-   if ( f & ACC_VOLATILE )     printf (" VOLATILE");
-   if ( f & ACC_TRANSIENT )    printf (" TRANSIENT");
-   if ( f & ACC_NATIVE )       printf (" NATIVE");
-   if ( f & ACC_INTERFACE )    printf (" INTERFACE");
-   if ( f & ACC_ABSTRACT )     printf (" ABSTRACT");
+	fprintflags(stdout,f);
 }
 
 
@@ -2092,7 +2082,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	
 	/* retrieve superclass */
 	if ((i = suck_u2(cb))) {
-		if (!(c->super = class_getconstant(c, i, CONSTANT_Class)))
+		if (!(c->super.cls = class_getconstant(c, i, CONSTANT_Class)))
 			goto return_exception;
 
 		/* java.lang.Object may not have a super class. */
@@ -2106,7 +2096,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 		/* Interfaces must have java.lang.Object as super class. */
 		if ((c->flags & ACC_INTERFACE) &&
-			c->super->name != utf_java_lang_Object) {
+			c->super.cls->name != utf_java_lang_Object) {
 			*exceptionptr =
 				new_exception_message(string_java_lang_ClassFormatError,
 									  "Interfaces must have java.lang.Object as superclass");
@@ -2115,7 +2105,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		}
 
 	} else {
-		c->super = NULL;
+		c->super.any = NULL;
 
 		/* This is only allowed for java.lang.Object. */
 		if (c->name != utf_java_lang_Object) {
@@ -2134,9 +2124,9 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	if (!check_classbuffer_size(cb, 2 * c->interfacescount))
 		goto return_exception;
 
-	c->interfaces = MNEW(classinfo*, c->interfacescount);
+	c->interfaces = MNEW(classref_or_classinfo, c->interfacescount);
 	for (i = 0; i < c->interfacescount; i++) {
-		if (!(c->interfaces[i] = class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
+		if (!(c->interfaces[i].cls = class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
 			goto return_exception;
 	}
 
@@ -2413,11 +2403,11 @@ void class_new_array(classinfo *c)
 	}
 
 	/* Setup the array class */
-	c->super = class_java_lang_Object;
+	c->super.cls = class_java_lang_Object;
 	c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
 
     c->interfacescount = 2;
-    c->interfaces = MNEW(classinfo*, 2);
+    c->interfaces = MNEW(classref_or_classinfo, 2);
 
 	if (opt_eager) {
 		classinfo *tc;
@@ -2425,16 +2415,16 @@ void class_new_array(classinfo *c)
 		tc = class_java_lang_Cloneable;
 		load_class_bootstrap(tc);
 		list_addfirst(&unlinkedclasses, tc);
-		c->interfaces[0] = tc;
+		c->interfaces[0].cls = tc;
 
 		tc = class_java_io_Serializable;
 		load_class_bootstrap(tc);
 		list_addfirst(&unlinkedclasses, tc);
-		c->interfaces[1] = tc;
+		c->interfaces[1].cls = tc;
 
 	} else {
-		c->interfaces[0] = class_java_lang_Cloneable;
-		c->interfaces[1] = class_java_io_Serializable;
+		c->interfaces[0].cls = class_java_lang_Cloneable;
+		c->interfaces[1].cls = class_java_io_Serializable;
 	}
 
 	c->methodscount = 1;
@@ -2521,15 +2511,15 @@ static fieldinfo *class_resolvefield_int(classinfo *c, utf *name, utf *desc)
 	/* try superinterfaces recursively */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		fi = class_resolvefield_int(c->interfaces[i], name, desc);
+		fi = class_resolvefield_int(c->interfaces[i].cls, name, desc);
 		if (fi)
 			return fi;
 	}
 
 	/* try superclass */
 
-	if (c->super)
-		return class_resolvefield_int(c->super, name, desc);
+	if (c->super.cls)
+		return class_resolvefield_int(c->super.cls, name, desc);
 
 	/* not found */
 
@@ -2677,7 +2667,7 @@ methodinfo *class_resolvemethod_approx(classinfo *c, utf *name, utf *desc)
 		/* method found */
 		if (m) return m;
 		/* search superclass */
-		c = c->super;
+		c = c->super.cls;
 	}
 
 	return NULL;
@@ -2700,7 +2690,7 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *desc)
 		if (m)
 			return m;
 
-		c = c->super;
+		c = c->super.cls;
 	}
 
 	return NULL;
@@ -2727,7 +2717,7 @@ static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
 	/* try the superinterfaces */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		m = class_resolveinterfacemethod_intern(c->interfaces[i], name, desc);
+		m = class_resolveinterfacemethod_intern(c->interfaces[i].cls, name, desc);
 
 		if (m)
 			return m;
@@ -2820,13 +2810,13 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 		if (mi)
 			goto found;
 
-		cls = cls->super;
+		cls = cls->super.cls;
 	}
 
 	/* try the superinterfaces */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		mi = class_resolveinterfacemethod_intern(c->interfaces[i], name, desc);
+		mi = class_resolveinterfacemethod_intern(c->interfaces[i].cls, name, desc);
 
 		if (mi)
 			goto found;
@@ -2876,7 +2866,7 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 	for (;;) {
 		if (!sub) return false;
 		if (sub == super) return true;
-		sub = sub->super;
+		sub = sub->super.cls;
 	}
 }
 
@@ -2972,18 +2962,18 @@ static classinfo *class_init_intern(classinfo *c)
 
 	/* initialize super class */
 
-	if (c->super) {
-		if (!c->super->initialized) {
+	if (c->super.cls) {
+		if (!c->super.cls->initialized) {
 			if (initverbose) {
 				char logtext[MAXLOGTEXT];
 				sprintf(logtext, "Initialize super class ");
-				utf_sprint_classname(logtext + strlen(logtext), c->super->name);
+				utf_sprint_classname(logtext + strlen(logtext), c->super.cls->name);
 				sprintf(logtext + strlen(logtext), " from ");
 				utf_sprint_classname(logtext + strlen(logtext), c->name);
 				log_text(logtext);
 			}
 
-			if (!class_init(c->super))
+			if (!class_init(c->super.cls))
 				return NULL;
 		}
 	}
@@ -2991,17 +2981,17 @@ static classinfo *class_init_intern(classinfo *c)
 	/* initialize interface classes */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		if (!c->interfaces[i]->initialized) {
+		if (!c->interfaces[i].cls->initialized) {
 			if (initverbose) {
 				char logtext[MAXLOGTEXT];
 				sprintf(logtext, "Initialize interface class ");
-				utf_sprint_classname(logtext + strlen(logtext), c->interfaces[i]->name);
+				utf_sprint_classname(logtext + strlen(logtext), c->interfaces[i].cls->name);
 				sprintf(logtext + strlen(logtext), " from ");
 				utf_sprint_classname(logtext + strlen(logtext), c->name);
 				log_text(logtext);
 			}
 			
-			if (!class_init(c->interfaces[i]))
+			if (!class_init(c->interfaces[i].cls))
 				return NULL;
 		}
 	}
@@ -3249,16 +3239,16 @@ void class_showmethods (classinfo *c)
 	printf ("Flags: ");	printflags (c->flags);	printf ("\n");
 
 	printf ("This: "); utf_display (c->name); printf ("\n");
-	if (c->super) {
-		printf ("Super: "); utf_display (c->super->name); printf ("\n");
+	if (c->super.cls) {
+		printf ("Super: "); utf_display (c->super.cls->name); printf ("\n");
 		}
 	printf ("Index: %d\n", c->index);
 	
 	printf ("interfaces:\n");	
 	for (i=0; i < c-> interfacescount; i++) {
 		printf ("   ");
-		utf_display (c -> interfaces[i] -> name);
-		printf (" (%d)\n", c->interfaces[i] -> index);
+		utf_display (c -> interfaces[i].cls -> name);
+		printf (" (%d)\n", c->interfaces[i].cls -> index);
 		}
 
 	printf ("fields:\n");		

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: class.h 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -77,12 +77,12 @@ struct classinfo {                /* class structure                          */
 	s4          parseddescsize;   /* size of the parsed descriptors block     */
 	u1         *parseddescs;      /* parsed descriptors                       */
 
-	classinfo  *super;            /* super class pointer                      */
+	classref_or_classinfo super;  /* super class                              */
 	classinfo  *sub;              /* sub class pointer                        */
 	classinfo  *nextsub;          /* pointer to next class in sub class list  */
 
 	s4          interfacescount;  /* number of interfaces                     */
-	classinfo **interfaces;       /* pointer to interfaces                    */
+	classref_or_classinfo *interfaces; /* superinterfaces                     */
 
 	s4          fieldscount;      /* number of fields                         */
 	fieldinfo  *fields;           /* field table                              */

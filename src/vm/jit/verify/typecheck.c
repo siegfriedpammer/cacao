@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 2181 2005-04-01 16:53:33Z edwin $
+   $Id: typecheck.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -1759,7 +1759,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                                   if (!ins) {
 									  TYPECHECK_ASSERT(initmethod);
 									  /* must be <init> of current class or direct superclass */
-									  if (mi->class != m->class && mi->class != m->class->super)
+									  if (mi->class != m->class && mi->class != m->class->super.cls)
 										  panic("<init> calling <init> of the wrong class");
 									  
                                       /* set our marker variable to type int */

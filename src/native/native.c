@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2183 2005-04-01 20:57:17Z edwin $
+   $Id: native.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -588,6 +588,7 @@ java_objectarray* get_parametertypes(methodinfo *m)
 		if (!resolve_class_from_typedesc(descr->paramtypes + i,false,
 					(classinfo **) (result->data + i)))
 			return NULL; /* exception */
+		use_class_as_object((classinfo*) result->data[i]);
 	}
 
     return result;
@@ -633,6 +634,8 @@ classinfo *get_returntype(methodinfo *m)
 
 	if (!resolve_class_from_typedesc(&(m->parseddesc->returntype),false,&cls))
 		return NULL; /* exception */
+
+	use_class_as_object(cls);
 	return cls;
 }
 
@@ -782,13 +785,13 @@ java_objectarray *builtin_asm_createclasscontextarray(classinfo **end, classinfo
 			class_new(utf_new_char("java/lang/SecurityManager"));
 
 	if (size > 0) {
-		if (start == class_java_lang_SecurityManager) {
+		if (*start == class_java_lang_SecurityManager) {
 			size--;
 			start--;
 		}
 	}
 
-	tmpArray =
+	tmpArray = (java_objectarray*)
 		builtin_newarray(size, class_array_of(class_java_lang_Class)->vftbl);
 
 	for(i = 0, current = start; i < size; i++, current--) {
@@ -824,7 +827,7 @@ java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end, classinfo **s
 			class_new(utf_new_char("java/lang/SecurityManager"));
 
 	if (size > 0) {
-		if (start == class_java_lang_SecurityManager) {
+		if (*start == class_java_lang_SecurityManager) {
 			size--;
 			start--;
 		}

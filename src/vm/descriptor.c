@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.c 2182 2005-04-01 20:56:33Z edwin $
+   $Id: descriptor.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -910,7 +910,7 @@ descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file)
 	fprintf(file,"classrefcount:  %d\n",pool->classrefhash.entries);
 	fprintf(file,"descriptorsize: %d bytes\n",pool->descriptorsize);
 	fprintf(file,"classrefsize:   %d bytes\n",
-			(int)pool->classrefhash.entries * sizeof(constant_classref));
+			(int)(pool->classrefhash.entries * sizeof(constant_classref)));
 
 	fprintf(file,"class references:\n");
 	for (slot=0; slot<pool->classrefhash.size; ++slot) {

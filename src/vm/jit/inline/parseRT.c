@@ -27,7 +27,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 2184 2005-04-01 21:19:05Z edwin $
+   $Id: parseRT.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -102,8 +102,8 @@ if (!(meth->flags & ACC_ABSTRACT))  {
     count_methods_marked_used++;
 #endif
     METHINFOt(meth,info,RTA_DEBUGopcodes)
-	if (meth->class->super != NULL) {
-		CLASSNAME(meth->class->super,"\tsuper=",RTA_DEBUGr)
+	if (meth->class->super.cls != NULL) {
+		CLASSNAME(meth->class->super.cls,"\tsuper=",RTA_DEBUGr)
 		}
 	else {
 		if (RTA_DEBUGr) printf("\tsuper=NULL\n");}
@@ -136,7 +136,7 @@ void rtaAddUsedInterfaceMethods(classinfo *ci) {
 
 	/* add used interfaces methods to callgraph */
 	for (jj=0; jj < ci -> interfacescount; jj++) {
-		classinfo *ici = ci -> interfaces [jj];
+		classinfo *ici = ci -> interfaces [jj].cls;
 	
 		if (RTA_DEBUGinf) { 
 			printf("BInterface used: ");fflush(stdout); 
@@ -200,7 +200,7 @@ for (ii=0; ii<ci->methodscount; ii++) {
 		}
 	else	{ /*** ??? Should this be an else or ??? */
 		for (jj=0; jj < ci -> interfacescount; jj++) {
-			classinfo *ici = ci -> interfaces [jj];
+			classinfo *ici = ci -> interfaces [jj].cls;
 			/*  use resolve method....!!!! */
 			if (ici -> classUsed != NOTUSED) {
 				for (mm=0; mm< ici->methodscount; mm++) {
@@ -600,7 +600,7 @@ if ((RTA_DEBUGr)||(RTA_DEBUGopcodes)) printf("\n");
 			          		/*--- <init>  ()V  is equivalent to "new" 
 			          		indicating a class is used = instaniated ---- */	
 			       			if (utf_init==mi->name) {
-				    			if ((m->class->super == mi->class) 
+				    			if ((m->class->super.cls == mi->class) 
 				    			&&  (m->descriptor == utf_void__void) ) 
 								{
 								METHINFOt(mi,"SUPER INIT:",RTA_DEBUGopcodes);

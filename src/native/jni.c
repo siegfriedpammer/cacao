@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2183 2005-04-01 20:57:17Z edwin $
+   $Id: jni.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -557,7 +557,7 @@ static fieldinfo *jclass_findfield (classinfo *c, utf *name, utf *desc)
 			return &(c->fields[i]);
 		}
 
-	if (c->super) return jclass_findfield(c->super,name,desc);
+	if (c->super.cls) return jclass_findfield(c->super.cls,name,desc);
 
 	return NULL;
 }
@@ -658,7 +658,7 @@ jclass GetSuperclass(JNIEnv *env, jclass sub)
 {
 	classinfo *c;
 
-	c = ((classinfo *) sub)->super;
+	c = ((classinfo *) sub)->super.cls;
 
 	if (!c)
 		return NULL;
@@ -994,13 +994,13 @@ jobject NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID, jvalue *args)
 
 jclass GetObjectClass(JNIEnv *env, jobject obj)
 {
+	classinfo *c;
+	
 	if (!obj || !obj->vftbl)
 		return NULL;
 
- 	classinfo *c = obj->vftbl->class;
-
+ 	c = obj->vftbl->class;
 	use_class_as_object(c);
-
 	return c;
 }
 

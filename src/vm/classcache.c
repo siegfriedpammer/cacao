@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.c 2181 2005-04-01 16:53:33Z edwin $
+   $Id: classcache.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -45,6 +45,8 @@
 /*============================================================================*/
 /* DEBUG HELPERS                                                              */
 /*============================================================================*/
+
+/*#define CLASSCACHE_VERBOSE*/
 
 #ifndef NDEBUG
 #define CLASSCACHE_DEBUG
@@ -637,8 +639,8 @@ classcache_add_constraint(classloader *a,classloader *b,utf *classname)
 
 	CLASSCACHE_ASSERT(classname);
 
-#ifdef CLASSCACHE_DEBUG
-	fprintf(stderr,"classcache_add_constraint(%p,%p,",a,b);
+#ifdef CLASSCACHE_VERBOSE
+	fprintf(stderr,"classcache_add_constraint(%p,%p,",(void*)a,(void*)b);
 	utf_fprint_classname(stderr,classname);
 	fprintf(stderr,")\n");
 #endif

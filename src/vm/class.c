@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2181 2005-04-01 16:53:33Z edwin $
+   $Id: class.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -302,7 +302,7 @@ classinfo *class_new_intern(utf *classname)
 	c->classrefcount = 0;
 	c->parseddescs = NULL;
 	c->parseddescsize = 0;
-	c->super = NULL;
+	c->super.any = NULL;
 	c->sub = NULL;
 	c->nextsub = NULL;
 	c->interfacescount = 0;

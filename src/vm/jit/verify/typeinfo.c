@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2182 2005-04-01 20:56:33Z edwin $
+   $Id: typeinfo.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -375,16 +375,17 @@ interface_extends_interface(classinfo *cls,classinfo *interf)
 	TYPEINFO_ASSERT(interf);
 	TYPEINFO_ASSERT((interf->flags & ACC_INTERFACE) != 0);
 	TYPEINFO_ASSERT((cls->flags & ACC_INTERFACE) != 0);
+	TYPEINFO_ASSERT(cls->linked);
 
     /* first check direct superinterfaces */
     for (i=0; i<cls->interfacescount; ++i) {
-        if (cls->interfaces[i] == interf)
+        if (cls->interfaces[i].cls == interf)
             return true;
     }
     
     /* check indirect superinterfaces */
     for (i=0; i<cls->interfacescount; ++i) {
-        if (interface_extends_interface(cls->interfaces[i],interf))
+        if (interface_extends_interface(cls->interfaces[i].cls,interf))
             return true;
     }
     
@@ -912,6 +913,7 @@ static
 bool
 typeinfo_merge_two(typeinfo *dest,classref_or_classinfo clsx,classref_or_classinfo clsy)
 {
+	TYPEINFO_ASSERT(dest);
     TYPEINFO_FREEMERGED_IF_ANY(dest->merged);
     TYPEINFO_ALLOCMERGED(dest->merged,2);
     dest->merged->count = 2;
@@ -1109,26 +1111,6 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 	TYPEINFO_ASSERT(x.cls != pseudo_class_New);
 	TYPEINFO_ASSERT(y.cls != pseudo_class_New);
 
-#ifdef XXX
-	/* check clsx */
-	if (!clsx->loaded)
-		if (!load_class_bootstrap(clsx))
-			return false;
-
-	if (!clsx->linked)
-		if (!link_class(clsx))
-			return false;
-
-	/* check clsy */
-	if (!clsy->loaded)
-		if (!load_class_bootstrap(clsy))
-			return false;
-
-	if (!clsy->linked)
-		if (!link_class(clsy))
-			return false;
-#endif
-
 	/*--------------------------------------------------*/
 	/* common cases                                     */
 	/*--------------------------------------------------*/
@@ -1164,10 +1146,19 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 	/* non-trivial cases                                */
 	/*--------------------------------------------------*/
 
+	/* we may have to load the classes */
+	if (!IS_CLASSREF(x) && !x.cls->loaded)
+		load_class_bootstrap(x.cls); /* XXX */
+	if (!IS_CLASSREF(y) && !y.cls->loaded)
+		load_class_bootstrap(y.cls); /* XXX */
+        
 #ifdef TYPEINFO_VERBOSE
 	{
 		typeinfo dbgx,dbgy;
 		fprintf(stderr,"merge_nonarrays:\n");
+		fprintf(stderr,"    ");if(IS_CLASSREF(x))fprintf(stderr,"<ref>");utf_fprint(stderr,xname);fprintf(stderr,"\n");
+		fprintf(stderr,"    ");if(IS_CLASSREF(y))fprintf(stderr,"<ref>");utf_fprint(stderr,yname);fprintf(stderr,"\n");
+		fflush(stderr);
 		TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(dbgx,x);
 		dbgx.merged = mergedx;
 		TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(dbgy,y);
@@ -1177,6 +1168,9 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 		typeinfo_print(stderr,&dbgy,4);
 	}
 #endif
+
+	TYPEINFO_ASSERT(IS_CLASSREF(x) || x.cls->loaded);
+	TYPEINFO_ASSERT(IS_CLASSREF(y) || y.cls->loaded);
 
     /* If y is unresolved or an interface, swap x and y. */
     if (IS_CLASSREF(y) || (!IS_CLASSREF(x) && y.cls->flags & ACC_INTERFACE))
@@ -1204,6 +1198,10 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 	/* {We know: both x and y are resolved} */
     /* {We know: If only one of x,y is an interface it is x.} */
 
+	TYPEINFO_ASSERT(!IS_CLASSREF(x) && !IS_CLASSREF(y));
+	TYPEINFO_ASSERT(x.cls->loaded);
+	TYPEINFO_ASSERT(y.cls->loaded);
+
     /* Handle merging of interfaces: */
     if (x.cls->flags & ACC_INTERFACE) {
         /* {x.cls is an interface and mergedx == NULL.} */
@@ -1224,12 +1222,20 @@ typeinfo_merge_nonarrays(typeinfo *dest,
             x = y;
             goto return_simple_x;
         }
-            
 
         /* If the type y implements x then the result of the merge
          * is x regardless of mergedy.
          */
+
+		/* we may have to link the classes */
+		if (!x.cls->linked)
+			link_class(x.cls); /* XXX */
+		if (!y.cls->linked)
+			link_class(y.cls); /* XXX */
         
+		TYPEINFO_ASSERT(x.cls->linked);
+		TYPEINFO_ASSERT(y.cls->linked);
+
         if (CLASSINFO_IMPLEMENTS_INTERFACE(y.cls,x.cls->index)
             || mergedlist_implements_interface(mergedy,x.cls))
         {
@@ -1252,6 +1258,15 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 
     /* {We know: x and y are classes (not interfaces).} */
     
+	/* we may have to link the classes */
+	if (!x.cls->linked)
+		link_class(x.cls); /* XXX */
+	if (!y.cls->linked)
+		link_class(y.cls); /* XXX */
+        
+	TYPEINFO_ASSERT(x.cls->linked);
+	TYPEINFO_ASSERT(y.cls->linked);
+
     /* If *x is deeper in the inheritance hierarchy swap x and y. */
     if (x.cls->index > y.cls->index) {
         t = x; x = y; y = t;
@@ -1264,10 +1279,10 @@ typeinfo_merge_nonarrays(typeinfo *dest,
     common = x.cls;
     tcls = y.cls;
     while (tcls->index > common->index)
-        tcls = tcls->super;
+        tcls = tcls->super.cls;
     while (common != tcls) {
-        common = common->super;
-        tcls = tcls->super;
+        common = common->super.cls;
+        tcls = tcls->super.cls;
     }
 
     /* {common == nearest common anchestor of x and y.} */

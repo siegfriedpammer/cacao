@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: typeinfo.h 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -428,7 +428,7 @@ struct typevector {
              (info).elementtype = 0;} while(0)
 
 #define TYPEINFO_INIT_NULLTYPE(info)                            \
-            TYPEINFO_INIT_CLASSINFO(info,pseudo_class_Null)
+            TYPEINFO_INIT_NON_ARRAY_CLASSINFO(info,pseudo_class_Null)
 
 #define TYPEINFO_INIT_NEWOBJECT(info,instr)             \
          do {(info).typeclass.cls = pseudo_class_New;   \

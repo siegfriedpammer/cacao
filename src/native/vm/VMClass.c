@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2183 2005-04-01 20:57:17Z edwin $
+   $Id: VMClass.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -315,10 +315,8 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIE
 java_lang_reflect_Field* cacao_getField0(JNIEnv *env, java_lang_Class *that, java_lang_String *name, s4 public_only)
 {
     classinfo *c;
-	classinfo *fieldtype;
     fieldinfo *f;               /* the field to be represented */
     java_lang_reflect_Field *o; /* result: field-object */
-    utf *desc;			        /* the fielddescriptor */
     int idx;
 
     /* create Field object */
@@ -418,9 +416,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv 
 		return NULL;
 
 	for (i = 0; i < c->interfacescount; i++) {
-		use_class_as_object(c->interfaces[i]);
+		use_class_as_object(c->interfaces[i].cls);
 
-		a->data[i] = (java_objectheader *) c->interfaces[i];
+		a->data[i] = (java_objectheader *) c->interfaces[i].cls;
 	}
 
 	return a;
@@ -694,7 +692,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getBeautifiedName(JNI
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *env, jclass clazz, java_lang_Class *that)
 {
 	classinfo *cl = (classinfo *) that;
-	classinfo *c = cl->super;
+	classinfo *c = cl->super.cls;
 
 	if (!c)
 		return NULL;
@@ -730,7 +728,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass
 		return 0;
 	}
 
-	return builtin_isanysubclass(sup, that);
+	/* XXX this may be wrong for array classes */
+	return builtin_isanysubclass((classinfo*)sup, (classinfo*)that);
 
 }
 
@@ -742,7 +741,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz, java_lang_Class *that, java_lang_Object *obj)
 {
-	return builtin_instanceof(obj, that);
+	return builtin_instanceof((java_objectheader*)obj, (classinfo*)that);
 }
 
 
@@ -820,7 +819,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_loadArrayClass(JNIEnv 
 
 	/* set the classloader */
 
-	c->classloader = classloader;
+	c->classloader = (java_objectheader*) classloader; /* XXX is this correct? */
 
 	use_class_as_object(c);
 

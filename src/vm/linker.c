@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2182 2005-04-01 20:56:33Z edwin $
+   $Id: linker.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -154,11 +154,11 @@ bool linker_init(void)
     /* pseudo class for Arraystubs (extends java.lang.Object) */
     
 	pseudo_class_Arraystub->loaded = true;
-    pseudo_class_Arraystub->super = class_java_lang_Object;
+    pseudo_class_Arraystub->super.cls = class_java_lang_Object;
     pseudo_class_Arraystub->interfacescount = 2;
-    pseudo_class_Arraystub->interfaces = MNEW(classinfo*, 2);
-    pseudo_class_Arraystub->interfaces[0] = class_java_lang_Cloneable;
-    pseudo_class_Arraystub->interfaces[1] = class_java_io_Serializable;
+    pseudo_class_Arraystub->interfaces = MNEW(classref_or_classinfo, 2);
+    pseudo_class_Arraystub->interfaces[0].cls = class_java_lang_Cloneable;
+    pseudo_class_Arraystub->interfaces[1].cls = class_java_io_Serializable;
 
     if (!link_class(pseudo_class_Arraystub))
 		return false;
@@ -166,7 +166,7 @@ bool linker_init(void)
     /* pseudo class representing the null type */
     
 	pseudo_class_Null->loaded = true;
-    pseudo_class_Null->super = class_java_lang_Object;
+    pseudo_class_Null->super.cls = class_java_lang_Object;
 
 	if (!link_class(pseudo_class_Null))
 		return false;
@@ -174,8 +174,8 @@ bool linker_init(void)
     /* pseudo class representing new uninitialized objects */
     
 	pseudo_class_New->loaded = true;
-	pseudo_class_New->linked = true;
-	pseudo_class_New->super = class_java_lang_Object;
+	pseudo_class_New->linked = true; /* XXX is this allright? */
+	pseudo_class_New->super.cls = class_java_lang_Object;
 
 
 	/* create classes representing primitive types */
@@ -345,7 +345,7 @@ static classinfo *link_class_intern(classinfo *c)
 	/* check interfaces */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		tc = c->interfaces[i];
+		tc = c->interfaces[i].cls;
 
 		/* detect circularity */
 
@@ -374,7 +374,7 @@ static classinfo *link_class_intern(classinfo *c)
 	
 	/* check super class */
 
-	super = c->super;
+	super = c->super.cls;
 
 	if (super == NULL) {          /* class java.lang.Object */
 		c->index = 0;
@@ -462,7 +462,7 @@ static classinfo *link_class_intern(classinfo *c)
 					}
 				}
 
-				tc = tc->super;
+				tc = tc->super.cls;
 			}
 
 		notfoundvftblindex:
@@ -485,7 +485,7 @@ static classinfo *link_class_intern(classinfo *c)
 		abstractmethodscount = 0;
 
 		for (i = 0; i < c->interfacescount; i++) {
-			ic = c->interfaces[i];
+			ic = c->interfaces[i].cls;
 
 			for (j = 0; j < ic->methodscount; j++) {
 				im = &(ic->methods[j]);
@@ -503,7 +503,7 @@ static classinfo *link_class_intern(classinfo *c)
 							goto noabstractmethod;
 					}
 
-					tc = tc->super;
+					tc = tc->super.cls;
 				}
 
 				abstractmethodscount++;
@@ -522,7 +522,7 @@ static classinfo *link_class_intern(classinfo *c)
 								  c->methodscount + abstractmethodscount);
 
 			for (i = 0; i < c->interfacescount; i++) {
-				ic = c->interfaces[i];
+				ic = c->interfaces[i].cls;
 
 				for (j = 0; j < ic->methodscount; j++) {
 					im = &(ic->methods[j]);
@@ -540,7 +540,7 @@ static classinfo *link_class_intern(classinfo *c)
 								goto noabstractmethod2;
 						}
 
-						tc = tc->super;
+						tc = tc->super.cls;
 					}
 
 					am = &(c->methods[c->methodscount]);
@@ -571,11 +571,11 @@ static classinfo *link_class_intern(classinfo *c)
 	tc = c;
 	while (tc) {
 		for (i = 0; i < tc->interfacescount; i++) {
-			s4 h = class_highestinterface(tc->interfaces[i]) + 1;
+			s4 h = class_highestinterface(tc->interfaces[i].cls) + 1;
 			if (h > interfacetablelength)
 				interfacetablelength = h;
 		}
-		tc = tc->super;
+		tc = tc->super.cls;
 	}
 
 	/* allocate virtual function table */
@@ -659,9 +659,9 @@ static classinfo *link_class_intern(classinfo *c)
 	
 	/* add interfaces */
 	
-	for (tc = c; tc != NULL; tc = tc->super)
+	for (tc = c; tc != NULL; tc = tc->super.cls)
 		for (i = 0; i < tc->interfacescount; i++)
-			linker_addinterface(c, tc->interfaces[i]);
+			linker_addinterface(c, tc->interfaces[i].cls);
 
 	/* add finalizer method (not for java.lang.Object) */
 
@@ -845,9 +845,9 @@ static void linker_compute_subclasses(classinfo *c)
 		c->sub = 0;
 	}
 
-	if (!(c->flags & ACC_INTERFACE) && (c->super != NULL)) {
-		c->nextsub = c->super->sub;
-		c->super->sub = c;
+	if (!(c->flags & ACC_INTERFACE) && (c->super.any != NULL)) {
+		c->nextsub = c->super.cls->sub;
+		c->super.cls->sub = c;
 	}
 
 	classvalue = 0;
@@ -941,7 +941,7 @@ static void linker_addinterface(classinfo *c, classinfo *ic)
 						goto foundmethod;
 					}
 				}
-				sc = sc->super;
+				sc = sc->super.cls;
 			}
 		foundmethod:
 			;
@@ -949,7 +949,7 @@ static void linker_addinterface(classinfo *c, classinfo *ic)
 	}
 
 	for (j = 0; j < ic->interfacescount; j++) 
-		linker_addinterface(c, ic->interfaces[j]);
+		linker_addinterface(c, ic->interfaces[j].cls);
 }
 
 
@@ -971,7 +971,7 @@ static s4 class_highestinterface(classinfo *c)
     h = c->index;
 
 	for (i = 0; i < c->interfacescount; i++) {
-		h2 = class_highestinterface(c->interfaces[i]);
+		h2 = class_highestinterface(c->interfaces[i].cls);
 
 		if (h2 > h)
 			h = h2;

@@ -39,7 +39,7 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.c 2185 2005-04-01 21:24:49Z edwin $
+   $Id: parseXTA.c 2186 2005-04-02 00:43:25Z edwin $
 
 */
 
@@ -884,7 +884,7 @@ for (ii=0; ii<ci->methodscount; ii++) {
 
 		else	{ /* NOT XTA checked yet */
 			for (jj=0; jj < ci -> interfacescount; jj++) {
-				classinfo *ici = ci -> interfaces [jj];
+				classinfo *ici = ci -> interfaces [jj].cls;
 				/*  use resolve method....!!!! */
 				if (ici -> classUsed != NOTUSED) {
 					for (mm=0; mm< ici->methodscount; mm++) {
@@ -912,7 +912,7 @@ void xtaAddUsedInterfaceMethods(methodinfo *m, classinfo *ci) {
 
 	/* add used interfaces methods to callgraph */
 	for (jj=0; jj < ci -> interfacescount; jj++) {
-		classinfo *ici = ci -> interfaces [jj];
+		classinfo *ici = ci -> interfaces [jj].cls;
 	
 		if (XTA_DEBUGinf) { 
 			printf("BInterface used: ");fflush(stdout); 
@@ -1293,7 +1293,7 @@ printf(" GETSTATIC:");fflush(stdout); utf_display(fi->class->name);printf(".");f
 			          		/*--- <init>  ()V  is equivalent to "new" 
 			          			indicating a class is used = instaniated ---- */	
 			       			if (utf_init==mi->name) {
-				    			if ((m->class->super == mi->class) 
+				    			if ((m->class->super.cls == mi->class) 
 				    			&&  (m->descriptor == utf_void__void) ) 
 								{
 								METHINFOt(mi,"SUPER INIT:",XTA_DEBUGopcodes);

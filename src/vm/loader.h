@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2182 2005-04-01 20:56:33Z edwin $
+   $Id: loader.h 2186 2005-04-02 00:43:25Z edwin $
 */
 
 
@@ -208,6 +208,10 @@ classinfo *class_primitive_from_sig(char sig);
 
 /* (used by class_new, don't use directly) */
 void class_new_array(classinfo *c);
+
+/* debug helpers */
+void fprintflags(FILE *fp, u2 f);
+void printflags(u2 f);
 
 #endif /* _LOADER_H */
 
