@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 1027 2004-04-26 15:53:01Z twisti $
+   $Id: builtin.h 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -37,7 +37,7 @@
 #define _BUILTIN_H
 
 #include "config.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "threads/thread.h"
 
 

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSecurityManager.c 977 2004-03-25 18:37:52Z twisti $
+   $Id: VMSecurityManager.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -37,7 +37,7 @@
 #include "builtin.h"
 #include "native.h"
 #include "tables.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "java_lang_ClassLoader.h"
 
 

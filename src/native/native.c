@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1033 2004-04-26 16:18:56Z twisti $
+   $Id: native.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -56,7 +56,7 @@
 #include "tables.h"
 #include "loader.h"
 #include "jni.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "toolbox/memory.h"
 #include "threads/thread.h"
 #include "threads/threadio.h"

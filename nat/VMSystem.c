@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSystem.c 1003 2004-03-30 22:56:04Z twisti $
+   $Id: VMSystem.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -38,7 +38,7 @@
 #include "jni.h"
 #include "builtin.h"
 #include "native.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "java_lang_Object.h"
 
 

@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.h 907 2004-01-29 13:20:05Z carolyn $
+   $Id: parseRT.h 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -48,7 +48,7 @@
 #include "sets.h"
 
 #include "tables.h"
-#include"toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
 #include "types.h"

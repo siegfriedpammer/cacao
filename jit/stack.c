@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1038 2004-04-26 16:41:30Z twisti $
+   $Id: stack.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -44,7 +44,7 @@
 #include "reg.h"
 #include "tables.h"
 #include "types.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
 

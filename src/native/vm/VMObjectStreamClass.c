@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMObjectStreamClass.c 873 2004-01-11 20:59:29Z twisti $
+   $Id: VMObjectStreamClass.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -36,7 +36,7 @@
 #include "jni.h"
 #include "types.h"
 #include "loader.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "java_lang_Class.h"
 
 

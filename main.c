@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 1032 2004-04-26 16:09:10Z twisti $
+   $Id: main.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -54,7 +54,7 @@
 #include "native.h"
 #include "mm/boehm.h"
 #include "threads/thread.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "toolbox/memory.h"
 #include "parseRTstats.h"
 #include "nat/java_lang_Throwable.h"

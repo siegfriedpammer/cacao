@@ -48,14 +48,14 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1049 2004-05-05 11:43:11Z stefan $
+   $Id: codegen.inc 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
 
 #include <string.h>
 #include "toolbox/memory.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "threads/thread.h"
 
 

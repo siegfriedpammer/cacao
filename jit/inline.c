@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1009 2004-03-31 22:44:07Z edwin $
+   $Id: inline.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -39,7 +39,7 @@
 #include "parse.h"
 #include "loader.h"
 #include "tables.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
 

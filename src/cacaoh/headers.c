@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1053 2004-05-05 12:27:04Z stefan $
+   $Id: headers.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -45,7 +45,7 @@
 #include "mm/boehm.h"
 #include "toolbox/chain.h"
 #include "toolbox/memory.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "nat/java_lang_String.h"
 
 

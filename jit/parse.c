@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1045 2004-04-26 19:17:27Z twisti $
+   $Id: parse.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -48,7 +48,7 @@
 #include "native.h"
 #include "loader.h"
 #include "toolbox/memory.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 
 
 /* data about the currently parsed method */

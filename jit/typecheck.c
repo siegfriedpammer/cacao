@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1038 2004-04-26 16:41:30Z twisti $
+   $Id: typecheck.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -41,7 +41,7 @@
 #include "tables.h"
 #include "loader.h"
 #include "types.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
 /****************************************************************************/

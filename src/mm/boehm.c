@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 1026 2004-04-25 21:45:48Z twisti $
+   $Id: boehm.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -41,7 +41,7 @@
 #include "asmpart.h"
 #include "builtin.h"
 #include "threads/thread.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "gc.h"
 
 

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 799 2003-12-16 22:30:41Z edwin $
+   $Id: memory.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -39,7 +39,7 @@
 #include <unistd.h>
 
 #include "global.h"
-#include "loging.h"
+#include "logging.h"
 #include "memory.h"
 
 

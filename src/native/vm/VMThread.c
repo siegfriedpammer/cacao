@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMThread.c 1042 2004-04-26 17:12:47Z twisti $
+   $Id: VMThread.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -40,7 +40,7 @@
 #include "loader.h"
 #include "tables.h"
 #include "threads/thread.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "java_lang_ThreadGroup.h"
 #include "java_lang_Object.h"         /* needed for java_lang_Thread.h */
 #include "java_lang_Throwable.h"      /* needed for java_lang_Thread.h */

@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1027 2004-04-26 15:53:01Z twisti $
+   $Id: builtin.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -52,7 +52,7 @@
 #include "mm/boehm.h"
 #include "threads/thread.h"
 #include "threads/locks.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "toolbox/memory.h"
 #include "nat/java_lang_Cloneable.h"
 #include "nat/java_lang_VMObject.h"

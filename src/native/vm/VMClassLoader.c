@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClassLoader.c 1042 2004-04-26 17:12:47Z twisti $
+   $Id: VMClassLoader.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -37,7 +37,7 @@
 #include "loader.h"
 #include "native.h"
 #include "builtin.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "java_lang_Class.h"
 #include "java_lang_String.h"
 #include "java_lang_ClassLoader.h"

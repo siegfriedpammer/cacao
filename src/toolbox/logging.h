@@ -1,9 +1,10 @@
-/* nat/VMObjectStreamClass.c - java/io/ObjectStreamClass
+/* toolbox/logging.h - contains logging functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
-   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
-   M. Probst, S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck,
-   P. Tomsich, J. Wenninger
+   Institut f. Computersprachen, TU Wien
+   R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser, M. Probst,
+   S. Ring, E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich,
+   J. Wenninger
 
    This file is part of CACAO.
 
@@ -24,33 +25,43 @@
 
    Contact: cacao@complang.tuwien.ac.at
 
-   Authors: Roman Obermaiser
+   Authors: Reinhard Grafl
 
-   Changes: Joseph Wenninger
-
-   $Id: VMObjectStreamClass.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: logging.h 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
 
-#include "jni.h"
-#include "types.h"
-#include "loader.h"
-#include "toolbox/logging.h"
-#include "java_lang_Class.h"
+#ifndef _LOGGING_H
+#define _LOGGING_H
+
+#include <stdio.h>
 
 
-/*
- * Class:     java_io_VMObjectStreamClass
- * Method:    hasClassInitializer
- * Signature: (Ljava/lang/Class;)Z
- */
-JNIEXPORT s4 JNICALL Java_java_io_VMObjectStreamClass_hasClassInitializer(JNIEnv *env, jclass clazz, java_lang_Class *par1)
-{
-	log_text("Java_java_io_VMOBjectStreamClass_hasClassInitializer");
+#define PANICIF(when,txt)  if(when)panic(txt)
 
-	return (class_findmethodIndex((classinfo *) par1, clinit_name(), clinit_desc()) != -1);
-}
+#define MAXLOGTEXT 500
+
+/* function prototypes */
+
+void log_init(char *fname);
+void log_text(char *txt);
+void log_plain(char *txt); /* same as log_text without "LOG: " and newline */
+void log_flush();          /* fflush logfile */
+void log_nl();             /* newline and fflush */
+
+void log_cputime();
+
+void dolog(char *txt, ...);
+void dolog_plain(char *txt, ...); /* same as dolog without "LOG: " and newline */
+void error(char *txt, ...);
+void panic(char *txt);
+
+FILE *get_logfile(); /* return the current logfile */
+
+s8 getcputime();
+
+#endif /* _LOGGING_H */
 
 
 /*

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Method.c 940 2004-03-06 14:04:15Z jowenn $
+   $Id: Method.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -40,7 +40,7 @@
 #include "types.h"
 #include "builtin.h"
 #include "native.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "java_lang_Object.h"
 #include "java_lang_Class.h"
 #include "java_lang_reflect_Method.h"

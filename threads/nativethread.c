@@ -21,7 +21,7 @@
 #include "loader.h"
 #include "builtin.h"
 #include "asmpart.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "toolbox/memory.h"
 #include "toolbox/avl.h"
 #include "mm/boehm.h"

@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 1030 2004-04-26 16:03:01Z twisti $
+   $Id: jni.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -42,7 +42,7 @@
 #include "native.h"
 #include "builtin.h"
 #include "threads/thread.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "toolbox/memory.h"
 #include "nat/java_lang_Byte.h"
 #include "nat/java_lang_Character.h"

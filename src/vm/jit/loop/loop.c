@@ -30,7 +30,7 @@
    algorithm that uses dominator trees (found eg. in modern compiler
    implementation by a.w. appel)
 
-   $Id: loop.c 665 2003-11-21 18:36:43Z jowenn $
+   $Id: loop.c 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
@@ -42,7 +42,7 @@
 #include "loop.h"
 #include "graph.h"
 #include "tracing.h"
-#include "toolbox/loging.h"
+#include "toolbox/logging.h"
 #include "toolbox/memory.h"
 
 /* GLOBAL VARS																*/

@@ -1,4 +1,4 @@
-/* toolbox/loging.h - contains loging functions
+/* toolbox/logging.h - contains logging functions
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loging.h 750 2003-12-13 22:17:44Z twisti $
+   $Id: logging.h 1067 2004-05-18 10:25:51Z stefan $
 
 */
 
