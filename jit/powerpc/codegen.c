@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1108 2004-05-28 13:04:46Z twisti $
+   $Id: codegen.c 1138 2004-06-05 20:39:49Z twisti $
 
 */
 
@@ -3177,15 +3177,9 @@ makeactualcall:
 	s4 *xcodeptr = NULL;
 	
 	for (; xboundrefs != NULL; xboundrefs = xboundrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) mcodebase + xboundrefs->branchpos, 
-				xboundrefs->branchpos, (u1 *) xcodeptr - (u1 *) mcodebase - (4 + 4));
-			continue;
-		}
-
-
 		gen_resolvebranch((u1 *) mcodebase + xboundrefs->branchpos, 
-		                  xboundrefs->branchpos, (u1 *) mcodeptr - mcodebase);
+		                  xboundrefs->branchpos,
+						  (u1 *) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -3229,12 +3223,14 @@ makeactualcall:
 	for (; xcheckarefs != NULL; xcheckarefs = xcheckarefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1 *) mcodebase + xcheckarefs->branchpos, 
-				xcheckarefs->branchpos, (u1 *) xcodeptr - (u1 *) mcodebase - 4);
+							  xcheckarefs->branchpos,
+							  (u1 *) xcodeptr - (u1 *) mcodebase - 4);
 			continue;
 		}
 
 		gen_resolvebranch((u1 *) mcodebase + xcheckarefs->branchpos, 
-		                  xcheckarefs->branchpos, (u1 *) mcodeptr - mcodebase);
+		                  xcheckarefs->branchpos,
+						  (u1 *) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -3276,12 +3272,14 @@ makeactualcall:
 	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1 *) mcodebase + xcastrefs->branchpos, 
-				xcastrefs->branchpos, (u1 *) xcodeptr - (u1 *) mcodebase - 4);
+							  xcastrefs->branchpos,
+							  (u1 *) xcodeptr - (u1 *) mcodebase - 4);
 			continue;
 		}
 
 		gen_resolvebranch((u1 *) mcodebase + xcastrefs->branchpos, 
-		                  xcastrefs->branchpos, (u1 *) mcodeptr - mcodebase);
+		                  xcastrefs->branchpos,
+						  (u1 *) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -3422,7 +3420,7 @@ makeactualcall:
 
 	codegen_finish((int)((u1*) mcodeptr - mcodebase));
 
-    docacheflush((void*) method->entrypoint, ((u1*) mcodeptr - mcodebase));
+    asm_cacheflush((void*) method->entrypoint, ((u1*) mcodeptr - mcodebase));
 }
 
 
@@ -3447,7 +3445,7 @@ u1 *createcompilerstub (methodinfo *m)
 	s[4] = (s4) m;                      /* literals to be adressed            */
 	s[5] = (s4) asm_call_jit_compiler;  /* jump directly via PV from above    */
 
-    docacheflush((void*) s, (char*) mcodeptr - (char*) s);
+    asm_cacheflush((void*) s, (char*) mcodeptr - (char*) s);
 
 #ifdef STATISTICS
 	count_cstub_len += COMPSTUBSIZE * 4;
@@ -3792,7 +3790,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	dolog_plain("stubsize: %d (for %d params)\n", (int) (mcodeptr - (s4 *) s), m->paramcount);
 #endif
 
-    docacheflush((void *) s, (char *) mcodeptr - (char *) s);
+    asm_cacheflush((void *) s, (char *) mcodeptr - (char *) s);
 
 #ifdef STATISTICS
 	count_nstub_len += NATIVESTUBSIZE * 4;
@@ -3810,25 +3808,6 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 void removenativestub(u1 *stub)
 {
 	CFREE ((s4*) stub - NATIVESTUBOFFSET, NATIVESTUBSIZE * 4);
-}
-
-
-java_objectheader *asm_docalljavamethod(methodinfo *m, void *arg1, void *arg2,
-										void *arg3, void *arg4);
-
-java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
-										void *arg3, void *arg4)
-{
-	return asm_docalljavamethod(m, arg1, arg2, arg3, arg4);
-}
-
-
-void asm_cacheflush(u1 *p, long bytelen);
-
-
-void docacheflush(u1 *p, long bytelen)
-{
-	asm_cacheflush(p, bytelen);
 }
 
 
