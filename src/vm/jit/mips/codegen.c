@@ -1,4 +1,4 @@
-/* jit/mips/codegen.c - machine code generator for mips
+/* vm/jit/mips/codegen.c - machine code generator for mips
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1603 2004-11-29 09:56:45Z twisti $
+   $Id: codegen.c 1638 2004-12-01 10:42:28Z twisti $
 
 */
 
@@ -41,17 +41,14 @@
 #include <signal.h>
 #include <unistd.h>
 #include <sys/mman.h>
-#include "jit/mips/types.h"
-#include "main.h"
-#include "builtin.h"
-#include "asmpart.h"
-#include "jni.h"
-#include "loader.h"
-#include "tables.h"
-#include "native.h"
-#include "jit/jit.h"
-#include "jit/reg.h"
-#include "jit/mips/codegen.h"
+
+#include "native/native.h"
+#include "vm/builtin.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/reg.h"
+#include "vm/jit/mips/codegen.h"
+#include "vm/jit/mips/types.h"
 
 
 /* *****************************************************************************
@@ -110,12 +107,12 @@ static int nregdescfloat[] = {
 /* for use of reserved registers, see comment above */
 
 
-/* include independent code generation stuff -- include after register        */
-/* descriptions to avoid extern definitions                                   */
+/* Include independent code generation stuff -- include after register        */
+/* descriptions to avoid extern definitions.                                  */
 
-#include "jit/codegen.inc"
-#include "jit/reg.inc"
-#include "jit/lsra.inc"
+#include "vm/jit/codegen.inc"
+#include "vm/jit/reg.inc"
+#include "vm/jit/lsra.inc"
 
 
 /* NullPointerException handlers and exception handling initialisation        */

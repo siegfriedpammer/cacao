@@ -1,4 +1,4 @@
-/* jit/mips/disass.h - disassembler header
+/* vm/jit/mips/disass.h - disassembler header
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: disass.h 1007 2004-03-31 19:16:23Z twisti $
+   $Id: disass.h 1638 2004-12-01 10:42:28Z twisti $
 
 */
 
@@ -35,11 +35,14 @@
 #ifndef _DISASS_H
 #define _DISASS_H
 
+#include "vm/jit/mips/types.h"
+
 
 extern char *regs[];
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
+
 void disassinstr(s4 *code, int pos);
 void disassemble(s4 *code, int len);
 

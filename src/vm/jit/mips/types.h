@@ -1,4 +1,4 @@
-/* jit/mips/types.h - machine specific definitions for mips processor
+/* vm/jit/mips/types.h - machine specific definitions for mips processor
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -31,7 +31,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: types.h 1600 2004-11-29 09:55:35Z twisti $
+   $Id: types.h 1638 2004-12-01 10:42:28Z twisti $
 
 */
 
@@ -39,7 +39,7 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 
-#include "jit/mips/arch.h"
+#include "vm/jit/mips/arch.h"
 
 
 /* Define the sizes of the integer types used internally by cacao.            */

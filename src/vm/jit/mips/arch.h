@@ -1,4 +1,4 @@
-/* jit/i386/arch.h - architecture defines for i386
+/* vm/jit/mips/arch.h - architecture defines for MIPS
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: arch.h 1601 2004-11-29 09:56:02Z twisti $
+   $Id: arch.h 1638 2004-12-01 10:42:28Z twisti $
 
 */
 

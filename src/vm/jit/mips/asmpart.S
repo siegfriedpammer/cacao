@@ -1,4 +1,4 @@
-/* jit/mips/asmpart.S - Java-C interface functions for mips
+/* vm/jit/mips/asmpart.S - Java-C interface functions for mips
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,13 +27,13 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1603 2004-11-29 09:56:45Z twisti $
+   $Id: asmpart.S 1638 2004-12-01 10:42:28Z twisti $
 
 */
 
 
 #include "config.h"
-#include "jit/mips/offsets.h"
+#include "vm/jit/mips/offsets.h"
 
 
 #define zero    $0

@@ -1,4 +1,4 @@
-/* jit/mips/codegen.h - code generation macros and definitions for mips
+/* vm/jit/mips/codegen.h - code generation macros and definitions for mips
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 1602 2004-11-29 09:56:25Z twisti $
+   $Id: codegen.h 1638 2004-12-01 10:42:28Z twisti $
 
 */
 
@@ -35,7 +35,7 @@
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
-#include "jit/jit.h"
+#include "vm/jit/mips/types.h"
 
 
 /* additional functions and macros to generate code ***************************/
