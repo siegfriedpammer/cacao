@@ -1,0 +1,15 @@
+java/util/Collections$SynchronizedCollection iterator ()Ljava/util/Iterator;
+java/util/Collections$SynchronizedIterator hasNext ()Z
+java/util/Hashtable$HashIterator hasNext ()Z
+java/util/Collections$SynchronizedIterator next ()Ljava/lang/Object;
+java/util/Hashtable$HashIterator next ()Ljava/lang/Object;
+java/util/AbstractMap$BasicMapEntry getKey ()Ljava/lang/Object;
+java/util/AbstractMap$BasicMapEntry getValue ()Ljava/lang/Object;
+gnu/java/nio/channels/FileChannelImpl <init> (II)V
+java/io/FileDescriptor valid ()Z
+java/nio/channels/spi/AbstractInterruptibleChannel isOpen ()Z
+java/lang/Class getConstructor ([Ljava/lang/Class;)Ljava/lang/reflect/Constructor;
+java/lang/reflect/Constructor <init> ()V
+gnu/java/io/decode/Decoder8859_1 <init> (Ljava/io/InputStream;)V
+gnu/java/io/encode/Encoder8859_1 <init> (Ljava/io/OutputStream;)V
+gnu/java/io/encode/Encoder8859_1 <clinit> ()V
