@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1491 2004-11-12 13:25:02Z twisti $
+   $Id: exceptions.c 1578 2004-11-24 13:31:00Z twisti $
 
 */
 
@@ -297,7 +297,7 @@ void throw_main_exception_exit()
 }
 
 
-void throw_cacao_exception_exit(char *exception, char *message, ...)
+void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 {
 	s4 i;
 	char *tmp;
@@ -305,9 +305,9 @@ void throw_cacao_exception_exit(char *exception, char *message, ...)
 	va_list ap;
 
 	len = strlen(exception);
-	tmp = MNEW(char, len+1);
+	tmp = MNEW(char, len + 1);
 	strncpy(tmp, exception, len);
-        tmp[len]='\0';
+	tmp[len] = '\0';
 
 	/* convert to classname */
 
@@ -323,7 +323,7 @@ void throw_cacao_exception_exit(char *exception, char *message, ...)
 		fprintf(stderr, ": ");
 
 		va_start(ap, message);
-		fprintf(stderr, message, ap);
+		vfprintf(stderr, message, ap);
 		va_end(ap);
 	}
 
