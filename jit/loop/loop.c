@@ -30,7 +30,7 @@
    algorithm that uses dominator trees (found eg. in modern compiler
    implementation by a.w. appel)
 
-   $Id: loop.c 1141 2004-06-05 23:19:24Z twisti $
+   $Id: loop.c 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -188,24 +188,24 @@ int c_stat_sum_exception;		/* set if optimization is cancelled because of	*/
    This function allocates and initializes variables, that are used by the
    loop detection algorithm
 */
-void setup()
+void setup(methodinfo *m)
 {
 	int i;
 
-	c_semi_dom = DMNEW(int, block_count);
-	c_idom = DMNEW(int, block_count);
-	c_same_dom = DMNEW(int, block_count);
-	c_numBucket = DMNEW(int, block_count);
-	c_ancestor = DMNEW(int, block_count);
-	c_contains = DMNEW(int, block_count);
-	c_stack = DMNEW(int, block_count);
-	c_bucket = DMNEW(int*, block_count);
+	c_semi_dom = DMNEW(int, m->basicblockcount);
+	c_idom = DMNEW(int, m->basicblockcount);
+	c_same_dom = DMNEW(int, m->basicblockcount);
+	c_numBucket = DMNEW(int, m->basicblockcount);
+	c_ancestor = DMNEW(int, m->basicblockcount);
+	c_contains = DMNEW(int, m->basicblockcount);
+	c_stack = DMNEW(int, m->basicblockcount);
+	c_bucket = DMNEW(int*, m->basicblockcount);
   
-	for (i = 0; i < block_count; ++i) {
+	for (i = 0; i < m->basicblockcount; ++i) {
 		c_numBucket[i] = 0;
 		c_stack[i] = c_ancestor[i] = c_semi_dom[i] = c_same_dom[i] = c_idom[i] = -1;
 	  
-		c_bucket[i] = DMNEW(int, block_count);
+		c_bucket[i] = DMNEW(int, m->basicblockcount);
 	}
 }
 
@@ -318,7 +318,7 @@ int isBackEdge(int from, int to)
    These stack functions are helper functions for createLoop(int, int)  
    to manage the set of nodes in the current loop.
 */
-void push(int i, struct LoopContainer *lc)
+void push(methodinfo *m, int i, struct LoopContainer *lc)
 {
 	struct LoopElement *le = lc->nodes, *t;
 
@@ -326,7 +326,7 @@ void push(int i, struct LoopContainer *lc)
 		t = DMNEW(struct LoopElement, 1);
 		
 		t->node = i;
-		t->block = &block[i];
+		t->block = &m->basicblocks[i];
 
 		c_contains[i] = 1;
 
@@ -366,26 +366,26 @@ int isFull()
    the loop with a known header node and a member node of the loop (and a 
    back edge between these two nodes).
 */
-void createLoop(int header, int member)
+void createLoop(methodinfo *m, int header, int member)
 {
 	int i, nextMember;
 
 	struct LoopContainer *currentLoop = (struct LoopContainer *) malloc(sizeof(struct LoopContainer));
-	LoopContainerInit(currentLoop, header);		/* set up loop structure		*/
+	LoopContainerInit(m, currentLoop, header);		/* set up loop structure		*/
 	
-	for (i=0; i<block_count; ++i)
+	for (i=0; i<m->basicblockcount; ++i)
 		c_contains[i] = 0;
 	c_contains[header] = 1;
 
 	c_stackPointer = 0;				/* init stack with first node of the loop	*/
-	push(member, currentLoop);
+	push(m, member, currentLoop);
 
 	while (isFull()) {				/* while there are still unvisited nodes	*/
 		nextMember = pop();
 		
 		/* push all predecessors, while they are not equal to loop header		*/
 		for (i=0; i<c_numPre[nextMember]; ++i)			
-			push(c_pre[nextMember][i], currentLoop);		
+			push(m, c_pre[nextMember][i], currentLoop);		
 		}
 
 	currentLoop->next = c_allLoops;
@@ -396,19 +396,19 @@ void createLoop(int header, int member)
 /*	After all dominators have been calculated, the loops can be detected and
 	 added to the global list c_allLoops.
 */
-void detectLoops()
+void detectLoops(methodinfo *m)
 {
 	int i;
 	struct depthElement *h;
 	
 	/* for all edges in the control flow graph do								*/
-	for (i=0; i<block_count; ++i) {			
+	for (i=0; i<m->basicblockcount; ++i) {			
 		h = c_dTable[i];
 
 		while (h != NULL) {
 			/* if it's a backedge, than add a new loop to list					*/
 			if (isBackEdge(i, h->value))	 
-				createLoop(h->value, i);
+				createLoop(m, h->value, i);
 			h = h->next;
 			}
 		}
@@ -419,11 +419,11 @@ void detectLoops()
    This function is called by higher level routines to perform the loop 
    detection and set up the c_allLoops list.
 */
-void analyseGraph()
+void analyseGraph(methodinfo *m)
 {
-  setup();
+  setup(m);
   dominators();
-  detectLoops();
+  detectLoops(m);
 }
 
 

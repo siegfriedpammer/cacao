@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1173 2004-06-16 14:56:18Z jowenn $
+   $Id: codegen.inc 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -561,7 +561,7 @@ void *codegen_findmethod(void *pc)
 #endif
 
 
-static void codegen_finish(int mcodelen)
+static void codegen_finish(methodinfo *m, int mcodelen)
 {
 	jumpref *jr;
 	u1 *epoint;
@@ -579,13 +579,13 @@ static void codegen_finish(int mcodelen)
 	dseglen = ALIGN(dseglen, MAX_ALIGN);
 	alignedlen = ALIGN(mcodelen, MAX_ALIGN) + dseglen;
 
-	method->mcodelength = mcodelen + dseglen;
-	method->mcode = CNEW(u1, alignedlen + extralen);
+	m->mcodelength = mcodelen + dseglen;
+	m->mcode = CNEW(u1, alignedlen + extralen);
 
-	memcpy(method->mcode, dsegtop - dseglen, dseglen);
-	memcpy(method->mcode + dseglen, mcodebase, mcodelen);
+	memcpy(m->mcode, dsegtop - dseglen, dseglen);
+	memcpy(m->mcode + dseglen, mcodebase, mcodelen);
 
-	method->entrypoint = epoint = (u1 *) (method->mcode + dseglen);
+	m->entrypoint = epoint = (u1 *) (m->mcode + dseglen);
 
 	/* jump table resolving */
 	jr = jumpreferences;
@@ -627,8 +627,8 @@ static void codegen_finish(int mcodelen)
 		methodtree_element *mte;
 
 		mte = NEW(methodtree_element);
-		mte->startpc = method->entrypoint;
-		mte->endpc = method->entrypoint + mcodelen;
+		mte->startpc = m->entrypoint;
+		mte->endpc = m->entrypoint + mcodelen;
 
 		if (avl_insert(methodtree, mte))
 			panic("duplicate entry");
@@ -645,15 +645,15 @@ static void codegen_finish(int mcodelen)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	{
-		threadcritnode *n = (threadcritnode*) (method->mcode + alignedlen);
+		threadcritnode *n = (threadcritnode*) (m->mcode + alignedlen);
 		int i;
 		struct threadcritnodetemp *nt = threadcrit;
 
 		for (i=0; i<threadcritcount; i++)
 		{
-			n->mcodebegin = method->mcode + nt->mcodebegin;
-			n->mcodeend = method->mcode + nt->mcodeend;
-			n->mcoderestart = method->mcode + nt->mcoderestart;
+			n->mcodebegin = m->mcode + nt->mcodebegin;
+			n->mcodeend = m->mcode + nt->mcodeend;
+			n->mcoderestart = m->mcode + nt->mcoderestart;
 			thread_registercritical(n);
 			n++;
 			nt = nt->next;

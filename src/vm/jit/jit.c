@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1192 2004-06-19 12:47:25Z twisti $
+   $Id: jit.c 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -138,49 +138,6 @@ static int count_store_depth_init[11] = {
 int *count_store_depth = count_store_depth_init;
 
 
-
-/* global compiler variables **************************************************/
-
-                                /* data about the currently compiled method   */
-
-classinfo  *class;              /* class the compiled method belongs to       */
-methodinfo *method;             /* pointer to method info of compiled method  */
-utf        *descriptor;         /* type descriptor of compiled method         */
-int         mparamcount;        /* number of parameters (incl. this)          */
-u1         *mparamtypes;        /* types of all parameters (TYPE_INT, ...)    */
-static int mreturntype;         /* return type of method                      */
-	
-int maxstack;                   /* maximal JavaVM stack size                  */
-int maxlocals;                  /* maximal number of local JavaVM variables   */
-int jcodelength;                /* length of JavaVM-codes                     */
-u1 *jcode;                      /* pointer to start of JavaVM-code            */
-lineinfo *jlinenumbers;         /* line information array                     */
-u2 jlinenumbercount;            /* number of entries in the linenumber array  */
-int exceptiontablelength;       /* length of exception table                  */
-xtable *extable;                /* pointer to start of exception table        */
-exceptiontable *raw_extable;
-
-int block_count;                /* number of basic blocks                     */
-basicblock *block;              /* points to basic block array                */
-int *block_index;               /* a table which contains for every byte of   */
-                                /* JavaVM code a basic block index if at this */
-                                /* byte there is the start of a basic block   */
-
-int instr_count;                /* number of JavaVM instructions              */
-instruction *instr;             /* points to intermediate code instructions   */
-
-int stack_count;                /* number of stack elements                   */
-stackelement *stack;            /* points to intermediate code instructions   */
-
-bool isleafmethod;              /* true if a method doesn't call subroutines  */
-
-basicblock *last_block;         /* points to the end of the BB list           */
-
-bool regs_ok;                   /* true if registers have been allocated      */
-
-/* list of all classes used by the compiled method which have to be           */
-/* initialised (if not already done) before execution of this method          */
-chain *uninitializedclasses;
 
 int stackreq[256];
 
@@ -1481,9 +1438,7 @@ methodptr jit_compile(methodinfo *m)
 	}
 
 	if (jitrunning) {
-		printf("current method=");
-		utf_display_classname(method->class->name);printf(".");utf_display(method->name);
-		printf(", new method=");
+		printf("new method=");
 		utf_display_classname(m->class->name);printf(".");utf_display(m->name);
 		printf("\n");
 		panic("Compiler lock recursion");
@@ -1509,10 +1464,12 @@ methodptr jit_compile(methodinfo *m)
 	if (r) {
 		/* intermediate and assembly code listings */
 		
-		if (showintermediate)
-			show_icmd_method();
-		else if (showdisassemble)
+		if (showintermediate) {
+			show_icmd_method(m);
+
+		} else if (showdisassemble) {
 			disassemble((void *) (m->mcode + dseglen), m->mcodelength - dseglen);
+		}
 
 		if (showddatasegment)
 			dseg_display((void *) (m->mcode));
@@ -1520,6 +1477,14 @@ methodptr jit_compile(methodinfo *m)
 		if (compileverbose)
 			log_message_method("Running: ", m);
 	}
+
+	/* clear pointers to dump memory area */
+
+	m->basicblocks = NULL;
+	m->basicblockindex = NULL;
+	m->instructions = NULL;
+	m->stack = NULL;
+	m->exceptiontable = NULL;
 
 	/* release dump area */
 
@@ -1578,35 +1543,19 @@ static methodptr jit_compile_intern(methodinfo *m)
 
 	/* initialisation of variables and subsystems */
 
-	isleafmethod = true;
+	m->isleafmethod = true;
 
-	method = m;
-	class = m->class;
-	descriptor = m->descriptor;
-	maxstack = m->maxstack;
-	maxlocals = m->maxlocals;
-	jcodelength = m->jcodelength;
-	jcode = m->jcode;
-	jlinenumbers = m->linenumbers;
-	jlinenumbercount = m->linenumbercount;
-	exceptiontablelength = m->exceptiontablelength;
-	raw_extable = m->exceptiontable;
-	regs_ok = false;
-
-#ifdef STATISTICS
+#if defined(STATISTICS)
 	if (opt_stat) {
-		count_tryblocks += exceptiontablelength;
-		count_javacodesize += jcodelength + 18;
-		count_javaexcsize += exceptiontablelength * POINTERSIZE;
+		count_tryblocks += m->exceptiontablelength;
+		count_javacodesize += m->jcodelength + 18;
+		count_javaexcsize += m->exceptiontablelength * POINTERSIZE;
 	}
 #endif
 
 	/* initialise parameter type descriptor */
 
 	descriptor2types(m);
-	mreturntype = m->returntype;
-	mparamcount = m->paramcount;
-	mparamtypes = m->paramtypes;
 
 #if defined(__I386__)
 	/* we try to use these registers as scratch registers */
@@ -1630,7 +1579,7 @@ static methodptr jit_compile_intern(methodinfo *m)
 	if (useinlining)
 		inlining_init(m);
 
-	reg_setup();
+	reg_setup(m);
 
 	codegen_init();
 
@@ -1665,9 +1614,9 @@ static methodptr jit_compile_intern(methodinfo *m)
 #endif
 	
 	if (opt_loops) {
-		depthFirst();
-		analyseGraph();
-		optimize_loops();
+		depthFirst(m);
+		analyseGraph(m);
+		optimize_loops(m);
 	}
    
 #ifdef SPECIALMEMUSE
@@ -1677,18 +1626,20 @@ static methodptr jit_compile_intern(methodinfo *m)
 	if (compileverbose)
 		log_message_method("Allocating registers: ", m);
 
-	regalloc();
-	regs_ok = true;
+	regalloc(m);
 
 	if (compileverbose) {
 		log_message_method("Allocating registers done: ", m);
 		log_message_method("Generating code: ", m);
 	}
 
-	codegen();
+	/* now generate the machine code */
+	codegen(m);
 
-	if (compileverbose)
+	if (compileverbose) {
 		log_message_method("Generating code done: ", m);
+		log_message_method("Compiling done: ", m);
+	}
 
 	/* return pointer to the methods entry point */
 

@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 1180 2004-06-17 17:17:09Z twisti $
+   $Id: typecheck.c 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -493,11 +493,9 @@ typestate_merge(stackptr deststack,typevector *destloc,
 	return changed;
 }
 
-/* Globals used:
- *     block
- */
+
 static bool
-typestate_reach(void *localbuf,
+typestate_reach(methodinfo *m, void *localbuf,
 				basicblock *current,
 				basicblock *destblock,
 				stackptr ystack,typevector *yloc,
@@ -510,7 +508,7 @@ typestate_reach(void *localbuf,
 	LOG1("reaching block L%03d",destblock->debug_nr);
 	TYPECHECK_COUNT(stat_reached);
 	
-	destidx = destblock - block;
+	destidx = destblock - m->basicblocks;
 	destloc = MGET_TYPEVECTOR(localbuf,destidx,locsize);
 
 	/* When branching backwards we have to check for uninitialized objects */
@@ -562,11 +560,9 @@ typestate_reach(void *localbuf,
 	return false;
 }
 
-/* Globals used:
- *     see typestate_reach
- */
+
 static bool
-typestate_ret(void *localbuf,
+typestate_ret(methodinfo *m, void *localbuf,
 			  basicblock *current,
 			  stackptr ystack,typevector *yloc,
 			  int retindex,int locsize)
@@ -584,7 +580,7 @@ typestate_ret(void *localbuf,
 
 		selected = typevectorset_select(&yvec,retindex,destblock);
 		
-		repeat |= typestate_reach(localbuf,current,destblock,
+		repeat |= typestate_reach(m, localbuf,current,destblock,
 								  ystack,selected,locsize,true);
 	}
 	return repeat;
@@ -751,7 +747,7 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
  */
 #define TYPECHECK_REACH                                                 \
     do {                                                                \
-    repeat |= typestate_reach(localbuf,bptr,tbptr,dst,                  \
+    repeat |= typestate_reach(m, localbuf,bptr,tbptr,dst,               \
 							  localset,numlocals,jsrencountered);       \
     LOG("done.");                                                       \
     } while (0)
@@ -765,7 +761,7 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
  */
 #define TYPECHECK_LEAVE                                                 \
     do {                                                                \
-        if (initmethod && class != class_java_lang_Object) {            \
+        if (initmethod && m->class != class_java_lang_Object) {         \
             /* check the marker variable */                             \
             LOG("Checking <init> marker");                              \
             if (!typevectorset_checktype(localset,numlocals-1,TYPE_INT))\
@@ -815,7 +811,7 @@ methodinfo *typecheck(methodinfo *m)
 	
     stackptr dst;               /* output stack of current instruction */
     basicblock **tptr;    /* pointer into target list of switch instr. */
-    xtable **handlers;                    /* active exception handlers */
+    exceptiontable **handlers;            /* active exception handlers */
     classinfo *cls;                                       /* temporary */
     bool maythrow;               /* true if this instruction may throw */
     static utf *name_init;                                 /* "<init>" */
@@ -828,8 +824,8 @@ methodinfo *typecheck(methodinfo *m)
 #ifdef TYPECHECK_STATISTICS
 	int count_iterations = 0;
 	TYPECHECK_COUNT(stat_typechecked);
-	TYPECHECK_COUNT_FREQ(stat_locals,maxlocals,STAT_LOCALS);
-	TYPECHECK_COUNT_FREQ(stat_blocks,block_count/10,STAT_BLOCKS);
+	TYPECHECK_COUNT_FREQ(stat_locals,m->maxlocals,STAT_LOCALS);
+	TYPECHECK_COUNT_FREQ(stat_blocks,m->basicblockcount/10,STAT_BLOCKS);
 #endif
 
     LOGSTR("\n==============================================================================\n");
@@ -846,7 +842,7 @@ methodinfo *typecheck(methodinfo *m)
 
 	if (!name_init)
 		name_init = utf_new_char("<init>");
-    initmethod = (method->name == name_init);
+    initmethod = (m->name == name_init);
 
 	/* Allocate buffer for method arguments */
 	
@@ -856,8 +852,8 @@ methodinfo *typecheck(methodinfo *m)
     LOG("Buffer allocated.\n");
 
     /* reset all BBFINISHED blocks to BBTYPECHECK_UNDEF. */
-    b_count = block_count;
-    bptr = block;
+    b_count = m->basicblockcount;
+    bptr = m->basicblocks;
     while (--b_count >= 0) {
 #ifdef TYPECHECK_DEBUG
         if (bptr->flags != BBFINISHED && bptr->flags != BBDELETED
@@ -875,8 +871,8 @@ methodinfo *typecheck(methodinfo *m)
     }
 
     /* The first block is always reached */
-    if (block_count && block[0].flags == BBTYPECHECK_UNDEF)
-        block[0].flags = BBTYPECHECK_REACHED;
+    if (m->basicblockcount && m->basicblocks[0].flags == BBTYPECHECK_UNDEF)
+        m->basicblocks[0].flags = BBTYPECHECK_REACHED;
 
     LOG("Blocks reset.\n");
 
@@ -884,18 +880,18 @@ methodinfo *typecheck(methodinfo *m)
     
     /* In <init> methods we use an extra local variable to signal if
      * the 'this' reference has been initialized. */
-    numlocals = maxlocals;
+    numlocals = m->maxlocals;
 	validlocals = numlocals;
     if (initmethod) numlocals++;
 
     /* allocate the buffers for local variables */
-	localbuf = DMNEW_TYPEVECTOR(block_count+1, numlocals);
-	localset = MGET_TYPEVECTOR(localbuf,block_count,numlocals);
+	localbuf = DMNEW_TYPEVECTOR(m->basicblockcount+1, numlocals);
+	localset = MGET_TYPEVECTOR(localbuf,m->basicblockcount,numlocals);
 
     LOG("Variable buffer allocated.\n");
 
     /* allocate the buffer of active exception handlers */
-    handlers = DMNEW(xtable*,method->exceptiontablelength + 1);
+    handlers = DMNEW(exceptiontable*, m->exceptiontablelength + 1);
 
     /* initialize the variable types of the first block */
     /* to the types of the arguments */
@@ -906,14 +902,14 @@ methodinfo *typecheck(methodinfo *m)
 	i = validlocals;
 
     /* if this is an instance method initialize the "this" ref type */
-    if (!(method->flags & ACC_STATIC)) {
+    if (!(m->flags & ACC_STATIC)) {
 		if (!i)
 			panic("Not enough local variables for method arguments");
         td->type = TYPE_ADDRESS;
         if (initmethod)
             TYPEINFO_INIT_NEWOBJECT(td->info,NULL);
         else
-            TYPEINFO_INIT_CLASSINFO(td->info,class);
+            TYPEINFO_INIT_CLASSINFO(td->info, m->class);
         td++;
 		i--;
     }
@@ -921,7 +917,7 @@ methodinfo *typecheck(methodinfo *m)
     LOG("'this' argument set.\n");
 
     /* the rest of the arguments and the return type */
-    i = typedescriptors_init_from_method_args(td,method->descriptor,
+    i = typedescriptors_init_from_method_args(td, m->descriptor,
 											  i,
 											  true, /* two word types use two slots */
 											  &returntype);
@@ -948,8 +944,8 @@ methodinfo *typecheck(methodinfo *m)
 
         repeat = false;
         
-        b_count = block_count;
-        bptr = block;
+        b_count = m->basicblockcount;
+        bptr = m->basicblocks;
 
         while (--b_count >= 0) {
             LOGSTR1("---- BLOCK %04d, ",bptr-block);
@@ -962,7 +958,7 @@ methodinfo *typecheck(methodinfo *m)
                 
                 superblockend = false;
                 bptr->flags = BBFINISHED;
-                b_index = bptr - block;
+                b_index = bptr - m->basicblocks;
 
                 /* init stack at the start of this block */
                 curstack = bptr->instack;
@@ -971,10 +967,10 @@ methodinfo *typecheck(methodinfo *m)
                 /* XXX could use a faster algorithm with sorted lists or
                  * something? */
                 len = 0;
-                for (i=0; i<method->exceptiontablelength; ++i) {
-                    if ((extable[i].start <= bptr) && (extable[i].end > bptr)) {
-                        LOG1("active handler L%03d",extable[i].handler->debug_nr);
-                        handlers[len++] = extable + i;
+                for (i = 0; i < m->exceptiontablelength; ++i) {
+                    if ((m->exceptiontable[i].start <= bptr) && (m->exceptiontable[i].end > bptr)) {
+                        LOG1("active handler L%03d", m->exceptiontable[i].handler->debug_nr);
+                        handlers[len++] = m->exceptiontable + i;
                     }
                 }
                 handlers[len] = NULL;
@@ -1149,7 +1145,7 @@ methodinfo *typecheck(methodinfo *m)
 									  && !TYPEINFO_NEWOBJECT_INSTRUCTION(curstack->prev->typeinfo))
 								  {
 									  /* uninitialized "this" instance */
-									  if (fi->class != class || (fi->flags & ACC_STATIC) != 0)
+									  if (fi->class != m->class || (fi->flags & ACC_STATIC) != 0)
 										  panic("Setting unaccessible field in uninitialized object");
 								  }
 								  else {
@@ -1485,10 +1481,10 @@ methodinfo *typecheck(methodinfo *m)
                           dst = (stackptr) iptr->val.a;
                           
                           tbptr = (basicblock *) iptr->target;
-						  if (bptr+1 == last_block)
+						  if (bptr + 1 == (m->basicblocks + m->basicblockcount + 1))
 							  panic("Illegal instruction: JSR at end of bytecode");
 						  typestack_put_retaddr(dst,bptr+1,localset);
-						  repeat |= typestate_reach(localbuf,bptr,tbptr,dst,
+						  repeat |= typestate_reach(m, localbuf,bptr,tbptr,dst,
 													localset,numlocals,true);
 
 						  superblockend = true;
@@ -1499,7 +1495,7 @@ methodinfo *typecheck(methodinfo *m)
 						  if (!typevectorset_checkretaddr(localset,iptr->op1))
                               panic("illegal instruction: RET using non-returnAddress variable");
 
-						  repeat |= typestate_ret(localbuf,bptr,curstack,
+						  repeat |= typestate_ret(m, localbuf,bptr,curstack,
 												  localset,iptr->op1,numlocals);
 
                           superblockend = true;
@@ -1563,7 +1559,7 @@ methodinfo *typecheck(methodinfo *m)
                                           /* get the address of the NEW instruction */
                                           LOGINFO(&(srcstack->typeinfo));
                                           ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(srcstack->typeinfo);
-                                          initclass = (ins) ? (classinfo*)ins[-1].val.a : method->class;
+                                          initclass = (ins) ? (classinfo*)ins[-1].val.a : m->class;
                                           LOGSTR("class: "); LOGSTRu(initclass->name); LOGNL;
 
 										  /* check type */
@@ -1618,9 +1614,9 @@ methodinfo *typecheck(methodinfo *m)
 											  LOG("saving input stack types");
 											  if (!savedstackbuf) {
 												  LOG("allocating savedstack buffer");
-												  savedstackbuf = DMNEW(stackelement,maxstack);
+												  savedstackbuf = DMNEW(stackelement,m->maxstack);
 												  savedstackbuf->prev = NULL;
-												  for (i=1; i<maxstack; ++i)
+												  for (i=1; i<m->maxstack; ++i)
 													  savedstackbuf[i].prev = savedstackbuf+(i-1);
 											  }
 											  sp = savedstack = bptr->instack;
@@ -1642,7 +1638,7 @@ methodinfo *typecheck(methodinfo *m)
 										  panic("Internal error: calling <init> on this in non-<init> method.");
 #endif
 									  /* must be <init> of current class or direct superclass */
-									  if (mi->class != class && mi->class != class->super)
+									  if (mi->class != m->class && mi->class != m->class->super)
 										  panic("<init> calling <init> of the wrong class");
 									  
                                       /* set our marker variable to type int */
@@ -2014,7 +2010,7 @@ methodinfo *typecheck(methodinfo *m)
 							cls = handlers[i]->catchtype;
 							excstack.typeinfo.typeclass = (cls) ? cls
 								: class_java_lang_Throwable;
-							repeat |= typestate_reach(localbuf,bptr,
+							repeat |= typestate_reach(m, localbuf,bptr,
 													  handlers[i]->handler,
 													  &excstack,localset,
 													  numlocals,
@@ -2038,7 +2034,7 @@ methodinfo *typecheck(methodinfo *m)
                     while (tbptr->flags == BBDELETED) {
                         tbptr++;
 #ifdef TYPECHECK_DEBUG
-                        if ((tbptr-block) >= block_count)
+                        if ((tbptr-block) >= m->basicblockcount)
                             panic("Control flow falls off the last block");
 #endif
                     }
@@ -2073,25 +2069,25 @@ methodinfo *typecheck(methodinfo *m)
 #endif
 
 #ifdef TYPECHECK_DEBUG
-	for (i=0; i<block_count; ++i) {
-		if (block[i].flags != BBDELETED
-			&& block[i].flags != BBUNDEF
-			&& block[i].flags != BBFINISHED
-			&& block[i].flags != BBTYPECHECK_UNDEF) /* typecheck may never reach
+	for (i=0; i<m->basicblockcount; ++i) {
+		if (m->basicblocks[i].flags != BBDELETED
+			&& m->basicblocks[i].flags != BBUNDEF
+			&& m->basicblocks[i].flags != BBFINISHED
+			&& m->basicblocks[i].flags != BBTYPECHECK_UNDEF) /* typecheck may never reach
 													 * some exception handlers,
 													 * that's ok. */
 		{
 			LOG2("block L%03d has invalid flags after typecheck: %d",
-				 block[i].debug_nr,block[i].flags);
+				 m->basicblocks[i].debug_nr,m->basicblocks[i].flags);
 			panic("Invalid block flags after typecheck");
 		}
 	}
 #endif
 	
 	/* Reset blocks we never reached */
-	for (i=0; i<block_count; ++i) {
-		if (block[i].flags == BBTYPECHECK_UNDEF)
-			block[i].flags = BBFINISHED;
+	for (i=0; i<m->basicblockcount; ++i) {
+		if (m->basicblocks[i].flags == BBTYPECHECK_UNDEF)
+			m->basicblocks[i].flags = BBFINISHED;
 	}
 		
     LOGimp("exiting typecheck");

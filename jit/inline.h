@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.h 665 2003-11-21 18:36:43Z jowenn $
+   $Id: inline.h 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -110,9 +110,11 @@ extern inlining_methodinfo *inlining_rootinfo;
 /* function prototypes*/
 void inlining_init(methodinfo *m);
 void inlining_cleanup();
-void inlining_push_compiler_variables(int i, int p, int nextp, int opcode, 
+void inlining_push_compiler_variables(methodinfo *m,
+									  int i, int p, int nextp, int opcode, 
                                       inlining_methodinfo* inlinfo);
-void inlining_pop_compiler_variables(int *i, int *p, int *nextp, int *opcode, 
+void inlining_pop_compiler_variables(methodinfo *m,
+									 int *i, int *p, int *nextp, int *opcode, 
                                      inlining_methodinfo** inlinfo); 
 void inlining_set_compiler_variables_fun(methodinfo *m);
 classinfo *first_occurence(classinfo* class, utf* name, utf* desc);
@@ -123,10 +125,10 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp,
 
 
 #define inlining_save_compiler_variables() \
-    inlining_push_compiler_variables(i, p, nextp, opcode, inlinfo)
+    inlining_push_compiler_variables(m, i, p, nextp, opcode, inlinfo)
 
 #define inlining_restore_compiler_variables() \
-    inlining_pop_compiler_variables(&i, &p, &nextp, &opcode, &inlinfo)
+    inlining_pop_compiler_variables(m, &i, &p, &nextp, &opcode, &inlinfo)
 
 #define inlining_set_compiler_variables(i) \
     do { \

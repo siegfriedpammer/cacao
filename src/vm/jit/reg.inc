@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1152 2004-06-07 10:09:20Z twisti $
+   $Id: reg.inc 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -112,9 +112,9 @@ int arguments_num;              /* size of parameter field in the stackframe  */
 
 /* function prototypes for this file */
 
-static void interface_regalloc();
-static void local_regalloc();
-static void allocate_scratch_registers();
+static void interface_regalloc(methodinfo *m);
+static void local_regalloc(methodinfo *m);
+static void allocate_scratch_registers(methodinfo *m);
 
 
 /* function reg_init ***********************************************************
@@ -257,16 +257,16 @@ void reg_init()
 }
 
 
-void reg_setup()
+void reg_setup(methodinfo *m)
 {
 	int i;
 	varinfo5 *v;
 
-	freemem    = DMNEW(int, maxstack);
-	locals     = DMNEW(varinfo5, maxlocals);
-	interfaces = DMNEW(varinfo5, maxstack);
+	freemem    = DMNEW(int, m->maxstack);
+	locals     = DMNEW(varinfo5, m->maxlocals);
+	interfaces = DMNEW(varinfo5, m->maxstack);
 
-	for (v = locals, i = maxlocals; i > 0; v++, i--) {
+	for (v = locals, i = m->maxlocals; i > 0; v++, i--) {
 		v[0][TYPE_INT].type = -1;
 		v[0][TYPE_LNG].type = -1;
 		v[0][TYPE_FLT].type = -1;
@@ -274,7 +274,7 @@ void reg_setup()
 		v[0][TYPE_ADR].type = -1;
 	}
 
-	for (v = interfaces, i = maxstack; i > 0; v++, i--) {
+	for (v = interfaces, i = m->maxstack; i > 0; v++, i--) {
 		v[0][TYPE_INT].type = -1;
 		v[0][TYPE_INT].flags = 0;
 		v[0][TYPE_LNG].type = -1;
@@ -324,7 +324,7 @@ void reg_close()
 	
 *******************************************************************************/
 	
-void regalloc()
+void regalloc(methodinfo *m)
 {
 #if defined(__I386__)
 	/* remove %ecx and/or %edx from tmpintregs */
@@ -333,9 +333,9 @@ void regalloc()
 	if (method_uses_edx) tmpintregcnt--;
 #endif
 
-	interface_regalloc();
-	allocate_scratch_registers();
-	local_regalloc();
+	interface_regalloc(m);
+	allocate_scratch_registers(m);
+	local_regalloc(m);
 
 #if defined(__I386__)
 	tmpintregcnt = origtmpintregcnt;
@@ -349,7 +349,7 @@ void regalloc()
 	
 *******************************************************************************/
 	
-static void interface_regalloc()
+static void interface_regalloc(methodinfo *m)
 {
 	int     s, t, saved;
 	int     intalloc, fltalloc;
@@ -381,7 +381,7 @@ static void interface_regalloc()
 	iftmpfltregcnt = tmpfltregcnt;
 	ifsavfltregcnt = savfltregcnt;
 
-	for (s = 0; s < maxstack; s++) {
+	for (s = 0; s < m->maxstack; s++) {
 		intalloc = -1; fltalloc = -1;
 		saved = (interfaces[s][TYPE_INT].flags | interfaces[s][TYPE_LNG].flags |
 		         interfaces[s][TYPE_FLT].flags | interfaces[s][TYPE_DBL].flags |
@@ -514,7 +514,7 @@ static void interface_regalloc()
 	
 *******************************************************************************/
 	
-static void local_regalloc()
+static void local_regalloc(methodinfo *m)
 {
 	int      s, t, tt;
 	int      intalloc, fltalloc;
@@ -522,12 +522,12 @@ static void local_regalloc()
 	int      regsneeded = 0;
 	int typeloop[] = { TYPE_LNG, TYPE_DBL, TYPE_INT, TYPE_FLT, TYPE_ADR };
 	
-	if (isleafmethod) {
+	if (m->isleafmethod) {
 		int arg, doublewordarg, iargcnt, fargcnt;
 
 		arg = 0, iargcnt = 0, fargcnt = 0;
 		doublewordarg = 0;
-		for (s = 0; s < maxlocals; s++) {
+		for (s = 0; s < m->maxlocals; s++) {
 			intalloc = -1; fltalloc = -1;
 			for (tt = 0; tt <= 4; tt++) {
 				t = typeloop[tt];
@@ -545,7 +545,7 @@ static void local_regalloc()
 							v->flags = locals[s][fltalloc].flags;
 							v->regoff = locals[s][fltalloc].regoff;
 						}
-  						else if (!doublewordarg && (arg < mparamcount)
+  						else if (!doublewordarg && (arg < m->paramcount)
 								 && (fargcnt < fltreg_argnum)) {
 							v->flags = 0;
 							v->regoff = argfltregs[fargcnt];
@@ -585,7 +585,7 @@ static void local_regalloc()
 								v->flags = locals[s][intalloc].flags;
 								v->regoff = locals[s][intalloc].regoff;
 							}
-							else if (!doublewordarg && (arg < mparamcount)
+							else if (!doublewordarg && (arg < m->paramcount)
 #ifndef USETWOREGS
 									 && ((regtouse = iargcnt) < intreg_argnum)
 #else
@@ -608,7 +608,7 @@ static void local_regalloc()
 							/*
 							 * use unused argument registers as local registers
 							 */
-							else if (!doublewordarg && (arg >= mparamcount)
+							else if (!doublewordarg && (arg >= m->paramcount)
 									 && (iargcnt < intreg_argnum)) {
 								v->flags = 0;
 								v->regoff = argintregs[iargcnt];
@@ -627,11 +627,11 @@ static void local_regalloc()
 					}
 				}
 			}
-			if (arg < mparamcount) {
+			if (arg < m->paramcount) {
 				if (doublewordarg) {
 					doublewordarg = 0;
 					/* what type was the double arg? */
-					if (IS_FLT_DBL_TYPE(mparamtypes[arg])) {
+					if (IS_FLT_DBL_TYPE(m->paramtypes[arg])) {
 						fargcnt++;
 
 					} else {
@@ -639,11 +639,11 @@ static void local_regalloc()
 					}
 					arg++;
 
-				} else if (IS_2_WORD_TYPE(mparamtypes[arg])) {
+				} else if (IS_2_WORD_TYPE(m->paramtypes[arg])) {
 					doublewordarg = 1;
 
 				} else {
-					if (IS_FLT_DBL_TYPE(mparamtypes[arg])) {
+					if (IS_FLT_DBL_TYPE(m->paramtypes[arg])) {
 						fargcnt++;
 
 					} else {
@@ -656,7 +656,7 @@ static void local_regalloc()
 		return;
 	}
 
-	for (s = 0; s < maxlocals; s++) {
+	for (s = 0; s < m->maxlocals; s++) {
 		intalloc = -1; fltalloc = -1;
 		for (tt=0; tt<=4; tt++) {
 			t = typeloop[tt];
@@ -899,7 +899,7 @@ static void reg_free_temp_func(stackptr s)
 
 
 
-static void allocate_scratch_registers()
+static void allocate_scratch_registers(methodinfo *m)
 {
 	int opcode;
 	int i;
@@ -911,7 +911,7 @@ static void allocate_scratch_registers()
 
 	/* b_count = block_count; */
 
-	bptr = block;
+	bptr = m->basicblocks;
 	while (bptr != NULL) {
 
 		if (bptr->flags >= BBREACHED) {
@@ -1313,7 +1313,7 @@ static void allocate_scratch_registers()
 					break;
 
 				default:
-					printf("ICMD %d at %d\n", iptr->opc, (int)(iptr-instr));
+					printf("ICMD %d at %d\n", iptr->opc, (s4) (iptr - m->instructions));
 					panic("Missing ICMD code during register allocation");
 				} /* switch */
 				iptr++;

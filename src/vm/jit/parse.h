@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 1092 2004-05-27 15:46:59Z twisti $
+   $Id: parse.h 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -40,45 +40,45 @@
 /* intermediate code generating macros */
 
 #define PINC           iptr++;ipc++
-#define LOADCONST_I(v) iptr->opc=ICMD_ICONST;/*iptr->op1=0*/;iptr->val.i=(v);iptr->line=currentline;iptr->method=method;PINC
-#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);iptr->line=currentline;iptr->method=method;PINC
-#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);iptr->line=currentline;iptr->method=method;PINC
-#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);iptr->line=currentline;iptr->method=method;PINC
-#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;/*iptr->op1=0*/;iptr->val.a=(v);iptr->line=currentline;iptr->method=method;PINC
+#define LOADCONST_I(v) iptr->opc=ICMD_ICONST;/*iptr->op1=0*/;iptr->val.i=(v);iptr->line=currentline;iptr->method=m;PINC
+#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);iptr->line=currentline;iptr->method=m;PINC
+#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);iptr->line=currentline;iptr->method=m;PINC
+#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);iptr->line=currentline;iptr->method=m;PINC
+#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;/*iptr->op1=0*/;iptr->val.a=(v);iptr->line=currentline;iptr->method=m;PINC
 
 /* ACONST instructions generated as arguments for builtin functions
  * have op1 set to non-zero. This is used for stack overflow checking
  * in stack.c. */
 #define LOADCONST_A_BUILTIN(v) \
-                       iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);iptr->line=currentline;iptr->method=method;PINC
+                       iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);iptr->line=currentline;iptr->method=m;PINC
 
-#define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;iptr->line=currentline;iptr->method=method;PINC
-#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;iptr->line=currentline;iptr->method=method;PINC
-#define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);iptr->line=currentline;iptr->method=method;PINC
+#define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;iptr->line=currentline;iptr->method=m;PINC
+#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;iptr->line=currentline;iptr->method=m;PINC
+#define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);iptr->line=currentline;iptr->method=m;PINC
 
 #define OP2A(o,o1,v,l) \
     iptr->opc = (o); \
     iptr->op1 = (o1); \
     iptr->val.a = (v); \
     iptr->line = l; \
-    iptr->method = method; \
+    iptr->method = m; \
     PINC
 
-#define BUILTIN1(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN1;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->method=method;PINC
-#define BUILTIN2(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN2;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->method=method;PINC
-#define BUILTIN3(v,t,l)  isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->method=method;PINC
+#define BUILTIN1(v,t,l)  m->isleafmethod=false;iptr->opc=ICMD_BUILTIN1;iptr->op1=t;\
+                       iptr->val.a=(v);iptr->line=l;iptr->method=m;PINC
+#define BUILTIN2(v,t,l)  m->isleafmethod=false;iptr->opc=ICMD_BUILTIN2;iptr->op1=t;\
+                       iptr->val.a=(v);iptr->line=l;iptr->method=m;PINC
+#define BUILTIN3(v,t,l)  m->isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
+                       iptr->val.a=(v);iptr->line=l;iptr->method=m;PINC
 
 /* We have to check local variables indices here because they are
  * used in stack.c to index the locals array. */
 
 #define INDEX_ONEWORD(num)										\
-	do { if((num)<0 || (num)>=maxlocals)						\
+	do { if((num)<0 || (num)>=m->maxlocals)						\
 			panic("Invalid local variable index"); } while (0)
 #define INDEX_TWOWORD(num)										\
-	do { if((num)<0 || ((num)+1)>=maxlocals)					\
+	do { if((num)<0 || ((num)+1)>=m->maxlocals)					\
 			panic("Invalid local variable index"); } while (0)
 
 #define OP1LOAD(o,o1)							\
@@ -99,9 +99,9 @@
 
 #define block_insert(i) \
     do { \
-        if (!(block_index[(i)] & 1)) { \
+        if (!(m->basicblockindex[(i)] & 1)) { \
             b_count++; \
-            block_index[(i)] |= 1; \
+            m->basicblockindex[(i)] |= 1; \
         } \
     } while (0)
 
@@ -130,14 +130,14 @@
 
 *******************************************************************************/
 
-#define code_get_u1(p)  jcode[p]
-#define code_get_s1(p)  ((s1)jcode[p])
-#define code_get_u2(p)  ((((u2)jcode[p]) << 8) + jcode[p + 1])
-#define code_get_s2(p)  ((s2)((((u2)jcode[p]) << 8) + jcode[p + 1]))
-#define code_get_u4(p)  ((((u4)jcode[p]) << 24) + (((u4)jcode[p + 1]) << 16) \
-                        +(((u4)jcode[p + 2]) << 8) + jcode[p + 3])
-#define code_get_s4(p)  ((s4)((((u4)jcode[p]) << 24) + (((u4)jcode[p + 1]) << 16) \
-                             +(((u4)jcode[p + 2]) << 8) + jcode[p + 3]))
+#define code_get_u1(p)  m->jcode[p]
+#define code_get_s1(p)  ((s1)m->jcode[p])
+#define code_get_u2(p)  ((((u2)m->jcode[p]) << 8) + m->jcode[p + 1])
+#define code_get_s2(p)  ((s2)((((u2)m->jcode[p]) << 8) + m->jcode[p + 1]))
+#define code_get_u4(p)  ((((u4)m->jcode[p]) << 24) + (((u4)m->jcode[p + 1]) << 16) \
+                        +(((u4)m->jcode[p + 2]) << 8) + m->jcode[p + 3])
+#define code_get_s4(p)  ((s4)((((u4)m->jcode[p]) << 24) + (((u4)m->jcode[p + 1]) << 16) \
+                             +(((u4)m->jcode[p + 2]) << 8) + m->jcode[p + 3]))
 
 
 extern classinfo  *rt_class;

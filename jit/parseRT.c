@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1044 2004-04-26 17:30:38Z twisti $
+   $Id: parseRT.c 1203 2004-06-22 23:14:55Z twisti $
 
 Changes:
 opcode put into functions
@@ -709,7 +709,9 @@ int addClassInit(classinfo *ci, bool clinits, bool finalizes, bool addmark) {
 
 	/*Special Case for System class init:  
 	add java/lang/initializeSystemClass to callgraph */
-	if (class->name == utf_initializeSystemClass) {
+	/* XXX TWISTI */
+/*  	if (class->name == utf_initializeSystemClass) { */
+	if (mi->class->name == utf_initializeSystemClass) {
 		/* Get clinit methodinfo ptr */
 		if ((mi = class_findmethod (ci,utf_initializeSystemClass, EMPTY_DESC)) != NULL) {
 			/*--- RTA ---*/
@@ -1399,7 +1401,7 @@ if ((XTAOPTbypass) || (opt_xta))
 }
 
 /*-------------------------------------------------------------------------------*/
-static void parseRT()
+static void parseRT(methodinfo *m)
 {
 	int  p;                     /* java instruction counter                   */
 	int  nextp;                 /* start of next java instruction             */
@@ -1570,7 +1572,7 @@ static void parseRT()
 				methodinfo *mi;
 
 				mr = class_getconstant (rt_class, i, CONSTANT_Methodref);
-				mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, class, true);
+				mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, m->class, true);
 				if (!mi)
 					panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 				/*-- RTA --*/
@@ -1585,7 +1587,7 @@ static void parseRT()
 			methodinfo *mi;
 				
 			mr = class_getconstant (rt_class, i, CONSTANT_Methodref);
-			mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, class, true);
+			mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, m->class, true);
 			if (!mi)
 				panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 						RTAPRINT06invoke_spec_virt1
@@ -1611,7 +1613,7 @@ static void parseRT()
 			methodinfo *mi;
 				
 			mr = class_getconstant (rt_class, i, CONSTANT_Methodref);
-			mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, class, true);
+			mi = class_resolveclassmethod (mr->class, mr->name, mr->descriptor, m->class, true);
 			if (!mi)
 				panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 
@@ -1626,7 +1628,7 @@ static void parseRT()
 			methodinfo *mi;
 
 			mr = class_getconstant (rt_class, i, CONSTANT_InterfaceMethodref);
-			mi = class_resolveinterfacemethod (mr->class, mr->name, mr->descriptor, class, true);
+			mi = class_resolveinterfacemethod (mr->class, mr->name, mr->descriptor, m->class, true);
 			if (!mi)
 				panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 			invokeinterface(mi);
@@ -1928,7 +1930,7 @@ printf("IIIIIIIIIIIIIIIIIIIIn RTparseCGWorklist\n"); fflush(stdout);
 
 		if (! (  (rt_method->flags & ACC_NATIVE  )
 				 ||   (rt_method->flags & ACC_ABSTRACT) ) ) {
-			parseRT();
+			parseRT(m);
 			}
 	    	//if (true == false) {   // At moment nativecalls.h is not current and neither helps nor hinders
 	    	else 	{
@@ -2122,7 +2124,7 @@ printf("-+-+-+-+-+-+-+-+-+-+-44"); fflush(stdout);
 
                 if (! (  (rt_method->flags & ACC_NATIVE  )
                                  ||   (rt_method->flags & ACC_ABSTRACT) ) ) {
-                        parseRT();
+                        parseRT(m);
                         }
                 else    {
                                 RTAPRINT12bAbstractNative

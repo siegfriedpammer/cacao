@@ -26,7 +26,7 @@
 
    Authors: Christopher Kruegel
 
-   $Id: loop.h 665 2003-11-21 18:36:43Z jowenn $
+   $Id: loop.h 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -165,7 +165,7 @@ struct LoopContainer {
 										/* is head of a loop					*/
 	struct LoopContainer *tree_right;   /* used for tree hierarchie of loops    */
 	struct LoopContainer *tree_down;
-	xtable *exceptions;                 /* list of exception in that loop       */
+	exceptiontable *exceptions;         /* list of exception in that loop       */
 };
 
 
@@ -242,7 +242,7 @@ extern int c_stat_sum_exception;
 
 
 /* function prototypes */
-void analyseGraph();
+void analyseGraph(methodinfo *m);
 void c_mem_error();
 
 #endif /* _LOOP_H */

@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1180 2004-06-17 17:17:09Z twisti $
+   $Id: inline.c 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -73,8 +73,8 @@ void inlining_init(methodinfo *m)
 	list_init(inlining_stack, OFFSET(t_inlining_stacknode, linkage));
 	
 	inlining_rootinfo = inlining_analyse_method(m, 0, 0, 0, 0);
-	maxlocals = cumlocals;
-	maxstack = cummaxstack;
+	m->maxlocals = cumlocals;
+	m->maxstack = cummaxstack;
 }
 
 
@@ -84,7 +84,7 @@ void inlining_cleanup()
 }
 
 
-void inlining_push_compiler_variables(int i, int p, int nextp, int opcode, inlining_methodinfo *inlinfo) 
+void inlining_push_compiler_variables(methodinfo *m, int i, int p, int nextp, int opcode, inlining_methodinfo *inlinfo) 
 {
 	t_inlining_stacknode *new = NEW(t_inlining_stacknode);
 
@@ -92,7 +92,7 @@ void inlining_push_compiler_variables(int i, int p, int nextp, int opcode, inlin
 	new->p = p;
 	new->nextp = nextp;
 	new->opcode = opcode;
-	new->method = method;
+	new->method = m;
 	//	new->patchlist = inlining_patchlist;
 	new->inlinfo = inlinfo;
 	
@@ -101,7 +101,7 @@ void inlining_push_compiler_variables(int i, int p, int nextp, int opcode, inlin
 }
 
 
-void inlining_pop_compiler_variables(int *i, int *p, int *nextp, int *opcode, inlining_methodinfo **inlinfo) 
+void inlining_pop_compiler_variables(methodinfo *m, int *i, int *p, int *nextp, int *opcode, inlining_methodinfo **inlinfo) 
 {
 	t_inlining_stacknode *tmp = (t_inlining_stacknode *) list_first(inlining_stack);
 
@@ -113,10 +113,11 @@ void inlining_pop_compiler_variables(int *i, int *p, int *nextp, int *opcode, in
 	*opcode = tmp->opcode;
 	*inlinfo = tmp->inlinfo;
 
-	method = tmp->method;
-	class = method->class;
-	jcodelength = method->jcodelength;
-	jcode = method->jcode;
+	/* XXX TWISTI */
+/*  	method = tmp->method; */
+/*  	class = method->class; */
+/*  	jcodelength = method->jcodelength; */
+/*  	jcode = method->jcode; */
 	//	inlining_patchlist = tmp->patchlist;
 
 	list_remove(inlining_stack, tmp);
@@ -127,10 +128,11 @@ void inlining_pop_compiler_variables(int *i, int *p, int *nextp, int *opcode, in
 
 void inlining_set_compiler_variables_fun(methodinfo *m)
 {
-	method = m;
-	class = m->class;
-	jcodelength = m->jcodelength;
-	jcode = m->jcode;
+	/* XXX TWISTI */
+/*  	method = m; */
+/*  	class = m->class; */
+/*  	jcodelength = m->jcodelength; */
+/*  	jcode = m->jcode; */
 	
 	//	inlining_patchlist = DNEW(list);
 	//	list_init(inlining_patchlist, OFFSET(t_patchlistnode, linkage));
@@ -382,7 +384,12 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 					methodinfo *imi;
 
 					imr = class_getconstant(m->class, i, CONSTANT_Methodref);
-					imi = class_resolveclassmethod (imr->class, imr->name, imr->descriptor, class, true);
+					imi = class_resolveclassmethod(imr->class,
+												   imr->name,
+												   imr->descriptor,
+												   m->class,
+												   true);
+
 					if (!imi)
 						panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
 
@@ -393,7 +400,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 
 					if ((cummethods < INLINING_MAXMETHODS) &&
 						(!(imi->flags & ACC_NATIVE)) &&  
-						(!inlineoutsiders || (class == imr->class)) && 
+						(!inlineoutsiders || (m->class == imr->class)) && 
 						(imi->jcodelength < INLINING_MAXCODESIZE) && 
 						(imi->jcodelength > 0) && 
 						(!inlineexceptions || (imi->exceptiontablelength == 0))) { //FIXME: eliminate empty methods?

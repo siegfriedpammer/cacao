@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 1091 2004-05-27 15:44:54Z twisti $
+   $Id: jit.h 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -847,8 +847,6 @@ extern int nregdescfloat[]; /* description of floating point registers        */
 extern int nreg_parammode;
 
 
-/* compiler switches (set by main function) ***********************************/
-
 extern int count_jit_calls;
 extern int count_methods;
 extern int count_spills;
@@ -895,47 +893,6 @@ extern int *count_store_length;
 extern int *count_store_depth;
 
 
-/* global compiler variables */
-
-extern classinfo  *class;       /* class the compiled method belongs to       */
-extern methodinfo *method;      /* pointer to method info of compiled method  */
-extern utf        *descriptor;  /* type descriptor of compiled method         */
-extern int         mparamcount; /* number of parameters (incl. this)          */
-extern u1         *mparamtypes; /* types of all parameters (TYPE_INT, ...)    */
-	
-extern int maxstack;            /* maximal JavaVM stack size                  */
-extern int maxlocals;           /* maximal number of local JavaVM variables   */
-extern int jcodelength;         /* length of JavaVM-codes                     */
-extern u1 *jcode;               /* pointer to start of JavaVM-code            */
-extern lineinfo *jlinenumbers;  /* line information array                     */
-extern u2 jlinenumbercount;     /* number of entries in the linenumber array  */
-extern int exceptiontablelength;/* length of exception table                  */
-extern xtable *extable;         /* pointer to start of exception table        */
-extern exceptiontable *raw_extable;
-
-extern int block_count;         /* number of basic blocks                     */
-extern basicblock *block;       /* points to basic block array                */
-extern int *block_index;        /* a table which contains for every byte of   */
-                                /* JavaVM code a basic block index if at this */
-                                /* byte there is the start of a basic block   */
-
-extern int instr_count;         /* number of JavaVM instructions              */
-extern instruction *instr;      /* points to intermediate code instructions   */
-
-extern int stack_count;         /* number of stack elements                   */
-extern stackelement *stack;     /* points to intermediate code instructions   */
-
-extern bool isleafmethod;       /* true if a method doesn't call subroutines  */
-
-extern basicblock *last_block;  /* points to the end of the BB list           */
-
-extern bool regs_ok;            /* true if registers have been allocated      */
-
-
-/* list of all classes used by the compiled method which have to be           */
-/* initialised (if not already done) before execution of this method          */
-extern chain *uninitializedclasses;
-
 extern int stackreq[256];
 
 
@@ -957,14 +914,6 @@ u1 *createnativestub(functionptr f, methodinfo *m);
 
 void removecompilerstub(u1 *stub);
 void removenativestub(u1 *stub);
-
-/* debug helpers (in stack.c) */
-
-void icmd_print_stack(stackptr s);
-char *icmd_builtin_name(functionptr bptr);
-void show_icmd_block(basicblock *bptr);
-void show_icmd(instruction *iptr,bool deadcode);
-void show_icmd_method();
 
 #endif /* _JIT_H */
 

@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1139 2004-06-05 20:57:12Z twisti $
+   $Id: codegen.h 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -443,7 +443,7 @@ typedef enum {
 void codegen_init();
 void *codegen_findmethod(void *pc);
 void init_exceptions();
-void codegen();
+void codegen(methodinfo *m);
 void codegen_close();
 void dseg_display(s4 *s4ptr);
 void thread_restartcriticalsection(ucontext_t*);

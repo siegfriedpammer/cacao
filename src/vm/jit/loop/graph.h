@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: graph.h 665 2003-11-21 18:36:43Z jowenn $
+   $Id: graph.h 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -36,10 +36,10 @@
 
 #include "loop.h"
 
-void LoopContainerInit(struct LoopContainer *lc, int i);
-void depthFirst();
-void dF(int from, int blockIndex);
-void dF_Exception(int from, int blockIndex);
+void LoopContainerInit(methodinfo *m, struct LoopContainer *lc, int i);
+void depthFirst(methodinfo *m);
+void dF(methodinfo *m, int from, int blockIndex);
+void dF_Exception(methodinfo *m, int from, int blockIndex);
 
 void resultPass1();
 

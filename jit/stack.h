@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 1095 2004-05-27 15:54:42Z twisti $
+   $Id: stack.h 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -41,7 +41,12 @@
 /* function prototypes */
 
 methodinfo *analyse_stack(methodinfo *m);
-void show_icmd_method();
+
+void icmd_print_stack(methodinfo *m, stackptr s);
+char *icmd_builtin_name(functionptr bptr);
+void show_icmd_method(methodinfo *m);
+void show_icmd_block(methodinfo *m, basicblock *bptr);
+void show_icmd(instruction *iptr, bool deadcode);
 
 #endif /* _STACK_H */
 

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1181 2004-06-17 19:23:25Z twisti $
+   $Id: codegen.c 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -293,7 +293,7 @@ void init_exceptions(void)
 /* global code generation pointer */
 u1 *mcodeptr;
 
-void codegen()
+void codegen(methodinfo *m)
 {
 	int  len, s1, s2, s3, d;
 	s4   a;
@@ -304,7 +304,7 @@ void codegen()
 	u2 currentline=0;
 	int fpu_st_offset = 0;
 
-	xtable *ex;
+	exceptiontable *ex;
 
 	{
 	int p, pa, t, l, r;
@@ -320,14 +320,14 @@ void codegen()
 
 #if defined(USE_THREADS)           /* space to save argument of monitor_enter */
 
-	if (checksync && (method->flags & ACC_SYNCHRONIZED))
+	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		parentargs_base++;
 
 #endif
 
 	/* create method header */
 
-	(void) dseg_addaddress(method);                         /* MethodPointer  */
+	(void) dseg_addaddress(m);                              /* MethodPointer  */
 	(void) dseg_adds4(parentargs_base * 8);                 /* FrameSize      */
 
 #if defined(USE_THREADS)
@@ -338,7 +338,7 @@ void codegen()
 	   offset by one.
 	*/
 
-	if (checksync && (method->flags & ACC_SYNCHRONIZED))
+	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		(void) dseg_adds4((maxmemuse + 1) * 8);             /* IsSync         */
 	else
 
@@ -346,7 +346,7 @@ void codegen()
 
 	(void) dseg_adds4(0);                                   /* IsSync         */
 	                                       
-	(void) dseg_adds4(isleafmethod);                        /* IsLeaf         */
+	(void) dseg_adds4(m->isleafmethod);                     /* IsLeaf         */
 	(void) dseg_adds4(savintregcnt - maxsavintreguse);      /* IntSave        */
 	(void) dseg_adds4(savfltregcnt - maxsavfltreguse);      /* FltSave        */
 
@@ -357,11 +357,11 @@ void codegen()
 	   to the information gotten from the class file */
 	(void) dseg_addlinenumbertablesize();
 
-	(void) dseg_adds4(exceptiontablelength);                /* ExTableSize    */
+	(void) dseg_adds4(m->exceptiontablelength);             /* ExTableSize    */
 	
 	/* create exception table */
 
-	for (ex = extable; ex != NULL; ex = ex->down) {
+	for (ex = m->exceptiontable; ex != NULL; ex = ex->down) {
 		dseg_addtarget(ex->start);
    		dseg_addtarget(ex->end);
 		dseg_addtarget(ex->handler);
@@ -373,7 +373,7 @@ void codegen()
 	
 	mcodeptr = (u1*) mcodebase;
 	mcodeend = (s4*) (mcodebase + mcodesize);
-	MCODECHECK(128 + mparamcount);
+	MCODECHECK(128 + m->paramcount);
 
 	/* create stack frame (if necessary) */
 
@@ -394,9 +394,9 @@ void codegen()
 	/* save monitorenter argument */
 
 #if defined(USE_THREADS)
-	if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-		if (method->flags & ACC_STATIC) {
-			i386_mov_imm_reg((s4) class, REG_ITMP1);
+	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		if (m->flags & ACC_STATIC) {
+			i386_mov_imm_reg((s4) m->class, REG_ITMP1);
 			i386_mov_reg_membase(REG_ITMP1, REG_SP, maxmemuse * 8);
 
 		} else {
@@ -421,8 +421,8 @@ void codegen()
 	if (runverbose) {
 		i386_alu_imm_reg(I386_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
 
-		for (p = 0; p < mparamcount && p < TRACE_ARGS_NUM; p++) {
-			t = mparamtypes[p];
+		for (p = 0; p < m->paramcount && p < TRACE_ARGS_NUM; p++) {
+			t = m->paramtypes[p];
 
 			if (IS_INT_LNG_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
@@ -461,12 +461,12 @@ void codegen()
 
 		/* fill up the remaining arguments */
 		i386_alu_reg_reg(I386_XOR, REG_ITMP1, REG_ITMP1);
-		for (p = mparamcount; p < TRACE_ARGS_NUM; p++) {
+		for (p = m->paramcount; p < TRACE_ARGS_NUM; p++) {
 			i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
 			i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8 + 4);
 		}
 
-		i386_mov_imm_membase((s4) method, REG_SP, TRACE_ARGS_NUM * 8);
+		i386_mov_imm_membase((s4) m, REG_SP, TRACE_ARGS_NUM * 8);
   		i386_mov_imm_reg((s4) builtin_trace_args, REG_ITMP1);
 		i386_call_reg(REG_ITMP1);
 
@@ -475,8 +475,8 @@ void codegen()
 
 	/* take arguments out of register or stack frame */
 
- 	for (p = 0, l = 0; p < mparamcount; p++) {
- 		t = mparamtypes[p];
+ 	for (p = 0, l = 0; p < m->paramcount; p++) {
+ 		t = m->paramtypes[p];
  		var = &(locals[l][t]);
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
@@ -557,9 +557,9 @@ void codegen()
 	/* end of header generation */
 
 	/* walk through all basic blocks */
-	for (bptr = block; bptr != NULL; bptr = bptr->next) {
+	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 
-		bptr->mpc = (int)((u1*) mcodeptr - mcodebase);
+		bptr->mpc = (s4) ((u1 *) mcodeptr - mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
 
@@ -3620,7 +3620,7 @@ nowperformreturn:
 			if (runverbose) {
 				i386_alu_imm_reg(I386_SUB, 4 + 8 + 8 + 4, REG_SP);
 
-				i386_mov_imm_membase((s4) method, REG_SP, 0);
+				i386_mov_imm_membase((s4) m, REG_SP, 0);
 
 				i386_mov_reg_membase(REG_RESULT, REG_SP, 4);
 				i386_mov_reg_membase(REG_RESULT2, REG_SP, 4 + 4);
@@ -3638,7 +3638,7 @@ nowperformreturn:
 			}
 
 #if defined(USE_THREADS)
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP2);
 
 				/* we need to save the proper return value */
@@ -4447,7 +4447,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (; xcheckarefs != NULL; xcheckarefs = xcheckarefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xcheckarefs->branchpos, 
 							  xcheckarefs->branchpos,
 							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
@@ -4495,7 +4495,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (; xcastrefs != NULL; xcastrefs = xcastrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xcastrefs->branchpos, 
 							  xcastrefs->branchpos,
 							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
@@ -4544,7 +4544,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (; xdivrefs != NULL; xdivrefs = xdivrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xdivrefs->branchpos, 
 							  xdivrefs->branchpos,
 							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
@@ -4592,7 +4592,7 @@ gen_method: {
 	xcodeptr = NULL;
 	
 	for (; xexceptionrefs != NULL; xexceptionrefs = xexceptionrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xexceptionrefs->branchpos,
 							  xexceptionrefs->branchpos,
 							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
@@ -4679,7 +4679,7 @@ java stack at this point*/
 	xcodeptr = NULL;
 	
 	for (; xnullrefs != NULL; xnullrefs = xnullrefs->next) {
-		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1*) mcodebase + xnullrefs->branchpos, 
 							  xnullrefs->branchpos,
 							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
@@ -4753,7 +4753,7 @@ java stack at this point*/
 	}
 	}
 	
-	codegen_finish((u4) ((u1 *) mcodeptr - mcodebase));
+	codegen_finish(m, (u4) ((u1 *) mcodeptr - mcodebase));
 }
 
 

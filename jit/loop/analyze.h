@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: analyze.h 665 2003-11-21 18:36:43Z jowenn $
+   $Id: analyze.h 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -34,7 +34,11 @@
 #ifndef _ANALYZE_H
 #define _ANALYZE_H
 
-void optimize_loops();
+
+#include "global.h"
+
+
+void optimize_loops(methodinfo *m);
 
 #endif /* _ANALYZE_H */
 

@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1187 2004-06-19 12:26:33Z twisti $
+   $Id: global.h 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -190,6 +190,7 @@ typedef struct classinfo classinfo;
 typedef struct vftbl vftbl;
 typedef u1* methodptr;
 typedef struct fieldinfo  fieldinfo; 
+typedef struct exceptiontable exceptiontable;
 typedef struct methodinfo methodinfo; 
 typedef struct lineinfo lineinfo; 
 typedef struct arraydescriptor arraydescriptor;
@@ -515,12 +516,10 @@ struct fieldinfo {	      /* field of a class                                 */
 	xtafldinfo *xta;
 };
 
-struct basicblock;
-
 
 /* exceptiontable *************************************************************/
 
-typedef struct xtable {         /* exceptiontable entry in a method           */
+struct exceptiontable {         /* exceptiontable entry in a method           */
 	s4         startpc;         /* start pc of guarded area (inclusive)       */
 	struct basicblock *start;
 
@@ -531,21 +530,14 @@ typedef struct xtable {         /* exceptiontable entry in a method           */
 	struct basicblock *handler;
 
 	classinfo *catchtype;       /* catchtype of exception (NULL == catchall)  */
-	struct xtable *next;        /* used to build a list of exception when     */
+	exceptiontable *next;       /* used to build a list of exception when     */
 	                            /* loops are copied */
-	struct xtable *down;        /* instead of the old array, a list is used   */
-} xtable;
-
-
-typedef struct exceptiontable { /* exceptiontable entry in a method           */
-	s4         startpc;         /* start pc of guarded area (inclusive)       */
-	s4         endpc;           /* end pc of guarded area (exklusive)         */
-	s4         handlerpc;       /* pc of exception handler                    */
-	classinfo *catchtype;       /* catchtype of exception (NULL == catchall)  */
-} exceptiontable;
+	exceptiontable *down;       /* instead of the old array, a list is used   */
+};
 
 
 /* methodinfo  static info ****************************************************/
+
 typedef struct xtainfo {
 	s4          XTAmethodUsed;     /* XTA if used in callgraph - not used /used */
 	classSet    *XTAclassSet;      /* method class type set                 */ 
@@ -564,10 +556,12 @@ typedef struct xtainfo {
 
 
 /* lineinfo *****************************************************************/
+
 struct lineinfo {
 	u2 start_pc;
 	u2 line_number;
 };
+
 
 /* methodinfo *****************************************************************/
 
@@ -580,7 +574,9 @@ struct methodinfo {                 /* method structure                       */
 	s4         paramcount;          /* only temporary valid, parameter count  */
 	u1        *paramtypes;          /* only temporary valid, parameter types  */
 	classinfo **paramclass;         /* pointer to classinfo for a parameter   */ /*XTA*/
-	
+
+	bool       isleafmethod;        /* does method call subroutines           */
+
 	classinfo *class;               /* class, the method belongs to           */
 	s4         vftblindex;          /* index of method in virtual function table
 	                                   (if it is a virtual method)            */
@@ -589,16 +585,29 @@ struct methodinfo {                 /* method structure                       */
 	s4         jcodelength;         /* length of JavaVM code                  */
 	u1        *jcode;               /* pointer to JavaVM code                 */
 
+	s4         basicblockcount;     /* number of basic blocks                 */
+	struct basicblock *basicblocks; /* points to basic block array            */
+	s4        *basicblockindex;     /* a table which contains for every byte  */
+	                                /* of JavaVM code a basic block index if  */
+	                                /* at this byte is the start of a basic   */
+	                                /* block                                  */
+
+	s4         instructioncount;    /* number of JavaVM instructions          */
+	struct instruction *instructions; /* points to intermediate code instructions */
+
+	s4         stackcount;          /* number of stack elements               */
+	struct stackelement *stack;     /* points to intermediate code instructions */
+
 	s4         exceptiontablelength;/* exceptiontable length                  */
 	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
 	u2        thrownexceptionscount;/*number of exceptions declared to be thrown by a method*/
 	classinfo **thrownexceptions;   /*array of classinfos of declared exceptions*/
 
-	u2         linenumbercount;     /*number of linenumber attributes*/
-	lineinfo  *linenumbers;         /*array of lineinfo items (start_pc,line_number)*/
+	u2         linenumbercount;     /* number of linenumber attributes        */
+	lineinfo  *linenumbers;         /* array of lineinfo items                */
 
-	u1        *stubroutine;         /* stub for compiling or calling natives  */	
+	u1        *stubroutine;         /* stub for compiling or calling natives  */
 	s4         mcodelength;         /* legth of generated machine code        */
 	u1        *mcode;               /* pointer to machine code                */
 	u1        *entrypoint;          /* entry point in machine code            */

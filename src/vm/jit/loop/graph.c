@@ -31,7 +31,7 @@
    Contains the functions which build a list, that represents the
    control flow graph of the procedure, that is being analyzed.
 
-   $Id: graph.c 1141 2004-06-05 23:19:24Z twisti $
+   $Id: graph.c 1203 2004-06-22 23:14:55Z twisti $
 
 */
 
@@ -43,7 +43,7 @@
 #include "toolbox/memory.h"
 
 
-void LoopContainerInit(struct LoopContainer *lc, int i)
+void LoopContainerInit(methodinfo *m, struct LoopContainer *lc, int i)
 {
 	struct LoopElement *le = DMNEW(struct LoopElement, 1);
 
@@ -58,9 +58,9 @@ void LoopContainerInit(struct LoopContainer *lc, int i)
 
 	lc->in_degree = 0;
 	le->node = lc->loop_head = i;
-	le->block = &block[i];
+	le->block = &m->basicblocks[i];
 
-	/* lc->nodes = (int *) malloc(sizeof(int)*block_count);
+	/* lc->nodes = (int *) malloc(sizeof(int)*m->basicblockcount);
 	lc->nodes[0] = i; */
 
 	lc->nodes = le;
@@ -72,55 +72,31 @@ void LoopContainerInit(struct LoopContainer *lc, int i)
    the procedure, that is to be optimized and stores the list in the global 
    variable c_dTable 
 */	        							
-void depthFirst()
+void depthFirst(methodinfo *m)
 {
 	int i;
 
-/*	allocate memory and init gobal variables needed by function dF(int, int)	*/
+/*	allocate memory and init gobal variables needed by function dF(m, int, int)	*/
   
-/*  	if ((c_defnum = (int *) malloc(block_count * sizeof(int))) == NULL)		 */
-/*  		c_mem_error(); */
-/*  	if ((c_numPre = (int *) malloc(block_count * sizeof(int))) == NULL) */
-/*  		c_mem_error(); */
-/*  	if ((c_parent = (int *) malloc(block_count * sizeof(int))) == NULL) */
-/*  		c_mem_error(); */
-/*  	if ((c_reverse = (int *) malloc(block_count * sizeof(int))) == NULL) */
-/*  		c_mem_error(); */
+	c_defnum = DMNEW(int, m->basicblockcount);
+	c_numPre = DMNEW(int, m->basicblockcount);
+	c_parent = DMNEW(int, m->basicblockcount);
+	c_reverse = DMNEW(int, m->basicblockcount);
+	c_pre = DMNEW(int *, m->basicblockcount);
+	c_dTable = DMNEW(struct depthElement *, m->basicblockcount);
 	
-/*  	if ((c_pre = (int **) malloc(block_count * sizeof(int *))) == NULL) */
-/*  		c_mem_error();  */
-
-/*  	if ((c_dTable = (struct depthElement **) malloc(block_count * sizeof(struct depthElement *))) == NULL) */
-/*  		c_mem_error(); */
-	
-/*  	for (i = 0; i < block_count; ++i) { */
-/*  		c_defnum[i] = c_parent[i] = -1; */
-/*  		c_numPre[i] = c_reverse[i] = 0; */
-
-/*  		if ((c_pre[i] = (int *) malloc(block_count * sizeof(int))) == NULL) */
-/*  			c_mem_error(); */
-/*  		c_dTable[i] = NULL; */
-/*  	    } */
-  
-	c_defnum = DMNEW(int, block_count);
-	c_numPre = DMNEW(int, block_count);
-	c_parent = DMNEW(int, block_count);
-	c_reverse = DMNEW(int, block_count);
-	c_pre = DMNEW(int *, block_count);
-	c_dTable = DMNEW(struct depthElement *, block_count);
-	
-	for (i = 0; i < block_count; ++i) {
+	for (i = 0; i < m->basicblockcount; ++i) {
 		c_defnum[i] = c_parent[i] = -1;
 		c_numPre[i] = c_reverse[i] = 0;
 
-		c_pre[i] = DMNEW(int, block_count);
+		c_pre[i] = DMNEW(int, m->basicblockcount);
 		c_dTable[i] = NULL;
 	}
   
 	c_globalCount = 0;
 	c_allLoops = NULL;
   
-	dF(-1, 0);	/* call helper function dF that traverses basic block structure	*/
+	dF(m, -1, 0);	/* call helper function dF that traverses basic block structure	*/
 }
 
 
@@ -129,7 +105,7 @@ void depthFirst()
    control flow graph in a depth-first order, thereby building up the adeacency
    list c_dTable
 */ 
-void dF(int from, int blockIndex)
+void dF(methodinfo *m, int from, int blockIndex)
 {
 	instruction *ip;
 	s4 *s4ptr;
@@ -155,18 +131,18 @@ void dF(int from, int blockIndex)
 /*  		if ((tmp = (struct LoopContainer *) malloc(sizeof(struct LoopContainer))) == NULL) */
 /*  			c_mem_error(); */
 		tmp = DNEW(struct LoopContainer);
-		LoopContainerInit(tmp, blockIndex);
+		LoopContainerInit(m, tmp, blockIndex);
 		tmp->next = c_allLoops;
 		c_allLoops = tmp;
 	}
 
 #ifdef C_DEBUG
-	if (blockIndex > block_count) {
+	if (blockIndex > m->basicblockcount) {
 		panic("DepthFirst: BlockIndex exceeded\n");
 	}		
 #endif
 
-	ip = block[blockIndex].iinstr + block[blockIndex].icount -1;
+	ip = m->basicblocks[blockIndex].iinstr + m->basicblocks[blockIndex].icount -1;
 										/* set ip to last instruction			*/
 									
 	if (c_defnum[blockIndex] == -1) {	/* current block has not been visited	*/
@@ -175,9 +151,9 @@ void dF(int from, int blockIndex)
 		c_reverse[c_globalCount] = blockIndex;
 		++c_globalCount;
 		
-		if (!block[blockIndex].icount) {
+		if (!m->basicblocks[blockIndex].icount) {
 										/* block does not contain instructions	*/
-			dF(blockIndex, blockIndex+1);
+			dF(m, blockIndex, blockIndex+1);
 		    }
 		else { 							/* for all successors, do				*/
 			switch (ip->opc) {			/* check type of last instruction		*/
@@ -206,17 +182,17 @@ void dF(int from, int blockIndex)
 			case ICMD_IF_ICMPLE:
 			case ICMD_IF_ACMPEQ:
 			case ICMD_IF_ACMPNE:				/* branch -> check next block	*/
-			   dF(blockIndex, blockIndex + 1);
+			   dF(m, blockIndex, blockIndex + 1);
 			   /* fall throu */
 			   
 			case ICMD_GOTO:
-				dF(blockIndex, block_index[ip->op1]);         
+				dF(m, blockIndex, m->basicblockindex[ip->op1]);         
 				break;							/* visit branch (goto) target	*/
 				
 			case ICMD_TABLESWITCH:				/* switch statement				*/
 				s4ptr = ip->val.a;
 				
-				dF(blockIndex, block_index[*s4ptr]);	/* default branch		*/
+				dF(m, blockIndex, m->basicblockindex[*s4ptr]);	/* default branch		*/
 				
 				s4ptr++;
 				low = *s4ptr;
@@ -227,35 +203,35 @@ void dF(int from, int blockIndex)
 				
 				while (--count >= 0) {
 					s4ptr++;
-					dF(blockIndex, block_index[*s4ptr]);
+					dF(m, blockIndex, m->basicblockindex[*s4ptr]);
 				    }
 				break;
 				
 			case ICMD_LOOKUPSWITCH:				/* switch statement				*/
 				s4ptr = ip->val.a;
 			   
-				dF(blockIndex, block_index[*s4ptr]);	/* default branch		*/
+				dF(m, blockIndex, m->basicblockindex[*s4ptr]);	/* default branch		*/
 				
 				++s4ptr;
 				count = *s4ptr++;
 				
 				while (--count >= 0) {
-					dF(blockIndex, block_index[s4ptr[1]]);
+					dF(m, blockIndex, m->basicblockindex[s4ptr[1]]);
 					s4ptr += 2;
 				    }
 				break;
 
 			case ICMD_JSR:
 				c_last_jump = blockIndex;
-				dF(blockIndex, block_index[ip->op1]);         
+				dF(m, blockIndex, m->basicblockindex[ip->op1]);         
 				break;
 				
 			case ICMD_RET:
-				dF(blockIndex, c_last_jump+1);
+				dF(m, blockIndex, c_last_jump+1);
 				break;
 				
 			default:
-				dF(blockIndex, blockIndex + 1);
+				dF(m, blockIndex, blockIndex + 1);
 				break;	
 			    }                         
 		    }
@@ -276,11 +252,11 @@ void dF(int from, int blockIndex)
 }
 
 /* 
-   a slightly modified version of dF(int, int) that is used to traverse the part 
+   a slightly modified version of dF(m, int, int) that is used to traverse the part 
    of the control graph that is not reached by normal program flow but by the 
    raising of exceptions (code of catch blocks)
 */
-void dF_Exception(int from, int blockIndex)
+void dF_Exception(methodinfo *m, int from, int blockIndex)
 {
 	instruction *ip;
 	s4 *s4ptr;
@@ -307,15 +283,15 @@ void dF_Exception(int from, int blockIndex)
 	}
 	
 #ifdef C_DEBUG
-	if (blockIndex > block_count) {
+	if (blockIndex > m->basicblockcount) {
 		panic("DepthFirst: BlockIndex exceeded");
 	}
 #endif
 
-	ip = block[blockIndex].iinstr + block[blockIndex].icount -1;
+	ip = m->basicblocks[blockIndex].iinstr + m->basicblocks[blockIndex].icount -1;
 	
-	if (!block[blockIndex].icount)
-		dF_Exception(blockIndex, blockIndex+1);
+	if (!m->basicblocks[blockIndex].icount)
+		dF_Exception(m, blockIndex, blockIndex+1);
 	else {
 		switch (ip->opc) {
 		case ICMD_RETURN:
@@ -343,18 +319,18 @@ void dF_Exception(int from, int blockIndex)
 		case ICMD_IF_ICMPLE:
 		case ICMD_IF_ACMPEQ:
 		case ICMD_IF_ACMPNE:
-			dF_Exception(blockIndex, blockIndex + 1);
+			dF_Exception(m, blockIndex, blockIndex + 1);
 			/* fall throu */
 	  
 		case ICMD_GOTO:
-			dF_Exception(blockIndex, block_index[ip->op1]);         
+			dF_Exception(m, blockIndex, m->basicblockindex[ip->op1]);         
 			break;
 	  
 		case ICMD_TABLESWITCH:
 			s4ptr = ip->val.a;
 			
 			/* default branch */
-			dF_Exception(blockIndex, block_index[*s4ptr]);
+			dF_Exception(m, blockIndex, m->basicblockindex[*s4ptr]);
 			
 			s4ptr++;
 			low = *s4ptr;
@@ -365,7 +341,7 @@ void dF_Exception(int from, int blockIndex)
 
 			while (--count >= 0) {
 				s4ptr++;
-				dF_Exception(blockIndex, block_index[*s4ptr]);
+				dF_Exception(m, blockIndex, m->basicblockindex[*s4ptr]);
 			    }
 			break;
 
@@ -373,34 +349,35 @@ void dF_Exception(int from, int blockIndex)
 			s4ptr = ip->val.a;
  
 			/* default branch */
-			dF_Exception(blockIndex, block_index[*s4ptr]);
+			dF_Exception(m, blockIndex, m->basicblockindex[*s4ptr]);
 			
 			++s4ptr;
 			count = *s4ptr++;
 
 			while (--count >= 0) {
-				dF_Exception(blockIndex, block_index[s4ptr[1]]);
+				dF_Exception(m, blockIndex, m->basicblockindex[s4ptr[1]]);
 				s4ptr += 2;
 			    }  
 			break;
 
 		case ICMD_JSR:
 			c_last_jump = blockIndex;
-			dF_Exception(blockIndex, block_index[ip->op1]);         
+			dF_Exception(m, blockIndex, m->basicblockindex[ip->op1]);
 			break;
 	
 		case ICMD_RET:
-			dF_Exception(blockIndex, c_last_jump+1);
+			dF_Exception(m, blockIndex, c_last_jump+1);
 			break;
 			
 		default:
-			dF_Exception(blockIndex, blockIndex + 1);
+			dF_Exception(m, blockIndex, blockIndex + 1);
 			break;	
 		    }                         
         }
 }
 
 
+#if 0
 /*
   Test function -> will be removed in final release
 */
@@ -413,7 +390,7 @@ void resultPass1()
 	printf("Number of Nodes: %d\n\n", c_globalCount);
  
 	printf("Predecessors:\n");
-	for (i=0; i<block_count; ++i) {
+	for (i=0; i<m->basicblockcount; ++i) {
 		printf("Block %d:\t", i);
 		for (j=0; j<c_numPre[i]; ++j)
 			printf("%d ", c_pre[i][j]);
@@ -422,7 +399,7 @@ void resultPass1()
 	printf("\n");
 
 	printf("Graph:\n");
-	for (i=0; i<block_count; ++i) {
+	for (i=0; i<m->basicblockcount; ++i) {
 		printf("Block %d:\t", i);
 		hp = c_dTable[i];
 		
@@ -434,6 +411,7 @@ void resultPass1()
 	    }
 	printf("\n");
 }
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
