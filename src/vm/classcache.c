@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.c 2076 2005-03-25 12:34:09Z edwin $
+   $Id: classcache.c 2083 2005-03-25 14:25:15Z edwin $
 
 */
 
@@ -629,7 +629,7 @@ classcache_add_constraint(classloader *a,classloader *b,utf *classname)
 			return true;
 
 		/* check if the entries can be merged */
-		if (clsenA->classobj != clsenB->classobj) {
+		if (clsenA->classobj && clsenB->classobj && clsenA->classobj != clsenB->classobj) {
 			/* no, the constraint is violated */
 			*exceptionptr = new_exception_message(string_java_lang_LinkageError,
 					"loading constraint violated XXX add message");
@@ -644,6 +644,9 @@ classcache_add_constraint(classloader *a,classloader *b,utf *classname)
 		clsenA->constraints = classcache_merge_loaders(clsenA->constraints,
 													   clsenB->constraints);
 
+		if (!clsenA->classobj)
+			clsenA->classobj = clsenB->classobj;
+		
 		/* remove clsenB from the list of class entries */
 		classcache_remove_class_entry(en,clsenB);
 	}
