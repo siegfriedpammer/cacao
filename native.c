@@ -70,6 +70,7 @@ static classinfo *class_java_lang_ArrayIndexOutOfBoundsException;
 static classinfo *class_java_lang_NoSuchFieldException;
 static classinfo *class_java_io_SyncFailedException;
 static classinfo *class_java_io_IOException;
+static classinfo *class_java_io_FileNotFoundException;
 static classinfo *class_java_io_UnixFileSystem;
 static classinfo *class_java_security_PrivilegedActionException;
 static classinfo *class_java_net_UnknownHostException;
@@ -207,6 +208,8 @@ void native_loadclasses()
 		class_new ( utf_new_char ("java/lang/Class") );
 	class_java_io_IOException = 
 		class_new ( utf_new_char ("java/io/IOException") );
+	class_java_io_FileNotFoundException = 
+		class_new ( utf_new_char ("java/io/FileNotFoundException") );
 	class_java_lang_ClassNotFoundException =
 		class_new ( utf_new_char ("java/lang/ClassNotFoundException") );
 	class_java_lang_InstantiationException =
