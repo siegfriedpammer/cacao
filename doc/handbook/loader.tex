@@ -28,6 +28,8 @@ runtime system of the JVM. Every JVM has a \textit{system class
 loader} which is implemented in \texttt{java.lang.ClassLoader} and
 this class interacts via native function calls with the JVM itself.
 
+\begingroup
+\tolerance 10000
 The \textit{GNU classpath} implements the system class loader in
 \texttt{gnu.java.lang.SystemClassLoader} which extends
 \texttt{java.lang.ClassLoader} and interacts with the JVM. The
@@ -37,16 +39,22 @@ The \textit{GNU classpath} implements the system class loader in
 the main class how the bootstrap class loader of the GNU classpath
 interacts with the JVM. The main functions of this class is
 
+\endgroup
+
 \begin{verbatim}
         static final native Class loadClass(String name, boolean resolve)
           throws ClassNotFoundException;
 \end{verbatim}
 
+\begingroup
+\tolerance 10000
 This is a native function implemented in the CACAO JVM, which is
 located in \texttt{nat/VMClassLoader.c} and calls the internal loader
 functions of CACAO. If the \texttt{name} argument is \texttt{NULL}, a
 new \texttt{java.lang.NullPointerException} is created and the
 function returns \texttt{NULL}.
+
+\endgroup
 
 If the \texttt{name} is non-NULL a new UTF8 string of the class' name
 is created in the internal \textit{symbol table} via
@@ -57,9 +65,9 @@ is created in the internal \textit{symbol table} via
 
 This function converts a \texttt{java.lang.String} string into the
 internal used UTF8 string representation. \texttt{isclassname} tells
-the function to convert any \texttt{.} (dots) found in the class name
-into \texttt{/} (slashes), so the class loader can find the specified
-class.
+the function to convert any \texttt{.} (periods) found in the class
+name into \texttt{/} (slashes), so the class loader can find the
+specified class.
 
 Then a new \texttt{classinfo} structure is created via the
 
@@ -104,8 +112,8 @@ This wrapper function is required to ensure some requirements:
 
 The \texttt{class\_load\_intern} functions preforms the actual loading
 of the binary representation of the class or interface. During loading
-some verifier checks are performed which can throw a
-\texttt{java.lang.ClassFormatError} or
+some verifier checks are performed which can throw an error. This
+error can be a \texttt{java.lang.ClassFormatError} or a
 \texttt{java.lang.NoClassDefFoundError}. Some of these
 \texttt{java.lang.ClassFormatError} checks are
 
@@ -113,14 +121,84 @@ some verifier checks are performed which can throw a
  \item \textit{Truncated class file} --- unexpected end of class file
  data
 
- \item \textit{Bad magic number} --- class file does not contain the magic bytes
- (0xCAFEBABE)
+ \item \textit{Bad magic number} --- class file does not start with
+ the magic bytes (\texttt{0xCAFEBABE})
 
  \item \textit{Unsupported major.minor version} --- the bytecode
  version of the given class file is not supported by the JVM
 \end{itemize}
 
-After some loaded bytes, the class' constant pool is loaded via
+The actual loading of the bytes from the binary representation is done
+via the \texttt{suck\_*} functions. These functions are
+
+\begin{itemize}
+ \item \texttt{suck\_u1}: load one \texttt{unsigned byte} (8 bit)
+
+ \item \texttt{suck\_u2}: load two \texttt{unsigned byte}s (16 bit)
+
+ \item \texttt{suck\_u4}: load four \texttt{unsigned byte}s (32 bit)
+
+ \item \texttt{suck\_u8}: load eight \texttt{unsigned byte}s (64 bit)
+
+ \item \texttt{suck\_float}: load four \texttt{byte}s (32 bit)
+ converted into a \texttt{float} value
+
+ \item \texttt{suck\_double}: load eight \texttt{byte}s (64 bit)
+ converted into a \texttt{double} value
+
+ \item \texttt{suck\_nbytes}: load \textit{n} bytes
+\end{itemize}
+
+Loading \texttt{signed} values is done via the
+\texttt{suck\_s[1,2,4,8]} macros which cast the loaded bytes to
+\texttt{signed} values. All these functions take a
+\texttt{classbuffer}~(Figure \ref{classbuffer}) structure pointer as
+argument.
+
+\begin{figure}[h]
+\begin{verbatim}
+        typedef struct classbuffer {
+            classinfo *class;                   /* pointer to classinfo structure */
+            u1        *data;                    /* pointer to byte code           */
+            s4         size;                    /* size of the byte code          */
+            u1        *pos;                     /* current read position          */
+        } classbuffer;
+\end{verbatim}
+\caption{\texttt{classbuffer} structure}
+\label{classbuffer}
+\end{figure}
+
+This \texttt{classbuffer} structure is filled with data via the
+
+\begin{verbatim}
+        classbuffer *suck_start(classinfo *c);
+\end{verbatim}
+
+function. This function tries to locate the class, specifed with the
+\texttt{classinfo} structure, in the \texttt{CLASSPATH}. This can be
+a plain class file in the filesystem or a file in a
+\texttt{zip}/\texttt{jar} file. If the class file is found, the
+\texttt{classbuffer} is filled with data collected from the class
+file, including the class file size and the binary representation of
+the class.
+
+Before reading any byte of the binary representation with a
+\texttt{suck\_*} function, the remaining bytes in the
+\texttt{classbuffer} data array must be checked with the
+
+\begin{verbatim}
+        static inline bool check_classbuffer_size(classbuffer *cb, s4 len);
+\end{verbatim}
+
+function. If the remaining bytes number is less than the amount of the
+bytes to be read, specified by the \texttt{len} argument, a
+\texttt{java.lang.ClassFormatError} with the detail message
+\textit{Truncated class file}---as mentioned before---is thrown.
+
+
+\subsection{Constant pool loading}
+
+The class' constant pool is loaded via
 
 \begin{verbatim}
         static bool class_loadcpool(classbuffer *cb, classinfo *c);
@@ -147,10 +225,14 @@ order:
  structure
 \end{enumerate}
 
+\begingroup
+\tolerance 10000
 The remaining constant pool types \texttt{CONSTANT\_Integer},
 \texttt{CONSTANT\_Float}, \texttt{CONSTANT\_Long},
-\texttt{CONSTANT\_Double} and \texttt{CONSTANT\_Utf8} can be resolved
-in the first pass and need no further processing.
+\texttt{CONSTANT\_Double} and \texttt{CONSTANT\_Utf8} can be
+completely resolved in the first pass and need no further processing.
+
+\endgroup
 
 These are the temporary structures used to \textit{forward} the data
 from the first pass into the second:
@@ -206,30 +288,151 @@ runtime structures are created. In further detail this includes for
  \texttt{cptags} and store the UTF8 string pointer into
  \texttt{cpinfos}
 
+ \begingroup
+ \tolerance 10000
  \item \texttt{CONSTANT\_NameAndType}: create a
- \texttt{constant\_nameandtype} structure, get the UTF8 name and
- description string of the field or method and store them into the
- \texttt{constant\_nameandtype} structure, store type
- \texttt{CONSTANT\_NameAndType} into \texttt{cptags} and store a
- pointer to the \texttt{constant\_nameandtype} structure into
- \texttt{cpinfos}
+ \texttt{constant\_nameandtype}~(Figure \ref{constantnameandtype})
+ structure, get the UTF8 name and description string of the field or
+ method and store them into the \texttt{constant\_nameandtype}
+ structure, store type \texttt{CONSTANT\_NameAndType} into
+ \texttt{cptags} and store a pointer to the
+ \texttt{constant\_nameandtype} structure into \texttt{cpinfos}
 
+ \endgroup
+
+\begin{figure}[h]
+\begin{verbatim}
+        typedef struct {            /* NameAndType (Field or Method)       */
+            utf *name;              /* field/method name                   */
+            utf *descriptor;        /* field/method type descriptor string */
+        } constant_nameandtype;
+\end{verbatim}
+\caption{\texttt{constant\_nameandtype} structure}
+\label{constantnameandtype}
+\end{figure}
+
+ \begingroup
+ \tolerance 10000
  \item \texttt{CONSTANT\_Fieldref}, \texttt{CONSTANT\_Methodref} and
  \texttt{CONSTANT\_InterfaceMethodref}: create a
- \texttt{constant\_FMIref} structure, get the referenced
- \texttt{constant\_nameandtype} structure which contains the name and
- descriptor resolved in a previous step and store the name and
- descriptor into the \texttt{constant\_FMIref} structure, get the
- pointer of the referenced class, which was created in a previous
- step, and store the pointer of the class into the
+ \texttt{constant\_FMIref}~(Figure \ref{constantFMIref}) structure,
+ get the referenced \texttt{constant\_nameandtype} structure which
+ contains the name and descriptor resolved in a previous step and
+ store the name and descriptor into the \texttt{constant\_FMIref}
+ structure, get the pointer of the referenced class, which was created
+ in a previous step, and store the pointer of the class into the
  \texttt{constant\_FMIref} structure, store the type of the current
  constant pool entry in \texttt{cptags} and store a pointer to
  \texttt{constant\_FMIref} in \texttt{cpinfos}
+
+ \endgroup
+
+\begin{figure}[h]
+\begin{verbatim}
+        typedef struct {           /* Fieldref, Methodref and InterfaceMethodref    */
+            classinfo *class;      /* class containing this field/method/interface  */
+            utf       *name;       /* field/method/interface name                   */
+            utf       *descriptor; /* field/method/interface type descriptor string */
+        } constant_FMIref;
+\end{verbatim}
+\caption{\texttt{constant\_FMIref} structure}
+\label{constantFMIref}
+\end{figure}
+
 \end{itemize}
 
-After we have loaded the complete constant pool and after loading the
-class flags, we can resolve the class and super class of the currently
-loaded class or interface.
+Any UTF8 strings, \texttt{constant\_nameandtype} structures or
+referenced classes are resolved with the
+
+\begin{verbatim}
+        voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype);
+\end{verbatim}
+
+function. This functions checks for type equality and then returns the
+requested \texttt{cpinfos} slot of the specified class.
+
+
+\subsection{Interface resolving}
+
+The interface classes are resolved with \texttt{class\_getconstant}
+from the class' constant pool. After reading the number of interfaces,
+for every interface referenced a \texttt{u2} index number is read from
+the currently loading class or interface file, which is the index used
+to resolve the class from the constant pool.
+
+
+\subsection{Field loading}
+
+The number of fields of the class or interface is read as \texttt{u2}
+value. For each field the function
+
+\begin{verbatim}
+        static bool field_load(classbuffer *cb, classinfo *c, fieldinfo *f);
+\end{verbatim}
+
+is called. The \texttt{fieldinfo *} argument is a pointer to a
+\texttt{fieldinfo} structure allocated by the class loader. The
+fields' \texttt{name} and \texttt{descriptor} are resolved from the
+class constant pool via \texttt{class\_getconstant}. If the verifier
+option is turned on, the fields' \texttt{flags}, \texttt{name} and
+\texttt{descriptor} are checked for validity and can result in a
+\texttt{java.lang.ClassFormatError}.
+
+Each field can have some attributes. The number of attributes is read
+as \texttt{u2} value from the binary representation. If the field has
+the \texttt{ACC\_FINAL} flag set, the \texttt{ConstantValue} attribute
+is available. This is the only attribute processed by
+\texttt{field\_load} and can occur only once, otherwise a
+\texttt{java.lang.ClassFormatError} is thrown. The
+\texttt{ConstantValue} entry in the constant pool contains the value
+for the \texttt{final} field. Depending on the fields' type, the
+proper constant pool entry is resolved and assigned.
+
+
+\subsection{Method loading}
+
+As for the fields, the number of the class or interface methods is read from
+the binary representation as \texttt{u2} value. For each method the function
+
+\begin{verbatim}
+        static bool method_load(classbuffer *cb, classinfo *c, methodinfo *m);
+\end{verbatim}
+
+is called. The beginning of the method loading code is nearly the same
+as the field loading code. The \texttt{methodinfo *} argument is a
+pointer to a \texttt{methodinfo} structure allocated by the class
+loader. The method's \texttt{name} and \texttt{descriptor} are
+resolved from the class constant pool via
+\texttt{class\_getconstant}. With the verifier turned on, some method
+checks are carried out. These include \texttt{flags}, \texttt{name}
+and \texttt{descriptor} checks and argument count check.
+
+Now the method loading function has to distinguish between a
+\texttt{native} and a normal JAVA method. Depending on the
+\texttt{ACC\_NATIVE} flags, a different stub is created.
+
+For a normal JAVA method, a \textit{compiler stub} is created. The
+purpose of this stub is to call the CACAO jit compiler to compile the
+JAVA method. A pointer to this compiler stub routine is used during
+code generation as method call if the method is not compiled
+yet. After the target method is compiled, the new entry point of the
+method is patched into the generated code and the compiler stub is
+needless, thus it is freed.
+
+If the method is a \texttt{native} method, the loader tries to find
+the native function. If the the function was found a \textit{native
+stub} is generated. This stub is responsible to manipulate the
+method's arguments to be suitable for the \texttt{native} method
+called. This includes inserting the \textit{JNI environment} pointer
+as first argument and, if the \texttt{native} method has the
+\texttt{ACC\_STATIC} flag set, inserting a pointer to the methods
+class as second argument. If the \texttt{native} method is
+\texttt{static}, the native stub also checks if the method's class is
+already initialized. If the method's class is not initialized as the
+native stub is generated, a \texttt{asm\_check\_clinit} calling code
+is emitted.
+
+Each method can have some attributes.
 
 
 \section{Data structures}
