@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 1596 2004-11-26 12:02:31Z twisti $
+   $Id: codegen.c 1606 2004-11-29 10:06:44Z twisti $
 
 */
 
@@ -4176,7 +4176,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 		if (cref) {
 			/* Get machine code which is patched back in later. The call is   */
-			/* 2 instruction words long.                                      */
+			/* 1 instruction word long.                                       */
 			xcodeptr = (s4 *) (cd->mcodebase + cref->branchpos);
 			*(cs-10) = (u4) *xcodeptr;
 
