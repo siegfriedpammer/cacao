@@ -32,7 +32,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1136 2004-06-05 17:46:19Z twisti $
+   $Id: codegen.c 1166 2004-06-12 13:34:06Z stefan $
 
 */
 
@@ -333,6 +333,15 @@ static int reg_of_var(stackptr v, int tempregnum)
 
 
 /* NullPointerException handlers and exception handling initialisation        */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+void thread_restartcriticalsection(ucontext_t *uc)
+{
+	void *critical;
+	if ((critical = thread_checkcritical((void*) uc->uc_mcontext.gregs[CTX_EPC])) != NULL)
+		uc->uc_mcontext.gregs[CTX_EPC] = (u8) critical;
+}
+#endif
 
 /* NullPointerException signal handler for hardware null pointer check */
 
@@ -3261,6 +3270,9 @@ afteractualcall:
 			{
 			classinfo *super = (classinfo*) iptr->val.a;
 			
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			codegen_threadcritrestart((u1*) mcodeptr - mcodebase);
+#endif
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			if (s1 == d) {
@@ -3298,9 +3310,15 @@ afteractualcall:
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
                     a = dseg_addaddress ((void*) super->vftbl);
                     M_ALD(REG_ITMP2, REG_PV, a);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstart((u1*) mcodeptr - mcodebase);
+#endif
                     M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
                     M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
                     M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+#endif
                     M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
                     M_CMPULT(REG_ITMP2, REG_ITMP1, d);
 					M_XOR_IMM(d, 1, d);
@@ -3334,6 +3352,10 @@ afteractualcall:
 			{
 			classinfo *super = (classinfo*) iptr->val.a;
 			
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			codegen_threadcritrestart((u1*) mcodeptr - mcodebase);
+#endif
+
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			var_to_reg_int(s1, src, d);
 			if (iptr->op1) {                               /* class/interface */
@@ -3376,16 +3398,25 @@ afteractualcall:
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
                     a = dseg_addaddress ((void*) super->vftbl);
                     M_ALD(REG_ITMP2, REG_PV, a);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstart((u1*) mcodeptr - mcodebase);
+#endif
                     M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
 					if (d != REG_ITMP3) {
 						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+						codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+#endif
 						M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
 					} else {
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, baseval));
 						M_ISUB(REG_ITMP1, REG_ITMP2, REG_ITMP1); 
 						M_ALD(REG_ITMP2, REG_PV, a);
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+						codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+#endif
 					}
                     M_CMPULT(REG_ITMP2, REG_ITMP1, REG_ITMP2);
 					M_BNEZ(REG_ITMP2, 0);
@@ -3812,8 +3843,16 @@ void removecompilerstub(u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE      54 + 4
-#define NATIVEVERBOSESIZE   50 + 17
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#define NATIVESTUBSTACK       2
+#define NATIVESTUBTHREADEXTRA 5
+#else
+#define NATIVESTUBSTACK       1
+#define NATIVESTUBTHREADEXTRA 1
+#endif
+
+#define NATIVESTUBSIZE      (54 + 4 + NATIVESTUBTHREADEXTRA - 1)
+#define NATIVEVERBOSESIZE   (50 + 17)
 #define NATIVESTUBOFFSET    9
 
 u1 *createnativestub(functionptr f, methodinfo *m)
@@ -3834,7 +3873,11 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	mcodeptr = (s4 *) (cs);             /* code generation pointer            */
 
 	*(cs-1) = (u8) f;                   /* address of native method           */
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	*(cs-2) = (u8) &builtin_get_exceptionptrptr;
+#else
 	*(cs-2) = (u8) (&_exceptionptr);    /* address of exceptionptr            */
+#endif
 	*(cs-3) = (u8) asm_handle_nat_exception;/* addr of asm exception handler  */
 	*(cs-4) = (u8) (&env);              /* addr of jni_environement           */
  	*(cs-5) = (u8) builtin_trace_args;
@@ -3843,7 +3886,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	*(cs-8) = (u8) m->class;
 	*(cs-9) = (u8) asm_check_clinit;
 
-	M_LDA(REG_SP, REG_SP, -8);          /* build up stackframe                */
+	M_LDA(REG_SP, REG_SP, -NATIVESTUBSTACK * 8); /* build up stackframe       */
 	M_LST(REG_RA, REG_SP, 0);           /* store return address               */
 
 	/* if function is static, check for initialized */
@@ -4059,13 +4102,29 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		M_LDA(REG_SP, REG_SP, 3 * 8);
 	}
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	M_ALD(REG_ITMP3, REG_PV, -2 * 8);   /* builtin_get_exceptionptrptr        */
+	M_JSR(REG_RA, REG_ITMP3);
+
+	/* delay slot */
+	if (IS_FLT_DBL_TYPE(m->returntype))
+		M_DST(REG_FRESULT, REG_SP, 1 * 8);
+	else
+		M_AST(REG_RESULT, REG_SP, 1 * 8);
+	M_MOV(REG_RESULT, REG_ITMP3);
+	if (IS_FLT_DBL_TYPE(m->returntype))
+		M_DLD(REG_FRESULT, REG_SP, 1 * 8);
+	else
+		M_ALD(REG_RESULT, REG_SP, 1 * 8);
+#else
 	M_ALD(REG_ITMP3, REG_PV, -2 * 8);   /* get address of exceptionptr        */
+#endif
 
 	M_LLD(REG_RA, REG_SP, 0);           /* load return address                */
 	M_ALD(REG_ITMP1, REG_ITMP3, 0);     /* load exception into reg. itmp1     */
 
 	M_BNEZ(REG_ITMP1, 2);               /* if no exception then return        */
-	M_LDA(REG_SP, REG_SP, 8);           /* remove stackframe, delay slot      */
+	M_LDA(REG_SP, REG_SP, NATIVESTUBSTACK * 8);/*remove stackframe, delay slot*/
 
 	M_RET(REG_RA);                      /* return to caller                   */
 	M_NOP;                              /* delay slot                         */

@@ -119,7 +119,9 @@ pthread_mutex_t GC_suspend_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t GC_suspend_ack_cv = PTHREAD_COND_INITIALIZER;
 pthread_cond_t GC_continue_cv = PTHREAD_COND_INITIALIZER;
 
-void GC_suspend_handler(int sig)
+int cacao_suspendhandler(void *);
+
+void GC_suspend_handler(int sig, siginfo_t *info, void *uctx)
 {
     int dummy;
     GC_thread me;
@@ -128,6 +130,10 @@ void GC_suspend_handler(int sig)
     int i;
 
     if (sig != SIG_SUSPEND) ABORT("Bad signal in suspend_handler");
+
+	if (cacao_suspendhandler(uctx))
+		return;
+	
     me = GC_lookup_thread(pthread_self());
     /* The lookup here is safe, since I'm doing this on behalf  */
     /* of a thread which holds the allocation lock in order	*/
@@ -303,6 +309,9 @@ GC_thread GC_lookup_thread(pthread_t id)
     return(p);
 }
 
+void lock_stopworld(int);
+void unlock_stopworld();
+
 #if defined(GC_AIX_THREADS)
 void GC_stop_world()
 {
@@ -348,6 +357,8 @@ void GC_stop_world()
     register GC_thread p;
     register int result;
     struct timespec timeout;
+
+	lock_stopworld(1);
     
     for (i = 0; i < THREAD_TABLE_SZ; i++) {
       for (p = GC_threads[i]; p != 0; p = p -> next) {
@@ -414,6 +425,8 @@ void GC_start_world()
     /* Otherwise we couldn't have acquired the lock.			*/
     pthread_mutex_unlock(&GC_suspend_lock);
     pthread_cond_broadcast(&GC_continue_cv);
+
+	unlock_stopworld();
 }
 
 #endif /* GC_AIX_THREADS */
@@ -529,7 +542,7 @@ void GC_thr_init()
     	ABORT("Previously installed SIG_SUSPEND handler");
     /* Install handler.	*/
 	act.sa_handler = GC_suspend_handler;
-	act.sa_flags = SA_RESTART;
+	act.sa_flags = SA_RESTART | SA_SIGINFO;
 	(void) sigemptyset(&act.sa_mask);
         if (0 != sigaction(SIG_SUSPEND, &act, 0))
 	    ABORT("Failed to install SIG_SUSPEND handler");
@@ -854,6 +867,13 @@ yield:
 	}
     }
 }
+
+/* Added for cacao */
+int GC_signum1()
+{
+    return SIG_SUSPEND;
+}
+/* cacao END */
 
 # else  /* !GC_IRIX_THREADS && !GC_AIX_THREADS */
 

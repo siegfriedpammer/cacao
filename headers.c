@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1112 2004-05-31 15:47:20Z jowenn $
+   $Id: headers.c 1166 2004-06-12 13:34:06Z stefan $
 
 */
 
@@ -183,6 +183,9 @@ void asm_builtin_monitorenter(java_objectheader *o) {}
 void asm_builtin_monitorexit(java_objectheader *o) {}
 
 s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl *target) {return 0;}
+
+void atomic_swap() {}
+void compare_and_swap() {}
 
 
 #if defined(__I386__)

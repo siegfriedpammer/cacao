@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1160 2004-06-11 16:28:13Z stefan $
+   $Id: asmpart.S 1166 2004-06-12 13:34:06Z stefan $
 
 */
 
@@ -639,9 +639,10 @@ ex_table_loop:
 	
 L_class_loaded:
 	lw      itmp3,offclasslinked(a1)
+	aaddiu  sp,sp,-8*8            /* allocate stack                           */
+	sd      a1,7*8(sp)
 	bnez    itmp3,L_class_linked
 
-	aaddiu  sp,sp,-8*8            /* allocate stack                           */
 	sd      t0,0*8(sp)            /* save used register                       */
 	sd      t1,1*8(sp)
 	sd      t3,2*8(sp)
@@ -649,7 +650,6 @@ L_class_loaded:
 	sd      xpc,4*8(sp)
 	sd      pv,5*8(sp)
 	sd      ra,6*8(sp)
-	sd      a1,7*8(sp)
 		
 	move    a0,a1
 	jal     class_link
@@ -661,17 +661,20 @@ L_class_loaded:
 	ld      xpc,4*8(sp)
 	ld      pv,5*8(sp)
 	ld      ra,6*8(sp)
-	ld      a1,7*8(sp)
-	aaddiu  sp,sp,8*8             /* deallocate stack                         */
 
 L_class_linked:
+_crit_restart1:
+	ld      a1,7*8(sp)
+_crit_begin1:
 	ald     a0,offobjvftbl(xptr)  /* a0 = vftblptr(xptr)                      */
 	ald     a1,offclassvftbl(a1)  /* a1 = vftblptr(catchtype) class (not obj) */
 	lw      a0,offbaseval(a0)     /* a0 = baseval(xptr)                       */
 	lw      v0,offbaseval(a1)     /* a2 = baseval(catchtype)                  */
 	lw      a1,offdiffval(a1)     /* a1 = diffval(catchtype)                  */
+_crit_end1:
 	subu    a0,a0,v0              /* a0 = baseval(xptr) - baseval(catchtype)  */
 	sltu    v0,a1,a0              /* v0 = xptr is instanceof catchtype        */
+	aaddiu  sp,sp,8*8             /* deallocate stack                         */
 	bnez    v0,ex_table_cont      /* if (false) continue                      */
 
 ex_handle_it:
@@ -1315,6 +1318,8 @@ asm_criticalsections:
 #endif
     .quad   0
 
+
+	.text
 
 	.ent    atomic_swap
 atomic_swap:

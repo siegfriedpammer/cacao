@@ -34,8 +34,12 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+#if !defined(__DARWIN__)
 #if defined(__LINUX__)
 #define GC_LINUX_THREADS
+#elif defined(__MIPS__)
+#define GC_IRIX_THREADS
+#endif
 #include "../mm/boehm-gc/include/gc.h"
 #endif
 
@@ -189,6 +193,10 @@ static pthread_mutex_t stopworldlock;
 volatile int stopworldwhere;
 
 static sem_t suspend_ack;
+#if defined(__MIPS__)
+static pthread_mutex_t suspend_ack_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
+#endif
 
 /*
  * where - 1 from within GC
@@ -286,6 +294,15 @@ static void cast_darwinresume()
 
 #endif
 
+#if defined(__MIPS__)
+static void cast_irixresume()
+{
+	pthread_mutex_lock(&suspend_ack_lock);
+	pthread_cond_broadcast(&suspend_cond);
+	pthread_mutex_unlock(&suspend_ack_lock);
+}
+#endif
+
 void cast_stopworld()
 {
 	int count, i;
@@ -306,6 +323,8 @@ void cast_startworld()
 	pthread_mutex_lock(&threadlistlock);
 #if defined(__DARWIN__)
 	cast_darwinresume();
+#elif defined(__MIPS__)
+	cast_irixresume();
 #else
 	cast_sendsignals(GC_signum2(), -1);
 #endif
@@ -321,12 +340,21 @@ static void sigsuspend_handler(ucontext_t *ctx)
 	
 	thread_restartcriticalsection(ctx);
 
+	/* Do as Boehm does. On IRIX a condition variable is used for wake-up
+	   (not POSIX async-safe). */
+#if defined(__MIPS__)
+	pthread_mutex_lock(&suspend_ack_lock);
+	sem_post(&suspend_ack);
+	pthread_cond_wait(&suspend_cond, &suspend_ack_lock);
+	pthread_mutex_unlock(&suspend_ack_lock);
+#else
 	sem_post(&suspend_ack);
 
 	sig = GC_signum2();
 	sigfillset(&sigs);
 	sigdelset(&sigs, sig);
 	sigsuspend(&sigs);
+#endif
 }
 
 int cacao_suspendhandler(ucontext_t *ctx)
