@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: emitfuncs.c 2050 2005-03-20 16:26:07Z twisti $
 
 */
 
@@ -227,7 +227,7 @@ void x86_64_emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction
 	if (iptr->dst->flags & INMEMORY) {
 		if (src->flags & INMEMORY) {
 			if (s1 == d) {
-				if (x86_64_is_imm32(iptr->val.l)) {
+				if (IS_IMM32(iptr->val.l)) {
 					x86_64_alu_imm_membase(cd, alu_op, iptr->val.l, REG_SP, d * 8);
 
 				} else {
@@ -238,7 +238,7 @@ void x86_64_emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction
 			} else {
 				x86_64_mov_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP1);
 
-				if (x86_64_is_imm32(iptr->val.l)) {
+				if (IS_IMM32(iptr->val.l)) {
 					x86_64_alu_imm_reg(cd, alu_op, iptr->val.l, REG_ITMP1);
 
 				} else {
@@ -251,7 +251,7 @@ void x86_64_emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction
 		} else {
 			x86_64_mov_reg_membase(cd, s1, REG_SP, d * 8);
 
-			if (x86_64_is_imm32(iptr->val.l)) {
+			if (IS_IMM32(iptr->val.l)) {
 				x86_64_alu_imm_membase(cd, alu_op, iptr->val.l, REG_SP, d * 8);
 
 			} else {
@@ -268,7 +268,7 @@ void x86_64_emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction
 			M_INTMOVE(s1, d);
 		}
 
-		if (x86_64_is_imm32(iptr->val.l)) {
+		if (IS_IMM32(iptr->val.l)) {
 			x86_64_alu_imm_reg(cd, alu_op, iptr->val.l, d);
 
 		} else {
@@ -533,7 +533,7 @@ void x86_64_emit_if_lcc(codegendata *cd, s4 if_op, stackptr src, instruction *ip
 	s4 s1 = src->regoff;
 
 	if (src->flags & INMEMORY) {
-		if (x86_64_is_imm32(iptr->val.l)) {
+		if (IS_IMM32(iptr->val.l)) {
 			x86_64_alu_imm_membase(cd, X86_64_CMP, iptr->val.l, REG_SP, s1 * 8);
 
 		} else {
@@ -546,7 +546,7 @@ void x86_64_emit_if_lcc(codegendata *cd, s4 if_op, stackptr src, instruction *ip
 			x86_64_test_reg_reg(cd, s1, s1);
 
 		} else {
-			if (x86_64_is_imm32(iptr->val.l)) {
+			if (IS_IMM32(iptr->val.l)) {
 				x86_64_alu_imm_reg(cd, X86_64_CMP, iptr->val.l, s1);
 
 			} else {
@@ -902,7 +902,7 @@ void x86_64_alul_membase_reg(codegendata *cd, s8 opc, s8 basereg, s8 disp, s8 re
 
 
 void x86_64_alu_imm_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg) {
-	if (x86_64_is_imm8(imm)) {
+	if (IS_IMM8(imm)) {
 		x86_64_emit_rex(1,0,0,(dreg));
 		*(cd->mcodeptr++) = 0x83;
 		x86_64_emit_reg((opc),(dreg));
@@ -917,7 +917,7 @@ void x86_64_alu_imm_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg) {
 
 
 void x86_64_alul_imm_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg) {
-	if (x86_64_is_imm8(imm)) {
+	if (IS_IMM8(imm)) {
 		x86_64_emit_rex(0,0,0,(dreg));
 		*(cd->mcodeptr++) = 0x83;
 		x86_64_emit_reg((opc),(dreg));
@@ -932,7 +932,7 @@ void x86_64_alul_imm_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg) {
 
 
 void x86_64_alu_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp) {
-	if (x86_64_is_imm8(imm)) {
+	if (IS_IMM8(imm)) {
 		x86_64_emit_rex(1,(basereg),0,0);
 		*(cd->mcodeptr++) = 0x83;
 		x86_64_emit_membase((basereg),(disp),(opc));
@@ -947,7 +947,7 @@ void x86_64_alu_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp
 
 
 void x86_64_alul_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp) {
-	if (x86_64_is_imm8(imm)) {
+	if (IS_IMM8(imm)) {
 		x86_64_emit_rex(0,(basereg),0,0);
 		*(cd->mcodeptr++) = 0x83;
 		x86_64_emit_membase((basereg),(disp),(opc));
@@ -1118,7 +1118,7 @@ void x86_64_imull_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 
 
 void x86_64_imul_imm_reg(codegendata *cd, s8 imm, s8 dreg) {
-	if (x86_64_is_imm8((imm))) {
+	if (IS_IMM8((imm))) {
 		x86_64_emit_rex(1,0,0,(dreg));
 		*(cd->mcodeptr++) = 0x6b;
 		x86_64_emit_reg(0,(dreg));
@@ -1133,7 +1133,7 @@ void x86_64_imul_imm_reg(codegendata *cd, s8 imm, s8 dreg) {
 
 
 void x86_64_imul_imm_reg_reg(codegendata *cd, s8 imm, s8 reg, s8 dreg) {
-	if (x86_64_is_imm8((imm))) {
+	if (IS_IMM8((imm))) {
 		x86_64_emit_rex(1,(dreg),0,(reg));
 		*(cd->mcodeptr++) = 0x6b;
 		x86_64_emit_reg((dreg),(reg));
@@ -1148,7 +1148,7 @@ void x86_64_imul_imm_reg_reg(codegendata *cd, s8 imm, s8 reg, s8 dreg) {
 
 
 void x86_64_imull_imm_reg_reg(codegendata *cd, s8 imm, s8 reg, s8 dreg) {
-	if (x86_64_is_imm8((imm))) {
+	if (IS_IMM8((imm))) {
 		x86_64_emit_rex(0,(dreg),0,(reg));
 		*(cd->mcodeptr++) = 0x6b;
 		x86_64_emit_reg((dreg),(reg));
@@ -1163,7 +1163,7 @@ void x86_64_imull_imm_reg_reg(codegendata *cd, s8 imm, s8 reg, s8 dreg) {
 
 
 void x86_64_imul_imm_membase_reg(codegendata *cd, s8 imm, s8 basereg, s8 disp, s8 dreg) {
-	if (x86_64_is_imm8((imm))) {
+	if (IS_IMM8((imm))) {
 		x86_64_emit_rex(1,(dreg),0,(basereg));
 		*(cd->mcodeptr++) = 0x6b;
 		x86_64_emit_membase((basereg),(disp),(dreg));
@@ -1178,7 +1178,7 @@ void x86_64_imul_imm_membase_reg(codegendata *cd, s8 imm, s8 basereg, s8 disp, s
 
 
 void x86_64_imull_imm_membase_reg(codegendata *cd, s8 imm, s8 basereg, s8 disp, s8 dreg) {
-	if (x86_64_is_imm8((imm))) {
+	if (IS_IMM8((imm))) {
 		x86_64_emit_rex(0,(dreg),0,(basereg));
 		*(cd->mcodeptr++) = 0x6b;
 		x86_64_emit_membase((basereg),(disp),(dreg));
