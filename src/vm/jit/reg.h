@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 1626 2004-11-30 17:25:59Z twisti $
+   $Id: reg.h 1627 2004-11-30 17:28:07Z twisti $
 
 */
 
@@ -39,7 +39,6 @@
 /* dependencies.                                                              */
 
 typedef struct varinfo varinfo;
-typedef struct varinfo varinfo5[5];
 typedef struct registerdata registerdata;
 
 
@@ -56,6 +55,8 @@ struct varinfo {
 	int flags;                  /* flags (SAVED, INMEMORY)                    */
 	int regoff;                 /* register number or memory offset           */
 };
+
+typedef struct varinfo varinfo5[5];
 
 
 struct registerdata {
