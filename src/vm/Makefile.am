@@ -28,13 +28,19 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1932 2005-02-10 10:57:02Z twisti $
+## $Id: Makefile.am 2021 2005-03-09 12:06:52Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
 SUBDIRS = jit
+
+if STATISTICS
+STATISTICS_OBJ = \
+	statistics.c \
+	statistics.h
+endif
 
 if USE_ZLIB
 ZLIB_OBJ = \
@@ -57,8 +63,7 @@ libvmcore_la_SOURCES = \
 	loader.h \
 	options.c \
 	options.h \
-	statistics.c \
-	statistics.h \
+	$(STATISTICS_OBJ) \
 	string.c \
 	string.h \
 	tables.c \
