@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1247 2004-06-30 20:19:11Z twisti $
+   $Id: reg.inc 1257 2004-06-30 21:00:21Z twisti $
 
 */
 
@@ -709,14 +709,15 @@ static void reg_init_temp(methodinfo *m)
 static void reg_new_temp_func(methodinfo *m, stackptr s)
 {
 	s4 regsneeded = 0;
+	s4 tryagain;
 	registerdata *r;
 
 	/* keep code size smaller */
 	r = m->registerdata;
 
 	/* Try to allocate a saved register if there is no temporary one          */
-    /* available. This is what happens during the second run.                 */
-  	int tryagain = (s->flags & SAVEDVAR) ? 1 : 2;
+	/* available. This is what happens during the second run.                 */
+	tryagain = (s->flags & SAVEDVAR) ? 1 : 2;
 
 #ifdef USETWOREGS
 	regsneeded = (IS_2_WORD_TYPE(s->type)) ? 1 : 0;
