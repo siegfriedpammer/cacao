@@ -390,7 +390,7 @@ void* __builtin_newarray(s4 base_size,
 #endif
 	if (!a) return NULL;
 
-#if SIZE_FROM_CLASSINFO
+#ifdef SIZE_FROM_CLASSINFO
 	memset(a, 0, alignedsize);
 #else
 	memset(a, 0, base_size + (size-1) * elementsize);
