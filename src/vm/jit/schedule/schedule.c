@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: schedule.c 2033 2005-03-18 09:24:00Z twisti $
+   $Id: schedule.c 2054 2005-03-21 09:40:33Z twisti $
 
 */
 
@@ -281,13 +281,11 @@ void schedule_calc_priorities(scheduledata *sd)
 	minstruction *mi;
 	minstruction *lastmi;
 	nodelink     *nl;
-	nodelink     *tmpnl;
 	s4            lastnode;
 	s4            i;
 	s4            j;
 	s4            criticalpath;
 	s4            currentpath;
-	s1            firstcycle;
 	s1            lastcycle;
 
 
@@ -471,6 +469,9 @@ void schedule_do_schedule(scheduledata *sd)
 /*  		for (i = 0; i < sd->micount; i++)  */
 
 		for (j = 0; j < 2; j++ ) {
+			minstruction *alumi;
+			minstruction *memmi;
+			nodelink     *prevnl;
 
 			nl = sd->leaders;
 			prevnl = NULL;
@@ -522,12 +523,23 @@ void schedule_do_schedule(scheduledata *sd)
 			/* schedule ALU instruction, if one was found */
 
 			if (alumi) {
-				
+				disassinstr(stdout, &alumi->instr);
+				printf(" || ");
 			}
 
-			if (!alunl && !memnl)
+			/* schedule MEM instruction, if one was found */
+
+			if (memmi) {
+				disassinstr(stdout, &memmi->instr);
+				printf(" || ");
+			}
+
+			if (!alumi && !memmi) {
 				printf("nop");
+				printf(" || ");
+			}
 		}
+		printf("\n");
 
 #if 0
 		if (opt_verbose) {
