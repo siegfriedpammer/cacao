@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1582 2004-11-24 13:57:36Z twisti $
+   $Id: stack.c 1585 2004-11-24 14:20:21Z twisti $
 
 */
 
@@ -209,7 +209,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 				else if (bptr->indepth != stackdepth) {
 					show_icmd_method(m, cd, rd);
-					printf("Block: %ld, required depth:%ld, current depth:%ld\n",bptr->debug_nr,bptr->indepth,stackdepth);
+					printf("Block: %d, required depth: %d, current depth: %d\n", bptr->debug_nr, bptr->indepth, stackdepth);
 					panic("Stack depth mismatch");
 					
 				}
@@ -235,7 +235,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						if (breplace && opcode == breplace->opcode) {
 							iptr[0].opc = breplace->icmd;
 							iptr[0].op1 = breplace->type_d;
-							iptr[0].val.a = breplace->builtin;
+							iptr[0].val.fp = breplace->builtin;
 							m->isleafmethod = false;
 							switch (breplace->icmd) {
 							case ICMD_BUILTIN1:
@@ -251,7 +251,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						if (breplace && opcode == breplace->opcode) {
 							iptr[0].opc = breplace->icmd;
 							iptr[0].op1 = breplace->type_d;
-							iptr[0].val.a = breplace->builtin;
+							iptr[0].val.fp = breplace->builtin;
 							m->isleafmethod = false;
 							switch (breplace->icmd) {
 							case ICMD_BUILTIN1:
@@ -1396,7 +1396,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #if !SUPPORT_DIVISION
 						iptr[0].opc = ICMD_BUILTIN2;
 						iptr[0].op1 = TYPE_INT;
-						iptr[0].val.a = BUILTIN_idiv;
+						iptr[0].val.fp = BUILTIN_idiv;
 						m->isleafmethod = false;
 						goto builtin2;
 #endif
@@ -1405,7 +1405,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #if !SUPPORT_DIVISION
 						iptr[0].opc = ICMD_BUILTIN2;
 						iptr[0].op1 = TYPE_INT;
-						iptr[0].val.a = BUILTIN_irem;
+						iptr[0].val.fp = BUILTIN_irem;
 						m->isleafmethod = false;
 						goto builtin2;
 #endif
@@ -1434,7 +1434,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 						iptr[0].opc = ICMD_BUILTIN2;
 						iptr[0].op1 = TYPE_LNG;
-						iptr[0].val.a = BUILTIN_ldiv;
+						iptr[0].val.fp = BUILTIN_ldiv;
 						m->isleafmethod = false;
 						goto builtin2;
 #endif
@@ -1443,7 +1443,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 						iptr[0].opc = ICMD_BUILTIN2;
 						iptr[0].op1 = TYPE_LNG;
-						iptr[0].val.a = BUILTIN_lrem;
+						iptr[0].val.fp = BUILTIN_lrem;
 						m->isleafmethod = false;
 						goto builtin2;
 #endif
