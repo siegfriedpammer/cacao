@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 1690 2004-12-06 08:48:07Z twisti $
+   $Id: asmpart.S 1695 2004-12-06 12:31:42Z twisti $
 
 */
 
@@ -38,23 +38,6 @@
 #include "config.h"        
 #include "vm/jit/alpha/offsets.h"
 #include "vm/jit/alpha/asmoffsets.h"
-
-
-#define    	MethodPointer   -8
-#define    	FrameSize       -12
-#define     IsSync          -16
-#define     IsLeaf          -20
-#define     IntSave         -24
-#define     FltSave         -28
-/* DEFINE LINE NUMBER STUFF HERE */
-#define     ExTableSize     -56
-#define     ExTableStart    -56
-
-#define     ExEntrySize     -32
-#define     ExStartPC       -8
-#define     ExEndPC         -16
-#define     ExHandlerPC     -24
-#define     ExCatchType     -32
 
 
 #define v0      $0
@@ -125,7 +108,6 @@
 /********************* exported functions and variables ***********************/
 
 	.globl has_no_x_instr_set
-	.globl synchronize_caches
 	.globl asm_calljavafunction
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2double
@@ -1515,14 +1497,14 @@ asm_prepare_native_stackinfo:
 	ret
 	.end asm_prepare_native_stackinfo
 
-	.end asm_remove_native_stackinfo
+	.ent asm_remove_native_stackinfo
 asm_remove_native_stackinfo:
 	ldq t0,0(sp)
 	ldq t1,8(sp)
 	stq t0,0(t1)
 	lda sp,40(sp)
 	ret
-	.end asm_prepare_native_stackinfo
+	.end asm_remove_native_stackinfo
 
 /*
  * These are local overrides for various environment variables in Emacs.
