@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: loader.h 593 2003-11-09 19:50:55Z twisti $
 
 */
 
@@ -51,46 +51,48 @@ extern list linkedclasses;       /* List containing all linked classes */
 /************************ prototypes ******************************************/
 
 /* initialize laoder, load important systemclasses */
-void loader_init ();
+void loader_init();
 
 void suck_init(char *cpath);
 
 /* free resources */
-void loader_close ();
+void loader_close();
 
 /* load a class and all referenced classes */
-classinfo *loader_load (utf *topname);
+classinfo *loader_load(utf *topname);
 
 /* initializes all loaded classes */
-void loader_initclasses ();
+void loader_initclasses();
 
-void loader_compute_subclasses ();
+void loader_compute_subclasses();
 
 /* retrieve constantpool element */
-voidptr class_getconstant (classinfo *class, u4 pos, u4 ctype);
+voidptr class_getconstant(classinfo *class, u4 pos, u4 ctype);
 
 /* determine type of a constantpool element */
-u4 class_constanttype (classinfo *class, u4 pos);
+u4 class_constanttype(classinfo *class, u4 pos);
 
 /* search class for a field */
-fieldinfo *class_findfield (classinfo *c, utf *name, utf *desc);
+fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc);
 
 /* search for a method with a specified name and descriptor */
-methodinfo *class_findmethod (classinfo *c, utf *name, utf *desc);
-methodinfo *class_resolvemethod (classinfo *c, utf *name, utf *dest);
+methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc);
+methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 
 /* search for a method with specified name and arguments (returntype ignored) */
-methodinfo *class_findmethod_approx (classinfo *c, utf *name, utf *desc);
-methodinfo *class_resolvemethod_approx (classinfo *c, utf *name, utf *dest);
+methodinfo *class_findmethod_approx(classinfo *c, utf *name, utf *desc);
+methodinfo *class_resolvemethod_approx(classinfo *c, utf *name, utf *dest);
 
-bool class_issubclass (classinfo *sub, classinfo *super);
+bool class_issubclass(classinfo *sub, classinfo *super);
 
 /* call initializer of class */
-void class_init (classinfo *c);
+void class_init(classinfo *c);
+
+void class_showconstanti(classinfo *c, int ii);
 
 /* debug purposes */
-void class_showconstantpool (classinfo *c);
-void class_showmethods (classinfo *c);
+void class_showconstantpool(classinfo *c);
+void class_showmethods(classinfo *c);
 
 classinfo *loader_load(utf *topname);
 
@@ -103,9 +105,9 @@ classinfo *create_array_class(utf *u);
 /* create the arraydescriptor for the arraytype specified by the utf-string */
 constant_arraydescriptor * buildarraydescriptor(char *utf, u4 namelen);
 
-extern void class_link (classinfo *c);
+void class_link(classinfo *c);
 
-void field_display (fieldinfo *f);
+void field_display(fieldinfo *f);
 
 void method_display(methodinfo *m);
 

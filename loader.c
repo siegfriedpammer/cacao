@@ -30,7 +30,7 @@
             Roman Obermaiser
             Mark Probst
 
-   $Id: loader.c 562 2003-11-03 00:34:34Z twisti $
+   $Id: loader.c 593 2003-11-09 19:50:55Z twisti $
 
 */
 
@@ -1629,7 +1629,7 @@ static void class_addinterface (classinfo *c, classinfo *ic)
 
 *******************************************************************************/
 
-void class_link (classinfo *c)
+void class_link(classinfo *c)
 {
 	s4 supervftbllength;          /* vftbllegnth of super class               */
 	s4 vftbllength;               /* vftbllength of current class             */
@@ -1651,8 +1651,8 @@ void class_link (classinfo *c)
 			list_remove(&unlinkedclasses, c);
 			list_addlast(&unlinkedclasses, c);
 			return;	
-			}
 		}
+	}
 	
 	/*  check super class */
 
@@ -1665,13 +1665,13 @@ void class_link (classinfo *c)
 		vftbllength = supervftbllength = 0;
 
 		c->finalizer = NULL;
-		}
+	}
 	else {
 		if (!super->linked) {
 			list_remove(&unlinkedclasses, c);
 			list_addlast(&unlinkedclasses, c);
 			return;	
-			}
+		}
 
 		if (c->flags & ACC_INTERFACE)
 			c->index = interfaceindex++;
@@ -1683,14 +1683,14 @@ void class_link (classinfo *c)
 		vftbllength = supervftbllength = super->vftbl->vftbllength;
 		
 		c->finalizer = super->finalizer;
-		}
+	}
 
 
 	if (linkverbose) {
 		sprintf (logtext, "Linking Class: ");
 		utf_sprint (logtext+strlen(logtext), c->name );
 		dolog ();
-		}
+	}
 
 	/* compute vftbl length */
 
@@ -1705,14 +1705,14 @@ void class_link (classinfo *c)
 					if (method_canoverwrite(m, &(sc->methods[j]))) {
 						m->vftblindex = sc->methods[j].vftblindex;
 						goto foundvftblindex;
-						}
 					}
-				sc = sc->super;
 				}
-			m->vftblindex = (vftbllength++);
-foundvftblindex: ;
+				sc = sc->super;
 			}
-		}	
+			m->vftblindex = (vftbllength++);
+		foundvftblindex: ;
+		}
+	}	
 	
 #ifdef STATISTICS
 	count_vftbl_len += sizeof(vftbl) + sizeof(methodptr)*(vftbllength-1);
@@ -1727,17 +1727,17 @@ foundvftblindex: ;
 			s4 h = class_highestinterface (c2->interfaces[i]) + 1;
 			if (h > interfacetablelength)
 				interfacetablelength = h;
-			}
-		c2 = c2->super;
 		}
+		c2 = c2->super;
+	}
 
 	/* allocate virtual function table */
 
 	v = (vftbl*) mem_alloc(sizeof(vftbl) + sizeof(methodptr) *
-	            (vftbllength - 1) + sizeof(methodptr*) *
-	            (interfacetablelength - (interfacetablelength > 0)));
+						   (vftbllength - 1) + sizeof(methodptr*) *
+						   (interfacetablelength - (interfacetablelength > 0)));
 	v = (vftbl*) (((methodptr*) v) + (interfacetablelength - 1) *
-	                                 (interfacetablelength > 1));
+				  (interfacetablelength > 1));
 	c->header.vftbl = c->vftbl = v;
 	v->class = c;
 	v->vftbllength = vftbllength;
@@ -1746,7 +1746,7 @@ foundvftblindex: ;
 	/* copy virtual function table of super class */
 
 	for (i = 0; i < supervftbllength; i++) 
-	   v->table[i] = super->vftbl->table[i];
+		v->table[i] = super->vftbl->table[i];
 	
 	/* add method stubs into virtual function table */
 
@@ -1754,8 +1754,8 @@ foundvftblindex: ;
 		methodinfo *m = &(c->methods[i]);
 		if (!(m->flags & ACC_STATIC)) {
 			v->table[m->vftblindex] = m->stubroutine;
-			}
 		}
+	}
 
 	/* compute instance size and offset of each field */
 	
@@ -1768,8 +1768,8 @@ foundvftblindex: ;
 			c->instancesize = ALIGN (c->instancesize, dsize);
 			f->offset = c->instancesize;
 			c->instancesize += dsize;
-			}
 		}
+	}
 
 	/* initialize interfacetable and interfacevftbllength */
 	
@@ -1782,14 +1782,14 @@ foundvftblindex: ;
 	for (i = 0; i < interfacetablelength; i++) {
 		v->interfacevftbllength[i] = 0;
 		v->interfacetable[-i] = NULL;
-		}
+	}
 	
 	/* add interfaces */
 	
 	for (c2 = c; c2 != NULL; c2 = c2->super)
 		for (i = 0; i < c2->interfacescount; i++) {
 			class_addinterface (c, c2->interfaces[i]);
-			}
+		}
 
 	/* add finalizer method (not for java.lang.Object) */
 
@@ -1807,16 +1807,16 @@ foundvftblindex: ;
 		if (fi != NULL) {
 			if (!(fi->flags & ACC_STATIC)) {
 				c->finalizer = fi;
-				}
 			}
 		}
+	}
 
 	/* final tasks */
 
 	c->linked = true;	
 
-	list_remove (&unlinkedclasses, c);
-	list_addlast (&linkedclasses, c);
+	list_remove(&unlinkedclasses, c);
+	list_addlast(&linkedclasses, c);
 }
 
 
@@ -2026,18 +2026,17 @@ methodinfo *class_resolvemethod_approx (classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
 
-
 methodinfo *class_resolvemethod (classinfo *c, utf *name, utf *desc)
 {
 	while (c) {
-		methodinfo *m = class_findmethod (c, name, desc);
+		methodinfo *m = class_findmethod(c, name, desc);
 		if (m) return m;
 		/* search superclass */
 		c = c->super;
-		}
+	}
 	return NULL;
 }
-	
+
 
 
 /************************* Function: class_issubclass **************************
@@ -2046,13 +2045,13 @@ methodinfo *class_resolvemethod (classinfo *c, utf *name, utf *desc)
 	
 *******************************************************************************/
 
-bool class_issubclass (classinfo *sub, classinfo *super)
+bool class_issubclass(classinfo *sub, classinfo *super)
 {
 	for (;;) {
 		if (!sub) return false;
 		if (sub==super) return true;
 		sub = sub -> super;
-		}
+	}
 }
 
 
@@ -2065,51 +2064,48 @@ bool class_issubclass (classinfo *sub, classinfo *super)
 
 *******************************************************************************/
 
-#ifdef USE_THREADS
-extern int blockInts;
-#endif
-
-void class_init (classinfo *c)
+void class_init(classinfo *c)
 {
  	methodinfo *m;
  	java_objectheader *exceptionptr;
 	s4 i;
 	int b;
 
-
 	if (!makeinitializations)
 		return;
  	if (c->initialized)
  		return;
-  	c -> initialized = true;
+
+  	c->initialized = true;
  	
 #ifdef STATISTICS
 	count_class_inits++;
 #endif
 
   	if (c->super)
-  		class_init (c->super);
-	for (i=0; i < c->interfacescount; i++)
+  		class_init(c->super);
+	for (i = 0; i < c->interfacescount; i++)
 		class_init(c->interfaces[i]);  /* real */
 
-	m = class_findmethod (c, utf_clinit, utf_fidesc);
+	m = class_findmethod(c, utf_clinit, utf_fidesc);
+
 	if (!m) {
 		if (initverbose) {
-			sprintf (logtext, "Class ");
-			utf_sprint (logtext+strlen(logtext), c->name);
-  			sprintf (logtext+strlen(logtext), " has no initializer");	
-			dolog ();
-			}
-		return;
+			sprintf(logtext, "Class ");
+			utf_sprint(logtext+strlen(logtext), c->name);
+  			sprintf(logtext+strlen(logtext), " has no initializer");	
+			dolog();
 		}
+		return;
+	}
 		
-	if (! (m->flags & ACC_STATIC))
-		panic ("Class initializer is not static!");
+	if (!(m->flags & ACC_STATIC))
+		panic("Class initializer is not static!");
 	
 	if (initverbose) {
-		sprintf (logtext, "Starting initializer for class: ");
-		utf_sprint (logtext+strlen(logtext), c->name);
-		dolog ();
+		sprintf(logtext, "Starting initializer for class: ");
+		utf_sprint(logtext + strlen(logtext), c->name);
+		dolog();
 	}
 
 #ifdef USE_THREADS
@@ -2135,7 +2131,7 @@ void class_init (classinfo *c)
 
 	if (initverbose) {
 		sprintf(logtext, "Finished initializer for class: ");
-		utf_sprint(logtext+strlen(logtext), c->name);
+		utf_sprint(logtext + strlen(logtext), c->name);
 		dolog();
 	}
 
@@ -2143,12 +2139,12 @@ void class_init (classinfo *c)
 		/* class java.lang.System requires explicit initialization */
 		
 		if (initverbose)
-			printf ("#### Initializing class System");
+			printf("#### Initializing class System");
 
 		/* find initializing method */	   
-		m = class_findmethod (c, 
-					utf_initsystemclass,
-					utf_fidesc);
+		m = class_findmethod(c, 
+							 utf_initsystemclass,
+							 utf_fidesc);
 
 		if (!m) {
 			/* no method found */
@@ -2156,23 +2152,23 @@ void class_init (classinfo *c)
 			return;
 		}
 
-		#ifdef USE_THREADS
-			b = blockInts;
-			blockInts = 0;
-		#endif
+#ifdef USE_THREADS
+		b = blockInts;
+		blockInts = 0;
+#endif
 
-		exceptionptr = asm_calljavamethod (m, NULL,NULL,NULL,NULL);
+		exceptionptr = asm_calljavamethod(m, NULL, NULL, NULL, NULL);
 
-		#ifdef USE_THREADS
-			assert(blockInts == 0);
-			blockInts = b;
-		#endif
+#ifdef USE_THREADS
+		assert(blockInts == 0);
+		blockInts = b;
+#endif
 
 		if (exceptionptr) {			
-			printf ("#### initializeSystemClass has thrown: ");
-			utf_display (exceptionptr->vftbl->class->name);
-			printf ("\n");
-			fflush (stdout);		  
+			printf("#### initializeSystemClass has thrown: ");
+			utf_display(exceptionptr->vftbl->class->name);
+			printf("\n");
+			fflush(stdout);
 		}
 	}
 }
@@ -2182,7 +2178,6 @@ void class_init (classinfo *c)
 
 /********* Function: find_class_method_constant *********/
 int find_class_method_constant (classinfo *c, utf * c1, utf* m1, utf* d1)  
-
 {
 	u4 i;
 	voidptr e;
@@ -2193,115 +2188,117 @@ int find_class_method_constant (classinfo *c, utf * c1, utf* m1, utf* d1)
 		if (e) {
 			
 			switch (c -> cptags [i]) {
-				case CONSTANT_Methodref:
-					{
+			case CONSTANT_Methodref:
+				{
 					constant_FMIref *fmi = e;
 					if (	   (fmi->class->name == c1)  
-						&& (fmi->name == m1)
-						&& (fmi->descriptor == d1)) {
+							   && (fmi->name == m1)
+							   && (fmi->descriptor == d1)) {
 					
 						return i;
-						}
 					}
-					break;
-				case CONSTANT_InterfaceMethodref:
-					{
+				}
+				break;
+
+			case CONSTANT_InterfaceMethodref:
+				{
 					constant_FMIref *fmi = e;
 					if (	   (fmi->class->name == c1)  
-						&& (fmi->name == m1)
-						&& (fmi->descriptor == d1)) {
+							   && (fmi->name == m1)
+							   && (fmi->descriptor == d1)) {
 
 						return i;
-						}
-				    }
-					break;
+					}
 				}
-				
+				break;
 			}
-
 		}
-return -1;
+	}
+
+	return -1;
 }
+
 
 void class_showconstanti(classinfo *c, int ii) 
 {
 	u4 i = ii;
 	voidptr e;
-
 		
-e = c -> cpinfos [i];
-printf ("#%d:  ", (int) i);
-if (e) {
-			switch (c -> cptags [i]) {
-				case CONSTANT_Class:
-					printf ("Classreference -> ");
-					utf_display ( ((classinfo*)e) -> name );
-					break;
+	e = c->cpinfos [i];
+	printf ("#%d:  ", (int) i);
+	if (e) {
+		switch (c->cptags [i]) {
+		case CONSTANT_Class:
+			printf("Classreference -> ");
+			utf_display(((classinfo*)e)->name);
+			break;
 				
-				case CONSTANT_Fieldref:
-					printf ("Fieldref -> "); goto displayFMIi;
-				case CONSTANT_Methodref:
-					printf ("Methodref -> "); goto displayFMIi;
-				case CONSTANT_InterfaceMethodref:
-					printf ("InterfaceMethod -> "); goto displayFMIi;
-				  displayFMIi:
-					{
-					constant_FMIref *fmi = e;
-					utf_display ( fmi->class->name );
-					printf (".");
-					utf_display ( fmi->name);
-					printf (" ");
-					utf_display ( fmi->descriptor );
-				    }
-					break;
+		case CONSTANT_Fieldref:
+			printf("Fieldref -> "); goto displayFMIi;
+		case CONSTANT_Methodref:
+			printf("Methodref -> "); goto displayFMIi;
+		case CONSTANT_InterfaceMethodref:
+			printf("InterfaceMethod -> "); goto displayFMIi;
+		displayFMIi:
+			{
+				constant_FMIref *fmi = e;
+				utf_display(fmi->class->name);
+				printf(".");
+				utf_display(fmi->name);
+				printf(" ");
+				utf_display(fmi->descriptor);
+			}
+			break;
 
-				case CONSTANT_String:
-					printf ("String -> ");
-					utf_display (e);
-					break;
-				case CONSTANT_Integer:
-					printf ("Integer -> %d", (int) ( ((constant_integer*)e) -> value) );
-					break;
-				case CONSTANT_Float:
-					printf ("Float -> %f", ((constant_float*)e) -> value);
-					break;
-				case CONSTANT_Double:
-					printf ("Double -> %f", ((constant_double*)e) -> value);
-					break;
-				case CONSTANT_Long:
-					{
-					u8 v = ((constant_long*)e) -> value;
+		case CONSTANT_String:
+			printf("String -> ");
+			utf_display(e);
+			break;
+		case CONSTANT_Integer:
+			printf("Integer -> %d", (int) (((constant_integer*)e)->value));
+			break;
+		case CONSTANT_Float:
+			printf("Float -> %f", ((constant_float*)e)->value);
+			break;
+		case CONSTANT_Double:
+			printf("Double -> %f", ((constant_double*)e)->value);
+			break;
+		case CONSTANT_Long:
+			{
+				u8 v = ((constant_long*)e)->value;
 #if U8_AVAILABLE
-					printf ("Long -> %ld", (long int) v);
+				printf("Long -> %ld", (long int) v);
 #else
-					printf ("Long -> HI: %ld, LO: %ld\n", 
+				printf("Long -> HI: %ld, LO: %ld\n", 
 					    (long int) v.high, (long int) v.low);
 #endif 
-					}
-					break;
-				case CONSTANT_NameAndType:
-					{ constant_nameandtype *cnt = e;
-					  printf ("NameAndType: ");
-					  utf_display (cnt->name);
-					  printf (" ");
-					  utf_display (cnt->descriptor);
-					}
-					break;
-				case CONSTANT_Utf8:
-					printf ("Utf8 -> ");
-					utf_display (e);
-					break;
-				case CONSTANT_Arraydescriptor:	{
-					printf ("Arraydescriptor: ");
-					displayarraydescriptor (e);
-					}
-					break;
-				default: 
-					panic ("Invalid type of ConstantPool-Entry");
-				}  }
-printf("\n");
-
+			}
+			break;
+		case CONSTANT_NameAndType:
+			{ 
+				constant_nameandtype *cnt = e;
+				printf("NameAndType: ");
+				utf_display(cnt->name);
+				printf(" ");
+				utf_display(cnt->descriptor);
+			}
+			break;
+		case CONSTANT_Utf8:
+			printf("Utf8 -> ");
+			utf_display(e);
+			break;
+		case CONSTANT_Arraydescriptor:	{
+			printf("Arraydescriptor: ");
+			displayarraydescriptor(e);
+		}
+		break;
+		default: 
+			panic("Invalid type of ConstantPool-Entry");
+		}
+	}
+	printf("\n");
 }
+
 
 void class_showconstantpool (classinfo *c) 
 {
@@ -2317,78 +2314,77 @@ void class_showconstantpool (classinfo *c)
 		if (e) {
 			
 			switch (c -> cptags [i]) {
-				case CONSTANT_Class:
-					printf ("Classreference -> ");
-					utf_display ( ((classinfo*)e) -> name );
-					break;
+			case CONSTANT_Class:
+				printf ("Classreference -> ");
+				utf_display ( ((classinfo*)e) -> name );
+				break;
 				
-				case CONSTANT_Fieldref:
-					printf ("Fieldref -> "); goto displayFMI;
-				case CONSTANT_Methodref:
-					printf ("Methodref -> "); goto displayFMI;
-				case CONSTANT_InterfaceMethodref:
-					printf ("InterfaceMethod -> "); goto displayFMI;
-				  displayFMI:
-					{
+			case CONSTANT_Fieldref:
+				printf ("Fieldref -> "); goto displayFMI;
+			case CONSTANT_Methodref:
+				printf ("Methodref -> "); goto displayFMI;
+			case CONSTANT_InterfaceMethodref:
+				printf ("InterfaceMethod -> "); goto displayFMI;
+			displayFMI:
+				{
 					constant_FMIref *fmi = e;
 					utf_display ( fmi->class->name );
 					printf (".");
 					utf_display ( fmi->name);
 					printf (" ");
 					utf_display ( fmi->descriptor );
-				    }
-					break;
+				}
+				break;
 
-				case CONSTANT_String:
-					printf ("String -> ");
-					utf_display (e);
-					break;
-				case CONSTANT_Integer:
-					printf ("Integer -> %d", (int) ( ((constant_integer*)e) -> value) );
-					break;
-				case CONSTANT_Float:
-					printf ("Float -> %f", ((constant_float*)e) -> value);
-					break;
-				case CONSTANT_Double:
-					printf ("Double -> %f", ((constant_double*)e) -> value);
-					break;
-				case CONSTANT_Long:
-					{
+			case CONSTANT_String:
+				printf ("String -> ");
+				utf_display (e);
+				break;
+			case CONSTANT_Integer:
+				printf ("Integer -> %d", (int) ( ((constant_integer*)e) -> value) );
+				break;
+			case CONSTANT_Float:
+				printf ("Float -> %f", ((constant_float*)e) -> value);
+				break;
+			case CONSTANT_Double:
+				printf ("Double -> %f", ((constant_double*)e) -> value);
+				break;
+			case CONSTANT_Long:
+				{
 					u8 v = ((constant_long*)e) -> value;
 #if U8_AVAILABLE
 					printf ("Long -> %ld", (long int) v);
 #else
 					printf ("Long -> HI: %ld, LO: %ld\n", 
-					    (long int) v.high, (long int) v.low);
+							(long int) v.high, (long int) v.low);
 #endif 
-					}
-					break;
-				case CONSTANT_NameAndType:
-					{ constant_nameandtype *cnt = e;
-					  printf ("NameAndType: ");
-					  utf_display (cnt->name);
-					  printf (" ");
-					  utf_display (cnt->descriptor);
-					}
-					break;
-				case CONSTANT_Utf8:
-					printf ("Utf8 -> ");
-					utf_display (e);
-					break;
-				case CONSTANT_Arraydescriptor:	{
-					printf ("Arraydescriptor: ");
-					displayarraydescriptor (e);
-					}
-					break;
-				default: 
-					panic ("Invalid type of ConstantPool-Entry");
 				}
-				
+				break;
+			case CONSTANT_NameAndType:
+				{
+					constant_nameandtype *cnt = e;
+					printf ("NameAndType: ");
+					utf_display (cnt->name);
+					printf (" ");
+					utf_display (cnt->descriptor);
+				}
+				break;
+			case CONSTANT_Utf8:
+				printf ("Utf8 -> ");
+				utf_display (e);
+				break;
+			case CONSTANT_Arraydescriptor:	{
+				printf ("Arraydescriptor: ");
+				displayarraydescriptor (e);
 			}
+			break;
+			default: 
+				panic ("Invalid type of ConstantPool-Entry");
+			}
+		}
 
 		printf ("\n");
-		}
-	
+	}
 }
 
 
@@ -2560,9 +2556,9 @@ void loader_init()
 	utf *string_class;
 	interfaceindex = 0;
 	
-	list_init (&unloadedclasses, OFFSET(classinfo, listnode) );
-	list_init (&unlinkedclasses, OFFSET(classinfo, listnode) );
-	list_init (&linkedclasses, OFFSET(classinfo, listnode) );
+	list_init(&unloadedclasses, OFFSET(classinfo, listnode));
+	list_init(&unlinkedclasses, OFFSET(classinfo, listnode));
+	list_init(&linkedclasses, OFFSET(classinfo, listnode));
 
 	/* create utf-symbols for pointer comparison of frequently used strings */
 	utf_innerclasses    = utf_new_char("InnerClasses");
@@ -2575,48 +2571,48 @@ void loader_init()
 	utf_systemclass     = utf_new_char("java/lang/System");
 
 	/* create class for arrays */
-	class_array = class_new ( utf_new_char ("The_Array_Class") );
-    class_array -> classUsed = NOTUSED; /* not used initially CO-RT */
-	class_array -> impldBy = NULL;
+	class_array = class_new(utf_new_char("The_Array_Class"));
+    class_array->classUsed = NOTUSED; /* not used initially CO-RT */
+	class_array->impldBy = NULL;
 
  	list_remove (&unloadedclasses, class_array);
 
 	/* create class for strings, load it after class Object was loaded */
-	string_class = utf_new_char ("java/lang/String");
+	string_class = utf_new_char("java/lang/String");
 	class_java_lang_String = class_new(string_class);
-    class_java_lang_String -> classUsed = NOTUSED; /* not used initially CO-RT */
-	class_java_lang_String -> impldBy = NULL;
+    class_java_lang_String->classUsed = NOTUSED; /* not used initially CO-RT */
+	class_java_lang_String->impldBy = NULL;
 
- 	list_remove (&unloadedclasses, class_java_lang_String);
+ 	list_remove(&unloadedclasses, class_java_lang_String);
 
 	class_java_lang_Object = 
-		loader_load ( utf_new_char ("java/lang/Object") );
+		loader_load(utf_new_char("java/lang/Object"));
 
 	list_addlast(&unloadedclasses, class_java_lang_String);
 
-	class_java_lang_String = 
-		loader_load ( string_class );
+	class_java_lang_String =
+		loader_load(string_class);
 	class_java_lang_ClassCastException = 
-		loader_load ( utf_new_char ("java/lang/ClassCastException") );
+		loader_load(utf_new_char("java/lang/ClassCastException"));
 	class_java_lang_NullPointerException = 
-		loader_load ( utf_new_char ("java/lang/NullPointerException") );
-	class_java_lang_ArrayIndexOutOfBoundsException = loader_load ( 
-	     utf_new_char ("java/lang/ArrayIndexOutOfBoundsException") );
-	class_java_lang_NegativeArraySizeException = loader_load ( 
-	     utf_new_char ("java/lang/NegativeArraySizeException") );
-	class_java_lang_OutOfMemoryError = loader_load ( 
-	     utf_new_char ("java/lang/OutOfMemoryError") );
+		loader_load(utf_new_char("java/lang/NullPointerException"));
+	class_java_lang_ArrayIndexOutOfBoundsException =
+		loader_load(utf_new_char("java/lang/ArrayIndexOutOfBoundsException"));
+	class_java_lang_NegativeArraySizeException =
+		loader_load(utf_new_char("java/lang/NegativeArraySizeException"));
+	class_java_lang_OutOfMemoryError =
+		loader_load(utf_new_char("java/lang/OutOfMemoryError"));
 	class_java_lang_ArrayStoreException =
-		loader_load ( utf_new_char ("java/lang/ArrayStoreException") );
+		loader_load(utf_new_char("java/lang/ArrayStoreException"));
 	class_java_lang_ArithmeticException = 
-		loader_load ( utf_new_char ("java/lang/ArithmeticException") );
-	class_java_lang_ThreadDeath =                             /* schani */
-	        loader_load ( utf_new_char ("java/lang/ThreadDeath") );
+		loader_load(utf_new_char("java/lang/ArithmeticException"));
+	class_java_lang_ThreadDeath =
+		loader_load(utf_new_char("java/lang/ThreadDeath"));
 
 	/* link class for arrays */
-	list_addlast (&unlinkedclasses, class_array);
-	class_array -> super = class_java_lang_Object;
-	class_link (class_array);
+	list_addlast(&unlinkedclasses, class_array);
+	class_array->super = class_java_lang_Object;
+	class_link(class_array);
 
 	/* correct vftbl-entries (retarded loading of class java/lang/String) */
 	stringtable_update(); 
@@ -2626,35 +2622,35 @@ void loader_init()
 		
 	proto_java_lang_ClassCastException = 
 		builtin_new(class_java_lang_ClassCastException);
-	heap_addreference ( (void**) &proto_java_lang_ClassCastException);
+	heap_addreference((void**) &proto_java_lang_ClassCastException);
 
 	proto_java_lang_NullPointerException = 
 		builtin_new(class_java_lang_NullPointerException);
-	heap_addreference ( (void**) &proto_java_lang_NullPointerException);
+	heap_addreference((void**) &proto_java_lang_NullPointerException);
 
 	proto_java_lang_ArrayIndexOutOfBoundsException = 
 		builtin_new(class_java_lang_ArrayIndexOutOfBoundsException);
-	heap_addreference ( (void**) &proto_java_lang_ArrayIndexOutOfBoundsException);
+	heap_addreference((void**) &proto_java_lang_ArrayIndexOutOfBoundsException);
 
 	proto_java_lang_NegativeArraySizeException = 
 		builtin_new(class_java_lang_NegativeArraySizeException);
-	heap_addreference ( (void**) &proto_java_lang_NegativeArraySizeException);
+	heap_addreference((void**) &proto_java_lang_NegativeArraySizeException);
 
 	proto_java_lang_OutOfMemoryError = 
 		builtin_new(class_java_lang_OutOfMemoryError);
-	heap_addreference ( (void**) &proto_java_lang_OutOfMemoryError);
+	heap_addreference((void**) &proto_java_lang_OutOfMemoryError);
 
 	proto_java_lang_ArithmeticException = 
 		builtin_new(class_java_lang_ArithmeticException);
-	heap_addreference ( (void**) &proto_java_lang_ArithmeticException);
+	heap_addreference((void**) &proto_java_lang_ArithmeticException);
 
 	proto_java_lang_ArrayStoreException = 
 		builtin_new(class_java_lang_ArrayStoreException);
-	heap_addreference ( (void**) &proto_java_lang_ArrayStoreException);
+	heap_addreference((void**) &proto_java_lang_ArrayStoreException);
 
-	proto_java_lang_ThreadDeath =                             /* schani */
+	proto_java_lang_ThreadDeath =
 	        builtin_new(class_java_lang_ThreadDeath);
-	heap_addreference ( (void**) &proto_java_lang_ThreadDeath);
+	heap_addreference((void**) &proto_java_lang_ThreadDeath);
 
 	loader_inited = 1;
 }
