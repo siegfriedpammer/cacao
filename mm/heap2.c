@@ -858,7 +858,7 @@ void gc_mark_stack (void)
 #ifdef USE_THREADS 
     thread *aThread;
 	
-	if (currentThread == NULL) {
+	if (currentThread == NULL || currentThread == mainThread) {
 		void **top_of_stack = &dummy;
 		
 		if (top_of_stack > stackbottom)
@@ -872,9 +872,9 @@ void gc_mark_stack (void)
 			gc_mark_object_at((void*)aThread);
 			if (CONTEXT(aThread).usedStackTop > CONTEXT(aThread).stackEnd)
 				markreferences((void**)CONTEXT(aThread).stackEnd,
-							   (void**)CONTEXT(aThread).usedStackTop + 64);
+							   (void**)CONTEXT(aThread).usedStackTop);
 			else 	
-				markreferences((void**)CONTEXT(aThread).usedStackTop - 64,
+				markreferences((void**)CONTEXT(aThread).usedStackTop,
 							   (void**)CONTEXT(aThread).stackEnd);
 	    }
 
@@ -950,7 +950,6 @@ gc_call (void)
 
 	intsDisable();
 	if (currentThread == NULL || currentThread == mainThread) {
-		CONTEXT(mainThread).usedStackTop = &dummy;
 		gc_run();
 		}
 	else
