@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at            *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 481 2003-10-13 22:18:40Z twisti $         *
+*   Last Change: $Id: asmpart.S 516 2003-10-22 20:54:56Z twisti $         *
 *                                                                              *
 *******************************************************************************/
 
@@ -585,7 +585,7 @@ asm_builtin_monitorenter:
 
 nb_monitorenter:
         pop     %r10					/* delete return address */
-        sub     $2,%r10					/* faulting address is return adress - 2 */
+        sub     $3,%r10					/* faulting address is return adress - 3 */
         mov     proto_java_lang_NullPointerException,%rax
         jmp     asm_handle_exception
 		
@@ -603,7 +603,7 @@ asm_builtin_monitorexit:
 
 nb_monitorexit:
         pop     %r10					/* delete return address */
-        sub     $2,%r10					/* faulting address is return adress - 2 */
+        sub     $3,%r10					/* faulting address is return adress - 3 */
         mov     proto_java_lang_NullPointerException,%rax
         jmp     asm_handle_exception
 
@@ -639,7 +639,7 @@ asm_builtin_checkarraycast:
 nb_carray_throw:
         add     $24,%rsp
         pop     %r10					/* delete return address              */
-        sub     $2,%r10					/* faulting address is return adress - 2 */
+        sub     $3,%r10					/* faulting address is return adress - 3 */
         mov     proto_java_lang_ClassCastException,%rax
         jmp     asm_handle_exception
 
@@ -680,7 +680,7 @@ asm_builtin_aastore:
 nb_aastore_null:
         add     $24,%rsp
         pop     %r10					/* delete return address */
-        sub     $2,%r10					/* faulting address is return adress - 2 */
+        sub     $3,%r10					/* faulting address is return adress - 3 */
 		
         mov     proto_java_lang_NullPointerException,%rax
         jmp     asm_handle_exception
@@ -688,7 +688,7 @@ nb_aastore_null:
 nb_aastore_bound:
         add     $24,%rsp
         pop     %r10					/* delete return address */
-        sub     $2,%r10					/* faulting address is return adress - 2 */
+        sub     $3,%r10					/* faulting address is return adress - 3 */
 		
         mov     proto_java_lang_ArrayIndexOutOfBoundsException,%rax
         jmp     asm_handle_exception
@@ -696,7 +696,7 @@ nb_aastore_bound:
 nb_aastore_throw:
         add     $24,%rsp
         pop     %r10					/* delete return address */
-        sub     $2,%r10					/* faulting address is return adress - 2 */
+        sub     $3,%r10					/* faulting address is return adress - 3 */
 		
         mov     proto_java_lang_ArrayStoreException,%rax
         jmp		asm_handle_exception
