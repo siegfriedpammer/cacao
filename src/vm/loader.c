@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1889 2005-01-27 23:49:03Z motse $
+   $Id: loader.c 1890 2005-01-28 10:44:56Z motse $
 
 */
 
@@ -503,7 +503,8 @@ classbuffer *suck_start(classinfo *c)
 						/* we need this later in use_class_as_object to set a correct 
                             ProtectionDomain and CodeSource */
  						c->pd = (struct java_security_ProtectionDomain*) cpi; 
-
+						
+						len = unzReadCurrentFile(cpi->uf,cb->data, cb->size);
 
 						if (len != cb->size) {
 							suck_stop(cb);
