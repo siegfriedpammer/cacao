@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 870 2004-01-10 22:49:32Z edwin $
+   $Id: global.h 871 2004-01-11 00:55:25Z edwin $
 
 */
 
@@ -598,7 +598,6 @@ struct classinfo {                /* class structure                          */
 
 	s4          flags;            /* ACC flags                                */
 	utf        *name;             /* class name                               */
-	utf        *packagename;      /* full name of the package                 */
 
 	s4          cpcount;          /* number of entries in constant pool       */
 	u1         *cptags;           /* constant pool tags                       */
@@ -643,6 +642,7 @@ struct classinfo {                /* class structure                          */
 	s4          classUsed;        /* 0= not used 1 = used   CO-RT             */
 
 	classSetNode *impldBy;        /* implemented by class set                 */
+	utf        *packagename;      /* full name of the package                 */
 };
 
 /* check if class is an array class. Only use for linked classes! */
