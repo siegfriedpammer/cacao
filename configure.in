@@ -172,6 +172,9 @@ green | native | posix | pthreads)
 		ac_configure_args="$ac_configure_args --enable-boehm-threads=posix"
 	else
 		AC_MSG_RESULT(yes, green)
+
+		dnl No threads for boehm
+		ac_configure_args="$ac_configure_args --disable-boehm-threads"
 	fi
     ;;
 *)
