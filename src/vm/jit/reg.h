@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 1456 2004-11-05 14:33:14Z twisti $
+   $Id: reg.h 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -40,12 +40,20 @@
 #include "jit/jit.h"
 
 
-typedef struct registerdata registerdata;
+/************************* pseudo variable structure **************************/
+
 typedef struct varinfo varinfo;
+
+struct varinfo {
+	int type;                   /* basic type of variable                     */
+	int flags;                  /* flags (SAVED, INMEMORY)                    */
+	int regoff;                 /* register number or memory offset           */
+};
+
 typedef struct varinfo varinfo5[5];
 
-//struct t_inlining_globals;
 
+typedef struct registerdata registerdata;
 
 struct registerdata {
 	varinfo5 *locals;
@@ -114,15 +122,6 @@ struct registerdata {
 	int freesavflttop;              /* free saved float register count        */
 
 	int arguments_num;              /* size of parameter field in the stackframe  */
-};
-
-
-/************************* pseudo variable structure **************************/
-
-struct varinfo {
-	int type;                   /* basic type of variable                     */
-	int flags;                  /* flags (SAVED, INMEMORY)                    */
-	int regoff;                 /* register number or memory offset           */
 };
 
 

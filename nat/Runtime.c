@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Runtime.c 1487 2004-11-12 11:25:19Z twisti $
+   $Id: Runtime.c 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -205,12 +205,12 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizationForExit(JNIEnv *e
 {
 /*  	if (finalizeOnExit) { */
 /*  		gc_call(); */
-	//	gc_finalize_all();
+	/* gc_finalize_all(); */
 /*  	} */
 /*  	log_text("Java_java_lang_VMRuntime_runFinalizationForExit called"); */
-	//gc_finalize_all();
-	//gc_invoke_finalizers();
-	//gc_call();
+	/*gc_finalize_all();*/
+	/*gc_invoke_finalizers();*/
+	/*gc_call();*/
 }
 
 

@@ -202,7 +202,7 @@ extern thread *threadQhead[MAX_THREAD_PRIO + 1];
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);
 u1*  asm_initialize_thread_stack(void *func, u1 *stack);
 
-#else // defined(NATIVE_THREADS)
+#else /* NATIVE_THREADS */
 #include "nativethread.h"
 #endif
 

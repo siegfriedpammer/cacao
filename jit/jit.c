@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1478 2004-11-11 11:16:30Z twisti $
+   $Id: jit.c 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -1344,14 +1344,14 @@ static void* do_nothing_function()
 
 *******************************************************************************/
 
-static methodptr jit_compile_intern(methodinfo *m, codegendata *cd,
-									registerdata *rd, loopdata *ld,
-									t_inlining_globals *id);
+static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
+									  registerdata *rd, loopdata *ld,
+									  t_inlining_globals *id);
 
-methodptr jit_compile(methodinfo *m)
+functionptr jit_compile(methodinfo *m)
 {
 	static bool jitrunning;
-	methodptr r;
+	functionptr r;
 	s4 dumpsize;
 	codegendata *cd;
 	registerdata *rd;
@@ -1382,7 +1382,8 @@ methodptr jit_compile(methodinfo *m)
 		if (compileverbose)
 			log_message_method("No code given for: ", m);
 
-		m->entrypoint = (methodptr) do_nothing_function;
+		/*m->entrypoint = (methodptr) do_nothing_function;*/
+		m->entrypoint = (functionptr) do_nothing_function;
 
 		return m->entrypoint;    /* return empty method     */
 	}
@@ -1417,8 +1418,8 @@ methodptr jit_compile(methodinfo *m)
 
 	/* RTA static analysis must be called before inlining */
 	if (opt_rt)
-		RT_jit_parse(m); // will be called just once
-                                /* return value ignored for now */
+		RT_jit_parse(m); /* will be called just once */
+	                     /* return value ignored for now */
 
 	/* must be called before reg_setup, because it can change maxlocals */
 	/* init reqd to initialize for parse even in no inlining */
@@ -1485,9 +1486,9 @@ methodptr jit_compile(methodinfo *m)
 
 *******************************************************************************/
 
-static methodptr jit_compile_intern(methodinfo *m, codegendata *cd,
-									registerdata *rd, loopdata *ld,
-									t_inlining_globals *id)
+static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
+									  registerdata *rd, loopdata *ld,
+									  t_inlining_globals *id)
 {
 	/* print log message for compiled method */
 
@@ -1616,7 +1617,7 @@ static methodptr jit_compile_intern(methodinfo *m, codegendata *cd,
 		show_icmd_method(m, cd, rd);
 
 	} else if (showdisassemble) {
-		disassemble((void *) (m->mcode + cd->dseglen), 
+		disassemble((void *) ((long) m->mcode + cd->dseglen), 
 					m->mcodelength - cd->dseglen);
 	}
 

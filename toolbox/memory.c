@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 1489 2004-11-12 11:31:47Z twisti $
+   $Id: memory.c 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -207,7 +207,7 @@ void *dump_alloc(int size)
 		}
 
 		/* allocate dumpblock memory */
-		//printf("new dumpblock: %d\n", newdumpblocksize);
+		/*printf("new dumpblock: %d\n", newdumpblocksize);*/
 		newdumpblock->dumpmem = checked_alloc(newdumpblocksize);
 
 		newdumpblock->prev = di->currentdumpblock;
@@ -216,7 +216,7 @@ void *dump_alloc(int size)
 
 		/* Used dump size is previously allocated dump size, because the      */
 		/* remaining free memory of the previous dump block cannot be used.   */
-		//printf("unused memory: %d\n", allocateddumpsize - useddumpsize);
+		/*printf("unused memory: %d\n", allocateddumpsize - useddumpsize);*/
 		di->useddumpsize = di->allocateddumpsize;
 
 		/* increase the allocated dump size by the size of the new dump block */

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: codegen.inc.h 1458 2004-11-05 15:33:49Z twisti $
+   $Id: codegen.inc.h 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -149,8 +149,8 @@ struct linenumberref {
 typedef struct _methodtree_element methodtree_element;
 
 struct _methodtree_element {
-	void *startpc;
-	void *endpc;
+	functionptr startpc;
+	functionptr endpc;
 };
 #endif
 
@@ -162,7 +162,7 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *e);
 void codegen(methodinfo *m, codegendata *cd, registerdata *rd);
 void codegen_free(methodinfo *m, codegendata *cd);
 void codegen_close();
-void codegen_insertmethod(void *startpc, void *endpc);
+void codegen_insertmethod(functionptr startpc, functionptr endpc);
 
 #if defined(__I386__) || defined(__X86_64__)
 void codegen_addreference(codegendata *cd, struct basicblock *target, void *branchptr);

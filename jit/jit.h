@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 1456 2004-11-05 14:33:14Z twisti $
+   $Id: jit.h 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -823,7 +823,7 @@ extern bool method_uses_edx;
 
 /* function prototypes */
 
-methodptr jit_compile(methodinfo *m);   /* compile a method with jit compiler */
+functionptr jit_compile(methodinfo *m); /* compile a method with jit compiler */
 
 void jit_init();                        /* compiler initialisation            */
 void jit_close();                       /* compiler finalisation              */

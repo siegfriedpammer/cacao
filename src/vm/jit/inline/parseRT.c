@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 1473 2004-11-10 10:33:59Z carolyn $
+   $Id: parseRT.c 1494 2004-11-12 13:34:26Z twisti $
 
 Changes:
 opcode put into functions
@@ -315,7 +315,7 @@ if (submeth->methodUsed == USED) return;
 			}
 		}
         /* add method to rta work list if conditions met */
-	//if ( (submeth->class->classUsed == USED) ||
+	/* if ( (submeth->class->classUsed == USED) || */
 	if (class->classUsed == USED) {
   		submeth->monoPoly = POLY;
   		addToRtaWorkList(submeth,
@@ -491,7 +491,7 @@ if (DEBUGr) printf("\n");
 							true);
 
 				if (!fi)
-					return 0; // was NULL
+					return 0; /* was NULL */
 
 				CLASSNAME(fi->class,"\tPUTSTATIC: ");
 				if (!fi->class->initialized) {
@@ -665,7 +665,7 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 					   }
 				/* see INVOKESTATIC for explanation about */
 			        /*   case when Interface is not resolved  */
-                                //descriptor2types(mi); ?? do need paramcnt?
+                                /* descriptor2types(mi); ?? do need paramcnt? */
                         }
                         break;
 
@@ -677,8 +677,8 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 			classinfo *ci;
                         ci = class_getconstant(m->class, i, CONSTANT_Class);
                         m->isleafmethod = false; /* why for new ? */
-                        // s_count++; look for s_counts for VTA
-			//ci->classUsed=USED;
+                        /* s_count++; look for s_counts for VTA */
+						/* ci->classUsed=USED; */
 			/* add marked methods */
 			CLASSNAME(ci,"NEW : do nothing");
 			}
@@ -776,7 +776,7 @@ methodinfo *initializeRTAworklist(methodinfo *m) {
 
 	/*----- rtMissedIn 0 */
         if ( (rtMissedIn = fopen("rtMissedIn0", "r")) == NULL) {
-		//if (verbose) 
+			/* if (verbose) */
 		    {printf("No rtMissedIn0 file\n");fflush(stdout);} 
 		return  rm;
 		}
@@ -793,7 +793,7 @@ printf("filenameIn=%s|mainstring=%s\n",filenameIn,mainstring); fflush(stdout);
         strcat(filenameIn, (const char *)mainstring);  
 printf("filenameIn=%s|\n",filenameIn); fflush(stdout);
         if ( (rtMissedIn = fopen(filenameIn, "r")) == NULL) {
-		//if (verbose) 
+			/* if (verbose) */
 		    {printf("NNo rtMissedIn=%s file\n",filenameIn);fflush(stdout);} 
 		return rm;
 		}

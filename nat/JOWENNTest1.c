@@ -94,7 +94,7 @@ JNIEXPORT void JNICALL Java_java_lang_JOWENNTest1_f6 (JNIEnv *env ,  struct java
 	jmethodID mid;
 
 	printf("JOWENNTest1_nat_f6:%d\n",par1);
-//	class_showmethods(this->header.vftbl->class);
+        /*class_showmethods(this->header.vftbl->class);*/
         mid = (*env)->GetMethodID(env, this->header.vftbl->class, "f6a", "(I)V");
 
         (*env)->CallVoidMethod(env, this, mid,par1);
@@ -118,7 +118,7 @@ JNIEXPORT void JNICALL Java_java_lang_JOWENNTest1_f7 (JNIEnv *env ,  struct java
 	jmethodID mid;
 
 	printf("JOWENNTest1_nat_f7\n");
-//	class_showmethods(this->header.vftbl->class);
+        /*class_showmethods(this->header.vftbl->class);*/
         mid = (*env)->GetMethodID(env, this->header.vftbl->class, "f7a", "(III)V");
 
         (*env)->CallVoidMethod(env, this, mid,1,2,3);
@@ -141,7 +141,7 @@ JNIEXPORT void JNICALL Java_java_lang_JOWENNTest1_f8 (JNIEnv *env ,  struct java
 	jmethodID mid;
 
 	printf("JOWENNTest1_nat_f8\n");
-//	class_showmethods(this->header.vftbl->class);
+        /*class_showmethods(this->header.vftbl->class);*/
         mid = (*env)->GetStaticMethodID(env, this->header.vftbl->class, "f7a", "(III)V");
 
         (*env)->CallStaticVoidMethod(env, this, mid,1,2,3);
@@ -161,7 +161,7 @@ JNIEXPORT void JNICALL Java_java_lang_JOWENNTest1_f9 (JNIEnv *env ,  struct java
 	jmethodID mid;
 
 	printf("JOWENNTest1_nat_f9\n");
-//	class_showmethods(this->header.vftbl->class);
+        /*class_showmethods(this->header.vftbl->class);*/
         mid = (*env)->GetStaticMethodID(env, this->header.vftbl->class, "f7b", "(III)V");
 
         (*env)->CallVoidMethod(env, this, mid,1,2,3);

@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1462 2004-11-06 15:08:49Z motse $
+   $Id: parse.c 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -79,7 +79,7 @@ bool DEBUG3 = false;
 bool DEBUG4 = false;  /*opcodes*/
 
 /*INLINING*/
-#define debug_writebranch if (DEBUG2==true) printf("op:: %s i: %d label_index[i]: %d label_index=%p\n",opcode_names[opcode], i, label_index[i],label_index);
+#define debug_writebranch if (DEBUG2==true) printf("op:: %s i: %d label_index[i]: %d label_index=0x%x\n",opcode_names[opcode], i, label_index[i], label_index);
 #define debug_writebranch1
 
 
@@ -365,12 +365,13 @@ static exceptiontable* fillextable(methodinfo *m,
 	
 	if (exceptiontablelength == 0) 
 		return extable;
+
 	
-//if (m->exceptiontablelength > 0) {
-//   DEBUGMETH(m);
-//   printf("m->exceptiontablelength=%i\n",m->exceptiontablelength);
-//   panic("exceptiontablelength > 0");
-//   }
+	/*if (m->exceptiontablelength > 0) {
+	  DEBUGMETH(m);
+	  printf("m->exceptiontablelength=%i\n",m->exceptiontablelength);
+	  panic("exceptiontablelength > 0");
+	  }*/
 
 	b_count = *block_count;
 
@@ -384,7 +385,7 @@ static exceptiontable* fillextable(methodinfo *m,
 		
 /*** if (DEBUG==true){printf("---------------------block_inserted:b_count=%i m->basicblockindex[(p=%i)]=%i=%p\n",b_count,p,m->basicblockindex[(p)],m->basicblockindex[(p)]); 
   fflush(stdout); } ***/   
-		p = raw_extable[i].endpc; // see JVM Spec 4.7.3
+		p = raw_extable[i].endpc; /* see JVM Spec 4.7.3 */
 		if (p < raw_extable[i].startpc)
 			panic("Invalid exception handler range");
 		if (p > m->jcodelength) { 
@@ -509,17 +510,20 @@ if (opt_rt) {
 	memset(iptr, 0, sizeof(instruction) * (inline_env->cumjcodelength + 5));
 	
 	/* compute branch targets of exception table */
-//if (m->exceptiontable == NULL) {
-//  printf("m->exceptiontable=NULL\n");fflush(stdout);
-//  }
-//else {
-//  printf("m->exceptiontable != NULL\n");fflush(stdout);
-//  }
-//printf("m->exceptiontablelength=%i, inline_env->method->exceptiontablelength=%i,inline_env->cumextablelength=%i\n",
-//m->exceptiontablelength, inline_env->method->exceptiontablelength,inline_env->cumextablelength);
-
-//if (m->exceptiontablelength > 0)
-//  	m->exceptiontable = DMNEW(exceptiontable, m->exceptiontablelength + 1); 
+	/*
+if (m->exceptiontable == NULL) {
+  printf("m->exceptiontable=NULL\n");fflush(stdout);
+  }
+else {
+  printf("m->exceptiontable != NULL\n");fflush(stdout);
+  }
+printf("m->exceptiontablelength=%i, inline_env->method->exceptiontablelength=%i,inline_env->cumextablelength=%i\n",
+m->exceptiontablelength, inline_env->method->exceptiontablelength,inline_env->cumextablelength);
+	*/
+	/*
+if (m->exceptiontablelength > 0)
+  	m->exceptiontable = DMNEW(exceptiontable, m->exceptiontablelength + 1); 
+	*/
 
 	nextex = fillextable(m, 
  	  cd->exceptiontable, m->exceptiontable, m->exceptiontablelength, 
@@ -570,7 +574,7 @@ if (opt_rt) {
 			bool *readonly = NULL;
 			int argBlockIdx=0;
 
-			block_insert(gp);               //JJJJJJJJJJ
+			block_insert(gp);               /* JJJJJJJJJJ */
 			blockend=false;
 			instructionstart[gp] = 1;
 			m->basicblockindex[gp] |= (ipc << 1);  /*FIXME: necessary ? */
@@ -614,8 +618,8 @@ if (opt_rt) {
 					argBlockIdx--;
 
 				OP1(op, firstlocal + argBlockIdx);
-				//OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i);
-			//printf("inline argument load operation for local: %ld\n",firstlocal + tmpinlinf->method->paramcount - 1 - i);
+				/* OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i); */
+				/* printf("inline argument load operation for local: %ld\n",firstlocal + tmpinlinf->method->paramcount - 1 - i); */
 			}
 			skipBasicBlockChange=1;
 if (DEBUG==true) {
@@ -658,19 +662,22 @@ DEBUGMETH(inline_env->method);
 			printf("Parse p=%i<%i<%i<   opcode=<%i> %s\n",
 			   p, gp, inline_env->jcodelength, opcode, opcode_names[opcode]);
 		}
-	  
-//printf("basicblockindex[gp=%i]=%i=%p ipc=%i=%p shifted ipc=%i=%p\n",
-//gp,m->basicblockindex[gp],m->basicblockindex[gp],ipc,ipc,(ipc<<1),(ipc<<1));
-//fflush(stdout);
+	 /*
+printf("basicblockindex[gp=%i]=%i=%p ipc=%i=%p shifted ipc=%i=%p\n",
+gp,m->basicblockindex[gp],m->basicblockindex[gp],ipc,ipc,(ipc<<1),(ipc<<1));
+fflush(stdout);
+	 */
 		if (!skipBasicBlockChange) {
 			m->basicblockindex[gp] |= (ipc << 1); /*store intermed cnt*/
 		} else skipBasicBlockChange=0;
-//printf("basicblockindex[gp=%i]=%i=%p \n",
-//gp,m->basicblockindex[gp],m->basicblockindex[gp]);
-//fflush(stdout);
+		/*
+printf("basicblockindex[gp=%i]=%i=%p \n",
+gp,m->basicblockindex[gp],m->basicblockindex[gp]);
+fflush(stdout);
+		*/
 
 		if (blockend) {
-//printf("B4 BEND\t"); fflush(stdout);
+			/* printf("B4 BEND\t"); fflush(stdout); */
 			block_insert(gp);               /* start new block                */
 			blockend = false;
 			/*printf("blockend was set: new blockcount: %ld at:%ld\n",b_count,gp);*/
@@ -1010,7 +1017,7 @@ SHOWOPCODE
 				i = label_index[i];
 			}
 			bound_check(i);
-//printf("B6 JSR_W\t"); fflush(stdout);
+			/*printf("B6 JSR_W\t"); fflush(stdout);*/
 			block_insert(i);
 			blockend = true;
 			OP1(opcode, i);
@@ -1047,12 +1054,13 @@ SHOWOPCODE
 				/*  						break; */
 				/*  					} */
 				if (nextp>inline_env->method->jcodelength-1) {
- 				   //OP1(ICMD_GOTO, inlinfo->stopgp);
-                                   //OP(ICMD_NOP);
-                                   //OP(ICMD_NOP);
-                                   blockend=true;
-                                   break;
-                                }//JJJJJJJ
+					/* OP1(ICMD_GOTO, inlinfo->stopgp);
+					   OP(ICMD_NOP);
+					   OP(ICMD_NOP);
+					*/
+					blockend=true;
+					break;
+				} /* JJJJJJJ */
 				blockend = true;
 				OP1(ICMD_GOTO, inlinfo->stopgp);
 				break;
@@ -1099,7 +1107,9 @@ SHOWOPCODE
 				tablep++;
 				nextp += 4;
 				bound_check(j);
-//printf("B7 LOOKUP1\t"); fflush(stdout);
+/*
+printf("B7 LOOKUP1\t"); fflush(stdout);
+*/
 				block_insert(j);
 
 				/* number of pairs */
@@ -1135,7 +1145,9 @@ SHOWOPCODE
 					tablep++;
 					nextp += 4;
 					bound_check(j);
-//printf("B8 LOOKUP2\t"); fflush(stdout);
+/*
+printf("B8 LOOKUP2\t"); fflush(stdout);
+*/
 					block_insert(j);
 				}
 
@@ -1171,7 +1183,9 @@ SHOWOPCODE
 				tablep++;
 				nextp += 4;
 				bound_check(j);
-//printf("B9 TABLESWITCH1\t"); fflush(stdout);
+/*
+printf("B9 TABLESWITCH1\t"); fflush(stdout);
+*/
 				block_insert(j);
 
 				/* lower bound */
@@ -1205,7 +1219,9 @@ SHOWOPCODE
 					tablep++;
 					nextp += 4;
 					bound_check(j);
-//printf("B10 TABLESWITCH2\t"); fflush(stdout);
+/*
+printf("B10 TABLESWITCH2\t"); fflush(stdout);
+*/
 					block_insert(j);
 					/*printf("TABLESWITCH: block_insert(%ld)\n",j);*/
 				}
@@ -1307,7 +1323,7 @@ SHOWOPCODE
 				if (!mi)
 					return NULL;
 
-				/*RTAprint*/// if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
+				/*RTAprint*/ /* if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt) */
 if (DEBUG4==true) 
 					/*RTAprint*/    {printf(" method name =");
 					/*RTAprint*/    utf_display(mi->class->name); printf(".");
@@ -1351,7 +1367,7 @@ if (DEBUG4==true)
 				if (!mi)
 					return NULL;
 
-				/*RTAprint*/ // if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt)
+				/*RTAprint*/ /* if (((pOpcodes == 2) || (pOpcodes == 3)) && opt_rt) */
 if (DEBUG4==true)
 					/*RTAprint*/    {printf(" method name =");
 					method_display(mi);
@@ -1651,18 +1667,18 @@ if (DEBUG4==true)
 		
 		/* INLINING */
 		  
-//		if (inline_env->isinlinedmethod && p == inline_env->method->jcodelength - 1) { /* end of an inlined method */
+		/* if (inline_env->isinlinedmethod && p == inline_env->method->jcodelength - 1) { */ /* end of an inlined method */
 		if (inline_env->isinlinedmethod && (nextp >= inline_env->method->jcodelength) ) { /* end of an inlined method */
 			/*		  printf("setting gp from %d to %d\n",gp, inlinfo->stopgp); */
 			gp = inlinfo->stopgp; 
 			inlining_restore_compiler_variables();
-//label_index = inlinfo->label_index;
+/*label_index = inlinfo->label_index;*/
 if (DEBUG==true) {
 printf("AFTER RESTORE : "); fflush(stdout);
 DEBUGMETH(inline_env->method);
 }
 			list_remove(inlinfo->inlinedmethods, list_first(inlinfo->inlinedmethods));
-			if (inlinfo->inlinedmethods == NULL) { //JJJJ
+			if (inlinfo->inlinedmethods == NULL) { /* JJJJ */
 				nextgp = -1;
 			} else {
 				tmpinlinf = list_first(inlinfo->inlinedmethods);
@@ -1726,7 +1742,7 @@ DEBUGMETH(inline_env->method);
 		/* allocate blocks */
 
   		for (p = 0; p < inline_env->cumjcodelength; p++) { 
-//		for (p = 0; p < m->jcodelength; p++) { 
+		/* for (p = 0; p < m->jcodelength; p++) { */
 			if (m->basicblockindex[p] & 1) {
 				/* check if this block starts at the beginning of an instruction */
 				if (!instructionstart[p]) {

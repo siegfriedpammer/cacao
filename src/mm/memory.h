@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.h 1437 2004-11-05 09:51:07Z twisti $
+   $Id: memory.h 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -102,7 +102,7 @@ typedef struct dumpblock dumpblock;
 
 struct dumpblock {
 	dumpblock *prev;
-	void      *dumpmem;
+	u1        *dumpmem;
 	s4         size;
 };
 

@@ -28,7 +28,7 @@ globals moved to structure and passed as parameter
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 1474 2004-11-11 10:09:10Z carolyn $
+   $Id: inline.c 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -58,9 +58,9 @@ globals moved to structure and passed as parameter
   printf("m->maxstack=%i;\n",m->maxstack); fflush(stdout);
 
 bool DEBUGi = false;
-// checked functions and macros: LOADCONST code_get OP1 BUILTIN block_insert bound_check ALIGN
+/* checked functions and macros: LOADCONST code_get OP1 BUILTIN block_insert bound_check ALIGN */
 
-// replace jcodelength loops with correct number after main for loop in parse()!
+/* replace jcodelength loops with correct number after main for loop in parse()! */
 
 
 /*-----------------------------------------------------------*/
@@ -77,7 +77,7 @@ void inlining_init0(methodinfo *m, t_inlining_globals *inline_env)
 	inline_env->cummaxstack = m->maxstack; /*why has here been 0 ? */
 	inline_env->cumextablelength = 0;
 	inline_env->cumlocals = m->maxlocals;
-	inline_env->cummethods = 0;//co not global or static-used only here?
+	inline_env->cummethods = 0; /* co not global or static-used only here? */
 	inline_env->inlining_stack = NULL;
 	inline_env->inlining_rootinfo = NULL;
 }
@@ -112,11 +112,13 @@ if (DEBUGi==true) {print_t_inlining_globals(inline_env);}
 		= inlining_analyse_method(m, 0, 0, 0, 0, inline_env);
 if (DEBUGi==true) {print_t_inlining_globals(inline_env);}
         /*---------------------*/
-	//if (inline_env->cummethods == 0) {
-  	//  inline_env = DNEW(t_inlining_globals);
-	//  inlining_init0(m,inline_env);
-	//  return inline_env;
-        //  }
+/*
+ if (inline_env->cummethods == 0) {
+	 inline_env = DNEW(t_inlining_globals);
+	 inlining_init0(m,inline_env);
+	 return inline_env;
+ }
+*/
 if (DEBUGi==true) {
   printf("(l,s) (%i,%i) was (%i,%i)\n",
     m->maxlocals, inline_env->cumlocals,
@@ -334,7 +336,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 	bool isnotrootlevel = (level > 0);
 	bool isnotleaflevel = (level < INLINING_MAXDEPTH);
 
-	//	if (level == 0) gp = 0;
+	/* if (level == 0) gp = 0; */
 	/*
 	sprintf (logtext, "Performing inlining analysis of: ");
 	utf_sprint (logtext+strlen(logtext), m->class->name);
@@ -344,7 +346,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 	dolog (); */
 
 	if (isnotrootlevel) {
-		newnode->readonly = readonly = DMNEW(bool, m->maxlocals); //FIXME only paramcount entrys necessary
+		newnode->readonly = readonly = DMNEW(bool, m->maxlocals); /* FIXME only paramcount entrys necessary */
 		for (i = 0; i < m->maxlocals; readonly[i++] = true);
 		isnotrootlevel = true;
 
@@ -551,7 +553,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 						(imi->jcodelength < INLINING_MAXCODESIZE) && 
 						(imi->jcodelength > 0) && 
 					       (((!inlinevirtuals)  || (uniqueVirt)) || (opcode != JAVA_INVOKEVIRTUAL)) &&
-						(inlineexceptions || (imi->exceptiontablelength == 0))) { //FIXME: eliminate empty methods?
+						(inlineexceptions || (imi->exceptiontablelength == 0))) { /* FIXME: eliminate empty methods? */
 						inlining_methodinfo *tmp;
 						descriptor2types(imi);
 

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 1443 2004-11-05 13:53:13Z twisti $
+   $Id: loader.c 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -1900,12 +1900,13 @@ static bool class_loadcpool(classbuffer *cb, classinfo *c)
 				return false;
 
 			if (opt_verify &&
-				!is_valid_utf(cb->pos + 1, cb->pos + 1 + length)) {
+				!is_valid_utf((char *) (cb->pos + 1),
+							  (char *) (cb->pos + 1 + length))) {
 				dolog("Invalid UTF-8 string (constant pool index %d)",idx);
 				panic("Invalid UTF-8 string");
 			}
 			/* insert utf-string into the utf-symboltable */
-			cpinfos[idx] = utf_new_intern(cb->pos + 1, length);
+			cpinfos[idx] = utf_new_intern((char *) (cb->pos + 1), length);
 
 			/* skip bytes of the string (buffer size check above) */
 			skip_nbytes(cb, length);
@@ -2907,7 +2908,7 @@ static classinfo *class_link_intern(classinfo *c)
 				return NULL;
 
 		if (super->flags & ACC_INTERFACE) {
-			// java.lang.IncompatibleClassChangeError: class a has interface java.lang.Cloneable as super class
+			/* java.lang.IncompatibleClassChangeError: class a has interface java.lang.Cloneable as super class */
 			panic("Interface specified as super class");
 		}
 
@@ -2956,7 +2957,7 @@ static classinfo *class_link_intern(classinfo *c)
 							goto notfoundvftblindex;
 
 						if (tc->methods[j].flags & ACC_FINAL) {
-							// class a overrides final method .
+							/* class a overrides final method . */
 							*exceptionptr =
 								new_exception(string_java_lang_VerifyError);
 							return NULL;

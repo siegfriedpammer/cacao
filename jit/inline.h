@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.h 1456 2004-11-05 14:33:14Z twisti $
+   $Id: inline.h 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -66,27 +66,27 @@ typedef struct {
 typedef struct {
     listnode linkage;
         
-    // saved static compiler variables
+    /* saved static compiler variables */
         
     methodinfo *method;
         
-    // restored through method
+    /* restored through method */
 
-    // int jcodelength;
-    // u1 *jcode;
-    // classinfo *class;
+    /* int jcodelength; */
+    /* u1 *jcode; */
+	/* classinfo *class; */
 
-    // descriptor never used
-    // maxstack used outside of main for loop
-    // maxlocals never used
+    /* descriptor never used */
+    /* maxstack used outside of main for loop */
+    /* maxlocals never used */
 	
-    // exceptiontablelength
-    // raw_extable used outside of main for loop
-    // mreturntype used outside of main for loop
-    // mparamcount used outside of main for loop
-    // mparamtypes used outside of main for loop
+    /* exceptiontablelength */
+    /* raw_extable used outside of main for loop */
+    /* mreturntype used outside of main for loop */
+    /* mparamcount used outside of main for loop */
+    /* mparamtypes used outside of main for loop */
 
-    //local variables used in parse()  
+    /* local variables used in parse() */
 
     int  i;                     /* temporary for different uses (counters)*/
     int  p;                     /* java instruction counter               */
@@ -99,7 +99,7 @@ typedef struct {
 
 } t_inlining_stacknode;
 
-typedef struct t_inlining_globals {  // try in parse.h with struct not include
+typedef struct t_inlining_globals {  /* try in parse.h with struct not include */
         bool isinlinedmethod;
         int cumjcodelength;   /* cumulative immediate intruction length */
         int cummaxstack;

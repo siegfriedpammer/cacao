@@ -27,6 +27,7 @@
 #include <errno.h>
 
 #include "config.h"
+#include "exceptions.h"
 #include "thread.h"
 #include "locks.h"
 #include "tables.h"

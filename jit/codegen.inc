@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1475 2004-11-11 10:27:49Z twisti $
+   $Id: codegen.inc 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -93,15 +93,15 @@ void codegen_init()
 
 		mte = NEW(methodtree_element);
 
-		mte->startpc = asm_calljavafunction;
-		mte->endpc = asm_calljavafunction2 - 1;
+		mte->startpc = (functionptr) asm_calljavafunction;
+		mte->endpc = (functionptr) ((long) asm_calljavafunction2 - 1);
 
 		avl_insert(methodtree, mte);
 
 		mte = NEW(methodtree_element);
 
-		mte->startpc = asm_calljavafunction2;
-		mte->endpc = asm_call_jit_compiler - 1;
+		mte->startpc = (functionptr) asm_calljavafunction2;
+		mte->endpc = (functionptr) ((long) asm_call_jit_compiler - 1);
 
 		avl_insert(methodtree, mte);
 	}
@@ -547,11 +547,13 @@ static int methodtree_comparator(const void *pc, const void *element, void *para
 	/* compare both startpc and endpc of pc, even if they have the same value,
 	   otherwise the avl_probe sometimes thinks the element is already in the
 	   tree */
-	if (mte->startpc <= mtepc->startpc && mtepc->startpc <= mte->endpc &&
-		mte->startpc <= mtepc->endpc   && mtepc->endpc   <= mte->endpc) {
+	if ((long) mte->startpc <= (long) mtepc->startpc &&
+		(long) mtepc->startpc <= (long) mte->endpc &&
+		(long) mte->startpc <= (long) mtepc->endpc &&
+		(long) mtepc->endpc <= (long) mte->endpc) {
 		return 0;
 
-	} else if (mtepc->startpc < mte->startpc) {
+	} else if ((long) mtepc->startpc < (long) mte->startpc) {
 		return -1;
 
 	} else {
@@ -577,7 +579,7 @@ void *codegen_findmethod1(void *pc)
 #endif
 
 
-void codegen_insertmethod(void *startpc, void *endpc)
+void codegen_insertmethod(functionptr startpc, functionptr endpc)
 {
 	methodtree_element *mte;
 
@@ -609,7 +611,7 @@ void codegen_insertmethod(void *startpc, void *endpc)
 }
 
 
-void *codegen_findmethod(void *pc)
+functionptr codegen_findmethod(functionptr pc)
 {
 	methodtree_element *mtepc;
 	methodtree_element *mte;
@@ -652,7 +654,7 @@ void *codegen_findmethod(void *pc)
 static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 {
 	jumpref *jr;
-	u1 *epoint;
+	functionptr epoint;
 	s4 extralen;
 	s4 alignedlen;
 
@@ -673,17 +675,18 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	alignedlen = ALIGN(mcodelen, MAX_ALIGN) + cd->dseglen;
 
 	m->mcodelength = mcodelen + cd->dseglen;
-	m->mcode = CNEW(u1, alignedlen + extralen);
+	m->mcode = (functionptr) (long) CNEW(u1, alignedlen + extralen);
 
-	memcpy(m->mcode, cd->dsegtop - cd->dseglen, cd->dseglen);
-	memcpy(m->mcode + cd->dseglen, cd->mcodebase, mcodelen);
+	memcpy((void *) (long) m->mcode, cd->dsegtop - cd->dseglen, cd->dseglen);
+	memcpy((void *) ((long) m->mcode + cd->dseglen), cd->mcodebase, mcodelen);
 
-	m->entrypoint = epoint = (u1 *) (m->mcode + cd->dseglen);
+	m->entrypoint = epoint = (functionptr) ((long) m->mcode + cd->dseglen);
 
 	/* jump table resolving */
 	jr = cd->jumpreferences;
 	while (jr != NULL) {
-		*((void**) (epoint + jr->tablepos)) = epoint + jr->target->mpc;
+		*((functionptr *) ((long) epoint + jr->tablepos)) =
+			(functionptr) ((long) epoint + (long) jr->target->mpc);
 		jr = jr->next;
 	}
 
@@ -717,12 +720,14 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 		dataref *dr;
 
 		/* add method into methodtree to find the entrypoint */
-		codegen_insertmethod(m->entrypoint, m->entrypoint + mcodelen);
+		codegen_insertmethod(m->entrypoint,
+							 (functionptr) ((long) m->entrypoint + mcodelen));
 
 		/* data segment references resolving */
 		dr = cd->datareferences;
 		while (dr != NULL) {
-			*((void**) ((long) epoint + (long) dr->pos - POINTERSIZE)) = epoint;
+			*((functionptr *) ((long) epoint + (long) dr->pos - POINTERSIZE)) =
+				epoint;
 			dr = dr->next;
 		}
 	}
@@ -730,14 +735,14 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	{
-		threadcritnode *n = (threadcritnode *) (m->mcode + alignedlen);
+		threadcritnode *n = (threadcritnode *) ((long) m->mcode + alignedlen);
 		s4 i;
 		threadcritnodetemp *nt = cd->threadcrit;
 
 		for (i = 0; i < cd->threadcritcount; i++) {
-			n->mcodebegin = m->mcode + nt->mcodebegin;
-			n->mcodeend = m->mcode + nt->mcodeend;
-			n->mcoderestart = m->mcode + nt->mcoderestart;
+			n->mcodebegin = (u1 *) (long) m->mcode + nt->mcodebegin;
+			n->mcodeend = (u1 *) (long) m->mcode + nt->mcodeend;
+			n->mcoderestart = (u1 *) (long) m->mcode + nt->mcoderestart;
 			thread_registercritical(n);
 			n++;
 			nt = nt->next;
@@ -752,13 +757,13 @@ void dseg_display(methodinfo *m, codegendata *cd)
 	s4 *s4ptr;
 	s4 i;
 	
-	s4ptr = (s4 *) m->mcode;
+	s4ptr = (s4 *) (long) m->mcode;
 
 	printf("  --- dump of datasegment\n");
 	for (i = cd->dseglen; i > 0 ; i -= 4) {
 		printf("-%6x: %8x\n", i, (s4) (*s4ptr++));
 	}
-	printf("  --- begin of data segment: %p\n", s4ptr);
+	printf("  --- begin of data segment: %p\n", (void *) s4ptr);
 }
 
 

@@ -120,7 +120,7 @@
 #	ifndef __INTEL_COMPILER
 	 __asm__ __volatile__("st4.rel %0=r0" : "=m" (*addr) : : "memory");
 #	else
-	// there is no st4 but I can use xchg I hope
+         /* there is no st4 but I can use xchg I hope */
 	 _InterlockedExchange(addr, 0);
 #	endif
        }

@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 1469 2004-11-08 21:08:13Z carolyn $
+   $Id: parseRTstats.c 1494 2004-11-12 13:34:26Z twisti $
 
 */
 #include <stdio.h>
@@ -445,7 +445,7 @@ printf("RT Heirarchy:------------\n"); fflush(stdout);
 		}
     }
 	printRTClassHeirarchy(class_java_lang_Object);
-	//printRTClassHeirarchy(m->class);
+	/* printRTClassHeirarchy(m->class); */
 	if (pClassHeirStatsOnly >= 2) {
 		fflush(stdout);
 		printf("--- end  of RT info ---------------\n");

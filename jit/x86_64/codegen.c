@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1466 2004-11-08 11:24:50Z twisti $
+   $Id: codegen.c 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -123,7 +123,7 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 /*    	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f]; */
 
 /*  	if (faultaddr == 0) { */
-	act.sa_sigaction = (void *) catch_NullPointerException; /* reinstall handler */
+	act.sa_sigaction = (functionptr) catch_NullPointerException; /* reinstall handler */
 	act.sa_flags = SA_SIGINFO;
 	sigaction(sig, &act, NULL);
 	
@@ -160,7 +160,7 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
-	act.sa_sigaction = (void *) catch_ArithmeticException; /* reinstall handler */
+	act.sa_sigaction = (functionptr) catch_ArithmeticException; /* reinstall handler */
 	act.sa_flags = SA_SIGINFO;
 	sigaction(sig, &act, NULL);
 
@@ -187,19 +187,19 @@ void init_exceptions(void)
 
 	if (!checknull) {
 #if defined(SIGSEGV)
-		act.sa_sigaction = (void *) catch_NullPointerException;
+		act.sa_sigaction = (functionptr) catch_NullPointerException;
 		act.sa_flags = SA_SIGINFO;
 		sigaction(SIGSEGV, &act, NULL);
 #endif
 
 #if defined(SIGBUS)
-		act.sa_sigaction = (void *) catch_NullPointerException;
+		act.sa_sigaction = (functionptr) catch_NullPointerException;
 		act.sa_flags = SA_SIGINFO;
 		sigaction(SIGBUS, &act, NULL);
 #endif
 	}
 
-	act.sa_sigaction = (void *) catch_ArithmeticException;
+	act.sa_sigaction = (functionptr) catch_ArithmeticException;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGFPE, &act, NULL);
 }

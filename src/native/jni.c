@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger, Martin Platter
 
-   $Id: jni.c 1471 2004-11-09 11:54:53Z motse $
+   $Id: jni.c 1494 2004-11-12 13:34:26Z twisti $
 
 */
 
@@ -3226,7 +3226,7 @@ void jni_init(){
 
 	initrunning = true;
 	log_text("JNI-Init: initialize global_ref_table");
-	// initalize global reference table
+	/* initalize global reference table */
 	ihmclass = FindClass(NULL, "java/util/IdentityHashMap");
 	
 	if (ihmclass == NULL) {
@@ -3578,8 +3578,9 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 
 
 	if (!(methodID->flags & ACC_STATIC) && (!obj))  {
-		*exceptionptr = new_exception_message(string_java_lang_NullPointerException,
-											  "Static mismatch in Java_java_lang_reflect_Method_invokeNative");
+		*exceptionptr =
+			new_exception_message(string_java_lang_NullPointerException,
+								  "Static mismatch in Java_java_lang_reflect_Method_invokeNative");
 		return 0;
 	}
 
