@@ -762,7 +762,7 @@ currentTime (void)
  * Put a thread to sleep.
  */
 void
-sleepThread (s8 time)
+sleepThread(s8 time, s4 nanos)
 {
     thread** tidp;
 

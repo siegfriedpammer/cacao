@@ -139,7 +139,7 @@ void killThread (thread*);
 void setPriorityThread (thread*, int);
 
 s8 currentTime (void);
-void sleepThread (s8);
+void sleepThread(s8 millis, s4 nanos);
 bool aliveThread (thread*);
 long framesThread (thread*);
 
