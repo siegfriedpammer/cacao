@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 735 2003-12-13 15:47:47Z stefan $
+   $Id: headers.c 745 2003-12-13 22:05:02Z twisti $
 
 */
 
@@ -46,36 +46,59 @@
 #include "toolbox/loging.h"
 
 
+/* replace command line options */
+
+bool verbose =  false;
+bool compileall = false;
+bool runverbose = false;
+bool collectverbose = false;
+
+bool loadverbose = false;
+bool linkverbose = false;
+bool initverbose = false;
+
+bool opt_rt = false;            /* true if RTA parse should be used     RT-CO */
+bool opt_xta = false;           /* true if XTA parse should be used    XTA-CO */
+bool opt_vta = false;           /* true if VTA parse should be used    VTA-CO */
+
+bool showmethods = false;
+bool showconstantpool = false;
+bool showutf = false;
+
+bool makeinitializations = true;
+
+bool getloadingtime = false;
+s8 loadingtime = 0;
+
+
 /******* replace some external functions  *********/
  
-functionptr native_findfunction (utf *cname, utf *mname, utf *desc, bool isstatic)
+functionptr native_findfunction(utf *cname, utf *mname, utf *desc, bool isstatic)
 { return NULL; }
 
-java_objectheader *javastring_new (utf *text)         /* schani */
+java_objectheader *javastring_new(utf *text)
 { return NULL; }
 
-void throw_classnotfoundexception() 
-{ 
-	panic("class not found----------"); 
-}
-/*  */
 
-void throw_classnotfoundexception2(utf* classname) 
+void throw_noclassdeffounderror_message(utf* classname)
 { 
-	/* [stefan] code was useless
-	sprintf (logtext, "Loading class: ");
-	utf_sprint (logtext+strlen(logtext), classname);
-	*/
-	panic("******class not found"); 
+	printf("Class not found: ");
+	utf_display(classname);
+	printf("\n");
+	exit(1);
 }
 
-/* this is here to avoid link errors. We are not interested in linkagerrors in cacaoh right now*/
-void throw_linkageerror2(utf* classname) 
+
+/* this is here to avoid link errors. 
+   We are not interested in linkagerrors in cacaoh right now
+*/
+void throw_linkageerror_message(utf* classname) 
 { 
 }
 
-java_objectheader *literalstring_new (utf *u)
-{ return NULL; }  
+
+java_objectheader *literalstring_new(utf *u) { return NULL; }  
+
 
 void literalstring_free(java_objectheader *o) { }
 void stringtable_update() { }
@@ -125,10 +148,6 @@ java_objectheader *native_new_and_init(void *p) { return NULL; }
 /************************ global variables **********************/
 
 java_objectheader *exceptionptr;
-
-bool verbose =  false;
-bool runverbose = false;
-bool collectverbose = false;
 
 static chain *nativemethod_chain;    /* chain with native methods     */
 static chain *nativeclass_chain;		               /* chain with processed classes  */	
@@ -429,20 +448,23 @@ static void headerfile_generate(classinfo *c)
    	fclose(file);
 }
 
+
 /******** print classname, '$' used to seperate inner-class name ***********/
 
-void print_classname (classinfo *clazz)
+void print_classname(classinfo *clazz)
 {
 	utf *u = clazz->name;
     char *endpos  = u->text + u->blength;
     char *utf_ptr = u->text; 
 	u2 c;
 
-    while (utf_ptr<endpos) {
-		if ((c=utf_nextu2(&utf_ptr)) == '_')
-			putc ('$',file);
-		else
-			putc (c,file);
+    while (utf_ptr < endpos) {
+		if ((c = utf_nextu2(&utf_ptr)) == '_') {
+			putc('$', file);
+
+		} else {
+			putc(c, file);
+		}
 	}
 } 
 
@@ -583,7 +605,7 @@ int main(int argc, char **argv)
 	log_init(NULL);
 	log_text("Java - header-generator started"); 
 	
-	sprintf(offsets_filename, "jit/%s/offsets.h", ARCH_DIR); /* phil */
+	sprintf(offsets_filename, "jit/%s/offsets.h", ARCH_DIR);
 	file = fopen(offsets_filename, "w");
 	if (file == NULL) {
 		fprintf(stderr, "Can not open file '%s' for write", offsets_filename);
