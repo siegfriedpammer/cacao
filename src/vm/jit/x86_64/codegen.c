@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2008 2005-03-07 08:43:08Z christian $
+   $Id: codegen.c 2048 2005-03-20 16:24:02Z twisti $
 
 */
 
@@ -282,7 +282,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		x86_64_alu_imm_reg(cd, X86_64_SUB, parentargs_base * 8, REG_SP);
 	}
 
-	/* save return address and used callee saved registers */
+	/* save used callee saved registers */
 
   	p = parentargs_base;
 	for (i = rd->savintregcnt - 1; i >= rd->maxsavintreguse; i--) {
@@ -1228,7 +1228,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
-					if (x86_64_is_imm32(iptr->val.l)) {
+					if (IS_IMM32(iptr->val.l)) {
 						x86_64_imul_imm_membase_reg(cd, iptr->val.l, REG_SP, src->regoff * 8, REG_ITMP1);
 
 					} else {
@@ -1238,7 +1238,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					x86_64_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 8);
 					
 				} else {
-					if (x86_64_is_imm32(iptr->val.l)) {
+					if (IS_IMM32(iptr->val.l)) {
 						x86_64_imul_imm_reg_reg(cd, iptr->val.l, src->regoff, REG_ITMP1);
 
 					} else {
@@ -1250,7 +1250,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			} else {
 				if (src->flags & INMEMORY) {
-					if (x86_64_is_imm32(iptr->val.l)) {
+					if (IS_IMM32(iptr->val.l)) {
 						x86_64_imul_imm_membase_reg(cd, iptr->val.l, REG_SP, src->regoff * 8, iptr->dst->regoff);
 
 					} else {
@@ -1265,7 +1265,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 						x86_64_alul_reg_reg(cd, X86_64_ADD, iptr->dst->regoff, iptr->dst->regoff);
 
 					} else {
-						if (x86_64_is_imm32(iptr->val.l)) {
+						if (IS_IMM32(iptr->val.l)) {
 							x86_64_imul_imm_reg_reg(cd, iptr->val.l, src->regoff, iptr->dst->regoff);    /* 4 cycles */
 
 						} else {
@@ -2242,7 +2242,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_bound_check;
 			}
 
-			if (x86_64_is_imm32(iptr->val.l)) {
+			if (IS_IMM32(iptr->val.l)) {
 				x86_64_mov_imm_memindex(cd, (u4) (iptr->val.l & 0x00000000ffffffff), OFFSET(java_longarray, data[0]), s1, s2, 3);
 
 			} else {
@@ -2308,11 +2308,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				/* read patched code. Here we patch the following 5 nop's     */
 				/* so that the real code keeps untouched.                     */
 				if (showdisassemble) {
-					x86_64_nop(cd);
-					x86_64_nop(cd);
-					x86_64_nop(cd);
-					x86_64_nop(cd);
-					x86_64_nop(cd);
+					x86_64_nop(cd); x86_64_nop(cd); x86_64_nop(cd);
+					x86_64_nop(cd); x86_64_nop(cd);
 				}
   			}
 
@@ -2338,10 +2335,47 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				var_to_reg_flt(s2, src, REG_FTMP1);
 				x86_64_movsd_reg_membase(cd, s2, REG_ITMP2, 0);
 				break;
-			default:
-				throw_cacao_exception_exit(string_java_lang_InternalError,
-										   "Unknown PUTSTATIC operand type %d",
-										   iptr->op1);
+			}
+			break;
+
+		case ICMD_PUTSTATICCONST: /* ...  ==> ...                             */
+		                          /* val = value (in current instruction)     */
+		                          /* op1 = type, val.a = field address (in    */
+		                          /* following NOP)                           */
+
+			/* If the static fields' class is not yet initialized, we do it   */
+			/* now. The call code is generated later.                         */
+  			if (!((fieldinfo *) iptr[1].val.a)->class->initialized) {
+				codegen_addclinitref(cd, cd->mcodeptr, ((fieldinfo *) iptr[1].val.a)->class);
+
+				/* This is just for debugging purposes. Is very difficult to  */
+				/* read patched code. Here we patch the following 5 nop's     */
+				/* so that the real code keeps untouched.                     */
+				if (showdisassemble) {
+					x86_64_nop(cd); x86_64_nop(cd); x86_64_nop(cd);
+					x86_64_nop(cd); x86_64_nop(cd);
+				}
+  			}
+
+			/* This approach is much faster than moving the field address     */
+			/* inline into a register. */
+			a = dseg_addaddress(cd, &(((fieldinfo *) iptr[1].val.a)->value));
+  			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + a, REG_ITMP1);
+			switch (iptr->op1) {
+			case TYPE_INT:
+			case TYPE_FLT:
+				x86_64_movl_imm_membase(cd, iptr->val.i, REG_ITMP1, 0);
+				break;
+			case TYPE_LNG:
+			case TYPE_ADR:
+			case TYPE_DBL:
+				if (IS_IMM32(iptr->val.l)) {
+					x86_64_mov_imm_membase(cd, iptr->val.l, REG_ITMP1, 0);
+				} else {
+					x86_64_movl_imm_membase(cd, iptr->val.l, REG_ITMP1, 0);
+					x86_64_movl_imm_membase(cd, iptr->val.l >> 32, REG_ITMP1, 4);
+				}
+				break;
 			}
 			break;
 
@@ -2357,11 +2391,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				/* read patched code. Here we patch the following 5 nop's     */
 				/* so that the real code keeps untouched.                     */
 				if (showdisassemble) {
-					x86_64_nop(cd);
-					x86_64_nop(cd);
-					x86_64_nop(cd);
-					x86_64_nop(cd);
-					x86_64_nop(cd);
+					x86_64_nop(cd); x86_64_nop(cd); x86_64_nop(cd);
+					x86_64_nop(cd); x86_64_nop(cd);
 				}
   			}
 
@@ -2391,44 +2422,59 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				x86_64_movsd_membase_reg(cd, REG_ITMP2, 0, d);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
-			default:
-				throw_cacao_exception_exit(string_java_lang_InternalError,
-										   "Unknown GETSTATIC operand type %d",
-										   iptr->op1);
 			}
 			break;
 
-		case ICMD_PUTFIELD:   /* ..., value  ==> ...                          */
+		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
 		                      /* op1 = type, val.i = field offset             */
 
 			a = ((fieldinfo *)(iptr->val.a))->offset;
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			gen_nullptr_check(s1);
 			switch (iptr->op1) {
 			case TYPE_INT:
 				var_to_reg_int(s2, src, REG_ITMP2);
-				gen_nullptr_check(s1);
 				x86_64_movl_reg_membase(cd, s2, s1, a);
 				break;
 			case TYPE_LNG:
 			case TYPE_ADR:
 				var_to_reg_int(s2, src, REG_ITMP2);
-				gen_nullptr_check(s1);
 				x86_64_mov_reg_membase(cd, s2, s1, a);
 				break;
 			case TYPE_FLT:
 				var_to_reg_flt(s2, src, REG_FTMP2);
-				gen_nullptr_check(s1);
 				x86_64_movss_reg_membase(cd, s2, s1, a);
 				break;
 			case TYPE_DBL:
 				var_to_reg_flt(s2, src, REG_FTMP2);
-				gen_nullptr_check(s1);
 				x86_64_movsd_reg_membase(cd, s2, s1, a);
 				break;
-			default:
-				throw_cacao_exception_exit(string_java_lang_InternalError,
-										   "Unknown PUTFIELD operand type %d",
-										   iptr->op1);
+			}
+			break;
+
+		case ICMD_PUTFIELDCONST:  /* ..., objectref, value  ==> ...           */
+		                          /* val = value (in current instruction)     */
+		                          /* op1 = type, val.a = field address (in    */
+		                          /* following NOP)                           */
+
+			a = ((fieldinfo *) iptr[1].val.a)->offset;
+			var_to_reg_int(s1, src, REG_ITMP1);
+			gen_nullptr_check(s1);
+			switch (iptr->op1) {
+			case TYPE_INT:
+			case TYPE_FLT:
+				x86_64_movl_imm_membase(cd, iptr->val.i, s1, a);
+				break;
+			case TYPE_LNG:
+			case TYPE_ADR:
+			case TYPE_DBL:
+				if (IS_IMM32(iptr->val.l)) {
+					x86_64_mov_imm_membase(cd, iptr->val.l, s1, a);
+				} else {
+					x86_64_movl_imm_membase(cd, iptr->val.l, s1, a);
+					x86_64_movl_imm_membase(cd, iptr->val.l >> 32, s1, a + 4);
+				}
+				break;
 			}
 			break;
 
@@ -2437,36 +2483,29 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			a = ((fieldinfo *)(iptr->val.a))->offset;
 			var_to_reg_int(s1, src, REG_ITMP1);
+			gen_nullptr_check(s1);
 			switch (iptr->op1) {
 			case TYPE_INT:
 				d = reg_of_var(rd, iptr->dst, REG_ITMP1);
-				gen_nullptr_check(s1);
 				x86_64_movl_membase_reg(cd, s1, a, d);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
 			case TYPE_ADR:
 				d = reg_of_var(rd, iptr->dst, REG_ITMP1);
-				gen_nullptr_check(s1);
 				x86_64_mov_membase_reg(cd, s1, a, d);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_FLT:
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				gen_nullptr_check(s1);
 				x86_64_movss_membase_reg(cd, s1, a, d);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			case TYPE_DBL:				
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				gen_nullptr_check(s1);
 				x86_64_movsd_membase_reg(cd, s1, a, d);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
-			default:
-				throw_cacao_exception_exit(string_java_lang_InternalError,
-										   "Unknown GETFIELD operand type %d",
-										   iptr->op1);
 			}
 			break;
 
@@ -2988,13 +3027,8 @@ nowperformreturn:
 		                        /* op1 = arg count, val.a = method pointer    */
 
 		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
-		                        /* op1 = arg count, val.a = method pointer    */
-
-		case ICMD_INVOKEVIRTUAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
-		                        /* op1 = arg count, val.a = method pointer    */
-
-		case ICMD_INVOKEINTERFACE:/*.., objectref, [arg1, [arg2 ...]] ==> ... */
-		                        /* op1 = arg count, val.a = method pointer    */
+		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
+		case ICMD_INVOKEINTERFACE:
 
 			s3 = iptr->op1;
 
@@ -3072,63 +3106,54 @@ gen_method: {
 
 			lm = iptr->val.a;
 			switch (iptr->opc) {
-				case ICMD_BUILTIN3:
-				case ICMD_BUILTIN2:
-				case ICMD_BUILTIN1:
+			case ICMD_BUILTIN3:
+			case ICMD_BUILTIN2:
+			case ICMD_BUILTIN1:
+				a = (s8) lm;
+				d = iptr->op1;
 
-					a = (s8) lm;
-					d = iptr->op1;
+				x86_64_mov_imm_reg(cd, a, REG_ITMP1);
+				x86_64_call_reg(cd, REG_ITMP1);
+				break;
 
-					x86_64_mov_imm_reg(cd, a, REG_ITMP1);
-					x86_64_call_reg(cd, REG_ITMP1);
-					break;
+			case ICMD_INVOKESTATIC:
+				a = (s8) lm->stubroutine;
+				d = lm->returntype;
 
-				case ICMD_INVOKESTATIC:
+				x86_64_mov_imm_reg(cd, a, REG_ITMP2);
+				x86_64_call_reg(cd, REG_ITMP2);
+				break;
 
-					a = (s8) lm->stubroutine;
-					d = lm->returntype;
+			case ICMD_INVOKESPECIAL:
+				a = (s8) lm->stubroutine;
+				d = lm->returntype;
 
-					x86_64_mov_imm_reg(cd, a, REG_ITMP2);
-					x86_64_call_reg(cd, REG_ITMP2);
-					break;
+				gen_nullptr_check(rd->argintregs[0]);    /* first argument contains pointer */
+				x86_64_mov_membase_reg(cd, rd->argintregs[0], 0, REG_ITMP2); /* access memory for hardware nullptr */
+				x86_64_mov_imm_reg(cd, a, REG_ITMP2);
+				x86_64_call_reg(cd, REG_ITMP2);
+				break;
 
-				case ICMD_INVOKESPECIAL:
+			case ICMD_INVOKEVIRTUAL:
+				d = lm->returntype;
 
-					a = (s8) lm->stubroutine;
-					d = lm->returntype;
+				gen_nullptr_check(rd->argintregs[0]);
+				x86_64_mov_membase_reg(cd, rd->argintregs[0], OFFSET(java_objectheader, vftbl), REG_ITMP2);
+				x86_64_mov_membase32_reg(cd, REG_ITMP2, OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * lm->vftblindex, REG_ITMP1);
+				x86_64_call_reg(cd, REG_ITMP1);
+				break;
 
-					gen_nullptr_check(rd->argintregs[0]);    /* first argument contains pointer */
-					x86_64_mov_membase_reg(cd, rd->argintregs[0], 0, REG_ITMP2); /* access memory for hardware nullptr */
-					x86_64_mov_imm_reg(cd, a, REG_ITMP2);
-					x86_64_call_reg(cd, REG_ITMP2);
-					break;
+			case ICMD_INVOKEINTERFACE:
+				ci = lm->class;
+				d = lm->returntype;
 
-				case ICMD_INVOKEVIRTUAL:
-
-					d = lm->returntype;
-
-					gen_nullptr_check(rd->argintregs[0]);
-					x86_64_mov_membase_reg(cd, rd->argintregs[0], OFFSET(java_objectheader, vftbl), REG_ITMP2);
-					x86_64_mov_membase32_reg(cd, REG_ITMP2, OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * lm->vftblindex, REG_ITMP1);
-					x86_64_call_reg(cd, REG_ITMP1);
-					break;
-
-				case ICMD_INVOKEINTERFACE:
-
-					ci = lm->class;
-					d = lm->returntype;
-
-					gen_nullptr_check(rd->argintregs[0]);
-					x86_64_mov_membase_reg(cd, rd->argintregs[0], OFFSET(java_objectheader, vftbl), REG_ITMP2);
-					x86_64_mov_membase_reg(cd, REG_ITMP2, OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * ci->index, REG_ITMP2);
-					x86_64_mov_membase32_reg(cd, REG_ITMP2, sizeof(methodptr) * (lm - ci->methods), REG_ITMP1);
-					x86_64_call_reg(cd, REG_ITMP1);
-					break;
-
-				default:
-					d = 0;
-					error("Unkown ICMD-Command: %d", iptr->opc);
-				}
+				gen_nullptr_check(rd->argintregs[0]);
+				x86_64_mov_membase_reg(cd, rd->argintregs[0], OFFSET(java_objectheader, vftbl), REG_ITMP2);
+				x86_64_mov_membase_reg(cd, REG_ITMP2, OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * ci->index, REG_ITMP2);
+				x86_64_mov_membase32_reg(cd, REG_ITMP2, sizeof(methodptr) * (lm - ci->methods), REG_ITMP1);
+				x86_64_call_reg(cd, REG_ITMP1);
+				break;
+			}
 
 			/* d contains return type */
 
@@ -3786,17 +3811,11 @@ gen_method: {
 			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
 			x86_64_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
 
-			/* Save current stack pointer into a temporary register.          */
-			x86_64_mov_reg_reg(cd, REG_SP, REG_ITMP1);
-
 			/* Push machine code bytes to patch onto the stack.               */
 			x86_64_push_imm(cd, (u1) xmcode);
 			x86_64_push_imm(cd, (u4) mcode);
 
 			x86_64_push_imm(cd, (u8) cref->class);
-
-			/* Push previously saved stack pointer onto stack.                */
-			x86_64_push_reg(cd, REG_ITMP1);
 
 			x86_64_mov_imm_reg(cd, (u8) asm_check_clinit, REG_ITMP1);
 			x86_64_jmp_reg(cd, REG_ITMP1);
@@ -4222,17 +4241,11 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
 			x86_64_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
 
-			/* Save current stack pointer into a temporary register.          */
-			x86_64_mov_reg_reg(cd, REG_SP, REG_ITMP1);
-
 			/* Push machine code bytes to patch onto the stack.               */
 			x86_64_push_imm(cd, (u1) xmcode);
 			x86_64_push_imm(cd, (u4) mcode);
 
 			x86_64_push_imm(cd, (u8) cref->class);
-
-			/* Push previously saved stack pointer onto stack.                */
-			x86_64_push_reg(cd, REG_ITMP1);
 
 			x86_64_mov_imm_reg(cd, (u8) asm_check_clinit, REG_ITMP1);
 			x86_64_jmp_reg(cd, REG_ITMP1);
