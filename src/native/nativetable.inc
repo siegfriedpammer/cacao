@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: nativetable.inc 1998 2005-03-05 16:59:22Z twisti $
+   $Id: nativetable.inc 2011 2005-03-07 10:15:44Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 #include "native/include/java_io_PrintStream.h"
 #include "native/include/gnu_classpath_VMStackWalker.h"
 #include "native/include/gnu_classpath_VMSystemProperties.h"
+#include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_VMClassLoader.h"
 #include "native/include/java_lang_VMObject.h"
@@ -55,7 +56,32 @@
 
 #if defined(STATIC_CLASSPATH)
 
+/* Include header files for native functions implemented in GNU classpath */
+
+#include "native/include/java_lang_SecurityManager.h"
+#include "native/include/java_net_DatagramPacket.h"
+#include "native/include/java_net_InetAddress.h"
+#include "native/include/java_net_SocketImpl.h"
+
+#include "native/include/gnu_java_net_PlainDatagramSocketImpl.h"
+#include "native/include/gnu_java_net_PlainSocketImpl.h"
+#include "native/include/gnu_java_nio_channels_FileChannelImpl.h"
+#include "native/include/java_io_ObjectInputStream.h"
+#include "native/include/java_io_VMFile.h"
+#include "native/include/java_io_VMObjectStreamClass.h"
+#include "native/include/java_lang_Double.h"
+#include "native/include/java_lang_Math.h"
+#include "native/include/java_lang_VMDouble.h"
+#include "native/include/java_lang_VMFloat.h"
+#include "native/include/java_lang_reflect_Array.h"
+#include "native/include/java_net_NetworkInterface.h"
+#include "native/include/java_nio_DirectByteBufferImpl.h"
+#include "native/include/java_util_VMTimeZone.h"
+
+
 static nativeref nativetable[] = {
+	/* These are implemented in CACAO *****************************************/
+
 	{ "gnu/classpath/VMStackWalker",
 	  "getClassContext",
 	  "()[Ljava/lang/Class;",
@@ -589,6 +615,598 @@ static nativeref nativetable[] = {
 	  "(Ljava/lang/Object;[Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;",
 	  false,
 	  (functionptr) Java_java_lang_reflect_Method_invokeNative
+	},
+
+
+	/* These are implemented in GNU classpath *********************************/
+
+	{ "java/lang/Object",
+	  "getClass",
+	  "()Ljava/lang/Class;",
+	  false,
+	  (functionptr) Java_java_lang_Object_getClass
+	},
+	{ "java/net/InetAddress",
+	  "getLocalHostname",
+	  "()Ljava/lang/String;",
+	  true,
+	  (functionptr) Java_java_net_InetAddress_getLocalHostname
+	},
+	{ "java/net/InetAddress",
+	  "lookupInaddrAny",
+	  "()[B",
+	  true,
+	  (functionptr) Java_java_net_InetAddress_lookupInaddrAny
+	},
+	{ "java/net/InetAddress",
+	  "getHostByAddr",
+	  "([B)Ljava/lang/String;",
+	  true,
+	  (functionptr) Java_java_net_InetAddress_getHostByAddr
+	},
+	{ "java/net/InetAddress",
+	  "getHostByName",
+	  "(Ljava/lang/String;)[[B",
+	  true,
+	  (functionptr) Java_java_net_InetAddress_getHostByName
+	},
+	{ "gnu/java/net/PlainDatagramSocketImpl",
+	  "bind",
+	  "(ILjava/net/InetAddress;)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainDatagramSocketImpl_bind
+	},
+	{ "gnu/java/net/PlainDatagramSocketImpl",
+	  "create",
+	  "()V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainDatagramSocketImpl_create
+	},
+	{ "gnu/java/net/PlainDatagramSocketImpl",
+	  "sendto",
+	  "(Ljava/net/InetAddress;I[BII)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainDatagramSocketImpl_sendto
+	},
+	{ "gnu/java/net/PlainDatagramSocketImpl",
+	  "receive0",
+	  "(Ljava/net/DatagramPacket;)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainDatagramSocketImpl_receive0
+	},
+	{ "gnu/java/net/PlainDatagramSocketImpl",
+	  "setOption",
+	  "(ILjava/lang/Object;)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainDatagramSocketImpl_setOption
+	},
+	{ "gnu/java/net/PlainDatagramSocketImpl",
+	  "getOption",
+	  "(I)Ljava/lang/Object;",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainDatagramSocketImpl_getOption
+	},
+	{ "gnu/java/net/PlainDatagramSocketImpl",
+	  "close",
+	  "()V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainDatagramSocketImpl_close
+	},
+	{ "gnu/java/net/PlainDatagramSocketImpl",
+	  "join",
+	  "(Ljava/net/InetAddress;)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainDatagramSocketImpl_join
+	},
+	{ "gnu/java/net/PlainDatagramSocketImpl",
+	  "leave",
+	  "(Ljava/net/InetAddress;)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainDatagramSocketImpl_leave
+	},
+	{ "gnu/java/net/PlainSocketImpl",
+	  "setOption",
+	  "(ILjava/lang/Object;)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainSocketImpl_setOption
+	},
+	{ "gnu/java/net/PlainSocketImpl",
+	  "getOption",
+	  "(I)Ljava/lang/Object;",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainSocketImpl_getOption
+	},
+	{ "gnu/java/net/PlainSocketImpl",
+	  "create",
+	  "(Z)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainSocketImpl_create
+	},
+	{ "gnu/java/net/PlainSocketImpl",
+	  "connect",
+	  "(Ljava/net/InetAddress;I)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainSocketImpl_connect
+	},
+	{ "gnu/java/net/PlainSocketImpl",
+	  "bind",
+	  "(Ljava/net/InetAddress;I)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainSocketImpl_bind
+	},
+	{ "gnu/java/net/PlainSocketImpl",
+	  "listen",
+	  "(I)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainSocketImpl_listen
+	},
+	{ "gnu/java/net/PlainSocketImpl",
+	  "accept",
+	  "(Ljava/net/SocketImpl;)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainSocketImpl_accept
+	},
+	{ "gnu/java/net/PlainSocketImpl",
+	  "available",
+	  "()I",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainSocketImpl_available
+	},
+	{ "gnu/java/net/PlainSocketImpl",
+	  "close",
+	  "()V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainSocketImpl_close
+	},
+	{ "gnu/java/net/PlainSocketImpl",
+	  "read",
+	  "([BII)I",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainSocketImpl_read
+	},
+	{ "gnu/java/net/PlainSocketImpl",
+	  "write",
+	  "([BII)V",
+	  false,
+	  (functionptr) Java_gnu_java_net_PlainSocketImpl_write
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "init",
+	  "()V",
+	  true,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_init
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "open",
+	  "(Ljava/lang/String;I)I",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_open
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "available",
+	  "()I",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_available
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "implPosition",
+	  "()J",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_implPosition
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "seek",
+	  "(J)V",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_seek
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "implTruncate",
+	  "(J)V",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_implTruncate
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "unlock",
+	  "(JJ)V",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_unlock
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "size",
+	  "()J",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_size
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "implCloseChannel",
+	  "()V",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_implCloseChannel
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "read",
+	  "()I",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_read__
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "read",
+	  "([BII)I",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_read___3BII
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "write",
+	  "([BII)V",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_write___3BII
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "write",
+	  "(I)V",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_write__I
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "mapImpl",
+	  "(CJI)Ljava/nio/MappedByteBuffer;",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_mapImpl
+	},
+	{ "gnu/java/nio/channels/FileChannelImpl",
+	  "lock",
+	  "(JJZZ)Z",
+	  false,
+	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_lock
+	},
+	{ "java/io/ObjectInputStream",
+	  "currentClassLoader",
+	  "(Ljava/lang/SecurityManager;)Ljava/lang/ClassLoader;",
+	  true,
+	  (functionptr) Java_java_io_ObjectInputStream_currentClassLoader
+	},
+	{ "java/io/ObjectInputStream",
+	  "allocateObject",
+	  "(Ljava/lang/Class;)Ljava/lang/Object;",
+	  false,
+	  (functionptr) Java_java_io_ObjectInputStream_allocateObject
+	},
+	{ "java/io/VMFile",
+	  "lastModified",
+	  "(Ljava/lang/String;)J",
+	  true,
+	  (functionptr) Java_java_io_VMFile_lastModified
+	},
+	{ "java/io/VMFile",
+	  "setReadOnly",
+	  "(Ljava/lang/String;)Z",
+	  true,
+	  (functionptr) Java_java_io_VMFile_setReadOnly
+	},
+	{ "java/io/VMFile",
+	  "create",
+	  "(Ljava/lang/String;)Z",
+	  true,
+	  (functionptr) Java_java_io_VMFile_create
+	},
+	{ "java/io/VMFile",
+	  "list",
+	  "(Ljava/lang/String;)[Ljava/lang/String;",
+	  true,
+	  (functionptr) Java_java_io_VMFile_list
+	},
+	{ "java/io/VMFile",
+	  "renameTo",
+	  "(Ljava/lang/String;Ljava/lang/String;)Z",
+	  true,
+	  (functionptr) Java_java_io_VMFile_renameTo
+	},
+	{ "java/io/VMFile",
+	  "length",
+	  "(Ljava/lang/String;)J",
+	  true,
+	  (functionptr) Java_java_io_VMFile_length
+	},
+	{ "java/io/VMFile",
+	  "exists",
+	  "(Ljava/lang/String;)Z",
+	  true,
+	  (functionptr) Java_java_io_VMFile_exists
+	},
+	{ "java/io/VMFile",
+	  "delete",
+	  "(Ljava/lang/String;)Z",
+	  true,
+	  (functionptr) Java_java_io_VMFile_delete
+	},
+	{ "java/io/VMFile",
+	  "setLastModified",
+	  "(Ljava/lang/String;J)Z",
+	  true,
+	  (functionptr) Java_java_io_VMFile_setLastModified
+	},
+	{ "java/io/VMFile",
+	  "mkdir",
+	  "(Ljava/lang/String;)Z",
+	  true,
+	  (functionptr) Java_java_io_VMFile_mkdir
+	},
+	{ "java/io/VMFile",
+	  "isFile",
+	  "(Ljava/lang/String;)Z",
+	  true,
+	  (functionptr) Java_java_io_VMFile_isFile
+	},
+	{ "java/io/VMFile",
+	  "canWrite",
+	  "(Ljava/lang/String;)Z",
+	  true,
+	  (functionptr) Java_java_io_VMFile_canWrite
+	},
+	{ "java/io/VMFile",
+	  "canRead",
+	  "(Ljava/lang/String;)Z",
+	  true,
+	  (functionptr) Java_java_io_VMFile_canRead
+	},
+	{ "java/io/VMFile",
+	  "isDirectory",
+	  "(Ljava/lang/String;)Z",
+	  true,
+	  (functionptr) Java_java_io_VMFile_isDirectory
+	},
+	{ "java/io/VMObjectStreamClass",
+	  "hasClassInitializer",
+	  "(Ljava/lang/Class;)Z",
+	  true,
+	  (functionptr) Java_java_io_VMObjectStreamClass_hasClassInitializer
+	},
+	{ "java/io/VMObjectStreamClass",
+	  "setDoubleNative",
+	  "(Ljava/lang/reflect/Field;Ljava/lang/Object;D)V",
+	  true,
+	  (functionptr) Java_java_io_VMObjectStreamClass_setDoubleNative
+	},
+	{ "java/io/VMObjectStreamClass",
+	  "setFloatNative",
+	  "(Ljava/lang/reflect/Field;Ljava/lang/Object;F)V",
+	  true,
+	  (functionptr) Java_java_io_VMObjectStreamClass_setFloatNative
+	},
+	{ "java/io/VMObjectStreamClass",
+	  "setLongNative",
+	  "(Ljava/lang/reflect/Field;Ljava/lang/Object;J)V",
+	  true,
+	  (functionptr) Java_java_io_VMObjectStreamClass_setLongNative
+	},
+	{ "java/io/VMObjectStreamClass",
+	  "setIntNative",
+	  "(Ljava/lang/reflect/Field;Ljava/lang/Object;I)V",
+	  true,
+	  (functionptr) Java_java_io_VMObjectStreamClass_setIntNative
+	},
+	{ "java/io/VMObjectStreamClass",
+	  "setShortNative",
+	  "(Ljava/lang/reflect/Field;Ljava/lang/Object;S)V",
+	  true,
+	  (functionptr) Java_java_io_VMObjectStreamClass_setShortNative
+	},
+	{ "java/io/VMObjectStreamClass",
+	  "setCharNative",
+	  "(Ljava/lang/reflect/Field;Ljava/lang/Object;C)V",
+	  true,
+	  (functionptr) Java_java_io_VMObjectStreamClass_setCharNative
+	},
+	{ "java/io/VMObjectStreamClass",
+	  "setByteNative",
+	  "(Ljava/lang/reflect/Field;Ljava/lang/Object;B)V",
+	  true,
+	  (functionptr) Java_java_io_VMObjectStreamClass_setByteNative
+	},
+	{ "java/io/VMObjectStreamClass",
+	  "setBooleanNative",
+	  "(Ljava/lang/reflect/Field;Ljava/lang/Object;Z)V",
+	  true,
+	  (functionptr) Java_java_io_VMObjectStreamClass_setBooleanNative
+	},
+	{ "java/io/VMObjectStreamClass",
+	  "setObjectNative",
+	  "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;)V",
+	  true,
+	  (functionptr) Java_java_io_VMObjectStreamClass_setObjectNative
+	},
+	{ "java/lang/Double",
+	  "parseDouble",
+	  "(Ljava/lang/String;)D",
+	  true,
+	  (functionptr) Java_java_lang_Double_parseDouble
+	},
+	{ "java/lang/Double",
+	  "toString",
+	  "(DZ)Ljava/lang/String;",
+	  true,
+	  (functionptr) Java_java_lang_Double_toString
+	},
+	{ "java/lang/Double",
+	  "initIDs",
+	  "()V",
+	  true,
+	  (functionptr) Java_java_lang_Double_initIDs
+	},
+	{ "java/lang/Math",
+	  "sin",
+	  "(D)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_sin
+	},
+	{ "java/lang/Math",
+	  "cos",
+	  "(D)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_cos
+	},
+	{ "java/lang/Math",
+	  "tan",
+	  "(D)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_tan
+	},
+	{ "java/lang/Math",
+	  "asin",
+	  "(D)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_asin
+	},
+	{ "java/lang/Math",
+	  "acos",
+	  "(D)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_acos
+	},
+	{ "java/lang/Math",
+	  "atan",
+	  "(D)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_atan
+	},
+	{ "java/lang/Math",
+	  "atan2",
+	  "(DD)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_atan2
+	},
+	{ "java/lang/Math",
+	  "exp",
+	  "(D)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_exp
+	},
+	{ "java/lang/Math",
+	  "log",
+	  "(D)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_log
+	},
+	{ "java/lang/Math",
+	  "sqrt",
+	  "(D)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_sqrt
+	},
+	{ "java/lang/Math",
+	  "pow",
+	  "(DD)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_pow
+	},
+	{ "java/lang/Math",
+	  "IEEEremainder",
+	  "(DD)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_IEEEremainder
+	},
+	{ "java/lang/Math",
+	  "ceil",
+	  "(D)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_ceil
+	},
+	{ "java/lang/Math",
+	  "floor",
+	  "(D)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_floor
+	},
+	{ "java/lang/Math",
+	  "rint",
+	  "(D)D",
+	  true,
+	  (functionptr) Java_java_lang_Math_rint
+	},
+	{ "java/lang/VMDouble",
+	  "doubleToLongBits",
+	  "(D)J",
+	  true,
+	  (functionptr) Java_java_lang_VMDouble_doubleToLongBits
+	},
+	{ "java/lang/VMDouble",
+	  "doubleToRawLongBits",
+	  "(D)J",
+	  true,
+	  (functionptr) Java_java_lang_VMDouble_doubleToRawLongBits
+	},
+	{ "java/lang/VMDouble",
+	  "longBitsToDouble",
+	  "(J)D",
+	  true,
+	  (functionptr) Java_java_lang_VMDouble_longBitsToDouble
+	},
+	{ "java/lang/VMFloat",
+	  "floatToIntBits",
+	  "(F)I",
+	  true,
+	  (functionptr) Java_java_lang_VMFloat_floatToIntBits
+	},
+	{ "java/lang/VMFloat",
+	  "floatToRawIntBits",
+	  "(F)I",
+	  true,
+	  (functionptr) Java_java_lang_VMFloat_floatToRawIntBits
+	},
+	{ "java/lang/VMFloat",
+	  "intBitsToFloat",
+	  "(I)F",
+	  true,
+	  (functionptr) Java_java_lang_VMFloat_intBitsToFloat
+	},
+	{ "java/lang/VMSystem",
+	  "setIn",
+	  "(Ljava/io/InputStream;)V",
+	  true,
+	  (functionptr) Java_java_lang_VMSystem_setIn
+	},
+	{ "java/lang/VMSystem",
+	  "setOut",
+	  "(Ljava/io/PrintStream;)V",
+	  true,
+	  (functionptr) Java_java_lang_VMSystem_setOut
+	},
+	{ "java/lang/VMSystem",
+	  "setErr",
+	  "(Ljava/io/PrintStream;)V",
+	  true,
+	  (functionptr) Java_java_lang_VMSystem_setErr
+	},
+	{ "java/lang/VMSystem",
+	  "currentTimeMillis",
+	  "()J",
+	  true,
+	  (functionptr) Java_java_lang_VMSystem_currentTimeMillis
+	},
+	{ "java/lang/VMSystem",
+	  "getenv",
+	  "(Ljava/lang/String;)Ljava/lang/String;",
+	  true,
+	  (functionptr) Java_java_lang_VMSystem_getenv
+	},
+	{ "java/lang/reflect/Array",
+	  "createObjectArray",
+	  "(Ljava/lang/Class;I)Ljava/lang/Object;",
+	  true,
+	  (functionptr) Java_java_lang_reflect_Array_createObjectArray
+	},
+	{ "java/net/NetworkInterface",
+	  "getRealNetworkInterfaces",
+	  "()Ljava/util/Vector;",
+	  true,
+	  (functionptr) Java_java_net_NetworkInterface_getRealNetworkInterfaces
+	},
+	{ "java/util/VMTimeZone",
+	  "getSystemTimeZoneId",
+	  "()Ljava/lang/String;",
+	  true,
+	  (functionptr) Java_java_util_VMTimeZone_getSystemTimeZoneId
 	},
 };
 

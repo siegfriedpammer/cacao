@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1995 2005-03-05 16:57:13Z twisti $
+## $Id: Makefile.am 2011 2005-03-07 10:15:44Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -76,14 +76,36 @@ ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	java_lang_VMSystem.h \
 	java_lang_reflect_Proxy.h
 
+IMPLEMENTED_IN_CLASSPATH_HEADER_FILES = \
+	java_lang_SecurityManager.h \
+	java_net_DatagramPacket.h \
+	java_net_InetAddress.h \
+	java_net_SocketImpl.h \
+	\
+	gnu_java_net_PlainDatagramSocketImpl.h \
+	gnu_java_net_PlainSocketImpl.h \
+	gnu_java_nio_channels_FileChannelImpl.h \
+	java_io_ObjectInputStream.h \
+	java_io_VMFile.h \
+	java_io_VMObjectStreamClass.h \
+	java_lang_Math.h \
+	java_lang_VMDouble.h \
+	java_lang_VMFloat.h \
+	java_lang_reflect_Array.h \
+	java_net_NetworkInterface.h \
+	java_nio_DirectByteBufferImpl.h \
+	java_util_VMTimeZone.h
+
 CLEANFILES = \
 	$(GEN_HEADER_FILES) \
-	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES)
+	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES) \
+	$(IMPLEMENTED_IN_CLASSPATH_HEADER_FILES)
 
 noinst_HEADERS = \
 	$(NO_GEN_HEADER_FILES) \
 	$(GEN_HEADER_FILES) \
-	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES)
+	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES) \
+	$(IMPLEMENTED_IN_CLASSPATH_HEADER_FILES)
 
 noinst_DATA =
 
