@@ -29,15 +29,16 @@
 #define SUPPORT_LONG_ADD    1
 #define SUPPORT_LONG_CMP    1
 #define SUPPORT_LONG_LOG    1
-#define SUPPORT_LONG_SHIFT  1
+#define SUPPORT_LONG_SHIFT  0
 #define SUPPORT_LONG_MULDIV 0
 #define SUPPORT_LONG_ICVT   1
 #define SUPPORT_LONG_FCVT   0
 
 //#define CONDITIONAL_LOADCONST
+#define NOLONG_CONDITIONAL  1
+#define USETWOREGS			1
 
 #define U8_AVAILABLE        1
-
 
 typedef signed char             s1;
 typedef unsigned char           u1;

@@ -23,7 +23,7 @@
 #define REG_RESULT      3    /* to deliver method results                     */ 
 
 //#define REG_RA          26   /* return address                                */
-#define REG_PV          31   /* procedure vector, must be provided by caller  */
+#define REG_PV          13   /* procedure vector, must be provided by caller  */
 #define REG_METHODPTR   12   /* pointer to the place from where the procedure */
                              /* vector has been fetched                       */
 #define REG_ITMP1       11   /* temporary register                            */
@@ -59,7 +59,7 @@
 int nregdescint[] = {
 	REG_RES, REG_RES, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
 	REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, 
-	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 	REG_END };
 
@@ -70,7 +70,7 @@ int nregdescint[] = {
 	
 int nregdescfloat[] = {
 	REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
-	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, 
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES, REG_RES, REG_SAV, 
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 	REG_END };
@@ -91,39 +91,52 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 /* macros to create code ******************************************************/
 
 #define M_OP3(x,y,oe,rc,d,a,b) \
-	*mcodeptr++ = ((x<<26) | (d<<21) | (a<<16) | (b<<11) | (oe<<10) | (y<<1) | rc)
+	*mcodeptr++ = (((x)<<26) | ((d)<<21) | ((a)<<16) | ((b)<<11) | ((oe)<<10) | ((y)<<1) | (rc))
 
 #define M_OP4(x,y,rc,d,a,b,c) \
-	*mcodeptr++ = ((x<<26) | (d<<21) | (a<<16) | (b<<11) | (c<<6) | (y<<1) | rc)
+	*mcodeptr++ = (((x)<<26) | ((d)<<21) | ((a)<<16) | ((b)<<11) | ((c)<<6) | ((y)<<1) | (rc))
 
 #define M_OP2_IMM(x,d,a,i) \
-	*mcodeptr++ = ((x<<26) | (d<<21) | (a<<16) | (i&0xffff))
+	*mcodeptr++ = (((x)<<26) | ((d)<<21) | ((a)<<16) | ((i)&0xffff))
 
 #define M_BRMASK (((1<<16)-1)&~3)
 
 #define M_BRA(x,i,a,l) \
-	*mcodeptr++ = ((x<<26) | (i&M_BRMASK) | (a<<1) | l);
+	*mcodeptr++ = (((x)<<26) | ((i)&M_BRMASK) | ((a)<<1) | (l));
 
 #define M_BRAC(x,bo,bi,i,a,l) \
-	*mcodeptr++ = ((x<<26) | (bo<<21) | (bi<<16) | (i&M_BRMASK) | (a<<1) | l);
+	*mcodeptr++ = (((x)<<26) | ((bo)<<21) | ((bi)<<16) | ((i)&M_BRMASK) | ((a)<<1) | (l));
 
 #define M_IADD(a,b,c) M_OP3(31, 266, 0, 0, c, a, b)
 #define M_IADD_IMM(a,b,c) M_OP2_IMM(14, c, a, b)
 #define M_ADDC(a,b,c) M_OP3(31, 10, 0, 0, c, a, b)
+#define M_ADDIC(a,b,c) M_OP2_IMM(12, c, a, b)
 #define M_ADDE(a,b,c) M_OP3(31, 138, 0, 0, c, a, b)
+#define M_ADDZE(a,b) M_OP3(31, 202, 0, 0, b, a, 0)
+#define M_ADDME(a,b) M_OP3(31, 234, 0, 0, b, a, 0)
 #define M_ISUB(a,b,c) M_OP3(31, 40, 0, 0, c, b, a)
 #define M_SUBC(a,b,c) M_OP3(31, 8, 0, 0, c, b, a)
+#define M_SUBIC(a,b,c) M_OP2_IMM(8, c, b, a)
 #define M_SUBE(a,b,c) M_OP3(31, 136, 0, 0, c, b, a)
+#define M_SUBZE(a,b) M_OP3(31, 200, 0, 0, b, a, 0)
+#define M_SUBME(a,b) M_OP3(31, 232, 0, 0, b, a, 0)
 #define M_AND(a,b,c) M_OP3(31, 28, 0, 0, a, c, b)
 #define M_AND_IMM(a,b,c) M_OP2_IMM(28, a, c, b)
+#define M_ANDIS(a,b,c) M_OP2_IMM(29, a, c, b)
 #define M_OR(a,b,c) M_OP3(31, 444, 0, 0, a, c, b)
 #define M_OR_IMM(a,b,c) M_OP2_IMM(24, a, c, b)
+#define M_ORIS(a,b,c) M_OP2_IMM(25, a, c, b)
 #define M_XOR(a,b,c) M_OP3(31, 316, 0, 0, a, c, b)
 #define M_XOR_IMM(a,b,c) M_OP2_IMM(26, a, c, b)
+#define M_XORIS(a,b,c) M_OP2_IMM(27, a, c, b)
 #define M_SLL(a,b,c) M_OP3(31, 24, 0, 0, a, c, b)
 #define M_SRL(a,b,c) M_OP3(31, 536, 0, 0, a, c, b)
 #define M_SRA(a,b,c) M_OP3(31, 792, 0, 0, a, c, b)
 #define M_SRA_IMM(a,b,c) M_OP3(31, 824, 0, 0, a, c, b)
+#define M_IMUL(a,b,c) M_OP3(31, 235, 0, 0, c, a, b)
+#define M_IMUL_IMM(a,b,c) M_OP2_IMM(7, c, a, b)
+#define M_NEG(a,b) M_OP3(31, 104, 0, 0, b, a, 0)
+#define M_NOT(a,b) M_OP3(31, 124, 0, 0, a, b, a)
 
 #define M_SUBFIC(a,b,c) M_OP2_IMM(8, c, a, b)
 #define M_SUBFZE(a,b) M_OP3(31, 200, 0, 0, b, a, 0)
@@ -143,6 +156,8 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_STBX(a,b,c) M_OP3(31, 215, 0, 0, a, b, c)
 #define M_STFSX(a,b,c) M_OP3(31, 663, 0, 0, a, b, c)
 #define M_STFDX(a,b,c) M_OP3(31, 727, 0, 0, a, b, c)
+#define M_STWU(a,b,c) M_OP2_IMM(37, a, b, c)
+#define M_LDAH(a,b,c) M_ADDIS(c, a, b)
 
 #define M_NOP M_OR_IMM(0, 0, 0)
 #define M_MOV(a,b) M_OR(a, a, b)
@@ -182,8 +197,10 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_CZEXT(a,b) M_RLWINM(a,0,24,31,b)
 
 #define M_BR(a) M_BRA(18, a, 0, 0);
+#define M_BL(a) M_BRA(18, a, 0, 1);
 #define M_RET M_OP3(19, 16, 0, 0, 20, 0, 0);
 #define M_JSR M_OP3(19, 528, 0, 1, 20, 0, 0);
+#define M_RTS M_OP3(19, 528, 0, 0, 20, 0, 0);
 
 #define M_CMP(a,b) M_OP3(31, 0, 0, 0, 0, a, b);
 #define M_CMPU(a,b) M_OP3(31, 32, 0, 0, 0, a, b);
@@ -209,7 +226,8 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_MTXER(a) M_OP3(31, 467, 0, 0, a, 1, 0)
 #define M_MTCTR(a) M_OP3(31, 467, 0, 0, a, 9, 0)
 
-#define M_LDA(a,b,c) M_IADD_IMM(a, b, c)
+#define M_LDA(a,b,c) M_IADD_IMM(b, c, a)
+#define M_CLR(a) M_IADD_IMM(0, 0, a)
 
 /* function gen_resolvebranch **************************************************
 
@@ -219,6 +237,6 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 
 *******************************************************************************/
 
-#define gen_resolvebranch(ip,so,to) *((s4*)(ip)-1)|=((s4)(to)-(so))&M_BRMASK
+#define gen_resolvebranch(ip,so,to) *((s4*)(ip)-1)|=((s4)((to)-(so)))&M_BRMASK
 
 #define SOFTNULLPTRCHECK       /* soft null pointer check supported as option */
