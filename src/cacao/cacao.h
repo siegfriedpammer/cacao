@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: cacao.h 581 2003-11-09 19:08:49Z twisti $
+   $Id: cacao.h 749 2003-12-13 22:14:42Z twisti $
 
 */
 
@@ -38,10 +38,46 @@
 #include "global.h"
 
 /* global variables */
+
 extern bool compileall;
 extern bool verbose;
 extern bool runverbose;
 extern bool collectverbose;
+
+extern bool loadverbose;         /* Print debug messages during loading */
+extern bool linkverbose;
+extern bool initverbose;         /* Log class initialization */ 
+
+extern bool opt_rt;
+extern bool opt_xta;
+extern bool opt_vta;
+
+extern bool showmethods;
+extern bool showconstantpool;
+extern bool showutf;
+
+extern bool compileverbose;
+extern bool showstack;
+extern bool showdisassemble;
+extern bool showddatasegment;
+extern bool showintermediate;
+
+extern bool useinlining;
+extern bool inlinevirtuals;
+extern bool inlineexceptions;
+extern bool inlineparamopt;
+extern bool inlineoutsiders;
+
+extern bool checkbounds;
+extern bool checknull;
+extern bool opt_noieee;
+extern bool checksync;
+extern bool opt_loops;
+
+extern bool makeinitializations;
+
+extern bool getloadingtime;
+extern s8 loadingtime;
 
 #endif /* _MAIN_H */
 
