@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1340 2004-07-21 16:05:51Z twisti $
+   $Id: jit.c 1360 2004-07-28 10:49:04Z twisti $
 
 */
 
@@ -1755,12 +1755,6 @@ void jit_init()
 
 	/* initialize the codegen stuff */
 	codegen_init();
-
-	init_exceptions();
-
-	/* initialize exceptions used in the system */
-
-	init_system_exceptions();
 }
 
 
