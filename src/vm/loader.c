@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 744 2003-12-13 20:53:53Z stefan $
+   $Id: loader.c 758 2003-12-13 22:30:00Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include "global.h"
 #include "loader.h"
+#include "main.h"
 #include "native.h"
 #include "tables.h"
 #include "builtin.h"
@@ -48,6 +49,7 @@
 #include "toolbox/memory.h"
 #include "toolbox/loging.h"
 #include "threads/thread.h"
+#include "threads/locks.h"
 #include <sys/stat.h>
 
 #ifdef USE_ZLIB
@@ -60,10 +62,6 @@
 
 /* global variables ***********************************************************/
 
-bool opt_rt = false;            /* true if RTA parse should be used     RT-CO */
-bool opt_xta = false;           /* true if XTA parse should be used    XTA-CO */
-bool opt_vta = false;           /* true if VTA parse should be used    VTA-CO */
-
 int count_class_infos = 0;      /* variables for measurements                 */
 int count_const_pool_len = 0;
 int count_vftbl_len = 0;
@@ -72,15 +70,6 @@ int count_vmcode_len = 0;
 int count_extable_len = 0;
 int count_class_loads = 0;
 int count_class_inits = 0;
-
-bool loadverbose = false;       /* switches for debug messages                */
-bool linkverbose = false;
-bool initverbose = false;
-
-bool makeinitializations = true;
-
-bool getloadingtime  = false;   /* to measure the runtime                     */
-long int loadingtime = 0;
 
 static s4 interfaceindex;       /* sequential numbering of interfaces         */ 
 
@@ -91,16 +80,16 @@ list linkedclasses;         /* list of all completely linked classes          */
 
 /* utf-symbols for pointer comparison of frequently used strings */
 
-static utf *utf_innerclasses; 		/* InnerClasses   		   */
-static utf *utf_constantvalue; 		/* ConstantValue 		   */
-static utf *utf_code;			    /* Code 			       */
-static utf *utf_finalize;		    /* finalize 			   */
-static utf *utf_fidesc;   		    /* ()V changed 				     */
-static utf *utf_clinit;  		    /* <clinit> 			   */
-static utf *utf_initsystemclass;	/* initializeSystemClass */
-static utf *utf_systemclass;		/* java/lang/System 	   */
-static utf *utf_vmclassloader; /*java/lang/VMClassLoader*/
-static utf *utf_vmclass; /*java/lang/VMClassLoader*/
+static utf *utf_innerclasses; 		/* InnerClasses            */
+static utf *utf_constantvalue; 		/* ConstantValue           */
+static utf *utf_code;			    /* Code                    */
+static utf *utf_finalize;		    /* finalize                */
+static utf *utf_fidesc;   		    /* ()V changed             */
+static utf *utf_clinit;  		    /* <clinit>                */
+static utf *utf_initsystemclass;	/* initializeSystemClass   */
+static utf *utf_systemclass;		/* java/lang/System        */
+static utf *utf_vmclassloader;      /* java/lang/VMClassLoader */
+static utf *utf_vmclass;            /* java/lang/VMClassLoader */
 static utf *utf_initialize;
 static utf *utf_initializedesc;
 
@@ -116,6 +105,8 @@ utf* clinit_desc(){
 utf* clinit_name(){
 	return utf_clinit;
 }
+
+
 /* important system classes ***************************************************/
 
 classinfo *class_java_lang_Object;
@@ -146,6 +137,7 @@ static classinfo *class_java_lang_ThreadDeath;
 static methodinfo method_clone_array;
 
 static int loader_inited = 0;
+
 
 /******************************************************************************
 
@@ -734,42 +726,43 @@ static void checkmethoddescriptor (utf *d)
 #endif
 }
 
+
 /***************** Function: print_arraydescriptor ****************************
 
 	Debugging helper for displaying an arraydescriptor
 	
 *******************************************************************************/
 
-void
-print_arraydescriptor(FILE *file,arraydescriptor *desc)
+void print_arraydescriptor(FILE *file, arraydescriptor *desc)
 {
 	if (!desc) {
-		fprintf(file,"<NULL>");
+		fprintf(file, "<NULL>");
 		return;
 	}
 
-	fprintf(file,"{");
+	fprintf(file, "{");
 	if (desc->componentvftbl) {
 		if (desc->componentvftbl->class)
-			utf_fprint(file,desc->componentvftbl->class->name);
+			utf_fprint(file, desc->componentvftbl->class->name);
 		else
-			fprintf(file,"<no classinfo>");
+			fprintf(file, "<no classinfo>");
 	}
 	else
-		fprintf(file,"0");
+		fprintf(file, "0");
 		
-	fprintf(file,",");
+	fprintf(file, ",");
 	if (desc->elementvftbl) {
 		if (desc->elementvftbl->class)
-			utf_fprint(file,desc->elementvftbl->class->name);
+			utf_fprint(file, desc->elementvftbl->class->name);
 		else
-			fprintf(file,"<no classinfo>");
+			fprintf(file, "<no classinfo>");
 	}
 	else
-		fprintf(file,"0");
-	fprintf(file,",%d,%d,%d,%d}",desc->arraytype,desc->dimension,
-			desc->dataoffset,desc->componentsize);
+		fprintf(file, "0");
+	fprintf(file, ",%d,%d,%d,%d}", desc->arraytype, desc->dimension,
+			desc->dataoffset, desc->componentsize);
 }
+
 
 /******************************************************************************/
 /**************************  Functions for fields  ****************************/
@@ -802,7 +795,7 @@ static void field_load (fieldinfo *f, classinfo *c)
 	case TYPE_FLOAT:      f->value.f = 0.0; break;
 	case TYPE_DOUBLE:     f->value.d = 0.0; break;
 	case TYPE_ADDRESS:    f->value.a = NULL; 			      
-	                      heap_addreference (&(f->value.a));           /* make global reference (GC)  */	
+/*  	                      heap_addreference (&(f->value.a));           /* make global reference (GC)  */
 	                      break;
 	case TYPE_LONG:
 #if U8_AVAILABLE
@@ -892,15 +885,15 @@ static void field_free (fieldinfo *f)
 
 /**************** Function: field_display (debugging only) ********************/
 
-void field_display (fieldinfo *f)
+void field_display(fieldinfo *f)
 {
-	printf ("   ");
-	printflags (f -> flags);
-	printf (" ");
-	utf_display (f -> name);
-	printf (" ");
-	utf_display (f -> descriptor);	
-	printf (" offset: %ld\n", (long int) (f -> offset) );
+	printf("   ");
+	printflags(f->flags);
+	printf(" ");
+	utf_display(f->name);
+	printf(" ");
+	utf_display(f->descriptor);	
+	printf(" offset: %ld\n", (long int) (f->offset));
 }
 
 
@@ -918,99 +911,100 @@ void field_display (fieldinfo *f)
 	
 *******************************************************************************/
 
-static void method_load (methodinfo *m, classinfo *c)
+static void method_load(methodinfo *m, classinfo *c)
 {
-	u4 attrnum,i,e;
+	u4 attrnum, i, e;
 	
 #ifdef STATISTICS
 	count_all_methods++;
 #endif
 
-	m -> class = c;
+	m->class = c;
 	
-	m -> flags = suck_u2 ();
-	m -> name =  class_getconstant (c, suck_u2(), CONSTANT_Utf8);
-	m -> descriptor = class_getconstant (c, suck_u2(), CONSTANT_Utf8);
+	m->flags = suck_u2();
+	m->name = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
+	m->descriptor = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
 	checkmethoddescriptor(m->descriptor);
 	
-	m -> jcode = NULL;
-	m -> exceptiontable = NULL;
-	m -> entrypoint = NULL;
-	m -> mcode = NULL;
-	m -> stubroutine = NULL;
-        m -> methodUsed = NOTUSED;    
-        m -> monoPoly = MONO;    
-	m -> subRedefs = 0;
-	m -> subRedefsUsed = 0;
+	m->jcode = NULL;
+	m->exceptiontable = NULL;
+	m->entrypoint = NULL;
+	m->mcode = NULL;
+	m->stubroutine = NULL;
+	m->methodUsed = NOTUSED;    
+	m->monoPoly = MONO;    
+	m->subRedefs = 0;
+	m->subRedefsUsed = 0;
 
 	m->xta = NULL;
 	
-	if (! (m->flags & ACC_NATIVE) ) {
-		m -> stubroutine = createcompilerstub (m);
-		}
-	else {
+	if (!(m->flags & ACC_NATIVE)) {
+		m->stubroutine = createcompilerstub(m);
 
-		functionptr f = native_findfunction 
-	 	       (c->name, m->name, m->descriptor, (m->flags & ACC_STATIC) != 0);
+	} else {
+		functionptr f = native_findfunction(c->name, m->name, m->descriptor, 
+											(m->flags & ACC_STATIC) != 0);
 		if (f) {
-			m -> stubroutine = createnativestub (f, m);
-			}
+			m->stubroutine = createnativestub(f, m);
 		}
+	}
 	
 	
 	attrnum = suck_u2();
-	for (i=0; i<attrnum; i++) {
+	for (i = 0; i < attrnum; i++) {
 		utf *aname;
 
-		aname = class_getconstant (c, suck_u2(), CONSTANT_Utf8);
+		aname = class_getconstant(c, suck_u2(), CONSTANT_Utf8);
 
-		if ( aname != utf_code)  {
-			skipattributebody ();
-			}
-		else {
+		if (aname != utf_code) {
+			skipattributebody();
+
+		} else {
 			u4 codelen;
-			if (m -> jcode) panic ("Two code-attributes for one method!");
+			if (m->jcode)
+				panic("Two code-attributes for one method!");
 			
 			suck_u4();
-			m -> maxstack = suck_u2();
-			m -> maxlocals = suck_u2();
+			m->maxstack = suck_u2();
+			m->maxlocals = suck_u2();
 			codelen = suck_u4();
 			if (codelen == 0)
 				panic("bytecode has zero length");
 			if (codelen > 65536)
 				panic("bytecode too long");
-			m -> jcodelength = codelen;
-			m -> jcode = MNEW (u1, m->jcodelength);
-			suck_nbytes (m->jcode, m->jcodelength);
-			m -> exceptiontablelength = suck_u2 ();
-			m -> exceptiontable = 
-			   MNEW (exceptiontable, m->exceptiontablelength);
+			m->jcodelength = codelen;
+			m->jcode = MNEW(u1, m->jcodelength);
+			suck_nbytes(m->jcode, m->jcodelength);
+			m->exceptiontablelength = suck_u2();
+			m->exceptiontable = 
+				MNEW(exceptiontable, m->exceptiontablelength);
 
 #ifdef STATISTICS
-	count_vmcode_len += m->jcodelength + 18;
-	count_extable_len += 8 * m->exceptiontablelength;
+			count_vmcode_len += m->jcodelength + 18;
+			count_extable_len += 8 * m->exceptiontablelength;
 #endif
 
-			for (e=0; e < m->exceptiontablelength; e++) {
+			for (e = 0; e < m->exceptiontablelength; e++) {
 				u4 idx;
-				m -> exceptiontable[e].startpc = suck_u2();
-				m -> exceptiontable[e].endpc = suck_u2();
-				m -> exceptiontable[e].handlerpc = suck_u2();
+				m->exceptiontable[e].startpc = suck_u2();
+				m->exceptiontable[e].endpc = suck_u2();
+				m->exceptiontable[e].handlerpc = suck_u2();
 
 				idx = suck_u2();
-				if (!idx) m -> exceptiontable[e].catchtype = NULL;
-				else {
-					m -> exceptiontable[e].catchtype = 
-				      class_getconstant (c, idx, CONSTANT_Class);
-					}
-				}			
+				if (!idx) {
+					m->exceptiontable[e].catchtype = NULL;
 
-			skipattributes ( suck_u2() );
-			}
-			
+				} else {
+					m->exceptiontable[e].catchtype = 
+				      class_getconstant(c, idx, CONSTANT_Class);
+				}
+			}			
+
+			skipattributes(suck_u2());
 		}
-
+	}
 }
+
 
 /********************* Function: method_free ***********************************
 
@@ -1018,30 +1012,39 @@ static void method_load (methodinfo *m, classinfo *c)
 
 *******************************************************************************/
 
-static void method_free (methodinfo *m)
+static void method_free(methodinfo *m)
 {
-	if (m->jcode) MFREE (m->jcode, u1, m->jcodelength);
-	if (m->exceptiontable) 
-		MFREE (m->exceptiontable, exceptiontable, m->exceptiontablelength);
-	if (m->mcode) CFREE (m->mcode, m->mcodelength);
+	if (m->jcode)
+		MFREE(m->jcode, u1, m->jcodelength);
+
+	if (m->exceptiontable)
+		MFREE(m->exceptiontable, exceptiontable, m->exceptiontablelength);
+
+	if (m->mcode)
+		CFREE(m->mcode, m->mcodelength);
+
 	if (m->stubroutine) {
-		if (m->flags & ACC_NATIVE) removenativestub (m->stubroutine);
-		else                       removecompilerstub (m->stubroutine);
+		if (m->flags & ACC_NATIVE) {
+			removenativestub(m->stubroutine);
+
+		} else {
+			removecompilerstub(m->stubroutine);
 		}
+	}
 }
 
 
 /************** Function: method_display  (debugging only) **************/
 
-void method_display (methodinfo *m)
+void method_display(methodinfo *m)
 {
-	printf ("   ");
-	printflags (m -> flags);
-	printf (" ");
-	utf_display (m -> name);
-	printf (" "); 
-	utf_display (m -> descriptor);
-	printf ("\n");
+	printf("   ");
+	printflags(m->flags);
+	printf(" ");
+	utf_display(m->name);
+	printf(" "); 
+	utf_display(m->descriptor);
+	printf("\n");
 }
 
 
@@ -1075,19 +1078,19 @@ static bool method_canoverwrite (methodinfo *m, methodinfo *old)
 
 *******************************************************************************/
 
-voidptr class_getconstant (classinfo *c, u4 pos, u4 ctype) 
+voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype)
 {
 	/* invalid position in constantpool */	
-	if (pos >= c->cpcount) 
-		panic ("Attempt to access constant outside range");
+	if (pos >= c->cpcount)
+		panic("Attempt to access constant outside range");
 
 	/* check type of constantpool entry */
 
 	if (c->cptags[pos] != ctype) {
 		class_showconstantpool(c);
-		error ("Type mismatch on constant: %d requested, %d here (class_getconstant)",
-		 (int) ctype, (int) c->cptags[pos] );
-		}
+		error("Type mismatch on constant: %d requested, %d here (class_getconstant)",
+			  (int) ctype, (int) c->cptags[pos]);
+	}
 		
 	return c->cpinfos[pos];
 }
@@ -1099,10 +1102,11 @@ voidptr class_getconstant (classinfo *c, u4 pos, u4 ctype)
 	
 *******************************************************************************/
 
-u4 class_constanttype (classinfo *c, u4 pos)
+u4 class_constanttype(classinfo *c, u4 pos)
 {
-	if (pos >= c->cpcount) 
-		panic ("Attempt to access constant outside range");
+	if (pos >= c->cpcount)
+		panic("Attempt to access constant outside range");
+
 	return c->cptags[pos];
 }
 
@@ -1116,7 +1120,7 @@ u4 class_constanttype (classinfo *c, u4 pos)
 
 *******************************************************************************/
 
-static void class_loadcpool (classinfo *c)
+static void class_loadcpool(classinfo *c)
 {
 
 	/* The following structures are used to save information which cannot be 
@@ -1468,14 +1472,14 @@ static int class_load(classinfo *c)
 	if (loadverbose) {		
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Loading class: ");
-		utf_sprint(logtext+strlen(logtext), c->name);
+		utf_sprint(logtext + strlen(logtext), c->name);
 		log_text(logtext);
 	}
 	
 	/* load classdata, throw exception on error */
 
 	if (!suck_start(c->name)) {
-		throw_classnotfoundexception2(c->name);
+		throw_noclassdeffounderror_message(c->name);
 		return false;
 	}
 	
@@ -1485,75 +1489,76 @@ static int class_load(classinfo *c)
 	mi = suck_u2(); 
 	ma = suck_u2();
 	if (ma != MAJOR_VERSION && (ma != MAJOR_VERSION+1 || mi != 0)) {
-		error ("File version %d.%d is not supported",
-		                 (int) ma, (int) mi);
-		}
+		error("File version %d.%d is not supported", (int) ma, (int) mi);
+	}
 
-	class_loadcpool (c);
+	class_loadcpool(c);
 	/*JOWENN*/
-	c->erroneous_state=0;
-	c->initializing_thread=0;	
+	c->erroneous_state = 0;
+	c->initializing_thread = 0;	
 	/*JOWENN*/
-        c -> classUsed = NOTUSED; /* not used initially CO-RT */
-	c -> impldBy = NULL;
+	c->classUsed = NOTUSED; /* not used initially CO-RT */
+	c->impldBy = NULL;
 
 	/* ACC flags */
-	c -> flags = suck_u2 (); 
+	c->flags = suck_u2(); 
 	/*if (!(c->flags & ACC_PUBLIC)) { log_text("CLASS NOT PUBLIC"); } JOWENN*/
 
 	/* this class */
-	suck_u2 ();       
+	suck_u2();       
 	
 	/* retrieve superclass */
-	if ( (i = suck_u2 () ) ) {
-		c -> super = class_getconstant (c, i, CONSTANT_Class);
-		}
-	else {
-		c -> super = NULL;
-		}
+	if ((i = suck_u2())) {
+		c->super = class_getconstant(c, i, CONSTANT_Class);
+
+	} else {
+		c->super = NULL;
+	}
 			 
 	/* retrieve interfaces */
-	c -> interfacescount = suck_u2 ();
-	c -> interfaces = MNEW (classinfo*, c -> interfacescount);
-	for (i=0; i < c -> interfacescount; i++) {
-		c -> interfaces [i] = 
-		      class_getconstant (c, suck_u2(), CONSTANT_Class);
-		}
+	c->interfacescount = suck_u2();
+	c->interfaces = MNEW(classinfo*, c->interfacescount);
+	for (i = 0; i < c->interfacescount; i++) {
+		c->interfaces [i] = 
+			class_getconstant(c, suck_u2(), CONSTANT_Class);
+	}
 
 	/* load fields */
-	c -> fieldscount = suck_u2 ();
+	c->fieldscount = suck_u2();
 /*	utf_display(c->name);
 	printf(" ,Fieldscount: %d\n",c->fieldscount);*/
 
-	c -> fields = GCNEW (fieldinfo, c -> fieldscount);
-	for (i=0; i < c -> fieldscount; i++) {
-		field_load (&(c->fields[i]), c);
-		}
+	c->fields = GCNEW(fieldinfo, c->fieldscount);
+	for (i = 0; i < c->fieldscount; i++) {
+		field_load(&(c->fields[i]), c);
+	}
 
 	/* load methods */
-	c -> methodscount = suck_u2 ();
-	c -> methods = MNEW (methodinfo, c -> methodscount);
-	for (i=0; i < c -> methodscount; i++) {
-		method_load (&(c -> methods [i]), c);
-		}
+	c->methodscount = suck_u2();
+	c->methods = MNEW(methodinfo, c->methodscount);
+	for (i = 0; i < c->methodscount; i++) {
+		method_load(&(c->methods[i]), c);
+	}
 
 #ifdef STATISTICS
-	count_class_infos += sizeof(classinfo*) * c -> interfacescount;
-	count_class_infos += sizeof(fieldinfo) * c -> fieldscount;
-	count_class_infos += sizeof(methodinfo) * c -> methodscount;
+	count_class_infos += sizeof(classinfo*) * c->interfacescount;
+	count_class_infos += sizeof(fieldinfo) * c->fieldscount;
+	count_class_infos += sizeof(methodinfo) * c->methodscount;
 #endif
 
 	/* load variable-length attribute structures */	
-	attribute_load (suck_u2(), c);
+	attribute_load(suck_u2(), c);
 
 	/* free memory */
-	suck_stop ();
+	suck_stop();
 
 	/* remove class from list of unloaded classes and 
 	   add to list of unlinked classes	          */
-	list_remove (&unloadedclasses, c);
-	list_addlast (&unlinkedclasses, c);
-	c->loaded=true;
+	list_remove(&unloadedclasses, c);
+	list_addlast(&unlinkedclasses, c);
+
+	c->loaded = true;
+
 	return true;
 }
 
@@ -1566,23 +1571,24 @@ static int class_load(classinfo *c)
 
 *******************************************************************************/
 
-static s4 class_highestinterface (classinfo *c) 
+static s4 class_highestinterface(classinfo *c) 
 {
 	s4 h;
 	s4 i;
 	
-	if ( ! (c->flags & ACC_INTERFACE) ) {
+	if (!(c->flags & ACC_INTERFACE)) {
 		char logtext[MAXLOGTEXT];
-	  	sprintf (logtext, "Interface-methods count requested for non-interface:  ");
-    	utf_sprint (logtext+strlen(logtext), c->name);
+	  	sprintf(logtext, "Interface-methods count requested for non-interface:  ");
+    	utf_sprint(logtext + strlen(logtext), c->name);
     	error(logtext);
-    	}
+	}
     
     h = c->index;
-	for (i=0; i<c->interfacescount; i++) {
-		s4 h2 = class_highestinterface (c->interfaces[i]);
-		if (h2>h) h=h2;
-		}
+	for (i = 0; i < c->interfacescount; i++) {
+		s4 h2 = class_highestinterface(c->interfaces[i]);
+		if (h2 > h) h = h2;
+	}
+
 	return h;
 }
 
@@ -1647,8 +1653,7 @@ static void class_addinterface (classinfo *c, classinfo *ic)
 
 *******************************************************************************/
 
-void
-class_new_array(classinfo *c)
+void class_new_array(classinfo *c)
 {
 	classinfo *comp = NULL;
 	methodinfo *clone;
@@ -1692,12 +1697,12 @@ class_new_array(classinfo *c)
 	c->methods = MNEW (methodinfo, c->methodscount); /* XXX use GC? */
 
 	clone = c->methods;
-	memset(clone,0,sizeof(methodinfo));
+	memset(clone, 0, sizeof(methodinfo));
 	clone->flags = ACC_PUBLIC; /* XXX protected? */
 	clone->name = utf_new_char("clone");
 	clone->descriptor = utf_new_char("()Ljava/lang/Object;");
 	clone->class = c;
-	clone->stubroutine = createnativestub(&builtin_clone_array,clone);
+	clone->stubroutine = createnativestub((functionptr) &builtin_clone_array, clone);
 	clone->monoPoly = MONO; /* XXX should be poly? */
 
 	/* XXX: field: length? */
@@ -1715,6 +1720,7 @@ class_new_array(classinfo *c)
 		loader_load(c->name); /* XXX handle errors */
 }
 
+
 /****************** Function: class_link_array *********************************
 
     This function is called by class_link to create the
@@ -1725,9 +1731,7 @@ class_new_array(classinfo *c)
 
 *******************************************************************************/
 
-static
-arraydescriptor *
-class_link_array(classinfo *c)
+static arraydescriptor *class_link_array(classinfo *c)
 {
 	classinfo *comp = NULL;
 	int namelen = c->name->blength;
@@ -1818,6 +1822,7 @@ class_link_array(classinfo *c)
 	return desc;
 }
 
+
 /********************** Function: class_link ***********************************
 
 	Tries to link a class. The super class and every implemented interface must
@@ -1871,8 +1876,8 @@ void class_link(classinfo *c)
 		vftbllength = supervftbllength = 0;
 
 		c->finalizer = NULL;
-	}
-	else {
+
+	} else {
 		if (!super->linked) {
 			list_remove(&unlinkedclasses, c);
 			list_addlast(&unlinkedclasses, c);
@@ -1902,8 +1907,8 @@ void class_link(classinfo *c)
 
 	if (linkverbose) {
 		char logtext[MAXLOGTEXT];
-		sprintf (logtext, "Linking Class: ");
-		utf_sprint (logtext+strlen(logtext), c->name );
+		sprintf(logtext, "Linking Class: ");
+		utf_sprint(logtext + strlen(logtext), c->name );
 		log_text(logtext);
 	}
 
@@ -1930,7 +1935,7 @@ void class_link(classinfo *c)
 	}	
 	
 #ifdef STATISTICS
-	count_vftbl_len += sizeof(vftbl) + sizeof(methodptr)*(vftbllength-1);
+	count_vftbl_len += sizeof(vftbl) + (sizeof(methodptr) * (vftbllength - 1));
 #endif
 
 	/* compute interfacetable length */
@@ -1984,8 +1989,8 @@ void class_link(classinfo *c)
 		fieldinfo *f = &(c->fields[i]);
 		
 		if (!(f->flags & ACC_STATIC) ) {
-			dsize = desc_typesize (f->descriptor);
-			c->instancesize = ALIGN (c->instancesize, dsize);
+			dsize = desc_typesize(f->descriptor);
+			c->instancesize = ALIGN(c->instancesize, dsize);
 			f->offset = c->instancesize;
 			c->instancesize += dsize;
 		}
@@ -1993,7 +1998,7 @@ void class_link(classinfo *c)
 
 	/* initialize interfacetable and interfacevftbllength */
 	
-	v->interfacevftbllength = MNEW (s4, interfacetablelength);
+	v->interfacevftbllength = MNEW(s4, interfacetablelength);
 
 #ifdef STATISTICS
 	count_vftbl_len += (4 + sizeof(s4)) * v->interfacetablelength;
@@ -2008,7 +2013,7 @@ void class_link(classinfo *c)
 	
 	for (c2 = c; c2 != NULL; c2 = c2->super)
 		for (i = 0; i < c2->interfacescount; i++) {
-			class_addinterface (c, c2->interfaces[i]);
+			class_addinterface(c, c2->interfaces[i]);
 		}
 
 	/* add finalizer method (not for java.lang.Object) */
@@ -2023,7 +2028,7 @@ void class_link(classinfo *c)
 		if (fidesc == NULL)
 			fidesc = utf_fidesc;
 
-		fi = class_findmethod (c, finame, fidesc);
+		fi = class_findmethod(c, finame, fidesc);
 		if (fi != NULL) {
 			if (!(fi->flags & ACC_STATIC)) {
 				c->finalizer = fi;
@@ -2035,9 +2040,8 @@ void class_link(classinfo *c)
 
 	c->linked = true;	
 
-	list_remove (&unlinkedclasses, c);
-	list_addlast (&linkedclasses, c);
-
+	list_remove(&unlinkedclasses, c);
+	list_addlast(&linkedclasses, c);
 }
 
 
@@ -2094,47 +2098,48 @@ static void class_freecpool (classinfo *c)
 
 *******************************************************************************/
 
-static void class_free (classinfo *c)
+static void class_free(classinfo *c)
 {
 	s4 i;
 	vftbl *v;
 		
-	class_freecpool (c);
+	class_freecpool(c);
 
-	MFREE (c->interfaces, classinfo*, c->interfacescount);
+	MFREE(c->interfaces, classinfo*, c->interfacescount);
 
 	for (i = 0; i < c->fieldscount; i++)
 		field_free(&(c->fields[i]));
 	
 	for (i = 0; i < c->methodscount; i++)
 		method_free(&(c->methods[i]));
-	MFREE (c->methods, methodinfo, c->methodscount);
+	MFREE(c->methods, methodinfo, c->methodscount);
 
 	if ((v = c->vftbl) != NULL) {
 		if (v->arraydesc)
 			mem_free(v->arraydesc,sizeof(arraydescriptor));
 		
 		for (i = 0; i < v->interfacetablelength; i++) {
-			MFREE (v->interfacetable[-i], methodptr, v->interfacevftbllength[i]);
-			}
-		MFREE (v->interfacevftbllength, s4, v->interfacetablelength);
+			MFREE(v->interfacetable[-i], methodptr, v->interfacevftbllength[i]);
+		}
+		MFREE(v->interfacevftbllength, s4, v->interfacetablelength);
 
 		i = sizeof(vftbl) + sizeof(methodptr) * (v->vftbllength - 1) +
 		    sizeof(methodptr*) * (v->interfacetablelength -
 		                         (v->interfacetablelength > 0));
 		v = (vftbl*) (((methodptr*) v) - (v->interfacetablelength - 1) *
 	                                     (v->interfacetablelength > 1));
-		mem_free (v, i);
-		}
+		mem_free(v, i);
+	}
 
 	if (c->innerclasscount)
-		MFREE (c->innerclass, innerclassinfo, c->innerclasscount);
+		MFREE(c->innerclass, innerclassinfo, c->innerclasscount);
 
 	/*	if (c->classvftbl)
 		mem_free(c->header.vftbl, sizeof(vftbl) + sizeof(methodptr)*(c->vftbl->vftbllength-1)); */
 	
-	GCFREE (c);
+	GCFREE(c);
 }
+
 
 /************************* Function: class_findfield ***************************
 	
@@ -2143,18 +2148,18 @@ static void class_free (classinfo *c)
 
 *******************************************************************************/
 
-
-fieldinfo *class_findfield (classinfo *c, utf *name, utf *desc)
+fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc)
 {
 	s4 i;
-
 	
 	for (i = 0; i < c->fieldscount; i++) { 
 		if ((c->fields[i].name == name) && (c->fields[i].descriptor == desc)) 
 			return &(c->fields[i]);					   			
     }
 
-	panic ("Can not find field given in CONSTANT_Fieldref");
+	panic("Can not find field given in CONSTANT_Fieldref");
+
+	/* keep compiler happy */
 	return NULL;
 }
 
@@ -2167,7 +2172,7 @@ fieldinfo *class_findfield (classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
 
-s4 class_findmethodIndex (classinfo *c, utf *name, utf *desc)
+s4 class_findmethodIndex(classinfo *c, utf *name, utf *desc)
 {
 	s4 i;
 #if defined(JOWENN_DEBUG1) || defined(JOWENN_DEBUG2)
@@ -2177,16 +2182,16 @@ s4 class_findmethodIndex (classinfo *c, utf *name, utf *desc)
 #ifdef JOWENN_DEBUG1
 
 	buffer_len = 
-	  utf_strlen(name) + utf_strlen(desc) +utf_strlen(c->name)+ 64;
+		utf_strlen(name) + utf_strlen(desc) + utf_strlen(c->name) + 64;
 	
 	buffer = MNEW(char, buffer_len);
 
 	strcpy(buffer, "class_findmethod: method:");
-        utf_sprint(buffer+strlen(buffer), name);
-	strcpy(buffer+strlen(buffer), ", desc: ");
-        utf_sprint(buffer+strlen(buffer), desc);
-	strcpy(buffer+strlen(buffer), ", classname: ");
-        utf_sprint(buffer+strlen(buffer), c->name);
+	utf_sprint(buffer + strlen(buffer), name);
+	strcpy(buffer + strlen(buffer), ", desc: ");
+	utf_sprint(buffer + strlen(buffer), desc);
+	strcpy(buffer + strlen(buffer), ", classname: ");
+	utf_sprint(buffer + strlen(buffer), c->name);
 	
 	log_text(buffer);	
 
@@ -2195,14 +2200,14 @@ s4 class_findmethodIndex (classinfo *c, utf *name, utf *desc)
 	for (i = 0; i < c->methodscount; i++) {
 #ifdef JOWENN_DEBUG2
 		buffer_len = 
-		  utf_strlen(c->methods[i].name) + utf_strlen(c->methods[i].descriptor)+ 64;
+			utf_strlen(c->methods[i].name) + utf_strlen(c->methods[i].descriptor)+ 64;
 	
 		buffer = MNEW(char, buffer_len);
 
 		strcpy(buffer, "class_findmethod: comparing to method:");
-        	utf_sprint(buffer+strlen(buffer), c->methods[i].name);
-		strcpy(buffer+strlen(buffer), ", desc: ");
-        	utf_sprint(buffer+strlen(buffer), c->methods[i].descriptor);
+		utf_sprint(buffer + strlen(buffer), c->methods[i].name);
+		strcpy(buffer + strlen(buffer), ", desc: ");
+		utf_sprint(buffer + strlen(buffer), c->methods[i].descriptor);
 	
 		log_text(buffer);	
 
@@ -2211,16 +2216,18 @@ s4 class_findmethodIndex (classinfo *c, utf *name, utf *desc)
 		
 		
 		if ((c->methods[i].name == name) && ((desc == NULL) ||
-		                                   (c->methods[i].descriptor == desc)))
+											 (c->methods[i].descriptor == desc))) {
 			return i;
 		}
+	}
+
 #ifdef JOWENN_DEBUG2	
 	class_showconstantpool(c);
 	log_text("class_findmethod: returning NULL");
 #endif
+
 	return -1;
 }
-
 
 
 /************************* Function: class_findmethod **************************
@@ -2231,7 +2238,7 @@ s4 class_findmethodIndex (classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
 
-methodinfo *class_findmethod (classinfo *c, utf *name, utf *desc)
+methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc)
 {
 #if 0
 	s4 i;
@@ -2242,16 +2249,16 @@ methodinfo *class_findmethod (classinfo *c, utf *name, utf *desc)
 #ifdef JOWENN_DEBUG1
 
 	buffer_len = 
-	  utf_strlen(name) + utf_strlen(desc) +utf_strlen(c->name)+ 64;
+		utf_strlen(name) + utf_strlen(desc) + utf_strlen(c->name) + 64;
 	
 	buffer = MNEW(char, buffer_len);
 
 	strcpy(buffer, "class_findmethod: method:");
-        utf_sprint(buffer+strlen(buffer), name);
-	strcpy(buffer+strlen(buffer), ", desc: ");
-        utf_sprint(buffer+strlen(buffer), desc);
-	strcpy(buffer+strlen(buffer), ", classname: ");
-        utf_sprint(buffer+strlen(buffer), c->name);
+	utf_sprint(buffer + strlen(buffer), name);
+	strcpy(buffer + strlen(buffer), ", desc: ");
+	utf_sprint(buffer + strlen(buffer), desc);
+	strcpy(buffer + strlen(buffer), ", classname: ");
+	utf_sprint(buffer + strlen(buffer), c->name);
 	
 	log_text(buffer);	
 
@@ -2260,34 +2267,36 @@ methodinfo *class_findmethod (classinfo *c, utf *name, utf *desc)
 	for (i = 0; i < c->methodscount; i++) {
 #ifdef JOWENN_DEBUG2
 		buffer_len = 
-		  utf_strlen(c->methods[i].name) + utf_strlen(c->methods[i].descriptor)+ 64;
+			utf_strlen(c->methods[i].name) + utf_strlen(c->methods[i].descriptor)+ 64;
 	
 		buffer = MNEW(char, buffer_len);
 
 		strcpy(buffer, "class_findmethod: comparing to method:");
-        	utf_sprint(buffer+strlen(buffer), c->methods[i].name);
-		strcpy(buffer+strlen(buffer), ", desc: ");
-        	utf_sprint(buffer+strlen(buffer), c->methods[i].descriptor);
+		utf_sprint(buffer + strlen(buffer), c->methods[i].name);
+		strcpy(buffer + strlen(buffer), ", desc: ");
+		utf_sprint(buffer + strlen(buffer), c->methods[i].descriptor);
 	
 		log_text(buffer);	
 
 		MFREE(buffer, char, buffer_len);
 #endif	
 		
-		
 		if ((c->methods[i].name == name) && ((desc == NULL) ||
-		                                   (c->methods[i].descriptor == desc)))
+											 (c->methods[i].descriptor == desc))) {
 			return &(c->methods[i]);
 		}
+	}
 #ifdef JOWENN_DEBUG2	
 	class_showconstantpool(c);
 	log_text("class_findmethod: returning NULL");
 #endif
 	return NULL;
 #endif
-	s4 idx=class_findmethodIndex(c,name,desc);
+
+	s4 idx=class_findmethodIndex(c, name, desc);
 /*	if (idx==-1) log_text("class_findmethod: method not found");*/
-	if (idx==-1) return NULL;
+	if (idx == -1) return NULL;
+
 	return &(c->methods[idx]);
 }
 
@@ -2301,15 +2310,18 @@ methodinfo *class_findmethod (classinfo *c, utf *name, utf *desc)
 methodinfo *class_fetchmethod(classinfo *c, utf *name, utf *desc)
 {
 	methodinfo *mi;
-	mi = class_findmethod(c,name,desc);
+	mi = class_findmethod(c, name, desc);
+
 	if (!mi) {
 		log_plain("Class: "); if (c) log_plain_utf(c->name); log_nl();
 		log_plain("Method: "); if (name) log_plain_utf(name); log_nl();
 		log_plain("Descriptor: "); if (desc) log_plain_utf(desc); log_nl();
 		panic("Method not found");
 	}
+
 	return mi;
 }
+
 
 /************************* Function: class_findmethod_approx ******************
 	
@@ -2318,11 +2330,11 @@ methodinfo *class_fetchmethod(classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
 
-methodinfo *class_findmethod_approx (classinfo *c, utf *name, utf *desc)
+methodinfo *class_findmethod_approx(classinfo *c, utf *name, utf *desc)
 {
 	s4 i;
 
-	for (i = 0; i < c->methodscount; i++) 
+	for (i = 0; i < c->methodscount; i++) {
 		if (c->methods[i].name == name) {
 			utf *meth_descr = c->methods[i].descriptor;
 			
@@ -2331,28 +2343,30 @@ methodinfo *class_findmethod_approx (classinfo *c, utf *name, utf *desc)
 				return &(c->methods[i]);
 
 			if (desc->blength <= meth_descr->blength) {
-					   /* current position in utf text   */
-					   char *desc_utf_ptr = desc->text;      
-					   char *meth_utf_ptr = meth_descr->text;					  
-					   /* points behind utf strings */
-					   char *desc_end = utf_end(desc);         
-					   char *meth_end = utf_end(meth_descr);   
-					   char ch;
+				/* current position in utf text   */
+				char *desc_utf_ptr = desc->text;      
+				char *meth_utf_ptr = meth_descr->text;					  
+				/* points behind utf strings */
+				char *desc_end = utf_end(desc);         
+				char *meth_end = utf_end(meth_descr);   
+				char ch;
 
-					   /* compare argument types */
-					   while (desc_utf_ptr<desc_end && meth_utf_ptr<meth_end) {
+				/* compare argument types */
+				while (desc_utf_ptr < desc_end && meth_utf_ptr < meth_end) {
 
-						   if ((ch=*desc_utf_ptr++) != (*meth_utf_ptr++))
-							   break; /* no match */
+					if ((ch = *desc_utf_ptr++) != (*meth_utf_ptr++))
+						break; /* no match */
 
-						   if (ch==')')
-							   return &(c->methods[i]);   /* all parameter types equal */
-					   }
+					if (ch == ')')
+						return &(c->methods[i]);   /* all parameter types equal */
+				}
 			}
 		}
+	}
 
 	return NULL;
 }
+
 
 /***************** Function: class_resolvemethod_approx ***********************
 	
@@ -2361,16 +2375,17 @@ methodinfo *class_findmethod_approx (classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
 
-methodinfo *class_resolvemethod_approx (classinfo *c, utf *name, utf *desc)
+methodinfo *class_resolvemethod_approx(classinfo *c, utf *name, utf *desc)
 {
 	while (c) {
 		/* search for method (ignore returntype) */
-		methodinfo *m = class_findmethod_approx (c, name, desc);
+		methodinfo *m = class_findmethod_approx(c, name, desc);
 		/* method found */
 		if (m) return m;
 		/* search superclass */
 		c = c->super;
-		}
+	}
+
 	return NULL;
 }
 
@@ -2381,7 +2396,7 @@ methodinfo *class_resolvemethod_approx (classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
 
-methodinfo *class_resolvemethod (classinfo *c, utf *name, utf *desc)
+methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *desc)
 {
 	while (c) {
 		methodinfo *m = class_findmethod(c, name, desc);
@@ -2389,9 +2404,9 @@ methodinfo *class_resolvemethod (classinfo *c, utf *name, utf *desc)
 		/* search superclass */
 		c = c->super;
 	}
+
 	return NULL;
 }
-
 
 
 /************************* Function: class_issubclass **************************
@@ -2404,11 +2419,10 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 {
 	for (;;) {
 		if (!sub) return false;
-		if (sub==super) return true;
-		sub = sub -> super;
+		if (sub == super) return true;
+		sub = sub->super;
 	}
 }
-
 
 
 /****************** Initialization function for classes ******************
@@ -2419,127 +2433,122 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 
 *******************************************************************************/
 
-#ifdef USE_THREADS
-extern int blockInts;
-#endif
-
 void class_init(classinfo *c)
 {
-        methodinfo *m;
-        java_objectheader *exceptionptr;
-        s4 i;
-        int b;
+	methodinfo *m;
+	java_objectheader *exceptionptr;
+	s4 i;
+#ifdef USE_THREADS
+	int b;
+#endif
 
+	if (!makeinitializations)
+		return;
+	if (c->initialized)
+		return;
 
-        if (!makeinitializations)
-                return;
-        if (c->initialized)
-                return;
-        c -> initialized = true;
-
-
+	c->initialized = true;
 
 #ifdef STATISTICS
-        count_class_inits++;
+	count_class_inits++;
 #endif
 
-        if (c->super)
-                class_init (c->super);
-        for (i=0; i < c->interfacescount; i++)
-                class_init(c->interfaces[i]);  /* real */
+	if (c->super)
+		class_init (c->super);
+	for (i = 0; i < c->interfacescount; i++)
+		class_init(c->interfaces[i]);  /* real */
 
-        m = class_findmethod (c, utf_clinit, utf_fidesc);
-        if (!m) {
-                if (initverbose) {
-						char logtext[MAXLOGTEXT];
-                        sprintf (logtext, "Class ");
-                        utf_sprint (logtext+strlen(logtext), c->name);
-                        sprintf (logtext+strlen(logtext), " has no initializer");
-                        log_text(logtext);
-                        }
-/*              goto callinitialize;*/
-                return;
-                }
+	m = class_findmethod(c, utf_clinit, utf_fidesc);
+	if (!m) {
+		if (initverbose) {
+			char logtext[MAXLOGTEXT];
+			sprintf(logtext, "Class ");
+			utf_sprint(logtext + strlen(logtext), c->name);
+			sprintf(logtext + strlen(logtext), " has no initializer");
+			log_text(logtext);
+		}
+		/*              goto callinitialize;*/
+		return;
+	}
 
-        if (! (m->flags & ACC_STATIC))
-                panic ("Class initializer is not static!");
+	if (!(m->flags & ACC_STATIC))
+		panic("Class initializer is not static!");
 
-        if (initverbose) {
-				char logtext[MAXLOGTEXT];
-                sprintf (logtext, "Starting initializer for class: ");
-                utf_sprint (logtext+strlen(logtext), c->name);
-                log_text(logtext);
-        }
+	if (initverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Starting initializer for class: ");
+		utf_sprint(logtext + strlen(logtext), c->name);
+		log_text(logtext);
+	}
 
 #ifdef USE_THREADS
-        b = blockInts;
-        blockInts = 0;
+	b = blockInts;
+	blockInts = 0;
 #endif
 
-        exceptionptr = asm_calljavamethod(m, NULL, NULL, NULL, NULL);
+	exceptionptr = asm_calljavamethod(m, NULL, NULL, NULL, NULL);
 
 #ifdef USE_THREADS
-        assert(blockInts == 0);
-        blockInts = b;
+	assert(blockInts == 0);
+	blockInts = b;
 #endif
 
-        if (exceptionptr) {
-                printf ("#### Initializer of ");
-                utf_display (c->name);
-                printf (" has thrown: ");
-                utf_display (exceptionptr->vftbl->class->name);
-                printf ("\n");
-                fflush (stdout);
-                }
+	if (exceptionptr) {
+		printf("#### Initializer of ");
+		utf_display(c->name);
+		printf(" has thrown: ");
+		utf_display(exceptionptr->vftbl->class->name);
+		printf("\n");
+		fflush(stdout);
+	}
 
-        if (initverbose) {
-				char logtext[MAXLOGTEXT];
-                sprintf (logtext, "Finished initializer for class: ");
-                utf_sprint (logtext+strlen(logtext), c->name);
-                log_text(logtext);
-        }
-        if (c->name == utf_systemclass) {
-                /* class java.lang.System requires explicit initialization */
+	if (initverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Finished initializer for class: ");
+		utf_sprint(logtext + strlen(logtext), c->name);
+		log_text(logtext);
+	}
+	if (c->name == utf_systemclass) {
+		/* class java.lang.System requires explicit initialization */
 
-                if (initverbose)
-                        printf ("#### Initializing class System");
+		if (initverbose)
+			printf("#### Initializing class System");
 
                 /* find initializing method */
-                m = class_findmethod (c,
-                                        utf_initsystemclass,
-                                        utf_fidesc);
+		m = class_findmethod(c,
+							 utf_initsystemclass,
+							 utf_fidesc);
 
-                if (!m) {
-                        /* no method found */
-                        /* printf("initializeSystemClass failed"); */
-                        return;
-                }
-                #ifdef USE_THREADS
-                        b = blockInts;
-                        blockInts = 0;
-                #endif
+		if (!m) {
+			/* no method found */
+			/* printf("initializeSystemClass failed"); */
+			return;
+		}
 
-                exceptionptr = asm_calljavamethod (m, NULL,NULL,NULL,NULL);
+#ifdef USE_THREADS
+		b = blockInts;
+		blockInts = 0;
+#endif
 
-                #ifdef USE_THREADS
-                        assert(blockInts == 0);
-                        blockInts = b;
-                #endif
+		exceptionptr = asm_calljavamethod(m, NULL, NULL, NULL, NULL);
 
-                if (exceptionptr) {
-                        printf ("#### initializeSystemClass has thrown: ");
-                        utf_display (exceptionptr->vftbl->class->name);
-                        printf ("\n");
-                        fflush (stdout);
-                }
-        }
+#ifdef USE_THREADS
+		assert(blockInts == 0);
+		blockInts = b;
+#endif
 
+		if (exceptionptr) {
+			printf("#### initializeSystemClass has thrown: ");
+			utf_display(exceptionptr->vftbl->class->name);
+			printf("\n");
+			fflush(stdout);
+		}
+	}
 }
 
 
-
-
 /********* Function: find_class_method_constant *********/
+
 int find_class_method_constant (classinfo *c, utf * c1, utf* m1, utf* d1)  
 {
 	u4 i;
@@ -2802,11 +2811,12 @@ void class_showmethods (classinfo *c)
 
 static int loader_load_running = 0;
 
-classinfo *loader_load (utf *topname)
+classinfo *loader_load(utf *topname)
 {
 	classinfo *top;
 	classinfo *c;
-	long int starttime=0,stoptime=0;
+	s8 starttime = 0;
+	s8 stoptime = 0;
 	classinfo *notlinkable;
 	
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -2816,31 +2826,35 @@ classinfo *loader_load (utf *topname)
 	/* avoid recursive calls */
 	if (loader_load_running)
 		return class_new(topname);
+
 	loader_load_running++;
 	
-	intsDisable();                           /* schani */
+	intsDisable();
 
 	if (getloadingtime)
 		starttime = getcputime();
 
-	top = class_new (topname);
+	top = class_new(topname);
 
 	/* load classes */
-	while ( (c = list_first(&unloadedclasses)) ) {
-		if (!class_load (c)) {
-			if (linkverbose) dolog("Failed to load class");
-			list_remove (&unloadedclasses, c);
-			top=NULL;
-		    }
-        }
+	while ((c = list_first(&unloadedclasses))) {
+		if (!class_load(c)) {
+			if (linkverbose)
+				dolog("Failed to load class");
+			list_remove(&unloadedclasses, c);
+			top = NULL;
+		}
+	}
 
 	/* link classes */
-	if (linkverbose) dolog("Linking...");
+	if (linkverbose)
+		dolog("Linking...");
+
 	/* XXX added a hack to break infinite linking loops. A better
 	 * linking algorithm would be nice. -Edwin */
 	notlinkable = NULL;
-	while ( (c = list_first(&unlinkedclasses)) ) {
-		class_link (c);
+	while ((c = list_first(&unlinkedclasses))) {
+		class_link(c);
 		if (!c->linked) {
 			if (!notlinkable)
 				notlinkable = c;
@@ -2849,17 +2863,19 @@ classinfo *loader_load (utf *topname)
 				 * no other classes were linked in between, so we are
 				 * caught in a loop.
 				 */
-				if (linkverbose) dolog("Cannot resolve linking dependencies");
-				top=NULL;
+				if (linkverbose)
+					dolog("Cannot resolve linking dependencies");
+				top = NULL;
 				if (!exceptionptr)
-					throw_linkageerror2(c->name);
+					throw_linkageerror_message(c->name);
 				break;
 			}
-		}
-		else
+
+		} else
 			notlinkable = NULL;
-		}
-	if (linkverbose) dolog("Linking done.");
+	}
+	if (linkverbose)
+		dolog("Linking done.");
 
 	if (loader_inited)
 		loader_compute_subclasses();
@@ -2867,27 +2883,30 @@ classinfo *loader_load (utf *topname)
 	/* measure time */
 	if (getloadingtime) {
 		stoptime = getcputime();
-		loadingtime += (stoptime-starttime);
-		}
+		loadingtime += (stoptime - starttime);
+	}
 
 
 	loader_load_running--;
 	
-	/* check if a former loader_load call tried to load/link the class and failed.
-		This is needed because the class didn't appear in the undloadclasses or unlinkedclasses list during this class; */
+	/* check if a former loader_load call tried to load/link the class and 
+	   failed. This is needed because the class didn't appear in the 
+	   undloadclasses or unlinkedclasses list during this class. */
 	if (top) {
 		if (!top->loaded) {
 			if (linkverbose) dolog("Failed to load class (former call)");
-			throw_classnotfoundexception2(top->name);
-			top=NULL;
-		} else if  (!top->linked) {
-			if (linkverbose) dolog("Failed to link class (former call)");
-			throw_linkageerror2(top->name);
-			top=NULL;
+			throw_noclassdeffounderror_message(top->name);
+			top = NULL;
+			
+		} else if (!top->linked) {
+			if (linkverbose)
+				dolog("Failed to link class (former call)");
+			throw_linkageerror_message(top->name);
+			top = NULL;
 		}
 	}
 
-	intsRestore();                          /* schani */
+	intsRestore();
 	
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	pthread_mutex_unlock(&compiler_mutex);
@@ -3037,8 +3056,8 @@ classinfo *class_primitive_from_sig(char sig)
 
 ********************************************************************************/
 
-classinfo *
-class_from_descriptor(char *utf_ptr,char *end_ptr,char **next,int mode)
+classinfo *class_from_descriptor(char *utf_ptr, char *end_ptr,
+								 char **next, int mode)
 {
 	char *start = utf_ptr;
 	bool error = false;
@@ -3086,12 +3105,16 @@ class_from_descriptor(char *utf_ptr,char *end_ptr,char **next,int mode)
 		return NULL;
 
 	log_plain("Invalid descriptor at beginning of '");
-	log_plain_utf(utf_new(start,end_ptr-start));
+	log_plain_utf(utf_new(start, end_ptr-start));
 	log_plain("'");
 	log_nl();
 						  
 	panic("Invalid descriptor");
+
+	/* keep compiler happy */
+	return NULL;
 }
+
 
 /******************* function: type_from_descriptor ****************************
 
@@ -3109,12 +3132,12 @@ class_from_descriptor(char *utf_ptr,char *end_ptr,char **next,int mode)
 
 ********************************************************************************/
 
-int
-type_from_descriptor(classinfo **cls,char *utf_ptr,char *end_ptr,char **next,int mode)
+int type_from_descriptor(classinfo **cls, char *utf_ptr, char *end_ptr,
+						 char **next, int mode)
 {
 	classinfo *mycls;
 	if (!cls) cls = &mycls;
-	*cls = class_from_descriptor(utf_ptr,end_ptr,next,mode & (~CLASSLOAD_NOPANIC));
+	*cls = class_from_descriptor(utf_ptr, end_ptr, next, mode & (~CLASSLOAD_NOPANIC));
 	switch (*utf_ptr) {
 	  case 'B': 
 	  case 'C':
@@ -3134,41 +3157,39 @@ type_from_descriptor(classinfo **cls,char *utf_ptr,char *end_ptr,char **next,int
 	return TYPE_ADDRESS;
 }
 
+
 /*************** function: create_pseudo_classes *******************************
 
 	create pseudo classes used by the typechecker
 
 ********************************************************************************/
 
-static void
-create_pseudo_classes()
+static void create_pseudo_classes()
 {
     /* pseudo class for Arraystubs (extends java.lang.Object) */
     
-    pseudo_class_Arraystub = class_new( utf_new_char("$ARRAYSTUB$") );
-    list_remove(&unloadedclasses,pseudo_class_Arraystub);
+    pseudo_class_Arraystub = class_new(utf_new_char("$ARRAYSTUB$"));
+    list_remove(&unloadedclasses, pseudo_class_Arraystub);
 
     pseudo_class_Arraystub->super = class_java_lang_Object;
     pseudo_class_Arraystub->interfacescount = 2;
-    pseudo_class_Arraystub->interfaces = MNEW(classinfo*,2);
-    pseudo_class_Arraystub->interfaces[0] =
-        class_java_lang_Cloneable;
-    pseudo_class_Arraystub->interfaces[1] =
-        class_java_io_Serializable;
+    pseudo_class_Arraystub->interfaces = MNEW(classinfo*, 2);
+    pseudo_class_Arraystub->interfaces[0] = class_java_lang_Cloneable;
+    pseudo_class_Arraystub->interfaces[1] = class_java_io_Serializable;
 
-    list_addlast(&unlinkedclasses,pseudo_class_Arraystub);
+    list_addlast(&unlinkedclasses, pseudo_class_Arraystub);
     class_link(pseudo_class_Arraystub);
 
 	pseudo_class_Arraystub_vftbl = pseudo_class_Arraystub->vftbl;
 
     /* pseudo class representing the null type */
     
-    pseudo_class_Null = class_new( utf_new_char("$NULL$") );
-    list_remove(&unloadedclasses,pseudo_class_Null);
+    pseudo_class_Null = class_new(utf_new_char("$NULL$"));
+    list_remove(&unloadedclasses, pseudo_class_Null);
 
     pseudo_class_Null->super = class_java_lang_Object;
 
-    list_addlast(&unlinkedclasses,pseudo_class_Null);
+    list_addlast(&unlinkedclasses, pseudo_class_Null);
     class_link(pseudo_class_Null);	
 
     /* pseudo class representing new uninitialized objects */
@@ -3182,6 +3203,7 @@ create_pseudo_classes()
     class_link(pseudo_class_New);	
 }
 
+
 /********************** Function: loader_init **********************************
 
 	Initializes all lists and loads all classes required for the system or the
@@ -3189,13 +3211,11 @@ create_pseudo_classes()
 
 *******************************************************************************/
  
-void loader_init (u1 * stackbottom)
+void loader_init(u1 * stackbottom)
 {
 	interfaceindex = 0;
 	
-	
 	log_text("Entering loader_init");
-				
 	
 	list_init (&unloadedclasses, OFFSET(classinfo, listnode) );
 	list_init (&unlinkedclasses, OFFSET(classinfo, listnode) );
@@ -3210,104 +3230,100 @@ void loader_init (u1 * stackbottom)
 	utf_clinit	        = utf_new_char("<clinit>");
 	utf_initsystemclass = utf_new_char("initializeSystemClass");
 	utf_systemclass     = utf_new_char("java/lang/System");
-	utf_vmclassloader =utf_new_char("java/lang/VMClassLoader");
-	utf_initialize =utf_new_char("initialize");
-	utf_initializedesc =utf_new_char("(I)V");
+	utf_vmclassloader   = utf_new_char("java/lang/VMClassLoader");
+	utf_initialize      = utf_new_char("initialize");
+	utf_initializedesc  = utf_new_char("(I)V");
 
-	utf_vmclass =utf_new_char("java/lang/VMClass");
+	utf_vmclass         = utf_new_char("java/lang/VMClass");
 
-        /* create some important classes */
-        /* These classes have to be created now because the classinfo
-         * pointers are used in the loading code.
-         */
-        class_java_lang_Object = class_new( utf_new_char ("java/lang/Object") );
-        class_java_lang_String = class_new( utf_new_char("java/lang/String") );
-        class_java_lang_Cloneable = class_new( utf_new_char ("java/lang/Cloneable") );
-        class_java_io_Serializable = class_new( utf_new_char ("java/io/Serializable") );
+	/* create some important classes */
+	/* These classes have to be created now because the classinfo
+	 * pointers are used in the loading code.
+	 */
+	class_java_lang_Object = class_new(utf_new_char("java/lang/Object"));
+	class_java_lang_String = class_new(utf_new_char("java/lang/String"));
+	class_java_lang_Cloneable = class_new(utf_new_char("java/lang/Cloneable"));
+	class_java_io_Serializable = class_new(utf_new_char("java/io/Serializable"));
 
-        log_text("loader_init: java/lang/Object");
-        /* load the classes which were created above */
-        loader_load_sysclass (NULL,class_java_lang_Object->name);
+	log_text("loader_init: java/lang/Object");
+	/* load the classes which were created above */
+	loader_load_sysclass(NULL, class_java_lang_Object->name);
 
-        loader_inited=1; /*JOWENN*/
+	loader_inited = 1; /*JOWENN*/
 
-		loader_load_sysclass(&class_java_lang_Throwable,
-							 utf_new_char("java/lang/Throwable") );
+	loader_load_sysclass(&class_java_lang_Throwable,
+						 utf_new_char("java/lang/Throwable"));
 
-        log_text("loader_init:  loader_load: java/lang/ClassCastException");
-		loader_load_sysclass(&class_java_lang_ClassCastException,
-							 utf_new_char ("java/lang/ClassCastException") );
-		loader_load_sysclass(&class_java_lang_NullPointerException,
-							 utf_new_char ("java/lang/NullPointerException") );
-		loader_load_sysclass(&class_java_lang_ArrayIndexOutOfBoundsException,
-							 utf_new_char ("java/lang/ArrayIndexOutOfBoundsException") );
-		loader_load_sysclass(&class_java_lang_NegativeArraySizeException,
-							 utf_new_char ("java/lang/NegativeArraySizeException") );
-		loader_load_sysclass(&class_java_lang_OutOfMemoryError,
-							 utf_new_char ("java/lang/OutOfMemoryError") );
-		loader_load_sysclass(&class_java_lang_ArrayStoreException,
-							 utf_new_char ("java/lang/ArrayStoreException") );
-		loader_load_sysclass(&class_java_lang_ArithmeticException,
-							 utf_new_char ("java/lang/ArithmeticException") );
-		loader_load_sysclass(&class_java_lang_ThreadDeath,
-							 utf_new_char ("java/lang/ThreadDeath") );/* schani */
+	log_text("loader_init:  loader_load: java/lang/ClassCastException");
+	loader_load_sysclass(&class_java_lang_ClassCastException,
+						 utf_new_char ("java/lang/ClassCastException"));
+	loader_load_sysclass(&class_java_lang_NullPointerException,
+						 utf_new_char ("java/lang/NullPointerException"));
+	loader_load_sysclass(&class_java_lang_ArrayIndexOutOfBoundsException,
+						 utf_new_char ("java/lang/ArrayIndexOutOfBoundsException"));
+	loader_load_sysclass(&class_java_lang_NegativeArraySizeException,
+						 utf_new_char ("java/lang/NegativeArraySizeException"));
+	loader_load_sysclass(&class_java_lang_OutOfMemoryError,
+						 utf_new_char ("java/lang/OutOfMemoryError"));
+	loader_load_sysclass(&class_java_lang_ArrayStoreException,
+						 utf_new_char ("java/lang/ArrayStoreException"));
+	loader_load_sysclass(&class_java_lang_ArithmeticException,
+						 utf_new_char ("java/lang/ArithmeticException"));
+	loader_load_sysclass(&class_java_lang_ThreadDeath,
+						 utf_new_char ("java/lang/ThreadDeath"));
 		
-        /* create classes representing primitive types */
-        create_primitive_classes();
+	/* create classes representing primitive types */
+	create_primitive_classes();
 
-        /* create classes used by the typechecker */
-        create_pseudo_classes();
+	/* create classes used by the typechecker */
+	create_pseudo_classes();
 
-        /* correct vftbl-entries (retarded loading of class java/lang/String) */
-        stringtable_update();
+	/* correct vftbl-entries (retarded loading of class java/lang/String) */
+	stringtable_update();
+
 #ifdef USE_THREADS
-        if (stackbottom!=0)
-                initLocks();
+	if (stackbottom!=0)
+		initLocks();
 #endif
 
+	log_text("loader_init: creating global proto_java_lang_ClassCastException");
+	proto_java_lang_ClassCastException =
+		builtin_new(class_java_lang_ClassCastException);
+/*  	heap_addreference((void**) &proto_java_lang_ClassCastException); */
 
+	log_text("loader_init: proto_java_lang_ClassCastException has been initialized");
 
-        log_text("loader_init: creating global proto_java_lang_ClassCastException");
-        proto_java_lang_ClassCastException =
-                builtin_new(class_java_lang_ClassCastException);
-        heap_addreference ( (void**) &proto_java_lang_ClassCastException);
+	proto_java_lang_NullPointerException =
+		builtin_new(class_java_lang_NullPointerException);
+/*  	heap_addreference((void**) &proto_java_lang_NullPointerException); */
+	log_text("loader_init: proto_java_lang_NullPointerException has been initialized");
 
-        log_text("loader_init: proto_java_lang_ClassCastException has been initialized");
+	proto_java_lang_ArrayIndexOutOfBoundsException =
+		builtin_new(class_java_lang_ArrayIndexOutOfBoundsException);
+/*  	heap_addreference((void**) &proto_java_lang_ArrayIndexOutOfBoundsException); */
 
-        proto_java_lang_NullPointerException =
-               builtin_new(class_java_lang_NullPointerException);
-        heap_addreference ( (void**) &proto_java_lang_NullPointerException);
-        log_text("loader_init: proto_java_lang_NullPointerException has been initialized");
+	proto_java_lang_NegativeArraySizeException =
+		builtin_new(class_java_lang_NegativeArraySizeException);
+/*  	heap_addreference((void**) &proto_java_lang_NegativeArraySizeException); */
 
-        proto_java_lang_ArrayIndexOutOfBoundsException =
-                builtin_new(class_java_lang_ArrayIndexOutOfBoundsException);
-        heap_addreference ( (void**) &proto_java_lang_ArrayIndexOutOfBoundsException);
+	proto_java_lang_OutOfMemoryError =
+		builtin_new(class_java_lang_OutOfMemoryError);
+/*  	heap_addreference((void**) &proto_java_lang_OutOfMemoryError); */
 
-        proto_java_lang_NegativeArraySizeException =
-                builtin_new(class_java_lang_NegativeArraySizeException);
-        heap_addreference ( (void**) &proto_java_lang_NegativeArraySizeException);
+	proto_java_lang_ArithmeticException =
+		builtin_new(class_java_lang_ArithmeticException);
+/*  	heap_addreference((void**) &proto_java_lang_ArithmeticException); */
 
-        proto_java_lang_OutOfMemoryError =
-                builtin_new(class_java_lang_OutOfMemoryError);
-        heap_addreference ( (void**) &proto_java_lang_OutOfMemoryError);
+	proto_java_lang_ArrayStoreException =
+		builtin_new(class_java_lang_ArrayStoreException);
+/*  	heap_addreference((void**) &proto_java_lang_ArrayStoreException); */
 
-        proto_java_lang_ArithmeticException =
-               builtin_new(class_java_lang_ArithmeticException);
-        heap_addreference ( (void**) &proto_java_lang_ArithmeticException);
+	proto_java_lang_ThreadDeath =                             /* schani */
+		builtin_new(class_java_lang_ThreadDeath);
+/*  	heap_addreference((void**) &proto_java_lang_ThreadDeath); */
 
-        proto_java_lang_ArrayStoreException =
-                builtin_new(class_java_lang_ArrayStoreException);
-        heap_addreference ( (void**) &proto_java_lang_ArrayStoreException);
-
-        proto_java_lang_ThreadDeath =                             /* schani */
-                builtin_new(class_java_lang_ThreadDeath);
-        heap_addreference ( (void**) &proto_java_lang_ThreadDeath);
-
-        loader_inited = 1;
-
+	loader_inited = 1;
 }
-
-
 
 
 /********************* Function: loader_initclasses ****************************
@@ -3343,7 +3359,7 @@ void loader_initclasses ()
 
 static s4 classvalue;
 
-static void loader_compute_class_values (classinfo *c)
+static void loader_compute_class_values(classinfo *c)
 {
 	classinfo *subs;
 
@@ -3353,7 +3369,7 @@ static void loader_compute_class_values (classinfo *c)
 	while (subs != NULL) {
 		loader_compute_class_values(subs);
 		subs = subs->nextsub;
-		}
+	}
 	c->vftbl->diffval = classvalue - c->vftbl->baseval;
 	
 	/*
@@ -3366,33 +3382,33 @@ static void loader_compute_class_values (classinfo *c)
 	printf("\n");
 	}
 	*/
-	
 }
 
 
-void loader_compute_subclasses ()
+void loader_compute_subclasses()
 {
 	classinfo *c;
 	
 	intsDisable();                     /* schani */
 
-	c = list_first (&linkedclasses);
+	c = list_first(&linkedclasses);
 	while (c) {
 		if (!(c->flags & ACC_INTERFACE)) {
 			c->nextsub = 0;
 			c->sub = 0;
-			}
-		c = list_next (&linkedclasses, c);
 		}
+		c = list_next (&linkedclasses, c);
+	}
 
 	c = list_first (&linkedclasses);
 	while (c) {
 		if (!(c->flags & ACC_INTERFACE) && (c->super != NULL)) {
 			c->nextsub = c->super->sub;
 			c->super->sub = c;
-			}
-		c = list_next (&linkedclasses, c);
 		}
+		c = list_next (&linkedclasses, c);
+	}
+
 	classvalue = 0;
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	cast_lock();
@@ -3406,7 +3422,6 @@ void loader_compute_subclasses ()
 }
 
 
-
 /******************** function classloader_buffer ******************************
  
     sets buffer for reading classdata
@@ -3415,9 +3430,9 @@ void loader_compute_subclasses ()
 
 void classload_buffer(u1 *buf, int len)
 {
-	classbuffer        =  buf;
-	classbuffer_size   =  len;
-	classbuf_pos       =  buf - 1;
+	classbuffer      = buf;
+	classbuffer_size = len;
+	classbuf_pos     = buf - 1;
 }
 
 
@@ -3427,22 +3442,22 @@ void classload_buffer(u1 *buf, int len)
 	
 *******************************************************************************/
 
-void loader_close ()
+void loader_close()
 {
 	classinfo *c;
 
-	while ( (c=list_first(&unloadedclasses)) ) {
-		list_remove (&unloadedclasses,c);
+	while ((c = list_first(&unloadedclasses))) {
+		list_remove(&unloadedclasses, c);
 		class_free(c);
-		}
-	while ( (c=list_first(&unlinkedclasses)) ) {
-		list_remove (&unlinkedclasses,c);
+	}
+	while ((c = list_first(&unlinkedclasses))) {
+		list_remove(&unlinkedclasses, c);
 		class_free(c);
-		}
-	while ( (c=list_first(&linkedclasses)) ) {
-		list_remove (&linkedclasses,c);
+	}
+	while ((c = list_first(&linkedclasses))) {
+		list_remove(&linkedclasses, c);
 		class_free(c);
-		}
+	}
 }
 
 
