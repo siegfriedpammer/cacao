@@ -1,4 +1,4 @@
-/* native/vm/Field.c - java/lang/reflect/Field
+/* src/native/vm/Field.c - java/lang/reflect/Field
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,8 +27,9 @@
    Authors: Roman Obermaiser
 
    Changes: Joseph Wenninger
+            Christian Thalinger
 
-   $Id: Field.c 2183 2005-04-01 20:57:17Z edwin $
+   $Id: Field.c 2201 2005-04-03 21:48:11Z twisti $
 
 */
 
@@ -41,6 +42,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/initialize.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
@@ -293,7 +295,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_l
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		class_init((classinfo*)this->declaringClass);
+		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
                 utf_ptr = fid->descriptor->text;
@@ -358,7 +360,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		class_init((classinfo*)this->declaringClass);
+		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
                 utf_ptr = fid->descriptor->text;
@@ -423,7 +425,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		class_init((classinfo*)this->declaringClass);
+		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
                 utf_ptr = fid->descriptor->text;
@@ -488,7 +490,7 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		class_init((classinfo*)this->declaringClass);
+		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
                 utf_ptr = fid->descriptor->text;
@@ -562,7 +564,7 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		class_init((classinfo*)this->declaringClass);
+		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
                 utf_ptr = fid->descriptor->text;
@@ -634,7 +636,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		class_init((classinfo*)this->declaringClass);
+		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
                 utf_ptr = fid->descriptor->text;
@@ -705,7 +707,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		class_init((classinfo*)this->declaringClass);
+		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
                 utf_ptr = fid->descriptor->text;
@@ -778,7 +780,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lan
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		class_init((classinfo*)this->declaringClass);
+		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
                 utf_ptr = fid->descriptor->text;

@@ -36,14 +36,15 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: builtin.c 2201 2005-04-03 21:48:11Z twisti $
 
 */
 
 
 #include <assert.h>
-#include <string.h>
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "config.h"
 #include "arch.h"
@@ -67,6 +68,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/initialize.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
@@ -691,7 +693,7 @@ java_objectheader *builtin_new(classinfo *c)
 		if (initverbose)
 			log_message_class("Initialize class (from builtin_new): ", c);
 
-		if (!class_init(c))
+		if (!initialize_class(c))
 			return NULL;
 	}
 

@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2168 2005-03-31 14:49:00Z twisti $
+   $Id: asmpart.S 2201 2005-04-03 21:48:11Z twisti $
 
 */
 
@@ -826,7 +826,7 @@ asm_check_clinit:
 	movq    fa7,13*8(%rsp)
 
 	mov     14*8(%rsp),%rdi             /* pass classinfo pointer             */
-	call    class_init                  /* call class_init function           */
+	call    initialize_class            /* call class initialize function     */
 	
 	mov     0*8(%rsp),a0                /* restore argument registers         */
 	mov     1*8(%rsp),a1

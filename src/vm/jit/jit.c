@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2184 2005-04-01 21:19:05Z edwin $
+   $Id: jit.c 2201 2005-04-03 21:48:11Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 #include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/global.h"
+#include "vm/initialize.h"
 #include "vm/loader.h"
 #include "vm/method.h"
 #include "vm/options.h"
@@ -1354,7 +1355,7 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 		if (initverbose)
 			log_message_class("Initialize class ", m->class);
 
-		if (!class_init(m->class))
+		if (!initialize_class(m->class))
 			return NULL;
 	}
 

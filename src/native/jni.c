@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: jni.c 2201 2005-04-03 21:48:11Z twisti $
 
 */
 
@@ -70,14 +70,15 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/initialize.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
-#include "vm/resolve.h"
 
 
 /* XXX TWISTI hack: define it extern so they can be found in this file */
@@ -2145,169 +2146,235 @@ void CallStaticVoidMethodA(JNIEnv *env, jclass cls, jmethodID methodID, jvalue *
 }
 
 
-/****************** JNI-functions for accessing static fields ********************/
+/* Accessing Static Fields ****************************************************/
 
-jfieldID GetStaticFieldID (JNIEnv *env, jclass clazz, const char *name, const char *sig) 
+/* GetStaticFieldID ************************************************************
+
+   Returns the field ID for a static field of a class. The field is
+   specified by its name and signature. The GetStatic<type>Field and
+   SetStatic<type>Field families of accessor functions use field IDs
+   to retrieve static fields.
+
+*******************************************************************************/
+
+jfieldID GetStaticFieldID(JNIEnv *env, jclass clazz, const char *name, const char *sig)
 {
 	jfieldID f;
 
 	f = jclass_findfield(clazz,
-			    utf_new_char ((char*) name), 
-			    utf_new_char ((char*) sig)
-		 	    ); 
+						 utf_new_char((char *) name),
+						 utf_new_char((char *) sig)); 
 	
-	if (!f) *exceptionptr =	new_exception(string_java_lang_NoSuchFieldError);  
+	if (!f)
+		*exceptionptr =	new_exception(string_java_lang_NoSuchFieldError);  
 
 	return f;
 }
 
 
-jobject GetStaticObjectField (JNIEnv *env, jclass clazz, jfieldID fieldID)
+/* GetStatic<type>Field ********************************************************
+
+   This family of accessor routines returns the value of a static
+   field of an object.
+
+*******************************************************************************/
+
+jobject GetStaticObjectField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return NULL;
+
 	return fieldID->value.a;       
 }
 
 
-jboolean GetStaticBooleanField (JNIEnv *env, jclass clazz, jfieldID fieldID)
+jboolean GetStaticBooleanField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return false;
+
 	return fieldID->value.i;       
 }
 
 
-jbyte GetStaticByteField (JNIEnv *env, jclass clazz, jfieldID fieldID)
+jbyte GetStaticByteField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return 0;
+
 	return fieldID->value.i;       
 }
 
 
-jchar GetStaticCharField (JNIEnv *env, jclass clazz, jfieldID fieldID)
+jchar GetStaticCharField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return 0;
+
 	return fieldID->value.i;       
 }
 
 
-jshort GetStaticShortField (JNIEnv *env, jclass clazz, jfieldID fieldID)
+jshort GetStaticShortField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return 0;
+
 	return fieldID->value.i;       
 }
 
 
-jint GetStaticIntField (JNIEnv *env, jclass clazz, jfieldID fieldID)
+jint GetStaticIntField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return 0;
+
 	return fieldID->value.i;       
 }
 
 
-jlong GetStaticLongField (JNIEnv *env, jclass clazz, jfieldID fieldID)
+jlong GetStaticLongField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return 0;
+
 	return fieldID->value.l;
 }
 
 
-jfloat GetStaticFloatField (JNIEnv *env, jclass clazz, jfieldID fieldID)
+jfloat GetStaticFloatField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return 0.0;
+
  	return fieldID->value.f;
 }
 
 
-jdouble GetStaticDoubleField (JNIEnv *env, jclass clazz, jfieldID fieldID)
+jdouble GetStaticDoubleField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return 0.0;
+
 	return fieldID->value.d;
 }
 
 
+/*  SetStatic<type>Field *******************************************************
 
-void SetStaticObjectField (JNIEnv *env, jclass clazz, jfieldID fieldID, jobject value)
+	This family of accessor routines sets the value of a static field
+	of an object.
+
+*******************************************************************************/
+
+void SetStaticObjectField(JNIEnv *env, jclass clazz, jfieldID fieldID, jobject value)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return;
+
 	fieldID->value.a = value;
 }
 
 
-void SetStaticBooleanField (JNIEnv *env, jclass clazz, jfieldID fieldID, jboolean value)
+void SetStaticBooleanField(JNIEnv *env, jclass clazz, jfieldID fieldID, jboolean value)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return;
+
 	fieldID->value.i = value;
 }
 
 
-void SetStaticByteField (JNIEnv *env, jclass clazz, jfieldID fieldID, jbyte value)
+void SetStaticByteField(JNIEnv *env, jclass clazz, jfieldID fieldID, jbyte value)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return;
+
 	fieldID->value.i = value;
 }
 
 
-void SetStaticCharField (JNIEnv *env, jclass clazz, jfieldID fieldID, jchar value)
+void SetStaticCharField(JNIEnv *env, jclass clazz, jfieldID fieldID, jchar value)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return;
+
 	fieldID->value.i = value;
 }
 
 
-void SetStaticShortField (JNIEnv *env, jclass clazz, jfieldID fieldID, jshort value)
+void SetStaticShortField(JNIEnv *env, jclass clazz, jfieldID fieldID, jshort value)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return;
+
 	fieldID->value.i = value;
 }
 
 
-void SetStaticIntField (JNIEnv *env, jclass clazz, jfieldID fieldID, jint value)
+void SetStaticIntField(JNIEnv *env, jclass clazz, jfieldID fieldID, jint value)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return;
+
 	fieldID->value.i = value;
 }
 
 
-void SetStaticLongField (JNIEnv *env, jclass clazz, jfieldID fieldID, jlong value)
+void SetStaticLongField(JNIEnv *env, jclass clazz, jfieldID fieldID, jlong value)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return;
+
 	fieldID->value.l = value;
 }
 
 
-void SetStaticFloatField (JNIEnv *env, jclass clazz, jfieldID fieldID, jfloat value)
+void SetStaticFloatField(JNIEnv *env, jclass clazz, jfieldID fieldID, jfloat value)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return;
+
 	fieldID->value.f = value;
 }
 
 
-void SetStaticDoubleField (JNIEnv *env, jclass clazz, jfieldID fieldID, jdouble value)
+void SetStaticDoubleField(JNIEnv *env, jclass clazz, jfieldID fieldID, jdouble value)
 {
-	class_init(clazz);
+	if (!initialize_class(clazz))
+		return;
+
 	fieldID->value.d = value;
 }
 
 
-/*****  create new java.lang.String object from an array of Unicode characters ****/ 
+/* NewString *******************************************************************
 
-jstring NewString (JNIEnv *env, const jchar *buf, jsize len)
+   Create new java.lang.String object from an array of Unicode
+   characters.
+
+*******************************************************************************/
+
+jstring NewString(JNIEnv *env, const jchar *buf, jsize len)
 {
-	u4 i;
 	java_lang_String *s;
-	java_chararray *a;
+	java_chararray   *a;
+	u4                i;
 	
-	s = (java_lang_String*) builtin_new (class_java_lang_String);
-	a = builtin_newarray_char (len);
+	s = (java_lang_String *) builtin_new(class_java_lang_String);
+	a = builtin_newarray_char(len);
 
 	/* javastring or characterarray could not be created */
-	if ( (!a) || (!s) ) return NULL;
+	if (!a || !s)
+		return NULL;
 
 	/* copy text */
-	for (i=0; i<len; i++) a->data[i] = buf[i];
-	s -> value = a;
-	s -> offset = 0;
-	s -> count = len;
+	for (i = 0; i < len; i++)
+		a->data[i] = buf[i];
+
+	s->value = a;
+	s->offset = 0;
+	s->count = len;
 
 	return (jstring) s;
 }

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: cacao.c 2201 2005-04-03 21:48:11Z twisti $
 
 */
 
@@ -55,6 +55,7 @@
 #include "toolbox/logging.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/initialize.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
@@ -896,7 +897,7 @@ int main(int argc, char **argv)
 	  classpath 0.09. Another important thing is, that this has to happen
 	  after initThreads!!! */
 
-	if (!class_init(class_java_lang_System))
+	if (!initialize_class(class_java_lang_System))
 		throw_main_exception_exit();
 
 	cacao_initializing = false;
@@ -905,7 +906,6 @@ int main(int argc, char **argv)
 	/* start worker routines **************************************************/
 
 	if (startit) {
-		classinfo        *cl;           /* java/lang/ClassLoader              */
 		classinfo        *mainclass;    /* java/lang/Class                    */
 		methodinfo       *m;
 		java_objectarray *a; 
@@ -1005,18 +1005,17 @@ int main(int argc, char **argv)
 		s4 i;
 		classcache_name_entry *nmen;
 		classcache_class_entry *clsen;
-		classcache_loader_entry *lden;
 
 		/* create all classes found in the classpath */
 		/* XXX currently only works with zip/jar's */
 		create_all_classes();
 
 		/* link all classes */
-		for (slot=0; slot<classcache_hash.size; ++slot) {
+		for (slot = 0; slot < classcache_hash.size; slot++) {
 			nmen = (classcache_name_entry *) classcache_hash.ptr[slot];
 			for (; nmen; nmen=nmen->hashlink) {
 				/* iterate over all class entries */
-				for (clsen=nmen->classes; clsen; clsen=clsen->next) {
+				for (clsen = nmen->classes; clsen; clsen = clsen->next) {
 					c = clsen->classobj;
 					if (!c)
 						continue;

@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClassLoader.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: VMClassLoader.c 2201 2005-04-03 21:48:11Z twisti $
 
 */
 
@@ -48,6 +48,7 @@
 #include "native/include/java_util_Vector.h"
 #include "toolbox/logging.h"
 #include "vm/class.h"
+#include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/builtin.h"
 #include "vm/loader.h"
@@ -72,7 +73,13 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	if ((off < 0) || (len < 0) || ((off + len) > buf->header.size)) {
 		*exceptionptr =
-			new_exception(string_java_lang_IndexOutOfBoundsException);
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		return NULL;
+	}
+
+	/* thrown by SUN jdk */
+	if (len == 0) {
+		*exceptionptr = new_classformaterror(NULL, "Truncated class file");
 		return NULL;
 	}
 
@@ -87,12 +94,12 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	utfname = javastring_toutf(name, true);
 	
 	/* check if this class has already been defined */
-	c = classcache_lookup_defined((java_objectheader *)this,utfname);
+	c = classcache_lookup_defined((java_objectheader *) this, utfname);
 	if (c)
-		return c;
+		return (java_lang_Class *) c;
 
 	/* create a new classinfo struct */
-	c = create_classinfo(utfname);
+	c = class_create_classinfo(utfname);
 
 #if defined(USE_THREADS)
 	/* enter a monitor on the class */
@@ -182,7 +189,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 
 	/* get primitive class */
 
-	if (!load_class_bootstrap(u,&c) || !class_init(c))
+	if (!load_class_bootstrap(u, &c) || !initialize_class(c))
 		return NULL;
 
 	use_class_as_object(c);
@@ -227,7 +234,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 	utf *u;
 
 	if (!name) {
-		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		*exceptionptr = new_nullpointerexception();
 		return NULL;
 	}
 

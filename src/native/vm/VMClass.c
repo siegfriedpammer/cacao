@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: VMClass.c 2201 2005-04-03 21:48:11Z twisti $
 
 */
 
@@ -689,6 +689,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *
 	classinfo *cl = (classinfo *) that;
 	classinfo *c = cl->super.cls;
 
+	if (cl->flags & ACC_INTERFACE)
+		return NULL;
+
 	if (!c)
 		return NULL;
 
@@ -790,7 +793,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMClass_initialize(JNIEnv *env, jclass cla
 	if (!ci->initialized)
 		/* No need to check return value, because class_init already sets the */
 		/* exception pointer. */
-		(void) class_init(ci);
+		(void) initialize_class(ci);
 }
 
 
