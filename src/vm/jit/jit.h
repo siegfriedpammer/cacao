@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 1203 2004-06-22 23:14:55Z twisti $
+   $Id: jit.h 1233 2004-06-30 19:48:48Z twisti $
 
 */
 
@@ -106,16 +106,18 @@ struct stackelement {
 /**************************** instruction structure ***************************/
 
 struct instruction {
-	stackptr dst;               /* stack index of destination operand stack   */
-	u2  opc;                    /* opcode of intermediate code command        */
-	s4  op1;                    /* first operand, usually variable number     */
-	imm_union val;              /* immediate constant                         */
-	void *target;			/* used for targets of branches and jumps	  */
-					/* and as address for list of targets for	  */
-					/* statements					*/
-	u2 line;				/* line number in source file */
-	methodinfo *method;		/*needed for inlining. can't be done on basic block level, since an inlined
-					function doesn't start necessarily start a new block*/
+	stackptr    dst;            /* stack index of destination operand stack   */
+	u2          opc;            /* opcode of intermediate code command        */
+	s4          op1;            /* first operand, usually variable number     */
+	imm_union   val;            /* immediate constant                         */
+	void       *target;         /* used for targets of branches and jumps     */
+	                            /* and as address for list of targets for     */
+	                            /* statements                                 */
+	u2          line;           /* line number in source file                 */
+	methodinfo *method;         /* needed for inlining. can't be done on      */
+	                            /* basic block level, since an inlined        */
+	                            /* function doesn't start necessarily start   */
+	                            /* a new block                                */
 };
 
 
@@ -162,8 +164,6 @@ struct varinfo {
 	int flags;                  /* flags (SAVED, INMEMORY)                    */
 	int regoff;                 /* register number or memory offset           */
 };
-
-typedef varinfo varinfo5[5];
 
 
 /***************** forward references in branch instructions ******************/
@@ -808,6 +808,22 @@ extern int jcommandsize[256];
 
 #define ICMD_CHECKEXCEPTION   203       /* check for an exception             */
 
+#define ICMD_IASTORECONST     204
+
+#define ICMD_LASTORECONST     205
+
+#define ICMD_FASTORECONST     206
+
+#define ICMD_DASTORECONST     207
+
+#define ICMD_AASTORECONST     208
+
+#define ICMD_BASTORECONST     209
+
+#define ICMD_CASTORECONST     210
+
+#define ICMD_SASTORECONST     211
+
 #define ICMD_BUILTIN3         253       /* internal opcode */
 #define ICMD_BUILTIN2         254       /* internal opcode */
 #define ICMD_BUILTIN1         255       /* internal opcode */
@@ -845,52 +861,6 @@ extern int nregdescint[];   /* description of integer registers               */
 extern int nregdescfloat[]; /* description of floating point registers        */
 
 extern int nreg_parammode;
-
-
-extern int count_jit_calls;
-extern int count_methods;
-extern int count_spills;
-extern int count_pcmd_activ;
-extern int count_pcmd_drop;
-extern int count_pcmd_zero;
-extern int count_pcmd_const_store;
-extern int count_pcmd_const_alu;
-extern int count_pcmd_const_bra;
-extern int count_pcmd_load;
-extern int count_pcmd_move;
-extern int count_load_instruction;
-extern int count_pcmd_store;
-extern int count_pcmd_store_comb;
-extern int count_dup_instruction;
-extern int count_pcmd_op;
-extern int count_pcmd_mem;
-extern int count_pcmd_met;
-extern int count_pcmd_bra;
-extern int count_pcmd_table;
-extern int count_pcmd_return;
-extern int count_pcmd_returnx;
-extern int count_check_null;
-extern int count_check_bound;
-extern int count_max_basic_blocks;
-extern int count_basic_blocks;
-extern int count_max_javainstr;
-extern int count_javainstr;
-extern int count_javacodesize;
-extern int count_javaexcsize;
-extern int count_calls;
-extern int count_tryblocks;
-extern int count_code_len;
-extern int count_data_len;
-extern int count_cstub_len;
-extern int count_nstub_len;
-extern int count_max_new_stack;
-extern int count_upper_bound_new_stack;
-extern int *count_block_stack;
-extern int *count_analyse_iterations;
-extern int *count_method_bb_distribution;
-extern int *count_block_size_distribution;
-extern int *count_store_length;
-extern int *count_store_depth;
 
 
 extern int stackreq[256];
