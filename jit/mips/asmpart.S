@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 1281 2004-07-05 22:03:43Z twisti $
+   $Id: asmpart.S 1290 2004-07-09 13:19:56Z twisti $
 
 */
 
@@ -63,7 +63,7 @@
 #define s6      $22
 #define s7      $23
 
-#define t4      $24
+#define t8      $24
 #define itmp3   $25
 #define k0      $26
 #define k1      $27
@@ -382,12 +382,12 @@ call_java_pc2:
 	daddi   s7,s7,-1
 		
 calljava_argsloaded:
-    move    t4,sp
+    move    t8,sp
 	blez    s7,calljava_nocopy
 	subu    t1,zero,s7
 	sll     t2,t1,3
 	daddu   sp,sp,t2
-	daddu   t2,t2,t4
+	daddu   t2,t2,t8
 
 calljava_copyloop:
     ald     t3,offjniitem+sizejniblock*8(t0)
@@ -398,11 +398,11 @@ calljava_copyloop:
 	bnez    t1,calljava_copyloop
 
 calljava_nocopy:
-	ala     itmp1,32(t4)              /* pass pointer to methodptr via itmp1  */
+	ala     itmp1,32(t8)              /* pass pointer to methodptr via itmp1  */
 
 	ala     mptr,asm_call_jit_compiler/* fake virtual function call (2 instr) */
 	ast     mptr,16(sp)               /* store function address               */
-	ala     mptr,8(t4)                /* set method pointer                   */
+	ala     mptr,8(t8)                /* set method pointer                   */
 
 	.set    noreorder
 	
@@ -563,7 +563,7 @@ asm_handle_exception:
 	sd      t1,2*8(sp)
 	sd      t2,3*8(sp)
 	sd      t3,4*8(sp)
-	sd      t4,5*8(sp)
+	sd      t8,5*8(sp)
 	sd      a0,6*8(sp)
 	sd      a1,7*8(sp)
 	sd      a2,8*8(sp)
@@ -687,7 +687,7 @@ ex_handle_it:
 	ld      t1,2*8(sp)
 	ld      t2,3*8(sp)
 	ld      t3,4*8(sp)
-	ld      t4,5*8(sp)
+	ld      t8,5*8(sp)
 	ld      a0,6*8(sp)
 	ld      a1,7*8(sp)
 	ld      a2,8*8(sp)
@@ -795,8 +795,9 @@ asm_check_clinit:
 	lw      itmp2,offclassinit(itmp1)
 	bnez    itmp2,L_is_initialized
 	
-	daddiu  sp,sp,-18*8
+	daddiu  sp,sp,-22*8
 	sd      ra,0*8(sp)
+
 	sd      a0,1*8(sp)            /* save argument registers for leaf funcs   */
 	sd      a1,2*8(sp)
 	sd      a2,3*8(sp)
@@ -805,19 +806,27 @@ asm_check_clinit:
 	sd      a5,6*8(sp)
 	sd      a6,7*8(sp)
 	sd      a7,8*8(sp)
-	sdc1    fa0,9*8(sp)
-	sdc1    fa1,10*8(sp)
-	sdc1    fa2,11*8(sp)
-	sdc1    fa3,12*8(sp)
-	sdc1    fa4,13*8(sp)
-	sdc1    fa5,14*8(sp)
-	sdc1    fa6,15*8(sp)
-	sdc1    fa7,16*8(sp)
+
+	sd      t0,9*8(sp)
+	sd      t1,10*8(sp)
+	sd      t2,11*8(sp)
+	sd      t3,12*8(sp)
+	sd      t8,13*8(sp)
+
+	sdc1    fa0,14*8(sp)
+	sdc1    fa1,15*8(sp)
+	sdc1    fa2,16*8(sp)
+	sdc1    fa3,17*8(sp)
+	sdc1    fa4,18*8(sp)
+	sdc1    fa5,19*8(sp)
+	sdc1    fa6,20*8(sp)
+	sdc1    fa7,21*8(sp)
 
 	move    a0,itmp1
 	jal     class_init
 		
 	ld      ra,0*8(sp)
+
 	ld      a0,1*8(sp)            /* restore argument registers               */
 	ld      a1,2*8(sp)
 	ld      a2,3*8(sp)
@@ -826,25 +835,35 @@ asm_check_clinit:
 	ld      a5,6*8(sp)
 	ld      a6,7*8(sp)
 	ld      a7,8*8(sp)
-	ldc1    fa0,9*8(sp)
-	ldc1    fa1,10*8(sp)
-	ldc1    fa2,11*8(sp)
-	ldc1    fa3,12*8(sp)
-	ldc1    fa4,13*8(sp)
-	ldc1    fa5,14*8(sp)
-	ldc1    fa6,15*8(sp)
-	ldc1    fa7,16*8(sp)
-	daddiu  sp,sp,18*8
+
+	ld      t0,9*8(sp)
+	ld      t1,10*8(sp)
+	ld      t2,11*8(sp)
+	ld      t3,12*8(sp)
+	ld      t8,13*8(sp)
+
+	ldc1    fa0,14*8(sp)
+	ldc1    fa1,15*8(sp)
+	ldc1    fa2,16*8(sp)
+	ldc1    fa3,17*8(sp)
+	ldc1    fa4,18*8(sp)
+	ldc1    fa5,19*8(sp)
+	ldc1    fa6,20*8(sp)
+	ldc1    fa7,21*8(sp)
+
+	daddiu  sp,sp,22*8
 
 	beqz    v0,L_initializererror
 
 L_is_initialized:
+#if 0
 	move    itmp1,ra              /* now patch the calling code               */
 	daddiu  itmp1,itmp1,-4*4      /* go back 4 instructions                   */
 	lui     itmp2,0x1000          /* b                                        */
 	daddiu  itmp2,itmp2,3         /* jump over 3 instructions                 */
 	sw      itmp2,0(itmp1)        /* store the new branch: br +3              */
 	sw      zero,4(itmp1)         /* and a nop delay slot                     */
+#endif
 
 	j       ra
 
