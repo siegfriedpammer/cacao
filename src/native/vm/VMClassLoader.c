@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClassLoader.c 2201 2005-04-03 21:48:11Z twisti $
+   $Id: VMClassLoader.c 2209 2005-04-04 09:41:17Z twisti $
 
 */
 
@@ -47,10 +47,11 @@
 #include "native/include/java_security_ProtectionDomain.h"
 #include "native/include/java_util_Vector.h"
 #include "toolbox/logging.h"
+#include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
-#include "vm/builtin.h"
+#include "vm/initialize.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
