@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1641 2004-12-01 13:13:31Z christian $
+   $Id: codegen.c 1682 2004-12-05 17:22:27Z stefan $
 
 */
 
@@ -321,7 +321,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 
 	if (parentargs_base) {
-		M_LDA(REG_SP, REG_SP, -parentargs_base * 4);
+		M_STWU(REG_SP, REG_SP, -parentargs_base * 4);
 	}
 
 	/* save return address and used callee saved registers */
