@@ -60,6 +60,9 @@ case "$host_os" in
 *darwin* )
         CFLAGS="$CFLAGS -D__DARWIN__"
         ;;
+*irix* )
+        CFLAGS="$CFLAGS -D__IRIX__"
+        ;;
 * )
 	;;
 esac
