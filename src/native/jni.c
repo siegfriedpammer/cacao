@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 930 2004-03-02 21:18:23Z jowenn $
+   $Id: jni.c 944 2004-03-06 20:50:31Z twisti $
 
 */
 
@@ -3437,10 +3437,13 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 
 	if (*exceptionptr) {
 		java_objectheader *exceptionToWrap=*exceptionptr;
+		classinfo *ivtec;
+		java_objectheader *ivte;
+
 		*exceptionptr=0;
-		classinfo *ivtec = loader_load_sysclass(NULL,
+		ivtec = loader_load_sysclass(NULL,
 												utf_new_char("java/lang/reflect/InvocationTargetException"));
-		java_objectheader* ivte = builtin_new(ivtec);
+		ivte = builtin_new(ivtec);
 		asm_calljavafunction(class_resolvemethod(ivtec,
 												 utf_new_char("<init>"),
 												 utf_new_char("(Ljava/lang/Throwable;)V")),
