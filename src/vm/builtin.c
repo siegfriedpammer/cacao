@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 782 2003-12-15 15:47:09Z twisti $
+   $Id: builtin.c 793 2003-12-16 18:50:39Z edwin $
 
 */
 
@@ -831,8 +831,12 @@ java_objectheader *builtin_trace_exception(java_objectheader *exceptionptr,
 										   methodinfo *method, int *pos, 
 										   int noindent)
 {
-	if (!noindent)
-		methodindent--;
+	if (!noindent) {
+		if (methodindent)
+			methodindent--;
+		else
+			log_text("WARNING: unmatched methodindent--");
+	}
 	if (verbose || runverbose) {
 		printf("Exception ");
 		if (exceptionptr) {
@@ -1021,7 +1025,10 @@ void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
 	char logtext[MAXLOGTEXT];
 	for (i = 0; i < methodindent; i++)
 		logtext[i] = '\t';
-	methodindent--;
+	if (methodindent)
+		methodindent--;
+	else
+		log_text("WARNING: unmatched methodindent--");
 	sprintf(logtext + methodindent, "finished: ");
 	utf_sprint(logtext + strlen(logtext), method->class->name);
 	sprintf(logtext + strlen(logtext), ".");
