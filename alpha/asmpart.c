@@ -1,3 +1,4 @@
+/* -*- mode: asm; tab-width: 4 -*- */
 /****************************** asmpart.c **************************************
 *                                                                              *
 *   is an assembly language file, but called .c to fake the preprocessor.      *
@@ -104,7 +105,7 @@
 	.globl new_builtin_lrem
 	.globl perform_alpha_threadswitch
 	.globl initialize_thread_stack
-	.globl used_stack_top
+	.globl asm_switchstackandcall
 
 
 /*************************** imported variables *******************************/
@@ -332,9 +333,9 @@ noregchange:
 	sra     $22,48,$22              # isolate offset
 
 	addq    $22,$28,$22             # compute update address via method pointer
- 	stq     $0,0($22)               # save new method address there
+	stq     $0,0($22)               # save new method address there
 
-    bis     $0,$0,pv                # load method address into pv
+	bis     $0,$0,pv                # load method address into pv
 
 	jmp     zero, (pv)              # and call method. The method returns
 	                                # directly to the caller (ra).
@@ -1063,6 +1064,7 @@ initialize_thread_stack:
 
 /******************* function perform_alpha_threadswitch ***********************
 *                                                                              *
+*   void perform_alpha_threadswitch (u1 **from, u1 **to, u1 **stackTop);       *
 *   performs a threadswitch                                                    *
 *                                                                              *
 *******************************************************************************/
@@ -1088,6 +1090,7 @@ perform_alpha_threadswitch:
 	stt     sf7, 112(sp)
 	stq     ra, 120(sp)
 	stq     sp, 0(a0)
+	stq     sp, 0(a2)
 	ldq     sp, 0(a1)
 	ldq     s0, 0(sp)
 	ldq     s1, 8(sp)
@@ -1111,15 +1114,28 @@ perform_alpha_threadswitch:
 	.end    perform_alpha_threadswitch
 
 
-/*********************** function used_stack_top *******************************
+/********************* function asm_switchstackandcall *************************
 *                                                                              *
-*   returns $sp                                                                *
+*   Switches to a new stack, calls a function and switches back.               *
+*       a0      new stack pointer                                              *
+*       a1      function pointer                                               *
 *                                                                              *
 *******************************************************************************/
 
-	.ent    used_stack_top
-used_stack_top:
 
-	mov     sp, v0
-	jmp     zero,(ra)
-	.end    used_stack_top
+	.ent	asm_switchstackandcall
+asm_switchstackandcall:
+	lda	a0,-2*8(a0)		# allocate new stack
+	stq	ra,0(a0)		# save return address
+	stq	sp,1*8(a0)		# save old stack pointer
+	mov	a0,sp			# switch to new stack
+	
+	mov	a1,pv			# load function pointer
+	jmp	ra,(pv)			# and call funciton
+
+	ldq	ra,0(sp)		# load return address
+	ldq	sp,1*8(sp)		# switch to old stack
+
+	jmp	zero,(ra)		# return
+
+	.end	asm_switchstackandcall

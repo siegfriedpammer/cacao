@@ -114,6 +114,7 @@ void checkEvents(bool block);
 extern int blockInts;
 extern bool needReschedule;
 extern thread *currentThread;
+extern thread *mainThread;
 extern ctx contexts[];
 extern int threadStackSize;
 

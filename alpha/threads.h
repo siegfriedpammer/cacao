@@ -23,20 +23,18 @@
 
 #include "../threads/thread.h"
 
-void perform_alpha_threadswitch (u1 **from, u1 **to);
+void perform_alpha_threadswitch (u1 **from, u1 **to, u1 **stackTop);
 u1* initialize_thread_stack (void *func, u1 *stack);
-u1* used_stack_top (void);
+void asm_switchstackandcall (void *stack, void *func);
 
-#define	THREADSTACKSIZE		(64 * 1024)
+#define	THREADSTACKSIZE		(32 * 1024)
 
 #define	THREADSWITCH(to, from)	   perform_alpha_threadswitch(&(from)->restorePoint,\
-                                                              &(to)->restorePoint)
+                                                              &(to)->restorePoint, &(from)->usedStackTop)
 
 #define THREADINIT(to, func)       (to)->restorePoint = \
                                      initialize_thread_stack((u1*)(func), \
                                                              (to)->stackEnd)
-
-#define USEDSTACKTOP(top)          (top) = used_stack_top()
 
 #define	THREADINFO(ee)						\
 		do {						\

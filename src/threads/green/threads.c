@@ -41,6 +41,7 @@ static classinfo *class_java_lang_ThreadDeath;
 #if defined(USE_INTERNAL_THREADS)
 
 thread* currentThread;
+thread* mainThread;
 thread* threadQhead[MAX_THREAD_PRIO + 1];
 thread* threadQtail[MAX_THREAD_PRIO + 1];
 
@@ -132,7 +133,7 @@ initThreads(u1 *stackbottom)
 		contexts[i].free = true;
 
     /* Allocate a thread to be the main thread */
-    currentThread = (thread*)builtin_new(loader_load(unicode_new_char("java/lang/Thread")));
+    mainThread = currentThread = (thread*)builtin_new(loader_load(unicode_new_char("java/lang/Thread")));
     assert(currentThread != 0);
     
     currentThread->PrivateInfo = 1;
@@ -172,7 +173,7 @@ initThreads(u1 *stackbottom)
 	iresumeThread(currentThread);
 
 	/* Start garbage collection thread */
-	gcDaemonThread = startDaemon(gc_thread, "gc", 1024*512);
+	gcDaemonThread = startDaemon(gc_thread, "gc", 16384);
 	iresumeThread(gcDaemonThread);
 
 	heap_addreference((void**)&gcDaemonThread);
@@ -633,7 +634,7 @@ reschedule(void)
 
 				if (threadQhead[i] != currentThread)
 				{
-					USEDSTACKTOP((CONTEXT(currentThread).usedStackTop));
+					/* USEDSTACKTOP((CONTEXT(currentThread).usedStackTop)); */
 
 					lastThread = currentThread;
 					currentThread = threadQhead[i];

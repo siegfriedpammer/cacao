@@ -27,6 +27,7 @@
 #include "asmpart.h"
 #include "callargs.h"
 
+#include "sysdep/threads.h"
 #include "threads/thread.h"                  /* schani */
 #include "threads/locks.h"
 
@@ -1098,35 +1099,41 @@ static void markreferences (void **rstart, void **rend)
 static void markstack ()                   /* schani */
 {
 	void *dummy;
-	void **top_of_stack = &dummy;
 
 #ifdef USE_THREADS
-	thread *aThread;
+    thread *aThread;
 
-	for (aThread = liveThreads; aThread != 0; aThread = CONTEXT(aThread).nextlive) {
+    for (aThread = liveThreads; aThread != 0;
+         aThread = CONTEXT(aThread).nextlive) {
 		mark((heapblock*)aThread);
 		if (aThread == currentThread) {
-			if (top_of_stack > (void**)CONTEXT(aThread).stackEnd)
-				markreferences ((void**)CONTEXT(aThread).stackEnd, top_of_stack);
-			else 	
-				markreferences (top_of_stack, (void**)CONTEXT(aThread).stackEnd);
+		    void **top_of_stack = &dummy;
+		    
+		    if (top_of_stack > (void**)CONTEXT(aThread).stackEnd)
+				markreferences((void**)CONTEXT(aThread).stackEnd, top_of_stack);
+		    else 	
+				markreferences(top_of_stack, (void**)CONTEXT(aThread).stackEnd);
 			}
 		else {
-			if (CONTEXT(aThread).usedStackTop > CONTEXT(aThread).stackEnd)
-				markreferences ((void**)CONTEXT(aThread).stackEnd,
-				                (void**)CONTEXT(aThread).usedStackTop + 16);
-			else 	
-				markreferences ((void**)CONTEXT(aThread).usedStackTop - 16,
-				                (void**)CONTEXT(aThread).stackEnd);
+		    if (CONTEXT(aThread).usedStackTop > CONTEXT(aThread).stackEnd)
+				markreferences((void**)CONTEXT(aThread).stackEnd,
+				               (void**)CONTEXT(aThread).usedStackTop);
+		    else 	
+				markreferences((void**)CONTEXT(aThread).usedStackTop,
+				               (void**)CONTEXT(aThread).stackEnd);
 			}
-		}
+	    }
 
-	markreferences((void**)&threadQhead[0], (void**)&threadQhead[MAX_THREAD_PRIO]);
+    markreferences((void**)&threadQhead[0],
+                   (void**)&threadQhead[MAX_THREAD_PRIO]);
+
 #else
-	if (top_of_stack > bottom_of_stack)
-		markreferences(bottom_of_stack, top_of_stack);
-	else
-		markreferences(top_of_stack, bottom_of_stack);
+    void **top_of_stack = &dummy;
+
+    if (top_of_stack > bottom_of_stack)
+        markreferences(bottom_of_stack, top_of_stack);
+    else
+        markreferences(top_of_stack, bottom_of_stack);
 #endif
 }
 
@@ -1356,7 +1363,8 @@ gc_thread (void)
 		wait_cond(&gcThreadMutex, &gcConditionStart, 0);
 
 		intsDisable();
-		heap_docollect();
+		assert(currentThread != mainThread);
+		asm_switchstackandcall(CONTEXT(mainThread).usedStackTop, heap_docollect);
 		intsRestore();
 
 		signal_cond(&gcConditionDone);

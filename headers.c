@@ -71,7 +71,7 @@ void removenativestub (u1 *stub) {}
 
 void perform_alpha_threadswitch (u1 **from, u1 **to) {}
 u1* initialize_thread_stack (void *func, u1 *stack) { return NULL; }
-u1* used_stack_top (void) { return NULL; }
+void asm_switchstackandcall () { }
 
 java_objectheader *native_new_and_init (void *p) { return NULL; }
 
