@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 1179 2004-06-17 17:12:40Z twisti $
+   $Id: headers.c 1216 2004-06-29 13:31:58Z twisti $
 
 */
 
@@ -149,12 +149,22 @@ void throw_cacao_exception_exit(char *exception, char *message)
 }
 
 
-void new_exception(char *classname) {}
-void new_exception_message(char *classname, char *message) {}
+void new_exception(char *classname)
+{
+	printf("Exception in thread \"main\" %s\n", classname);
+	exit(1);
+}
+
+void new_exception_message(char *classname, char *message)
+{
+	printf("Exception in thread \"main\" %s: %s\n", classname, message);
+	exit(1);
+}
+
 void new_exception_throwable(char *classname, java_objectheader *t) {}
 void new_exception_utfmessage(char *classname, utf *message)
 {
-	printf("%s: ", classname);
+	printf("Exception in thread \"main\" %s: ", classname);
 	utf_display(message);
 	printf("\n");
 	exit(1);
@@ -714,8 +724,8 @@ int main(int argc, char **argv)
    
 	char classpath[500] = "";
 	char offsets_filename[1024] = ""; /* phil */
-	u4 heapmaxsize = 1000000;
-	u4 heapstartsize = 100000;
+	u4 heapmaxsize = 2 * 1024 * 1024;
+	u4 heapstartsize = 100 * 1024;
 
 	/*********** options so only headers are generated *******************/
    
