@@ -27,13 +27,21 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 1621 2004-11-30 13:06:55Z twisti $
+   $Id: reg.h 1626 2004-11-30 17:25:59Z twisti $
 
 */
 
 
 #ifndef _REG_H
 #define _REG_H
+
+/* We typedef these structures before #includes to resolve circular           */
+/* dependencies.                                                              */
+
+typedef struct varinfo varinfo;
+typedef struct varinfo varinfo5[5];
+typedef struct registerdata registerdata;
+
 
 #include "types.h"
 #include "vm/jit/codegen.inc.h"
@@ -43,18 +51,12 @@
 
 /************************* pseudo variable structure **************************/
 
-typedef struct varinfo varinfo;
-
 struct varinfo {
 	int type;                   /* basic type of variable                     */
 	int flags;                  /* flags (SAVED, INMEMORY)                    */
 	int regoff;                 /* register number or memory offset           */
 };
 
-typedef struct varinfo varinfo5[5];
-
-
-typedef struct registerdata registerdata;
 
 struct registerdata {
 	varinfo5 *locals;
