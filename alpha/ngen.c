@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 139 1999-11-11 19:21:30Z andi $
+	Last Change: $Id: ngen.c 227 2003-02-12 13:23:24Z stefan $
 
 *******************************************************************************/
 
@@ -3323,13 +3323,14 @@ makeactualcall:
 						M_CMPULE(REG_ITMP1, REG_ITMP2, d);
 						}
 */
-					M_BEQZ(s1, 7);
+					M_BEQZ(s1, 8);
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					a = dseg_addaddress ((void*) super->vftbl);
+					M_ALD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, class));
+					a = dseg_addaddress ((void*) super);
 					M_ALD(REG_ITMP2, REG_PV, a);
-					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
-					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
-					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(classinfo, baseval));
+					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(classinfo, baseval));
+					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(classinfo, diffval));
 					M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 					M_CMPULE(REG_ITMP1, REG_ITMP2, d);
 					}
@@ -3397,21 +3398,22 @@ makeactualcall:
 						M_BEQZ(REG_ITMP2, 0);
 						}
 */
-					M_BEQZ(s1, 8 + (d == REG_ITMP3));
+					M_BEQZ(s1, 9 + (d == REG_ITMP3));
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					a = dseg_addaddress ((void*) super->vftbl);
+					M_ALD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, class));
+					a = dseg_addaddress ((void*) super);
 					M_ALD(REG_ITMP2, REG_PV, a);
-					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
+					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(classinfo, baseval));
 					if (d != REG_ITMP3) {
-						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(classinfo, baseval));
+						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(classinfo, diffval));
 						M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 						}
 					else {
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, baseval));
+						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(classinfo, baseval));
 						M_ISUB(REG_ITMP1, REG_ITMP2, REG_ITMP1);
 						M_ALD(REG_ITMP2, REG_PV, a);
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(classinfo, diffval));
 						}
 					M_CMPULE(REG_ITMP1, REG_ITMP2, REG_ITMP2);
 					M_BEQZ(REG_ITMP2, 0);

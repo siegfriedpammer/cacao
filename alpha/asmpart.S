@@ -608,7 +608,7 @@ ex_table_loop:
 	beq     a1,ex_handle_it       /* NULL catches everything                  */
 
 	ldq     a0,offobjvftbl(xptr)  /* a0 = vftblptr(xptr)                      */
-	ldq     a1,offobjvftbl(a1)    /* a1 = vftblptr(catchtype) class (not obj) */
+	ldq     a0,offclass(a0)
 	ldl     a0,offbaseval(a0)     /* a0 = baseval(xptr)                       */
 	ldl     v0,offbaseval(a1)     /* a2 = baseval(catchtype)                  */
 	ldl     a1,offdiffval(a1)     /* a1 = diffval(catchtype)                  */
