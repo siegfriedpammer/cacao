@@ -693,7 +693,6 @@ gc_call (void)
 {
 #ifdef USE_THREADS
 	assert(blockInts == 0);
-#endif
 
 	intsDisable();
 	if (currentThread == NULL || currentThread == mainThread)
@@ -701,6 +700,9 @@ gc_call (void)
 	else
 		asm_switchstackandcall(CONTEXT(mainThread).usedStackTop, heap_docollect);
 	intsRestore();
+#else
+	heap_docollect();
+#endif
 }
 
 

@@ -442,7 +442,9 @@ int main(int argc, char **argv)
 #endif
 
 
+#ifdef USE_THREADS
 	atexit(clear_thread_flags);
+#endif
 
    /************ Infos aus der Environment lesen ************************/
 
