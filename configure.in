@@ -238,12 +238,14 @@ if test x"$enable_gtk_peer" = "xyes"; then
 		java.awt.peer.MenuPeer \
 		java.awt.peer.MenuItemPeer \
 		gnu.java.awt.peer.gtk.GdkPixbufDecoder \
+		gnu.java.awt.peer.gtk.GtkGenericPeer \
 		gnu.java.awt.peer.gtk.GtkMenuBarPeer \
 		gnu.java.awt.peer.gtk.GtkScrollPanePeer \
 		gnu.java.awt.peer.gtk.GtkMenuPeer \
 		gnu.java.awt.peer.gtk.GtkTextComponentPeer \
 		gnu.java.awt.peer.gtk.GtkComponentPeer \
 		gnu.java.awt.peer.gtk.GtkPopupMenuPeer \
+		gnu.java.awt.peer.gtk.GtkCheckboxPeer \
 		gnu.java.awt.peer.gtk.GtkCheckboxGroupPeer \
 		gnu.java.awt.peer.gtk.GtkMenuItemPeer \
 		gnu.java.awt.peer.gtk.GdkGraphics \
@@ -252,11 +254,9 @@ if test x"$enable_gtk_peer" = "xyes"; then
 		gnu.java.awt.peer.gtk.GtkFramePeer \
 		gnu.java.awt.peer.gtk.GdkFontMetrics \
 		gnu.java.awt.peer.gtk.GtkScrollbarPeer \
-		gnu.java.awt.peer.gtk.GtkGenericPeer \
 		gnu.java.awt.peer.gtk.GtkListPeer \
 		gnu.java.awt.peer.gtk.GtkLabelPeer \
 		gnu.java.awt.peer.gtk.GtkTextAreaPeer \
-		gnu.java.awt.peer.gtk.GtkCheckboxPeer \
 		gnu.java.awt.peer.gtk.GtkFileDialogPeer \
 		gnu.java.awt.peer.gtk.GtkImagePainter \
 		gnu.java.awt.peer.gtk.GtkChoicePeer \
