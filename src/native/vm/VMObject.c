@@ -1,11 +1,15 @@
 /* class: java/lang/Object */
 
 
+#include <stdlib.h>
+#include <string.h>
 #include "jni.h"
 #include "builtin.h"
 #include "native.h"
 #include "mm/boehm.h"
 #include "threads/locks.h"
+#include "toolbox/loging.h"
+#include "toolbox/memory.h"
 #include "java_lang_Cloneable.h"
 #include "java_lang_Object.h"
 

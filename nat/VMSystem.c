@@ -1,9 +1,12 @@
 /* class: java/lang/System */
 
 
+#include <string.h>
+#include <time.h>
 #include "jni.h"
 #include "builtin.h"
 #include "native.h"
+#include "toolbox/loging.h"
 #include "java_lang_Object.h"
 
 

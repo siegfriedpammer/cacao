@@ -1,6 +1,7 @@
-/* This file is machine generated, don't edit it !*/
+/* class: java/nio/channels/FileChannelImpl */
 
 
+#include <stdlib.h>
 #include "jni.h"
 #include "types.h"
 #include "java_nio_channels_FileChannelImpl.h"

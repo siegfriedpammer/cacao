@@ -1,12 +1,14 @@
 /* class: java/lang/reflect/Constructor */
 
 
+#include <string.h>
 #include "jni.h"
 #include "builtin.h"
 #include "loader.h"
 #include "native.h"
 #include "tables.h"
 #include "asmpart.h"
+#include "toolbox/loging.h"
 #include "java_lang_Class.h"
 #include "java_lang_reflect_Constructor.h"
 

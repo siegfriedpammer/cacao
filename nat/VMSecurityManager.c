@@ -5,6 +5,7 @@
 #include "builtin.h"
 #include "native.h"
 #include "tables.h"
+#include "toolbox/loging.h"
 
 
 /*

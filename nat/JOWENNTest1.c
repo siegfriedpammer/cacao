@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "jni.h"
 #include "types.h"
 #include "java_lang_JOWENNTest1.h"

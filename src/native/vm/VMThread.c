@@ -7,6 +7,7 @@
 #include "loader.h"
 #include "tables.h"
 #include "threads/thread.h"
+#include "toolbox/loging.h"
 #include "java_lang_ThreadGroup.h"
 #include "java_lang_Object.h"         /* needed for java_lang_Thread.h */
 #include "java_lang_Throwable.h"      /* needed for java_lang_Thread.h */

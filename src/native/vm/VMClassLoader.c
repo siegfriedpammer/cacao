@@ -4,6 +4,7 @@
 #include "jni.h"
 #include "loader.h"
 #include "native.h"
+#include "toolbox/loging.h"
 #include "java_lang_Class.h"
 #include "java_lang_String.h"
 #include "java_lang_ClassLoader.h"

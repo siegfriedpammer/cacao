@@ -8,6 +8,7 @@
 #include "types.h"
 #include "builtin.h"
 #include "native.h"
+#include "toolbox/loging.h"
 #include "java_lang_reflect_Method.h"
 
 

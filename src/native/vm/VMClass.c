@@ -1,6 +1,7 @@
 /* class: java/lang/Class */
 
 
+#include <string.h>
 #include "jni.h"
 #include "types.h"
 #include "global.h"
@@ -8,6 +9,8 @@
 #include "loader.h"
 #include "native.h"
 #include "tables.h"
+#include "toolbox/loging.h"
+#include "toolbox/memory.h"
 #include "java_lang_Class.h"
 #include "java_lang_reflect_Constructor.h"
 #include "java_lang_reflect_Field.h"

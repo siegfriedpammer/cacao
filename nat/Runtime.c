@@ -1,6 +1,8 @@
 /* class: java/lang/Runtime */
 
 
+#include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
 #include "jni.h"
@@ -10,6 +12,8 @@
 #include "tables.h"
 #include "asmpart.h"
 #include "mm/boehm.h"
+#include "toolbox/loging.h"
+#include "toolbox/memory.h"
 #include "java_io_File.h"
 #include "java_lang_String.h"
 #include "java_util_Properties.h"    /* needed for java_lang_Runtime.h */

@@ -1,4 +1,5 @@
 #include "jni.h"
+#include "toolbox/loging.h"
 #include "java_lang_ClassLoader.h"
 
 
