@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 608 2003-11-12 00:48:27Z stefan $
+# $Id: Makefile.am 617 2003-11-13 09:20:03Z stefan $
 
 
 SUBDIRS = . loop @ARCH_DIR@
@@ -15,7 +15,6 @@ EXTRA_DIST = \
 	parse.c \
 	reg.inc \
 	stack.c \
-	jitdef.h \
 	inline.c \
 	sets.c \
 	sets.h \

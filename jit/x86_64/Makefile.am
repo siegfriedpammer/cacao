@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 559 2003-11-02 23:20:06Z twisti $
+# $Id: Makefile.am 617 2003-11-13 09:20:03Z stefan $
 
 
 INCLUDES = -I$(top_srcdir)/jit
@@ -15,7 +15,6 @@ EXTRA_DIST = \
 	methodtable.c \
 	methodtable.h \
 	types.h \
-	threads.h \
 	dis-asm.h \
 	bfd.h
 
