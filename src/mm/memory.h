@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.h 662 2003-11-21 18:06:25Z jowenn $
+   $Id: memory.h 739 2003-12-13 18:52:21Z stefan $
 
 */
 
@@ -89,7 +89,9 @@ Some more macros:
 
 /* Uncollectable memory which can contain references */
 void *heap_alloc_uncollectable(u4 bytelen);
+void heap_free(void *);
 #define GCNEW(type,num)       heap_alloc_uncollectable(sizeof(type) * (num))
+#define GCFREE(ptr)           heap_free(ptr)
 
 #define ALIGN(pos,size)       ((((pos) + (size) - 1) / (size)) * (size))
 #define PADDING(pos,size)     (ALIGN((pos),(size)) - (pos))
