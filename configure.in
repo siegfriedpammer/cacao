@@ -136,11 +136,8 @@ fi
 dnl Features
 
 dnl check arguments
-AC_ARG_ENABLE(threads, [  --enable-threads        enable threads support [[native]]])
-AC_ARG_ENABLE([__thread],
-            [  --disable-__thread      do not use TLS features even when supporting them],
-            [use__thread=$enablevalval],
-            [use__thread=yes])
+AC_ARG_ENABLE([threads], [AS_HELP_STRING(--enable-threads,enable threads support (none,green,native) [[default=native]])])
+AC_ARG_ENABLE([__thread], [AS_HELP_STRING(--disable-__thread,do not use TLS features even when supporting them)], [use__thread=$enablevalval], [use__thread=yes])
 
 
 dnl threads
@@ -162,18 +159,20 @@ green | native | posix | pthreads)
 
 	if test x"$enable_threads" != "xgreen"; then
 		AC_DEFINE([NATIVE_THREADS], 1, [use pthreads])
-		THREAD_LIB=-lpthread
+		THREAD_LIB="-lpthread"
 		AC_SUBST(THREAD_LIB)
 		AC_MSG_RESULT(yes, native)
+                AC_CHECK_LIB(pthread, main)
 
 		CFLAGS="$CFLAGS -D_REENTRANT"
 
-		dnl Tell boehm to support threads as well
-		ac_configure_args="$ac_configure_args --enable-boehm-threads=posix"
+		dnl tell boehm to support threads as well and classpath to
+                dnl synchronize VM threads portably
+		ac_configure_args="$ac_configure_args --enable-boehm-threads=posix --enable-portable-native-sync"
 	else
 		AC_MSG_RESULT(yes, green)
 
-		dnl No threads for boehm
+		dnl no threads for boehm
 		ac_configure_args="$ac_configure_args --disable-boehm-threads"
 	fi
     ;;
@@ -181,6 +180,7 @@ green | native | posix | pthreads)
     AC_MSG_ERROR($enable_threads is an unknown thread package)
     ;;
 esac
+
 
 dnl Check whether the compiler supports the __thread keyword.
 if test "x$use__thread" != xno; then
@@ -201,8 +201,9 @@ else
   ac_cv_gcc___thread=no
 fi
 
+
 dnl check if zlib should be used
-AC_ARG_ENABLE(zlib, [  --enable-zlib           enable zip archive class storage (experimental), needs zlib [[yes]]])
+AC_ARG_ENABLE([zlib], [AS_HELP_STRING(--enable-zlib,enable zip archive class storage (needs zlib) [[default=yes]])])
 
 AC_MSG_CHECKING(whether zip archives should be supported)
 if test x"$enable_zlib" = "xno"; then
@@ -214,14 +215,22 @@ else
 	ZIP_C="unzip.c"
 	AC_DEFINE([USE_ZLIB], 1, [use zlib])
 	AC_MSG_RESULT(yes)
+        AC_CHECK_LIB(z, main)
 fi
 AC_SUBST(ZIP_LIBS)
 AC_SUBST(ZIP_C)
 
-dnl check arguments
-AC_ARG_ENABLE(gtk-peer, [  --enable-gtk-peer       enable threads support [[no]]])
 
-dnl threads
+dnl set some essential classpath options, even if their classpath default is
+dnl suitable for us
+ac_configure_args="$ac_configure_args --enable-jni --disable-cni --disable-regen-headers --enable-static --enable-shared --enable-load-library"
+
+
+dnl check arguments
+AC_ARG_ENABLE([gtk-peer], [AS_HELP_STRING(--enable-gtk-peer,compile GTK native peers [[default=no]])])
+
+
+dnl enable gtk peer
 AC_MSG_CHECKING(whether to use gtk awt peers)
 if test x"$enable_gtk_peer" = "xyes"; then
 	AC_MSG_RESULT(yes)
@@ -276,12 +285,16 @@ else
 	AC_SUBST(AWTPEERS)
 	AC_SUBST(AWT_OBJS)
 	AC_MSG_RESULT(no)
+
+        ac_configure_args="$ac_configure_args --disable-gtk-peer"
 fi
+
 
 dnl now configure boehm gc and gnu classpath
 dnl the export is not my favorite (is there another way?)
 export CFLAGS
 AC_CONFIG_SUBDIRS(mm/boehm-gc classpath)
+
 
 AC_OUTPUT(Makefile \
           mm/Makefile \
