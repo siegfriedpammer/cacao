@@ -133,13 +133,11 @@ initThreads(u1 *stackbottom)
     for (i = 0; i < MAXTHREADS; ++i) {
 		contexts[i].free = true;
 		contexts[i].thread = NULL;
-		heap_addreference((void**)&contexts[i].thread);
 	}
 
     /* Allocate a thread to be the main thread */
     liveThreads = the_main_thread = (thread*)builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Thread")));
     assert(the_main_thread != 0);
-	/* heap_addreference((void **) &liveThreads); */
     
     the_main_thread->PrivateInfo = 1;
     CONTEXT(the_main_thread).free = false;
@@ -201,8 +199,6 @@ printf("DEADCODE LIVES ?????????\n");fflush(stdout);
 	DBG( fprintf(stderr, "finishing initThreads\n"); );
 
     mainThread = currentThread = the_main_thread;
-
-	/* heap_addreference((void**)&mainThread); */
 
 	/* Add thread into runQ */
 	iresumeThread(mainThread);
