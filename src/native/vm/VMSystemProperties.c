@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 2057 2005-03-23 10:57:52Z twisti $
+   $Id: VMSystemProperties.c 2073 2005-03-24 19:06:22Z edwin $
 
 */
 
@@ -213,8 +213,10 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 /*  		libpath = MNEW(char, libpathlen); */
 	libpath = MREALLOC(libpath, char, libpathlen, libpathlen);
 
-	strcat(libpath, ":");
-	strcat(libpath, getenv("LD_LIBRARY_PATH"));
+	if (getenv("LD_LIBRARY_PATH")) {
+		strcat(libpath, ":");
+		strcat(libpath, getenv("LD_LIBRARY_PATH"));
+	}
 
 	insert_property(m, p, "java.library.path", libpath);
 
