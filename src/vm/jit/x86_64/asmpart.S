@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2238 2005-04-06 12:13:57Z twisti $
+   $Id: asmpart.S 2246 2005-04-06 16:05:11Z twisti $
 
 */
 
@@ -891,7 +891,6 @@ L_initializererror:
 
 asm_builtin_new:
 	sub     $(8*1),%rsp                 /* stack frame (16-byte aligned)      */
-	mov     8*1(%rsp),a1                /* get return address                 */
 	call    asm_builtin_new_helper      /* call the helper function           */
 	add     $(8*1),%rsp                 /* remove stack frame                 */
 	test    v0,v0                       /* exception thrown?                  */
@@ -931,29 +930,49 @@ L_asm_builtin_new_exception:
 *******************************************************************************/
 
 asm_invokespecial:
-	sub     $(7*8),%rsp                 /* stack frame (16-byte aligned)      */
-	mov     a0,0*8(%rsp)                /* save argument registers            */
+	sub     $(15*8),%rsp                /* stack frame (16-byte aligned)      */
+
+	mov     a0,0*8(%rsp)                /* save integer argument registers    */
 	mov     a1,1*8(%rsp)
 	mov     a2,2*8(%rsp)
 	mov     a3,3*8(%rsp)
 	mov     a4,4*8(%rsp)
 	mov     a5,5*8(%rsp)
 
-	mov     itmp2,6*8(%rsp)             /* save machine code                  */
+	movq    fa0,6*8(%rsp)               /* save float argument register       */
+	movq    fa1,7*8(%rsp)
+	movq    fa2,8*8(%rsp)
+	movq    fa3,9*8(%rsp)
+	movq    fa4,10*8(%rsp)
+	movq    fa5,11*8(%rsp)
+	movq    fa6,12*8(%rsp)
+	movq    fa7,13*8(%rsp)
+
+	mov     itmp2,14*8(%rsp)            /* save machine code                  */
 
 	mov     itmp1,a0                    /* pass unresolved_method pointer     */
 	call    asm_invokespecial_helper    /* call the helper function           */
 
-	mov     0*8(%rsp),a0                /* restore argument registers         */
+	mov     0*8(%rsp),a0                /* restore integer argument registers */
 	mov     1*8(%rsp),a1
 	mov     2*8(%rsp),a2
 	mov     3*8(%rsp),a3
 	mov     4*8(%rsp),a4
 	mov     5*8(%rsp),a5
 
-	mov     6*8(%rsp),itmp3             /* restore machine code               */
+	movq    6*8(%rsp),fa0               /* restore float argument register    */
+	movq    7*8(%rsp),fa1
+	movq    8*8(%rsp),fa2
+	movq    9*8(%rsp),fa3
+	movq    10*8(%rsp),fa4
+	movq    11*8(%rsp),fa5
+	movq    12*8(%rsp),fa6
+	movq    13*8(%rsp),fa7
 
-	add     $(7*8),%rsp                 /* remove stack frame                 */
+	mov     14*8(%rsp),itmp3            /* restore machine code               */
+
+	add     $(15*8),%rsp                /* remove stack frame                 */
+
 	test    v0,v0                       /* exception thrown?                  */
 	jz      L_asm_builtin_new_exception
 
