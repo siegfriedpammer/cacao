@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 878 2004-01-12 12:03:11Z twisti $
+   $Id: parse.c 893 2004-01-19 12:53:24Z edwin $
 
 */
 
@@ -329,11 +329,11 @@ void descriptor2types(methodinfo *m)
 /* intermediate code generating macros */
 
 #define PINC           iptr++;ipc++
-#define LOADCONST_I(v) iptr->opc=ICMD_ICONST;iptr->op1=0;iptr->val.i=(v);PINC
-#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;iptr->op1=0;iptr->val.l=(v);PINC
-#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;iptr->op1=0;iptr->val.f=(v);PINC
-#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;iptr->op1=0;iptr->val.d=(v);PINC
-#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;iptr->op1=0;iptr->val.a=(v);PINC
+#define LOADCONST_I(v) iptr->opc=ICMD_ICONST;/*iptr->op1=0*/;iptr->val.i=(v);PINC
+#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);PINC
+#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);PINC
+#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);PINC
+#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;/*iptr->op1=0*/;iptr->val.a=(v);PINC
 
 /* ACONST instructions generated as arguments for builtin functions
  * have op1 set to non-zero. This is used for stack overflow checking
@@ -341,8 +341,8 @@ void descriptor2types(methodinfo *m)
 #define LOADCONST_A_BUILTIN(v) \
                        iptr->opc=ICMD_ACONST;iptr->op1=1;iptr->val.a=(v);PINC
 
-#define OP(o)          iptr->opc=(o);iptr->op1=0;iptr->val.l=0;PINC
-#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);iptr->val.l=(0);PINC
+#define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;PINC
+#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;PINC
 #define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);PINC
 #define OP2A(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.a=(v);PINC
 #define BUILTIN1(v,t)  isleafmethod=false;iptr->opc=ICMD_BUILTIN1;iptr->op1=t;\
@@ -351,6 +351,9 @@ void descriptor2types(methodinfo *m)
                        iptr->val.a=(v);PINC
 #define BUILTIN3(v,t)  isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
                        iptr->val.a=(v);PINC
+
+/* We have to check local variables indices here because they are
+ * used in stack.c to index the locals array. */
 
 #define INDEX_ONEWORD(num)										\
 	do { if((num)<0 || (num)>=maxlocals)						\
@@ -529,7 +532,8 @@ void parse()
 	
 	iptr = instr = DMNEW(instruction, cumjcodelength + 5);
 
-	/* XXX zero fields in the instructions loop? */
+	/* Zero the intermediate instructions array so we don't have any
+	 * invalid pointers in it if we cannot finish analyse_stack(). */
 	memset(iptr,0,sizeof(instruction) * (cumjcodelength + 5));
 	
 	/* initialize block_index table (unrolled four times) */
@@ -587,7 +591,7 @@ void parse()
 
 	for (p = 0, gp = 0; p < jcodelength; gp += (nextp - p), p = nextp) {
 	  
-		/* DEBUG XXX */	  /*printf("p:%d gp:%d ",p,gp);*/
+		/* DEBUG */	  /*printf("p:%d gp:%d ",p,gp);*/
 
 		/* mark this position as a valid instruction start */
 		if (!iswide)
@@ -1504,7 +1508,7 @@ void parse()
 	} /* end for */
 
 	if (p != jcodelength)
-		panic("Command-sequence crosses code-boundary"); /* XXX change message */
+		panic("Command-sequence crosses code-boundary");
 
 	if (!blockend)
 		panic("Code does not end with branch/return/athrow - stmt");	
