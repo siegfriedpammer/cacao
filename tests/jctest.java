@@ -53,6 +53,102 @@ public class jctest implements jcinterface {
 		testconst (-24123,     -4918923241323L);
 		testconst (-243511,    -4423423234231423L);
 		testconst (0x7fffffff, 0x7fffffffffffffffL);
+		testconst (0x80000000, 0x8000000000000000L);
+
+		p ("------------------- test rem consts");
+		testremconst(17);
+		testremconst(12347);
+		testremconst(8893427);
+		testremconst(1005234562);
+		testremconst(-17);
+		testremconst(-12347);
+		testremconst(-8893427);
+		testremconst(-1005234562);
+
+		testremconst(17L);
+		testremconst(12347L);
+		testremconst(8893427L);
+		testremconst(1005234562L);
+		testremconst(12135005234562L);
+		testremconst(2343552355623464626L);
+		testremconst(-17L);
+		testremconst(-12347L);
+		testremconst(-8893427L);
+		testremconst(-1005234562L);
+		testremconst(-12135005234562L);
+		testremconst(-2343552355623464626L);
+
+		p ("------------------- test rem 0x10001");
+		testrem0x10001(0);
+		testrem0x10001(1);
+		testrem0x10001(17);
+		testrem0x10001(123);
+		testrem0x10001(1234);
+		testrem0x10001(13247);
+		testrem0x10001(563467);
+		testrem0x10001(7456774);
+		testrem0x10001(34523525);
+		testrem0x10001(234523456);
+		testrem0x10001(1005234562);
+		testrem0x10001(2147483647);
+		testrem0x10001(-1);
+		testrem0x10001(-17);
+		testrem0x10001(-123);
+		testrem0x10001(-1234);
+		testrem0x10001(-13247);
+		testrem0x10001(-563467);
+		testrem0x10001(-7456774);
+		testrem0x10001(-34523525);
+		testrem0x10001(-234523456);
+		testrem0x10001(-1005234562);
+		testrem0x10001(-2147483647);
+		testrem0x10001(-2147483648);
+
+		testrem0x10001(0L);
+		testrem0x10001(1L);
+		testrem0x10001(17L);
+		testrem0x10001(123L);
+		testrem0x10001(1234L);
+		testrem0x10001(13247L);
+		testrem0x10001(563467L);
+		testrem0x10001(7456774L);
+		testrem0x10001(34523525L);
+		testrem0x10001(234523456L);
+		testrem0x10001(1005234562L);
+		testrem0x10001(1983223864L);
+		testrem0x10001(2147483646L);
+		testrem0x10001(2147483647L);
+		testrem0x10001(2147483648L);
+		testrem0x10001(10052234562L);
+		testrem0x10001(561005234562L);
+		testrem0x10001(2100527345962L);
+		testrem0x10001(34600523456287L);
+		testrem0x10001(546805234456882L);
+		testrem0x10001(1360052334734722L);
+		testrem0x10001(23456705569626354L);
+		testrem0x10001(9223372036854775807L);
+		testrem0x10001(-1L);
+		testrem0x10001(-17L);
+		testrem0x10001(-123L);
+		testrem0x10001(-1234L);
+		testrem0x10001(-13247L);
+		testrem0x10001(-563467L);
+		testrem0x10001(-7456774L);
+		testrem0x10001(-34523525L);
+		testrem0x10001(-234523456L);
+		testrem0x10001(-1005234562L);
+		testrem0x10001(-1983223864L);
+		testrem0x10001(-2147483647L);
+		testrem0x10001(-2147483648L);
+		testrem0x10001(-10052234562L);
+		testrem0x10001(-561005234562L);
+		testrem0x10001(-2100527345962L);
+		testrem0x10001(-34600523456287L);
+		testrem0x10001(-546805234456882L);
+		testrem0x10001(-1360052334734722L);
+		testrem0x10001(-23456705569626354L);
+		testrem0x10001(-9223372036854775807L);
+		testrem0x10001(-9223372036854775808L);
 
 		p ("------------------- test ints");
 		testint (1,2);
@@ -995,7 +1091,85 @@ public class jctest implements jcinterface {
 		if (!(l <= (-32769))) p("not IF_LCMPLE", (-32769));
 		if (!(l >  (-32769))) p("not IF_LCMPGT", (-32769));
 		if (!(l >= (-32769))) p("not IF_LCMPGE", (-32769));
+
 	}
+
+	static public void testrem0x10001(int a) {
+		p("IREM0X10001 (" + a + " % 0x10001):  ", a % 0x10001);
+		}
+
+	static public void testrem0x10001(long a) {
+		p("LREM0X10001 (" + a + " % 0x10001):  ", a % 0x10001L);
+		}
+
+	static public void testremconst(int a) {
+		p("IREMPOW2 (" + a + " % 0x00000002):  ", a % 0x00000002);
+		p("IREMPOW2 (" + a + " % 0x00000004):  ", a % 0x00000004);
+		p("IREMPOW2 (" + a + " % 0x00000008):  ", a % 0x00000008);
+		p("IREMPOW2 (" + a + " % 0x00000010):  ", a % 0x00000010);
+		p("IREMPOW2 (" + a + " % 0x00000020):  ", a % 0x00000020);
+		p("IREMPOW2 (" + a + " % 0x00000040):  ", a % 0x00000040);
+		p("IREMPOW2 (" + a + " % 0x00000080):  ", a % 0x00000080);
+		p("IREMPOW2 (" + a + " % 0x00000100):  ", a % 0x00000100);
+		p("IREMPOW2 (" + a + " % 0x00000200):  ", a % 0x00000200);
+		p("IREMPOW2 (" + a + " % 0x00000400):  ", a % 0x00000400);
+		p("IREMPOW2 (" + a + " % 0x00000800):  ", a % 0x00000800);
+		p("IREMPOW2 (" + a + " % 0x00001000):  ", a % 0x00001000);
+		p("IREMPOW2 (" + a + " % 0x00002000):  ", a % 0x00002000);
+		p("IREMPOW2 (" + a + " % 0x00004000):  ", a % 0x00004000);
+		p("IREMPOW2 (" + a + " % 0x00008000):  ", a % 0x00008000);
+		p("IREMPOW2 (" + a + " % 0x00010000):  ", a % 0x00010000);
+		p("IREMPOW2 (" + a + " % 0x00020000):  ", a % 0x00020000);
+		p("IREMPOW2 (" + a + " % 0x00040000):  ", a % 0x00040000);
+		p("IREMPOW2 (" + a + " % 0x00080000):  ", a % 0x00080000);
+		p("IREMPOW2 (" + a + " % 0x00100000):  ", a % 0x00100000);
+		p("IREMPOW2 (" + a + " % 0x00200000):  ", a % 0x00200000);
+		p("IREMPOW2 (" + a + " % 0x00400000):  ", a % 0x00400000);
+		p("IREMPOW2 (" + a + " % 0x00800000):  ", a % 0x00800000);
+		p("IREMPOW2 (" + a + " % 0x01000000):  ", a % 0x01000000);
+		p("IREMPOW2 (" + a + " % 0x02000000):  ", a % 0x02000000);
+		p("IREMPOW2 (" + a + " % 0x04000000):  ", a % 0x04000000);
+		p("IREMPOW2 (" + a + " % 0x08000000):  ", a % 0x08000000);
+		p("IREMPOW2 (" + a + " % 0x10000000):  ", a % 0x10000000);
+		p("IREMPOW2 (" + a + " % 0x20000000):  ", a % 0x20000000);
+		p("IREMPOW2 (" + a + " % 0x40000000):  ", a % 0x40000000);
+		p("IREMPOW2 (" + a + " % 0x80000000):  ", a % 0x80000000);
+		}
+
+	static public void testremconst(long a) {
+		p("LREMPOW2 (" + a + " % 0x00000002):  ", a % 0x00000002L);
+		p("LREMPOW2 (" + a + " % 0x00000004):  ", a % 0x00000004L);
+		p("LREMPOW2 (" + a + " % 0x00000008):  ", a % 0x00000008L);
+		p("LREMPOW2 (" + a + " % 0x00000010):  ", a % 0x00000010L);
+		p("LREMPOW2 (" + a + " % 0x00000020):  ", a % 0x00000020L);
+		p("LREMPOW2 (" + a + " % 0x00000040):  ", a % 0x00000040L);
+		p("LREMPOW2 (" + a + " % 0x00000080):  ", a % 0x00000080L);
+		p("LREMPOW2 (" + a + " % 0x00000100):  ", a % 0x00000100L);
+		p("LREMPOW2 (" + a + " % 0x00000200):  ", a % 0x00000200L);
+		p("LREMPOW2 (" + a + " % 0x00000400):  ", a % 0x00000400L);
+		p("LREMPOW2 (" + a + " % 0x00000800):  ", a % 0x00000800L);
+		p("LREMPOW2 (" + a + " % 0x00001000):  ", a % 0x00001000L);
+		p("LREMPOW2 (" + a + " % 0x00002000):  ", a % 0x00002000L);
+		p("LREMPOW2 (" + a + " % 0x00004000):  ", a % 0x00004000L);
+		p("LREMPOW2 (" + a + " % 0x00008000):  ", a % 0x00008000L);
+		p("LREMPOW2 (" + a + " % 0x00010000):  ", a % 0x00010000L);
+		p("LREMPOW2 (" + a + " % 0x00020000):  ", a % 0x00020000L);
+		p("LREMPOW2 (" + a + " % 0x00040000):  ", a % 0x00040000L);
+		p("LREMPOW2 (" + a + " % 0x00080000):  ", a % 0x00080000L);
+		p("LREMPOW2 (" + a + " % 0x00100000):  ", a % 0x00100000L);
+		p("LREMPOW2 (" + a + " % 0x00200000):  ", a % 0x00200000L);
+		p("LREMPOW2 (" + a + " % 0x00400000):  ", a % 0x00400000L);
+		p("LREMPOW2 (" + a + " % 0x00800000):  ", a % 0x00800000L);
+		p("LREMPOW2 (" + a + " % 0x01000000):  ", a % 0x01000000L);
+		p("LREMPOW2 (" + a + " % 0x02000000):  ", a % 0x02000000L);
+		p("LREMPOW2 (" + a + " % 0x04000000):  ", a % 0x04000000L);
+		p("LREMPOW2 (" + a + " % 0x08000000):  ", a % 0x08000000L);
+		p("LREMPOW2 (" + a + " % 0x10000000):  ", a % 0x10000000L);
+		p("LREMPOW2 (" + a + " % 0x20000000):  ", a % 0x20000000L);
+		p("LREMPOW2 (" + a + " % 0x40000000):  ", a % 0x40000000L);
+		p("LREMPOW2 (" + a + " % 0x80000000):  ", a % 0x80000000L);
+		}
+
 
 	static public void testint(int a, int b) {
 		p ("TESTINT CALLED WITH ", a);
