@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2201 2005-04-03 21:48:11Z twisti $
+   $Id: asmpart.S 2238 2005-04-06 12:13:57Z twisti $
 
 */
 
@@ -92,7 +92,12 @@
 	.globl asm_call_jit_compiler
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
+
 	.globl asm_check_clinit
+
+	.globl asm_builtin_new
+	.globl asm_invokespecial
+
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_aastore
 
@@ -792,22 +797,23 @@ noflt:
 
    DOCUMENT ME!!!
 
+   Arguments:
+
+	itmp1   class   ; pointer to class
+	itmp2   mcode   ; machine code to patch back in
+
    Stack layout:
 
-	24  ra      ; return address of patched call in java machine code
-	16  xmcode  ; additional machine code (only for i386 and x86_64)
-	8   mcode   ; machine code to patch back in
-	0   class   ; pointer to class
+	0  ra      ; return address of patched call in java machine code
 
 *******************************************************************************/
 
 asm_check_clinit:
-	mov     0(%rsp),itmp1
-	mov     offclassinit(itmp1),itmp1l  /* get initialized flag (int)         */
-	test    itmp1,itmp1
+	mov     offclassinit(itmp1),itmp3l  /* get initialized flag (int)         */
+	test    itmp3,itmp3
 	jnz     L_is_initialized
 
-	sub     $(14*8),%rsp                /* keep stack 16-byte aligned         */
+	sub     $(17*8),%rsp                /* keep stack 16-byte aligned         */
 
 	mov     a0,0*8(%rsp)                /* save argument registers            */
 	mov     a1,1*8(%rsp)
@@ -825,7 +831,9 @@ asm_check_clinit:
 	movq    fa6,12*8(%rsp)
 	movq    fa7,13*8(%rsp)
 
-	mov     14*8(%rsp),%rdi             /* pass classinfo pointer             */
+	mov     itmp2,14*8(%rsp)            /* save machine code                  */
+
+	mov     itmp1,a0                    /* pass classinfo pointer             */
 	call    initialize_class            /* call class initialize function     */
 	
 	mov     0*8(%rsp),a0                /* restore argument registers         */
@@ -844,22 +852,17 @@ asm_check_clinit:
 	movq    12*8(%rsp),fa6
 	movq    13*8(%rsp),fa7
 
-	add     $(14*8),%rsp                /* remove stack frame                 */
+	mov     14*8(%rsp),itmp2            /* restore machine code               */
+
+	add     $(17*8),%rsp                /* remove stack frame                 */
 
 	test    v0,v0                       /* we had an exception                */
 	je      L_initializererror
-				
+
 L_is_initialized:
-	mov     24(%rsp),itmp1              /* get return address                 */
+	pop     itmp1                       /* get return address                 */
 	sub     $5,itmp1                    /* remove size of `call rel32'        */
-
-	mov     16(%rsp),itmp2              /* get xmcode machine code            */
-	movb    itmp2b,(itmp1)              /* patch back in 1 byte               */
-	mov     8(%rsp),itmp2               /* get mcode machine code             */
-	movl    itmp2l,1(itmp1)             /* patch back in 4 bytes              */
-
-	add     $((3+1)*8),%rsp             /* remove stub stack frame incl. ra   */
-
+	mov     itmp2,(itmp1)               /* patch back in 8 bytes              */
 	jmp     *itmp1                      /* jump to patched code an execute it */
 
 L_initializererror:
@@ -872,13 +875,95 @@ L_initializererror:
 	mov     (itmp2),xptr                /* get the exception pointer          */
 	movl    $0,(itmp2)                  /* clear the exception pointer        */
 
-	add     $(3*8),%rsp                 /* remove stub stack frame            */
+	pop     xpc                         /* delete return address              */
+	sub     $5,xpc                      /* faulting address is ra - 5         */
+	jmp     asm_handle_exception
+		
+
+/* asm_builtin_new *************************************************************
+
+   XXX
+
+   Arguments:
+     a0   contains the class reference
+
+*******************************************************************************/
+
+asm_builtin_new:
+	sub     $(8*1),%rsp                 /* stack frame (16-byte aligned)      */
+	mov     8*1(%rsp),a1                /* get return address                 */
+	call    asm_builtin_new_helper      /* call the helper function           */
+	add     $(8*1),%rsp                 /* remove stack frame                 */
+	test    v0,v0                       /* exception thrown?                  */
+	jz      L_asm_builtin_new_exception
+
+	pop     itmp2                       /* get return address                 */
+	sub     $(3+10+10),itmp2            /* 3 (callq) + 10 (movi) + 10 (movi)  */
+	mov     v0,2(itmp2)                 /* patch in new classinfo*: 2 (mov)   */
+
+	lea     builtin_new,itmp1           /* get address from builtin_new       */
+	mov     itmp1,12(itmp2)             /* patch back in function address     */
+	jmp     *itmp2                      /* call new patched code              */
+
+L_asm_builtin_new_exception:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	call    builtin_asm_get_exceptionptrptr
+	mov     %rax,itmp2
+#else
+	lea     _exceptionptr,itmp2
+#endif
+	mov     (itmp2),xptr                /* get the exception pointer          */
+	movl    $0,(itmp2)                  /* clear the exception pointer        */
 
 	pop     xpc                         /* delete return address              */
 	sub     $5,xpc                      /* faulting address is ra - 5         */
-
 	jmp     asm_handle_exception
-		
+
+
+/* asm_builtin_new *************************************************************
+
+   XXX
+
+   Arguments:
+     itmp1   contains the method reference
+     itmp2   machine code (which is patched back later)
+
+*******************************************************************************/
+
+asm_invokespecial:
+	sub     $(7*8),%rsp                 /* stack frame (16-byte aligned)      */
+	mov     a0,0*8(%rsp)                /* save argument registers            */
+	mov     a1,1*8(%rsp)
+	mov     a2,2*8(%rsp)
+	mov     a3,3*8(%rsp)
+	mov     a4,4*8(%rsp)
+	mov     a5,5*8(%rsp)
+
+	mov     itmp2,6*8(%rsp)             /* save machine code                  */
+
+	mov     itmp1,a0                    /* pass unresolved_method pointer     */
+	call    asm_invokespecial_helper    /* call the helper function           */
+
+	mov     0*8(%rsp),a0                /* restore argument registers         */
+	mov     1*8(%rsp),a1
+	mov     2*8(%rsp),a2
+	mov     3*8(%rsp),a3
+	mov     4*8(%rsp),a4
+	mov     5*8(%rsp),a5
+
+	mov     6*8(%rsp),itmp3             /* restore machine code               */
+
+	add     $(7*8),%rsp                 /* remove stack frame                 */
+	test    v0,v0                       /* exception thrown?                  */
+	jz      L_asm_builtin_new_exception
+
+	pop     itmp2                       /* get return address                 */
+	sub     $5,itmp2                    /* remove size of `call rel32'        */
+	mov     itmp3,(itmp2)               /* patch back original code (8 bytes) */
+
+	mov     v0,5(itmp2)                 /* patch stubroutine: 3 + 2 (mov)     */
+	jmp     *itmp2                      /* call new patched code              */
+
 
 /********************* function asm_builtin_monitorenter ***********************
 *                                                                              *
