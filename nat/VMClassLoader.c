@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClassLoader.c 1344 2004-07-21 17:12:53Z twisti $
+   $Id: VMClassLoader.c 1447 2004-11-05 14:00:22Z twisti $
 
 */
 
@@ -57,12 +57,22 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	log_text("Java_java_lang_VMClassLoader_defineClass called");
 
+	if (off < 0 || len < 0 || off + len > buf->header.size) {
+		*exceptionptr =
+			new_exception(string_java_lang_IndexOutOfBoundsException);
+		return NULL;
+	}
+
 	/* call JNI-function to load the class */
 	c = (*env)->DefineClass(env,
-							javastring_tochar((java_objectheader*) name),
+							javastring_tochar((java_objectheader *) name),
 							(jobject) this,
-							(const jbyte *) &buf[off],
+							(const jbyte *) &buf->data[off],
 							len);
+
+	/* exception? return! */
+	if (!c)
+		return NULL;
 
 	use_class_as_object(c);
 
@@ -71,7 +81,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 
 /*
- * Class:     java/lang/Class
+ * Class:     java/lang/ClassLoader
  * Method:    getPrimitiveClass
  * Signature: (Ljava/lang/String;)Ljava/lang/Class;
  */
@@ -80,20 +90,24 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 	classinfo *c;
 	utf *u = javastring_toutf(name, false);
 
-	if (u) {
-		/* get primitive class */
-		c = class_new(u);
-		class_load(c);
-		class_init(c);
-		use_class_as_object(c);
-
-		return (java_lang_Class *) c;
+	/* illegal primitive classname specified */
+	if (!u) {
+		*exceptionptr = new_exception(string_java_lang_ClassNotFoundException);
+		return NULL;
 	}
 
-	/* illegal primitive classname specified */
-	*exceptionptr = new_exception(string_java_lang_ClassNotFoundException);
+	/* get primitive class */
+	c = class_new(u);
 
-	return NULL;
+	if (!class_load(c))
+		return NULL;
+
+	if (!class_init(c))
+		return NULL;
+
+	use_class_as_object(c);
+
+	return (java_lang_Class *) c;
 }
 
 
