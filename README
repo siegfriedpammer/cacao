@@ -1,8 +1,9 @@
 README
 ======
 
-CACAO is a 64-bit (32-bit versions are planned) Java virtual machine
-for Alphas and Mips processors.
+CACAO is a Java Virtual Machine with a JIT compiler for different
+architectures. It includes the GNU classpath and the Boehm garbage
+collector.
 
 You will find the licensing condition in the file COPYING.
 
