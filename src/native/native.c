@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1655 2004-12-02 16:51:20Z carolyn $
+   $Id: native.c 1722 2004-12-07 10:23:05Z twisti $
 
 */
 
@@ -147,6 +147,11 @@ static nativecompref nativecomptable[NATIVETABLESIZE];
 /* string comparsion table initialized */
 static bool nativecompdone = false;
 #endif
+
+
+/* XXX don't define this in a header file!!! */
+
+struct nativeCompCall nativeCompCalls[NATIVECALLSSIZE];
 
 /******************************************************************************/
 

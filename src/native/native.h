@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1655 2004-12-02 16:51:20Z carolyn $
+   $Id: native.h 1722 2004-12-07 10:23:05Z twisti $
 
 */
 
@@ -237,7 +237,7 @@ struct nativeCompCall {
 	struct nativeCompMethod methods[MAXCALLS];
 	int methCnt;
 	int callCnt[MAXCALLS];
-} nativeCompCalls[NATIVECALLSSIZE];
+};
 
 
 bool natcall2utf(bool);
