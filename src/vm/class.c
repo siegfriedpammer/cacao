@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2148 2005-03-30 16:49:40Z twisti $
+   $Id: class.c 2153 2005-03-30 19:30:05Z twisti $
 
 */
 
@@ -104,7 +104,7 @@ classinfo *class_java_lang_VMThrowable;
 classinfo *class_java_lang_Exception;
 classinfo *class_java_lang_Error;
 classinfo *class_java_lang_OutOfMemoryError;
-
+classinfo *class_java_lang_NoClassDefFoundError;
 
 classinfo *class_java_lang_Void;
 classinfo *class_java_lang_Boolean;
@@ -150,8 +150,12 @@ void class_init_foo(void)
 	class_java_lang_VMThrowable     = class_new(utf_java_lang_VMThrowable);
 	class_java_lang_Exception       = class_new(utf_java_lang_Exception);
 	class_java_lang_Error           = class_new(utf_java_lang_Error);
+
 	class_java_lang_OutOfMemoryError =
 		class_new(utf_java_lang_OutOfMemoryError);
+
+	class_java_lang_NoClassDefFoundError =
+		class_new(utf_java_lang_NoClassDefFoundError);
 
 	class_java_lang_Void            = class_new(utf_java_lang_Void);
 	class_java_lang_Boolean         = class_new(utf_java_lang_Boolean);
