@@ -29,12 +29,13 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: headers.c 583 2003-11-09 19:14:31Z twisti $
 
 */
 
 
 #include <stdlib.h>
+#include <string.h>
 #include "config.h"
 #include "global.h"
 #include "tables.h"
@@ -60,53 +61,57 @@ void throw_classnotfoundexception()
 java_objectheader *literalstring_new (utf *u)
 { return NULL; }  
 
-void literalstring_free (java_objectheader *o) { }
-void stringtable_update () { }
+void literalstring_free(java_objectheader *o) { }
+void stringtable_update() { }
 void synchronize_caches() { }
-void asm_call_jit_compiler () { }
-void asm_calljavamethod () { }
-void asm_dumpregistersandcall () { }
+void asm_call_jit_compiler() { }
+void asm_calljavamethod() { }
+void asm_dumpregistersandcall() { }
 s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class) { return 0; }
 
-s4 asm_builtin_idiv (s4 a, s4 b) {return 0;}
-s4 asm_builtin_irem (s4 a, s4 b) {return 0;}
-s8 asm_builtin_ldiv (s8 a, s8 b) {return 0;}
-s8 asm_builtin_lrem (s8 a, s8 b) {return 0;}
+s4 asm_builtin_idiv(s4 a, s4 b) {return 0;}
+s4 asm_builtin_irem(s4 a, s4 b) {return 0;}
+s8 asm_builtin_ldiv(s8 a, s8 b) {return 0;}
+s8 asm_builtin_lrem(s8 a, s8 b) {return 0;}
 
-s4 asm_builtin_f2i (float a) { return 0; }
-s8 asm_builtin_f2l (float a) { return 0; }
-s4 asm_builtin_d2i (double a) { return 0; }
-s8 asm_builtin_d2l (double a) { return 0; }
+s4 asm_builtin_f2i(float a) { return 0; }
+s8 asm_builtin_f2l(float a) { return 0; }
+s4 asm_builtin_d2i(double a) { return 0; }
+s8 asm_builtin_d2l(double a) { return 0; }
 
-void asm_builtin_monitorenter (java_objectheader *o) {}
-void asm_builtin_monitorexit (java_objectheader *o) {}
+void asm_builtin_monitorenter(java_objectheader *o) {}
+void asm_builtin_monitorexit(java_objectheader *o) {}
 
 s4 asm_builtin_checkarraycast(java_objectheader *o, constant_arraydescriptor *d) {return 0;}
 
 #if defined(__I386__)
 s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class) { return 0; }
-void asm_builtin_anewarray (s4 size, classinfo *elementtype) {}
-void asm_builtin_newarray_array (s4 size, constant_arraydescriptor *elementdesc) {}
+void asm_builtin_anewarray(s4 size, classinfo *elementtype) {}
+void asm_builtin_newarray_array(s4 size, constant_arraydescriptor *elementdesc) {}
 #endif
-void asm_builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o) {}
+void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o) {}
 
-u1 *createcompilerstub (methodinfo *m) {return NULL;}
-u1 *createnativestub (functionptr f, methodinfo *m) {return NULL;}
-u1 *oldcreatenativestub (functionptr f, methodinfo *m) {return NULL;}
+u1 *createcompilerstub(methodinfo *m) {return NULL;}
+u1 *createnativestub(functionptr f, methodinfo *m) {return NULL;}
+u1 *oldcreatenativestub(functionptr f, methodinfo *m) {return NULL;}
 
-void removecompilerstub (u1 *stub) {}
-void removenativestub (u1 *stub) {}
+void removecompilerstub(u1 *stub) {}
+void removenativestub(u1 *stub) {}
 
-void asm_perform_threadswitch (u1 **from, u1 **to) {}
-u1* asm_initialize_thread_stack (void *func, u1 *stack) { return NULL; }
-void asm_switchstackandcall () { }
+void asm_perform_threadswitch(u1 **from, u1 **to) {}
+u1* asm_initialize_thread_stack(void *func, u1 *stack) { return NULL; }
+void asm_switchstackandcall() {}
+void asm_handle_builtin_exception(classinfo *c) {}
 
-java_objectheader *native_new_and_init (void *p) { return NULL; }
+java_objectheader *native_new_and_init(void *p) { return NULL; }
 
 /************************ global variables **********************/
 
 java_objectheader *exceptionptr;                       /* schani */
+
 bool verbose =  false;
+bool runverbose = false;
+bool collectverbose = false;
 
 static chain *nativemethod_chain;		               /* chain with native methods     */
 static chain *nativeclass_chain;		               /* chain with processed classes  */	
@@ -115,34 +120,37 @@ static FILE *file = NULL;
 static u4 outputsize;
 static bool dopadding;
 
-static void printIDpart (int c) 
-{
-	if (     (c>='a' && c<='z')
-			 || (c>='A' && c<='Z')
-			 || (c>='0' && c<='9')
-			 || (c=='_') )          
-		putc (c,file);
-	else       putc ('_',file);
 
+static void printIDpart(int c) 
+{
+	if ((c >= 'a' && c <= 'z')
+		|| (c >= 'A' && c <= 'Z')
+		|| (c >= '0' && c <= '9')
+		|| (c == '_'))
+		putc(c, file);
+	else
+		putc('_', file);
 }
 
-static void printID (utf *u)
+
+static void printID(utf *u)
 {
 	char *utf_ptr = u->text;
 	int i;
 
-	for (i=0; i<utf_strlen(u); i++) 
-		printIDpart (utf_nextu2(&utf_ptr));
+	for (i = 0; i < utf_strlen(u); i++) 
+		printIDpart(utf_nextu2(&utf_ptr));
 }
+
 
 static void addoutputsize (int len)
 {
 	u4 newsize,i;
 	if (!dopadding) return;
 
-	newsize = ALIGN (outputsize, len);
+	newsize = ALIGN(outputsize, len);
 	
-	for (i=outputsize; i<newsize; i++) fprintf (file, "   u1 pad%d\n",(int) i);
+	for (i = outputsize; i < newsize; i++) fprintf(file, "   u1 pad%d\n", (int) i);
 	outputsize = newsize;
 }
 
@@ -595,7 +603,7 @@ int main(int argc, char **argv)
 
 	loader_close();
 	heap_close();
-	tables_close( literalstring_free );
+	tables_close(literalstring_free);
 	
 
 	/* Print "finished" message */
