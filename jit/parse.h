@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 1203 2004-06-22 23:14:55Z twisti $
+   $Id: parse.h 1337 2004-07-21 16:00:33Z twisti $
 
 */
 
@@ -40,7 +40,15 @@
 /* intermediate code generating macros */
 
 #define PINC           iptr++;ipc++
-#define LOADCONST_I(v) iptr->opc=ICMD_ICONST;/*iptr->op1=0*/;iptr->val.i=(v);iptr->line=currentline;iptr->method=m;PINC
+
+#define LOADCONST_I(v) \
+    iptr->opc = ICMD_ICONST; \
+    /*iptr->op1=0;*/ \
+    iptr->val.i = (v); \
+    iptr->line = currentline; \
+    iptr->method = m; \
+    PINC
+
 #define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);iptr->line=currentline;iptr->method=m;PINC
 #define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);iptr->line=currentline;iptr->method=m;PINC
 #define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);iptr->line=currentline;iptr->method=m;PINC
@@ -64,22 +72,41 @@
     iptr->method = m; \
     PINC
 
-#define BUILTIN1(v,t,l)  m->isleafmethod=false;iptr->opc=ICMD_BUILTIN1;iptr->op1=t;\
-                       iptr->val.a=(v);iptr->line=l;iptr->method=m;PINC
+#define BUILTIN1(v,t,l) \
+    m->isleafmethod = false; \
+    iptr->opc = ICMD_BUILTIN1; \
+    iptr->val.a = (v); \
+    iptr->op1 = (t); \
+    iptr->line = (l); \
+    iptr->method = m; \
+    PINC
+
 #define BUILTIN2(v,t,l)  m->isleafmethod=false;iptr->opc=ICMD_BUILTIN2;iptr->op1=t;\
                        iptr->val.a=(v);iptr->line=l;iptr->method=m;PINC
 #define BUILTIN3(v,t,l)  m->isleafmethod=false;iptr->opc=ICMD_BUILTIN3;iptr->op1=t;\
                        iptr->val.a=(v);iptr->line=l;iptr->method=m;PINC
 
+
 /* We have to check local variables indices here because they are
  * used in stack.c to index the locals array. */
 
-#define INDEX_ONEWORD(num)										\
-	do { if((num)<0 || (num)>=m->maxlocals)						\
-			panic("Invalid local variable index"); } while (0)
-#define INDEX_TWOWORD(num)										\
-	do { if((num)<0 || ((num)+1)>=m->maxlocals)					\
-			panic("Invalid local variable index"); } while (0)
+#define INDEX_ONEWORD(num) \
+    do { \
+        if ((num) < 0 || (num) >= m->maxlocals) { \
+            *exceptionptr = \
+                new_verifyerror(m, "Illegal local variable number"); \
+            return NULL; \
+        } \
+    } while (0)
+
+#define INDEX_TWOWORD(num) \
+    do { \
+        if ((num) < 0 || ((num) + 1) >= m->maxlocals) { \
+            *exceptionptr = \
+                new_verifyerror(m, "Illegal local variable number"); \
+            return NULL; \
+        } \
+    } while (0)
 
 #define OP1LOAD(o,o1)							\
 	do {if (o == ICMD_LLOAD || o == ICMD_DLOAD)	\
@@ -110,16 +137,22 @@
 
 #define bound_check(i) \
     do { \
-        if (i < 0 || i >= cumjcodelength) { \
-            panic("branch target out of code-boundary"); \
+/*        if (i < 0 || i >= cumjcodelength) { */\
+        if (i < 0 || i >= m->jcodelength) { \
+            *exceptionptr = \
+                new_verifyerror(m, "Illegal target of jump or branch"); \
+            return NULL; \
         } \
     } while (0)
 
 /* bound_check1 is used for the inclusive ends of exception handler ranges */
 #define bound_check1(i) \
     do { \
-        if (i < 0 || i > cumjcodelength) { \
-            panic("branch target out of code-boundary"); \
+/*        if (i < 0 || i > cumjcodelength) { */\
+        if (i < 0 || i > m->jcodelength) { \
+            *exceptionptr = \
+                new_verifyerror(m, "Illegal target of jump or branch"); \
+            return NULL; \
         } \
     } while (0)
 

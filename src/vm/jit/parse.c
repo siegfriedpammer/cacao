@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1296 2004-07-10 17:02:15Z stefan $
+   $Id: parse.c 1337 2004-07-21 16:00:33Z twisti $
 
 */
 
@@ -43,6 +43,7 @@
 #include "loop/loop.h"
 #include "types.h"
 #include "builtin.h"
+#include "exceptions.h"
 #include "tables.h"
 #include "native.h"
 #include "loader.h"
@@ -362,7 +363,7 @@ static exceptiontable* fillextable(methodinfo *m, exceptiontable* extable, excep
 		if (label_index != NULL) p = label_index[p];
 		extable[i].endpc = p;
 		bound_check1(p);
-		if (p < cumjcodelength)
+		if (p < m->jcodelength)
 			block_insert(p);
 
 		p = raw_extable[i].handlerpc;
@@ -421,7 +422,7 @@ methodinfo *parse(methodinfo *m)
     /*useinlining = false;*/ 	 /* and merge the if-statements  */
 	
 	if (!useinlining) {
-		cumjcodelength = m->jcodelength;
+/*  		cumjcodelength = m->jcodelength; */
 
 	} else {
 		tmpinlinf = (inlining_methodinfo*) list_first(inlinfo->inlinedmethods);
@@ -448,34 +449,24 @@ methodinfo *parse(methodinfo *m)
 
 	/* allocate instruction array and block index table */
 	
-	/* 1 additional for end ipc and 3 for loop unrolling */
+	/* 1 additional for end ipc */
 	
-	m->basicblockindex = DMNEW(int, cumjcodelength + 4);
-	instructionstart = DMNEW(u1, cumjcodelength + 4);
-	memset(instructionstart, 0, sizeof(u1) * (cumjcodelength + 4));
+	m->basicblockindex = DMNEW(s4, m->jcodelength + 1);
+	memset(m->basicblockindex, 0, sizeof(s4) * (m->jcodelength + 1));
+
+	instructionstart = DMNEW(u1, m->jcodelength + 1);
+	memset(instructionstart, 0, sizeof(u1) * (m->jcodelength + 1));
 
 	/* 1 additional for TRACEBUILTIN and 4 for MONITORENTER/EXIT */
 	/* additional MONITOREXITS are reached by branches which are 3 bytes */
 	
-	iptr = m->instructions = DMNEW(instruction, cumjcodelength + 5);
+	iptr = m->instructions = DMNEW(instruction, m->jcodelength + 5);
 
 	/* Zero the intermediate instructions array so we don't have any
 	 * invalid pointers in it if we cannot finish analyse_stack(). */
-	memset(iptr, 0, sizeof(instruction) * (cumjcodelength + 5));
-	
-	/* initialize m->basicblockindex table (unrolled four times) */
 
-	{
-		int *ip;
+	memset(iptr, 0, sizeof(instruction) * (m->jcodelength + 5));
 	
-		for (i = 0, ip = m->basicblockindex; i <= cumjcodelength; i += 4, ip += 4) {
-			ip[0] = 0;
-			ip[1] = 0;
-			ip[2] = 0;
-			ip[3] = 0;
-		}
-	}
-
 	/* compute branch targets of exception table */
 
 /*  	m->exceptiontable = DMNEW(exceptiontable, m->exceptiontablelength + 1); */
@@ -1503,8 +1494,9 @@ methodinfo *parse(methodinfo *m)
 			break;
 
 		case JAVA_BREAKPOINT:
-			panic("Illegal opcode Breakpoint encountered");
-			break;
+			*exceptionptr =
+				new_verifyerror(m, "Quick instructions shouldn't appear yet.");
+			return NULL;
 
 		case 204: /* unused opcode */
 		case 205:
@@ -1594,15 +1586,17 @@ methodinfo *parse(methodinfo *m)
 	if (p != m->jcodelength)
 		panic("Command-sequence crosses code-boundary");
 
-	if (!blockend)
-		panic("Code does not end with branch/return/athrow - stmt");
+	if (!blockend) {
+		*exceptionptr = new_verifyerror(m, "Falling off the end of the code");
+		return NULL;
+	}
 
-	/* adjust block count if target 0 is not first intermediate instruction   */
+	/* adjust block count if target 0 is not first intermediate instruction */
 
 	if (!m->basicblockindex[0] || (m->basicblockindex[0] > 1))
 		b_count++;
 
-	/* copy local to global variables   */
+	/* copy local to method variables */
 
 	m->instructioncount = ipc;
 	m->basicblockcount = b_count;
@@ -1620,7 +1614,7 @@ methodinfo *parse(methodinfo *m)
 		b_count = 0;
 		c_debug_nr = 0;
 	
-		/* additional block if target 0 is not first intermediate instruction     */
+		/* additional block if target 0 is not first intermediate instruction */
 
 		if (!m->basicblockindex[0] || (m->basicblockindex[0] > 1)) {
 			bptr->iinstr = m->instructions;
@@ -1637,7 +1631,8 @@ methodinfo *parse(methodinfo *m)
 
 		/* allocate blocks */
 
-		for (p = 0; p < cumjcodelength; p++) {
+/*  		for (p = 0; p < cumjcodelength; p++) { */
+		for (p = 0; p < m->jcodelength; p++) {
 			if (m->basicblockindex[p] & 1) {
 				/* check if this block starts at the beginning of an instruction */
 				if (!instructionstart[p])
@@ -1689,7 +1684,7 @@ methodinfo *parse(methodinfo *m)
 			m->exceptiontable[i].start = m->basicblocks + m->basicblockindex[p];
 
 			p = m->exceptiontable[i].endpc;
-			m->exceptiontable[i].end = (p == cumjcodelength) ? (m->basicblocks + m->basicblockcount + 1) : (m->basicblocks + m->basicblockindex[p]);
+			m->exceptiontable[i].end = (p == m->jcodelength) ? (m->basicblocks + m->basicblockcount + 1) : (m->basicblocks + m->basicblockindex[p]);
 
 			p = m->exceptiontable[i].handlerpc;
 			m->exceptiontable[i].handler = m->basicblocks + m->basicblockindex[p];
