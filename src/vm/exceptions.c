@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1845 2005-01-04 11:28:16Z twisti $
+   $Id: exceptions.c 1935 2005-02-10 11:01:26Z twisti $
 
 */
 
@@ -35,25 +35,29 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+#include "config.h"
+
 #include "mm/memory.h"
 #include "native/native.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 #include "toolbox/logging.h"
+#include "vm/class.h"
+#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
-#include "vm/options.h"
 
 
-/* system exception classes required in cacao */
+/* for raising exceptions from native methods */
 
-classinfo *class_java_lang_Throwable;
-classinfo *class_java_lang_Exception;
-classinfo *class_java_lang_Error;
-classinfo *class_java_lang_OutOfMemoryError;
+#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
+java_objectheader* _exceptionptr = NULL;
+#endif
 
 
 /* exception/error super class */
@@ -102,6 +106,9 @@ const char *string_java_lang_IllegalMonitorStateException =
 
 const char *string_java_lang_IndexOutOfBoundsException =
     "java/lang/IndexOutOfBoundsException";
+
+const char *string_java_lang_InstantiationException =
+    "java/lang/InstantiationException";
 
 const char *string_java_lang_InterruptedException =
     "java/lang/InterruptedException";
@@ -167,59 +174,39 @@ const char *string_java_lang_VirtualMachineError =
     "java/lang/VirtualMachineError";
 
 
-/* init_system_exceptions *****************************************************
+/* init_system_exceptions ******************************************************
 
-   load, link and compile exceptions used in the system
+   Load and link exceptions used in the system.
 
 *******************************************************************************/
 
-bool init_system_exceptions(void)
+bool exceptions_init(void)
 {
 	/* java/lang/Throwable */
 
-	class_java_lang_Throwable =
-		class_new(utf_new_char(string_java_lang_Throwable));
-
-	if (!class_load(class_java_lang_Throwable))
-		return false;
-
-	if (!class_link(class_java_lang_Throwable))
+	if (!class_load(class_java_lang_Throwable) ||
+		!class_link(class_java_lang_Throwable))
 		return false;
 
 
 	/* java/lang/Exception */
 
-	class_java_lang_Exception =
-		class_new(utf_new_char(string_java_lang_Exception));
-
-	if (!class_load(class_java_lang_Exception))
-		return false;
-
-	if (!class_link(class_java_lang_Exception))
+	if (!class_load(class_java_lang_Exception) ||
+		!class_link(class_java_lang_Exception))
 		return false;
 
 
 	/* java/lang/Error */
 
-	class_java_lang_Error =
-		class_new(utf_new_char(string_java_lang_Error));
-
-	if (!class_load(class_java_lang_Error))
-		return false;
-
-	if (!class_link(class_java_lang_Error))
+	if (!class_load(class_java_lang_Error) ||
+		!class_link(class_java_lang_Error))
 		return false;
 
 
 	/* java/lang/OutOfMemoryError */
 
-	class_java_lang_OutOfMemoryError =
-		class_new(utf_new_char(string_java_lang_OutOfMemoryError));
-
-	if (!class_load(class_java_lang_OutOfMemoryError))
-		return false;
-
-	if (!class_link(class_java_lang_OutOfMemoryError))
+	if (!class_load(class_java_lang_OutOfMemoryError) ||
+		!class_link(class_java_lang_OutOfMemoryError))
 		return false;
 
 	return true;
@@ -241,8 +228,8 @@ static void throw_exception_exit_intern(bool doexit)
 		c = xptr->vftbl->class;
 
 		pss = class_resolveclassmethod(c,
-									   utf_new_char("printStackTrace"),
-									   utf_new_char("()V"),
+									   utf_printStackTrace,
+									   utf_void__void,
 									   class_java_lang_Object,
 									   false);
 
@@ -265,9 +252,9 @@ static void throw_exception_exit_intern(bool doexit)
 		fflush(stderr);
 
 		/* good bye! */
-		if (doexit) {
+
+		if (doexit)
 			exit(1);
-		}
 	}
 }
 
@@ -316,9 +303,8 @@ void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 
 	/* convert to classname */
 
-   	for (i = len - 1; i >= 0; i--) {
+   	for (i = len - 1; i >= 0; i--)
  	 	if (tmp[i] == '/') tmp[i] = '.';
-	}
 
 	fprintf(stderr, "Exception in thread \"main\" %s", tmp);
 
@@ -336,6 +322,7 @@ void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 	fflush(stderr);
 
 	/* good bye! */
+
 	exit(1);
 }
 

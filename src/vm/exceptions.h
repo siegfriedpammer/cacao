@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 1846 2005-01-04 11:28:46Z twisti $
+   $Id: exceptions.h 1935 2005-02-10 11:01:26Z twisti $
 
 */
 
@@ -35,17 +35,31 @@
 #define _EXCEPTIONS_H
 
 
+#include "config.h"
+
 #include "vm/global.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
+#include "vm/builtin.h"
+#include "vm/class.h"
 
 
-/* system exception classes required in cacao */
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 
-extern classinfo *class_java_lang_Throwable;
-extern classinfo *class_java_lang_Exception;
-extern classinfo *class_java_lang_Error;
-extern classinfo *class_java_lang_OutOfMemoryError;
+#define exceptionptr        builtin_get_exceptionptrptr()
+#define threadrootmethod    builtin_get_threadrootmethod()
+
+#else /* defined(USE_THREADS) && defined(NATIVE_THREADS) */
+
+#define exceptionptr        (&_exceptionptr)
+#define threadrootmethod    (&_threadrootmethod)
+
+#endif /* defined(USE_THREADS) && defined(NATIVE_THREADS) */
+
+#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
+extern java_objectheader *_exceptionptr;
+extern methodinfo* _threadrootmethod;
+#endif /* !defined(USE_THREADS) || !defined(NATIVE_THREADS) */
 
 
 /* exception/error super class */
@@ -67,6 +81,7 @@ extern const char *string_java_lang_IllegalAccessException;
 extern const char *string_java_lang_IllegalArgumentException;
 extern const char *string_java_lang_IllegalMonitorStateException;
 extern const char *string_java_lang_IndexOutOfBoundsException;
+extern const char *string_java_lang_InstantiationException;
 extern const char *string_java_lang_InterruptedException;
 extern const char *string_java_lang_NegativeArraySizeException;
 extern const char *string_java_lang_NoSuchFieldException;
@@ -93,11 +108,11 @@ extern const char *string_java_lang_VerifyError;
 extern const char *string_java_lang_VirtualMachineError;
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
-/* load, link and compile exceptions used in the system */
+/* load and link exceptions used in the system */
 
-bool init_system_exceptions(void);
+bool exceptions_init(void);
 
 
 /* exception throwing functions */
