@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2014 2005-03-08 06:27:57Z christian $
+   $Id: codegen.c 2015 2005-03-08 06:34:11Z christian $
 
 */
 
@@ -617,10 +617,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 						d=REG_ITMP1;
 					M_INTMOVE(REG_ITMP1, d);
 					store_reg_to_var_int(src, d);
-
-					src = src->prev;
 				}
-			} else {
+				src = src->prev;
+			}
+		} else {
 #endif
 		while (src != NULL) {
 			len--;
