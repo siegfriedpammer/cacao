@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loging.h 700 2003-12-07 15:54:28Z edwin $
+   $Id: loging.h 701 2003-12-07 16:26:58Z edwin $
 
 */
 
@@ -51,6 +51,8 @@ void dolog(char *txt, ...);
 void dolog_plain(char *txt, ...); /* same as dolog without "LOG: " and newline */
 void error(char *txt, ...);
 void panic(char *txt);
+
+FILE *get_logfile(); /* return the current logfile */
 
 long int getcputime();
 

@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loging.c 700 2003-12-07 15:54:28Z edwin $
+   $Id: loging.c 701 2003-12-07 16:26:58Z edwin $
 
 */
 
@@ -124,6 +124,14 @@ void log_text(char *text)
 void log_plain(char *text)
 {
 	dolog_plain("%s", text);
+}
+
+
+/****************** Function: get_logfile *******************************/
+
+FILE *get_logfile()
+{
+	return (logfile) ? logfile : stdout;
 }
 
 

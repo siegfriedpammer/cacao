@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 699 2003-12-07 14:45:12Z edwin $
+   $Id: typecheck.c 701 2003-12-07 16:26:58Z edwin $
 
 */
 
@@ -69,14 +69,14 @@ bool typecheckverbose = false;
 #define LOG2(str,a,b)      DOLOG(dolog(str,a,b))
 #define LOG3(str,a,b,c)    DOLOG(dolog(str,a,b,c))
 #define LOGIF(cond,str)    DOLOG(do {if (cond) log_text(str);} while(0))
-#define LOGINFO(info)      DOLOG(do {typeinfo_print_short(stdout,info);printf("\n");} while(0))
-#define LOGFLUSH           DOLOG(fflush(stdout))
-#define LOGNL              DOLOG(printf("\n"))
-#define LOGSTR(str)        DOLOG(printf(str))
-#define LOGSTR1(str,a)     DOLOG(printf(str,a))
-#define LOGSTR2(str,a,b)   DOLOG(printf(str,a,b))
-#define LOGSTR3(str,a,b,c) DOLOG(printf(str,a,b,c))
-#define LOGSTRu(utf)       DOLOG(utf_display(utf))
+#define LOGINFO(info)      DOLOG(do {typeinfo_print_short(get_logfile(),info);log_plain("\n");} while(0))
+#define LOGFLUSH           DOLOG(fflush(get_logfile()))
+#define LOGNL              DOLOG(log_plain("\n"))
+#define LOGSTR(str)        DOLOG(dolog_plain(str))
+#define LOGSTR1(str,a)     DOLOG(dolog_plain(str,a))
+#define LOGSTR2(str,a,b)   DOLOG(dolog_plain(str,a,b))
+#define LOGSTR3(str,a,b,c) DOLOG(dolog_plain(str,a,b,c))
+#define LOGSTRu(utf)       DOLOG(log_plain_utf(utf))
 #else
 #define LOG(str)
 #define LOG1(str,a)
@@ -95,8 +95,8 @@ bool typecheckverbose = false;
 
 #ifdef TYPECHECK_VERBOSE_IMPORTANT
 #define LOGimp(str)     DOLOG(log_text(str))
-#define LOGimpSTR(str)  DOLOG(printf(str))
-#define LOGimpSTRu(utf) DOLOG(utf_display(utf))
+#define LOGimpSTR(str)  DOLOG(dolog_plain(str))
+#define LOGimpSTRu(utf) DOLOG(log_plain_utf(utf))
 #else
 #define LOGimp(str)
 #define LOGimpSTR(str)
@@ -686,7 +686,7 @@ typecheck()
 #ifdef TYPECHECK_VERBOSE
                 if (typecheckverbose) {
                     if (subroutine) {LOGSTR1("subroutine L%03d\n",subroutine->target->debug_nr);LOGFLUSH;}
-                    typeinfo_print_block(stdout,curstack,vtype,vinfo,(jsrchain) ? touched : NULL);
+                    typeinfo_print_block(get_logfile(),curstack,vtype,vinfo,(jsrchain) ? touched : NULL);
                     LOGNL; LOGFLUSH;
                 }
 #endif
@@ -1204,7 +1204,7 @@ typecheck()
                           /* XXX check if subroutine changed types? */
 
                           LOGSTR("subroutine touches:");
-                          DOLOG(typeinfo_print_locals(stdout,subroutine->sbr_vtype,subroutine->sbr_vinfo,
+                          DOLOG(typeinfo_print_locals(get_logfile(),subroutine->sbr_vtype,subroutine->sbr_vinfo,
                                                       subroutine->sbr_touched,maxlocals));
                           LOGNL; LOGFLUSH;
 
@@ -1551,7 +1551,7 @@ typecheck()
 
                 LOG("instructions done");
                 LOGSTR("RESULT=> ");
-                DOLOG(typeinfo_print_block(stdout,curstack,vtype,vinfo,(jsrchain) ? touched : NULL));
+                DOLOG(typeinfo_print_block(get_logfile(),curstack,vtype,vinfo,(jsrchain) ? touched : NULL));
                 LOGNL; LOGFLUSH;
                 
                 /* propagate stack and variables to the following block */
