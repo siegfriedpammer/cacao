@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 727 2003-12-11 10:52:40Z edwin $
+   $Id: global.h 737 2003-12-13 18:19:19Z stefan $
 
 */
 
@@ -42,6 +42,10 @@
 #include "config.h"
 #include "types.h"
 #include "toolbox/list.h"
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#include <pthread.h>
+#endif
 
 
 #define _GNU_SOURCE
@@ -849,6 +853,12 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 					/* skip */;											\
 				if ((utf_ptr)[-1] != ';')								\
 					(errorflag) = true; }} while(0)
+
+
+/* Synchronization ************************************************************/
+
+extern pthread_mutex_t cast_mutex;
+extern pthread_mutex_t compiler_mutex;
 
 #endif /* _GLOBAL_H */
 

@@ -32,6 +32,10 @@
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
 
+#if defined(NATIVE_THREADS)
+pthread_mutex_t cast_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t compiler_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 static classinfo *class_java_lang_ThreadDeath;
 
