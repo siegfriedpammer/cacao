@@ -72,7 +72,7 @@ JNIEXPORT void JNICALL Java_java_io_RandomAccessFile_open ( JNIEnv *env ,  struc
 	return;
 
 	fail:
-		exceptionptr = native_new_and_init (class_java_io_IOException);
+		exceptionptr = native_new_and_init (class_java_io_FileNotFoundException);
 		return;
 }
 

@@ -333,10 +333,12 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Array_newArray
 		   desc = buildarraydescriptor(c->name->text,c->name->blength);
 		   return (java_lang_Object*) builtin_newarray_array (size, desc);
 		 }
+    default:
+	  panic("no such component type");
 	}
   }
 
-  exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+  exceptionptr = proto_java_lang_NullPointerException;
   return NULL; 
 }
 
