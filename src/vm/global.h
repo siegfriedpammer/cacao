@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 812 2003-12-31 00:11:12Z edwin $
+   $Id: global.h 815 2003-12-31 13:22:44Z edwin $
 
 */
 
@@ -62,6 +62,13 @@
  * CACAO_TYPECHECK activates typechecking (part of bytecode verification)
  */
 #define CACAO_TYPECHECK
+
+/*
+ * TYPECHECK_STACK_COMPCAT activates full checking of computational
+ * categories for stack manipulations (POP,POP2,SWAP,DUP,DUP2,DUP_X1,
+ * DUP2_X1,DUP_X2,DUP2_X2).
+ */
+/* #define TYPECHECK_STACK_COMPCAT */
 
 /*
  * Macros for configuration of the typechecking code
