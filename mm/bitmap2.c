@@ -6,7 +6,7 @@
  *
  * Authors: Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
  *
- * $Id: bitmap2.c 45 1998-11-09 13:35:51Z phil $
+ * $Id: bitmap2.c 56 1998-11-10 17:35:47Z phil $
  */
 
 /*
@@ -336,8 +336,6 @@ bitmap_find_next_combination_set_unset(bitmap_t* bitmap,
 	bitmap_boundscheck(bitmap, addr);
 	bitmap_boundscheck(invertedmap, addr);
 
-	//		fprintf(stderr, "bitmap_find_next_combination_set_unset(0x%lx, 0x%lx. 0x%lx);\n", bitmap, invertedmap, addr);
-
 	/* 1. check the current block, starting from the bit indicated by addr */
 	pattern = (bitmap->bitmap[block] & ~invertedmap->bitmap[block]) >> offset;
 	if (pattern)
@@ -345,16 +343,10 @@ bitmap_find_next_combination_set_unset(bitmap_t* bitmap,
 
 	/* 2. iteratively check block by block until the end of the bitmap */
 	while (block < bitmap->bitmap_top_block) {
-		++block;
-		pattern = bitmap->bitmap[block] & ~invertedmap->bitmap[block];
+		pattern = bitmap->bitmap[++block] & ~invertedmap->bitmap[block];
 
-		if (pattern) {
-			//			fprintf(stderr, "\tbitmap->bitmap[block] = 0x%lx, ~invertedmap->bitmap[block] = 0x%lx\n",
-			//					bitmap->bitmap[block], ~invertedmap->bitmap[block]);
-			//			fprintf(stderr, "\tpattern = 0x%lx, BLOCK_TO_ADDR(block) = 0x%lx\n", pattern, BLOCK_TO_ADDR(block));
-
+		if (pattern)
 			return (void*)(BLOCK_TO_ADDR(block) + offset_for_lowest(pattern));
-		}
 	}
 
 	/* 3. failed to find a combination... */
