@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 713 2003-12-07 20:40:43Z twisti $
+   $Id: asmpart.S 926 2004-02-26 00:16:50Z twisti $
 
 */
 
@@ -41,7 +41,6 @@
 
 /********************* exported functions and variables ***********************/
 
-	.globl asm_calljavamethod
 	.globl asm_calljavafunction
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2long
@@ -50,6 +49,7 @@
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
+	.globl asm_check_clinit
 	.globl asm_builtin_checkcast	
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_anewarray
@@ -78,24 +78,6 @@
 	.globl findmethod
 
         
-/********************* function asm_calljavamethod *****************************
-*                                                                              *
-*   This function calls a Java-method (which possibly needs compilation)       *
-*   with up to 4 parameters.                                                   *
-*                                                                              *
-*   This functions calls the JIT-compiler which eventually translates the      *
-*   method into machine code.                                                  *
-*                                                                              *
-*   An possibly throwed exception will be returned to the caller as function   *
-*   return value, so the java method cannot return a fucntion value (this      *
-*   function usually calls 'main' and '<clinit>' which do not return a         *
-*   function value).                                                           *
-*                                                                              *
-*   C-prototype:                                                               *
-*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
-*         void *arg1, void *arg2, void *arg3, void *arg4);                     *
-*                                                                              *
-*******************************************************************************/
 
 #define    	MethodPointer   -8
 #define    	FrameSize       -12
@@ -112,52 +94,6 @@
 #define     ExHandlerPC     -24
 #define     ExCatchType     -32
 
-call_name:
-	.ascii  "calljavamethod\0\0"
-
-	.align	8
-	.quad   0                         /* catch type all                       */
-	.quad   calljava_xhandler         /* handler pc                           */
-	.quad   calljava_xhandler         /* end pc                               */
-	.quad   asm_calljavamethod        /* start pc                             */
-	.long   1                         /* extable size                         */
-	.long   0                         /* fltsave                              */
-	.long   0                         /* intsave                              */
-	.long   0                         /* isleaf                               */
-	.long   0                         /* IsSync                               */
-	.long   8                         /* frame size                           */
-	.quad   0                         /* method pointer (pointer to name)     */
-
-asm_calljavamethod:
-        sub     $8,%rsp               /* keep %rsp 16-byte aligned            */
-        mov     %rbp,(%rsp)
-        
-        mov     %rdi,%rax             /* move function pointer to %rax        */
-                                      /* compilerstub uses this               */
-        
-        mov     %rsi,%rdi             /* pass remaining parameters            */
-        mov     %rdx,%rsi
-        mov     %rcx,%rdx
-        mov     %r8,%rcx
-        
-        lea		asm_call_jit_compiler,%r11
-        call	*%r11                 /* call JIT compiler                    */
-		
-calljava_jit:
-calljava_return:
-calljava_ret:
-        xor     %rax,%rax
-        mov     (%rsp),%rbp
-        add     $8,%rsp               /* keep %rsp 16-byte aligned            */
-        ret
-
-calljava_xhandler:
-        mov     %rax,%rdi			  /* pass exception pointer               */
-        call    builtin_throw_exception
-        mov     (%rsp),%rbp
-        add     $8,%rsp
-        ret
-
 
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
@@ -173,13 +109,13 @@ calljava_xhandler:
 *                                                                              *
 *******************************************************************************/
 
-call_name2:
+call_name:
 	.ascii  "calljavafunction\0\0"
 
 	.align	8
 	.quad   0                         /* catch type all                       */
-	.quad   calljava_xhandler2        /* handler pc                           */
-	.quad   calljava_xhandler2        /* end pc                               */
+	.quad   calljava_xhandler         /* handler pc                           */
+	.quad   calljava_xhandler         /* end pc                               */
 	.quad   asm_calljavafunction      /* start pc                             */
 	.long   1                         /* extable size                         */
 	.long   0                         /* fltsave                              */
@@ -190,8 +126,9 @@ call_name2:
 	.quad   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
-        sub     $8,%rsp               /* keep stack 16-byte aligned           */
-        mov     %rbp,(%rsp)
+        sub     $(3*8),%rsp           /* keep stack 16-byte aligned           */
+        mov     %rbp,0*8(%rsp)
+        mov     %rbx,1*8(%rsp)        /* %rbx is not a callee saved in cacao  */
         mov     %rdi,%rax             /* move function pointer to %rax        */
                                       /* compilerstub uses this               */
 
@@ -203,18 +140,20 @@ asm_calljavafunction:
         lea     asm_call_jit_compiler,%r11
         call    *%r11                 /* call JIT compiler                    */
 	
-calljava_jit2:
-calljava_return2:
-calljava_ret2:
-        mov     (%rsp),%rbp
-        add     $8,%rsp               /* free stack space                     */
+calljava_jit:
+calljava_return:
+calljava_ret:
+        mov     0*8(%rsp),%rbp
+		mov		1*8(%rsp),%rbx
+        add     $(3*8),%rsp           /* free stack space                     */
         ret
 
-calljava_xhandler2:
+calljava_xhandler:
         mov     %rax,%rdi       	  /* pass exception pointer               */
         call    builtin_throw_exception
-        mov     (%rsp),%rbp
-        add     $8,%rsp
+        mov     0*8(%rsp),%rbp
+		mov		1*8(%rsp),%rbx
+        add     $(3*8),%rsp
         ret
 						
 
@@ -232,13 +171,13 @@ calljava_xhandler2:
 *                                                                              *
 *******************************************************************************/
 
-call_name3:
+call_name2:
 	.ascii  "calljavafunction2\0\0"
 
 	.align	8
 	.quad   0                         /* catch type all                       */
-	.quad   calljava_xhandler3        /* handler pc                           */
-	.quad   calljava_xhandler3        /* end pc                               */
+	.quad   calljava_xhandler2        /* handler pc                           */
+	.quad   calljava_xhandler2        /* end pc                               */
 	.quad   asm_calljavafunction2     /* start pc                             */
 	.long   1                         /* extable size                         */
 	.long   0                         /* fltsave                              */
@@ -264,13 +203,13 @@ asm_calljavafunction2long:
         lea     asm_call_jit_compiler,%r11
         call    *%r11                 /* call JIT compiler                    */
 	
-calljava_jit3:
-calljava_return3:
-calljava_ret3:
+calljava_jit2:
+calljava_return2:
+calljava_ret2:
         add     $8,%rsp               /* free stack space                     */
         ret
 
-calljava_xhandler3:
+calljava_xhandler2:
         mov     %rax,%rdi       	  /* pass exception pointer               */
         call    builtin_throw_exception
         add     $8,%rsp
@@ -303,7 +242,6 @@ calljava_xhandler3:
 *   return address and the lda function following the jmp instruction          *
 *                                                                              *
 *******************************************************************************/
-
 
 asm_call_jit_compiler:
         sub     $8,%rsp         /* keep stack 16-byte aligned                 */
@@ -353,7 +291,7 @@ L_call_jit_compile:
         movq    %xmm6,13*8(%rsp)
         movq    %xmm7,14*8(%rsp)
 
-        movq    %xmm8,15*8(%rsp) /* we use them as callee saved registers      */
+        movq    %xmm8,15*8(%rsp)/* we use them as callee saved registers      */
         movq    %xmm9,16*8(%rsp)
         movq    %xmm10,17*8(%rsp)
         movq    %xmm11,18*8(%rsp)
@@ -484,7 +422,7 @@ ex_stack_loop:
         mov     %rax,%rdi					/* exception pointer              */
         mov     MethodPointer(%r11),%rsi	/* method pointer                 */
         mov     %r10,%rdx                   /* exception pc                   */
-        mov     $1,%rcx 					/* set no unwind flag             */
+        mov     $1,%rcx 					/* set noindent flag              */
         call	builtin_trace_exception
 
 		mov     2*8(%rsp),%r11				/* %r11 = data segment pointer    */
@@ -492,7 +430,7 @@ ex_stack_loop:
 		test	%rcx,%rcx					/* if empty table skip            */
 		je		empty_table
 
-		lea		ExTableStart(%r11),%rdi		/* %rdi = start of exception table */
+		lea		ExTableStart(%r11),%rdi		/* %rdi = start of exception table*/
 		mov     0*8(%rsp),%rax				/* get xptr                       */
 		
 ex_table_loop:
@@ -564,7 +502,7 @@ no_monitor_exit:
 		add		%rax,%rsp                   /* unwind stack                   */
 		mov		%rsp,%rax                   /* %rax = pointer to save area    */
 
-		mov		IntSave(%r11),%edx          /* %edx = saved int register count */
+		mov		IntSave(%r11),%edx          /* %edx = saved int register count*/
         test	%edx,%edx
         je		noint
         
@@ -591,11 +529,11 @@ int2:
 int1:   
 		mov     -8(%rax),%r15
 
-		shl		$3,%edx                     /* multiply by 8 bytes             */
+		shl		$3,%edx                     /* multiply by 8 bytes            */
 		sub     %rdx,%rax
 		
 noint:
-		mov     FltSave(%r11),%edx          /* %edx = saved flt register count */
+		mov     FltSave(%r11),%edx          /* %edx = saved flt register count*/
 		test	%edx,%edx
 		je      noflt
 
@@ -646,7 +584,7 @@ noflt:
         mov     1*8(%rsp),%r10
         add     $(2*8),%rsp
 
-        mov     %rcx,%rax					/* restore saved exception pointer */
+        mov     %rcx,%rax					/* restore saved exception pointer*/
 
         sub     $(4*8),%rsp
         				
@@ -655,6 +593,44 @@ noflt:
 		mov     %r11,2*8(%rsp)				/* save data segment pointer      */
 		
 		jmp		ex_stack_loop
+
+
+/********************* function asm_check_clinit *******************************
+*                                                                              *
+*   Does null check and calls monitorenter or throws an exception              *
+*                                                                              *
+*******************************************************************************/
+
+asm_check_clinit:
+		mov		offclassinit(%rax),%r10d    /* get initialized flag (int)     */
+		test	%r10,%r10
+		jnz		L_is_initialized
+
+		sub		$(7*8),%rsp                 /* keep stack 16-byte aligned     */
+		mov		%rdi,0*8(%rsp)              /* save argument registers        */
+		mov		%rsi,1*8(%rsp)
+		mov		%rdx,2*8(%rsp)
+		mov		%rcx,3*8(%rsp)
+		mov		%r8,4*8(%rsp)
+		mov		%r9,5*8(%rsp)
+		
+		mov		%rax,%rdi                   /* pass classinfo pointer         */
+		call	class_init                  /* call class_init function       */
+		
+        mov     0*8(%rsp),%rdi              /* restore argument registers     */
+        mov     1*8(%rsp),%rsi
+        mov     2*8(%rsp),%rdx
+        mov     3*8(%rsp),%rcx
+        mov     4*8(%rsp),%r8
+        mov     5*8(%rsp),%r9
+		add		$(7*8),%rsp
+				
+L_is_initialized:
+		mov     (%rsp),%rax                 /* get return address             */
+		sub     $23,%rax                    /* asm_putstatic call code size   */
+		movb    $0xeb,(%rax)                /* jmp rel8                       */
+		movb    $21,1(%rax)                 /* 8-bit offset                   */
+		ret
 
 
 /********************* function asm_builtin_monitorenter ***********************
@@ -1036,12 +1012,12 @@ asm_perform_threadswitch:
 *******************************************************************************/
 
 asm_switchstackandcall:
-        sub     $8,%rsp                 /* keep stack 16-byte aligned         */
+        sub     $(1*8),%rsp             /* keep stack 16-byte aligned         */
         sub     $16,%rdi				/* allocate new stack                 */
 
         mov     8(%rsp),%rax			/* save return address on new stack   */
         mov     %rax,(%rdi)
-        mov     %rsp,8(%rdi)			/* save old stack pointer on new stack */
+        mov     %rsp,8(%rdi)			/* save old stack pointer on new stack*/
         mov     %rsp,(%rdx)				/* save old stack pointer to variable */
 
         mov     %rdi,%rsp				/* switch to new stack                */
@@ -1051,7 +1027,7 @@ asm_switchstackandcall:
 
         mov     (%rsp),%r10				/* load return address                */
         mov     8(%rsp),%rsp			/* switch to old stack                */
-        add     $8,%rsp                 /* free stack space                   */
+        add     $(1*8),%rsp             /* free stack space                   */
         mov     %r10,(%rsp)             /* write return adress                */
         ret
 
@@ -1080,73 +1056,6 @@ asm_getcallingmethod:
         mov     (%rax),%rdi             /* return address to java function    */
         call    findmethod
         mov     MethodPointer(%rax),%rax
-        ret
-
-
-/*********************** function asm_builtin_trace ****************************
-*                                                                              *
-*   Intended to be called from the native stub. Saves all argument registers   *
-*   and calls builtin_trace_args.                                              *
-*                                                                              *
-*******************************************************************************/
-
-asm_builtin_trace:
-        sub     $(15*8),%rsp       /* 14 + 1 */
-        
-        mov     %rdi,0*8(%rsp)  /* save arguments                             */
-        mov     %rsi,1*8(%rsp)
-        mov     %rdx,2*8(%rsp)
-        mov     %rcx,3*8(%rsp)
-        mov     %r8,4*8(%rsp)
-        mov     %r9,5*8(%rsp)
-
-        movq    %xmm0,6*8(%rsp)
-        movq    %xmm1,7*8(%rsp)
-        movq    %xmm2,8*8(%rsp)
-        movq    %xmm3,9*8(%rsp)
-        movq    %xmm4,10*8(%rsp)
-        movq    %xmm5,11*8(%rsp)
-        movq    %xmm6,12*8(%rsp)
-        movq    %xmm7,13*8(%rsp)
-
-        call	builtin_trace_args
-
-        mov     0*8(%rsp),%rdi
-        mov     1*8(%rsp),%rsi
-        mov     2*8(%rsp),%rdx
-        mov     3*8(%rsp),%rcx
-        mov     4*8(%rsp),%r8
-        mov     5*8(%rsp),%r9
-
-        movq    6*8(%rsp),%xmm0
-        movq    7*8(%rsp),%xmm1
-        movq    8*8(%rsp),%xmm2
-        movq    9*8(%rsp),%xmm3
-        movq    10*8(%rsp),%xmm4
-        movq    11*8(%rsp),%xmm5
-        movq    12*8(%rsp),%xmm6
-        movq    13*8(%rsp),%xmm7
-
-        add     $(15*8),%rsp
-        ret
-
-
-/********************* function asm_builtin_exittrace **************************
-*                                                                              *
-*   Intended to be called from the native stub. Saves return value and calls   *
-*   builtin_displaymethodstop.                                                 *
-*                                                                              *
-*******************************************************************************/
-
-asm_builtin_exittrace:
-        sub     $(3*8),%rsp
-        mov     %rax,0*8(%rsp)
-        movq    %xmm0,1*8(%rsp)
-        movq    %xmm0,%xmm1
-        call    builtin_displaymethodstop
-        mov     0*8(%rsp),%rax
-        movq    1*8(%rsp),%xmm0
-        add     $(3*8),%rsp
         ret
 
 
