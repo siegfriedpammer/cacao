@@ -10,7 +10,7 @@
 
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 234 2003-02-19 11:51:40Z stefan $
+	Last Change: $Id: ngen.c 257 2003-03-17 12:23:16Z stefan $
 
 *******************************************************************************/
 
@@ -3629,7 +3629,7 @@ void removecompilerstub (u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE 18
+#define NATIVESTUBSIZE 20
 
 u1 *createnativestub (functionptr f, methodinfo *m)
 {
@@ -3639,30 +3639,37 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	reg_init();
 
 	M_MOV  (argintregs[4], argintregs[5]);
-	M_DMOV (argfltregs[4], argfltregs[5]);
+	M_MFC1 (REG_ITMP1, argfltregs[4]);
 
 	M_MOV  (argintregs[3], argintregs[4]);
-	M_DMOV (argfltregs[3], argfltregs[4]);
+	M_MTC1 (REG_ITMP1, argfltregs[5]);
 
 	M_MOV  (argintregs[2], argintregs[3]);
-	M_DMOV (argfltregs[2], argfltregs[3]);
+	M_MFC1 (REG_ITMP1, argfltregs[3]);
 
 	M_MOV  (argintregs[1], argintregs[2]);
-	M_DMOV (argfltregs[1], argfltregs[2]);
+	M_MTC1 (REG_ITMP1, argfltregs[4]);
 
 	M_MOV  (argintregs[0], argintregs[1]);
-	M_DMOV (argfltregs[0], argfltregs[1]);
+	M_MFC1 (REG_ITMP1, argfltregs[2]);
 
-	M_ALD  (argintregs[0], REG_PV, 17*8); /* load adress of jni_environement  */
+	M_ALD  (argintregs[0], REG_PV, 19*8); /* load adress of jni_environement  */
+	M_MTC1 (REG_ITMP1, argfltregs[3]);
 
-	M_ALD  (REG_ITMP3, REG_PV, 14*8);   /* load adress of native method       */
+	M_MFC1 (REG_ITMP1, argfltregs[1]);
+	M_MFC1 (REG_ITMP2, argfltregs[0]);
+
+	M_MTC1 (REG_ITMP1, argfltregs[2]);
+	M_MTC1 (REG_ITMP2, argfltregs[1]);
+
+	M_ALD  (REG_ITMP3, REG_PV, 16*8);   /* load adress of native method       */
 	M_LDA  (REG_SP, REG_SP, -8);        /* build up stackframe                */
 
 	M_LST  (REG_RA, REG_SP, 0);         /* store return address               */
 	M_JSR  (REG_RA, REG_ITMP3);         /* call native method                 */
 
 	M_NOP;                              /* delay slot                         */
-	M_ALD  (REG_ITMP3, REG_PV, 15*8);   /* get address of exceptionptr        */
+	M_ALD  (REG_ITMP3, REG_PV, 17*8);   /* get address of exceptionptr        */
 
 	M_LLD  (REG_RA, REG_SP, 0);         /* load return address                */
 	M_ALD  (REG_ITMP1, REG_ITMP3, 0);   /* load exception into reg. itmp1     */
@@ -3674,16 +3681,16 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	M_NOP;                              /* delay slot                         */
 	
 	M_AST  (REG_ZERO, REG_ITMP3, 0);    /* store NULL into exceptionptr       */
-	M_ALD  (REG_ITMP3, REG_PV,16*8);    /* load asm exception handler address */
+	M_ALD  (REG_ITMP3, REG_PV,18*8);    /* load asm exception handler address */
 
 	M_JMP  (REG_ITMP3);                 /* jump to asm exception handler      */
 	M_LDA  (REG_ITMP2, REG_RA, -4);     /* move fault address into reg. itmp2 */
 	                                    /* delay slot                         */
 
-	s[14] = (u8) f;                     /* address of native method           */
-	s[15] = (u8) (&exceptionptr);       /* address of exceptionptr            */
-	s[16]= (u8) (asm_handle_nat_exception); /* addr of asm exception handler  */
-	s[17] = (u8) (&env);                  /* addr of jni_environement         */
+	s[16] = (u8) f;                     /* address of native method           */
+	s[17] = (u8) (&exceptionptr);       /* address of exceptionptr            */
+	s[18]= (u8) (asm_handle_nat_exception); /* addr of asm exception handler  */
+	s[19] = (u8) (&env);                  /* addr of jni_environement         */
 
 	(void) docacheflush((void*) s, (char*) p - (char*) s, ICACHE);
 

@@ -321,6 +321,9 @@ int parentargs_base; /* offset in stackframe for the parameter from the caller*/
 #define M_MOVID(i,d)            M_FP3(0,4,d,i,0)                /* d = i      */
 #define M_MOVLD(l,d)            M_FP3(0,5,d,l,0)                /* d = l      */
 
+#define M_MFC1(l,f)				M_FP3(0,0,f,l,0)
+#define M_MTC1(l,f)				M_FP3(0,4,f,l,0)
+
 #define M_FCMPFF(a,b)           M_FP3(0x30,FMT_F,a,b,0)         /* c = a == b */
 #define M_FCMPFD(a,b)           M_FP3(0x30,FMT_D,a,b,0)         /* c = a == b */
 #define M_FCMPUNF(a,b)          M_FP3(0x31,FMT_F,a,b,0)         /* c = a == b */
