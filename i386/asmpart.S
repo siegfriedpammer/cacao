@@ -417,7 +417,7 @@ asm_handle_exception:
 
 		pushl	%eax						/* save exception pointer */
 		pushl	%edx						/* save exception pc */
-		
+		pushl	%ecx						/* save data segment pointer */
 		pushl	%ebx
 		pushl	%esi
 		pushl	%edi
@@ -427,7 +427,6 @@ ex_trace:
 
 		movl	%eax,(%esp)					/* exception pointer */
 
-		movl	4(%ebp),%ecx                /* data segment pointer */
 		movl	MethodPointer(%ecx),%eax	/* method pointer */
 		movl	%eax,4(%esp)
 		
@@ -437,7 +436,7 @@ ex_trace:
 
 		addl	$16,%esp
 
-		movl	4(%ebp),%esi				/* %esi = data segment pointer */
+		movl	-12(%ebp),%esi				/* %esi = data segment pointer */
 		movl	ExTableSize(%esi),%ecx		/* %ecx = exception table size */
 		test	%ecx,%ecx					/* if empty table skip */
 		je		empty_table
@@ -478,8 +477,6 @@ ex_jump:
 /*		popl	%edx						/* restore exception pc */
 /*		popl	%eax						/* restore exception pointer */
 		leave
-		
-		addl	$4,%esp						/* delete data segment address */
 		
 		jmp		*%edx
 
@@ -539,7 +536,6 @@ asm_builtin_idiv:
 
 nb_idiv:
 		popl	%edx					/* delete return address */
-		pushl	%ecx					/* save data segment address */
 		
 		movl	proto_java_lang_ArithmeticException,%eax
 		subl	$2,%edx					/* faulting address is return adress - 2 */
@@ -562,7 +558,6 @@ asm_builtin_ldiv:
 
 nb_ldiv:
 		popl	%edx					/* delete return address */
-		pushl	%ecx					/* save data segment address */
 		
 		movl	proto_java_lang_ArithmeticException,%eax
 		subl	$2,%edx					/* faulting address is return adress - 2 */
@@ -588,7 +583,6 @@ asm_builtin_irem:
 
 nb_irem:
 		popl	%edx					/* delete return address */
-		pushl	%ecx					/* save data segment address */
 		
 		movl	proto_java_lang_ArithmeticException,%eax
 		subl	$2,%edx					/* faulting address is return adress - 2 */
@@ -611,7 +605,6 @@ asm_builtin_lrem:
 
 nb_lrem:
 		popl	%edx					/* delete return address */
-		pushl	%ecx					/* save data segment address */
 		
 		movl	proto_java_lang_ArithmeticException,%eax
 		subl	$2,%edx					/* faulting address is return adress - 2 */
@@ -640,7 +633,6 @@ asm_builtin_frem:
 
 nb_frem:
 		popl	%edx					/* delete return address */
-		pushl	%ecx					/* save data segment address */
 		
 		movl	proto_java_lang_ArithmeticException,%eax
 		subl	$2,%edx					/* faulting address is return adress - 2 */
@@ -689,7 +681,6 @@ asm_builtin_checkarraycast:
 nb_carray_throw:
 		popl	%ecx					/* restore data segment address */
 		popl	%edx					/* delete return address */
-		pushl	%ecx					/* save data segment address */
 		
 		movl	proto_java_lang_ClassCastException,%eax
 		subl	$2,%edx					/* faulting address is return adress - 2 */
@@ -740,16 +731,16 @@ asm_builtin_aastore:
 /*		shll	$3,%ecx					/* index * 4 */
 /*		addl	%eax,%ecx				/* add index * 4 to arrayref */
 	
-		movl	20(%esp),%eax           /* 12 (frame) + 4 (return) + 4 (data) */
-		movl	%eax,(%esp)
+/*		movl	20(%esp),%eax           /* 12 (frame) + 4 (return) + 4 (data) */
+/*		movl	%eax,(%esp)
 
-		movl	36(%esp),%eax			/* object is second argument */
-		movl	%eax,4(%esp)
+/*		movl	36(%esp),%eax			/* object is second argument */
+/*		movl	%eax,4(%esp)
 		
-		call	builtin_canstore		/* builtin_canstore(arrayref,object) */
+/*		call	builtin_canstore		/* builtin_canstore(arrayref,object) */
 
-		test	%eax,%eax
-		je		nb_aastore_throw
+/*		test	%eax,%eax */
+/*		je		nb_aastore_throw */
 				
 		movl	20(%esp),%eax           /* 12 (frame) + 4 (return) + 4 (data) */
 		movl	%eax,(%esp)
@@ -761,7 +752,10 @@ asm_builtin_aastore:
 		movl	%eax,8(%esp)
 		
 		call	builtin_aastore
-	
+
+		test	%eax,%eax
+		je		nb_aastore_throw
+			
 		addl	$12,%esp
 
 		addl	$4,%esp
@@ -771,7 +765,6 @@ nb_aastore_null:
 		addl	$12,%esp
 		popl	%ecx					/* restore data segment address */
 		popl	%edx					/* delete return address */
-		pushl	%ecx					/* save data segment address */
 		
 		movl	proto_java_lang_NullPointerException,%eax
 		subl	$2,%edx					/* faulting address is return adress - 2 */
@@ -781,7 +774,6 @@ nb_aastore_bound:
 		addl	$12,%esp
 		popl	%ecx					/* restore data segment address */
 		popl	%edx					/* delete return address */
-		pushl	%ecx					/* save data segment address */
 		
 		movl	proto_java_lang_ArrayIndexOutOfBoundsException,%eax
 		subl	$2,%edx					/* faulting address is return adress - 2 */
@@ -791,7 +783,6 @@ nb_aastore_throw:
 		addl	$12,%esp
 		popl	%ecx					/* restore data segment address */
 		popl	%edx					/* delete return address */
-		pushl	%ecx					/* save data segment address */
 		
 		movl	proto_java_lang_ArrayStoreException,%eax
 		subl	$2,%edx					/* faulting address is return adress - 2 */
@@ -805,9 +796,23 @@ nb_aastore_throw:
 *******************************************************************************/
 
 asm_initialize_thread_stack:
-	xorl		%eax,%eax
-	movl		$0,(%eax)
-	ret
+		movl	8(%esp),%eax
+		subl	$36,%eax				/* 4 bytes * 8 regs + 4 bytes func */
+
+		xorl	%edx,%edx
+		movl	%edx,0(%eax)
+		movl	%edx,4(%eax)
+		movl	%edx,8(%eax)
+		movl	%edx,12(%eax)
+		movl	%edx,16(%eax)
+		movl	%edx,20(%eax)
+		movl	%edx,24(%eax)
+		movl	%edx,28(%eax)
+
+		movl	4(%esp),%edx
+		movl	%edx,32(%eax)
+		
+		ret
 
 
 /******************* function asm_perform_threadswitch *************************
@@ -819,26 +824,84 @@ asm_initialize_thread_stack:
 *******************************************************************************/
 
 asm_perform_threadswitch:
-	xorl		%eax,%eax
-	movl		$0,(%eax)
-	ret
+		subl	$36,%esp
+
+		movl	%eax,0(%esp)
+		movl	%edx,4(%esp)
+		movl	%ecx,8(%esp)
+		movl	%ebx,12(%esp)
+		movl	%esp,16(%esp)
+		movl	%ebp,20(%esp)
+		movl	%esi,24(%esp)
+		movl	%edi,28(%esp)
+
+		movl	36(%esp),%eax			/* save return address */
+		movl	%eax,32(%esp)
+
+		movl	40(%esp),%eax			/* first argument **from */
+		movl	%esp,0(%eax)
+
+		movl	48(%esp),%eax			/* third argument **stackTop */
+		movl	%esp,0(%eax)
+
+		movl	44(%esp),%eax			/* second argument **to */
+		movl	0(%eax),%esp			/* load stack pointer */
+
+		movl	32(%esp),%eax			/* restore return address */
+		movl	%eax,36(%esp)
+		
+		movl	0(%esp),%eax
+		movl	4(%esp),%edx
+		movl	8(%esp),%ecx
+		movl	12(%esp),%ebx
+										/* skip stack pointer */
+		movl	20(%esp),%ebp
+		movl	24(%esp),%esi
+		movl	28(%esp),%edi
+
+		addl	$36,%esp
+		ret
 		
 
 /********************* function asm_switchstackandcall *************************
 *                                                                              *
-*  void asm_switchstackandcall (void *stack, void *func, void **stacktopsave); *
+*  void asm_switchstackandcall (void *stack, void *func, void **stacktopsave,  *
+*		                       void *p);                                       *
 *                                                                              *
 *   Switches to a new stack, calls a function and switches back.               *
 *       a0      new stack pointer                                              *
 *       a1      function pointer                                               *
 *		a2		pointer to variable where stack top should be stored           *
+*       a3      pointer to user data, is passed to the function                *
 *                                                                              *
 *******************************************************************************/
 
 asm_switchstackandcall:
-	xorl		%eax,%eax
-	movl		$0,(%eax)
-	ret
+		movl	4(%esp),%edx			/* first argument *stack */
+		subl	$8,%edx					/* allocate new stack */
+
+		movl	0(%esp),%eax			/* save return address on new stack */
+		movl	%eax,0(%edx)
+
+		movl	%esp,4(%edx)			/* save old stack pointer on new stack */
+
+		movl	12(%esp),%eax			/* third argument **stacktopsave */
+		movl	%esp,0(%eax)			/* save old stack pointer to variable */
+
+		movl	8(%esp),%eax			/* load function pointer */
+		movl	16(%esp),%ecx			/* fourth argument *p */
+		
+		movl	%edx,%esp				/* switch to new stack */
+
+		subl	$4,%esp
+		movl	%ecx,0(%esp)			/* pass pointer */
+		call	*%eax					/* and call function */
+		addl	$4,%esp
+
+		movl	0(%esp),%eax			/* load return address */
+		movl	4(%esp),%esp			/* switch to old stack */
+		movl	%eax,0(%esp)
+		ret
 
 		
 /********************* function asm_getcallingmethod ***************************
