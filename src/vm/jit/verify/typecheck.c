@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 2045 2005-03-20 14:29:12Z edwin $
+   $Id: typecheck.c 2046 2005-03-20 14:43:04Z edwin $
 
 */
 
@@ -763,7 +763,10 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 /****************************************************************************/
 
 #define INSTRUCTION_PUTCONST_TYPE(iptr) \
-	((iptr)[1].op1)
+	((iptr)[0].op1)
+
+#define INSTRUCTION_PUTCONST_VALUE_ADR(iptr) \
+	((iptr)[0].val.a)
 
 #define INSTRUCTION_PUTCONST_FIELDINFO(iptr) \
 	((fieldinfo *)((iptr)[1].val.a))
@@ -1195,7 +1198,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 								  type = INSTRUCTION_PUTCONST_TYPE(iptr);
 								  if (type == TYPE_ADR) {
 									  temptip = &tempti;
-									  if (!iptr[0].op1)
+									  if (!INSTRUCTION_PUTCONST_VALUE_ADR(iptr))
 										  TYPEINFO_INIT_NULLTYPE(tempti);
 									  else
 									      TYPEINFO_INIT_CLASSINFO(tempti,class_java_lang_String);
@@ -1262,7 +1265,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 								  type = INSTRUCTION_PUTCONST_TYPE(iptr);
 								  if (type == TYPE_ADR) {
 									  temptip = &tempti;
-									  if (!iptr[0].op1)
+									  if (!INSTRUCTION_PUTCONST_VALUE_ADR(iptr))
 										  TYPEINFO_INIT_NULLTYPE(tempti);
 									  else
 									      TYPEINFO_INIT_CLASSINFO(tempti,class_java_lang_String);

@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2044 2005-03-20 14:28:36Z edwin $
+   $Id: stack.c 2046 2005-03-20 14:43:04Z edwin $
 
 */
 
@@ -600,7 +600,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									}
 
 									iptr[1].opc = ICMD_NOP;
-									iptr[1].op1 = TYPE_INT;
+									iptr[0].op1 = TYPE_INT;
 									COUNT(count_pcmd_op);
 #if SUPPORT_CONST_STORE_ZERO_ONLY
 								} else
@@ -907,7 +907,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									}
 
 									iptr[1].opc = ICMD_NOP;
-									iptr[1].op1 = TYPE_LNG;
+									iptr[0].op1 = TYPE_LNG;
 									COUNT(count_pcmd_op);
 #if SUPPORT_CONST_STORE_ZERO_ONLY
 								} else
@@ -962,7 +962,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								}
 
 								iptr[1].opc = ICMD_NOP;
-								iptr[1].op1 = TYPE_ADR;
+								iptr[0].op1 = TYPE_ADR;
 								COUNT(count_pcmd_op);
 								break;
 
