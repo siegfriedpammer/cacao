@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1173 2004-06-16 14:56:18Z jowenn $
+# $Id: Makefile.am 1241 2004-06-30 20:10:17Z twisti $
 
 @SET_MAKE@
 
@@ -24,7 +24,7 @@ CLEANFILES = \
 	nativetypes.hh
 
 bin_PROGRAMS = cacao
-noinst_PROGRAMS = cacaoh
+noinst_PROGRAMS = cacaoh gennativetable genoffsets
 
 INCLUDES = -I$(top_srcdir)/jit/@ARCH_DIR@
 
@@ -35,18 +35,22 @@ cacao_SOURCES = \
 	builtin.c \
 	builtin.h \
 	global.h \
+	jni.c \
+	jni.h \
 	loader.c \
 	loader.h \
 	main.c \
 	native.c \
 	native.h \
-	jni.c \
-	jni.h \
+	options.c \
+	options.h \
+	statistics.c \
+	statistics.h \
 	tables.c \
 	tables.h \
-	unzip.c \
 	typeinfo.c \
-	typeinfo.h
+	typeinfo.h \
+	unzip.c
 
 cacao_LDADD = \
 	jit/libjit.a \
@@ -86,8 +90,11 @@ cacao_DEPENDENCIES = \
 
 cacaoh_SOURCES = \
 	builtin.c \
+	cacaoh.c \
 	headers.c \
 	loader.c \
+	options.c \
+	statistics.c \
 	tables.c \
 	unzip.c
 
@@ -106,10 +113,31 @@ cacaoh_DEPENDENCIES = \
 	@ZIP_LIBS@ \
 	toolbox/libtoolbox.a
 
+gennativetable_SOURCES = \
+	builtin.c \
+	gennativetable.c \
+	headers.c \
+	loader.c \
+	options.c \
+	tables.c \
+	statistics.c \
+	unzip.c
 
-nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makefile
-	test -f stamp-nat || \
-	CLASSPATH=$(top_srcdir)/gnuclassfiles ./cacaoh \
+gennativetable_LDADD = \
+	$(BOEHM_LIBS) \
+	gnuclasspathnat/native/jni/java-lang/.libs/libjavalang.a \
+	@THREAD_OBJ@ \
+	@ZIP_LIBS@ \
+	toolbox/libtoolbox.a \
+	@THREAD_LIB@
+
+natheaders: cacaoh
+	CLASSPATH=$(top_srcdir)/gnuclassfiles ./cacaoh $(CLASSES)
+
+nativetable.inc: gennativetable
+	$(top_srcdir)/gennativetable $(CLASSES) > nativetable.inc
+
+CLASSES= \
 	java.lang.String \
 	java.lang.Class \
 	java.io.FileDescriptor \
@@ -126,6 +154,9 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	java.io.File \
 	java.lang.SecurityManager \
 	java.lang.VMSecurityManager \
+	java.lang.reflect.Field \
+	java.lang.reflect.Constructor \
+	java.lang.reflect.Method \
 	java.io.VMObjectStreamClass \
 	java.io.ObjectInputStream \
 	java.io.RandomAccessFile \
@@ -187,9 +218,6 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	javax.swing.Popup \
 	javax.swing.UIManager \
 	java.lang.VMClass \
-	java.lang.reflect.Field \
-	java.lang.reflect.Constructor \
-	java.lang.reflect.Method \
 	java.lang.ThreadGroup \
 	java.lang.VMThread \
 	java.lang.VMDouble \
@@ -208,9 +236,6 @@ nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh: cacaoh Makefile.am Makef
 	gnu.java.security.x509.X509Certificate  \
 	java.lang.JOWENNTest1 \
 	@AWTPEERS@
-	touch stamp-nat nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh
-
-native.c: nativetypes.hh jit/@ARCH_DIR@/offsets.h nativetable.hh
 
 checkjvm:
 	$(MAKE) -C jvmtst $@
