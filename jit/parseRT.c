@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 724 2003-12-09 18:56:11Z edwin $
+   $Id: parseRT.c 903 2004-01-22 23:00:32Z carolyn $
 
 */
 
@@ -1682,7 +1682,7 @@ void mainRTAparseInit (methodinfo *m )
 		}
 		if (AfterMain) {
 			printf("#%i : ",methRT);
-			printf("Method missed by static analysis Main parse. See rtMissed file");
+			printf("Method missed by static analysis Main parse. See ./rtMissed file\n");
 			/***	panic ("Method missed by static analysis Main parse. See rtMissed file");**/
 		}
 	}
@@ -1809,7 +1809,7 @@ void RT_jit_parse(methodinfo *m)
                                         /*RTprint*/     }
                                         /*RTprint*/     /**printObjectClassHeirarchyAll( );**/
 						fflush(stdout);
-		MFREE(callgraph,methodinfo*,MAXCALLGRAPH);
+		/** MFREE(callgraph,methodinfo*,MAXCALLGRAPH);  causes stack overflow **/
 		}
 	} /*  end opt_rt */
 
