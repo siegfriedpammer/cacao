@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClassLoader.c 2188 2005-04-02 01:15:33Z edwin $
+   $Id: VMClassLoader.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -178,9 +178,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 
 	/* get primitive class */
 
-	c = class_new(u);
-
-	if (!load_class_bootstrap(c) || !class_init(c))
+	if (!load_class_bootstrap(u,&c) || !class_init(c))
 		return NULL;
 
 	use_class_as_object(c);
@@ -233,13 +231,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 
 	u = javastring_toutf(name, true);
 
-	/* create class */
-
-	c = class_new(u);
-
 	/* load class */
 
-	if (!load_class_bootstrap(c))
+	if (!load_class_bootstrap(u,&c))
 		goto exception;
 
 	/* resolve class -- if requested */

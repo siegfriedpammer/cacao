@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2190 2005-04-02 10:07:44Z edwin $
+   $Id: native.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -96,6 +96,7 @@ void use_class_as_object(classinfo *c)
 
 		/*if (class_java_lang_Class ==0) panic("java/lang/Class not loaded in use_class_as_object");
 		if (class_java_lang_Class->vftbl ==0) panic ("vftbl == 0 in use_class_as_object");*/
+		assert(class_java_lang_Class);
 		c->header.vftbl = class_java_lang_Class->vftbl;
 		c->classvftbl = true;
   	}
@@ -581,6 +582,7 @@ java_objectarray* get_parametertypes(methodinfo *m)
     int i;
 
     /* create class-array */
+	assert(class_java_lang_Class);
     result = builtin_anewarray(parametercount, class_java_lang_Class);
 
     /* get classes */
@@ -611,6 +613,7 @@ java_objectarray* get_exceptiontypes(methodinfo *m)
 	excount = m->thrownexceptionscount;
 
     /* create class-array */
+	assert(class_java_lang_Class);
     result = builtin_anewarray(excount, class_java_lang_Class);
 
     for (i = 0; i < excount; i++) {
@@ -780,11 +783,12 @@ java_objectarray *builtin_asm_createclasscontextarray(classinfo **end, classinfo
 
 	/*printf("end %p, start %p, size %ld\n",end,start,size);*/
 	if (!class_java_lang_Class)
-		class_java_lang_Class = class_new(utf_new_char("java/lang/Class"));
+		if (!load_class_bootstrap(utf_new_char("java/lang/Class"),&class_java_lang_Class))
+			return NULL;
 
 	if (!class_java_lang_SecurityManager)
-		class_java_lang_SecurityManager =
-			class_new(utf_new_char("java/lang/SecurityManager"));
+		if (!load_class_bootstrap(utf_new_char("java/lang/SecurityManager"),&class_java_lang_SecurityManager))
+			return NULL;
 
 	if (size > 0) {
 		if (*start == class_java_lang_SecurityManager) {
@@ -825,8 +829,8 @@ java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end, classinfo **s
         printf("end %p, start %p, size %ld\n",end,start,size);*/
 
 	if (!class_java_lang_SecurityManager)
-		class_java_lang_SecurityManager =
-			class_new(utf_new_char("java/lang/SecurityManager"));
+		if (!load_class_bootstrap(utf_new_char("java/lang/SecurityManager"),&class_java_lang_SecurityManager))
+			return NULL;
 
 	if (size > 0) {
 		if (*start == class_java_lang_SecurityManager) {
@@ -835,7 +839,8 @@ java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end, classinfo **s
 		}
 	}
 
-	privilegedAction=class_new(utf_new_char("java/security/PrivilegedAction"));
+	if (!load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"),&privilegedAction))
+		return NULL;
 
 	for(i = 0, current = start; i < size; i++, current--) {
 		c = *current;

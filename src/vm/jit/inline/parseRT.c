@@ -27,7 +27,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 2189 2005-04-02 02:05:59Z edwin $
+   $Id: parseRT.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -739,8 +739,10 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
                 /* class is really instantiated when class.<init> called*/
                         i = code_get_u2(p + 1,m);
 			{
-			classinfo *ci;
-                        ci = class_getconstant(m->class, i, CONSTANT_Class);
+				constant_classref *cr;
+				classinfo *ci;
+                cr = (constant_classref *)class_getconstant(m->class, i, CONSTANT_Class);
+				resolve_classref(NULL,cr,resolveEager,false,&ci);
                         /*** s_count++; look for s_counts for VTA */
 			/* add marked methods */
 			CLASSNAME(ci,"NEW : do nothing",RTA_DEBUGr);
@@ -753,9 +755,12 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
                 /* class used */
                         i = code_get_u2(p + 1,m);
                         {
-                        classinfo *cls =
-                                (classinfo *)
-		 	     class_getconstant(m->class, i, CONSTANT_Class);
+							constant_classref *cr;
+                        	classinfo *cls;
+
+							cr = (constant_classref*) class_getconstant(m->class, i, CONSTANT_Class);
+							resolve_classref(NULL,cr,resolveEager,false,&cls);
+
                         LAZYLOADING(cls)
                        	CLASSNAMEop(cls,RTA_DEBUGr);
                         if (cls->classUsed == NOTUSED){
@@ -788,7 +793,7 @@ else
 
 /*-- Get meth ptr for class.meth desc and add to RTA worklist --*/
 #define SYSADD(cls,meth,desc,txt) \
-        c = class_new(utf_new_char(cls)); \
+        load_class_bootstrap(utf_new_char(cls),&c); \
         LAZYLOADING(c) \
         callmeth = class_resolveclassmethod(c, \
               utf_new_char(meth), \

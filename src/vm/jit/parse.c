@@ -30,7 +30,7 @@
             Edwin Steiner
             Joseph Wenninger
 
-   $Id: parse.c 2189 2005-04-02 02:05:59Z edwin $
+   $Id: parse.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -658,24 +658,17 @@ SHOWOPCODE(DEBUG4)
 			OP(ICMD_CHECKASIZE);
 			i = code_get_u2(p + 1,inline_env->method);
 			{
-				classinfo *component =
-					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+				classinfo *component;
+				constant_classref *cr =
+					(constant_classref*) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-#if 1
-				if (!load_class_from_classloader(component, m->class->classloader))
-					return NULL;
-
-				if (!link_class(component))
+				if (!resolve_classref(inline_env->method,
+							cr,resolveEager,true,&component))
 					return NULL;
 
   				LOADCONST_A_BUILTIN(class_array_of(component)->vftbl);
 				s_count++;
 				BUILTIN2(BUILTIN_newarray, TYPE_ADR, currentline);
-#else
-				LOADCONST_A_BUILTIN(component);
-				s_count++;
-				BUILTIN2(BUILTIN_anewarray, TYPE_ADR, currentline);
-#endif
 			}
 			OP(ICMD_CHECKEXCEPTION);
 			break;
@@ -693,13 +686,12 @@ SHOWOPCODE(DEBUG4)
 /*   				OP2A(opcode, v, arrayvftbl,currentline); */
 
 				
- 				classinfo *component =
-					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+ 				classinfo *component;
+			    constant_classref * cr =
+					(constant_classref*) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!load_class_from_classloader(component, m->class->classloader))
-					return NULL;
-
-				if (!link_class(component))
+				if (!resolve_classref_or_classinfo(inline_env->method,
+							CLASSREF_OR_CLASSINFO(cr),resolveEager,true,&component))
 					return NULL;
 
  				arrayvftbl = component->vftbl;
@@ -1128,23 +1120,30 @@ if (DEBUG4==true) {
 			/* miscellaneous object operations *******/
 
 		case JAVA_NEW:
-			i = code_get_u2(p + 1,inline_env->method);
-			LOADCONST_A_BUILTIN(class_getconstant(inline_env->method->class, i, CONSTANT_Class));
-			s_count++;
-			BUILTIN1(BUILTIN_new, TYPE_ADR, currentline);
-			OP(ICMD_CHECKEXCEPTION);
+			{
+				constant_classref *cr;
+				classinfo *cls;
+				
+				i = code_get_u2(p + 1,inline_env->method);
+				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+				if (!resolve_classref(inline_env->method,cr,resolveEager,true,&cls))
+					return NULL;
+				LOADCONST_A_BUILTIN(cls);
+				s_count++;
+				BUILTIN1(BUILTIN_new, TYPE_ADR, currentline);
+				OP(ICMD_CHECKEXCEPTION);
+			}
 			break;
 
 		case JAVA_CHECKCAST:
 			i = code_get_u2(p + 1,inline_env->method);
 			{
-				classinfo *cls =
-					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
-
-				if (!load_class_from_classloader(cls, m->class->classloader))
-					return NULL;
-
-				if (!link_class(cls))
+				constant_classref *cr;
+				classinfo *cls;
+				
+				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+				if (!resolve_classref(inline_env->method,
+							cr,resolveEager,true,&cls))
 					return NULL;
 
 				if (cls->vftbl->arraydesc) {
@@ -1167,13 +1166,12 @@ if (DEBUG4==true) {
 		case JAVA_INSTANCEOF:
 			i = code_get_u2(p + 1,inline_env->method);
 			{
-				classinfo *cls =
-					(classinfo *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
-
-				if (!load_class_from_classloader(cls, m->class->classloader))
-					return NULL;
-
-				if (!link_class(cls))
+				constant_classref *cr;
+				classinfo *cls;
+				
+				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+				if (!resolve_classref(inline_env->method,
+							cr,resolveEager,true,&cls))
 					return NULL;
 
 				if (cls->vftbl->arraydesc) {

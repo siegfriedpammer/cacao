@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 2152 2005-03-30 19:28:40Z twisti $
+   $Id: VMThrowable.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -77,13 +77,11 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *el,long
 	classinfo *c;
 	java_objectarray *oa;
 
-	c = class_new(utf_new_char("java/lang/StackTraceElement"));
-
-	if (!c->loaded)
-		load_class_bootstrap(c);
-
+	if (!load_class_bootstrap(utf_new_char("java/lang/StackTraceElement"),&c))
+		return NULL;
 	if (!c->linked)
-		link_class(c);
+		if (!link_class(c))
+			return NULL;
 
 	m = class_findmethod(c,
 						 utf_init,

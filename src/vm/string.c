@@ -30,11 +30,12 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 2148 2005-03-30 16:49:40Z twisti $
+   $Id: string.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
 
+#include <assert.h>
 #include "config.h"
 #include "types.h"
 
@@ -293,11 +294,13 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
     stringdata->header.objheader.vftbl = primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
     stringdata->header.size = length;
 
+	if (!class_java_lang_String)
+		load_class_bootstrap(utf_java_lang_String,&class_java_lang_String);
+	assert(class_java_lang_String);
+	assert(class_java_lang_String->loaded);
+
 	/* if we use eager loading, we have to check loaded String class */
 	if (opt_eager) {
-		if (!load_class_bootstrap(class_java_lang_String))
-			return NULL;
-
 		list_addfirst(&unlinkedclasses, class_java_lang_String);
 	}
 

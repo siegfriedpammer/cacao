@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2190 2005-04-02 10:07:44Z edwin $
+   $Id: VMClass.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -55,6 +55,7 @@
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
+#include "vm/resolve.h"
 
 
 /* for selecting public members */
@@ -188,13 +189,12 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 			(c->methods[i].name == utf_init))
 			public_methods++;
 
-    class_constructor = class_new(utf_new_char("java/lang/reflect/Constructor"));
-
-	if (!class_constructor->loaded)
-		load_class_bootstrap(class_constructor);
+	if (!load_class_bootstrap(utf_new_char("java/lang/reflect/Constructor"),&class_constructor))
+		return NULL;
 
 	if (!class_constructor->linked)
-		link_class(class_constructor);
+		if (!link_class(class_constructor))
+			return NULL;
 
     array_constructor = builtin_anewarray(public_methods, class_constructor);
 
@@ -263,8 +263,13 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 	result = builtin_anewarray(declaredclasscount, class_java_lang_Class);    	
 
 	for (i = 0; i < c->innerclasscount; i++) {
-		classinfo *inner = c->innerclass[i].inner_class.cls;
-		classinfo *outer = c->innerclass[i].outer_class.cls;
+		classinfo *inner;
+		classinfo *outer;
+
+		if (!resolve_classref_or_classinfo(NULL,c->innerclass[i].inner_class,resolveEager,false,&inner))
+			return NULL;
+		if (!resolve_classref_or_classinfo(NULL,c->innerclass[i].outer_class,resolveEager,false,&inner))
+			return NULL;
 		
 		if ((outer == c) && (notPublicOnly || (inner->flags & ACC_PUBLIC))) {
 			/* outer class is this class, store innerclass in array */

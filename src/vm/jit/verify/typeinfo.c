@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2191 2005-04-02 13:54:54Z edwin $
+   $Id: typeinfo.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -399,10 +399,6 @@ classinfo_implements_interface(classinfo *cls,classinfo *interf)
 	TYPEINFO_ASSERT(interf);
 	TYPEINFO_ASSERT((interf->flags & ACC_INTERFACE) != 0);
 
-	if (!cls->loaded)
-		if (!load_class_bootstrap(cls)) /* XXX */
-			return false;
-
 	if (!cls->linked)
 		if (!link_class(cls)) /* XXX */
 			return false;
@@ -547,11 +543,6 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 
 	cls = c.cls;
 	
-	if (!cls->loaded)
-		load_class_bootstrap(cls); /* XXX */
-	if (!dest.cls->loaded)
-		load_class_bootstrap(dest.cls); /* XXX */
-
 	TYPEINFO_ASSERT(cls->loaded);
 	TYPEINFO_ASSERT(dest.cls->loaded);
 
@@ -1149,12 +1140,6 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 	/* non-trivial cases                                */
 	/*--------------------------------------------------*/
 
-	/* we may have to load the classes */
-	if (!IS_CLASSREF(x) && !x.cls->loaded)
-		load_class_bootstrap(x.cls); /* XXX */
-	if (!IS_CLASSREF(y) && !y.cls->loaded)
-		load_class_bootstrap(y.cls); /* XXX */
-        
 #ifdef TYPEINFO_VERBOSE
 	{
 		typeinfo dbgx,dbgy;

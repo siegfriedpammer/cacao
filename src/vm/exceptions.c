@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.c 2147 2005-03-30 16:47:35Z twisti $
+   $Id: exceptions.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -186,28 +186,28 @@ bool exceptions_init(void)
 {
 	/* java/lang/Throwable */
 
-	if (!load_class_bootstrap(class_java_lang_Throwable) ||
+	if (!load_class_bootstrap(utf_java_lang_Throwable,&class_java_lang_Throwable) ||
 		!link_class(class_java_lang_Throwable))
 		return false;
 
 
 	/* java/lang/Exception */
 
-	if (!load_class_bootstrap(class_java_lang_Exception) ||
+	if (!load_class_bootstrap(utf_java_lang_Exception,&class_java_lang_Exception) ||
 		!link_class(class_java_lang_Exception))
 		return false;
 
 
 	/* java/lang/Error */
 
-	if (!load_class_bootstrap(class_java_lang_Error) ||
+	if (!load_class_bootstrap(utf_java_lang_Error,&class_java_lang_Error) ||
 		!link_class(class_java_lang_Error))
 		return false;
 
 
 	/* java/lang/OutOfMemoryError */
 
-	if (!load_class_bootstrap(class_java_lang_OutOfMemoryError) ||
+	if (!load_class_bootstrap(utf_java_lang_OutOfMemoryError,&class_java_lang_OutOfMemoryError) ||
 		!link_class(class_java_lang_OutOfMemoryError))
 		return false;
 
@@ -331,14 +331,21 @@ void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 
 java_objectheader *new_exception(const char *classname)
 {
-	classinfo *c = class_new(utf_new_char(classname));
+	classinfo *c;
+   
+	if (!load_class_bootstrap(utf_new_char(classname),&c))
+		return *exceptionptr;
 
 	return native_new_and_init(c);
 }
 
 java_objectheader *new_exception_message(const char *classname, const char *message)
 {
-	classinfo *c = class_new(utf_new_char(classname));
+	classinfo *c;
+   
+	if (!load_class_bootstrap(utf_new_char(classname),&c))
+		return *exceptionptr;
+
 
 	return native_new_and_init_string(c, javastring_new_char(message));
 }
@@ -346,7 +353,11 @@ java_objectheader *new_exception_message(const char *classname, const char *mess
 
 java_objectheader *new_exception_throwable(const char *classname, java_lang_Throwable *throwable)
 {
-	classinfo *c = class_new(utf_new_char(classname));
+	classinfo *c;
+   
+	if (!load_class_bootstrap(utf_new_char(classname),&c))
+		return *exceptionptr;
+
 
 	return native_new_and_init_throwable(c, throwable);
 }
@@ -354,7 +365,11 @@ java_objectheader *new_exception_throwable(const char *classname, java_lang_Thro
 
 java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
 {
-	classinfo *c = class_new(utf_new_char(classname));
+	classinfo *c;
+   
+	if (!load_class_bootstrap(utf_new_char(classname),&c))
+		return *exceptionptr;
+
 
 	return native_new_and_init_string(c, javastring_new(message));
 }
@@ -362,7 +377,11 @@ java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
 
 java_objectheader *new_exception_javastring(const char *classname, java_lang_String *message)
 {
-	classinfo *c = class_new(utf_new_char(classname));
+	classinfo *c;
+   
+	if (!load_class_bootstrap(utf_new_char(classname),&c))
+		return *exceptionptr;
+
 
 	return native_new_and_init_string(c, message);
 }
@@ -371,8 +390,9 @@ java_objectheader *new_exception_javastring(const char *classname, java_lang_Str
 java_objectheader *new_exception_int(const char *classname, s4 i)
 {
 	classinfo *c;
-
-	c = class_new(utf_new_char(classname));
+   
+	if (!load_class_bootstrap(utf_new_char(classname),&c))
+		return *exceptionptr;
 
 	return native_new_and_init_int(c, i);
 }

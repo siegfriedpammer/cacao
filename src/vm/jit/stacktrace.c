@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 1929 2005-02-10 10:52:26Z twisti $
+   $Id: stacktrace.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -377,7 +377,9 @@ void classLoaderCollector(void **target, stackTraceBuffer *buffer) {
 		start=0;
 		size=0;
 	}
-        privilegedAction=class_new(utf_new_char("java/security/PrivilegedAction"));
+
+		if (!load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"),&privilegedAction))
+			/* XXX handle exception */;
 
         for(i=0, current = start; i < size; i++, current++) {
                 m=start->method;

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2190 2005-04-02 10:07:44Z edwin $
+   $Id: class.h 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -220,8 +220,6 @@ extern classinfo *pseudo_class_New;
 
 
 /* function prototypes ********************************************************/
-
-void class_init_foo(void);
 
 /* search for class and create it if not found */
 classinfo *class_new(utf *u);

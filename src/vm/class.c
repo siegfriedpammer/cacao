@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: class.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -86,93 +86,45 @@ list unlinkedclasses;                   /* this is only used for eager class  */
 
 /* important system classes */
 
-classinfo *class_java_lang_Object;
-classinfo *class_java_lang_Class;
-classinfo *class_java_lang_ClassLoader;
-classinfo *class_java_lang_Cloneable;
-classinfo *class_java_lang_SecurityManager;
-classinfo *class_java_lang_String;
-classinfo *class_java_lang_System;
-classinfo *class_java_io_Serializable;
+classinfo *class_java_lang_Object = NULL;
+classinfo *class_java_lang_Class = NULL;
+classinfo *class_java_lang_ClassLoader = NULL;
+classinfo *class_java_lang_Cloneable = NULL;
+classinfo *class_java_lang_SecurityManager = NULL;
+classinfo *class_java_lang_String = NULL;
+classinfo *class_java_lang_System = NULL;
+classinfo *class_java_io_Serializable = NULL;
 
 
 /* system exception classes required in cacao */
 
-classinfo *class_java_lang_Throwable;
-classinfo *class_java_lang_VMThrowable;
-classinfo *class_java_lang_Exception;
-classinfo *class_java_lang_Error;
-classinfo *class_java_lang_OutOfMemoryError;
-classinfo *class_java_lang_NoClassDefFoundError;
+classinfo *class_java_lang_Throwable = NULL;
+classinfo *class_java_lang_VMThrowable = NULL;
+classinfo *class_java_lang_Exception = NULL;
+classinfo *class_java_lang_Error = NULL;
+classinfo *class_java_lang_OutOfMemoryError = NULL;
+classinfo *class_java_lang_NoClassDefFoundError = NULL;
 
-classinfo *class_java_lang_Void;
-classinfo *class_java_lang_Boolean;
-classinfo *class_java_lang_Byte;
-classinfo *class_java_lang_Character;
-classinfo *class_java_lang_Short;
-classinfo *class_java_lang_Integer;
-classinfo *class_java_lang_Long;
-classinfo *class_java_lang_Float;
-classinfo *class_java_lang_Double;
+classinfo *class_java_lang_Void = NULL;
+classinfo *class_java_lang_Boolean = NULL;
+classinfo *class_java_lang_Byte = NULL;
+classinfo *class_java_lang_Character = NULL;
+classinfo *class_java_lang_Short = NULL;
+classinfo *class_java_lang_Integer = NULL;
+classinfo *class_java_lang_Long = NULL;
+classinfo *class_java_lang_Float = NULL;
+classinfo *class_java_lang_Double = NULL;
 
 /* some classes which may be used more often */
 
-classinfo *class_java_util_Vector;
+classinfo *class_java_util_Vector = NULL;
 
 
 /* pseudo classes for the typechecker */
 
-classinfo *pseudo_class_Arraystub;
-classinfo *pseudo_class_Null;
-classinfo *pseudo_class_New;
-
-
-/* class_init ******************************************************************
-
-   Initialize the class subsystem.
-
-*******************************************************************************/
-
-void class_init_foo(void)
-{
-	class_java_lang_Object          = class_new_intern(utf_java_lang_Object);
-
-	class_java_lang_Class           = class_new(utf_java_lang_Class);
-	class_java_lang_ClassLoader     = class_new(utf_java_lang_ClassLoader);
-	class_java_lang_Cloneable       = class_new(utf_java_lang_Cloneable);
-	class_java_lang_SecurityManager = class_new(utf_java_lang_SecurityManager);
-	class_java_lang_String          = class_new(utf_java_lang_String);
-	class_java_lang_System          = class_new(utf_java_lang_System);
-	class_java_io_Serializable      = class_new(utf_java_io_Serializable);
-
-	class_java_lang_Throwable       = class_new(utf_java_lang_Throwable);
-	class_java_lang_VMThrowable     = class_new(utf_java_lang_VMThrowable);
-	class_java_lang_Exception       = class_new(utf_java_lang_Exception);
-	class_java_lang_Error           = class_new(utf_java_lang_Error);
-
-	class_java_lang_OutOfMemoryError =
-		class_new(utf_java_lang_OutOfMemoryError);
-
-	class_java_lang_NoClassDefFoundError =
-		class_new(utf_java_lang_NoClassDefFoundError);
-
-	class_java_lang_Void            = class_new(utf_java_lang_Void);
-	class_java_lang_Boolean         = class_new(utf_java_lang_Boolean);
-	class_java_lang_Byte            = class_new(utf_java_lang_Byte);
-	class_java_lang_Character       = class_new(utf_java_lang_Character);
-	class_java_lang_Short           = class_new(utf_java_lang_Short);
-	class_java_lang_Integer         = class_new(utf_java_lang_Integer);
-	class_java_lang_Long            = class_new(utf_java_lang_Long);
-	class_java_lang_Float           = class_new(utf_java_lang_Float);
-	class_java_lang_Double          = class_new(utf_java_lang_Double);
-
-	class_java_util_Vector          = class_new(utf_java_util_Vector);
-
-    pseudo_class_Arraystub = class_new_intern(utf_new_char("$ARRAYSTUB$"));
-	pseudo_class_Null      = class_new_intern(utf_new_char("$NULL$"));
-	pseudo_class_New       = class_new_intern(utf_new_char("$NEW$"));
-}
-
+classinfo *pseudo_class_Arraystub = NULL;
+classinfo *pseudo_class_Null = NULL;
+classinfo *pseudo_class_New = NULL;
 
 /* class_new *******************************************************************
 
@@ -190,23 +142,18 @@ classinfo *class_new(utf *classname)
     tables_lock();
 #endif
 
-    c = class_new_intern(classname);
-
 	/* we support eager class loading and linking on demand */
-
 	if (opt_eager) {
 		classinfo *tc;
 		classinfo *tmp;
 
 		list_init(&unlinkedclasses, OFFSET(classinfo, listnode));
 
-		if (!c->loaded) {
-			if (!load_class_bootstrap(c)) {
+		if (!load_class_bootstrap(classname,&c)) {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				tables_unlock();
+			tables_unlock();
 #endif
-				return c;
-			}
+			return NULL;
 		}
 
 		/* link all referenced classes */
@@ -240,6 +187,10 @@ classinfo *class_new(utf *classname)
 			}
 		}
 	}
+	else {
+		c = class_new_intern(classname);
+	}
+
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
     tables_unlock();

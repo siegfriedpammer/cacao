@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: threads.c 2148 2005-03-30 16:49:40Z twisti $
+   $Id: threads.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -486,11 +486,11 @@ initThreads(u1 *stackbottom)
 	threadobject *tempthread = mainthreadobj;
 	methodinfo *method;
 
-	threadclass = class_new(utf_new_char("java/lang/VMThread"));
-	load_class_bootstrap(threadclass);
-	link_class(threadclass);
-
+	if (!load_class_bootstrap(utf_new_char("java/lang/VMThread"),&threadclass))
+		throw_exception_exit();
 	if (!threadclass)
+		throw_exception_exit();
+	if (!link_class(threadclass))
 		throw_exception_exit();
 
 	freeLockRecordPools(mainthreadobj->ee.lrpool);
@@ -517,7 +517,8 @@ initThreads(u1 *stackbottom)
 	threadname = javastring_new(utf_new_char("main"));
 
 	/* Allocate and init ThreadGroup */
-	threadgroupclass = class_new(utf_new_char("java/lang/ThreadGroup"));
+	if (!load_class_bootstrap(utf_new_char("java/lang/ThreadGroup"),&threadgroupclass))
+		throw_exception_exit();
 	threadgroup =
 		(java_lang_ThreadGroup *) native_new_and_init(threadgroupclass);
 
@@ -525,7 +526,8 @@ initThreads(u1 *stackbottom)
 		throw_exception_exit();
 
 	/* Create a Thread */
-	threadclass = class_new(utf_new_char("java/lang/Thread"));
+	if (!load_class_bootstrap(utf_new_char("java/lang/Thread"),&threadclass))
+		throw_exception_exit();
 	mainthread = (java_lang_Thread*) builtin_new(threadclass);
 	mainthreadobj->o.thread = mainthread;
 

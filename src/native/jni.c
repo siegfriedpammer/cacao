@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: jni.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -617,9 +617,7 @@ jclass FindClass(JNIEnv *env, const char *name)
 {
 	classinfo *c;  
   
-	c = class_new(utf_new_char_classname((char *) name));
-
-	if (!load_class_bootstrap(c) || !link_class(c)) {
+	if (!load_class_bootstrap(utf_new_char_classname((char *) name),&c) || !link_class(c)) {
 		class_remove(c);
 
 		return NULL;

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2186 2005-04-02 00:43:25Z edwin $
+   $Id: loader.h 2193 2005-04-02 19:33:43Z edwin $
 */
 
 
@@ -168,8 +168,8 @@ inline u4 suck_u4(classbuffer *cb);
 void loader_close(void);
 
 /* class loading functions */
-classinfo *load_class_from_classloader(classinfo *c, java_objectheader *cl);
-classinfo *load_class_bootstrap(classinfo *c);
+bool load_class_from_classloader(utf *name, java_objectheader *cl, classinfo **result);
+bool load_class_bootstrap(utf *name,classinfo **result);
 classinfo *load_class_from_classbuffer(classbuffer *cb);
 
 

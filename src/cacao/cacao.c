@@ -37,11 +37,12 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2148 2005-03-30 16:49:40Z twisti $
+   $Id: cacao.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -870,7 +871,6 @@ int main(int argc, char **argv)
 	/* initialize some cacao subsystems */
 
 	utf8_init();
-	class_init_foo();
 
 	if (!loader_init((u1 *) &dummy))
 		throw_main_exception_exit();
@@ -1034,9 +1034,7 @@ int main(int argc, char **argv)
 			c = class_hash.ptr[slot];
 
 			while (c) {
-				if (!c->loaded)
-					if (!load_class_bootstrap(c))
-						throw_main_exception_exit();
+				assert(c->loaded);
 
 				if (!c->linked)
 					if (!link_class(c))
@@ -1062,9 +1060,7 @@ int main(int argc, char **argv)
 		methodinfo *m;
 
 		/* create, load and link the main class */
-		mainclass = class_new(utf_new_char(mainstring));
-
-		if (!load_class_bootstrap(mainclass))
+		if (!load_class_bootstrap(utf_new_char(mainstring),&mainclass))
 			throw_main_exception_exit();
 
 		if (!link_class(mainclass))
@@ -1117,10 +1113,8 @@ void cacao_exit(s4 status)
 {
 	methodinfo *m;
 
-	/* class should already be loaded, but who knows... */
-
-	if (!load_class_bootstrap(class_java_lang_System))
-		throw_main_exception_exit();
+	assert(class_java_lang_System);
+	assert(class_java_lang_System->loaded);
 
 	if (!link_class(class_java_lang_System))
 		throw_main_exception_exit();

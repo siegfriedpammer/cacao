@@ -39,7 +39,7 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.c 2189 2005-04-02 02:05:59Z edwin $
+   $Id: parseXTA.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -1446,7 +1446,9 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
                         i = code_get_u2(p + 1,m);
 			{
 			classinfo *cls;
-                        cls = class_getconstant(m->class, i, CONSTANT_Class);
+			constant_classref *cr;
+			cr = (constant_classref *)class_getconstant(m->class, i, CONSTANT_Class);
+			resolve_classref(NULL,cr,resolveEager,false,&cls);
                         /*** s_count++; look for s_counts for VTA */
 			/* add marked methods */
 			CLASSNAME(cls,"NEW : do nothing",XTA_DEBUGr);
@@ -1460,9 +1462,10 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
                 /* class used */
                         i = code_get_u2(p + 1,m);
                         {
-                        classinfo *cls =
-                                (classinfo *)
-		 	     class_getconstant(m->class, i, CONSTANT_Class);
+							constant_classref *cr;
+							classinfo *cls;
+							cr = (constant_classref*) class_getconstant(m->class, i, CONSTANT_Class);
+							resolve_classref(NULL,cr,resolveEager,false,&cls);
                         LAZYLOADING(cls)
                        	CLASSNAMEop(cls,XTA_DEBUGr);
                         if (cls->classUsed == NOTUSED){
@@ -1497,7 +1500,7 @@ else
 
 /*-- Get meth ptr for class.meth desc and add to XTA worklist --*/
 #define SYSADD(cls,meth,desc, is_mono_poly, txt) \
-  c = class_new(utf_new_char(cls)); \
+  load_class_bootstrap(utf_new_char(cls),&c); \
   LAZYLOADING(c) \
   callmeth = class_resolveclassmethod(c, \
     utf_new_char(meth), \

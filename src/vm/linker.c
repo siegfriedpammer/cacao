@@ -32,11 +32,12 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2190 2005-04-02 10:07:44Z edwin $
+   $Id: linker.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
 
+#include <assert.h>
 #include "mm/memory.h"
 #include "native/native.h"
 #include "vm/builtin.h"
@@ -44,6 +45,7 @@
 #include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/jit/codegen.inc.h"
 
@@ -153,6 +155,7 @@ bool linker_init(void)
 
     /* pseudo class for Arraystubs (extends java.lang.Object) */
     
+    pseudo_class_Arraystub = class_new_intern(utf_new_char("$ARRAYSTUB$"));
 	pseudo_class_Arraystub->loaded = true;
     pseudo_class_Arraystub->super.cls = class_java_lang_Object;
     pseudo_class_Arraystub->interfacescount = 2;
@@ -165,6 +168,7 @@ bool linker_init(void)
 
     /* pseudo class representing the null type */
     
+	pseudo_class_Null = class_new_intern(utf_new_char("$NULL$"));
 	pseudo_class_Null->loaded = true;
     pseudo_class_Null->super.cls = class_java_lang_Object;
 
@@ -173,6 +177,7 @@ bool linker_init(void)
 
     /* pseudo class representing new uninitialized objects */
     
+	pseudo_class_New = class_new_intern(utf_new_char("$NEW$"));
 	pseudo_class_New->loaded = true;
 	pseudo_class_New->linked = true; /* XXX is this allright? */
 	pseudo_class_New->super.cls = class_java_lang_Object;
@@ -222,7 +227,8 @@ static bool link_primitivetype_table(void)
 		primitivetype_table[i].class_primitive = c;
 
 		/* create class for wrapping the primitive type */
-		c = class_new_intern(utf_new_char(primitivetype_table[i].wrapname));
+		if (!load_class_bootstrap(utf_new_char(primitivetype_table[i].wrapname),&c))
+			return false;
 		primitivetype_table[i].class_wrap = c;
 		primitivetype_table[i].class_wrap->classUsed = NOTUSED; /* not used initially CO-RT */
 		primitivetype_table[i].class_wrap->impldBy = NULL;
@@ -322,7 +328,7 @@ static classinfo *link_class_intern(classinfo *c)
 	s4 vftbllength;               /* vftbllength of current class             */
 	s4 interfacetablelength;      /* interface table length                   */
 	vftbl_t *v;                   /* vftbl of current class                   */
-	s4 i;                         /* interface/method/field counter           */
+	s4 i,j;                       /* interface/method/field counter           */
 	arraydescriptor *arraydesc;   /* descriptor for array classes             */
 
 	/* maybe the class is already linked */
@@ -345,8 +351,11 @@ static classinfo *link_class_intern(classinfo *c)
 	/* check interfaces */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		tc = c->interfaces[i].cls;
-
+		/* resolve this super interface */
+		if (!resolve_classref_or_classinfo(NULL,c->interfaces[i],resolveEager,false,&tc))
+			return NULL;
+		c->interfaces[i].cls = tc;
+		
 		/* detect circularity */
 
 		if (tc == c) {
@@ -356,9 +365,7 @@ static classinfo *link_class_intern(classinfo *c)
 			return NULL;
 		}
 
-		if (!tc->loaded)
-			if (!load_class_from_classloader(tc, c->classloader))
-				return NULL;
+		assert(tc->loaded);
 
 		if (!(tc->flags & ACC_INTERFACE)) {
 			*exceptionptr =
@@ -374,9 +381,8 @@ static classinfo *link_class_intern(classinfo *c)
 	
 	/* check super class */
 
-	super = c->super.cls;
-
-	if (super == NULL) {          /* class java.lang.Object */
+	super = NULL;
+	if (c->super.any == NULL) {          /* class java.lang.Object */
 		c->index = 0;
         c->classUsed = USED;     /* Object class is always used CO-RT*/
 		c->impldBy = NULL;
@@ -387,6 +393,11 @@ static classinfo *link_class_intern(classinfo *c)
 		c->finalizer = NULL;
 
 	} else {
+		/* resolve super class */
+		if (!resolve_classref_or_classinfo(NULL,c->super,resolveEager,false,&super))
+			return NULL;
+		c->super.cls = super;
+		
 		/* detect circularity */
 		if (super == c) {
 			*exceptionptr =
@@ -395,9 +406,7 @@ static classinfo *link_class_intern(classinfo *c)
 			return NULL;
 		}
 
-		if (!super->loaded)
-			if (!load_class_from_classloader(super, c->classloader))
-				return NULL;
+		assert(super->loaded);
 
 		if (super->flags & ACC_INTERFACE) {
 			/* java.lang.IncompatibleClassChangeError: class a has interface java.lang.Cloneable as super class */
@@ -675,6 +684,23 @@ static classinfo *link_class_intern(classinfo *c)
 				c->finalizer = fi;
 	}
 
+	/* resolve exception class references */
+
+	for (i = 0; i < c->methodscount; i++) {
+		methodinfo *m = c->methods + i;
+		for (j=0; j<m->exceptiontablelength; ++j) {
+			if (!m->exceptiontable[j].catchtype.any)
+				continue;
+			if (!resolve_classref_or_classinfo(NULL,m->exceptiontable[j].catchtype,
+						resolveEager,false,&(m->exceptiontable[j].catchtype.cls)))
+				return NULL;
+		}
+		for (j=0; j<m->thrownexceptionscount; ++j)
+			if (!resolve_classref_or_classinfo(NULL,m->thrownexceptions[j],
+						resolveEager,false,&(m->thrownexceptions[j].cls)))
+				return NULL;
+	}
+	
 	/* final tasks */
 
 	linker_compute_subclasses(c);
@@ -724,9 +750,7 @@ static arraydescriptor *link_array(classinfo *c)
 
 	/* If the component type has not been linked, link it now */
 	if (comp && !comp->linked) {
-		if (!comp->loaded)
-			if (!load_class_from_classloader(comp, c->classloader))
-				return NULL;
+		assert(comp->loaded);
 
 		if (!link_class(comp))
 			return NULL;

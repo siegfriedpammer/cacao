@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2148 2005-03-30 16:49:40Z twisti $
+   $Id: builtin.c 2193 2005-04-02 19:33:43Z edwin $
 
 */
 
@@ -679,9 +679,8 @@ java_objectheader *builtin_new(classinfo *c)
 	java_objectheader *o;
 
 	/* is the class loaded */
-	if (!c->loaded)
-		if (!load_class_bootstrap(c))
-			return NULL;
+	/*utf_fprint(stderr,c->name);fprintf(stderr,"\n");*/
+	assert(c->loaded);
 
 	/* is the class linked */
 	if (!c->linked)
@@ -782,9 +781,7 @@ java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl)
 java_objectarray *builtin_anewarray(s4 size, classinfo *component)
 {
 	/* is class loaded */
-	if (!component->loaded)
-		if (!load_class_bootstrap(component))
-			return NULL;
+	assert(component->loaded);
 
 	/* is class linked */
 	if (!component->linked)
