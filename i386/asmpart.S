@@ -374,17 +374,22 @@ L_call_method:
 *******************************************************************************/
 
 asm_dumpregistersandcall:
-	xor		%eax,%eax
-	movl	$0,(%eax)
+		pushl	%ebp				/* build stack frame */
+		movl	%esp,%ebp
 
-	pushl	%ebp				/* build stack frame */
-	movl	%esp,%ebp
+		push	%ebx
+		push	%esi
+		push	%edi
+				
+		movl	8(%ebp),%eax		/* load function pointer */
+		call	*%eax				/* call function */
+
+		pop		%edi
+		pop		%esi
+		pop		%ebx
 		
-	movl	8(%ebp),%eax		/* load function pointer */
-	call	*%eax				/* call function */
-
-	leave
-	ret
+		leave
+		ret
 
 
 /********************* function asm_handle_exception ***************************

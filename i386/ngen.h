@@ -61,7 +61,7 @@
 /* #define REG_END   -1        last entry in tables */
 
 int nregdescint[] = {
-    REG_RET, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP,
+    REG_RET, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
     REG_END };
 
 /* for use of reserved registers, see comment above */
@@ -428,6 +428,13 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_movb_memindex_reg(disp,basereg,indexreg,scale,reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x8a; \
+        i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
 #define i386_mov_reg_memindex(reg,disp,basereg,indexreg,scale) \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0x89; \
@@ -479,6 +486,15 @@ static const unsigned char i386_jcc_map[] = {
         *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
         *(((u1 *) mcodeptr)++) = (u1) 0xbf; \
         i386_emit_reg((reg),(dreg)); \
+    } while (0)
+
+
+#define i386_movzwl_reg_reg(reg,dreg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xb7; \
+        /* XXX: why do reg and dreg have to be exchanged */ \
+        i386_emit_reg((dreg),(reg)); \
     } while (0)
 
 
@@ -1089,6 +1105,20 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_fstps_memindex(disp,basereg,indexreg,scale) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xd9; \
+        i386_emit_memindex(3,(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
+#define i386_fstpl_memindex(disp,basereg,indexreg,scale) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdd; \
+        i386_emit_memindex(3,(disp),(basereg),(indexreg),(scale)); \
+    } while (0)
+
+
 
 
 #define i386_fistpl_mem(mem) \
@@ -1225,6 +1255,11 @@ static const unsigned char i386_jcc_map[] = {
         *(((u1 *) mcodeptr)++) = (u1) 0xe0; \
     } while (0)
 
+
+#define i386_sahf() \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x9e; \
+    } while (0)
 
 #define i386_finit() \
     do { \
