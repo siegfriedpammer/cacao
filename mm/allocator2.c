@@ -6,7 +6,7 @@
  *
  * Authors: Philipp Tomsich     EMAIL: cacao@complang.tuwien.ac.at
  *
- * $Id: allocator2.c 98 1998-11-30 22:04:43Z phil $
+ * $Id: allocator2.c 104 1998-12-09 15:36:04Z phil $
  */
 
 #include "allocator.h"
@@ -259,7 +259,7 @@ allocator_init()
 {
 #if 0
 	fprintf(stderr, 
-			"allocator_init: $Id: allocator2.c 98 1998-11-30 22:04:43Z phil $\n\n");
+			"allocator_init: $Id: allocator2.c 104 1998-12-09 15:36:04Z phil $\n\n");
 	
 	fprintf(stderr, "\t%d bit addresses\n", ADDRESS);
 	fprintf(stderr, "\t%d bit alignment\n", ALIGN);
@@ -492,6 +492,46 @@ allocator_dump()
 	printf("dump complete.\n");
 }
 
+void
+allocator_dump_to_file(FILE* file)
+{
+	int i;
+
+	for (i = 1; i <= 1 << EXACT; ++i) {
+		int			count = 0;
+		FREE_EXACT*	chunk = freelist_exact[i];
+
+		while (chunk) {
+			chunk = chunk->next;
+			++count;
+		}
+
+		if (count)
+			fprintf(file, "%d bytes\t%d\n", i * (1 << ALIGN), count);
+	}
+	for (i = 0; i < LARGE << SUBBIT; ++i) {
+		int			count = 0;
+		int         size = 0;
+		FREE_LARGE*	chunk = freelist_large[i];
+
+		while (chunk) {
+			if (chunk->size == size) {
+				count++;
+			} else {
+				if (count)
+					fprintf(file, "%d bytes\t%d\n", size, count);
+				size = chunk->size;
+				count = 1;
+			}
+
+			chunk = chunk->next;
+			++count;
+		}
+	}
+
+	fprintf(file,"\n");
+	fflush(file);
+}
 
 
 

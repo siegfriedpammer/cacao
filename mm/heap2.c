@@ -21,7 +21,9 @@
 #undef OFFSET
 
 //#define COLLECT_LIFESPAN
-#define NEW_COLLECT_LIFESPAN
+//#define NEW_COLLECT_LIFESPAN
+#define COLLECT_FRAGMENTATION
+
 #define GC_COLLECT_STATISTICS
 #define FINALIZER_COUNTING
 
@@ -42,17 +44,6 @@ void gc_call (void);
 
 #define align_size(size)	((size) & ~((1 << ALIGN) - 1))
 #define MAP_ADDRESS			(void*) 0x10000000
-
-#define VERBOSITY_MESSAGE	1
-#define VERBOSITY_DEBUG		2
-#define VERBOSITY_MISTRUST	3
-#define VERBOSITY_TRACE		4
-#define VERBOSITY_PARANOIA	5
-#define VERBOSITY_LIFESPAN	6
-
-//#define VERBOSITY			VERBOSITY_MESSAGE
-//#define VERBOSITY			VERBOSITY_PARANOIA
-#define VERBOSITY			VERBOSITY_LIFESPAN
 
 /* --- file-wide variables */
 
@@ -109,6 +100,11 @@ static iMux  alloc_mutex;
 
 #ifdef COLLECT_LIFESPAN
 static FILE* tracefile;
+#endif
+
+#ifdef COLLECT_FRAGMENTATION
+static FILE* fragfile;
+static FILE* fragsizefile;
 #endif
 
 /* --- implementation */
@@ -198,6 +194,12 @@ heap_init (SIZE size,
 #ifdef NEW_COLLECT_LIFESPAN
 	lifespan_init(heap_base, heap_size);
 #endif
+
+	/* 10. Set up collection of fragmentation data */
+#ifdef COLLECT_FRAGMENTATION
+	fragfile = popen("gzip -9 >fragmentation.gz", "w");
+	fragsizefile = popen("gzip -9 >freeblocks.gz", "w");
+#endif
 }
 
 __inline__
@@ -227,6 +229,11 @@ heap_close (void)
 
 #ifdef NEW_COLLECT_LIFESPAN
 	lifespan_close();
+#endif
+
+#ifdef COLLECT_FRAGMENTATION
+	pclose(fragfile);
+	pclose(fragsizefile);
 #endif
 
 	/* 1. Clean up on the heap... finalize all remaining objects */
@@ -300,12 +307,6 @@ heap_add_address_to_address_list(address_list_node** list, void* address)
 	new_node->next = NULL;
 
 	while (*list && (*list)->next) {
-#if VERBOSITY >= VERBOSITY_PARANOIA
-		if ((*list)->address == address)
-			fprintf(stderr,
-					"Attempt to add a duplicate adress to an adress list.\n");
-#endif
-
 		if ((*list)->next->address < address)
 			list = &(*list)->next;
 		else {
@@ -421,11 +422,6 @@ heap_allocate (SIZE		  in_length,
 	++gc_alloc_count;
 #endif
 
-#if 0
-	if (free_chunk == 0x20000430228)
-		fprintf(stderr, "yell!\n");
-#endif
-
 #ifdef COLLECT_LIFESPAN
 	fprintf(tracefile, "alloc\t0x%lx\t0x%lx\n", 
 			free_chunk, (long)free_chunk + length);
@@ -493,12 +489,23 @@ void gc_reclaim (void)
 	BITBLOCK* temp_bits;
 	bitmap_t* temp_bitmap;
 
+#ifdef COLLECT_FRAGMENTATION
+	unsigned long  free_size = 0;
+	unsigned long  free_fragments = 0;
+#endif
+
 	/* 1. reset the freelists */
 	allocator_reset();
 
 	/* 2. reclaim unmarked objects */
 #if 0
-	/* FIXME: add new code, please! */
+	if (!testbit(start_bits, heap_base))
+		free_start = heap_base;
+	else
+		free_start = bitmap_find_next_combination_set_unset(start_bitmap,
+															mark_bitmap,
+															free_start);
+
 #else
 	while (free_end < heap_top) {
 		free_start = bitmap_find_next_combination_set_unset(start_bitmap,
@@ -510,6 +517,11 @@ void gc_reclaim (void)
 
 			if (free_end < heap_top) {
 				allocator_free(free_start, (long)free_end - (long)free_start);
+
+#ifdef COLLECT_FRAGMENTATION
+				free_size += (long)free_end - (long)free_start;
+				free_fragments++;
+#endif
 
 #ifdef COLLECT_LIFESPAN
 				fprintf(tracefile, 
@@ -528,8 +540,12 @@ void gc_reclaim (void)
 				bitmap_setbit(mark_bits, free_start); /* necessary to calculate obj-size bitmap based. */
 #endif
 			}
-		} else
+		} else {
 			free_end = heap_top;	
+#ifdef NEW_COLLECT_LIFESPAN
+			lifespan_free(free_start, free_end);
+#endif
+		}
 	}
 #endif
 
@@ -542,7 +558,7 @@ void gc_reclaim (void)
 	mark_bitmap = start_bitmap;
 	start_bitmap = temp_bitmap;
 
-#if 0 /* already heandled in allocate */
+#if 0 /* operation already handled in allocate */
 	/* 3.2. mask reference bitmap */
 	bitmap_mask_with_bitmap(reference_bitmap, start_bitmap);
 #endif
@@ -554,8 +570,21 @@ void gc_reclaim (void)
 	if (heap_top < heap_limit)
 		bitmap_setbit(start_bits, heap_top);
 
+	/* 3.4. emit fragmentation info */
+#ifdef COLLECT_FRAGMENTATION
+	fprintf(fragfile, 
+			"%ld\t%ld\t%ld\t%ld\n", 
+			(unsigned long)heap_top - (unsigned long)heap_base, 
+			(unsigned long)heap_top - (unsigned long)heap_base - free_size,
+			free_size, 
+			free_fragments);
+	fflush(fragfile);
+
+	allocator_dump_to_file(fragsizefile);
+#endif
+
 	/* 4. adjust the collection threshold */
-	heap_next_collection = (void*)((long)heap_top + ((long)heap_limit - (long)heap_top) / 4);
+	heap_next_collection = (void*)((long)heap_top + ((long)heap_limit - (long)heap_top) / 8);
 	if (heap_next_collection > heap_limit)
 		heap_next_collection = heap_limit;
 
@@ -626,7 +655,7 @@ gc_mark_object_at (void** addr)
 
 
 	/* 1.a. if addr doesn't point into the heap, return. */
-	if (!((void*)addr >= heap_base && (void*)addr < heap_top)) {
+	if ((unsigned long)addr - (unsigned long)heap_base >= heap_size) {
 #ifdef GC_COLLECT_STATISTICS
 		++gc_mark_not_inheap;
 #endif
@@ -673,11 +702,6 @@ gc_mark_object_at (void** addr)
 		void** end;
 
 #ifdef SIZE_FROM_CLASSINFO
-#if 0
-		if (addr == 0x20000430228)
-			fprintf(stderr, "stop me!\n");
-#endif
-
 		if (((java_objectheader*)addr)->vftbl == class_array->vftbl)
 			end = (void**)((long)addr + (long)((java_arrayheader*)addr)->alignedsize);
 		else
