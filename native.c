@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1436 2004-11-05 09:49:48Z twisti $
+   $Id: native.c 1444 2004-11-05 13:54:52Z twisti $
 
 */
 
@@ -386,12 +386,20 @@ functionptr native_findfunction(utf *cname, utf *mname,
 
 java_lang_String *javastring_new(utf *u)
 {
-	char *utf_ptr = u->text;        /* current utf character in utf string    */
-	int utflength = utf_strlen(u);  /* length of utf-string if uncompressed   */
+	char *utf_ptr;                  /* current utf character in utf string    */
+	u4 utflength;                   /* length of utf-string if uncompressed   */
 	java_lang_String *s;		    /* result-string                          */
 	java_chararray *a;
 	s4 i;
-	
+
+	if (!u) {
+		*exceptionptr = new_nullpointerexception();
+		return NULL;
+	}
+
+	utf_ptr = u->text;
+	utflength = utf_strlen(u);
+
 	s = (java_lang_String *) builtin_new(class_java_lang_String);
 	a = builtin_newarray_char(utflength);
 
@@ -424,10 +432,17 @@ java_lang_String *javastring_new(utf *u)
 java_lang_String *javastring_new_char(char *text)
 {
 	s4 i;
-	s4 len = strlen(text); /* length of the string */
+	s4 len;                /* length of the string */
 	java_lang_String *s;   /* result-string */
 	java_chararray *a;
-	
+
+	if (!text) {
+		*exceptionptr = new_nullpointerexception();
+		return NULL;
+	}
+
+	len = strlen(text);
+
 	s = (java_lang_String *) builtin_new(class_java_lang_String);
 	a = builtin_newarray_char(len);
 
