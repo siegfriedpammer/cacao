@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1460 2004-11-05 16:23:29Z twisti $
+   $Id: asmpart.S 1564 2004-11-23 15:55:58Z twisti $
 
 */
 
@@ -66,6 +66,9 @@
 #define itmp2    %ecx
 #define itmp3    %edx
 
+#define itmp1l   %al
+#define itmp2l   %cl
+#define itmp3l   %dl
 		
 	.text
 
@@ -680,48 +683,73 @@ noflt:
 		jmp		asm_handle_exception_loop
 		
 
-/********************* function asm_check_clinit *******************************
-*                                                                              *
-*   Does null check and calls monitorenter or throws an exception              *
-*                                                                              *
+/* asm_check_clinit ************************************************************
+
+   DOCUMENT ME!!!
+
+   Stack layout:
+
+	16  ra      ; return address of patched call in java machine code
+	12  xmcode  ; additional machine code (only for i386 and x86_64)
+	8   mcode   ; machine code to patch back in
+	4   class   ; pointer to class
+	0   sp      ; stack pointer of java stack frame + return address
+
 *******************************************************************************/
 
 asm_check_clinit:
-	mov     offclassinit(%eax),%ecx     /* get initialized flag               */
-	test	%ecx,%ecx
+	mov     4(%esp),%eax                /* get fieldinfo's class pointer      */
+	mov     offclassinit(%eax),%eax     /* get initialized flag               */
+	test	%eax,%eax
 	jnz     L_is_initialized
 
+#if 0
 	sub     $16,%esp                    /* build stack frame (4 * 4 bytes)    */
 	mov     %eax,(%esp)                 /* put classpointer on stack          */
 	call    builtin_asm_get_stackframeinfo
 
 	movl    $0,12(%esp)
-    mov     %eax,8(%esp)
+	mov     %eax,8(%esp)
 	mov     (%eax),%ecx
 	mov     %ecx,4(%esp)
 	mov     %esp,%ecx
 	add     $4,%ecx
 	mov     %ecx,(%eax)
+#endif
 
+	sub     $4,%esp
+	mov     4+4(%esp),itmp1             /* get class pointer                  */
+	mov     itmp1,(%esp)                /* store class pointer as a0          */
 	call    class_init                  /* call class_init function           */
+	add     $4,%esp
 
+#if 0
 	mov     4(%esp),%edx
 	mov     8(%esp),%ecx
 	mov     %edx,(%ecx)
 
 	add     $16,%esp
+#endif
 
 	test    %eax,%eax                   /* we had an exception                */
 	je      L_initializererror
 
 L_is_initialized:
-	mov     (%esp),%eax                 /* get return address                 */
-	sub     $12,%eax                    /* asm_check_clinit call code size    */
-	movw    $0x0aeb,(%eax)              /* 0xeb = jmp rel8, 0x0a = 10 byte    */
-	                                    /* 8-bit offset                       */
-	ret
+	mov     16(%esp),itmp1              /* get return address                 */
+	sub     $5,itmp1                    /* remove size of `call rel32'        */
+
+	mov     12(%esp),itmp2              /* get xmcode machine code            */
+	movb    itmp2l,(itmp1)              /* patch back in 1 byte               */
+	mov     8(%esp),itmp2               /* get mcode machine code             */
+	mov     itmp2,1(itmp1)              /* patch back in 4 bytes              */
+
+	add     $(5*4),%esp                 /* remove stub stack frame incl. ra   */
+
+	jmp     *itmp1                      /* jump to patched code an execute it */
 
 L_initializererror:
+	add     $(4*4),%esp                 /* remove stub stack frame            */
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	call    builtin_asm_get_exceptionptrptr
 	mov     %eax,%ecx
@@ -733,8 +761,8 @@ L_initializererror:
 	movl    $0,(%ecx)                   /* clear the exception pointer        */
 #endif
 
-	pop     %ecx                        /* delete return address              */
-	sub     $2,%ecx                     /* faulting address is return adress - 2 */
+	pop     itmp2                       /* get and delete ra                  */
+	sub     $5,itmp2                    /* faulting address is ra - 5         */
 
 	jmp     asm_handle_exception
 
