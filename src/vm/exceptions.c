@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1774 2004-12-20 20:16:57Z jowenn $
+   $Id: exceptions.c 1845 2005-01-04 11:28:16Z twisti $
 
 */
 
@@ -58,112 +58,112 @@ classinfo *class_java_lang_OutOfMemoryError;
 
 /* exception/error super class */
 
-char *string_java_lang_Throwable =
+const char *string_java_lang_Throwable =
     "java/lang/Throwable";
 
-char *string_java_lang_VMThrowable =
+const char *string_java_lang_VMThrowable =
     "java/lang/VMThrowable";
 
 
 /* specify some exception strings for code generation */
 
-char *string_java_lang_ArithmeticException =
+const char *string_java_lang_ArithmeticException =
     "java/lang/ArithmeticException";
 
-char *string_java_lang_ArithmeticException_message =
+const char *string_java_lang_ArithmeticException_message =
     "/ by zero";
 
-char *string_java_lang_ArrayIndexOutOfBoundsException =
+const char *string_java_lang_ArrayIndexOutOfBoundsException =
     "java/lang/ArrayIndexOutOfBoundsException";
 
-char *string_java_lang_ArrayStoreException =
+const char *string_java_lang_ArrayStoreException =
     "java/lang/ArrayStoreException";
 
-char *string_java_lang_ClassCastException =
+const char *string_java_lang_ClassCastException =
     "java/lang/ClassCastException";
 
-char *string_java_lang_ClassNotFoundException =
+const char *string_java_lang_ClassNotFoundException =
 	"java/lang/ClassNotFoundException";
 
-char *string_java_lang_CloneNotSupportedException =
+const char *string_java_lang_CloneNotSupportedException =
     "java/lang/CloneNotSupportedException";
 
-char *string_java_lang_Exception =
+const char *string_java_lang_Exception =
     "java/lang/Exception";
 
-char *string_java_lang_IllegalAccessException =
+const char *string_java_lang_IllegalAccessException =
     "java/lang/IllegalAccessException";
 
-char *string_java_lang_IllegalArgumentException =
+const char *string_java_lang_IllegalArgumentException =
     "java/lang/IllegalArgumentException";
 
-char *string_java_lang_IllegalMonitorStateException =
+const char *string_java_lang_IllegalMonitorStateException =
     "java/lang/IllegalMonitorStateException";
 
-char *string_java_lang_IndexOutOfBoundsException =
+const char *string_java_lang_IndexOutOfBoundsException =
     "java/lang/IndexOutOfBoundsException";
 
-char *string_java_lang_InterruptedException =
+const char *string_java_lang_InterruptedException =
     "java/lang/InterruptedException";
 
-char *string_java_lang_NegativeArraySizeException =
+const char *string_java_lang_NegativeArraySizeException =
     "java/lang/NegativeArraySizeException";
 
-char *string_java_lang_NoSuchFieldException =
+const char *string_java_lang_NoSuchFieldException =
 	"java/lang/NoSuchFieldException";
 
-char *string_java_lang_NoSuchMethodException =
+const char *string_java_lang_NoSuchMethodException =
 	"java/lang/NoSuchMethodException";
 
-char *string_java_lang_NullPointerException =
+const char *string_java_lang_NullPointerException =
     "java/lang/NullPointerException";
 
 
 /* specify some error strings for code generation */
 
-char *string_java_lang_AbstractMethodError =
+const char *string_java_lang_AbstractMethodError =
     "java/lang/AbstractMethodError";
 
-char *string_java_lang_ClassCircularityError =
+const char *string_java_lang_ClassCircularityError =
     "java/lang/ClassCircularityError";
 
-char *string_java_lang_ClassFormatError =
+const char *string_java_lang_ClassFormatError =
     "java/lang/ClassFormatError";
 
-char *string_java_lang_Error =
+const char *string_java_lang_Error =
     "java/lang/Error";
 
-char *string_java_lang_ExceptionInInitializerError =
+const char *string_java_lang_ExceptionInInitializerError =
     "java/lang/ExceptionInInitializerError";
 
-char *string_java_lang_IncompatibleClassChangeError =
+const char *string_java_lang_IncompatibleClassChangeError =
     "java/lang/IncompatibleClassChangeError";
 
-char *string_java_lang_InternalError =
+const char *string_java_lang_InternalError =
     "java/lang/InternalError";
 
-char *string_java_lang_LinkageError =
+const char *string_java_lang_LinkageError =
     "java/lang/LinkageError";
 
-char *string_java_lang_NoClassDefFoundError =
+const char *string_java_lang_NoClassDefFoundError =
     "java/lang/NoClassDefFoundError";
 
-char *string_java_lang_NoSuchFieldError =
+const char *string_java_lang_NoSuchFieldError =
 	"java/lang/NoSuchFieldError";
 
-char *string_java_lang_NoSuchMethodError =
+const char *string_java_lang_NoSuchMethodError =
 	"java/lang/NoSuchMethodError";
 
-char *string_java_lang_OutOfMemoryError =
+const char *string_java_lang_OutOfMemoryError =
     "java/lang/OutOfMemoryError";
 
-char *string_java_lang_UnsupportedClassVersionError =
+const char *string_java_lang_UnsupportedClassVersionError =
     "java/lang/UnsupportedClassVersionError";
 
-char *string_java_lang_VerifyError =
+const char *string_java_lang_VerifyError =
     "java/lang/VerifyError";
 
-char *string_java_lang_VirtualMachineError =
+const char *string_java_lang_VirtualMachineError =
     "java/lang/VirtualMachineError";
 
 
@@ -340,65 +340,52 @@ void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 }
 
 
-#if 1
-#define CREATENEW_EXCEPTION(ex) \
-    return ex;
-#else
-#define CREATENEW_EXCEPTION(ex) \
-	java_objectheader *newEx; \
-	java_objectheader *oldexception=*exceptionptr;\
-	*exceptionptr=0;\
-	newEx=ex;\
-	*exceptionptr=oldexception;\
-	return newEx;
-#endif
-
-java_objectheader *new_exception(char *classname)
+java_objectheader *new_exception(const char *classname)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	CREATENEW_EXCEPTION(native_new_and_init(c));
+	return native_new_and_init(c);
 }
 
-java_objectheader *new_exception_message(char *classname, char *message)
+java_objectheader *new_exception_message(const char *classname, const char *message)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	CREATENEW_EXCEPTION(native_new_and_init_string(c, javastring_new_char(message)));
+	return native_new_and_init_string(c, javastring_new_char(message));
 }
 
 
-java_objectheader *new_exception_throwable(char *classname, java_lang_Throwable *throwable)
+java_objectheader *new_exception_throwable(const char *classname, java_lang_Throwable *throwable)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	CREATENEW_EXCEPTION(native_new_and_init_throwable(c, throwable));
+	return native_new_and_init_throwable(c, throwable);
 }
 
 
-java_objectheader *new_exception_utfmessage(char *classname, utf *message)
+java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	CREATENEW_EXCEPTION(native_new_and_init_string(c, javastring_new(message)));
+	return native_new_and_init_string(c, javastring_new(message));
 }
 
 
-java_objectheader *new_exception_javastring(char *classname, java_lang_String *message)
+java_objectheader *new_exception_javastring(const char *classname, java_lang_String *message)
 {
 	classinfo *c = class_new(utf_new_char(classname));
 
-	CREATENEW_EXCEPTION(native_new_and_init_string(c, message));
+	return native_new_and_init_string(c, message);
 }
 
 
-java_objectheader *new_exception_int(char *classname, s4 i)
+java_objectheader *new_exception_int(const char *classname, s4 i)
 {
 	classinfo *c;
 
 	c = class_new(utf_new_char(classname));
 
-	CREATENEW_EXCEPTION(native_new_and_init_int(c, i));
+	return native_new_and_init_int(c, i);
 }
 
 
@@ -408,7 +395,7 @@ java_objectheader *new_exception_int(char *classname, s4 i)
 
 *******************************************************************************/
 
-java_objectheader *new_classformaterror(classinfo *c, char *message, ...)
+java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 {
 	char msg[MAXLOGTEXT];
 	va_list ap;
@@ -432,7 +419,7 @@ java_objectheader *new_classformaterror(classinfo *c, char *message, ...)
 
 *******************************************************************************/
 
-java_objectheader *new_unsupportedclassversionerror(classinfo *c, char *message, ...)
+java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *message, ...)
 {
 	char msg[MAXLOGTEXT];
 	va_list ap;
@@ -457,7 +444,7 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, char *message,
 
 *******************************************************************************/
 
-java_objectheader *new_verifyerror(methodinfo *m, char *message)
+java_objectheader *new_verifyerror(methodinfo *m, const char *message)
 {
 	java_objectheader *o;
 	char *msg;
