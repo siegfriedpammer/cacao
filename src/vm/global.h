@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 64 1998-11-11 21:11:55Z phil $
+	Last Change: $Id: global.h 80 1998-11-18 22:06:30Z cacao $
 
 *******************************************************************************/
 
@@ -33,7 +33,6 @@
  */
 #undef JIT_MARKER_SUPPORT        /* phil */
 #undef SIZE_FROM_CLASSINFO
-//#define SIZE_FROM_CLASSINFO
 
 /* standard includes **********************************************************/
 

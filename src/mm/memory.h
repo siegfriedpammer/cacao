@@ -16,7 +16,7 @@
 
 #define ALIGN(pos,size)       ( ( ((pos)+(size)-1) / (size))*(size) )
 #define PADDING(pos,size)     ( ALIGN((pos),(size)) - (pos) )
-#define OFFSET(s,el)          ( (int) &( ((s*)0) -> el ) )
+#define OFFSET(s,el)          ( (int) ( (size_t) &( ((s*)0) -> el ) ) )
 
 
 #define NEW(type)             ((type*) mem_alloc ( sizeof(type) ))
