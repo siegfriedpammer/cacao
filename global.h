@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1128 2004-06-05 12:22:26Z twisti $
+   $Id: global.h 1155 2004-06-09 16:28:52Z twisti $
 
 */
 
@@ -134,10 +134,6 @@ typedef void (*functionptr) (); /* generic function pointer */
 
 #define MAX_ALIGN 8             /* most generic alignment for JavaVM values   */
 
-/* shutdown function **********************************************************/
-
-void cacao_shutdown(s4 status);
-
 
 /* basic data types ***********************************************************/
 
@@ -154,8 +150,8 @@ void cacao_shutdown(s4 status);
 /* Java class file constants **************************************************/
 
 #define MAGIC         0xcafebabe
-#define MINOR_VERSION 3
-#define MAJOR_VERSION 45
+#define MINOR_VERSION 0
+#define MAJOR_VERSION 48
 
 #define CONSTANT_Class                 7
 #define CONSTANT_Fieldref              9
