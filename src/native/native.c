@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 1739 2004-12-08 11:01:19Z motse $
+   $Id: native.c 1743 2004-12-08 19:24:05Z twisti $
 
 */
 
@@ -69,14 +69,17 @@
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
-#if 0
-#include "threads/thread.h"
-#include "threads/threadio.h"
-#include "threads/locks.h"
-#endif
 
 
 /* include table of native functions ******************************************/
+
+/* XXX quick hack? */
+#if defined(USE_GTK)
+#include "native/vm/GtkComponentPeer.c"
+#include "native/vm/GtkScrollPanePeer.c"
+#include "native/vm/GtkFileDialogPeer.c"
+#endif
+
 #include "nativetable.inc"
 
 
@@ -166,11 +169,19 @@ struct nativeCompCall nativeCompCalls[NATIVECALLSSIZE];
 void native_loadclasses()
 {
 	static int classesLoaded = 0; /*temporary hack JoWenn*/
+	void *p;
 
 	if (classesLoaded)
 		return;
 
 	classesLoaded = 1;
+
+#if !defined(STATIC_CLASSPATH)
+	/* We need to access the dummy native table, not only to remove a warning */
+	/* but to be sure that the table is not optimized away (gcc does this     */
+	/* since 3.4).                                                            */
+	p = &dummynativetable;
+#endif
 
 	class_java_lang_Cloneable =
 		class_new(utf_new_char("java/lang/Cloneable"));
@@ -228,7 +239,6 @@ void native_loadclasses()
 	class_java_lang_Void = class_new(utf_new_char("java/lang/Void"));
 	class_load(class_java_lang_Void);
 	class_link(class_java_lang_Void);
-
 }
 
 
