@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1884 2005-01-24 16:58:55Z twisti $
+## $Id: Makefile.am 1908 2005-02-10 09:54:39Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -71,6 +71,17 @@ cacao_LDFLAGS += \
 	-lgthread-2.0 -lart_lgpl_2
 endif
 
+noinst_LTLIBRARIES = libcacao.la
+
+libcacao_la_SOURCES =
+
+libcacao_la_LIBADD = \
+	$(top_builddir)/src/mm/libmm.la \
+	$(top_builddir)/src/native/libnative.la \
+	$(THREAD_LIB) \
+	$(top_builddir)/src/toolbox/libtoolbox.la \
+	$(top_builddir)/src/vm/libvm.la
+
 bindir = $(prefix)/jre/bin
 
 bin_PROGRAMS = cacao
@@ -79,13 +90,8 @@ cacao_SOURCES = \
 	cacao.c \
 	cacao.h
 
-# This order is crucial. Don't change it!
 cacao_LDADD = \
-	$(top_builddir)/src/mm/libmm.la \
-	$(THREAD_LIB) \
-	$(top_builddir)/src/vm/libvm.la \
-	$(top_builddir)/src/native/libnative.la \
-	$(top_builddir)/src/toolbox/libtoolbox.la \
+	libcacao.la \
 	$(top_builddir)/src/boehm-gc/libgc.la \
 	$(CLASSPATH_LIBS)
 
