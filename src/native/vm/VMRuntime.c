@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1816 2004-12-22 13:17:24Z twisti $
+   $Id: VMRuntime.c 1825 2004-12-29 12:39:46Z twisti $
 
 */
 
@@ -441,8 +441,8 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 
 	insert_property(m, p, "java.version", VERSION);
 	insert_property(m, p, "java.vendor", "CACAO Team");
-	insert_property(m, p, "java.vendor.url", "http://www.complang.tuwien.ac.at/java/cacao/");
-	insert_property(m, p, "java.home", java_home ? java_home : "null");
+	insert_property(m, p, "java.vendor.url", "http://www.cacaojvm.org/");
+	insert_property(m, p, "java.home", java_home ? java_home : INSTALL_PREFIX);
 	insert_property(m, p, "java.vm.specification.version", "1.0");
 	insert_property(m, p, "java.vm.specification.vendor", "Sun Microsystems Inc.");
 	insert_property(m, p, "java.vm.specification.name", "Java Virtual Machine Specification");
