@@ -1,4 +1,4 @@
-/* jit/i386/disass.h - wrapper functions for GNU binutils disassembler
+/* jit/i386/disass.h - disassembler header
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: disass.h 562 2003-11-03 00:34:34Z twisti $
+   $Id: disass.h 586 2003-11-09 19:38:07Z twisti $
 
 */
 
@@ -48,7 +48,7 @@ int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, s
 int disassinstr(u1 *code, int pos);
 void disassemble(u1 *code, int len);
 
-#endif
+#endif /* _DISASS_H */
 
 
 /*

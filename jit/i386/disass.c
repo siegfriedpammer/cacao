@@ -30,18 +30,16 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 561 2003-11-02 23:39:06Z twisti $
+   $Id: disass.c 586 2003-11-09 19:38:07Z twisti $
 
 */
 
 
 #include <stdarg.h>
 #include <string.h>
+#include "disass.h"
 #include "dis-asm.h"
 
-
-u1 *codestatic = 0;
-int pstatic = 0;
 
 char mylinebuf[512];
 int mylen;
