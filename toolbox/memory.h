@@ -4,7 +4,7 @@
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	Headerfiles und Makros f"ur die Speicherverwaltung.
+	Macros for memory management
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
@@ -30,9 +30,9 @@
 #define MREALLOC(ptr,type,num1,num2) mem_realloc (ptr, sizeof(type) * (num1), \
                                                        sizeof(type) * (num2) )
 
-#define DNEW(type)            ((type*) dump_alloc ( sizeof(type) ))
-#define DMNEW(type,num)       ((type*) dump_alloc ( sizeof(type) * (num) ))
-#define DMREALLOC(ptr,type,num1,num2)  dump_realloc (ptr, sizeof(type)*(num1),\
+#define DNEW(type)            ((type*) mem_alloc ( sizeof(type) ))
+#define DMNEW(type,num)       ((type*) mem_alloc ( sizeof(type) * (num) ))
+#define DMREALLOC(ptr,type,num1,num2)  mem_realloc (ptr, sizeof(type)*(num1),\
                                                        sizeof(type) * (num2) )
 
 #define MCOPY(dest,src,type,num)  memcpy (dest,src, sizeof(type)* (num) )
@@ -63,59 +63,52 @@ void mem_usagelog(int givewarnings);
  
  
 /* 
----------------------------- Schnittstellenbeschreibung -----------------------
+---------------------------- Interface description -----------------------
 
-Der Speicherverwalter hat zwei m"ogliche Arten Speicher zu reservieren
-und freizugeben:
+There are two possible choices for allocating memory:
 
-	1.   explizites Anfordern / Freigeben
+	1.   explicit allocating / deallocating
 
-			mem_alloc ..... Anfordern eines Speicherblocks 
-			mem_free ...... Freigeben eines Speicherblocks
-			mem_realloc ... Vergr"o"sern eines Speicherblocks (wobei 
-			                der Inhalt eventuell an eine neue Position kommt)
-			mem_usage ..... Menge des bereits belegten Speichers
+			mem_alloc ..... allocate a memory block 
+			mem_free ...... free a memory block
+			mem_realloc ... change size of a memory block (position may change)
+			mem_usage ..... amount of allocated memory
 
 
-	2.   explizites Anfordern und automatisches Freigeben
+	2.   explicit allocating, automatic deallocating
 	
-			dump_alloc .... Anfordern eines Speicherblocks vom
-			                (wie ich es nenne) DUMP-Speicher
-			dump_realloc .. Vergr"o"sern eines Speicherblocks
-			dump_size ..... Merkt sich eine Freigabemarke am Dump
-			dump_release .. Gibt allen Speicher, der nach der Marke angelegt 
-			                worden ist, wieder frei.
+			dump_alloc .... allocate a memory block in the dump area
+			dump_realloc .. change size of a memory block (position may change)
+			dump_size ..... marks the current top of dump
+			dump_release .. free all memory requested after the mark
 			                
 	
-Es gibt f"ur diese Funktionen ein paar praktische Makros:
+There are some useful macros:
 
-	NEW (type) ....... legt Speicher f"ur ein Element des Typs `type` an.
-	FREE (ptr,type) .. gibt Speicher zur"uck
+	NEW (type) ....... allocate memory for an element of type `type`
+	FREE (ptr,type) .. free memory
 	
-	MNEW (type,num) .. legt Speicher f"ur ein ganzes Array an
-	MFREE (ptr,type,num) .. gibt den Speicher wieder her
+	MNEW (type,num) .. allocate memory for an array
+	MFREE (ptr,type,num) .. free memory
 	
-	MREALLOC (ptr,type,num1,num2) .. vergr"o"sert den Speicher f"ur das Array
-	                                 auf die Gr"o"se num2
+	MREALLOC (ptr,type,num1,num2) .. enlarge the array to size num2
 	                                 
-Die meisten der Makros gibt es auch f"ur den DUMP-Speicher, na"mlich mit
-gleichem Namen, nur mit vorangestelltem 'D', also:	
+These macros do the same except they operate on the dump area:
 	
-	DNEW,  DMNEW, DMREALLOC   (DFREE gibt es nat"urlich keines)
+	DNEW,  DMNEW, DMREALLOC   (there is no DFREE)
 
 
 -------------------------------------------------------------------------------
 
-Die restlichen Makros:
+Some more macros:
 
-	ALIGN (pos, size) ... Rundet den Wert von 'pos' auf die n"achste durch
-	                      'size' teilbare Zahl auf.
+	ALIGN (pos, size) ... make pos divisible by size. always returns an
+						  address >= pos.
 	                      
 	
-	OFFSET (s,el) ....... Berechnet den Offset (in Bytes) des Elementes 'el'   
-	                      in der Struktur 's'.
+	OFFSET (s,el) ....... returns the offset of 'el' in structure 's' in bytes.
 	                      
-	MCOPY (dest,src,type,num) ... Kopiert 'num' Elemente vom Typ 'type'.
+	MCOPY (dest,src,type,num) ... copy 'num' elements of type 'type'.
 	
 
 */

@@ -4,7 +4,7 @@
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	Verwaltung bin"arer B"aume 
+	Binary tree management
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
