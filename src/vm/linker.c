@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2200 2005-04-03 21:44:19Z twisti $
+   $Id: linker.c 2239 2005-04-06 12:16:53Z twisti $
 
 */
 
@@ -42,6 +42,7 @@
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
+#include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/options.h"
