@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 1857 2005-01-04 12:35:21Z twisti $
+   $Id: codegen.c 1937 2005-02-10 11:12:57Z twisti $
 
 */
 
@@ -51,6 +51,7 @@
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/tables.h"
+#include "vm/utf8.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
@@ -128,11 +129,10 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 {
 	sigset_t nsig;
 
-#ifdef __FreeBSD__
 	ucontext_t *_uc = (ucontext_t *) _p;
+#ifdef __FreeBSD__
 	mcontext_t *sigctx = (mcontext_t *) &_uc->uc_mcontext;
 #else
-	struct ucontext *_uc = (struct ucontext *) _p;
 	struct sigcontext *sigctx = (struct sigcontext *) &_uc->uc_mcontext;
 #endif
 	struct sigaction act;
@@ -206,22 +206,23 @@ void init_exceptions(void)
 	sigemptyset(&act.sa_mask);
 
 	if (!checknull) {
-#if defined(SIGSEGV)
 		act.sa_sigaction = catch_NullPointerException;
 		act.sa_flags = SA_SIGINFO;
+
+#if defined(SIGSEGV)
 		sigaction(SIGSEGV, &act, NULL);
 #endif
 
 #if defined(SIGBUS)
-		act.sa_sigaction = catch_NullPointerException;
-		act.sa_flags = SA_SIGINFO;
 		sigaction(SIGBUS, &act, NULL);
 #endif
 	}
 
+#if defined(SIGFPE)
 	act.sa_sigaction = catch_ArithmeticException;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGFPE, &act, NULL);
+#endif
 }
 
 
@@ -4707,8 +4708,8 @@ gen_method: {
 java stack at this point*/
 			i386_mov_membase_reg(cd, REG_ITMP1_XPTR, OFFSET(java_objectheader, vftbl), REG_ITMP3);
 			i386_mov_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, class), REG_ITMP1);
-			i386_push_imm(cd, (u4) utf_fillInStackTrace_desc);
-			i386_push_imm(cd, (u4) utf_fillInStackTrace_name);
+			i386_push_imm(cd, (u4) utf_void__java_lang_Throwable);
+			i386_push_imm(cd, (u4) utf_fillInStackTrace);
 			i386_push_reg(cd, REG_ITMP1);
 			i386_mov_imm_reg(cd, (s4) class_resolvemethod, REG_ITMP3);
 			i386_call_reg(cd, REG_ITMP3);
