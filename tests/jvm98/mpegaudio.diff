@@ -2636,10 +2636,9 @@ diff -Nu mpegaudio1/TableOfExistingFiles.java mpegaudio/TableOfExistingFiles.jav
 diff -Nu mpegaudio1/setup.sh mpegaudio/setup.sh
 --- mpegaudio1/setup.sh	Thu Jan  1 01:00:00 1970
 +++ mpegaudio/setup.sh	Sat Nov 30 18:06:34 2002
-@@ -0,0 +1,3 @@
+@@ -0,0 +1,2 @@
 +mkdir -p spec/benchmarks/_222_mpegaudio
 +mv *.class spec/benchmarks/_222_mpegaudio
-+ln -s /tmp/output.wav .
 diff -Nu mpegaudio1/PrintStream.java mpegaudio/PrintStream.java
 --- mpegaudio1/PrintStream.java	Thu Jan  1 01:00:00 1970
 +++ mpegaudio/PrintStream.java	Sat Nov 30 18:13:49 2002
