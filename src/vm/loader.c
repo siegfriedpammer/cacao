@@ -27,9 +27,7 @@
 #include "jit.h"
 #include "asmpart.h"
 
-#ifdef USE_BOEHM
 #include "toolbox/memory.h"
-#endif
 
 #include "toolbox/loging.h"
 
@@ -1501,11 +1499,7 @@ static int class_load (classinfo *c)
 
 	/* load fields */
 	c -> fieldscount = suck_u2 ();
-#ifdef USE_BOEHM
 	c -> fields = GCNEW (fieldinfo, c -> fieldscount);
-#else
-	c -> fields = MNEW (fieldinfo, c -> fieldscount);
-#endif
 	for (i=0; i < c -> fieldscount; i++) {
 		field_load (&(c->fields[i]), c);
 		}
@@ -1894,9 +1888,6 @@ static void class_free (classinfo *c)
 
 	for (i = 0; i < c->fieldscount; i++)
 		field_free(&(c->fields[i]));
-#ifndef USE_BOEHM
-	MFREE (c->fields, fieldinfo, c->fieldscount);
-#endif
 	
 	for (i = 0; i < c->methodscount; i++)
 		method_free(&(c->methods[i]));
