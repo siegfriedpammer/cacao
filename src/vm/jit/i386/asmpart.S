@@ -1,4 +1,4 @@
-/* vm/jit/i386/asmpart.S - Java-C interface functions for i386
+/* src/vm/jit/i386/asmpart.S - Java-C interface functions for i386
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 1938 2005-02-10 11:13:29Z twisti $
+   $Id: asmpart.S 2068 2005-03-23 19:26:30Z twisti $
 
 */
 
@@ -54,14 +54,13 @@
 /********************* exported functions and variables ***********************/
 
 	.globl asm_calljavafunction
-	.globl calljava_xhandler
+	.globl asm_calljavafunction_int
 
 	.globl asm_calljavafunction2
 	.globl asm_calljavafunction2int
 	.globl asm_calljavafunction2long
 	.globl asm_calljavafunction2float
 	.globl asm_calljavafunction2double
-	.globl calljava_xhandler2
 
 	.globl asm_call_jit_compiler
 	.globl asm_handle_builtin_exception
@@ -82,10 +81,10 @@
 
 	.globl asm_builtin_ldiv
 	.globl asm_builtin_lrem
-    .globl asm_builtin_f2i
-    .globl asm_builtin_f2l
-    .globl asm_builtin_d2i
-    .globl asm_builtin_d2l
+	.globl asm_builtin_f2i
+	.globl asm_builtin_f2l
+	.globl asm_builtin_d2i
+	.globl asm_builtin_d2l
 	.globl asm_builtin_arrayinstanceof
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
@@ -134,6 +133,7 @@ call_name:
 	.long   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
+asm_calljavafunction_int:
 	push    %ebp                      /* allocate stack space                 */
 	mov     %esp, %ebp
 
@@ -182,6 +182,7 @@ calljava_xhandler:
 	pop     %esi
 	pop     %ebx
 	leave
+	xor     %eax,%eax                 /* return NULL                          */
 	ret
 
 
@@ -240,17 +241,17 @@ asm_calljavafunction2double:
 	mov     %esp,%edi
 
 calljava_copyloop:
-    mov     offjniitem(%eax),%edx
-    mov     %edx,0(%edi)
-    mov     offjniitem+4(%eax),%edx
-    mov     %edx,4(%edi)
+	mov     offjniitem(%eax),%edx
+	mov     %edx,0(%edi)
+	mov     offjniitem+4(%eax),%edx
+	mov     %edx,4(%edi)
 
 	sub     $1,%ecx                   /* are there any args left?             */
 	test    %ecx,%ecx
 	jle     calljava_copydone
 
 	add     $sizejniblock,%eax        /* goto next argument block             */
-    add     $8,%edi                   /* increase sp to next argument         */
+	add     $8,%edi                   /* increase sp to next argument         */
 	jmp     calljava_copyloop
 
 calljava_copydone:
@@ -277,6 +278,7 @@ calljava_xhandler2:
 	pop     %esi
 	pop     %ebx
 	leave
+	xor     %eax,%eax                 /* return NULL                          */
 	ret
 
 
