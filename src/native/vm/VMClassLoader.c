@@ -29,31 +29,38 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClassLoader.c 1919 2005-02-10 10:08:53Z twisti $
+   $Id: VMClassLoader.c 2058 2005-03-23 10:59:05Z twisti $
 
 */
 
 
+#include <sys/stat.h>
+
+#include "config.h"
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_ClassLoader.h"
+#include "native/include/java_security_ProtectionDomain.h"
+#include "native/include/java_util_Vector.h"
 #include "toolbox/logging.h"
+#include "vm/class.h"
 #include "vm/exceptions.h"
 #include "vm/builtin.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
+#include "vm/jit/asmpart.h"
 
 
 /*
  * Class:     java/lang/VMClassLoader
  * Method:    defineClass
- * Signature: (Ljava/lang/String;[BII)Ljava/lang/Class;
+ * Signature: (Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *this, java_lang_String *name, java_bytearray *buf, s4 off, s4 len)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *this, java_lang_String *name, java_bytearray *buf, s4 off, s4 len, java_security_ProtectionDomain *pd)
 {
 	classinfo *c;
 	char *tmp;
@@ -69,6 +76,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	tmp = javastring_tochar((java_objectheader *) name);
 
 	/* call JNI-function to load the class */
+
 	c = (*env)->DefineClass(env,
 							tmp,
 							(jobject) this,
@@ -80,8 +88,13 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	MFREE(tmp, char, strlen(tmp));
 
 	/* exception? return! */
+
 	if (!c)
 		return NULL;
+
+	/* set ProtectionDomain */
+
+	c->pd = pd;
 
 	use_class_as_object(c);
 
@@ -192,6 +205,110 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 	use_class_as_object(c);
 
 	return (java_lang_Class *) c;
+}
+
+
+/*
+ * Class:     java/lang/VMClassLoader
+ * Method:    nativeGetResources
+ * Signature: (Ljava/lang/String;)Ljava/util/Vector;
+ */
+JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv *env, jclass clazz, java_lang_String *name)
+{
+	jobject           o;
+	methodinfo       *m;
+	java_lang_String *path;
+	classpath_info   *cpi;
+	utf              *utfname;
+	char             *charname;
+	char             *tmppath;
+	s4                namelen;
+	s4                pathlen;
+	struct stat       buf;
+	jboolean          ret;
+
+	/* get the resource name as utf string */
+
+	utfname = javastring_toutf(name, false);
+
+	namelen = utf_strlen(utfname) + strlen("0");
+	charname = MNEW(char, namelen);
+
+	utf_sprint(charname, utfname);
+
+	/* new Vector() */
+
+	o = native_new_and_init(class_java_util_Vector);
+
+	if (!o)
+		return NULL;
+
+	/* get v.add() method */
+
+	m = class_resolveclassmethod(class_java_util_Vector,
+								 utf_new_char("add"),
+								 utf_new_char("(Ljava/lang/Object;)Z"),
+								 NULL,
+								 true);
+
+	if (!m)
+		return NULL;
+
+	for (cpi = classpath_entries; cpi != NULL; cpi = cpi->next, path = NULL) {
+#if defined(USE_ZLIB)
+		if (cpi->type == CLASSPATH_ARCHIVE) {
+
+#if defined(USE_THREADS)
+			/* enter a monitor on zip/jar archives */
+
+			builtin_monitorenter((java_objectheader *) cpi);
+#endif
+
+			if (cacao_locate(cpi->uf, utfname) == UNZ_OK) {
+				pathlen = strlen("jar:file://") + cpi->pathlen + strlen("!/") +
+					namelen + strlen("0");
+
+				tmppath = MNEW(char, pathlen);
+
+				sprintf(tmppath, "jar:file://%s!/%s", cpi->path, charname);
+				path = javastring_new_char(tmppath),
+
+				MFREE(tmppath, char, pathlen);
+			}
+
+#if defined(USE_THREADS)
+			/* leave the monitor */
+
+			builtin_monitorexit((java_objectheader *) cpi);
+#endif
+
+		} else {
+#endif /* defined(USE_ZLIB) */
+			pathlen = strlen("file://") + cpi->pathlen + namelen + strlen("0");
+
+			tmppath = MNEW(char, pathlen);
+
+			sprintf(tmppath, "file://%s%s", cpi->path, charname);
+
+			if (stat(tmppath + strlen("file://") - 1, &buf) == 0)
+				path = javastring_new_char(tmppath),
+
+			MFREE(tmppath, char, pathlen);
+#if defined(USE_ZLIB)
+		}
+#endif
+
+		/* if a resource was found, add it to the vector */
+
+		if (path) {
+			ret = (jboolean) asm_calljavafunction_int(m, o, path, NULL, NULL);
+
+			if (!ret)
+				return NULL;
+		}
+	}
+
+	return (java_util_Vector *) o;
 }
 
 
