@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 793 2003-12-16 18:50:39Z edwin $
+   $Id: builtin.c 851 2004-01-05 23:59:28Z stefan $
 
 */
 
@@ -390,6 +390,33 @@ java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr
 	}
 	exceptionptr = local_exceptionptr;
 	return local_exceptionptr;
+}
+
+java_objectheader *builtin_get_exceptionptr()
+{
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#ifdef HAVE___THREAD
+	return exceptionptr;
+#else
+	pthread_getspecific(tkey_exceptionptr);
+#endif
+#else
+	panic("builtin_get_exceptionptr should not be used in this configuration");
+	return NULL;
+#endif
+}
+
+void builtin_set_exceptionptr(java_objectheader *e)
+{
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#ifdef HAVE___THREAD
+	exceptionptr = e;
+#else
+	pthread_setspecific(tkey_exceptionptr, e);
+#endif
+#else
+	panic("builtin_set_exceptionptr should not be used in this configuration");
+#endif
 }
 
 

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: builtin.h 821 2003-12-31 14:14:01Z twisti $
+   $Id: builtin.h 851 2004-01-05 23:59:28Z stefan $
 
 */
 
@@ -170,6 +170,11 @@ java_objectheader *builtin_throw_exception(java_objectheader *exception);
 java_objectheader *builtin_trace_exception(java_objectheader *exceptionptr,
 										   methodinfo *method, 
 										   int *pos, int noindent);
+/* NOT AN OP */
+
+java_objectheader *builtin_get_exceptionptr();
+/* NOT AN OP */
+void builtin_set_exceptionptr(java_objectheader*);
 /* NOT AN OP */
 
 java_objectheader *builtin_new(classinfo *c);

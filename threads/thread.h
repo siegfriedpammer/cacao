@@ -170,6 +170,10 @@ extern thread *threadQhead[MAX_THREAD_PRIO + 1];
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);
 u1*  asm_initialize_thread_stack(void *func, u1 *stack);
 
+#if defined(NATIVE_THREADS) && !defined(HAVE___THREAD)
+extern pthread_key_t tkey_exceptionptr;
+#endif
+
 #else
 
 #define intsDisable()

@@ -12,6 +12,7 @@
  */
 
 
+#include "global.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -34,7 +35,13 @@
 
 #if defined(NATIVE_THREADS)
 pthread_mutex_t cast_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t compiler_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t compiler_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+
+int cast_counter;
+
+#ifndef HAVE___THREAD
+pthread_key_t tkey_exceptionptr;
+#endif
 #endif
 
 static classinfo *class_java_lang_ThreadDeath;
@@ -121,6 +128,10 @@ freeThreadStack (thread *tid)
 void
 initThreads(u1 *stackbottom)
 {
+#if defined(NATIVE_THREADS) && !defined(HAVE___THREAD)
+	pthread_key_create(&tkey_exceptionptr, NULL);
+#endif
+
 	thread *the_main_thread;
     int i;
 	char mainname[] = "main";
@@ -769,4 +780,12 @@ reschedule(void)
 		DBG( fprintf(stderr, "nothing more to do\n"); );
 		checkEvents(true);
     }
+}
+
+void cast_lock()
+{
+}
+
+void cast_unlock()
+{
 }
