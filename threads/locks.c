@@ -26,12 +26,6 @@
 
 static classinfo *class_java_lang_IllegalMonitorStateException;
 
-#if 1
-#define DBG(s)
-#else
-#define DBG(s)   s
-#endif
-
 extern thread* currentThread;
 
 #if defined(USE_INTERNAL_THREADS)

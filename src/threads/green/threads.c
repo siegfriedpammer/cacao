@@ -38,14 +38,6 @@
 
 static classinfo *class_java_lang_ThreadDeath;
 
-#if 1
-#define DBG(s)
-#define SDBG(s)
-#else
-#define DBG(s)                 s
-#define SDBG(s)                s
-#endif
-
 #if defined(USE_INTERNAL_THREADS)
 
 thread* currentThread = NULL;
@@ -751,6 +743,7 @@ reschedule(void)
 
 					CONTEXT(currentThread).exceptionptr = exceptionptr;
 
+                    DBG( fprintf(stderr, "thread switch from: %p to: %p\n", lastThread, currentThread); );
 					THREADSWITCH((&CONTEXT(currentThread)),
 								 (&CONTEXT(lastThread)));
 					blockInts = b;

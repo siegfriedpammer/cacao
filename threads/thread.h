@@ -40,6 +40,14 @@
 #define THREAD_FLAGS_USER_SUSPEND       2  /* Flag explicit suspend() call */
 #define	THREAD_FLAGS_KILLED		4
 
+#if 1
+#define DBG(s)
+#define SDBG(s)
+#else
+#define DBG(s)                 s
+#define SDBG(s)                s
+#endif
+
 struct _thread;
 
 typedef struct _ctx
@@ -131,23 +139,27 @@ extern thread *sleepThreads;
 
 extern thread *threadQhead[MAX_THREAD_PRIO + 1];
 
-#define CONTEXT(_t)                                                     \
-        (contexts[(_t)->PrivateInfo - 1])
+#define CONTEXT(_t)     (contexts[(_t)->PrivateInfo - 1])
 
 #if 1
 #define	intsDisable()	blockInts++
-#define	intsRestore()   if (blockInts == 1 && needReschedule) {         \
-			    reschedule();				\
-			}						\
-			blockInts--
+
+#define	intsRestore()   if (blockInts == 1 && needReschedule) { \
+                            reschedule(); \
+                        } \
+                        blockInts--
 #else
-#define	intsDisable()	do { blockInts++; fprintf(stderr, "++: %d (%s:%d)\n", blockInts, __FILE__, __LINE__); } while (0)
+#define	intsDisable()	do { \
+                            blockInts++; \
+                            fprintf(stderr, "++: %d (%s:%d)\n", blockInts, __FILE__, __LINE__); \
+                        } while (0)
+
 #define	intsRestore()	do { \
                             if (blockInts == 1 && needReschedule) {	\
-			        reschedule();				\
-			    }						\
-			    blockInts--;                                \
-                            fprintf(stderr, "--: %d (%s:%d)\n", blockInts, __FILE__, __LINE__);     \
+                                reschedule(); \
+                            } \
+                            blockInts--; \
+                            fprintf(stderr, "--: %d (%s:%d)\n", blockInts, __FILE__, __LINE__); \
                         } while (0)
 #endif
 

@@ -10,8 +10,6 @@
  * Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
  */
 
-#define	DBG(s)                    
-
 #include "config.h"
 
 #include "defines.h"
@@ -393,7 +391,7 @@ checkEvents(bool block)
 
     assert(blockInts > 0);
 
-DBG(	printf("checkEvents block:%d\n", block);			)
+    DBG( printf("checkEvents block:%d\n", block); )
 
     if (sleepThreads != 0)
     {
@@ -444,7 +442,7 @@ DBG(	printf("checkEvents block:%d\n", block);			)
      */
     assert(blockInts > 0);
 
-DBG(	printf("Select returns %d\n", r);				)
+    DBG( printf("Select returns %d\n", r); )
 
     /* Some threads may have finished sleeping.
      */
