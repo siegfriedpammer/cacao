@@ -1,0 +1,165 @@
+/* calling.doc *****************************************************************
+
+	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
+
+	See file COPYRIGHT for information on usage and disclaimer of warranties
+
+	A short description of MIPS calling conventions and register usage.
+
+	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
+
+	Last Change: 1998/11/05
+
+*******************************************************************************/
+
+Short documentation of the Java calling conventions for the MIPS.
+
+--------------------------------------------------------------------------------
+
+
+Die Aufrufskonventionen halten sich weitgehende an die Konventionen
+f"ur normale C-Funktionen, allerdings mit einigen zus"atzlichen
+Registerbelegungen:
+
+R28 ..... enth"alt bei einem Methodenaufruf auf jeden Fall den Zeiger 
+          auf die zugeh"orige 'methodinfo'-Struktur, die gegebenenfalls an
+          den JIT-Compiler weitergegeben werden muss. 
+
+          Wenn von Java-Methoden aus direkt C-Funktionen aufgerufen werden,
+          (f"ur die nat"urlich auch keine 'methodinfo'-Struktur existiert),
+          dann hat dieses Register keinen definierten Wert (Alle von der
+          JavaVM verwendeten Funktionen, z. B. 'builtin_new', etc. werden
+          so aufgerufen)
+
+Die restlichen Register folgen den normalen Konventionen, aber ich gebe
+hier noch einmal eine kurze "Ubersicht:
+
+ 
+integer registers:
+
+R0 ........ always contains zero
+
+R1 ........ code generator temporary register (destroyed by called method)
+
+R2 ........ method result value for types INT, LONG and ADDRESS
+
+R3 ........ code generator temporary register (destroyed by called method)
+
+R4 -R11 ... argument registers 0 - 7 (contain the first six method arguments
+            of type INT, LONG and ADDRESS. Argument registers are destroyed
+            by called method)
+
+R12-R15 ... temporary registers (destroyed by called method)
+
+R16-R23 ... saved registers (left unchanged by called method)
+
+R24 ....... pointer to 'methodinfo' structure. This register has to be set
+            correctly, because it is needed in the case the jit is invoked.
+            Also used as code generator temporary register. It is destroyed
+            by called method)
+
+R25 (pv) .. procedure vector, points to the first instruction of the called
+            method. This vector is used for addressing the entries in the
+            data segment. The ov of the caller is recomputed from the ra.
+            Therefore it is necessary that a return is always done using ra.
+
+R26-R27 ... reserved register (reserved for kernel)
+
+R28 ....... saved registers (left unchanged by called method)
+
+R29 (sp) .. stack pointer. The stack grows from high to low.
+
+R30 ....... saved register (left unchanged by called method)
+
+R31 (ra) .. return address (left unchanged by called method)
+
+
+floating point registers:
+
+F0 ........ method result value for types FLOAT and DOUBLE
+
+F1-F3 ..... code generator temporary register (destroyed by called method)
+
+F4 -F11 ... temporary register (destroyed by called method)
+                                
+F12-F19 ... argument registers 0 - 7 (contain the first 8 method arguments
+            of type FLOAT and DOUBLE. Argument registers are destroyed
+            by called method)
+
+F20-F23 ... temporary registers (destroyed by called method)
+
+F24 ....... saved register (left unchanged by called method)
+
+F25 ....... temporary register (destroyed by called method)
+
+F26 ....... saved register (left unchanged by called method)
+
+F27 ....... temporary register (destroyed by called method)
+
+F28 ....... saved register (left unchanged by called method)
+
+F29 ....... temporary register (destroyed by called method)
+
+F30 ....... saved register (left unchanged by called method)
+
+F31 ....... temporary register (destroyed by called method)
+
+
+PARAMETER"UBERGABE AM STACK:
+
+Bei mehr als sechs Parametern reicht der Platz in den Registern nicht mehr
+aus, daf"ur werden alle Parameter ab dem Siebenten am Stack "ubergeben,
+und zwar nach folgendem Muster:
+
+
+                  | .....                                          |
+				  --------------------------------------------------
+                  |  Parameter 9  ( 64 bit, egal bei welchem Typ)  |
+                  --------------------------------------------------
+				  |  Parameter 8  ( 64 bit, egal bei welchem Typ   |
+                  --------------------------------------------------
+   R30 (sp) --->  |  Parameter 7  ( 64 bit, egal bei welchem Typ)  |
+                  --------------------------------------------------
+  
+Der Stackpointer zeigt dabei auf die Untergrenze des Parameterbereichs.
+
+
+
+
+
+VOLLST"ANDIGES LAYOUT EINES STACKFRAMES:
+
+Jede Methode muss (wenn es keine Leaf-Methode ist, auf jeden Fall) gewisse
+Registerinhalte am Stack sichern.
+Eventuell werden auch noch lokale Werte, die nicht mehr in Registern
+Platz finden, ebenfalls am Stack aufbewahrt, und die Parameter"ubergabe
+bei mehr als 6 Parametern ben"otigt ebenfalls Platz am Stack.
+
+Ein vollst"andiger Stackframe hat also dieses Aussehen (jeder Eintrag
+im Stackframe ist unabh"angig vom Typ auf jedem Fall 64 bit lang, die
+Gr"ossenangaben der Bereiche sind in solchen Einheiten von 64 Bit 
+angegeben):
+	
+            ---------------------------------------------
+            |  parameter n (passed from caller)         |
+            ---------------------------------------------	
+            |  parameter n-1                            |
+            ---------------------------------------------
+            | ...                                       |
+            ---------------------------------------------
+            |  parameter 7                              |
+old SP ---> ============================================= --- parentargs_base
+            |  saved RA                                 |
+            ---------------------------------------------     savedregs_num
+            |  others saved registers                   |
+            ============================================= --- maxmemuse + 1
+            |  optional monitor_exit argument           |
+            ============================================= --- maxmemuse
+            |  area for spilled registers               |
+            =============================================
+            |  ....                                     |
+            ---------------------------------------------
+            |  parameter 8                              |
+            ---------------------------------------------
+            |  parameter 7 (passed to called method)    |
+new SP ---> =============================================
