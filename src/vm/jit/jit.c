@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1881 2005-01-21 13:46:51Z carolyn $
+   $Id: jit.c 1885 2005-01-27 11:24:13Z twisti $
 
 */
 
@@ -1323,11 +1323,12 @@ builtin_descriptor builtin_desc[] = {
 	{  0,NULL,0,0,0,0,0,0,0,"<END>"}
 };
 
+
 /* include compiler subsystems ************************************************/
 
 /* dummy function, used when there is no JavaVM code available                */
 
-static void* do_nothing_function()
+static functionptr do_nothing_function()
 {
 	return NULL;
 }
@@ -1352,14 +1353,13 @@ functionptr jit_compile(methodinfo *m)
 	t_inlining_globals *id;
 	s4                  dumpsize;
 
-
-	if (m->flags & ACC_NATIVE) {
-		/*this is the case if a native function is called by using jni*/
-		return m->stubroutine;
-	}
-
 	if (opt_stat)
 		count_jit_calls++;
+
+	/* this is the case if a native function is called by jni */
+
+	if (m->flags & ACC_NATIVE)
+		return (functionptr) m->stubroutine;
 
 #if defined(USE_THREADS)
 	/* enter a monitor on the method */
@@ -1386,7 +1386,6 @@ functionptr jit_compile(methodinfo *m)
 		if (compileverbose)
 			log_message_method("No code given for: ", m);
 
-		/*m->entrypoint = (methodptr) do_nothing_function;*/
 		m->entrypoint = (functionptr) do_nothing_function;
 
 		return m->entrypoint;    /* return empty method     */
