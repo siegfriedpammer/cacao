@@ -32,7 +32,7 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 576 2003-11-09 17:31:38Z twisti $
+   $Id: analyze.c 665 2003-11-21 18:36:43Z jowenn $
 
 */
 
@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "analyze.h"
+#include "jit/jit.h"
 #include "loop.h"
 #include "graph.h"
 #include "tracing.h"

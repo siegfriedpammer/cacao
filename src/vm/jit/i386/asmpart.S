@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger                                               *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 585 2003-11-09 19:37:30Z twisti $        *
+*   Last Change: $Id: asmpart.S 665 2003-11-21 18:36:43Z jowenn $        *
 *                                                                              *
 *******************************************************************************/
 
@@ -25,6 +25,10 @@
 	.globl has_no_x_instr_set
 	.globl asm_calljavamethod
 	.globl asm_calljavafunction
+        .globl asm_calljavafunction2
+        .globl asm_calljavafunction2long
+        .globl asm_calljavafunction2double
+
 	.globl asm_call_jit_compiler
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_builtin_exception
@@ -32,6 +36,7 @@
 	.globl asm_handle_exception
 	.globl asm_builtin_checkcast	
 	.globl asm_builtin_checkarraycast
+        .globl asm_builtin_newarray
 	.globl asm_builtin_anewarray
 	.globl asm_builtin_newarray_array
 	.globl asm_builtin_aastore
@@ -274,6 +279,157 @@ calljava_xhandler2:
         leave
 		ret
 						
+
+
+/********************* function asm_calljavafunction ***************************
+*                                                                              *
+*   This function calls a Java-method (which possibly needs compilation)       *
+*   with up to 4 address parameters.                                           *
+*                                                                              *
+*   This functions calls the JIT-compiler which eventually translates the      *
+*   method into machine code.                                                  *
+*                                                                              *
+*   C-prototype:                                                               *
+*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
+*         void *arg1, void *arg2, void *arg3, void *arg4);                     *
+*                                                                              *
+*******************************************************************************/
+
+call_name3:
+	.ascii  "calljavafunction2\0\0"
+
+/*	.align  3 */
+	.align	8
+	.long   0                         /* catch type all                       */
+	.long   calljava_xhandler3        /* handler pc                           */
+	.long   calljava_xhandler3        /* end pc                               */
+	.long   asm_calljavafunction2      /* start pc                             */
+	.long   1                         /* extable size                         */
+	.long   0                         /* fltsave                              */
+	.long   0                         /* intsave                              */
+	.long   0                         /* isleaf                               */
+	.long   0                         /* IsSync                               */
+	.long   32                        /* frame size                           */
+			.long   0                         /* method pointer (pointer to name)     */
+
+/********************* function asm_calljavafunction ***************************
+*                                                                              *
+*   This function calls a Java-method (which possibly needs compilation)       *
+*   with up to 4 address parameters.                                           *
+*                                                                              *
+*   This functions calls the JIT-compiler which eventually translates the      *
+*   method into machine code.                                                  *
+*                                                                              *
+*   C-prototype:                                                               *
+*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
+*         void *arg1, void *arg2, void *arg3, void *arg4);                     *
+*                                                                              *
+*******************************************************************************/
+
+call_name4:
+	.ascii  "calljavafunction2double\0\0"
+
+/*	.align  3 */
+	.align	8
+	.long   0                         /* catch type all                       */
+	.long   calljava_xhandler3        /* handler pc                           */
+	.long   calljava_xhandler3        /* end pc                               */
+	.long   asm_calljavafunction2double      /* start pc                             */
+	.long   1                         /* extable size                         */
+	.long   0                         /* fltsave                              */
+	.long   0                         /* intsave                              */
+	.long   0                         /* isleaf                               */
+	.long   0                         /* IsSync                               */
+	.long   32                        /* frame size                           */
+			.long   0                         /* method pointer (pointer to name)     */
+
+/********************* function asm_calljavafunction ***************************
+*                                                                              *
+*   This function calls a Java-method (which possibly needs compilation)       *
+*   with up to 4 address parameters.                                           *
+*                                                                              *
+*   This functions calls the JIT-compiler which eventually translates the      *
+*   method into machine code.                                                  *
+*                                                                              *
+*   C-prototype:                                                               *
+*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
+*         void *arg1, void *arg2, void *arg3, void *arg4);                     *
+*                                                                              *
+*******************************************************************************/
+
+call_name5:
+	.ascii  "calljavafunction2long\0\0"
+
+/*	.align  3 */
+	.align	8
+	.long   0                         /* catch type all                       */
+	.long   calljava_xhandler3        /* handler pc                           */
+	.long   calljava_xhandler3        /* end pc                               */
+	.long   asm_calljavafunction2long      /* start pc                             */
+	.long   1                         /* extable size                         */
+	.long   0                         /* fltsave                              */
+	.long   0                         /* intsave                              */
+	.long   0                         /* isleaf                               */
+	.long   0                         /* IsSync                               */
+	.long   32                        /* frame size                           */
+			.long   0                         /* method pointer (pointer to name)     */
+
+
+asm_calljavafunction2:
+asm_calljavafunction2double:
+asm_calljavafunction2long:
+		pushl	%ebp                  /* save ebp */
+		
+
+		movl	%esp,%eax /*save stackptr*/
+		movl	20(%esp),%ebp
+		subl 	$32,%esp
+
+                movl    sizejniblock*3+offjniitem+4(%ebp),%ebx
+                movl    %ebx,28(%esp)
+                movl    sizejniblock*3+offjniitem(%ebp),%ebx
+                movl    %ebx,24(%esp)
+
+                movl    sizejniblock*2+offjniitem+4(%ebp),%ebx
+                movl    %ebx,20(%esp)
+                movl    sizejniblock*2+offjniitem(%ebp),%ebx
+                movl    %ebx,16(%esp)
+
+
+                movl    sizejniblock+offjniitem+4(%ebp),%ebx
+                movl    %ebx,12(%esp)
+                movl    sizejniblock+offjniitem(%ebp),%ebx
+                movl    %ebx,8(%esp)
+
+                movl    offjniitem+4(%ebp),%ebx
+                movl    %ebx,4(%esp)
+                movl    offjniitem(%ebp),%ebx
+                movl    %ebx,0(%esp)
+
+		movl	%eax,%ebp	
+		movl	8(%ebp),%eax          /* move function pointer to %eax        */
+
+		lea		asm_call_jit_compiler,%ecx 
+		call	*%ecx                 /* call JIT compiler                    */
+	
+calljava_jit3:
+calljava_return3:
+calljava_ret3:
+		leave
+		ret
+
+calljava_xhandler3:
+		pushl	%eax				  /* pass exception pointer               */
+		call    builtin_throw_exception
+		addl	$4,%esp
+		addl	$32,%esp
+		popl	%ebp
+		ret
+
+
+
+
+
 
 /****************** function asm_call_jit_compiler *****************************
 *                                                                              *
@@ -759,13 +915,13 @@ nb_carray_throw:
 		jmp		asm_handle_exception
 
 		
-/******************* function asm_builtin_anewarray ****************************
+/******************* function asm_builtin_newarray *****************************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
 *                                                                              *
 *******************************************************************************/
 
-asm_builtin_anewarray:
+asm_builtin_newarray:
 		subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
 
 		movl	12(%esp),%eax
@@ -774,28 +930,7 @@ asm_builtin_anewarray:
 		movl	20(%esp),%eax
 		movl	%eax,4(%esp)
 
-		call	builtin_anewarray
-	
-		addl	$8,%esp
-		ret
-
-		
-/******************* function asm_builtin_newarray_array ***********************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
-*******************************************************************************/
-
-asm_builtin_newarray_array:
-		subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
-
-		movl	12(%esp),%eax
-		movl	%eax,(%esp)
-
-		movl	20(%esp),%eax
-		movl	%eax,4(%esp)
-
-		call	builtin_newarray_array
+		call	builtin_newarray
 	
 		addl	$8,%esp
 		ret

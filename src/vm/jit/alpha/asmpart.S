@@ -87,6 +87,7 @@
 	.globl synchronize_caches
 	.globl asm_calljavamethod
 	.globl asm_calljavafunction
+	.globl asm_calljavafunction2
 	.globl asm_call_jit_compiler
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
@@ -314,6 +315,113 @@ calljava_xhandler2:
 	lda     sp,32(sp)                 /* free stack space                     */
 	jmp     zero,(ra)
 	.end    asm_calljavafunction
+
+
+
+
+	.ent    asm_calljavafunction2
+
+call_name3:
+	.ascii  "calljavafunction2\0\0"
+
+	.align  3
+	.quad   0                         /* catch type all                       */
+	.quad   calljava_xhandler3        /* handler pc                           */
+	.quad   calljava_xhandler3        /* end pc                               */
+	.quad   asm_calljavafunction2     /* start pc                             */
+	.long   1                         /* extable size                         */
+	.long   0                         /* fltsave                              */
+	.long   1                         /* intsave                              */
+	.long   0                         /* isleaf                               */
+	.long   0                         /* IsSync                               */
+	.long   40                        /* frame size                           */
+	.quad   0                         /* method pointer (pointer to name)     */
+
+asm_calljavafunction2:
+
+	ldgp    gp,0(pv)
+	lda     sp,-40(sp)                /* allocate stack space                 */
+	stq     ra,0(sp)                  /* save return address                  */
+	stq     s6,24(sp)
+	stq     gp,8(sp)                  /* save global pointer                  */
+
+	stq     a0,32(sp)                 /* save method pointer for compiler     */
+	mov     a3,t0                     /* pointer to arg block                 */
+	mov     a1,s6                     /* arg count                            */
+
+	ble     s6,calljava_argsloaded
+	lda     s6,-1(s6)
+	ldq     a0,offjniitem(t0)
+	ldt     $f16,offjniitem(t0)
+	ble     s6,calljava_argsloaded
+	lda     s6,-1(s6)
+	ldq     a1,offjniitem+sizejniblock*1(t0)
+	ldt     $f17,offjniitem+sizejniblock*1(t0)
+	ble     s6,calljava_argsloaded
+	lda     s6,-1(s6)
+	ldq     a2,offjniitem+sizejniblock*2(t0)
+	ldt     $f18,offjniitem+sizejniblock*2(t0)
+	ble     s6,calljava_argsloaded
+	lda     s6,-1(s6)
+	ldq     a3,offjniitem+sizejniblock*3(t0)
+	ldt     $f19,offjniitem+sizejniblock*3(t0)
+	ble     s6,calljava_argsloaded
+	lda     s6,-1(s6)
+	ldq     a4,offjniitem+sizejniblock*4(t0)
+	ldt     $f20,offjniitem+sizejniblock*4(t0)
+	ble     s6,calljava_argsloaded
+	lda     s6,-1(s6)
+	ldq     a5,offjniitem+sizejniblock*5(t0)
+	ldt     $f21,offjniitem+sizejniblock*5(t0)
+calljava_argsloaded:
+	mov     sp,t4
+	ble     s6,calljava_nocopy
+	negq    s6,t1
+	s8addq  t1,sp,sp
+	s8addq  t1,t4,t2
+
+calljava_copyloop:
+	ldq     t3,offjniitem+sizejniblock*6(t0)
+	stq     t3,0(t2)
+	lda     t1,1(t1)
+	lda     t0,sizejniblock(t0)
+	lda     t2,8(t2)
+	bne     t1,calljava_copyloop
+
+calljava_nocopy:
+	lda     v0,32(t4)                 /* pass pointer to method pointer via v0*/
+
+	lda     $28,asm_call_jit_compiler /* fake virtual function call (2 instr) */
+	stq     $28,16(t4)                /* store function address               */
+	lda     $28,8(t4)                 /* set method pointer                   */
+
+	ldq     pv,8($28)                 /* method call as in Java               */
+	jmp     ra,(pv)                   /* call JIT compiler                    */
+calljava_jit3:
+	lda     pv,-200(ra)               /* asm_calljavafunction-calljava_jit !!!*/
+
+	s8addq  s6,sp,sp
+calljava_return3:
+
+	ldq     ra,0(sp)                  /* restore return address               */
+	ldq     gp,8(sp)                  /* restore global pointer               */
+	ldq     s6,24(sp)
+	lda     sp,40(sp)                 /* free stack space                     */
+
+calljava_ret3:
+	jmp     zero,(ra)
+
+calljava_xhandler3:
+
+	s8addq  s6,sp,sp
+	ldq     gp,8(sp)                  /* restore global pointer               */
+	mov     itmp1,a0
+	jsr     ra,builtin_throw_exception
+	ldq     ra,0(sp)                  /* restore return address               */
+	ldq     s6,24(sp)
+	lda     sp,40(sp)                 /* free stack space                     */
+	jmp     zero,(ra)
+	.end    asm_calljavafunction2
 						
 
 /****************** function asm_call_jit_compiler *****************************

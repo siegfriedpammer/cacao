@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 605 2003-11-11 23:06:33Z twisti $
+   $Id: jit.h 665 2003-11-21 18:36:43Z jowenn $
 
 */
 
@@ -37,9 +37,8 @@
 #ifndef _JIT_H
 #define _JIT_H
 
-#include "global.h"
 #include "toolbox/chain.h"
-
+#include "global.h"
 
 /**************************** resolve typedef-cycles **************************/
 
@@ -53,6 +52,7 @@ typedef struct branchref branchref;
 typedef struct jumpref jumpref;
 typedef struct dataref dataref;
 typedef varinfo *varinfoptr;
+
 
 
 /************************** stack element structure ***************************/

@@ -28,7 +28,7 @@
 
    Changes: Carolyn Oates
 
-   $Id: parse.c 655 2003-11-20 14:52:00Z carolyn $
+   $Id: parse.c 665 2003-11-21 18:36:43Z jowenn $
 
 */
 
@@ -650,6 +650,9 @@ void parse()
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
 		s_count += stackreq[opcode];      	/* compute stack element count    */
 
+		/* XXX remove log */
+		/*		log_text(opcode_names[opcode]); */
+		
 		switch (opcode) {
 		case JAVA_NOP:
 			break;
@@ -896,24 +899,16 @@ void parse()
 		case JAVA_ANEWARRAY:
 			OP2I(ICMD_CHECKASIZE, 0, 0);
 			i = code_get_u2(p + 1);
-			/* array or class type ? */
-			if (class_constanttype (class, i) == CONSTANT_Arraydescriptor) {
+			{
+ 					classinfo *component = (classinfo*)class_getconstant(class, i, CONSTANT_Class);
+ 				 	LOADCONST_A(class_array_of(component)->vftbl);
+
 				s_count++;
-				LOADCONST_A(class_getconstant(class, i,
-											  CONSTANT_Arraydescriptor));
+
 #if defined(__I386__)
-				BUILTIN2((functionptr) asm_builtin_newarray_array, TYPE_ADR);
+ 					BUILTIN2((functionptr) asm_builtin_newarray, TYPE_ADR);
 #else
-				BUILTIN2((functionptr) builtin_newarray_array, TYPE_ADR);
-#endif
-			}
-			else {
-				LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
-				s_count++;
-#if defined(__I386__)
-				BUILTIN2((functionptr) asm_builtin_anewarray, TYPE_ADR);
-#else
-				BUILTIN2((functionptr) builtin_anewarray, TYPE_ADR);
+ 					BUILTIN2((functionptr)builtin_newarray, TYPE_ADR);
 #endif
 			}
 			break;
@@ -923,9 +918,8 @@ void parse()
 			i = code_get_u2(p + 1);
 			{
 				int v = code_get_u1(p + 3);
-				constant_arraydescriptor *desc =
-				    class_getconstant (class, i, CONSTANT_Arraydescriptor);
-				OP2A(opcode, v, desc);
+ 				vftbl *arrayvftbl = ((classinfo*)class_getconstant (class, i, CONSTANT_Class))->vftbl;
+ 				OP2A(opcode, v, arrayvftbl);			
 			}
 			break;
 
@@ -1243,44 +1237,50 @@ void parse()
 
 		case JAVA_CHECKCAST:
 			i = code_get_u2(p+1);
+ 				{
+ 					classinfo *cls = (classinfo*)class_getconstant(class, i, CONSTANT_Class);
+ 					if (cls->vftbl->arraydesc) {
+ 						/* array type cast-check */
+ 						LOADCONST_A(cls->vftbl->arraydesc);
+ 						s_count++;
+ 						BUILTIN2((functionptr) asm_builtin_checkarraycast, TYPE_ADR);
+  					}
+ 					else { /* object type cast-check */
+ 						/*
++ 						  LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
++ 						  s_count++;
++ 						  BUILTIN2((functionptr) asm_builtin_checkcast, TYPE_ADR);
++ 						*/
+ 						OP2A(opcode, 1, cls);
+  					}
+ 				}
 
-			/* array type cast-check */
-			if (class_constanttype (class, i) == CONSTANT_Arraydescriptor) {
-				LOADCONST_A(class_getconstant(class, i, CONSTANT_Arraydescriptor));
-				s_count++;
-				BUILTIN2((functionptr) asm_builtin_checkarraycast, TYPE_ADR);
-			}
-			else { /* object type cast-check */
-				/*
-				  LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
-				  s_count++;
-				  BUILTIN2((functionptr) asm_builtin_checkcast, TYPE_ADR);
-				*/
-				OP2A(opcode, 1, (class_getconstant(class, i, CONSTANT_Class)));
-			}
 			break;
 
 		case JAVA_INSTANCEOF:
 			i = code_get_u2(p+1);
 
-			/* array type cast-check */
-			if (class_constanttype (class, i) == CONSTANT_Arraydescriptor) {
-				LOADCONST_A(class_getconstant(class, i, CONSTANT_Arraydescriptor));
-				s_count++;
-#if defined(__I386__)
-				BUILTIN2((functionptr) asm_builtin_arrayinstanceof, TYPE_INT);
-#else
-				BUILTIN2((functionptr) builtin_arrayinstanceof, TYPE_INT);
-#endif
-			}
-			else { /* object type cast-check */
-				/*
-				  LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
-				  s_count++;
-				  BUILTIN2((functionptr) builtin_instanceof, TYPE_INT);
-				*/
-				OP2A(opcode, 1, (class_getconstant(class, i, CONSTANT_Class)));
-			}
+ 				{
+ 					classinfo *cls = (classinfo*)class_getconstant(class, i, CONSTANT_Class);
+ 					if (cls->vftbl->arraydesc) {
+ 						/* array type cast-check */
+ 						LOADCONST_A(cls->vftbl->arraydesc);
+ 						s_count++;
+  #if defined(__I386__)
+ 						BUILTIN2((functionptr) asm_builtin_arrayinstanceof, TYPE_INT);
+  #else
+ 						BUILTIN2((functionptr) builtin_arrayinstanceof, TYPE_INT);
+  #endif
+  					}
+ 					else { /* object type cast-check */
+ 						/*
+ 						  LOADCONST_A(class_getconstant(class, i, CONSTANT_Class));
+ 						  s_count++;
+ 						  BUILTIN2((functionptr) builtin_instanceof, TYPE_INT);
++ 						*/
+ 						OP2A(opcode, 1, cls);
+  					}
+ 				}
 			break;
 
 		case JAVA_MONITORENTER:

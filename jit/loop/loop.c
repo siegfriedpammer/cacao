@@ -30,19 +30,20 @@
    algorithm that uses dominator trees (found eg. in modern compiler
    implementation by a.w. appel)
 
-   $Id: loop.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: loop.c 665 2003-11-21 18:36:43Z jowenn $
 
 */
 
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "global.h"	
+#include "jit/jit.h"	
 #include "loop.h"
 #include "graph.h"
 #include "tracing.h"
 #include "toolbox/loging.h"
 #include "toolbox/memory.h"
-
 
 /* GLOBAL VARS																*/
 
@@ -61,7 +62,7 @@ int *c_numPre;					/* array that stores for each node its number	*/
 								/* predecessors									*/
 int **c_pre;					/* array of array that stores predecessors		*/
 int c_last_jump;				/* stores the source node of the last jsr instr	*/
-basicblock *c_last_target;      /* stores the source BB of the last jsr instr	*/
+struct basicblock *c_last_target;      /* stores the source BB of the last jsr instr	*/
 
 struct depthElement **c_dTable;	/* adjacency list for control flow graph		*/
 struct depthElement **c_exceptionGraph;	/* adjacency list for exception graph	*/
@@ -126,10 +127,10 @@ struct LoopVar *c_loopvars;		/* a list of all intersting variables of the	*/
 								/* current loop (variables that are modified or	*/
 								/* used as array index							*/
 
-basicblock *c_first_block_copied; /* pointer to the first block, that is copied */
+struct basicblock *c_first_block_copied; /* pointer to the first block, that is copied */
                                   /* during loop duplication                    */
 
-basicblock *c_last_block_copied;  /* last block, that is copied during loop     */
+struct basicblock *c_last_block_copied;  /* last block, that is copied during loop     */
                                   /* duplication                                */
 
 int *c_null_check;              /* array to store for local vars, whether they  */
@@ -139,7 +140,7 @@ int *c_null_check;              /* array to store for local vars, whether they  
 bool c_needs_redirection;       /* if a loop header is inserted as first block  */
                                 /* into the global BB list, this is set to true */
                                  
-basicblock *c_newstart;         /* if a loop header is inserted as first block  */
+struct basicblock *c_newstart;         /* if a loop header is inserted as first block  */
                                 /* into the gloal BB list, this pointer is the  */
                                 /* new start                                    */
 int c_old_xtablelength;         /* used to store the original tablelength       */

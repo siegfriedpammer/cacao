@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 621 2003-11-13 13:56:32Z twisti $
+   $Id: codegen.c 665 2003-11-21 18:36:43Z jowenn $
 
 */
 
@@ -4735,6 +4735,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
     mcodeptr = s;                       /* make macros work                   */
 
+         if (m->flags & ACC_STATIC) {
+                 stackframesize += 4;
+                 stackframeoffset += 4;
+         }
+
+
     reg_init(m);
     
     descriptor2types(m);                     /* set paramcount and paramtypes */
@@ -4852,6 +4858,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
     }
 
     i386_mov_imm_membase((s4) &env, REG_SP, 0);
+    if (m->flags & ACC_STATIC) 
+	i386_mov_imm_membase((s4) m->class, REG_SP,4);
+
     i386_mov_imm_reg((s4) f, REG_ITMP1);
     i386_call_reg(REG_ITMP1);
     i386_alu_imm_reg(I386_ADD, stackframesize, REG_SP);

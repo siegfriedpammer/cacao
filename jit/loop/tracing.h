@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: tracing.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: tracing.h 665 2003-11-21 18:36:43Z jowenn $
 
 */
 
@@ -60,7 +60,7 @@ struct Trace* add(struct Trace* a, struct Trace* b);
 struct Trace* negate(struct Trace* a);
 struct Trace* sub(struct Trace* a, struct Trace* b);
 struct Trace* array_length(struct Trace* a);
-struct Trace* tracing(basicblock *block, int index, int temp);
+struct Trace* tracing(struct basicblock *block, int index, int temp);
 
 #endif /* _TRACING_H */
 

@@ -26,13 +26,14 @@
 
    Authors: Andreas Krall
 
-   $Id: stack.c 640 2003-11-15 12:14:05Z stefan $
+   $Id: stack.c 665 2003-11-21 18:36:43Z jowenn $
 
 */
 
 
 #include <stdio.h>
 #include "stack.h"
+#include "global.h"
 #include "jit.h"
 #include "builtin.h"
 #include "disass.h"

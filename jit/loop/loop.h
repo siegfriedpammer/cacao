@@ -26,7 +26,7 @@
 
    Authors: Christopher Kruegel
 
-   $Id: loop.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: loop.h 665 2003-11-21 18:36:43Z jowenn $
 
 */
 
@@ -34,8 +34,7 @@
 #ifndef _LOOP_H
 #define _LOOP_H
 
-#include "jit.h"
-
+#include "global.h"
 
 /*	Different types for struct Trace										*/
 #define TRACE_UNKNOWN 0			/* unknown									*/
@@ -147,7 +146,7 @@ struct depthElement {
 */
 struct LoopElement {
 	int node;
-	basicblock	*block;			
+	struct basicblock	*block;			
 	struct LoopElement *next;
 };
 
@@ -179,7 +178,7 @@ extern int c_globalCount;
 extern int *c_numPre;
 extern int **c_pre;
 extern int c_last_jump;
-extern basicblock *c_last_target;
+extern struct basicblock *c_last_target;
 extern struct depthElement **c_dTable;
 extern struct depthElement **c_exceptionGraph;
 extern struct LoopContainer *c_allLoops;
@@ -212,11 +211,11 @@ extern int *c_var_modified;
 extern struct Trace *c_rightside;
 extern struct Constraint **c_constraints;
 extern struct LoopVar *c_loopvars;
-extern basicblock *c_first_block_copied;
-extern basicblock *c_last_block_copied;
+extern struct basicblock *c_first_block_copied;
+extern struct basicblock *c_last_block_copied;
 extern int *c_null_check;
 extern bool c_needs_redirection;
-extern basicblock *c_newstart;
+extern struct basicblock *c_newstart;
 extern int c_old_xtablelength;
 
 
