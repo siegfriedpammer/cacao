@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1100 2004-05-27 16:27:04Z twisti $
+   $Id: asmpart.S 1111 2004-05-29 07:51:40Z jowenn $
 
 */
 
@@ -1289,7 +1289,7 @@ asm_throw_and_handle_hardware_arithmetic_exception:
 	mov (%eax),%ecx
 	mov %ecx,8(%esp)
 	mov %esp,%ecx
-	add $4,%ecx
+	add $8,%ecx
 	mov %ecx,(%eax)
 	
 	mov string_java_lang_ArithmeticException,%eax
