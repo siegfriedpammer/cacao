@@ -1,4 +1,4 @@
-/* jit/codegen.inc.h - code generation header
+/* src/vm/jit/codegen.inc.h - code generation header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: codegen.inc.h 1735 2004-12-07 14:33:27Z twisti $
+   Changes:
+
+   $Id: codegen.inc.h 2125 2005-03-29 22:20:49Z twisti $
 
 */
 
@@ -48,6 +50,8 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 
 #include "types.h"
 #include "vm/global.h"
+#include "vm/class.h"
+#include "vm/method.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/inline/inline.h"
@@ -191,6 +195,13 @@ void codegen_addreference(codegendata *cd, struct basicblock *target, void *bran
 void dseg_display(methodinfo *m, codegendata *cd);
 
 void init_exceptions();
+
+
+u1 *createcompilerstub(methodinfo *m);
+u1 *createnativestub(functionptr f, methodinfo *m);
+
+void removecompilerstub(u1 *stub);
+void removenativestub(u1 *stub);
 
 #endif /* _CODEGEN_INC_H */
 
