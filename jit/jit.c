@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: jit.c 571 2003-11-06 16:04:23Z twisti $
+   $Id: jit.c 591 2003-11-09 19:45:44Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 #include "builtin.h"
 #include "native.h"
 #include "asmpart.h"
+#include "codegen.h"
 #include "threads/thread.h"
 #include "disass.h"
 #include "loop/loop.h"
