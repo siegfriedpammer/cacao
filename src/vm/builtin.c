@@ -34,19 +34,24 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: builtin.c 612 2003-11-12 13:14:38Z twisti $
 
 */
 
 
 #include <assert.h>
+#include <string.h>
+#include "main.h"
 #include "global.h"
 #include "builtin.h"
+#include "native.h"
 #include "loader.h"
 #include "tables.h"
+#include "asmpart.h"
 #include "threads/thread.h"
 #include "threads/locks.h"
 #include "toolbox/loging.h"
+#include "toolbox/memory.h"
 
 #include "native-math.h"
 
@@ -213,20 +218,20 @@ s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 {
 #ifdef DEBUG
-	log_text ("builtin_checkcast called");
+	log_text("builtin_checkcast called");
 #endif
 
 	if (obj == NULL)
 		return 1;
-	if (builtin_isanysubclass (obj->vftbl->class, class))
+	if (builtin_isanysubclass(obj->vftbl->class, class))
 		return 1;
 
 #if DEBUG
-	printf ("#### checkcast failed ");
-	utf_display (obj->vftbl->class->name);
-	printf (" -> ");
-	utf_display (class->name);
-	printf ("\n");
+	printf("#### checkcast failed ");
+	utf_display(obj->vftbl->class->name);
+	printf(" -> ");
+	utf_display(class->name);
+	printf("\n");
 #endif
 
 	return 0;
@@ -243,11 +248,12 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 
 static s4 builtin_descriptorscompatible(constant_arraydescriptor *desc, constant_arraydescriptor *target)
 {
-	if (desc==target) return 1;
+	if (desc == target) return 1;
 	if (desc->arraytype != target->arraytype) return 0;
+
 	switch (target->arraytype) {
 	case ARRAYTYPE_OBJECT: 
-		return builtin_isanysubclass (desc->objectclass, target->objectclass);
+		return builtin_isanysubclass(desc->objectclass, target->objectclass);
 	case ARRAYTYPE_ARRAY:
 		return builtin_descriptorscompatible 
 			(desc->elementdescriptor, target->elementdescriptor);
@@ -281,14 +287,14 @@ s4 builtin_checkarraycast(java_objectheader *o, constant_arraydescriptor *desc)
 	if (!o) return 1;
 	if (o->vftbl->class != class_array) {
 #ifdef DEBUG
-		printf ("#### checkarraycast failed 1\n");
+		printf("#### checkarraycast failed 1\n");
 #endif
 		return 0;
 	}
 		
 	if (a->arraytype != desc->arraytype) {
 #ifdef DEBUG
-		printf ("#### checkarraycast failed 2\n");
+		printf("#### checkarraycast failed 2\n");
 #endif
 		return 0;
 	}
@@ -296,11 +302,11 @@ s4 builtin_checkarraycast(java_objectheader *o, constant_arraydescriptor *desc)
 	switch (a->arraytype) {
 	case ARRAYTYPE_OBJECT: {
 		java_objectarray *oa = (java_objectarray*) o;
-		int result = builtin_isanysubclass (oa->elementtype, desc->objectclass);
+		int result = builtin_isanysubclass(oa->elementtype, desc->objectclass);
 
 #ifdef DEBUG
 		if (!result)
-			printf ("#### checkarraycast failed 3\n");
+			printf("#### checkarraycast failed 3\n");
 #endif
 		return result;
 	}
@@ -311,7 +317,7 @@ s4 builtin_checkarraycast(java_objectheader *o, constant_arraydescriptor *desc)
 
 #ifdef DEBUG
 		if (!result)
-			printf ("#### checkarraycast failed 4\n");
+			printf("#### checkarraycast failed 4\n");
 #endif
 		return result;
 	}
@@ -332,7 +338,8 @@ s4 builtin_arrayinstanceof(java_objectheader *obj, constant_arraydescriptor *des
 
 ******************************************************************************/
 
-java_objectheader *builtin_throw_exception (java_objectheader *local_exceptionptr) {
+java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr)
+{
 	if (verbose) {
 		sprintf(logtext, "Builtin exception thrown: ");
 		utf_sprint(logtext + strlen(logtext), local_exceptionptr->vftbl->class->name);
@@ -352,28 +359,28 @@ java_objectheader *builtin_throw_exception (java_objectheader *local_exceptionpt
 ******************************************************************************/
 
 
-s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
+s4 builtin_canstore(java_objectarray *a, java_objectheader *o)
 {
 	if (!o) return 1;
 	
 	switch (a->header.arraytype) {
 	case ARRAYTYPE_OBJECT:
-		if ( ! builtin_checkcast (o, a->elementtype) ) {
+		if (!builtin_checkcast(o, a->elementtype)) {
 			return 0;
 		}
 		return 1;
 		break;
 
 	case ARRAYTYPE_ARRAY:
-		if ( ! builtin_checkarraycast 
-			 (o, ((java_arrayarray*)a)->elementdescriptor) ) {
+		if (!builtin_checkarraycast 
+			(o, ((java_arrayarray*)a)->elementdescriptor)) {
 			return 0;
 		}
 		return 1;
 		break;
 
 	default:
-		panic ("builtin_canstore called with invalid arraytype");
+		panic("builtin_canstore called with invalid arraytype");
 		return 0;
 	}
 }
@@ -431,27 +438,6 @@ java_objectheader *builtin_new(classinfo *c)
 
 *****************************************************************************/
 
-void XXX_copy_vftbl(vftbl **dest, vftbl *src)
-{
-	*dest = mem_alloc(sizeof(vftbl) + sizeof(methodptr)*(src->vftbllength-1));
-	memcpy(*dest, src, sizeof(vftbl) - sizeof(methodptr));
-	memcpy(&(*dest)->table, &src->table, src->vftbllength * sizeof(methodptr));
-}
-
-void XXX_use_class_as_object(classinfo *c, char *cname)
-{
-	vftbl *vt = class_get(utf_new_char(cname))->vftbl;
-	vftbl *newtbl;
-  	if (!c->classvftbl) {
-		c->classvftbl = true;
-		XXX_copy_vftbl(&newtbl, vt);
-		newtbl->class = c->header.vftbl->class;
-		newtbl->baseval = c->header.vftbl->baseval;
-		newtbl->diffval = c->header.vftbl->diffval;
-		c->header.vftbl = newtbl;
-	}
-}
-
 static
 void* __builtin_newarray(s4 base_size,
 						 s4 size, 
@@ -464,7 +450,7 @@ void* __builtin_newarray(s4 base_size,
 
 #ifdef SIZE_FROM_CLASSINFO
 	s4 alignedsize = align_size(base_size + (size-1) * elementsize);
-	a = heap_allocate( alignedsize, references, NULL );
+	a = heap_allocate(alignedsize, references, NULL);
 #else	
 	a = heap_allocate(sizeof(java_objectarray) + (size-1) * elementsize, 
 					  references, 
@@ -485,42 +471,42 @@ void* __builtin_newarray(s4 base_size,
 		switch (arraytype) {
 		case ARRAYTYPE_INT:
 			c = create_array_class(utf_new_char("[I"));
-			XXX_use_class_as_object(c, "int");
+			use_class_as_object(c, "int");
 			break;
 
 		case ARRAYTYPE_LONG:
 			c = create_array_class(utf_new_char("[J"));
-			XXX_use_class_as_object(c, "long");
+			use_class_as_object(c, "long");
 			break;
 
 		case ARRAYTYPE_FLOAT:
 			c = create_array_class(utf_new_char("[F"));
-			XXX_use_class_as_object(c, "float");
+			use_class_as_object(c, "float");
 			break;
 
 		case ARRAYTYPE_DOUBLE:
 			c = create_array_class(utf_new_char("[D"));
-			XXX_use_class_as_object(c, "double");
+			use_class_as_object(c, "double");
 			break;
 
 		case ARRAYTYPE_BYTE:
 			c = create_array_class(utf_new_char("[B"));
-			XXX_use_class_as_object(c, "byte");
+			use_class_as_object(c, "byte");
 			break;
 
 		case ARRAYTYPE_CHAR:
 			c = create_array_class(utf_new_char("[C"));
-			XXX_use_class_as_object(c, "char");
+			use_class_as_object(c, "char");
 			break;
 
 		case ARRAYTYPE_SHORT:
 			c = create_array_class(utf_new_char("[S"));
-			XXX_use_class_as_object(c, "short");
+			use_class_as_object(c, "short");
 			break;
 
 		case ARRAYTYPE_BOOLEAN:
 			c = create_array_class(utf_new_char("[Z"));
-			XXX_use_class_as_object(c, "boolean");
+			use_class_as_object(c, "boolean");
 			break;
 
 		case ARRAYTYPE_OBJECT:
@@ -534,13 +520,13 @@ void* __builtin_newarray(s4 base_size,
 				c = create_array_class(utf_new_char(buf));
 				/*    		MFREE(buf, char, strlen(cname) + 3); */
 				/*    		MFREE(cname, char, utf_strlen(el->name)); */
-				XXX_use_class_as_object(c, cname);
+				use_class_as_object(c, cname);
 			}
 			break;
 
 		case ARRAYTYPE_ARRAY:
 			c = create_array_class(utf_new_char("[["));
-			XXX_use_class_as_object(c, "java/lang/Boolean");
+			use_class_as_object(c, "java/lang/Boolean");
 			break;
 
 		default:
@@ -552,17 +538,17 @@ void* __builtin_newarray(s4 base_size,
 #else
   	a->objheader.vftbl = class_array->vftbl;
 #endif
-	a -> size = size;
+	a->size = size;
 #ifdef SIZE_FROM_CLASSINFO
-	a -> alignedsize = alignedsize;
+	a->alignedsize = alignedsize;
 #endif
-	a -> arraytype = arraytype;
+	a->arraytype = arraytype;
 
 	return a;
 }
 
 
-java_objectarray *builtin_anewarray (s4 size, classinfo *elementtype)
+java_objectarray *builtin_anewarray(s4 size, classinfo *elementtype)
 {
 	java_objectarray *a;	
 	a = (java_objectarray*)__builtin_newarray(sizeof(java_objectarray),
@@ -573,7 +559,7 @@ java_objectarray *builtin_anewarray (s4 size, classinfo *elementtype)
 											  elementtype);
 	if (!a) return NULL;
 
-	a -> elementtype = elementtype;
+	a->elementtype = elementtype;
 	return a;
 }
 
@@ -591,8 +577,8 @@ java_objectarray *builtin_anewarray (s4 size, classinfo *elementtype)
 
 *****************************************************************************/
 
-java_arrayarray *builtin_newarray_array 
-(s4 size, constant_arraydescriptor *elementdesc)
+java_arrayarray *builtin_newarray_array(s4 size, 
+										constant_arraydescriptor *elementdesc)
 {
 	java_arrayarray *a; 
 	a = (java_arrayarray*)__builtin_newarray(sizeof(java_arrayarray),
@@ -603,7 +589,7 @@ java_arrayarray *builtin_newarray_array
 											 elementdesc->objectclass);
 	if (!a) return NULL;
 
-	a -> elementdescriptor = elementdesc;
+	a->elementdescriptor = elementdesc;
 	return a;
 }
 
@@ -617,7 +603,7 @@ java_arrayarray *builtin_newarray_array
 
 *****************************************************************************/
 
-java_booleanarray *builtin_newarray_boolean (s4 size)
+java_booleanarray *builtin_newarray_boolean(s4 size)
 {
 	java_booleanarray *a;	
 	a = (java_booleanarray*)__builtin_newarray(sizeof(java_booleanarray),
@@ -637,7 +623,7 @@ java_booleanarray *builtin_newarray_boolean (s4 size)
 
 *****************************************************************************/
 
-java_chararray *builtin_newarray_char (s4 size)
+java_chararray *builtin_newarray_char(s4 size)
 {
 	java_chararray *a;	
 	a = (java_chararray*)__builtin_newarray(sizeof(java_chararray),
@@ -658,7 +644,7 @@ java_chararray *builtin_newarray_char (s4 size)
 
 *****************************************************************************/
 
-java_floatarray *builtin_newarray_float (s4 size)
+java_floatarray *builtin_newarray_float(s4 size)
 {
 	java_floatarray *a; 
 	a = (java_floatarray*)__builtin_newarray(sizeof(java_floatarray),
@@ -679,7 +665,7 @@ java_floatarray *builtin_newarray_float (s4 size)
 
 *****************************************************************************/
 
-java_doublearray *builtin_newarray_double (s4 size)
+java_doublearray *builtin_newarray_double(s4 size)
 {
 	java_doublearray *a;	
 	a = (java_doublearray*)__builtin_newarray(sizeof(java_doublearray),
@@ -702,7 +688,7 @@ java_doublearray *builtin_newarray_double (s4 size)
 
 *****************************************************************************/
 
-java_bytearray *builtin_newarray_byte (s4 size)
+java_bytearray *builtin_newarray_byte(s4 size)
 {
 	java_bytearray *a;	
 	a = (java_bytearray*)__builtin_newarray(sizeof(java_bytearray),
@@ -723,7 +709,7 @@ java_bytearray *builtin_newarray_byte (s4 size)
 
 *****************************************************************************/
 
-java_shortarray *builtin_newarray_short (s4 size)
+java_shortarray *builtin_newarray_short(s4 size)
 {
 	java_shortarray *a; 
 	a = (java_shortarray*)__builtin_newarray(sizeof(java_shortarray),
@@ -744,7 +730,7 @@ java_shortarray *builtin_newarray_short (s4 size)
 
 *****************************************************************************/
 
-java_intarray *builtin_newarray_int (s4 size)
+java_intarray *builtin_newarray_int(s4 size)
 {
 	java_intarray *a;	
 	a = (java_intarray*)__builtin_newarray(sizeof(java_intarray),
@@ -753,6 +739,10 @@ java_intarray *builtin_newarray_int (s4 size)
 										   sizeof(s4), 
 										   ARRAYTYPE_INT,
 										   NULL);
+	if (a == NULL) {
+		asm_handle_builtin_exception(proto_java_lang_OutOfMemoryError);
+	}
+
 	return a;
 }
 
@@ -765,7 +755,7 @@ java_intarray *builtin_newarray_int (s4 size)
 
 *****************************************************************************/
 
-java_longarray *builtin_newarray_long (s4 size)
+java_longarray *builtin_newarray_long(s4 size)
 {
 	java_longarray *a;	
 	a = (java_longarray*)__builtin_newarray(sizeof(java_longarray),
@@ -791,73 +781,73 @@ java_longarray *builtin_newarray_long (s4 size)
 
 	/* Helper functions */
 
-static java_arrayheader *multianewarray_part (java_intarray *dims, int thisdim,
-											  constant_arraydescriptor *desc)
+static java_arrayheader *multianewarray_part(java_intarray *dims, int thisdim,
+											 constant_arraydescriptor *desc)
 {
 	u4 size,i;
 	java_arrayarray *a;
 
-	size = dims -> data[thisdim];
+	size = dims->data[thisdim];
 	
-	if (thisdim == (dims->header.size-1)) {
+	if (thisdim == (dims->header.size - 1)) {
 		/* last dimension reached */
 		
 		switch (desc -> arraytype) {
 		case ARRAYTYPE_BOOLEAN:	 
-			return (java_arrayheader*) builtin_newarray_boolean (size); 
+			return (java_arrayheader*) builtin_newarray_boolean(size);
 		case ARRAYTYPE_CHAR:  
-			return (java_arrayheader*) builtin_newarray_char (size); 
+			return (java_arrayheader*) builtin_newarray_char(size);
 		case ARRAYTYPE_FLOAT:  
-			return (java_arrayheader*) builtin_newarray_float (size); 
+			return (java_arrayheader*) builtin_newarray_float(size);
 		case ARRAYTYPE_DOUBLE:	
-			return (java_arrayheader*) builtin_newarray_double (size); 
+			return (java_arrayheader*) builtin_newarray_double(size);
 		case ARRAYTYPE_BYTE:  
-			return (java_arrayheader*) builtin_newarray_byte (size); 
+			return (java_arrayheader*) builtin_newarray_byte(size);
 		case ARRAYTYPE_SHORT:  
-			return (java_arrayheader*) builtin_newarray_short (size); 
+			return (java_arrayheader*) builtin_newarray_short(size);
 		case ARRAYTYPE_INT:	 
-			return (java_arrayheader*) builtin_newarray_int (size); 
+			return (java_arrayheader*) builtin_newarray_int(size);
 		case ARRAYTYPE_LONG:  
-			return (java_arrayheader*) builtin_newarray_long (size); 
+			return (java_arrayheader*) builtin_newarray_long(size);
 		case ARRAYTYPE_OBJECT:
-			return (java_arrayheader*) builtin_anewarray (size, desc->objectclass);
+			return (java_arrayheader*) builtin_anewarray(size, desc->objectclass);
 		
 		case ARRAYTYPE_ARRAY:
-			return (java_arrayheader*) builtin_newarray_array (size, desc->elementdescriptor);
+			return (java_arrayheader*) builtin_newarray_array(size, desc->elementdescriptor);
 		
-		default: panic ("Invalid arraytype in multianewarray");
+		default: panic("Invalid arraytype in multianewarray");
 		}
 	}
 
 	/* if the last dimension has not been reached yet */
 
 	if (desc->arraytype != ARRAYTYPE_ARRAY) 
-		panic ("multianewarray with too many dimensions");
+		panic("multianewarray with too many dimensions");
 
-	a = builtin_newarray_array (size, desc->elementdescriptor);
+	a = builtin_newarray_array(size, desc->elementdescriptor);
 	if (!a) return NULL;
 	
-	for (i=0; i<size; i++) {
+	for (i = 0; i < size; i++) {
 		java_arrayheader *ea = 
-			multianewarray_part (dims, thisdim+1, desc->elementdescriptor);
+			multianewarray_part(dims, thisdim + 1, desc->elementdescriptor);
 		if (!ea) return NULL;
 
-		a -> data[i] = ea;
+		a->data[i] = ea;
 	}
 		
 	return (java_arrayheader*) a;
 }
 
 
-java_arrayheader *builtin_multianewarray (java_intarray *dims,
-										  constant_arraydescriptor *desc)
+java_arrayheader *builtin_multianewarray(java_intarray *dims,
+										 constant_arraydescriptor *desc)
 {
-	return multianewarray_part (dims, 0, desc);
+	return multianewarray_part(dims, 0, desc);
 }
 
 
-static java_arrayheader *nmultianewarray_part (int n, long *dims, int thisdim,
-											   constant_arraydescriptor *desc)
+static java_arrayheader *nmultianewarray_part(int n, long *dims, int thisdim,
+											  constant_arraydescriptor *desc)
 {
 	int size, i;
 	java_arrayarray *a;
@@ -959,10 +949,12 @@ s4 builtin_aastore (java_objectarray *a, s4 index, java_objectheader *o)
 *****************************************************************************/
 
 
-u4 methodindent=0;
+u4 methodindent = 0;
 
-java_objectheader *builtin_trace_exception (java_objectheader *exceptionptr,
-											methodinfo *method, int *pos, int noindent) {
+java_objectheader *builtin_trace_exception(java_objectheader *exceptionptr,
+										   methodinfo *method, int *pos, 
+										   int noindent)
+{
 
 	if (!noindent)
 		methodindent--;
@@ -996,14 +988,15 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 						methodinfo *method)
 {
 	int i;
-	for (i=0; i<methodindent; i++)
+	for (i = 0; i < methodindent; i++)
 		logtext[i] = '\t';
-	sprintf (logtext+methodindent, "called: ");
-	utf_sprint (logtext+strlen(logtext), method->class->name);
-	sprintf (logtext+strlen(logtext), ".");
-	utf_sprint (logtext+strlen(logtext), method->name);
-	utf_sprint (logtext+strlen(logtext), method->descriptor);
-	sprintf (logtext+strlen(logtext), "(");
+	sprintf(logtext + methodindent, "called: ");
+	utf_sprint(logtext + strlen(logtext), method->class->name);
+	sprintf(logtext + strlen(logtext), ".");
+	utf_sprint(logtext + strlen(logtext), method->name);
+	utf_sprint(logtext + strlen(logtext), method->descriptor);
+	sprintf(logtext + strlen(logtext), "(");
+
 	switch (method->paramcount) {
 	case 0:
 		break;
@@ -1108,75 +1101,79 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 #endif
 #endif
 	}
-	sprintf (logtext+strlen(logtext), ")");
+	sprintf(logtext + strlen(logtext), ")");
 
-	dolog ();
+	dolog();
 	methodindent++;
 }
 #endif
 
+
 void builtin_displaymethodstart(methodinfo *method)
 {
-	sprintf (logtext, "												");
-	sprintf (logtext+methodindent, "called: ");
-	utf_sprint (logtext+strlen(logtext), method->class->name);
-	sprintf (logtext+strlen(logtext), ".");
-	utf_sprint (logtext+strlen(logtext), method->name);
-	utf_sprint (logtext+strlen(logtext), method->descriptor);
-	dolog ();
+	sprintf(logtext, "												");
+	sprintf(logtext + methodindent, "called: ");
+	utf_sprint(logtext + strlen(logtext), method->class->name);
+	sprintf(logtext + strlen(logtext), ".");
+	utf_sprint(logtext + strlen(logtext), method->name);
+	utf_sprint(logtext + strlen(logtext), method->descriptor);
+	dolog();
 	methodindent++;
 }
+
 
 void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
 {
 	int i;
-	for (i=0; i<methodindent; i++)
+	for (i = 0; i < methodindent; i++)
 		logtext[i] = '\t';
 	methodindent--;
-	sprintf (logtext+methodindent, "finished: ");
-	utf_sprint (logtext+strlen(logtext), method->class->name);
-	sprintf (logtext+strlen(logtext), ".");
-	utf_sprint (logtext+strlen(logtext), method->name);
-	utf_sprint (logtext+strlen(logtext), method->descriptor);
+	sprintf(logtext + methodindent, "finished: ");
+	utf_sprint(logtext + strlen(logtext), method->class->name);
+	sprintf(logtext + strlen(logtext), ".");
+	utf_sprint(logtext + strlen(logtext), method->name);
+	utf_sprint(logtext + strlen(logtext), method->descriptor);
+
 	switch (method->returntype) {
 	case TYPE_INT:
-		sprintf (logtext+strlen(logtext), "->%d", (s4) l);
+		sprintf(logtext + strlen(logtext), "->%d", (s4) l);
 		break;
 	case TYPE_LONG:
 #if defined(__I386__)
-		sprintf(logtext+strlen(logtext), "->%lld", (s8) l);
+		sprintf(logtext + strlen(logtext), "->%lld", (s8) l);
 #else
-		sprintf(logtext+strlen(logtext), "->%ld", (s8) l);
+		sprintf(logtext + strlen(logtext), "->%ld", (s8) l);
 #endif
 		break;
 	case TYPE_ADDRESS:
 #if defined(__I386__)
-		sprintf(logtext+strlen(logtext), "->%p", (u1*) ((s4) l));
+		sprintf(logtext + strlen(logtext), "->%p", (u1*) ((s4) l));
 #else
-		sprintf(logtext+strlen(logtext), "->%p", (u1*) l);
+		sprintf(logtext + strlen(logtext), "->%p", (u1*) l);
 #endif
 		break;
 	case TYPE_FLOAT:
-		sprintf (logtext+strlen(logtext), "->%g", f);
+		sprintf(logtext + strlen(logtext), "->%g", f);
 		break;
 	case TYPE_DOUBLE:
-		sprintf (logtext+strlen(logtext), "->%g", d);
+		sprintf(logtext + strlen(logtext), "->%g", d);
 		break;
 	}
-	dolog ();
+	dolog();
 }
+
 
 void builtin_displaymethodexception(methodinfo *method)
 {
 	int i;
-	for (i=0; i<methodindent; i++)
+	for (i = 0; i < methodindent; i++)
 		logtext[i] = '\t';
-	sprintf (logtext+methodindent, "exception abort: ");
-	utf_sprint (logtext+strlen(logtext), method->class->name);
-	sprintf (logtext+strlen(logtext), ".");
-	utf_sprint (logtext+strlen(logtext), method->name);
-	utf_sprint (logtext+strlen(logtext), method->descriptor);
-	dolog ();
+	sprintf(logtext + methodindent, "exception abort: ");
+	utf_sprint(logtext + strlen(logtext), method->class->name);
+	sprintf(logtext + strlen(logtext), ".");
+	utf_sprint(logtext + strlen(logtext), method->name);
+	utf_sprint(logtext + strlen(logtext), method->descriptor);
+	dolog();
 }
 
 
@@ -1199,38 +1196,33 @@ internal_lock_mutex_for_object (java_objectheader *object)
 	hashValue = MUTEX_HASH_VALUE(object);
 	entry = &mutexHashTable[hashValue];
 
-	if (entry->object != 0)
-		{
-			if (entry->mutex.count == 0 && entry->conditionCount == 0)
-				{
-					entry->object = 0;
-					entry->mutex.holder = 0;
-					entry->mutex.count = 0;
-					entry->mutex.muxWaiters = 0;
-				}
-			else
-				{
-					while (entry->next != 0 && entry->object != object)
-						entry = entry->next;
-
-					if (entry->object != object)
-						{
-							entry->next = firstFreeOverflowEntry;
-							firstFreeOverflowEntry = firstFreeOverflowEntry->next;
-
-							entry = entry->next;
-							entry->object = 0;
-							entry->next = 0;
-							assert(entry->conditionCount == 0);
-						}
-				}
-		}
-	else
-		{
+	if (entry->object != 0) {
+		if (entry->mutex.count == 0 && entry->conditionCount == 0) {
+			entry->object = 0;
 			entry->mutex.holder = 0;
 			entry->mutex.count = 0;
 			entry->mutex.muxWaiters = 0;
+
+		} else {
+			while (entry->next != 0 && entry->object != object)
+				entry = entry->next;
+
+			if (entry->object != object) {
+				entry->next = firstFreeOverflowEntry;
+				firstFreeOverflowEntry = firstFreeOverflowEntry->next;
+
+				entry = entry->next;
+				entry->object = 0;
+				entry->next = 0;
+				assert(entry->conditionCount == 0);
+			}
 		}
+
+	} else {
+		entry->mutex.holder = 0;
+		entry->mutex.count = 0;
+		entry->mutex.muxWaiters = 0;
+	}
 
 	if (entry->object == 0)
 		entry->object = object;
@@ -1253,31 +1245,30 @@ internal_unlock_mutex_for_object (java_objectheader *object)
 	hashValue = MUTEX_HASH_VALUE(object);
 	entry = &mutexHashTable[hashValue];
 
-	if (entry->object == object)
+	if (entry->object == object) {
 		internal_unlock_mutex(&entry->mutex);
-	else
-		{
-			while (entry->next != 0 && entry->next->object != object)
-				entry = entry->next;
 
-			assert(entry->next != 0);
+	} else {
+		while (entry->next != 0 && entry->next->object != object)
+			entry = entry->next;
 
-			internal_unlock_mutex(&entry->next->mutex);
+		assert(entry->next != 0);
 
-			if (entry->next->mutex.count == 0 && entry->conditionCount == 0)
-				{
-					mutexHashEntry *unlinked = entry->next;
+		internal_unlock_mutex(&entry->next->mutex);
 
-					entry->next = unlinked->next;
-					unlinked->next = firstFreeOverflowEntry;
-					firstFreeOverflowEntry = unlinked;
-				}
+		if (entry->next->mutex.count == 0 && entry->conditionCount == 0) {
+			mutexHashEntry *unlinked = entry->next;
+
+			entry->next = unlinked->next;
+			unlinked->next = firstFreeOverflowEntry;
+			firstFreeOverflowEntry = unlinked;
 		}
+	}
 }
 #endif
 
-void
-builtin_monitorenter (java_objectheader *o)
+
+void builtin_monitorenter(java_objectheader *o)
 {
 #ifdef USE_THREADS
 	int hashValue;
@@ -1299,6 +1290,7 @@ builtin_monitorenter (java_objectheader *o)
 #endif
 }
 
+
 void builtin_monitorexit (java_objectheader *o)
 {
 #ifdef USE_THREADS
@@ -1309,15 +1301,14 @@ void builtin_monitorexit (java_objectheader *o)
 	++blockInts;
 
 	hashValue = MUTEX_HASH_VALUE(o);
-	if (mutexHashTable[hashValue].object == o)
-		{
-			if (mutexHashTable[hashValue].mutex.count == 1
-				&& mutexHashTable[hashValue].mutex.muxWaiters != 0)
-				internal_unlock_mutex_for_object(o);
-			else
-				--mutexHashTable[hashValue].mutex.count;
-		}
-	else
+	if (mutexHashTable[hashValue].object == o) {
+		if (mutexHashTable[hashValue].mutex.count == 1
+			&& mutexHashTable[hashValue].mutex.muxWaiters != 0)
+			internal_unlock_mutex_for_object(o);
+		else
+			--mutexHashTable[hashValue].mutex.count;
+
+	} else
 		internal_unlock_mutex_for_object(o);
 
 	--blockInts;
@@ -1340,8 +1331,8 @@ void builtin_monitorexit (java_objectheader *o)
 
 ******************************************************************************/
 
-s4 builtin_idiv (s4 a, s4 b) { return a/b; }
-s4 builtin_irem (s4 a, s4 b) { return a%b; }
+s4 builtin_idiv(s4 a, s4 b) { return a / b; }
+s4 builtin_irem(s4 a, s4 b) { return a % b; }
 
 
 /************** Functions for long arithmetics *******************************
@@ -1352,106 +1343,106 @@ s4 builtin_irem (s4 a, s4 b) { return a%b; }
 ******************************************************************************/
 
 
-s8 builtin_ladd (s8 a, s8 b) 
+s8 builtin_ladd(s8 a, s8 b)
 { 
 #if U8_AVAILABLE
-	return a+b; 
+	return a + b; 
 #else
 	return builtin_i2l(0);
 #endif
 }
 
-s8 builtin_lsub (s8 a, s8 b) 
+s8 builtin_lsub(s8 a, s8 b) 
 { 
 #if U8_AVAILABLE
-	return a-b; 
+	return a - b; 
 #else
 	return builtin_i2l(0);
 #endif
 }
 
-s8 builtin_lmul (s8 a, s8 b) 
+s8 builtin_lmul(s8 a, s8 b) 
 { 
 #if U8_AVAILABLE
-	return a*b; 
+	return a * b; 
 #else
 	return builtin_i2l(0);
 #endif
 }
 
-s8 builtin_ldiv (s8 a, s8 b) 
+s8 builtin_ldiv(s8 a, s8 b) 
 { 
 #if U8_AVAILABLE
-	return a/b; 
+	return a / b; 
 #else
 	return builtin_i2l(0);
 #endif
 }
 
-s8 builtin_lrem (s8 a, s8 b) 
+s8 builtin_lrem(s8 a, s8 b) 
 { 
 #if U8_AVAILABLE
-	return a%b; 
+	return a % b; 
 #else
 	return builtin_i2l(0);
 #endif
 }
 
-s8 builtin_lshl (s8 a, s4 b) 
+s8 builtin_lshl(s8 a, s4 b) 
 { 
 #if U8_AVAILABLE
-	return a<<(b&63);
+	return a << (b & 63);
 #else
 	return builtin_i2l(0);
 #endif
 }
 
-s8 builtin_lshr (s8 a, s4 b) 
+s8 builtin_lshr(s8 a, s4 b) 
 { 
 #if U8_AVAILABLE
-	return a>>(b&63);
+	return a >> (b & 63);
 #else
 	return builtin_i2l(0);
 #endif
 }
 
-s8 builtin_lushr (s8 a, s4 b) 
+s8 builtin_lushr(s8 a, s4 b) 
 { 
 #if U8_AVAILABLE
-	return ((u8)a)>>(b&63);
+	return ((u8) a) >> (b & 63);
 #else
 	return builtin_i2l(0);
 #endif
 }
 
-s8 builtin_land (s8 a, s8 b) 
+s8 builtin_land(s8 a, s8 b) 
 { 
 #if U8_AVAILABLE
-	return a&b; 
+	return a & b; 
 #else
 	return builtin_i2l(0);
 #endif
 }
 
-s8 builtin_lor (s8 a, s8 b) 
+s8 builtin_lor(s8 a, s8 b) 
 { 
 #if U8_AVAILABLE
-	return a|b; 
+	return a | b; 
 #else
 	return builtin_i2l(0);
 #endif
 }
 
-s8 builtin_lxor (s8 a, s8 b) 
+s8 builtin_lxor(s8 a, s8 b) 
 { 
 #if U8_AVAILABLE
-	return a^b; 
+	return a ^ b; 
 #else
 	return builtin_i2l(0);
 #endif
 }
 
-s8 builtin_lneg (s8 a) 
+s8 builtin_lneg(s8 a) 
 { 
 #if U8_AVAILABLE
 	return -a;
@@ -1460,11 +1451,11 @@ s8 builtin_lneg (s8 a)
 #endif
 }
 
-s4 builtin_lcmp (s8 a, s8 b) 
+s4 builtin_lcmp(s8 a, s8 b) 
 { 
 #if U8_AVAILABLE
-	if (a<b) return -1;
-	if (a>b) return 1;
+	if (a < b) return -1;
+	if (a > b) return 1;
 	return 0;
 #else
 	return 0;
@@ -1477,42 +1468,49 @@ s4 builtin_lcmp (s8 a, s8 b)
 
 /*********** Functions for floating point operations *************************/
 
-float builtin_fadd (float a, float b)
+float builtin_fadd(float a, float b)
 {
 	if (isnanf(a)) return FLT_NAN;
 	if (isnanf(b)) return FLT_NAN;
 	if (finitef(a)) {
-		if (finitef(b)) return a+b;
-		else return b;
+		if (finitef(b))
+			return a + b;
+		else
+			return b;
 	}
 	else {
-		if (finitef(b)) return a;
+		if (finitef(b))
+			return a;
 		else {
-			if (copysignf(1.0, a)==copysignf(1.0, b)) return a;
-			else  return FLT_NAN;
+			if (copysignf(1.0, a) == copysignf(1.0, b))
+				return a;
+			else
+				return FLT_NAN;
 		}
 	}
 }
 
-float builtin_fsub (float a, float b)
+
+float builtin_fsub(float a, float b)
 {
-	return builtin_fadd (a, builtin_fneg(b));
+	return builtin_fadd(a, builtin_fneg(b));
 }
 
-float builtin_fmul (float a, float b)
+
+float builtin_fmul(float a, float b)
 {
 	if (isnanf(a)) return FLT_NAN;
 	if (isnanf(b)) return FLT_NAN;
 	if (finitef(a)) {
 		if (finitef(b)) return a*b;
 		else {
-			if (a==0) return FLT_NAN;
+			if (a == 0) return FLT_NAN;
 			else return copysignf(b, copysignf(1.0, b)*a);
 		}
 	}
 	else {
 		if (finitef(b)) {
-			if (b==0) return FLT_NAN;
+			if (b == 0) return FLT_NAN;
 			else return copysignf(a, copysignf(1.0, a)*b);
 		}
 		else {
@@ -1521,7 +1519,8 @@ float builtin_fmul (float a, float b)
 	}
 }
 
-float builtin_fdiv (float a, float b)
+
+float builtin_fdiv(float a, float b)
 {
 	if (finitef(a) && finitef(b)) {
 		if (b != 0)
@@ -1536,35 +1535,38 @@ float builtin_fdiv (float a, float b)
 	return FLT_NAN;
 }
 
-float builtin_frem (float a, float b)
+
+float builtin_frem(float a, float b)
 {
 	return fmodf(a, b);
 }
 
 
-float builtin_fneg (float a)
+float builtin_fneg(float a)
 {
 	if (isnanf(a)) return a;
 	else {
 		if (finitef(a)) return -a;
-		else return copysignf(a,-copysignf(1.0, a));
+		else return copysignf(a, -copysignf(1.0, a));
 	}
 }
 
-s4 builtin_fcmpl (float a, float b)
+
+s4 builtin_fcmpl(float a, float b)
 {
 	if (isnanf(a)) return -1;
 	if (isnanf(b)) return -1;
 	if (!finitef(a) || !finitef(b)) {
-		a = finitef(a) ? 0 : copysignf(1.0,	 a);
+		a = finitef(a) ? 0 : copysignf(1.0,	a);
 		b = finitef(b) ? 0 : copysignf(1.0, b);
 	}
-	if (a>b) return 1;
-	if (a==b) return 0;
+	if (a > b) return 1;
+	if (a == b) return 0;
 	return -1;
 }
 
-s4 builtin_fcmpg (float a, float b)
+
+s4 builtin_fcmpg(float a, float b)
 {
 	if (isnanf(a)) return 1;
 	if (isnanf(b)) return 1;
@@ -1572,8 +1574,8 @@ s4 builtin_fcmpg (float a, float b)
 		a = finitef(a) ? 0 : copysignf(1.0, a);
 		b = finitef(b) ? 0 : copysignf(1.0, b);
 	}
-	if (a>b) return 1;
-	if (a==b) return 0;
+	if (a > b) return 1;
+	if (a == b) return 0;
 	return -1;
 }
 
@@ -1581,7 +1583,7 @@ s4 builtin_fcmpg (float a, float b)
 
 /************************* Functions for doubles ****************************/
 
-double builtin_dadd (double a, double b)
+double builtin_dadd(double a, double b)
 {
 	if (isnan(a)) return DBL_NAN;
 	if (isnan(b)) return DBL_NAN;
@@ -1593,39 +1595,42 @@ double builtin_dadd (double a, double b)
 		if (finite(b)) return a;
 		else {
 			if (copysign(1.0, a)==copysign(1.0, b)) return a;
-			else  return DBL_NAN;
+			else return DBL_NAN;
 		}
 	}
 }
 
-double builtin_dsub (double a, double b)
+
+double builtin_dsub(double a, double b)
 {
-	return builtin_dadd (a, builtin_dneg(b));
+	return builtin_dadd(a, builtin_dneg(b));
 }
 
-double builtin_dmul (double a, double b)
+
+double builtin_dmul(double a, double b)
 {
 	if (isnan(a)) return DBL_NAN;
 	if (isnan(b)) return DBL_NAN;
 	if (finite(a)) {
-		if (finite(b)) return a*b;
+		if (finite(b)) return a * b;
 		else {
-			if (a==0) return DBL_NAN;
-			else return copysign(b, copysign(1.0, b)*a);
+			if (a == 0) return DBL_NAN;
+			else return copysign(b, copysign(1.0, b) * a);
 		}
 	}
 	else {
 		if (finite(b)) {
-			if (b==0) return DBL_NAN;
-			else return copysign(a, copysign(1.0, a)*b);
+			if (b == 0) return DBL_NAN;
+			else return copysign(a, copysign(1.0, a) * b);
 		}
 		else {
-			return copysign(a, copysign(1.0, a)*copysign(1.0, b));
+			return copysign(a, copysign(1.0, a) * copysign(1.0, b));
 		}
 	}
 }
 
-double builtin_ddiv (double a, double b)
+
+double builtin_ddiv(double a, double b)
 {
 	if (finite(a) && finite(b)) {
 		if (b != 0)
@@ -1640,21 +1645,24 @@ double builtin_ddiv (double a, double b)
 	return DBL_NAN;
 }
 
-double builtin_drem (double a, double b)
+
+double builtin_drem(double a, double b)
 {
 	return fmod(a, b);
 }
 
-double builtin_dneg (double a)
+
+double builtin_dneg(double a)
 {
 	if (isnan(a)) return a;
 	else {
 		if (finite(a)) return -a;
-		else return copysign(a,-copysign(1.0, a));
+		else return copysign(a, -copysign(1.0, a));
 	}
 }
 
-s4 builtin_dcmpl (double a, double b)
+
+s4 builtin_dcmpl(double a, double b)
 {
 	if (isnan(a)) return -1;
 	if (isnan(b)) return -1;
@@ -1662,12 +1670,13 @@ s4 builtin_dcmpl (double a, double b)
 		a = finite(a) ? 0 : copysign(1.0, a);
 		b = finite(b) ? 0 : copysign(1.0, b);
 	}
-	if (a>b) return 1;
-	if (a==b) return 0;
+	if (a > b) return 1;
+	if (a == b) return 0;
 	return -1;
 }
 
-s4 builtin_dcmpg (double a, double b)
+
+s4 builtin_dcmpg(double a, double b)
 {
 	if (isnan(a)) return 1;
 	if (isnan(b)) return 1;
@@ -1675,15 +1684,15 @@ s4 builtin_dcmpg (double a, double b)
 		a = finite(a) ? 0 : copysign(1.0, a);
 		b = finite(b) ? 0 : copysign(1.0, b);
 	}
-	if (a>b) return 1;
-	if (a==b) return 0;
+	if (a > b) return 1;
+	if (a == b) return 0;
 	return -1;
 }
 
 
 /*********************** Conversion operations ****************************/
 
-s8 builtin_i2l (s4 i)
+s8 builtin_i2l(s4 i)
 {
 #if U8_AVAILABLE
 	return i;
@@ -1692,20 +1701,22 @@ s8 builtin_i2l (s4 i)
 #endif
 }
 
-float builtin_i2f (s4 a)
+
+float builtin_i2f(s4 a)
 {
 	float f = (float) a;
 	return f;
 }
 
-double builtin_i2d (s4 a)
+
+double builtin_i2d(s4 a)
 {
 	double d = (double) a;
 	return d;
 }
 
 
-s4 builtin_l2i (s8 l)
+s4 builtin_l2i(s8 l)
 {
 #if U8_AVAILABLE
 	return (s4) l;
@@ -1714,7 +1725,8 @@ s4 builtin_l2i (s8 l)
 #endif
 }
 
-float builtin_l2f (s8 a)
+
+float builtin_l2f(s8 a)
 {
 #if U8_AVAILABLE
 	float f = (float) a;
@@ -1724,7 +1736,8 @@ float builtin_l2f (s8 a)
 #endif
 }
 
-double builtin_l2d (s8 a)
+
+double builtin_l2d(s8 a)
 {
 #if U8_AVAILABLE
 	double d = (double) a;
@@ -1758,7 +1771,7 @@ s4 builtin_f2i(float a)
 }
 
 
-s8 builtin_f2l (float a)
+s8 builtin_f2l(float a)
 {
 
 	return builtin_d2l((double) a);
@@ -1781,17 +1794,19 @@ s8 builtin_f2l (float a)
 }
 
 
-double builtin_f2d (float a)
+double builtin_f2d(float a)
 {
 	if (finitef(a)) return (double) a;
 	else {
-		if (isnanf(a)) return DBL_NAN;
-		else		   return copysign(DBL_POSINF, (double) copysignf(1.0, a) );
+		if (isnanf(a))
+			return DBL_NAN;
+		else
+			return copysign(DBL_POSINF, (double) copysignf(1.0, a) );
 	}
 }
 
 
-s4 builtin_d2i (double a) 
+s4 builtin_d2i(double a) 
 { 
 	double d;
 	
@@ -1811,7 +1826,7 @@ s4 builtin_d2i (double a)
 }
 
 
-s8 builtin_d2l (double a)
+s8 builtin_d2l(double a)
 {
 	double d;
 	
@@ -1831,12 +1846,15 @@ s8 builtin_d2l (double a)
 }
 
 
-float builtin_d2f (double a)
+float builtin_d2f(double a)
 {
-	if (finite(a)) return (float) a;
+	if (finite(a))
+		return (float) a;
 	else {
-		if (isnan(a)) return FLT_NAN;
-		else		  return copysignf (FLT_POSINF, (float) copysign(1.0, a));
+		if (isnan(a))
+			return FLT_NAN;
+		else
+			return copysignf(FLT_POSINF, (float) copysign(1.0, a));
 	}
 }
 
