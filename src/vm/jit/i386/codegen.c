@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 776 2003-12-14 13:38:14Z twisti $
+   $Id: codegen.c 777 2003-12-14 14:53:30Z stefan $
 
 */
 
@@ -414,7 +414,9 @@ void init_exceptions(void)
 /* global code generation pointer */
 u1 *mcodeptr;
 
-void *castlockptr = cast_lock;
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+static void *castlockptr = cast_lock;
+#endif
 
 void codegen()
 {
@@ -4239,20 +4241,23 @@ gen_method: {
 					a += 5;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					a += 40;
+					a += 32 + (s1==REG_ITMP1)*2 + (d==REG_ITMP3)*2;
 #endif
 
 					i386_jcc(I386_CC_E, a);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					i386_mov_imm_reg(1, EDX);
-					*(mcodeptr++) = (u1) 0xf0;
-					i386_xadd_membase((u4) &cast_counter);
-					i386_jcc(I386_CC_E, 8);
-					*(mcodeptr++) = (u1) 0x8b;
-					*(mcodeptr++) = (u1) 0x15;
-					i386_emit_imm32(&castlockptr);
-					i386_call_reg(EDX);
+					i386_mov_imm_reg(1, REG_ITMP2);
+					i386_lock();
+					i386_xadd_reg_mem(REG_ITMP2, (u4) &cast_counter);
+					i386_jcc(I386_CC_E, 6 + (s1==REG_ITMP1)*2 + (d==REG_ITMP3)*2);
+					if (s1 == REG_ITMP1)
+						i386_push_reg(REG_ITMP1);
+					i386_call_mem((s4) &castlockptr);
+					if (s1 == REG_ITMP1)
+						i386_pop_reg(REG_ITMP1);
+					if (d == REG_ITMP3)
+						i386_alu_reg_reg(I386_XOR, d, d);
 #endif
 
 					i386_mov_membase_reg(s1, OFFSET(java_objectheader, vftbl), REG_ITMP1);
@@ -4264,9 +4269,8 @@ gen_method: {
 					i386_alu_reg_reg(I386_XOR, d, d);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					i386_mov_imm_reg(-1, EDX);
-					*(mcodeptr++) = (u1) 0xf0;
-					i386_xadd_membase((u4) &cast_counter);
+					i386_lock();
+					i386_dec_mem((s4) &cast_counter);
 #endif
 
 					i386_alu_reg_reg(I386_CMP, REG_ITMP2, REG_ITMP1);
@@ -4380,7 +4384,7 @@ gen_method: {
 					a += 6;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					a += 40;
+					a += 32 + (s1==REG_ITMP3)*2;
 #endif
 
 					i386_jcc(I386_CC_E, a);
@@ -4390,9 +4394,12 @@ gen_method: {
 					i386_mov_imm_reg(1, REG_ITMP2);
 					i386_lock();
 					i386_xadd_reg_mem(REG_ITMP2, (u4) &cast_counter);
-					i386_jcc(I386_CC_E, 8);
-					i386_mov_reg_mem(REG_ITMP2, &castlockptr);
-					i386_call_reg(REG_ITMP2);
+					i386_jcc(I386_CC_E, 6 + (s1==REG_ITMP3)*2);
+					if (s1 == REG_ITMP3)
+						i386_push_reg(REG_ITMP3);
+					i386_call_mem((s4) &castlockptr);
+					if (s1 == REG_ITMP3)
+						i386_pop_reg(REG_ITMP3);
 #endif
 
 
@@ -4412,9 +4419,8 @@ gen_method: {
 					}
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					i386_mov_imm_reg(-1, REG_ITMP2);
 					i386_lock();
-					i386_xadd_reg_mem(REG_ITMP2, (u4) &cast_counter);
+					i386_dec_mem((s4) &cast_counter);
 #endif
 					
 					i386_alu_reg_reg(I386_CMP, REG_ITMP2, REG_ITMP1);
@@ -5694,6 +5700,11 @@ void i386_pop_reg(s4 reg) {
 }
 
 
+void i386_push_reg(s4 reg) {
+	*(mcodeptr++) = (u1) 0x50 + (0x07 & (reg));
+}
+
+
 void i386_nop() {
 	*(mcodeptr++) = (u1) 0x90;
 }
@@ -5716,6 +5727,12 @@ void i386_call_reg(s4 reg) {
 void i386_call_imm(s4 imm) {
 	*(mcodeptr++) = (u1) 0xe8;
 	i386_emit_imm32((imm));
+}
+
+
+void i386_call_mem(s4 mem) {
+	*(mcodeptr++) = (u1) 0xff;
+	i386_emit_mem(2, (mem));
 }
 
 
