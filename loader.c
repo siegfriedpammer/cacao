@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 818 2003-12-31 14:05:12Z edwin $
+   $Id: loader.c 833 2004-01-04 22:10:24Z jowenn $
 
 */
 
@@ -96,9 +96,6 @@ static utf *utf_initialize;
 static utf *utf_initializedesc;
 
 
-#ifdef USE_ZLIB
-static unzFile uf = 0;
-#endif
 
 
 utf* clinit_desc(){
@@ -139,6 +136,13 @@ static classinfo *class_java_lang_ThreadDeath;
 static methodinfo method_clone_array;
 
 static int loader_inited = 0;
+
+
+/********************************************************************
+   list of classpath entries (either filesystem directories or 
+   ZIP/JAR archives
+********************************************************************/
+static classpath_info *classpath_entries=0;
 
 
 /******************************************************************************
@@ -294,10 +298,120 @@ static double suck_double()
 
 void suck_init(char *cpath)
 {
+	char *filename=0;
+	char *start;
+	char *end;
+	int isZip;
+	int filenamelen;
+	union classpath_info *tmp;
+	union classpath_info *insertAfter=0;
+	if (!cpath) return;
 	classpath   = cpath;
 	classbuffer = NULL;
+	
+	if (classpath_entries) panic("suck_init should be called only once");
+	for(start=classpath;(*start)!='\0';) {
+		for (end=start; ((*end)!='\0') && ((*end)!=':') ; end++);
+		if (start!=end) {
+			isZip=0;
+			filenamelen=(end-start);
+			if  (filenamelen>3) {
+				if ( 
+					(
+						(
+							((*(end-1))=='p') ||
+							((*(end-1))=='P')
+						) &&
+						(
+							((*(end-2))=='i') ||
+							((*(end-2))=='I')
+						) &&
+						(
+							((*(end-3))=='z') ||
+							((*(end-3))=='Z')
+						)
+					) ||
+					(
+						(
+							((*(end-1))=='r') ||
+							((*(end-1))=='R')
+						) &&
+						(
+							((*(end-2))=='a') ||
+							((*(end-2))=='A')
+						) &&
+						(
+							((*(end-3))=='j') ||
+							((*(end-3))=='J')
+						)
+					)
+				) isZip=1;
+#if 0
+				if ( 
+					(  (  (*(end - 1)) == 'p') || ( (*(end - 1))  == 'P')) &&
+				     (((*(end - 2)) == 'i') || ( (*(end - 2)) == 'I'))) &&
+					 (( (*(end - 3)) == 'z') || ((*(end - 3)) == 'Z'))) 
+				) {
+					isZip=1;
+				} else	if ( (( (*(end - 1)) == 'r') || ( (*(end - 1))  == 'R')) &&
+				     ((*(end - 2)) == 'a') || ( (*(end - 2)) == 'A')) &&
+					 (( (*(end - 3)) == 'j') || ((*(end - 3)) == 'J')) ) {
+					isZip=1;
+				}
+#endif
+			}
+			if (filenamelen>=(CLASSPATH_MAXFILENAME-1)) panic("path length >= MAXFILENAME in suck_init"); 
+			if (!filename)
+				filename=(char*)malloc(CLASSPATH_MAXFILENAME);
+			strncpy(filename,start,filenamelen);
+			filename[filenamelen+1]='\0';
+			tmp=0;
+
+			if (isZip) {
+#ifdef USE_ZLIB
+				unzFile uf=unzOpen(filename);
+				if (uf) {
+					tmp=(union classpath_info*)malloc(sizeof(classpath_info));
+					tmp->archive.type=CLASSPATH_ARCHIVE;
+					tmp->archive.uf=uf;
+					tmp->archive.next=0;
+					filename=0;
+				}
+#else
+				panic("Zip/JAR not supported");
+#endif
+				
+			} else {
+				tmp=(union classpath_info*)malloc(sizeof(classpath_info));
+				tmp->filepath.type=CLASSPATH_PATH;
+				tmp->filepath.next=0;
+				if (filename[filenamelen-1]!='/') {/*PERHAPS THIS SHOULD BE READ FROM A GLOBAL CONFIGURATION */
+					filename[filenamelen]='/';
+					filename[filenamelen+1]='\0';
+					filenamelen++;
+				}
+			
+				tmp->filepath.filename=filename;
+				tmp->filepath.pathlen=filenamelen;				
+				filename=0;
+			}
+
+		if (tmp) {
+			if (insertAfter) {
+				insertAfter->filepath.next=tmp;
+			} else {
+				classpath_entries=tmp;	
+			}
+			insertAfter=tmp;
+		}
+	}
+		if ((*end)==':') start=end+1; else start=end;
+	
+	
+	if (filename!=0) free(filename);
 }
 
+}
 
 /************************** function suck_start ********************************
 
@@ -310,111 +424,62 @@ void suck_init(char *cpath)
 
 bool suck_start(utf *classname)
 {
-
-#define MAXFILENAME 1000 	        /* maximum length of a filename           */
-	
-	char filename[MAXFILENAME+10];  /* room for '.class'                      */	
-	char *pathpos;                  /* position in searchpath                 */
-	char c, *utf_ptr;               /* pointer to the next utf8-character     */
+	classpath_info *currPos;
+	char *utf_ptr;
+	char c;
+	char filename[CLASSPATH_MAXFILENAME+10];  /* room for '.class'                      */	
+	int  filenamelen=0;
 	FILE *classfile;
-	int  filenamelen, err;
+	int  err;
 	struct stat buffer;
-	int isZip;
 
-	if (classbuffer)                /* classbuffer is already valid */
-		return true;
+	if (classbuffer) return true; /* classbuffer is already valid */
 
-	pathpos = classpath;
-	
-	while (*pathpos) {
-
-		/* skip path separator */
-
-		while (*pathpos == ':')
-			pathpos++;
- 
- 		/* extract directory from searchpath */
-
-		filenamelen = 0;
-		while ((*pathpos) && (*pathpos != ':')) {
-		    PANICIF (filenamelen >= MAXFILENAME, "Filename too long");
-			filename[filenamelen++] = *(pathpos++);
+	utf_ptr = classname->text;
+	while (utf_ptr < utf_end(classname)) {
+		PANICIF (filenamelen >= CLASSPATH_MAXFILENAME, "Filename too long");
+		c = *utf_ptr++;
+		if ((c <= ' ' || c > 'z') && (c != '/'))     /* invalid character */
+			c = '?';
+		filename[filenamelen++] = c;
+	}
+	strcpy(filename + filenamelen, ".class");
+	filenamelen+=6;
+	for (currPos=classpath_entries;currPos!=0;currPos=currPos->filepath.next) {
+		if (currPos->filepath.type==CLASSPATH_ARCHIVE) {
+			if (cacao_locate(currPos->archive.uf,classname) == UNZ_OK) {
+				unz_file_info file_info;
+				/*log_text("Class found in zip file");*/
+			        if (unzGetCurrentFileInfo(currPos->archive.uf, &file_info, filename,
+						sizeof(filename), NULL, 0, NULL, 0) == UNZ_OK) {
+					if (unzOpenCurrentFile(currPos->archive.uf) == UNZ_OK) {
+						classbuffer_size = file_info.uncompressed_size;				
+						classbuffer      = MNEW(u1, classbuffer_size);
+						classbuf_pos     = classbuffer - 1;
+						/*printf("classfile size: %d\n",file_info.uncompressed_size);*/
+						if (unzReadCurrentFile(currPos->archive.uf, classbuffer, classbuffer_size) == classbuffer_size) {
+							unzCloseCurrentFile(currPos->archive.uf);
+							return true;
+						} else {
+							MFREE(classbuffer, u1, classbuffer_size);
+							log_text("Error while unzipping");
+						}
+					} else log_text("Error while opening file in archive");
+				} else log_text("Error while retrieving fileinfo");
 			}
+			unzCloseCurrentFile(currPos->archive.uf);
 
-		isZip = 0;
-		if (filenamelen > 4) {
-			if ( ((filename[filenamelen - 1] == 'p') || (filename[filenamelen - 1] == 'P')) &
-			     ((filename[filenamelen - 2] == 'i') || (filename[filenamelen - 2] == 'I')) &
-				 ((filename[filenamelen - 3] == 'z') || (filename[filenamelen - 3] == 'Z')) ) {
-				isZip = 1;
-			}
-		}
-
-		if (isZip) {
-#ifdef USE_ZLIB
-			filename[filenamelen++] = '\0';
-			if (uf == 0) uf = unzOpen(filename);
-			if (uf != 0) {
-				utf_ptr = classname->text;
-				filenamelen = 0;
-				while (utf_ptr < utf_end(classname)) {
-					PANICIF (filenamelen >= MAXFILENAME, "Filename too long");
-					c = *utf_ptr++;
-					if ((c <= ' ' || c > 'z') && (c != '/'))     /* invalid character */ 
-						c = '?'; 
-					filename[filenamelen++] = c;	
-				}
-				strcpy(filename + filenamelen, ".class");
-				if (cacao_locate(uf,classname) == UNZ_OK) {
-					unz_file_info file_info;
-					log_text("Class found in zip file");
-				        if (unzGetCurrentFileInfo(uf, &file_info, filename,
-												  sizeof(filename), NULL, 0, NULL, 0) == UNZ_OK) {
-						if (unzOpenCurrentFile(uf) == UNZ_OK) {
-							classbuffer_size = file_info.uncompressed_size;				
-							classbuffer      = MNEW(u1, classbuffer_size);
-							classbuf_pos     = classbuffer - 1;
-							/*printf("classfile size: %d\n",file_info.uncompressed_size);*/
-							if (unzReadCurrentFile(uf, classbuffer, classbuffer_size) == classbuffer_size) {
-								unzCloseCurrentFile(uf);
-								return true;
-							} else {
-								MFREE(classbuffer, u1, classbuffer_size);
-								log_text("Error while unzipping");
-							}
-						} else log_text("Error while opening file in archive");
-					} else log_text("Error while retrieving fileinfo");
-				}
-				unzCloseCurrentFile(uf);
-
-			}
-#endif			
 		} else {
-			filename[filenamelen++] = '/';  
-   
-   			/* add classname to filename */
-
-			utf_ptr = classname->text;
-			while (utf_ptr < utf_end(classname)) {
-				PANICIF (filenamelen >= MAXFILENAME, "Filename too long");
-				c = *utf_ptr++;
-				if ((c <= ' ' || c > 'z') && (c != '/'))     /* invalid character */ 
-					c = '?'; 
-				filename[filenamelen++] = c;	
-			}
-      	
-			/* add suffix */
-
-			strcpy(filename + filenamelen, ".class");
-
-			classfile = fopen(filename, "r");
+			if ((currPos->filepath.pathlen+filenamelen)>=CLASSPATH_MAXFILENAME) continue;
+			strcpy(currPos->filepath.filename+currPos->filepath.pathlen,filename);
+			classfile = fopen(currPos->filepath.filename, "r");
 			if (classfile) {                                       /* file exists */
 
 				/* determine size of classfile */
 
 				/* dolog("File: %s",filename); */
 
-				err = stat(filename, &buffer);
+				err = stat(currPos->filepath.filename, &buffer);
 
 				if (!err) {                                /* read classfile data */				
 					classbuffer_size = buffer.st_size;				
@@ -427,13 +492,14 @@ bool suck_start(utf *classname)
 			}
 		}
 	}
+
 	if (verbose) {
 		dolog("Warning: Can not open class file '%s'", filename);
 	}
 
 	return false;
-}
 
+}
 
 /************************** function suck_stop *********************************
 
@@ -3338,7 +3404,7 @@ void loader_init(u1 *stackbottom)
 	class_java_lang_Cloneable = class_new(utf_new_char("java/lang/Cloneable"));
 	class_java_io_Serializable = class_new(utf_new_char("java/io/Serializable"));
 
-	log_text("loader_init: java/lang/Object");
+	if (verbose) log_text("loader_init: java/lang/Object");
 	/* load the classes which were created above */
 	loader_load_sysclass(NULL, class_java_lang_Object->name);
 
@@ -3347,7 +3413,7 @@ void loader_init(u1 *stackbottom)
 	loader_load_sysclass(&class_java_lang_Throwable,
 						 utf_new_char("java/lang/Throwable"));
 
-	log_text("loader_init:  loader_load: java/lang/ClassCastException");
+	if (verbose) log_text("loader_init:  loader_load: java/lang/ClassCastException");
 	loader_load_sysclass(&class_java_lang_ClassCastException,
 						 utf_new_char ("java/lang/ClassCastException"));
 	loader_load_sysclass(&class_java_lang_NullPointerException,
@@ -3379,15 +3445,15 @@ void loader_init(u1 *stackbottom)
 		initLocks();
 #endif
 
-	log_text("loader_init: creating global proto_java_lang_ClassCastException");
+	if (verbose) log_text("loader_init: creating global proto_java_lang_ClassCastException");
 	proto_java_lang_ClassCastException =
 		builtin_new(class_java_lang_ClassCastException);
 
-	log_text("loader_init: proto_java_lang_ClassCastException has been initialized");
+	if (verbose) log_text("loader_init: proto_java_lang_ClassCastException has been initialized");
 
 	proto_java_lang_NullPointerException =
 		builtin_new(class_java_lang_NullPointerException);
-	log_text("loader_init: proto_java_lang_NullPointerException has been initialized");
+	if (verbose) log_text("loader_init: proto_java_lang_NullPointerException has been initialized");
 
 	proto_java_lang_ArrayIndexOutOfBoundsException =
 		builtin_new(class_java_lang_ArrayIndexOutOfBoundsException);

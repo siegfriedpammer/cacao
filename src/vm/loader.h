@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 757 2003-12-13 22:27:31Z twisti $
+   $Id: loader.h 833 2004-01-04 22:10:24Z jowenn $
 */
 
 
@@ -35,6 +35,9 @@
 
 #include <stdio.h>
 
+#ifdef USE_ZLIB
+#include "unzip.h"
+#endif
 
 /* export variables */
 
@@ -135,6 +138,27 @@ void method_display(methodinfo *m);
 
 utf* clinit_desc();
 utf* clinit_name();
+
+
+/******************************** CLASSPATH handling *******************/
+#define CLASSPATH_MAXFILENAME 1000                /* maximum length of a filename           */
+#define CLASSPATH_PATH 0
+#define CLASSPATH_ARCHIVE 1
+
+typedef union classpath_info {
+	struct {
+		int type;
+		union classpath_info *next;
+        	char *filename;
+		int pathlen; } filepath;
+#ifdef USE_ZLIB
+	struct {
+		int type;
+		union classpath_info *next;
+		unzFile uf;
+	} archive;
+#endif	
+} classpath_info;
 
 #endif /* _LOADER_H */
 

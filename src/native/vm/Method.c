@@ -64,11 +64,19 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getParameterTy
  * Signature: ()[Ljava/lang/Class;
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTypes (JNIEnv *env ,  struct java_lang_reflect_Method* this ) {
+#if 0
+	classinfo *c=(classinfo*)(this->declaringClass);
+	if ((this->slot<0) || (this->slot>=c->methodscount))
+		panic("error illegal slot for method in class(getParameterTypes)");
+	return get_exceptiontypes(&(c->methods[this->slot]));
+
+#else
 	java_objectarray *exceptiontypes;
 /*	log_text("Java_java_lang_reflect_Method_getExceptionTypes called");	*/
             /* array of exceptions declared to be thrown, information not available !! */
             exceptiontypes = builtin_anewarray (0, class_java_lang_Class);
 	return exceptiontypes;
+#endif
 
 }
 /*

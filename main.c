@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 806 2003-12-21 13:56:27Z twisti $
+   $Id: main.c 833 2004-01-04 22:10:24Z jowenn $
 
 */
 
@@ -837,10 +837,11 @@ int main(int argc, char **argv)
 		log_text("CACAO started -------------------------------------------------------");
 	}
 
-	suck_init(classpath);
 	native_setclasspath(classpath);
 		
 	tables_init();
+	suck_init(classpath);
+
 	heap_init(heapsize, heapstartsize, &dummy);
 
 	log_text("calling jit_init");
@@ -860,7 +861,9 @@ int main(int argc, char **argv)
  	 	if (cp[i] == '.') cp[i] = '/';          /* in the class name */
 	}
 
+	/*printf("-------------------->%s\n",cp);*/
 	topclass = loader_load(utf_new_char(cp));
+	/*class_showmethods(topclass);	*/
 
 	if (exceptionptr != 0) {
 		printf("Exception in thread \"main\" ");

@@ -884,8 +884,8 @@ int cacao_locate(unzFile file,utf* filename) {
                                                                                            NULL,0,NULL,0,NULL,0);
 		}
 	}
-
-	return 0;
+	return UNZ_END_OF_LIST_OF_FILE;
+	/*return 0;*/
 }
 
 /*

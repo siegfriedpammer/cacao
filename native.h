@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 756 2003-12-13 22:26:17Z twisti $
+   $Id: native.h 833 2004-01-04 22:10:24Z jowenn $
 
 */
 
@@ -165,6 +165,7 @@ void copy_vftbl(vftbl **dest, vftbl *src);
 utf *create_methodsig(java_objectarray* types, char *retType);
 classinfo *get_type(char **utf_ptr,char *desc_end, bool skip);
 java_objectarray* get_parametertypes(methodinfo *m);
+java_objectarray* get_exceptiontypes(methodinfo *m);
 classinfo *get_returntype(methodinfo *m);
 
 #endif /* _NATIVE_H */

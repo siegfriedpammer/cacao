@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 827 2004-01-03 15:02:53Z twisti $
+   $Id: VMClass.c 833 2004-01-04 22:10:24Z jowenn $
 
 */
 
@@ -594,17 +594,27 @@ JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getBeautifiedN
     char *str = NULL;
     s4   len;
     s4   i;
-
-    if (runverbose) log_text("Java_java_lang_VMClass_getName");
-
-    dimCnt = 0;
-    while (*utf_ptr != desc_end) {
-		if (utf_nextu2(utf_ptr) == '[') dimCnt++;
+    
+#if 0
+    log_text("Java_java_lang_VMClass_getBeautifiedName");
+    utf_display(c->name);
+    log_text("beautifying");
+#endif
+    dimCnt=0;
+    while ( *utf_ptr != desc_end ) {
+		if (utf_nextu2(utf_ptr)=='[') dimCnt++;
 		else break;
     }
     utf__ptr = (*utf_ptr) - 1;
 
     len = 0;
+
+#if 0	
+    log_text("------>");
+    utf_display(c->name);
+    log_text("<------");
+#endif 
+
     if (((*utf_ptr) + 1) == desc_end) {
 	    for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
 			if (primitivetype_table[i].typesig == (*utf__ptr)) {
@@ -617,9 +627,16 @@ JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMClass_getBeautifiedN
     }
 
     if (len == 0) {
-		len = dimCnt + strlen(c->name->text) - 2;
-		str = MNEW(char, len + 1);
-		strncpy(str, ++utf__ptr, len - 2 * dimCnt);	   
+		if (dimCnt>0) {
+			len = dimCnt + strlen(c->name->text) - 2;
+			str = MNEW(char, len + 1);
+			strncpy(str, ++utf__ptr, len - 2 * dimCnt);	   
+		} else {
+			len = strlen(c->name->text);
+			str = MNEW(char, len + 1);
+			strncpy(str, utf__ptr, len);	   
+		}
+		
     }	
 
     dimCnt = len - 2 * dimCnt;

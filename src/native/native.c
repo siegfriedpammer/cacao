@@ -31,7 +31,7 @@
    The .hh files created with the header file generator are all
    included here as are the C functions implementing these methods.
 
-   $Id: native.c 785 2003-12-15 16:34:26Z twisti $
+   $Id: native.c 833 2004-01-04 22:10:24Z jowenn $
 
 */
 
@@ -1294,6 +1294,23 @@ java_objectarray* get_parametertypes(methodinfo *m)
 
     return result;
 }
+
+
+
+
+
+/******************************************************************************************
+
+	get the exceptions which can be thrown by a method	
+
+*******************************************************************************************/
+
+java_objectarray* get_exceptiontypes(methodinfo *m) 
+{
+}
+
+
+
 
 
 /******************************************************************************************
