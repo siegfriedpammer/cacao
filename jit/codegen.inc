@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 937 2004-03-06 00:45:23Z twisti $
+   $Id: codegen.inc 955 2004-03-13 12:51:30Z jowenn $
 
 */
 
@@ -85,6 +85,8 @@ static branchref *xcheckarefs;      /* list of array size check branches      */
 static branchref *xnullrefs;        /* list of null check branches            */
 static branchref *xcastrefs;        /* list of cast check branches            */
 static branchref *xdivrefs;         /* list of divide by zero branches        */
+static linenumberref *linenumberreferences; /*list of line numbers and the program counters of their first instruction*/
+static s4 linenumbertablesizepos;
 
 static struct threadcritnodetemp *threadcrit;
                                     /* List of critical code regions          */
@@ -140,6 +142,8 @@ void codegen_init()
 
 	dseglen = 0;
 
+	linenumberreferences=NULL;
+	linenumbertablesizepos=0;
 	jumpreferences = NULL;
 	datareferences = NULL;
 	xboundrefs = NULL;
@@ -296,7 +300,7 @@ static s4 dseg_adddouble(double value)
 static void dseg_addtarget(basicblock *target)
 {
 	jumpref *jr = DNEW(jumpref);
-
+	
 	jr->tablepos = dseg_addaddress(NULL);
 	jr->target = target;
 	jr->next = jumpreferences;
@@ -314,7 +318,18 @@ static void dseg_adddata(u1 *ptr)
 	datareferences = dr;
 }
 
+static void dseg_addlinenumbertablesize() {
+	linenumbertablesizepos=dseg_addaddress(NULL); /*although it is not an adress, I'll do this here alignment reasons*/
+}
 
+static void dseg_addlinenumber(u2 linenumber,u1 *ptr) {
+	linenumberref *lr=DNEW(linenumberref);
+	lr->tablepos=dseg_addaddress(NULL);
+	dseg_addaddress(linenumber);	/*although it is not an adress, I'll do this here alignment reasons*/
+	lr->targetmpc=(ptr-mcodebase);
+	lr->next=linenumberreferences;
+	linenumberreferences=lr;
+}
 
 static void codegen_addreference(basicblock *target, void *branchptr)
 {
@@ -431,6 +446,29 @@ static void codegen_finish(int mcodelen)
 	    jr = jr->next;
 	}
 
+#ifdef __I386__
+	/* line number table resolving */
+	{
+		linenumberref *lr;
+		#if POINTERSIZE == 8
+			s8  lrtlen=0;
+		#else
+			s4  lrtlen=0;
+		#endif
+
+		for (lr=linenumberreferences;lr!=NULL;lr=lr->next) {
+			lrtlen++;
+			*((void**)(epoint+lr->tablepos))=epoint+lr->targetmpc;
+			/*log_text("resolving line number information");*/
+		}
+		#if POINTERSIZE == 8
+			*((s8*)(epoint+linenumbertablesizepos))=lrtlen;
+		#else
+			*((s4*)(epoint+linenumbertablesizepos))=lrtlen;
+		#endif
+
+	}
+#endif
 #if defined(__I386__) || defined(__X86_64__)
 	{
 		dataref *dr;
@@ -445,6 +483,7 @@ static void codegen_finish(int mcodelen)
 		}
 	}
 #endif
+
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	{

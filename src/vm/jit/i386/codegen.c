@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 951 2004-03-11 17:30:03Z jowenn $
+   $Id: codegen.c 955 2004-03-13 12:51:30Z jowenn $
 
 */
 
@@ -426,7 +426,6 @@ void codegen()
 	basicblock  *bptr;
 	instruction *iptr;
 	u2 currentline=0;
-	u2 linechanges=0;
 	int fpu_st_offset = 0;
 
 	xtable *ex;
@@ -474,9 +473,13 @@ void codegen()
 	(void) dseg_adds4(isleafmethod);                        /* IsLeaf         */
 	(void) dseg_adds4(savintregcnt - maxsavintreguse);      /* IntSave        */
 	(void) dseg_adds4(savfltregcnt - maxsavfltreguse);      /* FltSave        */
-        (void) dseg_adds4(jlinenumbercount);			/* LineNumberTableSize*/
+	(void) dseg_addlinenumbertablesize();			/* adds a reference for the length of the line number counter
+								We don't know the size yet, since we evaluate the information
+								during code generation, to save one additional iteration over
+								the whole instructions. During code optimization the position
+								could have changed to the information gotten from the class file*/
 	(void) dseg_adds4(exceptiontablelength);                /* ExTableSize    */
-
+	
 	/* create exception table */
 
 	for (ex = extable; ex != NULL; ex = ex->down) {
@@ -802,7 +805,8 @@ void codegen()
 		    src = iptr->dst, len--, iptr++) {
 
 	if (iptr->line!=currentline) {
-		linechanges++;
+		dseg_addlinenumber(iptr->line,mcodeptr);
+		currentline=iptr->line;
 	}
 	MCODECHECK(64);           /* an instruction usually needs < 64 words      */
 	switch (iptr->opc) {
@@ -4901,7 +4905,6 @@ void i386_native_stub_debug2(void **p) {
 
 void traverseStackInfo() {
 	void **p=builtin_asm_get_stackframeinfo();
-	void **p2=builtin_asm_get_stackframeinfo();
 	
 	while ((*p)!=0) {
 		printf("base addr:%p, methodinfo:%p\n",*p,(methodinfo*)((*p)+8));

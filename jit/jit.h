@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 942 2004-03-06 17:32:16Z jowenn $
+   $Id: jit.h 955 2004-03-13 12:51:30Z jowenn $
 
 */
 
@@ -54,7 +54,7 @@ typedef struct branchref branchref;
 typedef struct jumpref jumpref;
 typedef struct dataref dataref;
 typedef varinfo *varinfoptr;
-
+typedef struct linenumberref linenumberref;
 
 
 /************************** stack element structure ***************************/
@@ -179,6 +179,13 @@ struct jumpref {
 	s4 tablepos;                /* patching position in data segment          */
 	basicblock *target;         /* target basic block                         */
 	jumpref *next;              /* next element in jumpref list               */
+};
+
+struct linenumberref {
+	s4 tablepos;                /* patching position in data segment          */
+	int targetmpc;             /* machine code program counter of first instruction for given line*/
+	u2 linenumber;              /* line number, used for inserting into the table and for validty checking*/
+	linenumberref *next;        /* next element in linenumberref list               */
 };
 
 
