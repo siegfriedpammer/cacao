@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 573 2003-11-07 08:53:55Z twisti $
+   $Id: codegen.c 610 2003-11-12 13:00:30Z twisti $
 
 */
 
@@ -3701,7 +3701,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	u1 *s = CNEW(u1, NATIVESTUBSIZE);   /* memory to hold the stub            */
 	mcodeptr = s;                       /* make macros work                   */
 
-	reg_init();
+	reg_init(m);
 
 	if (runverbose) {
 		int p, l, s1;
