@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 561 2003-11-02 23:39:06Z twisti $
+   $Id: reg.h 589 2003-11-09 19:42:39Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 /* global variables */
 extern varinfo5 *locals;
 extern varinfo5 *interfaces;
+
 extern int intreg_argnum;
 extern int fltreg_argnum;
 extern int arguments_num;
@@ -48,6 +49,7 @@ void reg_init();
 void reg_close();
 void local_init();
 void regalloc();
+
 static void interface_regalloc();
 static void local_regalloc();
 static void allocate_scratch_registers();

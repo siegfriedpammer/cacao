@@ -30,11 +30,12 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 561 2003-11-02 23:39:06Z twisti $
+   $Id: reg.inc 589 2003-11-09 19:42:39Z twisti $
 
 */
 
 
+#include "reg.h"
 #include "toolbox/memory.h"
 
 
@@ -116,7 +117,7 @@ int arguments_num;              /* size of parameter field in the stackframe  */
 	
 *******************************************************************************/
 
-void reg_init()
+void reg_init(methodinfo *m)
 {
 	int n;
 	int i;
@@ -242,6 +243,7 @@ void reg_init()
 					
 	}
 
+	/* intialize in every run */
 
 	freemem    = DMNEW(int, maxstack);
 	locals     = DMNEW(varinfo5, maxlocals);
