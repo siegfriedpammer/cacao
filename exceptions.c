@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.c 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: exceptions.c 1435 2004-11-05 09:48:33Z twisti $
 
 */
 
@@ -276,11 +276,12 @@ void throw_main_exception_exit()
 }
 
 
-void throw_cacao_exception_exit(char *exception, char *message)
+void throw_cacao_exception_exit(char *exception, char *message, ...)
 {
 	s4 i;
 	char *tmp;
 	s4 len;
+	va_list ap;
 
 	len = strlen(exception);
 	tmp = MNEW(char, len+1);
@@ -297,8 +298,13 @@ void throw_cacao_exception_exit(char *exception, char *message)
 
 	MFREE(tmp, char, len);
 
-	if (strlen(message) > 0)
-		fprintf(stderr, ": %s", message);
+	if (strlen(message) > 0) {
+		fprintf(stderr, ": ");
+
+		va_start(ap, message);
+		fprintf(stderr, message, ap);
+		va_end(ap);
+	}
 
 	fprintf(stderr, "\n");
 	fflush(stderr);

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 1410 2004-08-17 13:01:24Z twisti $
+   $Id: exceptions.h 1435 2004-11-05 09:48:33Z twisti $
 
 */
 
@@ -107,7 +107,7 @@ void throw_exception_exit();
 void throw_main_exception();
 void throw_main_exception_exit();
 
-void throw_cacao_exception_exit(char *exception, char *message);
+void throw_cacao_exception_exit(char *exception, char *message, ...);
 
 
 /* initialize new exceptions */
