@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 743 2003-12-13 20:47:11Z stefan $
+   $Id: jit.c 761 2003-12-13 22:39:25Z twisti $
 
 */
 
@@ -59,24 +59,6 @@
 
 
 /* global switches ************************************************************/
-bool compileverbose =  false;
-bool showstack = false;
-bool showdisassemble = false; 
-bool showddatasegment = false; 
-bool showintermediate = false;
-int  optimizelevel = 0;
-
-bool useinlining = false;
-bool inlinevirtuals = false;
-bool inlineexceptions = false;
-bool inlineparamopt = false;
-bool inlineoutsiders = false;
-
-bool checkbounds = true;
-bool checknull = true;
-bool opt_noieee = false;
-bool checksync = true;
-bool opt_loops = false;
 
 bool getcompilingtime = false;
 long compilingtime = 0;
@@ -204,7 +186,14 @@ bool regs_ok;                   /* true if registers have been allocated      */
 chain *uninitializedclasses;
 
 int stackreq[256];
+
                                 
+#if defined(__I386__)
+/* these define if a method has ICMDs which use %edx or %ecx */
+bool method_uses_ecx;
+bool method_uses_edx;
+#endif
+
 
 int jcommandsize[256] = {
 
@@ -1518,17 +1507,22 @@ methodptr jit_compile(methodinfo *m)
 
 	/* initialize class list with class the compiled method belongs to */
 
-	uninitializedclasses = chain_new(); 
+	uninitializedclasses = chain_new();
 	compiler_addinitclass(m->class);
 
 
+#if defined(__I386__)
+	method_uses_ecx = true;
+	method_uses_edx = false;
+#endif
+
 	/* call the compiler passes ***********************************************/
 
-	/* must be call before reg_init, because it can change maxlocals */
+	/* must be called before reg_init, because it can change maxlocals */
 	if (useinlining)
 		inlining_init(m);
 
-	reg_init(m);
+	reg_setup();
 
 	codegen_init();
 
@@ -1587,7 +1581,7 @@ methodptr jit_compile(methodinfo *m)
 
 	if (getcompilingtime) {
 		stoptime = getcputime();
-		compilingtime += (stoptime-starttime); 
+		compilingtime += (stoptime - starttime);
 	}
 
 	/* initialize all used classes */
@@ -1803,7 +1797,8 @@ void jit_init()
 	stackreq[JAVA_DUP_X2] = 4;
 	stackreq[JAVA_DUP2_X1] = 3;
 	stackreq[JAVA_DUP2_X2] = 4;
-	
+
+	reg_init();
 	init_exceptions();
 }
 
