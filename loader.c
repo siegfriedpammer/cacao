@@ -30,11 +30,12 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 775 2003-12-14 12:57:05Z edwin $
+   $Id: loader.c 784 2003-12-15 16:13:57Z twisti $
 
 */
 
 
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <sys/stat.h>
@@ -795,7 +796,6 @@ static void field_load (fieldinfo *f, classinfo *c)
 	case TYPE_FLOAT:      f->value.f = 0.0; break;
 	case TYPE_DOUBLE:     f->value.d = 0.0; break;
 	case TYPE_ADDRESS:    f->value.a = NULL; 			      
-/*  	                      heap_addreference (&(f->value.a));           /* make global reference (GC)  */
 	                      break;
 	case TYPE_LONG:
 #if U8_AVAILABLE
@@ -1662,7 +1662,7 @@ void class_new_array(classinfo *c)
 	/* XXX remove */ /* dolog("class_new_array: %s",c->name->text); */
 
 	/* Array classes are not loaded from classfiles. */
-	list_remove (&unloadedclasses, c);
+	list_remove(&unloadedclasses, c);
 
 	/* Check array class name */
 	namelen = c->name->blength;
@@ -1678,7 +1678,7 @@ void class_new_array(classinfo *c)
 
 	  case 'L':
 		  /* c is an array of objects. */
-		  if (namelen < 4 || c->name->text[namelen-1] != ';')
+		  if (namelen < 4 || c->name->text[namelen - 1] != ';')
 			  panic("Invalid array class name");
 		  comp = class_new(utf_new(c->name->text + 2,namelen - 3));
 		  break;
@@ -2492,13 +2492,14 @@ void class_init(classinfo *c)
 	blockInts = b;
 #endif
 
+	/* we have to throw an exception */
 	if (exceptionptr) {
-		printf("#### Initializer of ");
-		utf_display(c->name);
-		printf(" has thrown: ");
+		printf("Exception in thread \"main\" java.lang.ExceptionInInitializerError\n");
+		printf("Caused by: ");
 		utf_display(exceptionptr->vftbl->class->name);
 		printf("\n");
 		fflush(stdout);
+		exit(1);
 	}
 
 	if (initverbose) {
@@ -2507,6 +2508,7 @@ void class_init(classinfo *c)
 		utf_sprint(logtext + strlen(logtext), c->name);
 		log_text(logtext);
 	}
+
 	if (c->name == utf_systemclass) {
 		/* class java.lang.System requires explicit initialization */
 
@@ -3288,38 +3290,30 @@ void loader_init(u1 * stackbottom)
 	log_text("loader_init: creating global proto_java_lang_ClassCastException");
 	proto_java_lang_ClassCastException =
 		builtin_new(class_java_lang_ClassCastException);
-/*  	heap_addreference((void**) &proto_java_lang_ClassCastException); */
 
 	log_text("loader_init: proto_java_lang_ClassCastException has been initialized");
 
 	proto_java_lang_NullPointerException =
 		builtin_new(class_java_lang_NullPointerException);
-/*  	heap_addreference((void**) &proto_java_lang_NullPointerException); */
 	log_text("loader_init: proto_java_lang_NullPointerException has been initialized");
 
 	proto_java_lang_ArrayIndexOutOfBoundsException =
 		builtin_new(class_java_lang_ArrayIndexOutOfBoundsException);
-/*  	heap_addreference((void**) &proto_java_lang_ArrayIndexOutOfBoundsException); */
 
 	proto_java_lang_NegativeArraySizeException =
 		builtin_new(class_java_lang_NegativeArraySizeException);
-/*  	heap_addreference((void**) &proto_java_lang_NegativeArraySizeException); */
 
 	proto_java_lang_OutOfMemoryError =
 		builtin_new(class_java_lang_OutOfMemoryError);
-/*  	heap_addreference((void**) &proto_java_lang_OutOfMemoryError); */
 
 	proto_java_lang_ArithmeticException =
 		builtin_new(class_java_lang_ArithmeticException);
-/*  	heap_addreference((void**) &proto_java_lang_ArithmeticException); */
 
 	proto_java_lang_ArrayStoreException =
 		builtin_new(class_java_lang_ArrayStoreException);
-/*  	heap_addreference((void**) &proto_java_lang_ArrayStoreException); */
 
-	proto_java_lang_ThreadDeath =                             /* schani */
+	proto_java_lang_ThreadDeath =
 		builtin_new(class_java_lang_ThreadDeath);
-/*  	heap_addreference((void**) &proto_java_lang_ThreadDeath); */
 
 	loader_inited = 1;
 }
