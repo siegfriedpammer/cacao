@@ -31,7 +31,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: types.h 1351 2004-07-22 22:39:05Z twisti $
+   $Id: types.h 1560 2004-11-23 15:49:55Z twisti $
 
 */
 
@@ -39,36 +39,7 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 
-#define POINTERSIZE         4
-#define WORDS_BIGENDIAN     0
-
-#define SUPPORT_DIVISION    1
-#define SUPPORT_LONG        1
-#define SUPPORT_FLOAT       1
-#define SUPPORT_DOUBLE      1
-
-#define SUPPORT_LONG_ADD    1
-#define SUPPORT_LONG_CMP    1
-#define SUPPORT_LONG_LOG    1
-#define SUPPORT_LONG_SHIFT  1
-#define SUPPORT_LONG_MUL    1
-#define SUPPORT_LONG_DIV    0
-#define SUPPORT_LONG_ICVT   1
-#define SUPPORT_LONG_FCVT   1
-
-#define SUPPORT_CONST_ASTORE     1      /* do we support const astores        */
-#define SUPPORT_ONLY_ZERO_ASTORE 0      /* on risc machines we can only store */
-                                        /* REG_ZERO                           */
-
-#define USEBUILTINTABLE
-
-#define SUPPORT_IFCVT       1
-#define SUPPORT_FICVT       1
-#define SUPPORT_FMOD        1
-
-#define CONDITIONAL_LOADCONST
-
-#define U8_AVAILABLE        1
+#include "jit/i386/arch.h"
 
 
 typedef signed char             s1;
@@ -87,6 +58,7 @@ typedef unsigned long long int  u8;
 typedef struct {u4 low, high;}  u8;
 #define s8 u8
 #endif
+
 
 #endif /* _TYPES_H */
 
