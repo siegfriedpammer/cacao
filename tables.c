@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1372 2004-08-01 21:56:10Z stefan $
+   $Id: tables.c 1445 2004-11-05 13:55:33Z twisti $
 
 */
 
@@ -47,7 +47,10 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include "builtin.h"
+#include "exceptions.h"
 #include "types.h"
+#include "native.h"
 #include "options.h"
 #include "tables.h"
 #include "loader.h"
@@ -1344,9 +1347,17 @@ classinfo *class_multiarray_of(int dim, classinfo *element)
 
 u4 utf_strlen(utf *u) 
 {
-    char *endpos  = utf_end(u);  /* points behind utf string       */
-    char *utf_ptr = u->text;     /* current position in utf text   */
-    u4 len = 0;                  /* number of unicode characters   */
+    char *endpos;                   /* points behind utf string       */
+    char *utf_ptr;                  /* current position in utf text   */
+    u4 len = 0;                     /* number of unicode characters   */
+
+	if (!u) {
+		*exceptionptr = new_nullpointerexception();
+		return 0;
+	}
+
+	endpos = utf_end(u);
+	utf_ptr = u->text;
 
     while (utf_ptr < endpos) {
 		len++;
