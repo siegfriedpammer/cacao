@@ -25,7 +25,9 @@ Java_java_net_SocketInputStream_socketRead (JNIEnv *env,  struct java_net_Socket
 	if (runverbose)
 	    log_text("Java_java_net_SocketInputStream_socketRead called");
     
+#ifdef USE_THREADS
 	assert(blockInts == 0);
+#endif
 
 	r = threadedRead(this->impl->fd->fd, &buf->data[offset], len);
 	if (r < 0) {
@@ -39,7 +41,9 @@ Java_java_net_SocketInputStream_socketRead (JNIEnv *env,  struct java_net_Socket
 		return (r);
 	}
 
+#ifdef USE_THREADS
 	assert(blockInts == 0);
+#endif
 
 	return 0;
 }

@@ -22,6 +22,11 @@ int threadedSendto(int fd, void *buf, size_t len, int flags, struct sockaddr *ad
 #define threadedFileDescriptor(fd)
 #define threadedRead(fd,buf,len)          read(fd,buf,len)
 #define threadedWrite(fd,buf,len)         write(fd,buf,len)
+#define threadedSocket(af,type,proto)     socket(af,type,proto)
+#define threadedAccept(fd,addr,len)       accept(fd,addr,len)
+#define threadedRecvfrom(fd,buf,len,flags,addr,addrlen) recvfrom(fd,buf,len,flags,addr,addrlen)
+#define threadedSendto(fd,buf,len,flags,addr,addrlen) sendto(fd,buf,len,flags,addr,addrlen)
+#define threadedConnect(fd,addr,len)      connect(fd,addr,len)
 #endif
 
 

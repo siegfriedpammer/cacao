@@ -25,7 +25,9 @@ Java_java_net_SocketOutputStream_socketWrite (JNIEnv *env,  struct java_net_Sock
 	if (runverbose)
 	    log_text("Java_java_net_SocketOutputStream_socketWrite called");
 
+#ifdef USE_THREADS
 	assert(blockInts == 0);
+#endif
 
 	if (this->impl->fd->fd < 0) {
 		/* exceptionptr = native_new_and_init (class_java_io_IOException); */
@@ -38,5 +40,7 @@ Java_java_net_SocketOutputStream_socketWrite (JNIEnv *env,  struct java_net_Sock
 	}
 	assert(r == len);
 
+#ifdef USE_THREADS
 	assert(blockInts == 0);
+#endif
 }
