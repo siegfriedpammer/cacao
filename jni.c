@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 1173 2004-06-16 14:56:18Z jowenn $
+   $Id: jni.c 1252 2004-06-30 20:24:49Z twisti $
 
 */
 
@@ -41,6 +41,8 @@
 #include "tables.h"
 #include "native.h"
 #include "builtin.h"
+#include "options.h"
+#include "statistics.h"
 #include "threads/thread.h"
 #include "toolbox/logging.h"
 #include "toolbox/memory.h"
