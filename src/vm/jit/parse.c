@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1203 2004-06-22 23:14:55Z twisti $
+   $Id: parse.c 1231 2004-06-30 19:42:17Z twisti $
 
 */
 
@@ -37,7 +37,6 @@
 #include <string.h>
 #include "parse.h"
 #include "global.h"
-#include "main.h"
 #include "jit.h"
 #include "parseRT.h"
 #include "inline.h"
@@ -47,6 +46,8 @@
 #include "tables.h"
 #include "native.h"
 #include "loader.h"
+#include "options.h"
+#include "statistics.h"
 #include "toolbox/memory.h"
 #include "toolbox/logging.h"
 
@@ -451,7 +452,7 @@ methodinfo *parse(methodinfo *m)
 	
 	m->basicblockindex = DMNEW(int, cumjcodelength + 4);
 	instructionstart = DMNEW(u1, cumjcodelength + 4);
-	memset(instructionstart,0,sizeof(u1) * (cumjcodelength + 4));
+	memset(instructionstart, 0, sizeof(u1) * (cumjcodelength + 4));
 
 	/* 1 additional for TRACEBUILTIN and 4 for MONITORENTER/EXIT */
 	/* additional MONITOREXITS are reached by branches which are 3 bytes */
