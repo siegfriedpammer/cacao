@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1861 2005-01-04 16:40:12Z twisti $
+   $Id: asmpart.S 1877 2005-01-21 11:32:53Z stefan $
 
 */
 
@@ -70,6 +70,7 @@
 
 #define asm_handle_nat_exception              _asm_handle_nat_exception
 #define asm_handle_exception                  _asm_handle_exception
+#define asm_handle_nullptr_exception          _asm_handle_nullptr_exception
 
 #define asm_check_clinit                      _asm_check_clinit
 
@@ -178,6 +179,7 @@ _exceptionptr:
 
 	.globl asm_handle_nat_exception
 	.globl asm_handle_exception
+	.globl asm_handle_nullptr_exception
 
 	.globl asm_check_clinit
 
@@ -237,7 +239,7 @@ asm_calljavafunction:
 /*	stw     r30,-8(r1)*/
 	stw     pv,-12(r1)
 	stw     r0,8(r1)
-	addi    r1,r1,-148
+	stwu    r1,-148(r1)
 
 	bl      0f
 0:
@@ -347,7 +349,7 @@ asm_calljavafunction2double:
 /*	stw     r30,-8(r1)*/
 	stw     pv,-12(r1)
 	stw     r0,8(r1)
-	addi    r1,r1,-148
+	stwu    r1,-148(r1)
 	bl      0f
 0:
 	mflr    r31
@@ -459,7 +461,7 @@ asm_call_jit_compiler:
 /*	stw     pv,-8(r1)*/
 	stw     r29,-12(r1)
 	stw     itmp1,8(r1)
-	addi    r1,r1,-176
+	stwu    r1,-176(r1)
 	mr      r31,pv
 
 	lwz     itmp3,-12(itmp1)
@@ -546,6 +548,22 @@ noregchange:
 	bctr
 
 
+/***************** function asm_handle_nullptr_exception ***********************
+*                                                                              *
+*   This behaves the same as asm_handle_exception but calls                    *
+*   new_nullpointerexception first                                             *
+*                                                                              *
+*******************************************************************************/
+		
+asm_handle_nullptr_exception:
+	stwu	r1,-32(r1)
+	stw		xpc,24(r1)
+	bl		new_nullpointerexception
+	lwz		xpc,24(r1)
+	addi	r1,r1,32
+	mr      xptr,r3
+	b		asm_handle_exception
+
 /********************* function asm_handle_exception ***************************
 *                                                                              *
 *   This function handles an exception. It does not use the usual calling      *
@@ -608,6 +626,7 @@ ex_stack_loop:
 	li      r6,0                  /* line number                              */
 	li      r7,4                  /* set no unwind flag                       */
 
+	/* XXX no valid stack frame chaining here */
 	addi    r1,r1,-(24+5*4)       /* 24 linkage area + 5 argument * 4         */
 	bl      builtin_trace_exception
 	addi    r1,r1,(24+5*4)
@@ -640,6 +659,7 @@ ex_table_loop:
 	mr.     itmp3,itmp3
 	bne     L_class_loaded
 
+	/* XXX no valid stack frame chaining here */
 	addi    r1,r1,-16*4           /* allocate stack                           */
 	stw     r3,7*4(r1)            /* save used registers                      */
 	stw     r4,8*4(r1)            /* 6*4 (linkage) + 1*4 (arg1) + 7*4 (save)  */
@@ -666,6 +686,7 @@ ex_table_loop:
 L_class_loaded:
 	lwz     itmp3,offclasslinked(r7)
 	mr.     itmp3,itmp3
+	/* XXX no valid stack frame chaining here */
 	addi    r1,r1,-16*4           /* allocate stack                           */
 	stw     r7,13*4(r1)
 	bne     L_class_linked
@@ -762,6 +783,7 @@ ex_already_cleared:
 	stw     xptr,5*4(r1)
 
 	mr      r3,r6
+	/* XXX no valid stack frame chaining here */
 	addi    r1,r1,-40
 	bl      builtin_monitorexit
 	addi    r1,r1,40
@@ -865,7 +887,7 @@ asm_check_clinit:
 
 	mflr	r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(26*8)         /* keep stack 16-bytes aligned              */
+	stwu    r1,-(26*8)(r1)        /* keep stack 16-bytes aligned              */
 
     stw     r3,4*8(r1)            /* save argument registers                  */
     stw     r4,5*8(r1)            /* preserve linkage area (24 bytes)         */
@@ -931,7 +953,7 @@ L_initializererror:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	mflr	r0
 	stw     r0,8(r1)
-	addi    r1,r1,-4*8            /* preserve linkage area (24 bytes)         */
+	stwu    r1,-4*8(r1)           /* preserve linkage area (24 bytes)         */
 	bl      builtin_asm_get_exceptionptrptr
 	lwz     r0,(4*8)+8(r1)
 	mtlr    r0	
@@ -979,7 +1001,7 @@ nb_carray_throw:
 	addi    r1,r1,48
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-24
+	stwu    r1,-24(r1)
 	bl      new_classcastexception
 	mr      xptr,r3
 	addi    r1,r1,24
@@ -1000,7 +1022,7 @@ asm_builtin_aastore:
 	beq     nb_aastore_null
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-48
+	stwu    r1,-48(r1)
 
 	lwz     itmp1,offarraysize(r3)
 	slwi    itmp3,r4,2
@@ -1025,7 +1047,7 @@ asm_builtin_aastore:
 nb_aastore_null:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-24
+	stwu    r1,-24(r1)
 	bl      new_nullpointerexception
 	mr      xptr,r3
 	addi    r1,r1,24
@@ -1038,7 +1060,7 @@ nb_aastore_bound:
 	addi    r1,r1,48
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(24+1*4)
+	stwu    r1,-(24+1*4)(r1)
 	mr      r3,r4                 /* move index into a0                       */
 	bl      new_arrayindexoutofboundsexception
 	mr      xptr,r3
@@ -1051,7 +1073,7 @@ nb_aastore_bound:
 nb_aastore_store:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-24
+	stwu    r1,-24(r1)
 	bl      new_arraystoreexception
 	mr      xptr,r3
 	addi    r1,r1,24
@@ -1070,7 +1092,7 @@ asm_builtin_monitorenter:
 nb_monitorenter:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-24
+	stwu    r1,-24(r1)
 	bl      new_nullpointerexception
 	mr      xptr,r3
 	addi    r1,r1,24
@@ -1090,7 +1112,7 @@ asm_builtin_monitorexit:
 nb_monitorexit:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-24
+	stwu    r1,-24(r1)
 	bl      new_nullpointerexception
 	mr      xptr,r3
 	addi    r1,r1,24
@@ -1120,7 +1142,7 @@ normal_idiv:
 nb_idiv:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-24
+	stwu    r1,-24(r1)
 	bl      new_arithmeticexception
 	mr      xptr,r3
 	addi    r1,r1,24
@@ -1151,7 +1173,7 @@ normal_irem:
 nb_irem:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-24
+	stwu    r1,-24(r1)
 	bl      new_arithmeticexception
 	mr      xptr,r3
 	addi    r1,r1,24
@@ -1169,7 +1191,7 @@ asm_builtin_ldiv:
 nb_ldiv:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-24
+	stwu    r1,-24(r1)
 	bl      new_arithmeticexception
 	mr      xptr,r3
 	addi    r1,r1,24
@@ -1187,7 +1209,7 @@ asm_builtin_lrem:
 nb_lrem:
 	mflr    r0
 	stw     r0,8(r1)
-	addi    r1,r1,-24
+	stwu    r1,-24(r1)
 	bl      new_arithmeticexception
 	mr      xptr,r3
 	addi    r1,r1,24
@@ -1379,7 +1401,7 @@ asm_perform_threadswitch:
 
 asm_switchstackandcall:
 	mflr r0
-	addi r3,r3,-48
+	stwu r3,-48(r3)
 	stw r0,40(r3)
 	stw r1,44(r3)
 	stw r1,0(r5)
