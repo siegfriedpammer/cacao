@@ -718,22 +718,21 @@ void cacao_create_directoryList(unzFile file)
     if (unzGetCurrentFileInfo(file, &tmp, filename, 200, 0, 0, 0, 0) != UNZ_OK)
       panic("Error in ZIP archive");
 
-    if ((c = strstr(filename, ".class"))) {
+    if ((c = strstr(filename, ".class")))
       *c = '\0';
 
-      if (!s->cacao_dir_list) {
-        ent = s->cacao_dir_list = NEW(cacao_entry_s);
+    if (!s->cacao_dir_list) {
+      ent = s->cacao_dir_list = NEW(cacao_entry_s);
 
-      } else {
-        ent->next = NEW(cacao_entry_s);
-        ent = ent->next;
-      }
-
-      ent->next = NULL;
-
-      ent->name = utf_new_char(filename);
-      ent->pos = s->pos_in_central_dir;
+    } else {
+      ent->next = NEW(cacao_entry_s);
+      ent = ent->next;
     }
+
+    ent->next = NULL;
+
+    ent->name = utf_new_char(filename);
+    ent->pos = s->pos_in_central_dir;
   } while (unzGoToNextFile(file) == UNZ_OK);
 }
 
