@@ -28,12 +28,13 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 1252 2004-06-30 20:24:49Z twisti $
+   $Id: jni.c 1328 2004-07-21 14:06:26Z twisti $
 
 */
 
 
 #include <string.h>
+#include "exceptions.h"
 #include "main.h"
 #include "jni.h"
 #include "global.h"
