@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 727 2003-12-11 10:52:40Z edwin $
+   $Id: typecheck.c 730 2003-12-11 21:23:31Z edwin $
 
 */
 
@@ -73,7 +73,7 @@ bool typecheckverbose = false;
 #define LOGINFO(info)      DOLOG(do {typeinfo_print_short(get_logfile(),info);log_plain("\n");} while(0))
 #define LOGFLUSH           DOLOG(fflush(get_logfile()))
 #define LOGNL              DOLOG(log_plain("\n"))
-#define LOGSTR(str)        DOLOG(dolog_plain(str))
+#define LOGSTR(str)        DOLOG(log_plain(str))
 #define LOGSTR1(str,a)     DOLOG(dolog_plain(str,a))
 #define LOGSTR2(str,a,b)   DOLOG(dolog_plain(str,a,b))
 #define LOGSTR3(str,a,b,c) DOLOG(dolog_plain(str,a,b,c))
@@ -96,7 +96,7 @@ bool typecheckverbose = false;
 
 #ifdef TYPECHECK_VERBOSE_IMPORTANT
 #define LOGimp(str)     DOLOG(log_text(str))
-#define LOGimpSTR(str)  DOLOG(dolog_plain(str))
+#define LOGimpSTR(str)  DOLOG(log_plain(str))
 #define LOGimpSTRu(utf) DOLOG(log_plain_utf(utf))
 #else
 #define LOGimp(str)

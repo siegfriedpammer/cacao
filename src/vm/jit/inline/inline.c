@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 724 2003-12-09 18:56:11Z edwin $
+   $Id: inline.c 730 2003-12-11 21:23:31Z edwin $
 
 */
 
@@ -406,7 +406,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m, int level, int gp, i
 							strcpy(logtext + strlen(logtext), ".");
 							utf_sprint(logtext + strlen(logtext), imi->name);
 							utf_sprint(logtext + strlen(logtext), imi->descriptor);
-							dolog(logtext);
+							log_text(logtext);
 						}
 						
 						tmp = inlining_analyse_method(imi, level + 1, gp, firstlocal + m->maxlocals, maxstackdepth + m->maxstack);

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 727 2003-12-11 10:52:40Z edwin $
+   $Id: stack.c 730 2003-12-11 21:23:31Z edwin $
 
 */
 
@@ -226,7 +226,7 @@ void analyse_stack()
 		strcpy(logtext+strlen(logtext), ".");
 		utf_sprint(logtext+strlen(logtext), method->name);
 		utf_sprint(logtext+strlen(logtext), method->descriptor);
-		dolog(logtext);
+		log_text(logtext);
 	}
 
 	int *argren = DMNEW(int, maxlocals); 

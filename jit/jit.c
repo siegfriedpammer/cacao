@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 728 2003-12-11 11:11:05Z edwin $
+   $Id: jit.c 730 2003-12-11 21:23:31Z edwin $
 
 */
 
@@ -1465,7 +1465,7 @@ methodptr jit_compile(methodinfo *m)
 		strcpy(logtext+strlen(logtext), ".");
 		utf_sprint(logtext+strlen(logtext), m->name);
 		utf_sprint(logtext+strlen(logtext), m->descriptor);
-		dolog(logtext);
+		log_text(logtext);
 		intsRestore();                             /* enable interrupts again */
 		return (methodptr) do_nothing_function;    /* return empty method     */
 	}
@@ -1479,7 +1479,7 @@ methodptr jit_compile(methodinfo *m)
 		strcpy(logtext+strlen(logtext), ".");
 		utf_sprint(logtext+strlen(logtext), m->name);
 		utf_sprint(logtext+strlen(logtext), m->descriptor);
-		dolog(logtext);
+		log_text(logtext);
 	}
 
 
@@ -1539,7 +1539,7 @@ methodptr jit_compile(methodinfo *m)
 		strcpy(logtext+strlen(logtext), ".");
 		utf_sprint(logtext+strlen(logtext), m->name);
 		utf_sprint(logtext+strlen(logtext), m->descriptor);
-		dolog(logtext);
+		log_text(logtext);
 	}
 
 	typecheck();

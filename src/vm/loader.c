@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 727 2003-12-11 10:52:40Z edwin $
+   $Id: loader.c 730 2003-12-11 21:23:31Z edwin $
 
 */
 
@@ -1469,7 +1469,7 @@ static int class_load(classinfo *c)
 		char logtext[MAXLOGTEXT];
 		sprintf(logtext, "Loading class: ");
 		utf_sprint(logtext+strlen(logtext), c->name);
-		dolog(logtext);
+		log_text(logtext);
 	}
 	
 	/* load classdata, throw exception on error */
@@ -1904,7 +1904,7 @@ void class_link(classinfo *c)
 		char logtext[MAXLOGTEXT];
 		sprintf (logtext, "Linking Class: ");
 		utf_sprint (logtext+strlen(logtext), c->name );
-		dolog (logtext);
+		log_text(logtext);
 	}
 
 	/* compute vftbl length */
@@ -2455,7 +2455,7 @@ void class_init(classinfo *c)
                         sprintf (logtext, "Class ");
                         utf_sprint (logtext+strlen(logtext), c->name);
                         sprintf (logtext+strlen(logtext), " has no initializer");
-                        dolog (logtext);
+                        log_text(logtext);
                         }
 /*              goto callinitialize;*/
                 return;
@@ -2468,7 +2468,7 @@ void class_init(classinfo *c)
 				char logtext[MAXLOGTEXT];
                 sprintf (logtext, "Starting initializer for class: ");
                 utf_sprint (logtext+strlen(logtext), c->name);
-                dolog (logtext);
+                log_text(logtext);
         }
 
 #ifdef USE_THREADS
@@ -2496,7 +2496,7 @@ void class_init(classinfo *c)
 				char logtext[MAXLOGTEXT];
                 sprintf (logtext, "Finished initializer for class: ");
                 utf_sprint (logtext+strlen(logtext), c->name);
-                dolog (logtext);
+                log_text(logtext);
         }
         if (c->name == utf_systemclass) {
                 /* class java.lang.System requires explicit initialization */

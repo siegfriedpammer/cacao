@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 727 2003-12-11 10:52:40Z edwin $
+   $Id: builtin.c 730 2003-12-11 21:23:31Z edwin $
 
 */
 
@@ -362,7 +362,7 @@ java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr
 			if (!proto_java_lang_ThreadDeath) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ThreadDeath==0");
 			if (!proto_java_lang_ThreadDeath) sprintf(logtext+strlen(logtext),"%s","proto_java_lang_ThreadDeath==0");
 			}
-		dolog(logtext);
+		log_text(logtext);
 	}
 	exceptionptr = local_exceptionptr;
 	return local_exceptionptr;
@@ -935,7 +935,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 #endif
 	}
 	sprintf (logtext+strlen(logtext), ")");
-	dolog (logtext);
+	log_text(logtext);
 
 	methodindent++;
 }
@@ -951,7 +951,7 @@ void builtin_displaymethodstart(methodinfo *method)
 	sprintf(logtext + strlen(logtext), ".");
 	utf_sprint(logtext + strlen(logtext), method->name);
 	utf_sprint(logtext + strlen(logtext), method->descriptor);
-	dolog(logtext);
+	log_text(logtext);
 	methodindent++;
 }
 
@@ -994,7 +994,7 @@ void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
 		sprintf(logtext + strlen(logtext), "->%g", d);
 		break;
 	}
-	dolog(logtext);
+	log_text(logtext);
 }
 
 
@@ -1009,7 +1009,7 @@ void builtin_displaymethodexception(methodinfo *method)
 	sprintf(logtext + strlen(logtext), ".");
 	utf_sprint(logtext + strlen(logtext), method->name);
 	utf_sprint(logtext + strlen(logtext), method->descriptor);
-	dolog(logtext);
+	log_text(logtext);
 }
 
 

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 689 2003-12-05 18:03:47Z stefan $
+   $Id: memory.c 730 2003-12-11 21:23:31Z edwin $
 
 */
 
@@ -291,7 +291,7 @@ static void mem_characterlog(unsigned char *m, int len)
 					"%c", (m[i] >= ' ' && m[i] <= 127) ? m[i] : '.');
 		}
 			
-		dolog(logtext);
+		log_text(logtext);
 	}
 }
 

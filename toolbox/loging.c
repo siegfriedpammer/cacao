@@ -27,7 +27,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loging.c 723 2003-12-08 19:51:32Z edwin $
+   $Id: loging.c 730 2003-12-11 21:23:31Z edwin $
 
 */
 
@@ -163,7 +163,7 @@ void log_cputime()
 
    sprintf(logtext, "Total CPU usage: %d seconds and %d milliseconds",
 		   sec, usec / 1000);
-   dolog(logtext);
+   log_text(logtext);
 }
 
 

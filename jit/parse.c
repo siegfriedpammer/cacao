@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 727 2003-12-11 10:52:40Z edwin $
+   $Id: parse.c 730 2003-12-11 21:23:31Z edwin $
 
 */
 
@@ -93,7 +93,7 @@ void compiler_addinitclass(classinfo *c)
 				char logtext[MAXLOGTEXT];
 				sprintf(logtext, "compiler_addinitclass: ");
 				utf_sprint(logtext+strlen(logtext), c->name);
-				dolog(logtext);
+				log_text(logtext);
 			}
 			chain_addlast(uninitializedclasses, c);
 			return;
@@ -103,7 +103,7 @@ void compiler_addinitclass(classinfo *c)
 				char logtext[MAXLOGTEXT];
 				sprintf(logtext, "compiler_addinitclass: ");
 				utf_sprint(logtext+strlen(logtext), c->name);
-				dolog(logtext);
+				log_text(logtext);
 			}
 			chain_addbefore(uninitializedclasses, c);
 			return;
@@ -514,7 +514,7 @@ void parse()
 		strcpy(logtext+strlen(logtext), ".");
 		utf_sprint(logtext+strlen(logtext), method->name);
 		utf_sprint(logtext+strlen(logtext), method->descriptor);
-		dolog(logtext);
+		log_text(logtext);
 	}
 
 	/* INLINING */

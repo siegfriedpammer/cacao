@@ -70,7 +70,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_co
 						char logtext[MAXLOGTEXT];
                         sprintf(logtext, "Warning: class has no instance-initializer of specified type: ");
                         utf_sprint(logtext + strlen(logtext), ((struct classinfo*)clazz)->name);
-                        dolog(logtext);
+                        log_text(logtext);
 			log_plain_utf( create_methodsig(this->parameterTypes,"V"));
 			log_plain("\n");
 			class_showconstantpool(clazz);
