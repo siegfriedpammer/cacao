@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 930 2004-03-02 21:18:23Z jowenn $
+   $Id: tables.c 935 2004-03-05 23:49:12Z twisti $
 
 */
 
@@ -94,6 +94,7 @@ void init_hashtable(hashtable *hash, u4 size)
 	for (i = 0; i < size; i++) hash->ptr[i] = NULL;
 }
 
+
 /*********************** function: tables_init  *****************************
 
     creates hashtables for symboltables 
@@ -101,7 +102,7 @@ void init_hashtable(hashtable *hash, u4 size)
 	
 *****************************************************************************/
 
-void tables_init ()
+void tables_init()
 {
 	init_hashtable(&utf_hash,    UTF_HASHSTART);  /* hashtable for utf8-symbols */
 	init_hashtable(&string_hash, HASHSTART);      /* hashtable for javastrings */
@@ -113,32 +114,33 @@ void tables_init ()
 
 }
 
+
 /********************** function: tables_close ******************************
 
         free memory for hashtables		      
 	
 *****************************************************************************/
 
-void tables_close (stringdeleter del)
+void tables_close(stringdeleter del)
 {
-	utf *u;	
+	utf *u = NULL;
 	literalstring *s;
 	u4 i;
 	
 	/* dispose utf symbols */
-	for (i=0; i<utf_hash.size; i++) {
+	for (i = 0; i < utf_hash.size; i++) {
 		u = utf_hash.ptr[i];
 		while (u) {
 			/* process elements in external hash chain */
 			utf *nextu = u->hashlink;
-			MFREE (u->text, u1, u->blength);
-			FREE (u, utf);
+			MFREE(u->text, u1, u->blength);
+			FREE(u, utf);
 			u = nextu;
 		}	
 	}
 
 	/* dispose javastrings */
-	for (i=0; i<string_hash.size; i++) {
+	for (i = 0; i < string_hash.size; i++) {
 		s = string_hash.ptr[i];
 		while (u) {
 			/* process elements in external hash chain */
@@ -150,9 +152,9 @@ void tables_close (stringdeleter del)
 	}
 
 	/* dispose hashtable structures */
-	MFREE (utf_hash.ptr,    void*, utf_hash.size);
-	MFREE (string_hash.ptr, void*, string_hash.size);
-	MFREE (class_hash.ptr,  void*, class_hash.size);
+	MFREE(utf_hash.ptr,    void*, utf_hash.size);
+	MFREE(string_hash.ptr, void*, string_hash.size);
+	MFREE(class_hash.ptr,  void*, class_hash.size);
 }
 
 
@@ -167,12 +169,38 @@ void utf_display(utf *u)
     char *endpos  = utf_end(u);  /* points behind utf string       */
     char *utf_ptr = u->text;     /* current position in utf text   */
 
-	if (u == NULL)
+	if (!u)
 		return;
 
     while (utf_ptr < endpos) {
 		/* read next unicode character */                
 		u2 c = utf_nextu2(&utf_ptr);
+		if (c >= 32 && c <= 127) printf("%c", c);
+		else printf("?");
+	}
+
+	fflush(stdout);
+}
+
+
+/********************* function: utf_display *********************************
+
+	write utf symbol to stdout (debugging purposes)
+
+******************************************************************************/
+
+void utf_display_classname(utf *u)
+{
+    char *endpos  = utf_end(u);  /* points behind utf string       */
+    char *utf_ptr = u->text;     /* current position in utf text   */
+
+	if (!u)
+		return;
+
+    while (utf_ptr < endpos) {
+		/* read next unicode character */                
+		u2 c = utf_nextu2(&utf_ptr);
+		if (c == '/') c = '.';
 		if (c >= 32 && c <= 127) printf("%c", c);
 		else printf("?");
 	}
@@ -190,9 +218,10 @@ void utf_display(utf *u)
 void log_utf(utf *u)
 {
 	char buf[MAXLOGTEXT];
-	utf_sprint(buf,u);
-	dolog("%s",buf);
+	utf_sprint(buf, u);
+	dolog("%s", buf);
 }
+
 
 /********************** function: log_plain_utf ******************************
 
@@ -203,9 +232,10 @@ void log_utf(utf *u)
 void log_plain_utf(utf *u)
 {
 	char buf[MAXLOGTEXT];
-	utf_sprint(buf,u);
-	dolog_plain("%s",buf);
+	utf_sprint(buf, u);
+	dolog_plain("%s", buf);
 }
+
 
 /************************ function: utf_sprint *******************************
 	
@@ -213,13 +243,13 @@ void log_plain_utf(utf *u)
 
 ******************************************************************************/ 
 
-void utf_sprint (char *buffer, utf *u)
+void utf_sprint(char *buffer, utf *u)
 {
     char *endpos  = utf_end(u);  /* points behind utf string       */
     char *utf_ptr = u->text;     /* current position in utf text   */ 
     u2 pos = 0;                  /* position in c-string           */
 
-    while (utf_ptr<endpos) 
+    while (utf_ptr < endpos) 
 		/* copy next unicode character */       
 		buffer[pos++] = utf_nextu2(&utf_ptr);
 
@@ -234,19 +264,22 @@ void utf_sprint (char *buffer, utf *u)
 
 ******************************************************************************/ 
 
-void utf_fprint (FILE *file, utf *u)
+void utf_fprint(FILE *file, utf *u)
 {
     char *endpos  = utf_end(u);  /* points behind utf string       */
     char *utf_ptr = u->text;     /* current position in utf text   */ 
-    if (u==NULL) return;
-    while (utf_ptr<endpos) { 
+
+    if (!u)
+		return;
+
+    while (utf_ptr < endpos) { 
 		/* read next unicode character */                
 		u2 c = utf_nextu2(&utf_ptr);				
 
-		if (c>=32 && c<=127) fprintf (file,"%c",c);
-		else fprintf (file,"?");
+		if (c >= 32 && c <= 127) fprintf(file, "%c", c);
+		else fprintf(file, "?");
 	}
-} 
+}
 
 
 /****************** internal function: utf_hashkey ***************************
@@ -260,7 +293,7 @@ void utf_fprint (FILE *file, utf *u)
 #define nbs(val) ((u4) *(++text) << val) /* get next byte, left shift by val  */
 #define fbs(val) ((u4) *(  text) << val) /* get first byte, left shift by val */
 
-static u4 utf_hashkey (char *text, u4 length)
+static u4 utf_hashkey(char *text, u4 length)
 {
 	char *start_pos = text; /* pointer to utf text */
 	u4 a;
@@ -355,10 +388,11 @@ static u4 utf_hashkey (char *text, u4 length)
 
 ******************************************************************************/ 
 
-u4 unicode_hashkey (u2 *text, u2 len)
+u4 unicode_hashkey(u2 *text, u2 len)
 {
 	return utf_hashkey((char*) text, len);
 }
+
 
 /************************ function: utf_new **********************************
 
@@ -373,7 +407,7 @@ u4 unicode_hashkey (u2 *text, u2 len)
 
 ******************************************************************************/
 
-utf *utf_new (char *text, u2 length)
+utf *utf_new(char *text, u2 length)
 {
 	u4 key;            /* hashkey computed from utf-text */
 	u4 slot;           /* slot in hashtable */
@@ -385,7 +419,7 @@ utf *utf_new (char *text, u2 length)
 	count_utf_new++;
 #endif
 
-	key  = utf_hashkey (text, length);
+	key  = utf_hashkey(text, length);
 	slot = key & (utf_hash.size-1);
 	u    = utf_hash.ptr[slot];
 
@@ -394,7 +428,7 @@ utf *utf_new (char *text, u2 length)
 		if (u->blength == length) {
 
 			/* compare text of hashtable elements */
-			for (i=0; i<length; i++)
+			for (i = 0; i < length; i++)
 				if (text[i] != u->text[i]) goto nomatch;
 			
 #ifdef STATISTICS
@@ -425,12 +459,12 @@ utf *utf_new (char *text, u2 length)
 	u->hashlink = utf_hash.ptr[slot]; /* link in external hashchain   */		
 	u->text     = mem_alloc(length/*JOWENN*/+1);  /* allocate memory for utf-text */
 	memcpy(u->text,text,length);      /* copy utf-text                */
-        u->text[length]='\0';/*JOWENN*/
+	u->text[length] = '\0';/*JOWENN*/
 	utf_hash.ptr[slot] = u;           /* insert symbol into table     */ 
 
 	utf_hash.entries++;               /* update number of entries     */
 
-	if ( utf_hash.entries > (utf_hash.size*2)) { 
+	if (utf_hash.entries > (utf_hash.size * 2)) {
 
         /* reorganization of hashtable, average length of 
            the external chains is approx. 2                */  
@@ -440,21 +474,21 @@ utf *utf_new (char *text, u2 length)
 		hashtable newhash; /* the new hashtable */
 
 		/* create new hashtable, double the size */
-		init_hashtable(&newhash, utf_hash.size*2);
-		newhash.entries=utf_hash.entries;
+		init_hashtable(&newhash, utf_hash.size * 2);
+		newhash.entries = utf_hash.entries;
 
 #ifdef STATISTICS
 		count_utf_len += sizeof(utf*) * utf_hash.size;
 #endif
 
 		/* transfer elements to new hashtable */
-		for (i=0; i<utf_hash.size; i++) {
-			u = (utf*) utf_hash.ptr[i];
+		for (i = 0; i < utf_hash.size; i++) {
+			u = (utf *) utf_hash.ptr[i];
 			while (u) {
-				utf *nextu = u -> hashlink;
-				u4 slot = (utf_hashkey(u->text,u->blength)) & (newhash.size-1);
+				utf *nextu = u->hashlink;
+				u4 slot = utf_hashkey(u->text, u->blength) & (newhash.size - 1);
 						
-				u->hashlink = (utf*) newhash.ptr[slot];
+				u->hashlink = (utf *) newhash.ptr[slot];
 				newhash.ptr[slot] = u;
 
 				/* follow link in external hash chain */
@@ -463,7 +497,7 @@ utf *utf_new (char *text, u2 length)
 		}
 	
 		/* dispose old table */
-		MFREE (utf_hash.ptr, void*, utf_hash.size);
+		MFREE(utf_hash.ptr, void*, utf_hash.size);
 		utf_hash = newhash;
 	}
 		/*utf_display(u);*/
@@ -478,7 +512,7 @@ utf *utf_new (char *text, u2 length)
 
 ******************************************************************************/
 
-utf *utf_new_char (char *text)
+utf *utf_new_char(char *text)
 {
 	return utf_new(text, strlen(text));
 }
@@ -493,22 +527,23 @@ utf *utf_new_char (char *text)
 
 ******************************************************************************/
 
-utf *utf_new_char_classname (char *text)
+utf *utf_new_char_classname(char *text)
 {
-	if (strchr(text,'.')) {
-		char *txt=strdup(text);
-		char *end=txt+strlen(txt);
+	if (strchr(text, '.')) {
+		char *txt = strdup(text);
+		char *end = txt + strlen(txt);
 		char *c;
 		utf *tmpRes;
-		for (c=txt;c<end;c++)
-			if (*c=='.') *c='/';
-		tmpRes=utf_new(txt,strlen(txt));
+		for (c = txt; c < end; c++)
+			if (*c == '.') *c = '/';
+		tmpRes = utf_new(txt, strlen(txt));
 		free(txt);
 		return tmpRes;
-	}
-	else
-	return utf_new(text, strlen(text));
+
+	} else
+		return utf_new(text, strlen(text));
 }
+
 
 /************************** Funktion: utf_show ******************************
 
@@ -519,7 +554,7 @@ utf *utf_new_char_classname (char *text)
 
 *****************************************************************************/
 
-void utf_show ()
+void utf_show()
 {
 
 #define CHAIN_LIMIT 20               /* limit for seperated enumeration */
@@ -649,7 +684,7 @@ u2 desc_to_type(utf *descriptor)
 	
 ******************************************************************************/
 
-u2 desc_typesize (utf *descriptor)
+u2 desc_typesize(utf *descriptor)
 {
 	switch (desc_to_type(descriptor)) {
 	case TYPE_INT:     return 4;
@@ -691,7 +726,7 @@ u2 utf_nextu2(char **utf_ptr)
 			unsigned char low  = ch2 & 0x3F;
 			unicode_char = (high << 6) + low;
 			len = 2;
-		} 
+		}
 		break;
 
 	case 0xE: /* 2 or 3 bytes */
@@ -828,22 +863,22 @@ is_valid_name_utf(utf *u)
 
 classinfo *class_new(utf *u)
 {
-	classinfo *c;     /* hashtable element */ 
-	u4 key;           /* hashkey computed from classname */   
+	classinfo *c;     /* hashtable element */
+	u4 key;           /* hashkey computed from classname */
 	u4 slot;          /* slot in hashtable */
 	u2 i;
 
-	key  = utf_hashkey (u->text, u->blength);
-	slot = key & (class_hash.size-1);
+	key  = utf_hashkey(u->text, u->blength);
+	slot = key & (class_hash.size - 1);
 	c    = class_hash.ptr[slot];
 
 	/* search external hash chain for the class */
 	while (c) {
 		if (c->name->blength == u->blength) {
-			for (i=0; i<u->blength; i++) 
+			for (i = 0; i < u->blength; i++)
 				if (u->text[i] != c->name->text[i]) goto nomatch;
 						
-			/* class found in hashtable */									
+			/* class found in hashtable */
 			return c;
 		}
 			
@@ -898,7 +933,7 @@ classinfo *class_new(utf *u)
 	/* update number of hashtable-entries */
 	class_hash.entries++;
 
-	if (class_hash.entries > (class_hash.size*2)) {  
+	if (class_hash.entries > (class_hash.size * 2)) {
 
 		/* reorganization of hashtable, average length of 
 		   the external chains is approx. 2                */  
@@ -949,6 +984,7 @@ classinfo *class_new(utf *u)
         
 	return c;
 }
+
 
 /******************** Function: class_get **************************************
 
@@ -1077,15 +1113,15 @@ u4 utf_strlen(utf *u)
 {
     char *endpos  = utf_end(u);  /* points behind utf string       */
     char *utf_ptr = u->text;     /* current position in utf text   */
-    u4 len = 0;			 /* number of unicode characters   */
+    u4 len = 0;                  /* number of unicode characters   */
 
-    while (utf_ptr<endpos) {
+    while (utf_ptr < endpos) {
 		len++;
 		/* next unicode character */
 		utf_nextu2(&utf_ptr);
     }
 
-    if (utf_ptr!=endpos)
+    if (utf_ptr != endpos)
     	/* string ended abruptly */
 		panic("illegal utf string"); 
 
