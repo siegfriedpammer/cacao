@@ -29,7 +29,7 @@
    Changes: Mark Probst
             Philipp Tomsich
 
-   $Id: headers.c 963 2004-03-15 07:37:49Z jowenn $
+   $Id: headers.c 975 2004-03-25 18:09:45Z twisti $
 
 */
 
@@ -114,7 +114,6 @@ void stringtable_update() { }
 void synchronize_caches() { }
 void asm_call_jit_compiler() { }
 void asm_calljavafunction() { }
-void asm_dumpregistersandcall() { }
 s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class) { return 0; }
 
 s4 asm_builtin_idiv(s4 a, s4 b) {return 0;}

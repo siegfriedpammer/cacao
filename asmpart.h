@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 963 2004-03-15 07:37:49Z jowenn $
+   $Id: asmpart.h 975 2004-03-25 18:09:45Z twisti $
 
 */
 
@@ -93,15 +93,6 @@ java_objectarray* Java_java_lang_VMSecurityManager_getClassContext(JNIEnv *env, 
 stacktraceelement *asm_get_stackTrace();
 
 /*java_lang_ClassLoader* Java_java_lang_VMSecurityManager_currentClassLoader(JNIEnv *env, jclass clazz);*/
-/* 
-   This funtion saves all callee saved registers and calls the function
-   which is passed as parameter.
-   This function is needed by the garbage collector, which needs to access
-   all registers which are stored on the stack. Unused registers are
-   cleared to avoid interferances with the GC.
-*/
-void asm_dumpregistersandcall(functionptr f);
-
 
 void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p);
 
