@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 770 2003-12-13 23:08:38Z stefan $
+# $Id: Makefile.am 834 2004-01-04 23:24:25Z twisti $
 
 @SET_MAKE@
 
@@ -60,8 +60,10 @@ cacao_LDADD = \
 	classpathbin/@ARCH_DIR@/native/jni/java-net/.libs/libjavanet.a \
 	classpathbin/@ARCH_DIR@/native/jni/java-util/.libs/libjavautil.a \
 	classpathbin/@ARCH_DIR@/native/jni/java-lang/.libs/libjavalang.a \
-	classpathbin/@ARCH_DIR@/native/jni/java-lang/.libs/libjavalangreflect.a @AWT_OBJS@ @ZIP_LIBS@
-	
+	classpathbin/@ARCH_DIR@/native/jni/java-lang/.libs/libjavalangreflect.a \
+	@AWT_OBJS@ \
+	@ZIP_LIBS@
+
 
 cacao_DEPENDENCIES = \
 	jit/libjit.a \
@@ -70,7 +72,15 @@ cacao_DEPENDENCIES = \
 	toolbox/libtoolbox.a \
 	nat/libnat.a \
 	$(BOEHM_LIBS) \
-	@THREAD_OBJ@
+	@THREAD_OBJ@ \
+	classpathbin/@ARCH_DIR@/native/jni/java-io/.libs/libjavaio.a \
+	classpathbin/@ARCH_DIR@/native/jni/java-nio/.libs/libjavanio.a \
+	classpathbin/@ARCH_DIR@/native/jni/java-net/.libs/libjavanet.a \
+	classpathbin/@ARCH_DIR@/native/jni/java-util/.libs/libjavautil.a \
+	classpathbin/@ARCH_DIR@/native/jni/java-lang/.libs/libjavalang.a \
+	classpathbin/@ARCH_DIR@/native/jni/java-lang/.libs/libjavalangreflect.a \
+	@AWT_OBJS@ \
+	@ZIP_LIBS@
 
 cacaoh_SOURCES = \
 	headers.c \
