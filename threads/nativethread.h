@@ -25,8 +25,8 @@ typedef struct _monitorLockRecord {
 	struct _monitorLockRecord *waiter, *incharge;
 	bool waiting;
 	sem_t queueSem;
-	pthread_mutex_t resolveLock, waitLock;
-	pthread_cond_t resolveWait, waitCond;
+	pthread_mutex_t resolveLock;
+	pthread_cond_t resolveWait;
 } monitorLockRecord;
 
 struct _lockRecordPool;
@@ -68,8 +68,9 @@ typedef struct _threadobject {
 	nativethread info;
 	ExecEnvironment ee;
 
-	long interrupted;
-	monitorLockRecord *waiting;
+	pthread_mutex_t waitLock;
+	pthread_cond_t waitCond;
+	bool interrupted, signaled, isSleeping;
 } threadobject;
 
 monitorLockRecord *monitorEnter(threadobject *, java_objectheader *);

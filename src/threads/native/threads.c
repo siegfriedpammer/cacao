@@ -356,7 +356,7 @@ static void sigsuspend_handler(ucontext_t *ctx)
 
 	/* Do as Boehm does. On IRIX a condition variable is used for wake-up
 	   (not POSIX async-safe). */
-#if defined(__MIPS__)
+#if defined(__IRIX__)
 	pthread_mutex_lock(&suspend_ack_lock);
 	sem_post(&suspend_ack);
 	pthread_cond_wait(&suspend_cond, &suspend_ack_lock);
@@ -533,8 +533,6 @@ initThreads(u1 *stackbottom)
 	if (*exceptionptr)
 		throw_exception_exit();
 
-	/* TODO InheritableThreadLocal */
-
 	setPriority(pthread_self(), 5);
 
 	pthread_attr_init(&threadattr);
@@ -546,11 +544,15 @@ void initThread(java_lang_VMThread *t)
 	threadobject *thread = (threadobject*) t;
 	nativethread *info = &thread->info;
 	info->tid = pthread_self();
+	/* TODO destroy all those things */
 	pthread_mutex_init(&info->joinMutex, NULL);
 	pthread_cond_init(&info->joinCond, NULL);
 
-	thread->interrupted = 0;
-	thread->waiting = NULL;
+	pthread_mutex_init(&thread->waitLock, NULL);
+	pthread_cond_init(&thread->waitCond, NULL);
+	thread->interrupted = false;
+	thread->signaled = false;
+	thread->isSleeping = false;
 }
 
 static void initThreadLocks(threadobject *);
@@ -662,7 +664,7 @@ void joinAllThreads()
 		nativethread *info = &thread->info;
 		pthread_mutex_lock(&info->joinMutex);
 		pthread_mutex_unlock(&threadlistlock);
-		if (info->tid)
+		while (info->tid)
 			pthread_cond_wait(&info->joinCond, &info->joinMutex);
 		pthread_mutex_unlock(&info->joinMutex);
 		pthread_mutex_lock(&threadlistlock);
@@ -682,8 +684,6 @@ static void initLockRecord(monitorLockRecord *r, threadobject *t)
 	sem_init(&r->queueSem, 0, 0);
 	pthread_mutex_init(&r->resolveLock, NULL);
 	pthread_cond_init(&r->resolveWait, NULL);
-	pthread_mutex_init(&r->waitLock, NULL);
-	pthread_cond_init(&r->waitCond, NULL);
 }
 
 /* No lock record must ever be destroyed because there may still be references
@@ -694,8 +694,6 @@ static void destroyLockRecord(monitorLockRecord *r)
 	sem_destroy(&r->queueSem);
 	pthread_mutex_destroy(&r->resolveLock);
 	pthread_cond_destroy(&r->resolveWait);
-	pthread_mutex_destroy(&r->waitLock);
-	pthread_cond_destroy(&r->waitCond);
 }
 */
 
@@ -798,7 +796,7 @@ static void queueOnLockRecord(monitorLockRecord *lr, java_objectheader *o)
 {
 	atomic_add(&lr->queuers, 1);
 	MEMORY_BARRIER_AFTER_ATOMIC();
-	if (lr->o == o)
+	while (lr->o == o)
 		sem_wait(&lr->queueSem);
 	atomic_add(&lr->queuers, -1);
 }
@@ -920,19 +918,38 @@ static void removeFromWaiters(monitorLockRecord *lr, monitorLockRecord *wlr)
 	} while (lr);
 }
 
+static inline bool timespec_less(const struct timespec *tv1, const struct timespec *tv2)
+{
+	return tv1->tv_sec < tv2->tv_sec || (tv1->tv_sec == tv2->tv_sec && tv1->tv_nsec < tv2->tv_nsec);
+}
+
+static bool timeIsEarlier(const struct timespec *tv)
+{
+	struct timeval tvnow;
+	struct timespec tsnow;
+	gettimeofday(&tvnow, NULL);
+	tsnow.tv_sec = tvnow.tv_sec;
+	tsnow.tv_nsec = tvnow.tv_usec * 1000;
+	return timespec_less(&tsnow, tv);
+}
+
 bool waitWithTimeout(threadobject *t, monitorLockRecord *lr, struct timespec *wakeupTime)
 {
 	bool wasinterrupted;
 
-	pthread_mutex_lock(&lr->waitLock);
-	t->waiting = lr;
+	pthread_mutex_lock(&t->waitLock);
+	t->isSleeping = true;
 	if (wakeupTime->tv_sec || wakeupTime->tv_nsec)
-		pthread_cond_timedwait(&lr->waitCond, &lr->waitLock, wakeupTime);
+		while (!t->interrupted && !t->signaled && timeIsEarlier(wakeupTime))
+			pthread_cond_timedwait(&t->waitCond, &t->waitLock, wakeupTime);
 	else
-		pthread_cond_wait(&lr->waitCond, &lr->waitLock);
-	wasinterrupted = t->waiting == NULL;
-	t->waiting = NULL;
-	pthread_mutex_unlock(&lr->waitLock);
+		while (!t->interrupted && !t->signaled)
+			pthread_cond_wait(&t->waitCond, &t->waitLock);
+	wasinterrupted = t->interrupted;
+	t->interrupted = false;
+	t->signaled = false;
+	t->isSleeping = false;
+	pthread_mutex_unlock(&t->waitLock);
 	return wasinterrupted;
 }
 
@@ -987,10 +1004,16 @@ static void notifyOneOrAll(threadobject *t, java_objectheader *o, bool one)
 	GRAB_LR(lr, t);
 	CHECK_MONITORSTATE(lr, t, o, return);
 	do {
+		threadobject *wthread;
 		monitorLockRecord *wlr = lr->waiter;
 		if (!wlr)
 			break;
-		pthread_cond_signal(&wlr->waitCond);
+		wthread = wlr->ownerThread;
+		pthread_mutex_lock(&wthread->waitLock);
+		if (wthread->isSleeping)
+			pthread_cond_signal(&wthread->waitCond);
+		wthread->signaled = true;
+		pthread_mutex_unlock(&wthread->waitLock);
 		lr = wlr;
 	} while (!one);
 }
@@ -1006,25 +1029,18 @@ void interruptThread(java_lang_VMThread *thread)
 {
 	threadobject *t = (threadobject*) thread;
 
-	monitorLockRecord *lr = t->waiting;
-	if (lr) {
-		pthread_mutex_lock(&lr->waitLock);
-		if (t->waiting == lr) {
-			t->waiting = NULL;
-			pthread_cond_signal(&lr->waitCond);
-		}
-		pthread_mutex_unlock(&lr->waitLock);
-		return;
-	}
-	
-	t->interrupted = 1;
+	t->interrupted = true;
+	pthread_mutex_lock(&t->waitLock);
+	if (t->isSleeping)
+		pthread_cond_signal(&t->waitCond);
+	pthread_mutex_unlock(&t->waitLock);
 }
 
 bool interruptedThread()
 {
 	threadobject *t = (threadobject*) THREADOBJECT;
-	long intr = t->interrupted;
-	t->interrupted = 0;
+	bool intr = t->interrupted;
+	t->interrupted = false;
 	return intr;
 }
 
