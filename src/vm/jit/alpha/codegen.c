@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.c 967 2004-03-18 14:29:03Z jowenn $
+   $Id: codegen.c 1054 2004-05-05 21:08:55Z stefan $
 
 */
 
@@ -303,6 +303,15 @@ typedef struct sigctx_struct {
 	unsigned long sc_retcode[2];
 } sigctx_struct;
 
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+void thread_restartcriticalsection(ucontext_t *uc)
+{
+	void *critical;
+	if ((critical = thread_checkcritical((void*) uc->uc_mcontext.sc_pc)) != NULL)
+		uc->uc_mcontext.sc_pc = (u8) critical;
+}
+#endif
 
 /* NullPointerException signal handler for hardware null pointer check */
 
@@ -3422,6 +3431,9 @@ makeactualcall:
 			{
 			classinfo *super = (classinfo*) iptr->val.a;
 			
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			codegen_threadcritrestart((u1*) mcodeptr - mcodebase);
+#endif
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			if (s1 == d) {
@@ -3459,9 +3471,15 @@ makeactualcall:
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 					a = dseg_addaddress ((void*) super->vftbl);
 					M_ALD(REG_ITMP2, REG_PV, a);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstart((u1*) mcodeptr - mcodebase);
+#endif
 					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+#endif
 					M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 					M_CMPULE(REG_ITMP1, REG_ITMP2, d);
 					}
@@ -3493,6 +3511,9 @@ makeactualcall:
 			{
 			classinfo *super = (classinfo*) iptr->val.a;
 			
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			codegen_threadcritrestart((u1*) mcodeptr - mcodebase);
+#endif
 			d = reg_of_var(iptr->dst, REG_ITMP3);
 			var_to_reg_int(s1, src, d);
 			if (iptr->op1) {                               /* class/interface */
@@ -3533,10 +3554,16 @@ makeactualcall:
 					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 					a = dseg_addaddress ((void*) super->vftbl);
 					M_ALD(REG_ITMP2, REG_PV, a);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstart((u1*) mcodeptr - mcodebase);
+#endif
 					M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl, baseval));
 					if (d != REG_ITMP3) {
 						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl, baseval));
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+						codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+#endif
 						M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 						}
 					else {
@@ -3544,6 +3571,9 @@ makeactualcall:
 						M_ISUB(REG_ITMP1, REG_ITMP2, REG_ITMP1);
 						M_ALD(REG_ITMP2, REG_PV, a);
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl, diffval));
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+						codegen_threadcritstop((u1*) mcodeptr - mcodebase);
+#endif
 						}
 					M_CMPULE(REG_ITMP1, REG_ITMP2, REG_ITMP2);
 					M_BEQZ(REG_ITMP2, 0);
@@ -3936,8 +3966,16 @@ void removecompilerstub(u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE      44
-#define NATIVEVERBOSESIZE   39 + 13
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#define NATIVESTUBSTACK     2
+#define NATIVESTUBTHREADEXTRA 5
+#else
+#define NATIVESTUBSTACK     1
+#define NATIVESTUBTHREADEXTRA 0
+#endif
+
+#define NATIVESTUBSIZE      (44 + NATIVESTUBTHREADEXTRA)
+#define NATIVEVERBOSESIZE   (39 + 13)
 #define NATIVESTUBOFFSET    8
 
 u1 *createnativestub(functionptr f, methodinfo *m)
@@ -3958,7 +3996,11 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	mcodeptr = (s4 *) (cs);             /* code generation pointer            */
 
 	*(cs-1) = (u8) f;                   /* address of native method           */
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	*(cs-2) = (u8) &builtin_get_exceptionptrptr;
+#else
 	*(cs-2) = (u8) (&_exceptionptr);    /* address of exceptionptr            */
+#endif
 	*(cs-3) = (u8) asm_handle_nat_exception; /* addr of asm exception handler */
 	*(cs-4) = (u8) (&env);              /* addr of jni_environement           */
 	*(cs-5) = (u8) builtin_trace_args;
@@ -3966,7 +4008,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	*(cs-7) = (u8) builtin_displaymethodstop;
 	*(cs-8) = (u8) m->class;
 
-	M_LDA(REG_SP, REG_SP, -1 * 8);      /* build up stackframe                */
+	M_LDA(REG_SP, REG_SP, -NATIVESTUBSTACK * 8);      /* build up stackframe  */
 	M_AST(REG_RA, REG_SP, 0 * 8);       /* store return address               */
 
 	/* max. 39 instructions */
@@ -4126,18 +4168,34 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		M_LDA(REG_SP, REG_SP, 2 * 8);
 	}
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	if (IS_FLT_DBL_TYPE(m->returntype))
+		M_DST(REG_FRESULT, REG_SP, 1 * 8);
+	else
+		M_AST(REG_RESULT, REG_SP, 1 * 8);
+	M_ALD(REG_PV, REG_PV, -2 * 8);      /* builtin_get_exceptionptrptr        */
+	M_JSR(REG_RA, REG_PV);
+	disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
+	M_LDA(REG_PV, REG_RA, disp);
+	M_MOV(REG_RESULT, REG_ITMP3);
+	if (IS_FLT_DBL_TYPE(m->returntype))
+		M_DLD(REG_FRESULT, REG_SP, 1 * 8);
+	else
+		M_ALD(REG_RESULT, REG_SP, 1 * 8);
+#else
 	M_ALD(REG_ITMP3, REG_PV, -2 * 8);   /* get address of exceptionptr        */
+#endif
 	M_ALD(REG_ITMP1, REG_ITMP3, 0);     /* load exception into reg. itmp1     */
 	M_BNEZ(REG_ITMP1, 3);               /* if no exception then return        */
 
 	M_ALD(REG_RA, REG_SP, 0 * 8);       /* load return address                */
-	M_LDA(REG_SP, REG_SP, 1 * 8);       /* remove stackframe                  */
+	M_LDA(REG_SP, REG_SP, NATIVESTUBSTACK * 8); /* remove stackframe          */
 	M_RET(REG_ZERO, REG_RA);            /* return to caller                   */
 
 	M_AST(REG_ZERO, REG_ITMP3, 0);      /* store NULL into exceptionptr       */
 
 	M_ALD(REG_RA, REG_SP, 0 * 8);       /* load return address                */
-	M_LDA(REG_SP, REG_SP, 1 * 8);       /* remove stackframe                  */
+	M_LDA(REG_SP, REG_SP, NATIVESTUBSTACK * 8); /* remove stackframe          */
 	M_LDA(REG_ITMP2, REG_RA, -4);       /* move fault address into reg. itmp2 */
 	M_ALD(REG_ITMP3, REG_PV, -3 * 8);   /* load asm exception handler address */
 	M_JMP(REG_ZERO, REG_ITMP3);         /* jump to asm exception handler      */

@@ -14,6 +14,7 @@
 
 #include "config.h"
 #include "thread.h"
+#include "codegen.h"
 #include "locks.h"
 #include "tables.h"
 #include "native.h"
@@ -201,7 +202,6 @@ static void sigsuspend_handler(ucontext_t *ctx)
 {
 	int sig;
 	sigset_t sigs;
-	void *critical;
 	
 	thread_restartcriticalsection(ctx);
 
@@ -451,12 +451,12 @@ static void initThreadLocks(threadobject *thread)
 
 static inline int lockState(long r)
 {
-	return r & 3;
+	return (int) r & 3;
 }
 
 static inline void *lockRecord(long r)
 {
-	return (void*) (r & ~3);
+	return (void*) (r & ~3L);
 }
 
 static inline long makeLockBits(void *r, long l)
@@ -570,9 +570,9 @@ static long getMetaLockSlow(threadobject *t, long predBits)
 static void releaseMetaLock(threadobject *t, java_objectheader *o, long releaseBits)
 {
 	long busyBits = makeLockBits(t, BUSY);
-	long lockBits = compare_and_swap(&o->monitorBits, busyBits, releaseBits);
+	long locked = compare_and_swap(&o->monitorBits, busyBits, releaseBits);
 	
-	if (lockBits != busyBits)
+	if (!locked)
 		releaseMetaLockSlow(t, releaseBits);
 }
 

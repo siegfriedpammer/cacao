@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 617 2003-11-13 09:20:03Z stefan $
+# $Id: Makefile.am 1054 2004-05-05 21:08:55Z stefan $
 
 
 INCLUDES = -I$(top_srcdir)/jit
@@ -10,6 +10,7 @@ EXTRA_DIST = \
 	disass.c \
 	disass.h \
 	native-math.h \
+	machine-instr.h \
 	codegen.c \
 	codegen.h \
 	types.h \

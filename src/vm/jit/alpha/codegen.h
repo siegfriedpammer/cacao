@@ -28,13 +28,15 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.h 899 2004-01-22 13:24:36Z twisti $
+   $Id: codegen.h 1054 2004-05-05 21:08:55Z stefan $
 
 */
 
 
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
+
+#include <ucontext.h>
 
 #include "jit.h"
 
@@ -394,6 +396,7 @@ void init_exceptions();
 void codegen();
 void codegen_close();
 void dseg_display(s4 *s4ptr);
+void thread_restartcriticalsection(ucontext_t*);
 
 #endif /* _CODEGEN_H */
 
