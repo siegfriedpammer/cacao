@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 1446 2004-11-05 13:58:25Z twisti $
+   $Id: VMClass.c 1516 2004-11-17 11:53:56Z twisti $
 
 */
 
@@ -121,7 +121,8 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, jclass clazz, java_lang_Class *that)
 {  
-	return ((classinfo*)that)->classloader;
+	return (java_lang_ClassLoader *) ((classinfo *) that)->classloader;
+
 /*	init_systemclassloader();
 
 	return SystemClassLoader;*/
@@ -447,17 +448,31 @@ java_lang_reflect_Method* cacao_getMethod0(JNIEnv *env, java_lang_Class *that, j
 		return NULL;
 	}
    
-    /* array of exceptions declared to be thrown, information not available !! */
+    /* array of exceptions declared to be thrown, information not available!  */
     exceptiontypes = builtin_anewarray(0, class_java_lang_Class);
 
     /* initialize instance fields */
-    setfield_critical(c,o,"clazz",          "Ljava/lang/Class;",  jobject, (jobject) clazz /*this*/);
-    setfield_critical(c,o,"parameterTypes", "[Ljava/lang/Class;", jobject, (jobject) types);
-    setfield_critical(c,o,"exceptionTypes", "[Ljava/lang/Class;", jobject, (jobject) exceptiontypes);
-    setfield_critical(c,o,"name",           "Ljava/lang/String;", jstring, javastring_new(m->name));
-    setfield_critical(c,o,"modifiers",      "I",		  jint,    m->flags);
-    setfield_critical(c,o,"slot",           "I",		  jint,    0); 
-    setfield_critical(c,o,"returnType",     "Ljava/lang/Class;",  jclass,  get_returntype(m));
+
+    setfield_critical(c, o, "clazz",          "Ljava/lang/Class;",  jobject,
+					  (jobject) clazz /*this*/);
+
+    setfield_critical(c, o, "parameterTypes", "[Ljava/lang/Class;", jobject,
+					  (jobject) types);
+
+    setfield_critical(c, o, "exceptionTypes", "[Ljava/lang/Class;", jobject,
+					  (jobject) exceptiontypes);
+
+    setfield_critical(c, o, "name",           "Ljava/lang/String;", jstring,
+					  (jobject) javastring_new(m->name));
+
+    setfield_critical(c, o, "modifiers",      "I",                  jint,
+					  m->flags);
+
+    setfield_critical(c, o, "slot",           "I",                  jint,
+					  0); 
+
+    setfield_critical(c, o, "returnType",     "Ljava/lang/Class;",  jclass,
+					  get_returntype(m));
 
     return o;
 }
@@ -535,7 +550,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 					ACC_SYNCHRONIZED | ACC_NATIVE | ACC_STRICT)
 					);*/
 			setfield_critical(class_method,o,"declaringClass",          "Ljava/lang/Class;",  jobject, (jobject) c /*this*/);
-			setfield_critical(class_method,o,"name",           "Ljava/lang/String;", jstring, javastring_new(m->name));
+			setfield_critical(class_method,o,"name",           "Ljava/lang/String;", jstring, (jobject) javastring_new(m->name));
 			/*	    setfield_critical(class_method,o,"flag",      "I",		     jint,   (m->flags &
 					(ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_ABSTRACT | ACC_STATIC | ACC_FINAL |
 					ACC_SYNCHRONIZED | ACC_NATIVE | ACC_STRICT)));*/
@@ -729,7 +744,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz
 {
 /*  	classinfo *clazz = (classinfo *) that; */
 
-	return (*env)->IsInstanceOf(env, (jobject) obj, that);
+	return (*env)->IsInstanceOf(env, (jobject) obj, (jclass) that);
 }
 
 
@@ -781,7 +796,9 @@ JNIEXPORT void JNICALL Java_java_lang_VMClass_initialize(JNIEnv *env, jclass cla
 
 	/* initialize class */
 	if (!ci->initialized)
-		class_init(ci);
+		/* No need to check return value, because class_init already sets the */
+		/* exception pointer. */
+		(void) class_init(ci);
 }
 
 
@@ -805,11 +822,8 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_loadArrayClass(JNIEnv 
  */
 JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass clazz, java_lang_Throwable *t)
 {
-	*exceptionptr = t;
+	*exceptionptr = (java_objectheader *) t;
 }
-
-
-
 
 
 /*
