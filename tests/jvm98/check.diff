@@ -302,11 +302,34 @@ diff -u check1/Main.java check/Main.java
          ", priv=" + sub.getPrivate());
  }
  
-diff -u check1/PepTest.java check/PepTest.java
---- check1/PepTest.java	Wed Jun 17 22:14:13 1998
-+++ check/PepTest.java	Fri Oct 25 16:12:43 2002
-@@ -13,9 +13,6 @@
+diff -u check1/Sub.java check/Sub.java
+--- check1/Sub.java	Wed Jun 17 22:14:14 1998
++++ check/Sub.java	Fri Oct 25 16:12:54 2002
+@@ -9,8 +9,6 @@
+  * See what happens here where we subclass Super
+  */
+ 
+-package spec.benchmarks._200_check;
+-
+ public class Sub extends Super{
+ 
+ ///////////////////////////////////////
+diff -u check1/Super.java check/Super.java
+--- check1/Super.java	Wed Jun 17 22:14:15 1998
++++ check/Super.java	Fri Oct 25 16:13:01 2002
+@@ -9,8 +9,6 @@
   * This source code is provided as is, without any express or implied warranty.
+  */
+ 
+-package spec.benchmarks._200_check;
+-
+ public class Super{
+ 
+ ///////////////////////////////////////
+--- check1/PepTest.java	2004-08-03 17:41:02.000000000 +0200
++++ check/PepTest.java	2004-08-03 19:57:21.000000000 +0200
+@@ -20,9 +20,6 @@
+  *    Fix (jvm98support-25)
   */
  
 -package spec.benchmarks._200_check;
@@ -315,7 +338,7 @@ diff -u check1/PepTest.java check/PepTest.java
  class syncTest {
    int x = 5;
  
-@@ -89,7 +86,7 @@
+@@ -96,7 +93,7 @@
    public boolean gotError = false;
  
    String testDiv() {
@@ -324,7 +347,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int a, b;
      long c, d;
      double e, f;
-@@ -141,7 +138,7 @@
+@@ -148,7 +145,7 @@
    }
  
    String testIf() {
@@ -333,7 +356,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int a = 3, b, c;
      b = a;
      if(b * b == 9) 
-@@ -217,7 +214,7 @@
+@@ -224,7 +221,7 @@
  
    String testBitOps() {
      /* Simple test of a few bit operations. By no means complete. */
@@ -342,7 +365,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int v = 0xcafebabe;
      if (shiftAnd(v, 24) != 0xca) return "bad shift-and 1";
      if (shiftAnd(v, 16) != 0xfe) return "bad shift-and 2";
-@@ -228,7 +225,7 @@
+@@ -235,7 +232,7 @@
  
    String testFor() {
      int s = 0;
@@ -351,7 +374,7 @@ diff -u check1/PepTest.java check/PepTest.java
      for (int a = 0; a < 100; a++)
        for (int b = a; b >=0; b = b - 2)
          s = a + s + b;
-@@ -238,7 +235,7 @@
+@@ -245,7 +242,7 @@
    }
  
    String testTableSwitch() {
@@ -360,7 +383,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int s = 2, r;
      s = s * 3;
      switch(s) {
-@@ -270,7 +267,7 @@
+@@ -277,7 +274,7 @@
    }
  
    String testLookupSwitch() {
@@ -369,7 +392,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int s = 2, r;
      s = s * 3000;
      switch(s) {
-@@ -302,7 +299,7 @@
+@@ -309,7 +306,7 @@
    }
  
    String testHiddenField() {
@@ -378,7 +401,7 @@ diff -u check1/PepTest.java check/PepTest.java
      subClass f2 = new subClass();
      superClass f1 = f2;
      if (f1.val != 1) 
-@@ -318,10 +315,10 @@
+@@ -325,10 +322,10 @@
  
    void printTime() {
      java.util.Date now = new java.util.Date();
@@ -393,7 +416,7 @@ diff -u check1/PepTest.java check/PepTest.java
    }
  
    String checkInst(superClass x, boolean r1, boolean r2, boolean r3, int c) {
-@@ -337,7 +334,7 @@
+@@ -344,7 +341,7 @@
    }
  
    String checkInstanceOf() {
@@ -402,7 +425,7 @@ diff -u check1/PepTest.java check/PepTest.java
  
   /* subClass a[] = new subClass[2];
      ((superClass[])a)[1] = new superClass(); */
-@@ -363,7 +360,7 @@
+@@ -370,7 +367,7 @@
    }
  
    String checkInterfaceInstanceOf() {
@@ -411,7 +434,7 @@ diff -u check1/PepTest.java check/PepTest.java
      java.lang.Object c1 = new C1();
      java.lang.Object c2 = new C2();
      java.lang.Object c3 = new C3();
-@@ -390,7 +387,7 @@
+@@ -397,7 +394,7 @@
    }
  
    String testExc1() {
@@ -420,7 +443,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int x = 0;
      try {
        if (x == 0) x = 1; else x = -1;
-@@ -413,7 +410,7 @@
+@@ -420,7 +417,7 @@
    }
  
    String testExc2() {
@@ -429,7 +452,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int x = 0;
      try {
        if (x == 0) x = 1; else x = -1;
-@@ -433,7 +430,7 @@
+@@ -440,7 +437,7 @@
    }
  
    String testExc3() {
@@ -438,7 +461,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int x = 0;
      try {
        if (x == 0) x = 1; else x = -1;
-@@ -457,7 +454,7 @@
+@@ -464,7 +461,7 @@
    }
  
    String testExc4() {
@@ -447,7 +470,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int x = 0;
      try {
        if (x == 0) x = 1; else x = -1;
-@@ -477,7 +474,7 @@
+@@ -484,7 +481,7 @@
    }
  
    String testExc5() {
@@ -456,7 +479,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int x = 0;
      try {
        if (x == 0) x = 1; else x = -1;
-@@ -498,7 +495,7 @@
+@@ -505,7 +502,7 @@
    }
  
    String testExc6() {
@@ -465,7 +488,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int x = 0;
      try {
        x = 1;
-@@ -514,7 +511,7 @@
+@@ -521,7 +518,7 @@
    }
  
    String testExc7() {
@@ -474,7 +497,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int x = 0;
      try {
        x = 1;
-@@ -540,7 +537,7 @@
+@@ -547,7 +544,7 @@
    final static int allocChunk = 50000;
  
    String testExc8() {
@@ -483,7 +506,7 @@ diff -u check1/PepTest.java check/PepTest.java
      System.gc();
      Runtime runt = Runtime.getRuntime();
      long freeSpace = runt.freeMemory();
-@@ -572,7 +569,7 @@
+@@ -579,7 +576,7 @@
    }
   
    String testExc9() {
@@ -492,7 +515,7 @@ diff -u check1/PepTest.java check/PepTest.java
      System.gc();
      Runtime runt = Runtime.getRuntime();
      long freeSpace = runt.freeMemory();
-@@ -612,7 +609,7 @@
+@@ -619,7 +616,7 @@
    
  
    String testStringHash() {
@@ -501,7 +524,7 @@ diff -u check1/PepTest.java check/PepTest.java
      String res;
      /* These are the  JDK1.1 values.  */
      if (null != (res = stringHash("monkey", -817689237, -1068495917)))  
-@@ -630,7 +627,7 @@
+@@ -637,7 +634,7 @@
  
  
    String testObjectHash() {
@@ -510,7 +533,7 @@ diff -u check1/PepTest.java check/PepTest.java
      java.util.Hashtable ht = new java.util.Hashtable();
      Integer ii;
      for (int i = 0; i < 1000; i++) {
-@@ -645,7 +642,7 @@
+@@ -652,7 +649,7 @@
    }
  
    String loopExitContinueInExceptionHandler() {
@@ -519,7 +542,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int i = 0;
      while(i < 10000) {
        i++;
-@@ -667,7 +664,7 @@
+@@ -674,7 +671,7 @@
    }
  
    String testClone() {
@@ -528,7 +551,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int[] w, v = new int[100];   /* Check that we can clone arrays. */
      for (int i = 0; i < v.length; i++) v[i] = i * i;
      w = (int[])v.clone();
-@@ -705,16 +702,16 @@
+@@ -712,16 +709,16 @@
    }
  
    void printInterfaces(java.lang.Class cl) {
@@ -550,7 +573,7 @@ diff -u check1/PepTest.java check/PepTest.java
    }
  
    String testClass() {
-@@ -754,7 +751,7 @@
+@@ -761,7 +758,7 @@
    }
  
    String testWaitNull() {
@@ -559,7 +582,7 @@ diff -u check1/PepTest.java check/PepTest.java
      try {
        ((java.lang.Object)null).wait(43);
      } catch (java.lang.Exception e) {
-@@ -766,7 +763,7 @@
+@@ -773,7 +770,7 @@
    }
  
    String testVarAndMethodNameClash() {
@@ -568,7 +591,7 @@ diff -u check1/PepTest.java check/PepTest.java
      superClass s = new superClass();
      int x;
  
-@@ -801,12 +798,12 @@
+@@ -808,12 +805,12 @@
  
    void checkAllNull(java.lang.Object a[]) {
      for (int i = 0; i < a.length; i++) {
@@ -583,7 +606,7 @@ diff -u check1/PepTest.java check/PepTest.java
      subClass   a[] = new   subClass[10];
      superClass b[] = new superClass[10];
  
-@@ -910,9 +907,9 @@
+@@ -923,9 +920,9 @@
      if (a == 1)
        throw(new java.lang.ArithmeticException("fisk"));
      if (a == 1)
@@ -595,7 +618,7 @@ diff -u check1/PepTest.java check/PepTest.java
    }
  
    int testDup() {
-@@ -933,7 +930,7 @@
+@@ -946,7 +943,7 @@
    static int      staticIntArray[][] = {{1,2,3}, {4,5,6}};
  
    String testArray() {
@@ -604,7 +627,7 @@ diff -u check1/PepTest.java check/PepTest.java
      int x[];
      x = new int[6];
      x[4] = 3;
-@@ -977,33 +974,33 @@
+@@ -991,33 +988,33 @@
    }
  
    void printPrimes() {
@@ -649,7 +672,7 @@ diff -u check1/PepTest.java check/PepTest.java
      }
      return ok;
    }
-@@ -1011,21 +1008,21 @@
+@@ -1025,21 +1022,21 @@
    boolean checkRemD(double a, double b, double res) {
      boolean ok = (res == a % b);
      if (!ok) {
@@ -676,7 +699,7 @@ diff -u check1/PepTest.java check/PepTest.java
      if (!checkRemL( 10L,  7L, 3L))  ok = false;
      if (!checkRemL( 10L, -7L, 3L))  ok = false;
      if (!checkRemL(-10L,  7L, -3L)) ok = false;
-@@ -1036,7 +1033,7 @@
+@@ -1050,7 +1047,7 @@
      if (!checkRemD(-10.5,  7.0, -3.5)) ok = false;
      if (!checkRemD(-10.5, -7.0, -3.5)) ok = false;
      if (!ok) return "remainders failed";
@@ -685,7 +708,7 @@ diff -u check1/PepTest.java check/PepTest.java
      return null; 
    }
  
-@@ -1050,14 +1047,14 @@
+@@ -1064,14 +1061,14 @@
        m = ar;
      if (m == 0.0) m = 1.0;
      if ((v - r) / m > 0.0001) {
@@ -702,7 +725,7 @@ diff -u check1/PepTest.java check/PepTest.java
      boolean ok = true; 
      if (!checkClose("log(0.7)",  Math.log(0.7),  -0.356675)) ok = false;
      if (!checkClose("sin(0.7)",  Math.sin(0.7),   0.644218)) ok = false;
-@@ -1096,13 +1093,13 @@
+@@ -1110,13 +1107,13 @@
    }
     
    String testDeepStack() {
@@ -718,7 +741,7 @@ diff -u check1/PepTest.java check/PepTest.java
      String right = "-9223372036854775808";
      if (!right.equals("" + ((long)1 << 63)))
        return "(long)1 << 63 failed, returned: " + ((long)1 << 63) +
-@@ -1134,7 +1131,7 @@
+@@ -1148,7 +1145,7 @@
    }
  
    String testGC() {
@@ -727,7 +750,7 @@ diff -u check1/PepTest.java check/PepTest.java
      byte[][] bytesArrays = new byte[1000][];
      bytesArrays[0] = new byte[1000];  /* See if GC eats this array! */
      Runtime.getRuntime().gc();
-@@ -1156,7 +1153,7 @@
+@@ -1170,7 +1167,7 @@
  /*
   * Skip file tests in an applet, wnb 2/13/98
    String testFileOps() {
@@ -736,7 +759,7 @@ diff -u check1/PepTest.java check/PepTest.java
      java.io.File f = new java.io.File(".");
      if (!f.isDirectory()) return "'.' is not a directory";
      if (!f.exists())      return "'.' does not exist";
-@@ -1208,11 +1205,11 @@
+@@ -1222,11 +1219,11 @@
  //  Don't perform fp accuracy check so that 80-bit intermediate values
  //  will not be flagged as invalid. Per precedent of (osgjava-143) November
  //  1997 minutes, and (osgjava-340) May 1998 minutes: specifications section
@@ -751,27 +774,3 @@ diff -u check1/PepTest.java check/PepTest.java
    }
  
    public static void main(String[] args) {
-diff -u check1/Sub.java check/Sub.java
---- check1/Sub.java	Wed Jun 17 22:14:14 1998
-+++ check/Sub.java	Fri Oct 25 16:12:54 2002
-@@ -9,8 +9,6 @@
-  * See what happens here where we subclass Super
-  */
- 
--package spec.benchmarks._200_check;
--
- public class Sub extends Super{
- 
- ///////////////////////////////////////
-diff -u check1/Super.java check/Super.java
---- check1/Super.java	Wed Jun 17 22:14:15 1998
-+++ check/Super.java	Fri Oct 25 16:13:01 2002
-@@ -9,8 +9,6 @@
-  * This source code is provided as is, without any express or implied warranty.
-  */
- 
--package spec.benchmarks._200_check;
--
- public class Super{
- 
- ///////////////////////////////////////

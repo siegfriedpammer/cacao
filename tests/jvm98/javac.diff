@@ -22,24 +22,13 @@ diff -u javac1/input/lib/spec/benchmarks/_202_jess/Main.java javac/input/lib/spe
 diff -Nu javac2/postoutput.sh javac/postoutput.sh
 --- javac2/postoutput.sh	Thu Jan  1 01:00:00 1970
 +++ javac/postoutput.sh	Mon Dec  2 09:53:53 2002
-@@ -0,0 +1,7 @@
+@@ -0,0 +1,6 @@
 +unset LANG LC_ALL LC_COLLATE
 +rm -f *.class
-+../../cacao -ieee sun.tools.javac.Main -classpath classes.zip JavaLex.java
++$JAVAC -classpath classes.zip JavaLex.java
 +rm -fr sun
-+../../cacao -ieee -log /dev/null sun.tools.javap.JavaP -classpath .:lib -c `ls *.class|sed 's/\.class//g'` | sed 's/\#[0-9]*/#/g' >> javac.output
-+../../cacao -ieee JavaLex sample.lex
++$JAVA JavaLex sample.lex
 +cat sample.lex.java >> javac.output
---- javac1/input/JavaLex.java	Wed Jun 17 19:59:04 1998
-+++ javac/input/JavaLex.java	Mon Dec  2 12:49:16 2002
-@@ -3407,7 +3407,6 @@
-         lg = new CLexGen(arg[0]);
-         lg.generate();
- 
--        spec.benchmarks._202_jess.Main.main(null);
-       }
- }    
-
 diff -Nu javac2/setup.sh javac/setup.sh
 --- javac2/setup.sh	Thu Jan  1 01:00:00 1970
 +++ javac/setup.sh	Mon Dec  2 12:52:56 2002
@@ -49,7 +38,7 @@ diff -Nu javac2/setup.sh javac/setup.sh
 +mv Middle.java Main.java
 +cp ../../jvm98/spec/benchmarks/_*_jess/input/* input
 +mv lib/spec .
-+../../cacao -ieee sun.tools.javac.Main -d . spec/*/*/*.java
++$JAVAC -d . spec/*/*/*.java
 diff -Nu javac2/sample.lex javac/sample.lex
 --- javac2/sample.lex	Thu Jan  1 01:00:00 1970
 +++ javac/sample.lex	Wed Sep  6 16:09:48 2000
@@ -213,3 +202,531 @@ diff -Nu javac2/sample.lex javac/sample.lex
 +
 +
 +
+--- javac1/input/lib/spec/benchmarks/_202_jess/Funcall.java	2004-08-03 18:29:03.000000000 +0200
++++ javac/input/lib/spec/benchmarks/_202_jess/Funcall.java	2004-08-03 18:02:35.000000000 +0200
+@@ -265,9 +265,9 @@
+ 
+       engine.advance();
+       switch (engine.st.ttype) {
+-      case engine.st.TT_WORD:
++      case StreamTokenizer.TT_WORD:
+         return new Value(RU.putAtom(engine.st.sval), RU.ATOM);
+-      case engine.st.TT_NUMBER:
++      case StreamTokenizer.TT_NUMBER:
+         return new Value(engine.st.nval, RU.FLOAT);
+       case '"':
+         return new Value(RU.putAtom(engine.st.sval), RU.STRING);
+--- javac1/input/lib/spec/benchmarks/_202_jess/Jesp.java	2004-08-03 18:29:03.000000000 +0200
++++ javac/input/lib/spec/benchmarks/_202_jess/Jesp.java	2004-08-03 18:05:05.000000000 +0200
+@@ -104,12 +104,12 @@
+ 
+   private Value ParseSexp() throws ReteException {
+     if (st.ttype != '(')
+-    if (advance() != st.TT_WORD)
++    if (advance() != StreamTokenizer.TT_WORD)
+       throw new ReteException("Jesp::ParseSexp", "Expected '(' at line " + st.lineno(),
+                               "" + st.ttype);
+ 
+     /* first symbol is always a word */
+-    if (advance() != st.TT_WORD)
++    if (advance() != StreamTokenizer.TT_WORD)
+       throw new ReteException("Jesp::ParseSexp", "Expected an atom at line "+st.lineno(),
+                               "" + st.ttype);
+     
+@@ -153,7 +153,7 @@
+     while (st.ttype == '?') {
+       advance();
+       // name of variable expected
+-      if (st.ttype != st.TT_WORD)
++      if (st.ttype != StreamTokenizer.TT_WORD)
+         throw new ReteException("Jesp::ParseDefglobal",
+                                 "Expected an atom for variable at line " + st.lineno(),
+                                 "" + st.ttype);
+@@ -164,9 +164,9 @@
+       advance();
+ 
+       switch (st.ttype) {
+-      case st.TT_WORD:
++      case StreamTokenizer.TT_WORD:
+         dg.AddGlobal(g, new Value(st.sval, RU.ATOM)); break;
+-      case st.TT_NUMBER:
++      case StreamTokenizer.TT_NUMBER:
+         dg.AddGlobal(g, new Value(st.nval, RU.FLOAT)); break;
+       case '"':
+         dg.AddGlobal(g, new Value(st.sval, RU.STRING)); break;
+@@ -207,7 +207,7 @@
+     advance();
+ 
+     // name of deffacts required
+-    if (st.ttype != st.TT_WORD)
++    if (st.ttype != StreamTokenizer.TT_WORD)
+       throw new ReteException("Jesp::ParseDeffacts", "Expected an atom at line "
+                               + st.lineno(), "" + st.ttype);
+ 
+@@ -267,7 +267,7 @@
+     advance();
+ 
+     // name of defrule required
+-    if (st.ttype != st.TT_WORD) 
++    if (st.ttype != StreamTokenizer.TT_WORD) 
+       throw new ReteException("Jesp::ParseDefrule", "Expected an atom at line "
+                               + st.lineno(), "" + st.ttype);
+     name = st.sval;
+@@ -345,7 +345,7 @@
+       dr.AddPattern(p);
+     }
+ 
+-    if (st.ttype != st.TT_WORD || !st.sval.equals("=>"))
++    if (st.ttype != StreamTokenizer.TT_WORD || !st.sval.equals("=>"))
+       throw new ReteException("Jesp::ParseDefrule","expected '=>' in rule at line "
+                               + st.lineno(), name);
+     advance(); // throw out '=>'
+@@ -382,7 +382,7 @@
+     advance();
+ 
+     // name of deffunction required
+-    if (st.ttype != st.TT_WORD) 
++    if (st.ttype != StreamTokenizer.TT_WORD) 
+       throw new ReteException("Jesp::ParseDeffunction", "Expected an atom at line "
+                               + st.lineno(),"" + st.ttype);
+     name = st.sval;
+@@ -446,7 +446,7 @@
+     
+     // class name
+     advance();
+-    if (st.ttype != st.TT_WORD)
++    if (st.ttype != StreamTokenizer.TT_WORD)
+       throw new ReteException("Jesp::ParseFact",
+                               "Bad class name at line " + st.lineno(),
+                               "\"" + (char) st.ttype + "\"");
+@@ -471,16 +471,16 @@
+       f = new Fact(name, RU.UNORDERED_FACT, engine);
+       while (st.ttype == '(') {
+         advance();
+-        if (st.ttype != st.TT_WORD)
++        if (st.ttype != StreamTokenizer.TT_WORD)
+           throw new ReteException("Jesp::ParseFact",
+                                   "Bad slot name at line " + st.lineno(),
+                                   "\"" + (char) st.ttype + "\"");
+         slot = st.sval;
+         advance();
+         switch (st.ttype) {
+-        case st.TT_WORD:
++        case StreamTokenizer.TT_WORD:
+           f.AddValue(slot, st.sval, RU.ATOM); break;
+-        case st.TT_NUMBER:
++        case StreamTokenizer.TT_NUMBER:
+           f.AddValue(slot, st.nval, RU.FLOAT); break;
+         case '"':
+           f.AddValue(slot, st.sval, RU.STRING); break;
+@@ -508,9 +508,9 @@
+       f = new Fact(name, RU.ORDERED_FACT, engine);
+       while (st.ttype != ')') {
+         switch (st.ttype) {
+-        case st.TT_WORD:
++        case StreamTokenizer.TT_WORD:
+           f.AddValue(st.sval, RU.ATOM); break;
+-        case st.TT_NUMBER:
++        case StreamTokenizer.TT_NUMBER:
+           f.AddValue(st.nval, RU.FLOAT); break;
+         case '"':
+           f.AddValue(st.sval, RU.STRING); break;
+@@ -564,7 +564,7 @@
+     
+     // class name
+     advance();
+-    if (st.ttype != st.TT_WORD)
++    if (st.ttype != StreamTokenizer.TT_WORD)
+       throw new ReteException("Jesp::ParsePattern",
+                               "Bad class name at line " + st.lineno(),
+                               "\"" + (char) st.ttype + "\"");
+@@ -597,7 +597,7 @@
+       p = new Pattern(name, RU.UNORDERED_FACT, engine);
+       while (st.ttype == '(') {
+         advance();
+-        if (st.ttype != st.TT_WORD)
++        if (st.ttype != StreamTokenizer.TT_WORD)
+           throw new ReteException("Jesp::ParsePattern",
+                                   "Bad slot name at line " + st.lineno(),
+                                   "\"" + (char) st.ttype + "\"");
+@@ -613,9 +613,9 @@
+           }
+           
+           switch (st.ttype) {
+-          case st.TT_WORD:
++          case StreamTokenizer.TT_WORD:
+             p.AddTest(slot, new Value(st.sval, RU.ATOM), not_slot); break;
+-          case st.TT_NUMBER:
++          case StreamTokenizer.TT_NUMBER:
+             p.AddTest(slot, new Value(st.nval, RU.FLOAT), not_slot); break;
+           case '"':
+             p.AddTest(slot, new Value(st.sval, RU.STRING), not_slot); break;
+@@ -666,9 +666,9 @@
+           }
+           
+           switch (st.ttype) {
+-          case st.TT_WORD:
++          case StreamTokenizer.TT_WORD:
+             p.AddTest(new Value(st.sval, RU.ATOM), not_slot); break;
+-          case st.TT_NUMBER:
++          case StreamTokenizer.TT_NUMBER:
+             p.AddTest(new Value(st.nval, RU.FLOAT), not_slot); break;
+           case '"':
+             p.AddTest(new Value(st.sval, RU.STRING), not_slot); break;
+@@ -724,7 +724,7 @@
+     
+     // functor
+     switch (st.ttype) {
+-    case st.TT_WORD:
++    case StreamTokenizer.TT_WORD:
+       name = st.sval;
+       break;
+     case '-': case '/':
+@@ -734,16 +734,16 @@
+     default:
+       throw new ReteException("Jesp::ParseFuncall",
+                               "Bad Functor at line " + st.lineno(),
+-                              "\"" + (char) st.ttype + "\"");;
++                              "\"" + (char) st.ttype + "\"");
+     }
+     advance();
+     
+     f = new Funcall(name, engine);
+     while (st.ttype != ')') {
+       switch (st.ttype) {
+-      case st.TT_WORD:
++      case StreamTokenizer.TT_WORD:
+         f.AddArgument(st.sval, RU.ATOM); break;
+-      case st.TT_NUMBER:
++      case StreamTokenizer.TT_NUMBER:
+         f.AddArgument(st.nval, RU.FLOAT); break;
+       case '"':
+         f.AddArgument(st.sval, RU.STRING); break;
+@@ -793,9 +793,9 @@
+     pair.add(new Value(st.sval, RU.ATOM));
+     advance();
+     switch (st.ttype) {
+-    case st.TT_WORD:
++    case StreamTokenizer.TT_WORD:
+       pair.add(new Value(st.sval, RU.ATOM)); break;
+-    case st.TT_NUMBER:
++    case StreamTokenizer.TT_NUMBER:
+       pair.add(new Value(st.nval, RU.FLOAT)); break;
+     case '"':
+       pair.add(new Value(st.sval, RU.STRING)); break;
+@@ -833,7 +833,7 @@
+     advance();
+ 
+     // name of deftemplate: required
+-    if (st.ttype == st.TT_WORD) {
++    if (st.ttype == StreamTokenizer.TT_WORD) {
+       name = st.sval;
+       dt = new Deftemplate(st.sval, RU.UNORDERED_FACT);
+       advance();
+@@ -853,17 +853,17 @@
+     // Now we're looking for slot descriptors.
+     while (st.ttype == '(') {
+       advance();
+-      if (st.ttype == st.TT_WORD)
++      if (st.ttype == StreamTokenizer.TT_WORD)
+         if (st.sval.equals("slot")) {
+           advance();
+-          if (st.ttype == st.TT_WORD) {
++          if (st.ttype == StreamTokenizer.TT_WORD) {
+             default_value = new Value(RU.NONE, RU.NONE);
+             name = st.sval;
+             advance();
+             // parse slot descriptor fields
+             while (st.ttype == '(') {
+               advance();
+-              if (st.ttype != st.TT_WORD)
++              if (st.ttype != StreamTokenizer.TT_WORD)
+                 throw new ReteException("Jesp::ParseDeftemplate",
+                                         "Syntax error at slot qualifier at line "
+                                         + st.lineno(),
+@@ -871,9 +871,9 @@
+               if (st.sval.equals("default")) {
+                 advance();
+                 switch (st.ttype) {
+-                case st.TT_WORD:
++                case StreamTokenizer.TT_WORD:
+                   default_value = new Value(RU.putAtom(st.sval), RU.ATOM); break;
+-                case st.TT_NUMBER:
++                case StreamTokenizer.TT_NUMBER:
+                   default_value = new Value(st.nval, RU.FLOAT); break;
+                 case '"':
+                   default_value = new Value(st.sval, RU.STRING); break;
+--- javac1/input/JavaLex.java	2004-08-03 18:37:20.000000000 +0200
++++ javac/input/JavaLex.java	2004-08-03 18:37:05.000000000 +0200
+@@ -1793,23 +1793,23 @@
+       {
+         switch (token)
+           {
+-          case m_lexGen.CLOSE_PAREN:
+-          case m_lexGen.AT_EOL:
+-          case m_lexGen.OR:
+-          case m_lexGen.EOS:
++          case CLexGen.CLOSE_PAREN:
++          case CLexGen.AT_EOL:
++          case CLexGen.OR:
++          case CLexGen.EOS:
+             return false;
+             
+-          case m_lexGen.CLOSURE:
+-          case m_lexGen.PLUS_CLOSE:
+-          case m_lexGen.OPTIONAL:
++          case CLexGen.CLOSURE:
++          case CLexGen.PLUS_CLOSE:
++          case CLexGen.OPTIONAL:
+             CError.parse_error(CError.E_CLOSE,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.CCL_END:
++          case CLexGen.CCL_END:
+             CError.parse_error(CError.E_BRACKET,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.AT_BOL:
++          case CLexGen.AT_BOL:
+             CError.parse_error(CError.E_BOL,m_input.m_line_number);
+             return false;
+ 
+@@ -3407,7 +3407,6 @@
+         lg = new CLexGen(arg[0]);
+         lg.generate();
+ 
+-        spec.benchmarks._202_jess.Main.main(null);
+       }
+ }    
+
+@@ -8813,23 +8813,23 @@
+       {
+         switch (token)
+           {
+-          case m_lexGen.CLOSE_PAREN:
+-          case m_lexGen.AT_EOL:
+-          case m_lexGen.OR:
+-          case m_lexGen.EOS:
++          case CLexGen.CLOSE_PAREN:
++          case CLexGen.AT_EOL:
++          case CLexGen.OR:
++          case CLexGen.EOS:
+             return false;
+             
+-          case m_lexGen.CLOSURE:
+-          case m_lexGen.PLUS_CLOSE:
+-          case m_lexGen.OPTIONAL:
++          case CLexGen.CLOSURE:
++          case CLexGen.PLUS_CLOSE:
++          case CLexGen.OPTIONAL:
+             JJdTyoVCJ.parse_error(JJdTyoVCJ.E_CLOSE,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.CCL_END:
++          case CLexGen.CCL_END:
+             JJdTyoVCJ.parse_error(JJdTyoVCJ.E_BRACKET,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.AT_BOL:
++          case CLexGen.AT_BOL:
+             JJdTyoVCJ.parse_error(JJdTyoVCJ.E_BOL,m_input.m_line_number);
+             return false;
+ 
+@@ -15831,23 +15831,23 @@
+       {
+         switch (token)
+           {
+-          case m_lexGen.CLOSE_PAREN:
+-          case m_lexGen.AT_EOL:
+-          case m_lexGen.OR:
+-          case m_lexGen.EOS:
++          case CLexGen.CLOSE_PAREN:
++          case CLexGen.AT_EOL:
++          case CLexGen.OR:
++          case CLexGen.EOS:
+             return false;
+             
+-          case m_lexGen.CLOSURE:
+-          case m_lexGen.PLUS_CLOSE:
+-          case m_lexGen.OPTIONAL:
++          case CLexGen.CLOSURE:
++          case CLexGen.PLUS_CLOSE:
++          case CLexGen.OPTIONAL:
+             fdUvxtAVx.parse_error(fdUvxtAVx.E_CLOSE,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.CCL_END:
++          case CLexGen.CCL_END:
+             fdUvxtAVx.parse_error(fdUvxtAVx.E_BRACKET,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.AT_BOL:
++          case CLexGen.AT_BOL:
+             fdUvxtAVx.parse_error(fdUvxtAVx.E_BOL,m_input.m_line_number);
+             return false;
+ 
+@@ -22849,23 +22849,23 @@
+       {
+         switch (token)
+           {
+-          case m_lexGen.CLOSE_PAREN:
+-          case m_lexGen.AT_EOL:
+-          case m_lexGen.OR:
+-          case m_lexGen.EOS:
++          case CLexGen.CLOSE_PAREN:
++          case CLexGen.AT_EOL:
++          case CLexGen.OR:
++          case CLexGen.EOS:
+             return false;
+             
+-          case m_lexGen.CLOSURE:
+-          case m_lexGen.PLUS_CLOSE:
+-          case m_lexGen.OPTIONAL:
++          case CLexGen.CLOSURE:
++          case CLexGen.PLUS_CLOSE:
++          case CLexGen.OPTIONAL:
+             pERmcHeDz.parse_error(pERmcHeDz.E_CLOSE,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.CCL_END:
++          case CLexGen.CCL_END:
+             pERmcHeDz.parse_error(pERmcHeDz.E_BRACKET,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.AT_BOL:
++          case CLexGen.AT_BOL:
+             pERmcHeDz.parse_error(pERmcHeDz.E_BOL,m_input.m_line_number);
+             return false;
+ 
+@@ -29867,23 +29867,23 @@
+       {
+         switch (token)
+           {
+-          case m_lexGen.CLOSE_PAREN:
+-          case m_lexGen.AT_EOL:
+-          case m_lexGen.OR:
+-          case m_lexGen.EOS:
++          case CLexGen.CLOSE_PAREN:
++          case CLexGen.AT_EOL:
++          case CLexGen.OR:
++          case CLexGen.EOS:
+             return false;
+             
+-          case m_lexGen.CLOSURE:
+-          case m_lexGen.PLUS_CLOSE:
+-          case m_lexGen.OPTIONAL:
++          case CLexGen.CLOSURE:
++          case CLexGen.PLUS_CLOSE:
++          case CLexGen.OPTIONAL:
+             KzuxJIHqb.parse_error(KzuxJIHqb.E_CLOSE,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.CCL_END:
++          case CLexGen.CCL_END:
+             KzuxJIHqb.parse_error(KzuxJIHqb.E_BRACKET,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.AT_BOL:
++          case CLexGen.AT_BOL:
+             KzuxJIHqb.parse_error(KzuxJIHqb.E_BOL,m_input.m_line_number);
+             return false;
+ 
+@@ -36885,23 +36885,23 @@
+       {
+         switch (token)
+           {
+-          case m_lexGen.CLOSE_PAREN:
+-          case m_lexGen.AT_EOL:
+-          case m_lexGen.OR:
+-          case m_lexGen.EOS:
++          case CLexGen.CLOSE_PAREN:
++          case CLexGen.AT_EOL:
++          case CLexGen.OR:
++          case CLexGen.EOS:
+             return false;
+             
+-          case m_lexGen.CLOSURE:
+-          case m_lexGen.PLUS_CLOSE:
+-          case m_lexGen.OPTIONAL:
++          case CLexGen.CLOSURE:
++          case CLexGen.PLUS_CLOSE:
++          case CLexGen.OPTIONAL:
+             zYNGrmVJo.parse_error(zYNGrmVJo.E_CLOSE,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.CCL_END:
++          case CLexGen.CCL_END:
+             zYNGrmVJo.parse_error(zYNGrmVJo.E_BRACKET,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.AT_BOL:
++          case CLexGen.AT_BOL:
+             zYNGrmVJo.parse_error(zYNGrmVJo.E_BOL,m_input.m_line_number);
+             return false;
+ 
+@@ -43903,23 +43903,23 @@
+       {
+         switch (token)
+           {
+-          case m_lexGen.CLOSE_PAREN:
+-          case m_lexGen.AT_EOL:
+-          case m_lexGen.OR:
+-          case m_lexGen.EOS:
++          case CLexGen.CLOSE_PAREN:
++          case CLexGen.AT_EOL:
++          case CLexGen.OR:
++          case CLexGen.EOS:
+             return false;
+             
+-          case m_lexGen.CLOSURE:
+-          case m_lexGen.PLUS_CLOSE:
+-          case m_lexGen.OPTIONAL:
++          case CLexGen.CLOSURE:
++          case CLexGen.PLUS_CLOSE:
++          case CLexGen.OPTIONAL:
+             ZonUICcHj.parse_error(ZonUICcHj.E_CLOSE,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.CCL_END:
++          case CLexGen.CCL_END:
+             ZonUICcHj.parse_error(ZonUICcHj.E_BRACKET,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.AT_BOL:
++          case CLexGen.AT_BOL:
+             ZonUICcHj.parse_error(ZonUICcHj.E_BOL,m_input.m_line_number);
+             return false;
+ 
+@@ -50921,23 +50921,23 @@
+       {
+         switch (token)
+           {
+-          case m_lexGen.CLOSE_PAREN:
+-          case m_lexGen.AT_EOL:
+-          case m_lexGen.OR:
+-          case m_lexGen.EOS:
++          case CLexGen.CLOSE_PAREN:
++          case CLexGen.AT_EOL:
++          case CLexGen.OR:
++          case CLexGen.EOS:
+             return false;
+             
+-          case m_lexGen.CLOSURE:
+-          case m_lexGen.PLUS_CLOSE:
+-          case m_lexGen.OPTIONAL:
++          case CLexGen.CLOSURE:
++          case CLexGen.PLUS_CLOSE:
++          case CLexGen.OPTIONAL:
+             qvqQhISao.parse_error(qvqQhISao.E_CLOSE,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.CCL_END:
++          case CLexGen.CCL_END:
+             qvqQhISao.parse_error(qvqQhISao.E_BRACKET,m_input.m_line_number);
+             return false;
+ 
+-          case m_lexGen.AT_BOL:
++          case CLexGen.AT_BOL:
+             qvqQhISao.parse_error(qvqQhISao.E_BOL,m_input.m_line_number);
+             return false;
+ 
