@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1151 2004-06-06 15:01:06Z twisti $
+   $Id: asmpart.S 1284 2004-07-07 15:56:17Z twisti $
 
 */
 
@@ -479,12 +479,26 @@ L_class_loaded:
 	add     $(4*8),%rsp
 
 L_class_linked:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	push    %rdx
+
+_crit_restart1:
+	mov     0(%rsp),%rdx
+#endif
+
+_crit_begin1:
 	mov     offobjvftbl(%rax),%rsi      /* %rsi = vftblptr(xptr)              */
 	mov     offclassvftbl(%rdx),%rdx    /* %rdx = vftblptr(catchtype) class (not obj) */
 	mov     offbaseval(%rsi),%esi       /* %esi = baseval(xptr)               */
 	mov     offbaseval(%rdx),%r10d      /* %r10d = baseval(catchtype)         */
 	mov     offdiffval(%rdx),%edx       /* %edx = diffval(catchtype)          */
+_crit_end1:
 	sub     %r10d,%esi                  /* %esi = baseval(xptr) - baseval(catchtype) */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	add     $8,%rsp
+#endif
+
 	cmp     %edx,%esi                   /* xptr is instanceof catchtype       */
 	ja      ex_table_cont
 		
@@ -1103,13 +1117,13 @@ asm_switchstackandcall:
         ret
 
 
-asm_getclassvalues_atomic:		
-_crit_restart2:	
-_crit_begin2:	
+asm_getclassvalues_atomic:
+_crit_restart2:
+_crit_begin2:
 	movl    offbaseval(a0),itmp1l
 	movl    offdiffval(a0),itmp2l
 	movl    offbaseval(a1),itmp3l
-_crit_end2:		
+_crit_end2:
 	movl    itmp1l,offcast_super_baseval(a2)
 	movl    itmp2l,offcast_super_diffval(a2)
 	movl    itmp3l,offcast_sub_baseval(a2)
@@ -1117,7 +1131,7 @@ _crit_end2:
 
 	.data
 		
-asm_criticalsections:	
+asm_criticalsections:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	.long   _crit_begin1
 	.long   _crit_end1

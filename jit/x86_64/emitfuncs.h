@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: emitfuncs.h 1266 2004-07-01 20:38:16Z twisti $
+   $Id: emitfuncs.h 1284 2004-07-07 15:56:17Z twisti $
 
 */
 
@@ -144,12 +144,14 @@ void x86_64_neg_reg(s8 reg);
 void x86_64_negl_reg(s8 reg);
 void x86_64_neg_membase(s8 basereg, s8 disp);
 void x86_64_negl_membase(s8 basereg, s8 disp);
+void x86_64_push_reg(s8 reg);
 void x86_64_push_imm(s8 imm);
 void x86_64_pop_reg(s8 reg);
 void x86_64_xchg_reg_reg(s8 reg, s8 dreg);
 void x86_64_nop();
 void x86_64_call_reg(s8 reg);
 void x86_64_call_imm(s8 imm);
+void x86_64_call_mem(s8 mem);
 
 
 /* floating point instructions (SSE2) */

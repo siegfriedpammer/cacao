@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 1266 2004-07-01 20:38:16Z twisti $
+   $Id: emitfuncs.c 1284 2004-07-07 15:56:17Z twisti $
 
 */
 
@@ -1358,6 +1358,11 @@ void x86_64_negl_membase(s8 basereg, s8 disp) {
 }
 
 
+void x86_64_push_reg(s8 reg) {
+	x86_64_emit_rex(0,0,0,(reg));
+	*(mcodeptr++) = 0x50 + (0x07 & (reg));
+}
+
 
 void x86_64_push_imm(s8 imm) {
 	*(mcodeptr++) = 0x68;
@@ -1397,6 +1402,12 @@ void x86_64_call_reg(s8 reg) {
 void x86_64_call_imm(s8 imm) {
 	*(mcodeptr++) = 0xe8;
 	x86_64_emit_imm32((imm));
+}
+
+
+void x86_64_call_mem(s8 mem) {
+	*(mcodeptr++) = 0xff;
+	x86_64_emit_mem(2,(mem));
 }
 
 

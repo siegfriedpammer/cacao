@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 1266 2004-07-01 20:38:16Z twisti $
+   $Id: codegen.h 1284 2004-07-07 15:56:17Z twisti $
 
 */
 
@@ -359,7 +359,8 @@ typedef enum {
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if ((mcodeptr + (icnt)) > (u1*) mcodeend) mcodeptr = (u1*) codegen_increase((u1*) mcodeptr)
+	if ((mcodeptr + (icnt)) > (u1 *) mcodeend) \
+        mcodeptr = (u1 *) codegen_increase((u1 *) mcodeptr)
 
 /* M_INTMOVE:
     generates an integer-move from register a to b.

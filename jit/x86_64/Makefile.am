@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am 1266 2004-07-01 20:38:16Z twisti $
+# $Id: Makefile.am 1284 2004-07-07 15:56:17Z twisti $
 
 
 INCLUDES = -I$(top_srcdir)
@@ -11,19 +11,30 @@ EXTRA_DIST = \
 	codegen.c \
 	codegen.h \
 	dis-asm.h \
+	dis-buf.c \
 	disass.c \
 	disass.h \
 	emitfuncs.c \
 	emitfuncs.h \
-	native-math.h \
+	i386-dis.c \
 	types.h
 
 noinst_LIBRARIES = libarch.a
 
-libarch_a_SOURCES = asmpart.S codegen.c disass.c emitfuncs.c i386-dis.c dis-buf.c
+libarch_a_SOURCES = \
+	asmpart.S \
+	codegen.c \
+	dis-buf.c \
+	disass.c \
+	emitfuncs.c \
+	i386-dis.c
 
-%.o: %.S
+asmpart.o: asmpart.S $(top_srcdir)/config.h offsets.h
 	$(COMPILE) -c $<
+
+offsets.h: $(top_srcdir)/config.h $(top_srcdir)/global.h $(top_srcdir)/threads/thread.h
+	$(COMPILE) -o $(top_srcdir)/genoffsets $(top_srcdir)/genoffsets.c
+	$(top_srcdir)/genoffsets > offsets.h
 
 
 ## Local variables:
