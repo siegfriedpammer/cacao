@@ -34,15 +34,16 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1296 2004-07-10 17:02:15Z stefan $
+   $Id: builtin.c 1345 2004-07-21 17:14:11Z twisti $
 
 */
 
 
-#include "global.h"
 #include <assert.h>
 #include <string.h>
 #include <math.h>
+#include "exceptions.h"
+#include "global.h"
 #include "options.h"
 #include "builtin.h"
 #include "native.h"
@@ -757,7 +758,7 @@ java_arrayheader *builtin_nmultianewarray(int n, vftbl_t *arrayvftbl, long *dims
 u4 methodindent = 0;
 
 java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
-										   methodinfo *method,
+										   methodinfo *m,
 										   int *pos,
 										   int line,
 										   int noindent)
@@ -778,23 +779,23 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 		}
 		printf(" thrown in ");
 
-		if (method) {
-			utf_display_classname(method->class->name);
+		if (m) {
+			utf_display_classname(m->class->name);
 			printf(".");
-			utf_display(method->name);
-			if (method->flags & ACC_SYNCHRONIZED)
+			utf_display(m->name);
+			if (m->flags & ACC_SYNCHRONIZED)
 				printf("(SYNC");
 			else
 				printf("(NOSYNC");
-			if (method->flags & ACC_NATIVE) {
+			if (m->flags & ACC_NATIVE) {
 				printf(",NATIVE");
-				printf(")(%p) at position %p\n", method->entrypoint, pos);
+				printf(")(%p) at position %p\n", m->entrypoint, pos);
 			} else {
-				printf(")(%p) at position %p (",method->entrypoint,pos);
-				if (method->class->sourcefile==NULL)
+				printf(")(%p) at position %p (",m->entrypoint,pos);
+				if (m->class->sourcefile==NULL)
 					printf("<NO CLASSFILE INFORMATION>");
 				else
-					utf_display(method->class->sourcefile);
+					utf_display(m->class->sourcefile);
 				printf(":%d)\n",line);
 			}
 
@@ -812,7 +813,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 #if TRACE_ARGS_NUM > 6
 						s8 a6, s8 a7,
 #endif
-						methodinfo *method)
+						methodinfo *m)
 {
 	int i;
 	char logtext[MAXLOGTEXT];
@@ -820,27 +821,27 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 		logtext[i] = '\t';
 
 	sprintf(logtext + methodindent, "called: ");
-	utf_sprint_classname(logtext + strlen(logtext), method->class->name);
+	utf_sprint_classname(logtext + strlen(logtext), m->class->name);
 	sprintf(logtext + strlen(logtext), ".");
-	utf_sprint(logtext + strlen(logtext), method->name);
-	utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
+	utf_sprint(logtext + strlen(logtext), m->name);
+	utf_sprint_classname(logtext + strlen(logtext), m->descriptor);
 
-	if ( method->flags & ACC_PUBLIC )       sprintf (logtext + strlen(logtext)," PUBLIC");
-	if ( method->flags & ACC_PRIVATE )      sprintf (logtext + strlen(logtext)," PRIVATE");
-	if ( method->flags & ACC_PROTECTED )    sprintf (logtext + strlen(logtext)," PROTECTED");
-   	if ( method->flags & ACC_STATIC )       sprintf (logtext + strlen(logtext)," STATIC");
-   	if ( method->flags & ACC_FINAL )        sprintf (logtext + strlen(logtext)," FINAL");
-   	if ( method->flags & ACC_SYNCHRONIZED ) sprintf (logtext + strlen(logtext)," SYNCHRONIZED");
-   	if ( method->flags & ACC_VOLATILE )     sprintf (logtext + strlen(logtext)," VOLATILE");
-   	if ( method->flags & ACC_TRANSIENT )    sprintf (logtext + strlen(logtext)," TRANSIENT");
-   	if ( method->flags & ACC_NATIVE )       sprintf (logtext + strlen(logtext)," NATIVE");
-   	if ( method->flags & ACC_INTERFACE )    sprintf (logtext + strlen(logtext)," INTERFACE");
-   	if ( method->flags & ACC_ABSTRACT )     sprintf (logtext + strlen(logtext)," ABSTRACT");
+	if (m->flags & ACC_PUBLIC)       sprintf(logtext + strlen(logtext), " PUBLIC");
+	if (m->flags & ACC_PRIVATE)      sprintf(logtext + strlen(logtext), " PRIVATE");
+	if (m->flags & ACC_PROTECTED)    sprintf(logtext + strlen(logtext), " PROTECTED");
+   	if (m->flags & ACC_STATIC)       sprintf(logtext + strlen(logtext), " STATIC");
+   	if (m->flags & ACC_FINAL)        sprintf(logtext + strlen(logtext), " FINAL");
+   	if (m->flags & ACC_SYNCHRONIZED) sprintf(logtext + strlen(logtext), " SYNCHRONIZED");
+   	if (m->flags & ACC_VOLATILE)     sprintf(logtext + strlen(logtext), " VOLATILE");
+   	if (m->flags & ACC_TRANSIENT)    sprintf(logtext + strlen(logtext), " TRANSIENT");
+   	if (m->flags & ACC_NATIVE)       sprintf(logtext + strlen(logtext), " NATIVE");
+   	if (m->flags & ACC_INTERFACE)    sprintf(logtext + strlen(logtext), " INTERFACE");
+   	if (m->flags & ACC_ABSTRACT)     sprintf(logtext + strlen(logtext), " ABSTRACT");
 	
 
 	sprintf(logtext + strlen(logtext), "(");
 
-	switch (method->paramcount) {
+	switch (m->paramcount) {
 	case 0:
 		break;
 
@@ -885,12 +886,12 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 
 	default:
 		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx, %llx, %llx, ...(%d)",
-				a0,   a1,   a2,   a3,   a4,   a5,   a6,   a7,   method->paramcount - 8);
+				a0,   a1,   a2,   a3,   a4,   a5,   a6,   a7,   m->paramcount - 8);
 		break;
 #else
 	default:
 		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx, ...(%d)",
-				a0,   a1,   a2,   a3,   a4,   a5,   method->paramcount - 6);
+				a0,   a1,   a2,   a3,   a4,   a5,   m->paramcount - 6);
 		break;
 #endif
 #else
@@ -934,12 +935,12 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 
 	default:
 		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx, %lx, ...(%d)",
-				a0,  a1,  a2,  a3,  a4,  a5,  a6,  a7,  method->paramcount - 8);
+				a0,  a1,  a2,  a3,  a4,  a5,  a6,  a7,  m->paramcount - 8);
 		break;
 #else
 	default:
 		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, ...(%d)",
-				a0,  a1,  a2,  a3,  a4,  a5,   method->paramcount - 6);
+				a0,  a1,  a2,  a3,  a4,  a5,   m->paramcount - 6);
 		break;
 #endif
 #endif
@@ -953,34 +954,34 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3, s8 a4, s8 a5,
 #endif
 
 
-void builtin_displaymethodstart(methodinfo *method)
+void builtin_displaymethodstart(methodinfo *m)
 {
 	char logtext[MAXLOGTEXT];
 	sprintf(logtext, "												");
 	sprintf(logtext + methodindent, "called: ");
-	utf_sprint(logtext + strlen(logtext), method->class->name);
+	utf_sprint(logtext + strlen(logtext), m->class->name);
 	sprintf(logtext + strlen(logtext), ".");
-	utf_sprint(logtext + strlen(logtext), method->name);
-	utf_sprint(logtext + strlen(logtext), method->descriptor);
+	utf_sprint(logtext + strlen(logtext), m->name);
+	utf_sprint(logtext + strlen(logtext), m->descriptor);
 
-	if ( method->flags & ACC_PUBLIC )       sprintf (logtext + strlen(logtext)," PUBLIC");
-	if ( method->flags & ACC_PRIVATE )      sprintf (logtext + strlen(logtext)," PRIVATE");
-	if ( method->flags & ACC_PROTECTED )    sprintf (logtext + strlen(logtext)," PROTECTED");
-   	if ( method->flags & ACC_STATIC )       sprintf (logtext + strlen(logtext)," STATIC");
-   	if ( method->flags & ACC_FINAL )        sprintf (logtext + strlen(logtext)," FINAL");
-   	if ( method->flags & ACC_SYNCHRONIZED ) sprintf (logtext + strlen(logtext)," SYNCHRONIZED");
-   	if ( method->flags & ACC_VOLATILE )     sprintf (logtext + strlen(logtext)," VOLATILE");
-   	if ( method->flags & ACC_TRANSIENT )    sprintf (logtext + strlen(logtext)," TRANSIENT");
-   	if ( method->flags & ACC_NATIVE )       sprintf (logtext + strlen(logtext)," NATIVE");
-   	if ( method->flags & ACC_INTERFACE )    sprintf (logtext + strlen(logtext)," INTERFACE");
-   	if ( method->flags & ACC_ABSTRACT )     sprintf (logtext + strlen(logtext)," ABSTRACT");
+	if (m->flags & ACC_PUBLIC)       sprintf(logtext + strlen(logtext), " PUBLIC");
+	if (m->flags & ACC_PRIVATE)      sprintf(logtext + strlen(logtext), " PRIVATE");
+	if (m->flags & ACC_PROTECTED)    sprintf(logtext + strlen(logtext), " PROTECTED");
+   	if (m->flags & ACC_STATIC)       sprintf(logtext + strlen(logtext), " STATIC");
+   	if (m->flags & ACC_FINAL)        sprintf(logtext + strlen(logtext), " FINAL");
+   	if (m->flags & ACC_SYNCHRONIZED) sprintf(logtext + strlen(logtext), " SYNCHRONIZED");
+   	if (m->flags & ACC_VOLATILE)     sprintf(logtext + strlen(logtext), " VOLATILE");
+   	if (m->flags & ACC_TRANSIENT)    sprintf(logtext + strlen(logtext), " TRANSIENT");
+   	if (m->flags & ACC_NATIVE)       sprintf(logtext + strlen(logtext), " NATIVE");
+   	if (m->flags & ACC_INTERFACE)    sprintf(logtext + strlen(logtext), " INTERFACE");
+   	if (m->flags & ACC_ABSTRACT)     sprintf(logtext + strlen(logtext), " ABSTRACT");
 
 	log_text(logtext);
 	methodindent++;
 }
 
 
-void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
+void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 {
 	int i;
 	char logtext[MAXLOGTEXT];
@@ -992,12 +993,12 @@ void builtin_displaymethodstop(methodinfo *method, s8 l, double d, float f)
 		log_text("WARNING: unmatched methodindent--");
 
 	sprintf(logtext + methodindent, "finished: ");
-	utf_sprint_classname(logtext + strlen(logtext), method->class->name);
+	utf_sprint_classname(logtext + strlen(logtext), m->class->name);
 	sprintf(logtext + strlen(logtext), ".");
-	utf_sprint(logtext + strlen(logtext), method->name);
-	utf_sprint_classname(logtext + strlen(logtext), method->descriptor);
+	utf_sprint(logtext + strlen(logtext), m->name);
+	utf_sprint_classname(logtext + strlen(logtext), m->descriptor);
 
-	switch (method->returntype) {
+	switch (m->returntype) {
 	case TYPE_INT:
 		sprintf(logtext + strlen(logtext), "->%d", (s4) l);
 		break;
