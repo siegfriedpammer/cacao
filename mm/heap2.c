@@ -19,6 +19,12 @@
 #undef ALIGN
 #undef OFFSET
 
+#define GC_COLLECT_STATISTICS
+#define FINALIZER_COUNTING
+
+#undef STRUCTURES_ON_HEAP
+//#define STRUCTURES_ON_HEAP
+
 #define false 0
 #define true 1
 
@@ -64,11 +70,35 @@ static void**	stackbottom = NULL;
 
 typedef struct address_list_node {
 	void* address;
+	struct address_list_node* prev;
 	struct address_list_node* next;
 } address_list_node;
 
 static address_list_node* references = NULL;
 static address_list_node* finalizers = NULL;
+
+#ifdef GC_COLLECT_STATISTICS
+
+static unsigned long gc_collections_count = 0;
+
+static unsigned long gc_alloc_total = 0;
+static unsigned long gc_alloc_count = 0;
+
+static unsigned long gc_mark_heapblocks_visited = 0;
+static unsigned long gc_mark_not_aligned = 0;
+static unsigned long gc_mark_not_inheap = 0;
+static unsigned long gc_mark_not_object = 0;
+static unsigned long gc_mark_objects_marked = 0;
+static unsigned long gc_mark_already_marked = 0;
+
+#endif
+
+#ifdef FINALIZER_COUNTING
+
+static unsigned long gc_finalizers_executed = 0;
+static unsigned long gc_finalizers_detected = 0;
+
+#endif
 
 /* --- implementation */
 
@@ -84,7 +114,7 @@ heap_init (SIZE size,
 #elif VERBOSITY == VERBOSITY_MISTRUST
 	fprintf(stderr, "The heap is mistrusting us.\n");
 #elif VERBOSITY == VERBOSITY_TRACE
-	fprintf(stderr, "The heap is outputting trace information.\n");
+	fprintf(stderr, "The heap is emitting trace information.\n");
 #elif VERBOSITY == VERBOSITY_PARANOIA
 	fprintf(stderr, "The heap is paranoid.\n");
 #elif VERBOSITY == VERBOSITY_LIFESPAN
@@ -107,7 +137,17 @@ heap_init (SIZE size,
 							  -1, 
 							  (off_t) 0);
 #else
+#if 0
 	heap_base = malloc(heap_size);
+#else
+	heap_base = (void*) mmap (NULL, 
+							  ((size_t)heap_size + PAGESIZE_MINUS_ONE) & ~PAGESIZE_MINUS_ONE,
+							  PROT_READ | PROT_WRITE, 
+							  MAP_PRIVATE | MAP_ANONYMOUS, 
+							  -1, 
+							  (off_t) 0);
+#endif
+	fprintf(stderr, "heap @ 0x%lx\n", heap_base);
 #endif
 
 	if (heap_base == (void*)MAP_FAILED) {
@@ -142,20 +182,33 @@ heap_init (SIZE size,
 	/* 7. Init the global reference lists & finalizer addresses */
 	references = NULL;
 	finalizers = NULL;
+
+#ifdef STRUCTURES_ON_HEAP
+	heap_addreference(&references);
+	heap_addreference(&finalizers);
+#endif
 }
 
 void 
 heap_close (void)
 {
-	/* 1. Clean up on the heap... finalize all remaining objects */
-#if 0
 	address_list_node* curr = finalizers;
+
+	/* 1. Clean up on the heap... finalize all remaining objects */
+#if 1
 	while (curr) {
 		address_list_node* prev = curr;
+		
+		if (curr->address) {
+			if (bitmap_testbit(start_bits, curr->address)) {
+#ifdef FINALIZER_COUNTING
+				++gc_finalizers_executed;
+#endif
+				asm_calljavamethod(((java_objectheader*)(curr->address))->vftbl->class->finalizer, curr->address, NULL, NULL, NULL);
 
-		if (bitmap_testbit(start_bits, curr->address))
-			asm_calljavamethod(((java_objectheader*)(curr->address))->vftbl->class->finalizer, curr->address, NULL, NULL, NULL);
-
+			}
+		}
+		
 		curr = curr->next;
 		free(prev);
 	}
@@ -169,6 +222,38 @@ heap_close (void)
 	/* 3. Release the memory allocated to the heap */
 	if (heap_base)
 		munmap(heap_base, heap_size);
+
+#ifdef FINALIZER_COUNTING
+	sprintf(logtext, "%ld objects with a finalizer", gc_finalizers_detected);
+	dolog();
+
+#ifdef GC_COLLECT_STATISTICS
+	/* 4. output statical data */
+	sprintf(logtext, "%ld bytes for %ld objects allocated.", 
+			gc_alloc_total, gc_alloc_count); 
+	dolog();
+	sprintf(logtext, "%ld garbage collections performed.", gc_collections_count);
+	dolog();
+	sprintf(logtext, "%ld heapblocks visited, %ld objects marked", 
+			gc_mark_heapblocks_visited, gc_mark_objects_marked);
+	dolog();
+	sprintf(logtext, "    %ld out of heap.", gc_mark_not_inheap);
+	dolog();
+	sprintf(logtext, "    %ld visits to objects already marked.", gc_mark_already_marked);
+	dolog();
+	sprintf(logtext, "    %ld not an object.", gc_mark_not_object);
+	dolog();
+	sprintf(logtext, "    %ld potential references not aligned.", gc_mark_not_aligned);
+	dolog();
+#endif
+
+	if (gc_finalizers_detected != gc_finalizers_executed)
+		sprintf(logtext, "    all finalizers executed.");
+	else
+		sprintf(logtext, "    only %ld finalizers executed.", gc_finalizers_executed);
+	dolog();
+#endif
+
 }
 
 __inline__
@@ -236,8 +321,10 @@ heap_allocate (SIZE		  in_length,
 
 	// fprintf(stderr, "heap_allocate: 0x%lx (%ld) requested, 0x%lx (%ld) aligned\n", in_length, in_length, length, length);
 
+#ifdef FINALIZER_COUNTING
 	if (finalizer)
-		fprintf(stderr, "finalizer detected\n");
+		++gc_finalizers_detected;
+#endif
 
 #if VERBOSITY >= VERBOSITY_LIFESPAN && 0
 	/* perform garbage collection to collect data for lifespan analysis */
@@ -306,6 +393,11 @@ heap_allocate (SIZE		  in_length,
 	fprintf(stderr, "\theap next collection  0x%lx\n", heap_next_collection);
 #endif
 
+#ifdef GC_COLLECT_STATISTICS
+	gc_alloc_total += length;
+	++gc_alloc_count;
+#endif
+
 	return free_chunk;
 	
  failure:
@@ -345,6 +437,8 @@ void gc_finalize (void)
 	address_list_node*  curr = finalizers;
 	address_list_node*  prev;
 
+//	fprintf(stderr, "finalizing\n");
+
 #if 0
 	while (curr) {
 		if (!bitmap_testbit(mark_bits, curr->address)) {
@@ -363,7 +457,10 @@ void gc_finalize (void)
 	while (curr) {
 		if (curr->address) {
 			if (!bitmap_testbit(mark_bits, curr->address)) {
-				fprintf(stderr, "executing finalizer\n");
+
+#ifdef FINALIZER_COUNTING
+				++gc_finalizers_executed;
+#endif
 				asm_calljavamethod(((java_objectheader*)curr->address)->vftbl->class->finalizer, 
 								   curr->address, NULL, NULL, NULL);
 				curr->address = 0;
@@ -373,6 +470,8 @@ void gc_finalize (void)
 		curr = curr->next;
 	}
 #endif
+
+//	fprintf(stderr, "done\n");
 }
 
 
@@ -500,22 +599,102 @@ static
 void 
 gc_mark_object_at (void** addr)
 {
+	/*
+	 * A note concerning the order of the tests:
+	 *
+	 * Statistics collected during a test run, where alignment
+	 * was tested before checking whether the addr points into 
+	 * the heap:
+	 * >> LOG: 9301464 bytes for 196724 objects allocated.
+	 * >> LOG: 15 garbage collections performed.
+	 * >> LOG: 6568440 heapblocks visited, 469249 objects marked
+	 * >> LOG:     1064447 visits to objects already marked.
+	 * >> LOG:     988270 potential references not aligned.
+	 * >> LOG:     4049446 out of heap.
+	 * >> LOG:     5236 not an object.
+	 *
+	 * These results show, that only about 1/4 of all heapblocks 
+	 * point to objects; The single most important reason why a 
+	 * heapblock can not point at an object is, that it's value 
+	 * doesn't fall within the heap area (this test was performed
+	 * with a 3MB heap).
+	 *
+	 * From the results, the various tests have to be conducted 
+	 * in the following order for maximum efficiency:
+	 *    1. addr in heap?
+	 *    2. already marked ?
+	 *    3. aligned ?
+	 *    4. object ?
+	 *
+	 * The results after reordering:
+	 * >> LOG: 6568440 heapblocks visited, 469249 objects marked
+	 * >> LOG:     1064447 visits to objects already marked.
+	 * >> LOG:     350 potential references not aligned.
+	 * >> LOG:     5037366 out of heap.
+	 * >> LOG:     5236 not an object.
+	 *
+	 * And using:
+	 *    1. addr in heap?
+	 *    2. already marked ?
+	 *    3. object ?
+	 *    4. aligned ?
+	 * 
+	 * >> LOG: 6568440 heapblocks visited, 469249 objects marked
+	 * >> LOG:     5037366 out of heap.
+	 * >> LOG:     1064456 visits to objects already marked.
+	 * >> LOG:     5539 not an object.
+	 * >> LOG:     38 potential references not aligned.
+	 *
+	 * Apparently, most unaligned values will already be eliminated
+	 * when checking against the bounds of the heap. Checking this
+	 * property first, should thus improve collection times.
+	 */
+
+
+#ifdef GC_COLLECT_STATISTICS
+	if (!((void*)addr >= heap_base && (void*)addr < heap_top)) {
+		++gc_mark_not_inheap;
+		return;
+	}
+
+	if (bitmap_testbit(mark_bits, (void*)addr)) {
+		++gc_mark_already_marked;
+		return;
+	}
+
+	if (!bitmap_testbit(start_bits, (void*)addr)) {
+		++gc_mark_not_object;
+		return;
+	}
+
+	if ((long)addr & ((1 << ALIGN) - 1)) {
+		++gc_mark_not_aligned;
+		return;
+	}
+
+#endif
+
 #if 0
 	//	fprintf(stderr, "gc_mark_object_at: called for address 0x%lx\n", addr);
 
-	if (!((void*)addr >= heap_base && 
-		  (void*)addr < heap_top)) {
-		//		fprintf(stderr, "not an address on the heap.\n");
-	} else {
-		if (!bitmap_testbit(start_bits, (void*)addr)) {
-			//			fprintf(stderr, "not an object.\n");
-		}
-		else {
-			if (bitmap_testbit(mark_bits, (void*)addr)) {
-				//				fprintf(stderr, "gc_mark_object_at: called for address 0x%lx: ", addr);
-				//				fprintf(stderr, "already marked.\n");
-			}
-		}
+	if ((long)addr & ((1 << ALIGN) - 1)) {
+		fprintf(stderr, "non aligned pointer\n");
+		return;
+	}
+
+	if (!((void*)addr >= heap_base && (void*)addr < heap_top)) {
+		fprintf(stderr, "not an address on the heap.\n");
+		return;
+	}
+
+	if (!bitmap_testbit(start_bits, (void*)addr)) {
+		fprintf(stderr, "not an object.\n");
+		return;
+	}
+
+	if (bitmap_testbit(mark_bits, (void*)addr)) {
+		fprintf(stderr, "already marked.\n");
+		return;
 	}
 #endif
 
@@ -526,6 +705,10 @@ gc_mark_object_at (void** addr)
 		bitmap_testbit(start_bits, (void*)addr) &&
 		!bitmap_testbit(mark_bits, (void*)addr)) {
 		bitmap_setbit(mark_bits, (void*)addr); 
+
+#ifdef GC_COLLECT_STATISTICS
+		++gc_mark_objects_marked;
+#endif
 
 		//		fprintf(stderr, "gc_mark_object_at: called for address 0x%lx: ", addr);
 		//		fprintf(stderr, "marking object.\n");
@@ -556,6 +739,10 @@ gc_mark_object_at (void** addr)
 			}
 #else
 			end = (void**)bitmap_find_next_setbit(start_bitmap, addr + 8); /* points just behind the object */
+#endif
+
+#ifdef GC_COLLECT_STATISTICS
+		gc_mark_heapblocks_visited += ((long)end - (long)addr) >> ALIGN;
 #endif
 
 			while (addr < end)
@@ -671,6 +858,10 @@ void gc_run (void)
 	gc_reclaim();
 
 	armageddon_is_near = false;
+
+#ifdef GC_COLLECT_STATISTICS
+	++gc_collections_count;
+#endif
 }
 
 
