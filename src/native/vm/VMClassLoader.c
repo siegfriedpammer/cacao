@@ -27,12 +27,14 @@
    Authors: Roman Obermaiser
 
    Changes: Joseph Wenninger
+            Christian Thalinger
 
-   $Id: VMClassLoader.c 1773 2004-12-19 17:39:01Z jowenn $
+   $Id: VMClassLoader.c 1919 2005-02-10 10:08:53Z twisti $
 
 */
 
 
+#include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_Class.h"
@@ -42,19 +44,19 @@
 #include "vm/exceptions.h"
 #include "vm/builtin.h"
 #include "vm/loader.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 
 
 /*
- * Class:     java/lang/ClassLoader
+ * Class:     java/lang/VMClassLoader
  * Method:    defineClass
  * Signature: (Ljava/lang/String;[BII)Ljava/lang/Class;
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *this, java_lang_String *name, java_bytearray *buf, s4 off, s4 len)
 {
 	classinfo *c;
-
-	/*log_text("Java_java_lang_VMClassLoader_defineClass called");*/
+	char *tmp;
 
 	if (off < 0 || len < 0 || off + len > buf->header.size) {
 		*exceptionptr =
@@ -62,12 +64,20 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		return NULL;
 	}
 
+	/* convert class name to char string */
+
+	tmp = javastring_tochar((java_objectheader *) name);
+
 	/* call JNI-function to load the class */
 	c = (*env)->DefineClass(env,
-							javastring_tochar((java_objectheader *) name),
+							tmp,
 							(jobject) this,
 							(const jbyte *) &buf->data[off],
 							len);
+
+	/* release memory allocated by javastring_tochar */
+
+	MFREE(tmp, char, strlen(tmp));
 
 	/* exception? return! */
 	if (!c)
@@ -80,7 +90,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 
 /*
- * Class:     java/lang/ClassLoader
+ * Class:     java/lang/VMClassLoader
  * Method:    getPrimitiveClass
  * Signature: (Ljava/lang/String;)Ljava/lang/Class;
  */
@@ -98,10 +108,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 	/* get primitive class */
 	c = class_new(u);
 
-	if (!class_load(c))
-		return NULL;
-
-	if (!class_init(c))
+	if (!class_load(c) || !class_init(c))
 		return NULL;
 
 	use_class_as_object(c);
@@ -111,7 +118,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 
 
 /*
- * Class:     java/lang/ClassLoader
+ * Class:     java/lang/VMClassLoader
  * Method:    resolveClass
  * Signature: (Ljava/lang/Class;)V
  */

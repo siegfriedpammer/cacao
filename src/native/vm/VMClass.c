@@ -1,4 +1,4 @@
-/* native/vm/VMClass.c - java/lang/Class
+/* native/vm/VMClass.c - java/lang/VMClass
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,8 +27,9 @@
    Authors: Roman Obermaiser
 
    Changes: Joseph Wenninger
+            Christian Thalinger
 
-   $Id: VMClass.c 1849 2005-01-04 11:59:03Z twisti $
+   $Id: VMClass.c 1919 2005-02-10 10:08:53Z twisti $
 
 */
 
@@ -49,11 +50,12 @@
 #include "native/include/java_lang_Throwable.h"        /* java_lang_VMClass.h */
 #include "native/include/java_lang_VMClass.h"
 #include "toolbox/logging.h"
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
-#include "vm/builtin.h"
 
 
 /* for selecting public members */

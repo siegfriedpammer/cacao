@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1903 2005-02-08 14:59:35Z twisti $
+   $Id: VMRuntime.c 1919 2005-02-10 10:08:53Z twisti $
 
 */
 
@@ -63,6 +63,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/loader.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 
 

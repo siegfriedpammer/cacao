@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMString.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: VMString.c 1919 2005-02-10 10:08:53Z twisti $
 
 */
 
@@ -38,10 +38,11 @@
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_String.h"
+#include "vm/stringlocal.h"
 
 
 /*
- * Class:     java_lang_VMString
+ * Class:     java/lang/VMString
  * Method:    intern
  * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */

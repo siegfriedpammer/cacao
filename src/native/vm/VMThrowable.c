@@ -1,4 +1,4 @@
-/* nat/VMThrowable.c - java/lang/Throwable
+/* native/vm/VMThrowable.c - java/lang/VMThrowable
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Joseph Wenninger
 
-   $Id: VMThrowable.c 1802 2004-12-21 20:35:54Z jowenn $
+   Changes: Christian Thalinger
+
+   $Id: VMThrowable.c 1919 2005-02-10 10:08:53Z twisti $
 
 */
 
@@ -38,7 +40,9 @@
 #include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_VMThrowable.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/loader.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
@@ -51,18 +55,11 @@
  */
 JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackTrace(JNIEnv *env, jclass clazz, java_lang_Throwable *par1)
 {
-	classinfo *class_java_lang_VMThrowable = NULL;
 	java_lang_VMThrowable *vmthrow;
-
-	if (!class_java_lang_VMThrowable)
-		class_java_lang_VMThrowable = class_new(utf_new_char("java/lang/VMThrowable"));
-
-	if (class_java_lang_VMThrowable == NULL)
-		panic("Needed class java.lang.VMThrowable missing");
 
 	vmthrow = (java_lang_VMThrowable *) native_new_and_init(class_java_lang_VMThrowable);
 
-	if (vmthrow == NULL)
+	if (!vmthrow)
 		panic("Needed instance of class  java.lang.VMThrowable could not be created");
 
 #if defined(__I386__) || defined(__ALPHA__)

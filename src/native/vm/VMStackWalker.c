@@ -28,13 +28,16 @@
 
    Changes: 
 
-   $Id: VMStackWalker.c 1904 2005-02-08 15:09:10Z twisti $
+   $Id: VMStackWalker.c 1919 2005-02-10 10:08:53Z twisti $
 
 */
 
 
 #include "native/jni.h"
-
+#include "native/native.h"
+#include "vm/builtin.h"
+#include "vm/class.h"
+#include "vm/tables.h"
 
 /*
  * Class:     gnu/classpath/VMStackWalker
@@ -43,9 +46,16 @@
  */
 JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassContext(JNIEnv *env, jclass clazz)
 {
-	/* TODO */
+	if (cacao_initializing)
+		return 0;
 
-	return NULL;
+#if defined(__I386__) || defined(__ALPHA__)
+	return cacao_createClassContextArray();
+#else
+
+	/* XXX TWISTI: only a quick hack */
+	return (java_objectarray *) builtin_newarray(0, class_array_of(class_java_lang_Class)->vftbl);
+#endif
 }
 
 

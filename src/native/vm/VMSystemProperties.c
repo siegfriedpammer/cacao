@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 1906 2005-02-09 19:43:24Z twisti $
+   $Id: VMSystemProperties.c 1919 2005-02-10 10:08:53Z twisti $
 
 */
 
@@ -49,6 +49,7 @@
 #include "vm/exceptions.h"
 #include "vm/builtin.h"
 #include "vm/loader.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 

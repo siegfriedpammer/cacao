@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Field.c 1803 2004-12-22 09:27:58Z jowenn $
+   $Id: Field.c 1919 2005-02-10 10:08:53Z twisti $
 
 */
 
@@ -40,13 +40,11 @@
 #include "native/include/java_lang_reflect_Field.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
-#include "vm/loader.h"
-#include "vm/tables.h"
-#include "vm/loader.h"
 #include "vm/global.h"
-#include "vm/builtin.h"
+#include "vm/loader.h"
+#include "vm/stringlocal.h"
+#include "vm/tables.h"
 #include "vm/jit/stacktrace.h"
-#include "vm/exceptions.h"
 
 #undef DEBUG
 
