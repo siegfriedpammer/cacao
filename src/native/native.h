@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: native.h 1851 2005-01-04 12:01:39Z twisti $
 
 */
 
@@ -99,12 +99,10 @@ functionptr native_findfunction(utf *cname, utf *mname,
 								utf *desc, bool isstatic);
 
 /* creates a new object of type java/lang/String from a utf-text */
-/*  java_objectheader *javastring_new(utf *text); */
 java_lang_String *javastring_new(utf *text);
 
 /* creates a new object of type java/lang/String from a c-string */
-/*  java_objectheader *javastring_new_char(char *text); */
-java_lang_String *javastring_new_char(char *text);
+java_lang_String *javastring_new_char(const char *text);
 
 /* make c-string from a javastring (debugging) */
 char *javastring_tochar(java_objectheader *s);
