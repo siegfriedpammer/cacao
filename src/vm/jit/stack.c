@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2211 2005-04-04 10:39:36Z christian $
+   $Id: stack.c 2212 2005-04-04 11:34:46Z christian $
 
 */
 
@@ -2621,7 +2621,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
 							printf("F%02d", rd->interfaces[i][j].regoff);
 						else {
-							printf("%3s", regs[rd->locals[i][j].regoff]);
+							printf("%3s", regs[rd->interfaces[i][j].regoff]);
 						}
 					}
 					else {
@@ -2634,7 +2634,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
 							printf("f%02d", rd->interfaces[i][j].regoff);
 						else {
-							printf("%3s", regs[rd->locals[i][j].regoff]);
+							printf("%3s", regs[rd->interfaces[i][j].regoff]);
 						}
 					}
 				}
