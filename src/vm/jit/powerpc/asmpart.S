@@ -27,9 +27,14 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1760 2004-12-15 12:57:23Z twisti $
+   $Id: asmpart.S 1763 2004-12-15 16:14:57Z twisti $
 
 */
+
+
+#if defined(__LINUX__)
+# include <asm/ppc_asm.h>
+#endif
 
 #include "config.h"
 #include "vm/jit/powerpc/offsets.h"
@@ -47,6 +52,8 @@
 #define mptr r12
 #define mptrn 12
 
+
+#if defined(__DARWIN__)
 
 /* Defines for darwin's old gnu assembler *************************************/
 
@@ -103,6 +110,41 @@
 #define new_arraystoreexception               _new_arraystoreexception
 #define new_classcastexception                _new_classcastexception
 #define new_nullpointerexception              _new_nullpointerexception
+
+#define fr0     0
+#define fr1     1
+#define fr2     2
+#define fr3     3
+#define fr4     4
+#define fr5     5
+#define fr6     6
+#define fr7     7
+#define fr8     8
+#define fr9     9
+#define fr10    10
+#define fr11    11
+#define fr12    12
+#define fr13    13
+#define fr14    14
+#define fr15    15
+#define fr16    16
+#define fr17    17
+#define fr18    18
+#define fr19    19
+#define fr20    20
+#define fr21    21
+#define fr22    22
+#define fr23    23
+#define fr24    24
+#define fr25    25
+#define fr26    26
+#define fr27    27
+#define fr28    28
+#define fr29    29
+#define fr30    30
+#define fr31    31
+
+#endif /* __DARWIN__ */
 
 
 	.text
@@ -175,7 +217,8 @@ asm_calljavafunction:
 /*	stw     r30,-8(r1)*/
 	stw     pv,-12(r1)
 	stw     r0,8(r1)
-	stwu    r1,-148(r1)
+	addi    r1,r1,-148
+
 	bl      0f
 0:
 	mflr    r31
@@ -188,14 +231,14 @@ asm_calljavafunction:
 	stw		r21,60(r1)
 	stw		r22,64(r1)
 	stw		r23,68(r1)
-	stfd	f16,72(r1)
-	stfd	f17,80(r1)
-	stfd	f18,88(r1)
-	stfd	f19,96(r1)
-	stfd	f20,104(r1)
-	stfd	f21,112(r1)
-	stfd	f22,120(r1)
-	stfd	f23,128(r1)
+	stfd	fr16,72(r1)
+	stfd	fr17,80(r1)
+	stfd	fr18,88(r1)
+	stfd	fr19,96(r1)
+	stfd	fr20,104(r1)
+	stfd	fr21,112(r1)
+	stfd	fr22,120(r1)
+	stfd	fr23,128(r1)
 
 	stw     r3,36(r1)
 	addi    r2,r1,36
@@ -204,8 +247,12 @@ asm_calljavafunction:
 	mr      r5,r6
 	mr      r6,r7
 
+#if defined(__DARWIN__)
 /*	addis   mptr,r31,ha16(_asm_call_jit_compiler-0b)*/
-	addi    mptr,r31,lo16(_asm_call_jit_compiler-0b)
+	addi    mptr,r31,lo16(asm_call_jit_compiler-0b)
+#else
+	addi    mptr,r31,(asm_call_jit_compiler-0b)@l
+#endif
 	stw     mptr,32(r1)
 	addi    mptr,r1,28
 
@@ -215,7 +262,11 @@ asm_calljavafunction:
 
 1:
 	mflr    itmp1
+#if defined(__DARWIN__)
 	addi    pv,itmp1,lo16(asm_calljavafunction-1b)
+#else
+	addi    pv,itmp1,(asm_calljavafunction-1b)@l
+#endif
 
 calljava_regrestore:
 	lwz     r16,40(r1)
@@ -226,14 +277,14 @@ calljava_regrestore:
 	lwz		r21,60(r1)
 	lwz		r22,64(r1)
 	lwz		r23,68(r1)
-	lfd		f16,72(r1)
-	lfd		f17,80(r1)
-	lfd		f18,88(r1)
-	lfd		f19,96(r1)
-	lfd		f20,104(r1)
-	lfd		f21,112(r1)
-	lfd		f22,120(r1)
-	lfd		f23,128(r1)
+	lfd		fr16,72(r1)
+	lfd		fr17,80(r1)
+	lfd		fr18,88(r1)
+	lfd		fr19,96(r1)
+	lfd		fr20,104(r1)
+	lfd		fr21,112(r1)
+	lfd		fr22,120(r1)
+	lfd		fr23,128(r1)
 
 	lwz     r0,148+8(r1)
 	mtlr    r0
@@ -287,14 +338,14 @@ asm_calljavafunction2double:
 	stw     r21,60(r1)
 	stw     r22,64(r1)
 	stw     r23,68(r1)
-	stfd	f16,72(r1)
-	stfd	f17,80(r1)
-	stfd	f18,88(r1)
-	stfd	f19,96(r1)
-	stfd	f20,104(r1)
-	stfd	f21,112(r1)
-	stfd	f22,120(r1)
-	stfd	f23,128(r1)
+	stfd	fr16,72(r1)
+	stfd	fr17,80(r1)
+	stfd	fr18,88(r1)
+	stfd	fr19,96(r1)
+	stfd	fr20,104(r1)
+	stfd	fr21,112(r1)
+	stfd	fr22,120(r1)
+	stfd	fr23,128(r1)
 
 	stw     r3,36(r1)                 /* save method pointer for compiler     */
 	addi    r2,r1,36
@@ -328,8 +379,12 @@ asm_calljavafunction2double:
     addi    itmp2,itmp2,-1
 
 calljava_argsloaded:
+#if defined(__DARWIN__)
 /*	addis   mptr,r31,ha16(_asm_call_jit_compiler-0b)*/
 	addi    mptr,r31,lo16(asm_call_jit_compiler-0b)
+#else
+	addi    mptr,r31,(asm_call_jit_compiler-0b)@l
+#endif
 	stw     mptr,32(r1)
 	addi    mptr,r1,28
 
@@ -338,7 +393,11 @@ calljava_argsloaded:
 	bctrl
 1:
 	mflr    itmp1
+#if defined(__DARWIN__)
 	addi    pv,itmp1,lo16(asm_calljavafunction2-1b)
+#else
+	addi    pv,itmp1,(asm_calljavafunction2-1b)@l
+#endif
 
 calljava_regrestore2:
 	lwz		r16,40(r1)
@@ -349,14 +408,14 @@ calljava_regrestore2:
 	lwz		r21,60(r1)
 	lwz		r22,64(r1)
 	lwz		r23,68(r1)
-	lfd		f16,72(r1)
-	lfd		f17,80(r1)
-	lfd		f18,88(r1)
-	lfd		f19,96(r1)
-	lfd		f20,104(r1)
-	lfd		f21,112(r1)
-	lfd		f22,120(r1)
-	lfd		f23,128(r1)
+	lfd		fr16,72(r1)
+	lfd		fr17,80(r1)
+	lfd		fr18,88(r1)
+	lfd		fr19,96(r1)
+	lfd		fr20,104(r1)
+	lfd		fr21,112(r1)
+	lfd		fr22,120(r1)
+	lfd		fr23,128(r1)
 
 	lwz     r0,148+8(r1)
 	mtlr    r0
@@ -406,25 +465,25 @@ noregchange:
 	stw     r7,44(r1)
 	stw     r8,48(r1)
 	stw     r9,52(r1)
-	stfd    f1,56(r1)
-	stfd    f2,64(r1)
-	stfd    f3,72(r1)
-	stfd    f4,80(r1)
-	stfd    f5,88(r1)
-	stfd    f6,96(r1)
-	stfd    f7,104(r1)
-	stfd    f8,112(r1)
-	stfd    f9,120(r1)
-	stfd    f10,128(r1)
-	stfd    f11,136(r1)
-	stfd    f12,144(r1)
-	stfd    f13,152(r1)
+	stfd    fr1,56(r1)
+	stfd    fr2,64(r1)
+	stfd    fr3,72(r1)
+	stfd    fr4,80(r1)
+	stfd    fr5,88(r1)
+	stfd    fr6,96(r1)
+	stfd    fr7,104(r1)
+	stfd    fr8,112(r1)
+	stfd    fr9,120(r1)
+	stfd    fr10,128(r1)
+	stfd    fr11,136(r1)
+	stfd    fr12,144(r1)
+	stfd    fr13,152(r1)
 	stw     r10,160(r1)
 
 	lwz     r3,0(r2)
 	bl      jit_compile
-
 	mr      pv,r3
+
 	mr      mptr,r29
 	lwz     r3,28(r1)
 	lwz	  	r4,32(r1)
@@ -433,19 +492,19 @@ noregchange:
 	lwz	  	r7,44(r1)
 	lwz	  	r8,48(r1)
 	lwz	  	r9,52(r1)
-	lfd	  	f1,56(r1)
-	lfd	  	f2,64(r1)
-	lfd	  	f3,72(r1)
-	lfd	  	f4,80(r1)
-	lfd	  	f5,88(r1)
-	lfd	  	f6,96(r1)
-	lfd	  	f7,104(r1)
-	lfd	  	f8,112(r1)
-	lfd	  	f9,120(r1)
-	lfd	  	f10,128(r1)
-	lfd	  	f11,136(r1)
-	lfd	  	f12,144(r1)
-	lfd	  	f13,152(r1)
+	lfd	  	fr1,56(r1)
+	lfd	  	fr2,64(r1)
+	lfd	  	fr3,72(r1)
+	lfd	  	fr4,80(r1)
+	lfd	  	fr5,88(r1)
+	lfd	  	fr6,96(r1)
+	lfd	  	fr7,104(r1)
+	lfd	  	fr8,112(r1)
+	lfd	  	fr9,120(r1)
+	lfd	  	fr10,128(r1)
+	lfd	  	fr11,136(r1)
+	lfd	  	fr12,144(r1)
+	lfd	  	fr13,152(r1)
 	lwz	  	r10,160(r1)
 
 	lwz     itmp1,176+8(r1)
@@ -463,7 +522,6 @@ noregchange:
 /*	lwz     pv,-8(r1)*/
 	lwz     r31,-4(r1)
 	bctr
-
 
 
 /********************* function asm_handle_exception ***************************
@@ -709,7 +767,11 @@ ex_no_restore:
 	bl      ex_int1
 ex_int1:
 	mflr    r5
+#if defined(__DARWIN__)
 	addi    r5,r5,lo16(ex_int2-ex_int1)
+#else
+	addi    r5,r5,(ex_int2-ex_int1)@l
+#endif
 	slwi    r4,r4,2
 	subf    r5,r4,r5
 	mtctr   r5
@@ -731,21 +793,25 @@ ex_int2:
 	bl      ex_flt1
 ex_flt1:
 	mflr    r5
+#if defined(__DARWIN__)
 	addi    r5,r5,lo16(ex_flt2-ex_flt1)
+#else
+	addi    r5,r5,(ex_flt2-ex_flt1)@l
+#endif
 	slwi    r4,r4,2
 	subf    r5,r4,r5
 	mtctr   r5
 	bctr
-	lfd     f14,-80(r3)
-	lfd     f15,-72(r3)
-	lfd     f24,-64(r3)
-	lfd     f25,-56(r3)
-	lfd     f26,-48(r3)
-	lfd     f27,-40(r3)
-	lfd     f28,-32(r3)
-	lfd     f29,-24(r3)
-	lfd     f30,-16(r3)
-	lfd     f31,-8(r3)
+	lfd     fr14,-80(r3)
+	lfd     fr15,-72(r3)
+	lfd     fr24,-64(r3)
+	lfd     fr25,-56(r3)
+	lfd     fr26,-48(r3)
+	lfd     fr27,-40(r3)
+	lfd     fr28,-32(r3)
+	lfd     fr29,-24(r3)
+	lfd     fr30,-16(r3)
+	lfd     fr31,-8(r3)
 ex_flt2:
 	mtlr    xpc
 	lwz     itmp3,4(xpc)
@@ -785,19 +851,19 @@ asm_check_clinit:
     stw     r9,10*8(r1)
 	stw     r10,11*8(r1)
 
-	stfd    f1,12*8(r1)
-    stfd    f2,13*8(r1)
-    stfd    f3,14*8(r1)
-    stfd    f4,15*8(r1)
-    stfd    f5,16*8(r1)
-    stfd    f6,17*8(r1)
-    stfd    f7,18*8(r1)
-    stfd    f8,19*8(r1)
-    stfd    f9,20*8(r1)
-    stfd    f10,21*8(r1)
-    stfd    f11,22*8(r1)
-    stfd    f12,23*8(r1)
-    stfd    f13,24*8(r1)
+	stfd    fr1,12*8(r1)
+    stfd    fr2,13*8(r1)
+    stfd    fr3,14*8(r1)
+    stfd    fr4,15*8(r1)
+    stfd    fr5,16*8(r1)
+    stfd    fr6,17*8(r1)
+    stfd    fr7,18*8(r1)
+    stfd    fr8,19*8(r1)
+    stfd    fr9,20*8(r1)
+    stfd    fr10,21*8(r1)
+    stfd    fr11,22*8(r1)
+    stfd    fr12,23*8(r1)
+    stfd    fr13,24*8(r1)
 		
 	mr      r3,itmp1
 	bl      class_init
@@ -812,19 +878,19 @@ asm_check_clinit:
 	lwz     r9,10*8(r1)
 	lwz     r10,11*8(r1)
 
-    lfd     f1,12*8(r1)
-    lfd     f2,13*8(r1)
-    lfd     f3,14*8(r1)
-    lfd   	f4,15*8(r1)
-    lfd   	f5,16*8(r1)
-    lfd   	f6,17*8(r1)
-    lfd   	f7,18*8(r1)
-    lfd   	f8,19*8(r1)
-    lfd   	f9,20*8(r1)
-    lfd   	f10,21*8(r1)
-    lfd   	f11,22*8(r1)
-    lfd   	f12,23*8(r1)
-    lfd   	f13,24*8(r1)
+    lfd     fr1,12*8(r1)
+    lfd     fr2,13*8(r1)
+    lfd     fr3,14*8(r1)
+    lfd   	fr4,15*8(r1)
+    lfd   	fr5,16*8(r1)
+    lfd   	fr6,17*8(r1)
+    lfd   	fr7,18*8(r1)
+    lfd   	fr8,19*8(r1)
+    lfd   	fr9,20*8(r1)
+    lfd   	fr10,21*8(r1)
+    lfd   	fr11,22*8(r1)
+    lfd   	fr12,23*8(r1)
+    lfd   	fr13,24*8(r1)
 		
 	lwz     r0,(26*8)+8(r1)
 	mtlr    r0
@@ -846,7 +912,12 @@ L_initializererror:
 	mtlr    r0	
 	addi    r1,r1,4*8
 #else
+#if defined(__DARWIN__)
 	lwz     r3,lo16(_exceptionptr-0b)(pv)
+#else
+	lis     r3,_exceptionptr@ha
+	addi    r3,r3,_exceptionptr@l
+#endif
 #endif
 
 	lwz     xptr,0(r3)            /* get the exception pointer                */
@@ -1157,27 +1228,31 @@ asm_initialize_thread_stack:
 0:
 	mflr r3
 	mtlr r0
-	lfd f0,lo16(doublezero-0b)(r3)
+#if defined(__DARWIN__)
+	lfd fr0,lo16(doublezero-0b)(r3)
+#else
+	lfd fr0,(doublezero-0b)@l(r3)
+#endif
 
-	stfd f0,40(r4)
-	stfd f0,48(r4)
-	stfd f0,56(r4)
-	stfd f0,64(r4)
-	stfd f0,72(r4)
-	stfd f0,80(r4)
-	stfd f0,88(r4)
-	stfd f0,96(r4)
-	stfd f0,104(r4)
-	stfd f0,112(r4)
+	stfd fr0,40(r4)
+	stfd fr0,48(r4)
+	stfd fr0,56(r4)
+	stfd fr0,64(r4)
+	stfd fr0,72(r4)
+	stfd fr0,80(r4)
+	stfd fr0,88(r4)
+	stfd fr0,96(r4)
+	stfd fr0,104(r4)
+	stfd fr0,112(r4)
 
-	stfd f0,160(r4)
-	stfd f0,168(r4)
-	stfd f0,176(r4)
-	stfd f0,184(r4)
-	stfd f0,192(r4)
-	stfd f0,200(r4)
-	stfd f0,208(r4)
-	stfd f0,216(r4)
+	stfd fr0,160(r4)
+	stfd fr0,168(r4)
+	stfd fr0,176(r4)
+	stfd fr0,184(r4)
+	stfd fr0,192(r4)
+	stfd fr0,200(r4)
+	stfd fr0,208(r4)
+	stfd fr0,216(r4)
 
 	mr r3,r4
 	blr
@@ -1198,16 +1273,16 @@ asm_perform_threadswitch:
 	stw r29,28(r1)
 	stw r30,32(r1)
 	stw r31,36(r1)
-	stfd f14,40(r1)
-	stfd f15,48(r1)
-	stfd f24,56(r1)
-	stfd f25,64(r1)
-	stfd f26,72(r1)
-	stfd f27,80(r1)
-	stfd f28,88(r1)
-	stfd f29,96(r1)
-	stfd f30,104(r1)
-	stfd f31,112(r1)
+	stfd fr14,40(r1)
+	stfd fr15,48(r1)
+	stfd fr24,56(r1)
+	stfd fr25,64(r1)
+	stfd fr26,72(r1)
+	stfd fr27,80(r1)
+	stfd fr28,88(r1)
+	stfd fr29,96(r1)
+	stfd fr30,104(r1)
+	stfd fr31,112(r1)
 
 	stw r16,128(r1)
 	stw r17,132(r1)
@@ -1217,14 +1292,14 @@ asm_perform_threadswitch:
 	stw r21,148(r1)
 	stw r22,152(r1)
 	stw r23,156(r1)
-	stfd f16,160(r1)
-	stfd f17,168(r1)
-	stfd f18,176(r1)
-	stfd f19,184(r1)
-	stfd f20,192(r1)
-	stfd f21,200(r1)
-	stfd f22,208(r1)
-	stfd f23,216(r1)
+	stfd fr16,160(r1)
+	stfd fr17,168(r1)
+	stfd fr18,176(r1)
+	stfd fr19,184(r1)
+	stfd fr20,192(r1)
+	stfd fr21,200(r1)
+	stfd fr22,208(r1)
+	stfd fr23,216(r1)
 
 	stw r1,0(r3)
 	stw r1,0(r5)
@@ -1242,16 +1317,16 @@ asm_perform_threadswitch:
 	lwz r29,28(r1)
 	lwz r30,32(r1)
 	lwz r31,36(r1)
-	lfd f14,40(r1)
-	lfd f15,48(r1)
-	lfd f24,56(r1)
-	lfd f25,64(r1)
-	lfd f26,72(r1)
-	lfd f27,80(r1)
-	lfd f28,88(r1)
-	lfd f29,96(r1)
-	lfd f30,104(r1)
-	lfd f31,112(r1)
+	lfd fr14,40(r1)
+	lfd fr15,48(r1)
+	lfd fr24,56(r1)
+	lfd fr25,64(r1)
+	lfd fr26,72(r1)
+	lfd fr27,80(r1)
+	lfd fr28,88(r1)
+	lfd fr29,96(r1)
+	lfd fr30,104(r1)
+	lfd fr31,112(r1)
 
 	lwz r16,128(r1)
 	lwz r17,132(r1)
@@ -1261,14 +1336,14 @@ asm_perform_threadswitch:
 	lwz r21,148(r1)
 	lwz r22,152(r1)
 	lwz r23,156(r1)
-	lfd f16,160(r1)
-	lfd f17,168(r1)
-	lfd f18,176(r1)
-	lfd f19,184(r1)
-	lfd f20,192(r1)
-	lfd f21,200(r1)
-	lfd f22,208(r1)
-	lfd f23,216(r1)
+	lfd fr16,160(r1)
+	lfd fr17,168(r1)
+	lfd fr18,176(r1)
+	lfd fr19,184(r1)
+	lfd fr20,192(r1)
+	lfd fr21,200(r1)
+	lfd fr22,208(r1)
+	lfd fr23,216(r1)
 
 	mtlr r0
 	addi r1,r1,224
