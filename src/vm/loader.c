@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 1011 2004-04-06 20:27:41Z stefan $
+   $Id: loader.c 1012 2004-04-06 20:30:19Z stefan $
 
 */
 
@@ -3510,8 +3510,10 @@ classinfo *loader_load(utf *topname)
 
 	/* avoid recursive calls */
 	if (loader_load_running) {
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 		tables_unlock();
 	    compiler_unlock();
+#endif
 		return class_new_int(topname);
 	}
 

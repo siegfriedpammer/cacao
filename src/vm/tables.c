@@ -35,7 +35,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 1011 2004-04-06 20:27:41Z stefan $
+   $Id: tables.c 1012 2004-04-06 20:30:19Z stefan $
 
 */
 
@@ -532,9 +532,13 @@ utf *utf_new_int(char *text, u2 length)
 utf *utf_new(char *text, u2 length)
 {
     utf *r;
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
     tables_lock();
+#endif
     r = utf_new_int(text, length);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
     tables_unlock();
+#endif
     return r;
 }
 
@@ -1024,9 +1028,13 @@ classinfo *class_new_int(utf *u)
 classinfo *class_new(utf *u)
 {
     classinfo *r;
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
     tables_lock();
+#endif
     r = class_new_int(u);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
     tables_unlock();
+#endif
     return r;
 }
 
