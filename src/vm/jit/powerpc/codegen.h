@@ -29,7 +29,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.h 1420 2004-10-27 16:05:14Z twisti $
+   $Id: codegen.h 1477 2004-11-11 10:47:04Z twisti $
 
 */
 
@@ -46,10 +46,10 @@
 
 /* integer registers */
   
-#define REG_RESULT       3   /* to deliver method results                     */ 
+#define REG_RESULT       3   /* to deliver method results                     */
 #define REG_RESULT2      4   /* to deliver long method results                */
 
-//#define REG_RA          26   /* return address                                */
+/*#define REG_RA          26*/  /* return address                                */
 #define REG_PV          13   /* procedure vector, must be provided by caller  */
 #define REG_METHODPTR   12   /* pointer to the place from where the procedure */
                              /* vector has been fetched                       */
@@ -65,7 +65,7 @@
 
 /* floating point registers */
 
-#define REG_FRESULT      1   /* to deliver floating point method results      */ 
+#define REG_FRESULT      1   /* to deliver floating point method results      */
 #define REG_FTMP1       16   /* temporary floating point register             */
 #define REG_FTMP2       17   /* temporary floating point register             */
 #define REG_FTMP3        0   /* temporary floating point register             */
@@ -73,10 +73,10 @@
 #define REG_IFTMP        0   /* temporary integer and floating point register */
 
 
-//#define INT_SAV_CNT     19   /* number of int callee saved registers          */
+/*#define INT_SAV_CNT     19*/   /* number of int callee saved registers          */
 #define INT_ARG_CNT      8   /* number of int argument registers              */
 
-//#define FLT_SAV_CNT     18   /* number of flt callee saved registers          */
+/*#define FLT_SAV_CNT     18*/   /* number of flt callee saved registers          */
 #define FLT_ARG_CNT     13   /* number of flt argument registers              */
 
 
@@ -98,7 +98,7 @@
     if (checknull) { \
         M_TST((objreg)); \
         M_BEQ(0); \
-        codegen_addxnullrefs(m, mcodeptr); \
+        codegen_addxnullrefs(cd, mcodeptr); \
     }
 
 #define gen_bound_check \
@@ -106,7 +106,7 @@
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
         M_CMPU(s2, REG_ITMP3);\
         M_BGE(0);\
-        codegen_addxboundrefs(m, mcodeptr, s2); \
+        codegen_addxboundrefs(cd, mcodeptr, s2); \
     }
 
 
@@ -114,7 +114,7 @@
 
 #define MCODECHECK(icnt) \
 	if ((mcodeptr + (icnt)) > cd->mcodeend) \
-        mcodeptr = codegen_increase(m, (u1 *) mcodeptr)
+        mcodeptr = codegen_increase(cd, (u1 *) mcodeptr)
 
 /* M_INTMOVE:
      generates an integer-move from register a to b.
@@ -126,10 +126,10 @@
 #define M_TINTMOVE(t,a,b) \
 	if ((t) == TYPE_LNG) { \
 		if ((a) <= (b)) \
-            M_INTMOVE(r->secondregs[(a)], r->secondregs[(b)]); \
+            M_INTMOVE(rd->secondregs[(a)], rd->secondregs[(b)]); \
 		M_INTMOVE((a), (b)); \
         if ((a) > (b)) \
-            M_INTMOVE(r->secondregs[(a)], r->secondregs[(b)]); \
+            M_INTMOVE(rd->secondregs[(a)], rd->secondregs[(b)]); \
 	} else { \
 		M_INTMOVE((a), (b)); \
     }
@@ -140,7 +140,7 @@
     if a and b are the same float-register, no code will be generated
 */ 
 
-#define M_FLTMOVE(a,b) if((a)!=(b)){M_FMOV(a,b);}
+#define M_FLTMOVE(a,b) if ((a) != (b)) { M_FMOV(a, b); }
 
 
 /* var_to_reg_xxx:
@@ -164,9 +164,9 @@
         if ((a)) M_ILD((tempnr), REG_SP, 4 * (v)->regoff); \
 		regnr = tempnr; \
 		if ((b) && IS_2_WORD_TYPE((v)->type)) \
-			M_ILD((a) ? r->secondregs[(tempnr)] : (tempnr), REG_SP, 4 * (v)->regoff + 4); \
+			M_ILD((a) ? rd->secondregs[(tempnr)] : (tempnr), REG_SP, 4 * (v)->regoff + 4); \
     } else \
-        regnr = (!(a) && (b)) ? r->secondregs[(v)->regoff] : (v)->regoff; \
+        regnr = (!(a) && (b)) ? rd->secondregs[(v)->regoff] : (v)->regoff; \
 }
 #define var_to_reg_int(regnr,v,tempnr) var_to_reg_int0(regnr,v,tempnr,1,1)
 
@@ -199,7 +199,7 @@
 		COUNT_SPILLS;                                  \
 		if (a) M_IST(tempregnum, REG_SP, 4 * (sptr)->regoff); \
 		if ((b) && IS_2_WORD_TYPE((sptr)->type)) \
-			M_IST(r->secondregs[tempregnum], REG_SP, 4 * (sptr)->regoff + 4); \
+			M_IST(rd->secondregs[tempregnum], REG_SP, 4 * (sptr)->regoff + 4); \
 		}                                              \
 	}
 
@@ -221,13 +221,32 @@
     if (((c) >= 0 && (c) <= 32767) || ((c) >= -32768 && (c) < 0)) {\
         M_LDA((reg), REG_ZERO, (c)); \
     } else { \
-        a = dseg_adds4(m, c); \
+        a = dseg_adds4(cd, c); \
         M_ILD((reg), REG_PV, a); \
     }
 
 #define LCONST(reg,c) \
     ICONST((reg), (s4) ((s8) (c) >> 32)); \
-    ICONST(r->secondregs[(reg)], (s4) ((s8) (c)));
+    ICONST(rd->secondregs[(reg)], (s4) ((s8) (c)));
+
+
+#define M_COPY(from,to) \
+			d = reg_of_var(rd, to, REG_IFTMP); \
+			if ((from->regoff != to->regoff) || \
+			    ((from->flags ^ to->flags) & INMEMORY)) { \
+				if (IS_FLT_DBL_TYPE(from->type)) { \
+					var_to_reg_flt(s1, from, d); \
+					M_FLTMOVE(s1,d); \
+					store_reg_to_var_flt(to, d); \
+					}\
+				else { \
+					var_to_reg_int(s1, from, d); \
+					M_TINTMOVE(from->type,s1,d); \
+					store_reg_to_var_int(to, d); \
+					}\
+				}
+
+#define ALIGNCODENOP {if((int)((long)mcodeptr&7)){M_NOP;}}
 
 
 /* macros to create code ******************************************************/
