@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 588 2003-11-09 19:42:00Z twisti $
+   $Id: codegen.h 766 2003-12-13 22:52:32Z twisti $
 
 */
 
@@ -35,37 +35,38 @@
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
+#include "global.h"
 #include "jit.h"
 
 
 /* define x86 register numbers */
-#define I386_EAX    0
-#define I386_ECX    1
-#define I386_EDX    2
-#define I386_EBX    3
-#define I386_ESP    4
-#define I386_EBP    5
-#define I386_ESI    6
-#define I386_EDI    7
+#define EAX    0
+#define ECX    1
+#define EDX    2
+#define EBX    3
+#define ESP    4
+#define EBP    5
+#define ESI    6
+#define EDI    7
 
 
 /* preallocated registers *****************************************************/
 
 /* integer registers */
   
-#define REG_RESULT      I386_EAX /* to deliver method results                 */
-#define REG_RESULT2     I386_EDX /* to deliver long method results            */
+#define REG_RESULT      EAX      /* to deliver method results                 */
+#define REG_RESULT2     EDX      /* to deliver long method results            */
 
-#define REG_ITMP1       I386_EAX /* temporary register                        */
-#define REG_ITMP2       I386_EDX /* temporary register and method pointer     */
-#define REG_ITMP3       I386_ECX /* temporary register                        */
+#define REG_ITMP1       EAX      /* temporary register                        */
+#define REG_ITMP2       ECX      /* temporary register                        */
+#define REG_ITMP3       EDX      /* temporary register                        */
 
 #define REG_NULL        -1       /* used for reg_of_var where d is not needed */
 
-#define REG_ITMP1_XPTR  I386_EAX /* exception pointer = temporary register 1  */
-#define REG_ITMP2_XPC   I386_EDX /* exception pc = temporary register 2       */
+#define REG_ITMP1_XPTR  EAX      /* exception pointer = temporary register 1  */
+#define REG_ITMP2_XPC   ECX      /* exception pc = temporary register 2       */
 
-#define REG_SP          I386_ESP /* stack pointer                             */
+#define REG_SP          ESP      /* stack pointer                             */
 
 /* floating point registers */
 
@@ -85,18 +86,6 @@ static u4 subnormal_bias2[3] = { 0x00000000, 0x80000000, 0x7bff };    /* 2^(+153
 
 
 /* macros to create code ******************************************************/
-
-/* immediate data union */
-
-typedef union {
-    s4 i;
-    s8 l;
-    float f;
-    double d;
-    void *a;
-    u1 b[8];
-} i386_imm_buf;
-
 
 typedef enum {
     I386_AL = 0,
@@ -177,7 +166,7 @@ typedef enum {
 
 #define i386_emit_imm16(imm) \
     do { \
-        i386_imm_buf imb; \
+        imm_union imb; \
         imb.i = (int) (imm); \
         *(mcodeptr++) = imb.b[0]; \
         *(mcodeptr++) = imb.b[1]; \
@@ -186,7 +175,7 @@ typedef enum {
 
 #define i386_emit_imm32(imm) \
     do { \
-        i386_imm_buf imb; \
+        imm_union imb; \
         imb.i = (int) (imm); \
         *(mcodeptr++) = imb.b[0]; \
         *(mcodeptr++) = imb.b[1]; \
@@ -204,23 +193,23 @@ typedef enum {
 
 #define i386_emit_membase(basereg,disp,dreg) \
     do { \
-        if ((basereg) == I386_ESP) { \
+        if ((basereg) == ESP) { \
             if ((disp) == 0) { \
-                i386_address_byte(0, (dreg), I386_ESP); \
-                i386_address_byte(0, I386_ESP, I386_ESP); \
+                i386_address_byte(0, (dreg), ESP); \
+                i386_address_byte(0, ESP, ESP); \
             } else if (i386_is_imm8((disp))) { \
-                i386_address_byte(1, (dreg), I386_ESP); \
-                i386_address_byte(0, I386_ESP, I386_ESP); \
+                i386_address_byte(1, (dreg), ESP); \
+                i386_address_byte(0, ESP, ESP); \
                 i386_emit_imm8((disp)); \
             } else { \
-                i386_address_byte(2, (dreg), I386_ESP); \
-                i386_address_byte(0, I386_ESP, I386_ESP); \
+                i386_address_byte(2, (dreg), ESP); \
+                i386_address_byte(0, ESP, ESP); \
                 i386_emit_imm32((disp)); \
             } \
             break; \
         } \
         \
-        if ((disp) == 0 && (basereg) != I386_EBP) { \
+        if ((disp) == 0 && (basereg) != EBP) { \
             i386_address_byte(0, (dreg), (basereg)); \
             break; \
         } \
@@ -242,7 +231,7 @@ typedef enum {
             i386_address_byte((scale), (indexreg), 5); \
             i386_emit_imm32((disp)); \
         \
-        } else if ((disp) == 0 && (basereg) != I386_EBP) { \
+        } else if ((disp) == 0 && (basereg) != EBP) { \
             i386_address_byte(0, (reg), 4); \
             i386_address_byte((scale), (indexreg), (basereg)); \
         \
@@ -413,12 +402,12 @@ void i386_fincstp();
 
 
 /* function prototypes */
+
 void codegen_init();
 void init_exceptions();
 void codegen();
 void codegen_close();
 void dseg_display(s4 *s4ptr);
-
 
 #endif /* _CODEGEN_H */
 
