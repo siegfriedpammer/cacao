@@ -1,5 +1,4 @@
-/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
-/********************************* disass.c ************************************
+/* disass.c ********************************************************************
 
 	Copyright (c) 1997 A. Krall, R. Grafl, M. Gschwind, M. Probst
 
@@ -7,89 +6,106 @@
 
 	A very primitive disassembler for Alpha machine code for easy debugging.
 
-	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
-	         Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
+	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
+	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: 1997/10/22
+	Last Change: 1998/11/06
 
 *******************************************************************************/
 
+/*  The disassembler uses two tables for decoding the instructions. The first
+	table (ops) is used to classify the instructions based on the op code and
+	contains the instruction names for instructions which don't used the
+	function codes. This table is indexed by the op code (6 bit, 64 entries).
+	The second table (op3s) contains instructions which contain both an op
+	code and a function code. This table is an unsorted list of instructions
+	which is terminated by op code and function code zero. This list is
+	searched linearly for a matching pair of opcode and function code.
+*/
 
-#define ITYPE_UNDEF 0
-#define ITYPE_JMP   1
-#define ITYPE_MEM   2
-#define ITYPE_BRA   3
-#define ITYPE_OP    4
-#define ITYPE_FOP   5
+#define ITYPE_UNDEF 0           /* undefined instructions (illegal opcode)    */
+#define ITYPE_JMP   1           /* jump instructions                          */
+#define ITYPE_MEM   2           /* memory instructions                        */
+#define ITYPE_BRA   3           /* branch instructions                        */
+#define ITYPE_OP    4           /* integer instructions                       */
+#define ITYPE_FOP   5           /* floating point instructions                */
 
-static struct { int op; char *name; int itype; } ops[] = {
-	{ 0x00, "",      ITYPE_UNDEF},
-	{ 0x01, "",      ITYPE_UNDEF},
-	{ 0x02, "",      ITYPE_UNDEF},
-	{ 0x03, "",      ITYPE_UNDEF},
-	{ 0x04, "",      ITYPE_UNDEF},
-	{ 0x05, "",      ITYPE_UNDEF},
-	{ 0x06, "",      ITYPE_UNDEF},
-	{ 0x07, "",      ITYPE_UNDEF},
-	{ 0x08, "LDA    ", ITYPE_MEM},
-	{ 0x09, "LDAH   ", ITYPE_MEM},
-	{ 0x0a, "LDB    ", ITYPE_MEM},
-	{ 0x0b, "LDQ_U  ", ITYPE_MEM},
-	{ 0x0c, "LDW    ", ITYPE_MEM},
-	{ 0x0d, "STW    ", ITYPE_MEM},
-	{ 0x0e, "STB    ", ITYPE_MEM},
-	{ 0x0f, "STQ_U  ", ITYPE_MEM},
-	{ 0x10, "OP     ",  ITYPE_OP},
-	{ 0x11, "OP     ",  ITYPE_OP},
-	{ 0x12, "OP     ",  ITYPE_OP},
-	{ 0x13, "OP     ",  ITYPE_OP},
-	{ 0x14, "",      ITYPE_UNDEF},
-	{ 0x15, "",      ITYPE_UNDEF},
-	{ 0x16, "FOP    ", ITYPE_FOP},
-	{ 0x17, "FOP    ", ITYPE_FOP},
-	{ 0x18, "MEMFMT ", ITYPE_MEM},
-	{ 0x19, "",      ITYPE_UNDEF},
-	{ 0x1a, "JMP    ", ITYPE_JMP},
-	{ 0x1b, "",      ITYPE_UNDEF},
-	{ 0x1c, "OP     ",  ITYPE_OP},
-	{ 0x1d, "",      ITYPE_UNDEF},
-	{ 0x1e, "",      ITYPE_UNDEF},
-	{ 0x1f, "",      ITYPE_UNDEF},
-	{ 0x20, "LDF    ", ITYPE_MEM},
-	{ 0x21, "LDG    ", ITYPE_MEM},
-	{ 0x22, "LDS    ", ITYPE_MEM},
-	{ 0x23, "LDT    ", ITYPE_MEM},
-	{ 0x24, "STF    ", ITYPE_MEM},
-	{ 0x25, "STG    ", ITYPE_MEM},
-	{ 0x26, "STS    ", ITYPE_MEM},
-	{ 0x27, "STT    ", ITYPE_MEM},
-	{ 0x28, "LDL    ", ITYPE_MEM},
-	{ 0x29, "LDQ    ", ITYPE_MEM},
-	{ 0x2a, "LDL_L  ", ITYPE_MEM},
-	{ 0x2b, "LDQ_L  ", ITYPE_MEM},
-	{ 0x2c, "STL    ", ITYPE_MEM},
-	{ 0x2d, "STQ    ", ITYPE_MEM},
-	{ 0x2e, "STL_C  ", ITYPE_MEM},
-	{ 0x2f, "STQ_C  ", ITYPE_MEM},
-	{ 0x30, "BR     ", ITYPE_BRA},
-	{ 0x31, "FBEQ   ", ITYPE_BRA},
-	{ 0x32, "FBLT   ", ITYPE_BRA},
-	{ 0x33, "FBLE   ", ITYPE_BRA},
-	{ 0x34, "BSR    ", ITYPE_BRA},
-	{ 0x35, "FBNE   ", ITYPE_BRA},
-	{ 0x36, "FBGE   ", ITYPE_BRA},
-	{ 0x37, "FBGT   ", ITYPE_BRA},
-	{ 0x38, "BLBC   ", ITYPE_BRA},
-	{ 0x39, "BEQ    ", ITYPE_BRA},
-	{ 0x3a, "BLT    ", ITYPE_BRA},
-	{ 0x3b, "BLE    ", ITYPE_BRA},
-	{ 0x3c, "BLBS   ", ITYPE_BRA},
-	{ 0x3d, "BNE    ", ITYPE_BRA},
-	{ 0x3e, "BGE    ", ITYPE_BRA},
-	{ 0x3f, "BGT    ", ITYPE_BRA}
+
+/* instruction decode table for 6 bit op codes                                */
+
+static struct {char *name; int itype;} ops[] = {
+
+	/* 0x00 */  {"",        ITYPE_UNDEF},
+	/* 0x01 */  {"",        ITYPE_UNDEF},
+	/* 0x02 */  {"",        ITYPE_UNDEF},
+	/* 0x03 */  {"",        ITYPE_UNDEF},
+	/* 0x04 */  {"",        ITYPE_UNDEF},
+	/* 0x05 */  {"",        ITYPE_UNDEF},
+	/* 0x06 */  {"",        ITYPE_UNDEF},
+	/* 0x07 */  {"",        ITYPE_UNDEF},
+	/* 0x08 */  {"LDA    ",   ITYPE_MEM},
+	/* 0x09 */  {"LDAH   ",   ITYPE_MEM},
+	/* 0x0a */  {"LDB    ",   ITYPE_MEM},
+	/* 0x0b */  {"LDQ_U  ",   ITYPE_MEM},
+	/* 0x0c */  {"LDW    ",   ITYPE_MEM},
+	/* 0x0d */  {"STW    ",   ITYPE_MEM},
+	/* 0x0e */  {"STB    ",   ITYPE_MEM},
+	/* 0x0f */  {"STQ_U  ",   ITYPE_MEM},
+	/* 0x10 */  {"OP     ",    ITYPE_OP},
+	/* 0x11 */  {"OP     ",    ITYPE_OP},
+	/* 0x12 */  {"OP     ",    ITYPE_OP},
+	/* 0x13 */  {"OP     ",    ITYPE_OP},
+	/* 0x14 */  {"",        ITYPE_UNDEF},
+	/* 0x15 */  {"",        ITYPE_UNDEF},
+	/* 0x16 */  {"FOP    ",   ITYPE_FOP},
+	/* 0x17 */  {"FOP    ",   ITYPE_FOP},
+	/* 0x18 */  {"MEMFMT ",   ITYPE_MEM},
+	/* 0x19 */  {"",        ITYPE_UNDEF},
+	/* 0x1a */  {"JMP    ",   ITYPE_JMP},
+	/* 0x1b */  {"",        ITYPE_UNDEF},
+	/* 0x1c */  {"OP     ",    ITYPE_OP},
+	/* 0x1d */  {"",        ITYPE_UNDEF},
+	/* 0x1e */  {"",        ITYPE_UNDEF},
+	/* 0x1f */  {"",        ITYPE_UNDEF},
+	/* 0x20 */  {"LDF    ",   ITYPE_MEM},
+	/* 0x21 */  {"LDG    ",   ITYPE_MEM},
+	/* 0x22 */  {"LDS    ",   ITYPE_MEM},
+	/* 0x23 */  {"LDT    ",   ITYPE_MEM},
+	/* 0x24 */  {"STF    ",   ITYPE_MEM},
+	/* 0x25 */  {"STG    ",   ITYPE_MEM},
+	/* 0x26 */  {"STS    ",   ITYPE_MEM},
+	/* 0x27 */  {"STT    ",   ITYPE_MEM},
+	/* 0x28 */  {"LDL    ",   ITYPE_MEM},
+	/* 0x29 */  {"LDQ    ",   ITYPE_MEM},
+	/* 0x2a */  {"LDL_L  ",   ITYPE_MEM},
+	/* 0x2b */  {"LDQ_L  ",   ITYPE_MEM},
+	/* 0x2c */  {"STL    ",   ITYPE_MEM},
+	/* 0x2d */  {"STQ    ",   ITYPE_MEM},
+	/* 0x2e */  {"STL_C  ",   ITYPE_MEM},
+	/* 0x2f */  {"STQ_C  ",   ITYPE_MEM},
+	/* 0x30 */  {"BR     ",   ITYPE_BRA},
+	/* 0x31 */  {"FBEQ   ",   ITYPE_BRA},
+	/* 0x32 */  {"FBLT   ",   ITYPE_BRA},
+	/* 0x33 */  {"FBLE   ",   ITYPE_BRA},
+	/* 0x34 */  {"BSR    ",   ITYPE_BRA},
+	/* 0x35 */  {"FBNE   ",   ITYPE_BRA},
+	/* 0x36 */  {"FBGE   ",   ITYPE_BRA},
+	/* 0x37 */  {"FBGT   ",   ITYPE_BRA},
+	/* 0x38 */  {"BLBC   ",   ITYPE_BRA},
+	/* 0x39 */  {"BEQ    ",   ITYPE_BRA},
+	/* 0x3a */  {"BLT    ",   ITYPE_BRA},
+	/* 0x3b */  {"BLE    ",   ITYPE_BRA},
+	/* 0x3c */  {"BLBS   ",   ITYPE_BRA},
+	/* 0x3d */  {"BNE    ",   ITYPE_BRA},
+	/* 0x3e */  {"BGE    ",   ITYPE_BRA},
+	/* 0x3f */  {"BGT    ",   ITYPE_BRA}
 };
-		
-static struct { u2 op,fun; char *name; }  op3s[] = {
+
+
+/* instruction decode list for 6 bit op codes and 9 bit function codes        */
+ 
+static struct { u2 op, fun; char *name; }  op3s[] = {
+
 	{ 0x10, 0x00,  "ADDL   " },
 	{ 0x10, 0x40,  "ADDL/V " },
 	{ 0x10, 0x20,  "ADDQ   " },
@@ -198,100 +214,117 @@ static struct { u2 op,fun; char *name; }  op3s[] = {
 };
 
 
+/* function disassemble ********************************************************
+
+	outputs a disassembler listing of one machine code instruction on 'stdout'
+	c:   instructions machine code
+	pos: instructions address relative to method start
+
+*******************************************************************************/
+
 static void disasscmd (int c, int pos)
 {
-	int op, opfun, fopfun, i;
-	int ra, rb, rc, lit, disp;
+	int op;                     /* 6 bit op code                              */
+	int opfun;                  /* 7 bit function code                        */
+	int ra, rb, rc;             /* 6 bit register specifiers                  */
+	int lit;                    /* 8 bit unsigned literal                     */
+	int i;                      /* loop counter                               */
 
-	op     = (c>>26) & 0x3f;
-	opfun  = (c>>5)  & 0x7f;
-	fopfun = (c>>5)  & 0x7ff;
-	ra     = (c>>21) & 0x1f;
-	rb     = (c>>16) & 0x1f;
-	rc     = (c>>0)  & 0x1f;
-	lit    = (c>>13) & 0xff;
-	disp   = (c<<16) >> 16;
+	op    = (c >> 26) & 0x3f;   /* 6 bit op code                              */
+	opfun = (c >> 5)  & 0x7f;   /* 7 bit function code                        */
+	ra    = (c >> 21) & 0x1f;   /* 6 bit source register specifier            */
+	rb    = (c >> 16) & 0x1f;   /* 6 bit source register specifier            */
+	rc    = (c >> 0)  & 0x1f;   /* 6 bit destination register specifiers      */
+	lit   = (c >> 13) & 0xff;   /* 8 bit unsigned literal                     */
 
 	printf ("%6x: %8x  ", pos, c);
 	
-	switch ( ops[op].itype ) {
-	case ITYPE_JMP:
-		switch ((c>>14) & 3) {
-			case 0:
-				printf ("JMP     "); 
-				break;
-			case 1:
-				printf ("JSR     "); 
-				break;
-			case 2:
-				printf ("RET     "); 
-				break;
-			case 3:
-				printf ("JSR_CO  "); 
-				break;
-			}
-		printf ("$%d,$%d\n", ra, rb); 
-		break;
-
-	case ITYPE_MEM:
-		if (op == 0x18 && ra == 0 && ra == 0 && disp == 0)
-			printf ("TRAPB\n"); 
-		else
-			printf ("%s $%d,$%d,%d\n", ops[op].name, ra, rb, disp); 
-		break;
-
-	case ITYPE_BRA:
-		printf ("%s $%d,%x\n", ops[op].name, ra, pos + 4 + ((c << 11) >> 9));
-		break;
-		
-	case ITYPE_FOP:
-		if (op == 0x17 && fopfun == 0x020 && ra == rb) {
-			if (ra == 31 && rc == 31)
-				printf ("FNOP\n");
-			else
-				printf ("FMOV    $f%d,$f%d\n", ra, rc);
-			return;
-			}
-		for (i = 0; op3s[i].name; i++)
-			if (op3s[i].op == op && op3s[i].fun == fopfun) {
-				printf ("%s $f%d,$f%d,$f%d\n", op3s[i].name, ra, rb,  rc);
-				return;
+	switch (ops[op].itype) {
+		case ITYPE_JMP:
+			switch ((c >> 14) & 3) {  /* branch hint */
+				case 0:
+					printf ("JMP     "); 
+					break;
+				case 1:
+					printf ("JSR     "); 
+					break;
+				case 2:
+					printf ("RET     "); 
+					break;
+				case 3:
+					printf ("JSR_CO  "); 
+					break;
 				}
-		printf ("%s%x $f%d,$f%d,$f%d\n", ops[op].name, fopfun, ra, rb, rc);
-		break; 
+			printf ("$%d,$%d\n", ra, rb); 
+			break;
 
-	case ITYPE_OP:
-		if (op == 0x11 && opfun == 0x20 && ra == rb && ~(c&0x1000)) {
-			if (ra == 31 && rc == 31)
-				printf ("NOP\n");
-			else if (ra == 31)
-				printf ("CLR     $%d\n", rc);
+		case ITYPE_MEM: {
+			int disp = (c << 16) >> 16; /* 16 bit signed displacement         */
+
+			if (op == 0x18 && ra == 0 && ra == 0 && disp == 0)
+				printf ("TRAPB\n"); 
 			else
-				printf ("MOV     $%d,$%d\n", ra, rc);
-			return;
+				printf ("%s $%d,$%d,%d\n", ops[op].name, ra, rb, disp); 
+			break;
 			}
-		for (i = 0; op3s[i].name; i++) {
-			if (op3s[i].op == op && op3s[i].fun == opfun) {
-				if (c&0x1000)
-					printf ("%s $%d,#%d,$%d\n", op3s[i].name, ra, lit, rc);
+
+		case ITYPE_BRA:             /* 21 bit signed branch offset */
+			printf("%s $%d,%x\n", ops[op].name, ra, pos + 4 + ((c << 11) >> 9));
+			break;
+			
+		case ITYPE_FOP: {
+			int fopfun = (c >> 5) & 0x7ff;  /* 11 bit fp function code        */
+
+			if (op == 0x17 && fopfun == 0x020 && ra == rb) {
+				if (ra == 31 && rc == 31)
+					printf("FNOP\n");
 				else
-					printf ("%s $%d,$%d,$%d\n", op3s[i].name, ra, rb,  rc);
+					printf("FMOV    $f%d,$f%d\n", ra, rc);
 				return;
 				}
+			for (i = 0; op3s[i].name; i++)
+				if (op3s[i].op == op && op3s[i].fun == fopfun) {
+					printf("%s $f%d,$f%d,$f%d\n", op3s[i].name, ra, rb,  rc);
+					return;
+					}
+			printf("%s%x $f%d,$f%d,$f%d\n", ops[op].name, fopfun, ra, rb, rc);
+			break;
 			}
-		/* fall through */
-	default:
-		if (c&0x1000)
-			printf ("UNDEF  %x(%x) $%d,#%d,$%d\n", op, opfun, ra, lit, rc);
-		else
-			printf ("UNDEF  %x(%x) $%d,$%d,$%d\n", op, opfun, ra, rb,  rc);		
-	}
+
+		case ITYPE_OP:
+			if (op == 0x11 && opfun == 0x20 && ra == rb && ~(c&0x1000)) {
+				if (ra == 31 && rc == 31)
+					printf("NOP\n");
+				else if (ra == 31)
+					printf("CLR     $%d\n", rc);
+				else
+					printf("MOV     $%d,$%d\n", ra, rc);
+				return;
+				}
+			for (i = 0; op3s[i].name; i++) {
+				if (op3s[i].op == op && op3s[i].fun == opfun) {
+					if (c & 0x1000)                  /* immediate instruction */
+						printf("%s $%d,#%d,$%d\n", op3s[i].name, ra, lit, rc);
+					else
+						printf("%s $%d,$%d,$%d\n", op3s[i].name, ra, rb,  rc);
+					return;
+					}
+				}
+			/* fall through */
+		default:
+			if (c & 0x1000)                          /* immediate instruction */
+				printf("UNDEF  %x(%x) $%d,#%d,$%d\n", op, opfun, ra, lit, rc);
+			else
+				printf("UNDEF  %x(%x) $%d,$%d,$%d\n", op, opfun, ra, rb,  rc);		
+		}
 }
 
 
-/*********************** funktion disassemble **********************************
+/* function disassemble ********************************************************
 
 	outputs a disassembler listing of some machine code on 'stdout'
+	code: pointer to first instruction
+	len:  code size (number of instructions * 4)
 
 *******************************************************************************/
 
@@ -303,3 +336,17 @@ static void disassemble (int *code, int len)
 	for (p = 0; p < len; p += 4, code++)
 		disasscmd (*code, p); 
 }
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
