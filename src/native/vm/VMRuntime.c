@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1429 2004-11-02 08:58:26Z jowenn $
+   $Id: VMRuntime.c 1431 2004-11-02 15:22:57Z twisti $
 
 */
 
@@ -349,7 +349,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 	proplist[6][1] = utsnamebuf.sysname;
 	proplist[7][1] = utsnamebuf.release;
 
-	proplist[8][1]=getenv("LD_LIBRARY_PATH");
+#if defined(STATIC_CLASSPATH)
+	proplist[8][1] = ".";
+#else
+	proplist[8][1] = getenv("LD_LIBRARY_PATH");
+#endif
 
 	if (!p) {
 		*exceptionptr = new_exception(string_java_lang_NullPointerException);
