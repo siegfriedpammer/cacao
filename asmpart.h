@@ -14,6 +14,8 @@
 
 *******************************************************************************/
 
+#include "global.h"
+
 int has_no_x_instr_set();
 	/* determines if the byte support instruction set (21164a and higher)
 	   is available. */

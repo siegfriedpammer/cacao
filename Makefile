@@ -9,7 +9,7 @@
 # Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 #          Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 #
-# Last Change: 1997/10/30
+# Last Change: 1998/09/27
 #
 #
 # ATTENTION: This version of the makefile only works with gmake.
@@ -21,6 +21,12 @@
 #            generated automatically.
 #
 ################################################################################
+
+VERSION_MAJOR = 0
+VERSION_MINOR = 30
+VERSION_POSTFIX = 
+
+VERSION_STRING=$(VERSION_MAJOR).$(VERSION_MINOR)$(VERSION_POSTFIX)
 
 ##################### generation of the excutable ##############################
 
@@ -45,8 +51,9 @@ CC = cc
 CFLAGS = -O3 -ieee $(THREAD_CFLAGS)
 
 OBJ = main.o tables.o loader.o compiler.o newcomp.o builtin.o asmpart.o \
-    toolbox/toolbox.a native.o $(THREAD_OBJ)
-OBJH = headers.o tables.o loader.o builtin.o toolbox/toolbox.a $(THREAD_OBJ)
+	toolbox/toolbox.a native.o $(THREAD_OBJ) mm/mm.o
+OBJH = headers.o tables.o loader.o builtin.o toolbox/toolbox.a $(THREAD_OBJ) \
+	 mm/mm.o
 
 cacao: $(OBJ)
 	$(CC) $(CFLAGS) -o cacao $(OBJ) -lm
@@ -84,6 +91,9 @@ threads/threads.a: threads/*.c threads/*.h sysdep/threads.h
 	cd threads; make threads.a "USE_THREADS=$(USE_THREADS)" "CFLAGS=$(CFLAGS)" "CC=$(CC)" 
 endif
 
+mm/mm.o: mm/*.[ch] mm/Makefile
+	cd mm; make mm.o "USE_THREADS=$(USE_THREADS)" "CFLAGS=$(CFLAGS)" "CC=$(CC)"
+
 asmpart.o: sysdep/asmpart.c
 	rm -f asmpart.s
 	$(CC) -E sysdep/asmpart.c > asmpart.s
@@ -109,6 +119,21 @@ tar:
 	mv cacao.tar.gz cacao.tgz
 	ls -l cacao.tgz
 
+dist:
+	rm -rf cacao-$(VERSION_STRING).tar.gz cacao-$(VERSION_STRING);
+	( mkdir cacao-$(VERSION_STRING); \
+#	  tar -cf cacao-$(VERSION_STRING).tar -T FILES; \
+	  tar -cvf cacao-$(VERSION_STRING).tar Makefile */Makefile README COPYRIGHT \
+	    tst/*.java doc/*.doc html/*.html *.[ch] comp/*.[ch] ncomp/*.[ch] \
+	    alpha/*.doc alpha/*.[ch] nat/*.[ch] toolbox/*.[ch] threads/*.[ch]; \
+	  cd cacao-$(VERSION_STRING); \
+	  tar -xf ../cacao-$(VERSION_STRING).tar; \
+	  cd ..; \
+	  rm cacao-$(VERSION_STRING).tar; \
+	  tar -cvf cacao-$(VERSION_STRING).tar cacao-$(VERSION_STRING); \
+	  rm -rf cacao-$(VERSION_STRING); )
+	gzip -9 cacao-$(VERSION_STRING).tar
+	ls -l cacao-$(VERSION_STRING).tar.gz
 
 ########################## supported architectures #############################
 
