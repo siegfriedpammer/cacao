@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.c 2075 2005-03-25 12:33:37Z edwin $
+   $Id: descriptor.c 2084 2005-03-25 15:13:45Z edwin $
 
 */
 
@@ -338,6 +338,13 @@ descriptor_pool_add_class(descriptor_pool *pool,utf *name)
 			return true; /* already stored */
 		c = c->hashlink;
 	}
+
+	/* check if the name is a valid classname */
+	if (!is_valid_name(name->text,utf_end(name))) {
+		*exceptionptr = new_classformaterror(pool->referer,"Invalid class name");
+		return false; /* exception */
+	}
+	
 	c = DNEW(classref_hash_entry);
 	c->name = name;
 	c->index = pool->classrefhash.entries++;
