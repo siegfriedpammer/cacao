@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1000 2004-03-30 22:42:57Z twisti $
+   $Id: builtin.c 1022 2004-04-21 18:30:53Z stefan $
 
 */
 
@@ -289,15 +289,6 @@ java_objectheader *builtin_throw_exception(java_objectheader *local_exceptionptr
 	return local_exceptionptr;
 }
 
-
-void builtin_reset_exceptionptr()
-{
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	THREADINFO->_exceptionptr = NULL;
-#else
-	panic("builtin_reset_exceptionptr should not be used in this configuration");
-#endif
-}
 
 
 /******************* function: builtin_canstore *******************************
