@@ -905,11 +905,15 @@ void
 gc_call (void)
 {
 #ifdef USE_THREADS
+	u1 dummy;
+
 	assert(blockInts == 0);
 
 	intsDisable();
-	if (currentThread == NULL || currentThread == mainThread)
+	if (currentThread == NULL || currentThread == mainThread) {
+		CONTEXT(mainThread).usedStackTop = &dummy;
 		gc_run();
+		}
 	else
 		asm_switchstackandcall(CONTEXT(mainThread).usedStackTop, gc_run,
 							   (void**)&(CONTEXT(currentThread).usedStackTop));
