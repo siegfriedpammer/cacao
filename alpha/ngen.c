@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 309 2003-05-15 15:04:35Z stefan $
+	Last Change: $Id: ngen.c 310 2003-05-15 15:12:09Z stefan $
 
 *******************************************************************************/
 
@@ -3770,11 +3770,13 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	*(cs-7) = (u8) asm_builtin_exittrace;
 	*(cs-8) = (u8) builtin_trace_exception;
 
+#if 0
 	printf("stub: ");
 	utf_display(m->class->name);
 	printf(".");
 	utf_display(m->name);
 	printf(" 0x%p\n", cs);
+#endif
 
 	M_LDA  (REG_SP, REG_SP, -8);        /* build up stackframe                */
 	M_AST  (REG_RA, REG_SP, 0);         /* store return address               */
