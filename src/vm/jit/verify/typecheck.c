@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 894 2004-01-19 12:59:47Z edwin $
+   $Id: typecheck.c 917 2004-02-08 18:13:05Z edwin $
 
 */
 
@@ -471,7 +471,7 @@ typestate_merge(stackptr deststack,typevector *destloc,
 		}
 		   
 	merged:
-		
+		;
 	}
 	
 	LOG("result:");
@@ -791,6 +791,9 @@ typecheck()
 	typevector *lset;                             /* temporary pointer */
 	typedescriptor *td;                           /* temporary pointer */
 
+	typeinfo *savedtypes = NULL;       /* saved types of instack slots */
+	typeinfo *savedtypesbuf = NULL;   /* reusable buffer for the above */
+													  
 	typedescriptor returntype;        /* return type of current method */
     u1 *ptype;                     /* parameter types of called method */
     typeinfo *pinfo;           /* parameter typeinfos of called method */
@@ -1572,6 +1575,25 @@ typecheck()
                                           && TYPEINFO_NEWOBJECT_INSTRUCTION(srcstack->typeinfo) == ins)
                                       {
                                           LOG("replacing uninitialized type on stack");
+
+										  /* If this stackslot is in the instack of
+										   * this basic block we must save the type(s)
+										   * we are going to replace.
+										   */
+										  if (srcstack <= bptr->instack && !savedtypes)
+										  {
+											  stackptr sp;
+											  typeinfo *ti;
+											  LOG("saving input stack types");
+											  if (!savedtypesbuf) {
+												  LOG("allocating savedtypes buffer");
+												  savedtypesbuf = DMNEW(typeinfo,maxstack);
+											  }
+											  ti = savedtypes = savedtypesbuf;
+											  for (sp=bptr->instack; sp; sp=sp->prev, ti++)
+												  TYPEINFO_COPY(sp->typeinfo,*ti);
+										  }
+										  
                                           TYPEINFO_INIT_CLASSINFO(srcstack->typeinfo,initclass);
                                       }
                                       srcstack = srcstack->prev;
@@ -1985,6 +2007,21 @@ typecheck()
                     }
                     TYPECHECK_REACH;
                 }
+
+				/* We may have to restore the types of the instack slots. They
+				 * have been saved if an <init> call inside the block has
+				 * modified the instack types. (see INVOKESPECIAL) */
+				
+				if (savedtypes) {
+					typeinfo *ti = savedtypes;
+					stackptr sp;
+					LOG("restoring saved instack types");
+					for (sp=bptr->instack; sp; sp=sp->prev, ti++) {
+						if (sp->type == TYPE_ADR && TYPEINFO_IS_NEWOBJECT(*ti))
+							TYPEINFO_COPY(*ti,sp->typeinfo);
+					}
+					savedtypes = NULL;
+				}
                 
             } /* if block has to be checked */
             bptr++;
