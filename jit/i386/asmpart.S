@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1193 2004-06-19 12:49:53Z twisti $
+   $Id: asmpart.S 1452 2004-11-05 14:16:19Z twisti $
 
 */
 
@@ -1017,9 +1017,8 @@ nb_aastore_null:
 #endif
 nb_aastore_bound:
 	push    %ecx                        /* itmp2 contains array index         */
-	push    string_java_lang_ArrayIndexOutOfBoundsException
-	call    new_exception_int
-	add     $(2*4),%esp
+	call    new_arrayindexoutofboundsexception
+	add     $(1*4),%esp
 
 	add     $12,%esp
 	pop     %ecx                        /* delete return address              */
